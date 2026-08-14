@@ -649,7 +649,16 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
             target.pageId,
             paintOrderedFrames,
             pagePositionSnapshot,
-            () => renderPageGuides(ck, canvas, target, cameraZoom),
+            () =>
+              renderPageGuides(
+                ck,
+                canvas,
+                target,
+                cameraZoom,
+                selectedGuide?.pageId === target.pageId
+                  ? selectedGuide.guideId
+                  : null,
+              ),
           );
 
           // 선택된 가이드는 선의 방향 끝까지 연장한다 (페이지 밖 = 점선).

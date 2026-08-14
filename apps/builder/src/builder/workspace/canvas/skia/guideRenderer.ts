@@ -10,11 +10,13 @@
  * | §8.5 분류         | 조작 표식             | **콘텐츠성 chrome**                |
  * | occlusion / 클립  | 미적용                | `withPageOcclusionClip` + 페이지 rect |
  *
- * 그래서 색도 갈라야 한다. 스냅 웜 레드(#F24822)를 재사용하면 "지금 흡착
- * 중" 과 "여기 기준선이 있다" 가 같은 신호로 읽힌다. 시안 계열
- * (#59A8D7 — Figma 가이드 실측 계열, Photoshop/Illustrator 의 지속 가이드
- * 관례와도 같은 방향) 로 두면 스냅 레드와 선택 파랑(#3B82F6) 양쪽에서
- * 떨어진다. 선택 파랑과는 색상만이 아니라 **형태**로도 갈린다 — 가이드는
+ * **색은 스냅 정렬선과 같은 웜 레드**(#F24822)다. 도입 때는 "동시에 보이면
+ * 구분이 안 된다" 는 이유로 시안(#59A8D7)으로 갈랐는데, Figma 는 가이드와
+ * 스냅 표식에 같은 빨강을 쓰고 그 대비를 받아들인다 — 사용자 요청으로
+ * Figma 정합을 택했다 (2026-08-14). 둘의 구분은 색이 아니라 **수명**이
+ * 진다: 스냅 정렬선은 드래그 중에만 잠깐 서고 가이드는 계속 남아 있다.
+ *
+ * 선택 파랑(#3B82F6)과는 색상만이 아니라 **형태**로도 갈린다 — 가이드는
  * 페이지를 가로지르는 가는 선이고 핸들이 없다.
  *
  * 좌표는 scene 이다. 가이드 position 은 페이지-로컬 px 이므로 페이지 위치를
@@ -28,9 +30,15 @@ import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { hexToColor4fChannels } from "./themeWatcher";
 import type { PageGuideRenderTarget } from "./skiaOverlayHelpers";
 
-/** 수동 가이드 시안 (#59A8D7 — 스냅 레드/선택 파랑과 분리, 양 테마 공용) */
-const PAGE_GUIDE_HEX = 0x59a8d7;
-const PAGE_GUIDE_ALPHA = 0.9;
+/** 수동 가이드 웜 레드 (#F24822 — Figma 가이드 실측값, 스냅 표식과 공용) */
+const PAGE_GUIDE_HEX = 0xf24822;
+/**
+ * 기본(비선택) — 계속 떠 있는 선이라 콘텐츠를 덮지 않을 만큼만 선명하게.
+ * 선택(1.0)과의 간격이 상태 차이를 만든다.
+ */
+const PAGE_GUIDE_ALPHA = 0.7;
+/** 선택 — 완전 불투명. 연장선(점선)도 같은 값이라 한 선으로 읽힌다 */
+const PAGE_GUIDE_SELECTED_ALPHA = 1;
 /** 소속 미정 미리보기 — 같은 색·같은 두께, 알파만 낮춰 "아직 잠정" 을 표현 */
 const PAGE_GUIDE_PREVIEW_ALPHA = 0.45;
 
@@ -47,6 +55,7 @@ export function renderPageGuides(
   canvas: Canvas,
   target: PageGuideRenderTarget,
   zoom: number,
+  selectedGuideId?: string | null,
 ): void {
   if (target.lines.length === 0) {
     return;
@@ -65,6 +74,18 @@ export function renderPageGuides(
   canvas.clipRect(ck.XYWHRect(x, y, width, height), ck.ClipOp.Intersect, true);
   try {
     for (const line of target.lines) {
+      // 선택된 선만 불투명하게 — 페이지 밖 연장선과 같은 알파라 경계에서
+      // 실선↔점선만 갈리고 색은 이어진다
+      paint.setColor(
+        ck.Color4f(
+          r,
+          g,
+          b,
+          line.id === selectedGuideId
+            ? PAGE_GUIDE_SELECTED_ALPHA
+            : PAGE_GUIDE_ALPHA,
+        ),
+      );
       // axis "x" = x 좌표를 고정하는 **세로선** (snapGuides 와 같은 어법)
       if (line.axis === "x") {
         canvas.drawLine(line.position, y, line.position, y + height, paint);
@@ -160,7 +181,7 @@ export function renderSelectedGuideExtension(
   const paint = acquirePooledPaint(ck);
   let dash: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
   try {
-    paint.setColor(ck.Color4f(r, g, b, PAGE_GUIDE_ALPHA));
+    paint.setColor(ck.Color4f(r, g, b, PAGE_GUIDE_SELECTED_ALPHA));
     paint.setAntiAlias(true);
     paint.setStyle(ck.PaintStyle.Stroke);
     paint.setStrokeWidth(invZoom);

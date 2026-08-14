@@ -47,6 +47,21 @@ import { readPageGuides } from "../viewport/pageGuideActions";
  */
 const GUIDE_DRAG_THRESHOLD_PX = 3;
 
+/**
+ * 지금 포인터가 가이드 위인가 (가이드 hover 커서가 서 있는가).
+ *
+ * 커서를 쓰는 곳이 둘이라 필요한 신호다 — 중앙 pointer 핸들러가 이동마다
+ * `setCursor("default")` 로 되돌리기 때문에, 가이드 훅이 아무리 세워도
+ * 곧바로 덮인다. **우선순위 판정은 `BuilderCanvas.setCursor` 한 곳**에 두고
+ * 이 함수는 그 판정의 입력만 준다 (2026-08-14 사용자 보고 — "커서 변화가
+ * 없어 불편").
+ */
+let guideHoverCursor: string | null = null;
+
+export function getGuideHoverCursor(): string | null {
+  return guideHoverCursor;
+}
+
 interface UseGuideDragOptions {
   screenToCanvasPoint: (point: { x: number; y: number }) => {
     x: number;
@@ -361,6 +376,10 @@ export function useGuideHoverCursor({
     let applied: string = "";
 
     const setCursor = (cursor: string) => {
+      // 커서 문자열은 여기서 기억만 하고, 실제 적용은 BuilderCanvas 가
+      // 우선순위를 판정해서 한다 (같은 프레임에 default 로 덮이는 것을
+      // 막으려면 write 지점이 하나여야 한다)
+      guideHoverCursor = cursor === "" ? null : cursor;
       if (applied === cursor) return;
       applied = cursor;
       container.style.cursor = cursor;
@@ -418,10 +437,25 @@ export function useGuideHoverCursor({
       });
     };
 
+    // 캔버스를 벗어나면 즉시 정리 — 히트 판정은 RAF 뒤에 도는데, 포인터가
+    // 이미 나갔으면 그 프레임이 오지 않을 수 있다 (탭이 가려지면 RAF 자체가
+    // 멈춘다). 커서가 마지막 상태로 굳는 것을 막는다.
+    const onPointerLeave = () => {
+      latest = null;
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+        frame = null;
+      }
+      setCursor("");
+    };
+
     container.addEventListener("pointermove", onPointerMove);
+    container.addEventListener("pointerleave", onPointerLeave);
     return () => {
       container.removeEventListener("pointermove", onPointerMove);
+      container.removeEventListener("pointerleave", onPointerLeave);
       if (frame !== null) cancelAnimationFrame(frame);
+      guideHoverCursor = null;
       container.style.cursor = "";
     };
   }, [

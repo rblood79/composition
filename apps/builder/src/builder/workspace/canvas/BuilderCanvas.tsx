@@ -44,7 +44,11 @@ import { screenToViewportPoint } from "./viewport/viewportTransforms";
 import { TextEditOverlay, useTextEdit } from "../overlay";
 import { DotBackground } from "../components/DotBackground";
 import { RulerOverlay, isRulerEventTarget } from "../components/RulerOverlay";
-import { useGuideDrag, useGuideHoverCursor } from "./hooks/useGuideDrag";
+import {
+  getGuideHoverCursor,
+  useGuideDrag,
+  useGuideHoverCursor,
+} from "./hooks/useGuideDrag";
 import {
   GUIDE_HIT_THRESHOLD_SCREEN_PX,
   buildGuideHitTargets,
@@ -1010,11 +1014,18 @@ export function BuilderCanvas({
   // selectionBounds를 프레임마다 갱신하지 않고, pointerdown 시점에 계산
   // (RAF 지연 없이 즉시)
 
-  // Pencil-style: 커서 변경 유틸
+  // Pencil-style: 커서 변경 유틸 — **커서 우선순위의 단일 판정 지점**.
+  //
+  // 중앙 pointer 핸들러가 이동마다 "default" 로 되돌리기 때문에, 가이드
+  // hover 커서(ADR-181)를 훅이 직접 세우면 같은 프레임에 덮여 사라진다.
+  // 가이드가 이기는 이유: 그 위에서는 실제로 잡아 끌 수 있고, "default" 는
+  // 특정 대상을 가리키는 신호가 아니라 아무것도 없다는 뜻이라서다. 잡을 수
+  // 있는 대상을 가리키는 다른 커서(move/resize)는 그대로 통과시킨다.
   const setCursor = useCallback((cursor: string) => {
-    if (containerRef.current) {
-      containerRef.current.style.cursor = cursor;
-    }
+    if (!containerRef.current) return;
+    const guideCursor = getGuideHoverCursor();
+    containerRef.current.style.cursor =
+      guideCursor !== null && cursor === "default" ? guideCursor : cursor;
   }, []);
 
   // ============================================
