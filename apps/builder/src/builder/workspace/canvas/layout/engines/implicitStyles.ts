@@ -468,6 +468,66 @@ export function resolveEffectiveOverflow(
 }
 
 /**
+ * catalog `containerStyles` **원문**을 type 별로 메모이즈 (3 선언 위치 병합).
+ *
+ * 해석 결과가 아니라 원문을 캐시한다 — `{spacing.xs}` 는 theme 별로 다른 값으로 풀리므로
+ * 해석 결과를 캐시하면 최초 조회 시점의 theme 이 고착된다 (`catalogBoxShadowByType` 과 동일 규율).
+ */
+const catalogContainerStylesByType = new Map<
+  string,
+  Record<string, unknown> | undefined
+>();
+
+function catalogRootContainerStyles(
+  lowerType: string,
+): Record<string, unknown> | undefined {
+  const pascal = LOWERCASE_TO_PASCAL_RULE_KEY.get(lowerType);
+  if (!pascal) return undefined;
+  const rule = resolveComponentRule(pascal) as
+    | {
+        containerStyles?: Record<string, unknown>;
+        structure?: {
+          containerStyles?: Record<string, unknown>;
+          composition?: { containerStyles?: Record<string, unknown> };
+        };
+      }
+    | undefined;
+  if (!rule) return undefined;
+  // 우선순위는 `catalogRootOverflow` 와 동일 — top-level 이 가장 강하다
+  const merged: Record<string, unknown> = {
+    ...rule.structure?.composition?.containerStyles,
+    ...rule.structure?.containerStyles,
+    ...rule.containerStyles,
+  };
+  return Object.keys(merged).length > 0 ? merged : undefined;
+}
+
+/**
+ * root element 의 catalog `containerStyles` 원문을 반환한다 (TokenRef 미해석).
+ *
+ * **Why (2026-08-15)**: ADR-142 cutover 로 `TAG_SPEC_MAP` 에는 잔존 spec 3개
+ * (Frame/Group/Slot)만 남았고 그중 어느 것도 `containerStyles` 를 갖지 않는다 —
+ * 라이브 실측 `Object.keys(TAG_SPEC_MAP) = ["Group","frame","Slot"]`, 전부
+ * `containerStyles: null`. 그래서 `getSpecForTag(type)?.containerStyles` 를
+ * fallback 으로 쓰던 소비자는 일반 컴포넌트에서 **항상 undefined** 를 받는다.
+ * 일반 컴포넌트의 시각 SSOT 는 catalog 이므로 이 함수가 그 자리를 대신한다.
+ *
+ * 값 해석(TokenRef → px)은 소비자 몫이다 — 숫자 연산 전 `resolveToken` 필수.
+ */
+export function resolveCatalogContainerStyles(
+  type: string | undefined,
+): Record<string, unknown> | undefined {
+  if (!type) return undefined;
+  const key = type.toLowerCase();
+  if (catalogContainerStylesByType.has(key)) {
+    return catalogContainerStylesByType.get(key);
+  }
+  const cs = catalogRootContainerStyles(key);
+  catalogContainerStylesByType.set(key, cs);
+  return cs;
+}
+
+/**
  * catalog `containerStyles.boxShadow` 의 **미해석 원문**을 type 별로 메모이즈.
  *
  * 해석 결과가 아니라 원문을 캐시하는 것이 핵심이다 — `{shadow.md}` 는 theme 별로 다른 값으로

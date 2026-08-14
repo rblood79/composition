@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [드롭 타깃 — catalog containerStyles fallback 복구] - 2026-08-15
+
+### Bug Fixes
+
+- **드롭 인디케이터가 컨테이너의 방향·여백을 무시하던 문제 수정**:
+  - **Why**: `dropTargetResolver` 는 inline style 이 없을 때 `getSpecForTag(type).containerStyles` 를 기본값으로 읽었는데, ADR-142 cutover 이후 `TAG_SPEC_MAP` 에는 잔존 spec 3개(Frame/Group/Slot)만 남고 그중 어느 것도 `containerStyles` 를 갖지 않는다 — 일반 컴포넌트에서 이 fallback 은 **항상 undefined** 였다. 방향을 catalog 에만 둔 Breadcrumbs(`flexDirection: row`)가 세로로 판정돼 삽입 라인이 반대 축에 그려졌고, 여백을 catalog 에만 둔 ListBox/Tree/TagGroup 은 padding·gap 이 0 으로 계산됐다. 같은 파일이 `display`/`flexDirection`/`justifyContent` 에는 이미 fallback 을 적용하고 있었으므로 의도 자체는 있었고 **출처만 죽어 있었다**
+  - 수정: catalog rule 의 `containerStyles`(top-level / structure / structure.composition 3 선언 위치 병합)를 type 별 메모이즈로 읽는 `resolveCatalogContainerStyles` 를 추가하고 resolver 가 이를 경유. padding/gap 도 같은 fallback 을 타도록 `readContainerSpacing` 으로 단일화 — 값이 TokenRef(`{spacing.xs}`)면 숫자 파서 전에 해석한다
+  - 부수 효과: 방향/여백을 catalog 에만 둔 컨테이너(Breadcrumbs/Menu/Toolbar/Tabs/TagGroup/Tree)가 이제 드롭 대상으로 인식된다 — 종전에는 body 로 흘렀다. ListBox/GridList 의 item 정책(`isSlotCandidateAllowed`)은 그대로다
+  - 검증: 라이브 빌더 실측 — 구 경로 `getSpecForTag(t)?.containerStyles` 는 Breadcrumbs/Toolbar/Tree/TagGroup/ListBox 전부 `null`, 신규 경로는 각각의 catalog 값 반환. 회귀 2건(Breadcrumbs 축 / Tree 삽입 라인)은 fallback 을 끄면 RED
+  - 위치: `apps/builder/src/builder/workspace/canvas/{selection/dropTargetResolver.ts,layout/engines/implicitStyles.ts}`
+
 ## [Skia 이미지 캐시 — 참조 중 SkImage 강제 퇴거 제거] - 2026-08-15
 
 ### Bug Fixes

@@ -17,11 +17,17 @@
  */
 
 import { isLegacyInstanceElement } from "../../../../adapters/canonical/legacyElementFields";
-import { parseGapValue, parsePadding4Way } from "@composition/specs";
+import {
+  isValidTokenRef,
+  parseGapValue,
+  parsePadding4Way,
+  resolveToken,
+  type TokenRef,
+} from "@composition/specs";
 import { isSlotCandidateAllowed } from "../../../components/slotHostPolicy";
 import type { ElementBounds } from "../elementRegistry";
+import { resolveCatalogContainerStyles } from "../layout/engines/implicitStyles";
 import { getSceneBounds } from "../skia/renderCommands";
-import { getSpecForTag } from "../sprites/tagSpecMap";
 
 // ============================================
 // Types
@@ -177,28 +183,42 @@ function resolveLayoutInsertionIndex(
   return flowIndex;
 }
 
+/**
+ * 컨테이너 style 의 두 출처 — 사용자/factory 편집(inline) 과 catalog 기본값.
+ *
+ * **Why (2026-08-15)**: 구 구현은 `getSpecForTag(type)?.containerStyles` 를 기본값으로
+ * 읽었는데, ADR-142 cutover 이후 `TAG_SPEC_MAP` 에는 잔존 spec 3개(Frame/Group/Slot)만
+ * 남았고 그중 어느 것도 `containerStyles` 를 갖지 않는다 — 즉 일반 컴포넌트에서 이
+ * fallback 은 **항상 undefined** 였다. Breadcrumbs 처럼 방향을 catalog 에만 둔 컨테이너
+ * (`flexDirection: "row"`)가 세로로 판정돼 드롭 인디케이터가 반대 축에 그려졌다.
+ */
 function getContainerStyleSources(element: DropTargetNode | undefined): {
   style: Record<string, unknown> | undefined;
-  specStyles: Record<string, unknown> | undefined;
+  catalogStyles: Record<string, unknown> | undefined;
 } {
-  const style = asRecord(element?.props?.style);
-  const spec = element ? getSpecForTag(element.type) : undefined;
   return {
-    style,
-    specStyles: asRecord(spec?.containerStyles),
+    style: asRecord(element?.props?.style),
+    catalogStyles: resolveCatalogContainerStyles(element?.type),
   };
+}
+
+/** catalog 값은 TokenRef(`{spacing.xs}`) 일 수 있다 — 숫자 파서에 넘기기 전에 해석한다 */
+function resolveCatalogValue(value: unknown): unknown {
+  return typeof value === "string" && isValidTokenRef(value)
+    ? resolveToken(value as TokenRef)
+    : value;
 }
 
 /**
  * 컨테이너의 주요 flex 방향을 결정한다.
- * inline style 우선, 없으면 Spec.containerStyles 를 fallback 으로 사용한다.
+ * inline style 우선, 없으면 catalog `containerStyles` 를 fallback 으로 사용한다.
  */
 function detectIsHorizontal(element: DropTargetNode): boolean {
-  const { style, specStyles } = getContainerStyleSources(element);
-  const flexDir = style?.flexDirection ?? specStyles?.flexDirection;
+  const { style, catalogStyles } = getContainerStyleSources(element);
+  const flexDir = style?.flexDirection ?? catalogStyles?.flexDirection;
   if (flexDir === "row" || flexDir === "row-reverse") return true;
 
-  const display = style?.display ?? specStyles?.display;
+  const display = style?.display ?? catalogStyles?.display;
   // grid는 기본적으로 row 방향
   if (display === "grid") return true;
 
@@ -224,7 +244,7 @@ function isExplicitSlotHost(element: DropTargetNode): boolean {
 }
 
 function hasLayoutContainerStyle(element: DropTargetNode): boolean {
-  const { style, specStyles } = getContainerStyleSources(element);
+  const { style, catalogStyles } = getContainerStyleSources(element);
   const display = style?.display;
   const flexDirection = style?.flexDirection;
   if (
@@ -239,16 +259,16 @@ function hasLayoutContainerStyle(element: DropTargetNode): boolean {
     return true;
   }
 
-  const specDisplay = specStyles?.display;
-  const specFlexDirection = specStyles?.flexDirection;
+  const catalogDisplay = catalogStyles?.display;
+  const catalogFlexDirection = catalogStyles?.flexDirection;
   return (
-    specDisplay === "flex" ||
-    specDisplay === "inline-flex" ||
-    specDisplay === "grid" ||
-    specFlexDirection === "row" ||
-    specFlexDirection === "row-reverse" ||
-    specFlexDirection === "column" ||
-    specFlexDirection === "column-reverse"
+    catalogDisplay === "flex" ||
+    catalogDisplay === "inline-flex" ||
+    catalogDisplay === "grid" ||
+    catalogFlexDirection === "row" ||
+    catalogFlexDirection === "row-reverse" ||
+    catalogFlexDirection === "column" ||
+    catalogFlexDirection === "column-reverse"
   );
 }
 
@@ -720,23 +740,43 @@ function getAxisEnd(bounds: ElementBounds, isHorizontal: boolean): number {
   return isHorizontal ? bounds.x + bounds.width : bounds.y + bounds.height;
 }
 
+/**
+ * padding/gap 을 inline style 우선 + catalog `containerStyles` fallback 으로 읽는다.
+ *
+ * 같은 파일의 `detectIsHorizontal` / `shouldUseFlexProjection` 은 이미 catalog 를
+ * fallback 으로 쓰는데 spacing 두 곳만 inline 만 읽고 있었다 — padding/gap 을 catalog
+ * 에만 둔 컨테이너(ListBox `padding {spacing.xs}` / `gap {spacing.2xs}`, Tree, TagGroup)
+ * 에서 0 으로 떨어져 삽입 라인이 실제 레이아웃과 어긋났다.
+ */
+function readContainerSpacing(element: DropTargetNode | undefined): {
+  padding: ReturnType<typeof parsePadding4Way>;
+  gap: ReturnType<typeof parseGapValue>;
+} {
+  const { style, catalogStyles } = getContainerStyleSources(element);
+  const pick = (key: string): unknown =>
+    style?.[key] ?? resolveCatalogValue(catalogStyles?.[key]);
+
+  return {
+    padding: parsePadding4Way({
+      padding: pick("padding"),
+      paddingTop: pick("paddingTop"),
+      paddingRight: pick("paddingRight"),
+      paddingBottom: pick("paddingBottom"),
+      paddingLeft: pick("paddingLeft"),
+    }),
+    gap: parseGapValue({
+      gap: pick("gap"),
+      rowGap: pick("rowGap"),
+      columnGap: pick("columnGap"),
+    }),
+  };
+}
+
 function getContainerAxisSpacing(
   element: DropTargetNode | undefined,
   isHorizontal: boolean,
 ): { paddingStart: number; paddingEnd: number; gap: number } {
-  const style = asRecord(element?.props?.style);
-  const padding = parsePadding4Way({
-    padding: style?.padding,
-    paddingTop: style?.paddingTop,
-    paddingRight: style?.paddingRight,
-    paddingBottom: style?.paddingBottom,
-    paddingLeft: style?.paddingLeft,
-  });
-  const gap = parseGapValue({
-    gap: style?.gap,
-    rowGap: style?.rowGap,
-    columnGap: style?.columnGap,
-  });
+  const { padding, gap } = readContainerSpacing(element);
 
   return isHorizontal
     ? {
@@ -764,16 +804,16 @@ function getCrossSize(bounds: ElementBounds, isHorizontal: boolean): number {
 }
 
 function shouldUseFlexProjection(element: DropTargetNode | undefined): boolean {
-  const { style, specStyles } = getContainerStyleSources(element);
-  const display = style?.display ?? specStyles?.display;
+  const { style, catalogStyles } = getContainerStyleSources(element);
+  const display = style?.display ?? catalogStyles?.display;
 
   return (
     display === "flex" ||
     display === "inline-flex" ||
     style?.justifyContent !== undefined ||
     style?.alignItems !== undefined ||
-    specStyles?.justifyContent !== undefined ||
-    specStyles?.alignItems !== undefined
+    catalogStyles?.justifyContent !== undefined ||
+    catalogStyles?.alignItems !== undefined
   );
 }
 
@@ -781,19 +821,8 @@ function getContainerLayoutMetrics(
   element: DropTargetNode | undefined,
   isHorizontal: boolean,
 ): ContainerLayoutMetrics {
-  const { style, specStyles } = getContainerStyleSources(element);
-  const padding = parsePadding4Way({
-    padding: style?.padding,
-    paddingTop: style?.paddingTop,
-    paddingRight: style?.paddingRight,
-    paddingBottom: style?.paddingBottom,
-    paddingLeft: style?.paddingLeft,
-  });
-  const gap = parseGapValue({
-    gap: style?.gap,
-    rowGap: style?.rowGap,
-    columnGap: style?.columnGap,
-  });
+  const { style, catalogStyles } = getContainerStyleSources(element);
+  const { padding, gap } = readContainerSpacing(element);
 
   return isHorizontal
     ? {
@@ -803,9 +832,10 @@ function getContainerLayoutMetrics(
         crossPaddingEnd: padding.bottom,
         gap: gap.column,
         justifyContent:
-          asString(style?.justifyContent ?? specStyles?.justifyContent) ??
+          asString(style?.justifyContent ?? catalogStyles?.justifyContent) ??
           "flex-start",
-        alignItems: asString(style?.alignItems ?? specStyles?.alignItems) ?? "",
+        alignItems:
+          asString(style?.alignItems ?? catalogStyles?.alignItems) ?? "",
       }
     : {
         paddingStart: padding.top,
@@ -814,9 +844,10 @@ function getContainerLayoutMetrics(
         crossPaddingEnd: padding.right,
         gap: gap.row,
         justifyContent:
-          asString(style?.justifyContent ?? specStyles?.justifyContent) ??
+          asString(style?.justifyContent ?? catalogStyles?.justifyContent) ??
           "flex-start",
-        alignItems: asString(style?.alignItems ?? specStyles?.alignItems) ?? "",
+        alignItems:
+          asString(style?.alignItems ?? catalogStyles?.alignItems) ?? "",
       };
 }
 

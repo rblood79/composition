@@ -987,3 +987,75 @@ describe("resolveDropTarget cross-page body targets", () => {
     ]);
   });
 });
+
+/**
+ * catalog `containerStyles` fallback.
+ *
+ * ADR-142 cutover 이후 `TAG_SPEC_MAP` 에는 잔존 spec 3개(Frame/Group/Slot)만 남고
+ * 그중 어느 것도 `containerStyles` 를 갖지 않는다 — 구 `getSpecForTag` fallback 은
+ * 일반 컴포넌트에서 항상 undefined 였다. 방향/여백을 catalog 에만 둔 컨테이너는
+ * 드롭 인디케이터가 반대 축에 그려지거나 여백을 무시한 위치에 놓였다.
+ */
+describe("resolveDropTarget catalog containerStyles fallback", () => {
+  beforeEach(() => {
+    mockBounds.clear();
+  });
+
+  function makeDropScene(containerType: string) {
+    const body = makeElement("body-1", { type: "body" });
+    const container = makeElement("container-1", {
+      type: containerType,
+      parent_id: body.id,
+    });
+    const source = makeElement("source-1", { parent_id: body.id });
+
+    mockBounds.set(body.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(container.id, { x: 100, y: 100, width: 400, height: 200 });
+    mockBounds.set(source.id, { x: 0, y: 400, width: 80, height: 40 });
+
+    const store = {
+      childrenByParent: new Map([
+        [body.id, [container, source]],
+        [container.id, []],
+      ]),
+      elementsById: new Map([
+        [body.id, body],
+        [container.id, container],
+        [source.id, source],
+      ]),
+    };
+    return { container, source, store };
+  }
+
+  it("방향을 catalog 에만 둔 컨테이너(Breadcrumbs: row)를 가로로 판정한다", () => {
+    const { container, source, store } = makeDropScene("Breadcrumbs");
+
+    const result = resolveDropTarget({ x: 300, y: 200 }, source.id, store, () => [
+      container.id,
+    ]);
+
+    expect(result?.containerId).toBe(container.id);
+    expect(result?.isHorizontal).toBe(true);
+  });
+
+  it("여백을 catalog 에만 둔 컨테이너(Tree)의 삽입 라인이 padding 만큼 안쪽에 놓인다", () => {
+    const withPadding = makeDropScene("Tree"); // catalog padding {spacing.xs}
+    const withoutPadding = makeDropScene("Box"); // catalog containerStyles 없음
+
+    const resolve = (scene: ReturnType<typeof makeDropScene>) => {
+      const target = resolveDropTarget(
+        { x: 300, y: 200 },
+        scene.source.id,
+        scene.store,
+        () => [scene.container.id],
+      );
+      expect(target?.containerId).toBe(scene.container.id);
+      return computeInsertionLinePosition(target!, scene.source.id, scene.store);
+    };
+
+    // 빈 컨테이너 분기는 `containerStart + paddingStart` — catalog padding 이
+    // 보이지 않으면 두 값이 같아진다 (구 동작)
+    expect(resolve(withoutPadding)).toBe(100);
+    expect(resolve(withPadding)).toBeGreaterThan(100);
+  });
+});
