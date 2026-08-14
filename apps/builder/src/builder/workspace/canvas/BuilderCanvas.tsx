@@ -43,16 +43,17 @@ import { ViewportControlBridge } from "./viewport";
 import { screenToViewportPoint } from "./viewport/viewportTransforms";
 import { TextEditOverlay, useTextEdit } from "../overlay";
 import { DotBackground } from "../components/DotBackground";
-import {
-  RulerOverlay,
-  isRulerEventTarget,
-} from "../components/RulerOverlay";
+import { RulerOverlay, isRulerEventTarget } from "../components/RulerOverlay";
 import { useGuideDrag, useGuideHoverCursor } from "./hooks/useGuideDrag";
 import {
   GUIDE_HIT_THRESHOLD_SCREEN_PX,
   buildGuideHitTargets,
   resolveGuideHit,
 } from "./interaction/guideHitTest";
+import {
+  clearGuideSelection,
+  setSelectedGuide,
+} from "./interaction/guideSelection";
 import { readPageGuides } from "./viewport/pageGuideActions";
 import {
   CanvasGestureSession,
@@ -1095,10 +1096,21 @@ export function BuilderCanvas({
               : null;
           if (hit) {
             (event as PointerEvent & { __handled?: boolean }).__handled = true;
+            // 클릭 = 선택, 끌면 이동. 제자리에서 놓으면 커밋이 걸러지므로
+            // (filterChangedGuideEntries) 선택만 남는다 — Figma 어법.
+            // 요소 선택과 배타다: 둘 다 "지금 무엇을 조작 중인가" 라서 동시에
+            // 서면 Escape 가 어느 쪽을 향하는지 알 수 없다.
+            setSelectedGuide({
+              pageId: hit.pageId,
+              guideId: hit.guideId,
+            });
+            useStore.getState().setSelectedElement(null);
             startGuideMove(hit, event.pointerId, event.clientX, event.clientY);
             return;
           }
         }
+        // 가이드를 안 잡은 클릭은 가이드 선택을 푼다 (요소·빈 영역 어느 쪽이든)
+        clearGuideSelection();
       }
 
       const titleState = useStore.getState();

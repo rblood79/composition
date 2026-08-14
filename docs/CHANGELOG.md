@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features
 
+- **가이드 선택 + 선택 시 방향 끝까지 연장** (ADR-181 후속, 2026-08-14 사용자 요청 — Figma 어법):
+  - 캔버스의 가이드를 클릭하면 선택되고, 선택된 가이드만 **선의 방향 끝까지** 이어져 보인다. 페이지를 벗어난 구간은 **점선** — 실선/점선의 갈림이 곧 소속 표시라, 어느 페이지 것인지와 어디까지 이어지는지를 한 선이 같이 말한다
+  - 요소 선택과 **배타**다 (둘 다 "지금 무엇을 조작 중인가" 라서 동시에 서면 Escape 가 어느 쪽을 향하는지 알 수 없다). Escape 또는 다른 곳 클릭으로 해제되고, 눈금자를 끄면 같이 풀린다 (조작 게이트 C10)
+  - 선택은 **문서가 아니라 UI 상태**다 — persist 하지 않고 undo 대상도 아니며 새로고침하면 사라진다. 연장선은 §8.5 의 **조작 표식**이라 페이지 클립·occlusion 을 받지 않는다 (가이드 본체가 콘텐츠성 chrome 인 것과 갈린다)
+  - **클릭과 드래그를 3px 로 가른다**: 없으면 클릭이 곧 미세 이동이 된다 — 12% 줌에서 1 screen px 은 8.3 scene px 이라 같은 자리를 눌렀다 떼도 좌표가 달라져 히스토리 entry 가 쌓였다 (실측 후 추가)
+  - 위치: `apps/builder/src/builder/workspace/canvas/interaction/guideSelection.ts`, `skia/guideRenderer.ts`, `hooks/useGuideDrag.ts`
+
 - **눈금자(Ruler)** (ADR-181 Phase 1 Implemented):
   - 캔버스 상단·좌측에 눈금 스트립 — Shift+R 또는 설정 패널 "Show Rulers" 로 토글 (기본 OFF)
   - 눈금 간격은 줌에 따라 1-2-5×10ⁿ 계열로 자동 전환, 라벨이 겹칠 만큼 촘촘해지면 보조 눈금을 생략

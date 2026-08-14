@@ -36,6 +36,17 @@ import {
 } from "../interaction/guideHitTest";
 import { readPageGuides } from "../viewport/pageGuideActions";
 
+/**
+ * 클릭 ↔ 드래그 갈림 (screen px).
+ *
+ * 이 값 이내로 움직이고 놓으면 **클릭**이라 위치를 건드리지 않는다. 없으면
+ * 축소된 화면에서 클릭이 곧 미세 이동이 된다 — 12% 줌에서 1 screen px 은
+ * 8.3 scene px 이라, 같은 자리를 눌렀다 떼도 좌표가 달라져 히스토리 entry 가
+ * 쌓인다 (2026-08-14 실측). 히트 임계(4px)보다 작게 둬서, 잡을 수 있는 거리
+ * 안에서 미세하게 흔들려도 이동으로 읽히지 않는다.
+ */
+const GUIDE_DRAG_THRESHOLD_PX = 3;
+
 interface UseGuideDragOptions {
   screenToCanvasPoint: (point: { x: number; y: number }) => {
     x: number;
@@ -83,6 +94,18 @@ export function useGuideDrag({
       beginGuideDrag(initial);
 
       let latest: { x: number; y: number } | null = null;
+      // 임계를 넘기 전에는 위치를 갱신하지 않는다 — 넘지 않고 놓으면 클릭이다.
+      // 이게 없으면 **클릭이 곧 미세 이동**이 된다: 축소된 화면에서는 1 screen
+      // px 이 여러 scene px 이라(12% 줌 = 8.3배) 같은 자리를 눌렀다 떼도 좌표가
+      // 달라져 히스토리 entry 가 쌓인다 (2026-08-14 실측).
+      let moved = false;
+      const passedThreshold = (x: number, y: number): boolean => {
+        if (moved) return true;
+        moved =
+          Math.abs(x - clientX) > GUIDE_DRAG_THRESHOLD_PX ||
+          Math.abs(y - clientY) > GUIDE_DRAG_THRESHOLD_PX;
+        return moved;
+      };
 
       const release = () => {
         window.removeEventListener("pointermove", onPointerMove);
@@ -185,6 +208,7 @@ export function useGuideDrag({
 
       const onPointerMove = (event: PointerEvent) => {
         if (event.pointerId !== pointerId) return;
+        if (!passedThreshold(event.clientX, event.clientY)) return;
         latest = { x: event.clientX, y: event.clientY };
         if (rafRef.current !== null) return;
         rafRef.current = requestAnimationFrame(() => {
@@ -197,6 +221,13 @@ export function useGuideDrag({
 
       const onPointerUp = (event: PointerEvent) => {
         if (event.pointerId !== pointerId) return;
+        // 임계를 못 넘은 pointerup = 클릭. 기존 가이드면 선택만 남기고
+        // (호출부가 pointerdown 에서 이미 세웠다), 눈금자에서 시작한
+        // 생성이면 아무것도 만들지 않는다.
+        if (!passedThreshold(event.clientX, event.clientY)) {
+          release();
+          return;
+        }
         publishAt(event.clientX, event.clientY);
         const finalDrag = getGuideDrag();
         if (finalDrag) {

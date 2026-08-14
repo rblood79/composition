@@ -12,6 +12,7 @@
 
 import { StateCreator } from "zustand";
 import type { BreakpointName } from "@composition/shared";
+import { clearGuideSelection } from "../workspace/canvas/interaction/guideSelection";
 
 /** 페이지 배치 방향 */
 export type PageLayoutDirection = "horizontal" | "vertical" | "zigzag";
@@ -193,6 +194,10 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
    */
   setShowRulers: (show: boolean) => {
     set({ showRulers: show });
+    // 가이드 **표시**는 눈금자와 독립이지만 **조작**은 ON 한정이다 (C10).
+    // 선택은 조작 상태이므로, 끄면 "선택돼 있는데 바꿀 수 없는" 상태가
+    // 남지 않도록 같이 푼다. 가이드 자체는 그대로 보인다.
+    if (!show) clearGuideSelection();
   },
 
   /**

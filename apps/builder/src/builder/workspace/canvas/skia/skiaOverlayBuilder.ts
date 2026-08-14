@@ -90,13 +90,18 @@ import {
 import { getSnapGuidePresentationSnapshot } from "../interaction/snapGuidePresentation";
 import { getMeasureGuidePresentationSnapshot } from "../interaction/measureGuidePresentation";
 import { renderMeasureGuides, renderSnapGuides } from "./snapGuideRenderer";
-import { renderGuideDragPreview, renderPageGuides } from "./guideRenderer";
+import {
+  renderGuideDragPreview,
+  renderPageGuides,
+  renderSelectedGuideExtension,
+} from "./guideRenderer";
 import { readPageGuidesByPage } from "../viewport/pageGuideActions";
 import {
   getGuideDrag,
   mergeGuideDrag,
   resolveGuideDragPreview,
 } from "../interaction/guidePresentation";
+import { getSelectedGuide } from "../interaction/guideSelection";
 import { useStore } from "../../../stores";
 
 // ============================================
@@ -636,6 +641,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           frames,
           pagePositionSnapshot,
         );
+        const selectedGuide = getSelectedGuide();
         for (const target of guideTargets) {
           withPageOcclusionClip(
             ck,
@@ -644,6 +650,29 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
             paintOrderedFrames,
             pagePositionSnapshot,
             () => renderPageGuides(ck, canvas, target, cameraZoom),
+          );
+
+          // 선택된 가이드는 선의 방향 끝까지 연장한다 (페이지 밖 = 점선).
+          // 선택 표식이라 클립 밖에서 그린다 — 본체는 콘텐츠성 chrome 이라
+          // occlusion 을 받지만 이건 선택 박스와 같은 열이다 (§8.5).
+          if (selectedGuide?.pageId !== target.pageId) continue;
+          const selectedLine = target.lines.find(
+            (line) => line.id === selectedGuide.guideId,
+          );
+          if (!selectedLine) continue;
+          renderSelectedGuideExtension(
+            ck,
+            canvas,
+            selectedLine,
+            target.pageRect,
+            buildViewportSceneRect(
+              cameraX,
+              cameraY,
+              cameraZoom,
+              skiaCanvasWidth / dpr,
+              skiaCanvasHeight / dpr,
+            ),
+            cameraZoom,
           );
         }
       }

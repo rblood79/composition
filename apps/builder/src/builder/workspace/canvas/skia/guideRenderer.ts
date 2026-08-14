@@ -126,3 +126,77 @@ export function renderGuideDragPreview(
     releasePooledPaint(paint);
   }
 }
+
+/** 선택된 가이드의 페이지 밖 연장선 — 점선 주기 (screen px) */
+const SELECTED_EXTENSION_DASH_ON_PX = 4;
+const SELECTED_EXTENSION_DASH_OFF_PX = 3;
+
+/**
+ * 선택된 가이드를 **선의 방향 끝까지** 연장한다 (Figma 어법).
+ *
+ * 페이지 안 구간은 `renderPageGuides` 가 이미 실선으로 그렸다. 여기서는 그
+ * 바깥, 즉 **뷰포트 경계까지의 두 세그먼트**만 점선으로 잇는다. 선택된
+ * 가이드가 다른 페이지·다른 요소와 어디서 맞는지 한눈에 보이게 하는 것이
+ * 목적이라, 페이지 경계에서 끊기면 의미가 없다.
+ *
+ * 실선/점선의 갈림이 곧 **소속 표시**다 — 실선 구간이 이 가이드가 속한
+ * 페이지고, 점선은 "여기까지 이어지지만 이 페이지 것은 아니다" 를 말한다.
+ *
+ * §8.5 분류는 **조작 표식**이다 (선택 박스와 같은 열): 선택은 순간 상태이고
+ * 무엇을 조작 중인지 알려야 하므로, 페이지 클립도 occlusion 도 걸지 않는다.
+ * 확정 가이드 본체가 콘텐츠성 chrome 인 것과 갈린다.
+ */
+export function renderSelectedGuideExtension(
+  ck: CanvasKit,
+  canvas: Canvas,
+  line: { axis: "x" | "y"; position: number },
+  pageRect: { x: number; y: number; width: number; height: number },
+  viewport: { x: number; y: number; width: number; height: number },
+  zoom: number,
+): void {
+  const invZoom = 1 / (zoom === 0 ? 1 : zoom);
+  const [r, g, b] = hexToColor4fChannels(PAGE_GUIDE_HEX);
+
+  const paint = acquirePooledPaint(ck);
+  let dash: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
+  try {
+    paint.setColor(ck.Color4f(r, g, b, PAGE_GUIDE_ALPHA));
+    paint.setAntiAlias(true);
+    paint.setStyle(ck.PaintStyle.Stroke);
+    paint.setStrokeWidth(invZoom);
+    dash = ck.PathEffect.MakeDash([
+      SELECTED_EXTENSION_DASH_ON_PX * invZoom,
+      SELECTED_EXTENSION_DASH_OFF_PX * invZoom,
+    ]);
+    paint.setPathEffect(dash);
+
+    // 페이지 앞뒤로 남는 구간만 그린다. 페이지가 뷰포트를 넘어가면 한쪽 또는
+    // 양쪽이 음수 길이가 되므로 그 세그먼트는 건너뛴다.
+    if (line.axis === "x") {
+      const top = viewport.y;
+      const bottom = viewport.y + viewport.height;
+      if (pageRect.y > top) {
+        canvas.drawLine(line.position, top, line.position, pageRect.y, paint);
+      }
+      const pageBottom = pageRect.y + pageRect.height;
+      if (pageBottom < bottom) {
+        canvas.drawLine(line.position, pageBottom, line.position, bottom, paint);
+      }
+    } else {
+      const left = viewport.x;
+      const right = viewport.x + viewport.width;
+      if (pageRect.x > left) {
+        canvas.drawLine(left, line.position, pageRect.x, line.position, paint);
+      }
+      const pageRight = pageRect.x + pageRect.width;
+      if (pageRight < right) {
+        canvas.drawLine(pageRight, line.position, right, line.position, paint);
+      }
+    }
+  } finally {
+    // PathEffect 는 WASM 객체 — paint 를 풀에 돌려주기 전에 떼고 지운다
+    paint.setPathEffect(null);
+    dash?.delete();
+    releasePooledPaint(paint);
+  }
+}

@@ -43,6 +43,10 @@ import {
 import { canDetachInstance } from "../utils/editingSemantics";
 import { requestEditingSemanticsDetachConfirmation } from "../utils/editingSemanticsImpactConfirmation";
 import { useCopyPaste } from "./useCopyPaste";
+import {
+  clearGuideSelection,
+  getSelectedGuide,
+} from "../workspace/canvas/interaction/guideSelection";
 
 // ============================================
 // Constants
@@ -454,6 +458,13 @@ export function useGlobalKeyboardShortcuts() {
       setSelectedElement,
       selectedElementIds,
     } = useStore.getState();
+
+    // 0. 가이드 선택 (ADR-181) → 해제. 요소 선택과 배타라 둘 중 하나만 서
+    //    있고, 가이드가 선택돼 있으면 Escape 는 그쪽을 향한다
+    if (getSelectedGuide() !== null) {
+      clearGuideSelection();
+      return;
+    }
 
     // 1. editingContext 진입 상태 → 한 단계 위로 복귀
     if (editingContextId !== null) {
