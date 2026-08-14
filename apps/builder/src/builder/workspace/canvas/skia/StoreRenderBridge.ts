@@ -99,9 +99,6 @@ function toSyntheticSceneNode(element: CanvasLayoutNode): CanvasSceneNode {
   return sceneNode;
 }
 
-/** Collection item 태그 — 기본 border/background 스타일 적용 대상 */
-const COLLECTION_ITEM_TAGS = new Set(["GridListItem", "ListBoxItem"]);
-
 const EMPTY_LAYOUT_MAP = new Map<string, ComputedLayout>();
 
 /**
@@ -821,16 +818,22 @@ export class StoreRenderBridge {
         }
       }
 
-      return buildImageNodeData({ element: effectiveElement, layout, skImage });
+      // theme 전달 필수 — placeholder 배경 토큰({color.neutral-subtle}) theme 해석.
+      return buildImageNodeData({
+        element: effectiveElement,
+        layout,
+        skImage,
+        theme: ctx.theme,
+      });
     }
 
-    // Box / fallback
-    const isCollectionItem = COLLECTION_ITEM_TAGS.has(effectiveElement.type);
+    // Box / fallback — 구 isCollectionItem(GridListItem/ListBoxItem 카드 리터럴) 분기는
+    //   두 태그가 catalog cutover 상수라 isSpecPath 게이트를 항상 통과, 이 지점 도달 불가
+    //   확인 후 제거 (2026-08-14).
     return (
       buildBoxNodeData({
         element: effectiveElement,
         layout,
-        isCollectionItem,
         theme: ctx.theme,
         scrollState,
       }) ?? buildSkiaNodeData(effectiveElement, ctx)

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [이미지 placeholder dark mode 정합 — theme-bypass 리터럴 정리] - 2026-08-14
+
+### Bug Fixes
+
+- **이미지 placeholder 배경이 dark mode 에서 light 회색으로 남았다** (simplify 보류 항목 후속):
+  - Image/Avatar/Logo/Thumbnail 의 미로드 placeholder 배경이 `#e5e7eb` 리터럴 고정이라 theme 를 무시했다
+  - **Why**: `buildImageNodeData` 가 theme 입력 자체가 없어 catalog fill 토큰(`{color.neutral-subtle}` — DOM `Image.css` 의 `var(--bg-muted)` 대응)을 해석할 수 없었다
+  - 수정: `resolveSkiaVisualRule` 로 catalog fill base 를 얻어 `resolveColor(token, theme)` 해석 (light `#e5e5e5` / dark `#404040`). catalog 미보유 태그(Logo/Thumbnail)는 동일 토큰 fallback
+  - 검증: 라이브 dark 토글 왕복 — placeholder fillColor `#e5e5e5 → #404040 → #e5e5e5` 실측 (`__composition_SKIA_DEBUG__` probe)
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{buildImageNodeData.ts,StoreRenderBridge.ts}`
+
+### Architecture
+
+- **box 경로의 도달 불가 collection item 리터럴 분기 제거**:
+  - `buildBoxNodeData` 의 `isCollectionItem` 분기(카드 배경 `0.98` 근백색 / 테두리 `0.83` 연회색 / borderRadius 8 / strokeWidth 1 강제)와 `StoreRenderBridge` 의 `COLLECTION_ITEM_TAGS` 삭제
+  - **Why**: 대상 태그(GridListItem/ListBoxItem)가 catalog cutover 상수라 `isSpecPath` 게이트를 항상 통과 — box fallback 분기에 도달 불가. theme-bypass 리터럴로 지목됐으나 실측 결과 죽은 코드였다
+
 ## [캔버스 월드 격자 제거 — Settings 패널 정리] - 2026-08-14
 
 ### Breaking Changes

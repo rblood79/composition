@@ -9,12 +9,16 @@
  * - object-fit 계산 포함 (cover/contain/fill/none)
  */
 
+import type { TokenRef } from "@composition/specs";
+import { resolveColor, hexStringToNumber } from "@composition/specs";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { Image as SkImage } from "canvaskit-wasm";
 import { parsePadding, getContentBounds } from "../sprites/paddingUtils";
+import { colorIntToFloat32 } from "../sprites/styleConverter";
 import { buildBaseNodeProps } from "./buildBaseNodeProps";
+import { resolveSkiaVisualRule } from "./resolveSkiaVisualRule";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,6 +29,8 @@ interface ImageBuildInput {
   layout: ComputedLayout | undefined;
   /** 비동기 로드된 SkImage (null이면 placeholder 표시) */
   skImage: SkImage | null;
+  /** placeholder 배경 토큰 theme 해석용 — 누락 시 "light" (dark 캔버스에서 light 값) */
+  theme?: "light" | "dark";
 }
 
 // ---------------------------------------------------------------------------
@@ -87,14 +93,14 @@ function computeObjectFit(
  *
  * ImageSprite.tsx lines 286-322의 완전한 이식:
  * - object-fit 기반 이미지 콘텐츠 영역 계산
- * - placeholder box (gray-200 배경)
+ * - placeholder box (catalog fill base 토큰 theme 해석 배경)
  * - border-radius, effects, visibility
  * - altText (미로드 시)
  */
 export function buildImageNodeData(
   input: ImageBuildInput,
 ): SkiaNodeData | null {
-  const { element, layout, skImage } = input;
+  const { element, layout, skImage, theme = "light" } = input;
 
   const base = buildBaseNodeProps(element, layout);
   if (!base) return null;
@@ -138,6 +144,19 @@ export function buildImageNodeData(
   // ---------- Object-fit ----------
   const imageContent = computeObjectFit(skImage, objectFit, contentBounds);
 
+  // ---------- Placeholder 배경 (D3) ----------
+  // catalog fill base 를 theme 해석 — Image/Avatar 는 {color.neutral-subtle} (DOM 대응:
+  //   generated Image.css `background: var(--bg-muted)`). catalog 미보유 IMAGE_TAGS
+  //   (Logo/Thumbnail)는 동일 토큰 fallback. 리터럴 고정 시 dark 캔버스에 light 회색.
+  const placeholderToken =
+    resolveSkiaVisualRule(element.type, props?.variant as string | undefined)
+      ?.fill?.default.base ?? ("{color.neutral-subtle}" as TokenRef);
+  const placeholderResolved = resolveColor(placeholderToken, theme);
+  const placeholderHex =
+    typeof placeholderResolved === "number"
+      ? placeholderResolved
+      : hexStringToNumber(placeholderResolved);
+
   // ---------- Assemble SkiaNodeData ----------
   const nodeData: SkiaNodeData = {
     type: "image",
@@ -149,7 +168,7 @@ export function buildImageNodeData(
     visible,
     // placeholder 렌더링용 box (skImage 미로드 시 fillColor로 배경 표시)
     box: {
-      fillColor: Float32Array.of(0.898, 0.906, 0.922, 1), // gray-200 (#e5e7eb)
+      fillColor: colorIntToFloat32(placeholderHex, 1),
       borderRadius: borderRadius ?? 0,
     },
     image: {

@@ -51,7 +51,6 @@ interface BoxBuildInput {
   element: CanvasSceneNode;
   layout: ComputedLayout | undefined;
   scrollState?: ScrollNodeState | null;
-  isCollectionItem?: boolean;
   theme?: "light" | "dark";
 }
 
@@ -100,13 +99,7 @@ export function buildScrollNodeFields(
 // ---------------------------------------------------------------------------
 
 export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
-  const {
-    element,
-    layout,
-    scrollState,
-    isCollectionItem,
-    theme = "light",
-  } = input;
+  const { element, layout, scrollState, theme = "light" } = input;
 
   // ADR-902 후속: body 는 BodySpec (TAG_SPEC_MAP 등록) 이 담당 → isSpecPath=true
   // → buildSpecNodeData 경로로 진입하여 이 함수에 body 가 도달하지 않는다.
@@ -221,8 +214,6 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
         ? shellBgResolved
         : hexStringToNumber(shellBgResolved);
     fillColor = colorIntToFloat32(hex, 1);
-  } else if (isCollectionItem && fill.alpha === 0) {
-    fillColor = Float32Array.of(0.98, 0.98, 0.98, 1);
   } else {
     const [r, g, b] = hexToColor4fChannels(fill.color);
     const bgAlpha = skiaEffects.effects?.some(
@@ -234,12 +225,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   }
 
   // Border radius
-  const defaultBr = borderRadius ?? 0;
-  const br =
-    isCollectionItem &&
-    (typeof defaultBr === "number" ? defaultBr : (defaultBr?.[0] ?? 0)) === 0
-      ? 8
-      : defaultBr;
+  const br = borderRadius ?? 0;
 
   // CSS transform
   let skiaTransform: Float32Array | undefined;
@@ -295,9 +281,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
           ...hexToColor4fChannels(stroke.color),
           stroke.alpha ?? 1,
         )
-      : !suppressBorder && isCollectionItem
-        ? Float32Array.of(0.83, 0.83, 0.83, 1)
-        : undefined;
+      : undefined;
 
   return {
     type: "box",
@@ -325,9 +309,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
           : {}),
       borderRadius: br,
       strokeColor,
-      strokeWidth: suppressBorder
-        ? undefined
-        : (stroke?.width ?? (isCollectionItem ? 1 : undefined)),
+      strokeWidth: suppressBorder ? undefined : stroke?.width,
       ...(strokeStyleValue ? { strokeStyle: strokeStyleValue } : {}),
     },
   } as SkiaNodeData;
