@@ -452,14 +452,13 @@ export function BuilderCanvas({
       elements: sceneNodes,
       pageSnapshots: pageDataMap,
     });
-  }, [
-    isFrameEditMode,
-    layoutVersion,
-    pages,
-    scenePageIndex,
-    sceneNodes,
-    sceneNodesMap,
-  ]);
+    // `layoutVersion` 은 이 memo 의 입력이 아니다 — 시그니처는 구조(노드 id/type/
+    //   parent/page/ref·deleted 상태/stable props)만 직렬화하고 기하는 담지 않는다
+    //   (canvas-rendering.md §9). 요소가 바뀌면 `sceneNodes` identity 가 이미 바뀌고,
+    //   요소 없이 layoutVersion 만 오르는 경우(테마 토글 · 폰트 로드 · 컨테이너 리사이즈)
+    //   재계산은 **같은 문자열**을 낸다. dep 에 두면 그 전 elements stableSerialize 가
+    //   매번 헛돌아 이 memo 를 분리한 목적 자체를 깎는다.
+  }, [isFrameEditMode, pages, scenePageIndex, sceneNodes, sceneNodesMap]);
 
   // ADR-074 Phase 2: structure(selection-invariant) / selection 분리.
   // selection-only 변화 시 structure useMemo identity 유지 → 하위 useMemo

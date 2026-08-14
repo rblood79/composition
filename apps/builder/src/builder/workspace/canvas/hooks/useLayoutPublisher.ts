@@ -30,6 +30,8 @@ import {
   createPageLayoutSignature,
   buildPageChildrenMap,
   buildChildrenIdMap,
+  getPageLayoutCacheKey,
+  prunePageLayoutCache,
 } from "../scene/layoutCache";
 import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
 import { useStore } from "../../../stores";
@@ -112,6 +114,10 @@ export function useLayoutPublisher(
     // 본 effect 가 재실행되고, resolve 된 style 로 시그니처가 달라져 캐시 miss.
     const activeBreakpoint = useStore.getState().activeBreakpoint;
     const activeKeys = new Set<string>();
+    // 발행 키(frame mirror id 포함)와 layout 캐시 키는 서로 다르다 — 캐시 정리는
+    //   캐시 자신의 키로 해야 한다. readiness 와 무관하게 모으는 것은 startup·전환
+    //   중 일시적으로 pending 인 페이지의 캐시가 퇴거·재계산되지 않게 하기 위함.
+    const activeLayoutCacheKeys = new Set<string>();
     const layoutUpdates: Array<{
       key: string;
       map: Map<string, ComputedLayout> | null;
@@ -127,6 +133,9 @@ export function useLayoutPublisher(
         wasmLayoutReady,
       } = input;
 
+      if (bodyElement) {
+        activeLayoutCacheKeys.add(getPageLayoutCacheKey(bodyElement));
+      }
       if (!bodyElement || !wasmLayoutReady) continue;
       const key =
         bodyElement.page_id ??
@@ -197,6 +206,9 @@ export function useLayoutPublisher(
       publishSyntheticElementsMap(null, key);
       staleKeys.push(key);
     }
+    // 발행 맵과 같은 liveness 로 layout 캐시도 정리한다 — 종전에는 삭제된 페이지·
+    //   전환한 프로젝트의 엔트리(페이지 전체 ComputedLayout 맵)가 세션 내내 남았다.
+    prunePageLayoutCache(activeLayoutCacheKeys);
     publishLayoutMapsBatch(layoutUpdates, staleKeys);
     publishedKeysRef.current = activeKeys;
   }, [layoutVersion, dimensionKey, layoutInputKey, readinessKey]);

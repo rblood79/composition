@@ -24,6 +24,8 @@ export {
   createPageElementsSignature,
   createPageLayoutSignature,
   getCachedPageLayout,
+  getPageLayoutCacheKey,
+  prunePageLayoutCache,
 } from "./layoutCache";
 export {
   getCachedCullingResult,

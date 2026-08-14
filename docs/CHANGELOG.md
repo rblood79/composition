@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canvas 캐시 정리 — 페이지 layout 캐시 liveness 정리] - 2026-08-15
+
+### Performance
+
+- **삭제된 페이지·전환한 프로젝트의 layout 캐시 엔트리가 세션 내내 남던 문제 수정**:
+  - **Why**: `pageLayoutCache` 는 페이지당 `fullTreeLayoutMap`(요소당 ComputedLayout) + filteredChildIdsMap + syntheticElementsMap 을 들고 있는데 제거 경로가 없었다. `useLayoutPublisher` 는 발행 맵에 대해서만 stale key 정리를 하고 있었다
+  - 수정: 같은 liveness 로 `prunePageLayoutCache(activeLayoutCacheKeys)` 실행. **LRU 상한이 아니라 liveness** — 캔버스는 여러 페이지를 동시에 그리므로 상한을 두면 가시 페이지 수를 넘는 순간 프레임마다 퇴거·재계산이 돈다. 발행 키(frame mirror id 포함)와 캐시 키가 다르므로 `getPageLayoutCacheKey` 를 캐시 쪽에서 노출해 한 곳에서만 만든다
+  - 검증: 라이브 빌더 20페이지 문서 — 전 페이지가 레이아웃 유지 (가시 페이지 퇴거 0), 콘솔 에러 0
+  - 위치: `apps/builder/src/builder/workspace/canvas/{scene/layoutCache.ts,hooks/useLayoutPublisher.ts}`
+- **projection content signature 가 layout 변경마다 헛돌던 문제 수정**:
+  - **Why**: 시그니처 memo 의 dep 에 `layoutVersion` 이 있었으나 memo 본문은 이를 읽지 않는다. 시그니처는 구조만 직렬화하고 기하는 담지 않으므로(canvas-rendering.md §9), 요소 없이 layoutVersion 만 오르는 경우(테마 토글 · 폰트 로드 · 컨테이너 리사이즈) **같은 문자열**을 다시 만들었다 — 전 elements `stableSerialize` 는 이 memo 를 분리한 이유 자체다
+  - 수정: dep 에서 제거. scene 재빌드는 `sceneStructureSnapshot` 이 여전히 `layoutVersion` 을 dep + 인자로 들고 있어 그대로 발화한다
+  - 위치: `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx`
+
 ## [드롭 타깃 — catalog containerStyles fallback 복구] - 2026-08-15
 
 ### Bug Fixes

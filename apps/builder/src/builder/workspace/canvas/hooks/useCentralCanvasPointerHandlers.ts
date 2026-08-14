@@ -236,8 +236,6 @@ export function useCentralCanvasPointerHandlers({
       }
       const selectedIds = state.selectedElementIds;
       const hasSelection = selectedIds.length >= 1;
-      const selectedElement =
-        selectedIds.length === 1 ? hitElementsMap.get(selectedIds[0]) : null;
       // ADR-178 Phase 2: 전 선택이 page body 면 페이지 드래그 대상 집합
       // (단일이면 기존 selectedPageId 파생과 동일 — currentPageId 폴백 포함)
       const selectedPageIds = pageSelectionEnabled

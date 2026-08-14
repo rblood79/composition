@@ -31,6 +31,35 @@ interface CachedPageLayoutEntry {
 
 const pageLayoutCache = new Map<string, CachedPageLayoutEntry>();
 
+/**
+ * `pageLayoutCache` 의 키 — 페이지당 1 엔트리.
+ *
+ * 호출부가 자체 키를 만들면 prune 과 조회가 서로 다른 키를 쓰게 되므로 여기서만 만든다
+ * (publisher 의 발행 키는 frame mirror id 를 섞어 쓰기 때문에 **다른 키다**).
+ */
+export function getPageLayoutCacheKey(bodyElement: CanvasLayoutNode): string {
+  return bodyElement.page_id ?? bodyElement.id;
+}
+
+/**
+ * 살아 있는 페이지 집합에 없는 엔트리를 제거한다.
+ *
+ * 엔트리 하나가 그 페이지의 `fullTreeLayoutMap` 전체(요소당 ComputedLayout) +
+ * filteredChildIdsMap + syntheticElementsMap 을 들고 있어 페이지 삭제·프로젝트 전환으로
+ * 남는 엔트리의 비용이 작지 않다. 키가 페이지 id 라 **자연 사망 시점이 있으므로**
+ * LRU 상한이 아니라 liveness 로 정리한다 — 캔버스는 여러 페이지를 동시에 그리므로
+ * 상한을 두면 가시 페이지 수를 넘는 순간 프레임마다 퇴거·재계산이 돈다.
+ */
+export function prunePageLayoutCache(
+  activeCacheKeys: ReadonlySet<string>,
+): void {
+  for (const key of pageLayoutCache.keys()) {
+    if (!activeCacheKeys.has(key)) {
+      pageLayoutCache.delete(key);
+    }
+  }
+}
+
 function isContentsElement(element: CanvasLayoutNode | undefined): boolean {
   const style = element?.props?.style as Record<string, unknown> | undefined;
   return style?.display === "contents";
@@ -347,7 +376,7 @@ export function getCachedPageLayout({
   }
 
   const rootKey = getLayoutPublishKey(bodyElement);
-  const cacheKey = bodyElement.page_id ?? bodyElement.id;
+  const cacheKey = getPageLayoutCacheKey(bodyElement);
   const cachedEntry = pageLayoutCache.get(cacheKey);
 
   if (
