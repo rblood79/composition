@@ -489,6 +489,58 @@ describe("buildSpecNodeData", () => {
     });
   });
 
+  // ── Tabs selectedKey → 자식 Tab _isSelected 투영 (resolver 추출 회귀, 2026-08-15) ──
+  // Radio 주입과 동형 패턴 — 인라인 블록을 resolveTabsAncestorProjection 로 추출하며
+  //   계약 잠금. 관측: selected/unselected Tab 의 시각 출력(노드 직렬화) 차이.
+  describe("Tabs selectedKey → 자식 Tab _isSelected 투영", () => {
+    function buildTab(
+      tabsProps: Record<string, unknown>,
+      tabId: string,
+    ): string {
+      const tabs = makeElement("tabs", { type: "Tabs", props: tabsProps });
+      const tabList = makeElement("tablist", {
+        type: "TabList",
+        parent_id: "tabs",
+        props: {},
+      });
+      const tab = makeElement("tab1", {
+        type: "Tab",
+        parent_id: "tablist",
+        props: { tabId, children: "Tab A" },
+      });
+      const elementsMap = new Map([
+        [tabs.id, tabs],
+        [tabList.id, tabList],
+        [tab.id, tab],
+      ]);
+      const node = buildSpecNodeData({
+        element: tab,
+        layout: makeLayout({ x: 0, y: 0, width: 80, height: 32 }),
+        theme: "light",
+        elementsMap,
+      });
+      return JSON.stringify(node);
+    }
+
+    it("selectedKey 매칭 Tab 은 미매칭 Tab 과 시각 출력이 다르다", () => {
+      const selected = buildTab({ selectedKey: "t1" }, "t1");
+      const unselected = buildTab({ selectedKey: "t1" }, "t2");
+      expect(selected).not.toEqual(unselected);
+    });
+
+    it("selectedKey 미설정 시 defaultSelectedKey 로도 동일하게 selected", () => {
+      const viaSelectedKey = buildTab({ selectedKey: "t1" }, "t1");
+      const viaDefaultKey = buildTab({ defaultSelectedKey: "t1" }, "t1");
+      expect(viaDefaultKey).toEqual(viaSelectedKey);
+    });
+
+    it("부모 selection 키 미설정이면 unselected 와 동일 (false 강제)", () => {
+      const noKey = buildTab({}, "t1");
+      const unmatched = buildTab({ selectedKey: "other" }, "t1");
+      expect(noKey).toEqual(unmatched);
+    });
+  });
+
   // 회귀 방지 (2026-07-14, 사용자 적발): DatePicker 의 size 를 바꿔도 Skia SelectIcon 이
   //   그대로였다. 자식 store 에 남은 **stale size**(예 "md")가 `props.size ?? delegated` 의
   //   앞자리를 차지해 부모(xl)를 영원히 가렸기 때문. `override: true` propagation rule 이 준

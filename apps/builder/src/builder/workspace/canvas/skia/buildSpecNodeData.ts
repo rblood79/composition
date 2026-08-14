@@ -909,6 +909,81 @@ function resolveInlineAlertChildFont(
   };
 }
 
+/**
+ * Tab/TabList ← 조상 Tabs 투영 (render-time).
+ *
+ * ADR-912 영역 B (A): render-space projection Tab(appendTabRowProjection)은 이미
+ * _isSelected/_showIndicator/(orientation 은 rowsGroup 가 담당)를 projection props 로
+ * 주입받았다 → projection props 가 SSOT. 여기서 재주입(중복)을 skip 하여 단일 진입점
+ * 유지. non-projection Tab/TabList(혹시 잔존)만 ancestor lookup 으로 보강.
+ *
+ * 반환: null = 미개입 (Tab/TabList 아님 | projection id | 조상 Tabs 없음).
+ * - tabProps: Tab 한정 — _isSelected(tabId 있을 때만: selectedKey ?? defaultSelectedKey
+ *   매칭, 부모 키 미설정이면 false 강제) + _showIndicator. TabList 는 빈 객체.
+ * - orientation: 조상 orientation ?? "horizontal" — 호출부에서 자기 명시값 우선 게이트.
+ */
+function resolveTabsAncestorProjection(
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
+): { tabProps: Record<string, unknown>; orientation: string } | null {
+  if (element.type !== "Tab" && element.type !== "TabList") return null;
+  if (isRenderProjectionId(element.id)) return null;
+  const tabsAncestor = element.parent_id
+    ? findAncestorByTag(element, "Tabs", elementsMap, 3)
+    : undefined;
+  if (!tabsAncestor) return null;
+
+  const ap = getProps(tabsAncestor);
+  const tabProps: Record<string, unknown> = {};
+  if (element.type === "Tab") {
+    const tabId = getProps(element).tabId as string | undefined;
+    if (tabId) {
+      const selectedKey =
+        (ap.selectedKey as string | undefined) ??
+        (ap.defaultSelectedKey as string | undefined);
+      tabProps._isSelected =
+        selectedKey != null ? selectedKey === tabId : false;
+    }
+    tabProps._showIndicator = ap.showIndicator !== false;
+  }
+  return {
+    tabProps,
+    orientation: (ap.orientation as string) ?? "horizontal",
+  };
+}
+
+/**
+ * Radio ← 조상 RadioGroup value 매칭 (render-time, 2026-06-30).
+ *
+ * **Why**: RadioGroup 의 selection SSOT 는 그룹 `value`(RAC 모델 — 자식 Radio 의
+ * isSelected 는 RAC 가 안 봄). CSS preview(renderRadioGroup)는 RAC 에 `defaultValue`
+ * 를 넘겨 RAC 가 value↔자식 `<Radio value>` 매칭으로 selected 를 그린다. 반면 Skia radio
+ * primitive 는 `props.isSelected === true` 만 읽는데, 패널에서 RadioGroup.value 만 바꾸면
+ * 자식 Radio.isSelected 는 그대로(undefined) → Skia 미선택 → CSS↔Skia drift.
+ * Tabs selectedKey → Tab._isSelected 투영과 동형으로, 부모 value 를 자식 Skia
+ * isSelected 로 투영해 D3 시각 대칭을 복원한다. group value 미설정 시 자식 자기
+ * isSelected 보존(boolean 정규화) — 부모-주도 선택과 자식 직접 isSelected 양립.
+ *
+ * 반환: null = 미개입 (Radio 아님 | 조상 RadioGroup 없음).
+ */
+function resolveRadioGroupSelection(
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
+  currentIsSelected: unknown,
+): boolean | null {
+  if (element.type !== "Radio") return null;
+  const groupAncestor = element.parent_id
+    ? findAncestorByTag(element, "RadioGroup", elementsMap, 3)
+    : undefined;
+  if (!groupAncestor) return null;
+
+  const groupValue = getProps(groupAncestor).value as string | undefined;
+  const radioValue = getProps(element).value as string | undefined;
+  return groupValue != null && groupValue !== ""
+    ? groupValue === radioValue
+    : currentIsSelected === true;
+}
+
 /** Label in nowrap parent detection */
 function isLabelInNowrapParent(
   element: CanvasSceneNode,
@@ -1309,72 +1384,24 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   손자). Slider 기본값(50/0/100)은 소비처 slider_fill_bar escape 내장값과 동일해 불요,
   //   variant 전파는 Slider catalog variants:{} + SliderTrack default 단일 variant 라 사어.
 
-  // Tab/TabList: 조상 Tabs 1회 조회 → _isSelected, _showIndicator, orientation 주입
-  //
-  // ADR-912 영역 B (A): render-space projection Tab(appendTabRowProjection)은 이미
-  //   _isSelected/_showIndicator/(orientation 은 rowsGroup 가 담당)를 projection props 로
-  //   주입받았다 → projection props 가 SSOT. 여기서 재주입(중복)을 skip 하여 단일 진입점 유지.
-  //   non-projection Tab/TabList(혹시 잔존)만 ancestor lookup 으로 보강.
-  if (
-    (element.type === "Tab" || element.type === "TabList") &&
-    !isRenderProjectionId(element.id)
-  ) {
-    const tabsAncestor = element.parent_id
-      ? findAncestorByTag(element, "Tabs", elementsMap, 3)
-      : undefined;
-
-    if (tabsAncestor && element.type === "Tab") {
-      const ap = getProps(tabsAncestor);
-      // _isSelected
-      const tabId = getProps(element).tabId as string | undefined;
-      if (tabId) {
-        const selectedKey =
-          (ap.selectedKey as string | undefined) ??
-          (ap.defaultSelectedKey as string | undefined);
-        specProps = {
-          ...specProps,
-          _isSelected: selectedKey != null ? selectedKey === tabId : false,
-        };
-      }
-      // _showIndicator
-      specProps = { ...specProps, _showIndicator: ap.showIndicator !== false };
-    }
-
-    // orientation (Tab + TabList 모두)
-    if (tabsAncestor && !specProps.orientation) {
-      specProps = {
-        ...specProps,
-        orientation:
-          (getProps(tabsAncestor).orientation as string) ?? "horizontal",
-      };
+  // Tab/TabList ← 조상 Tabs 투영 (_isSelected/_showIndicator/orientation)
+  const tabsProjection = resolveTabsAncestorProjection(element, elementsMap);
+  if (tabsProjection) {
+    specProps = { ...specProps, ...tabsProjection.tabProps };
+    // orientation 은 자기 명시값 우선 (Tab + TabList 모두)
+    if (!specProps.orientation) {
+      specProps = { ...specProps, orientation: tabsProjection.orientation };
     }
   }
 
-  // Radio: 조상 RadioGroup 의 value ↔ 자기 value 매칭으로 isSelected 주입 (2026-06-30).
-  //
-  // **Why**: RadioGroup 의 selection SSOT 는 그룹 `value`(RAC 모델 — 자식 Radio 의
-  //   isSelected 는 RAC 가 안 봄). CSS preview(renderRadioGroup)는 RAC 에 `defaultValue`
-  //   를 넘겨 RAC 가 value↔자식 `<Radio value>` 매칭으로 selected 를 그린다. 반면 Skia radio
-  //   primitive 는 `props.isSelected === true` 만 읽는데, 패널에서 RadioGroup.value 만 바꾸면
-  //   자식 Radio.isSelected 는 그대로(undefined) → Skia 미선택 → CSS↔Skia drift.
-  //   Tabs selectedKey → Tab._isSelected 주입(위 블록)과 동형으로, 부모 value 를 자식 Skia
-  //   isSelected 로 투영해 D3 시각 대칭을 복원한다. group value 미설정 시 자식 자기 isSelected
-  //   보존(기존 동작) — 부모-주도 선택과 자식 직접 isSelected 양립.
-  if (element.type === "Radio") {
-    const groupAncestor = element.parent_id
-      ? findAncestorByTag(element, "RadioGroup", elementsMap, 3)
-      : undefined;
-    if (groupAncestor) {
-      const groupValue = getProps(groupAncestor).value as string | undefined;
-      const radioValue = props.value as string | undefined;
-      specProps = {
-        ...specProps,
-        isSelected:
-          groupValue != null && groupValue !== ""
-            ? groupValue === radioValue
-            : specProps.isSelected === true,
-      };
-    }
+  // Radio ← 조상 RadioGroup value 매칭 (isSelected)
+  const radioSelection = resolveRadioGroupSelection(
+    element,
+    elementsMap,
+    specProps.isSelected,
+  );
+  if (radioSelection !== null) {
+    specProps = { ...specProps, isSelected: radioSelection };
   }
 
   // TreeItem depth(_treeLevel) + chevron 조건(_hasTreeChildren) injection — ADR-912 R1
