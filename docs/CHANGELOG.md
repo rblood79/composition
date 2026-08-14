@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [기본 폰트 fallback 체인 정정 — monospace 오타 제거] - 2026-08-15
+
+### Bug Fixes
+
+- **기본 폰트 스택 중간의 `monospace` 오타 제거** (simplify 관찰 후속):
+  - body 기본값·root computed 기본·export 기본 body 의 fallback 체인이 `"Pretendard", "Inter Variable", monospace, system-ui, sans-serif` — Pretendard/Inter Variable 이 모두 로드되지 않는 환경에서 본문이 고정폭으로 떨어지는 잠복 결함
+  - **Why**: `cc9c4ca3f`(2026-04-07 TextSpec size preset)가 `createDefaultBodyProps()` 의 `DEFAULT_FONT_FAMILY` 를 리터럴로 치환하며 끼어든 오타 (커밋 메시지에 관련 언급 0, DOM 정본 `DEFAULT_BASE_TYPOGRAPHY` 와도 불일치) — 이후 2곳으로 복제
+  - 수정: 3곳 리터럴에서 `monospace` 만 제거 (기존 문서에 저장된 체인은 Pretendard 로드 시 monospace 미도달 — migration 불요)
+  - 검증: 라이브 모듈 직접 실행 — `createDefaultBodyProps()`/`ROOT_COMPUTED_STYLE` 양쪽 monospace 부재 확인
+  - 위치: `apps/builder/src/types/builder/unified.types.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/cssResolver.ts`, `packages/shared/src/utils/export.utils.ts`
+
 ## [이미지 placeholder dark mode 정합 — theme-bypass 리터럴 정리] - 2026-08-14
 
 ### Bug Fixes

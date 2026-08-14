@@ -265,7 +265,7 @@ export interface ComputedStyle {
 export const ROOT_COMPUTED_STYLE: ComputedStyle = {
   color: "#000000",
   fontSize: 16,
-  fontFamily: `"Pretendard", "Inter Variable", monospace, system-ui, sans-serif`,
+  fontFamily: `"Pretendard", "Inter Variable", system-ui, sans-serif`,
   fontWeight: 400,
   fontStyle: "normal",
   fontVariant: "normal",

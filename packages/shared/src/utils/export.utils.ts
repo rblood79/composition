@@ -380,7 +380,7 @@ function makeDefaultPageBodyNode(pageId: string): CanonicalNode {
       className: "react-aria-Body",
       style: {
         display: "block",
-        fontFamily: `"Pretendard", "Inter Variable", monospace, system-ui, sans-serif`,
+        fontFamily: `"Pretendard", "Inter Variable", system-ui, sans-serif`,
         overflow: "auto",
       },
     },
