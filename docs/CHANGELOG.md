@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프레임 적용 페이지의 canonical 자식 배치 정정] - 2026-08-16
+
+### Bug Fixes
+
+- **프레임 적용 페이지에서 최상위 요소를 그룹화하면 요소가 사라지던 문제**:
+  - 프레임이 적용된 페이지(canonical `ref` 노드)에서 페이지 최상위 요소들을 그룹화하면, 새 frame 과 그 자식들이 canonical 문서에서 사라졌다 (store 에만 남아 새로고침 전까지 split-brain). undo 는 노드는 되살렸지만 형제 순서를 복원하지 못했다
+  - **Why**: `attachChildToPage` 가 ref 페이지에서 `slot_name` 유무와 무관하게 **항상 슬롯 override**(`descendants`)를 골랐다. 반면 hydrate 는 페이지 최상위 요소를 `children` 에 둔다 — 그래서 legacy 속성이 완전히 같은 형제가 두 곳으로 갈렸고(실측: `parent_id: null` + `slot_name` 없는 ListBox 2개가 각각 `children`/`descendants`), 새 frame 이 override 로 들어간 뒤 자식 reparent 가 `children` 트리에서 그 frame 을 찾지 못해 자식들까지 유실됐다
+  - 수정: 슬롯을 지목하지 않은(`slot_name` 없는) 요소는 페이지의 직접 자식으로 붙인다. 슬롯 배치는 `slot_name` 이 있을 때만. 기존 override 데이터는 옮기지 않는다 (마이그레이션 불요)
+  - 재현 조건이 좁아 오래 보이지 않았다 — 일반 요소 추가는 `parent_id` 가 있어 다른 분기를 타고, `parent_id: null` 인 페이지 최상위 요소를 다루는 경로에서만 드러난다 (ADR-182 그룹화 통합 검증 중 발견)
+  - live 실측: 그룹화 → frame 이 `children` 에 삽입 + 자식 2개 정상 포함 → undo 1회로 **형제 순서까지** 원복 → 새로고침 정합. 회귀 테스트 2건 (slot-less → children / slot-named → override)
+  - 위치: `apps/builder/src/adapters/canonical/canonicalMutations.ts`
+
 ## [빌더 우클릭 컨텍스트 메뉴 — ADR-182 Phase 0~5] - 2026-08-16
 
 ### Features
@@ -22,12 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
-- **프레임 적용 페이지에서 최상위 요소를 그룹화하면 요소가 사라지던 문제**:
-  - 프레임이 적용된 페이지(canonical `ref` 노드)에서 페이지 최상위 요소들을 그룹화하면, 새 frame 과 그 자식들이 canonical 문서에서 사라졌다 (store 에만 남아 새로고침 전까지 split-brain). undo 는 노드는 되살렸지만 형제 순서를 복원하지 못했다
-  - **Why**: `attachChildToPage` 가 ref 페이지에서 `slot_name` 유무와 무관하게 **항상 슬롯 override**(`descendants`)를 골랐다. 반면 hydrate 는 페이지 최상위 요소를 `children` 에 둔다 — 그래서 legacy 속성이 완전히 같은 형제가 두 곳으로 갈렸고(실측: 동일 조건 ListBox 2개가 각각 `children`/`descendants`), 새 frame 이 override 로 들어간 뒤 자식 reparent 가 `children` 트리에서 그 frame 을 찾지 못해 자식들까지 유실됐다
-  - 수정: 슬롯을 지목하지 않은(`slot_name` 없는) 요소는 페이지의 직접 자식으로 붙인다. 슬롯 배치는 `slot_name` 이 있을 때만
-  - live 실측: 그룹화 → frame 이 `children` 에 삽입 + 자식 2개 정상 포함 → undo 1회로 **형제 순서까지** 원복 → 새로고침 정합
-  - 위치: `apps/builder/src/adapters/canonical/canonicalMutations.ts`
 - **우클릭이 다중 선택을 단일 선택으로 덮어쓰던 문제**:
   - 선택 집합 안의 요소를 우클릭하면 선택이 유지되고, 밖이면 교체된다 (빈 영역은 선택 bounds 밖일 때만 해제)
   - **Why**: 우클릭 경로가 좌클릭(`resolveClickTarget` — editingContext 경계)과 다른 자체 해석을 쓰고 무조건 단일 선택으로 덮어썼다. 두 경로를 같은 심볼로 단일화
