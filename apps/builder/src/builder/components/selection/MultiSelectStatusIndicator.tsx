@@ -24,8 +24,29 @@ import {
 import { iconProps } from "../../../utils/ui/uiConstants";
 import type { AlignmentType } from "../../stores/utils/elementAlignment";
 import type { DistributionType } from "../../stores/utils/elementDistribution";
+import {
+  SHORTCUT_DEFINITIONS,
+  type ShortcutId,
+} from "../../config/keyboardShortcuts";
+import { formatShortcut } from "../../hooks";
 
 import "./MultiSelectStatusIndicator.css";
+
+/**
+ * 단축키 표기는 `SHORTCUT_DEFINITIONS` 파생 (ADR-182 HC5).
+ *
+ * 하드코딩이던 시절 "모두 복사"/"붙여넣기" 가 `⌘⇧C`/`⌘⇧V` 로 적혀 있었는데,
+ * 그 조합은 `copyStyles`/`copyProperties` 의 것이다. 이 버튼들은 선택 요소
+ * 전체를 복사/붙여넣는 `copy`/`paste`(⌘C/⌘V) 와 같은 구현을 부른다
+ * (`canvasActions` 공유 계층).
+ */
+function shortcutLabel(id: ShortcutId): string {
+  const definition = SHORTCUT_DEFINITIONS[id];
+  return formatShortcut({
+    key: definition.key,
+    modifier: definition.modifier,
+  });
+}
 export interface MultiSelectStatusIndicatorProps {
   /** 선택된 요소 개수 */
   count: number;
@@ -98,7 +119,7 @@ export function MultiSelectStatusIndicator({
             variant="ghost"
             size="sm"
             onPress={onCopyAll}
-            aria-label="Copy all selected elements (Cmd+Shift+C)"
+            aria-label={`Copy all selected elements (${shortcutLabel("copy")})`}
             isDisabled={count === 0}
           >
             <Copy
@@ -107,14 +128,14 @@ export function MultiSelectStatusIndicator({
               strokeWidth={iconProps.strokeWidth}
             />
             <span>모두 복사</span>
-            <span className="shortcut-hint">⌘⇧C</span>
+            <span className="shortcut-hint">{shortcutLabel("copy")}</span>
           </Button>
 
           <Button
             variant="ghost"
             size="sm"
             onPress={onPasteAll}
-            aria-label="Paste copied elements (Cmd+Shift+V)"
+            aria-label={`Paste copied elements (${shortcutLabel("paste")})`}
           >
             <ClipboardPaste
               color={iconProps.color}
@@ -122,7 +143,7 @@ export function MultiSelectStatusIndicator({
               strokeWidth={iconProps.strokeWidth}
             />
             <span>붙여넣기</span>
-            <span className="shortcut-hint">⌘⇧V</span>
+            <span className="shortcut-hint">{shortcutLabel("paste")}</span>
           </Button>
         </div>
 
@@ -132,7 +153,7 @@ export function MultiSelectStatusIndicator({
             variant="ghost"
             size="sm"
             onPress={onGroupSelection}
-            aria-label="Group selected elements (Cmd+G)"
+            aria-label={`Group selected elements (${shortcutLabel("group")})`}
             isDisabled={count < 2}
           >
             <GroupIcon
@@ -141,7 +162,7 @@ export function MultiSelectStatusIndicator({
               strokeWidth={iconProps.strokeWidth}
             />
             <span>그룹화</span>
-            <span className="shortcut-hint">⌘G</span>
+            <span className="shortcut-hint">{shortcutLabel("group")}</span>
           </Button>
         </div>
 
@@ -154,7 +175,7 @@ export function MultiSelectStatusIndicator({
                 variant="ghost"
                 size="sm"
                 onPress={() => onAlign("left")}
-                aria-label="Align left (Cmd+Shift+L)"
+                aria-label={`Align left (${shortcutLabel("alignLeft")})`}
                 isDisabled={count < 2}
               >
                 <AlignLeft
@@ -168,7 +189,7 @@ export function MultiSelectStatusIndicator({
                 variant="ghost"
                 size="sm"
                 onPress={() => onAlign("center")}
-                aria-label="Align horizontal center (Cmd+Shift+H)"
+                aria-label={`Align horizontal center (${shortcutLabel("alignHCenter")})`}
                 isDisabled={count < 2}
               >
                 <AlignCenter
@@ -182,7 +203,7 @@ export function MultiSelectStatusIndicator({
                 variant="ghost"
                 size="sm"
                 onPress={() => onAlign("right")}
-                aria-label="Align right (Cmd+Shift+R)"
+                aria-label={`Align right (${shortcutLabel("alignRight")})`}
                 isDisabled={count < 2}
               >
                 <AlignRight
@@ -196,7 +217,7 @@ export function MultiSelectStatusIndicator({
                 variant="ghost"
                 size="sm"
                 onPress={() => onAlign("top")}
-                aria-label="Align top (Cmd+Shift+T)"
+                aria-label={`Align top (${shortcutLabel("alignTop")})`}
                 isDisabled={count < 2}
               >
                 <AlignVerticalJustifyStart
@@ -210,7 +231,7 @@ export function MultiSelectStatusIndicator({
                 variant="ghost"
                 size="sm"
                 onPress={() => onAlign("middle")}
-                aria-label="Align vertical middle (Cmd+Shift+M)"
+                aria-label={`Align vertical middle (${shortcutLabel("alignVCenter")})`}
                 isDisabled={count < 2}
               >
                 <AlignVerticalJustifyCenter
@@ -224,7 +245,7 @@ export function MultiSelectStatusIndicator({
                 variant="ghost"
                 size="sm"
                 onPress={() => onAlign("bottom")}
-                aria-label="Align bottom (Cmd+Shift+B)"
+                aria-label={`Align bottom (${shortcutLabel("alignBottom")})`}
                 isDisabled={count < 2}
               >
                 <AlignVerticalJustifyEnd
@@ -246,7 +267,7 @@ export function MultiSelectStatusIndicator({
                 variant="ghost"
                 size="sm"
                 onPress={() => onDistribute("horizontal")}
-                aria-label="Distribute horizontally (Cmd+Shift+D)"
+                aria-label={`Distribute horizontally (${shortcutLabel("distributeH")})`}
                 isDisabled={count < 3}
               >
                 <AlignHorizontalDistributeCenter
@@ -260,7 +281,7 @@ export function MultiSelectStatusIndicator({
                 variant="ghost"
                 size="sm"
                 onPress={() => onDistribute("vertical")}
-                aria-label="Distribute vertically (Cmd+Alt+Shift+V)"
+                aria-label={`Distribute vertically (${shortcutLabel("distributeV")})`}
                 isDisabled={count < 3}
               >
                 <AlignVerticalDistributeCenter

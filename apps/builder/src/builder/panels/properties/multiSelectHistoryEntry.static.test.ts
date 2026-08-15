@@ -35,6 +35,13 @@ async function readSource(file: string): Promise<string> {
 
 const PANELS = ["./PropertiesPanel.tsx", "./CanvasSelectionShortcuts.tsx"];
 
+/**
+ * 정렬·분배·그룹 해제의 오케스트레이션은 ADR-182 Phase 1.5 에서 공유 계층
+ * (`canvasActions`) 으로 옮겨졌다 — 단축키 host 와 컨텍스트 메뉴가 같은 구현을
+ * 소비한다. 계약 자체는 그대로이므로 검사 대상만 따라간다.
+ */
+const CANVAS_ACTIONS = "../../workspace/canvas/actions/canvasActions.ts";
+
 describe("기록하는 store action 과 track 헬퍼를 겹쳐 부르지 않는다", () => {
   it("두 패널은 trackBatchUpdate 를 쓰지 않는다 (배치 action 이 이미 기록)", async () => {
     for (const file of PANELS) {
@@ -46,13 +53,13 @@ describe("기록하는 store action 과 track 헬퍼를 겹쳐 부르지 않는�
   });
 
   it("정렬·분배는 요소별 update 대신 배치 action 1회로 적용한다", async () => {
-    const shortcuts = await readSource("./CanvasSelectionShortcuts.tsx");
+    const actions = await readSource(CANVAS_ACTIONS);
 
     // 요소별 updateElementProps 를 Promise.all 로 돌리면 엔트리가 요소 수만큼 늘어난다
-    expect(shortcuts).not.toMatch(
+    expect(actions).not.toMatch(
       /Promise\.all\(\s*\n?\s*updates\.map\(\(update\)/,
     );
-    expect(shortcuts.match(/await batchUpdateElementProps\(/g)).toHaveLength(2); // align + distribute
+    expect(actions.match(/await batchUpdateElementProps\(/g)).toHaveLength(2); // align + distribute
 
     const panel = await readSource("./PropertiesPanel.tsx");
     // batch 편집 / 정렬 / 분배 3곳
@@ -71,16 +78,16 @@ describe("기록하는 store action 과 track 헬퍼를 겹쳐 부르지 않는�
   });
 
   it("그룹 해제의 group 삭제는 skipHistory (trackUngroup 이 remove event 보유)", async () => {
-    const shortcuts = await readSource("./CanvasSelectionShortcuts.tsx");
+    const actions = await readSource(CANVAS_ACTIONS);
 
-    expect(shortcuts).toContain(
+    expect(actions).toContain(
       "await removeElement(groupIdToDelete, { skipHistory: true });",
     );
     // 생성 쪽과 대칭 — 한쪽만 skipHistory 면 되돌리기 단위가 어긋난다
-    expect(shortcuts).toContain(
+    expect(actions).toContain(
       "addElement(groupElement, { skipHistory: true })",
     );
-    expect(shortcuts).toContain("trackUngroup(");
+    expect(actions).toContain("trackUngroup(");
   });
 });
 

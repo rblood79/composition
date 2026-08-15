@@ -10,16 +10,16 @@
  * @updated Phase 5 - 설정 파일 연동 및 검색/탭 추가 (2025-12-28)
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from "react";
 import { Button } from "@composition/shared/components";
-import { Keyboard, X, ChevronDown, ChevronRight, Search } from 'lucide-react';
-import { iconProps } from '../../../utils/ui/uiConstants';
+import { Keyboard, X, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   SHORTCUT_DEFINITIONS,
   getShortcutsByCategory,
   type ShortcutId,
-} from '../../config/keyboardShortcuts';
-import { formatShortcut, type ShortcutCategory } from '@/builder/hooks';
+} from "../../config/keyboardShortcuts";
+import { formatShortcut, type ShortcutCategory } from "@/builder/hooks";
 
 // ============================================
 // Types
@@ -48,25 +48,25 @@ interface DisplayShortcut {
 // ============================================
 
 const CATEGORY_LABELS: Record<ShortcutCategory, string> = {
-  system: 'System',
-  navigation: 'Navigation',
-  panels: 'Panels',
-  canvas: 'Canvas',
-  tools: 'Tools',
-  properties: 'Properties',
-  events: 'Events',
-  nodes: 'Nodes',
+  system: "System",
+  navigation: "Navigation",
+  panels: "Panels",
+  canvas: "Canvas",
+  tools: "Tools",
+  properties: "Properties",
+  events: "Events",
+  nodes: "Nodes",
 };
 
 const CATEGORY_ORDER: ShortcutCategory[] = [
-  'system',
-  'navigation',
-  'canvas',
-  'panels',
-  'properties',
-  'events',
-  'nodes',
-  'tools',
+  "system",
+  "navigation",
+  "canvas",
+  "panels",
+  "properties",
+  "events",
+  "nodes",
+  "tools",
 ];
 
 // ============================================
@@ -90,7 +90,10 @@ function getDisplayShortcuts(): DisplayShortcut[] {
 /**
  * 검색어로 단축키 필터링
  */
-function filterBySearch(shortcuts: DisplayShortcut[], search: string): DisplayShortcut[] {
+function filterBySearch(
+  shortcuts: DisplayShortcut[],
+  search: string,
+): DisplayShortcut[] {
   if (!search.trim()) return shortcuts;
 
   const query = search.toLowerCase();
@@ -99,7 +102,7 @@ function filterBySearch(shortcuts: DisplayShortcut[], search: string): DisplaySh
       s.description.toLowerCase().includes(query) ||
       s.i18nDescription?.toLowerCase().includes(query) ||
       s.key.toLowerCase().includes(query) ||
-      s.id.toLowerCase().includes(query)
+      s.id.toLowerCase().includes(query),
   );
 }
 
@@ -108,9 +111,9 @@ function filterBySearch(shortcuts: DisplayShortcut[], search: string): DisplaySh
  */
 function filterByCategory(
   shortcuts: DisplayShortcut[],
-  category: ShortcutCategory | 'all'
+  category: ShortcutCategory | "all",
 ): DisplayShortcut[] {
-  if (category === 'all') return shortcuts;
+  if (category === "all") return shortcuts;
   return shortcuts.filter((s) => s.category === category);
 }
 
@@ -118,7 +121,7 @@ function filterByCategory(
  * 카테고리별 그룹화
  */
 function groupByCategory(
-  shortcuts: DisplayShortcut[]
+  shortcuts: DisplayShortcut[],
 ): Record<ShortcutCategory, DisplayShortcut[]> {
   const grouped: Partial<Record<ShortcutCategory, DisplayShortcut[]>> = {};
 
@@ -152,13 +155,13 @@ function groupByCategory(
 export function KeyboardShortcutsHelp({
   isOpen,
   onClose,
-  className = '',
+  className = "",
 }: KeyboardShortcutsHelpProps) {
-  const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<ShortcutCategory | 'all'>('all');
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<ShortcutCategory>>(
-    new Set()
-  );
+  const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<ShortcutCategory | "all">("all");
+  const [collapsedCategories, setCollapsedCategories] = useState<
+    Set<ShortcutCategory>
+  >(new Set());
 
   // 모든 단축키 로드 (설정 파일에서)
   const allShortcuts = useMemo(() => getDisplayShortcuts(), []);
@@ -174,12 +177,14 @@ export function KeyboardShortcutsHelp({
   // 카테고리별 그룹화
   const groupedShortcuts = useMemo(
     () => groupByCategory(filteredShortcuts),
-    [filteredShortcuts]
+    [filteredShortcuts],
   );
 
   // 카테고리별 개수
   const categoryCounts = useMemo(() => {
-    const counts: Partial<Record<ShortcutCategory | 'all', number>> = { all: allShortcuts.length };
+    const counts: Partial<Record<ShortcutCategory | "all", number>> = {
+      all: allShortcuts.length,
+    };
     const byCategory = getShortcutsByCategory();
     for (const cat of CATEGORY_ORDER) {
       counts[cat] = byCategory[cat]?.length || 0;
@@ -253,7 +258,7 @@ export function KeyboardShortcutsHelp({
             {search && (
               <button
                 className="search-clear"
-                onClick={() => handleSearchChange('')}
+                onClick={() => handleSearchChange("")}
                 aria-label="Clear search"
               >
                 <X size={12} />
@@ -265,15 +270,15 @@ export function KeyboardShortcutsHelp({
         {/* Category Tabs */}
         <div className="shortcuts-tabs">
           <button
-            className={`shortcuts-tab ${activeTab === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveTab('all')}
+            className={`shortcuts-tab ${activeTab === "all" ? "active" : ""}`}
+            onClick={() => setActiveTab("all")}
           >
             All ({categoryCounts.all})
           </button>
           {CATEGORY_ORDER.map((cat) => (
             <button
               key={cat}
-              className={`shortcuts-tab ${activeTab === cat ? 'active' : ''}`}
+              className={`shortcuts-tab ${activeTab === cat ? "active" : ""}`}
               onClick={() => setActiveTab(cat)}
             >
               {CATEGORY_LABELS[cat]} ({categoryCounts[cat]})
@@ -317,7 +322,9 @@ export function KeyboardShortcutsHelp({
                           <span className="shortcut-description">
                             {shortcut.i18nDescription || shortcut.description}
                           </span>
-                          <kbd className="shortcut-keys">{shortcut.display}</kbd>
+                          <kbd className="shortcut-keys">
+                            {shortcut.display}
+                          </kbd>
                         </div>
                       ))}
                     </div>
@@ -331,7 +338,14 @@ export function KeyboardShortcutsHelp({
         {/* Footer */}
         <div className="shortcuts-footer">
           <p className="shortcuts-hint">
-            Press <kbd>⌘?</kbd> anytime to toggle this help panel
+            Press{" "}
+            <kbd>
+              {formatShortcut({
+                key: SHORTCUT_DEFINITIONS.toggleHelp.key,
+                modifier: SHORTCUT_DEFINITIONS.toggleHelp.modifier,
+              })}
+            </kbd>{" "}
+            anytime to toggle this help panel
           </p>
           <p className="shortcuts-count">
             {filteredShortcuts.length} of {allShortcuts.length} shortcuts

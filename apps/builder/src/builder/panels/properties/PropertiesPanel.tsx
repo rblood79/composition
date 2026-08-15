@@ -48,12 +48,9 @@ import { getPropagationRules } from "../../utils/propagationRegistry";
 import { buildPropagationUpdates } from "../../utils/propagationEngine";
 import type { BatchPropsUpdate } from "../../stores/utils/elementUpdate";
 import {
-  copyMultipleElements,
-  pasteMultipleElements,
-  resolvePasteTargetParentId,
-  serializeCopiedElements,
-  deserializeCopiedElements,
-} from "../../utils/multiElementCopy";
+  copySelection,
+  paste,
+} from "../../workspace/canvas/actions/canvasActions";
 import { selectionMemory } from "../../utils/selectionMemory";
 import { createGroupFromSelection } from "../../stores/utils/elementGrouping";
 import {
@@ -475,54 +472,24 @@ const MultiSelectContent = memo(function MultiSelectContent({
   }
 
   // Multi-select handlers
+  // 복사/붙여넣기는 `canvasActions` 공유 계층을 소비한다 (ADR-182 HC4) — 이 패널이
+  // 세 번째 consumer 다. 종전엔 같은 오케스트레이션(copyMultipleElements →
+  // serialize → clipboard / deserialize → pasteMultipleElements → batch add +
+  // trackMultiPaste)을 자체 구현하고 있었고, 그래서 버튼 표기가 실제 단축키와
+  // 어긋나도 드러나지 않았다.
   const handleCopyAll = async () => {
-    if (selectedElementIds.length === 0) return;
-    try {
-      const elementsMap = getLegacyElementsMap();
-      const copiedData = copyMultipleElements(selectedElementIds, elementsMap);
-      const jsonData = serializeCopiedElements(copiedData);
-      await copyText(jsonData);
-      console.log(`✅ [Copy] Copied ${selectedElementIds.length} elements`);
-    } catch (error) {
-      console.error("❌ [Copy] Failed:", error);
-    }
+    await copySelection({
+      elementsMap: getLegacyElementsMap(),
+      writeClipboardText: copyText,
+    });
   };
 
   const handlePasteAll = async () => {
-    if (!currentPageId) return;
-    try {
-      const clipboardText = await pasteText();
-      if (!clipboardText) return;
-      const copiedData = deserializeCopiedElements(clipboardText);
-      if (!copiedData) return;
-      const elementsMap = getLegacyElementsMap();
-      const newElements = pasteMultipleElements(
-        copiedData,
-        currentPageId,
-        {
-          x: 10,
-          y: 10,
-        },
-        Array.from(elementsMap.values()),
-        {
-          targetParentId: resolvePasteTargetParentId({
-            currentPageId,
-            selectedElementId: useStore.getState().selectedElementId,
-            elements: elementsMap.values(),
-          }),
-        },
-      );
-      if (newElements.length === 0) return;
-      await Promise.all(
-        newElements.map((element) =>
-          addElement(element, { skipHistory: true }),
-        ),
-      );
-      trackMultiPaste(newElements);
-      console.log(`✅ [Paste] Pasted ${newElements.length} elements`);
-    } catch (error) {
-      console.error("❌ [Paste] Failed:", error);
-    }
+    await paste({
+      elementsMap: getLegacyElementsMap(),
+      readClipboardText: pasteText,
+      pasteHistory: "batch",
+    });
   };
 
   const handleDeleteAll = async () => {

@@ -26,14 +26,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 선택 집합 안의 요소를 우클릭하면 선택이 유지되고, 밖이면 교체된다 (빈 영역은 선택 bounds 밖일 때만 해제)
   - **Why**: 우클릭 경로가 좌클릭(`resolveClickTarget` — editingContext 경계)과 다른 자체 해석을 쓰고 무조건 단일 선택으로 덮어썼다. 두 경로를 같은 심볼로 단일화
 - **레이어 트리 컨텍스트 메뉴 배경이 투명하던 문제**: 미정의 토큰 `--bg-elevated`(정의 0건)를 쓰고 있었다 → `--bg-raised` 로 정정. 중복 정의됐던 CSS 2벌(`Workspace.css` ≡ `NodesPanel.css`)을 `@layer builder-system` 단일 스타일시트로 통합
-- **줌 메뉴의 확대 단축키 표기가 실제 바인딩과 달랐던 문제**:
-  - "확대" 가 `⌘+` 로 적혀 있었으나 실제 바인딩은 `⌘=` 다 (`+` 는 numpad 전용 `zoomInNumpad`) — `⌘+` 를 누르려면 Shift 가 필요해 안내대로 눌러도 동작하지 않았다
-  - **Why**: 표기가 `SHORTCUT_DEFINITIONS` 파생이 아니라 JSX 리터럴이라 정의 변경을 따라가지 못했다 (ADR-182 R4 가 지목한 표기-실바인딩 불일치)
-  - 수정: 줌 메뉴 5항목을 `formatShortcut(SHORTCUT_DEFINITIONS[id])` 파생으로 전환 — 위치: `apps/builder/src/builder/workspace/ZoomControls.tsx`
+- **단축키 안내가 실제 바인딩과 달랐던 문제 3건** (전부 JSX 리터럴 표기):
+  - 줌 메뉴 "확대" 가 `⌘+` 로 적혀 있었으나 바인딩은 `⌘=` 다 (`+` 는 numpad 전용 `zoomInNumpad`) — 안내대로 누르면 Shift 가 붙어 동작하지 않았다
+  - 다중 선택 패널의 "모두 복사"/"붙여넣기" 가 `⌘⇧C`/`⌘⇧V` 로 적혀 있었으나 그 조합은 **스타일·속성 복사**(`copyStyles`/`copyProperties`)의 것이다. 이 버튼들이 하는 일(선택 요소 전체 복사)의 단축키는 `⌘C`/`⌘V`
+  - 같은 패널의 "세로 분배" 가 `Cmd+Alt+Shift+V` 로 적혀 있었으나 실제는 `⌥⇧V` (Cmd 없음)
+  - **Why**: 표기가 `SHORTCUT_DEFINITIONS` 파생이 아니라 리터럴이라 정의 변경을 따라가지 못했다 (ADR-182 R4 가 지목한 표기-실바인딩 불일치)
+  - 수정: 줌 메뉴 5항목 + 다중 선택 패널 11항목(shortcut-hint 3 + aria-label 8) + 도움말 푸터 1항목을 `formatShortcut(SHORTCUT_DEFINITIONS[id])` 파생으로 전환 — 위치: `workspace/ZoomControls.tsx`, `components/selection/MultiSelectStatusIndicator.tsx`, `components/help/KeyboardShortcutsHelp.tsx`
 
 ### Architecture
 
 - **액션 오케스트레이션 공유 계층 `canvasActions`** (Phase 1.5): copy/paste/duplicate/delete/group/ungroup/align/distribute 8종의 오케스트레이션이 컴포넌트·훅 내부 클로저에 갇혀 있어 메뉴가 호출할 수 없었다. 로직 무변경 호출부 이동으로 추출하고, 단축키 등록부 2곳과 메뉴가 같은 구현을 소비한다 (elements map 은 인자 주입 — 두 read model 의 alias 를 한 어댑터 경계에서 정규화)
+  - Properties 패널의 "모두 복사"/"붙여넣기" 도 같은 계층을 소비하도록 통합 — 종전엔 동일 오케스트레이션을 자체 구현하고 있어서 버튼 표기가 실제 단축키와 어긋나도 드러나지 않았다 (위 Bug Fix 의 병인)
+  - 정렬·분배·그룹 해제의 "되돌리기 1회" 정적 가드(`multiSelectHistoryEntry.static.test.ts`)를 옮겨간 구현(`canvasActions.ts`) 대상으로 이설 — 검사 대상이 옛 파일에 남아 계약이 실질 미검증 상태였다
 - 신규 mutation `moveElementToSiblingEdge` 는 `runCanonicalMutation` 경유 (ADR-184/185 — canonical → store → rebuild → history → persist 순서와 history 기록 의무를 러너가 소유)
 - 위치: `apps/builder/src/builder/components/overlay/contextMenu/*`, `workspace/canvas/contextMenu/*`, `workspace/canvas/actions/canvasActions.ts`, `stores/utils/siblingReorder.ts`
 
