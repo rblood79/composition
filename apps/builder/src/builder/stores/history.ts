@@ -1,6 +1,7 @@
 import {
   Element,
   ComponentElementProps,
+  Page,
 } from "../../types/builder/unified.types";
 import { type SerializableElementDiff } from "./utils/elementDiff";
 import { historyIndexedDB } from "./history/historyIndexedDB";
@@ -73,6 +74,48 @@ export interface PageGuideHistoryEntryItem {
   after: import("@composition/shared").PageGuideLine[];
 }
 
+/**
+ * ADR-185 G-1 수리 — `page-lifecycle` entry 의 detach 치환쌍.
+ *
+ * 페이지 삭제는 삭제 페이지의 origin 을 참조하던 **다른 페이지의 instance**
+ * 를 detached 사본으로 치환한다 (`removePageLocal` 의 auto-detach).
+ * `replacements[0]` 은 detached root 로 `previous` 와 **같은 id** 를 가지며,
+ * 이후 요소들은 detach 로 실체화된 descendants 다. undo 는 이 쌍을 역적용
+ * (root 를 instance 원형으로 복귀 + descendants 제거) 한다.
+ */
+export interface PageLifecycleDetachPair {
+  previous: Element;
+  replacements: Element[];
+}
+
+/**
+ * ADR-185 G-1 수리 — `page-lifecycle` entry payload (페이지 생성/삭제).
+ *
+ * 비-element 축 (page-position/page-guide 동형 — undo/redo 는 element 경로
+ * 진입 전 early-branch). 페이지 행 + 소속 요소 subtree + detach 치환쌍 +
+ * breakpoint 별 위치 + 활성 페이지 전환을 한 entry 로 되돌린다.
+ * canonical element 정렬은 page shell bridge (BuilderCore — pages 토폴로지
+ * 구독) 가 live 경로와 동일하게 수행한다.
+ */
+export interface PageLifecycleHistoryPayload {
+  action: "create" | "delete";
+  /** `pages` 배열 내 원위치 — 복원 시 삽입 지점 */
+  pageIndex: number;
+  page: Page;
+  /** 페이지 소속 요소 전체 (canonical 파생 순서) — create 는 [body] */
+  subtreeElements: Element[];
+  /** delete 전용 — auto-detach 치환쌍 (create 는 빈 배열) */
+  detach: PageLifecycleDetachPair[];
+  /** breakpoint 별 페이지 위치 (delete: 제거 전 스냅샷 / create: 부여 위치) */
+  positions: Array<{
+    breakpoint: import("@composition/shared").BreakpointName;
+    position: { x: number; y: number };
+  }>;
+  /** mutation 직전/직후 활성 페이지 — undo/redo 의 활성 복원 기준 */
+  prevCurrentPageId: string | null;
+  nextCurrentPageId: string | null;
+}
+
 export interface HistoryEntry {
   id: string;
   type:
@@ -85,6 +128,7 @@ export interface HistoryEntry {
     | "ungroup"
     | "page-position"
     | "page-guide"
+    | "page-lifecycle"
     | "snapshot-restore";
   /**
    * element 노드 id — `page-position` entry 는 첫 pageId 를 넣는다 (소비자
@@ -149,6 +193,13 @@ export interface HistoryEntry {
       afterSnapshotId: string;
       snapshotName: string;
     };
+    /**
+     * **ADR-185 G-1** — `type: "page-lifecycle"` 전용 payload (페이지 생성/
+     * 삭제). 비-element 축 early-branch. 적용이 활성 페이지를 바꾸면 entry 는
+     * `migrateEntryToPage` 로 새 활성 페이지 스택으로 이관된다 — history 가
+     * 페이지별 스택이라 이관 없이는 반대 방향 (redo↔undo) 이 도달 불가.
+     */
+    pageLifecycleEvent?: PageLifecycleHistoryPayload;
   };
   timestamp: number;
   /** Entry size tracking */
@@ -238,6 +289,79 @@ export class HistoryManager {
    * 백그라운드이고, pageHistories.set 은 동기 유지하여 즉시 undo/redo
    * 진입도 문제없다.
    */
+  /** 현재 history 스택의 pageId — page-lifecycle 이관 출발 스택 판정용 (ADR-185) */
+  getCurrentPageId(): string | null {
+    return this.currentPageId;
+  }
+
+  /**
+   * ADR-185 G-1 — page-lifecycle entry 를 적용 후 활성 페이지 스택으로 이관.
+   *
+   * history 는 페이지별 스택이라, 적용이 활성 페이지를 바꾸는 entry 는 이관
+   * 없이는 반대 방향 (undo 후 redo / redo 후 undo) 이 항상 도달 불가가 된다.
+   *
+   * placement:
+   * - `"redoable"` — undo 적용 후: 대상 스택의 다음 redo 위치 (currentIndex+1)
+   * - `"done"` — redo 적용 후: 대상 스택의 마지막 완료 entry
+   *
+   * 양쪽 모두 대상 스택의 기존 redo tail 은 잘린다 (addEntry 의 선형
+   * truncation 과 동일 규칙 — 전역 타임라인이 그 분기에서 갈라졌다).
+   */
+  migrateEntryToPage(
+    entryId: string,
+    fromPageId: string,
+    toPageId: string,
+    placement: "done" | "redoable",
+  ): void {
+    if (fromPageId === toPageId) return;
+    const from = this.pageHistories.get(fromPageId);
+    if (!from) return;
+    const idx = from.entries.findIndex((entry) => entry.id === entryId);
+    if (idx < 0) return;
+
+    const [entry] = from.entries.splice(idx, 1);
+    if (idx <= from.currentIndex) from.currentIndex--;
+
+    if (!this.pageHistories.has(toPageId)) {
+      this.pageHistories.set(toPageId, {
+        entries: [],
+        currentIndex: -1,
+        maxSize: this.defaultMaxSize,
+      });
+    }
+    const to = this.pageHistories.get(toPageId)!;
+    to.entries = to.entries.slice(0, to.currentIndex + 1);
+    to.entries.push(entry);
+    if (placement === "done") {
+      to.currentIndex = to.entries.length - 1;
+    }
+    // "redoable" 은 currentIndex 유지 — entry 가 currentIndex+1 (다음 redo)
+
+    if (this.idbAvailable) {
+      void (async () => {
+        try {
+          await this.ensureInitialized();
+          await this.indexedDB.deleteEntry(entry.id);
+          await this.indexedDB.saveEntry(toPageId, entry);
+          await this.indexedDB.savePageMeta(
+            fromPageId,
+            from.currentIndex,
+            from.entries.length,
+          );
+          await this.indexedDB.savePageMeta(
+            toPageId,
+            to.currentIndex,
+            to.entries.length,
+          );
+        } catch (error) {
+          console.error("❌ [History] migrateEntryToPage IDB sync:", error);
+        }
+      })();
+    }
+
+    this.notifyListeners();
+  }
+
   setCurrentPage(pageId: string): void {
     this.currentPageId = pageId;
 
@@ -465,6 +589,7 @@ export class HistoryManager {
       import.meta.env?.DEV &&
       entry.type !== "page-position" &&
       entry.type !== "page-guide" &&
+      entry.type !== "page-lifecycle" &&
       entry.type !== "snapshot-restore" &&
       !entry.data.canonicalEvents?.length
     ) {

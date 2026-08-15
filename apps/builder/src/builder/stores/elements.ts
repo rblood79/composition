@@ -1263,6 +1263,11 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
     appendPageShell: (page, bodyElement, position, options) => {
       const activate = options?.activate ?? true;
+      // ADR-185 G-1 — 생성 undo 기록용 사전 캡처 (활성 전환 전 상태)
+      const prevStateForHistory = get();
+      const prevCurrentPageId = prevStateForHistory.currentPageId;
+      const prevPageCount = prevStateForHistory.pages.length;
+      const historyBreakpoint = getActiveBreakpoint(prevStateForHistory);
       if (activate) {
         historyManager.setCurrentPage(page.id);
       }
@@ -1305,6 +1310,30 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         };
       });
 
+      // ADR-185 G-1 — 페이지 생성 undo 기록. entry 는 활성-후 페이지 스택
+      // (activate 시 신규 페이지 — 위 setCurrentPage 로 스택 생성됨) 에 실리고,
+      // undo 적용이 활성을 prev 로 되돌리면 historyActions 가 entry 를 그
+      // 스택으로 이관한다 (migrateEntryToPage). 호출자는 사용자 생성 2곳
+      // (usePageManager addPage/addPageWithParams) 뿐 — hydration 미경유.
+      historyManager.addEntry({
+        type: "page-lifecycle",
+        elementId: page.id,
+        data: {
+          pageLifecycleEvent: {
+            action: "create",
+            pageIndex: prevPageCount,
+            page: structuredClone(page),
+            subtreeElements: [structuredClone(bodyElement)],
+            detach: [],
+            positions: [
+              { breakpoint: historyBreakpoint, position: { ...position } },
+            ],
+            prevCurrentPageId,
+            nextCurrentPageId: activate ? page.id : prevCurrentPageId,
+          },
+        },
+      });
+
       const duration = performance.now() - startTime;
       if (duration >= 8) {
         console.log("[perf] store.append-page-shell", {
@@ -1316,103 +1345,152 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
     removePageLocal: (pageId, nextSelection) => {
       const startTime = performance.now();
-      set((state) => {
-        const detachSourceState = buildDetachedPageRemovalState(state);
-        const removedElementsMap: PageRemovalElementMap = new Map();
-        for (const element of detachSourceState.elements) {
-          if (element.page_id === pageId) {
-            removedElementsMap.set(element.id, element);
-          }
+      // ADR-185 G-1 — 제거 계획을 set 밖에서 산출한다 (동기 흐름이라 get()
+      // 상태 == set 콜백 상태). history 기록이 detach 치환쌍/subtree 를
+      // 재계산 없이 같은 계획에서 캡처하기 위한 hoist — 로직은 종전과 동일.
+      const state = get();
+      const detachSourceState = buildDetachedPageRemovalState(state);
+      const removedElementsMap: PageRemovalElementMap = new Map();
+      for (const element of detachSourceState.elements) {
+        if (element.page_id === pageId) {
+          removedElementsMap.set(element.id, element);
         }
-        const removedElements = Array.from(removedElementsMap.values());
-        const removedElementIds = new Set(
-          removedElements.map((element) => element.id),
-        );
-        const autoDetach = buildDetachSnapshotsForOrigins(
-          detachSourceState,
-          removedElements,
-          removedElementIds,
-        );
-        const autoDetachElementsByPreviousId: PageRemovalElementsByPreviousId =
-          new Map(
-            autoDetach.previousElements.map((element) => [element.id, []]),
-          );
-        let currentDetachedRootId: string | null = null;
-        for (const element of autoDetach.elements) {
-          if (autoDetachElementsByPreviousId.has(element.id)) {
-            currentDetachedRootId = element.id;
-          }
-          if (currentDetachedRootId) {
-            autoDetachElementsByPreviousId
-              .get(currentDetachedRootId)
-              ?.push(element);
-          }
+      }
+      const removedElements = Array.from(removedElementsMap.values());
+      const removedElementIds = new Set(
+        removedElements.map((element) => element.id),
+      );
+      const autoDetach = buildDetachSnapshotsForOrigins(
+        detachSourceState,
+        removedElements,
+        removedElementIds,
+      );
+      const autoDetachElementsByPreviousId: PageRemovalElementsByPreviousId =
+        new Map(autoDetach.previousElements.map((element) => [element.id, []]));
+      let currentDetachedRootId: string | null = null;
+      for (const element of autoDetach.elements) {
+        if (autoDetachElementsByPreviousId.has(element.id)) {
+          currentDetachedRootId = element.id;
         }
-        const nextPages = state.pages.filter((page) => page.id !== pageId);
-        const nextElements = detachSourceState.elements.flatMap((element) => {
-          if (removedElementIds.has(element.id)) return [];
-          return autoDetachElementsByPreviousId.get(element.id) ?? [element];
-        });
-        const nextIndexes = buildIndexes(nextElements);
-        const nextElementsMap = nextIndexes.elementsMap;
-
-        const nextPagePositions = { ...state.pagePositions };
-        delete nextPagePositions[pageId];
-
-        const requestedElementId = nextSelection?.elementId ?? null;
-        const requestedPageId = nextSelection?.pageId ?? null;
-        const requestedElementIsValid =
-          requestedElementId !== null &&
-          nextElementsMap.has(requestedElementId);
-        const nextSelectedElementIds = requestedElementIsValid
-          ? [requestedElementId]
-          : state.selectedElementIds.filter((id) => nextElementsMap.has(id));
-        const nextSelectedElementId = requestedElementIsValid
-          ? requestedElementId
-          : state.selectedElementId &&
-              nextElementsMap.has(state.selectedElementId)
-            ? state.selectedElementId
-            : (nextSelectedElementIds[0] ?? null);
-        const nextEditingContextId =
-          state.editingContextId && nextElementsMap.has(state.editingContextId)
-            ? state.editingContextId
-            : null;
-        const nextCurrentPageId =
-          requestedPageId !== null
-            ? requestedPageId
-            : state.currentPageId === pageId
-              ? null
-              : state.currentPageId;
-
-        const nextPagePositionsByBreakpoint = Object.fromEntries(
-          Object.entries(state.pagePositionsByBreakpoint).map(
-            ([breakpoint, positions]) => {
-              const nextPositions = { ...positions };
-              delete nextPositions[pageId];
-              return [breakpoint, nextPositions];
-            },
-          ),
-        ) as Partial<Record<BreakpointName, PagePositions>>;
-
-        return {
-          pages: nextPages,
-          elements: nextElements,
-          ...nextIndexes,
-          pagePositions: nextPagePositions,
-          pagePositionsByBreakpoint: nextPagePositionsByBreakpoint,
-          pagePositionsVersion: state.pagePositionsVersion + 1,
-          currentPageId: nextCurrentPageId,
-          selectedElementId: nextSelectedElementId,
-          selectedElementIds: nextSelectedElementIds,
-          selectedElementIdsSet: new Set(nextSelectedElementIds),
-          multiSelectMode: nextSelectedElementIds.length > 1,
-          selectedElementProps: nextSelectedElementId
-            ? createCompleteProps(nextElementsMap.get(nextSelectedElementId)!)
-            : {},
-          editingContextId: nextEditingContextId,
-          layoutVersion: state.layoutVersion + 1,
-        };
+        if (currentDetachedRootId) {
+          autoDetachElementsByPreviousId
+            .get(currentDetachedRootId)
+            ?.push(element);
+        }
+      }
+      const nextPages = state.pages.filter((page) => page.id !== pageId);
+      const nextElements = detachSourceState.elements.flatMap((element) => {
+        if (removedElementIds.has(element.id)) return [];
+        return autoDetachElementsByPreviousId.get(element.id) ?? [element];
       });
+      const nextIndexes = buildIndexes(nextElements);
+      const nextElementsMap = nextIndexes.elementsMap;
+
+      const nextPagePositions = { ...state.pagePositions };
+      delete nextPagePositions[pageId];
+
+      const requestedElementId = nextSelection?.elementId ?? null;
+      const requestedPageId = nextSelection?.pageId ?? null;
+      const requestedElementIsValid =
+        requestedElementId !== null && nextElementsMap.has(requestedElementId);
+      const nextSelectedElementIds = requestedElementIsValid
+        ? [requestedElementId]
+        : state.selectedElementIds.filter((id) => nextElementsMap.has(id));
+      const nextSelectedElementId = requestedElementIsValid
+        ? requestedElementId
+        : state.selectedElementId &&
+            nextElementsMap.has(state.selectedElementId)
+          ? state.selectedElementId
+          : (nextSelectedElementIds[0] ?? null);
+      const nextEditingContextId =
+        state.editingContextId && nextElementsMap.has(state.editingContextId)
+          ? state.editingContextId
+          : null;
+      const nextCurrentPageId =
+        requestedPageId !== null
+          ? requestedPageId
+          : state.currentPageId === pageId
+            ? null
+            : state.currentPageId;
+
+      const nextPagePositionsByBreakpoint = Object.fromEntries(
+        Object.entries(state.pagePositionsByBreakpoint).map(
+          ([breakpoint, positions]) => {
+            const nextPositions = { ...positions };
+            delete nextPositions[pageId];
+            return [breakpoint, nextPositions];
+          },
+        ),
+      ) as Partial<Record<BreakpointName, PagePositions>>;
+
+      set(() => ({
+        pages: nextPages,
+        elements: nextElements,
+        ...nextIndexes,
+        pagePositions: nextPagePositions,
+        pagePositionsByBreakpoint: nextPagePositionsByBreakpoint,
+        pagePositionsVersion: state.pagePositionsVersion + 1,
+        currentPageId: nextCurrentPageId,
+        selectedElementId: nextSelectedElementId,
+        selectedElementIds: nextSelectedElementIds,
+        selectedElementIdsSet: new Set(nextSelectedElementIds),
+        multiSelectMode: nextSelectedElementIds.length > 1,
+        selectedElementProps: nextSelectedElementId
+          ? createCompleteProps(nextElementsMap.get(nextSelectedElementId)!)
+          : {},
+        editingContextId: nextEditingContextId,
+        layoutVersion: state.layoutVersion + 1,
+      }));
+
+      // ADR-185 G-1 — 페이지 삭제 undo 기록. entry 는 활성-후 페이지 스택에
+      // 실린다 (삭제 페이지가 활성이었으면 fallback 페이지 — PagesSection 의
+      // 후속 activatePage 와 같은 대상이라 setCurrentPage 는 선반영일 뿐).
+      // 남는 페이지가 없으면 기록을 생략한다 (마지막 페이지 삭제는 undo 불가
+      // 잔존 — 대상 스택이 없다).
+      const removedPageRow = state.pages.find((page) => page.id === pageId);
+      const historyTargetPageId =
+        nextCurrentPageId ??
+        (state.currentPageId !== pageId ? state.currentPageId : null);
+      if (removedPageRow && historyTargetPageId) {
+        const detachPairs = autoDetach.previousElements.map((previous) => ({
+          previous: structuredClone(previous),
+          replacements: (
+            autoDetachElementsByPreviousId.get(previous.id) ?? []
+          ).map((element) => structuredClone(element)),
+        }));
+        const positionSnapshots = Object.entries(
+          state.pagePositionsByBreakpoint,
+        ).flatMap(([breakpoint, positions]) => {
+          const position = positions?.[pageId];
+          return position
+            ? [
+                {
+                  breakpoint: breakpoint as BreakpointName,
+                  position: { ...position },
+                },
+              ]
+            : [];
+        });
+        historyManager.setCurrentPage(historyTargetPageId);
+        historyManager.addEntry({
+          type: "page-lifecycle",
+          elementId: pageId,
+          data: {
+            pageLifecycleEvent: {
+              action: "delete",
+              pageIndex: state.pages.findIndex((page) => page.id === pageId),
+              page: structuredClone(removedPageRow),
+              subtreeElements: removedElements.map((element) =>
+                structuredClone(element),
+              ),
+              detach: detachPairs,
+              positions: positionSnapshots,
+              prevCurrentPageId: state.currentPageId,
+              nextCurrentPageId: historyTargetPageId,
+            },
+          },
+        });
+      }
 
       const duration = performance.now() - startTime;
       if (duration >= 8) {

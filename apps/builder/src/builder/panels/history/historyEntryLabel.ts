@@ -150,6 +150,13 @@ export function getHistoryEntryLabel(
       const name = entry.data.snapshotRestoreEvent?.snapshotName;
       return name ? `스냅샷 복원 — ${name}` : "스냅샷 복원";
     }
+    case "page-lifecycle": {
+      // ADR-185 G-1 — 페이지 생성/삭제 (제목은 entry 에 담긴 사본)
+      const event = entry.data.pageLifecycleEvent;
+      const title = event?.page.title;
+      const verb = event?.action === "delete" ? "페이지 삭제" : "페이지 추가";
+      return title ? `${verb} — ${title}` : verb;
+    }
     default:
       return "변경";
   }

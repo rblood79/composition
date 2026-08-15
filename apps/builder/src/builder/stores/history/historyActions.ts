@@ -213,6 +213,199 @@ function applyPageGuideHistoryEntry(
   });
 }
 
+/**
+ * ADR-185 G-1 수리 — `page-lifecycle` entry 적용 (undo/redo/goToIndex 공용).
+ *
+ * 효과 방향: create+redo / delete+undo = **페이지 추가**, create+undo /
+ * delete+redo = **페이지 제거**. 페이지 행 + 소속 요소 subtree + detach
+ * 치환쌍 + breakpoint 위치 + 활성 페이지를 함께 되돌린다.
+ *
+ * canonical element 정렬은 여기서 직접 하지 않는다 — `set()` 의 pages
+ * 토폴로지 변경이 page shell bridge (BuilderCore 구독) 를 동기 발화시켜
+ * live 경로 (appendPageShell / removePageLocal) 와 같은 기제로 정렬된다.
+ * positions 는 canonical `pagePositions` 직접 갱신 (ADR-177 적용기 동형).
+ *
+ * 적용이 활성 페이지를 바꾸면 entry 를 새 활성 스택으로 이관한다
+ * (`migrateEntryToPage`) — history 가 페이지별 스택이라 이관 없이는 반대
+ * 방향이 도달 불가. goToIndex 는 스택 내 index 산술을 보존해야 하므로
+ * `migrate: false` 로 이관을 생략한다 (잔존: 패널 점프 후 해당 entry 의
+ * 반대 방향은 원래 스택에서만 도달 가능).
+ */
+function applyPageLifecycleHistoryEntry(
+  set: SetState,
+  get: GetState,
+  entry: NonNullable<ReturnType<typeof historyManager.undo>>,
+  direction: "undo" | "redo",
+  options: { migrate: boolean; fromHistoryPageId: string | null },
+): void {
+  const event = entry.data.pageLifecycleEvent;
+  if (!event) return;
+
+  const op =
+    (event.action === "create") === (direction === "redo") ? "add" : "remove";
+  const state = get();
+  const pageId = event.page.id;
+
+  let nextElements = state.elements;
+  let nextPages = state.pages;
+  let nextCurrentPageId: string | null;
+
+  if (op === "add") {
+    if (state.pages.some((page) => page.id === pageId)) return; // 멱등 방어
+
+    // detach 역적용 — root 는 instance 원형 복귀, detach 파생 descendants 제거
+    if (event.detach.length > 0) {
+      const rootPairs = new Map(
+        event.detach.map((pair) => [pair.previous.id, pair]),
+      );
+      const detachDescendantIds = new Set(
+        event.detach.flatMap((pair) =>
+          pair.replacements.slice(1).map((element) => element.id),
+        ),
+      );
+      nextElements = nextElements.flatMap((element) => {
+        const pair = rootPairs.get(element.id);
+        if (pair) return [cloneForHistory(pair.previous)];
+        if (detachDescendantIds.has(element.id)) return [];
+        return [element];
+      });
+    }
+    nextElements = [
+      ...nextElements,
+      ...event.subtreeElements.map((element) => cloneForHistory(element)),
+    ];
+    const insertAt = Math.min(Math.max(event.pageIndex, 0), state.pages.length);
+    nextPages = [
+      ...state.pages.slice(0, insertAt),
+      event.page,
+      ...state.pages.slice(insertAt),
+    ];
+    const desired =
+      event.action === "create"
+        ? (event.nextCurrentPageId ?? pageId)
+        : (event.prevCurrentPageId ?? state.currentPageId);
+    nextCurrentPageId =
+      desired && nextPages.some((page) => page.id === desired)
+        ? desired
+        : pageId;
+  } else {
+    if (!state.pages.some((page) => page.id === pageId)) return; // 멱등 방어
+
+    const subtreeIds = new Set(
+      state.elements
+        .filter((element) => element.page_id === pageId)
+        .map((element) => element.id),
+    );
+    const rootPairs = new Map(
+      event.detach.map((pair) => [pair.previous.id, pair]),
+    );
+    nextElements = state.elements.flatMap((element) => {
+      if (subtreeIds.has(element.id)) return [];
+      const pair = rootPairs.get(element.id);
+      if (pair) {
+        return pair.replacements.map((replacement) =>
+          cloneForHistory(replacement),
+        );
+      }
+      return [element];
+    });
+    nextPages = state.pages.filter((page) => page.id !== pageId);
+    const desired =
+      event.action === "create"
+        ? event.prevCurrentPageId
+        : event.nextCurrentPageId;
+    nextCurrentPageId =
+      desired && nextPages.some((page) => page.id === desired)
+        ? desired
+        : (nextPages[0]?.id ?? null);
+  }
+
+  // breakpoint 별 위치 — add 는 기록 위치 복원, remove 는 전 breakpoint 제거
+  const activeBreakpoint = (
+    state as ElementsState & {
+      activeBreakpoint: import("@composition/shared").BreakpointName;
+    }
+  ).activeBreakpoint;
+  const nextByBreakpoint = { ...state.pagePositionsByBreakpoint };
+  if (op === "add") {
+    for (const item of event.positions) {
+      const snapshot = { ...(nextByBreakpoint[item.breakpoint] ?? {}) };
+      snapshot[pageId] = { ...item.position };
+      nextByBreakpoint[item.breakpoint] = snapshot;
+    }
+  } else {
+    for (const breakpoint of Object.keys(nextByBreakpoint)) {
+      const key = breakpoint as keyof typeof nextByBreakpoint;
+      const snapshot = { ...(nextByBreakpoint[key] ?? {}) };
+      delete snapshot[pageId];
+      nextByBreakpoint[key] = snapshot;
+    }
+  }
+
+  const nextBodyElement =
+    nextElements.find(
+      (element) =>
+        element.page_id === nextCurrentPageId && element.type === "body",
+    ) ?? null;
+
+  set(() => ({
+    pages: nextPages,
+    elements: nextElements,
+    pagePositions: { ...(nextByBreakpoint[activeBreakpoint] ?? {}) },
+    pagePositionsByBreakpoint: nextByBreakpoint,
+    pagePositionsVersion: state.pagePositionsVersion + 1,
+    currentPageId: nextCurrentPageId,
+    selectedElementId: nextBodyElement?.id ?? null,
+    selectedElementIds: nextBodyElement ? [nextBodyElement.id] : [],
+    selectedElementIdsSet: new Set(nextBodyElement ? [nextBodyElement.id] : []),
+    multiSelectMode: false,
+    selectedElementProps: nextBodyElement
+      ? createCompleteProps(nextBodyElement)
+      : {},
+    editingContextId: null,
+    layoutVersion: state.layoutVersion + 1,
+  }));
+  // pages 토폴로지 변경으로 page shell bridge 가 canonical elements 를 재파생
+  // (동기 구독) — 그 결과 위에서 index 를 재구축한다
+  get()._rebuildIndexes();
+
+  const canonicalPositionEntries = event.positions.map((item) => ({
+    pageId,
+    breakpoint: item.breakpoint,
+    position: op === "add" ? { ...item.position } : null,
+  }));
+  if (canonicalPositionEntries.length > 0) {
+    useCanonicalDocumentStore
+      .getState()
+      .setPagePositions(canonicalPositionEntries);
+  }
+
+  if (nextCurrentPageId) {
+    historyManager.setCurrentPage(nextCurrentPageId);
+    if (
+      options.migrate &&
+      options.fromHistoryPageId &&
+      options.fromHistoryPageId !== nextCurrentPageId
+    ) {
+      historyManager.migrateEntryToPage(
+        entry.id,
+        options.fromHistoryPageId,
+        nextCurrentPageId,
+        direction === "undo" ? "redoable" : "done",
+      );
+    }
+  }
+
+  queueMicrotask(() => {
+    // remove 방향은 의도된 대량 감소 — 급감 가드에 예상 감소량 명시
+    void persistActiveCanonicalDocument(
+      op === "remove" ? event.subtreeElements.length : undefined,
+    ).catch((error) => {
+      console.error("[applyPageLifecycleHistoryEntry] DB persist:", error);
+    });
+  });
+}
+
 function getHistorySourceElements(get: GetState): Element[] {
   const { elements: legacyElements } = get();
   return getActiveCanonicalHistoryElements() ?? legacyElements;
@@ -384,6 +577,7 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     set({ historyOperationInProgress: true });
 
     // historyManager에서 항목 가져오기
+    const undoSourcePageId = historyManager.getCurrentPageId();
     const entry = historyManager.undo();
     if (!entry) {
       set({ historyOperationInProgress: false });
@@ -393,6 +587,17 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     // ADR-177: page-position entry 는 element 노드 경로 미진입 (early-branch)
     if (entry.type === "page-position") {
       applyPagePositionHistoryEntry(set, get, entry, "undo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
+    // ADR-185 G-1: page-lifecycle entry 도 element 노드 경로 미진입 —
+    // 적용 후 활성 페이지가 바뀌면 entry 를 그 스택으로 이관 (undo → redoable)
+    if (entry.type === "page-lifecycle") {
+      applyPageLifecycleHistoryEntry(set, get, entry, "undo", {
+        migrate: true,
+        fromHistoryPageId: undoSourcePageId,
+      });
       set({ historyOperationInProgress: false });
       return;
     }
@@ -801,6 +1006,7 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     // 히스토리 작업 시작 표시
     set({ historyOperationInProgress: true });
 
+    const redoSourcePageId = historyManager.getCurrentPageId();
     const entry = historyManager.redo();
     if (!entry) {
       set({ historyOperationInProgress: false });
@@ -810,6 +1016,17 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     // ADR-177: page-position entry 는 element 노드 경로 미진입 (early-branch)
     if (entry.type === "page-position") {
       applyPagePositionHistoryEntry(set, get, entry, "redo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
+    // ADR-185 G-1: page-lifecycle entry 도 element 노드 경로 미진입 —
+    // 적용 후 활성 페이지가 바뀌면 entry 를 그 스택으로 이관 (redo → done)
+    if (entry.type === "page-lifecycle") {
+      applyPageLifecycleHistoryEntry(set, get, entry, "redo", {
+        migrate: true,
+        fromHistoryPageId: redoSourcePageId,
+      });
       set({ historyOperationInProgress: false });
       return;
     }
@@ -1225,6 +1442,20 @@ export const createGoToHistoryIndexAction =
         // canonical full-sync 판정 제외 (element 축 무변경).
         if (entry.type === "page-guide") {
           applyPageGuideHistoryEntry(get, entry, direction);
+          continue;
+        }
+        // ADR-185 G-1: page-lifecycle 도 element 경로 미진입 — 자체 적용 후
+        // 누적 기준을 store 에서 재취득 (snapshot-restore 동형). 스택 내
+        // index 산술 보존을 위해 이관은 생략 (migrate: false — 함수 doc 참조).
+        if (entry.type === "page-lifecycle") {
+          applyPageLifecycleHistoryEntry(set, get, entry, direction, {
+            migrate: false,
+            fromHistoryPageId: null,
+          });
+          const refreshed = get();
+          updatedElements = refreshed.elements;
+          updatedSelectedElementId = refreshed.selectedElementId;
+          updatedSelectedElementProps = refreshed.selectedElementProps;
           continue;
         }
         // ADR-180: snapshot-restore entry 는 문서 전체 교체 — 적용 후 누적
@@ -1779,6 +2010,9 @@ async function syncDatabaseForEntries(
     // ADR-180: snapshot-restore 도 동일 — persist 는 applySnapshotDocument 가
     // allowShrink 명시로 자체 수행 (elementId=pageId 무해값).
     if (entry.type === "snapshot-restore") continue;
+    // ADR-185 G-1: page-lifecycle 도 동일 — persist 는
+    // applyPageLifecycleHistoryEntry 가 자체 수행 (elementId=pageId 무해값).
+    if (entry.type === "page-lifecycle") continue;
     if (entry.data.canonicalEvents?.length) {
       const { upsertIds, deleteIds } = getCanonicalHistoryEventIds(
         entry.data.canonicalEvents,

@@ -57,6 +57,8 @@ const ENTRY_TYPE_ICONS: Record<HistoryEntry["type"], LucideIcon> = {
   // ADR-181 — 눈금자 토글(SettingsPanel)과 같은 아이콘: 가이드는 눈금자에서
   // 만들고 눈금자로 되돌려 지우므로 같은 기능군으로 읽혀야 한다
   "page-guide": RulerDimensionLine,
+  // ADR-185 G-1 — 페이지 생성/삭제 (문서 단위 조작이라 File 계열)
+  "page-lifecycle": File,
   "snapshot-restore": ArchiveRestore,
 };
 
