@@ -18,7 +18,7 @@ interface MinimalElement {
  * 클릭된 요소에서 parent chain을 올라가
  * editingContext의 직계 자식을 찾아 반환한다.
  *
- * @param clickedElementId - PixiJS 이벤트로 감지된 가장 깊은 요소
+ * @param clickedElementId - Canvas pointer 이벤트로 감지된 가장 깊은 요소
  * @param editingContextId - 현재 진입한 컨테이너 (null = body 직계 자식 레벨)
  * @param elementsMap - O(1) 요소 조회
  * @returns 선택해야 할 요소 ID, 또는 null (context에 속하지 않는 경우)

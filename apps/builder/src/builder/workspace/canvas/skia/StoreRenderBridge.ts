@@ -2,8 +2,7 @@
  * StoreRenderBridge (ADR-100 Phase 6.2 + 증분 갱신)
  *
  * Zustand store 변경을 감지하여 skiaNodeRegistry를 직접 채운다.
- * PixiJS Sprite 컴포넌트(ElementSprite/BoxSprite/TextSprite/ImageSprite)의
- * useSkiaNode() 호출을 대체.
+ * 개별 React renderer 호출 대신 store 데이터를 Skia node로 변환한다.
  *
  * 증분 갱신: prevElementsMap 참조 비교로 변경된 요소만 rebuild.
  * Zustand immutable update 패턴 덕분에 변경된 요소만 새 참조를 가짐.

@@ -2,7 +2,7 @@
  * buildImageNodeData — ImageSprite SkiaNodeData 빌드 로직 추출 (ADR-100 Phase 6)
  *
  * ImageSprite.tsx useMemo (lines 286-322)의 순수 함수 버전.
- * PixiJS 의존성 없음. element.props + layout + skImage에서 구축.
+ * element.props + layout + skImage에서 구축한다.
  *
  * 특수 사항:
  * - skImage는 비동기 로딩 결과를 외부에서 주입 (StoreRenderBridge가 관리)
@@ -15,8 +15,14 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { Image as SkImage } from "canvaskit-wasm";
-import { parsePadding, getContentBounds } from "../styleConversion/paddingUtils";
-import { colorIntToFloat32, cssColorToAlpha } from "../styleConversion/styleConverter";
+import {
+  parsePadding,
+  getContentBounds,
+} from "../styleConversion/paddingUtils";
+import {
+  colorIntToFloat32,
+  cssColorToAlpha,
+} from "../styleConversion/styleConverter";
 import { fillsToSkiaFillColor } from "../../../panels/styles/utils/fillToSkia";
 import { hexToColor4fChannels } from "./themeWatcher";
 import { buildBaseNodeProps } from "./buildBaseNodeProps";

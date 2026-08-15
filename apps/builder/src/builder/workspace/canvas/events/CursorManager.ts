@@ -1,7 +1,7 @@
 /**
  * CursorManager (ADR-100)
  *
- * PixiJS sprite cursor → DOM canvas element cursor.
+ * Canvas element cursor를 관리한다.
  */
 
 export class CursorManager {

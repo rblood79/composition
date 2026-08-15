@@ -1,12 +1,12 @@
 /**
  * SkiaCanvas — 독립 Skia 렌더러 (ADR-100 Phase 2.6)
  *
- * PixiJS Application 없이 동작하는 단독 캔버스 컴포넌트.
+ * 단독 CanvasKit 캔버스 컴포넌트.
  * - 자체 requestAnimationFrame 루프
  * - Camera 클래스로 viewport 제어
  * - 기존 빌드 파이프라인(buildSkiaFrameContent, buildFrameRenderPlan) 재사용
  * SkiaOverlay와 동일한 렌더링 결과를 산출하되,
- * PixiJS ticker/Container/EventBoundary에 대한 의존성을 완전히 제거한다.
+ * 별도 scene graph와 renderer ticker에 의존하지 않는다.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -120,9 +120,9 @@ export interface SkiaCanvasProps {
 /**
  * Skia 단독 렌더러.
  *
- * PixiJS 없이 동작:
+ * 단독 CanvasKit 경로로 동작:
  * - z-index: 2 — CanvasKit 캔버스 (디자인 + 오버레이)
- * - 자체 RAF 루프 (PixiJS ticker 불필요)
+ * - 자체 RAF 루프
  * - Camera 클래스로 viewport 상태 관리
  * - Command Stream 경로 전용 (sharedLayoutMap 필수)
  */
@@ -318,8 +318,7 @@ export function SkiaCanvas({
 
   // ---------- StoreRenderBridge (Phase 6) ----------
   // store 데이터에서 직접 skiaNodeRegistry 를 채운다 (항상 이 경로).
-  //   구 주석은 "PixiJS Application이 없을 때" 라고 적어 조건 분기가 있는 것처럼
-  //   읽혔는데, 이 effect 는 무조건 실행된다 (2026-08-15 정정).
+  //   이 effect는 조건 분기 없이 무조건 실행된다.
 
   useEffect(() => {
     const bridge = new StoreRenderBridge();
@@ -476,7 +475,7 @@ export function SkiaCanvas({
       },
     });
 
-    // ----- RAF 렌더 루프 (PixiJS ticker 대체) -----
+    // ----- RAF 렌더 루프 -----
     let rafId = 0;
     let running = true;
 
@@ -941,7 +940,7 @@ export function SkiaCanvas({
         height: "100%",
         zIndex: 2,
         // SkiaCanvas는 단독 렌더러이므로 이벤트도 수신
-        // (PixiJS 없음 → pointerEvents를 'auto'로)
+        // Canvas가 직접 pointer 이벤트를 수신
         pointerEvents: "auto",
       }}
     />

@@ -151,7 +151,7 @@ gh search code "[패턴 키워드]" --language=TypeScript
 
 1. **composition 기존 코드** — 프로젝트 내 유사 구현이 이미 있는지 먼저 확인
 2. **React Spectrum S2 GitHub 소스** — S2 기능 추가/변환 시 실제 구현 참조 (API 문서 < 소스코드)
-3. **사용 중인 라이브러리의 공식 소스** — React-Aria, PixiJS, Taffy 등의 구현 참조
+3. **사용 중인 라이브러리의 공식 소스** — React-Aria, CanvasKit/Skia, WASM layout engine 등의 구현 참조
 4. **검증된 오픈소스** — GitHub Stars 1k+ 프로젝트의 관련 구현
 5. **공식 문서/예제** — 라이브러리 공식 문서의 고급 패턴
 
@@ -204,7 +204,7 @@ const styles = tv({ base: '...', variants: { ... } });
   projection/editing context 는 `apply*Explicit({ pageId, contextReason, ... })`
   만 사용한다. stale mismatch 상태에서는 page-bound controls 를 hide/disable한다.
 
-### Canvas / PixiJS
+### Canvas / Skia
 
 - DirectContainer로 엔진 결과 x/y 직접 배치
 - 하이브리드 레이아웃 엔진 display 선택 규칙 준수

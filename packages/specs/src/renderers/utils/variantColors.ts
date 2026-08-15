@@ -1,7 +1,7 @@
 /**
  * Variant/Size preset resolvers — Skia/Canvas 공용 (렌더러 무관)
  *
- * ADR-100 Phase 10+: PixiRenderer.ts 제거 시 helper 보존용으로 분리.
+ * 렌더러별 중복을 피하기 위해 공용 helper로 분리.
  */
 
 import type { VariantSpec, SizeSpec } from "../../types";

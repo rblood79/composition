@@ -2,7 +2,7 @@
  * Phase 3: Flat Render Command Stream
  *
  * elementsMap + childrenMap + fullTreeLayoutMap + skiaNodeRegistry에서 직접
- * 렌더 커맨드 스트림(플랫 배열)을 구성하여 PixiJS 순회 제거 + 선형 렌더링.
+ * 렌더 커맨드 스트림(플랫 배열)을 구성하여 선형 렌더링한다.
  *
  * @see ADR-005 Phase 3
  * @since 2026-02-28

@@ -2,7 +2,7 @@
  * Component Spec Types
  *
  * 컴포넌트 스펙 정의 - Single Source of Truth
- * React와 PIXI 모두에서 동일한 시각적 결과를 보장
+ * React와 Skia Canvas에서 동일한 시각적 결과를 보장
  *
  * @packageDocumentation
  */
@@ -157,7 +157,7 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
 
   /**
    * 포털/오버레이 설정 (Dialog, Tooltip, Popover 등)
-   * React에서는 createPortal, PIXI에서는 별도 레이어로 처리
+   * React에서는 createPortal 등 DOM overlay 경로로 처리
    */
   overlay?: {
     /** 포털 사용 여부 */
@@ -180,9 +180,6 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
 
     /** 포커스 트랩 사용 */
     trapFocus?: boolean;
-
-    /** PIXI에서의 렌더링 레이어 (z-index 개념) */
-    pixiLayer?: "content" | "overlay" | "modal" | "toast";
   };
 
   /** Variant 정의 (optional — ADR-062: RSP 미규정 Field 계열은 variants 없음) */
@@ -1087,7 +1084,7 @@ export interface SpecRenderContext {
 export interface RenderSpec<Props> {
   /**
    * 공통 도형 정의
-   * React와 PIXI 모두에서 사용하는 도형 구조
+   * React와 Skia Canvas에서 사용하는 도형 구조
    *
    * @param props - 컴포넌트 props
    * @param size - 현재 size 스펙
@@ -1108,10 +1105,4 @@ export interface RenderSpec<Props> {
    * className, data-* 속성 등
    */
   react?: (props: Props) => Record<string, unknown>;
-
-  /**
-   * PIXI 특화 속성
-   * hitArea, eventMode 등
-   */
-  pixi?: (props: Props) => Record<string, unknown>;
 }

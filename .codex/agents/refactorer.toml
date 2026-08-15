@@ -57,7 +57,7 @@ developer_instructions = """
 - **상태**: Zustand 슬라이스 패턴, StateCreator factory
 - **스타일링**: Tailwind CSS v4 + tailwind-variants (tv())
 - **컴포넌트**: React-Aria Components with hooks
-- **Canvas**: CanvasKit/Skia WASM + PixiJS 8, DirectContainer 직접 배치
+- **Canvas**: CanvasKit/Skia WASM, DirectContainer/command stream 직접 렌더링
 - **레이아웃**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계
 - **검증**: Zod 경계 입력 검증
 

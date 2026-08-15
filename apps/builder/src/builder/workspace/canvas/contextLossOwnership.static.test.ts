@@ -7,7 +7,7 @@
  * `containerRef.current?.querySelector("canvas")` 로 캔버스를 찾는데
  * `SkiaCanvas` 가 `React.lazy` + `Suspense fallback={null}` 이라 effect 가 도는
  * 시점엔 DOM 에 없어 조기 반환했고, 유일한 재실행 신호 `appReady` 는
- * PixiJS Application 초기화 콜백에서만 켜져 ADR-900 이후 상시 false 였다.
+ * 구 application 초기화 콜백에서만 켜져 상시 false 였다.
  * 결과: `isContextLost` 가 늘 false → `WorkspaceStatusIndicator` 의
  * "⚠️ GPU 리소스 복구 중" 이 한 번도 표시되지 않았다. (렌더 복구 자체는
  * `SkiaCanvas` 의 `watchContextLoss` 가 별도로 하고 있어 무증상이었다.)

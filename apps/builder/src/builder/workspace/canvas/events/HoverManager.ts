@@ -1,7 +1,7 @@
 /**
  * HoverManager (ADR-100)
  *
- * PixiJS pointerOver/pointerLeave → DOM pointermove 기반 hover 상태 관리.
+ * DOM pointermove 기반 hover 상태 관리.
  * WASM SpatialIndex hitTest로 호버된 요소 감지.
  */
 

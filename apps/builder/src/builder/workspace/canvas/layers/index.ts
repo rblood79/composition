@@ -1,5 +1,5 @@
 /**
  * Canvas Layers
  *
- * Phase 9: BodyLayer 삭제 (PixiJS 전용)
+ * BodyLayer 삭제 후 현재 layer export 없음
  */

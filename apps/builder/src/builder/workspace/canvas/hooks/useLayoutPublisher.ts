@@ -1,9 +1,8 @@
 /**
- * useLayoutPublisher — PixiJS 독립 레이아웃 발행 (ADR-100 Phase 6.4)
+ * useLayoutPublisher — 레이아웃 발행 (ADR-100 Phase 6.4)
  *
  * ElementsLayer 내부의 레이아웃 계산 + publishLayoutMap을 BuilderCanvas
- * 레벨로 추출. UNIFIED_ENGINE=true 시 PixiJS Application 없이도
- * sharedLayoutMap을 채운다.
+ * 레벨로 추출. UNIFIED_ENGINE=true 시 sharedLayoutMap을 채운다.
  *
  * 원리: getCachedPageLayout은 순수 함수 — store 데이터만 필요.
  * publishLayoutMap으로 모듈 레벨 변수에 발행하면 Command Stream이 읽음.

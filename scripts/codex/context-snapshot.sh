@@ -55,7 +55,7 @@ if [ -z "$CHANGED" ]; then
   exit 0
 fi
 
-if echo "$CHANGED" | grep -qiE "canvas|skia|pixi|sprite|renderer|Spec\\.(ts|tsx)|nodeRenderer|specShape"; then
+if echo "$CHANGED" | grep -qiE "canvas|skia|sprite|renderer|Spec\\.(ts|tsx)|nodeRenderer|specShape"; then
   print_rule_head "Canvas Rendering Rule" ".agents/rules/canvas-rendering.md" 80
 fi
 

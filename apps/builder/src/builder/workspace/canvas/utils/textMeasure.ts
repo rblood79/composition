@@ -2,7 +2,7 @@
  * Text Measurement Utility
  *
  * Canvas 2D API로 텍스트 word-wrap 높이를 측정한다.
- * PixiCard, ElementSprite 등에서 콘텐츠 기반 높이 계산에 사용.
+ * Canvas node renderer와 layout engine에서 콘텐츠 기반 높이 계산에 사용.
  *
  * Phase 0: TextMeasurer 추상 인터페이스 도입
  * - Canvas2DTextMeasurer: 기존 Canvas 2D API 기반 (기본값)

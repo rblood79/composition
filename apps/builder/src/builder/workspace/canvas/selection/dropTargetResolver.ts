@@ -6,8 +6,8 @@
  *
  * 좌표 규칙:
  * - getSceneBounds (renderCommands boundsMap)를 source of truth로 사용 (scene-local 좌표)
- * - layoutBoundsRegistry 사용 금지 (PixiJS global 좌표 — Camera zoom/pan 포함)
- * - Pixi container.getBounds() 사용 금지 (Camera transform 포함 글로벌 좌표)
+ * - layoutBoundsRegistry 사용 금지 (Camera zoom/pan이 반영된 global 좌표)
+ * - 렌더러 container bounds 사용 금지 (Camera transform 포함 글로벌 좌표)
  *
  * Phase 범위:
  * - 같은 부모 내 reorder만 지원

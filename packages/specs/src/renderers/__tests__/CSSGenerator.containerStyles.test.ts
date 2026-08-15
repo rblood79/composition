@@ -107,7 +107,6 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
     render: {
       shapes: () => [],
       react: () => ({}),
-      pixi: () => ({}),
     },
   };
 

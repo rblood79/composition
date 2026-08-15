@@ -2,7 +2,7 @@
  * Group Component Spec
  *
  * React Aria 기반 그룹 컨테이너 컴포넌트
- * Single Source of Truth - React와 PIXI 모두에서 동일한 시각적 결과
+ * Single Source of Truth - React와 Skia Canvas에서 동일한 시각적 결과
  *
  * @packageDocumentation
  */
@@ -123,10 +123,6 @@ export const GroupSpec: ComponentSpec<GroupProps> = {
       "aria-label": props.label,
       "aria-orientation": props.orientation,
     }),
-
-    pixi: () => ({
-      eventMode: "passive" as const,
-    }),
   },
 
   properties: {
@@ -156,7 +152,8 @@ export const GroupSpec: ComponentSpec<GroupProps> = {
               { value: "region", label: "Region" },
               { value: "presentation", label: "Presentation" },
             ],
-           defaultValue: "group" },
+            defaultValue: "group",
+          },
         ],
       },
       {

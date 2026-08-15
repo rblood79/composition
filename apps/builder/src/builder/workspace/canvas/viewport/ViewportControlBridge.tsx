@@ -4,8 +4,8 @@
  * 캔버스 컨테이너에 pan/zoom 입력을 바인딩하는 브릿지. null 을 렌더링하며
  * 순수하게 이벤트 핸들링만 담당합니다.
  *
- * 구 `app` / `cameraLabel` prop (PixiJS Application 전달)은 삭제됐다
- * (2026-08-15) — 유일한 호출부가 `app={null}` 하드코딩이었다.
+ * 구 `app` / `cameraLabel` prop은 삭제됐다 (2026-08-15) — 유일한 호출부가
+ * `app={null}` 하드코딩이었다.
  *
  * @since 2025-12-12 Phase 12 B3.2
  */
@@ -32,7 +32,7 @@ export interface ViewportControlBridgeProps {
 }
 
 /**
- * Application 내부에서 ViewportController를 연결하는 브릿지 컴포넌트
+ * Canvas 컨테이너에 ViewportController를 연결하는 브릿지 컴포넌트
  *
  * 렌더링 출력이 없으며, 순수하게 뷰포트 컨트롤 로직만 처리합니다.
  */

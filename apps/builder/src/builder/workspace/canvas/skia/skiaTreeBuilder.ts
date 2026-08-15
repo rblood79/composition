@@ -4,9 +4,8 @@
  * pagePositionsVersion 변경 직후 몇 프레임 동안 command stream 캐시를
  * 우회시켜 stale 좌표가 캐시에 고정되는 것을 방지한다.
  *
- * 구 tree 구축 코드(PixiJS 씬 그래프 DFS — buildSkiaTreeHierarchical /
- * getCachedTreeBoundsMap)는 ADR-900 으로 PixiJS 가 제거되며 도달 불가로
- * 남았다가 2026-08-14 simplify 에서 제거됨. 이 카운터만이 이 파일의
+ * 구 tree 구축 코드(buildSkiaTreeHierarchical / getCachedTreeBoundsMap)는
+ * 도달 불가로 남았다가 2026-08-14 simplify에서 제거됨. 이 카운터만이 이 파일의
  * 현역 코드다 (SkiaCanvas 렌더 루프가 매 프레임 tick).
  */
 

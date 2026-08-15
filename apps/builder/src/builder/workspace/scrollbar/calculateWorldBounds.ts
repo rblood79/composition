@@ -40,8 +40,8 @@ export interface ContentRect {
  *
  * **Why (2026-08-15)**: 구 구현은 content 기준을 `canvasSize` 하나로 잡았는데 그 값은
  * **페이지 1장 크기**다(`panToPage`/fit·fill/page layout 이 전부 그 의미로 쓴다). 문서
- * 전체를 덮으라고 있던 "모든 요소 bounds 합집합" 단계는 `elementRegistry` 가 ADR-900
- * PixiJS 제거 이후 비어 있어 no-op 이었다. 그래서 25페이지(x 0→11670) 문서에서 world 가
+ * 전체를 덮으라고 있던 "모든 요소 bounds 합집합" 단계는 `elementRegistry` 가 비어 있어
+ * no-op 이었다. 그래서 25페이지(x 0→11670) 문서에서 world 가
  * 2903 까지만 잡혀 **가로 스크롤바를 끝까지 끌어도 7페이지 너머로 못 갔다** (thumb 은 이미
  * 오른쪽 끝에 붙은 채 트랙의 66%를 차지 — 실측 2026-08-15).
  *

@@ -353,8 +353,7 @@ export function extractHSL(
  * - 기존 직접 파싱 대비 더 많은 색상 형식 지원
  * - hex, rgb, rgba, hsl, hsla, named colors 모두 지원
  *
- * 구 이름은 `cssColorToPixiHex` 였다 — 출력은 렌더러와 무관한 RGB 숫자이고
- * 실제 소비처도 Skia 경로다 (2026-08-15 정정).
+ * 출력은 렌더러와 무관한 RGB 숫자이며 실제 소비처는 Skia 경로다.
  *
  * @param color - CSS 색상 값
  * @param fallback - 파싱 실패 시 반환할 기본값 (0xRRGGBB)

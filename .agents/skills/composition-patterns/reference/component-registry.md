@@ -2,7 +2,7 @@
 
 ### 컴포넌트 등급 현황 (Wave 4 완료, 2026-02-19 / Breadcrumbs 승격 2026-02-23)
 
-모든 Pixi 컴포넌트가 A 또는 B+ 등급으로 전환 완료됐습니다.
+모든 Canvas 컴포넌트가 A 또는 B+ 등급으로 전환 완료됐습니다.
 
 | 등급 | 의미                                     | 예시                                              |
 | ---- | ---------------------------------------- | ------------------------------------------------- |
@@ -12,7 +12,7 @@
 | D    | 캔버스 상호작용 불필요 (프리뷰 전용)     | Calendar, DatePicker, ColorPicker                 |
 
 > C등급 (자체 렌더링 + 수동 배치)은 Wave 4에서 전부 제거됐습니다.
-> `SELF_PADDING_TAGS`, `renderWithPixiLayout()` 등 구 패턴도 삭제 완료.
+> `SELF_PADDING_TAGS` 등 구 패턴도 삭제 완료.
 
 ### Complex Component 목록 및 `COMPLEX_COMPONENT_TAGS` 공유 상수
 

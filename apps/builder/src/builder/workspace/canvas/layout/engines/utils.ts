@@ -767,7 +767,7 @@ const DEFAULT_WIDTH = 80;
  * fontSize: typography 토큰 resolved 값
  *
  * 🚀 Phase 12 Fix: height 제거, paddingY 추가
- * 기존 height는 ButtonSpec.height (예: sm=32)였으나 PixiButton 실제 렌더링은
+ * 기존 height는 ButtonSpec.height (예: sm=32)였으나 Canvas 실제 렌더링은
  * max(paddingY*2 + textHeight, MIN_HEIGHT) 공식으로 계산되어 불일치 발생.
  * 동일 공식을 사용하여 CSS/WebGL 정합성 보장.
  */
@@ -2027,7 +2027,7 @@ export function calculateContentWidth(
       }
 
       // minWidth 적용: totalWidth = contentWidth + padding >= minWidth
-      // PixiBadge와 동일한 너비 계산 (cssVariableReader.ts BADGE_FALLBACKS 참조)
+      // Badge와 동일한 너비 계산 (cssVariableReader.ts BADGE_FALLBACKS 참조)
       const minWidth = (sizeConfig as { minWidth?: number }).minWidth;
       if (minWidth !== undefined) {
         const effectivePaddingRight = getTagRemoveAdjustedPaddingRight(
@@ -2165,7 +2165,7 @@ export function calculateContentWidth(
  * 텍스트 높이 추정
  *
  * Canvas 2D measureText()는 width만 정확하고 height는 브라우저마다 다름.
- * CSS/PixiJS의 텍스트 높이와 동일하게 fontSize * lineHeight 비율로 추정.
+ * CSS/Canvas의 텍스트 높이와 동일하게 fontSize * lineHeight 비율로 추정.
  *
  * @param fontSize - 폰트 크기 (px)
  * @param lineHeight - 명시적 line-height (px); undefined이면 fontBoundingBox 기반 측정
@@ -4243,7 +4243,7 @@ export function parseBoxModel(
   // border-box인 경우 width/height에서 padding + border 제외하여 content-box 크기로 변환
   //
   // 🚀 Self-rendering 요소(button, input, select)도 border-box로 처리:
-  // PixiButton 등은 명시적 width/height를 총 렌더링 크기(border-box)로 취급하지만,
+  // self-rendering 요소는 명시적 width/height를 총 렌더링 크기(border-box)로 취급하지만,
   // BlockEngine은 content-box + padding + border로 합산하므로 이중 계산 발생.
   // Flex 경로에서는 stripSelfRenderedProps()로 해결하지만,
   // BlockEngine 경로에서는 parseBoxModel 단계에서 border-box 변환으로 해결.

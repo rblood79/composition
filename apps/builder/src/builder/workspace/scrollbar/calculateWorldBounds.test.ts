@@ -6,7 +6,7 @@ import { calculateWorldBounds, type ContentRect } from "./calculateWorldBounds";
  *
  * **Why (2026-08-15 실측)**: 구 구현은 content 기준을 `canvasSize` 하나로 잡았는데 그 값은
  * **페이지 1장 크기**다. 문서 전체를 덮으라고 있던 "모든 요소 bounds 합집합" 단계는
- * `elementRegistry` 가 ADR-900 PixiJS 제거 이후 비어 있어 no-op 이었다. 결과적으로
+ * `elementRegistry` 가 비어 있어 no-op 이었다. 결과적으로
  * 25페이지(x 0→11670) 문서에서 world 가 2903 까지만 잡혀 가로 스크롤바를 끝까지 끌어도
  * 7페이지 너머로 갈 수 없었다 (thumb 은 트랙의 66%를 차지한 채 이미 오른쪽 끝).
  */

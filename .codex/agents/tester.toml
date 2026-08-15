@@ -41,7 +41,7 @@ developer_instructions = """
 ### Canvas 테스트
 
 - CanvasKit/Skia WASM 렌더링은 특별한 셋업 필요
-- EventBoundary를 통한 PixiJS 이벤트 테스트
+- DOM pointer 이벤트와 WASM SpatialIndex hit testing 경로 테스트
 - Taffy WASM 엔진 계산 스타일로 레이아웃 검증
 
 ### 상태 테스트

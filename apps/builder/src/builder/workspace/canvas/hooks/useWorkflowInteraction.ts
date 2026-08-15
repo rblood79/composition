@@ -315,7 +315,7 @@ export function useWorkflowInteraction({
         return;
       }
 
-      // 3) 빈 영역 클릭 → 포커스 해제 + 이벤트 전파 (기존 PixiJS 동작 유지)
+      // 3) 빈 영역 클릭 → 포커스 해제 + 이벤트 전파
       if (useStore.getState().workflowFocusedPageId !== null) {
         useStore.getState().setWorkflowFocusedPageId(null);
         overlayVersionRef.current++;

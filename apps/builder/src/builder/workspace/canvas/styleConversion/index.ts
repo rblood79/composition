@@ -8,11 +8,8 @@
  * 소비처는 Skia 렌더 경로(`skia/build*NodeData`, `renderCommands`)와 레이아웃
  * 경로(`layout/engines`) 양쪽이다 — 그래서 `skia/` 안이 아니라 형제 디렉터리다.
  *
- * **디렉터리명 유래**: 구 이름은 `sprites/` 였다. ADR-100 Phase 9 에서 PixiJS
- * Sprite 컴포넌트(BoxSprite / TextSprite / ImageSprite / ElementSprite)가 전부
- * 삭제되고 위 3개만 남았는데 이름은 그대로였다 — 2026-08-15 잔재 스윕에서
- * 내용에 맞게 고쳤다. 같은 이유로 `PixiTransform` 등 타입 4개도 `Render*` 로
- * 바뀌었다 (해당 렌더러는 PixiJS 가 아니라 Skia 다).
+ * `styleConversion`은 과거 sprite 계층에서 분리된 순수 변환 계층이다.
+ * 현재는 Skia 렌더 데이터와 layout engine이 공통으로 사용한다.
  */
 
 // Style Converter

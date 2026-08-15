@@ -1,7 +1,7 @@
 ---
 title: "Spec ↔ Builder ↔ CSS 값 동기화"
 impact: CRITICAL
-impactDescription: 세 소스 간 값 불일치 시 WebGL/CSS 렌더링 차이 발생
+impactDescription: 세 소스 간 값 불일치 시 Canvas/CSS 렌더링 차이 발생
 tags: [spec, layout, sync]
 ---
 
@@ -45,7 +45,7 @@ md: { paddingLeft: 24, paddingRight: 24, borderWidth: 1 }  // 일치
 | N/A (CSS 파생)                        | `BUTTON_SIZE_CONFIG[size].lineHeight`                          | `Button.css [data-size] line-height`                       |
 | `fontFamily.sans` (typography.ts)     | `measureTextWidth()` 기본 폰트                                 | `body { font-family }`                                     |
 | CSS base `border: 1px solid`          | `BUTTON_SIZE_CONFIG[size].borderWidth` (=1)                    | `Button.css base: border`                                  |
-| `ButtonSpec.variants[v].border`       | `PixiButton specDefaultBorderWidth` (=1)                       | `Button.css border-color`                                  |
+| `ButtonSpec.variants[v].border`       | `Skia specDefaultBorderWidth` (=1)                             | `Button.css border-color`                                  |
 | `ButtonSpec.sizes[size].borderRadius` | `UI_COMPONENT_DEFAULT_BORDER_RADIUS[size]` (ElementSprite.tsx) | `Button.css [data-size] border-radius`                     |
 | `spec.sizes[size].height`             | `INLINE_FORM_HEIGHTS[type][size]` (engines/utils.ts)           | N/A (Skia에서 Yoga finalHeight 사용, spec height는 참조용) |
 | `spec indicator size`                 | `INLINE_FORM_INDICATOR_WIDTHS[type][size]` (engines/utils.ts)  | N/A                                                        |
@@ -173,8 +173,8 @@ const effectiveBorderRadius = isUIComponent ? 6 : 0;
 
 - [ ] `packages/specs/src/components/[Component].spec.ts`
 - [ ] `apps/builder/.../engines/utils.ts` (`BUTTON_SIZE_CONFIG` 등 내부 상수)
-- [ ] `apps/builder/.../canvas/ui/Pixi[Component].tsx` (이벤트 레이어 전용, alpha=0)
-- [ ] `apps/builder/.../sprites/ElementSprite.tsx` (Skia 폴백 — `convertStyle()` 사용 필수)
+- [ ] `apps/builder/.../canvas/skia/[Component]NodeData.ts` (Skia 렌더 데이터)
+- [ ] `apps/builder/.../canvas/styleConversion/styleConverter.ts` (`convertStyle()` 사용 필수)
 - [ ] CSS 파일의 토큰/변수
 - [ ] `pnpm --filter @composition/specs build` 실행
 - [ ] `apps/builder/.../skia/specShapeConverter.ts` (색상/크기 변환)

@@ -54,8 +54,8 @@ describe("resolveBreakpointViewport", () => {
   });
 
   // 구 케이스명은 "attached / unattached controller" 였다. `attach()` 로 갈리는
-  //   분기는 `viewportActions` 에 없었고(ADR-900 으로 PixiJS Container 소멸),
-  //   2026-08-15 에 `attach()` 자체가 삭제되며 두 케이스는 같은 경로가 됐다.
+  //   분기는 `viewportActions` 에 없었고, 2026-08-15 에 `attach()` 자체가 삭제되며
+  //   두 케이스는 같은 경로가 됐다.
   //   그래도 값 조합이 달라 회귀 감시로는 둘 다 유지한다.
   it("discrete command session 이 controller 와 mirror 를 함께 갱신한다", () => {
     const controller = getViewportController();

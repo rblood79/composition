@@ -10,7 +10,7 @@
  * - 라쏘 선택 (Lasso)
  *
  * 최적화:
- * - 드래그 중에는 React state 업데이트 없이 콜백으로 PixiJS 직접 조작
+ * - 드래그 중에는 React state 업데이트 없이 canvas presentation callback 호출
  * - 드래그 종료 시에만 React state 동기화
  *
  * @since 2025-12-11 Phase 10 B1.3
@@ -102,7 +102,7 @@ export interface UseDragInteractionOptions {
    */
   onDragStart?: () => void;
   /**
-   * 🚀 Phase 19: 드래그 중 실시간 콜백 (React 리렌더링 없이 PixiJS 직접 조작)
+   * 🚀 Phase 19: 드래그 중 실시간 callback (React 리렌더링 없이 canvas presentation 갱신)
    * - Move: delta 전달
    * - Resize: newBounds 전달
    * - Lasso: start, current 전달
@@ -240,7 +240,7 @@ export function useDragInteraction(
 
   // 드래그 업데이트 (🚀 Phase 19: React 리렌더링 없이 콜백만 호출)
   // 시간 기반 스로틀 제거 — RAF 스로틀이 디스플레이 주사율에 동기화.
-  // move/resize: imperative PixiJS 업데이트이므로 포인터 이벤트 속도로 즉시 반영.
+  // move/resize: imperative canvas presentation 업데이트이므로 포인터 이벤트 속도로 즉시 반영.
   // lasso: React state 업데이트이므로 RAF로 스로틀링.
   const updateDrag = useCallback(
     (position: { x: number; y: number }) => {
@@ -254,7 +254,7 @@ export function useDragInteraction(
       };
       dragStateRef.current = newState;
 
-      // 🚀 Phase 19: 콜백을 통해 PixiJS 직접 조작 (React 리렌더링 없음)
+      // 🚀 Phase 19: callback을 통해 canvas presentation 갱신 (React 리렌더링 없음)
       if (onDragUpdate && state.startPosition) {
         const { operation, startPosition, startBounds, targetHandle } = state;
 

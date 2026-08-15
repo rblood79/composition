@@ -144,7 +144,7 @@ export function calculateFpsFromFrameTimes(
 export const gpuProfiler = new GPUProfiler();
 
 // `updateTextureCount` / `updateSpriteCount` / `updateVRAMUsage` 는 삭제됐다
-//   (2026-08-15). PixiJS 리소스 회계용이었고 ADR-900 이후 호출부가 0건이라
+//   (2026-08-15). 제거된 렌더러 리소스 회계용이었고 호출부가 0건이라
 //   대응 필드가 상시 0인 채로 성능 오버레이에 표시되고 있었다.
 
 // ============================================

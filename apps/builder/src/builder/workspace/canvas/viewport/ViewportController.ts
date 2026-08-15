@@ -5,9 +5,9 @@
  * 않고 여기서 값을 갱신하고, 리스너와 뮤터블 ref (`viewportState`) 로 즉시 전파한다.
  * React mirror 동기화는 인터랙션 종료 시점(`endPan`)에만 일어난다.
  *
- * PixiJS Container 직접 조작 경로(`attach` / `detach` / `isAttached` +
- * `PixiContainerLike`)는 삭제됐다 (2026-08-15). ADR-900 으로 Container 자체가
- * 사라져 `attach()` 호출부가 없었는데, `isAttached()` 가 "컨트롤러를 써도 되는가"
+ * legacy Container 직접 조작 경로(`attach` / `detach` / `isAttached` +
+ * `ContainerLike`)는 삭제됐다 (2026-08-15). `attach()` 호출부가 없었는데,
+ * `isAttached()` 가 "컨트롤러를 써도 되는가"
  * 판정에 쓰이면서 **상시 false** 로 스크롤바 추종과 `panToPage` 를 통째로
  * 막고 있었다. 그 판정은 `hasLiveState()` 가 대신한다.
  *
@@ -53,7 +53,7 @@ export interface ViewportControllerOptions {
 export class ViewportController {
   private options: Required<ViewportControllerOptions>;
 
-  // 현재 상태 (Container에서 동기화)
+  // 현재 상태 (Canvas viewport에서 동기화)
   private currentState: ViewportState = { x: 0, y: 0, scale: 1 };
 
   // 드래그 상태
@@ -82,7 +82,7 @@ export class ViewportController {
    * `currentState` 가 실제 뷰포트를 반영하는가.
    *
    * **Why (2026-08-15)**: 구 소비자들은 이 판정을 `isAttached()` 로 했는데, 그건
-   * PixiJS Container 연결 여부라 ADR-900 이후 **항상 false** 다. 그 결과:
+   * legacy Container 연결 여부라 **항상 false** 였다. 그 결과:
    * - 스크롤바가 컨트롤러의 실시간 상태 대신 React mirror 를 읽어 pan 중 위치가
    *   갱신되지 않았다 (mirror 는 `endPan()` 에서만 동기화)
    * - `panToPage` 와 workflow pan 은 early return 으로 **완전한 no-op** 이었다
@@ -115,7 +115,7 @@ export class ViewportController {
 
   /**
    * 팬 업데이트 (드래그 중 호출)
-   * React state 업데이트 없이 Container 직접 조작
+   * React state 업데이트 없이 viewport 상태 직접 갱신
    */
   updatePan(clientX: number, clientY: number): void {
     if (!this.isPanning || !this.lastPanPoint) return;

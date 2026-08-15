@@ -21,7 +21,7 @@ developer_instructions = """
 ### 렌더링 파이프라인
 
 - **CanvasKit/Skia WASM**: 디자인 노드, AI 이펙트, 선택 오버레이 메인 렌더링
-- **PixiJS 8**: 씬 그래프 + EventBoundary 이벤트 처리 (Camera 하위 alpha=0)
+- **Canvas 입력**: DOM pointer 이벤트 + WASM SpatialIndex hit testing
 - **레이아웃 엔진**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계, DirectContainer 직접 배치
 
 ### 상태 관리

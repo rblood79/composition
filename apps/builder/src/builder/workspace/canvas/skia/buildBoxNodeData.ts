@@ -2,7 +2,7 @@
  * buildBoxNodeData — BoxSprite SkiaNodeData 빌드 로직 추출 (ADR-100 Phase 6)
  *
  * BoxSprite.tsx useMemo (lines 232-455)의 순수 함수 버전.
- * PixiJS 의존성 없음. element.props + layoutMap에서 구축.
+ * element.props + layoutMap에서 구축한다.
  */
 
 import type { BorderStyleValue, TokenRef } from "@composition/specs";

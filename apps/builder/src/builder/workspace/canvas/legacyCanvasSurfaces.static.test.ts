@@ -6,8 +6,7 @@ const removedLegacyCanvasFiles = [
   "sceneGraph/StoreBridge.ts",
   "sceneGraph/SceneGraph.ts",
   "sceneGraph/types.ts",
-  // `sprites/` 는 2026-08-15 에 `styleConversion/` 으로 리네임됐다 (PixiJS Sprite
-  //   가 ADR-900 으로 사라진 뒤 이름만 남아 있었다). 옛 경로와 새 경로를 **둘 다**
+  // `sprites/` 는 2026-08-15 에 `styleConversion/` 으로 리네임됐다. 옛 경로와 새 경로를 **둘 다**
   //   확인한다 — 옛 경로만 두면 디렉터리가 없어 가드가 공허하게 통과하고,
   //   새 경로만 두면 `sprites/` 를 다시 만드는 회귀를 놓친다.
   "sprites/useResolvedElement.ts",

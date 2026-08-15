@@ -14,8 +14,8 @@ interface CanvasRuntimeBootstrapResult {
 /**
  * 캔버스 런타임(WASM 레이아웃 엔진) 준비 상태.
  *
- * 구 반환값 `appReady` / `pixiApp` / `handlePixiAppInit` 은 삭제됐다 (2026-08-15).
- * `setAppReady(true)` 가 PixiJS Application 초기화 콜백 안에만 있었는데 ADR-900 으로
+ * 구 반환값 `appReady` / `handleAppInit` 은 삭제됐다 (2026-08-15).
+ * `setAppReady(true)` 가 application 초기화 콜백 안에만 있었는데
  * 그 콜백의 호출부가 사라져 `appReady` 가 **상시 false** 였고, 그 값을 유일한 재실행
  * 신호로 쓰던 WebGL 컨텍스트 손실 리스너가 영영 등록되지 않았다.
  */
@@ -35,7 +35,7 @@ export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
       window.removeEventListener("composition:fonts-ready", handleFontsReady);
   }, []);
 
-  // ADR-100: UNIFIED_ENGINE=true → PixiJS Application 없으므로 직접 WASM 초기화
+  // ADR-100: UNIFIED_ENGINE=true → 직접 WASM 초기화
   useEffect(() => {
     if (!isUnifiedFlag("UNIFIED_ENGINE")) return;
     if (wasmLayoutReady) return;

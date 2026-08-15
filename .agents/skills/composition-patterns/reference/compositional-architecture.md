@@ -5,6 +5,7 @@
 CheckboxGroup/RadioGroup은 Card/Select와 동일한 Compositional 패턴을 적용합니다.
 
 **트리 구조**:
+
 ```
 CheckboxGroup (flex column, gap:12) → Checkbox (flex row, gap:8) → Label
 RadioGroup (flex column, gap:12) → Radio (flex row, gap:8) → Label
@@ -16,31 +17,34 @@ Indicator는 spec shapes(Taffy 트리 밖)로 렌더링됩니다. Label 자식�
 
 ```typescript
 // implicitStyles.ts — Checkbox/Radio 섹션
-const parsedGap = parseFloat(String(parentStyle.gap ?? ''));
+const parsedGap = parseFloat(String(parentStyle.gap ?? ""));
 const userGap = !isNaN(parsedGap) ? parsedGap : indicator.gap;
 const indicatorOffset = indicator.box + userGap;
 
 // Label 자식에 marginLeft 주입 (사용자 값 우선)
-filteredChildren = filteredChildren.map(child => ({
+filteredChildren = filteredChildren.map((child) => ({
   ...child,
-  props: { ...child.props, style: { ...cs, marginLeft: cs.marginLeft ?? indicatorOffset } },
+  props: {
+    ...child.props,
+    style: { ...cs, marginLeft: cs.marginLeft ?? indicatorOffset },
+  },
 }));
 ```
 
 **CRITICAL — paddingLeft가 아닌 marginLeft을 사용하는 이유**:
 
-| 방식 | fullTreeLayout | per-level | 결론 |
-|------|---------------|-----------|------|
-| 부모 `paddingLeft` | Taffy width 팽창 + BuilderCanvas cachedPadding 이중 적용 | 정상 | ❌ |
-| 자식 `marginLeft` | Taffy가 단일 경로로 위치/크기 계산 | 정상 | ✅ |
+| 방식               | fullTreeLayout                                           | per-level | 결론 |
+| ------------------ | -------------------------------------------------------- | --------- | ---- |
+| 부모 `paddingLeft` | Taffy width 팽창 + BuilderCanvas cachedPadding 이중 적용 | 정상      | ❌   |
+| 자식 `marginLeft`  | Taffy가 단일 경로로 위치/크기 계산                       | 정상      | ✅   |
 
 **INDICATOR_SIZES** (spec shapes 기준):
 
-| size | box | gap | indicatorOffset |
-|------|-----|-----|----------------|
-| sm | 16px | 6px | 22px |
-| md | 20px | 8px | 28px |
-| lg | 24px | 10px | 34px |
+| size | box  | gap  | indicatorOffset |
+| ---- | ---- | ---- | --------------- |
+| sm   | 16px | 6px  | 22px            |
+| md   | 20px | 8px  | 28px            |
+| lg   | 24px | 10px | 34px            |
 
 **gap 반응성**: `parentStyle.gap`을 `parseFloat()`로 파싱하여 사용자 스타일 패널 변경이 실시간 반영됩니다. 스타일 패널은 값을 `string`으로 저장하므로 `typeof === 'number'` 체크 대신 `parseFloat()` 필수.
 
@@ -54,23 +58,23 @@ ComboBox는 Select와 동일한 시각적 구조를 가지므로 **기존 Select
 
 **자식 Element - Spec 재사용 매핑**
 
-| ComboBox 자식 태그 | 재사용 Spec | 이유 |
-|---|---|---|
-| `ComboBoxWrapper` | `SelectTriggerSpec` | 동일한 roundRect 배경 + 보더 구조 |
-| `ComboBoxInput` | `SelectValueSpec` | 동일한 텍스트 렌더링 |
-| `ComboBoxTrigger` | `SelectIconSpec` | 동일한 chevron 아이콘 + 배경 |
+| ComboBox 자식 태그 | 재사용 Spec         | 이유                              |
+| ------------------ | ------------------- | --------------------------------- |
+| `ComboBoxWrapper`  | `SelectTriggerSpec` | 동일한 roundRect 배경 + 보더 구조 |
+| `ComboBoxInput`    | `SelectValueSpec`   | 동일한 텍스트 렌더링              |
+| `ComboBoxTrigger`  | `SelectIconSpec`    | 동일한 chevron 아이콘 + 배경      |
 
 ```typescript
 // ElementSprite.tsx — TAG_SPEC_MAP 등록
 const TAG_SPEC_MAP: Record<string, SpecClass> = {
   // Select 자식
-  'SelectTrigger': SelectTriggerSpec,
-  'SelectValue': SelectValueSpec,
-  'SelectIcon': SelectIconSpec,
+  SelectTrigger: SelectTriggerSpec,
+  SelectValue: SelectValueSpec,
+  SelectIcon: SelectIconSpec,
   // ComboBox 자식 — Select Spec 재사용
-  'ComboBoxWrapper': SelectTriggerSpec,
-  'ComboBoxInput': SelectValueSpec,
-  'ComboBoxTrigger': SelectIconSpec,
+  ComboBoxWrapper: SelectTriggerSpec,
+  ComboBoxInput: SelectValueSpec,
+  ComboBoxTrigger: SelectIconSpec,
 };
 ```
 
@@ -83,9 +87,13 @@ const TAG_SPEC_MAP: Record<string, SpecClass> = {
 // ElementSprite.tsx (또는 constants.ts)
 const UI_SELECT_CHILD_TAGS = new Set([
   // Select 자식 (기존)
-  'SelectTrigger', 'SelectValue', 'SelectIcon',
+  "SelectTrigger",
+  "SelectValue",
+  "SelectIcon",
   // ComboBox 자식 (신규 등록 필수)
-  'ComboBoxWrapper', 'ComboBoxInput', 'ComboBoxTrigger',
+  "ComboBoxWrapper",
+  "ComboBoxInput",
+  "ComboBoxTrigger",
 ]);
 ```
 
@@ -114,15 +122,15 @@ case 'selectChild':
 **selectChild cursor 동적 설정 (2026-02-27)**
 
 selectChild 케이스의 하드코딩 `cursor="pointer"`가 제거되고,
-`containerPixiCursor` (element의 CSS cursor 속성 또는 `'default'`)를 사용합니다.
+`containerCursor` (element의 CSS cursor 속성 또는 `'default'`)를 사용합니다.
 flex/grid 케이스와 동일한 패턴입니다.
 
 ```typescript
 // ✅ CSS cursor 속성 반영 (ComboBox: spec에서 cursor='text' 정의)
-cursor={containerPixiCursor}
+cursor = { containerCursor };
 
 // ❌ 하드코딩 (모든 selectChild에 pointer — ComboBox input에 부적절)
-cursor="pointer"
+cursor = "pointer";
 ```
 
 **BuilderCanvas ComboBoxWrapper padding 주입**
@@ -131,8 +139,8 @@ Select 패턴과 동일하게 `createContainerChildRenderer`에서 `ComboBoxWrap
 
 ```typescript
 // BuilderCanvas.tsx — createContainerChildRenderer
-if (tag === 'ComboBoxWrapper' || tag === 'SelectTrigger') {
-  injected.paddingLeft  = cs.paddingLeft  ?? specDefault;
+if (tag === "ComboBoxWrapper" || tag === "SelectTrigger") {
+  injected.paddingLeft = cs.paddingLeft ?? specDefault;
   injected.paddingRight = cs.paddingRight ?? specDefault;
 }
 ```
@@ -189,12 +197,13 @@ Calendar는 Compositional Architecture로 전환되어 CalendarHeader + Calendar
 
 **자식 Element 구조**
 
-| Calendar 자식 태그 | 용도 | 독립 Spec |
-|---|---|---|
-| `CalendarHeader` | nav (prev/next 화살표 + month text) | CalendarHeaderSpec |
-| `CalendarGrid` | weekday labels + date cells | CalendarGridSpec |
+| Calendar 자식 태그 | 용도                                | 독립 Spec          |
+| ------------------ | ----------------------------------- | ------------------ |
+| `CalendarHeader`   | nav (prev/next 화살표 + month text) | CalendarHeaderSpec |
+| `CalendarGrid`     | weekday labels + date cells         | CalendarGridSpec   |
 
 **Calendar.spec.ts 동작**:
+
 - `_hasChildren=true` → bg shapes만 반환 (standalone 날짜 그리드 shapes 스킵)
 - `_hasChildren=false` → 전체 렌더링 (monolithic 폴백)
 
@@ -213,27 +222,34 @@ DatePicker (투명 컨테이너, shapes 없음)
 ```
 
 **DatePicker.spec.ts 동작**:
+
 - `_hasChildren=true` → `return []` (빈 배열, ComboBox 동일 패턴)
 - TRANSPARENT_CONTAINER_TAGS에 'DatePicker' 추가
 
 **Factory (DateColorComponents.ts)**:
+
 - DatePicker 부모: `flex column, gap:8px, width:284px` (Calendar intrinsic width)
 - DateField 자식: `display:block, width:100%`
 - Calendar 자식: nested children (CalendarHeader + CalendarGrid)
 - `ChildDefinition` 재귀적 `children?: ChildDefinition[]` 활용
 
 **calculateContentHeight (utils.ts)**:
+
 - `datepicker`: Card 패턴 (자식 높이 합산 + gap)
 - `datefield`: intrinsic height (sm=32, md=40, lg=48)
 - `treatAsBorderBox`: `isDatePickerElement` 추가
 
 **width parseFloat 수정 (DatePicker.spec.ts)**:
+
 ```typescript
 // ✅ CSS 문자열 width도 올바르게 파싱
 const rawWidth = props.style?.width;
-const width = typeof rawWidth === 'number'
-  ? rawWidth
-  : (typeof rawWidth === 'string' ? parseFloat(rawWidth) || 220 : 220);
+const width =
+  typeof rawWidth === "number"
+    ? rawWidth
+    : typeof rawWidth === "string"
+      ? parseFloat(rawWidth) || 220
+      : 220;
 
 // ❌ 문자열 width → NaN 또는 0
 const width = (props.style?.width as number) || 220;
@@ -243,16 +259,20 @@ const width = (props.style?.width as number) || 220;
 
 ```typescript
 // ✅ 0 값이 유효한 CSS 속성 파싱
-const gapParsed = typeof gapRaw === 'number' ? gapRaw : parseFloat(String(gapRaw ?? ''));
-const gap = isNaN(gapParsed) ? defaultGap : gapParsed;  // 0은 유효
+const gapParsed =
+  typeof gapRaw === "number" ? gapRaw : parseFloat(String(gapRaw ?? ""));
+const gap = isNaN(gapParsed) ? defaultGap : gapParsed; // 0은 유효
 
 // ❌ falsy 체크로 0이 기본값으로 대체
-const gap = parseFloat(gapRaw) || 8;  // gap:0 → 8 (버그!)
+const gap = parseFloat(gapRaw) || 8; // gap:0 → 8 (버그!)
 
 // ✅ shorthand + longhand 통합 파싱
-const hasUserPadding = cs.padding !== undefined
-  || cs.paddingTop !== undefined || cs.paddingBottom !== undefined
-  || cs.paddingLeft !== undefined || cs.paddingRight !== undefined;
+const hasUserPadding =
+  cs.padding !== undefined ||
+  cs.paddingTop !== undefined ||
+  cs.paddingBottom !== undefined ||
+  cs.paddingLeft !== undefined ||
+  cs.paddingRight !== undefined;
 const pad = hasUserPadding ? parsePadding(cs) : null;
 
 // ❌ longhand만 체크 (shorthand padding 무시)
@@ -271,7 +291,7 @@ const fs = fontSize ?? 16;
 return estimateTextHeight(fs, fs * 1.5);
 
 // ❌ 하드코딩 (step 6) — Tailwind line-height:1.5와 불일치
-DEFAULT_ELEMENT_HEIGHTS['label'] = 20;  // 실제 CSS: 21
+DEFAULT_ELEMENT_HEIGHTS["label"] = 20; // 실제 CSS: 21
 ```
 
 #### Spec Shapes 배경색 규칙 (CRITICAL)
@@ -299,8 +319,8 @@ Factory 기본값과 토큰 정의가 spec 렌더링을 방해하지 않도록 �
 ```typescript
 // ✅ 'transparent'를 미설정으로 처리
 const userBg = props.style?.backgroundColor;
-const bgColor = (userBg != null && userBg !== 'transparent')
-              ? userBg : variant.background;
+const bgColor =
+  userBg != null && userBg !== "transparent" ? userBg : variant.background;
 
 // ❌ nullish coalescing만 사용 → 'transparent'가 variant를 override
 const bgColor = props.style?.backgroundColor ?? variant.background;
@@ -335,8 +355,12 @@ Breadcrumbs는 `display: flex; align-items: center`로 렌더링되며, 높이�
 
 ```typescript
 // ✅ Breadcrumbs: display:flex, align-items:center — 높이 = lineHeight
-if (tag === 'breadcrumbs') {
-  const BREADCRUMBS_HEIGHTS: Record<string, number> = { sm: 16, md: 24, lg: 24 };
+if (tag === "breadcrumbs") {
+  const BREADCRUMBS_HEIGHTS: Record<string, number> = {
+    sm: 16,
+    md: 24,
+    lg: 24,
+  };
   return BREADCRUMBS_HEIGHTS[sizeName] ?? 24;
 }
 
@@ -345,7 +369,7 @@ if (tag === 'breadcrumbs') {
 ```
 
 | size | height |
-|------|--------|
+| ---- | ------ |
 | sm   | 16px   |
 | md   | 24px   |
 | lg   | 24px   |
@@ -363,9 +387,9 @@ Card는 Heading + Description을 자식 Element로 생성하는 복합 컴포넌
 ```typescript
 // ✅ TEXT_TAGS에 'Description' 포함 — TextSprite로 렌더링
 const TEXT_TAGS = new Set([
-  'Heading',
-  'Text',
-  'Description', // Card, Dialog, Popover, Tooltip, Form에서 사용
+  "Heading",
+  "Text",
+  "Description", // Card, Dialog, Popover, Tooltip, Form에서 사용
   // ...기타 태그
 ]);
 
@@ -376,6 +400,7 @@ const TEXT_TAGS = new Set([
 #### `calculateContentHeight` — Card Nested Tree 높이 계산
 
 Card는 3단계 트리 구조로 높이를 재귀 계산합니다:
+
 1. **Card**: childElements(CardHeader, CardContent) 기반 flex column 높이 합산
 2. **CardHeader/CardContent**: childElements(Heading/Description/Button 등) 기반 높이 계산 — `flexDirection`에 따라 column=합산, row=max
 3. **Heading/Description**: TEXT_LEAF_TAGS로 lineHeight 기반 텍스트 높이
@@ -430,14 +455,22 @@ CSS 기본 동작(`background: transparent`)과 일치하도록, `backgroundColo
 
 ```typescript
 // styleConverter.ts — convertToFillStyle
-export function convertToFillStyle(style: CSSStyle | undefined, resolvedColor?: string): PixiFillStyle {
-  const bg = style?.backgroundColor ?? (style as Record<string, unknown> | undefined)?.background as string | undefined;
+export function convertToFillStyle(
+  style: CSSStyle | undefined,
+  resolvedColor?: string,
+): RenderFillStyle {
+  const bg =
+    style?.backgroundColor ??
+    ((style as Record<string, unknown> | undefined)?.background as
+      | string
+      | undefined);
   const color = cssColorToHex(bg, 0xffffff, resolvedColor);
-  const alpha = style?.opacity !== undefined
-    ? parseCSSSize(style.opacity, undefined, 1)
-    : bg
-      ? cssColorToAlpha(bg, resolvedColor)
-      : 0;  // ← background 미설정 = transparent (alpha 0)
+  const alpha =
+    style?.opacity !== undefined
+      ? parseCSSSize(style.opacity, undefined, 1)
+      : bg
+        ? cssColorToAlpha(bg, resolvedColor)
+        : 0; // ← background 미설정 = transparent (alpha 0)
 
   return { color, alpha };
 }
@@ -477,12 +510,13 @@ CSS `line-height`는 단위 없는 숫자일 때 배수 값입니다 (예: `"1.4
 
 ```typescript
 // ✅ 문자열 배수 값도 올바르게 판별 ("1.4", "1.5" 등)
-const isMultiplier = lh < 10 && (
-  typeof style.lineHeight === 'number' ||
-  (typeof style.lineHeight === 'string' && /^\d*\.?\d+$/.test(style.lineHeight.trim()))
-);
+const isMultiplier =
+  lh < 10 &&
+  (typeof style.lineHeight === "number" ||
+    (typeof style.lineHeight === "string" &&
+      /^\d*\.?\d+$/.test(style.lineHeight.trim())));
 if (isMultiplier) {
-  leading = (lh - 1) * fontSize;  // 배수: (1.4 - 1) * 16 = 6.4
+  leading = (lh - 1) * fontSize; // 배수: (1.4 - 1) * 16 = 6.4
 }
 
 // ❌ typeof === 'number' 만 체크 → 문자열 "1.4"가 픽셀로 처리
@@ -490,6 +524,7 @@ if (isMultiplier) {
 ```
 
 **영향 범위**: 이 설정은 `renderText()` 함수에 위치하며, TextSprite 경로와 Spec shapes 텍스트 경로 **모두**에 적용됩니다:
+
 - TextSprite → `useSkiaNode` → `renderText()` (Text, Heading, Description 등)
 - Spec shapes → `specShapeConverter` → `renderText()` (Button, Badge, Input 등)
 
@@ -500,13 +535,13 @@ Text는 leaf 요소이므로 `display: flex`를 적용해도 항상 **TextSprite
 
 ```typescript
 // ✅ TEXT/IMAGE 우선 → leaf 요소는 display 값과 무관하게 전용 Sprite
-if (TEXT_TAGS.has(tag)) return 'text';
-if (IMAGE_TAGS.has(tag)) return 'image';
-if (isFlexContainer(element)) return 'flex';  // 컨테이너만 도달
+if (TEXT_TAGS.has(tag)) return "text";
+if (IMAGE_TAGS.has(tag)) return "image";
+if (isFlexContainer(element)) return "flex"; // 컨테이너만 도달
 
 // ❌ flex/grid 먼저 → Text+display:flex가 BoxSprite로 렌더링, 텍스트 사라짐
-if (isFlexContainer(element)) return 'flex';
-if (TEXT_TAGS.has(tag)) return 'text';
+if (isFlexContainer(element)) return "flex";
+if (TEXT_TAGS.has(tag)) return "text";
 ```
 
 Text에 flex 속성(justify-content, align-items)이 있으면 TextSprite의 `flexAlignment` memo에서 텍스트 수평/수직 정렬로 매핑합니다.
@@ -528,7 +563,7 @@ Tabs의 `_tabLabels`와 Card의 `heading/description`이 이 패턴을 따릅니
 // 패턴: containerTag 확인 → 부모 props 추출 → 자식 effectiveChildEl 생성
 
 // ✅ Tabs: _tabLabels 주입 (기존 패턴)
-if (containerTag === 'Tabs') {
+if (containerTag === "Tabs") {
   effectiveChildEl = {
     ...childEl,
     props: { ...childEl.props, _tabLabels: tabsElement.props._tabLabels },
@@ -536,9 +571,9 @@ if (containerTag === 'Tabs') {
 }
 
 // ✅ Card: title/description → Heading/Description 자식에 주입 (2026-02-26 heading 제거)
-if (containerTag === 'Card') {
+if (containerTag === "Card") {
   const cardProps = containerElement.props;
-  if (childEl.tag === 'Heading') {
+  if (childEl.tag === "Heading") {
     const headingText = cardProps?.title;
     if (headingText != null) {
       effectiveChildEl = {
@@ -546,7 +581,7 @@ if (containerTag === 'Card') {
         props: { ...childEl.props, children: String(headingText) },
       };
     }
-  } else if (childEl.tag === 'Description') {
+  } else if (childEl.tag === "Description") {
     const descText = cardProps?.description;
     if (descText != null) {
       effectiveChildEl = {
@@ -563,19 +598,20 @@ if (containerTag === 'Card') {
 
 **주입 규칙 요약**:
 
-| 컨테이너 | 부모 props 키 | 대상 자식 tag | 주입 대상 prop |
-|----------|--------------|--------------|---------------|
-| `Tabs`   | `_tabLabels` | `Tab`        | `_tabLabels`  |
-| `Card`   | `title` | `Heading`    | `children`    |
-| `Card`   | `description`           | `Description`| `children`    |
-| Input Fields (`TextField`, `NumberField`, `SearchField`, `DateField`, `TimeField`, `ColorField`) | `label` | `Label` | `children` |
-| Overlay (`Dialog`, `Popover`, `Tooltip`, `Toast`) | `heading` 또는 `title` | `Heading` | `children` |
-| Overlay (`Dialog`, `Popover`, `Tooltip`, `Toast`) | `description` 또는 `message` | `Description` | `children` |
+| 컨테이너                                                                                         | 부모 props 키                | 대상 자식 tag | 주입 대상 prop |
+| ------------------------------------------------------------------------------------------------ | ---------------------------- | ------------- | -------------- |
+| `Tabs`                                                                                           | `_tabLabels`                 | `Tab`         | `_tabLabels`   |
+| `Card`                                                                                           | `title`                      | `Heading`     | `children`     |
+| `Card`                                                                                           | `description`                | `Description` | `children`     |
+| Input Fields (`TextField`, `NumberField`, `SearchField`, `DateField`, `TimeField`, `ColorField`) | `label`                      | `Label`       | `children`     |
+| Overlay (`Dialog`, `Popover`, `Tooltip`, `Toast`)                                                | `heading` 또는 `title`       | `Heading`     | `children`     |
+| Overlay (`Dialog`, `Popover`, `Tooltip`, `Toast`)                                                | `description` 또는 `message` | `Description` | `children`     |
 
 **새 컨테이너 컴포넌트에 이 패턴을 적용할 때 체크리스트**:
+
 1. Editor가 업데이트하는 부모 props 키 확인
 2. TextSprite가 읽는 자식 Element의 prop 확인 (보통 `children`)
 3. `createContainerChildRenderer` 내 `containerTag === 'XXX'` 분기 추가
 4. fallback: 부모 props 값이 `null`/`undefined`이면 자식 초기값 유지
 
-상세 내용: [pixi-hybrid-layout-engine](rules/pixi-hybrid-layout-engine.md#container-props-주입-패턴-container_props_injection)
+상세 내용: [layout details](../reference/layout-details.md)

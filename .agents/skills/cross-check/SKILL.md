@@ -1,6 +1,6 @@
 ---
 name: cross-check
-description: CSS↔WebGL↔Canvas 렌더링 경로 정합성 검증. 변경된 컴포넌트의 모든 렌더링 경로를 교차 검증합니다.
+description: CSS↔Skia↔DOM/WASM 입력 경로 정합성 검증. 변경된 컴포넌트의 모든 렌더링 경로를 교차 검증합니다.
 TRIGGER when: user mentions "정합성 체크", "정합성 검증", "렌더링 체크", "cross check", "CSS WebGL 비교", "렌더링 경로 확인", "Preview Canvas 비교", "CSS↔WebGL", or asks to verify rendering parity across paths.
 user_invocable: true
 ---
@@ -13,7 +13,7 @@ user_invocable: true
 
 # Cross-Check: 렌더링 경로 정합성 검증
 
-변경된 컴포넌트의 CSS(Preview), WebGL(Skia Canvas), PixiJS(이벤트) 렌더링 경로가 일관되게 동작하는지 검증합니다.
+변경된 컴포넌트의 CSS(Preview), Skia Canvas, DOM/WASM 입력 경로가 일관되게 동작하는지 검증합니다.
 
 ## Phase 1: 변경 대상 식별
 
@@ -23,7 +23,7 @@ user_invocable: true
 
 - `*.spec.ts` → 해당 컴포넌트
 - `*.css` → 해당 컴포넌트
-- `ElementSprite.tsx` → TAG_SPEC_MAP에 등록된 모든 변경 컴포넌트
+- `skia/*.ts(x)` → Skia node/command 경로에 등록된 모든 변경 컴포넌트
 - `fullTreeLayout.ts` / `utils.ts` → 영향받는 모든 컴포넌트
 - `implicitStyles.ts` → 해당 컨테이너 컴포넌트
 - `*Renderers.tsx` → 해당 Preview 렌더러 컴포넌트
@@ -32,13 +32,13 @@ user_invocable: true
 
 각 컴포넌트에 대해 아래 테이블을 작성합니다:
 
-| 레이어               | 파일                                                  | 검증 항목                                           | 상태 |
-| -------------------- | ----------------------------------------------------- | --------------------------------------------------- | ---- |
-| **Spec**             | `packages/specs/src/components/{Name}.spec.ts`        | variants, sizes, render.shapes(), properties        |
-| **Factory**          | `apps/builder/src/builder/factories/definitions/*.ts` | 기본 props, style, 자식 구조                        |
-| **CSS Renderer**     | `packages/shared/src/components/styles/{Name}.css`    | data-variant/data-size 선택자, 토큰                 |
-| **WebGL Renderer**   | `ElementSprite.tsx` + `specTextStyle.ts` + `utils.ts` | TAG_SPEC_MAP, TEXT_BEARING_SPECS, INLINE_BLOCK_TAGS |
-| **Preview Renderer** | `packages/shared/src/renderers/*.tsx`                 | variant/size props 전달, data-\* 속성               |
+| 레이어               | 파일                                                    | 검증 항목                                       | 상태 |
+| -------------------- | ------------------------------------------------------- | ----------------------------------------------- | ---- |
+| **Spec**             | `packages/specs/src/components/{Name}.spec.ts`          | variants, sizes, render.shapes(), properties    |
+| **Factory**          | `apps/builder/src/builder/factories/definitions/*.ts`   | 기본 props, style, 자식 구조                    |
+| **CSS Renderer**     | `packages/shared/src/components/styles/{Name}.css`      | data-variant/data-size 선택자, 토큰             |
+| **Skia Renderer**    | `canvas/skia/*.ts(x)` + `specTextStyle.ts` + `utils.ts` | node data, command stream, text/layout contract |
+| **Preview Renderer** | `packages/shared/src/renderers/*.tsx`                   | variant/size props 전달, data-\* 속성           |
 
 ## Phase 3: 정합성 검증 항목
 

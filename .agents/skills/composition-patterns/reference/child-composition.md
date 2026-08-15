@@ -630,7 +630,7 @@ const INLINE_FORM_GAPS = {
 3. `INLINE_FORM_GAPS`에 spec gap과 동일하게 등록
 4. spec shapes의 텍스트 `x` 좌표(`indicatorWidth + gap`)와 합산값이 일치하는지 검증
 
-상세 내용: [pixi-hybrid-layout-engine](rules/pixi-hybrid-layout-engine.md#inline_form_indicator_widths--spec-trackwidth와-반드시-일치-critical), [spec-shape-rendering](rules/spec-shape-rendering.md#specshapeconverter-maxwidth-자동-축소와-레이아웃-너비-정합성-critical)
+상세 내용: [layout details](../reference/layout-details.md), [spec-shape-rendering](../rules/spec-shape-rendering.md#specshapeconverter-maxwidth-자동-축소와-레이아웃-너비-정합성-critical)
 
 ### Phantom Indicator + Compositional Architecture 너비 정합성 (CRITICAL, 2026-02-26)
 

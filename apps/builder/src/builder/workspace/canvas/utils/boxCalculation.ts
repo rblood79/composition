@@ -1,10 +1,10 @@
 /**
  * Box Calculation Utilities
  *
- * @pixi/ui에서 사용하던 border-box 크기 계산, 자식-부모 fit 계산 등의
- * 순수 수학 로직을 추출. PixiJS에 대한 의존성 없이 사용 가능.
+ * border-box 크기 계산과 자식-부모 fit 계산을 제공하는
+ * 렌더러 독립적 순수 수학 유틸리티.
  *
- * @since 2026-02-17 Phase 0: @pixi/ui 순수 로직 추출
+ * @since 2026-02-17 Phase 0
  */
 
 // ============================================
@@ -38,7 +38,7 @@ export interface BoxSides {
 /**
  * 자식을 부모 영역에 맞추기 위한 스케일 계산
  *
- * @pixi/ui fitToView() 로직의 순수 수학 버전.
+ * fit-to-view 로직의 순수 수학 버전.
  * 부모 영역(padding 제외)에 자식이 들어가도록 스케일을 계산합니다.
  *
  * @param parentSize - 부모 크기
@@ -73,8 +73,10 @@ export function calculateFitScale(
   }
 
   // 자식의 원래 크기 (스케일 적용 전)
-  const childBaseWidth = childScale.x !== 0 ? childSize.width / childScale.x : childSize.width;
-  const childBaseHeight = childScale.y !== 0 ? childSize.height / childScale.y : childSize.height;
+  const childBaseWidth =
+    childScale.x !== 0 ? childSize.width / childScale.x : childSize.width;
+  const childBaseHeight =
+    childScale.y !== 0 ? childSize.height / childScale.y : childSize.height;
 
   let scaleX = childScale.x;
   let scaleY = childScale.y;
@@ -126,15 +128,21 @@ export function calculateContentSize(
   border: BoxSides,
 ): Size2D {
   return {
-    width: Math.max(0,
-      totalSize.width
-      - padding.left - padding.right
-      - border.left - border.right,
+    width: Math.max(
+      0,
+      totalSize.width -
+        padding.left -
+        padding.right -
+        border.left -
+        border.right,
     ),
-    height: Math.max(0,
-      totalSize.height
-      - padding.top - padding.bottom
-      - border.top - border.bottom,
+    height: Math.max(
+      0,
+      totalSize.height -
+        padding.top -
+        padding.bottom -
+        border.top -
+        border.bottom,
     ),
   };
 }
@@ -155,19 +163,25 @@ export function calculateBorderBoxSize(
   border: BoxSides,
 ): Size2D {
   return {
-    width: contentSize.width
-      + padding.left + padding.right
-      + border.left + border.right,
-    height: contentSize.height
-      + padding.top + padding.bottom
-      + border.top + border.bottom,
+    width:
+      contentSize.width +
+      padding.left +
+      padding.right +
+      border.left +
+      border.right,
+    height:
+      contentSize.height +
+      padding.top +
+      padding.bottom +
+      border.top +
+      border.bottom,
   };
 }
 
 /**
  * 최소 필요 크기 계산 (border + padding + content)
  *
- * PixiButton/PixiToggleButton 등에서 auto 크기 계산 시 사용하던 패턴을 추출.
+ * self-rendering 컴포넌트의 auto 크기 계산에 사용하는 패턴.
  *
  * @param contentSize - 콘텐츠 크기 (텍스트 측정 결과 등)
  * @param padding - padding { top, right, bottom, left }
@@ -180,8 +194,18 @@ export function calculateMinRequiredSize(
   borderWidth: number = 0,
 ): Size2D {
   return {
-    width: borderWidth + padding.left + contentSize.width + padding.right + borderWidth,
-    height: borderWidth + padding.top + contentSize.height + padding.bottom + borderWidth,
+    width:
+      borderWidth +
+      padding.left +
+      contentSize.width +
+      padding.right +
+      borderWidth,
+    height:
+      borderWidth +
+      padding.top +
+      contentSize.height +
+      padding.bottom +
+      borderWidth,
   };
 }
 
@@ -195,7 +219,10 @@ export function calculateMinRequiredSize(
  * @param containerSize - 컨테이너(부모) 크기
  * @returns 중앙 좌표
  */
-export function calculateCenter(containerSize: Size2D): { x: number; y: number } {
+export function calculateCenter(containerSize: Size2D): {
+  x: number;
+  y: number;
+} {
   return {
     x: containerSize.width / 2,
     y: containerSize.height / 2,

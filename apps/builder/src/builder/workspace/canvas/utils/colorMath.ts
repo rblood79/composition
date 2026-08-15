@@ -1,10 +1,9 @@
 /**
  * Color Math Utilities
  *
- * @pixi/ui에서 사용하던 색상 계산 로직을 순수 TypeScript 함수로 추출.
- * PixiJS에 대한 의존성 없이 사용 가능.
+ * 렌더러와 무관한 색상 계산 로직을 순수 TypeScript 함수로 제공.
  *
- * @since 2026-02-17 Phase 0: @pixi/ui 순수 로직 추출
+ * @since 2026-02-17 Phase 0
  */
 
 // ============================================
@@ -66,11 +65,7 @@ export function adjustColor(color: number, factor: number): number {
 export function mixWithBlack(color: number, amount: number): number {
   const t = Math.max(0, Math.min(1, amount));
   const { r, g, b } = extractRGB(color);
-  return composeRGB(
-    r * (1 - t),
-    g * (1 - t),
-    b * (1 - t),
-  );
+  return composeRGB(r * (1 - t), g * (1 - t), b * (1 - t));
 }
 
 /**
@@ -85,11 +80,7 @@ export function mixWithBlack(color: number, amount: number): number {
 export function mixWithWhite(color: number, amount: number): number {
   const t = Math.max(0, Math.min(1, amount));
   const { r, g, b } = extractRGB(color);
-  return composeRGB(
-    r + (255 - r) * t,
-    g + (255 - g) * t,
-    b + (255 - b) * t,
-  );
+  return composeRGB(r + (255 - r) * t, g + (255 - g) * t, b + (255 - b) * t);
 }
 
 /**
@@ -114,8 +105,7 @@ export function lerpColor(colorA: number, colorB: number, t: number): number {
 /**
  * Hover/Pressed 색상 계산 (inline backgroundColor 기반)
  *
- * PixiButton, PixiToggleButton 등에서 inline bg 색상으로
- * hover/pressed 색상을 자동 계산하는 패턴을 함수로 추출.
+ * inline background color에서 hover/pressed 색상을 자동 계산하는 패턴.
  *
  * @param baseColor - 기본 배경색 (0xRRGGBB)
  * @param hoverDelta - hover 시 밝기 증가량 (기본: 0x151515)

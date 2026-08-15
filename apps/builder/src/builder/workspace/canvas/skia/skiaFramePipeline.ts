@@ -5,9 +5,8 @@
  * content build 로직을 독립 모듈로 추출.
  *
  * 빌드 경로는 Command Stream 단일: elementsMap + layoutMap → RenderCommand[].
- * (구 Tree 경로 — PixiJS 씬 그래프 DFS — 는 ADR-900 으로 PixiJS 가 제거되며
- * cameraContainer 생산자가 null 고정이 되어 도달 불가로 남았다가 2026-08-14
- * simplify 에서 제거됨. layout publish 전에는 null 을 반환해 빈 프레임.)
+ * 구 tree 경로는 cameraContainer 생산자가 없어 도달 불가로 남았다가
+ * 2026-08-14 simplify에서 제거됐다.
  *
  * 공용 산출물(treeBoundsMap)을 1회 생성하여
  * selection/workflow/AI overlay가 재사용한다.

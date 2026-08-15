@@ -1,7 +1,7 @@
 /**
  * Taffy 기반 Flexbox 레이아웃 엔진
  *
- * Yoga/@pixi/layout 위임 대신 Taffy WASM을 직접 호출하여
+ * 별도 layout runtime 위임 대신 Taffy WASM을 직접 호출하여
  * Flexbox 레이아웃을 계산합니다.
  *
  * Feature Flag(useTaffyFlex)가 활성화된 경우에만 사용됩니다.

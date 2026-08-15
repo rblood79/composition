@@ -9,8 +9,8 @@ import { getViewportAuthoritativeState } from "../../../workspace/scrollbar/view
 /**
  * 뷰포트 "실시간 상태" 판정 계약.
  *
- * **Why (2026-08-15 실측)**: 소비자들이 이 판정을 `isAttached()`(PixiJS Container 연결
- * 여부)로 했는데 ADR-900 으로 attach 호출부가 사라져 **항상 false** 다. 그 결과
+ * **Why (2026-08-15 실측)**: 소비자들이 이 판정을 `isAttached()`(legacy Container
+ * 연결 여부)로 했는데 attach 호출부가 사라져 **항상 false** 다. 그 결과
  * 스크롤바는 pan 중 컨트롤러의 실시간 상태 대신 React mirror(=endPan 에서만 동기화)를
  * 읽어 thumb 이 제자리에 멈췄고, `panToPage`/workflow pan 은 early return 으로
  * 완전한 no-op 이었다. Container 없이도 `currentState` 는 갱신되므로 그 사실을

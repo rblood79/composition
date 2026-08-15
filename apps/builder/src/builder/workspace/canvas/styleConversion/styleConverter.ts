@@ -5,8 +5,7 @@
  * 🚀 P7: StylePanel ↔ Canvas 스타일 동기화 확장
  * 🚀 Phase 22: colord 기반 색상 파싱 통합
  *
- * 반환 타입은 `Render*` 다 — 구 이름 `Pixi*` 는 ADR-900 이전 잔재였고
- * 실제 소비처는 Skia 렌더 경로다 (2026-08-15 정정).
+ * 반환 타입은 `Render*` 이며 실제 소비처는 Skia 렌더 경로다.
  *
  * @since 2025-12-11 Phase 10 B1.2
  * @updated 2025-12-13 P7.2-P7.6 - 타이포그래피 속성 확장
@@ -450,7 +449,7 @@ export function resolveColorMix(value: string, depth = 0): string | null {
 }
 
 /**
- * CSS 색상을 PixiJS 숫자로 변환
+ * CSS 색상을 렌더용 숫자 색상으로 변환
  *
  * 🚀 Phase 22: colord 기반으로 리팩토링
  * - 모든 CSS 색상 형식 지원 (hex, rgb, hsl, named colors 등)
@@ -506,7 +505,7 @@ export function cssColorToHex(
 }
 
 /**
- * PixiJS hex color (0xRRGGBB) → Float32Array [r, g, b, a] (0-1 범위).
+ * 렌더용 정수 색상 (0xRRGGBB) → Float32Array [r, g, b, a] (0-1 범위).
  * buildBoxNodeData, buildImageNodeData, buildSpecNodeData 등에서 공용.
  */
 export function colorIntToFloat32(color: number, alpha: number): Float32Array {
@@ -617,7 +616,7 @@ export function parseCSSSize(
 // ============================================
 
 /**
- * CSS 스타일을 PixiJS Transform으로 변환
+ * CSS 스타일을 RenderTransform으로 변환
  */
 export function convertToTransform(
   style: CSSStyle | undefined,
@@ -635,7 +634,7 @@ export function convertToTransform(
 }
 
 /**
- * CSS 스타일을 PixiJS Fill 스타일로 변환
+ * CSS 스타일을 RenderFillStyle로 변환
  *
  * @param style - CSS 스타일 객체
  * @param resolvedColor - currentColor 해석을 위한 현재 요소의 color 값
@@ -661,7 +660,7 @@ export function convertToFillStyle(
 }
 
 /**
- * CSS 스타일을 PixiJS Stroke 스타일로 변환
+ * CSS 스타일을 RenderStrokeStyle로 변환
  *
  * @param style - CSS 스타일 객체
  * @param resolvedColor - currentColor 해석을 위한 현재 요소의 color 값
@@ -682,7 +681,7 @@ export function convertToStrokeStyle(
 }
 
 /**
- * CSS 스타일을 PixiJS Text 스타일로 변환
+ * CSS 스타일을 RenderTextStyle로 변환
  * P7.2-P7.4: fontStyle, letterSpacing, lineHeight (leading) 추가
  */
 export function convertToTextStyle(
@@ -991,7 +990,7 @@ function parsePolygon(
 }
 
 /**
- * CSS borderRadius를 PixiJS 반경 배열로 변환
+ * CSS borderRadius를 렌더용 반경 배열로 변환
  *
  * CSS border-radius 형식:
  * - 단일 값: "8px" → 8
@@ -1040,7 +1039,7 @@ export interface ConvertedStyle {
 }
 
 /**
- * CSS 스타일을 모든 PixiJS 스타일로 변환
+ * CSS 스타일을 모든 Render* 스타일로 변환
  *
  * Phase 5: currentColor + initial/unset/revert 지원
  * - style.color를 resolvedColor로 사용하여 색상 속성의 currentColor를 해석한다.

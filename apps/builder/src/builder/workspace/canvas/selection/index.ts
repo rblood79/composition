@@ -37,7 +37,7 @@ export {
 
 export { getResizeCursorForAngle, resolveHandleCursor } from "./resizeCursors";
 
-// Phase 9: PixiJS Selection 컴포넌트 제거 (Skia selectionRenderer가 대체)
+// Selection 컴포넌트 제거 후 hit-test 유틸리티만 유지
 export {
   findBodySelectionAtCanvasPoint,
   pickTopmostHitElementId,

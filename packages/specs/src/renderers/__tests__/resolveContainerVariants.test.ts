@@ -36,7 +36,6 @@ function makeSpec<P>(overrides: Partial<ComponentSpec<P>>): ComponentSpec<P> {
     render: {
       shapes: () => [],
       react: () => ({}),
-      pixi: () => ({}),
     },
     ...overrides,
   } as ComponentSpec<P>;

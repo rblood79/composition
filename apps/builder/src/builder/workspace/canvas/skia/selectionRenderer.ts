@@ -218,7 +218,7 @@ export function renderSelectionBox(
  *
  * 엣지 핸들은 **의도적으로 그리지 않는다** — 보이지 않는 히트 영역으로만 존재한다.
  * 판정은 `selection/types.ts::hitTestHandle` 의 좌표 계산(EDGE_HIT_THICKNESS)이
- * 담당하며 렌더러와 무관하다. 구 주석은 이 판정을 "PixiJS 히트 영역" 이라 적었는데
+ * 담당하며 렌더러와 무관하다. 이 판정은 Canvas hit area와 동일한 bounds 규칙을 사용한다.
  * ADR-900 이후 사실이 아니다 (2026-08-15 정정).
  */
 export function renderTransformHandles(

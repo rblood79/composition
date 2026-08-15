@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Architecture — PixiJS Spec 계약 제거] - 2026-08-15
+
+### Breaking Changes
+
+- `@composition/specs`의 PixiJS 전용 계약을 제거했다: `RenderSpec.pixi`와
+  `ComponentSpec.overlay.pixiLayer`를 삭제하고, `GroupSpec`/`SlotSpec`의
+  placeholder `pixi()` callback도 제거했다.
+- PixiJS runtime·dependency는 이미 ADR-900에서 제거된 상태이며, 이번 변경은
+  남아 있던 workspace 내부 schema surface를 React/Skia Canvas 경로로 수렴한다.
+
+### Documentation
+
+- Codex agent/workflow 설명을 CanvasKit/Skia + DOM/WASM input 기준으로 정정했다.
+- 검증: workspace source에서 `pixi`, `pixiLayer`, `render.pixi` consumer 0건,
+  PixiJS package/import/runtime 초기화 0건.
+
+### Infrastructure
+
+- `@composition/specs` build가 public `types`/`renderers`/`primitives` subpath도
+  함께 생성하도록 수정해 stale generated Pixi 계약 재노출을 막았다.
+
 ## [Styles 패널 — position 의 modify/reset 비대칭 수정] - 2026-08-15
 
 ### Bug Fixes

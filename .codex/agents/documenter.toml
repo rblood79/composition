@@ -81,7 +81,7 @@ Proposed | Accepted | Deprecated | Superseded
 ### 핵심 아키텍처 개념
 
 - **Builder ↔ Preview**: iframe 격리, postMessage Delta 동기화
-- **이중 렌더러**: CanvasKit/Skia WASM(렌더링) + PixiJS 8(이벤트)
+- **Canvas 렌더러**: CanvasKit/Skia WASM(렌더링) + DOM/WASM 입력 경로
 - **레이아웃**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계, DirectContainer 직접 배치
 - **상태**: Zustand 슬라이스, elementsMap O(1) 인덱스
 - **스타일링**: Tailwind CSS v4 + tv() variants

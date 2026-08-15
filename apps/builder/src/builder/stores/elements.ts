@@ -1903,8 +1903,8 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     batchUpdateElementProps,
     batchUpdateElements,
 
-    // `updateSelectedElementLayout` 은 삭제됐다 (2026-08-15) — @pixi/layout(yoga)
-    //   계산 결과를 스타일 패널에 넘기던 채널인데 호출부가 0건이라 대응 필드
+    // `updateSelectedElementLayout` 은 삭제됐다 (2026-08-15) — legacy 레이아웃
+    //   결과를 스타일 패널에 넘기던 채널인데 호출부가 0건이라 대응 필드
     //   (`computedLayout`)가 채워진 적이 없다. 현행 패널은 레이아웃 엔진 결과를
     //   `fullTreeLayoutMap` / computed style 경로로 읽는다.
 

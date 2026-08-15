@@ -4,15 +4,15 @@
  * 오프스크린 Surface에서 씬을 렌더링하고
  * PNG/JPEG/WEBP 형식으로 인코딩한다.
  *
- * PixiJS extract 대비 벡터 정밀도를 유지한 고품질 Export를 제공한다.
+ * Canvas 렌더 결과의 벡터 정밀도를 유지한 고품질 Export를 제공한다.
  *
  * @see docs/RENDERING_ARCHITECTURE.md §6.4 Export 파이프라인
  */
 
-import type { CanvasKit } from 'canvaskit-wasm';
-import type { SkiaRenderable } from './types';
+import type { CanvasKit } from "canvaskit-wasm";
+import type { SkiaRenderable } from "./types";
 
-export type ExportFormat = 'png' | 'jpeg' | 'webp';
+export type ExportFormat = "png" | "jpeg" | "webp";
 
 export interface ExportOptions {
   /** Export 너비 (px) */
@@ -45,7 +45,7 @@ export function exportToImage(
   const {
     width,
     height,
-    format = 'png',
+    format = "png",
     quality = 95,
     backgroundColor = ck.Color4f(1, 1, 1, 1),
     scale = 1,
@@ -57,7 +57,9 @@ export function exportToImage(
   // 오프스크린 SW Surface 생성 (WebGL 불필요)
   const surface = ck.MakeSurface(scaledWidth, scaledHeight)!;
   if (!surface) {
-    throw new Error(`Export Surface 생성 실패 (${scaledWidth}x${scaledHeight})`);
+    throw new Error(
+      `Export Surface 생성 실패 (${scaledWidth}x${scaledHeight})`,
+    );
   }
 
   const canvas = surface.getCanvas();
@@ -85,18 +87,18 @@ export function exportToImage(
     // 이미지 인코딩
     const image = surface.makeImageSnapshot();
     if (!image) {
-      throw new Error('이미지 스냅샷 생성 실패');
+      throw new Error("이미지 스냅샷 생성 실패");
     }
 
     let encoded: Uint8Array | null;
     switch (format) {
-      case 'png':
+      case "png":
         encoded = image.encodeToBytes(ck.ImageFormat.PNG, 100);
         break;
-      case 'jpeg':
+      case "jpeg":
         encoded = image.encodeToBytes(ck.ImageFormat.JPEG, quality);
         break;
-      case 'webp':
+      case "webp":
         encoded = image.encodeToBytes(ck.ImageFormat.WEBP, quality);
         break;
     }
@@ -123,15 +125,18 @@ export function exportToBlobUrl(
   options: ExportOptions,
 ): string {
   const data = exportToImage(ck, rootNode, options);
-  const mimeType = formatToMime(options.format ?? 'png');
+  const mimeType = formatToMime(options.format ?? "png");
   const blob = new Blob([data.buffer as ArrayBuffer], { type: mimeType });
   return URL.createObjectURL(blob);
 }
 
 function formatToMime(format: ExportFormat): string {
   switch (format) {
-    case 'png': return 'image/png';
-    case 'jpeg': return 'image/jpeg';
-    case 'webp': return 'image/webp';
+    case "png":
+      return "image/png";
+    case "jpeg":
+      return "image/jpeg";
+    case "webp":
+      return "image/webp";
   }
 }

@@ -119,14 +119,12 @@ composition 코드 작업의 rule index입니다. 이 파일은 routing용으로
 - React Aria: [hooks required](rules/react-aria-hooks-required.md),
   [no manual aria](rules/react-aria-no-manual-aria.md),
   [stately hooks](rules/react-aria-stately-hooks.md)
-- PIXI/Canvas: [no xy props](rules/pixi-no-xy-props.md),
-  [hybrid layout](rules/pixi-hybrid-layout-engine.md),
-  [hit rect](rules/pixi-container-hit-rect.md),
-  [border box](rules/pixi-border-box-model.md),
-  [text isLeaf](rules/pixi-text-isleaf.md),
-  [absolute hitarea](rules/pixi-hitarea-absolute.md),
-  [viewport culling](rules/pixi-viewport-culling.md),
-  [no flex height](rules/pixi-no-flex-height.md)
+- Canvas/Skia: [canvas details](reference/canvas-details.md),
+  [layout details](reference/layout-details.md)
+
+> 현재 구현은 CanvasKit/Skia와 DOM/WASM 입력 경로를 사용하며, obsolete renderer 규칙은
+> active rule map에 포함하지 않는다. 역사적 결정은 ADR/CHANGELOG에서 확인한다.
+
 - Inspector/Preview: [inline styles](rules/inspector-inline-styles.md),
   [history sync](rules/inspector-history-sync.md),
   [postMessage origin](rules/postmessage-origin-verify.md),

@@ -1,4 +1,4 @@
-// PixiJS Container 대체 (Phase 9: PixiJS 제거)
+// Canvas selection model
 type Container = {
   label?: string;
   parent?: Container | null;
@@ -182,7 +182,7 @@ export function computeSelectionBounds({
       //   빼거나 zoom 으로 나누면 선택 박스가 유령 위치로 이동해, 엉뚱한 좌표의 클릭이
       //   `inSelectionBounds` 로 판정돼 선택이 통째로 무시된다 (2026-07-24 실측: scene
       //   20,104 350x84 → -195,-124 로 panOffset(215,228) 만큼 이탈). 바로 위 body 분기가
-      //   raw scene 좌표를 쓰는 것과도 일치한다. PixiJS `getBounds()`가 screen 좌표를
+      //   raw scene 좌표를 쓰는 것과도 일치한다. legacy `getBounds()`가 screen 좌표를
       //   반환하던 시절의 잔재였다.
       boxes.push(bounds);
       continue;

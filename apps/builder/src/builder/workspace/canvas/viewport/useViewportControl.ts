@@ -4,9 +4,8 @@
  * 컨테이너 DOM 요소에 pan/zoom 입력(포인터 드래그 · 휠)을 바인딩하고
  * `ViewportController` 에 반영한다. React state 동기화는 인터랙션 종료 시점.
  *
- * 구 `app` / `cameraLabel` 옵션(PixiJS stage 에서 Camera Container 를 찾아
- * `controller.attach()`)은 삭제됐다 (2026-08-15) — 유일한 호출부가 `app={null}`
- * 하드코딩이라 ADR-900 이후 그 블록은 도달 불가였다.
+ * 구 `app` / `cameraLabel` 옵션은 삭제됐다 (2026-08-15) — 유일한 호출부가
+ * `app={null}` 하드코딩이라 그 블록은 도달 불가였다.
  *
  * @since 2025-12-12 Phase 12 B3.2
  */

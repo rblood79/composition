@@ -7,7 +7,7 @@
  * @updated 2026-03-01 ADR-005 Foundation 완료 - Dropflow 제거, 단일 엔진 전환
  */
 
-// Phase 9: GridLayout 컴포넌트 삭제 (PixiJS 전용), utils만 유지
+// GridLayout 컴포넌트 삭제 후 순수 layout utils만 유지
 export {
   isGridContainer,
   isFlexContainer, // 🚀 Phase 7: LayoutEngine.ts에서 이동

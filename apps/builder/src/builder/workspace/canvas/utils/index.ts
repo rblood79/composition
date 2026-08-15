@@ -1,7 +1,7 @@
 /**
  * Canvas Utils
  *
- * PixiJS Canvas를 위한 유틸리티 모음
+ * Skia Canvas와 layout pipeline을 위한 유틸리티 모음
  *
  * @since 2025-12-15
  * @updated 2026-02-17 Phase 0: colorMath, boxCalculation, textMeasure 추가
@@ -16,7 +16,7 @@ export * from "./cssVariableReader";
 // GPU 프로파일링
 export * from "./gpuProfilerCore";
 
-// Phase 0: @pixi/ui 순수 로직 추출
+// 색상 계산과 box model 순수 로직
 // mixWithBlack/mixWithWhite는 cssVariableCore에서 export — 중복 제외
 export {
   extractRGB,

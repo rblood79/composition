@@ -12,7 +12,7 @@
  * - Phantom indicator offset (padding/align-items)
  * - Disabled opacity, focus ring, text wrapping props
  *
- * PixiJS 의존성 없음. element.props + layout + theme + elementsMap에서 구축.
+ * element.props + layout + theme + elementsMap에서 구축한다.
  */
 
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";

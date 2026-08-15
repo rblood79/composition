@@ -29,7 +29,7 @@ developer_instructions = '''
 - [ ] export 함수에 명시적 반환 타입
 - [ ] 적절한 제네릭 사용
 
-### 3. Canvas / PixiJS
+### 3. Canvas / Skia
 
 - [ ] DirectContainer 패턴 사용 (엔진 결과 x/y 직접 배치)
 - [ ] 하이브리드 레이아웃 엔진 display 선택 준수

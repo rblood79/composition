@@ -16,7 +16,7 @@ const Button = () => (
   <div style={{ borderRadius: 8, background: "blue" }}>Click</div>
 );
 
-// PIXI - 별도 로직
+// ❌ Canvas - 별도 로직
 const draw = (g: Graphics) => {
   g.roundRect(0, 0, 100, 40, 8);
   g.fill({ color: 0x0000ff });
@@ -102,7 +102,7 @@ const ButtonSpec: ComponentSpec<ButtonProps> = {
 
 ## 주의사항
 
-- Shape의 `x`, `y`는 저수준 Graphics API용 (pixi-no-xy-props와 다른 컨텍스트)
+- Shape의 `x`, `y`는 저수준 Canvas API용이며 레이아웃 위치와 혼동하지 않습니다.
 - `width: 'auto'`, `height: 'auto'`는 컨테이너 크기에 맞춤
 - **배경 roundRect의 `width`와 `height`는 반드시 `'auto'`** -- `props.style?.width` 사용 금지
 - `state` 파라미터로 상태별 스타일 분기 (기본값: 'default')
@@ -828,4 +828,4 @@ const containerWidthOverride = isYogaSizedContainer
 - `apps/builder/src/.../sprites/ElementSprite.tsx` - getSpecForTag(), spec shapes 통합, TAG_SPEC_MAP
 - `apps/builder/src/.../skia/nodeRenderers.ts` - renderLine() 포함 Skia 렌더
 - `apps/builder/src/.../canvas/BuilderCanvas.tsx` - CONTAINER_TAGS, isYogaSizedContainer 정의
-- [pixi-hybrid-layout-engine](pixi-hybrid-layout-engine.md#container-props-주입-패턴-container_props_injection) - Container Props 주입 패턴 상세
+- [layout details](../reference/layout-details.md) - Container Props 주입 패턴 상세

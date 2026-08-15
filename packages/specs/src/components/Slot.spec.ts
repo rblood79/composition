@@ -2,7 +2,7 @@
  * Slot Component Spec
  *
  * 플레이스홀더 컨테이너 컴포넌트
- * Single Source of Truth - React와 PIXI 모두에서 동일한 시각적 결과
+ * Single Source of Truth - React와 Skia Canvas에서 동일한 시각적 결과
  *
  * @packageDocumentation
  */
@@ -134,9 +134,5 @@ export const SlotSpec: ComponentSpec<SlotProps> = {
     },
 
     react: () => ({}),
-
-    pixi: () => ({
-      eventMode: "passive" as const,
-    }),
   },
 };

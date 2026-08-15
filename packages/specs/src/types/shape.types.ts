@@ -2,7 +2,7 @@
  * Shape Types
  *
  * Component Spec에서 사용하는 도형 타입 정의
- * React와 PIXI 렌더러 모두에서 해석 가능한 도형 구조
+ * React와 Skia 렌더러에서 해석 가능한 도형 구조
  *
  * @packageDocumentation
  */
@@ -339,7 +339,7 @@ export interface ContainerShape {
   children: Shape[];
   clip?: boolean;
 
-  /** 레이아웃 설정 (@pixi/layout 연동) */
+  /** 캔버스 shape 변환에 사용하는 레이아웃 설정 */
   layout?: ContainerLayout;
 }
 

@@ -3,9 +3,9 @@ import type { EventHandler } from "../panels/events/types/eventTypes";
 import type { DataBinding as SharedDataBinding } from "@composition/shared";
 
 // `ComputedLayout` 인터페이스와 `SelectedElement.computedLayout` 은 삭제됐다
-//   (2026-08-15). @pixi/layout(yoga) 결과 채널이었고 writer 인
-//   `updateSelectedElementLayout` 의 호출부가 ADR-900 이후 0건이라 값이 채워진
-//   적이 없다 — 패널은 이 필드를 읽지 않는다. 살아 있는 동명 타입
+//   (2026-08-15). 더 이상 사용하지 않는 legacy 레이아웃 결과 채널이며 writer 인
+//   `updateSelectedElementLayout` 의 호출부가 0건이라 값이 채워진 적이 없다 —
+//   패널은 이 필드를 읽지 않는다. 살아 있는 동명 타입
 //   (`canvas/layout/engines/LayoutEngine.ts::ComputedLayout`)과는 별개.
 
 /**

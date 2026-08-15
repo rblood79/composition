@@ -23,7 +23,7 @@ composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어�
 ### 핵심 아키텍처
 
 - **Builder ↔ Preview 분리**: Builder(에디터 UI)와 Preview(사용자 컴포넌트 렌더링)는 iframe으로 격리, postMessage Delta 동기화로 통신
-- **이중 렌더러**: CanvasKit/Skia WASM(메인 렌더링) + PixiJS 8(씬 그래프 + EventBoundary 이벤트 처리, alpha=0)
+- **단일 Canvas 렌더러**: CanvasKit/Skia WASM(렌더링·오버레이) + DOM/WASM 입력 경로
 - **레이아웃 엔진**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계, DirectContainer 직접 배치
 - **상태 관리**: Zustand 슬라이스 패턴. 인덱스: elementsMap(O(1)), childrenMap, pageIndex
 
@@ -39,7 +39,7 @@ composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어�
 
 - React 19, React-Aria Components, Zustand, TanStack Query
 - Tailwind CSS v4, tailwind-variants (tv())
-- CanvasKit/Skia WASM + PixiJS 8, @pixi/react
+- CanvasKit/Skia WASM, WASM SpatialIndex
 - Taffy WASM + Dropflow Fork (레이아웃 엔진)
 - Groq SDK (llama-3.3-70b-versatile), Supabase, Vite, TypeScript 5, pnpm
 

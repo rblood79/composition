@@ -84,7 +84,7 @@ export function createToggleButtonGroupDefinition(
 }
 
 // ADR-912 Switcher cleanup — createSwitcherDefinition 제거.
-// Switcher(@pixi/ui 세그먼트 컨트롤)는 RAC ToggleButtonGroup(selectionMode="single") 중복 →
+// Switcher 세그먼트 컨트롤은 RAC ToggleButtonGroup(selectionMode="single") 중복 →
 // createToggleButtonGroupDefinition 이 대체. 과거 직렬화 Switcher 노드는 hydration 시
 // ToggleButtonGroup 으로 변환(adapters/canonical/tagRename.ts).
 

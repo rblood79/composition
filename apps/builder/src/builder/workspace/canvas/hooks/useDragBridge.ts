@@ -1,15 +1,13 @@
 /**
- * useDragBridge — SelectionLayer 드래그 로직의 PixiJS 독립 추출 (ADR-100 Phase 6)
+ * useDragBridge — SelectionLayer 드래그 로직 추출 (ADR-100 Phase 6)
  *
- * SelectionLayer(PixiJS Application 내부)의 useDragInteraction + 콜백 ref 바인딩을
- * PixiJS 외부에서도 동작하도록 추출.
+ * SelectionLayer의 useDragInteraction + 콜백 ref 바인딩을 독립 경로로 추출.
  *
  * ADR-049 Deferred Commit 아키텍처를 그대로 유지:
  * - 드래그 중: setDragVisualOffset + resolveDropTarget + computeSiblingOffsets
  * - 드롭 시: canonical children[] move
  *
- * PixiJS 의존 부분 (SelectionBox setVisible/resetPosition)은 제거.
- * Skia 렌더링이 selection box를 이미 처리하므로 시각적 영향 없음.
+ * SelectionBox의 시각적 조작은 Skia 렌더링이 담당한다.
  */
 
 import { useEffect, useRef, type MutableRefObject } from "react";

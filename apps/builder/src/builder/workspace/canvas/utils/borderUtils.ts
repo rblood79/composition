@@ -13,18 +13,27 @@ import {
   cssColorToAlpha,
   parseCSSSize,
   type CSSStyle,
-} from '../styleConversion/styleConverter';
+} from "../styleConversion/styleConverter";
 
 // ============================================
 // Types
 // ============================================
 
-export type BorderStyleType = 'solid' | 'dashed' | 'dotted' | 'double' | 'groove' | 'ridge' | 'inset' | 'outset' | 'none';
+export type BorderStyleType =
+  | "solid"
+  | "dashed"
+  | "dotted"
+  | "double"
+  | "groove"
+  | "ridge"
+  | "inset"
+  | "outset"
+  | "none";
 
 export interface BorderConfig {
   /** border 두께 (px) */
   width: number;
-  /** border 색상 (PixiJS hex) */
+  /** border 색상 (0xRRGGBB) */
   color: number;
   /** border 투명도 (0-1) */
   alpha: number;
@@ -55,17 +64,17 @@ export interface BorderBoxInnerBounds {
  * CSS borderStyle 문자열을 BorderStyleType으로 파싱
  */
 export function parseBorderStyle(style: string | undefined): BorderStyleType {
-  if (!style || style === 'none') return 'none';
+  if (!style || style === "none") return "none";
 
   const lower = style.toLowerCase();
-  if (lower === 'dashed') return 'dashed';
-  if (lower === 'dotted') return 'dotted';
-  if (lower === 'double') return 'double';
-  if (lower === 'groove') return 'groove';
-  if (lower === 'ridge') return 'ridge';
-  if (lower === 'inset') return 'inset';
-  if (lower === 'outset') return 'outset';
-  return 'solid';
+  if (lower === "dashed") return "dashed";
+  if (lower === "dotted") return "dotted";
+  if (lower === "double") return "double";
+  if (lower === "groove") return "groove";
+  if (lower === "ridge") return "ridge";
+  if (lower === "inset") return "inset";
+  if (lower === "outset") return "outset";
+  return "solid";
 }
 
 /**
@@ -73,7 +82,9 @@ export function parseBorderStyle(style: string | undefined): BorderStyleType {
  *
  * @returns border 정보가 없거나 width가 0이면 null
  */
-export function parseBorderConfig(style: CSSStyle | undefined): BorderConfig | null {
+export function parseBorderConfig(
+  style: CSSStyle | undefined,
+): BorderConfig | null {
   if (!style) return null;
 
   // borderWidth 또는 borderColor가 있어야 border로 인식
@@ -100,8 +111,8 @@ export function parseBorderConfig(style: CSSStyle | undefined): BorderConfig | n
 /**
  * border-box offset 계산
  *
- * PixiJS stroke는 선의 중앙에 그려지므로
- * width/2 만큼 안쪽으로 이동해야 전체가 bounds 안에 들어감
+ * stroke는 선의 중앙에 그려지므로 width/2 만큼 안쪽으로 이동해야
+ * 전체가 bounds 안에 들어감
  *
  * @example
  * getBorderBoxOffset(4) // 2
@@ -143,7 +154,7 @@ export function getBorderBoxInnerBounds(
   width: number,
   height: number,
   borderWidth: number,
-  borderRadius: number
+  borderRadius: number,
 ): BorderBoxInnerBounds {
   const offset = getBorderBoxOffset(borderWidth);
 
@@ -163,8 +174,15 @@ export function getBorderBoxInnerBounds(
 /**
  * border가 유효한지 확인
  */
-export function isValidBorder(border: BorderConfig | null | undefined): border is BorderConfig {
-  return border !== null && border !== undefined && border.width > 0 && border.style !== 'none';
+export function isValidBorder(
+  border: BorderConfig | null | undefined,
+): border is BorderConfig {
+  return (
+    border !== null &&
+    border !== undefined &&
+    border.width > 0 &&
+    border.style !== "none"
+  );
 }
 
 /**
@@ -176,7 +194,7 @@ export function isValidBorder(border: BorderConfig | null | undefined): border i
 export function getContentBoundsWithBorder(
   width: number,
   height: number,
-  borderWidth: number
+  borderWidth: number,
 ): { x: number; y: number; width: number; height: number } {
   return {
     x: borderWidth,

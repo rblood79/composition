@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-// Variant/Size resolvers (Skia/Canvas 공용, ADR-100 PixiRenderer 제거 후 분리)
+// Variant/Size resolvers (Skia/Canvas 공용)
 export { getVariantColors, getSizePreset } from "./utils/variantColors";
 
 // CSS Generator

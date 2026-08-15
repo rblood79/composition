@@ -3,8 +3,8 @@
  *
  * Element Bounds Registry (DirectContainer 배치 지원)
  *
- * PixiJS Container 참조를 저장하여 getBounds() 호출을 가능하게 합니다.
- * layoutResult.positions 대신 실제 DisplayObject의 bounds를 사용할 수 있습니다.
+ * layout pipeline이 산출한 element bounds를 저장하여 Skia scene bounds와
+ * selection/hit testing 경로에서 일관된 좌표를 사용하게 합니다.
  *
  * @since 2025-01-06 Phase 1 ElementRegistry
  * @updated 2026-02-18 Phase 11 - DirectContainer 전환 완료
@@ -33,9 +33,8 @@ export interface ElementBounds {
  * getBounds()가 layout 적용 전 0,0을 반환하는 문제 해결용.
  * LayoutContainer에서 layout prop 변경 시 직접 저장.
  *
- * PixiJS Container Map(`elementRegistry`)과 그 reader
- * (`getElementBounds` / `getRegisteredElementIds`)는 2026-08-15 제거됐다 —
- * ADR-900 PixiJS 제거 이후 writer 가 없어 라이브에서 항상 비어 있었다.
+ * legacy Container Map reader는 2026-08-15 제거됐다. 현재 registry는
+ * layout pipeline이 직접 기록하는 bounds만 보관한다.
  */
 const layoutBoundsRegistry = new Map<string, ElementBounds>();
 
@@ -117,7 +116,7 @@ export function findElementAtPosition(
   excludeIds?: Set<string>,
 ): string | null {
   // 히트된 모든 요소 수집 후, 가장 작은 영역(가장 구체적인 요소) 반환
-  // PixiJS EventBoundary의 "가장 깊은 자식 우선" 동작을 flat 히트 테스트로 근사
+  // 가장 구체적인 자식 우선 동작을 flat 히트 테스트로 근사
   let bestId: string | null = null;
   let bestArea = Infinity;
 

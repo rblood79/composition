@@ -14,7 +14,7 @@
 
 ### DirectContainer 패턴
 
-@pixi/layout 제거 후, 엔진 계산 결과(x/y/w/h)를 DirectContainer에서 직접 배치합니다:
+엔진 계산 결과(x/y/w/h)를 DirectContainer에서 직접 배치합니다:
 
 ```typescript
 // ✅ 엔진 계산 결과를 DirectContainer x/y로 직접 주입
@@ -22,8 +22,8 @@
   <ElementSprite element={element} width={layout.width} height={layout.height} />
 </DirectContainer>
 
-// ❌ 레이아웃 prop으로 재계산 요청 (구 @pixi/layout 패턴 — 제거됨)
-<pixiContainer layout={{ display: 'flex', flexDirection: 'column' }}>
+// ❌ 레이아웃 prop으로 재계산 요청 (구 컨테이너 패턴 — 제거됨)
+<legacyContainer layout={{ display: 'flex', flexDirection: 'column' }}>
 ```
 
 ### LayoutComputedSizeContext 패턴
@@ -644,7 +644,7 @@ for (const node of batch) {
 
 ### 컴포넌트 등급 현황 (Wave 4 완료, 2026-02-19 / Breadcrumbs 승격 2026-02-23)
 
-모든 Pixi 컴포넌트가 A 또는 B+ 등급으로 전환 완료됐습니다.
+모든 Canvas 컴포넌트가 A 또는 B+ 등급으로 전환 완료됐습니다.
 
 | 등급 | 의미                                     | 예시                                              |
 | ---- | ---------------------------------------- | ------------------------------------------------- |
@@ -654,4 +654,4 @@ for (const node of batch) {
 | D    | 캔버스 상호작용 불필요 (프리뷰 전용)     | Calendar, DatePicker, ColorPicker                 |
 
 > C등급 (자체 렌더링 + 수동 배치)은 Wave 4에서 전부 제거됐습니다.
-> `SELF_PADDING_TAGS`, `renderWithPixiLayout()` 등 구 패턴도 삭제 완료.
+> `SELF_PADDING_TAGS` 등 구 패턴도 삭제 완료.

@@ -56,7 +56,7 @@ export type InvalidationReason = (typeof INVALIDATION_REASONS)[number];
  *
  * stale 보정:
  * - _pagePosStaleFrames: viewport 변경 후 3프레임간 강제 무효화
- *   (React ↔ PixiJS Container 동기화 지연 회피)
+ *   (React와 Canvas scene 동기화 지연 회피)
  */
 
 // ---------------------------------------------------------------------------

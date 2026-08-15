@@ -9,7 +9,7 @@ echo "=== PreCompact Context Snapshot ==="
 echo ""
 echo "## Project: composition NoCode Builder"
 echo "## Pipeline: Memory→Index→History→DB→Preview→Rebalance"
-echo "## Engines: Taffy WASM (Flex/Grid/Block), CanvasKit/Skia (render), PixiJS (events)"
+echo "## Engines: WASM layout, CanvasKit/Skia (render), DOM/WASM input"
 echo ""
 
 # 변경된 파일 목록 수집

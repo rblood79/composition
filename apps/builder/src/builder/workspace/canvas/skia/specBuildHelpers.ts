@@ -1,7 +1,7 @@
 /**
  * specBuildHelpers — buildSpecNodeData가 사용하는 순수 헬퍼 함수 (ADR-100 Phase 8)
  *
- * ElementSprite.tsx에서 추출. PixiJS 의존성 없음.
+ * spec shape builder에서 추출한 공통 helper.
  */
 
 import type { Shape, TokenRef } from "@composition/specs";

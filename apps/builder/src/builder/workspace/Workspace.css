@@ -362,7 +362,7 @@
 }
 
 /* ============================================
- * Compare Mode - iframe + PixiJS 동시 표시
+ * Compare Mode - iframe + Canvas 동시 표시
  * ============================================ */
 
 .workspace--compare-mode {
@@ -428,7 +428,7 @@
   border: none;
 }
 
-/* PixiJS 캔버스 컨테이너 조정 */
+/* Builder Canvas 컨테이너 조정 */
 .workspace-compare-content .builder-canvas-container {
   width: 100%;
   height: 100%;
