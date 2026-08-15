@@ -1,10 +1,18 @@
 /**
- * WASM Feature Flags
+ * Canvas Feature Flags — 게이트/플래그 단일 registry
  *
- * Canvas 렌더링 관련 WASM 모듈의 활성화 상태.
- * 모든 플래그는 하드코딩 — 환경변수 분기 없음.
+ * Canvas 렌더링 관련 게이트의 **유일 정의처**. 모든 플래그는 하드코딩 —
+ * 환경변수 분기 없음. 이 파일 밖에 boolean 게이트 상수를 두지 않는다
+ * (`featureFlags.test.ts` 의 registry 계약이 기계 집행).
  *
- * @see docs/RENDERING_ARCHITECTURE.md §0.3 Feature Flag 인프라
+ * 소비자 0건 규칙: 코드 소비처가 사라진 플래그는 표에서 삭제한다 — 전환
+ * 계획·완료 사실은 ADR/CHANGELOG 가 기록하고, 소비자 없는 플래그로 중복
+ * 보관하면 "토글할 수 있는 것" 으로 잘못 읽힌다 (2026-08-15 스윕에서
+ * `REMOVE_PIXI` 등 9개가 그렇게 죽은 채 남아 있었다). 의도적으로 보존할
+ * 0-소비자 게이트는 `featureFlags.test.ts` 의 `INTENT_PRESERVED` allowlist
+ * 에 사유와 함께 등재한다.
+ *
+ * @see docs/legacy/RENDERING_ARCHITECTURE.md §0.3 Feature Flag 인프라
  */
 
 export const WASM_FLAGS = {
@@ -13,32 +21,20 @@ export const WASM_FLAGS = {
 
   /** CanvasKit/Skia 렌더러 활성화 */
   CANVASKIT_RENDERER: true,
-
-  /** 이중 Surface 캐싱 + Dirty Rect 렌더링 */
-  DUAL_SURFACE_CACHE: true,
 } as const;
 
-/** 현재 렌더 모드 (skia 고정) */
-export type RenderMode = "skia";
-
-export function getRenderMode(): RenderMode {
-  return "skia";
-}
-
 /**
- * ADR-100 Unified Skia Engine 전환 flag — **전환 완료 후 잔존 2개**.
+ * Canvas 2D 텍스트 측정 활성화 (ADR-051)
  *
- * 2026-08-15 잔재 스윕에서 소비자 0건인 8개
- * (`USE_DOM_HOVER` / `USE_DOM_CURSOR` / `USE_CAMERA_OBJECT` / `USE_SCENE_GRAPH` /
- * `USE_HYBRID_TEXT` / `USE_CSS3_EFFECTS` / `USE_TILE_CACHE` / `REMOVE_PIXI`)를
- * 삭제했다. 전환 계획과 완료 사실은 ADR-100/900 과 CHANGELOG 가 기록한다 —
- * 소비자 없는 플래그로 중복 보관하면 **"토글할 수 있는 것" 으로 잘못 읽힌다.**
- * 실제로 `USE_CAMERA_OBJECT` 는 같은 날 삭제된 `viewport/Camera.ts` 를,
- * `REMOVE_PIXI` 는 이미 사라진 PixiJS ticker 정지 경로를 가리키고 있었다.
+ * false → 기존 CanvasKit Paragraph 경로 (즉시 원복)
+ * true  → Canvas 2D 세그먼트 캐시 + 3-Tier 파이프라인
  *
- * 남은 2개는 **실소비자가 있어서** 남는다. 새 플래그를 넣을 때도 같은 기준:
- * 소비처가 없으면 표가 아니라 문서에 적을 것.
+ * 소비처: nodeRendererText, canvaskitTextMeasurer.
+ * (2026-08-15 registry 통합 — 구 정의처 `utils/canvas2dSegmentCache.ts`)
  */
+export const USE_CANVAS2D_MEASURE = true;
+
+/** Unified engine flags with live consumers. */
 export const UNIFIED_ENGINE_FLAGS = {
   // Layout Engine — ADR-916 Taffy 완전 제거(2026-07-06) 후 자체 엔진
   // (composition-engine)이 상시 단독 경로. key 를 제거하면 init.ts 의

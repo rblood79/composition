@@ -15,8 +15,8 @@ import {
   computeKeepAllWidth,
   preprocessBreakWordText,
 } from "../utils/textWrapUtils";
+import { USE_CANVAS2D_MEASURE } from "../wasm-bindings/featureFlags";
 import {
-  USE_CANVAS2D_MEASURE,
   needsFallback,
   measureWithCanvas2D,
 } from "../utils/canvas2dSegmentCache";

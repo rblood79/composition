@@ -339,6 +339,12 @@ pointerdown 을 "현재 선택을 잡아 끄는 동작" 으로 볼지의 판정�
 - ❌ 병합/슬롯 style 규칙을 축 안에 인라인 재구현 → `pageFrameProjection.ts` 경유
 - ❌ `resolveCanonicalDocument` 에 페이지 전용 슬롯 배치 주입 → Skia 축은 이미 자기 합성을 하므로 이중 적용
 
+## 10. 게이트/플래그 단일 registry (2026-08-15)
+
+- Canvas 게이트/플래그의 유일 정의처는 `wasm-bindings/featureFlags.ts`. 파일 밖 boolean 게이트 상수 신설 금지 — `featureFlags.test.ts` 의 registry 계약이 기계 집행 (registry 밖 게이트 상수 0건 + 게이트별 코드 소비처 ≥1)
+- 소비자 0건이 된 게이트는 **삭제**한다 — 전환 계획·완료 사실은 ADR/CHANGELOG 가 기록. 의도적 보존은 `INTENT_PRESERVED` allowlist 에 사유와 함께 등재
+- **Why**: ADR-900 잔재 게이트 9개가 소비자 0건인 채 "토글할 수 있는 것" 으로 잘못 읽히며 수개월 잔존했고, 발견 수단이 수동 전수 스윕뿐이었다 (memory: `project-pixijs-removal-residue-gates-always-false`). 가드는 발견 시점을 커밋 시점으로 앞당긴다
+
 ## 상세 레퍼런스
 
 - [Canvas 렌더링 구현 상세](../skills/composition-patterns/reference/canvas-details.md)

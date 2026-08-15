@@ -789,9 +789,9 @@ export class SkiaRenderer {
   /**
    * 단일 Surface로 한 프레임을 렌더링한다.
    *
-   * DUAL_SURFACE_CACHE가 비활성화된 경우 또는 content surface 생성 실패 시
-   * `renderDualSurface` 가 폴백으로 호출하는 **현역 경로** — 이름의 "legacy"
-   * 가 지원 중단을 뜻하지 않는다.
+   * content surface 생성 실패 시 `renderDualSurface` 가 폴백으로 호출하는
+   * **현역 경로** — 이름의 "legacy" 가 지원 중단을 뜻하지 않는다.
+   * (구 `DUAL_SURFACE_CACHE` 플래그 조건은 제거됨 — dual surface 는 상시 경로)
    */
   private renderSingleSurface(
     cullingBounds: DOMRect,

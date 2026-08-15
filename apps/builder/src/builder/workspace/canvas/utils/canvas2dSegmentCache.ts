@@ -20,17 +20,7 @@
 
 import type { TextMeasureStyle } from "./textMeasure";
 
-// ============================================
-// Feature Flag
-// ============================================
-
-/**
- * Canvas 2D 측정 활성화 플래그
- *
- * false → 기존 CanvasKit Paragraph 경로 (즉시 원복)
- * true  → Canvas 2D 세그먼트 캐시 + 3-Tier 파이프라인
- */
-export const USE_CANVAS2D_MEASURE = true;
+// USE_CANVAS2D_MEASURE 게이트는 wasm-bindings/featureFlags.ts (단일 registry) 로 이동.
 
 // ============================================
 // Tier 1: lineFitEpsilon

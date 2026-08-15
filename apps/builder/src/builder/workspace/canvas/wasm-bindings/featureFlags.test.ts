@@ -13,12 +13,14 @@
  *   1. 소스 텍스트 — 단락 평가 부재 (지금 유일하게 물리는 가드)
  *   2. 값 비교 — `false` 플래그가 다시 도입되면 자동으로 다시 물린다
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
+import * as registry from "./featureFlags";
 import {
   UNIFIED_ENGINE_FLAGS,
+  WASM_FLAGS,
   isUnifiedFlag,
   type UnifiedEngineFlag,
 } from "./featureFlags";
@@ -58,27 +60,94 @@ describe("isUnifiedFlag — 선언값 그대로", () => {
   });
 });
 
-describe("flag 표 — 소비처 없는 항목 금지", () => {
-  /**
-   * 2026-08-15 에 소비자 0건 8개를 삭제한 기준을 고정한다. 삭제한 이름이
-   * 되살아나면 "토글할 수 있는 것" 이라는 오해가 함께 되살아난다 —
-   * `USE_CAMERA_OBJECT` 는 같은 날 삭제된 `viewport/Camera.ts` 를,
-   * `REMOVE_PIXI` 는 이미 사라진 PixiJS ticker 정지 경로를 가리키고 있었다.
-   */
-  const REMOVED = [
-    "USE_DOM_HOVER",
-    "USE_DOM_CURSOR",
-    "USE_CAMERA_OBJECT",
-    "USE_SCENE_GRAPH",
-    "USE_HYBRID_TEXT",
-    "USE_CSS3_EFFECTS",
-    "USE_TILE_CACHE",
-    "REMOVE_PIXI",
+// ============================================================
+// Registry 계약 — 게이트 단일 정의처 + 소비자 0건 금지
+// ============================================================
+//
+// **Why (2026-08-15 스윕)**: ADR-900 잔재 게이트 9개(`REMOVE_PIXI` 등)가
+// 소비자 0건인 채 수개월 남아 "토글할 수 있는 것" 으로 잘못 읽혔고,
+// 발견 수단이 수동 전수 스윕뿐이었다. 아래 두 계약이 그 발견을 커밋
+// 시점으로 앞당긴다:
+//   1. 소비자 존재 — registry 의 모든 게이트는 정의부/테스트 밖 코드
+//      소비처가 1곳 이상이어야 한다 (0건이면 삭제하거나 allowlist 등재)
+//   2. 단일 정의처 — registry 밖 파일에 boolean 게이트 상수를 두지 않는다
+//      (`USE_CANVAS2D_MEASURE` 가 canvas2dSegmentCache.ts 에 산재해 있다가
+//       2026-08-15 registry 로 이동한 사례의 재발 차단)
+
+/** 의도적으로 보존하는 0-소비자 게이트 — 값에 보존 사유를 적는다. */
+const INTENT_PRESERVED: Record<string, string> = {
+  // (현재 없음)
+};
+
+const SRC_ROOT = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+  "..",
+); // apps/builder/src
+
+const SKIP_DIRS = new Set(["node_modules", "dist", "__snapshots__"]);
+
+function walkSources(dir: string, out: { path: string; code: string }[]) {
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) {
+      if (!SKIP_DIRS.has(name)) walkSources(full, out);
+      continue;
+    }
+    if (!/\.(ts|tsx)$/.test(name)) continue;
+    const code = readFileSync(full, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    out.push({ path: full, code });
+  }
+}
+
+describe("게이트 registry 계약", () => {
+  const sources: { path: string; code: string }[] = [];
+  walkSources(SRC_ROOT, sources);
+
+  /** 정의부·테스트·벤치를 제외한 소비자 후보 파일들. */
+  const consumerFiles = sources.filter(
+    ({ path }) =>
+      !path.endsWith("featureFlags.ts") &&
+      !/\.(test|bench)\.(ts|tsx)$/.test(basename(path)),
+  );
+
+  const gateNames = [
+    ...Object.keys(WASM_FLAGS),
+    ...Object.keys(UNIFIED_ENGINE_FLAGS),
+    // bare export 게이트 (USE_CANVAS2D_MEASURE 등) 는 boolean export 로 수집
+    ...Object.entries(registry)
+      .filter(([, v]) => typeof v === "boolean")
+      .map(([k]) => k),
   ];
 
-  it("삭제된 소비처 없는 플래그가 되살아나지 않았다", () => {
+  it.each(gateNames)("%s 는 코드 소비처가 1곳 이상이다", (name) => {
+    if (name in INTENT_PRESERVED) return; // 사유 명시된 의도-보존
+
+    const pattern = new RegExp(`\\b${name}\\b`);
+    const consumers = consumerFiles.filter(({ code }) => pattern.test(code));
+
+    // 0건이면: 게이트를 삭제하고 전환 사실은 ADR/CHANGELOG 에 남기거나,
+    // 보존 의도가 있으면 INTENT_PRESERVED 에 사유와 함께 등재할 것.
     expect(
-      REMOVED.filter((name) => keys.includes(name as UnifiedEngineFlag)),
-    ).toEqual([]);
+      consumers.map(({ path }) => path),
+      `게이트 ${name} 의 코드 소비처가 0건 — 삭제하거나 INTENT_PRESERVED 에 사유를 등재하라`,
+    ).not.toEqual([]);
+  });
+
+  it("registry 밖에 boolean 게이트 상수가 없다 (단일 정의처)", () => {
+    const adHocGate =
+      /const (USE_|ENABLE_|DISABLE_|SHOULD_|REMOVE_|FEATURE_|IS_)[A-Z0-9_]+\s*=\s*(true|false)\s*[;,]/;
+
+    const offenders = sources
+      .filter(({ path }) => !path.endsWith("featureFlags.ts"))
+      .filter(({ code }) => adHocGate.test(code))
+      .map(({ path }) => path);
+
+    // 게이트가 필요하면 wasm-bindings/featureFlags.ts 에 등재할 것.
+    expect(offenders).toEqual([]);
   });
 });
