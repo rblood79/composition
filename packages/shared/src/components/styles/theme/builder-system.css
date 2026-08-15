@@ -109,17 +109,20 @@
 
   /* portal 로 나간 overlay 의 글자 크기 기준.
    *
-   * 빌더는 root 에 base font-size 를 두지 않고 컨트롤마다 정한다 (Select 트리거
-   * `--text-sm` / 패널 legend `--text-xs`). 그런데 portal 로 나간 목록은 그 어떤
-   * 규칙도 못 받아 브라우저 기본 16px 로 떨어졌다 — 트리거(14px)보다 커서 드롭다운만
-   * 튀어 보인다 (실측: property-select-popover / property-unit-input-popover 항목 16px).
-   * 트리거와 같은 `--text-sm` 을 기준으로 준다. 자기 크기를 명시한 overlay
-   * (컨텍스트/header/줌 메뉴의 `--text-xs`)는 그대로다.
+   * 빌더는 root 에 base font-size 를 두지 않고 컨트롤마다 정하는데, portal 로 나간
+   * 목록(ListBoxItem/MenuItem)은 그 어떤 규칙도 못 받아 브라우저 기본 16px 로
+   * 떨어진다 — 패널보다 커서 드롭다운만 튄다.
+   *
+   * 기준은 `--text-xs` 다. 빌더 크롬의 렌더 텍스트는 12px 이 표준이고 (인스펙터
+   * 전수 실측: 12px 28개 / 10px 6개 / **14px 0개**), 컨텍스트·header·줌 메뉴가
+   * 명시하는 값과도 같다. 컨트롤 **엘리먼트**의 font-size(예: Select button 14px)를
+   * 기준으로 삼으면 안 된다 — 그건 직접 텍스트가 없는 상자이고, 실제로 보이는 값은
+   * 자식 `.react-aria-SelectValue` 의 12px 이다.
    *
    * `[data-context="builder"]` 쪽에는 붙이지 않는다 — 그건 빌더 트리 전체라
    * 지금 16px 을 상속받는 in-panel 요소까지 한꺼번에 줄어든다. */
   [data-builder-theme] body:not([data-preview="true"]) > :not(#root) {
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
   }
 
   /* ==================== Builder Dark Mode (ADR-028) ==================== */
