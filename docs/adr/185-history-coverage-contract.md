@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-15
+Accepted — 2026-08-15 (리뷰 round 1 승인 — 이슈 1건 LOW `fixed`, HIGH/CRITICAL 0. reviews/185.md)
 
 ## Context
 
@@ -32,9 +32,9 @@ Proposed — 2026-08-15
 **Hard Constraints**:
 
 1. 기존 undo/redo 재생 경로 회귀 0 — entry 스키마 / `historyActions` 재생 무변경 (본 ADR 은 기록 **여부** 계약만)
-2. ADR-184 러너 기존 호출부 하위 호환 — 현 이용자 1곳 (`factories/utils/elementCreation.ts:153`, history 함수 이미 제공) 이 **무변경 컴파일 통과** (BC 0%, 재직렬화 0 파일)
+2. ADR-184 러너 기존 호출부 하위 호환 — **비테스트** 이용자 1곳 (`factories/utils/elementCreation.ts:153`, history 함수 이미 제공) 이 **무변경 컴파일 통과** (BC 0% 는 비테스트 소스 기준 — 러너 단위 테스트의 history 생략형 케이스 4곳+ 는 skip 반영 수정 대상, breakdown Phase 1)
 3. 의도적 생략 경로 표현 가능 — canonical-only silent edit 신규 경로를 false positive 없이 수용
-4. `pnpm type-check` 0 error + 기존 러너 단위 테스트 8건 PASS
+4. `pnpm type-check` 0 error + 기존 러너 단위 테스트 8건 PASS (history 생략형 케이스는 `{ skip }` 반영 후)
 
 **Soft Constraints**:
 

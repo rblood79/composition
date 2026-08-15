@@ -48,12 +48,12 @@ interface CanonicalMutationStages<TResult> {
 ### Phase 1 — 러너 history 스테이지 필수화 + 단위 테스트 → G2
 
 - `canonicalMutationRunner.ts`: §2 목표 형태 반영 — `HistoryStage` union + required. 실행부는 `typeof stages.history === "function"` 분기 + `{ skip: "" }` throw.
-- 기존 호출부 영향: 파일럿 1곳 (`factories/utils/elementCreation.ts:153` — history 함수 이미 제공) 은 **무변경 컴파일 통과** 확인 (BC 0%).
+- 기존 호출부 영향: **비테스트** 호출부는 파일럿 1곳 (`factories/utils/elementCreation.ts:153` — history 함수 이미 제공) 뿐이라 **무변경 컴파일 통과** (BC 0% 는 비테스트 소스 기준). 단, **기존 러너 단위 테스트 8건 중 history 생략 형태 케이스** (`canonicalMutationRunner.test.ts:100-105` optional-stages / `:128-131` persistOptions / `:144` persist 실패 등 4곳+) 는 required 전환 시 컴파일 실패 → `history: { skip: "runner-test" }` 추가 수정 후 PASS (리뷰 round 1 정정 — "무수정 PASS" 아님).
 - 단위 테스트 (`canonicalMutationRunner.test.ts` 추가):
   - `{ skip: "사유" }` 형태에서 history no-op + 나머지 스테이지 순서 불변
   - `{ skip: "" }` throw
   - `@ts-expect-error` — `history` 생략이 타입 에러 (canonical required 가드와 동형)
-  - 기존 8건 PASS 유지
+  - 기존 8건 PASS (history 생략형 케이스는 위 skip 반영 후)
 - live behavior: 파일럿 경로 1회 exercise — 복합 컴포넌트 추가 → Cmd+Z 제거 확인 (기존 동작 불변).
 
 ### Phase 2 — 규칙 문서 집행 + gap 목록 정본화 → G3
@@ -84,11 +84,11 @@ _(Phase 0 전수 감사에서 추가 발견 시 이어서 기록)_
 
 ## 5. 파일 변경 요약 (예상)
 
-| 파일                                                                            | 변경                                                           |
-| ------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `apps/builder/src/adapters/canonical/canonicalMutationRunner.ts`                | `HistoryStage` union + `history` required + 빈 skip 사유 throw |
-| `apps/builder/src/adapters/canonical/__tests__/canonicalMutationRunner.test.ts` | skip 형태 / 빈 사유 throw / `@ts-expect-error` 생략 불가 추가  |
-| `apps/builder/src/builder/factories/utils/elementCreation.ts`                   | 무변경 (컴파일 통과 확인만)                                    |
-| `.claude/rules/state-management.md`                                             | history 계약 1문단 + gap 목록 링크                             |
-| `docs/adr/design/185-history-coverage-contract-breakdown.md` §4                 | Phase 0 산출물 기록                                            |
-| `docs/CHANGELOG.md`                                                             | 계약 도입 + Known gap 가시화                                   |
+| 파일                                                                            | 변경                                                                                                         |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `apps/builder/src/adapters/canonical/canonicalMutationRunner.ts`                | `HistoryStage` union + `history` required + 빈 skip 사유 throw                                               |
+| `apps/builder/src/adapters/canonical/__tests__/canonicalMutationRunner.test.ts` | skip 형태 / 빈 사유 throw / `@ts-expect-error` 생략 불가 추가 + 기존 history 생략형 케이스 4곳+ 에 skip 반영 |
+| `apps/builder/src/builder/factories/utils/elementCreation.ts`                   | 무변경 (컴파일 통과 확인만)                                                                                  |
+| `.claude/rules/state-management.md`                                             | history 계약 1문단 + gap 목록 링크                                                                           |
+| `docs/adr/design/185-history-coverage-contract-breakdown.md` §4                 | Phase 0 산출물 기록                                                                                          |
+| `docs/CHANGELOG.md`                                                             | 계약 도입 + Known gap 가시화                                                                                 |
