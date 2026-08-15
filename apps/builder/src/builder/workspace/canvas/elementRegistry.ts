@@ -29,24 +29,13 @@ export interface ElementBounds {
 // ============================================
 
 /**
- * Element ID → PixiJS Container 매핑 (legacy — UNIFIED_ENGINE에서는 미사용)
- *
- * **쓰기 경로가 없다** — 유일한 writer 였던 `registerElement` 는 호출부 0건으로
- * 2026-08-15 제거됐다(ADR-900 PixiJS 제거의 잔재). 따라서 이 Map 은 **항상 비어
- * 있고**, 남은 reader 둘의 결과가 상수다:
- * - `getElementBounds` → 항상 null (`getElementBoundsSimple` 의 최종 fallback 이 死)
- * - `getRegisteredElementIds` → 항상 `[]`
- *
- * 후자에는 **살아 있는 호출부**가 있다 — `scrollbar/calculateWorldBounds.ts` 의
- * "모든 요소 bounds 합집합" 단계가 그래서 no-op 이다(증상은 그 다음의 viewport
- * 확장 단계가 가린다). 그 정리는 scrollbar world 범위의 동작 변경이라 별도 판단.
- */
-const elementRegistry = new Map<string, unknown>();
-
-/**
  * Element ID → 직접 계산된 layout bounds 매핑
  * getBounds()가 layout 적용 전 0,0을 반환하는 문제 해결용.
  * LayoutContainer에서 layout prop 변경 시 직접 저장.
+ *
+ * PixiJS Container Map(`elementRegistry`)과 그 reader
+ * (`getElementBounds` / `getRegisteredElementIds`)는 2026-08-15 제거됐다 —
+ * ADR-900 PixiJS 제거 이후 writer 가 없어 라이브에서 항상 비어 있었다.
  */
 const layoutBoundsRegistry = new Map<string, ElementBounds>();
 
@@ -82,35 +71,6 @@ export function updateElementBounds(id: string, bounds: ElementBounds): void {
 }
 
 /**
- * Element ID로 bounds 조회 (getBounds() 호출)
- *
- * @param id - Element ID
- * @returns ElementBounds 또는 null
- */
-export function getElementBounds(id: string): ElementBounds | null {
-  const container = elementRegistry.get(id) as
-    | {
-        getBounds?: () => {
-          x: number;
-          y: number;
-          width: number;
-          height: number;
-        };
-      }
-    | undefined;
-  if (!container) return null;
-
-  try {
-    const b = container.getBounds?.();
-    if (!b) return null;
-    return { x: b.x, y: b.y, width: b.width, height: b.height };
-  } catch {
-    // Container가 아직 렌더링되지 않았거나 destroyed된 경우
-    return null;
-  }
-}
-
-/**
  * Element ID로 bounds 조회 (간단한 객체 형태)
  *
  * @param id - Element ID
@@ -121,35 +81,13 @@ export function getElementBoundsSimple(id: string): ElementBounds | null {
   const layoutBounds = layoutBoundsRegistry.get(id);
   if (layoutBounds) return layoutBounds;
 
-  const sceneBounds = getSceneBounds(id);
-  if (sceneBounds) return sceneBounds;
-
-  // fallback: PixiJS Container의 getBounds()
-  const bounds = getElementBounds(id);
-  if (!bounds) return null;
-
-  return {
-    x: bounds.x,
-    y: bounds.y,
-    width: bounds.width,
-    height: bounds.height,
-  };
-}
-
-/**
- * Registry에 등록된 모든 element ID 조회
- *
- * @returns Element ID 배열
- */
-export function getRegisteredElementIds(): string[] {
-  return Array.from(elementRegistry.keys());
+  return getSceneBounds(id) ?? null;
 }
 
 /**
  * Registry 초기화 (테스트 또는 페이지 전환 시 사용)
  */
 export function clearRegistry(): void {
-  elementRegistry.clear();
   layoutBoundsRegistry.clear();
   // NOTE: SpatialIndex는 renderCommands.ts의 syncSpatialIndex()가 다음 렌더
   // 프레임에 full snapshot diff로 재구성·stale 항목 제거한다.
@@ -207,9 +145,8 @@ export function findElementAtPosition(
 }
 
 export default {
-  getElementBounds,
+  updateElementBounds,
   getElementBoundsSimple,
-  getRegisteredElementIds,
   clearRegistry,
   findElementAtPosition,
 };

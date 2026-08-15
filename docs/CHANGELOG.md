@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [캔버스 스크롤바 — 문서 전체 범위 반영] - 2026-08-15
+
+### Bug Fixes
+
+- **가로 스크롤바를 끝까지 끌어도 문서 대부분에 도달할 수 없던 문제 수정**:
+  - **Why**: world 범위의 content 기준이 `canvasSize` 하나였는데 그 값은 **페이지 1장 크기**다 (`panToPage`/fit·fill/page layout 이 전부 그 의미로 쓴다). 문서 전체를 덮으라고 있던 "모든 요소 bounds 합집합" 단계는 `elementRegistry` 가 ADR-900 PixiJS 제거 이후 비어 있어 **no-op** 이었다. 실측(25페이지, x 0→11670): world 가 x **2903** 까지만 잡혀 thumb 이 트랙의 66%를 차지한 채 **이미 오른쪽 끝**에 붙어 있었고, 그 너머 18개 페이지는 스크롤바로 갈 수 없었다 (팬으로 가면 world 가 뒤따라 늘어나며 thumb 크기가 계속 변했다)
+  - 수정: content 기준을 **아트보드(페이지/프레임) rect 합집합**으로 교체. 요소 단위 합집합을 되살리지 않은 이유 — 요소는 페이지 안에 있어 커버리지 이득이 없고, 스크롤바 metric 은 자주 계산되는데 요소 전수 순회는 그만큼 비싸다. frame 편집 모드는 캔버스가 페이지를 비우므로 대상도 프레임으로 갈린다
+  - 함께: 이 단계가 사라져 `getRegisteredElementIds` 가 참조 0건이 되어 `elementRegistry` Container Map·`getElementBounds`·`getElementBoundsSimple` 의 죽은 fallback 까지 정리됐다
+  - 검증: 라이브 빌더 실측 — world maxX **2903 → 11870**(문서 오른쪽 11670 + padding), thumb **66% → 23%**(뷰포트 2890 / world 12070 정합)이고 더는 오른쪽 끝에 붙어 있지 않다. 회귀 5건은 25페이지 시나리오 포함
+  - 위치: `apps/builder/src/builder/workspace/scrollbar/{calculateWorldBounds.ts,viewportMetrics.ts}`, `apps/builder/src/builder/workspace/canvas/elementRegistry.ts`
+
 ## [Canvas — PixiJS 시대 registry·culling 잔재 제거] - 2026-08-15
 
 ### Architecture
