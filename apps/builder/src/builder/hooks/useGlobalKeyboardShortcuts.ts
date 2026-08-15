@@ -46,6 +46,7 @@ import {
   getSelectedGuide,
 } from "../workspace/canvas/interaction/guideEmphasis";
 import { deletePageGuide } from "../workspace/canvas/viewport/pageGuideActions";
+import type { SiblingEdge } from "../stores/utils/siblingReorder";
 
 // ============================================
 // Constants
@@ -274,6 +275,40 @@ export function useGlobalKeyboardShortcuts() {
   }, []);
 
   /**
+   * z-order 끝 이동 — `[` / `]` (ADR-182 T1 #4·#7).
+   *
+   * 대상 판정은 위 한 칸 이동과 같은 규칙 (단일 선택 한정) — 여러 요소를
+   * 동시에 끝으로 보내면 상대 순서 규칙이 따로 필요하다.
+   */
+  const handleMoveToSiblingEdge = useCallback((edge: SiblingEdge) => {
+    const { selectedElementIds, selectedElementId, moveElementToSiblingEdge } =
+      useStore.getState();
+    if (selectedElementIds.length > 1) return;
+
+    const targetId = selectedElementId ?? selectedElementIds[0] ?? null;
+    if (!targetId) return;
+
+    moveElementToSiblingEdge(targetId, edge);
+  }, []);
+
+  const handleBringToFront = useCallback(
+    () => handleMoveToSiblingEdge("front"),
+    [handleMoveToSiblingEdge],
+  );
+  const handleSendToBack = useCallback(
+    () => handleMoveToSiblingEdge("back"),
+    [handleMoveToSiblingEdge],
+  );
+  const handleBringForward = useCallback(
+    () => handleReorderSibling(1),
+    [handleReorderSibling],
+  );
+  const handleSendBackward = useCallback(
+    () => handleReorderSibling(-1),
+    [handleReorderSibling],
+  );
+
+  /**
    * ADR-177 Phase 3 — 페이지 nudge 대상 판정.
    *
    * 선택이 페이지 body(page_id 보유) 단일이면 화살표는 형제 순서가 아니라
@@ -460,6 +495,11 @@ export function useGlobalKeyboardShortcuts() {
       arrowLeftShift: handleArrowLeftShift,
       arrowDownShift: handleArrowDownShift,
       arrowRightShift: handleArrowRightShift,
+      // z-order (ADR-182 Phase 4)
+      bringToFront: handleBringToFront,
+      bringForward: handleBringForward,
+      sendBackward: handleSendBackward,
+      sendToBack: handleSendToBack,
     }),
     [
       handleUndo,
@@ -490,6 +530,10 @@ export function useGlobalKeyboardShortcuts() {
       handleArrowDownShift,
       handleArrowLeftShift,
       handleArrowRightShift,
+      handleBringToFront,
+      handleBringForward,
+      handleSendBackward,
+      handleSendToBack,
     ],
   );
 
@@ -529,6 +573,11 @@ export function useGlobalKeyboardShortcuts() {
       "arrowDownShift",
       "arrowLeftShift",
       "arrowRightShift",
+      // z-order — `[` / `]` (끝) + ⌘[ / ⌘] (한 칸)
+      "bringToFront",
+      "bringForward",
+      "sendBackward",
+      "sendToBack",
     ];
 
     return bindHandlersToDefinitions(shortcutIds, handlers);

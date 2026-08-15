@@ -10,9 +10,15 @@ import { historyManager } from "./history";
 import { captureCanonicalNodeLocations } from "./history/canonicalHistoryEvents";
 import { trackCanonicalMove } from "./utils/historyHelpers";
 import {
+  resolveSiblingEdgeTarget,
   resolveSiblingReorderTarget,
+  type SiblingEdge,
   type SiblingReorderDirection,
 } from "./utils/siblingReorder";
+import {
+  isCanonicalMutationRunnerBridgeRegistered,
+  runCanonicalMutation,
+} from "../../adapters/canonical/canonicalMutationRunner";
 import { isRenderProjectionId } from "../projection/renderProjectionIds";
 import { getDB } from "../../lib/db";
 import {
@@ -256,6 +262,15 @@ export interface ElementsState {
     elementId: string,
     direction: SiblingReorderDirection,
   ) => boolean;
+  /**
+   * 같은 부모 안에서 형제 배열의 끝으로 보낸다 (맨 앞으로 / 맨 뒤로).
+   *
+   * `"front"` = children[] 마지막 = 가장 위에 그려짐 (ADR-182 T1 #4·#7).
+   *
+   * @returns 실제로 이동했으면 true. 이미 그 끝·형제 1개·projected id·
+   *   ref override 내부 노드는 false (no-op)
+   */
+  moveElementToSiblingEdge: (elementId: string, edge: SiblingEdge) => boolean;
 
   // 다중 선택 관련 액션
   toggleElementInSelection: (elementId: string) => void;
@@ -1877,6 +1892,56 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       });
 
       return true;
+    },
+
+    // 형제 배열의 끝으로 이동 (맨 앞으로 / 맨 뒤로 — ADR-182 T1 #4·#7).
+    //
+    // **Why 러너 경유**: 신규 mutation 은 `runCanonicalMutation` 이 유일 경로다
+    // (ADR-184) — canonical → store → rebuild → history → persist 순서와
+    // history 기록 의무(ADR-185)를 러너가 소유한다. 위 `reorderElementWithinParent`
+    // 의 수동 4단은 ADR-184 이전 경로라 allowlist 로 고정된 형태이며, 신규
+    // 경로가 그 형태를 복제하면 안 된다.
+    moveElementToSiblingEdge: (elementId, edge) => {
+      if (isRenderProjectionId(elementId)) return false;
+      if (!areCanonicalMutationStoreActionsRegistered()) return false;
+      if (!isCanonicalMutationRunnerBridgeRegistered()) return false;
+
+      const doc = selectActiveCanonicalDocument();
+      if (!doc) return false;
+
+      const target = resolveSiblingEdgeTarget(doc, elementId, edge);
+      // 이미 그 끝 / 형제 1개 / ref override 내부 노드 → no-op
+      if (!target) return false;
+
+      // from-location 은 canonical mutation **전에** 캡처 (move event 용)
+      const fromLocations = captureCanonicalNodeLocations([elementId]);
+
+      const result = runCanonicalMutation({
+        canonical: () =>
+          moveElementCanonicalPrimary(
+            elementId,
+            target.parentId,
+            target.insertionIndex,
+          ),
+        // store mirror 도 canonical derive 로 함께 갱신 — 인덱스만 바꾸면
+        // `elements` 배열이 stale 로 남아 연속 이동의 두 번째 호출이 옛 순서를
+        // 읽는다 (`reorderElementWithinParent` 와 같은 함정).
+        store: (mutationResult) => {
+          if (!mutationResult.changed) return;
+          const nextElements = getCanonicalOrStoreElements(get());
+          set((state) => ({
+            elements: nextElements,
+            ...buildIndexes(nextElements),
+            layoutVersion: state.layoutVersion + 1,
+          }));
+        },
+        history: (mutationResult) => {
+          if (!mutationResult.changed) return;
+          trackCanonicalMove(elementId, fromLocations.get(elementId));
+        },
+      });
+
+      return result.changed;
     },
 
     // 🚀 Phase 1: Immer → 함수형 업데이트 (High Risk)

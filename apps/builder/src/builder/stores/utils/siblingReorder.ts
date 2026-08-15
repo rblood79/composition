@@ -17,6 +17,15 @@ import type {
 /** -1 = 이전 형제 쪽으로, +1 = 다음 형제 쪽으로 */
 export type SiblingReorderDirection = -1 | 1;
 
+/**
+ * `"front"` = 형제 배열의 **마지막**, `"back"` = **첫 번째**.
+ *
+ * children[] 순서가 곧 그리기 순서라 뒤에 있을수록 위에 그려진다 (Skia
+ * `visitElement` 도 DOM stacking 도 같은 순서). 그래서 "맨 앞으로(front)" 가
+ * 배열의 끝이다 — 배열 인덱스 직관과 반대라 혼동하기 쉬운 지점.
+ */
+export type SiblingEdge = "front" | "back";
+
 export interface SiblingReorderTarget {
   /**
    * 문서 최상위면 `null`.
@@ -94,4 +103,34 @@ export function resolveSiblingReorderTarget(
   }
 
   return { parentId: location.parentId, insertionIndex };
+}
+
+/**
+ * 같은 부모 안에서 형제 배열의 끝(맨 앞/맨 뒤)으로 보낼 목표를 해석한다.
+ *
+ * `resolveSiblingReorderTarget` 과 같은 위치 탐색을 쓰되 목표 인덱스만 다르다
+ * (한 칸 vs 끝까지). post-removal 기준이라 `"front"` 의 목표는
+ * `siblings.length - 1` — 제거로 배열이 한 칸 줄어든 뒤의 마지막 자리다.
+ *
+ * @returns 이미 그 끝에 있거나(형제 1개 포함) 일반 트리 밖이면 null (no-op)
+ */
+export function resolveSiblingEdgeTarget(
+  document: CompositionDocument,
+  elementId: string,
+  edge: SiblingEdge,
+): SiblingReorderTarget | null {
+  const location = locateInPlainTree(document.children, elementId, null);
+  if (!location) return null;
+
+  const lastIndex = location.siblings.length - 1;
+  const currentIsAtEdge =
+    edge === "front" ? location.index === lastIndex : location.index === 0;
+  // 이미 끝이면 no-op — `clampIndex` 가 제자리 이동을 changed:true 로 돌려주어
+  // 아무것도 바꾸지 않는 undo 단계가 쌓이는 것을 막는다 (위 함수와 같은 이유).
+  if (currentIsAtEdge) return null;
+
+  return {
+    parentId: location.parentId,
+    insertionIndex: edge === "front" ? lastIndex : 0,
+  };
 }

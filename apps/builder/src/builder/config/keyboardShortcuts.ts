@@ -273,6 +273,49 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinitions = {
     i18n: { ko: "잘라내기" },
   },
 
+  // z-order — children[] 순서가 곧 그리기 순서라 "앞" 은 배열 뒤쪽이다
+  // (ADR-182 T1 #4~#7). Figma 관례대로 끝 이동은 modifier 없는 대괄호,
+  // 한 칸 이동은 ⌘ 조합.
+  bringToFront: {
+    key: "]",
+    modifier: "none",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Bring to Front",
+    i18n: { ko: "맨 앞으로" },
+  },
+
+  bringForward: {
+    key: "]",
+    modifier: "cmd",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Bring Forward",
+    i18n: { ko: "앞으로" },
+  },
+
+  sendBackward: {
+    key: "[",
+    modifier: "cmd",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Send Backward",
+    i18n: { ko: "뒤로" },
+  },
+
+  sendToBack: {
+    key: "[",
+    modifier: "none",
+    category: "canvas",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.CANVAS,
+    description: "Send to Back",
+    i18n: { ko: "맨 뒤로" },
+  },
+
   duplicate: {
     key: "d",
     modifier: "cmd",
