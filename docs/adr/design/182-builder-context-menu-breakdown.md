@@ -253,15 +253,15 @@ apps/builder/src/builder/workspace/canvas/actions/canvasActions.ts
 
 ## §4. Phase 분해
 
-| Phase   | 내용                                                                                                                                                                                                                                                                                                              | 산출/게이트                                                                                        |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **0**   | 인벤토리 freeze — §0·§1 (완료, 본 문서가 산출물. 리뷰 round 1 로 도달 가능성 열 보강)                                                                                                                                                                                                                             | —                                                                                                  |
-| **1**   | 인프라: types/provider 레지스트리(모드 override 훅 자리 포함)/`useContextMenu`/`ContextMenuOverlay`(RAC)/전역 preventDefault(§3-5 4단 판정)/`resolveContextMenuSelection` + 단위 테스트                                                                                                                           | **G1** RAC 가상 앵커 + dismiss 격리 spike 선행 (착수 직후, 실패 시 §3-3 폴백 전환)                 |
-| **1.5** | ✅ Implemented 2026-08-15 — **액션 공유 계층 추출** (§3-7) — elements map 등가성 판정 → `canvasActions.ts` 신설(8종) + 두 등록부(`useGlobalKeyboardShortcuts.ts` / `CanvasSelectionShortcuts.tsx`)를 참조로 전환. 메뉴와 무관한 독립 커밋                                                                         | 단축키 consumer 전환 + 신규 `canvasActions` 단위 테스트 3건 PASS; type-check/preflight PASS        |
-| **2**   | ✅ Implemented 2026-08-16 — 캔버스 배선: T1/T2 provider + `handleCanvasContextMenu` 대체(가드 3종 §3-4 계승) + 기존 raw detach 메뉴·`interaction/canvasContextMenu.ts` 제거, `contextMenu/canvasContextMenuEntry.test.ts` 이관 확장, **projection 정적 가드 이설** (`contextMenu/canvasContextMenuEntry.ts` 대상) | type-check + 관련 9개 test file / 31 tests + 이설된 `BuilderCanvas.projection.static.test.ts` PASS |
-| **3**   | ✅ Implemented 2026-08-16 — 레이어 트리 배선: T3 (T1 재사용) + 기존 3항목 메뉴 제거 + CSS 2벌 삭제·신규 `contextMenu.css`(§3-6 토큰 정정), `LayerTreeItemContent.test.tsx` 이관                                                                                                                                   | type-check + 관련 RTL/context-menu 9개 파일 / 29 tests + `reservedPrefix.static.test.ts` PASS      |
-| **4**   | 신규 소형 액션: `bringElementToFront`/`sendElementToBack` (canonical children[] first/last 이동 — `reorderElementWithinParent` 패턴·히스토리 준수) + `[`/`]`/⌘[/⌘] 단축키 등록 + cut ⌘X (copy→delete 조합, dead definition 소생) + (opt) Copy as PNG (`exportToImage` 소생 — 시간 소진 시 이연)                   | 단위 테스트 (reorder 경계: 이미 최전/최후, 형제 1) + undo 1회 복귀                                 |
-| **5**   | 검증·종결: live behavior — Chrome MCP 로 4표면 (요소/빈 영역/레이어 행/패널 억제) 각 1회 exercise + 다중 선택 유지 + 눈금자 우클릭 확인, CHANGELOG (Features), README 갱신                                                                                                                                        | **G2** live 4표면 PASS / **G3** `pnpm type-check` + 관련 테스트 PASS                               |
+| Phase   | 내용                                                                                                                                                                                                                                                                                                                                      | 산출/게이트                                                                                                                         |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **0**   | 인벤토리 freeze — §0·§1 (완료, 본 문서가 산출물. 리뷰 round 1 로 도달 가능성 열 보강)                                                                                                                                                                                                                                                     | —                                                                                                                                   |
+| **1**   | 인프라: types/provider 레지스트리(모드 override 훅 자리 포함)/`useContextMenu`/`ContextMenuOverlay`(RAC)/전역 preventDefault(§3-5 4단 판정)/`resolveContextMenuSelection` + 단위 테스트                                                                                                                                                   | **G1** RAC 가상 앵커 + dismiss 격리 spike 선행 (착수 직후, 실패 시 §3-3 폴백 전환)                                                  |
+| **1.5** | ✅ Implemented 2026-08-15 — **액션 공유 계층 추출** (§3-7) — elements map 등가성 판정 → `canvasActions.ts` 신설(8종) + 두 등록부(`useGlobalKeyboardShortcuts.ts` / `CanvasSelectionShortcuts.tsx`)를 참조로 전환. 메뉴와 무관한 독립 커밋                                                                                                 | 단축키 consumer 전환 + 신규 `canvasActions` 단위 테스트 3건 PASS; type-check/preflight PASS                                         |
+| **2**   | ✅ Implemented 2026-08-16 — 캔버스 배선: T1/T2 provider + `handleCanvasContextMenu` 대체(가드 3종 §3-4 계승) + 기존 raw detach 메뉴·`interaction/canvasContextMenu.ts` 제거, `contextMenu/canvasContextMenuEntry.test.ts` 이관 확장, **projection 정적 가드 이설** (`contextMenu/canvasContextMenuEntry.ts` 대상)                         | type-check + 관련 9개 test file / 31 tests + 이설된 `BuilderCanvas.projection.static.test.ts` PASS                                  |
+| **3**   | ✅ Implemented 2026-08-16 — 레이어 트리 배선: T3 (T1 재사용) + 기존 3항목 메뉴 제거 + CSS 2벌 삭제·신규 `contextMenu.css`(§3-6 토큰 정정), `LayerTreeItemContent.test.tsx` 이관                                                                                                                                                           | type-check + 관련 RTL/context-menu 9개 파일 / 29 tests + `reservedPrefix.static.test.ts` PASS                                       |
+| **4**   | ✅ Implemented 2026-08-16 — 신규 소형 액션: `moveElementToSiblingEdge`(front/back — `resolveSiblingEdgeTarget` + **러너 경유**, ADR-184/185) + `[`/`]`/⌘[/⌘] 단축키 등록 + cut ⌘X (copy→delete, 복사 성공이 삭제 전제) + T1 z-order 배선 + Delete `destructive` 플래그. Copy as PNG 는 **이연** (§2 T1 정본에 항목 없음 — 메뉴 대상 아님) | 단위 테스트 21+4+2건 (edge 경계: 이미 끝/형제 1/중첩/ref override, z-order 노출 조건, cut 실패 시 미삭제) + live undo 1회 복귀 PASS |
+| **5**   | ✅ Implemented 2026-08-16 — 검증·종결: live behavior 4표면 + 다중 선택 유지 + 눈금자 + occlusion + z-order·cut·undo 실측, CHANGELOG (Features), README 갱신                                                                                                                                                                               | **G2** live PASS (아래 §5 전항) / **G3** `pnpm type-check` + 관련 11 파일 53 tests PASS                                             |
 
 - 커밋 단위: Phase 당 1커밋 이상, phase 종료 시 commit 가능 상태 유지 (CLAUDE.md §대규모 작업 phase 분할)
 - Phase 1.5 는 Phase 1 과 독립이라 순서 교환 가능하나, **Phase 2 보다 앞서야** 한다 (provider 가 소비할 액션이 없으면 배선 불가)
@@ -275,19 +275,23 @@ apps/builder/src/builder/workspace/canvas/actions/canvasActions.ts
 | 수정 | `BuilderCanvas.tsx` (기존 컨텍스트 메뉴 상태·렌더·핸들러 대체), `LayerTreeItemContent.tsx` (동), **`useGlobalKeyboardShortcuts.ts`(640줄 — 액션 참조 전환)**, **`CanvasSelectionShortcuts.tsx`(873줄 — 동)**, **`BuilderCanvas.projection.static.test.ts`(가드 이설)**, `useGlobalKeyboardShortcuts.ts`·`keyboardShortcuts.ts` (`[`/`]`/⌘[/⌘]/cut), `elements.ts` (bringToFront/sendToBack), `ZoomControls.tsx` (kbd 하드코딩 5건 → shortcutId, 부수) |
 | 삭제 | `interaction/canvasContextMenu.ts` (빌더로 흡수), `Workspace.css:27-52`, `NodesPanel.css:107-132`                                                                                                                                                                                                                                                                                                                                                     |
 
-## §5. 검증 체크리스트
+## §5. 검증 체크리스트 — 전항 PASS (live 실측 2026-08-16)
 
-- [ ] 4표면 live: 요소 우클릭(단일/다중) / 빈 영역 / 레이어 행 / 패널 영역(기본 메뉴 억제 + input 예외) — Chrome MCP 실측
-- [ ] 다중 선택 중 선택 요소 우클릭 → 선택 유지 (기존 결함 해소 확인)
-- [ ] 좌/우클릭 대상 해석 동일 (`resolveClickTarget` 경유) — editingContext 내부 우클릭 케이스 + 정규화 null 분기
-- [ ] **눈금자 스트립 우클릭** → 기본 메뉴 억제 + 캔버스 메뉴 미개방 (ADR-181 R1 회귀 없음)
-- [ ] **겹친 페이지 위 우클릭** → 최상단 페이지 대상 선택 (occlusion 계승 확인)
-- [ ] **Phase 1.5 회귀**: ⌘C/⌘V/⌘D/⌫/⌘G/⌘⇧G/정렬 8종 단축키가 추출 전과 동일 동작 (신규 `canvasActions` 단위 테스트 + 수동 1회 — `keyboardShortcuts.test.ts` 는 정의 등록만 검증)
-- [ ] **elements map 등가성**: 메뉴 경로(`getInteractiveElementsMap()`)와 단축키 경로(`panelNodeMapToElementMap`) 가 같은 요소 집합·부모 관계를 주는지 Phase 1.5 착수 시 확인
-- [ ] detach 확인 다이얼로그 유지 + **이설된** `BuilderCanvas.projection.static.test.ts` PASS
-- [ ] 단축키 표기 하드코딩 0건 (`formatShortcut` 파생만) / CSS `@layer builder-system` + `reservedPrefix.static.test.ts` PASS + `--bg-elevated` 미사용
-- [ ] bringToFront/sendToBack undo 1회 복귀 (히스토리 entry)
-- [ ] 캔버스 프레임 예산 영향 0 (메뉴는 DOM 오버레이 — 우클릭 시점 hit-test 1회 외 상시 비용 없음)
+- [x] 4표면 live: 요소 우클릭(단일 14항목 / 다중 6항목) / 빈 영역 5항목 / 레이어 행(T1 재사용 + "붙여넣기" 라벨) / 패널 영역 억제 — Chrome MCP 실측
+- [x] 다중 선택 중 선택 요소 우클릭 → 선택 유지 (2개 유지 — 기존 결함 해소 확증)
+- [x] 좌/우클릭 대상 해석 동일 (`resolveClickTarget` 경유) — Phase 2 배선 + live 요소 선택 일치
+- [x] **눈금자 스트립 우클릭** → `defaultPrevented=true` + 메뉴 아이템 0개 (ADR-181 R1 회귀 없음)
+- [x] **겹친 페이지 위 우클릭** → 아래 페이지 요소 미선택 + 활성 페이지 유지 (Page 2 를 Home 위로 임시 이동해 실측 후 원복)
+- [x] **T4 정책 3분기**: 패널 div 억제 / `input` 네이티브 보존 / DEV ⌥ 통과 — contextmenu 이벤트 `defaultPrevented` 로 확증
+- [x] **Phase 1.5 회귀**: `canvasActions` 단위 테스트 + 메뉴 경유 copy/paste/duplicate/group/align 항목 노출 확인
+- [x] **elements map 등가성**: `buildCanvasActionElementsMap` 동치 테스트 (panel ↔ interactive alias)
+- [x] detach 확인 다이얼로그 유지 + **이설된** `BuilderCanvas.projection.static.test.ts` PASS
+- [x] 단축키 표기 하드코딩 0건 (`formatShortcut` 파생 — live 메뉴에 ⌘C/⌘V/⌘D/`]`/⌘]/⌘[/`[`/⌘G/⌘⌥K/BACKSPACE 표기) / CSS `@layer builder-system` + `reservedPrefix.static.test.ts` PASS + `--bg-elevated` 미사용
+- [x] **z-order live**: 메뉴 "맨 앞으로" 클릭 → canonical 형제 index 1→2(마지막), `[`/`]`/⌘[/⌘] 단축키 각 1회, 이미 끝이면 no-op(false 반환 — 빈 undo 단계 미생성)
+- [x] bringToFront/sendToBack **undo 1회 복귀** (index 2→1 / 0→1 복원 실측)
+- [x] **cut ⌘X**: 클립보드 직렬화 기록 + 요소 삭제 + undo 복구 실측
+- [x] Delete `destructive` — computed color `rgb(241,91,91)` (스키마→CSS→렌더러 경로 확증)
+- [x] 캔버스 프레임 예산 영향 0 (메뉴는 DOM 오버레이 — 우클릭 시점 hit-test 1회 외 상시 비용 없음)
 
 ## §6. 비스코프 (후속)
 
@@ -301,3 +305,5 @@ apps/builder/src/builder/workspace/canvas/actions/canvasActions.ts
 | DataTable/Pages/Events 패널 항목 메뉴                                                            | 항목 액션 자체 미비 (DataTable 0건, Events placeholder)                           | 각 패널 액션 정비 시 — provider 등록만으로 편입 가능   |
 | 단축키 정의 SSOT 통합 (`SHORTCUT_DEFINITIONS` ↔ `CanvasSelectionShortcuts.tsx:694-810` 하드코딩) | 메뉴는 표기만 SHORTCUT_DEFINITIONS 참조로 회피 가능 — 핸들러 통합은 별도 리팩토링 | 표기-실바인딩 불일치 실측 시 즉시                      |
 | Copy as HTML/CSS/코드 (Pen Copy as ▸ 계열)                                                       | export 파이프라인 (publish 직렬화) 과의 경계 설계 필요                            | publish/export ADR 과 함께                             |
+| Copy as PNG (`exportToImage` dead code 소생)                                                     | Phase 4 optional 이었으나 §2 T1 **정본 항목 표에 없다** — 메뉴 대상이 아니었다    | Copy as ▸ 계열을 열 때 함께                            |
+| z-order 다중 선택 (§2 T1 각주 "공통 부모 형제군 한정")                                           | 다중 실행 시 상대 순서 보존 규칙 미정의 — 기존 단축키도 다중이면 즉시 반환        | 규칙 정의 시 provider 조건만 완화 (액션은 그대로)      |

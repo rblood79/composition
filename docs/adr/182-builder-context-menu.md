@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-15 (리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED 4 / LOW 2) + round 2 이슈 3건(MED 3) 전건 fixed, 잔존 pending 0, HIGH/CRITICAL 잔존 0 — 전제 확정 종결 계약 성립 — [reviews/182.md](reviews/182.md))
+Implemented — 2026-08-16 (Phase 0~5 완결, G1~G3 PASS. Accepted 2026-08-15 — 리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED 4 / LOW 2) + round 2 이슈 3건(MED 3) 전건 fixed, 잔존 pending 0, HIGH/CRITICAL 잔존 0 — [reviews/182.md](reviews/182.md))
 
 ## Implementation Progress
 
@@ -10,6 +10,8 @@ Accepted — 2026-08-15 (리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED
 - Phase 1.5 — Implemented 2026-08-15: extracted copy/paste/duplicate/delete/group/ungroup/align/distribute into the shared `canvasActions` layer; both shortcut consumers now inject their element map, with CanvasSceneNode alias normalization and regression tests.
 - Phase 2 — Implemented 2026-08-16: wired Canvas T1/T2 providers and the shared context-menu entry, preserved interactive-map hit testing, page occlusion, `resolveClickTarget` selection normalization, page transition, editable/ruler/DEV-Alt guards, and scene-point paste. Removed the raw Canvas detach menu and legacy `interaction/canvasContextMenu.ts`; migrated the projection static guard and entry/provider tests. Type-check, preflight, and 9 related test files / 31 tests PASS.
 - Phase 3 — Implemented 2026-08-16: wired LayerTree T3 to the shared T1 provider, preserved multi-selection when the row is already selected, selected an unselected row before opening, removed the legacy 3-item raw menu and duplicated CSS, and added the tokenized `@layer builder-system` context-menu stylesheet. Type-check, targeted RTL/context-menu tests (9 files / 29 tests), `reservedPrefix.static.test.ts`, and diff checks PASS.
+- Phase 4 — Implemented 2026-08-16: added `resolveSiblingEdgeTarget` + the store action `moveElementToSiblingEdge` (new mutation ⇒ routed through `runCanonicalMutation`, ADR-184/185), registered `]`/`[`/⌘]/⌘[, revived the dead ⌘X definition as `cutSelection` (copy must succeed before delete), wired the T1 z-order cluster, and set `destructive` on Delete. Copy as PNG stays deferred — it is absent from the §2 T1 canonical item table. **Scope reduction (reported)**: the z-order items show for single selection only; the §2 footnote never defined relative-order preservation for multi-select and the existing shortcut path also returns early, so "condition unmet ⇒ hidden" applies.
+- Phase 5 — Implemented 2026-08-16: G2 live behaviour verified in Chrome — four surfaces, multi-selection preserved on right-click, ruler strip suppressed without opening a menu, overlapping-page occlusion, the three-way T4 policy (panel suppressed / `input` native / DEV ⌥ pass-through), z-order via menu and all four shortcuts with single-step undo restore, and ⌘X cut with clipboard write plus undo recovery. Document state was restored after the probes. Type-check and 11 related test files / 53 tests PASS.
 
 ## Context
 

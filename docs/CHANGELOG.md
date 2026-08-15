@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [빌더 우클릭 컨텍스트 메뉴 — ADR-182 Phase 0~5] - 2026-08-16
+
+### Features
+
+- **대상별 통합 컨텍스트 메뉴** (ADR-182 Implemented):
+  - 캔버스에서 우클릭하면 브라우저 기본 메뉴("이미지 저장 / 이미지 복사 / 검사")가 뜨던 증상 해소. 표면 4종 — 캔버스 요소(T1) / 빈 영역(T2) / 레이어 트리 행(T3, T1 재사용) / 그 외 빌더 셸(T4, 기본 메뉴 억제)
+  - 요소 메뉴: 복사·붙여넣기·복제 / 맨 앞으로·앞으로·뒤로·맨 뒤로 / 그룹·그룹 해제·정렬 ▸ / 컴포넌트 만들기·원본으로 이동·인스턴스 분리 / 삭제. 조건 미충족 항목은 비활성이 아니라 **숨김** (Figma/Pen 공통 관례), 토글은 라벨 교체
+  - 빈 영역 메뉴: 여기에 붙여넣기 / 화면에 맞추기 / 100% / 눈금자 표시 / 객체 스냅
+  - 단축키 표기는 `formatShortcut(SHORTCUT_DEFINITIONS[id])` 파생 단일 소스 — 메뉴 내 하드코딩 0건
+  - 기본 메뉴 예외: `input`/`textarea`/`contenteditable` 은 브라우저 메뉴 유지, DEV 빌드는 ⌥+우클릭으로 통과 (Inspect 편의). 눈금자 스트립은 억제하되 메뉴도 열지 않는다
+- **z-order 액션 4종 + 단축키** (ADR-182 Phase 4): 맨 앞으로 `]` / 앞으로 ⌘] / 뒤로 ⌘[ / 맨 뒤로 `[`. children[] 순서가 곧 그리기 순서라 "맨 앞" 은 형제 배열의 마지막이다. 이미 그 끝이거나 형제가 하나면 no-op — 아무것도 바꾸지 않는 undo 단계를 쌓지 않는다
+- **잘라내기 ⌘X**: 정의만 있고 핸들러가 없던 단축키를 연결. **복사 성공이 삭제의 전제** — 클립보드 쓰기는 권한·포커스로 조용히 실패할 수 있고, 그때 지우면 되돌릴 곳 없이 사라진다
+
+### Bug Fixes
+
+- **우클릭이 다중 선택을 단일 선택으로 덮어쓰던 문제**:
+  - 선택 집합 안의 요소를 우클릭하면 선택이 유지되고, 밖이면 교체된다 (빈 영역은 선택 bounds 밖일 때만 해제)
+  - **Why**: 우클릭 경로가 좌클릭(`resolveClickTarget` — editingContext 경계)과 다른 자체 해석을 쓰고 무조건 단일 선택으로 덮어썼다. 두 경로를 같은 심볼로 단일화
+- **레이어 트리 컨텍스트 메뉴 배경이 투명하던 문제**: 미정의 토큰 `--bg-elevated`(정의 0건)를 쓰고 있었다 → `--bg-raised` 로 정정. 중복 정의됐던 CSS 2벌(`Workspace.css` ≡ `NodesPanel.css`)을 `@layer builder-system` 단일 스타일시트로 통합
+
+### Architecture
+
+- **액션 오케스트레이션 공유 계층 `canvasActions`** (Phase 1.5): copy/paste/duplicate/delete/group/ungroup/align/distribute 8종의 오케스트레이션이 컴포넌트·훅 내부 클로저에 갇혀 있어 메뉴가 호출할 수 없었다. 로직 무변경 호출부 이동으로 추출하고, 단축키 등록부 2곳과 메뉴가 같은 구현을 소비한다 (elements map 은 인자 주입 — 두 read model 의 alias 를 한 어댑터 경계에서 정규화)
+- 신규 mutation `moveElementToSiblingEdge` 는 `runCanonicalMutation` 경유 (ADR-184/185 — canonical → store → rebuild → history → persist 순서와 history 기록 의무를 러너가 소유)
+- 위치: `apps/builder/src/builder/components/overlay/contextMenu/*`, `workspace/canvas/contextMenu/*`, `workspace/canvas/actions/canvasActions.ts`, `stores/utils/siblingReorder.ts`
+
 ## [페이지 생성/삭제 undo 복구 — page-lifecycle entry] - 2026-08-15
 
 ### Bug Fixes
