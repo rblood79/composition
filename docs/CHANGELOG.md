@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: `UNIFIED_ENGINE` 을 먼저 보고 true 면 즉시 반환하는 단락 평가라, `UNIFIED_ENGINE: true` 인 지금 표에 `false` 로 적힌 6개(`USE_DOM_HOVER` / `USE_DOM_CURSOR` / `USE_CAMERA_OBJECT` / `USE_HYBRID_TEXT` / `USE_CSS3_EFFECTS` / `USE_TILE_CACHE`)가 거짓말이었다. 그 6개는 소비자 0건이라 오늘은 무증상이지만, 새 소비자가 붙는 순간 표를 읽고 판단한 쪽과 동작이 갈린다
   - 수정: 단락 평가 제거 — 현행 소비자 3개는 전부 `true` 선언이라 동작은 동일하고 표만 정직해진다
   - 검증: 라이브 실측 — 거짓 플래그 **6 → 0**
+- **dev 성능 프로파일러가 "요소 수: 0" 을 출력하던 문제 수정**:
+  - **Why**: `gpuMetrics.elementCount` 의 writer(`updateElementCount`) 호출부가 ADR-900 이후 0건이라 상시 0 인데, `window.__composition_PROFILER` 의 `start()` / `report()` / `hotpath()` 가 모두 그 값을 읽고 있었다. 5k 요소 프레임 드랍 조사에 쓰는 화면이라 그대로 두면 해롭다
+  - 수정: 삭제가 아니라 **실측 출처에 배선** — `performanceMonitor` 가 이미 canonical 순회로 재고 있던 값을 `getDocumentElementCount()` 로 공개해 단일 출처로 삼고, 죽은 store 필드(`GPUMetrics.elementCount` + `updateElementCount`)는 제거. 스냅샷은 1초 주기라 O(n) 순회를 감당한다
+  - 주의: `PerformanceMetrics.elementCount`(`utils/performanceMonitor.ts`)는 같은 이름의 **별개 live 지표**다 — 미변경
+  - 검증: 라이브 실측 — `takeSnapshot().elementCount` **0 → 445**
 
 ### Architecture
 
@@ -34,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **죽은 render-version 확인 응답 프로토콜 제거**:
   - store 렌더 버전을 PixiJS 렌더러가 확인 응답하고 그 격차로 동기화 이탈을 감지하던 구조인데 양 끝이 끊겨 있었다 — `incrementRenderVersion` 호출부 0건 → `renderVersion` 0 고정, 유일한 `syncPixiVersion` 호출부는 그 0 을 되비추는 미러 → 판정식 `0 - 0 > 2` 가 **구조상 항상 false**
   - 삭제: `renderVersion` / `lastPixiRenderVersion` / `incrementRenderVersion` / `syncPixiVersion` / `selectIsSyncMismatch` / `detectSyncMismatch`
+- **`computedLayout` 채널 제거** (@pixi/layout 시대):
+  - yoga 계산 결과를 스타일 패널에 넘기던 경로인데 유일한 writer `updateSelectedElementLayout` 의 호출부가 0건이라 값이 채워진 적이 없다. store action + `BaseElementProps` / `SelectedElement` 필드 + 두 곳에 중복 선언돼 있던 `ComputedLayout`(`{width?, height?}`) 인터페이스를 삭제
+  - **동명 타입 주의**: `canvas/layout/engines/LayoutEngine.ts::ComputedLayout` 은 살아 있는 레이아웃 엔진 결과 타입으로 전혀 다른 것이다 (남긴 주석에 구분 명시)
+- **미사용 `Camera` 클래스 삭제** (`viewport/Camera.ts`, 참조 0건):
+  - ADR-900 breakdown 이 "PixiJS Container → Camera 클래스" 로 계획했으나(`USE_CAMERA_OBJECT`) 실제 구현은 `viewportState` 뮤터블 ref + `ViewportController` 로 갔다 — 목표는 달성됐고 이 파일만 남았다. `gpu/GPUBackend.ts` 와 달리 ADR 이 이득으로 채택한 보존 대상이 아니다
 
 ### Documentation
 
