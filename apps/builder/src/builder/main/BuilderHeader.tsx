@@ -102,12 +102,8 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               size={iconProps.size}
             />
           </Button>
-          {/* portal 로 body 밑에 붙어 builder 토큰 scope 를 벗어난다 —
-              마커가 없으면 빌더 다크 모드에서 이 메뉴만 흰 판으로 남는다
-              (ContextMenuOverlay / ExistingSlotDialog 와 같은 처방) */}
           <Popover
             className="header-menu-popover"
-            data-context="builder"
             placement="bottom start"
             offset={8}
             containerPadding={0}

@@ -14,11 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **빌더 다크 모드에서 메뉴 3종이 흰 판으로 남던 문제** (컨텍스트 메뉴 / header 메뉴 / 줌 메뉴):
   - 빌더 UI 를 다크로 두면 패널은 `#202023` 인데 이 메뉴들만 `#fff` 로 떴다 (본문도 검정 그대로라 사실상 반전)
   - **Why**: builder 토큰은 `[data-context="builder"]` 스코프인데, 이 메뉴들은 portal 로 `body` 밑에 붙어 그 밖으로 나간다. `builder-system.css` 에 그 경우를 받으려는 fallback (`body:not([data-preview="true"]) > .react-aria-Popover`)이 있지만 **두 조건 모두 지금은 성립하지 않는다** — RAC 가 popover 를 style 만 있는 wrapper `<div>` 로 한 겹 감싸 직계 자식이 아니고(실측 `body > div > .context-menu-popover`), `className` 을 주면 기본 클래스 `react-aria-Popover` 도 사라진다 (실측: 문서 전체 `.react-aria-Popover` 0건). 그래서 스코프를 아예 못 받고 전역 light 값으로 떨어졌다 — light 에서는 두 팔레트가 거의 같아 드러나지 않았다
-  - 수정: 세 popover 에 `data-context="builder"` 마커 부여 (구조 조건이 없는 첫 분기라 light/dark 세트가 그대로 붙는다). `ExistingSlotDialog` 의 Modal 이 같은 이유로 이미 쓰던 처방
+  - 수정은 **popover 별 마커가 아니라 구조 규칙 하나**로 했다 — RAC 1.18 에는 `UNSTABLE_PortalProvider` 가 없어 portal 대상을 옮길 수 없고, 빌더 문서에서 `#root` 밖 body 자식은 portal 산물뿐이다: `[data-builder-theme] body:not([data-preview="true"]) > :not(#root)`. 그래서 **앞으로 추가되는 overlay 도 자동으로** 스코프를 받는다 (초안에서 세 메뉴에 붙였던 `data-context="builder"` 마커는 중복이 되어 걷어냄)
+  - `data-builder-theme` 은 이제 색 선택 외에 **"빌더가 mount 중"** 이라는 게이트도 겸한다 — `BuilderCore` 가 unmount 시 제거하도록 보완했다. 없으면 dashboard/auth 라우트로 넘어가도 속성이 남아 그쪽 overlay 까지 빌더 팔레트를 받는다 (실측: 라우트 이동 후 속성 제거 확인)
+  - **같이 고친 축 — portaled 목록만 16px 로 크던 문제**: 빌더는 root 에 base font-size 를 두지 않고 컨트롤마다 정하는데(Select 트리거 14px / 패널 legend 12px), portal 로 나간 목록은 어떤 규칙도 못 받아 브라우저 기본 16px 로 떨어졌다 — 트리거보다 커서 드롭다운만 튀었다. 같은 portal 스코프에 `font-size: var(--text-sm)` 기준을 준다 (실측: `property-select-popover` / `property-unit-input-popover` 항목 16 → 14px, 트리거와 일치). 자기 크기를 명시한 overlay(컨텍스트/header/줌 메뉴의 12px)는 그대로
   - 부수 효과(의도): light 에서도 이제 패널과 같은 builder 팔레트를 쓴다 — 표면이 `#fff` → `gray-50`, 본문이 `gray-950` → `slate-800` 으로 아주 조금 부드러워진다
-  - live 실측(다크): popover `rgb(32,32,35)` · 라벨 `zinc-100` · 아이콘/단축키 `zinc-400` · 구분선 `zinc-700` · 삭제 `red-400`, 하위 메뉴와 hover(`--bg-muted`)까지 정합
-  - **남은 것**: 같은 fallback 에 의존하는 **다른 빌더 popover 전부**(인스펙터 Select 드롭다운 등)는 여전히 다크에서 흰 판이다. 선택자를 고치면 한 번에 풀리지만 light 색까지 함께 바뀌는 범위라 별도 판단 대상
-  - 위치: `contextMenu/ContextMenuOverlay.tsx` (본체 + 하위 메뉴) · `main/BuilderHeader.tsx` · `workspace/ZoomControls.tsx`
+  - live 실측(다크): 컨텍스트 메뉴 popover `rgb(32,32,35)` · 라벨 `zinc-100` · 아이콘/단축키 `zinc-400` · 구분선 `zinc-700` · 삭제 `red-400`, 하위 메뉴와 hover(`--bg-muted`)까지 정합. 인스펙터 Select/단위 드롭다운도 같은 팔레트 + 14px. light 로 되돌려 재확인
+  - 위치: `packages/shared/src/components/styles/theme/builder-system.css` · `main/BuilderCore.tsx`
 
 ### Features
 

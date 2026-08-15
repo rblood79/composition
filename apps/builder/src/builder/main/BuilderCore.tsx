@@ -316,9 +316,16 @@ export const BuilderCore: React.FC = () => {
   }, [setHistoryInfo]);
 
   // Theme Mode 적용 (Builder UI 전용 - Preview와 분리)
+  //
+  // 이 속성은 색 선택 외에 **"빌더가 mount 중"** 이라는 뜻도 겸한다 —
+  // builder-system.css 의 portal fallback(`#root` 밖 body 자식)이 이걸 게이트로 쓰므로,
+  // unmount 시 지우지 않으면 dashboard/auth 라우트의 overlay 까지 빌더 팔레트를 받는다.
   useEffect(() => {
     const applyTheme = (theme: "light" | "dark") => {
       document.documentElement.setAttribute("data-builder-theme", theme);
+    };
+    const clearTheme = () => {
+      document.documentElement.removeAttribute("data-builder-theme");
     };
 
     if (themeMode === "auto") {
@@ -336,10 +343,12 @@ export const BuilderCore: React.FC = () => {
 
       return () => {
         mediaQuery.removeEventListener("change", handleChange);
+        clearTheme();
       };
     } else {
       // 명시적인 테마 적용
       applyTheme(themeMode);
+      return clearTheme;
     }
   }, [themeMode]);
 

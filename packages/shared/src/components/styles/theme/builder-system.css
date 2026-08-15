@@ -40,7 +40,14 @@
   /* ==================== Builder UI Scope Override (ADR-028) ==================== */
   /* [data-context="builder"] 단일 선택자로 모든 Builder UI 영역을 커버.
    * Preview iframe은 별도 document이므로 자동 격리.
-   * Fallback: body 직하 portal에도 builder 변수 적용 (UNSAFE_PortalProvider 안정화 전)
+   * Portal fallback: RAC overlay(Popover/Modal/Tooltip)는 `body` 밑으로 portal 되어
+   * builder subtree 밖으로 나간다. 구 fallback(`body > .react-aria-Popover`)은 두 전제가
+   * 모두 깨져 실매칭 0건이었다 — RAC 가 style 만 있는 wrapper `<div>` 로 한 겹 감싸 직계
+   * 자식이 아니고, `className` 을 주면 기본 클래스도 사라진다 (실측: 문서 전체
+   * `.react-aria-Popover` 0건). RAC 1.18 에는 `UNSTABLE_PortalProvider` 가 없어 portal
+   * 대상을 옮길 수도 없다. 그래서 **구조**로 잡는다 — 빌더 문서에서 `#root` 밖 body 자식은
+   * portal 산물뿐이다. `[data-builder-theme]` 게이트는 "빌더가 mount 중" 을 뜻한다
+   * (BuilderCore 가 unmount 시 제거 — dashboard/auth 라우트로 새지 않게 하는 조건).
    *
    * Light: Tailwind gray (쿨 블루 언더톤)
    * Dark: Tailwind zinc (웜 다크, Apple HIG 기반)
@@ -48,8 +55,7 @@
    * Elevation (Light): bg(gray-100) → raised(gray-100) → overlay(white) → inset(gray-50)
    * Elevation (Dark):  bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → inset(zinc-900) */
   [data-context="builder"],
-  body:not([data-preview="true"]) > .react-aria-Popover,
-  body:not([data-preview="true"]) > .react-aria-Modal {
+  [data-builder-theme] body:not([data-preview="true"]) > :not(#root) {
     /* ===== Surface (Light) ===== */
     --bg: var(--color-gray-100);
     --bg-raised: var(--color-gray-50);
@@ -101,15 +107,25 @@
     --editing-semantics-instance: #9580ff;
   }
 
+  /* portal 로 나간 overlay 의 글자 크기 기준.
+   *
+   * 빌더는 root 에 base font-size 를 두지 않고 컨트롤마다 정한다 (Select 트리거
+   * `--text-sm` / 패널 legend `--text-xs`). 그런데 portal 로 나간 목록은 그 어떤
+   * 규칙도 못 받아 브라우저 기본 16px 로 떨어졌다 — 트리거(14px)보다 커서 드롭다운만
+   * 튀어 보인다 (실측: property-select-popover / property-unit-input-popover 항목 16px).
+   * 트리거와 같은 `--text-sm` 을 기준으로 준다. 자기 크기를 명시한 overlay
+   * (컨텍스트/header/줌 메뉴의 `--text-xs`)는 그대로다.
+   *
+   * `[data-context="builder"]` 쪽에는 붙이지 않는다 — 그건 빌더 트리 전체라
+   * 지금 16px 을 상속받는 in-panel 요소까지 한꺼번에 줄어든다. */
+  [data-builder-theme] body:not([data-preview="true"]) > :not(#root) {
+    font-size: var(--text-sm);
+  }
+
   /* ==================== Builder Dark Mode (ADR-028) ==================== */
   /* Elevation (Dark): bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → inset(zinc-900) */
   [data-builder-theme="dark"] [data-context="builder"],
-  [data-builder-theme="dark"]
-    body:not([data-preview="true"])
-    > .react-aria-Popover,
-  [data-builder-theme="dark"]
-    body:not([data-preview="true"])
-    > .react-aria-Modal {
+  [data-builder-theme="dark"] body:not([data-preview="true"]) > :not(#root) {
     /* ===== Surface (Dark) ===== */
     --bg: var(--color-zinc-900);
     --bg-raised: var(--color-zinc-850);
