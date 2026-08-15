@@ -55,15 +55,17 @@ runCanonicalMutation({
 - 기존 경로 이관 (createInstance / resetInstanceOverrideField 등 allowlist 전체) — 재개 조건: 해당 경로에서 stale-canonical race 가 **재발**했을 때, 그 경로 1건만 러너로 이관 (전면 이관 아님)
 - history 시스템 자체의 재설계 (ADR-180 계보) — 러너는 현행 history API 를 스테이지로 감쌀 뿐
 
-## 3. 파일 변경 요약 (추정 — Phase 0 에서 실측 보정)
+## 3. 파일 변경 요약 (Implemented 실측 — 테스트는 디렉터리 `__tests__/` 컨벤션)
 
-| 파일                                                                         | 변경                          |
-| ---------------------------------------------------------------------------- | ----------------------------- |
-| `apps/builder/src/adapters/canonical/canonicalMutationRunner.ts`             | 신설 — 러너 + semantics       |
-| `apps/builder/src/adapters/canonical/canonicalMutationRunner.test.ts`        | 신설 — 순서/타입 단언         |
-| `apps/builder/src/adapters/canonical/canonicalMutationRunner.static.test.ts` | 신설 — 우회 차단 가드         |
-| 파일럿 mutation 1개 파일                                                     | 러너 경유 전환                |
-| `.claude/rules/state-management.md`                                          | 신규 경로 규칙 + 잔존 표 링크 |
+| 파일                                                                                   | 변경                                     |
+| -------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `apps/builder/src/adapters/canonical/canonicalMutationRunner.ts`                       | 신설 — 러너 + semantics                  |
+| `apps/builder/src/adapters/canonical/__tests__/canonicalMutationRunner.test.ts`        | 신설 — 순서/타입 단언 (8건)              |
+| `apps/builder/src/adapters/canonical/__tests__/canonicalMutationRunner.static.test.ts` | 신설 — 우회 차단 가드 (G3)               |
+| `apps/builder/src/builder/factories/utils/elementCreation.ts` (파일럿)                 | `addElementsToStore` 러너 경유 전환      |
+| `apps/builder/src/builder/factories/utils/__tests__/elementCreation.indexSync.test.ts` | 수동 순서 단언 → 러너 경유 단언으로 갱신 |
+| `apps/builder/src/builder/main/BuilderCore.tsx`                                        | 러너 bridge(rebuildIndexes) DI 등록      |
+| `.claude/rules/state-management.md`                                                    | 신규 경로 규칙 + 잔존 표 링크            |
 
 ## 4. Phase 0 산출물 기록란 (freeze — 2026-08-15 실측)
 
