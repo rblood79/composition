@@ -96,17 +96,39 @@ describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
     );
   });
 
-  it("store / history 스테이지는 optional — canonical-only mutation 도 rebuild + persist 는 러너가 수행한다", async () => {
+  it("store 는 optional, history 는 { skip: 사유 } 명시 — canonical-only mutation 도 rebuild + persist 는 러너가 수행한다 (ADR-185)", async () => {
     runCanonicalMutation({
       canonical: () => {
         calls.push("canonical");
         return makeResult();
       },
+      history: { skip: "runner-test — canonical-only silent 형태" },
     });
 
+    // skip 은 no-op — history 마커 없이 나머지 순서 불변
     expect(calls).toEqual(["canonical", "rebuild"]);
     await flushPersist();
     expect(putSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("history: { skip: '' } (빈 사유) 는 스테이지 실행 전에 throw 한다 (ADR-185)", () => {
+    const canonicalSpy = vi.fn(() => makeResult());
+    expect(() =>
+      runCanonicalMutation({
+        canonical: canonicalSpy,
+        history: { skip: "   " },
+      }),
+    ).toThrow(/history\.skip 사유/);
+    // fail-fast — 부분 mutation 없이 진입 시점 거부
+    expect(canonicalSpy).not.toHaveBeenCalled();
+  });
+
+  it("history 스테이지는 required — 생략 (조용한 미기록 형태) 은 타입 에러 (ADR-185)", () => {
+    const typeOnly = () => {
+      // @ts-expect-error — ADR-185: history 기록/생략 의사결정 없이 mutation 을 쓰는 형태는 시그니처상 표현 불가
+      runCanonicalMutation({ canonical: () => makeResult() });
+    };
+    expect(typeOnly).toBeTypeOf("function");
   });
 
   it("store / history 스테이지는 canonical 결과를 전달받는다", () => {
@@ -127,6 +149,7 @@ describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
   it("persistOptions (급감 가드 사유) 를 documents.put 에 전달한다", async () => {
     runCanonicalMutation({
       canonical: () => makeResult(),
+      history: { skip: "runner-test" },
       persistOptions: { allowShrink: true, reason: "runner-test-removal" },
     });
     await flushPersist();
@@ -141,7 +164,10 @@ describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
     getDBMock.mockRejectedValueOnce(new Error("db unavailable"));
 
     expect(() =>
-      runCanonicalMutation({ canonical: () => makeResult() }),
+      runCanonicalMutation({
+        canonical: () => makeResult(),
+        history: { skip: "runner-test" },
+      }),
     ).not.toThrow();
 
     await flushPersist();
@@ -156,9 +182,12 @@ describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
     resetCanonicalMutationRunnerBridge();
     expect(isCanonicalMutationRunnerBridgeRegistered()).toBe(false);
     const canonicalSpy = vi.fn(() => makeResult());
-    expect(() => runCanonicalMutation({ canonical: canonicalSpy })).toThrow(
-      /bridge not registered/,
-    );
+    expect(() =>
+      runCanonicalMutation({
+        canonical: canonicalSpy,
+        history: { skip: "runner-test" },
+      }),
+    ).toThrow(/bridge not registered/);
     expect(canonicalSpy).not.toHaveBeenCalled();
   });
 
@@ -176,6 +205,7 @@ describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
         canonical: () => {
           throw new Error("canonical failed");
         },
+        history: { skip: "runner-test" },
       }),
     ).toThrow("canonical failed");
 
@@ -185,6 +215,7 @@ describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
         store: () => {
           throw new Error("store failed");
         },
+        history: { skip: "runner-test" },
       }),
     ).toThrow("store failed");
   });

@@ -5,6 +5,10 @@
  * ⑤ persist 백그라운드) 를 **러너가 소유**한다 — 신규 mutation 은 스테이지
  * 함수만 제공하며, set-1차 형태의 순서 위반은 시그니처상 표현 불가.
  *
+ * history 스테이지는 **required** (ADR-185 — history coverage 계약): 기록
+ * 함수 또는 `{ skip: 사유 }` 명시적 생략만 허용 — 조용한 미기록이 타입상
+ * 표현 불가.
+ *
  * 적용 범위는 **신규 mutation 경로 한정** — 기존 경로 (breakdown §4-3
  * allowlist 15파일) 는 이관하지 않는다 ("회귀 위험 대비 이득 작음" 선행 판정,
  * state-management.md 잔존 표). 신규 경로의 wrapper 직호출은
@@ -65,6 +69,15 @@ function getBridge(): CanonicalMutationRunnerBridge {
 // Runner
 // ─────────────────────────────────────────────
 
+/**
+ * ④ history 스테이지 (ADR-185 — required union). 기록하는 함수, 또는
+ * `{ skip: 사유 }` 명시적 생략 (사유 문자열 필수 — 빈 문자열은 진입 시점
+ * throw). 조용한 생략 (필드 자체를 빼는 형태) 은 타입상 표현 불가.
+ */
+export type CanonicalMutationHistoryStage<
+  TResult extends CanonicalMutationResult = CanonicalMutationResult,
+> = ((result: TResult) => void) | { skip: string };
+
 export interface CanonicalMutationStages<
   TResult extends CanonicalMutationResult = CanonicalMutationResult,
 > {
@@ -84,8 +97,10 @@ export interface CanonicalMutationStages<
    * ④ history 기록 — rebuild **뒤** 슬롯 (기준형 `addElementsToStore` +
    * CLAUDE.md 파이프라인 Memory → Index → History → DB 정합). prev-상태
    * 캡처가 필요하면 러너 호출 **전** closure 로 캡처한다 (batch형 관례).
+   * **required** (ADR-185) — 기록하지 않는 mutation 은 `{ skip: 사유 }` 로
+   * 생략을 명시한다 (preview transient / silent live edit / ingress 형).
    */
-  history?: (result: TResult) => void;
+  history: CanonicalMutationHistoryStage<TResult>;
   /**
    * ⑤ persist 옵션 — persist 자체는 러너 소유 (호출자 선택 아님). 대량 감소가
    * 의도된 mutation (삭제 계열) 만 급감 가드 통과 사유를 명시한다.
@@ -104,10 +119,24 @@ export function runCanonicalMutation<TResult extends CanonicalMutationResult>(
 ): TResult {
   const bridge = getBridge();
 
+  // ADR-185 fail-fast — 빈 skip 사유는 부분 mutation 전에 거부 (bridge
+  // 미등록 throw 와 동일하게 스테이지 실행 전 진입 시점 검증)
+  if (
+    typeof stages.history !== "function" &&
+    stages.history.skip.trim().length === 0
+  ) {
+    throw new Error(
+      "[canonicalMutationRunner] history.skip 사유가 비어 있음 — " +
+        "의도적 생략은 사유 문자열 필수 (ADR-185)",
+    );
+  }
+
   const result = stages.canonical(); // ①
   stages.store?.(result); // ②
   bridge.rebuildIndexes(); // ③ — 러너 소유
-  stages.history?.(result); // ④
+  if (typeof stages.history === "function") {
+    stages.history(result); // ④ — { skip: 사유 } 는 명시된 no-op
+  }
   void persistActiveCanonicalDocumentInBackground(stages.persistOptions); // ⑤
 
   return result;

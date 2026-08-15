@@ -45,7 +45,7 @@ interface CanonicalMutationStages<TResult> {
 - 선판정 gap 후보 (본문 Context 실증): 페이지 생성/삭제 (`appendPageShell` elements.ts:1264 / `removePageLocal` elements.ts:1317 — entry 기록 0건, `setCurrentPage` 컨텍스트 전환만 존재).
 - 주의: [ADR-127 M3] 추정 vs 실측 gap 은 본 phase 인벤토리로 흡수 — fork 사유 아님.
 
-### Phase 1 — 러너 history 스테이지 필수화 + 단위 테스트 → G2
+### Phase 1 — 러너 history 스테이지 필수화 + 단위 테스트 → G2 ✅ Implemented 2026-08-15 (RED 4 failed 실측 → GREEN 347 PASS + type-check 0 + live undo exercise)
 
 - `canonicalMutationRunner.ts`: §2 목표 형태 반영 — `HistoryStage` union + required. 실행부는 `typeof stages.history === "function"` 분기 + `{ skip: "" }` throw.
 - 기존 호출부 영향: **비테스트** 호출부는 파일럿 1곳 (`factories/utils/elementCreation.ts:153` — history 함수 이미 제공) 뿐이라 **무변경 컴파일 통과** (BC 0% 는 비테스트 소스 기준). 단, **기존 러너 단위 테스트 8건 중 history 생략 형태 케이스** (`canonicalMutationRunner.test.ts:100-105` optional-stages / `:128-131` persistOptions / `:144` persist 실패 등 4곳+) 는 required 전환 시 컴파일 실패 → `history: { skip: "runner-test" }` 추가 수정 후 PASS (리뷰 round 1 정정 — "무수정 PASS" 아님).
