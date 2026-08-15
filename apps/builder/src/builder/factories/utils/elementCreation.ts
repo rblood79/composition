@@ -11,6 +11,11 @@ import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMut
 // 는 러너가 소유. 종전 수동 순서 + 로컬 persist 헬퍼를 러너가 대체한다.
 import { runCanonicalMutation } from "@/adapters/canonical/canonicalMutationRunner";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
+import { historyManager } from "../../stores/history";
+import {
+  buildCanonicalInsertEvents,
+  hasCanonicalNodeLocation,
+} from "../../stores/history/canonicalHistoryEvents";
 
 /**
  * 컴포넌트 정의로부터 실제 Element 데이터 생성 시 필요한 컨텍스트.
@@ -142,14 +147,19 @@ export function addElementsToStore(
         layoutVersion: prev.layoutVersion + 1,
       }));
     },
-    // ④ 히스토리 기록
-    history: () => {
-      const { saveSnapshot } = store as unknown as {
-        saveSnapshot: (elements: Element[], description: string) => void;
-      };
-      if (saveSnapshot) {
-        saveSnapshot(newElements, "복합 컴포넌트 생성");
-      }
+    // ④ 히스토리 기록 — canonical insert event (store 측 addComplexElement 와
+    //    동일 entry 형태). buildCanonicalInsertEvents 는 merge 후 canonical
+    //    위치를 조회하므로 이 슬롯 (canonical/rebuild 뒤) 이어야 한다.
+    history: (result) => {
+      if (!result.changed || !hasCanonicalNodeLocation(parent.id)) return;
+      historyManager.addEntry({
+        type: "add",
+        elementId: parent.id,
+        elementIds: [parent, ...children].map((element) => element.id),
+        data: {
+          canonicalEvents: buildCanonicalInsertEvents([parent, ...children]),
+        },
+      });
     },
   });
 

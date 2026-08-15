@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [복합 컴포넌트 생성 undo 복구 — factories addElementsToStore] - 2026-08-15
+
+### Bug Fixes
+
+- **복합 컴포넌트 (Select/NumberField/Table 등) 생성이 undo 되지 않던 문제**:
+  - 팔레트 복합 생성 경로 (`ComponentFactory → addElementsToStore`) 의 히스토리 기록이 구 `saveSnapshot` API 를 조건부 호출 — 해당 API 가 store 에서 소멸한 뒤 `if (saveSnapshot)` 가드가 조용히 no-op 되어 entry 가 한 번도 기록되지 않았다
+  - **Why**: history 시스템이 canonical event 기반으로 전환되는 동안 이 경로만 legacy API 참조로 잔존 — ADR-184 파일럿 live 실측 중 발견된 선재 gap
+  - 수정: store 측 `addComplexElement` 와 동일한 canonical insert event entry (`buildCanonicalInsertEvents` + `type: "add"` + `elementIds`) 로 기록 — 러너 history 슬롯 (canonical merge 뒤) 에서 위치 조회. dead `saveSnapshot` 회귀는 `elementCreation.indexSync.test.ts` 가 정적 차단
+  - live 실측: Select 추가 (canonical 85→90 / store 77→82) → undo (85/77, elementsMap 제거) → redo (5요소 가족 복원 + mirror 등재) → undo 원복 (IndexedDB 포함 85)
+  - 위치: `apps/builder/src/builder/factories/utils/elementCreation.ts`
+
 ## [canonical mutation 순서 러너 — ADR-184 Phase 0~3] - 2026-08-15
 
 ### Architecture

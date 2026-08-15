@@ -60,6 +60,22 @@ describe("addElementsToStore canonical/derived index sync contract (ADR-184 러�
     expect(source).not.toContain("persistActiveCanonicalDocument");
   });
 
+  it("history 스테이지는 canonical insert event 로 기록한다 (dead saveSnapshot 회귀 금지)", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../elementCreation.ts"),
+      "utf-8",
+    );
+
+    // 구 saveSnapshot API 는 store 에서 소멸 — `if (saveSnapshot)` 가드가 조용히
+    // no-op 되어 복합 컴포넌트 생성이 undo 불가였다 (2026-08-15 수리). history
+    // 는 store 측 addComplexElement 와 동일하게 canonical insert event 로 기록.
+    expect(source).toContain(
+      "buildCanonicalInsertEvents([parent, ...children])",
+    );
+    expect(source).toContain('type: "add"');
+    expect(source).not.toContain("saveSnapshot");
+  });
+
   it("store 스테이지가 parent + children 추가 + layoutVersion 증가를 유지한다", async () => {
     const source = await readFile(
       resolve(__dirname, "../elementCreation.ts"),
