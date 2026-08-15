@@ -36,7 +36,7 @@ interface CanonicalMutationStages<TResult> {
 
 ## 3. Phase 분할
 
-### Phase 0 — history coverage 감사 (freeze) → G1
+### Phase 0 — history coverage 감사 (freeze) → G1 ✅ Implemented 2026-08-15 (G1 PASS — §4, gap = G-1 단독)
 
 - 대상: ADR-184 Phase 0 인벤토리 (15파일 / 26 호출 지점, 184 breakdown §4) 를 재사용하되 판정 축을 바꾼다 — "순서 정합" 이 아니라 **"history entry 기록 여부"**.
 - 방법: 각 mutation 지점에서 `historyManager.addEntry` / `trackCanonical*` 도달 여부 + 도달하지 않는 경우 의도적 생략 사유 존재 여부 (skipHistory caller batch / silent live edit / hydration·bridge·undo 재생 등 비-mutation).
@@ -68,19 +68,51 @@ interface CanonicalMutationStages<TResult> {
 - 기존 allowlist 15파일 경로의 러너 이관 — ADR-184 판정 승계 (재개 조건 동일: 해당 경로 race 재발 시 그 경로 1건만).
 - history entry 스키마 / undo·redo 재생 경로 변경 — ADR-177/180/181 계보 무변경.
 
-## 4. Phase 0 산출물 기록란 (freeze — 실행 시 기록)
+## 4. Phase 0 산출물 (freeze — 2026-08-15 실측)
 
-### 4-1. coverage 분류표
+### 4-1. coverage 분류표 (ADR-184 인벤토리 26 지점 전수 — G1 PASS)
 
-_(Phase 0 실행 시 기록 — 26 지점 × 분류 3종)_
+**기록함 (15 지점)**:
 
-### 4-2. gap 목록 (수리 백로그 정본)
+| 지점                                                                    | 기록 근거                                                                                                            |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `factories/utils/elementCreation.ts:138` (러너 파일럿)                  | history 스테이지 canonical insert event (`fbedcfcaa`)                                                                |
+| `stores/utils/elementCreation.ts:211, 305`                              | `addEntry` (+`skipHistory` caller-batch 옵션)                                                                        |
+| `stores/utils/elementUpdate.ts:810` (batch props)                       | `addEntry` :833 (단건 update :277 / replace :586)                                                                    |
+| `stores/utils/elementUpdate.ts:1016` (batch elements)                   | `addEntry` :1047 (move events)                                                                                       |
+| `stores/utils/elementRemoval.ts:317`                                    | `addEntry` (+`skipHistory` :260 — migration 경로)                                                                    |
+| `stores/inspectorActions.ts:745` (`updateAndSave` helper)               | `addEntry` :675 (prev 캡처 :634-636)                                                                                 |
+| `stores/elements.ts:1613, 1770` (move형)                                | `trackCanonicalMove` (+주석 :1621 — 과거 gap 사후 수리)                                                              |
+| `stores/utils/instanceActions.ts:605` (batch)                           | replace event entry                                                                                                  |
+| `stores/utils/instanceActions.ts:703` (createInstance)                  | history 단계 포함 (184 표)                                                                                           |
+| `stores/utils/instanceActions.ts:983` (resetInstanceOverrideField 내부) | **`addEntry` :950** (replace events — 감사 중 "기록 없음" 오판 정정: 함수 시작 :879, 983 은 addEntry 이후 꼬리 구간) |
+| `LayoutPresetSelector/usePresetApply.ts:216`                            | `runInTransaction` :448 최외곽 병합 (removeElements entry)                                                           |
+| `canvas/hooks/useDragBridge.ts:536, 910, 969`                           | history transaction 최외곽                                                                                           |
 
-| #            | 경로                                                     | 사용자-가시 증상                 | 상태               |
-| ------------ | -------------------------------------------------------- | -------------------------------- | ------------------ |
-| G-1 (선판정) | 페이지 생성/삭제 (`appendPageShell` / `removePageLocal`) | 페이지 추가·삭제 후 Cmd+Z 무반응 | 미수리 (별도 작업) |
+**의도적 생략 (5 지점 — 사유 존재)**:
 
-_(Phase 0 전수 감사에서 추가 발견 시 이어서 기록)_
+| 지점                                                          | 사유                                                                                                                                                     |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stores/inspectorActions.ts:988` (updateSelectedStylePreview) | preview transient — commit 이 `updateAndSave` 로 기록                                                                                                    |
+| `stores/inspectorActions.ts:1420, 1467` (Fills preview 2종)   | 동일 preview 패턴                                                                                                                                        |
+| `overlay/useTextEdit.ts:174`                                  | silent live edit — commit 시 `updateElementProps` 가 기록 (:390 주석)                                                                                    |
+| `hooks/useIframeMessenger.ts:219` (flush)                     | **경계 사례** — preview 런타임 생성 요소 ingress (builder 사용자 편집 아님). 단 코드 주석에 생략 사유 미기재 — Phase 2 에서 skip 사유 주석 1줄 보강 대상 |
+
+**비-mutation (5 지점 — 러너/계약 대상 아님)**:
+
+`main/BuilderCore.tsx:253` (bridge 구독) / `panels/nodes/FramesTab.tsx:178, 250, 412` (hydration) / `stores/history/historyActions.ts:103` (undo·redo 재생)
+
+**gap 소속 (1 지점 + wrapper 미경유 표면 2)**:
+
+`panels/nodes/PagesSection.tsx:292` (페이지 삭제 후처리 — 삭제 자체가 미기록) + wrapper 미경유 mutation 표면 `appendPageShell` (`usePageManager.ts:247, 301` 경유) / `removePageLocal` (`PagesSection.tsx:241` 경유) → G-1
+
+### 4-2. gap 목록 (수리 백로그 정본 — freeze)
+
+| #   | 경로                                                                                                                                                                                                              | 사용자-가시 증상                                                                              | 상태                                        |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| G-1 | 페이지 생성/삭제 (`stores/elements.ts:1264` `appendPageShell` / `:1317` `removePageLocal` — entry 0건, `setCurrentPage` 컨텍스트 전환만. 호출자 `usePageManager.ts:247,301` / `PagesSection.tsx:241` 도 기록 0건) | 페이지 추가·삭제 후 Cmd+Z 무반응 (삭제된 페이지의 body+요소 서브트리+pagePositions 복원 불가) | 미수리 (별도 작업 — 사용자 결정 2026-08-15) |
+
+전수 감사 결과 추가 gap 없음 — G-2 후보였던 `resetInstanceOverrideField` 는 `addEntry` :950 실측으로 기각 (§4-1).
 
 ## 5. 파일 변경 요약 (예상)
 
