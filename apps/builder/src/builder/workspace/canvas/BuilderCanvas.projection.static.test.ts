@@ -53,7 +53,7 @@ describe("BuilderCanvas canonical projection contract", () => {
 
   it("resolves canvas context menu targets from the interactive canonical map", async () => {
     const source = await readFile(
-      resolve(__dirname, "BuilderCanvas.tsx"),
+      resolve(__dirname, "contextMenu/canvasContextMenuEntry.ts"),
       "utf-8",
     );
 
@@ -61,7 +61,7 @@ describe("BuilderCanvas canonical projection contract", () => {
       "const hitElementsMap = getInteractiveElementsMap();",
     );
     expect(source).toContain(
-      "const hitElement = hitElementsMap.get(elementId);",
+      "const hitElement = elementId ? hitElementsMap.get(elementId) : undefined;",
     );
     const staleContextMenuFallback = [
       "state",

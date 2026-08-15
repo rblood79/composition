@@ -10,7 +10,6 @@ export {
   resolveTopPageIdAtPoint,
   resolveTopmostHitElementId,
 } from "./selectionModel";
-export { resolveCanvasDetachContextTarget } from "./canvasContextMenu";
 export {
   applyAxisLock,
   applyAxisLockToDelta,

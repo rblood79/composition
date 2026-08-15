@@ -37,6 +37,7 @@ export interface CanvasActionElement {
 
 export interface CanvasActionContext {
   elementsMap: ReadonlyMap<string, CanvasActionElement>;
+  scenePoint?: { x: number; y: number };
   readClipboardText?: () => Promise<string | null>;
   writeClipboardText?: (text: string) => Promise<boolean>;
   pasteHistory?: "per-element" | "batch";
@@ -132,7 +133,7 @@ export async function paste(context: CanvasActionContext): Promise<void> {
   const newElements = pasteMultipleElements(
     copiedData,
     currentPageId,
-    { x: 10, y: 10 },
+    context.scenePoint ?? { x: 10, y: 10 },
     Array.from(elementsMap.values()),
     {
       targetParentId: resolvePasteTargetParentId({

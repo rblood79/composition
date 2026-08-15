@@ -112,6 +112,11 @@ function renderContextMenuItems(
         }}
       >
         <Text slot="label">{item.label}</Text>
+        {item.kind === "toggle" && item.checked && (
+          <span aria-hidden="true" className="context-menu-check">
+            ✓
+          </span>
+        )}
         {shortcutLabel && <kbd>{shortcutLabel}</kbd>}
       </MenuItem>
     );

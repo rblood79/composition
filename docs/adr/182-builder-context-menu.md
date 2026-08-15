@@ -8,6 +8,7 @@ Accepted — 2026-08-15 (리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED
 
 - Phase 1 — Implemented 2026-08-15: RAC virtual-anchor overlay, surface provider registry, context-menu selection/policy pure functions, Builder-root native menu suppression, and regression tests (G1 anchor/action/underlay contract verified; viewport-edge flip remains RAC live-browser evidence for Phase 2).
 - Phase 1.5 — Implemented 2026-08-15: extracted copy/paste/duplicate/delete/group/ungroup/align/distribute into the shared `canvasActions` layer; both shortcut consumers now inject their element map, with CanvasSceneNode alias normalization and regression tests.
+- Phase 2 — Implemented 2026-08-16: wired Canvas T1/T2 providers and the shared context-menu entry, preserved interactive-map hit testing, page occlusion, `resolveClickTarget` selection normalization, page transition, editable/ruler/DEV-Alt guards, and scene-point paste. Removed the raw Canvas detach menu and legacy `interaction/canvasContextMenu.ts`; migrated the projection static guard and entry/provider tests. Type-check, preflight, and 9 related test files / 31 tests PASS.
 
 ## Context
 
@@ -27,7 +28,7 @@ Accepted — 2026-08-15 (리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED
 
 1. **프레임 예산 상시 비용 0**: 메뉴는 DOM 오버레이 — Skia 렌더 루프에 상시 비용을 추가하지 않고, 우클릭 시점 hit-test 1회(`hitTestPoint` 재사용)만 허용. 캔버스 60fps 유지
 2. **좌/우클릭 대상 해석 단일화**: 우클릭 대상 정규화는 좌클릭과 **동일 심볼** `resolveClickTarget` 경유 — 별도 해석 경로 신설 금지
-3. **projection 정적 가드 계승**: 상호작용 read model 은 `getInteractiveElementsMap()` 경유. 단 `BuilderCanvas.projection.static.test.ts:54-73` 은 **BuilderCanvas.tsx 의 소스 문자열 2개**(`const hitElementsMap = getInteractiveElementsMap();` / `const hitElement = hitElementsMap.get(elementId);`, 유일 출현 `:831`·`:863`)를 positive assert 하므로, 핸들러 대체 시 **가드를 신규 모듈 기준으로 이설**해야 PASS 가 성립한다 (무변경 PASS 불가 — Phase 2 산출물)
+3. **projection 정적 가드 계승**: 상호작용 read model 은 `getInteractiveElementsMap()` 경유. `BuilderCanvas.projection.static.test.ts` 의 context-menu positive assert는 핸들러 대체와 함께 `contextMenu/canvasContextMenuEntry.ts` 로 이설해 신규 entry가 interactive map을 직접 읽는 계약을 고정한다.
 4. **액션 재구현 금지 — 기존 유틸 재사용 + 오케스트레이션 공유 계층 추출**: 메뉴 액션은 기존 store 액션을 직접 호출하거나, 컴포넌트 내부 클로저에 갇힌 오케스트레이션을 **호출 가능한 공유 계층으로 추출**해 메뉴·단축키가 같은 구현을 소비한다 (로직 복제 금지). 신규 mutation 은 bringToFront/sendToBack 2종 + cut 조합뿐이며 canonical 파이프라인(Memory→Index→History→DB→Preview) 준수
 5. **단축키 표기 단일 파생**: `formatShortcut(SHORTCUT_DEFINITIONS[id])` 만 — 메뉴 내 단축키 문자열 하드코딩 0건
 6. **ADR-163 CSS 계약**: `@layer builder-system` + 예약 prefix 회피 (`reservedPrefix.static.test.ts` PASS) + 기존 중복 CSS 2벌 제거. 이관 시 미정의 토큰 `--bg-elevated`(정의 0건 — 현행 메뉴 배경이 실제로 투명) 를 `--bg-raised` 로 정정
@@ -37,7 +38,7 @@ Accepted — 2026-08-15 (리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED
 
 **Soft Constraints**:
 
-- 기존 detach 메뉴·레이어트리 메뉴의 테스트 3벌 (`canvasContextMenu.test.ts`, `LayerTreeItemContent.test.tsx`, projection 정적 가드) 이관 유지
+- 기존 detach 메뉴·레이어트리 메뉴의 테스트 3벌 (이관된 `contextMenu/canvasContextMenuEntry.test.ts`, `LayerTreeItemContent.test.tsx`, projection 정적 가드) 이관 유지
 - 단축키 정의가 이미 2원화되어 있음 (`SHORTCUT_DEFINITIONS` vs `CanvasSelectionShortcuts.tsx:694-810` 하드코딩) — 본 ADR 은 표기만 정본 참조로 회피, 통합은 비스코프
 
 ## Alternatives Considered
@@ -114,7 +115,7 @@ Accepted — 2026-08-15 (리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED
 | --- | -------------------------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | R1  | RAC `Popover` 가상 앵커(마우스 좌표) 배치 미지원/불안정                                                        |  MED   | G1 스파이크를 Phase 1 최선두 배치 — 실패 시 자체 포지셔닝 래퍼 + RAC `Menu` 폴백 (스키마/빌더는 무영향)                                                                                            |
 | R2  | 기본 메뉴 전역 억제가 개발·사용자 워크플로 차단 (Inspect 등)                                                   |  MED   | editable·눈금자 요소 예외 + DEV 빌드 ⌥+우클릭 통과. 억제는 전역 단일 리스너 1곳 — 회수 지점 단일                                                                                                   |
-| R3  | 우클릭 선택 규칙 변경이 기존 좌클릭/detach 경로 회귀 (다중 선택 유지·editingContext 정규화가 기존 동작을 바꿈) |  MED   | `resolveContextMenuSelection` 순수 함수 분리 + 단위 테스트, 기존 테스트 3벌 이관 (`canvasContextMenu.test.ts` 케이스 보존), G2 live                                                                |
+| R3  | 우클릭 선택 규칙 변경이 기존 좌클릭/detach 경로 회귀 (다중 선택 유지·editingContext 정규화가 기존 동작을 바꿈) |  MED   | `resolveContextMenuSelection` 순수 함수 분리 + 단위 테스트, 기존 테스트 3벌 이관 (`contextMenu/canvasContextMenuEntry.test.ts` 로 케이스 보존), G2 live                                            |
 | R4  | 단축키 표기-실바인딩 불일치 (정의 2원화 상속 — `CanvasSelectionShortcuts` 관할 ⌘D/⌘G/⌘⇧G)                      |  LOW   | 메뉴는 `shortcutId` → `SHORTCUT_DEFINITIONS` 만 참조. 관할 항목의 정의 존재를 Phase 2 에서 대조. SSOT 통합은 비스코프 (breakdown §6)                                                               |
 | R5  | bringToFront/sendToBack 신규 mutation 의 canonical 파이프라인 위반 (히스토리 누락/순서 역전)                   |  MED   | 기존 `reorderElementWithinParent` 패턴 준수 (canonical mutation 1차 → store mirror set → persist, `elements.ts:1767-1810`) + undo 1회 복귀 테스트                                                  |
 | R6  | 액션 오케스트레이션 추출이 기존 단축키 동작을 회귀시킴 (8항목 · 640+873줄 2파일)                               |  MED   | 추출은 **로직 무변경 호출부 이동**으로 제한 (동일 함수 본문을 `canvasActions` 로 옮기고 등록부는 참조만) + elements map 은 인자 주입 (breakdown §3-7) + 신규 `canvasActions` 단위 테스트 G3 게이트 |
