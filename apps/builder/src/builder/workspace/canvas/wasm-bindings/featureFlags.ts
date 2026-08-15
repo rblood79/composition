@@ -34,11 +34,15 @@ export const UNIFIED_ENGINE_FLAGS = {
   USE_RUST_LAYOUT_ENGINE: true,
 
   // Phase 2: PixiJS 점진 제거
+  //   `REMOVE_PIXI` 는 삭제됐다 (2026-08-15). 유일한 소비처였던
+  //   `useCanvasRuntimeBootstrap.handlePixiAppInit`(PixiJS ticker 정지 +
+  //   배경 alpha 0) 가 ADR-900 잔재 스윕에서 함께 제거되며 소비자 0건이 됐다.
+  //   PixiJS 제거 완료 사실은 ADR-900 과 CHANGELOG 가 기록한다 — 소비자 없는
+  //   플래그로 중복 보관하면 "토글할 수 있는 것" 으로 잘못 읽힌다.
   USE_DOM_HOVER: false,
   USE_DOM_CURSOR: false,
   USE_CAMERA_OBJECT: false,
   USE_SCENE_GRAPH: true,
-  REMOVE_PIXI: true,
 
   // Phase 3: 렌더링 확장
   USE_HYBRID_TEXT: false,
@@ -62,9 +66,9 @@ export type UnifiedEngineFlag = keyof typeof UNIFIED_ENGINE_FLAGS;
  * `false` 로 적힌 6개(USE_DOM_HOVER / USE_DOM_CURSOR / USE_CAMERA_OBJECT /
  * USE_HYBRID_TEXT / USE_CSS3_EFFECTS / USE_TILE_CACHE)가 거짓말이었다는 뜻이다.
  * 오늘은 그 6개의 소비자가 0건이라 무증상이지만, 새 소비자가 붙는 순간 표를 읽고
- * "꺼져 있다" 고 판단한 쪽과 실제 동작이 갈린다. 현행 소비자 3개
- * (UNIFIED_ENGINE / USE_RUST_LAYOUT_ENGINE / REMOVE_PIXI)는 전부 `true` 선언이라
- * 단락 평가를 걷어내도 동작은 동일하다.
+ * "꺼져 있다" 고 판단한 쪽과 실제 동작이 갈린다. 현행 소비자
+ * (UNIFIED_ENGINE / USE_RUST_LAYOUT_ENGINE)는 전부 `true` 선언이라 단락 평가를
+ * 걷어내도 동작은 동일하다.
  */
 export function isUnifiedFlag(flag: UnifiedEngineFlag): boolean {
   return UNIFIED_ENGINE_FLAGS[flag];
