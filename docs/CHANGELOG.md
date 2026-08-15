@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Styles 패널 — position 의 modify/reset 비대칭 수정] - 2026-08-15
+
+### Bug Fixes
+
+- **`position` 을 편집해도 "modify N" 뱃지가 세지 않던 문제 수정**:
+  - **Why**: ADR-177 이 Transform 섹션에 position row 를 추가하며 `TRANSFORM_PROPS`(섹션 reset 판정 범위)에만 `"position"` 을 넣고 `PANEL_STYLE_PROPS`(modify 뱃지·Modified Styles 범위 SSOT)에는 넣지 않았다 → **reset 버튼은 활성인데 modify 는 0** 인 비대칭. 2026-06-24 grid placement 사례와 같은 형태이며, 그 재발을 막으려고 둔 `panelStylePropsUnion.static` 가드가 실제로 이것을 잡고 있었다(main 에서 red 상태였음)
+  - 수정: `PANEL_STYLE_PROPS` 의 Transform 블록에 `"position"` 추가 (배열 순서도 `TRANSFORM_PROPS` 와 일치)
+  - 검증: 라이브 빌더 실측 — `position: absolute` 를 준 Button 에서 Transform reset 판정 `["position"]` ↔ modify 뱃지 수정 전 `[]` / 수정 후 `["position"]` 로 비대칭 해소. 스위트 2905 passed (수정 전 1 failed)
+  - 위치: `apps/builder/src/builder/panels/styles/hooks/useResetStyles.ts`
+
 ## [ADR-900 잔재 스윕 — 상시 거짓 게이트 전수 정리] - 2026-08-15
 
 > 앞선 3건(스크롤바 world 범위 · pan 추종 · registry/culling)이 모두 "PixiJS 존재를 전제한 판정이 조용히 상시 거짓/빈 값이 된다" 는 같은 병인이었다. `container` / `getBounds` / `stage` / `Application` 을 쓰는 판정을 전수 조사해 남은 것을 정리한 결과.

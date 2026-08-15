@@ -603,6 +603,10 @@ export const PANEL_STYLE_PROPS: readonly string[] = [
   // Transform
   "width",
   "height",
+  // ADR-177 이 Transform 에 position row 를 추가하며 `TRANSFORM_PROPS` 에만
+  //   들어가 있었다 — reset 은 되는데 modify 가 세지 않는 비대칭
+  //   (`panelStylePropsUnion.static` 가 잡는 그 케이스, 2026-08-15 정정).
+  "position",
   "top",
   "left",
   "flexGrow",
