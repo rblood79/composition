@@ -86,11 +86,27 @@ export function calculateWorldBounds(
   maxX += padding;
   maxY += padding;
 
-  // 3) viewport가 content+padding을 넘으면 world 확장
-  minX = Math.min(minX, viewportBounds.x);
-  minY = Math.min(minY, viewportBounds.y);
-  maxX = Math.max(maxX, viewportBounds.x + viewportBounds.width);
-  maxY = Math.max(maxY, viewportBounds.y + viewportBounds.height);
+  // 3) viewport 가 content 를 벗어나면 world 확장 — 단 **한 화면 분량까지만**.
+  //
+  //    무제한 확장이면 content 밖에서 pan 할 때 world 가 같은 양만큼 커져
+  //    `viewportStart / scrollableWorld` 가 1 에 고정된다 — thumb 은 트랙 끝에 붙어
+  //    움직이지 않고 크기만 계속 줄어든다 (실측: 뷰포트 x 12,000→20,000 에서 thumb
+  //    190→120, 위치 1514→1584). 한 화면으로 제한하면 문서 경계 직후까지는 계속
+  //    추종하고, 그보다 멀리 나가면 크기가 고정된 채 끝에 머문다.
+  //
+  //    범위를 넘어선 위치는 소비자가 [0,1] 로 clamp 한다 (`getScrollbarAxisMetrics`).
+  const overscrollX = viewportBounds.width;
+  const overscrollY = viewportBounds.height;
+  minX = Math.min(minX, Math.max(viewportBounds.x, minX - overscrollX));
+  minY = Math.min(minY, Math.max(viewportBounds.y, minY - overscrollY));
+  maxX = Math.max(
+    maxX,
+    Math.min(viewportBounds.x + viewportBounds.width, maxX + overscrollX),
+  );
+  maxY = Math.max(
+    maxY,
+    Math.min(viewportBounds.y + viewportBounds.height, maxY + overscrollY),
+  );
 
   return {
     minX,

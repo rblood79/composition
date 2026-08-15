@@ -13,6 +13,8 @@
  */
 
 import { useRef, useEffect } from "react";
+import { useStore } from "../../stores";
+import { useViewportSyncStore } from "../canvas/stores";
 import { getViewportController } from "../canvas/viewport/ViewportController";
 import type { ViewportInteractionSession } from "../canvas/viewport/ViewportInteractionSession";
 import {
@@ -148,6 +150,34 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
       scheduleUpdate();
     });
     trackResizeObserver.observe(track);
+
+    // 소스 4: viewport sync store (containerSize / canvasSize)
+    //
+    // 마운트 시점에는 containerSize 가 아직 0 이라 `getScrollbarViewportMetrics` 가
+    // null 을 돌려주고 초기 `updateThumb()` 이 아무것도 그리지 못한다. 위 세 소스는
+    // 전부 그 뒤의 **변화**만 알려주므로(뷰포트 조작 · track 리사이즈 · 패널 토글),
+    // 첫 pan/zoom 전까지 thumb 이 크기 0 으로 남았다. containerSize 가 채워지는
+    // 순간을 잡아야 초기 렌더가 완성된다. canvasSize 는 아트보드 크기라 world
+    // 범위의 입력이기도 하다 (breakpoint 전환 시 재계산 필요).
+    let lastSyncKey = "";
+    const unsubViewportSync = useViewportSyncStore.subscribe((state) => {
+      const key = `${state.containerSize.width}x${state.containerSize.height}|${state.canvasSize.width}x${state.canvasSize.height}`;
+      if (key === lastSyncKey) return;
+      lastSyncKey = key;
+      updatePanelOffset();
+      scheduleUpdate();
+    });
+
+    // 소스 5: 페이지 위치 (world 범위의 content 입력)
+    //
+    // 페이지 추가/삭제/재배치는 뷰포트를 건드리지 않으므로 위 소스에 걸리지 않는다.
+    // 전체 store 구독이지만 비교는 카운터 하나이고 갱신은 rAF 로 합쳐진다.
+    let lastPagePositionsVersion = useStore.getState().pagePositionsVersion;
+    const unsubPagePositions = useStore.subscribe((state) => {
+      if (state.pagePositionsVersion === lastPagePositionsVersion) return;
+      lastPagePositionsVersion = state.pagePositionsVersion;
+      scheduleUpdate();
+    });
 
     // 패널 상태 구독 (showLeft/Right + activeLeftPanels/activeRightPanels)
     const unsubPanel = subscribeToPanelLayoutChanges({
@@ -321,6 +351,8 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
     return () => {
       removeVCListener();
       unsubPanel();
+      unsubViewportSync();
+      unsubPagePositions();
       trackResizeObserver.disconnect();
       thumb.removeEventListener("pointerdown", handlePointerDown);
       track.removeEventListener("click", handleTrackClick);

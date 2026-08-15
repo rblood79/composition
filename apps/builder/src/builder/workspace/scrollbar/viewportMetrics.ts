@@ -138,16 +138,27 @@ export function getScrollbarAxisMetrics(
     return null;
   }
 
-  const thumbSize = Math.max(30, (viewportSize / worldSize) * trackLength);
+  // world 확장이 한 화면으로 제한되므로 뷰포트가 world 를 넘을 수 있다 —
+  //   thumb 이 트랙을 넘지 않도록 상한을 건다.
+  const thumbSize = Math.min(
+    trackLength,
+    Math.max(30, (viewportSize / worldSize) * trackLength),
+  );
+  const scrollableWorld = worldSize - viewportSize;
+  const rawStart = isHorizontal
+    ? metrics.visibleViewport.x - metrics.world.minX
+    : metrics.visibleViewport.y - metrics.world.minY;
 
   return {
     scrollableTrack: trackLength - thumbSize,
-    scrollableWorld: worldSize - viewportSize,
+    scrollableWorld,
     thumbSize,
     viewportSize,
-    viewportStart: isHorizontal
-      ? metrics.visibleViewport.x - metrics.world.minX
-      : metrics.visibleViewport.y - metrics.world.minY,
+    // content 밖 overscroll 은 트랙 끝에 머문다 (world 밖 위치를 그리지 않는다)
+    viewportStart:
+      scrollableWorld > 0
+        ? Math.min(Math.max(rawStart, 0), scrollableWorld)
+        : rawStart,
     worldMax: isHorizontal ? metrics.world.maxX : metrics.world.maxY,
     worldMin: isHorizontal ? metrics.world.minX : metrics.world.minY,
     worldSize,

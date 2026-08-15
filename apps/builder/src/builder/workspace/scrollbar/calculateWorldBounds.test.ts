@@ -85,3 +85,42 @@ describe("calculateWorldBounds", () => {
     expect(Number.isFinite(world.width)).toBe(true);
   });
 });
+
+/**
+ * content 밖 overscroll.
+ *
+ * **Why (2026-08-15 실측)**: viewport 확장이 무제한이면 content 밖에서 pan 할 때 world 가
+ * 같은 양만큼 커져 `viewportStart / scrollableWorld` 가 1 에 고정된다 — thumb 은 트랙 끝에
+ * 붙어 움직이지 않고 크기만 계속 줄어든다 (뷰포트 x 12,000→20,000 에서 thumb 190→120,
+ * 위치 1514→1584). 한 화면 분량으로 제한해 크기를 고정한다.
+ */
+describe("calculateWorldBounds — content 밖 overscroll", () => {
+  // 한 페이지(패딩 포함 [-200, 590])보다 좁은 뷰포트 — 확장 여부를 뷰포트 위치로만 가른다
+  const VIEW_W = 300;
+  const CONTENT_RIGHT = PAGE_WIDTH + PADDING; // 590
+
+  function worldAt(viewX: number) {
+    return calculateWorldBounds(
+      makePages(1),
+      { x: viewX, y: 0, width: VIEW_W, height: 100 },
+      PADDING,
+    );
+  }
+
+  it("content 안이면 확장하지 않는다", () => {
+    expect(worldAt(0).maxX).toBe(CONTENT_RIGHT);
+    expect(worldAt(0).minX).toBe(-PADDING);
+  });
+
+  it("경계를 살짝 넘으면 뷰포트를 그대로 포함한다", () => {
+    expect(worldAt(500).maxX).toBe(500 + VIEW_W);
+  });
+
+  it("멀리 나가면 content + 한 화면에서 멈춘다", () => {
+    expect(worldAt(20000).maxX).toBe(CONTENT_RIGHT + VIEW_W);
+  });
+
+  it("더 멀리 나가도 world 크기가 자라지 않는다 — thumb 크기 고정", () => {
+    expect(worldAt(50000).width).toBe(worldAt(20000).width);
+  });
+});

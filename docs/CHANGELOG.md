@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [캔버스 스크롤바 — 초기 갱신과 문서 밖 추종] - 2026-08-15
+
+### Bug Fixes
+
+- **로드 직후 스크롤바 thumb 이 그려지지 않던 문제 수정**:
+  - **Why**: 마운트 시점에는 `containerSize` 가 아직 0 이라 metric 계산이 null 을 돌려주고 초기 `updateThumb()` 이 아무것도 그리지 못했다. 갱신 소스 3종(뷰포트 조작 · track 리사이즈 · 패널 토글)이 전부 그 **뒤의 변화**만 알려주므로 첫 pan/zoom 전까지 thumb 이 크기 0 으로 남았다
+  - 수정: `viewportSyncStore`(containerSize/canvasSize) 구독 추가 — 값이 채워지는 순간 재계산. world 범위의 content 입력인 페이지 위치도 함께 구독해 페이지 추가·삭제·재배치가 뷰포트 조작 없이도 반영된다 (비교는 `pagePositionsVersion` 카운터 하나, 갱신은 rAF 합침)
+  - 검증: 라이브 빌더 리로드 직후 **인터랙션 0회**에서 가로 `width 102.8px` / 세로 `height 635.5px` — 종전에는 둘 다 미설정(0)
+- **문서 밖으로 pan 하면 thumb 이 계속 얇아지며 멈추던 문제 수정**:
+  - **Why**: world 를 뷰포트로 **무제한 확장**해 content 밖에서는 pan 한 만큼 world 도 같이 커졌다 — `viewportStart / scrollableWorld` 가 1 에 고정돼 thumb 이 트랙 끝에 붙은 채 크기만 줄었다 (실측 뷰포트 x 12,000→20,000: thumb 190→**120**)
+  - 수정: 확장을 **한 화면 분량**으로 제한하고, 그로 인해 뷰포트가 world 를 넘을 수 있게 되므로 thumb 크기는 트랙 길이로, 위치는 `[0, scrollableWorld]` 로 clamp
+  - 검증: 라이브 실측 — 문서 안(x 0→10,136)은 종전대로 thumb 217 고정 · 위치 28→1,459 정상 추종. 문서 밖(x 12,000→50,000)은 thumb **192 고정** · 위치 1,512 고정 (종전 192→120 축소)
+  - 위치: `apps/builder/src/builder/workspace/scrollbar/{calculateWorldBounds.ts,viewportMetrics.ts,CanvasScrollbar.tsx}`
+
 ## [캔버스 스크롤바 — 문서 전체 범위 반영] - 2026-08-15
 
 ### Bug Fixes
