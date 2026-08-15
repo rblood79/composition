@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 선택 집합 안의 요소를 우클릭하면 선택이 유지되고, 밖이면 교체된다 (빈 영역은 선택 bounds 밖일 때만 해제)
   - **Why**: 우클릭 경로가 좌클릭(`resolveClickTarget` — editingContext 경계)과 다른 자체 해석을 쓰고 무조건 단일 선택으로 덮어썼다. 두 경로를 같은 심볼로 단일화
 - **레이어 트리 컨텍스트 메뉴 배경이 투명하던 문제**: 미정의 토큰 `--bg-elevated`(정의 0건)를 쓰고 있었다 → `--bg-raised` 로 정정. 중복 정의됐던 CSS 2벌(`Workspace.css` ≡ `NodesPanel.css`)을 `@layer builder-system` 단일 스타일시트로 통합
+- **줌 메뉴의 확대 단축키 표기가 실제 바인딩과 달랐던 문제**:
+  - "확대" 가 `⌘+` 로 적혀 있었으나 실제 바인딩은 `⌘=` 다 (`+` 는 numpad 전용 `zoomInNumpad`) — `⌘+` 를 누르려면 Shift 가 필요해 안내대로 눌러도 동작하지 않았다
+  - **Why**: 표기가 `SHORTCUT_DEFINITIONS` 파생이 아니라 JSX 리터럴이라 정의 변경을 따라가지 못했다 (ADR-182 R4 가 지목한 표기-실바인딩 불일치)
+  - 수정: 줌 메뉴 5항목을 `formatShortcut(SHORTCUT_DEFINITIONS[id])` 파생으로 전환 — 위치: `apps/builder/src/builder/workspace/ZoomControls.tsx`
 
 ### Architecture
 

@@ -22,6 +22,11 @@ import {
   useViewportPresentationZoom,
 } from "./canvas/viewport/viewportPresentation";
 import { iconProps } from "../../utils/ui/uiConstants";
+import {
+  SHORTCUT_DEFINITIONS,
+  type ShortcutId,
+} from "../config/keyboardShortcuts";
+import { formatShortcut } from "../hooks";
 
 // ============================================
 // Constants
@@ -30,6 +35,20 @@ import { iconProps } from "../../utils/ui/uiConstants";
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 5;
 const ZOOM_STEP = 0.1;
+
+/**
+ * 메뉴 항목의 단축키 표기는 `SHORTCUT_DEFINITIONS` 에서 파생한다 (ADR-182 HC5).
+ *
+ * 하드코딩하면 정의가 바뀌어도 표기가 남는다 — 실제로 확대는 `⌘+` 로 적혀
+ * 있었으나 바인딩은 `cmd + =` 였다 (`+` 는 numpad 전용 `zoomInNumpad`).
+ */
+function shortcutLabel(id: ShortcutId): string {
+  const definition = SHORTCUT_DEFINITIONS[id];
+  return formatShortcut({
+    key: definition.key,
+    modifier: definition.modifier,
+  });
+}
 
 // ============================================
 // Types
@@ -207,23 +226,23 @@ export const ZoomControls = memo(function ZoomControls({
             <Menu className="zoom-menu" onAction={handleAction}>
               <MenuItem id="zoom-in" className="zoom-menu-item">
                 <span>확대</span>
-                <kbd>⌘+</kbd>
+                <kbd>{shortcutLabel("zoomIn")}</kbd>
               </MenuItem>
               <MenuItem id="zoom-out" className="zoom-menu-item">
                 <span>축소</span>
-                <kbd>⌘-</kbd>
+                <kbd>{shortcutLabel("zoomOut")}</kbd>
               </MenuItem>
               <MenuItem id="zoom-100" className="zoom-menu-item">
                 <span>100%</span>
-                <kbd>⌘1</kbd>
+                <kbd>{shortcutLabel("zoom100")}</kbd>
               </MenuItem>
               <MenuItem id="zoom-200" className="zoom-menu-item">
                 <span>200%</span>
-                <kbd>⌘2</kbd>
+                <kbd>{shortcutLabel("zoom200")}</kbd>
               </MenuItem>
               <MenuItem id="fit-to-screen" className="zoom-menu-item">
                 <span>화면에 맞추기</span>
-                <kbd>⌘0</kbd>
+                <kbd>{shortcutLabel("zoomToFit")}</kbd>
               </MenuItem>
               <MenuItem id="fill-screen" className="zoom-menu-item">
                 <span>화면 채우기</span>
