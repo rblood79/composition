@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-900 잔재 스윕 — 상시 거짓 게이트 전수 정리] - 2026-08-15
+
+> 앞선 3건(스크롤바 world 범위 · pan 추종 · registry/culling)이 모두 "PixiJS 존재를 전제한 판정이 조용히 상시 거짓/빈 값이 된다" 는 같은 병인이었다. `container` / `getBounds` / `stage` / `Application` 을 쓰는 판정을 전수 조사해 남은 것을 정리한 결과.
+
+### Bug Fixes
+
+- **WebGL 컨텍스트 손실 알림이 한 번도 표시되지 않던 문제 수정**:
+  - **Why**: `useCanvasSurfaceLifecycle` 이 `containerRef.current?.querySelector("canvas")` 로 캔버스를 찾아 `webglcontextlost` 리스너를 걸었는데, `SkiaCanvas` 는 `React.lazy` + `Suspense fallback={null}` 이라 effect 가 도는 시점에 캔버스가 **DOM 에 없어** 조기 반환했다. 유일한 재실행 신호 `appReady` 는 `setAppReady(true)` 가 PixiJS Application 초기화 콜백 안에만 있어 ADR-900 이후 **상시 false** — 리스너가 영영 등록되지 않았다. 그래서 `isContextLost` 가 늘 false 였고 `WorkspaceStatusIndicator` 의 "⚠️ GPU 리소스 복구 중" 이 표시된 적이 없다. 렌더 복구 자체는 `SkiaCanvas` 가 `watchContextLoss` 로 따로 하고 있어 무증상으로 남아 있었다
+  - 수정: 캔버스를 소유한 층이 단일 소유자 — `SkiaCanvas` 의 `watchContextLoss` 콜백이 렌더 복구(ref)와 사용자 알림(store)을 함께 발행하고, 밖에서 DOM 조회로 거는 중복 경로를 제거. 손실 상태로 unmount 되면 플래그도 해제
+  - 검증: 라이브 빌더에서 캔버스에 `webglcontextlost` 합성 dispatch → 알림 표시, `webglcontextrestored` → 해제, 이후 정상 렌더 확인. 수정 전에는 세 단계 모두 무반응
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/SkiaCanvas.tsx`, `apps/builder/src/builder/workspace/canvas/hooks/{useCanvasSurfaceLifecycle,useCanvasRuntimeBootstrap}.ts`
+- **성능 오버레이의 상시 0 지표 3줄 제거** (`Textures` / `Sprites` / `VRAM`):
+  - **Why**: PixiJS 리소스 회계 지표라 setter 3종의 호출부가 ADR-900 이후 0건이다. 성능 계측 중에 0 이 실측값처럼 읽히는 것이 오히려 해롭다
+  - 함께: 같은 필드를 읽던 `logGPUMetrics()`(호출부 0건)도 삭제. Skia 대응물이 필요하면 CanvasKit 계측을 새로 붙이고 그때 필드를 되살린다
+- **`isUnifiedFlag()` 가 모든 플래그를 true 로 돌려주던 문제 수정**:
+  - **Why**: `UNIFIED_ENGINE` 을 먼저 보고 true 면 즉시 반환하는 단락 평가라, `UNIFIED_ENGINE: true` 인 지금 표에 `false` 로 적힌 6개(`USE_DOM_HOVER` / `USE_DOM_CURSOR` / `USE_CAMERA_OBJECT` / `USE_HYBRID_TEXT` / `USE_CSS3_EFFECTS` / `USE_TILE_CACHE`)가 거짓말이었다. 그 6개는 소비자 0건이라 오늘은 무증상이지만, 새 소비자가 붙는 순간 표를 읽고 판단한 쪽과 동작이 갈린다
+  - 수정: 단락 평가 제거 — 현행 소비자 3개는 전부 `true` 선언이라 동작은 동일하고 표만 정직해진다
+  - 검증: 라이브 실측 — 거짓 플래그 **6 → 0**
+
+### Architecture
+
+- **PixiJS Container 조작 경로 제거** (`ViewportController` / `useViewportControl` / `ViewportControlBridge`):
+  - 유일한 호출부가 `app={null}` 하드코딩이라 Camera Container 탐색·attach 블록이 도달 불가였고, 그 잔재의 `isAttached()` 가 스크롤바 추종과 `panToPage` 를 막고 있었다 (직전 3건의 병인). 재발 방지를 위해 `PixiContainerLike` / `container` / `attach` / `detach` / `isAttached` 와 `app` / `cameraLabel` 옵션을 삭제
+  - `viewportActions.test.ts` 의 "attached / unattached controller" 케이스 쌍은 해당 분기가 이미 없어 같은 경로를 돌고 있었다 (이름만 정정, 값 조합이 달라 둘 다 유지)
+- **죽은 render-version 확인 응답 프로토콜 제거**:
+  - store 렌더 버전을 PixiJS 렌더러가 확인 응답하고 그 격차로 동기화 이탈을 감지하던 구조인데 양 끝이 끊겨 있었다 — `incrementRenderVersion` 호출부 0건 → `renderVersion` 0 고정, 유일한 `syncPixiVersion` 호출부는 그 0 을 되비추는 미러 → 판정식 `0 - 0 > 2` 가 **구조상 항상 false**
+  - 삭제: `renderVersion` / `lastPixiRenderVersion` / `incrementRenderVersion` / `syncPixiVersion` / `selectIsSyncMismatch` / `detectSyncMismatch`
+
+### Documentation
+
+- **사실과 다른 주석 정정** — 오진 유발 지점:
+  - `selectionRenderer` — 엣지 핸들 판정은 "PixiJS 히트 영역" 이 아니라 `selection/types.ts::hitTestHandle` 의 좌표 계산이다
+  - `Workspace` 비교 모드 — "iframe + PixiJS 동시 표시" → Preview iframe + Skia
+  - `gpu/GPUBackend.ts` — **미배선이지만 의도된 보존** 명시. ADR-900 §Positive 가 WebGPU 전환 경로로 채택한 추상화이므로 참조 0건 grep 으로 지우면 안 된다. `CanvasKitWebGLBackend.watchContextLoss` 가 살아 있는 손실 경로의 미배선 사본이라는 점도 함께 기록
+
 ## [뷰포트 실시간 상태 판정 — pan 중 스크롤바·panToPage 복구] - 2026-08-15
 
 ### Bug Fixes
