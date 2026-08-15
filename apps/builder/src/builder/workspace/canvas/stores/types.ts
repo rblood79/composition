@@ -1,7 +1,8 @@
 export interface GPUMetrics {
-  vramUsed: number;
-  textureCount: number;
-  spriteCount: number;
+  // `vramUsed` / `textureCount` / `spriteCount` 는 삭제됐다 (2026-08-15).
+  //   PixiJS 리소스 회계 지표였고 ADR-900 이후 setter 호출부가 0건이라 상시 0 —
+  //   그 값이 성능 오버레이에 3줄로 표시되고 있었다. Skia 대응물이 필요하면
+  //   CanvasKit 쪽 계측을 새로 붙이고 그때 필드를 추가한다.
   lastFrameTime: number;
   averageFps: number;
   boundsLookupAvgMs: number;

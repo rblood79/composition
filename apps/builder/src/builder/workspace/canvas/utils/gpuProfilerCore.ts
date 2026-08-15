@@ -140,21 +140,9 @@ export function calculateFpsFromFrameTimes(
 
 export const gpuProfiler = new GPUProfiler();
 
-// ============================================
-// Texture Tracking Utilities
-// ============================================
-
-export function updateTextureCount(count: number): void {
-  useCanvasMetricsStore.getState().updateGPUMetrics({ textureCount: count });
-}
-
-export function updateSpriteCount(count: number): void {
-  useCanvasMetricsStore.getState().updateGPUMetrics({ spriteCount: count });
-}
-
-export function updateVRAMUsage(bytes: number): void {
-  useCanvasMetricsStore.getState().updateGPUMetrics({ vramUsed: bytes });
-}
+// `updateTextureCount` / `updateSpriteCount` / `updateVRAMUsage` 는 삭제됐다
+//   (2026-08-15). PixiJS 리소스 회계용이었고 ADR-900 이후 호출부가 0건이라
+//   대응 필드가 상시 0인 채로 성능 오버레이에 표시되고 있었다.
 
 // ============================================
 // WASM Benchmark Utilities (§0.2)

@@ -8,11 +8,15 @@
  */
 
 // Main Components
-export { Workspace } from './Workspace';
-export { BuilderCanvas, BuilderCanvasWithFlag } from './canvas/BuilderCanvas';
+export { Workspace } from "./Workspace";
+export { BuilderCanvas, BuilderCanvasWithFlag } from "./canvas/BuilderCanvas";
 
 // Stores
-export { useCanvasSyncStore, type CanvasSyncState, type GPUMetrics } from './canvas/canvasSync';
+export {
+  useCanvasSyncStore,
+  type CanvasSyncState,
+  type GPUMetrics,
+} from "./canvas/canvasSync";
 export {
   useViewportSyncStore,
   useCanvasLifecycleStore,
@@ -21,7 +25,7 @@ export {
   type CanvasLifecycleState,
   type CanvasMetricsState,
   type CanvasViewportSnapshot,
-} from './canvas/stores';
+} from "./canvas/stores";
 export {
   useCanvasStore,
   useCanvasElements,
@@ -29,24 +33,18 @@ export {
   useCanvasSelectedElementIds,
   useCanvasUpdateElement,
   useCanvasSetSelectedElement,
-} from '../stores/canvasStore'; // B2.4: Direct Zustand Access (moved to stores/)
+} from "../stores/canvasStore"; // B2.4: Direct Zustand Access (moved to stores/)
 
 // Utils
-export {
-  gpuProfiler,
-  useGPUProfiler,
-  updateTextureCount,
-  updateSpriteCount,
-  updateVRAMUsage,
-} from './canvas/utils/gpuProfilerCore';
+export { gpuProfiler, useGPUProfiler } from "./canvas/utils/gpuProfilerCore";
 
-export { GPUDebugOverlay } from './canvas/utils/GPUDebugOverlay';
+export { GPUDebugOverlay } from "./canvas/utils/GPUDebugOverlay";
 
 // Sprites (B1.2)
-export * from './canvas/sprites';
+export * from "./canvas/sprites";
 
 // Selection (B1.3)
-export * from './canvas/selection';
+export * from "./canvas/selection";
 
 // Text Edit Overlay (B1.5)
-export * from './overlay';
+export * from "./overlay";

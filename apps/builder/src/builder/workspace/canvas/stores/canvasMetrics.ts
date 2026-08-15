@@ -9,9 +9,6 @@ export interface CanvasMetricsState {
 }
 
 const initialGPUMetrics: GPUMetrics = {
-  vramUsed: 0,
-  textureCount: 0,
-  spriteCount: 0,
   lastFrameTime: 0,
   averageFps: 0,
   boundsLookupAvgMs: 0,

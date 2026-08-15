@@ -80,9 +80,9 @@ export function GPUDebugOverlay() {
       <div>Content/s: {gpuMetrics.contentRendersPerSec.toFixed(2)}</div>
       <div>Registry/s: {gpuMetrics.registryChangesPerSec.toFixed(2)}</div>
       <div>Idle: {(gpuMetrics.idleFrameRatio * 100).toFixed(0)}%</div>
-      <div>Textures: {gpuMetrics.textureCount}</div>
-      <div>Sprites: {gpuMetrics.spriteCount}</div>
-      <div>VRAM: {(gpuMetrics.vramUsed / 1024 / 1024).toFixed(1)}MB</div>
+      {/* Textures / Sprites / VRAM 3줄은 삭제됐다 (2026-08-15) — PixiJS 리소스
+          회계 지표라 ADR-900 이후 writer 가 없어 **상시 0** 이었다. 성능 계측
+          중에 0 이 실측값처럼 읽히는 것이 오히려 해로웠다. */}
       {missReasonLines.map((line) => (
         <div key={line}>{line}</div>
       ))}

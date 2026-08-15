@@ -54,7 +54,18 @@ export const UNIFIED_ENGINE_FLAGS = {
 
 export type UnifiedEngineFlag = keyof typeof UNIFIED_ENGINE_FLAGS;
 
+/**
+ * 선언된 플래그 값을 그대로 돌려준다.
+ *
+ * **Why (2026-08-15)**: 구 구현은 `if (UNIFIED_ENGINE_FLAGS.UNIFIED_ENGINE) return true;`
+ * 로 시작해 `UNIFIED_ENGINE: true` 인 지금 **모든 플래그가 true 로 읽혔다** — 위 표에
+ * `false` 로 적힌 6개(USE_DOM_HOVER / USE_DOM_CURSOR / USE_CAMERA_OBJECT /
+ * USE_HYBRID_TEXT / USE_CSS3_EFFECTS / USE_TILE_CACHE)가 거짓말이었다는 뜻이다.
+ * 오늘은 그 6개의 소비자가 0건이라 무증상이지만, 새 소비자가 붙는 순간 표를 읽고
+ * "꺼져 있다" 고 판단한 쪽과 실제 동작이 갈린다. 현행 소비자 3개
+ * (UNIFIED_ENGINE / USE_RUST_LAYOUT_ENGINE / REMOVE_PIXI)는 전부 `true` 선언이라
+ * 단락 평가를 걷어내도 동작은 동일하다.
+ */
 export function isUnifiedFlag(flag: UnifiedEngineFlag): boolean {
-  if (UNIFIED_ENGINE_FLAGS.UNIFIED_ENGINE) return true;
   return UNIFIED_ENGINE_FLAGS[flag];
 }
