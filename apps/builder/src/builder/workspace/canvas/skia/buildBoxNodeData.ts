@@ -20,7 +20,7 @@ import {
   parseTransformOrigin,
   cssColorToAlpha,
   colorIntToFloat32,
-} from "../sprites/styleConverter";
+} from "../styleConversion/styleConverter";
 import {
   parseZIndex,
   createsStackingContext,
@@ -274,7 +274,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
       ? (borderStyleRaw as BorderStyleValue)
       : undefined;
 
-  // Stroke — PixiStrokeStyle (color, width, alpha)
+  // Stroke — RenderStrokeStyle (color, width, alpha)
   const strokeColor =
     !suppressBorder && stroke?.color
       ? Float32Array.of(

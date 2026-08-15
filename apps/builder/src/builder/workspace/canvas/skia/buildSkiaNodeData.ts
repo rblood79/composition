@@ -18,7 +18,7 @@ import {
   buildSkiaEffects,
   parseClipPath,
   colorIntToFloat32,
-} from "../sprites/styleConverter";
+} from "../styleConversion/styleConverter";
 import {
   parseZIndex,
   createsStackingContext,

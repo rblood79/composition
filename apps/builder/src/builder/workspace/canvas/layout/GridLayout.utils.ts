@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from "react";
 import type { CanvasLayoutNode } from "./layoutNode";
-import type { CSSStyle } from "../sprites/styleConverter";
+import type { CSSStyle } from "../styleConversion/styleConverter";
 
 /**
  * CSS Grid 스타일 속성

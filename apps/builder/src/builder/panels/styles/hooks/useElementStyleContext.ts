@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { resolveComponentRule, type BreakpointName } from "@composition/shared";
-import { getSpecForTag } from "../../../workspace/canvas/sprites/tagSpecMap";
+import { getSpecForTag } from "../../../workspace/canvas/styleConversion/tagSpecMap";
 import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
 import { mergePropsWithStyleDeep } from "../../../../adapters/canonical/instanceResolver";
 import { useStore } from "../../../stores";

@@ -3,7 +3,7 @@ import type {
   Image as SkImage,
   Paragraph,
 } from "canvaskit-wasm";
-import type { ClipPathShape } from "../sprites/styleConverter";
+import type { ClipPathShape } from "../styleConversion/styleConverter";
 import type {
   DropShadowEffect,
   EffectStyle,

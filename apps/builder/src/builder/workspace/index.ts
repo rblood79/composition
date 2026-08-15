@@ -40,8 +40,8 @@ export { gpuProfiler, useGPUProfiler } from "./canvas/utils/gpuProfilerCore";
 
 export { GPUDebugOverlay } from "./canvas/utils/GPUDebugOverlay";
 
-// Sprites (B1.2)
-export * from "./canvas/sprites";
+// Style conversion (CSS → 렌더 속성)
+export * from "./canvas/styleConversion";
 
 // Selection (B1.3)
 export * from "./canvas/selection";

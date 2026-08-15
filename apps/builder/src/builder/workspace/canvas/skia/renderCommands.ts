@@ -16,7 +16,7 @@ import type {
   Image as SkImage,
 } from "canvaskit-wasm";
 import type { SkiaNodeData } from "./nodeRenderers";
-import type { ClipPathShape } from "../sprites/styleConverter";
+import type { ClipPathShape } from "../styleConversion/styleConverter";
 import type { EffectStyle, MaskImageStyle } from "./types";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { BoundingBox } from "../selection/types";

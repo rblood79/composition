@@ -25,7 +25,7 @@ import { hexToColor4fChannels } from "./themeWatcher";
 import {
   parseTextDecoration,
   parseDecorationColor,
-} from "../sprites/styleConverter";
+} from "../styleConversion/styleConverter";
 
 // ========== Helpers ==========
 

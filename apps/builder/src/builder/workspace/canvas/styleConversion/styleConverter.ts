@@ -1,9 +1,12 @@
 /**
  * Style Converter
  *
- * 🚀 Phase 10 B1.2: CSS Style → PixiJS 속성 변환
+ * CSS Style → 렌더 속성(transform / fill / stroke / text) 변환.
  * 🚀 P7: StylePanel ↔ Canvas 스타일 동기화 확장
  * 🚀 Phase 22: colord 기반 색상 파싱 통합
+ *
+ * 반환 타입은 `Render*` 다 — 구 이름 `Pixi*` 는 ADR-900 이전 잔재였고
+ * 실제 소비처는 Skia 렌더 경로다 (2026-08-15 정정).
  *
  * @since 2025-12-11 Phase 10 B1.2
  * @updated 2025-12-13 P7.2-P7.6 - 타이포그래피 속성 확장
@@ -115,7 +118,7 @@ export interface CSSStyle {
   clipPath?: string;
 }
 
-export interface PixiTransform {
+export interface RenderTransform {
   x: number;
   y: number;
   width: number;
@@ -125,18 +128,18 @@ export interface PixiTransform {
   scaleY?: number;
 }
 
-export interface PixiFillStyle {
+export interface RenderFillStyle {
   color: number;
   alpha: number;
 }
 
-export interface PixiStrokeStyle {
+export interface RenderStrokeStyle {
   width: number;
   color: number;
   alpha: number;
 }
 
-export interface PixiTextStyle {
+export interface RenderTextStyle {
   fontFamily: string;
   fontSize: number;
   fontWeight: string;
@@ -616,7 +619,9 @@ export function parseCSSSize(
 /**
  * CSS 스타일을 PixiJS Transform으로 변환
  */
-export function convertToTransform(style: CSSStyle | undefined): PixiTransform {
+export function convertToTransform(
+  style: CSSStyle | undefined,
+): RenderTransform {
   if (!style) {
     return { x: 0, y: 0, width: 100, height: 100 };
   }
@@ -638,7 +643,7 @@ export function convertToTransform(style: CSSStyle | undefined): PixiTransform {
 export function convertToFillStyle(
   style: CSSStyle | undefined,
   resolvedColor?: string,
-): PixiFillStyle {
+): RenderFillStyle {
   const bg =
     style?.backgroundColor ??
     ((style as Record<string, unknown> | undefined)?.background as
@@ -664,7 +669,7 @@ export function convertToFillStyle(
 export function convertToStrokeStyle(
   style: CSSStyle | undefined,
   resolvedColor?: string,
-): PixiStrokeStyle | null {
+): RenderStrokeStyle | null {
   if (!style?.borderWidth && !style?.borderColor) {
     return null;
   }
@@ -683,7 +688,7 @@ export function convertToStrokeStyle(
 export function convertToTextStyle(
   style: CSSStyle | undefined,
   containerWidth = 100,
-): PixiTextStyle {
+): RenderTextStyle {
   const fontSize = parseCSSSize(style?.fontSize, undefined, 16);
 
   // P7.4: lineHeight → leading 변환
@@ -1027,10 +1032,10 @@ export function convertBorderRadius(
 // ============================================
 
 export interface ConvertedStyle {
-  transform: PixiTransform;
-  fill: PixiFillStyle;
-  stroke: PixiStrokeStyle | null;
-  text: PixiTextStyle;
+  transform: RenderTransform;
+  fill: RenderFillStyle;
+  stroke: RenderStrokeStyle | null;
+  text: RenderTextStyle;
   borderRadius: number | [number, number, number, number];
 }
 

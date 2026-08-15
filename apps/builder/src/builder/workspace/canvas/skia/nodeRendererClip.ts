@@ -1,5 +1,5 @@
 import type { CanvasKit } from "canvaskit-wasm";
-import type { ClipPathShape } from "../sprites/styleConverter";
+import type { ClipPathShape } from "../styleConversion/styleConverter";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 
 export function sortByStackingOrder(children: SkiaNodeData[]): SkiaNodeData[] {

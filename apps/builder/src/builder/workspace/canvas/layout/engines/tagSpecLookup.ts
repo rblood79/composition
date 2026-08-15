@@ -14,7 +14,7 @@
  */
 
 import type { ComponentSpec } from "@composition/specs";
-import { TAG_SPEC_MAP } from "../../sprites/tagSpecMap";
+import { TAG_SPEC_MAP } from "../../styleConversion/tagSpecMap";
 
 /**
  * lowercase type → ComponentSpec 즉시 lookup.

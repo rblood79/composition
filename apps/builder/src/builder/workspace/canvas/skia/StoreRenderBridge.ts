@@ -39,7 +39,7 @@ import { useStore } from "../../../stores";
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
 import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
 import { getSkImage, loadSkImage, releaseSkImage } from "./imageCache";
-import { getSpecForTag, IMAGE_TAGS } from "../sprites/tagSpecMap";
+import { getSpecForTag, IMAGE_TAGS } from "../styleConversion/tagSpecMap";
 import { onLayoutPublished } from "../layout";
 import { getSyntheticElementsMap } from "../layout/engines/fullTreeLayout";
 import type { TransitionManager } from "./transitionManager";

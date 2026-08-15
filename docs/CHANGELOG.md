@@ -60,6 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **미사용 `Camera` 클래스 삭제** (`viewport/Camera.ts`, 참조 0건):
   - ADR-900 breakdown 이 "PixiJS Container → Camera 클래스" 로 계획했으나(`USE_CAMERA_OBJECT`) 실제 구현은 `viewportState` 뮤터블 ref + `ViewportController` 로 갔다 — 목표는 달성됐고 이 파일만 남았다. `gpu/GPUBackend.ts` 와 달리 ADR 이 이득으로 채택한 보존 대상이 아니다
 
+- **`canvas/sprites/` → `canvas/styleConversion/` 리네임**:
+  - ADR-100 Phase 9 에서 PixiJS Sprite 컴포넌트(BoxSprite / TextSprite / ImageSprite / ElementSprite)가 전부 삭제되고 `styleConverter` / `paddingUtils` / `tagSpecMap` 만 남았는데 디렉터리 이름은 그대로였다 — **스프라이트가 하나도 없는 sprites 디렉터리**
+  - 같은 이유로 반환 타입 4개도 `Pixi*` → `Render*` (`RenderTransform` / `RenderFillStyle` / `RenderStrokeStyle` / `RenderTextStyle`). 실제 소비처는 Skia 렌더 경로다
+  - `skia/` 안으로 넣지 않은 이유: 소비처가 Skia 렌더 경로와 **레이아웃 경로 양쪽**이라 렌더러 하위에 두면 의존 방향이 뒤집힌다
+  - 함께: `legacyCanvasSurfaces.static.test.ts` 의 삭제-파일 가드가 옛 경로만 검사해 디렉터리 소멸 후 공허하게 통과할 뻔한 것을 신·구 경로 병기로 보강
+  - 검증: 라이브 실측 — 실행 중 빌더가 새 경로 모듈을 로드(`styleConversion/styleConverter.ts`), 번들에 `sprites` 0건, `convertStyle("#3b82f6", radius 8px)` → `0x3B82F6` / `8` 정상, 레이아웃 엔트리 640건 유지, 콘솔 에러 0
+  - 참고: 아카이브 CHANGELOG·완료 ADR 의 `sprites/` 경로 언급은 **이미 삭제된 파일**(ElementSprite 등)을 가리키는 과거 기록이라 그대로 둔다
+
 ### Documentation
 
 - **사실과 다른 주석 정정** — 오진 유발 지점:

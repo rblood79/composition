@@ -13,7 +13,7 @@ import {
   cssColorToAlpha,
   parseCSSSize,
   type CSSStyle,
-} from '../sprites/styleConverter';
+} from '../styleConversion/styleConverter';
 
 // ============================================
 // Types

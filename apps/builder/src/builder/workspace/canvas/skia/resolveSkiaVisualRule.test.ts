@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { isCatalogCutover } from "@composition/shared";
-import { getSpecForTag } from "../sprites/tagSpecMap";
+import { getSpecForTag } from "../styleConversion/tagSpecMap";
 import {
   resolveSkiaVisualRule,
   resolveSkiaRule,

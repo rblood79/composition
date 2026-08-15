@@ -50,7 +50,7 @@ import {
   resolveSkiaRule,
   ruleSizeToSizeSpec,
 } from "./resolveSkiaVisualRule";
-import { getSpecForTag } from "../sprites/tagSpecMap";
+import { getSpecForTag } from "../styleConversion/tagSpecMap";
 import { specShapesToSkia } from "./specShapeConverter";
 import {
   withAccentOverride,
@@ -78,7 +78,7 @@ import {
   parseTextDecoration,
   parseDecorationColor,
   buildSkiaEffects,
-} from "../sprites/styleConverter";
+} from "../styleConversion/styleConverter";
 import {
   rearrangeShapesForColumn,
   measureSpecTextMinHeight,

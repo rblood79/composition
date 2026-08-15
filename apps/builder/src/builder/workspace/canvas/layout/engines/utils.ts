@@ -101,7 +101,7 @@ import type { CSSValueContext, CSSVariableScope } from "./cssValueParser";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
 import type { ComputedStyle } from "./cssResolver";
 import type { LayoutContext } from "./LayoutEngine";
-import { applyTextTransform } from "../../sprites/styleConverter";
+import { applyTextTransform } from "../../styleConversion/styleConverter";
 import { getImageNaturalDimensions } from "../../skia/imageCache";
 import {
   parseAspectRatio,

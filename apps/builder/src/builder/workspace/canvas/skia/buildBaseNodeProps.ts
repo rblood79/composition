@@ -9,15 +9,15 @@
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { EffectStyle } from "./types";
-import type { ClipPathShape } from "../sprites/styleConverter";
-import type { ConvertedStyle } from "../sprites/styleConverter";
+import type { ClipPathShape } from "../styleConversion/styleConverter";
+import type { ConvertedStyle } from "../styleConversion/styleConverter";
 import {
   convertStyle,
   buildSkiaEffects,
   parseClipPath,
   applyTransformOrigin,
   parseTransformOrigin,
-} from "../sprites/styleConverter";
+} from "../styleConversion/styleConverter";
 import {
   parseZIndex,
   createsStackingContext,

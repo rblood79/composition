@@ -38,7 +38,7 @@ import {
 import { REUSABLE_ORIGIN_ENSURERS } from "@/builder/components/reusableCompositeOrigins";
 import { getPaletteItems } from "@/builder/panels/components/paletteItems";
 import { TAG_SPEC_MAP } from "@composition/specs";
-import { TAG_SPEC_MAP as BUILDER_TAG_SPEC_MAP } from "@/builder/workspace/canvas/sprites/tagSpecMap";
+import { TAG_SPEC_MAP as BUILDER_TAG_SPEC_MAP } from "@/builder/workspace/canvas/styleConversion/tagSpecMap";
 import { ComponentFactory } from "@/builder/factories/ComponentFactory";
 import { ENTRY_DERIVED_DEFAULT_TYPES } from "@/types/builder/defaultPropsDerivation";
 import { DEFAULT_PROPS_MAP } from "@/types/builder/unified.types";
