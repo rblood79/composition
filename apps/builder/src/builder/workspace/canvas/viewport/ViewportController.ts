@@ -204,6 +204,10 @@ export class ViewportController {
       this.currentState.y === y &&
       this.currentState.scale === scale
     ) {
+      // 초기 mirror 동기화가 기본값과 같아도 controller가 실제 뷰포트를
+      // 반영하고 있다는 사실은 기록해야 한다. 그렇지 않으면 panToPage와
+      // workflow pan이 hasLiveState() guard에서 early return한다.
+      this.stateIsLive = true;
       return false;
     }
 

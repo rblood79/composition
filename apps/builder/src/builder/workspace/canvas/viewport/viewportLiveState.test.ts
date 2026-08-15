@@ -32,6 +32,13 @@ describe("ViewportController.hasLiveState", () => {
 
     expect(controller.hasLiveState()).toBe(true);
   });
+
+  it("초기값과 같은 setPosition도 live 상태를 seed 한다", () => {
+    const controller = getViewportController();
+
+    expect(controller.setPosition(0, 0, 1)).toBe(false);
+    expect(controller.hasLiveState()).toBe(true);
+  });
 });
 
 describe("getViewportAuthoritativeState", () => {

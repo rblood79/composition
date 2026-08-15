@@ -47,7 +47,10 @@ class GPUProfiler {
     this.frameTimes = [];
 
     if (this.config.autoUpdate) {
-      this.tick();
+      // 첫 샘플은 start() 직후의 동기 호출이 아니라 다음 rAF에서 측정한다.
+      // 동기 tick()은 거의 0ms인 delta를 기록해 native refresh cadence를
+      // 실제보다 높게 계산한다.
+      this.rafId = requestAnimationFrame(this.tick);
     }
   }
 
