@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [history coverage 계약 — ADR-185 Phase 0~2] - 2026-08-15
+
+### Architecture
+
+- **mutation 의 undo 기록 의무화 — 러너 history 스테이지 필수 union** (ADR-185 Phase 0~2 Implemented):
+  - 사용자-가시 mutation 이 history entry 없이 출시되는 계열이 4회 재발 (요소 move 과거 미기록 / 복합 생성 dead saveSnapshot / ADR-181 가이드 사후 편입 / 페이지 생성·삭제 — 실패가 조용해 발견 시점이 항상 "사용자가 undo 를 눌렀는데 무반응")
+  - **Why**: history 기록이 호출부별 opt-in — 순서는 ADR-184 러너가 소유했지만 기록 **존재 여부**는 무계약이었다
+  - `runCanonicalMutation` 의 `history` 를 optional → **required union** (`(result) => void` 또는 `{ skip: 사유 }`) 으로 강화 — 신규 mutation 의 조용한 미기록이 타입 에러로 전환, 빈 skip 사유는 진입 시점 throw (fail-fast). 정당한 생략 (preview transient / silent live edit / preview ingress) 은 사유와 함께 1급 표현
+  - Phase 0 전수 감사: ADR-184 인벤토리 26 지점 분류 (기록함 15 / 의도적 생략 5 / 비-mutation 5 / gap 1) — gap 목록은 ADR-185 breakdown §4 가 수리 백로그 정본
+  - 검증: RED 4 실측 → 347 tests PASS + live undo exercise (Select 추가 → Cmd+Z 완전 원상)
+  - 위치: `apps/builder/src/adapters/canonical/canonicalMutationRunner.ts`, `.claude/rules/state-management.md`
+
+- **Known gap (G-1, 미수리 — 별도 작업)**: 페이지 생성/삭제는 현재 undo 불가 — `appendPageShell`/`removePageLocal` (stores/elements.ts) 가 history entry 를 기록하지 않는다 (호출자 포함 0건). 수리는 ADR-185 비스코프 (사용자 결정 2026-08-15 "계약만 — 수리는 별도"), breakdown §4-2 백로그 참조
+
 ## [복합 컴포넌트 생성 undo 복구 — factories addElementsToStore] - 2026-08-15
 
 ### Bug Fixes

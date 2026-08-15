@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted — 2026-08-15 (리뷰 round 1 승인 — 이슈 1건 LOW `fixed`, HIGH/CRITICAL 0. reviews/185.md)
+Implemented — 2026-08-15
+
+- 리뷰 round 1 승인 (이슈 1건 LOW `fixed`, HIGH/CRITICAL 0 — reviews/185.md) → Accepted → 당일 Phase 0~2 종결
+- **Phase 0** (G1 PASS): ADR-184 인벤토리 26 지점 전수 분류 — 기록함 15 / 의도적 생략 5 / 비-mutation 5 / gap 소속 1. gap = G-1 (페이지 생성/삭제) 단독, breakdown §4 freeze. G-2 후보 (resetInstanceOverrideField) 는 `addEntry` :950 실측으로 기각
+- **Phase 1** (G2 PASS): 러너 `history` required union (`(result) => void` | `{ skip: 사유 }`) + 빈 사유 fail-fast throw. RED 4 failed 실측 → GREEN 347 tests + type-check 0 신규 위반. live exercise — Select 추가 canonical 85→90/store 77→82 → Cmd+Z 완전 원상 (85/77)
+- **Phase 2** (G3 PASS): state-management.md 계약 문단 + gap 목록 링크, iframe ingress 생략 사유 주석, CHANGELOG (계약 도입 + Known gap)
 
 ## Context
 
@@ -17,7 +22,7 @@ Accepted — 2026-08-15 (리뷰 round 1 승인 — 이슈 1건 LOW `fixed`, HIGH
 | 3   | 수동 가이드 (ADR-181) | 출시 후 사후 편입                                                  | `b2172cc91` "수동 가이드 히스토리 편입"                                                                                                                                                                                           |
 | 4   | **페이지 생성/삭제**  | **현재도 미기록 — undo 불가**                                      | `stores/elements.ts:1264` (`appendPageShell`) / `:1317` (`removePageLocal`) — entry 기록 0건 (`setCurrentPage` 컨텍스트 전환만 존재). entry 유형에 `page-position`(ADR-177)/`page-guide`(ADR-181) 는 있으나 페이지 생성·삭제 없음 |
 
-**구조 원인**: history 기록은 호출부별 opt-in 이고 누락 방어선이 없다. CLAUDE.md 파이프라인 (Memory → Index → **History** → DB) 에서 순서는 [ADR-184](completed/184-canonical-mutation-runner.md) 러너가 소유하게 됐지만, history 스테이지의 **존재 여부**는 여전히 무계약이다 (`canonicalMutationRunner.ts:88` — `history?:` optional).
+**구조 원인**: history 기록은 호출부별 opt-in 이고 누락 방어선이 없다. CLAUDE.md 파이프라인 (Memory → Index → **History** → DB) 에서 순서는 [ADR-184](184-canonical-mutation-runner.md) 러너가 소유하게 됐지만, history 스테이지의 **존재 여부**는 여전히 무계약이다 (`canonicalMutationRunner.ts:88` — `history?:` optional).
 
 **의도적 생략은 실재한다** — 그래서 계약은 "전수 기록 강제" 가 아니라 "생략은 명시 사유" 형태여야 한다:
 
@@ -27,7 +32,7 @@ Accepted — 2026-08-15 (리뷰 round 1 승인 — 이슈 1건 LOW `fixed`, HIGH
 
 **SSOT 3-domain 판정**: D1/D2/D3 어느 것에도 관여하지 않는다 — builder-system layer 의 상태 관리 파이프라인 계약 (ADR-163 과 같은 위상). catalog/spec/Generator 확장 없음.
 
-**Fork checkpoint**: ADR-184 (base) 의 응용 확장 — 4 질문 lock-in 과 사용자 confirm (2026-08-15, "계약만 — 수리는 별도") 은 [design breakdown §1](design/185-history-coverage-contract-breakdown.md) 에 기록.
+**Fork checkpoint**: ADR-184 (base) 의 응용 확장 — 4 질문 lock-in 과 사용자 confirm (2026-08-15, "계약만 — 수리는 별도") 은 [design breakdown §1](../design/185-history-coverage-contract-breakdown.md) 에 기록.
 
 **Hard Constraints**:
 
@@ -98,7 +103,7 @@ Accepted — 2026-08-15 (리뷰 round 1 승인 — 이슈 1건 LOW `fixed`, HIGH
 - **대안 A 기각**: 재발 차단 장치가 없다 — 실증 1~3 이 이 방식의 결과이고, 실증 4 (페이지) 는 이 방식으로는 발견조차 안 되던 현재형 gap 이다.
 - **대안 C 기각**: mutation/비-mutation 구분 신호 부재로 오탐 관리 비용 (mute 목록 = 제 2 allowlist) 이 계약 가치를 잠식한다. 타입 집행 (B) 이 신규 경로를 막은 뒤에도 필요성이 남으면 후속 판정.
 
-> 구현 상세: [185-history-coverage-contract-breakdown.md](design/185-history-coverage-contract-breakdown.md)
+> 구현 상세: [185-history-coverage-contract-breakdown.md](../design/185-history-coverage-contract-breakdown.md)
 
 ## Risks
 

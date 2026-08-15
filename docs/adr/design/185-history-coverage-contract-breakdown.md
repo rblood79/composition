@@ -1,7 +1,7 @@
 # ADR-185 Design Breakdown: history coverage 계약
 
-> 본문: [185-history-coverage-contract.md](../185-history-coverage-contract.md)
-> 상태: Proposed — 2026-08-15
+> 본문: [185-history-coverage-contract.md](../completed/185-history-coverage-contract.md)
+> 상태: **Implemented 2026-08-15** — Phase 0~2 당일 종결 (G1 26지점 전수 분류 / G2 RED→GREEN+live undo / G3 문서 집행). gap 수리 (G-1 페이지 생성·삭제) 는 비스코프 백로그
 
 ## 1. Fork checkpoint 4 질문 lock-in (adr-writing.md — 사용자 confirm 2026-08-15)
 
@@ -56,7 +56,7 @@ interface CanonicalMutationStages<TResult> {
   - 기존 8건 PASS (history 생략형 케이스는 위 skip 반영 후)
 - live behavior: 파일럿 경로 1회 exercise — 복합 컴포넌트 추가 → Cmd+Z 제거 확인 (기존 동작 불변).
 
-### Phase 2 — 규칙 문서 집행 + gap 목록 정본화 → G3
+### Phase 2 — 규칙 문서 집행 + gap 목록 정본화 → G3 ✅ Implemented 2026-08-15 (state-management.md 계약 문단 + iframe ingress skip 사유 주석 + CHANGELOG)
 
 - `.claude/rules/state-management.md` §"신규 mutation 은 러너 경유" 절에 history 계약 1문단 추가: "history 스테이지는 필수 — 기록하지 않으면 `{ skip: 사유 }` 명시" + 본 ADR / gap 목록 링크.
 - 신규 정적 가드 **신설 없음** — 신규 파일의 러너 경유는 ADR-184 `canonicalMutationRunner.static.test.ts` 가 이미 강제하고, 러너 진입 후의 기록 여부는 Phase 1 타입이 집행한다 (RED 대체 = `@ts-expect-error` 테스트).

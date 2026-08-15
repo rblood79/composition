@@ -216,6 +216,8 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
 
     // (ADR-128) cloud `elements` row persistence 제거. canonical document
     // mutation 만으로 IndexedDB persistence 흐름 완결.
+    // history 미기록 (ADR-185 의도적 생략) — preview 런타임 생성물의 ingress
+    // 로, builder 사용자 편집이 아니라 undo 단위를 만들지 않는다.
     mergeElementsCanonicalPrimary(queuedElements);
   }, []);
 
