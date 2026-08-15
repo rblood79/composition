@@ -46,7 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PixiJS Container 조작 경로 제거** (`ViewportController` / `useViewportControl` / `ViewportControlBridge`):
   - 유일한 호출부가 `app={null}` 하드코딩이라 Camera Container 탐색·attach 블록이 도달 불가였고, 그 잔재의 `isAttached()` 가 스크롤바 추종과 `panToPage` 를 막고 있었다 (직전 3건의 병인). 재발 방지를 위해 `PixiContainerLike` / `container` / `attach` / `detach` / `isAttached` 와 `app` / `cameraLabel` 옵션을 삭제
   - `viewportActions.test.ts` 의 "attached / unattached controller" 케이스 쌍은 해당 분기가 이미 없어 같은 경로를 돌고 있었다 (이름만 정정, 값 조합이 달라 둘 다 유지)
-  - 후속: `REMOVE_PIXI` 플래그도 삭제 — 유일한 소비처였던 `handlePixiAppInit`(PixiJS ticker 정지 + 배경 alpha 0)가 함께 사라져 소비자 0건이 됐다. PixiJS 제거 완료 사실은 ADR-900 과 본 CHANGELOG 가 기록하며, 소비자 없는 플래그로 중복 보관하면 "토글할 수 있는 것" 으로 잘못 읽힌다
+- **`UNIFIED_ENGINE_FLAGS` 표를 실소비자 있는 2개로 축소** (10 → 2):
+  - 삭제한 8개는 전부 **소비자 0건**이었다 — `REMOVE_PIXI`(유일 소비처 `handlePixiAppInit` 가 상시 false 게이트의 출처로 밝혀져 함께 제거됨) · `USE_DOM_HOVER` · `USE_DOM_CURSOR` · `USE_CAMERA_OBJECT` · `USE_SCENE_GRAPH` · `USE_HYBRID_TEXT` · `USE_CSS3_EFFECTS` · `USE_TILE_CACHE`
+  - **Why**: 전환 계획과 완료 사실은 ADR-100/900 과 본 CHANGELOG 가 기록한다. 소비자 없는 플래그로 중복 보관하면 "토글할 수 있는 것" 으로 잘못 읽힌다 — 실제로 `USE_CAMERA_OBJECT` 는 같은 날 삭제된 `viewport/Camera.ts` 를, `REMOVE_PIXI` 는 이미 사라진 PixiJS ticker 정지 경로를 가리키고 있었다. 남은 2개(`USE_RUST_LAYOUT_ENGINE` / `UNIFIED_ENGINE`)는 실소비처가 있어서 남는다
+  - 함께: `false` 항목이 표에서 사라져 **단락 평가 회귀를 값 비교로는 더 이상 잡을 수 없게 됐다**(전부 true 면 결과가 같다). 소스 텍스트 가드로 대체하고, `false` 플래그가 재도입되면 값 비교가 자동으로 다시 물리도록 남겨 뒀다. 민감도 실측 — 단락 평가를 되살리면 값 비교 4건은 통과하고 소스 가드만 RED
+  - 검증: 라이브 실측 — 플래그 키 2개, 두 소비처 모두 `true` 수신, WASM 레이아웃 엔트리 **640건**(실제 치수) 산출로 `USE_RUST_LAYOUT_ENGINE` 경로 생존 확인, 콘솔 에러 0
 - **죽은 render-version 확인 응답 프로토콜 제거**:
   - store 렌더 버전을 PixiJS 렌더러가 확인 응답하고 그 격차로 동기화 이탈을 감지하던 구조인데 양 끝이 끊겨 있었다 — `incrementRenderVersion` 호출부 0건 → `renderVersion` 0 고정, 유일한 `syncPixiVersion` 호출부는 그 0 을 되비추는 미러 → 판정식 `0 - 0 > 2` 가 **구조상 항상 false**
   - 삭제: `renderVersion` / `lastPixiRenderVersion` / `incrementRenderVersion` / `syncPixiVersion` / `selectIsSyncMismatch` / `detectSyncMismatch`

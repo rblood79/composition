@@ -25,8 +25,9 @@ const indexedElementIds = new Set<string>();
  * ADR-916 SpatialIndex crate 분리(2026-07-05): SpatialIndex 는 Taffy(composition_wasm)
  * crate 에서 taffy-free 자체 엔진(composition-engine) crate 로 이동됐다. 따라서 로드
  * 소스가 `getRustWasm()`(Taffy pkg) → `getCompositionEngineWasm()`(자체 엔진 pkg)로
- * 변경됨. `USE_RUST_LAYOUT_ENGINE`(UNIFIED_ENGINE override 로 항상 true)이 활성이라
- * composition-engine pkg 는 항상 startup 로드된다.
+ * 변경됨. `USE_RUST_LAYOUT_ENGINE` 이 상수 `true` 선언이라 composition-engine pkg 는
+ * 항상 startup 로드된다. (구 서술의 "UNIFIED_ENGINE override 로 항상 true" 는
+ * `isUnifiedFlag` 의 단락 평가를 가리켰는데, 그 단락 평가는 2026-08-15 에 제거됐다.)
  */
 export function initSpatialIndex(): void {
   if (spatialIndex) return;
