@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [뷰포트 실시간 상태 판정 — pan 중 스크롤바·panToPage 복구] - 2026-08-15
+
+### Bug Fixes
+
+- **캔버스 pan 중 스크롤바 위치가 실시간으로 반영되지 않던 문제 수정** (+ `panToPage` no-op):
+  - **Why**: 소비자들이 "컨트롤러를 써도 되는가" 를 `ViewportController.isAttached()`(= PixiJS Container 연결 여부)로 판정했는데, ADR-900 으로 PixiJS 가 제거되어 `attach()` 호출 조건(`app?.stage`)이 성립하지 않는다 — **라이브에서 항상 false** (실측). 그래서 스크롤바는 컨트롤러의 실시간 상태 대신 React mirror 를 읽었고, mirror 는 `endPan()` 에서만 동기화되므로 **드래그하는 내내 thumb 이 제자리에 멈춰 있었다**. 같은 게이트를 쓰는 `panToPage` 와 workflow pan 은 early return 으로 **완전한 no-op** 이었다 (페이지 트리에서 페이지를 클릭해도 이동 0 — 실측)
+  - 수정: 컨트롤러의 `currentState` 는 Container 유무와 무관하게 pan/zoom/setPosition 에서 갱신되므로 그 사실을 `hasLiveState()` 로 따로 표현하고, 소비자 3곳(스크롤바 metric · panToPage · workflow pan)을 이 판정으로 전환. `isAttached()` 는 남기되 오해 방지 주석 추가
+  - 검증: 라이브 빌더 실측 — 앱 인스턴스에서 `isAttached false` / `hasLiveState true`. pan 제스처 중(`endPan` 전) 스크롤바 metric 이 `visibleViewport.x 241 → 511` 로 컨트롤러(−520)를 따라감 (mirror 는 −220 에 정체). `panToPage` 는 게이트 통과까지 확인 — 이후 300ms rAF 애니메이션은 백그라운드 탭에서 rAF 가 멈춰 이 환경에서 미검증
+  - 위치: `apps/builder/src/builder/workspace/canvas/viewport/{ViewportController.ts,panToPage.ts}`, `apps/builder/src/builder/workspace/canvas/hooks/useWorkflowInteraction.ts`, `apps/builder/src/builder/workspace/scrollbar/viewportMetrics.ts`
+
 ## [캔버스 스크롤바 — 초기 갱신과 문서 밖 추종] - 2026-08-15
 
 ### Bug Fixes
