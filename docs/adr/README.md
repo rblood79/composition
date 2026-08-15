@@ -241,8 +241,8 @@
 | ------------------------------------------------- | ------- |
 | 완료 (Accepted/Implemented/Superseded/Deprecated) | 191     |
 | 부분 완료                                         | 3       |
-| 미구현/진행 (Proposed/In Progress)                | 12      |
-| **합계**                                          | **206** |
+| 미구현/진행 (Proposed/In Progress)                | 13      |
+| **합계**                                          | **207** |
 
 ---
 
@@ -465,6 +465,8 @@
 | [183](completed/183-layout-explain-channel.md) | 레이아웃 explain 디버그 채널 — 엔진 판정 트레이스 | Implemented — 2026-08-15 | 엔진 판정(증분 skip HIT·MISS / used-size clamp / §4.5 floor / stretch↔shrink-to-fit / 측정 캐시 gen)을 런타임 게이트 트레이스로 기록, `window.__layoutExplain(elementId)` 판독 — 30일 engine 34·skia 33 fix 의 "추측+printf 역추적" 단계를 트레이스 판독 1회로 단축. 상시 기록(A — 성능 C)/cargo feature 분리 빌드(B — 유지보수 H, G1 실패 시 후퇴처로 보존)/사후 replay(D — 캐시 계열 결함 재현 불가 기술 H) 기각. R1 HIGH(off 분기 오버헤드 — G1 벤치 ≤2%) / G1~G3 (G3 = 오진 대표 3건 트레이스 판별). 사용자 패널 승격은 비스코프(별도 ADR). design breakdown `design/183-layout-explain-channel-breakdown.md` | 사용자 제안 2026-08-15 |
 
 | [184](completed/184-canonical-mutation-runner.md) | canonical mutation 순서 러너 — 신규 경로의 구조적 순서 보증 | Implemented — 2026-08-15 | 4단 순서(canonical→set→rebuild→persist)가 관례+사후 정적 가드로만 강제되어 위반이 반복(`createInstance` set-1차 잔존, stale-canonical race 로 instance 가 일반 element 화 — `a859f8b97`/`ee91020c4` 수습). x-algorithm candidate-pipeline 패턴 — 순서를 러너가 소유해 신규 mutation 의 위반을 시그니처상 표현 불가로. **신규 경로 한정** (기존 잔존 이관은 "회귀 위험>이득" 선행 판정 유지, allowlist 고정 + 우회 차단 정적 가드). AST lint(B — 호출 체인 너머 사각 기술 H)/현상 유지(C — 가드 노동 누적 유지보수 H)/전면 이관(D — 기존 판정 반전 마이그레이션 H) 기각. R1 HIGH(시그니처 표현력 — G1 Phase 0 인벤토리 15파일 선판정) / G1~G3. design breakdown `design/184-canonical-mutation-runner-breakdown.md` | 사용자 제안 2026-08-15 |
+
+| [185](185-history-coverage-contract.md) | history coverage 계약 — mutation 의 undo 기록 의무화 | Proposed | 사용자-가시 mutation 이 history entry 없이 출시되는 계열의 재발 실증 4건 — move 사후 수리(`elements.ts:1621` 주석) / 복합 생성 dead saveSnapshot(`fbedcfcaa` 수리) / ADR-181 가이드 사후 편입(`b2172cc91`) / **페이지 생성·삭제 = 현재도 undo 불가 live gap**(`appendPageShell`/`removePageLocal` entry 0건). ADR-184 러너의 `history` 스테이지를 optional → **명시 필수 union**(기록 함수 또는 `{ skip: 사유 }`)으로 강화 — 신규 경로의 조용한 생략을 타입 에러로 전환, 의도적 생략(silent live edit/skipHistory batch)은 1급 표현. Phase 0 감사가 gap 목록 freeze — **수리는 비스코프**(사용자 결정 2026-08-15 "계약만"). 감사+개별 수리(A — 재발 차단 없음 유지보수 H)/dev 런타임 감지(C — 오탐 mute 목록=제2 allowlist 유지보수 H) 기각. HIGH 0 / R1~R4 / G1~G3. design breakdown `design/185-history-coverage-contract-breakdown.md` | 사용자 제안 2026-08-15 |
 
 ### 권장 착수 순서 — 2026-07-19 재산정
 
