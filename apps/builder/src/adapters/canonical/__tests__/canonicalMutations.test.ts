@@ -219,6 +219,105 @@ describe("canonical mutation wrappers", () => {
     ).toBe(true);
   });
 
+  /**
+   * 프레임이 적용된 페이지는 canonical 상 `ref` 노드이고, 그 페이지의 최상위
+   * 요소는 hydrate 가 `children` 에 둔다. 런타임 추가도 같은 자리여야 한다 —
+   * 슬롯 override 로 보내면 같은 조건의 형제가 두 곳으로 갈린다.
+   *
+   * **Why (2026-08-16 실측)**: `parent_id: null` + `slot_name` 없는 두 ListBox 가
+   * legacy 속성이 완전히 같은데 하나는 `children`, 다른 하나는
+   * `descendants[slot].children` 에 있었다. 그 상태에서 페이지 최상위 요소를
+   * 그룹화하면 새 frame 이 override 로 들어가고, 이어지는 자식 reparent 가
+   * `children` 트리에서 frame 을 못 찾아 자식들까지 canonical 에서 사라졌다.
+   */
+  function setupFramedPage() {
+    const page = makePage("page-1");
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "layout-1",
+          type: "frame",
+          reusable: true,
+          children: [
+            {
+              id: "frame-body",
+              type: "body",
+              children: [
+                {
+                  id: "frame-slot",
+                  type: "frame",
+                  metadata: {
+                    type: "legacy-slot-hoisted",
+                    slotName: "content",
+                  },
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "page-1",
+          type: "ref",
+          ref: "layout-1",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [makeCanonicalElementNode(makeElement("existing-1", "Nav"))],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({
+        elements: [],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+  }
+
+  function readPageRef() {
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    const pageNode = doc?.children.find((node) => node.id === "page-1");
+    const descendants =
+      (pageNode as { descendants?: Record<string, { children?: { id: string }[] }> })
+        .descendants ?? {};
+    return {
+      children: (pageNode?.children ?? []).map((child) => child.id),
+      descendantChildren: Object.values(descendants).flatMap((override) =>
+        (override.children ?? []).map((child) => child.id),
+      ),
+    };
+  }
+
+  it("attaches slot-less page children to a framed page's children (not the slot override)", () => {
+    setupFramedPage();
+
+    mergeElementsCanonicalPrimary([
+      makeElement("added-1", "frame", { page_id: "page-1" }),
+    ]);
+
+    const pageRef = readPageRef();
+    expect(pageRef.children).toEqual(["existing-1", "added-1"]);
+    expect(pageRef.descendantChildren).toEqual([]);
+  });
+
+  it("still routes slot-named elements into the framed page's slot override", () => {
+    setupFramedPage();
+
+    mergeElementsCanonicalPrimary([
+      makeElement("slotted-1", "Card", {
+        page_id: "page-1",
+        slot_name: "content",
+      }),
+    ]);
+
+    const pageRef = readPageRef();
+    expect(pageRef.children).toEqual(["existing-1"]);
+    expect(pageRef.descendantChildren).toEqual(["slotted-1"]);
+  });
+
   it("mergeElementsCanonicalPrimary preserves parent-child ordering in page-owned batches", () => {
     const setElements = vi.fn();
     const page = makePage("page-1");

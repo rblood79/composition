@@ -1022,6 +1022,24 @@ function attachChildToPage(
   slotName: string | null | undefined,
 ): CompositionDocument {
   if (pageNode.type === "ref") {
+    // 프레임이 적용된 페이지(ref)라도, **슬롯을 지목하지 않은** 요소는 페이지의
+    // 직접 자식이다 — hydrate 가 페이지 최상위 요소를 `children` 에 두기 때문에
+    // 여기서 슬롯 override 로 보내면 같은 조건의 형제가 두 곳으로 갈린다.
+    //
+    // **Why (2026-08-16 실측)**: `parent_id: null` + `slot_name` 없는 두 ListBox 가
+    // legacy 속성이 완전히 같은데 하나는 `children`, 다른 하나는
+    // `descendants[slot].children` 에 있었다. 그 상태에서 페이지 최상위 요소를
+    // 그룹화하면 새 frame 이 override 로 들어가고, 이어지는 자식 reparent 가
+    // `children` 트리에서 그 frame 을 찾지 못해 자식들까지 canonical 에서 사라졌다
+    // (store 에만 남아 새로고침 전까지 split-brain). 슬롯 배치는 `slot_name` 이
+    // 지목할 때만 한다.
+    if (!slotName) {
+      const appended = appendChildToNode(doc.children, pageNode.id, child);
+      if (appended.inserted) {
+        return { ...doc, children: appended.nodes };
+      }
+    }
+
     const descendants = { ...((pageNode as RefNode).descendants ?? {}) };
     const slotPath =
       findSlotPathForPageRef(doc, pageNode as RefNode, slotName ?? "content") ??

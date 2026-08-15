@@ -65,3 +65,4 @@
 {"sha":"531ef0e6ebb8ebeb3a72f30519a9948101972dd6","date":"2026-08-15T21:09:40+09:00","promoted_adrs":["docs/adr/completed/183-layout-explain-channel.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"438c8cd512585fb4860954894299c06334ebeaf1","date":"2026-08-15T21:40:14+09:00","promoted_adrs":["docs/adr/completed/184-canonical-mutation-runner.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"59b0e5cb62f4f86eaa29265fa521419eacd4517b","date":"2026-08-15T22:32:08+09:00","promoted_adrs":["docs/adr/completed/185-history-coverage-contract.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"1e5320a8390a2b065ea27067705308cb5ebd2844","date":"2026-08-16T02:09:25+09:00","promoted_adrs":["docs/adr/182-builder-context-menu.md"],"readme_updated":true,"changelog_updated":true,"synced":true}

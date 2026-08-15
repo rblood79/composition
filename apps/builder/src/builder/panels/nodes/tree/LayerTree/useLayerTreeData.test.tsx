@@ -9,6 +9,7 @@ import { useCanonicalDocumentStore } from "../../../../stores/canonical/canonica
 import { getEditingSemanticsRole } from "../../../../utils/editingSemantics";
 import { toPageFrameElementId } from "../../../../workspace/canvas/scene/resolvePageWithFrame";
 import { LISTBOX_ITEM_DEFAULT_ORIGIN_ID } from "../../../../components/listbox/listBoxTemplateOrigins";
+import { ContextMenuProvider } from "../../../../components/overlay/contextMenu";
 import { LayerTree } from "./LayerTree";
 import { useLayerTreeData } from "./useLayerTreeData";
 
@@ -292,14 +293,18 @@ describe("useLayerTreeData", () => {
       elementsMap: new Map(elements.map((element) => [element.id, element])),
     } as never);
 
+    // LayerTree 행은 ADR-182 Phase 3 부터 공유 컨텍스트 메뉴를 소비하므로
+    // provider 안에서 렌더해야 한다 (앱은 BuilderCore 가 감싼다).
     expect(() =>
       render(
-        <LayerTree
-          elements={elements}
-          selectedElementId={null}
-          onItemClick={vi.fn()}
-          onItemDelete={vi.fn().mockResolvedValue(undefined)}
-        />,
+        <ContextMenuProvider>
+          <LayerTree
+            elements={elements}
+            selectedElementId={null}
+            onItemClick={vi.fn()}
+            onItemDelete={vi.fn().mockResolvedValue(undefined)}
+          />
+        </ContextMenuProvider>,
       ),
     ).not.toThrow();
   });

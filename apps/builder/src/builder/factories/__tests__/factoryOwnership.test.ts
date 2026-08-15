@@ -19,6 +19,10 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { Element } from "../../../types/core/store.types";
 import {
+  registerCanonicalMutationRunnerBridge,
+  resetCanonicalMutationRunnerBridge,
+} from "@/adapters/canonical/canonicalMutationRunner";
+import {
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
 } from "@/adapters/canonical/canonicalMutations";
@@ -124,10 +128,15 @@ describe("P3-D-1: factory ownership 제거", () => {
       }),
       getCurrentProjectId: () => null,
     });
+    // async factory (`createTable` 등) 는 `addElementsToStore` 를 거치고, 그쪽은
+    // ADR-184 부터 `runCanonicalMutation` 경유다 — bridge 가 없으면 러너 진입에서
+    // throw 한다 (앱은 BuilderCore 가 등록).
+    registerCanonicalMutationRunnerBridge({ rebuildIndexes: () => {} });
   });
 
   afterEach(() => {
     resetCanonicalMutationStoreActions();
+    resetCanonicalMutationRunnerBridge();
   });
 
   // ── DisplayComponents ──────────────────────────────────────────────────────
