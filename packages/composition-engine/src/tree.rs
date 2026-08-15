@@ -965,6 +965,14 @@ impl LayoutTree {
         // dirty 만 보면 직전 부모 밑에서 계산된 크기를 그대로 돌려준다 (라이브:
         // 레이어 이동/undo 뒤 크기가 이전 부모 기준으로 눌러앉음). root-level
         // `last_compute` 비교로는 못 잡는다 — 같은 root·같은 available 이기 때문.
+        //
+        // NOTE(진단): 이 게이트가 병인일 때의 증상 서명 — 다른 곳으로 진단하지 말 것.
+        //   ① "편집한 요소가 아니라 **무관한 형제**가 변한다" — 편집 대상은 dirty 라
+        //      skip 되지 않는다. 원인을 찾을 때 편집한 쪽을 보면 길을 잃는다.
+        //   ② "**새로고침하면 정상**으로 돌아온다" — 전체 재빌드가 캐시를 버리는 것.
+        //      store/canonical 데이터 문제가 **아니다** (스냅샷 diff 로 1분 안에 배제).
+        //   ③ padding 0 요소는 무증상이라 "특정 컴포넌트만 이상하다" 로 잘못 귀속된다.
+        //   상세: .claude/rules/layout-engine.md §"증분 skip 의 키는 dirty 와 available 둘이다"
         if let Some(prev) = node.last_solved {
             if !self.subtree_has_dirty(handle) && node.last_avail == Some((avail_w, avail_h)) {
                 return prev;

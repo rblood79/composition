@@ -28,6 +28,14 @@ import {
  * | 정렬 여유 `.max(0.0)` 클램프 (3축)         | 80/576 red | 32/576 red |
  *
  * §1-4 계약 준수: gap=longhand(rowGap/columnGap), flexGrow/Shrink=숫자, display:none 제외.
+ *
+ * ## NOTE(진단): 이 격자가 **못 잡는** 축 — 전부 green 을 종결 근거로 쓰지 말 것
+ *
+ * 이 sweep 은 컨테이너 main 을 **항상 확정**으로 준다. 미결정 main(`height:auto`
+ * column 등) 센티넬 결함은 1152 조합 전부 green 인 채 통과했다 (2026-07-27 실측) —
+ * 그 축의 감시자는 `crossAxisOverflow.browser.test.ts` 의 `INDEFINITE_MAIN_CASES` 가
+ * 유일하다. "flexSweep 로 검증했으니 정합" 판정 전에 격자가 그 입력 차원을 실제로
+ * 훑는지 먼저 확인할 것 (layout-engine.md §"기본 축은 격자가 잠갔다" 사각 표).
  */
 
 const DIRECTIONS = ["row", "column"] as const;

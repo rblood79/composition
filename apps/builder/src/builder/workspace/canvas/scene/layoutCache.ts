@@ -75,6 +75,12 @@ export function createPageElementsSignature(
     .join("|");
 }
 
+// NOTE(진단): 이 두 배열은 5-심볼 2계층 체인의 **계층 B**(페이지 캐시 시그니처)다.
+//   "편집이 **새로고침 후에만** 반영된다" 증상이면 여기 누락을 의심할 것 —
+//   재계산은 돌지만 시그니처가 같아 캐시 히트로 이전 결과를 재사용하는 형태다
+//   (계층 A 누락은 재계산 자체가 안 돌아 증상이 다르다). 신규 키는 계층 A
+//   (layoutInvalidation.ts / elementUpdate.ts) 와 **AND** 로 함께 등재해야 한다.
+//   상세: .claude/rules/layout-engine.md §"5-심볼 2계층 체인"
 const LAYOUT_STYLE_KEYS = [
   "display",
   "position",
@@ -162,6 +168,10 @@ const LAYOUT_STYLE_KEYS = [
   "transform",
 ];
 
+// NOTE(진단): 이 배열은 `props[key]` 만 읽는다 — **style 키를 여기 넣으면 항상
+//   undefined** 라 시그니처가 안 변해 조용히 무반영이 된다 (style 축은 위
+//   LAYOUT_STYLE_KEYS). `height`/`heightMode` 는 Table 의 **props**.height 라 예외처럼
+//   보이지만 정상 등재다. 축 판정을 먼저 할 것: element.props.foo ↔ element.props.style.foo
 const LAYOUT_PROP_KEYS = [
   "children",
   "text",
