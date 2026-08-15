@@ -53,6 +53,61 @@ describe("ContextMenuOverlay", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("reserves the icon column per menu so labels share one start line", async () => {
+    const Icon = () => <svg data-testid="copy-icon" />;
+
+    render(
+      <ContextMenuOverlay
+        isOpen
+        onClose={vi.fn()}
+        request={{
+          surface: "canvas-element",
+          clientX: 0,
+          clientY: 0,
+          targetElementIds: ["card"],
+        }}
+        items={[
+          {
+            kind: "action",
+            id: "copy",
+            label: "Copy",
+            icon: Icon,
+            run: vi.fn(),
+          },
+          // 아이콘 없는 이웃도 자리를 받아야 라벨이 어긋나지 않는다
+          { kind: "action", id: "paste", label: "Paste", run: vi.fn() },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("menu")).toBeTruthy());
+    expect(document.querySelectorAll(".context-menu-item-icon")).toHaveLength(
+      2,
+    );
+    expect(screen.getByTestId("copy-icon")).toBeTruthy();
+  });
+
+  it("omits the icon column entirely when no item declares an icon", async () => {
+    render(
+      <ContextMenuOverlay
+        isOpen
+        onClose={vi.fn()}
+        request={{
+          surface: "canvas-element",
+          clientX: 0,
+          clientY: 0,
+          targetElementIds: ["card"],
+        }}
+        items={[{ kind: "action", id: "copy", label: "Copy", run: vi.fn() }]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("menu")).toBeTruthy());
+    expect(document.querySelectorAll(".context-menu-item-icon")).toHaveLength(
+      0,
+    );
+  });
+
   it("dismisses on an outside pointer without relying on a window listener", async () => {
     const onClose = vi.fn();
 

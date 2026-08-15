@@ -18,7 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 구조: 단축키를 RAC `<Keyboard>` 로, 토글 체크를 lucide `Check`(14px)로 교체하고 **하위 메뉴 항목에 `ChevronRight` 표식 추가**(기존에는 하위 메뉴 여부가 보이지 않았다). 체크와 단축키가 같이 뜨는 항목(눈금자 표시 ⇧R)은 `auto` 마진이 둘로 갈려 체크가 가운데로 밀리므로, 뒤따르는 `kbd` 는 gap 만으로 붙인다
   - popover 에 `outline: none` 유지 — header 메뉴와 달리 우클릭 진입에서는 popover 자신(`tabIndex=-1`)이 포커스를 받아 UA 포커스 링이 그려진다
   - **라벨 글자 크기가 14px 로 커져 있던 것 정정** (12px, header 와 동일 — 항목 높이 37→34px). **Why**: 라벨이 RAC 기본 클래스 `react-aria-Text` 를 달고 있어 `@layer components` 의 `font-size: var(--text-sm)` 가 **span 자신에게** 걸렸다 — 부모 item 의 `--text-xs` 는 상속이라 항상 진다(레이어 순서와 무관). 같은 규칙의 `color: var(--fg)` 가 destructive("삭제 / Delete") 빨강도 지우고 있었다. 덮어쓰기 대신 라벨 클래스를 `context-menu-item-label` 로 갈아끼워 두 증상을 함께 해소 — header 의 클래스 없는 `<span>` 과 같은 상속 상태가 된다
-  - live 실측(빌더 우클릭): 요소 메뉴 / 빈 영역 메뉴 / 다중 선택 정렬 하위 메뉴 / 토글 체크 + 단축키 동시 노출 4경로 확인
+- **컨텍스트 메뉴 항목에 아이콘 추가** (header 메뉴와 같은 `아이콘 · 라벨 · 단축키` 3열):
+  - 요소 메뉴 14종 + 정렬 하위 메뉴 8종 + 빈 영역 메뉴 5종 전부. z-order 4종은 한 걸음(`ArrowUp`/`ArrowDown`) ↔ 끝까지(`ArrowUpToLine`/`ArrowDownToLine`) 대비로 한 가족으로 읽히게 두고, **정렬 8종은 같은 액션을 쓰는 다중 선택 툴바(`MultiSelectStatusIndicator`)와 동일 아이콘**을 재사용했다 — 두 진입점이 다른 그림을 쓰면 같은 동작으로 안 읽힌다
+  - 아이콘 열은 **메뉴 단위로 예약**한다: 한 항목이라도 아이콘이 있으면 나머지는 빈 자리를 받아 라벨 시작선이 맞고, 아무도 없으면 열 자체가 없어 종전처럼 납작하다. 항목마다 조건부로 렌더하면 섞인 메뉴에서 라벨이 어긋난다 (회귀 테스트 2건 — 되돌리면 RED 확인)
+  - provider 는 `.ts` 라 JSX 대신 컴포넌트 참조를 넘긴다 (`ContextMenuIcon` = 구조적 타입, lucide 결합 없음)
+  - destructive 항목은 아이콘도 라벨과 같이 빨강 — 라벨만 빨갛고 아이콘이 회색이면 "삭제" 가 비활성처럼 읽힌다
+  - 위치: `contextMenu/{types.ts,ContextMenuOverlay.tsx,contextMenu.css}` + `canvas/contextMenu/canvasContextMenuProviders.ts`
+  - live 실측(빌더 우클릭): 요소 메뉴 / 빈 영역 메뉴 / 다중 선택 정렬 하위 메뉴 / 토글 체크 + 단축키 동시 노출 4경로 확인 — 열린 두 메뉴 모두 라벨 시작선 1개, 아이콘 누락 0건
   - 위치: `apps/builder/src/builder/components/overlay/contextMenu/{contextMenu.css,ContextMenuOverlay.tsx}`
 
 ## [프레임 적용 페이지의 canonical 자식 배치 정정] - 2026-08-16

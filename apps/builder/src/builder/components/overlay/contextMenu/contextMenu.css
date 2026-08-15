@@ -115,6 +115,23 @@
     color: var(--fg-muted);
   }
 
+  /* 아이콘 자리 — 아이콘이 없는 항목도 같은 폭을 차지해야 라벨 시작선이 맞는다
+     (예약 여부 자체는 메뉴 단위 판정, ContextMenuOverlay 참조). */
+  .context-menu-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+  }
+
+  /* destructive 항목은 아이콘도 같이 빨강 — 라벨만 빨갛고 아이콘이 회색이면
+     "삭제" 가 비활성처럼 읽힌다. */
+  .context-menu-item[data-destructive="true"] svg {
+    color: inherit;
+  }
+
   /* 우측 정렬 표식 — toggle 체크 / submenu chevron */
   .context-menu-item .context-menu-check,
   .context-menu-item .context-menu-chevron {

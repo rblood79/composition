@@ -21,6 +21,7 @@ export { resolveContextMenuSelection } from "./resolveContextMenuSelection";
 export type {
   ContextMenuController,
   ContextMenuDeps,
+  ContextMenuIcon,
   ContextMenuItem,
   ContextMenuModeOverride,
   ContextMenuProvider as ContextMenuProviderFn,

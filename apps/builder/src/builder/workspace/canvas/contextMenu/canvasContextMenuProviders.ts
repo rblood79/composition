@@ -1,4 +1,32 @@
 import {
+  AlignCenter,
+  AlignCenterHorizontal,
+  AlignHorizontalDistributeCenter,
+  AlignLeft,
+  AlignRight,
+  AlignVerticalDistributeCenter,
+  AlignVerticalJustifyCenter,
+  AlignVerticalJustifyEnd,
+  AlignVerticalJustifyStart,
+  ArrowDown,
+  ArrowDownToLine,
+  ArrowUp,
+  ArrowUpRight,
+  ArrowUpToLine,
+  ClipboardPaste,
+  Component,
+  Copy,
+  CopyPlus,
+  Group as GroupIcon,
+  Magnet,
+  Maximize,
+  Percent,
+  Ruler,
+  Trash2,
+  Ungroup,
+  Unlink,
+} from "lucide-react";
+import {
   getAlignmentDescription,
   type AlignmentType,
 } from "../../../stores/utils/elementAlignment";
@@ -15,6 +43,7 @@ import {
 import { requestEditingSemanticsDetachConfirmation } from "../../../utils/editingSemanticsImpactConfirmation";
 import { registerContextMenuProvider } from "../../../components/overlay/contextMenu";
 import type {
+  ContextMenuIcon,
   ContextMenuItem,
   ContextMenuProviderFn,
   ContextMenuRequest,
@@ -55,12 +84,13 @@ function actionItem(
   label: string,
   run: () => void | Promise<void>,
   shortcutId?: ShortcutId,
-  options?: { destructive?: boolean },
+  options?: { icon?: ContextMenuIcon; destructive?: boolean },
 ): ContextMenuItem {
   return {
     kind: "action",
     id,
     label,
+    ...(options?.icon ? { icon: options.icon } : {}),
     ...(shortcutId ? { shortcutId } : {}),
     ...(options?.destructive ? { destructive: true } : {}),
     run,
@@ -110,29 +140,35 @@ function buildZOrderItems(element: CanvasActionElement): ContextMenuItem[] {
 
   return [
     { kind: "separator", id: "z-order-separator" },
+    // 아이콘은 한 걸음(Arrow{Up,Down}) ↔ 끝까지(Arrow{Up,Down}ToLine) 대비로
+    // 네 항목이 한 가족으로 읽히게 둔다.
     actionItem(
       "bring-to-front",
       "맨 앞으로 / Bring to Front",
       moveToEdge("front"),
       "bringToFront",
+      { icon: ArrowUpToLine },
     ),
     actionItem(
       "bring-forward",
       "앞으로 / Bring Forward",
       reorder(1),
       "bringForward",
+      { icon: ArrowUp },
     ),
     actionItem(
       "send-backward",
       "뒤로 / Send Backward",
       reorder(-1),
       "sendBackward",
+      { icon: ArrowDown },
     ),
     actionItem(
       "send-to-back",
       "맨 뒤로 / Send to Back",
       moveToEdge("back"),
       "sendToBack",
+      { icon: ArrowDownToLine },
     ),
   ];
 }
@@ -140,6 +176,20 @@ function buildZOrderItems(element: CanvasActionElement): ContextMenuItem[] {
 function buildAlignmentItems(
   options: CanvasContextMenuProviderOptions,
 ): ContextMenuItem[] {
+  // 아이콘은 같은 액션을 쓰는 다중 선택 툴바(MultiSelectStatusIndicator)와
+  // 동일 매핑 — 두 진입점이 다른 그림을 쓰면 같은 동작으로 안 읽힌다.
+  const alignmentIcons: Record<AlignmentType, ContextMenuIcon> = {
+    left: AlignLeft,
+    center: AlignCenter,
+    right: AlignRight,
+    top: AlignVerticalJustifyStart,
+    middle: AlignVerticalJustifyCenter,
+    bottom: AlignVerticalJustifyEnd,
+  };
+  const distributionIcons: Record<DistributionType, ContextMenuIcon> = {
+    horizontal: AlignHorizontalDistributeCenter,
+    vertical: AlignVerticalDistributeCenter,
+  };
   const alignmentTypes: AlignmentType[] = [
     "left",
     "center",
@@ -153,14 +203,22 @@ function buildAlignmentItems(
 
   return [
     ...alignmentTypes.map((type) =>
-      actionItem(`align-${type}`, getAlignmentDescription(type), () =>
-        alignSelection(context(), type),
+      actionItem(
+        `align-${type}`,
+        getAlignmentDescription(type),
+        () => alignSelection(context(), type),
+        undefined,
+        { icon: alignmentIcons[type] },
       ),
     ),
     { kind: "separator", id: "align-distribute-separator" },
     ...distributionTypes.map((type) =>
-      actionItem(`distribute-${type}`, getDistributionDescription(type), () =>
-        distributeSelection(context(), type),
+      actionItem(
+        `distribute-${type}`,
+        getDistributionDescription(type),
+        () => distributeSelection(context(), type),
+        undefined,
+        { icon: distributionIcons[type] },
       ),
     ),
   ];
@@ -196,18 +254,22 @@ function buildElementMenuItems(
   const context = () => actionContext(options);
 
   const items: ContextMenuItem[] = [
-    actionItem("copy", "복사 / Copy", () => copySelection(context()), "copy"),
+    actionItem("copy", "복사 / Copy", () => copySelection(context()), "copy", {
+      icon: Copy,
+    }),
     actionItem(
       "paste",
       request.scenePoint ? "여기에 붙여넣기 / Paste here" : "붙여넣기 / Paste",
       () => paste({ ...context(), scenePoint: request.scenePoint }),
       "paste",
+      { icon: ClipboardPaste },
     ),
     actionItem(
       "duplicate",
       "복제 / Duplicate",
       () => duplicateSelection(context()),
       "duplicate",
+      { icon: CopyPlus },
     ),
     { kind: "separator", id: "selection-separator" },
   ];
@@ -229,6 +291,7 @@ function buildElementMenuItems(
         "그룹 만들기 / Group selection",
         () => groupSelection(context()),
         "group",
+        { icon: GroupIcon },
       ),
     );
   }
@@ -240,6 +303,7 @@ function buildElementMenuItems(
         "그룹 해제 / Ungroup",
         () => ungroupSelection(context()),
         "ungroup",
+        { icon: Ungroup },
       ),
     );
   }
@@ -249,6 +313,7 @@ function buildElementMenuItems(
       kind: "submenu",
       id: "align",
       label: "정렬 / Align",
+      icon: AlignCenterHorizontal,
       items: buildAlignmentItems(options),
     });
   }
@@ -269,19 +334,26 @@ function buildElementMenuItems(
           await useStore.getState().toggleComponentOrigin(primaryElement.id);
         },
         "toggleComponentOrigin",
+        { icon: Component },
       ),
     );
 
     if (originElement) {
       items.push(
-        actionItem("go-to-origin", "원본으로 이동 / Go to component", () => {
-          useStore
-            .getState()
-            .selectElementWithPageTransition(
-              originElement.id,
-              originElement.page_id ?? originElement.pageId ?? null,
-            );
-        }),
+        actionItem(
+          "go-to-origin",
+          "원본으로 이동 / Go to component",
+          () => {
+            useStore
+              .getState()
+              .selectElementWithPageTransition(
+                originElement.id,
+                originElement.page_id ?? originElement.pageId ?? null,
+              );
+          },
+          undefined,
+          { icon: ArrowUpRight },
+        ),
       );
     }
   }
@@ -304,6 +376,7 @@ function buildElementMenuItems(
             useStore.getState().detachInstance(detachableElement.id);
         },
         "detachInstance",
+        { icon: Unlink },
       ),
     );
   }
@@ -317,7 +390,7 @@ function buildElementMenuItems(
         () => deleteSelection(context()),
         "delete",
         // Pen 모델 — destructive 스타일 + 최하단 격리로 오클릭 완화 (ADR-182 §2)
-        { destructive: true },
+        { icon: Trash2, destructive: true },
       ),
     );
   }
@@ -338,6 +411,7 @@ function buildEmptyCanvasMenuItems(
       "여기에 붙여넣기 / Paste here",
       () => paste({ ...context(), scenePoint: request.scenePoint }),
       "paste",
+      { icon: ClipboardPaste },
     ),
     { kind: "separator", id: "viewport-separator" },
     actionItem(
@@ -359,12 +433,14 @@ function buildEmptyCanvasMenuItems(
         );
       },
       "zoomToFit",
+      { icon: Maximize },
     ),
     actionItem(
       "zoom-100",
       "100%",
       () => zoomViewportAtContainerCenter(1),
       "zoom100",
+      { icon: Percent },
     ),
     { kind: "separator", id: "settings-separator" },
     {
@@ -373,6 +449,7 @@ function buildEmptyCanvasMenuItems(
       label: state.showRulers
         ? "눈금자 숨기기 / Hide rulers"
         : "눈금자 표시 / Show rulers",
+      icon: Ruler,
       checked: state.showRulers,
       shortcutId: "toggleRulers",
       run: () =>
@@ -382,6 +459,7 @@ function buildEmptyCanvasMenuItems(
       kind: "toggle",
       id: "snap-to-objects",
       label: "객체 스냅 / Snap to objects",
+      icon: Magnet,
       checked: state.snapToObjects,
       run: () =>
         useStore
