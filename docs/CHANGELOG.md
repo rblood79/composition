@@ -67,6 +67,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 함께: `legacyCanvasSurfaces.static.test.ts` 의 삭제-파일 가드가 옛 경로만 검사해 디렉터리 소멸 후 공허하게 통과할 뻔한 것을 신·구 경로 병기로 보강
   - 검증: 라이브 실측 — 실행 중 빌더가 새 경로 모듈을 로드(`styleConversion/styleConverter.ts`), 번들에 `sprites` 0건, `convertStyle("#3b82f6", radius 8px)` → `0x3B82F6` / `8` 정상, 레이아웃 엔트리 640건 유지, 콘솔 에러 0
   - 참고: 아카이브 CHANGELOG·완료 ADR 의 `sprites/` 경로 언급은 **이미 삭제된 파일**(ElementSprite 등)을 가리키는 과거 기록이라 그대로 둔다
+- **`cssColorToPixiHex` → `cssColorToRgbNumber`** (`utils/color/`):
+  - CSS 색상을 `0xRRGGBB` 숫자로 바꾸는 기본 변환기다 — 출력은 렌더러와 무관한 RGB 숫자이고 실제 소비처도 Skia 경로다. oklch/lab/`currentColor` 해석이 필요한 상위 wrapper 는 `styleConversion/styleConverter.ts::cssColorToHex` 로, 두 계층 관계를 doc 에 명시
+  - 검증: 라이브 실측 — 신 심볼 존재·구 심볼 부재, `#3b82f6` → `0x3B82F6`, `rebeccapurple` → `0x663399`, oklch wrapper 정상 동작, 콘솔 에러 0
+  - **이로써 코드 심볼의 PixiJS 잔재는 0** — 남은 `pixi` 문자열은 전부 "무엇이 왜 사라졌는가" 를 적은 주석이다
 
 ### Documentation
 
@@ -74,6 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `selectionRenderer` — 엣지 핸들 판정은 "PixiJS 히트 영역" 이 아니라 `selection/types.ts::hitTestHandle` 의 좌표 계산이다
   - `Workspace` 비교 모드 — "iframe + PixiJS 동시 표시" → Preview iframe + Skia
   - `gpu/GPUBackend.ts` — **미배선이지만 의도된 보존** 명시. ADR-900 §Positive 가 WebGPU 전환 경로로 채택한 추상화이므로 참조 0건 grep 으로 지우면 안 된다. `CanvasKitWebGLBackend.watchContextLoss` 가 살아 있는 손실 경로의 미배선 사본이라는 점도 함께 기록
+  - `BuilderCanvas` 파일 헤더 — 기능 목록에 "PixiJS Application 초기화" 가 적혀 있었다. 하지 않는 일이다
+  - `SkiaCanvas` StoreRenderBridge — "PixiJS Application이 없을 때 …" 라고 적혀 조건 분기가 있는 것처럼 읽혔다. 이 effect 는 무조건 실행된다
 
 ## [뷰포트 실시간 상태 판정 — pan 중 스크롤바·panToPage 복구] - 2026-08-15
 

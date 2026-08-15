@@ -339,21 +339,28 @@ export function extractHSL(
 }
 
 // ============================================
-// Pixi Canvas Support
+// Canvas 색상 변환 (숫자 형식)
 // ============================================
 
 /**
- * CSS 색상을 Pixi용 숫자 형식으로 변환 (0xRRGGBB)
+ * CSS 색상을 `0xRRGGBB` 숫자로 변환한다 (알파 제외 — 알파는 `cssColorToAlpha`).
+ *
+ * 캔버스 렌더 경로가 색을 숫자로 다루기 때문에 필요한 기본 변환기다.
+ * oklch / lab / `currentColor` 해석까지 필요하면 이 위에 얹힌
+ * `styleConversion/styleConverter.ts::cssColorToHex` 를 쓸 것.
  *
  * 🚀 Phase 22: colord 기반으로 통합
  * - 기존 직접 파싱 대비 더 많은 색상 형식 지원
  * - hex, rgb, rgba, hsl, hsla, named colors 모두 지원
  *
+ * 구 이름은 `cssColorToPixiHex` 였다 — 출력은 렌더러와 무관한 RGB 숫자이고
+ * 실제 소비처도 Skia 경로다 (2026-08-15 정정).
+ *
  * @param color - CSS 색상 값
  * @param fallback - 파싱 실패 시 반환할 기본값 (0xRRGGBB)
- * @returns Pixi용 숫자 색상 (0xRRGGBB)
+ * @returns 0xRRGGBB 숫자
  */
-export function cssColorToPixiHex(
+export function cssColorToRgbNumber(
   color: string | null | undefined,
   fallback: number,
 ): number {

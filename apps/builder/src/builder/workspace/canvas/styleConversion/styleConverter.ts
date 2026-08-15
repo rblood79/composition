@@ -13,7 +13,7 @@
  * @updated 2025-12-20 Phase 22 - colord 색상 파싱
  */
 
-import { cssColorToPixiHex } from "../../../../utils/color";
+import { cssColorToRgbNumber } from "../../../../utils/color";
 import { colord, extend } from "colord";
 import lchPlugin from "colord/plugins/lch";
 import labPlugin from "colord/plugins/lab";
@@ -480,29 +480,29 @@ export function cssColorToHex(
 
   if (lower.startsWith("oklch(")) {
     const hex = parseOklch(effective);
-    if (hex) return cssColorToPixiHex(hex, fallback);
+    if (hex) return cssColorToRgbNumber(hex, fallback);
     return fallback;
   }
   if (lower.startsWith("lab(")) {
     const hex = parseLab(effective);
-    if (hex) return cssColorToPixiHex(hex, fallback);
+    if (hex) return cssColorToRgbNumber(hex, fallback);
     return fallback;
   }
   if (lower.startsWith("lch(")) {
     const hex = parseLch(effective);
-    if (hex) return cssColorToPixiHex(hex, fallback);
+    if (hex) return cssColorToRgbNumber(hex, fallback);
     return fallback;
   }
   if (lower.startsWith("color(")) {
     const hex = parseColorFunc(effective);
-    if (hex) return cssColorToPixiHex(hex, fallback);
+    if (hex) return cssColorToRgbNumber(hex, fallback);
     return fallback;
   }
   if (lower.startsWith("color-mix(")) {
     const resolved = resolveColorMix(effective);
-    if (resolved) return cssColorToPixiHex(resolved, fallback);
+    if (resolved) return cssColorToRgbNumber(resolved, fallback);
   }
-  return cssColorToPixiHex(effective, fallback);
+  return cssColorToRgbNumber(effective, fallback);
 }
 
 /**

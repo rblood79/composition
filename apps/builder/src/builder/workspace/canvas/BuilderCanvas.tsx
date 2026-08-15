@@ -4,10 +4,13 @@
  * Phase 11: DirectContainer 기반 캔버스
  *
  * 기능:
- * - PixiJS Application 초기화
- * - Canvas node 렌더링
+ * - 캔버스 런타임 부트스트랩 (WASM 레이아웃 엔진 초기화 대기)
+ * - Canvas node 렌더링 (Skia 렌더는 `SkiaCanvasLazy` 가 담당)
  * - Selection Overlay
  * - Zoom/Pan
+ *
+ * 구 헤더는 "PixiJS Application 초기화" 라고 적고 있었다 — ADR-900 이후
+ * 사실이 아니다 (2026-08-15 정정).
  *
  * @since 2025-12-11 Phase 10 B1.1
  * @updated 2026-02-18 Phase 11 - @pixi/layout 완전 제거, DirectContainer 전환

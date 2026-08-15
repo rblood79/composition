@@ -28,8 +28,8 @@ export {
   extractRGB,
   extractHSL,
 
-  // Skia 색상 변환 (0xRRGGBB 숫자 — 심볼명의 "Pixi" 는 ADR-900 이전 잔재)
-  cssColorToPixiHex,
+  // Canvas 색상 변환 (0xRRGGBB 숫자)
+  cssColorToRgbNumber,
 
   // Re-exports from colord
   colord,

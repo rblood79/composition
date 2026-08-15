@@ -5,7 +5,7 @@
  * cssVariableReader.ts에서 추출된 핵심 모듈.
  */
 
-import { cssColorToPixiHex } from "../../../../utils/color";
+import { cssColorToRgbNumber } from "../../../../utils/color";
 
 // ============================================
 // CSS Variable Reading + Cache
@@ -65,7 +65,7 @@ export function cssColorToHex(color: string, fallback: number): number {
     return resolveColorMix(color, fallback);
   }
 
-  return cssColorToPixiHex(color, fallback);
+  return cssColorToRgbNumber(color, fallback);
 }
 
 /**

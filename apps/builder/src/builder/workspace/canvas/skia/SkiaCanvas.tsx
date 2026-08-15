@@ -317,7 +317,9 @@ export function SkiaCanvas({
   }, []);
 
   // ---------- StoreRenderBridge (Phase 6) ----------
-  // PixiJS Application이 없을 때 store에서 직접 skiaNodeRegistry를 채운다.
+  // store 데이터에서 직접 skiaNodeRegistry 를 채운다 (항상 이 경로).
+  //   구 주석은 "PixiJS Application이 없을 때" 라고 적어 조건 분기가 있는 것처럼
+  //   읽혔는데, 이 effect 는 무조건 실행된다 (2026-08-15 정정).
 
   useEffect(() => {
     const bridge = new StoreRenderBridge();
