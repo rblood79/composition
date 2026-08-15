@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-15
+Accepted — 2026-08-15 (리뷰 round 1 승인 — LOW 3건 전건 fixed, `docs/adr/reviews/183.md`)
 
 ## Context
 
@@ -14,7 +14,7 @@ Proposed — 2026-08-15
 
 **Hard Constraints**:
 
-1. **off 시 성능 회귀 ≤ 2%** — `benches/flex_shrink.rs`(`grow_nowrap_1000` 등 3종) + `benches/tree_solve.rs` 동일 머신 A/B 기준. 근거: `last_avail` 키 추가(2026-07-28) 때 +8% 가 "잘못 skip 되던 재계산의 정당 비용"으로 수용된 전례가 있으나, 트레이스 게이트는 **순수 오버헤드**라 그 예산이 없다
+1. **off 시 성능 회귀 ≤ 2%** — `benches/flex_shrink.rs` 전 케이스(5종 — `shrink_nowrap_1000`/`shrink_wrap_auto_1200`/`grow_nowrap_1000`/`shrink_minfloor_1000`/`shrink_minfloor_freeze_1000`) + `benches/tree_solve.rs`, 동일 머신 A/B **median_ns 기준** (벤치 하니스가 WARMUP+RUNS median/p90 출력 — 판정 지표 고정). 근거: `last_avail` 키 추가(2026-07-28) 때 +8% 가 "잘못 skip 되던 재계산의 정당 비용"으로 수용된 전례가 있으나, 트레이스 게이트는 **순수 오버헤드**라 그 예산이 없다
 2. 60Hz floor / frame time p95 (CLAUDE.md 성능 기준) — 일반 경로(게이트 off)에서 사용자-체감 변화 0
 3. **배치 프로토콜 계약 불변** — `build_tree_batch` / binary_protocol / `NodeStyle` 스키마 무변경. 트레이스는 별도 조회 API
 4. TS 잔존 계약 준수 — 측정 oracle 은 TS(`enrichWithIntrinsicSize` 스칼라), 알고리즘·판정은 엔진. TS 층 공급값은 판독 헬퍼가 `[TS]` 로 병기할 뿐 엔진 트레이스에 섞지 않는다
@@ -61,7 +61,7 @@ Proposed — 2026-08-15
 - 설명: 평상시 기록 0. 문제 발생 시 해당 서브트리를 트레이스 켜고 다시 solve 해 판정을 얻는다.
 - 근거: rr/시간여행 디버깅 계열 관례 — 비용을 사후로 이연.
 - 위험:
-  - 기술: **H** — **증분 캐시 상태 의존 결함이 재현되지 않는다**. fresh re-solve 는 skip 게이트(`last_solved`/`last_avail`, tree.rs:968)·측정 캐시(`mutation_gen`)를 타지 않으므로, "새로고침하면 정상" 서명을 가진 캐시 계열 — 최근 재발 최다 축 (§증분 skip 2건, 측정 캐시 1건, 재부모화 1건) — 이 정확히 사각이 된다. explain 채널이 가장 필요한 결함군을 못 본다
+  - 기술: **H** — **증분 캐시 상태 의존 결함이 재현되지 않는다**. fresh re-solve 는 skip 게이트(`last_solved`/`last_avail`, tree.rs:977)·측정 캐시(`mutation_gen`, tree.rs:379)를 타지 않으므로, "새로고침하면 정상" 서명을 가진 캐시 계열 — 최근 재발 최다 축 (§증분 skip 2건, 측정 캐시 1건, 재부모화 1건) — 이 정확히 사각이 된다. explain 채널이 가장 필요한 결함군을 못 본다
   - 성능: L — 평상시 0
   - 유지보수: M — replay 진입로(상태 스냅샷) 유지
   - 마이그레이션: L
@@ -109,7 +109,7 @@ Proposed — 2026-08-15
 
 | Gate | 시점         | 통과 조건                                                                                                     | 실패 시 대안                                     |
 | ---- | ------------ | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| G1   | Phase 1 종료 | off 상태 A/B 벤치 (`flex_shrink.rs` 3종 + `tree_solve.rs`) 회귀 ≤ 2%                                          | compile-time feature 로 격하 (대안 B 후퇴)       |
+| G1   | Phase 1 종료 | off 상태 A/B 벤치 (`flex_shrink.rs` 5종 + `tree_solve.rs`, median_ns) 회귀 ≤ 2%                               | compile-time feature 로 격하 (대안 B 후퇴)       |
 | G2   | Phase 3 종료 | live builder 실노드 1개 `window.__layoutExplain` 실측 (완료 기준 live behavior 게이트)                        | 배선 결함 수리 전 Implemented 승격 금지          |
 | G3   | Phase 3 종료 | `layout-engine.md` 오진 대표 3건 (캐시-새로고침 / 형제 성장 / 미결정 main) 이 트레이스 출력으로 판별됨을 확인 | 이벤트 목록 보강 (Phase 0 freeze 개정) 후 재확인 |
 
@@ -124,6 +124,6 @@ Proposed — 2026-08-15
 
 ### Negative
 
-- 엔진 4파일 (tree.rs / flex.rs / grid 경로 / lib.rs) 에 계측 지점 상주 — 알고리즘 수정 시 트레이스 항목 동반 갱신 의무 (R2)
+- 엔진 4파일 (tree.rs / flex.rs / grid.rs / wasm.rs) 에 계측 지점 상주 — 알고리즘 수정 시 트레이스 항목 동반 갱신 의무 (R2)
 - off 분기 비용 ≤2% 를 상시 지불 (G1 통과 전제)
 - WASM API 2종 + TS 판독 헬퍼의 표면 증가

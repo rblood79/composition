@@ -30,7 +30,7 @@ window.__layoutExplain("component-listbox")
   5. intrinsic 측정 캐시 (HIT/MISS + `mutation_gen`)
   6. flex item 재-solve 발화 (3.5 — used ≠ solved_avail)
   7. grid 트랙 해소 결과 (§12.5 기여 / §12.7.1 freeze-restart / §12.8 stretch)
-- off-cost baseline: `benches/flex_shrink.rs` (grow_nowrap 등 3종) + `benches/tree_solve.rs` 현행 수치 채록 (동일 머신 — G1 의 A/B 기준값)
+- off-cost baseline: `benches/flex_shrink.rs` 전 케이스(5종) + `benches/tree_solve.rs` 현행 median_ns 채록 (동일 머신 — G1 의 A/B 기준값)
 - 산출물: 이벤트 enum 초안 + baseline 표 (본 문서 §4 에 기록)
 
 ### Phase 1 — 엔진 trace 코어
@@ -48,7 +48,7 @@ window.__layoutExplain("component-listbox")
 
 ### Phase 2 — WASM 경계
 
-- `lib.rs` (wasm-bindgen surface): `enable_layout_trace(enabled: bool)` / `get_layout_trace(node_id) -> JsValue(JSON)`
+- `wasm.rs` (wasm-bindgen surface — `build_tree_batch` 가 있는 파일): `enable_layout_trace(enabled: bool)` / `get_layout_trace(node_id) -> JsValue(JSON)`
 - **binary_protocol / `build_tree_batch` 계약 무변경** (HC3) — 트레이스는 별도 조회 API, 배치 payload 에 싣지 않는다
 - enable 시에만 sink 할당 (R3 — off 시 메모리 0)
 - `compositionEngineWasm.ts` 바인딩 + `idMapper.ts` 경유 element id ↔ node handle 변환
@@ -72,7 +72,7 @@ window.__layoutExplain("component-listbox")
 | `packages/composition-engine/src/trace.rs`                                         | 신설 — TraceEvent/TraceSink                    |
 | `packages/composition-engine/src/tree.rs`                                          | 계측 지점 삽입 (solve_node/solve_grid/measure) |
 | `packages/composition-engine/src/flex.rs`                                          | 계측 지점 삽입 (§4.5/3.5/3.6/라인 cross)       |
-| `packages/composition-engine/src/lib.rs`                                           | WASM API 2종                                   |
+| `packages/composition-engine/src/wasm.rs`                                          | WASM API 2종                                   |
 | `apps/builder/src/builder/workspace/canvas/wasm-bindings/compositionEngineWasm.ts` | 바인딩                                         |
 | `apps/builder/src/builder/workspace/canvas/layout/engines/` (디버그 헬퍼 신설)     | 판독 포맷 + window 노출                        |
 

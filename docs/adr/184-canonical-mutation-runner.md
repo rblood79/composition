@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-15
+Accepted — 2026-08-15 (리뷰 round 1 승인 — MED 1건 fixed, `docs/adr/reviews/184.md`)
 
 ## Context
 
@@ -21,7 +21,7 @@ canonical mutation 의 4단 순서 (① canonical document 갱신 → ② store 
 **Hard Constraints**:
 
 1. 상태 변경 파이프라인 순서 계약 보존: Memory → Index → History (즉시) → DB → Preview (CLAUDE.md §상태 변경 파이프라인)
-2. **기존 잔존 경로 동작 불변** — 이관 0건 (`createInstance` 등 allowlist 고정). 러너 도입이 기존 경로의 diff 를 만들지 않는다
+2. **기존 잔존(역전) 경로 동작 불변** — 이관 0건 (`createInstance` 등 allowlist 고정). 정합 기존 경로도 **G2 파일럿 1건 전환 외에는** diff 를 만들지 않는다 (파일럿은 정합 패턴 경로에서만 선정 — 잔존 allowlist 는 파일럿 대상 아님)
 3. 기존 정적 가드 계약 유지 — `historyActions.static.test.ts` source-order 단언 무변경
 4. 성능 중립 — 러너는 함수 1겹 (편집 1회 205ms 병력 대비 측정 불가 수준. mutation 은 프레임 hot path 가 아니라 이벤트 경로)
 
