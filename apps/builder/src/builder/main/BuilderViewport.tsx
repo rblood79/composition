@@ -1,4 +1,5 @@
 import React from "react";
+import { ContextMenuProvider } from "../components";
 
 export interface BuilderViewportProps {
   children: React.ReactNode;
@@ -11,7 +12,7 @@ export const BuilderViewport: React.FC<BuilderViewportProps> = ({
 }) => {
   return (
     <div className={className} data-context="builder">
-      {children}
+      <ContextMenuProvider>{children}</ContextMenuProvider>
     </div>
   );
 };

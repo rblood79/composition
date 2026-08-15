@@ -4,6 +4,10 @@
 
 Accepted — 2026-08-15 (리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED 4 / LOW 2) + round 2 이슈 3건(MED 3) 전건 fixed, 잔존 pending 0, HIGH/CRITICAL 잔존 0 — 전제 확정 종결 계약 성립 — [reviews/182.md](reviews/182.md))
 
+## Implementation Progress
+
+- Phase 1 — Implemented 2026-08-15: RAC virtual-anchor overlay, surface provider registry, context-menu selection/policy pure functions, Builder-root native menu suppression, and regression tests (G1 anchor/action/underlay contract verified; viewport-edge flip remains RAC live-browser evidence for Phase 2).
+
 ## Context
 
 빌더 안에서 우클릭이 대상에 맞는 컨텍스트 메뉴를 제공하지 못한다. 캔버스는 브라우저 기본 캔버스 메뉴("이미지 저장 / 이미지 복사 / 검사")가, DOM 패널 영역은 HTML 기본 메뉴가 뜬다. 실측 (2026-08-14, 라인은 2026-08-15 재확인):

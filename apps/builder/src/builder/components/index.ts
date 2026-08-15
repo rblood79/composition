@@ -66,6 +66,9 @@ export {
   CommandPalette,
   type CommandPaletteProps,
   EditingSemanticsImpactDialogHost,
+  ContextMenuProvider,
+  useContextMenu,
+  type ContextMenuProviderProps,
 } from "./overlay";
 
 // UI 컴포넌트
