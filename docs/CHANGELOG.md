@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [canonical mutation 순서 러너 — ADR-184 Phase 0~3] - 2026-08-15
+
+### Architecture
+
+- **`runCanonicalMutation` — 신규 mutation 경로의 4단 순서 구조화** (ADR-184 Implemented):
+  - canonical → store set → `_rebuildIndexes` → history → persist(백그라운드) 순서를 러너 (`adapters/canonical/canonicalMutationRunner.ts`) 가 소유 — 신규 mutation 은 스테이지 함수만 제공하며 set-1차 형태의 순서 위반은 시그니처상 표현 불가 (canonical required)
+  - **Why**: 4단 순서가 관례 + 사후 정적 가드로만 강제되어 위반이 반복 — `createInstance` set-1차 잔존, stale-canonical race 로 origin → copy → paste 시 instance 가 일반 element 로 생성되던 사용자-가시 결함 (`a859f8b97`/`ee91020c4` 수습). 위반별 사후 가드 노동을 러너 1개 + 우회 차단 가드 1개로 수렴
+  - 적용 범위는 **신규 경로 한정** — 기존 15파일 호출부는 allowlist 고정 (이관은 "회귀 위험 대비 이득 작음" 선행 판정 유지), `canonicalMutationRunner.static.test.ts` 가 allowlist 밖 wrapper 직호출을 차단 (RED 실측 검증)
+  - 파일럿: 복합 컴포넌트 생성 `addElementsToStore` (기준형) 러너 전환 — live 실측 (Select 추가 → canonical/store/IndexedDB 동기 + 새로고침 정합, 동작 불변)
+  - 위치: `apps/builder/src/adapters/canonical/canonicalMutationRunner.ts`, `builder/factories/utils/elementCreation.ts`, `builder/main/BuilderCore.tsx` (bridge DI), `.claude/rules/state-management.md` (신규 경로 규칙)
+
 ## [레이아웃 explain 디버그 채널 — ADR-183 Phase 0~3] - 2026-08-15
 
 ### Infrastructure

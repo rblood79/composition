@@ -93,7 +93,7 @@ Implemented — 2026-08-15 (Phase 0~3 당일 종결: 이벤트 freeze → 엔진
 - **대안 B 기각**: 아티팩트 2벌의 유지보수 HIGH — dev 전용 채널을 위해 빌드 매트릭스를 상시 2배로 유지하는 교환이 성립하지 않음. 단 **G1 실패 시 후퇴처**로 보존
 - **대안 D 기각**: 캐시 계열 결함 사각 (기술 HIGH). explain 이 가장 자주 쓰일 결함군이 정확히 재현 불가 영역
 
-> 구현 상세: [183-layout-explain-channel-breakdown.md](design/183-layout-explain-channel-breakdown.md)
+> 구현 상세: [183-layout-explain-channel-breakdown.md](../design/183-layout-explain-channel-breakdown.md)
 
 ## Risks
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-15 (리뷰 round 1 승인 — MED 1건 fixed, `docs/adr/reviews/184.md`)
+Implemented — 2026-08-15 (Phase 0~3 당일 종결: 인벤토리 freeze G1 PASS — 실호출 15파일/26지점, 표현 불가 유형 0 → 러너 + 단위 테스트 8건 → 파일럿 `addElementsToStore` 전환 G2 live 실측 PASS → 우회 차단 정적 가드 G3 RED 실측 PASS. 리뷰 round 1 승인 — MED 1건 fixed, `docs/adr/reviews/184.md`)
 
 ## Context
 
@@ -97,7 +97,7 @@ canonical mutation 의 4단 순서 (① canonical document 갱신 → ② store 
 - **대안 C 기각**: 유지보수 HIGH — 발견이 항상 사용자-가시 race 이후이고 가드 노동이 위반 수에 비례. 위반 누적이라는 문제 자체를 풀지 않는다
 - **대안 D 기각**: "회귀 위험 대비 이득 작음" 기존 판정의 반전 근거가 없다 — history 격리로 실질 위험이 이미 낮아진 경로의 재작성은 한계 이득 < 회귀 위험. 단 개별 경로에서 race **재발** 시 그 경로 1건만 이관하는 재개 조건을 breakdown 에 명시
 
-> 구현 상세: [184-canonical-mutation-runner-breakdown.md](design/184-canonical-mutation-runner-breakdown.md)
+> 구현 상세: [184-canonical-mutation-runner-breakdown.md](../design/184-canonical-mutation-runner-breakdown.md)
 
 ## Risks
 

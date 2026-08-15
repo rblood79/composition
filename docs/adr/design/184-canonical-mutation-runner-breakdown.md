@@ -1,7 +1,7 @@
 # ADR-184 Design Breakdown: canonical mutation 순서 러너
 
-> 본문: [184-canonical-mutation-runner.md](../184-canonical-mutation-runner.md)
-> 상태: Accepted (리뷰 round 1 승인) — Phase 0 Implemented 2026-08-15
+> 본문: [184-canonical-mutation-runner.md](../completed/184-canonical-mutation-runner.md)
+> 상태: **Implemented 2026-08-15** — Phase 0~3 당일 종결 (G1 표현 가능률 100% / G2 파일럿 live 실측 / G3 가드 RED 실측). 기존 경로 이관은 비스코프 유지
 
 ## 1. 목표 형태
 
@@ -28,7 +28,7 @@ runCanonicalMutation({
 - 산출물: 패턴 분류표 + 러너 표현 가능률 (본 문서 §4 에 기록)
 - 주의: [ADR-127 M3] 추정 vs 실측 gap 은 본 phase 인벤토리로 흡수 — fork 사유 아님
 
-### Phase 1 — 러너 구현 + 단위 테스트
+### Phase 1 — 러너 구현 + 단위 테스트 ✅ Implemented 2026-08-15 (`canonicalMutationRunner.ts` + 단위 8건)
 
 - 위치: `apps/builder/src/adapters/canonical/canonicalMutationRunner.ts` (wrapper 와 같은 adapters 계층 — stores 가 아니라 canonical 인접)
 - 순서 강제: canonical → store `set` → `_rebuildIndexes` → history entry → persist(백그라운드)
@@ -36,13 +36,13 @@ runCanonicalMutation({
 - **부분 실패 semantics 명문화**: 동기 구간 (canonical/set/rebuild) 은 throw 전파 (현행 관례 동일 — 러너가 새 복구 로직을 발명하지 않는다), persist 는 fire-and-forget + 오류 로깅 (현행 `persistActiveCanonicalDocument` 관례)
 - 단위 테스트: 스테이지 호출 순서 단언 (spy 순서) + canonical 스테이지 없이 store 스테이지만 넘기는 오용이 타입 에러인지 (required 필드)
 
-### Phase 2 — 파일럿 1경로 적용 → G2
+### Phase 2 — 파일럿 1경로 적용 → G2 ✅ Implemented 2026-08-15 (addElementsToStore 전환 — G2 live PASS: Select 추가 canonical 85→90/store 77→82 동기 + 새로고침 정합)
 
 - 신규 mutation 1건 (다음 기능 작업에서 발생) 또는 최근 추가된 소형 mutation 1건을 러너 경유로 전환
 - live builder 실측: 해당 mutation 실행 → 새로고침 → canonical/IndexedDB 정합 확인 (완료 기준 live behavior 게이트)
 - 파일럿에서 시그니처 마찰 발견 시 Phase 1 로 1회 회귀 허용 (2회 이상이면 G1 재판정)
 
-### Phase 3 — 러너 우회 차단 정적 가드 → G3
+### Phase 3 — 러너 우회 차단 정적 가드 → G3 ✅ Implemented 2026-08-15 (RED 실측 PASS + state-management.md 갱신)
 
 - `canonicalMutationRunner.static.test.ts`: 러너/기존-잔존 allowlist **밖** 파일에서 `mergeElementsCanonicalPrimary` 등 wrapper 직호출 발견 시 FAIL
   - allowlist = Phase 0 인벤토리의 기존 경로 고정 목록 — **추가 금지** (신규는 러너 경유가 유일 경로)
