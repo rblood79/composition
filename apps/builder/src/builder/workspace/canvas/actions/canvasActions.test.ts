@@ -5,6 +5,7 @@ import {
   alignSelection,
   buildCanvasActionElementsMap,
   copySelection,
+  cutSelection,
   deleteSelection,
   distributeSelection,
   duplicateSelection,
@@ -27,9 +28,18 @@ function makeElement(
   };
 }
 
+// `useStore.setState` 는 새 state 객체를 만들면서 **mock 함수까지 복사**한다.
+// 그래서 `vi.restoreAllMocks()` 가 복원한 것은 버려진 옛 객체이고, 다음 테스트는
+// 이전 테스트의 spy 를 그대로 물려받는다 (호출 기록 포함). 원본 액션 참조를
+// 잡아 두고 afterEach 에서 명시적으로 되돌린다.
+const originalStoreActions = {
+  removeElements: useStore.getState().removeElements,
+} as const;
+
 afterEach(() => {
   vi.restoreAllMocks();
   useStore.setState({
+    ...originalStoreActions,
     currentPageId: null,
     multiSelectMode: false,
     selectedElementId: null,
@@ -84,6 +94,51 @@ describe("canvasActions", () => {
     expect(JSON.parse(writeClipboardText.mock.calls[0][0])).toMatchObject({
       rootIds: ["child"],
     });
+  });
+
+  it("cut copies then deletes", async () => {
+    useStore.setState({
+      currentPageId: "page-1",
+      selectedElementId: "child",
+      selectedElementIds: ["child"],
+    } as never);
+    const removeElements = vi
+      .spyOn(useStore.getState(), "removeElements")
+      .mockResolvedValue(undefined);
+    const writeClipboardText = vi.fn<(text: string) => Promise<boolean>>(
+      async (_text) => true,
+    );
+    const elementsMap = new Map<string, CanvasActionElement>([
+      ["child", makeElement("child")],
+    ]);
+
+    await cutSelection({ elementsMap, writeClipboardText });
+
+    expect(writeClipboardText).toHaveBeenCalledTimes(1);
+    expect(removeElements).toHaveBeenCalledWith(["child"]);
+  });
+
+  it("cut does not delete when the clipboard write fails", async () => {
+    // 복사가 실패했는데 지우면 되돌릴 곳 없이 내용이 사라진다.
+    useStore.setState({
+      currentPageId: "page-1",
+      selectedElementId: "child",
+      selectedElementIds: ["child"],
+    } as never);
+    const removeElements = vi
+      .spyOn(useStore.getState(), "removeElements")
+      .mockResolvedValue(undefined);
+    const writeClipboardText = vi.fn<(text: string) => Promise<boolean>>(
+      async (_text) => false,
+    );
+    const elementsMap = new Map<string, CanvasActionElement>([
+      ["child", makeElement("child")],
+    ]);
+
+    await cutSelection({ elementsMap, writeClipboardText });
+
+    expect(writeClipboardText).toHaveBeenCalledTimes(1);
+    expect(removeElements).not.toHaveBeenCalled();
   });
 
   it("keeps no-op guards for all eight extracted actions", async () => {

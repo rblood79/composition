@@ -72,6 +72,91 @@ describe("canvas context-menu providers", () => {
     expect(items.at(-1)?.id).toBe("delete");
   });
 
+  it("builds the z-order cluster for a single target with siblings (ADR-182 T1 #4~#7)", () => {
+    const items = buildCanvasContextMenuItems(
+      {
+        clientX: 100,
+        clientY: 120,
+        surface: "canvas-element",
+        targetElementIds: ["first"],
+      },
+      options([element("first"), element("second")]),
+    );
+
+    expect(items.map((item) => item.id)).toEqual([
+      "copy",
+      "paste",
+      "duplicate",
+      "selection-separator",
+      "z-order-separator",
+      "bring-to-front",
+      "bring-forward",
+      "send-backward",
+      "send-to-back",
+      "structure-separator",
+      "group",
+      "component-separator",
+      "toggle-component-origin",
+      "delete-separator",
+      "delete",
+    ]);
+  });
+
+  it("hides the z-order cluster when the target has no sibling", () => {
+    const items = buildCanvasContextMenuItems(
+      {
+        clientX: 100,
+        clientY: 120,
+        surface: "canvas-element",
+        targetElementIds: ["only"],
+      },
+      options([element("only")]),
+    );
+
+    expect(items.map((item) => item.id)).not.toContain("bring-to-front");
+    expect(items.map((item) => item.id)).not.toContain("send-to-back");
+  });
+
+  it("hides the z-order cluster for multi-selection and projected ids", () => {
+    const multi = buildCanvasContextMenuItems(
+      {
+        clientX: 100,
+        clientY: 120,
+        surface: "canvas-element",
+        targetElementIds: ["first", "second"],
+      },
+      options([element("first"), element("second")]),
+    );
+    expect(multi.map((item) => item.id)).not.toContain("bring-to-front");
+
+    const projectedId = "page-1::page-frame::slot";
+    const projected = buildCanvasContextMenuItems(
+      {
+        clientX: 100,
+        clientY: 120,
+        surface: "canvas-element",
+        targetElementIds: [projectedId],
+      },
+      options([element(projectedId), element("sibling")]),
+    );
+    expect(projected.map((item) => item.id)).not.toContain("bring-to-front");
+  });
+
+  it("marks Delete as destructive (Pen model)", () => {
+    const items = buildCanvasContextMenuItems(
+      {
+        clientX: 100,
+        clientY: 120,
+        surface: "canvas-element",
+        targetElementIds: ["first"],
+      },
+      options([element("first")]),
+    );
+
+    const deleteItem = items.find((item) => item.id === "delete");
+    expect(deleteItem).toMatchObject({ kind: "action", destructive: true });
+  });
+
   it("builds T2 viewport and canvas setting actions", () => {
     const items = buildCanvasContextMenuItems(
       {

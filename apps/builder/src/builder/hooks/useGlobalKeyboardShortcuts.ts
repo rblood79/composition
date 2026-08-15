@@ -35,6 +35,7 @@ import {
 } from "../workspace/canvas/viewport/viewportActions";
 import {
   copySelection,
+  cutSelection,
   deleteSelection,
   paste,
 } from "../workspace/canvas/actions/canvasActions";
@@ -181,6 +182,18 @@ export function useGlobalKeyboardShortcuts() {
   const handleCanvasCopy = useCallback(async () => {
     const { elementsMap } = useStore.getState();
     await copySelection({
+      elementsMap,
+      writeClipboardText: copyText,
+      requireCurrentPageForCopy: true,
+    });
+  }, [copyText]);
+
+  /**
+   * Canvas Cut - 복사 후 삭제 (복사 실패 시 삭제하지 않음)
+   */
+  const handleCanvasCut = useCallback(async () => {
+    const { elementsMap } = useStore.getState();
+    await cutSelection({
       elementsMap,
       writeClipboardText: copyText,
       requireCurrentPageForCopy: true,
@@ -480,6 +493,7 @@ export function useGlobalKeyboardShortcuts() {
 
       // Canvas (Phase 6: 스코프 기반)
       copy: getScopedHandler(handleCanvasCopy, handleEventsCopy),
+      cut: handleCanvasCut,
       paste: getScopedHandler(handleCanvasPaste, handleEventsPaste),
       delete: getScopedHandler(handleCanvasDelete, handleEventsDelete),
       deleteAlt: getScopedHandler(handleCanvasDelete, handleEventsDelete),
@@ -514,6 +528,7 @@ export function useGlobalKeyboardShortcuts() {
       // Phase 6
       getScopedHandler,
       handleCanvasCopy,
+      handleCanvasCut,
       handleCanvasPaste,
       handleCanvasDelete,
       handleToggleComponentOrigin,
@@ -558,6 +573,7 @@ export function useGlobalKeyboardShortcuts() {
       "toggleRulers",
       // Canvas (Phase 6)
       "copy",
+      "cut",
       "paste",
       "toggleComponentOrigin",
       "detachInstance",

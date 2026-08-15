@@ -31,6 +31,7 @@ import {
   ungroupSelection,
 } from "../actions/canvasActions";
 import { isFrameOrLegacyGroup } from "../../../stores/utils/elementGrouping";
+import { isRenderProjectionId } from "../../../projection/renderProjectionIds";
 import type { CanvasActionElement } from "../actions/canvasActions";
 import {
   applyViewportState,
@@ -54,14 +55,86 @@ function actionItem(
   label: string,
   run: () => void | Promise<void>,
   shortcutId?: ShortcutId,
+  options?: { destructive?: boolean },
 ): ContextMenuItem {
   return {
     kind: "action",
     id,
     label,
     ...(shortcutId ? { shortcutId } : {}),
+    ...(options?.destructive ? { destructive: true } : {}),
     run,
   };
+}
+
+/**
+ * z-order 항목의 노출 조건 — 같은 부모 아래 형제가 2개 이상 (ADR-182 §2).
+ *
+ * 형제가 하나뿐이면 네 항목 모두 무조건 no-op 이라 조건 미충족 = 숨김
+ * (Figma/Pen 공통 관례 — disabled 가 아니다).
+ */
+function hasReorderableSiblings(
+  element: CanvasActionElement,
+  elementsMap: ReadonlyMap<string, CanvasActionElement>,
+): boolean {
+  const parentId = element.parent_id ?? element.parentId ?? null;
+  // 부모가 없으면 page body 이거나 루트 — 형제 재배치 대상이 아니다
+  if (!parentId) return false;
+
+  let siblingCount = 0;
+  for (const candidate of elementsMap.values()) {
+    if (candidate.deleted) continue;
+    const candidateParentId = candidate.parent_id ?? candidate.parentId ?? null;
+    if (candidateParentId !== parentId) continue;
+    siblingCount += 1;
+    if (siblingCount >= 2) return true;
+  }
+  return false;
+}
+
+/**
+ * z-order 클러스터 (ADR-182 T1 #4~#7).
+ *
+ * **단일 선택 한정**이다 — 다중 선택의 상대 순서 보존 규칙이 정의되지 않았고
+ * (§2 각주는 "공통 부모 형제군 한정" 이라고만 적는다), 기존 단축키 경로도
+ * `handleReorderSibling` 이 다중이면 즉시 반환한다. 표시해 놓고 아무 일도
+ * 일어나지 않는 것보다 숨기는 쪽이 정책(조건 미충족 = 숨김)에 맞다.
+ */
+function buildZOrderItems(element: CanvasActionElement): ContextMenuItem[] {
+  const moveToEdge = (edge: "front" | "back") => () => {
+    useStore.getState().moveElementToSiblingEdge(element.id, edge);
+  };
+  const reorder = (direction: -1 | 1) => () => {
+    useStore.getState().reorderElementWithinParent(element.id, direction);
+  };
+
+  return [
+    { kind: "separator", id: "z-order-separator" },
+    actionItem(
+      "bring-to-front",
+      "맨 앞으로 / Bring to Front",
+      moveToEdge("front"),
+      "bringToFront",
+    ),
+    actionItem(
+      "bring-forward",
+      "앞으로 / Bring Forward",
+      reorder(1),
+      "bringForward",
+    ),
+    actionItem(
+      "send-backward",
+      "뒤로 / Send Backward",
+      reorder(-1),
+      "sendBackward",
+    ),
+    actionItem(
+      "send-to-back",
+      "맨 뒤로 / Send to Back",
+      moveToEdge("back"),
+      "sendToBack",
+    ),
+  ];
 }
 
 function buildAlignmentItems(
@@ -138,6 +211,16 @@ function buildElementMenuItems(
     ),
     { kind: "separator", id: "selection-separator" },
   ];
+
+  if (
+    isSingleSelection &&
+    primaryElement &&
+    !isRenderProjectionId(primaryElement.id) &&
+    hasReorderableSiblings(primaryElement, elementsMap)
+  ) {
+    items.push(...buildZOrderItems(primaryElement));
+    items.push({ kind: "separator", id: "structure-separator" });
+  }
 
   if (canGroupSelection) {
     items.push(
@@ -233,6 +316,8 @@ function buildElementMenuItems(
         "삭제 / Delete",
         () => deleteSelection(context()),
         "delete",
+        // Pen 모델 — destructive 스타일 + 최하단 격리로 오클릭 완화 (ADR-182 §2)
+        { destructive: true },
       ),
     );
   }

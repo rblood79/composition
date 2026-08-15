@@ -102,21 +102,41 @@ function getActionElements(context: CanvasActionContext): Map<string, Element> {
   return buildCanvasActionElementsMap(context.elementsMap);
 }
 
+/**
+ * @returns 클립보드 쓰기까지 성공했으면 true. `cutSelection` 이 이 값으로
+ *   삭제 여부를 정한다 — 복사가 실패했는데 지우면 내용이 사라진다.
+ */
 export async function copySelection(
   context: CanvasActionContext,
-): Promise<void> {
+): Promise<boolean> {
   const { selectedElementIds, currentPageId } = useStore.getState();
   if (
     selectedElementIds.length === 0 ||
     (context.requireCurrentPageForCopy && !currentPageId)
   ) {
-    return;
+    return false;
   }
 
   const elementsMap = getActionElements(context);
   const copiedData = copyMultipleElements(selectedElementIds, elementsMap);
   const serialized = serializeCopiedElements(copiedData);
-  await (context.writeClipboardText ?? writeClipboardText)(serialized);
+  return await (context.writeClipboardText ?? writeClipboardText)(serialized);
+}
+
+/**
+ * 잘라내기 = 복사 + 삭제 (ADR-182 Phase 4 — `keyboardShortcuts.ts` 의 dead
+ * definition 소생).
+ *
+ * **복사 성공이 삭제의 전제**다. 클립보드 쓰기는 권한·포커스 문제로 조용히
+ * 실패할 수 있는데, 그때도 지우면 되돌릴 곳 없이 내용이 사라진다.
+ */
+export async function cutSelection(
+  context: CanvasActionContext,
+): Promise<void> {
+  const copied = await copySelection(context);
+  if (!copied) return;
+
+  await deleteSelection(context);
 }
 
 export async function paste(context: CanvasActionContext): Promise<void> {
