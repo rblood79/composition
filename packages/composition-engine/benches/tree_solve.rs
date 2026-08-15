@@ -69,16 +69,28 @@ fn build_nested(tree: &mut LayoutTree, depth: usize) -> usize {
 }
 
 /// 중앙값 + p90 (ns). 단발 최소값은 노이즈, 평균은 outlier 에 취약.
-fn measure(label: &str, iters: usize, mut f: impl FnMut()) {
+/// `batch` 회를 **한 번의 타이머 구간**으로 재고 나눈다 (ADR-183 G1).
+///
+/// 구 하니스는 1회씩 쟀는데, 그러면 두 가지가 측정을 지배한다:
+///   ① **타이머 해상도** — macOS `Instant` 는 약 41.7ns 틱이라 208ns 짜리 증분 경로는
+///      5틱이다. 인접 틱으로 한 칸만 움직여도 ±20% 라 2% 회귀는 원리상 못 본다
+///      (실측: 같은 바이너리 A/A 에서 208 ↔ 167).
+///   ② **`Instant::now()` 자신의 비용** — 측정 대상이 수백 ns 면 그 오버헤드가
+///      결과의 큰 몫을 차지해, 실제 코드 변화를 희석한다.
+/// 배치로 재면 둘 다 `batch` 로 나뉜다.
+fn measure(label: &str, samples_n: usize, batch: usize, mut f: impl FnMut()) {
+    let batch = batch.max(1);
     // 워밍업 — 첫 회 할당/캐시 미스 제외.
-    for _ in 0..(iters / 10).max(1) {
+    for _ in 0..batch {
         f();
     }
-    let mut samples = Vec::with_capacity(iters);
-    for _ in 0..iters {
+    let mut samples = Vec::with_capacity(samples_n);
+    for _ in 0..samples_n {
         let t = Instant::now();
-        f();
-        samples.push(t.elapsed().as_nanos() as u64);
+        for _ in 0..batch {
+            f();
+        }
+        samples.push(t.elapsed().as_nanos() as u64 / batch as u64);
     }
     samples.sort_unstable();
     let median = samples[samples.len() / 2];
@@ -97,7 +109,10 @@ fn main() {
         // clean 자식은 그대로 skip 되어 깊이가 측정에 안 잡힌다 (초기 시도에서 depth
         // 1~12 가 전부 동일 수치로 나온 원인).
         let mut flip = false;
-        measure(&format!("nested depth={depth:<2} full solve"), 200, || {
+        // full solve 는 4µs~27µs 라 타이머 틱(41.7ns) 대비 100배 이상 — batch 불요.
+        // 배치를 걸면 한 샘플이 8배 길어져 스케줄러 방해를 더 잘 타고 분산만 커진다
+        // (실측 depth=1: batch 8 에서 median 8578 / p90 11614 로 악화).
+        measure(&format!("nested depth={depth:<2} full solve"), 800, 1, || {
             flip = !flip;
             let w = if flip { 1920.0 } else { 1919.0 };
             tree.compute_layout(black_box(root), w, 800.0);
@@ -108,7 +123,7 @@ fn main() {
     let mut tree = LayoutTree::new();
     let root = build_nested(&mut tree, 8);
     tree.compute_layout(root, 1920.0, 800.0);
-    measure("nested depth=8  incremental", 500, || {
+    measure("nested depth=8  incremental", 200, 500, || {
         tree.compute_layout(black_box(root), 1920.0, 800.0);
     });
 }

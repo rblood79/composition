@@ -112,6 +112,7 @@
 //! main/cross 축은 컨테이너 `flex_direction` 에 따라 물리축(x/y)에 매핑된다.
 //! 아이템 필드는 이미 논리축(main/cross) 기준으로 상류에서 변환되어 들어온다.
 
+use crate::trace::FloorSource;
 use wasm_bindgen::prelude::*;
 
 /// 노드당 입력 필드 수.
@@ -286,6 +287,59 @@ impl FlexItem {
     }
 }
 
+/// §4.5 automatic minimum size 해석 — **단일 정의**.
+///
+/// 반환 `(used min_main, 발화했다면 floor 기준값 출처)`. `parse_item` 과 ADR-183
+/// 트레이스가 같은 함수를 쓴다: 조건을 호출부에 복제하면 floor 를 고칠 때 explain
+/// 만 옛 조건을 보고해 **거짓 안심**을 준다 (ADR-183 R2 / breakdown §4-4a).
+///
+/// 조건(ADR-164): min 미명시(AUTO) + item 주축 overflow visible + 주축 크기 auto.
+/// `off + 1` 은 이름이 `width` 지만 tree.rs 가 **논리 main** 을 쓴다 (`write_flex_item`
+/// 의 direction 매핑) — column 컨테이너에서도 주축을 본다.
+#[inline]
+pub fn resolve_auto_min_main(data: &[f32], i: usize) -> (f32, Option<FloorSource>) {
+    let off = i * FLEX_FIELD_COUNT;
+    auto_min_main_from_parts(
+        data[off + 1],
+        data[off + 9],
+        data[off + 10],
+        data[off + 13],
+        data[off + 18] != 0.0,
+        data[off + 19],
+    )
+}
+
+/// 위 함수의 본체 — **커널은 이미 읽은 값을 그대로 넘긴다**.
+///
+/// 배열 접근을 다시 하는 래퍼를 `parse_item` 이 부르면 아이템당 6 load 가 중복되고,
+/// 1000 아이템 루프에서 그게 실측 +2~3% 로 나온다 (ADR-183 G1 1차 측정). 조건 정의는
+/// 여기 한 곳뿐이므로 이중화는 없다.
+///
+/// `inline(always)` 인 이유: `parse_item` 은 반환 tuple 의 두 번째 요소(출처)를 쓰지
+/// 않는다. 인라인이 보장돼야 그 `Option` 구성이 DCE 되고 커널이 종전과 같은 코드가 된다.
+#[inline(always)]
+fn auto_min_main_from_parts(
+    main_size: f32,
+    min_main: f32,
+    max_main: f32,
+    content_main: f32,
+    overflow_clipped: bool,
+    content_min_main: f32,
+) -> (f32, Option<FloorSource>) {
+    if min_main == AUTO && !overflow_clipped && main_size == AUTO {
+        let (suggestion, source) = if content_min_main > 0.0 {
+            (content_min_main, FloorSource::ContentMinScalar)
+        } else {
+            (content_main, FloorSource::ContentMainFallback)
+        };
+        let floor = suggestion.max(0.0);
+        let floor = if max_main != AUTO { floor.min(max_main) } else { floor };
+        (floor, Some(source))
+    } else {
+        (min_main, None)
+    }
+}
+
 /// 원본 배열에서 아이템 파싱 → 논리축 FlexItem.
 fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     let off = i * FLEX_FIELD_COUNT;
@@ -298,7 +352,7 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     let m_left = data[off + 6];
     let pad_border_main = data[off + 7];
     let pad_border_cross = data[off + 8];
-    let min_main = data[off + 9];
+    let raw_min_main = data[off + 9];
     let max_main = data[off + 10];
     let min_cross = data[off + 11];
     let max_cross = data[off + 12];
@@ -319,15 +373,17 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     //
     // ADR-165: floor 기준값은 정확 min-content(`content_min_main`, off 19) 우선 —
     // absent(0)면 `content_main`(단일줄 상한 근사, ADR-164 동작) fallback.
-    let overflow_clipped = data[off + 18] != 0.0;
-    let content_min_main = data[off + 19];
-    let min_main = if min_main == AUTO && !overflow_clipped && width == AUTO {
-        let suggestion = if content_min_main > 0.0 { content_min_main } else { content_main };
-        let floor = suggestion.max(0.0);
-        if max_main != AUTO { floor.min(max_main) } else { floor }
-    } else {
-        min_main
-    };
+    //
+    // 해석은 `auto_min_main_from_parts` 단일 함수가 소유한다 — ADR-183 트레이스가
+    // 같은 함수를 재사용해 "floor 가 발화했나 / 기준값 출처가 무엇인가" 를 보고한다.
+    let (min_main, _floor_source) = auto_min_main_from_parts(
+        width,
+        raw_min_main,
+        max_main,
+        content_main,
+        data[off + 18] != 0.0,
+        data[off + 19],
+    );
 
     // flex-basis 해석 우선순위: flex_basis(명시) → width(논리 main) → content.
     // CONTENT / AUTO 센티넬은 content_main 로 fallback (intrinsic 자동측정 미구현).

@@ -127,6 +127,8 @@ pub mod flex;
 pub mod grid;
 pub mod spatial_index;
 pub mod style;
+/// ADR-183 — 레이아웃 판정 트레이스 (디버그 채널). 게이트 off 가 기본.
+pub mod trace;
 pub mod tree;
 
 pub use spatial_index::SpatialIndex;

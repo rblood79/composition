@@ -85,6 +85,7 @@ use crate::block;
 use crate::flex;
 use crate::grid;
 use crate::style::{resolve_css_size_value, CssValueContext, FIT_CONTENT, MAX_CONTENT, MIN_CONTENT};
+use crate::trace::{Axis, ClampBound, SkipReason, TraceEvent, TraceSink, TracedEvent, TrackStage};
 
 /// indefinite available 센티넬 (음수). `%` 크기는 indefinite containing block 에 대해
 /// `auto` 로 풀린다(CSS §10.2) — `resolve_dimension` 이 음수 ctx 에서 0(=auto) 을 반환하고,
@@ -377,12 +378,100 @@ pub struct LayoutTree {
     /// 트리 mutation 카운터 — intrinsic 측정 캐시 유효성 판정 (ADR-169 Phase 1).
     /// 노드 생성/스타일·자식 변경/제거/clear 마다 증가.
     mutation_gen: u64,
+    /// ADR-183 — 판정 트레이스 sink. `None` 이 기본이고, 그때 계측 지점의 비용은
+    /// `Option` 분기 1회다 (HC1). `Box` 인 이유는 off 상태 `LayoutTree` 를
+    /// 포인터 하나만큼만 키우기 위함.
+    trace: Option<Box<TraceSink>>,
 }
 
 impl LayoutTree {
     /// 빈 트리 생성.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    // ── ADR-183 판정 트레이스 (디버그 채널) ──────────────────────────────
+
+    /// 트레이스 게이트를 켠다. 이 시점부터의 solve 판정이 노드별로 쌓인다.
+    ///
+    /// **라이브 캐시 상태 그대로 기록되는 것이 채널의 존재 이유다** (ADR-183
+    /// Decision 1). 문제 노드를 fresh 로 다시 풀면 skip 게이트·측정 캐시를 타지
+    /// 않아, 오진 반복 최다 축(캐시 계열)이 정확히 사각이 된다. 그러므로 진단 시
+    /// 트리를 새로 만들지 말고 **살아 있는 트리에 이걸 켜라**.
+    pub fn enable_trace(&mut self) {
+        if self.trace.is_none() {
+            self.trace = Some(Box::new(TraceSink::new()));
+        }
+    }
+
+    /// 게이트를 끄고 기록을 해제한다 (R3 — WASM 힙 반환).
+    pub fn disable_trace(&mut self) {
+        self.trace = None;
+    }
+
+    pub fn trace_enabled(&self) -> bool {
+        self.trace.is_some()
+    }
+
+    /// 노드의 기록된 판정. 게이트가 off 면 빈 슬라이스.
+    pub fn trace_events(&self, handle: usize) -> &[TracedEvent] {
+        match self.trace.as_ref() {
+            Some(sink) => sink.events(handle),
+            None => &[],
+        }
+    }
+
+    /// 노드당 상한(`MAX_EVENTS_PER_NODE`) 초과로 버려진 개수.
+    pub fn trace_dropped(&self, handle: usize) -> usize {
+        self.trace.as_ref().map(|s| s.dropped(handle)).unwrap_or(0)
+    }
+
+    /// 이벤트가 하나라도 기록된 노드 handle 목록.
+    pub fn traced_handles(&self) -> Vec<usize> {
+        self.trace.as_ref().map(|s| s.traced_handles()).unwrap_or_default()
+    }
+
+    /// 기록된 이벤트만 비운다 (게이트는 유지) — 재현 구간을 좁힐 때.
+    pub fn clear_trace(&mut self) {
+        if let Some(sink) = self.trace.as_mut() {
+            sink.clear();
+        }
+    }
+
+    /// 판정 1건 기록 — **off 경로 비용은 `Option` 분기 1회**.
+    ///
+    /// 호출부는 이벤트를 클로저로 넘긴다: 인자로 만들어 넘기면 `Vec` 를 쓰는
+    /// variant(`GridTrackResolve`)가 off 경로에서도 할당을 지불한다 (HC1).
+    #[inline]
+    fn trace_push(&mut self, handle: usize, event: impl FnOnce() -> TraceEvent) {
+        if let Some(sink) = self.trace.as_mut() {
+            sink.push(handle, event());
+        }
+    }
+
+    /// 증분 skip 게이트의 판정 — **게이트 자신과 트레이스가 공유하는 단일 정의**.
+    ///
+    /// 반환 `Some(prev)` 면 그 값을 그대로 돌려주면 된다(HIT). `subtree_dirty` 를
+    /// 클로저로 받는 이유는 단축 평가 보존이다 — `last_solved` 가 없으면 트리 walk
+    /// 자체를 돌지 않는 것이 기존 동작이고, 여기서 그것을 잃으면 계측이 아니라
+    /// 성능 회귀가 된다 (HC1).
+    #[inline]
+    fn skip_decision(
+        node: &TreeNode,
+        subtree_dirty: impl FnOnce() -> bool,
+        avail_w: f32,
+        avail_h: f32,
+    ) -> (SkipReason, Option<(f32, f32)>) {
+        let Some(prev) = node.last_solved else {
+            return (SkipReason::NoPrev, None);
+        };
+        if subtree_dirty() {
+            return (SkipReason::Dirty, None);
+        }
+        if node.last_avail != Some((avail_w, avail_h)) {
+            return (SkipReason::AvailChanged, None);
+        }
+        (SkipReason::Hit, Some(prev))
     }
 
     // ── handle 관리 (taffy_bridge.rs alloc_handle/resolve 대응) ──
@@ -891,11 +980,27 @@ impl LayoutTree {
         let gen = self.mutation_gen;
         if let Some((g, min_w, max_w)) = self.get(handle).and_then(|n| n.intrinsic_w) {
             if g == gen {
+                // ADR-183 #5 — HIT. "부모는 맞고 자손만 틀림" 서명의 판별점이다:
+                // 세대가 안 바뀌면 스타일이 바뀌어도 옛 측정값이 그대로 소비된다.
+                if self.trace.is_some() {
+                    self.trace_push(handle, || TraceEvent::IntrinsicMeasure {
+                        hit: true,
+                        generation: g,
+                        min: min_w,
+                        max: max_w,
+                    });
+                }
                 return Some((min_w, max_w));
             }
         }
         let mut snap = Vec::new();
         self.snapshot_subtree(handle, &mut snap);
+
+        // 이 아래 두 번의 solve 는 **센티넬 available 로 도는 가상 solve** 다. 그
+        // 구간 이벤트를 본 solve 와 같은 줄에 놓으면 판독이 오도되므로 태그를 건다 (R5).
+        if let Some(sink) = self.trace.as_mut() {
+            sink.enter_measure();
+        }
 
         // 측정 전 dirty 강제 — clean 서브트리면 `solve_node` 가 저장된 layout 을
         // 그대로 돌려줘 측정이 아니라 **직전 배치 결과**를 읽게 된다.
@@ -905,10 +1010,23 @@ impl LayoutTree {
         let (max_w, _) = self.solve_node(handle, MAX_CONTENT_AVAIL, INDEFINITE_AVAIL);
 
         self.restore_subtree(&snap);
+        if let Some(sink) = self.trace.as_mut() {
+            sink.exit_measure();
+        }
         // min ≤ max 불변식 — 집계 근사라 역전이 원리상 가능하다(§9.9.3 미구현, R4).
         let result = (min_w.min(max_w), max_w);
         if let Some(node) = self.get_mut(handle) {
             node.intrinsic_w = Some((gen, result.0, result.1));
+        }
+        // MISS — 재측정이 실제로 돌았다. `generation` 이 직전 HIT 과 다르면 그 사이
+        // mutation 이 있었다는 뜻이고, 같은 세대에서 MISS 가 반복되면 캐시가 안 잡히는 것.
+        if self.trace.is_some() {
+            self.trace_push(handle, || TraceEvent::IntrinsicMeasure {
+                hit: false,
+                generation: gen,
+                min: result.0,
+                max: result.1,
+            });
         }
         Some(result)
     }
@@ -973,10 +1091,21 @@ impl LayoutTree {
         //      store/canonical 데이터 문제가 **아니다** (스냅샷 diff 로 1분 안에 배제).
         //   ③ padding 0 요소는 무증상이라 "특정 컴포넌트만 이상하다" 로 잘못 귀속된다.
         //   상세: .claude/rules/layout-engine.md §"증분 skip 의 키는 dirty 와 available 둘이다"
-        if let Some(prev) = node.last_solved {
-            if !self.subtree_has_dirty(handle) && node.last_avail == Some((avail_w, avail_h)) {
-                return prev;
+        //
+        // ADR-183: 판정은 `skip_decision` **단일 함수**가 내리고 게이트와 트레이스가
+        // 그것을 공유한다 — 트레이스 쪽에 조건을 복제하면 게이트를 고칠 때 explain 만
+        // 옛 조건을 보고해 거짓 안심을 준다 (R2). `subtree_has_dirty` 는 트리 walk 라
+        // 클로저로 넘겨 **기존 단축 평가를 보존**한다 (last_solved 가 없으면 안 돈다).
+        let (skip_reason, skip_prev) =
+            Self::skip_decision(node, || self.subtree_has_dirty(handle), avail_w, avail_h);
+        if let Some(prev) = skip_prev {
+            if self.trace.is_some() {
+                self.trace_push(handle, || TraceEvent::IncrementalSkip {
+                    reason: skip_reason,
+                    avail: (avail_w, avail_h),
+                });
             }
+            return prev;
         }
 
         let children = node.children.clone();
@@ -985,6 +1114,13 @@ impl LayoutTree {
         // 끝난 지점에서 한 번만 쓴다 (재-borrow 추가 없이).
         if let Some(n) = self.get_mut(handle) {
             n.last_avail = Some((avail_w, avail_h));
+        }
+        // MISS 사유 기록 — HIT 는 위에서 이미 남기고 반환했다.
+        if self.trace.is_some() {
+            self.trace_push(handle, || TraceEvent::IncrementalSkip {
+                reason: skip_reason,
+                avail: (avail_w, avail_h),
+            });
         }
         // display:none 자식은 layout 비참여 (CSS: 박스 미생성 — 크기/흐름/gap 전부 제외).
         // zero layout 을 기록해 get_layouts_batch 완전성은 유지한다 (tree_golden N9).
@@ -1123,11 +1259,24 @@ impl LayoutTree {
         };
         if explicit_w > 0.0 {
             // 명시 폭 (키워드 해소값 포함) — max 먼저, min 이 이긴다 (CSS §5.1).
+            let before = explicit_w;
             if let Some(mx) = own_max_w {
                 explicit_w = explicit_w.min(mx);
             }
             if let Some(mn) = own_min_w {
                 explicit_w = explicit_w.max(mn);
+            }
+            // ADR-183 #2 — **바인딩했을 때만** 기록한다. clamp 선언은 있는데 값이 안
+            // 바뀐 경우까지 남기면 판독자가 "clamp 탓" 으로 잘못 몰린다.
+            if self.trace.is_some() && explicit_w != before {
+                let bound = if explicit_w < before { ClampBound::Max } else { ClampBound::Min };
+                let to = explicit_w;
+                self.trace_push(handle, || TraceEvent::UsedSizeClamp {
+                    axis: Axis::Inline,
+                    bound,
+                    from: before,
+                    to,
+                });
             }
         } else if !children.is_empty()
             && intrinsic_mode(avail_w).is_none()
@@ -1171,11 +1320,22 @@ impl LayoutTree {
         // 블록 축 — 명시 높이의 clamp. 자식 `%` base (`child_containing_h`) / grid definite
         // 게이트 / flex main 이 이 값을 소비한다 (flex 3.6 재-clamp 는 멱등).
         if explicit_h > 0.0 {
+            let before = explicit_h;
             if let Some(mx) = own_max_h {
                 explicit_h = explicit_h.min(mx);
             }
             if let Some(mn) = own_min_h {
                 explicit_h = explicit_h.max(mn);
+            }
+            if self.trace.is_some() && explicit_h != before {
+                let bound = if explicit_h < before { ClampBound::Max } else { ClampBound::Min };
+                let to = explicit_h;
+                self.trace_push(handle, || TraceEvent::UsedSizeClamp {
+                    axis: Axis::Block,
+                    bound,
+                    from: before,
+                    to,
+                });
             }
         }
 
@@ -1779,6 +1939,18 @@ impl LayoutTree {
         // 늘렸다 (실측 dom 300 / eng 90). row 의 cross(=height)는 블록 축이라 명시만 확정.
         let mut cross_definite = cross_definite_self;
         let mut avail_cross = avail_cross;
+
+        // ADR-183 #3 — §4.5 floor. `data` 가 2-b 의 실측 교체까지 끝난 **이 지점**이
+        // 커널이 실제로 보는 입력이다. 그 앞에서 읽으면 상한 근사가 찍혀 판독이 틀린다.
+        // 조건 판정은 커널과 같은 `flex::resolve_auto_min_main` 이 소유한다 (§4-4a).
+        if self.trace.is_some() {
+            for i in 0..children.len() {
+                if let (floor, Some(source)) = flex::resolve_auto_min_main(&data, i) {
+                    self.trace_push(handle, || TraceEvent::AutoMinFloor { item: i, source, floor });
+                }
+            }
+        }
+
         let mut out = flex::flex_layout(
             &data,
             avail_main,
@@ -1857,6 +2029,18 @@ impl LayoutTree {
                 // 무조건 여기서 푼다 (이게 그 item 의 유일한 실 solve 다).
                 if !deferred_to_resolve[i] && (used_main - laid_out_main).abs() <= RESOLVE_EPS {
                     continue; // 분배로 안 바뀜 — 재배치 불필요
+                }
+
+                // ADR-183 #6 — 3.5 재-solve 발화. 이 재-solve 는 `used_main` 을 상속
+                // available 로 내려주므로, 자식의 미해소 `%` 가 여기서 다시 풀린다
+                // (§flex item 재-solve — `%` 의 세 번째 누수 경로). 백분율 발산을 볼 때
+                // 게이트가 아니라 이 줄이 원인인지 먼저 갈라야 한다.
+                if self.trace.is_some() {
+                    self.trace_push(handle, || TraceEvent::FlexItemResolve {
+                        item: i,
+                        used_main,
+                        prev_avail: laid_out_main,
+                    });
                 }
 
                 // used main 으로 재-solve → 새 content 크기.
@@ -2184,6 +2368,13 @@ impl LayoutTree {
             for &c in children {
                 self.mark_subtree_dirty(c);
             }
+            // ADR-183 #4 — shrink-to-fit 확정 뒤 재진입 (CSS-SIZING-3 §5.1). 이 줄이
+            // 있으면 자식의 `%` 가 확정 폭에 다시 해소된 것이고, 없으면 1차 pass 의
+            // `auto` 해석이 최종값이다 — 둘을 구분 못 하면 폭 발산의 원인을 못 좁힌다.
+            self.trace_push(handle, || TraceEvent::ShrinkToFitReentry {
+                axis: Axis::Inline,
+                settled,
+            });
             let (_, h2) = self.solve_flex(handle, children, settled, explicit_h, avail_w, avail_h);
             // auto 축 반환은 content-box 계약 — 단 min/max clamp 가 바인딩했으면 used
             // size 는 clamp 뒤 값이다 (군집 A — 1차 content 유지 계약은 `%` 재해소 한정).
@@ -2399,6 +2590,10 @@ impl LayoutTree {
             for &c in children {
                 self.mark_subtree_dirty(c);
             }
+            self.trace_push(handle, || TraceEvent::ShrinkToFitReentry {
+                axis: Axis::Inline,
+                settled,
+            });
             let (_, h2) = self.solve_block(handle, children, settled, explicit_h, avail_w, avail_h);
             // auto 축 반환은 content-box 계약 — min/max clamp 바인딩 시 used = clamp 뒤 값.
             let report_w = if (settled - own_pb_h - container_w).abs() > f32::EPSILON {
@@ -2797,6 +2992,28 @@ impl LayoutTree {
                 template_cols
             };
 
+        // ADR-183 #7 — 커널에 넘어가는 **확정 트랙**. 여기까지 오면 §12.5 기여로 세운
+        // base 에 §12.6/§12.7.1 이 얹히고 §12.8 stretch 까지 반영된 값이다. 트랙 폭을
+        // 자식 폭으로 역추정하면 틀린다 (빈 트랙·넘치는 자식) — 그래서 그 값을 직접 남긴다.
+        if self.trace.is_some() {
+            let cols = parse_track_px(&col_tracks);
+            let rows = parse_track_px(&row_tracks);
+            let stretched_cols =
+                inline_definite && distribution_allows_stretch(style.justify_content.as_deref());
+            self.trace_push(handle, || TraceEvent::GridTrackResolve {
+                stage: if stretched_cols { TrackStage::AutoStretch } else { TrackStage::Contribution },
+                axis: Axis::Inline,
+                tracks: cols,
+            });
+            let stretched_rows =
+                explicit_h > 0.0 && distribution_allows_stretch(style.align_content.as_deref());
+            self.trace_push(handle, || TraceEvent::GridTrackResolve {
+                stage: if stretched_rows { TrackStage::AutoStretch } else { TrackStage::Contribution },
+                axis: Axis::Block,
+                tracks: rows,
+            });
+        }
+
         // grid_layout — 셀 bounds flat [x,y,w,h,...].
         // justify-content/align-content (E12) — 고정 트랙이 컨테이너보다 작을 때 트랙셋 정렬.
         let justify_content = style.justify_content.as_deref().unwrap_or("");
@@ -3026,6 +3243,10 @@ impl LayoutTree {
             for &c in children {
                 self.mark_subtree_dirty(c);
             }
+            self.trace_push(handle, || TraceEvent::ShrinkToFitReentry {
+                axis: Axis::Inline,
+                settled,
+            });
             let (_, h2) = self.solve_grid(handle, children, settled, explicit_h, avail_w, avail_h);
             // min/max clamp 바인딩 시 used = clamp 뒤 값 (군집 A — content-box 계약 유지).
             let report_w = if (settled - own_pb_h - final_w).abs() > f32::EPSILON {
@@ -3463,6 +3684,21 @@ fn distribution_allows_stretch(v: Option<&str>) -> bool {
 /// (실측: `auto minmax(50px,80px)` 300 → auto 220 / minmax 80). `fr` 이 하나라도 있으면
 /// 그것이 여유를 전부 흡수해 `free == 0` 이 되므로 **자동으로** no-op 이다 (실측:
 /// `auto 1fr` → auto 는 content 40 유지). 넘칠 때(여유 음수)도 no-op — 트랙을 줄이지 않는다.
+/// 트레이스용 — 확정 트랙 문자열을 px 수치로. 해소 불가 토큰(`1fr` 등이 남은 경우)은
+/// `f32::NAN` 으로 남겨 "이 트랙은 아직 안 풀렸다" 를 판독자가 구분하게 한다.
+/// 트레이스 게이트 안에서만 호출되므로 off 경로 비용 0.
+fn parse_track_px(tracks: &[String]) -> Vec<f32> {
+    tracks
+        .iter()
+        .map(|t| {
+            t.trim()
+                .strip_suffix("px")
+                .and_then(|n| n.parse::<f32>().ok())
+                .unwrap_or(f32::NAN)
+        })
+        .collect()
+}
+
 fn stretch_auto_tracks(tracks: &mut [String], auto_idx: &[usize], container: f32, gap: f32) {
     /// f32 누산 오차가 가짜 stretch 를 만들지 않게 하는 하한.
     const FREE_EPS: f32 = 0.01;

@@ -14,7 +14,7 @@ Accepted — 2026-08-15 (리뷰 round 1 승인 — LOW 3건 전건 fixed, `docs/
 
 **Hard Constraints**:
 
-1. **off 시 성능 회귀 ≤ 2%** — `benches/flex_shrink.rs` 전 케이스(5종 — `shrink_nowrap_1000`/`shrink_wrap_auto_1200`/`grow_nowrap_1000`/`shrink_minfloor_1000`/`shrink_minfloor_freeze_1000`) + `benches/tree_solve.rs`, 동일 머신 A/B **min_ns 기준** (2026-08-15 Phase 0 A/A 검정: median 통계는 군당 14회에서도 가짜 회귀 3.2% 로 2% 판정 불가 — min 통계 + 군당 14회 이상이 위양성 1.7%. 프로토콜 정본 = breakdown §4-3). 근거: `last_avail` 키 추가(2026-07-28) 때 +8% 가 "잘못 skip 되던 재계산의 정당 비용"으로 수용된 전례가 있으나, 트레이스 게이트는 **순수 오버헤드**라 그 예산이 없다
+1. **off 시 성능 회귀 ≤ 2%** — `benches/flex_shrink.rs` 전 케이스(5종 — `shrink_nowrap_1000`/`shrink_wrap_auto_1200`/`grow_nowrap_1000`/`shrink_minfloor_1000`/`shrink_minfloor_freeze_1000`) + `benches/tree_solve.rs`, 동일 머신 A/B — 판정 통계량은 **반복 내 쌍대 비율의 중앙값**이고 **A/A 대조군 동시 실행 + arm 순서 회전**이 필수다 (2026-08-15 실측: min 통계는 노이즈 바닥이 그날 1.9~19.7% 로 요동쳐 2% 를 판정하지 못했고, 쌍대 비율은 0.25% 로 내려간다. 프로토콜 정본 = breakdown §4-3). 근거: `last_avail` 키 추가(2026-07-28) 때 +8% 가 "잘못 skip 되던 재계산의 정당 비용"으로 수용된 전례가 있으나, 트레이스 게이트는 **순수 오버헤드**라 그 예산이 없다
 2. 60Hz floor / frame time p95 (CLAUDE.md 성능 기준) — 일반 경로(게이트 off)에서 사용자-체감 변화 0
 3. **배치 프로토콜 계약 불변** — `build_tree_batch` / binary_protocol / `NodeStyle` 스키마 무변경. 트레이스는 별도 조회 API
 4. TS 잔존 계약 준수 — 측정 oracle 은 TS(`enrichWithIntrinsicSize` 스칼라), 알고리즘·판정은 엔진. TS 층 공급값은 판독 헬퍼가 `[TS]` 로 병기할 뿐 엔진 트레이스에 섞지 않는다
@@ -109,7 +109,7 @@ Accepted — 2026-08-15 (리뷰 round 1 승인 — LOW 3건 전건 fixed, `docs/
 
 | Gate | 시점         | 통과 조건                                                                                                                                                 | 실패 시 대안                                     |
 | ---- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| G1   | Phase 1 종료 | off 상태 A/B 벤치 (`flex_shrink.rs` 5종 + `tree_solve.rs`) 회귀 ≤ 2% — **판정 프로토콜 필수**: min 통계 · 군당 14회 이상 · 콜드 2회 폐기 (breakdown §4-3) | compile-time feature 로 격하 (대안 B 후퇴)       |
+| G1   | Phase 1 종료 | **PASS (2026-08-15, 최대 +1.57%)** — off 상태 A/B 벤치 (`flex_shrink.rs` 5종 + `tree_solve.rs`) 회귀 ≤ 2%. **판정 프로토콜 필수**: 쌍대 비율 · A/A 대조군 · 순서 회전 · 콜드 2회 폐기 (breakdown §4-3, 결과 §4-5) | compile-time feature 로 격하 (대안 B 후퇴)       |
 | G2   | Phase 3 종료 | live builder 실노드 1개 `window.__layoutExplain` 실측 (완료 기준 live behavior 게이트)                                                                    | 배선 결함 수리 전 Implemented 승격 금지          |
 | G3   | Phase 3 종료 | `layout-engine.md` 오진 대표 3건 (캐시-새로고침 / 형제 성장 / 미결정 main) 이 트레이스 출력으로 판별됨을 확인                                             | 이벤트 목록 보강 (Phase 0 freeze 개정) 후 재확인 |
 
