@@ -1,5 +1,7 @@
 import { useRef } from "react";
+import { Check, ChevronRight } from "lucide-react";
 import {
+  Keyboard,
   Menu,
   MenuItem,
   Popover,
@@ -11,6 +13,9 @@ import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
 import { formatShortcut } from "../../../hooks";
 import type { ContextMenuItem, ContextMenuRequest } from "./types";
 import "./contextMenu.css";
+
+/** header 메뉴 항목 아이콘(BuilderHeader `size={14}`)과 같은 치수. */
+const MENU_ICON_SIZE = 14;
 
 export interface ContextMenuOverlayProps {
   isOpen: boolean;
@@ -82,6 +87,11 @@ function renderContextMenuItems(
         <SubmenuTrigger key={item.id}>
           <MenuItem id={item.id} className="context-menu-item">
             <Text slot="label">{item.label}</Text>
+            <ChevronRight
+              aria-hidden="true"
+              className="context-menu-chevron"
+              size={MENU_ICON_SIZE}
+            />
           </MenuItem>
           <Popover className="context-menu-popover" placement="right top">
             <Menu aria-label={item.label} className="context-menu">
@@ -114,11 +124,13 @@ function renderContextMenuItems(
       >
         <Text slot="label">{item.label}</Text>
         {item.kind === "toggle" && item.checked && (
-          <span aria-hidden="true" className="context-menu-check">
-            ✓
-          </span>
+          <Check
+            aria-hidden="true"
+            className="context-menu-check"
+            size={MENU_ICON_SIZE}
+          />
         )}
-        {shortcutLabel && <kbd>{shortcutLabel}</kbd>}
+        {shortcutLabel && <Keyboard>{shortcutLabel}</Keyboard>}
       </MenuItem>
     );
   });

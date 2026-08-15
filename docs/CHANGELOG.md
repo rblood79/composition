@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컨텍스트 메뉴 chrome 을 header 메뉴 패턴으로 정렬] - 2026-08-16
+
+### Features
+
+- **우클릭 컨텍스트 메뉴가 header 메뉴(`.header-menu-popover`)와 같은 모양이 됨**:
+  - popover: 모서리 `--radius-lg`(8px, 기존 `--radius-sm`) + `overflow: hidden` + `contain: layout style` + 최소 폭 200px, 열기/닫기 모션(`translateY` 2px, 0.1s/0.08s) 추가
+  - **패딩 소유자가 popover → menu 로 이동**. header 패턴과 같은 3층 분담(popover=껍데기 / menu=패딩 · 스크롤 / item=flex + gap). 뷰포트가 좁아 RAC 가 popover 에 `max-height` 를 인라인으로 걸면 `overflow: hidden` 이 항목을 잘라내므로, 스크롤은 menu 가 맡는다 (실측: 항목 13개 메뉴에서 `max-height: 608px` 상속 확인)
+  - item: `gap` + 모서리 `--radius-md`, hover/focus 는 `--bg-muted` · pressed 는 `--accent-subtle` 로 분리(기존 3상태 동일 배경), 단축키는 `margin-left: auto` 로 우측 정렬
+  - 구조: 단축키를 RAC `<Keyboard>` 로, 토글 체크를 lucide `Check`(14px)로 교체하고 **하위 메뉴 항목에 `ChevronRight` 표식 추가**(기존에는 하위 메뉴 여부가 보이지 않았다). 체크와 단축키가 같이 뜨는 항목(눈금자 표시 ⇧R)은 `auto` 마진이 둘로 갈려 체크가 가운데로 밀리므로, 뒤따르는 `kbd` 는 gap 만으로 붙인다
+  - popover 에 `outline: none` 유지 — header 메뉴와 달리 우클릭 진입에서는 popover 자신(`tabIndex=-1`)이 포커스를 받아 UA 포커스 링이 그려진다
+  - live 실측(빌더 우클릭): 요소 메뉴 / 빈 영역 메뉴 / 다중 선택 정렬 하위 메뉴 / 토글 체크 + 단축키 동시 노출 4경로 확인
+  - 위치: `apps/builder/src/builder/components/overlay/contextMenu/{contextMenu.css,ContextMenuOverlay.tsx}`
+
 ## [프레임 적용 페이지의 canonical 자식 배치 정정] - 2026-08-16
 
 ### Bug Fixes

@@ -1,44 +1,89 @@
 @layer builder-system {
+  /* ========================================
+   * Context Menu
+   * chrome/치수/모션은 `.header-menu-popover` (styles/layout/header.css) 정본과
+   * 동일 패턴 — popover(껍데기) → menu(패딩) → item(flex + gap) 3층 분담.
+   * padding 은 popover 가 아니라 menu 가 갖는다 (스크롤 시 여백 유지).
+   * ======================================== */
+
+  /* Context Menu Popover */
   .context-menu-popover {
-    z-index: 1000;
-    min-width: 180px;
-    padding: var(--spacing-xs);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
     background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    overflow: hidden;
+    min-width: 200px;
+    contain: layout style;
+    /* header 메뉴와 달리 우클릭 진입에서는 popover(tabIndex=-1) 자신이 포커스를
+       받아 UA 포커스 링이 그려진다 — 껍데기라 링 대상이 아니다. */
     outline: none;
   }
 
+  .context-menu-popover[data-entering] {
+    animation: context-menu-enter 0.1s ease-out;
+  }
+
+  .context-menu-popover[data-exiting] {
+    animation: context-menu-exit 0.08s ease-in;
+  }
+
+  @keyframes context-menu-enter {
+    from {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes context-menu-exit {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    to {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+  }
+
+  /* Context Menu (Menu) */
   .context-menu {
-    display: flex;
-    flex-direction: column;
-    min-width: 100%;
-    margin: 0;
-    padding: 0;
+    padding: var(--spacing-xs);
     outline: none;
+    /* popover 가 overflow:hidden 이라, 뷰포트 제약으로 RAC 가 max-height 를
+       인라인 지정하면 항목이 잘린다 — 스크롤은 menu 가 맡는다. */
+    max-height: inherit;
+    overflow: auto;
   }
 
+  /* Context Menu Item (MenuItem) */
   .context-menu-item {
     display: flex;
     align-items: center;
-    width: 100%;
-    min-height: var(--spacing-2xl);
-    padding: var(--spacing-sm) var(--spacing);
-    border: 0;
-    border-radius: var(--radius-xs);
-    background: transparent;
-    color: var(--fg);
-    cursor: pointer;
-    font: inherit;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
     font-size: var(--text-xs);
-    text-align: left;
+    color: var(--fg);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.1s;
   }
 
   .context-menu-item[data-focused],
-  .context-menu-item[data-hovered],
-  .context-menu-item[data-pressed] {
+  .context-menu-item[data-hovered] {
     background: var(--bg-muted);
+  }
+
+  .context-menu-item[data-pressed] {
+    background: var(--accent-subtle);
   }
 
   .context-menu-item[data-destructive="true"] {
@@ -46,20 +91,41 @@
   }
 
   .context-menu-item kbd {
-    margin-left: var(--spacing-xl);
-    color: var(--fg-muted);
-    font: inherit;
+    font-family: inherit;
     font-size: var(--text-xs);
+    color: var(--fg-muted);
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-left: auto;
   }
 
-  .context-menu-check {
+  .context-menu-item svg {
+    flex-shrink: 0;
+    color: var(--fg-muted);
+  }
+
+  /* 우측 정렬 표식 — toggle 체크 / submenu chevron */
+  .context-menu-item .context-menu-check,
+  .context-menu-item .context-menu-chevron {
     margin-left: auto;
+  }
+
+  .context-menu-item .context-menu-check {
     color: var(--accent);
   }
 
+  /* 체크 + 단축키 동시 노출 시 auto 가 둘로 갈려 체크가 가운데로 밀린다 —
+     뒤따르는 kbd 는 gap 만으로 붙인다. */
+  .context-menu-item .context-menu-check + kbd {
+    margin-left: 0;
+  }
+
+  /* Context Menu Separator */
   .context-menu-separator {
     height: 1px;
-    margin: var(--spacing-xs) 0;
     background: var(--border);
+    margin: var(--spacing-xs) 0;
+    border: none;
   }
 }
