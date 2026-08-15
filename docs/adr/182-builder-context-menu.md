@@ -9,6 +9,7 @@ Accepted — 2026-08-15 (리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED
 - Phase 1 — Implemented 2026-08-15: RAC virtual-anchor overlay, surface provider registry, context-menu selection/policy pure functions, Builder-root native menu suppression, and regression tests (G1 anchor/action/underlay contract verified; viewport-edge flip remains RAC live-browser evidence for Phase 2).
 - Phase 1.5 — Implemented 2026-08-15: extracted copy/paste/duplicate/delete/group/ungroup/align/distribute into the shared `canvasActions` layer; both shortcut consumers now inject their element map, with CanvasSceneNode alias normalization and regression tests.
 - Phase 2 — Implemented 2026-08-16: wired Canvas T1/T2 providers and the shared context-menu entry, preserved interactive-map hit testing, page occlusion, `resolveClickTarget` selection normalization, page transition, editable/ruler/DEV-Alt guards, and scene-point paste. Removed the raw Canvas detach menu and legacy `interaction/canvasContextMenu.ts`; migrated the projection static guard and entry/provider tests. Type-check, preflight, and 9 related test files / 31 tests PASS.
+- Phase 3 — Implemented 2026-08-16: wired LayerTree T3 to the shared T1 provider, preserved multi-selection when the row is already selected, selected an unselected row before opening, removed the legacy 3-item raw menu and duplicated CSS, and added the tokenized `@layer builder-system` context-menu stylesheet. Type-check, targeted RTL/context-menu tests (9 files / 29 tests), `reservedPrefix.static.test.ts`, and diff checks PASS.
 
 ## Context
 

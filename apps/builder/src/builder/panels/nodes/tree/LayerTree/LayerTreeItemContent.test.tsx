@@ -16,6 +16,9 @@ import {
 } from "@/adapters/canonical/componentSemanticsMirror";
 import { useStore } from "../../../../stores";
 import { historyManager } from "../../../../stores/history";
+import { ContextMenuProvider } from "../../../../components";
+import { registerCanvasContextMenuProviders } from "../../../../workspace/canvas/contextMenu/canvasContextMenuProviders";
+import type { CanvasActionElement } from "../../../../workspace/canvas/actions/canvasActions";
 import { LayerTreeItemContent } from "./LayerTreeItemContent";
 import type { LayerTreeNode } from "./types";
 import type { TreeItemState } from "../TreeBase/types";
@@ -50,20 +53,30 @@ function makeState(overrides: Partial<TreeItemState> = {}): TreeItemState {
   };
 }
 
+function renderItem(
+  node: LayerTreeNode,
+  state = makeState(),
+  onDelete = vi.fn(),
+) {
+  return render(
+    <ContextMenuProvider>
+      <LayerTreeItemContent node={node} state={state} onDelete={onDelete} />
+    </ContextMenuProvider>,
+  );
+}
+
+let unregisterContextMenuProviders: (() => void) | null = null;
+
 describe("LayerTreeItemContent editing semantics marker", () => {
   afterEach(() => {
+    unregisterContextMenuProviders?.();
+    unregisterContextMenuProviders = null;
     vi.restoreAllMocks();
     cleanup();
   });
 
   it("origin node renders Pencil origin semantic dot with accessible label", () => {
-    render(
-      <LayerTreeItemContent
-        node={makeNode()}
-        state={makeState()}
-        onDelete={vi.fn()}
-      />,
-    );
+    renderItem(makeNode());
 
     const marker = screen.getByLabelText("Origin");
     expect(marker.className).toContain("editing-semantics-dot--origin");
@@ -71,19 +84,15 @@ describe("LayerTreeItemContent editing semantics marker", () => {
   });
 
   it("instance node renders Pencil instance semantic dot with accessible label", () => {
-    render(
-      <LayerTreeItemContent
-        node={makeNode({
-          name: "Instance Button",
-          element: {
-            id: "instance",
-            type: "ref",
-            props: {},
-          },
-        })}
-        state={makeState()}
-        onDelete={vi.fn()}
-      />,
+    renderItem(
+      makeNode({
+        name: "Instance Button",
+        element: {
+          id: "instance",
+          type: "ref",
+          props: {},
+        },
+      }),
     );
 
     const marker = screen.getByLabelText("Instance");
@@ -92,18 +101,14 @@ describe("LayerTreeItemContent editing semantics marker", () => {
   });
 
   it("plain node renders no semantic dot", () => {
-    render(
-      <LayerTreeItemContent
-        node={makeNode({
-          element: {
-            id: "plain",
-            type: "Button",
-            props: {},
-          },
-        })}
-        state={makeState()}
-        onDelete={vi.fn()}
-      />,
+    renderItem(
+      makeNode({
+        element: {
+          id: "plain",
+          type: "Button",
+          props: {},
+        },
+      }),
     );
 
     expect(screen.queryByLabelText("Origin")).toBeNull();
@@ -111,18 +116,50 @@ describe("LayerTreeItemContent editing semantics marker", () => {
   });
 
   it("does not override React Aria drag slot pointer events", () => {
-    render(
-      <LayerTreeItemContent
-        node={makeNode()}
-        state={makeState()}
-        onDelete={vi.fn()}
-      />,
-    );
+    renderItem(makeNode());
 
     expect(
       screen.getByRole("button", { name: "Drag Origin Button" }).style
         .pointerEvents,
     ).not.toBe("auto");
+  });
+
+  it("selects an unselected row and opens the shared T1 menu", () => {
+    const plain = {
+      id: "plain",
+      type: "Button",
+      props: {},
+      page_id: "page-1",
+    };
+    useStore.setState({
+      currentPageId: "page-1",
+      selectedElementId: null,
+      selectedElementIds: [],
+      elementsMap: new Map([[plain.id, plain]]),
+    } as never);
+    unregisterContextMenuProviders = registerCanvasContextMenuProviders({
+      getInteractiveElementsMap: () =>
+        useStore.getState().elementsMap as unknown as ReadonlyMap<
+          string,
+          CanvasActionElement
+        >,
+    });
+
+    renderItem(
+      makeNode({
+        id: "plain",
+        name: "Plain Button",
+        element: plain,
+      }),
+    );
+
+    fireEvent.contextMenu(screen.getByText("Plain Button"), {
+      clientX: 12,
+      clientY: 34,
+    });
+
+    expect(useStore.getState().selectedElementId).toBe("plain");
+    expect(screen.getByRole("menuitem", { name: /복사/ })).toBeTruthy();
   });
 
   it("legacy instance node exposes detach through row context menu", async () => {
@@ -154,22 +191,26 @@ describe("LayerTreeItemContent editing semantics marker", () => {
     } as never);
     useStore.getState()._rebuildIndexes();
 
-    render(
-      <LayerTreeItemContent
-        node={makeNode({
-          name: "Instance Button",
-          element: instance,
-        })}
-        state={makeState()}
-        onDelete={vi.fn()}
-      />,
+    unregisterContextMenuProviders = registerCanvasContextMenuProviders({
+      getInteractiveElementsMap: () =>
+        useStore.getState().elementsMap as unknown as ReadonlyMap<
+          string,
+          CanvasActionElement
+        >,
+    });
+
+    renderItem(
+      makeNode({
+        name: "Instance Button",
+        element: instance,
+      }),
     );
 
     fireEvent.contextMenu(screen.getByText("Instance Button"), {
       clientX: 12,
       clientY: 34,
     });
-    fireEvent.click(screen.getByRole("menuitem", { name: "Detach instance" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Detach instance/ }));
 
     await waitFor(() => {
       expect(useStore.getState().elementsMap.get("instance")).toMatchObject({

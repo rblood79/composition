@@ -9,15 +9,14 @@ import {
   Trash,
   GripVertical,
 } from "lucide-react";
+import { useContextMenu } from "../../../../components";
+import { resolveContextMenuDisposition } from "../../../../components/overlay/contextMenu";
 import { ICON_EDIT_PROPS, type TreeItem as TreeItemType } from "../helpers";
 import type { ElementProps } from "../../../../../types/integrations/supabase.types";
 import type { TreeItemState } from "../TreeBase/types";
 import type { LayerTreeNode } from "./types";
 import { useStore } from "../../../../stores";
-import { useKeyboardShortcutsRegistry } from "../../../../hooks/useKeyboardShortcutsRegistry";
-import { requestEditingSemanticsDetachConfirmation } from "../../../../utils/editingSemanticsImpactConfirmation";
 import {
-  canDetachInstance,
   getEditingSemanticsLabel,
   getEditingSemanticsRole,
 } from "../../../../utils/editingSemantics";
@@ -78,69 +77,39 @@ interface NormalItemContentProps {
 function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {
   const { depth, hasChildren, type, element, name, isSyntheticRefChild } = node;
   const { isSelected, isExpanded, isFocusVisible } = state;
-  const detachInstance = useStore((store) => store.detachInstance);
-  const toggleComponentOrigin = useStore(
-    (store) => store.toggleComponentOrigin,
-  );
+  const { open: openContextMenu } = useContextMenu();
   const semanticsRole = getEditingSemanticsRole(element);
   const semanticsLabel = getEditingSemanticsLabel(semanticsRole);
-  const isDetachableInstance = canDetachInstance(element);
-  const [contextMenuPosition, setContextMenuPosition] = React.useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const closeContextMenu = React.useCallback(() => {
-    setContextMenuPosition(null);
-  }, []);
-
-  React.useEffect(() => {
-    if (!contextMenuPosition) return;
-
-    window.addEventListener("pointerdown", closeContextMenu);
-    return () => {
-      window.removeEventListener("pointerdown", closeContextMenu);
-    };
-  }, [closeContextMenu, contextMenuPosition]);
-
-  useKeyboardShortcutsRegistry(
-    [
-      {
-        key: "Escape",
-        modifier: "none",
-        handler: closeContextMenu,
-        preventDefault: false,
-        disabled: !contextMenuPosition,
-        category: "nodes",
-        description: "Close layer item context menu",
-      },
-    ],
-    [closeContextMenu, contextMenuPosition],
-  );
 
   const handleContextMenu = (event: React.MouseEvent) => {
     // ADR-138 A-2: instance 뿐 아니라 일반 element 도 우클릭 메뉴 노출
     // ("Add as component" 진입점). body / synthetic ref child 만 제외.
     if (isSyntheticRefChild || type === "body") return;
-    event.preventDefault();
-    event.stopPropagation();
-    setContextMenuPosition({ x: event.clientX, y: event.clientY });
-  };
-
-  const handleDetachInstance = async () => {
-    if (!isDetachableInstance) return;
-    setContextMenuPosition(null);
-    const confirmed = await requestEditingSemanticsDetachConfirmation({
-      instanceId: element.id,
-      instanceLabel: name,
+    const disposition = resolveContextMenuDisposition({
+      altKey: event.altKey,
+      target: event.target,
     });
-    if (!confirmed) return;
-    detachInstance(element.id);
-  };
+    if (disposition !== "suppress") return;
 
-  // ADR-138 A-2: layer tree 우클릭 1-step origin 승격/해제 진입점.
-  const handleToggleComponentOrigin = async () => {
-    setContextMenuPosition(null);
-    await toggleComponentOrigin(element.id);
+    const store = useStore.getState();
+    const selectedIds = store.selectedElementIds.includes(element.id)
+      ? [...store.selectedElementIds]
+      : [element.id];
+    const targetPageId = element.page_id ?? null;
+    if (!store.selectedElementIds.includes(element.id)) {
+      if (targetPageId && targetPageId !== store.currentPageId) {
+        store.selectElementWithPageTransition(element.id, targetPageId);
+      } else {
+        store.setSelectedElement(element.id, element.props);
+      }
+    }
+
+    openContextMenu({
+      clientX: event.clientX,
+      clientY: event.clientY,
+      surface: "layer-item",
+      targetElementIds: selectedIds,
+    });
   };
 
   return (
@@ -228,49 +197,6 @@ function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {
           </Button>
         )}
       </div>
-      {contextMenuPosition && (
-        <div
-          className="layer-context-menu"
-          role="menu"
-          style={{
-            left: `${contextMenuPosition.x}px`,
-            top: `${contextMenuPosition.y}px`,
-          }}
-          onClick={(event) => event.stopPropagation()}
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          {!semanticsRole && (
-            <button
-              className="layer-context-menu-item"
-              onClick={handleToggleComponentOrigin}
-              role="menuitem"
-              type="button"
-            >
-              Add as component
-            </button>
-          )}
-          {semanticsRole === "origin" && (
-            <button
-              className="layer-context-menu-item"
-              onClick={handleToggleComponentOrigin}
-              role="menuitem"
-              type="button"
-            >
-              Remove component
-            </button>
-          )}
-          {isDetachableInstance && (
-            <button
-              className="layer-context-menu-item"
-              onClick={handleDetachInstance}
-              role="menuitem"
-              type="button"
-            >
-              Detach instance
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 }

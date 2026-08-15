@@ -16,7 +16,7 @@ import { requestEditingSemanticsDetachConfirmation } from "../../../utils/editin
 import { registerContextMenuProvider } from "../../../components/overlay/contextMenu";
 import type {
   ContextMenuItem,
-  ContextMenuProvider,
+  ContextMenuProviderFn,
   ContextMenuRequest,
 } from "../../../components/overlay/contextMenu";
 import type { ShortcutId } from "../../../config/keyboardShortcuts";
@@ -182,7 +182,9 @@ function buildElementMenuItems(
         semanticsRole === "origin"
           ? "컴포넌트 해제 / Remove component"
           : "컴포넌트 만들기 / Create component",
-        () => useStore.getState().toggleComponentOrigin(primaryElement.id),
+        async () => {
+          await useStore.getState().toggleComponentOrigin(primaryElement.id);
+        },
         "toggleComponentOrigin",
       ),
     );
@@ -318,17 +320,19 @@ export function buildCanvasContextMenuItems(
 export function registerCanvasContextMenuProviders(
   options: CanvasContextMenuProviderOptions,
 ): () => void {
-  const provider: ContextMenuProvider = (request) =>
+  const provider: ContextMenuProviderFn = (request) =>
     buildCanvasContextMenuItems(request, options);
   const unregisterElement = registerContextMenuProvider(
     "canvas-element",
     provider,
   );
   const unregisterEmpty = registerContextMenuProvider("canvas-empty", provider);
+  const unregisterLayer = registerContextMenuProvider("layer-item", provider);
 
   return () => {
     unregisterElement();
     unregisterEmpty();
+    unregisterLayer();
   };
 }
 

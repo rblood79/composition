@@ -10,6 +10,7 @@ import {
 import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
 import { formatShortcut } from "../../../hooks";
 import type { ContextMenuItem, ContextMenuRequest } from "./types";
+import "./contextMenu.css";
 
 export interface ContextMenuOverlayProps {
   isOpen: boolean;

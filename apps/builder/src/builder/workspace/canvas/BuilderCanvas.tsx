@@ -34,7 +34,7 @@ import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElem
 import {
   resolveContextMenuDisposition,
   useContextMenu,
-} from "../../components";
+} from "../../components/overlay/contextMenu";
 import { useCanvasLifecycleStore, useViewportSyncStore } from "./stores";
 import { isWebGLCanvas } from "../../../utils/featureFlags";
 import { isUnifiedFlag } from "./wasm-bindings/featureFlags";
