@@ -77,6 +77,16 @@
     transition: background-color 0.1s;
   }
 
+  /* 라벨은 item 의 font-size / color 를 그대로 상속받는다 (header 메뉴의 클래스
+     없는 <span> 과 같은 상태). RAC 기본 클래스 `react-aria-Text` 를 달면
+     `@layer components` 의 `font-size: var(--text-sm)` 가 **span 자신에게**
+     걸려 상속을 이기고(14px), 같은 규칙의 `color: var(--fg)` 가 destructive
+     빨강까지 지운다 — 그래서 덮어쓰기 대신 클래스를 갈아끼운다. */
+  .context-menu-item-label {
+    font-size: inherit;
+    color: inherit;
+  }
+
   .context-menu-item[data-focused],
   .context-menu-item[data-hovered] {
     background: var(--bg-muted);

@@ -86,7 +86,9 @@ function renderContextMenuItems(
       return (
         <SubmenuTrigger key={item.id}>
           <MenuItem id={item.id} className="context-menu-item">
-            <Text slot="label">{item.label}</Text>
+            <Text className="context-menu-item-label" slot="label">
+              {item.label}
+            </Text>
             <ChevronRight
               aria-hidden="true"
               className="context-menu-chevron"
@@ -122,7 +124,9 @@ function renderContextMenuItems(
           onClose();
         }}
       >
-        <Text slot="label">{item.label}</Text>
+        <Text className="context-menu-item-label" slot="label">
+          {item.label}
+        </Text>
         {item.kind === "toggle" && item.checked && (
           <Check
             aria-hidden="true"

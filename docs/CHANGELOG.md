@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - item: `gap` + 모서리 `--radius-md`, hover/focus 는 `--bg-muted` · pressed 는 `--accent-subtle` 로 분리(기존 3상태 동일 배경), 단축키는 `margin-left: auto` 로 우측 정렬
   - 구조: 단축키를 RAC `<Keyboard>` 로, 토글 체크를 lucide `Check`(14px)로 교체하고 **하위 메뉴 항목에 `ChevronRight` 표식 추가**(기존에는 하위 메뉴 여부가 보이지 않았다). 체크와 단축키가 같이 뜨는 항목(눈금자 표시 ⇧R)은 `auto` 마진이 둘로 갈려 체크가 가운데로 밀리므로, 뒤따르는 `kbd` 는 gap 만으로 붙인다
   - popover 에 `outline: none` 유지 — header 메뉴와 달리 우클릭 진입에서는 popover 자신(`tabIndex=-1`)이 포커스를 받아 UA 포커스 링이 그려진다
+  - **라벨 글자 크기가 14px 로 커져 있던 것 정정** (12px, header 와 동일 — 항목 높이 37→34px). **Why**: 라벨이 RAC 기본 클래스 `react-aria-Text` 를 달고 있어 `@layer components` 의 `font-size: var(--text-sm)` 가 **span 자신에게** 걸렸다 — 부모 item 의 `--text-xs` 는 상속이라 항상 진다(레이어 순서와 무관). 같은 규칙의 `color: var(--fg)` 가 destructive("삭제 / Delete") 빨강도 지우고 있었다. 덮어쓰기 대신 라벨 클래스를 `context-menu-item-label` 로 갈아끼워 두 증상을 함께 해소 — header 의 클래스 없는 `<span>` 과 같은 상속 상태가 된다
   - live 실측(빌더 우클릭): 요소 메뉴 / 빈 영역 메뉴 / 다중 선택 정렬 하위 메뉴 / 토글 체크 + 단축키 동시 노출 4경로 확인
   - 위치: `apps/builder/src/builder/components/overlay/contextMenu/{contextMenu.css,ContextMenuOverlay.tsx}`
 
