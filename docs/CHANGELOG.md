@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [레이아웃 explain 디버그 채널 — ADR-183 Phase 0~3] - 2026-08-15
+
+### Infrastructure
+
+- **엔진 판정 트레이스 + `window.__layoutExplain(elementId)` 판독 채널** (ADR-183 Implemented — dev 전용):
+  - 레이아웃 엔진이 solve 시점에 갖고 있다가 기록 없이 소멸시키던 판정 7종 (증분 skip HIT/MISS·사유, used-size clamp 바인딩, §4.5 automatic minimum floor 출처, shrink-to-fit 재진입, intrinsic 측정 캐시 세대, flex item 재-solve, grid 트랙 해소) 을 런타임 게이트 트레이스로 노드 단위 기록
+  - **Why**: 30일 fix 집계 engine 34·skia 33건의 공통 역추적이 "추측 + printf + 재빌드" 반복 — `.claude/rules/layout-engine.md` 의 "~로 진단 금지" 오진 이력에서 이벤트 목록을 역산해, 문서 방어를 실행 시점 판별로 이동 (예: 새로고침-정상 = AvailChanged 캐시 서명 / 무관 형제 성장 = HIT / justify-content no-op = avail "미결정" 명명)
+  - off 시 판정 지점당 `Option` 분기 1회 — G1 벤치 게이트 PASS (최대 +1.57% ≤ 2%, 쌍대 비율·A/A 대조군·순서 회전 프로토콜). 배치 프로토콜 (`build_tree_batch`/binary_protocol) 무변경 — 별도 조회 API
+  - 게이트는 살아 있는 트리에 켠다 (1회차 호출 = 게이트 켬 → 재현 동작 → 2회차 = 시퀀스 판독) — fresh 재계산이면 캐시 계열 오진이 사각. TS 측정 스칼라는 `[TS]` prefix 별도 줄 병기 (엔진 판정 아님)
+  - 위치: `packages/composition-engine/src/{trace,tree,flex,wasm}.rs`, `apps/builder/src/builder/workspace/canvas/wasm-bindings/{compositionEngineWasm,compositionEngine,layoutBridge}.ts`, `layout/engines/{persistentTaffyTree,layoutExplain,fullTreeLayout}.ts`
+
 ## [Architecture — PixiJS Spec 계약 제거] - 2026-08-15
 
 ### Breaking Changes

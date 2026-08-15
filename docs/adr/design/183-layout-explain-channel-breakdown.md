@@ -1,7 +1,7 @@
 # ADR-183 Design Breakdown: 레이아웃 explain 디버그 채널 (엔진 판정 트레이스)
 
-> 본문: [183-layout-explain-channel.md](../183-layout-explain-channel.md)
-> 상태: Accepted (2026-08-15 리뷰 승인) — **Phase 0~2 완료 2026-08-15** (§4 산출물 freeze + G1 PASS + WASM 경계). 다음 진입점 = Phase 3 (TS 판독 채널 + G2·G3)
+> 본문: [183-layout-explain-channel.md](../completed/183-layout-explain-channel.md)
+> 상태: **Implemented 2026-08-15** — Phase 0~3 당일 종결 (G1 +1.57% / G2 live 실측 / G3 시나리오 3건). Phase 4(패널 UI 승격)는 비스코프 — 별도 ADR
 
 ## 1. 목표 형태
 
@@ -54,13 +54,14 @@ window.__layoutExplain("component-listbox")
 - `compositionEngineWasm.ts` 바인딩(raw 2메서드) + `compositionEngine.ts` wrapper (`EngineTraceEvent`/`EngineTraceNode` wire 타입 — serde internally-tagged 1:1, 디버그 채널이라 미준비 시 throw 대신 false/null) + `LayoutEngineAPI` **optional** 메서드 (테스트용 fake 엔진이 구현을 강제받지 않게)
 - **실측 정정 (2026-08-15)**: element id ↔ node handle 변환의 실소유자는 `idMapper.ts` 가 아니라 `persistentTaffyTree.ts::handleMap` 이다 — `idMapper` 는 SpatialIndex 용 UUID↔u32 매핑으로 레이아웃 handle 과 무관. passthrough 는 `PersistentTaffyTree.enableLayoutTrace(enabled)` / `.getLayoutTraceForElement(elementId)` (기존 `getHandle` 접근자와 같은 층)
 
-### Phase 3 — TS 판독 채널
+### Phase 3 — TS 판독 채널 ✅ 2026-08-15 (G2·G3 PASS)
 
-- `fullTreeLayout.ts` 인접에 디버그 헬퍼: element id → handle 매핑 → 트레이스 조회 → 사람이 읽는 시퀀스 포맷 (§1 형태)
-- `window.__layoutExplain(elementId)` — **dev 전용** (`import.meta.env.DEV` 게이트, 게이트 상수는 boolean 상수가 아니므로 featureFlags registry 계약과 무충돌)
-- TS 층 자체 판정 (Step 4.5 재측정 트리거, 스칼라 공급 여부) 은 **엔진 트레이스에 없다** — 헬퍼가 `enrichWithIntrinsicSize` 공급값 (`contentMinWidth`/`contentMaxWidth`) 을 별도 줄로 병기 (경계 표기: `[TS]` prefix)
-- **G2**: live builder 에서 실노드 1개 explain 실측 (완료 기준 live behavior 게이트)
-- **G3**: 오진 대표 3건 (새로고침-정상 캐시 / 형제 성장 / flexSweep green 오독 아님 — 미결정 main) 이 트레이스 출력으로 판별됨을 시나리오로 확인
+- `layoutExplain.ts` 신설 (`fullTreeLayout.ts` 인접): 순수 포맷터 `formatLayoutExplain` + 팩토리 `createLayoutExplain` (`ExplainableTree` 인터페이스로 좁혀 fake 주입 가능) + `installLayoutExplain` (window 등록 — console.log 겸용, devtools 가 반환 문자열 개행을 이스케이프해 보여주기 때문)
+- `window.__layoutExplain(elementId)` — **dev 전용** (`import.meta.env.DEV` 게이트는 `fullTreeLayout.ts` 설치 지점에서, boolean 상수가 아니므로 featureFlags registry 계약과 무충돌). **2-호출 흐름**: 1회차가 게이트를 켜고 재현 안내 → 재현 동작 → 2회차가 시퀀스 판독. markDirty 로 재계산을 강제하지 않는다 — skip 판정 자체가 바뀌어 캐시 계열 오진이 사각이 된다 (Decision 1). `disable()` 로 힙 반환 (R3)
+- TS 층 자체 판정은 **엔진 트레이스에 없다** — `[TS]` prefix 줄로 `contentMinWidth`/`contentMaxWidth` 병기. 소스는 `getLastJson`(=`_lastJsonMap`) — "엔진이 실제로 받은 값" 그대로
+- available 센티넬은 이름으로 명명 (`-1`→미결정 / `-2`·`-3`→min·max-content 측정) — 숫자 노출이면 미결정 main 오진을 판별할 수 없다
+- **G2 PASS (2026-08-15 live 실측 — Chrome MCP)**: 실노드 `component-listbox` — 미등록 안내 / 게이트 켬(1회차) / Inspector height 편집 재현 후 HIT 시퀀스 (편집·undo 당 computeLayout 2회 = HIT 2·4건 정합) / `avail=(390, 미결정)` 표기 / undo 원복 / disable. 문서는 undo 로 원상복구
+- **G3 PASS**: `layoutExplain.test.ts` (13건 — G3 시나리오 3건 포함) 가 판독 출력의 판별력을 실행 계약으로 잠금. ① AvailChanged → "재부모화/부모 리사이즈 서명, 레이아웃 캐시 축" ② HIT → "재계산 없이 직전 반환값 재사용" ③ `-1` → "미결정" (숫자 비노출 단언)
 
 ### Phase 4 — (비스코프) 패널 UI 승격
 

@@ -15,6 +15,7 @@ import type { ComputedLayout } from "./LayoutEngine";
 import type { TaffyStyle } from "../../wasm-bindings/layoutTypes";
 import { isCompositionEngineReady } from "../../wasm-bindings/compositionEngineWasm";
 import { PersistentTaffyTree } from "./persistentTaffyTree";
+import { installLayoutExplain } from "./layoutExplain";
 import type { PersistentBatchNode } from "./persistentTaffyTree";
 import {
   enrichWithIntrinsicSize,
@@ -227,6 +228,13 @@ function sanitizeLayoutValue(v: number, fallback: number = 0): number {
  * pageId별로 별도의 PersistentTaffyTree를 유지하여 해결한다.
  */
 const persistentTrees = new Map<string, PersistentTaffyTree>();
+
+// ADR-183 — dev 전용 레이아웃 explain 판독 채널 (`window.__layoutExplain`).
+// 게이트는 boolean 상수가 아니라 빌드타임 env 라 featureFlags registry 계약과
+// 무충돌. 트리 맵은 라이브로 변하므로 값이 아니라 접근자를 넘긴다.
+if (import.meta.env.DEV) {
+  installLayoutExplain(() => persistentTrees.values());
+}
 
 /**
  * Persistent 트리 리셋.

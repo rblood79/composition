@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-15 (리뷰 round 1 승인 — LOW 3건 전건 fixed, `docs/adr/reviews/183.md`)
+Implemented — 2026-08-15 (Phase 0~3 당일 종결: 이벤트 freeze → 엔진 trace 코어 G1 PASS +1.57% → WASM 경계 → `window.__layoutExplain` 판독 채널 G2·G3 PASS. 리뷰 round 1 승인 — LOW 3건 전건 fixed, `docs/adr/reviews/183.md`)
 
 ## Context
 
@@ -107,11 +107,11 @@ Accepted — 2026-08-15 (리뷰 round 1 승인 — LOW 3건 전건 fixed, `docs/
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                                                                 | 실패 시 대안                                     |
-| ---- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| G1   | Phase 1 종료 | **PASS (2026-08-15, 최대 +1.57%)** — off 상태 A/B 벤치 (`flex_shrink.rs` 5종 + `tree_solve.rs`) 회귀 ≤ 2%. **판정 프로토콜 필수**: 쌍대 비율 · A/A 대조군 · 순서 회전 · 콜드 2회 폐기 (breakdown §4-3, 결과 §4-5) | compile-time feature 로 격하 (대안 B 후퇴)       |
-| G2   | Phase 3 종료 | live builder 실노드 1개 `window.__layoutExplain` 실측 (완료 기준 live behavior 게이트)                                                                    | 배선 결함 수리 전 Implemented 승격 금지          |
-| G3   | Phase 3 종료 | `layout-engine.md` 오진 대표 3건 (캐시-새로고침 / 형제 성장 / 미결정 main) 이 트레이스 출력으로 판별됨을 확인                                             | 이벤트 목록 보강 (Phase 0 freeze 개정) 후 재확인 |
+| Gate | 시점         | 통과 조건                                                                                                                                                                                                                                                              | 실패 시 대안                                     |
+| ---- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| G1   | Phase 1 종료 | **PASS (2026-08-15, 최대 +1.57%)** — off 상태 A/B 벤치 (`flex_shrink.rs` 5종 + `tree_solve.rs`) 회귀 ≤ 2%. **판정 프로토콜 필수**: 쌍대 비율 · A/A 대조군 · 순서 회전 · 콜드 2회 폐기 (breakdown §4-3, 결과 §4-5)                                                      | compile-time feature 로 격하 (대안 B 후퇴)       |
+| G2   | Phase 3 종료 | **PASS (2026-08-15)** — live builder 실노드 `component-listbox` 실측 (Chrome MCP): 게이트 켬 안내 → Inspector height 편집 재현 → HIT 시퀀스 판독 (편집당 computeLayout 2회 = HIT 2건 정합) → undo 원복 → disable. 미등록 안내와 `avail=(390, 미결정)` 센티넬 표기 실증 | 배선 결함 수리 전 Implemented 승격 금지          |
+| G3   | Phase 3 종료 | **PASS (2026-08-15)** — 오진 대표 3건이 판독 출력만으로 판별됨을 `layoutExplain.test.ts` G3 시나리오 3건이 실행 계약으로 잠금 (① AvailChanged=재부모화/레이아웃 캐시 축 ② HIT=재계산 없이 직전 반환값 ③ -1 센티넬=미결정 명명). ②·③ 은 live 출력에서도 실증            | 이벤트 목록 보강 (Phase 0 freeze 개정) 후 재확인 |
 
 ## Consequences
 
