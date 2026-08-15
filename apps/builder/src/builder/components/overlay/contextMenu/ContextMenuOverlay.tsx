@@ -56,8 +56,17 @@ export function ContextMenuOverlay({
         }}
         tabIndex={-1}
       />
+      {/*
+        `data-context="builder"` 가 필요하다 — 이 Popover 는 portal 로 `body` 밑
+        wrapper `<div>` 안에 붙고 className 도 갈아끼워서, builder-system.css 의
+        portal fallback (`body > .react-aria-Popover`) 이 매칭되지 않는다. 그러면
+        builder 토큰 세트를 못 받아 전역 light 값으로 떨어지고, 빌더 다크 모드에서
+        메뉴만 흰 판으로 남는다 (실측: --bg-raised #fff vs 패널 #202023).
+        ExistingSlotDialog 의 Modal 과 같은 처방.
+      */}
       <Popover
         className="context-menu-popover"
+        data-context="builder"
         isOpen={isOpen}
         onOpenChange={(open) => {
           if (!open) onClose();
@@ -113,7 +122,12 @@ function renderContextMenuItems(
               size={MENU_ICON_SIZE}
             />
           </MenuItem>
-          <Popover className="context-menu-popover" placement="right top">
+          {/* 하위 메뉴도 별도 portal — 위와 같은 이유로 scope 마커가 필요하다 */}
+          <Popover
+            className="context-menu-popover"
+            data-context="builder"
+            placement="right top"
+          >
             <Menu aria-label={item.label} className="context-menu">
               {renderContextMenuItems(item.items, onClose)}
             </Menu>

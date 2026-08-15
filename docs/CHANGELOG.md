@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [컨텍스트 메뉴 chrome 을 header 메뉴 패턴으로 정렬] - 2026-08-16
 
+### Bug Fixes
+
+- **빌더 다크 모드에서 메뉴 3종이 흰 판으로 남던 문제** (컨텍스트 메뉴 / header 메뉴 / 줌 메뉴):
+  - 빌더 UI 를 다크로 두면 패널은 `#202023` 인데 이 메뉴들만 `#fff` 로 떴다 (본문도 검정 그대로라 사실상 반전)
+  - **Why**: builder 토큰은 `[data-context="builder"]` 스코프인데, 이 메뉴들은 portal 로 `body` 밑에 붙어 그 밖으로 나간다. `builder-system.css` 에 그 경우를 받으려는 fallback (`body:not([data-preview="true"]) > .react-aria-Popover`)이 있지만 **두 조건 모두 지금은 성립하지 않는다** — RAC 가 popover 를 style 만 있는 wrapper `<div>` 로 한 겹 감싸 직계 자식이 아니고(실측 `body > div > .context-menu-popover`), `className` 을 주면 기본 클래스 `react-aria-Popover` 도 사라진다 (실측: 문서 전체 `.react-aria-Popover` 0건). 그래서 스코프를 아예 못 받고 전역 light 값으로 떨어졌다 — light 에서는 두 팔레트가 거의 같아 드러나지 않았다
+  - 수정: 세 popover 에 `data-context="builder"` 마커 부여 (구조 조건이 없는 첫 분기라 light/dark 세트가 그대로 붙는다). `ExistingSlotDialog` 의 Modal 이 같은 이유로 이미 쓰던 처방
+  - 부수 효과(의도): light 에서도 이제 패널과 같은 builder 팔레트를 쓴다 — 표면이 `#fff` → `gray-50`, 본문이 `gray-950` → `slate-800` 으로 아주 조금 부드러워진다
+  - live 실측(다크): popover `rgb(32,32,35)` · 라벨 `zinc-100` · 아이콘/단축키 `zinc-400` · 구분선 `zinc-700` · 삭제 `red-400`, 하위 메뉴와 hover(`--bg-muted`)까지 정합
+  - **남은 것**: 같은 fallback 에 의존하는 **다른 빌더 popover 전부**(인스펙터 Select 드롭다운 등)는 여전히 다크에서 흰 판이다. 선택자를 고치면 한 번에 풀리지만 light 색까지 함께 바뀌는 범위라 별도 판단 대상
+  - 위치: `contextMenu/ContextMenuOverlay.tsx` (본체 + 하위 메뉴) · `main/BuilderHeader.tsx` · `workspace/ZoomControls.tsx`
+
 ### Features
 
 - **우클릭 컨텍스트 메뉴가 header 메뉴(`.header-menu-popover`)와 같은 모양이 됨**:
