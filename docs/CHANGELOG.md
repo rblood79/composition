@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Architecture
 
 - **액션 오케스트레이션 공유 계층 `canvasActions`** (Phase 1.5): copy/paste/duplicate/delete/group/ungroup/align/distribute 8종의 오케스트레이션이 컴포넌트·훅 내부 클로저에 갇혀 있어 메뉴가 호출할 수 없었다. 로직 무변경 호출부 이동으로 추출하고, 단축키 등록부 2곳과 메뉴가 같은 구현을 소비한다 (elements map 은 인자 주입 — 두 read model 의 alias 를 한 어댑터 경계에서 정규화)
-  - Properties 패널의 "모두 복사"/"붙여넣기" 도 같은 계층을 소비하도록 통합 — 종전엔 동일 오케스트레이션을 자체 구현하고 있어서 버튼 표기가 실제 단축키와 어긋나도 드러나지 않았다 (위 Bug Fix 의 병인)
+  - Properties 패널의 "모두 복사"/"붙여넣기"/"그룹화" 도 같은 계층을 소비하도록 통합 — 종전엔 동일 오케스트레이션을 자체 구현하고 있어서 버튼 표기가 실제 단축키와 어긋나도 드러나지 않았다 (위 Bug Fix 의 병인). 그룹화는 자체 구현이 자식의 `page_id` 를 저장하지 않아 **cross-page 선택을 그룹화하면 자식 page_id 가 옛 페이지에 남던 결함**도 함께 해소 (`createGroupFromSelection` 은 frame page 로 옮긴 값을 이미 돌려주고 있었다)
   - 정렬·분배·그룹 해제의 "되돌리기 1회" 정적 가드(`multiSelectHistoryEntry.static.test.ts`)를 옮겨간 구현(`canvasActions.ts`) 대상으로 이설 — 검사 대상이 옛 파일에 남아 계약이 실질 미검증 상태였다
 - 신규 mutation `moveElementToSiblingEdge` 는 `runCanonicalMutation` 경유 (ADR-184/185 — canonical → store → rebuild → history → persist 순서와 history 기록 의무를 러너가 소유)
 - 위치: `apps/builder/src/builder/components/overlay/contextMenu/*`, `workspace/canvas/contextMenu/*`, `workspace/canvas/actions/canvasActions.ts`, `stores/utils/siblingReorder.ts`

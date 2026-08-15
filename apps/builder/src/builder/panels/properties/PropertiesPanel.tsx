@@ -49,10 +49,10 @@ import { buildPropagationUpdates } from "../../utils/propagationEngine";
 import type { BatchPropsUpdate } from "../../stores/utils/elementUpdate";
 import {
   copySelection,
+  groupSelection,
   paste,
 } from "../../workspace/canvas/actions/canvasActions";
 import { selectionMemory } from "../../utils/selectionMemory";
-import { createGroupFromSelection } from "../../stores/utils/elementGrouping";
 import {
   panelNodeToElement,
   panelNodeMapToElementMap,
@@ -61,10 +61,6 @@ import { alignElements } from "../../stores/utils/elementAlignment";
 import type { AlignmentType } from "../../stores/utils/elementAlignment";
 import { distributeElements } from "../../stores/utils/elementDistribution";
 import type { DistributionType } from "../../stores/utils/elementDistribution";
-import {
-  trackGroupCreation,
-  trackMultiPaste,
-} from "../../stores/utils/historyHelpers";
 import {
   isCanonicalRefElement,
   type CanonicalRefResolvableNode,
@@ -412,11 +408,10 @@ const MultiSelectContent = memo(function MultiSelectContent({
 
   const isMultiSelectActive = multiSelectMode && selectedElementIds.length > 1;
 
-  // Get actions without subscribing
-  const removeElement = useStore.getState().removeElement;
+  // Get actions without subscribing.
+  // add/update/removeElement(단수) 는 그룹화·복사/붙여넣기가 `canvasActions` 로
+  // 넘어가면서 이 컴포넌트에서 소비처가 사라졌다 (ADR-182 HC4).
   const removeElements = useStore.getState().removeElements;
-  const addElement = useStore.getState().addElement;
-  const updateElement = useStore.getState().updateElement;
   const getElementsMap = useCallback(
     () => new Map(elementsById),
     [elementsById],
@@ -552,34 +547,15 @@ const MultiSelectContent = memo(function MultiSelectContent({
     }
   };
 
+  // 그룹화도 공유 계층 소비 (ADR-182 HC4). 자체 구현과의 차이 3건은 판정 후 흡수:
+  //   ① `multiSelectMode` 게이트 — 이 컴포넌트가 `multiSelectMode && length > 1`
+  //      에서만 렌더되므로 항상 통과 (동작 변화 없음)
+  //   ② 자식의 `page_id` 갱신 — 자체 구현은 `parent_id` 만 저장해, cross-page
+  //      선택을 그룹화하면 자식 page_id 가 옛 페이지에 남았다.
+  //      `createGroupFromSelection` 은 frame page 로 옮긴 값을 이미 돌려준다
+  //   ③ 선택 반영 — `onSetSelectedElement` 는 store `setSelectedElement` 그대로다
   const handleGroupSelection = async () => {
-    if (selectedElementIds.length < 2 || !currentPageId) return;
-    try {
-      const elementsMap = getLegacyElementsMap();
-      const previousChildren = selectedElementIds
-        .map((id: string) => elementsMap.get(id))
-        .filter((el): el is NonNullable<typeof el> => el !== undefined);
-      const { groupElement, updatedChildren } = createGroupFromSelection(
-        selectedElementIds,
-        elementsMap,
-        currentPageId,
-      );
-      await addElement(groupElement, { skipHistory: true });
-      await Promise.all(
-        updatedChildren.map(async (child) => {
-          await updateElement(child.id, {
-            parent_id: child.parent_id,
-          });
-        }),
-      );
-      trackGroupCreation(groupElement, previousChildren, updatedChildren);
-      onSetSelectedElement(groupElement.id, groupElement.props);
-      console.log(
-        `✅ [Group] Created group with ${updatedChildren.length} children`,
-      );
-    } catch (error) {
-      console.error("❌ [Group] Failed:", error);
-    }
+    await groupSelection({ elementsMap: getLegacyElementsMap() });
   };
 
   const handleAlign = async (type: AlignmentType) => {
