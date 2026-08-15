@@ -7,7 +7,6 @@ export {
 export {
   useCanvasLifecycleStore,
   selectIsCanvasUsable,
-  selectIsSyncMismatch,
   type CanvasLifecycleState,
 } from "./canvasLifecycle";
 export {

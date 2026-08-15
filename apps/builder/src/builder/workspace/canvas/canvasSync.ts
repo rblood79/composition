@@ -18,7 +18,6 @@ import {
   selectCanvasViewportSnapshot,
   isCanvasViewportSnapshotEqual,
   selectIsCanvasUsable,
-  selectIsSyncMismatch,
   type CanvasLifecycleState,
   type CanvasMetricsState,
   type CanvasViewportSnapshot,
@@ -57,21 +56,13 @@ export {
   selectCanvasViewportSnapshot,
   isCanvasViewportSnapshotEqual,
   selectIsCanvasUsable,
-  selectIsSyncMismatch,
 };
 
-export function detectSyncMismatch(): void {
-  if (process.env.NODE_ENV !== "development") return;
-
-  const lifecycleState = useCanvasLifecycleStore.getState();
-  if (selectIsSyncMismatch(lifecycleState)) {
-    console.warn(
-      `🔄 [CanvasSync] Sync mismatch: store=${lifecycleState.renderVersion}, pixi=${lifecycleState.lastPixiRenderVersion}`,
-    );
-  }
-}
-
-// `logGPUMetrics()` 는 삭제됐다 (2026-08-15) — 호출부 0건이었고, 로그 5줄 중
+// `detectSyncMismatch()` 는 삭제됐다 (2026-08-15) — 호출부 0건이었고, 판정식이
+//   `renderVersion - lastPixiRenderVersion > 2` 인데 양쪽 다 0 에 고정돼
+//   **구조상 항상 false** 였다 (`incrementRenderVersion` 호출부 0건).
+//
+// `logGPUMetrics()` 도 삭제됐다 — 호출부 0건이었고, 로그 5줄 중
 //   3줄(vram/textures/sprites)이 PixiJS 리소스 회계라 상시 0 이었다.
 //   실시간 지표는 `GPUDebugOverlay` 가 담당한다.
 

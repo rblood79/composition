@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 
 interface UseCanvasSurfaceLifecycleParams {
-  renderVersion: number;
   setCanvasReady: (ready: boolean) => void;
-  syncPixiVersion: (version: number) => void;
 }
 
 /**
@@ -16,16 +14,13 @@ interface UseCanvasSurfaceLifecycleParams {
  * 재실행 신호는 `appReady` 하나였고 그건 PixiJS Application 초기화 콜백에서만 켜져
  * ADR-900 이후 **상시 false** — 그래서 리스너가 영영 안 붙어 `isContextLost` 가
  * 늘 false 였고 "⚠️ GPU 리소스 복구 중" 표시가 한 번도 뜨지 않았다 (2026-08-15).
+ *
+ * 구 `renderVersion` / `syncPixiVersion` 파라미터도 같은 날 삭제됐다 — store 렌더
+ * 버전을 PixiJS 렌더러가 확인 응답하던 프로토콜인데 양쪽 다 0 에 고정돼 있었다.
  */
 export function useCanvasSurfaceLifecycle({
-  renderVersion,
   setCanvasReady,
-  syncPixiVersion,
 }: UseCanvasSurfaceLifecycleParams): void {
-  useEffect(() => {
-    syncPixiVersion(renderVersion);
-  }, [renderVersion, syncPixiVersion]);
-
   useEffect(() => {
     setCanvasReady(true);
     return () => setCanvasReady(false);

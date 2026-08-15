@@ -386,10 +386,6 @@ export function BuilderCanvas({
   const setCanvasReady = useCanvasLifecycleStore(
     (state) => state.setCanvasReady,
   );
-  const syncPixiVersion = useCanvasLifecycleStore(
-    (state) => state.syncPixiVersion,
-  );
-  const renderVersion = useCanvasLifecycleStore((state) => state.renderVersion);
 
   // ADR-122 Phase 3: active canonical document 가 있으면 Skia scene input은
   // Builder store mirror 가 아니라 canonical document 에서 만든 scene model을
@@ -1325,11 +1321,7 @@ export function BuilderCanvas({
     handleElementDoubleClickRef.current = handleElementDoubleClick;
   }, [handleElementClick, handleElementDoubleClick]);
 
-  useCanvasSurfaceLifecycle({
-    renderVersion,
-    setCanvasReady,
-    syncPixiVersion,
-  });
+  useCanvasSurfaceLifecycle({ setCanvasReady });
 
   return (
     <div
