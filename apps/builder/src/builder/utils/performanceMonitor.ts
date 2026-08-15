@@ -73,6 +73,18 @@ function getCanonicalFirstElementCount(state: StoreSnapshot): number {
   return getActiveCanonicalElementCount() ?? legacyElements?.length ?? 0;
 }
 
+/**
+ * 현재 문서의 요소 수 — canonical 우선, legacy mirror fallback.
+ *
+ * 요소 수의 **단일 실측 출처**다. 구 `gpuMetrics.elementCount` 채널은
+ * writer(`updateElementCount`) 호출부가 ADR-900 이후 0건이라 상시 0 을 보고했고,
+ * 그것을 읽던 dev 프로파일러가 "요소 수: 0" 을 출력하고 있었다 (2026-08-15 정리).
+ * 새 소비자는 store 지표가 아니라 이 함수를 쓸 것.
+ */
+export function getDocumentElementCount(): number {
+  return getCanonicalFirstElementCount(getStoreState());
+}
+
 export interface PerformanceThresholds {
   /** 메모리 경고 임계값 (%) */
   memoryWarning: number;

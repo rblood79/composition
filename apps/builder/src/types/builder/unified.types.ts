@@ -13,21 +13,18 @@ import {
 
 // === 기본 타입 정의 ===
 
-/**
- * WebGL Layout 시스템에서 계산된 실제 픽셀 크기
- * @pixi/layout (yoga-layout)에서 계산된 값
- */
-export interface ComputedLayout {
-  width?: number;
-  height?: number;
-}
+// `ComputedLayout` 인터페이스와 `BaseElementProps.computedLayout` 은 삭제됐다
+//   (2026-08-15). @pixi/layout(yoga) 결과를 담던 `{width?, height?}` 로,
+//   유일한 writer 인 `updateSelectedElementLayout` 의 호출부가 ADR-900 이후
+//   0건이라 값이 채워진 적이 없다. 살아 있는 동명 타입
+//   (`canvas/layout/engines/LayoutEngine.ts::ComputedLayout` — 레이아웃 엔진
+//   결과)과는 **별개**이니 혼동 금지.
 
 export interface BaseElementProps extends Record<string, unknown> {
   id?: string;
   className?: string;
   style?: React.CSSProperties;
   computedStyle?: Partial<React.CSSProperties>; // Computed styles from browser (iframe)
-  computedLayout?: ComputedLayout; // Computed layout from WebGL (@pixi/layout)
   "data-element-id"?: string;
   events?: ElementEvent[];
   children?: React.ReactNode; // children 속성 추가

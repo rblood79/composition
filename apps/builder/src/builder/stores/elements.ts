@@ -3,11 +3,7 @@ import { create } from "zustand";
 // import { produce } from "immer"; // REMOVED
 import { StateCreator } from "zustand";
 import type { StoredMenuItem } from "@composition/specs";
-import {
-  Element,
-  ComponentElementProps,
-  ComputedLayout,
-} from "../../types/core/store.types";
+import { Element, ComponentElementProps } from "../../types/core/store.types";
 import { Page } from "../../types/builder/unified.types";
 import type { PageLayoutDirection } from "./canvasSettings";
 import { historyManager } from "./history";
@@ -295,12 +291,6 @@ export interface ElementsState {
   ) => void;
   /** frame 삭제 시 좌표 entry 정리. 미존재 frame 은 no-op. */
   removeFramePosition: (frameId: string) => void;
-
-  // 🚀 WebGL computed layout 동기화
-  updateSelectedElementLayout: (
-    elementId: string,
-    layout: ComputedLayout,
-  ) => void;
 
   // G.1: Instance 생성 액션
   createInstance: (
@@ -1913,34 +1903,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     batchUpdateElementProps,
     batchUpdateElements,
 
-    // 🚀 WebGL computed layout 동기화
-    // Canvas에서 layout 계산 완료 시 호출하여 stylePanel과 동기화
-    updateSelectedElementLayout: (
-      elementId: string,
-      layout: ComputedLayout,
-    ) => {
-      const state = get();
-
-      // 현재 선택된 요소만 업데이트 (성능 최적화)
-      if (state.selectedElementId !== elementId) return;
-
-      // computedLayout이 변경되었는지 확인
-      const currentLayout = state.selectedElementProps?.computedLayout;
-      if (
-        currentLayout?.width === layout.width &&
-        currentLayout?.height === layout.height
-      ) {
-        return; // 변경 없음
-      }
-
-      // selectedElementProps에 computedLayout 추가/업데이트
-      set({
-        selectedElementProps: {
-          ...state.selectedElementProps,
-          computedLayout: layout,
-        },
-      });
-    },
+    // `updateSelectedElementLayout` 은 삭제됐다 (2026-08-15) — @pixi/layout(yoga)
+    //   계산 결과를 스타일 패널에 넘기던 채널인데 호출부가 0건이라 대응 필드
+    //   (`computedLayout`)가 채워진 적이 없다. 현행 패널은 레이아웃 엔진 결과를
+    //   `fullTreeLayoutMap` / computed style 경로로 읽는다.
 
     // 🆕 Multi-page: 페이지 위치 초기화 (canonical 입력 순서 → 방향별 스택)
     initializePagePositions: (

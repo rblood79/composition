@@ -16,7 +16,6 @@ const initialGPUMetrics: GPUMetrics = {
   blockLayoutAvgMs: 0,
   gridLayoutAvgMs: 0,
   skiaFrameTimeAvgMs: 0,
-  elementCount: 0,
   contentRenderTimeMs: 0,
   blitTimeMs: 0,
   idleFrameRatio: 0,

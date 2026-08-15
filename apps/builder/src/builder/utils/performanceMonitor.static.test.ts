@@ -17,6 +17,38 @@ describe("performanceMonitor canonical count contract", () => {
   });
 });
 
+describe("요소 수 실측 — 단일 출처 계약", () => {
+  /**
+   * **Why (2026-08-15 실측)**: 요소 수 출처가 둘이었고 한쪽이 죽어 있었다.
+   * `gpuMetrics.elementCount` 는 writer(`updateElementCount`) 호출부가 ADR-900
+   * 이후 0건이라 **상시 0** 이었는데, dev 프로파일러가 그 값을 읽어
+   * "요소 수: 0" 을 출력했다 (실측: 배선 후 445). canonical 실측을 하는
+   * `getDocumentElementCount` 로 단일화한다.
+   */
+  it("공용 실측 helper 를 export 한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "performanceMonitor.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("export function getDocumentElementCount()");
+  });
+
+  it("dev 프로파일러가 store 지표가 아니라 실측 helper 를 읽는다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../workspace/canvas/benchmarks/devProfiler.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("getDocumentElementCount()");
+    // 죽은 store 채널 재도입 금지 (주석 인용은 제외하고 코드 줄만 검사)
+    const codeLines = source
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("//"));
+    expect(codeLines.filter((l) => l.includes("m.elementCount"))).toEqual([]);
+  });
+});
+
 describe("performanceMonitor FPS 버스트 계약", () => {
   // ADR-167 D1 — 유휴 rAF wake 제거. 상시 루프는 30초에 1회 읽히는
   // 0.5초 버퍼를 위해 초당 100+ 회 깨어났다 (2026-07-26 실측 118 wake/s).

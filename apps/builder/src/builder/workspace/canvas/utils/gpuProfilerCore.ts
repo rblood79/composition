@@ -244,9 +244,8 @@ export function flushWasmMetrics(): void {
   });
 }
 
-export function updateElementCount(count: number): void {
-  useCanvasMetricsStore.getState().updateGPUMetrics({ elementCount: count });
-}
+// `updateElementCount` 도 삭제됐다 (2026-08-15) — 호출부 0건이라 대응 필드가
+//   상시 0 이었고 판독자도 없었다. 요소 수 실측은 `utils/performanceMonitor.ts`.
 
 // ============================================
 // React Hook

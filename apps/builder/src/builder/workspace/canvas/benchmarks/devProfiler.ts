@@ -9,6 +9,7 @@
 
 import { useCanvasMetricsStore } from "../stores";
 import { percentile } from "../utils/gpuProfilerCore";
+import { getDocumentElementCount } from "../../../utils/performanceMonitor";
 
 interface ProfileSnapshot {
   timestamp: string;
@@ -33,7 +34,10 @@ function takeSnapshot(): ProfileSnapshot {
 
   return {
     timestamp: new Date().toISOString(),
-    elementCount: m.elementCount,
+    // 구 `gpuMetrics.elementCount` 는 writer 호출부가 ADR-900 이후 0건이라
+    //   **상시 0** 이었다 — 프로파일러가 "요소 수: 0" 을 출력하고 있었다.
+    //   canonical 실측 출처로 배선 (스냅샷은 1초 주기라 O(n) 순회 허용).
+    elementCount: getDocumentElementCount(),
     fps: { avg: Math.round(m.averageFps) },
     frameTime: {
       avg: Math.round(m.skiaFrameTimeAvgMs * 100) / 100,
@@ -190,7 +194,7 @@ function hotpath(): void {
   }));
 
   console.log(
-    `%c[Hot Path] Total frame: ${Math.round(total * 100) / 100}ms | Elements: ${m.elementCount}`,
+    `%c[Hot Path] Total frame: ${Math.round(total * 100) / 100}ms | Elements: ${getDocumentElementCount()}`,
     "color: #f59e0b; font-weight: bold",
   );
   console.table(breakdown);

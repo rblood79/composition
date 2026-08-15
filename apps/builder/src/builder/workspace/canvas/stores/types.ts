@@ -1,8 +1,10 @@
 export interface GPUMetrics {
-  // `vramUsed` / `textureCount` / `spriteCount` 는 삭제됐다 (2026-08-15).
-  //   PixiJS 리소스 회계 지표였고 ADR-900 이후 setter 호출부가 0건이라 상시 0 —
-  //   그 값이 성능 오버레이에 3줄로 표시되고 있었다. Skia 대응물이 필요하면
-  //   CanvasKit 쪽 계측을 새로 붙이고 그때 필드를 추가한다.
+  // `vramUsed` / `textureCount` / `spriteCount` / `elementCount` 는 삭제됐다
+  //   (2026-08-15). PixiJS 시대 지표라 ADR-900 이후 setter 호출부가 0건이었다 —
+  //   앞의 3개는 상시 0 인 채로 성능 오버레이에 표시되고 있었고, `elementCount`
+  //   는 판독자조차 없었다. 요소 수는 `utils/performanceMonitor.ts` 의
+  //   `PerformanceMetrics.elementCount` 가 canonical 에서 실측한다 (별개·live).
+  //   Skia 대응물이 필요하면 CanvasKit 계측을 새로 붙이고 그때 필드를 추가한다.
   lastFrameTime: number;
   averageFps: number;
   boundsLookupAvgMs: number;
@@ -10,7 +12,6 @@ export interface GPUMetrics {
   blockLayoutAvgMs: number;
   gridLayoutAvgMs: number;
   skiaFrameTimeAvgMs: number;
-  elementCount: number;
   contentRenderTimeMs: number;
   blitTimeMs: number;
   idleFrameRatio: number;
