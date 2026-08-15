@@ -58,7 +58,24 @@ get()._rebuildIndexes();                             // 3. canonical 기반 inde
 await persistActiveCanonicalDocument(db);            // 4. IndexedDB persist (백그라운드)
 ```
 
-신규 mutation 함수 추가 시 위 순서 의무. wrapper 는 항상 `canonicalMutations.ts` (`mergeElementsCanonicalPrimary` / `setElementsCanonicalPrimary` 등) 직접 호출.
+### 신규 mutation 은 러너 경유가 유일 경로 (ADR-184 Implemented 2026-08-15)
+
+**신규 mutation 경로는 위 순서를 수동으로 쓰지 않는다** — `runCanonicalMutation` (`adapters/canonical/canonicalMutationRunner.ts`) 이 canonical → set → `_rebuildIndexes` → history → persist(백그라운드) 순서를 소유하고, 호출자는 스테이지 함수만 제공한다 (canonical required — set-1차 위반이 시그니처상 표현 불가):
+
+```ts
+runCanonicalMutation({
+  canonical: () => mergeElementsCanonicalPrimary(newItems), // wrapper 는 이 스테이지 안에서만
+  store: () => set((prev) => ({ elements: [...prev.elements, ...newItems] })),
+  history: () => {
+    /* prev 캡처 필요 시 러너 호출 전 closure 로 */
+  },
+  // rebuild / persist 는 러너 소유 — 삭제 계열만 persistOptions: { allowShrink, reason }
+});
+```
+
+- wrapper (`mergeElementsCanonicalPrimary` 등 6종) **직호출은 기존 경로 allowlist (15파일, ADR-184 breakdown §4-3 freeze) 한정** — `canonicalMutationRunner.static.test.ts` 가 기계 집행 (allowlist **추가 금지**, 추가 시도 자체가 리뷰 대상)
+- 기존 경로 이관은 비스코프 ("회귀 위험 대비 이득 작음" 선행 판정 유지) — 재개 조건: 해당 경로에서 stale-canonical race **재발** 시 그 경로 1건만 이관
+- hydration / bridge / undo 재생 (FramesTab 로드, BuilderCore page shell bridge, historyActions 재생 등) 은 mutation 이 아니라 러너 대상 아님 — 기존 파일 allowlist 로 고정
 
 **금지 패턴**:
 
@@ -69,13 +86,13 @@ await persistActiveCanonicalDocument(db);            // 4. IndexedDB persist (�
 
 ADR-122 본문 G1 ("mutation mirror 제거") 는 wrapper 가 단일 진입점이 되었음을 검증했지만 **wrapper 호출 순서 (canonical 1차 vs set 1차) 일관성** 은 검증하지 않았다. 2026-07-15 history 정비에서 2곳 해소, 다음 1곳이 `set` 1차 패턴 잔존:
 
-| 경로                                        | 위치                                                                                              | 상태                                                                                                                                                                                                 |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `createInstance` / `resetInstanceOverrideField` | `apps/builder/src/builder/stores/utils/instanceActions.ts` (createInstance / resetInstanceOverrideField) | **잔존** — `set` 1차 → `syncInstanceElementsToCanonical` 2차. 단 history entry 는 canonical insert/replace event 로 전환됨 (2026-07-15) 이라 undo 경로의 full-replace 노출은 소멸                     |
-| instance snapshot batch (`applyElementSnapshotBatch`) | `apps/builder/src/builder/stores/utils/instanceActions.ts` (`applyElementSnapshotBatch`)           | **해소 (2026-07-15)** — ① prev 캡처 → ② canonical sync 1차 → ③ replace event entry → ④ set → ⑤ \_rebuildIndexes 로 재배열                                                                          |
-| history Undo / Redo / goToHistoryIndex      | `apps/builder/src/builder/stores/history/historyActions.ts` (`!appliedCanonicalEvents` 분기 3곳)   | **해소 (2026-07-15)** — sync 가 `set()` 선행 + canonical 재파생 결과로 set. `historyActions.static.test.ts` 의 source-order 정적 가드가 재발 차단. 이 분기 자체는 구 IndexedDB v1 entry 전용으로 격하 |
+| 경로                                                  | 위치                                                                                                     | 상태                                                                                                                                                                                                  |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createInstance` / `resetInstanceOverrideField`       | `apps/builder/src/builder/stores/utils/instanceActions.ts` (createInstance / resetInstanceOverrideField) | **잔존** — `set` 1차 → `syncInstanceElementsToCanonical` 2차. 단 history entry 는 canonical insert/replace event 로 전환됨 (2026-07-15) 이라 undo 경로의 full-replace 노출은 소멸                     |
+| instance snapshot batch (`applyElementSnapshotBatch`) | `apps/builder/src/builder/stores/utils/instanceActions.ts` (`applyElementSnapshotBatch`)                 | **해소 (2026-07-15)** — ① prev 캡처 → ② canonical sync 1차 → ③ replace event entry → ④ set → ⑤ \_rebuildIndexes 로 재배열                                                                             |
+| history Undo / Redo / goToHistoryIndex                | `apps/builder/src/builder/stores/history/historyActions.ts` (`!appliedCanonicalEvents` 분기 3곳)         | **해소 (2026-07-15)** — sync 가 `set()` 선행 + canonical 재파생 결과로 set. `historyActions.static.test.ts` 의 source-order 정적 가드가 재발 차단. 이 분기 자체는 구 IndexedDB v1 entry 전용으로 격하 |
 
-본 잔존은 ADR-122 본문 § Residual 에 추가됐다 ([docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md)). createInstance/resetInstanceOverrideField 의 호출 순서 reverse 는 여전히 후속 분리 (회귀 위험 대비 이득이 작음 — history 경로는 이미 canonical event 로 격리).
+본 잔존은 ADR-122 본문 § Residual 에 추가됐다 ([docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md)). createInstance/resetInstanceOverrideField 의 호출 순서 reverse 는 여전히 후속 분리 (회귀 위험 대비 이득이 작음 — history 경로는 이미 canonical event 로 격리). **위반 누적 차단은 ADR-184** (신규 경로 러너 경유 + 우회 차단 정적 가드 — 잔존 경로는 allowlist 고정, §신규 mutation 은 러너 경유 참조).
 
 **회귀 이력**: `instanceActions.ts` 3곳 fix — commits `a859f8b97` (applyElementSnapshotBatch) + `ee91020c4` (createInstance / resetInstanceOverrideField). 위 잔존 패턴 자체 정정 대신 그로 인한 stale derive race 만 우회 해소.
 
