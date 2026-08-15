@@ -28,7 +28,7 @@ export function panToPage(pageId: string): void {
   if (!pos) return;
 
   const vc = getViewportController();
-  if (!vc.isAttached()) return;
+  if (!vc.hasLiveState()) return;
 
   const { containerSize, canvasSize } = useViewportSyncStore.getState();
   // 이전 animation의 pending transform을 보존한 뒤 새 session을 시작한다.

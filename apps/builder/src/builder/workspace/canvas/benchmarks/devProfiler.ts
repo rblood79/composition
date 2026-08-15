@@ -123,17 +123,17 @@ async function start(durationSec = 5): Promise<void> {
     "JS Heap": `${last.memory.jsHeapMB}MB`,
   });
 
-  // 60fps 기준 판정
-  const target = 16.67; // 60fps
+  // 60Hz 호환성 최소선 판정. 목표 상한은 native refresh cadence에서 별도로 확인한다.
+  const compatibilityFloorMs = 1000 / 60;
   const verdict =
-    p95 <= target
-      ? "✅ 60fps 달성 (p95)"
-      : p50 <= target
-        ? "⚠️ p50은 60fps이나 p95 초과"
-        : "❌ 60fps 미달";
+    p95 <= compatibilityFloorMs
+      ? "✅ 60Hz 호환성 최소선 충족 (p95 frame time)"
+      : p50 <= compatibilityFloorMs
+        ? "⚠️ 60Hz 최소선은 p50만 충족, p95 초과"
+        : "❌ 60Hz 호환성 최소선 미달";
   console.log(
     `%c판정: ${verdict}`,
-    p95 <= target ? "color: #22c55e" : "color: #ef4444",
+    p95 <= compatibilityFloorMs ? "color: #22c55e" : "color: #ef4444",
   );
 }
 

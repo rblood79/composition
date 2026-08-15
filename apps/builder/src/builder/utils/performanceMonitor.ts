@@ -426,9 +426,10 @@ export class PerformanceMonitor {
   }
 
   private calculateFPS(): number {
-    if (this.frameTimes.length === 0) return 60;
+    // 샘플이 없으면 성능이 60fps라는 뜻이 아니라 아직 측정하지 않은 상태다.
+    if (this.frameTimes.length === 0) return 0;
     const avgFrameTime = this.calculateAverage(this.frameTimes);
-    return avgFrameTime > 0 ? Math.min(60, 1000 / avgFrameTime) : 60;
+    return avgFrameTime > 0 ? 1000 / avgFrameTime : 0;
   }
 
   private calculateAverage(arr: number[]): number {
@@ -487,11 +488,13 @@ export class PerformanceMonitor {
       score -= 15;
     }
 
-    // FPS (최대 -20점)
-    if (params.fps < this.thresholds.fpsCritical) {
-      score -= 20;
-    } else if (params.fps < this.thresholds.fpsWarning) {
-      score -= 10;
+    // FPS (측정값이 있을 때만 최대 -20점)
+    if (params.fps > 0) {
+      if (params.fps < this.thresholds.fpsCritical) {
+        score -= 20;
+      } else if (params.fps < this.thresholds.fpsWarning) {
+        score -= 10;
+      }
     }
 
     // 요소 수 (최대 -10점)
@@ -528,10 +531,12 @@ export class PerformanceMonitor {
       warnings.push(`렌더링 경고: ${params.avgRenderTime.toFixed(0)}ms`);
     }
 
-    if (params.fps < this.thresholds.fpsCritical) {
-      warnings.push(`FPS 위험: ${params.fps.toFixed(0)}`);
-    } else if (params.fps < this.thresholds.fpsWarning) {
-      warnings.push(`FPS 경고: ${params.fps.toFixed(0)}`);
+    if (params.fps > 0) {
+      if (params.fps < this.thresholds.fpsCritical) {
+        warnings.push(`FPS 위험: ${params.fps.toFixed(0)}`);
+      } else if (params.fps < this.thresholds.fpsWarning) {
+        warnings.push(`FPS 경고: ${params.fps.toFixed(0)}`);
+      }
     }
 
     if (params.elementCount > this.thresholds.elementCountWarning) {

@@ -5,13 +5,13 @@
  * with large number of selected elements (100+).
  *
  * Features:
- * - RAF-based viewport tracking (60fps max)
+ * - RAF-based viewport tracking (one update per display frame at most)
  * - AABB collision detection
  * - Passive event listeners for scroll performance
  * - Automatic cleanup
  */
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef } from "react";
 
 /**
  * Viewport bounds in Preview iframe coordinates
@@ -65,7 +65,7 @@ export interface OverlayData {
  */
 export function useVisibleOverlays(
   overlays: OverlayData[],
-  iframeRef: React.RefObject<HTMLIFrameElement | null>
+  iframeRef: React.RefObject<HTMLIFrameElement | null>,
 ): OverlayData[] {
   const [viewport, setViewport] = useState<ViewportBounds>({
     left: 0,
@@ -82,7 +82,7 @@ export function useVisibleOverlays(
     if (!iframe?.contentWindow) return;
 
     const updateViewport = () => {
-      // Prevent multiple RAF calls (throttle to 60fps)
+      // Prevent multiple RAF calls within the same display frame
       if (rafIdRef.current !== null) return;
 
       rafIdRef.current = requestAnimationFrame(() => {
@@ -93,7 +93,8 @@ export function useVisibleOverlays(
         }
 
         // Calculate viewport bounds
-        const scrollLeft = doc.documentElement.scrollLeft || doc.body.scrollLeft;
+        const scrollLeft =
+          doc.documentElement.scrollLeft || doc.body.scrollLeft;
         const scrollTop = doc.documentElement.scrollTop || doc.body.scrollTop;
         const clientWidth = iframe.clientWidth;
         const clientHeight = iframe.clientHeight;
@@ -113,12 +114,16 @@ export function useVisibleOverlays(
     updateViewport();
 
     // Listen to scroll/resize with passive listeners (better scroll performance)
-    iframe.contentWindow.addEventListener('scroll', updateViewport, { passive: true });
-    iframe.contentWindow.addEventListener('resize', updateViewport, { passive: true });
+    iframe.contentWindow.addEventListener("scroll", updateViewport, {
+      passive: true,
+    });
+    iframe.contentWindow.addEventListener("resize", updateViewport, {
+      passive: true,
+    });
 
     return () => {
-      iframe.contentWindow?.removeEventListener('scroll', updateViewport);
-      iframe.contentWindow?.removeEventListener('resize', updateViewport);
+      iframe.contentWindow?.removeEventListener("scroll", updateViewport);
+      iframe.contentWindow?.removeEventListener("resize", updateViewport);
 
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
@@ -163,8 +168,8 @@ export function useVisibleOverlays(
  * @returns True if overlay intersects viewport
  */
 export function isOverlayVisible(
-  rect: OverlayData['rect'],
-  viewport: ViewportBounds
+  rect: OverlayData["rect"],
+  viewport: ViewportBounds,
 ): boolean {
   return !(
     rect.right < viewport.left ||

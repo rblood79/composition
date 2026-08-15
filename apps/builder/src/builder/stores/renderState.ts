@@ -41,8 +41,8 @@ const initialState = {
   frameCount: 0,
   lastRenderTime: 0,
   contextLost: false,
-  fps: 60,
-  avgFrameTime: 16.67,
+  fps: 0,
+  avgFrameTime: 0,
 };
 
 export const useRenderState = create<RenderState>((set) => ({

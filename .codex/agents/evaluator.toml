@@ -116,7 +116,7 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:6006
 
 - 요소 추가/선택/이동이 Canvas에 즉시 반영되는가
 - Preview iframe과 Builder Canvas가 동기화되는가
-- 60fps가 유지되는가 (Performance 탭 확인)
+- Canvas/Skia가 native refresh cadence를 따르는가, 60Hz 환경 p95 frame-time 최소선을 넘는가 (Performance 탭/Chrome trace 확인)
 
 ### 상태 동기화 검증
 

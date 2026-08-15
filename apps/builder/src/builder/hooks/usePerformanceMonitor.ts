@@ -16,6 +16,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { longTaskMonitor, type MetricStats } from "../../utils/longTaskMonitor";
 import { postMessageMonitor } from "../../utils/postMessageMonitor";
 
+const SIXTY_HZ_FRAME_BUDGET_MS = 1000 / 60;
+
 // ============================================
 // Types
 // ============================================
@@ -84,8 +86,8 @@ export function usePerformanceMonitor(
       const renderTime = performance.now() - renderStartRef.current;
       longTaskMonitor.measure(`render:${componentName}`, () => {
         // 이미 렌더 완료됨, 시간만 기록
-        if (renderTime > 16) {
-          // 16ms 초과 시 (60fps 미만)
+        if (renderTime > SIXTY_HZ_FRAME_BUDGET_MS) {
+          // 60Hz 호환성 frame budget 초과 시 기록
           console.debug(
             `[Render] ${componentName} took ${renderTime.toFixed(1)}ms (render #${renderCountRef.current})`,
           );

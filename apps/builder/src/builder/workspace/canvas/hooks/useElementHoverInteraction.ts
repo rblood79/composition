@@ -61,7 +61,7 @@ interface UseElementHoverInteractionOptions {
   getHoverElementsMap: () => ReadonlyMap<string, CanvasInteractionNode>;
   /** Active Skia renderer input 에서 파생한 hover children map */
   getHoverChildrenMap: () => ReadonlyMap<string, ReadonlyArray<{ id: string }>>;
-  /** 호버 상태 ref (60fps 갱신, Zustand 아님) */
+  /** 호버 상태 ref (display frame cadence 갱신, Zustand 아님) */
   hoverStateRef: MutableRefObject<ElementHoverState>;
   /** overlayVersion ref (리렌더 트리거) */
   overlayVersionRef: MutableRefObject<number>;

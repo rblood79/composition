@@ -154,7 +154,7 @@ apps/builder/src/builder/workspace/canvas/       # WebGL 캔버스 렌더링 전
 
 - **상태**: 🟢 완료
 - **작업**: 기존 `CanvasSyncStore` 검증 및 성능 고도화
-- **목표**: 5,000개 요소 렌더링 시 60fps 고정 및 Mismatch 감지 정교화
+- **목표**: 5,000개 요소 렌더링에서 native refresh cadence를 추적하고, 60Hz 환경의 p95 frame-time 최소선 및 Mismatch 감지를 검증
 - **검증 완료**:
   - `canvasSync.ts`: 12개 파일에서 사용, 렌더 버전 동기화 및 GPU 메트릭 구현 ✅
   - `canvasStore.ts`: Grid 설정이 `canvasSettings.ts`로 SSoT 위임됨 ✅
@@ -238,14 +238,14 @@ Builder는 WebGL 모드(PixiJS)를 사용합니다. 각 Phase별 영향 범위�
 
 #### Phase 3 실제 작업 범위
 
-| 작업                    | 상태    |
-| ----------------------- | ------- |
-| useCanvasSyncStore 생성 | ✅ 완료 |
-| 렌더 버전 동기화        | ✅ 완료 |
-| GPU 메트릭 추적         | ✅ 완료 |
-| Mismatch 감지           | ✅ 완료 |
-| 60fps 고정              | ✅ 완료 |
-| 5,000개 요소 테스트     | ✅ 완료 |
+| 작업                                 | 상태    |
+| ------------------------------------ | ------- |
+| useCanvasSyncStore 생성              | ✅ 완료 |
+| 렌더 버전 동기화                     | ✅ 완료 |
+| GPU 메트릭 추적                      | ✅ 완료 |
+| Mismatch 감지                        | ✅ 완료 |
+| 60Hz p95 floor / native cadence 관측 | ✅ 완료 |
+| 5,000개 요소 테스트                  | ✅ 완료 |
 
 - **영향 파일**: 10개
 - **복잡도**: ⭐ 낮음 (이미 구현됨)

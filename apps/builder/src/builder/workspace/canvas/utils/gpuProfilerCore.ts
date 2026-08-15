@@ -82,9 +82,9 @@ class GPUProfiler {
     const avgFrameTime =
       this.frameTimes.length > 0
         ? this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length
-        : 16.67;
+        : 0;
 
-    const fps = 1000 / avgFrameTime;
+    const fps = calculateFpsFromFrameTimes(this.frameTimes);
 
     useCanvasMetricsStore.getState().updateGPUMetrics({
       lastFrameTime: avgFrameTime,
@@ -109,21 +109,29 @@ class GPUProfiler {
   }
 
   getFPS(): number {
-    if (this.frameTimes.length === 0) return 60;
-    const avg =
-      this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
-    return Math.min(60, Math.round(1000 / avg));
+    return Math.round(calculateFpsFromFrameTimes(this.frameTimes));
   }
 
   getFrameTime(): number {
-    if (this.frameTimes.length === 0) return 16.67;
+    if (this.frameTimes.length === 0) return 0;
     return this.frameTimes[this.frameTimes.length - 1];
   }
 
   getAverageFrameTime(): number {
-    if (this.frameTimes.length === 0) return 16.67;
+    if (this.frameTimes.length === 0) return 0;
     return this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
   }
+}
+
+/** rAF 관측값을 native refresh cadence 그대로 FPS로 변환한다. */
+export function calculateFpsFromFrameTimes(
+  frameTimes: readonly number[],
+): number {
+  if (frameTimes.length === 0) return 0;
+  const averageFrameTime =
+    frameTimes.reduce((sum, frameTime) => sum + frameTime, 0) /
+    frameTimes.length;
+  return averageFrameTime > 0 ? 1000 / averageFrameTime : 0;
 }
 
 // ============================================

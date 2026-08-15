@@ -74,7 +74,7 @@ export function resolveOverlayTypeface(
 //
 // 오버레이 라벨 6곳(치수/페이지 타이틀/collection remainder/스냅 배지/workflow ×2)이
 // 호출마다 matchFamilyStyle(1–6회 WASM) + `new ck.Font()` 생성 → 프레임 끝 delete 를
-// 반복했다 — 팬 1초(60fps, 타이틀 5개 + 선택 1개) 기준 Font 생성/삭제 ≈ 360회/초.
+// 반복했다 — 팬 1초(60Hz reference, 타이틀 5개 + 선택 1개) 기준 Font 생성/삭제 ≈ 360회/초.
 // weight 축은 Normal/Medium 2종뿐이고 zoom 종속 크기는 `font.setSize` 로 갈아끼울 수
 // 있으므로 (fontMgr 참조, weight.value) 당 Font 1개를 유지한다. 렌더는 단일 스레드
 // 순차라 acquire → 사용 사이에 다른 acquire 가 끼어들 수 없어 크기 mutate 가 안전.

@@ -67,7 +67,7 @@ maxTurns: 25
 1. 모든 임포트가 올바르게 해석되는지 확인
 2. 타입 체크 통과 확인 (`pnpm run type-check`)
 3. 순환 의존성이 도입되지 않았는지 확인
-4. 성능 기준 검증: 60fps Canvas, <3초 로드, <500KB 번들
+4. 성능 기준 검증: Canvas/Skia native refresh cadence 및 60Hz p95 floor, <3초 로드, <500KB 번들
 
 ## 기술 컨텍스트
 

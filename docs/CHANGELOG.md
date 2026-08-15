@@ -69,6 +69,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: 라이브 빌더 실측 — 구 경로 `getSpecForTag(t)?.containerStyles` 는 Breadcrumbs/Toolbar/Tree/TagGroup/ListBox 전부 `null`, 신규 경로는 각각의 catalog 값 반환. 회귀 2건(Breadcrumbs 축 / Tree 삽입 라인)은 fallback 을 끄면 RED
   - 위치: `apps/builder/src/builder/workspace/canvas/{selection/dropTargetResolver.ts,layout/engines/implicitStyles.ts}`
 
+## [Canvas/Skia 성능 기준 — native refresh cadence 정렬] - 2026-08-15
+
+### Architecture
+
+- `60fps`를 Canvas/Skia의 목표 상한으로 사용하지 않고, native display refresh cadence를 목표로 재정의했다.
+- 60Hz 환경의 p95 frame time은 호환성 최소선으로 유지하며, 성능 판정은 frame time p50/p95/p99를 우선한다.
+- FPS 측정 전 초기값을 60으로 가장하지 않고, 실제 rAF 관측값의 고주사율(예: 120Hz)을 clamp 없이 보존한다.
+- 개발 profiler와 performance checklist의 문구를 목표·최소선·미측정 상태로 구분했다.
+- 위치: `apps/builder/src/builder/workspace/canvas/utils/gpuProfilerCore.ts`, `apps/builder/src/builder/utils/performanceMonitor.ts`, `.agents/skills/composition-patterns/rules/perf-checklist.md`
+- 검증: native refresh FPS 변환 회귀 테스트 및 performance monitor static contract 추가.
+
 ## [Skia 이미지 캐시 — 참조 중 SkImage 강제 퇴거 제거] - 2026-08-15
 
 ### Bug Fixes

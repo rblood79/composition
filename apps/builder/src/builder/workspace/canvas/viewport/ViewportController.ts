@@ -68,6 +68,9 @@ export class ViewportController {
   private isPanning = false;
   private lastPanPoint: { x: number; y: number } | null = null;
 
+  // currentState 가 실제 뷰포트를 반영하는지 (아래 hasLiveState 참조)
+  private stateIsLive = false;
+
   // 외부 리스너 (스크롤바 등이 pan/zoom 중 실시간 추적)
   private updateListeners: Set<(state: ViewportState) => void> = new Set();
 
@@ -94,6 +97,7 @@ export class ViewportController {
       y: container.y,
       scale: container.scale.x,
     };
+    this.stateIsLive = true;
     publishViewportPresentation(this.currentState);
   }
 
@@ -106,9 +110,28 @@ export class ViewportController {
 
   /**
    * Container 연결 여부
+   *
+   * **주의**: ADR-900 으로 PixiJS 가 제거돼 `attach()` 호출부가 없다 — 실전에서
+   * 항상 false 다. "컨트롤러를 써도 되는가" 판정에는 `hasLiveState()` 를 쓸 것.
    */
   isAttached(): boolean {
     return this.container !== null;
+  }
+
+  /**
+   * `currentState` 가 실제 뷰포트를 반영하는가.
+   *
+   * **Why (2026-08-15)**: 구 소비자들은 이 판정을 `isAttached()` 로 했는데, 그건
+   * PixiJS Container 연결 여부라 ADR-900 이후 **항상 false** 다. 그 결과:
+   * - 스크롤바가 컨트롤러의 실시간 상태 대신 React mirror 를 읽어 pan 중 위치가
+   *   갱신되지 않았다 (mirror 는 `endPan()` 에서만 동기화)
+   * - `panToPage` 와 workflow pan 은 early return 으로 **완전한 no-op** 이었다
+   *
+   * 컨트롤러의 `currentState` 는 Container 유무와 무관하게 pan/zoom/setPosition
+   * 에서 갱신되므로, 한 번이라도 갱신됐다면 그 값이 정본이다.
+   */
+  hasLiveState(): boolean {
+    return this.stateIsLive;
   }
 
   /**
@@ -297,6 +320,8 @@ export class ViewportController {
    * 모든 등록된 리스너에게 현재 상태 전달
    */
   private notifyUpdateListeners(): void {
+    // 상태를 바꾸는 모든 경로(updatePan / zoomAt / setPosition)가 여기를 지난다
+    this.stateIsLive = true;
     const state = this.currentState;
     // ADR-100: 뮤터블 ref 동기 갱신 — SkiaCanvas RAF에서 zero-latency 읽기
     viewportState.x = state.x;

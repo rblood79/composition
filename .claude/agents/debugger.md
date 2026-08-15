@@ -70,7 +70,7 @@ maxTurns: 25
 
 ### 성능 이슈
 
-- **목표**: 60fps Canvas, <3초 초기 로드, <500KB 번들
+- **기준**: Canvas/Skia는 native refresh cadence를 목표로 하며, 60Hz 환경의 p95 frame time을 최소선으로 둔다. 초기 로드는 <3초, 초기 번들은 <500KB
 - Canvas 렌더링 루프에서 비싼 연산 프로파일링
 - React 컴포넌트 불필요한 리렌더 확인
 - hot path 에서 array traversal 금지 — canonical selectors / canonical node lookup 우선, `elementsMap` 은 read-only derived fallback (ADR-122 Implemented)

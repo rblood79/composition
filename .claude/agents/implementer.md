@@ -245,7 +245,7 @@ const styles = tv({ base: '...', variants: { ... } });
 
 ## 성능 기준
 
-- Canvas FPS: 60fps
+- Canvas/Skia cadence: native refresh target, 60Hz environment p95 floor
 - 초기 로드: < 3초
 - 초기 번들: < 500KB
 

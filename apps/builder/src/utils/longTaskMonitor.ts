@@ -53,6 +53,8 @@ export interface ThresholdConfig {
 // Constants
 // ============================================
 
+const SIXTY_HZ_FRAME_BUDGET_MS = 1000 / 60;
+
 /** 기본 성능 임계값 설정 */
 const DEFAULT_THRESHOLDS: ThresholdConfig = {
   default: 50, // 50ms 기본 임계값
@@ -65,8 +67,8 @@ const DEFAULT_THRESHOLDS: ThresholdConfig = {
     "page-switch": 100,
     "element-add": 50,
     "element-remove": 50,
-    "drag-move": 16, // 60fps 유지
-    "overlay-update": 16,
+    "drag-move": SIXTY_HZ_FRAME_BUDGET_MS,
+    "overlay-update": SIXTY_HZ_FRAME_BUDGET_MS,
     "message-handler": 50,
   },
 };

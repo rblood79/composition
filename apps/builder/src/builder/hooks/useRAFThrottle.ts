@@ -1,7 +1,7 @@
 /**
  * RAF-based Throttle Hook
  *
- * Uses requestAnimationFrame to throttle updates to browser's rendering cycle (60fps).
+ * Uses requestAnimationFrame to throttle updates to the browser's display refresh cycle.
  * More efficient than setTimeout-based debounce for visual updates.
  *
  * Benefits:
@@ -15,17 +15,17 @@
  * const [scrollPosition, setScrollPosition] = useState(0);
  * const throttledPosition = useRAFThrottle(scrollPosition);
  *
- * // scrollPosition changes rapidly, throttledPosition updates at 60fps max
+ * // scrollPosition changes rapidly, throttledPosition updates at most once per display frame
  * ```
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Throttle value updates to requestAnimationFrame cycle
  *
  * @param value - Value to throttle
- * @returns Throttled value that updates at max 60fps
+ * @returns Throttled value that updates at most once per display frame
  */
 export function useRAFThrottle<T>(value: T): T {
   const [throttledValue, setThrottledValue] = useState<T>(value);
@@ -68,7 +68,7 @@ export function useRAFThrottle<T>(value: T): T {
  * @example
  * ```tsx
  * const handleScroll = useRAFCallback(() => {
- *   console.log('Scroll at 60fps max');
+ *   console.log('Scroll at display refresh cadence');
  * });
  *
  * useEffect(() => {

@@ -665,7 +665,7 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     const projectedCards = [...graph.nodesMap.values()].filter(
       (node) => node.projection?.kind === "gridlist-row",
     );
-    // window limit 100 — 10k 카드 중 100개만 projected (60fps 보호).
+    // window limit 100 — 10k 카드 중 100개만 projected (bounded viewport work).
     expect(projectedCards).toHaveLength(100);
   });
 
@@ -1681,7 +1681,7 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
       (node) =>
         node.projection?.kind === "table-row" && node.projection.isHeader,
     );
-    // data 행 window limit 100 (60fps 보호) + header 행 1개.
+    // data 행 window limit 100 (bounded viewport work) + header 행 1개.
     expect(dataRows).toHaveLength(100);
     expect(headerRows).toHaveLength(1);
   });

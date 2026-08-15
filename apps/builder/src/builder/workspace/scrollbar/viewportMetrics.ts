@@ -73,7 +73,10 @@ export interface ScrollbarAxisMetrics {
 export function getViewportAuthoritativeState(): ViewportState {
   const controller = getViewportController();
 
-  if (controller.isAttached()) {
+  // `isAttached()`(PixiJS Container 연결)로 판정하면 ADR-900 이후 항상 거짓이라
+  //   pan 중에도 React mirror 를 읽게 된다 — mirror 는 endPan 에서만 동기화되므로
+  //   드래그하는 내내 thumb 이 제자리에 멈춘다.
+  if (controller.hasLiveState()) {
     return controller.getState();
   }
 

@@ -12,7 +12,7 @@ interface AnimatedOffset {
   currentDy: number;
 }
 
-const LERP_FACTOR = 0.15; // 프레임당 15% 접근 → ~8프레임(~133ms @60fps)
+const LERP_FACTOR = 0.15; // 프레임당 15% 접근 → ~8프레임(~133ms @60Hz)
 const SNAP_THRESHOLD = 0.5; // 0.5px 이하면 즉시 snap
 
 const animatedOffsets = new Map<string, AnimatedOffset>();

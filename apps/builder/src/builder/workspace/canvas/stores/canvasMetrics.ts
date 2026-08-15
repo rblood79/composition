@@ -13,7 +13,7 @@ const initialGPUMetrics: GPUMetrics = {
   textureCount: 0,
   spriteCount: 0,
   lastFrameTime: 0,
-  averageFps: 60,
+  averageFps: 0,
   boundsLookupAvgMs: 0,
   cullingFilterAvgMs: 0,
   blockLayoutAvgMs: 0,

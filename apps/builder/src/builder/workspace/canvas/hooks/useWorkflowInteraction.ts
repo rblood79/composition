@@ -54,7 +54,7 @@ export interface UseWorkflowInteractionOptions {
   edgeGeometryCacheRef: RefObject<CachedEdgeGeometry[]>;
   /** 페이지 프레임 맵 ref */
   pageFrameMapRef: RefObject<Map<string, PageFrame>>;
-  /** 호버 상태 ref (60fps 갱신, Zustand 아님) */
+  /** 호버 상태 ref (display frame cadence 갱신, Zustand 아님) */
   hoverStateRef: MutableRefObject<WorkflowHoverState>;
   /** overlayVersion ref (리렌더 트리거) */
   overlayVersionRef: MutableRefObject<number>;
@@ -112,7 +112,7 @@ export function useWorkflowInteraction({
       if (!pageFrameMap || pageFrameMap.size === 0) return;
 
       const vc = getViewportController();
-      if (!vc.isAttached()) return;
+      if (!vc.hasLiveState()) return;
 
       const { containerSize } = useViewportSyncStore.getState();
       const currentViewport = minimapQueuedViewportRef.current ?? vc.getState();

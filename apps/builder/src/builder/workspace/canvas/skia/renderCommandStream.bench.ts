@@ -14,7 +14,7 @@
  *  4. commandChildrenMap 재구성 단독 — 캐시 히트 여부 무관 매 build 전 실행되는 Map 재구성 비용
  *     (skiaFramePipeline.ts:250-265 재현).
  *
- * 각 단계를 분리해 어느 것이 실제 프레임 예산(60fps=16.7ms)을 위협하는지,
+ * 각 단계를 분리해 어느 것이 실제 60Hz reference frame budget(16.7ms)을 위협하는지,
  * Rust 이관 시 어느 단계가 가장 큰 정당화 근거를 갖는지 판정한다.
  *
  * 실행: apps/builder 에서

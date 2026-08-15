@@ -89,7 +89,7 @@ const element = elements.find((el) => el.id === id);
 ### 애니메이션
 
 - [ ] **requestAnimationFrame**: setInterval 대신 사용
-- [ ] **60fps 목표**: stats.js로 모니터링
+- [ ] **display refresh cadence**: 60Hz 환경의 최소선과 frame time p50/p95/p99를 모니터링
 
 ## 메모리 체크리스트
 
@@ -110,13 +110,16 @@ useEffect(() => {
 
 ## 성능 기준
 
-| 영역        | 목표    | 측정 방법            |
-| ----------- | ------- | -------------------- |
-| Canvas FPS  | 60fps   | stats.js             |
-| 초기 로드   | < 3초   | Lighthouse           |
-| 번들 (초기) | < 500KB | vite-bundle-analyzer |
-| 인터랙션    | < 100ms | Chrome DevTools      |
-| 메모리      | 안정적  | Performance Monitor  |
+| 영역        | 기준                                       | 측정 방법                            |
+| ----------- | ------------------------------------------ | ------------------------------------ |
+| Canvas/Skia | native refresh target, 60Hz 환경 p95 floor | Chrome trace: frame time p50/p95/p99 |
+| 초기 로드   | < 3초                                      | Lighthouse                           |
+| 번들 (초기) | < 500KB                                    | vite-bundle-analyzer                 |
+| 인터랙션    | < 100ms                                    | Chrome DevTools                      |
+| 메모리      | 안정적                                     | Performance Monitor                  |
+
+60fps는 60Hz 환경의 호환성 최소선이며 목표 상한이 아니다. 측정하지 않은
+절대 FPS 주장은 하지 않는다.
 
 ## 측정 도구
 

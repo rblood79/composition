@@ -44,3 +44,17 @@ describe("performanceMonitor FPS 버스트 계약", () => {
     expect(source).toContain("this.sampleFPSBurst(() => this.collect())");
   });
 });
+
+describe("performanceMonitor FPS 측정 기준", () => {
+  it("미측정 상태를 60fps로 가장하거나 관측값을 60으로 clamp하지 않는다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "performanceMonitor.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain(
+      "샘플이 없으면 성능이 60fps라는 뜻이 아니라 아직 측정하지 않은 상태다.",
+    );
+    expect(source).not.toContain("Math.min(60, 1000 / avgFrameTime)");
+  });
+});
