@@ -17,31 +17,21 @@ import { memo, useCallback, useEffect, useMemo } from "react";
 import { useStore, useDebouncedSelectedElementData } from "../../stores";
 import { useKeyboardShortcutsRegistry, useActiveScope } from "@/builder/hooks";
 import { useCanonicalPropertyElementsMap } from "./hooks/useCanonicalPropertyRead";
-import {
-  copyMultipleElements,
-  pasteMultipleElements,
-  resolvePasteTargetParentId,
-  serializeCopiedElements,
-  deserializeCopiedElements,
-} from "../../utils/multiElementCopy";
-import {
-  createGroupFromSelection,
-  isFrameOrLegacyGroup,
-  ungroupElement,
-} from "../../stores/utils/elementGrouping";
-import { alignElements } from "../../stores/utils/elementAlignment";
 import type { AlignmentType } from "../../stores/utils/elementAlignment";
-import { distributeElements } from "../../stores/utils/elementDistribution";
 import type { DistributionType } from "../../stores/utils/elementDistribution";
 import { canDetachInstance } from "../../utils/editingSemantics";
-import {
-  trackGroupCreation,
-  trackUngroup,
-  trackMultiPaste,
-} from "../../stores/utils/historyHelpers";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import { panelNodeMapToElementMap } from "./panelNodeElementMap";
 import { useStyleActions } from "../styles/hooks/useStyleActions";
+import {
+  alignSelection,
+  copySelection,
+  distributeSelection,
+  duplicateSelection,
+  groupSelection,
+  paste,
+  ungroupSelection,
+} from "../../workspace/canvas/actions/canvasActions";
 
 export const CanvasSelectionShortcutsHost = memo(
   function CanvasSelectionShortcutsHost() {
@@ -51,11 +41,7 @@ export const CanvasSelectionShortcutsHost = memo(
     const { copyStyles, pasteStyles } = useStyleActions();
 
     // 🚀 Performance: 액션만 가져오기 (구독 없음)
-    const removeElement = useStore.getState().removeElement;
     const setSelectedElement = useStore.getState().setSelectedElement;
-    const updateElementProps = useStore.getState().updateElementProps;
-    const addElement = useStore.getState().addElement;
-    const updateElement = useStore.getState().updateElement;
     const setSelectedElements = useStore.getState().setSelectedElements;
 
     // 🚀 Performance: getState() 패턴 - 구독 없이 최신 상태 조회
@@ -86,215 +72,20 @@ export const CanvasSelectionShortcutsHost = memo(
 
     // ⭐ Multi-select quick actions
     const handleCopyAll = useCallback(async () => {
-      const selectedElementIds = getSelectedElementIds();
-      console.log("[Copy] Starting copy operation...", { selectedElementIds });
-
-      if (selectedElementIds.length === 0) {
-        console.warn("[Copy] No elements selected");
-        return;
-      }
-
-      try {
-        // Copy elements with relationship preservation
-        console.log("[Copy] Calling copyMultipleElements...");
-        const elementsMap = getLegacyElementsMap();
-        const copiedData = copyMultipleElements(
-          selectedElementIds,
-          elementsMap,
-        );
-        console.log("[Copy] Copied data:", {
-          elementCount: copiedData.elements.length,
-          rootIds: copiedData.rootIds,
-          externalParents: copiedData.externalParents.size,
-        });
-
-        // Serialize and copy to clipboard
-        console.log("[Copy] Serializing to JSON...");
-        const jsonData = serializeCopiedElements(copiedData);
-        console.log("[Copy] JSON length:", jsonData.length, "bytes");
-
-        console.log("[Copy] Writing to clipboard...");
-        // Note: useCopyPaste hook doesn't support complex element copying with relationships
-        // eslint-disable-next-line local/prefer-copy-paste-hook
-        await navigator.clipboard.writeText(jsonData);
-
-        console.log(
-          `✅ [Copy] Successfully copied ${selectedElementIds.length} elements to clipboard`,
-        );
-        // TODO: Show toast notification
-      } catch (error) {
-        console.error("❌ [Copy] Failed to copy elements:", error);
-        // TODO: Show error toast
-      }
-    }, [getSelectedElementIds, getLegacyElementsMap]);
+      await copySelection({ elementsMap: getLegacyElementsMap() });
+    }, [getLegacyElementsMap]);
 
     const handlePasteAll = useCallback(async () => {
-      const currentPageId = getCurrentPageId();
-      console.log("[Paste] Starting paste operation...", { currentPageId });
-
-      if (!currentPageId) {
-        console.warn("[Paste] No current page selected");
-        return;
-      }
-
-      try {
-        // Read from clipboard
-        console.log("[Paste] Reading from clipboard...");
-        // Note: useCopyPaste hook doesn't support complex element pasting with relationships
-        // eslint-disable-next-line local/prefer-copy-paste-hook
-        const clipboardText = await navigator.clipboard.readText();
-        console.log(
-          "[Paste] Clipboard text length:",
-          clipboardText.length,
-          "bytes",
-        );
-        console.log(
-          "[Paste] First 100 chars:",
-          clipboardText.substring(0, 100),
-        );
-
-        // Deserialize
-        console.log("[Paste] Deserializing clipboard data...");
-        const copiedData = deserializeCopiedElements(clipboardText);
-        if (!copiedData) {
-          console.warn(
-            "[Paste] Clipboard does not contain valid composition element data",
-          );
-          return;
-        }
-
-        console.log("[Paste] Deserialized data:", {
-          elementCount: copiedData.elements.length,
-          rootIds: copiedData.rootIds,
-          externalParents: copiedData.externalParents.size,
-        });
-
-        // Paste with offset
-        console.log("[Paste] Creating new elements with offset...");
-        const elementsMap = getLegacyElementsMap();
-        const newElements = pasteMultipleElements(
-          copiedData,
-          currentPageId,
-          {
-            x: 10,
-            y: 10,
-          },
-          Array.from(elementsMap.values()),
-          {
-            targetParentId: resolvePasteTargetParentId({
-              currentPageId,
-              selectedElementId: getSelectedElementId(),
-              elements: elementsMap.values(),
-            }),
-          },
-        );
-        console.log("[Paste] New elements created:", newElements.length);
-
-        if (newElements.length === 0) {
-          console.warn("[Paste] No elements to paste");
-          return;
-        }
-
-        // Add all new elements to store
-        console.log("[Paste] Adding elements to store...");
-        await Promise.all(
-          newElements.map((element) => {
-            console.log("[Paste] Adding element:", element.id, element.type);
-            return addElement(element, { skipHistory: true });
-          }),
-        );
-
-        // ⭐ Phase 7: Track in history AFTER adding elements
-        trackMultiPaste(newElements);
-
-        console.log(
-          `✅ [Paste] Successfully pasted ${newElements.length} elements`,
-        );
-        // TODO: Show toast notification
-      } catch (error) {
-        console.error("❌ [Paste] Failed to paste elements:", error);
-        // TODO: Show error toast
-      }
-    }, [
-      getCurrentPageId,
-      getSelectedElementId,
-      getLegacyElementsMap,
-      addElement,
-    ]);
+      await paste({
+        elementsMap: getLegacyElementsMap(),
+        pasteHistory: "batch",
+      });
+    }, [getLegacyElementsMap]);
 
     // ⭐ Phase 6: Duplicate handler (Cmd+D)
     const handleDuplicate = useCallback(async () => {
-      const multiSelectMode = getMultiSelectMode();
-      const selectedElementIds = getSelectedElementIds();
-      const currentPageId = getCurrentPageId();
-
-      if (
-        !multiSelectMode ||
-        selectedElementIds.length === 0 ||
-        !currentPageId
-      ) {
-        console.warn("[Duplicate] No elements selected or no page active");
-        return;
-      }
-
-      try {
-        console.log(
-          `[Duplicate] Duplicating ${selectedElementIds.length} elements`,
-        );
-
-        // Copy current selection
-        const elementsMap = getLegacyElementsMap();
-        const copiedData = copyMultipleElements(
-          selectedElementIds,
-          elementsMap,
-        );
-
-        // Paste with 10px offset (standard offset for duplicate)
-        const newElements = pasteMultipleElements(
-          copiedData,
-          currentPageId,
-          {
-            x: 10,
-            y: 10,
-          },
-          Array.from(elementsMap.values()),
-        );
-
-        if (newElements.length === 0) {
-          console.warn("[Duplicate] No elements to duplicate");
-          return;
-        }
-
-        // Add all new elements to store
-        await Promise.all(
-          newElements.map((element) =>
-            addElement(element, { skipHistory: true }),
-          ),
-        );
-
-        // ⭐ Track in history AFTER adding elements
-        trackMultiPaste(newElements);
-
-        // ⭐ Auto-select duplicated elements
-        const newElementIds = newElements.map((el) => el.id);
-        setSelectedElements(newElementIds);
-        console.log(
-          `✅ [Duplicate] Duplicated and selected ${newElements.length} elements`,
-        );
-
-        // TODO: Show toast notification
-      } catch (error) {
-        console.error("❌ [Duplicate] Failed to duplicate elements:", error);
-        // TODO: Show error toast
-      }
-    }, [
-      getMultiSelectMode,
-      getSelectedElementIds,
-      getCurrentPageId,
-      getLegacyElementsMap,
-      addElement,
-      setSelectedElements,
-    ]);
+      await duplicateSelection({ elementsMap: getLegacyElementsMap() });
+    }, [getLegacyElementsMap]);
 
     // ⭐ Phase 3: Advanced Selection - Select All (Cmd+A)
     const handleSelectAll = useCallback(() => {
@@ -399,281 +190,31 @@ export const CanvasSelectionShortcutsHost = memo(
 
     // ⭐ Phase 4: Group Selection (Cmd+G)
     const handleGroupSelection = useCallback(async () => {
-      const multiSelectMode = getMultiSelectMode();
-      const selectedElementIds = getSelectedElementIds();
-      const pageId = getCurrentPageId();
-
-      if (!multiSelectMode || selectedElementIds.length < 2 || !pageId) {
-        console.warn("[Group] Need at least 2 elements selected");
-        return;
-      }
-
-      try {
-        console.log("[Group] Grouping", selectedElementIds.length, "elements");
-
-        const elementsMap = getLegacyElementsMap();
-        const previousChildren = selectedElementIds
-          .map((id: string) => elementsMap.get(id))
-          .filter((el): el is NonNullable<typeof el> => el !== undefined);
-
-        // Create group from selection. Cross-page selection 도 허용 — 최초 선택 요소의
-        // page 가 frame anchor 가 되고, 다른 page 의 selection 도 frame 의 child 로
-        // 이동 (page_id 도 frame.page_id 로 reparent).
-        const { groupElement, updatedChildren } = createGroupFromSelection(
-          selectedElementIds,
-          elementsMap,
-          pageId,
-        );
-
-        // Add group to store (this saves to DB)
-        await addElement(groupElement, { skipHistory: true });
-
-        // Update children with new parent_id + page_id.
-        // updateElement 가 store-layer 에서 atomic (set callback 안 latest state 기반
-        // derive) 이므로 concurrent Promise.all 호출도 race-free. page_id 도 함께
-        // update — cross-page 의 다른 page element 가 frame.page_id 로 이동해야
-        // canonical document tree 의 page 경계 정합 + frame 의 child 로 정상 인식.
-        await Promise.all(
-          updatedChildren.map((child) =>
-            updateElement(child.id, {
-              parent_id: child.parent_id,
-              page_id: child.page_id,
-            }),
-          ),
-        );
-
-        // ⭐ Phase 7: Track in history AFTER group creation
-        trackGroupCreation(groupElement, previousChildren, updatedChildren);
-
-        // Select the new group
-        setSelectedElement(groupElement.id, groupElement.props);
-
-        console.log(
-          `✅ [Group] Created group ${groupElement.id} with ${updatedChildren.length} children`,
-        );
-      } catch (error) {
-        console.error("❌ [Group] Failed to create group:", error);
-      }
-    }, [
-      getMultiSelectMode,
-      getSelectedElementIds,
-      getCurrentPageId,
-      getLegacyElementsMap,
-      addElement,
-      updateElement,
-      setSelectedElement,
-    ]);
+      await groupSelection({ elementsMap: getLegacyElementsMap() });
+    }, [getLegacyElementsMap]);
 
     // ⭐ Phase 4: Ungroup Selection (Cmd+Shift+G)
     const handleUngroupSelection = useCallback(async () => {
-      if (!selectedElement || !isFrameOrLegacyGroup(selectedElement.type)) {
-        console.warn("[Ungroup] Selected element is not a frame/Group");
-        return;
-      }
-
-      try {
-        console.log("[Ungroup] Ungrouping element", selectedElement.id);
-
-        const elementsMap = getLegacyElementsMap();
-
-        // Store group element before deletion for history
-        const groupElementForHistory = elementsMap.get(selectedElement.id);
-        const previousChildren = Array.from(elementsMap.values()).filter(
-          (element) => element.parent_id === selectedElement.id,
-        );
-
-        // Ungroup element
-        const { updatedChildren, groupIdToDelete } = ungroupElement(
-          selectedElement.id,
-          elementsMap,
-        );
-
-        // ⭐ Phase 7: Track in history BEFORE making changes
-        if (groupElementForHistory) {
-          trackUngroup(
-            groupIdToDelete,
-            previousChildren,
-            groupElementForHistory,
-            updatedChildren,
-          );
-        }
-
-        // Update children with new parent_id (IndexedDB persistence via updateElement)
-        await Promise.all(
-          updatedChildren.map(async (child) => {
-            await updateElement(child.id, {
-              parent_id: child.parent_id,
-            });
-          }),
-        );
-
-        // Delete group element.
-        // skipHistory: trackUngroup 이 이미 group 의 remove event 를 기록한다
-        //   (buildCanonicalUngroupEvents = move 들 + remove). 여기서 또 기록하면 같은
-        //   삭제가 두 엔트리가 되어 undo 1회는 "빈 frame 만 복원", 2회에야 자식이
-        //   돌아오는 죽은 단계가 생긴다 (실측: 그룹 해제 1회 → 엔트리 2개).
-        //   group 생성 쪽 addElement(…, { skipHistory: true }) 와 대칭.
-        await removeElement(groupIdToDelete, { skipHistory: true });
-
-        // Select first child
-        if (updatedChildren.length > 0) {
-          setSelectedElement(updatedChildren[0].id, updatedChildren[0].props);
-        } else {
-          setSelectedElement(null);
-        }
-
-        console.log(
-          `✅ [Ungroup] Ungrouped ${updatedChildren.length} elements`,
-        );
-      } catch (error) {
-        console.error("❌ [Ungroup] Failed to ungroup:", error);
-      }
-    }, [
-      selectedElement,
-      getLegacyElementsMap,
-      updateElement,
-      removeElement,
-      setSelectedElement,
-    ]);
+      await ungroupSelection({ elementsMap: getLegacyElementsMap() });
+    }, [getLegacyElementsMap]);
 
     // ⭐ Phase 5.1: Element Alignment
     const handleAlign = useCallback(
       async (type: AlignmentType) => {
-        const multiSelectMode = getMultiSelectMode();
-        const selectedElementIds = getSelectedElementIds();
-
-        if (!multiSelectMode || selectedElementIds.length < 2) {
-          console.warn("[Alignment] Need at least 2 elements selected");
-          return;
-        }
-
-        try {
-          console.log(
-            `[Alignment] Aligning ${selectedElementIds.length} elements to ${type}`,
-          );
-
-          const elementsMap = getLegacyElementsMap();
-
-          // Calculate alignment updates
-          const updates = alignElements(selectedElementIds, elementsMap, type);
-
-          if (updates.length === 0) {
-            console.warn("[Alignment] No updates generated");
-            return;
-          }
-
-          // 단일 batch 로 적용 = 되돌리기 1회. 요소별 updateElementProps 를 Promise.all
-          //   로 돌리면 각 호출이 자기 entry 를 만들어 undo 가 요소 수만큼 늘어난다.
-          //   trackBatchUpdate 도 제거했다 — batchUpdateElementProps 가 요소별 merged
-          //   props 로 batch entry 1개를 스스로 기록하며, 여기서 넘기던 인자는 형태부터
-          //   틀렸다 (2번째 인자는 "모든 요소에 적용할 props 패치" 인데 `{elementId: style}`
-          //   맵을 넘겨 요소 id 가 prop 이름으로 기록됐다).
-          const batchUpdateElementProps =
-            useStore.getState().batchUpdateElementProps;
-          await batchUpdateElementProps(
-            updates.flatMap((update) => {
-              const element = elementsMap.get(update.id);
-              if (!element) return [];
-              return [
-                {
-                  elementId: update.id,
-                  props: {
-                    style: {
-                      ...((element.props.style as Record<string, unknown>) ||
-                        {}),
-                      ...update.style,
-                    },
-                  } as import("../../../types/core/store.types").ComponentElementProps,
-                },
-              ];
-            }),
-          );
-
-          console.log(
-            `✅ [Alignment] Aligned ${updates.length} elements to ${type}`,
-          );
-        } catch (error) {
-          console.error("❌ [Alignment] Failed to align:", error);
-        }
+        await alignSelection({ elementsMap: getLegacyElementsMap() }, type);
       },
-      [
-        getMultiSelectMode,
-        getSelectedElementIds,
-        getLegacyElementsMap,
-        updateElementProps,
-      ],
+      [getLegacyElementsMap],
     );
 
     // ⭐ Phase 5.2: Element Distribution
     const handleDistribute = useCallback(
       async (type: DistributionType) => {
-        const multiSelectMode = getMultiSelectMode();
-        const selectedElementIds = getSelectedElementIds();
-
-        if (!multiSelectMode || selectedElementIds.length < 3) {
-          console.warn("[Distribution] Need at least 3 elements selected");
-          return;
-        }
-
-        try {
-          console.log(
-            `[Distribution] Distributing ${selectedElementIds.length} elements ${type}ly`,
-          );
-
-          const elementsMap = getLegacyElementsMap();
-
-          // Calculate distribution updates
-          const updates = distributeElements(
-            selectedElementIds,
-            elementsMap,
-            type,
-          );
-
-          if (updates.length === 0) {
-            console.warn("[Distribution] No updates generated");
-            return;
-          }
-
-          // 단일 batch 로 적용 = 되돌리기 1회. 요소별 updateElementProps 를 Promise.all
-          //   로 돌리면 각 호출이 자기 entry 를 만들어 undo 가 요소 수만큼 늘어난다.
-          //   trackBatchUpdate 도 제거했다 — batchUpdateElementProps 가 요소별 merged
-          //   props 로 batch entry 1개를 스스로 기록하며, 여기서 넘기던 인자는 형태부터
-          //   틀렸다 (2번째 인자는 "모든 요소에 적용할 props 패치" 인데 `{elementId: style}`
-          //   맵을 넘겨 요소 id 가 prop 이름으로 기록됐다).
-          const batchUpdateElementProps =
-            useStore.getState().batchUpdateElementProps;
-          await batchUpdateElementProps(
-            updates.flatMap((update) => {
-              const element = elementsMap.get(update.id);
-              if (!element) return [];
-              return [
-                {
-                  elementId: update.id,
-                  props: {
-                    style: {
-                      ...((element.props.style as Record<string, unknown>) ||
-                        {}),
-                      ...update.style,
-                    },
-                  } as import("../../../types/core/store.types").ComponentElementProps,
-                },
-              ];
-            }),
-          );
-
-          console.log(
-            `✅ [Distribution] Distributed ${updates.length} elements ${type}ly`,
-          );
-        } catch (error) {
-          console.error("❌ [Distribution] Failed to distribute:", error);
-        }
+        await distributeSelection(
+          { elementsMap: getLegacyElementsMap() },
+          type,
+        );
       },
-      [
-        getMultiSelectMode,
-        getSelectedElementIds,
-        getLegacyElementsMap,
-        updateElementProps,
-      ],
+      [getLegacyElementsMap],
     );
 
     // ⭐ Copy/Paste Styles (StylesPanel 에서 이전 — ADR-155 Phase 2)

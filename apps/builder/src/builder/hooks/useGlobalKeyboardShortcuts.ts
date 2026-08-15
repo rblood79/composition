@@ -34,12 +34,10 @@ import {
   zoomViewportAtContainerCenter,
 } from "../workspace/canvas/viewport/viewportActions";
 import {
-  copyMultipleElements,
-  pasteMultipleElements,
-  resolvePasteTargetParentId,
-  serializeCopiedElements,
-  deserializeCopiedElements,
-} from "../utils/multiElementCopy";
+  copySelection,
+  deleteSelection,
+  paste,
+} from "../workspace/canvas/actions/canvasActions";
 import { canDetachInstance } from "../utils/editingSemantics";
 import { requestEditingSemanticsDetachConfirmation } from "../utils/editingSemanticsImpactConfirmation";
 import { useCopyPaste } from "./useCopyPaste";
@@ -180,68 +178,20 @@ export function useGlobalKeyboardShortcuts() {
    * Canvas Copy - 선택된 요소들 복사
    */
   const handleCanvasCopy = useCallback(async () => {
-    const { selectedElementIds, elementsMap, currentPageId } =
-      useStore.getState();
-
-    if (selectedElementIds.length === 0 || !currentPageId) {
-      console.log("[Keyboard] Copy: No elements selected");
-      return;
-    }
-
-    const copiedData = copyMultipleElements(selectedElementIds, elementsMap);
-    const serialized = serializeCopiedElements(copiedData);
-
-    const success = await copyText(serialized);
-    if (success) {
-      console.log(`[Keyboard] Copied ${copiedData.elements.length} elements`);
-    } else {
-      console.error("[Keyboard] Copy failed");
-    }
+    const { elementsMap } = useStore.getState();
+    await copySelection({
+      elementsMap,
+      writeClipboardText: copyText,
+      requireCurrentPageForCopy: true,
+    });
   }, [copyText]);
 
   /**
    * Canvas Paste - 클립보드에서 요소 붙여넣기
    */
   const handleCanvasPaste = useCallback(async () => {
-    const { currentPageId, addElement, elements, selectedElementId } =
-      useStore.getState();
-
-    if (!currentPageId) {
-      console.log("[Keyboard] Paste: No page selected");
-      return;
-    }
-
-    const text = await pasteText();
-    if (!text) {
-      console.log("[Keyboard] Paste: Failed to read clipboard");
-      return;
-    }
-
-    const copiedData = deserializeCopiedElements(text);
-    if (!copiedData) {
-      console.log("[Keyboard] Paste: No valid element data in clipboard");
-      return;
-    }
-
-    const newElements = pasteMultipleElements(
-      copiedData,
-      currentPageId,
-      { x: 10, y: 10 },
-      elements,
-      {
-        targetParentId: resolvePasteTargetParentId({
-          currentPageId,
-          selectedElementId,
-          elements,
-        }),
-      },
-    );
-
-    for (const element of newElements) {
-      await addElement(element);
-    }
-
-    console.log(`[Keyboard] Pasted ${newElements.length} elements`);
+    const { elementsMap } = useStore.getState();
+    await paste({ elementsMap, readClipboardText: pasteText });
   }, [pasteText]);
 
   /**
@@ -262,47 +212,8 @@ export function useGlobalKeyboardShortcuts() {
       );
       return;
     }
-
-    const {
-      selectedElementId,
-      selectedElementIds,
-      elementsMap,
-      removeElements,
-      setSelectedElement,
-    } = useStore.getState();
-
-    const selectedIdsForDelete = [...selectedElementIds];
-    if (
-      selectedElementId &&
-      !selectedIdsForDelete.includes(selectedElementId)
-    ) {
-      const primaryElement = elementsMap.get(selectedElementId);
-      if (primaryElement?.type.toLowerCase() !== "body") {
-        selectedIdsForDelete.unshift(selectedElementId);
-      }
-    }
-
-    if (selectedIdsForDelete.length === 0) {
-      console.log("[Keyboard] Delete: No elements selected");
-      return;
-    }
-
-    // Body 요소는 키보드로 삭제 불가 (페이지 삭제 시에만 함께 삭제)
-    const deletableIds = selectedIdsForDelete.filter((id) => {
-      const el = elementsMap.get(id);
-      return el && el.type.toLowerCase() !== "body";
-    });
-
-    if (deletableIds.length === 0) {
-      console.log("[Keyboard] Delete: Only body elements selected, skipping");
-      return;
-    }
-
-    // 선택 해제 먼저
-    setSelectedElement(null);
-
-    // 배치 삭제: 단일 set()으로 모든 요소 동시 제거
-    await removeElements(deletableIds);
+    const { elementsMap } = useStore.getState();
+    await deleteSelection({ elementsMap });
   }, []);
 
   const handleToggleComponentOrigin = useCallback(async () => {

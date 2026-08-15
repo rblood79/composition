@@ -7,6 +7,7 @@ Accepted — 2026-08-15 (리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED
 ## Implementation Progress
 
 - Phase 1 — Implemented 2026-08-15: RAC virtual-anchor overlay, surface provider registry, context-menu selection/policy pure functions, Builder-root native menu suppression, and regression tests (G1 anchor/action/underlay contract verified; viewport-edge flip remains RAC live-browser evidence for Phase 2).
+- Phase 1.5 — Implemented 2026-08-15: extracted copy/paste/duplicate/delete/group/ungroup/align/distribute into the shared `canvasActions` layer; both shortcut consumers now inject their element map, with CanvasSceneNode alias normalization and regression tests.
 
 ## Context
 
