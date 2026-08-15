@@ -221,8 +221,7 @@ export function BuilderCanvas({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
-  const { appReady, wasmLayoutFailed, wasmLayoutReady } =
-    useCanvasRuntimeBootstrap();
+  const { wasmLayoutFailed, wasmLayoutReady } = useCanvasRuntimeBootstrap();
 
   const containerSize = useViewportSyncStore((state) => state.containerSize);
 
@@ -386,9 +385,6 @@ export function BuilderCanvas({
   // Canvas sync actions
   const setCanvasReady = useCanvasLifecycleStore(
     (state) => state.setCanvasReady,
-  );
-  const setContextLost = useCanvasLifecycleStore(
-    (state) => state.setContextLost,
   );
   const syncPixiVersion = useCanvasLifecycleStore(
     (state) => state.syncPixiVersion,
@@ -1330,11 +1326,8 @@ export function BuilderCanvas({
   }, [handleElementClick, handleElementDoubleClick]);
 
   useCanvasSurfaceLifecycle({
-    appReady,
-    containerRef,
     renderVersion,
     setCanvasReady,
-    setContextLost,
     syncPixiVersion,
   });
 

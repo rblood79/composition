@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "../../../stores";
 import {
   initCompositionEngineWasm,
@@ -6,23 +6,20 @@ import {
 } from "../wasm-bindings/compositionEngineWasm";
 import { isUnifiedFlag } from "../wasm-bindings/featureFlags";
 
-/** PixiJS Application에서 필요한 최소 인터페이스 */
-interface PixiApplicationLike {
-  ticker: { stop(): void };
-  renderer: { background: { alpha: number } };
-}
-
 interface CanvasRuntimeBootstrapResult {
-  appReady: boolean;
-  handlePixiAppInit: (app: PixiApplicationLike) => void;
-  pixiApp: PixiApplicationLike | null;
   wasmLayoutFailed: boolean;
   wasmLayoutReady: boolean;
 }
 
+/**
+ * 캔버스 런타임(WASM 레이아웃 엔진) 준비 상태.
+ *
+ * 구 반환값 `appReady` / `pixiApp` / `handlePixiAppInit` 은 삭제됐다 (2026-08-15).
+ * `setAppReady(true)` 가 PixiJS Application 초기화 콜백 안에만 있었는데 ADR-900 으로
+ * 그 콜백의 호출부가 사라져 `appReady` 가 **상시 false** 였고, 그 값을 유일한 재실행
+ * 신호로 쓰던 WebGL 컨텍스트 손실 리스너가 영영 등록되지 않았다.
+ */
 export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
-  const [appReady, setAppReady] = useState(false);
-  const [pixiApp, setPixiApp] = useState<PixiApplicationLike | null>(null);
   const [wasmLayoutReady, setWasmLayoutReady] = useState(() =>
     isCompositionEngineReady(),
   );
@@ -95,22 +92,7 @@ export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
     return () => clearTimeout(timeoutId);
   }, [wasmLayoutReady]);
 
-  const handlePixiAppInit = useCallback((app: PixiApplicationLike) => {
-    setPixiApp(app);
-    setAppReady(true);
-
-    // ADR-100: REMOVE_PIXI=true → PixiJS 렌더 루프 중지 (CPU 절감)
-    // React 컴포넌트 트리(ElementSprite 데이터 등록)는 유지, 렌더링만 중지
-    if (isUnifiedFlag("REMOVE_PIXI")) {
-      app.ticker.stop();
-      app.renderer.background.alpha = 0;
-    }
-  }, []);
-
   return {
-    appReady,
-    handlePixiAppInit,
-    pixiApp,
     wasmLayoutFailed,
     wasmLayoutReady,
   };

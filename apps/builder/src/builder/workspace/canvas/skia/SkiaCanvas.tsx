@@ -61,6 +61,7 @@ import {
 import { viewportState as mutableViewport } from "../viewport/viewportState";
 import { StoreRenderBridge } from "./StoreRenderBridge";
 import { getSharedLayoutMap } from "../layout/engines/fullTreeLayout";
+import { useCanvasLifecycleStore } from "../stores";
 import { useStore } from "../../../stores";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
 import { observe, PERF_LABEL } from "../../../utils/perfMarks";
@@ -786,14 +787,23 @@ export function SkiaCanvas({
     // RAF 시작
     rafId = requestAnimationFrame(renderFrame);
 
-    // WebGL 컨텍스트 손실 감시
+    // WebGL 컨텍스트 손실 감시 — 이 등록이 **유일한 소유자**다.
+    //   캔버스를 소유한 층만 그 element 에 리스너를 걸 수 있다. 밖에서
+    //   `querySelector("canvas")` 로 찾아 거는 경로는 이 컴포넌트가 lazy 라
+    //   마운트 시점에 DOM 에 없어 조용히 실패한다 (ADR-900 잔재, 2026-08-15).
+    //   그래서 렌더 복구(ref)와 사용자 알림(store)을 여기서 함께 발행한다.
+    const publishContextLost = (lost: boolean) => {
+      useCanvasLifecycleStore.getState().setContextLost(lost);
+    };
     const unwatchContext = watchContextLoss(
       skiaCanvas,
       () => {
         contextLostRef.current = true;
+        publishContextLost(true);
       },
       () => {
         contextLostRef.current = false;
+        publishContextLost(false);
         if (rendererRef.current && canvasRef.current) {
           rendererRef.current.resize(canvasRef.current);
           rendererRef.current.invalidateContent();
@@ -808,6 +818,11 @@ export function SkiaCanvas({
       cancelAnimationFrame(rafId);
       themeWatcherHandle.disconnect();
       unwatchContext();
+      // 손실 상태로 캔버스가 사라지면 플래그가 남아 remount 후에도 경고가 붙는다.
+      if (contextLostRef.current) {
+        contextLostRef.current = false;
+        publishContextLost(false);
+      }
       if (minimapFadeTimerRef.current)
         clearTimeout(minimapFadeTimerRef.current);
       renderer.dispose();
