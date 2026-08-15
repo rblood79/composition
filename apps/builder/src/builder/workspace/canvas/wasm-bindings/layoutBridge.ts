@@ -11,7 +11,7 @@
  */
 
 import { CompositionEngineLayout } from "./compositionEngine";
-import type { LayoutResult } from "./compositionEngine";
+import type { EngineTraceNode, LayoutResult } from "./compositionEngine";
 
 /**
  * Common layout engine interface (ADR-916 Phase 0-A seam).
@@ -47,6 +47,12 @@ export interface LayoutEngineAPI {
   // ── 상태 ──
   clear(): void;
   nodeCount(): number;
+
+  // ── 판정 트레이스 (ADR-183 — 디버그 채널) ──
+  // optional: 필수 계약이 아니라 테스트용 fake 엔진이 구현을 강제받지 않는다.
+  // 소비자는 `?.` 호출 + 미지원 시 false/null 로 강등.
+  enableLayoutTrace?(enabled: boolean): boolean;
+  getLayoutTrace?(handle: number): EngineTraceNode | null;
 }
 
 /**

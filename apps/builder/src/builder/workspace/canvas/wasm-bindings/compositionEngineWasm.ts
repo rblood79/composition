@@ -32,6 +32,9 @@ export interface RawCompositionLayoutEngine {
   computeLayout(root: number, availW: number, availH: number): void;
   getLayoutsBatch(handles: Uint32Array): Float32Array;
   getLayout(handle: number): string;
+  // ADR-183 판정 트레이스 (디버그 채널) — 배치 payload 와 별도 API (HC3).
+  enableLayoutTrace(enabled: boolean): void;
+  getLayoutTrace(handle: number): string;
   clear(): void;
   nodeCount(): number;
   free(): void;

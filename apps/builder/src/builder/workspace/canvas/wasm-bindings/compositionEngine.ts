@@ -40,6 +40,66 @@ export interface LayoutResult {
 export type LayoutNodeHandle = number;
 
 /**
+ * 엔진 판정 트레이스 이벤트 (ADR-183 — 디버그 채널).
+ *
+ * Wire 계약은 Rust `trace.rs::TraceEvent` 의 internally-tagged serde JSON 과
+ * 1:1 이다 — variant/필드 rename 은 양쪽 동시 갱신 (native 테스트
+ * `tests/layout_trace.rs` 의 JSON 계약이 감시). 트레이스는 **엔진의 자기
+ * 보고**이지 정합 oracle 이 아니다 — oracle 은 Chrome parity fixture (R4).
+ */
+export type EngineTraceEvent = { measure_pass: boolean } & (
+  | {
+      type: "IncrementalSkip";
+      reason: "Hit" | "NoPrev" | "Dirty" | "AvailChanged";
+      avail: [number, number];
+    }
+  | {
+      type: "UsedSizeClamp";
+      axis: "Inline" | "Block";
+      bound: "Min" | "Max";
+      from: number;
+      to: number;
+    }
+  | {
+      type: "AutoMinFloor";
+      item: number;
+      source: "ContentMinScalar" | "ContentMainFallback";
+      floor: number;
+    }
+  | { type: "ShrinkToFitReentry"; axis: "Inline" | "Block"; settled: number }
+  | {
+      type: "IntrinsicMeasure";
+      hit: boolean;
+      generation: number;
+      min: number;
+      max: number;
+    }
+  | {
+      type: "FlexItemResolve";
+      item: number;
+      used_main: number;
+      prev_avail: number;
+    }
+  | {
+      type: "GridTrackResolve";
+      stage: "Contribution" | "AutoStretch";
+      axis: "Inline" | "Block";
+      /** 미해소 트랙 토큰(Rust NAN)은 serde_json 이 null 로 내보낸다. */
+      tracks: (number | null)[];
+    }
+);
+
+/** 노드 1개의 트레이스 보고 (`tree.rs::trace_json` 스키마). */
+export interface EngineTraceNode {
+  handle: number;
+  /** false 는 "게이트가 꺼져 있다" — "판정이 없었다"(events 빈 배열)와 구분. */
+  enabled: boolean;
+  /** 노드당 상한(MAX_EVENTS_PER_NODE) 초과로 버려진 개수. */
+  dropped: number;
+  events: EngineTraceEvent[];
+}
+
+/**
  * flat `[x0,y0,w0,h0, x1,...]` Float32Array 를 handle 순서대로 슬라이스해
  * `Map<handle, LayoutResult>` 로 재구성한다(handle 당 4값).
  */
@@ -184,6 +244,30 @@ export class CompositionEngineLayout {
       throw new Error("CompositionEngineLayout: WASM engine not initialized");
     const flat = this.engine.getLayoutsBatch(new Uint32Array(handles));
     return flatToLayoutMap(handles, flat);
+  }
+
+  // ── 판정 트레이스 (ADR-183 — 디버그 채널) ────────────────────────────
+
+  /**
+   * 트레이스 게이트 토글. 성공 시 true, 엔진 미준비면 false.
+   *
+   * 디버그 채널은 프로덕션 흐름을 깨면 안 되므로 다른 메서드와 달리 throw
+   * 하지 않는다.
+   */
+  enableLayoutTrace(enabled: boolean): boolean {
+    if (!this.engine) return false;
+    this.engine.enableLayoutTrace(enabled);
+    return true;
+  }
+
+  /** 노드 판정 트레이스 조회. 엔진 미준비/파싱 실패 시 null. */
+  getLayoutTrace(handle: LayoutNodeHandle): EngineTraceNode | null {
+    if (!this.engine) return null;
+    try {
+      return JSON.parse(this.engine.getLayoutTrace(handle)) as EngineTraceNode;
+    } catch {
+      return null;
+    }
   }
 
   // ── 상태 ─────────────────────────────────────────────────────────────

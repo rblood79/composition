@@ -26,7 +26,10 @@
 
 import { createLayoutEngine } from "../../wasm-bindings/layoutBridge";
 import type { LayoutEngineAPI } from "../../wasm-bindings/layoutBridge";
-import type { LayoutResult } from "../../wasm-bindings/compositionEngine";
+import type {
+  EngineTraceNode,
+  LayoutResult,
+} from "../../wasm-bindings/compositionEngine";
 import type { TaffyNodeHandle } from "../../wasm-bindings/layoutTypes";
 import { encodeBatchBinary } from "../../wasm-bindings/binaryProtocol";
 import type { BinaryBatchInput } from "../../wasm-bindings/binaryProtocol";
@@ -422,6 +425,29 @@ export class PersistentTaffyTree {
    */
   nodeCount(): number {
     return this.taffy.nodeCount();
+  }
+
+  // ─── 판정 트레이스 (ADR-183 — 디버그 채널) ──────────────────────────
+
+  /**
+   * 엔진 판정 트레이스 게이트 토글. 성공 시 true, 엔진 미준비/채널 미지원이면
+   * false. **살아 있는 트리에 켜는 것이 채널의 존재 이유다** — 문제 노드를
+   * fresh 트리로 다시 풀면 skip 게이트·측정 캐시를 타지 않아 캐시 계열 오진이
+   * 사각이 된다 (ADR-183 Decision 1).
+   */
+  enableLayoutTrace(enabled: boolean): boolean {
+    return this.taffy.enableLayoutTrace?.(enabled) ?? false;
+  }
+
+  /**
+   * elementId 의 판정 트레이스 조회 (handleMap 경유 element id → handle 변환).
+   * 미등록 element / 게이트 미지원이면 null. 판독 포맷은 Phase 3 헬퍼 소관 —
+   * 여기는 wire 스키마(`EngineTraceNode`) 그대로 돌려준다.
+   */
+  getLayoutTraceForElement(elementId: string): EngineTraceNode | null {
+    const handle = this.handleMap.get(elementId);
+    if (handle === undefined) return null;
+    return this.taffy.getLayoutTrace?.(handle) ?? null;
   }
 
   // ─── 초기화 / 정리 ──────────────────────────────────────────────────

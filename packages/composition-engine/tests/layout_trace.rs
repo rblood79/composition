@@ -215,6 +215,53 @@ fn measure_pass_events_are_tagged_separately() {
     );
 }
 
+// ── 6.5 JSON 직렬화 계약 (Phase 2 — WASM 경계) ───────────────────────────
+//
+// `wasm.rs::getLayoutTrace` 는 wasm32 게이트라 native 테스트가 닿지 않는다.
+// 그래서 JSON 형태 계약은 그 아래 층(`tree.rs::trace_json`)에서 잠근다 —
+// wasm 표면은 이 문자열을 그대로 위임한다. TS 판독자(compositionEngine.ts
+// `EngineTraceNode`)가 이 스키마의 소비자다: 필드명이 바뀌면 여기가 RED.
+
+#[test]
+fn trace_json_reports_typed_events() {
+    let (mut tree, h) = build(CLAMPED);
+    tree.enable_trace();
+    tree.compute_layout(h[1], 200.0, 800.0);
+
+    let v: serde_json::Value =
+        serde_json::from_str(&tree.trace_json(h[1])).expect("trace_json 이 유효 JSON 이 아니다");
+    assert_eq!(v["handle"].as_u64(), Some(h[1] as u64));
+    assert_eq!(v["enabled"], true);
+    assert_eq!(v["dropped"].as_u64(), Some(0));
+
+    let events = v["events"].as_array().expect("events 배열 없음");
+    let clamp = events
+        .iter()
+        .find(|e| e["type"] == "UsedSizeClamp")
+        .unwrap_or_else(|| panic!("UsedSizeClamp 이벤트 없음: {events:?}"));
+    // internally-tagged: 판정 payload 가 태그와 같은 층에 평탄화돼야 TS 가
+    // discriminated union 으로 읽는다.
+    assert_eq!(clamp["bound"], "Max");
+    assert_eq!(clamp["axis"], "Block");
+    assert_eq!(clamp["from"].as_f64(), Some(400.0));
+    assert_eq!(clamp["to"].as_f64(), Some(300.0));
+    assert_eq!(clamp["measure_pass"], false, "R5 태그가 JSON 에 실리지 않았다");
+}
+
+#[test]
+fn trace_json_when_disabled_reports_enabled_false() {
+    let (mut tree, h) = build(SIMPLE);
+    tree.compute_layout(h[1], 200.0, 400.0);
+
+    let v: serde_json::Value =
+        serde_json::from_str(&tree.trace_json(h[1])).expect("off 상태도 유효 JSON 이어야 한다");
+    assert_eq!(v["enabled"], false);
+    assert!(
+        v["events"].as_array().is_some_and(|a| a.is_empty()),
+        "off 상태 events 는 빈 배열이어야 한다"
+    );
+}
+
 // ── 6. 노드당 상한 (R3) ──────────────────────────────────────────────────
 
 #[test]

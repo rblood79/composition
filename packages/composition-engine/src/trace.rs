@@ -23,6 +23,7 @@
 //! 엔진 알고리즘을 수정할 때 해당 이벤트를 같이 갱신하지 않으면 explain 이
 //! "판정이 없었다" 로 거짓 안심을 준다 (R2 — `tests/layout_trace.rs` 가 감시).
 
+use serde::Serialize;
 use std::collections::HashMap;
 
 /// 노드당 이벤트 상한 (R3 — WASM 힙). 초과분은 버리고 개수만 센다.
@@ -34,7 +35,7 @@ use std::collections::HashMap;
 pub const MAX_EVENTS_PER_NODE: usize = 64;
 
 /// 논리축이 아니라 **물리축** — 판독자가 `width`/`height` 로 읽는다.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum Axis {
     /// 인라인 축 (width)
     Inline,
@@ -47,7 +48,7 @@ pub enum Axis {
 /// 배제하는 오진: "새로고침하면 정상으로 돌아온다 → store/canonical 데이터 문제"
 /// (layout-engine.md §"증분 skip 의 키는 dirty 와 available 둘이다"). 전체 재빌드가
 /// 캐시를 버리는 것뿐이므로 데이터는 멀쩡하다.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum SkipReason {
     /// 저장된 반환값 재사용 — 서브트리 clean + available 동일.
     Hit,
@@ -60,7 +61,7 @@ pub enum SkipReason {
 }
 
 /// used size clamp 에서 어느 쪽이 바인딩했나.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum ClampBound {
     Min,
     Max,
@@ -71,7 +72,7 @@ pub enum ClampBound {
 /// 배제하는 오진: "auto-main item 이 찌그러지는 것을 이 변경 탓으로 진단"
 /// (layout-engine.md §used size clamp 금지 패턴). floor 가 발화했는지, 그리고
 /// 그 값이 정확 min-content 인지 근사인지가 갈림점이다.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum FloorSource {
     /// off 19 `content_min_main` — TS 스칼라 공급 (정확 min-content).
     ContentMinScalar,
@@ -80,7 +81,7 @@ pub enum FloorSource {
 }
 
 /// 트랙 sizing 단계 (CSS-GRID-1).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum TrackStage {
     /// §12.5 — 자식 content 기여로 base/상한 산출.
     Contribution,
@@ -92,7 +93,14 @@ pub enum TrackStage {
 ///
 /// 필드는 **판독자가 오진을 배제하는 데 필요한 최소**만 담는다 — 값을 늘리면
 /// off 경로 비용이 아니라 유지 부담(R2)이 커진다.
-#[derive(Debug, Clone, PartialEq)]
+///
+/// JSON 직렬화는 internally-tagged (`"type"` 필드) — TS 판독자가 discriminated
+/// union 으로 소비한다 (`compositionEngine.ts::EngineTraceEvent`). variant 명·
+/// 필드명이 곧 wire 계약이므로 rename 은 TS 타입과 동시 갱신
+/// (`tests/layout_trace.rs` JSON 계약 테스트가 감시). `GridTrackResolve.tracks`
+/// 의 NAN(미해소 토큰)은 serde_json 이 `null` 로 내보낸다.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "type")]
 pub enum TraceEvent {
     /// #1 증분 skip 게이트.
     IncrementalSkip {
@@ -137,13 +145,17 @@ pub enum TraceEvent {
 }
 
 /// 기록된 이벤트 + 발생 문맥.
-#[derive(Debug, Clone, PartialEq)]
+///
+/// JSON 에서는 `event` 가 태그와 같은 층으로 평탄화된다 —
+/// `{"measure_pass":false,"type":"UsedSizeClamp","bound":"Max",...}`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct TracedEvent {
     /// 측정 패스(센티넬 available) 안에서 발생했는가 (R5).
     ///
     /// 측정 패스는 `MIN_CONTENT_AVAIL`/`MAX_CONTENT_AVAIL` 로 도는 **가상 solve**라
     /// 그 판정을 본 solve 와 같은 줄에 놓으면 판독이 오도된다. 태그를 지우지 말 것.
     pub measure_pass: bool,
+    #[serde(flatten)]
     pub event: TraceEvent,
 }
 

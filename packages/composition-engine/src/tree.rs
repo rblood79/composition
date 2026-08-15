@@ -438,6 +438,33 @@ impl LayoutTree {
         }
     }
 
+    /// 노드 판정 트레이스의 JSON 보고 (ADR-183 Phase 2 — WASM 경계용).
+    ///
+    /// `{"handle":N,"enabled":bool,"dropped":N,"events":[{"measure_pass":bool,
+    /// "type":"...",...}]}` — wasm32 표면(`wasm.rs::getLayoutTrace`)은 이 문자열을
+    /// 그대로 위임하므로, 스키마 계약은 native 테스트(`tests/layout_trace.rs`)가
+    /// 여기서 잠근다. `enabled:false` 도 유효 JSON 을 낸다 — TS 판독자가 "게이트가
+    /// 꺼져 있다" 와 "판정이 없었다" 를 구분해야 하기 때문 (R2 거짓 안심 방지).
+    pub fn trace_json(&self, handle: usize) -> String {
+        #[derive(serde::Serialize)]
+        struct TraceNodeReport<'a> {
+            handle: usize,
+            enabled: bool,
+            dropped: usize,
+            events: &'a [TracedEvent],
+        }
+        let report = TraceNodeReport {
+            handle,
+            enabled: self.trace_enabled(),
+            dropped: self.trace_dropped(handle),
+            events: self.trace_events(handle),
+        };
+        // 실패 경로 없음(NAN 은 null 로 직렬화) — 방어적 fallback 만 둔다.
+        serde_json::to_string(&report).unwrap_or_else(|_| {
+            format!(r#"{{"handle":{handle},"enabled":false,"dropped":0,"events":[]}}"#)
+        })
+    }
+
     /// 판정 1건 기록 — **off 경로 비용은 `Option` 분기 1회**.
     ///
     /// 호출부는 이벤트를 클로저로 넘긴다: 인자로 만들어 넘기면 `Vec` 를 쓰는

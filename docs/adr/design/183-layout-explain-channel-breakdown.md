@@ -1,7 +1,7 @@
 # ADR-183 Design Breakdown: 레이아웃 explain 디버그 채널 (엔진 판정 트레이스)
 
 > 본문: [183-layout-explain-channel.md](../183-layout-explain-channel.md)
-> 상태: Accepted (2026-08-15 리뷰 승인) — **Phase 0 완료 2026-08-15** (§4 산출물 freeze). 다음 진입점 = Phase 1
+> 상태: Accepted (2026-08-15 리뷰 승인) — **Phase 0~2 완료 2026-08-15** (§4 산출물 freeze + G1 PASS + WASM 경계). 다음 진입점 = Phase 3 (TS 판독 채널 + G2·G3)
 
 ## 1. 목표 형태
 
@@ -46,12 +46,13 @@ window.__layoutExplain("component-listbox")
 - 단위 테스트: 대표 판정 3종 (skip HIT / clamp 바인딩 / §4.5 floor) 이 기대 이벤트를 남기는지 + off 시 이벤트 0건
 - **G1 측정**: off 상태 A/B 벤치 — 회귀 ≤ 2% 확인 후 다음 phase
 
-### Phase 2 — WASM 경계
+### Phase 2 — WASM 경계 ✅ 2026-08-15
 
-- `wasm.rs` (wasm-bindgen surface — `build_tree_batch` 가 있는 파일): `enable_layout_trace(enabled: bool)` / `get_layout_trace(node_id) -> JsValue(JSON)`
+- `wasm.rs` (wasm-bindgen surface — `build_tree_batch` 가 있는 파일): `enableLayoutTrace(enabled: bool)` / `getLayoutTrace(handle) -> String(JSON)`. JSON 스키마 계약은 wasm32 게이트 아래 층(`tree.rs::trace_json`)이 소유해 **native 테스트로 잠근다** (`tests/layout_trace.rs` §6.5 — wasm 표면은 문자열 그대로 위임)
 - **binary_protocol / `build_tree_batch` 계약 무변경** (HC3) — 트레이스는 별도 조회 API, 배치 payload 에 싣지 않는다
 - enable 시에만 sink 할당 (R3 — off 시 메모리 0)
-- `compositionEngineWasm.ts` 바인딩 + `idMapper.ts` 경유 element id ↔ node handle 변환
+- `compositionEngineWasm.ts` 바인딩(raw 2메서드) + `compositionEngine.ts` wrapper (`EngineTraceEvent`/`EngineTraceNode` wire 타입 — serde internally-tagged 1:1, 디버그 채널이라 미준비 시 throw 대신 false/null) + `LayoutEngineAPI` **optional** 메서드 (테스트용 fake 엔진이 구현을 강제받지 않게)
+- **실측 정정 (2026-08-15)**: element id ↔ node handle 변환의 실소유자는 `idMapper.ts` 가 아니라 `persistentTaffyTree.ts::handleMap` 이다 — `idMapper` 는 SpatialIndex 용 UUID↔u32 매핑으로 레이아웃 handle 과 무관. passthrough 는 `PersistentTaffyTree.enableLayoutTrace(enabled)` / `.getLayoutTraceForElement(elementId)` (기존 `getHandle` 접근자와 같은 층)
 
 ### Phase 3 — TS 판독 채널
 

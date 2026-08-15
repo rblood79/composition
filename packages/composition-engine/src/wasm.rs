@@ -160,6 +160,31 @@ impl LayoutEngine {
         )
     }
 
+    // ── 판정 트레이스 (ADR-183 Phase 2 — 디버그 채널) ──
+
+    /// 트레이스 게이트 토글. enable 시에만 sink 를 할당하고 disable 은 즉시
+    /// 해제한다 (R3 — off 시 WASM 힙 0).
+    ///
+    /// **배치 프로토콜과 무관한 별도 API 다 (HC3)** — `build_tree_batch` /
+    /// binary_protocol payload 에는 트레이스가 실리지 않는다.
+    #[wasm_bindgen(js_name = enableLayoutTrace)]
+    pub fn enable_layout_trace(&mut self, enabled: bool) {
+        if enabled {
+            self.tree.enable_trace();
+        } else {
+            self.tree.disable_trace();
+        }
+    }
+
+    /// 노드 판정 트레이스 JSON (`{"handle","enabled","dropped","events"}`).
+    ///
+    /// 스키마 계약은 `tree.rs::trace_json` 의 native 테스트가 잠근다 — 본 메서드는
+    /// wasm32 게이트라 여기서 검증하지 않는다.
+    #[wasm_bindgen(js_name = getLayoutTrace)]
+    pub fn get_layout_trace(&self, handle: usize) -> String {
+        self.tree.trace_json(handle)
+    }
+
     // ── 상태 ──
 
     /// 전체 트리 초기화.
