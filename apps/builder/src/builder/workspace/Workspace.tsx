@@ -59,7 +59,7 @@ export function Workspace({
   const isCanvasReady = useCanvasLifecycleStore((state) => state.isCanvasReady);
   const isContextLost = useCanvasLifecycleStore((state) => state.isContextLost);
 
-  // 비교 모드: iframe + PixiJS 동시 표시
+  // 비교 모드: Preview iframe + Skia 캔버스 동시 표시 (헤더에서 토글)
   if (compareMode && fallbackCanvas) {
     return (
       <WorkspaceCompareMode

@@ -1403,10 +1403,8 @@ export function BuilderCanvas({
       {containerEl && (
         <ViewportControlBridge
           containerEl={containerEl}
-          cameraLabel="Camera"
           minZoom={0.1}
           maxZoom={5}
-          app={null}
           initialPanOffsetX={initialPanOffsetX}
           gestureSession={canvasGestureSession}
         />

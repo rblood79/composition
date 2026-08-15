@@ -1,12 +1,15 @@
 /**
  * ViewportController
  *
- * 🚀 Phase 12 B3.2: PixiJS Container 직접 조작으로 React 리렌더 최소화
+ * 뷰포트(pan/zoom)의 실시간 상태 소유자. 드래그/줌 중에는 React state 를 거치지
+ * 않고 여기서 값을 갱신하고, 리스너와 뮤터블 ref (`viewportState`) 로 즉시 전파한다.
+ * React mirror 동기화는 인터랙션 종료 시점(`endPan`)에만 일어난다.
  *
- * 기능:
- * - 드래그/줌 중 PixiJS Container 직접 조작
- * - 인터랙션 종료 시 React state 동기화
- * - 관성 스크롤 (Phase 3에서 추가)
+ * PixiJS Container 직접 조작 경로(`attach` / `detach` / `isAttached` +
+ * `PixiContainerLike`)는 삭제됐다 (2026-08-15). ADR-900 으로 Container 자체가
+ * 사라져 `attach()` 호출부가 없었는데, `isAttached()` 가 "컨트롤러를 써도 되는가"
+ * 판정에 쓰이면서 **상시 false** 로 스크롤바 추종과 `panToPage` 를 통째로
+ * 막고 있었다. 그 판정은 `hasLiveState()` 가 대신한다.
  *
  * @since 2025-12-12 Phase 12 B3.2
  */
@@ -17,16 +20,6 @@ import {
   publishViewportPresentation,
   resetViewportPresentation,
 } from "./viewportPresentation";
-
-/** PixiJS Container에서 필요한 최소 인터페이스 */
-interface PixiContainerLike {
-  x: number;
-  y: number;
-  scale: { set(value: number): void; x: number };
-  label?: string;
-  position?: { x: number; y: number };
-  parent?: unknown;
-}
 
 // ============================================
 // Types
@@ -52,13 +45,12 @@ export interface ViewportControllerOptions {
 // ============================================
 
 /**
- * PixiJS Container를 직접 조작하는 뷰포트 컨트롤러
+ * 뷰포트 상태를 소유하는 컨트롤러.
  *
- * React state 업데이트 없이 Container의 x, y, scale을 직접 조작하여
- * 드래그/줌 중 React 리렌더를 방지합니다.
+ * React state 업데이트 없이 x, y, scale 을 직접 갱신하여 드래그/줌 중
+ * React 리렌더를 방지합니다.
  */
 export class ViewportController {
-  private container: PixiContainerLike | null = null;
   private options: Required<ViewportControllerOptions>;
 
   // 현재 상태 (Container에서 동기화)
@@ -83,40 +75,8 @@ export class ViewportController {
   }
 
   // ============================================
-  // Container 연결
+  // 상태 판정
   // ============================================
-
-  /**
-   * PixiJS Container 연결
-   */
-  attach(container: PixiContainerLike): void {
-    this.container = container;
-    // 현재 Container 상태로 동기화
-    this.currentState = {
-      x: container.x,
-      y: container.y,
-      scale: container.scale.x,
-    };
-    this.stateIsLive = true;
-    publishViewportPresentation(this.currentState);
-  }
-
-  /**
-   * Container 연결 해제
-   */
-  detach(): void {
-    this.container = null;
-  }
-
-  /**
-   * Container 연결 여부
-   *
-   * **주의**: ADR-900 으로 PixiJS 가 제거돼 `attach()` 호출부가 없다 — 실전에서
-   * 항상 false 다. "컨트롤러를 써도 되는가" 판정에는 `hasLiveState()` 를 쓸 것.
-   */
-  isAttached(): boolean {
-    return this.container !== null;
-  }
 
   /**
    * `currentState` 가 실제 뷰포트를 반영하는가.
@@ -162,12 +122,6 @@ export class ViewportController {
 
     const deltaX = clientX - this.lastPanPoint.x;
     const deltaY = clientY - this.lastPanPoint.y;
-
-    // Container 직접 조작 (PixiJS 경로)
-    if (this.container) {
-      this.container.x += deltaX;
-      this.container.y += deltaY;
-    }
 
     // 내부 상태 업데이트
     this.currentState.x += deltaX;
@@ -230,13 +184,6 @@ export class ViewportController {
     const newX = relativeX - (relativeX - this.currentState.x) * zoomRatio;
     const newY = relativeY - (relativeY - this.currentState.y) * zoomRatio;
 
-    // Container 직접 조작 (PixiJS 경로)
-    if (this.container) {
-      this.container.x = newX;
-      this.container.y = newY;
-      this.container.scale.set(newScale);
-    }
-
     // 내부 상태 업데이트
     this.currentState = { x: newX, y: newY, scale: newScale };
 
@@ -258,13 +205,6 @@ export class ViewportController {
       this.currentState.scale === scale
     ) {
       return false;
-    }
-
-    // Container 직접 조작 (PixiJS 경로)
-    if (this.container) {
-      this.container.x = x;
-      this.container.y = y;
-      this.container.scale.set(scale);
     }
 
     this.currentState = { x, y, scale };
@@ -364,10 +304,7 @@ export function getViewportController(
  * ViewportController 인스턴스 초기화
  */
 export function resetViewportController(): void {
-  if (viewportControllerInstance) {
-    viewportControllerInstance.detach();
-    viewportControllerInstance = null;
-  }
+  viewportControllerInstance = null;
   resetViewportPresentation();
 }
 

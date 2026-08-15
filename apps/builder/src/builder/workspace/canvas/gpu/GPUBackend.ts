@@ -6,6 +6,19 @@
  * breaking existing rendering code.
  *
  * See: ADR-100 GPU Backend Migration
+ *
+ * ---
+ * **미배선 — 의도된 보존** (2026-08-15 잔재 스윕 확인)
+ *
+ * 이 인터페이스와 `CanvasKitWebGLBackend` 는 라이브 경로에 배선되어 있지 않다
+ * (인스턴스화 0건, import 0건). 현행 렌더는 `SkiaRenderer` + `createSurface` 가
+ * 직접 담당한다. **삭제 대상이 아니다** — ADR-900 §Consequences/Positive 가
+ * "WebGPU 마이그레이션 경로 → GPU 백엔드 추상화로 향후 WebGPU 전환 비용 최소화"
+ * 를 명시적 이득으로 채택했다. 참조 0건 grep 만 보고 지우지 말 것.
+ *
+ * 주의: `CanvasKitWebGLBackend.watchContextLoss` 는 살아 있는 컨텍스트 손실
+ * 경로(`skia/createSurface.ts` + `SkiaCanvas`)와 **별개의 미배선 사본**이다.
+ * 손실 처리를 고칠 때 이쪽을 고치고 있지 않은지 확인할 것.
  */
 
 /**

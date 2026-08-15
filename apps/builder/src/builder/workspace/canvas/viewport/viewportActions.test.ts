@@ -53,13 +53,12 @@ describe("resolveBreakpointViewport", () => {
     ).toEqual(savedViewport);
   });
 
-  it("attached controller에서는 discrete command session으로 controller와 mirror를 함께 갱신한다", () => {
+  // 구 케이스명은 "attached / unattached controller" 였다. `attach()` 로 갈리는
+  //   분기는 `viewportActions` 에 없었고(ADR-900 으로 PixiJS Container 소멸),
+  //   2026-08-15 에 `attach()` 자체가 삭제되며 두 케이스는 같은 경로가 됐다.
+  //   그래도 값 조합이 달라 회귀 감시로는 둘 다 유지한다.
+  it("discrete command session 이 controller 와 mirror 를 함께 갱신한다", () => {
     const controller = getViewportController();
-    controller.attach({
-      x: 0,
-      y: 0,
-      scale: { set: () => {}, x: 1 },
-    });
 
     applyViewportState({ x: 40, y: 80, scale: 1.5 });
 
@@ -70,7 +69,7 @@ describe("resolveBreakpointViewport", () => {
     });
   });
 
-  it("unattached controller에서도 discrete command는 session mirror를 사용한다", () => {
+  it("discrete command 는 session mirror 를 사용한다 (commit 1회)", () => {
     const controller = getViewportController();
 
     applyViewportState({ x: 12, y: 24, scale: 1.1 });
@@ -84,12 +83,9 @@ describe("resolveBreakpointViewport", () => {
   });
 
   it("zoom command는 active session을 flush한 최신 controller state를 기준으로 계산한다", () => {
+    // 구 코드의 `controller.attach({x:0,y:0,scale:{x:1}})` 는 fresh controller 의
+    //   초기값과 동일해 상태상 no-op 이었다 (afterEach 가 매번 리셋한다).
     const controller = getViewportController();
-    controller.attach({
-      x: 0,
-      y: 0,
-      scale: { set: () => {}, x: 1 },
-    });
     useViewportSyncStore
       .getState()
       .setContainerSize({ width: 1000, height: 800 });

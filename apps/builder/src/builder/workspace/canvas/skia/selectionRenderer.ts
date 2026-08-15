@@ -215,7 +215,11 @@ export function renderSelectionBox(
  * 4개 코너 핸들을 CanvasKit으로 렌더링한다.
  *
  * 흰색 Fill + 파란 Stroke, 크기 = HANDLE_SIZE/zoom (화면상 6px 유지).
- * 엣지 핸들은 시각적 렌더링 불필요 (PixiJS 히트 영역으로 유지).
+ *
+ * 엣지 핸들은 **의도적으로 그리지 않는다** — 보이지 않는 히트 영역으로만 존재한다.
+ * 판정은 `selection/types.ts::hitTestHandle` 의 좌표 계산(EDGE_HIT_THICKNESS)이
+ * 담당하며 렌더러와 무관하다. 구 주석은 이 판정을 "PixiJS 히트 영역" 이라 적었는데
+ * ADR-900 이후 사실이 아니다 (2026-08-15 정정).
  */
 export function renderTransformHandles(
   ck: CanvasKit,

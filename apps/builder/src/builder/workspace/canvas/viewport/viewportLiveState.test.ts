@@ -26,11 +26,10 @@ describe("ViewportController.hasLiveState", () => {
     expect(getViewportController().hasLiveState()).toBe(false);
   });
 
-  it("attach 없이 setPosition 만으로 live 가 된다", () => {
+  it("setPosition 만으로 live 가 된다", () => {
     const controller = getViewportController();
     controller.setPosition(-100, -50, 2);
 
-    expect(controller.isAttached()).toBe(false);
     expect(controller.hasLiveState()).toBe(true);
   });
 });

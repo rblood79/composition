@@ -1,12 +1,12 @@
 /**
  * useViewportControl Hook
  *
- * 🚀 Phase 12 B3.2: ViewportController를 @pixi/react와 통합
+ * 컨테이너 DOM 요소에 pan/zoom 입력(포인터 드래그 · 휠)을 바인딩하고
+ * `ViewportController` 에 반영한다. React state 동기화는 인터랙션 종료 시점.
  *
- * 기능:
- * - PixiJS Camera Container에 ViewportController 연결
- * - 드래그/줌 이벤트 처리
- * - React state 동기화 (인터랙션 종료 시)
+ * 구 `app` / `cameraLabel` 옵션(PixiJS stage 에서 Camera Container 를 찾아
+ * `controller.attach()`)은 삭제됐다 (2026-08-15) — 유일한 호출부가 `app={null}`
+ * 하드코딩이라 ADR-900 이후 그 블록은 도달 불가였다.
  *
  * @since 2025-12-12 Phase 12 B3.2
  */
@@ -43,17 +43,12 @@ import {
 // ============================================
 
 export interface UseViewportControlOptions {
-  /** Camera Container의 label (기본값: "Camera") */
-  cameraLabel?: string;
   /** 최소 줌 */
   minZoom?: number;
   /** 최대 줌 */
   maxZoom?: number;
   /** HTML 컨테이너 요소 (이벤트 바인딩용) */
   containerEl?: HTMLElement | null;
-  /** PixiJS Application (optional — UNIFIED_ENGINE에서는 null) */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  app?: { stage: any } | null;
   // 🚀 Phase 6.1: 인터랙션 콜백 (동적 해상도 연동용)
   /** 팬/줌 인터랙션 시작 시 호출 */
   onInteractionStart?: () => void;
@@ -80,11 +75,9 @@ export function useViewportControl(
   options: UseViewportControlOptions,
 ): UseViewportControlReturn {
   const {
-    cameraLabel = "Camera",
     minZoom = 0.1,
     maxZoom = 5,
     containerEl,
-    app = null,
     // 🚀 Phase 6.1: 인터랙션 콜백
     onInteractionStart,
     onInteractionEnd,
@@ -192,29 +185,9 @@ export function useViewportControl(
     };
   }, []);
 
-  // Controller 생성 및 Container 연결
+  // 초기 뷰포트 상태를 Controller 에 적용
   useEffect(() => {
     if (!controller) return;
-
-    // PixiJS 경로: Camera Container에 attach
-    if (app?.stage) {
-      // eslint 경고 없이 PixiJS Container를 any 없이 다루기 위해 unknown으로 캐스트
-      const stageChildren = app.stage.children as Array<{
-        label?: string;
-        x: number;
-        y: number;
-        scale: { set(value: number): void; x: number };
-        position?: { x: number; y: number };
-        parent?: unknown;
-      }>;
-      const cameraContainer = stageChildren.find(
-        (child) => child.label === cameraLabel,
-      );
-
-      if (cameraContainer) {
-        controller.attach(cameraContainer);
-      }
-    }
 
     // 초기 상태 적용 (Zustand에서 읽어서 Controller에 적용)
     const { zoom, panOffset, setViewportSnapshot } =
@@ -239,11 +212,7 @@ export function useViewportControl(
         zoom: initialViewport.scale,
       });
     }
-
-    return () => {
-      controller.detach();
-    };
-  }, [app, cameraLabel, controller, initialPanOffsetX]);
+  }, [controller, initialPanOffsetX]);
 
   // 마우스 이벤트 핸들러 (팬)
   useEffect(() => {

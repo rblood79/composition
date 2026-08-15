@@ -1,10 +1,11 @@
 /**
  * ViewportControlBridge
  *
- * 🚀 Phase 12 B3.2: Application 내부에서 ViewportController 연결
+ * 캔버스 컨테이너에 pan/zoom 입력을 바인딩하는 브릿지. null 을 렌더링하며
+ * 순수하게 이벤트 핸들링만 담당합니다.
  *
- * @pixi/react의 Application 내부에서 사용해야 useApplication()이 작동합니다.
- * 이 컴포넌트는 null을 렌더링하며, 순수하게 이벤트 핸들링만 담당합니다.
+ * 구 `app` / `cameraLabel` prop (PixiJS Application 전달)은 삭제됐다
+ * (2026-08-15) — 유일한 호출부가 `app={null}` 하드코딩이었다.
  *
  * @since 2025-12-12 Phase 12 B3.2
  */
@@ -15,15 +16,10 @@ import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 export interface ViewportControlBridgeProps {
   /** HTML 컨테이너 요소 (이벤트 바인딩용) */
   containerEl: HTMLElement | null;
-  /** Camera Container의 label */
-  cameraLabel?: string;
   /** 최소 줌 */
   minZoom?: number;
   /** 최대 줌 */
   maxZoom?: number;
-  /** PixiJS Application (optional — UNIFIED_ENGINE에서는 null) */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  app?: { stage: any } | null;
   // 🚀 Phase 6.1: 인터랙션 콜백 (동적 해상도 연동용)
   /** 팬/줌 인터랙션 시작 시 호출 */
   onInteractionStart?: () => void;
@@ -42,10 +38,8 @@ export interface ViewportControlBridgeProps {
  */
 export function ViewportControlBridge({
   containerEl,
-  cameraLabel = "Camera",
   minZoom = 0.1,
   maxZoom = 5,
-  app,
   // 🚀 Phase 6.1: 인터랙션 콜백
   onInteractionStart,
   onInteractionEnd,
@@ -55,10 +49,8 @@ export function ViewportControlBridge({
   // ViewportController 연결 및 이벤트 핸들링
   useViewportControl({
     containerEl,
-    cameraLabel,
     minZoom,
     maxZoom,
-    app,
     // 🚀 Phase 6.1: 인터랙션 콜백 전달
     onInteractionStart,
     onInteractionEnd,
