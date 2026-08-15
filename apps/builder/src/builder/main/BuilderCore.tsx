@@ -45,6 +45,8 @@ import {
   setElementsCanonicalPrimary,
   registerCanonicalMutationStoreActions,
 } from "@/adapters/canonical/canonicalMutations";
+// ADR-184 — mutation 순서 러너 bridge (rebuildIndexes DI)
+import { registerCanonicalMutationRunnerBridge } from "@/adapters/canonical/canonicalMutationRunner";
 import { PanelArea, BottomPanelArea, ModalPanelContainer } from "../layout";
 import {
   ToastContainer,
@@ -224,6 +226,11 @@ export const BuilderCore: React.FC = () => {
         };
       },
       getCurrentProjectId: () => projectId ?? null,
+    });
+    // ADR-184 — 러너 ③ 스테이지 (rebuildIndexes) DI. persist 는 러너가
+    // canonical store + getDB 로 직접 수행하므로 bridge 대상 아님.
+    registerCanonicalMutationRunnerBridge({
+      rebuildIndexes: () => useStore.getState()._rebuildIndexes(),
     });
   }, [projectId]);
 
