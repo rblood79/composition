@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canvas — PixiJS 시대 registry·culling 잔재 제거] - 2026-08-15
+
+### Architecture
+
+- **도달 불가 상태로 남아 있던 viewport culling 경로와 element registry 죽은 심볼 제거**:
+  - **Why**: `useViewportCulling` ↔ `cullingCache` 는 서로만 참조하는 닫힌 루프로 앱 어디서도 import 되지 않았다(라이브 컬링은 `executeRenderCommands` 의 AABB 경로 — canvas-rendering.md §8). `elementRegistry` 의 PixiJS Container Map 은 유일한 writer 였던 `registerElement` 의 호출부가 0건이라 **라이브에서 항상 비어 있었다**(실측 `getRegistrySize() === 0`)
+  - 삭제: `hooks/useViewportCulling.ts`, `scene/cullingCache.ts` 파일 2개 + `registerElement` / `unregisterElement` / `getElementContainer` / `getRegistrySize` / `logRegistryStats` 심볼 5개
+  - **존치**: `findElementAtPosition` — ADR-027(Status: Partial, Phase D 미구현) 설계표가 명시하는 표면이라 sweep 대상에서 제외하고 그 근거를 코드 주석으로 고정
+  - **남는 관찰**: `getRegisteredElementIds` 는 살아 있는 호출부(`scrollbar/calculateWorldBounds.ts`)가 있으나 Map 이 비어 있어 "모든 요소 bounds 합집합" 단계가 no-op 이다 — 증상은 그 다음 viewport 확장 단계가 가린다. scrollbar world 범위의 동작 변경이라 별도 판단으로 남김
+  - 검증: 라이브 빌더 재로드 — 25페이지 정상 렌더 · 스크롤바 정상 · 콘솔 에러 0. canvas 스위트 전건 PASS + type-check --force PASS
+  - 위치: `apps/builder/src/builder/workspace/canvas/{elementRegistry.ts,scene/index.ts}`
+
 ## [Canvas 캐시 정리 — 페이지 layout 캐시 liveness 정리] - 2026-08-15
 
 ### Performance

@@ -27,11 +27,6 @@ export {
   getPageLayoutCacheKey,
   prunePageLayoutCache,
 } from "./layoutCache";
-export {
-  getCachedCullingResult,
-  getCachedRenderIdSet,
-  getCachedTopLevelCandidateIds,
-} from "./cullingCache";
 export { buildPageDirtyState } from "./subtreeInvalidation";
 export type {
   BuildSceneSnapshotInput,

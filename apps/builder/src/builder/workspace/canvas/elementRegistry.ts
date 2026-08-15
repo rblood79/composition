@@ -30,7 +30,16 @@ export interface ElementBounds {
 
 /**
  * Element ID → PixiJS Container 매핑 (legacy — UNIFIED_ENGINE에서는 미사용)
- * React 리렌더링을 트리거하지 않는 단순 Map 사용
+ *
+ * **쓰기 경로가 없다** — 유일한 writer 였던 `registerElement` 는 호출부 0건으로
+ * 2026-08-15 제거됐다(ADR-900 PixiJS 제거의 잔재). 따라서 이 Map 은 **항상 비어
+ * 있고**, 남은 reader 둘의 결과가 상수다:
+ * - `getElementBounds` → 항상 null (`getElementBoundsSimple` 의 최종 fallback 이 死)
+ * - `getRegisteredElementIds` → 항상 `[]`
+ *
+ * 후자에는 **살아 있는 호출부**가 있다 — `scrollbar/calculateWorldBounds.ts` 의
+ * "모든 요소 bounds 합집합" 단계가 그래서 no-op 이다(증상은 그 다음의 viewport
+ * 확장 단계가 가린다). 그 정리는 scrollbar world 범위의 동작 변경이라 별도 판단.
  */
 const elementRegistry = new Map<string, unknown>();
 
@@ -44,16 +53,6 @@ const layoutBoundsRegistry = new Map<string, ElementBounds>();
 // ============================================
 // Registry API
 // ============================================
-
-/**
- * Container를 registry에 등록
- *
- * @param id - Element ID
- * @param container - PixiJS Container 인스턴스 (legacy, any type)
- */
-export function registerElement(id: string, container: unknown): void {
-  elementRegistry.set(id, container);
-}
 
 /**
  * 요소의 layout bounds를 직접 저장
@@ -80,28 +79,6 @@ export function updateElementBounds(id: string, bounds: ElementBounds): void {
   notifyLayoutChange();
   // NOTE: SpatialIndex 동기화는 renderCommands.ts의 syncSpatialIndex()에서 수행.
   // 이 함수에서 스크린 좌표(pan/zoom 미반영)로 동기화하면 pan 시 stale 좌표가 발생하므로 제거.
-}
-
-/**
- * Container를 registry에서 해제
- *
- * @param id - Element ID
- */
-export function unregisterElement(id: string): void {
-  elementRegistry.delete(id);
-  layoutBoundsRegistry.delete(id);
-  // NOTE: 다음 frame의 renderCommands.syncSpatialIndex()가 full snapshot diff로
-  // SpatialIndex 항목을 제거한다. 별도 screen-coordinate remove는 하지 않는다.
-}
-
-/**
- * Element ID로 Container 조회
- *
- * @param id - Element ID
- * @returns Container 또는 undefined (UNIFIED_ENGINE에서는 항상 undefined)
- */
-export function getElementContainer(id: string): unknown | undefined {
-  return elementRegistry.get(id);
 }
 
 /**
@@ -169,15 +146,6 @@ export function getRegisteredElementIds(): string[] {
 }
 
 /**
- * Registry 크기 조회
- *
- * @returns 등록된 element 수
- */
-export function getRegistrySize(): number {
-  return elementRegistry.size;
-}
-
-/**
  * Registry 초기화 (테스트 또는 페이지 전환 시 사용)
  */
 export function clearRegistry(): void {
@@ -187,24 +155,12 @@ export function clearRegistry(): void {
   // 프레임에 full snapshot diff로 재구성·stale 항목 제거한다.
 }
 
-// ============================================
-// Debug Utilities
-// ============================================
-
-/**
- * Registry 상태 로깅 (개발 환경)
- */
-export function logRegistryStats(): void {
-  if (process.env.NODE_ENV !== "development") return;
-
-  console.log(
-    `📦 [ElementRegistry] registered: ${elementRegistry.size} elements`,
-    Array.from(elementRegistry.keys()).slice(0, 5),
-  );
-}
-
 /**
  * 좌표 기반 요소 히트 테스트 (Pencil-style)
+ *
+ * **호출부 0건이지만 존치** — ADR-027(Status: Partial, Phase D 미구현) 설계표가
+ * "z-order 역순 bounds 히트 테스트" 로 이 심볼을 명시한다. 열린 ADR 이 참조하는
+ * 표면이라 dead-code sweep 대상에서 제외한다 (2026-08-15 판정).
  *
  * Pencil의 `findNodeAtPosition` 대응.
  * layoutBoundsRegistry의 screen 좌표 bounds를 사용하여
@@ -251,14 +207,9 @@ export function findElementAtPosition(
 }
 
 export default {
-  registerElement,
-  unregisterElement,
-  getElementContainer,
   getElementBounds,
   getElementBoundsSimple,
   getRegisteredElementIds,
-  getRegistrySize,
   clearRegistry,
-  logRegistryStats,
   findElementAtPosition,
 };
