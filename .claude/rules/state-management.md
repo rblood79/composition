@@ -74,7 +74,7 @@ runCanonicalMutation({
 });
 ```
 
-**history 스테이지는 필수 (ADR-185 — history coverage 계약, Implemented 2026-08-15)**: 사용자-가시 mutation 이 history entry 없이 출시되는 계열이 4회 재발 (move 사후 수리 / 복합 생성 dead saveSnapshot / ADR-181 가이드 사후 편입 / 페이지 생성·삭제 = 잔존 gap) 하여, `history` 는 기록 함수 또는 `{ skip: 사유 }` 명시적 생략만 허용한다 — 조용한 생략 (필드 자체를 빼는 형태) 은 타입 에러, 빈 skip 사유는 진입 시점 throw. 정당한 생략 사례: preview transient (commit 이 별도 기록) / silent live edit (useTextEdit 형) / preview 런타임 ingress. 기존 경로의 기록 여부 전수 감사와 **gap 목록 (수리 백로그 정본)** 은 [ADR-185 breakdown §4](../../docs/adr/design/185-history-coverage-contract-breakdown.md) — gap 수리는 비스코프 (별도 작업).
+**history 스테이지는 필수 (ADR-185 — history coverage 계약, Implemented 2026-08-15)**: 사용자-가시 mutation 이 history entry 없이 출시되는 계열이 4회 재발 (move 사후 수리 / 복합 생성 dead saveSnapshot / ADR-181 가이드 사후 편입 / 페이지 생성·삭제 — G-1, 2026-08-15 수리 `7a45f82d8`) 하여, `history` 는 기록 함수 또는 `{ skip: 사유 }` 명시적 생략만 허용한다 — 조용한 생략 (필드 자체를 빼는 형태) 은 타입 에러, 빈 skip 사유는 진입 시점 throw. 정당한 생략 사례: preview transient (commit 이 별도 기록) / silent live edit (useTextEdit 형) / preview 런타임 ingress. 기존 경로의 기록 여부 전수 감사와 **gap 목록 (수리 백로그 정본)** 은 [ADR-185 breakdown §4](../../docs/adr/design/185-history-coverage-contract-breakdown.md) — G-1 (페이지 생성/삭제) 은 별도 작업으로 수리 완료 (`page-lifecycle` entry + 페이지 간 스택 이관 `migrateEntryToPage` — history 는 페이지별 스택이라 활성 전환 entry 는 이관 없이 반대 방향 도달 불가).
 
 - wrapper (`mergeElementsCanonicalPrimary` 등 6종) **직호출은 기존 경로 allowlist (15파일, ADR-184 breakdown §4-3 freeze) 한정** — `canonicalMutationRunner.static.test.ts` 가 기계 집행 (allowlist **추가 금지**, 추가 시도 자체가 리뷰 대상)
 - 기존 경로 이관은 비스코프 ("회귀 위험 대비 이득 작음" 선행 판정 유지) — 재개 조건: 해당 경로에서 stale-canonical race **재발** 시 그 경로 1건만 이관

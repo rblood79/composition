@@ -1,7 +1,7 @@
 # ADR-185 Design Breakdown: history coverage 계약
 
 > 본문: [185-history-coverage-contract.md](../completed/185-history-coverage-contract.md)
-> 상태: **Implemented 2026-08-15** — Phase 0~2 당일 종결 (G1 26지점 전수 분류 / G2 RED→GREEN+live undo / G3 문서 집행). gap 수리 (G-1 페이지 생성·삭제) 는 비스코프 백로그
+> 상태: **Implemented 2026-08-15** — Phase 0~2 당일 종결 (G1 26지점 전수 분류 / G2 RED→GREEN+live undo / G3 문서 집행). gap 수리 (G-1 페이지 생성·삭제) 는 비스코프였다가 **2026-08-15 당일 별도 수리 완료** (`7a45f82d8` — page-lifecycle entry)
 
 ## 1. Fork checkpoint 4 질문 lock-in (adr-writing.md — 사용자 confirm 2026-08-15)
 
@@ -110,7 +110,7 @@ interface CanonicalMutationStages<TResult> {
 
 | #   | 경로                                                                                                                                                                                                              | 사용자-가시 증상                                                                              | 상태                                        |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| G-1 | 페이지 생성/삭제 (`stores/elements.ts:1264` `appendPageShell` / `:1317` `removePageLocal` — entry 0건, `setCurrentPage` 컨텍스트 전환만. 호출자 `usePageManager.ts:247,301` / `PagesSection.tsx:241` 도 기록 0건) | 페이지 추가·삭제 후 Cmd+Z 무반응 (삭제된 페이지의 body+요소 서브트리+pagePositions 복원 불가) | 미수리 (별도 작업 — 사용자 결정 2026-08-15) |
+| G-1 | 페이지 생성/삭제 (`stores/elements.ts:1264` `appendPageShell` / `:1317` `removePageLocal` — entry 0건, `setCurrentPage` 컨텍스트 전환만. 호출자 `usePageManager.ts:247,301` / `PagesSection.tsx:241` 도 기록 0건) | 페이지 추가·삭제 후 Cmd+Z 무반응 (삭제된 페이지의 body+요소 서브트리+pagePositions 복원 불가) | **수리 완료 (2026-08-15, `7a45f82d8`)** — `page-lifecycle` entry + 페이지 간 스택 이관 (`migrateEntryToPage`). 잔존: 마지막 페이지 삭제 (대상 스택 없음) / goToIndex 이관 생략 |
 
 전수 감사 결과 추가 gap 없음 — G-2 후보였던 `resetInstanceOverrideField` 는 `addEntry` :950 실측으로 기각 (§4-1).
 

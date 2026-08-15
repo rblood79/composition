@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [페이지 생성/삭제 undo 복구 — page-lifecycle entry] - 2026-08-15
+
+### Bug Fixes
+
+- **페이지 추가·삭제가 undo 되지 않던 문제** (ADR-185 Phase 0 gap G-1 수리):
+  - `appendPageShell`/`removePageLocal` 이 history entry 를 기록하지 않아 페이지 생성·삭제 후 Cmd+Z 가 무반응 — 삭제된 페이지의 body+요소 서브트리+위치 복원 불가
+  - **Why**: history 기록이 호출부 opt-in 인 구조에서 페이지 lifecycle 경로만 entry 유형 자체가 없었다 (entry 유형에 page-position/page-guide 는 있으나 생성·삭제 부재 — ADR-185 감사로 확정)
+  - 수정: 신규 `page-lifecycle` entry (ADR-177 early-branch 계보) — 페이지 행 + 소속 요소 subtree (canonical 파생, lazy 미로드 포함) + auto-detach 치환쌍 + breakpoint 위치 + 활성 페이지를 한 단위로 되돌린다. history 가 페이지별 스택이라 적용이 활성 페이지를 바꾸는 entry 는 새 활성 스택으로 이관 (`migrateEntryToPage` — 이관 없이는 undo↔redo 반대 방향 도달 불가). History 패널 아이콘/라벨 ("페이지 추가/삭제 — 제목") 동반
+  - live 실측: 생성 undo(제거+활성 복귀)→이관 후 redo(복원+활성 전환) / 삭제 undo(canonical 85 완전 복귀+위치 원복)→redo 재삭제→undo 재복원 / 새로고침 정합
+  - 잔존: 마지막 페이지 삭제 (남는 스택 없음 — 기록 생략) / History 패널 goToIndex 경유 적용은 이관 생략 (스택 index 산술 보존)
+  - 위치: `apps/builder/src/builder/stores/{history.ts, elements.ts, history/historyActions.ts}`
+
 ## [history coverage 계약 — ADR-185 Phase 0~2] - 2026-08-15
 
 ### Architecture
@@ -19,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: RED 4 실측 → 347 tests PASS + live undo exercise (Select 추가 → Cmd+Z 완전 원상)
   - 위치: `apps/builder/src/adapters/canonical/canonicalMutationRunner.ts`, `.claude/rules/state-management.md`
 
-- **Known gap (G-1, 미수리 — 별도 작업)**: 페이지 생성/삭제는 현재 undo 불가 — `appendPageShell`/`removePageLocal` (stores/elements.ts) 가 history entry 를 기록하지 않는다 (호출자 포함 0건). 수리는 ADR-185 비스코프 (사용자 결정 2026-08-15 "계약만 — 수리는 별도"), breakdown §4-2 백로그 참조
+- **Known gap (G-1) — 당일 별도 수리 완료 (위 엔트리)**: 페이지 생성/삭제는 기록 시점 undo 불가 — `appendPageShell`/`removePageLocal` (stores/elements.ts) 가 history entry 를 기록하지 않는다 (호출자 포함 0건). 수리는 ADR-185 비스코프 (사용자 결정 2026-08-15 "계약만 — 수리는 별도"), breakdown §4-2 백로그 참조
 
 ## [복합 컴포넌트 생성 undo 복구 — factories addElementsToStore] - 2026-08-15
 
