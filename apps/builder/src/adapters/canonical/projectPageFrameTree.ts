@@ -147,6 +147,16 @@ export function projectPageFrameNode(
 
     const slotName = readSlotDeclaredName(child);
     const filled = contentBySlot.get(slotName);
+    // 채워진 슬롯이 감추는 것은 **프레임 master 의 기본 자식뿐**이다. 슬롯 안에는
+    // `RefNode.descendants[slotPath].children` 으로 온 페이지 소유 콘텐츠(ADR-135
+    // slot mirror — resolver mode C 가 슬롯 자식을 이것으로 교체)도 있는데, 이를
+    // 함께 갈아치우면 요소 하나를 추가하는 순간 그 슬롯의 기존 사용자 콘텐츠가
+    // 통째로 사라진다 (Skia 축 `resolvePageWithFrame` 은 frame 소유 자식만 hide —
+    // 같은 정책으로 정렬). 미채움 슬롯은 기본 자식을 그대로 노출 (flat 축 G3-θ c).
+    const slotChildren = child.children ?? [];
+    const pageOwnedInSlot = slotChildren.filter((slotChild) =>
+      pageOwnedIds.has(slotChild.id),
+    );
     return {
       ...child,
       id: projectedId,
@@ -158,9 +168,7 @@ export function projectPageFrameNode(
           frameBodyStyle,
         }),
       },
-      // 채워진 슬롯은 프레임의 기본 자식을 감춘다. 미채움 슬롯은 기본 자식을 그대로 노출
-      // (flat 축 G3-θ c 와 동일 정책).
-      children: filled ?? child.children,
+      children: filled ? [...pageOwnedInSlot, ...filled] : child.children,
     } satisfies ResolvedNode;
   });
 

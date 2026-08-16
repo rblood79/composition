@@ -197,6 +197,83 @@ describe("projectPageFrameNode", () => {
     expect(contentSlot.children!.map((c) => c.id)).toEqual(["listbox"]); // 채움 → 기본 감춤
   });
 
+  it("descendants 로 온 페이지 콘텐츠는 새 fill 이 감추지 않는다", () => {
+    // 프레임 적용 시 페이지의 기존 콘텐츠는 `RefNode.descendants[slotPath].children`
+    // 으로 이동한다 (ADR-135 slot mirror). resolver 는 이를 mode C(children 교체)로
+    // 슬롯 안에 넣으므로, 투영 층이 "슬롯의 기존 자식 = 프레임 기본 자식" 으로
+    // 일괄 간주하면 **사용자 콘텐츠**가 새 요소 하나에 통째로 가려진다.
+    //
+    // 실측(2026-08-17, Home + layout-355cb029): pageBody 에 Button 하나를 추가하자
+    // preview 만 슬롯의 ListBox(ref) 서브트리 16노드가 사라짐 — Skia 캔버스는 둘 다
+    // 유지 (frame master 소유 자식만 감추는 정책). 이 테스트는 그 대칭을 고정한다.
+    const d: CompositionDocument = {
+      version: "1.0",
+      children: [
+        {
+          id: FRAME_ID,
+          type: "frame",
+          name: "Frame 1",
+          children: [
+            {
+              id: "frame-body",
+              type: "body",
+              props: { style: { display: "flex", flexDirection: "column" } },
+              children: [
+                slot("slot-header", "header", {}, [content("frame-logo")]),
+                slot("slot-content", "content", {}, [content("placeholder")]),
+              ],
+            } as unknown as CanonicalNode,
+          ],
+        } as CanonicalNode,
+        {
+          id: PAGE_ID,
+          type: "ref",
+          ref: FRAME_ID,
+          metadata: { type: "legacy-page", pageId: PAGE_ID },
+          children: [pageBody([content("new-btn")])],
+          descendants: {
+            "frame-body/slot-content": { children: [content("listbox")] },
+          },
+        } as CanonicalNode,
+      ],
+    } as CompositionDocument;
+
+    // resolver 출력 모사: mode C 가 slot-content 의 master 자식을 override children
+    // 으로 **교체**한 뒤 instance 자식(pageBody)이 이어 붙는다.
+    const resolved: ResolvedNode = {
+      ...(d.children[1] as ResolvedNode),
+      type: "frame",
+      _resolvedFrom: FRAME_ID,
+      children: [
+        {
+          id: "frame-body",
+          type: "body",
+          props: { style: { display: "flex", flexDirection: "column" } },
+          children: [
+            slot("slot-header", "header", {}, [
+              content("frame-logo"),
+            ]) as ResolvedNode,
+            slot("slot-content", "content", {}, [
+              content("listbox"),
+            ]) as ResolvedNode,
+          ],
+        } as unknown as ResolvedNode,
+        pageBody([content("new-btn")]) as ResolvedNode,
+      ],
+    };
+
+    const [header, contentSlot] = projectPageFrameNode(resolved, d).children![0]
+      .children!;
+
+    // 기존 콘텐츠(listbox) 유지 + 새 fill(new-btn) 은 뒤에 이어 붙는다.
+    expect(contentSlot.children!.map((c) => c.id)).toEqual([
+      "listbox",
+      "new-btn",
+    ]);
+    // fill 이 없는 슬롯은 영향받지 않는다 — 프레임 기본 자식 그대로.
+    expect(header.children!.map((c) => c.id)).toEqual(["frame-logo"]);
+  });
+
   it("style 은 프레임이 이기되 page 뷰포트 키는 page 가 되찾는다", () => {
     const d = doc([pageBody([content("listbox")])]);
     const style = projectPageFrameNode(resolvedPage(d), d).children![0].props!

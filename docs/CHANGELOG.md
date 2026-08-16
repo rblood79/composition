@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프레임 페이지에서 요소 추가가 기존 슬롯 콘텐츠를 지우던 문제] - 2026-08-17
+
+### Bug Fixes
+
+- **프레임이 적용된 페이지에 요소를 하나 추가하면 preview 에서 그 슬롯의 기존 콘텐츠가 통째로 사라졌다**:
+  - 실측(Home + `layout-355cb029`): body 에 Button 하나를 추가하자 preview 의 content 슬롯에서 ListBox(ref) 서브트리 16노드가 소멸 (frame 하위 DOM 42→26). **Skia 캔버스는 둘 다 유지** — 축 비대칭이 진단 단서
+  - **Why**: DOM 축 합성 `projectPageFrameNode` 의 "채워진 슬롯은 프레임 기본 자식을 감춘다" 정책이 슬롯의 기존 자식을 전부 master 기본 자식으로 간주했다. 그러나 프레임 적용 페이지의 기존 콘텐츠는 `RefNode.descendants[slotPath].children`(ADR-135 slot mirror)으로 슬롯 **안에** 들어와 있다 — resolver mode C 가 슬롯 자식을 이것으로 교체하므로, fill 발생 시 감춰지는 것이 placeholder 가 아니라 **사용자 콘텐츠**였다
+  - 수정: fill 시 슬롯 자식 중 page 소유(`getPageOwnedChildrenFromFrameRef` 기반 `pageOwnedIds`)는 보존하고 fill 을 뒤에 이어 붙인다 — Skia 축 `resolvePageWithFrame` 의 "frame 소유 자식만 hide" 정책과 정렬 (§9.5 두 축 대칭)
+  - 검증: `projectPageFrameTree.test.ts` 신규 1건 (수정 전 RED) + 기존 "기본 자식 감춤" 회귀 유지. live — 같은 조작이 42→**43** (ListBox 유지 + Button 렌더), 캔버스·preview 대칭 회복
+  - 위치: `apps/builder/src/adapters/canonical/projectPageFrameTree.ts`
+
 ## [캔버스 navigation 엣지가 인터랙션 규칙을 다시 본다] - 2026-08-16
 
 ### Bug Fixes
