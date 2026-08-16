@@ -9,7 +9,10 @@
 export { useAsyncAction } from "./useAsyncAction";
 export { useAsyncData } from "./useAsyncData";
 export { useAsyncMutation } from "./useAsyncMutation";
-export { useAsyncQuery } from "./useAsyncQuery";
+// `useAsyncQuery` 는 삭제됨 — 2025-12-31 생성 후 8개월간 호출처 0건이었고,
+// 배럴 export 가 유일한 참조였다 (= 공개 표면만 있고 소비가 없던 상태).
+// 범용 API 조회가 다시 필요해지면 `useAsyncList` 를 직접 쓰거나
+// collection 데이터는 `@composition/shared` 의 `useCollectionData`(ADR-132).
 
 // Data Management
 // ADR-132 단일 경유: collection items read 의 정본은 `@composition/shared` 의
