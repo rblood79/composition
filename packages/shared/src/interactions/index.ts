@@ -5,3 +5,5 @@
  */
 export * from "./capabilityRegistry";
 export * from "./interactionRule.types";
+export * from "./dispatcher";
+export * from "./bindings";

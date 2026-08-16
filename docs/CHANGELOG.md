@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [게시본에서 인터랙션 규칙이 동작한다 — publish 재배선] - 2026-08-17
+
+### Features
+
+- **빌더에서 저장한 인터랙션 규칙이 게시된 사이트에서 그대로 발화한다** (ADR-158 후속):
+  - 종전 publish 는 legacy `element.events` + `ActionExecutor` 로 발화했는데 ADR-158 Phase 1 에서 그 mirror 파생이 끊겨 **입력이 영구 empty — 게시본 인터랙션이 완전 무동작**이었다. export 페이로드는 `CompositionDocument` 전체를 직렬화하므로 규칙(`document.events`)은 이미 게시본에 도착해 있었고, 없던 것은 소비뿐
+  - dispatcher(`executeInteractionRule`)와 규칙 색인(`buildInteractionIndex`/`createElementHandlers`)을 preview 에서 `packages/shared/src/interactions/` 로 승격 — preview 와 publish 가 **같은 모듈**을 소비한다 (Framer/Webflow 모델: 빌더의 인터랙션 = 게시본의 인터랙션. 정책 한 곳 원칙 — preview 쪽 구 경로는 re-export 포워더로 존치)
+  - publish 신규 `InteractionRuntime`: 규칙 색인 + 발화 deps (navigate = 슬러그 → 페이지 전환, 외부 URL/앵커는 브라우저 기본 의미 / toast = shared `ToastProvider` / capability patch = 런타임 override 층 — preview `patchInteractionOverride` 와 동일 병합 의미). legacy 이벤트 분기와 `ActionExecutor` 소비는 제거
+  - 위치: `packages/shared/src/interactions/{dispatcher,bindings}.ts` · `apps/publish/src/renderer/{InteractionRuntime,ElementRenderer}.tsx` · `apps/publish/src/App.tsx`
+
 ## [event-id 죽은 채널 제거 — Items 패널 "On Action" 은퇴] - 2026-08-17
 
 ### Breaking Changes

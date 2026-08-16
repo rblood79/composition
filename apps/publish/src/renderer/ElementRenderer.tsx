@@ -2,10 +2,15 @@
  * Element Renderer
  *
  * 🚀 Phase 10 B2.3: 단일 Element 렌더링 컴포넌트
- * 🚀 Phase 3: 이벤트 핸들링 추가
  *
  * @since 2025-12-11 Phase 10 B2.3
- * @since 2026-01-02 Phase 3 Event Handling
+ * @since 2026-01-02 Phase 3 Event Handling (legacy)
+ * @since 2026-08-17 ADR-158 후속 — 인터랙션 규칙 발화로 교체
+ *
+ * 이벤트 축: 종전 legacy `element.events` + `ActionExecutor` 경로는 ADR-158
+ * Phase 1 에서 mirror 파생이 끊겨 입력이 영구 empty(무동작)였다. 지금은
+ * canonical `document.events` 의 인터랙션 규칙을 preview 와 같은 shared
+ * dispatcher 로 발화한다 (`InteractionRuntime.tsx`).
  */
 
 import { memo, useMemo } from "react";
@@ -15,31 +20,10 @@ import {
   type Element,
 } from "@composition/shared";
 import { getComponent } from "../registry/ComponentRegistry";
-import { ActionExecutor } from "@composition/shared";
-import type { EventRuntimeContext } from "@composition/shared";
-
-// 이벤트 타입 정의
-interface ElementEvent {
-  trigger: string;
-  actions: Array<{
-    type: string;
-    payload?: Record<string, unknown>;
-  }>;
-}
-
-// 기본 런타임 컨텍스트 생성
-function createDefaultContext(): EventRuntimeContext {
-  return {
-    navigateToPage: (pageId: string) => {
-      window.location.hash = `page-${pageId}`;
-    },
-    state: new Map<string, unknown>(),
-    currentPageId: window.location.hash.replace("#page-", "") || null,
-  };
-}
-
-// ActionExecutor 싱글톤 인스턴스
-const actionExecutor = new ActionExecutor(createDefaultContext());
+import {
+  useElementInteractionHandlers,
+  useElementInteractionOverride,
+} from "./InteractionRuntime";
 
 // ============================================
 // Types
@@ -60,10 +44,30 @@ export const ElementRenderer = memo(function ElementRenderer({
   elements,
   depth = 0,
 }: ElementRendererProps) {
-  const adaptedElement = useMemo(
-    () => adaptElementStyle(element),
-    [element],
-  );
+  // 인터랙션 규칙 트리거 (onPress 등) — 규칙 없는 요소는 공유 빈 객체.
+  const eventHandlers = useElementInteractionHandlers(element.id);
+  // capability 발화 결과 (show/hide/toggle, prop patch) — 런타임 override 층.
+  const interactionOverride = useElementInteractionOverride(element.id);
+
+  const adaptedElement = useMemo(() => {
+    const adapted = adaptElementStyle(element);
+    if (!interactionOverride) return adapted;
+    const baseProps = (adapted.props ?? {}) as Record<string, unknown>;
+    const merged: Record<string, unknown> = {
+      ...baseProps,
+      ...interactionOverride,
+    };
+    if (
+      interactionOverride.style &&
+      typeof interactionOverride.style === "object"
+    ) {
+      merged.style = {
+        ...((baseProps.style as Record<string, unknown> | undefined) ?? {}),
+        ...(interactionOverride.style as Record<string, unknown>),
+      };
+    }
+    return { ...adapted, props: merged as Element["props"] };
+  }, [element, interactionOverride]);
 
   // 자식 요소들 찾기. render model 입력 순서가 canonical child order이다.
   const children = useMemo(() => {
@@ -71,37 +75,6 @@ export const ElementRenderer = memo(function ElementRenderer({
       (el) => el.parent_id === adaptedElement.id && !el.deleted,
     );
   }, [elements, adaptedElement.id]);
-
-  // 이벤트 핸들러 생성
-  const eventHandlers = useMemo(() => {
-    const events = (adaptedElement as Element & { events?: ElementEvent[] })
-      .events;
-    if (!events || events.length === 0) return {};
-
-    const handlers: Record<string, (e: React.SyntheticEvent) => void> = {};
-
-    for (const event of events) {
-      const handlerName = event.trigger; // 'onClick', 'onMouseEnter', etc.
-      handlers[handlerName] = async (e: React.SyntheticEvent) => {
-        e.stopPropagation();
-        console.log(`[Event] ${adaptedElement.id} - ${handlerName} triggered`);
-
-        // 모든 액션 순차 실행
-        for (const action of event.actions) {
-          try {
-            await actionExecutor.execute({
-              type: action.type,
-              config: action.payload || {},
-            } as import("@composition/shared").Action);
-          } catch (error) {
-            console.error(`[Event] Action ${action.type} failed:`, error);
-          }
-        }
-      };
-    }
-
-    return handlers;
-  }, [adaptedElement]);
 
   // 컴포넌트 가져오기
   const componentEntry = getComponent(adaptedElement.type);

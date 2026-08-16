@@ -26,6 +26,8 @@ import {
 } from "@composition/shared";
 import type { FontRegistryV2 } from "@composition/shared";
 import { PageRenderer } from "./renderer";
+import { InteractionRuntimeProvider } from "./renderer/InteractionRuntime";
+import { ToastProvider } from "@composition/shared/components";
 import { PageNav } from "./components/PageNav";
 import { usePageRouting } from "./hooks/usePageRouting";
 import "./styles/index.css";
@@ -40,6 +42,8 @@ interface ProjectData {
   currentPageId: string | null;
   projectName: string;
   version: string;
+  /** canonical document.events — 인터랙션 규칙 (ADR-158). 구 entry 는 색인이 걸러낸다 */
+  events: readonly unknown[];
 }
 
 type LoadingState = "idle" | "loading" | "loaded" | "error";
@@ -283,6 +287,7 @@ export function App() {
         currentPageId: renderModel.currentPageId,
         projectName: data.project.name,
         version: data.version,
+        events: data.document.events ?? [],
       };
 
       // ADR-014 Phase D: fontRegistry → @font-face 주입
@@ -357,6 +362,7 @@ export function App() {
             currentPageId: renderModel.currentPageId,
             projectName: parsed.project?.name || "Preview",
             version: parsed.version,
+            events: parsed.document.events ?? [],
           };
           setProjectData(projectData);
           setLoadingState("loaded");
@@ -516,8 +522,16 @@ export function App() {
     return <EmptyState message="페이지를 찾을 수 없습니다" />;
   }
 
-  // 프로젝트 렌더링
+  // 프로젝트 렌더링 — 인터랙션 규칙은 preview 와 같은 shared dispatcher 로 발화
+  // (toast capability 를 위해 ToastProvider 가 바깥).
   return (
+    <ToastProvider>
+      <InteractionRuntimeProvider
+        rules={projectData.events}
+        elements={projectData.elements}
+        pages={projectData.pages}
+        onNavigatePage={setCurrentPageId}
+      >
     <div className="publish-app">
       {/* 경고 표시 */}
       {warnings && warnings.length > 0 && (
@@ -552,6 +566,8 @@ export function App() {
         </main>
       </div>
     </div>
+      </InteractionRuntimeProvider>
+    </ToastProvider>
   );
 }
 
