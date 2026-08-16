@@ -86,14 +86,17 @@ export interface RuntimeServices {
   ) => EventHandlerMap;
 }
 
-/**
- * 데이터 상태 (DataTable 등에서 사용)
- */
-export interface DataState {
-  data: Record<string, unknown>[] | null;
-  loading: boolean;
-  error: Error | string | null;
-}
+// `DataState` / `RenderContext.setDataState` 는 여기 없다 (2026-08-17 제거).
+//
+// ADR-132 가 컬렉션 데이터의 sink 를 `collections.runtimeData` 로 옮기기 전
+// 세대의 배관이었다. 제거 시점 실측 — provider 0건이라 `context.setDataState`
+// 는 **항상 undefined**, 소비처(`DataTableComponent`)의 호출 6곳은 전부
+// `?.()` no-op, 종착지인 `runtimeStore.dataStates` Map 은 쓰이지도 읽히지도
+// 않았다. 배선을 복구하려 해도 preview 쪽 동명 `DataState` 와 형태가 달라
+// (`error: string | null` vs `Error | string | null`) 그대로는 대입되지 않는다.
+//
+// 현행 sink 는 `collections.runtimeData` 하나이며 진입점은
+// `useCollectionData` 다 (ADR-132).
 
 /**
  * 렌더링 컨텍스트 - 모든 렌더러에 전달되는 공통 데이터
@@ -121,8 +124,6 @@ export interface RenderContext {
   editMode?: "page" | "layout";
   /** 런타임 서비스 (DI) */
   services?: RuntimeServices;
-  /** 데이터 상태 설정 (DataTable용) */
-  setDataState?: (elementId: string, state: DataState) => void;
   /**
    * ADR-148 Phase 0 — ListBox 행 template 의 slot 구성 (origin 문서 자식에서 파생).
    * 표준 ListBox instance 는 anchor-less bare ref 라 renderer 가 childrenByParent 로

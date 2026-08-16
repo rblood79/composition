@@ -26,9 +26,11 @@ Comprehensive context menu system with area-specific and element-specific menus 
 ### Implementation Plan
 
 #### Phase 1: Core Infrastructure ⏳
+
 **Goal**: Build universal Context Menu system
 
 **1.1 Context Menu Component**
+
 - Location-based menu display with viewport boundary detection
 - Keyboard navigation (↑↓ arrows, Enter, Esc)
 - Click outside detection for auto-close
@@ -36,24 +38,28 @@ Comprehensive context menu system with area-specific and element-specific menus 
 - Separator and nested submenu support
 
 **Files to Create**:
+
 - `src/builder/components/ContextMenu.tsx` - Main menu component
 - `src/builder/components/ContextMenuItem.tsx` - Menu item component
 - `src/builder/components/ContextMenuSeparator.tsx` - Separator component
 - `src/builder/components/styles/ContextMenu.css` - Menu styles
 
 **1.2 Context Menu Hook**
+
 - Menu open/close state management
 - Position calculation (prevent overflow)
 - Menu item definition interface
 - Conditional items (disabled, visible)
 
 **Files to Create**:
+
 - `src/builder/hooks/useContextMenu.ts` - Core hook
 - `src/builder/hooks/useElementContextMenu.ts` - Element-specific menus
 
 **1.3 Type Definitions**
 
 **Files to Create**:
+
 - `src/builder/types/contextMenu.types.ts`
 
 ```typescript
@@ -70,25 +76,28 @@ interface ContextMenuItem {
 }
 
 type MenuContext =
-  | { type: 'element'; elementId: string; elementType: string }
-  | { type: 'multi-select'; elementIds: string[] }
-  | { type: 'canvas'; area: 'preview' | 'sidebar' | 'inspector' }
-  | { type: 'property'; propertyKey: string };
+  | { type: "element"; elementId: string; elementType: string }
+  | { type: "multi-select"; elementIds: string[] }
+  | { type: "canvas"; area: "preview" | "sidebar" | "inspector" }
+  | { type: "property"; propertyKey: string };
 ```
 
 ---
 
 #### Phase 2: Element-Specific Menus ⏳
+
 **Goal**: Different menus per element type
 
 **2.1 Element Context Menu Provider**
 
 **Files to Create**:
+
 - `src/builder/providers/ElementContextMenuProvider.tsx`
 
 **2.2 Element Type Menus**
 
 **Files to Create**:
+
 - `src/builder/config/elementContextMenus.ts`
 
 ```typescript
@@ -110,9 +119,11 @@ type MenuContext =
 **2.3 Common Element Actions**
 
 **Files to Create**:
+
 - `src/builder/utils/contextMenu/menuActions.ts`
 
 Functions:
+
 - `copyElement()`
 - `duplicateElement()`
 - `deleteElement()`
@@ -126,9 +137,11 @@ Functions:
 ---
 
 #### Phase 3: Area-Specific Menus ⏳
+
 **Goal**: Context menus for Preview, Sidebar, Inspector
 
 **3.1 Preview Canvas Menu**
+
 ```typescript
 // Right-click on empty canvas
 {
@@ -145,6 +158,7 @@ Functions:
 ```
 
 **3.2 Sidebar (Layer Tree) Menu**
+
 ```typescript
 // Right-click on tree node
 {
@@ -159,6 +173,7 @@ Functions:
 ```
 
 **3.3 Inspector Panel Menu**
+
 ```typescript
 // Right-click on property field
 {
@@ -169,14 +184,17 @@ Functions:
 ```
 
 **Files to Create**:
+
 - `src/builder/config/areaContextMenus.ts`
 
 ---
 
 #### Phase 4: Multi-Select Menu ⏳
+
 **Goal**: Common actions only when multiple elements selected
 
 **Menu Configuration**:
+
 ```typescript
 {
   'Group (Cmd+G)': { handler: handleGroup },
@@ -207,46 +225,57 @@ Functions:
 ---
 
 #### Phase 5: System Integration ⏳
+
 **Goal**: Integrate with existing systems
 
 **5.1 Preview iframe Integration**
+
 - Element right-click → postMessage to Builder
 - Builder displays Context Menu
 - Menu action → postMessage back to Preview
 
 **Files to Modify**:
+
 - `src/builder/preview/index.tsx`
 
 **5.2 Overlay Integration**
+
 - Right-click on overlay opens menu
 - Multi-overlay right-click shows element-specific menu
 
 **Files to Modify**:
+
 - `src/builder/overlay/index.tsx`
 
 **5.3 Keyboard Shortcuts Integration**
+
 - Context menu shortcuts = actual shortcuts
 - Use existing `useKeyboardShortcutsRegistry`
 - Prevent duplicate shortcuts
 
 **Files to Modify**:
+
 - `src/builder/hooks/useKeyboardShortcutsRegistry.ts`
 
 ---
 
 #### Phase 6: Advanced Features (Optional) ⏳
+
 **Goal**: UX enhancements
 
 **6.1 Smart Menus**
+
 - Recent actions shown at top
 - Context-aware items (e.g., Submit action inside Form)
 - Disabled item tooltips (show reason)
 
 **6.2 Custom Menu Extensions**
+
 - User-defined menu items
 - Plugin architecture for custom actions
 
 **6.3 Menu Search**
+
 - Cmd+K style command palette
 - In-menu search when many items
 
@@ -312,6 +341,7 @@ Dataset component architecture enables centralized data management and reuse acr
 ### Current Architecture vs Dataset Pattern
 
 #### Current Direct Binding
+
 ```tsx
 // Each component fetches data independently
 <ListBox
@@ -340,11 +370,13 @@ Dataset component architecture enables centralized data management and reuse acr
 ```
 
 **Problems**:
+
 - Same data fetched multiple times
 - All components need updates when data source changes
 - No data synchronization between components
 
 #### Proposed Dataset Pattern
+
 ```tsx
 // Single Dataset manages data
 <Dataset
@@ -367,6 +399,7 @@ Dataset component architecture enables centralized data management and reuse acr
 ```
 
 **Benefits**:
+
 - ✅ Data fetched once (performance improvement)
 - ✅ Centralized data management
 - ✅ Easy data source changes (update Dataset only)
@@ -376,11 +409,11 @@ Dataset component architecture enables centralized data management and reuse acr
 
 ### Real-World Builder Examples
 
-| Builder | Pattern |
-|---------|---------|
+| Builder     | Pattern                                         |
+| ----------- | ----------------------------------------------- |
 | **Webflow** | CMS Collections → Multiple List/Grid components |
-| **Framer** | Data Sources → List, Gallery, Form Select |
-| **Retool** | Resources → Table, Select, Chart |
+| **Framer**  | Data Sources → List, Gallery, Form Select       |
+| **Retool**  | Resources → Table, Select, Chart                |
 
 ---
 
@@ -389,6 +422,7 @@ Dataset component architecture enables centralized data management and reuse acr
 #### Phase 1: Core Infrastructure ✅ COMPLETE
 
 **Files Created**:
+
 - `src/types/dataset.types.ts` - Dataset 타입 정의
 - `src/builder/stores/dataset.ts` - Zustand 스토어 (캐싱, 자동 새로고침, consumer 추적)
 - `src/builder/components/Dataset.tsx` - Dataset 컴포넌트 (비시각적)
@@ -405,6 +439,7 @@ Dataset component architecture enables centralized data management and reuse acr
 #### Phase 2: Component Integration ✅ COMPLETE
 
 **Files Modified**:
+
 - `src/builder/hooks/useCollectionData.ts` - datasetId prop 추가
 
 **구현된 기능**:
@@ -415,6 +450,7 @@ Dataset component architecture enables centralized data management and reuse acr
 | 로딩/에러 상태 통합 | ✅ | Dataset Store의 상태를 useCollectionData에서 반환 |
 
 **사용 예**:
+
 ```tsx
 // Dataset 정의
 <Dataset
@@ -434,9 +470,11 @@ Dataset component architecture enables centralized data management and reuse acr
 #### Phase 3: Inspector UI ✅ COMPLETE
 
 **Files Created**:
+
 - `src/builder/panels/properties/editors/DatasetEditor.tsx` - Dataset 속성 편집기
 
 **Files Modified**:
+
 - `src/builder/panels/properties/editors/index.ts` - DatasetEditor export 추가
 - `src/builder/panels/common/index.css` - DatasetEditor 스타일 추가
 - `src/shared/components/metadata.ts` - Dataset 메타데이터 추가
@@ -453,9 +491,11 @@ Dataset component architecture enables centralized data management and reuse acr
 #### Phase 4: Component Factory ✅ COMPLETE
 
 **Files Created**:
+
 - `src/builder/factories/definitions/DataComponents.ts` - Dataset, Slot 팩토리 정의
 
 **Files Modified**:
+
 - `src/builder/factories/ComponentFactory.ts` - Dataset, Slot 등록
 
 **구현된 기능**:
@@ -468,22 +508,33 @@ Dataset component architecture enables centralized data management and reuse acr
 #### Phase 5: Preview Integration ✅ COMPLETE
 
 **Files Created**:
+
 - `src/canvas/renderers/DataRenderers.tsx` - Canvas용 Dataset 렌더러
 
 **Files Modified**:
+
 - `src/canvas/renderers/index.ts` - Dataset 렌더러 등록
 
 **구현된 기능**:
 | 기능 | 상태 | 설명 |
 |------|------|------|
 | Dataset 렌더러 | ✅ | 비시각적 컴포넌트 (null 반환) |
-| 데이터 로드 | ✅ | Runtime Store의 dataStates 활용 |
-| Auto-refresh | ✅ | refreshInterval 지원 |
-| AbortController | ✅ | 컴포넌트 언마운트 시 요청 취소 |
+| 데이터 로드 | ❌ 제거 (2026-08-17) | 아래 참조 |
+| Auto-refresh | ❌ 제거 (2026-08-17) | 아래 참조 |
+| AbortController | ❌ 제거 (2026-08-17) | 아래 참조 |
+
+> **2026-08-17 정정** — 아래 3개 기능은 ADR-132 가 컬렉션 데이터의 sink 를
+> `collections.runtimeData` 로 옮긴 뒤 **동작하지 않는 상태로 남아 있었다**.
+> 종착지였던 `RenderContext.setDataState` 는 provider 0건이라 항상 undefined 였고,
+> fetch 는 나가는데 결과는 버려지고 성공 로그만 찍혔다 (`refreshInterval` 지정 시
+> 타이머로 무한 반복). 헛도는 요청이라 제거했다 — 화면·데이터 어느 쪽에도 변화 없음.
+> 현행 컬렉션 데이터 경로는 Builder DataTable 패널 → `collections` postMessage →
+> `useCollectionData` 단일 진입점이다.
 
 #### Phase 6: Advanced Features ✅ COMPLETE
 
 **Files Modified**:
+
 - `src/types/dataset.types.ts` - DatasetTransform, persistCache 추가
 - `src/builder/stores/dataset.ts` - Transform 적용, Cache Persistence
 
@@ -497,6 +548,7 @@ Dataset component architecture enables centralized data management and reuse acr
 | Map | ✅ | 필드 renaming |
 
 **사용 예**:
+
 ```typescript
 // DatasetConfig.transform
 {
@@ -528,6 +580,7 @@ Dataset component architecture enables centralized data management and reuse acr
 | 캐시 정리 | ✅ | unregister/clearAll 시 자동 정리 |
 
 **사용 예**:
+
 ```typescript
 // DatasetConfig
 {
@@ -569,6 +622,7 @@ Page
 **Status**: 📋 Planning Phase (Phase 6 완료 후 추가 개선)
 
 > **관련 문서**:
+>
 > - [LAYOUT_PRESET_SYSTEM.md](../../features/completed/LAYOUT_PRESETS.md) - Phase 6 완료 상세
 > - [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](../../features/completed/LAYOUT_SLOTS.md) - 전체 Layout/Slot 시스템 계획
 
@@ -586,6 +640,7 @@ Page
 | defaultStyle | ⏳ | 향후 추가 예정 |
 
 **Files**:
+
 - `src/builder/panels/properties/editors/SlotEditor.tsx`
 - `src/builder/panels/common/index.css` (SlotEditor 스타일 추가)
 
@@ -596,11 +651,13 @@ Page
 **필요성**: 사용자 정의 레이아웃 저장 기능
 
 **흐름**:
+
 ```
 Layout Body 선택 → "프리셋으로 저장" 클릭 → 이름 입력 → Supabase 저장 → 프리셋 목록에 표시
 ```
 
 **Database Schema**:
+
 ```sql
 CREATE TABLE custom_presets (
   id UUID PRIMARY KEY,
@@ -616,6 +673,7 @@ CREATE TABLE custom_presets (
 ```
 
 **Files to Create**:
+
 - `src/builder/hooks/useCustomPresets.ts`
 - Inspector에 "프리셋으로 저장" 버튼 추가
 
@@ -626,6 +684,7 @@ CREATE TABLE custom_presets (
 **필요성**: 코드 없이 레이아웃 구조 편집
 
 **UI 개념**:
+
 ```
 ┌─────────────────────────────────────────┐
 │  Grid Template Editor                    │
@@ -644,12 +703,14 @@ CREATE TABLE custom_presets (
 ```
 
 **기능**:
+
 - 영역 드래그 리사이즈
 - Column/Row 추가/삭제
 - 영역 병합
 - Gap 설정
 
 **Files to Create**:
+
 - `src/builder/panels/properties/editors/GridEditor/`
   - `index.tsx`
   - `GridCanvas.tsx`
@@ -660,11 +721,11 @@ CREATE TABLE custom_presets (
 
 ### 구현 우선순위
 
-| 순위 | 기능 | 상태 | 이유 |
-|------|------|------|------|
-| ~~1~~ | ~~SlotEditor~~ | ✅ 완료 | Slot 선택 시 즉시 필요 |
-| **1** | Grid/Flex 편집 | 📋 | 프리셋 미세 조정 필수 |
-| **2** | 프리셋 저장 | 📋 | 편의 기능, 기본 프리셋으로 충분 |
+| 순위  | 기능           | 상태    | 이유                            |
+| ----- | -------------- | ------- | ------------------------------- |
+| ~~1~~ | ~~SlotEditor~~ | ✅ 완료 | Slot 선택 시 즉시 필요          |
+| **1** | Grid/Flex 편집 | 📋      | 프리셋 미세 조정 필수           |
+| **2** | 프리셋 저장    | 📋      | 편의 기능, 기본 프리셋으로 충분 |
 
 ---
 

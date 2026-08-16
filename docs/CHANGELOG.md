@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [preview DataTable 이 응답을 버리는 요청을 그만 보낸다 — dataStates 배관 제거] - 2026-08-17
+
+### Bug Fixes
+
+- **preview 의 DataTable 컴포넌트가 fetch 는 하고 결과는 버리고 있었다** (`refreshInterval` 지정 시 타이머로 무한 반복):
+  - ADR-132 가 컬렉션 데이터의 sink 를 `collections.runtimeData` 로 옮긴 뒤, 그 이전 세대 배관인 `RenderContext.setDataState` → `runtimeStore.dataStates` 가 **끊긴 채** 남았다. `renderContext`(preview/App.tsx)가 `setDataState` 를 공급하지 않아 항상 `undefined` 였고, `DataTableComponent` 의 호출 6곳이 전부 `?.()` no-op 이었다
+  - **Why 안 보였나**: 컴포넌트가 비시각적(`return null`)이라 화면에 아무 단서가 없고, 실패도 아니라서 콘솔에는 오히려 `✅ [Canvas] DataTable loaded: … (N items)` 성공 로그가 찍혔다. 게다가 `docs/reference/status/PLANNED.md` 가 "데이터 로드 ✅ Runtime Store의 dataStates 활용" 로 **동작한다고 광고**하고 있었다
+  - 도달 경로 확인: 인스펙터가 최상위 `element.dataBinding` 을 쓰고(`inspectorActions.ts:1281`) 컴포넌트가 그것을 `legacy-only` 로 읽는다 — 사용자가 DataTable 을 놓고 컬렉션을 고르면 실제로 요청이 나갔다
+  - 수정: 헛도는 fetch 와 배관 전부 제거 — `DataTableComponent.tsx`(226줄) 삭제, `renderDataTable` 은 `null` 반환, `RenderContext.setDataState` / shared `DataState` / `runtimeStore.dataStates` + `setDataState` / preview `DataState` 제거. **화면·데이터 변화 0** (결과를 소비하는 쪽이 애초에 없었다)
+  - 배선 복구가 답이 아닌 이유: 판독자도 0건이고, 두 `DataState` 가 동명이인이면서 형태가 달라(`error: string | null` vs `Error | string | null`) 그대로는 대입도 안 된다. 현행 경로는 Builder DataTable 패널 → `collections` postMessage → `useCollectionData` 단일 진입점
+  - live: preview 앱 마운트 정상, 실제 Vite 모듈 파이프라인으로 `rendererMap` 94개 구축 확인 + `DataTable` 렌더러를 빈 컨텍스트로 호출해 `null` 반환·무예외 확인 (종전 코드는 이 지점에서 fetch 를 걸었다)
+  - 동반: `PLANNED.md` 의 잘못된 ✅ 3건 정정, `CANVAS_ISOLATION.md` 설계 스냅샷에 제거 주석
+  - 위치: `packages/shared/src/{renderers/DataRenderers.tsx,types/renderer.types.ts}`, `apps/builder/src/preview/store/{types.ts,runtimeStore.ts}`
+
 ## [중복·죽은 코드 전수 정리 — 15파일 삭제 + 동명 선언 29건 판정] - 2026-08-17
 
 ### Architecture

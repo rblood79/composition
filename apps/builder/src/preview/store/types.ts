@@ -104,12 +104,7 @@ export interface RuntimeVariable {
   page_id?: string;
 }
 
-// Data State (loading, error, data)
-export interface DataState<T = unknown> {
-  loading: boolean;
-  error: string | null;
-  data: T | null;
-}
+// `DataState` 는 여기 없다 (2026-08-17 제거) — 아래 §Data Sources 의 tombstone 참조.
 
 // 상태 계층
 export interface StateHierarchy {
@@ -184,10 +179,14 @@ export interface RuntimeStoreState extends StateHierarchy {
   setDarkMode: (isDark: boolean) => void;
 
   // Data Sources
+  //
+  // `dataStates` / `setDataState` 는 2026-08-17 에 제거됐다. ADR-132 가 컬렉션
+  // 데이터의 sink 를 `collections.runtimeData` 로 옮기기 전 세대의 종착지였는데,
+  // 그 전환 뒤로 **쓰는 쪽도 읽는 쪽도 없었다** — 유일한 기록 경로였던
+  // `RenderContext.setDataState` 가 provider 0건이라 항상 undefined 였고,
+  // Map 을 판독하는 코드도 존재한 적이 없다. 현행 경로는 아래 `collections`.
   dataSources: DataSource[];
   setDataSources: (sources: DataSource[]) => void;
-  dataStates: Map<string, DataState>;
-  setDataState: (sourceId: string, state: DataState) => void;
 
   // DataTables (PropertyDataBinding용)
   collections: RuntimeDataTable[];

@@ -41,21 +41,25 @@ Canvas Runtime은 Builder와 완전히 분리된 독립적인 React 애플리케
 ## Key Benefits
 
 ### 1. Security Isolation
+
 - `srcdoc` iframe은 `about:srcdoc` origin을 가짐
 - Builder의 window/document에 직접 접근 불가
 - 사용자 코드가 Builder를 오염시킬 수 없음
 
 ### 2. State Independence
+
 - Canvas 전용 Zustand store (`runtimeStore.ts`)
 - Builder store와 완전히 분리
 - postMessage를 통한 단방향 데이터 플로우
 
 ### 3. CSS/Style Isolation
+
 - Canvas 내부 스타일이 Builder에 영향 없음
 - Design tokens는 postMessage로 동적 주입
 - Theme switching 독립적 처리
 
 ### 4. Performance
+
 - Builder와 별도 React 트리
 - 독립적인 렌더링 사이클
 - 요소 선택 시 즉시 응답 (Option B+C 패턴)
@@ -98,27 +102,27 @@ src/canvas/
 
 ### Builder → Canvas Messages
 
-| Message Type | Purpose | Payload |
-|--------------|---------|---------|
-| `UPDATE_ELEMENTS` | Element tree sync | `{ elements, pageInfo }` |
-| `UPDATE_ELEMENT_PROPS` | Single element update | `{ elementId, props }` |
-| `DELETE_ELEMENT` | Remove element | `{ elementId }` |
-| `DELETE_ELEMENTS` | Batch remove | `{ elementIds }` |
-| `THEME_VARS` | Design tokens | `{ vars: ThemeVar[] }` |
-| `SET_DARK_MODE` | Theme toggle | `{ isDark }` |
-| `UPDATE_PAGE_INFO` | Page context | `{ pageId, layoutId }` |
-| `UPDATE_PAGES` | Page list | `{ pages }` |
-| `REQUEST_ELEMENT_SELECTION` | Auto-select request | `{ elementId }` |
+| Message Type                | Purpose               | Payload                  |
+| --------------------------- | --------------------- | ------------------------ |
+| `UPDATE_ELEMENTS`           | Element tree sync     | `{ elements, pageInfo }` |
+| `UPDATE_ELEMENT_PROPS`      | Single element update | `{ elementId, props }`   |
+| `DELETE_ELEMENT`            | Remove element        | `{ elementId }`          |
+| `DELETE_ELEMENTS`           | Batch remove          | `{ elementIds }`         |
+| `THEME_VARS`                | Design tokens         | `{ vars: ThemeVar[] }`   |
+| `SET_DARK_MODE`             | Theme toggle          | `{ isDark }`             |
+| `UPDATE_PAGE_INFO`          | Page context          | `{ pageId, layoutId }`   |
+| `UPDATE_PAGES`              | Page list             | `{ pages }`              |
+| `REQUEST_ELEMENT_SELECTION` | Auto-select request   | `{ elementId }`          |
 
 ### Canvas → Builder Messages
 
-| Message Type | Purpose | Payload |
-|--------------|---------|---------|
-| `CANVAS_READY` | Initialization complete | (none) |
-| `ELEMENTS_UPDATED_ACK` | Elements received | `{ elementCount, timestamp }` |
-| `ELEMENT_SELECTED` | User clicked element | `{ elementId, rect, props, style }` |
-| `ELEMENT_COMPUTED_STYLE` | Computed styles (deferred) | `{ elementId, computedStyle }` |
-| `ELEMENTS_DRAG_SELECTED` | Lasso selection | `{ elementIds }` |
+| Message Type             | Purpose                    | Payload                             |
+| ------------------------ | -------------------------- | ----------------------------------- |
+| `CANVAS_READY`           | Initialization complete    | (none)                              |
+| `ELEMENTS_UPDATED_ACK`   | Elements received          | `{ elementCount, timestamp }`       |
+| `ELEMENT_SELECTED`       | User clicked element       | `{ elementId, rect, props, style }` |
+| `ELEMENT_COMPUTED_STYLE` | Computed styles (deferred) | `{ elementId, computedStyle }`      |
+| `ELEMENTS_DRAG_SELECTED` | Lasso selection            | `{ elementIds }`                    |
 
 ## Element Selection Flow (Option B+C)
 
@@ -172,7 +176,7 @@ interface RuntimeStoreState {
 
   // Data Sources
   dataSources: DataSource[];
-  dataStates: Map<string, DataState>;
+  dataStates: Map<string, DataState>;   // ← 2026-08-17 제거 (아래 주석 참조)
 
   // State Hierarchy (3-level)
   appState: Record<string, unknown>;      // Global state
@@ -188,6 +192,11 @@ interface RuntimeStoreState {
 }
 ```
 
+> **2026-08-17** — `dataStates` / `setDataState` 는 제거됐다. ADR-132 가 컬렉션
+> 데이터의 sink 를 `collections.runtimeData` 로 옮긴 뒤 이 Map 은 쓰는 쪽도
+> 읽는 쪽도 없었다 (유일 기록 경로였던 `RenderContext.setDataState` 가
+> provider 0건). 위 스냅샷은 도입 당시 설계 기록으로 남긴다.
+
 ## State Hierarchy
 
 Canvas Runtime은 3단계 상태 계층을 지원:
@@ -198,11 +207,11 @@ Canvas Runtime은 3단계 상태 계층을 지원:
 
 ```typescript
 // Examples
-setState('app.user.name', 'John');
-setState('page.formData.email', 'john@example.com');
-setState('component.button-1.isLoading', true);
+setState("app.user.name", "John");
+setState("page.formData.email", "john@example.com");
+setState("component.button-1.isLoading", true);
 
-getState('app.user.name'); // 'John'
+getState("app.user.name"); // 'John'
 ```
 
 ## ACK-based Auto-Select Pattern
@@ -229,14 +238,14 @@ Builder                          Canvas
 
 각 컴포넌트 타입별 전용 렌더러:
 
-| Renderer | Components |
-|----------|------------|
-| `CollectionRenderers` | ListBox, GridList, Menu, Tree, TagGroup |
-| `SelectionRenderers` | Select, ComboBox, ToggleButtonGroup |
-| `FormRenderers` | TextField, NumberField, Checkbox, Radio, Switch |
-| `DateRenderers` | DatePicker, Calendar, TimeField |
-| `LayoutRenderers` | Card, Separator, Slot, Layout |
-| `TableRenderer` | Table, Column, Row, Cell |
+| Renderer              | Components                                      |
+| --------------------- | ----------------------------------------------- |
+| `CollectionRenderers` | ListBox, GridList, Menu, Tree, TagGroup         |
+| `SelectionRenderers`  | Select, ComboBox, ToggleButtonGroup             |
+| `FormRenderers`       | TextField, NumberField, Checkbox, Radio, Switch |
+| `DateRenderers`       | DatePicker, Calendar, TimeField                 |
+| `LayoutRenderers`     | Card, Separator, Slot, Layout                   |
+| `TableRenderer`       | Table, Column, Row, Cell                        |
 
 ## Testing srcdoc Mode
 
@@ -244,10 +253,10 @@ srcdoc 모드 테스트를 위한 localStorage 기반 persistence:
 
 ```typescript
 // Enable srcdoc testing
-localStorage.setItem('canvas_srcdoc_test', 'true');
+localStorage.setItem("canvas_srcdoc_test", "true");
 
 // Check current mode
-const isSrcdocMode = localStorage.getItem('canvas_srcdoc_test') === 'true';
+const isSrcdocMode = localStorage.getItem("canvas_srcdoc_test") === "true";
 ```
 
 ## Legacy Compatibility
@@ -256,8 +265,8 @@ const isSrcdocMode = localStorage.getItem('canvas_srcdoc_test') === 'true';
 
 ```typescript
 // Store aliases
-export { getRuntimeStore as getPreviewStore } from './store';
-export { useRuntimeStore as usePreviewStore } from './store';
+export { getRuntimeStore as getPreviewStore } from "./store";
+export { useRuntimeStore as usePreviewStore } from "./store";
 
 // Router aliases
 export const PreviewRouter = CanvasRouter;
@@ -271,11 +280,13 @@ export type PreviewStoreState = RuntimeStoreState;
 ## Future Phases
 
 ### Phase 2: Event System Integration
+
 - EventEngine 완전 분리
 - Action 실행 Canvas 내부에서 처리
 - Custom JavaScript 실행 샌드박싱
 
 ### Phase 3: Full Isolation
+
 - Web Worker 기반 실행
 - 사용자 코드 완전 격리
 - CSP (Content Security Policy) 적용

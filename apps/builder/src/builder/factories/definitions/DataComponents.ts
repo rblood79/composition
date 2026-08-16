@@ -39,7 +39,8 @@ export function createDataTableDefinition(
         // ADR-159 P4b: 기본 dataBinding 없음 — 데이터 소스는 dataTable(collection) 단일이라
         //   사용자가 Inspector 컬렉션 피커에서 지정한다. 구 기본값(source:"api" + MOCK_DATA)은
         //   저장 문서에 api 바인딩을 계속 유입시키는 유일 생성원이었다 (Phase 0 inventory §5-1).
-        //   DataTableComponent 는 무바인딩 시 로드 no-op 으로 안전.
+        // 2026-08-17: preview 의 DataTable 렌더러는 바인딩 유무와 무관하게 무동작이 됐다
+        //   (`DataRenderers.renderDataTable` 주석 — sink 가 collections.runtimeData 로 이동).
       } as ComponentElementProps,
       parent_id: parentId,
     },

@@ -13,7 +13,6 @@ import type {
   RuntimeLayout,
   ThemeVar,
   DataSource,
-  DataState,
   RuntimeDataTable,
   RuntimeApiEndpoint,
   RuntimeVariable,
@@ -238,14 +237,6 @@ export const createRuntimeStore = () =>
     // ============================================
     dataSources: [],
     setDataSources: (sources: DataSource[]) => set({ dataSources: sources }),
-    dataStates: new Map(),
-    setDataState: (sourceId: string, state: DataState) => {
-      set((prev) => {
-        const newDataStates = new Map(prev.dataStates);
-        newDataStates.set(sourceId, state);
-        return { dataStates: newDataStates };
-      });
-    },
 
     // ============================================
     // DataTables (PropertyDataBinding용)

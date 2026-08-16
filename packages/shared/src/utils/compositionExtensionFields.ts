@@ -36,8 +36,10 @@ export type ExtensionReadPriority =
 
 /**
  * Generic legacy element shape — packages/shared 의 다양한 caller (TableRenderer
- * `element` / SelectionRenderers `element` / DataTableComponent `element`) 양쪽
- * 호환. helper 가 schema dependency 없이 read-through 만 수행.
+ * `element` / SelectionRenderers `element`) 양쪽 호환. helper 가 schema
+ * dependency 없이 read-through 만 수행.
+ *
+ * (`DataTableComponent` 도 caller 였으나 2026-08-17 삭제 — DataRenderers 주석 참조)
  */
 interface LegacyElementWithExtension {
   props?: Record<string, unknown> | unknown;
