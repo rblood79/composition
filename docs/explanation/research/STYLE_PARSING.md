@@ -1933,6 +1933,11 @@ export const PERFORMANCE_PRESETS = {
 
 ### Phase 0: 준비 단계 ✅ 완료 (2025-12-20)
 
+> **2026-08-17 후기** — 아래 두 항목이 만든 `src/utils/performance/` 배럴과 모니터
+> 3종은 삭제됐다. 어느 모듈도 배럴을 import 하지 않아 등록 전역(`__perfTools` 등)이
+> 실제로 붙은 적이 없었다. 계측은 `builder/utils/perfMarks.ts`
+> (`window.__composition_PERF__`), FPS·메모리는 Monitor 패널이 대신한다.
+
 - [x] Performance markers 유틸리티 생성 (`src/utils/performance/stylePanelMetrics.ts`)
 - [x] 벤치마크 스크립트 작성 (`src/utils/performance/fpsMonitor.ts`, `memoryMonitor.ts`)
 - [x] 기준선 메트릭 수집 및 문서화 (`docs/research/BENCHMARK_BASELINE_TEMPLATE.md`)

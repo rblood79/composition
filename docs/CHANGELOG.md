@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [중복·죽은 코드 전수 정리 — 15파일 삭제 + 동명 선언 29건 판정] - 2026-08-17
+
+### Architecture
+
+- **`utils/performance/` 배럴과 모니터 3종이 한 번도 평가된 적 없었다** (본 엔트리의 마지막 단계):
+  - `index.ts` 배럴을 어느 모듈도 import 하지 않아, 하단의 `window.__perfTools` 등록 IIFE 가 실행된 적이 없다. `stylePanelMetrics` / `fpsMonitor` / `memoryMonitor` 도 배럴 외 import 0건이라 함께 죽어 있었다
+  - **Why 오래 안 보였나**: `utils/performanceMonitor.ts`(단수, **실사용**)와 이름이 한 글자 차이라 grep 이 섞이고, `docs/how-to/development/BENCHMARK_TEMPLATE.md` 가 `window.__perfTools.startAll()` 절차를 안내하고 있어 "쓰이는 도구" 로 읽혔다
+  - 실측(실행 중인 빌더): `__perfTools` / `__fpsMonitor` / `__memoryMonitor` / `__stylePanelMetrics` **전부 `undefined`**, 대조군 `__composition_PERF__` 는 `object` — 소스에 선언된 다른 `window.__*` 전역은 모두 런타임에 존재
+  - 삭제 4파일 1,428줄. 살아 있는 대체 경로는 `builder/utils/perfMarks.ts`(`window.__composition_PERF__`, ADR-069)와 Monitor 패널(`useFPSMonitor` / `useMemoryStats` / `useWebVitals` / `useComponentMemory`)
+  - 동반: 안내가 깨져 있던 `BENCHMARK_TEMPLATE.md` §7.1 을 살아 있는 콘솔 API 로 교체, `STYLE_PARSING.md` Phase 0 체크리스트에 후기 추가, `diagnostics.static.test.ts` 의 배럴 단언 2건 제거
+- **참조 0건이 된 builder 사본 삭제 — 11파일 3,316줄**: `numberUtils` / `dateUtils` / `useCollectionData`(ADR-132 로 대체) / `useCollectionDataCache` / `componentVariants.types` / `useAsyncQuery` / `collections.types`, 그리고 죽은 Builder↔Preview 채널 3종(`canvasDeltaMessenger` / `iframeMessenger` + 그 규칙 문서)
+  - **Why**: ADR-125 Phase 3 이 `UPDATE_CANONICAL_DOCUMENT` 를 단일 채널로 확정한 뒤에도 delta 계열 메시지 정의·핸들러가 남아 있었다. ADR-122 인벤토리가 이미 정리 대상으로 지목한 항목
+  - 삭제 판정은 grep 0건만으로 하지 않고 ADR/문서가 **알고도 남긴 것인지** 대조 — 실제로 그 절차가 오판 하나를 잡았다(아래 `getElementEvents`)
+- **동명 선언 29건 전수 판정 — 실제 중복 6건, 나머지는 동명이인 확정**:
+  - 통합: `FieldType` / `FieldDefinition` / `ColumnMapping` 이 builder·shared 에 **바이트 단위로 동일**하게 선언돼 있어 shared 를 정본으로 재수출, `Toast` 는 관계를 주석으로만 적어 두던 것을 `Omit<StoreToast, "action">` 파생으로 전환
+  - 삭제: 소비처 0건이던 `SectionProps` / `SelectionState` / `ButtonProps` / `ToggleButtonProps`
+  - `react-aria-starter` 26건은 upstream 스냅샷이라 설계상 동명 — 판정에서 제외
+- **Preview 렌더 타입을 shared 정본으로 통합**: `PreviewElement` / `RenderContext` / `ComponentRenderer` 의 builder 사본을 제거하고 이중 단언 13곳(`as unknown as Shared*`)을 없앴다. `PreviewElement.fills` 를 shared 에 추가해 형태 차이를 해소
+
+### Bug Fixes
+
+- **`getElementEvents` 를 "ADR-149 가 bridge 를 미뤘다" 는 근거로 남겨 뒀는데 그 근거가 틀렸다**:
+  - ADR-158(Implemented 2026-08-16)이 인터랙션을 canonical **root** `events` 컬렉션(`InteractionRule[]`)으로 옮기면서 그 bridge 를 이미 만들었다. 소비처 2곳은 전환(`workflowEdges`)·삭제(`canvasDeltaMessenger`)로 모두 사라진 상태였다
+  - 요소별 `props.events` / `element.events` 는 읽는 쪽도 쓰는 쪽도 없는 legacy 저장 데이터로만 남았고 roundtrip 보존은 `legacyElementSanitizer` 담당 — builder·shared 양쪽에서 삭제
+- **`useBorderRadiusDrag` 가 보내던 `merge: true` 는 아무도 읽지 않았다**: A/B 라이브 대조(같은 메시지를 `merge` 유무로 발신 → 결과 동일 `0px`)로 무해 확인 후 제거
+
+### Documentation
+
+- 삭제한 각 지점에 **왜 지웠는지**를 남기는 tombstone 주석을 배치 — 특히 죽은 프로토콜 사실 2건(`merge?: boolean` 미판독, `ThemeVarsMessage.vars` 형태 불일치)은 코드가 사라지면 재발견 비용이 큰 관찰이라 주석으로 보존
+
 ## [단축키 id 타입이 오타를 다시 막는다 — ShortcutId 리터럴 union 복원] - 2026-08-17
 
 ### Bug Fixes
