@@ -17,7 +17,7 @@
  * (`updateEventsRootCollection` — inspectorActions) 가
  * `persistActiveCanonicalDocument` 로 담당한다.
  *
- * @see docs/adr/158-interactions-rules-capability-registry.md
+ * @see docs/adr/completed/158-interactions-rules-capability-registry.md
  * @see docs/adr/design/158-interactions-rules-capability-registry-breakdown.md §2
  */
 import type { InteractionRule } from "@composition/shared";

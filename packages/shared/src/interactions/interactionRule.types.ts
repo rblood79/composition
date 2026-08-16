@@ -10,7 +10,7 @@
  * 조건부 실행 / debounce / throttle / 다중 actions[] / 템플릿은 스키마에서
  * 원천 제거됐다 (ADR-158 §Decision — 필요 실증 시 후속 ADR).
  *
- * @see docs/adr/158-interactions-rules-capability-registry.md
+ * @see docs/adr/completed/158-interactions-rules-capability-registry.md
  * @see docs/adr/design/158-interactions-rules-capability-registry-breakdown.md §2
  */
 

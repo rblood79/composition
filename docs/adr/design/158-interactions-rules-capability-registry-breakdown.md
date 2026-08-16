@@ -1,6 +1,6 @@
 # ADR-158 구현 상세 — Interactions 재설계 (한 줄 규칙 + capability registry + Preview 발화)
 
-> 본문: [ADR-158](../158-interactions-rules-capability-registry.md). 본 문서는 구현 상세 전용 (Phase / 파일 목록 / 스키마 / capability 표).
+> 본문: [ADR-158](../completed/158-interactions-rules-capability-registry.md). 본 문서는 구현 상세 전용 (Phase / 파일 목록 / 스키마 / capability 표).
 
 ## §0. Phase 0 Inventory freeze (실측 2026-07-25, HEAD `137c20784`)
 
@@ -267,8 +267,8 @@ useInteractionBindings.ts — 요소 렌더 시 trigger callback 주입
 | **0** ✅ | Inventory freeze — panels/events 92파일 목록 / registry 어휘 대조표 / Preview controlled·uncontrolled 실태 표   | **완료 2026-07-25** — §0 에 표 3개 기록. 정정 2건(LOC·은퇴 scope) + capability 표 정정 5건 도출                                               |
 | **1** ✅ | `CAPABILITY_REGISTRY` + `InteractionRule` 스키마 + `updateEventsRootCollection` 시그니처 갱신                   | **완료 2026-07-25** (`89ab4154b`) — G1 정적 가드 18 케이스 + racRef 전건 RAC 문서 실측 대조. 구 패널은 deprecated node-projection 경로로 분리 |
 | **2** ✅ | InteractionsPanel UI 10파일 + PanelContainer 교체                                                               | **완료 2026-07-25** (`616950cca`) — 11파일. live CRUD 확증 + getSnapshot 무한루프 회귀 수정·테스트 동반                                       |
-| **3**    | Preview dispatcher + bindings + messaging 연결                                                                  | **G2**: navigate/toast/hide·show/modal open 4종 Chrome MCP 발화 확증                                                                          |
-| **4**    | 구 시스템 은퇴 — panels/events 92파일 + **utils/events 3파일** + registry 구 어휘 + ADR-149 legacy adapter 삭제 | **G3**: G2 PASS + 사용자 명시 삭제 승인 후. type-check + grep 잔존 0 + publish `ElementRenderer` legacy `element.events` 소비 no-op 확인      |
+| **3** ✅ | Preview dispatcher + bindings + messaging 연결                                                                  | **완료 2026-08-16** — G2 4종 live 확증 (cutover 트리거 Button×3/Link×1). 배선 결손 3건 동반 수리: 대상 축 `Modal.binding.accepts.isOpen` 누락 / 트리거 축 catalog generic 경로의 `createEventHandlerMap` 미호출(116 타입) / 발화 override 미판독(`toRacProps`·`toReactStyle`) |
+| **4** ✅ | 구 시스템 은퇴 — panels/events 92파일 + **utils/events 3파일** + registry 구 어휘 + ADR-149 legacy adapter 삭제 | **완료 2026-08-16** — 사용자 명시 삭제 승인 후 96파일 / 19,513 LOC 제거. type-check PASS(baseline 43 불변) + grep 잔존 0(묘비 주석만) + live 빌더 부팅·Interactions CRUD 왕복. `EVENT_REGISTRY` 는 RAC 실존 11종으로 축소 존치 — `ItemsManager` 의 `event-id` 드롭다운이 live consumer 였다(§0 표 ① 파손 지점 6곳에 없던 항목) |
 
 - Phase 간 커밋 분리 (phase 당 1+ 커밋, main 직접 push).
 - Phase 4 의 파일 삭제는 CLAUDE.md 마이그레이션 원칙 — "ok/진행해" 는 삭제 승인 아님, 별도 확인 질문 필수.

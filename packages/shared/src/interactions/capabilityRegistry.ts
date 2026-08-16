@@ -21,7 +21,7 @@
  * - **(c) `default*` 만 + `key` 고정, 또는 prop 미배선** → patch 무반응.
  *   `deferred` 에 키만 남기고 **등재 보류** (G1). Preview controlled 전환 후 해제.
  *
- * @see docs/adr/158-interactions-rules-capability-registry.md
+ * @see docs/adr/completed/158-interactions-rules-capability-registry.md
  * @see docs/adr/design/158-interactions-rules-capability-registry-breakdown.md §0 §3
  */
 

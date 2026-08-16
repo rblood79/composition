@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted — 2026-07-20 (리뷰 승인 round 1: 이슈 3건(MED 1/LOW 2) 전건 fixed, HIGH/CRITICAL 0, 전제 확정 종결 계약 성립 — [reviews/158.md](reviews/158.md))
+Implemented — 2026-08-16 (Phase 0~4 전부 완료)
+
+Accepted — 2026-07-20 (리뷰 승인 round 1: 이슈 3건(MED 1/LOW 2) 전건 fixed, HIGH/CRITICAL 0, 전제 확정 종결 계약 성립 — [reviews/158.md](../reviews/158.md))
+
+**Phase 4 삭제는 사용자 명시 승인(2026-08-16) 후 실행** — 96파일 / 19,513 LOC 은퇴 (`panels/events` 92 + `utils/events` 3 + ADR-149 legacy adapter 1 + 테스트). `EVENT_REGISTRY` 는 RAC 실존 11종으로 축소해 존치한다 — `ItemsManager` 의 `event-id` 드롭다운이 live consumer 이며, breakdown 의 파손 지점 6곳에 없던 항목이다.
 
 ## Context
 
@@ -65,7 +69,7 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 
 **대안 A 채택.** 사용자 confirm 완료 (2026-07-20 brainstorm — 복잡성 4축 확인 → 한 줄 규칙형 선택 → "각 컴포넌트마다 고유의 기능 위주 제공" + 앱 액션 2종(navigate/toast) 유지 → RAC 레퍼런스 controlled prop 전수 검증 반영 승인 → ADR 생성 명시 발의).
 
-> 구현 상세: [158-interactions-rules-capability-registry-breakdown.md](design/158-interactions-rules-capability-registry-breakdown.md)
+> 구현 상세: [158-interactions-rules-capability-registry-breakdown.md](../design/158-interactions-rules-capability-registry-breakdown.md)
 
 **위험 수용 근거**:
 

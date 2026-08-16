@@ -8,26 +8,21 @@
  */
 
 // Import from registry for use in this file
-import type { EventType, ActionType } from "./events.registry";
+import type { EventType } from "./events.registry";
 
 // Re-export from registry (single source of truth — ADR-055)
-export type {
-  EventType,
-  ImplementedEventType,
-  EventCategoryId,
-  ActionType,
-} from "./events.registry";
+//
+// ADR-158 Phase 4 (2026-08-16): 액션 어휘 계열
+// (`ActionType` / `IMPLEMENTED_ACTION_TYPES` / `ACTION_TYPE_LABELS` /
+// `isImplementedActionType` / `ACTION_CATEGORIES`) 과 `implemented` 플래그 파생
+// (`ImplementedEventType` / `IMPLEMENTED_EVENT_TYPES` / `isImplementedEventType`)
+// 은 registry 축소와 함께 사라졌다.
+export type { EventType, EventCategoryId } from "./events.registry";
 export {
   EVENT_REGISTRY,
-  IMPLEMENTED_EVENT_TYPES,
-  IMPLEMENTED_ACTION_TYPES,
-  isImplementedEventType,
-  isImplementedActionType,
   isEventType,
   EVENT_TYPE_LABELS,
   EVENT_CATEGORIES_BY_ID,
-  ACTION_TYPE_LABELS,
-  ACTION_CATEGORIES as REGISTRY_ACTION_CATEGORIES,
 } from "./events.registry";
 
 // 액션별 특화된 값 타입들
@@ -165,7 +160,11 @@ export type ActionValue =
 // 개별 액션 정의
 export interface EventAction {
   id: string;
-  type: ActionType;
+  /**
+   * ADR-158 Phase 4 — 구 `ActionType` 47종 union 이 은퇴해 불투명 문자열이다.
+   * 본 타입은 구 문서/DB row 를 읽기 위한 legacy shape 로만 남는다.
+   */
+  type: string;
   target?: string; // 대상 요소 ID
   value?: ActionValue;
   delay?: number; // 지연 시간 (ms)
@@ -268,14 +267,10 @@ export type EventHandlerMap = Record<
   (context: EventContext) => Promise<EventExecutionResult>
 >;
 
-export type ActionHandlerMap = Record<
-  ActionType,
-  (action: EventAction, context: EventContext) => Promise<unknown>
->;
 
 // 이벤트 상수들
 export const DEFAULT_DEBOUNCE_TIME = 300;
 export const DEFAULT_THROTTLE_TIME = 100;
 export const MAX_EXECUTION_TIME = 5000;
 
-// EVENT_TYPE_LABELS, ACTION_TYPE_LABELS는 registry에서 re-export (상단 참조)
+// EVENT_TYPE_LABELS 는 registry 에서 re-export (상단 참조).

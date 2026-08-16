@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-158 Implemented — 구 이벤트 시스템 은퇴 96파일 / 19,513 LOC] - 2026-08-16
+
+### Breaking Changes
+
+- **구 EventsPanel 과 그 어휘가 사라졌다** — 사용자 명시 삭제 승인 후 실행:
+  - `builder/panels/events/` 92파일 (17,387 LOC) · `utils/events/` 3파일 (1,419 LOC) · ADR-149 legacy adapter `rootCollectionMigration.ts` + 테스트 (707 LOC)
+  - `EVENT_REGISTRY` 24종 → **RAC 실존 11종**. DOM 별칭 10종(`onClick`/`onMouseEnter`/`onKeyDown` 등)과 비RAC·미구현 3종(`onScroll`/`onResize`/`onLoad`) 은퇴
+  - `IMPLEMENTED_ACTION_TYPES` 47종(camelCase 28 + snake_case 별칭 19)과 레이블·카테고리 맵 은퇴 — Do 축은 `CAPABILITY_REGISTRY` 소유
+  - `SelectedElement.events` projection · `updateLegacyElementEvents` · `RenderContext.eventEngine` 채널 제거
+  - **저장된 구 데이터는 깨지지 않는다** — 읽는 쪽(`isInteractionRule`)이 구 entry 를 걸러내고, publish `ElementRenderer` 의 legacy 소비는 `events === undefined → {}` no-op 이다
+
+### Features
+
+- **인터랙션 규칙이 실제로 발화한다** (ADR-158 Phase 3): 트리거 요소를 누르면 navigate / toast / 대상 요소 capability(show·hide·toggle, Modal open 등)가 동작한다. 종전에는 규칙을 저장해도 소비하는 런타임이 0개였다
+
+### Bug Fixes
+
+- **`EventEngine` 은 write-only dead 였다**: `syncVariables` 만 호출되는데 그것이 채우는 `this.state` 를 읽는 것은 `executeEvent`(호출 0건)와 `getState()`(외부 호출 0건)뿐 — 넣기만 하고 아무도 꺼내지 않는 통이었다. 값 동기화 구독까지 함께 제거
+
+### Architecture
+
+- **ADR-158 `Accepted → Implemented`** (Phase 0~4 전부 완료). `docs/adr/completed/` 로 이동, README 행 갱신
+- Phase 3 에서 **배선 결손 3건**을 발견·수리했다 (전부 "등재는 됐는데 전달 경로가 없다" 는 같은 형태):
+  - 대상 축 — `Modal.binding.accepts` 에 `isOpen` 누락
+  - 트리거 축 — catalog generic 경로가 `createEventHandlerMap` 을 아예 호출하지 않아 **cutover 116 타입 전체**가 무반응
+  - 발화 override 미판독 — `toRacProps` / `toReactStyle` 두 소비자가 원본 `node` 를 읽음
+- **G2 4종 live 확증** (Chrome MCP, cutover 트리거 Button×3 / Link×1): toast · hide/show(toggle 4연타 교대) · modal open(자식 없는 Modal — 같은 세션의 FocusScope 수리 동반) · navigate(Home → Page 2)
+- 회귀 감시: `eventRegistryVocabulary.test.ts` (은퇴 13종 재도입 차단) · `capabilityBindingReach.test.ts` · `CanonicalNodeRenderer.interactionTrigger/interactionOverride.test.tsx`
+
+### Documentation
+
+- **breakdown 이 몰랐던 파손 지점 1건**: `ItemsManager` 의 `event-id` 드롭다운(Menu/ComboBox/Select 의 `onActionId`)이 `EVENT_REGISTRY` 의 live consumer 였다 — §0 표 ① 의 6곳에 없었다. 그래서 registry 를 지우지 않고 11종으로 좁혀 존치
+- **남은 dead seam 3건** (이번 범위 밖, 후속 판단용):
+  - `event-id` 채널 자체가 죽어 있다 — preview `resolveActionId` 가 항상 `undefined` 라 골라 저장해도 발화 경로가 없다
+  - `workflowEdges`(캔버스 navigation 엣지)가 legacy `element.events` 를 읽는데 Phase 1 에서 mirror 파생이 끊겨 신규 규칙이 보이지 않는다
+  - `packages/shared` 의 `PublishEventRuntime` 은 barrel 재export 외 소비처 0건
+
 ## [발화 override 를 안 읽던 소비자 둘째 — G2 4종 cutover 트리거 재확증] - 2026-08-16
 
 ### Bug Fixes
