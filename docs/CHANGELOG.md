@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [발화 override 를 안 읽던 소비자 둘째 — G2 4종 cutover 트리거 재확증] - 2026-08-16
+
+### Bug Fixes
+
+- **catalog generic 경로에서 공통 show/hide/toggle 이 무반응이었다** (ADR-158 Phase 3):
+  - `toReactStyle(node)` 가 병합 결과가 아니라 **원본 `node`** 를 읽어 `style.display` patch 가 버려졌다. 직전에 고친 `toRacProps(node, …)`(Modal.isOpen 무반응)와 **같은 자리 같은 형태** — 소비처마다 따로 같은 실수를 하는 모양이라, 병합된 `renderNode` 를 한 번 만들어 이 경로의 모든 소비자가 그것을 읽게 했다
+  - **Why**: dispatcher 는 계속 `ok` 를 돌려주고 화면만 안 바뀐다. 셋째 소비자가 붙을 때 조용히 새지 않도록 두 축(style / prop)을 각각 테스트로 못 박았다
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`
+
+### Documentation
+
+- **G2 4종을 cutover 트리거로 재확증** — 직전까지의 통과는 legacy·위임 렌더러 트리거로 얻은 것이라, 사용자가 실제로 누르는 catalog 타입 조합은 트리거 배선 이후 처음 열렸다. Button ×3 / Link ×1 을 트리거로 라이브 실측:
+  - toast — `react-aria-ToastRegion` + `react-aria-Toast` 에 메시지 표시
+  - hide / show — `inline-flex → none → inline-flex → none`, toggle 4연타 완전 교대
+  - modal open — **자식 없는** Modal(기본 autoFocus/trapFocus)이 0→1, 프레임 유지 (같은 세션의 FocusScope 수리도 실경로에서 함께 통과)
+  - navigate — Home → Page 2, 404 아님
+- **측정 함정 2건** (같은 트리거의 규칙을 바꿔 가며 재느라 결과가 섞였다):
+  - 규칙을 다시 쓰면 문서가 재전송되고 **발화 override 가 비워진다**(의도된 설계). 그래서 "show 가 요소를 숨긴다" 같은 반대 결론이 나온다 — 실제로는 override 가 비워진 상태에서 직전 규칙의 핸들러가 발화한 것
+  - override 는 즉시 비워지는데 **핸들러 교체는 한 렌더 뒤에 반영된다**. 규칙을 바꿔 가며 재지 말고 **트리거를 규칙 수만큼 따로 두고** 각각 한 번씩 누를 것
+
 ## [인터랙션 트리거가 catalog 116 타입에 배선돼 있지 않았다] - 2026-08-16
 
 ### Bug Fixes

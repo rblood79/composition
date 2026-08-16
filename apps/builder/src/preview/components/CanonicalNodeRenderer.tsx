@@ -361,6 +361,14 @@ export function CanonicalNodeRenderer({
     useRuntimeStore((s) => s.interactionOverrides[node.id]),
   );
 
+  // **node 로부터 props 를 읽는 모든 소비자는 이것을 쓴다.** `node` 를 직접 넘기면
+  // 발화 override 가 통째로 무시되는데, 그 실수를 소비처마다 따로 저지르기 쉽다 —
+  // 실제로 `toRacProps`(Modal.isOpen 무반응)와 `toReactStyle`(hide/show 무반응)에서
+  // 차례로 같은 형태로 드러났다. 병합 결과가 원본과 같으면 참조를 유지해 하위
+  // 비교(===)가 종전대로 동작한다.
+  const renderNode: ResolvedNode =
+    canonicalProps === node.props ? node : { ...node, props: canonicalProps };
+
   // ── type 복원 ─────────────────────────────────────────────────────────────
   // node.type 이 canonical ComponentTag SSOT (예: "TextField", "Input", "frame").
   // type 은 _tag marker → metadata.originalTag → node.type 순으로 fallback.
@@ -488,20 +496,18 @@ export function CanonicalNodeRenderer({
           ]
         : INTERNAL_RENDERERS[binding.source.renderer];
     if (binding && PrimitiveComponent) {
-      // `node` 를 그대로 넘기면 발화 override 가 무시된다 — `toRacProps` 는
-      // `node.props` 를 직접 읽으므로 위에서 병합한 `canonicalProps` 가 이 경로에는
-      // 도달하지 않는다 (ADR-158 Phase 3 실측: Modal.isOpen patch 무반응).
+      // ADR-158 Phase 3 실측 — `node` 를 넘기면 Modal.isOpen patch 가 무반응이었다.
       const { children: racChildren, ...racRest } = toRacProps(
-        canonicalProps === node.props
-          ? node
-          : { ...node, props: canonicalProps },
+        renderNode,
         binding,
       );
       const childNodes = node.children ?? [];
       // ADR-912 1A-(b): catalog generic(cutover) 경로의 props.style override 상실 seam 닫기.
       // base 색/size 는 generated CSS(react-aria-{Type}[data-*])가 적용 — toReactStyle 은
       // override(props.style) 전용. data-* 변형/사이즈는 racRest(toRacProps)가 emit.
-      const overrideStyle = toReactStyle(node) as
+      // ADR-158 Phase 3 실측 — `node` 를 넘기면 공통 show/hide/toggle 이 무반응이었다
+      // (`style.display` patch 가 여기서 버려진다).
+      const overrideStyle = toReactStyle(renderNode) as
         | React.CSSProperties
         | undefined;
       // ADR-913 slice 1 (2026-06-18): cssEmitMode "button-base" 컴포넌트(Button/ToggleButton/
