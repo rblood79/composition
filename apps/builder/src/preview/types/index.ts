@@ -1,202 +1,41 @@
-import React from "react";
-import type { ElementProps } from "../../types/integrations/supabase.types";
-
 /**
- * Preview runtime node shape.
+ * Preview 렌더 타입 — **정본은 `@composition/shared/types`** (`renderer.types.ts`).
+ *
+ * 종전에는 `PreviewElement` / `RenderContext` / `ComponentRenderer` 를 여기에
+ * 다시 선언했다. 그 사본은 shared 판과 미묘하게 달라서(`props` 에
+ * `& Record<string, unknown>` 추가, `dataBinding` 이 `Record<string, unknown>`)
+ * 두 타입이 서로 대입되지 않았고, 그 결과 shared 렌더러로 넘기는 자리마다
+ * **`as unknown as SharedRenderContext` 이중 단언 13곳**이 박혀 있었다.
+ * `as unknown as` 는 타입 검사를 통째로 끄기 때문에, shared 쪽 `RenderContext`
+ * 에 필수 필드가 생겨도 그 13곳은 조용히 통과한다 — 사본을 유지한 대가가
+ * 정확히 그 지점의 검사 손실이었다.
+ *
+ * 통합해도 신규 타입 오류가 0건인 것은 shared `ElementProps` 가
+ * `[key: string]: unknown` 을 갖고 있어 preview 가 필요로 하던 넓은 props
+ * 접근이 그대로 성립하기 때문이다. `fills` 는 shared `PreviewElement` 로
+ * 옮겨 실물 payload 와 선언을 맞췄다.
+ *
+ * 새 필드가 필요하면 shared 쪽에 추가한다 (여기 다시 선언하지 말 것).
  */
-export interface PreviewElement {
-  id: string;
-  customId?: string; // custom_id from database (e.g., button_1, table_1)
-  type: string;
-  fills?: unknown[];
-  props: ElementProps & Record<string, unknown>;
-  text?: string;
-  parent_id?: string | null;
-  page_id?: string | null; // Layout element면 null
-  dataBinding?: Record<string, unknown>;
-  deleted?: boolean;
-}
+export type {
+  PreviewElement,
+  RenderContext,
+  ComponentRenderer,
+} from "@composition/shared/types";
 
-/**
- * 렌더링 컨텍스트 - 모든 렌더러에 전달되는 공통 데이터
- */
-export interface RenderContext {
-  elements: PreviewElement[];
-  /** id 기반 O(1) 조회용 인덱스 (provider가 elements와 함께 빌드) */
-  elementsById: ReadonlyMap<string, PreviewElement>;
-  /** parent_id 기반 자식 조회 인덱스 — canonical source order 보존 */
-  childrenByParent: ReadonlyMap<string, readonly PreviewElement[]>;
-  updateElementProps: (id: string, props: Record<string, unknown>) => void;
-  /** 여러 node props를 한 번에 업데이트 (단일 commit) */
-  batchUpdateElementProps: (
-    updates: Array<{ id: string; props: Record<string, unknown> }>,
-  ) => void;
-  setElements: (elements: PreviewElement[]) => void;
-  /**
-   * 런타임 주입 서비스 — shared `RuntimeServices` 와 같은 것을 가리킨다.
-   *
-   * App 이 실제로 채우고(`createEventHandlerMap`) shared 렌더러가 소비하는데도
-   * 여기 선언이 없어서, preview 쪽 소비자가 `context.services` 를 읽으려 하면
-   * 컴파일이 막혔다 (ADR-158 Phase 3 트리거 배선). 형태를 다시 적지 않고 shared
-   * 타입을 그대로 가리켜 둘이 갈리지 않게 한다.
-   */
-  services?: import("@composition/shared/types").RuntimeServices;
-  projectId?: string;
-  renderElement: (el: PreviewElement, key?: string) => React.ReactNode;
-  // Layout/Slot System 필드
-  editMode?: "page" | "layout"; // 현재 편집 모드
-  /**
-   * ADR-148 Phase 0 — ListBox 행 template 의 slot 구성 (shared RenderContext 동형 필드).
-   * App 이 canonical 문서에서 1회 계산해 주입 — 상세는 shared renderer.types.ts 참조.
-   */
-  listBoxTemplateSlotComposition?:
-    | import("@composition/shared").SlotComposition
-    | null;
-  /** ADR-148 Phase 4 — GridListItem slot 구성 (ListBox 동형). */
-  gridListTemplateSlotComposition?:
-    | import("@composition/shared").SlotComposition
-    | null;
-  /** ADR-148 Phase 4 — MenuItem slot 구성 (ListBox 동형). */
-  menuItemTemplateSlotComposition?:
-    | import("@composition/shared").SlotComposition
-    | null;
-}
-
-/**
- * 컴포넌트 렌더러 인터페이스
- */
-export interface ComponentRenderer {
-  canRender(type: string): boolean;
-  render(element: PreviewElement, context: RenderContext): React.ReactNode;
-}
-
-/**
- * postMessage 타입들
- */
-export interface PreviewMessage {
-  type: string;
-  [key: string]: unknown;
-}
-
-// **ADR-125 Phase 3** — UpdateElementsMessage 제거됨. canonical document channel 만 사용.
-
-export interface UpdateElementPropsMessage extends PreviewMessage {
-  type: "UPDATE_ELEMENT_PROPS";
-  elementId: string;
-  props: Record<string, unknown>;
-  merge?: boolean;
-}
-
-export interface DeleteElementsMessage extends PreviewMessage {
-  type: "DELETE_ELEMENTS";
-  elementIds: string[];
-}
-
-export interface DeleteElementMessage extends PreviewMessage {
-  type: "DELETE_ELEMENT";
-  elementId: string;
-}
-
-export interface ThemeVarsMessage extends PreviewMessage {
-  type: "THEME_VARS";
-  vars: Array<{ cssVar: string; value: string }>;
-}
-
-export interface UpdateThemeTokensMessage extends PreviewMessage {
-  type: "UPDATE_THEME_TOKENS";
-  styles: Record<string, string>;
-}
-
-export interface AddColumnElementsMessage extends PreviewMessage {
-  type: "ADD_COLUMN_ELEMENTS";
-  payload: {
-    tableId: string;
-    tableHeaderId: string;
-    columns: Array<{
-      id: string;
-      type: string;
-      page_id: string;
-      parent_id: string;
-      props: Record<string, unknown>;
-    }>;
-  };
-}
-
-export interface NavigateToPageMessage extends PreviewMessage {
-  type: "NAVIGATE_TO_PAGE";
-  payload: {
-    path: string;
-    replace?: boolean;
-  };
-}
-
-export interface SetDarkModeMessage extends PreviewMessage {
-  type: "SET_DARK_MODE";
-  isDark: boolean;
-}
-
-export interface SetEditModeMessage extends PreviewMessage {
-  type: "SET_EDIT_MODE";
-  mode: "page" | "layout";
-}
-
-/**
- * Page 정보 업데이트 메시지.
- * Page가 변경될 때 해당 Page의 reusable frame binding을 Preview에 전달
- */
-export interface UpdatePageInfoMessage extends PreviewMessage {
-  type: "UPDATE_PAGE_INFO";
-  pageId: string | null;
-  layoutId: string | null;
-}
-
-/**
- * Nested Routes & Slug System: Layout 목록 업데이트 메시지
- * Layout 변경 시 Preview에 전달하여 URL 계산에 사용
- */
-export interface UpdateLayoutsMessage extends PreviewMessage {
-  type: "UPDATE_LAYOUTS";
-  layouts: Array<{
-    id: string;
-    name: string;
-    slug?: string | null;
-  }>;
-}
-
-export interface ElementSelectedMessage extends PreviewMessage {
-  type: "ELEMENT_SELECTED";
-  elementId: string;
-  isMultiSelect?: boolean;
-  payload: {
-    rect: {
-      top: number;
-      left: number;
-      width: number;
-      height: number;
-    };
-    props: Record<string, unknown>;
-    type: string;
-    style?: React.CSSProperties;
-    computedStyle?: Partial<React.CSSProperties>;
-  };
-}
-
-export interface ElementsDragSelectedMessage extends PreviewMessage {
-  type: "ELEMENTS_DRAG_SELECTED";
-  elementIds: string[];
-}
-
-export type MessageType =
-  | UpdateElementPropsMessage
-  | DeleteElementsMessage
-  | DeleteElementMessage
-  | ThemeVarsMessage
-  | UpdateThemeTokensMessage
-  | AddColumnElementsMessage
-  | NavigateToPageMessage
-  | SetDarkModeMessage
-  | SetEditModeMessage
-  | UpdatePageInfoMessage
-  | UpdateLayoutsMessage
-  | ElementSelectedMessage
-  | ElementsDragSelectedMessage;
+// postMessage 타입 선언도 여기 두지 않는다 — 정본은
+// `../messaging/messageHandler.ts` 다 (`PreviewMessageHandler` 가 실제로
+// 분기하는 union).
+//
+// 종전에 이 파일에 `PreviewMessage` / `MessageType` + 메시지 인터페이스 13종이
+// 선언돼 있었는데 **소비처가 0건**이었고, 형상마저 실물과 달라 구 프로토콜을
+// 서술하고 있었다:
+//
+//   - `UpdateElementPropsMessage.merge?: boolean` — 실물 선언에 없는 필드.
+//     송신 측(`utils/dom/iframeMessenger.ts::updateElementProps`)은 지금도
+//     `merge = true` 기본값을 wire 에 싣지만 수신 측에 읽는 코드가 없다
+//     (= `merge:false` 를 보내도 replace 가 아니라 merge 된다). 이 선언은
+//     그 미구현을 구현된 것처럼 광고하고 있었다.
+//   - `ThemeVarsMessage.vars: Array<{cssVar,value}>` — 실물은 `ThemeVar[]`.
+//
+// 프로토콜을 바꿀 때는 `messageHandler.ts` 한 곳만 고치면 된다.

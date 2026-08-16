@@ -42,6 +42,15 @@ export interface PreviewElement {
   customId?: string;
   type: string;
   props: ElementProps;
+  /**
+   * canonical `fills` payload — DOM 소비자는 `adaptElementStyle`(`utils/fillAdapter`)
+   * 로 `props.style` 배경에 반영한다.
+   *
+   * `Fill` 구체 타입 대신 `unknown[]` 인 것은 `Element.fills`(element.types.ts)와
+   * 같은 이유다 — 타입 원본이 builder 의 `fill.types.ts`(nanoid 의존 값 모듈)라
+   * 패키지 경계를 넘길 수 없다.
+   */
+  fills?: unknown[];
   text?: string;
   parent_id?: string | null;
   page_id?: string | null;

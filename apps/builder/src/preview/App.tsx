@@ -40,11 +40,10 @@ import {
   resolveBackedDefaultSize,
   usesButtonBaseUtility,
 } from "./utils/specCatalogBacked";
-import type {
-  RenderContext as SharedRenderContext,
-  PreviewElement as SharedPreviewElement,
-  EventHandlerMap,
-} from "@composition/shared/types";
+import type { EventHandlerMap } from "@composition/shared/types";
+// `./types` 는 shared 렌더 타입의 재수출이다 — 종전의
+// `RenderContext as SharedRenderContext` 별칭 import 와 그에 딸린
+// `as unknown as` 이중 단언은 같은 타입을 가리키게 되어 제거됐다.
 import type { PreviewElement, RenderContext } from "./types";
 import type { RuntimeElement } from "./store/types";
 import { camelToKebab } from "./utils/computedStyleExtractor";
@@ -788,8 +787,8 @@ function CanvasContent() {
       const renderer = rendererMap[adaptedElement.type];
       if (renderer) {
         return renderer(
-          adaptedElement as unknown as SharedPreviewElement,
-          renderContext as unknown as SharedRenderContext,
+          adaptedElement,
+          renderContext,
         );
       }
 
@@ -1028,8 +1027,8 @@ function CanvasContent() {
       const renderer = rendererMap[adaptedElement.type];
       if (renderer) {
         return renderer(
-          adaptedElement as unknown as SharedPreviewElement,
-          renderContext as unknown as SharedRenderContext,
+          adaptedElement,
+          renderContext,
         );
       }
 
@@ -1071,8 +1070,8 @@ function CanvasContent() {
       const renderer = rendererMap[adaptedElement.type];
       if (renderer) {
         return renderer(
-          adaptedElement as unknown as SharedPreviewElement,
-          renderContext as unknown as SharedRenderContext,
+          adaptedElement,
+          renderContext,
         );
       }
 

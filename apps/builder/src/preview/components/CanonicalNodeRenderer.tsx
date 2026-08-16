@@ -64,10 +64,8 @@ import {
   deriveDelegatingRacRenderers,
 } from "./renderFacetDeclaration";
 import type { ResolvedNode } from "@composition/shared";
-import type {
-  RenderContext as SharedRenderContext,
-  PreviewElement as SharedPreviewElement,
-} from "@composition/shared/types";
+// `../types/index` 가 shared 렌더 타입을 그대로 재수출하므로 별칭 import 와
+// `as unknown as` 이중 단언이 필요 없어졌다 (ADR 없이 타입 검사만 되살아난 자리).
 import { extractCanonicalPropsFromResolved } from "../../resolvers/canonical/storeBridge";
 import type { RenderContext } from "../types/index";
 import type { PreviewElement } from "../types/index";
@@ -450,7 +448,7 @@ export function CanonicalNodeRenderer({
         //   childrenByParent.get 으로 Header/Content 를 찾아야 하므로 자식도 canonical 재귀 필요).
         const nodeById = buildNodeByIdMap(node);
         const recursiveRenderElement = (
-          el: SharedPreviewElement,
+          el: PreviewElement,
           key?: string,
         ): React.ReactNode => {
           const childNode = nodeById.get(el.id);
@@ -467,21 +465,16 @@ export function CanonicalNodeRenderer({
             );
           }
           // node 트리에 없는 경우(예외) 원본 경로 fallback.
-          return (
-            renderContext as unknown as SharedRenderContext
-          ).renderElement(el, key);
+          return renderContext.renderElement(el, key);
         };
-        const delegatedRenderContext = {
-          ...(renderContext as unknown as SharedRenderContext),
+        const delegatedRenderContext: RenderContext = {
+          ...renderContext,
           childrenByParent: delegatedChildrenByParent,
           renderElement: recursiveRenderElement,
-        } as SharedRenderContext;
+        };
         return (
           <div key={node.id} {...markerProps} style={{ display: "contents" }}>
-            {delegatedRenderer(
-              adaptedEl as unknown as SharedPreviewElement,
-              delegatedRenderContext,
-            )}
+            {delegatedRenderer(adaptedEl, delegatedRenderContext)}
           </div>
         );
       }
@@ -529,8 +522,8 @@ export function CanonicalNodeRenderer({
       // 않는다. `racRest` **뒤**에 펼친다 — 트리거 콜백이 catalog prop 에 덮이면 안 된다.
       const eventHandlers =
         renderContext.services?.createEventHandlerMap?.(
-          adaptedEl as unknown as SharedPreviewElement,
-          renderContext as unknown as SharedRenderContext,
+          adaptedEl,
+          renderContext,
         ) ?? EMPTY_EVENT_HANDLERS;
       // 자식 element 가 있으면 그것을 렌더, 없으면 string children(racChildren). icon Button 의
       //   label 은 RSP 공식대로 `<Text>` 자식 element 로 표현되므로(ButtonChildSection 이
@@ -572,10 +565,7 @@ export function CanonicalNodeRenderer({
         {hostOrphanCollectionItem(
           type,
           collectionAncestor,
-          renderer(
-            adaptedEl as unknown as SharedPreviewElement,
-            renderContext as unknown as SharedRenderContext,
-          ) as React.ReactElement,
+          renderer(adaptedEl, renderContext) as React.ReactElement,
         )}
       </div>
     );
