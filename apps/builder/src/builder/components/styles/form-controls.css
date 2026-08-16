@@ -189,10 +189,6 @@
       color: var(--fg-muted);
     }
 
-    input.control-input {
-      height: var(--inspector-control-size);
-    }
-
     --input-border: 1px solid transparent;
     --input-padding: var(--spacing-3xs);
     --input-font-size: var(--text-xs);
