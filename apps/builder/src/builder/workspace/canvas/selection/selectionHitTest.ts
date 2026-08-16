@@ -3,14 +3,16 @@ import { getElementBoundsSimple } from "../elementRegistry";
 import { parseZIndex } from "../layout/engines/cssStackingContext";
 import { orderPagesForPaint } from "../scene/pagePaintOrder";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
+// `PagePositionMap` 정본은 `interaction/pagePositionPresentation.ts`
+// (import 0건 leaf 모듈). 종전에 구조가 같은 인덱스 시그니처를 이 파일에
+// 다시 선언하고 있었다 — 재수출해 호출부 import 경로는 그대로 둔다.
+import type { PagePositionMap } from "../interaction/pagePositionPresentation";
+
+export type { PagePositionMap };
 
 export interface CanvasPoint {
   x: number;
   y: number;
-}
-
-export interface PagePositionMap {
-  [pageId: string]: { x: number; y: number } | undefined;
 }
 
 export interface PageLike {

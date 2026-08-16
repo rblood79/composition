@@ -15,13 +15,11 @@ export type DistributionType =
 /**
  * Element bounds with position and size
  */
-export interface ElementBounds {
-  id: string;
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
+// 정본은 `./elementAlignment` — 정렬/분배가 같은 bounds 계약을 쓴다.
+// (`workspace/canvas` 의 동명 `ElementBounds` 는 `{x,y,width,height}` 로
+// 형상이 다른 별개 도메인이다.)
+export type { ElementBounds } from "./elementAlignment";
+import type { ElementBounds } from "./elementAlignment";
 
 /**
  * Distribution result with element ID and new style

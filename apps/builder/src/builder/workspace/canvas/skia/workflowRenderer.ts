@@ -48,12 +48,11 @@ export interface FrameBorderArea {
 }
 
 /** 소스 요소의 씬-로컬 바운드 (elementRegistry 기반) */
-export interface ElementBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+// 정본은 `../elementRegistry` (같은 `{x,y,width,height}` 씬-로컬 바운드).
+// `stores/utils/elementAlignment` 의 동명 `ElementBounds` 는 형상이 다른
+// (`{id,left,top,width,height}`) 별개 도메인이라 통합 대상 아님.
+export type { ElementBounds } from "../elementRegistry";
+import type { ElementBounds } from "../elementRegistry";
 
 export interface EndpointPair {
   sx: number;

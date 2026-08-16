@@ -62,19 +62,17 @@ export function resolveTokenColor(
 // Label & Description Style Presets
 // ============================================
 
-export interface LabelStylePreset {
-  fontSize: number;
-  fontWeight: string;
-  color: number;
-  fontFamily: string;
-}
-
-export interface DescriptionStylePreset {
-  fontSize: number;
-  color: number;
-  errorColor: number;
-  fontFamily: string;
-}
+// 두 preset 인터페이스의 정본은 `../utils/cssLabelPresets` — 거기서
+// `LABEL_STYLE_FALLBACKS` / `DESCRIPTION_STYLE_FALLBACKS` 를 이 shape 로
+// 선언한다. 종전에 동일 형상을 여기에도 선언해 두 벌이었다.
+export type {
+  LabelStylePreset,
+  DescriptionStylePreset,
+} from "../utils/cssLabelPresets";
+import type {
+  LabelStylePreset,
+  DescriptionStylePreset,
+} from "../utils/cssLabelPresets";
 
 const LABEL_STYLE_PRESETS: Record<string, LabelStylePreset> = {
   sm: {

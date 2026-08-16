@@ -8,8 +8,20 @@
 
 import { useState, useCallback, useRef } from "react";
 
-export type ToastType = "success" | "warning" | "error" | "info";
+// `ToastType` 정본은 전역 store (`stores/toast.ts`). 두 경로의 토스트는
+// `ToastContainer` 가 한 목록으로 병합해 렌더하므로 타입이 갈리면 병합 지점이
+// 깨진다 — 리터럴 union 을 복제하지 않고 재수출한다.
+export type { ToastType } from "../stores/toast";
+import type { ToastType } from "../stores/toast";
 
+/**
+ * 훅 경로 토스트 — store 토스트(`stores/toast.ts`)의 진부분집합.
+ *
+ * `action?: ToastAction` 이 **없는** 것이 차이이자 의도다. Undo 같은 액션
+ * 버튼은 전역 store 경로만 지원하고, 이 훅은 로컬 `useState` 기반 legacy
+ * 호환 경로다 (`ToastContainer` 가 `source: "hook"` 으로 구분해 action 을
+ * 넘기지 않는다).
+ */
 export interface Toast {
   id: string;
   type: ToastType;
@@ -57,7 +69,7 @@ export function useToast() {
 
       return id;
     },
-    []
+    [],
   );
 
   /**

@@ -6,30 +6,16 @@
 
 import type {
   PanelId,
-  PanelSide,
   PanelLayoutState,
   PanelLayoutActions,
 } from "../panels/core/types";
 
-/**
- * PanelArea Props
- */
-export interface PanelAreaProps {
-  /** 영역 위치 (left/right) */
-  side: PanelSide;
-
-  /** 이 영역에 배치된 패널 ID 배열 */
-  availablePanels: PanelId[];
-
-  /** 현재 활성화된 패널 ID */
-  activePanel: PanelId | null;
-
-  /** 패널 선택 콜백 */
-  onSelectPanel: (panelId: PanelId) => void;
-
-  /** 슬롯 표시 여부 */
-  isVisible?: boolean;
-}
+// `PanelAreaProps` 는 여기 두지 않는다 — 정본은 `PanelArea.tsx` 의 선언이고
+// `layout/index.ts` 가 그것을 재수출한다. 종전에 이 파일에도 동명 선언이
+// 있었는데 `availablePanels` / `activePanel` / `onSelectPanel` / `isVisible`
+// 4필드를 요구하는 **구 API** 를 서술하고 있었다 (현행 컴포넌트는 `side`
+// 하나만 받고 나머지는 `usePanelLayout()` 으로 직접 읽는다). 소비처 0건이라
+// 컴파일러가 잡지 못한 채 잘못된 계약을 광고하고 있었다.
 
 /**
  * usePanelLayout 반환 타입

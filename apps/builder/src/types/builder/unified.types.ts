@@ -1176,62 +1176,13 @@ export type ComponentElementProps =
   | ColorSwatchElementProps;
 
 // === 스토어 상태 타입 ===
-export interface ElementsState {
-  elements: Element[];
-  selectedElementId: string | null;
-  selectedElementProps: ComponentElementProps;
-  selectedTab: { parentId: string; tabIndex: number } | null;
-  pages: Page[];
-  currentPageId: string | null;
-}
-
-export interface ThemeState {
-  activeTheme: Record<string, unknown> | null;
-  rawTokens: DesignToken[];
-  semanticTokens: DesignToken[];
-  loading: boolean;
-  dirty: boolean;
-  lastError?: string | null;
-}
-
-// HistoryState는 새로운 history 시스템으로 대체됨
-
-export interface SelectionState {
-  selectedElementId: string | null;
-  selectedElementProps: ComponentElementProps;
-  multiSelect: string[];
-  selectionMode: "single" | "multi";
-}
-
-// === 통합 스토어 타입 ===
-export interface Store extends ElementsState, ThemeState, SelectionState {
-  // 액션들
-  setElements: (
-    elements: Element[],
-    options?: { skipHistory?: boolean },
-  ) => void;
-  loadPageElements: (elements: Element[], pageId: string) => void;
-  addElement: (element: Element) => void;
-  updateElementProps: (elementId: string, props: ComponentElementProps) => void;
-  setSelectedElement: (
-    elementId: string | null,
-    props?: ComponentElementProps,
-  ) => void;
-  removeElement: (elementId: string) => Promise<void>;
-
-  // 테마 액션들
-  loadTheme: (projectId: string) => Promise<void>;
-  updateTokenValue: (
-    name: string,
-    scope: "raw" | "semantic",
-    value: TokenValue,
-  ) => void;
-
-  // 히스토리 액션들
-  undo: () => void;
-  redo: () => void;
-  addToHistory: (elements: Element[]) => void;
-}
+//
+// 구 `ElementsState` / `ThemeState` / `SelectionState` / `Store` (모놀리식 Zustand
+// 스토어 타입) 는 슬라이스 분리 후 소비처 0건으로 남아 있다가 삭제됐다.
+// 실물 정의처: `stores/elements.ts`(ElementsState) · `stores/selection.ts`
+// (SelectionState) · `themeStore.unified.ts`(테마 — stores/index.ts 주석 참조).
+// ADR-126 breakdown §Phase 3 이 본 파일의 legacy `ElementsState` 를 "Phase 4/5
+// cleanup 대상 inventory" 로 명시했으나 미이행으로 남아 있던 항목.
 
 // === 기본 props 생성 함수들 ===
 /**
