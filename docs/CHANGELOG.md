@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [캔버스 navigation 엣지가 인터랙션 규칙을 다시 본다] - 2026-08-16
+
+### Bug Fixes
+
+- **워크플로 오버레이의 event-navigation 엣지가 한 건도 안 나왔다**:
+  - `computeWorkflowEdges` 가 요소의 legacy `props.events` / `element.events` 를 읽는데, ADR-158 Phase 1 에서 그 mirror 파생이 끊겨 **신규 인터랙션 규칙이 캔버스에 전혀 반영되지 않았다**
+  - **Why**: 조용한 결함이다 — 엣지가 안 보이는 것과 규칙이 없는 것이 화면상 구분되지 않는다. ADR-158 Phase 4 은퇴 조사에서 드러났다
+  - 수정: canonical `events` root collection 의 `InteractionRule[]` 을 읽는다. `action.kind === "navigate"` → `params.path` 를 슬러그 매칭, 소스 페이지는 `elementId` 로 요소를 조회해 얻는다 (규칙이 가리키는 요소가 삭제됐을 수 있다)
+  - **legacy 갈래는 되살리지 않고 걷어냈다** — 구 문서에 남은 entry 는 발화 경로가 없어(패널 삭제 + `isInteractionRule` 필터) 그리면 *일어나지 않을 이동*을 그리는 셈이다. 그 디코더가 해석하던 어휘 자체도 같은 커밋에서 은퇴한 47종 액션이다
+  - 라벨을 패널과 같은 어휘(`TRIGGER_LABELS`)로 맞췄다 — 캔버스에 `onPress`, 패널에 "누를 때" 가 뜨면 같은 것을 두 이름으로 부르는 셈이다
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/workflowEdges.ts` · `BuilderCanvas.tsx`
+- **구 `SerializedEvent` entry 가 섞이면 캔버스가 죽을 수 있었다**: `events` 는 타입상 `InteractionRule[]` 이지만 구 문서에는 `action` 필드가 없는 entry 가 남아 있을 수 있다 — 가드 없이 `rule.action.kind` 를 읽으면 `TypeError`. 발화 쪽과 같은 `isInteractionRule` 판정으로 걸러낸다
+- 회귀 감시: `workflowEdges.interactionRules.test.ts` 11건 (이 모듈은 종전에 테스트가 0건이었다). live A/B — 규칙 추가 시 Page 2 로 들어가는 마젠타 점선 화살표 표시, 규칙 제거 시 소멸
+
 ## [ADR-158 Implemented — 구 이벤트 시스템 은퇴 96파일 / 19,513 LOC] - 2026-08-16
 
 ### Breaking Changes

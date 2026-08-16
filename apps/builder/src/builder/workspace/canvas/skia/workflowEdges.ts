@@ -9,8 +9,13 @@
  */
 
 import { getLegacyPageLayoutId } from "@/adapters/canonical";
-import { getElementEvents } from "@/adapters/canonical/compositionExtensionFields";
-import type { CompositionDocument, FrameNode } from "@composition/shared";
+import {
+  isInteractionRule,
+  type CompositionDocument,
+  type FrameNode,
+  type InteractionRule,
+} from "@composition/shared";
+import { TRIGGER_LABELS } from "../../../panels/interactions/labels";
 
 // ============================================
 // Types
@@ -38,36 +43,6 @@ export interface WorkflowElementInput {
   type: string;
   props: Record<string, unknown>;
   page_id?: string | null;
-  events?: WorkflowEventInput[];
-}
-
-/** 이벤트 액션 인터페이스 (config/value에서 경로 추출) */
-interface WorkflowActionInput {
-  type?: string;
-  enabled?: boolean;
-  condition?: string;
-  config?: {
-    path?: string;
-    href?: string;
-    to?: string;
-    url?: string;
-    [key: string]: unknown;
-  };
-  value?: {
-    path?: string;
-    href?: string;
-    to?: string;
-    url?: string;
-    [key: string]: unknown;
-  };
-}
-
-/** 이벤트 인터페이스 */
-interface WorkflowEventInput {
-  enabled?: boolean;
-  event_type?: string;
-  event?: string;
-  actions?: WorkflowActionInput[];
 }
 
 // ============================================
@@ -110,31 +85,9 @@ function extractHrefFromProps(
   );
 }
 
-/** 액션에서 경로 추출 (config → value 순으로 탐색) */
-function extractPathFromAction(
-  action: WorkflowActionInput,
-): string | undefined {
-  return (
-    action.config?.path ||
-    action.config?.href ||
-    action.config?.to ||
-    action.config?.url ||
-    action.value?.path ||
-    action.value?.href ||
-    action.value?.to ||
-    action.value?.url
-  );
-}
-
 /** 외부 링크 또는 앵커인지 확인 */
 function isExternalOrAnchor(href: string): boolean {
   return href.startsWith("http") || href.startsWith("#");
-}
-
-/** navigate 계열 액션 타입인지 확인 */
-function isNavigateAction(actionType: string): boolean {
-  const lower = actionType.toLowerCase();
-  return lower === "navigate" || lower === "link" || lower.includes("navigate");
 }
 
 // ============================================
@@ -145,13 +98,21 @@ function isNavigateAction(actionType: string): boolean {
  * 페이지 및 요소 데이터를 기반으로 워크플로우 엣지 목록을 계산.
  *
  * 1. Link/a/Button 요소의 href 기반 navigation 엣지
- * 2. 이벤트 액션(navigate) 기반 event-navigation 엣지
+ * 2. 인터랙션 규칙(`navigate`) 기반 event-navigation 엣지
  *
  * 중복 엣지는 제거됨 (동일 source-target-type 조합).
+ *
+ * **규칙 출처 (ADR-158 Phase 4 이후)**: canonical `events` root collection 의
+ * `InteractionRule[]`. 종전에는 요소의 legacy `props.events` / `element.events`
+ * 를 읽었는데, ADR-158 Phase 1 에서 그 mirror 파생이 끊겨 **신규 규칙이 캔버스에
+ * 한 건도 나타나지 않았다**. 반대로 구 문서에 남은 entry 는 발화 경로가 없어
+ * (패널 삭제 + `isInteractionRule` 필터) 그리면 **일어나지 않을 이동을 그리는
+ * 셈**이라, legacy 갈래는 되살리지 않고 걷어냈다.
  */
 export function computeWorkflowEdges(
   pages: WorkflowPageInput[],
   elements: WorkflowElementInput[],
+  rules: readonly InteractionRule[] = [],
 ): WorkflowEdge[] {
   // slug → pageId 매핑 (정규화된 슬러그 사용)
   const slugMap = new Map<string, string>();
@@ -198,41 +159,41 @@ export function computeWorkflowEdges(
       }
     }
 
-    // 2) 이벤트 기반 navigation 엣지
-    // props.events 가 UI canonical primary, element.events 는 legacy fallback —
-    // ADR-116 Phase 5 G7 Extension Boundary 정합 (read-through helper 단일화).
-    const events = getElementEvents(element) as WorkflowEventInput[];
-    if (events.length === 0) continue;
+  }
 
-    for (const event of events) {
-      if (!event || event.enabled === false) continue;
+  // 2) 인터랙션 규칙 기반 navigation 엣지.
+  //
+  // 규칙은 요소가 아니라 root collection 에 있으므로 요소 순회와 분리한다 —
+  // 규칙이 가리키는 요소가 삭제됐을 수도 있어 조회로 확인해야 한다.
+  const elementById = new Map(elements.map((el) => [el.id, el]));
 
-      const actions = Array.isArray(event.actions) ? event.actions : [];
-      const eventType = event.event_type || event.event || "";
+  for (const rule of rules) {
+    // 타입은 `InteractionRule[]` 이지만 구 문서에는 `SerializedEvent` entry 가
+    // 남아 있을 수 있다 — 그쪽은 `action` 필드 자체가 없어(`actionRef` 참조 방식)
+    // 가드 없이 읽으면 캔버스가 통째로 죽는다. 발화 쪽(`bindings.ts`)과 같은
+    // 판정으로 걸러낸다.
+    if (!isInteractionRule(rule)) continue;
+    if (rule.action.kind !== "navigate") continue;
 
-      for (const action of actions) {
-        if (!action || action.enabled === false) continue;
+    const path = rule.action.params?.path;
+    if (!path || isExternalOrAnchor(path)) continue;
 
-        const actionType = action.type || "";
-        if (!isNavigateAction(actionType)) continue;
+    const sourcePageId = elementById.get(rule.elementId)?.page_id;
+    if (!sourcePageId || !pageIdSet.has(sourcePageId)) continue;
 
-        const actionPath = extractPathFromAction(action);
-        if (!actionPath || isExternalOrAnchor(actionPath)) continue;
+    const targetPageId = slugMap.get(normalizeSlug(path));
+    if (!targetPageId || targetPageId === sourcePageId) continue;
 
-        const cleanPath = normalizeSlug(actionPath);
-        const targetPageId = slugMap.get(cleanPath);
-        if (!targetPageId || targetPageId === sourcePageId) continue;
-
-        addEdge({
-          id: `${element.id}-${targetPageId}-event-navigation`,
-          type: "event-navigation",
-          sourcePageId,
-          targetPageId,
-          sourceElementId: element.id,
-          label: eventType ? `${eventType}` : "event",
-        });
-      }
-    }
+    addEdge({
+      id: `${rule.elementId}-${targetPageId}-event-navigation`,
+      type: "event-navigation",
+      sourcePageId,
+      targetPageId,
+      sourceElementId: rule.elementId,
+      // 패널과 같은 어휘를 쓴다 — 캔버스에 "onPress", 패널에 "누를 때" 가
+      // 뜨면 같은 것을 두 이름으로 부르는 셈이다.
+      label: TRIGGER_LABELS[rule.trigger] ?? rule.trigger,
+    });
   }
 
   return edges;

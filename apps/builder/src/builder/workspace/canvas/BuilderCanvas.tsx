@@ -585,9 +585,15 @@ export function BuilderCanvas({
     zoom,
   ]);
 
+  // ADR-158 Phase 4 — 인터랙션 규칙은 canonical `events` root collection 에 있다.
+  // 구 `element.events` mirror 는 Phase 1 에서 파생이 끊겨 넘겨도 항상 비어 있었다.
+  const interactionRules = useMemo(
+    () => activeCanonicalDocument?.events ?? [],
+    [activeCanonicalDocument],
+  );
   const workflowEdges = useMemo(() => {
-    return computeWorkflowEdges(pages, sceneNodes);
-  }, [pages, sceneNodes]);
+    return computeWorkflowEdges(pages, sceneNodes, interactionRules);
+  }, [pages, sceneNodes, interactionRules]);
   const dataSourceEdges = useMemo(() => {
     return computeDataSourceEdges(sceneNodes);
   }, [sceneNodes]);
