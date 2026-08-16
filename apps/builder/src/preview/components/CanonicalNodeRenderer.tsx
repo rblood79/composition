@@ -19,6 +19,7 @@
 import React from "react";
 import * as RAC from "react-aria-components";
 import { rendererMap } from "@composition/shared/renderers";
+import { useRuntimeStore } from "../store";
 import {
   adaptElementStyle,
   getPrimitiveBinding,
@@ -319,6 +320,22 @@ function buildNodeByIdMap(root: ResolvedNode): Map<string, ResolvedNode> {
  * 4. rendererMap 미등록 시 generic div 렌더링 + children 재귀
  * 5. DOM 마커: `data-canonical-id` + `data-element-id`
  */
+/** 발화 override 병합 — `style` 만 얕게 합치고 나머지는 덮어쓴다. */
+function mergeInteractionOverride(
+  base: Record<string, unknown>,
+  override: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  if (!override) return base;
+  const merged: Record<string, unknown> = { ...base, ...override };
+  if (override.style && typeof override.style === "object") {
+    merged.style = {
+      ...((base.style as Record<string, unknown> | undefined) ?? {}),
+      ...(override.style as Record<string, unknown>),
+    };
+  }
+  return merged;
+}
+
 export function CanonicalNodeRenderer({
   node,
   renderContext,
@@ -329,7 +346,15 @@ export function CanonicalNodeRenderer({
   const currentPath = parentPath ? `${parentPath}/${node.id}` : node.id;
 
   // ── canonical props 추출 ──────────────────────────────────────────────────
-  const canonicalProps = extractCanonicalPropsFromResolved(node);
+  //
+  // ADR-158 Phase 3 — 인터랙션 발화 override 를 여기서 병합한다. 이 경로는 문서
+  // 노드 props 를 읽으므로 `elements` 배열 patch 로는 화면이 바뀌지 않는다
+  // (실측: dispatch 는 성공하는데 display 그대로). `style` 은 통째로 갈아치우면
+  // 요소가 갖고 있던 나머지 스타일이 사라지므로 얕게 병합한다.
+  const canonicalProps = mergeInteractionOverride(
+    extractCanonicalPropsFromResolved(node),
+    useRuntimeStore((s) => s.interactionOverrides[node.id]),
+  );
 
   // ── type 복원 ─────────────────────────────────────────────────────────────
   // node.type 이 canonical ComponentTag SSOT (예: "TextField", "Input", "frame").

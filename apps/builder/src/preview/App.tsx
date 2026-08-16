@@ -679,23 +679,72 @@ function CanvasContent() {
     [canonicalDocument],
   );
 
+  /**
+   * 발화 대상 조회용 canonical 노드 색인.
+   *
+   * legacy `elementsById` 로는 못 찾는다 — canonical-only 런타임에서 화면을 그리는
+   * 것은 `resolvedCanonicalNodes` 이고 `elements` 배열에는 그 노드가 없다
+   * (실측: 대상 요소 없음 경고). 렌더가 읽는 것과 같은 트리를 봐야 한다.
+   */
+  const interactionTargets = useMemo(() => {
+    const map = new Map<
+      string,
+      { type: string; props: Record<string, unknown> }
+    >();
+    const walk = (nodes: readonly unknown[] | undefined) => {
+      for (const raw of nodes ?? []) {
+        const n = raw as {
+          id?: string;
+          type?: string;
+          props?: Record<string, unknown>;
+          children?: readonly unknown[];
+        };
+        if (n?.id) {
+          const props = (n.props ?? {}) as Record<string, unknown>;
+          map.set(n.id, {
+            type: (props._tag as string) ?? String(n.type ?? ""),
+            props,
+          });
+        }
+        walk(n?.children);
+      }
+    };
+    walk(resolvedCanonicalNodes as readonly unknown[] | undefined);
+    return map;
+  }, [resolvedCanonicalNodes]);
+
   const interactionDeps: DispatchDeps = useMemo(
     () => ({
+      // 현재값은 store 에서 **그때그때** 읽는다 — deps 에 override 를 넣으면 발화
+      // 한 번마다 renderContext memo 가 깨져 트리 전체가 다시 그려진다.
       getElement: (id) => {
-        const el = elementsById.get(id);
-        return el
-          ? { type: el.type, props: el.props as Record<string, unknown> }
-          : undefined;
+        const el = interactionTargets.get(id);
+        if (!el) return undefined;
+        const override = getRuntimeStore().getState().interactionOverrides[id];
+        const props = el.props;
+        if (!override) return { type: el.type, props };
+        const merged = { ...props, ...override };
+        if (override.style && typeof override.style === "object") {
+          merged.style = {
+            ...((props.style as Record<string, unknown> | undefined) ?? {}),
+            ...(override.style as Record<string, unknown>),
+          };
+        }
+        return { type: el.type, props: merged };
       },
-      // **raw** patch 다 — `updateElementPropsWithBuilderSync` 가 아니다.
-      // 발화는 런타임 동작이지 문서 편집이 아니라서, 역전파하면 버튼 한 번에
-      // undo 히스토리와 DB write 가 쌓인다. 실제로 `Disclosure.expand` 가
-      // patch 하는 `isExpanded` 는 역전파 allowlist 안에 있어 이 구분이 실효다.
-      updateElementProps,
+      // 문서가 아니라 **발화 override 층**에 쌓는다. 두 가지 이유다 —
+      // ① canonical 렌더 경로는 `elements` 가 아니라 문서 노드 props 를 읽어서
+      //    `updateElementProps` 로는 화면이 안 바뀐다 (2026-08-16 실측).
+      // ② 발화는 런타임 동작이지 문서 편집이 아니다. `updateElementPropsWithBuilderSync`
+      //    로 올려보내면 버튼 한 번에 undo 히스토리와 DB write 가 쌓인다 —
+      //    `Disclosure.expand` 가 patch 하는 `isExpanded` 는 실제로 역전파
+      //    allowlist 안에 있어 이 구분이 실효다.
+      updateElementProps: (id, patch) =>
+        getRuntimeStore().getState().patchInteractionOverride(id, patch),
       navigate: (path) => navigateInPreview(path),
       showToast: (message) => toastRef.current?.(message),
     }),
-    [elementsById, updateElementProps],
+    [interactionTargets],
   );
 
   // RenderContext 생성

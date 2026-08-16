@@ -37,7 +37,32 @@ export const createRuntimeStore = () =>
     elements: [],
     setElements: (elements: RuntimeElement[]) => set({ elements }),
     canonicalDocument: null,
-    setCanonicalDocument: (canonicalDocument) => set({ canonicalDocument }),
+    setCanonicalDocument: (canonicalDocument) =>
+      // 문서가 새로 오면 발화 override 는 버린다 — 편집 결과를 덮어쓴 채로 남으면
+      // 사용자가 방금 바꾼 값이 preview 에서 무시되는 것처럼 보인다.
+      set({ canonicalDocument, interactionOverrides: {} }),
+
+    // ── ADR-158 Phase 3 — 발화 override ──────────────────────────────
+    //
+    // canonical 렌더 경로(`CanonicalNodeRenderer`)는 `elements` 가 아니라
+    // 문서 노드의 props 를 읽는다. 그래서 인터랙션 발화의 prop patch 를
+    // `updateElementProps` 로 넣으면 **화면에 반영되지 않는다** (2026-08-16 실측:
+    // dispatch 는 성공하는데 display 가 그대로).
+    //
+    // 문서를 직접 고치는 대신 별도 층에 쌓는다 — 발화는 런타임 동작이지 문서
+    // 편집이 아니므로 undo/persist 대상이 아니고, 문서 재수신 때 리셋되는 것이
+    // 옳은 수명이다.
+    interactionOverrides: {},
+    patchInteractionOverride: (id, patch) => {
+      if (!id || !patch || Object.keys(patch).length === 0) return;
+      set((state) => ({
+        interactionOverrides: {
+          ...state.interactionOverrides,
+          [id]: { ...(state.interactionOverrides[id] ?? {}), ...patch },
+        },
+      }));
+    },
+    clearInteractionOverrides: () => set({ interactionOverrides: {} }),
     updateElementProps: (id: string, props: Record<string, unknown>) => {
       const patch = props ?? {};
       if (Object.keys(patch).length === 0) return;
@@ -226,7 +251,8 @@ export const createRuntimeStore = () =>
     // DataTables (PropertyDataBinding용)
     // ============================================
     collections: [],
-    setCollections: (tables: RuntimeDataTable[]) => set({ collections: tables }),
+    setCollections: (tables: RuntimeDataTable[]) =>
+      set({ collections: tables }),
 
     // ============================================
     // ApiEndpoints (PropertyDataBinding용)
