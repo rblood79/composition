@@ -242,36 +242,99 @@ Figma와 Framer는 source-level renderer를 공개하지 않는 hosted product�
 
 ## 5. 5축 비교 매트릭스
 
-> 핵심 5축은 **렌더링 / 데이터 모델 / 컴포넌트 / AI / 협업**이다. 성능·검증과 운영 surface는 핵심 축을 흐리지 않도록 보조 행으로 분리했다. `/Users/admin/work/openpencil`은 2026-08-17 v0.8.4 source snapshot, `/Users/admin/work/open-pencil`은 2026-08-17 v0.14.0 + local `HEAD 2710f906` 기준이다. Pencil.app은 현재 v1.1.57 local bundle과 별도 v1.2.1 Pen 추출본을 분리한다.
+> 핵심 5축은 **렌더링 / 데이터 모델 / 컴포넌트 / AI / 협업**이다. 성능·검증·운영·제품화는 보조 행으로 분리한다. `/Users/admin/work/openpencil`은 2026-08-17 v0.8.4 source snapshot, `/Users/admin/work/open-pencil`은 2026-08-17 v0.14.0 + local `HEAD 2710f906` 기준이다. Pencil.app은 현재 v1.1.57 local bundle과 별도 v1.2.1 Pen 추출본을 분리한다. Figma는 Figma Design + Figma Sites, Framer는 hosted website builder + Agents 범위로 평가한다.
 
-| 축                 | Pencil.app / Pen artifact                                                                                               | openpencil (ZSeven-W)                                                                                                   | open-pencil / OpenPencil (org)                                                                       | composition (현재)                                                                                                                                          |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **렌더링**         | v1.1.57: `koffi` 2.16.2가 있는 Electron bundle, native Skia FFI 추정. 별도 v1.2.1: 자체 `pencil.wasm`/Skia m149.        | native `skia-safe`/winit GPU + browser CanvasKit WASM/WebGL2; native Boolean은 Skia `PathOp`, web은 shape-specific 경로 | CanvasKit WASM/WebGL2, Canvas 2D 폴백 없음                                                           | CanvasKit WASM 단일 renderer(ADR-100) + Rust layout/Skia consumer 경계                                                                                      |
-| **데이터 모델**    | v1.1.57: `.pen` editor surface 직접 확인, schema는 bundle에서 직접 read하지 않음. v1.2.1 별도 보고서는 평문 JSON v2.14. | `.op` JSON `PenDocument` + 현재 SDK 21 node variants + pages/themes/variables + events/bindings/lifecycle/route         | Figma 호환 `.fig` + `.pen` + Kiwi override + HTML/CSS/Tailwind/JSX 입출력                            | `CompositionDocument` (ADR-116/122) + canonical RefNode/frame/slot/events/actions                                                                           |
-| **컴포넌트**       | UX reference: magenta/violet marker와 component/slot affordance 관측                                                    | `reusable` bool + `slot` + `RefNode/descendants` + `ComponentLibrary`/UIKit                                             | COMPONENT + INSTANCE + variant + Assets panel drag insertion                                         | ADR-142 reusable frame composite + canonical component semantics                                                                                            |
-| **AI 통합**        | v1.1.57 local: Codex SDK 0.128.0 + Claude Agent SDK 0.2.141. v1.2.1 별도: 5 agent families/spawn/MCP report             | Rust agent runtime + `op-ai-skills` + concurrent orchestrator + ACP/MCP + multi-provider + 50+ style guides             | Design/Review/Fast/Vision 4-role models + ACP 3종 + MCP + image/vision inspection                    | **landed** Groq `llama-3.3-70b-versatile` streaming Tool Calling, 7 tools, max 10 turns/3 retries; provider abstraction/Ollama는 ADR-134 Proposed plan-only |
-| **협업**           | closed-source bundle에서 contract 미확인                                                                                | authenticated direct P2P + public relay + regional hub, pairing/cursors/conflict replay                                 | Trystero WebRTC direct P2P + public relay/hub fallback + Yjs CRDT (WebSocket 전용 아님)              | 실시간 협업 없음. Supabase Auth는 identity surface일 뿐 document collaboration contract가 아님                                                              |
-| **성능·검증 보조** | v1.1.57은 교차 benchmark 없음. v1.2.1 별도 분석은 자체 WebGL/WASM 구조를 실측                                           | README reported: 10k snapshot ~0.68s, wheel CPU ~69%→~0%; release/CI·cargo-deny·source tests                            | virtualized layers, retained backing, deferred code panel, `tests/engine` 30 domains, visual-oracles | ADR-153 Implemented: Picture/paint/cache/profiler·ping-pong + SpatialIndex; p50/p95/p99·native refresh policy 우선                                          |
-| **운영·출력 보조** | Electron desktop + `.pen`/URL scheme                                                                                    | native desktop/web/CLI/wasm viewer, Figma/Git/VS Code/Chrome, codegen/deck export                                       | Tauri desktop/web/CLI/MCP/headless Vue SDK, `.pptx`/HTML/PDF/SVG export                              | Builder + publish/preview, canonical mutation path; 협업·범용 SDK는 별도 scope                                                                              |
-| **fallback 정책**  | artifact별 상이: v1.1.57 native bridge, v1.2.1 custom WASM; 동일 제품으로 일반화 금지                                   | Paper.js runtime fallback 없음; native PathOp와 web shape-specific Boolean을 parity 별도 검증                           | Canvas 2D 폴백 없음                                                                                  | fallback 없음. 지원하지 않는 경로를 조용히 대체하지 않고 parity/지원범위를 명시                                                                             |
+| 축                | Pencil.app / Pen                                                                      | openpencil (ZSeven-W)                                                             | OpenPencil (open-pencil)                                                | composition                                                                                              | Figma                                                                        | Framer                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **렌더링**        | v1.1.57 Electron/native bridge 추정, v1.2.1은 별도 `pencil.wasm`/Skia m149            | native `skia-safe` + browser CanvasKit/WebGL2 shared host                         | CanvasKit WASM/WebGL2, Canvas 2D 폴백 없음                              | CanvasKit WASM 단일 renderer + Rust layout/Skia consumer                                                 | hosted renderer 내부 비공개                                                  | hosted React/edge delivery, editor renderer 내부 비공개                          |
+| **데이터 모델**   | `.pen` surface 직접 확인, schema는 bundle에서 직접 read하지 않음; v1.2.1은 JSON v2.14 | `.op` JSON `PenDocument`, 21 node variants, events/bindings/lifecycle/route       | `.fig` + `.pen` + Kiwi override + HTML/CSS/Tailwind/JSX 입출력          | `CompositionDocument` + canonical RefNode/frame/slot/events/actions                                      | node/file model + Variables/Libraries, proprietary                           | visual site/document + components/CMS, proprietary                               |
+| **컴포넌트**      | component/slot affordance UX reference                                                | `reusable` + `slot` + `RefNode/descendants` + ComponentLibrary/UIKit              | COMPONENT/INSTANCE + variant + Assets panel                             | ADR-142 reusable frame composite + canonical component semantics                                         | components/variants/Variables/Libraries                                      | components/variants/variables/CMS components                                     |
+| **AI 통합**       | Codex SDK + Claude Agent SDK; 별도 v1.2.1은 5 agent families/spawn/MCP report         | `op-ai` + skills + concurrent orchestrator + ACP/MCP + multi-provider             | Design/Review/Fast/Vision role models + ACP/MCP + bounded Vision        | Groq `llama-3.3-70b-versatile`, streaming Tool Calling, 7 tools; provider abstraction/Ollama는 plan-only | First Draft/Agent, text/image/interaction/asset tools, paid Full seat·credit | Agents가 editable page/section/copy/visual을 생성·수정·publish; external agents  |
+| **협업**          | closed-source bundle에서 contract 미확인                                              | authenticated P2P + relay + regional hub, pairing/cursors/conflict replay         | Trystero WebRTC P2P + relay/hub fallback + Yjs CRDT                     | 실시간 document collaboration 없음. Supabase Auth는 identity surface                                     | multiplayer, version history, Organization/Enterprise branching              | branches/staging/version workflow; realtime editor contract는 본 비교에서 미확인 |
+| **성능·검증**     | 교차 benchmark 없음; v1.2.1 별도 WebGL/WASM 실측                                      | README reported 10k snapshot ~0.68s; release/CI/cargo-deny/source tests           | virtualized layers, retained backing, 30 engine domains, visual-oracles | ADR-153 Implemented: Picture/paint/cache/profiler/ping-pong + SpatialIndex; p50/p95/p99 우선             | version history/Dev Mode/multiplayer scaling; renderer p50/p95/p99 공개 없음 | site optimization/Lighthouse/staging; editor frame-time benchmark 공개 없음      |
+| **운영·출력**     | Electron desktop + `.pen`/URL scheme                                                  | native desktop/web/CLI/wasm viewer, Figma/Git/VS Code/Chrome, codegen/deck export | Tauri desktop/web/CLI/MCP/headless Vue SDK, `.pptx`/HTML/PDF/SVG        | Builder + publish/preview, canonical mutation path                                                       | Dev Mode/Code Connect/export/Figma Sites                                     | CMS, custom code, staging, custom domain, hosting, publish                       |
+| **제품화 수준**   | 상업 desktop UX는 강하나 artifact·schema 검증은 제한                                  | 기능 범위는 넓지만 v0.8.4 pre-release·source snapshot 불일치 리스크               | 프로그래머블 toolkit은 강하나 공식적으로 production-ready 아님          | canonical·성능 검증은 강하나 협업·public SDK·AI 운영 contract 부족                                       | 협업·library·branch·Dev Mode·enterprise control이 가장 성숙                  | publish·CMS·hosting·AI workflow가 가장 완결적이나 HTML export 없음               |
+| **fallback 정책** | artifact별 상이: v1.1.57 native bridge, v1.2.1 custom WASM                            | Paper.js runtime fallback 없음; native PathOp/web contour parity 별도 검증        | Canvas 2D 폴백 없음                                                     | fallback 없음. 지원범위와 parity를 명시                                                                  | SaaS 내부 fallback 비공개                                                    | hosting/runtime 최적화는 제공하지만 editor fallback 내부는 비공개                |
 
 ---
 
+### 5-1. 제품화 수준 평가 기준
+
+기능이 존재하는 것과 사용자가 안정적으로 사용할 수 있는 제품으로 완성된 것은 다르다. 본 문서의 **제품화 수준**은 다음 다섯 기준을 0~5점으로 평가한다.
+
+| 기준                       | 판정 질문                                                               |
+| -------------------------- | ----------------------------------------------------------------------- |
+| **사용자 workflow 완결성** | 생성 → 편집 → 저장 → 공유 → 검토 → 배포가 한 제품 안에서 끊기지 않는가? |
+| **신뢰성·검증**            | 회귀·성능·시각 정합성·복구 경로를 반복 검증할 수 있는가?                |
+| **보안·권한·비밀 관리**    | API key, document access, collaboration, admin policy가 운영 가능한가?  |
+| **배포·호스팅·확장 표면**  | public SDK/CLI/Plugin/hosting/export가 사용자 workflow에 연결되는가?    |
+| **릴리스·운영 성숙도**     | stable release, migration, observability, support·governance가 있는가?  |
+
+제품화 점수는 AI 기능의 수가 아니라 **AI를 포함한 전체 workflow를 보안·검증·운영 가능한 상태로 제공하는 정도**를 본다. 예를 들어 composition의 7개 tool loop는 기능 점수에는 반영되지만 browser-side API key와 단일 provider는 제품화 점수를 낮춘다.
+
+### 5-2. 기능 점수 및 제품화 반영 총점
+
+기능 점수는 10개 축에 `데이터·문서 10 / 컴포넌트 10 / 레이아웃 10 / 렌더링 10 / 협업·버전 10 / 코드·Publish 10 / 확장성 10 / 성능·검증 10 / 엔터프라이즈 운영 5 / AI 15`의 가중치를 적용한 값이다. 제품화 반영 총점은 기능 점수 70%와 제품화 수준 30%를 합산한다. 이는 기능이 많지만 아직 운영 가능한 제품이 아닌 pre-release가 과대평가되는 것을 막기 위한 보정이다.
+
+| 제품                         | 기능 총점 /100 | 제품화 수준 /5 | 제품화 반영 총점 /100 | 제품화 판정                                                                        |
+| ---------------------------- | -------------: | -------------: | --------------------: | ---------------------------------------------------------------------------------- |
+| **Figma**                    |           90.9 |        **4.8** |              **92.4** | 성숙한 SaaS 협업·library·branch·Dev Mode·enterprise control                        |
+| **Framer**                   |           85.9 |        **4.5** |              **87.1** | publish·CMS·hosting·AI workflow가 강한 production website 제품                     |
+| **OpenPencil (open-pencil)** |           86.2 |            3.7 |                  82.5 | SDK/CLI/MCP/visual oracle는 강하지만 active development·production readiness 제한  |
+| **openpencil (ZSeven-W)**    |           84.8 |            3.5 |                  80.4 | native/Web·agent·협업 범위는 넓지만 pre-release와 snapshot provenance 리스크       |
+| **Pencil/Pen**               |           70.0 |            4.1 |                  73.6 | 상업 desktop UX·AI는 강하지만 closed artifact와 version 분리로 검증성 제한         |
+| **composition**              |           69.0 |            3.0 |                  66.3 | canonical·layout·성능 검증은 강하지만 협업·public SDK·AI 보안/운영 contract 미완료 |
+
+> 총점은 “어떤 제품이 절대적으로 우월한가”가 아니라 **enterprise builder를 현재 바로 운영할 수 있는 수준**을 비교하는 지표다. Figma와 Framer는 hosted SaaS 운영 이점이 있고, open-source 제품은 확장성과 데이터 소유권 이점이 있으므로 총점만으로 아키텍처 선택을 대체하지 않는다.
+
+### 5-3. 기능 축별 원점수
+
+아래 점수는 기능의 존재 여부만이 아니라 현재 release/source에서 확인되는 범위와 성숙도를 함께 반영한 0~5 원점수다. `AI`는 15점, `엔터프라이즈 운영`은 5점, 나머지는 각 10점으로 환산한다.
+
+| 기능 축                | 가중치 | Figma | Framer | OpenPencil | openpencil | Pencil/Pen | composition |
+| ---------------------- | -----: | ----: | -----: | ---------: | ---------: | ---------: | ----------: |
+| 데이터·문서 모델       |     10 |   4.8 |    3.5 |        4.3 |        4.7 |        3.5 |         4.5 |
+| 컴포넌트·디자인 시스템 |     10 |   5.0 |    4.2 |        4.5 |        4.0 |        4.0 |         4.0 |
+| 레이아웃·반응형        |     10 |   4.2 |    4.6 |        3.8 |        3.8 |        3.8 |         4.8 |
+| 렌더링·런타임          |     10 |   3.8 |    4.6 |        4.0 |        4.8 |        4.0 |         4.2 |
+| 협업·버전 관리         |     10 |   5.0 |    3.8 |        4.2 |        4.0 |        2.0 |         1.5 |
+| 코드·Export·Publish    |     10 |   4.2 |    5.0 |        4.2 |        4.0 |        3.5 |         3.0 |
+| 확장성·SDK             |     10 |   5.0 |    4.0 |        4.8 |        4.5 |        3.8 |         2.5 |
+| 성능·검증              |     10 |   4.3 |    4.5 |        4.8 |        3.8 |        3.0 |         4.5 |
+| 엔터프라이즈 운영      |      5 |   4.8 |    4.0 |        3.2 |        3.5 |        2.8 |         3.5 |
+| AI 통합                |     15 |   4.5 |    4.5 |        4.6 |        4.7 |        4.0 |         2.5 |
+
+### 5-4. 제품화 원점수
+
+| 제품화 기준             |   Figma |  Framer | OpenPencil | openpencil | Pencil/Pen | composition |
+| ----------------------- | ------: | ------: | ---------: | ---------: | ---------: | ----------: |
+| 사용자 workflow 완결성  |     5.0 |     4.7 |        3.8 |        3.7 |        4.4 |         3.2 |
+| 신뢰성·검증             |     4.8 |     4.4 |        4.6 |        3.7 |        3.4 |         4.4 |
+| 보안·권한·비밀 관리     |     4.7 |     4.1 |        3.2 |        3.1 |        3.7 |         2.0 |
+| 배포·호스팅·확장 표면   |     4.8 |     4.9 |        3.8 |        3.8 |        4.2 |         2.7 |
+| 릴리스·운영 성숙도      |     4.7 |     4.4 |        3.1 |        3.2 |        4.8 |         2.7 |
+| **제품화 수준 평균 /5** | **4.8** | **4.5** |    **3.7** |    **3.5** |    **4.1** |     **3.0** |
+
+> 제품화 원점수에서 composition은 신뢰성·검증은 높지만 보안·권한·배포·릴리스 운영이 낮다. 따라서 “기술적으로 구현된 기능”과 “외부 사용자에게 안전하게 제공되는 기능”을 동일하게 세지 않는다.
+
 ## 6. composition reference 정합 평가
 
-| composition 영역                                           | Reference 출처                                                                               | 최신 정합 평가                                                                                                                                                                                                                                                 |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Component visual marker (magenta/violet, Cmd+Opt+K 토글)   | Pencil.app v1.1.57 local bundle + 별도 Pen v1.2.1 UX report                                  | UX marker는 reference 가능하지만 implementation은 black box다. v1.2.1 report의 marker/AI UX를 v1.1.57 bundle 사실로 합치지 않는다.                                                                                                                             |
-| `CompositionDocument` canonical schema (ADR-116/122)       | openpencil v0.8.4 `.op`/`PenDocument` + SDK node types                                       | 가장 가까운 schema reference다. pages/children/variables/themes + Ref/reusable/slot이 공통이지만, openpencil은 21 node variants와 events/bindings/lifecycle/route로 제품 surface가 더 넓다. 1:1 동일성은 아님                                                  |
-| ADR-130 frame (D1 RAC `Group` ↔ D3 canonical `frame` 분리) | openpencil `FrameNode.reusable` + `slot` + ComponentLibrary                                  | reusable bool/slot을 명시적으로 보존하고 UIKit/instance override까지 연결한 점이 유효하다. composition의 canonical frame vocabulary를 바꾸는 근거는 아니다.                                                                                                    |
-| ADR-131 events/actions root collection                     | openpencil node-level `events`/`bindings`/lifecycle/route                                    | interaction metadata가 존재한다는 기존 정정은 유지한다. 그러나 node-level metadata와 composition의 root `SerializedEvent/SerializedAction` contract는 별도이며, schema를 합치면 안 된다.                                                                       |
-| ADR-134 AI Assistant 통합                                  | Pencil v1.1.57 dual SDK, openpencil Rust agent/orchestrator, open-pencil role models/ACP/MCP | composition은 **기능이 전혀 없는 상태가 아니라** legacy Groq Tool Calling 7 tools가 landed다. 다만 Provider abstraction/Ollama/offline/routing/Plan→Execute→Verify는 ADR-134 Proposed plan-only라 reference 대비 격차가 남는다.                                |
-| ADR-100 단일 Skia 엔진                                     | openpencil native `skia-safe` + browser CanvasKit/WebGL2; open-pencil CanvasKit WebGL2       | “Skia 공통”보다 host contract가 핵심이다. openpencil의 Rust shared core와 composition의 web CanvasKit+Rust layout은 유사 목표지만 동일 runtime은 아니다.                                                                                                       |
-| ADR-142 canonical document component model                 | openpencil `.op` PenDocument + reusable/Ref/descendants + UIKit; Pen v1.2.1 report의 동일 축 | Ref/reusable/slot/descendants는 공통 vocabulary로 재확증됐다. openpencil의 ComponentLibrary와 Pen의 agent-facing component model은 composition runtime registry와 별도 경계로 둔다.                                                                            |
-| ADR-153 렌더 최적화 (측정 우선 + Picture 캐시)             | open-pencil retained backing/virtualization/oracles + openpencil 10k reported metric         | composition ADR-153은 **2026-07-28 Implemented**다. Phase 1 profiler, Phase 2 paint lifecycle, Phase 3 Picture/ping-pong을 land했고 Phase 4 incremental budget은 G4 미달로 도입하지 않았다. reference는 이제 “도입 후보”가 아니라 landed 결과와 비교해야 한다. |
-| ADR-916 Rust 레이아웃 엔진 (CSS 규격)                      | 3개 모두 Figma 계열 auto-layout; open-pencil `dom-css`                                       | composition 독자 자산이다. open-pencil `dom-css`와 openpencil HTML/CSS import는 adapter/codegen이며 CSS-SIZING/FLEXBOX/GRID engine이 아니다.                                                                                                                   |
+| composition 영역                                           | Reference 출처                                                                                            | 최신 정합 평가                                                                                                                                                                                                                                                 |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component visual marker (magenta/violet, Cmd+Opt+K 토글)   | Pencil.app v1.1.57 local bundle + 별도 Pen v1.2.1 UX report                                               | UX marker는 reference 가능하지만 implementation은 black box다. v1.2.1 report의 marker/AI UX를 v1.1.57 bundle 사실로 합치지 않는다.                                                                                                                             |
+| `CompositionDocument` canonical schema (ADR-116/122)       | openpencil v0.8.4 `.op`/`PenDocument` + SDK node types                                                    | 가장 가까운 schema reference다. pages/children/variables/themes + Ref/reusable/slot이 공통이지만, openpencil은 21 node variants와 events/bindings/lifecycle/route로 제품 surface가 더 넓다. 1:1 동일성은 아님                                                  |
+| ADR-130 frame (D1 RAC `Group` ↔ D3 canonical `frame` 분리) | openpencil `FrameNode.reusable` + `slot` + ComponentLibrary                                               | reusable bool/slot을 명시적으로 보존하고 UIKit/instance override까지 연결한 점이 유효하다. composition의 canonical frame vocabulary를 바꾸는 근거는 아니다.                                                                                                    |
+| ADR-131 events/actions root collection                     | openpencil node-level `events`/`bindings`/lifecycle/route                                                 | interaction metadata가 존재한다는 기존 정정은 유지한다. 그러나 node-level metadata와 composition의 root `SerializedEvent/SerializedAction` contract는 별도이며, schema를 합치면 안 된다.                                                                       |
+| ADR-134 AI Assistant 통합                                  | Pencil v1.1.57 dual SDK, openpencil Rust agent/orchestrator, open-pencil role models/ACP/MCP              | composition은 **기능이 전혀 없는 상태가 아니라** legacy Groq Tool Calling 7 tools가 landed다. 다만 Provider abstraction/Ollama/offline/routing/Plan→Execute→Verify는 ADR-134 Proposed plan-only라 reference 대비 격차가 남는다.                                |
+| ADR-100 단일 Skia 엔진                                     | openpencil native `skia-safe` + browser CanvasKit/WebGL2; open-pencil CanvasKit WebGL2                    | “Skia 공통”보다 host contract가 핵심이다. openpencil의 Rust shared core와 composition의 web CanvasKit+Rust layout은 유사 목표지만 동일 runtime은 아니다.                                                                                                       |
+| ADR-142 canonical document component model                 | openpencil `.op` PenDocument + reusable/Ref/descendants + UIKit; Pen v1.2.1 report의 동일 축              | Ref/reusable/slot/descendants는 공통 vocabulary로 재확증됐다. openpencil의 ComponentLibrary와 Pen의 agent-facing component model은 composition runtime registry와 별도 경계로 둔다.                                                                            |
+| ADR-153 렌더 최적화 (측정 우선 + Picture 캐시)             | open-pencil retained backing/virtualization/oracles + openpencil 10k reported metric                      | composition ADR-153은 **2026-07-28 Implemented**다. Phase 1 profiler, Phase 2 paint lifecycle, Phase 3 Picture/ping-pong을 land했고 Phase 4 incremental budget은 G4 미달로 도입하지 않았다. reference는 이제 “도입 후보”가 아니라 landed 결과와 비교해야 한다. |
+| ADR-916 Rust 레이아웃 엔진 (CSS 규격)                      | 3개 모두 Figma 계열 auto-layout; open-pencil `dom-css`                                                    | composition 독자 자산이다. open-pencil `dom-css`와 openpencil HTML/CSS import는 adapter/codegen이며 CSS-SIZING/FLEXBOX/GRID engine이 아니다.                                                                                                                   |
+| 제품화·협업 workflow                                       | Figma multiplayer·version history·Organization/Enterprise branching·Libraries·Dev Mode·Plugin API         | composition은 canonical mutation과 Builder/Preview는 보유하지만 realtime collaboration·branch·public plugin/SDK가 없다. Figma는 제품화 reference이지 renderer/schema를 그대로 차용할 대상은 아니다.                                                            |
+| 제품화·publish workflow                                    | Framer CMS·custom code·staging/version·custom domain·hosting·Agents                                       | composition publish/preview는 내부 Builder workflow로는 유효하지만 Framer처럼 public hosting·CMS·deployment·AI publish loop까지 연결된 제품화 surface는 아니다. Framer의 HTML export 부재는 hosting 중심 trade-off로 기록한다.                                 |
+| 제품화·AI 운영                                             | Figma AI Agent/First Draft, Framer Agents·external agents, openpencil/OpenPencil의 multi-provider·ACP/MCP | composition의 7-tool Groq loop는 기능적으로 landed지만 provider abstraction·offline·secret isolation·Plan→Execute→Verify가 미완료다. 따라서 기능 격차보다 **운영 가능한 AI contract 격차**로 평가한다.                                                         |
 
-**현재 정합의 핵심**: schema 축은 이미 composition이 reference 패턴을 흡수한 상태이고, 렌더링 축도 ADR-153 구현으로 기존 문서의 “composition은 retained/cache/profiler가 없다”는 낡은 격차가 해소됐다. 남은 비교 격차는 `open-pencil`의 validation tooling 수준, `openpencil`의 native/Web shared host와 public SDK 경계, 그리고 세 제품이 모두 앞서 있는 AI/협업 제품 surface다.
+**현재 정합의 핵심**: schema 축은 이미 composition이 reference 패턴을 흡수한 상태이고, 렌더링 축도 ADR-153 구현으로 기존 문서의 “composition은 retained/cache/profiler가 없다”는 낡은 격차가 해소됐다. 반면 제품화 축에서는 Figma의 협업·governance, Framer의 publish·hosting, OpenPencil 계열의 public SDK/agent surface가 앞선다. composition의 남은 gap은 단순 기능 수가 아니라 **협업·배포·확장·AI 보안/검증을 하나의 운영 가능한 workflow로 묶는 제품화 contract**다.
 
 ---
 
@@ -282,12 +345,15 @@ composition 의 product target = **엔터프라이즈급 빌더** (메모리 [`f
 - **Pencil.app / Pen**: v1.1.57 local bundle은 상업 Electron desktop과 dual AI SDK/native bridge reference다. v1.2.1 Pen 추출본의 custom WASM/JS-heavy architecture까지 포함하면 composition의 web runtime과 비교할 수 있지만, 두 artifact를 같은 release로 취급하면 안 된다. Helper process 자체는 web product target의 직접 이식 후보가 아니라 Worker/utility isolation 질문으로 환원한다.
 - **openpencil**: 현재는 AI-native + MCP만이 아니라 **Rust shared core + native/Web Skia + CLI/SDK + collaboration + codegen** 제품이다. `LayoutScene`/`RenderBackend` 공유, 10k-node reported metric, read-only wasm SDK, agent-team orchestration, authenticated collaboration은 composition의 enterprise builder target과 직접 비교할 reference다. 반대로 composition의 CSS 규격 layout engine은 openpencil의 Figma/HTML adapter와 다른 독자 target이다.
 - **open-pencil**: 축이 "Figma 호환 + 협업"에서 **"프로그래머블 툴킷"**으로 이동했다 — headless Vue SDK / CLI / MCP / role-based AI / design-to-code 양방향 / visual-oracle tooling. composition이 엔터프라이즈 빌더를 지향한다면 SDK 경계 분리(§4-3), 패널·scene virtualization(§4-6), visual oracle bisect가 협업 기능보다 직접적인 reference다. 협업은 여전히 scope 밖이다.
+- **Figma**: composition이 enterprise builder로 확장할 때의 **제품화 benchmark**다. Libraries·Variables·branching·version history·Dev Mode·Plugin API·multiplayer가 이미 한 SaaS workflow로 연결되어 있으므로, schema나 renderer를 복제하기보다 권한·review·handoff·extension boundary를 비교해야 한다.
+- **Framer**: composition이 publish/preview를 production website로 확장할 때의 **배포 benchmark**다. CMS·custom code·staging·custom domain·hosting·AI Agents가 연결되어 있지만, HTML export를 제공하지 않는 hosting 중심 trade-off도 함께 기록해야 한다.
 
 **composition의 현재 위치**:
 
 - canonical SSOT, frame/component vocabulary, root events/actions, CSS layout engine, Skia/Preview parity는 reference를 소비하는 쪽이 아니라 자체 contract를 가진다.
 - 렌더링 성능은 ADR-153 Implemented로 Picture cache, paint lifecycle, GPU/draw-call profiler, speedscope export, ping-pong snapshot까지 확보했다. 따라서 “open-pencil cache를 아직 도입해야 한다”는 문장을 그대로 유지하지 않는다.
-- AI는 7개 tool + streaming agent loop + abort/visual feedback이 landed지만, `GroqAgentService`의 browser API key, 단일 provider, `llama-3.3-70b-versatile`, `dangerouslyAllowBrowser`는 ADR-134가 해결하려는 현재 gap이다.
+- AI는 7개 tool + streaming agent loop + abort/visual feedback이 landed지만, `GroqAgentService`의 browser API key, 단일 provider, `llama-3.3-70b-versatile`, `dangerouslyAllowBrowser`는 ADR-134가 해결하려는 현재 gap이다. Figma·Framer·open-pencil 계열과의 차이는 AI 기능 수보다 provider·권한·검증·운영 contract의 제품화 수준이다.
+- 제품화 반영 총점은 기능 총점 69.0/100에서 **66.3/100**으로 낮아진다. 이는 composition의 기술 기반이 약해서가 아니라, 현재 enterprise builder로 바로 운영할 때 필요한 realtime collaboration·public SDK·secret isolation·AI verification·production hosting이 아직 하나의 완결된 제품 workflow가 아니기 때문이다.
 
 **fallback 회피 원칙** ([`feedback-no-fallback-thinking`](../../../.claude/memory)) 적용:
 
@@ -317,6 +383,10 @@ composition 의 product target = **엔터프라이즈급 빌더** (메모리 [`f
 11. **시각 오라클 도구화** (`compare` / **`bisect`** / `update-report`) — composition은 Chrome parity fixture와 cross-check gate를 갖췄지만, open-pencil처럼 회귀 구간 이분 탐색·패턴 분석을 하나의 도구 표면으로 묶지는 않았다. 발산 키가 100+로 나오는 격자(ADR-170)에서 도구화 이득이 큼
 12. **bounded Vision inspection + image attachment lifecycle** — open-pencil은 selection render를 Vision model에 보내되 Design chat history에 이미지를 보존하지 않는 경계를 둔다. composition AI가 멀티모달로 확장될 때 입력 보존·전송·폐기 정책의 reference로 삼을 수 있다.
 13. **openpencil v0.8.4 relay 오류 분류·build-time endpoint validation** — 협업을 도입하지 않더라도 외부 control-plane 오류를 `auth / rate-limit / network / malformed build`로 분리하는 운영·보안 관점의 reference다.
+14. **Figma library·branch·Dev Mode contract** — library publish/review, version checkpoint, Organization/Enterprise branch, Code Connect를 composition의 canonical version·review·handoff boundary와 대조한다. Figma renderer나 proprietary file format을 가져오는 후보는 아니다.
+15. **Figma Plugin API·Variables REST의 public extension boundary** — composition mutation path를 외부에 공개할 때 capability-scoped read/write API, document version pinning, secret boundary의 reference로 삼는다.
+16. **Framer publish/staging/CMS workflow** — composition `publish/preview`가 production deployment로 확장될 때 custom domain, staging/production separation, CMS binding, rollback·version contract를 조사한다.
+17. **Framer AI Agent의 editable output contract** — prompt 결과가 단순 text가 아니라 editable page/layer와 publish 상태로 귀결되는 구조를 ADR-134의 Plan→Execute→Verify 이후 단계 reference로 삼는다.
 
 ### 차용 불가 / 보류
 
@@ -328,6 +398,8 @@ composition 의 product target = **엔터프라이즈급 빌더** (메모리 [`f
 6. **open-pencil `dom-css` 의 CSS→노드 매핑** — Figma auto-layout 어휘로의 축약 매핑이라 composition의 CSS 규격 엔진에 역행 (§4-5). 참조 가치가 있는 방향은 **역방향** (`from-scene-graph` / `html-export`의 export 어법)
 7. **openpencil Rust shared core의 wholesale 도입** — composition은 React/CanvasKit/Rust layout/Preview/CSS parity 계약이 이미 다른 방향으로 land됐다. 도입 후보는 host 분리·SDK read boundary·성능 측정 protocol이지 Rust workspace 자체가 아니다.
 8. **open-pencil retained cache의 wholesale 재이식** — composition ADR-153이 이미 Picture/cache/lifecycle/profiler를 구현했고, open-pencil의 3-tier cache를 그대로 겹치면 invalidate·WASM memory contract가 충돌한다. 남은 후보는 visual oracle와 패널 virtualization처럼 현재 gap이 확인된 부분뿐이다.
+9. **Figma/Framer hosted renderer·SaaS 운영 모델의 wholesale 도입** — 내부 renderer, proprietary schema, hosting control plane은 composition의 canonical-only·self-controlled architecture와 충돌한다. 차용 단위는 review/version/permission/deployment contract다.
+10. **Framer HTML export를 전제로 한 migration** — Framer는 hosting 중심 제품이고 공식 FAQ상 HTML self-host export를 지원하지 않는다. composition의 publish portability 요구가 있다면 자체 export contract로 별도 설계한다.
 
 ---
 
@@ -343,6 +415,9 @@ composition 의 product target = **엔터프라이즈급 빌더** (메모리 [`f
 6. **협업은 제품 scope 차이로 분류한다.** openpencil은 authenticated P2P + public relay + regional hub, open-pencil은 Trystero WebRTC + relay/hub fallback + Yjs CRDT다. composition의 Supabase Auth는 identity surface이지 실시간 document collaboration 구현이 아니므로, 이를 schema/rendering gap으로 잘못 계산하지 않는다.
 7. **성능 비교는 FPS 숫자 경쟁이 아니라 측정 contract 비교로 전환한다.** openpencil의 10k-node/0.68s와 open-pencil의 qualitative cache/virtualization claim은 각 프로젝트의 자체 metric이다. composition은 native refresh cadence를 보존하고 frame-time p50/p95/p99를 우선하는 정책과 ADR-153 live evidence를 갖췄으므로, 공통 hardware·scenario 없이 “어느 제품이 더 빠르다”고 결론내리지 않는다.
 8. **차용의 단위는 코드가 아니라 경계·검증 protocol이다.** 차용 우선순위는 `RefNode/reusable/slot` schema 비교, read-only SDK boundary, open-pencil visual-oracle bisect/패널 virtualization, openpencil relay error classification, Pencil/ Pen의 agent-facing UX다. Native FFI, Rust workspace wholesale, collaboration transport wholesale 이식은 보류한다.
+9. **제품화 benchmark를 추가하면 Figma와 Framer의 우위가 기능 수가 아니라 workflow 완결성에서 나온다는 점이 명확해진다.** Figma는 협업·library·branch·Dev Mode·enterprise control, Framer는 CMS·hosting·staging·custom domain·AI publish loop를 연결한다. composition은 개별 canonical·layout·renderer contract는 강하지만 이 surface들이 하나의 운영 가능한 제품 workflow로 연결되지는 않았다.
+10. **기능 총점과 제품화 반영 총점을 분리해 기록한다.** composition의 기능 총점은 69.0/100으로 Pencil/Pen보다 높지만, 제품화 수준 3.0/5를 반영하면 **66.3/100**이다. 이는 AI만의 문제가 아니라 realtime collaboration·public SDK·secret isolation·deployment·governance를 포함한 전체 product surface의 미완성 때문이다.
+11. **현재 composition의 우선순위는 새로운 renderer 기능 추가가 아니다.** ADR-134 AI provider/security/verification, public read/write SDK capability, publish/hosting contract, collaboration scope decision, enterprise permission/audit를 제품화 gate로 정의하는 것이 총점 개선에 직접 연결된다.
 
 ---
 
@@ -356,6 +431,11 @@ composition 의 product target = **엔터프라이즈급 빌더** (메모리 [`f
 - **open-pencil SDK 패키지 경계 ↔ composition packages 경계 대조** — `scene-graph/pen/kiwi/fig/dom-css`와 composition `specs/shared/composition-engine`의 public/private boundary를 비교하되, `dom-css`를 CSS engine으로 흡수하지 않는다.
 - **ADR-134 단계 승격 판단** — legacy Groq tool loop는 landed지만 provider abstraction/offline/verification은 미착수다. Phase 0 baseline을 새로 freeze한 뒤 보안(`dangerouslyAllowBrowser`), canonical mutation, tool correctness, offline gate 순으로 P1 여부를 결정한다.
 - **AI Vision/attachment data lifecycle** — open-pencil의 bounded selection render·non-retention 원칙을 composition의 Preview/Canvas snapshot·권한 모델과 대조한다. 구현 전 threat model과 storage retention gate가 필요하다.
+- **제품화 score gate 정의** — 기능 총점과 별도로 사용자 workflow 완결성, reliability/validation, secret·permission, 배포·hosting·SDK, release/observability를 acceptance gate로 정의하고 composition의 제품화 수준 3.0/5를 재측정한다.
+- **Figma 협업·governance contract 대조** — multiplayer, version checkpoint, branch, library publish/review, Dev Mode handoff를 composition의 history·canonical version·권한 모델과 비교한다. realtime collaboration 도입 여부와 무관하게 review/branch boundary는 조사 가치가 있다.
+- **Framer publish productization contract 대조** — publish/preview, staging/production, CMS binding, custom domain, rollback, deployment failure handling을 composition `apps/publish`와 대조한다. Framer의 HTML export 부재는 portability 요구와 분리해 결정한다.
+- **AI 운영 가능성 재평가** — tool 수가 아니라 provider abstraction, secret isolation, prompt/tool audit, Plan→Execute→Verify, retry/cancel, offline/local model, data retention을 제품화 acceptance criteria로 고정한다.
+- **public SDK capability boundary** — Figma Plugin API·Variables REST, OpenPencil headless SDK/MCP, openpencil read-only wasm SDK를 비교해 composition preview/publish의 read-only와 mutation API를 capability/version scoped contract로 정의할지 판단한다.
 - **Worker thread / GPU 분리 ADR** — Pencil v1.1.57 helper process와 Pen v1.2.1 single-WASM 구조를 분리해 비교하고, composition에서는 Worker isolation이 실제 frame-time p95/interaction latency를 개선하는지 측정 후 제안한다.
 - **공통 benchmark protocol** — 세 제품의 10k-node/zoom/pan/large document claim을 동일 hardware·refresh rate·fixture·warm/cold 조건의 frame-time p50/p95/p99로 재측정하기 전에는 상대 성능 순위를 발표하지 않는다.
 - **openpencil v0.8.4 이후 재실측** — upstream release page가 tag 이후 1 commit을 표시하고 local snapshot에는 `.git`이 없으므로, 다음 source refresh에서 exact commit, Cargo lock, SDK format version, relay/host changes를 다시 고정한다.
@@ -398,3 +478,10 @@ composition 의 product target = **엔터프라이즈급 빌더** (메모리 [`f
 
 - root `package.json`의 직접 `trystero` dependency, `src/app/collab/room.ts`의 `trystero/mqtt` + STUN/TURN, `CHANGELOG.md`의 P2P/relay 서술을 확인
 - 기존 §4-2의 "WebSocket 서버 릴레이만" 결론을 삭제하고 direct P2P + relay/hub fallback으로 정정
+
+**2026-08-17 5차 (Figma·Framer·제품화 수준)** — 공식 문서와 현재 분석 artifact를 교차 확인:
+
+- Figma 공식 Help/Developer 문서에서 Auto Layout, Libraries/Variables, version history, Organization/Enterprise branching, Dev Mode·Code Connect, Plugin API, multiplayer limit, Figma Sites publishing control을 확인했다. AI는 First Draft/Agent beta, text/image/interaction/asset tools, paid Full seat·credit 조건을 확인했다.
+- Framer 공식 Help/Product 문서에서 Agents, editable page/section/copy/visual 생성, external agents, CMS, custom code, staging/version, custom domain·hosting·optimization을 확인했다. 공식 FAQ의 HTML self-host export 미지원도 제품화 trade-off로 반영했다.
+- 기능 총점은 0~5 축 점수에 `10/10/10/10/10/10/10/10/5/15` 가중치를 적용했다. 제품화 수준은 사용자 workflow, reliability/validation, security/permission, deployment/extension, release/operations 5개 항목의 0~5 종합 판정이며, 제품화 반영 총점은 기능 70% + 제품화 30%다.
+- AI 점수는 모델 응답 품질·환각률을 공통 benchmark 없이 비교하지 않고, 현재 사용자 workflow에 연결된 agent/tool/provider/multimodal/verification·security surface의 제품화 수준만 비교한다.
