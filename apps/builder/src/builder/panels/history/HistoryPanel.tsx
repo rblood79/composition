@@ -10,7 +10,6 @@ import {
   Minus,
   Move,
   Pencil,
-  Plus,
   Redo,
   Undo,
   type LucideIcon,
@@ -34,6 +33,8 @@ import {
 import { restoreSnapshot } from "../../stores/history/snapshotRestore";
 import { getHistoryEntryLabel } from "./historyEntryLabel";
 import "./HistoryPanel.css";
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 type HistoryListItem = {
   id: string;
@@ -46,7 +47,7 @@ type HistoryListItem = {
 
 // entry 타입 → 아이콘 (Photoshop History 패널의 도구 아이콘 어법)
 const ENTRY_TYPE_ICONS: Record<HistoryEntry["type"], LucideIcon> = {
-  add: Plus,
+  add: AddIcon,
   remove: Minus,
   update: Pencil,
   move: Move,

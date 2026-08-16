@@ -7,12 +7,19 @@
  * Phase 5: Events Panel 재설계
  */
 
-import { useState, useMemo, useCallback } from 'react';
-import { Button } from 'react-aria-components';
-import { Copy, Check, Code, ChevronDown, ChevronRight } from 'lucide-react';
-import type { BlockEventHandler, ConditionOperand } from '../types/eventBlockTypes';
-import { iconProps, iconEditProps } from '../../../../utils/ui/uiConstants';
-import { useCopyPaste } from '@/builder/hooks';
+import { useState, useMemo, useCallback } from "react";
+import { Button } from "react-aria-components";
+import { Check, Code, ChevronDown, ChevronRight } from "lucide-react";
+import type {
+  BlockEventHandler,
+  ConditionOperand,
+} from "../types/eventBlockTypes";
+import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
+import { useCopyPaste } from "@/builder/hooks";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const CopyIcon = ACTION_ICONS.copy;
 
 interface CodePreviewPanelProps {
   /** 이벤트 핸들러 목록 */
@@ -28,11 +35,13 @@ interface CodePreviewPanelProps {
  */
 function generateHandlerCode(handler: BlockEventHandler): string {
   const lines: string[] = [];
-  const indent = '  ';
+  const indent = "  ";
 
   // 이벤트 리스너 시작
   lines.push(`// ${handler.trigger.event} handler`);
-  lines.push(`element.addEventListener('${handler.trigger.event.replace(/^on/, '').toLowerCase()}', async (event) => {`);
+  lines.push(
+    `element.addEventListener('${handler.trigger.event.replace(/^on/, "").toLowerCase()}', async (event) => {`,
+  );
 
   // 조건 체크 (IF 블록)
   if (handler.conditions && handler.conditions.conditions.length > 0) {
@@ -41,7 +50,7 @@ function generateHandlerCode(handler: BlockEventHandler): string {
     lines.push(`${indent}if (!(${conditionCode})) {`);
     lines.push(`${indent}${indent}return;`);
     lines.push(`${indent}}`);
-    lines.push('');
+    lines.push("");
   }
 
   // THEN 액션들
@@ -84,50 +93,48 @@ function generateHandlerCode(handler: BlockEventHandler): string {
     lines.push(`${indent}}`);
   }
 
-  lines.push('});');
+  lines.push("});");
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
  * 조건 그룹을 코드로 변환
  */
-function generateConditionCode(
-  group: BlockEventHandler['conditions']
-): string {
-  if (!group || group.conditions.length === 0) return 'true';
+function generateConditionCode(group: BlockEventHandler["conditions"]): string {
+  if (!group || group.conditions.length === 0) return "true";
 
-  const operator = group.operator === 'AND' ? ' && ' : ' || ';
+  const operator = group.operator === "AND" ? " && " : " || ";
   const conditions = group.conditions.map((cond) => {
     const left = formatOperand(cond.left);
     const right = cond.right ? formatOperand(cond.right) : "''";
 
     switch (cond.operator) {
-      case 'equals':
+      case "equals":
         return `${left} === ${right}`;
-      case 'not_equals':
+      case "not_equals":
         return `${left} !== ${right}`;
-      case 'greater_than':
+      case "greater_than":
         return `${left} > ${right}`;
-      case 'less_than':
+      case "less_than":
         return `${left} < ${right}`;
-      case 'greater_than_or_equals':
+      case "greater_than_or_equals":
         return `${left} >= ${right}`;
-      case 'less_than_or_equals':
+      case "less_than_or_equals":
         return `${left} <= ${right}`;
-      case 'contains':
+      case "contains":
         return `${left}.includes(${right})`;
-      case 'not_contains':
+      case "not_contains":
         return `!${left}.includes(${right})`;
-      case 'starts_with':
+      case "starts_with":
         return `${left}.startsWith(${right})`;
-      case 'ends_with':
+      case "ends_with":
         return `${left}.endsWith(${right})`;
-      case 'is_empty':
+      case "is_empty":
         return `!${left} || ${left}.length === 0`;
-      case 'is_not_empty':
+      case "is_not_empty":
         return `${left} && ${left}.length > 0`;
-      case 'matches':
+      case "matches":
         return `new RegExp(${right}).test(${left})`;
       default:
         return `${left} === ${right}`;
@@ -141,21 +148,26 @@ function generateConditionCode(
  * 피연산자 포맷
  */
 function formatOperand(operand: ConditionOperand): string {
-  const strValue = String(operand.value ?? '');
+  const strValue = String(operand.value ?? "");
   switch (operand.type) {
-    case 'element':
+    case "element":
       return `getElement('${strValue}')?.value`;
-    case 'state':
+    case "state":
       return `state.${strValue}`;
-    case 'event':
+    case "event":
       return `event.${strValue}`;
-    case 'literal':
+    case "literal":
       // 숫자인지 확인
       if (!isNaN(Number(strValue))) {
         return strValue;
       }
       // 불리언인지 확인
-      if (operand.value === true || operand.value === false || strValue === 'true' || strValue === 'false') {
+      if (
+        operand.value === true ||
+        operand.value === false ||
+        strValue === "true" ||
+        strValue === "false"
+      ) {
         return strValue;
       }
       return `'${strValue}'`;
@@ -168,60 +180,60 @@ function formatOperand(operand: ConditionOperand): string {
  * 액션을 코드로 변환
  */
 function generateActionCode(
-  action: BlockEventHandler['thenActions'][0],
-  indent: string
+  action: BlockEventHandler["thenActions"][0],
+  indent: string,
 ): string {
   const config = action.config as Record<string, unknown>;
 
   switch (action.type) {
-    case 'navigate':
-      return `await navigate('${config.path || '/'}');`;
+    case "navigate":
+      return `await navigate('${config.path || "/"}');`;
 
-    case 'scrollTo':
-      return `await scrollTo('${config.elementId}', { position: '${config.position || 'top'}', smooth: ${config.smooth ?? true} });`;
+    case "scrollTo":
+      return `await scrollTo('${config.elementId}', { position: '${config.position || "top"}', smooth: ${config.smooth ?? true} });`;
 
-    case 'setState':
-    case 'updateState':
+    case "setState":
+    case "updateState":
       return `setState('${config.storePath}', ${JSON.stringify(config.value)});`;
 
-    case 'apiCall':
-      return `await apiCall('${config.endpoint}', { method: '${config.method || 'GET'}' });`;
+    case "apiCall":
+      return `await apiCall('${config.endpoint}', { method: '${config.method || "GET"}' });`;
 
-    case 'showModal':
+    case "showModal":
       return `showModal('${config.modalId}');`;
 
-    case 'hideModal':
-      return `hideModal('${config.modalId || ''}');`;
+    case "hideModal":
+      return `hideModal('${config.modalId || ""}');`;
 
-    case 'showToast':
-      return `showToast('${config.message}', { variant: '${config.variant || 'info'}' });`;
+    case "showToast":
+      return `showToast('${config.message}', { variant: '${config.variant || "info"}' });`;
 
-    case 'toggleVisibility':
+    case "toggleVisibility":
       return `toggleVisibility('${config.elementId}');`;
 
-    case 'validateForm':
+    case "validateForm":
       return `await validateForm('${config.formId}');`;
 
-    case 'resetForm':
+    case "resetForm":
       return `resetForm('${config.formId}');`;
 
-    case 'submitForm':
+    case "submitForm":
       return `await submitForm('${config.formId}');`;
 
-    case 'copyToClipboard':
+    case "copyToClipboard":
       return `await copyToClipboard('${config.text}');`;
 
-    case 'customFunction':
-      return `// Custom function\n${indent}${config.code || '// No code provided'}`;
+    case "customFunction":
+      return `// Custom function\n${indent}${config.code || "// No code provided"}`;
 
-    case 'loadDataTable':
+    case "loadDataTable":
       return `await loadDataTable('${config.dataTableName}', { forceRefresh: ${config.forceRefresh ?? false} });`;
 
-    case 'syncComponent':
-      return `await syncComponent('${config.sourceId}', '${config.targetId}', { mode: '${config.syncMode || 'replace'}' });`;
+    case "syncComponent":
+      return `await syncComponent('${config.sourceId}', '${config.targetId}', { mode: '${config.syncMode || "replace"}' });`;
 
-    case 'saveToDataTable':
-      return `await saveToDataTable('${config.dataTableName}', ${config.source}, { mode: '${config.saveMode || 'replace'}' });`;
+    case "saveToDataTable":
+      return `await saveToDataTable('${config.dataTableName}', ${config.source}, { mode: '${config.saveMode || "replace"}' });`;
 
     default:
       return `// ${action.type}: ${JSON.stringify(config)}`;
@@ -245,16 +257,16 @@ export function CodePreviewPanel({
 }: CodePreviewPanelProps) {
   const [copied, setCopied] = useState(false);
   const { copyText } = useCopyPaste({
-    name: 'code',
+    name: "code",
     onPaste: () => {},
   });
 
   // Lazy 코드 생성 (성능 최적화)
   const generatedCode = useMemo(() => {
-    if (isCollapsed) return ''; // 접힌 상태에서는 생성하지 않음
+    if (isCollapsed) return ""; // 접힌 상태에서는 생성하지 않음
 
     if (handlers.length === 0) {
-      return '// No event handlers configured';
+      return "// No event handlers configured";
     }
 
     const helperFunctions = `// Helper functions
@@ -263,7 +275,7 @@ const getElement = (id) => document.querySelector(id.startsWith('#') ? id : \`[d
 
 `;
 
-    const handlerCodes = handlers.map(generateHandlerCode).join('\n\n');
+    const handlerCodes = handlers.map(generateHandlerCode).join("\n\n");
 
     return helperFunctions + handlerCodes;
   }, [handlers, isCollapsed]);
@@ -275,7 +287,7 @@ const getElement = (id) => document.querySelector(id.startsWith('#') ? id : \`[d
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy code:', err);
+      console.error("Failed to copy code:", err);
     }
   }, [generatedCode, copyText]);
 
@@ -301,12 +313,12 @@ const getElement = (id) => document.querySelector(id.startsWith('#') ? id : \`[d
           <Button
             className="iconButton"
             onPress={handleCopy}
-            aria-label={copied ? 'Copied!' : 'Copy code'}
+            aria-label={copied ? "Copied!" : "CopyIcon code"}
           >
             {copied ? (
               <Check size={iconEditProps.size} color="var(--color-green-500)" />
             ) : (
-              <Copy size={iconEditProps.size} color={iconProps.color} />
+              <CopyIcon size={iconEditProps.size} color={iconProps.color} />
             )}
           </Button>
         )}

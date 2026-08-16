@@ -18,13 +18,7 @@ import {
   Input,
   TextField,
 } from "react-aria-components";
-import {
-  CirclePlus,
-  FolderTree,
-  Layout,
-  Link,
-  AlertCircle,
-} from "lucide-react";
+import { FolderTree, Layout, Link, AlertCircle } from "lucide-react";
 import { useStore } from "../../stores";
 import { useCanonicalReusableFrameLayouts } from "../../stores/canonical/canonicalFrameStore";
 import {
@@ -43,6 +37,10 @@ import {
 } from "../../../adapters/canonical/frameMirror";
 import type { Page } from "../../../types/builder/unified.types";
 import "./AddPageDialog.css";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 export interface AddPageDialogResult {
   title: string;
@@ -207,7 +205,7 @@ export function AddPageDialog({
   return (
     <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
       <Button className="iconButton" aria-label="Add Page">
-        <CirclePlus
+        <AddIcon
           color={iconProps.color}
           strokeWidth={iconProps.strokeWidth}
           size={iconProps.size}
@@ -217,7 +215,7 @@ export function AddPageDialog({
       <Modal className="add-page-modal">
         <Dialog className="add-page-dialog">
           <Heading slot="title" className="add-page-title">
-            <CirclePlus size={iconProps.size} />
+            <AddIcon size={iconProps.size} />
             Add New Page
           </Heading>
 

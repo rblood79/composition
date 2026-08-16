@@ -13,7 +13,7 @@
 import { useCallback, useMemo } from "react";
 import type { Key } from "react-stately";
 import { Button } from "react-aria-components";
-import { CirclePlus, Box } from "lucide-react";
+import { Box } from "lucide-react";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
@@ -22,6 +22,8 @@ import { iconProps } from "../../../../utils/ui/uiConstants";
 import { PanelHeader } from "../../../components";
 import { TreeBase } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 export interface FrameListItem {
   id: string;
@@ -100,7 +102,7 @@ export function FrameList({
         title="Frames"
         actions={
           <Button className="iconButton" aria-label="Add Frame" onPress={onAdd}>
-            <CirclePlus
+            <AddIcon
               color={iconProps.color}
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}

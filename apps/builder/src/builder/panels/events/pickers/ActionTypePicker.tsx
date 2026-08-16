@@ -15,13 +15,17 @@ import {
   ListBoxItem,
 } from "react-aria-components";
 import { Popover } from "@composition/shared/components/Popover";
-import { CirclePlus, Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import type { ActionType } from "@/types/events/events.types";
 import {
   ACTION_TYPE_LABELS,
   REGISTRY_ACTION_CATEGORIES,
 } from "@/types/events/events.types";
 import { iconProps, iconEditProps } from "@/utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 interface ActionTypePickerProps {
   /** 액션 선택 시 호출되는 콜백 */
@@ -224,7 +228,7 @@ export function ActionTypePicker({
         isDisabled={isDisabled || availableActionTypes.length === 0}
         aria-label="액션 추가"
       >
-        <CirclePlus
+        <AddIcon
           color={iconProps.color}
           strokeWidth={iconProps.strokeWidth}
           size={iconProps.size}

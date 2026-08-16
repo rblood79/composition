@@ -82,6 +82,20 @@ const INTENTIONAL_DIVERGENCE: ReadonlyArray<{
     reason: "치수 입력 필드 아이콘 — 눈금자 토글이 아니다.",
   },
   {
+    file: "App.tsx",
+    symbols: ["CirclePlus"],
+    reason:
+      "랜딩 히어로의 장식 아이콘 (`ParticleButton` 안, onPress 없음) — 액션 " +
+      "어포던스가 아니라 마케팅 표면의 그래픽이다. 제품 크롬 규칙 대상 밖.",
+  },
+  {
+    file: "builder/components/property/PropertyNumberInput.tsx",
+    symbols: ["Plus"],
+    reason:
+      '스테퍼 증가("Increase") — `Minus`("Decrease")와 한 쌍인 산술 기호이지 ' +
+      '"추가" 어포던스가 아니다. `add` 정본을 따라가면 짝이 깨진다.',
+  },
+  {
     file: "builder/panels/events/data/eventCategories.ts",
     symbols: ["Component"],
     reason:
@@ -89,6 +103,37 @@ const INTENTIONAL_DIVERGENCE: ReadonlyArray<{
       "ADR-158 Phase 2 이후 진입점이 없는 트리라 배선 대상에서도 뺀다.",
   },
 ];
+
+/**
+ * **금지 변종** — 정본이 다른 그림으로 소유한 액션의 대체 심볼.
+ *
+ * 조항 ①은 registry 가 **import 하는** 심볼만 본다. 그래서 정본이 `Trash2` 인데
+ * 누가 `Trash` 를 집는 것은 못 잡는다 — 그런데 그게 정확히 2026-08-16 에 고친
+ * 두 발산의 형태다 (삭제 `Trash`, 눈금자 `Ruler`). 고쳐 놓고 재도입을 막지
+ * 않으면 같은 자리로 돌아온다.
+ *
+ * 새 항목은 "이 액션의 정본은 무엇이고 왜 이 변종이 아닌가" 가 답해질 때만.
+ */
+const BANNED_VARIANTS: Record<string, { canonicalKey: string; why: string }> = {
+  Trash: {
+    canonicalKey: "delete",
+    why: "삭제 정본은 `Trash2`. 2026-08-16 이전 FramesTab 2파일이 `Trash` 였다.",
+  },
+  Ruler: {
+    canonicalKey: "toggleRulers",
+    why: "눈금자 토글 정본은 `RulerDimensionLine` (Settings 패널·History 정합).",
+  },
+  CirclePlus: {
+    canonicalKey: "add",
+    why:
+      "추가 어포던스 정본은 `Plus` 하나 — 아이콘 단독 버튼이라고 원형 변종을 " +
+      "쓰지 않는다. 그 자리의 다른 아이콘(gear/trash)이 전부 선화 단독이다.",
+  },
+  PlusCircle: {
+    canonicalKey: "add",
+    why: "`CirclePlus` 의 구 lucide 별칭 — 같은 이유로 금지.",
+  },
+};
 
 function isIntentionalDivergence(file: string, symbol: string): boolean {
   return INTENTIONAL_DIVERGENCE.some(
@@ -122,8 +167,9 @@ if (!registry) throw new Error(`registry 를 못 찾음: ${REGISTRY_REL}`);
 /** registry 가 `lucide-react` 에서 가져오는 심볼 = 정본이 소유한 심볼 집합. */
 const OWNED_SYMBOLS = new Set(
   (
-    registry.text.match(/import\s*\{([^}]*)\}\s*from\s*"lucide-react"/)?.[1] ??
-    ""
+    registry.text.match(
+      /import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/,
+    )?.[1] ?? ""
   )
     .split(",")
     .map((raw) =>
@@ -150,7 +196,7 @@ const REGISTRY_KEYS = (() => {
 /** 한 파일이 `lucide-react` 에서 가져오는 심볼. */
 function lucideImportsOf(text: string): string[] {
   const symbols: string[] = [];
-  const re = /import\s*\{([^}]*)\}\s*from\s*"lucide-react"/g;
+  const re = /import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g;
   let match: RegExpExecArray | null;
   while ((match = re.exec(text))) {
     for (const raw of match[1].split(",")) {
@@ -208,6 +254,33 @@ describe("ACTION_ICONS — 등재 심볼의 registry 밖 직접 import 0건", ()
   it("registry 가 소유하는 심볼 목록이 비어 있지 않다 (파싱 회귀 감지)", () => {
     // 위 가드는 OWNED_SYMBOLS 가 비면 조용히 전부 통과한다.
     expect(OWNED_SYMBOLS.size).toBeGreaterThanOrEqual(15);
+  });
+});
+
+describe("ACTION_ICONS — 금지 변종 0건", () => {
+  it("정본이 다른 그림을 쓰는 액션의 대체 심볼을 아무도 집지 않는다", () => {
+    const violations: string[] = [];
+
+    for (const file of SOURCE_FILES) {
+      if (file.rel === REGISTRY_REL) continue;
+      for (const symbol of lucideImportsOf(file.text)) {
+        const banned = BANNED_VARIANTS[symbol];
+        if (!banned) continue;
+        if (isIntentionalDivergence(file.rel, symbol)) continue;
+        violations.push(
+          `${file.rel} — ${symbol} (→ ACTION_ICONS.${banned.canonicalKey}: ${banned.why})`,
+        );
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it("금지 변종이 가리키는 정본 키가 실재한다 (오타 감지)", () => {
+    const missing = Object.entries(BANNED_VARIANTS)
+      .filter(([, v]) => !REGISTRY_KEYS.includes(v.canonicalKey))
+      .map(([symbol, v]) => `${symbol} → ${v.canonicalKey}`);
+    expect(missing).toEqual([]);
   });
 });
 

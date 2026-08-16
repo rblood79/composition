@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { Layers, Plus, X } from "lucide-react";
+import { Layers, X } from "lucide-react";
 import {
   resolveCanonicalRefMaster,
   isCanonicalRefElement,
@@ -26,6 +26,10 @@ import {
 } from "../../components/slotHostPolicy";
 import type { Element } from "../../../types/core/store.types";
 import type { PanelNode } from "../panelNode";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 type SlotHostElement = PanelNode & {
   metadata?: { slot?: unknown };
@@ -350,7 +354,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
             onClick={handleFillSlot}
             type="button"
           >
-            <Plus aria-hidden="true" size={14} />
+            <AddIcon aria-hidden="true" size={14} />
             <span>Fill</span>
           </button>
         </div>

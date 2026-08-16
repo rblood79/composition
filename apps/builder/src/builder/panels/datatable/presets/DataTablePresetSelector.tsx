@@ -17,7 +17,6 @@ import {
   Button,
 } from "react-aria-components";
 import {
-  Plus,
   X,
   User,
   Key,
@@ -42,6 +41,10 @@ import { PRESET_CATEGORIES } from "./types";
 import { DATATABLE_PRESETS, getPresetsByCategory } from "./dataTablePresets";
 import "./DataTablePresetSelector.css";
 import { iconProps, iconLarge } from "../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 // ============================================
 // Icon Mapping
@@ -67,12 +70,15 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   Factory,
 };
 
-const categoryIconMap: Record<string, React.ComponentType<{ size?: number }>> = {
+const categoryIconMap: Record<
+  string,
+  React.ComponentType<{ size?: number }>
+> = {
   "users-auth": Users,
-  "organization": Building2,
-  "ecommerce": ShoppingCart,
-  "manufacturing": Factory,
-  "system": Settings,
+  organization: Building2,
+  ecommerce: ShoppingCart,
+  manufacturing: Factory,
+  system: Settings,
 };
 
 // ============================================
@@ -113,14 +119,17 @@ export function DataTablePresetSelector({
 
   // 선택 상태
   const [mode, setMode] = useState<"empty" | "preset">("preset");
-  const [selectedCategory, setSelectedCategory] = useState<PresetCategory>("users-auth");
-  const [selectedPreset, setSelectedPreset] = useState<DataTablePreset | null>(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<PresetCategory>("users-auth");
+  const [selectedPreset, setSelectedPreset] = useState<DataTablePreset | null>(
+    null,
+  );
   const [sampleCount, setSampleCount] = useState(10);
 
   // 카테고리별 Preset 목록
   const presetsInCategory = useMemo(
     () => getPresetsByCategory(selectedCategory),
-    [selectedCategory]
+    [selectedCategory],
   );
 
   // 카테고리 변경 핸들러
@@ -153,19 +162,27 @@ export function DataTablePresetSelector({
   // 아이콘 렌더링 헬퍼
   const renderIcon = (iconName: string, size?: number) => {
     const IconComponent = iconMap[iconName];
-    return IconComponent ? <IconComponent size={size} /> : <Database size={size} />;
+    return IconComponent ? (
+      <IconComponent size={size} />
+    ) : (
+      <Database size={size} />
+    );
   };
 
   const renderCategoryIcon = (category: PresetCategory, size?: number) => {
     const IconComponent = categoryIconMap[category];
-    return IconComponent ? <IconComponent size={size} /> : <Database size={size} />;
+    return IconComponent ? (
+      <IconComponent size={size} />
+    ) : (
+      <Database size={size} />
+    );
   };
 
   return (
     <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
       {trigger || (
         <Button className="react-aria-Button primary">
-          <Plus {...iconProps} />
+          <AddIcon {...iconProps} />
           DataTable 추가
         </Button>
       )}
@@ -243,7 +260,9 @@ export function DataTablePresetSelector({
                             {renderIcon(preset.icon, iconLarge.size)}
                           </div>
                           <div className="list-item-name">{preset.name}</div>
-                          <div className="list-item-desc">{preset.description}</div>
+                          <div className="list-item-desc">
+                            {preset.description}
+                          </div>
                           <div className="list-item-meta">
                             {preset.schema.length} fields
                           </div>
@@ -268,7 +287,13 @@ export function DataTablePresetSelector({
                               value={sampleCount}
                               onChange={(e) =>
                                 setSampleCount(
-                                  Math.max(0, Math.min(100, parseInt(e.target.value) || 0))
+                                  Math.max(
+                                    0,
+                                    Math.min(
+                                      100,
+                                      parseInt(e.target.value) || 0,
+                                    ),
+                                  ),
                                 )
                               }
                             />
@@ -277,15 +302,24 @@ export function DataTablePresetSelector({
                         </div>
                         <div className="preset-preview-schema">
                           {selectedPreset.schema.map((field) => (
-                            <div key={field.key} className="preset-schema-field">
+                            <div
+                              key={field.key}
+                              className="preset-schema-field"
+                            >
                               <span className="schema-field-name">
                                 {field.key}
                                 {field.required && (
-                                  <span className="schema-field-required">*</span>
+                                  <span className="schema-field-required">
+                                    *
+                                  </span>
                                 )}
                               </span>
-                              <span className="schema-field-type">{field.type}</span>
-                              <span className="schema-field-label">{field.label}</span>
+                              <span className="schema-field-type">
+                                {field.type}
+                              </span>
+                              <span className="schema-field-label">
+                                {field.label}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -296,7 +330,10 @@ export function DataTablePresetSelector({
 
                 {/* Footer */}
                 <div className="preset-modal-footer">
-                  <Button className="react-aria-Button secondary" onPress={close}>
+                  <Button
+                    className="react-aria-Button secondary"
+                    onPress={close}
+                  >
                     취소
                   </Button>
                   <Button

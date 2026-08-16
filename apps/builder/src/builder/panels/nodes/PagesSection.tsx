@@ -15,7 +15,7 @@ import React, {
 } from "react";
 import type { Key } from "react-stately";
 import { Button } from "react-aria-components";
-import { CirclePlus, Home } from "lucide-react";
+import { Home } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
 import { useIframeMessenger, usePageManager } from "@/builder/hooks";
@@ -35,6 +35,10 @@ import {
 } from "../../utils/scheduleTask";
 import { longTaskMonitor } from "../../../utils/longTaskMonitor";
 import type { PanelNode } from "../panelNode";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 interface PagesSectionProps {
   projectId: string | undefined;
@@ -327,7 +331,7 @@ export const PagesSection = memo(function PagesSection({
             isDisabled={isCreatingPage}
             onPress={handleAddPage}
           >
-            <CirclePlus
+            <AddIcon
               color={iconProps.color}
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}

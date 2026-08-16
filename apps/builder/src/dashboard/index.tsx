@@ -19,9 +19,7 @@ import { useAsyncMutation } from "../builder/hooks/useAsyncMutation";
 import {
   SquarePlus,
   Settings,
-  Plus,
   Package,
-  Trash,
   FolderOpen,
   Layers,
 } from "lucide-react";
@@ -32,6 +30,12 @@ import { createInitialProjectDocument } from "./createInitialProjectDocument";
 import type { ProjectListItem } from "../types/dashboard.types";
 import { deriveProjectRenderModelFromDocument } from "@composition/shared";
 import "./index.css";
+import { ACTION_ICONS } from "../builder/config/actionIcons";
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 // (ADR-128) cloud `projects` row schema 의 잔재. local-only dashboard 가
 // IndexedDB project 를 표현할 때만 사용.
@@ -133,7 +137,7 @@ function ProjectCard({
             isDisabled={loading}
             aria-label="Delete project"
           >
-            <Trash size={14} />
+            <DeleteIcon size={14} />
           </Button>
           <Tooltip>Delete</Tooltip>
         </TooltipTrigger>
@@ -372,7 +376,7 @@ function Dashboard() {
             isDisabled={loading || !newProjectName.trim()}
             isLoading={createProjectMutation.isLoading}
           >
-            <Plus size={14} />
+            <AddIcon size={14} />
           </Button>
         </form>
 

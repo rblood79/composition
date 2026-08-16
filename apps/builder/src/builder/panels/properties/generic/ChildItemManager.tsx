@@ -1,5 +1,4 @@
 import { memo, useMemo, useCallback } from "react";
-import { Plus } from "lucide-react";
 import type { ChildrenManagerField } from "@composition/specs";
 import { useStore } from "../../../stores";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
@@ -11,6 +10,8 @@ import {
 
 import "../editors/styles/propertyEditors.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -131,7 +132,7 @@ export const ChildItemManager = memo(function ChildItemManager({
           className="control-button control-button--add"
           onClick={handleAdd}
         >
-          <Plus size={14} />
+          <AddIcon size={14} />
           Add {childTag}
         </button>
       </div>

@@ -5,15 +5,20 @@
  * AND/OR 연산자 지원, 다중 조건 추가 가능
  */
 
-import { useState, Fragment } from 'react';
-import { Button } from 'react-aria-components';
-import { Search, Plus, Trash, ChevronDown, ChevronRight } from 'lucide-react';
-import type { ConditionGroup, Condition } from '../types/eventBlockTypes';
-import { createEmptyCondition } from '../types/eventBlockTypes';
-import { iconProps, iconEditProps } from '../../../../utils/ui/uiConstants';
-import { BlockConnector } from './BlockConnector';
-import { ConditionRow } from '../editors/ConditionRow';
-import { OperatorToggle } from '../editors/OperatorToggle';
+import { useState, Fragment } from "react";
+import { Button } from "react-aria-components";
+import { Search, ChevronDown, ChevronRight } from "lucide-react";
+import type { ConditionGroup, Condition } from "../types/eventBlockTypes";
+import { createEmptyCondition } from "../types/eventBlockTypes";
+import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
+import { BlockConnector } from "./BlockConnector";
+import { ConditionRow } from "../editors/ConditionRow";
+import { OperatorToggle } from "../editors/OperatorToggle";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface IfBlockProps {
   /** 조건 그룹 (undefined면 조건 없음) */
@@ -52,9 +57,11 @@ export function IfBlock({
     return (
       <Button
         className="add-condition-button"
-        onPress={() => onChange({ operator: 'AND', conditions: [createEmptyCondition()] })}
+        onPress={() =>
+          onChange({ operator: "AND", conditions: [createEmptyCondition()] })
+        }
       >
-        <Plus size={iconEditProps.size} />
+        <AddIcon size={iconEditProps.size} />
         Add Condition (optional)
       </Button>
     );
@@ -87,12 +94,16 @@ export function IfBlock({
   };
 
   // 연산자 변경
-  const handleOperatorChange = (operator: 'AND' | 'OR') => {
+  const handleOperatorChange = (operator: "AND" | "OR") => {
     onChange({ ...conditions, operator });
   };
 
   return (
-    <div className="event-block if-block" role="group" aria-label="Condition block">
+    <div
+      className="event-block if-block"
+      role="group"
+      aria-label="Condition block"
+    >
       {/* Block Header */}
       <div className="block-header">
         <Search
@@ -108,13 +119,23 @@ export function IfBlock({
           <Button
             className="iconButton"
             onPress={() => setIsExpanded(!isExpanded)}
-            aria-label={isExpanded ? 'Collapse conditions' : 'Expand conditions'}
+            aria-label={
+              isExpanded ? "Collapse conditions" : "Expand conditions"
+            }
             aria-expanded={isExpanded}
           >
             {isExpanded ? (
-              <ChevronDown size={iconEditProps.size} color={iconProps.color} strokeWidth={iconProps.strokeWidth} />
+              <ChevronDown
+                size={iconEditProps.size}
+                color={iconProps.color}
+                strokeWidth={iconProps.strokeWidth}
+              />
             ) : (
-              <ChevronRight size={iconEditProps.size} color={iconProps.color} strokeWidth={iconProps.strokeWidth} />
+              <ChevronRight
+                size={iconEditProps.size}
+                color={iconProps.color}
+                strokeWidth={iconProps.strokeWidth}
+              />
             )}
           </Button>
 
@@ -124,7 +145,11 @@ export function IfBlock({
             onPress={onRemove}
             aria-label="Remove condition block"
           >
-            <Trash size={iconEditProps.size} color={iconProps.color} strokeWidth={iconProps.strokeWidth} />
+            <DeleteIcon
+              size={iconEditProps.size}
+              color={iconProps.color}
+              strokeWidth={iconProps.strokeWidth}
+            />
           </Button>
         </div>
       </div>
@@ -152,18 +177,15 @@ export function IfBlock({
           ))}
 
           {/* Add Condition Button */}
-          <Button
-            className="add-row-button"
-            onPress={addCondition}
-          >
-            <Plus size={iconEditProps.size} />
+          <Button className="add-row-button" onPress={addCondition}>
+            <AddIcon size={iconEditProps.size} />
             Add Condition
           </Button>
         </div>
       )}
 
       {/* Connector to THEN/ELSE blocks */}
-      <BlockConnector direction={showSplitConnector ? 'split' : 'down'} />
+      <BlockConnector direction={showSplitConnector ? "split" : "down"} />
     </div>
   );
 }

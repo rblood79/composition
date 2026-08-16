@@ -12,7 +12,7 @@
  * `<Activity mode="hidden">` 담당 (ADR-155).
  */
 import { useCallback, useState } from "react";
-import { Plus, SquareMousePointer } from "lucide-react";
+import { SquareMousePointer } from "lucide-react";
 import { resolveTriggers } from "@composition/shared";
 
 import { EmptyState, PanelHeader, Section } from "../../components";
@@ -20,6 +20,10 @@ import { useDebouncedSelectedElementData } from "../../stores";
 import { RuleRow } from "./RuleRow";
 import { useInteractionRules } from "./useInteractionRules";
 import "./InteractionsPanel.css";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 export function InteractionsPanel() {
   const selectedElement = useDebouncedSelectedElementData();
@@ -27,7 +31,10 @@ export function InteractionsPanel() {
   if (!selectedElement) {
     return (
       <div className="panel interactions-panel">
-        <PanelHeader title="Interactions" icon={<SquareMousePointer size={14} />} />
+        <PanelHeader
+          title="Interactions"
+          icon={<SquareMousePointer size={14} />}
+        />
         <div className="panel-contents">
           <EmptyState message="요소를 선택하세요" />
         </div>
@@ -69,7 +76,10 @@ function InteractionsPanelContent({
 
   return (
     <div className="panel interactions-panel">
-      <PanelHeader title="Interactions" icon={<SquareMousePointer size={14} />} />
+      <PanelHeader
+        title="Interactions"
+        icon={<SquareMousePointer size={14} />}
+      />
       <div className="panel-contents">
         <Section
           title="규칙"
@@ -111,7 +121,7 @@ function InteractionsPanelContent({
                 className="interactions-add"
                 onClick={handleAdd}
               >
-                <Plus size={14} />
+                <AddIcon size={14} />
                 규칙 추가
               </button>
             </>

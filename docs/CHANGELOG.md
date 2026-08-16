@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ["추가" 아이콘 규칙 확정 + 가드 사각 2건 해소] - 2026-08-16
+
+### Bug Fixes
+
+- **삭제 아이콘 발산이 라이브 화면 2곳에 더 있었다 — 직전 엔트리의 보고가 불완전했다**:
+  - `LayerTreeItemContent.tsx` / `PageTreeItemContent.tsx` — **레이어 트리·페이지 트리의 삭제 버튼**이 구 `Trash` 였다. 가장 자주 보는 패널이다
+  - **Why**: 가드 정규식이 `from "lucide-react"` (겹따옴표)만 매칭해 **홑따옴표 import 21개 파일을 통째로 못 봤다**. 직전 엔트리의 "`Trash` 는 FramesTab 2파일 + dead 2건" 은 이 사각의 산물이다. 정규식을 `["']` 로 고치자 events 트리 4건까지 함께 드러났다
+  - live 실측: 페이지 트리 삭제 5버튼 · 프레임 트리 3버튼 전부 `lucide-trash-2`, 금지 변종 DOM 토큰 0건
+- **`ACTION_ICONS` 이름 충돌** — `events/blocks/ActionBlock.tsx` 에 동명의 로컬 맵(액션 타입 → 아이콘)이 있어 정본 import 와 부딪혔다. 로컬 쪽을 이웃(`ACTION_TYPE_LABELS`)과 맞춰 `ACTION_TYPE_ICONS` 로 좁혔다
+- **ADR-181 C4 #6 정적 테스트가 깨져 있었다**: `HistoryPanel` 소스에 `"page-guide": RulerDimensionLine` 리터럴을 단언하는데 직전 커밋이 그 줄을 정본 경유로 바꿨다. 직전 작업이 `stores/history/` 를 테스트 범위에 넣지 않아 놓쳤다. 단언을 `ACTION_ICONS.toggleRulers` 로 갱신 — 확인할 것은 "가이드 entry 가 눈금자 그림을 쓴다" 이지 특정 심볼명이 아니다
+
+### Features
+
+- **"추가" 어포던스 아이콘 규칙 확정 — `Plus` 하나**:
+  - 종전에는 `Plus`(29곳)와 `CirclePlus`(6곳)로 갈려 있었다. 실측상 잠재 규칙은 **"아이콘 단독 = `CirclePlus` / 텍스트 동반 = `Plus`"** 였고 `CirclePlus` 6/6 이 일치했다
+  - **그 규칙을 기각한 이유** — ① 이미 새고 있었다 (FillSection 2건은 아이콘 단독인데 `Plus`) ② **기계 집행이 불가능하다** (JSX 형제에 텍스트 노드가 있는지로 판정해야 해 정적 스캔이 취약 — 막지 못하는 규칙은 규칙이 아니다) ③ `PanelHeader actions` 자리의 다른 아이콘(gear/trash)이 전부 선화 단독이라 거기서 원형 변종만 튄다
+  - 예외는 하나 — **같은 화면에서 두 종류를 더할 때의 구분 변종** (`ItemsManager` 의 `FolderPlus` "Add Section" ↔ `Plus` "Add Item"). 구분할 상대가 없으면 변종을 쓰지 않는다
+  - 사용자-가시 변화: Pages / Frames 섹션 헤더의 추가 버튼과 Add Page 다이얼로그가 원형 `⊕` → 선화 `+` (live 확인)
+  - 초기 가설("최상위 개체 생성 vs 목록 항목 추가")은 **반증됐다** — `PagesSection`(CirclePlus)과 `DataTableList`(Plus)가 둘 다 패널 섹션 헤더의 "새 최상위 개체 만들기" 이고, `ActionTypePicker`(CirclePlus)와 `ActionList`(Plus)는 완전히 같은 "액션 추가" 다
+
+### Architecture
+
+- **가드 조항 ③ 추가 — 금지 변종 0건** (`actionIcons.static.test.ts`):
+  - 조항 ①은 registry 가 **import 하는** 심볼만 본다. 정본이 `Trash2` 인데 누가 `Trash` 를 집는 것은 못 잡는데, **그게 정확히 이번에 고친 발산의 형태다**. 고쳐 놓고 재도입을 막지 않으면 같은 자리로 돌아온다
+  - `Trash`→`delete` / `Ruler`→`toggleRulers` / `CirclePlus`·`PlusCircle`→`add`, 각 항목에 "왜 이 변종이 아닌가" 사유 동반. 정본 키 오타 감지 단언 포함
+  - RED 검증 — RuleRow 에 `Trash` 직접 import 시 조항③ FAIL
+- **`ACTION_ICONS.add` 등재 + 30개 파일 배선** (dashboard 포함 — "새 프로젝트" / "프로젝트 삭제" 도 같은 액션이다)
+- **예외 3건 추가** (`INTENTIONAL_DIVERGENCE`) — 판정 기준이 "같은 그림"이 아니라 **같은 액션**이라: `PropertyNumberInput` 의 `Plus` 는 `Minus` 와 짝인 **스테퍼 증가**(추가 아님), 랜딩 `App.tsx` 의 `CirclePlus` 는 액션 없는 **장식**, (기존) TypographySection 정렬 6종은 `textAlign` 스타일 값
+- 규칙 문서화: `.claude/rules/panel-structure.md` §아이콘 — 등재 기준 / 기각한 대안과 그 이유 / 금지 패턴 6종
+
 ## [빌더 액션 아이콘 정본 — ACTION_ICONS registry + 정적 가드] - 2026-08-16
 
 ### Bug Fixes

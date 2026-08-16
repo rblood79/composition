@@ -6,7 +6,6 @@ import {
   Folder,
   File,
   Settings2,
-  Trash,
   GripVertical,
 } from "lucide-react";
 import { useContextMenu } from "../../../../components";
@@ -21,6 +20,10 @@ import {
   getEditingSemanticsRole,
 } from "../../../../utils/editingSemantics";
 import type { PanelNode } from "../../../panelNode";
+import { ACTION_ICONS } from "../../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface LayerTreeItemContentProps {
   node: LayerTreeNode;
@@ -189,7 +192,7 @@ function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {
             aria-label={`Delete ${type}`}
             onPress={() => onDelete(element)}
           >
-            <Trash
+            <DeleteIcon
               color={ICON_EDIT_PROPS.color}
               strokeWidth={ICON_EDIT_PROPS.stroke}
               size={ICON_EDIT_PROPS.size}

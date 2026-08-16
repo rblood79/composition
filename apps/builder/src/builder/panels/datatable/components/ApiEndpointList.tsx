@@ -6,12 +6,14 @@
  */
 
 import { useState } from "react";
-import { Globe, Plus, Edit2, Play } from "lucide-react";
+import { Globe, Edit2, Play } from "lucide-react";
 import { useDataStore, useApiEndpoints } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { Section } from "../../../components";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -166,7 +168,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
         className="datatable-add-btn"
         onClick={handleCreate}
       >
-        <Plus {...iconProps} />
+        <AddIcon {...iconProps} />
         <span>API 추가</span>
       </button>
     </Section>

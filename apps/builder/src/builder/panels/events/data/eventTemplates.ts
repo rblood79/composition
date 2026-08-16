@@ -14,14 +14,17 @@ import {
   Download,
   Search,
   Check,
-  Trash,
   FileText,
   Navigation,
   Palette,
   Database,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { EventHandler, EventType, ActionType } from "../types";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 /**
  * Event Template - 자주 사용되는 이벤트 패턴을 템플릿으로 제공
@@ -50,31 +53,34 @@ export interface TemplateCategoryInfo {
 /**
  * Template Categories
  */
-export const TEMPLATE_CATEGORIES: Record<TemplateCategory, TemplateCategoryInfo> = {
+export const TEMPLATE_CATEGORIES: Record<
+  TemplateCategory,
+  TemplateCategoryInfo
+> = {
   form: {
     id: "form",
     label: "Form Actions",
     icon: FileText,
-    description: "Form validation, submission, and data handling"
+    description: "Form validation, submission, and data handling",
   },
   navigation: {
     id: "navigation",
     label: "Navigation",
     icon: Navigation,
-    description: "Page navigation and scrolling"
+    description: "Page navigation and scrolling",
   },
   ui: {
     id: "ui",
     label: "UI Controls",
     icon: Palette,
-    description: "Modals, toasts, and visibility toggles"
+    description: "Modals, toasts, and visibility toggles",
   },
   data: {
     id: "data",
     label: "Data Operations",
     icon: Database,
-    description: "API calls, data fetching, and state management"
-  }
+    description: "API calls, data fetching, and state management",
+  },
 };
 
 /**
@@ -86,10 +92,13 @@ function createTemplate(
   description: string,
   category: TemplateCategory,
   icon: LucideIcon,
-  events: Array<{ type: EventType; actions: Array<{ type: ActionType; config: Record<string, unknown> }> }>,
+  events: Array<{
+    type: EventType;
+    actions: Array<{ type: ActionType; config: Record<string, unknown> }>;
+  }>,
   tags: string[],
   componentTypes?: string[],
-  usageCount?: number
+  usageCount?: number,
 ): EventTemplate {
   return {
     id,
@@ -103,12 +112,12 @@ function createTemplate(
       actions: evt.actions.map((action, idx) => ({
         id: `${id}-${evt.type}-action-${idx}`,
         type: action.type,
-        config: action.config
-      }))
+        config: action.config,
+      })),
     })),
     tags,
     componentTypes,
-    usageCount
+    usageCount,
   };
 }
 
@@ -127,13 +136,19 @@ export const FORM_TEMPLATES: EventTemplate[] = [
         type: "onSubmit",
         actions: [
           { type: "validateForm", config: { showErrors: true } },
-          { type: "showToast", config: { message: "Form validated successfully", variant: "success" } }
-        ]
-      }
+          {
+            type: "showToast",
+            config: {
+              message: "Form validated successfully",
+              variant: "success",
+            },
+          },
+        ],
+      },
     ],
     ["validation", "error", "form"],
     ["Form", "TextField", "TextArea"],
-    95
+    95,
   ),
 
   createTemplate(
@@ -152,16 +167,19 @@ export const FORM_TEMPLATES: EventTemplate[] = [
             config: {
               method: "POST",
               endpoint: "/api/submit",
-              successMessage: "Form submitted successfully"
-            }
+              successMessage: "Form submitted successfully",
+            },
           },
-          { type: "showToast", config: { message: "Submitted!", variant: "success" } }
-        ]
-      }
+          {
+            type: "showToast",
+            config: { message: "Submitted!", variant: "success" },
+          },
+        ],
+      },
     ],
     ["submit", "api", "post", "form"],
     ["Form", "Button"],
-    88
+    88,
   ),
 
   createTemplate(
@@ -175,13 +193,16 @@ export const FORM_TEMPLATES: EventTemplate[] = [
         type: "onClick",
         actions: [
           { type: "resetForm", config: {} },
-          { type: "showToast", config: { message: "Form reset", variant: "info" } }
-        ]
-      }
+          {
+            type: "showToast",
+            config: { message: "Form reset", variant: "info" },
+          },
+        ],
+      },
     ],
     ["reset", "clear", "form"],
     ["Button"],
-    72
+    72,
   ),
 
   createTemplate(
@@ -200,16 +221,16 @@ export const FORM_TEMPLATES: EventTemplate[] = [
             config: {
               method: "PUT",
               endpoint: "/api/autosave",
-              debounce: 1000
-            }
-          }
-        ]
-      }
+              debounce: 1000,
+            },
+          },
+        ],
+      },
     ],
     ["autosave", "draft", "form"],
     ["TextField", "TextArea", "Form"],
-    65
-  )
+    65,
+  ),
 ];
 
 /**
@@ -226,13 +247,13 @@ export const NAVIGATION_TEMPLATES: EventTemplate[] = [
       {
         type: "onClick",
         actions: [
-          { type: "navigate", config: { path: "/page", openInNewTab: false } }
-        ]
-      }
+          { type: "navigate", config: { path: "/page", openInNewTab: false } },
+        ],
+      },
     ],
     ["navigate", "link", "page"],
     ["Button", "Link", "Card"],
-    92
+    92,
   ),
 
   createTemplate(
@@ -245,13 +266,16 @@ export const NAVIGATION_TEMPLATES: EventTemplate[] = [
       {
         type: "onClick",
         actions: [
-          { type: "scrollTo", config: { target: "#section-id", behavior: "smooth" } }
-        ]
-      }
+          {
+            type: "scrollTo",
+            config: { target: "#section-id", behavior: "smooth" },
+          },
+        ],
+      },
     ],
     ["scroll", "anchor", "section"],
     ["Button", "Link"],
-    78
+    78,
   ),
 
   createTemplate(
@@ -264,13 +288,16 @@ export const NAVIGATION_TEMPLATES: EventTemplate[] = [
       {
         type: "onClick",
         actions: [
-          { type: "navigate", config: { path: "{{history.back}}", openInNewTab: false } }
-        ]
-      }
+          {
+            type: "navigate",
+            config: { path: "{{history.back}}", openInNewTab: false },
+          },
+        ],
+      },
     ],
     ["back", "previous", "history"],
     ["Button"],
-    70
+    70,
   ),
 
   createTemplate(
@@ -283,14 +310,17 @@ export const NAVIGATION_TEMPLATES: EventTemplate[] = [
       {
         type: "onClick",
         actions: [
-          { type: "navigate", config: { path: "https://example.com", openInNewTab: true } }
-        ]
-      }
+          {
+            type: "navigate",
+            config: { path: "https://example.com", openInNewTab: true },
+          },
+        ],
+      },
     ],
     ["external", "link", "new tab"],
     ["Button", "Link"],
-    65
-  )
+    65,
+  ),
 ];
 
 /**
@@ -306,14 +336,12 @@ export const UI_TEMPLATES: EventTemplate[] = [
     [
       {
         type: "onClick",
-        actions: [
-          { type: "showModal", config: { modalId: "modal-id" } }
-        ]
-      }
+        actions: [{ type: "showModal", config: { modalId: "modal-id" } }],
+      },
     ],
     ["modal", "dialog", "popup"],
     ["Button", "Link", "Card"],
-    90
+    90,
   ),
 
   createTemplate(
@@ -325,14 +353,12 @@ export const UI_TEMPLATES: EventTemplate[] = [
     [
       {
         type: "onClick",
-        actions: [
-          { type: "hideModal", config: { modalId: "modal-id" } }
-        ]
-      }
+        actions: [{ type: "hideModal", config: { modalId: "modal-id" } }],
+      },
     ],
     ["modal", "close", "dismiss"],
     ["Button"],
-    85
+    85,
   ),
 
   createTemplate(
@@ -345,13 +371,20 @@ export const UI_TEMPLATES: EventTemplate[] = [
       {
         type: "onClick",
         actions: [
-          { type: "showToast", config: { message: "Action completed", variant: "success", duration: 3000 } }
-        ]
-      }
+          {
+            type: "showToast",
+            config: {
+              message: "Action completed",
+              variant: "success",
+              duration: 3000,
+            },
+          },
+        ],
+      },
     ],
     ["toast", "notification", "alert"],
     ["Button"],
-    82
+    82,
   ),
 
   createTemplate(
@@ -364,13 +397,13 @@ export const UI_TEMPLATES: EventTemplate[] = [
       {
         type: "onClick",
         actions: [
-          { type: "toggleVisibility", config: { targetId: "element-id" } }
-        ]
-      }
+          { type: "toggleVisibility", config: { targetId: "element-id" } },
+        ],
+      },
     ],
     ["toggle", "show", "hide", "visibility"],
     ["Button", "Link"],
-    75
+    75,
   ),
 
   createTemplate(
@@ -384,14 +417,17 @@ export const UI_TEMPLATES: EventTemplate[] = [
         type: "onClick",
         actions: [
           { type: "copyToClipboard", config: { text: "{{value}}" } },
-          { type: "showToast", config: { message: "Copied to clipboard!", variant: "success" } }
-        ]
-      }
+          {
+            type: "showToast",
+            config: { message: "Copied to clipboard!", variant: "success" },
+          },
+        ],
+      },
     ],
     ["copy", "clipboard", "text"],
     ["Button"],
-    68
-  )
+    68,
+  ),
 ];
 
 /**
@@ -413,15 +449,15 @@ export const DATA_TEMPLATES: EventTemplate[] = [
             config: {
               method: "GET",
               endpoint: "/api/data",
-              storeIn: "pageData"
-            }
-          }
-        ]
-      }
+              storeIn: "pageData",
+            },
+          },
+        ],
+      },
     ],
     ["fetch", "load", "api", "data"],
     ["ListBox", "GridList", "Select", "ComboBox", "Table"],
-    80
+    80,
   ),
 
   createTemplate(
@@ -439,16 +475,19 @@ export const DATA_TEMPLATES: EventTemplate[] = [
             config: {
               method: "GET",
               endpoint: "/api/data",
-              storeIn: "pageData"
-            }
+              storeIn: "pageData",
+            },
           },
-          { type: "showToast", config: { message: "Data refreshed", variant: "info" } }
-        ]
-      }
+          {
+            type: "showToast",
+            config: { message: "Data refreshed", variant: "info" },
+          },
+        ],
+      },
     ],
     ["refresh", "reload", "api"],
     ["Button"],
-    76
+    76,
   ),
 
   createTemplate(
@@ -461,14 +500,23 @@ export const DATA_TEMPLATES: EventTemplate[] = [
       {
         type: "onChange",
         actions: [
-          { type: "setState", config: { key: "filterQuery", value: "{{value}}" } },
-          { type: "customFunction", config: { functionName: "filterData", params: { query: "{{value}}" } } }
-        ]
-      }
+          {
+            type: "setState",
+            config: { key: "filterQuery", value: "{{value}}" },
+          },
+          {
+            type: "customFunction",
+            config: {
+              functionName: "filterData",
+              params: { query: "{{value}}" },
+            },
+          },
+        ],
+      },
     ],
     ["filter", "search", "query"],
     ["TextField", "ComboBox"],
-    70
+    70,
   ),
 
   createTemplate(
@@ -481,14 +529,20 @@ export const DATA_TEMPLATES: EventTemplate[] = [
       {
         type: "onSelectionChange",
         actions: [
-          { type: "setState", config: { key: "selectedItem", value: "{{selection}}" } },
-          { type: "showToast", config: { message: "Item selected", variant: "info" } }
-        ]
-      }
+          {
+            type: "setState",
+            config: { key: "selectedItem", value: "{{selection}}" },
+          },
+          {
+            type: "showToast",
+            config: { message: "Item selected", variant: "info" },
+          },
+        ],
+      },
     ],
     ["selection", "select", "choose"],
     ["ListBox", "GridList", "Select", "ComboBox"],
-    85
+    85,
   ),
 
   createTemplate(
@@ -496,13 +550,13 @@ export const DATA_TEMPLATES: EventTemplate[] = [
     "Delete with Confirmation",
     "Show confirmation modal before deleting",
     "data",
-    Trash,
+    DeleteIcon,
     [
       {
         type: "onClick",
         actions: [
-          { type: "showModal", config: { modalId: "confirm-delete-modal" } }
-        ]
+          { type: "showModal", config: { modalId: "confirm-delete-modal" } },
+        ],
       },
       {
         type: "onAction",
@@ -512,18 +566,21 @@ export const DATA_TEMPLATES: EventTemplate[] = [
             config: {
               method: "DELETE",
               endpoint: "/api/items/{{id}}",
-              successMessage: "Item deleted"
-            }
+              successMessage: "Item deleted",
+            },
           },
           { type: "hideModal", config: {} },
-          { type: "showToast", config: { message: "Deleted successfully", variant: "success" } }
-        ]
-      }
+          {
+            type: "showToast",
+            config: { message: "Deleted successfully", variant: "success" },
+          },
+        ],
+      },
     ],
     ["delete", "remove", "confirm"],
     ["Button"],
-    72
-  )
+    72,
+  ),
 ];
 
 /**
@@ -533,13 +590,15 @@ export const ALL_TEMPLATES: EventTemplate[] = [
   ...FORM_TEMPLATES,
   ...NAVIGATION_TEMPLATES,
   ...UI_TEMPLATES,
-  ...DATA_TEMPLATES
+  ...DATA_TEMPLATES,
 ];
 
 /**
  * Get templates by category
  */
-export function getTemplatesByCategory(category: TemplateCategory): EventTemplate[] {
+export function getTemplatesByCategory(
+  category: TemplateCategory,
+): EventTemplate[] {
   return ALL_TEMPLATES.filter((template) => template.category === category);
 }
 
@@ -568,12 +627,13 @@ export function searchTemplates(query: string): EventTemplate[] {
 /**
  * Get recommended templates for component type
  */
-export function getRecommendedTemplates(componentType: string): EventTemplate[] {
-  return ALL_TEMPLATES
-    .filter((template) => {
-      if (!template.componentTypes) return false;
-      return template.componentTypes.includes(componentType);
-    })
+export function getRecommendedTemplates(
+  componentType: string,
+): EventTemplate[] {
+  return ALL_TEMPLATES.filter((template) => {
+    if (!template.componentTypes) return false;
+    return template.componentTypes.includes(componentType);
+  })
     .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0))
     .slice(0, 5); // Top 5 recommendations
 }

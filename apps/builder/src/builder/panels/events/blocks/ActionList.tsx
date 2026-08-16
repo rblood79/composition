@@ -5,11 +5,15 @@
  * 향후 dnd-kit 통합을 위한 구조 준비
  */
 
-import { Button } from 'react-aria-components';
-import { ChevronUp, ChevronDown, Plus } from 'lucide-react';
-import type { BlockEventAction } from '../types/eventBlockTypes';
-import { ActionBlock } from './ActionBlock';
-import { iconProps, iconSmall } from '../../../../utils/ui/uiConstants';
+import { Button } from "react-aria-components";
+import { ChevronUp, ChevronDown } from "lucide-react";
+import type { BlockEventAction } from "../types/eventBlockTypes";
+import { ActionBlock } from "./ActionBlock";
+import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 interface ActionListProps {
   /** 액션 목록 */
@@ -25,7 +29,10 @@ interface ActionListProps {
   onReorderActions?: (fromIndex: number, toIndex: number) => void;
 
   /** 액션 업데이트 핸들러 */
-  onUpdateAction?: (actionId: string, updates: Partial<BlockEventAction>) => void;
+  onUpdateAction?: (
+    actionId: string,
+    updates: Partial<BlockEventAction>,
+  ) => void;
 
   /** 액션 추가 버튼 클릭 핸들러 */
   onAddAction?: () => void;
@@ -66,7 +73,7 @@ export function ActionList({
   onAddAction,
   expandedActionId,
   onToggleActionExpand,
-  emptyMessage = 'No actions',
+  emptyMessage = "No actions",
   isDisabled = false,
   showReorderButtons = true,
 }: ActionListProps) {
@@ -92,7 +99,7 @@ export function ActionList({
             onPress={onAddAction}
             isDisabled={isDisabled}
           >
-            <Plus size={iconSmall.size} />
+            <AddIcon size={iconSmall.size} />
             <span>Add action</span>
           </Button>
         )}
@@ -113,7 +120,11 @@ export function ActionList({
                 isDisabled={isDisabled || index === 0}
                 aria-label="Move action up"
               >
-                <ChevronUp size={iconSmall.size} color={iconProps.color} strokeWidth={iconProps.strokeWidth} />
+                <ChevronUp
+                  size={iconSmall.size}
+                  color={iconProps.color}
+                  strokeWidth={iconProps.strokeWidth}
+                />
               </Button>
               <Button
                 className="iconButton action-reorder-btn"
@@ -121,7 +132,11 @@ export function ActionList({
                 isDisabled={isDisabled || index === actions.length - 1}
                 aria-label="Move action down"
               >
-                <ChevronDown size={iconSmall.size} color={iconProps.color} strokeWidth={iconProps.strokeWidth} />
+                <ChevronDown
+                  size={iconSmall.size}
+                  color={iconProps.color}
+                  strokeWidth={iconProps.strokeWidth}
+                />
               </Button>
             </div>
           )}
@@ -152,7 +167,7 @@ export function ActionList({
             onPress={onAddAction}
             isDisabled={isDisabled}
           >
-            <Plus size={iconSmall.size} />
+            <AddIcon size={iconSmall.size} />
             <span>Add action</span>
           </Button>
         </div>

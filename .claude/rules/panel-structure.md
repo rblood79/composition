@@ -92,6 +92,19 @@ globs:
 - **events**: 보류 (전면 재구성 대기). field 시스템(`.field/.field-label/…`) 포함 내부 구조 전체가 대상 외. 재구성 시 본 표준 적용이 전제.
 - 예외/보류 패널도 §2 예약표 (구조 클래스 재정의 금지) 는 적용.
 
+## 아이콘 — 여러 화면에 나오는 액션은 정본에서 고른다 (2026-08-16)
+
+빌더 크롬 아이콘은 106개 파일이 `lucide-react` 를 각자 import 한다 (고유 220심볼 / import 지점 537). **대부분은 그대로 두는 것이 맞다** — 1회성 아이콘을 모으면 조회 비용만 늘고 막아 주는 것이 없다. 정본이 필요한 것은 **같은 액션이 여러 화면에 나오는 항목**뿐이고, 거기서만 한쪽을 바꿔도 아무것도 안 막히는 문제가 생긴다 (실측 발산 3건: 삭제 `Trash2`↔`Trash`, 눈금자 `RulerDimensionLine`↔`Ruler`, 추가 `Plus`↔`CirclePlus`).
+
+- 정본: `apps/builder/src/builder/config/actionIcons.ts` 의 `ACTION_ICONS` (+ 파생 `ALIGNMENT_ICONS` / `DISTRIBUTION_ICONS`).
+- 등재 기준 — ① 같은 사용자 액션이 **2개 이상 surface** 에 노출 ② 그 액션이 **한 벌로 읽히는 묶음**이면 묶음 전체 (정렬 8종처럼 낱개만 등재하면 나머지가 다시 갈린다). 기준 미달이면 등재하지 않는다.
+- **치수·색은 정본이 소유하지 않는다**: 같은 삭제라도 컨텍스트 메뉴 14px / 툴바 16px 이고 그게 맞다 (surface 밀도). registry 는 "무엇을" 만, 호출부가 "얼마나 크게 / 무슨 색".
+- **"추가" 어포던스는 `Plus` 하나** — 아이콘 단독 버튼이든 텍스트 동반 버튼이든 같다. 예외는 **같은 화면에서 두 종류를 더할 때의 구분 변종**뿐 (`ItemsManager` 의 `FolderPlus` "Add Section" ↔ `Plus` "Add Item"). 구분할 상대가 없으면 변종을 쓰지 않는다.
+  - **Why (기각한 대안)**: 실측상 "아이콘 단독 = `CirclePlus` / 텍스트 동반 = `Plus`" 라는 잠재 규칙이 있었고 `CirclePlus` 6/6 이 일치했다. 채택하지 않은 이유 — ① 이미 새고 있었다(FillSection 2건은 아이콘 단독인데 `Plus`) ② **기계 집행이 불가능하다** (JSX 형제에 텍스트 노드가 있는지로 판정해야 해 정적 스캔이 취약) ③ `PanelHeader actions` 자리의 다른 아이콘(gear/trash)이 전부 선화 단독이라 거기서 원형 변종만 튄다.
+- 판정 기준은 **"같은 그림" 이 아니라 "같은 액션"**. 심볼만 겹치는 것은 `INTENTIONAL_DIVERGENCE` 에 사유와 함께 등재한다 — TypographySection 의 정렬 6종은 `textAlign` **스타일 값**, `PropertyNumberInput` 의 `Plus` 는 `Minus` 와 짝인 **스테퍼 증가**, 랜딩(`App.tsx`)의 아이콘은 액션 없는 장식.
+
+집행: `actionIcons.static.test.ts` 3조항 — ① 등재 심볼의 registry 밖 직접 import 0건 ② 등재 항목별 소비처 ≥1 ③ **금지 변종 0건** (`Trash`/`Ruler`/`CirclePlus`/`PlusCircle` — 정본이 다른 그림을 쓰는 액션의 대체 심볼. ①은 registry 가 import 하는 심볼만 보므로 고쳐 놓은 발산의 **재도입**은 ③이 맡는다).
+
 ## 금지 패턴 요약
 
 - ❌ `.section { … .panel-wrapper[…] … }` 중첩 (dead 블록 — `panel-system.static.test.ts` FAIL)
@@ -105,6 +118,11 @@ globs:
 - ❌ camelCase 고유 클래스 신규 (`{도메인}-{역할}` kebab-case)
 - ❌ Tailwind 인라인 클래스 (기존 CRITICAL 규칙 — style-no-inline-tailwind)
 - ❌ 미정의 토큰 사용 (`--spacing-{1..6}`, `--text-md`) — 선언이 통째로 무효화된다
+- ❌ `ACTION_ICONS` 등재 액션의 아이콘을 `lucide-react` 에서 직접 import (`actionIcons.static.test.ts` FAIL)
+- ❌ 금지 변종 사용 — `Trash`(→`delete`) / `Ruler`(→`toggleRulers`) / `CirclePlus`·`PlusCircle`(→`add`)
+- ❌ "추가" 버튼이 아이콘 단독이라고 원형 변종 사용 — 구분할 상대가 있을 때만 변종
+- ❌ 1회성 아이콘을 `ACTION_ICONS` 에 등재 (소비처 ≥1 조항은 통과해도 등재 기준 미달)
+- ❌ `ACTION_ICONS` 에 치수·색 필드 추가 — surface 밀도 분기를 registry 가 흡수하게 된다
 
 ## 관련
 

@@ -13,6 +13,7 @@ import {
   Component,
   Copy,
   CopyPlus,
+  Plus,
   Group,
   Magnet,
   RulerDimensionLine,
@@ -86,6 +87,27 @@ export const ACTION_ICONS = {
   duplicate: CopyPlus,
   /** 컨텍스트 메뉴 · 다중 선택 툴바 · History 항목 · FramesTab */
   delete: Trash2,
+
+  /**
+   * **"추가" 어포던스는 이것 하나** — 아이콘 단독 버튼이든 텍스트 동반 버튼이든
+   * 같다 (2026-08-16 규칙 확정).
+   *
+   * 종전에는 `Plus`(29곳)와 `CirclePlus`(6곳)로 갈려 있었다. 실측상 잠재 규칙은
+   * "아이콘 단독 = `CirclePlus` / 텍스트 동반 = `Plus`" 였고 `CirclePlus` 6/6 이
+   * 일치했지만, 채택하지 않는다:
+   *
+   * 1. 이미 새고 있었다 — FillSection 2건은 아이콘 단독인데 `Plus`.
+   * 2. **기계 집행이 불가능하다** — JSX 형제에 텍스트 노드가 있는지로 판정해야
+   *    해서 정적 스캔이 취약하다. 막지 못하는 규칙은 규칙이 아니다.
+   * 3. `PanelHeader actions` 자리의 다른 아이콘(gear/trash)이 전부 선화 단독이라
+   *    거기서 `CirclePlus` 만 원을 둘러 튄다 (패널 도형 어법 = 선화).
+   *
+   * **예외는 하나** — 같은 화면에서 두 종류를 더할 때의 구분 변종
+   * (`ItemsManager` 의 `FolderPlus` "Add Section" ↔ `Plus` "Add Item").
+   * 구분할 상대가 없으면 변종을 쓰지 않는다. 등재 기준(2개 이상 surface)에도
+   * 미달이라 registry 에 넣지 않고 그 파일의 직접 import 로 둔다.
+   */
+  add: Plus,
 
   // ── 구성 ──────────────────────────────────────────────
   /** 컨텍스트 메뉴 · 다중 선택 툴바 · History 항목 */

@@ -5,12 +5,20 @@
  * left [operator] right 형태
  */
 
-import { Button, TextField, Input } from 'react-aria-components';
-import { Trash, GripVertical } from 'lucide-react';
-import type { Condition, ConditionOperand, ConditionOperator } from '../types/eventBlockTypes';
-import { isUnaryOperator } from '../types/eventBlockTypes';
-import { iconProps, iconEditProps } from '../../../../utils/ui/uiConstants';
-import { OperatorPicker } from './OperatorPicker';
+import { Button, TextField, Input } from "react-aria-components";
+import { GripVertical } from "lucide-react";
+import type {
+  Condition,
+  ConditionOperand,
+  ConditionOperator,
+} from "../types/eventBlockTypes";
+import { isUnaryOperator } from "../types/eventBlockTypes";
+import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
+import { OperatorPicker } from "./OperatorPicker";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface ConditionRowProps {
   /** 조건 데이터 */
@@ -45,11 +53,11 @@ export function ConditionRow({
   const isUnary = isUnaryOperator(condition.operator);
 
   // 좌변 타입 추론 (입력 값에 따라)
-  const inferLeftType = (value: string): ConditionOperand['type'] => {
-    if (value.startsWith('#') || value.startsWith('.')) return 'element';
-    if (value.startsWith('state.')) return 'state';
-    if (value.startsWith('event.')) return 'event';
-    return 'literal';
+  const inferLeftType = (value: string): ConditionOperand["type"] => {
+    if (value.startsWith("#") || value.startsWith(".")) return "element";
+    if (value.startsWith("state.")) return "state";
+    if (value.startsWith("event.")) return "event";
+    return "literal";
   };
 
   // 좌변 입력 시 타입 자동 추론
@@ -69,7 +77,7 @@ export function ConditionRow({
       delete updated.right;
     } else if (!updated.right) {
       // 이항 연산자인데 right가 없으면 추가
-      updated.right = { type: 'literal', value: '' };
+      updated.right = { type: "literal", value: "" };
     }
     onChange(updated);
   };
@@ -88,7 +96,11 @@ export function ConditionRow({
     <div className="condition-row" role="group" aria-label="Condition">
       {/* Drag Handle */}
       <div className="condition-drag-handle" {...dragHandleProps}>
-        <GripVertical size={iconEditProps.size} color={iconProps.color} strokeWidth={iconProps.strokeWidth} />
+        <GripVertical
+          size={iconEditProps.size}
+          color={iconProps.color}
+          strokeWidth={iconProps.strokeWidth}
+        />
       </div>
 
       {/* Left Operand */}
@@ -116,7 +128,7 @@ export function ConditionRow({
           aria-label="Right operand"
         >
           <Input
-            value={String(condition.right?.value ?? '')}
+            value={String(condition.right?.value ?? "")}
             onChange={(e) => handleRightChange(e.target.value)}
             placeholder="value"
           />
@@ -129,7 +141,11 @@ export function ConditionRow({
         onPress={onRemove}
         aria-label="Remove condition"
       >
-        <Trash size={iconEditProps.size} color={iconProps.color} strokeWidth={iconProps.strokeWidth} />
+        <DeleteIcon
+          size={iconEditProps.size}
+          color={iconProps.color}
+          strokeWidth={iconProps.strokeWidth}
+        />
       </Button>
     </div>
   );

@@ -5,19 +5,23 @@
  * ActionList를 포함하며 드래그 앤 드롭 정렬 지원
  */
 
-import { useState } from 'react';
-import { Button } from 'react-aria-components';
-import { Plus, ChevronDown, ChevronRight } from 'lucide-react';
-import type { BlockEventAction } from '../types/eventBlockTypes';
-import type { ActionType } from '../types/eventTypes';
-import { ActionBlock } from './ActionBlock';
-import { BlockConnector } from './BlockConnector';
-import { RecommendedActionsChips } from '../components/RecommendedActionsChips';
-import { iconProps, iconSmall } from '../../../../utils/ui/uiConstants';
+import { useState } from "react";
+import { Button } from "react-aria-components";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import type { BlockEventAction } from "../types/eventBlockTypes";
+import type { ActionType } from "../types/eventTypes";
+import { ActionBlock } from "./ActionBlock";
+import { BlockConnector } from "./BlockConnector";
+import { RecommendedActionsChips } from "../components/RecommendedActionsChips";
+import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 interface ThenElseBlockProps {
   /** 블록 타입: 'then' 또는 'else' */
-  type: 'then' | 'else';
+  type: "then" | "else";
 
   /** 액션 목록 */
   actions: BlockEventAction[];
@@ -35,7 +39,10 @@ interface ThenElseBlockProps {
   onReorderActions?: (fromIndex: number, toIndex: number) => void;
 
   /** 액션 업데이트 핸들러 */
-  onUpdateAction?: (actionId: string, updates: Partial<BlockEventAction>) => void;
+  onUpdateAction?: (
+    actionId: string,
+    updates: Partial<BlockEventAction>,
+  ) => void;
 
   /** 상위 커넥터 표시 여부 */
   showConnector?: boolean;
@@ -84,10 +91,12 @@ export function ThenElseBlock({
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
 
-  const isThen = type === 'then';
-  const blockClass = isThen ? 'then-block' : 'else-block';
-  const label = isThen ? 'THEN' : 'ELSE';
-  const ariaLabel = isThen ? 'Actions when condition is true' : 'Actions when condition is false';
+  const isThen = type === "then";
+  const blockClass = isThen ? "then-block" : "else-block";
+  const label = isThen ? "THEN" : "ELSE";
+  const ariaLabel = isThen
+    ? "Actions when condition is true"
+    : "Actions when condition is false";
 
   const handleToggleActionExpand = (actionId: string) => {
     setExpandedActionId((prev) => (prev === actionId ? null : actionId));
@@ -96,7 +105,12 @@ export function ThenElseBlock({
   return (
     <div className={`branch-block ${blockClass}`}>
       {/* Connector from IF block */}
-      {showConnector && <BlockConnector direction="down" className={isThen ? 'success' : 'fallback'} />}
+      {showConnector && (
+        <BlockConnector
+          direction="down"
+          className={isThen ? "success" : "fallback"}
+        />
+      )}
 
       {/* Block Container */}
       <div
@@ -111,19 +125,29 @@ export function ThenElseBlock({
             className="iconButton block-collapse-btn"
             onPress={() => setIsCollapsed(!isCollapsed)}
             aria-expanded={!isCollapsed}
-            aria-label={isCollapsed ? `Expand ${label} block` : `Collapse ${label} block`}
+            aria-label={
+              isCollapsed ? `Expand ${label} block` : `Collapse ${label} block`
+            }
           >
             {isCollapsed ? (
-              <ChevronRight size={iconProps.size} color={iconProps.color} strokeWidth={iconProps.strokeWidth} />
+              <ChevronRight
+                size={iconProps.size}
+                color={iconProps.color}
+                strokeWidth={iconProps.strokeWidth}
+              />
             ) : (
-              <ChevronDown size={iconProps.size} color={iconProps.color} strokeWidth={iconProps.strokeWidth} />
+              <ChevronDown
+                size={iconProps.size}
+                color={iconProps.color}
+                strokeWidth={iconProps.strokeWidth}
+              />
             )}
           </Button>
 
           <span className="block-label">{label}</span>
 
           <span className="block-count">
-            {actions.length} action{actions.length !== 1 ? 's' : ''}
+            {actions.length} action{actions.length !== 1 ? "s" : ""}
           </span>
 
           <div className="block-header-spacer" />
@@ -135,13 +159,21 @@ export function ThenElseBlock({
             isDisabled={isDisabled}
             aria-label={`Add action to ${label}`}
           >
-            <Plus size={iconProps.size} color={iconProps.color} strokeWidth={iconProps.strokeWidth} />
+            <AddIcon
+              size={iconProps.size}
+              color={iconProps.color}
+              strokeWidth={iconProps.strokeWidth}
+            />
           </Button>
         </div>
 
         {/* Action List */}
         {!isCollapsed && (
-          <div className="block-content" role="list" aria-label={`${label} actions`}>
+          <div
+            className="block-content"
+            role="list"
+            aria-label={`${label} actions`}
+          >
             {actions.length === 0 ? (
               <div className="block-empty">
                 <span>No actions</span>
@@ -159,7 +191,7 @@ export function ThenElseBlock({
                   onPress={onAddAction}
                   isDisabled={isDisabled}
                 >
-                  <Plus size={iconSmall.size} />
+                  <AddIcon size={iconSmall.size} />
                   <span>More actions</span>
                 </Button>
               </div>

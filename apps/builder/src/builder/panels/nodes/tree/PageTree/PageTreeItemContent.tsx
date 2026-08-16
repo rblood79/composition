@@ -5,13 +5,16 @@ import {
   File,
   Home,
   Settings2,
-  Trash,
   GripVertical,
 } from "lucide-react";
 import { ICON_EDIT_PROPS } from "../helpers";
 import type { Page } from "../../../../../types/builder/unified.types";
 import type { TreeItemState } from "../TreeBase/types";
 import type { PageTreeNode } from "./types";
+import { ACTION_ICONS } from "../../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface PageTreeItemContentProps {
   node: PageTreeNode;
@@ -120,7 +123,7 @@ export function PageTreeItemContent({
             aria-label={`Delete ${name}`}
             onPress={() => onDelete(page)}
           >
-            <Trash
+            <DeleteIcon
               color={ICON_EDIT_PROPS.color}
               strokeWidth={ICON_EDIT_PROPS.stroke}
               size={ICON_EDIT_PROPS.size}

@@ -24,7 +24,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DialogTrigger, Button as AriaButton } from "react-aria-components";
-import { Plus } from "lucide-react";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
 import { PropertySection } from "../../../components";
@@ -48,6 +47,10 @@ import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useStore as useComposedStore } from "../../../stores";
 
 import "./FillSection.css";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 /** Sortable 래퍼 - 각 FillLayerRow를 sortable로 만듦 */
 function SortableFillRow({
@@ -183,7 +186,7 @@ export const FillSectionInline = memo(function FillSectionInline() {
           aria-label="Add background"
           title="Add background"
         >
-          <Plus
+          <AddIcon
             size={iconSmall.size}
             strokeWidth={iconSmall.strokeWidth}
             color={iconSmall.color}
@@ -375,7 +378,7 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
         </fieldset>
         <div className="fieldset-actions actions-icon">
           <SwatchIconButton onPress={handleAdd} aria-label="Add background">
-            <Plus
+            <AddIcon
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}

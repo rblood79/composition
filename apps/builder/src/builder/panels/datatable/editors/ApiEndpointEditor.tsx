@@ -11,7 +11,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Plus, Play, Wand2 } from "lucide-react";
+import { Play, Wand2 } from "lucide-react";
 import type { ApiEditorTab } from "../types/editorTypes";
 import { useDataStore } from "../../../stores/data";
 import type {
@@ -30,6 +30,8 @@ import {
 import "./ApiEndpointEditor.css";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -428,7 +430,7 @@ function QueryParamsEditor({ endpoint, onUpdate }: QueryParamsEditorProps) {
       ))}
 
       <button type="button" className="add-kv-btn" onClick={handleAdd}>
-        <Plus {...iconEditProps} />
+        <AddIcon {...iconEditProps} />
         Add Parameter
       </button>
     </div>
@@ -488,7 +490,7 @@ function HeadersEditor({
       </div>
 
       <button type="button" className="add-kv-btn" onClick={onAdd}>
-        <Plus {...iconEditProps} />
+        <AddIcon {...iconEditProps} />
         Add Header
       </button>
     </div>
@@ -739,7 +741,7 @@ function FieldMappingEditor({ endpoint, onUpdate }: FieldMappingEditorProps) {
       </div>
 
       <button type="button" className="add-kv-btn" onClick={handleAdd}>
-        <Plus {...iconEditProps} />
+        <AddIcon {...iconEditProps} />
         Add Mapping
       </button>
     </div>

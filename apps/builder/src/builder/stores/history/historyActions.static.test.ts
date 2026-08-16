@@ -227,8 +227,12 @@ describe("ADR-181: page-guide entry 소비 지점 6곳 (C4 커버리지)", () =>
 
     const panel = await readSource("../../panels/history/HistoryPanel.tsx");
     // ENTRY_TYPE_ICONS 는 Record<HistoryEntry["type"], LucideIcon> 이라 누락 시
-    // type-check 가 먼저 잡지만, 아이콘 선택 자체를 계약으로 고정한다
-    expect(panel).toContain('"page-guide": RulerDimensionLine');
+    // type-check 가 먼저 잡지만, 아이콘 선택 자체를 계약으로 고정한다.
+    // 2026-08-16: 눈금자 아이콘은 `ACTION_ICONS.toggleRulers` 정본 경유로 바뀌었다
+    // (`config/actionIcons.ts`) — 컨텍스트 메뉴·Settings 패널과 한 소스를 읽는다.
+    // 여기서 확인할 것은 "가이드 entry 가 눈금자 그림을 쓴다" 이지 특정 lucide
+    // 심볼명이 아니므로, 정본 키로 고정한다.
+    expect(panel).toContain('"page-guide": ACTION_ICONS.toggleRulers');
   });
 
   it("C11 — 가이드 무효화는 overlay 만 (content surface 미관여)", async () => {

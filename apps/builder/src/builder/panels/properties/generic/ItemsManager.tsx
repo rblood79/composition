@@ -1,11 +1,5 @@
 import { memo, useCallback, useMemo, useState } from "react";
-import {
-  Plus,
-  ChevronDown,
-  ChevronRight,
-  FolderPlus,
-  Minus,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, FolderPlus, Minus } from "lucide-react";
 import type {
   ItemsManagerField,
   ItemsManagerFieldItemSchema,
@@ -22,6 +16,8 @@ import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 
 import "../editors/styles/propertyEditors.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -325,7 +321,7 @@ const SectionRow = memo(function SectionRow({
               className="control-button control-button--add"
               onClick={onAddItem}
             >
-              <Plus size={12} />
+              <AddIcon size={12} />
               Add {itemTypeName}
             </button>
           </div>
@@ -500,7 +496,7 @@ export const ItemsManager = memo(function ItemsManager({
           className="control-button control-button--add"
           onClick={handleAdd}
         >
-          <Plus size={14} />
+          <AddIcon size={14} />
           Add {field.itemTypeName}
         </button>
         {allowSections && (

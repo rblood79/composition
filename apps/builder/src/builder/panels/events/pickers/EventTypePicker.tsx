@@ -16,11 +16,15 @@ import {
   ListBoxItem,
 } from "react-aria-components";
 import { Popover } from "@composition/shared/components/Popover";
-import { CirclePlus, Search, ChevronDown, Zap } from "lucide-react";
+import { Search, ChevronDown, Zap } from "lucide-react";
 import type { EventType } from "@/types/events/events.types";
 import { EVENT_TYPE_LABELS } from "@/types/events/events.types";
 import { EVENT_CATEGORIES } from "../data/eventCategories";
 import { iconProps, iconEditProps, iconSmall } from "@/utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 // 추천 이벤트 우선순위 (컴포넌트별 가장 많이 사용되는 이벤트 순서)
 // ⚠️ 순서 중요: 사용자 상호작용 → 값 변경 → 포커스 순
@@ -272,7 +276,7 @@ export function EventTypePicker({
         isDisabled={isDisabled || availableEventTypes.length === 0}
         aria-label="이벤트 추가"
       >
-        <CirclePlus
+        <AddIcon
           color={iconProps.color}
           strokeWidth={iconProps.strokeWidth}
           size={iconProps.size}

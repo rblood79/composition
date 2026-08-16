@@ -9,13 +9,17 @@
  * @updated 2026-02-11 Phase 3 — ScrubInput 적용
  */
 
-import { memo, useCallback } from 'react';
-import { Plus, X } from 'lucide-react';
-import type { GradientStop } from '../../../../types/builder/fill.types';
-import { iconSmall } from '../../../../utils/ui/uiConstants';
-import { ScrubInput } from './ScrubInput';
+import { memo, useCallback } from "react";
+import { X } from "lucide-react";
+import type { GradientStop } from "../../../../types/builder/fill.types";
+import { iconSmall } from "../../../../utils/ui/uiConstants";
+import { ScrubInput } from "./ScrubInput";
 
-import './GradientStopList.css';
+import "./GradientStopList.css";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 interface GradientStopListProps {
   stops: GradientStop[];
@@ -55,7 +59,7 @@ export const GradientStopList = memo(function GradientStopList({
         className="gradient-stop-list__add-btn"
         onClick={onStopAdd}
       >
-        <Plus size={12} strokeWidth={2} />
+        <AddIcon size={12} strokeWidth={2} />
         Add Stop
       </button>
     </div>

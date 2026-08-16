@@ -8,7 +8,6 @@
 import { Button, TooltipTrigger, Tooltip } from "react-aria-components";
 import {
   GripVertical,
-  Trash,
   ChevronDown,
   ChevronRight,
   Navigation,
@@ -31,6 +30,10 @@ import type { ActionType } from "../types/eventTypes";
 import { ACTION_TYPE_LABELS } from "../types/eventTypes";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_METADATA } from "../data/actionMetadata";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface ActionBlockProps {
   /** 액션 데이터 */
@@ -59,10 +62,9 @@ interface ActionBlockProps {
  * 액션 타입별 아이콘 매핑
  * Note: Partial 사용 - 모든 ActionType이 필요하지 않음 (camelCase만 정의, 폴백 있음)
  */
-const ACTION_ICONS: Partial<Record<
-  ActionType,
-  React.ComponentType<{ size?: number; className?: string }>
->> = {
+const ACTION_TYPE_ICONS: Partial<
+  Record<ActionType, React.ComponentType<{ size?: number; className?: string }>>
+> = {
   navigate: Navigation,
   scrollTo: ArrowDown,
   setState: Database,
@@ -127,7 +129,13 @@ function getMissingRequiredFields(action: BlockEventAction): string[] {
   if (!metadata?.configFields) return [];
   const config = action.config as Record<string, unknown>;
   return metadata.configFields
-    .filter((f) => f.required && (config[f.name] === undefined || config[f.name] === '' || config[f.name] === null))
+    .filter(
+      (f) =>
+        f.required &&
+        (config[f.name] === undefined ||
+          config[f.name] === "" ||
+          config[f.name] === null),
+    )
     .map((f) => f.label);
 }
 
@@ -152,8 +160,15 @@ export function ActionBlock({
   dragHandleProps = {},
 }: ActionBlockProps) {
   // snake_case 액션 타입 (scroll_to 등)은 폴백 아이콘 사용
-  const IconComponent = (ACTION_ICONS as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[action.type] || Code;
-  const label = (ACTION_TYPE_LABELS as Record<string, string>)[action.type] || action.type;
+  const IconComponent =
+    (
+      ACTION_TYPE_ICONS as Record<
+        string,
+        React.ComponentType<{ size?: number; className?: string }>
+      >
+    )[action.type] || Code;
+  const label =
+    (ACTION_TYPE_LABELS as Record<string, string>)[action.type] || action.type;
   const summary = getActionSummary(action);
   const missingFields = getMissingRequiredFields(action);
   const hasMissingConfig = missingFields.length > 0;
@@ -196,12 +211,12 @@ export function ActionBlock({
         <TooltipTrigger delay={300}>
           <Button
             className="iconButton action-warning"
-            aria-label={`필수 설정 누락: ${missingFields.join(', ')}`}
+            aria-label={`필수 설정 누락: ${missingFields.join(", ")}`}
           >
             <AlertTriangle size={14} className="action-warning-icon" />
           </Button>
           <Tooltip className="action-warning-tooltip" placement="bottom">
-            필수 설정 누락: {missingFields.join(', ')}
+            필수 설정 누락: {missingFields.join(", ")}
           </Tooltip>
         </TooltipTrigger>
       )}
@@ -239,7 +254,7 @@ export function ActionBlock({
             onPress={onRemove}
             aria-label="Delete action"
           >
-            <Trash
+            <DeleteIcon
               size={iconEditProps.size}
               color={iconProps.color}
               strokeWidth={iconProps.strokeWidth}

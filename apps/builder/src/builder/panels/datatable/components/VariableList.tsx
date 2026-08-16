@@ -5,13 +5,15 @@
  * 편집 UI는 DataTableEditorPanel에서 처리
  */
 
-import { Variable, Plus, Edit2 } from "lucide-react";
+import { Variable, Edit2 } from "lucide-react";
 import { useDataStore, useVariables } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { Section } from "../../../components";
 import type { Variable as VariableType } from "../../../../types/builder/data.types";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -168,7 +170,7 @@ export function VariableList({ projectId }: VariableListProps) {
         className="datatable-add-btn"
         onClick={handleCreate}
       >
-        <Plus {...iconProps} />
+        <AddIcon {...iconProps} />
         <span>Variable 추가</span>
       </button>
     </Section>

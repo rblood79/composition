@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useMemo, useRef } from "react";
-import { Plus, Search, Upload, Download, X } from "lucide-react";
+import { Search, Upload, Download, X } from "lucide-react";
 import type { TableEditorTab } from "../types/editorTypes";
 import Papa from "papaparse";
 import { useDataStore } from "../../../stores/data";
@@ -21,6 +21,8 @@ import { PropertySwitch } from "../../../components";
 import "./DataTableEditor.css";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -345,7 +347,7 @@ function SchemaEditor({
       </div>
 
       <button type="button" className="add-field-btn" onClick={onAddField}>
-        <Plus {...iconEditProps} />
+        <AddIcon {...iconEditProps} />
         Add Column
       </button>
     </div>
@@ -568,7 +570,7 @@ function MockDataEditor({
         </div>
       </div>
       <button type="button" className="add-row-btn" onClick={onAddRow}>
-        <Plus {...iconEditProps} />
+        <AddIcon {...iconEditProps} />
         Add Row
       </button>
     </div>

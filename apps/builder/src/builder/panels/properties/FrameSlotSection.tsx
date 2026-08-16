@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { Layers, Minus, Plus, X } from "lucide-react";
+import { Layers, Minus, X } from "lucide-react";
 import {
   matchesReference,
   resolveReference,
@@ -22,6 +22,10 @@ import {
 } from "../../components/slotHostPolicy";
 import type { Element } from "../../../types/core/store.types";
 import type { PanelNode } from "../panelNode";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 type SlotElement = PanelNode & {
   metadata?: Record<string, unknown>;
@@ -222,7 +226,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
           onClick={handleEnable}
           type="button"
         >
-          <Plus aria-hidden="true" size={14} />
+          <AddIcon aria-hidden="true" size={14} />
           <span>[+] Enable slot</span>
         </button>
       )}
@@ -246,7 +250,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
                 onClick={handleAddRecommendation}
                 type="button"
               >
-                <Plus aria-hidden="true" size={14} />
+                <AddIcon aria-hidden="true" size={14} />
                 <span>Add</span>
               </button>
             </div>
@@ -267,7 +271,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
                     onClick={() => handleInsertDefault(item.id)}
                     type="button"
                   >
-                    <Plus aria-hidden="true" size={14} />
+                    <AddIcon aria-hidden="true" size={14} />
                   </button>
                   <button
                     aria-label={`Remove ${item.label}`}

@@ -7,12 +7,14 @@
  */
 
 import { useMemo } from "react";
-import { Table2, Plus, Edit2, Link } from "lucide-react";
+import { Table2, Edit2, Link } from "lucide-react";
 import { Button } from "react-aria-components";
 import { useDataStore } from "../../../stores/data";
 import { Section } from "../../../components";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
+const AddIcon = ACTION_ICONS.add;
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -150,7 +152,7 @@ export function DataTableList({
       )}
 
       <Button className="datatable-add-btn" onPress={onCreateClick}>
-        <Plus {...iconProps} />
+        <AddIcon {...iconProps} />
         <span>Table 추가</span>
       </Button>
     </Section>
