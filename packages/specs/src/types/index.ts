@@ -98,12 +98,10 @@ export type {
 export { isMenuSectionEntry, isMenuSeparatorEntry } from "./menu-items";
 
 // Select Items Types (ADR-073)
-export type { StoredSelectItem, RuntimeSelectItem } from "./select-items";
-export { toRuntimeSelectItem } from "./select-items";
+export type { StoredSelectItem } from "./select-items";
 
 // ComboBox Items Types (ADR-073)
-export type { StoredComboBoxItem, RuntimeComboBoxItem } from "./combobox-items";
-export { toRuntimeComboBoxItem } from "./combobox-items";
+export type { StoredComboBoxItem } from "./combobox-items";
 
 // ListBox Items Types (ADR-076 + ADR-099 Phase 1 Section union)
 export type {

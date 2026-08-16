@@ -10,9 +10,10 @@ export const MENU_ITEM_DEFAULT_ORIGIN_ID = "component-menu-item-default";
  * ADR-148 Phase 4: MenuItem reusable origin 의 조합 자식
  * (Icon / Text(label) / Text(shortcut) / Text(description)).
  *
- * ADR-147 ListBoxItem 모델 복제 — Menu itemSchema 8키 중 **시각 slot 축 4키**
- * (icon/label/shortcut/description) 만 slot 자식이 담당한다. 잔여 4키(value/href/
- * isDisabled/onActionId)는 데이터·동작 축이라 slot 대상 아님 (itemSchema 정합 판정,
+ * ADR-147 ListBoxItem 모델 복제 — Menu itemSchema 중 **시각 slot 축 4키**
+ * (icon/label/shortcut/description) 만 slot 자식이 담당한다. 잔여 3키(value/href/
+ * isDisabled — onActionId 는 ADR-158 Phase 4 후속으로 은퇴)는 데이터·동작 축이라
+ * slot 대상 아님 (itemSchema 정합 판정,
  * Phase 4 breakdown). Menu 는 Skia 캔버스에 trigger 버튼만 렌더하므로(catalog rule,
  * projection 없음) 소비 표면은 DOM emit(popover item) 단일 축 — 템플릿 바인딩
  * `{icon}`/`{label}`/`{shortcut}`/`{description}` 은 `props.items`(StoredMenuItem[])

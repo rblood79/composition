@@ -115,11 +115,6 @@ export interface RenderContext {
   /** 데이터 상태 설정 (DataTable용) */
   setDataState?: (elementId: string, state: DataState) => void;
   /**
-   * ACTION_ID → 실행 함수 변환 (Q11: shared 렌더러는 EVENT_REGISTRY에 직접 의존 금지)
-   * Preview App이 EVENT_REGISTRY.resolve를 주입. builder preview는 noop 가능.
-   */
-  resolveActionId?: (id: string) => (() => void) | undefined;
-  /**
    * ADR-148 Phase 0 — ListBox 행 template 의 slot 구성 (origin 문서 자식에서 파생).
    * 표준 ListBox instance 는 anchor-less bare ref 라 renderer 가 childrenByParent 로
    * Components 페이지 origin 에 접근할 수 없다 — provider(Preview App)가 문서에서

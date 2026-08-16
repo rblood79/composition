@@ -49,7 +49,7 @@ describe("ADR-148 Phase 4 Menu template origins", () => {
       }),
     });
 
-    // itemSchema 8키 중 시각 slot 축 4키 — 잔여(value/href/isDisabled/onActionId)는
+    // itemSchema 중 시각 slot 축 4키 — 잔여(value/href/isDisabled)는
     // 데이터·동작 축이라 slot 대상 아님 (Phase 4 판정).
     const composition = resolveSlotComposition(origin?.children);
     expect(composition?.order).toEqual([

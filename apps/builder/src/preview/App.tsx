@@ -753,9 +753,6 @@ function CanvasContent() {
       },
       renderElement: (el: PreviewElement, key?: string) =>
         renderElementInternalRef.current(el, key),
-      // Q11=나: shared 렌더러는 EVENT_REGISTRY에 직접 의존 금지 → context 주입
-      // 현재 단계에서는 noop resolver (P6에서 이벤트 연결 확장 예정)
-      resolveActionId: (_id: string) => undefined,
       // ADR-148 Phase 0/4 — collection item slot 구성 (anchor-less 표준 shape 의 DOM 소비 경로)
       listBoxTemplateSlotComposition,
       // 2026-07-20 — 행 template origin root style (base + Selected variant overlay).

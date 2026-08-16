@@ -82,10 +82,8 @@ export type {
   ItemsManagerFieldItemSchema,
   // Select Items Types (ADR-073)
   StoredSelectItem,
-  RuntimeSelectItem,
   // ComboBox Items Types (ADR-073)
   StoredComboBoxItem,
-  RuntimeComboBoxItem,
   // ListBox Items Types (ADR-076 + ADR-099 Phase 1)
   StoredListBoxItem,
   StoredListBoxSection,
@@ -103,10 +101,6 @@ export type {
   StoredGridListEntry,
   RuntimeGridListItem,
 } from "./types";
-
-// ADR-073: Select/ComboBox items runtime converters
-export { toRuntimeSelectItem } from "./types/select-items";
-export { toRuntimeComboBoxItem } from "./types/combobox-items";
 
 // ADR-076 + ADR-099 Phase 1: ListBox items runtime converter + section guard
 export {

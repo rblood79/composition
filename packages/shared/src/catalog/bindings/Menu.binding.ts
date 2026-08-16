@@ -35,7 +35,6 @@ export const menuBinding: PrimitiveBinding = {
             { key: "icon", type: "icon", label: "Icon" },
             { key: "shortcut", type: "string", label: "Shortcut" },
             { key: "description", type: "string", label: "Description" },
-            { key: "onActionId", type: "event-id", label: "On Action" },
           ],
           labelKey: "label",
           allowSections: true,

@@ -46,13 +46,12 @@ describe("ADR-099 Phase 5 — Menu items discriminated union", () => {
         icon: "star",
         shortcut: "Cmd+S",
         description: "Save item",
-        onActionId: "action-save",
         value: "save",
         textValue: "save item",
         href: "/save",
       };
       expect((fullItem as StoredMenuItem).shortcut).toBe("Cmd+S");
-      expect((fullItem as StoredMenuItem).onActionId).toBe("action-save");
+      expect((fullItem as StoredMenuItem).href).toBe("/save");
     });
 
     it("accepts StoredMenuSection with nested items", () => {

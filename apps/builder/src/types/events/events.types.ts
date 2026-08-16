@@ -1,29 +1,15 @@
 /**
- * Event and Action Types
+ * Event and Action Types — **legacy read shape 전용**
  *
- * ⚠️ IMPORTANT: These types are now sourced from the Event Registry
- * DO NOT modify these types directly. Instead, update events.registry.ts
+ * ADR-158 Phase 4 (2026-08-16) 로 구 이벤트 시스템이 은퇴한 뒤, 이 파일은
+ * 구 문서/DB row (`element.events`) 를 **읽기 위한** 형태 선언으로만 남는다.
+ * 신규 인터랙션 어휘는 `CAPABILITY_REGISTRY` (`@composition/shared`) 소유.
  *
- * This ensures type system and runtime implementation stay synchronized.
+ * ADR-158 Phase 4 후속 (2026-08-17): `EVENT_REGISTRY` re-export 계열 은퇴 —
+ * 마지막 소비자(ItemsManager `event-id` 드롭다운)가 채널 제거로 사라졌다.
+ * `event_type` 은 불투명 문자열이다: 구 데이터에는 은퇴한 DOM 별칭
+ * (`onClick` 등)이 그대로 저장돼 있어 좁은 union 은 실데이터를 표현하지 못한다.
  */
-
-// Import from registry for use in this file
-import type { EventType } from "./events.registry";
-
-// Re-export from registry (single source of truth — ADR-055)
-//
-// ADR-158 Phase 4 (2026-08-16): 액션 어휘 계열
-// (`ActionType` / `IMPLEMENTED_ACTION_TYPES` / `ACTION_TYPE_LABELS` /
-// `isImplementedActionType` / `ACTION_CATEGORIES`) 과 `implemented` 플래그 파생
-// (`ImplementedEventType` / `IMPLEMENTED_EVENT_TYPES` / `isImplementedEventType`)
-// 은 registry 축소와 함께 사라졌다.
-export type { EventType, EventCategoryId } from "./events.registry";
-export {
-  EVENT_REGISTRY,
-  isEventType,
-  EVENT_TYPE_LABELS,
-  EVENT_CATEGORIES_BY_ID,
-} from "./events.registry";
 
 // 액션별 특화된 값 타입들
 export interface NavigateActionValue {
@@ -176,7 +162,8 @@ export interface EventAction {
 // 요소의 이벤트 정의
 export interface ElementEvent {
   id: string;
-  event_type: EventType;
+  /** 구 데이터의 원문 그대로 — 은퇴한 DOM 별칭(onClick 등) 포함 가능 */
+  event_type: string;
   actions: EventAction[];
   enabled: boolean;
   description?: string; // 이벤트 설명
@@ -214,7 +201,7 @@ export interface EventTemplate {
   name: string;
   description: string;
   category: "navigation" | "interaction" | "animation" | "data" | "custom";
-  event_type: EventType;
+  event_type: string;
   actions: Omit<EventAction, "id">[];
   tags: string[];
   preview?: string; // 미리보기 설명
@@ -263,7 +250,7 @@ export function isCustomFunctionAction(
 
 // 이벤트 유틸리티 타입들
 export type EventHandlerMap = Record<
-  EventType,
+  string,
   (context: EventContext) => Promise<EventExecutionResult>
 >;
 
@@ -272,5 +259,3 @@ export type EventHandlerMap = Record<
 export const DEFAULT_DEBOUNCE_TIME = 300;
 export const DEFAULT_THROTTLE_TIME = 100;
 export const MAX_EXECUTION_TIME = 5000;
-
-// EVENT_TYPE_LABELS 는 registry 에서 re-export (상단 참조).

@@ -384,8 +384,8 @@ export interface ChildrenManagerField extends BaseFieldDef {
 export interface ItemsManagerFieldItemSchema {
   /** 항목 객체의 키 이름 (e.g. "label", "value") */
   key: string;
-  /** 값 타입 */
-  type: "string" | "boolean" | "icon" | "event-id";
+  /** 값 타입 — `event-id` 는 ADR-158 Phase 4 후속으로 은퇴 (dead 채널) */
+  type: "string" | "boolean" | "icon";
   /** UI 라벨 */
   label: string;
 }

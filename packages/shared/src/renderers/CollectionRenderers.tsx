@@ -36,17 +36,16 @@ import { resolveSlotComposition } from "../catalog/slotRoles";
 import { renderMenuItemSlotParts } from "../components/Menu";
 
 /**
- * Stored → Runtime 변환 (Q11=나: EVENT_REGISTRY에 직접 의존 금지)
- * resolveActionId는 RenderContext를 통해 주입받음
+ * Stored → Runtime 변환.
+ *
+ * ADR-158 Phase 4 후속 (2026-08-17): `onActionId → onAction` 파생은 제거 —
+ * event-id 채널이 발화 경로 없는 dead seam 이었다 (`resolveActionId` 상시
+ * undefined). 항목 링크는 `href` 가 정식 경로.
  */
-function toRuntimeMenuItem(
-  item: StoredMenuItem,
-  resolve?: (id: string) => (() => void) | undefined,
-): RuntimeMenuItem {
+function toRuntimeMenuItem(item: StoredMenuItem): RuntimeMenuItem {
   return {
     ...item,
-    onAction: item.onActionId ? resolve?.(item.onActionId) : undefined,
-    children: item.children?.map((c) => toRuntimeMenuItem(c, resolve)),
+    children: item.children?.map((c) => toRuntimeMenuItem(c)),
   };
 }
 
@@ -864,7 +863,7 @@ export const renderMenu = (
 
   // items-only 경로 (기존 동작 유지 — BC 0%)
   const runtime = (entries as StoredMenuItem[]).map((it) =>
-    toRuntimeMenuItem(it, context.resolveActionId),
+    toRuntimeMenuItem(it),
   );
 
   return <MenuButton key={element.id} {...commonProps} items={runtime} />;

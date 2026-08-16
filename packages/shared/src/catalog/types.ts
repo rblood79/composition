@@ -157,7 +157,8 @@ export type InspectorFieldKind =
  */
 export interface ItemsManagerItemSchema {
   key: string;
-  type: "string" | "boolean" | "icon" | "event-id";
+  /** `event-id` 는 ADR-158 Phase 4 후속으로 은퇴 (dead 채널) */
+  type: "string" | "boolean" | "icon";
   label: string;
 }
 

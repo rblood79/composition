@@ -8,8 +8,12 @@
  * (camelCase 28 + snake_case 별칭 19) 과 그 레이블·카테고리 맵도 함께 사라졌다 —
  * Do 축은 `CAPABILITY_REGISTRY` (`@composition/shared`) 가 소유한다.
  *
- * 남은 11종은 RAC 레퍼런스에 실존하는 callback 이고, 현재 유일한 소비자는
- * `ItemsManager` 의 `event-id` 드롭다운(Menu/ComboBox/Select 의 `onActionId`)이다.
+ * 남은 11종은 RAC 레퍼런스에 실존하는 callback 이다.
+ *
+ * **ADR-158 Phase 4 후속 (2026-08-17): 소비자 0** — 마지막 소비자였던
+ * `ItemsManager` 의 `event-id` 드롭다운(Menu/ComboBox/Select `onActionId`)이
+ * dead 채널 제거로 사라졌다. 본 파일과 `eventRegistryVocabulary.test.ts` 는
+ * 삭제 대기 (파일 삭제는 별도 승인 절차).
  *
  * ⚠️ 인터랙션 규칙의 트리거 어휘는 **여기가 아니라** `CAPABILITY_REGISTRY[type].events`
  * 다 (컴포넌트별로 노출 가능한 callback 이 다르므로). 본 registry 는 컴포넌트를

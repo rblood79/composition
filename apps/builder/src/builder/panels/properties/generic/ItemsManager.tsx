@@ -5,7 +5,6 @@ import type {
   ItemsManagerFieldItemSchema,
 } from "@composition/specs";
 import { useStore } from "../../../stores";
-import { EVENT_REGISTRY } from "../../../../types/events/events.registry";
 import {
   PropertyInput,
   PropertySwitch,
@@ -21,15 +20,6 @@ const AddIcon = ACTION_ICONS.add;
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
-
-// ADR-055: EVENT_REGISTRY에서 select 옵션 파생
-const EVENT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: "", label: "— none —" },
-  ...Object.entries(EVENT_REGISTRY).map(([key, def]) => ({
-    value: key,
-    label: def.label,
-  })),
-];
 
 const SELECTION_MODE_OPTIONS: ReadonlyArray<{ value: string; label: string }> =
   [
@@ -136,22 +126,6 @@ const ItemRow = memo(function ItemRow({
                     onClear={() =>
                       handleFieldChange(schemaField.key, undefined)
                     }
-                  />
-                );
-
-              case "event-id":
-                return (
-                  <PropertySelect
-                    key={schemaField.key}
-                    label={schemaField.label}
-                    value={String(currentValue ?? "")}
-                    onChange={(value) =>
-                      handleFieldChange(
-                        schemaField.key,
-                        value === "" ? undefined : value,
-                      )
-                    }
-                    options={EVENT_OPTIONS}
                   />
                 );
 

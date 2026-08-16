@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import type { StoredSelectItem } from "@composition/specs";
-import { toRuntimeSelectItem } from "@composition/specs";
 
 describe("Select canonical contract", () => {
   const items: StoredSelectItem[] = [
@@ -25,15 +24,6 @@ describe("Select canonical contract", () => {
     const matched = items.find((it) => it.id === "item-c");
     expect(matched?.value).toBeUndefined();
     expect(matched?.label).toBe("Cherry");
-  });
-
-  it("toRuntimeSelectItem onActionId resolver 호출", () => {
-    const stored: StoredSelectItem = { id: "x", label: "X", onActionId: "evt" };
-    const spy = () => void 0;
-    const runtime = toRuntimeSelectItem(stored, (id) =>
-      id === "evt" ? spy : undefined,
-    );
-    expect(runtime.onAction).toBe(spy);
   });
 });
 

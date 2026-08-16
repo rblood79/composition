@@ -34,7 +34,6 @@ export const selectBinding: PrimitiveBinding = {
             { key: "description", type: "string", label: "Description" },
             { key: "icon", type: "icon", label: "Icon" },
             { key: "isDisabled", type: "boolean", label: "Disabled" },
-            { key: "onActionId", type: "event-id", label: "On Action" },
           ],
           labelKey: "label",
         },

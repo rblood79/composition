@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [event-id 죽은 채널 제거 — Items 패널 "On Action" 은퇴] - 2026-08-17
+
+### Breaking Changes
+
+- **Menu/Select/ComboBox 항목의 "On Action" 드롭다운(`onActionId`)이 사라졌다** (ADR-158 Phase 4 후속):
+  - 이 채널은 **골라 저장해도 아무 일도 일어나지 않는 dead seam** 이었다 — 발화 쪽 `resolveActionId` 가 상시 `undefined`(noop) 였고, 드롭다운이 저장하는 값조차 "액션 id" 가 아니라 이벤트 타입 이름(`onPress` 등)인 어휘 혼선의 산물
+  - RAC/RSP 대조: Select 는 per-item action 이 어휘에 없고(선택 = `onSelectionChange`), ComboBox 는 특수 케이스뿐. per-item action 이 정규인 Menu 도 항목 → 이동은 `MenuItem href` 가 정식 경로 — `StoredMenuItem.href` 로 이미 지원
+  - 제거 범위: ItemsManager `event-id` case + binding 3곳 itemSchema + `Stored*.onActionId` + `RuntimeMenuItem.onAction` + `resolveActionId` seam(shared/preview) + dead 변환기 `toRuntimeSelectItem`/`toRuntimeComboBoxItem`(소비 0). 구 문서의 저장된 `onActionId` 키는 읽는 곳이 없어 무해
+  - **재개 조건**: 항목 단위 커맨드 요구가 실제로 생기면 인터랙션 규칙에 itemKey 매칭을 확장 (dispatcher 가 callback 인자를 버리는 현 구조를 여는 것이 전제 — Figma 의 per-node Reaction 모델과 동형)
+  - `EVENT_REGISTRY`(11종) 는 이로써 소비자 0 — legacy `ElementEvent.event_type` 은 구 데이터(은퇴한 `onClick` 등)를 표현 못 하던 거짓 union 이라 불투명 문자열로 정정
+  - 위치: `packages/specs/src/types/{select,combobox,menu}-items.ts` · `packages/shared/src/catalog/bindings/{Menu,Select,ComboBox}.binding.ts` · `packages/shared/src/renderers/CollectionRenderers.tsx` · `apps/builder/src/builder/panels/properties/generic/ItemsManager.tsx`
+
 ## [프레임 페이지에서 요소 추가가 기존 슬롯 콘텐츠를 지우던 문제] - 2026-08-17
 
 ### Bug Fixes

@@ -5,8 +5,8 @@
  * 패키지 의존 방향: shared → specs (단방향)
  *
  * ADR-073 select-items.ts / combobox-items.ts 와 1:1 정합.
- * ListBox 는 onAction 연동 미사용 (정적 모드 = 선택만, 템플릿 모드 = Field 자식 렌더) →
- * onActionId/onAction 필드는 포함하지 않음. 향후 필요 시 Select/ComboBox 선례로 확장 가능.
+ * ListBox 는 정적 모드 = 선택만, 템플릿 모드 = Field 자식 렌더 — item action 필드
+ * 없음 (구 onActionId 채널은 ADR-158 Phase 4 후속으로 전 컬렉션에서 은퇴).
  *
  * ADR-099 Phase 1 (098-c 슬롯): Section/Header 확장을 위해 `StoredListBoxSection` +
  * `StoredListBoxEntry` discriminated union 추가. 기존 `StoredListBoxItem` 은

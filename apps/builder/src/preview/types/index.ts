@@ -46,11 +46,6 @@ export interface RenderContext {
   // Layout/Slot System 필드
   editMode?: "page" | "layout"; // 현재 편집 모드
   /**
-   * ACTION_ID → 실행 함수 변환 (Q11: shared 렌더러는 EVENT_REGISTRY에 직접 의존 금지)
-   * EVENT_REGISTRY.resolve를 주입. 없으면 undefined 반환.
-   */
-  resolveActionId?: (id: string) => (() => void) | undefined;
-  /**
    * ADR-148 Phase 0 — ListBox 행 template 의 slot 구성 (shared RenderContext 동형 필드).
    * App 이 canonical 문서에서 1회 계산해 주입 — 상세는 shared renderer.types.ts 참조.
    */

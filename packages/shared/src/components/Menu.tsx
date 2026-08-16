@@ -385,7 +385,6 @@ export function MenuButton<T extends object>({
             <AriaMenuItem
               textValue={item.label}
               isDisabled={item.isDisabled}
-              onAction={item.onAction}
             >
               {content}
             </AriaMenuItem>
@@ -408,7 +407,6 @@ export function MenuButton<T extends object>({
           id={item.id}
           textValue={item.label}
           isDisabled={item.isDisabled}
-          onAction={item.onAction}
           href={item.href}
         >
           {content}

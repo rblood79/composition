@@ -282,6 +282,9 @@ export interface ResponsiveStyles {
   >;
   /** Order (순서) */
   order?: ResponsiveValue<number>;
+  /** Flex grow/shrink (unitless — Transform 섹션 미러, eligible) */
+  flexGrow?: ResponsiveValue<number>;
+  flexShrink?: ResponsiveValue<number>;
   /** Width */
   width?: ResponsiveStyleValue;
   /** Height */
