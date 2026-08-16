@@ -26,6 +26,7 @@ import {
   resolveBodyArtboardStyle,
   toRacProps,
   toReactStyle,
+  type EventHandlerMap,
 } from "@composition/shared";
 import { Badge } from "@composition/shared/components/Badge";
 import { Calendar } from "@composition/shared/components/Calendar";
@@ -214,9 +215,7 @@ const COLLECTION_HOST_TYPES: ReadonlySet<string> = new Set(
 );
 
 /** `services` 미공급(publish 등) 일 때의 안정 참조 — 매 렌더 새 객체를 만들지 않는다. */
-const EMPTY_EVENT_HANDLERS: Record<string, (e: Event) => void> = Object.freeze(
-  {},
-);
+const EMPTY_EVENT_HANDLERS: EventHandlerMap = Object.freeze({});
 
 /**
  * orphan collection item 이면 최소 RAC collection 으로 감싼다. 아니면 그대로 통과.

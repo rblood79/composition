@@ -14,13 +14,13 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ResolvedNode } from "@composition/shared";
+import type { EventHandlerMap, ResolvedNode } from "@composition/shared";
 
 import type { RenderContext } from "../../types/index";
 import { CanonicalNodeRenderer } from "../CanonicalNodeRenderer";
 
 function ctxWithHandlers(
-  handlers: Record<string, (e: Event) => void>,
+  handlers: EventHandlerMap,
   spy?: (elementId: string) => void,
 ): RenderContext {
   return {

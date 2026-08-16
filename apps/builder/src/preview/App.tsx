@@ -43,6 +43,7 @@ import {
 import type {
   RenderContext as SharedRenderContext,
   PreviewElement as SharedPreviewElement,
+  EventHandlerMap,
 } from "@composition/shared/types";
 import type { PreviewElement, RenderContext } from "./types";
 import type { RuntimeElement } from "./store/types";
@@ -745,7 +746,7 @@ function CanvasContent() {
             interactionIndex,
             interactionDeps,
             reportInteractionOutcome,
-          ) as Record<string, (e: Event) => void>,
+          ) as EventHandlerMap,
       },
       batchUpdateElementProps,
       setElements: (newElements: PreviewElement[]) => {

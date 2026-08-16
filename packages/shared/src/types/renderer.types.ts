@@ -70,11 +70,11 @@ export interface RuntimeServices {
       data: Record<string, unknown>;
     }) => Promise<void>;
   };
-  /** 이벤트 핸들러 생성 */
+  /** 이벤트 핸들러 생성 — 반환 형태는 아래 `EventHandlerMap` 정본을 가리킨다 */
   createEventHandlerMap?: (
     element: PreviewElement,
     context: RenderContext,
-  ) => Record<string, (e: Event) => void>;
+  ) => EventHandlerMap;
 }
 
 /**
@@ -175,6 +175,14 @@ export interface ComponentRenderer {
 export type RendererMap = Record<string, RenderFunction>;
 
 /**
- * 이벤트 핸들러 맵 타입
+ * 이벤트 핸들러 맵 타입 — 요소 하나가 렌더 시 받을 트리거 callback 묶음.
+ *
+ * **이 형태의 유일 정의처다**. 종전에는 같은 형태가 세 곳에 각자 적혀 있었고
+ * (`RuntimeServices.createEventHandlerMap` 반환형 인라인 / preview `types/index.ts` /
+ * builder legacy `events.types.ts`), legacy 쪽 하나가 이미 혼자 다른 형태
+ * (`(context: EventContext) => Promise<EventExecutionResult>`)로 갈려 있었다.
+ * 형태를 다시 적지 말고 이 별칭을 가리킬 것 — preview 쪽 소비자는
+ * `import("@composition/shared/types").EventHandlerMap` (같은 파일의
+ * `RuntimeServices` 참조와 동일 어법).
  */
 export type EventHandlerMap = Record<string, (e: Event) => void>;

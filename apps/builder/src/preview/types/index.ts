@@ -71,11 +71,6 @@ export interface ComponentRenderer {
 }
 
 /**
- * 이벤트 핸들러 타입
- */
-export type EventHandlerMap = Record<string, (e: Event) => void>;
-
-/**
  * postMessage 타입들
  */
 export interface PreviewMessage {
