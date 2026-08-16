@@ -1,6 +1,5 @@
 import React from "react";
 import { TokenValue } from "../theme";
-import type { ElementEvent } from "../events/events.types";
 
 type AriaRole =
   | "button"
@@ -100,10 +99,11 @@ export interface ElementProps {
   // 데이터 속성
   [key: `data-${string}`]: string | number | boolean | undefined;
 
-  // 이벤트 시스템 (명시적으로 정의)
-  events?: ElementEvent[];
+  // 이벤트 시스템 — legacy 잔존 데이터. shape 무의존이라 `unknown[]` 이다
+  // (`getElementEvents` 가 unknown[] 로 읽고, 구 `ElementEvent` 선언은 소비처 0 으로 은퇴).
+  events?: unknown[];
 
-  // 추가 속성 (인덱스 시그니처에 ElementEvent[] 타입 추가)
+  // 추가 속성 (인덱스 시그니처에 legacy events 배열 포함)
   [key: string]:
     | string
     | number
@@ -111,7 +111,7 @@ export interface ElementProps {
     | React.CSSProperties
     | React.ReactNode
     | readonly string[]
-    | ElementEvent[]
+    | unknown[]
     | ((event: React.MouseEvent<HTMLElement>) => void)
     | ((event: React.ChangeEvent<HTMLElement>) => void)
     | ((event: React.FocusEvent<HTMLElement>) => void)

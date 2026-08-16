@@ -9,7 +9,6 @@ export * from "./renderer.types";
 export * from "./componentVariants.types";
 export * from "./collection.types";
 export * from "./export.types";
-export * from "./event.types";
 export * from "./font.types";
 // ADR-903 P0 — Canonical Document Format
 export * from "./composition-document.types";

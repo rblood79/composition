@@ -1,6 +1,5 @@
 // 통합된 타입 정의 파일
 import React from "react";
-import { ElementEvent } from "../events/events.types";
 import { TokenValue, DesignToken } from "../theme";
 import type { StoredMenuItem, StoredTagItem } from "@composition/specs";
 import type { DataBinding as SharedDataBinding } from "@composition/shared";
@@ -26,7 +25,7 @@ export interface BaseElementProps extends Record<string, unknown> {
   style?: React.CSSProperties;
   computedStyle?: Partial<React.CSSProperties>; // Computed styles from browser (iframe)
   "data-element-id"?: string;
-  events?: ElementEvent[];
+  events?: unknown[]; // legacy 잔존 데이터 — shape 무의존 (`getElementEvents` 가 unknown[] 로 읽는다)
   children?: React.ReactNode; // children 속성 추가
 }
 

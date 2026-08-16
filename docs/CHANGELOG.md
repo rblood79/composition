@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `EVENT_REGISTRY`(11종) 는 이로써 소비자 0 — legacy `ElementEvent.event_type` 은 구 데이터(은퇴한 `onClick` 등)를 표현 못 하던 거짓 union 이라 불투명 문자열로 정정
   - 위치: `packages/specs/src/types/{select,combobox,menu}-items.ts` · `packages/shared/src/catalog/bindings/{Menu,Select,ComboBox}.binding.ts` · `packages/shared/src/renderers/CollectionRenderers.tsx` · `apps/builder/src/builder/panels/properties/generic/ItemsManager.tsx`
 
+- **소비자 0 이 된 legacy 이벤트 타입 선언 2파일 은퇴** (위 제거의 후속, 441줄 순삭제):
+  - `packages/shared/src/types/event.types.ts`(12심볼) — 배럴 재수출 한 줄이 유일 참조였다. 패키지가 `private` 이라 npm 표면도 없고 모노레포 import 0건
+  - `apps/builder/src/types/events/events.types.ts`(32심볼) — **전량 소비 0**. `EventHandlerMap` 이 살아 있어 보였으나 **동명이인 3중 선언**이었고 실제 소비되는 것은 `packages/shared/src/types/renderer.types.ts:180` 쪽(`createEventHandlerMap` seam). 자리표시자로만 남던 `ElementEvent[]` 2곳(`BaseElementProps` / `ElementProps`)은 `unknown[]` 로 낮췄다 — `Element.events` 가 이미 쓰던 형태이고, 실제 read 경로 `getElementEvents` 가 `unknown[]` 을 반환해 shape 무의존이기 때문
+  - **`props.events` 데이터 채널은 유지** — ADR-149 Phase 3-c 가 undo 정합 read source 로 의도 보존한 부분이다(canonical root 에 undo 통합이 없어 reader 를 canonical 로 바꾸면 undo 후 버그). 타입 선언과 데이터 채널은 별개 축이라는 것이 이번 판정의 실질
+  - 검증: 파일을 치운 상태로 type-check 선실증(5패키지 PASS) 후 삭제 · 테스트 감소 0(shared 771 / builder 3589) · live 빌더 로드 정상(446요소, 콘솔 에러 0) + `getElementEvents` 3단계 우선순위(`props.events` → `element.events` → `[]`) 동작 확인
+
 ## [프레임 페이지에서 요소 추가가 기존 슬롯 콘텐츠를 지우던 문제] - 2026-08-17
 
 ### Bug Fixes
