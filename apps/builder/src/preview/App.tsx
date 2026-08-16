@@ -16,6 +16,13 @@ import { useRuntimeStore, getRuntimeStore } from "./store";
 import { CanvasRouter, setGlobalNavigate } from "./router";
 import { MessageHandler, messageSender } from "./messaging";
 import { pickBuilderSyncedProps } from "./messaging/builderPropSync";
+import {
+  buildInteractionIndex,
+  createElementHandlers,
+  type DispatchDeps,
+} from "./interactions";
+import { navigateInPreview } from "./router/canvasNavigation";
+import { ToastProvider, useToast } from "@composition/shared/components";
 import { useNavigate } from "react-router-dom";
 import { rendererMap } from "@composition/shared/renderers";
 import {
@@ -120,6 +127,23 @@ function getEventEngine(): EventEngine {
 // Canvas Content Component
 // ============================================
 
+/**
+ * 발화 실패를 콘솔에 남긴다 (ADR-158 Phase 3).
+ *
+ * dispatcher 는 실패를 예외로 던지지 않고 사유를 돌려준다 — 버튼 하나가 preview
+ * 전체를 무너뜨리면 안 되기 때문이다. 대신 **조용히 no-op 하지도 않는다**:
+ * "눌렀는데 아무 일도 없다" 는 규칙 설정 실수인지 배선 결함인지 구분이 안 된다.
+ */
+function reportInteractionOutcome(
+  rule: { id: string; trigger: string },
+  outcome: { ok: boolean; reason?: string },
+): void {
+  if (outcome.ok) return;
+  console.warn(
+    `[interactions] 규칙 ${rule.id} (${rule.trigger}) 발화 실패 — ${outcome.reason}`,
+  );
+}
+
 function CanvasContent() {
   const elements = useRuntimeStore((s) => s.elements) as PreviewElement[];
   const updateElementProps = useRuntimeStore((s) => s.updateElementProps);
@@ -132,6 +156,12 @@ function CanvasContent() {
   const canonicalDocument = useRuntimeStore((s) => s.canonicalDocument);
   const [importRegistryVersion, bumpImportRegistryVersion] = useState(0);
   const navigate = useNavigate();
+
+  // toast 는 context 값이 매 렌더 새로 잡히므로 ref 로 고정한다 —
+  // 그러지 않으면 renderContext memo 가 매 렌더 무효화되어 전 요소가 다시 그려진다.
+  const { addToast } = useToast();
+  const toastRef = useRef<(message: string) => void>(() => {});
+  toastRef.current = (message: string) => addToast({ title: message });
 
   // ⭐ 모듈 레벨 싱글톤 EventEngine 사용
   const eventEngine = getEventEngine();
@@ -640,6 +670,34 @@ function CanvasContent() {
     [updateElementProps],
   );
 
+  // ── ADR-158 Phase 3 — 인터랙션 발화 ──────────────────────────────
+  //
+  // 규칙 수신 경로는 신설하지 않았다: 이미 `UPDATE_CANONICAL_DOCUMENT` 로 문서가
+  // 통째로 오고, 규칙은 그 안의 `events` root collection (ADR-131) 이다.
+  const interactionIndex = useMemo(
+    () => buildInteractionIndex(canonicalDocument?.events),
+    [canonicalDocument],
+  );
+
+  const interactionDeps: DispatchDeps = useMemo(
+    () => ({
+      getElement: (id) => {
+        const el = elementsById.get(id);
+        return el
+          ? { type: el.type, props: el.props as Record<string, unknown> }
+          : undefined;
+      },
+      // **raw** patch 다 — `updateElementPropsWithBuilderSync` 가 아니다.
+      // 발화는 런타임 동작이지 문서 편집이 아니라서, 역전파하면 버튼 한 번에
+      // undo 히스토리와 DB write 가 쌓인다. 실제로 `Disclosure.expand` 가
+      // patch 하는 `isExpanded` 는 역전파 allowlist 안에 있어 이 구분이 실효다.
+      updateElementProps,
+      navigate: (path) => navigateInPreview(path),
+      showToast: (message) => toastRef.current?.(message),
+    }),
+    [elementsById, updateElementProps],
+  );
+
   // RenderContext 생성
   const renderContext: RenderContext = useMemo(
     () => ({
@@ -647,6 +705,17 @@ function CanvasContent() {
       elementsById,
       childrenByParent,
       updateElementProps: updateElementPropsWithBuilderSync,
+      // 선언만 있고 공급이 0건이던 seam (`RuntimeServices.createEventHandlerMap`)
+      // 을 여기서 채운다 — 렌더러 14곳의 기존 spread 지점이 그대로 살아난다.
+      services: {
+        createEventHandlerMap: (element: { id: string }) =>
+          createElementHandlers(
+            element.id,
+            interactionIndex,
+            interactionDeps,
+            reportInteractionOutcome,
+          ) as Record<string, (e: Event) => void>,
+      },
       batchUpdateElementProps,
       setElements: (newElements: PreviewElement[]) => {
         setElements(newElements as RuntimeElement[]);
@@ -672,6 +741,8 @@ function CanvasContent() {
       batchUpdateElementProps,
       setElements,
       eventEngine,
+      interactionIndex,
+      interactionDeps,
       listBoxTemplateSlotComposition,
       listBoxRowTemplateStyles,
       templateSlotCompositions,
@@ -1304,9 +1375,13 @@ export function App() {
   }
 
   return (
-    <CanvasRouter renderElements={renderElements}>
-      {/* 추가 오버레이나 UI 요소는 여기에 */}
-    </CanvasRouter>
+    // ADR-158 Phase 3 — `toast` 앱 액션의 표시 표면. ToastProvider 가 region 까지
+    // 렌더하므로 별도 오버레이가 필요 없다.
+    <ToastProvider position="bottom-right">
+      <CanvasRouter renderElements={renderElements}>
+        {/* 추가 오버레이나 UI 요소는 여기에 */}
+      </CanvasRouter>
+    </ToastProvider>
   );
 }
 
