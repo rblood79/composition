@@ -15,7 +15,6 @@ export type {
   TransformBox,
   DragOperation,
   DragState,
-  SelectionState,
   HandleConfig,
 } from "./types";
 

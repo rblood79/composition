@@ -93,17 +93,10 @@ export interface DragState {
 // Selection State
 // ============================================
 
-/**
- * 선택 상태
- */
-export interface SelectionState {
-  /** 선택된 요소 ID 목록 */
-  selectedIds: string[];
-  /** 바운딩 박스 (단일 선택 또는 그룹 선택) */
-  bounds: BoundingBox | null;
-  /** 드래그 상태 */
-  drag: DragState;
-}
+// 선택 상태 타입은 여기 두지 않는다 — 정본은 `stores/selection.ts` 의
+// `SelectionState` (Zustand 슬라이스, `stores/index.ts` 가 루트 스토어 타입에
+// 결합). 종전에 `{selectedIds, bounds, drag}` 형상의 동명 선언이 이 파일에도
+// 있었고 배럴이 재수출까지 했으나 소비처가 0건이었다.
 
 // ============================================
 // Handle Configuration

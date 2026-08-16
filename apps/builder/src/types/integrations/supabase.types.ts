@@ -17,41 +17,11 @@ type AriaRole =
   | "presentation"
   | undefined;
 
-export interface ToggleButtonProps {
-  isSelected?: boolean;
-  defaultSelected?: boolean;
-  onChange?: (isSelected: boolean) => void;
-  isDisabled?: boolean;
-  children?: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  "data-element-id"?: string;
-  [key: string]:
-    | string
-    | number
-    | boolean
-    | React.ReactNode
-    | React.CSSProperties
-    | ((isSelected: boolean) => void)
-    | undefined;
-}
-
-export interface ButtonProps {
-  isDisabled?: boolean;
-  onPress?: () => void;
-  children?: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  "data-element-id"?: string;
-  [key: string]:
-    | string
-    | number
-    | boolean
-    | React.ReactNode
-    | React.CSSProperties
-    | (() => void)
-    | undefined;
-}
+// `ToggleButtonProps` / `ButtonProps` 는 삭제됐다 (2026-08-17) — 소비처 0건.
+// 이름이 겹치는 `SwatchIconButton.tsx` / `ActionIconButton.tsx` 의
+// `RACToggleButtonProps` 는 `react-aria-components` 에서 별칭 import 하는
+// 것이라 이 선언과 무관했다. 실제 Button props 정본은
+// `packages/shared/src/components/Button.tsx` (RACButtonProps 확장).
 
 export interface ElementProps {
   tag?: string;

@@ -39,26 +39,17 @@ export interface BaseElementProps extends Record<string, unknown> {
 export type DataBinding = SharedDataBinding;
 
 // === 컬럼 매핑 타입 (ListBox, Select 등 Collection 컴포넌트용) ===
-export type FieldType =
-  | "string"
-  | "number"
-  | "boolean"
-  | "date"
-  | "image"
-  | "url"
-  | "email";
-
-export interface FieldDefinition {
-  key: string; // 데이터 키 (예: "name")
-  label?: string; // 표시 레이블 (예: "Full Name")
-  type?: FieldType; // 데이터 타입
-  visible?: boolean; // 선택 여부 (기본 true)
-  order?: number; // 표시 순서
-}
-
-export interface ColumnMapping {
-  [fieldKey: string]: FieldDefinition;
-}
+//
+// 정본은 `@composition/shared` 의 `element.types.ts` — collection 컴포넌트 7종
+// (GridList/Breadcrumbs/ComboBox/RadioGroup/ListBox/TagGroup/CheckboxGroup)의
+// prop 타입으로 그쪽이 실사용한다. 종전에 세 타입 모두 **바이트 단위로 동일한**
+// 선언이 이 파일에도 있었다 — 재수출로 바꿔 호출부 import 경로는 유지한다.
+export type {
+  FieldType,
+  FieldDefinition,
+  ColumnMapping,
+} from "@composition/shared";
+import type { FieldType, ColumnMapping } from "@composition/shared";
 
 /**
  * @deprecated ADR-126 Phase 6.

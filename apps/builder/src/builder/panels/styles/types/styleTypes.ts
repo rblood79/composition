@@ -2,23 +2,19 @@
  * styleTypes - StylesPanel 관련 TypeScript 타입 정의
  */
 
-import type { SelectedElement } from '../../../inspector/types';
-
-/**
- * Section 컴포넌트 공통 Props
- */
-export interface SectionProps {
-  selectedElement: SelectedElement;
-}
+// `SectionProps` 는 여기 두지 않는다 — 정본은 `components/panel/Section.tsx` 이고
+// `components/panel/index.ts` + `components/index.ts` 배럴이 그것을 재수출한다
+// (`panel-structure.md` §"섹션은 `Section` 컴포넌트 경유만"). 종전에 이 파일에도
+// `{ selectedElement }` 형상의 동명 선언이 있었는데 소비처가 0건이었다.
 
 /**
  * 스타일 출처 타입
  */
 export type StyleSource =
-  | { type: 'inline'; location: 'user-set' }
-  | { type: 'computed'; location: string } // CSS class name
-  | { type: 'inherited'; location: string } // Parent element type
-  | { type: 'default'; location: 'component-default' };
+  | { type: "inline"; location: "user-set" }
+  | { type: "computed"; location: string } // CSS class name
+  | { type: "inherited"; location: string } // Parent element type
+  | { type: "default"; location: "component-default" };
 
 /**
  * 스타일 값 정보 (출처 포함)
