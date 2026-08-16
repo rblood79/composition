@@ -32,7 +32,7 @@ export const SHORTCUT_PRIORITY = {
 // Shortcut Definitions
 // ============================================
 
-export const SHORTCUT_DEFINITIONS: ShortcutDefinitions = {
+export const SHORTCUT_DEFINITIONS = {
   // ==========================================
   // System (priority: 100)
   // ==========================================
@@ -818,12 +818,23 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinitions = {
     description: "Select Item",
     i18n: { ko: "항목 선택" },
   },
-} as const;
+} as const satisfies ShortcutDefinitions;
 
 // ============================================
 // Shortcut ID Type (from keys)
 // ============================================
 
+/**
+ * 단축키 id 리터럴 union — 위 객체의 키에서 파생된다.
+ *
+ * **`SHORTCUT_DEFINITIONS` 에 타입 주석을 붙이면 이 union 이 `string` 으로
+ * 무너진다.** 주석은 `as const` 를 이기므로 `typeof` 가
+ * `Record<string, ShortcutDefinition>` 이 되고, `keyof` 는 `string` 이 된다.
+ * 그 상태에서는 아래 소비처들의 `as ShortcutId` 캐스팅이 전부 no-op 이고
+ * `shortcutId?: ShortcutId` 가 오타를 하나도 막지 못한다 (2026-08-17 실측 —
+ * 존재하지 않는 id 대입이 컴파일 통과). 항목별 형태 검사는 `satisfies` 가
+ * 맡으므로 주석 없이도 잃는 것이 없다.
+ */
 export type ShortcutId = keyof typeof SHORTCUT_DEFINITIONS;
 
 // ============================================

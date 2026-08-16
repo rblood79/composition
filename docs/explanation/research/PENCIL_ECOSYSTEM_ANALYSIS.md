@@ -1,8 +1,8 @@
 # Pencil 생태계 분석 — 3개 디렉토리 정체 + composition reference 정합
 
 **작성일**: 2026-05-27
-**갱신일**: 2026-08-17 (세 제품 최신 artifact/release 교차 검증 + composition AI/렌더링 현행화 — §1~§10)
-**분석 대상**: `/Users/admin/work/pencil`, `/Users/admin/work/openpencil`, `/Users/admin/work/open-pencil`
+**갱신일**: 2026-08-17 (세 제품 최신 artifact/release + Figma/Framer 공식 기능 교차 검증, AI·제품화 수준·총점 추가 — §1~§10)
+**분석 대상**: `/Users/admin/work/pencil`, `/Users/admin/work/openpencil`, `/Users/admin/work/open-pencil` + 비교 제품군 Figma, Framer
 **관련 메모리**: [`pencil-component-visual-markers`](../../../.claude/memory), [`feedback-composition-enterprise-target`](../../../.claude/memory), [`feedback-no-fallback-thinking`](../../../.claude/memory)
 **관련 ADR**: ADR-116 (canonical-only-runtime), ADR-122 (canonical SSOT), ADR-130 (frame), ADR-134 (AI 통합), ADR-142 (canonical document component model), ADR-153 (렌더 최적화 도입)
 
@@ -11,6 +11,8 @@
 > **♻️ 갱신 (2026-08-17) — openpencil (ZSeven-W)**: v0.7.5 기준 서술을 **v0.8.4 Rust 제품**으로 전면 교체했다 (§3 참조). Upstream v0.8.4는 2026-08-11 pre-release이며 release 페이지에 tag 이후 1 commit이 표시된다. local 디렉터리는 `.git`이 없는 source snapshot이므로 본 문서의 v0.8.4는 `Cargo.toml`·release notes·현재 코드가 확인하는 제품 버전이지 exact commit 식별자가 아니다.
 >
 > **♻️ 정정 (2026-08-17) — open-pencil 협업**: 기존 §4-2의 "P2P 아님" 판정은 잘못되었다. 현재 HEAD에는 직접 의존성 `trystero`, `trystero/mqtt` 기반 WebRTC room, STUN/TURN 설정이 존재한다. 실체는 **direct P2P 우선 + public relay/hub fallback + Yjs CRDT**이며, `ws`는 별도 WebSocket 표면의 의존성으로 협업 transport 전체를 설명하지 않는다.
+>
+> **♻️ 추가 (2026-08-17) — 제품화 수준 비교**: Figma와 Framer를 기능 reference가 아니라 **사용자 workflow 완결성·운영·보안·배포·확장성까지 포함한 제품화 benchmark**로 추가했다. 기능 존재 여부와 제품화 성숙도는 별도 점수로 계산하고, 제품화 반영 총점은 기능 70% + 제품화 30%로 산출한다.
 
 ---
 
@@ -224,6 +226,17 @@ composition 메모리 [`pencil-component-visual-markers`](../../../.claude/memor
 ### 4-7. 이번 갱신에서 확인된 안정 baseline
 
 `canvaskit-wasm ^0.40.0` (WebGL2 backed) · Tauri 2 + Vue 3 SPA · Canvas 2D 폴백 없음 · MIT · `.fig`/`.pen` Figma 호환 document surface · COMPONENT/INSTANCE + variant · Kiwi instance override. `@open-pencil/dom-css`가 신설됐지만 CSS 규격 layout engine으로 승격된 것은 아니며, current Unreleased에도 이 경계 변화는 확인되지 않는다.
+
+### 4-8. Figma·Framer 제품화 baseline
+
+Figma와 Framer는 source-level renderer를 공개하지 않는 hosted product이므로 내부 Canvas/WebGL 구현을 open-source 제품과 직접 비교하지 않는다. 대신 실제 사용자에게 노출된 workflow와 운영 surface를 제품화 평가의 기준으로 삼는다.
+
+| 제품       | 2026-08-17 현재 제품화 증거                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 제품화 평가에 반영한 한계                                                                                                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Figma**  | Auto Layout, components/variants, Variables·Libraries, version history, Organization/Enterprise branching, Dev Mode·Code Connect, Plugin API, Figma Sites를 하나의 SaaS workflow로 제공한다. 파일은 최대 500명 참여·200명 편집을 공식 안내하며, Organization/Enterprise는 web publishing 통제도 제공한다. [Auto Layout](https://help.figma.com/hc/en-us/articles/360040451373-Explore-auto-layout-properties) · [Branching](https://help.figma.com/hc/en-us/articles/360063144053-Guide-to-branching) · [Dev Mode](https://help.figma.com/hc/en-us/articles/15023124644247-Guide-to-Dev-Mode) · [Plugin API](https://developers.figma.com/docs/plugins/api/api-reference/) · [Multiplayer limit](https://help.figma.com/hc/en-us/articles/1500006775761-How-many-people-can-be-in-a-file-at-once) | renderer p50/p95/p99, self-hosting, 내부 schema는 공개 근거가 없다. Figma Sites는 문서 기준 open beta이므로 전체 제품의 hosting maturity와 동일시하지 않는다.                          |
+| **Framer** | Canvas·components·breakpoints·CMS·custom code·staging/version·custom domain·hosting·site optimization을 연결한다. Agents는 prompt로 editable page/section/copy/visual을 만들고 수정하며 publish까지 이어진다. [Agents](https://www.framer.com/help/ai/) · [Publishing](https://www.framer.com/help/publishing/) · [Site optimization](https://www.framer.com/help/articles/site-optimization/)                                                                                                                                                                                                                                                                                                                                                                                                    | 자체 HTML export를 지원하지 않고 hosting 중심이다. editor frame-time benchmark와 범용 design-document schema는 공개되지 않았으며, CMS 내부 구조는 private implementation으로 취급된다. |
+
+이 baseline 때문에 Figma는 **협업·design system·enterprise governance**, Framer는 **웹사이트 publish·CMS·hosting·AI workflow**의 제품화 reference로 분류한다. composition과의 직접 경쟁축은 renderer 구현 자체가 아니라 이 운영 가능한 workflow의 완결성이다.
 
 ---
 

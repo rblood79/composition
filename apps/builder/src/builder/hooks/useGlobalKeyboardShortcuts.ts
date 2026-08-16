@@ -26,6 +26,7 @@ import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../config/keyboardShortcuts";
+import type { ShortcutDefinition } from "../types/keyboard";
 import { usePanelLayout } from "./usePanelLayout";
 import { useActiveScope } from "./useActiveScope";
 import {
@@ -75,7 +76,11 @@ function bindHandlersToDefinitions(
   return ids
     .filter((id) => handlers[id] !== undefined)
     .map((id) => {
-      const def = SHORTCUT_DEFINITIONS[id];
+      // `SHORTCUT_DEFINITIONS` 가 `as const satisfies` 라 인덱싱 결과가 71개
+      // 리터럴 객체의 union 이다 — `code`/`capture`/`allowInInput` 처럼 일부
+      // 항목에만 있는 optional 필드는 union 상태로는 읽을 수 없다.
+      // 공통 형태로 한 번 넓혀서 읽는다 (`satisfies` 가 대입 가능성을 보증).
+      const def: ShortcutDefinition = SHORTCUT_DEFINITIONS[id];
       return {
         key: def.key,
         code: def.code,

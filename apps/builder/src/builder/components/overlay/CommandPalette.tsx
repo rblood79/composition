@@ -160,8 +160,8 @@ export function CommandPalette({
     }
   }, [isOpen]);
 
-  // Modal Panel 액션을 위한 훅
-  const { openPanelAsModal, togglePanel, toggleBottomPanel } = usePanelLayout();
+  // 패널 토글 액션을 위한 훅
+  const { togglePanel, toggleBottomPanel } = usePanelLayout();
 
   // 명령 실행
   const executeCommand = useCallback(
@@ -169,18 +169,17 @@ export function CommandPalette({
       // 팔레트 닫기
       handleOpenChange(false);
 
-      // Modal 패널 명령 처리
+      // 패널 토글 명령 처리
+      //
+      // 종전에 여기 `openSettingsModal` / `openHistoryModal` / `openAIModal`
+      // 세 case 가 `openPanelAsModal(...)` 을 불렀는데, 그 id 들은
+      // `SHORTCUT_DEFINITIONS` 에 **존재하지 않아** 한 번도 실행되지 않는
+      // 죽은 분기였다 (실제 정의는 `openSettings` 하나이고 아래에서 패널
+      // 토글로 처리된다). `ShortcutId` 가 `string` 으로 무너져 있어서
+      // 컴파일러가 잡지 못했다 — 2026-08-17 리터럴 union 복원으로 드러남.
+      // 팔레트에서 모달로 여는 동선이 필요하면 단축키 정의부터 추가할 것
+      // (`openPanelAsModal` 자체는 BuilderHeader 설정 버튼에서 살아 있다).
       switch (commandId) {
-        case "openSettingsModal":
-          openPanelAsModal("settings");
-          return;
-        case "openHistoryModal":
-          openPanelAsModal("history");
-          return;
-        case "openAIModal":
-          openPanelAsModal("ai");
-          return;
-        // 일반 패널 토글 명령 처리
         case "toggleNodes":
           togglePanel("left", "nodes");
           return;
@@ -211,7 +210,7 @@ export function CommandPalette({
           break;
       }
     },
-    [handleOpenChange, openPanelAsModal, togglePanel, toggleBottomPanel],
+    [handleOpenChange, togglePanel, toggleBottomPanel],
   );
 
   // 키보드 내비게이션

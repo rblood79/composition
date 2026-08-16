@@ -6,7 +6,7 @@
  * @since Phase 2 구현 (2025-12-28)
  */
 
-import type { KeyboardModifier, ShortcutCategory } from '@/builder/hooks';
+import type { KeyboardModifier, ShortcutCategory } from "@/builder/hooks";
 
 // ============================================
 // Scope Types
@@ -22,14 +22,14 @@ import type { KeyboardModifier, ShortcutCategory } from '@/builder/hooks';
  * - text-editing: 텍스트 입력 중
  */
 export type ShortcutScope =
-  | 'global'
-  | 'canvas-focused'
-  | 'panel:properties'
-  | 'panel:styles'
-  | 'panel:events'
-  | 'panel:nodes'
-  | 'modal'
-  | 'text-editing';
+  | "global"
+  | "canvas-focused"
+  | "panel:properties"
+  | "panel:styles"
+  | "panel:events"
+  | "panel:nodes"
+  | "modal"
+  | "text-editing";
 
 // ============================================
 // Shortcut Definition Types
@@ -54,7 +54,7 @@ export interface ShortcutDefinition {
   category: ShortcutCategory;
 
   /** 활성화 스코프 (배열이면 여러 스코프에서 활성) */
-  scope: ShortcutScope | ShortcutScope[];
+  scope: ShortcutScope | readonly ShortcutScope[];
 
   /** 우선순위 (높을수록 먼저 실행) */
   priority: number;
@@ -77,19 +77,26 @@ export interface ShortcutDefinition {
 }
 
 /**
- * 단축키 ID 타입 (문자열 리터럴)
- */
-export type ShortcutId = string;
-
-/**
  * 단축키 핸들러 맵
+ *
+ * 키를 `string` 으로 두는 것은 의도다 — 여기서 `ShortcutId`(정본은
+ * `config/keyboardShortcuts.ts` 의 `keyof typeof SHORTCUT_DEFINITIONS`)를
+ * 참조하면 config → keyboard → config 순환이 된다.
  */
-export type ShortcutHandlers = Record<ShortcutId, () => void>;
+export type ShortcutHandlers = Record<string, () => void>;
 
 /**
- * 단축키 정의 맵
+ * 단축키 정의 맵 — **`SHORTCUT_DEFINITIONS` 에 타입 주석으로 붙이지 말 것.**
+ *
+ * 주석(`const X: ShortcutDefinitions = {...} as const`)은 `as const` 를 이겨
+ * `typeof X` 를 이 `Record<string, …>` 로 만들고, 그러면 그로부터 파생되는
+ * `ShortcutId = keyof typeof SHORTCUT_DEFINITIONS` 가 **`string` 으로 무너진다**.
+ * 실측(2026-08-17): 존재하지 않는 단축키 id 를 `ShortcutId` 에 대입해도
+ * 컴파일이 통과했고, 30+ 소비처의 `as ShortcutId` 캐스팅이 전부 no-op 이었다.
+ * 형태 검사가 필요하면 `satisfies ShortcutDefinitions` 를 쓸 것 — 그래야
+ * `keyof` 가 리터럴 union 을 유지한 채 항목별 검사도 받는다.
  */
-export type ShortcutDefinitions = Record<ShortcutId, ShortcutDefinition>;
+export type ShortcutDefinitions = Record<string, ShortcutDefinition>;
 
 // ============================================
 // Help Panel Types
@@ -106,7 +113,7 @@ export interface ShortcutGroup {
   label: string;
 
   /** 그룹 내 단축키 ID 목록 */
-  shortcuts: ShortcutId[];
+  shortcuts: string[];
 }
 
 /**
@@ -114,7 +121,7 @@ export interface ShortcutGroup {
  */
 export interface ShortcutDisplayInfo {
   /** 단축키 ID */
-  id: ShortcutId;
+  id: string;
 
   /** 플랫폼별 표시 문자열 (예: "⌘Z" 또는 "Ctrl+Z") */
   display: string;
@@ -135,20 +142,20 @@ export interface ShortcutDisplayInfo {
  */
 export interface ShortcutConflict {
   /** 기존 단축키 ID */
-  existingId: ShortcutId;
+  existingId: string;
 
   /** 새 단축키 ID */
-  newId: ShortcutId;
+  newId: string;
 
   /** 충돌하는 키 조합 */
   keyCombo: string;
 
   /** 해결 방법 */
-  resolution: 'override' | 'skip' | 'error';
+  resolution: "override" | "skip" | "error";
 }
 
 // ============================================
 // Re-exports
 // ============================================
 
-export type { KeyboardModifier, ShortcutCategory } from '@/builder/hooks';
+export type { KeyboardModifier, ShortcutCategory } from "@/builder/hooks";

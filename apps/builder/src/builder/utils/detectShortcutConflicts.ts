@@ -55,8 +55,8 @@ function getKeyCombo(def: ShortcutDefinition): string {
  * @returns 겹치면 true
  */
 export function scopesOverlap(
-  scope1: ShortcutScope | ShortcutScope[],
-  scope2: ShortcutScope | ShortcutScope[]
+  scope1: ShortcutScope | readonly ShortcutScope[],
+  scope2: ShortcutScope | readonly ShortcutScope[]
 ): boolean {
   const scopes1 = Array.isArray(scope1) ? scope1 : [scope1];
   const scopes2 = Array.isArray(scope2) ? scope2 : [scope2];

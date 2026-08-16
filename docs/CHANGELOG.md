@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [단축키 id 타입이 오타를 다시 막는다 — ShortcutId 리터럴 union 복원] - 2026-08-17
+
+### Bug Fixes
+
+- **`ShortcutId` 가 `string` 으로 무너져 있어 71개 단축키 id 의 오타 방어가 전혀 작동하지 않았다**:
+  - 선언은 `keyof typeof SHORTCUT_DEFINITIONS` 로 리터럴 union 을 파생하는 형태였는데, 정작 그 객체에 `: ShortcutDefinitions` **타입 주석**이 붙어 있었다. 주석은 `as const` 를 이긴다 — `typeof` 가 `Record<string, ShortcutDefinition>` 으로 고정되고 `keyof` 는 `string` 이 된다
+  - **Why**: 두 파일에 나눠 적혀 있어 각각만 보면 정상으로 읽힌다 (`keyboard.ts` 의 `ShortcutId = string` 은 순환 회피용, `keyboardShortcuts.ts` 의 `keyof typeof` 는 파생 의도). 둘을 잇는 `ShortcutDefinitions` 가 그 사이에서 union 을 삼켰다
+  - 실측: 존재하지 않는 id 를 `ShortcutId` 에 대입해도 컴파일 통과. 30+ 소비처의 `as ShortcutId` 캐스팅이 전부 no-op 이고 `shortcutId?: ShortcutId` prop 이 오타를 하나도 막지 못했다
+  - 수정: 타입 주석 제거 + `as const satisfies ShortcutDefinitions` — `keyof` 가 71키 union 을 유지한 채 항목별 형태 검사도 받는다. 복원 확인: 오타 대입이 `"copy" | "cut" | … | "treeSelectSpace"` union 위반으로 정확히 실패
+  - **복원이 드러낸 실제 결함**: `CommandPalette` 의 `openSettingsModal` / `openHistoryModal` / `openAIModal` 3개 case 가 정의에 없는 id 라 **한 번도 실행되지 않는 죽은 분기**였다 (실제 정의는 `openSettings` 하나이고 같은 switch 아래에서 패널 토글로 처리 중). 제거 — 실행된 적이 없어 동작 변화 0
+  - 동반: `as const` 로 `scope` 가 readonly 가 되어 소비 3곳(`KeyboardShortcut.scope` / `matchesScope` / `scopesOverlap`)이 `readonly` 배열을 수용
+  - live: 빌더 로드 후 ⌘K 발화 → 팔레트 실제 표시 + 목록 정상(⌘Z/⌘⇧Z i18n), 런타임 정의 71개 불변, 죽은 id 3종 부재 확인
+  - 위치: `apps/builder/src/builder/{config/keyboardShortcuts.ts,types/keyboard.ts,components/overlay/CommandPalette.tsx,hooks/useGlobalKeyboardShortcuts.ts,hooks/useKeyboardShortcutsRegistry.ts,utils/detectShortcutConflicts.ts}`
+
 ## [게시본에서 인터랙션 규칙이 동작한다 — publish 재배선] - 2026-08-17
 
 ### Features
