@@ -65,17 +65,13 @@ export interface ElementTreeItem extends TreeDataItem {
 }
 
 /**
- * 비동기 리스트 로드 옵션
- * useAsyncList의 load 함수 파라미터
+ * 비동기 리스트 로드 옵션 (`useAsyncList` 의 load 함수 파라미터).
+ *
+ * 정본은 `@composition/shared` 의 `collection.types.ts` — 같은 shape 를
+ * shared `useCollectionData` 가 소비하므로 하위 계층이 소유한다.
  */
-export interface AsyncListLoadOptions {
-  /** AbortController signal (자동 cleanup) */
-  signal: AbortSignal;
-  /** 페이지네이션 커서 (옵션) */
-  cursor?: string;
-  /** 필터 키워드 (옵션) */
-  filterText?: string;
-}
+export type { AsyncListLoadOptions } from "@composition/shared";
+import type { AsyncListLoadOptions } from "@composition/shared";
 
 /**
  * 비동기 리스트 로드 결과

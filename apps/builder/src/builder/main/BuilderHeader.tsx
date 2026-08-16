@@ -41,12 +41,15 @@ import { ACTION_ICONS } from "../config/actionIcons";
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
 
-export interface Breakpoint {
-  id: string;
-  label: string;
-  max_width: string | number;
-  max_height: string | number;
-}
+// `Breakpoint` 정본은 `../workspace/types` — `canvasBreakpoints.ts` 의
+// `CANVAS_BREAKPOINTS`(캔버스 프레임 실제 크기 SSOT)가 그 타입을 쓰고,
+// 헤더 셀렉트는 같은 배열을 그대로 표시한다. 종전에 동일 형상을 여기에도
+// 선언해 두 벌이었다 (`main/index.ts` 재수출 경로는 그대로 유지).
+//
+// `@composition/shared` 의 동명 `Breakpoint`(`{name,minWidth,maxWidth?,label,
+// icon}`)는 미디어 쿼리 경계를 서술하는 **별개 타입**이다 — 혼동 금지.
+export type { Breakpoint } from "../workspace/types";
+import type { Breakpoint } from "../workspace/types";
 
 // 새로운 히스토리 시스템 타입
 export interface HistoryInfo {

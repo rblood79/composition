@@ -1,14 +1,11 @@
 import React from "react";
+import type { Breakpoint } from "../workspace/types";
 
 export interface BuilderCanvasProps {
   projectId?: string;
   breakpoint: Set<string>;
-  breakpoints: Array<{
-    id: string;
-    label: string;
-    max_width: string | number;
-    max_height: string | number;
-  }>;
+  /** 정본은 `../workspace/types` — 종전에는 같은 형상을 익명 inline 으로 적었다. */
+  breakpoints: Breakpoint[];
   onIframeLoad: () => void;
   onMessage: (event: MessageEvent) => void;
   children?: React.ReactNode;

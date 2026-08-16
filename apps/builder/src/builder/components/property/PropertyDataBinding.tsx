@@ -37,57 +37,14 @@ import "./PropertyDataBinding.css";
 // Types
 // ============================================
 
-/**
- * 데이터 갱신 모드 — **read 호환 전용 (오소링 UI 제거됨, 2026-07-24)**.
- *
- * **Why 제거**: (1) RAC/RSP 어느 collection 레퍼런스에도 "갱신 주기" 개념이 없다
- * (RAC 비동기 표면은 `useAsyncList` 의 load/loadMore/reload/sort + loadingState/
- * onLoadMore 뿐) → D2 기준 RSP 미규정 prop. (2) 유일한 소비처인 `useCollectionData`
- * auto-refresh effect 가 `if (!isApiBinding) return` 로 시작하는데, ADR-159 P4b 로
- * 오소링이 `source:"dataTable"` 고정이라 신규 바인딩은 항상 발화 0. (3) `"onMount"`
- * 는 api 바인딩에서조차 소비처 0건 (effect 가 `"interval"` 만 분기).
- *
- * 기존 저장 문서의 값은 편집 시에도 보존한다 (`handleNameChange` 가
- * `value?.refreshMode` 를 그대로 재기록). 타입·필드·소비 effect 물리 제거는 api
- * 바인딩 잔존 문서 실측이 필요하므로 ADR-159 P4c 의 G4 게이트와 함께 처리.
- */
-export type RefreshMode = "manual" | "onMount" | "interval";
-
-export interface DataBindingValue {
-  /**
-   * 바인딩 소스 타입.
-   *
-   * **ADR-159 P4b (2026-07-24)**: 오소링(신규 기록)은 `"dataTable"` 단일 — composition 의
-   * 데이터 방향은 모든 동적·정적 데이터를 collection 방식(ADR-132 계보)으로 처리한다.
-   * `"api" | "variable" | "route"` 는 기존 저장 문서 read 호환용 잔존 타입 (runtime
-   * dispatch 는 P4c 에서 소비처 0 확증 후 정리 — G4 게이트).
-   */
-  source: "dataTable" | "api" | "variable" | "route";
-  /** 소스 이름 */
-  name: string;
-  /**
-   * 데이터 경로 — **read 호환 전용 (오소링 UI 제거됨, 2026-07-24)**.
-   *
-   * **Why 제거**: 실제 해석기는 `preview/hooks/useDataSource.ts` 의 `useDataBinding`
-   * 하나뿐인데 그 모듈이 import 0건(dead)이다. 살아있는 소비처는
-   * `useCollectionDataCache.createCacheKey` 의 캐시 키 문자열뿐 — 값을 바꿔도 캐시만
-   * 무효화되고 로드 데이터는 불변. 실제 행 read 경로(`readDataBindingRows`, Skia
-   * projection + DOM 공통)와 `useCollectionData` 는 `source`/`name` 만 읽는다.
-   *
-   * 계약상으로도 어긋난다: `kind:"binding"` 은 collection 컴포넌트 전용이라 결과가
-   * 항상 **행 배열**인데 `items[0].name` 은 단일 값 드릴다운 문법이다. 행 안에서
-   * 필드를 고르는 일은 ADR-159 `{field}` 템플릿(경로 접근 + 포맷)이 담당한다.
-   *
-   * 필드는 캐시 키 호환을 위해 유지하고, 기존 값은 컬렉션 변경 시에도 보존한다.
-   */
-  path?: string;
-  /** 기본값 */
-  defaultValue?: unknown;
-  /** 갱신 모드 (기본: manual) */
-  refreshMode?: RefreshMode;
-  /** 갱신 간격 (ms, interval 모드에서 사용) */
-  refreshInterval?: number;
-}
+// `RefreshMode` / `DataBindingValue` 의 정본은 `@composition/shared` 의
+// `collection.types.ts` 다 — 같은 wire 형상을 collection 컴포넌트 13종의
+// `dataBinding` prop 이 소비하므로 패키지 하위 계층이 소유해야 한다.
+// ADR-159 P4b/P4c(G4 게이트)의 read-호환 근거 주석도 그쪽에 있다.
+// 종전에는 같은 shape 를 여기에도 선언해 두 벌이었고, 근거 주석은 이쪽에만
+// 있어 shared 사본을 보는 쪽에서는 계약을 알 수 없었다.
+export type { RefreshMode, DataBindingValue } from "@composition/shared";
+import type { DataBindingValue } from "@composition/shared";
 
 interface PropertyDataBindingProps {
   /** 라벨 */
