@@ -483,7 +483,15 @@ export function CanonicalNodeRenderer({
           ]
         : INTERNAL_RENDERERS[binding.source.renderer];
     if (binding && PrimitiveComponent) {
-      const { children: racChildren, ...racRest } = toRacProps(node, binding);
+      // `node` 를 그대로 넘기면 발화 override 가 무시된다 — `toRacProps` 는
+      // `node.props` 를 직접 읽으므로 위에서 병합한 `canonicalProps` 가 이 경로에는
+      // 도달하지 않는다 (ADR-158 Phase 3 실측: Modal.isOpen patch 무반응).
+      const { children: racChildren, ...racRest } = toRacProps(
+        canonicalProps === node.props
+          ? node
+          : { ...node, props: canonicalProps },
+        binding,
+      );
       const childNodes = node.children ?? [];
       // ADR-912 1A-(b): catalog generic(cutover) 경로의 props.style override 상실 seam 닫기.
       // base 색/size 는 generated CSS(react-aria-{Type}[data-*])가 적용 — toReactStyle 은
