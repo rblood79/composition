@@ -18,7 +18,6 @@ export * from "./utils";
 export * from "./hooks";
 
 // Runtime (Phase 3)
-export * from "./runtime";
 
 // Catalog (ADR-142) — PrimitiveBinding / PropContract / toRacProps
 export * from "./catalog";

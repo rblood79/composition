@@ -14,20 +14,20 @@
  * 지원되는 액션 타입
  */
 export type ActionType =
-  | 'NAVIGATE_TO_PAGE'
-  | 'SHOW_ALERT'
-  | 'OPEN_URL'
-  | 'SET_STATE'
-  | 'CONSOLE_LOG'
-  | 'API_CALL'
-  | 'UPDATE_ELEMENT'
-  | 'ADD_ELEMENT';
+  | "NAVIGATE_TO_PAGE"
+  | "SHOW_ALERT"
+  | "OPEN_URL"
+  | "SET_STATE"
+  | "CONSOLE_LOG"
+  | "API_CALL"
+  | "UPDATE_ELEMENT"
+  | "ADD_ELEMENT";
 
 /**
  * 페이지 이동 액션
  */
 export interface NavigateToPageAction {
-  type: 'NAVIGATE_TO_PAGE';
+  type: "NAVIGATE_TO_PAGE";
   config: {
     pageId: string;
     path?: string;
@@ -38,7 +38,7 @@ export interface NavigateToPageAction {
  * 알림 표시 액션
  */
 export interface ShowAlertAction {
-  type: 'SHOW_ALERT';
+  type: "SHOW_ALERT";
   config: {
     message: string;
     title?: string;
@@ -49,10 +49,10 @@ export interface ShowAlertAction {
  * URL 열기 액션
  */
 export interface OpenUrlAction {
-  type: 'OPEN_URL';
+  type: "OPEN_URL";
   config: {
     url: string;
-    target?: '_blank' | '_self';
+    target?: "_blank" | "_self";
   };
 }
 
@@ -60,7 +60,7 @@ export interface OpenUrlAction {
  * 상태 설정 액션
  */
 export interface SetStateAction {
-  type: 'SET_STATE';
+  type: "SET_STATE";
   config: {
     key: string;
     value: unknown;
@@ -71,10 +71,10 @@ export interface SetStateAction {
  * 콘솔 로그 액션
  */
 export interface ConsoleLogAction {
-  type: 'CONSOLE_LOG';
+  type: "CONSOLE_LOG";
   config: {
     message: string;
-    level?: 'log' | 'info' | 'warn' | 'error';
+    level?: "log" | "info" | "warn" | "error";
   };
 }
 
@@ -82,10 +82,10 @@ export interface ConsoleLogAction {
  * API 호출 액션
  */
 export interface ApiCallAction {
-  type: 'API_CALL';
+  type: "API_CALL";
   config: {
     url: string;
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method?: "GET" | "POST" | "PUT" | "DELETE";
     body?: unknown;
     headers?: Record<string, string>;
   };
@@ -95,7 +95,7 @@ export interface ApiCallAction {
  * 요소 업데이트 액션 (Publish에서 미지원)
  */
 export interface UpdateElementAction {
-  type: 'UPDATE_ELEMENT';
+  type: "UPDATE_ELEMENT";
   config: {
     elementId: string;
     props: Record<string, unknown>;
@@ -106,7 +106,7 @@ export interface UpdateElementAction {
  * 요소 추가 액션 (Publish에서 미지원)
  */
 export interface AddElementAction {
-  type: 'ADD_ELEMENT';
+  type: "ADD_ELEMENT";
   config: {
     parentId: string;
     type: string;
@@ -135,16 +135,16 @@ export type Action =
  * 이벤트 타입
  */
 export type EventType =
-  | 'onClick'
-  | 'onDoubleClick'
-  | 'onChange'
-  | 'onFocus'
-  | 'onBlur'
-  | 'onMouseEnter'
-  | 'onMouseLeave'
-  | 'onKeyDown'
-  | 'onKeyUp'
-  | 'onSubmit';
+  | "onClick"
+  | "onDoubleClick"
+  | "onChange"
+  | "onFocus"
+  | "onBlur"
+  | "onMouseEnter"
+  | "onMouseLeave"
+  | "onKeyDown"
+  | "onKeyUp"
+  | "onSubmit";
 
 /**
  * 요소 이벤트 정의
@@ -154,7 +154,7 @@ export interface ElementEvent {
   actions: Action[];
   condition?: {
     field: string;
-    operator: '==' | '!=' | '>' | '<' | '>=' | '<=';
+    operator: "==" | "!=" | ">" | "<" | ">=" | "<=";
     value: unknown;
   };
 }
@@ -167,18 +167,6 @@ export interface ElementEvent {
  * 이벤트 핸들러 함수
  */
 export type EventHandler = (event?: Event) => void | Promise<void>;
-
-/**
- * 이벤트 런타임 컨텍스트
- */
-export interface EventRuntimeContext {
-  /** 현재 페이지 ID */
-  currentPageId: string | null;
-  /** 로컬 상태 */
-  state: Map<string, unknown>;
-  /** 페이지 이동 함수 */
-  navigateToPage: (pageId: string) => void;
-}
 
 /**
  * 액션 실행 결과
