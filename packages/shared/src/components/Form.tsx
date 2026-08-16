@@ -1,5 +1,5 @@
 import { Form as RACForm, FormProps } from "react-aria-components";
-import { FocusScope } from "@react-aria/focus";
+import { ContentFocusScope } from "./ContentFocusScope";
 import "./styles/generated/Form.css";
 
 export interface ExtendedFormProps extends FormProps {
@@ -53,9 +53,9 @@ export function Form({
       data-label-align={labelAlign}
       data-necessity-indicator={necessityIndicator}
     >
-      <FocusScope autoFocus={autoFocus} restoreFocus={restoreFocus}>
+      <ContentFocusScope autoFocus={autoFocus} restoreFocus={restoreFocus}>
         {children}
-      </FocusScope>
+      </ContentFocusScope>
     </RACForm>
   );
 }

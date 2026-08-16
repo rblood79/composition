@@ -4,7 +4,7 @@ import {
   ModalOverlayProps,
   composeRenderProps,
 } from "react-aria-components";
-import { FocusScope } from "@react-aria/focus";
+import { ContentFocusScope } from "./ContentFocusScope";
 import type { ComponentSize } from "../types";
 import "./styles/generated/Modal.css";
 
@@ -76,13 +76,13 @@ export function Modal({
 
   return (
     <RACModal {...props} className={modalClassName} data-size={size}>
-      <FocusScope
+      <ContentFocusScope
         contain={trapFocus}
         autoFocus={autoFocus}
         restoreFocus={restoreFocus}
       >
         {children as React.ReactNode}
-      </FocusScope>
+      </ContentFocusScope>
     </RACModal>
   );
 }

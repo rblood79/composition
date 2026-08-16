@@ -4,7 +4,7 @@ import {
   PopoverProps as AriaPopoverProps,
   composeRenderProps,
 } from "react-aria-components";
-import { FocusScope } from "@react-aria/focus";
+import { ContentFocusScope } from "./ContentFocusScope";
 import type { ComponentSize } from "../types";
 
 import "./styles/Popover.css";
@@ -96,13 +96,13 @@ export function Popover({
           기존 <Dialog> 래핑은 모달용 Dialog 스타일(padding 등)이 popover dropdown 에 새는
           회귀 원인이었다(ComboBox/Select/Calendar dropdown 에 40px padding 누출).
           Dialog role="dialog" 의존 사용처 0건 확인 — FocusScope 만 직접 자식으로 유지. */}
-      <FocusScope
+      <ContentFocusScope
         contain={containFocus}
         autoFocus={autoFocus}
         restoreFocus={restoreFocus}
       >
         {children}
-      </FocusScope>
+      </ContentFocusScope>
     </AriaPopover>
   );
 }

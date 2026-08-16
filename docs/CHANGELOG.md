@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [내용 없는 overlay 가 미리보기를 날리던 결함 — FocusScope 빈 scope] - 2026-08-16
+
+### Bug Fixes
+
+- **자식 없는 Modal 을 열면 미리보기가 통째로 백지가 됐다**:
+  - `@react-aria/focus` 의 `FocusScope` 는 자기가 렌더한 sentinel `<span>` 두 개 **사이의 DOM 노드**를 모아 `scope` 배열로 들고 있다. 사이에 아무것도 없으면 `[]` 가 되는데, `useAutoFocus` 의 가드는 `scopeRef.current` 의 **존재만** 보므로 빈 배열도 통과한다 → `getFirstInScope` 의 `scope[0].previousElementSibling` 에서 `TypeError` → 트리 전체 언마운트
+  - **Why**: 빌더에서 "요소만 놓고 아직 내용을 안 채운 overlay" 는 일상적인 중간 상태다. 그 상태가 미리보기 전체를 날리면 사용자는 무엇을 되돌려야 하는지도 알 수 없다
+  - **같은 결함이 3곳에 있었다** — `Modal`(autoFocus 기본 true) · `Popover`(기본 true) · `Form`(기본 false 라 `autoFocus` 를 켤 때만). 셋 다 RAC 컴포넌트를 감싸는 composition wrapper 가 **사용자가 작성한 subtree** 를 그대로 `FocusScope` 에 넘기는 형태다. RAC 자신은 항상 구체 요소를 감싸므로 이 상태를 겪지 않는다
+  - 수정: 공용 `ContentFocusScope` 가 scope 첫머리에 `<span hidden data-focus-scope-anchor>` 하나를 항상 넣어 **scope 가 비지 않게** 한다. 앵커는 `hidden` 이라 레이아웃·접근성 트리·포커스 탐색 어디에도 참여하지 않고, `FocusScope` 자신이 이미 같은 자리에 sentinel `<span hidden>` 두 개를 렌더하고 있어 `:first-child` 가 사용자 내용을 가리키지 않는 상태도 종전 그대로다
+  - **`React.Children.count(children) === 0` 판정을 기각한 이유**: 자식은 있는데 DOM 노드를 하나도 만들지 않는 형태(닫힌 overlay 를 유일한 자식으로 둔 Modal 등)가 그대로 남는다. 실측 — 세 형태(자식 0 / 자식은 있고 DOM 0 / 빈 Form + autoFocus) 모두 **같은 `previousElementSibling` 에서 동일하게** 죽었다
+  - 위치: `packages/shared/src/components/{ContentFocusScope,Modal,Popover,Form}.tsx`
+  - 회귀 감시: `overlayEmptyFocusScope.test.tsx` (RED 3건 → GREEN). live 확인 — 기본값(autoFocus/trapFocus) 그대로 빈 Modal 을 열어 미리보기 트리 유지 + 내용이 있을 때 autoFocus 가 여전히 첫 버튼으로 이동
+
 ## ["추가" 아이콘 규칙 확정 + 가드 사각 2건 해소] - 2026-08-16
 
 ### Bug Fixes
