@@ -16,6 +16,13 @@
  *   `Element.events` / `Element.dataBinding` field 를 통한 read-through fallback
  *   path 도 제공해 priority option 으로 양쪽 storage 를 지원한다.
  *
+ * **읽기 로직의 정본은 `packages/shared/src/utils/compositionExtensionFields.ts`**
+ * 단일 소스다. 본 파일은 **apps/builder 영역의 기본 priority(`props-first`) 를
+ * 고정하는 wrapper** 로만 남는다 — 두 영역의 기본값이 다른 것은 사고가 아니라
+ * ADR-116 breakdown §10.2.4 의 명시 결정이다 (builder = UI 편집이 inline 수정한
+ * `props.*` 가 canonical primary / shared renderers = 기존 legacy-first 패턴 보존).
+ * 종전에는 그 기본값 차이 때문에 **우선순위 로직 본문까지 두 벌**이었다.
+ *
  * **`Element.actions` 영역 명시 제외**: Element type 에 top-level `actions?` field
  * 자체 미정의. `actions` 는 처음부터 nested (`events[].actions` 또는 canonical
  * `CompositionExtension.actions`) 로만 존재 — 본 helper scope 외.
@@ -25,16 +32,20 @@
  */
 
 import type { DataBinding } from "@composition/shared";
+import {
+  getElementEvents as readElementEvents,
+  getElementDataBinding as readElementDataBinding,
+  type ExtensionReadPriority,
+} from "@composition/shared";
 
-export type ExtensionReadPriority =
-  | "legacy-first"
-  | "props-first"
-  | "legacy-only";
+export type { ExtensionReadPriority };
 
 /**
  * Generic legacy element shape — `Element` (apps/builder unified.types) 와
  * 다른 local input interface (예: workflowEdges 의 `WorkflowElementInput`) 양쪽
  * 호환. helper 가 schema dependency 없이 read-through 만 수행.
+ *
+ * shared 의 동명 input shape 와 구조 동일 — shared 쪽이 미export 라 재선언한다.
  */
 interface LegacyElementWithExtension {
   props?: Record<string, unknown> | unknown;
@@ -43,11 +54,16 @@ interface LegacyElementWithExtension {
 }
 
 /**
- * legacy `Element.events` 영역 — read-through priority.
+ * legacy `Element.events` 영역 — **apps/builder 기본값 `props-first` 고정**.
  *
  * 1. `props.events` — UI canonical primary 저장 (workflow editor 가 inline 수정).
  * 2. `element.events` — legacy fallback (ADR-113 P5 schema 영역, ADR-116 G7 cleanup target).
  * 3. `[]` — 미지정 default.
+ *
+ * **priority 파라미터를 의도적으로 노출하지 않는다.** 호출부가 `legacy-first` 로
+ * 뒤집으면 ADR-149 Phase 3-c 가 확정한 undo 정합이 깨진다 — canonical root 에
+ * undo 통합이 없어 `props.events` 가 undo-정합 read source 이고,
+ * `canvasDeltaMessenger.ts` 의 Preview delta 가 그 값을 싣는다.
  *
  * Phase 5 G7 closure 시 helper 내부 reverse — `node.extension['x-composition'].events`
  * 우선 read 후 props/legacy fallback 으로 변경.
@@ -55,18 +71,15 @@ interface LegacyElementWithExtension {
 export function getElementEvents(
   element: LegacyElementWithExtension,
 ): unknown[] {
-  const props = element.props as Record<string, unknown> | undefined;
-  const propsEvents = props?.events;
-  if (Array.isArray(propsEvents)) return propsEvents;
-  if (Array.isArray(element.events)) return element.events;
-  return [];
+  return readElementEvents(element, "props-first");
 }
 
 /**
  * legacy `Element.dataBinding` 영역 — read-through priority.
  *
  * default priority = `'props-first'` (apps/builder 영역 — UI workflow editor 가
- * inline 수정한 `props.dataBinding` 가 canonical primary).
+ * inline 수정한 `props.dataBinding` 가 canonical primary). packages/shared 영역
+ * renderers 는 `legacy-first` 기본 — ADR-116 breakdown §10.2.4.
  *
  * Phase 5 G7 closure 시 helper 내부 reverse —
  * `node.extension['x-composition'].dataBinding` 우선 read.
@@ -75,22 +88,5 @@ export function getElementDataBinding(
   element: LegacyElementWithExtension,
   priority: ExtensionReadPriority = "props-first",
 ): DataBinding | undefined {
-  if (priority === "legacy-only") {
-    if (element.dataBinding !== undefined)
-      return element.dataBinding as DataBinding;
-    return undefined;
-  }
-  const props = element.props as Record<string, unknown> | undefined;
-  const propsBinding = props?.dataBinding;
-  if (priority === "legacy-first") {
-    if (element.dataBinding !== undefined)
-      return element.dataBinding as DataBinding;
-    if (propsBinding !== undefined) return propsBinding as DataBinding;
-    return undefined;
-  }
-  // props-first
-  if (propsBinding !== undefined) return propsBinding as DataBinding;
-  if (element.dataBinding !== undefined)
-    return element.dataBinding as DataBinding;
-  return undefined;
+  return readElementDataBinding(element, priority);
 }

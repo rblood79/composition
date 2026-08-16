@@ -12,8 +12,11 @@ export { useAsyncMutation } from "./useAsyncMutation";
 export { useAsyncQuery } from "./useAsyncQuery";
 
 // Data Management
-export { useCollectionData } from "./useCollectionData";
-export { collectionDataCache, createCacheKey } from "./useCollectionDataCache";
+// ADR-132 단일 경유: collection items read 의 정본은 `@composition/shared` 의
+// `useCollectionData` / `collectionDataCache` 다. builder 미러는 소비처 0건이었고,
+// 배럴이 **빈 캐시 싱글톤**을 공개 API 로 광고하던 상태라 표면을 걷어낸다 —
+// 그 이름으로 import 하면 이름·타입은 정상인 채 영원히 비어 있는 Map 을 받고
+// `invalidate()` 가 실제 캐시에 no-op 이 된다 (모듈 스코프 인스턴스 분리).
 export { useCollectionItemManager } from "./useCollectionItemManager";
 // ADR-912 후속 cleanup: useColumnLoader export 제거 — 외부 호출 0건 dead.
 export { dataQueryKeys, useDataPanelQuery } from "./useDataQueries";

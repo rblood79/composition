@@ -5,12 +5,18 @@
  * Uses @react-aria/i18n for locale-aware components
  */
 
-import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
-import { I18nProvider as AriaI18nProvider } from '@react-aria/i18n';
-import type { I18nContextValue, SupportedLocale } from './types';
-import { getTranslation, replacePlaceholders } from './translations';
-import { getLocaleConfig, getStoredLocale, setStoredLocale } from './locales';
-import { formatNumber, formatCurrency } from '../utils/core/numberUtils';
+import React, {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { I18nProvider as AriaI18nProvider } from "@react-aria/i18n";
+import type { I18nContextValue, SupportedLocale } from "./types";
+import { getTranslation, replacePlaceholders } from "./translations";
+import { getLocaleConfig, getStoredLocale, setStoredLocale } from "./locales";
+import { formatNumber, formatCurrency } from "@composition/shared/utils";
 
 /**
  * I18n Context
@@ -34,7 +40,7 @@ export interface I18nProviderProps {
  */
 export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
   const [locale, setLocaleState] = useState<SupportedLocale>(
-    initialLocale || getStoredLocale()
+    initialLocale || getStoredLocale(),
   );
 
   const config = useMemo(() => getLocaleConfig(locale), [locale]);
@@ -61,7 +67,7 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
       const translation = getTranslation(locale, key);
       return params ? replacePlaceholders(translation, params) : translation;
     },
-    [locale]
+    [locale],
   );
 
   /**
@@ -70,13 +76,13 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
   const formatDate = useCallback(
     (date: Date): string => {
       const formatter = new Intl.DateTimeFormat(locale, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
       return formatter.format(date);
     },
-    [locale]
+    [locale],
   );
 
   /**
@@ -85,13 +91,13 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
   const formatTime = useCallback(
     (date: Date): string => {
       const formatter = new Intl.DateTimeFormat(locale, {
-        hour: 'numeric',
-        minute: 'numeric',
+        hour: "numeric",
+        minute: "numeric",
         hour12: config.timeFormat === 12,
       });
       return formatter.format(date);
     },
-    [locale, config.timeFormat]
+    [locale, config.timeFormat],
   );
 
   /**
@@ -101,7 +107,7 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
     (value: number): string => {
       return formatNumber(value, locale);
     },
-    [locale]
+    [locale],
   );
 
   /**
@@ -111,7 +117,7 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
     (value: number): string => {
       return formatCurrency(value, config.currency, locale);
     },
-    [locale, config.currency]
+    [locale, config.currency],
   );
 
   /**
@@ -129,7 +135,16 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
       formatNumber: formatNumberFn,
       formatCurrency: formatCurrencyFn,
     }),
-    [locale, setLocale, t, config, formatDate, formatTime, formatNumberFn, formatCurrencyFn]
+    [
+      locale,
+      setLocale,
+      t,
+      config,
+      formatDate,
+      formatTime,
+      formatNumberFn,
+      formatCurrencyFn,
+    ],
   );
 
   /**
@@ -142,9 +157,7 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
 
   return (
     <I18nContext.Provider value={contextValue}>
-      <AriaI18nProvider locale={locale}>
-        {children}
-      </AriaI18nProvider>
+      <AriaI18nProvider locale={locale}>{children}</AriaI18nProvider>
     </I18nContext.Provider>
   );
 }
