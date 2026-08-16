@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [인터랙션 트리거가 catalog 116 타입에 배선돼 있지 않았다] - 2026-08-16
+
+### Bug Fixes
+
+- **규칙을 만들어도 Button / Link / Checkbox / Switch / Select 에서 아무 일도 일어나지 않았다** (ADR-158 Phase 3):
+  - `createEventHandlerMap` 을 호출하는 곳이 `rendererMap` 계열 renderer **14곳뿐**이었다. catalog cutover **116 타입**은 `toRacProps` 로 렌더되는 generic 경로를 타는데 그 경로에는 호출 지점이 아예 없다 → 규칙을 등재해도 콜백이 컴포넌트에 전달되지 않는다
+  - live 실측: Link 의 RAC fiber props 에 `on*` 이 **0건**. 배선 후 `onPress` 1건
+  - **Why**: cutover 116 타입이 곧 사용자가 실제로 누르는 것들이라, 이 경로가 끊기면 인터랙션 기능 전체가 사실상 죽는다. 같은 세션에 고친 Modal 의 `accepts` 결손과 **같은 형태** — 등재는 됐는데 전달 경로가 없고, dispatcher 는 멀쩡해서 증상이 "눌렀는데 아무 일도 없다" 로만 보인다. 한쪽은 대상 축, 이쪽은 트리거 축이다
+  - `racRest` **뒤**에 펼친다 — 같은 이름의 catalog prop 이 트리거 콜백을 덮으면 안 된다. 규칙이 없는 요소에는 동결된 빈 객체가 돌아와 prop 이 붙지 않는다
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`
+  - live 확인: Link `onPress` → `navigate /page-2` → 미리보기가 Home → Page 2 로 이동, 404 아님
+- **preview `RenderContext` 에 `services` 선언이 없었다**: App 이 실제로 채우고 shared 렌더러가 소비하는데도 타입에 없어, preview 쪽에서 `context.services` 를 읽으려 하면 컴파일이 막혔다. shared `RuntimeServices` 를 그대로 가리켜 둘이 갈리지 않게 했다
+
+### Documentation
+
+- **직전 세션의 navigate 진단은 틀렸다** — "preview 에 pages 가 등록되지 않아 404 착지" 로 기록했으나, live 실측상 `UPDATE_PAGES` 는 7 페이지가 정상 전달되고 라우트도 슬러그대로(`/page-2`) 만들어진다. 실제 원인은 위의 트리거 배선 결손 하나였다
+
 ## [내용 없는 overlay 가 미리보기를 날리던 결함 — FocusScope 빈 scope] - 2026-08-16
 
 ### Bug Fixes

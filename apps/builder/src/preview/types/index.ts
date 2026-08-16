@@ -33,6 +33,15 @@ export interface RenderContext {
     updates: Array<{ id: string; props: Record<string, unknown> }>,
   ) => void;
   setElements: (elements: PreviewElement[]) => void;
+  /**
+   * 런타임 주입 서비스 — shared `RuntimeServices` 와 같은 것을 가리킨다.
+   *
+   * App 이 실제로 채우고(`createEventHandlerMap`) shared 렌더러가 소비하는데도
+   * 여기 선언이 없어서, preview 쪽 소비자가 `context.services` 를 읽으려 하면
+   * 컴파일이 막혔다 (ADR-158 Phase 3 트리거 배선). 형태를 다시 적지 않고 shared
+   * 타입을 그대로 가리켜 둘이 갈리지 않게 한다.
+   */
+  services?: import("@composition/shared/types").RuntimeServices;
   eventEngine: EventEngine;
   projectId?: string;
   renderElement: (el: PreviewElement, key?: string) => React.ReactNode;

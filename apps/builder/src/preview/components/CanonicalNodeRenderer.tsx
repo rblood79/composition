@@ -213,6 +213,11 @@ const COLLECTION_HOST_TYPES: ReadonlySet<string> = new Set(
   Object.values(ORPHAN_ITEM_HOST).map((v) => v.toLowerCase()),
 );
 
+/** `services` 미공급(publish 등) 일 때의 안정 참조 — 매 렌더 새 객체를 만들지 않는다. */
+const EMPTY_EVENT_HANDLERS: Record<string, (e: Event) => void> = Object.freeze(
+  {},
+);
+
 /**
  * orphan collection item 이면 최소 RAC collection 으로 감싼다. 아니면 그대로 통과.
  * `collectionAncestor` 가 **호스트 type 과 일치**할 때만 "안에 있다" 로 본다 — ListBox 안의
@@ -508,6 +513,20 @@ export function CanonicalNodeRenderer({
       const buttonBaseClassName = usesButtonBaseUtility(type)
         ? `react-aria-${type} button-base`
         : undefined;
+      // ADR-158 Phase 3 — 인터랙션 **트리거** 배선.
+      //
+      // `createEventHandlerMap` 을 부르는 곳이 `rendererMap` 계열 renderer 14곳뿐이라,
+      // catalog cutover 116 타입(Button/Link/Checkbox/Switch/Select/ListBox …)은 규칙을
+      // 등재해도 콜백이 컴포넌트에 아예 전달되지 않았다 (실측: Link 의 RAC fiber props 에
+      // `on*` 0건). 대상 축의 `accepts` 결손과 같은 형태 — 등재는 됐는데 전달 경로가 없다.
+      //
+      // 규칙이 없는 요소에는 동결된 빈 객체가 돌아오므로 spread 비용이 0 이고 prop 도 붙지
+      // 않는다. `racRest` **뒤**에 펼친다 — 트리거 콜백이 catalog prop 에 덮이면 안 된다.
+      const eventHandlers =
+        renderContext.services?.createEventHandlerMap?.(
+          adaptedEl as unknown as SharedPreviewElement,
+          renderContext as unknown as SharedRenderContext,
+        ) ?? EMPTY_EVENT_HANDLERS;
       // 자식 element 가 있으면 그것을 렌더, 없으면 string children(racChildren). icon Button 의
       //   label 은 RSP 공식대로 `<Text>` 자식 element 로 표현되므로(ButtonChildSection 이
       //   Button.children → Text 자식 element 이관) 이 배타로 충분 — string children 은 비고
@@ -517,6 +536,7 @@ export function CanonicalNodeRenderer({
           key={node.id}
           {...markerProps}
           {...racRest}
+          {...eventHandlers}
           {...(buttonBaseClassName ? { className: buttonBaseClassName } : {})}
           style={overrideStyle}
         >
