@@ -76,14 +76,17 @@ describe("buildResponsiveElementCss", () => {
     );
   });
 
-  it("unitless 프로퍼티 → px 미부착 (order)", () => {
+  it("unitless 프로퍼티 → px 미부착 (flexGrow)", () => {
+    // 예시 prop 은 eligible ∩ UNITLESS_PROPS 에서 고른다. 구 예시 `order` 는
+    // ADR-154 개정 1 의 eligible allowlist(R8) 에서 제외되어 emit 자체가 안 된다
+    // — 이 케이스의 검증 대상은 px 부착 규칙이지 eligibility 가 아니다.
     const responsive: ElementResponsiveConfig = {
-      styles: { order: { tablet: 2 } },
+      styles: { flexGrow: { tablet: 2 } },
     };
-    const css = buildResponsiveElementCss("o", { order: 0 }, responsive);
+    const css = buildResponsiveElementCss("o", { flexGrow: 0 }, responsive);
     expect(css).toBe(
-      `${MQ_TABLET}{[data-element-id="o"]{order:2 !important}}\n` +
-        `${MQ_MOBILE}{[data-element-id="o"]{order:2 !important}}`,
+      `${MQ_TABLET}{[data-element-id="o"]{flex-grow:2 !important}}\n` +
+        `${MQ_MOBILE}{[data-element-id="o"]{flex-grow:2 !important}}`,
     );
   });
 
