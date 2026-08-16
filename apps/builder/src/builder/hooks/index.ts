@@ -54,8 +54,10 @@ export type {
 } from "./useKeyboardShortcutsRegistry";
 
 // Messaging & Communication
-// ADR-912 후속 cleanup: useDeltaMessenger export 제거 — 외부 호출 0건 dead
-//   (live messenger 는 canvasDeltaMessenger, utils/).
+// ADR-912 후속 cleanup: useDeltaMessenger export 제거 — 외부 호출 0건 dead.
+// 2026-08-17: 남아 있던 `canvasDeltaMessenger` 도 삭제 — send 메서드 4종이
+//   호출처 0건이었고 게이트까지 상시 차단이라 이중으로 죽어 있었다.
+//   Builder → Preview 동기화는 `UPDATE_CANONICAL_DOCUMENT` 단일 채널.
 export { useIframeMessenger } from "./useIframeMessenger";
 export { useThemeMessenger } from "./useThemeMessenger";
 

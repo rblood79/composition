@@ -163,4 +163,3 @@ queueMicrotask(() => {
 - `apps/builder/src/builder/stores/utils/layoutInvalidation.ts` - `LAYOUT_AFFECTING_PROP_KEYS` (계층 A, Inspector props 편집 트리거)
 - `apps/builder/src/builder/stores/inspectorActions.ts` - 프로퍼티 업데이트 + layoutVersion 증가
 - `apps/builder/src/builder/hooks/useIframeMessenger.ts` - Preview 동기화 (`UPDATE_CANONICAL_DOCUMENT`)
-- `apps/builder/src/builder/utils/canvasDeltaMessenger.ts` - Delta 동기화

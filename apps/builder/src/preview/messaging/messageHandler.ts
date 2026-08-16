@@ -56,16 +56,11 @@ export interface UpdateElementPropsMessage {
   props: Record<string, unknown>;
 }
 
-export interface DeleteElementMessage {
-  type: "DELETE_ELEMENT";
-  elementId: string;
-}
-
-export interface DeleteElementsMessage {
-  type: "DELETE_ELEMENTS";
-  elementIds: string[];
-}
-
+// `DELETE_ELEMENT` / `DELETE_ELEMENTS` 메시지는 두지 않는다 — 송신처가
+// 0건이고, 수신 핸들러 2개도 `void data.elementId;` 한 줄짜리 no-op 이었다
+// ("실제 구현에서는 store에 deleteElement 메서드 추가 필요" TODO 주석 동반).
+// 요소 삭제는 canonical 문서 재송신(`UPDATE_CANONICAL_DOCUMENT`)이 처리하므로
+// 전용 삭제 메시지가 애초에 필요 없다.
 export interface ThemeVarsMessage {
   type: "THEME_VARS";
   vars: ThemeVar[];
@@ -135,73 +130,9 @@ export interface RequestElementSelectionMessage {
   elementId: string;
 }
 
-// ============================================
-// 🚀 Phase 4: Delta Update Messages
-// ============================================
-
-/**
- * 단일 요소 추가
- * - 전체 배열 대신 추가된 요소만 전송
- */
-export interface DeltaElementAddedMessage {
-  type: "DELTA_ELEMENT_ADDED";
-  element: PreviewElement;
-  childElements?: PreviewElement[];
-}
-
-/**
- * 단일 요소 업데이트 (props/style 변경)
- * - 변경된 props만 전송 (전체 요소 대신)
- */
-export interface DeltaElementUpdatedMessage {
-  type: "DELTA_ELEMENT_UPDATED";
-  elementId: string;
-  /** 변경된 props만 (기존 props와 merge) */
-  propsChanges: Record<string, unknown>;
-  /** top-level fills 변경 (선택적) */
-  fills?: unknown[];
-  /** parent_id 변경 (선택적) */
-  parentId?: string | null;
-}
-
-/**
- * 단일 요소 삭제
- */
-export interface DeltaElementRemovedMessage {
-  type: "DELTA_ELEMENT_REMOVED";
-  elementId: string;
-  /** 자식 요소들도 함께 삭제 */
-  childElementIds?: string[];
-}
-
-/**
- * 배치 업데이트 (여러 요소 동시 변경)
- * - 다중 선택 편집, 정렬 등에 사용
- */
-export interface DeltaBatchUpdateMessage {
-  type: "DELTA_BATCH_UPDATE";
-  updates: Array<{
-    elementId: string;
-    propsChanges?: Record<string, unknown>;
-    fills?: unknown[];
-    parentId?: string | null;
-  }>;
-}
-
-/**
- * Delta 메시지 통합 타입
- */
-export type DeltaMessage =
-  | DeltaElementAddedMessage
-  | DeltaElementUpdatedMessage
-  | DeltaElementRemovedMessage
-  | DeltaBatchUpdateMessage;
-
 export type BuilderToPreviewMessage =
   | UpdateCanonicalDocumentMessage
   | UpdateElementPropsMessage
-  | DeleteElementMessage
-  | DeleteElementsMessage
   | ThemeVarsMessage
   | SetDarkModeMessage
   | ThemeBaseTypographyMessage
@@ -213,12 +144,7 @@ export type BuilderToPreviewMessage =
   | UpdateApiEndpointsMessage
   | UpdateVariablesMessage
   | UpdateAuthContextMessage
-  | RequestElementSelectionMessage
-  // 🚀 Phase 4: Delta Messages
-  | DeltaElementAddedMessage
-  | DeltaElementUpdatedMessage
-  | DeltaElementRemovedMessage
-  | DeltaBatchUpdateMessage;
+  | RequestElementSelectionMessage;
 
 // ============================================
 // Message Handler Class
@@ -241,15 +167,11 @@ type StoreActions = Pick<
   | "setVariables"
   | "setAuthToken"
   | "setReady"
-> & {
-  // 🚀 Phase 4: Delta-specific actions (optional, fallback to setElements if not available)
-  addElement?: (element: PreviewElement) => void;
-  addElements?: (elements: PreviewElement[]) => void;
-  removeElement?: (elementId: string) => void;
-  removeElements?: (elementIds: string[]) => void;
-  updateElement?: (elementId: string, updates: Partial<PreviewElement>) => void;
-  getElements?: () => PreviewElement[];
-};
+>;
+// 종전에 여기 delta 전용 optional action 6종(`addElement` / `addElements` /
+// `removeElement` / `removeElements` / `updateElement` / `getElements`)이
+// 붙어 있었다. 소비처가 삭제된 `DELTA_*` 핸들러뿐이라 함께 제거 —
+// Builder → Preview 전체 동기화는 `UPDATE_CANONICAL_DOCUMENT` 단일 채널이다.
 
 export class MessageHandler {
   private store: StoreActions;
@@ -292,14 +214,6 @@ export class MessageHandler {
 
       case "UPDATE_ELEMENT_PROPS":
         this.handleUpdateElementProps(data);
-        break;
-
-      case "DELETE_ELEMENT":
-        this.handleDeleteElement(data);
-        break;
-
-      case "DELETE_ELEMENTS":
-        this.handleDeleteElements(data);
         break;
 
       case "THEME_VARS":
@@ -350,23 +264,6 @@ export class MessageHandler {
         this.handleRequestElementSelection(data);
         break;
 
-      // 🚀 Phase 4: Delta Update Handlers
-      case "DELTA_ELEMENT_ADDED":
-        this.handleDeltaElementAdded(data);
-        break;
-
-      case "DELTA_ELEMENT_UPDATED":
-        this.handleDeltaElementUpdated(data);
-        break;
-
-      case "DELTA_ELEMENT_REMOVED":
-        this.handleDeltaElementRemoved(data);
-        break;
-
-      case "DELTA_BATCH_UPDATE":
-        this.handleDeltaBatchUpdate(data);
-        break;
-
       default:
         // 알 수 없는 메시지 타입은 무시
         break;
@@ -390,16 +287,6 @@ export class MessageHandler {
     if (elementId && props) {
       this.store.updateElementProps(elementId, props);
     }
-  }
-
-  private handleDeleteElement(data: DeleteElementMessage): void {
-    // setElements를 통해 필터링하여 삭제
-    // 실제 구현에서는 store에 deleteElement 메서드 추가 필요
-    void data.elementId;
-  }
-
-  private handleDeleteElements(data: DeleteElementsMessage): void {
-    void data.elementIds;
   }
 
   private handleThemeVars(data: ThemeVarsMessage): void {
@@ -475,153 +362,6 @@ export class MessageHandler {
     if (this.onElementSelected) {
       this.onElementSelected(data.elementId);
     }
-  }
-
-  // ============================================
-  // 🚀 Phase 4: Delta Update Handlers
-  // ============================================
-
-  /**
-   * 요소 추가 Delta 처리
-   * - 전체 배열 교체 대신 단일 요소만 추가
-   * - O(n) → O(1) 성능 개선
-   */
-  private handleDeltaElementAdded(data: DeltaElementAddedMessage): void {
-    const { element, childElements } = data;
-
-    if (this.store.addElement && this.store.addElements) {
-      // 🚀 최적화된 경로: 단일 요소 추가
-      this.store.addElement(element);
-      if (childElements && childElements.length > 0) {
-        this.store.addElements(childElements);
-      }
-    } else {
-      // Fallback: setElements 사용 (기존 방식)
-      if (this.store.getElements) {
-        const currentElements = this.store.getElements();
-        const newElements = [
-          ...currentElements,
-          element,
-          ...(childElements || []),
-        ];
-        this.store.setElements(newElements);
-      }
-    }
-
-    // ACK 전송
-    this.sendToBuilder({
-      type: "DELTA_ACK",
-      operation: "ELEMENT_ADDED",
-      elementId: element.id,
-    });
-  }
-
-  /**
-   * 요소 업데이트 Delta 처리
-   * - props 변경만 적용 (전체 교체 아님)
-   */
-  private handleDeltaElementUpdated(data: DeltaElementUpdatedMessage): void {
-    const { elementId, propsChanges, fills, parentId } = data;
-
-    if (this.store.updateElement) {
-      // 🚀 최적화된 경로: 부분 업데이트
-      const updates: Partial<PreviewElement> = {};
-
-      if (propsChanges && Object.keys(propsChanges).length > 0) {
-        updates.props = propsChanges as PreviewElement["props"];
-      }
-      if (parentId !== undefined) {
-        updates.parent_id = parentId;
-      }
-      if (fills !== undefined) {
-        updates.fills = fills;
-      }
-
-      this.store.updateElement(elementId, updates);
-    } else {
-      // Fallback: updateElementProps 사용
-      if (propsChanges) {
-        this.store.updateElementProps(elementId, propsChanges);
-      }
-    }
-
-    // ACK 전송
-    this.sendToBuilder({
-      type: "DELTA_ACK",
-      operation: "ELEMENT_UPDATED",
-      elementId,
-    });
-  }
-
-  /**
-   * 요소 삭제 Delta 처리
-   */
-  private handleDeltaElementRemoved(data: DeltaElementRemovedMessage): void {
-    const { elementId, childElementIds } = data;
-
-    if (this.store.removeElement && this.store.removeElements) {
-      // 🚀 최적화된 경로
-      this.store.removeElement(elementId);
-      if (childElementIds && childElementIds.length > 0) {
-        this.store.removeElements(childElementIds);
-      }
-    } else if (this.store.getElements) {
-      // Fallback: 필터링
-      const currentElements = this.store.getElements();
-      const idsToRemove = new Set([elementId, ...(childElementIds || [])]);
-      const filteredElements = currentElements.filter(
-        (el) => !idsToRemove.has(el.id),
-      );
-      this.store.setElements(filteredElements);
-    }
-
-    // ACK 전송
-    this.sendToBuilder({
-      type: "DELTA_ACK",
-      operation: "ELEMENT_REMOVED",
-      elementId,
-    });
-  }
-
-  /**
-   * 배치 업데이트 Delta 처리
-   * - 여러 요소를 한 번에 업데이트
-   */
-  private handleDeltaBatchUpdate(data: DeltaBatchUpdateMessage): void {
-    const { updates } = data;
-
-    if (this.store.updateElement) {
-      // 🚀 최적화된 경로: 개별 업데이트
-      for (const update of updates) {
-        const elementUpdates: Partial<PreviewElement> = {};
-
-        if (update.propsChanges) {
-          elementUpdates.props = update.propsChanges as PreviewElement["props"];
-        }
-        if (update.parentId !== undefined) {
-          elementUpdates.parent_id = update.parentId;
-        }
-        if (update.fills !== undefined) {
-          elementUpdates.fills = update.fills;
-        }
-
-        this.store.updateElement(update.elementId, elementUpdates);
-      }
-    } else {
-      // Fallback: updateElementProps 사용
-      for (const update of updates) {
-        if (update.propsChanges) {
-          this.store.updateElementProps(update.elementId, update.propsChanges);
-        }
-      }
-    }
-
-    // ACK 전송
-    this.sendToBuilder({
-      type: "DELTA_ACK",
-      operation: "BATCH_UPDATE",
-      count: updates.length,
-    });
   }
 
   // ============================================

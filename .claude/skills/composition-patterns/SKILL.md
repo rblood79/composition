@@ -84,7 +84,6 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 - **[domain-history-integration](rules/domain-history-integration.md)** - 히스토리 기록 필수
 - **[domain-async-pipeline](rules/domain-async-pipeline.md)** - 비동기 파이프라인 순서
 - **[domain-layout-resolution](rules/domain-layout-resolution.md)** - Page/Layout 합성
-- **[domain-delta-messaging](rules/domain-delta-messaging.md)** - Delta 메시징 패턴
 - **[domain-component-lifecycle](rules/domain-component-lifecycle.md)** - 컴포넌트 생명주기
 - **[domain-structure-change-audit](rules/domain-structure-change-audit.md)** - Element 트리 변경 시 소비자 감사
 - **[domain-section-component](rules/domain-section-component.md)** - 패널 섹션은 `Section` 컴포넌트 사용

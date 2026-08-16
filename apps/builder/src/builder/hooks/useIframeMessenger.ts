@@ -50,8 +50,10 @@ import {
   getNullablePageFrameBindingId,
   withPageFrameBinding,
 } from "../../adapters/canonical/frameMirror";
-// 🚀 Delta Update
-import { canvasDeltaMessenger } from "../utils/canvasDeltaMessenger";
+// `canvasDeltaMessenger` import 제거 (2026-08-17) — delta 프로토콜 삭제.
+// send 메서드 4종이 호출처 0건이었고 게이트(`isWebGLCanvas() &&
+// !isCanvasCompareMode()`)까지 기본 구성에서 상시 차단이라 이중으로 죽어
+// 있었다. Builder → Preview 동기화는 `UPDATE_CANONICAL_DOCUMENT` 단일 채널.
 // 🚀 Phase 11: Feature Flags for WebGL-only mode optimization
 import { isWebGLCanvas, isCanvasCompareMode } from "../../utils/featureFlags";
 import { useActiveCanonicalDocument } from "../stores/canonical/canonicalElementsBridge";
@@ -670,11 +672,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         // State도 업데이트 (UI 반영)
         setIframeReadyState("ready");
 
-        // 🚀 Delta Update: iframe 참조 설정
         const iframe = MessageService.getIframe();
-        if (iframe) {
-          canvasDeltaMessenger.setIframe(iframe);
-        }
 
         // ✅ 즉시 처리 (setTimeout 제거)
         processMessageQueue();

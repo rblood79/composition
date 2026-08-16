@@ -83,8 +83,6 @@ tags: [architecture, reference, patterns]
 
 | 패턴             | 참조 파일                               | 설명                                              |
 | ---------------- | --------------------------------------- | ------------------------------------------------- |
-| iframe Messenger | `utils/dom/iframeMessenger.ts`          | Origin 검증 + 버퍼링                              |
-| Delta Messenger  | `builder/utils/canvasDeltaMessenger.ts` | Delta 동기화                                      |
 | Message Handler  | `preview/messaging/messageHandler.ts`   | 메시지 타입 정의 (`UPDATE_CANONICAL_DOCUMENT` 등) |
 
 ## 사용법

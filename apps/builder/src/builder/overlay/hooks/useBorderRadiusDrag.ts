@@ -14,7 +14,10 @@ import { useCallback, useEffect } from "react";
 import { MessageService } from "../../../utils/messaging";
 import { useStore } from "../../stores";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
-import { isWebGLCanvas, isCanvasCompareMode } from "../../../utils/featureFlags";
+import {
+  isWebGLCanvas,
+  isCanvasCompareMode,
+} from "../../../utils/featureFlags";
 
 export type CornerPosition =
   | "topLeft"
@@ -72,7 +75,7 @@ const cornerPropertyMap: Record<CornerPosition, string> = {
 function calculateDiagonalDistance(
   corner: CornerPosition,
   deltaX: number,
-  deltaY: number
+  deltaY: number,
 ): number {
   switch (corner) {
     case "topLeft":
@@ -94,7 +97,7 @@ function calculateDiagonalDistance(
  */
 function sendStyleToCanvas(
   elementId: string,
-  styleProps: Record<string, string>
+  styleProps: Record<string, string>,
 ) {
   // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 불필요
   const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
@@ -102,14 +105,18 @@ function sendStyleToCanvas(
 
   const iframe = MessageService.getIframe();
   if (iframe?.contentWindow) {
+    // `merge` 필드는 싣지 않는다 — 수신 측(`preview/messaging/messageHandler.ts`
+    // 의 `UpdateElementPropsMessage`)에 그 필드가 없고, 실제 적용부인
+    // `runtimeStore.updateElementProps` 는 `{...currentProps, ...patch}` 얕은
+    // 병합 한 경로뿐이라 replace 분기 자체가 존재하지 않는다. 종전에 실려 있던
+    // `merge: true` 는 구현된 적 없는 의미론을 광고하던 dead payload 였다.
     iframe.contentWindow.postMessage(
       {
         type: "UPDATE_ELEMENT_PROPS",
         elementId,
         props: { style: styleProps },
-        merge: true,
       },
-      window.location.origin
+      window.location.origin,
     );
   }
 }
@@ -184,7 +191,7 @@ function resetDragState() {
 function createStyleProps(
   radius: number,
   corner: CornerPosition,
-  shiftKey: boolean
+  shiftKey: boolean,
 ): Record<string, string> {
   if (shiftKey) {
     return {
@@ -249,7 +256,7 @@ function handleMouseMove(e: MouseEvent) {
   const diagonalDistance = calculateDiagonalDistance(
     activeCorner,
     deltaX,
-    deltaY
+    deltaY,
   );
 
   let newRadius = Math.round(initialRadius + diagonalDistance);
@@ -319,7 +326,7 @@ function handleMouseUp(e: MouseEvent) {
 export function useBorderRadiusDrag(
   rect: { width: number; height: number } | null,
   currentBorderRadius: string | undefined,
-  options: UseBorderRadiusDragOptions = {}
+  options: UseBorderRadiusDragOptions = {},
 ) {
   const { onDragStart } = options;
 
@@ -372,7 +379,7 @@ export function useBorderRadiusDrag(
       document.addEventListener("keydown", handleKeyDown);
       window.addEventListener("blur", handleWindowBlur);
     },
-    [rect, currentBorderRadius, onDragStart]
+    [rect, currentBorderRadius, onDragStart],
   );
 
   return {

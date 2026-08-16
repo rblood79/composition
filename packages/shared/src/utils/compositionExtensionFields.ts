@@ -14,7 +14,7 @@
  * (`apps/builder/src/adapters/canonical/compositionExtensionFields.ts`) 와 분리.
  *
  * **priority 차이 framing note** (design §10.2.4 후속 결정):
- * - apps/builder 영역 (canvasDeltaMessenger / workflowEdges): default `'props-first'`
+ * - apps/builder 영역 (workflowEdges 등): default `'props-first'`
  *   — UI workflow editor 가 inline 수정한 `props.<field>` 가 canonical primary.
  * - packages/shared 영역 (renderers): default `'legacy-first'` — renderers 기존 패턴
  *   `element.<field> || element.props.<field>` 보존 (legacy persistent storage 우선).

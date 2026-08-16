@@ -12,8 +12,11 @@
  * **둘 다 있는** legacy 요소에서만 드러나므로 type-check 도 기존 테스트도
  * 잡지 못한다. wrapper 가 `legacy-first` 로 넘어가면 ADR-149 Phase 3-c 가
  * 확정한 undo 정합이 깨진다 — canonical root 에 undo 통합이 없어
- * `props.events` 가 undo-정합 read source 이고, `canvasDeltaMessenger` 의
- * Preview delta 가 그 값을 싣는다.
+ * `props.events` 가 undo-정합 read source 다.
+ *
+ * (2026-08-17: 유일 소비자였던 `canvasDeltaMessenger` 는 삭제됐다. reader 를
+ * 남긴 이유와 근거는 wrapper 쪽 docstring 참조 — ADR-149 가 이벤트 발화
+ * bridge 를 별도 ADR 로 이연했고 이 테스트가 그때의 읽기 계약을 잠근다.)
  */
 import { describe, expect, it } from "vitest";
 

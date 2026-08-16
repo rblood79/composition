@@ -62,8 +62,15 @@ interface LegacyElementWithExtension {
  *
  * **priority 파라미터를 의도적으로 노출하지 않는다.** 호출부가 `legacy-first` 로
  * 뒤집으면 ADR-149 Phase 3-c 가 확정한 undo 정합이 깨진다 — canonical root 에
- * undo 통합이 없어 `props.events` 가 undo-정합 read source 이고,
- * `canvasDeltaMessenger.ts` 의 Preview delta 가 그 값을 싣는다.
+ * undo 통합이 없어 `props.events` 가 undo-정합 read source 다.
+ *
+ * **현재 런타임 호출처 0건** (2026-08-17). 유일 소비자였던
+ * `canvasDeltaMessenger.ts` 의 Preview delta 가 삭제됐다 (send 메서드 4종 호출처
+ * 0건 + 게이트 상시 차단으로 이중 사망 상태였음). 그럼에도 이 reader 를
+ * 남기는 것은 **ADR-149 가 이벤트 발화 bridge 신설을 별도 ADR 로 이연**했고,
+ * 그 bridge 가 붙을 때 읽어야 할 위치와 우선순위를 이 함수가 고정하고 있기
+ * 때문이다 (형제 `getElementDataBinding` 은 30+ 곳에서 계속 소비 중).
+ * 정합은 `compositionExtensionFields.priority.test.ts` 가 잠근다.
  *
  * Phase 5 G7 closure 시 helper 내부 reverse — `node.extension['x-composition'].events`
  * 우선 read 후 props/legacy fallback 으로 변경.
