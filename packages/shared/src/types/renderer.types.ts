@@ -112,8 +112,6 @@ export interface RenderContext {
   editMode?: "page" | "layout";
   /** 런타임 서비스 (DI) */
   services?: RuntimeServices;
-  /** 이벤트 엔진 (optional) */
-  eventEngine?: unknown;
   /** 데이터 상태 설정 (DataTable용) */
   setDataState?: (elementId: string, state: DataState) => void;
   /**

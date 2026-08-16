@@ -26,12 +26,7 @@ import type {
   Element,
   ComponentElementProps,
 } from "../../types/core/store.types";
-import type {
-  SelectedElement,
-  DataBinding,
-  EventHandler,
-} from "../inspector/types";
-import type { ElementEvent } from "../../types/events/events.types";
+import type { SelectedElement, DataBinding } from "../inspector/types";
 import type { FillItem } from "../../types/builder/fill.types";
 import { sanitizeFillDerivedStylePatch } from "../panels/styles/utils/fillDerivedStyleProps";
 import { saveService } from "../../services/save";
@@ -389,8 +384,8 @@ function getSelectedPropsForState(
 //
 // ADR-158 Phase 1 (2026-07-25): 그 write core 가
 // `canonical/rootCollectionInteractionsWrite.ts` 로 교체됐다 (entry 스키마
-// SerializedEvent → InteractionRule). 구 EventsPanel 은 canonical 에서 분리돼
-// `updateLegacyElementEvents` (deprecated, Phase 4 삭제) 로 node projection 만 쓴다.
+// SerializedEvent → InteractionRule). Phase 4 (2026-08-16) 에서 구 EventsPanel 과
+// 그 전용 `updateLegacyElementEvents` node projection 경로가 함께 삭제됐다.
 
 // ADR-131 Phase 8 (2026-05-13): syncDataBindingToRootCollection 제거.
 // data SSOT 는 `collections` / `api_endpoints` / `variables`.
@@ -520,23 +515,13 @@ export interface InspectorActionsState {
   /**
    * ADR-149 Phase 2a/2c → ADR-158 Phase 1 — canonical 규칙 단일 write 진입점.
    *
-   * entry 스키마가 `EventHandler` 에서 `InteractionRule` 로 교체됐다. canonical
+   * entry 스키마가 구 `EventHandler` 에서 `InteractionRule` 로 교체됐다. canonical
    * root collection 만 갱신하고 legacy `element.events` mirror 는 파생하지 않는다
    * (ADR-158 breakdown §2 — Phase 1 mirror 파생 중단).
    */
   updateEventsRootCollection: (
     elementId: string,
     rules: readonly InteractionRule[],
-  ) => void;
-  /**
-   * @deprecated ADR-158 Phase 1 — 구 EventsPanel 전용 잔존 경로. node projection
-   *   (`props.events`) 만 갱신하며 canonical root collection 과 무관하다. 구 패널이
-   *   자기 편집을 read-back 하는 데만 쓰이고, 소비 런타임은 0 이다.
-   *   Phase 2 에서 패널이 교체되고 Phase 4 에서 본 action 과 함께 삭제된다.
-   */
-  updateLegacyElementEvents: (
-    elementId: string,
-    events: readonly EventHandler[],
   ) => void;
   // Fill Actions (Color Picker Phase 1)
   /** fills 배열 업데이트 + style.backgroundColor 동기화 + 히스토리/DB 저장 */
@@ -1316,15 +1301,6 @@ export const createInspectorActionsSlice: StateCreator<
       void persistActiveCanonicalDocument();
     },
 
-    // @deprecated ADR-158 Phase 1 — 구 EventsPanel 잔존 경로 (Phase 4 삭제).
-    // node projection(props.events) + history + persist 만 수행하며 canonical
-    // root collection 과 무관하다. 구 패널이 자기 편집을 read-back 하는 용도.
-    updateLegacyElementEvents: (elementId, events) => {
-      updateAndSave(elementId, {
-        events: events as unknown as ElementEvent[],
-      });
-    },
-
     // ============================================
     // Fill Actions (Color Picker Phase 1)
     // ============================================
@@ -1516,7 +1492,7 @@ export const createInspectorActionsSlice: StateCreator<
  * Used by panels to get selected element in Inspector-compatible format
  */
 export function mapElementToSelectedElement(element: Element): SelectedElement {
-  const { style, computedStyle, events, ...otherProps } =
+  const { style, computedStyle, events: _events, ...otherProps } =
     element.props as Record<string, unknown>;
 
   return {
@@ -1529,6 +1505,5 @@ export function mapElementToSelectedElement(element: Element): SelectedElement {
     semanticClasses: [],
     cssVariables: {},
     dataBinding: getElementDataBinding(element, "legacy-only"),
-    events: (events as SelectedElement["events"]) || [],
   };
 }

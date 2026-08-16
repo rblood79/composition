@@ -6,7 +6,7 @@ import { getElementDataBinding } from "../../../adapters/canonical/compositionEx
  * Builder의 Element 타입을 Inspector의 SelectedElement 타입으로 변환
  */
 export function mapElementToSelected(element: Element): SelectedElement {
-  const { style, computedStyle, events, ...otherProps } =
+  const { style, computedStyle, events: _events, ...otherProps } =
     element.props as Record<string, unknown>;
 
   return {
@@ -20,7 +20,6 @@ export function mapElementToSelected(element: Element): SelectedElement {
     semanticClasses: [],
     cssVariables: {},
     dataBinding: getElementDataBinding(element, "legacy-only"),
-    events: (events as SelectedElement["events"]) || [],
   };
 }
 
@@ -39,10 +38,8 @@ export function mapSelectedToElementUpdate(
     props.style = selected.style;
   }
 
-  // events가 있으면 포함 (빈 배열은 모든 이벤트 제거를 의미)
-  if (selected.events !== undefined) {
-    props.events = selected.events;
-  }
+  // `events` projection 은 ADR-158 Phase 4 에서 삭제됐다 — 인터랙션 패널이
+  // canonical root collection 을 직접 읽으므로 선택 스냅샷을 경유하지 않는다.
 
   return {
     id: selected.id,

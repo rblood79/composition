@@ -299,11 +299,6 @@ const CatalogEditContractEditor = memo(
       JSON.stringify(prev.dataBinding) === JSON.stringify(next.dataBinding);
     if (!dataBindingSame) return false;
 
-    const eventsSame =
-      prev.events === next.events ||
-      JSON.stringify(prev.events) === JSON.stringify(next.events);
-    if (!eventsSame) return false;
-
     // 모든 필드가 같으면 리렌더 불필요
     return true;
   },

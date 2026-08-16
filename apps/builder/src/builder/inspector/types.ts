@@ -1,5 +1,4 @@
 import type { ColumnMapping } from "../../types/builder/unified.types";
-import type { EventHandler } from "../panels/events/types/eventTypes";
 import type { DataBinding as SharedDataBinding } from "@composition/shared";
 
 // `ComputedLayout` 인터페이스와 `SelectedElement.computedLayout` 은 삭제됐다
@@ -38,8 +37,9 @@ export interface SelectedElement {
   // DataSection - 데이터 바인딩
   dataBinding?: DataBinding;
 
-  // EventSection - 이벤트 핸들러
-  events?: EventHandler[];
+  // `events` projection 은 ADR-158 Phase 4 에서 삭제됐다. 인터랙션 패널은
+  // canonical `events` root collection 을 직접 구독한다
+  // (`useInteractionRulesForElement`) — 선택 요소 스냅샷을 거치지 않는다.
 }
 
 declare const IMMEDIATE_SELECTION_SNAPSHOT_BRAND: unique symbol;
@@ -207,28 +207,9 @@ export interface ComputedValueConfig {
   dependencies: string[];
 }
 
-/**
- * 이벤트 타입 - events/types/에서 통합 관리
- * @deprecated 이 파일에서 직접 정의하지 않고 events/types/에서 import
- */
-export type {
-  EventHandler,
-  EventAction,
-  EventType,
-  ActionType,
-  ActionConfig,
-  NavigateConfig,
-  SetStateConfig,
-  APICallConfig,
-  ShowModalConfig,
-  HideModalConfig,
-  ShowToastConfig,
-  ValidateFormConfig,
-  CustomConfig,
-  ScrollToConfig,
-  ToggleVisibilityConfig,
-  CopyToClipboardConfig,
-} from "../panels/events/types/eventTypes";
+// 구 이벤트 타입 15종 re-export 는 ADR-158 Phase 4 에서 삭제됐다 (`panels/events`
+// 은퇴와 동반). 인터랙션 스키마 정본은 `@composition/shared` 의 `InteractionRule`
+// 이고, 트리거·기능 어휘는 `CAPABILITY_REGISTRY` 가 소유한다.
 
 /**
  * 컴포넌트 에디터 Props (기존 PropertyEditorProps와 호환)

@@ -46,7 +46,6 @@ import type {
 } from "@composition/shared/types";
 import type { PreviewElement, RenderContext } from "./types";
 import type { RuntimeElement } from "./store/types";
-import { EventEngine } from "../utils/events/eventEngine";
 import { camelToKebab } from "./utils/computedStyleExtractor";
 
 import { resolveCanonicalDocument } from "../resolvers/canonical";
@@ -110,20 +109,6 @@ const CSS_UNITLESS = new Set([
 // fills → style.backgroundColor 재주입 → user 색상 반영 (이전 conditional override 불필요).
 
 // ============================================
-// Module-level EventEngine Singleton
-// ============================================
-
-// ⭐ EventEngine을 모듈 레벨 싱글톤으로 관리 (App과 CanvasContent 모두 접근 가능)
-let eventEngineInstance: EventEngine | null = null;
-
-function getEventEngine(): EventEngine {
-  if (!eventEngineInstance) {
-    eventEngineInstance = new EventEngine();
-  }
-  return eventEngineInstance;
-}
-
-// ============================================
 // Canvas Content Component
 // ============================================
 
@@ -163,9 +148,6 @@ function CanvasContent() {
   const toastRef = useRef<(message: string) => void>(() => {});
   toastRef.current = (message: string) => addToast({ title: message });
 
-  // ⭐ 모듈 레벨 싱글톤 EventEngine 사용
-  const eventEngine = getEventEngine();
-
   // ⭐ 순환 의존성 해결을 위한 render 함수 refs
   const renderElementInternalRef = useRef<
     (el: PreviewElement, key?: string) => React.ReactNode
@@ -181,7 +163,7 @@ function CanvasContent() {
     (el: PreviewElement, allPageElements: PreviewElement[]) => React.ReactNode
   >(() => null);
 
-  // navigate 함수를 전역으로 설정 (EventEngine에서 사용)
+  // navigate 함수를 전역으로 설정 (비컴포넌트 컨텍스트의 발화 경로용)
   useEffect(() => {
     setGlobalNavigate(navigate);
   }, [navigate]);
@@ -769,7 +751,6 @@ function CanvasContent() {
       setElements: (newElements: PreviewElement[]) => {
         setElements(newElements as RuntimeElement[]);
       },
-      eventEngine,
       renderElement: (el: PreviewElement, key?: string) =>
         renderElementInternalRef.current(el, key),
       // Q11=나: shared 렌더러는 EVENT_REGISTRY에 직접 의존 금지 → context 주입
@@ -789,7 +770,6 @@ function CanvasContent() {
       updateElementPropsWithBuilderSync,
       batchUpdateElementProps,
       setElements,
-      eventEngine,
       interactionIndex,
       interactionDeps,
       listBoxTemplateSlotComposition,
@@ -1356,32 +1336,23 @@ export function App() {
   useEffect(() => {
     const storeState = store.getState();
 
-    messageHandlerRef.current = new MessageHandler(
-      {
-        setElements: storeState.setElements,
-        setCanonicalDocument: storeState.setCanonicalDocument,
-        updateElementProps: storeState.updateElementProps,
-        setThemeVars: storeState.setThemeVars,
-        setDarkMode: storeState.setDarkMode,
-        setCurrentPageId: storeState.setCurrentPageId,
-        setCurrentLayoutId: storeState.setCurrentLayoutId,
-        setPages: storeState.setPages,
-        setLayouts: storeState.setLayouts,
-        setDataSources: storeState.setDataSources,
-        setCollections: storeState.setCollections,
-        setApiEndpoints: storeState.setApiEndpoints,
-        setVariables: storeState.setVariables,
-        setAuthToken: storeState.setAuthToken,
-        setReady: storeState.setReady,
-      },
-      {
-        // Variables 업데이트 시 EventEngine에 동기화
-        onVariablesUpdated: (variables) => {
-          const engine = getEventEngine();
-          engine.syncVariables(variables);
-        },
-      },
-    );
+    messageHandlerRef.current = new MessageHandler({
+      setElements: storeState.setElements,
+      setCanonicalDocument: storeState.setCanonicalDocument,
+      updateElementProps: storeState.updateElementProps,
+      setThemeVars: storeState.setThemeVars,
+      setDarkMode: storeState.setDarkMode,
+      setCurrentPageId: storeState.setCurrentPageId,
+      setCurrentLayoutId: storeState.setCurrentLayoutId,
+      setPages: storeState.setPages,
+      setLayouts: storeState.setLayouts,
+      setDataSources: storeState.setDataSources,
+      setCollections: storeState.setCollections,
+      setApiEndpoints: storeState.setApiEndpoints,
+      setVariables: storeState.setVariables,
+      setAuthToken: storeState.setAuthToken,
+      setReady: storeState.setReady,
+    });
 
     // postMessage 리스너 등록
     const handleMessage = (event: MessageEvent) => {
@@ -1397,20 +1368,13 @@ export function App() {
       setIsInitialized(true);
     });
 
-    // ⭐ runtimeStore variables 변경 구독 → EventEngine 동기화
-    let prevVariablesLength = 0;
-    const unsubscribeVariables = store.subscribe((state) => {
-      const variables = state.variables;
-      if (variables.length > 0 && variables.length !== prevVariablesLength) {
-        prevVariablesLength = variables.length;
-        const engine = getEventEngine();
-        engine.syncVariables(variables);
-      }
-    });
+    // 구 `EventEngine` variables 동기화 구독은 ADR-158 Phase 4 에서 삭제됐다.
+    // 그 엔진은 `syncVariables` 로 내부 `state` 를 채우기만 했고, 그 값을 읽는
+    // 것은 `executeEvent`(호출 0건)와 `getState()`(외부 호출 0건)뿐이라
+    // **넣기만 하고 아무도 꺼내지 않는 통**이었다.
 
     return () => {
       window.removeEventListener("message", handleMessage);
-      unsubscribeVariables();
     };
   }, [store]);
 

@@ -95,13 +95,8 @@ const INTENTIONAL_DIVERGENCE: ReadonlyArray<{
       '스테퍼 증가("Increase") — `Minus`("Decrease")와 한 쌍인 산술 기호이지 ' +
       '"추가" 어포던스가 아니다. `add` 정본을 따라가면 짝이 깨진다.',
   },
-  {
-    file: "builder/panels/events/data/eventCategories.ts",
-    symbols: ["Component"],
-    reason:
-      '"Component Events" 카테고리 라벨 — origin/instance 컴포넌트 액션이 아니다. ' +
-      "ADR-158 Phase 2 이후 진입점이 없는 트리라 배선 대상에서도 뺀다.",
-  },
+  // `builder/panels/events/data/eventCategories.ts` 의 `Component` 예외는
+  // ADR-158 Phase 4 (2026-08-16) 에서 그 디렉터리가 통째로 은퇴하며 함께 사라졌다.
 ];
 
 /**

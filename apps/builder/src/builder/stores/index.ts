@@ -263,15 +263,12 @@ export const useSelectedElementData = (): SelectedElement | null => {
           ...(selectedElementProps.computedStyle !== undefined && {
             computedStyle: selectedElementProps.computedStyle,
           }),
-          ...(selectedElementProps.events !== undefined && {
-            events: selectedElementProps.events,
-          }),
         }
       : selectedElementProps && Object.keys(selectedElementProps).length > 0
         ? selectedElementProps
         : element.props;
 
-    const { style, computedStyle, events, ...otherProps } = props as Record<
+    const { style, computedStyle, events: _events, ...otherProps } = props as Record<
       string,
       unknown
     >;
@@ -284,7 +281,6 @@ export const useSelectedElementData = (): SelectedElement | null => {
       style: (style as React.CSSProperties) || {},
       semanticClasses: [],
       cssVariables: {},
-      events: (events as SelectedElement["events"]) || [],
     };
     if (element.customId !== undefined) {
       selectedElement.customId = element.customId;

@@ -29,7 +29,7 @@ export { SettingsPanel } from "./settings/SettingsPanel";
 // Editor panels
 export { PropertiesPanel } from "./properties/PropertiesPanel";
 export { StylesPanel } from "./styles/StylesPanel";
-export { EventsPanel } from "./events/EventsPanel";
+export { InteractionsPanel } from "./interactions/InteractionsPanel";
 export { HistoryPanel } from "./history/HistoryPanel";
 
 // Side effect: Register all panels when this module is imported

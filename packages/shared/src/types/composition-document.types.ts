@@ -1113,8 +1113,11 @@ export interface SerializedDataBinding {
  * superseded.
  *
  * @deprecated ADR-158 Phase 1 — `CompositionDocument.events` 의 entry 는
- *   `InteractionRule` 로 교체됐다. 본 type 은 ADR-149 legacy adapter
- *   (`rootCollectionMigration.ts`) 전용으로만 잔존하며 Phase 4 에서 동반 삭제된다.
+ *   `InteractionRule` 로 교체됐다. 유일한 소비자였던 ADR-149 legacy adapter
+ *   (`rootCollectionMigration.ts`) 는 Phase 4 (2026-08-16) 에서 삭제됐고, 본 type
+ *   은 **dormant `actions` root collection 의 스키마**로만 남는다 (ADR-131 자산).
+ *   신규 코드가 `events` entry 로 생산하지 않는다 — 구 문서에서 올라온 잔존 entry
+ *   는 `isInteractionRule` 이 읽는 쪽에서 걸러낸다.
  */
 export interface SerializedEvent {
   /** stable id — `props.<eventName>` 참조 대상 */

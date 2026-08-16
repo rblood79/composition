@@ -1,6 +1,5 @@
 import React from "react";
 import type { ElementProps } from "../../types/integrations/supabase.types";
-import { EventEngine } from "../../utils/events/eventEngine";
 
 /**
  * Preview runtime node shape.
@@ -42,7 +41,6 @@ export interface RenderContext {
    * 타입을 그대로 가리켜 둘이 갈리지 않게 한다.
    */
   services?: import("@composition/shared/types").RuntimeServices;
-  eventEngine: EventEngine;
   projectId?: string;
   renderElement: (el: PreviewElement, key?: string) => React.ReactNode;
   // Layout/Slot System 필드
