@@ -104,6 +104,10 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 
 ### Phase 3 — fieldMap 소비 + 대표 3종 live 검증
 
+> **선행 조건 (2026-08-17 추가 — ADR 본문 격차 7 / R7)**: 아래 fieldMap 작업 **전에** collection DI provider 를 preview 에 마운트해야 한다. 현재 `CollectionDataProvider` 는 repo 어디에도 렌더되지 않아 `dataTableService` 가 항상 `undefined` 이고, 그 결과 `source:"dataTable"` 바인딩이 DOM 에서 **0행 + 영구 loading** 이다 (Skia 는 같은 바인딩을 100행으로 투영 — 실측 대조는 본문 §격차 7 실측 근거). 이 상태로 G2 `/cross-check` 를 돌리면 fieldMap 과 무관한 이유로 실패하므로 **fieldMap 을 고치는 오진**으로 이어진다.
+
+- [ ] **(선행)** preview 에 collection DI provider 마운트 — `apps/builder/src/preview/App.tsx` 가 `CollectionDataProvider` 로 트리를 감싸고 `dataTableService` 를 runtime 의 collections(`runtimeStore.collections`, postMessage 수신본)로 공급. Skia 축이 `useDataStore.collections` 를 직접 읽는 것(`BuilderCanvas.tsx:234`)과 **동일 스냅샷**을 보게 하는 것이 목적
+- [ ] **(선행)** 배선 직후 대칭 확인 — 같은 바인딩에서 Skia row 수 == DOM row 수 (실측 기준값: `Users` 100 / `Roles` 5 / `Invitations` 5)
 - [ ] `resolveCollectionItems.ts` — `getItemLabel/Value/Description/Icon` 에 fieldMap 인자 추가 (미지정 시 기존 휴리스틱 그대로 — 시그니처 BC 유지 방식은 options 객체)
 - [ ] Skia projector 경로 + DOM wrapper 경로 양쪽이 fieldMap 을 동일 지점에서 전달하는지 확인 (단일 계약이므로 호출부 2곳)
 - [ ] ListBox / Table / Select 3종: mockData + fieldMap 지정 → Builder Skia ↔ Preview DOM label 동일 — `/cross-check` PASS (G2)
@@ -125,7 +129,7 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 ### Phase 6 — publish 연동
 
 - [ ] 프로젝트 publish 시 data snapshot 직렬화: `collections`(schema+mockData, `runtimeData` 제외) + `api_endpoints` 정의를 publish payload 에 포함
-- [ ] `apps/publish` 에 read-only collections provider + 동일 `resolveCollectionItems` 소비 (shared 계약 재사용 — 신규 로직 최소화)
+- [ ] `apps/publish` 에 read-only collections provider + 동일 `resolveCollectionItems` 소비 (shared 계약 재사용 — 신규 로직 최소화). **2026-08-17**: Phase 3 선행 조건에서 preview 에 붙이는 provider 와 **같은 부품**(`CollectionDataProvider` + `dataTableService`)이다 — snapshot 을 소스로 삼는 것만 다르므로 Phase 3 배선을 재사용하고 여기서 새로 만들지 말 것
 - [ ] live 게이트 G3: publish 된 프로젝트에서 dataTable 바인딩 ListBox/Table 이 snapshot 데이터 렌더 확인
 - [ ] ~~API source 는 publish 런타임에서 직접 fetch~~ → 개정 2026-07-21: ADR-159 dataTable 단일 방향 — api/variable/route 오소링 제거(159 P4c, G4 소비처 0 확증 게이트) 확정 시 본 항목 소멸, publish 는 collections snapshot 만 소비. 159 G4 실패(잔존 소비처 발견) 시에만 본 항목 원안 복귀 판정
 
@@ -136,17 +140,18 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 
 ## 4. 파일 변경표 (추정 — Phase 0 에서 freeze)
 
-| 파일                                                                   | Phase | 변경                               |
-| ---------------------------------------------------------------------- | :---: | ---------------------------------- |
-| `packages/shared/src/types/collection.types.ts`                        |   1   | PropertyDataBinding v2 (additive)  |
-| `packages/shared/src/collections/resolveBoundCollection.ts` (신규)     |   1   | id 우선 resolve 헬퍼               |
-| `apps/builder/src/builder/hooks/useCollectionData.ts`                  |  1,5  | 헬퍼 경유 + legacy 분기 축소       |
-| `apps/builder/src/builder/components/property/PropertyDataBinding.tsx` |  1,2  | collectionId upgrade + fieldMap UI |
-| `packages/shared/src/collections/resolveCollectionItems.ts`            |   3   | fieldMap options 소비              |
-| `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`   |   3   | fieldMap 전달 (projection 호출부)  |
-| `packages/shared/src/components/*` (collection wrapper 10종 호출부)    |  3,4  | fieldMap 전달                      |
-| `apps/builder/src/builder/stores/datatable.ts`                         |   5   | deprecate → (승인 후) 제거         |
-| `apps/publish/src/*` (provider + renderer 소비)                        |   6   | snapshot read 경로 신설            |
+| 파일                                                                   | Phase | 변경                                               |
+| ---------------------------------------------------------------------- | :---: | -------------------------------------------------- |
+| `packages/shared/src/types/collection.types.ts`                        |   1   | PropertyDataBinding v2 (additive)                  |
+| `packages/shared/src/collections/resolveBoundCollection.ts` (신규)     |   1   | id 우선 resolve 헬퍼                               |
+| `apps/builder/src/builder/hooks/useCollectionData.ts`                  |  1,5  | 헬퍼 경유 + legacy 분기 축소                       |
+| `apps/builder/src/builder/components/property/PropertyDataBinding.tsx` |  1,2  | collectionId upgrade + fieldMap UI                 |
+| `packages/shared/src/collections/resolveCollectionItems.ts`            |   3   | fieldMap options 소비                              |
+| `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`   |   3   | fieldMap 전달 (projection 호출부)                  |
+| `packages/shared/src/components/*` (collection wrapper 10종 호출부)    |  3,4  | fieldMap 전달                                      |
+| `apps/builder/src/builder/stores/datatable.ts`                         |   5   | deprecate → (승인 후) 제거                         |
+| `apps/builder/src/preview/App.tsx`                                     |   3   | collection DI provider 마운트 (선행 조건 — 격차 7) |
+| `apps/publish/src/*` (provider + renderer 소비)                        |   6   | snapshot read 경로 신설 (Phase 3 provider 재사용)  |
 
 ## 5. 검증 전략
 
