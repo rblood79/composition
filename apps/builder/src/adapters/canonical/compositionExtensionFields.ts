@@ -33,7 +33,6 @@
 
 import type { DataBinding } from "@composition/shared";
 import {
-  getElementEvents as readElementEvents,
   getElementDataBinding as readElementDataBinding,
   type ExtensionReadPriority,
 } from "@composition/shared";
@@ -53,33 +52,19 @@ interface LegacyElementWithExtension {
   dataBinding?: unknown;
 }
 
-/**
- * legacy `Element.events` 영역 — **apps/builder 기본값 `props-first` 고정**.
- *
- * 1. `props.events` — UI canonical primary 저장 (workflow editor 가 inline 수정).
- * 2. `element.events` — legacy fallback (ADR-113 P5 schema 영역, ADR-116 G7 cleanup target).
- * 3. `[]` — 미지정 default.
- *
- * **priority 파라미터를 의도적으로 노출하지 않는다.** 호출부가 `legacy-first` 로
- * 뒤집으면 ADR-149 Phase 3-c 가 확정한 undo 정합이 깨진다 — canonical root 에
- * undo 통합이 없어 `props.events` 가 undo-정합 read source 다.
- *
- * **현재 런타임 호출처 0건** (2026-08-17). 유일 소비자였던
- * `canvasDeltaMessenger.ts` 의 Preview delta 가 삭제됐다 (send 메서드 4종 호출처
- * 0건 + 게이트 상시 차단으로 이중 사망 상태였음). 그럼에도 이 reader 를
- * 남기는 것은 **ADR-149 가 이벤트 발화 bridge 신설을 별도 ADR 로 이연**했고,
- * 그 bridge 가 붙을 때 읽어야 할 위치와 우선순위를 이 함수가 고정하고 있기
- * 때문이다 (형제 `getElementDataBinding` 은 30+ 곳에서 계속 소비 중).
- * 정합은 `compositionExtensionFields.priority.test.ts` 가 잠근다.
- *
- * Phase 5 G7 closure 시 helper 내부 reverse — `node.extension['x-composition'].events`
- * 우선 read 후 props/legacy fallback 으로 변경.
- */
-export function getElementEvents(
-  element: LegacyElementWithExtension,
-): unknown[] {
-  return readElementEvents(element, "props-first");
-}
+// `getElementEvents` 는 삭제됐다 (2026-08-17).
+//
+// ADR-158(Implemented 2026-08-16)이 인터랙션을 canonical **root** `events`
+// 컬렉션(`InteractionRule[]`)으로 옮기면서 원 소비처 2곳이 모두 사라졌다 —
+// `workflowEdges.ts` 는 root collection 으로 전환했고(같은 파일 §규칙 출처
+// 주석 참조), `canvasDeltaMessenger.ts` 는 삭제됐다. 요소별 `props.events` /
+// `element.events` 는 **읽는 쪽도 쓰는 쪽도 없는** legacy 저장 데이터로만
+// 남았고, roundtrip 보존은 `legacyElementSanitizer` 가 담당한다.
+//
+// ADR-149 가 "이벤트 발화 bridge 는 별도 ADR" 로 이연했던 그 bridge 가 곧
+// ADR-158 이며, **다른 위치를 읽는다** — 이 reader 를 그 자리 표시로 남겨 둘
+// 근거가 없다. events 를 요소별로 다시 읽어야 하는 상황이 오면 그때의 저장
+// 위치부터 새로 정해야 한다.
 
 /**
  * legacy `Element.dataBinding` 영역 — read-through priority.

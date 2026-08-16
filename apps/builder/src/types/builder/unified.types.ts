@@ -25,7 +25,10 @@ export interface BaseElementProps extends Record<string, unknown> {
   style?: React.CSSProperties;
   computedStyle?: Partial<React.CSSProperties>; // Computed styles from browser (iframe)
   "data-element-id"?: string;
-  events?: unknown[]; // legacy 잔존 데이터 — shape 무의존 (`getElementEvents` 가 unknown[] 로 읽는다)
+  // legacy 잔존 데이터 — 읽는 쪽도 쓰는 쪽도 없다 (2026-08-17: 마지막 reader
+  // `getElementEvents` 삭제, ADR-158 이 인터랙션을 canonical root `events`
+  // 컬렉션으로 이관). `legacyElementSanitizer` 의 roundtrip 보존 대상으로만 존속.
+  events?: unknown[];
   children?: React.ReactNode; // children 속성 추가
 }
 

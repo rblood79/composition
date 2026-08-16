@@ -100,7 +100,9 @@ export interface ElementProps {
   [key: `data-${string}`]: string | number | boolean | undefined;
 
   // 이벤트 시스템 — legacy 잔존 데이터. shape 무의존이라 `unknown[]` 이다
-  // (`getElementEvents` 가 unknown[] 로 읽고, 구 `ElementEvent` 선언은 소비처 0 으로 은퇴).
+  // (구 `ElementEvent` 선언은 소비처 0 으로 은퇴. 2026-08-17: 마지막 reader
+  // `getElementEvents` 도 삭제 — ADR-158 이 인터랙션을 canonical root `events`
+  // 컬렉션으로 옮겼다. 이 필드는 roundtrip 보존만 되는 legacy 저장 데이터다).
   events?: unknown[];
 
   // 추가 속성 (인덱스 시그니처에 legacy events 배열 포함)

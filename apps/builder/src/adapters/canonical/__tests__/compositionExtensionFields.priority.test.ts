@@ -10,41 +10,27 @@
  * **Why 이 테스트가 필요한가 (증상이 조용하다)**: 두 저장 위치 중 하나만 가진
  * 요소에서는 두 기본값이 같은 결과를 낸다. 발산은 `props.*` 와 `element.*` 가
  * **둘 다 있는** legacy 요소에서만 드러나므로 type-check 도 기존 테스트도
- * 잡지 못한다. wrapper 가 `legacy-first` 로 넘어가면 ADR-149 Phase 3-c 가
- * 확정한 undo 정합이 깨진다 — canonical root 에 undo 통합이 없어
- * `props.events` 가 undo-정합 read source 다.
+ * 잡지 못한다.
  *
- * (2026-08-17: 유일 소비자였던 `canvasDeltaMessenger` 는 삭제됐다. reader 를
- * 남긴 이유와 근거는 wrapper 쪽 docstring 참조 — ADR-149 가 이벤트 발화
- * bridge 를 별도 ADR 로 이연했고 이 테스트가 그때의 읽기 계약을 잠근다.)
+ * **events 축은 2026-08-17 에 빠졌다** — `getElementEvents` 자체가 삭제됐다.
+ * ADR-158(Implemented 2026-08-16)이 인터랙션을 canonical **root** `events`
+ * 컬렉션(`InteractionRule[]`)으로 옮기면서 원 소비처 2곳이 모두 이동·소멸했다
+ * (`workflowEdges` 는 root collection 으로 전환, `canvasDeltaMessenger` 는 삭제).
+ * 요소별 `props.events` / `element.events` 는 읽는 쪽도 쓰는 쪽도 없는 legacy
+ * 저장 데이터로만 남았고, roundtrip 보존은 `legacyElementSanitizer` 가 담당한다.
  */
 import { describe, expect, it } from "vitest";
 
-import {
-  getElementDataBinding,
-  getElementEvents,
-} from "../compositionExtensionFields";
-import {
-  getElementEvents as sharedGetElementEvents,
-  getElementDataBinding as sharedGetElementDataBinding,
-} from "@composition/shared";
+import { getElementDataBinding } from "../compositionExtensionFields";
+import { getElementDataBinding as sharedGetElementDataBinding } from "@composition/shared";
 
 /** 두 저장 위치를 **동시에** 가진 요소 — 기본값 차이가 드러나는 유일한 형태. */
-const bothEvents = {
-  props: { events: [{ id: "from-props" }] },
-  events: [{ id: "from-legacy" }],
-};
-
 const bothBindings = {
   props: { dataBinding: { type: "collection", source: "from-props" } },
   dataBinding: { type: "collection", source: "from-legacy" },
 };
 
 describe("builder wrapper — 기본 priority 는 props-first 로 고정", () => {
-  it("getElementEvents 는 props.events 를 먼저 읽는다", () => {
-    expect(getElementEvents(bothEvents)).toEqual([{ id: "from-props" }]);
-  });
-
   it("getElementDataBinding 은 props.dataBinding 을 먼저 읽는다", () => {
     expect(getElementDataBinding(bothBindings)).toEqual({
       type: "collection",
@@ -55,7 +41,6 @@ describe("builder wrapper — 기본 priority 는 props-first 로 고정", () =>
   it("shared 기본값(legacy-first)과 반대여야 한다 — 두 영역이 갈린 것이 설계다", () => {
     // 이 단언이 깨지면 둘 중 하나다: shared 기본값이 바뀌었거나(영역 계약 변경),
     // wrapper 가 기본값 고정을 잃었거나(회귀). 어느 쪽이든 §10.2.4 재판정 대상.
-    expect(sharedGetElementEvents(bothEvents)).toEqual([{ id: "from-legacy" }]);
     expect(sharedGetElementDataBinding(bothBindings)).toEqual({
       type: "collection",
       source: "from-legacy",
@@ -85,16 +70,15 @@ describe("wrapper 는 shared 로직을 그대로 위임한다", () => {
   });
 
   it("한쪽만 있으면 기본값과 무관하게 같은 값 — 이 형태가 결함을 가린다", () => {
-    const propsOnly = { props: { events: [{ id: "only" }] } };
-    const legacyOnly = { events: [{ id: "only" }] };
-    expect(getElementEvents(propsOnly)).toEqual([{ id: "only" }]);
-    expect(getElementEvents(legacyOnly)).toEqual([{ id: "only" }]);
-    expect(sharedGetElementEvents(propsOnly)).toEqual([{ id: "only" }]);
-    expect(sharedGetElementEvents(legacyOnly)).toEqual([{ id: "only" }]);
+    const propsOnly = { props: { dataBinding: { source: "only" } } };
+    const legacyOnly = { dataBinding: { source: "only" } };
+    expect(getElementDataBinding(propsOnly)).toEqual({ source: "only" });
+    expect(getElementDataBinding(legacyOnly)).toEqual({ source: "only" });
+    expect(sharedGetElementDataBinding(propsOnly)).toEqual({ source: "only" });
+    expect(sharedGetElementDataBinding(legacyOnly)).toEqual({ source: "only" });
   });
 
-  it("미지정은 빈 배열 / undefined", () => {
-    expect(getElementEvents({ id: "none" } as never)).toEqual([]);
+  it("미지정은 undefined", () => {
     expect(getElementDataBinding({ id: "none" } as never)).toBeUndefined();
   });
 });

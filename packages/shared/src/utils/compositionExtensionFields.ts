@@ -45,29 +45,12 @@ interface LegacyElementWithExtension {
   dataBinding?: unknown;
 }
 
-/**
- * legacy `Element.events` 영역 — read-through priority.
- *
- * default priority = `'legacy-first'` (packages/shared 영역 renderers 기존 패턴 보존).
- * Phase 5 G7 closure 시 helper 내부 reverse — `node.extension['x-composition'].events`
- * 우선 read 후 props/legacy fallback 으로 변경.
- */
-export function getElementEvents(
-  element: LegacyElementWithExtension,
-  priority: ExtensionReadPriority = "legacy-first",
-): unknown[] {
-  const props = element.props as Record<string, unknown> | undefined;
-  const propsEvents = props?.events;
-  if (priority === "legacy-first") {
-    if (Array.isArray(element.events)) return element.events;
-    if (Array.isArray(propsEvents)) return propsEvents;
-    return [];
-  }
-  // props-first
-  if (Array.isArray(propsEvents)) return propsEvents;
-  if (Array.isArray(element.events)) return element.events;
-  return [];
-}
+// `getElementEvents` 는 삭제됐다 (2026-08-17) — ADR-158(Implemented 2026-08-16)이
+// 인터랙션을 canonical **root** `events` 컬렉션(`InteractionRule[]`)으로 옮기면서
+// 요소별 `props.events` / `element.events` 를 읽는 소비처가 전부 사라졌다.
+// 그 필드는 읽는 쪽도 쓰는 쪽도 없는 legacy 저장 데이터로만 남아 있고 roundtrip
+// 보존은 builder `legacyElementSanitizer` 담당. 아래 `dataBinding` 축은 renderer
+// 30+ 곳이 계속 소비하므로 그대로다.
 
 /**
  * legacy `Element.dataBinding` 영역 — read-through priority.
