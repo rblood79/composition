@@ -1,5 +1,8 @@
 import { memo, useMemo } from "react";
-import { Component as ComponentIcon } from "lucide-react";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 컨텍스트 메뉴의 컴포넌트 항목과 같은 정본. */
+const ComponentIcon = ACTION_ICONS.component;
 import { PropertySection } from "../../components";
 import { useStore } from "../../stores";
 import { globalToast } from "../../stores/toast";

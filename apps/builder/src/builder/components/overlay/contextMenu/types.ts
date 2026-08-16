@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ActionIcon } from "../../../config/actionIcons";
 import type { ShortcutId } from "../../../config/keyboardShortcuts";
 
 /**
@@ -7,12 +7,11 @@ import type { ShortcutId } from "../../../config/keyboardShortcuts";
  * provider 는 `.ts` 라 JSX 를 쓸 수 없어 `ReactNode` 가 아니라 컴포넌트 타입이다.
  * 크기·색은 오버레이와 CSS(`.context-menu-item svg`)가 정하므로 provider 는
  * 어떤 아이콘인지만 고른다.
+ *
+ * 여러 화면에 공통으로 나오는 액션은 `ACTION_ICONS` 에서 고른다 — 낱개 lucide
+ * 심볼을 직접 집으면 다른 진입점과 갈린다 (`config/actionIcons.ts` §왜 필요한가).
  */
-export type ContextMenuIcon = ComponentType<{
-  size?: number | string;
-  className?: string;
-  "aria-hidden"?: boolean | "true" | "false";
-}>;
+export type ContextMenuIcon = ActionIcon;
 
 export type ContextMenuSurface =
   | "canvas-element"

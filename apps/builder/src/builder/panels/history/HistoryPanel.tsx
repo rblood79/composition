@@ -4,7 +4,6 @@ import {
   Camera,
   Clock,
   File,
-  Group,
   History,
   Layers,
   LayoutTemplate,
@@ -13,12 +12,13 @@ import {
   Pencil,
   Plus,
   Redo,
-  RulerDimensionLine,
-  Trash2,
   Undo,
-  Ungroup,
   type LucideIcon,
 } from "lucide-react";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본. */
+const DeleteIcon = ACTION_ICONS.delete;
 import { PanelHeader, EmptyState } from "../../components";
 import { ActionIconButton } from "../../components/ui";
 import { Button } from "@composition/shared/components";
@@ -51,12 +51,12 @@ const ENTRY_TYPE_ICONS: Record<HistoryEntry["type"], LucideIcon> = {
   update: Pencil,
   move: Move,
   batch: Layers,
-  group: Group,
-  ungroup: Ungroup,
+  group: ACTION_ICONS.group,
+  ungroup: ACTION_ICONS.ungroup,
   "page-position": LayoutTemplate,
   // ADR-181 — 눈금자 토글(SettingsPanel)과 같은 아이콘: 가이드는 눈금자에서
   // 만들고 눈금자로 되돌려 지우므로 같은 기능군으로 읽혀야 한다
-  "page-guide": RulerDimensionLine,
+  "page-guide": ACTION_ICONS.toggleRulers,
   // ADR-185 G-1 — 페이지 생성/삭제 (문서 단위 조작이라 File 계열)
   "page-lifecycle": File,
   "snapshot-restore": ArchiveRestore,
@@ -336,7 +336,7 @@ function HistoryPanelContent() {
               aria-label="Clear history"
               tooltip="히스토리 초기화"
             >
-              <Trash2 size={iconProps.size} />
+              <DeleteIcon size={iconProps.size} />
             </ActionIconButton>
           </div>
         }
@@ -420,7 +420,7 @@ function HistoryPanelContent() {
                             aria-label={`스냅샷 삭제: ${snapshot.name}`}
                             tooltip="삭제"
                           >
-                            <Trash2 size={iconSmall.size} />
+                            <DeleteIcon size={iconSmall.size} />
                           </ActionIconButton>
                         </span>
                       </>

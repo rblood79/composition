@@ -1,5 +1,5 @@
 import { memo, useMemo, useCallback } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { ChildrenManagerField } from "@composition/specs";
 import { useStore } from "../../../stores";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
@@ -10,6 +10,11 @@ import {
 } from "../hooks/useCanonicalPropertyRead";
 
 import "../editors/styles/propertyEditors.css";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
+
 interface ChildItemManagerProps {
   elementId: string;
   field: ChildrenManagerField;
@@ -113,7 +118,7 @@ export const ChildItemManager = memo(function ChildItemManager({
                   className="editor-item-action"
                   onClick={() => handleDelete(child.id)}
                 >
-                  <Trash2 size={12} />
+                  <DeleteIcon size={12} />
                 </button>
               </div>
             </div>
@@ -122,7 +127,10 @@ export const ChildItemManager = memo(function ChildItemManager({
       )}
 
       <div className="editor-actions">
-        <button className="control-button control-button--add" onClick={handleAdd}>
+        <button
+          className="control-button control-button--add"
+          onClick={handleAdd}
+        >
           <Plus size={14} />
           Add {childTag}
         </button>

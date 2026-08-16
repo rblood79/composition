@@ -6,11 +6,15 @@
  */
 
 import { useState } from "react";
-import { Globe, Plus, Trash2, Edit2, Play } from "lucide-react";
+import { Globe, Plus, Edit2, Play } from "lucide-react";
 import { useDataStore, useApiEndpoints } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { Section } from "../../../components";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface ApiEndpointListProps {
   projectId: string;
@@ -149,7 +153,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
                   onClick={(e) => handleDelete(endpoint.id, e)}
                   title="삭제"
                 >
-                  <Trash2 {...iconEditProps} />
+                  <DeleteIcon {...iconEditProps} />
                 </button>
               </div>
             </div>

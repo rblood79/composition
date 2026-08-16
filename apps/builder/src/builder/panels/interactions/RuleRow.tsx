@@ -6,7 +6,7 @@
  * 그 어휘 자체가 ADR-158 에서 은퇴했다.
  */
 import { memo, useCallback, useMemo } from "react";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   APP_ACTIONS,
   resolveCapabilities,
@@ -22,6 +22,10 @@ import { TargetPicker } from "./TargetPicker";
 import { TriggerPicker } from "./TriggerPicker";
 import { TRIGGER_LABELS } from "./labels";
 import type { ActionChoice } from "./types";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface RuleRowProps {
   rule: InteractionRule;
@@ -132,7 +136,7 @@ export const RuleRow = memo(function RuleRow({
           onClick={onRemove}
           aria-label="규칙 삭제"
         >
-          <Trash2 size={14} />
+          <DeleteIcon size={14} />
         </button>
       </div>
 

@@ -1,31 +1,16 @@
 import {
-  AlignCenter,
-  AlignCenterHorizontal,
-  AlignHorizontalDistributeCenter,
-  AlignLeft,
-  AlignRight,
-  AlignVerticalDistributeCenter,
-  AlignVerticalJustifyCenter,
-  AlignVerticalJustifyEnd,
-  AlignVerticalJustifyStart,
   ArrowDown,
   ArrowDownToLine,
   ArrowUp,
-  ArrowUpRight,
   ArrowUpToLine,
-  ClipboardPaste,
-  Component,
-  Copy,
-  CopyPlus,
-  Group as GroupIcon,
-  Magnet,
   Maximize,
   Percent,
-  Ruler,
-  Trash2,
-  Ungroup,
-  Unlink,
 } from "lucide-react";
+import {
+  ACTION_ICONS,
+  ALIGNMENT_ICONS,
+  DISTRIBUTION_ICONS,
+} from "../../../config/actionIcons";
 import {
   getAlignmentDescription,
   type AlignmentType,
@@ -176,20 +161,10 @@ function buildZOrderItems(element: CanvasActionElement): ContextMenuItem[] {
 function buildAlignmentItems(
   options: CanvasContextMenuProviderOptions,
 ): ContextMenuItem[] {
-  // 아이콘은 같은 액션을 쓰는 다중 선택 툴바(MultiSelectStatusIndicator)와
-  // 동일 매핑 — 두 진입점이 다른 그림을 쓰면 같은 동작으로 안 읽힌다.
-  const alignmentIcons: Record<AlignmentType, ContextMenuIcon> = {
-    left: AlignLeft,
-    center: AlignCenter,
-    right: AlignRight,
-    top: AlignVerticalJustifyStart,
-    middle: AlignVerticalJustifyCenter,
-    bottom: AlignVerticalJustifyEnd,
-  };
-  const distributionIcons: Record<DistributionType, ContextMenuIcon> = {
-    horizontal: AlignHorizontalDistributeCenter,
-    vertical: AlignVerticalDistributeCenter,
-  };
+  // 다중 선택 툴바(MultiSelectStatusIndicator)와 **같은 정본**을 읽는다 —
+  // 두 진입점이 다른 그림을 쓰면 같은 동작으로 안 읽힌다.
+  const alignmentIcons = ALIGNMENT_ICONS;
+  const distributionIcons = DISTRIBUTION_ICONS;
   const alignmentTypes: AlignmentType[] = [
     "left",
     "center",
@@ -254,22 +229,31 @@ function buildElementMenuItems(
   const context = () => actionContext(options);
 
   const items: ContextMenuItem[] = [
-    actionItem("copy", "복사 / Copy", () => copySelection(context()), "copy", {
-      icon: Copy,
-    }),
+    actionItem(
+      "copy",
+      "복사 / Copy",
+      // `copySelection` 은 `Promise<boolean>` 이라 `run` 계약(`void | Promise<void>`)에
+      // 그대로 맞지 않는다. 호출부(`ContextMenuOverlay`)가 이미 `void item.run()` 으로
+      // 버리므로 결과를 여기서 흘려보내도 동작은 같다.
+      () => {
+        void copySelection(context());
+      },
+      "copy",
+      { icon: ACTION_ICONS.copy },
+    ),
     actionItem(
       "paste",
       request.scenePoint ? "여기에 붙여넣기 / Paste here" : "붙여넣기 / Paste",
       () => paste({ ...context(), scenePoint: request.scenePoint }),
       "paste",
-      { icon: ClipboardPaste },
+      { icon: ACTION_ICONS.paste },
     ),
     actionItem(
       "duplicate",
       "복제 / Duplicate",
       () => duplicateSelection(context()),
       "duplicate",
-      { icon: CopyPlus },
+      { icon: ACTION_ICONS.duplicate },
     ),
     { kind: "separator", id: "selection-separator" },
   ];
@@ -291,7 +275,7 @@ function buildElementMenuItems(
         "그룹 만들기 / Group selection",
         () => groupSelection(context()),
         "group",
-        { icon: GroupIcon },
+        { icon: ACTION_ICONS.group },
       ),
     );
   }
@@ -303,7 +287,7 @@ function buildElementMenuItems(
         "그룹 해제 / Ungroup",
         () => ungroupSelection(context()),
         "ungroup",
-        { icon: Ungroup },
+        { icon: ACTION_ICONS.ungroup },
       ),
     );
   }
@@ -313,7 +297,7 @@ function buildElementMenuItems(
       kind: "submenu",
       id: "align",
       label: "정렬 / Align",
-      icon: AlignCenterHorizontal,
+      icon: ACTION_ICONS.align,
       items: buildAlignmentItems(options),
     });
   }
@@ -334,7 +318,7 @@ function buildElementMenuItems(
           await useStore.getState().toggleComponentOrigin(primaryElement.id);
         },
         "toggleComponentOrigin",
-        { icon: Component },
+        { icon: ACTION_ICONS.component },
       ),
     );
 
@@ -352,7 +336,7 @@ function buildElementMenuItems(
               );
           },
           undefined,
-          { icon: ArrowUpRight },
+          { icon: ACTION_ICONS.goToOrigin },
         ),
       );
     }
@@ -376,7 +360,7 @@ function buildElementMenuItems(
             useStore.getState().detachInstance(detachableElement.id);
         },
         "detachInstance",
-        { icon: Unlink },
+        { icon: ACTION_ICONS.detach },
       ),
     );
   }
@@ -390,7 +374,7 @@ function buildElementMenuItems(
         () => deleteSelection(context()),
         "delete",
         // Pen 모델 — destructive 스타일 + 최하단 격리로 오클릭 완화 (ADR-182 §2)
-        { icon: Trash2, destructive: true },
+        { icon: ACTION_ICONS.delete, destructive: true },
       ),
     );
   }
@@ -411,7 +395,7 @@ function buildEmptyCanvasMenuItems(
       "여기에 붙여넣기 / Paste here",
       () => paste({ ...context(), scenePoint: request.scenePoint }),
       "paste",
-      { icon: ClipboardPaste },
+      { icon: ACTION_ICONS.paste },
     ),
     { kind: "separator", id: "viewport-separator" },
     actionItem(
@@ -449,7 +433,7 @@ function buildEmptyCanvasMenuItems(
       label: state.showRulers
         ? "눈금자 숨기기 / Hide rulers"
         : "눈금자 표시 / Show rulers",
-      icon: Ruler,
+      icon: ACTION_ICONS.toggleRulers,
       checked: state.showRulers,
       shortcutId: "toggleRulers",
       run: () =>
@@ -459,7 +443,7 @@ function buildEmptyCanvasMenuItems(
       kind: "toggle",
       id: "snap-to-objects",
       label: "객체 스냅 / Snap to objects",
-      icon: Magnet,
+      icon: ACTION_ICONS.toggleSnap,
       checked: state.snapToObjects,
       run: () =>
         useStore

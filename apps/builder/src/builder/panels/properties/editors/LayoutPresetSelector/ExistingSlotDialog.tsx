@@ -10,11 +10,15 @@
  */
 
 import { memo, useCallback } from "react";
-import { AlertTriangle, Trash2, Merge, X } from "lucide-react";
+import { AlertTriangle, Merge, X } from "lucide-react";
 import { Button } from "@composition/shared/components";
 import { Dialog, DialogTrigger, Modal, Heading } from "react-aria-components";
 import type { ExistingSlotInfo, PresetApplyMode } from "./types";
 import { iconProps } from "../../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface ExistingSlotDialogProps {
   /** 다이얼로그 열림 상태 */
@@ -117,7 +121,7 @@ export const ExistingSlotDialog = memo(function ExistingSlotDialog({
               병합 (새 Slot만 추가)
             </Button>
             <Button variant="primary" onPress={handleReplace}>
-              <Trash2 size={iconProps.size} />
+              <DeleteIcon size={iconProps.size} />
               덮어쓰기
             </Button>
           </div>

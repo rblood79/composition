@@ -2,7 +2,7 @@ import { useMemo, useCallback, memo, useState, useEffect } from "react";
 import { translations } from "../../../i18n";
 // ADR-912 collapse: palette icon 은 getPaletteItems() 가 catalog entry.panel.icon → lucide 매핑.
 // 아래 lucide import 는 ComponentList 자체 UI(검색/휴지통/접기 등) 전용으로만 잔존.
-import { Tag, Search, Trash2, Box, ChevronsDownUp } from "lucide-react";
+import { Tag, Search, Box, ChevronsDownUp } from "lucide-react";
 import { getPaletteItems, type PaletteItem } from "./paletteItems";
 import { PanelHeader, Section } from "../../components";
 import { ActionIconButton } from "../../components/ui/ActionIconButton";
@@ -14,6 +14,11 @@ import { useFavoriteComponents } from "../../hooks/useFavoriteComponents";
 import { useSectionCollapse } from "../styles/hooks/useSectionCollapse";
 import "@composition/shared/components/styles/ComponentList.css";
 import { Badge } from "@composition/shared/components/Badge";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
+
 // import { ToggleButton, ToggleButtonGroup, Button, TextField, Label, Input, Description, FieldError, Checkbox, CheckboxGroup } from '../components/list';
 
 interface ComponentListProps {
@@ -322,7 +327,7 @@ const ComponentList = memo(
                   aria-label="Clear Recent History"
                   onClick={clearRecentComponents}
                 >
-                  <Trash2
+                  <DeleteIcon
                     color={iconProps.color}
                     strokeWidth={iconProps.strokeWidth}
                     size={iconProps.size}

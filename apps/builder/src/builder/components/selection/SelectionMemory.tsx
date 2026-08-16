@@ -7,8 +7,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@composition/shared/components";
-import { History, Clock, Trash2, RotateCcw } from "lucide-react";
-import { iconProps, iconEditProps, iconSmall, iconLarge } from "../../../utils/ui/uiConstants";
+import { History, Clock, RotateCcw } from "lucide-react";
+import {
+  iconProps,
+  iconEditProps,
+  iconSmall,
+  iconLarge,
+} from "../../../utils/ui/uiConstants";
 import {
   selectionMemory,
   formatTimestamp,
@@ -16,6 +21,11 @@ import {
 } from "../../utils/selectionMemory";
 
 import "./SelectionMemory.css";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
+
 export interface SelectionMemoryProps {
   /** Current page ID */
   currentPageId: string | null;
@@ -60,7 +70,7 @@ export function SelectionMemory({
 
   // Filter history by current page
   const pageHistory = history.filter(
-    (entry) => !currentPageId || entry.pageId === currentPageId
+    (entry) => !currentPageId || entry.pageId === currentPageId,
   );
 
   // Handle restore click
@@ -114,7 +124,7 @@ export function SelectionMemory({
             aria-label="Clear all history"
             className="clear-all-btn"
           >
-            <Trash2 size={iconEditProps.size} />
+            <DeleteIcon size={iconEditProps.size} />
           </Button>
         )}
       </div>
@@ -144,11 +154,13 @@ export function SelectionMemory({
             <Button
               variant="ghost"
               size="sm"
-              onPress={(e) => handleDelete(entry.id, e as unknown as React.MouseEvent)}
+              onPress={(e) =>
+                handleDelete(entry.id, e as unknown as React.MouseEvent)
+              }
               aria-label="Delete history entry"
               className="delete-btn"
             >
-              <Trash2 size={iconEditProps.size} />
+              <DeleteIcon size={iconEditProps.size} />
             </Button>
           </div>
         ))}

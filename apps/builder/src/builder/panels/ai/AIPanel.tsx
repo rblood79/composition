@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { PanelHeader } from "../../components";
 import { Button } from "@composition/shared/components";
-import { MessageCircle, Trash2, Bot } from "lucide-react";
+import { MessageCircle, Bot } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useConversationStore } from "../../stores/conversation";
 import { useStore } from "../../stores";
@@ -26,6 +26,10 @@ import type {
   ChatMessage as ChatMessageType,
 } from "../../../types/integrations/chat.types";
 import "./AIPanel.css";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 const EMPTY_ELEMENTS: BuilderContext["elements"] = [];
 
@@ -262,7 +266,7 @@ function AIPanelContent() {
                 aria-label="Clear conversation"
                 title="대화 초기화"
               >
-                <Trash2
+                <DeleteIcon
                   color={iconProps.color}
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}

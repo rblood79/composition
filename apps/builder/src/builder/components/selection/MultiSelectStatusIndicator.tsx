@@ -6,21 +6,8 @@
  */
 
 import { Button } from "@composition/shared/components";
-import {
-  Copy,
-  Trash2,
-  X,
-  ClipboardPaste,
-  Group as GroupIcon,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignVerticalJustifyStart,
-  AlignVerticalJustifyCenter,
-  AlignVerticalJustifyEnd,
-  AlignHorizontalDistributeCenter,
-  AlignVerticalDistributeCenter,
-} from "lucide-react";
+import { X } from "lucide-react";
+import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import type { AlignmentType } from "../../stores/utils/elementAlignment";
 import type { DistributionType } from "../../stores/utils/elementDistribution";
@@ -31,6 +18,26 @@ import {
 import { formatShortcut } from "../../hooks";
 
 import "./MultiSelectStatusIndicator.css";
+
+/**
+ * 아이콘은 컨텍스트 메뉴와 **같은 정본**을 읽는다 — 여기 있는 액션은 전부
+ * 우클릭 메뉴에도 있어서, 낱개 lucide 심볼을 직접 집으면 두 진입점이 갈린다
+ * (`config/actionIcons.ts`). 치수·색은 이 화면 밀도에 맞춰 호출부가 정한다.
+ */
+const {
+  copy: CopyIcon,
+  paste: PasteIcon,
+  delete: DeleteIcon,
+  group: GroupIcon,
+  alignLeft: AlignLeftIcon,
+  alignCenter: AlignCenterIcon,
+  alignRight: AlignRightIcon,
+  alignTop: AlignTopIcon,
+  alignMiddle: AlignMiddleIcon,
+  alignBottom: AlignBottomIcon,
+  distributeHorizontal: DistributeHIcon,
+  distributeVertical: DistributeVIcon,
+} = ACTION_ICONS;
 
 /**
  * 단축키 표기는 `SHORTCUT_DEFINITIONS` 파생 (ADR-182 HC5).
@@ -122,7 +129,7 @@ export function MultiSelectStatusIndicator({
             aria-label={`Copy all selected elements (${shortcutLabel("copy")})`}
             isDisabled={count === 0}
           >
-            <Copy
+            <CopyIcon
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
@@ -137,7 +144,7 @@ export function MultiSelectStatusIndicator({
             onPress={onPasteAll}
             aria-label={`Paste copied elements (${shortcutLabel("paste")})`}
           >
-            <ClipboardPaste
+            <PasteIcon
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
@@ -178,7 +185,7 @@ export function MultiSelectStatusIndicator({
                 aria-label={`Align left (${shortcutLabel("alignLeft")})`}
                 isDisabled={count < 2}
               >
-                <AlignLeft
+                <AlignLeftIcon
                   color={iconProps.color}
                   size={iconProps.size}
                   strokeWidth={iconProps.strokeWidth}
@@ -192,7 +199,7 @@ export function MultiSelectStatusIndicator({
                 aria-label={`Align horizontal center (${shortcutLabel("alignHCenter")})`}
                 isDisabled={count < 2}
               >
-                <AlignCenter
+                <AlignCenterIcon
                   color={iconProps.color}
                   size={iconProps.size}
                   strokeWidth={iconProps.strokeWidth}
@@ -206,7 +213,7 @@ export function MultiSelectStatusIndicator({
                 aria-label={`Align right (${shortcutLabel("alignRight")})`}
                 isDisabled={count < 2}
               >
-                <AlignRight
+                <AlignRightIcon
                   color={iconProps.color}
                   size={iconProps.size}
                   strokeWidth={iconProps.strokeWidth}
@@ -220,7 +227,7 @@ export function MultiSelectStatusIndicator({
                 aria-label={`Align top (${shortcutLabel("alignTop")})`}
                 isDisabled={count < 2}
               >
-                <AlignVerticalJustifyStart
+                <AlignTopIcon
                   color={iconProps.color}
                   size={iconProps.size}
                   strokeWidth={iconProps.strokeWidth}
@@ -234,7 +241,7 @@ export function MultiSelectStatusIndicator({
                 aria-label={`Align vertical middle (${shortcutLabel("alignVCenter")})`}
                 isDisabled={count < 2}
               >
-                <AlignVerticalJustifyCenter
+                <AlignMiddleIcon
                   color={iconProps.color}
                   size={iconProps.size}
                   strokeWidth={iconProps.strokeWidth}
@@ -248,7 +255,7 @@ export function MultiSelectStatusIndicator({
                 aria-label={`Align bottom (${shortcutLabel("alignBottom")})`}
                 isDisabled={count < 2}
               >
-                <AlignVerticalJustifyEnd
+                <AlignBottomIcon
                   color={iconProps.color}
                   size={iconProps.size}
                   strokeWidth={iconProps.strokeWidth}
@@ -270,7 +277,7 @@ export function MultiSelectStatusIndicator({
                 aria-label={`Distribute horizontally (${shortcutLabel("distributeH")})`}
                 isDisabled={count < 3}
               >
-                <AlignHorizontalDistributeCenter
+                <DistributeHIcon
                   color={iconProps.color}
                   size={iconProps.size}
                   strokeWidth={iconProps.strokeWidth}
@@ -284,7 +291,7 @@ export function MultiSelectStatusIndicator({
                 aria-label={`Distribute vertically (${shortcutLabel("distributeV")})`}
                 isDisabled={count < 3}
               >
-                <AlignVerticalDistributeCenter
+                <DistributeVIcon
                   color={iconProps.color}
                   size={iconProps.size}
                   strokeWidth={iconProps.strokeWidth}
@@ -303,7 +310,7 @@ export function MultiSelectStatusIndicator({
             aria-label="Delete all selected elements (Delete)"
             isDisabled={count === 0}
           >
-            <Trash2
+            <DeleteIcon
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}

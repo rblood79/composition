@@ -7,11 +7,15 @@
  */
 
 import { useMemo } from "react";
-import { Table2, Plus, Trash2, Edit2, Link } from "lucide-react";
+import { Table2, Plus, Edit2, Link } from "lucide-react";
 import { Button } from "react-aria-components";
 import { useDataStore } from "../../../stores/data";
 import { Section } from "../../../components";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface DataTableListProps {
   projectId: string;
@@ -136,7 +140,7 @@ export function DataTableList({
                     onClick={(e) => handleDelete(table.id, e)}
                     title="삭제"
                   >
-                    <Trash2 {...iconEditProps} />
+                    <DeleteIcon {...iconEditProps} />
                   </button>
                 </div>
               </div>

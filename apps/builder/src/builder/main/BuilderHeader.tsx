@@ -13,7 +13,6 @@ import {
   FolderOpen,
   Download,
   Upload,
-  Trash2,
   HelpCircle,
   Info,
   Columns,
@@ -37,6 +36,10 @@ import { usePanelLayout } from "../layout";
 import { ZoomControls } from "../workspace/ZoomControls";
 import { ActionIconButton } from "../components/ui";
 import { useCompareModeStore } from "../workspace/canvas/stores";
+import { ACTION_ICONS } from "../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 export interface Breakpoint {
   id: string;
@@ -124,7 +127,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               </MenuItem>
               <Separator className="header-menu-separator" />
               <MenuItem id="delete" className="header-menu-item">
-                <Trash2 size={14} />
+                <DeleteIcon size={14} />
                 <span>Delete Project</span>
               </MenuItem>
               <Separator className="header-menu-separator" />

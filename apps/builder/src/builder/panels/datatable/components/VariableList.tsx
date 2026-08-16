@@ -5,12 +5,16 @@
  * 편집 UI는 DataTableEditorPanel에서 처리
  */
 
-import { Variable, Plus, Trash2, Edit2 } from "lucide-react";
+import { Variable, Plus, Edit2 } from "lucide-react";
 import { useDataStore, useVariables } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { Section } from "../../../components";
 import type { Variable as VariableType } from "../../../../types/builder/data.types";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface VariableListProps {
   projectId: string;
@@ -104,7 +108,7 @@ export function VariableList({ projectId }: VariableListProps) {
           onClick={(e) => handleDelete(variable.id, e)}
           title="삭제"
         >
-          <Trash2 {...iconEditProps} />
+          <DeleteIcon {...iconEditProps} />
         </button>
       </div>
     </div>

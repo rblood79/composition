@@ -1,7 +1,6 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import {
   Plus,
-  Trash2,
   ChevronDown,
   ChevronRight,
   FolderPlus,
@@ -22,6 +21,11 @@ import {
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 
 import "../editors/styles/propertyEditors.css";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
+
 // ADR-055: EVENT_REGISTRY에서 select 옵션 파생
 const EVENT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "", label: "— none —" },
@@ -87,7 +91,7 @@ const ItemRow = memo(function ItemRow({
           aria-label="Remove item"
           onClick={onRemove}
         >
-          <Trash2 size={12} />
+          <DeleteIcon size={12} />
         </button>
       </div>
 
@@ -188,7 +192,7 @@ const SeparatorRow = memo(function SeparatorRow({
           aria-label="Remove separator"
           onClick={onRemove}
         >
-          <Trash2 size={12} />
+          <DeleteIcon size={12} />
         </button>
       </div>
     </div>
@@ -241,13 +245,15 @@ const SectionRow = memo(function SectionRow({
         >
           {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         </button>
-        <span className="editor-item-title items-manager-section-title">{header}</span>
+        <span className="editor-item-title items-manager-section-title">
+          {header}
+        </span>
         <button
           className="editor-item-action"
           aria-label="Remove section"
           onClick={onRemoveSection}
         >
-          <Trash2 size={12} />
+          <DeleteIcon size={12} />
         </button>
       </div>
 
@@ -315,7 +321,10 @@ const SectionRow = memo(function SectionRow({
           )}
 
           <div className="editor-actions items-manager-section-actions">
-            <button className="control-button control-button--add" onClick={onAddItem}>
+            <button
+              className="control-button control-button--add"
+              onClick={onAddItem}
+            >
               <Plus size={12} />
               Add {itemTypeName}
             </button>
@@ -487,18 +496,27 @@ export const ItemsManager = memo(function ItemsManager({
       )}
 
       <div className="editor-actions">
-        <button className="control-button control-button--add" onClick={handleAdd}>
+        <button
+          className="control-button control-button--add"
+          onClick={handleAdd}
+        >
           <Plus size={14} />
           Add {field.itemTypeName}
         </button>
         {allowSections && (
-          <button className="control-button control-button--add" onClick={handleAddSection}>
+          <button
+            className="control-button control-button--add"
+            onClick={handleAddSection}
+          >
             <FolderPlus size={14} />
             Add Section
           </button>
         )}
         {allowSeparators && (
-          <button className="control-button control-button--add" onClick={handleAddSeparator}>
+          <button
+            className="control-button control-button--add"
+            onClick={handleAddSeparator}
+          >
             <Minus size={14} />
             Add Separator
           </button>

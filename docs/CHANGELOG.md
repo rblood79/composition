@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [빌더 액션 아이콘 정본 — ACTION_ICONS registry + 정적 가드] - 2026-08-16
+
+### Bug Fixes
+
+- **같은 액션이 화면마다 다른 아이콘으로 갈려 있던 2건**:
+  - **삭제**: `Trash2` 25곳 vs **`Trash`** — `FramesTab/{FrameList,FrameElementTree}.tsx` (라이브 화면). 나머지 `Trash` 2건은 진입점 없는 `panels/events/` 트리
+  - **눈금자 토글**: 컨텍스트 메뉴 `Ruler` vs Settings 패널 `RulerDimensionLine` — **같은 `setShowRulers` 를 부르는 두 진입점**. 직전 커밋에서 컨텍스트 메뉴에 아이콘을 넣으며 생겼다. `RulerDimensionLine` 쪽이 정본 (History 의 `page-guide` 도 "눈금자 토글과 같은 아이콘" 주석을 달고 이미 그 그림을 쓰고 있었다)
+  - **Why**: 빌더 크롬 아이콘에 **정본이 없어** 106개 파일이 `lucide-react` 를 각자 import 한다 (실측 — 고유 220심볼 / import 지점 537 / 그 중 105심볼이 2개 이상 파일에 중복). 같은 액션이 여러 화면에 나오면 한쪽만 바꿔도 아무것도 막지 않는다. 손으로 맞춘 흔적(History `page-guide` 주석, 정렬 8종)은 있었지만 규약이 코드에 없어 매번 사람이 기억해야 했다
+  - live 실측: 컨텍스트 메뉴 눈금자 → `lucide-ruler-dimension-line` (Settings 패널과 동일), FramesTab 삭제 3버튼 → `lucide-trash-2`, 요소 메뉴 11항목 아이콘 누락 0건, 콘솔 에러 0건
+- **`copySelection` 반환값이 `run` 계약과 어긋나던 타입 에러** (선행 결함):
+  - `Promise<boolean>` 을 `() => void | Promise<void>` 자리에 넘기고 있었다. baseline 에 없던 항목이라 HEAD 에서도 type-check 가 실패 중이었다 (HEAD 원본으로 재현 확인)
+  - 호출부가 이미 `void item.run()` 으로 버리므로 `void` 로 명시 — 동작 변화 없음
+  - 위치: `canvas/contextMenu/canvasContextMenuProviders.ts`
+
+### Architecture
+
+- **`ACTION_ICONS` — 2개 이상 화면에 나오는 액션의 아이콘 정본** (`builder/config/actionIcons.ts`, 20항목):
+  - 등재 기준 2가지 — ① 같은 사용자 액션이 **2개 이상 surface** 에 노출 ② 그 액션이 **한 벌로 읽히는 묶음**이면 묶음 전체 (정렬 8종처럼 낱개만 등재하면 나머지가 다시 갈린다)
+  - 등재: 편집 4(copy/paste/duplicate/delete) · 구성 2(group/ungroup) · 컴포넌트 3(component/goToOrigin/detach) · 정렬·분배 9 · 뷰 토글 2(rulers/snap). 도메인 타입 키 매핑 `ALIGNMENT_ICONS` / `DISTRIBUTION_ICONS` 파생
+  - **비대상이 설계의 본체** — 220심볼 중 200개는 그대로 직접 import 다. z-order 4종·줌 2종처럼 한 화면에만 있는 것은 조회 비용만 늘고 막아 주는 게 없다
+  - **치수·색은 소유하지 않는다**: 같은 삭제라도 컨텍스트 메뉴 14px, 툴바 16px 이고 그게 맞다 (surface 밀도). registry 는 "무엇을" 만 소유하고 "얼마나 크게" 는 호출부가 정한다 — 치수까지 넣으면 registry 가 surface 별 분기를 흡수하며 비대해진다
+  - 중복이던 `ContextMenuIcon` 타입은 `ActionIcon` 별칭으로 흡수
+  - 배선: 컨텍스트 메뉴 · 다중 선택 툴바 · Styles/Properties 패널 · History · Settings · FramesTab · datatable/component/interactions 목록 등 **25개 파일**
+- **정적 가드 2조항** (`actionIcons.static.test.ts`, 23 케이스):
+  - ① 등재 심볼의 **registry 밖 직접 import 0건** ② 등재 항목별 **소비처 ≥1** (죽은 항목이 "고를 수 있는 것" 으로 남지 않게 — ADR-900 잔재 게이트가 소비자 0건인 채 수개월 남았던 것과 같은 형태)
+  - **Why**: registry 만 두면 새 코드가 안 쓰면 그만이라 6개월 뒤 반쪽이 된다. 실제로 막는 것은 가드다
+  - RED 검증 — RuleRow 에 `Trash2` 직접 import 재도입 시 ①이 FAIL, 소비처 없는 키 추가 시 ②가 FAIL
+  - **예외 4건은 사유와 함께 등재** (`INTENTIONAL_DIVERGENCE`): 정본 기준은 "같은 그림" 이 아니라 **같은 액션**이라, 심볼만 겹치는 것은 묶으면 오히려 한쪽이 잘못 따라 바뀐다 — TypographySection 의 정렬 6종은 `textAlign` **스타일 값**(요소 정렬 아님), ModifiedStyles/Transform 의 `RulerDimensionLine` 은 치수 입력 필드 아이콘(눈금자 토글 아님), eventCategories 의 `Component` 는 이벤트 카테고리 라벨
+- **type-check baseline 라인 시프트 4건 갱신** (`.type-errors-baseline.txt`): 항목 수 43 → 43, 내용 변화 0 — 전부 편집으로 밀린 줄 번호다. `elements.ts(485→500)` 은 이번 작업과 무관한 선행 드리프트로, 갱신 전에는 HEAD 도 type-check 가 실패하고 있었다. 라인 무시 (파일·코드·메시지) 전수 대조로 신규 0 / 소실 0 확인 후 갱신
+
 ## [컨텍스트 메뉴 chrome 을 header 메뉴 패턴으로 정렬] - 2026-08-16
 
 ### Bug Fixes

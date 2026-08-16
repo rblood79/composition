@@ -18,7 +18,6 @@ import { Button } from "react-aria-components";
 import {
   ChevronDown,
   ChevronRight,
-  Trash2,
   Plus,
   Settings2,
   AlertTriangle,
@@ -37,6 +36,10 @@ import { ConditionEditor } from "./ConditionEditor";
 import { DebounceThrottleEditor } from "./DebounceThrottleEditor";
 import { normalizeToInspectorAction } from "../utils/normalizeEventTypes";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface EventAccordionItemProps {
   /** 편집 중인 이벤트 핸들러 */
@@ -310,7 +313,7 @@ export function EventAccordionItem({
         onPress={onRemove}
         aria-label={`Remove ${handler.event}`}
       >
-        <Trash2 size={iconProps.size} color={iconProps.color} />
+        <DeleteIcon size={iconProps.size} color={iconProps.color} />
         <span>이벤트 제거</span>
       </Button>
     </div>

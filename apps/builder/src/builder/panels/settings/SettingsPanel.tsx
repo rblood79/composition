@@ -10,15 +10,8 @@
  * @updated 2026-03-05 - ADR-021 Phase D: Supabase 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
-import {
-  Magnet,
-  RulerDimensionLine,
-  LayoutGrid,
-  ZoomIn,
-  Moon,
-  Sun,
-  Settings,
-} from "lucide-react";
+import { LayoutGrid, ZoomIn, Moon, Sun, Settings } from "lucide-react";
+import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
 import type { PageLayoutDirection } from "../../stores/canvasSettings";
@@ -111,7 +104,7 @@ function SettingsContent() {
             label="Show Rulers"
             isSelected={showRulers}
             onChange={setShowRulers}
-            icon={RulerDimensionLine}
+            icon={ACTION_ICONS.toggleRulers}
           />
 
           {/* ADR-179 — 페이지 간 가장자리·중앙 흡착 + 정렬선. 수동 가이드도
@@ -120,7 +113,7 @@ function SettingsContent() {
             label="Snap to Objects"
             isSelected={snapToObjects}
             onChange={setSnapToObjects}
-            icon={Magnet}
+            icon={ACTION_ICONS.toggleSnap}
           />
 
           <PropertySelect

@@ -17,8 +17,10 @@ import {
 } from "react-aria-components";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
-import { Trash2 } from "lucide-react";
-import type { FillItem, ColorFillItem } from "../../../../types/builder/fill.types";
+import type {
+  FillItem,
+  ColorFillItem,
+} from "../../../../types/builder/fill.types";
 import { FillType } from "../../../../types/builder/fill.types";
 import { FillDetailPopover } from "./FillDetailPopover";
 import { ScrubInput } from "./ScrubInput";
@@ -29,6 +31,10 @@ import {
 } from "../utils/fillPresentation";
 
 import "./FillLayerRow.css";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface FillLayerRowProps {
   fill: FillItem;
@@ -137,10 +143,7 @@ export const FillLayerRow = memo(function FillLayerRow({
             />
           )}
           {isMeshGradient && (
-            <div
-              className="fill-layer-row__mesh-swatch"
-              style={swatchStyle}
-            />
+            <div className="fill-layer-row__mesh-swatch" style={swatchStyle} />
           )}
           {fill.type === FillType.Image && (
             <div className="fill-layer-row__image-swatch" style={swatchStyle} />
@@ -162,9 +165,7 @@ export const FillLayerRow = memo(function FillLayerRow({
         </Popover>
       </DialogTrigger>
 
-      <span className="fill-layer-row__hex">
-        {displayLabel}
-      </span>
+      <span className="fill-layer-row__hex">{displayLabel}</span>
 
       <ScrubInput
         value={opacityPercent}
@@ -182,7 +183,7 @@ export const FillLayerRow = memo(function FillLayerRow({
         onClick={handleRemove}
         aria-label="Remove fill"
       >
-        <Trash2
+        <DeleteIcon
           size={iconSmall.size}
           strokeWidth={iconSmall.strokeWidth}
           color={iconSmall.color}

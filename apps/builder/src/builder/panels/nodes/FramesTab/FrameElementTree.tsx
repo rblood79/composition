@@ -13,7 +13,11 @@
 import React, { useCallback, useMemo } from "react";
 import type { Key } from "react-stately";
 import { Button } from "react-aria-components";
-import { Minimize, ChevronRight, Box, Trash, Settings2 } from "lucide-react";
+import { Minimize, ChevronRight, Box, Settings2 } from "lucide-react";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import type { ElementProps } from "../../../../types/integrations/supabase.types";
 import type { ElementTreeItem } from "../../../../types/builder/stately.types";
@@ -295,7 +299,7 @@ function FrameElementTreeItemContent({
             aria-label={`Delete ${node.type}`}
             onPress={() => onDelete(element)}
           >
-            <Trash
+            <DeleteIcon
               color={iconProps.color}
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}

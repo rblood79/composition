@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useMemo, useRef } from "react";
-import { Plus, Trash2, Search, Upload, Download, X } from "lucide-react";
+import { Plus, Search, Upload, Download, X } from "lucide-react";
 import type { TableEditorTab } from "../types/editorTypes";
 import Papa from "papaparse";
 import { useDataStore } from "../../../stores/data";
@@ -20,6 +20,10 @@ import type {
 import { PropertySwitch } from "../../../components";
 import "./DataTableEditor.css";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface DataTableEditorProps {
   dataTable: DataTable;
@@ -57,7 +61,7 @@ export function DataTableEditor({
         console.error("스키마 업데이트 실패:", error);
       }
     },
-    [dataTable.id, updateCollection]
+    [dataTable.id, updateCollection],
   );
 
   // 필드 추가
@@ -77,18 +81,18 @@ export function DataTableEditor({
       const newSchema = dataTable.schema.filter((f) => f.key !== fieldKey);
       handleSchemaUpdate(newSchema);
     },
-    [dataTable.schema, handleSchemaUpdate]
+    [dataTable.schema, handleSchemaUpdate],
   );
 
   // 필드 업데이트
   const handleUpdateField = useCallback(
     (fieldKey: string, updates: Partial<DataField>) => {
       const newSchema = dataTable.schema.map((f) =>
-        f.key === fieldKey ? { ...f, ...updates } : f
+        f.key === fieldKey ? { ...f, ...updates } : f,
       );
       handleSchemaUpdate(newSchema);
     },
-    [dataTable.schema, handleSchemaUpdate]
+    [dataTable.schema, handleSchemaUpdate],
   );
 
   // Mock 데이터 업데이트
@@ -100,7 +104,7 @@ export function DataTableEditor({
         console.error("Mock 데이터 업데이트 실패:", error);
       }
     },
-    [dataTable.id, updateCollection]
+    [dataTable.id, updateCollection],
   );
 
   // Mock 데이터 행 추가
@@ -130,18 +134,18 @@ export function DataTableEditor({
       const newMockData = dataTable.mockData.filter((_, i) => i !== index);
       handleMockDataUpdate(newMockData);
     },
-    [dataTable.mockData, handleMockDataUpdate]
+    [dataTable.mockData, handleMockDataUpdate],
   );
 
   // Mock 데이터 셀 업데이트
   const handleUpdateMockCell = useCallback(
     (rowIndex: number, fieldKey: string, value: unknown) => {
       const newMockData = dataTable.mockData.map((row, i) =>
-        i === rowIndex ? { ...row, [fieldKey]: value } : row
+        i === rowIndex ? { ...row, [fieldKey]: value } : row,
       );
       handleMockDataUpdate(newMockData);
     },
-    [dataTable.mockData, handleMockDataUpdate]
+    [dataTable.mockData, handleMockDataUpdate],
   );
 
   // CSV 가져오기 (기존 데이터 대체)
@@ -149,7 +153,7 @@ export function DataTableEditor({
     (importedData: Record<string, unknown>[]) => {
       handleMockDataUpdate(importedData);
     },
-    [handleMockDataUpdate]
+    [handleMockDataUpdate],
   );
 
   // useMockData 토글
@@ -161,7 +165,7 @@ export function DataTableEditor({
         console.error("useMockData 업데이트 실패:", error);
       }
     },
-    [dataTable.id, updateCollection]
+    [dataTable.id, updateCollection],
   );
 
   // 이름 변경
@@ -173,7 +177,7 @@ export function DataTableEditor({
         console.error("이름 업데이트 실패:", error);
       }
     },
-    [dataTable.id, updateCollection]
+    [dataTable.id, updateCollection],
   );
 
   // Note: onClose is handled by parent DataTableEditorPanel
@@ -299,7 +303,7 @@ function SchemaFieldRow({
           className="delete-row-btn"
           onClick={() => onDeleteField(field.key)}
         >
-          <Trash2 size={iconSmall.size} />
+          <DeleteIcon size={iconSmall.size} />
         </button>
       </td>
     </tr>
@@ -386,7 +390,7 @@ function MockDataEditor({
           const value = row[field.key];
           if (value === null || value === undefined) return false;
           return String(value).toLowerCase().includes(searchTerm);
-        })
+        }),
       );
   }, [mockData, schema, filterText]);
 
@@ -411,7 +415,7 @@ function MockDataEditor({
               convertedRow[field.key] = convertValueToType(
                 rawValue,
                 field.type,
-                index + 1
+                index + 1,
               );
             });
 
@@ -430,7 +434,7 @@ function MockDataEditor({
         },
       });
     },
-    [schema, onImportCSV]
+    [schema, onImportCSV],
   );
 
   // CSV 내보내기
@@ -538,7 +542,7 @@ function MockDataEditor({
                     <td key={field.key}>
                       <CellEditor
                         key={`${originalIndex}-${field.key}-${JSON.stringify(
-                          row[field.key]
+                          row[field.key],
                         )}`}
                         fieldType={field.type}
                         value={row[field.key]}
@@ -554,7 +558,7 @@ function MockDataEditor({
                       className="delete-row-btn"
                       onClick={() => onDeleteRow(originalIndex)}
                     >
-                      <Trash2 size={iconSmall.size} />
+                      <DeleteIcon size={iconSmall.size} />
                     </button>
                   </td>
                 </tr>
@@ -562,8 +566,6 @@ function MockDataEditor({
             </tbody>
           </table>
         </div>
-
-
       </div>
       <button type="button" className="add-row-btn" onClick={onAddRow}>
         <Plus {...iconEditProps} />
@@ -577,7 +579,7 @@ function MockDataEditor({
 function convertValueToType(
   value: unknown,
   type: DataFieldType,
-  rowIndex: number
+  rowIndex: number,
 ): unknown {
   if (value === null || value === undefined || value === "") {
     return getDefaultValueForType(type);

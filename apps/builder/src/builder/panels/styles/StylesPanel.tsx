@@ -5,7 +5,11 @@
 import { useState, useMemo, useCallback, memo } from "react";
 import { useStore, useDebouncedSelectedElementData } from "../../stores";
 import { ActionIconButton, ActionIconToggleButton } from "../../components/ui";
-import { Copy, ClipboardPaste, PencilRuler, Palette } from "lucide-react";
+import { PencilRuler, Palette } from "lucide-react";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 복사/붙여넣기 정본. */
+const { copy: CopyIcon, paste: PasteIcon } = ACTION_ICONS;
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { EmptyState } from "../../components";
 import {
@@ -157,7 +161,7 @@ function StylesPanelContent() {
             isDisabled={isCopyDisabled}
             tooltip="스타일 복사"
           >
-            <Copy
+            <CopyIcon
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
@@ -168,7 +172,7 @@ function StylesPanelContent() {
             aria-label="Paste styles"
             tooltip="스타일 붙여넣기"
           >
-            <ClipboardPaste
+            <PasteIcon
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}

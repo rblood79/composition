@@ -13,7 +13,11 @@
 import { useCallback, useMemo } from "react";
 import type { Key } from "react-stately";
 import { Button } from "react-aria-components";
-import { CirclePlus, Box, Trash } from "lucide-react";
+import { CirclePlus, Box } from "lucide-react";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { PanelHeader } from "../../../components";
 import { TreeBase } from "../tree/TreeBase";
@@ -170,7 +174,7 @@ function FrameListItemContent({
           aria-label={`Delete ${node.name}`}
           onPress={() => onDelete(node.id)}
         >
-          <Trash
+          <DeleteIcon
             color={iconProps.color}
             strokeWidth={iconProps.strokeWidth}
             size={iconProps.size}

@@ -4,9 +4,13 @@
  * 메모리 최적화 버튼 및 권장사항 표시
  */
 
-import { Trash2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "react-aria-components";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface MemoryActionsProps {
   /** 최적화 실행 핸들러 */
@@ -40,7 +44,7 @@ export function MemoryActions({
           </>
         ) : (
           <>
-            <Trash2 size={iconEditProps.size} />
+            <DeleteIcon size={iconEditProps.size} />
             <span>Optimize</span>
           </>
         )}

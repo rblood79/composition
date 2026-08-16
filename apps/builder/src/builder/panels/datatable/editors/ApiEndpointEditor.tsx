@@ -11,7 +11,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Plus, Trash2, Play, Wand2 } from "lucide-react";
+import { Plus, Play, Wand2 } from "lucide-react";
 import type { ApiEditorTab } from "../types/editorTypes";
 import { useDataStore } from "../../../stores/data";
 import type {
@@ -29,6 +29,10 @@ import {
 } from "../utils/columnDetector";
 import "./ApiEndpointEditor.css";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
+const DeleteIcon = ACTION_ICONS.delete;
 
 interface ApiEndpointEditorProps {
   endpoint: ApiEndpoint;
@@ -418,7 +422,7 @@ function QueryParamsEditor({ endpoint, onUpdate }: QueryParamsEditorProps) {
             className="kv-delete"
             onClick={() => handleDelete(index)}
           >
-            <Trash2 size={iconSmall.size} />
+            <DeleteIcon size={iconSmall.size} />
           </button>
         </div>
       ))}
@@ -477,7 +481,7 @@ function HeadersEditor({
               className="kv-delete"
               onClick={() => onDelete(index)}
             >
-              <Trash2 size={iconSmall.size} />
+              <DeleteIcon size={iconSmall.size} />
             </button>
           </div>
         ))}
@@ -728,7 +732,7 @@ function FieldMappingEditor({ endpoint, onUpdate }: FieldMappingEditorProps) {
               className="kv-delete"
               onClick={() => handleDelete(index)}
             >
-              <Trash2 size={iconSmall.size} />
+              <DeleteIcon size={iconSmall.size} />
             </button>
           </div>
         ))}

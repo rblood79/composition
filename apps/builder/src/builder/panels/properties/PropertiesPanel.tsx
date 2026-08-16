@@ -31,7 +31,11 @@ import { FrameSlotSection } from "./FrameSlotSection";
 import { ButtonChildSection } from "./ButtonChildSection";
 import { PageBodySection, DEDICATED_SECTION_TYPES } from "./PageBodySection";
 import { ActionIconButton } from "../../components/ui";
-import { Copy, ClipboardPaste, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+/** 컨텍스트 메뉴·다중 선택 툴바와 같은 복사/붙여넣기 정본. */
+const { copy: CopyIcon, paste: PasteIcon } = ACTION_ICONS;
 import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   useKeyboardShortcutsRegistry,
@@ -787,7 +791,7 @@ function PropertiesPanelContent() {
               }
               tooltip="속성 복사"
             >
-              <Copy
+              <CopyIcon
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
@@ -798,7 +802,7 @@ function PropertiesPanelContent() {
               aria-label="Paste properties"
               tooltip="속성 붙여넣기"
             >
-              <ClipboardPaste
+              <PasteIcon
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
