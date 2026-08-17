@@ -19,6 +19,7 @@ const mockStoreState = vi.hoisted(() => ({
   pageElementsSnapshot: {} as Record<string, Element[]>,
   activatePage: vi.fn(),
   removePageLocal: vi.fn(),
+  renamePageTitle: vi.fn(),
 }));
 
 const mockRequestAutoSelectAfterUpdate = vi.hoisted(() => vi.fn());
@@ -67,13 +68,19 @@ vi.mock("./tree/PageTree", () => ({
   PageTree: ({
     pages,
     onPageSelect,
+    onPageRename,
   }: {
     pages: Page[];
     onPageSelect: (page: Page) => void;
+    onPageRename?: (page: Page, title: string) => void;
   }) => (
     <div>
       {pages.map((page) => (
-        <button key={page.id} onClick={() => onPageSelect(page)}>
+        <button
+          key={page.id}
+          onClick={() => onPageSelect(page)}
+          onDoubleClick={() => onPageRename?.(page, "Renamed")}
+        >
           {page.title || "Untitled"}
         </button>
       ))}
@@ -235,6 +242,45 @@ describe("PagesSection page selection", () => {
 
     expect(mockStoreState.activatePage).toHaveBeenCalledWith(home.id, "body-1");
     expect(mockRequestAutoSelectAfterUpdate).toHaveBeenCalledWith("body-1");
+  });
+
+  it("단일 page 행을 더블클릭하면 inline title rename을 확정한다", () => {
+    const home = makePage("page-1", "Home", 0);
+    mockStoreState.pages = [home];
+    mockStoreState.currentPageId = home.id;
+    mockStoreState.pageElementsSnapshot = {
+      [home.id]: [makeElement("body-1", home.id)],
+    };
+
+    render(<PagesSection projectId="project-1" />);
+    fireEvent.doubleClick(screen.getByText("Home"));
+    const input = screen.getByRole("textbox", { name: "Rename page Home" });
+    fireEvent.change(input, { target: { value: "Landing" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(mockStoreState.renamePageTitle).toHaveBeenCalledWith(
+      home.id,
+      "Landing",
+    );
+  });
+
+  it("여러 page의 PageTree rename도 같은 store action을 사용한다", () => {
+    const home = makePage("page-1", "Home", 0);
+    const about = makePage("page-2", "About", 1);
+    mockStoreState.pages = [home, about];
+    mockStoreState.currentPageId = home.id;
+    mockStoreState.pageElementsSnapshot = {
+      [home.id]: [makeElement("body-1", home.id)],
+      [about.id]: [makeElement("body-2", about.id)],
+    };
+
+    render(<PagesSection projectId="project-1" />);
+    fireEvent.doubleClick(screen.getByRole("button", { name: "About" }));
+
+    expect(mockStoreState.renamePageTitle).toHaveBeenCalledWith(
+      about.id,
+      "Renamed",
+    );
   });
 
   it("page body가 아직 snapshot에 없으면 탭 진입 시 page 로드를 요청한다", async () => {

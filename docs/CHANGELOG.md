@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canvas와 Nodes 패널에서 Page 이름을 바로 바꾼다] - 2026-08-17
+
+### Features
+
+- **Skia Canvas의 page 상단 title 또는 Nodes 패널의 Pages 행을 더블클릭하면 inline rename으로 진입한다**:
+  - `Enter`/blur는 변경을 저장하고 `Escape`는 취소한다. Canvas의 첫 pointer press는 기존 page 선택·직접 drag를 유지하며 같은 title의 두 번째 press만 편집으로 전환한다
+  - Canvas editor는 drag 편의를 위해 넓힌 hit bounds가 아니라 Skia가 반환한 실제 title line box를 사용한다. `12px` font/line-height와 Medium weight를 유지하고 input padding·border가 text origin을 밀지 않게 해 편집 전후 title 위치가 일치한다
+  - **Why**: 두 화면은 `pages[].title`을 표시만 했고 canonical page root의 `name`을 갱신하는 mutation이 없어, Figma/Pencil식 page rename 진입점 자체가 없었다
+  - 두 진입점은 같은 `renamePageTitle` action을 사용한다. canonical document를 먼저 갱신한 뒤 Builder page mirror를 동기화하고 IndexedDB에 저장하며, 전용 history payload로 Undo/Redo도 title과 canonical document를 함께 복원한다
+  - Components system page의 고정 이름은 기존 불변 계약대로 편집 대상에서 제외한다
+  - 위치: `apps/builder/src/builder/{workspace/canvas/BuilderCanvas.tsx,panels/nodes,stores}`
+
 ## [breakpoint 전환 뒤 Canvas page 선택이 이전 좌표를 보지 않는다] - 2026-08-17
 
 ### Bug Fixes

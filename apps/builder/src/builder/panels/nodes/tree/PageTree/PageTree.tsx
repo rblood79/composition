@@ -25,6 +25,7 @@ export function PageTree({
   onPageSelect,
   onPageDelete,
   onPageSettings,
+  onPageRename,
 }: PageTreeProps) {
   const { tree, treeNodes, nodeMap, syncToStore } = usePageTreeData(pages);
   const [internalExpandedKeys, setInternalExpandedKeys] = useState<Set<Key>>(
@@ -128,9 +129,10 @@ export function PageTree({
         onDelete={onPageDelete}
         onSettings={onPageSettings}
         onReselect={onPageSelect}
+        onRename={onPageRename}
       />
     ),
-    [onPageDelete, onPageSelect, onPageSettings],
+    [onPageDelete, onPageRename, onPageSelect, onPageSettings],
   );
 
   return (

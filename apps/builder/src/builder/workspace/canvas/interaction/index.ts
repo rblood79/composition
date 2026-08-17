@@ -53,3 +53,7 @@ export {
   resolveDoubleClickTargetId,
   type PointerSessionSnapshot,
 } from "./pointerSession";
+export {
+  isPointInPageTitleBounds,
+  resolvePageTitleEditorRect,
+} from "./pageTitleEditing";

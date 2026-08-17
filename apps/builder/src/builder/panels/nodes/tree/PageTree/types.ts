@@ -27,4 +27,5 @@ export interface PageTreeProps {
   onPageSelect: (page: Page) => void;
   onPageDelete: (page: Page) => Promise<void>;
   onPageSettings?: (page: Page) => void;
+  onPageRename?: (page: Page, title: string) => void;
 }

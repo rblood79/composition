@@ -24,6 +24,27 @@
   isolation: isolate;
 }
 
+.page-title-edit-input {
+  position: absolute;
+  z-index: 1001;
+  min-width: 40px;
+  box-sizing: content-box;
+  padding: 0;
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 12px;
+  appearance: none;
+  background: var(--bg);
+  border: 0;
+  border-radius: var(--radius-xs);
+  outline: 1px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: none;
+  caret-color: var(--accent);
+}
+
 /* ============================================
  * Dot Background (ADR-902) — Builder workspace 전용
  * Skia canvas(z-index:2) 아래 레이어. pointer-events 무간섭.

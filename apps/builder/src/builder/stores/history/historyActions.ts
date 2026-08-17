@@ -29,6 +29,8 @@ import {
   type CanonicalHistoryNodeEvent,
 } from "./canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import { renameActiveCanonicalPageTitle } from "../canonical/pageTitleMutation";
+import { enqueuePagePersistence } from "../../utils/pagePersistenceQueue";
 import { bumpPageGuideRevision } from "../../workspace/canvas/interaction/pageGuideRevision";
 import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
@@ -101,6 +103,50 @@ function countExpectedShrinkNodes(
 function syncHistoryElementsToCanonical(elements: Element[]): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
   setElementsCanonicalPrimary(elements);
+}
+
+function applyPageTitleHistoryEntry(
+  set: SetState,
+  get: GetState,
+  entry: NonNullable<ReturnType<typeof historyManager.undo>>,
+  direction: "undo" | "redo",
+): void {
+  const event = entry.data.pageTitleEvent;
+  if (!event) return;
+
+  const state = get();
+  const page = state.pages.find((candidate) => candidate.id === event.pageId);
+  if (!page) return;
+
+  const title = direction === "undo" ? event.before : event.after;
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  const document = projectId ? canonical.documents.get(projectId) : null;
+  const canonicalPage = document?.children.find(
+    (node) => node.id === event.pageId,
+  );
+  if (!canonicalPage) return;
+
+  if (
+    canonicalPage.name !== title &&
+    !renameActiveCanonicalPageTitle(event.pageId, title)
+  ) {
+    return;
+  }
+
+  set((current) => ({
+    pages: current.pages.map((candidate) =>
+      candidate.id === event.pageId ? { ...candidate, title } : candidate,
+    ),
+  }));
+
+  void enqueuePagePersistence(async () => {
+    try {
+      await persistActiveCanonicalDocument();
+    } catch (error) {
+      console.error("[applyPageTitleHistoryEntry] DB persist:", error);
+    }
+  });
 }
 
 /**
@@ -617,6 +663,12 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
+    if (entry.type === "page-title") {
+      applyPageTitleHistoryEntry(set, get, entry, "undo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
     // 1. 메모리 상태 업데이트 (우선) - 안전한 데이터 복사
     let elementIdsToRemove: string[] = [];
     const elementsToRestore: Element[] = [];
@@ -1046,6 +1098,12 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
+    if (entry.type === "page-title") {
+      applyPageTitleHistoryEntry(set, get, entry, "redo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
     // 1. 메모리 상태 업데이트 (우선) - 안전한 데이터 복사
     const elementsToAdd: Element[] = [];
     let elementIdsToRemove: string[] = [];
@@ -1436,6 +1494,10 @@ export const createGoToHistoryIndexAction =
         // canonical full-sync 판정에서도 제외 (element 축 무변경).
         if (entry.type === "page-position") {
           applyPagePositionHistoryEntry(set, get, entry, direction);
+          continue;
+        }
+        if (entry.type === "page-title") {
+          applyPageTitleHistoryEntry(set, get, entry, direction);
           continue;
         }
         // ADR-181: page-guide 도 동일 — canonical 만 갱신 (스토어 미러 없음),
@@ -2004,6 +2066,7 @@ async function syncDatabaseForEntries(
     // ADR-177: page-position entry 는 element DB 동기화 대상 아님 — persist 는
     // applyPagePositionHistoryEntry 가 자체 수행 (elementId=pageId 오인 방지).
     if (entry.type === "page-position") continue;
+    if (entry.type === "page-title") continue;
     // ADR-181: page-guide 도 동일 — persist 는 applyPageGuideHistoryEntry 가
     // 자체 수행 (elementId=pageId 오인 방지).
     if (entry.type === "page-guide") continue;

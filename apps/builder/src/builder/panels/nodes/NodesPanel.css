@@ -83,6 +83,20 @@
   padding-left: var(--spacing);
 }
 
+.page-title-rename-input {
+  width: 100%;
+  min-width: 0;
+  height: calc(var(--text-2xl) - 2px);
+  padding: 0 var(--spacing-xs);
+  color: var(--fg);
+  font: inherit;
+  background: var(--bg-inset);
+  border: 1px solid var(--focus-ring);
+  border-radius: var(--radius-xs);
+  outline: none;
+  user-select: text;
+}
+
 .elementItemLabelText {
   overflow: hidden;
   text-overflow: ellipsis;

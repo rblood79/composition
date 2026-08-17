@@ -63,6 +63,59 @@ describe("PageTreeItemContent", () => {
     expect(onReselect).toHaveBeenCalledWith(page);
   });
 
+  it("page 행을 더블클릭하면 inline rename을 Enter로 확정한다", () => {
+    const page = makePage();
+    const onRename = vi.fn();
+
+    render(
+      <PageTreeItemContent
+        node={makeNode(page)}
+        state={{
+          isSelected: true,
+          isExpanded: false,
+          isDisabled: false,
+          isFocusVisible: false,
+        }}
+        onDelete={vi.fn()}
+        onRename={onRename}
+      />,
+    );
+
+    fireEvent.doubleClick(screen.getByText("Home"));
+    const input = screen.getByRole("textbox", { name: "Rename page Home" });
+    fireEvent.change(input, { target: { value: "Landing" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onRename).toHaveBeenCalledWith(page, "Landing");
+  });
+
+  it("page inline rename은 Escape로 취소한다", () => {
+    const page = makePage();
+    const onRename = vi.fn();
+
+    render(
+      <PageTreeItemContent
+        node={makeNode(page)}
+        state={{
+          isSelected: true,
+          isExpanded: false,
+          isDisabled: false,
+          isFocusVisible: false,
+        }}
+        onDelete={vi.fn()}
+        onRename={onRename}
+      />,
+    );
+
+    fireEvent.doubleClick(screen.getByText("Home"));
+    const input = screen.getByRole("textbox", { name: "Rename page Home" });
+    fireEvent.change(input, { target: { value: "Cancelled" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(onRename).not.toHaveBeenCalled();
+    expect(screen.getByText("Home")).toBeTruthy();
+  });
+
   it("행 안의 action button 클릭은 reselect로 처리하지 않는다", () => {
     const onReselect = vi.fn();
 

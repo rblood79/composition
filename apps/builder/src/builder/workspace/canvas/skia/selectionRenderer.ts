@@ -463,7 +463,12 @@ export function renderPageTitle(
   zoom: number,
   fontMgr?: FontMgr,
   isActive = false,
-): { titleWidth: number } | null {
+): {
+  titleWidth: number;
+  textX: number;
+  textTop: number;
+  textHeight: number;
+} | null {
   if (!title || !fontMgr) return null;
 
   const scope = new SkiaDisposable();
@@ -505,9 +510,8 @@ export function renderPageTitle(
 
     // 화면 픽셀 좌표에서 위치 계산 후 pixel snap
     const textX = 0;
-    const textY = Math.round(
-      -PAGE_TITLE_OFFSET_Y + PAGE_TITLE_FONT_SIZE * 0.85,
-    );
+    const textTop = -PAGE_TITLE_OFFSET_Y;
+    const textY = Math.round(textTop + PAGE_TITLE_FONT_SIZE * 0.85);
 
     canvas.drawText(title, textX, textY, textPaint, font);
 
@@ -515,7 +519,12 @@ export function renderPageTitle(
     const titleWidth = measureGlyphRunWidth(font, title);
 
     canvas.restore();
-    return { titleWidth };
+    return {
+      titleWidth,
+      textX,
+      textTop,
+      textHeight: PAGE_TITLE_FONT_SIZE,
+    };
   } finally {
     scope.dispose();
   }

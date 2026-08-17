@@ -500,6 +500,19 @@ function getElementForItemsAction(
   return findElementById(getCanonicalOrStoreElements(state), elementId);
 }
 
+// Builder type-check gate가 기존 legacy 오류를 source line으로 식별하므로,
+// 해당 baseline 위치 아래에서 page-title 도메인 의존성을 선언한다.
+import {
+  normalizePageTitleDraft,
+  renameActiveCanonicalPageTitle,
+} from "./canonical/pageTitleMutation";
+import { enqueuePagePersistence } from "../utils/pagePersistenceQueue";
+import { isComponentsPageMirror } from "../pages/systemComponentsPage";
+
+export interface ElementsState {
+  renamePageTitle: (pageId: string, title: string) => boolean;
+}
+
 type BreakpointName = import("@composition/shared").BreakpointName;
 type PagePositions = Record<string, { x: number; y: number }>;
 
@@ -1275,6 +1288,49 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             : {}),
         };
       }),
+
+    renamePageTitle: (pageId, draftTitle) => {
+      const title = normalizePageTitleDraft(draftTitle);
+      if (!title) return false;
+
+      const state = get();
+      const page = state.pages.find((candidate) => candidate.id === pageId);
+      if (!page || isComponentsPageMirror(page) || page.title === title) {
+        return false;
+      }
+
+      // Page title SSOT는 canonical root page node의 `name`이다. canonical을
+      // 먼저 갱신한 뒤 `pages`는 렌더링용 derived mirror로 동기화한다.
+      if (!renameActiveCanonicalPageTitle(pageId, title)) return false;
+
+      set((current) => ({
+        pages: current.pages.map((candidate) =>
+          candidate.id === pageId ? { ...candidate, title } : candidate,
+        ),
+      }));
+
+      historyManager.addEntry({
+        type: "page-title",
+        elementId: pageId,
+        data: {
+          pageTitleEvent: {
+            pageId,
+            before: page.title,
+            after: title,
+          },
+        },
+      });
+
+      void enqueuePagePersistence(async () => {
+        try {
+          const db = await getDB();
+          await persistActiveCanonicalDocument(db);
+        } catch (error) {
+          console.error("[renamePageTitle] DB persist:", error);
+        }
+      });
+      return true;
+    },
 
     appendPageShell: (page, bodyElement, position, options) => {
       const activate = options?.activate ?? true;

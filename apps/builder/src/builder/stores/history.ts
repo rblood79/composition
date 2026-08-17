@@ -126,6 +126,7 @@ export interface HistoryEntry {
     | "batch"
     | "group"
     | "ungroup"
+    | "page-title"
     | "page-position"
     | "page-guide"
     | "page-lifecycle"
@@ -169,6 +170,12 @@ export interface HistoryEntry {
     diffs?: SerializableElementDiff[];
     /** **ADR-124 primary** — canonical event sequence (apply 우선 path). */
     canonicalEvents?: CanonicalHistoryNodeEvent[];
+    /** Page root node `name` + Builder page mirror title rename. */
+    pageTitleEvent?: {
+      pageId: string;
+      before: string;
+      after: string;
+    };
     /**
      * **ADR-177** — `type: "page-position"` 전용 payload. element 노드 이벤트
      * (`CanonicalHistoryNodeEvent`) 와 별개 축 — undo/redo 는 element 경로
@@ -589,6 +596,7 @@ export class HistoryManager {
       import.meta.env?.DEV &&
       entry.type !== "page-position" &&
       entry.type !== "page-guide" &&
+      entry.type !== "page-title" &&
       entry.type !== "page-lifecycle" &&
       entry.type !== "snapshot-restore" &&
       !entry.data.canonicalEvents?.length

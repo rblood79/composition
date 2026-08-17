@@ -98,10 +98,9 @@ export interface FrameTitleRenderItem {
  * page title 은 `canvas.translate(frame.x, frame.y)` 후 `canvas.scale(invZoom, invZoom)`
  * 안에서 screen-px 기준으로 그려지므로, scene 좌표 bounds 는 아래와 같이 변환한다:
  *
- *   sceneX = frame.x
- *   sceneY = frame.y + (textY - PAGE_TITLE_FONT_SIZE * 0.85) * invZoom
- *   sceneWidth = (titleWidth + badgeGap + badgeWidth) * invZoom
- *   sceneHeight = PAGE_TITLE_FONT_SIZE * invZoom + small padding
+ * `scene*` 는 drag hit padding을 포함하고, `textScene*` 는 Skia가 실제로
+ * 사용하는 title line box다. DOM inline editor는 `textScene*` 만 사용해야
+ * 기존 glyph 위치와 입력 text가 일치한다.
  *
  * drag 히트 테스트는 scene 좌표에서 수행하므로 (screenToViewportPoint 결과와 직접 비교)
  * renderer 가 매 프레임 이 맵을 clear + populate 한다.
@@ -112,6 +111,10 @@ export interface PageTitleBounds {
   sceneY: number;
   sceneWidth: number;
   sceneHeight: number;
+  textSceneX: number;
+  textSceneY: number;
+  textSceneWidth: number;
+  textSceneHeight: number;
 }
 
 /**

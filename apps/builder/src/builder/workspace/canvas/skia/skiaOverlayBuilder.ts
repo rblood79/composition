@@ -401,11 +401,8 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           pagePositionSnapshot,
         );
         const invZoom = cameraZoom === 0 ? 1 : 1 / cameraZoom;
-        // PAGE_TITLE_OFFSET_Y / FONT_SIZE 는 selectionRenderer.ts 상수와 동일하게 유지.
         // drag hit-test 박스는 실제 그려지는 text glyph 보다 약간 넉넉하게 잡아
         // 사용자가 베이스라인 위/아래 포인터-다운도 타이틀로 인식하도록 한다.
-        const TITLE_OFFSET_Y = 20;
-        const TITLE_FONT_SIZE = 12;
         const HIT_PAD_X = 6;
         const HIT_PAD_Y = 4;
         for (const item of pageTitleItems) {
@@ -437,17 +434,20 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           );
 
           if (pageTitleBoundsMap && measured) {
-            const sceneTextTop =
-              item.y - TITLE_OFFSET_Y * invZoom - HIT_PAD_Y * invZoom;
-            const sceneTextHeight = (TITLE_FONT_SIZE + HIT_PAD_Y * 2) * invZoom;
-            const sceneTextWidth =
-              (measured.titleWidth + HIT_PAD_X * 2) * invZoom;
+            const textSceneX = item.x + measured.textX * invZoom;
+            const textSceneY = item.y + measured.textTop * invZoom;
+            const textSceneWidth = measured.titleWidth * invZoom;
+            const textSceneHeight = measured.textHeight * invZoom;
             pageTitleBoundsMap.set(item.pageId, {
               pageId: item.pageId,
-              sceneX: item.x - HIT_PAD_X * invZoom,
-              sceneY: sceneTextTop,
-              sceneWidth: sceneTextWidth,
-              sceneHeight: sceneTextHeight,
+              sceneX: textSceneX - HIT_PAD_X * invZoom,
+              sceneY: textSceneY - HIT_PAD_Y * invZoom,
+              sceneWidth: textSceneWidth + HIT_PAD_X * 2 * invZoom,
+              sceneHeight: textSceneHeight + HIT_PAD_Y * 2 * invZoom,
+              textSceneX,
+              textSceneY,
+              textSceneWidth,
+              textSceneHeight,
             });
           }
         }

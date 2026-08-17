@@ -60,7 +60,9 @@ import { readPageGuides } from "./viewport/pageGuideActions";
 import {
   CanvasGestureSession,
   computeSelectionBounds,
+  isPointInPageTitleBounds,
   readPagePositionForInteraction,
+  resolvePageTitleEditorRect,
   resolveSelectedElementsForPage,
   resolveSelectedPageIds,
   resolveTopPageIdAtPoint,
@@ -113,6 +115,7 @@ import {
   computeFrameAreas,
 } from "./skia/workflowEdges";
 import { PAGE_STACK_GAP } from "./pageLayoutConstants";
+import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 
 import { useGPUProfiler } from "./utils/gpuProfilerCore";
 import { hitTestPoint } from "./wasm-bindings/spatialIndex";
@@ -128,6 +131,17 @@ export interface BuilderCanvasProps {
   pageHeight?: number;
   /** 초기 Pan Offset X (비교 모드 등에서 사용) */
   initialPanOffsetX?: number;
+}
+
+interface PageTitleEditState {
+  pageId: string;
+  title: string;
+  bounds: PageTitleBounds;
+}
+
+interface PageTitleHitSnapshot {
+  bounds: PageTitleBounds;
+  timeStamp: number;
 }
 
 // ============================================
@@ -316,6 +330,7 @@ export function BuilderCanvas({
   const clearSelection = useStore((state) => state.clearSelection);
   const currentPageId = useStore((state) => state.currentPageId);
   const setCurrentPageId = useStore((state) => state.setCurrentPageId);
+  const renamePageTitle = useStore((state) => state.renamePageTitle);
   // ADR-069 Phase 1: 페이지 전환 + 선택 병합 action
   const selectElementWithPageTransition = useStore(
     (state) => state.selectElementWithPageTransition,
@@ -362,6 +377,10 @@ export function BuilderCanvas({
   // pageTitleBoundsMapRef.current 에 scene 좌표 bounds 를 populate 하고,
   // BuilderCanvas pointerdown(capture) 가 이 Map 을 조회해 usePageDrag 를 트리거.
   const pageTitleBoundsMapRef = useRef<Map<string, PageTitleBounds>>(new Map());
+  const lastPageTitleHitRef = useRef<PageTitleHitSnapshot | null>(null);
+  const pageTitleRenameCancelRef = useRef(false);
+  const [pageTitleEditState, setPageTitleEditState] =
+    useState<PageTitleEditState | null>(null);
   const [canvasGestureSession] = useState(() => new CanvasGestureSession());
   // ADR-179 C3: 스냅 후보 공급 — buildPageFrames 산출(allPageFrames)을 ref 로
   // 전달. usePageDrag 가 드래그 시작 시 1회만 읽는다 (R1 상한).
@@ -1120,6 +1139,7 @@ export function BuilderCanvas({
           // selection 을 직접 토글한다 (selectResolvedTarget shift 분기와
           // 같은 계약 — currentPageId 무변경, cross-page 유지).
           if (event.shiftKey) {
+            lastPageTitleHitRef.current = null;
             const pageElementIds = titleState.pageIndex.elementsByPage.get(
               bounds.pageId,
             );
@@ -1146,6 +1166,10 @@ export function BuilderCanvas({
             }
             return;
           }
+          lastPageTitleHitRef.current = {
+            bounds: { ...bounds },
+            timeStamp: event.timeStamp,
+          };
 
           // ADR-178: 잡은 타이틀의 페이지가 다중 선택 집합에 포함돼 있으면
           // 집합 전체가 함께 움직인다 (리더 = 잡은 페이지). 아니면 현행 단독.
@@ -1207,9 +1231,44 @@ export function BuilderCanvas({
       }
     };
 
+    const onDoubleClickCapture = (event: MouseEvent) => {
+      if (isFrameEditMode || event.button !== 0) return;
+      const target = event.target as HTMLElement;
+      if (target.closest('input, textarea, [contenteditable="true"]')) return;
+
+      const hit = lastPageTitleHitRef.current;
+      if (!hit || event.timeStamp - hit.timeStamp > 1_000) return;
+
+      const rect = element.getBoundingClientRect();
+      const scenePoint = screenToCanvasPoint({
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      });
+      if (!isPointInPageTitleBounds(scenePoint, hit.bounds)) return;
+
+      const titleState = useStore.getState();
+      const page = titleState.pages.find(
+        (candidate) => candidate.id === hit.bounds.pageId,
+      );
+      if (!page || isComponentsPageMirror(page)) return;
+
+      setCurrentPageId(page.id);
+      pageTitleRenameCancelRef.current = false;
+      setPageTitleEditState({
+        pageId: page.id,
+        title: page.title,
+        bounds: { ...hit.bounds },
+      });
+      lastPageTitleHitRef.current = null;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
     element.addEventListener("pointerdown", onPointerDownCapture, true);
+    element.addEventListener("dblclick", onDoubleClickCapture, true);
     return () => {
       element.removeEventListener("pointerdown", onPointerDownCapture, true);
+      element.removeEventListener("dblclick", onDoubleClickCapture, true);
     };
   }, [
     canvasGestureSession,
@@ -1297,6 +1356,10 @@ export function BuilderCanvas({
 
   useCanvasSurfaceLifecycle({ setCanvasReady });
 
+  const pageTitleEditorRect = pageTitleEditState
+    ? resolvePageTitleEditorRect(pageTitleEditState.bounds, zoom, panOffset)
+    : null;
+
   return (
     <div
       ref={setContainerNode}
@@ -1377,6 +1440,39 @@ export function BuilderCanvas({
       )}
 
       <GPUDebugOverlay />
+
+      {pageTitleEditState && pageTitleEditorRect && (
+        <input
+          className="page-title-edit-input"
+          data-text-editing="true"
+          aria-label={`Rename page ${pageTitleEditState.title}`}
+          defaultValue={pageTitleEditState.title}
+          autoFocus
+          style={pageTitleEditorRect}
+          onFocus={(event) => event.currentTarget.select()}
+          onPointerDown={(event) => event.stopPropagation()}
+          onBlur={(event) => {
+            const { pageId } = pageTitleEditState;
+            setPageTitleEditState(null);
+            if (pageTitleRenameCancelRef.current) {
+              pageTitleRenameCancelRef.current = false;
+              return;
+            }
+            renamePageTitle(pageId, event.currentTarget.value);
+          }}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              event.currentTarget.blur();
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              pageTitleRenameCancelRef.current = true;
+              event.currentTarget.blur();
+            }
+          }}
+        />
+      )}
 
       {/* 텍스트 편집 오버레이 (B1.5) */}
       {editState && editState.elementId && (

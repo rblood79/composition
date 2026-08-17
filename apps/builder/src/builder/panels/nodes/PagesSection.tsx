@@ -76,6 +76,7 @@ export const PagesSection = memo(function PagesSection({
   const deferredSelectedPageId = useDeferredValue(currentPageId);
   const activatePage = useStore((state) => state.activatePage);
   const removePageLocal = useStore((state) => state.removePageLocal);
+  const renamePageTitle = useStore((state) => state.renamePageTitle);
 
   // Hooks
   const { requestAutoSelectAfterUpdate } = useIframeMessenger();
@@ -85,6 +86,8 @@ export const PagesSection = memo(function PagesSection({
 
   const [expandedKeys, setExpandedKeys] = useState<Set<Key>>(new Set());
   const [isFallbackTransitioning, setIsFallbackTransitioning] = useState(false);
+  const [isRenamingSinglePage, setIsRenamingSinglePage] = useState(false);
+  const singlePageRenameCancelRef = useRef(false);
   const singlePage = pages.length === 1 ? (pages[0] ?? null) : null;
   const autoSelectedPageIdRef = useRef<string | null>(null);
   const activatedPageIdRef = useRef<string | null>(null);
@@ -198,6 +201,26 @@ export const PagesSection = memo(function PagesSection({
       handlePageSelect(singlePage);
     },
     [handlePageSelect, singlePage],
+  );
+
+  const handlePageRename = useCallback(
+    (page: Page, title: string) => {
+      if (isComponentsPageMirror(page)) return;
+      renamePageTitle(page.id, title);
+    },
+    [renamePageTitle],
+  );
+
+  const commitSinglePageRename = useCallback(
+    (page: Page, title: string) => {
+      setIsRenamingSinglePage(false);
+      if (singlePageRenameCancelRef.current) {
+        singlePageRenameCancelRef.current = false;
+        return;
+      }
+      handlePageRename(page, title);
+    },
+    [handlePageRename],
   );
 
   // 페이지 삭제 핸들러
@@ -348,7 +371,20 @@ export const PagesSection = memo(function PagesSection({
             role="button"
             tabIndex={0}
             aria-label={`Select page ${singlePage.title || "Untitled"}`}
-            onClick={() => handlePageSelect(singlePage)}
+            onClick={(event) => {
+              const target = event.target;
+              if (target instanceof HTMLElement && target.closest("input"))
+                return;
+              handlePageSelect(singlePage);
+            }}
+            onDoubleClick={(event) => {
+              const target = event.target;
+              if (target instanceof HTMLElement && target.closest("input"))
+                return;
+              if (isComponentsPageMirror(singlePage)) return;
+              singlePageRenameCancelRef.current = false;
+              setIsRenamingSinglePage(true);
+            }}
             onKeyDown={handleSinglePageKeyDown}
           >
             <div className="elementItemIndent" style={{ width: "0px" }} />
@@ -361,7 +397,35 @@ export const PagesSection = memo(function PagesSection({
               />
             </div>
             <div className="elementItemLabel">
-              {singlePage.title || "Untitled"}
+              {isRenamingSinglePage ? (
+                <input
+                  className="page-title-rename-input"
+                  aria-label={`Rename page ${singlePage.title || "Untitled"}`}
+                  defaultValue={singlePage.title}
+                  autoFocus
+                  onFocus={(event) => event.currentTarget.select()}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onBlur={(event) =>
+                    commitSinglePageRename(
+                      singlePage,
+                      event.currentTarget.value,
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    event.stopPropagation();
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                    } else if (event.key === "Escape") {
+                      event.preventDefault();
+                      singlePageRenameCancelRef.current = true;
+                      event.currentTarget.blur();
+                    }
+                  }}
+                />
+              ) : (
+                singlePage.title || "Untitled"
+              )}
             </div>
           </div>
         ) : (
@@ -372,6 +436,7 @@ export const PagesSection = memo(function PagesSection({
             onExpandedChange={setExpandedKeys}
             onPageSelect={handlePageSelect}
             onPageDelete={handlePageDelete}
+            onPageRename={handlePageRename}
           />
         )}
       </div>

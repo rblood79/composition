@@ -239,4 +239,22 @@ describe("getHistoryEntryLabel", () => {
 
     expect(getHistoryEntryLabel(entry, null)).toBe("일괄 수정 (2)");
   });
+
+  it("page-title entry는 변경된 page 이름을 표시한다", () => {
+    const entry = makeEntry({
+      type: "page-title",
+      elementId: "page-1",
+      data: {
+        pageTitleEvent: {
+          pageId: "page-1",
+          before: "Home",
+          after: "Landing",
+        },
+      },
+    });
+
+    expect(getHistoryEntryLabel(entry, null)).toBe(
+      "페이지 이름 변경 — Landing",
+    );
+  });
 });

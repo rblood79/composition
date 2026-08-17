@@ -117,6 +117,12 @@ export function getHistoryEntryLabel(
         entry.data.groupData?.childIds?.length ?? entry.elementIds?.length ?? 0;
       return `그룹 해제 (${count})`;
     }
+    case "page-title": {
+      const event = entry.data.pageTitleEvent;
+      return event?.after
+        ? `페이지 이름 변경 — ${event.after}`
+        : "페이지 이름 변경";
+    }
     case "page-position": {
       const count = new Set(
         entry.data.pagePositionEvent?.entries.map((item) => item.pageId) ?? [],
