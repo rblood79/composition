@@ -60,7 +60,7 @@ import { readPageGuides } from "./viewport/pageGuideActions";
 import {
   CanvasGestureSession,
   computeSelectionBounds,
-  readPagePosition,
+  readPagePositionForInteraction,
   resolveSelectedElementsForPage,
   resolveSelectedPageIds,
   resolveTopPageIdAtPoint,
@@ -867,7 +867,8 @@ export function BuilderCanvas({
       getBounds: getElementBoundsSimple,
       pageHeight,
       pagePositions,
-      pagePositionReader: (pageId) => readPagePosition(pageId),
+      pagePositionReader: (pageId) =>
+        readPagePositionForInteraction(pageId, pagePositions),
       pageWidth,
       selectedElements,
       zoom,

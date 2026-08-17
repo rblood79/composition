@@ -1,14 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import type { Element } from "../../../../types/core/store.types";
 import {
   computeSelectionBounds,
   isContainerWithinDragTargets,
+  resolveBodySelection,
   resolveMultiDragTargets,
   resolveSelectedElementsForPage,
   resolveSelectionDragIntent,
+  resolveTopPageIdAtPoint,
 } from "./selectionModel";
 import type { CanvasInteractionNode } from "./interactionNode";
+import {
+  beginPagePositionPresentation,
+  finishPagePositionPresentation,
+  resetPagePositionPresentation,
+} from "./pagePositionPresentation";
 
 function makeBody(id: string, frameId: string): Element {
   return withFrameElementMirrorId(
@@ -116,6 +123,66 @@ describe("selectionModel frame body selection", () => {
         selectedElements: [body],
       }),
     ).toEqual({ x: 120, y: 80, width: 640, height: 480 });
+  });
+});
+
+describe("selectionModel breakpoint position reads", () => {
+  const desktopPositions = {
+    "page-1": { x: 0, y: 0 },
+    "page-2": { x: 2000, y: 0 },
+  };
+  const tabletPositions = {
+    "page-1": { x: 0, y: 0 },
+    "page-2": { x: 848, y: 0 },
+  };
+  const pages = [{ id: "page-1" }, { id: "page-2" }];
+  const page2Body: CanvasInteractionNode = {
+    id: "page-2-body",
+    type: "body",
+    page_id: "page-2",
+    parent_id: null,
+    props: {},
+  };
+
+  afterEach(() => {
+    resetPagePositionPresentation();
+  });
+
+  function finishDesktopPresentation(): void {
+    beginPagePositionPresentation(desktopPositions, ["page-2"], "desktop");
+    finishPagePositionPresentation(desktopPositions);
+  }
+
+  it("uses the active breakpoint positions for page body selection after a completed drag", () => {
+    finishDesktopPresentation();
+
+    expect(
+      resolveBodySelection({
+        canvasPoint: { x: 900, y: 100 },
+        currentPageId: "page-1",
+        elementsMap: new Map([[page2Body.id, page2Body]]),
+        pageHeight: 1024,
+        pageIndexElementsByPage: new Map([["page-2", new Set([page2Body.id])]]),
+        pagePositions: tabletPositions,
+        pageWidth: 768,
+        pages,
+      }),
+    ).toEqual({ bodyElementId: page2Body.id, pageId: "page-2" });
+  });
+
+  it("uses the active breakpoint positions for page occlusion after a completed drag", () => {
+    finishDesktopPresentation();
+
+    expect(
+      resolveTopPageIdAtPoint({
+        canvasPoint: { x: 900, y: 100 },
+        activePageId: "page-1",
+        pageHeight: 1024,
+        pagePositions: tabletPositions,
+        pageWidth: 768,
+        pages,
+      }),
+    ).toBe("page-2");
   });
 });
 

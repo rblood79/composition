@@ -6,6 +6,7 @@ import {
   getPagePositionPresentationSnapshot,
   publishPagePositionPresentation,
   readPagePosition,
+  readPagePositionForInteraction,
   resetPagePositionPresentation,
   subscribePagePositionPresentation,
 } from "./pagePositionPresentation";
@@ -21,12 +22,14 @@ describe("pagePositionPresentation", () => {
       "page-2": { x: 100, y: 200 },
     };
 
-    expect(beginPagePositionPresentation(canonical, ["page-1"], "desktop")).toBe(
-      true,
-    );
-    expect(publishPagePositionPresentation([{ pageId: "page-1", position: { x: 30, y: 40 } }])).toBe(
-      true,
-    );
+    expect(
+      beginPagePositionPresentation(canonical, ["page-1"], "desktop"),
+    ).toBe(true);
+    expect(
+      publishPagePositionPresentation([
+        { pageId: "page-1", position: { x: 30, y: 40 } },
+      ]),
+    ).toBe(true);
 
     const current = getPagePositionPresentationSnapshot();
     expect(current.canonical).toBe(canonical);
@@ -40,8 +43,12 @@ describe("pagePositionPresentation", () => {
     const unsubscribe = subscribePagePositionPresentation(listener);
 
     beginPagePositionPresentation(canonical, ["page-1"], "desktop");
-    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 30, y: 40 } }]);
-    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 30, y: 40 } }]);
+    publishPagePositionPresentation([
+      { pageId: "page-1", position: { x: 30, y: 40 } },
+    ]);
+    publishPagePositionPresentation([
+      { pageId: "page-1", position: { x: 30, y: 40 } },
+    ]);
 
     expect(listener).toHaveBeenCalledTimes(2);
     unsubscribe();
@@ -50,7 +57,9 @@ describe("pagePositionPresentation", () => {
   it("cancel clears the override without replacing the canonical reference", () => {
     const canonical = { "page-1": { x: 10, y: 20 } };
     beginPagePositionPresentation(canonical, ["page-1"], "desktop");
-    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 30, y: 40 } }]);
+    publishPagePositionPresentation([
+      { pageId: "page-1", position: { x: 30, y: 40 } },
+    ]);
 
     cancelPagePositionPresentation();
 
@@ -64,7 +73,9 @@ describe("pagePositionPresentation", () => {
     const initial = { "page-1": { x: 10, y: 20 } };
     const committed = { "page-1": { x: 30, y: 40 } };
     beginPagePositionPresentation(initial, ["page-1"], "desktop");
-    publishPagePositionPresentation([{ pageId: "page-1", position: { x: 30, y: 40 } }]);
+    publishPagePositionPresentation([
+      { pageId: "page-1", position: { x: 30, y: 40 } },
+    ]);
 
     finishPagePositionPresentation(committed);
 
@@ -72,6 +83,45 @@ describe("pagePositionPresentation", () => {
     expect(current.isActive).toBe(false);
     expect(current.canonical).toBe(committed);
     expect(readPagePosition("page-1", current)).toBe(committed["page-1"]);
+  });
+
+  it("uses the current breakpoint canonical map for inactive interaction reads", () => {
+    const desktop = { "page-1": { x: 10, y: 20 } };
+    const tablet = { "page-1": { x: 110, y: 120 } };
+    beginPagePositionPresentation(desktop, ["page-1"], "desktop");
+    finishPagePositionPresentation(desktop);
+
+    expect(
+      readPagePositionForInteraction(
+        "page-1",
+        tablet,
+        getPagePositionPresentationSnapshot(),
+      ),
+    ).toBe(tablet["page-1"]);
+  });
+
+  it("keeps active drag overrides authoritative for interaction reads", () => {
+    const desktop = {
+      "page-1": { x: 10, y: 20 },
+      "page-2": { x: 100, y: 200 },
+    };
+    const tablet = {
+      "page-1": { x: 110, y: 120 },
+      "page-2": { x: 210, y: 220 },
+    };
+    beginPagePositionPresentation(desktop, ["page-1"], "desktop");
+    publishPagePositionPresentation([
+      { pageId: "page-1", position: { x: 30, y: 40 } },
+    ]);
+    const current = getPagePositionPresentationSnapshot();
+
+    expect(readPagePositionForInteraction("page-1", tablet, current)).toEqual({
+      x: 30,
+      y: 40,
+    });
+    expect(readPagePositionForInteraction("page-2", tablet, current)).toBe(
+      desktop["page-2"],
+    );
   });
 });
 

@@ -174,6 +174,25 @@ export function readPagePosition(
   return currentSnapshot.canonical[pageId];
 }
 
+/**
+ * Interaction hit-test용 page position 판독.
+ *
+ * transient presentation은 drag가 active인 동안에만 canonical 좌표보다 우선한다.
+ * drag 종료 뒤 snapshot.canonical은 마지막 drag breakpoint의 참조를 유지하므로,
+ * inactive 상태에서는 caller가 제공한 현재 breakpoint map을 사용해야 한다.
+ */
+export function readPagePositionForInteraction(
+  pageId: string,
+  currentCanonical: PagePositionMap,
+  currentSnapshot: PagePositionPresentationSnapshot = snapshot,
+): PagePosition | undefined {
+  if (!currentSnapshot.isActive) {
+    return currentCanonical[pageId];
+  }
+
+  return readPagePosition(pageId, currentSnapshot) ?? currentCanonical[pageId];
+}
+
 export function readPagePositionDelta(
   pageId: string,
   currentSnapshot: PagePositionPresentationSnapshot = snapshot,

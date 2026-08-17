@@ -149,4 +149,16 @@ describe("BuilderCanvas canonical projection contract", () => {
     expect(selectIndex).toBeGreaterThan(claimIndex);
     expect(dragIndex).toBeGreaterThan(selectIndex);
   });
+
+  it("uses current breakpoint positions when page drag presentation is inactive", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCanvas.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("readPagePositionForInteraction");
+    expect(source).not.toContain(
+      "pagePositionReader: (pageId) => readPagePosition(pageId)",
+    );
+  });
 });

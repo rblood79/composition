@@ -27,7 +27,7 @@ import { resolveClickTarget } from "../../../utils/hierarchicalSelection";
 import type { CanvasInteractionNode } from "./interactionNode";
 import {
   getPagePositionPresentationSnapshot,
-  readPagePosition,
+  readPagePositionForInteraction,
 } from "./pagePositionPresentation";
 
 interface ResolveSelectedElementsForPageInput {
@@ -414,7 +414,11 @@ export function resolveTopPageIdAtPoint(
   return findTopPageIdAtCanvasPoint({
     ...options,
     pagePositionReader: (pageId) =>
-      readPagePosition(pageId, presentationSnapshot),
+      readPagePositionForInteraction(
+        pageId,
+        options.pagePositions,
+        presentationSnapshot,
+      ),
   });
 }
 
@@ -425,6 +429,10 @@ export function resolveBodySelection(
   return findBodySelectionAtCanvasPoint({
     ...options,
     pagePositionReader: (pageId) =>
-      readPagePosition(pageId, presentationSnapshot),
+      readPagePositionForInteraction(
+        pageId,
+        options.pagePositions,
+        presentationSnapshot,
+      ),
   });
 }

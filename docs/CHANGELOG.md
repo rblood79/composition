@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [breakpoint 전환 뒤 Canvas page 선택이 이전 좌표를 보지 않는다] - 2026-08-17
+
+### Bug Fixes
+
+- **상단 breakpoint를 바꾼 뒤 다른 page body를 클릭해도 기존 page가 계속 selected 상태로 남던 문제를 수정**:
+  - **Why**: page title/body pointerdown이 시작한 `pagePositionPresentation`은 drag 종료 뒤에도 마지막 breakpoint의 `canonical` map 참조를 유지했다. 화면·hover·title은 새 breakpoint 좌표로 갱신됐지만 body selection, selection bounds, page occlusion은 inactive snapshot의 이전 좌표를 우선 읽어 서로 다른 page를 판정했다
+  - interaction 전용 position reader가 transient drag가 active일 때만 presentation 좌표를 사용하고, inactive 상태에서는 현재 `pagePositions`를 읽도록 분리했다. 같은 판독자를 쓰는 빈 영역 선택, 겹친 page occlusion, Canvas context menu, guide/title occlusion도 함께 정렬된다
+  - 회귀 테스트는 `Desktop` presentation 종료 → `Tablet` page 위치 변경 → body selection/occlusion 전환을 고정하고, active drag 중 transient override 우선순위가 유지되는지도 검증한다
+  - 위치: `apps/builder/src/builder/workspace/canvas/{BuilderCanvas.tsx,interaction/pagePositionPresentation.ts,interaction/selectionModel.ts}`
+
 ## [preview DataTable 이 응답을 버리는 요청을 그만 보낸다 — dataStates 배관 제거] - 2026-08-17
 
 ### Bug Fixes

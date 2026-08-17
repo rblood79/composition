@@ -37,6 +37,7 @@ export {
   getPagePositionPresentationSnapshot,
   publishPagePositionPresentation,
   readPagePosition,
+  readPagePositionForInteraction,
   readPagePositionDelta,
   resetPagePositionPresentation,
   subscribePagePositionPresentation,
