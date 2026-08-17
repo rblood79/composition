@@ -36,16 +36,52 @@ describe("HistoryPanel panel-system contract", () => {
       sectionContentRuleStart,
       sectionContentRuleEnd,
     );
+    const historyButtonRuleStart = css.indexOf(".history-item-btn {");
+    const historyButtonRuleEnd = css.indexOf("}", historyButtonRuleStart);
+    const historyButtonRule = css.slice(
+      historyButtonRuleStart,
+      historyButtonRuleEnd,
+    );
+    const activeHistoryButtonRuleStart = css.indexOf(
+      '.history-panel .history-item-btn[aria-current="step"]',
+    );
+    const activeHistoryButtonRuleEnd = css.indexOf(
+      "}",
+      activeHistoryButtonRuleStart,
+    );
+    const activeHistoryButtonRule = css.slice(
+      activeHistoryButtonRuleStart,
+      activeHistoryButtonRuleEnd,
+    );
 
     expect(css).toContain(".history-panel .history-section > .section-content");
     expect(sectionContentRule).not.toContain("padding:");
     expect(sectionContentRule).not.toContain("gap:");
     expect(css).not.toContain("border-bottom: 1px solid var(--border)");
     expect(css).toContain("border: 0");
-    expect(css).toContain("min-height: var(--header-height)");
-    expect(css).toContain("padding: var(--spacing-xs) var(--spacing-sm)");
-    expect(css).toContain("background: var(--accent-subtle)");
+    expect(historyButtonRule).toContain(
+      "height: var(--inspector-control-size)",
+    );
+    expect(historyButtonRule).toContain(
+      "padding: var(--spacing-xs) var(--spacing-sm)",
+    );
+    expect(historyButtonRule).not.toContain("min-height: var(--header-height)");
+    expect(activeHistoryButtonRule).toContain(
+      "--button-color: var(--bg-muted)",
+    );
+    expect(activeHistoryButtonRule).toContain(
+      "border-radius: var(--radius-md)",
+    );
+    expect(activeHistoryButtonRule).toContain(
+      "box-shadow: var(--inset-shadow-sm)",
+    );
     expect(css).toContain("min-width: 0");
     expect(css).not.toContain("transition: all");
+  });
+
+  it("marks the current edit on the interactive history button", async () => {
+    const source = await readHistorySource("HistoryPanel.tsx");
+
+    expect(source).toContain('aria-current={isActive ? "step" : undefined}');
   });
 });

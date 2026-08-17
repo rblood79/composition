@@ -483,6 +483,7 @@ function HistoryPanelContent() {
                       onPress={() => handleJumpToIndex(item.index)}
                       isDisabled={historyOperationInProgress}
                       className="history-item-btn"
+                      aria-current={isActive ? "step" : undefined}
                       aria-label={
                         itemDetails
                           ? `${item.label}, ${itemDetails}${isActive ? ", 현재 상태" : ""}`

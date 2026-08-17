@@ -44,8 +44,13 @@
       opacity 100ms;
   }
 
-  .history-item[data-active="true"],
-  .history-snapshot-item[data-active="true"] {
+  .history-panel .history-item-btn[aria-current="step"] {
+    --button-color: var(--bg-muted);
+    border-radius: var(--radius-md);
+    box-shadow: var(--inset-shadow-sm);
+  }
+
+  .history-panel .history-snapshot-item[data-active="true"] {
     background: var(--accent-subtle);
   }
 
@@ -73,7 +78,7 @@
     justify-content: flex-start;
     gap: var(--spacing-sm);
     width: 100%;
-    min-height: var(--header-height);
+    height: var(--inspector-control-size);
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: 0;
     text-align: left;
