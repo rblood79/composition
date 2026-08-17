@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArchiveRestore,
   Camera,
-  Clock,
+  Ellipsis,
   File,
   History,
   Layers,
@@ -10,17 +10,16 @@ import {
   Minus,
   Move,
   Pencil,
-  Redo,
-  Undo,
   type LucideIcon,
 } from "lucide-react";
+import { Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { ACTION_ICONS } from "../../config/actionIcons";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본. */
 const DeleteIcon = ACTION_ICONS.delete;
-import { PanelHeader, EmptyState } from "../../components";
+import { EmptyState, PanelHeader, Section } from "../../components";
 import { ActionIconButton } from "../../components/ui";
-import { Button } from "@composition/shared/components";
+import { Button, Toolbar } from "@composition/shared/components";
 import { iconProps, iconSmall } from "../../../utils/ui/uiConstants";
 import { historyManager, type HistoryEntry } from "../../stores/history";
 import { useStore } from "../../stores";
@@ -98,8 +97,6 @@ function HistoryPanelContent() {
   const historyOperationInProgress = useStore(
     (state) => state.historyOperationInProgress,
   );
-  const undo = useStore((state) => state.undo);
-  const redo = useStore((state) => state.redo);
 
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [historyInfo, setHistoryInfo] = useState(
@@ -171,6 +168,12 @@ function HistoryPanelContent() {
     const current = entries[historyInfo.currentIndex];
     return current?.data.snapshotRestoreEvent?.afterSnapshotId ?? null;
   }, [entries, historyInfo.currentIndex]);
+  const activeUserSnapshot = useMemo(
+    () =>
+      userSnapshots.find((snapshot) => snapshot.id === activeSnapshotId) ??
+      null,
+    [activeSnapshotId, userSnapshots],
+  );
 
   const handleCreateSnapshot = useCallback(async () => {
     if (!projectId) return;
@@ -246,16 +249,6 @@ function HistoryPanelContent() {
   // 편집 히스토리
   // ============================================
 
-  const handleUndo = useCallback(async () => {
-    if (!historyInfo.canUndo) return;
-    await undo();
-  }, [historyInfo.canUndo, undo]);
-
-  const handleRedo = useCallback(async () => {
-    if (!historyInfo.canRedo) return;
-    await redo();
-  }, [historyInfo.canRedo, redo]);
-
   const handleClear = useCallback(() => {
     const currentPageId = useStore.getState().currentPageId;
     if (!currentPageId) return;
@@ -307,99 +300,124 @@ function HistoryPanelContent() {
     <div className="panel history-panel">
       <PanelHeader
         icon={<History size={iconProps.size} />}
-        title="히스토리"
+        title="작업 내역"
         actions={
-          <div className="history-actions">
-            <span className="history-count">
-              {Math.max(historyInfo.currentIndex + 1, 0)}/
-              {historyInfo.totalEntries}
-            </span>
+          <Toolbar className="history-actions" aria-label="작업 내역 도구">
             <ActionIconButton
-              onPress={handleUndo}
-              isDisabled={!historyInfo.canUndo || historyOperationInProgress}
-              aria-label="Undo"
-              shortcutId="undo"
-              tooltipPlacement="bottom"
+              onPress={handleCreateSnapshot}
+              isDisabled={!projectId || !canCreateSnapshot || restoring}
+              aria-label="스냅샷 생성"
+              tooltip={
+                canCreateSnapshot
+                  ? "현재 문서 스냅샷 생성"
+                  : "상한 도달 — 기존 스냅샷을 삭제한 후 생성할 수 있습니다"
+              }
             >
-              <Undo size={iconProps.size} />
+              <Camera size={iconProps.size} />
             </ActionIconButton>
             <ActionIconButton
-              onPress={handleRedo}
-              isDisabled={!historyInfo.canRedo || historyOperationInProgress}
-              aria-label="Redo"
-              shortcutId="redo"
-              tooltipPlacement="bottom"
-            >
-              <Redo size={iconProps.size} />
-            </ActionIconButton>
-            <ActionIconButton
-              onPress={handleClear}
-              isDisabled={historyOperationInProgress}
-              aria-label="Clear history"
-              tooltip="히스토리 초기화"
+              onPress={() => {
+                if (activeUserSnapshot) {
+                  handleDeleteSnapshot(activeUserSnapshot);
+                }
+              }}
+              isDisabled={
+                !activeUserSnapshot || restoring || historyOperationInProgress
+              }
+              aria-label="활성 스냅샷 삭제"
+              tooltip="활성 스냅샷 삭제"
             >
               <DeleteIcon size={iconProps.size} />
             </ActionIconButton>
-          </div>
+            <MenuTrigger>
+              <ActionIconButton
+                aria-label="기록 작업"
+                isDisabled={
+                  historyInfo.totalEntries === 0 || historyOperationInProgress
+                }
+              >
+                <Ellipsis size={iconProps.size} />
+              </ActionIconButton>
+              <Popover
+                className="history-menu-popover"
+                placement="bottom end"
+                offset={4}
+              >
+                <Menu
+                  className="history-menu"
+                  aria-label="기록 작업"
+                  onAction={(key) => {
+                    if (key === "clear-history") {
+                      handleClear();
+                    }
+                  }}
+                >
+                  <MenuItem
+                    id="clear-history"
+                    className="history-menu-item"
+                    data-destructive="true"
+                    textValue="현재 페이지 기록 초기화"
+                  >
+                    <DeleteIcon size={iconSmall.size} />
+                    <span>현재 페이지 기록 초기화</span>
+                  </MenuItem>
+                </Menu>
+              </Popover>
+            </MenuTrigger>
+          </Toolbar>
         }
       />
 
-      <div className="panel-contents history-contents">
+      <div className="panel-contents">
         {projectId && (
-          <div className="history-snapshot-section">
-            <div className="history-snapshot-header">
-              <span className="history-snapshot-title">스냅샷</span>
+          <Section
+            title="스냅샷"
+            badge={
               <span className="history-count">
                 {userSnapshots.length}/{USER_SNAPSHOT_LIMIT}
               </span>
-              <ActionIconButton
-                onPress={handleCreateSnapshot}
-                isDisabled={!canCreateSnapshot || restoring}
-                aria-label="스냅샷 생성"
-                tooltip={
-                  canCreateSnapshot
-                    ? "현재 문서 스냅샷 생성"
-                    : "상한 도달 — 기존 스냅샷을 삭제한 후 생성할 수 있습니다"
-                }
-              >
-                <Camera size={iconProps.size} />
-              </ActionIconButton>
-            </div>
+            }
+            collapsible={false}
+            className="history-section history-snapshot-section"
+          >
             {userSnapshots.length > 0 && (
               <div className="history-snapshot-list">
-                {userSnapshots.map((snapshot) => (
-                  <div
-                    key={snapshot.id}
-                    className="history-snapshot-item"
-                    data-active={snapshot.id === activeSnapshotId}
-                    onDoubleClick={() => beginRename(snapshot.id)}
-                  >
-                    {renamingId === snapshot.id ? (
-                      <input
-                        className="history-snapshot-rename"
-                        defaultValue={snapshot.name}
-                        autoFocus
-                        onFocus={(event) => event.currentTarget.select()}
-                        onBlur={(event) =>
-                          commitRename(snapshot.id, event.currentTarget.value)
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.currentTarget.blur();
-                          } else if (event.key === "Escape") {
-                            renameCancelRef.current = true;
-                            event.currentTarget.blur();
+                {userSnapshots.map((snapshot) => {
+                  const snapshotDetails = `${formatTimestamp(snapshot.createdAt)} · ${formatSize(snapshot.estimatedSize)}`;
+
+                  return (
+                    <div
+                      key={snapshot.id}
+                      className="history-snapshot-item"
+                      data-active={snapshot.id === activeSnapshotId}
+                      onDoubleClick={() => beginRename(snapshot.id)}
+                    >
+                      {renamingId === snapshot.id ? (
+                        <input
+                          className="history-snapshot-rename"
+                          defaultValue={snapshot.name}
+                          autoFocus
+                          onFocus={(event) => event.currentTarget.select()}
+                          onBlur={(event) =>
+                            commitRename(snapshot.id, event.currentTarget.value)
                           }
-                        }}
-                      />
-                    ) : (
-                      <>
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.currentTarget.blur();
+                            } else if (event.key === "Escape") {
+                              renameCancelRef.current = true;
+                              event.currentTarget.blur();
+                            }
+                          }}
+                        />
+                      ) : (
                         <Button
                           variant="ghost"
                           size="sm"
                           onPress={() => scheduleRestore(snapshot.id)}
                           isDisabled={restoring || historyOperationInProgress}
                           className="history-item-btn history-snapshot-btn"
+                          aria-label={`${snapshot.name}, ${snapshotDetails}`}
                         >
                           <span className="history-item-icon">
                             <Camera size={iconSmall.size} />
@@ -408,85 +426,82 @@ function HistoryPanelContent() {
                             <span className="history-label">
                               {snapshot.name}
                             </span>
-                            <span className="history-meta">
-                              <Clock size={iconSmall.size} />
-                              {formatTimestamp(snapshot.createdAt)} ·{" "}
-                              {formatSize(snapshot.estimatedSize)}
-                            </span>
                           </span>
                         </Button>
-                        <span className="history-snapshot-delete">
-                          <ActionIconButton
-                            onPress={() => handleDeleteSnapshot(snapshot)}
-                            isDisabled={restoring}
-                            aria-label={`스냅샷 삭제: ${snapshot.name}`}
-                            tooltip="삭제"
-                          >
-                            <DeleteIcon size={iconSmall.size} />
-                          </ActionIconButton>
-                        </span>
-                      </>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
-          </div>
+          </Section>
         )}
 
-        {displayEntries.length === 0 ? (
-          <EmptyState
-            icon={<History size={48} />}
-            message="히스토리가 없습니다"
-            description="요소를 추가하거나 수정하면 기록이 표시됩니다"
-          />
-        ) : (
-          <div className="history-list">
-            {displayEntries.map((item) => {
-              const isActive = item.index === historyInfo.currentIndex;
-              const isStart = item.isStart;
-              const timestamp = !isStart ? item.timestamp : undefined;
-              // 미래 state (redo 가능 구간) — 새 편집 시 폐기됨을 흐림으로 예고
-              const isFuture =
-                !isStart && item.index > historyInfo.currentIndex;
-              const Icon = entryIcon(item);
+        <Section
+          id="history-edits"
+          title="편집"
+          badge={
+            <span className="history-count">
+              {Math.max(historyInfo.currentIndex + 1, 0)}/
+              {historyInfo.totalEntries}
+            </span>
+          }
+          className="history-section history-edit-section"
+        >
+          {displayEntries.length === 0 ? (
+            <EmptyState
+              icon={<History size={48} />}
+              message="작업 내역이 없습니다"
+              description="요소를 추가하거나 수정하면 기록이 표시됩니다"
+            />
+          ) : (
+            <div className="history-list">
+              {displayEntries.map((item) => {
+                const isActive = item.index === historyInfo.currentIndex;
+                const isStart = item.isStart;
+                const timestamp = !isStart ? item.timestamp : undefined;
+                // 미래 state (redo 가능 구간) — 새 편집 시 폐기됨을 흐림으로 예고
+                const isFuture =
+                  !isStart && item.index > historyInfo.currentIndex;
+                const Icon = entryIcon(item);
+                const itemDetails =
+                  !isStart && timestamp !== undefined
+                    ? `${formatTimestamp(timestamp)} · ${item.index + 1}번째 기록`
+                    : undefined;
 
-              return (
-                <div
-                  key={item.id}
-                  className="history-item"
-                  data-active={isActive}
-                  data-start={isStart}
-                  data-future={isFuture}
-                >
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => handleJumpToIndex(item.index)}
-                    isDisabled={historyOperationInProgress}
-                    className="history-item-btn"
+                return (
+                  <div
+                    key={item.id}
+                    className="history-item"
+                    data-active={isActive}
+                    data-start={isStart}
+                    data-future={isFuture}
                   >
-                    <span className="history-item-icon">
-                      <Icon size={iconSmall.size} />
-                    </span>
-                    <span className="history-item-main">
-                      <span className="history-label">{item.label}</span>
-                      {!isStart && timestamp !== undefined && (
-                        <span className="history-meta">
-                          <Clock size={iconSmall.size} />
-                          {formatTimestamp(timestamp)}
-                        </span>
-                      )}
-                    </span>
-                    {!isStart && (
-                      <span className="history-index">{item.index + 1}</span>
-                    )}
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => handleJumpToIndex(item.index)}
+                      isDisabled={historyOperationInProgress}
+                      className="history-item-btn"
+                      aria-label={
+                        itemDetails
+                          ? `${item.label}, ${itemDetails}${isActive ? ", 현재 상태" : ""}`
+                          : `${item.label}${isActive ? ", 현재 상태" : ""}`
+                      }
+                    >
+                      <span className="history-item-icon">
+                        <Icon size={iconSmall.size} />
+                      </span>
+                      <span className="history-item-main">
+                        <span className="history-label">{item.label}</span>
+                      </span>
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Section>
       </div>
     </div>
   );

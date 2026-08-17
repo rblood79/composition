@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [작업 내역 패널을 Builder 패턴과 Photoshop 구조로 정렬] - 2026-08-17
+
+### Features
+
+- **History 패널의 DOM/CSS를 StylePanel과 같은 공통 Panel System으로 통합하고, 정보구조를 Photoshop Online 작업 내역 패널에 맞췄다**:
+  - 수동 스냅샷 header와 독립 card 목록을 공통 `Section` 기반 `스냅샷`/`편집` 그룹으로 교체했다. 작업 행은 시간·번호를 전면에 노출하던 2단 card 대신 아이콘+라벨 중심의 compact flat row로 표시하고, 현재 상태는 `accent-subtle` 배경으로 구분한다
+  - History의 `Section` content는 Style/Property 패널과 같은 공통 padding/gap을 상속하고, history/snapshot 행의 구분선은 제거했다. 행 버튼 자체 padding은 기존 값을 유지한다
+  - 상단 도구는 스냅샷 생성·활성 스냅샷 삭제·더보기로 정리했다. 전역 Header와 중복되던 Undo/Redo를 제거하고, 전체 페이지 기록 삭제는 선택 항목 삭제로 오해되는 단독 trash 아이콘 대신 `현재 페이지 기록 초기화` 메뉴 항목으로 명시한다
+  - 기존 ADR-180의 클릭 복원, 더블클릭 rename, 미래 state 흐림, 사용자 스냅샷 상한 및 canonical 복원 순서는 유지한다
+  - 위치: `apps/builder/src/builder/panels/history/{HistoryPanel.tsx,HistoryPanel.css}`
+
 ## [Canvas와 Nodes 패널에서 Page 이름을 바로 바꾼다] - 2026-08-17
 
 ### Features
