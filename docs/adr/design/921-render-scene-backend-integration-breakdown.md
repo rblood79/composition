@@ -130,6 +130,11 @@ catalog/spec을 다시 읽거나 `implicitStyles.ts`를 복제하지 않는다.
 | hit           | clipped hit bounds, hit role, render-space order                                           | topmost hit 결과는 current CanvasKit과 동일해야 함                   |
 | invalidation  | node/content signature, volatile marker, reason                                            | ADR-153 Picture cache와 scheduler가 재사용 가능                      |
 
+header의 `projectionVersion`은 현행 convention(`rendererInput.ts`의
+`projectionVersion: sceneSnapshot.sceneVersion`)을 그대로 따른다 — ADR-136 sceneVersion
+계보(layoutVersion + pagePositionsVersion + projection content signature 복합)다.
+projection-only 카운터로 재정의하지 않는다 (page 이동 무효화가 빠진다).
+
 `SceneStructureSnapshot`은 projection/visibility/version read model이고,
 `RenderSceneSnapshot`은 draw-ready scene이다. Phase 1에서 둘을 이름만 바꾸거나 하나로
 합치지 않는다. 전자는 후자를 만드는 입력 중 하나로 유지한다.
@@ -322,7 +327,8 @@ font/image packaging, accessibility, file security, SDK versioning/API/size budg
 
 - Phase 1은 additive package라 production 영향 없이 제거 가능하다.
 - Phase 2/3은 단일 rollout flag가 **프레임 전체 경로**를 선택한다. node별·기능별 silent
-  fallback은 금지한다.
+  fallback은 금지한다. flag 정의처는 `wasm-bindings/featureFlags.ts` registry 하나다
+  (canvas-rendering.md §10 — registry 밖 게이트 상수 신설 금지, 계약 테스트 기계 집행).
 - Gate 실패 시 flag를 current CanvasKit oracle path로 되돌리고, 신규 snapshot/backend
   path의 evidence만 보존한다.
 - canonical schema/DB/history migration이 없으므로 rollback에 project data migration은 없다.

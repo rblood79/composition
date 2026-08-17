@@ -8,7 +8,7 @@
 
 > **⚠️ 버전 분리 (2026-08-17) — Pencil.app / Pen artifact**: `/Users/admin/work/pencil`의 실제 `Info.plist`는 **Pencil.app v1.1.57** (`dev.pencil.desktop`)다. 별도 문서의 v1.2.1 추출본(`docs/pencil-extracted/`)은 **Pen v1.2.1** artifact이므로 현재 `/Users/admin/work/pencil`의 버전·렌더러를 덮어쓰지 않는다. 아래 §2와 §5는 v1.1.57 로컬 번들과 v1.2.1 별도 분석을 분리한다.
 >
-> **♻️ 갱신 (2026-08-17) — openpencil (ZSeven-W)**: v0.7.5 기준 서술을 **v0.8.4 Rust 제품**으로 전면 교체했다 (§3 참조). Upstream v0.8.4는 2026-08-11 pre-release이며 release 페이지에 tag 이후 1 commit이 표시된다. local 디렉터리는 `.git`이 없는 source snapshot이므로 본 문서의 v0.8.4는 `Cargo.toml`·release notes·현재 코드가 확인하는 제품 버전이지 exact commit 식별자가 아니다.
+> **♻️ 갱신 (2026-08-17) — openpencil (ZSeven-W)**: v0.7.5 기준 서술을 **v0.8.4 Rust 제품**으로 전면 교체했다 (§3 참조). Upstream v0.8.4는 2026-08-11 pre-release이며 release 페이지에 tag 이후 1 commit이 표시된다. local checkout은 2026-08-17 재확인 시점에 `.git` 메타데이터를 보유한다 — `HEAD 9c810776` = `v0.8.4-1` (tag 이후 1 commit인 release manifest 갱신 커밋)로, release 페이지 표시와 정확히 일치해 exact commit이 확정됐다 (구 ".git 없음" 서술은 ADR-921 리뷰 round 1에서 stale 판정·정정).
 >
 > **♻️ 정정 (2026-08-17) — open-pencil 협업**: 기존 §4-2의 "P2P 아님" 판정은 잘못되었다. 현재 HEAD에는 직접 의존성 `trystero`, `trystero/mqtt` 기반 WebRTC room, STUN/TURN 설정이 존재한다. 실체는 **direct P2P 우선 + public relay/hub fallback + Yjs CRDT**이며, `ws`는 별도 WebSocket 표면의 의존성으로 협업 transport 전체를 설명하지 않는다.
 >
@@ -18,11 +18,11 @@
 
 ## 1. 3개 디렉토리의 실제 정체
 
-| 디렉토리                            | 형태                                                  | 정체                                                                                                                                                                                                                                                                                                                                               |
-| ----------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`/Users/admin/work/pencil`**      | **macOS `.app` bundle (closed-source binary)**        | 로컬 bundle은 **Pencil.app v1.1.57** (`dev.pencil.desktop`, Electron, 60+ 언어). `Info.plist`와 unpacked native modules의 mtime은 2026-05-18이며, `Resources/app.asar` + `.pen` + `pencil://`를 포함한다. 별도 v1.2.1 Pen 추출 분석과 동일 artifact로 보지 않는다.                                                                                 |
-| **`/Users/admin/work/openpencil`**  | **Rust Cargo workspace + wasm SDK (open source MIT)** | `Cargo.toml` 기준 **ZSeven-W/openpencil v0.8.4**. TypeScript/Electron 앱은 v0.7.5에서 retired 되었고, 현재는 `crates/*` 41개와 `packages/`의 wasm-backed SDK·VS Code·Chrome 연동이 제품 표면이다. `.op` Design-as-Code, AI agent teams, MCP, 협업, codegen, Figma/Git 통합을 포함한다. local snapshot에는 `.git`이 없어 exact commit은 미확정이다. |
-| **`/Users/admin/work/open-pencil`** | Bun monorepo (open source MIT)                        | `package.json` **v0.14.0** + `Unreleased`, local `HEAD 2710f906` (2026-08-14). 제품명 **OpenPencil** (openpencil.dev) — ".fig + .pen 편집기 + 내장 AI + 프로그래머블 툴킷 (headless Vue SDK)". 명시적 11 workspaces + `tools/`.                                                                                                                    |
+| 디렉토리                            | 형태                                                  | 정체                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`/Users/admin/work/pencil`**      | **macOS `.app` bundle (closed-source binary)**        | 로컬 bundle은 **Pencil.app v1.1.57** (`dev.pencil.desktop`, Electron, 60+ 언어). `Info.plist`와 unpacked native modules의 mtime은 2026-05-18이며, `Resources/app.asar` + `.pen` + `pencil://`를 포함한다. 별도 v1.2.1 Pen 추출 분석과 동일 artifact로 보지 않는다.                                                                                                                                                  |
+| **`/Users/admin/work/openpencil`**  | **Rust Cargo workspace + wasm SDK (open source MIT)** | `Cargo.toml` 기준 **ZSeven-W/openpencil v0.8.4**. TypeScript/Electron 앱은 v0.7.5에서 retired 되었고, 현재는 `crates/*` 41개와 `packages/`의 wasm-backed SDK·VS Code·Chrome 연동이 제품 표면이다. `.op` Design-as-Code, AI agent teams, MCP, 협업, codegen, Figma/Git 통합을 포함한다. local checkout `HEAD 9c810776` (`v0.8.4` tag + 1 commit — release manifest 갱신, 2026-08-17 git 재확인)로 exact commit 확정. |
+| **`/Users/admin/work/open-pencil`** | Bun monorepo (open source MIT)                        | `package.json` **v0.14.0** + `Unreleased`, local `HEAD 2710f906` (2026-08-14). 제품명 **OpenPencil** (openpencil.dev) — ".fig + .pen 편집기 + 내장 AI + 프로그래머블 툴킷 (headless Vue SDK)". 명시적 11 workspaces + `tools/`.                                                                                                                                                                                     |
 
 **이름 충돌 주의**: `open-pencil/open-pencil` 의 제품명이 **OpenPencil** (`brew install openpencil`, app.openpencil.dev) 이라 `/Users/admin/work/openpencil` (ZSeven-W) 과 명칭이 겹친다. 인용 시 **경로 또는 GitHub org** 로 구분할 것.
 
@@ -31,7 +31,7 @@
 ### 최신성·증거 수준 판정
 
 - **Pencil.app**: live update feed가 아니라 `/Users/admin/work/pencil`에 보관된 bundle을 판정한 것이다. 이 artifact의 버전은 v1.1.57로 확정되지만, 별도 v1.2.1 추출본의 변경이 이 bundle에 반영됐는지는 확인하지 않았다.
-- **openpencil (ZSeven-W)**: upstream v0.8.4 release는 확인되지만 local source에 `.git`이 없어 tag 이후 commit과의 일치 여부는 확인하지 않았다. 따라서 성능·기능 주장은 README/release note/current source가 동시에 확인되는 범위만 채택한다.
+- **openpencil (ZSeven-W)**: local checkout의 git 메타데이터로 upstream과의 일치가 확정됐다 (`git describe v0.8.4-1-g9c810776` — release 페이지의 tag 이후 1 commit과 동일, 2026-08-17 재확인). 성능·기능 주장은 여전히 README/release note/current source가 동시에 확인되는 범위만 채택한다.
 - **open-pencil (org)**: local Git repository가 clean이고 `HEAD`·`package.json`·`CHANGELOG.md`를 함께 확인했다. v0.14.0 release 이후의 `Unreleased` 기능도 현재 제품 분석에 포함하되, 수치가 없는 성능 문장은 정성 claim으로 표시한다.
 
 ---
@@ -79,7 +79,7 @@ composition 메모리 [`pencil-component-visual-markers`](../../../.claude/memor
 
 ## 3. openpencil (ZSeven-W) 상세
 
-> **2026-08-17 v0.8.4 현재 스냅샷 재실측.** 이 절의 `openpencil`은 하이픈 없는 `/Users/admin/work/openpencil` (GitHub `ZSeven-W/openpencil`)을 뜻한다. 하이픈 있는 `/Users/admin/work/open-pencil`과는 별도 프로젝트다. 해당 디렉터리는 `.git` 메타데이터가 없어 commit-range diff 대신 현재 트리·README·`RELEASE_NOTES/v0.8.0..v0.8.4.md`를 기준으로 판정했다. Upstream v0.8.4는 2026-08-11 pre-release이고 release 페이지에는 tag 이후 1 commit이 표시되므로, 아래 버전은 **현재 source의 workspace version**으로 읽는다.
+> **2026-08-17 v0.8.4 현재 스냅샷 재실측.** 이 절의 `openpencil`은 하이픈 없는 `/Users/admin/work/openpencil` (GitHub `ZSeven-W/openpencil`)을 뜻한다. 하이픈 있는 `/Users/admin/work/open-pencil`과는 별도 프로젝트다. 판정은 현재 트리·README·`RELEASE_NOTES/v0.8.0..v0.8.4.md` 기준이며, 2026-08-17 재확인에서 `.git` 메타데이터가 확인되어 `HEAD 9c810776` (`v0.8.4` tag + 1 commit — release manifest 갱신)로 exact commit이 확정됐다. Upstream v0.8.4는 2026-08-11 pre-release이고, 아래 버전은 **현재 source의 workspace version**이자 commit `9c810776` 기준으로 읽는다.
 
 | 항목       | 값                                                                                                                                                           |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
