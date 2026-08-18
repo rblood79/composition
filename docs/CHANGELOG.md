@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-922 panel stack viewport fit과 shared resize 복구] - 2026-08-19
+
+### Bug Fixes
+
+- **우측/좌측 panel stack이 preferred height를 넘는 즉시 `constrained-overlay`로 바뀌어 Canvas 위에 panel surface를 덮던 문제를 수정**: 실제 최소 높이가 workspace에 들어오는 동안에는 anchored inset을 유지하고 마지막 row를 최소 높이까지 압축한다. 최소 높이조차 들어오지 않는 좁은 viewport에서만 기존 overlay emergency presentation을 사용한다
+- **anchored stack의 top 4px gap이 세로 fit budget에서 빠져 panel 하단이 viewport를 4px 넘던 문제를 수정**: leading gap을 solver와 overlay 전환 기준 모두에 반영했다
+- **스냅된 panel의 stack 내부 row splitter가 pointer event를 받지 못해 세로 resize가 불가능하던 문제를 수정**: shared splitter를 interaction surface로 명시했다
+- **panel max/min height를 넘긴 pointer가 경계 안으로 되돌아와도 resize edge와 다시 맞지 않던 drift를 수정**: React Aria incremental move delta를 gesture 시작점 기준으로 누적하고, runtime은 immutable 시작 layout에 대한 reference delta로 매 frame reflow한다. max/min 경계 밖 이동은 clamp하되, pointer 재진입 시 정확한 위치에서 즉시 resize를 재개한다
+
 ## [ADR-922 좌·우 panel rail 활성화 cascade] - 2026-08-18
 
 ### Features

@@ -5,6 +5,16 @@ import {
 } from "./panelWorkspaceLayoutV2.testFixtures";
 import { createPanelWorkspaceRuntime } from "./panelWorkspaceRuntime";
 
+function rowHeight(
+  layout: ReturnType<typeof createPanelWorkspaceLayoutV2>,
+  panelId: string,
+): number | undefined {
+  return layout.clusters
+    .flatMap((cluster) => cluster.columns)
+    .flatMap((column) => column.rows)
+    .find((row) => row.panelId === panelId)?.height;
+}
+
 describe("ADR-922 PanelWorkspace production runtime", () => {
   it("interaction cancel은 시작 시 committed v2 snapshot을 byte-equivalent로 복원한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
@@ -56,6 +66,39 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
     expect(committed).toBe(runtime.value.getLayout());
     expect(setItem).not.toHaveBeenCalled();
     setItem.mockRestore();
+    runtime.value.destroy();
+  });
+
+  it("reference resize는 max를 넘겼다가 되돌아와도 pointer 기준 위치에서 다시 resize한다", () => {
+    const layout = createPanelWorkspaceLayoutV2();
+    layout.visibility.history = true;
+    const runtime = createPanelWorkspaceRuntime(
+      layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      { width: 1440, height: 852 },
+      { left: 48, right: 48, bottom: 48 },
+    );
+    expect(runtime.ok).toBe(true);
+    if (!runtime.ok) return;
+
+    runtime.value.beginInteraction();
+    expect(
+      runtime.value.resizePanelFromReference("properties", "bottom", 0, 400).ok,
+    ).toBe(true);
+    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(800);
+    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(170);
+
+    expect(
+      runtime.value.resizePanelFromReference("properties", "bottom", 0, 280).ok,
+    ).toBe(true);
+    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(800);
+    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(170);
+
+    expect(
+      runtime.value.resizePanelFromReference("properties", "bottom", 0, 260).ok,
+    ).toBe(true);
+    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(780);
+    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(190);
     runtime.value.destroy();
   });
 });

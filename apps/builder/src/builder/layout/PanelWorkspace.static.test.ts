@@ -91,7 +91,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain("<PanelWorkspaceSharedSplitters");
     expect(source).toContain("snapshot.splitters.map((splitter)");
     expect(source).toContain("data-edge={edge}");
-    expect(source).toContain("runtime.resizePanel(config.id, edge");
+    expect(source).toContain("runtime.resizePanelFromReference(");
 
     expect(styles).toContain('[data-edge="left"]');
     expect(styles).toContain('[data-edge="right"]');
@@ -102,6 +102,9 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     );
     expect(styles).toMatch(
       /\[data-edge="top"\],[\s\S]*?right: var\(--spacing-sm\);[\s\S]*?left: var\(--spacing-sm\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-cluster-splitter\s*\{[\s\S]*?pointer-events: auto;/,
     );
     expect(styles).not.toContain('data-side="floating"');
   });

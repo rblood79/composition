@@ -322,6 +322,7 @@
 
   .panel-cluster-splitter {
     margin: 0;
+    pointer-events: auto;
   }
 
   .panel-cluster-splitter[data-splitter-kind="column"]::after {

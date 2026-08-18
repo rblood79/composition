@@ -56,6 +56,12 @@ export interface PanelWorkspaceRuntime {
     deltaX: number,
     deltaY: number,
   ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
+  resizePanelFromReference(
+    panelId: PanelId,
+    edge: PanelResizeEdge,
+    deltaX: number,
+    deltaY: number,
+  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
   resolveSnap(
     panelId: PanelId,
     geometry: PanelFrameGeometry,
@@ -180,6 +186,18 @@ export function createPanelWorkspaceRuntime(
         return applyInteraction(
           resizePanelWorkspaceBoundary(
             layout,
+            registry,
+            panelId,
+            edge,
+            deltaX,
+            deltaY,
+          ),
+        );
+      },
+      resizePanelFromReference(panelId, edge, deltaX, deltaY) {
+        return applyInteraction(
+          resizePanelWorkspaceBoundary(
+            interactionBaseLayout ?? layout,
             registry,
             panelId,
             edge,

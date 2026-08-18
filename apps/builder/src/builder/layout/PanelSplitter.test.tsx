@@ -72,8 +72,10 @@ describe("PanelSplitter accessibility and interaction contract", () => {
 
     dispatchPointer(splitter, "pointerdown", 100);
     dispatchPointer(window, "pointermove", 112);
+    dispatchPointer(window, "pointermove", 116);
     dispatchPointer(window, "pointerup", 112);
-    expect(onResize).toHaveBeenLastCalledWith(12, 0);
+    expect(onResize).toHaveBeenNthCalledWith(2, 12, 0);
+    expect(onResize).toHaveBeenLastCalledWith(16, 0);
   });
 
   it("moves to min/max with Home/End and preserves physical RTL direction", () => {

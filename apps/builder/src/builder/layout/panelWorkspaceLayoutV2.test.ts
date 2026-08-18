@@ -193,6 +193,53 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
     );
   });
 
+  it("stack의 preferred height만 넘으면 minimum까지 압축해 anchored inset을 유지한다", () => {
+    const layout = createPanelWorkspaceLayoutV2();
+    layout.visibility.history = true;
+
+    const result = solvePanelWorkspaceLayoutV2(
+      layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      {
+        workspaceRect: { width: 1600, height: 900 },
+        railSizes: { left: 48, right: 48, bottom: 48 },
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.presentations.right).toBe("anchored");
+    expect(result.value.occupiedInsets.right).toBe(372);
+    const properties = result.value.frameGeometries.get("properties");
+    const history = result.value.frameGeometries.get("history");
+    expect(properties).toBeDefined();
+    expect(history).toBeDefined();
+    expect(history!.height).toBeLessThan(450);
+    expect(history!.height).toBeGreaterThanOrEqual(160);
+    expect(history!.y + history!.height).toBeLessThanOrEqual(852);
+  });
+
+  it("stack minimum height도 workspace를 넘을 때만 constrained overlay를 사용한다", () => {
+    const layout = createPanelWorkspaceLayoutV2();
+    layout.visibility.history = true;
+
+    const result = solvePanelWorkspaceLayoutV2(
+      layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      {
+        workspaceRect: { width: 1600, height: 300 },
+        railSizes: { left: 48, right: 48, bottom: 48 },
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.presentations.right).toBe("constrained-overlay");
+    for (const geometry of result.value.frameGeometries.values()) {
+      expect(geometry.y + geometry.height).toBeLessThanOrEqual(300);
+    }
+  });
+
   it("800px viewport에서는 right를 유지하고 left를 overlay한 뒤 확장 시 원 anchor로 복귀한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
     layout.visibility.nodes = false;

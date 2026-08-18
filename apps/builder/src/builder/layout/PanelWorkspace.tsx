@@ -251,7 +251,7 @@ function PanelWorkspaceSharedSplitters({
             onResizeStart={() => runtime.beginInteraction()}
             onResize={(deltaX, deltaY) => {
               recordPanelWorkspaceSolve();
-              const mutation = runtime.resizePanel(
+              const mutation = runtime.resizePanelFromReference(
                 contract.panelId,
                 contract.edge,
                 deltaX,
@@ -577,7 +577,12 @@ const PanelFrame = memo(function PanelFrame({
     deltaY: number,
   ) => {
     recordPanelWorkspaceSolve();
-    const mutation = runtime.resizePanel(config.id, edge, deltaX, deltaY);
+    const mutation = runtime.resizePanelFromReference(
+      config.id,
+      edge,
+      deltaX,
+      deltaY,
+    );
     if (mutation.ok) {
       recordPanelWorkspaceLayoutInput(
         mutation.value.expectedVersion,

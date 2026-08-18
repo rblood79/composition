@@ -716,6 +716,27 @@ function clusterDemand(
   };
 }
 
+function clusterMinimumHeight(
+  cluster: PanelWorkspaceClusterV2 | undefined,
+  visibility: Partial<Record<PanelId, boolean>>,
+  entries: ReadonlyMap<PanelId, PanelWorkspaceRegistryEntry>,
+): number {
+  if (!cluster) return 0;
+  return Math.max(
+    0,
+    ...cluster.columns.map((column) => {
+      const rows = visibleRows(column, visibility);
+      return (
+        rows.reduce(
+          (total, row) => total + (entries.get(row.panelId)?.minHeight ?? 0),
+          0,
+        ) +
+        PANEL_WORKSPACE_GAP * Math.max(0, rows.length - 1)
+      );
+    }),
+  );
+}
+
 function fitTracks(
   preferred: readonly number[],
   minimums: readonly number[],
@@ -787,9 +808,10 @@ function placeClusterFrames(
 
   const columnRows = visibleColumns.map(({ rows }) => {
     const verticalGap = PANEL_WORKSPACE_GAP * Math.max(0, rows.length - 1);
+    const leadingGap = cluster.anchor === "floating" ? 0 : PANEL_WORKSPACE_GAP;
     const availableHeight = Math.max(
       0,
-      workspace.height - rails.bottom - verticalGap,
+      workspace.height - rails.bottom - leadingGap - verticalGap,
     );
     const heights = fitTracks(
       rows.map((row) => row.height),
@@ -888,6 +910,18 @@ export function solvePanelWorkspaceLayoutV2(
     right: clusterDemand(anchoredClusters.right, normalizedLayout.visibility),
     bottom: clusterDemand(anchoredClusters.bottom, normalizedLayout.visibility),
   };
+  const minimumHeights = {
+    left: clusterMinimumHeight(
+      anchoredClusters.left,
+      normalizedLayout.visibility,
+      entries,
+    ),
+    right: clusterMinimumHeight(
+      anchoredClusters.right,
+      normalizedLayout.visibility,
+      entries,
+    ),
+  };
   const presentations: Record<
     PanelWorkspaceRailSide,
     PanelWorkspaceAnchorPresentation
@@ -920,7 +954,8 @@ export function solvePanelWorkspaceLayoutV2(
   for (const side of ["left", "right"] as const) {
     if (
       presentations[side] === "anchored" &&
-      demands[side].height > workspaceRect.height - railSizes.bottom
+      minimumHeights[side] >
+        workspaceRect.height - railSizes.bottom - PANEL_WORKSPACE_GAP
     ) {
       presentations[side] = "constrained-overlay";
     }

@@ -1,5 +1,5 @@
 import { mergeProps, useKeyboard, useMove } from "react-aria";
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import type { PanelResizeEdge } from "../panels/core/types";
 
 export interface PanelSplitterProps {
@@ -51,9 +51,19 @@ export function PanelSplitter({
   onResizeEnd,
 }: PanelSplitterProps) {
   const adjustsWidth = edge === "left" || edge === "right";
+  const pointerDeltaRef = useRef({ deltaX: 0, deltaY: 0 });
   const { moveProps } = useMove({
-    onMoveStart: onResizeStart,
-    onMove: (event) => onResize(event.deltaX, event.deltaY),
+    onMoveStart: () => {
+      pointerDeltaRef.current = { deltaX: 0, deltaY: 0 };
+      onResizeStart();
+    },
+    onMove: (event) => {
+      pointerDeltaRef.current = {
+        deltaX: pointerDeltaRef.current.deltaX + event.deltaX,
+        deltaY: pointerDeltaRef.current.deltaY + event.deltaY,
+      };
+      onResize(pointerDeltaRef.current.deltaX, pointerDeltaRef.current.deltaY);
+    },
     onMoveEnd: onResizeEnd,
   });
   const { keyboardProps } = useKeyboard({
