@@ -46,6 +46,13 @@ ADR-111 (frame schema) / ADR-112 (editing semantics) / ADR-113 (tag→type renam
 | LayerTree/Properties | canonical node/path/alias view model                                  | legacy `Element` shape 를 primary read model                |
 | Boundary             | cloud/export/import/publish compat adapter                            | Builder hot path `exportLegacyDocument()` 호출              |
 
+**핵심 불변식 4건** (2026-08-18 `.agents` 사본에서 이관 — 심링크 단일화 시 유일 실질 고유분):
+
+1. **ref/layout_id 직접 read 금지**: Builder runtime/history helper 에서 `RefNode.descendants` / legacy `layout_id` 직접 읽기 금지. ref override traversal 은 `canonicalElementsView` helper boundary, frame ownership lookup 은 `frameMirror` boundary 로 격리.
+2. **History full-snapshot prune**: History/Undo 가 full snapshot 으로 canonical document 를 동기화할 때 omitted runtime node 를 `db.documents` 에 남기지 않는다. page/layout shell 과 structural `body` 는 보존하되, incoming snapshot 에 없는 legacy-exportable runtime node 는 full-replace 과정에서 prune.
+3. **page-shell bridge 보존**: page-shell bridge 는 새 page/body shell append 를 보존해야 하며, page/origin 삭제 후 stale canonical-derived snapshot 으로 deleted node 를 되살리면 안 된다 (`stores/history/historyActions.ts` page shell bridge 경로).
+4. **Preview/Compare Mode 렌더 기준**: Preview/Compare Mode active channel 은 canonical `CompositionDocument` presence 기준으로 렌더. Compare Mode 의 렌더 분기가 canonical sync 를 막거나, Preview 가 legacy `elements[]` length 0 만 보고 빈 화면을 렌더하면 안 된다 (`workspace/Workspace.tsx` Compare Mode).
+
 ### Pencil terminology — 단일 표준 (ADR-111)
 
 | 명칭          | 의미                                                  | 위치                                                                 |

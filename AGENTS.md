@@ -13,9 +13,10 @@ composition 협업을 위한 Codex 실행 계약입니다. 이 파일은 항상 
 - 우선순위: `AGENTS.md` → `.agents/README.md` → 필요한 skill/rule 파일.
 - `.agents/README.md`는 harness·라우팅이 필요할 때 열고, 일반 코드 수정은
   관련 skill/rule만 좁게 엽니다.
-- `.claude/`는 legacy reference입니다. Codex 지시는 `AGENTS.md`와
-  `.agents/*`를 우선하며, legacy 상세가 꼭 필요할 때만 링크된 파일을
-  확인합니다.
+- skill/rule 정본은 `.claude/` 입니다 (2026-08-18 단일화). `.agents/skills/*`
+  와 `.agents/rules/*` 는 정본으로의 심링크 미러이므로 어느 경로로 읽어도
+  같은 내용입니다. Codex 전용 파일은 `.agents/rules/goal-lifecycle.md` 와
+  `.agents/README.md` 등 실파일만 해당합니다.
 - `dist/`, 생성물, 사용자 변경 파일은 요청 없이 수정하지 않습니다.
 
 ## 프로젝트 구조

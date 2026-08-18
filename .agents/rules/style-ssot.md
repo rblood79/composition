@@ -1,0 +1,1 @@
+../../.claude/rules/style-ssot.md
