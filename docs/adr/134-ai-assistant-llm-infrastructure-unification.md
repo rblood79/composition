@@ -3,7 +3,7 @@
 ## Status
 
 Proposed — 2026-05-13
-**노선 개정 — 2026-08-18**: 자체 로컬 LLM 내장 노선 (Ollama 1st + node-llama-cpp Electron 내장 + Qwen 고정) 을 폐기하고, reference 수렴 노선 (**역할별 멀티 프로바이더 BYOK + 외부 코딩 에이전트/MCP 준비**) 으로 교체. **Groq 완전 제거 방침은 유지**. 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (2026-08-17 갱신) + [HOLAOS_ANALYSIS.md](../explanation/research/HOLAOS_ANALYSIS.md) (2026-08-18). 본 개정은 전제 확정 종결 계약의 재개 조건 (a) 사용자 재제기에 따른 것 — 통합 형태 (단일 ADR, 대안 A) 결정은 유지하고 **인프라 노선만 재결정** (§인프라 노선 재결정 2026-08-18).
+**노선 개정 — 2026-08-18**: 자체 로컬 LLM 내장 노선 (Ollama 1st + node-llama-cpp Electron 내장 + Qwen 고정) 을 폐기하고, reference 수렴 노선 (**역할별 멀티 프로바이더 BYOK + 외부 코딩 에이전트/MCP 준비**) 으로 교체. **Groq 완전 제거 방침은 유지**. 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (2026-08-17 갱신) + [HOLAOS_ANALYSIS.md](../explanation/research/HOLAOS_ANALYSIS.md) (2026-08-18) + [XAI_ORG_ANALYSIS.md](../explanation/research/XAI_ORG_ANALYSIS.md) (2026-08-18 — grok-build 를 5번째 수렴 사례로 추가). 본 개정은 전제 확정 종결 계약의 재개 조건 (a) 사용자 재제기에 따른 것 — 통합 형태 (단일 ADR, 대안 A) 결정은 유지하고 **인프라 노선만 재결정** (§인프라 노선 재결정 2026-08-18).
 
 > **설계 문서 단계**: 본문 + design breakdown + 기존 ADR Deprecated 이동까지만 반영 (구현은 이후 단계). Phase 0-9 실행 작업 + 코드 변경은 사용자 plan review 후 별도 단계 ([[adr133-events-panel-simplification-plan]] 동일 패턴).
 
@@ -44,18 +44,19 @@ ADR-011 의 AIPanel (ChatMessage / ChatInput / ChatContainer / ToolCallMessage /
 
 [PENCIL_ECOSYSTEM_ANALYSIS.md](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (2026-08-17 갱신, §2/§3/§4/§8/§9) 실측 기준, 비교 대상 제품군의 AI 인프라는 전부 같은 방향으로 수렴했고 **자체 로컬 LLM 내장 (node-llama-cpp 류) 은 어디에도 없다**:
 
-| Reference                                                                                            | AI 인프라 실측                                                                                                                                                                                                                               |
-| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Pencil.app v1.1.57**                                                                               | OpenAI Codex SDK (`@openai/codex` 0.128.0) + Anthropic Claude Agent SDK (0.2.141) **dual embed** — 외부 코딩 에이전트를 데스크톱에 직접 통합                                                                                                 |
-| **openpencil (ZSeven-W) v0.8.4**                                                                     | `op-ai` + skills + `op-orchestrator` (Concurrent Agent Teams) + `op-acp` + `op-mcp` — **multi-model/provider profile** + 외부 CLI/ACP 연동, MCP catalog 129 tools                                                                            |
-| **open-pencil (OpenPencil) v0.14.0**                                                                 | **역할별 모델 4종 (Design / Review / Fast / Vision)** — 슬롯마다 개별 provider·엔드포인트·자격증명 + provider 별 reasoning effort + 격리 Vision inspection + **ACP 에이전트 (Claude Code / Codex / Gemini CLI)** + MCP unix socket 자동 발견 |
-| **holaboss-ai/holaOS** ([HOLAOS_ANALYSIS.md](../explanation/research/HOLAOS_ANALYSIS.md) 2026-08-18) | 하니스 추상화 (`runtime/harness-host` — 자체 pi / Claude Code / Codex 3-way) + BYOK 멀티 프로바이더 (Anthropic / OpenAI / 호환 endpoint) + MCP + deferred tool gateway + 하니스 간 공유 메모리                                               |
+| Reference                                                                                              | AI 인프라 실측                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pencil.app v1.1.57**                                                                                 | OpenAI Codex SDK (`@openai/codex` 0.128.0) + Anthropic Claude Agent SDK (0.2.141) **dual embed** — 외부 코딩 에이전트를 데스크톱에 직접 통합                                                                                                                                                                                                  |
+| **openpencil (ZSeven-W) v0.8.4**                                                                       | `op-ai` + skills + `op-orchestrator` (Concurrent Agent Teams) + `op-acp` + `op-mcp` — **multi-model/provider profile** + 외부 CLI/ACP 연동, MCP catalog 129 tools                                                                                                                                                                             |
+| **open-pencil (OpenPencil) v0.14.0**                                                                   | **역할별 모델 4종 (Design / Review / Fast / Vision)** — 슬롯마다 개별 provider·엔드포인트·자격증명 + provider 별 reasoning effort + 격리 Vision inspection + **ACP 에이전트 (Claude Code / Codex / Gemini CLI)** + MCP unix socket 자동 발견                                                                                                  |
+| **holaboss-ai/holaOS** ([HOLAOS_ANALYSIS.md](../explanation/research/HOLAOS_ANALYSIS.md) 2026-08-18)   | 하니스 추상화 (`runtime/harness-host` — 자체 pi / Claude Code / Codex 3-way) + BYOK 멀티 프로바이더 (Anthropic / OpenAI / 호환 endpoint) + MCP + deferred tool gateway + 하니스 간 공유 메모리                                                                                                                                                |
+| **xai-org/grok-build** ([XAI_ORG_ANALYSIS.md](../explanation/research/XAI_ORG_ANALYSIS.md) 2026-08-18) | BYOK 멀티 백엔드 (`ApiBackend` — Anthropic Messages / OpenAI ChatCompletions·Responses + capability 술어) + ACP 지원 에이전트 + MCP 클라이언트 + **도구 지연 로딩** (BM25 `search_tool` + `use_tool` 메타 디스패처 — MCP 도구를 모델 manifest 에서 제외) + `~/.claude/settings.json`·skills·hooks 네이티브 호환 읽기. 자체 로컬 LLM 내장 없음 |
 
 같은 문서 §9-5 의 composition 판정: "기본 agent loop 는 있으나 enterprise-grade provider·verification·offline contract 가 없다" — 잔존 gap 은 AI 기능 수가 아니라 **AI productization** (provider abstraction / secret isolation / prompt·tool audit / Plan→Execute→Verify / offline / data retention — §10 acceptance criteria). 현행 `GroqAgentService` 는 `groq-sdk` ^0.37.0 + `llama-3.3-70b-versatile` 단일 provider + `dangerouslyAllowBrowser: true` (API 키 브라우저 노출) 상태다.
 
 반면 본 ADR 의 2026-05-13 원 노선 (Ollama 1st + node-llama-cpp Electron 내장 + Qwen 모델 고정 + 폐쇄망 first-class 내장) 은:
 
-- reference 4개 어디에도 대응물이 없는 **고립 노선** — 모델 수명주기 관리 (다운로드 ~18.5GB / 양자화 / 세대 교체) 를 제품이 소유
+- reference 5개 어디에도 대응물이 없는 **고립 노선** — 모델 수명주기 관리 (다운로드 ~18.5GB / 양자화 / 세대 교체) 를 제품이 소유
 - 하드웨어 제약 (16GB 는 14B 한정, 권장 36GB) 을 제품 요구사항으로 떠안음
 - 로컬 모델 tool calling 정확도 상한 (BFCL ≤ 75%) 을 카탈로그 주입으로 보정하는 구조적 부담
 - Electron 마이그레이션 미확정에 최종 단계 (Phase 9) 가 묶임
@@ -161,13 +162,13 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 - 위험:
   - 기술: **MEDIUM** — node-llama-cpp 안정성 + Electron 마이그레이션 시점 의존
   - 성능: **HIGH** — 로컬 모델 BFCL tool calling ≤ 75% 가 UX 상한. frontier 모델 대비 격차가 카탈로그 보정으로도 미해소 (multistep 설계 T2 72%)
-  - 유지보수: **HIGH** — 모델 수명주기 (다운로드 ~18.5GB / 양자화 / 세대 교체 / 하드웨어 매트릭스 16·36GB) 를 제품이 소유. reference 4개 (Pencil.app / openpencil / open-pencil / holaOS) 어디에도 대응물이 없는 고립 노선 — 교차 검증 불가
+  - 유지보수: **HIGH** — 모델 수명주기 (다운로드 ~18.5GB / 양자화 / 세대 교체 / 하드웨어 매트릭스 16·36GB) 를 제품이 소유. reference 5개 (Pencil.app / openpencil / open-pencil / holaOS / grok-build) 어디에도 대응물이 없는 고립 노선 — 교차 검증 불가
   - 마이그레이션: **MEDIUM** — 최종 단계가 Electron 미확정에 묶임
 
 #### 노선 β: 역할별 멀티 프로바이더 BYOK + 외부 에이전트/MCP 준비 (선택)
 
 - 설명: open-pencil v0.14.0 의 역할별 모델 패턴을 채택 — **역할 슬롯 (design / review / fast / vision 예약)** 마다 provider·엔드포인트·자격증명·모델을 개별 설정 (BYOK). 어댑터는 **Anthropic Messages + OpenAI-compatible Chat Completions 2-way** 로 축소하고, 로컬 모델 (Ollama / vLLM / LM Studio) 은 OpenAI-compatible endpoint 로 포섭 — 폐쇄망은 전 슬롯을 로컬 endpoint 에 바인딩하는 것으로 달성. 도구 정의는 MCP tool schema 호환 형태를 유지해 외부 코딩 에이전트 (ACP — Claude Code / Codex) 통합을 Electron 단계 목표로 준비. `dangerouslyAllowBrowser` 제거 + 키 보관·경유 경계 (secret isolation) 를 1급 결정으로 승격
-- 근거: 격차 5 — reference 4개 전부가 이 방향으로 수렴 (분석 문서 §8 차용 후보 4/7/12/17 + holaOS 하니스 패턴). 분석 문서 §10 "AI 운영 가능성 재평가" 의 acceptance criteria (provider abstraction / secret isolation / audit / verification / offline / retention) 와 1:1 정합
+- 근거: 격차 5 — reference 5개 전부가 이 방향으로 수렴 (분석 문서 §8 차용 후보 4/7/12/17 + holaOS 하니스 패턴 + grok-build `ApiBackend`·도구 지연 로딩). 분석 문서 §10 "AI 운영 가능성 재평가" 의 acceptance criteria (provider abstraction / secret isolation / audit / verification / offline / retention) 와 1:1 정합. 구현 세부 reference: [XAI_ORG_ANALYSIS.md](../explanation/research/XAI_ORG_ANALYSIS.md) §5-1 (capability 술어 / retry 스펙 / 프롬프트 템플릿 / compaction 계약)
 - 위험:
   - 기술: **LOW** — 표준 API 2종 어댑터. 웹앱 환경에서 즉시 진행 가능 (Electron 비의존)
   - 성능: **LOW** — frontier 모델 tool calling (BFCL 90%+) 이 기본 경험. 로컬 endpoint 선택 시 정확도는 사용자 trade-off
@@ -207,7 +208,7 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 ### 기각 사유
 
 - **대안 B/C 기각** (2026-05-13, 유지): 의존 체인 관리 비용 / stale 본문 정정 비용 + 사용자 정정 충돌
-- **노선 α 기각** (2026-08-18): 성능·유지보수 HIGH 2개. reference 4개 어디에도 없는 고립 노선으로, 모델 수명주기·하드웨어 매트릭스를 제품이 소유하는 구조적 부담 대비 이득 (폐쇄망 first-class) 은 노선 β 의 로컬 endpoint BYOK 로 동등 달성 가능
+- **노선 α 기각** (2026-08-18): 성능·유지보수 HIGH 2개. reference 5개 어디에도 없는 고립 노선으로, 모델 수명주기·하드웨어 매트릭스를 제품이 소유하는 구조적 부담 대비 이득 (폐쇄망 first-class) 은 노선 β 의 로컬 endpoint BYOK 로 동등 달성 가능
 - **노선 γ 현 단계 기각** (2026-08-18): Electron 선행 필수 — 웹앱 현 단계에서 차단. 단 노선 β 가 γ 의 전제 (MCP 호환 도구 표면) 를 준비하므로 Phase 9 재평가 대상
 
 ### sub-decision D1-D11 (2026-08-18 개정 반영)
@@ -225,7 +226,7 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 - **D8** (개정): 모델 라우팅 — ~~난이도 기반 로컬/온라인 전환~~ → **역할 기반 슬롯 라우팅** (작업 유형 → 역할 슬롯 선택, D7 배선이 정본). 폐쇄망 = 전 슬롯을 로컬 OpenAI-compatible endpoint 에 바인딩 (Hard Constraint 7 재규정 정합). 난이도 추정·자동 전환 제안·복합 작업 자동 분할은 제거 — 슬롯 구성이 사용자 통제 지점
 - **D9**: AIPanel UX 1년차 신입 baseline (ADR-133 정합) — depth 4→2 축소. default 표면 = 자연어 입력 + 도구 실행 결과 시각 피드백 (G.3 보존). 고급 모드 = Plan 단계 시각화 + 자기 수정 표시 + **역할 슬롯 설정** (L4 power user 격리)
 - **D10** (신규 2026-08-18): **secret isolation** — `dangerouslyAllowBrowser` 제거 + browser 번들에서 외부 provider 직접 호출 0건 (Hard Constraint 13). BYOK 키 보관·경유 경계: 원격 provider 는 프록시 경유 (Supabase Edge Function 등 — Phase 2 에서 확정), 로컬 endpoint (localhost) 는 직접 호출 허용. 키의 브라우저 저장은 사용자 명시 opt-in (localStorage 평문 금지)
-- **D11** (신규 2026-08-18): **외부 에이전트/MCP 준비** — 7+ 도구 정의를 MCP tool schema 와 호환되는 형태 (JSON Schema 파라미터 + 명세 분리) 로 유지. ACP/에이전트 SDK embed (Claude Code / Codex — Pencil.app dual embed·holaOS 하니스 패턴) 는 Electron 반영 후 Phase 9 에서 재평가
+- **D11** (신규 2026-08-18): **외부 에이전트/MCP 준비** — 7+ 도구 정의를 MCP tool schema 와 호환되는 형태 (JSON Schema 파라미터 + 명세 분리) 로 유지. ACP/에이전트 SDK embed (Claude Code / Codex — Pencil.app dual embed·holaOS 하니스·grok-build ACP 패턴) 는 Electron 반영 후 Phase 9 에서 재평가. 도구 표면이 커질 때의 지연 로딩은 grok-build `search_tool`+`use_tool` 패턴 (manifest 안정 = KV cache 보존 — 3중 독립 수렴 확인, XAI_ORG_ANALYSIS §5-1 #1) 을 정본 reference 로 한다
 
 ### Phase 0-9 분해 + Gate G1-G7 (2026-08-18 개정)
 
@@ -277,7 +278,7 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 
 ### Positive
 
-- **reference 수렴 노선**: Pencil.app / openpencil / open-pencil / holaOS 4개 reference 와 같은 방향 — 교차 검증 가능한 패턴 (역할별 모델 / BYOK / ACP·MCP), 고립 노선의 모델 수명주기 부담 소멸
+- **reference 수렴 노선**: Pencil.app / openpencil / open-pencil / holaOS / grok-build 5개 reference 와 같은 방향 — 교차 검증 가능한 패턴 (역할별 모델 / BYOK / ACP·MCP / 도구 지연 로딩), 고립 노선의 모델 수명주기 부담 소멸
 - **단일 진입점**: `LLMProvider` 통합 인터페이스 + 역할 슬롯으로 원격/로컬 모델 자유 전환 — 폐쇄망은 로컬 endpoint 바인딩으로 동등 달성
 - **canonical document 정합**: AI 가 `CompositionDocument` 의 frame / slot / componentSemantics / events / actions 영역 mutation 가능 — ADR-116/122/130/131 반영 영역 활용
 - **data_tables SSOT 정합**: `useCollectionData({ datatableId | dataBinding })` 통합 read 진입점 + `data_tables.runtimeData` sink — ADR-132 정합
@@ -304,15 +305,16 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 
 ## 개정 이력
 
-| 날짜       | 내용                                                                                                                                                                      |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-05-13 | 최초 작성 — ADR-011 + ADR-054 단일 통합, 노선 α (자체 로컬 LLM 내장), 설계 문서만 반영                                                                                    |
-| 2026-08-18 | 노선 재결정 (사용자 재제기) — 노선 α 기각 → 노선 β (역할별 BYOK + 외부 에이전트/MCP 준비). 격차 5 추가, Hard Constraint 4 삭제·7 재규정·13 추가, D1/D8 개정, D10/D11 신규 |
+| 날짜       | 내용                                                                                                                                                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-13 | 최초 작성 — ADR-011 + ADR-054 단일 통합, 노선 α (자체 로컬 LLM 내장), 설계 문서만 반영                                                                                                                                     |
+| 2026-08-18 | 노선 재결정 (사용자 재제기) — 노선 α 기각 → 노선 β (역할별 BYOK + 외부 에이전트/MCP 준비). 격차 5 추가, Hard Constraint 4 삭제·7 재규정·13 추가, D1/D8 개정, D10/D11 신규                                                  |
+| 2026-08-18 | 수렴 근거 보강 — xai-org 9개 저장소 분석 (XAI_ORG_ANALYSIS.md) 반영: grok-build 를 격차 5 의 5번째 수렴 사례로 추가 (reference 4→5개), D11 에 도구 지연 로딩 (`search_tool`+`use_tool`, 3중 독립 수렴) 정본 reference 명시 |
 
 ## 관련
 
 - 본문 design: [design/134-ai-assistant-llm-infrastructure-unification-breakdown.md](design/134-ai-assistant-llm-infrastructure-unification-breakdown.md)
-- 노선 재결정 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (§5 비교 매트릭스 / §8 차용 후보 4·7·12·17 / §9-5 AI productization / §10 acceptance criteria) + [OPENPENCIL_DETAIL.md](../explanation/research/OPENPENCIL_DETAIL.md) + [HOLAOS_ANALYSIS.md](../explanation/research/HOLAOS_ANALYSIS.md) (§3 하니스 추상화·BYOK·deferred tool gateway / §4 노선 β 정합 표 / §5 차용 후보)
+- 노선 재결정 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (§5 비교 매트릭스 / §8 차용 후보 4·7·12·17 / §9-5 AI productization / §10 acceptance criteria) + [OPENPENCIL_DETAIL.md](../explanation/research/OPENPENCIL_DETAIL.md) + [HOLAOS_ANALYSIS.md](../explanation/research/HOLAOS_ANALYSIS.md) (§3 하니스 추상화·BYOK·deferred tool gateway / §4 노선 β 정합 표 / §5 차용 후보) + [XAI_ORG_ANALYSIS.md](../explanation/research/XAI_ORG_ANALYSIS.md) (§2 grok-build 하니스 실측 / §5-1 ADR-134 매핑 8건 — 도구 지연 로딩·capability 술어·retry 스펙·프롬프트 템플릿·compaction·권한 파이프라인 / §5-2 marketplace 배포 계약)
 - 폐기 대상: [completed/011-ai-assistant-design.md](completed/011-ai-assistant-design.md) / [completed/054-local-llm-architecture.md](completed/054-local-llm-architecture.md)
 - 정합 ADR: ADR-116 / ADR-122 (canonical document) / ADR-130 (frame) / ADR-131 (events/actions root) / ADR-132 (useCollectionData) / ADR-133 (AIPanel UX 1년차 신입 baseline)
 - 동일 패턴: ADR-133 (3 ADR Deprecated + 통합 신규 ADR + 설계 문서 먼저 + Phase 실행 사용자 review 후)

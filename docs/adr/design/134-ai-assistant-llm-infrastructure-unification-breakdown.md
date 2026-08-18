@@ -2,7 +2,7 @@
 
 > 본문: [134-ai-assistant-llm-infrastructure-unification.md](../134-ai-assistant-llm-infrastructure-unification.md). 설계 문서 단계 — Phase 0-9 실행 작업 + 코드 변경은 사용자 plan review 후 별도 단계.
 >
-> **2026-08-18 노선 개정 반영**: 본문 §인프라 노선 재결정 — 노선 α (자체 로컬 LLM 내장) 기각 → 노선 β (역할별 멀티 프로바이더 BYOK + 외부 에이전트/MCP 준비). Phase 1/2/5/7/9 산출물이 재편됐다. 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) + [HOLAOS_ANALYSIS.md](../../explanation/research/HOLAOS_ANALYSIS.md).
+> **2026-08-18 노선 개정 반영**: 본문 §인프라 노선 재결정 — 노선 α (자체 로컬 LLM 내장) 기각 → 노선 β (역할별 멀티 프로바이더 BYOK + 외부 에이전트/MCP 준비). Phase 1/2/5/7/9 산출물이 재편됐다. 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) + [HOLAOS_ANALYSIS.md](../../explanation/research/HOLAOS_ANALYSIS.md) + [XAI_ORG_ANALYSIS.md](../../explanation/research/XAI_ORG_ANALYSIS.md) (grok-build — 5번째 수렴 사례, §5-1 에 Phase 1/2/9 구현 세부 reference 8건).
 
 ## 0. 전제 점검 4 질문 lock-in
 
@@ -65,7 +65,7 @@
 
 ## 3. Phase 1 — LLM Provider 추상화 + 역할 슬롯 (D1, G1)
 
-**목적**: `LLMProvider` 인터페이스 + **2-way 어댑터** (Anthropic Messages / OpenAI-compatible Chat Completions) + **역할별 모델 슬롯 4종** 반영. `completeWithTools(tools, messages, options)` 통합 시그니처. open-pencil v0.14.0 역할 모델 패턴 정합 (분석 문서 §4-4).
+**목적**: `LLMProvider` 인터페이스 + **2-way 어댑터** (Anthropic Messages / OpenAI-compatible Chat Completions) + **역할별 모델 슬롯 4종** 반영. `completeWithTools(tools, messages, options)` 통합 시그니처. open-pencil v0.14.0 역할 모델 패턴 정합 (분석 문서 §4-4). 어댑터 구현 reference: grok-build `ApiBackend` capability 술어 (backend 차이를 if 산개가 아니라 enum 술어 메서드로 중앙화 — Messages 의 "native schema ↔ tool use 상충 → StructuredOutput 도구 우회" 포함) + retry 행동 스펙 (429 Retry-After 전액 대기 + 별도 시도 상한 / 413 이미지 strip 1회 / 영구-fatal 분류 / 서버 override 헤더) — [XAI_ORG_ANALYSIS.md](../../explanation/research/XAI_ORG_ANALYSIS.md) §2-2/§5-1 #2·#3.
 
 ### Phase 1 산출물
 
@@ -224,7 +224,7 @@
 
 ## 11. Phase 9 — 외부 코딩 에이전트 통합 (D11, G7)
 
-**목적**: ACP/에이전트 SDK embed (Claude Code / Codex) + MCP 도구 표면 노출. **Electron 마이그레이션 시점 의존 (R1 HIGH 위험)**. Reference: Pencil.app dual embed (Codex SDK + Claude Agent SDK) / open-pencil ACP (Claude Code / Codex / Gemini CLI) / holaOS harness-host (pi / claude-code / codex 3-way + deferred tool gateway — [HOLAOS_ANALYSIS.md](../../explanation/research/HOLAOS_ANALYSIS.md) §3-1/§5).
+**목적**: ACP/에이전트 SDK embed (Claude Code / Codex) + MCP 도구 표면 노출. **Electron 마이그레이션 시점 의존 (R1 HIGH 위험)**. Reference: Pencil.app dual embed (Codex SDK + Claude Agent SDK) / open-pencil ACP (Claude Code / Codex / Gemini CLI) / holaOS harness-host (pi / claude-code / codex 3-way + deferred tool gateway — [HOLAOS_ANALYSIS.md](../../explanation/research/HOLAOS_ANALYSIS.md) §3-1/§5) / grok-build (ACP + `search_tool`+`use_tool` 도구 지연 로딩 정본 + embed 권한 5단 파이프라인 — [XAI_ORG_ANALYSIS.md](../../explanation/research/XAI_ORG_ANALYSIS.md) §2-1/§2-3/§5-1).
 
 ### Phase 9 산출물
 
