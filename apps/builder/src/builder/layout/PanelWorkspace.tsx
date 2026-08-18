@@ -31,6 +31,12 @@ import {
 } from "./PanelSnapContext";
 import { resolvePanelSnap, type PanelSnapCandidate } from "./panelSnap";
 import {
+  mountPanelWorkspaceDiagnostics,
+  recordPanelFrameCommit,
+  recordPanelWorkspaceCommit,
+  recordPanelWorkspaceSolve,
+} from "./panelWorkspaceDiagnostics";
+import {
   panelBelongsToCluster,
   previewPanelClusterResize,
 } from "./panelStackLayout";
@@ -283,6 +289,10 @@ const PanelFrame = memo(function PanelFrame({
     useState<PanelFrameGeometry>(initialGeometry);
   const visualGeometryRef = useRef(initialGeometry);
 
+  useLayoutEffect(() => {
+    recordPanelFrameCommit(config.id);
+  });
+
   useEffect(() => {
     if (isInteractingRef.current) return;
     visualGeometryRef.current = initialGeometry;
@@ -353,6 +363,7 @@ const PanelFrame = memo(function PanelFrame({
     },
     onMove: (event) => {
       if (mode === "hidden") return;
+      recordPanelWorkspaceSolve();
       const current = visualGeometryRef.current;
       const next = {
         ...current,
@@ -420,6 +431,7 @@ const PanelFrame = memo(function PanelFrame({
     deltaX: number,
     deltaY: number,
   ) => {
+    recordPanelWorkspaceSolve();
     const current = visualGeometryRef.current;
     const next = { ...current };
 
@@ -566,6 +578,12 @@ function PanelWorkspaceContent() {
   const activeRightPanels = effectiveLayout.activeRightPanels.filter(
     (panelId) => !placedIds.has(panelId),
   );
+
+  useEffect(() => mountPanelWorkspaceDiagnostics(), []);
+
+  useLayoutEffect(() => {
+    recordPanelWorkspaceCommit();
+  });
 
   const beginResizeSession = useCallback(
     (panelId: PanelId) => {

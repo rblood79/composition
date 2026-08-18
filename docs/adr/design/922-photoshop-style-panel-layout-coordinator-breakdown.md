@@ -446,6 +446,14 @@ interface PanelLayoutV1BackupEnvelope {
   interval, pointer event 수, layout solve 수, React commit 수, long task를 기록한다.
 - G0 통과 전에는 production state shape를 바꾸지 않는다.
 
+#### 실행 기록 — G0 PASS (2026-08-18)
+
+- [Phase 0 panel workspace baseline](./922-phase-0-panel-workspace-baseline.md)에 v1
+  producer/consumer 20개 파일, unused legacy host, 대표 5-panel flow, 세 shell DOM 경로,
+  constrained viewport와 native-refresh/5초 interaction trace를 고정했다.
+- DEV query-gated 진단 외 production state shape와 renderer 변경은 0건이다.
+- Phase 1은 별도 HIGH-risk 승인과 G1 검증 전까지 시작하지 않는다.
+
 ### Phase 1 — v2 model, solver, migration
 
 - exact v2 cluster placement schema, anchor cardinality, inset/min-max/constrained-overlay 수식을
@@ -659,7 +667,7 @@ interface PanelLayoutV1BackupEnvelope {
 
 ## 9. 완료 체크리스트
 
-- [ ] Phase 0 inventory와 native-refresh baseline이 기록됐다.
+- [x] Phase 0 inventory와 native-refresh baseline이 기록됐다.
 - [ ] exact v2 single cluster placement/anchor/inset 수식이 freeze됐다.
 - [ ] 320x180 main reservation, constrained overlay, narrow viewport 자동 anchor 복귀 수식이
       freeze됐다.

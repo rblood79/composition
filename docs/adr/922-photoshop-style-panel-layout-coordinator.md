@@ -4,6 +4,9 @@
 
 Accepted — 2026-08-18
 
+진행: Phase 0 / G0 PASS — [panel workspace baseline](./design/922-phase-0-panel-workspace-baseline.md)
+고정. Production renderer와 persisted state는 아직 v1이다.
+
 ## Context
 
 Composition Builder의 panel workspace는 최근 모든 등록 panel을
