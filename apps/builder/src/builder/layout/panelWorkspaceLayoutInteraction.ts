@@ -7,10 +7,13 @@ import type {
   PanelSnapEdge,
 } from "../panels/core/types";
 import {
+  PANEL_WORKSPACE_GAP,
   normalizePanelWorkspaceLayoutV2,
   type PanelWorkspaceClusterV2,
   type PanelWorkspaceColumnV2,
   type PanelWorkspaceLayoutV2,
+  type PanelWorkspaceRailSizes,
+  type PanelWorkspaceRect,
   type PanelWorkspaceRegistryEntry,
   type PanelWorkspaceResult,
 } from "./panelWorkspaceLayoutV2";
@@ -18,6 +21,11 @@ import {
 export interface PanelWorkspaceInteractionResult {
   layout: PanelWorkspaceLayoutV2;
   affectedPanelIds: PanelId[];
+}
+
+export interface PanelWorkspaceActivationOptions {
+  railSizes: PanelWorkspaceRailSizes;
+  workspaceRect: PanelWorkspaceRect;
 }
 
 interface PanelPlacement {
@@ -96,6 +104,69 @@ function panelIdsInCluster(cluster: PanelWorkspaceClusterV2): PanelId[] {
 
 function uniquePanelIds(panelIds: readonly PanelId[]): PanelId[] {
   return [...new Set(panelIds)];
+}
+
+function railSideForPanel(
+  layout: PanelWorkspaceLayoutV2,
+  panelId: PanelId,
+): PanelSide | null {
+  for (const side of ["left", "right", "bottom"] as const) {
+    if (layout.railOrder[side].includes(panelId)) return side;
+  }
+  return null;
+}
+
+function visibleRowHeight(
+  column: PanelWorkspaceColumnV2,
+  visibility: Partial<Record<PanelId, boolean>>,
+): number {
+  const rows = column.rows.filter((row) => visibility[row.panelId] === true);
+  return (
+    rows.reduce((total, row) => total + row.height, 0) +
+    Math.max(0, rows.length - 1) * PANEL_WORKSPACE_GAP
+  );
+}
+
+function insertionIndexAfterVisibleRows(
+  column: PanelWorkspaceColumnV2,
+  visibility: Partial<Record<PanelId, boolean>>,
+): number {
+  let lastVisible = -1;
+  column.rows.forEach((row, index) => {
+    if (visibility[row.panelId] === true) lastVisible = index;
+  });
+  return lastVisible + 1;
+}
+
+function activationColumnIndex(
+  cluster: PanelWorkspaceClusterV2,
+  side: "left" | "right",
+  visibility: Partial<Record<PanelId, boolean>>,
+): number | null {
+  const visible = cluster.columns
+    .map((column, index) => ({
+      index,
+      hasVisibleRow: column.rows.some(
+        (row) => visibility[row.panelId] === true,
+      ),
+    }))
+    .filter((column) => column.hasVisibleRow);
+  if (visible.length > 0) {
+    return side === "right"
+      ? (visible[0]?.index ?? null)
+      : (visible.at(-1)?.index ?? null);
+  }
+  if (cluster.columns.length === 0) return null;
+  return side === "right" ? 0 : cluster.columns.length - 1;
+}
+
+function activationAvailableHeight(
+  layout: PanelWorkspaceLayoutV2,
+  options: PanelWorkspaceActivationOptions,
+): number {
+  const bottomRail =
+    layout.railOrder.bottom.length > 0 ? options.railSizes.bottom : 0;
+  return Math.max(0, options.workspaceRect.height - bottomRail);
 }
 
 function registryEntry(
@@ -252,6 +323,108 @@ export function snapPanelWorkspacePanel(
   return normalizeResult(next, registry, [
     ...detached.value.affectedPanelIds,
     ...beforePanelIds,
+    ...panelIdsInCluster(targetCluster),
+  ]);
+}
+
+export function activatePanelWorkspacePanel(
+  layout: PanelWorkspaceLayoutV2,
+  registry: readonly PanelWorkspaceRegistryEntry[],
+  panelId: PanelId,
+  options: PanelWorkspaceActivationOptions,
+): PanelWorkspaceResult<PanelWorkspaceInteractionResult> {
+  const entry = registryEntry(registry, panelId);
+  if (!entry) return failure(`Unknown panel "${panelId}"`);
+  if (layout.visibility[panelId] === true) {
+    return setPanelWorkspacePanelVisibility(layout, registry, panelId, false);
+  }
+
+  const side = railSideForPanel(layout, panelId);
+  if (side !== "left" && side !== "right") {
+    return setPanelWorkspacePanelVisibility(layout, registry, panelId, true);
+  }
+
+  const sourcePlacement = findPlacement(layout, panelId);
+  const sourceCluster =
+    sourcePlacement === null
+      ? undefined
+      : layout.clusters[sourcePlacement.clusterIndex];
+  if (sourceCluster?.anchor !== side) {
+    return setPanelWorkspacePanelVisibility(layout, registry, panelId, true);
+  }
+
+  const detached = detachPanel(layout, panelId);
+  if (!detached.ok) return detached;
+  const next = detached.value.layout;
+  let targetCluster = next.clusters.find((cluster) => cluster.anchor === side);
+  if (!targetCluster) {
+    targetCluster = {
+      id: uniqueClusterId(next, `anchor:${side}`),
+      anchor: side,
+      columns: [],
+    };
+    next.clusters.push(targetCluster);
+  }
+
+  const targetColumnIndex = activationColumnIndex(
+    targetCluster,
+    side,
+    next.visibility,
+  );
+  let targetColumn =
+    targetColumnIndex === null
+      ? undefined
+      : targetCluster.columns[targetColumnIndex];
+  const availableHeight = activationAvailableHeight(next, options);
+  const nextRowHeight = clamp(
+    detached.value.height,
+    entry.minHeight,
+    entry.maxHeight,
+  );
+  const stackedHeight = targetColumn
+    ? visibleRowHeight(targetColumn, next.visibility) +
+      (targetColumn.rows.some((row) => next.visibility[row.panelId] === true)
+        ? PANEL_WORKSPACE_GAP
+        : 0) +
+      nextRowHeight
+    : nextRowHeight;
+
+  if (!targetColumn || stackedHeight <= availableHeight) {
+    if (!targetColumn) {
+      targetColumn = {
+        id: `${targetCluster.id}:column:0`,
+        width: clamp(detached.value.width, entry.minWidth, entry.maxWidth),
+        rows: [],
+      };
+      targetCluster.columns.push(targetColumn);
+    }
+    targetColumn.rows.splice(
+      insertionIndexAfterVisibleRows(targetColumn, next.visibility),
+      0,
+      { panelId, height: nextRowHeight },
+    );
+  } else if (targetCluster.columns.length < 2) {
+    const newColumn: PanelWorkspaceColumnV2 = {
+      id: `${targetCluster.id}:column:${panelId}`,
+      width: clamp(detached.value.width, entry.minWidth, entry.maxWidth),
+      rows: [{ panelId, height: nextRowHeight }],
+    };
+    targetCluster.columns.splice(
+      side === "right" ? 0 : targetCluster.columns.length,
+      0,
+      newColumn,
+    );
+  } else {
+    targetColumn.rows.splice(
+      insertionIndexAfterVisibleRows(targetColumn, next.visibility),
+      0,
+      { panelId, height: nextRowHeight },
+    );
+  }
+
+  next.visibility[panelId] = true;
+  return normalizeResult(next, registry, [
+    ...detached.value.affectedPanelIds,
     ...panelIdsInCluster(targetCluster),
   ]);
 }

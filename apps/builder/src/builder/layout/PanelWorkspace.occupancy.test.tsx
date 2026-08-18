@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { PanelLeft } from "lucide-react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PanelConfig } from "../panels/core/types";
@@ -10,6 +10,7 @@ import {
   PANEL_WORKSPACE_TEST_REGISTRY,
   createPanelWorkspaceLayoutV2,
 } from "./panelWorkspaceLayoutV2.testFixtures";
+import { createPanelWorkspaceRegistryEntry } from "./panelWorkspaceLayoutV2";
 import { snapPanelWorkspacePanel } from "./panelWorkspaceLayoutInteraction";
 import { PanelWorkspace } from "./PanelWorkspace";
 
@@ -30,6 +31,21 @@ const TEST_CONFIGS: PanelConfig[] = PANEL_WORKSPACE_TEST_REGISTRY.map(
   }),
 );
 
+const STYLES_TEST_CONFIG: PanelConfig = {
+  id: "styles",
+  name: "styles",
+  icon: PanelLeft,
+  component: () => null,
+  category: "editor",
+  defaultPosition: "right",
+  defaultWidth: 320,
+  minWidth: 233,
+  maxWidth: 640,
+  defaultHeight: 300,
+  minHeight: 160,
+  maxHeight: 800,
+};
+
 function RepresentativePanel() {
   return (
     <div className="panel representative-panel">
@@ -44,9 +60,14 @@ function RepresentativePanel() {
 
 describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
   beforeEach(() => {
-    vi.spyOn(PanelRegistry, "getAllPanels").mockReturnValue(TEST_CONFIGS);
+    vi.spyOn(PanelRegistry, "getAllPanels").mockReturnValue([
+      ...TEST_CONFIGS,
+      STYLES_TEST_CONFIG,
+    ]);
     vi.spyOn(PanelRegistry, "getPanel").mockImplementation((panelId) =>
-      TEST_CONFIGS.find((config) => config.id === panelId),
+      [...TEST_CONFIGS, STYLES_TEST_CONFIG].find(
+        (config) => config.id === panelId,
+      ),
     );
     vi.stubGlobal(
       "ResizeObserver",
@@ -65,6 +86,15 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
       configurable: true,
       value: 900,
     });
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1600);
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(852);
+    useStore
+      .getState()
+      .initializePanelWorkspaceLayout(
+        [...TEST_CONFIGS, STYLES_TEST_CONFIG].map(
+          createPanelWorkspaceRegistryEntry,
+        ),
+      );
     useStore.setState({
       panelWorkspaceLayout: createPanelWorkspaceLayoutV2(),
       panelWorkspaceHydrationStatus: "memory-fallback",
@@ -168,6 +198,70 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(
       container.querySelector('.workspace-panel-frame[data-panel="monitor"]'),
     ).not.toBeNull();
+  });
+
+  it("right/left rail activation은 actual workspace 높이에서 stack 후 반대 방향 새 column으로 전환한다", () => {
+    const layout = createPanelWorkspaceLayoutV2();
+    const left = layout.clusters.find((cluster) => cluster.anchor === "left");
+    const right = layout.clusters.find((cluster) => cluster.anchor === "right");
+    if (!left || !right) throw new Error("anchored clusters are required");
+
+    left.columns[0]!.rows = [
+      { panelId: "nodes", height: 350 },
+      { panelId: "datatableEditor", height: 300 },
+      { panelId: "settings", height: 300 },
+    ];
+    right.columns[0]!.rows = [
+      { panelId: "properties", height: 350 },
+      { panelId: "history", height: 300 },
+      { panelId: "styles", height: 300 },
+    ];
+    layout.railOrder.right.push("styles");
+    layout.visibility = {
+      ...layout.visibility,
+      datatableEditor: false,
+      history: false,
+      settings: false,
+      styles: false,
+    };
+    useStore.setState({ panelWorkspaceLayout: layout });
+
+    const { container } = render(
+      <PanelWorkspace>
+        <div />
+      </PanelWorkspace>,
+    );
+
+    const clickRailButton = (side: "left" | "right", panelId: string) => {
+      const button = container.querySelector<HTMLButtonElement>(
+        `.panel-activity-rail[data-side="${side}"] button[aria-label="${panelId}"]`,
+      );
+      if (!button) throw new Error(`${panelId} rail button is required`);
+      fireEvent.click(button);
+    };
+
+    clickRailButton("right", "history");
+    clickRailButton("right", "styles");
+    clickRailButton("left", "datatableEditor");
+    clickRailButton("left", "settings");
+
+    const updated = useStore.getState().panelWorkspaceLayout!;
+    const updatedRight = updated.clusters.find(
+      (cluster) => cluster.anchor === "right",
+    );
+    const updatedLeft = updated.clusters.find(
+      (cluster) => cluster.anchor === "left",
+    );
+    expect(
+      updatedRight?.columns.map((column) =>
+        column.rows.map((row) => row.panelId),
+      ),
+    ).toEqual([["styles"], ["properties", "history"]]);
+    expect(
+      updatedLeft?.columns.map((column) =>
+        column.rows.map((row) => row.panelId),
+      ),
+    ).toEqual([["nodes", "datatableEditor"], ["settings"]]);
   });
 
   it("cross-rail snap은 anchor 기준 outer edge와 shared column splitter 하나를 렌더링한다", () => {

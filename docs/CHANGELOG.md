@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-922 좌·우 panel rail 활성화 cascade] - 2026-08-18
+
+### Features
+
+- **좌·우 activity rail의 panel on/off를 workspace-aware placement transaction으로 연결**: 기본 anchor에 남아 있는 panel을 켜면 같은 rail column의 마지막 visible panel 아래에 쌓고, bottom rail을 제외한 실제 workspace 높이를 넘을 때만 두 번째 column을 만든다. right rail은 새 column을 왼쪽 상단에, left rail은 오른쪽 상단에 둔다
+- 최대 2-column 뒤에는 기존 deterministic `constrained-overlay` solver를 그대로 적용한다. 이미 floating 또는 cross-rail snap된 panel과 bottom Monitor는 이전 placement/visibility 계약을 유지한다
+- Command Palette·단축키·DataTable Editor 자동 표시는 같은 activation dispatcher를 경유하므로, activity rail click과 실제 workspace rect 기준 배치 규칙이 일치한다
+
 ## [ADR-922 초기 의도 재검증 — actual rail·shared splitter·presentation RAF 정정] - 2026-08-18
 
 ### Bug Fixes

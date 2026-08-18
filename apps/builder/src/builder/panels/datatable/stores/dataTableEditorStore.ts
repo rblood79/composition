@@ -8,6 +8,7 @@ import { create } from "zustand";
 import type { DataTableEditorStore, ApiEditorTab } from "../types/editorTypes";
 import { useStore } from "../../../stores";
 import { PanelRegistry } from "../../core/PanelRegistry";
+import { dispatchPanelWorkspaceActivation } from "../../../layout/panelWorkspaceActivationDispatcher";
 import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceLayoutInteraction";
 import { createPanelWorkspaceRegistryEntry } from "../../../layout/panelWorkspaceLayoutV2";
 
@@ -42,6 +43,7 @@ function setEditorPanelVisibility(visible: boolean) {
   ) {
     return;
   }
+  if (visible && dispatchPanelWorkspaceActivation("datatableEditor")) return;
   const result = setPanelWorkspacePanelVisibility(
     panelWorkspaceLayout,
     registry,

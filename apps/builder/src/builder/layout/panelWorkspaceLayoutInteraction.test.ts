@@ -5,10 +5,17 @@ import {
   createPanelWorkspaceLayoutV2,
 } from "./panelWorkspaceLayoutV2.testFixtures";
 import {
+  activatePanelWorkspacePanel,
   detachPanelToFloatingCluster,
   resizePanelWorkspaceBoundary,
   snapPanelWorkspacePanel,
 } from "./panelWorkspaceLayoutInteraction";
+import { solvePanelWorkspaceLayoutV2 } from "./panelWorkspaceLayoutV2";
+
+const ACTIVATION_OPTIONS = {
+  workspaceRect: { width: 1600, height: 900 },
+  railSizes: { left: 48, right: 48, bottom: 48 },
+} as const;
 
 function visibleRightStack() {
   const layout = createPanelWorkspaceLayoutV2();
@@ -17,6 +24,137 @@ function visibleRightStack() {
 }
 
 describe("ADR-922 PanelWorkspace v2 interaction transaction", () => {
+  it("right activation은 아래 stack 후 세로 공간 부족 시 새 left column을 만든다", () => {
+    const registry = [
+      ...PANEL_WORKSPACE_TEST_REGISTRY,
+      {
+        id: "styles" as const,
+        defaultPosition: "right" as const,
+        minWidth: 233,
+        maxWidth: 640,
+        defaultWidth: 320,
+        minHeight: 160,
+        maxHeight: 800,
+        defaultHeight: 300,
+      },
+    ];
+    const layout = createPanelWorkspaceLayoutV2();
+    const right = layout.clusters.find((cluster) => cluster.anchor === "right");
+    if (!right) throw new Error("right cluster is required");
+    right.columns[0]!.rows = [
+      { panelId: "properties", height: 350 },
+      { panelId: "history", height: 300 },
+    ];
+    layout.visibility.properties = true;
+    layout.visibility.history = false;
+    layout.visibility.styles = false;
+
+    const stacked = activatePanelWorkspacePanel(
+      layout,
+      registry,
+      "history",
+      ACTIVATION_OPTIONS,
+    );
+    expect(stacked.ok).toBe(true);
+    if (!stacked.ok) return;
+    const stackedRight = stacked.value.layout.clusters.find(
+      (cluster) => cluster.anchor === "right",
+    );
+    expect(
+      stackedRight?.columns[0]?.rows
+        .filter((row) => stacked.value.layout.visibility[row.panelId] === true)
+        .map((row) => row.panelId),
+    ).toEqual(["properties", "history"]);
+
+    const columned = activatePanelWorkspacePanel(
+      stacked.value.layout,
+      registry,
+      "styles",
+      ACTIVATION_OPTIONS,
+    );
+    expect(columned.ok).toBe(true);
+    if (!columned.ok) return;
+    const columnedRight = columned.value.layout.clusters.find(
+      (cluster) => cluster.anchor === "right",
+    );
+    expect(
+      columnedRight?.columns.map((column) =>
+        column.rows.map((row) => row.panelId),
+      ),
+    ).toEqual([["styles"], ["properties", "history"]]);
+    expect(columned.value.layout.railOrder.right).toEqual([
+      "properties",
+      "history",
+      "styles",
+    ]);
+    const solved = solvePanelWorkspaceLayoutV2(
+      columned.value.layout,
+      registry,
+      ACTIVATION_OPTIONS,
+    );
+    expect(solved.ok).toBe(true);
+    if (!solved.ok) return;
+    const stylesFrame = solved.value.frameGeometries.get("styles");
+    const propertiesFrame = solved.value.frameGeometries.get("properties");
+    expect(stylesFrame).toBeDefined();
+    expect(propertiesFrame).toBeDefined();
+    expect(stylesFrame!.x).toBeLessThan(propertiesFrame!.x);
+    expect(stylesFrame!.y).toBe(propertiesFrame!.y);
+  });
+
+  it("left activation은 아래 stack 후 세로 공간 부족 시 새 right column을 만든다", () => {
+    const layout = createPanelWorkspaceLayoutV2();
+    const left = layout.clusters.find((cluster) => cluster.anchor === "left");
+    if (!left) throw new Error("left cluster is required");
+    left.columns[0]!.rows = [
+      { panelId: "nodes", height: 350 },
+      { panelId: "datatableEditor", height: 300 },
+      { panelId: "settings", height: 300 },
+    ];
+    layout.visibility.nodes = true;
+    layout.visibility.datatableEditor = false;
+    layout.visibility.settings = false;
+
+    const stacked = activatePanelWorkspacePanel(
+      layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      "datatableEditor",
+      ACTIVATION_OPTIONS,
+    );
+    expect(stacked.ok).toBe(true);
+    if (!stacked.ok) return;
+
+    const columned = activatePanelWorkspacePanel(
+      stacked.value.layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      "settings",
+      ACTIVATION_OPTIONS,
+    );
+    expect(columned.ok).toBe(true);
+    if (!columned.ok) return;
+    const columnedLeft = columned.value.layout.clusters.find(
+      (cluster) => cluster.anchor === "left",
+    );
+    expect(
+      columnedLeft?.columns.map((column) =>
+        column.rows.map((row) => row.panelId),
+      ),
+    ).toEqual([["nodes", "datatableEditor"], ["settings"]]);
+    const solved = solvePanelWorkspaceLayoutV2(
+      columned.value.layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      ACTIVATION_OPTIONS,
+    );
+    expect(solved.ok).toBe(true);
+    if (!solved.ok) return;
+    const nodesFrame = solved.value.frameGeometries.get("nodes");
+    const settingsFrame = solved.value.frameGeometries.get("settings");
+    expect(nodesFrame).toBeDefined();
+    expect(settingsFrame).toBeDefined();
+    expect(settingsFrame!.x).toBeGreaterThan(nodesFrame!.x);
+    expect(settingsFrame!.y).toBe(nodesFrame!.y);
+  });
+
   it.each<PanelSnapEdge>(["top", "right", "bottom", "left"])(
     "%s snap은 source를 한 번만 배치하고 target cluster에 삽입한다",
     (edge) => {

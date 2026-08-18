@@ -3,10 +3,11 @@ import { useStore } from "../stores";
 import type { PanelFrameGeometry, PanelId } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import type { UsePanelLayoutReturn } from "../layout/types";
+import { dispatchPanelWorkspaceActivation } from "../layout/panelWorkspaceActivationDispatcher";
 import {
+  activatePanelWorkspacePanel,
   detachPanelToFloatingCluster,
   focusPanelWorkspaceFloatingCluster,
-  setPanelWorkspacePanelVisibility,
   type PanelWorkspaceInteractionResult,
 } from "../layout/panelWorkspaceLayoutInteraction";
 import {
@@ -22,6 +23,23 @@ function registryEntries(): PanelWorkspaceRegistryEntry[] {
 
 function currentWorkspaceLayout(): PanelWorkspaceLayoutV2 | null {
   return useStore.getState().panelWorkspaceLayout;
+}
+
+const PANEL_RAIL_SIZE = 48;
+const BUILDER_HEADER_HEIGHT = 48;
+
+function activationOptions() {
+  return {
+    railSizes: {
+      left: PANEL_RAIL_SIZE,
+      right: PANEL_RAIL_SIZE,
+      bottom: PANEL_RAIL_SIZE,
+    },
+    workspaceRect: {
+      width: window.innerWidth,
+      height: Math.max(0, window.innerHeight - BUILDER_HEADER_HEIGHT),
+    },
+  };
 }
 
 function preferredGeometry(
@@ -86,12 +104,13 @@ export function usePanelLayout(): UsePanelLayoutReturn {
     (panelId: PanelId) => {
       const current = currentWorkspaceLayout();
       if (!current) return;
+      if (dispatchPanelWorkspaceActivation(panelId)) return;
       commit(
-        setPanelWorkspacePanelVisibility(
+        activatePanelWorkspacePanel(
           current,
           registryEntries(),
           panelId,
-          current.visibility[panelId] !== true,
+          activationOptions(),
         ),
       );
     },

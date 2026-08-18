@@ -9,6 +9,7 @@ import {
   type PanelWorkspaceLayoutCoordinator,
 } from "./panelWorkspaceLayoutCoordinator";
 import {
+  activatePanelWorkspacePanel,
   detachPanelToFloatingCluster,
   resizePanelWorkspaceBoundary,
   snapPanelWorkspacePanel,
@@ -37,6 +38,9 @@ export interface PanelWorkspaceRuntime {
   endInteraction(): PanelWorkspaceLayoutV2;
   cancelInteraction(): PanelWorkspaceLayoutV2;
   updateWorkspaceRect(workspaceRect: PanelWorkspaceRect): void;
+  activatePanel(
+    panelId: PanelId,
+  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
   movePanel(
     panelId: PanelId,
     geometry: PanelFrameGeometry,
@@ -147,6 +151,14 @@ export function createPanelWorkspaceRuntime(
         }
         currentWorkspaceRect = { ...nextWorkspaceRect };
         queueCurrentLayout();
+      },
+      activatePanel(panelId) {
+        return applyInteraction(
+          activatePanelWorkspacePanel(layout, registry, panelId, {
+            railSizes,
+            workspaceRect: currentWorkspaceRect,
+          }),
+        );
       },
       movePanel(panelId, geometry) {
         return applyInteraction(

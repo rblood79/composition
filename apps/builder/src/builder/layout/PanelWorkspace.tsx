@@ -21,6 +21,7 @@ import type {
   PanelSnapEdge,
 } from "../panels/core/types";
 import { PanelNav } from "./PanelNav";
+import { registerPanelWorkspaceActivationDispatcher } from "./panelWorkspaceActivationDispatcher";
 import {
   PanelSnapInteractionProvider,
   usePanelSnapInteraction,
@@ -849,6 +850,16 @@ function HydratedPanelWorkspace({
       runtime.replaceCommittedLayout(workspaceLayout);
     }
   }, [runtime, workspaceLayout]);
+
+  useEffect(
+    () =>
+      registerPanelWorkspaceActivationDispatcher((panelId) => {
+        const mutation = runtime.activatePanel(panelId);
+        if (!mutation.ok) return false;
+        return setWorkspaceLayout(runtime.endInteraction());
+      }),
+    [runtime, setWorkspaceLayout],
+  );
 
   useEffect(() => {
     if (!runtime) return;
