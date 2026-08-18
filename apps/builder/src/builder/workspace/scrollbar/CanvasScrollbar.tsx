@@ -6,8 +6,8 @@
  *
  * 변경 감지 소스 (ADR-035 Phase 2: ViewportController 단일 권한):
  *  1. ViewportController.addUpdateListener() — pan/zoom/setPosition (단일 소스)
- *  2. ResizeObserver(track) — 창 리사이즈, 패널 애니메이션
- *  3. subscribeToPanelLayoutChanges() — 패널 토글
+ *  2. ResizeObserver(track) — 창/공통 workspace main track 리사이즈
+ *  3. viewport sync store — actual Canvas-local containerSize
  *
  * @since 2026-01-30
  */
@@ -21,10 +21,6 @@ import {
   applyViewportState,
   beginViewportInteraction,
 } from "../canvas/viewport/viewportActions";
-import {
-  measureWorkspacePanelInsets,
-  subscribeToPanelLayoutChanges,
-} from "../utils/panelLayoutRuntime";
 import {
   getScrollbarAxisMetrics,
   getScrollbarViewportMetrics,
@@ -51,8 +47,6 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
     undefined,
   );
   const isDraggingRef = useRef(false);
-  // 패널 inset 캐시 (viewport 계산에서 재사용)
-  const panelInsetRef = useRef({ left: 0, right: 0 });
 
   useEffect(() => {
     const track = trackRef.current;
@@ -63,32 +57,12 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
     let scrollbarSession: ViewportInteractionSession | null = null;
 
     // ========================================
-    // 패널 오프셋 측정
-    // ========================================
-
-    const measurePanelInsets = () => {
-      const insets = measureWorkspacePanelInsets();
-      panelInsetRef.current = insets;
-      return insets;
-    };
-
-    const updatePanelOffset = () => {
-      const { left, right } = measurePanelInsets();
-      if (isHorizontal) {
-        track.style.left = `${left}px`;
-        track.style.right = `${right}px`;
-      } else {
-        track.style.right = `${right}px`;
-      }
-    };
-
-    // ========================================
     // DOM 직접 업데이트
     // ========================================
 
     const updateThumb = () => {
       const trackLength = isHorizontal ? track.clientWidth : track.clientHeight;
-      const metrics = getScrollbarViewportMetrics(panelInsetRef.current);
+      const metrics = getScrollbarViewportMetrics();
       if (!metrics) return;
 
       const axis = getScrollbarAxisMetrics(metrics, direction, trackLength);
@@ -145,13 +119,13 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
     const removeVCListener =
       getViewportController().addUpdateListener(scheduleUpdate);
 
-    // 소스 3: ResizeObserver (track 크기 변경)
+    // 소스 2: ResizeObserver (actual Canvas-local track 크기 변경)
     const trackResizeObserver = new ResizeObserver(() => {
       scheduleUpdate();
     });
     trackResizeObserver.observe(track);
 
-    // 소스 4: viewport sync store (containerSize / canvasSize)
+    // 소스 3: viewport sync store (containerSize / canvasSize)
     //
     // 마운트 시점에는 containerSize 가 아직 0 이라 `getScrollbarViewportMetrics` 가
     // null 을 돌려주고 초기 `updateThumb()` 이 아무것도 그리지 못한다. 위 세 소스는
@@ -164,11 +138,10 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
       const key = `${state.containerSize.width}x${state.containerSize.height}|${state.canvasSize.width}x${state.canvasSize.height}`;
       if (key === lastSyncKey) return;
       lastSyncKey = key;
-      updatePanelOffset();
       scheduleUpdate();
     });
 
-    // 소스 5: 페이지 위치 (world 범위의 content 입력)
+    // 소스 4: 페이지 위치 (world 범위의 content 입력)
     //
     // 페이지 추가/삭제/재배치는 뷰포트를 건드리지 않으므로 위 소스에 걸리지 않는다.
     // 전체 store 구독이지만 비교는 카운터 하나이고 갱신은 rAF 로 합쳐진다.
@@ -177,14 +150,6 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
       if (state.pagePositionsVersion === lastPagePositionsVersion) return;
       lastPagePositionsVersion = state.pagePositionsVersion;
       scheduleUpdate();
-    });
-
-    // 패널 상태 구독 (showLeft/Right + activeLeftPanels/activeRightPanels)
-    const unsubPanel = subscribeToPanelLayoutChanges({
-      onLayoutChange: () => {
-        updatePanelOffset();
-        scheduleUpdate();
-      },
     });
 
     // ========================================
@@ -207,10 +172,7 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
       scrollbarSession = session;
       const startState = vc.getState();
       let queuedViewport = startState;
-      const startMetrics = getScrollbarViewportMetrics(
-        panelInsetRef.current,
-        startState,
-      );
+      const startMetrics = getScrollbarViewportMetrics(startState);
       if (!startMetrics) {
         session.finish("interrupted");
         scrollbarSession = null;
@@ -238,9 +200,8 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
         let newY: number;
         if (isHorizontal) {
           newX =
-            panelInsetRef.current.left -
-            (startMetrics.visibleViewport.x + worldDelta) *
-              startMetrics.viewportState.scale;
+            -(startMetrics.visibleViewport.x + worldDelta) *
+            startMetrics.viewportState.scale;
           newY = startState.y;
         } else {
           newX = startState.x;
@@ -299,10 +260,7 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
       const trackLength = isHorizontal ? track.clientWidth : track.clientHeight;
 
       const vc = getViewportController();
-      const metrics = getScrollbarViewportMetrics(
-        panelInsetRef.current,
-        vc.getState(),
-      );
+      const metrics = getScrollbarViewportMetrics(vc.getState());
       if (!metrics) return;
 
       const axis = getScrollbarAxisMetrics(metrics, direction, trackLength);
@@ -319,9 +277,7 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
       let newX: number;
       let newY: number;
       if (isHorizontal) {
-        newX =
-          panelInsetRef.current.left -
-          targetWorldStart * metrics.viewportState.scale;
+        newX = -targetWorldStart * metrics.viewportState.scale;
         newY = metrics.viewportState.y;
       } else {
         newX = metrics.viewportState.x;
@@ -341,7 +297,6 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
     // 초기화
     // ========================================
 
-    updatePanelOffset();
     updateThumb();
 
     // ========================================
@@ -350,7 +305,6 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
 
     return () => {
       removeVCListener();
-      unsubPanel();
       unsubViewportSync();
       unsubPagePositions();
       trackResizeObserver.disconnect();

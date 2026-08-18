@@ -59,58 +59,49 @@ export function Workspace({
   const isCanvasReady = useCanvasLifecycleStore((state) => state.isCanvasReady);
   const isContextLost = useCanvasLifecycleStore((state) => state.isContextLost);
 
-  // 비교 모드: Preview iframe + Skia 캔버스 동시 표시 (헤더에서 토글)
-  if (compareMode && fallbackCanvas) {
-    return (
-      <WorkspaceCompareMode
-        canvasAreaRef={canvasAreaRef}
-        compareSplit={compareSplit}
-        containerRef={containerRef}
-        fallbackCanvas={fallbackCanvas}
-        pageWidth={canvasSize.width}
-        pageHeight={canvasSize.height}
-        isCanvasReady={isCanvasReady}
-        isContextLost={isContextLost}
-        onResizeStart={handleResizeStart}
-        onResizeMove={handleResizeMove}
-        onResizeEnd={handleResizeEnd}
-      />
-    );
-  }
-
-  // Feature Flag OFF: 기존 iframe 캔버스 사용
-  if (!useWebGL && fallbackCanvas) {
-    return (
-      <main ref={containerRef} className="workspace">
-        {fallbackCanvas}
-      </main>
-    );
-  }
-
   return (
     <main ref={containerRef} className="workspace">
-      {/* WebGL Canvas (DOM depth 최소화: .workspace → .builder-canvas-container → canvas) */}
-      <BuilderCanvas
-        pageWidth={canvasSize.width}
-        pageHeight={canvasSize.height}
-      />
+      {compareMode && fallbackCanvas ? (
+        <WorkspaceCompareMode
+          canvasAreaRef={canvasAreaRef}
+          compareSplit={compareSplit}
+          fallbackCanvas={fallbackCanvas}
+          pageWidth={canvasSize.width}
+          pageHeight={canvasSize.height}
+          isCanvasReady={isCanvasReady}
+          isContextLost={isContextLost}
+          onResizeStart={handleResizeStart}
+          onResizeMove={handleResizeMove}
+          onResizeEnd={handleResizeEnd}
+        />
+      ) : !useWebGL && fallbackCanvas ? (
+        fallbackCanvas
+      ) : (
+        <>
+          {/* WebGL Canvas (DOM depth 최소화: .workspace → .builder-canvas-container → canvas) */}
+          <BuilderCanvas
+            pageWidth={canvasSize.width}
+            pageHeight={canvasSize.height}
+          />
 
-      {/* DOM Overlay Layer (B1.5에서 구현) */}
-      <div className="workspace-overlay">
-        {/* TextEditOverlay will be added in B1.5 */}
-      </div>
+          {/* DOM Overlay Layer (B1.5에서 구현) */}
+          <div className="workspace-overlay">
+            {/* TextEditOverlay will be added in B1.5 */}
+          </div>
 
-      {/* Workflow Sub-Toggles + Legend (캔버스 상단 통합) */}
-      <WorkflowCanvasToggles />
+          {/* Workflow Sub-Toggles + Legend (캔버스 상단 통합) */}
+          <WorkflowCanvasToggles />
 
-      {/* Figma-style Canvas Scrollbars */}
-      <CanvasScrollbar direction="horizontal" />
-      <CanvasScrollbar direction="vertical" />
+          {/* Figma-style Canvas Scrollbars */}
+          <CanvasScrollbar direction="horizontal" />
+          <CanvasScrollbar direction="vertical" />
 
-      <WorkspaceStatusIndicator
-        isCanvasReady={isCanvasReady}
-        isContextLost={isContextLost}
-      />
+          <WorkspaceStatusIndicator
+            isCanvasReady={isCanvasReady}
+            isContextLost={isContextLost}
+          />
+        </>
+      )}
     </main>
   );
 }

@@ -1,14 +1,22 @@
 .workspace {
-  grid-area: main;
+  position: relative;
   width: 100%;
-  height: auto;
-  position: fixed;
-  top: var(--spacing-4xl);
-  left: 0;
-  right: 0;
-  bottom: 0;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
   z-index: 0;
   overflow: hidden;
+}
+
+.workSpace {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
 }
 
 .canvas-container {
@@ -362,7 +370,16 @@
 .workspace--compare-mode {
   display: grid;
   grid-template-columns: var(--compare-split, 50%) 2px 1fr;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
   background-color: var(--border);
+}
+
+.workspace-mode-content {
+  position: absolute;
+  inset: 0;
 }
 
 .workspace-compare-panel {

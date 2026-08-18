@@ -20,7 +20,7 @@
   pointer-events: auto;
 }
 
-/* 방향별 위치 (left/right는 패널 상태에 따라 JS에서 동적 설정) */
+/* 방향별 위치 — track 자체가 이미 actual Canvas-local workspace 안에 있다. */
 .canvas-scrollbar--horizontal {
   bottom: 2px;
   left: 0;

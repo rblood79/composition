@@ -54,4 +54,11 @@ describe("useWorkspaceCanvasSizing containerSize 좌표계 계약", () => {
     expect(workspaceSource).toContain("canvasAreaRef,");
     expect(workspaceSource).toContain("canvasAreaRef={canvasAreaRef}");
   });
+
+  it("panel runtime을 구독하지 않고 actual local rect와 shell version을 함께 publish한다", () => {
+    expect(hookSource).not.toContain("panelLayoutRuntime");
+    expect(hookSource).not.toContain("subscribeToPanelLayoutChanges");
+    expect(hookSource).toContain("publishCanvasLocalRect(");
+    expect(hookSource).toContain("data-canvas-layout-version");
+  });
 });

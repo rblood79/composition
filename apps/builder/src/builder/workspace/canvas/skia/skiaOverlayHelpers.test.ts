@@ -3,12 +3,23 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { PagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
 import {
   _resetSlotContentParentIndexCache,
+  buildMinimapConfig,
   buildCollectionRemainderTargets,
   buildFrameTitleRenderItems,
   buildHoverHighlightTargets,
   buildPageGuideTargets,
   buildSlotMarkerTargets,
 } from "./skiaOverlayHelpers";
+import { DEFAULT_MINIMAP_CONFIG } from "./workflowMinimap";
+
+describe("ADR-922 Canvas-local minimap config", () => {
+  it("actual canvas right edge를 기준으로 하며 panel inset을 다시 더하지 않는다", () => {
+    const config = buildMinimapConfig(1200, 800);
+
+    expect(config.screenRight).toBe(DEFAULT_MINIMAP_CONFIG.screenRight);
+    expect(config.screenBottom).toBe(DEFAULT_MINIMAP_CONFIG.screenBottom);
+  });
+});
 
 function makeElement(
   id: string,

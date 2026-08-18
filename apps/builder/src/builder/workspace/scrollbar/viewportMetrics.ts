@@ -40,11 +40,6 @@ function collectContentRects(canvasSize: {
   return rects;
 }
 
-export interface ViewportInsets {
-  left: number;
-  right: number;
-}
-
 export interface ViewportVisibleWorldBounds {
   height: number;
   width: number;
@@ -89,7 +84,6 @@ export function getViewportAuthoritativeState(): ViewportState {
 }
 
 export function getScrollbarViewportMetrics(
-  insets: ViewportInsets,
   viewportState = getViewportAuthoritativeState(),
 ): ScrollbarViewportMetrics | null {
   const { canvasSize, containerSize } = useViewportSyncStore.getState();
@@ -97,7 +91,7 @@ export function getScrollbarViewportMetrics(
     return null;
   }
 
-  const visibleWidth = containerSize.width - insets.left - insets.right;
+  const visibleWidth = containerSize.width;
   const visibleHeight = containerSize.height;
   if (visibleWidth <= 0 || visibleHeight <= 0 || viewportState.scale <= 0) {
     return null;
@@ -106,7 +100,7 @@ export function getScrollbarViewportMetrics(
   const visibleViewport = {
     height: visibleHeight / viewportState.scale,
     width: visibleWidth / viewportState.scale,
-    x: (insets.left - viewportState.x) / viewportState.scale,
+    x: -viewportState.x / viewportState.scale,
     y: -viewportState.y / viewportState.scale,
   };
 

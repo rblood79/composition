@@ -4,7 +4,6 @@ import { parsePadding4Way } from "@composition/specs";
 //   builder 버전(implicitStyles)은 spec 부재 시 LOWERCASE_COMPONENT_RULE_CONTAINER catalog rule
 //   fallback 을 합성하므로 cutover 컨테이너 padding(rule.containerStyles) 정확히 복구.
 import { resolveContainerStylesFallback } from "../layout/engines/implicitStyles";
-import { measureWorkspacePanelInsets } from "../../utils/panelLayoutRuntime";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { isListBoxTemplateAnchor } from "../../../components/listbox/listBoxTemplateOrigins";
 import {
@@ -540,13 +539,11 @@ export function buildMinimapConfig(
       Math.round(screenHeight * MINIMAP_CANVAS_RATIO),
     ),
   );
-  const { right: inspectorWidth } = measureWorkspacePanelInsets();
-
   return {
     ...DEFAULT_MINIMAP_CONFIG,
     width,
     height,
-    screenRight: inspectorWidth + DEFAULT_MINIMAP_CONFIG.screenRight,
+    screenRight: DEFAULT_MINIMAP_CONFIG.screenRight,
   };
 }
 

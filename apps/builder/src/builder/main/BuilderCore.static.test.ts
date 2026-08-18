@@ -10,10 +10,24 @@ describe("BuilderCore canonical document direct cutover contract", () => {
     );
 
     expect(source).toContain('import { PanelWorkspace } from "../layout"');
-    expect(source).toContain("<PanelWorkspace />");
+    expect(source).toContain("<PanelWorkspace>");
     expect(source).not.toContain("<PanelArea");
     expect(source).not.toContain("<BottomPanelArea");
     expect(source).not.toContain("<ModalPanelContainer");
+  });
+
+  it("normal/compare/WebGL-off 모두 PanelWorkspace 안의 동일 Workspace main slot을 사용한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCore.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toMatch(
+      /<PanelWorkspace>[\s\S]*?<Workspace[\s\S]*?<\/PanelWorkspace>/,
+    );
+    expect(source.match(/<Workspace\b/g)).toHaveLength(1);
+    expect(source).not.toContain("{useWebGL ? (");
+    expect(source).not.toMatch(/\) : \(\s*\/\* iframe Canvas/);
   });
 
   it("does not hydrate frame elements from legacy DB fallback in restored frame edit mode", async () => {

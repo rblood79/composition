@@ -551,6 +551,19 @@ interface PanelLayoutV1BackupEnvelope {
 - G3에서 toggle/resize 중 shell layout version에 대응하는 actual canvas rect mismatch와
   panel inset 이중 차감이 0인지 확인한다.
 
+#### 실행 기록 — G3 PASS / Phase 4 cutover (2026-08-18)
+
+- [Phase 4 workspace occupancy/Canvas-local evidence](./922-phase-4-workspace-occupancy-evidence.md)에
+  공통 main slot, anchored/floating/constrained viewport, normal/compare/WebGL-off와
+  scrollbar/minimap/hit-test 소비 경계를 기록했다.
+- `PanelWorkspace` host가 coordinator snapshot의 `occupiedInsets`를 Grid track에 한 번
+  적용한다. frame overlay와 main content는 같은 host-local 좌표계와 layout version을 쓴다.
+- `BuilderCore`의 WebGL-off 우회 경로를 제거하고 renderer mode는 단일 `Workspace` 내부
+  content만 선택한다. compare의 Skia pane은 그 안의 실제 local rect를 계속 관측한다.
+- `.panel-rail-measure-*`, `registerPanelElement`와 Canvas consumer의
+  `panelLayoutRuntime` import를 제거했다. runtime 파일과 legacy host 자체 삭제는 Phase 6
+  call-graph cleanup 범위로 유지한다.
+
 ### Phase 5 — visibility lifecycle와 접근성
 
 - React `Activity`가 이미 처리하는 Effect cleanup과 별도로, Activity 밖에서 생성되거나
@@ -714,17 +727,17 @@ interface PanelLayoutV1BackupEnvelope {
 - [x] backup 없는 v2-born layout의 Phase 3 operational rollback이 byte-equivalent다.
 - [x] G2a shadow frame/splitter가 하나의 immutable snapshot version을 사용한다.
 - [x] G2a pure candidate의 panel DOM geometry query와 대표 shadow mismatch가 0이다.
-- [ ] frame/shell이 같은 immutable snapshot을 쓰고 Canvas는 actual local rect만 쓴다.
+- [x] frame/shell이 같은 immutable snapshot을 쓰고 Canvas는 actual local rect만 쓴다.
 - [x] G2a shadow store가 통과했다.
 - [x] G2b real-frame applied-version/native-refresh gate가 통과했다.
-- [ ] normal/compare/WebGL-off가 동일한 `Workspace` main slot과 panel sibling을 사용한다.
+- [x] normal/compare/WebGL-off가 동일한 `Workspace` main slot과 panel sibling을 사용한다.
 - [x] move/snap/resize hot path에 panel DOM geometry query가 없다.
 - [x] 인접 panel은 drag 중 동시에 resize된다.
 - [x] 세로 stack은 workspace 높이를 넘지 않는다.
 - [x] Monitor bottom placement와 toggle/persistence가 유지된다.
 - [ ] hidden panel의 고비용 work가 중단되고 local state는 보존된다.
 - [ ] splitter pointer/keyboard/screen reader 계약이 검증됐다.
-- [ ] `.panel-rail-measure-*`와 `panelLayoutRuntime` production 소비가 제거됐다.
+- [x] `.panel-rail-measure-*`와 `panelLayoutRuntime` production 소비가 제거됐다.
 - [ ] `useActiveScope`/DataTable activation이 v2로 전환되고 기존 side/mode compatibility
       state와 unused legacy host/export가 최종 phase에서 제거됐다.
 - [ ] focused tests, type-check, preflight, populated browser smoke가 통과했다.

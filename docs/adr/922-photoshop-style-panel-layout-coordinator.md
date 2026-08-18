@@ -7,9 +7,11 @@ Accepted — 2026-08-18
 진행: Phase 0 / G0 PASS — [panel workspace baseline](./design/922-phase-0-panel-workspace-baseline.md),
 Phase 1 / G1 PASS — [v2 model/migration evidence](./design/922-phase-1-model-migration-evidence.md),
 Phase 2 / G2a PASS — [layout coordinator shadow evidence](./design/922-phase-2-layout-coordinator-evidence.md),
-Phase 3 / G2b PASS — [real-frame production cutover evidence](./design/922-phase-3-real-frame-cutover-evidence.md).
+Phase 3 / G2b PASS — [real-frame production cutover evidence](./design/922-phase-3-real-frame-cutover-evidence.md),
+Phase 4 / G3 PASS — [workspace occupancy/Canvas-local evidence](./design/922-phase-4-workspace-occupancy-evidence.md).
 Production frame, interaction, live store와 primary persisted state는 v2로 전환됐다. 실제
-workspace occupancy와 Canvas consumer 전환은 Phase 4 범위로 남아 있다.
+workspace occupancy와 Canvas consumer도 공통 main slot으로 전환됐다. visibility lifecycle과
+접근성은 Phase 5 범위로 남아 있다.
 
 ## Context
 

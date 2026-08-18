@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import { useMove } from "react-aria";
 import { usePanelLayout } from "../hooks";
@@ -19,7 +20,6 @@ import type {
   PanelSide,
   PanelSnapEdge,
 } from "../panels/core/types";
-import { registerPanelElement } from "../workspace/utils/panelLayoutRuntime";
 import { PanelNav } from "./PanelNav";
 import {
   PanelSnapInteractionProvider,
@@ -43,7 +43,10 @@ import {
   createPanelWorkspaceRuntime,
   type PanelWorkspaceRuntime,
 } from "./panelWorkspaceRuntime";
-import { usePanelWorkspaceFrameSnapshot } from "./usePanelWorkspaceLayoutSnapshot";
+import {
+  usePanelWorkspaceFrameSnapshot,
+  usePanelWorkspaceLayoutSnapshot,
+} from "./usePanelWorkspaceLayoutSnapshot";
 import "./PanelWorkspace.css";
 
 const PANEL_RAIL_SIZE = 48;
@@ -506,7 +509,7 @@ function SnapshotPanelFrame(props: SnapshotPanelFrameProps) {
 function createRuntime(
   layout: PanelWorkspaceLayoutV2,
   registry: readonly PanelWorkspaceRegistryEntry[],
-): PanelWorkspaceRuntime | null {
+): PanelWorkspaceRuntime {
   const result = createPanelWorkspaceRuntime(
     layout,
     registry,
@@ -516,10 +519,16 @@ function createRuntime(
     },
     { left: PANEL_RAIL_SIZE, right: PANEL_RAIL_SIZE, bottom: PANEL_RAIL_SIZE },
   );
-  return result.ok ? result.value : null;
+  if (!result.ok) {
+    throw new Error(
+      `Failed to create panel workspace runtime: ${result.error}`,
+    );
+  }
+  return result.value;
 }
 
 interface HydratedPanelWorkspaceProps {
+  children: ReactNode;
   workspaceLayout: PanelWorkspaceLayoutV2;
   configs: readonly PanelConfig[];
   registry: readonly PanelWorkspaceRegistryEntry[];
@@ -528,7 +537,62 @@ interface HydratedPanelWorkspaceProps {
   focusModalPanel: (panelId: PanelId) => void;
 }
 
+interface PanelWorkspaceOverlayProps {
+  configs: readonly PanelConfig[];
+  focusModalPanel: (panelId: PanelId) => void;
+  runtime: PanelWorkspaceRuntime;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  togglePanel: (side: PanelSide, panelId: PanelId) => void;
+  workspaceLayout: PanelWorkspaceLayoutV2;
+}
+
+const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
+  configs,
+  focusModalPanel,
+  runtime,
+  setWorkspaceLayout,
+  togglePanel,
+  workspaceLayout,
+}: PanelWorkspaceOverlayProps) {
+  const activePanels = (side: PanelSide): PanelId[] =>
+    workspaceLayout.railOrder[side].filter(
+      (panelId) => workspaceLayout.visibility[panelId] === true,
+    );
+
+  return (
+    <div className="panel-workspace" aria-label="패널 작업 영역">
+      {(["left", "right", "bottom"] as const).map((side) => (
+        <div
+          key={side}
+          className="panel-activity-rail"
+          data-side={side}
+          style={{ zIndex: 2_100 }}
+        >
+          <PanelNav
+            side={side}
+            panelIds={workspaceLayout.railOrder[side]}
+            activePanels={activePanels(side)}
+            onPanelClick={(panelId) => togglePanel(side, panelId)}
+          />
+        </div>
+      ))}
+
+      {configs.map((config) => (
+        <SnapshotPanelFrame
+          key={config.id}
+          config={config}
+          runtime={runtime}
+          side={railSideForPanel(workspaceLayout, config)}
+          onCommitLayout={setWorkspaceLayout}
+          onFocusPanel={focusModalPanel}
+        />
+      ))}
+    </div>
+  );
+});
+
 function HydratedPanelWorkspace({
+  children,
   workspaceLayout,
   configs,
   registry,
@@ -538,6 +602,12 @@ function HydratedPanelWorkspace({
 }: HydratedPanelWorkspaceProps) {
   const [runtime] = useState(() => createRuntime(workspaceLayout, registry));
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  const hostStyle = {
+    "--panel-workspace-inset-left": `${snapshot.occupiedInsets.left}px`,
+    "--panel-workspace-inset-right": `${snapshot.occupiedInsets.right}px`,
+    "--panel-workspace-inset-bottom": `${snapshot.occupiedInsets.bottom}px`,
+  } as CSSProperties;
 
   useEffect(() => mountPanelWorkspaceDiagnostics(), []);
 
@@ -574,61 +644,40 @@ function HydratedPanelWorkspace({
     recordPanelWorkspaceCommit();
   });
 
-  const activePanels = (side: PanelSide): PanelId[] =>
-    workspaceLayout.railOrder[side].filter(
-      (panelId) => workspaceLayout.visibility[panelId] === true,
-    );
-
   return (
     <div
       ref={workspaceRef}
-      className="panel-workspace"
-      aria-label="패널 작업 영역"
+      className="panel-workspace-host"
+      data-layout-version={snapshot.version}
+      style={hostStyle}
     >
       <div
-        className="panel-rail-measure panel-rail-measure-left"
-        style={{ width: PANEL_RAIL_SIZE }}
-        ref={(element) => registerPanelElement("left", element)}
-      />
-      <div
-        className="panel-rail-measure panel-rail-measure-right"
-        style={{ width: PANEL_RAIL_SIZE }}
-        ref={(element) => registerPanelElement("right", element)}
-      />
+        className="panel-workspace-main"
+        data-layout-version={snapshot.version}
+        data-main-x={snapshot.mainContentRect.x}
+        data-main-width={snapshot.mainContentRect.width}
+        data-main-height={snapshot.mainContentRect.height}
+      >
+        {children}
+      </div>
 
-      {(["left", "right", "bottom"] as const).map((side) => (
-        <div
-          key={side}
-          className="panel-activity-rail"
-          data-side={side}
-          style={{ zIndex: 2_100 }}
-        >
-          <PanelNav
-            side={side}
-            panelIds={workspaceLayout.railOrder[side]}
-            activePanels={activePanels(side)}
-            onPanelClick={(panelId) => togglePanel(side, panelId)}
-          />
-        </div>
-      ))}
-
-      {runtime
-        ? configs.map((config) => (
-            <SnapshotPanelFrame
-              key={config.id}
-              config={config}
-              runtime={runtime}
-              side={railSideForPanel(workspaceLayout, config)}
-              onCommitLayout={setWorkspaceLayout}
-              onFocusPanel={focusModalPanel}
-            />
-          ))
-        : null}
+      <PanelWorkspaceOverlay
+        configs={configs}
+        focusModalPanel={focusModalPanel}
+        runtime={runtime}
+        setWorkspaceLayout={setWorkspaceLayout}
+        togglePanel={togglePanel}
+        workspaceLayout={workspaceLayout}
+      />
     </div>
   );
 }
 
-function PanelWorkspaceContent() {
+interface PanelWorkspaceContentProps {
+  children: ReactNode;
+}
+
+function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
   const {
     workspaceLayout,
     initializeWorkspaceLayout,
@@ -647,11 +696,17 @@ function PanelWorkspaceContent() {
   }, [initializeWorkspaceLayout, registry, workspaceLayout]);
 
   if (!workspaceLayout) {
-    return <div className="panel-workspace" aria-label="패널 작업 영역" />;
+    return (
+      <div className="panel-workspace-host">
+        <div className="panel-workspace-main">{children}</div>
+        <div className="panel-workspace" aria-label="패널 작업 영역" />
+      </div>
+    );
   }
 
   return (
     <HydratedPanelWorkspace
+      children={children}
       workspaceLayout={workspaceLayout}
       configs={configs}
       registry={registry}
@@ -662,10 +717,14 @@ function PanelWorkspaceContent() {
   );
 }
 
-export function PanelWorkspace() {
+interface PanelWorkspaceProps {
+  children: ReactNode;
+}
+
+export function PanelWorkspace({ children }: PanelWorkspaceProps) {
   return (
     <PanelSnapInteractionProvider>
-      <PanelWorkspaceContent />
+      <PanelWorkspaceContent>{children}</PanelWorkspaceContent>
     </PanelSnapInteractionProvider>
   );
 }

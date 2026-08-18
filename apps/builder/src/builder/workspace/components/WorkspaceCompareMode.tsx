@@ -10,7 +10,6 @@ interface WorkspaceCompareModeProps {
   /** Skia canvas 가 차지하는 우측 pane — viewport containerSize 측정 기준 */
   canvasAreaRef: React.RefObject<HTMLDivElement | null>;
   compareSplit: number;
-  containerRef: React.RefObject<HTMLDivElement | null>;
   fallbackCanvas: ReactNode;
   pageWidth: number;
   pageHeight: number;
@@ -24,7 +23,6 @@ interface WorkspaceCompareModeProps {
 export function WorkspaceCompareMode({
   canvasAreaRef,
   compareSplit,
-  containerRef,
   fallbackCanvas,
   pageWidth,
   pageHeight,
@@ -36,8 +34,7 @@ export function WorkspaceCompareMode({
 }: WorkspaceCompareModeProps) {
   return (
     <div
-      ref={containerRef}
-      className="workspace workspace--compare-mode"
+      className="workspace-mode-content workspace--compare-mode"
       style={
         {
           "--compare-split": `${compareSplit}%`,

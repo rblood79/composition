@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-922 G3 workspace occupancy와 Canvas-local metrics 전환] - 2026-08-18
+
+### Architecture
+
+- **Phase 4에서 panel `occupiedInsets`와 Canvas 가용 영역을 하나의 실제 layout transaction으로 통합**:
+  - `PanelWorkspace`가 main content와 panel overlay를 포함하는 공통 Grid host가 되고, coordinator snapshot의 left/right/bottom `occupiedInsets`를 main track에 정확히 한 번 적용한다
+  - `BuilderCore`의 WebGL-off direct `BuilderCanvas` sibling을 제거했다. WebGL, Compare, WebGL-off는 모두 동일한 `main.workspace`를 유지하고 내부 renderer content만 전환한다
+  - `.panel-rail-measure-*`와 `registerPanelElement`를 제거했다. `useWorkspaceCanvasSizing`은 Grid가 만든 실제 local canvas rect만 `ResizeObserver`로 publish하고 shell/canvas layout version을 함께 기록한다
+  - `CanvasScrollbar`는 panel inset을 다시 빼거나 pan origin에 더하지 않으며, Skia minimap도 actual Skia canvas 우측 edge에서 기본 offset만 사용한다. hit-test, fit, visible-page 계산은 동일한 Canvas-local `containerSize`를 공유한다
+  - 1800px normal에서 host `1800×940` → main/Canvas `1704×892`, Compare Skia pane `1288.83×892`, 800px viewport에서 main/Canvas `704×504`가 snapshot과 일치했다. anchored fixture는 left/right/bottom `542/372/48px`와 main `686×804`를 같은 version으로 적용한다
+  - `panelLayoutRuntime.ts`와 unused legacy host 파일 자체는 Phase 6 call-graph cleanup 전까지 남기되 production import는 0건이다
+
 ## [ADR-922 G2b panel workspace production v2 cutover] - 2026-08-18
 
 ### Architecture

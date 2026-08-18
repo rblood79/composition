@@ -112,14 +112,21 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).not.toContain("localStorage");
   });
 
-  it("Canvas inset 측정에는 panel frame이 아니라 기존 rail 너비만 전달한다", async () => {
-    const source = await readWorkspace();
+  it("occupiedInsets를 공통 main track에 한 번 적용하고 legacy rail measure를 만들지 않는다", async () => {
+    const [source, styles] = await Promise.all([readWorkspace(), readStyles()]);
 
-    expect(source).toContain('registerPanelElement("left", element)');
-    expect(source).toContain('registerPanelElement("right", element)');
-    expect(source).toContain("style={{ width: PANEL_RAIL_SIZE }}");
-    expect(source).not.toContain("activeLeftPanels.reduce");
-    expect(source).not.toContain("activeRightPanels.reduce");
+    expect(source).toContain("usePanelWorkspaceLayoutSnapshot(");
+    expect(source).toContain('className="panel-workspace-host"');
+    expect(source).toContain('className="panel-workspace-main"');
+    expect(source).toContain('"--panel-workspace-inset-left"');
+    expect(source).toContain('"--panel-workspace-inset-right"');
+    expect(source).toContain('"--panel-workspace-inset-bottom"');
+    expect(source).not.toContain("registerPanelElement");
+    expect(source).not.toContain("panel-rail-measure");
+    expect(styles).toContain(".panel-workspace-host");
+    expect(styles).toContain("grid-template-columns:");
+    expect(styles).toContain("var(--panel-workspace-inset-left, 0px)");
+    expect(styles).toContain("var(--panel-workspace-inset-bottom, 0px)");
   });
 
   it("G2b 통과 뒤 모든 production frame이 coordinator snapshot만 소비한다", async () => {

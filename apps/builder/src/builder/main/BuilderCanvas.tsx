@@ -52,7 +52,7 @@ export const BuilderCanvas: React.FC<BuilderCanvasProps> = ({
   }, []); // 빈 의존성 배열 = 마운트 시 한 번만
 
   return (
-    <main className="workSpace">
+    <div className="workSpace">
       <div
         className="canvas"
         style={{
@@ -70,6 +70,6 @@ export const BuilderCanvas: React.FC<BuilderCanvasProps> = ({
         />
         {children}
       </div>
-    </main>
+    </div>
   );
 };

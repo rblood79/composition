@@ -182,12 +182,8 @@ export const BuilderCore: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const [projectInfo, setProjectInfo] = useState<Project | null>(null);
 
-  // Feature Flag: WebGL Canvas 사용 여부
-  const useWebGL = isWebGLCanvas();
-
   // Store 상태
-  // 🚀 최적화: elements 구독 제거 - 필요할 때 getState()로 읽기
-  const currentPageId = useStore((state) => state.currentPageId);
+  // 🚀 최적화: elements/currentPageId 구독 제거 - 필요할 때 getState()로 읽기
   // const selectedElementId = useStore((state) => state.selectedElementId);  // 사용하지 않음
   const setSelectedElement = useStore((state) => state.setSelectedElement);
   // ADR-154: 반응형 breakpoint bridge (기존 선택기 → activeBreakpoint SSOT)
@@ -1231,8 +1227,8 @@ export const BuilderCore: React.FC = () => {
         onWorkflowOverlayToggle={toggleWorkflowOverlay}
       />
 
-      {useWebGL ? (
-        /* WebGL Canvas (Phase 10) */
+      {/* ADR-922 Phase 4: renderer mode는 공통 Workspace 내부 content만 선택한다. */}
+      <PanelWorkspace>
         <Workspace
           breakpoint={breakpoint}
           breakpoints={breakpoints}
@@ -1246,19 +1242,7 @@ export const BuilderCore: React.FC = () => {
             />
           }
         />
-      ) : (
-        /* iframe Canvas (기존) */
-        <BuilderCanvas
-          projectId={projectId}
-          breakpoint={new Set(Array.from(breakpoint).map(String))}
-          breakpoints={breakpoints}
-          onIframeLoad={handleIframeLoad}
-          onMessage={handleMessage}
-        />
-      )}
-
-      {/* Photoshop식 dock/floating panel workspace */}
-      <PanelWorkspace />
+      </PanelWorkspace>
 
       {/* 🚀 Phase 7: Toast 알림 컨테이너 */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

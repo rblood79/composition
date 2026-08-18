@@ -13,7 +13,6 @@ import {
 } from "../canvas/viewport/viewportActions";
 import { finishActiveViewportInteraction } from "../canvas/viewport/ViewportInteractionSession";
 import type { Breakpoint } from "../types";
-import { subscribeToPanelLayoutChanges } from "../utils/panelLayoutRuntime";
 import {
   loadWorkspaceCanvasViewports,
   saveWorkspaceCanvasViewports,
@@ -40,6 +39,26 @@ export interface WorkspaceCanvasSize {
 
 export interface UseWorkspaceCanvasSizingResult {
   canvasSize: WorkspaceCanvasSize;
+}
+
+function publishCanvasLocalRect(
+  container: HTMLDivElement,
+  size: WorkspaceCanvasSize,
+): void {
+  const layoutVersion = container
+    .closest<HTMLElement>(".panel-workspace-main")
+    ?.getAttribute("data-layout-version");
+  container.setAttribute("data-canvas-layout-version", layoutVersion ?? "");
+  container.setAttribute("data-canvas-local-width", String(size.width));
+  container.setAttribute("data-canvas-local-height", String(size.height));
+  useViewportSyncStore.getState().setContainerSize(size);
+}
+
+function syncCanvasLayoutVersion(container: HTMLDivElement): void {
+  const layoutVersion = container
+    .closest<HTMLElement>(".panel-workspace-main")
+    ?.getAttribute("data-layout-version");
+  container.setAttribute("data-canvas-layout-version", layoutVersion ?? "");
 }
 
 export function useWorkspaceCanvasSizing({
@@ -122,21 +141,14 @@ export function useWorkspaceCanvasSizing({
   const centerCanvasRef = useRef<() => boolean>(() => false);
   const centerCanvasAt100Ref = useRef<() => boolean>(() => false);
   const isFitModeRef = useRef(false);
-  const isPanelResizingRef = useRef(false);
   const activeBreakpointIdRef = useRef<string | null>(null);
   const validBreakpointIds = useMemo(
     () => new Set((breakpoints ?? []).map((candidate) => candidate.id)),
     [breakpoints],
   );
-  const breakpointViewportsRef = useRef<Map<string, WorkspaceCanvasViewport>>(
-    new Map(),
+  const [breakpointViewports] = useState<Map<string, WorkspaceCanvasViewport>>(
+    () => loadWorkspaceCanvasViewports(validBreakpointIds),
   );
-  const hasHydratedViewportsRef = useRef(false);
-  if (!hasHydratedViewportsRef.current) {
-    breakpointViewportsRef.current =
-      loadWorkspaceCanvasViewports(validBreakpointIds);
-    hasHydratedViewportsRef.current = true;
-  }
   const viewportPersistenceTimerRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
@@ -155,17 +167,14 @@ export function useWorkspaceCanvasSizing({
       }
 
       const currentViewport = useViewportSyncStore.getState();
-      breakpointViewportsRef.current.set(breakpointId, {
+      breakpointViewports.set(breakpointId, {
         x: currentViewport.panOffset.x,
         y: currentViewport.panOffset.y,
         scale: currentViewport.zoom,
       });
-      saveWorkspaceCanvasViewports(
-        breakpointViewportsRef.current,
-        validBreakpointIds,
-      );
+      saveWorkspaceCanvasViewports(breakpointViewports, validBreakpointIds);
     },
-    [validBreakpointIds],
+    [breakpointViewports, validBreakpointIds],
   );
 
   const scheduleViewportPersistence = useCallback(() => {
@@ -214,7 +223,7 @@ export function useWorkspaceCanvasSizing({
     }
 
     const savedViewport = activeBreakpointIdRef.current
-      ? breakpointViewportsRef.current.get(activeBreakpointIdRef.current)
+      ? breakpointViewports.get(activeBreakpointIdRef.current)
       : undefined;
     if (savedViewport) {
       applyViewportState(savedViewport);
@@ -222,23 +231,7 @@ export function useWorkspaceCanvasSizing({
     }
 
     return centerCanvasAt100Ref.current();
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = subscribeToPanelLayoutChanges({
-      onToggle: () => {
-        isPanelResizingRef.current = true;
-      },
-      onLayoutChange: () => {
-        isPanelResizingRef.current = false;
-      },
-    });
-
-    return () => {
-      isPanelResizingRef.current = false;
-      unsubscribe();
-    };
-  }, [containerRef]);
+  }, [breakpointViewports]);
 
   const lastCompareModeRef = useRef(compareMode);
 
@@ -271,11 +264,12 @@ export function useWorkspaceCanvasSizing({
         canvasSize,
         containerSize,
         zoom: currentViewport.zoom,
-        savedViewport: breakpointViewportsRef.current.get(breakpointId),
+        savedViewport: breakpointViewports.get(breakpointId),
       }),
     );
   }, [
     canvasSize,
+    breakpointViewports,
     clearViewportPersistenceTimer,
     flushViewportPersistence,
     selectedBreakpoint,
@@ -350,11 +344,7 @@ export function useWorkspaceCanvasSizing({
         const isInitialLoad = containerSizeRef.current.width === 0;
         containerSizeRef.current = { height, width };
 
-        if (isPanelResizingRef.current) {
-          return;
-        }
-
-        useViewportSyncStore.getState().setContainerSize({ height, width });
+        publishCanvasLocalRect(container, { height, width });
 
         if (usesPercentBreakpointRef.current) {
           setContainerSizeForPercent({ height, width });
@@ -369,6 +359,18 @@ export function useWorkspaceCanvasSizing({
     });
 
     resizeObserver.observe(container);
+    const mainSlot = container.closest<HTMLElement>(".panel-workspace-main");
+    let layoutVersionObserver: MutationObserver | null = null;
+    if (mainSlot) {
+      layoutVersionObserver = new MutationObserver(() =>
+        syncCanvasLayoutVersion(container),
+      );
+      layoutVersionObserver.observe(mainSlot, {
+        attributeFilter: ["data-layout-version"],
+        attributes: true,
+      });
+    }
+    syncCanvasLayoutVersion(container);
 
     const initialWidth = container.clientWidth;
     const initialHeight = container.clientHeight;
@@ -377,9 +379,10 @@ export function useWorkspaceCanvasSizing({
         height: initialHeight,
         width: initialWidth,
       };
-      useViewportSyncStore
-        .getState()
-        .setContainerSize({ height: initialHeight, width: initialWidth });
+      publishCanvasLocalRect(container, {
+        height: initialHeight,
+        width: initialWidth,
+      });
 
       if (usesPercentBreakpointRef.current) {
         setContainerSizeForPercent({
@@ -396,6 +399,7 @@ export function useWorkspaceCanvasSizing({
         cancelAnimationFrame(rafId);
       }
       resizeObserver.disconnect();
+      layoutVersionObserver?.disconnect();
     };
   }, [canvasAreaRef, compareMode, containerRef, restoreInitialViewport]);
 
