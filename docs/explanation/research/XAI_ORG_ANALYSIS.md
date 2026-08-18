@@ -135,7 +135,7 @@ composition-engine 과 Skia 씬 자료구조에 적용 가능한 **이디엄 카
 
 - **2-tier record 분리** (Thunder): hot 순회 리스트에는 16-byte 최소 레코드만, 본문은 1회 저장 — boundsMap/hitBoundsMap·renderCommands 류의 후보 구조 재설계 시
 - **hot POD 에서 `Option` 대신 sentinel** — discriminant/niche 오버헤드 제거 (엔진 NodeStyle 해석 결과 같은 f32 다발 구조에 해당)
-- **amortized shard sweep** (호출당 20% 만 GC) + **요청 내 조기 종료 → 부분 결과** — 프레임 예산이 있는 캔버스 쪽 정리 작업 (캐시 퇴거·인덱스 정리) 을 프레임에 나눠 싣는 표준형
+- **amortized shard sweep** (호출당 20% 만 GC) + **요청 내 조기 종료 → 부분 결과** — 프레임 예산이 있는 캔버스 쪽 정리 작업 (캐시 퇴거·인덱스 정리) 을 프레임에 나눠 싣는 표준형. **1차 소비처 후보**: 5k 프레임 드랍 지도 ([BUILDER_FRAME_DROP_BASELINE_5K.md](BUILDER_FRAME_DROP_BASELINE_5K.md) — 편집 205ms / 줌 p50 133ms / 스크롤 registry storm) 후속 최적화 착수 시 이 목록부터 참조
 - **bit-pack 된 prefix 를 맵 키로** (SID 3-level 카운터) — 계층 키 집계를 튜플 할당 없이
 - **`decided_by` 판정 체인** (visibility-filtering `Verdict`): composition 의 다단 판정 함수들 (`resolveSelectionDragIntent` / `resolveHoverGroupState` / 히트 판정 체인) 에 "어느 규칙이 결정했나" 를 결과에 싣는 저비용 디버깅 표면 — canvas-rendering.md 의 "선택이 가끔 안 되는 증상" 류 진단 시간을 직접 줄인다
 - **균일 계측 데코레이터 + 요청당 1줄 요약** (candidate-pipeline): fullTreeLayout/renderCommands 단계 계측을 ADR-153 프로파일러 위에 얹을 때의 형태 — 단계별 latency/size 를 task-local 로 모아 프레임당 1줄
