@@ -36,32 +36,28 @@
 <!-- usage-stats-begin -->
 <!-- 자동 생성: .claude/hooks/update-index.sh — 수동 편집 금지 -->
 
-## 📊 최근 30일 사용 빈도 (갱신: 2026-08-15)
+## 📊 최근 30일 사용 빈도 (갱신: 2026-08-18)
 
 ### Skills
 
-| Skill                | 호출 수 |
-| -------------------- | ------: |
-| create-adr           |      21 |
-| review-adr           |      10 |
-| execute-adr          |       8 |
-| new-adr              |       6 |
-| cross-check          |       5 |
-| systematic-debugging |       3 |
-| composition-patterns |       3 |
-| writing-plans        |       1 |
-| fix                  |       1 |
-| executing-plans      |       1 |
-| claude-api           |       1 |
-| brainstorming        |       1 |
+| Skill | 호출 수 |
+| --- | ---: |
+| create-adr | 18 |
+| review-adr | 8 |
+| new-adr | 6 |
+| execute-adr | 6 |
+| cross-check | 3 |
+| fix | 2 |
+| composition-patterns | 2 |
 
 ### Agents
 
-| Agent           | 호출 수 |
-| --------------- | ------: |
-| general-purpose |      18 |
-| Explore         |      15 |
-| reviewer        |      14 |
-| debugger        |       2 |
+| Agent | 호출 수 |
+| --- | ---: |
+| general-purpose | 27 |
+| Explore | 18 |
+| reviewer | 12 |
+| debugger | 7 |
+| claude-code-guide | 1 |
 
 <!-- usage-stats-end -->

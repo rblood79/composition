@@ -11,14 +11,24 @@ index="${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/skills/INDEX.md"
 [ ! -d "$proj_sessions" ] && { echo "세션 디렉토리 없음"; exit 1; }
 [ ! -f "$index" ] && { echo "INDEX.md 없음"; exit 1; }
 
+# 프로젝트 실존 skill/command 이름 allowlist (2026-08-18):
+# transcript 에는 외부 플러그인 skill·폐기된 이름도 찍히므로, 프로젝트 INDEX 에는
+# .claude/skills/ 디렉터리 + .claude/commands/*.md 에 실존하는 이름만 표기한다.
+proj_root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+# (BSD awk 는 -v 값의 개행 미허용 → 공백 구분 목록으로 전달; 이름은 kebab-case 라 공백 없음)
+valid_names=$( {
+  find "$proj_root/.claude/skills" -maxdepth 1 -mindepth 1 \( -type d -o -type l \) -exec basename {} \; 2>/dev/null
+  find "$proj_root/.claude/commands" -maxdepth 1 -name "*.md" -exec basename {} .md \; 2>/dev/null
+} | sort -u | tr '\n' ' ')
+
 cd "$proj_sessions"
 
-# skill 호출 집계
+# skill 호출 집계 (allowlist 필터)
 skill_counts=$(find . -name "*.jsonl" -mtime -"$days" -maxdepth 2 -print0 \
   | xargs -0 grep -h '"name":"Skill"' 2>/dev/null \
   | grep -oE '"skill":"[^"]+"' | sed 's/"skill":"//; s/"$//' \
-  | awk '$0 !~ /^(superpowers:|using-superpowers$)/' \
-  | sort | uniq -c | awk '{print $2"\t"$1}')
+  | sort | uniq -c | awk '{print $2"\t"$1}' \
+  | awk -F'\t' -v valid="$valid_names" 'BEGIN{n=split(valid,a," "); for(i=1;i<=n;i++) v[a[i]]=1} v[$1]')
 
 # agent 호출 집계 (transcript 기반 — 가장 포괄적)
 agent_counts=$(find . -name "*.jsonl" -mtime -"$days" -maxdepth 2 -print0 \
