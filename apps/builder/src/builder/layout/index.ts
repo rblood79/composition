@@ -13,6 +13,7 @@ export { PanelContainer } from "./PanelContainer";
 export { PanelArea } from "./PanelArea";
 export { BottomPanelArea } from "./BottomPanelArea";
 export { ModalPanelContainer } from "./ModalPanelContainer";
+export { PanelWorkspace } from "./PanelWorkspace";
 
 // Types
 export * from "./types";

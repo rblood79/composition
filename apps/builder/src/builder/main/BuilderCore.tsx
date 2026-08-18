@@ -47,13 +47,12 @@ import {
 } from "@/adapters/canonical/canonicalMutations";
 // ADR-184 — mutation 순서 러너 bridge (rebuildIndexes DI)
 import { registerCanonicalMutationRunnerBridge } from "@/adapters/canonical/canonicalMutationRunner";
-import { PanelArea, BottomPanelArea, ModalPanelContainer } from "../layout";
+import { PanelWorkspace } from "../layout";
 import {
   ToastContainer,
   CommandPalette,
   EditingSemanticsImpactDialogHost,
 } from "../components";
-import { registerPanelElement } from "../workspace/utils/panelLayoutRuntime";
 
 import {
   useErrorHandler,
@@ -1258,19 +1257,8 @@ export const BuilderCore: React.FC = () => {
         />
       )}
 
-      <aside className="sidebar" ref={(el) => registerPanelElement("left", el)}>
-        <PanelArea side="left" />
-      </aside>
-
-      <aside
-        className="inspector"
-        ref={(el) => registerPanelElement("right", el)}
-      >
-        <PanelArea side="right" />
-      </aside>
-
-      {/* Bottom Panel (Monitor, etc.) */}
-      <BottomPanelArea />
+      {/* Photoshop식 dock/floating panel workspace */}
+      <PanelWorkspace />
 
       {/* 🚀 Phase 7: Toast 알림 컨테이너 */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
@@ -1280,9 +1268,6 @@ export const BuilderCore: React.FC = () => {
 
       {/* ADR-112 Phase E: origin 편집 영향 미리보기 */}
       <EditingSemanticsImpactDialogHost />
-
-      {/* Modal 패널 컨테이너 */}
-      <ModalPanelContainer />
     </BuilderViewport>
   );
 };

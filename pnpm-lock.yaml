@@ -198,6 +198,9 @@ importers:
       react:
         specifier: 'catalog:'
         version: 19.2.7
+      react-aria:
+        specifier: 3.49.0
+        version: 3.49.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-aria-components:
         specifier: 'catalog:'
         version: 1.18.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)

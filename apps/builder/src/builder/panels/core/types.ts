@@ -25,9 +25,21 @@ export type PanelSide = "left" | "right" | "bottom";
 /**
  * 패널 표시 모드
  * - panel: 사이드바/하단에 고정된 패널 (기본)
- * - modal: 떠있는 모달 형태 (드래그 가능, React Aria Components 기반)
+ * - floating: Canvas 위 non-modal 이동 프레임
+ * - modal: 이전 저장 상태/호출부를 읽기 위한 호환 값
  */
-export type PanelDisplayMode = "panel" | "modal";
+export type PanelDisplayMode = "panel" | "modal" | "floating";
+
+/**
+ * 패널 크기.
+ *
+ * docked/floating shell이 같은 값을 공유하여 패널을 이동해도 사용자가 조정한
+ * 크기를 유지한다.
+ */
+export interface PanelSize {
+  width: number;
+  height: number;
+}
 
 /**
  * 패널 ID
@@ -133,21 +145,19 @@ export interface PanelProps {
   onClose?: () => void;
 }
 
-/**
- * Modal 패널 상태
- */
+/** 이전 `modalPanels` 저장 키와 호환되는 floating 패널 상태. */
 export interface ModalPanelState {
   /** 패널 ID */
   panelId: PanelId;
 
   /** 표시 모드 */
-  mode: "modal";
+  mode: "modal" | "floating";
 
   /** 위치 (드래그 이동 시 업데이트) */
   position: { x: number; y: number };
 
   /** 크기 (리사이즈 시 업데이트) */
-  size: { width: number; height: number };
+  size: PanelSize;
 
   /** z-index (포커스 순서) */
   zIndex: number;
@@ -189,7 +199,10 @@ export interface PanelLayoutState {
   /** 하단 패널 높이 (px) */
   bottomHeight: number;
 
-  /** Modal 패널 목록 */
+  /** 패널별 마지막 사용자 조정 크기 */
+  panelSizes: Partial<Record<PanelId, PanelSize>>;
+
+  /** Floating 패널 목록 (`modalPanels` 키는 저장 호환을 위해 유지) */
   modalPanels: ModalPanelState[];
 
   /** 다음 modal 패널의 z-index */
@@ -208,6 +221,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
     "datatable",
     "datatableEditor", // DataTable 에디터 (datatable과 함께 사용)
     "theme",
+    "settings",
   ],
   rightPanels: ["properties", "styles", "events", "ai", "fonts", "history"],
   activeLeftPanels: ["nodes"], // Multi toggle 지원: 배열
@@ -219,6 +233,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   activeBottomPanels: [], // 기본 닫힘
   showBottom: false,
   bottomHeight: 200,
+  panelSizes: {},
   // Modal panel defaults
   modalPanels: [],
   nextModalZIndex: 1000,
@@ -230,6 +245,21 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
 export interface PanelLayoutActions {
   /** 패널을 다른 사이드로 이동 */
   movePanel: (panelId: PanelId, from: PanelSide, to: PanelSide) => void;
+
+  /** 패널을 지정 dock에 표시 */
+  dockPanel: (panelId: PanelId, side: PanelSide) => void;
+
+  /** 패널을 workspace 위 floating frame으로 표시 */
+  floatPanel: (panelId: PanelId, position?: { x: number; y: number }) => void;
+
+  /** 패널의 자유 위치 또는 panel-relative snap 위치를 저장 */
+  placePanel: (panelId: PanelId, position: { x: number; y: number }) => void;
+
+  /** dock/floating 여부와 무관하게 패널 숨김 */
+  hidePanel: (panelId: PanelId) => void;
+
+  /** 패널별 사용자 조정 크기 저장 */
+  updatePanelSize: (panelId: PanelId, size: PanelSize) => void;
 
   /** 패널 토글 (활성화/비활성화) - Multi toggle 지원 */
   togglePanel: (side: PanelSide, panelId: PanelId) => void;

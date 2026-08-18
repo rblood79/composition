@@ -45,7 +45,8 @@ export function PanelNav({
           const Icon = panelConfig.icon;
           const isActive = activePanels.includes(panelId);
 
-          const tooltipPlacement = side === "left" ? "right" : "left";
+          const tooltipPlacement =
+            side === "left" ? "right" : side === "right" ? "left" : "top";
 
           return (
             <li key={panelId}>

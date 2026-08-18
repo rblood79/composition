@@ -65,7 +65,7 @@
   }
 
   /* Panel Header */
-  .app aside .panel-header {
+  .app :where(aside, .panel-workspace) .panel-header {
     height: var(--header-height);
     background-color: var(--bg-raised);
     border-bottom: 1px solid var(--border);

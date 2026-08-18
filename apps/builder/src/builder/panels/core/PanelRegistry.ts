@@ -113,7 +113,7 @@ class PanelRegistryClass {
    */
   getPanelsByDisplayMode(mode: PanelDisplayMode): PanelConfig[] {
     return this.getAllPanels().filter((panel) => {
-      const modes = panel.displayModes || ["panel"];
+      const modes = panel.displayModes || ["panel", "floating"];
       return modes.includes(mode);
     });
   }
@@ -124,7 +124,7 @@ class PanelRegistryClass {
   supportsDisplayMode(panelId: PanelId, mode: PanelDisplayMode): boolean {
     const panel = this.getPanel(panelId);
     if (!panel) return false;
-    const modes = panel.displayModes || ["panel"];
+    const modes = panel.displayModes || ["panel", "floating"];
     return modes.includes(mode);
   }
 
@@ -133,7 +133,7 @@ class PanelRegistryClass {
    */
   getDisplayModes(panelId: PanelId): PanelDisplayMode[] {
     const panel = this.getPanel(panelId);
-    return panel?.displayModes || ["panel"];
+    return panel?.displayModes || ["panel", "floating"];
   }
 
   /**

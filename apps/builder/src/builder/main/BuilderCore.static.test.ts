@@ -3,6 +3,19 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("BuilderCore canonical document direct cutover contract", () => {
+  it("legacy sidebar/modal hosts 대신 단일 PanelWorkspace를 사용한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCore.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain('import { PanelWorkspace } from "../layout"');
+    expect(source).toContain("<PanelWorkspace />");
+    expect(source).not.toContain("<PanelArea");
+    expect(source).not.toContain("<BottomPanelArea");
+    expect(source).not.toContain("<ModalPanelContainer");
+  });
+
   it("does not hydrate frame elements from legacy DB fallback in restored frame edit mode", async () => {
     const source = await readFile(
       resolve(__dirname, "BuilderCore.tsx"),

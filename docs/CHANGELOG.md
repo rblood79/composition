@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Builder 패널 shell을 Photoshop식 panel-relative workspace로 전환] - 2026-08-17
+
+### Features
+
+- **모든 등록 패널을 같은 non-modal workspace에서 이동·resize하고 다른 패널에 스냅할 수 있다**:
+  - 좌·우·하단 activity rail은 기존처럼 패널 on/off만 담당한다. 화면 전체의 `left/right/bottom` drop zone과 viewport edge 강제 dock은 제거했다
+  - 패널을 이동하면 다른 활성 패널의 상·우·하·좌 snap target이 표시된다. 28px 범위에 들어오면 Photoshop Online에서 확인한 패널 간 4px 간격으로 정렬되고, target이 없으면 현재 위치에 자유 배치된다
+  - 코너 한 점에서만 동작하던 resize handle을 Photoshop처럼 edge 전체로 확장했다. 자유 배치된 패널은 좌·우·하단, 초기 좌·우 패널은 노출된 세로 edge와 하단, 하단 패널은 상단 edge 어디서든 크기를 조절한다. 왼쪽 edge resize는 `x`와 width를 함께 저장해 오른쪽 경계가 움직이지 않는다
+  - 패널마다 조정한 width/height, 자유 배치·snap 위치와 z-order를 기존 `composition-panel-layout` 저장 경로에 보존한다. rail로 패널을 끄고 다시 열어도 이 배치는 유지된다
+  - grabber·resize separator는 React Aria `useMove`를 사용해 pointer와 keyboard 이동을 함께 지원한다
+  - 패널 표시/숨김은 기존 activity rail 토글이 계속 담당한다. shell에 추가됐던 제목·닫기 행과 기존 헤더 숨김 CSS를 제거하고, 기존 `<aside>` 와 새 workspace에 같은 공통 Header selector를 적용해 각 패널의 `PanelHeader` 제목·action 레이아웃을 그대로 복원했다
+
+### Architecture
+
+- **기존 `PanelArea`·`BottomPanelArea`·`ModalPanelContainer`의 세 갈래 host를 `PanelWorkspace` 하나로 교체했다**:
+  - `PanelRegistry`의 모든 패널을 stable key와 React `Activity` 경계 안에 한 번씩 유지해 이동·snap 중 패널 로컬 상태와 scroll 위치가 보존된다
+  - 콘텐츠의 공통 `PanelHeader`/`Section` DOM과 기존 제목·action 스타일은 유지하고, 외부 shell은 이동 grabber·resize handle만 소유한다
+  - Canvas는 고정 sidebar grid에 의해 축소되지 않고 전체 main 영역을 사용하며, `panelLayoutRuntime` 측정 채널에는 패널 frame이 아닌 activity rail 너비만 전달한다
+
 ## [작업 내역 패널을 Builder 패턴과 Photoshop 구조로 정렬] - 2026-08-17
 
 ### Features

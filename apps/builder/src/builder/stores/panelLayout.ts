@@ -94,7 +94,13 @@ function loadLayoutFromStorage():
       if (typeof result.bottomHeight !== "number") {
         result.bottomHeight = DEFAULT_PANEL_LAYOUT.bottomHeight;
       }
-
+      if (
+        typeof result.panelSizes !== "object" ||
+        result.panelSizes === null ||
+        Array.isArray(result.panelSizes)
+      ) {
+        result.panelSizes = DEFAULT_PANEL_LAYOUT.panelSizes;
+      }
       // datatableEditor가 leftPanels에 없으면 추가
       if (
         Array.isArray(result.leftPanels) &&
@@ -108,6 +114,14 @@ function loadLayoutFromStorage():
           // datatable이 없으면 맨 뒤에 추가
           result.leftPanels.push("datatableEditor");
         }
+      }
+
+      // 모든 panel registry 항목은 activity rail에서 다시 열 수 있어야 한다.
+      if (
+        Array.isArray(result.leftPanels) &&
+        !result.leftPanels.includes("settings")
+      ) {
+        result.leftPanels.push("settings");
       }
 
       // 마이그레이션: 제거된 'data' 패널 제거
@@ -155,18 +169,14 @@ function loadLayoutFromStorage():
         }
       }
 
-      // 🔧 임시 수정: 너무 많은 패널이 활성화된 경우 기본값으로 리셋
-      if (
-        result.activeLeftPanels.length > 2 ||
-        result.activeRightPanels.length > 2
-      ) {
-        console.warn(
-          "[PanelLayout] 너무 많은 패널이 활성화되어 있습니다. 기본값으로 리셋합니다.",
+      // 구 Modal 상태는 Photoshop식 non-modal floating frame으로 승격한다.
+      if (Array.isArray(result.modalPanels)) {
+        result.modalPanels = result.modalPanels.map(
+          (panel: import("../panels/core/types").ModalPanelState) => ({
+            ...panel,
+            mode: "floating" as const,
+          }),
         );
-        result.activeLeftPanels = DEFAULT_PANEL_LAYOUT.activeLeftPanels;
-        result.activeRightPanels = DEFAULT_PANEL_LAYOUT.activeRightPanels;
-        // 리셋된 값을 저장
-        debouncedSaveLayoutToStorage(result);
       }
 
       return result;
