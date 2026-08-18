@@ -194,13 +194,14 @@ class PanelWorkspaceDiagnostics {
   private readonly idleFrameIntervals: number[] = [];
   private readonly appliedVersionTracker =
     createPanelWorkspaceAppliedVersionTracker();
-  private appliedCheckScheduled = false;
+  private appliedPresentationFrameId: number | null = null;
 
   constructor() {
     document.addEventListener("pointerdown", this.handlePointerDown, true);
     document.addEventListener("pointermove", this.handlePointerMove, true);
     document.addEventListener("pointerup", this.handlePointerEnd, true);
     document.addEventListener("pointercancel", this.handlePointerEnd, true);
+    document.addEventListener("keydown", this.handleKeyDown, true);
     this.animationFrameId = requestAnimationFrame(this.handleAnimationFrame);
   }
 
@@ -209,7 +210,12 @@ class PanelWorkspaceDiagnostics {
     document.removeEventListener("pointermove", this.handlePointerMove, true);
     document.removeEventListener("pointerup", this.handlePointerEnd, true);
     document.removeEventListener("pointercancel", this.handlePointerEnd, true);
+    document.removeEventListener("keydown", this.handleKeyDown, true);
     cancelAnimationFrame(this.animationFrameId);
+    if (this.appliedPresentationFrameId !== null) {
+      cancelAnimationFrame(this.appliedPresentationFrameId);
+      this.appliedPresentationFrameId = null;
+    }
     if (this.activeTrace) {
       clearTimeout(this.activeTrace.timeoutId);
       this.activeTrace.longTaskObserver?.disconnect();
@@ -247,23 +253,18 @@ class PanelWorkspaceDiagnostics {
   recordFrameApplied(panelId: PanelId, version: number): void {
     if (!this.activeTrace) return;
     this.appliedVersionTracker.recordFrameApplied(panelId, version);
-    if (this.appliedCheckScheduled) return;
-    this.appliedCheckScheduled = true;
-    queueMicrotask(() => {
-      this.appliedCheckScheduled = false;
+    if (this.appliedPresentationFrameId !== null) return;
+    this.appliedPresentationFrameId = requestAnimationFrame((timestamp) => {
+      this.appliedPresentationFrameId = null;
       if (!this.activeTrace) return;
-      let applied = this.appliedVersionTracker.takeReadyPresentation(
-        performance.now(),
-      );
+      let applied = this.appliedVersionTracker.takeReadyPresentation(timestamp);
       while (applied) {
         this.activeTrace.inputToAppliedFrameMs.push(
           applied.inputToAppliedFrameMs,
         );
         this.activeTrace.appliedVersionMismatchCount +=
           applied.appliedVersionMismatchCount;
-        applied = this.appliedVersionTracker.takeReadyPresentation(
-          performance.now(),
-        );
+        applied = this.appliedVersionTracker.takeReadyPresentation(timestamp);
       }
     });
   }
@@ -290,9 +291,25 @@ class PanelWorkspaceDiagnostics {
   };
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
-    if (this.activeTrace) return;
-    const target = event.target;
-    if (!(target instanceof Element)) return;
+    this.startTraceFromTarget(event.target);
+  };
+
+  private readonly handleKeyDown = (event: KeyboardEvent): void => {
+    if (
+      event.key !== "ArrowLeft" &&
+      event.key !== "ArrowRight" &&
+      event.key !== "ArrowUp" &&
+      event.key !== "ArrowDown" &&
+      event.key !== "Home" &&
+      event.key !== "End"
+    ) {
+      return;
+    }
+    this.startTraceFromTarget(event.target);
+  };
+
+  private startTraceFromTarget(target: EventTarget | null): void {
+    if (this.activeTrace || !(target instanceof Element)) return;
     const handle = target.closest<HTMLElement>(
       ".panel-move-handle, .panel-resize-handle",
     );
@@ -303,7 +320,7 @@ class PanelWorkspaceDiagnostics {
       ? "move"
       : "resize";
     this.startTrace(kind);
-  };
+  }
 
   private readonly handlePointerMove = (): void => {
     if (this.activeTrace) this.activeTrace.pointerMoveCount += 1;
@@ -397,7 +414,7 @@ class PanelWorkspaceDiagnostics {
 let diagnostics: PanelWorkspaceDiagnostics | null = null;
 let diagnosticsConsumers = 0;
 
-function isPanelWorkspaceDiagnosticsEnabled(): boolean {
+export function isPanelWorkspaceDiagnosticsEnabled(): boolean {
   return (
     import.meta.env.DEV &&
     typeof window !== "undefined" &&

@@ -59,7 +59,10 @@ populated layout에서 Monitor가 right rail로 이동해 bottom `railOrder`가 
 - Monitor frame/placement는 두 fixture 모두 1개
 - production browser: rail 2개, empty rail 0, legacy DOM 0
 
-따라서 빈 legacy DOM만 제거하고 bottom placement와 Monitor registry default는 유지했다.
+post-implementation intent 재검증에서 DOM 제거 뒤에도 fixed 48px bottom inset이 남는 것을
+발견했다. solver가 normalized `railOrder`에서 actual rail size를 파생하도록 정정해 bottom
+rail 0일 때 bottom inset도 `0px`이며, bottom placement와 Monitor registry default는
+유지한다.
 
 ## Rollback / refresh rehearsal
 

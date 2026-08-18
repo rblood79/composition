@@ -1,4 +1,5 @@
 import { mergeProps, useKeyboard, useMove } from "react-aria";
+import type { CSSProperties } from "react";
 import type { PanelResizeEdge } from "../panels/core/types";
 
 export interface PanelSplitterProps {
@@ -9,6 +10,9 @@ export interface PanelSplitterProps {
   minValue: number;
   maxValue: number;
   layoutVersion?: number;
+  className?: string;
+  splitterKind?: "row" | "column";
+  style?: CSSProperties;
   onResizeStart: () => void;
   onResize: (deltaX: number, deltaY: number) => void;
   onResizeEnd: () => void;
@@ -39,6 +43,9 @@ export function PanelSplitter({
   minValue,
   maxValue,
   layoutVersion,
+  className,
+  splitterKind,
+  style,
   onResizeStart,
   onResize,
   onResizeEnd,
@@ -78,9 +85,10 @@ export function PanelSplitter({
   return (
     <div
       {...mergeProps(moveProps, keyboardProps)}
-      className="panel-resize-handle"
+      className={`panel-resize-handle ${className ?? ""}`.trim()}
       data-edge={edge}
       data-layout-version={layoutVersion}
+      data-splitter-kind={splitterKind}
       role="separator"
       aria-label={label}
       aria-controls={controls}
@@ -88,6 +96,7 @@ export function PanelSplitter({
       aria-valuenow={value}
       aria-valuemin={minValue}
       aria-valuemax={maxValue}
+      style={style}
       tabIndex={0}
     />
   );

@@ -4,6 +4,14 @@
 
 **G2b PASS / Phase 3 production cutover — 2026-08-18**
 
+> **Post-implementation correction (2026-08-18)**: 아래 최초 p95 15.9ms는 layout effect 뒤
+> microtask를 종점으로 사용해 presentation RAF를 직접 증명하지 못했다. 종점을 실제
+> `requestAnimationFrame`으로 교체하고 mismatch oracle을 정정한 뒤 final runtime에서 5초
+> native RAF trace를 재수집했다. 최종 결과는 display period 8.1ms, p95 14.7ms,
+> mismatch/long task/DOM query 0, frame delivery 0.9903(기준 0.9958, -0.56pp),
+> `passesG2b=true`다. 정본 evidence는
+> [post-implementation correction](./922-post-implementation-intent-correction-evidence.md)이다.
+
 Phase 3는 G2a shadow coordinator를 실제 panel frame과 interaction의 유일한 geometry
 publisher로 전환했다. G2b를 먼저 통과하기 전에는 production renderer와 primary v1을
 유지했고, 통과 뒤에만 canary gate를 제거하고 live store/persistence를 v2로 전환했다.

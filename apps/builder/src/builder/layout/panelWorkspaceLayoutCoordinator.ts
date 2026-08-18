@@ -1,4 +1,8 @@
-import type { PanelFrameGeometry, PanelId } from "../panels/core/types";
+import type {
+  PanelFrameGeometry,
+  PanelId,
+  PanelResizeEdge,
+} from "../panels/core/types";
 import {
   solvePanelWorkspaceLayoutV2,
   type PanelWorkspaceAnchorPresentation,
@@ -19,6 +23,7 @@ export interface PanelWorkspaceLayoutCoordinatorInput extends PanelWorkspaceSolv
 
 export interface PanelWorkspaceFrameSnapshot extends PanelWorkspaceSolvedFrameGeometry {
   layoutVersion: number;
+  resizeEdges: readonly PanelResizeEdge[];
 }
 
 export type PanelWorkspaceSplitterKind = "row" | "column";
@@ -122,7 +127,7 @@ function readonlySetView<T>(source: ReadonlySet<T>): ReadonlySet<T> {
 function visiblePanelIdsForColumn(
   cluster: PanelWorkspaceClusterV2,
   columnIndex: number,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceFrameSnapshot>,
+  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometry>,
 ): PanelId[] {
   const column = cluster.columns[columnIndex];
   if (!column) return [];
@@ -134,7 +139,7 @@ function visiblePanelIdsForColumn(
 function createRowSplitters(
   cluster: PanelWorkspaceClusterV2,
   columnIndex: number,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceFrameSnapshot>,
+  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometry>,
   layoutVersion: number,
 ): PanelWorkspaceSplitterGeometry[] {
   const column = cluster.columns[columnIndex];
@@ -172,7 +177,7 @@ function createRowSplitters(
 
 function createColumnSplitters(
   cluster: PanelWorkspaceClusterV2,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceFrameSnapshot>,
+  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometry>,
   layoutVersion: number,
 ): PanelWorkspaceSplitterGeometry[] {
   const visibleColumns = cluster.columns.flatMap((column, columnIndex) => {
@@ -228,7 +233,7 @@ function createColumnSplitters(
 
 function createSplitters(
   solution: PanelWorkspaceLayoutSolution,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceFrameSnapshot>,
+  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometry>,
   layoutVersion: number,
 ): readonly PanelWorkspaceSplitterGeometry[] {
   const splitters: PanelWorkspaceSplitterGeometry[] = [];
@@ -243,16 +248,58 @@ function createSplitters(
   return Object.freeze(splitters);
 }
 
+function createFrameResizeEdges(
+  panelId: PanelId,
+  anchor: PanelWorkspaceSolvedFrameGeometry["anchor"],
+  splitters: readonly PanelWorkspaceSplitterGeometry[],
+): readonly PanelResizeEdge[] {
+  const edges: PanelResizeEdge[] =
+    anchor === "floating"
+      ? ["left", "right", "bottom"]
+      : anchor === "left"
+        ? ["right", "bottom"]
+        : anchor === "right"
+          ? ["left", "bottom"]
+          : ["top"];
+  const internalEdges = new Set<PanelResizeEdge>();
+
+  for (const splitter of splitters) {
+    if (splitter.kind === "row") {
+      if (splitter.beforePanelIds.includes(panelId))
+        internalEdges.add("bottom");
+      if (splitter.afterPanelIds.includes(panelId)) internalEdges.add("top");
+      continue;
+    }
+    if (splitter.beforePanelIds.includes(panelId)) internalEdges.add("right");
+    if (splitter.afterPanelIds.includes(panelId)) internalEdges.add("left");
+  }
+
+  return Object.freeze(edges.filter((edge) => !internalEdges.has(edge)));
+}
+
 function createSnapshot(
   solution: PanelWorkspaceLayoutSolution,
   registry: readonly PanelWorkspaceRegistryEntry[],
   version: number,
 ): PanelWorkspaceLayoutSnapshot {
+  const splitters = createSplitters(
+    solution,
+    solution.frameGeometries,
+    version,
+  );
   const mutableFrames = new Map<PanelId, PanelWorkspaceFrameSnapshot>();
   for (const [panelId, geometry] of solution.frameGeometries) {
     mutableFrames.set(
       panelId,
-      Object.freeze({ ...geometry, layoutVersion: version }),
+      Object.freeze({
+        ...geometry,
+        layoutVersion: version,
+        resizeEdges: createFrameResizeEdges(
+          panelId,
+          geometry.anchor,
+          splitters,
+        ),
+      }),
     );
   }
   const frameGeometries = readonlyMapView(mutableFrames);
@@ -264,7 +311,7 @@ function createSnapshot(
     frameGeometries,
     occupiedInsets: Object.freeze({ ...solution.occupiedInsets }),
     presentations: Object.freeze({ ...solution.presentations }),
-    splitters: createSplitters(solution, frameGeometries, version),
+    splitters,
     visiblePanelIds,
     panelOrder: Object.freeze(registry.map((entry) => entry.id)),
     constrainedOverlayOrder: Object.freeze([

@@ -10,11 +10,16 @@ Phase 2 / G2a PASS — [layout coordinator shadow evidence](../design/922-phase-
 Phase 3 / G2b PASS — [real-frame production cutover evidence](../design/922-phase-3-real-frame-cutover-evidence.md),
 Phase 4 / G3 PASS — [workspace occupancy/Canvas-local evidence](../design/922-phase-4-workspace-occupancy-evidence.md),
 Phase 5 / G4·G5 PASS — [visibility/accessibility evidence](../design/922-phase-5-visibility-accessibility-evidence.md),
-Phase 6 / G6 PASS — [legacy removal/final cutover evidence](../design/922-phase-6-legacy-removal-evidence.md).
+Phase 6 / G6 PASS — [legacy removal/final cutover evidence](../design/922-phase-6-legacy-removal-evidence.md),
+post-implementation intent correction PASS — [final correction evidence](../design/922-post-implementation-intent-correction-evidence.md).
 Production frame, interaction, live store와 primary persisted state는 v2 coordinator로 전환됐다.
 workspace occupancy, Canvas-local consumer, hidden lifecycle, splitter 접근성, legacy host/state
 제거와 rollback rehearsal까지 완료했다. v1 parser와 durable backup은 정의된 compatibility
 window 동안 read-only boundary로 유지한다.
+
+2026-08-18 초기 의도 재검증에서 발견된 actual rail inset, rail/anchor resize owner,
+dead shared splitter snapshot, microtask latency/mismatch oracle 문제는 post-implementation
+correction에서 전건 수정하고 native RAF 5초 Gate를 다시 통과했다.
 
 ## Context
 

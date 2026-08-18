@@ -137,6 +137,38 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
     ]);
   });
 
+  it("frame outer resize edge는 rail이 아니라 snapshot anchor와 shared boundary에서 파생한다", () => {
+    const scheduler = new TestFrameScheduler();
+    const layout = createPanelWorkspaceLayoutV2();
+    layout.visibility.history = true;
+    const rightCluster = layout.clusters.find(
+      (cluster) => cluster.anchor === "right",
+    );
+    if (!rightCluster) throw new Error("right cluster is required");
+    rightCluster.columns = [
+      {
+        id: "right:history",
+        width: 320,
+        rows: [{ panelId: "history", height: 450 }],
+      },
+      {
+        id: "right:properties",
+        width: 233,
+        rows: [{ panelId: "properties", height: 520 }],
+      },
+    ];
+    const coordinator = requireCoordinator(createInput({ layout }), scheduler);
+    const snapshot = coordinator.getSnapshot();
+
+    expect(snapshot.frameGeometries.get("history")?.resizeEdges).toEqual([
+      "left",
+      "bottom",
+    ]);
+    expect(snapshot.frameGeometries.get("properties")?.resizeEdges).toEqual([
+      "bottom",
+    ]);
+  });
+
   it("같은 display frame의 여러 input을 최신 값으로 합쳐 solve/publish를 한 번만 수행한다", () => {
     const scheduler = new TestFrameScheduler();
     const solve = vi.fn(solvePanelWorkspaceLayoutV2);

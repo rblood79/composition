@@ -87,11 +87,9 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
   it("코너 한 점이 아니라 panel mode별 전체 edge를 resize handle로 제공한다", async () => {
     const [source, styles] = await Promise.all([readWorkspace(), readStyles()]);
 
-    expect(source).toContain('["left", "right", "bottom"]');
-    expect(source).toContain('["right", "bottom"]');
-    expect(source).toContain('["left", "bottom"]');
-    expect(source).toContain(': ["top"]');
-    expect(source).toContain("resizeEdges.map((edge)");
+    expect(source).toContain("snapshotFrame?.resizeEdges ?? []");
+    expect(source).toContain("<PanelWorkspaceSharedSplitters");
+    expect(source).toContain("snapshot.splitters.map((splitter)");
     expect(source).toContain("data-edge={edge}");
     expect(source).toContain("runtime.resizePanel(config.id, edge");
 

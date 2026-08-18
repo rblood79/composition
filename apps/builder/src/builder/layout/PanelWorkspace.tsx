@@ -28,13 +28,19 @@ import {
 import { PanelSplitter } from "./PanelSplitter";
 import {
   mountPanelWorkspaceDiagnostics,
+  isPanelWorkspaceDiagnosticsEnabled,
   recordPanelFrameApplied,
   recordPanelFrameCommit,
   recordPanelWorkspaceCommit,
   recordPanelWorkspaceLayoutInput,
   recordPanelWorkspaceSolve,
+  startPanelWorkspaceManualTrace,
 } from "./panelWorkspaceDiagnostics";
-import type { PanelWorkspaceFrameSnapshot } from "./panelWorkspaceLayoutCoordinator";
+import type {
+  PanelWorkspaceFrameSnapshot,
+  PanelWorkspaceLayoutSnapshot,
+  PanelWorkspaceSplitterGeometry,
+} from "./panelWorkspaceLayoutCoordinator";
 import {
   createPanelWorkspaceRegistryEntry,
   type PanelWorkspaceLayoutV2,
@@ -102,6 +108,248 @@ function frameZIndex(
   const layout = runtime.getLayout();
   const focusIndex = layout.floatingFocusOrder.indexOf(snapshotFrame.clusterId);
   return 1_000 + Math.max(0, focusIndex);
+}
+
+function splitterZIndex(
+  runtime: PanelWorkspaceRuntime,
+  clusterId: string,
+): number {
+  const layout = runtime.getLayout();
+  const cluster = layout.clusters.find(
+    (candidate) => candidate.id === clusterId,
+  );
+  if (cluster?.anchor !== "floating") return 30;
+  return 1_000 + Math.max(0, layout.floatingFocusOrder.indexOf(clusterId));
+}
+
+interface SharedSplitterContract {
+  controls: string;
+  edge: PanelResizeEdge;
+  label: string;
+  maxValue: number;
+  minValue: number;
+  panelId: PanelId;
+  value: number;
+}
+
+function sharedSplitterContract(
+  splitter: PanelWorkspaceSplitterGeometry,
+  snapshot: PanelWorkspaceLayoutSnapshot,
+): SharedSplitterContract | null {
+  const panelId = splitter.beforePanelIds[0];
+  if (!panelId) return null;
+  const frame = snapshot.frameGeometries.get(panelId);
+  if (!frame) return null;
+  const beforeConfigs = splitter.beforePanelIds.flatMap((candidate) => {
+    const config = PanelRegistry.getPanel(candidate);
+    return config ? [config] : [];
+  });
+  if (beforeConfigs.length === 0) return null;
+  const beforeNames = beforeConfigs.map((config) => config.name).join(", ");
+  const afterNames = splitter.afterPanelIds
+    .flatMap((candidate) => {
+      const config = PanelRegistry.getPanel(candidate);
+      return config ? [config.name] : [];
+    })
+    .join(", ");
+
+  if (splitter.kind === "row") {
+    const config = beforeConfigs[0];
+    if (!config) return null;
+    return {
+      controls: `panel-${panelId}-content`,
+      edge: "bottom",
+      label: `${beforeNames} / ${afterNames} 패널 행 크기 조절`,
+      maxValue: config.maxHeight ?? 800,
+      minValue: config.minHeight ?? 160,
+      panelId,
+      value: frame.height,
+    };
+  }
+
+  const minValue = Math.max(
+    ...beforeConfigs.map((config) => config.minWidth ?? 200),
+  );
+  const maxValue = Math.max(
+    minValue,
+    Math.min(...beforeConfigs.map((config) => config.maxWidth ?? 800)),
+  );
+  return {
+    controls: splitter.beforePanelIds
+      .map((candidate) => `panel-${candidate}-content`)
+      .join(" "),
+    edge: "right",
+    label: `${beforeNames} / ${afterNames} 패널 열 크기 조절`,
+    maxValue,
+    minValue,
+    panelId,
+    value: frame.width,
+  };
+}
+
+function sharedSplitterStyle(
+  splitter: PanelWorkspaceSplitterGeometry,
+  zIndex: number,
+): CSSProperties {
+  const hitSize = 10;
+  const { geometry } = splitter;
+  if (splitter.kind === "row") {
+    return {
+      bottom: "auto",
+      height: hitSize,
+      left: geometry.x,
+      right: "auto",
+      top: geometry.y + geometry.height / 2 - hitSize / 2,
+      width: geometry.width,
+      zIndex,
+    };
+  }
+  return {
+    bottom: "auto",
+    height: geometry.height,
+    left: geometry.x + geometry.width / 2 - hitSize / 2,
+    right: "auto",
+    top: geometry.y,
+    width: hitSize,
+    zIndex,
+  };
+}
+
+interface PanelWorkspaceSharedSplittersProps {
+  runtime: PanelWorkspaceRuntime;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+}
+
+function PanelWorkspaceSharedSplitters({
+  runtime,
+  setWorkspaceLayout,
+}: PanelWorkspaceSharedSplittersProps) {
+  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+
+  return (
+    <>
+      {snapshot.splitters.map((splitter) => {
+        const contract = sharedSplitterContract(splitter, snapshot);
+        if (!contract) return null;
+        return (
+          <PanelSplitter
+            key={splitter.id}
+            edge={contract.edge}
+            label={contract.label}
+            controls={contract.controls}
+            value={contract.value}
+            minValue={contract.minValue}
+            maxValue={contract.maxValue}
+            layoutVersion={splitter.layoutVersion}
+            className="panel-cluster-splitter"
+            splitterKind={splitter.kind}
+            style={sharedSplitterStyle(
+              splitter,
+              splitterZIndex(runtime, splitter.clusterId),
+            )}
+            onResizeStart={() => runtime.beginInteraction()}
+            onResize={(deltaX, deltaY) => {
+              recordPanelWorkspaceSolve();
+              const mutation = runtime.resizePanel(
+                contract.panelId,
+                contract.edge,
+                deltaX,
+                deltaY,
+              );
+              if (mutation.ok) {
+                recordPanelWorkspaceLayoutInput(
+                  mutation.value.expectedVersion,
+                  mutation.value.affectedPanelIds,
+                );
+              }
+            }}
+            onResizeEnd={() => setWorkspaceLayout(runtime.endInteraction())}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function deltaForTrace(
+  edge: PanelResizeEdge,
+  delta: number,
+): { deltaX: number; deltaY: number } {
+  return edge === "left" || edge === "right"
+    ? { deltaX: delta, deltaY: 0 }
+    : { deltaX: 0, deltaY: delta };
+}
+
+function waitForPresentationFrame(): Promise<number> {
+  return new Promise((resolve) => requestAnimationFrame(resolve));
+}
+
+function PanelWorkspaceTraceDriver({
+  runtime,
+  setWorkspaceLayout,
+}: PanelWorkspaceSharedSplittersProps) {
+  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  const [isRunning, setIsRunning] = useState(false);
+  const candidate = [...snapshot.frameGeometries.entries()].find(
+    ([, frame]) => frame.resizeEdges.length > 0,
+  );
+
+  const runTrace = async () => {
+    if (isRunning || !candidate) return;
+    const [panelId, frame] = candidate;
+    const edge = frame.resizeEdges.includes("bottom")
+      ? "bottom"
+      : frame.resizeEdges[0];
+    if (!edge) return;
+
+    setIsRunning(true);
+    startPanelWorkspaceManualTrace("resize");
+    runtime.beginInteraction();
+    let offset = 0;
+    const startedAt = performance.now();
+
+    while (performance.now() - startedAt < 5_100) {
+      await waitForPresentationFrame();
+      const nextOffset = offset === 0 ? 1 : 0;
+      const { deltaX, deltaY } = deltaForTrace(edge, nextOffset - offset);
+      recordPanelWorkspaceSolve();
+      const mutation = runtime.resizePanel(panelId, edge, deltaX, deltaY);
+      if (mutation.ok) {
+        recordPanelWorkspaceLayoutInput(
+          mutation.value.expectedVersion,
+          mutation.value.affectedPanelIds,
+        );
+      }
+      offset = nextOffset;
+    }
+
+    if (offset !== 0) {
+      const { deltaX, deltaY } = deltaForTrace(edge, -offset);
+      recordPanelWorkspaceSolve();
+      const mutation = runtime.resizePanel(panelId, edge, deltaX, deltaY);
+      if (mutation.ok) {
+        recordPanelWorkspaceLayoutInput(
+          mutation.value.expectedVersion,
+          mutation.value.affectedPanelIds,
+        );
+      }
+    }
+    await waitForPresentationFrame();
+    setWorkspaceLayout(runtime.endInteraction());
+    setIsRunning(false);
+  };
+
+  return (
+    <button
+      type="button"
+      className="panel-trace-driver"
+      data-running={isRunning}
+      disabled={isRunning || !candidate}
+      onClick={() => void runTrace()}
+    >
+      {isRunning ? "Panel trace running" : "Run panel resize trace"}
+    </button>
+  );
 }
 
 interface PanelFrameContentProps {
@@ -320,14 +568,7 @@ const PanelFrame = memo(function PanelFrame({
     },
   });
 
-  const resizeEdges: PanelResizeEdge[] =
-    snapshotFrame?.anchor === "floating"
-      ? ["left", "right", "bottom"]
-      : side === "left"
-        ? ["right", "bottom"]
-        : side === "right"
-          ? ["left", "bottom"]
-          : ["top"];
+  const resizeEdges = snapshotFrame?.resizeEdges ?? [];
 
   const handleResize = (
     edge: PanelResizeEdge,
@@ -374,6 +615,7 @@ const PanelFrame = memo(function PanelFrame({
       className="panel-wrapper workspace-panel-frame"
       data-panel={config.id}
       data-active={isActive}
+      data-anchor={snapshotFrame?.anchor}
       data-mode={mode}
       data-side={side}
       data-dragging={isMoving}
@@ -568,6 +810,16 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
           onFocusPanel={focusFloatingPanel}
         />
       ))}
+      <PanelWorkspaceSharedSplitters
+        runtime={runtime}
+        setWorkspaceLayout={setWorkspaceLayout}
+      />
+      {isPanelWorkspaceDiagnosticsEnabled() && (
+        <PanelWorkspaceTraceDriver
+          runtime={runtime}
+          setWorkspaceLayout={setWorkspaceLayout}
+        />
+      )}
     </div>
   );
 });

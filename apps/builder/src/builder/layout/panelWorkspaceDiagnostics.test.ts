@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   mountPanelWorkspaceDiagnostics,
@@ -5,6 +7,17 @@ import {
 } from "./panelWorkspaceDiagnostics";
 
 describe("summarizePanelWorkspaceTrace", () => {
+  it("applied latency는 microtask가 아니라 DOM commit 이후 presentation RAF에서 끝난다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "panelWorkspaceDiagnostics.ts"),
+      "utf-8",
+    );
+
+    expect(source).not.toContain("queueMicrotask(");
+    expect(source).toContain("requestAnimationFrame((timestamp) =>");
+    expect(source).toContain("takeReadyPresentation(timestamp)");
+  });
+
   it("derives native refresh delivery and interaction counters without a 60Hz cap", () => {
     const report = summarizePanelWorkspaceTrace({
       durationMs: 5_000,

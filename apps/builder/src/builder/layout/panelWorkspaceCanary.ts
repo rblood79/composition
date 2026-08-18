@@ -77,11 +77,20 @@ export function createPanelWorkspaceAppliedVersionTracker(): PanelWorkspaceAppli
         appliedVersions.get(panelId),
       );
       if (versions.some((version) => version === undefined)) return null;
+      const latestVersions = versions.map((panelVersions) =>
+        panelVersions ? Math.max(...panelVersions) : -Infinity,
+      );
       if (
-        versions.some((panelVersions) =>
-          panelVersions ? !panelVersions.has(pending.expectedVersion) : true,
+        latestVersions.some(
+          (latestVersion) => latestVersion < pending.expectedVersion,
         )
       ) {
+        return null;
+      }
+      const skippedExpectedVersion = versions.some((panelVersions) =>
+        panelVersions ? !panelVersions.has(pending.expectedVersion) : true,
+      );
+      if (skippedExpectedVersion) {
         const signature = `${pending.expectedVersion}:${versions
           .map((panelVersions) =>
             panelVersions ? [...panelVersions].join(",") : "missing",
@@ -91,7 +100,6 @@ export function createPanelWorkspaceAppliedVersionTracker(): PanelWorkspaceAppli
           mismatchCount += 1;
           mismatchSignatures.add(signature);
         }
-        return null;
       }
       const result = {
         inputToAppliedFrameMs: Math.max(0, nowMs - pending.inputAtMs),

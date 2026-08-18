@@ -10,6 +10,7 @@ import {
   PANEL_WORKSPACE_TEST_REGISTRY,
   createPanelWorkspaceLayoutV2,
 } from "./panelWorkspaceLayoutV2.testFixtures";
+import { snapPanelWorkspacePanel } from "./panelWorkspaceLayoutInteraction";
 import { PanelWorkspace } from "./PanelWorkspace";
 
 const TEST_CONFIGS: PanelConfig[] = PANEL_WORKSPACE_TEST_REGISTRY.map(
@@ -110,6 +111,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
         ?.querySelector(".panel-nav button")
         ?.getAttribute("aria-label"),
     ).toBe("monitor");
+    expect(container.querySelector(".panel-trace-driver")).toBeNull();
   });
 
   it("shell이 기존 panel header/action/content DOM을 복제하지 않는다", () => {
@@ -166,5 +168,42 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(
       container.querySelector('.workspace-panel-frame[data-panel="monitor"]'),
     ).not.toBeNull();
+  });
+
+  it("cross-rail snap은 anchor 기준 outer edge와 shared column splitter 하나를 렌더링한다", () => {
+    const layout = createPanelWorkspaceLayoutV2();
+    layout.visibility.settings = true;
+    const snapped = snapPanelWorkspacePanel(
+      layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      "settings",
+      "properties",
+      "left",
+    );
+    expect(snapped.ok).toBe(true);
+    if (!snapped.ok) return;
+    useStore.setState({ panelWorkspaceLayout: snapped.value.layout });
+
+    const { container } = render(
+      <PanelWorkspace>
+        <div />
+      </PanelWorkspace>,
+    );
+    const settingsFrame = container.querySelector(
+      '.workspace-panel-frame[data-panel="settings"]',
+    );
+
+    expect(settingsFrame?.getAttribute("data-side")).toBe("left");
+    expect(settingsFrame?.getAttribute("data-anchor")).toBe("right");
+    expect(
+      [...(settingsFrame?.querySelectorAll(".panel-resize-handle") ?? [])].map(
+        (handle) => handle.getAttribute("data-edge"),
+      ),
+    ).toEqual(["left", "bottom"]);
+    expect(
+      container.querySelectorAll(
+        '.panel-cluster-splitter[data-splitter-kind="column"]',
+      ),
+    ).toHaveLength(1);
   });
 });

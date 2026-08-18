@@ -35,6 +35,23 @@ describe("ADR-922 real-frame canary", () => {
     tracker.recordFrameApplied("history", 7);
     expect(tracker.takeReadyPresentation(116)).toEqual({
       inputToAppliedFrameMs: 16,
+      appliedVersionMismatchCount: 0,
+      version: 7,
+    });
+  });
+
+  it("expected version을 건너뛰고 더 새 version만 적용한 frame은 mismatch로 판정한다", () => {
+    const tracker = createPanelWorkspaceAppliedVersionTracker();
+    tracker.recordInput({
+      inputAtMs: 100,
+      expectedVersion: 7,
+      affectedPanelIds: ["properties", "history"],
+    });
+    tracker.recordFrameApplied("properties", 8);
+    tracker.recordFrameApplied("history", 8);
+
+    expect(tracker.takeReadyPresentation(116)).toEqual({
+      inputToAppliedFrameMs: 16,
       appliedVersionMismatchCount: 1,
       version: 7,
     });

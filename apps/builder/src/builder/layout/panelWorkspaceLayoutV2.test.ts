@@ -147,6 +147,26 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
 });
 
 describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
+  it("railOrder가 빈 side는 rendered rail inset을 0으로 파생한다", () => {
+    const layout = createPanelWorkspaceLayoutV2();
+    layout.railOrder.bottom = [];
+    layout.railOrder.right.push("monitor");
+
+    const result = solvePanelWorkspaceLayoutV2(
+      layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      {
+        workspaceRect: { width: 1600, height: 900 },
+        railSizes: { left: 48, right: 48, bottom: 48 },
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.occupiedInsets.bottom).toBe(0);
+    expect(result.value.mainContentRect.height).toBe(900);
+  });
+
   it("visible anchored cluster와 rail만 occupied inset에 포함한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
     const result = solvePanelWorkspaceLayoutV2(

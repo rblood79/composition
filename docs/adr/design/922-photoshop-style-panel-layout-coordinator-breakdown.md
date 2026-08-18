@@ -612,6 +612,14 @@ interface PanelLayoutV1BackupEnvelope {
 - G0~G5 evidence, 3 files/32 rollback tests, 800×600 constrained viewport, Settings floating,
   Monitor toggle/refresh를 재검증해 G6를 통과했다.
 
+#### Post-implementation 초기 의도 재검증 — PASS (2026-08-18)
+
+- [final correction evidence](./922-post-implementation-intent-correction-evidence.md)에 actual
+  rail inset, rail/anchor resize owner, shared snapshot splitter production 소비,
+  presentation RAF/mismatch oracle 수정과 최종 5초 trace를 기록했다.
+- 초기 재검증 HIGH 3 / MEDIUM 1을 전건 수정했으며 native display-period G2b와
+  shell/Canvas-local rect를 현재 final runtime에서 다시 통과했다.
+
 ## 6. 변경 파일 경계
 
 | 영역            | 예상 파일                                                                                                                     | 변경 원칙                                                                            |

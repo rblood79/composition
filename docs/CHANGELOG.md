@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-922 초기 의도 재검증 — actual rail·shared splitter·presentation RAF 정정] - 2026-08-18
+
+### Bug Fixes
+
+- **empty rail DOM을 지운 뒤에도 없는 rail의 48px inset이 남던 문제를 수정**: normalized `railOrder`에 실제 button이 있는 side만 rail size를 점유한다. bottom rail 0인 populated layout에서 main/Canvas 높이가 `892→940px`, 800×600에서는 `504→552px`로 실제 가용 영역을 모두 사용한다
+- **cross-rail snap 뒤 resize handle이 placement anchor가 아니라 activity rail side를 따르던 문제를 수정**: frame outer edge는 coordinator snapshot anchor와 internal boundary에서 파생한다. row/column boundary는 snapshot의 shared `PanelSplitter` 한 개가 geometry/version/ARIA를 소유한다
+- **G2b applied latency가 presentation RAF가 아닌 microtask에서 끝나던 계측 결함을 수정**: layout effect 뒤 실제 RAF를 종점으로 사용하고, expected 도착 전 old version은 mismatch로 세지 않는다. 최종 5초 trace는 123.46Hz, p95 14.7ms, mismatch/long task/DOM query 0, delivery delta -0.56pp로 PASS했다
+
 ## [ADR-922 Implemented — Photoshop식 panel workspace 최종 전환] - 2026-08-18
 
 ### Architecture

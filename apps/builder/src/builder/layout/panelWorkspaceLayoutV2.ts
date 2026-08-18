@@ -861,10 +861,22 @@ export function solvePanelWorkspaceLayoutV2(
     width: safeDimension(options.workspaceRect.width),
     height: safeDimension(options.workspaceRect.height),
   };
-  const railSizes = {
+  const configuredRailSizes = {
     left: safeDimension(options.railSizes.left),
     right: safeDimension(options.railSizes.right),
     bottom: safeDimension(options.railSizes.bottom),
+  };
+  const railSizes: PanelWorkspaceRailSizes = {
+    left:
+      normalizedLayout.railOrder.left.length > 0 ? configuredRailSizes.left : 0,
+    right:
+      normalizedLayout.railOrder.right.length > 0
+        ? configuredRailSizes.right
+        : 0,
+    bottom:
+      normalizedLayout.railOrder.bottom.length > 0
+        ? configuredRailSizes.bottom
+        : 0,
   };
   const anchoredClusters = {
     left: findAnchoredCluster(normalizedLayout.clusters, "left"),
