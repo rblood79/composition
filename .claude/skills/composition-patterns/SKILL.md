@@ -1,6 +1,6 @@
 ---
 name: composition-patterns
-description: Defines code patterns, rules, and best practices for composition Builder application (apps/builder, packages/specs, packages/shared, packages/composition-engine). Covers layout engine, Canvas rendering, state management, styling, and component architecture. Use when writing, reviewing, refactoring, or debugging any composition code, when making architectural decisions about the builder, or on "코드 패턴", "규칙 확인", "컨벤션 체크", "아키텍처 규칙", "composition 규칙", "패턴 체크", "코드 리뷰 기준", "code patterns", "conventions", "architecture rules" requests.
+description: composition 코드 패턴·규칙 정본 (apps/builder, packages/specs·shared·composition-engine — 레이아웃 엔진/Canvas 렌더링/상태/스타일링/컴포넌트 아키텍처). composition 코드 작성·리뷰·리팩토링·디버깅 또는 빌더 아키텍처 결정 시, 그리고 "코드 패턴"/"규칙 확인"/"컨벤션 체크"/"code patterns" 요청 시 사용.
 user-invocable: true
 ---
 
