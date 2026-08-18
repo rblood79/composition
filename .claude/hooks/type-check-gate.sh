@@ -61,6 +61,19 @@ $(echo "$VALIDATE_OUTPUT" | tail -10)"
   fi
 fi
 
+# 세션 소유 변경 가드 (2026-08-18): 이 세션이 쓰기 도구(Edit/Write/NotebookEdit) 또는
+# agent 위임(Task/Agent — 하위 agent 편집은 main transcript 에 안 잡힘)을 한 번도 안 썼으면
+# 작업 트리의 .ts 변경은 외부(병렬 세션/수동 편집) 소유 → 이 세션에서 게이트 발화 금지.
+# Why: 읽기 전용(plan mode) 세션이 외부 잔여 변경만으로 반복 차단됨 (2026-08-18 실측 4회).
+# transcript/jq 부재 시엔 기존 작업 트리 기준으로 폴백 (게이트 보수적 유지).
+TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || true)
+if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ] && command -v jq >/dev/null 2>&1; then
+  SESSION_WRITE_COUNT=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use") | .name' "$TRANSCRIPT" 2>/dev/null | grep -cE '^(Edit|Write|MultiEdit|NotebookEdit|Task|Agent)$' || true)
+  if [ "${SESSION_WRITE_COUNT:-0}" -eq 0 ]; then
+    exit 0
+  fi
+fi
+
 # .ts/.tsx 변경 감지
 CHANGED_TS=$(git diff --name-only HEAD 2>/dev/null | grep -E '\.(ts|tsx)$' || true)
 if [ -z "$CHANGED_TS" ]; then
