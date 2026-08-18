@@ -133,7 +133,7 @@ describe("ADR-922 snapshot candidate adapter", () => {
     }
   });
 
-  it("Phase 2는 기존 production frame/store를 import하지 않는다", () => {
+  it("Phase 3 production frame은 coordinator로 전환하고 DOM candidate adapter를 직접 우회하지 않는다", () => {
     const panelWorkspace = readFileSync(
       resolve(__dirname, "PanelWorkspace.tsx"),
       "utf8",
@@ -143,7 +143,8 @@ describe("ADR-922 snapshot candidate adapter", () => {
       "utf8",
     );
 
-    expect(panelWorkspace).not.toContain("panelWorkspaceLayoutCoordinator");
+    expect(panelWorkspace).toContain("panelWorkspaceLayoutCoordinator");
+    expect(panelWorkspace).toContain("createPanelWorkspaceRuntime");
     expect(panelWorkspace).not.toContain("panelWorkspaceShadowAdapter");
     expect(panelStore).not.toContain("panelWorkspaceLayoutCoordinator");
     expect(panelStore).not.toContain("panelWorkspaceShadowAdapter");

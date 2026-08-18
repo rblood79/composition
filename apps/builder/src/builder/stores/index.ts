@@ -268,10 +268,12 @@ export const useSelectedElementData = (): SelectedElement | null => {
         ? selectedElementProps
         : element.props;
 
-    const { style, computedStyle, events: _events, ...otherProps } = props as Record<
-      string,
-      unknown
-    >;
+    const {
+      style,
+      computedStyle,
+      events: _events,
+      ...otherProps
+    } = props as Record<string, unknown>;
 
     const dataBinding = getElementDataBinding(element, "legacy-only");
     const selectedElement: SelectedElement = {
@@ -474,8 +476,14 @@ export const useHistoryActions = () =>
 
 // Panel Layout 선택기들
 export const usePanelLayoutState = () => useStore((state) => state.panelLayout);
+export const usePanelWorkspaceLayoutState = () =>
+  useStore((state) => state.panelWorkspaceLayout);
+export const usePanelWorkspaceHydrationStatus = () =>
+  useStore((state) => state.panelWorkspaceHydrationStatus);
 export const usePanelLayoutActions = () =>
   useStore((state) => ({
+    initializePanelWorkspaceLayout: state.initializePanelWorkspaceLayout,
+    setPanelWorkspaceLayout: state.setPanelWorkspaceLayout,
     setPanelLayout: state.setPanelLayout,
     resetPanelLayout: state.resetPanelLayout,
     savePanelLayoutToStorage: state.savePanelLayoutToStorage,

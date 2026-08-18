@@ -1,283 +1,277 @@
-/**
- * Panel Layout Slice
- *
- * 패널 레이아웃 상태를 관리하는 Zustand slice
- */
-
 import type { StateCreator } from "zustand";
 import type { PanelLayoutState } from "../panels/core/types";
 import { DEFAULT_PANEL_LAYOUT } from "../panels/core/types";
-import { PANEL_LAYOUT_STORAGE_KEY } from "../layout/types";
+import {
+  migratePanelWorkspaceStorageToV2,
+  PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY,
+  readPanelWorkspaceV1Compatibility,
+} from "../layout/panelWorkspaceLayoutV2Persistence";
+import {
+  normalizePanelWorkspaceLayoutV2,
+  type PanelWorkspaceLayoutV2,
+  type PanelWorkspaceRegistryEntry,
+} from "../layout/panelWorkspaceLayoutV2";
+import {
+  migratePanelLayoutV1ToV2,
+  projectV2ToLegacyView,
+} from "../layout/panelWorkspaceLayoutV2Migration";
 
-/**
- * Panel Layout State
- */
+export type PanelWorkspaceHydrationStatus =
+  | "pending"
+  | "ready"
+  | "memory-fallback";
+
 export interface PanelLayoutSliceState {
+  /** Phase 6 제거 전까지 unused legacy host가 읽는 read-only projection. */
   panelLayout: PanelLayoutState;
+  /** ADR-922 production panel placement/visibility SSOT. */
+  panelWorkspaceLayout: PanelWorkspaceLayoutV2 | null;
+  panelWorkspaceHydrationStatus: PanelWorkspaceHydrationStatus;
+  panelWorkspaceHydrationError: string | null;
 }
 
-/**
- * Panel Layout Actions
- */
 export interface PanelLayoutSliceActions {
+  initializePanelWorkspaceLayout: (
+    registry: readonly PanelWorkspaceRegistryEntry[],
+  ) => boolean;
+  setPanelWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
   setPanelLayout: (layout: PanelLayoutState) => void;
   resetPanelLayout: () => void;
   savePanelLayoutToStorage: () => void;
   loadPanelLayoutFromStorage: () => void;
 }
 
-/**
- * Panel Layout Slice 전체 타입
- */
 export type PanelLayoutSlice = PanelLayoutSliceState & PanelLayoutSliceActions;
 
-/**
- * LocalStorage에서 레이아웃 로드
- */
-function loadLayoutFromStorage():
-  | import("../panels/core/types").PanelLayoutState
-  | null {
-  try {
-    const stored = localStorage.getItem(PANEL_LAYOUT_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
+let activeRegistry: readonly PanelWorkspaceRegistryEntry[] | null = null;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-      // 마이그레이션: 구 형식(activeLeftPanel/activeRightPanel) → 신 형식(배열)
-      const migrated = { ...parsed };
-
-      // activeLeftPanel(구) → activeLeftPanels(신)
-      if (
-        "activeLeftPanel" in parsed &&
-        !Array.isArray(parsed.activeLeftPanels)
-      ) {
-        migrated.activeLeftPanels = parsed.activeLeftPanel
-          ? [parsed.activeLeftPanel]
-          : [];
-        delete migrated.activeLeftPanel;
-      }
-
-      // activeRightPanel(구) → activeRightPanels(신)
-      if (
-        "activeRightPanel" in parsed &&
-        !Array.isArray(parsed.activeRightPanels)
-      ) {
-        migrated.activeRightPanels = parsed.activeRightPanel
-          ? [parsed.activeRightPanel]
-          : [];
-        delete migrated.activeRightPanel;
-      }
-
-      // 기본값과 병합하여 누락된 필드 방지
-      const result = {
-        ...DEFAULT_PANEL_LAYOUT,
-        ...migrated,
-      };
-
-      // 배열 유효성 검증
-      if (!Array.isArray(result.activeLeftPanels)) {
-        result.activeLeftPanels = DEFAULT_PANEL_LAYOUT.activeLeftPanels;
-      }
-      if (!Array.isArray(result.activeRightPanels)) {
-        result.activeRightPanels = DEFAULT_PANEL_LAYOUT.activeRightPanels;
-      }
-
-      // Bottom panel 마이그레이션 (Phase 2에서 추가)
-      if (!Array.isArray(result.bottomPanels)) {
-        result.bottomPanels = DEFAULT_PANEL_LAYOUT.bottomPanels;
-      }
-      if (!Array.isArray(result.activeBottomPanels)) {
-        result.activeBottomPanels = DEFAULT_PANEL_LAYOUT.activeBottomPanels;
-      }
-      if (typeof result.showBottom !== "boolean") {
-        result.showBottom = DEFAULT_PANEL_LAYOUT.showBottom;
-      }
-      if (typeof result.bottomHeight !== "number") {
-        result.bottomHeight = DEFAULT_PANEL_LAYOUT.bottomHeight;
-      }
-      if (
-        typeof result.panelSizes !== "object" ||
-        result.panelSizes === null ||
-        Array.isArray(result.panelSizes)
-      ) {
-        result.panelSizes = DEFAULT_PANEL_LAYOUT.panelSizes;
-      }
-      if (!Array.isArray(result.panelClusters)) {
-        result.panelClusters = DEFAULT_PANEL_LAYOUT.panelClusters;
-      } else {
-        result.panelClusters = result.panelClusters.filter(
-          (cluster: import("../panels/core/types").PanelClusterState) =>
-            typeof cluster?.id === "string" &&
-            typeof cluster?.position?.x === "number" &&
-            typeof cluster?.position?.y === "number" &&
-            Array.isArray(cluster?.columns) &&
-            cluster.columns.every(
-              (column) =>
-                typeof column?.width === "number" &&
-                Array.isArray(column?.panelIds),
-            ),
-        );
-      }
-      // datatableEditor가 leftPanels에 없으면 추가
-      if (
-        Array.isArray(result.leftPanels) &&
-        !result.leftPanels.includes("datatableEditor")
-      ) {
-        const datatableIndex = result.leftPanels.indexOf("datatable");
-        if (datatableIndex >= 0) {
-          // datatable 바로 뒤에 삽입
-          result.leftPanels.splice(datatableIndex + 1, 0, "datatableEditor");
-        } else {
-          // datatable이 없으면 맨 뒤에 추가
-          result.leftPanels.push("datatableEditor");
-        }
-      }
-
-      // 모든 panel registry 항목은 activity rail에서 다시 열 수 있어야 한다.
-      if (
-        Array.isArray(result.leftPanels) &&
-        !result.leftPanels.includes("settings")
-      ) {
-        result.leftPanels.push("settings");
-      }
-
-      // 마이그레이션: 제거된 'data' 패널 제거
-      if (Array.isArray(result.rightPanels)) {
-        result.rightPanels = result.rightPanels.filter(
-          (id: string) => id !== "data",
-        );
-      }
-      if (Array.isArray(result.activeRightPanels)) {
-        result.activeRightPanels = result.activeRightPanels.filter(
-          (id: string) => id !== "data",
-        );
-      }
-      if (Array.isArray(result.leftPanels)) {
-        result.leftPanels = result.leftPanels.filter(
-          (id: string) => id !== "data",
-        );
-      }
-      if (Array.isArray(result.activeLeftPanels)) {
-        result.activeLeftPanels = result.activeLeftPanels.filter(
-          (id: string) => id !== "data",
-        );
-      }
-      if (Array.isArray(result.bottomPanels)) {
-        result.bottomPanels = result.bottomPanels.filter(
-          (id: string) => id !== "data",
-        );
-      }
-      if (Array.isArray(result.activeBottomPanels)) {
-        result.activeBottomPanels = result.activeBottomPanels.filter(
-          (id: string) => id !== "data",
-        );
-      }
-
-      // history 패널 추가 (신규 패널 마이그레이션)
-      if (
-        Array.isArray(result.rightPanels) &&
-        !result.rightPanels.includes("history")
-      ) {
-        const eventsIndex = result.rightPanels.indexOf("events");
-        if (eventsIndex >= 0) {
-          result.rightPanels.splice(eventsIndex + 1, 0, "history");
-        } else {
-          result.rightPanels.push("history");
-        }
-      }
-
-      // 구 Modal 상태는 Photoshop식 non-modal floating frame으로 승격한다.
-      if (Array.isArray(result.modalPanels)) {
-        result.modalPanels = result.modalPanels.map(
-          (panel: import("../panels/core/types").ModalPanelState) => ({
-            ...panel,
-            mode: "floating" as const,
-          }),
-        );
-      }
-
-      return result;
-    }
-  } catch (error) {
-    console.error("[PanelLayout] Failed to load from localStorage:", error);
-  }
-  return null;
+function migrationId(): string {
+  return crypto.randomUUID();
 }
 
-/**
- * LocalStorage에 레이아웃 저장 (디바운스 300ms)
- * 패널 드래그/리사이즈 등 고빈도 호출 시 마지막 상태만 저장
- */
-let _saveTimer: ReturnType<typeof setTimeout> | null = null;
+function createDefaultV2(
+  registry: readonly PanelWorkspaceRegistryEntry[],
+): PanelWorkspaceLayoutV2 {
+  const migrated = migratePanelLayoutV1ToV2(
+    DEFAULT_PANEL_LAYOUT,
+    registry,
+    migrationId(),
+  );
+  const { migrationSource: _migrationSource, ...v2Born } = migrated;
+  return v2Born;
+}
 
-function debouncedSaveLayoutToStorage(
-  layout: import("../panels/core/types").PanelLayoutState,
-): void {
-  if (_saveTimer !== null) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(() => {
-    _saveTimer = null;
+function projectLegacy(
+  layout: PanelWorkspaceLayoutV2,
+  registry: readonly PanelWorkspaceRegistryEntry[],
+): PanelLayoutState {
+  return projectV2ToLegacyView(layout, registry, DEFAULT_PANEL_LAYOUT).layout;
+}
+
+function scheduleV2Write(layout: PanelWorkspaceLayoutV2): void {
+  if (saveTimer !== null) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
     try {
-      localStorage.setItem(PANEL_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
+      localStorage.setItem(
+        PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY,
+        JSON.stringify(layout),
+      );
     } catch (error) {
-      console.error("[PanelLayout] Failed to save to localStorage:", error);
+      console.error("[PanelWorkspace] Failed to persist v2 layout:", error);
     }
   }, 300);
 }
 
-/**
- * Panel Layout Slice 생성
- */
+function writeV2Now(layout: PanelWorkspaceLayoutV2): boolean {
+  if (saveTimer !== null) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  try {
+    localStorage.setItem(
+      PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY,
+      JSON.stringify(layout),
+    );
+    return true;
+  } catch (error) {
+    console.error("[PanelWorkspace] Failed to persist v2 layout:", error);
+    return false;
+  }
+}
+
+function fallbackLayout(registry: readonly PanelWorkspaceRegistryEntry[]): {
+  layout: PanelWorkspaceLayoutV2;
+  error: string;
+} {
+  try {
+    const compatibility = readPanelWorkspaceV1Compatibility({
+      storage: localStorage,
+      registry,
+      defaultV1Layout: DEFAULT_PANEL_LAYOUT,
+    });
+    return {
+      layout: migratePanelLayoutV1ToV2(
+        compatibility.view.layout,
+        registry,
+        migrationId(),
+      ),
+      error: `Storage migration failed; using ${compatibility.source} in memory`,
+    };
+  } catch (error) {
+    return {
+      layout: createDefaultV2(registry),
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export const createPanelLayoutSlice: StateCreator<
   PanelLayoutSlice,
   [],
   [],
   PanelLayoutSlice
-> = (set, _get, _store) => ({
-  // 초기 상태: localStorage에서 로드하거나 기본값 사용
-  panelLayout: loadLayoutFromStorage() || DEFAULT_PANEL_LAYOUT,
+> = (set, get) => ({
+  panelLayout: DEFAULT_PANEL_LAYOUT,
+  panelWorkspaceLayout: null,
+  panelWorkspaceHydrationStatus: "pending",
+  panelWorkspaceHydrationError: null,
 
-  /**
-   * 레이아웃 설정 및 자동 저장
-   */
-  setPanelLayout: (layout: import("../panels/core/types").PanelLayoutState) => {
-    set({ panelLayout: layout });
-    debouncedSaveLayoutToStorage(layout);
-  },
-
-  /**
-   * 레이아웃 초기화
-   */
-  resetPanelLayout: () => {
-    set({ panelLayout: DEFAULT_PANEL_LAYOUT });
-    debouncedSaveLayoutToStorage(DEFAULT_PANEL_LAYOUT);
-  },
-
-  /**
-   * 현재 레이아웃을 localStorage에 저장 (즉시)
-   */
-  savePanelLayoutToStorage: () => {
-    const { panelLayout } = _get();
-    // 명시적 호출은 즉시 저장 (디바운스 타이머 취소)
-    if (_saveTimer !== null) {
-      clearTimeout(_saveTimer);
-      _saveTimer = null;
+  initializePanelWorkspaceLayout: (registry) => {
+    activeRegistry = registry;
+    const current = get().panelWorkspaceLayout;
+    if (current) {
+      const normalized = normalizePanelWorkspaceLayoutV2(current, registry);
+      if (!normalized.ok) return false;
+      set({
+        panelWorkspaceLayout: normalized.value,
+        panelLayout: projectLegacy(normalized.value, registry),
+      });
+      return true;
     }
+
+    let primaryRaw: string | null;
     try {
-      localStorage.setItem(
-        PANEL_LAYOUT_STORAGE_KEY,
-        JSON.stringify(panelLayout),
-      );
+      primaryRaw = localStorage.getItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY);
     } catch (error) {
-      console.error("[PanelLayout] Failed to save to localStorage:", error);
+      const layout = createDefaultV2(registry);
+      set({
+        panelWorkspaceLayout: layout,
+        panelLayout: projectLegacy(layout, registry),
+        panelWorkspaceHydrationStatus: "memory-fallback",
+        panelWorkspaceHydrationError:
+          error instanceof Error ? error.message : String(error),
+      });
+      return false;
+    }
+    if (primaryRaw === null) {
+      const layout = createDefaultV2(registry);
+      const persisted = writeV2Now(layout);
+      set({
+        panelWorkspaceLayout: layout,
+        panelLayout: projectLegacy(layout, registry),
+        panelWorkspaceHydrationStatus: persisted ? "ready" : "memory-fallback",
+        panelWorkspaceHydrationError: persisted
+          ? null
+          : "Failed to write the v2-born default layout",
+      });
+      return persisted;
+    }
+
+    let migration = migratePanelWorkspaceStorageToV2({
+      storage: localStorage,
+      registry,
+      defaultV1Layout: DEFAULT_PANEL_LAYOUT,
+      createMigrationId: migrationId,
+      now: () => new Date().toISOString(),
+    });
+    if (migration.status === "failed") {
+      migration = migratePanelWorkspaceStorageToV2({
+        storage: localStorage,
+        registry,
+        defaultV1Layout: DEFAULT_PANEL_LAYOUT,
+        createMigrationId: migrationId,
+        now: () => new Date().toISOString(),
+      });
+    }
+    if (migration.status !== "failed") {
+      set({
+        panelWorkspaceLayout: migration.layout,
+        panelLayout: projectLegacy(migration.layout, registry),
+        panelWorkspaceHydrationStatus: "ready",
+        panelWorkspaceHydrationError: null,
+      });
+      return true;
+    }
+
+    const fallback = fallbackLayout(registry);
+    set({
+      panelWorkspaceLayout: fallback.layout,
+      panelLayout: projectLegacy(fallback.layout, registry),
+      panelWorkspaceHydrationStatus: "memory-fallback",
+      panelWorkspaceHydrationError: `${migration.stage}: ${migration.error}; ${fallback.error}`,
+    });
+    return false;
+  },
+
+  setPanelWorkspaceLayout: (layout) => {
+    if (!activeRegistry) return false;
+    const normalized = normalizePanelWorkspaceLayoutV2(layout, activeRegistry);
+    if (!normalized.ok) return false;
+    set({
+      panelWorkspaceLayout: normalized.value,
+      panelLayout: projectLegacy(normalized.value, activeRegistry),
+    });
+    if (get().panelWorkspaceHydrationStatus === "ready") {
+      scheduleV2Write(normalized.value);
+    }
+    return true;
+  },
+
+  setPanelLayout: (legacyLayout) => {
+    if (!activeRegistry) {
+      set({ panelLayout: legacyLayout });
+      return;
+    }
+    const currentMigrationId =
+      get().panelWorkspaceLayout?.migrationSource?.migrationId ?? migrationId();
+    const next = migratePanelLayoutV1ToV2(
+      legacyLayout,
+      activeRegistry,
+      currentMigrationId,
+    );
+    get().setPanelWorkspaceLayout(next);
+  },
+
+  resetPanelLayout: () => {
+    if (!activeRegistry) {
+      set({ panelLayout: DEFAULT_PANEL_LAYOUT });
+      return;
+    }
+    const layout = createDefaultV2(activeRegistry);
+    set({
+      panelWorkspaceLayout: layout,
+      panelLayout: projectLegacy(layout, activeRegistry),
+    });
+    if (get().panelWorkspaceHydrationStatus === "ready")
+      scheduleV2Write(layout);
+  },
+
+  savePanelLayoutToStorage: () => {
+    const layout = get().panelWorkspaceLayout;
+    if (layout && get().panelWorkspaceHydrationStatus === "ready") {
+      writeV2Now(layout);
     }
   },
 
-  /**
-   * localStorage에서 레이아웃 로드
-   */
   loadPanelLayoutFromStorage: () => {
-    const loaded = loadLayoutFromStorage();
-    if (loaded) {
-      set({ panelLayout: loaded });
-    }
+    if (!activeRegistry) return;
+    set({
+      panelWorkspaceLayout: null,
+      panelWorkspaceHydrationStatus: "pending",
+      panelWorkspaceHydrationError: null,
+    });
+    get().initializePanelWorkspaceLayout(activeRegistry);
   },
 });

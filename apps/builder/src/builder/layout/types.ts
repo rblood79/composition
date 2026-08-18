@@ -9,6 +9,10 @@ import type {
   PanelLayoutState,
   PanelLayoutActions,
 } from "../panels/core/types";
+import type {
+  PanelWorkspaceLayoutV2,
+  PanelWorkspaceRegistryEntry,
+} from "./panelWorkspaceLayoutV2";
 
 // `PanelAreaProps` 는 여기 두지 않는다 — 정본은 `PanelArea.tsx` 의 선언이고
 // `layout/index.ts` 가 그것을 재수출한다. 종전에 이 파일에도 동명 선언이
@@ -23,6 +27,15 @@ import type {
 export interface UsePanelLayoutReturn extends PanelLayoutActions {
   /** 현재 레이아웃 상태 */
   layout: PanelLayoutState;
+
+  /** ADR-922 production placement/visibility SSOT. */
+  workspaceLayout: PanelWorkspaceLayoutV2 | null;
+
+  initializeWorkspaceLayout: (
+    registry: readonly PanelWorkspaceRegistryEntry[],
+  ) => boolean;
+
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
 
   /** 로딩 상태 */
   isLoading: boolean;

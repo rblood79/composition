@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-922 G2b panel workspace production v2 cutover] - 2026-08-18
+
+### Architecture
+
+- **Phase 3에서 Photoshop식 panel placement/visibility/interaction을 단일 v2 coordinator로 production 전환**:
+  - exclusive real-frame canary가 native display period 기준 applied-frame p95, frame delivery, version mismatch, long task, pointer DOM geometry query G2b를 통과한 뒤 임시 query gate를 제거했다
+  - 모든 registry panel frame은 `.panel-workspace` 아래 한 번만 생성되고 `useSyncExternalStore` snapshot의 geometry/visibility/version을 소비한다. move/detach/상·우·하·좌 snap과 row/column/outer-edge resize는 RAF-batched transaction으로 source와 인접 frame을 같은 version에 갱신한다
+  - interaction hot path는 panel DOM rect를 다시 읽지 않으며, cancel은 시작 시 committed v2 snapshot을 byte-equivalent로 복원한다. successful end에서만 Zustand commit과 debounce primary write를 한 번 예약한다
+  - live Zustand SSOT와 `composition-panel-layout` primary를 v2로 전환했다. 기존 v1 raw는 primary write 전 prepared backup으로 보존하고 성공 뒤 committed로 잠그며, backup 없는 v2-born record는 refresh에서 byte-equivalent로 유지한다
+  - shortcut scope와 DataTable Editor 자동 표시도 v2 visibility를 소비한다. Monitor bottom placement, viewport height fit, hidden frame의 React Activity 상태 보존을 유지한다
+  - Canvas inset을 소유하는 `.panel-rail-measure-*`와 `panelLayoutRuntime`은 Phase 4 workspace occupancy 전환 전까지 의도적으로 유지한다
+
 ## [ADR-922 G2a immutable panel layout shadow coordinator] - 2026-08-18
 
 ### Architecture

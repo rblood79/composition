@@ -7,33 +7,48 @@
 import { create } from "zustand";
 import type { DataTableEditorStore, ApiEditorTab } from "../types/editorTypes";
 import { useStore } from "../../../stores";
+import { PanelRegistry } from "../../core/PanelRegistry";
+import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceLayoutInteraction";
+import { createPanelWorkspaceRegistryEntry } from "../../../layout/panelWorkspaceLayoutV2";
 
 /**
  * 패널 활성화 헬퍼
  */
 function activateEditorPanel() {
-  const { panelLayout, setPanelLayout } = useStore.getState();
-  if (!panelLayout.activeLeftPanels.includes("datatableEditor")) {
-    setPanelLayout({
-      ...panelLayout,
-      activeLeftPanels: [...panelLayout.activeLeftPanels, "datatableEditor"],
-    });
-  }
+  setEditorPanelVisibility(true);
 }
 
 /**
  * 패널 비활성화 헬퍼
  */
 function deactivateEditorPanel() {
-  const { panelLayout, setPanelLayout } = useStore.getState();
-  if (panelLayout.activeLeftPanels.includes("datatableEditor")) {
-    setPanelLayout({
-      ...panelLayout,
-      activeLeftPanels: panelLayout.activeLeftPanels.filter(
-        (id) => id !== "datatableEditor",
-      ),
-    });
+  setEditorPanelVisibility(false);
+}
+
+function setEditorPanelVisibility(visible: boolean) {
+  const registry = PanelRegistry.getAllPanels().map(
+    createPanelWorkspaceRegistryEntry,
+  );
+  if (registry.length === 0) return;
+  let state = useStore.getState();
+  if (!state.panelWorkspaceLayout) {
+    state.initializePanelWorkspaceLayout(registry);
+    state = useStore.getState();
   }
+  const { panelWorkspaceLayout, setPanelWorkspaceLayout } = state;
+  if (
+    !panelWorkspaceLayout ||
+    panelWorkspaceLayout.visibility.datatableEditor === visible
+  ) {
+    return;
+  }
+  const result = setPanelWorkspacePanelVisibility(
+    panelWorkspaceLayout,
+    registry,
+    "datatableEditor",
+    visible,
+  );
+  if (result.ok) setPanelWorkspaceLayout(result.value.layout);
 }
 
 /**

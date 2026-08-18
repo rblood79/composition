@@ -10,10 +10,10 @@
  * @since Phase 4 구현 (2025-12-28)
  */
 
-import { useEffect, useState, useCallback } from 'react';
-import { useStore } from '../stores';
-import type { ShortcutScope } from '../types/keyboard';
-import type { PanelId } from '../panels/core/types';
+import { useEffect, useState, useCallback } from "react";
+import { useStore } from "../stores";
+import type { ShortcutScope } from "../types/keyboard";
+import type { PanelId } from "../panels/core/types";
 
 // ============================================
 // Types
@@ -41,14 +41,14 @@ interface ActiveScopeState {
 // ============================================
 
 /** 텍스트 입력 요소 태그 */
-const TEXT_INPUT_TAGS = new Set(['INPUT', 'TEXTAREA']);
+const TEXT_INPUT_TAGS = new Set(["INPUT", "TEXTAREA"]);
 
 /** 패널 ID → 스코프 매핑 */
 const PANEL_SCOPE_MAP: Partial<Record<PanelId, ShortcutScope>> = {
-  properties: 'panel:properties',
-  styles: 'panel:styles',
-  events: 'panel:events',
-  nodes: 'panel:nodes',
+  properties: "panel:properties",
+  styles: "panel:styles",
+  events: "panel:events",
+  nodes: "panel:nodes",
 };
 
 // ============================================
@@ -101,14 +101,16 @@ function isCanvasFocused(activeElement: Element | null): boolean {
   if (!activeElement) return false;
 
   // data-scope="canvas" 속성 확인
-  if (activeElement.getAttribute('data-scope') === 'canvas') return true;
+  if (activeElement.getAttribute("data-scope") === "canvas") return true;
 
   // 캔버스 컨테이너 내부인지 확인
-  const canvasContainer = activeElement.closest('[data-canvas-container="true"]');
+  const canvasContainer = activeElement.closest(
+    '[data-canvas-container="true"]',
+  );
   if (canvasContainer) return true;
 
   // 캔버스 영역 클래스 확인 (fallback)
-  if (activeElement.closest('.builder-canvas, .canvas-container')) return true;
+  if (activeElement.closest(".builder-canvas, .canvas-container")) return true;
 
   return false;
 }
@@ -116,13 +118,15 @@ function isCanvasFocused(activeElement: Element | null): boolean {
 /**
  * 패널 영역에 포커스가 있는지 확인
  */
-function getActivePanelFromFocus(activeElement: Element | null): PanelId | null {
+function getActivePanelFromFocus(
+  activeElement: Element | null,
+): PanelId | null {
   if (!activeElement) return null;
 
   // data-panel-id 속성으로 패널 확인
-  const panelElement = activeElement.closest('[data-panel-id]');
+  const panelElement = activeElement.closest("[data-panel-id]");
   if (panelElement) {
-    const panelId = panelElement.getAttribute('data-panel-id') as PanelId;
+    const panelId = panelElement.getAttribute("data-panel-id") as PanelId;
     return panelId;
   }
 
@@ -150,10 +154,10 @@ export function useActiveScope(): ShortcutScope {
  */
 export function useActiveScopeState(): ActiveScopeState {
   // 패널 레이아웃에서 활성 패널 가져오기
-  const panelLayout = useStore((state) => state.panelLayout);
+  const panelWorkspaceLayout = useStore((state) => state.panelWorkspaceLayout);
 
   const [state, setState] = useState<ActiveScopeState>({
-    scope: 'global',
+    scope: "global",
     isTextEditing: false,
     isModalOpen: false,
     isCanvasFocused: false,
@@ -168,7 +172,7 @@ export function useActiveScopeState(): ActiveScopeState {
     const modalOpen = isModalOpen();
     if (modalOpen) {
       return {
-        scope: 'modal',
+        scope: "modal",
         isTextEditing: isTextInputElement(activeElement),
         isModalOpen: true,
         isCanvasFocused: false,
@@ -180,7 +184,7 @@ export function useActiveScopeState(): ActiveScopeState {
     const textEditing = isTextInputElement(activeElement);
     if (textEditing) {
       return {
-        scope: 'text-editing',
+        scope: "text-editing",
         isTextEditing: true,
         isModalOpen: false,
         isCanvasFocused: false,
@@ -192,7 +196,7 @@ export function useActiveScopeState(): ActiveScopeState {
     const canvasFocused = isCanvasFocused(activeElement);
     if (canvasFocused) {
       return {
-        scope: 'canvas-focused',
+        scope: "canvas-focused",
         isTextEditing: false,
         isModalOpen: false,
         isCanvasFocused: true,
@@ -213,8 +217,14 @@ export function useActiveScopeState(): ActiveScopeState {
     }
 
     // 5. 활성 패널 (우측 우선) 확인
-    const activeRightPanels = panelLayout?.activeRightPanels || [];
-    const activeLeftPanels = panelLayout?.activeLeftPanels || [];
+    const activeRightPanels =
+      panelWorkspaceLayout?.railOrder.right.filter(
+        (panelId) => panelWorkspaceLayout.visibility[panelId] === true,
+      ) || [];
+    const activeLeftPanels =
+      panelWorkspaceLayout?.railOrder.left.filter(
+        (panelId) => panelWorkspaceLayout.visibility[panelId] === true,
+      ) || [];
 
     // 우측 패널 중 스코프가 있는 첫 번째 패널
     for (const panelId of activeRightPanels) {
@@ -244,13 +254,13 @@ export function useActiveScopeState(): ActiveScopeState {
 
     // 6. 기본값: global
     return {
-      scope: 'global',
+      scope: "global",
       isTextEditing: false,
       isModalOpen: false,
       isCanvasFocused: false,
       activePanel: null,
     };
-  }, [panelLayout?.activeRightPanels, panelLayout?.activeLeftPanels]);
+  }, [panelWorkspaceLayout]);
 
   // 포커스 변경 및 DOM 변화 감지
   useEffect(() => {
@@ -275,8 +285,8 @@ export function useActiveScopeState(): ActiveScopeState {
     updateScope();
 
     // 포커스 변경 감지
-    document.addEventListener('focusin', updateScope);
-    document.addEventListener('focusout', updateScope);
+    document.addEventListener("focusin", updateScope);
+    document.addEventListener("focusout", updateScope);
 
     // DOM 변화 감지 (모달 열림/닫힘)
     const observer = new MutationObserver(updateScope);
@@ -284,12 +294,12 @@ export function useActiveScopeState(): ActiveScopeState {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['aria-modal', 'data-overlay-container'],
+      attributeFilter: ["aria-modal", "data-overlay-container"],
     });
 
     return () => {
-      document.removeEventListener('focusin', updateScope);
-      document.removeEventListener('focusout', updateScope);
+      document.removeEventListener("focusin", updateScope);
+      document.removeEventListener("focusout", updateScope);
       observer.disconnect();
     };
   }, [determineScope]);
@@ -306,11 +316,11 @@ export function useActiveScopeState(): ActiveScopeState {
  */
 export function matchesScope(
   targetScope: ShortcutScope | ShortcutScope[],
-  currentScope: ShortcutScope
+  currentScope: ShortcutScope,
 ): boolean {
   // global은 항상 매칭
-  if (targetScope === 'global') return true;
-  if (Array.isArray(targetScope) && targetScope.includes('global')) return true;
+  if (targetScope === "global") return true;
+  if (Array.isArray(targetScope) && targetScope.includes("global")) return true;
 
   // 배열이면 포함 여부 확인
   if (Array.isArray(targetScope)) {

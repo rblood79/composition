@@ -390,8 +390,8 @@ describe("ADR-922 Phase 1 compatibility reader", () => {
   });
 });
 
-describe("ADR-922 Phase 1 production isolation", () => {
-  it("기존 store가 v2 migration/persistence를 import하지 않아 primary v1을 유지한다", async () => {
+describe("ADR-922 Phase 3 production cutover", () => {
+  it("production store가 v2 migration/persistence를 소유하고 project DB는 건드리지 않는다", async () => {
     const storeSource = await readFile(
       resolve(__dirname, "../stores/panelLayout.ts"),
       "utf8",
@@ -405,10 +405,11 @@ describe("ADR-922 Phase 1 production isolation", () => {
       "utf8",
     );
 
-    expect(storeSource).not.toContain("panelWorkspaceLayoutV2");
+    expect(storeSource).toContain("panelWorkspaceLayoutV2Persistence");
     expect(storeSource).toContain(
-      "panelLayout: loadLayoutFromStorage() || DEFAULT_PANEL_LAYOUT",
+      "initializePanelWorkspaceLayout: (registry) =>",
     );
+    expect(storeSource).toContain("PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY");
     expect(`${migrationSource}\n${persistenceSource}`).not.toMatch(
       /DatabaseAdapter|db\.documents|supabase/i,
     );

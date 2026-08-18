@@ -1,634 +1,315 @@
-/**
- * usePanelLayout Hook
- *
- * 패널 레이아웃 상태 관리 및 액션 제공
- * Zustand store와 연동
- * @since Phase 2 - 승격 from layout/ (2025-12-30)
- */
-
 import { useCallback } from "react";
 import { useStore } from "../stores";
 import type {
+  PanelFrameGeometry,
   PanelId,
-  PanelSide,
   PanelLayoutState,
-  ModalPanelState,
-  PanelSnapPlacement,
+  PanelSide,
   PanelSize,
+  PanelSnapPlacement,
 } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import type { UsePanelLayoutReturn } from "../layout/types";
 import {
-  detachPanelFromClusters,
-  fitPanelClustersToWorkspace,
-  panelBelongsToCluster,
-  snapPanelIntoCluster,
-} from "../layout/panelStackLayout";
+  detachPanelToFloatingCluster,
+  focusPanelWorkspaceFloatingCluster,
+  hidePanelWorkspaceFloatingClusters,
+  movePanelWorkspacePanelToAnchor,
+  setPanelWorkspacePanelVisibility,
+  snapPanelWorkspacePanel,
+  updatePanelWorkspacePanelSize,
+  type PanelWorkspaceInteractionResult,
+} from "../layout/panelWorkspaceLayoutInteraction";
+import {
+  createPanelWorkspaceRegistryEntry,
+  type PanelWorkspaceLayoutV2,
+  type PanelWorkspaceRegistryEntry,
+  type PanelWorkspaceResult,
+} from "../layout/panelWorkspaceLayoutV2";
 
-/** stale closure 방지: callback 내부에서 최신 panelLayout 읽기 */
-const getLayout = () => useStore.getState().panelLayout;
-const WORKSPACE_TOP = 48;
-
-function getWorkspaceSize(): { width: number; height: number } {
-  return {
-    width: window.innerWidth,
-    height: Math.max(0, window.innerHeight - WORKSPACE_TOP),
-  };
+function registryEntries(): PanelWorkspaceRegistryEntry[] {
+  return PanelRegistry.getAllPanels().map(createPanelWorkspaceRegistryEntry);
 }
 
-function fitClusters(layout: PanelLayoutState): PanelLayoutState {
-  return fitPanelClustersToWorkspace(layout, getWorkspaceSize());
+function currentWorkspaceLayout(): PanelWorkspaceLayoutV2 | null {
+  return useStore.getState().panelWorkspaceLayout;
 }
 
-function getPanelSide(
-  layout: PanelLayoutState,
+function preferredGeometry(
+  layout: PanelWorkspaceLayoutV2,
   panelId: PanelId,
-): PanelSide | null {
-  if (layout.leftPanels.includes(panelId)) return "left";
-  if (layout.rightPanels.includes(panelId)) return "right";
-  if (layout.bottomPanels.includes(panelId)) return "bottom";
+  position?: { x: number; y: number },
+): PanelFrameGeometry | null {
+  for (const cluster of layout.clusters) {
+    for (const column of cluster.columns) {
+      const row = column.rows.find(
+        (candidate) => candidate.panelId === panelId,
+      );
+      if (!row) continue;
+      const config = PanelRegistry.getPanel(panelId);
+      const width = column.width;
+      const height = row.height;
+      const fallbackPosition =
+        cluster.anchor === "floating"
+          ? cluster.position
+          : {
+              x: Math.max(24, (window.innerWidth - width) / 2),
+              y: Math.max(24, (window.innerHeight - 48 - height) / 2),
+            };
+      return {
+        x: position?.x ?? fallbackPosition.x,
+        y: position?.y ?? fallbackPosition.y,
+        width: Math.max(config?.minWidth ?? 200, width),
+        height: Math.max(config?.minHeight ?? 160, height),
+      };
+    }
+  }
   return null;
 }
 
-function removePanelFromDockLists(
-  layout: PanelLayoutState,
-  panelId: PanelId,
-): PanelLayoutState {
-  return {
-    ...layout,
-    leftPanels: layout.leftPanels.filter((id) => id !== panelId),
-    rightPanels: layout.rightPanels.filter((id) => id !== panelId),
-    bottomPanels: layout.bottomPanels.filter((id) => id !== panelId),
-    activeLeftPanels: layout.activeLeftPanels.filter((id) => id !== panelId),
-    activeRightPanels: layout.activeRightPanels.filter((id) => id !== panelId),
-    activeBottomPanels: layout.activeBottomPanels.filter(
-      (id) => id !== panelId,
-    ),
-  };
-}
-
-function addPanelToDock(
-  layout: PanelLayoutState,
-  panelId: PanelId,
-  side: PanelSide,
-): PanelLayoutState {
-  const withoutPanel = detachPanelFromClusters(
-    removePanelFromDockLists(layout, panelId),
-    panelId,
-  );
-  const modalPanels = withoutPanel.modalPanels.filter(
-    (panel) => panel.panelId !== panelId,
-  );
-
-  if (side === "left") {
-    return {
-      ...withoutPanel,
-      leftPanels: [...withoutPanel.leftPanels, panelId],
-      activeLeftPanels: [...withoutPanel.activeLeftPanels, panelId],
-      showLeft: true,
-      modalPanels,
-    };
-  }
-  if (side === "right") {
-    return {
-      ...withoutPanel,
-      rightPanels: [...withoutPanel.rightPanels, panelId],
-      activeRightPanels: [...withoutPanel.activeRightPanels, panelId],
-      showRight: true,
-      modalPanels,
-    };
-  }
-  return {
-    ...withoutPanel,
-    bottomPanels: [...withoutPanel.bottomPanels, panelId],
-    activeBottomPanels: [panelId],
-    showBottom: true,
-    modalPanels,
-  };
-}
-
-/**
- * 패널 레이아웃 관리 훅
- *
- * panelLayout 최상위 필드(showLeft, activeLeftPanels 등)를 shallow 비교하여
- * 변경되지 않은 필드만 사용하는 소비자의 불필요한 리렌더를 방지한다.
- *
- * @returns 레이아웃 상태 및 액션
- */
 export function usePanelLayout(): UsePanelLayoutReturn {
   const layout = useStore((state) => state.panelLayout);
+  const workspaceLayout = useStore((state) => state.panelWorkspaceLayout);
+  const initializePanelWorkspaceLayout = useStore(
+    (state) => state.initializePanelWorkspaceLayout,
+  );
+  const setPanelWorkspaceLayout = useStore(
+    (state) => state.setPanelWorkspaceLayout,
+  );
   const setPanelLayout = useStore((state) => state.setPanelLayout);
 
-  /**
-   * 패널을 다른 사이드로 이동
-   */
+  const commit = useCallback(
+    (result: PanelWorkspaceResult<PanelWorkspaceInteractionResult>): boolean =>
+      result.ok && setPanelWorkspaceLayout(result.value.layout),
+    [setPanelWorkspaceLayout],
+  );
+
+  const initializeWorkspaceLayout = useCallback(
+    (registry: readonly PanelWorkspaceRegistryEntry[]) =>
+      initializePanelWorkspaceLayout(registry),
+    [initializePanelWorkspaceLayout],
+  );
+
+  const setWorkspaceLayout = useCallback(
+    (nextLayout: PanelWorkspaceLayoutV2) => setPanelWorkspaceLayout(nextLayout),
+    [setPanelWorkspaceLayout],
+  );
+
   const movePanel = useCallback(
     (panelId: PanelId, from: PanelSide, to: PanelSide) => {
       if (from === to) return;
-
-      const currentLayout = getLayout();
-      if (getPanelSide(currentLayout, panelId) !== from) {
-        console.warn(
-          `[usePanelLayout] Panel "${panelId}" not found in ${from} side`,
-        );
-        return;
-      }
-      setPanelLayout(fitClusters(addPanelToDock(currentLayout, panelId, to)));
+      const current = currentWorkspaceLayout();
+      if (!current || !current.railOrder[from].includes(panelId)) return;
+      commit(
+        movePanelWorkspacePanelToAnchor(
+          current,
+          registryEntries(),
+          panelId,
+          to,
+        ),
+      );
     },
-    [setPanelLayout],
+    [commit],
   );
 
   const dockPanel = useCallback(
     (panelId: PanelId, side: PanelSide) => {
-      setPanelLayout(fitClusters(addPanelToDock(getLayout(), panelId, side)));
-    },
-    [setPanelLayout],
-  );
-
-  /**
-   * 패널 토글 (활성화/비활성화) - Multi toggle 지원
-   *
-   * ✅ 성능 최적화: 패널을 DOM에서 제거하지 않고 CSS transform으로만 숨김
-   * - 패널을 열면 사이드바도 자동으로 열림 (showLeft/showRight = true)
-   * - 패널을 닫아도 사이드바는 열려있음 (다른 패널이 열려있을 수 있으므로)
-   * - 패널은 activePanels 배열에서 제거되지만 DOM에는 유지됨
-   */
-  const togglePanel = useCallback(
-    (side: PanelSide, panelId: PanelId) => {
-      const currentLayout = getLayout();
-      const actualSide = getPanelSide(currentLayout, panelId) ?? side;
-      if (actualSide === "left") {
-        const isActive =
-          currentLayout.showLeft &&
-          currentLayout.activeLeftPanels.includes(panelId);
-        setPanelLayout(
-          fitClusters({
-            ...currentLayout,
-            leftPanels: currentLayout.leftPanels.includes(panelId)
-              ? currentLayout.leftPanels
-              : [...currentLayout.leftPanels, panelId],
-            activeLeftPanels: isActive
-              ? currentLayout.activeLeftPanels.filter((id) => id !== panelId)
-              : currentLayout.activeLeftPanels.includes(panelId)
-                ? currentLayout.activeLeftPanels
-                : [...currentLayout.activeLeftPanels, panelId],
-            showLeft: true,
-          }),
-        );
-        return;
-      }
-      if (actualSide === "right") {
-        const isActive =
-          currentLayout.showRight &&
-          currentLayout.activeRightPanels.includes(panelId);
-        setPanelLayout(
-          fitClusters({
-            ...currentLayout,
-            rightPanels: currentLayout.rightPanels.includes(panelId)
-              ? currentLayout.rightPanels
-              : [...currentLayout.rightPanels, panelId],
-            activeRightPanels: isActive
-              ? currentLayout.activeRightPanels.filter((id) => id !== panelId)
-              : currentLayout.activeRightPanels.includes(panelId)
-                ? currentLayout.activeRightPanels
-                : [...currentLayout.activeRightPanels, panelId],
-            showRight: true,
-          }),
-        );
-        return;
-      }
-
-      const isActive =
-        currentLayout.showBottom &&
-        currentLayout.activeBottomPanels.includes(panelId);
-      setPanelLayout(
-        fitClusters({
-          ...currentLayout,
-          bottomPanels: currentLayout.bottomPanels.includes(panelId)
-            ? currentLayout.bottomPanels
-            : [...currentLayout.bottomPanels, panelId],
-          activeBottomPanels: isActive ? [] : [panelId],
-          showBottom: !isActive,
-        }),
+      const current = currentWorkspaceLayout();
+      if (!current) return;
+      commit(
+        movePanelWorkspacePanelToAnchor(
+          current,
+          registryEntries(),
+          panelId,
+          side,
+        ),
       );
     },
-    [setPanelLayout],
+    [commit],
   );
 
-  /**
-   * 레이아웃 초기화
-   */
+  const togglePanel = useCallback(
+    (_side: PanelSide, panelId: PanelId) => {
+      const current = currentWorkspaceLayout();
+      if (!current) return;
+      commit(
+        setPanelWorkspacePanelVisibility(
+          current,
+          registryEntries(),
+          panelId,
+          current.visibility[panelId] !== true,
+        ),
+      );
+    },
+    [commit],
+  );
+
   const resetLayout = useCallback(() => {
-    const resetLayoutAction = useStore.getState().resetPanelLayout;
-    if (resetLayoutAction) {
-      resetLayoutAction();
-    }
+    useStore.getState().resetPanelLayout();
   }, []);
 
-  /**
-   * 레이아웃 전체 설정
-   */
   const setLayout = useCallback(
-    (newLayout: PanelLayoutState) => {
-      setPanelLayout(fitClusters(newLayout));
-    },
+    (nextLayout: PanelLayoutState) => setPanelLayout(nextLayout),
     [setPanelLayout],
   );
 
-  /**
-   * 하단 패널 토글 (활성화/비활성화)
-   */
   const toggleBottomPanel = useCallback(
-    (panelId: PanelId) => {
-      const currentLayout = getLayout();
-
-      // 패널이 bottom에 없으면 무시
-      if (!currentLayout.bottomPanels.includes(panelId)) {
-        console.warn(
-          `[usePanelLayout] Panel "${panelId}" not available on bottom`,
-        );
-        return;
-      }
-
-      const isActive =
-        currentLayout.showBottom &&
-        currentLayout.activeBottomPanels.includes(panelId);
-
-      setPanelLayout(
-        fitClusters({
-          ...currentLayout,
-          activeBottomPanels: isActive ? [] : [panelId],
-          showBottom: !isActive,
-        }),
-      );
-    },
-    [setPanelLayout],
-  );
-
-  /**
-   * 하단 패널 높이 설정 (150px ~ 600px)
-   */
-  const setBottomHeight = useCallback(
-    (height: number) => {
-      const clampedHeight = Math.max(150, Math.min(600, height));
-      const currentLayout = getLayout();
-      setPanelLayout({
-        ...currentLayout,
-        bottomHeight: clampedHeight,
-      });
-    },
-    [setPanelLayout],
-  );
-
-  /**
-   * 하단 패널 닫기
-   */
-  const closeBottomPanel = useCallback(() => {
-    const currentLayout = getLayout();
-    setPanelLayout(
-      fitClusters({
-        ...currentLayout,
-        activeBottomPanels: [],
-        showBottom: false,
-      }),
-    );
-  }, [setPanelLayout]);
-
-  /**
-   * 위치 경계 검사 (화면 밖으로 나가지 않도록 clamp)
-   */
-  const clampPosition = useCallback(
-    (x: number, y: number, width: number, height: number) => ({
-      x: Math.max(0, Math.min(x, window.innerWidth - width)),
-      y: Math.max(0, Math.min(y, window.innerHeight - WORKSPACE_TOP - height)),
-    }),
-    [],
+    (panelId: PanelId) => togglePanel("bottom", panelId),
+    [togglePanel],
   );
 
   const updatePanelSize = useCallback(
     (panelId: PanelId, size: PanelSize) => {
-      const currentLayout = getLayout();
-      const panelConfig = PanelRegistry.getPanel(panelId);
-      const minWidth = panelConfig?.minWidth ?? 200;
-      const maxWidth = panelConfig?.maxWidth ?? 800;
-      const minHeight = panelConfig?.minHeight ?? 160;
-      const maxHeight = panelConfig?.maxHeight ?? 800;
-      const clampedSize = {
-        width: Math.max(minWidth, Math.min(maxWidth, size.width)),
-        height: Math.max(minHeight, Math.min(maxHeight, size.height)),
-      };
-
-      const nextLayout: PanelLayoutState = {
-        ...currentLayout,
-        panelSizes: {
-          ...currentLayout.panelSizes,
-          [panelId]: clampedSize,
-        },
-        modalPanels: currentLayout.modalPanels.map((panel) =>
-          panel.panelId === panelId
-            ? {
-                ...panel,
-                position: clampPosition(
-                  panel.position.x,
-                  panel.position.y,
-                  clampedSize.width,
-                  clampedSize.height,
-                ),
-                size: clampedSize,
-              }
-            : panel,
+      const current = currentWorkspaceLayout();
+      if (!current) return;
+      commit(
+        updatePanelWorkspacePanelSize(
+          current,
+          registryEntries(),
+          panelId,
+          size,
         ),
-        panelClusters: currentLayout.panelClusters.map((cluster) => ({
-          ...cluster,
-          columns: cluster.columns.map((column) =>
-            column.panelIds.includes(panelId)
-              ? { ...column, width: clampedSize.width }
-              : column,
-          ),
-        })),
-      };
-      setPanelLayout(fitClusters(nextLayout));
+      );
     },
-    [clampPosition, setPanelLayout],
+    [commit],
   );
+
+  const setBottomHeight = useCallback(
+    (height: number) => {
+      const current = currentWorkspaceLayout();
+      if (!current) return;
+      const panelId =
+        current.railOrder.bottom.find(
+          (candidate) => current.visibility[candidate] === true,
+        ) ?? current.railOrder.bottom[0];
+      if (!panelId) return;
+      const geometry = preferredGeometry(current, panelId);
+      if (!geometry) return;
+      updatePanelSize(panelId, { width: geometry.width, height });
+    },
+    [updatePanelSize],
+  );
+
+  const closeBottomPanel = useCallback(() => {
+    const current = currentWorkspaceLayout();
+    if (!current) return;
+    let next = current;
+    for (const panelId of current.railOrder.bottom) {
+      const result = setPanelWorkspacePanelVisibility(
+        next,
+        registryEntries(),
+        panelId,
+        false,
+      );
+      if (result.ok) next = result.value.layout;
+    }
+    setPanelWorkspaceLayout(next);
+  }, [setPanelWorkspaceLayout]);
 
   const floatPanel = useCallback(
     (panelId: PanelId, position?: { x: number; y: number }) => {
-      const currentLayout = getLayout();
-      const existing = currentLayout.modalPanels.find(
-        (panel) => panel.panelId === panelId,
-      );
-      if (existing) {
-        const detachedLayout = position
-          ? detachPanelFromClusters(currentLayout, panelId)
-          : currentLayout;
-        const nextPosition = position
-          ? clampPosition(
-              position.x,
-              position.y,
-              existing.size.width,
-              existing.size.height,
-            )
-          : existing.position;
-        setPanelLayout(
-          fitClusters({
-            ...detachedLayout,
-            modalPanels: detachedLayout.modalPanels.map((panel) =>
-              panel.panelId === panelId
-                ? {
-                    ...panel,
-                    position: nextPosition,
-                    zIndex: detachedLayout.nextModalZIndex,
-                  }
-                : panel,
-            ),
-            nextModalZIndex: detachedLayout.nextModalZIndex + 1,
-          }),
-        );
-        return;
-      }
-
-      const panelConfig = PanelRegistry.getPanel(panelId);
-      if (!panelConfig) return;
-      const side =
-        getPanelSide(currentLayout, panelId) ?? panelConfig.defaultPosition;
-      const dockedLayout = addPanelToDock(currentLayout, panelId, side);
-      const size = currentLayout.panelSizes[panelId] ?? {
-        width: panelConfig.defaultWidth ?? panelConfig.minWidth ?? 320,
-        height: panelConfig.defaultHeight ?? panelConfig.minHeight ?? 420,
-      };
-      const initial = position ?? {
-        x: Math.max(24, (window.innerWidth - size.width) / 2),
-        y: Math.max(24, (window.innerHeight - WORKSPACE_TOP - size.height) / 2),
-      };
-      const clamped = clampPosition(
-        initial.x,
-        initial.y,
-        size.width,
-        size.height,
-      );
-      const floatingPanel: ModalPanelState = {
-        panelId,
-        mode: "floating",
-        position: clamped,
-        size,
-        zIndex: dockedLayout.nextModalZIndex,
-      };
-
-      setPanelLayout(
-        fitClusters({
-          ...dockedLayout,
-          panelSizes: { ...dockedLayout.panelSizes, [panelId]: size },
-          modalPanels: [...dockedLayout.modalPanels, floatingPanel],
-          nextModalZIndex: dockedLayout.nextModalZIndex + 1,
-        }),
+      const current = currentWorkspaceLayout();
+      if (!current) return;
+      const geometry = preferredGeometry(current, panelId, position);
+      if (!geometry) return;
+      commit(
+        detachPanelToFloatingCluster(
+          current,
+          registryEntries(),
+          panelId,
+          geometry,
+        ),
       );
     },
-    [clampPosition, setPanelLayout],
+    [commit],
   );
 
   const placePanel = useCallback(
-    (panelId: PanelId, position: { x: number; y: number }) => {
-      floatPanel(panelId, position);
-    },
+    (panelId: PanelId, position: { x: number; y: number }) =>
+      floatPanel(panelId, position),
     [floatPanel],
   );
 
   const snapPanel = useCallback(
     (panelId: PanelId, placement: PanelSnapPlacement) => {
-      setPanelLayout(
-        snapPanelIntoCluster(
-          getLayout(),
+      const current = currentWorkspaceLayout();
+      if (!current) return;
+      commit(
+        snapPanelWorkspacePanel(
+          current,
+          registryEntries(),
           panelId,
-          placement,
-          getWorkspaceSize(),
+          placement.targetPanelId,
+          placement.edge,
         ),
       );
     },
-    [setPanelLayout],
+    [commit],
   );
-
-  const fitPanelClusters = useCallback(() => {
-    const currentLayout = getLayout();
-    const fittedLayout = fitClusters(currentLayout);
-    if (fittedLayout === currentLayout) return;
-    setPanelLayout(fittedLayout);
-  }, [setPanelLayout]);
-
-  /** 기존 호출부 호환 alias — 실제 표시는 non-modal floating frame이다. */
-  const openPanelAsModal = floatPanel;
 
   const hidePanel = useCallback(
     (panelId: PanelId) => {
-      const currentLayout = getLayout();
-      setPanelLayout(
-        fitClusters(
-          detachPanelFromClusters(
-            {
-              ...currentLayout,
-              activeLeftPanels: currentLayout.activeLeftPanels.filter(
-                (id) => id !== panelId,
-              ),
-              activeRightPanels: currentLayout.activeRightPanels.filter(
-                (id) => id !== panelId,
-              ),
-              activeBottomPanels: currentLayout.activeBottomPanels.filter(
-                (id) => id !== panelId,
-              ),
-              modalPanels: currentLayout.modalPanels.filter(
-                (panel) => panel.panelId !== panelId,
-              ),
-            },
-            panelId,
-          ),
+      const current = currentWorkspaceLayout();
+      if (!current) return;
+      commit(
+        setPanelWorkspacePanelVisibility(
+          current,
+          registryEntries(),
+          panelId,
+          false,
         ),
       );
     },
-    [setPanelLayout],
+    [commit],
   );
 
-  /**
-   * Modal 패널 닫기
-   */
-  const closeModalPanel = useCallback(
-    (panelId: PanelId) => {
-      const currentLayout = getLayout();
-      setPanelLayout(
-        fitClusters(
-          detachPanelFromClusters(
-            {
-              ...currentLayout,
-              modalPanels: currentLayout.modalPanels.filter(
-                (panel) => panel.panelId !== panelId,
-              ),
-            },
-            panelId,
-          ),
-        ),
-      );
-    },
-    [setPanelLayout],
-  );
-
-  /**
-   * Modal 패널 포커스 (z-index 업데이트)
-   */
   const focusModalPanel = useCallback(
     (panelId: PanelId) => {
-      const currentLayout = getLayout();
-      const panel = currentLayout.modalPanels.find(
-        (p) => p.panelId === panelId,
-      );
-      if (!panel) return;
-
-      // 이미 최상위면 무시
-      const maxZIndex = Math.max(
-        ...currentLayout.modalPanels.map((p) => p.zIndex),
-      );
-      if (panel.zIndex === maxZIndex) return;
-
-      const cluster = currentLayout.panelClusters.find((candidate) =>
-        candidate.columns.some((column) => column.panelIds.includes(panelId)),
-      );
-      const focusedPanelIds = new Set(
-        cluster
-          ? cluster.columns.flatMap((column) => column.panelIds)
-          : [panelId],
-      );
-
-      setPanelLayout({
-        ...currentLayout,
-        modalPanels: currentLayout.modalPanels.map((p) =>
-          focusedPanelIds.has(p.panelId)
-            ? { ...p, zIndex: currentLayout.nextModalZIndex }
-            : p,
+      const current = currentWorkspaceLayout();
+      if (!current) return;
+      const cluster = current.clusters.find((candidate) =>
+        candidate.columns.some((column) =>
+          column.rows.some((row) => row.panelId === panelId),
         ),
-        nextModalZIndex: currentLayout.nextModalZIndex + 1,
-      });
-    },
-    [setPanelLayout],
-  );
-
-  /**
-   * Modal 패널 위치 업데이트
-   */
-  const updateModalPanelPosition = useCallback(
-    (panelId: PanelId, position: { x: number; y: number }) => {
-      const currentLayout = getLayout();
-      const panel = currentLayout.modalPanels.find(
-        (p) => p.panelId === panelId,
       );
-      if (!panel) return;
-
-      if (panelBelongsToCluster(currentLayout, panelId)) {
-        const deltaX = position.x - panel.position.x;
-        const deltaY = position.y - panel.position.y;
-        setPanelLayout(
-          fitClusters({
-            ...currentLayout,
-            panelClusters: currentLayout.panelClusters.map((cluster) =>
-              cluster.columns.some((column) =>
-                column.panelIds.includes(panelId),
-              )
-                ? {
-                    ...cluster,
-                    position: {
-                      x: cluster.position.x + deltaX,
-                      y: cluster.position.y + deltaY,
-                    },
-                  }
-                : cluster,
-            ),
-          }),
-        );
+      if (
+        cluster?.anchor !== "floating" ||
+        current.floatingFocusOrder.at(-1) === cluster.id
+      ) {
         return;
       }
-
-      // 위치 경계 검사
-      const clamped = clampPosition(
-        position.x,
-        position.y,
-        panel.size.width,
-        panel.size.height,
+      commit(
+        focusPanelWorkspaceFloatingCluster(current, registryEntries(), panelId),
       );
-
-      setPanelLayout({
-        ...currentLayout,
-        modalPanels: currentLayout.modalPanels.map((p) =>
-          p.panelId === panelId ? { ...p, position: clamped } : p,
-        ),
-      });
     },
-    [setPanelLayout, clampPosition],
+    [commit],
   );
 
-  /**
-   * Modal 패널 크기 업데이트
-   */
-  const updateModalPanelSize = updatePanelSize;
+  const updateModalPanelPosition = useCallback(
+    (panelId: PanelId, position: { x: number; y: number }) =>
+      floatPanel(panelId, position),
+    [floatPanel],
+  );
 
-  /**
-   * 모든 Modal 패널 닫기
-   */
   const closeAllModalPanels = useCallback(() => {
-    const currentLayout = getLayout();
-    setPanelLayout({
-      ...currentLayout,
-      modalPanels: [],
-      panelClusters: [],
-    });
-  }, [setPanelLayout]);
+    const current = currentWorkspaceLayout();
+    if (!current) return;
+    commit(hidePanelWorkspaceFloatingClusters(current, registryEntries()));
+  }, [commit]);
 
   return {
     layout,
-    isLoading: false, // 나중에 비동기 로딩 추가 시 사용
-    isLoaded: true,
+    workspaceLayout,
+    isLoading: workspaceLayout === null,
+    isLoaded: workspaceLayout !== null,
+    initializeWorkspaceLayout,
+    setWorkspaceLayout,
     movePanel,
     dockPanel,
     floatPanel,
     placePanel,
     snapPanel,
-    fitPanelClusters,
+    fitPanelClusters: () => undefined,
     hidePanel,
     updatePanelSize,
     togglePanel,
@@ -637,12 +318,11 @@ export function usePanelLayout(): UsePanelLayoutReturn {
     toggleBottomPanel,
     setBottomHeight,
     closeBottomPanel,
-    // Modal 패널 액션
-    openPanelAsModal,
-    closeModalPanel,
+    openPanelAsModal: floatPanel,
+    closeModalPanel: hidePanel,
     focusModalPanel,
     updateModalPanelPosition,
-    updateModalPanelSize,
+    updateModalPanelSize: updatePanelSize,
     closeAllModalPanels,
   };
 }

@@ -1,87 +1,161 @@
 import { act, renderHook } from "@testing-library/react";
-import { PaintRoller } from "lucide-react";
+import { PaintRoller, PanelLeft, PanelTop } from "lucide-react";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { usePanelLayout } from "./usePanelLayout";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import {
   DEFAULT_PANEL_LAYOUT,
+  type PanelConfig,
+  type PanelId,
   type PanelLayoutState,
 } from "../panels/core/types";
+import {
+  createPanelWorkspaceRegistryEntry,
+  type PanelWorkspaceLayoutV2,
+} from "../layout/panelWorkspaceLayoutV2";
+import {
+  migratePanelLayoutV1ToV2,
+  projectV2ToLegacyView,
+} from "../layout/panelWorkspaceLayoutV2Migration";
 import { useStore } from "../stores";
+
+const TEST_PANELS: PanelConfig[] = [
+  {
+    id: "properties",
+    name: "속성",
+    icon: PanelLeft,
+    component: () => null,
+    category: "editor",
+    defaultPosition: "right",
+    minWidth: 233,
+    maxWidth: 640,
+    defaultHeight: 520,
+  },
+  {
+    id: "styles",
+    name: "스타일",
+    icon: PaintRoller,
+    component: () => null,
+    category: "editor",
+    defaultPosition: "right",
+    minWidth: 233,
+    maxWidth: 640,
+    defaultHeight: 520,
+  },
+  {
+    id: "monitor",
+    name: "모니터",
+    icon: PanelTop,
+    component: () => null,
+    category: "system",
+    defaultPosition: "bottom",
+    minWidth: 233,
+    maxWidth: 1600,
+    minHeight: 150,
+    maxHeight: 600,
+    defaultHeight: 240,
+  },
+];
 
 function createLayout(): PanelLayoutState {
   return {
     ...DEFAULT_PANEL_LAYOUT,
-    leftPanels: [...DEFAULT_PANEL_LAYOUT.leftPanels],
-    rightPanels: [...DEFAULT_PANEL_LAYOUT.rightPanels],
-    activeLeftPanels: [...DEFAULT_PANEL_LAYOUT.activeLeftPanels],
-    activeRightPanels: [...DEFAULT_PANEL_LAYOUT.activeRightPanels],
-    bottomPanels: [...DEFAULT_PANEL_LAYOUT.bottomPanels],
-    activeBottomPanels: [...DEFAULT_PANEL_LAYOUT.activeBottomPanels],
+    leftPanels: [],
+    rightPanels: ["properties", "styles"],
+    activeLeftPanels: [],
+    activeRightPanels: ["properties"],
+    bottomPanels: ["monitor"],
+    activeBottomPanels: [],
     panelSizes: {},
     modalPanels: [],
     panelClusters: [],
   };
 }
 
-describe("usePanelLayout Photoshop식 panel placement", () => {
+function registry() {
+  return TEST_PANELS.map(createPanelWorkspaceRegistryEntry);
+}
+
+function createWorkspaceLayout(): PanelWorkspaceLayoutV2 {
+  return migratePanelLayoutV1ToV2(createLayout(), registry(), "hook-test");
+}
+
+function findPlacement(layout: PanelWorkspaceLayoutV2, panelId: PanelId) {
+  for (const cluster of layout.clusters) {
+    for (const column of cluster.columns) {
+      const row = column.rows.find(
+        (candidate) => candidate.panelId === panelId,
+      );
+      if (row) return { cluster, column, row };
+    }
+  }
+  return null;
+}
+
+describe("usePanelLayout Photoshop식 v2 panel placement", () => {
   beforeAll(() => {
-    if (!PanelRegistry.hasPanel("styles")) {
-      PanelRegistry.register({
-        id: "styles",
-        name: "스타일",
-        icon: PaintRoller,
-        component: () => null,
-        category: "editor",
-        defaultPosition: "right",
-        minWidth: 233,
-        maxWidth: 640,
-        defaultHeight: 520,
-      });
+    for (const config of TEST_PANELS) {
+      if (!PanelRegistry.hasPanel(config.id)) PanelRegistry.register(config);
     }
   });
 
   beforeEach(() => {
-    useStore.setState({ panelLayout: createLayout() });
+    localStorage.clear();
+    useStore.getState().initializePanelWorkspaceLayout(registry());
+    const workspaceLayout = createWorkspaceLayout();
+    useStore.setState({
+      panelWorkspaceLayout: workspaceLayout,
+      panelLayout: projectV2ToLegacyView(
+        workspaceLayout,
+        registry(),
+        DEFAULT_PANEL_LAYOUT,
+      ).layout,
+      panelWorkspaceHydrationStatus: "memory-fallback",
+      panelWorkspaceHydrationError: null,
+    });
   });
 
-  it("dock 이동 시 이전 side와 floating 상태를 제거하고 새 side만 활성화한다", () => {
+  it("anchor 이동 시 floating placement를 제거하고 새 side에 정확히 한 번 배치한다", () => {
     const { result } = renderHook(() => usePanelLayout());
 
     act(() => result.current.floatPanel("styles", { x: 120, y: 80 }));
-    expect(useStore.getState().panelLayout.modalPanels).toEqual([
-      expect.objectContaining({ panelId: "styles", mode: "floating" }),
-    ]);
+    expect(
+      findPlacement(useStore.getState().panelWorkspaceLayout!, "styles")
+        ?.cluster,
+    ).toMatchObject({ anchor: "floating", position: { x: 120, y: 80 } });
 
     act(() => result.current.dockPanel("styles", "left"));
-    const layout = useStore.getState().panelLayout;
+    const layout = useStore.getState().panelWorkspaceLayout!;
+    const placement = findPlacement(layout, "styles");
 
-    expect(layout.modalPanels).toEqual([]);
-    expect(layout.leftPanels).toContain("styles");
-    expect(layout.activeLeftPanels).toContain("styles");
-    expect(layout.rightPanels).not.toContain("styles");
-    expect(layout.activeRightPanels).not.toContain("styles");
+    expect(placement?.cluster.anchor).toBe("left");
+    expect(layout.railOrder.left).toContain("styles");
+    expect(layout.railOrder.right).not.toContain("styles");
+    expect(
+      layout.clusters.flatMap((cluster) =>
+        cluster.columns.flatMap((column) =>
+          column.rows.filter((row) => row.panelId === "styles"),
+        ),
+      ),
+    ).toHaveLength(1);
   });
 
-  it("bottom dock은 단일 활성 패널 계약을 유지하고 close는 배치만 보존한다", () => {
+  it("bottom은 일반 anchor로 유지하고 hide는 placement를 보존한다", () => {
     const { result } = renderHook(() => usePanelLayout());
 
     act(() => result.current.dockPanel("styles", "bottom"));
-    expect(useStore.getState().panelLayout).toEqual(
-      expect.objectContaining({
-        bottomPanels: ["monitor", "styles"],
-        activeBottomPanels: ["styles"],
-        showBottom: true,
-      }),
-    );
+    let layout = useStore.getState().panelWorkspaceLayout!;
+    expect(layout.railOrder.bottom).toEqual(["monitor", "styles"]);
+    expect(layout.visibility.styles).toBe(true);
+    expect(findPlacement(layout, "styles")?.cluster.anchor).toBe("bottom");
 
     act(() => result.current.hidePanel("styles"));
-    const layout = useStore.getState().panelLayout;
-    expect(layout.bottomPanels).toContain("styles");
-    expect(layout.activeBottomPanels).not.toContain("styles");
+    layout = useStore.getState().panelWorkspaceLayout!;
+    expect(layout.visibility.styles).toBe(false);
+    expect(findPlacement(layout, "styles")?.cluster.anchor).toBe("bottom");
   });
 
-  it("패널 크기를 config 범위로 clamp하고 dock/floating 공통 값으로 저장한다", () => {
+  it("패널 크기를 registry 범위로 clamp하고 v2 placement에 저장한다", () => {
     const { result } = renderHook(() => usePanelLayout());
 
     act(() => result.current.floatPanel("styles", { x: 40, y: 40 }));
@@ -92,72 +166,54 @@ describe("usePanelLayout Photoshop식 panel placement", () => {
       }),
     );
 
-    const layout = useStore.getState().panelLayout;
-    expect(layout.panelSizes.styles).toEqual({ width: 640, height: 160 });
-    expect(layout.modalPanels[0]?.size).toEqual({
-      width: 640,
-      height: 160,
-    });
+    const placement = findPlacement(
+      useStore.getState().panelWorkspaceLayout!,
+      "styles",
+    );
+    expect(placement?.column.width).toBe(640);
+    expect(placement?.row.height).toBe(160);
   });
 
-  it("panel-relative snap 위치를 갱신하고 rail toggle 후에도 보존한다", () => {
+  it("floating 위치는 rail toggle 왕복 뒤에도 보존된다", () => {
     const { result } = renderHook(() => usePanelLayout());
 
-    act(() => result.current.placePanel("styles", { x: 120, y: 80 }));
     act(() => result.current.placePanel("styles", { x: 360, y: 180 }));
-    expect(useStore.getState().panelLayout.modalPanels).toEqual([
-      expect.objectContaining({
-        panelId: "styles",
-        position: { x: 360, y: 180 },
-      }),
-    ]);
-
     act(() => result.current.togglePanel("right", "styles"));
-    expect(useStore.getState().panelLayout.activeRightPanels).not.toContain(
-      "styles",
-    );
-    expect(useStore.getState().panelLayout.modalPanels[0]?.position).toEqual({
-      x: 360,
-      y: 180,
+    let layout = useStore.getState().panelWorkspaceLayout!;
+    expect(layout.visibility.styles).toBe(false);
+    expect(findPlacement(layout, "styles")?.cluster).toMatchObject({
+      anchor: "floating",
+      position: { x: 360, y: 180 },
     });
 
     act(() => result.current.togglePanel("right", "styles"));
-    expect(useStore.getState().panelLayout.activeRightPanels).toContain(
-      "styles",
-    );
-    expect(useStore.getState().panelLayout.modalPanels[0]?.position).toEqual({
-      x: 360,
-      y: 180,
+    layout = useStore.getState().panelWorkspaceLayout!;
+    expect(layout.visibility.styles).toBe(true);
+    expect(findPlacement(layout, "styles")?.cluster).toMatchObject({
+      anchor: "floating",
+      position: { x: 360, y: 180 },
     });
   });
 
-  it("숨겨진 right side에 활성 패널이 남아 있어도 첫 toggle로 다시 표시한다", () => {
-    useStore.setState({
-      panelLayout: {
-        ...createLayout(),
-        showRight: false,
-        activeRightPanels: ["properties"],
-      },
-    });
+  it("toggle은 side show flag 없이 panel visibility 하나만 전환한다", () => {
     const { result } = renderHook(() => usePanelLayout());
 
     act(() => result.current.togglePanel("right", "properties"));
+    expect(
+      useStore.getState().panelWorkspaceLayout?.visibility.properties,
+    ).toBe(false);
 
-    expect(useStore.getState().panelLayout).toEqual(
-      expect.objectContaining({
-        showRight: true,
-        activeRightPanels: ["properties"],
-      }),
-    );
+    act(() => result.current.togglePanel("left", "properties"));
+    expect(
+      useStore.getState().panelWorkspaceLayout?.visibility.properties,
+    ).toBe(true);
+    expect(
+      findPlacement(useStore.getState().panelWorkspaceLayout!, "properties")
+        ?.cluster.anchor,
+    ).toBe("right");
   });
 
-  it("panel snap을 column 관계로 저장하고 rail toggle 시 관계를 보존한다", () => {
-    useStore.setState({
-      panelLayout: {
-        ...createLayout(),
-        activeRightPanels: ["properties", "styles"],
-      },
-    });
+  it("snap 관계는 toggle로 숨겨도 cluster row 순서를 보존한다", () => {
     const { result } = renderHook(() => usePanelLayout());
 
     act(() =>
@@ -168,21 +224,16 @@ describe("usePanelLayout Photoshop식 panel placement", () => {
         target: { x: 900, y: 40, width: 300, height: 360 },
       }),
     );
-    expect(useStore.getState().panelLayout.panelClusters[0]?.columns).toEqual([
-      { panelIds: ["properties", "styles"], width: 300 },
-    ]);
+    const rows = () =>
+      findPlacement(
+        useStore.getState().panelWorkspaceLayout!,
+        "properties",
+      )?.column.rows.map((row) => row.panelId);
+    expect(rows()).toEqual(["properties", "styles"]);
 
     act(() => result.current.togglePanel("right", "styles"));
-    expect(useStore.getState().panelLayout.panelClusters[0]?.columns).toEqual([
-      { panelIds: ["properties", "styles"], width: 300 },
-    ]);
-
+    expect(rows()).toEqual(["properties", "styles"]);
     act(() => result.current.togglePanel("right", "styles"));
-    const panels = useStore.getState().panelLayout.modalPanels;
-    const properties = panels.find((panel) => panel.panelId === "properties");
-    const styles = panels.find((panel) => panel.panelId === "styles");
-    expect(styles?.position.y).toBe(
-      (properties?.position.y ?? 0) + (properties?.size.height ?? 0) + 4,
-    );
+    expect(rows()).toEqual(["properties", "styles"]);
   });
 });

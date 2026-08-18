@@ -522,6 +522,19 @@ interface PanelLayoutV1BackupEnvelope {
 - Monitor bottom anchor와 viewport height clamp를 포함한다.
 - G2b 통과 전에는 기존 resize commit path를 삭제하거나 primary v2를 write하지 않는다.
 
+#### 실행 기록 — G2b PASS / Phase 3 cutover (2026-08-18)
+
+- [Phase 3 real-frame production cutover evidence](./922-phase-3-real-frame-cutover-evidence.md)에
+  exclusive canary의 applied version/native-refresh 결과와 production cutover 경계를 기록했다.
+- canary는 registry panel당 frame 1개를 유지한 채 통과했으며, 통과 뒤 query gate와 canary
+  controller를 제거했다. production `PanelWorkspace`의 모든 frame과 resize handle은 동일한
+  coordinator snapshot version을 소비한다.
+- live Zustand SSOT와 `composition-panel-layout` primary는 durable v1 backup protocol 뒤
+  v2로 전환됐다. legacy `PanelLayoutState`는 Phase 6 unused host 제거 전 read-only projection만
+  유지한다.
+- `.panel-rail-measure-*`, `panelLayoutRuntime`, Canvas inset consumer는 Phase 4 rollback
+  경계이므로 이번 phase에서 제거하지 않았다.
+
 ### Phase 4 — 실제 workspace occupancy와 Canvas consumer cutover
 
 - `BuilderCore`가 실제 workspace Grid/Flex shell을 소유하고 `Workspace` wrapper를
@@ -698,17 +711,17 @@ interface PanelLayoutV1BackupEnvelope {
 - [x] v2 registry add/remove normalization이 기존 known panel geometry를 보존한다.
 - [x] backup 없는 v2-born layout이 Phase 1 emergency projection에서 default로 떨어지지
       않는다.
-- [ ] backup 없는 v2-born layout의 Phase 3 operational rollback이 byte-equivalent다.
+- [x] backup 없는 v2-born layout의 Phase 3 operational rollback이 byte-equivalent다.
 - [x] G2a shadow frame/splitter가 하나의 immutable snapshot version을 사용한다.
 - [x] G2a pure candidate의 panel DOM geometry query와 대표 shadow mismatch가 0이다.
 - [ ] frame/shell이 같은 immutable snapshot을 쓰고 Canvas는 actual local rect만 쓴다.
 - [x] G2a shadow store가 통과했다.
-- [ ] G2b real-frame applied-version/native-refresh gate가 통과했다.
+- [x] G2b real-frame applied-version/native-refresh gate가 통과했다.
 - [ ] normal/compare/WebGL-off가 동일한 `Workspace` main slot과 panel sibling을 사용한다.
-- [ ] move/snap/resize hot path에 panel DOM geometry query가 없다.
-- [ ] 인접 panel은 drag 중 동시에 resize된다.
-- [ ] 세로 stack은 workspace 높이를 넘지 않는다.
-- [ ] Monitor bottom placement와 toggle/persistence가 유지된다.
+- [x] move/snap/resize hot path에 panel DOM geometry query가 없다.
+- [x] 인접 panel은 drag 중 동시에 resize된다.
+- [x] 세로 stack은 workspace 높이를 넘지 않는다.
+- [x] Monitor bottom placement와 toggle/persistence가 유지된다.
 - [ ] hidden panel의 고비용 work가 중단되고 local state는 보존된다.
 - [ ] splitter pointer/keyboard/screen reader 계약이 검증됐다.
 - [ ] `.panel-rail-measure-*`와 `panelLayoutRuntime` production 소비가 제거됐다.

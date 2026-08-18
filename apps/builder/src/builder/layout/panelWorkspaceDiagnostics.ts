@@ -1,4 +1,8 @@
 import type { PanelId } from "../panels/core/types";
+import {
+  createPanelWorkspaceAppliedVersionTracker,
+  summarizePanelWorkspaceAppliedFrames,
+} from "./panelWorkspaceCanary";
 
 const TRACE_QUERY_PARAM = "panelTrace";
 const TRACE_DURATION_MS = 5_000;
@@ -16,6 +20,9 @@ interface PanelWorkspaceTraceSummaryInput {
   workspaceCommitCount: number;
   frameCommitCounts: ReadonlyMap<string, number>;
   longTaskDurations: readonly number[];
+  inputToAppliedFrameMs?: readonly number[];
+  appliedVersionMismatchCount?: number;
+  pointerDomGeometryQueryCount?: number;
 }
 
 export interface PanelWorkspaceTraceSummary {
@@ -25,6 +32,8 @@ export interface PanelWorkspaceTraceSummary {
   expectedPeriods: number | null;
   missedPeriods: number | null;
   frameDelivery: number | null;
+  baselineFrameDelivery: number | null;
+  frameDeliveryDelta: number | null;
   pointerMoveCount: number;
   solveCount: number;
   workspaceCommitCount: number;
@@ -33,6 +42,11 @@ export interface PanelWorkspaceTraceSummary {
   longTaskCount: number;
   longTaskTotalDurationMs: number;
   maxLongTaskMs: number;
+  inputToAppliedFrameMs: readonly number[];
+  inputToAppliedFrameP95Ms: number | null;
+  appliedVersionMismatchCount: number;
+  pointerDomGeometryQueryCount: number;
+  passesG2b: boolean;
 }
 
 export interface PanelWorkspaceTraceReport extends PanelWorkspaceTraceSummary {
@@ -52,6 +66,28 @@ function median(values: readonly number[]): number | null {
   return left === undefined || right === undefined ? null : (left + right) / 2;
 }
 
+function frameDeliveryForIntervals(
+  intervals: readonly number[],
+  displayPeriodMs: number | null,
+): number | null {
+  if (
+    displayPeriodMs === null ||
+    displayPeriodMs <= 0 ||
+    intervals.length === 0
+  ) {
+    return null;
+  }
+  const durationMs = intervals.reduce((total, interval) => total + interval, 0);
+  const expectedPeriods = Math.floor(durationMs / displayPeriodMs);
+  if (expectedPeriods <= 0) return null;
+  const missedPeriods = intervals.reduce(
+    (total, interval) =>
+      total + Math.max(0, Math.round(interval / displayPeriodMs) - 1),
+    0,
+  );
+  return Math.max(0, 1 - missedPeriods / expectedPeriods);
+}
+
 export function summarizePanelWorkspaceTrace({
   durationMs,
   idleFrameIntervals,
@@ -61,6 +97,9 @@ export function summarizePanelWorkspaceTrace({
   workspaceCommitCount,
   frameCommitCounts,
   longTaskDurations,
+  inputToAppliedFrameMs = [],
+  appliedVersionMismatchCount = 0,
+  pointerDomGeometryQueryCount = 0,
 }: PanelWorkspaceTraceSummaryInput): PanelWorkspaceTraceSummary {
   const displayPeriodMs = median(idleFrameIntervals);
   const expectedPeriods =
@@ -79,6 +118,10 @@ export function summarizePanelWorkspaceTrace({
     expectedPeriods !== null && expectedPeriods > 0 && missedPeriods !== null
       ? Math.max(0, 1 - missedPeriods / expectedPeriods)
       : null;
+  const baselineFrameDelivery = frameDeliveryForIntervals(
+    idleFrameIntervals,
+    displayPeriodMs,
+  );
   const frameCommitCount = Array.from(frameCommitCounts.values()).reduce(
     (total, count) => total + count,
     0,
@@ -87,6 +130,16 @@ export function summarizePanelWorkspaceTrace({
     (total, duration) => total + duration,
     0,
   );
+
+  const appliedFrames = summarizePanelWorkspaceAppliedFrames({
+    displayPeriodMs,
+    baselineFrameDelivery,
+    interactionFrameDelivery: frameDelivery,
+    inputToAppliedFrameMs,
+    appliedVersionMismatchCount,
+    longTaskCount: longTaskDurations.length,
+    pointerDomGeometryQueryCount,
+  });
 
   return {
     durationMs,
@@ -98,6 +151,8 @@ export function summarizePanelWorkspaceTrace({
     expectedPeriods,
     missedPeriods,
     frameDelivery,
+    baselineFrameDelivery,
+    frameDeliveryDelta: appliedFrames.frameDeliveryDelta,
     pointerMoveCount,
     solveCount,
     workspaceCommitCount,
@@ -106,6 +161,11 @@ export function summarizePanelWorkspaceTrace({
     longTaskCount: longTaskDurations.length,
     longTaskTotalDurationMs,
     maxLongTaskMs: Math.max(0, ...longTaskDurations),
+    inputToAppliedFrameMs: [...inputToAppliedFrameMs],
+    inputToAppliedFrameP95Ms: appliedFrames.inputToAppliedFrameP95Ms,
+    appliedVersionMismatchCount,
+    pointerDomGeometryQueryCount,
+    passesG2b: appliedFrames.passesG2b,
   };
 }
 
@@ -120,6 +180,9 @@ interface ActivePanelWorkspaceTrace {
   workspaceCommitCount: number;
   frameCommitCounts: Map<string, number>;
   longTaskDurations: number[];
+  inputToAppliedFrameMs: number[];
+  appliedVersionMismatchCount: number;
+  pointerDomGeometryQueryCount: number;
   longTaskObserver: PerformanceObserver | null;
   timeoutId: ReturnType<typeof setTimeout>;
 }
@@ -129,6 +192,9 @@ class PanelWorkspaceDiagnostics {
   private animationFrameId = 0;
   private previousFrameTime: number | null = null;
   private readonly idleFrameIntervals: number[] = [];
+  private readonly appliedVersionTracker =
+    createPanelWorkspaceAppliedVersionTracker();
+  private appliedCheckScheduled = false;
 
   constructor() {
     document.addEventListener("pointerdown", this.handlePointerDown, true);
@@ -163,6 +229,51 @@ class PanelWorkspaceDiagnostics {
     if (!this.activeTrace) return;
     const current = this.activeTrace.frameCommitCounts.get(panelId) ?? 0;
     this.activeTrace.frameCommitCounts.set(panelId, current + 1);
+  }
+
+  recordLayoutInput(
+    expectedVersion: number,
+    affectedPanelIds: readonly PanelId[],
+    inputAtMs: number,
+  ): void {
+    if (!this.activeTrace) return;
+    this.appliedVersionTracker.recordInput({
+      expectedVersion,
+      affectedPanelIds,
+      inputAtMs,
+    });
+  }
+
+  recordFrameApplied(panelId: PanelId, version: number): void {
+    if (!this.activeTrace) return;
+    this.appliedVersionTracker.recordFrameApplied(panelId, version);
+    if (this.appliedCheckScheduled) return;
+    this.appliedCheckScheduled = true;
+    queueMicrotask(() => {
+      this.appliedCheckScheduled = false;
+      if (!this.activeTrace) return;
+      let applied = this.appliedVersionTracker.takeReadyPresentation(
+        performance.now(),
+      );
+      while (applied) {
+        this.activeTrace.inputToAppliedFrameMs.push(
+          applied.inputToAppliedFrameMs,
+        );
+        this.activeTrace.appliedVersionMismatchCount +=
+          applied.appliedVersionMismatchCount;
+        applied = this.appliedVersionTracker.takeReadyPresentation(
+          performance.now(),
+        );
+      }
+    });
+  }
+
+  recordPointerDomGeometryQuery(): void {
+    if (this.activeTrace) this.activeTrace.pointerDomGeometryQueryCount += 1;
+  }
+
+  startManualTrace(kind: PanelWorkspaceInteractionKind): void {
+    if (!this.activeTrace) this.startTrace(kind);
   }
 
   private readonly handleAnimationFrame = (timestamp: number): void => {
@@ -218,6 +329,9 @@ class PanelWorkspaceDiagnostics {
       workspaceCommitCount: 0,
       frameCommitCounts: new Map(),
       longTaskDurations: [],
+      inputToAppliedFrameMs: [],
+      appliedVersionMismatchCount: 0,
+      pointerDomGeometryQueryCount: 0,
       longTaskObserver: null,
       timeoutId: setTimeout(() => this.finishTrace(trace), TRACE_DURATION_MS),
     };
@@ -258,6 +372,9 @@ class PanelWorkspaceDiagnostics {
       workspaceCommitCount: trace.workspaceCommitCount,
       frameCommitCounts: trace.frameCommitCounts,
       longTaskDurations: trace.longTaskDurations,
+      inputToAppliedFrameMs: trace.inputToAppliedFrameMs,
+      appliedVersionMismatchCount: trace.appliedVersionMismatchCount,
+      pointerDomGeometryQueryCount: trace.pointerDomGeometryQueryCount,
     });
     const report: PanelWorkspaceTraceReport = {
       kind: trace.kind,
@@ -269,6 +386,9 @@ class PanelWorkspaceDiagnostics {
       longTaskObserverSupported: trace.longTaskObserver !== null,
       ...summary,
     };
+    document
+      .querySelector(".panel-workspace")
+      ?.setAttribute("data-panel-trace-report", JSON.stringify(report));
     console.info(`${TRACE_LOG_PREFIX} ${JSON.stringify(report)}`);
     this.activeTrace = null;
   }
@@ -307,4 +427,29 @@ export function recordPanelWorkspaceCommit(): void {
 
 export function recordPanelFrameCommit(panelId: PanelId): void {
   diagnostics?.recordFrameCommit(panelId);
+}
+
+export function recordPanelWorkspaceLayoutInput(
+  expectedVersion: number,
+  affectedPanelIds: readonly PanelId[],
+  inputAtMs = performance.now(),
+): void {
+  diagnostics?.recordLayoutInput(expectedVersion, affectedPanelIds, inputAtMs);
+}
+
+export function recordPanelFrameApplied(
+  panelId: PanelId,
+  layoutVersion: number,
+): void {
+  diagnostics?.recordFrameApplied(panelId, layoutVersion);
+}
+
+export function recordPanelPointerDomGeometryQuery(): void {
+  diagnostics?.recordPointerDomGeometryQuery();
+}
+
+export function startPanelWorkspaceManualTrace(
+  kind: PanelWorkspaceInteractionKind,
+): void {
+  diagnostics?.startManualTrace(kind);
 }
