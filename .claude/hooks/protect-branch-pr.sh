@@ -1,8 +1,8 @@
 #!/bin/bash
 # PreToolUse Hook (Bash matcher): branch 분기 / PR 생성 차단
 #
-# 2026-05-12 신설 — ~/.claude/plans/adr-123-124-125-126-sunny-crescent.md E6
-# (retro 결과 PR #277 머지 발견 후 추가)
+# 2026-05-12 신설 — ADR-123~126 retro E6 (retro 결과 PR #277 머지 발견 후 추가;
+# 원 plan 파일은 소멸 — 정책 정본은 .claude/rules/git-workflow.md)
 #
 # Why: 메모리 `feedback-pr-vs-direct-push` "web PR 자체 금지. 예외 없음."
 # 그러나 본 plan 의 E1 hook (derived-adr-block.sh) 은 ADR 신규 파일만 차단 — branch/PR
@@ -146,9 +146,8 @@ REASON_TEXT=$(cat <<INNER_EOF
   - 영어: "create PR" / "make PR" / "merge PR" / "new branch" / "feature branch"
 
 [정책 근거]
+- composition .claude/rules/git-workflow.md (정본 — web PR 자체 금지 정책, 2026-04-27 강화)
 - ~/.claude/projects/-Users-admin-work-composition/memory/feedback-pr-vs-direct-push.md
-- composition .claude/rules/git-workflow.md (web PR 자체 금지 정책, 2026-04-27 강화)
-- ~/.claude/plans/adr-123-124-125-126-sunny-crescent.md E6
 
 [해결 방법]
 1. main 직접 push 가능한지 먼저 점검:

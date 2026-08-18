@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fix Visibility — 반복 fix/revert 가시화 (판정 없는 표시)
 #
-# 설계: ~/.claude/plans/eventual-humming-charm.md (plan v5)
+# 설계 원칙 (plan v5, 2026-05 — 원 plan 파일은 소멸):
 # 원칙: hook 은 측정·표시만. 판정·임계·리셋·차단 없음. 해석은 사람.
 #   - Stop        : 방금 commit 이 fix/revert 면 1줄 사실 표시
 #   - SessionStart: 최근 30일 scope 별 fix/revert 집계 + 회귀 테스트 동반 횟수

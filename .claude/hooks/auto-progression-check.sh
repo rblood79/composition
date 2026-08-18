@@ -96,7 +96,7 @@ if [ "$SYNC_PASS" = "true" ] && [ "$FP_PASS" = "true" ] && [ "$SAMPLE_PASS" = "t
 **다음 step**: Wave B (\`execute-adr\` deterministic finisher) 즉시 진입 가능.
 사용자 신호 — "Wave B 진행해" 또는 \`/execute-adr ADR-NNN --auto\` 명령으로 trigger.
 
-(Wave B 작업 scope: \`.claude/skills/execute-adr/finisher.sh\` 작성 + SKILL.md \`--auto\` flag 추가, 약 5-7h)
+(Wave B 작업 scope: \`.claude/skills/execute-adr/finisher.sh\` **신규 작성** (현재 미존재) + SKILL.md \`--auto\` flag 추가, 약 5-7h)
 MSG
 else
   cat <<MSG

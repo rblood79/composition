@@ -95,7 +95,7 @@ RECENT_USER_MSG=$(jq -r '
 ' "$TRANSCRIPT" 2>/dev/null | tail -8)
 
 # 발의 의도 키워드 매칭 (case-insensitive)
-# 2026-05-11 정밀화 (~/.claude/plans/adr-123-124-125-126-sunny-crescent.md E1):
+# 2026-05-11 정밀화 (ADR-123~126 retro E1 — 원 plan 파일은 소멸):
 # 단순 "ADR" mention 만으로는 통과 안 됨. ADR-127 우회 사례 (사용자 메시지에 ADR 단순 mention 만 있어도 통과).
 # 명시 발의 표현만 매칭:
 # - 한국어: "새 ADR" / "신규 ADR" / "ADR 발의" / "ADR 생성" / "ADR 작성" / "ADR 만들" / "ADR 분리" / "ADR-NNN 발의" / "fork"

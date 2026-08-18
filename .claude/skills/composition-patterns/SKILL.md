@@ -169,13 +169,13 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 ### 세션 시작
 
 1. agent dispatch 시 자동 로드: `.claude/agents/<자신>.md` (subagent 정의, 공식) + 본 SKILL.md (Skill 호출 시)
-2. 인수인계 정보는 공식 auto memory (~/.claude/projects/<slug>/memory/MEMORY.md + session-\*.md) 참조 — `.claude/progress.md` / `next-session-prompt.md` 컨벤션은 폐기됨 (2026-05-09)
+2. 인수인계 정보는 공식 auto memory (~/.claude/projects/<slug>/memory/MEMORY.md §최근 세션 인수인계 + project-\*.md) 참조 — `.claude/progress.md` / `next-session-prompt.md` 컨벤션은 폐기됨 (2026-05-09), `session-*.md` 파일 컨벤션도 실사용 0건으로 폐기 (2026-08-18)
 3. 중복 작업 방지, 막힌 지점 이어가기
 
 ### 세션 종료
 
 1. 발견사항은 공식 auto memory (`~/.claude/projects/<slug>/memory/feedback-*.md` 또는 `project-*.md`) 에 기록
-2. 인수인계는 공식 auto memory (memory/session-\*.md) 에 기록 — `.claude/progress.md` 신규 생성 금지
+2. 인수인계는 공식 auto memory (memory/project-\*.md + MEMORY.md §최근 세션 인수인계 인덱스 1줄) 에 기록 — `.claude/progress.md` / `session-*.md` 신규 생성 금지
 3. 빌드 통과, 커밋 가능한 상태 보장
 
 ### 에러 복구
