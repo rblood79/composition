@@ -3,7 +3,7 @@
 ## Status
 
 Proposed — 2026-05-13
-**노선 개정 — 2026-08-18**: 자체 로컬 LLM 내장 노선 (Ollama 1st + node-llama-cpp Electron 내장 + Qwen 고정) 을 폐기하고, reference 수렴 노선 (**역할별 멀티 프로바이더 BYOK + 외부 코딩 에이전트/MCP 준비**) 으로 교체. **Groq 완전 제거 방침은 유지**. 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (2026-08-17 갱신) + [HOLAOS_ANALYSIS.md](../explanation/research/HOLAOS_ANALYSIS.md) (2026-08-18) + [XAI_ORG_ANALYSIS.md](../explanation/research/XAI_ORG_ANALYSIS.md) (2026-08-18 — grok-build 를 5번째 수렴 사례로 추가). 본 개정은 전제 확정 종결 계약의 재개 조건 (a) 사용자 재제기에 따른 것 — 통합 형태 (단일 ADR, 대안 A) 결정은 유지하고 **인프라 노선만 재결정** (§인프라 노선 재결정 2026-08-18).
+**노선 개정 — 2026-08-18**: 자체 로컬 LLM 내장 노선 (Ollama 1st + node-llama-cpp Electron 내장 + Qwen 고정) 을 폐기하고, reference 수렴 노선 (**에이전트 중심 멀티 프로바이더 BYOK + 외부 코딩 에이전트/MCP 준비**) 으로 교체. **Groq 완전 제거 방침은 유지**. 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (2026-08-17 갱신) + [HOLAOS_ANALYSIS.md](../explanation/research/HOLAOS_ANALYSIS.md) (2026-08-18) + [XAI_ORG_ANALYSIS.md](../explanation/research/XAI_ORG_ANALYSIS.md) (2026-08-18 — grok-build 를 5번째 수렴 사례로 추가). 본 개정은 전제 확정 종결 계약의 재개 조건 (a) 사용자 재제기에 따른 것 — 통합 형태 (단일 ADR, 대안 A) 결정은 유지하고 **인프라 노선만 재결정** (§인프라 노선 재결정 2026-08-18).
 
 > **설계 문서 단계**: 본문 + design breakdown + 기존 ADR Deprecated 이동까지만 반영 (구현은 이후 단계). Phase 0-9 실행 작업 + 코드 변경은 사용자 plan review 후 별도 단계 ([[adr133-events-panel-simplification-plan]] 동일 패턴).
 
@@ -63,6 +63,8 @@ ADR-011 의 AIPanel (ChatMessage / ChatInput / ChatContainer / ToolCallMessage /
 
 사용자 재제기 (2026-08-18): "기존 Groq 은 제거 예정이고, pencil 앱이나 PENCIL_ECOSYSTEM_ANALYSIS.md 분석처럼 open-pencil 방향으로 전환해야 한다" — 이에 따라 §인프라 노선 재결정에서 노선을 재평가한다.
 
+**패턴 채택 주 — 2026-08-18 2차 정정 (사용자)**: "open-pencil 이 아니라 **Pencil.app 과 ZSeven-W/openpencil 패턴**으로 가야 한다." 위 표의 5개는 전부 수렴 근거로 유효하나, **노선 β 의 조직 원리로 채택하는 패턴은 Pencil.app (외부 코딩 에이전트 dual embed) + ZSeven-W/openpencil (에이전트 팀 오케스트레이션 + multi-model/provider profile + skills)** 이다. open-pencil 의 역할별 고정 슬롯 4종 (Design/Review/Fast/Vision) 명명·구조는 **비채택** — 모델 구성의 단위는 역할 슬롯이 아니라 **에이전트 프로파일** (오케스트레이션의 실행 단위별 provider/model 구성) 이다. open-pencil 은 bounded Vision inspection 등 개별 세부의 참조로만 유지.
+
 ### Hard Constraints
 
 ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
@@ -73,7 +75,7 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 4. ~~Apple Silicon 16GB 에서 실행 가능 (Qwen3 14B), 36GB 권장~~ — **2026-08-18 삭제**: 로컬 모델은 BYOK OpenAI-compatible endpoint (Ollama 등) 소관으로 이동. 하드웨어 사양은 사용자 endpoint 환경의 속성이지 제품 hard constraint 가 아님
 5. 초기 앱 번들 < 500KB — LLM 관련 코드는 lazy load, 모델 자체는 제품이 배포하지 않음
 6. RAC / RSP 문서 기반 정확한 props 설정 — 잘못된 prop 조합 생성 금지
-7. **폐쇄망 지원** — 인터넷 불가 환경에서도 기본 AI 기능 동작. **2026-08-18 달성 방식 재규정**: 자체 모델 내장이 아니라 **로컬 OpenAI-compatible endpoint (Ollama / vLLM / LM Studio 등) 를 역할 슬롯에 BYOK 바인딩**하는 방식으로 달성
+7. **폐쇄망 지원** — 인터넷 불가 환경에서도 기본 AI 기능 동작. **2026-08-18 달성 방식 재규정**: 자체 모델 내장이 아니라 **로컬 OpenAI-compatible endpoint (Ollama / vLLM / LM Studio 등) 를 에이전트 프로파일에 BYOK 바인딩**하는 방식으로 달성
 
 본 ADR 추가 Hard Constraints (canonical / data_tables / events 정합 + 2026-08-18 추가):
 
@@ -165,14 +167,14 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
   - 유지보수: **HIGH** — 모델 수명주기 (다운로드 ~18.5GB / 양자화 / 세대 교체 / 하드웨어 매트릭스 16·36GB) 를 제품이 소유. reference 5개 (Pencil.app / openpencil / open-pencil / holaOS / grok-build) 어디에도 대응물이 없는 고립 노선 — 교차 검증 불가
   - 마이그레이션: **MEDIUM** — 최종 단계가 Electron 미확정에 묶임
 
-#### 노선 β: 역할별 멀티 프로바이더 BYOK + 외부 에이전트/MCP 준비 (선택)
+#### 노선 β: 에이전트 중심 멀티 프로바이더 BYOK + 외부 에이전트/MCP 준비 (선택)
 
-- 설명: open-pencil v0.14.0 의 역할별 모델 패턴을 채택 — **역할 슬롯 (design / review / fast / vision 예약)** 마다 provider·엔드포인트·자격증명·모델을 개별 설정 (BYOK). 어댑터는 **Anthropic Messages + OpenAI-compatible Chat Completions 2-way** 로 축소하고, 로컬 모델 (Ollama / vLLM / LM Studio) 은 OpenAI-compatible endpoint 로 포섭 — 폐쇄망은 전 슬롯을 로컬 endpoint 에 바인딩하는 것으로 달성. 도구 정의는 MCP tool schema 호환 형태를 유지해 외부 코딩 에이전트 (ACP — Claude Code / Codex) 통합을 Electron 단계 목표로 준비. `dangerouslyAllowBrowser` 제거 + 키 보관·경유 경계 (secret isolation) 를 1급 결정으로 승격
+- 설명 (2026-08-18 2차 정정 반영 — §패턴 채택 주): 조직 원리는 **에이전트 중심** — ① 자체 AI 는 **에이전트 팀 오케스트레이션** (ZSeven-W/openpencil 패턴: Plan→Execute→Verify 를 서브에이전트 분해로 실행, layered workflow, bounded repair) 으로 구성하고, ② 최종 형태는 **외부 코딩 에이전트 embed** (Pencil.app dual embed 패턴 — ACP/SDK, Electron 단계) 다. 모델 구성 단위는 **에이전트 프로파일** — 프로파일마다 provider·엔드포인트·자격증명·모델·reasoning effort 개별 설정 (BYOK, ZSeven-W multi-model/provider profile·grok-build 서브에이전트별 모델 설정과 동형). 어댑터는 **Anthropic Messages + OpenAI-compatible Chat Completions 2-way** 로 축소하고, 로컬 모델 (Ollama / vLLM / LM Studio) 은 OpenAI-compatible endpoint 로 포섭 — 폐쇄망은 전 프로파일을 로컬 endpoint 에 바인딩하는 것으로 달성. 도구 정의는 MCP tool schema 호환 형태를 유지해 embed 전환을 준비. `dangerouslyAllowBrowser` 제거 + 키 보관·경유 경계 (secret isolation) 를 1급 결정으로 승격
 - 근거: 격차 5 — reference 5개 전부가 이 방향으로 수렴 (분석 문서 §8 차용 후보 4/7/12/17 + holaOS 하니스 패턴 + grok-build `ApiBackend`·도구 지연 로딩). 분석 문서 §10 "AI 운영 가능성 재평가" 의 acceptance criteria (provider abstraction / secret isolation / audit / verification / offline / retention) 와 1:1 정합. 구현 세부 reference: [XAI_ORG_ANALYSIS.md](../explanation/research/XAI_ORG_ANALYSIS.md) §5-1 (capability 술어 / retry 스펙 / 프롬프트 템플릿 / compaction 계약)
 - 위험:
   - 기술: **LOW** — 표준 API 2종 어댑터. 웹앱 환경에서 즉시 진행 가능 (Electron 비의존)
   - 성능: **LOW** — frontier 모델 tool calling (BFCL 90%+) 이 기본 경험. 로컬 endpoint 선택 시 정확도는 사용자 trade-off
-  - 유지보수: **MEDIUM** — 역할 슬롯 설정 UX + BYOK 키 보관 경계 + provider 2종 어댑터. 모델 수명주기는 provider/사용자 소관으로 이전
+  - 유지보수: **MEDIUM** — 에이전트 프로파일 설정 UX + BYOK 키 보관 경계 + provider 2종 어댑터. 모델 수명주기는 provider/사용자 소관으로 이전
   - 마이그레이션: **LOW** — 기존 7 도구 + AgentLoop 보존, provider 만 교체. ACP embed 만 Electron 단계로 이연
 
 #### 노선 γ: 외부 코딩 에이전트 전면 위임
@@ -187,11 +189,11 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 
 #### Risk Threshold Check (인프라 노선)
 
-| 노선                                           | 기술  | 성능  | 유지보수 | 마이그레이션 | HIGH+ 개수 |
-| ---------------------------------------------- | :---: | :---: | :------: | :----------: | :--------: |
-| α: 자체 로컬 LLM 내장 (원 결정)                |   M   | **H** |  **H**   |      M       |     2      |
-| β: 역할별 BYOK + 외부 에이전트 준비 **(선택)** |   L   |   L   |    M     |      L       |     0      |
-| γ: 외부 에이전트 전면 위임                     | **H** |   L   |    M     |    **H**     |     2      |
+| 노선                                                  | 기술  | 성능  | 유지보수 | 마이그레이션 | HIGH+ 개수 |
+| ----------------------------------------------------- | :---: | :---: | :------: | :----------: | :--------: |
+| α: 자체 로컬 LLM 내장 (원 결정)                       |   M   | **H** |  **H**   |      M       |     2      |
+| β: 에이전트 중심 BYOK + 외부 에이전트 준비 **(선택)** |   L   |   L   |    M     |      L       |     0      |
+| γ: 외부 에이전트 전면 위임                            | **H** |   L   |    M     |    **H**     |     2      |
 
 루프 판정: HIGH 0개 노선 (β) 존재. 추가 노선 불필요.
 
@@ -201,7 +203,7 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 
 ### 위험 수용 근거
 
-- 노선 β 의 MEDIUM 1개 (유지보수 — 역할 슬롯 UX + 키 경계) 는 Gate G1/G2 통과 조건으로 관리
+- 노선 β 의 MEDIUM 1개 (유지보수 — 에이전트 프로파일 UX + 키 경계) 는 Gate G1/G2 통과 조건으로 관리
 - BYOK 전제로 "키 미설정 시 AI 기능 0" 온보딩 공백이 생김 (R2 재규정) — 설정 UX + 역할 프리셋으로 완화, 기본 제공 모델 (제품 부담 proxy 운영) 도입 여부는 별도 판정
 - ADR-011 의 Phase A1~A4 산출물 (도구 7개 + AIPanel + AbortController + G.3) 보존 + 점진 canonical 정합 (원 결정과 동일)
 
@@ -213,7 +215,7 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 
 ### sub-decision D1-D11 (2026-08-18 개정 반영)
 
-- **D1** (개정): LLM Provider 추상화 + **역할별 모델 슬롯** — `LLMProvider.completeWithTools(tools, messages, options)` 통합 시그니처 + **2-way 어댑터** (Anthropic Messages / OpenAI-compatible Chat Completions). Ollama·vLLM·LM Studio 등 로컬 모델은 OpenAI-compatible endpoint 로 포섭 (전용 어댑터 없음). 역할 슬롯 4종 (open-pencil 패턴): `design` (도구 호출·생성) / `review` (Plan·Verify) / `fast` (단순 응답·분류) / `vision` (예약 — 멀티모달은 scope 밖 유지). 슬롯마다 provider / endpoint / 자격증명 / 모델 / reasoning effort 개별 설정. ~~node-llama-cpp 어댑터~~ 제거
+- **D1** (개정, 2026-08-18 2차 정정): LLM Provider 추상화 + **에이전트 프로파일** — `LLMProvider.completeWithTools(tools, messages, options)` 통합 시그니처 + **2-way 어댑터** (Anthropic Messages / OpenAI-compatible Chat Completions). Ollama·vLLM·LM Studio 등 로컬 모델은 OpenAI-compatible endpoint 로 포섭 (전용 어댑터 없음). 모델 구성 단위 = **에이전트 프로파일** (ZSeven-W multi-model/provider profile·grok-build 서브에이전트별 모델 설정 정합): 프로파일마다 provider / endpoint / 자격증명 / 모델 / reasoning effort 개별 설정. 기본 프로파일 = 메인 에이전트 + 오케스트레이션 서브에이전트 (planner / executor / verifier / fast 보조) — open-pencil 의 역할 고정 슬롯 4종 명명은 비채택 (§패턴 채택 주). vision 용 프로파일은 예약만 (멀티모달 scope 밖 유지). ~~node-llama-cpp 어댑터~~ 제거
 - **D2**: AI 도구 canonical 정합 (ADR-011 응용 + ADR-116/122 정합) — 7개 도구 시그니처를 canonical mutation API 경유로 전환:
   - `createElement / updateElement / deleteElement` → `useCanonicalDocumentStore.getState().{setFrames, ...}` 또는 `nodeOpsActions` boundary helper
   - `getEditorState / getSelection / searchElements` → `useCanonicalDocumentStore` read selector
@@ -222,9 +224,9 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 - **D4**: events/actions root collection 정합 (ADR-131 정합) — `SerializedEvent / SerializedAction` schema + canonical mutation API. legacy `element.props.events` 도구 제거
 - **D5**: frame canonical vocabulary 정합 (ADR-130 정합) — layout container 생성 시 `type: "frame"`. legacy `Group + customId="group_N"` 도구 제거
 - **D6** (목적 재규정): 컴포넌트 카탈로그 (RAC / RSP 문서 기반) — 원 목적 (로컬 모델 정확도 보정) 에서 **provider 무관 도메인 지식 주입**으로 재규정. 어느 모델이든 composition 의 컴포넌트 vocabulary / props / catalog 규칙은 컨텍스트 주입 없이는 알 수 없음. Tier 2 동적 주입 (작업 컨텍스트 기반 선택적 로딩) 유지
-- **D7** (역할 배선 추가): AI 설계 지능 (Plan→Execute→Verify) — 멀티스텝 대시보드 디자인 + `create_composite` 도구 + 레이아웃 템플릿 + 자기 수정 (max 2회). **역할 슬롯 배선**: Plan/Verify = `review` 슬롯, Execute = `design` 슬롯, 단순 분류·응답 = `fast` 슬롯 (open-pencil Design/Review 분리 정합)
-- **D8** (개정): 모델 라우팅 — ~~난이도 기반 로컬/온라인 전환~~ → **역할 기반 슬롯 라우팅** (작업 유형 → 역할 슬롯 선택, D7 배선이 정본). 폐쇄망 = 전 슬롯을 로컬 OpenAI-compatible endpoint 에 바인딩 (Hard Constraint 7 재규정 정합). 난이도 추정·자동 전환 제안·복합 작업 자동 분할은 제거 — 슬롯 구성이 사용자 통제 지점
-- **D9**: AIPanel UX 1년차 신입 baseline (ADR-133 정합) — depth 4→2 축소. default 표면 = 자연어 입력 + 도구 실행 결과 시각 피드백 (G.3 보존). 고급 모드 = Plan 단계 시각화 + 자기 수정 표시 + **역할 슬롯 설정** (L4 power user 격리)
+- **D7** (개정, 2026-08-18 2차 정정): **에이전트 오케스트레이션** (Plan→Execute→Verify) — 멀티스텝 대시보드 디자인을 **서브에이전트 분해로 실행** (ZSeven-W/openpencil Concurrent Agent Teams / layered workflow 패턴 — PENCIL 분석 §8 차용 후보 4): planner / executor / verifier 서브에이전트가 각자 에이전트 프로파일 (D1) 을 참조, 단순 분류·응답은 fast 보조 프로파일. `create_composite` 도구 + 레이아웃 템플릿 + bounded repair (자기 수정 max 2회) + 에이전트별 진행 표시 (per-agent indicator — ZSeven-W 정합)
+- **D8** (개정): 모델 라우팅 — ~~난이도 기반 로컬/온라인 전환~~ → **에이전트 프로파일 라우팅** (작업 유형 → 오케스트레이션의 실행 에이전트 선택, D7 분해가 정본). 폐쇄망 = 전 프로파일을 로컬 OpenAI-compatible endpoint 에 바인딩 (Hard Constraint 7 재규정 정합). 난이도 추정·자동 전환 제안·복합 작업 자동 분할은 제거 — 프로파일 구성이 사용자 통제 지점
+- **D9**: AIPanel UX 1년차 신입 baseline (ADR-133 정합) — depth 4→2 축소. default 표면 = 자연어 입력 + 도구 실행 결과 시각 피드백 (G.3 보존). 고급 모드 = Plan 단계 시각화 + 자기 수정 표시 + 에이전트별 진행 표시 + **에이전트 프로파일 설정** (L4 power user 격리)
 - **D10** (신규 2026-08-18): **secret isolation** — `dangerouslyAllowBrowser` 제거 + browser 번들에서 외부 provider 직접 호출 0건 (Hard Constraint 13). BYOK 키 보관·경유 경계: 원격 provider 는 프록시 경유 (Supabase Edge Function 등 — Phase 2 에서 확정), 로컬 endpoint (localhost) 는 직접 호출 허용. 키의 브라우저 저장은 사용자 명시 opt-in (localStorage 평문 금지)
 - **D11** (신규 2026-08-18): **외부 에이전트/MCP 준비** — 7+ 도구 정의를 MCP tool schema 와 호환되는 형태 (JSON Schema 파라미터 + 명세 분리) 로 유지. ACP/에이전트 SDK embed (Claude Code / Codex — Pencil.app dual embed·holaOS 하니스·grok-build ACP 패턴) 는 Electron 반영 후 Phase 9 에서 재평가. 도구 표면이 커질 때의 지연 로딩은 grok-build `search_tool`+`use_tool` 패턴 (manifest 안정 = KV cache 보존 — 3중 독립 수렴 확인, XAI_ORG_ANALYSIS §5-1 #1) 을 정본 reference 로 한다
 
@@ -233,59 +235,59 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 > 구현 상세: [134-ai-assistant-llm-infrastructure-unification-breakdown.md](design/134-ai-assistant-llm-infrastructure-unification-breakdown.md)
 
 - Phase 0 — inventory baseline freeze (ADR-011 반영 영역 인벤토리 + 4 격차 측정 + Groq 표면 실측)
-- Phase 1 — LLM Provider 추상화 + 역할 슬롯 (D1) — **G1**
+- Phase 1 — LLM Provider 추상화 + 에이전트 프로파일 (D1) — **G1**
 - Phase 2 — Groq 완전 제거 + secret isolation (D10) — **G2**
 - Phase 3 — AI 도구 canonical 정합 (D2) — **G3**
 - Phase 4 — data_tables + events/actions + frame canonical 정합 (D3/D4/D5) — **G4**
 - Phase 5 — 컴포넌트 카탈로그 (D6) — **G5**
-- Phase 6 — AI 설계 지능 Plan→Execute→Verify + 역할 배선 (D7)
-- Phase 7 — 역할 슬롯 라우팅 + 폐쇄망 BYOK 검증 (D8) — **G6**
+- Phase 6 — 에이전트 오케스트레이션 Plan→Execute→Verify (D7)
+- Phase 7 — 에이전트 프로파일 라우팅 + 폐쇄망 BYOK 검증 (D8) — **G6**
 - Phase 8 — AIPanel UX 단순화 1년차 신입 baseline (D9)
 - Phase 9 — 외부 코딩 에이전트 통합 (ACP/SDK embed — D11) — **G7** — Electron 마이그레이션 시점 의존
 
 ## Risks
 
-| ID  | 위험                                                                                          | 심각도 | 대응                                                                                                                                                 |
-| --- | --------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | Electron 마이그레이션 시점 미확정 → Phase 9 (외부 에이전트 embed) 차단                        |  HIGH  | Phase 1-8 은 Vite 웹앱 환경에서 자립 완결 (BYOK provider 는 웹에서 동작). Phase 9 만 Electron 의존 — Gate G7 으로 분리. 노선 γ 재평가도 이 시점      |
-| R2  | (재규정) BYOK 전제 — 키 미설정 사용자는 AI 기능 0 (기본 제공 모델 부재 온보딩 공백)           |  MED   | 최초 실행 설정 UX + 역할 슬롯 프리셋 (Anthropic / OpenAI / 로컬 endpoint 템플릿). 제품 부담 기본 모델 (proxy 운영) 도입은 별도 판정 (scope 밖)       |
-| R3  | 컴포넌트 카탈로그 ~311K tok > context 예산                                                    |  MED   | 동적 주입 (작업 컨텍스트 기반 선택적 로딩) + RAG (long-term). Phase 5 G5 통과 조건                                                                   |
-| R4  | canonical document mutation API 가 AI 도구 시그니처와 정합 안 됨 (ADR-122 mirror 격하 영역)   |  MED   | Phase 3 G3 — 7개 도구 전수 canonical mutation API 경유 검증 + boundary helper allowlist 외 direct access 0 grep gate                                 |
-| R5  | data_tables SSOT 와 dataBinding 도구 시그니처 정합 (ADR-132 Transformer 제거 영역)            |  MED   | Phase 4 G4 — `useCollectionData({ datatableId \| dataBinding })` 통합 진입점 + legacy `Transform 3단계` 도구 제거 검증                               |
-| R6  | events/actions root collection 과 AI 이벤트 핸들러 도구 정합 (ADR-131 영역)                   |  MED   | Phase 4 G4 — `SerializedEvent / SerializedAction` schema + canonical mutation API 사용 검증 + legacy `element.props.events` 0                        |
-| R7  | AIPanel UX 1년차 신입 baseline 검증 (ADR-133 Q4 확정)                                         |  MED   | Phase 8 evaluator agent screenshot 검증 + depth 4→2 축소 measure                                                                                     |
-| R8  | Provider 별 Tool Calling format 차이 (Anthropic tool use / OpenAI function calling)           |  MED   | `LLMProvider.completeWithTools` 통합 시그니처 + 2-way 어댑터 표준화 (4-way → 2-way 축소로 원 위험 대비 완화)                                         |
-| R9  | groq-sdk 완전 제거 시 기존 Phase A1~A4 산출물 회귀                                            |  MED   | Phase 2 G2 — 대체 provider (역할 슬롯 경유) 로 기존 7개 도구 전수 통과 + AbortController + G.3 시각 피드백 보존                                      |
-| R10 | (재규정) 폐쇄망 = 로컬 endpoint BYOK — endpoint 품질·모델 선택이 사용자 소관이 되어 결과 편차 |  MED   | Phase 7 G6 — Ollama OpenAI-compatible endpoint 로 7 도구 전수 통과 1회 실측 + 로컬 endpoint 설정 가이드 문서화. 모델별 품질 보증은 제품 책임 아님    |
-| R11 | Phase scope inflation (단일 ADR 9 Phase + 4 격차 영역 → 1.5x gap 가능성)                      |  MED   | [adr-writing.md M4](rules) — Phase scope inflation 1.5x 시 사용자 confirm 의무. Phase 별 design breakdown freeze                                     |
-| R12 | (신규) 원격 provider 프록시 경계 부재 시 BYOK 키 브라우저 노출 재발 (Groq 사례 반복)          |  MED   | Phase 2 G2 — `dangerouslyAllowBrowser` 0 + browser 번들 내 원격 provider 직접 호출 0 grep gate. 프록시 방식 (Supabase Edge Function 등) Phase 2 확정 |
+| ID  | 위험                                                                                          | 심각도 | 대응                                                                                                                                                   |
+| --- | --------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | Electron 마이그레이션 시점 미확정 → Phase 9 (외부 에이전트 embed) 차단                        |  HIGH  | Phase 1-8 은 Vite 웹앱 환경에서 자립 완결 (BYOK provider 는 웹에서 동작). Phase 9 만 Electron 의존 — Gate G7 으로 분리. 노선 γ 재평가도 이 시점        |
+| R2  | (재규정) BYOK 전제 — 키 미설정 사용자는 AI 기능 0 (기본 제공 모델 부재 온보딩 공백)           |  MED   | 최초 실행 설정 UX + 에이전트 프로파일 프리셋 (Anthropic / OpenAI / 로컬 endpoint 템플릿). 제품 부담 기본 모델 (proxy 운영) 도입은 별도 판정 (scope 밖) |
+| R3  | 컴포넌트 카탈로그 ~311K tok > context 예산                                                    |  MED   | 동적 주입 (작업 컨텍스트 기반 선택적 로딩) + RAG (long-term). Phase 5 G5 통과 조건                                                                     |
+| R4  | canonical document mutation API 가 AI 도구 시그니처와 정합 안 됨 (ADR-122 mirror 격하 영역)   |  MED   | Phase 3 G3 — 7개 도구 전수 canonical mutation API 경유 검증 + boundary helper allowlist 외 direct access 0 grep gate                                   |
+| R5  | data_tables SSOT 와 dataBinding 도구 시그니처 정합 (ADR-132 Transformer 제거 영역)            |  MED   | Phase 4 G4 — `useCollectionData({ datatableId \| dataBinding })` 통합 진입점 + legacy `Transform 3단계` 도구 제거 검증                                 |
+| R6  | events/actions root collection 과 AI 이벤트 핸들러 도구 정합 (ADR-131 영역)                   |  MED   | Phase 4 G4 — `SerializedEvent / SerializedAction` schema + canonical mutation API 사용 검증 + legacy `element.props.events` 0                          |
+| R7  | AIPanel UX 1년차 신입 baseline 검증 (ADR-133 Q4 확정)                                         |  MED   | Phase 8 evaluator agent screenshot 검증 + depth 4→2 축소 measure                                                                                       |
+| R8  | Provider 별 Tool Calling format 차이 (Anthropic tool use / OpenAI function calling)           |  MED   | `LLMProvider.completeWithTools` 통합 시그니처 + 2-way 어댑터 표준화 (4-way → 2-way 축소로 원 위험 대비 완화)                                           |
+| R9  | groq-sdk 완전 제거 시 기존 Phase A1~A4 산출물 회귀                                            |  MED   | Phase 2 G2 — 대체 provider (에이전트 프로파일 경유) 로 기존 7개 도구 전수 통과 + AbortController + G.3 시각 피드백 보존                                |
+| R10 | (재규정) 폐쇄망 = 로컬 endpoint BYOK — endpoint 품질·모델 선택이 사용자 소관이 되어 결과 편차 |  MED   | Phase 7 G6 — Ollama OpenAI-compatible endpoint 로 7 도구 전수 통과 1회 실측 + 로컬 endpoint 설정 가이드 문서화. 모델별 품질 보증은 제품 책임 아님      |
+| R11 | Phase scope inflation (단일 ADR 9 Phase + 4 격차 영역 → 1.5x gap 가능성)                      |  MED   | [adr-writing.md M4](rules) — Phase scope inflation 1.5x 시 사용자 confirm 의무. Phase 별 design breakdown freeze                                       |
+| R12 | (신규) 원격 provider 프록시 경계 부재 시 BYOK 키 브라우저 노출 재발 (Groq 사례 반복)          |  MED   | Phase 2 G2 — `dangerouslyAllowBrowser` 0 + browser 번들 내 원격 provider 직접 호출 0 grep gate. 프록시 방식 (Supabase Edge Function 등) Phase 2 확정   |
 
 잔존 HIGH 위험 1개 (R1) → Gate G7 로 관리.
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                                                | 실패 시 대안                                                    |
-| ---- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| G1   | Phase 1 완료 | `LLMProvider` 추상화 + 2-way 어댑터 (Anthropic / OpenAI-compatible) + 역할 슬롯 4종 설정 모델 반영 (Ollama 는 OpenAI-compatible 로 통과) | Provider 인터페이스 재설계                                      |
-| G2   | Phase 2 완료 | `groq-sdk` 0 grep + `dangerouslyAllowBrowser` 0 grep + browser 번들 원격 provider 직접 호출 0 + 대체 provider 로 7개 도구 전수 통과      | 키 경유 방식 재설계 (프록시 ↔ 로컬 gateway), fallback 단계 추가 |
-| G3   | Phase 3 완료 | 7개 도구 canonical mutation API 경유 + boundary helper allowlist 외 direct access 0 grep gate                                            | mutation API 확장 (frame/slot/componentSemantics 추가 등)       |
-| G4   | Phase 4 완료 | data_tables + events/actions + frame canonical 정합 검증 + legacy 도구 제거 + grep gate                                                  | 도구 시그니처 재설계, legacy 잔존물 cleanup phase 추가          |
-| G5   | Phase 5 완료 | 컴포넌트 카탈로그 Props 정확도 ≥ 90% (RAC / RSP 문서 기반 검증, `design` 슬롯 기준 모델)                                                 | 카탈로그 형식 재설계, 동적 주입 전략 변경 (RAG 도입)            |
-| G6   | Phase 7 완료 | 역할 슬롯 라우팅 (D7 배선) 동작 + 폐쇄망 시나리오 — 전 슬롯 로컬 endpoint 바인딩으로 7 도구 통과 1회 실측                                | 슬롯 구성 UX 보강, 로컬 endpoint 가이드 확충                    |
-| G7   | Phase 9 완료 | 외부 에이전트 (ACP/SDK) embed 1종 이상 + MCP 도구 표면으로 composition 조작 실측 + Canvas 60fps 유지 (R1 HIGH 위험 통과)                 | Phase 9 보류, Phase 1-8 자립 운영 유지 (BYOK provider 기본)     |
+| Gate | 시점         | 통과 조건                                                                                                                                    | 실패 시 대안                                                    |
+| ---- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| G1   | Phase 1 완료 | `LLMProvider` 추상화 + 2-way 어댑터 (Anthropic / OpenAI-compatible) + 에이전트 프로파일 설정 모델 반영 (Ollama 는 OpenAI-compatible 로 통과) | Provider 인터페이스 재설계                                      |
+| G2   | Phase 2 완료 | `groq-sdk` 0 grep + `dangerouslyAllowBrowser` 0 grep + browser 번들 원격 provider 직접 호출 0 + 대체 provider 로 7개 도구 전수 통과          | 키 경유 방식 재설계 (프록시 ↔ 로컬 gateway), fallback 단계 추가 |
+| G3   | Phase 3 완료 | 7개 도구 canonical mutation API 경유 + boundary helper allowlist 외 direct access 0 grep gate                                                | mutation API 확장 (frame/slot/componentSemantics 추가 등)       |
+| G4   | Phase 4 완료 | data_tables + events/actions + frame canonical 정합 검증 + legacy 도구 제거 + grep gate                                                      | 도구 시그니처 재설계, legacy 잔존물 cleanup phase 추가          |
+| G5   | Phase 5 완료 | 컴포넌트 카탈로그 Props 정확도 ≥ 90% (RAC / RSP 문서 기반 검증, executor 프로파일 기준 모델)                                                 | 카탈로그 형식 재설계, 동적 주입 전략 변경 (RAG 도입)            |
+| G6   | Phase 7 완료 | 에이전트 프로파일 라우팅 (D7 분해) 동작 + 폐쇄망 시나리오 — 전 프로파일 로컬 endpoint 바인딩으로 7 도구 통과 1회 실측                        | 프로파일 구성 UX 보강, 로컬 endpoint 가이드 확충                |
+| G7   | Phase 9 완료 | 외부 에이전트 (ACP/SDK) embed 1종 이상 + MCP 도구 표면으로 composition 조작 실측 + Canvas 60fps 유지 (R1 HIGH 위험 통과)                     | Phase 9 보류, Phase 1-8 자립 운영 유지 (BYOK provider 기본)     |
 
 ## Consequences
 
 ### Positive
 
-- **reference 수렴 노선**: Pencil.app / openpencil / open-pencil / holaOS / grok-build 5개 reference 와 같은 방향 — 교차 검증 가능한 패턴 (역할별 모델 / BYOK / ACP·MCP / 도구 지연 로딩), 고립 노선의 모델 수명주기 부담 소멸
-- **단일 진입점**: `LLMProvider` 통합 인터페이스 + 역할 슬롯으로 원격/로컬 모델 자유 전환 — 폐쇄망은 로컬 endpoint 바인딩으로 동등 달성
+- **reference 수렴 노선**: Pencil.app / openpencil / open-pencil / holaOS / grok-build 5개 reference 와 같은 방향 — 교차 검증 가능한 패턴 (에이전트 프로파일별 모델 / BYOK / 에이전트 오케스트레이션 / ACP·MCP / 도구 지연 로딩), 고립 노선의 모델 수명주기 부담 소멸. 조직 원리 정본 = Pencil.app embed + ZSeven-W/openpencil 오케스트레이션 (§패턴 채택 주)
+- **단일 진입점**: `LLMProvider` 통합 인터페이스 + 에이전트 프로파일로 원격/로컬 모델 자유 전환 — 폐쇄망은 로컬 endpoint 바인딩으로 동등 달성
 - **canonical document 정합**: AI 가 `CompositionDocument` 의 frame / slot / componentSemantics / events / actions 영역 mutation 가능 — ADR-116/122/130/131 반영 영역 활용
 - **data_tables SSOT 정합**: `useCollectionData({ datatableId | dataBinding })` 통합 read 진입점 + `data_tables.runtimeData` sink — ADR-132 정합
 - **events/actions root collection 정합**: `SerializedEvent / SerializedAction` schema — ADR-131 정합
 - **groq-sdk 완전 제거 + secret isolation**: 벤더 종속 해소 + `dangerouslyAllowBrowser: true` 제거가 1급 결정 (Hard Constraint 13) 으로 승격 — API 키 브라우저 노출 구조 재발 차단
 - **컴포넌트 카탈로그**: provider 무관 도메인 지식 주입 — 어느 모델이든 composition vocabulary 정확도 확보
-- **AI 설계 지능**: Plan→Execute→Verify + 역할 배선 (review/design/fast) + 자기 수정 (max 2회)
+- **에이전트 오케스트레이션**: Plan→Execute→Verify 를 planner/executor/verifier 서브에이전트 분해로 실행 (ZSeven-W 패턴) + bounded repair (max 2회) + 에이전트별 진행 표시
 - **외부 에이전트 확장로**: MCP 호환 도구 표면이 Phase 9 (Claude Code / Codex embed) 와 노선 γ 재평가의 전제를 준비
 - **AIPanel UX 1년차 신입 baseline**: depth 4→2 축소 (ADR-133 정합)
 
@@ -305,11 +307,12 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 
 ## 개정 이력
 
-| 날짜       | 내용                                                                                                                                                                                                                       |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-05-13 | 최초 작성 — ADR-011 + ADR-054 단일 통합, 노선 α (자체 로컬 LLM 내장), 설계 문서만 반영                                                                                                                                     |
-| 2026-08-18 | 노선 재결정 (사용자 재제기) — 노선 α 기각 → 노선 β (역할별 BYOK + 외부 에이전트/MCP 준비). 격차 5 추가, Hard Constraint 4 삭제·7 재규정·13 추가, D1/D8 개정, D10/D11 신규                                                  |
-| 2026-08-18 | 수렴 근거 보강 — xai-org 9개 저장소 분석 (XAI_ORG_ANALYSIS.md) 반영: grok-build 를 격차 5 의 5번째 수렴 사례로 추가 (reference 4→5개), D11 에 도구 지연 로딩 (`search_tool`+`use_tool`, 3중 독립 수렴) 정본 reference 명시 |
+| 날짜       | 내용                                                                                                                                                                                                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-13 | 최초 작성 — ADR-011 + ADR-054 단일 통합, 노선 α (자체 로컬 LLM 내장), 설계 문서만 반영                                                                                                                                                                                    |
+| 2026-08-18 | 노선 재결정 (사용자 재제기) — 노선 α 기각 → 노선 β (역할별 BYOK + 외부 에이전트/MCP 준비). 격차 5 추가, Hard Constraint 4 삭제·7 재규정·13 추가, D1/D8 개정, D10/D11 신규                                                                                                 |
+| 2026-08-18 | 수렴 근거 보강 — xai-org 9개 저장소 분석 (XAI_ORG_ANALYSIS.md) 반영: grok-build 를 격차 5 의 5번째 수렴 사례로 추가 (reference 4→5개), D11 에 도구 지연 로딩 (`search_tool`+`use_tool`, 3중 독립 수렴) 정본 reference 명시                                                |
+| 2026-08-18 | 2차 정정 (사용자) — 조직 원리 교정: open-pencil 역할 고정 슬롯 4종 비채택 → **Pencil.app (외부 에이전트 embed) + ZSeven-W/openpencil (에이전트 팀 오케스트레이션)** 패턴 채택. 모델 구성 단위 = 에이전트 프로파일. D1/D7/D8/D9 재규정, Phase 1/6/7 재명명 (§패턴 채택 주) |
 
 ## 관련
 
