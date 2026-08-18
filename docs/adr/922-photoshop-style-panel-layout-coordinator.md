@@ -4,8 +4,9 @@
 
 Accepted — 2026-08-18
 
-진행: Phase 0 / G0 PASS — [panel workspace baseline](./design/922-phase-0-panel-workspace-baseline.md)
-고정. Production renderer와 persisted state는 아직 v1이다.
+진행: Phase 0 / G0 PASS — [panel workspace baseline](./design/922-phase-0-panel-workspace-baseline.md),
+Phase 1 / G1 PASS — [v2 model/migration evidence](./design/922-phase-1-model-migration-evidence.md).
+Production renderer, live store와 primary persisted state는 아직 v1이다.
 
 ## Context
 

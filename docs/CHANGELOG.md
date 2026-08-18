@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-922 패널 layout v2 model과 rollback 경계를 선행 고정] - 2026-08-18
+
+### Architecture
+
+- **Phase 1 / G1에서 Photoshop식 single placement graph의 production 전환 전 계약을 구현**:
+  - registry panel이 placement와 activity rail에 각각 정확히 한 번 존재하는 versioned v2 schema, 최대 2-column/4px gap, 320x180 main reservation과 deterministic constrained-overlay solver를 pure module로 추가했다
+  - current v1의 default, multi-active, Monitor bottom, floating, snapped column, invalid/removed ID를 v2로 옮기는 validated migration과 registry add/remove normalization을 fixture로 고정했다
+  - primary v2 write 전에 exact v1 raw를 `prepared` backup으로 보존하고 write 성공 뒤 `committed`로 잠그는 protocol을 추가했다. quota/crash/raw 변경/committed mark 실패와 v2-born emergency projection을 injected storage에서 검증한다
+  - 신규 v2 module은 아직 production store/renderer에서 import하지 않는다. live Zustand state와 `composition-panel-layout` primary record, 기존 패널 UI는 Phase 3 cutover 전까지 v1을 유지한다
+
 ## [패널 간 스냅을 Photoshop식 column/stack layout으로 전환] - 2026-08-18
 
 ### Bug Fixes

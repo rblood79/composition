@@ -466,6 +466,15 @@ interface PanelLayoutV1BackupEnvelope {
 - G1 통과는 Phase 2 shadow model만 해제한다. production live store와 primary record는
   Phase 3 cutover 전까지 v1을 유지한다.
 
+#### 실행 기록 — G1 PASS (2026-08-18)
+
+- [Phase 1 model/migration evidence](./922-phase-1-model-migration-evidence.md)에 exact v2
+  schema, registry normalization, constrained solver, 6종 migration, crash/quota/refresh
+  backup sequence와 v2-born compatibility projection을 고정했다.
+- 신규 모듈은 production store/renderer에서 import하지 않는다. live store와 primary
+  `composition-panel-layout` record는 v1을 유지한다.
+- Phase 2는 별도 승인과 G2a 검증 전까지 시작하지 않는다.
+
 ### Phase 2 — Layout Coordinator shadow snapshot
 
 - workspace size + v2 layout으로 snapshot을 계산하는 coordinator를 추가한다.
@@ -668,15 +677,16 @@ interface PanelLayoutV1BackupEnvelope {
 ## 9. 완료 체크리스트
 
 - [x] Phase 0 inventory와 native-refresh baseline이 기록됐다.
-- [ ] exact v2 single cluster placement/anchor/inset 수식이 freeze됐다.
-- [ ] 320x180 main reservation, constrained overlay, narrow viewport 자동 anchor 복귀 수식이
+- [x] exact v2 single cluster placement/anchor/inset 수식이 freeze됐다.
+- [x] 320x180 main reservation, constrained overlay, narrow viewport 자동 anchor 복귀 수식이
       freeze됐다.
-- [ ] exact raw + migrationId prepared/committed backup 1건의
+- [x] exact raw + migrationId prepared/committed backup 1건의
       crash/quota/refresh/old-code rollback fixture가
       통과했다.
-- [ ] v2 registry add/remove normalization이 기존 known panel geometry를 보존한다.
-- [ ] backup 없는 v2-born layout이 Phase 3 rollback과 Phase 1 emergency projection에서
-      default로 떨어지지 않는다.
+- [x] v2 registry add/remove normalization이 기존 known panel geometry를 보존한다.
+- [x] backup 없는 v2-born layout이 Phase 1 emergency projection에서 default로 떨어지지
+      않는다.
+- [ ] backup 없는 v2-born layout의 Phase 3 operational rollback이 byte-equivalent다.
 - [ ] frame/shell이 같은 immutable snapshot을 쓰고 Canvas는 actual local rect만 쓴다.
 - [ ] G2a shadow store와 G2b real-frame applied-version/native-refresh gate가 각각 통과했다.
 - [ ] normal/compare/WebGL-off가 동일한 `Workspace` main slot과 panel sibling을 사용한다.
