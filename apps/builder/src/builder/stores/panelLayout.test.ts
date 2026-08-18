@@ -168,4 +168,14 @@ describe("ADR-922 production panel layout store", () => {
       panelWorkspaceLayout: { version: 2 },
     });
   });
+
+  it("production slice에 v1 projection과 compatibility action을 만들지 않는다", () => {
+    const state = createPanelLayoutStore().getState();
+
+    expect(Object.keys(state)).not.toContain("panelLayout");
+    expect(Object.keys(state)).not.toContain("setPanelLayout");
+    expect(Object.keys(state)).not.toContain("resetPanelLayout");
+    expect(Object.keys(state)).not.toContain("savePanelLayoutToStorage");
+    expect(Object.keys(state)).not.toContain("loadPanelLayoutFromStorage");
+  });
 });

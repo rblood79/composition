@@ -23,7 +23,7 @@ import { FontUploadZone } from "./components/FontUploadZone";
 import { FontFamilyGroup } from "./components/FontFamilyGroup";
 import "./FontManagerPanel.css";
 
-// 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
+// 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
 export function FontManagerPanel() {
   return <FontManagerContent />;
 }

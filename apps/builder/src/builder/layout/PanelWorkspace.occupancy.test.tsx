@@ -44,6 +44,9 @@ function RepresentativePanel() {
 describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
   beforeEach(() => {
     vi.spyOn(PanelRegistry, "getAllPanels").mockReturnValue(TEST_CONFIGS);
+    vi.spyOn(PanelRegistry, "getPanel").mockImplementation((panelId) =>
+      TEST_CONFIGS.find((config) => config.id === panelId),
+    );
     vi.stubGlobal(
       "ResizeObserver",
       class {
@@ -97,6 +100,16 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(main?.getAttribute("data-layout-version")).toBe(
       host?.getAttribute("data-layout-version"),
     );
+
+    const bottomRail = container.querySelector(
+      '.panel-activity-rail[data-side="bottom"]',
+    );
+    expect(bottomRail?.querySelectorAll(".panel-nav button")).toHaveLength(1);
+    expect(
+      bottomRail
+        ?.querySelector(".panel-nav button")
+        ?.getAttribute("aria-label"),
+    ).toBe("monitor");
   });
 
   it("shell이 기존 panel header/action/content DOM을 복제하지 않는다", () => {
@@ -128,5 +141,30 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     const controlledPane = frame?.querySelector(".workspace-panel-content");
     expect(controlledPaneId).toBe("panel-nodes-content");
     expect(controlledPane?.id).toBe(controlledPaneId);
+  });
+
+  it("bottom placement는 유지하되 rail order가 비면 빈 rail DOM을 만들지 않는다", () => {
+    const layout = createPanelWorkspaceLayoutV2();
+    layout.railOrder.bottom = [];
+    layout.railOrder.right.push("monitor");
+    useStore.setState({ panelWorkspaceLayout: layout });
+
+    const { container } = render(
+      <PanelWorkspace>
+        <div />
+      </PanelWorkspace>,
+    );
+
+    expect(
+      container.querySelector('.panel-activity-rail[data-side="bottom"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector(
+        '.panel-activity-rail[data-side="right"] button[aria-label="monitor"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('.workspace-panel-frame[data-panel="monitor"]'),
+    ).not.toBeNull();
   });
 });

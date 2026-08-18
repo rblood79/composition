@@ -273,6 +273,15 @@
   }
 }
 
+.nodes-panel .panel-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
 /* NodesPanelTabs */
 .nodes-panel-tabs {
   display: flex;

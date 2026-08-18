@@ -8,11 +8,9 @@
 /* Layout */
 @import "./layout/header.css";
 @import "./layout/canvas.css";
-@import "./layout/footer.css";
 
 /* Modules */
 @import "./modules/panel-nav.css";
-@import "./modules/panel-container.css";
 @import "./modules/element-tree.css";
 @import "./modules/error-loading.css";
 

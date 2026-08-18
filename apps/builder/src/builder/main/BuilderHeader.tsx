@@ -92,7 +92,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   showWorkflowOverlay,
   onWorkflowOverlayToggle,
 }) => {
-  const { openPanelAsModal } = usePanelLayout();
+  const { floatPanel } = usePanelLayout();
   const isCompareMode = useCompareModeStore((state) => state.isCompareMode);
   const toggleCompareMode = useCompareModeStore(
     (state) => state.toggleCompareMode,
@@ -303,7 +303,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           <ToggleButton
             id="settings"
             aria-label="Settings"
-            onPress={() => openPanelAsModal("settings")}
+            onPress={() => floatPanel("settings")}
           >
             <Settings
               color={iconProps.color}

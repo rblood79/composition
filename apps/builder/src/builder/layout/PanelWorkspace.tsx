@@ -510,22 +510,22 @@ interface HydratedPanelWorkspaceProps {
   configs: readonly PanelConfig[];
   registry: readonly PanelWorkspaceRegistryEntry[];
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
-  togglePanel: (side: PanelSide, panelId: PanelId) => void;
-  focusModalPanel: (panelId: PanelId) => void;
+  togglePanel: (panelId: PanelId) => void;
+  focusFloatingPanel: (panelId: PanelId) => void;
 }
 
 interface PanelWorkspaceOverlayProps {
   configs: readonly PanelConfig[];
-  focusModalPanel: (panelId: PanelId) => void;
+  focusFloatingPanel: (panelId: PanelId) => void;
   runtime: PanelWorkspaceRuntime;
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
-  togglePanel: (side: PanelSide, panelId: PanelId) => void;
+  togglePanel: (panelId: PanelId) => void;
   workspaceLayout: PanelWorkspaceLayoutV2;
 }
 
 const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   configs,
-  focusModalPanel,
+  focusFloatingPanel,
   runtime,
   setWorkspaceLayout,
   togglePanel,
@@ -538,21 +538,25 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
 
   return (
     <div className="panel-workspace" aria-label="패널 작업 영역">
-      {(["left", "right", "bottom"] as const).map((side) => (
-        <div
-          key={side}
-          className="panel-activity-rail"
-          data-side={side}
-          style={{ zIndex: 2_100 }}
-        >
-          <PanelNav
-            side={side}
-            panelIds={workspaceLayout.railOrder[side]}
-            activePanels={activePanels(side)}
-            onPanelClick={(panelId) => togglePanel(side, panelId)}
-          />
-        </div>
-      ))}
+      {(["left", "right", "bottom"] as const).map((side) => {
+        const panelIds = workspaceLayout.railOrder[side];
+        if (panelIds.length === 0) return null;
+        return (
+          <div
+            key={side}
+            className="panel-activity-rail"
+            data-side={side}
+            style={{ zIndex: 2_100 }}
+          >
+            <PanelNav
+              side={side}
+              panelIds={panelIds}
+              activePanels={activePanels(side)}
+              onPanelClick={togglePanel}
+            />
+          </div>
+        );
+      })}
 
       {configs.map((config) => (
         <SnapshotPanelFrame
@@ -561,7 +565,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
           runtime={runtime}
           side={railSideForPanel(workspaceLayout, config)}
           onCommitLayout={setWorkspaceLayout}
-          onFocusPanel={focusModalPanel}
+          onFocusPanel={focusFloatingPanel}
         />
       ))}
     </div>
@@ -575,7 +579,7 @@ function HydratedPanelWorkspace({
   registry,
   setWorkspaceLayout,
   togglePanel,
-  focusModalPanel,
+  focusFloatingPanel,
 }: HydratedPanelWorkspaceProps) {
   const [runtime] = useState(() => createRuntime(workspaceLayout, registry));
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -640,7 +644,7 @@ function HydratedPanelWorkspace({
 
       <PanelWorkspaceOverlay
         configs={configs}
-        focusModalPanel={focusModalPanel}
+        focusFloatingPanel={focusFloatingPanel}
         runtime={runtime}
         setWorkspaceLayout={setWorkspaceLayout}
         togglePanel={togglePanel}
@@ -660,7 +664,7 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
     initializeWorkspaceLayout,
     setWorkspaceLayout,
     togglePanel,
-    focusModalPanel,
+    focusFloatingPanel,
   } = usePanelLayout();
   const configs = useMemo(() => PanelRegistry.getAllPanels(), []);
   const registry = useMemo(
@@ -689,7 +693,7 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
       registry={registry}
       setWorkspaceLayout={setWorkspaceLayout}
       togglePanel={togglePanel}
-      focusModalPanel={focusModalPanel}
+      focusFloatingPanel={focusFloatingPanel}
     />
   );
 }

@@ -34,10 +34,9 @@ const INFRA_ALLOWLIST = [
   "components/styles/inspector-layout.css",
   "components/styles/form-controls.css",
   "components/styles/list-group.css",
-  "styles/modules/panel-container.css",
+  "layout/PanelWorkspace.css",
   "styles/modules/panel-nav.css",
   "styles/layout/canvas.css",
-  "styles/layout/footer.css",
 ] as const;
 
 const RESERVED = /^\.(panel|section|fieldset|tab)(-[a-z0-9-]+)?$/;

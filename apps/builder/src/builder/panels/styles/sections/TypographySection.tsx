@@ -193,7 +193,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       <div className="fieldset-actions actions-font">
         <SwatchIconButton
           aria-label="폰트 관리"
-          onPress={() => togglePanel("right", "fonts")}
+          onPress={() => togglePanel("fonts")}
         >
           <Type
             color={iconProps.color}

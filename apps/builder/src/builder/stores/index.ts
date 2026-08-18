@@ -474,21 +474,11 @@ export const useHistoryActions = () =>
     redo: state.redo,
   }));
 
-// Panel Layout 선택기들
-export const usePanelLayoutState = () => useStore((state) => state.panelLayout);
+// Panel Workspace Layout 선택기들
 export const usePanelWorkspaceLayoutState = () =>
   useStore((state) => state.panelWorkspaceLayout);
 export const usePanelWorkspaceHydrationStatus = () =>
   useStore((state) => state.panelWorkspaceHydrationStatus);
-export const usePanelLayoutActions = () =>
-  useStore((state) => ({
-    initializePanelWorkspaceLayout: state.initializePanelWorkspaceLayout,
-    setPanelWorkspaceLayout: state.setPanelWorkspaceLayout,
-    setPanelLayout: state.setPanelLayout,
-    resetPanelLayout: state.resetPanelLayout,
-    savePanelLayoutToStorage: state.savePanelLayoutToStorage,
-    loadPanelLayoutFromStorage: state.loadPanelLayoutFromStorage,
-  }));
 
 // 🚀 Phase 5: Lazy Loading 선택기들
 export const useLazyLoaderActions = () =>

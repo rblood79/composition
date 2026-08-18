@@ -27,7 +27,7 @@ import {
   scheduleNextFrame,
 } from "../../utils/scheduleTask";
 
-// 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155)
+// 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
 export function NodesPanel() {
   // URL params
   const { projectId } = useParams<{ projectId: string }>();

@@ -86,7 +86,7 @@ function formatSize(chars: number): string {
  * HistoryPanel - 히스토리 패널
  *
  * Photoshop History 패널처럼 스냅샷 + 변경 내역을 리스트로 보여줍니다.
- * 비활성 gating 은 PanelContainer 의 <Activity mode="hidden"> 이 담당 (ADR-155).
+ * 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922).
  */
 export function HistoryPanel() {
   return <HistoryPanelContent />;

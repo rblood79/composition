@@ -190,17 +190,11 @@ export interface PanelClusterState {
   columns: PanelColumnState[];
 }
 
-export interface PanelSnapPlacement {
-  targetPanelId: PanelId;
-  edge: PanelSnapEdge;
-  source: PanelFrameGeometry;
-  target: PanelFrameGeometry;
-}
-
 /**
- * 패널 레이아웃 상태
+ * v1 panel layout persistence compatibility shape.
  *
- * Zustand store에 저장되는 패널 배치 정보
+ * ADR-922 production Zustand state에는 포함하지 않는다. v1 storage parser와
+ * rollback projection boundary에서만 사용한다.
  */
 export interface PanelLayoutState {
   /** 좌측 사이드바에 배치된 패널 ID 배열 */
@@ -276,77 +270,6 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   panelClusters: [],
   nextModalZIndex: 1000,
 };
-
-/**
- * 패널 레이아웃 액션
- */
-export interface PanelLayoutActions {
-  /** 패널을 다른 사이드로 이동 */
-  movePanel: (panelId: PanelId, from: PanelSide, to: PanelSide) => void;
-
-  /** 패널을 지정 dock에 표시 */
-  dockPanel: (panelId: PanelId, side: PanelSide) => void;
-
-  /** 패널을 workspace 위 floating frame으로 표시 */
-  floatPanel: (panelId: PanelId, position?: { x: number; y: number }) => void;
-
-  /** 패널의 자유 위치 또는 panel-relative snap 위치를 저장 */
-  placePanel: (panelId: PanelId, position: { x: number; y: number }) => void;
-
-  /** 패널을 다른 패널 기준 column/stack에 삽입 */
-  snapPanel: (panelId: PanelId, placement: PanelSnapPlacement) => void;
-
-  /** 현재 workspace 크기에 맞춰 모든 panel cluster를 재배치 */
-  fitPanelClusters: () => void;
-
-  /** dock/floating 여부와 무관하게 패널 숨김 */
-  hidePanel: (panelId: PanelId) => void;
-
-  /** 패널별 사용자 조정 크기 저장 */
-  updatePanelSize: (panelId: PanelId, size: PanelSize) => void;
-
-  /** 패널 토글 (활성화/비활성화) - Multi toggle 지원 */
-  togglePanel: (side: PanelSide, panelId: PanelId) => void;
-
-  /** 레이아웃 초기화 */
-  resetLayout: () => void;
-
-  /** 레이아웃 전체 설정 */
-  setLayout: (layout: PanelLayoutState) => void;
-
-  /** 하단 패널 토글 */
-  toggleBottomPanel: (panelId: PanelId) => void;
-
-  /** 하단 패널 높이 설정 */
-  setBottomHeight: (height: number) => void;
-
-  /** 하단 패널 닫기 */
-  closeBottomPanel: () => void;
-
-  /** 패널을 Modal로 열기 */
-  openPanelAsModal: (panelId: PanelId) => void;
-
-  /** Modal 패널 닫기 */
-  closeModalPanel: (panelId: PanelId) => void;
-
-  /** Modal 패널 포커스 (z-index 업데이트) */
-  focusModalPanel: (panelId: PanelId) => void;
-
-  /** Modal 패널 위치 업데이트 */
-  updateModalPanelPosition: (
-    panelId: PanelId,
-    position: { x: number; y: number },
-  ) => void;
-
-  /** Modal 패널 크기 업데이트 */
-  updateModalPanelSize: (
-    panelId: PanelId,
-    size: { width: number; height: number },
-  ) => void;
-
-  /** 모든 Modal 패널 닫기 */
-  closeAllModalPanels: () => void;
-}
 
 /**
  * 패널 검색 필터

@@ -163,7 +163,7 @@ export function CommandPalette({
   }, [isOpen]);
 
   // 패널 토글 액션을 위한 훅
-  const { togglePanel, toggleBottomPanel } = usePanelLayout();
+  const { togglePanel } = usePanelLayout();
 
   // 명령 실행
   const executeCommand = useCallback(
@@ -174,37 +174,37 @@ export function CommandPalette({
       // 패널 토글 명령 처리
       //
       // 종전에 여기 `openSettingsModal` / `openHistoryModal` / `openAIModal`
-      // 세 case 가 `openPanelAsModal(...)` 을 불렀는데, 그 id 들은
+      // 세 case 가 legacy modal helper를 불렀는데, 그 id 들은
       // `SHORTCUT_DEFINITIONS` 에 **존재하지 않아** 한 번도 실행되지 않는
       // 죽은 분기였다 (실제 정의는 `openSettings` 하나이고 아래에서 패널
       // 토글로 처리된다). `ShortcutId` 가 `string` 으로 무너져 있어서
       // 컴파일러가 잡지 못했다 — 2026-08-17 리터럴 union 복원으로 드러남.
       // 팔레트에서 모달로 여는 동선이 필요하면 단축키 정의부터 추가할 것
-      // (`openPanelAsModal` 자체는 BuilderHeader 설정 버튼에서 살아 있다).
+      // (Settings floating 진입은 BuilderHeader가 `floatPanel`을 직접 사용한다).
       switch (commandId) {
         case "toggleNodes":
-          togglePanel("left", "nodes");
+          togglePanel("nodes");
           return;
         case "toggleComponents":
-          togglePanel("left", "components");
+          togglePanel("components");
           return;
         case "toggleProperties":
-          togglePanel("right", "properties");
+          togglePanel("properties");
           return;
         case "toggleStyles":
-          togglePanel("right", "styles");
+          togglePanel("styles");
           return;
         case "toggleEvents":
-          togglePanel("right", "events");
+          togglePanel("events");
           return;
         case "toggleHistory":
-          togglePanel("right", "history");
+          togglePanel("history");
           return;
         case "toggleMonitor":
-          toggleBottomPanel("monitor");
+          togglePanel("monitor");
           return;
         case "openSettings":
-          togglePanel("left", "settings");
+          togglePanel("settings");
           return;
         default:
           // 다른 명령은 키보드 이벤트로 시뮬레이션
@@ -212,7 +212,7 @@ export function CommandPalette({
           break;
       }
     },
-    [handleOpenChange, togglePanel, toggleBottomPanel],
+    [handleOpenChange, togglePanel],
   );
 
   // 키보드 내비게이션

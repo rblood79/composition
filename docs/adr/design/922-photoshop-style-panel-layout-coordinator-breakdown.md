@@ -598,6 +598,20 @@ interface PanelLayoutV1BackupEnvelope {
 - G0, G1, G2a, G2b, G3~G5 evidence와 rollback rehearsal이 모두 통과하면 ADR 상태 승격
   후보가 된다.
 
+#### 실행 기록 — G6 PASS / Phase 6 final cutover (2026-08-18)
+
+- [Phase 6 legacy removal/final cutover evidence](./922-phase-6-legacy-removal-evidence.md)에
+  state/action/host/runtime call graph, rollback rehearsal, populated browser smoke를 기록했다.
+- production Zustand에서 v1 `panelLayout` projection과 compatibility action alias를 제거하고
+  `togglePanel(panelId)`, `floatPanel`, `focusFloatingPanel` 중심의 v2 command surface로
+  축소했다. v1 parser, exact backup, emergency projection은 read-only boundary로 유지한다.
+- unused `PanelArea`/`BottomPanelArea`/`PanelContainer`/`ModalPanelContainer`, v1
+  `panelStackLayout`, `panelLayoutRuntime`과 전용 CSS/export/test를 제거했다.
+- rail order가 빈 side는 rail DOM을 생성하지 않는다. default bottom Monitor와 이동된
+  Monitor fixture를 함께 검증해 bottom 기능을 보존했다.
+- G0~G5 evidence, 3 files/32 rollback tests, 800×600 constrained viewport, Settings floating,
+  Monitor toggle/refresh를 재검증해 G6를 통과했다.
+
 ## 6. 변경 파일 경계
 
 | 영역            | 예상 파일                                                                                                                     | 변경 원칙                                                                            |
@@ -752,7 +766,7 @@ interface PanelLayoutV1BackupEnvelope {
 - [x] hidden panel의 고비용 work가 중단되고 local state는 보존된다.
 - [x] splitter pointer/keyboard/screen reader 계약이 검증됐다.
 - [x] `.panel-rail-measure-*`와 `panelLayoutRuntime` production 소비가 제거됐다.
-- [ ] `useActiveScope`/DataTable activation이 v2로 전환되고 기존 side/mode compatibility
+- [x] `useActiveScope`/DataTable activation이 v2로 전환되고 기존 side/mode compatibility
       state와 unused legacy host/export가 최종 phase에서 제거됐다.
-- [ ] focused tests, type-check, preflight, populated browser smoke가 통과했다.
-- [ ] 사용자 가시 cutover가 `docs/CHANGELOG.md`에 기록됐다.
+- [x] focused tests, type-check, preflight, populated browser smoke가 통과했다.
+- [x] 사용자 가시 cutover가 `docs/CHANGELOG.md`에 기록됐다.

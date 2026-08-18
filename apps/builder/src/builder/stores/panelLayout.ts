@@ -1,5 +1,4 @@
 import type { StateCreator } from "zustand";
-import type { PanelLayoutState } from "../panels/core/types";
 import { DEFAULT_PANEL_LAYOUT } from "../panels/core/types";
 import {
   migratePanelWorkspaceStorageToV2,
@@ -11,10 +10,7 @@ import {
   type PanelWorkspaceLayoutV2,
   type PanelWorkspaceRegistryEntry,
 } from "../layout/panelWorkspaceLayoutV2";
-import {
-  migratePanelLayoutV1ToV2,
-  projectV2ToLegacyView,
-} from "../layout/panelWorkspaceLayoutV2Migration";
+import { migratePanelLayoutV1ToV2 } from "../layout/panelWorkspaceLayoutV2Migration";
 
 export type PanelWorkspaceHydrationStatus =
   | "pending"
@@ -22,8 +18,6 @@ export type PanelWorkspaceHydrationStatus =
   | "memory-fallback";
 
 export interface PanelLayoutSliceState {
-  /** Phase 6 제거 전까지 unused legacy host가 읽는 read-only projection. */
-  panelLayout: PanelLayoutState;
   /** ADR-922 production panel placement/visibility SSOT. */
   panelWorkspaceLayout: PanelWorkspaceLayoutV2 | null;
   panelWorkspaceHydrationStatus: PanelWorkspaceHydrationStatus;
@@ -35,10 +29,6 @@ export interface PanelLayoutSliceActions {
     registry: readonly PanelWorkspaceRegistryEntry[],
   ) => boolean;
   setPanelWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
-  setPanelLayout: (layout: PanelLayoutState) => void;
-  resetPanelLayout: () => void;
-  savePanelLayoutToStorage: () => void;
-  loadPanelLayoutFromStorage: () => void;
 }
 
 export type PanelLayoutSlice = PanelLayoutSliceState & PanelLayoutSliceActions;
@@ -60,13 +50,6 @@ function createDefaultV2(
   );
   const { migrationSource: _migrationSource, ...v2Born } = migrated;
   return v2Born;
-}
-
-function projectLegacy(
-  layout: PanelWorkspaceLayoutV2,
-  registry: readonly PanelWorkspaceRegistryEntry[],
-): PanelLayoutState {
-  return projectV2ToLegacyView(layout, registry, DEFAULT_PANEL_LAYOUT).layout;
 }
 
 function scheduleV2Write(layout: PanelWorkspaceLayoutV2): void {
@@ -133,7 +116,6 @@ export const createPanelLayoutSlice: StateCreator<
   [],
   PanelLayoutSlice
 > = (set, get) => ({
-  panelLayout: DEFAULT_PANEL_LAYOUT,
   panelWorkspaceLayout: null,
   panelWorkspaceHydrationStatus: "pending",
   panelWorkspaceHydrationError: null,
@@ -144,10 +126,7 @@ export const createPanelLayoutSlice: StateCreator<
     if (current) {
       const normalized = normalizePanelWorkspaceLayoutV2(current, registry);
       if (!normalized.ok) return false;
-      set({
-        panelWorkspaceLayout: normalized.value,
-        panelLayout: projectLegacy(normalized.value, registry),
-      });
+      set({ panelWorkspaceLayout: normalized.value });
       return true;
     }
 
@@ -158,7 +137,6 @@ export const createPanelLayoutSlice: StateCreator<
       const layout = createDefaultV2(registry);
       set({
         panelWorkspaceLayout: layout,
-        panelLayout: projectLegacy(layout, registry),
         panelWorkspaceHydrationStatus: "memory-fallback",
         panelWorkspaceHydrationError:
           error instanceof Error ? error.message : String(error),
@@ -170,7 +148,6 @@ export const createPanelLayoutSlice: StateCreator<
       const persisted = writeV2Now(layout);
       set({
         panelWorkspaceLayout: layout,
-        panelLayout: projectLegacy(layout, registry),
         panelWorkspaceHydrationStatus: persisted ? "ready" : "memory-fallback",
         panelWorkspaceHydrationError: persisted
           ? null
@@ -198,7 +175,6 @@ export const createPanelLayoutSlice: StateCreator<
     if (migration.status !== "failed") {
       set({
         panelWorkspaceLayout: migration.layout,
-        panelLayout: projectLegacy(migration.layout, registry),
         panelWorkspaceHydrationStatus: "ready",
         panelWorkspaceHydrationError: null,
       });
@@ -208,7 +184,6 @@ export const createPanelLayoutSlice: StateCreator<
     const fallback = fallbackLayout(registry);
     set({
       panelWorkspaceLayout: fallback.layout,
-      panelLayout: projectLegacy(fallback.layout, registry),
       panelWorkspaceHydrationStatus: "memory-fallback",
       panelWorkspaceHydrationError: `${migration.stage}: ${migration.error}; ${fallback.error}`,
     });
@@ -219,59 +194,10 @@ export const createPanelLayoutSlice: StateCreator<
     if (!activeRegistry) return false;
     const normalized = normalizePanelWorkspaceLayoutV2(layout, activeRegistry);
     if (!normalized.ok) return false;
-    set({
-      panelWorkspaceLayout: normalized.value,
-      panelLayout: projectLegacy(normalized.value, activeRegistry),
-    });
+    set({ panelWorkspaceLayout: normalized.value });
     if (get().panelWorkspaceHydrationStatus === "ready") {
       scheduleV2Write(normalized.value);
     }
     return true;
-  },
-
-  setPanelLayout: (legacyLayout) => {
-    if (!activeRegistry) {
-      set({ panelLayout: legacyLayout });
-      return;
-    }
-    const currentMigrationId =
-      get().panelWorkspaceLayout?.migrationSource?.migrationId ?? migrationId();
-    const next = migratePanelLayoutV1ToV2(
-      legacyLayout,
-      activeRegistry,
-      currentMigrationId,
-    );
-    get().setPanelWorkspaceLayout(next);
-  },
-
-  resetPanelLayout: () => {
-    if (!activeRegistry) {
-      set({ panelLayout: DEFAULT_PANEL_LAYOUT });
-      return;
-    }
-    const layout = createDefaultV2(activeRegistry);
-    set({
-      panelWorkspaceLayout: layout,
-      panelLayout: projectLegacy(layout, activeRegistry),
-    });
-    if (get().panelWorkspaceHydrationStatus === "ready")
-      scheduleV2Write(layout);
-  },
-
-  savePanelLayoutToStorage: () => {
-    const layout = get().panelWorkspaceLayout;
-    if (layout && get().panelWorkspaceHydrationStatus === "ready") {
-      writeV2Now(layout);
-    }
-  },
-
-  loadPanelLayoutFromStorage: () => {
-    if (!activeRegistry) return;
-    set({
-      panelWorkspaceLayout: null,
-      panelWorkspaceHydrationStatus: "pending",
-      panelWorkspaceHydrationError: null,
-    });
-    get().initializePanelWorkspaceLayout(activeRegistry);
   },
 });

@@ -1,23 +1,12 @@
 import { useCallback } from "react";
 import { useStore } from "../stores";
-import type {
-  PanelFrameGeometry,
-  PanelId,
-  PanelLayoutState,
-  PanelSide,
-  PanelSize,
-  PanelSnapPlacement,
-} from "../panels/core/types";
+import type { PanelFrameGeometry, PanelId } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import type { UsePanelLayoutReturn } from "../layout/types";
 import {
   detachPanelToFloatingCluster,
   focusPanelWorkspaceFloatingCluster,
-  hidePanelWorkspaceFloatingClusters,
-  movePanelWorkspacePanelToAnchor,
   setPanelWorkspacePanelVisibility,
-  snapPanelWorkspacePanel,
-  updatePanelWorkspacePanelSize,
   type PanelWorkspaceInteractionResult,
 } from "../layout/panelWorkspaceLayoutInteraction";
 import {
@@ -68,7 +57,6 @@ function preferredGeometry(
 }
 
 export function usePanelLayout(): UsePanelLayoutReturn {
-  const layout = useStore((state) => state.panelLayout);
   const workspaceLayout = useStore((state) => state.panelWorkspaceLayout);
   const initializePanelWorkspaceLayout = useStore(
     (state) => state.initializePanelWorkspaceLayout,
@@ -76,7 +64,6 @@ export function usePanelLayout(): UsePanelLayoutReturn {
   const setPanelWorkspaceLayout = useStore(
     (state) => state.setPanelWorkspaceLayout,
   );
-  const setPanelLayout = useStore((state) => state.setPanelLayout);
 
   const commit = useCallback(
     (result: PanelWorkspaceResult<PanelWorkspaceInteractionResult>): boolean =>
@@ -95,41 +82,8 @@ export function usePanelLayout(): UsePanelLayoutReturn {
     [setPanelWorkspaceLayout],
   );
 
-  const movePanel = useCallback(
-    (panelId: PanelId, from: PanelSide, to: PanelSide) => {
-      if (from === to) return;
-      const current = currentWorkspaceLayout();
-      if (!current || !current.railOrder[from].includes(panelId)) return;
-      commit(
-        movePanelWorkspacePanelToAnchor(
-          current,
-          registryEntries(),
-          panelId,
-          to,
-        ),
-      );
-    },
-    [commit],
-  );
-
-  const dockPanel = useCallback(
-    (panelId: PanelId, side: PanelSide) => {
-      const current = currentWorkspaceLayout();
-      if (!current) return;
-      commit(
-        movePanelWorkspacePanelToAnchor(
-          current,
-          registryEntries(),
-          panelId,
-          side,
-        ),
-      );
-    },
-    [commit],
-  );
-
   const togglePanel = useCallback(
-    (_side: PanelSide, panelId: PanelId) => {
+    (panelId: PanelId) => {
       const current = currentWorkspaceLayout();
       if (!current) return;
       commit(
@@ -143,68 +97,6 @@ export function usePanelLayout(): UsePanelLayoutReturn {
     },
     [commit],
   );
-
-  const resetLayout = useCallback(() => {
-    useStore.getState().resetPanelLayout();
-  }, []);
-
-  const setLayout = useCallback(
-    (nextLayout: PanelLayoutState) => setPanelLayout(nextLayout),
-    [setPanelLayout],
-  );
-
-  const toggleBottomPanel = useCallback(
-    (panelId: PanelId) => togglePanel("bottom", panelId),
-    [togglePanel],
-  );
-
-  const updatePanelSize = useCallback(
-    (panelId: PanelId, size: PanelSize) => {
-      const current = currentWorkspaceLayout();
-      if (!current) return;
-      commit(
-        updatePanelWorkspacePanelSize(
-          current,
-          registryEntries(),
-          panelId,
-          size,
-        ),
-      );
-    },
-    [commit],
-  );
-
-  const setBottomHeight = useCallback(
-    (height: number) => {
-      const current = currentWorkspaceLayout();
-      if (!current) return;
-      const panelId =
-        current.railOrder.bottom.find(
-          (candidate) => current.visibility[candidate] === true,
-        ) ?? current.railOrder.bottom[0];
-      if (!panelId) return;
-      const geometry = preferredGeometry(current, panelId);
-      if (!geometry) return;
-      updatePanelSize(panelId, { width: geometry.width, height });
-    },
-    [updatePanelSize],
-  );
-
-  const closeBottomPanel = useCallback(() => {
-    const current = currentWorkspaceLayout();
-    if (!current) return;
-    let next = current;
-    for (const panelId of current.railOrder.bottom) {
-      const result = setPanelWorkspacePanelVisibility(
-        next,
-        registryEntries(),
-        panelId,
-        false,
-      );
-      if (result.ok) next = result.value.layout;
-    }
-    setPanelWorkspaceLayout(next);
-  }, [setPanelWorkspaceLayout]);
 
   const floatPanel = useCallback(
     (panelId: PanelId, position?: { x: number; y: number }) => {
@@ -224,46 +116,7 @@ export function usePanelLayout(): UsePanelLayoutReturn {
     [commit],
   );
 
-  const placePanel = useCallback(
-    (panelId: PanelId, position: { x: number; y: number }) =>
-      floatPanel(panelId, position),
-    [floatPanel],
-  );
-
-  const snapPanel = useCallback(
-    (panelId: PanelId, placement: PanelSnapPlacement) => {
-      const current = currentWorkspaceLayout();
-      if (!current) return;
-      commit(
-        snapPanelWorkspacePanel(
-          current,
-          registryEntries(),
-          panelId,
-          placement.targetPanelId,
-          placement.edge,
-        ),
-      );
-    },
-    [commit],
-  );
-
-  const hidePanel = useCallback(
-    (panelId: PanelId) => {
-      const current = currentWorkspaceLayout();
-      if (!current) return;
-      commit(
-        setPanelWorkspacePanelVisibility(
-          current,
-          registryEntries(),
-          panelId,
-          false,
-        ),
-      );
-    },
-    [commit],
-  );
-
-  const focusModalPanel = useCallback(
+  const focusFloatingPanel = useCallback(
     (panelId: PanelId) => {
       const current = currentWorkspaceLayout();
       if (!current) return;
@@ -285,44 +138,12 @@ export function usePanelLayout(): UsePanelLayoutReturn {
     [commit],
   );
 
-  const updateModalPanelPosition = useCallback(
-    (panelId: PanelId, position: { x: number; y: number }) =>
-      floatPanel(panelId, position),
-    [floatPanel],
-  );
-
-  const closeAllModalPanels = useCallback(() => {
-    const current = currentWorkspaceLayout();
-    if (!current) return;
-    commit(hidePanelWorkspaceFloatingClusters(current, registryEntries()));
-  }, [commit]);
-
   return {
-    layout,
     workspaceLayout,
-    isLoading: workspaceLayout === null,
-    isLoaded: workspaceLayout !== null,
     initializeWorkspaceLayout,
     setWorkspaceLayout,
-    movePanel,
-    dockPanel,
-    floatPanel,
-    placePanel,
-    snapPanel,
-    fitPanelClusters: () => undefined,
-    hidePanel,
-    updatePanelSize,
     togglePanel,
-    resetLayout,
-    setLayout,
-    toggleBottomPanel,
-    setBottomHeight,
-    closeBottomPanel,
-    openPanelAsModal: floatPanel,
-    closeModalPanel: hidePanel,
-    focusModalPanel,
-    updateModalPanelPosition,
-    updateModalPanelSize: updatePanelSize,
-    closeAllModalPanels,
+    floatPanel,
+    focusFloatingPanel,
   };
 }

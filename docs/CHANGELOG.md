@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-922 Implemented — Photoshop식 panel workspace 최종 전환] - 2026-08-18
+
+### Architecture
+
+- **Phase 0~6과 G0~G6를 완료하고 panel layout runtime을 v2 coordinator 하나로 통일**:
+  - Zustand의 v1 `panelLayout` projection과 set/reset/save/load 및 bottom/modal compatibility action을 제거했다. panel UI는 side 인자 없는 visibility toggle, floating command, coordinator snapshot만 사용한다
+  - unused `PanelArea`/`BottomPanelArea`/`PanelContainer`/`ModalPanelContainer`, v1 `panelStackLayout`, DOM inset `panelLayoutRuntime`과 전용 CSS/export/test 약 2,800줄을 제거했다
+  - rail order가 비어 있는 side는 `<nav><ul /></nav>`를 만들지 않는다. default bottom Monitor fixture와 이동된 Monitor fixture를 함께 유지해 bottom 기능 삭제 없이 빈 rail DOM만 제거했다
+  - v1 parser와 prepared/committed exact backup, emergency read-only projection은 rollback compatibility window가 끝날 때까지 유지한다. migrated-v1/v2-born failure·refresh rehearsal 32건을 다시 통과했다
+  - populated Builder에서 Settings floating, Monitor toggle+refresh, legacy DOM 0, 800×600 main `704×504`, 활성 panel viewport overflow 0을 확인하고 사용자 배치와 viewport를 원상복구했다
+
 ## [ADR-922 G4·G5 hidden lifecycle과 panel splitter 접근성] - 2026-08-18
 
 ### Architecture

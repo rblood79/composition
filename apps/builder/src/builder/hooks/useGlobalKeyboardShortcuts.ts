@@ -107,7 +107,7 @@ export function useGlobalKeyboardShortcuts() {
   // ----------------------------------------
 
   const activeScope = useActiveScope();
-  const { toggleBottomPanel } = usePanelLayout();
+  const { togglePanel } = usePanelLayout();
 
   // ----------------------------------------
   // Undo/Redo Handlers
@@ -159,8 +159,8 @@ export function useGlobalKeyboardShortcuts() {
   // ----------------------------------------
 
   const handleToggleMonitor = useCallback(() => {
-    toggleBottomPanel("monitor");
-  }, [toggleBottomPanel]);
+    togglePanel("monitor");
+  }, [togglePanel]);
 
   /** ADR-181 — 눈금자 토글 (설정 패널 스위치와 같은 상태) */
   const handleToggleRulers = useCallback(() => {

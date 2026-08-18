@@ -8,8 +8,8 @@
  * 구 패널의 legacy projection 비의존.
  *
  * 구조는 ADR-163 패널 표준을 따른다: `.panel > PanelHeader + .panel-contents >
- * Section > .section-content`. 비활성 gating 은 PanelContainer 의
- * `<Activity mode="hidden">` 담당 (ADR-155).
+ * Section > .section-content`. 비활성 gating 은 PanelWorkspace 의
+ * `<Activity mode="hidden">` 담당 (ADR-922).
  */
 import { useCallback, useState } from "react";
 import { SquareMousePointer } from "lucide-react";

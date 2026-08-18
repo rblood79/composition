@@ -2,18 +2,19 @@
 
 ## Status
 
-Accepted — 2026-08-18
+Implemented — 2026-08-18
 
-진행: Phase 0 / G0 PASS — [panel workspace baseline](./design/922-phase-0-panel-workspace-baseline.md),
-Phase 1 / G1 PASS — [v2 model/migration evidence](./design/922-phase-1-model-migration-evidence.md),
-Phase 2 / G2a PASS — [layout coordinator shadow evidence](./design/922-phase-2-layout-coordinator-evidence.md),
-Phase 3 / G2b PASS — [real-frame production cutover evidence](./design/922-phase-3-real-frame-cutover-evidence.md),
-Phase 4 / G3 PASS — [workspace occupancy/Canvas-local evidence](./design/922-phase-4-workspace-occupancy-evidence.md),
-Phase 5 / G4·G5 PASS — [visibility/accessibility evidence](./design/922-phase-5-visibility-accessibility-evidence.md).
-Production frame, interaction, live store와 primary persisted state는 v2로 전환됐다. 실제
-workspace occupancy와 Canvas consumer도 공통 main slot으로 전환됐고, hidden panel lifecycle과
-shared splitter 접근성 계약도 통과했다. legacy host/state 제거와 최종 rollback rehearsal은
-Phase 6 범위로 남아 있다.
+진행: Phase 0 / G0 PASS — [panel workspace baseline](../design/922-phase-0-panel-workspace-baseline.md),
+Phase 1 / G1 PASS — [v2 model/migration evidence](../design/922-phase-1-model-migration-evidence.md),
+Phase 2 / G2a PASS — [layout coordinator shadow evidence](../design/922-phase-2-layout-coordinator-evidence.md),
+Phase 3 / G2b PASS — [real-frame production cutover evidence](../design/922-phase-3-real-frame-cutover-evidence.md),
+Phase 4 / G3 PASS — [workspace occupancy/Canvas-local evidence](../design/922-phase-4-workspace-occupancy-evidence.md),
+Phase 5 / G4·G5 PASS — [visibility/accessibility evidence](../design/922-phase-5-visibility-accessibility-evidence.md),
+Phase 6 / G6 PASS — [legacy removal/final cutover evidence](../design/922-phase-6-legacy-removal-evidence.md).
+Production frame, interaction, live store와 primary persisted state는 v2 coordinator로 전환됐다.
+workspace occupancy, Canvas-local consumer, hidden lifecycle, splitter 접근성, legacy host/state
+제거와 rollback rehearsal까지 완료했다. v1 parser와 durable backup은 정의된 compatibility
+window 동안 read-only boundary로 유지한다.
 
 ## Context
 
@@ -63,7 +64,7 @@ panel frame을 안정적인 위치에 유지하면 toggle 후 local state를 보
 
 ### 선행 ADR과의 관계
 
-- ADR-922는 [ADR-035](completed/035-workspace-canvas-refactor.md) 전체의 응용 ADR이
+- ADR-922는 [ADR-035](035-workspace-canvas-refactor.md) 전체의 응용 ADR이
   아니다.
 - ADR-035 Phase 2의 `ViewportController` SSOT와 scrollbar direct update 계약은
   유지한다.
@@ -280,7 +281,7 @@ architecture로 통일한다.
   panel-relative snap, detach를 표현하려면 별도 overlay geometry가 필요해 다시 hybrid가
   된다.
 
-> 구현 상세: [922-photoshop-style-panel-layout-coordinator-breakdown.md](design/922-photoshop-style-panel-layout-coordinator-breakdown.md)
+> 구현 상세: [922-photoshop-style-panel-layout-coordinator-breakdown.md](../design/922-photoshop-style-panel-layout-coordinator-breakdown.md)
 
 ## Risks
 
