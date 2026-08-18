@@ -41,24 +41,11 @@ composition/
 
 ## SSOT 체인 정본 — 3-Domain 분할 (CRITICAL)
 
-composition은 3개 독립 domain으로 구성된다. 모든 코드/문서 작업은 이 분할을 준수:
+composition 은 3개 독립 domain 으로 구성된다: **D1 DOM/접근성** (Adobe RAC 절대 권위 — SSOT 관여 금지) / **D2 Props/API** (RSP 참조 + custom — 타입만) / **D3 시각 스타일** (catalog `COMPONENT_RULES_TABLE` + theme/tokens SSOT — 잔존 spec 3개 Frame/Group/Slot 예외, ADR-142 로 spec 파일에서 전환됨, ADR-036 은 Superseded).
 
-| Domain | 권위 | 내용 | SSOT 관여 |
-| --- | --- | --- | --- |
-| **D1. DOM/접근성** | Adobe RAC (절대) | HTML 구조/ARIA/키보드/포커스 | ❌ 금지 |
-| **D2. Props/API** | RSP 참조 + custom | 사용자 편의 props | ✅ 타입만 |
-| **D3. 시각 스타일** | catalog(`COMPONENT_RULES_TABLE`) + theme/tokens (SSOT) | 색상/크기/폰트/레이아웃/형태 | ✅ 잔존 spec 3개(Frame/Group/Slot) 한정, 그 외 catalog |
+**원칙**: Builder(Skia)와 Preview/Publish(DOM+CSS)는 D3 의 **대등 symmetric consumer** — 한쪽이 기준 아님, 대칭 = 시각 결과의 동일성 (구현 방법 자유). RAC 선택 이유 = unstyled primitive 의 스타일 자유도.
 
-**원칙**:
-- **Builder(Skia)와 Preview/Publish(DOM+CSS)는 D3의 대등 symmetric consumer**. 한쪽이 기준 아님
-- 대칭 = **시각 결과의 동일성** (구현 방법 자유)
-- RAC 선택 이유 = 스타일 자유도 (unstyled primitive) — 디자인은 D3에서 composition이 결정
-- RSP props는 RAC + custom 구현으로 달성 가능한 범위에서 선별 채택
-
-**2026-07-08 갱신**: D3 SSOT는 [ADR-142](docs/adr/completed/142-starter-spec-component-system-cutover.md)(Implemented 2026-06-02)로 컴포넌트당 spec 파일에서 catalog + theme/tokens로 전환됨. [ADR-036](docs/adr/completed/036-spec-first-single-source.md)은 Superseded by ADR-142.
-
-**정본 규칙**: [.claude/rules/ssot-hierarchy.md](.claude/rules/ssot-hierarchy.md) (3-domain 정의/용어 사전/경계 판정/집행 메커니즘)
-**공식 결정 기록**: [ADR-063](docs/adr/completed/063-ssot-chain-charter.md) (charter), [ADR-142](docs/adr/completed/142-starter-spec-component-system-cutover.md) (D3 SSOT 재정의)
+**정본 규칙**: [.claude/rules/ssot-hierarchy.md](.claude/rules/ssot-hierarchy.md) (상시 로드 — 3-domain 정의/용어 사전/경계 판정/집행 메커니즘). 공식 결정: [ADR-063](docs/adr/completed/063-ssot-chain-charter.md) (charter), [ADR-142](docs/adr/completed/142-starter-spec-component-system-cutover.md) (D3 SSOT 재정의).
 
 ## 핵심 아키텍처
 
@@ -187,18 +174,7 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 
 ### 사용 통계 자동화
 
-| 스크립트                        | 호출 시점                          | 역할                                                          |
-| ------------------------------- | ---------------------------------- | ------------------------------------------------------------- |
-| `daily-stats-snapshot.sh`       | SessionStart (백그라운드, 자동)    | 하루 1회 — 세션 transcript grep 집계 → `stats/daily-log.jsonl` 1 entry |
-| `update-index.sh`               | `weekly-report.sh` 종료 시 (연쇄)  | `skills/INDEX.md` 하단 사용 빈도 블록 갱신 — **자동 hook 미등록, 아래 수동 실행에만 의존** |
-| `weekly-report.sh [days]`       | **수동 실행 전용** (hook/cron 미등록) | 주간 리포트 + INDEX.md 갱신. 실행 안 하면 usage-stats 블록이 정체됨 — 주기적 수동 실행 권장 |
-
-> **참고**: `daily-log.jsonl` (일별 스냅샷) 만 SessionStart 로 자동 갱신된다. `INDEX.md` 의 usage-stats 블록은 `weekly-report.sh` / `update-index.sh` 를 **수동 실행**할 때만 갱신되므로, 블록 헤더의 "갱신: YYYY-MM-DD" 가 오래됐으면 `.claude/hooks/update-index.sh 30` 를 직접 실행한다.
-
-로그 파일:
-- `stats/daily-log.jsonl` — 일별 1 entry (`date/sessions/turns/skills/agents`). skill/agent 집계는 현존 세션 transcript(`~/.claude/projects/`) grep 기반 — transcript 정리 시 수치 감소 가능 (단조 누적 아님)
-- `stats/archive/agents.deprecated-2026-04-30.jsonl` — 구 SubagentStop hook 기록 (2026-04-16~04-30, 보존). SubagentStop hook 은 현재 미등록 → agent 통계는 daily-log.jsonl 로 일원화
-- `stats/archive/agents.legacy.jsonl` — 더 구 스키마 (참고용 보존)
+`daily-stats-snapshot.sh` (SessionStart 백그라운드, 일 1회 → `stats/daily-log.jsonl`) 만 자동. `skills/INDEX.md` 의 usage-stats 블록은 `weekly-report.sh` / `update-index.sh` **수동 실행** 시에만 갱신 — 블록 헤더의 "갱신: YYYY-MM-DD" 가 오래됐으면 `.claude/hooks/update-index.sh 30` 직접 실행. 집계는 현존 세션 transcript grep 기반이라 단조 누적 아님. 스키마/활용 상세: `CLAUDE.local.md` §사용 통계
 
 ## 참조 체계
 
@@ -227,22 +203,9 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 
 ## Git Push 정책 (CRITICAL — 로컬 작업 환경 절대 정책)
 
-> **2026-04-27 강화**. 사용자 자동화 흐름 차단 방지가 본질 — 자세한 배경/위반 이력은 `.claude/rules/git-workflow.md` 참조.
+**web PR 자체 금지. 예외 없음.** default 흐름 = `git add -A` → `git commit` → `git push origin main`. `gh pr create` / branch 분기 push / PR URL 출력은 **사용자 명시 요청 시에만**. "안전 차원에서 PR" / "CRITICAL 이라 PR" / "worktree 라 PR 자연" — 전부 틀림. worktree 통합도 일반 `git merge` + main push 로 충분. main push 차단 시 자동 branch 우회 절대 금지 — 사용자에게 직접 실행 요청 (`! git push origin main`).
 
-**web PR 자체 금지. 예외 없음.**
-
-- ✅ **default 흐름**: `git add -A` → `git commit` → `git push origin main`
-- ❌ `gh pr create` / web UI PR — 절대 금지
-- ❌ `git checkout -b feature/...` 분기 후 push — 사용자 명시 요청 시에만
-- ❌ `git push -u origin <branch>` — 사용자 명시 요청 시에만
-- ❌ PR URL 출력 (`https://github.com/.../pull/new/...`) — 금지
-- ❌ "안전 차원에서 PR" / "CRITICAL 이라 PR" / "worktree 라 PR 자연" — 모두 **틀림**
-
-**worktree 작업도 PR 불필요**: branch 분기 + commit 까지가 격리 가치, main 통합은 일반 `git merge` + `git push origin main` 으로 충분.
-
-**main push 차단 시**: 자동 branch 우회 절대 금지. 사용자에게 직접 실행 요청 (`! git push origin main`) 또는 권한 부여 안내.
-
-상세 정책 / 위반 이력 / worktree 통합 절차: `.claude/rules/git-workflow.md`
+상세 정책 / 위반 이력 (8회+) / worktree 통합 절차 정본: `.claude/rules/git-workflow.md` (상시 로드)
 
 ## 렌더링 버그 수정 원칙
 
