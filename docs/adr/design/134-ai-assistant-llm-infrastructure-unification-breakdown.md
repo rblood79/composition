@@ -1,48 +1,61 @@
 # ADR-134 Design Breakdown — AI Assistant 차세대 아키텍처
 
-> 본문: [134-ai-assistant-llm-infrastructure-unification.md](../134-ai-assistant-llm-infrastructure-unification.md). plan-only land 상태 — Phase 0-9 실행 작업 + 코드 변경은 사용자 plan review 후 별 step.
+> 본문: [134-ai-assistant-llm-infrastructure-unification.md](../134-ai-assistant-llm-infrastructure-unification.md). 설계 문서 단계 — Phase 0-9 실행 작업 + 코드 변경은 사용자 plan review 후 별도 단계.
+>
+> **2026-08-18 노선 개정 반영**: 본문 §인프라 노선 재결정 — 노선 α (자체 로컬 LLM 내장) 기각 → 노선 β (역할별 멀티 프로바이더 BYOK + 외부 에이전트/MCP 준비). Phase 1/2/5/7/9 산출물이 재편됐다. 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) + [HOLAOS_ANALYSIS.md](../../explanation/research/HOLAOS_ANALYSIS.md).
 
-## 0. framing checkpoint 4 질문 lock-in
+## 0. 전제 점검 4 질문 lock-in
 
-본문 §framing checkpoint 4 질문 lock-in 참조. base/응용 분류 (ADR-054 base + ADR-011 응용) + schema 직교성 (Provider ↔ 도구/UI) + baseline reverse 검증 + 단일 통합 (사용자 explicit confirm) 통과.
+본문 §전제 점검 4 질문 lock-in 참조. base/응용 분류 (ADR-054 base + ADR-011 응용) + schema 직교성 (Provider ↔ 도구/UI) + 선행 전제 reverse 검증 + 단일 통합 (사용자 explicit confirm) 통과. 2026-08-18 노선 개정은 재개 조건 (a) 사용자 재제기 — 통합 형태 결정은 유지, 인프라 노선만 재결정.
 
-## 1. scope 경계 — ADR-134 vs ADR-136+ 응용 분리
+## 1. scope 경계 — ADR-134 vs 후속 응용 분리
 
 ### ADR-134 scope 안 (본 ADR)
 
-- **base 영역** (ADR-054 흡수): `LLMProvider` 추상화 / Ollama / node-llama-cpp / Anthropic / OpenAI-compatible 4-way / 모델 라우팅 / 폐쇄망 / Electron Utility Process
-- **응용 영역** (ADR-011 흡수): 7개 AI 도구 canonical 정합 / 컴포넌트 카탈로그 (RAC/RSP) / AI 설계 지능 (Plan→Execute→Verify) / AIPanel UX 1년차 신입 baseline / 자기 수정 / 모델 선택 UX
+- **base 영역** (ADR-054 흡수 + 2026-08-18 재규정): `LLMProvider` 추상화 / **2-way 어댑터 (Anthropic Messages + OpenAI-compatible Chat Completions)** / **역할별 모델 슬롯 4종 (design / review / fast / vision 예약)** / secret isolation (키 보관·경유 경계) / 폐쇄망 = 로컬 OpenAI-compatible endpoint BYOK / 외부 에이전트·MCP 준비 (도구 표면 호환)
+- **응용 영역** (ADR-011 흡수): 7개 AI 도구 canonical 정합 / 컴포넌트 카탈로그 (RAC/RSP) / AI 설계 지능 (Plan→Execute→Verify + 역할 배선) / AIPanel UX 1년차 신입 baseline / 자기 수정 / 역할 슬롯 설정 UX
 - **4 격차 영역 동시 정합**: canonical document (ADR-116/122) / data_tables (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX (ADR-133)
 
-### ADR-134 scope 밖 (ADR-136+ 응용, 미발의)
+### 노선 개정으로 scope 에서 빠진 것 (2026-08-18)
 
-본 ADR Phase 9 land 후 별 ADR 분리 검토 영역:
+- ~~Ollama 전용 어댑터~~ — OpenAI-compatible endpoint 로 포섭 (전용 코드 없음)
+- ~~node-llama-cpp Electron Utility Process 내장~~ — 노선 α 기각과 함께 종료. 재개 조건: 로컬 endpoint BYOK 로 커버 불가능한 폐쇄망 요구가 실사용에서 등장
+- ~~Qwen3 / Qwen3.5 모델 고정 + 하드웨어 매트릭스 (16GB/36GB)~~ — 모델 선택은 사용자 슬롯 구성 소관
+- ~~난이도 추정 기반 로컬/온라인 자동 전환 + 복합 작업 자동 분할~~ — 역할 슬롯 라우팅 (D7 배선) 으로 대체
 
-- **AI 멀티모달 입력**: 스크린샷 / 이미지 / SVG 입력 (Pencil 의 "frame → code" 패턴) — Phase A5 ADR-011 잔여 영역
+### ADR-134 scope 밖 (후속 응용 ADR, 미작성)
+
+본 ADR 반영 후 별도 ADR 분리 검토 영역:
+
+- **AI 멀티모달 입력**: 스크린샷 / 이미지 / SVG 입력 — `vision` 역할 슬롯은 예약만 해 둔다. 구현 시 open-pencil 의 **bounded Vision inspection** (선택 영역 렌더만 전송 + 채팅 히스토리에 이미지 미보존) 을 데이터 lifecycle reference 로 채택 (분석 문서 §8 차용 후보 12)
 - **CanvasKit 스키마 변환**: AI 출력을 Skia 렌더 가능한 spec shape 로 변환 — Phase A5 ADR-011 잔여 영역
-- **AI 인스턴스/변수 도구**: ADR-110/111/112 component instance/slot 영역 AI 도구 — Phase A5 ADR-011 잔여 영역
+- **AI 인스턴스/변수 도구**: component instance/slot 영역 AI 도구 — Phase A5 ADR-011 잔여 영역
 - **AI 텍스트 생성/편집**: 리라이트 / 번역 / 톤 변경 / CTA 문구 생성 — ADR-054 §1.4 영역
 - **AI 플레이스홀더 콘텐츠**: 업종 맥락 기반 더미 데이터 자동 주입 — ADR-054 §1.4 영역
 - **AI 제안 모드**: `suggest_improvements` 도구 — ADR-054 §1.4 영역
 - **접근성 AI 감사**: `audit_accessibility` 도구 + WCAG 자동 수정 — ADR-054 Phase 7 영역
 - **브랜드 테마 자동 생성**: `generate_brand_theme` 도구 — ADR-054 §1.4 영역
-- **MCP Protocol 어댑터**: Claude Code / Codex / Gemini / OpenCode CLI 통합 — ADR-054 §1.4 영역 (Electron 의존)
-- **AI 생성 이펙트**: 생성 중 블러+파티클 시각 피드백 확장 (G.3 보존, 확장은 별 영역)
+- **기본 제공 모델 (proxy 운영)**: BYOK 온보딩 공백 (R2) 을 제품 부담 proxy 로 메울지 — 비용·운영 판정이 필요한 별도 결정
+- **prompt/tool audit log + data retention 정책**: 분석 문서 §10 acceptance criteria 잔여 — 엔터프라이즈 감사 표면은 별도 ADR
+- **AI 생성 이펙트**: 생성 중 블러+파티클 시각 피드백 확장 (G.3 보존, 확장은 별도 영역)
+
+> **주의 (2026-08-18)**: 구 scope-밖 목록의 "MCP Protocol 어댑터 (Claude Code / Codex / Gemini / OpenCode CLI 통합)" 은 **Phase 9 로 편입**됐다 — 노선 β 의 최종 단계가 외부 에이전트 통합이다.
 
 ## 2. Phase 0 — inventory baseline freeze
 
-**목적**: ADR-011 land 영역 + ADR-054 Proposed 영역 + 4 격차 측정의 baseline freeze. Phase scope inflation 1.5x gap 차단 ([adr-writing.md M4](../../../.claude/rules/adr-writing.md)).
+**목적**: ADR-011 반영 영역 + 4 격차 측정 + **Groq 표면 실측**의 baseline freeze. Phase scope inflation 1.5x gap 차단 ([adr-writing.md M4](../../../.claude/rules/adr-writing.md)).
 
 ### Phase 0 산출물
 
 - `~/.claude/plans/adr-134-baseline-inventory.md` (작업 시 신규 작성)
-- ADR-011 Phase A1~A4 land 산출물 인벤토리 (7개 도구 / AIPanel / AbortController / G.3 / IntentParser fallback / aiVisualFeedback)
-- ADR-054 Proposed 영역 인벤토리 (Provider 인터페이스 설계 / Phase 1-7 영역 / Hard Constraints 7개 / Gates G1-G6)
+- ADR-011 Phase A1~A4 반영 산출물 인벤토리 (7개 도구 / AIPanel / AbortController / G.3 / IntentParser fallback / aiVisualFeedback)
+- **Groq 표면 실측**: `groq-sdk` import 지점 / `dangerouslyAllowBrowser` / `llama-3.3-70b-versatile` 하드코딩 / API 키 취득 경로 (env/localStorage) 전수 grep
 - 4 격차 영역 measure:
-  - 격차 1 — canonical document: `useCanonicalDocumentStore` mutation API 21개 + boundary helper 12 site allowlist 분석
+  - 격차 1 — canonical document: `useCanonicalDocumentStore` mutation API + boundary helper allowlist 분석
   - 격차 2 — data_tables: `useCollectionData` 진입점 + `data_tables.runtimeData` sink 분석
-  - 격차 3 — events/actions: `SerializedEvent / SerializedAction` schema + canonical mutation API 8개 분석
+  - 격차 3 — events/actions: `SerializedEvent / SerializedAction` schema + canonical mutation API 분석
   - 격차 4 — frame: `FrameNode` schema + `isLegacyGroupForFrameMigration()` hydration migration 분석
+- **프록시 경계 사전 조사** (D10): Supabase Edge Function 호출 가능 범위 / streaming 지원 / 키 보관 위치 후보 비교 — Phase 2 확정의 입력
 - baseline freeze metric: 추정 file count + LOC + grep alias 종류 (실측 vs 추정 1.5x gap 차단)
 
 ### Phase 0 Gate
@@ -50,44 +63,44 @@
 - Phase 0 inventory baseline freeze + 사용자 confirm 후 Phase 1 진입
 - Phase scope inflation 1.5x 시 사용자 confirm (M4) 의무
 
-## 3. Phase 1 — LLM Provider 추상화 layer (G1)
+## 3. Phase 1 — LLM Provider 추상화 + 역할 슬롯 (D1, G1)
 
-**목적**: `LLMProvider` 인터페이스 + 4-way 어댑터 (Ollama / node-llama-cpp / Anthropic / OpenAI-compatible) land. `completeWithTools(tools, messages, options)` 통합 시그니처.
+**목적**: `LLMProvider` 인터페이스 + **2-way 어댑터** (Anthropic Messages / OpenAI-compatible Chat Completions) + **역할별 모델 슬롯 4종** 반영. `completeWithTools(tools, messages, options)` 통합 시그니처. open-pencil v0.14.0 역할 모델 패턴 정합 (분석 문서 §4-4).
 
 ### Phase 1 산출물
 
-- `apps/builder/src/services/ai/providers/LLMProvider.ts` — 인터페이스 정의
-- `apps/builder/src/services/ai/providers/OllamaProvider.ts` — Ollama REST API 어댑터
-- `apps/builder/src/services/ai/providers/AnthropicProvider.ts` — Anthropic Messages API 어댑터
-- `apps/builder/src/services/ai/providers/OpenAICompatibleProvider.ts` — OpenAI Chat Completions API 어댑터
-- `apps/builder/src/services/ai/providers/NodeLlamaCppProvider.ts` — Electron 의존 (Phase 9), Phase 1 에서는 stub 만
-- `apps/builder/src/services/ai/providers/ProviderRegistry.ts` — Provider 등록 + 모델 선택 + 사용자 설정 영구화
+- `apps/builder/src/services/ai/providers/LLMProvider.ts` — 인터페이스 정의 (`completeWithTools` + streaming + abort + reasoning effort 옵션)
+- `apps/builder/src/services/ai/providers/AnthropicProvider.ts` — Anthropic Messages API 어댑터 (tool use format)
+- `apps/builder/src/services/ai/providers/OpenAICompatibleProvider.ts` — OpenAI Chat Completions 어댑터 (function calling format). **Ollama / vLLM / LM Studio / 사내 gateway 는 전부 이 어댑터 + base URL 설정으로 포섭 — 전용 어댑터 금지**
+- `apps/builder/src/services/ai/providers/RoleSlotRegistry.ts` — 역할 슬롯 4종 (`design` / `review` / `fast` / `vision` 예약) 정의 + 슬롯별 {provider, baseUrl, model, credentialRef, reasoningEffort} 구성 + 사용자 설정 영구화
+- 슬롯 프리셋 템플릿 — Anthropic / OpenAI / 로컬 endpoint (Ollama) 3종 (R2 온보딩 완화)
 
 ### Phase 1 Gate G1
 
-- 4-way 어댑터 land + 사용자 모델 선택 UX (Ollama / Anthropic / OpenAI-compatible)
+- 2-way 어댑터 + 역할 슬롯 설정 모델 반영 (Ollama 는 OpenAI-compatible base URL 로 통과 확인)
 - 기존 7개 도구 시그니처 보존 + 통합 인터페이스 통과
 - type-check + vitest PASS
 
-## 4. Phase 2 — Groq 완전 제거 + Ollama Provider 1st (G2)
+## 4. Phase 2 — Groq 완전 제거 + secret isolation (D10, G2)
 
-**목적**: `groq-sdk` 완전 제거 + `dangerouslyAllowBrowser: true` 제거 + Ollama Provider 로 기존 7개 도구 전수 통과.
+**목적**: `groq-sdk` 완전 제거 + `dangerouslyAllowBrowser: true` 제거 + **키 보관·경유 경계 확정** + 대체 provider (역할 슬롯 경유) 로 기존 7개 도구 전수 통과.
 
 ### Phase 2 산출물
 
 - `groq-sdk` 패키지 제거 (`pnpm remove groq-sdk`)
-- `apps/builder/src/services/ai/GroqService.ts` 삭제
-- `apps/builder/src/services/ai/GroqAgentService.ts` → `apps/builder/src/services/ai/AgentService.ts` 로 rename (Provider 추상화 경유)
+- `apps/builder/src/services/ai/GroqAgentService.ts` → `apps/builder/src/services/ai/AgentService.ts` rename (RoleSlotRegistry → LLMProvider 경유, `llama-3.3-70b-versatile` 하드코딩 제거)
+- **원격 provider 프록시 경계 확정** (Phase 0 조사 기반): Supabase Edge Function 경유안 채택 여부 + streaming relay + 키 보관 (서버측 secret / 사용자 세션 연계). 로컬 endpoint (localhost) 는 직접 호출 허용
+- 키 저장 정책 구현: 브라우저 localStorage 평문 금지 — 명시 opt-in 경로만
 - `apps/builder/src/services/ai/IntentParser.ts` 보존 (최후 fallback) or 제거 검토
-- `apps/builder/src/services/ai/systemPrompt.ts` Ollama 모델 정합 갱신 (Qwen3 / Llama 3 prompt format)
+- `apps/builder/src/services/ai/systemPrompt.ts` provider 중립 갱신 (특정 모델 전제 서술 제거)
 - `apps/builder/src/builder/panels/ai/hooks/useAgentLoop.ts` Provider 경유 정합 갱신
 - AbortController + G.3 시각 피드백 보존 검증
 
 ### Phase 2 Gate G2
 
 - `groq-sdk` 0 grep gate (production runtime)
-- `dangerouslyAllowBrowser: true` 0 grep gate
-- Ollama Provider 로 기존 7개 도구 전수 통과 (createElement / updateElement / deleteElement / getEditorState / getSelection / searchElements / batchDesign)
+- `dangerouslyAllowBrowser` 0 grep gate + browser 번들 내 원격 provider 직접 호출 0 (R12)
+- 대체 provider (역할 슬롯 경유) 로 기존 7개 도구 전수 통과 (createElement / updateElement / deleteElement / getEditorState / getSelection / searchElements / batchDesign)
 - AbortController 동작 검증 + G.3 시각 피드백 회귀 없음
 - type-check + vitest PASS
 
@@ -104,11 +117,11 @@
 - `apps/builder/src/services/ai/tools/getSelection.ts` → `useCanonicalDocumentStore` selectedNodeIds selector
 - `apps/builder/src/services/ai/tools/searchElements.ts` → canonical `CompositionDocument.nodes` 순회 + tag/propName/propValue/styleProp 필터
 - `apps/builder/src/services/ai/tools/batchDesign.ts` → canonical mutations batch + transactional 패턴 + 실패 시 rollback
-- `apps/builder/src/services/ai/tools/definitions.ts` → 7개 도구 JSON Schema 갱신 (canonical schema 정합)
+- `apps/builder/src/services/ai/tools/definitions.ts` → 7개 도구 JSON Schema 갱신 (canonical schema 정합). **MCP tool schema 호환 형태 유지 (D11) — 파라미터 JSON Schema 와 도구 명세를 실행 코드에서 분리해 Phase 9 에서 MCP server 로 노출 가능하게**
 
 ### Phase 3 Gate G3
 
-- 7개 도구 canonical mutation API 경유 (boundary helper allowlist 12 site 외 direct access 0 grep gate)
+- 7개 도구 canonical mutation API 경유 (boundary helper allowlist 외 direct access 0 grep gate)
 - legacy `elementsMap.get / set` AI 도구 안 사용 0 grep gate
 - canonical mutation 경유 후 회귀 검증 (Tool Calling 정확도 ≥ Phase 2 baseline 유지)
 - type-check + vitest PASS
@@ -139,32 +152,32 @@
 
 ## 7. Phase 5 — 컴포넌트 카탈로그 (D6, G5)
 
-**목적**: RAC / RSP 문서 기반 컴포넌트 카탈로그 + Tier 2 동적 주입. ADR-011 Section 1.3.1 "컴포넌트 지식 격차" 해소.
+**목적**: RAC / RSP 문서 기반 컴포넌트 카탈로그 + Tier 2 동적 주입. ADR-011 Section 1.3.1 "컴포넌트 지식 격차" 해소. **2026-08-18 재규정**: 로컬 모델 정확도 보정이 아니라 **provider 무관 도메인 지식 주입** — 어느 모델이든 composition 컴포넌트 vocabulary / catalog 규칙은 주입 없이 알 수 없다.
 
 ### Phase 5 산출물
 
 - `apps/builder/src/services/ai/catalog/componentCatalog.ts` — 65+ 컴포넌트 메타데이터 (variant / size / props / a11y / Compositional 구조)
-- `apps/builder/src/services/ai/catalog/dynamicInjection.ts` — Tier 2 동적 주입 (작업 컨텍스트 기반 선택적 로딩, ~311K tok → 128K context 안 fit)
-- `apps/builder/src/services/ai/catalog/specSync.ts` — `packages/specs/src/components/*.spec.ts` → 카탈로그 자동 동기화 (Phase 6+)
+- `apps/builder/src/services/ai/catalog/dynamicInjection.ts` — Tier 2 동적 주입 (작업 컨텍스트 기반 선택적 로딩, ~311K tok → context 예산 안 fit)
+- `apps/builder/src/services/ai/catalog/specSync.ts` — catalog(`COMPONENT_RULES_TABLE`) → AI 카탈로그 자동 동기화 (Phase 6+)
 - `apps/builder/src/services/ai/systemPrompt.ts` — 카탈로그 진입점 + 동적 주입 hook
 
 ### Phase 5 Gate G5
 
-- 카탈로그 65+ 컴포넌트 메타데이터 land + RAC / RSP 문서 매핑 검증
-- 동적 주입 후 Props 정확도 ≥ 90% (Phase 5 검증 데이터셋 — 15 시나리오 기반)
-- Qwen3 14B Q4_K_M (16GB) Props 정확도 ≥ 75% (보정 후)
-- Qwen3.5-35B-A3B Q4_K_M (36GB) Props 정확도 ≥ 90% (보정 후)
+- 카탈로그 65+ 컴포넌트 메타데이터 반영 + RAC / RSP 문서 매핑 검증
+- 동적 주입 후 Props 정확도 ≥ 90% (Phase 5 검증 데이터셋 — 15 시나리오, **`design` 슬롯 기준 모델로 측정**)
+- (구 Qwen3 14B/35B 정확도 조건은 노선 α 기각과 함께 삭제 — 로컬 endpoint 사용 시 정확도는 사용자 trade-off, R10)
 - type-check + vitest PASS
 
-## 8. Phase 6 — AI 설계 지능 Plan→Execute→Verify (D7)
+## 8. Phase 6 — AI 설계 지능 Plan→Execute→Verify + 역할 배선 (D7)
 
-**목적**: 멀티스텝 대시보드 디자인 + 자기 수정 (max 2회). Pencil / Google Stitch / v0.dev 참조.
+**목적**: 멀티스텝 대시보드 디자인 + 자기 수정 (max 2회) + **역할 슬롯 배선**. Pencil / open-pencil Design·Review 분리 / Google Stitch 참조.
 
 ### Phase 6 산출물
 
-- `apps/builder/src/services/ai/planning/PlanService.ts` — Plan 단계 (자연어 → 컴포넌트 구조 → 레이아웃 → 스타일 → 데이터 분해)
-- `apps/builder/src/services/ai/planning/ExecuteService.ts` — Execute 단계 (Plan 결과 → 도구 호출 시퀀스)
-- `apps/builder/src/services/ai/planning/VerifyService.ts` — Verify 단계 (결과 → 자연어 요청 정합 검증) + 자기 수정 (max 2회)
+- `apps/builder/src/services/ai/planning/PlanService.ts` — Plan 단계 (자연어 → 컴포넌트 구조 → 레이아웃 → 스타일 → 데이터 분해) — **`review` 슬롯**
+- `apps/builder/src/services/ai/planning/ExecuteService.ts` — Execute 단계 (Plan 결과 → 도구 호출 시퀀스) — **`design` 슬롯**
+- `apps/builder/src/services/ai/planning/VerifyService.ts` — Verify 단계 (결과 → 자연어 요청 정합 검증) + 자기 수정 (max 2회) — **`review` 슬롯**
+- 단순 분류·의도 파싱 — **`fast` 슬롯** (IntentParser 대체 검토 지점)
 - `apps/builder/src/services/ai/tools/createComposite.ts` — 팩토리 기반 합성 컴포넌트 생성 (Card → CardHeader + CardContent / Tabs → TabList + TabPanel 등)
 - `apps/builder/src/services/ai/templates/layoutTemplates.ts` — 레이아웃 템플릿 (대시보드 / 폼 / 리스트 / 카드 그리드 등)
 
@@ -172,114 +185,113 @@
 
 - "사용자 관리 대시보드 만들어줘" 시나리오 1회 통과 + 자기 수정 ≤ 1회
 - "이커머스 상품 카탈로그 만들어줘" 시나리오 1회 통과 + 자기 수정 ≤ 1회
-- 멀티스텝 계획 정확도 ≥ 75% (T2 36GB 기준)
+- Plan/Execute/Verify 가 각자 배선된 슬롯으로 호출되는지 검증 (슬롯별 모델을 달리 설정하고 호출 로그 확인)
 
-## 9. Phase 7 — 모델 라우팅 + 폐쇄망 (D8, G6)
+## 9. Phase 7 — 역할 슬롯 라우팅 + 폐쇄망 BYOK 검증 (D8, G6)
 
-**목적**: 난이도 기반 자동 라우팅 + 폐쇄망 first-class 지원.
+**목적**: 작업 유형 → 역할 슬롯 라우팅 (D7 배선이 정본) + 폐쇄망 시나리오 실측. 구 난이도 추정 / 로컬·온라인 자동 전환 / 복합 작업 자동 분할은 노선 개정으로 삭제.
 
 ### Phase 7 산출물
 
-- `apps/builder/src/services/ai/routing/DifficultyEstimator.ts` — 자연어 요청 난이도 추정 (단순 / 중간 / 복합)
-- `apps/builder/src/services/ai/routing/ModelRouter.ts` — 난이도 → 모델 선택 (단순 → 로컬, 복합 → 온라인 전환 제안)
-- `apps/builder/src/services/ai/routing/OfflineFallback.ts` — 폐쇄망 환경 복합 작업 자동 분할
-- `apps/builder/src/builder/panels/ai/components/ModelSelector.tsx` — 사용자 모델 선택 UX (Ollama / Anthropic / OpenAI-compatible)
-- `apps/builder/src/builder/panels/ai/components/OfflineIndicator.tsx` — 폐쇄망 상태 표시 + 작업 분할 안내
+- `apps/builder/src/services/ai/routing/RoleRouter.ts` — 작업 유형 → 역할 슬롯 선택 (Plan/Verify→review, Execute→design, 분류→fast). 슬롯 미구성 시 구성된 슬롯으로 downgrade + 안내
+- `apps/builder/src/builder/panels/ai/components/RoleSlotSettings.tsx` — 역할 슬롯 설정 UX (슬롯별 provider / base URL / 모델 / 키 / reasoning effort + 프리셋 3종)
+- `apps/builder/src/builder/panels/ai/components/ConnectionStatus.tsx` — 슬롯별 연결 상태 표시 (원격 도달 불가 시 로컬 endpoint 안내 — 구 OfflineIndicator 대체)
+- 로컬 endpoint 설정 가이드 문서 (`docs/` — Ollama OpenAI-compatible 모드 기준)
 
 ### Phase 7 Gate G6
 
-- 폐쇄망 단순 작업 100% 통과 (인터넷 미연결 환경)
-- 폐쇄망 복합 작업 자동 분할 통과 (단순 작업 시퀀스로 분해)
-- 모델 라우팅 정확도 측정 (단순 → 로컬 / 복합 → 온라인 제안 정합 ≥ 90%)
+- 역할 슬롯 라우팅 동작 검증 (슬롯별 상이 모델 구성 → 호출 분기 실측)
+- **폐쇄망 시나리오**: 전 슬롯을 로컬 OpenAI-compatible endpoint (Ollama) 로 바인딩 → 7개 도구 전수 통과 1회 실측 (R10 — 모델 품질 보증이 아니라 경로 검증)
 - type-check + vitest PASS
 
 ## 10. Phase 8 — AIPanel UX 1년차 신입 baseline (D9)
 
-**목적**: ADR-133 Q4 framing "1년차 신입 개발자라도 사용할 수준" 정합. depth 4→2 축소.
+**목적**: ADR-133 Q4 확정 "1년차 신입 개발자라도 사용할 수준" 정합. depth 4→2 축소.
 
 ### Phase 8 산출물
 
 - `apps/builder/src/builder/panels/ai/AIPanel.tsx` — depth 2 (default 표면 = 자연어 입력 + 도구 실행 결과 시각 피드백)
-- `apps/builder/src/builder/panels/ai/components/AdvancedMode.tsx` — 고급 모드 (Plan 단계 시각화 + 자기 수정 표시, L4 power user 격리)
+- `apps/builder/src/builder/panels/ai/components/AdvancedMode.tsx` — 고급 모드 (Plan 단계 시각화 + 자기 수정 표시 + **역할 슬롯 설정 진입점**, L4 power user 격리)
 - `apps/builder/src/builder/panels/ai/components/ToolCallMessage.tsx` — 1년차 신입 baseline UX (도구 호출 의도 + 결과 한 줄 요약)
 - `apps/builder/src/builder/panels/ai/components/AgentControls.tsx` — 중단 버튼 + 현재 turn 표시 (보존 + UX 단순화)
+- BYOK 최초 실행 온보딩 (R2): 키/endpoint 미설정 시 설정 유도 표면 (빈 채팅창이 아니라 프리셋 선택 안내)
 
 ### Phase 8 검증 (Gate 없음, evaluator agent screenshot)
 
 - depth 4 → 2 축소 measure
 - 1년차 신입 baseline 시나리오 5개 통과 (evaluator agent screenshot 검증)
-- ADR-133 Q4 framing 정합 검증
+- BYOK 미설정 상태 최초 진입 시나리오 통과 (온보딩 공백 R2 완화 확인)
 
-## 11. Phase 9 — Electron Utility Process 내장 (G7)
+## 11. Phase 9 — 외부 코딩 에이전트 통합 (D11, G7)
 
-**목적**: node-llama-cpp Utility Process 내장 + Canvas FPS 60fps 유지. **Electron 마이그레이션 시점 의존 (R1 HIGH 위험)**.
+**목적**: ACP/에이전트 SDK embed (Claude Code / Codex) + MCP 도구 표면 노출. **Electron 마이그레이션 시점 의존 (R1 HIGH 위험)**. Reference: Pencil.app dual embed (Codex SDK + Claude Agent SDK) / open-pencil ACP (Claude Code / Codex / Gemini CLI) / holaOS harness-host (pi / claude-code / codex 3-way + deferred tool gateway — [HOLAOS_ANALYSIS.md](../../explanation/research/HOLAOS_ANALYSIS.md) §3-1/§5).
 
 ### Phase 9 산출물
 
-- `apps/builder/electron/utilityProcess/llmWorker.ts` — node-llama-cpp Utility Process
-- `apps/builder/src/services/ai/providers/NodeLlamaCppProvider.ts` — Electron IPC 경유 Provider 정식 land
-- 모델 다운로드 + 관리 UX (~18.5GB Qwen3.5-35B-A3B Q4_K_M)
-- Canvas FPS measure + Utility Process 우선순위 조정
+- composition MCP server — Phase 3 에서 준비한 MCP 호환 도구 표면 (7+ 도구) 을 MCP server 로 노출 (외부 에이전트가 canonical mutation API 를 도구로 사용)
+- 에이전트 embed 1종 이상 (Claude Agent SDK 우선 검토) — Electron subprocess + AIPanel 연계
+- 자체 AgentLoop 와 embed 에이전트의 병존 계약 (노선 γ 부분 채택 재평가 — 본문 §기각 사유)
+- 키/권한 경계: embed 에이전트의 도구 권한 scope (mutation 범위 제한 + 사용자 승인 게이트)
 
 ### Phase 9 Gate G7
 
-- node-llama-cpp Utility Process 내장 + AI 추론 중 Canvas 60fps 유지 (±5fps 이내)
-- 모델 다운로드 UX 통과 (사용자 onboarding)
+- 외부 에이전트 embed 1종 이상 + MCP 도구 표면으로 composition 문서 조작 실측 (요소 생성/수정 1 시나리오)
+- AI 추론·에이전트 실행 중 Canvas 60fps 유지
 - type-check + vitest PASS
 
-**Phase 9 실패 시 대안**: Phase 1-8 stand-alone 유지 (Ollama 기본 운영) — Electron 마이그레이션 land 까지 보류
+**Phase 9 실패 시 대안**: Phase 9 보류, Phase 1-8 자립 운영 유지 (BYOK provider 기본) — Electron 마이그레이션 반영까지 보류
 
-## 12. baseline freeze 표 (Phase 0 작업 시 채움)
+## 12. baseline freeze 표 (Phase 0 작업 시 채움 — 2026-08-18 재편 반영)
 
-| 영역                   | 추정 file count | 실측 file count | gap (실측/추정) | 1.5x 초과 여부 |
-| ---------------------- | --------------- | --------------- | --------------- | -------------- |
-| Phase 1 Provider       | ~7 file         | TBD             | TBD             | TBD            |
-| Phase 2 Groq 제거      | ~5 file         | TBD             | TBD             | TBD            |
-| Phase 3 도구 canonical | ~10 file        | TBD             | TBD             | TBD            |
-| Phase 4 격차 정합      | ~12 file        | TBD             | TBD             | TBD            |
-| Phase 5 카탈로그       | ~8 file         | TBD             | TBD             | TBD            |
-| Phase 6 Plan→E→V       | ~15 file        | TBD             | TBD             | TBD            |
-| Phase 7 라우팅         | ~8 file         | TBD             | TBD             | TBD            |
-| Phase 8 AIPanel UX     | ~10 file        | TBD             | TBD             | TBD            |
-| Phase 9 Electron       | ~10 file        | TBD             | TBD             | TBD            |
+| 영역                       | 추정 file count | 실측 file count | gap (실측/추정) | 1.5x 초과 여부 |
+| -------------------------- | --------------- | --------------- | --------------- | -------------- |
+| Phase 1 Provider+역할 슬롯 | ~6 file         | TBD             | TBD             | TBD            |
+| Phase 2 Groq 제거+secret   | ~7 file         | TBD             | TBD             | TBD            |
+| Phase 3 도구 canonical     | ~10 file        | TBD             | TBD             | TBD            |
+| Phase 4 격차 정합          | ~12 file        | TBD             | TBD             | TBD            |
+| Phase 5 카탈로그           | ~8 file         | TBD             | TBD             | TBD            |
+| Phase 6 Plan→E→V+역할      | ~15 file        | TBD             | TBD             | TBD            |
+| Phase 7 라우팅+폐쇄망      | ~6 file         | TBD             | TBD             | TBD            |
+| Phase 8 AIPanel UX         | ~10 file        | TBD             | TBD             | TBD            |
+| Phase 9 외부 에이전트      | ~10 file        | TBD             | TBD             | TBD            |
 
 1.5x 초과 시 [adr-writing.md M4](../../../.claude/rules/adr-writing.md) sub-group N≥3 분할 / scope inflation 사용자 confirm 의무 적용.
 
-## 13. ADR-011 Phase A1~A4 land 산출물 보존 영역 (Phase 2 전환 대상)
+## 13. ADR-011 Phase A1~A4 반영 산출물 보존 영역 (Phase 2 전환 대상)
 
-| 산출물                                  | Phase 2 처리                                                     |
-| --------------------------------------- | ---------------------------------------------------------------- |
-| `GroqAgentService.ts`                   | `AgentService.ts` rename + Provider 추상화 경유                  |
-| 7개 도구 (createElement 등)             | Phase 3 canonical mutation API 정합 + Phase 4 4 격차 정합        |
-| `AIPanel.tsx` + ChatMessage 등 컴포넌트 | Phase 8 depth 4→2 축소 + 1년차 신입 baseline 적용                |
-| `useAgentLoop.ts`                       | Provider 추상화 경유 정합 갱신                                   |
-| `AbortController` + AgentControls       | 보존 (Phase 2 회귀 검증 필수)                                    |
-| G.3 시각 피드백 (`aiVisualFeedback`)    | 보존 (Phase 2 회귀 검증 필수)                                    |
-| `IntentParser.ts`                       | 보존 검토 (최후 fallback) or 제거 (Provider 추상화 후 불필요 시) |
-| `systemPrompt.ts`                       | Ollama / Anthropic / OpenAI-compatible 정합 갱신 + 카탈로그 hook |
-| `styleAdapter.ts`                       | 보존 (CSS-like → 내부 스키마 변환, AI-A5a 단위 정규화)           |
-| `definitions.ts`                        | Phase 3 도구 JSON Schema canonical 정합 갱신                     |
+| 산출물                                  | Phase 2 처리                                                              |
+| --------------------------------------- | ------------------------------------------------------------------------- |
+| `GroqAgentService.ts`                   | `AgentService.ts` rename + RoleSlotRegistry→LLMProvider 경유              |
+| 7개 도구 (createElement 등)             | Phase 3 canonical mutation API 정합 + Phase 4 4 격차 정합 + MCP 호환 유지 |
+| `AIPanel.tsx` + ChatMessage 등 컴포넌트 | Phase 8 depth 4→2 축소 + 1년차 신입 baseline 적용                         |
+| `useAgentLoop.ts`                       | Provider 추상화 경유 정합 갱신                                            |
+| `AbortController` + AgentControls       | 보존 (Phase 2 회귀 검증 필수)                                             |
+| G.3 시각 피드백 (`aiVisualFeedback`)    | 보존 (Phase 2 회귀 검증 필수)                                             |
+| `IntentParser.ts`                       | 보존 검토 (최후 fallback) — Phase 6 에서 `fast` 슬롯 대체 재검토          |
+| `systemPrompt.ts`                       | provider 중립 갱신 (특정 모델 전제 제거) + 카탈로그 hook                  |
+| `styleAdapter.ts`                       | 보존 (CSS-like → 내부 스키마 변환, AI-A5a 단위 정규화)                    |
+| `definitions.ts`                        | Phase 3 도구 JSON Schema canonical 정합 + MCP 호환 형태 갱신              |
 
-## 14. ADR-054 Proposed 영역 흡수 매핑
+## 14. ADR-054 Proposed 영역 흡수 매핑 (2026-08-18 개정)
 
-| ADR-054 Phase                    | ADR-134 매핑                         |
-| -------------------------------- | ------------------------------------ |
-| Phase 1 (Groq 제거 + Provider)   | Phase 1 + Phase 2                    |
-| Phase 2 (로컬 모델 Tool Calling) | Phase 2 + Phase 5 (카탈로그 보정)    |
-| Phase 3 (Canvas FPS)             | Phase 9 (Electron Utility Process)   |
-| Phase 4 (컴포넌트 카탈로그)      | Phase 5                              |
-| Phase 5 (Props 정확도)           | Phase 5 G5                           |
-| Phase 6 (디자인 지능)            | Phase 6                              |
-| Phase 7 (접근성 감사)            | **ADR-134 scope 밖** (ADR-136+ 응용) |
+| ADR-054 Phase                    | ADR-134 매핑                                                          |
+| -------------------------------- | --------------------------------------------------------------------- |
+| Phase 1 (Groq 제거 + Provider)   | Phase 1 + Phase 2                                                     |
+| Phase 2 (로컬 모델 Tool Calling) | **승계 종료** — 로컬 모델은 OpenAI-compatible endpoint BYOK (Phase 7) |
+| Phase 3 (Canvas FPS)             | Phase 9 (외부 에이전트 실행 중 60fps — 대상 교체)                     |
+| Phase 4 (컴포넌트 카탈로그)      | Phase 5                                                               |
+| Phase 5 (Props 정확도)           | Phase 5 G5 (`design` 슬롯 기준으로 재규정)                            |
+| Phase 6 (디자인 지능)            | Phase 6                                                               |
+| Phase 7 (접근성 감사)            | **ADR-134 scope 밖** (후속 응용 ADR)                                  |
 
 ## 15. 사용자 plan review 후 진입 절차
 
-본 plan-only land 이후 진입 절차 (ADR-133 동일 패턴):
+설계 문서 반영 이후 진입 절차 (ADR-133 동일 패턴):
 
 1. **사용자 plan review** — 본 design breakdown 정독 + 정정 사항 명시
 2. **차단 / 정당화 메모리 평가** — Phase 0 진입 전 (`feedback-execute-adr-surface-minimization` / `feedback-no-derived-adr-mid-execution` 평가)
 3. **Phase 0 inventory baseline freeze 진입** — `~/.claude/plans/adr-134-baseline-inventory.md` 작성
 4. **Phase 1 진입** — Phase 0 baseline freeze 사용자 confirm 후
-5. **각 Phase 별 land 절차** — type-check + vitest + grep gate 통과 + main 직접 push (PR 금지 정합) + CHANGELOG entry
+5. **각 Phase 별 완료 절차** — type-check + vitest + grep gate 통과 + main 직접 push (PR 금지 정합) + CHANGELOG entry
 
-각 Phase 별 commit 단위는 single land 권장 (`feedback-execute-adr-surface-minimization` 정합). sub-step 분해 (1-α/1-β/...) 금지 — 사용자 framing 위반.
+각 Phase 별 commit 단위는 단일 커밋 권장 (`feedback-execute-adr-surface-minimization` 정합). sub-step 분해 (1-α/1-β/...) 금지 — 사용자 확정 위반.
