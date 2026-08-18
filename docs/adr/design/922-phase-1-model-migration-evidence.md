@@ -74,6 +74,11 @@ Pure mapper는 ID를 생성하거나 storage를 쓰지 않는다. writer가 주�
 `migrationSource`에 복사하고 cluster/column ID는 입력과 anchor/panel ID에서 결정적으로
 파생한다.
 
+Phase 2 shadow 비교에서 active side panel은 현행 `active*Panels` 순서로 최대 2 column에
+배치하고 right side는 right-edge offset과 맞도록 reverse order로 저장하는 정밀화를 추가했다.
+Hidden row의 min width는 visible column width validation에 개입하지 않으며 전체 hidden이면
+첫 row의 preferred width를 유지한다.
+
 ## backup / rollback rehearsal
 
 | Sequence                       | 결과                                                             |
@@ -108,8 +113,8 @@ Phase 3 이상이다.
 
 ## 검증
 
-- G1 fixture: 3 files, 32 tests
-- panel regression fixture 포함: 8 files, 57 tests
+- G1 fixture: 3 files, 35 tests
+- panel regression fixture 포함: 8 files, 60 tests
 - targeted ESLint: 0 error
 - `pnpm type-check`: 신규 violation 0, repository baseline 43건 유지
 - `pnpm run codex:guard`, `git diff --check`, `pnpm run codex:preflight`

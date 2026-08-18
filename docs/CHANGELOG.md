@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-922 G2a immutable panel layout shadow coordinator] - 2026-08-18
+
+### Architecture
+
+- **Phase 2 / G2a에서 production 전환 전 panel layout transaction을 검증 가능한 shadow store로 고정**:
+  - workspace/v2 layout을 root·frame·row/column splitter가 같은 version으로 소비하는 immutable snapshot과 `useSyncExternalStore` selector를 추가했다
+  - 같은 display frame의 input은 native RAF 한 건으로 합쳐 solve/publish를 각각 최대 한 번 수행하고, invalid solve는 기존 snapshot을 유지한다
+  - 대표 v1 5-panel geometry를 allowlist 없이 비교해 active side/right-edge order와 hidden panel min-width migration drift를 해소했다
+  - snap candidate를 snapshot geometry만으로 계산하는 pure adapter를 추가했다. production `PanelWorkspace` pointer handler, v1 store와 localStorage primary는 Phase 3 G2b 전까지 변경하지 않는다
+
 ## [ADR-922 패널 layout v2 model과 rollback 경계를 선행 고정] - 2026-08-18
 
 ### Architecture

@@ -487,6 +487,18 @@ interface PanelLayoutV1BackupEnvelope {
 - G2a는 pure solver/external store와 shadow geometry만 판정한다. 아직 실제 frame visual
   latency 또는 tearing을 통과했다고 간주하지 않는다.
 
+#### 실행 기록 — G2a PASS (2026-08-18)
+
+- [Phase 2 layout coordinator shadow evidence](./922-phase-2-layout-coordinator-evidence.md)에
+  immutable snapshot, row/column splitter, `useSyncExternalStore` selector, RAF당 solve/publish
+  1회와 DOM-query-free candidate를 고정했다.
+- 대표 v1 5-panel geometry를 allowlist 없이 비교해 mismatch 0을 만들었고, 그 과정에서
+  active side order/right-edge order와 hidden min-width 영향을 migration/normalization에서
+  해소했다.
+- production `PanelWorkspace`, pointer handler, live store와 primary record는 v1을 유지한다.
+  G2b real-frame canary와 applied-version/native-refresh 검증은 Phase 3 별도 승인 전까지
+  시작하지 않는다.
+
 ### Phase 3 — real-frame canary와 PanelWorkspace/interaction cutover
 
 - G2a 통과 뒤 v1 primary를 바꾸지 않는 임시 canary route에서 representative stack의 기존
@@ -687,8 +699,11 @@ interface PanelLayoutV1BackupEnvelope {
 - [x] backup 없는 v2-born layout이 Phase 1 emergency projection에서 default로 떨어지지
       않는다.
 - [ ] backup 없는 v2-born layout의 Phase 3 operational rollback이 byte-equivalent다.
+- [x] G2a shadow frame/splitter가 하나의 immutable snapshot version을 사용한다.
+- [x] G2a pure candidate의 panel DOM geometry query와 대표 shadow mismatch가 0이다.
 - [ ] frame/shell이 같은 immutable snapshot을 쓰고 Canvas는 actual local rect만 쓴다.
-- [ ] G2a shadow store와 G2b real-frame applied-version/native-refresh gate가 각각 통과했다.
+- [x] G2a shadow store가 통과했다.
+- [ ] G2b real-frame applied-version/native-refresh gate가 통과했다.
 - [ ] normal/compare/WebGL-off가 동일한 `Workspace` main slot과 panel sibling을 사용한다.
 - [ ] move/snap/resize hot path에 panel DOM geometry query가 없다.
 - [ ] 인접 panel은 drag 중 동시에 resize된다.

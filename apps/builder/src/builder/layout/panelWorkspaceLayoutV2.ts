@@ -453,6 +453,14 @@ function normalizeColumnWidth(
   return clamp(width, bounds.min, bounds.max);
 }
 
+function rowsConstrainingColumnWidth(
+  rows: readonly PanelWorkspaceRowV2[],
+  visibility: Partial<Record<PanelId, boolean>>,
+): readonly PanelWorkspaceRowV2[] {
+  const visibleRows = rows.filter((row) => visibility[row.panelId] === true);
+  return visibleRows.length > 0 ? visibleRows : rows.slice(0, 1);
+}
+
 function findAnchoredCluster(
   clusters: PanelWorkspaceClusterV2[],
   anchor: PanelWorkspaceRailSide,
@@ -582,7 +590,7 @@ export function normalizePanelWorkspaceLayoutV2(
       if (targetColumn.rows.length > 0) {
         targetColumn.width = normalizeColumnWidth(
           targetColumn.width,
-          targetColumn.rows,
+          rowsConstrainingColumnWidth(targetColumn.rows, visibility),
           entries,
         );
       }
@@ -619,7 +627,11 @@ export function normalizePanelWorkspaceLayoutV2(
       cluster.columns.push(column);
     }
     column.rows.push({ panelId: entry.id, height: entry.defaultHeight });
-    column.width = normalizeColumnWidth(column.width, column.rows, entries);
+    column.width = normalizeColumnWidth(
+      column.width,
+      rowsConstrainingColumnWidth(column.rows, visibility),
+      entries,
+    );
     visibility[entry.id] = false;
     placedPanelIds.add(entry.id);
   }

@@ -86,6 +86,56 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
     });
   });
 
+  it("multi-active side geometry 순서와 폭을 hidden panel min-width 영향 없이 보존한다", () => {
+    const input = createV1Layout();
+    input.activeLeftPanels = ["nodes", "settings"];
+    input.activeRightPanels = ["properties", "history"];
+
+    const result = migrate(input);
+    const left = result.clusters.find((cluster) => cluster.anchor === "left");
+    const right = result.clusters.find((cluster) => cluster.anchor === "right");
+
+    expect(left?.columns.map((column) => column.width)).toEqual([233, 400]);
+    expect(left?.columns.map((column) => column.rows[0]?.panelId)).toEqual([
+      "nodes",
+      "settings",
+    ]);
+    expect(right?.columns.map((column) => column.width)).toEqual([320, 233]);
+    expect(right?.columns.map((column) => column.rows[0]?.panelId)).toEqual([
+      "history",
+      "properties",
+    ]);
+
+    input.activeLeftPanels = ["settings", "nodes"];
+    input.activeRightPanels = ["history", "properties"];
+    const reordered = migrate(input);
+    const reorderedLeft = reordered.clusters.find(
+      (cluster) => cluster.anchor === "left",
+    );
+    const reorderedRight = reordered.clusters.find(
+      (cluster) => cluster.anchor === "right",
+    );
+    expect(
+      reorderedLeft?.columns.map((column) => column.rows[0]?.panelId),
+    ).toEqual(["settings", "nodes"]);
+    expect(
+      reorderedRight?.columns.map((column) => column.rows[0]?.panelId),
+    ).toEqual(["properties", "history"]);
+  });
+
+  it("side 전체가 hidden이어도 첫 panel의 preferred width를 보존한다", () => {
+    const input = createV1Layout();
+    input.showLeft = false;
+    input.showRight = false;
+
+    const result = migrate(input);
+    const left = result.clusters.find((cluster) => cluster.anchor === "left");
+    const right = result.clusters.find((cluster) => cluster.anchor === "right");
+
+    expect(left?.columns[0]?.width).toBe(233);
+    expect(right?.columns[0]?.width).toBe(233);
+  });
+
   it("Monitor bottom active", () => {
     const input = createV1Layout();
     input.activeBottomPanels = ["monitor"];

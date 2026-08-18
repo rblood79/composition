@@ -343,27 +343,54 @@ function anchoredClusterFromV1(
   layout: PanelLayoutState,
   registry: ReadonlyMap<PanelId, PanelWorkspaceRegistryEntry>,
 ): PanelWorkspaceClusterV2 | null {
-  const rows = panelIds.flatMap((panelId) => {
+  const knownPanelIds = panelIds.filter((panelId) => registry.has(panelId));
+  if (knownPanelIds.length === 0) return null;
+  const knownPanelIdSet = new Set(knownPanelIds);
+  const activePanelIds =
+    side === "left"
+      ? layout.activeLeftPanels
+      : side === "right"
+        ? layout.activeRightPanels
+        : layout.activeBottomPanels;
+  const visiblePanelIds = activePanelIds.filter(
+    (panelId) =>
+      knownPanelIdSet.has(panelId) && panelIsVisible(layout, panelId),
+  );
+  const leadingPanelIds = (
+    side === "right" ? [...visiblePanelIds].reverse() : visiblePanelIds
+  ).slice(0, 2);
+  if (leadingPanelIds.length === 0) leadingPanelIds.push(knownPanelIds[0]!);
+  const columns = leadingPanelIds.flatMap((panelId, columnIndex) => {
     const entry = registry.get(panelId);
     if (!entry) return [];
+    const size = preferredV1Size(layout, entry);
     return [
       {
-        panelId,
-        height: preferredV1Size(layout, entry).height,
+        id: `anchor:${side}:column:${columnIndex}`,
+        width: size.width,
+        rows: [{ panelId, height: size.height }],
       },
     ];
   });
-  if (rows.length === 0) return null;
-  const width = Math.max(
-    ...panelIds.map((panelId) => {
-      const entry = registry.get(panelId);
-      return entry ? preferredV1Size(layout, entry).width : 0;
-    }),
+  const placedPanelIds = new Set(
+    columns.flatMap((column) => column.rows.map((row) => row.panelId)),
   );
+  for (const panelId of knownPanelIds) {
+    if (placedPanelIds.has(panelId)) continue;
+    const entry = registry.get(panelId);
+    if (!entry) continue;
+    const size = preferredV1Size(layout, entry);
+    const targetColumn = columns.reduce((closest, column) =>
+      Math.abs(column.width - size.width) < Math.abs(closest.width - size.width)
+        ? column
+        : closest,
+    );
+    targetColumn.rows.push({ panelId, height: size.height });
+  }
   return {
     id: `anchor:${side}`,
     anchor: side,
-    columns: [{ id: `anchor:${side}:column:0`, width, rows }],
+    columns,
   };
 }
 
