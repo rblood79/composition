@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-922 floating-first panel launch와 overlay rail] - 2026-08-19
+
+### Architecture
+
+- **legacy sidebar형 anchored panel launch를 제거**: cache-clear와 기존 v2 record의 left/right/bottom anchored cluster를 production runtime에서 floating placement로 승격한다. Nodes/Properties는 열린 상태를 유지하지만 Canvas 위 독립 frame으로 시작하며, 기존 active rail order와 panel local state는 보존한다
+- **모든 activity rail을 Canvas overlay로 전환**: left/right rail과 bottom Monitor rail은 panel workspace의 absolute interaction surface로 남되 `occupiedInsets`와 Grid main track을 점유하지 않는다. Canvas/Skia/scrollbar는 full workspace local rect를 한 번만 소비한다
+- anchored placement schema는 기존 record를 읽기 위한 compatibility boundary로만 남긴다. production에서 panel move/snap/resize 뒤에는 floating cluster graph가 정본이다
+
 ## [ADR-922 panel stack viewport fit과 shared resize 복구] - 2026-08-19
 
 ### Bug Fixes

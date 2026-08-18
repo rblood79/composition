@@ -21,6 +21,11 @@ window 동안 read-only boundary로 유지한다.
 dead shared splitter snapshot, microtask latency/mismatch oracle 문제는 post-implementation
 correction에서 전건 수정하고 native RAF 5초 Gate를 다시 통과했다.
 
+2026-08-19 사용자 결정으로 cache-clear 초기 legacy sidebar형 anchored launch를 제거했다.
+Nodes/Properties는 열린 floating frame으로 시작하고, left/right/bottom activity rail은 Canvas
+위 overlay로만 존재한다. 따라서 production `occupiedInsets`는 Canvas main track을 줄이지
+않으며, 읽어 들인 legacy anchored v2 record는 runtime에서 floating placement로 승격한다.
+
 ## Context
 
 Composition Builder의 panel workspace는 최근 모든 등록 panel을

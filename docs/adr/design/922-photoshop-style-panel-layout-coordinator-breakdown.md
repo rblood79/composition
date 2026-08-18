@@ -324,6 +324,18 @@ pointer cancel/Escape
   동시에 만족해야 한다.
 - cluster 전체 높이/너비는 workspace bounds와 gap을 포함해 clamp한다.
 
+### 3.4.1 Post-implementation amendment — floating-first launch (2026-08-19)
+
+- cache-clear default와 읽어 들인 legacy v2 record의 `left`/`right`/`bottom` anchored
+  cluster는 production runtime에서 viewport 기준 floating cluster로 승격한다. Nodes와
+  Properties는 visibility를 유지하되 Canvas 위 독립 frame으로 시작한다.
+- activity rail은 panel toggle 진입점으로 유지하지만 left/right/bottom 모두 absolute overlay다.
+  `occupiedInsets`는 항상 `0/0/0`이며 Canvas main track은 host 전체 rect를 사용한다.
+- anchored schema/parser는 rollback과 구 record 읽기를 위한 compatibility boundary로만 남긴다.
+  새 interaction과 successful persistence는 floating cluster graph를 기록한다.
+- bottom Monitor rail도 Canvas 위 overlay다. Monitor frame은 열릴 때만 floating frame으로
+  나타나며, rail button 자체는 Canvas height를 차감하지 않는다.
+
 ### 3.5 visibility와 고비용 work
 
 - frame DOM과 panel local state는 visibility toggle 후에도 보존한다.

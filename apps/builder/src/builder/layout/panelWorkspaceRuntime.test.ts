@@ -18,7 +18,6 @@ function rowHeight(
 describe("ADR-922 PanelWorkspace production runtime", () => {
   it("interaction cancel은 시작 시 committed v2 snapshot을 byte-equivalent로 복원한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
-    const initialRaw = JSON.stringify(layout);
     const runtime = createPanelWorkspaceRuntime(
       layout,
       PANEL_WORKSPACE_TEST_REGISTRY,
@@ -27,6 +26,7 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
     );
     expect(runtime.ok).toBe(true);
     if (!runtime.ok) return;
+    const initialRaw = JSON.stringify(runtime.value.getLayout());
 
     runtime.value.beginInteraction();
     expect(

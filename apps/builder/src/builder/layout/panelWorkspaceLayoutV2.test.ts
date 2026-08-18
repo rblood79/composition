@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PanelId } from "../panels/core/types";
 import {
-  MIN_PANEL_WORKSPACE_MAIN_HEIGHT,
-  MIN_PANEL_WORKSPACE_MAIN_WIDTH,
-  PANEL_WORKSPACE_GAP,
+  floatAnchoredPanelWorkspaceClusters,
   normalizePanelWorkspaceLayoutV2,
   parsePanelWorkspaceLayoutV2,
   solvePanelWorkspaceLayoutV2,
@@ -144,6 +142,39 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
       error: 'Duplicate panel registry id "nodes"',
     });
   });
+
+  it("legacy anchored cluster를 Canvas overlay floating cluster로 승격한다", () => {
+    const result = floatAnchoredPanelWorkspaceClusters(
+      createPanelWorkspaceLayoutV2(),
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      {
+        workspaceRect: { width: 1600, height: 900 },
+        railSizes: { left: 48, right: 48, bottom: 48 },
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.clusters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "anchor:left",
+          anchor: "floating",
+          position: { x: 52, y: 4 },
+        }),
+        expect.objectContaining({
+          id: "anchor:right",
+          anchor: "floating",
+          position: { x: 1228, y: 4 },
+        }),
+        expect.objectContaining({
+          id: "anchor:bottom",
+          anchor: "floating",
+          position: { x: 500, y: 608 },
+        }),
+      ]),
+    );
+  });
 });
 
 describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
@@ -167,7 +198,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
     expect(result.value.mainContentRect.height).toBe(900);
   });
 
-  it("visible anchored cluster와 rail만 occupied inset에 포함한다", () => {
+  it("activity rail과 legacy anchored cluster도 Canvas inset을 만들지 않는다", () => {
     const layout = createPanelWorkspaceLayoutV2();
     const result = solvePanelWorkspaceLayoutV2(
       layout,
@@ -181,19 +212,19 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.occupiedInsets).toEqual({
-      left: 48 + PANEL_WORKSPACE_GAP + 490,
-      right: 48 + PANEL_WORKSPACE_GAP + 320,
-      bottom: 32,
+      left: 0,
+      right: 0,
+      bottom: 0,
     });
-    expect(result.value.mainContentRect.width).toBeGreaterThanOrEqual(
-      MIN_PANEL_WORKSPACE_MAIN_WIDTH,
-    );
-    expect(result.value.mainContentRect.height).toBeGreaterThanOrEqual(
-      MIN_PANEL_WORKSPACE_MAIN_HEIGHT,
-    );
+    expect(result.value.mainContentRect).toMatchObject({
+      x: 0,
+      y: 0,
+      width: 1600,
+      height: 900,
+    });
   });
 
-  it("stack의 preferred height만 넘으면 minimum까지 압축해 anchored inset을 유지한다", () => {
+  it("stack의 preferred height만 넘으면 minimum까지 압축하며 Canvas overlay를 유지한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
     layout.visibility.history = true;
 
@@ -209,7 +240,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.presentations.right).toBe("anchored");
-    expect(result.value.occupiedInsets.right).toBe(372);
+    expect(result.value.occupiedInsets.right).toBe(0);
     const properties = result.value.frameGeometries.get("properties");
     const history = result.value.frameGeometries.get("history");
     expect(properties).toBeDefined();
@@ -258,7 +289,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
     if (!constrained.ok) return;
     expect(constrained.value.presentations.left).toBe("constrained-overlay");
     expect(constrained.value.presentations.right).toBe("anchored");
-    expect(constrained.value.occupiedInsets.left).toBe(48);
+    expect(constrained.value.occupiedInsets.left).toBe(0);
     expect(constrained.value.mainContentRect.width).toBeGreaterThanOrEqual(0);
     for (const geometry of constrained.value.frameGeometries.values()) {
       expect(geometry.x).toBeGreaterThanOrEqual(0);
@@ -297,7 +328,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.presentations.bottom).toBe("constrained-overlay");
-    expect(result.value.occupiedInsets.bottom).toBe(32);
+    expect(result.value.occupiedInsets.bottom).toBe(0);
     expect(result.value.mainContentRect.height).toBeGreaterThanOrEqual(0);
     expect(layout).toEqual(persistedBefore);
   });

@@ -8,6 +8,7 @@ import {
   createPanelWorkspaceLayoutCoordinator,
   type PanelWorkspaceLayoutCoordinator,
 } from "./panelWorkspaceLayoutCoordinator";
+import { floatAnchoredPanelWorkspaceClusters } from "./panelWorkspaceLayoutV2";
 import {
   activatePanelWorkspacePanel,
   detachPanelToFloatingCluster,
@@ -75,10 +76,19 @@ export function createPanelWorkspaceRuntime(
   workspaceRect: PanelWorkspaceRect,
   railSizes: PanelWorkspaceRailSizes,
 ): PanelWorkspaceResult<PanelWorkspaceRuntime> {
-  let layout = initialLayout;
-  let committedLayout = initialLayout;
-  let interactionBaseLayout: PanelWorkspaceLayoutV2 | null = null;
   let currentWorkspaceRect = { ...workspaceRect };
+  const floatAnchoredClusters = (
+    nextLayout: PanelWorkspaceLayoutV2,
+  ): PanelWorkspaceResult<PanelWorkspaceLayoutV2> =>
+    floatAnchoredPanelWorkspaceClusters(nextLayout, registry, {
+      workspaceRect: currentWorkspaceRect,
+      railSizes,
+    });
+  const initialFloatingLayout = floatAnchoredClusters(initialLayout);
+  if (!initialFloatingLayout.ok) return initialFloatingLayout;
+  let layout = initialFloatingLayout.value;
+  let committedLayout = initialFloatingLayout.value;
+  let interactionBaseLayout: PanelWorkspaceLayoutV2 | null = null;
   const coordinatorResult = createPanelWorkspaceLayoutCoordinator({
     layout,
     registry,
@@ -120,13 +130,15 @@ export function createPanelWorkspaceRuntime(
       coordinator,
       getLayout: () => layout,
       replaceCommittedLayout(nextLayout): void {
-        committedLayout = nextLayout;
+        const floatingLayout = floatAnchoredClusters(nextLayout);
+        if (!floatingLayout.ok) return;
+        committedLayout = floatingLayout.value;
         if (interactionBaseLayout !== null) return;
-        if (JSON.stringify(layout) === JSON.stringify(nextLayout)) {
-          layout = nextLayout;
+        if (JSON.stringify(layout) === JSON.stringify(floatingLayout.value)) {
+          layout = floatingLayout.value;
           return;
         }
-        layout = nextLayout;
+        layout = floatingLayout.value;
         queueCurrentLayout();
       },
       beginInteraction(): void {

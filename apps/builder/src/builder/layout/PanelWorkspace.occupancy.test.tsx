@@ -107,7 +107,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     vi.restoreAllMocks();
   });
 
-  it("anchored left/right demand와 rail을 같은 snapshot의 Grid track 변수로 적용한다", () => {
+  it("cache-clear legacy anchor를 floating overlay로 승격해 Canvas 전체 track을 유지한다", () => {
     const { container } = render(
       <PanelWorkspace>
         <div data-testid="canvas-content" />
@@ -117,17 +117,17 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     const main = container.querySelector<HTMLElement>(".panel-workspace-main");
 
     expect(host?.style.getPropertyValue("--panel-workspace-inset-left")).toBe(
-      "542px",
+      "0px",
     );
     expect(host?.style.getPropertyValue("--panel-workspace-inset-right")).toBe(
-      "372px",
+      "0px",
     );
     expect(host?.style.getPropertyValue("--panel-workspace-inset-bottom")).toBe(
-      "48px",
+      "0px",
     );
-    expect(main?.getAttribute("data-main-x")).toBe("542");
-    expect(main?.getAttribute("data-main-width")).toBe("686");
-    expect(main?.getAttribute("data-main-height")).toBe("804");
+    expect(main?.getAttribute("data-main-x")).toBe("0");
+    expect(main?.getAttribute("data-main-width")).toBe("1600");
+    expect(main?.getAttribute("data-main-height")).toBe("852");
     expect(main?.getAttribute("data-layout-version")).toBe(
       host?.getAttribute("data-layout-version"),
     );
@@ -142,6 +142,16 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
         ?.getAttribute("aria-label"),
     ).toBe("monitor");
     expect(container.querySelector(".panel-trace-driver")).toBeNull();
+    expect(
+      container
+        .querySelector('.workspace-panel-frame[data-panel="nodes"]')
+        ?.getAttribute("data-anchor"),
+    ).toBe("floating");
+    expect(
+      container
+        .querySelector('.workspace-panel-frame[data-panel="properties"]')
+        ?.getAttribute("data-anchor"),
+    ).toBe("floating");
   });
 
   it("shell이 기존 panel header/action/content DOM을 복제하지 않는다", () => {
@@ -200,7 +210,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     ).not.toBeNull();
   });
 
-  it("right/left rail activation은 actual workspace 높이에서 stack 후 반대 방향 새 column으로 전환한다", () => {
+  it("right/left rail activation은 legacy anchor를 되살리지 않고 floating placement를 유지한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
     const left = layout.clusters.find((cluster) => cluster.anchor === "left");
     const right = layout.clusters.find((cluster) => cluster.anchor === "right");
@@ -241,27 +251,14 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     };
 
     clickRailButton("right", "history");
-    clickRailButton("right", "styles");
-    clickRailButton("left", "datatableEditor");
     clickRailButton("left", "settings");
 
     const updated = useStore.getState().panelWorkspaceLayout!;
-    const updatedRight = updated.clusters.find(
-      (cluster) => cluster.anchor === "right",
-    );
-    const updatedLeft = updated.clusters.find(
-      (cluster) => cluster.anchor === "left",
-    );
+    expect(updated.visibility.history).toBe(true);
+    expect(updated.visibility.settings).toBe(true);
     expect(
-      updatedRight?.columns.map((column) =>
-        column.rows.map((row) => row.panelId),
-      ),
-    ).toEqual([["styles"], ["properties", "history"]]);
-    expect(
-      updatedLeft?.columns.map((column) =>
-        column.rows.map((row) => row.panelId),
-      ),
-    ).toEqual([["nodes", "datatableEditor"], ["settings"]]);
+      updated.clusters.every((cluster) => cluster.anchor === "floating"),
+    ).toBe(true);
   });
 
   it("cross-rail snap은 anchor 기준 outer edge와 shared column splitter 하나를 렌더링한다", () => {
@@ -288,7 +285,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     );
 
     expect(settingsFrame?.getAttribute("data-side")).toBe("left");
-    expect(settingsFrame?.getAttribute("data-anchor")).toBe("right");
+    expect(settingsFrame?.getAttribute("data-anchor")).toBe("floating");
     expect(
       [...(settingsFrame?.querySelectorAll(".panel-resize-handle") ?? [])].map(
         (handle) => handle.getAttribute("data-edge"),

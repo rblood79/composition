@@ -96,6 +96,11 @@ export interface PanelWorkspaceSolveOptions {
   railSizes: PanelWorkspaceRailSizes;
 }
 
+export interface PanelWorkspaceFloatingPlacementOptions {
+  workspaceRect: PanelWorkspaceRect;
+  railSizes: PanelWorkspaceRailSizes;
+}
+
 export interface PanelWorkspaceSolvedFrameGeometry extends PanelFrameGeometry {
   clusterId: string;
   anchor: PanelWorkspaceAnchor;
@@ -686,6 +691,107 @@ export function parsePanelWorkspaceLayoutV2(
   return normalizePanelWorkspaceLayoutV2(rawToTypedLayout(raw.value), registry);
 }
 
+function storedClusterSize(cluster: PanelWorkspaceClusterV2): PanelSize {
+  return {
+    width:
+      cluster.columns.reduce((total, column) => total + column.width, 0) +
+      PANEL_WORKSPACE_GAP * Math.max(0, cluster.columns.length - 1),
+    height: Math.max(
+      0,
+      ...cluster.columns.map(
+        (column) =>
+          column.rows.reduce((total, row) => total + row.height, 0) +
+          PANEL_WORKSPACE_GAP * Math.max(0, column.rows.length - 1),
+      ),
+    ),
+  };
+}
+
+function floatingPositionForAnchor(
+  anchor: PanelWorkspaceRailSide,
+  size: PanelSize,
+  options: PanelWorkspaceFloatingPlacementOptions,
+): { x: number; y: number } {
+  const { workspaceRect, railSizes } = options;
+  if (anchor === "left") {
+    return {
+      x: railSizes.left + PANEL_WORKSPACE_GAP,
+      y: PANEL_WORKSPACE_GAP,
+    };
+  }
+  if (anchor === "right") {
+    return {
+      x: Math.max(
+        0,
+        workspaceRect.width -
+          railSizes.right -
+          PANEL_WORKSPACE_GAP -
+          size.width,
+      ),
+      y: PANEL_WORKSPACE_GAP,
+    };
+  }
+  return {
+    x: Math.max(0, (workspaceRect.width - size.width) / 2),
+    y: Math.max(
+      0,
+      workspaceRect.height -
+        railSizes.bottom -
+        PANEL_WORKSPACE_GAP -
+        size.height,
+    ),
+  };
+}
+
+/**
+ * ADR-922 post-amendment: side/bottom anchors are a legacy placement form.
+ * Existing v2 records remain readable, but production frames are upgraded to
+ * floating clusters so activity rails overlay Canvas instead of reserving it.
+ */
+export function floatAnchoredPanelWorkspaceClusters(
+  layout: PanelWorkspaceLayoutV2,
+  registry: readonly PanelWorkspaceRegistryEntry[],
+  options: PanelWorkspaceFloatingPlacementOptions,
+): PanelWorkspaceResult<PanelWorkspaceLayoutV2> {
+  const normalized = normalizePanelWorkspaceLayoutV2(layout, registry);
+  if (!normalized.ok) return normalized;
+
+  const convertedClusterIds: string[] = [];
+  const clusters = normalized.value.clusters.map((cluster) => {
+    if (cluster.anchor === "floating") return cluster;
+    convertedClusterIds.push(cluster.id);
+    return {
+      id: cluster.id,
+      anchor: "floating" as const,
+      position: floatingPositionForAnchor(
+        cluster.anchor,
+        storedClusterSize(cluster),
+        options,
+      ),
+      columns: cluster.columns.map((column) => ({
+        ...column,
+        rows: column.rows.map((row) => ({ ...row })),
+      })),
+    };
+  });
+  if (convertedClusterIds.length === 0) return normalized;
+
+  return normalizePanelWorkspaceLayoutV2(
+    {
+      ...normalized.value,
+      clusters,
+      floatingFocusOrder: [
+        ...normalized.value.floatingFocusOrder,
+        ...convertedClusterIds.filter(
+          (clusterId) =>
+            !normalized.value.floatingFocusOrder.includes(clusterId),
+        ),
+      ],
+    },
+    registry,
+  );
+}
+
 function visibleRows(
   column: PanelWorkspaceColumnV2,
   visibility: Partial<Record<PanelId, boolean>>,
@@ -973,10 +1079,12 @@ export function solvePanelWorkspaceLayoutV2(
     presentations.bottom = "constrained-overlay";
   }
 
+  // Activity rails and all production panels are workspace overlays. Legacy
+  // anchored records are upgraded before rendering, and must not reserve Canvas.
   const occupiedInsets: PanelWorkspaceRailSizes = {
-    left: sideInset("left"),
-    right: sideInset("right"),
-    bottom: bottomInset(),
+    left: 0,
+    right: 0,
+    bottom: 0,
   };
   const mainContentRect: PanelFrameGeometry = {
     x: Math.min(workspaceRect.width, occupiedInsets.left),
