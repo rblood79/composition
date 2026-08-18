@@ -105,4 +105,6 @@ packages/shared/src/**/*.d.ts.map
 .worktrees/
 .claude/.spec-rebuild-pending
 .claude/.css-regen-pending
+.claude/.adr-split-commit-allowed
 .claude/stats/audits/
+.claude/settings.local.json
