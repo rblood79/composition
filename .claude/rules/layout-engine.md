@@ -1,10 +1,9 @@
 ---
 description: 레이아웃 엔진 관련 파일 작업 시 적용
-globs:
+paths:
   - "packages/composition-engine/**"
   - "**/layout/**"
   - "**/engines/**"
-  - "**/LayoutContainer*"
 ---
 
 # 레이아웃 엔진 규칙

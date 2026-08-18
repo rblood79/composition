@@ -1,6 +1,6 @@
 ---
 description: ADR 문서 작성/편집 시 Risk-First Design Loop 가이드라인 적용
-globs:
+paths:
   - "docs/adr/**"
 ---
 

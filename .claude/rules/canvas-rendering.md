@@ -1,10 +1,9 @@
 ---
 description: Canvas/Skia 렌더링 관련 파일 작업 시 적용 (ADR-900 PixiJS 제거 완료)
-globs:
-  - "apps/builder/src/builder/canvas/**"
+paths:
+  - "apps/builder/src/builder/workspace/canvas/**"
   - "packages/specs/**"
   - "**/nodeRenderers*"
-  - "**/ElementSprite*"
   - "**/useCentralCanvasPointerHandlers*"
   - "**/useDragInteraction*"
 ---

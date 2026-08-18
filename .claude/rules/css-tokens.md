@@ -1,11 +1,12 @@
 ---
 description: CSS 토큰 S2 + React Aria 하이브리드 네이밍 규칙 (ADR-022)
-globs:
+paths:
   - "**/*.css"
   - "**/theme/**"
   - "**/*theme*.ts"
   - "**/*theme*.tsx"
-  - "**/tokens/**"
+  - "**/*token*"
+  - "**/*Token*"
 ---
 
 # CSS 토큰 규칙 — S2 + React Aria Hybrid Naming (ADR-022)

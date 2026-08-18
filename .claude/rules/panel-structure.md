@@ -1,10 +1,10 @@
 ---
 description: 빌더 좌우 패널의 표준 DOM/클래스/CSS 구조 규칙 (ADR-163). 패널·섹션·필드 그룹 골격, 네이밍, 상관관계 계약
-globs:
+paths:
   - "apps/builder/src/builder/components/styles/**"
   - "apps/builder/src/builder/components/panel/**"
   - "apps/builder/src/builder/panels/**"
-  - "apps/builder/src/builder/layout/PanelContainer*"
+  - "apps/builder/src/builder/layout/**"
 ---
 
 # 빌더 패널 표준 구조 규칙 (ADR-163)

@@ -1,3 +1,13 @@
+---
+description: Style SSOT — store longhand 정책과 element.props.style consumer 읽기 계약 (ADR-909)
+paths:
+  - "packages/specs/**"
+  - "apps/builder/src/builder/panels/**"
+  - "apps/builder/src/builder/stores/**"
+  - "apps/builder/src/builder/components/property/**"
+  - "apps/builder/src/builder/workspace/canvas/layout/**"
+---
+
 # Style SSOT 정책 — Store Longhand Policy ↔ Consumer Normalization
 
 > **SSOT 체인 연계**: 본 규칙은 [ssot-hierarchy.md](ssot-hierarchy.md) **D3 (시각 스타일) 내부 경계 규칙**. Store ↔ Consumer 간 contract 를 정의.

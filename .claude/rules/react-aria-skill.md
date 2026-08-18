@@ -1,8 +1,8 @@
 ---
 description: UI 컴포넌트 구현/수정 시 React Aria Skill 문서 참조 규칙
-globs:
+paths:
   - "apps/builder/src/builder/**/*.tsx"
-  - "apps/builder/src/preview/renderers/**/*.tsx"
+  - "apps/builder/src/preview/components/**/*.tsx"
   - "packages/specs/src/components/**/*.ts"
   - "**/factories/definitions/**"
   - "**/editors/**/*.tsx"

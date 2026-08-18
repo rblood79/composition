@@ -1,6 +1,6 @@
 ---
 description: CHANGELOG.md 자동 갱신 규칙 — 커밋/PR/ADR Implemented 시 의무 업데이트
-globs:
+paths:
   - "docs/CHANGELOG.md"
   - "docs/CHANGELOG-*-archived.md"
 ---
