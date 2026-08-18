@@ -108,3 +108,6 @@ packages/shared/src/**/*.d.ts.map
 .claude/.adr-split-commit-allowed
 .claude/stats/audits/
 .claude/settings.local.json
+
+# 개인 로컬 지침 (공식 권장: 비추적)
+CLAUDE.local.md
