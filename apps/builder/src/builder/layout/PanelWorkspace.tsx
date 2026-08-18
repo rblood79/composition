@@ -14,8 +14,10 @@ import { PanelRegistry } from "../panels/core/PanelRegistry";
 import type {
   ModalPanelState,
   PanelConfig,
+  PanelFrameGeometry,
   PanelId,
   PanelLayoutState,
+  PanelSnapEdge,
   PanelSide,
   PanelSize,
 } from "../panels/core/types";
@@ -25,12 +27,7 @@ import {
   PanelSnapInteractionProvider,
   usePanelSnapInteraction,
 } from "./PanelSnapContext";
-import {
-  resolvePanelSnap,
-  type PanelGeometry,
-  type PanelSnapCandidate,
-  type PanelSnapEdge,
-} from "./panelSnap";
+import { resolvePanelSnap, type PanelSnapCandidate } from "./panelSnap";
 import "./PanelWorkspace.css";
 
 const PANEL_RAIL_SIZE = 48;
@@ -40,8 +37,6 @@ const SNAP_EDGES: PanelSnapEdge[] = ["top", "right", "bottom", "left"];
 
 type PanelFrameMode = "hidden" | "anchored" | "placed";
 type PanelResizeEdge = "left" | "right" | "top" | "bottom";
-
-type PanelFrameGeometry = PanelGeometry;
 
 const RESIZE_EDGE_LABELS: Record<PanelResizeEdge, string> = {
   left: "왼쪽",
@@ -212,6 +207,7 @@ const PanelFrame = memo(function PanelFrame({
 }: PanelFrameProps) {
   const {
     placePanel,
+    snapPanel,
     focusModalPanel,
     updateModalPanelPosition,
     updatePanelSize,
@@ -234,6 +230,9 @@ const PanelFrame = memo(function PanelFrame({
   const suppressSnapRef = useRef(false);
 
   const [isMoving, setIsMoving] = useState(false);
+  const isClustered = layout.panelClusters.some((cluster) =>
+    cluster.columns.some((column) => column.panelIds.includes(config.id)),
+  );
   const size = placedState?.size ?? defaultPanelSize(config, layout, side);
   const initialGeometry = useMemo<PanelFrameGeometry>(() => {
     if (placedState) {
@@ -334,19 +333,12 @@ const PanelFrame = memo(function PanelFrame({
       isInteractingRef.current = true;
       setIsMoving(true);
       beginPanelDrag(config.id);
+      if (isClustered) suppressSnapRef.current = true;
       if (mode === "placed") focusModalPanel(config.id);
     },
     onMove: (event) => {
       if (mode === "hidden") return;
       const current = visualGeometryRef.current;
-      const currentCandidate = findPanelSnapCandidate(
-        config.id,
-        current,
-        wrapperRef.current,
-      );
-      if (currentCandidate && currentCandidate.distance <= 0.5) {
-        suppressSnapRef.current = true;
-      }
       const next = {
         ...current,
         x: current.x + event.deltaX,
@@ -354,9 +346,15 @@ const PanelFrame = memo(function PanelFrame({
       };
       visualGeometryRef.current = next;
       setVisualGeometry(next);
-      const candidate = suppressSnapRef.current
-        ? null
-        : findPanelSnapCandidate(config.id, next, wrapperRef.current);
+      const nearbyCandidate = findPanelSnapCandidate(
+        config.id,
+        next,
+        wrapperRef.current,
+      );
+      if (suppressSnapRef.current && nearbyCandidate === null) {
+        suppressSnapRef.current = false;
+      }
+      const candidate = suppressSnapRef.current ? null : nearbyCandidate;
       updatePanelSnapTarget(
         candidate
           ? { panelId: candidate.targetPanelId, edge: candidate.edge }
@@ -371,13 +369,19 @@ const PanelFrame = memo(function PanelFrame({
         geometry,
         wrapperRef.current,
       );
-      const candidate = suppressSnapRef.current ? null : nearbyCandidate;
       isInteractingRef.current = false;
       setIsMoving(false);
-      placePanel(config.id, candidate?.position ?? geometry);
-      if (suppressSnapRef.current && nearbyCandidate === null) {
-        suppressSnapRef.current = false;
+      if (nearbyCandidate && !suppressSnapRef.current) {
+        snapPanel(config.id, {
+          targetPanelId: nearbyCandidate.targetPanelId,
+          edge: nearbyCandidate.edge,
+          source: geometry,
+          target: nearbyCandidate.targetGeometry,
+        });
+      } else {
+        placePanel(config.id, geometry);
       }
+      if (nearbyCandidate === null) suppressSnapRef.current = false;
       endPanelDrag();
     },
   });
@@ -478,6 +482,7 @@ const PanelFrame = memo(function PanelFrame({
       data-mode={mode}
       data-side={side}
       data-dragging={isMoving}
+      data-clustered={isClustered}
       style={frameStyle}
       onPointerDown={() => {
         if (mode === "placed") focusModalPanel(config.id);
@@ -526,7 +531,7 @@ const PanelFrame = memo(function PanelFrame({
 });
 
 function PanelWorkspaceContent() {
-  const { layout, togglePanel } = usePanelLayout();
+  const { layout, togglePanel, fitPanelClusters } = usePanelLayout();
   const configs = useMemo(() => PanelRegistry.getAllPanels(), []);
   const placedIds = useMemo(
     () => new Set(layout.modalPanels.map((panel) => panel.panelId)),
@@ -538,6 +543,13 @@ function PanelWorkspaceContent() {
   const activeRightPanels = layout.activeRightPanels.filter(
     (panelId) => !placedIds.has(panelId),
   );
+
+  useEffect(() => {
+    const fit = () => fitPanelClusters();
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [fitPanelClusters]);
 
   return (
     <div className="panel-workspace" aria-label="패널 작업 영역">

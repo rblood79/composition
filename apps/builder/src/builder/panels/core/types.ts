@@ -41,6 +41,13 @@ export interface PanelSize {
   height: number;
 }
 
+export type PanelSnapEdge = "top" | "right" | "bottom" | "left";
+
+export interface PanelFrameGeometry extends PanelSize {
+  x: number;
+  y: number;
+}
+
 /**
  * 패널 ID
  *
@@ -163,6 +170,32 @@ export interface ModalPanelState {
   zIndex: number;
 }
 
+export interface PanelColumnState {
+  /** 위에서 아래 순서의 panel ID. */
+  panelIds: PanelId[];
+
+  /** 같은 column에 속한 panel이 공유하는 폭. */
+  width: number;
+}
+
+export interface PanelClusterState {
+  /** 저장과 reflow에서 cluster를 식별하는 안정적인 ID. */
+  id: string;
+
+  /** workspace 기준 cluster 좌상단. */
+  position: { x: number; y: number };
+
+  /** 왼쪽에서 오른쪽 순서의 column. */
+  columns: PanelColumnState[];
+}
+
+export interface PanelSnapPlacement {
+  targetPanelId: PanelId;
+  edge: PanelSnapEdge;
+  source: PanelFrameGeometry;
+  target: PanelFrameGeometry;
+}
+
 /**
  * 패널 레이아웃 상태
  *
@@ -205,6 +238,9 @@ export interface PanelLayoutState {
   /** Floating 패널 목록 (`modalPanels` 키는 저장 호환을 위해 유지) */
   modalPanels: ModalPanelState[];
 
+  /** panel-relative snap으로 만들어진 floating column/stack 관계. */
+  panelClusters: PanelClusterState[];
+
   /** 다음 modal 패널의 z-index */
   nextModalZIndex: number;
 }
@@ -236,6 +272,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   panelSizes: {},
   // Modal panel defaults
   modalPanels: [],
+  panelClusters: [],
   nextModalZIndex: 1000,
 };
 
@@ -254,6 +291,12 @@ export interface PanelLayoutActions {
 
   /** 패널의 자유 위치 또는 panel-relative snap 위치를 저장 */
   placePanel: (panelId: PanelId, position: { x: number; y: number }) => void;
+
+  /** 패널을 다른 패널 기준 column/stack에 삽입 */
+  snapPanel: (panelId: PanelId, placement: PanelSnapPlacement) => void;
+
+  /** 현재 workspace 크기에 맞춰 모든 panel cluster를 재배치 */
+  fitPanelClusters: () => void;
 
   /** dock/floating 여부와 무관하게 패널 숨김 */
   hidePanel: (panelId: PanelId) => void;

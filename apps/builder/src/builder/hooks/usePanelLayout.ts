@@ -13,14 +13,32 @@ import type {
   PanelSide,
   PanelLayoutState,
   ModalPanelState,
+  PanelSnapPlacement,
   PanelSize,
 } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import type { UsePanelLayoutReturn } from "../layout/types";
+import {
+  detachPanelFromClusters,
+  fitPanelClustersToWorkspace,
+  panelBelongsToCluster,
+  snapPanelIntoCluster,
+} from "../layout/panelStackLayout";
 
 /** stale closure 방지: callback 내부에서 최신 panelLayout 읽기 */
 const getLayout = () => useStore.getState().panelLayout;
 const WORKSPACE_TOP = 48;
+
+function getWorkspaceSize(): { width: number; height: number } {
+  return {
+    width: window.innerWidth,
+    height: Math.max(0, window.innerHeight - WORKSPACE_TOP),
+  };
+}
+
+function fitClusters(layout: PanelLayoutState): PanelLayoutState {
+  return fitPanelClustersToWorkspace(layout, getWorkspaceSize());
+}
 
 function getPanelSide(
   layout: PanelLayoutState,
@@ -54,7 +72,10 @@ function addPanelToDock(
   panelId: PanelId,
   side: PanelSide,
 ): PanelLayoutState {
-  const withoutPanel = removePanelFromDockLists(layout, panelId);
+  const withoutPanel = detachPanelFromClusters(
+    removePanelFromDockLists(layout, panelId),
+    panelId,
+  );
   const modalPanels = withoutPanel.modalPanels.filter(
     (panel) => panel.panelId !== panelId,
   );
@@ -112,14 +133,14 @@ export function usePanelLayout(): UsePanelLayoutReturn {
         );
         return;
       }
-      setPanelLayout(addPanelToDock(currentLayout, panelId, to));
+      setPanelLayout(fitClusters(addPanelToDock(currentLayout, panelId, to)));
     },
     [setPanelLayout],
   );
 
   const dockPanel = useCallback(
     (panelId: PanelId, side: PanelSide) => {
-      setPanelLayout(addPanelToDock(getLayout(), panelId, side));
+      setPanelLayout(fitClusters(addPanelToDock(getLayout(), panelId, side)));
     },
     [setPanelLayout],
   );
@@ -138,42 +159,48 @@ export function usePanelLayout(): UsePanelLayoutReturn {
       const actualSide = getPanelSide(currentLayout, panelId) ?? side;
       if (actualSide === "left") {
         const isActive = currentLayout.activeLeftPanels.includes(panelId);
-        setPanelLayout({
-          ...currentLayout,
-          leftPanels: currentLayout.leftPanels.includes(panelId)
-            ? currentLayout.leftPanels
-            : [...currentLayout.leftPanels, panelId],
-          activeLeftPanels: isActive
-            ? currentLayout.activeLeftPanels.filter((id) => id !== panelId)
-            : [...currentLayout.activeLeftPanels, panelId],
-          showLeft: true,
-        });
+        setPanelLayout(
+          fitClusters({
+            ...currentLayout,
+            leftPanels: currentLayout.leftPanels.includes(panelId)
+              ? currentLayout.leftPanels
+              : [...currentLayout.leftPanels, panelId],
+            activeLeftPanels: isActive
+              ? currentLayout.activeLeftPanels.filter((id) => id !== panelId)
+              : [...currentLayout.activeLeftPanels, panelId],
+            showLeft: true,
+          }),
+        );
         return;
       }
       if (actualSide === "right") {
         const isActive = currentLayout.activeRightPanels.includes(panelId);
-        setPanelLayout({
-          ...currentLayout,
-          rightPanels: currentLayout.rightPanels.includes(panelId)
-            ? currentLayout.rightPanels
-            : [...currentLayout.rightPanels, panelId],
-          activeRightPanels: isActive
-            ? currentLayout.activeRightPanels.filter((id) => id !== panelId)
-            : [...currentLayout.activeRightPanels, panelId],
-          showRight: true,
-        });
+        setPanelLayout(
+          fitClusters({
+            ...currentLayout,
+            rightPanels: currentLayout.rightPanels.includes(panelId)
+              ? currentLayout.rightPanels
+              : [...currentLayout.rightPanels, panelId],
+            activeRightPanels: isActive
+              ? currentLayout.activeRightPanels.filter((id) => id !== panelId)
+              : [...currentLayout.activeRightPanels, panelId],
+            showRight: true,
+          }),
+        );
         return;
       }
 
       const isActive = currentLayout.activeBottomPanels.includes(panelId);
-      setPanelLayout({
-        ...currentLayout,
-        bottomPanels: currentLayout.bottomPanels.includes(panelId)
-          ? currentLayout.bottomPanels
-          : [...currentLayout.bottomPanels, panelId],
-        activeBottomPanels: isActive ? [] : [panelId],
-        showBottom: !isActive,
-      });
+      setPanelLayout(
+        fitClusters({
+          ...currentLayout,
+          bottomPanels: currentLayout.bottomPanels.includes(panelId)
+            ? currentLayout.bottomPanels
+            : [...currentLayout.bottomPanels, panelId],
+          activeBottomPanels: isActive ? [] : [panelId],
+          showBottom: !isActive,
+        }),
+      );
     },
     [setPanelLayout],
   );
@@ -193,7 +220,7 @@ export function usePanelLayout(): UsePanelLayoutReturn {
    */
   const setLayout = useCallback(
     (newLayout: PanelLayoutState) => {
-      setPanelLayout(newLayout);
+      setPanelLayout(fitClusters(newLayout));
     },
     [setPanelLayout],
   );
@@ -215,11 +242,13 @@ export function usePanelLayout(): UsePanelLayoutReturn {
 
       const isActive = currentLayout.activeBottomPanels.includes(panelId);
 
-      setPanelLayout({
-        ...currentLayout,
-        activeBottomPanels: isActive ? [] : [panelId],
-        showBottom: !isActive,
-      });
+      setPanelLayout(
+        fitClusters({
+          ...currentLayout,
+          activeBottomPanels: isActive ? [] : [panelId],
+          showBottom: !isActive,
+        }),
+      );
     },
     [setPanelLayout],
   );
@@ -244,11 +273,13 @@ export function usePanelLayout(): UsePanelLayoutReturn {
    */
   const closeBottomPanel = useCallback(() => {
     const currentLayout = getLayout();
-    setPanelLayout({
-      ...currentLayout,
-      activeBottomPanels: [],
-      showBottom: false,
-    });
+    setPanelLayout(
+      fitClusters({
+        ...currentLayout,
+        activeBottomPanels: [],
+        showBottom: false,
+      }),
+    );
   }, [setPanelLayout]);
 
   /**
@@ -275,18 +306,38 @@ export function usePanelLayout(): UsePanelLayoutReturn {
         height: Math.max(minHeight, Math.min(maxHeight, size.height)),
       };
 
-      setPanelLayout({
+      const nextLayout: PanelLayoutState = {
         ...currentLayout,
         panelSizes: {
           ...currentLayout.panelSizes,
           [panelId]: clampedSize,
         },
         modalPanels: currentLayout.modalPanels.map((panel) =>
-          panel.panelId === panelId ? { ...panel, size: clampedSize } : panel,
+          panel.panelId === panelId
+            ? {
+                ...panel,
+                position: clampPosition(
+                  panel.position.x,
+                  panel.position.y,
+                  clampedSize.width,
+                  clampedSize.height,
+                ),
+                size: clampedSize,
+              }
+            : panel,
         ),
-      });
+        panelClusters: currentLayout.panelClusters.map((cluster) => ({
+          ...cluster,
+          columns: cluster.columns.map((column) =>
+            column.panelIds.includes(panelId)
+              ? { ...column, width: clampedSize.width }
+              : column,
+          ),
+        })),
+      };
+      setPanelLayout(fitClusters(nextLayout));
     },
-    [setPanelLayout],
+    [clampPosition, setPanelLayout],
   );
 
   const floatPanel = useCallback(
@@ -296,6 +347,9 @@ export function usePanelLayout(): UsePanelLayoutReturn {
         (panel) => panel.panelId === panelId,
       );
       if (existing) {
+        const detachedLayout = position
+          ? detachPanelFromClusters(currentLayout, panelId)
+          : currentLayout;
         const nextPosition = position
           ? clampPosition(
               position.x,
@@ -304,19 +358,21 @@ export function usePanelLayout(): UsePanelLayoutReturn {
               existing.size.height,
             )
           : existing.position;
-        setPanelLayout({
-          ...currentLayout,
-          modalPanels: currentLayout.modalPanels.map((panel) =>
-            panel.panelId === panelId
-              ? {
-                  ...panel,
-                  position: nextPosition,
-                  zIndex: currentLayout.nextModalZIndex,
-                }
-              : panel,
-          ),
-          nextModalZIndex: currentLayout.nextModalZIndex + 1,
-        });
+        setPanelLayout(
+          fitClusters({
+            ...detachedLayout,
+            modalPanels: detachedLayout.modalPanels.map((panel) =>
+              panel.panelId === panelId
+                ? {
+                    ...panel,
+                    position: nextPosition,
+                    zIndex: detachedLayout.nextModalZIndex,
+                  }
+                : panel,
+            ),
+            nextModalZIndex: detachedLayout.nextModalZIndex + 1,
+          }),
+        );
         return;
       }
 
@@ -347,12 +403,14 @@ export function usePanelLayout(): UsePanelLayoutReturn {
         zIndex: dockedLayout.nextModalZIndex,
       };
 
-      setPanelLayout({
-        ...dockedLayout,
-        panelSizes: { ...dockedLayout.panelSizes, [panelId]: size },
-        modalPanels: [...dockedLayout.modalPanels, floatingPanel],
-        nextModalZIndex: dockedLayout.nextModalZIndex + 1,
-      });
+      setPanelLayout(
+        fitClusters({
+          ...dockedLayout,
+          panelSizes: { ...dockedLayout.panelSizes, [panelId]: size },
+          modalPanels: [...dockedLayout.modalPanels, floatingPanel],
+          nextModalZIndex: dockedLayout.nextModalZIndex + 1,
+        }),
+      );
     },
     [clampPosition, setPanelLayout],
   );
@@ -364,27 +422,55 @@ export function usePanelLayout(): UsePanelLayoutReturn {
     [floatPanel],
   );
 
+  const snapPanel = useCallback(
+    (panelId: PanelId, placement: PanelSnapPlacement) => {
+      setPanelLayout(
+        snapPanelIntoCluster(
+          getLayout(),
+          panelId,
+          placement,
+          getWorkspaceSize(),
+        ),
+      );
+    },
+    [setPanelLayout],
+  );
+
+  const fitPanelClusters = useCallback(() => {
+    const currentLayout = getLayout();
+    const fittedLayout = fitClusters(currentLayout);
+    if (fittedLayout === currentLayout) return;
+    setPanelLayout(fittedLayout);
+  }, [setPanelLayout]);
+
   /** 기존 호출부 호환 alias — 실제 표시는 non-modal floating frame이다. */
   const openPanelAsModal = floatPanel;
 
   const hidePanel = useCallback(
     (panelId: PanelId) => {
       const currentLayout = getLayout();
-      setPanelLayout({
-        ...currentLayout,
-        activeLeftPanels: currentLayout.activeLeftPanels.filter(
-          (id) => id !== panelId,
+      setPanelLayout(
+        fitClusters(
+          detachPanelFromClusters(
+            {
+              ...currentLayout,
+              activeLeftPanels: currentLayout.activeLeftPanels.filter(
+                (id) => id !== panelId,
+              ),
+              activeRightPanels: currentLayout.activeRightPanels.filter(
+                (id) => id !== panelId,
+              ),
+              activeBottomPanels: currentLayout.activeBottomPanels.filter(
+                (id) => id !== panelId,
+              ),
+              modalPanels: currentLayout.modalPanels.filter(
+                (panel) => panel.panelId !== panelId,
+              ),
+            },
+            panelId,
+          ),
         ),
-        activeRightPanels: currentLayout.activeRightPanels.filter(
-          (id) => id !== panelId,
-        ),
-        activeBottomPanels: currentLayout.activeBottomPanels.filter(
-          (id) => id !== panelId,
-        ),
-        modalPanels: currentLayout.modalPanels.filter(
-          (panel) => panel.panelId !== panelId,
-        ),
-      });
+      );
     },
     [setPanelLayout],
   );
@@ -395,12 +481,19 @@ export function usePanelLayout(): UsePanelLayoutReturn {
   const closeModalPanel = useCallback(
     (panelId: PanelId) => {
       const currentLayout = getLayout();
-      setPanelLayout({
-        ...currentLayout,
-        modalPanels: currentLayout.modalPanels.filter(
-          (p) => p.panelId !== panelId,
+      setPanelLayout(
+        fitClusters(
+          detachPanelFromClusters(
+            {
+              ...currentLayout,
+              modalPanels: currentLayout.modalPanels.filter(
+                (panel) => panel.panelId !== panelId,
+              ),
+            },
+            panelId,
+          ),
         ),
-      });
+      );
     },
     [setPanelLayout],
   );
@@ -422,10 +515,19 @@ export function usePanelLayout(): UsePanelLayoutReturn {
       );
       if (panel.zIndex === maxZIndex) return;
 
+      const cluster = currentLayout.panelClusters.find((candidate) =>
+        candidate.columns.some((column) => column.panelIds.includes(panelId)),
+      );
+      const focusedPanelIds = new Set(
+        cluster
+          ? cluster.columns.flatMap((column) => column.panelIds)
+          : [panelId],
+      );
+
       setPanelLayout({
         ...currentLayout,
         modalPanels: currentLayout.modalPanels.map((p) =>
-          p.panelId === panelId
+          focusedPanelIds.has(p.panelId)
             ? { ...p, zIndex: currentLayout.nextModalZIndex }
             : p,
         ),
@@ -445,6 +547,30 @@ export function usePanelLayout(): UsePanelLayoutReturn {
         (p) => p.panelId === panelId,
       );
       if (!panel) return;
+
+      if (panelBelongsToCluster(currentLayout, panelId)) {
+        const deltaX = position.x - panel.position.x;
+        const deltaY = position.y - panel.position.y;
+        setPanelLayout(
+          fitClusters({
+            ...currentLayout,
+            panelClusters: currentLayout.panelClusters.map((cluster) =>
+              cluster.columns.some((column) =>
+                column.panelIds.includes(panelId),
+              )
+                ? {
+                    ...cluster,
+                    position: {
+                      x: cluster.position.x + deltaX,
+                      y: cluster.position.y + deltaY,
+                    },
+                  }
+                : cluster,
+            ),
+          }),
+        );
+        return;
+      }
 
       // 위치 경계 검사
       const clamped = clampPosition(
@@ -477,6 +603,7 @@ export function usePanelLayout(): UsePanelLayoutReturn {
     setPanelLayout({
       ...currentLayout,
       modalPanels: [],
+      panelClusters: [],
     });
   }, [setPanelLayout]);
 
@@ -488,6 +615,8 @@ export function usePanelLayout(): UsePanelLayoutReturn {
     dockPanel,
     floatPanel,
     placePanel,
+    snapPanel,
+    fitPanelClusters,
     hidePanel,
     updatePanelSize,
     togglePanel,

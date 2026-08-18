@@ -20,6 +20,7 @@ function createLayout(): PanelLayoutState {
     activeBottomPanels: [...DEFAULT_PANEL_LAYOUT.activeBottomPanels],
     panelSizes: {},
     modalPanels: [],
+    panelClusters: [],
   };
 }
 
@@ -128,5 +129,40 @@ describe("usePanelLayout Photoshop식 panel placement", () => {
       x: 360,
       y: 180,
     });
+  });
+
+  it("panel snap을 column 관계로 저장하고 rail toggle 시 관계를 보존한다", () => {
+    useStore.setState({
+      panelLayout: {
+        ...createLayout(),
+        activeRightPanels: ["properties", "styles"],
+      },
+    });
+    const { result } = renderHook(() => usePanelLayout());
+
+    act(() =>
+      result.current.snapPanel("styles", {
+        targetPanelId: "properties",
+        edge: "bottom",
+        source: { x: 900, y: 404, width: 260, height: 300 },
+        target: { x: 900, y: 40, width: 300, height: 360 },
+      }),
+    );
+    expect(useStore.getState().panelLayout.panelClusters[0]?.columns).toEqual([
+      { panelIds: ["properties", "styles"], width: 300 },
+    ]);
+
+    act(() => result.current.togglePanel("right", "styles"));
+    expect(useStore.getState().panelLayout.panelClusters[0]?.columns).toEqual([
+      { panelIds: ["properties", "styles"], width: 300 },
+    ]);
+
+    act(() => result.current.togglePanel("right", "styles"));
+    const panels = useStore.getState().panelLayout.modalPanels;
+    const properties = panels.find((panel) => panel.panelId === "properties");
+    const styles = panels.find((panel) => panel.panelId === "styles");
+    expect(styles?.position.y).toBe(
+      (properties?.position.y ?? 0) + (properties?.size.height ?? 0) + 4,
+    );
   });
 });

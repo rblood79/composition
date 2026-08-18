@@ -58,12 +58,13 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain("aria-valuemax");
   });
 
-  it("viewport dock 대신 자유 위치 또는 인접 panel snap 위치를 persist한다", async () => {
+  it("viewport dock 대신 자유 위치 또는 인접 panel column/stack 관계를 persist한다", async () => {
     const source = await readWorkspace();
 
-    expect(source).toContain(
-      "placePanel(config.id, candidate?.position ?? geometry)",
-    );
+    expect(source).toContain("snapPanel(config.id, {");
+    expect(source).toContain("placePanel(config.id, geometry)");
+    expect(source).toContain("fitPanelClusters()");
+    expect(source).toContain("data-clustered=");
     expect(source).toContain("updateModalPanelPosition(config.id,");
     expect(source).toContain("updatePanelSize(config.id,");
     expect(source).not.toContain("EDGE_DOCK_THRESHOLD");

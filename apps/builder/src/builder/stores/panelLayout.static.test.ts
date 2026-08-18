@@ -11,6 +11,7 @@ describe("Photoshop식 panel layout persistence 계약", () => {
 
     expect(source).toContain('mode: "floating" as const');
     expect(source).toContain("result.panelSizes");
+    expect(source).toContain("result.panelClusters");
     expect(source).not.toContain("activeLeftPanels.length > 2");
     expect(source).not.toContain("activeRightPanels.length > 2");
     expect(source).not.toContain("너무 많은 패널이 활성화");

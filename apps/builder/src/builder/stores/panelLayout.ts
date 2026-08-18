@@ -101,6 +101,22 @@ function loadLayoutFromStorage():
       ) {
         result.panelSizes = DEFAULT_PANEL_LAYOUT.panelSizes;
       }
+      if (!Array.isArray(result.panelClusters)) {
+        result.panelClusters = DEFAULT_PANEL_LAYOUT.panelClusters;
+      } else {
+        result.panelClusters = result.panelClusters.filter(
+          (cluster: import("../panels/core/types").PanelClusterState) =>
+            typeof cluster?.id === "string" &&
+            typeof cluster?.position?.x === "number" &&
+            typeof cluster?.position?.y === "number" &&
+            Array.isArray(cluster?.columns) &&
+            cluster.columns.every(
+              (column) =>
+                typeof column?.width === "number" &&
+                Array.isArray(column?.panelIds),
+            ),
+        );
+      }
       // datatableEditor가 leftPanels에 없으면 추가
       if (
         Array.isArray(result.leftPanels) &&

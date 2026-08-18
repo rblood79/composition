@@ -32,4 +32,34 @@ describe("panel-relative snap", () => {
       resolvePanelSnap({ x: 300, y: 300, width: 240, height: 200 }, [target]),
     ).toBeNull();
   });
+
+  it("상하 edge band가 겹치면 좌상단 정렬 없이도 stack 후보가 된다", () => {
+    const candidate = resolvePanelSnap(
+      { x: 1040, y: 404, width: 240, height: 200 },
+      [target],
+    );
+
+    expect(candidate).toEqual(
+      expect.objectContaining({
+        targetPanelId: "properties",
+        edge: "bottom",
+        position: { x: 900, y: 404 },
+      }),
+    );
+  });
+
+  it("좌우 edge band가 겹치면 top 정렬 없이도 column 후보가 된다", () => {
+    const candidate = resolvePanelSnap(
+      { x: 1184, y: 180, width: 240, height: 200 },
+      [target],
+    );
+
+    expect(candidate).toEqual(
+      expect.objectContaining({
+        targetPanelId: "properties",
+        edge: "right",
+        position: { x: 1184, y: 40 },
+      }),
+    );
+  });
 });
