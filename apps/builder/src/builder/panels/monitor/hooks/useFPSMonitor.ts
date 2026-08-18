@@ -48,7 +48,7 @@ export function useFPSMonitor(options: UseFPSMonitorOptions = {}) {
 
   useEffect(() => {
     if (!enabled) {
-      if (rafIdRef.current) {
+      if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
         rafIdRef.current = null;
       }
@@ -76,7 +76,7 @@ export function useFPSMonitor(options: UseFPSMonitorOptions = {}) {
         // 통계 계산
         const history = historyRef.current;
         const average = Math.round(
-          history.reduce((a, b) => a + b, 0) / history.length
+          history.reduce((a, b) => a + b, 0) / history.length,
         );
         const min = Math.min(...history);
         const max = Math.max(...history);
@@ -101,7 +101,7 @@ export function useFPSMonitor(options: UseFPSMonitorOptions = {}) {
     rafIdRef.current = requestAnimationFrame(measureFrame);
 
     return () => {
-      if (rafIdRef.current) {
+      if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
         rafIdRef.current = null;
       }

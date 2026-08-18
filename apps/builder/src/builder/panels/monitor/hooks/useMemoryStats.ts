@@ -98,38 +98,55 @@ export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
   useEffect(() => {
     // 🛡️ enabled=false 시 interval 정리 및 조기 반환
     if (!enabled) {
-      if (intervalRef.current) {
+      if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
       return;
     }
 
+    let disposed = false;
+    const idleCallbackIds = new Set<number>();
+    const timeoutIds = new Set<number>();
+    const requestIdle = (window as Partial<Window>).requestIdleCallback?.bind(
+      window,
+    );
+    const cancelIdle = (window as Partial<Window>).cancelIdleCallback?.bind(
+      window,
+    );
+    const scheduleCollection = () => {
+      if (requestIdle && cancelIdle) {
+        const id = requestIdle(() => {
+          idleCallbackIds.delete(id);
+          if (!disposed) collectStats();
+        });
+        idleCallbackIds.add(id);
+        return;
+      }
+
+      const id = window.setTimeout(() => {
+        timeoutIds.delete(id);
+        if (!disposed) collectStats();
+      }, 0);
+      timeoutIds.add(id);
+    };
+
     // 초기 수집
-    if ("requestIdleCallback" in window) {
-      (window as Window).requestIdleCallback(() => {
-        collectStats();
-      });
-    } else {
-      setTimeout(collectStats, 0);
-    }
+    scheduleCollection();
 
     // 주기적 수집
-    intervalRef.current = window.setInterval(() => {
-      if ("requestIdleCallback" in window) {
-        (window as Window).requestIdleCallback(() => {
-          collectStats();
-        });
-      } else {
-        collectStats();
-      }
-    }, interval);
+    intervalRef.current = window.setInterval(scheduleCollection, interval);
 
     return () => {
-      if (intervalRef.current) {
+      disposed = true;
+      if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      idleCallbackIds.forEach((id) => cancelIdle?.(id));
+      idleCallbackIds.clear();
+      timeoutIds.forEach((id) => clearTimeout(id));
+      timeoutIds.clear();
     };
   }, [enabled, interval, collectStats]);
 

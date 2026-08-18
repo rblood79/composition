@@ -25,6 +25,7 @@ import {
   PanelSnapInteractionProvider,
   usePanelSnapInteraction,
 } from "./PanelSnapContext";
+import { PanelSplitter } from "./PanelSplitter";
 import {
   mountPanelWorkspaceDiagnostics,
   recordPanelFrameApplied,
@@ -61,53 +62,6 @@ const RESIZE_EDGE_LABELS: Record<PanelResizeEdge, string> = {
   top: "상단",
   bottom: "하단",
 };
-
-interface PanelResizeHandleProps {
-  edge: PanelResizeEdge;
-  config: PanelConfig;
-  geometry: PanelFrameGeometry;
-  layoutVersion?: number;
-  onResizeStart: () => void;
-  onResize: (edge: PanelResizeEdge, deltaX: number, deltaY: number) => void;
-  onResizeEnd: () => void;
-}
-
-function PanelResizeHandle({
-  edge,
-  config,
-  geometry,
-  layoutVersion,
-  onResizeStart,
-  onResize,
-  onResizeEnd,
-}: PanelResizeHandleProps) {
-  const adjustsWidth = edge === "left" || edge === "right";
-  const { moveProps } = useMove({
-    onMoveStart: onResizeStart,
-    onMove: (event) => onResize(edge, event.deltaX, event.deltaY),
-    onMoveEnd: onResizeEnd,
-  });
-
-  return (
-    <div
-      {...moveProps}
-      className="panel-resize-handle"
-      data-edge={edge}
-      data-layout-version={layoutVersion}
-      role="separator"
-      aria-label={`${config.name} 패널 ${RESIZE_EDGE_LABELS[edge]} 크기 조절`}
-      aria-orientation={adjustsWidth ? "vertical" : "horizontal"}
-      aria-valuenow={adjustsWidth ? geometry.width : geometry.height}
-      aria-valuemin={
-        adjustsWidth ? (config.minWidth ?? 200) : (config.minHeight ?? 160)
-      }
-      aria-valuemax={
-        adjustsWidth ? (config.maxWidth ?? 800) : (config.maxHeight ?? 800)
-      }
-      tabIndex={0}
-    />
-  );
-}
 
 function railSideForPanel(
   layout: PanelWorkspaceLayoutV2,
@@ -152,18 +106,20 @@ function frameZIndex(
 
 interface PanelFrameContentProps {
   config: PanelConfig;
+  contentId: string;
   mode: PanelFrameMode;
   side: PanelSide;
 }
 
 const PanelFrameContent = memo(function PanelFrameContent({
   config,
+  contentId,
   mode,
   side,
 }: PanelFrameContentProps) {
   const PanelComponent = config.component;
   return (
-    <div className="workspace-panel-content">
+    <div id={contentId} className="workspace-panel-content">
       <Activity mode={mode === "hidden" ? "hidden" : "visible"}>
         <PanelComponent
           isActive={true}
@@ -219,6 +175,7 @@ const PanelFrame = memo(function PanelFrame({
   const isActive = snapshotFrame !== null;
   const mode = frameMode(snapshotFrame);
   const isClustered = panelBelongsToMultiPanelCluster(runtime, config.id);
+  const contentId = `panel-${config.id}-content`;
 
   useLayoutEffect(() => {
     recordPanelFrameCommit(config.id);
@@ -456,20 +413,40 @@ const PanelFrame = memo(function PanelFrame({
           ))}
         </div>
       )}
-      <PanelFrameContent config={config} mode={mode} side={side} />
+      <PanelFrameContent
+        config={config}
+        contentId={contentId}
+        mode={mode}
+        side={side}
+      />
       {resizeEdges.map((edge) => (
-        <PanelResizeHandle
+        <PanelSplitter
           key={edge}
           edge={edge}
-          config={config}
-          geometry={appliedGeometry}
+          label={`${config.name} 패널 ${RESIZE_EDGE_LABELS[edge]} 크기 조절`}
+          controls={contentId}
+          value={
+            edge === "left" || edge === "right"
+              ? appliedGeometry.width
+              : appliedGeometry.height
+          }
+          minValue={
+            edge === "left" || edge === "right"
+              ? (config.minWidth ?? 200)
+              : (config.minHeight ?? 160)
+          }
+          maxValue={
+            edge === "left" || edge === "right"
+              ? (config.maxWidth ?? 800)
+              : (config.maxHeight ?? 800)
+          }
           layoutVersion={snapshotFrame?.layoutVersion}
           onResizeStart={() => {
             runtime.beginInteraction();
             interactionCancelledRef.current = false;
             isInteractingRef.current = true;
           }}
-          onResize={handleResize}
+          onResize={(deltaX, deltaY) => handleResize(edge, deltaX, deltaY)}
           onResizeEnd={() => {
             if (!interactionCancelledRef.current) {
               onCommitLayout(runtime.endInteraction());

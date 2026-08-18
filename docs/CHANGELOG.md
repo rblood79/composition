@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-922 G4·G5 hidden lifecycle과 panel splitter 접근성] - 2026-08-18
+
+### Architecture
+
+- **Phase 5에서 stable-mounted panel의 hidden work와 resize 접근성 계약을 완결**:
+  - Monitor를 숨기면 React `Activity`가 chart RAF, `ResizeObserver`, polling Effect를 정리하고, Effect cleanup 밖에 남던 memory-history RAF와 pending idle collection도 명시적으로 취소한다. Realtime tab 같은 local UI state는 hidden→visible 왕복 뒤 그대로 유지된다
+  - resize handle을 shared `PanelSplitter`로 추출했다. React Aria `useMove`의 pointer/Arrow 동작에 `useKeyboard` Home/End를 결합하고, separator name/orientation/value/min/max와 controlled panel content 관계를 한 곳에서 제공한다
+  - left/top edge의 min/max delta 반전과 RTL physical Arrow 방향을 component fixture로 고정했다. populated Builder에서는 splitter resize와 panel move를 keyboard로 1px 이동 후 원복하고 focus-visible과 ARIA 갱신을 확인했다
+  - shell은 기존 content node에 stable id만 부여한다. `PanelHeader`/title/action/contents DOM과 스타일은 변경하지 않으며, History 대표 frame에서 각 구조가 중복 없이 1개임을 검증했다
+
 ## [ADR-922 G3 workspace occupancy와 Canvas-local metrics 전환] - 2026-08-18
 
 ### Architecture

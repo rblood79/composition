@@ -29,6 +29,18 @@ const TEST_CONFIGS: PanelConfig[] = PANEL_WORKSPACE_TEST_REGISTRY.map(
   }),
 );
 
+function RepresentativePanel() {
+  return (
+    <div className="panel representative-panel">
+      <div className="panel-header">
+        <span className="panel-title">Nodes</span>
+        <div className="panel-actions" />
+      </div>
+      <div className="panel-contents" />
+    </div>
+  );
+}
+
 describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
   beforeEach(() => {
     vi.spyOn(PanelRegistry, "getAllPanels").mockReturnValue(TEST_CONFIGS);
@@ -85,5 +97,36 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(main?.getAttribute("data-layout-version")).toBe(
       host?.getAttribute("data-layout-version"),
     );
+  });
+
+  it("shell이 기존 panel header/action/content DOM을 복제하지 않는다", () => {
+    vi.mocked(PanelRegistry.getAllPanels).mockReturnValue(
+      TEST_CONFIGS.map((config) =>
+        config.id === "nodes"
+          ? { ...config, component: RepresentativePanel }
+          : config,
+      ),
+    );
+
+    const { container } = render(
+      <PanelWorkspace>
+        <div />
+      </PanelWorkspace>,
+    );
+    const frame = container.querySelector(
+      '.workspace-panel-frame[data-panel="nodes"]',
+    );
+
+    expect(frame?.querySelectorAll(".workspace-panel-content")).toHaveLength(1);
+    expect(frame?.querySelectorAll(".panel-header")).toHaveLength(1);
+    expect(frame?.querySelectorAll(".panel-title")).toHaveLength(1);
+    expect(frame?.querySelectorAll(".panel-actions")).toHaveLength(1);
+    expect(frame?.querySelectorAll(".panel-contents")).toHaveLength(1);
+
+    const splitter = frame?.querySelector('[role="separator"]');
+    const controlledPaneId = splitter?.getAttribute("aria-controls");
+    const controlledPane = frame?.querySelector(".workspace-panel-content");
+    expect(controlledPaneId).toBe("panel-nodes-content");
+    expect(controlledPane?.id).toBe(controlledPaneId);
   });
 });

@@ -573,6 +573,20 @@ interface PanelLayoutV1BackupEnvelope {
 - shared `PanelSplitter`의 pointer/keyboard/ARIA contract test를 추가한다.
 - panel header/action/content DOM이 변하지 않았음을 static/component/browser로 고정한다.
 
+#### 실행 기록 — G4·G5 PASS / Phase 5 cutover (2026-08-18)
+
+- [Phase 5 visibility/accessibility evidence](./922-phase-5-visibility-accessibility-evidence.md)에
+  panel callback inventory, 실제 `Activity` hidden callback 0회와 local tab state 보존,
+  splitter pointer/keyboard/ARIA/browser 결과를 기록했다.
+- Monitor의 continuous Effect는 기존 `Activity` cleanup에 맡기고, cleanup 이후에도 남던
+  pending memory-history RAF와 idle collection만 명시적으로 취소한다. 다른 panel의
+  observer/listener/RAF는 Activity 내부 cleanup 또는 의도적인 global owner임을 확인했다.
+- resize D1 계약은 shared `PanelSplitter`로 모았다. `useMove` pointer/Arrow와
+  `useKeyboard` Home/End, orientation/value/min/max/name/controlled-pane 관계를 한 곳에서
+  제공하며 left/top edge의 반전 delta와 RTL physical direction을 fixture로 고정했다.
+- shell은 content node에 stable id만 부여하고 기존 `PanelHeader`/action/contents wrapper를
+  추가하거나 숨기지 않는다. 대표 component/browser에서 각 DOM 1개를 확인했다.
+
 ### Phase 6 — legacy 제거와 최종 전환
 
 - v1 state field와 compatibility action/method 이름을 제거한다.
@@ -735,8 +749,8 @@ interface PanelLayoutV1BackupEnvelope {
 - [x] 인접 panel은 drag 중 동시에 resize된다.
 - [x] 세로 stack은 workspace 높이를 넘지 않는다.
 - [x] Monitor bottom placement와 toggle/persistence가 유지된다.
-- [ ] hidden panel의 고비용 work가 중단되고 local state는 보존된다.
-- [ ] splitter pointer/keyboard/screen reader 계약이 검증됐다.
+- [x] hidden panel의 고비용 work가 중단되고 local state는 보존된다.
+- [x] splitter pointer/keyboard/screen reader 계약이 검증됐다.
 - [x] `.panel-rail-measure-*`와 `panelLayoutRuntime` production 소비가 제거됐다.
 - [ ] `useActiveScope`/DataTable activation이 v2로 전환되고 기존 side/mode compatibility
       state와 unused legacy host/export가 최종 phase에서 제거됐다.

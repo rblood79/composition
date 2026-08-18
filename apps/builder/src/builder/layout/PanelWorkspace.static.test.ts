@@ -7,6 +7,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     readFile(resolve(__dirname, "PanelWorkspace.tsx"), "utf-8");
   const readStyles = () =>
     readFile(resolve(__dirname, "PanelWorkspace.css"), "utf-8");
+  const readSplitter = () =>
+    readFile(resolve(__dirname, "PanelSplitter.tsx"), "utf-8");
   const readCanvasStyles = () =>
     readFile(resolve(__dirname, "../styles/layout/canvas.css"), "utf-8");
 
@@ -44,7 +46,10 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
   });
 
   it("모든 활성 패널을 React Aria move로 직접 이동하고 panel-relative snap target을 제공한다", async () => {
-    const source = await readWorkspace();
+    const [source, splitter] = await Promise.all([
+      readWorkspace(),
+      readSplitter(),
+    ]);
 
     expect(source).toContain("useMove({");
     expect(source).toMatch(/<button\s+\{\.\.\.moveProps\}/);
@@ -57,9 +62,13 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).not.toContain("useDrop({");
     expect(source).not.toContain("querySelectorAll(");
     expect(source).not.toContain("getBoundingClientRect(");
-    expect(source).toContain('role="separator"');
-    expect(source).toContain("aria-valuemin");
-    expect(source).toContain("aria-valuemax");
+    expect(source).toContain("<PanelSplitter");
+    expect(splitter).toContain("useMove({");
+    expect(splitter).toContain("useKeyboard({");
+    expect(splitter).toContain('role="separator"');
+    expect(splitter).toContain("aria-controls={controls}");
+    expect(splitter).toContain("aria-valuemin={minValue}");
+    expect(splitter).toContain("aria-valuemax={maxValue}");
   });
 
   it("viewport dock 대신 자유 위치 또는 인접 panel column/stack 관계를 persist한다", async () => {

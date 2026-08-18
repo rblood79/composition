@@ -115,7 +115,7 @@ export function MonitorPanel() {
       prevStatsRef.current = stats;
 
       // requestAnimationFrame으로 다음 프레임에 업데이트
-      requestAnimationFrame(() => {
+      const animationFrame = requestAnimationFrame(() => {
         setMemoryHistory((prev) => {
           const newHistory = [...prev, newValue];
 
@@ -126,6 +126,8 @@ export function MonitorPanel() {
           return newHistory;
         });
       });
+
+      return () => cancelAnimationFrame(animationFrame);
     }
   }, [stats, activeTab]);
 

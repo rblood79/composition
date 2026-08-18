@@ -27,7 +27,7 @@ export function useTimeSeriesData(
     memoryPercent: number;
     historyEntries: number;
   } | null,
-  options: UseTimeSeriesOptions = {}
+  options: UseTimeSeriesOptions = {},
 ) {
   const { maxPoints = 60, intervalMs = 1000, enabled = true } = options;
   const [data, setData] = useState<DataPoint[]>([]);
@@ -53,7 +53,7 @@ export function useTimeSeriesData(
 
   useEffect(() => {
     if (!enabled) {
-      if (intervalRef.current) {
+      if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
@@ -68,8 +68,9 @@ export function useTimeSeriesData(
 
     return () => {
       clearTimeout(timeoutId);
-      if (intervalRef.current) {
+      if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [enabled, intervalMs, collectPoint]);

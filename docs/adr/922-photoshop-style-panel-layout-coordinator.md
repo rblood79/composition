@@ -8,10 +8,12 @@ Accepted — 2026-08-18
 Phase 1 / G1 PASS — [v2 model/migration evidence](./design/922-phase-1-model-migration-evidence.md),
 Phase 2 / G2a PASS — [layout coordinator shadow evidence](./design/922-phase-2-layout-coordinator-evidence.md),
 Phase 3 / G2b PASS — [real-frame production cutover evidence](./design/922-phase-3-real-frame-cutover-evidence.md),
-Phase 4 / G3 PASS — [workspace occupancy/Canvas-local evidence](./design/922-phase-4-workspace-occupancy-evidence.md).
+Phase 4 / G3 PASS — [workspace occupancy/Canvas-local evidence](./design/922-phase-4-workspace-occupancy-evidence.md),
+Phase 5 / G4·G5 PASS — [visibility/accessibility evidence](./design/922-phase-5-visibility-accessibility-evidence.md).
 Production frame, interaction, live store와 primary persisted state는 v2로 전환됐다. 실제
-workspace occupancy와 Canvas consumer도 공통 main slot으로 전환됐다. visibility lifecycle과
-접근성은 Phase 5 범위로 남아 있다.
+workspace occupancy와 Canvas consumer도 공통 main slot으로 전환됐고, hidden panel lifecycle과
+shared splitter 접근성 계약도 통과했다. legacy host/state 제거와 최종 rollback rehearsal은
+Phase 6 범위로 남아 있다.
 
 ## Context
 
@@ -287,7 +289,7 @@ architecture로 통일한다.
 | R1  | v1 migration/구버전 rollback에서 panel 누락·중복·위치 손실                                               |   HIGH    |    MEDIUM    | exact v2 schema, pure migration 6종, migrationId backup, refresh/old-code rollback을 G1/G6에서 검증            |
 | R2  | coordinator가 frame별 state를 따로 publish하거나 전체 React tree를 commit해 tearing/native cadence 저하  |   HIGH    |    MEDIUM    | immutable snapshot, RAF당 publish 1회, applied-version/native-refresh trace를 G2a/G2b에서 검증                 |
 | R3  | shell이 줄인 main content에서 Canvas가 inset을 다시 차감해 fit/scrollbar/minimap/compare 좌표가 어긋남   |   HIGH    |    MEDIUM    | shell-only inset 적용, Canvas-local actual rect, double-subtraction fixture와 compare browser flow를 G3에 연결 |
-| R4  | stable mount된 hidden panel의 chart/observer/subscription이 CPU·memory를 계속 소비                       |   HIGH    |    MEDIUM    | 공통 visibility lifecycle + Monitor 대표 callback 0회 fixture를 G4에서 검증                                    |
+| R4  | stable mount된 hidden panel의 chart/observer/subscription이 CPU·memory를 계속 소비                       |   HIGH    |     LOW      | 공통 visibility lifecycle + Monitor 대표 callback 0회 fixture를 G4에서 검증                                    |
 | R5  | custom splitter가 pointer만 지원하거나 ARIA range/keyboard 의미가 불완전                                 |   HIGH    |     LOW      | shared React Aria/WAI-ARIA primitive와 Arrow/Home/End/RTL/browser smoke를 G5에서 검증                          |
 | R6  | shell이 title/close action을 다시 소유해 기존 `PanelHeader` layout 회귀                                  |  MEDIUM   |     LOW      | shell/content ownership static test와 대표 panel header screenshot 비교                                        |
 | R7  | legacy 제거에서 Monitor 또는 `useActiveScope`/DataTable panel activation consumer가 누락됨               |   HIGH    |     LOW      | producer/consumer inventory와 bottom/shortcut/editor fixture 후 마지막 phase에서만 legacy 제거                 |
