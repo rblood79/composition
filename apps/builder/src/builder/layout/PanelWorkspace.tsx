@@ -648,7 +648,11 @@ function PanelWorkspaceContent() {
         ref={(element) => registerPanelElement("right", element)}
       />
 
-      <div className="panel-activity-rail" data-side="left">
+      <div
+        className="panel-activity-rail"
+        data-side="left"
+        style={{ zIndex: effectiveLayout.nextModalZIndex + 1 }}
+      >
         <PanelNav
           side="left"
           panelIds={effectiveLayout.leftPanels}
@@ -656,7 +660,11 @@ function PanelWorkspaceContent() {
           onPanelClick={(panelId) => togglePanel("left", panelId)}
         />
       </div>
-      <div className="panel-activity-rail" data-side="right">
+      <div
+        className="panel-activity-rail"
+        data-side="right"
+        style={{ zIndex: effectiveLayout.nextModalZIndex + 1 }}
+      >
         <PanelNav
           side="right"
           panelIds={effectiveLayout.rightPanels}
@@ -664,7 +672,11 @@ function PanelWorkspaceContent() {
           onPanelClick={(panelId) => togglePanel("right", panelId)}
         />
       </div>
-      <div className="panel-activity-rail" data-side="bottom">
+      <div
+        className="panel-activity-rail"
+        data-side="bottom"
+        style={{ zIndex: effectiveLayout.nextModalZIndex + 1 }}
+      >
         <PanelNav
           side="bottom"
           panelIds={effectiveLayout.bottomPanels}

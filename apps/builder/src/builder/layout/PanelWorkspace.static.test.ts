@@ -39,6 +39,9 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(canvasStyles).toContain(
       ".app :where(aside, .panel-workspace) .panel-header",
     );
+    expect(source).toContain(
+      "style={{ zIndex: effectiveLayout.nextModalZIndex + 1 }}",
+    );
   });
 
   it("모든 활성 패널을 React Aria move로 직접 이동하고 panel-relative snap target을 제공한다", async () => {

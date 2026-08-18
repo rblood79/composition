@@ -7,14 +7,14 @@
  */
 
 import { useState } from "react";
-import { Box, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
-import { Button } from "react-aria-components";
+import { Box, RefreshCw } from "lucide-react";
 import {
   useComponentMemory,
   type ComponentMemoryInfo,
 } from "../hooks/useComponentMemory";
 import { formatBytes } from "../hooks/useMemoryStats";
-import { iconSmall, iconEditProps, iconLarge } from "../../../../utils/ui/uiConstants";
+import { iconSmall, iconLarge } from "../../../../utils/ui/uiConstants";
+import { ActionIconButton, PropertySelect } from "../../../components";
 
 interface ComponentMemoryListProps {
   enabled?: boolean;
@@ -22,9 +22,13 @@ interface ComponentMemoryListProps {
 
 type SortBy = "memory" | "children" | "depth";
 
-function getMemoryLevel(
-  percentage: number
-): "high" | "medium" | "low" {
+const SORT_OPTIONS = [
+  { value: "memory", label: "Memory" },
+  { value: "children", label: "Children" },
+  { value: "depth", label: "Depth" },
+] as const;
+
+function getMemoryLevel(percentage: number): "high" | "medium" | "low" {
   if (percentage >= 15) return "high";
   if (percentage >= 5) return "medium";
   return "low";
@@ -34,7 +38,6 @@ export function ComponentMemoryList({
   enabled = true,
 }: ComponentMemoryListProps) {
   const [sortBy, setSortBy] = useState<SortBy>("memory");
-  const [expanded, setExpanded] = useState(true);
   const { componentMemory, totalMemory, refresh } = useComponentMemory({
     enabled,
     sortBy,
@@ -43,36 +46,22 @@ export function ComponentMemoryList({
 
   return (
     <div className="component-memory-list">
-      {/* Header */}
-      <div className="component-memory-header">
-        <button
-          type="button"
-          className="component-memory-toggle"
-          onClick={() => setExpanded(!expanded)}
-          aria-expanded={expanded}
+      <div className="component-memory-controls">
+        <PropertySelect
+          className="component-memory-sort"
+          label="Sort by"
+          value={sortBy}
+          options={SORT_OPTIONS}
+          onChange={(value) => setSortBy(value as SortBy)}
+        />
+        <ActionIconButton
+          className="component-memory-refresh"
+          onPress={refresh}
+          aria-label="Refresh component memory"
+          tooltip="Refresh component memory"
         >
-          {expanded ? <ChevronUp size={iconEditProps.size} /> : <ChevronDown size={iconEditProps.size} />}
-          <span>Component Memory</span>
-        </button>
-        <div className="component-memory-controls">
-          <select
-            className="component-memory-sort"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortBy)}
-            aria-label="Sort by"
-          >
-            <option value="memory">Memory</option>
-            <option value="children">Children</option>
-            <option value="depth">Depth</option>
-          </select>
-          <Button
-            className="component-memory-refresh"
-            onPress={refresh}
-            aria-label="Refresh"
-          >
-            <RefreshCw size={iconSmall.size} />
-          </Button>
-        </div>
+          <RefreshCw size={iconSmall.size} />
+        </ActionIconButton>
       </div>
 
       {/* Total */}
@@ -81,20 +70,20 @@ export function ComponentMemoryList({
         <span className="total-value">{formatBytes(totalMemory)}</span>
       </div>
 
-      {/* List */}
-      {expanded && (
-        <div className="component-memory-items" role="list">
-          {componentMemory.map((info) => (
-            <ComponentMemoryItem key={info.elementId} info={info} />
-          ))}
-          {componentMemory.length === 0 && (
-            <div className="component-memory-empty">
-              <Box size={iconLarge.size} />
-              <p>No components to analyze</p>
-            </div>
-          )}
-        </div>
-      )}
+      <div
+        className="list-group list-group--stack component-memory-items"
+        role="list"
+      >
+        {componentMemory.map((info) => (
+          <ComponentMemoryItem key={info.elementId} info={info} />
+        ))}
+        {componentMemory.length === 0 && (
+          <div className="component-memory-empty">
+            <Box size={iconLarge.size} />
+            <p>No components to analyze</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -107,37 +96,35 @@ function ComponentMemoryItem({ info }: ComponentMemoryItemProps) {
   const level = getMemoryLevel(info.percentage);
 
   return (
-    <div className="component-memory-item" data-level={level} role="listitem">
-      <div className="component-memory-item-header">
-        <span className="component-type">{info.type}</span>
-        {info.customId && (
-          <span className="component-customid">#{info.customId}</span>
-        )}
+    <div
+      className="list-item component-memory-item"
+      data-level={level}
+      role="listitem"
+    >
+      <div className="list-item-icon" aria-hidden="true">
+        <Box size={iconSmall.size} />
       </div>
-      <div className="component-memory-item-stats">
-        <div className="component-stat">
-          <span className="stat-value">{formatBytes(info.memoryBytes)}</span>
-          <span className="stat-label">Memory</span>
+      <div className="list-item-content">
+        <div className="list-item-name">
+          {info.type}
+          {info.customId && (
+            <span className="component-customid">#{info.customId}</span>
+          )}
         </div>
-        <div className="component-stat">
-          <span className="stat-value">{info.childCount}</span>
-          <span className="stat-label">Children</span>
+        <div className="list-item-meta">
+          {formatBytes(info.memoryBytes)} · {info.childCount} children · depth{" "}
+          {info.depth}
         </div>
-        <div className="component-stat">
-          <span className="stat-value">{info.depth}</span>
-          <span className="stat-label">Depth</span>
-        </div>
-        <div className="component-stat">
-          <span className="stat-value">{info.percentage.toFixed(1)}%</span>
-          <span className="stat-label">Share</span>
+        <div className="component-memory-bar" aria-hidden="true">
+          <div
+            className="component-memory-bar-fill"
+            style={{ width: `${Math.min(100, info.percentage)}%` }}
+          />
         </div>
       </div>
-      <div className="component-memory-bar">
-        <div
-          className="component-memory-bar-fill"
-          style={{ width: `${Math.min(100, info.percentage)}%` }}
-        />
-      </div>
+      <span className="list-item-badge component-memory-share">
+        {info.percentage.toFixed(1)}%
+      </span>
     </div>
   );
 }

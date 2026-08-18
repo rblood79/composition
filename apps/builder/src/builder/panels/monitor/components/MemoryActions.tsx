@@ -5,7 +5,7 @@
  */
 
 import { RefreshCw } from "lucide-react";
-import { Button } from "react-aria-components";
+import { Button } from "@composition/shared/components";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 
@@ -33,6 +33,7 @@ export function MemoryActions({
       </div>
       <Button
         className="optimize-button"
+        size="sm"
         onPress={onOptimize}
         isDisabled={isOptimizing}
         aria-label="Optimize memory"

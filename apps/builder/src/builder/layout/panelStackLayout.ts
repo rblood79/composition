@@ -164,7 +164,9 @@ export function fitPanelClustersToWorkspace(
   layout: PanelLayoutState,
   workspace: PanelWorkspaceSize,
 ): PanelLayoutState {
-  if (layout.panelClusters.length === 0) return layout;
+  if (layout.panelClusters.length === 0 && layout.modalPanels.length === 0) {
+    return layout;
+  }
 
   const modalPanels = layout.modalPanels.map((panel) => ({
     ...panel,
@@ -265,6 +267,33 @@ export function fitPanelClustersToWorkspace(
     });
 
     fittedClusters.push({ ...cluster, columns });
+  }
+
+  const clusteredPanelIds = new Set(
+    fittedClusters.flatMap((cluster) =>
+      cluster.columns.flatMap((column) => column.panelIds),
+    ),
+  );
+  for (const panel of modalPanels) {
+    if (clusteredPanelIds.has(panel.panelId)) continue;
+
+    const desiredSize = layout.panelSizes[panel.panelId] ?? panel.size;
+    panel.size = {
+      width: Math.min(Math.max(0, desiredSize.width), availableWidth),
+      height: Math.min(Math.max(0, desiredSize.height), availableHeight),
+    };
+    panel.position = {
+      x: clamp(
+        panel.position.x,
+        PANEL_STACK_MARGIN,
+        workspace.width - PANEL_STACK_MARGIN - panel.size.width,
+      ),
+      y: clamp(
+        panel.position.y,
+        PANEL_STACK_MARGIN,
+        workspace.height - PANEL_STACK_MARGIN - panel.size.height,
+      ),
+    };
   }
 
   return {

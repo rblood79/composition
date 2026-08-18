@@ -92,7 +92,7 @@ function SettingsContent() {
   };
 
   return (
-    <div className="settings-panel">
+    <div className="panel settings-panel">
       <PanelHeader icon={<Settings size={iconProps.size} />} title="Settings" />
 
       <div className="panel-settings">

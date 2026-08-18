@@ -65,7 +65,8 @@
   }
 
   /* Panel Header */
-  .app :where(aside, .panel-workspace) .panel-header {
+  .app :where(aside, .panel-workspace) .panel-header,
+  .command-palette-modal .panel-header {
     height: var(--header-height);
     background-color: var(--bg-raised);
     border-bottom: 1px solid var(--border);

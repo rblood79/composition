@@ -131,6 +131,26 @@ describe("usePanelLayout Photoshop식 panel placement", () => {
     });
   });
 
+  it("숨겨진 right side에 활성 패널이 남아 있어도 첫 toggle로 다시 표시한다", () => {
+    useStore.setState({
+      panelLayout: {
+        ...createLayout(),
+        showRight: false,
+        activeRightPanels: ["properties"],
+      },
+    });
+    const { result } = renderHook(() => usePanelLayout());
+
+    act(() => result.current.togglePanel("right", "properties"));
+
+    expect(useStore.getState().panelLayout).toEqual(
+      expect.objectContaining({
+        showRight: true,
+        activeRightPanels: ["properties"],
+      }),
+    );
+  });
+
   it("panel snap을 column 관계로 저장하고 rail toggle 시 관계를 보존한다", () => {
     useStore.setState({
       panelLayout: {

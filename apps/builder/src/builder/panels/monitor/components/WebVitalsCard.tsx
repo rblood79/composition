@@ -6,9 +6,10 @@
  * - Google 기준에 따른 상태 표시
  */
 
-import { Gauge, MousePointer, Layout, Clock } from "lucide-react";
+import { Gauge, MousePointer, Layout, Clock, RefreshCw } from "lucide-react";
 import type { WebVitals } from "../hooks/useWebVitals";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
+import { ActionIconButton } from "../../../components";
 
 interface WebVitalsCardProps {
   vitals: WebVitals;
@@ -25,7 +26,7 @@ const THRESHOLDS = {
 
 function getStatus(
   metric: keyof typeof THRESHOLDS,
-  value: number | null
+  value: number | null,
 ): "good" | "needs-improvement" | "poor" | "unknown" {
   if (value === null) return "unknown";
   const { good, poor } = THRESHOLDS[metric];
@@ -36,7 +37,7 @@ function getStatus(
 
 function formatValue(
   metric: keyof typeof THRESHOLDS,
-  value: number | null
+  value: number | null,
 ): string {
   if (value === null) return "—";
   if (metric === "cls") return value.toFixed(3);
@@ -84,14 +85,14 @@ export function WebVitalsCard({ vitals, onRefresh }: WebVitalsCardProps) {
       <div className="web-vitals-header">
         <h4 className="web-vitals-title">Core Web Vitals</h4>
         {onRefresh && (
-          <button
-            type="button"
+          <ActionIconButton
             className="web-vitals-refresh"
-            onClick={onRefresh}
+            onPress={onRefresh}
             aria-label="Refresh Web Vitals"
+            tooltip="Refresh Web Vitals"
           >
-            ↻
-          </button>
+            <RefreshCw size={iconEditProps.size} aria-hidden="true" />
+          </ActionIconButton>
         )}
       </div>
       <div className="web-vitals-grid">

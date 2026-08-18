@@ -16,7 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - snap 결과를 개별 `x/y`가 아니라 `panelClusters → columns → panelIds` 관계로 저장한다. 상·하는 같은 column의 순서로 삽입되어 폭을 공유하고, 좌·우는 같은 시작 높이의 인접 column으로 배치된다
   - column 내부는 Photoshop Online에서 확인한 `4px` 간격을 유지한다. 패널 높이 합계가 workspace를 넘으면 마지막 패널부터 content 높이를 줄여 전체 stack을 브라우저 안에 맞추고, viewport가 다시 커지면 마지막 사용자 조정 높이를 복원한다
   - snap된 panel의 내부 경계를 resize하면 drag 중인 panel과 인접 panel에 반대 delta를 같은 frame에 적용한다. pointer가 움직이는 동안에는 transient cluster layout만 렌더하고, resize 종료 시 최종 layout을 한 번만 저장한다
+  - Settings panel root를 공통 `.panel` 구조로 맞춰 frame resize 시 Header, Section, form control이 panel 전체 폭을 함께 채우도록 수정했다
+  - Monitor panel을 공통 `.panel` / `PanelHeader` / `.panel-contents` / `Section` DOM으로 전환했다. 차트는 `ResizeObserver`가 읽은 실제 SVG 폭을 좌표계로 사용해 panel resize 중에도 텍스트가 가로로 늘어지지 않고, tab은 5-column grid로 반응한다. legacy `minWidth: 600`은 공통 233px로 낮추되 초기 bottom 폭 600px은 유지했다
+  - Analysis의 raw button/select과 Threshold의 absolute popup/native range를 공통 `ActionIconButton` / `PropertySelect` / `PropertySlider`와 React Aria `DialogTrigger` / `Popover` / `Dialog`로 교체했다. `component-memory-items`도 Builder 공통 `.list-group` / `.list-item` / `list-item-*` DOM으로 정렬했다. 300px 이하에서 tab은 아이콘만 보이지만 접근성 이름은 유지한다
+  - 빈 Memory chart의 1B 미만 눈금이 `undefined` 단위로 표시되던 `formatBytes` 경계값을 보정했다
+  - Command Palette는 React Aria `ModalOverlay`/`Dialog`/`ListBox`의 focus trap·dismiss·keyboard 계약을 유지하면서, 내부 shell을 공통 `.panel` / `PanelHeader` / `.panel-contents` 구조로 전환했다. 제목에는 toolbar와 같은 Command 아이콘을 표시한다. 검색 입력은 raw input 대신 공통 `BuilderSearchField`의 opt-in `control` appearance를 사용해 Properties와 같은 React Aria Group DOM, compact spacing, muted surface, radius, inset shadow, focus ring을 공유한다. 검색 영역과 목록은 같은 `var(--spacing-sm)` outer inset을 사용하며, 포털에서도 같은 Header 스타일이 적용되고 modal 표면·간격·행·shortcut badge는 Builder token을 사용한다
   - activity rail의 기존 on/off는 유지한다. stack panel을 껐다 켜면 관계와 순서가 보존된 상태로 reflow하며, panel을 직접 이동하면 cluster에서 분리할 수 있다. keyboard 이동도 snap 감지대를 연속해서 빠져나올 수 있도록 release hysteresis를 유지한다
+  - 저장된 Properties 같은 독립 placed panel이 현재 viewport 밖에 남아 rail toggle 후에도 보이지 않던 문제를 수정했다. cluster가 없는 panel도 workspace 경계 안으로 복귀시키고, `showRight=false`와 active 배열이 불일치한 저장 상태는 첫 toggle에서 다시 표시되도록 self-heal한다. activity rail은 현재 panel z-order보다 항상 위에 있어 panel이 rail 영역과 겹쳐도 pointer로 on/off할 수 있다
 
 ### Architecture
 

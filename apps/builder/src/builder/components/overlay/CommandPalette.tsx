@@ -21,7 +21,7 @@ import {
   ListBoxItem,
   ModalOverlay,
 } from "react-aria-components";
-import { Search } from "lucide-react";
+import { Command } from "lucide-react";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
@@ -33,6 +33,8 @@ import {
   type ShortcutCategory,
 } from "@/builder/hooks";
 import { iconProps } from "../../../utils/ui/uiConstants";
+import { PanelHeader } from "../panel/PanelHeader";
+import { SearchField as BuilderSearchField } from "../ui/SearchField";
 import "./CommandPalette.css";
 
 // ============================================
@@ -231,29 +233,31 @@ export function CommandPalette({
       className="command-palette-overlay"
     >
       <Modal className="command-palette-modal">
-        <Dialog aria-label="Command Palette">
-          <div onKeyDown={handleKeyDown}>
-            {/* Search Input */}
-            <div className="command-palette-search">
-              <Search
-                size={iconProps.size}
-                className="command-palette-search-icon"
-              />
-              <input
-                ref={inputRef}
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="명령어 검색..."
-                className="command-palette-input"
-                aria-label="Search commands"
-              />
-            </div>
+        <Dialog
+          aria-label="명령어 팔레트"
+          className="panel command-palette-panel"
+        >
+          <PanelHeader
+            icon={<Command size={iconProps.size} />}
+            title="명령어"
+          />
+          <div
+            className="panel-contents command-palette-contents"
+            onKeyDown={handleKeyDown}
+          >
+            <BuilderSearchField
+              ref={inputRef}
+              appearance="control"
+              value={search}
+              onChange={setSearch}
+              placeholder="명령어 검색..."
+              aria-label="명령어 검색"
+            />
 
             {/* Command List */}
             {filteredCommands.length > 0 ? (
               <ListBox
-                aria-label="Commands"
+                aria-label="명령어 목록"
                 className="command-palette-list"
                 selectionMode="single"
                 onAction={(key) => executeCommand(key as ShortcutId)}

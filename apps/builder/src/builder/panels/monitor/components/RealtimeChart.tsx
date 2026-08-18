@@ -9,6 +9,7 @@
 
 import { useMemo } from "react";
 import type { DataPoint } from "../hooks/useTimeSeriesData";
+import { useResponsiveChartWidth } from "./useResponsiveChartWidth";
 
 interface RealtimeChartProps {
   data: DataPoint[];
@@ -25,8 +26,13 @@ export function RealtimeChart({
   metric = "memoryPercent",
   showThresholds = true,
 }: RealtimeChartProps) {
+  const { chartRef, chartWidth: responsiveWidth } =
+    useResponsiveChartWidth(width);
   const padding = { top: 10, right: 10, bottom: 20, left: 40 };
-  const chartWidth = width - padding.left - padding.right;
+  const chartWidth = Math.max(
+    1,
+    responsiveWidth - padding.left - padding.right,
+  );
   const chartHeight = height - padding.top - padding.bottom;
 
   // 데이터 범위 계산
@@ -89,7 +95,8 @@ export function RealtimeChart({
 
   return (
     <svg
-      width={width}
+      ref={chartRef}
+      width="100%"
       height={height}
       className="realtime-chart"
       aria-label={`Real-time ${metric} chart showing last ${data.length} seconds`}
@@ -102,7 +109,7 @@ export function RealtimeChart({
             key={i}
             x1={padding.left}
             y1={label.y}
-            x2={width - padding.right}
+            x2={responsiveWidth - padding.right}
             y2={label.y}
             className="chart-grid-line"
           />
@@ -116,7 +123,7 @@ export function RealtimeChart({
           <line
             x1={padding.left}
             y1={padding.top + chartHeight * 0.4}
-            x2={width - padding.right}
+            x2={responsiveWidth - padding.right}
             y2={padding.top + chartHeight * 0.4}
             className="chart-threshold-warning"
           />
@@ -124,7 +131,7 @@ export function RealtimeChart({
           <line
             x1={padding.left}
             y1={padding.top + chartHeight * 0.25}
-            x2={width - padding.right}
+            x2={responsiveWidth - padding.right}
             y2={padding.top + chartHeight * 0.25}
             className="chart-threshold-danger"
           />
@@ -142,11 +149,7 @@ export function RealtimeChart({
               x2="0"
               y2="1"
             >
-              <stop
-                offset="0%"
-                stopColor="var(--accent)"
-                stopOpacity="0.3"
-              />
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.3" />
               <stop
                 offset="100%"
                 stopColor="var(--accent)"

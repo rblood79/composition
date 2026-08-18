@@ -8,6 +8,7 @@
 import { forwardRef } from "react";
 import {
   Button,
+  Group,
   Input,
   SearchField as AriaSearchField,
   type SearchFieldProps as AriaSearchFieldProps,
@@ -50,25 +51,53 @@ export interface SearchFieldProps extends Omit<
 > {
   placeholder?: string;
   className?: string;
+  appearance?: "flat" | "control";
 }
 
 export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
-  function SearchField({ placeholder, className, ...props }, ref) {
-    return (
-      <AriaSearchField
-        {...props}
+  function SearchField(
+    { placeholder, className, appearance = "flat", ...props },
+    ref,
+  ) {
+    const rootClassName = [
+      "builder-search-field",
+      appearance === "control" && "builder-search-field--control",
+      className,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const input = <Input ref={ref} placeholder={placeholder} />;
+    const clearButton = (
+      <Button>{CLEAR_ICON && <LucideIcon data={CLEAR_ICON} />}</Button>
+    );
+    const searchIcon = SEARCH_ICON && (
+      <span
         className={
-          className
-            ? `builder-search-field ${className}`
-            : "builder-search-field"
+          appearance === "control"
+            ? "control-label builder-search-icon"
+            : "builder-search-icon"
         }
+        aria-hidden="true"
       >
-        <Input ref={ref} placeholder={placeholder} />
-        <Button>{CLEAR_ICON && <LucideIcon data={CLEAR_ICON} />}</Button>
-        {SEARCH_ICON && (
-          <span className="builder-search-icon" aria-hidden="true">
-            <LucideIcon data={SEARCH_ICON} />
-          </span>
+        <LucideIcon data={SEARCH_ICON} />
+      </span>
+    );
+
+    return (
+      <AriaSearchField {...props} className={rootClassName}>
+        {appearance === "control" ? (
+          <Group className="react-aria-control react-aria-Group">
+            {searchIcon}
+            {input}
+            {clearButton}
+          </Group>
+        ) : (
+          <>
+            {input}
+            {clearButton}
+            {searchIcon}
+          </>
         )}
       </AriaSearchField>
     );

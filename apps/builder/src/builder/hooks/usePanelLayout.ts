@@ -158,7 +158,9 @@ export function usePanelLayout(): UsePanelLayoutReturn {
       const currentLayout = getLayout();
       const actualSide = getPanelSide(currentLayout, panelId) ?? side;
       if (actualSide === "left") {
-        const isActive = currentLayout.activeLeftPanels.includes(panelId);
+        const isActive =
+          currentLayout.showLeft &&
+          currentLayout.activeLeftPanels.includes(panelId);
         setPanelLayout(
           fitClusters({
             ...currentLayout,
@@ -167,14 +169,18 @@ export function usePanelLayout(): UsePanelLayoutReturn {
               : [...currentLayout.leftPanels, panelId],
             activeLeftPanels: isActive
               ? currentLayout.activeLeftPanels.filter((id) => id !== panelId)
-              : [...currentLayout.activeLeftPanels, panelId],
+              : currentLayout.activeLeftPanels.includes(panelId)
+                ? currentLayout.activeLeftPanels
+                : [...currentLayout.activeLeftPanels, panelId],
             showLeft: true,
           }),
         );
         return;
       }
       if (actualSide === "right") {
-        const isActive = currentLayout.activeRightPanels.includes(panelId);
+        const isActive =
+          currentLayout.showRight &&
+          currentLayout.activeRightPanels.includes(panelId);
         setPanelLayout(
           fitClusters({
             ...currentLayout,
@@ -183,14 +189,18 @@ export function usePanelLayout(): UsePanelLayoutReturn {
               : [...currentLayout.rightPanels, panelId],
             activeRightPanels: isActive
               ? currentLayout.activeRightPanels.filter((id) => id !== panelId)
-              : [...currentLayout.activeRightPanels, panelId],
+              : currentLayout.activeRightPanels.includes(panelId)
+                ? currentLayout.activeRightPanels
+                : [...currentLayout.activeRightPanels, panelId],
             showRight: true,
           }),
         );
         return;
       }
 
-      const isActive = currentLayout.activeBottomPanels.includes(panelId);
+      const isActive =
+        currentLayout.showBottom &&
+        currentLayout.activeBottomPanels.includes(panelId);
       setPanelLayout(
         fitClusters({
           ...currentLayout,
@@ -240,7 +250,9 @@ export function usePanelLayout(): UsePanelLayoutReturn {
         return;
       }
 
-      const isActive = currentLayout.activeBottomPanels.includes(panelId);
+      const isActive =
+        currentLayout.showBottom &&
+        currentLayout.activeBottomPanels.includes(panelId);
 
       setPanelLayout(
         fitClusters({

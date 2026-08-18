@@ -28,6 +28,35 @@ function createLayout(): PanelLayoutState {
 }
 
 describe("Photoshop식 panel column/stack layout", () => {
+  it("cluster가 없는 placed panel도 viewport 안으로 복귀시킨다", () => {
+    const layout: PanelLayoutState = {
+      ...createLayout(),
+      modalPanels: [
+        {
+          panelId: "properties",
+          mode: "floating",
+          position: { x: 2312, y: 960 },
+          size: { width: 247, height: 638 },
+          zIndex: 1000,
+        },
+      ],
+    };
+
+    const fitted = fitPanelClustersToWorkspace(layout, {
+      width: 2111,
+      height: 1227,
+    });
+    const properties = fitted.modalPanels[0];
+
+    expect(fitted.panelClusters).toEqual([]);
+    expect(
+      (properties?.position.x ?? 0) + (properties?.size.width ?? 0),
+    ).toBeLessThanOrEqual(2111 - PANEL_STACK_MARGIN);
+    expect(
+      (properties?.position.y ?? 0) + (properties?.size.height ?? 0),
+    ).toBeLessThanOrEqual(1227 - PANEL_STACK_MARGIN);
+  });
+
   it("세로 stack의 공통 폭과 4px 간격을 유지하며 viewport 높이에 맞춘다", () => {
     const layout = snapPanelIntoCluster(
       createLayout(),

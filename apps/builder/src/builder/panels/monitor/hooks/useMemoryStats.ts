@@ -76,7 +76,7 @@ export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
       const recommendation = generateRecommendation(
         historyStats.totalEntries,
         historyStats.estimatedMemoryUsage,
-        browserMemory?.usagePercent
+        browserMemory?.usagePercent,
       );
 
       setStats({
@@ -173,7 +173,7 @@ export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
 function generateRecommendation(
   totalEntries: number,
   estimatedMemory: number,
-  browserUsagePercent?: number
+  browserUsagePercent?: number,
 ): string {
   const memoryMB = estimatedMemory / (1024 * 1024);
 
@@ -202,9 +202,12 @@ function generateRecommendation(
  * 바이트 단위 포맷팅
  */
 export function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
   const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(
+    Math.max(Math.floor(Math.log(bytes) / Math.log(k)), 0),
+    sizes.length - 1,
+  );
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }

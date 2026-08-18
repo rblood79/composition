@@ -9,6 +9,7 @@
 
 import { useMemo } from "react";
 import { formatBytes } from "../hooks/useMemoryStats";
+import { useResponsiveChartWidth } from "./useResponsiveChartWidth";
 
 interface MemoryChartProps {
   /** 메모리 사용량 히스토리 (bytes 배열) */
@@ -27,14 +28,25 @@ export function MemoryChart({
   height = 120,
   threshold,
 }: MemoryChartProps) {
+  const { chartRef, chartWidth: responsiveWidth } =
+    useResponsiveChartWidth(width);
   const padding = { top: 10, right: 10, bottom: 20, left: 50 };
-  const chartWidth = width - padding.left - padding.right;
+  const chartWidth = Math.max(
+    1,
+    responsiveWidth - padding.left - padding.right,
+  );
   const chartHeight = height - padding.top - padding.bottom;
 
   // 데이터 범위 계산
   const { minValue, maxValue, yScale, xScale, pathD } = useMemo(() => {
     if (data.length === 0) {
-      return { minValue: 0, maxValue: 1, yScale: () => 0, xScale: () => 0, pathD: "" };
+      return {
+        minValue: 0,
+        maxValue: 1,
+        yScale: () => 0,
+        xScale: () => 0,
+        pathD: "",
+      };
     }
 
     const min = Math.min(...data);
@@ -45,8 +57,10 @@ export function MemoryChart({
     const adjustedMax = max + range * 0.1;
 
     const yScaleFn = (value: number) =>
-      chartHeight - ((value - adjustedMin) / (adjustedMax - adjustedMin)) * chartHeight;
-    const xScaleFn = (index: number) => (index / (data.length - 1 || 1)) * chartWidth;
+      chartHeight -
+      ((value - adjustedMin) / (adjustedMax - adjustedMin)) * chartHeight;
+    const xScaleFn = (index: number) =>
+      (index / (data.length - 1 || 1)) * chartWidth;
 
     // SVG path 생성
     const points = data.map((value, index) => ({
@@ -81,7 +95,13 @@ export function MemoryChart({
 
   return (
     <div className="memory-chart">
-      <svg width={width} height={height} aria-label="Memory usage chart">
+      <svg
+        ref={chartRef}
+        width="100%"
+        height={height}
+        aria-label="Memory usage chart"
+        role="img"
+      >
         <g transform={`translate(${padding.left}, ${padding.top})`}>
           {/* Grid lines */}
           {yTicks.map((tick, i) => (
@@ -148,7 +168,9 @@ export function MemoryChart({
       </svg>
 
       {/* Current value display */}
-      <div className={`chart-current-value ${isAboveThreshold ? "danger" : ""}`}>
+      <div
+        className={`chart-current-value ${isAboveThreshold ? "danger" : ""}`}
+      >
         <span className="label">Current:</span>
         <span className="value">{formatBytes(currentValue)}</span>
       </div>

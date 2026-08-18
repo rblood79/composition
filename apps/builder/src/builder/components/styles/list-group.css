@@ -19,6 +19,18 @@
   gap: var(--spacing-sm);
 }
 
+/* Horizontal rows stacked vertically (DataTable/Monitor-style panel lists). */
+.list-group--stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.list-group--stack .list-item {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+}
+
 .panel-wrapper[data-panel="datatable"] .list-group {
   display: flex;
   flex-direction: column;

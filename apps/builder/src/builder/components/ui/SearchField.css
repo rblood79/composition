@@ -96,3 +96,50 @@
     display: none;
   }
 }
+
+/* Properties panel의 react-aria-control / Group 표면을 검색 입력에 재사용한다. */
+.builder-search-field--control {
+  height: auto;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+
+  .react-aria-Group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    padding: var(--spacing);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--bg-muted);
+    box-shadow: var(--inset-shadow-sm);
+
+    &:focus-within {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: -2px;
+    }
+  }
+
+  .control-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: self-start;
+    padding: var(--spacing-2xs);
+    color: var(--fg-muted);
+  }
+
+  .react-aria-Input {
+    padding: 0 0 0 var(--spacing);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+  }
+
+  &:not([data-empty]) .builder-search-icon {
+    display: flex;
+  }
+}

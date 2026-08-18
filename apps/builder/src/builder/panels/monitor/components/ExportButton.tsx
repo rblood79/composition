@@ -5,7 +5,7 @@
  */
 
 import { Download } from "lucide-react";
-import { Button } from "react-aria-components";
+import { Button } from "@composition/shared/components";
 import type { MemoryStats } from "../hooks/useMemoryStats";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
 
@@ -34,8 +34,7 @@ export function ExportButton({ stats, format = "json" }: ExportButtonProps) {
         ["Total Entries", stats.totalEntries, timestamp],
         ["Memory Usage (bytes)", stats.estimatedMemoryUsage, timestamp],
       ];
-      content =
-        BOM + [headers, ...rows].map((row) => row.join(",")).join("\n");
+      content = BOM + [headers, ...rows].map((row) => row.join(",")).join("\n");
       mimeType = "text/csv;charset=utf-8";
       extension = "csv";
     } else {
@@ -45,7 +44,7 @@ export function ExportButton({ stats, format = "json" }: ExportButtonProps) {
           exportedAt: timestamp,
         },
         null,
-        2
+        2,
       );
       mimeType = "application/json";
       extension = "json";
@@ -63,6 +62,8 @@ export function ExportButton({ stats, format = "json" }: ExportButtonProps) {
   return (
     <Button
       className="export-button"
+      variant="secondary"
+      size="sm"
       onPress={handleExport}
       isDisabled={!stats}
       aria-label={`Export stats as ${format.toUpperCase()}`}
