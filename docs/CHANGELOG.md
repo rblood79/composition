@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 좌상단 네 점의 거리만 비교하던 snap 판정을 상·하 horizontal edge band와 좌·우 vertical edge band의 교차 구간 판정으로 교체했다. 대상 패널과 시작 좌표가 일치하지 않아도 실제 edge가 가까우면 후보가 된다
   - snap 결과를 개별 `x/y`가 아니라 `panelClusters → columns → panelIds` 관계로 저장한다. 상·하는 같은 column의 순서로 삽입되어 폭을 공유하고, 좌·우는 같은 시작 높이의 인접 column으로 배치된다
   - column 내부는 Photoshop Online에서 확인한 `4px` 간격을 유지한다. 패널 높이 합계가 workspace를 넘으면 마지막 패널부터 content 높이를 줄여 전체 stack을 브라우저 안에 맞추고, viewport가 다시 커지면 마지막 사용자 조정 높이를 복원한다
+  - snap된 panel의 내부 경계를 resize하면 drag 중인 panel과 인접 panel에 반대 delta를 같은 frame에 적용한다. pointer가 움직이는 동안에는 transient cluster layout만 렌더하고, resize 종료 시 최종 layout을 한 번만 저장한다
   - activity rail의 기존 on/off는 유지한다. stack panel을 껐다 켜면 관계와 순서가 보존된 상태로 reflow하며, panel을 직접 이동하면 cluster에서 분리할 수 있다. keyboard 이동도 snap 감지대를 연속해서 빠져나올 수 있도록 release hysteresis를 유지한다
 
 ### Architecture

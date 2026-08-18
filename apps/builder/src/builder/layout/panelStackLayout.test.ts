@@ -8,6 +8,7 @@ import {
   PANEL_STACK_MARGIN,
   detachPanelFromClusters,
   fitPanelClustersToWorkspace,
+  previewPanelClusterResize,
   snapPanelIntoCluster,
 } from "./panelStackLayout";
 
@@ -139,5 +140,97 @@ describe("Photoshop식 panel column/stack layout", () => {
     expect(detachPanelFromClusters(snapped, "styles").panelClusters).toEqual(
       [],
     );
+  });
+
+  it("세로 stack의 내부 경계를 resize하면 인접 panel을 같은 delta로 즉시 보정한다", () => {
+    const snapped = snapPanelIntoCluster(
+      createLayout(),
+      "styles",
+      {
+        targetPanelId: "properties",
+        edge: "bottom",
+        source: { x: 700, y: 404, width: 300, height: 360 },
+        target: { x: 700, y: 40, width: 300, height: 360 },
+      },
+      { width: 1200, height: 900 },
+    );
+    const properties = snapped.modalPanels.find(
+      (panel) => panel.panelId === "properties",
+    );
+    const preview = previewPanelClusterResize(
+      snapped,
+      "properties",
+      "bottom",
+      {
+        x: properties?.position.x ?? 0,
+        y: properties?.position.y ?? 0,
+        width: properties?.size.width ?? 0,
+        height: 420,
+      },
+      { width: 1200, height: 900 },
+    );
+    const resized = preview.modalPanels.find(
+      (panel) => panel.panelId === "properties",
+    );
+    const neighbor = preview.modalPanels.find(
+      (panel) => panel.panelId === "styles",
+    );
+
+    expect(resized?.size.height).toBe(420);
+    expect(neighbor?.size.height).toBe(300);
+    expect(neighbor?.position.y).toBe(
+      (resized?.position.y ?? 0) +
+        (resized?.size.height ?? 0) +
+        PANEL_STACK_GAP,
+    );
+    expect((resized?.size.height ?? 0) + (neighbor?.size.height ?? 0)).toBe(
+      720,
+    );
+    expect(
+      snapped.modalPanels.find((panel) => panel.panelId === "styles")?.size
+        .height,
+    ).toBe(360);
+  });
+
+  it("인접 column 경계를 resize하면 전체 폭을 유지하며 두 column을 함께 보정한다", () => {
+    const snapped = snapPanelIntoCluster(
+      createLayout(),
+      "styles",
+      {
+        targetPanelId: "properties",
+        edge: "right",
+        source: { x: 1004, y: 100, width: 260, height: 360 },
+        target: { x: 700, y: 100, width: 300, height: 360 },
+      },
+      { width: 1400, height: 900 },
+    );
+    const properties = snapped.modalPanels.find(
+      (panel) => panel.panelId === "properties",
+    );
+    const preview = previewPanelClusterResize(
+      snapped,
+      "properties",
+      "right",
+      {
+        x: properties?.position.x ?? 0,
+        y: properties?.position.y ?? 0,
+        width: 320,
+        height: properties?.size.height ?? 0,
+      },
+      { width: 1400, height: 900 },
+    );
+    const resized = preview.modalPanels.find(
+      (panel) => panel.panelId === "properties",
+    );
+    const neighbor = preview.modalPanels.find(
+      (panel) => panel.panelId === "styles",
+    );
+
+    expect(resized?.size.width).toBe(320);
+    expect(neighbor?.size.width).toBe(240);
+    expect(neighbor?.position.x).toBe(
+      (resized?.position.x ?? 0) + (resized?.size.width ?? 0) + PANEL_STACK_GAP,
+    );
+    expect((resized?.size.width ?? 0) + (neighbor?.size.width ?? 0)).toBe(560);
   });
 });

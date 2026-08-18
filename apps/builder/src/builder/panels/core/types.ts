@@ -42,6 +42,7 @@ export interface PanelSize {
 }
 
 export type PanelSnapEdge = "top" | "right" | "bottom" | "left";
+export type PanelResizeEdge = "left" | "right" | "top" | "bottom";
 
 export interface PanelFrameGeometry extends PanelSize {
   x: number;

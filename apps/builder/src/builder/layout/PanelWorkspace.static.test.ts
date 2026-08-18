@@ -99,6 +99,20 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(styles).not.toContain('data-side="floating"');
   });
 
+  it("cluster resize 중에는 인접 panel까지 transient layout으로 갱신하고 종료 시 한 번만 persist한다", async () => {
+    const source = await readWorkspace();
+
+    expect(source).toContain("previewPanelClusterResize(");
+    expect(source).toContain("resizePreviewLayout ?? layout");
+    expect(source).toContain("onResizeSessionPreview(config.id, edge, next)");
+    expect(source).toMatch(
+      /if \(onResizeSessionEnd\(config\.id\)\) return;[\s\S]*?updatePanelSize\(config\.id,/,
+    );
+    expect(source).toMatch(
+      /const endResizeSession = useCallback\([\s\S]*?setLayout\(previewLayout\);[\s\S]*?return true;/,
+    );
+  });
+
   it("Canvas inset 측정에는 panel frame이 아니라 기존 rail 너비만 전달한다", async () => {
     const source = await readWorkspace();
 

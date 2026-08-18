@@ -4,8 +4,10 @@ import type {
   PanelFrameGeometry,
   PanelId,
   PanelLayoutState,
+  PanelResizeEdge,
   PanelSnapPlacement,
 } from "../panels/core/types";
+import { PanelRegistry } from "../panels/core/PanelRegistry";
 
 export const PANEL_STACK_GAP = 4;
 export const PANEL_STACK_MARGIN = 4;
@@ -107,6 +109,55 @@ export function detachPanelFromClusters(
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(value, Math.max(minimum, maximum)));
+}
+
+interface TrackRange {
+  min: number;
+  max: number;
+}
+
+function panelHeightRange(panelId: PanelId, current: number): TrackRange {
+  const config = PanelRegistry.getPanel(panelId);
+  return {
+    min: Math.min(config?.minHeight ?? 160, current),
+    max: Math.max(config?.maxHeight ?? 800, current),
+  };
+}
+
+function columnWidthRange(panelIds: PanelId[], current: number): TrackRange {
+  const minimum = Math.max(
+    PANEL_COLUMN_MIN_WIDTH,
+    ...panelIds.map(
+      (panelId) => PanelRegistry.getPanel(panelId)?.minWidth ?? 0,
+    ),
+  );
+  const maximum = Math.min(
+    ...panelIds.map(
+      (panelId) => PanelRegistry.getPanel(panelId)?.maxWidth ?? 800,
+    ),
+  );
+  return {
+    min: Math.min(minimum, current),
+    max: Math.max(maximum, current),
+  };
+}
+
+function pairedDelta(
+  requested: number,
+  sourceCurrent: number,
+  sourceRange: TrackRange,
+  neighborCurrent: number,
+  neighborRange: TrackRange,
+): number {
+  const minimum = Math.max(
+    sourceRange.min - sourceCurrent,
+    neighborCurrent - neighborRange.max,
+  );
+  const maximum = Math.min(
+    sourceRange.max - sourceCurrent,
+    neighborCurrent - neighborRange.min,
+  );
+  return clamp(requested, minimum, maximum);
 }
 
 export function fitPanelClustersToWorkspace(
@@ -221,6 +272,122 @@ export function fitPanelClustersToWorkspace(
     modalPanels,
     panelClusters: fittedClusters,
   };
+}
+
+export function previewPanelClusterResize(
+  layout: PanelLayoutState,
+  panelId: PanelId,
+  edge: PanelResizeEdge,
+  geometry: PanelFrameGeometry,
+  workspace: PanelWorkspaceSize,
+): PanelLayoutState {
+  const panelClusters = cloneClusters(layout.panelClusters);
+  const cluster = panelClusters.find((candidate) =>
+    candidate.columns.some((column) => column.panelIds.includes(panelId)),
+  );
+  if (!cluster) return layout;
+
+  const modalPanels = layout.modalPanels.map((panel) => ({
+    ...panel,
+    position: { ...panel.position },
+    size: { ...panel.size },
+  }));
+  const panelsById = new Map(
+    modalPanels.map((panel) => [panel.panelId, panel] as const),
+  );
+  const panelSizes = { ...layout.panelSizes };
+  for (const column of cluster.columns) {
+    for (const id of column.panelIds) {
+      const panel = panelsById.get(id);
+      if (panel) panelSizes[id] = { ...panel.size };
+    }
+  }
+
+  const columnIndex = cluster.columns.findIndex((column) =>
+    column.panelIds.includes(panelId),
+  );
+  const column = cluster.columns[columnIndex];
+  const panel = panelsById.get(panelId);
+  if (!column || !panel) return layout;
+
+  if (edge === "top" || edge === "bottom") {
+    const activePanelIds = column.panelIds.filter((id) =>
+      panelIsActive(layout, id),
+    );
+    const panelIndex = activePanelIds.indexOf(panelId);
+    if (panelIndex < 0) return layout;
+    const neighborIndex = edge === "top" ? panelIndex - 1 : panelIndex + 1;
+    const neighborId = activePanelIds[neighborIndex];
+    const currentHeight = panel.size.height;
+    let nextHeight = geometry.height;
+
+    if (neighborId) {
+      const neighbor = panelsById.get(neighborId);
+      if (!neighbor) return layout;
+      const delta = pairedDelta(
+        geometry.height - currentHeight,
+        currentHeight,
+        panelHeightRange(panelId, currentHeight),
+        neighbor.size.height,
+        panelHeightRange(neighborId, neighbor.size.height),
+      );
+      nextHeight = currentHeight + delta;
+      panelSizes[neighborId] = {
+        ...neighbor.size,
+        height: neighbor.size.height - delta,
+      };
+    } else {
+      const range = panelHeightRange(panelId, currentHeight);
+      nextHeight = clamp(geometry.height, range.min, range.max);
+      if (edge === "top") {
+        cluster.position.y += currentHeight - nextHeight;
+      }
+    }
+    panelSizes[panelId] = { ...panel.size, height: nextHeight };
+  } else {
+    const neighborColumnIndex =
+      edge === "left" ? columnIndex - 1 : columnIndex + 1;
+    const neighborColumn = cluster.columns[neighborColumnIndex];
+    const currentWidth = column.width;
+    let nextWidth = geometry.width;
+
+    if (neighborColumn) {
+      const delta = pairedDelta(
+        geometry.width - currentWidth,
+        currentWidth,
+        columnWidthRange(column.panelIds, currentWidth),
+        neighborColumn.width,
+        columnWidthRange(neighborColumn.panelIds, neighborColumn.width),
+      );
+      nextWidth = currentWidth + delta;
+      neighborColumn.width -= delta;
+      for (const id of neighborColumn.panelIds) {
+        const size = panelSizes[id];
+        if (size) panelSizes[id] = { ...size, width: neighborColumn.width };
+      }
+    } else {
+      const range = columnWidthRange(column.panelIds, currentWidth);
+      nextWidth = clamp(geometry.width, range.min, range.max);
+      if (edge === "left") {
+        cluster.position.x += currentWidth - nextWidth;
+      }
+    }
+    column.width = nextWidth;
+    for (const id of column.panelIds) {
+      const size = panelSizes[id];
+      if (size) panelSizes[id] = { ...size, width: nextWidth };
+    }
+  }
+
+  return fitPanelClustersToWorkspace(
+    {
+      ...layout,
+      panelSizes,
+      modalPanels,
+      panelClusters,
+    },
+    workspace,
+  );
 }
 
 function upsertFloatingPanel(

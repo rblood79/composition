@@ -1,6 +1,7 @@
 import {
   Activity,
   memo,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -17,6 +18,7 @@ import type {
   PanelFrameGeometry,
   PanelId,
   PanelLayoutState,
+  PanelResizeEdge,
   PanelSnapEdge,
   PanelSide,
   PanelSize,
@@ -28,6 +30,10 @@ import {
   usePanelSnapInteraction,
 } from "./PanelSnapContext";
 import { resolvePanelSnap, type PanelSnapCandidate } from "./panelSnap";
+import {
+  panelBelongsToCluster,
+  previewPanelClusterResize,
+} from "./panelStackLayout";
 import "./PanelWorkspace.css";
 
 const PANEL_RAIL_SIZE = 48;
@@ -36,7 +42,6 @@ const HEADER_HEIGHT = 48;
 const SNAP_EDGES: PanelSnapEdge[] = ["top", "right", "bottom", "left"];
 
 type PanelFrameMode = "hidden" | "anchored" | "placed";
-type PanelResizeEdge = "left" | "right" | "top" | "bottom";
 
 const RESIZE_EDGE_LABELS: Record<PanelResizeEdge, string> = {
   left: "왼쪽",
@@ -195,6 +200,13 @@ interface PanelFrameProps {
   side: PanelSide;
   placedState?: ModalPanelState;
   offset: number;
+  onResizeSessionStart: (panelId: PanelId) => void;
+  onResizeSessionPreview: (
+    panelId: PanelId,
+    edge: PanelResizeEdge,
+    geometry: PanelFrameGeometry,
+  ) => PanelFrameGeometry | null;
+  onResizeSessionEnd: (panelId: PanelId) => boolean;
 }
 
 const PanelFrame = memo(function PanelFrame({
@@ -204,6 +216,9 @@ const PanelFrame = memo(function PanelFrame({
   side,
   placedState,
   offset,
+  onResizeSessionStart,
+  onResizeSessionPreview,
+  onResizeSessionEnd,
 }: PanelFrameProps) {
   const {
     placePanel,
@@ -397,6 +412,7 @@ const PanelFrame = memo(function PanelFrame({
 
   const handleResizeStart = () => {
     isInteractingRef.current = true;
+    onResizeSessionStart(config.id);
   };
 
   const handleResize = (
@@ -404,42 +420,44 @@ const PanelFrame = memo(function PanelFrame({
     deltaX: number,
     deltaY: number,
   ) => {
-    setVisualGeometry((current) => {
-      const next = { ...current };
+    const current = visualGeometryRef.current;
+    const next = { ...current };
 
-      if (edge === "left") {
-        const nextSize = clampPanelSize(config, {
-          width: current.width - deltaX,
-          height: current.height,
-        });
-        next.width = nextSize.width;
-        next.x = current.x + current.width - nextSize.width;
-      } else if (edge === "right") {
-        next.width = clampPanelSize(config, {
-          width: current.width + deltaX,
-          height: current.height,
-        }).width;
-      } else if (edge === "top") {
-        const nextSize = clampPanelSize(config, {
-          width: current.width,
-          height: current.height - deltaY,
-        });
-        next.height = nextSize.height;
-        next.y = current.y + current.height - nextSize.height;
-      } else {
-        next.height = clampPanelSize(config, {
-          width: current.width,
-          height: current.height + deltaY,
-        }).height;
-      }
+    if (edge === "left") {
+      const nextSize = clampPanelSize(config, {
+        width: current.width - deltaX,
+        height: current.height,
+      });
+      next.width = nextSize.width;
+      next.x = current.x + current.width - nextSize.width;
+    } else if (edge === "right") {
+      next.width = clampPanelSize(config, {
+        width: current.width + deltaX,
+        height: current.height,
+      }).width;
+    } else if (edge === "top") {
+      const nextSize = clampPanelSize(config, {
+        width: current.width,
+        height: current.height - deltaY,
+      });
+      next.height = nextSize.height;
+      next.y = current.y + current.height - nextSize.height;
+    } else {
+      next.height = clampPanelSize(config, {
+        width: current.width,
+        height: current.height + deltaY,
+      }).height;
+    }
 
-      visualGeometryRef.current = next;
-      return next;
-    });
+    const previewGeometry = onResizeSessionPreview(config.id, edge, next);
+    const visualNext = previewGeometry ?? next;
+    visualGeometryRef.current = visualNext;
+    setVisualGeometry(visualNext);
   };
 
   const handleResizeEnd = () => {
     isInteractingRef.current = false;
+    if (onResizeSessionEnd(config.id)) return;
     const geometry = visualGeometryRef.current;
     updatePanelSize(config.id, {
       width: geometry.width,
@@ -531,17 +549,83 @@ const PanelFrame = memo(function PanelFrame({
 });
 
 function PanelWorkspaceContent() {
-  const { layout, togglePanel, fitPanelClusters } = usePanelLayout();
+  const { layout, togglePanel, fitPanelClusters, setLayout } = usePanelLayout();
+  const [resizePreviewLayout, setResizePreviewLayout] =
+    useState<PanelLayoutState | null>(null);
+  const resizeBaseLayoutRef = useRef<PanelLayoutState | null>(null);
+  const resizePreviewLayoutRef = useRef<PanelLayoutState | null>(null);
+  const effectiveLayout = resizePreviewLayout ?? layout;
   const configs = useMemo(() => PanelRegistry.getAllPanels(), []);
   const placedIds = useMemo(
-    () => new Set(layout.modalPanels.map((panel) => panel.panelId)),
-    [layout.modalPanels],
+    () => new Set(effectiveLayout.modalPanels.map((panel) => panel.panelId)),
+    [effectiveLayout.modalPanels],
   );
-  const activeLeftPanels = layout.activeLeftPanels.filter(
+  const activeLeftPanels = effectiveLayout.activeLeftPanels.filter(
     (panelId) => !placedIds.has(panelId),
   );
-  const activeRightPanels = layout.activeRightPanels.filter(
+  const activeRightPanels = effectiveLayout.activeRightPanels.filter(
     (panelId) => !placedIds.has(panelId),
+  );
+
+  const beginResizeSession = useCallback(
+    (panelId: PanelId) => {
+      resizePreviewLayoutRef.current = null;
+      setResizePreviewLayout(null);
+      resizeBaseLayoutRef.current = panelBelongsToCluster(layout, panelId)
+        ? layout
+        : null;
+    },
+    [layout],
+  );
+
+  const previewResizeSession = useCallback(
+    (
+      panelId: PanelId,
+      edge: PanelResizeEdge,
+      geometry: PanelFrameGeometry,
+    ): PanelFrameGeometry | null => {
+      const baseLayout = resizeBaseLayoutRef.current;
+      if (!baseLayout) return null;
+
+      const previewLayout = previewPanelClusterResize(
+        baseLayout,
+        panelId,
+        edge,
+        geometry,
+        {
+          width: window.innerWidth,
+          height: Math.max(0, window.innerHeight - HEADER_HEIGHT),
+        },
+      );
+      const panel = previewLayout.modalPanels.find(
+        (candidate) => candidate.panelId === panelId,
+      );
+      if (!panel) return null;
+
+      resizePreviewLayoutRef.current = previewLayout;
+      setResizePreviewLayout(previewLayout);
+      return {
+        x: panel.position.x,
+        y: panel.position.y,
+        width: panel.size.width,
+        height: panel.size.height,
+      };
+    },
+    [],
+  );
+
+  const endResizeSession = useCallback(
+    (_panelId: PanelId): boolean => {
+      const previewLayout = resizePreviewLayoutRef.current;
+      resizeBaseLayoutRef.current = null;
+      resizePreviewLayoutRef.current = null;
+      setResizePreviewLayout(null);
+      if (!previewLayout) return false;
+
+      setLayout(previewLayout);
+      return true;
+    },
+    [setLayout],
   );
 
   useEffect(() => {
@@ -567,34 +651,35 @@ function PanelWorkspaceContent() {
       <div className="panel-activity-rail" data-side="left">
         <PanelNav
           side="left"
-          panelIds={layout.leftPanels}
-          activePanels={layout.activeLeftPanels}
+          panelIds={effectiveLayout.leftPanels}
+          activePanels={effectiveLayout.activeLeftPanels}
           onPanelClick={(panelId) => togglePanel("left", panelId)}
         />
       </div>
       <div className="panel-activity-rail" data-side="right">
         <PanelNav
           side="right"
-          panelIds={layout.rightPanels}
-          activePanels={layout.activeRightPanels}
+          panelIds={effectiveLayout.rightPanels}
+          activePanels={effectiveLayout.activeRightPanels}
           onPanelClick={(panelId) => togglePanel("right", panelId)}
         />
       </div>
       <div className="panel-activity-rail" data-side="bottom">
         <PanelNav
           side="bottom"
-          panelIds={layout.bottomPanels}
-          activePanels={layout.activeBottomPanels}
+          panelIds={effectiveLayout.bottomPanels}
+          activePanels={effectiveLayout.activeBottomPanels}
           onPanelClick={(panelId) => togglePanel("bottom", panelId)}
         />
       </div>
 
       {configs.map((config) => {
-        const placedState = layout.modalPanels.find(
+        const placedState = effectiveLayout.modalPanels.find(
           (panel) => panel.panelId === config.id,
         );
-        const side = getPanelSide(layout, config.id) ?? config.defaultPosition;
-        const isActive = isPanelActive(layout, config.id, side);
+        const side =
+          getPanelSide(effectiveLayout, config.id) ?? config.defaultPosition;
+        const isActive = isPanelActive(effectiveLayout, config.id, side);
         const mode: PanelFrameMode = isActive
           ? placedState
             ? "placed"
@@ -605,21 +690,24 @@ function PanelWorkspaceContent() {
             ? activeLeftPanels
             : side === "right"
               ? activeRightPanels
-              : layout.activeBottomPanels;
+              : effectiveLayout.activeBottomPanels;
         const offset =
           side === "bottom"
             ? PANEL_RAIL_SIZE + PANEL_GAP
-            : panelOffset(config.id, activePanels, layout);
+            : panelOffset(config.id, activePanels, effectiveLayout);
 
         return (
           <PanelFrame
             key={config.id}
             config={config}
-            layout={layout}
+            layout={effectiveLayout}
             mode={mode}
             side={side}
             placedState={placedState}
             offset={offset}
+            onResizeSessionStart={beginResizeSession}
+            onResizeSessionPreview={previewResizeSession}
+            onResizeSessionEnd={endResizeSession}
           />
         );
       })}
