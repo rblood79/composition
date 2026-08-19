@@ -188,14 +188,22 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     const [source, styles] = await Promise.all([readWorkspace(), readStyles()]);
 
     expect(source).toContain('className="panel-workspace-placement-surface"');
-    expect(source).toContain("const origin = { x: 0, y: 0 }");
+    expect(source).toMatch(
+      /const origin = \{[\s\S]*?x: 0,[\s\S]*?y: 0,[\s\S]*?workspaceWidth:/,
+    );
     expect(source).toContain("inset: 0");
     expect(styles).toContain("--panel-workspace-gap: 4px");
     expect(styles).toMatch(
       /\.panel-workspace-placement-surface\s*\{[\s\S]*?inset: var\(--panel-workspace-gap\);/,
     );
     expect(styles).toMatch(/\.panel-workspace\s*\{[\s\S]*?inset: 0;/);
-    expect(styles).toMatch(/\.panel-dock-surface\s*\{[\s\S]*?inset: 0;/);
+    expect(styles).toMatch(
+      /\.panel-dock\s*\{[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;/,
+    );
+    expect(styles).toMatch(
+      /\.panel-dock-surface\s*\{[\s\S]*?position: relative;[\s\S]*?flex: 1;/,
+    );
+    expect(styles).not.toContain('.panel-activity-rail[data-side="bottom"]');
   });
 
   it("G2b 통과 뒤 모든 production frame이 coordinator snapshot만 소비한다", async () => {

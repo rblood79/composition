@@ -65,6 +65,15 @@ import "./PanelWorkspace.css";
 
 type PanelFrameMode = "hidden" | "placed";
 
+function isRightAnchoredPlacementZone(
+  placementZone: PanelWorkspaceClusterV3["placementZone"] | undefined,
+): boolean {
+  return Boolean(
+    placementZone &&
+    (placementZone === "right" || placementZone.endsWith("-right")),
+  );
+}
+
 const RESIZE_EDGE_LABELS: Record<PanelResizeEdge, string> = {
   left: "왼쪽",
   right: "오른쪽",
@@ -197,6 +206,7 @@ function sharedSplitterStyle(
   splitter: PanelWorkspaceSplitterGeometry,
   zIndex: number,
   dockOrigin: PanelDockOrigin,
+  rightAnchored: boolean,
 ): CSSProperties {
   const hitSize = 10;
   const { geometry } = splitter;
@@ -211,11 +221,20 @@ function sharedSplitterStyle(
       zIndex,
     };
   }
+  const left = geometry.x - dockOrigin.x + geometry.width / 2 - hitSize / 2;
   return {
     bottom: "auto",
     height: geometry.height,
-    left: geometry.x - dockOrigin.x + geometry.width / 2 - hitSize / 2,
-    right: "auto",
+    ...(rightAnchored
+      ? {
+          right:
+            dockOrigin.workspaceWidth -
+            geometry.x -
+            geometry.width / 2 -
+            hitSize / 2,
+          left: "auto",
+        }
+      : { left, right: "auto" }),
     top: geometry.y - dockOrigin.y,
     width: hitSize,
     zIndex,
@@ -259,6 +278,12 @@ function PanelWorkspaceSharedSplitters({
               splitter,
               splitterZIndex(runtime, splitter.clusterId),
               dockOrigin,
+              isRightAnchoredPlacementZone(
+                runtime
+                  .getLayout()
+                  .clusters.find((cluster) => cluster.id === splitter.clusterId)
+                  ?.placementZone,
+              ),
             )}
             onResizeStart={() => runtime.beginInteraction()}
             onResize={(deltaX, deltaY) => {
@@ -643,7 +668,14 @@ const PanelFrame = memo(function PanelFrame({
     height: 0,
   };
   const frameStyle: CSSProperties = {
-    left: appliedGeometry.x - dockOrigin.x,
+    ...(side === "right"
+      ? {
+          right:
+            dockOrigin.workspaceWidth -
+            appliedGeometry.x -
+            appliedGeometry.width,
+        }
+      : { left: appliedGeometry.x - dockOrigin.x }),
     top: appliedGeometry.y - dockOrigin.y,
     width: appliedGeometry.width,
     height: appliedGeometry.height,
@@ -820,6 +852,7 @@ interface PanelWorkspaceOverlayProps {
 interface PanelDockOrigin {
   x: number;
   y: number;
+  workspaceWidth: number;
 }
 
 interface PanelDockColumnPresentation {
@@ -877,6 +910,12 @@ function PanelDockClusterPresentation({
       {columns.map((column) => {
         const left = column.x - dockOrigin.x;
         const top = column.y - dockOrigin.y;
+        const cluster = runtime
+          .getLayout()
+          .clusters.find((candidate) => candidate.id === column.clusterId);
+        const isRightAnchored = isRightAnchoredPlacementZone(
+          cluster?.placementZone,
+        );
         return (
           <div
             key={`${column.clusterId}:${column.columnIndex}`}
@@ -889,7 +928,12 @@ function PanelDockClusterPresentation({
               className="panel-dock-rail"
               style={{
                 height: column.height,
-                left: left + column.width - 1,
+                ...(isRightAnchored
+                  ? {
+                      right:
+                        dockOrigin.workspaceWidth - column.x - column.width + 1,
+                    }
+                  : { left: left + column.width - 1 }),
                 top,
               }}
             />
@@ -932,7 +976,11 @@ interface PanelDockProps {
 
 function PanelDock({ children, runtime }: PanelDockProps) {
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const origin = { x: 0, y: 0 };
+  const origin = {
+    x: 0,
+    y: 0,
+    workspaceWidth: snapshot.workspaceRect.width,
+  };
   const surfaceStyle: CSSProperties = {
     inset: 0,
   };
@@ -972,7 +1020,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
         <PanelDock runtime={runtime}>
           {({ origin, surfaceStyle }) => (
             <>
-              {(["left", "right", "bottom"] as const).map((side) => {
+              {(["left", "right"] as const).map((side) => {
                 const panelIds = workspaceLayout.railOrder[side];
                 if (panelIds.length === 0) return null;
                 return (

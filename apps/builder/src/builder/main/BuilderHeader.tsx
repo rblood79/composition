@@ -8,7 +8,6 @@ import {
   Tablet,
   Smartphone,
   GitBranch,
-  Settings,
   Command,
   FolderOpen,
   Download,
@@ -311,11 +310,11 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             />
           </ToggleButton>
           <ToggleButton
-            id="settings"
-            aria-label="Settings"
-            onPress={() => togglePanel("settings")}
+            id="monitor"
+            aria-label="Monitor"
+            onPress={() => togglePanel("monitor")}
           >
-            <Settings
+            <Monitor
               color={iconProps.color}
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}

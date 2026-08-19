@@ -57,11 +57,16 @@
   .panel-dock {
     position: absolute;
     inset: 0;
+    display: flex;
+    justify-content: space-between;
     pointer-events: none;
+    gap: var(--panel-workspace-gap);
   }
 
   .panel-dock-surface {
-    position: absolute;
+    position: relative;
+    flex: 1;
+    order: 1;
     inset: 0;
     pointer-events: none;
   }
@@ -136,30 +141,22 @@
   }
 
   .panel-activity-rail {
-    position: absolute;
+    position: relative;
     top: 0;
     bottom: 0;
     z-index: 60;
+    flex: 0 0 var(--panel-rail-size);
     width: var(--panel-rail-size);
+    height: 100%;
     pointer-events: auto;
   }
 
   .panel-activity-rail[data-side="left"] {
-    left: 0;
+    order: 0;
   }
 
   .panel-activity-rail[data-side="right"] {
-    right: 0;
-  }
-
-  .panel-activity-rail[data-side="bottom"] {
-    top: auto;
-    right: auto;
-    bottom: var(--spacing-sm);
-    left: 50%;
-    width: auto;
-    height: var(--panel-rail-size);
-    transform: translateX(-50%);
+    order: 2;
   }
 
   .panel-activity-rail > .panel-nav {
@@ -176,16 +173,6 @@
     overflow-x: hidden;
     overflow-y: auto;
     scrollbar-width: none;
-  }
-
-  .panel-activity-rail[data-side="bottom"] .panel-nav,
-  .panel-activity-rail[data-side="bottom"] .nav-list {
-    flex-direction: row;
-  }
-
-  .panel-activity-rail[data-side="bottom"] .nav-list {
-    overflow-x: auto;
-    overflow-y: hidden;
   }
 
   .panel-workspace .workspace-panel-frame {

@@ -170,7 +170,8 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(nodesFrame?.parentElement).toBe(dockSurface);
     expect(propertiesFrame?.parentElement).toBe(dockSurface);
     expect(nodesFrame?.style.left).toBe("0px");
-    expect(propertiesFrame?.style.left).toBe("1280px");
+    expect(propertiesFrame?.style.left).toBe("");
+    expect(propertiesFrame?.style.right).toBe("0px");
     expect(dockSurface?.querySelectorAll(".panel-dock-rail")).toHaveLength(2);
     expect(dockSurface?.querySelectorAll(".panel-dock-dropper")).toHaveLength(
       0,
@@ -180,15 +181,9 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
       TEST_CONFIGS.length + 1,
     );
 
-    const bottomRail = container.querySelector(
-      '.panel-activity-rail[data-side="bottom"]',
-    );
-    expect(bottomRail?.querySelectorAll(".panel-nav button")).toHaveLength(1);
     expect(
-      bottomRail
-        ?.querySelector(".panel-nav button")
-        ?.getAttribute("aria-label"),
-    ).toBe("monitor");
+      container.querySelector('.panel-activity-rail[data-side="bottom"]'),
+    ).toBeNull();
     expect(container.querySelector(".panel-trace-driver")).toBeNull();
     expect(
       container
