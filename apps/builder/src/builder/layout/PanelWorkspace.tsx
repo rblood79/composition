@@ -1,6 +1,7 @@
 import {
   Activity,
   memo,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -19,7 +20,6 @@ import type {
   PanelId,
   PanelResizeEdge,
   PanelSide,
-  PanelSnapEdge,
 } from "../panels/core/types";
 import { PanelNav } from "./PanelNav";
 import { registerPanelWorkspaceActivationDispatcher } from "./panelWorkspaceActivationDispatcher";
@@ -50,6 +50,7 @@ import {
   type PanelWorkspaceRect,
   type PanelWorkspaceRegistryEntry,
 } from "./panelWorkspaceLayoutV2";
+import { PANEL_WORKSPACE_PLACEMENT_ZONES } from "./panelWorkspaceLayoutV3";
 import {
   createPanelWorkspaceRuntime,
   type PanelWorkspaceRuntime,
@@ -412,9 +413,9 @@ const PanelFrame = memo(function PanelFrame({
 }: PanelFrameProps) {
   const {
     draggedPanelId,
-    snapTarget,
+    dropCandidate,
     beginPanelDrag,
-    updatePanelSnapTarget,
+    updatePanelDropCandidate,
     endPanelDrag,
   } = usePanelSnapInteraction();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -432,6 +433,7 @@ const PanelFrame = memo(function PanelFrame({
   const isInteractingRef = useRef(false);
   const suppressSnapRef = useRef(false);
   const interactionCancelledRef = useRef(false);
+  const pointerRef = useRef<{ x: number; y: number } | null>(null);
   const [isMoving, setIsMoving] = useState(false);
   const isActive = snapshotFrame !== null;
   const mode = frameMode(snapshotFrame);
@@ -504,10 +506,26 @@ const PanelFrame = memo(function PanelFrame({
     };
   }, [isActive]);
 
+  const cancelInteraction = useCallback(() => {
+    if (!isInteractingRef.current) return;
+    interactionCancelledRef.current = true;
+    if (runtime.getDragSession() !== null) {
+      runtime.cancelDrag();
+    } else {
+      runtime.cancelInteraction();
+    }
+    isInteractingRef.current = false;
+    setIsMoving(false);
+    suppressSnapRef.current = false;
+    pointerRef.current = null;
+    endPanelDrag();
+  }, [endPanelDrag, runtime]);
+
   const { moveProps } = useMove({
     onMoveStart: () => {
       if (!snapshotFrame) return;
-      runtime.beginInteraction();
+      const started = runtime.beginDrag(config.id);
+      if (!started.ok) return;
       interactionCancelledRef.current = false;
       isInteractingRef.current = true;
       setIsMoving(true);
@@ -521,8 +539,7 @@ const PanelFrame = memo(function PanelFrame({
       if (isClustered) suppressSnapRef.current = true;
     },
     onMove: (event) => {
-      if (!snapshotFrame) return;
-      recordPanelWorkspaceSolve();
+      if (!snapshotFrame || !isInteractingRef.current) return;
       const current = visualGeometryRef.current;
       const next = {
         ...current,
@@ -530,23 +547,30 @@ const PanelFrame = memo(function PanelFrame({
         y: current.y + event.deltaY,
       };
       visualGeometryRef.current = next;
-      const mutation = runtime.movePanel(config.id, next);
+      const pointer = pointerRef.current
+        ? {
+            x: pointerRef.current.x + event.deltaX,
+            y: pointerRef.current.y + event.deltaY,
+          }
+        : { x: next.x + next.width / 2, y: next.y + next.height / 2 };
+      pointerRef.current = pointer;
+      const mutation = runtime.updateDrag(config.id, next, pointer);
       if (mutation.ok) {
         recordPanelWorkspaceLayoutInput(
           mutation.value.expectedVersion,
           mutation.value.affectedPanelIds,
         );
       }
-      const nearbyCandidate = runtime.resolveSnap(config.id, next);
-      if (suppressSnapRef.current && nearbyCandidate === null) {
+      const candidate = mutation.ok ? mutation.value.candidate : null;
+      if (suppressSnapRef.current && candidate?.kind !== "panel-edge") {
         suppressSnapRef.current = false;
       }
-      const candidate = suppressSnapRef.current ? null : nearbyCandidate;
-      updatePanelSnapTarget(
-        candidate
-          ? { panelId: candidate.targetPanelId, edge: candidate.edge }
-          : null,
-      );
+      if (suppressSnapRef.current && candidate?.kind === "panel-edge") {
+        runtime.suppressDragCandidate();
+        updatePanelDropCandidate(null);
+      } else {
+        updatePanelDropCandidate(candidate);
+      }
     },
     onMoveEnd: () => {
       if (!snapshotFrame) return;
@@ -555,39 +579,39 @@ const PanelFrame = memo(function PanelFrame({
         isInteractingRef.current = false;
         setIsMoving(false);
         suppressSnapRef.current = false;
+        pointerRef.current = null;
         endPanelDrag();
         return;
       }
-      const geometry = visualGeometryRef.current;
-      const nearbyCandidate = runtime.resolveSnap(config.id, geometry);
-      const dropMutation = snapTarget
-        ? runtime.snapPanel(config.id, snapTarget.panelId, snapTarget.edge)
-        : null;
-      if (dropMutation?.ok) {
+      const ended = runtime.endDrag(config.id);
+      if (ended.ok) {
         recordPanelWorkspaceLayoutInput(
-          dropMutation.value.expectedVersion,
-          dropMutation.value.affectedPanelIds,
+          ended.value.expectedVersion,
+          ended.value.affectedPanelIds,
         );
-      } else if (nearbyCandidate && !suppressSnapRef.current) {
-        const mutation = runtime.snapPanel(
-          config.id,
-          nearbyCandidate.targetPanelId,
-          nearbyCandidate.edge,
-        );
-        if (mutation.ok) {
-          recordPanelWorkspaceLayoutInput(
-            mutation.value.expectedVersion,
-            mutation.value.affectedPanelIds,
-          );
+        if (ended.value.committed) {
+          onCommitLayout(ended.value.layout);
         }
       }
-      onCommitLayout(runtime.endInteraction());
       isInteractingRef.current = false;
       setIsMoving(false);
-      if (nearbyCandidate === null) suppressSnapRef.current = false;
+      suppressSnapRef.current = false;
+      pointerRef.current = null;
       endPanelDrag();
     },
   });
+
+  useEffect(() => {
+    if (!isMoving) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      cancelInteraction();
+    };
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [cancelInteraction, isMoving]);
 
   const resizeEdges = snapshotFrame?.resizeEdges ?? [];
 
@@ -609,16 +633,6 @@ const PanelFrame = memo(function PanelFrame({
         mutation.value.affectedPanelIds,
       );
     }
-  };
-
-  const cancelInteraction = () => {
-    if (!isInteractingRef.current) return;
-    interactionCancelledRef.current = true;
-    runtime.cancelInteraction();
-    isInteractingRef.current = false;
-    setIsMoving(false);
-    suppressSnapRef.current = false;
-    endPanelDrag();
   };
 
   const appliedGeometry = snapshotFrame ?? {
@@ -664,16 +678,30 @@ const PanelFrame = memo(function PanelFrame({
         type="button"
         className="panel-move-handle"
         aria-label={`${config.name} 패널 이동`}
+        onPointerDownCapture={(event) => {
+          if (!snapshotFrame) return;
+          pointerRef.current = {
+            x: snapshotFrame.x + event.nativeEvent.offsetX,
+            y: snapshotFrame.y + event.nativeEvent.offsetY,
+          };
+        }}
+        onKeyDownCapture={(event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          event.stopPropagation();
+          cancelInteraction();
+        }}
       >
         <span />
       </button>
       {draggedPanelId !== null &&
         draggedPanelId !== config.id &&
-        snapTarget?.panelId === config.id && (
+        dropCandidate?.kind === "panel-edge" &&
+        dropCandidate.panelId === config.id && (
           <div className="panel-snap-targets" aria-hidden="true">
             <span
               className="panel-snap-target"
-              data-edge={snapTarget.edge}
+              data-edge={dropCandidate.edge}
               data-active="true"
             />
           </div>
@@ -804,7 +832,6 @@ interface PanelDockColumnPresentation {
   width: number;
   x: number;
   y: number;
-  visiblePanelIds: PanelId[];
 }
 
 function panelDockColumns(
@@ -830,9 +857,6 @@ function panelDockColumns(
           width: right - x,
           x,
           y,
-          visiblePanelIds: column.rows
-            .filter((row) => snapshot.frameGeometries.has(row.panelId))
-            .map((row) => row.panelId),
         },
       ];
     }),
@@ -849,31 +873,13 @@ function PanelDockClusterPresentation({
   runtime,
 }: PanelDockClusterPresentationProps) {
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const { draggedPanelId, snapTarget, updatePanelSnapTarget } =
-    usePanelSnapInteraction();
   const columns = panelDockColumns(runtime.getLayout().clusters, snapshot);
-  const isDragging = draggedPanelId !== null;
-  const dropperSize = 10;
 
   return (
     <>
       {columns.map((column) => {
         const left = column.x - dockOrigin.x;
         const top = column.y - dockOrigin.y;
-        const bottom = top + column.height;
-        const firstPanelId = column.visiblePanelIds[0];
-        const lastPanelId = column.visiblePanelIds.at(-1);
-        const isFirstDropTarget =
-          snapTarget?.panelId === firstPanelId && snapTarget?.edge === "top";
-        const isLastDropTarget =
-          snapTarget?.panelId === lastPanelId && snapTarget?.edge === "bottom";
-        const setDropTarget = (
-          panelId: PanelId | undefined,
-          edge: PanelSnapEdge,
-        ) => {
-          if (!draggedPanelId || !panelId || draggedPanelId === panelId) return;
-          updatePanelSnapTarget({ panelId, edge });
-        };
         return (
           <div
             key={`${column.clusterId}:${column.columnIndex}`}
@@ -890,56 +896,30 @@ function PanelDockClusterPresentation({
                 top,
               }}
             />
-            <div
-              aria-hidden="true"
-              className="panel-dock-dropper"
-              data-active={isFirstDropTarget}
-              data-enabled={isDragging}
-              data-position="first"
-              data-target-panel={firstPanelId}
-              data-target-edge="top"
-              onPointerEnter={() => setDropTarget(firstPanelId, "top")}
-              onPointerLeave={() => {
-                if (
-                  snapTarget?.panelId === firstPanelId &&
-                  snapTarget.edge === "top"
-                )
-                  updatePanelSnapTarget(null);
-              }}
-              style={{
-                height: dropperSize,
-                left,
-                top: top - dropperSize / 2,
-                width: column.width,
-              }}
-            />
-            <div
-              aria-hidden="true"
-              className="panel-dock-dropper"
-              data-active={isLastDropTarget}
-              data-enabled={isDragging}
-              data-position="last"
-              data-target-panel={lastPanelId}
-              data-target-edge="bottom"
-              onPointerEnter={() => setDropTarget(lastPanelId, "bottom")}
-              onPointerLeave={() => {
-                if (
-                  snapTarget?.panelId === lastPanelId &&
-                  snapTarget?.edge === "bottom"
-                )
-                  updatePanelSnapTarget(null);
-              }}
-              style={{
-                height: dropperSize,
-                left,
-                top: bottom - dropperSize / 2,
-                width: column.width,
-              }}
-            />
           </div>
         );
       })}
     </>
+  );
+}
+
+function PanelWorkspaceZoneOverlay() {
+  const { draggedPanelId, dropCandidate } = usePanelSnapInteraction();
+  if (draggedPanelId === null) return null;
+
+  return (
+    <div className="panel-zone-overlay" aria-hidden="true">
+      {PANEL_WORKSPACE_PLACEMENT_ZONES.map((zone) => (
+        <span
+          key={zone}
+          className="panel-zone-target"
+          data-zone={zone}
+          data-active={
+            dropCandidate?.kind === "zone" && dropCandidate.zone === zone
+          }
+        />
+      ))}
+    </div>
   );
 }
 
@@ -1016,6 +996,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
               })}
 
               <div className="panel-dock-surface" style={surfaceStyle}>
+                <PanelWorkspaceZoneOverlay />
                 <PanelDockClusterPresentation
                   dockOrigin={origin}
                   runtime={runtime}

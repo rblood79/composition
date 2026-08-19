@@ -207,6 +207,49 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
     });
   });
 
+  it("drag preview는 committed graph solve 없이 RAF당 최신 geometry 한 번만 publish하고 clear 시 base frame을 복원한다", () => {
+    const scheduler = new TestFrameScheduler();
+    const solve = vi.fn(solvePanelWorkspaceLayoutV2);
+    const coordinator = requireCoordinator(createInput(), scheduler, solve);
+    solve.mockClear();
+    const listener = vi.fn();
+    coordinator.subscribe(listener);
+    const baseFrame = coordinator.getSnapshot().frameGeometries.get("nodes");
+    if (!baseFrame) throw new Error("nodes frame is required");
+
+    coordinator.queuePreview("nodes", {
+      x: 240,
+      y: 120,
+      width: baseFrame.width,
+      height: baseFrame.height,
+    });
+    coordinator.queuePreview("nodes", {
+      x: 360,
+      y: 180,
+      width: baseFrame.width,
+      height: baseFrame.height,
+    });
+
+    expect(scheduler.pendingCount).toBe(1);
+    scheduler.flush();
+    expect(solve).not.toHaveBeenCalled();
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(coordinator.getSnapshot().version).toBe(1);
+    expect(
+      coordinator.getSnapshot().frameGeometries.get("nodes"),
+    ).toMatchObject({ x: 360, y: 180 });
+
+    coordinator.clearPreview();
+    expect(scheduler.pendingCount).toBe(1);
+    scheduler.flush();
+    expect(solve).not.toHaveBeenCalled();
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(coordinator.getSnapshot().version).toBe(2);
+    expect(
+      coordinator.getSnapshot().frameGeometries.get("nodes"),
+    ).toMatchObject({ x: baseFrame.x, y: baseFrame.y });
+  });
+
   it("invalid queued input은 현재 snapshot을 유지하고 publish하지 않는다", () => {
     const scheduler = new TestFrameScheduler();
     const coordinator = requireCoordinator(createInput(), scheduler);

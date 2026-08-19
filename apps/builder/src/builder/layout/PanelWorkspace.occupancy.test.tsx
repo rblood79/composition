@@ -155,8 +155,9 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(propertiesFrame?.style.left).toBe("1228px");
     expect(dockSurface?.querySelectorAll(".panel-dock-rail")).toHaveLength(2);
     expect(dockSurface?.querySelectorAll(".panel-dock-dropper")).toHaveLength(
-      4,
+      0,
     );
+    expect(dockSurface?.querySelector(".panel-zone-overlay")).toBeNull();
     expect(dock?.querySelectorAll(".workspace-panel-frame")).toHaveLength(
       TEST_CONFIGS.length + 1,
     );

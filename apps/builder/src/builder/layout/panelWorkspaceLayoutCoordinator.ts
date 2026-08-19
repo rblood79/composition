@@ -76,8 +76,15 @@ export interface PanelWorkspaceLayoutCoordinator {
   getSnapshot: () => PanelWorkspaceLayoutSnapshot;
   subscribe: (listener: () => void) => () => void;
   queueInput: (input: PanelWorkspaceLayoutCoordinatorInput) => void;
+  queuePreview: (panelId: PanelId, geometry: PanelFrameGeometry) => void;
+  clearPreview: () => void;
   getLastError: () => string | null;
   destroy: () => void;
+}
+
+interface PanelWorkspaceFramePreview {
+  panelId: PanelId;
+  geometry: Readonly<PanelFrameGeometry>;
 }
 
 const BROWSER_FRAME_SCHEDULER: PanelWorkspaceLayoutFrameScheduler = {
@@ -320,6 +327,40 @@ function createSnapshot(
   });
 }
 
+function createTransientSnapshot(
+  committedSnapshot: PanelWorkspaceLayoutSnapshot,
+  version: number,
+  preview: PanelWorkspaceFramePreview | null,
+): PanelWorkspaceLayoutSnapshot {
+  const mutableFrames = new Map<PanelId, PanelWorkspaceFrameSnapshot>();
+  for (const [panelId, frame] of committedSnapshot.frameGeometries) {
+    const geometry = preview?.panelId === panelId ? preview.geometry : frame;
+    mutableFrames.set(
+      panelId,
+      Object.freeze({
+        ...frame,
+        x: geometry.x,
+        y: geometry.y,
+        width: geometry.width,
+        height: geometry.height,
+        layoutVersion: version,
+      }),
+    );
+  }
+  const frameGeometries = readonlyMapView(mutableFrames);
+  return Object.freeze({
+    ...committedSnapshot,
+    version,
+    frameGeometries,
+    splitters: Object.freeze(
+      committedSnapshot.splitters.map((splitter) =>
+        Object.freeze({ ...splitter, layoutVersion: version }),
+      ),
+    ),
+    visiblePanelIds: readonlySetView(new Set(mutableFrames.keys())),
+  });
+}
+
 function copyInput(
   input: PanelWorkspaceLayoutCoordinatorInput,
 ): PanelWorkspaceLayoutCoordinatorInput {
@@ -333,7 +374,10 @@ function copyInput(
 
 class PanelWorkspaceLayoutCoordinatorStore implements PanelWorkspaceLayoutCoordinator {
   private snapshot: PanelWorkspaceLayoutSnapshot;
+  private committedSnapshot: PanelWorkspaceLayoutSnapshot;
   private pendingInput: PanelWorkspaceLayoutCoordinatorInput | null = null;
+  private preview: PanelWorkspaceFramePreview | null = null;
+  private previewDirty = false;
   private frameHandle: number | null = null;
   private lastError: string | null = null;
   private destroyed = false;
@@ -345,6 +389,7 @@ class PanelWorkspaceLayoutCoordinatorStore implements PanelWorkspaceLayoutCoordi
     private readonly solve: PanelWorkspaceLayoutSolver,
   ) {
     this.snapshot = initialSnapshot;
+    this.committedSnapshot = initialSnapshot;
   }
 
   getSnapshot = (): PanelWorkspaceLayoutSnapshot => this.snapshot;
@@ -360,8 +405,34 @@ class PanelWorkspaceLayoutCoordinatorStore implements PanelWorkspaceLayoutCoordi
   queueInput = (input: PanelWorkspaceLayoutCoordinatorInput): void => {
     if (this.destroyed) return;
     this.pendingInput = copyInput(input);
-    if (this.frameHandle !== null) return;
-    this.frameHandle = this.scheduler.request(this.flushPendingInput);
+    this.scheduleFlush();
+  };
+
+  queuePreview = (panelId: PanelId, geometry: PanelFrameGeometry): void => {
+    if (
+      this.destroyed ||
+      !Number.isFinite(geometry.x) ||
+      !Number.isFinite(geometry.y) ||
+      !Number.isFinite(geometry.width) ||
+      !Number.isFinite(geometry.height) ||
+      geometry.width <= 0 ||
+      geometry.height <= 0
+    ) {
+      return;
+    }
+    this.preview = {
+      panelId,
+      geometry: freezeRect(geometry),
+    };
+    this.previewDirty = true;
+    this.scheduleFlush();
+  };
+
+  clearPreview = (): void => {
+    if (this.destroyed || (this.preview === null && !this.previewDirty)) return;
+    this.preview = null;
+    this.previewDirty = true;
+    this.scheduleFlush();
   };
 
   getLastError = (): string | null => this.lastError;
@@ -370,6 +441,8 @@ class PanelWorkspaceLayoutCoordinatorStore implements PanelWorkspaceLayoutCoordi
     if (this.destroyed) return;
     this.destroyed = true;
     this.pendingInput = null;
+    this.preview = null;
+    this.previewDirty = false;
     if (this.frameHandle !== null) {
       this.scheduler.cancel(this.frameHandle);
       this.frameHandle = null;
@@ -382,23 +455,39 @@ class PanelWorkspaceLayoutCoordinatorStore implements PanelWorkspaceLayoutCoordi
     if (this.destroyed) return;
     const input = this.pendingInput;
     this.pendingInput = null;
-    if (!input) return;
-    const solved = this.solve(input.layout, input.registry, {
-      workspaceRect: input.workspaceRect,
-      railSizes: input.railSizes,
-    });
-    if (!solved.ok) {
-      this.lastError = solved.error;
-      return;
+    const hadPreviewUpdate = this.previewDirty;
+    this.previewDirty = false;
+    if (!input && !hadPreviewUpdate) return;
+    const nextVersion = this.snapshot.version + 1;
+    if (input) {
+      const solved = this.solve(input.layout, input.registry, {
+        workspaceRect: input.workspaceRect,
+        railSizes: input.railSizes,
+      });
+      if (!solved.ok) {
+        this.lastError = solved.error;
+        if (!hadPreviewUpdate) return;
+      } else {
+        this.lastError = null;
+        this.committedSnapshot = createSnapshot(
+          solved.value,
+          input.registry,
+          nextVersion,
+        );
+      }
     }
-    this.lastError = null;
-    this.snapshot = createSnapshot(
-      solved.value,
-      input.registry,
-      this.snapshot.version + 1,
+    this.snapshot = createTransientSnapshot(
+      this.committedSnapshot,
+      nextVersion,
+      this.preview,
     );
     for (const listener of [...this.listeners]) listener();
   };
+
+  private scheduleFlush(): void {
+    if (this.frameHandle !== null) return;
+    this.frameHandle = this.scheduler.request(this.flushPendingInput);
+  }
 }
 
 export function createPanelWorkspaceLayoutCoordinator(

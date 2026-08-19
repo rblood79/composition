@@ -37,6 +37,8 @@
   .panel-workspace {
     --panel-rail-size: 48px;
     --panel-workspace-gap: 4px;
+    --panel-interaction-line-color: var(--focus-ring);
+    --panel-interaction-line-size: 2px;
 
     position: absolute;
     inset: 0;
@@ -72,8 +74,6 @@
   }
 
   .panel-dock-dropper {
-    --panel-snap-color: var(--focus-ring);
-
     position: absolute;
     z-index: 1500;
     pointer-events: none;
@@ -88,8 +88,8 @@
     top: 50%;
     right: 0;
     left: 0;
-    height: 2px;
-    background: var(--panel-snap-color);
+    height: var(--panel-interaction-line-size);
+    background: var(--panel-interaction-line-color);
     transform: translateY(-50%);
     content: "";
   }
@@ -100,6 +100,39 @@
 
   .panel-dock-dropper[data-active="true"] {
     opacity: 1;
+  }
+
+  .panel-zone-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    pointer-events: none;
+  }
+
+  .panel-zone-target {
+    margin: var(--spacing-xs);
+    background: color-mix(
+      in srgb,
+      var(--panel-interaction-line-color) 6%,
+      transparent
+    );
+    border: var(--panel-interaction-line-size) solid
+      color-mix(in srgb, var(--panel-interaction-line-color) 18%, transparent);
+    border-radius: var(--radius-sm);
+    opacity: 0.45;
+  }
+
+  .panel-zone-target[data-active="true"] {
+    background: color-mix(
+      in srgb,
+      var(--panel-interaction-line-color) 12%,
+      transparent
+    );
+    border-color: var(--panel-interaction-line-color);
+    opacity: 0.8;
   }
 
   .panel-activity-rail {
@@ -259,8 +292,6 @@
   }
 
   .panel-snap-target {
-    --panel-snap-color: var(--focus-ring);
-
     position: absolute;
     border: 0;
     border-radius: 0;
@@ -270,8 +301,8 @@
   .panel-snap-target[data-edge="bottom"] {
     right: 0;
     left: 0;
-    height: 2px;
-    background: var(--panel-snap-color);
+    height: var(--panel-interaction-line-size);
+    background: var(--panel-interaction-line-color);
   }
 
   .panel-snap-target[data-edge="top"] {
@@ -286,8 +317,8 @@
   .panel-snap-target[data-edge="right"] {
     top: 0;
     bottom: 0;
-    width: 2px;
-    background: var(--panel-snap-color);
+    width: var(--panel-interaction-line-size);
+    background: var(--panel-interaction-line-color);
   }
 
   .panel-snap-target[data-edge="left"] {
@@ -339,7 +370,7 @@
 
   .panel-resize-handle::after {
     position: absolute;
-    background: var(--focus-ring);
+    background: var(--panel-interaction-line-color);
     border-radius: var(--radius-sm);
     content: "";
     opacity: 0;
@@ -350,7 +381,7 @@
   .panel-resize-handle[data-edge="right"]::after {
     top: 50%;
     left: 4px;
-    width: 2px;
+    width: var(--panel-interaction-line-size);
     height: 28px;
     transform: translateY(-50%);
   }
@@ -360,7 +391,7 @@
     top: 4px;
     left: 50%;
     width: 28px;
-    height: 2px;
+    height: var(--panel-interaction-line-size);
     transform: translateX(-50%);
   }
 

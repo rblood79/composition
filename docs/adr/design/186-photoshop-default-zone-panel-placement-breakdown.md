@@ -413,6 +413,20 @@ v3 raw와 v2 projection이 모두 parse되지 않으면 fail closed한다.
 - snap/resize bar token과 thickness를 단일화한다.
 - **G3** 통과 전 v2 free-position path를 제거하지 않는다.
 
+#### 실행 기록 — G3 PASS (2026-08-19)
+
+- [Phase 3 transient drag and candidate/drop transaction](186-phase-3-drag-transaction.md)에
+  session-only free XY, 단일 panel/zone candidate resolver, valid 1 commit과
+  invalid/Escape/cancel 0 commit rollback을 기록했다.
+- panel workspace layout Vitest 21 files, 173 tests, typecheck와 preflight를 통과했다.
+- local Builder 실제 pointer drag에서 drag 중 9-zone overlay 1개/active cell 1개,
+  panel-edge snap line 1개, Escape exact rollback과 valid bottom-right drop/reload를 확인했다.
+- 5초 trace는 pointer move 147회에서 solve/DOM geometry query/version mismatch/long task 0,
+  presentation commit 147 <= RAF sample 601, applied-frame p95 약 8.4ms였다.
+- snap line과 resize hover bar는 computed color와 가로 height/세로 width 모두 동일한 2px로
+  확인했다. v2 compatibility writer와 legacy resize/activation path는 유지했고 Phase 4는
+  시작하지 않았다.
+
 ### Phase 4 — activation, resize, reset 정책
 
 - rail activation의 Photoshop 기본 stack/overflow를 v3 zone cluster에 연결한다.

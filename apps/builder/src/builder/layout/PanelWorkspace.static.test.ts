@@ -9,6 +9,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     readFile(resolve(__dirname, "PanelWorkspace.css"), "utf-8");
   const readSplitter = () =>
     readFile(resolve(__dirname, "PanelSplitter.tsx"), "utf-8");
+  const readRuntime = () =>
+    readFile(resolve(__dirname, "panelWorkspaceRuntime.ts"), "utf-8");
   const readCanvasStyles = () =>
     readFile(resolve(__dirname, "../styles/layout/canvas.css"), "utf-8");
 
@@ -56,19 +58,34 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
 
     expect(source).toContain("useMove({");
     expect(source).toMatch(/<button\s+\{\.\.\.moveProps\}/);
-    expect(source).toContain("runtime.resolveSnap(config.id, next)");
-    expect(source).toContain("snapTarget?.panelId === config.id");
-    expect(source).toContain("data-edge={snapTarget.edge}");
+    expect(source).toContain("runtime.updateDrag(config.id, next, pointer)");
+    expect(source).toContain('dropCandidate?.kind === "panel-edge"');
+    expect(source).toContain("data-edge={dropCandidate.edge}");
     expect(source).not.toContain("SNAP_EDGES.map");
-    expect(source).toContain("data-active={isFirstDropTarget}");
-    expect(source).toContain("data-active={isLastDropTarget}");
-    expect(source).toContain("data-enabled={isDragging}");
-    expect(styles).toMatch(
-      /\.panel-dock-dropper\[data-enabled="true"\]\s*\{[\s\S]*?pointer-events: auto;/,
+    expect(source).toContain("PANEL_WORKSPACE_PLACEMENT_ZONES.map((zone)");
+    expect(source).toContain('className="panel-zone-overlay"');
+    expect(styles).toContain(
+      "--panel-interaction-line-color: var(--focus-ring)",
     );
-    expect(styles).toContain("--panel-snap-color: var(--focus-ring)");
-    expect(styles).toContain("height: 2px");
-    expect(styles).toContain("width: 2px");
+    expect(styles).toContain("--panel-interaction-line-size: 2px");
+    expect(styles).toMatch(
+      /\.panel-snap-target\[data-edge="top"\],[\s\S]*?height: var\(--panel-interaction-line-size\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-resize-handle\[data-edge="top"\]::after,[\s\S]*?height: var\(--panel-interaction-line-size\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-snap-target\[data-edge="left"\],[\s\S]*?width: var\(--panel-interaction-line-size\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-resize-handle\[data-edge="left"\]::after,[\s\S]*?width: var\(--panel-interaction-line-size\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-snap-target\[data-edge="top"\],[\s\S]*?background: var\(--panel-interaction-line-color\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-resize-handle::after\s*\{[\s\S]*?background: var\(--panel-interaction-line-color\);/,
+    );
     expect(styles).toMatch(/\.panel-snap-target\s*\{[\s\S]*?border-radius: 0;/);
     expect(source).toContain('className="panel-snap-target"');
     expect(source).not.toContain("PanelDropZone");
@@ -85,14 +102,26 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(splitter).toContain("aria-valuemax={maxValue}");
   });
 
-  it("viewport dock 대신 자유 위치 또는 인접 panel column/stack 관계를 persist한다", async () => {
-    const source = await readWorkspace();
+  it("drag 자유 좌표는 preview로만 publish하고 valid candidate만 v2 compatibility writer에 commit한다", async () => {
+    const [source, runtime] = await Promise.all([
+      readWorkspace(),
+      readRuntime(),
+    ]);
 
-    expect(source).toContain("runtime.movePanel(config.id, next)");
-    expect(source).toContain("runtime.snapPanel(");
-    expect(source).toContain("onCommitLayout(runtime.endInteraction())");
+    expect(source).toContain("runtime.beginDrag(config.id)");
+    expect(source).toContain("runtime.updateDrag(config.id, next, pointer)");
+    expect(source).toContain("runtime.endDrag(config.id)");
+    expect(source).toContain("if (ended.value.committed)");
+    expect(source).not.toContain("runtime.movePanel(config.id, next)");
+    expect(runtime).toContain("movePanel(panelId, geometry)");
+    expect(runtime).toContain("coordinator.queuePreview(panelId, geometry)");
+    expect(runtime).toContain("projectPanelWorkspaceLayoutV3ToV2(");
     expect(source).toContain("data-clustered=");
-    expect(source).toContain("runtime.cancelInteraction()");
+    expect(source).toContain("runtime.cancelDrag()");
+    expect(source).toContain(
+      'document.addEventListener("keydown", onKeyDown, true)',
+    );
+    expect(source).toContain('if (event.key !== "Escape") return');
     expect(source).not.toContain("EDGE_DOCK_THRESHOLD");
     expect(source).not.toContain("panel-dock-drop-zone");
     expect(source).not.toContain("ModalOverlay");

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-186 G3 — transient panel drag와 candidate/drop transaction] - 2026-08-19
+
+### Architecture
+
+- **free XY를 drag session preview로 격리**: pointermove는 committed v2 layout이나 storage를 쓰지 않고 coordinator의 transient preview만 RAF 단위로 publish한다. valid panel-edge/9-zone drop만 graph를 한 번 commit하며 invalid drop, Escape, pointer cancel은 byte-equivalent base layout으로 돌아간다
+- **Photoshop panel adjacency와 Pencil 9-zone을 단일 candidate resolver로 통합**: panel의 실제 snap 가능한 outer face를 zone보다 우선하고 candidate는 항상 최대 1개만 노출한다. drag 중에만 3x3 zone overlay를 표시하며 기존 모든 면 dropper는 제거했다
+- **snap line과 resize hover bar의 시각 계약을 통일**: 공통 focus-ring color token과 2px thickness를 사용해 가로 방향 height와 세로 방향 width가 일치한다. 실제 Builder pointer trace에서 solve/DOM geometry query/version mismatch/long task 0, Escape rollback과 valid drop reload를 확인했다
+- production persistence와 activation/resize는 계속 v2 compatibility path를 사용한다. Phase 4 정책 전환과 Phase 5 v3 production cutover/free-XY 제거는 아직 시작하지 않았다
+- 위치: `apps/builder/src/builder/layout/panelWorkspaceZoneDrop.ts`, `PanelWorkspace.*`, `panelWorkspaceRuntime.ts`, `panelWorkspaceLayoutCoordinator.ts`, `docs/adr/design/186-phase-3-drag-transaction.md`
+
 ## [ADR-186 G2 — 9-zone solver와 common placement surface] - 2026-08-19
 
 ### Architecture

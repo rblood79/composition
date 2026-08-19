@@ -7,18 +7,13 @@ import {
   type ReactNode,
 } from "react";
 import type { PanelId } from "../panels/core/types";
-import type { PanelSnapEdge } from "./panelSnap";
-
-interface ActivePanelSnapTarget {
-  panelId: PanelId;
-  edge: PanelSnapEdge;
-}
+import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
 
 interface PanelSnapInteractionValue {
   draggedPanelId: PanelId | null;
-  snapTarget: ActivePanelSnapTarget | null;
+  dropCandidate: PanelDropCandidate;
   beginPanelDrag: (panelId: PanelId) => void;
-  updatePanelSnapTarget: (target: ActivePanelSnapTarget | null) => void;
+  updatePanelDropCandidate: (candidate: PanelDropCandidate) => void;
   endPanelDrag: () => void;
 }
 
@@ -31,35 +26,33 @@ export function PanelSnapInteractionProvider({
   children: ReactNode;
 }) {
   const [draggedPanelId, setDraggedPanelId] = useState<PanelId | null>(null);
-  const [snapTarget, setSnapTarget] = useState<ActivePanelSnapTarget | null>(
-    null,
-  );
+  const [dropCandidate, setDropCandidate] = useState<PanelDropCandidate>(null);
   const beginPanelDrag = useCallback((panelId: PanelId) => {
     setDraggedPanelId(panelId);
-    setSnapTarget(null);
+    setDropCandidate(null);
   }, []);
-  const updatePanelSnapTarget = useCallback(
-    (target: ActivePanelSnapTarget | null) => setSnapTarget(target),
+  const updatePanelDropCandidate = useCallback(
+    (candidate: PanelDropCandidate) => setDropCandidate(candidate),
     [],
   );
   const endPanelDrag = useCallback(() => {
     setDraggedPanelId(null);
-    setSnapTarget(null);
+    setDropCandidate(null);
   }, []);
   const value = useMemo(
     () => ({
       draggedPanelId,
-      snapTarget,
+      dropCandidate,
       beginPanelDrag,
-      updatePanelSnapTarget,
+      updatePanelDropCandidate,
       endPanelDrag,
     }),
     [
       beginPanelDrag,
       draggedPanelId,
+      dropCandidate,
       endPanelDrag,
-      snapTarget,
-      updatePanelSnapTarget,
+      updatePanelDropCandidate,
     ],
   );
 
