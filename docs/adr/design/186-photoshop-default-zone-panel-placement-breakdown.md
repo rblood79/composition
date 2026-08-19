@@ -355,6 +355,15 @@ v3 raw와 v2 projection이 모두 parse되지 않으면 fail closed한다.
   migration fixture를 만든다.
 - **G0** 통과 전 production owner를 바꾸지 않는다.
 
+#### 실행 기록 — G0 PASS (2026-08-19)
+
+- [Phase 0 panel placement baseline](186-phase-0-panel-placement-baseline.md)에 기준 HEAD,
+  v2 producer/consumer 12개 파일, browser hydration과 fixture oracle을 기록했다.
+- `panelWorkspaceAdr186.testFixtures.ts`와 `panelWorkspaceAdr186Baseline.test.ts`에서
+  default/9-zone/invalid/resize/reopen/10+ cluster 계약을 고정했다.
+- focused Vitest 6 files, 59 tests가 통과했고 production owner/state/renderer 변경은 0개다.
+- Phase 1의 R1/R10은 HIGH이므로 사용자 확인 전에는 v3 migration 구현에 진입하지 않는다.
+
 ### Phase 1 — v3 model, pure migration, durable backup
 
 - v3 types/parser/normalizer/default layout을 추가한다.
