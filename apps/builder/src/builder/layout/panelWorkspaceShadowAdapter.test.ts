@@ -12,6 +12,7 @@ import {
   createPanelWorkspaceLayoutV2,
 } from "./panelWorkspaceLayoutV2.testFixtures";
 import { migratePanelLayoutV1ToV2 } from "./panelWorkspaceLayoutV2Migration";
+import { migratePanelWorkspaceLayoutV2ToV3 } from "./panelWorkspaceLayoutV3Migration";
 import { resolvePanelSnap } from "./panelSnap";
 import { createPanelWorkspaceLayoutCoordinator } from "./panelWorkspaceLayoutCoordinator";
 import {
@@ -48,30 +49,38 @@ function createRepresentativeV1Layout(): PanelLayoutState {
 }
 
 function createRepresentativeSnapshot() {
-  const layout = migratePanelLayoutV1ToV2(
+  const layoutV2 = migratePanelLayoutV1ToV2(
     createRepresentativeV1Layout(),
     PANEL_WORKSPACE_TEST_REGISTRY,
     "g2a-shadow",
   );
+  const migrated = migratePanelWorkspaceLayoutV2ToV3(
+    layoutV2,
+    PANEL_WORKSPACE_TEST_REGISTRY,
+    {
+      surfaceRect: { width: 1400, height: 900 },
+      migrationId: "g2a-shadow-v3",
+    },
+  );
+  if (!migrated.ok) throw new Error(migrated.error);
   const result = createPanelWorkspaceLayoutCoordinator({
-    layout,
+    layout: migrated.value,
     registry: PANEL_WORKSPACE_TEST_REGISTRY,
     workspaceRect: { width: 1400, height: 900 },
-    railSizes: { left: 48, right: 48, bottom: 48 },
   });
   expect(result.ok).toBe(true);
   if (!result.ok) throw new Error(result.error);
   return result.value.getSnapshot();
 }
 
-function createObservedV1Frames(): ReadonlyMap<PanelId, PanelFrameGeometry> {
-  return new Map<PanelId, PanelFrameGeometry>([
-    ["nodes", { x: 52, y: 4, width: 233, height: 520 }],
-    ["settings", { x: 289, y: 4, width: 400, height: 500 }],
-    ["history", { x: 791, y: 4, width: 320, height: 450 }],
-    ["properties", { x: 1115, y: 4, width: 233, height: 520 }],
-    ["monitor", { x: 400, y: 650, width: 600, height: 200 }],
-  ]);
+function createObservedV3Frames(): ReadonlyMap<PanelId, PanelFrameGeometry> {
+  const snapshot = createRepresentativeSnapshot();
+  return new Map(
+    [...snapshot.frameGeometries].map(([panelId, frame]) => [
+      panelId,
+      { x: frame.x, y: frame.y, width: frame.width, height: frame.height },
+    ]),
+  );
 }
 
 describe("ADR-922 G2a shadow geometry", () => {
@@ -79,13 +88,13 @@ describe("ADR-922 G2a shadow geometry", () => {
     const snapshot = createRepresentativeSnapshot();
 
     expect(
-      comparePanelWorkspaceShadowFrames(snapshot, createObservedV1Frames()),
+      comparePanelWorkspaceShadowFrames(snapshot, createObservedV3Frames()),
     ).toEqual([]);
   });
 
   it("geometry 차이를 allowlist 없이 panel/field 단위로 보고한다", () => {
     const snapshot = createRepresentativeSnapshot();
-    const observed = new Map(createObservedV1Frames());
+    const observed = new Map(createObservedV3Frames());
     observed.set("history", {
       ...observed.get("history")!,
       width: observed.get("history")!.width + 1,
@@ -104,13 +113,9 @@ describe("ADR-922 G2a shadow geometry", () => {
 describe("ADR-922 snapshot candidate adapter", () => {
   it("현행 pure snap oracle과 같은 candidate를 DOM query 없이 계산한다", () => {
     const snapshot = createRepresentativeSnapshot();
-    const source = {
-      x: 52,
-      y: 528,
-      width: 233,
-      height: 500,
-    };
-    const targets = [...createObservedV1Frames()]
+    const source = snapshot.frameGeometries.get("settings");
+    if (!source) throw new Error("settings frame is required");
+    const targets = [...createObservedV3Frames()]
       .filter(([panelId]) => panelId !== "settings")
       .map(([panelId, geometry]) => ({ panelId, geometry }));
 

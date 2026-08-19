@@ -11,7 +11,14 @@ import {
   createPanelWorkspaceLayoutV2,
 } from "./panelWorkspaceLayoutV2.testFixtures";
 import { createPanelWorkspaceRegistryEntry } from "./panelWorkspaceLayoutV2";
-import { snapPanelWorkspacePanel } from "./panelWorkspaceLayoutInteraction";
+import type { PanelWorkspaceLayoutV2 } from "./panelWorkspaceLayoutV2";
+import type { PanelWorkspaceLayoutV3 } from "./panelWorkspaceLayoutV3";
+import { migratePanelWorkspaceLayoutV2ToV3 } from "./panelWorkspaceLayoutV3Migration";
+import {
+  beginPanelWorkspaceDragSession,
+  commitPanelWorkspaceDragSession,
+  updatePanelWorkspaceDragSession,
+} from "./panelWorkspaceZoneDrop";
 import { PanelWorkspace } from "./PanelWorkspace";
 
 const TEST_CONFIGS: PanelConfig[] = PANEL_WORKSPACE_TEST_REGISTRY.map(
@@ -45,6 +52,21 @@ const STYLES_TEST_CONFIG: PanelConfig = {
   minHeight: 160,
   maxHeight: 800,
 };
+
+const TEST_REGISTRY = [...TEST_CONFIGS, STYLES_TEST_CONFIG].map(
+  createPanelWorkspaceRegistryEntry,
+);
+
+function migrateFixture(
+  source: PanelWorkspaceLayoutV2 = createPanelWorkspaceLayoutV2(),
+): PanelWorkspaceLayoutV3 {
+  const migrated = migratePanelWorkspaceLayoutV2ToV3(source, TEST_REGISTRY, {
+    surfaceRect: { width: 1600, height: 852 },
+    migrationId: "panel-workspace-occupancy-fixture",
+  });
+  if (!migrated.ok) throw new Error(migrated.error);
+  return migrated.value;
+}
 
 function RepresentativePanel() {
   return (
@@ -88,16 +110,12 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     });
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1600);
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(852);
-    useStore
-      .getState()
-      .initializePanelWorkspaceLayout(
-        [...TEST_CONFIGS, STYLES_TEST_CONFIG].map(
-          createPanelWorkspaceRegistryEntry,
-        ),
-        { width: 1592, height: 844 },
-      );
+    useStore.getState().initializePanelWorkspaceLayout(TEST_REGISTRY, {
+      width: 1592,
+      height: 844,
+    });
     useStore.setState({
-      panelWorkspaceLayout: createPanelWorkspaceLayoutV2(),
+      panelWorkspaceLayout: migrateFixture(),
       panelWorkspaceHydrationStatus: "memory-fallback",
       panelWorkspaceHydrationError: null,
     });
@@ -108,7 +126,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     vi.restoreAllMocks();
   });
 
-  it("cache-clear legacy anchor를 floating overlay로 승격해 Canvas 전체 track을 유지한다", () => {
+  it("v3 zone cluster를 overlay로 배치해 Canvas 전체 track을 유지한다", () => {
     const { container } = render(
       <PanelWorkspace>
         <div data-testid="canvas-content" />
@@ -151,8 +169,8 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(dockSurface?.parentElement?.parentElement).toBe(placementSurface);
     expect(nodesFrame?.parentElement).toBe(dockSurface);
     expect(propertiesFrame?.parentElement).toBe(dockSurface);
-    expect(nodesFrame?.style.left).toBe("52px");
-    expect(propertiesFrame?.style.left).toBe("1228px");
+    expect(nodesFrame?.style.left).toBe("0px");
+    expect(propertiesFrame?.style.left).toBe("1280px");
     expect(dockSurface?.querySelectorAll(".panel-dock-rail")).toHaveLength(2);
     expect(dockSurface?.querySelectorAll(".panel-dock-dropper")).toHaveLength(
       0,
@@ -175,13 +193,13 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(
       container
         .querySelector('.workspace-panel-frame[data-panel="nodes"]')
-        ?.getAttribute("data-anchor"),
-    ).toBe("floating");
+        ?.getAttribute("data-zone"),
+    ).toBe("top-left");
     expect(
       container
         .querySelector('.workspace-panel-frame[data-panel="properties"]')
-        ?.getAttribute("data-anchor"),
-    ).toBe("floating");
+        ?.getAttribute("data-zone"),
+    ).toBe("top-right");
   });
 
   it("shell이 기존 panel header/action/content DOM을 복제하지 않는다", () => {
@@ -216,7 +234,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
   });
 
   it("bottom placement는 유지하되 rail order가 비면 빈 rail DOM을 만들지 않는다", () => {
-    const layout = createPanelWorkspaceLayoutV2();
+    const layout = migrateFixture();
     layout.railOrder.bottom = [];
     layout.railOrder.right.push("monitor");
     useStore.setState({ panelWorkspaceLayout: layout });
@@ -264,7 +282,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
       settings: false,
       styles: false,
     };
-    useStore.setState({ panelWorkspaceLayout: layout });
+    useStore.setState({ panelWorkspaceLayout: migrateFixture(layout) });
 
     const { container } = render(
       <PanelWorkspace>
@@ -287,14 +305,12 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
 
     const updated = useStore.getState().panelWorkspaceLayout!;
     const updatedRight = updated.clusters.find(
-      (cluster) => cluster.id === "anchor:right",
+      (cluster) => cluster.placementZone === "top-right",
     );
     const updatedLeft = updated.clusters.find(
-      (cluster) => cluster.id === "anchor:left",
+      (cluster) => cluster.placementZone === "top-left",
     );
-    expect(
-      updated.clusters.every((cluster) => cluster.anchor === "floating"),
-    ).toBe(true);
+    expect(updated.version).toBe(3);
     expect(
       updatedRight?.columns.map((column) =>
         column.rows.map((row) => row.panelId),
@@ -308,18 +324,45 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
   });
 
   it("cross-rail snap은 anchor 기준 outer edge와 shared column splitter 하나를 렌더링한다", () => {
-    const layout = createPanelWorkspaceLayoutV2();
+    const layout = migrateFixture();
     layout.visibility.settings = true;
-    const snapped = snapPanelWorkspacePanel(
+    const started = beginPanelWorkspaceDragSession(
       layout,
-      PANEL_WORKSPACE_TEST_REGISTRY,
+      TEST_REGISTRY,
+      { width: 1600, height: 852 },
       "settings",
-      "properties",
-      "left",
     );
-    expect(snapped.ok).toBe(true);
-    if (!snapped.ok) return;
-    useStore.setState({ panelWorkspaceLayout: snapped.value.layout });
+    expect(started.ok).toBe(true);
+    if (!started.ok) return;
+    const target = started.value.candidateFrameGeometries.get("properties");
+    if (!target) throw new Error("properties frame is required");
+    const updated = updatePanelWorkspaceDragSession(
+      started.value,
+      TEST_REGISTRY,
+      { width: 1600, height: 852 },
+      {
+        x: target.x - 404,
+        y: target.y,
+        width: 400,
+        height: 500,
+      },
+      { x: target.x - 4, y: target.y + 250 },
+    );
+    expect(updated.ok).toBe(true);
+    if (!updated.ok) return;
+    expect(updated.value.candidate).toEqual({
+      kind: "panel-edge",
+      panelId: "properties",
+      edge: "left",
+    });
+    const committed = commitPanelWorkspaceDragSession(
+      updated.value,
+      TEST_REGISTRY,
+      { width: 1600, height: 852 },
+    );
+    expect(committed.ok).toBe(true);
+    if (!committed.ok) return;
+    useStore.setState({ panelWorkspaceLayout: committed.value.layout });
 
     const { container } = render(
       <PanelWorkspace>
@@ -331,7 +374,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     );
 
     expect(settingsFrame?.getAttribute("data-side")).toBe("left");
-    expect(settingsFrame?.getAttribute("data-anchor")).toBe("floating");
+    expect(settingsFrame?.getAttribute("data-zone")).toBe("top-right");
     expect(
       [...(settingsFrame?.querySelectorAll(".panel-resize-handle") ?? [])].map(
         (handle) => handle.getAttribute("data-edge"),

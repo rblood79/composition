@@ -2,31 +2,20 @@ import type {
   PanelFrameGeometry,
   PanelId,
   PanelResizeEdge,
-  PanelSnapEdge,
 } from "../panels/core/types";
 import {
   createPanelWorkspaceLayoutCoordinator,
   type PanelWorkspaceLayoutCoordinator,
 } from "./panelWorkspaceLayoutCoordinator";
-import { floatAnchoredPanelWorkspaceClusters } from "./panelWorkspaceLayoutV2";
-import {
-  detachPanelToFloatingCluster,
-  dropPanelWorkspacePanel,
-  snapPanelWorkspacePanel,
-  type PanelWorkspaceInteractionResult,
-} from "./panelWorkspaceLayoutInteraction";
 import type {
-  PanelWorkspaceLayoutV2,
-  PanelWorkspaceRailSizes,
   PanelWorkspaceRect,
   PanelWorkspaceRegistryEntry,
   PanelWorkspaceResult,
 } from "./panelWorkspaceLayoutV2";
-import type { PanelSnapCandidate } from "./panelSnap";
-import type { PanelDockDropTarget } from "./panelWorkspaceDockDrop";
-import { projectPanelWorkspaceLayoutV3ToV2 } from "./panelWorkspaceLayoutV3Rollback";
-import { migratePanelWorkspaceLayoutV2ToV3 } from "./panelWorkspaceLayoutV3Migration";
-import type { PanelWorkspaceLayoutV3 } from "./panelWorkspaceLayoutV3";
+import {
+  normalizePanelWorkspaceLayoutV3,
+  type PanelWorkspaceLayoutV3,
+} from "./panelWorkspaceLayoutV3";
 import {
   activatePanelWorkspacePanelV3,
   resetPanelWorkspaceLayoutV3,
@@ -41,7 +30,6 @@ import {
   type PanelWorkspaceDragSession,
   type PanelWorkspacePointerPosition,
 } from "./panelWorkspaceZoneDrop";
-import { resolvePanelSnapFromSnapshot } from "./panelWorkspaceShadowAdapter";
 
 export interface PanelWorkspaceRuntimeMutation {
   expectedVersion: number;
@@ -53,7 +41,7 @@ export interface PanelWorkspaceRuntimeDragMutation extends PanelWorkspaceRuntime
 }
 
 export interface PanelWorkspaceRuntimeDragEnd {
-  layout: PanelWorkspaceLayoutV2;
+  layout: PanelWorkspaceLayoutV3;
   committed: boolean;
   candidate: PanelDropCandidate;
   expectedVersion: number;
@@ -62,9 +50,9 @@ export interface PanelWorkspaceRuntimeDragEnd {
 
 export interface PanelWorkspaceRuntime {
   coordinator: PanelWorkspaceLayoutCoordinator;
-  getLayout(): PanelWorkspaceLayoutV2;
+  getLayout(): PanelWorkspaceLayoutV3;
   getDragSession(): PanelWorkspaceDragSession | null;
-  replaceCommittedLayout(layout: PanelWorkspaceLayoutV2): void;
+  replaceCommittedLayout(layout: PanelWorkspaceLayoutV3): void;
   beginDrag(panelId: PanelId): PanelWorkspaceResult<PanelWorkspaceDragSession>;
   updateDrag(
     panelId: PanelId,
@@ -75,26 +63,13 @@ export interface PanelWorkspaceRuntime {
   endDrag(panelId: PanelId): PanelWorkspaceResult<PanelWorkspaceRuntimeDragEnd>;
   cancelDrag(): PanelWorkspaceRuntimeDragEnd;
   beginInteraction(): void;
-  endInteraction(): PanelWorkspaceLayoutV2;
-  cancelInteraction(): PanelWorkspaceLayoutV2;
+  endInteraction(): PanelWorkspaceLayoutV3;
+  cancelInteraction(): PanelWorkspaceLayoutV3;
   updateWorkspaceRect(workspaceRect: PanelWorkspaceRect): void;
   activatePanel(
     panelId: PanelId,
   ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
   resetLayout(): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
-  movePanel(
-    panelId: PanelId,
-    geometry: PanelFrameGeometry,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
-  snapPanel(
-    panelId: PanelId,
-    targetPanelId: PanelId,
-    edge: PanelSnapEdge,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
-  dropPanel(
-    panelId: PanelId,
-    target: PanelDockDropTarget,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
   resizePanel(
     panelId: PanelId,
     edge: PanelResizeEdge,
@@ -107,39 +82,29 @@ export interface PanelWorkspaceRuntime {
     deltaX: number,
     deltaY: number,
   ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
-  resolveSnap(
-    panelId: PanelId,
-    geometry: PanelFrameGeometry,
-  ): PanelSnapCandidate | null;
   destroy(): void;
 }
 
 export function createPanelWorkspaceRuntime(
-  initialLayout: PanelWorkspaceLayoutV2,
+  initialLayout: PanelWorkspaceLayoutV3,
   registry: readonly PanelWorkspaceRegistryEntry[],
   workspaceRect: PanelWorkspaceRect,
-  railSizes: PanelWorkspaceRailSizes,
 ): PanelWorkspaceResult<PanelWorkspaceRuntime> {
   let currentWorkspaceRect = { ...workspaceRect };
-  const floatAnchoredClusters = (
-    nextLayout: PanelWorkspaceLayoutV2,
-  ): PanelWorkspaceResult<PanelWorkspaceLayoutV2> =>
-    floatAnchoredPanelWorkspaceClusters(nextLayout, registry, {
-      workspaceRect: currentWorkspaceRect,
-      railSizes,
-    });
-  const initialFloatingLayout = floatAnchoredClusters(initialLayout);
-  if (!initialFloatingLayout.ok) return initialFloatingLayout;
-  let layout = initialFloatingLayout.value;
-  let committedLayout = initialFloatingLayout.value;
-  let interactionBaseLayout: PanelWorkspaceLayoutV2 | null = null;
-  let interactionBasePolicyLayout: PanelWorkspaceLayoutV3 | null = null;
+  const initial = normalizePanelWorkspaceLayoutV3(
+    initialLayout,
+    registry,
+    currentWorkspaceRect,
+  );
+  if (!initial.ok) return initial;
+  let layout = initial.value;
+  let committedLayout = initial.value;
+  let interactionBaseLayout: PanelWorkspaceLayoutV3 | null = null;
   let dragSession: PanelWorkspaceDragSession | null = null;
   const coordinatorResult = createPanelWorkspaceLayoutCoordinator({
     layout,
     registry,
     workspaceRect: currentWorkspaceRect,
-    railSizes,
   });
   if (!coordinatorResult.ok) return coordinatorResult;
   const coordinator = coordinatorResult.value;
@@ -150,12 +115,12 @@ export function createPanelWorkspaceRuntime(
       layout,
       registry,
       workspaceRect: currentWorkspaceRect,
-      railSizes,
     });
     return expectedVersion;
   };
-  const applyInteraction = (
-    result: PanelWorkspaceResult<PanelWorkspaceInteractionResult>,
+
+  const applyPolicyInteraction = (
+    result: PanelWorkspaceResult<PanelWorkspacePolicyResultV3>,
   ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation> => {
     if (!result.ok) return result;
     layout = result.value.layout;
@@ -169,35 +134,6 @@ export function createPanelWorkspaceRuntime(
       },
     };
   };
-  const applyPolicyInteraction = (
-    result: PanelWorkspaceResult<PanelWorkspacePolicyResultV3>,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation> => {
-    if (!result.ok) return result;
-    const projected = projectPanelWorkspaceLayoutV3ToV2(
-      result.value.layout,
-      registry,
-      currentWorkspaceRect,
-    );
-    if (!projected.ok) return projected;
-    layout = projected.value;
-    return {
-      ok: true,
-      value: {
-        expectedVersion: queueCurrentLayout(),
-        affectedPanelIds: result.value.affectedPanelIds.filter(
-          (panelId) => layout.visibility[panelId] === true,
-        ),
-      },
-    };
-  };
-  const migratePolicySource = (
-    source: PanelWorkspaceLayoutV2,
-    operation: string,
-  ) =>
-    migratePanelWorkspaceLayoutV2ToV3(source, registry, {
-      surfaceRect: currentWorkspaceRect,
-      migrationId: `phase-4-policy:${operation}`,
-    });
 
   return {
     ok: true,
@@ -206,32 +142,27 @@ export function createPanelWorkspaceRuntime(
       getLayout: () => layout,
       getDragSession: () => dragSession,
       replaceCommittedLayout(nextLayout): void {
-        const floatingLayout = floatAnchoredClusters(nextLayout);
-        if (!floatingLayout.ok) return;
-        committedLayout = floatingLayout.value;
+        const normalized = normalizePanelWorkspaceLayoutV3(
+          nextLayout,
+          registry,
+          currentWorkspaceRect,
+        );
+        if (!normalized.ok) return;
+        committedLayout = normalized.value;
         if (interactionBaseLayout !== null || dragSession !== null) return;
-        if (JSON.stringify(layout) === JSON.stringify(floatingLayout.value)) {
-          layout = floatingLayout.value;
+        if (JSON.stringify(layout) === JSON.stringify(normalized.value)) {
+          layout = normalized.value;
           return;
         }
-        layout = floatingLayout.value;
+        layout = normalized.value;
         queueCurrentLayout();
       },
       beginDrag(panelId) {
         if (dragSession !== null) {
           return { ok: false, error: "A panel drag session is already active" };
         }
-        const migrated = migratePanelWorkspaceLayoutV2ToV3(
-          committedLayout,
-          registry,
-          {
-            surfaceRect: currentWorkspaceRect,
-            migrationId: `phase-3-drag:${panelId}`,
-          },
-        );
-        if (!migrated.ok) return migrated;
         const session = beginPanelWorkspaceDragSession(
-          migrated.value,
+          committedLayout,
           registry,
           currentWorkspaceRect,
           panelId,
@@ -297,17 +228,8 @@ export function createPanelWorkspaceRuntime(
             },
           };
         }
-        const projected = projectPanelWorkspaceLayoutV3ToV2(
-          committed.value.layout,
-          registry,
-          currentWorkspaceRect,
-        );
-        if (!projected.ok) {
-          coordinator.clearPreview();
-          return projected;
-        }
-        layout = projected.value;
-        committedLayout = projected.value;
+        layout = committed.value.layout;
+        committedLayout = committed.value.layout;
         queueCurrentLayout();
         coordinator.clearPreview();
         return {
@@ -338,25 +260,18 @@ export function createPanelWorkspaceRuntime(
       beginInteraction(): void {
         if (interactionBaseLayout === null) {
           interactionBaseLayout = committedLayout;
-          const migrated = migratePolicySource(
-            committedLayout,
-            "reference-resize",
-          );
-          interactionBasePolicyLayout = migrated.ok ? migrated.value : null;
         }
       },
-      endInteraction(): PanelWorkspaceLayoutV2 {
+      endInteraction(): PanelWorkspaceLayoutV3 {
         committedLayout = layout;
         interactionBaseLayout = null;
-        interactionBasePolicyLayout = null;
         return layout;
       },
-      cancelInteraction(): PanelWorkspaceLayoutV2 {
+      cancelInteraction(): PanelWorkspaceLayoutV3 {
         if (interactionBaseLayout !== null) {
           layout = interactionBaseLayout;
           committedLayout = interactionBaseLayout;
           interactionBaseLayout = null;
-          interactionBasePolicyLayout = null;
           queueCurrentLayout();
         }
         return layout;
@@ -369,14 +284,23 @@ export function createPanelWorkspaceRuntime(
           return;
         }
         currentWorkspaceRect = { ...nextWorkspaceRect };
+        const normalized = normalizePanelWorkspaceLayoutV3(
+          layout,
+          registry,
+          currentWorkspaceRect,
+        );
+        if (normalized.ok) {
+          layout = normalized.value;
+          if (interactionBaseLayout === null && dragSession === null) {
+            committedLayout = normalized.value;
+          }
+        }
         queueCurrentLayout();
       },
       activatePanel(panelId) {
-        const migrated = migratePolicySource(layout, `activate:${panelId}`);
-        if (!migrated.ok) return migrated;
         return applyPolicyInteraction(
           activatePanelWorkspacePanelV3(
-            migrated.value,
+            layout,
             registry,
             panelId,
             currentWorkspaceRect,
@@ -384,43 +308,14 @@ export function createPanelWorkspaceRuntime(
         );
       },
       resetLayout() {
-        const migrated = migratePolicySource(layout, "reset");
-        if (!migrated.ok) return migrated;
         return applyPolicyInteraction(
-          resetPanelWorkspaceLayoutV3(
-            migrated.value,
-            registry,
-            currentWorkspaceRect,
-          ),
-        );
-      },
-      movePanel(panelId, geometry) {
-        return applyInteraction(
-          detachPanelToFloatingCluster(layout, registry, panelId, geometry),
-        );
-      },
-      snapPanel(panelId, targetPanelId, edge) {
-        return applyInteraction(
-          snapPanelWorkspacePanel(
-            layout,
-            registry,
-            panelId,
-            targetPanelId,
-            edge,
-          ),
-        );
-      },
-      dropPanel(panelId, target) {
-        return applyInteraction(
-          dropPanelWorkspacePanel(layout, registry, panelId, target),
+          resetPanelWorkspaceLayoutV3(layout, registry, currentWorkspaceRect),
         );
       },
       resizePanel(panelId, edge, deltaX, deltaY) {
-        const migrated = migratePolicySource(layout, `resize:${panelId}`);
-        if (!migrated.ok) return migrated;
         return applyPolicyInteraction(
           resizePanelWorkspaceBoundaryV3(
-            migrated.value,
+            layout,
             registry,
             panelId,
             edge,
@@ -431,16 +326,9 @@ export function createPanelWorkspaceRuntime(
         );
       },
       resizePanelFromReference(panelId, edge, deltaX, deltaY) {
-        const migrated = interactionBasePolicyLayout
-          ? { ok: true as const, value: interactionBasePolicyLayout }
-          : migratePolicySource(
-              interactionBaseLayout ?? layout,
-              `reference-resize:${panelId}`,
-            );
-        if (!migrated.ok) return migrated;
         return applyPolicyInteraction(
           resizePanelWorkspaceBoundaryV3(
-            migrated.value,
+            interactionBaseLayout ?? layout,
             registry,
             panelId,
             edge,
@@ -448,13 +336,6 @@ export function createPanelWorkspaceRuntime(
             deltaY,
             currentWorkspaceRect,
           ),
-        );
-      },
-      resolveSnap(panelId, geometry) {
-        return resolvePanelSnapFromSnapshot(
-          coordinator.getSnapshot(),
-          panelId,
-          geometry,
         );
       },
       destroy(): void {

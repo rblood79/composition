@@ -25,13 +25,17 @@ describe("ADR-922 G6 legacy panel removal", () => {
     await expect(access(resolve(BUILDER_ROOT, path))).rejects.toThrow();
   });
 
-  it("keeps only the v2 Zustand state/actions in production", async () => {
-    const [store, storeIndex, hook, hookType] = await Promise.all([
-      readBuilderFile("stores/panelLayout.ts"),
-      readBuilderFile("stores/index.ts"),
-      readBuilderFile("hooks/usePanelLayout.ts"),
-      readBuilderFile("layout/types.ts"),
-    ]);
+  it("keeps only the v3 Zustand state/actions in production", async () => {
+    const [store, storeIndex, hook, hookType, runtime, coordinator, workspace] =
+      await Promise.all([
+        readBuilderFile("stores/panelLayout.ts"),
+        readBuilderFile("stores/index.ts"),
+        readBuilderFile("hooks/usePanelLayout.ts"),
+        readBuilderFile("layout/types.ts"),
+        readBuilderFile("layout/panelWorkspaceRuntime.ts"),
+        readBuilderFile("layout/panelWorkspaceLayoutCoordinator.ts"),
+        readBuilderFile("layout/PanelWorkspace.tsx"),
+      ]);
 
     for (const source of [store, storeIndex, hook, hookType]) {
       expect(source).not.toContain("state.panelLayout");
@@ -45,11 +49,25 @@ describe("ADR-922 G6 legacy panel removal", () => {
 
     expect(store).not.toMatch(/\bpanelLayout:\s/);
     expect(store).toContain(
-      "panelWorkspaceLayout: PanelWorkspaceLayoutV2 | null",
+      "panelWorkspaceLayout: PanelWorkspaceLayoutV3 | null",
     );
     expect(hook).toContain("(panelId: PanelId) =>");
     expect(hook).not.toContain("_side: PanelSide");
-    expect(hook).toContain("focusFloatingPanel");
+    expect(hook).toContain("focusPanel");
+
+    for (const source of [
+      store,
+      hook,
+      hookType,
+      runtime,
+      coordinator,
+      workspace,
+    ]) {
+      expect(source).not.toContain("PanelWorkspaceLayoutV2");
+      expect(source).not.toContain("floatAnchoredPanelWorkspaceClusters");
+      expect(source).not.toContain("detachPanelToFloatingCluster");
+      expect(source).not.toContain("floatingFocusOrder");
+    }
   });
 
   it("retains the read-only v1 parser and durable rollback backup", async () => {

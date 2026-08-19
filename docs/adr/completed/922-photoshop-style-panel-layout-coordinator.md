@@ -28,6 +28,11 @@ Nodes/Properties는 열린 floating frame으로 시작하고, left/right/bottom 
 같은 amendment에서 panel height resize는 config `maxHeight`가 아니라 actual workspace height를
 상한으로 사용하도록 전환했다.
 
+2026-08-19 [ADR-186](186-photoshop-default-zone-panel-placement.md)이 Implemented되면서
+본 ADR의 persisted arbitrary floating XY와 unsnapped placement commit, v2 production
+interaction 부분은 9-zone-owned v3 graph로 부분 대체됐다. 본 ADR의 coordinator, stable
+panel frame, column/row resize, splitter와 visibility lifecycle 계약은 base로 계속 유효하다.
+
 ## Context
 
 Composition Builder의 panel workspace는 최근 모든 등록 panel을

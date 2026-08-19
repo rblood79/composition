@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PanelId } from "../panels/core/types";
 import {
-  floatAnchoredPanelWorkspaceClusters,
   normalizePanelWorkspaceLayoutV2,
   parsePanelWorkspaceLayoutV2,
   solvePanelWorkspaceLayoutV2,
@@ -166,39 +165,6 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
       ok: false,
       error: 'Duplicate panel registry id "nodes"',
     });
-  });
-
-  it("legacy anchored cluster를 Canvas overlay floating cluster로 승격한다", () => {
-    const result = floatAnchoredPanelWorkspaceClusters(
-      createPanelWorkspaceLayoutV2(),
-      PANEL_WORKSPACE_TEST_REGISTRY,
-      {
-        workspaceRect: { width: 1600, height: 900 },
-        railSizes: { left: 48, right: 48, bottom: 48 },
-      },
-    );
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.clusters).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "anchor:left",
-          anchor: "floating",
-          position: { x: 52, y: 0 },
-        }),
-        expect.objectContaining({
-          id: "anchor:right",
-          anchor: "floating",
-          position: { x: 1228, y: 0 },
-        }),
-        expect.objectContaining({
-          id: "anchor:bottom",
-          anchor: "floating",
-          position: { x: 500, y: 608 },
-        }),
-      ]),
-    );
   });
 });
 

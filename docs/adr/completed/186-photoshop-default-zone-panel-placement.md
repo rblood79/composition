@@ -2,7 +2,14 @@
 
 ## Status
 
-Accepted — 2026-08-19
+Implemented — 2026-08-19
+
+진행: Phase 0 / G0 PASS — [contract baseline](../design/186-phase-0-panel-placement-baseline.md),
+Phase 1 / G1 PASS — [v3 model and migration](../design/186-phase-1-v3-model-migration.md),
+Phase 2 / G2 PASS — [zone solver and rollback target](../design/186-phase-2-zone-solver-placement-surface.md),
+Phase 3 / G3 PASS — [drag transaction](../design/186-phase-3-drag-transaction.md),
+Phase 4 / G4 PASS — [policy, identity and resize](../design/186-phase-4-policy-identity-resize.md),
+Phase 5 / G5 PASS — [production cutover](../design/186-phase-5-production-cutover.md).
 
 ## Context
 
@@ -62,7 +69,8 @@ min/max와 pointer/keyboard splitter를 한 owner에서 관리한다. 이는 zon
 4. **전제 잠금**: 자유 XY는 drag preview에만 존재한다. valid drop만 zone/cluster graph로
    commit하고 invalid drop은 시작 layout으로 복귀한다.
 
-ADR-186이 Implemented되기 전까지 ADR-922의 현 production placement가 유효하다.
+ADR-186은 ADR-922의 coordinator/stable frame/column-row resize/visibility lifecycle을 base로
+유지하며, persisted placement schema와 production drag/activation/reset 부분을 대체한다.
 Implemented 승격 시 ADR-922 전체가 아니라 persisted arbitrary floating과 unsnapped drop
 commit 의미만 부분 대체한다.
 
@@ -241,7 +249,7 @@ schema, migration, geometry, interaction을 서로 다른 Gate에서 검증해 H
 - **대안 C 기각**: 사용자가 요구한 것은 두 mode가 아니라 Photoshop default와 9-zone이
   결합된 한 graph다. 두 runtime은 snap/resize/activation owner를 다시 중복시킨다.
 
-> 구현 상세: [186-photoshop-default-zone-panel-placement-breakdown.md](design/186-photoshop-default-zone-panel-placement-breakdown.md)
+> 구현 상세: [186-photoshop-default-zone-panel-placement-breakdown.md](../design/186-photoshop-default-zone-panel-placement-breakdown.md)
 
 ## Risks
 

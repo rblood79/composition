@@ -17,11 +17,10 @@ import {
   type PanelId,
   type PanelLayoutState,
 } from "../panels/core/types";
-import {
-  createPanelWorkspaceRegistryEntry,
-  type PanelWorkspaceLayoutV2,
-} from "../layout/panelWorkspaceLayoutV2";
+import { createPanelWorkspaceRegistryEntry } from "../layout/panelWorkspaceLayoutV2";
 import { migratePanelLayoutV1ToV2 } from "../layout/panelWorkspaceLayoutV2Migration";
+import type { PanelWorkspaceLayoutV3 } from "../layout/panelWorkspaceLayoutV3";
+import { migratePanelWorkspaceLayoutV2ToV3 } from "../layout/panelWorkspaceLayoutV3Migration";
 import { useStore } from "../stores";
 
 const TEST_PANELS: PanelConfig[] = [
@@ -81,11 +80,21 @@ function registry() {
   return TEST_PANELS.map(createPanelWorkspaceRegistryEntry);
 }
 
-function createWorkspaceLayout(): PanelWorkspaceLayoutV2 {
-  return migratePanelLayoutV1ToV2(createV1Layout(), registry(), "hook-test");
+function createWorkspaceLayout(): PanelWorkspaceLayoutV3 {
+  const v2 = migratePanelLayoutV1ToV2(
+    createV1Layout(),
+    registry(),
+    "hook-test",
+  );
+  const result = migratePanelWorkspaceLayoutV2ToV3(v2, registry(), {
+    surfaceRect: { width: 1200, height: 800 },
+    migrationId: "hook-test-v3",
+  });
+  if (!result.ok) throw new Error(result.error);
+  return result.value;
 }
 
-function findPlacement(layout: PanelWorkspaceLayoutV2, panelId: PanelId) {
+function findPlacement(layout: PanelWorkspaceLayoutV3, panelId: PanelId) {
   for (const cluster of layout.clusters) {
     for (const column of cluster.columns) {
       const row = column.rows.find(
@@ -97,7 +106,7 @@ function findPlacement(layout: PanelWorkspaceLayoutV2, panelId: PanelId) {
   return null;
 }
 
-describe("usePanelLayout Photoshop식 v2 panel commands", () => {
+describe("usePanelLayout Photoshop식 v3 panel commands", () => {
   beforeAll(() => {
     for (const config of TEST_PANELS) {
       if (!PanelRegistry.hasPanel(config.id)) PanelRegistry.register(config);
@@ -126,44 +135,51 @@ describe("usePanelLayout Photoshop식 v2 panel commands", () => {
     act(() => result.current.togglePanel("properties"));
     let layout = useStore.getState().panelWorkspaceLayout!;
     expect(layout.visibility.properties).toBe(false);
-    expect(findPlacement(layout, "properties")?.cluster.anchor).toBe("right");
+    expect(findPlacement(layout, "properties")?.cluster.placementZone).toBe(
+      "top-right",
+    );
 
     act(() => result.current.togglePanel("properties"));
     layout = useStore.getState().panelWorkspaceLayout!;
     expect(layout.visibility.properties).toBe(true);
-    expect(findPlacement(layout, "properties")?.cluster.anchor).toBe("right");
+    expect(findPlacement(layout, "properties")?.cluster.placementZone).toBe(
+      "top-right",
+    );
   });
 
-  it("float command는 기존 placement를 floating cluster로 정확히 한 번 옮긴다", () => {
+  it("focus command는 zone cluster order만 갱신한다", () => {
     const { result } = renderHook(() => usePanelLayout());
 
-    act(() => result.current.floatPanel("styles", { x: 120, y: 80 }));
+    act(() => result.current.focusPanel("monitor"));
+    act(() => result.current.focusPanel("properties"));
     const layout = useStore.getState().panelWorkspaceLayout!;
 
-    expect(findPlacement(layout, "styles")?.cluster).toMatchObject({
-      anchor: "floating",
-      position: { x: 120, y: 80 },
+    expect(layout.clusterFocusOrder.at(-1)).toBe(
+      findPlacement(layout, "properties")?.cluster.id,
+    );
+    expect(findPlacement(layout, "properties")?.cluster.placementZone).toBe(
+      "top-right",
+    );
+  });
+
+  it("explicit reset command는 registry default zone layout을 복원한다", () => {
+    const { result } = renderHook(() => usePanelLayout());
+    const moved = structuredClone(useStore.getState().panelWorkspaceLayout!);
+    const properties = findPlacement(moved, "properties");
+    if (!properties) throw new Error("properties placement is required");
+    properties.cluster.placementZone = "bottom-right";
+    useStore.getState().setPanelWorkspaceLayout(moved);
+
+    let reset = false;
+    act(() => {
+      reset = result.current.resetWorkspaceLayout();
     });
-    expect(
-      layout.clusters.flatMap((cluster) =>
-        cluster.columns.flatMap((column) =>
-          column.rows.filter((row) => row.panelId === "styles"),
-        ),
-      ),
-    ).toHaveLength(1);
-  });
-
-  it("floating focus command는 cluster order만 갱신한다", () => {
-    const { result } = renderHook(() => usePanelLayout());
-
-    act(() => result.current.floatPanel("properties", { x: 40, y: 40 }));
-    act(() => result.current.floatPanel("styles", { x: 360, y: 180 }));
-    act(() => result.current.focusFloatingPanel("properties"));
 
     const layout = useStore.getState().panelWorkspaceLayout!;
-    expect(layout.floatingFocusOrder.at(-1)).toContain("properties");
-    expect(findPlacement(layout, "properties")?.cluster.anchor).toBe(
-      "floating",
+    expect(reset).toBe(true);
+    expect(layout.visibility.properties).toBe(true);
+    expect(findPlacement(layout, "properties")?.cluster.placementZone).toBe(
+      "top-right",
     );
   });
 
@@ -172,9 +188,9 @@ describe("usePanelLayout Photoshop식 v2 panel commands", () => {
 
     expect(Object.keys(result.current).sort()).toEqual(
       [
-        "floatPanel",
-        "focusFloatingPanel",
+        "focusPanel",
         "initializeWorkspaceLayout",
+        "resetWorkspaceLayout",
         "setWorkspaceLayout",
         "togglePanel",
         "workspaceLayout",

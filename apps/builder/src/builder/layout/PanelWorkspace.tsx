@@ -45,12 +45,14 @@ import type {
 } from "./panelWorkspaceLayoutCoordinator";
 import {
   createPanelWorkspaceRegistryEntry,
-  type PanelWorkspaceClusterV2,
-  type PanelWorkspaceLayoutV2,
   type PanelWorkspaceRect,
   type PanelWorkspaceRegistryEntry,
 } from "./panelWorkspaceLayoutV2";
-import { PANEL_WORKSPACE_PLACEMENT_ZONES } from "./panelWorkspaceLayoutV3";
+import {
+  PANEL_WORKSPACE_PLACEMENT_ZONES,
+  type PanelWorkspaceClusterV3,
+  type PanelWorkspaceLayoutV3,
+} from "./panelWorkspaceLayoutV3";
 import {
   createPanelWorkspaceRuntime,
   type PanelWorkspaceRuntime,
@@ -61,8 +63,7 @@ import {
 } from "./usePanelWorkspaceLayoutSnapshot";
 import "./PanelWorkspace.css";
 
-const PANEL_RAIL_SIZE = 48;
-type PanelFrameMode = "hidden" | "anchored" | "placed";
+type PanelFrameMode = "hidden" | "placed";
 
 const RESIZE_EDGE_LABELS: Record<PanelResizeEdge, string> = {
   left: "왼쪽",
@@ -72,7 +73,7 @@ const RESIZE_EDGE_LABELS: Record<PanelResizeEdge, string> = {
 };
 
 function railSideForPanel(
-  layout: PanelWorkspaceLayoutV2,
+  layout: PanelWorkspaceLayoutV3,
   config: PanelConfig,
 ): PanelSide {
   for (const side of ["left", "right", "bottom"] as const) {
@@ -85,7 +86,7 @@ function frameMode(
   snapshotFrame: PanelWorkspaceFrameSnapshot | null,
 ): PanelFrameMode {
   if (!snapshotFrame) return "hidden";
-  return snapshotFrame.anchor === "floating" ? "placed" : "anchored";
+  return "placed";
 }
 
 function panelBelongsToMultiPanelCluster(
@@ -106,9 +107,9 @@ function frameZIndex(
   isMoving: boolean,
 ): number {
   if (isMoving) return 2_000;
-  if (!snapshotFrame || snapshotFrame.anchor !== "floating") return 30;
+  if (!snapshotFrame) return 30;
   const layout = runtime.getLayout();
-  const focusIndex = layout.floatingFocusOrder.indexOf(snapshotFrame.clusterId);
+  const focusIndex = layout.clusterFocusOrder.indexOf(snapshotFrame.clusterId);
   return 1_000 + Math.max(0, focusIndex);
 }
 
@@ -120,8 +121,8 @@ function splitterZIndex(
   const cluster = layout.clusters.find(
     (candidate) => candidate.id === clusterId,
   );
-  if (cluster?.anchor !== "floating") return 30;
-  return 1_000 + Math.max(0, layout.floatingFocusOrder.indexOf(clusterId));
+  if (!cluster) return 30;
+  return 1_000 + Math.max(0, layout.clusterFocusOrder.indexOf(clusterId));
 }
 
 interface SharedSplitterContract {
@@ -223,7 +224,7 @@ function sharedSplitterStyle(
 
 interface PanelWorkspaceRuntimeProps {
   runtime: PanelWorkspaceRuntime;
-  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
 }
 
 interface PanelWorkspaceSharedSplittersProps extends PanelWorkspaceRuntimeProps {
@@ -398,7 +399,7 @@ interface PanelFrameProps {
   runtime: PanelWorkspaceRuntime;
   snapshotFrame: PanelWorkspaceFrameSnapshot | null;
   side: PanelSide;
-  onCommitLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  onCommitLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   onFocusPanel: (panelId: PanelId) => void;
 }
 
@@ -655,7 +656,7 @@ const PanelFrame = memo(function PanelFrame({
       className="panel-wrapper workspace-panel-frame"
       data-panel={config.id}
       data-active={isActive}
-      data-anchor={snapshotFrame?.anchor}
+      data-zone={snapshotFrame?.placementZone}
       data-mode={mode}
       data-side={side}
       data-dragging={isMoving}
@@ -664,7 +665,7 @@ const PanelFrame = memo(function PanelFrame({
       style={frameStyle}
       onPointerDown={(event) => {
         if (
-          snapshotFrame?.anchor === "floating" &&
+          snapshotFrame !== null &&
           event.target instanceof Element &&
           !event.target.closest(".panel-move-handle, .panel-resize-handle")
         ) {
@@ -761,7 +762,7 @@ interface SnapshotPanelFrameProps {
   dockOrigin: PanelDockOrigin;
   runtime: PanelWorkspaceRuntime;
   side: PanelSide;
-  onCommitLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  onCommitLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   onFocusPanel: (panelId: PanelId) => void;
 }
 
@@ -781,15 +782,11 @@ function SnapshotPanelFrame(props: SnapshotPanelFrameProps) {
 }
 
 function createRuntime(
-  layout: PanelWorkspaceLayoutV2,
+  layout: PanelWorkspaceLayoutV3,
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
 ): PanelWorkspaceRuntime {
-  const result = createPanelWorkspaceRuntime(layout, registry, surfaceRect, {
-    left: PANEL_RAIL_SIZE,
-    right: PANEL_RAIL_SIZE,
-    bottom: PANEL_RAIL_SIZE,
-  });
+  const result = createPanelWorkspaceRuntime(layout, registry, surfaceRect);
   if (!result.ok) {
     throw new Error(
       `Failed to create panel workspace runtime: ${result.error}`,
@@ -800,23 +797,23 @@ function createRuntime(
 
 interface HydratedPanelWorkspaceProps {
   children: ReactNode;
-  workspaceLayout: PanelWorkspaceLayoutV2;
+  workspaceLayout: PanelWorkspaceLayoutV3;
   configs: readonly PanelConfig[];
   registry: readonly PanelWorkspaceRegistryEntry[];
-  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   togglePanel: (panelId: PanelId) => void;
-  focusFloatingPanel: (panelId: PanelId) => void;
+  focusPanel: (panelId: PanelId) => void;
   placementSurfaceRect: PanelWorkspaceRect;
   placementSurfaceRef: RefObject<HTMLDivElement | null>;
 }
 
 interface PanelWorkspaceOverlayProps {
   configs: readonly PanelConfig[];
-  focusFloatingPanel: (panelId: PanelId) => void;
+  focusPanel: (panelId: PanelId) => void;
   runtime: PanelWorkspaceRuntime;
-  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   togglePanel: (panelId: PanelId) => void;
-  workspaceLayout: PanelWorkspaceLayoutV2;
+  workspaceLayout: PanelWorkspaceLayoutV3;
   placementSurfaceRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -835,7 +832,7 @@ interface PanelDockColumnPresentation {
 }
 
 function panelDockColumns(
-  clusters: readonly PanelWorkspaceClusterV2[],
+  clusters: readonly PanelWorkspaceClusterV3[],
   snapshot: PanelWorkspaceLayoutSnapshot,
 ): PanelDockColumnPresentation[] {
   return clusters.flatMap((cluster) =>
@@ -954,7 +951,7 @@ function PanelDock({ children, runtime }: PanelDockProps) {
 
 const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   configs,
-  focusFloatingPanel,
+  focusPanel,
   runtime,
   setWorkspaceLayout,
   togglePanel,
@@ -1009,7 +1006,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
                     runtime={runtime}
                     side={railSideForPanel(workspaceLayout, config)}
                     onCommitLayout={setWorkspaceLayout}
-                    onFocusPanel={focusFloatingPanel}
+                    onFocusPanel={focusPanel}
                   />
                 ))}
                 <PanelWorkspaceSharedSplitters
@@ -1039,7 +1036,7 @@ function HydratedPanelWorkspace({
   registry,
   setWorkspaceLayout,
   togglePanel,
-  focusFloatingPanel,
+  focusPanel,
   placementSurfaceRect,
   placementSurfaceRef,
 }: HydratedPanelWorkspaceProps) {
@@ -1104,7 +1101,7 @@ function HydratedPanelWorkspace({
 
       <PanelWorkspaceOverlay
         configs={configs}
-        focusFloatingPanel={focusFloatingPanel}
+        focusPanel={focusPanel}
         runtime={runtime}
         setWorkspaceLayout={setWorkspaceLayout}
         togglePanel={togglePanel}
@@ -1125,7 +1122,7 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
     initializeWorkspaceLayout,
     setWorkspaceLayout,
     togglePanel,
-    focusFloatingPanel,
+    focusPanel,
   } = usePanelLayout();
   const configs = useMemo(() => PanelRegistry.getAllPanels(), []);
   const registry = useMemo(
@@ -1191,7 +1188,7 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
       registry={registry}
       setWorkspaceLayout={setWorkspaceLayout}
       togglePanel={togglePanel}
-      focusFloatingPanel={focusFloatingPanel}
+      focusPanel={focusPanel}
       placementSurfaceRect={placementSurfaceRect}
       placementSurfaceRef={placementSurfaceRef}
     />

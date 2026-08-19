@@ -460,6 +460,19 @@ v3 raw와 v2 projection이 모두 parse되지 않으면 fail closed한다.
 - **G5** 통과 뒤 ADR-186을 Implemented로 승격하고 ADR-922의 placement 부분 대체 링크를
   추가한다.
 
+#### 실행 기록 — G5 PASS (2026-08-19)
+
+- [Phase 5 production v3 cutover and free-XY removal](186-phase-5-production-cutover.md)에
+  store/coordinator/runtime/persistence v3 primary 전환, legacy free-XY writer 제거와 actual
+  Builder move/resize/snap/reload/reset 결과를 기록했다.
+- panel workspace focused Vitest 24 files, 234 tests, typecheck와 preflight를 통과했다.
+- 5초 actual pointer trace는 약 120.48Hz에서 delivery 99.83%, baseline 대비 -0.17pp,
+  input-to-applied-frame p95 7.9ms, long task/DOM query/version mismatch 0이었다.
+- persisted v3의 `position/x/y`는 0건이며 exact/migrated-post-edit/v3-born rollback 뒤 old-code
+  valid v2 hydration rehearsal을 모두 통과했다.
+- G0~G5가 모두 통과해 ADR-186을 Implemented로 승격하고 ADR-922의 persisted placement와
+  production interaction 부분을 대체한다.
+
 ## 6. 파일 경계
 
 | 파일/모듈                                                         | 책임                                                             | 예상 변경         |

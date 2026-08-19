@@ -13,6 +13,14 @@ Codex 세션 인수인계가 필요할 때만 보는 짧은 진행 index입니�
 
 ## Codex 운영 메모
 
+- 2026-08-19: ADR-186 Implemented. panel workspace production owner를 zone-only
+  `PanelWorkspaceLayoutV3`로 전환하고 persisted arbitrary XY/free-position writer를
+  제거했다. Photoshop default activation과 Pencil 9-zone drop/panel-edge snap은 같은
+  graph를 사용한다. actual Builder move/resize/snap/reload/reset, focused Vitest 24 files
+  / 234 tests, typecheck/preflight, native 약 120Hz trace baseline -0.17pp와 exact/post-edit/
+  v3-born rollback rehearsal을 통과했다. evidence:
+  `docs/adr/design/186-phase-5-production-cutover.md`.
+
 - 2026-05-15: ADR-137 Implemented. Page 선택 직후 Properties > Frame 변경이
   stale deferred `selectedElement.page_id` / stale `pageId` closure 때문에 다른
   page에 적용되던 경로를 Selection Consumer Contract로 차단했다.

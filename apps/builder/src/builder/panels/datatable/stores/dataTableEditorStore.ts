@@ -9,7 +9,6 @@ import type { DataTableEditorStore, ApiEditorTab } from "../types/editorTypes";
 import { useStore } from "../../../stores";
 import { PanelRegistry } from "../../core/PanelRegistry";
 import { dispatchPanelWorkspaceActivation } from "../../../layout/panelWorkspaceActivationDispatcher";
-import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceLayoutInteraction";
 import {
   createPanelWorkspaceRegistryEntry,
   type PanelWorkspaceRect,
@@ -59,13 +58,13 @@ function setEditorPanelVisibility(visible: boolean) {
     return;
   }
   if (visible && dispatchPanelWorkspaceActivation("datatableEditor")) return;
-  const result = setPanelWorkspacePanelVisibility(
-    panelWorkspaceLayout,
-    registry,
-    "datatableEditor",
-    visible,
-  );
-  if (result.ok) setPanelWorkspaceLayout(result.value.layout);
+  setPanelWorkspaceLayout({
+    ...panelWorkspaceLayout,
+    visibility: {
+      ...panelWorkspaceLayout.visibility,
+      datatableEditor: visible,
+    },
+  });
 }
 
 /**

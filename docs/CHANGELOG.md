@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-186 Implemented — production 9-zone panel workspace cutover] - 2026-08-19
+
+### Architecture
+
+- **panel workspace production state를 zone-owned v3 graph로 전환**: store, coordinator,
+  runtime과 persistence가 `placementZone` + column/row size를 직접 소비하며 arbitrary
+  `position/x/y`를 저장하지 않는다. v2 parser/exact backup과 v3-aware projection은 rollback
+  compatibility boundary로만 유지한다
+- **Photoshop 기본 activation과 Pencil 9-zone을 하나의 interaction graph로 종결**:
+  left/right/bottom panel은 top-left/top-right/bottom에서 시작하고 빈 9-zone drop과
+  panel-relative outer-face snap을 지원한다. invalid/Escape/cancel은 committed graph나
+  storage를 쓰지 않는다
+- **legacy free-XY production writer 제거**: anchored cluster floating 승격,
+  `panelWorkspaceLayoutInteraction`의 persisted position mutation, v2 dock drop projection과
+  unsnapped drop commit을 삭제했다
+- **실제 workspace reset command 추가**: header의 `Reset Panel Layout`이 actual measured
+  placement surface와 registry default를 사용해 기본 rail/zone/size graph를 즉시 복원한다
+- G0~G5를 완료하고 ADR-186을 Implemented로 승격했다. actual Builder
+  move/resize/snap/reload/reset, focused Vitest 24 files/234 tests, typecheck/preflight,
+  native 약 120Hz 5초 pointer trace(baseline -0.17pp), persisted XY 0과
+  exact/post-edit/v3-born old-code rollback rehearsal을 통과했다
+
 ## [ADR-186 G4 — zone activation·rail identity·reference resize 정책] - 2026-08-19
 
 ### Architecture

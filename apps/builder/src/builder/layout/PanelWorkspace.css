@@ -215,10 +215,6 @@
     display: none;
   }
 
-  .panel-workspace .workspace-panel-frame[data-mode="anchored"] {
-    z-index: 30;
-  }
-
   .panel-workspace .workspace-panel-frame[data-mode="placed"] {
     outline: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   }

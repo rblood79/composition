@@ -106,11 +106,6 @@ export interface PanelWorkspaceSolveOptions {
   railSizes: PanelWorkspaceRailSizes;
 }
 
-export interface PanelWorkspaceFloatingPlacementOptions {
-  workspaceRect: PanelWorkspaceRect;
-  railSizes: PanelWorkspaceRailSizes;
-}
-
 export interface PanelWorkspaceSolvedFrameGeometry extends PanelFrameGeometry {
   clusterId: string;
   anchor: PanelWorkspaceAnchor;
@@ -698,112 +693,6 @@ export function parsePanelWorkspaceLayoutV2(
   const raw = parseRawLayout(input);
   if (!raw.ok) return raw;
   return normalizePanelWorkspaceLayoutV2(rawToTypedLayout(raw.value), registry);
-}
-
-function storedClusterSize(cluster: PanelWorkspaceClusterV2): PanelSize {
-  return {
-    width:
-      cluster.columns.reduce((total, column) => total + column.width, 0) +
-      PANEL_WORKSPACE_GAP * Math.max(0, cluster.columns.length - 1),
-    height: Math.max(
-      0,
-      ...cluster.columns.map(
-        (column) =>
-          column.rows.reduce((total, row) => total + row.height, 0) +
-          PANEL_WORKSPACE_GAP * Math.max(0, column.rows.length - 1),
-      ),
-    ),
-  };
-}
-
-function floatingPositionForAnchor(
-  anchor: PanelWorkspaceRailSide,
-  size: PanelSize,
-  options: PanelWorkspaceFloatingPlacementOptions,
-): { x: number; y: number } {
-  const { workspaceRect, railSizes } = options;
-  if (anchor === "left") {
-    return {
-      x: railSizes.left + PANEL_WORKSPACE_GAP,
-      y: 0,
-    };
-  }
-  if (anchor === "right") {
-    return {
-      x: Math.max(
-        0,
-        workspaceRect.width -
-          railSizes.right -
-          PANEL_WORKSPACE_GAP -
-          size.width,
-      ),
-      y: 0,
-    };
-  }
-  return {
-    x: Math.max(0, (workspaceRect.width - size.width) / 2),
-    y: Math.max(
-      0,
-      workspaceRect.height -
-        railSizes.bottom -
-        PANEL_WORKSPACE_GAP -
-        size.height,
-    ),
-  };
-}
-
-/**
- * ADR-922 post-amendment: side/bottom anchors are a legacy placement form.
- * Existing v2 records remain readable, but production frames are upgraded to
- * floating clusters so activity rails overlay Canvas instead of reserving it.
- */
-export function floatAnchoredPanelWorkspaceClusters(
-  layout: PanelWorkspaceLayoutV2,
-  registry: readonly PanelWorkspaceRegistryEntry[],
-  options: PanelWorkspaceFloatingPlacementOptions,
-): PanelWorkspaceResult<PanelWorkspaceLayoutV2> {
-  const normalized = normalizePanelWorkspaceLayoutV2(layout, registry);
-  if (!normalized.ok) return normalized;
-
-  const convertedClusterIds: string[] = [];
-  const clusters = normalized.value.clusters.map((cluster) => {
-    if (cluster.anchor === "floating") {
-      const originY = panelWorkspaceFloatingOriginY(cluster);
-      return originY !== cluster.position.y
-        ? { ...cluster, position: { ...cluster.position, y: 0 } }
-        : cluster;
-    }
-    convertedClusterIds.push(cluster.id);
-    return {
-      id: cluster.id,
-      anchor: "floating" as const,
-      position: floatingPositionForAnchor(
-        cluster.anchor,
-        storedClusterSize(cluster),
-        options,
-      ),
-      columns: cluster.columns.map((column) => ({
-        ...column,
-        rows: column.rows.map((row) => ({ ...row })),
-      })),
-    };
-  });
-  if (convertedClusterIds.length === 0) return normalized;
-
-  return normalizePanelWorkspaceLayoutV2(
-    {
-      ...normalized.value,
-      clusters,
-      floatingFocusOrder: [
-        ...normalized.value.floatingFocusOrder,
-        ...convertedClusterIds.filter(
-          (clusterId) =>
-            !normalized.value.floatingFocusOrder.includes(clusterId),
-        ),
-      ],
-    },
-    registry,
-  );
 }
 
 function visibleRows(

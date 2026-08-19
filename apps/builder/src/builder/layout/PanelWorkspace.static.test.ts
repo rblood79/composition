@@ -102,7 +102,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(splitter).toContain("aria-valuemax={maxValue}");
   });
 
-  it("drag 자유 좌표는 preview로만 publish하고 valid candidate만 v2 compatibility writer에 commit한다", async () => {
+  it("drag 자유 좌표는 preview로만 publish하고 valid candidate만 v3 graph에 commit한다", async () => {
     const [source, runtime] = await Promise.all([
       readWorkspace(),
       readRuntime(),
@@ -113,9 +113,11 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain("runtime.endDrag(config.id)");
     expect(source).toContain("if (ended.value.committed)");
     expect(source).not.toContain("runtime.movePanel(config.id, next)");
-    expect(runtime).toContain("movePanel(panelId, geometry)");
+    expect(runtime).not.toContain("movePanel(panelId, geometry)");
     expect(runtime).toContain("coordinator.queuePreview(panelId, geometry)");
-    expect(runtime).toContain("projectPanelWorkspaceLayoutV3ToV2(");
+    expect(runtime).toContain("commitPanelWorkspaceDragSession(");
+    expect(runtime).not.toContain("projectPanelWorkspaceLayoutV3ToV2(");
+    expect(runtime).not.toContain("PanelWorkspaceLayoutV2");
     expect(source).toContain("data-clustered=");
     expect(source).toContain("runtime.cancelDrag()");
     expect(source).toContain(
@@ -205,7 +207,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).not.toContain("createPanelWorkspaceRealFrameCanary");
   });
 
-  it("shortcut scope와 DataTable activation이 legacy active array 대신 v2 visibility를 소비한다", async () => {
+  it("shortcut scope와 DataTable activation이 legacy active array 대신 v3 visibility를 소비한다", async () => {
     const [activeScope, dataTableEditor] = await Promise.all([
       readFile(resolve(__dirname, "../hooks/useActiveScope.ts"), "utf-8"),
       readFile(
@@ -219,7 +221,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
 
     expect(activeScope).toContain("state.panelWorkspaceLayout");
     expect(activeScope).not.toContain("state.panelLayout");
-    expect(dataTableEditor).toContain("setPanelWorkspacePanelVisibility(");
+    expect(dataTableEditor).toContain("setPanelWorkspaceLayout({");
     expect(dataTableEditor).not.toContain("activeLeftPanels");
   });
 });
