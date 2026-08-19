@@ -373,6 +373,17 @@ v3 raw와 v2 projection이 모두 parse되지 않으면 fail closed한다.
   write-boundary crash fixture를 통과한다.
 - **G1** 통과 전 runtime hydration을 v3로 전환하지 않는다.
 
+#### 실행 기록 — G1 PASS (2026-08-19)
+
+- [Phase 1 v3 model and durable migration](186-phase-1-v3-model-migration.md)에 v3
+  schema/normalize, measured-surface migration, prepared/committed recovery와 crash matrix를
+  기록했다.
+- focused Vitest 9 files, 78 tests와 `pnpm type-check`가 통과했다.
+- local Builder primary는 계속 `version: 2`이고 v2 backup key는 생성되지 않았다. 신규 v3
+  module은 production store/runtime/renderer에 연결하지 않았다.
+- Phase 2의 R2/R10은 HIGH이므로 사용자 확인 전에는 zone surface와 rollback recovery build
+  구현에 진입하지 않는다.
+
 ### Phase 2 — zone solver와 placement surface
 
 - 9-zone origin pure solver를 추가한다.

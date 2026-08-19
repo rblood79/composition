@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-186 G1 — 9-zone panel layout v3 migration model] - 2026-08-19
+
+### Architecture
+
+- **Phase 1에서 zone-only panel layout v3와 durable v2 migration protocol을 shadow 경계로 추가**:
+  - persisted arbitrary XY 없이 Photoshop 기본 rail을 `top-left`/`top-right`/`bottom`으로 매핑하고, Pencil 9-zone vocabulary와 bottommost -> topmost focus order를 정본화했다
+  - actual placement surface를 받는 pure v2 -> v3 migration이 floating center, tail-topmost collision, mixed-rail 10+ cluster overflow를 deterministic하게 정규화한다
+  - exact v2 raw를 prepared backup으로 저장한 뒤 v3 primary와 committed marker를 순서대로 쓰며, 세 write boundary crash와 malformed/mismatch recovery를 fail-closed fixture로 고정했다
+  - production store/runtime/renderer는 계속 v2를 사용한다. local Builder에서도 primary `version: 2`, v2 backup key 미생성을 확인했으며 production cutover와 v3 -> v2 rollback build는 다음 Gate에 남겼다
+  - 위치: `apps/builder/src/builder/layout/panelWorkspaceLayoutV3*.ts`, `docs/adr/design/186-phase-1-v3-model-migration.md`
+
 ## [ADR-922 floating-first panel launch와 overlay rail] - 2026-08-19
 
 ### Architecture
