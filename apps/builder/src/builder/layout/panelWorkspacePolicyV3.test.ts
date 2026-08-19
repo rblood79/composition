@@ -164,6 +164,37 @@ describe("ADR-186 G4 v3 panel policy", () => {
     ]);
   });
 
+  it("첫 번째 우측 패널은 숨겨진 패널의 defaultWidth가 아니라 자신의 폭으로 열린다", () => {
+    const registry = REGISTRY.map((entry) =>
+      entry.id === "properties"
+        ? { ...entry, minWidth: 233, defaultWidth: 233 }
+        : entry.id === "history"
+          ? { ...entry, minWidth: 233, defaultWidth: 320 }
+          : entry.id === "styles"
+            ? { ...entry, minWidth: 233, defaultWidth: 360 }
+            : entry,
+    );
+    const initial = requireLayout(
+      createDefaultPanelWorkspaceLayoutV3(registry, SURFACE_RECT),
+    );
+    const activated = activatePanelWorkspacePanelV3(
+      initial,
+      registry,
+      "properties",
+      SURFACE_RECT,
+    );
+    expect(activated.ok).toBe(true);
+    if (!activated.ok) throw new Error(activated.error);
+    const solved = solvePanelWorkspaceLayoutV3(
+      activated.value.layout,
+      registry,
+      SURFACE_RECT,
+    );
+    expect(solved.ok).toBe(true);
+    if (!solved.ok) throw new Error(solved.error);
+    expect(solved.value.frameGeometries.get("properties")?.width).toBe(233);
+  });
+
   it("left는 아래로 stack한 뒤 오른쪽 column으로 overflow한다", () => {
     let layout = requireLayout(
       createDefaultPanelWorkspaceLayoutV3(REGISTRY, SURFACE_RECT),

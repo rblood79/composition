@@ -227,6 +227,14 @@ export function activatePanelWorkspacePanelV3(
     return normalizeResult(next, registry, surfaceRect, affected);
   }
 
+  const entry = registryEntry(registry, panelId);
+  const column = cluster.columns[placement.columnIndex];
+  const columnHasVisiblePanel = column?.rows.some(
+    (row) => next.visibility[row.panelId] === true,
+  );
+  if (entry && column && !columnHasVisiblePanel) {
+    column.width = entry.defaultWidth;
+  }
   next.visibility[panelId] = true;
   const side = railSideForPanel(next, panelId);
   if (
