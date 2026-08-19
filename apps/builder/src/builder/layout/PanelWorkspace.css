@@ -38,7 +38,7 @@
     --panel-rail-size: 48px;
 
     position: absolute;
-    inset: 0;
+    inset: 4px;
     z-index: 40;
     overflow: hidden;
     pointer-events: none;
@@ -63,19 +63,33 @@
   }
 
   .panel-dock-dropper {
+    --panel-snap-color: var(--focus-ring);
+
     position: absolute;
     z-index: 1500;
     pointer-events: none;
-    background: color-mix(in srgb, var(--focus-ring) 24%, transparent);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
     opacity: 0;
-    transition: opacity 100ms ease;
+  }
+
+  .panel-dock-dropper::before {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    left: 0;
+    height: 2px;
+    background: var(--panel-snap-color);
+    transform: translateY(-50%);
+    content: "";
+  }
+
+  .panel-dock-dropper[data-enabled="true"] {
+    pointer-events: auto;
   }
 
   .panel-dock-dropper[data-active="true"] {
-    pointer-events: auto;
-    border-color: color-mix(in srgb, var(--focus-ring) 70%, transparent);
     opacity: 1;
   }
 
@@ -236,52 +250,43 @@
   }
 
   .panel-snap-target {
+    --panel-snap-color: var(--focus-ring);
+
     position: absolute;
-    background: color-mix(in srgb, var(--focus-ring) 18%, transparent);
-    border: 1px solid color-mix(in srgb, var(--focus-ring) 50%, transparent);
-    border-radius: var(--radius-sm);
-    opacity: 0.72;
-    transition:
-      background 100ms ease,
-      box-shadow 100ms ease,
-      opacity 100ms ease;
+    border: 0;
+    border-radius: 0;
   }
 
   .panel-snap-target[data-edge="top"],
   .panel-snap-target[data-edge="bottom"] {
-    right: 25%;
-    left: 25%;
-    height: var(--spacing-sm);
+    right: 0;
+    left: 0;
+    height: 2px;
+    background: var(--panel-snap-color);
   }
 
   .panel-snap-target[data-edge="top"] {
-    top: calc(var(--spacing-xs) * -1);
+    top: 0;
   }
 
   .panel-snap-target[data-edge="bottom"] {
-    bottom: calc(var(--spacing-xs) * -1);
+    bottom: 0;
   }
 
   .panel-snap-target[data-edge="left"],
   .panel-snap-target[data-edge="right"] {
-    top: 25%;
-    bottom: 25%;
-    width: var(--spacing-sm);
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--panel-snap-color);
   }
 
   .panel-snap-target[data-edge="left"] {
-    left: calc(var(--spacing-xs) * -1);
+    left: 0;
   }
 
   .panel-snap-target[data-edge="right"] {
-    right: calc(var(--spacing-xs) * -1);
-  }
-
-  .panel-snap-target[data-active="true"] {
-    background: color-mix(in srgb, var(--focus-ring) 38%, transparent);
-    border-color: var(--focus-ring);
-    box-shadow: var(--shadow-md);
-    opacity: 1;
+    right: 0;
   }
 
   .panel-resize-handle {

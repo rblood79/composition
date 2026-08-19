@@ -48,16 +48,28 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
   });
 
   it("모든 활성 패널을 React Aria move로 직접 이동하고 panel-relative snap target을 제공한다", async () => {
-    const [source, splitter] = await Promise.all([
+    const [source, styles, splitter] = await Promise.all([
       readWorkspace(),
+      readStyles(),
       readSplitter(),
     ]);
 
     expect(source).toContain("useMove({");
     expect(source).toMatch(/<button\s+\{\.\.\.moveProps\}/);
-    expect(source).toContain("const SNAP_EDGES: PanelSnapEdge[] = [");
-    expect(source).toContain('"top", "right", "bottom", "left"');
     expect(source).toContain("runtime.resolveSnap(config.id, next)");
+    expect(source).toContain("snapTarget?.panelId === config.id");
+    expect(source).toContain("data-edge={snapTarget.edge}");
+    expect(source).not.toContain("SNAP_EDGES.map");
+    expect(source).toContain("data-active={isFirstDropTarget}");
+    expect(source).toContain("data-active={isLastDropTarget}");
+    expect(source).toContain("data-enabled={isDragging}");
+    expect(styles).toMatch(
+      /\.panel-dock-dropper\[data-enabled="true"\]\s*\{[\s\S]*?pointer-events: auto;/,
+    );
+    expect(styles).toContain("--panel-snap-color: var(--focus-ring)");
+    expect(styles).toContain("height: 2px");
+    expect(styles).toContain("width: 2px");
+    expect(styles).toMatch(/\.panel-snap-target\s*\{[\s\S]*?border-radius: 0;/);
     expect(source).toContain('className="panel-snap-target"');
     expect(source).not.toContain("PanelDropZone");
     expect(source).not.toContain("useDrag({");
@@ -92,7 +104,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain("snapshotFrame?.resizeEdges ?? []");
     expect(source).toContain("<PanelWorkspaceSharedSplitters");
     expect(source).toContain("snapshot.splitters.map((splitter)");
-    expect(source).toContain("data-edge={edge}");
+    expect(source).toContain("edge={edge}");
     expect(source).toContain("runtime.resizePanelFromReference(");
 
     expect(styles).toContain('[data-edge="left"]');

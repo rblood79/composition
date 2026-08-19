@@ -76,6 +76,16 @@ export interface PanelWorkspaceLayoutV2 {
   floatingFocusOrder: string[];
 }
 
+export function panelWorkspaceFloatingOriginY(
+  cluster: PanelWorkspaceClusterV2,
+): number {
+  if (cluster.anchor !== "floating") return 0;
+  const isLegacySideRailPosition =
+    (cluster.id === "anchor:left" || cluster.id === "anchor:right") &&
+    cluster.position.y < PANEL_WORKSPACE_GAP * 2;
+  return isLegacySideRailPosition ? 0 : cluster.position.y;
+}
+
 export type PanelWorkspaceResult<T> =
   | { ok: true; value: T }
   | { ok: false; error: string };
@@ -715,7 +725,7 @@ function floatingPositionForAnchor(
   if (anchor === "left") {
     return {
       x: railSizes.left + PANEL_WORKSPACE_GAP,
-      y: PANEL_WORKSPACE_GAP,
+      y: 0,
     };
   }
   if (anchor === "right") {
@@ -727,7 +737,7 @@ function floatingPositionForAnchor(
           PANEL_WORKSPACE_GAP -
           size.width,
       ),
-      y: PANEL_WORKSPACE_GAP,
+      y: 0,
     };
   }
   return {
@@ -757,7 +767,12 @@ export function floatAnchoredPanelWorkspaceClusters(
 
   const convertedClusterIds: string[] = [];
   const clusters = normalized.value.clusters.map((cluster) => {
-    if (cluster.anchor === "floating") return cluster;
+    if (cluster.anchor === "floating") {
+      const originY = panelWorkspaceFloatingOriginY(cluster);
+      return originY !== cluster.position.y
+        ? { ...cluster, position: { ...cluster.position, y: 0 } }
+        : cluster;
+    }
     convertedClusterIds.push(cluster.id);
     return {
       id: cluster.id,
@@ -947,7 +962,7 @@ function placeClusterFrames(
       workspace.height - rails.bottom - PANEL_WORKSPACE_GAP - clusterHeight;
   } else if (cluster.anchor === "floating") {
     originX = cluster.position.x;
-    originY = cluster.position.y;
+    originY = panelWorkspaceFloatingOriginY(cluster);
   }
   originX = clampPosition(originX, clusterWidth, workspace.width);
   originY = clampPosition(originY, clusterHeight, workspace.height);

@@ -10,7 +10,11 @@ import {
   resizePanelWorkspaceBoundary,
   snapPanelWorkspacePanel,
 } from "./panelWorkspaceLayoutInteraction";
-import { solvePanelWorkspaceLayoutV2 } from "./panelWorkspaceLayoutV2";
+import {
+  floatAnchoredPanelWorkspaceClusters,
+  PANEL_WORKSPACE_GAP,
+  solvePanelWorkspaceLayoutV2,
+} from "./panelWorkspaceLayoutV2";
 
 const ACTIVATION_OPTIONS = {
   workspaceRect: { width: 1600, height: 900 },
@@ -192,6 +196,53 @@ describe("ADR-922 PanelWorkspace v2 interaction transaction", () => {
       ).toBe(true);
     },
   );
+
+  it("우측 floating cluster의 left snap은 target panel의 x 좌표를 유지한다", () => {
+    const floating = floatAnchoredPanelWorkspaceClusters(
+      createPanelWorkspaceLayoutV2(),
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      ACTIVATION_OPTIONS,
+    );
+    expect(floating.ok).toBe(true);
+    if (!floating.ok) return;
+    floating.value.visibility.settings = true;
+
+    const before = solvePanelWorkspaceLayoutV2(
+      floating.value,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      ACTIVATION_OPTIONS,
+    );
+    expect(before.ok).toBe(true);
+    if (!before.ok) return;
+    const targetBefore = before.value.frameGeometries.get("properties");
+    expect(targetBefore).toBeDefined();
+
+    const snapped = snapPanelWorkspacePanel(
+      floating.value,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      "settings",
+      "properties",
+      "left",
+    );
+    expect(snapped.ok).toBe(true);
+    if (!snapped.ok) return;
+
+    const after = solvePanelWorkspaceLayoutV2(
+      snapped.value.layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      ACTIVATION_OPTIONS,
+    );
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    const sourceAfter = after.value.frameGeometries.get("settings");
+    const targetAfter = after.value.frameGeometries.get("properties");
+    expect(sourceAfter).toBeDefined();
+    expect(targetAfter).toBeDefined();
+    expect(targetAfter!.x).toBe(targetBefore!.x);
+    expect(sourceAfter!.x + sourceAfter!.width + PANEL_WORKSPACE_GAP).toBe(
+      targetAfter!.x,
+    );
+  });
 
   it("detach/move는 기존 placement를 제거하고 동일 크기의 floating cluster 하나를 만든다", () => {
     const layout = visibleRightStack();

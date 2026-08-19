@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **dock rail/dropper presentation을 snapshot으로 파생**: visible column마다 dock-local rail과 first/last dropper를 렌더한다. dropper는 drag 중에만 표시되며, 실제 insertion mutation은 다음 phase에서 연결한다
 - anchored placement schema는 기존 record를 읽기 위한 compatibility boundary로만 남긴다. production에서 panel move/snap/resize 뒤에는 floating cluster graph가 정본이다
 
+### Bug Fixes
+
+- **우측 floating panel의 왼쪽 면에 가로 snap할 때 기존 panel이 새 column 폭만큼 오른쪽으로 밀리던 문제를 수정**: 새 column 삽입 폭과 4px gap만큼 cluster origin을 왼쪽으로 이동해 snap target의 화면 x 좌표를 유지한다
+
 ## [ADR-922 panel stack viewport fit과 shared resize 복구] - 2026-08-19
 
 ### Bug Fixes
@@ -11292,3 +11296,6 @@ SelectTrigger, SelectValue, SelectIcon 등의 BoxSprite가 기본 흰색 불투�
 ---
 
 - ADR-922 PanelDock dropper가 드래그 중 첫/마지막 삽입 target을 설정하고, 드래그 종료 시 기존 snap mutation 경로로 패널을 실제 stack에 삽입하도록 연결했습니다.
+- Photoshop 기준 패널 외곽 여백은 resize 계산이 아니라 `.panel-workspace`의 CSS `inset: 4px`이 소유한다. runtime은 inset content box의 실제 크기를 측정하고 frame resize는 `0..clientHeight` 경계만 사용한다.
+- 패널 드래그 중 snap line은 모든 panel edge/dropper를 동시에 표시하지 않고, runtime이 선택한 인접 panel의 실제 snap 가능 면 하나만 표시한다. 비활성 dropper는 hit area만 유지한다.
+- snap line 시각을 Photoshop 기준으로 조정했다: panel resize hover bar와 동일한 `--focus-ring`을 사용하고 가로선 높이와 세로선 너비를 각각 동일한 2px로 맞췄다. 기존 radius·shadow·짧은 segment 표현은 제거했다.

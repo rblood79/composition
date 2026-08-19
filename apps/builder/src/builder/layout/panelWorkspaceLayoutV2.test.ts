@@ -185,12 +185,12 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
         expect.objectContaining({
           id: "anchor:left",
           anchor: "floating",
-          position: { x: 52, y: 4 },
+          position: { x: 52, y: 0 },
         }),
         expect.objectContaining({
           id: "anchor:right",
           anchor: "floating",
-          position: { x: 1228, y: 4 },
+          position: { x: 1228, y: 0 },
         }),
         expect.objectContaining({
           id: "anchor:bottom",

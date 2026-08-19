@@ -9,6 +9,7 @@ import type {
 import {
   PANEL_WORKSPACE_GAP,
   normalizePanelWorkspaceLayoutV2,
+  panelWorkspaceFloatingOriginY,
   type PanelWorkspaceClusterV2,
   type PanelWorkspaceColumnV2,
   type PanelWorkspaceLayoutV2,
@@ -31,6 +32,7 @@ export interface PanelWorkspaceActivationOptions {
 
 export interface PanelWorkspaceResizeOptions {
   maxHeight?: number;
+  workspaceRect?: PanelWorkspaceRect;
 }
 
 interface PanelPlacement {
@@ -331,6 +333,9 @@ export function snapPanelWorkspacePanel(
       width: detached.value.width,
       rows: [{ panelId: sourcePanelId, height: detached.value.height }],
     });
+    if (targetCluster.anchor === "floating" && edge === "left") {
+      targetCluster.position.x -= detached.value.width + PANEL_WORKSPACE_GAP;
+    }
   }
   next.visibility[sourcePanelId] = true;
   return normalizeResult(next, registry, [
@@ -640,13 +645,34 @@ export function resizePanelWorkspaceBoundary(
     } else {
       const signedDelta = edge === "top" ? -deltaY : deltaY;
       const previousHeight = row.height;
+      const rowOffset = column.rows
+        .slice(0, placement.rowIndex)
+        .filter((candidate) => next.visibility[candidate.panelId] === true)
+        .reduce(
+          (total, candidate) => total + candidate.height + PANEL_WORKSPACE_GAP,
+          0,
+        );
+      const floatingMaxHeight =
+        cluster.anchor === "floating" && options?.workspaceRect
+          ? Math.max(
+              sourceBounds.min,
+              options.workspaceRect.height -
+                panelWorkspaceFloatingOriginY(cluster) -
+                rowOffset,
+            )
+          : sourceBounds.max;
       row.height = clamp(
         row.height + signedDelta,
         sourceBounds.min,
-        sourceBounds.max,
+        Math.min(sourceBounds.max, floatingMaxHeight),
       );
       if (cluster.anchor === "floating" && edge === "top") {
-        cluster.position.y += previousHeight - row.height;
+        cluster.position.y =
+          panelWorkspaceFloatingOriginY(cluster) + previousHeight - row.height;
+        cluster.position.y = Math.max(0, cluster.position.y);
+        if (cluster.position.y === 0) {
+          row.height = Math.min(row.height, floatingMaxHeight);
+        }
       }
     }
   } else {

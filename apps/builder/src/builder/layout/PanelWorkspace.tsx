@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type RefObject,
   type ReactNode,
 } from "react";
 import { useMove } from "react-aria";
@@ -60,8 +61,6 @@ import "./PanelWorkspace.css";
 
 const PANEL_RAIL_SIZE = 48;
 const HEADER_HEIGHT = 48;
-const SNAP_EDGES: PanelSnapEdge[] = ["top", "right", "bottom", "left"];
-
 type PanelFrameMode = "hidden" | "anchored" | "placed";
 
 const RESIZE_EDGE_LABELS: Record<PanelResizeEdge, string> = {
@@ -668,20 +667,17 @@ const PanelFrame = memo(function PanelFrame({
       >
         <span />
       </button>
-      {draggedPanelId !== null && draggedPanelId !== config.id && (
-        <div className="panel-snap-targets" aria-hidden="true">
-          {SNAP_EDGES.map((edge) => (
+      {draggedPanelId !== null &&
+        draggedPanelId !== config.id &&
+        snapTarget?.panelId === config.id && (
+          <div className="panel-snap-targets" aria-hidden="true">
             <span
-              key={edge}
               className="panel-snap-target"
-              data-edge={edge}
-              data-active={
-                snapTarget?.panelId === config.id && snapTarget.edge === edge
-              }
+              data-edge={snapTarget.edge}
+              data-active="true"
             />
-          ))}
-        </div>
-      )}
+          </div>
+        )}
       <PanelFrameContent
         config={config}
         contentId={contentId}
@@ -794,6 +790,7 @@ interface PanelWorkspaceOverlayProps {
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
   togglePanel: (panelId: PanelId) => void;
   workspaceLayout: PanelWorkspaceLayoutV2;
+  workspaceRef: RefObject<HTMLDivElement | null>;
 }
 
 interface PanelDockOrigin {
@@ -867,6 +864,10 @@ function PanelDockClusterPresentation({
         const bottom = top + column.height;
         const firstPanelId = column.visiblePanelIds[0];
         const lastPanelId = column.visiblePanelIds.at(-1);
+        const isFirstDropTarget =
+          snapTarget?.panelId === firstPanelId && snapTarget?.edge === "top";
+        const isLastDropTarget =
+          snapTarget?.panelId === lastPanelId && snapTarget?.edge === "bottom";
         const setDropTarget = (
           panelId: PanelId | undefined,
           edge: PanelSnapEdge,
@@ -893,7 +894,8 @@ function PanelDockClusterPresentation({
             <div
               aria-hidden="true"
               className="panel-dock-dropper"
-              data-active={isDragging}
+              data-active={isFirstDropTarget}
+              data-enabled={isDragging}
               data-position="first"
               data-target-panel={firstPanelId}
               data-target-edge="top"
@@ -915,7 +917,8 @@ function PanelDockClusterPresentation({
             <div
               aria-hidden="true"
               className="panel-dock-dropper"
-              data-active={isDragging}
+              data-active={isLastDropTarget}
+              data-enabled={isDragging}
               data-position="last"
               data-target-panel={lastPanelId}
               data-target-edge="bottom"
@@ -992,6 +995,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   setWorkspaceLayout,
   togglePanel,
   workspaceLayout,
+  workspaceRef,
 }: PanelWorkspaceOverlayProps) {
   const activePanels = (side: PanelSide): PanelId[] =>
     workspaceLayout.railOrder[side].filter(
@@ -999,7 +1003,11 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     );
 
   return (
-    <div className="panel-workspace" aria-label="패널 작업 영역">
+    <div
+      ref={workspaceRef}
+      className="panel-workspace"
+      aria-label="패널 작업 영역"
+    >
       <PanelDock runtime={runtime}>
         {({ origin, surfaceStyle }) => (
           <>
@@ -1123,7 +1131,6 @@ function HydratedPanelWorkspace({
 
   return (
     <div
-      ref={workspaceRef}
       className="panel-workspace-host"
       data-layout-version={snapshot.version}
       style={hostStyle}
@@ -1145,6 +1152,7 @@ function HydratedPanelWorkspace({
         setWorkspaceLayout={setWorkspaceLayout}
         togglePanel={togglePanel}
         workspaceLayout={workspaceLayout}
+        workspaceRef={workspaceRef}
       />
     </div>
   );
