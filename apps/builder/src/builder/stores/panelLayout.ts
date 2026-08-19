@@ -8,9 +8,11 @@ import {
 import {
   normalizePanelWorkspaceLayoutV2,
   type PanelWorkspaceLayoutV2,
+  type PanelWorkspaceRect,
   type PanelWorkspaceRegistryEntry,
 } from "../layout/panelWorkspaceLayoutV2";
 import { migratePanelLayoutV1ToV2 } from "../layout/panelWorkspaceLayoutV2Migration";
+import { rollbackPanelWorkspaceStorageToV2 } from "../layout/panelWorkspaceLayoutV3Rollback";
 
 export type PanelWorkspaceHydrationStatus =
   | "pending"
@@ -27,6 +29,7 @@ export interface PanelLayoutSliceState {
 export interface PanelLayoutSliceActions {
   initializePanelWorkspaceLayout: (
     registry: readonly PanelWorkspaceRegistryEntry[],
+    surfaceRect: PanelWorkspaceRect,
   ) => boolean;
   setPanelWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
 }
@@ -120,7 +123,7 @@ export const createPanelLayoutSlice: StateCreator<
   panelWorkspaceHydrationStatus: "pending",
   panelWorkspaceHydrationError: null,
 
-  initializePanelWorkspaceLayout: (registry) => {
+  initializePanelWorkspaceLayout: (registry, surfaceRect) => {
     activeRegistry = registry;
     const current = get().panelWorkspaceLayout;
     if (current) {
@@ -154,6 +157,35 @@ export const createPanelLayoutSlice: StateCreator<
           : "Failed to write the v2-born default layout",
       });
       return persisted;
+    }
+
+    const rollback = rollbackPanelWorkspaceStorageToV2({
+      storage: localStorage,
+      registry,
+      surfaceRect,
+      createRollbackId: migrationId,
+      now: () => new Date().toISOString(),
+    });
+    if (
+      rollback.status === "rolled-back" ||
+      rollback.status === "recovered-commit" ||
+      rollback.status === "already-v2"
+    ) {
+      set({
+        panelWorkspaceLayout: rollback.layout,
+        panelWorkspaceHydrationStatus: "ready",
+        panelWorkspaceHydrationError: null,
+      });
+      return true;
+    }
+    if (rollback.status === "failed") {
+      const fallback = fallbackLayout(registry);
+      set({
+        panelWorkspaceLayout: fallback.layout,
+        panelWorkspaceHydrationStatus: "memory-fallback",
+        panelWorkspaceHydrationError: `${rollback.stage}: ${rollback.error}; ${fallback.error}`,
+      });
+      return false;
     }
 
     let migration = migratePanelWorkspaceStorageToV2({

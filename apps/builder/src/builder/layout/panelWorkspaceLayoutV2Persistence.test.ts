@@ -407,7 +407,7 @@ describe("ADR-922 Phase 3 production cutover", () => {
 
     expect(storeSource).toContain("panelWorkspaceLayoutV2Persistence");
     expect(storeSource).toContain(
-      "initializePanelWorkspaceLayout: (registry) =>",
+      "initializePanelWorkspaceLayout: (registry, surfaceRect) =>",
     );
     expect(storeSource).toContain("PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY");
     expect(`${migrationSource}\n${persistenceSource}`).not.toMatch(

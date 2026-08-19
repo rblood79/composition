@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-186 G2 — 9-zone solver와 common placement surface] - 2026-08-19
+
+### Architecture
+
+- **fit-before-origin 9-zone panel geometry를 추가**: top/center/bottom과 left/center/right origin을 actual placement surface local rect에서 순수 계산해 cluster 크기가 바뀌어도 right/top/bottom anchor가 흔들리지 않는다. 320x180 경계에서도 visible frame이 surface를 벗어나지 않는다
+- **panel frame의 containing block을 공통 4px placement surface로 통일**: workspace edge마다 별도 보정하지 않고 `.panel-workspace-placement-surface`가 CSS inset을 정확히 한 번 소유한다. local Builder 실측에서 네 edge 4px, dock-surface edge 오차 0px를 확인했다
+- **Phase 2 build를 v3 operational rollback target으로 연결**: migration 직후 record는 exact v2 raw를 복원하고, migrated-post-edit와 v3-born record는 current v3 graph를 valid v2 floating layout으로 projection한다. current v3 prepared backup → v2 primary → committed marker의 세 crash 경계를 재실행 가능한 fixture로 고정했다
+- production drag/runtime/state는 계속 v2이며 Phase 3 candidate/drop transaction과 v3 production writer는 아직 전환하지 않았다
+- 위치: `apps/builder/src/builder/layout/panelWorkspaceLayoutV3*.ts`, `apps/builder/src/builder/layout/PanelWorkspace.*`, `docs/adr/design/186-phase-2-zone-solver-placement-surface.md`
+
 ## [ADR-186 G1 — 9-zone panel layout v3 migration model] - 2026-08-19
 
 ### Architecture

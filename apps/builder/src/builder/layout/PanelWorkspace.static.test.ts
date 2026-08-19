@@ -153,6 +153,20 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(styles).toContain("var(--panel-workspace-inset-bottom, 0px)");
   });
 
+  it("공통 placement surface가 4px inset과 모든 frame의 단일 containing block을 소유한다", async () => {
+    const [source, styles] = await Promise.all([readWorkspace(), readStyles()]);
+
+    expect(source).toContain('className="panel-workspace-placement-surface"');
+    expect(source).toContain("const origin = { x: 0, y: 0 }");
+    expect(source).toContain("inset: 0");
+    expect(styles).toContain("--panel-workspace-gap: 4px");
+    expect(styles).toMatch(
+      /\.panel-workspace-placement-surface\s*\{[\s\S]*?inset: var\(--panel-workspace-gap\);/,
+    );
+    expect(styles).toMatch(/\.panel-workspace\s*\{[\s\S]*?inset: 0;/);
+    expect(styles).toMatch(/\.panel-dock-surface\s*\{[\s\S]*?inset: 0;/);
+  });
+
   it("G2b 통과 뒤 모든 production frame이 coordinator snapshot만 소비한다", async () => {
     const source = await readWorkspace();
 

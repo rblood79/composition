@@ -13,6 +13,7 @@ import {
 import {
   createPanelWorkspaceRegistryEntry,
   type PanelWorkspaceLayoutV2,
+  type PanelWorkspaceRect,
   type PanelWorkspaceRegistryEntry,
   type PanelWorkspaceResult,
 } from "../layout/panelWorkspaceLayoutV2";
@@ -90,8 +91,10 @@ export function usePanelLayout(): UsePanelLayoutReturn {
   );
 
   const initializeWorkspaceLayout = useCallback(
-    (registry: readonly PanelWorkspaceRegistryEntry[]) =>
-      initializePanelWorkspaceLayout(registry),
+    (
+      registry: readonly PanelWorkspaceRegistryEntry[],
+      surfaceRect: PanelWorkspaceRect,
+    ) => initializePanelWorkspaceLayout(registry, surfaceRect),
     [initializePanelWorkspaceLayout],
   );
 

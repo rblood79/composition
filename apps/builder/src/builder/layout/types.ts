@@ -7,6 +7,7 @@
 import type { PanelId } from "../panels/core/types";
 import type {
   PanelWorkspaceLayoutV2,
+  PanelWorkspaceRect,
   PanelWorkspaceRegistryEntry,
 } from "./panelWorkspaceLayoutV2";
 
@@ -19,6 +20,7 @@ export interface UsePanelLayoutReturn {
 
   initializeWorkspaceLayout: (
     registry: readonly PanelWorkspaceRegistryEntry[],
+    surfaceRect: PanelWorkspaceRect,
   ) => boolean;
 
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;

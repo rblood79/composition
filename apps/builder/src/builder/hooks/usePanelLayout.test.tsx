@@ -107,7 +107,10 @@ describe("usePanelLayout Photoshop식 v2 panel commands", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.spyOn(PanelRegistry, "getAllPanels").mockReturnValue(TEST_PANELS);
-    useStore.getState().initializePanelWorkspaceLayout(registry());
+    useStore.getState().initializePanelWorkspaceLayout(registry(), {
+      width: 1200,
+      height: 800,
+    });
     useStore.setState({
       panelWorkspaceLayout: createWorkspaceLayout(),
       panelWorkspaceHydrationStatus: "memory-fallback",

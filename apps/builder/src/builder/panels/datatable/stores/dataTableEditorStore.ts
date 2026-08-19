@@ -10,7 +10,10 @@ import { useStore } from "../../../stores";
 import { PanelRegistry } from "../../core/PanelRegistry";
 import { dispatchPanelWorkspaceActivation } from "../../../layout/panelWorkspaceActivationDispatcher";
 import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceLayoutInteraction";
-import { createPanelWorkspaceRegistryEntry } from "../../../layout/panelWorkspaceLayoutV2";
+import {
+  createPanelWorkspaceRegistryEntry,
+  type PanelWorkspaceRect,
+} from "../../../layout/panelWorkspaceLayoutV2";
 
 /**
  * 패널 활성화 헬퍼
@@ -26,6 +29,16 @@ function deactivateEditorPanel() {
   setEditorPanelVisibility(false);
 }
 
+function currentPlacementSurfaceRect(): PanelWorkspaceRect | null {
+  const surface = document.querySelector<HTMLElement>(
+    ".panel-workspace-placement-surface",
+  );
+  if (!surface || surface.clientWidth <= 0 || surface.clientHeight <= 0) {
+    return null;
+  }
+  return { width: surface.clientWidth, height: surface.clientHeight };
+}
+
 function setEditorPanelVisibility(visible: boolean) {
   const registry = PanelRegistry.getAllPanels().map(
     createPanelWorkspaceRegistryEntry,
@@ -33,7 +46,9 @@ function setEditorPanelVisibility(visible: boolean) {
   if (registry.length === 0) return;
   let state = useStore.getState();
   if (!state.panelWorkspaceLayout) {
-    state.initializePanelWorkspaceLayout(registry);
+    const surfaceRect = currentPlacementSurfaceRect();
+    if (!surfaceRect) return;
+    state.initializePanelWorkspaceLayout(registry, surfaceRect);
     state = useStore.getState();
   }
   const { panelWorkspaceLayout, setPanelWorkspaceLayout } = state;

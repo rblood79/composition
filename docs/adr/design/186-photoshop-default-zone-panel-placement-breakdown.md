@@ -394,6 +394,17 @@ v3 raw와 v2 projection이 모두 parse되지 않으면 fail closed한다.
   v3-born rollback fixture를 통과한다.
 - **G2** 통과 전 drag interaction을 전환하지 않는다.
 
+#### 실행 기록 — G2 PASS (2026-08-19)
+
+- [Phase 2 zone solver, placement surface, and rollback target](186-phase-2-zone-solver-placement-surface.md)에
+  fit-before-origin 9-zone geometry, common actual 4px surface와 v3 -> v2 rollback crash
+  matrix를 기록했다.
+- panel workspace focused Vitest 21 files, 156 tests, typecheck와 preflight를 통과했다.
+- local Builder에서 top/right/bottom/left inset 4px, dock-surface edge 오차 0px와 visible
+  frame containing block 3/3 일치를 실측했다.
+- production drag/runtime/state는 계속 v2이며 G2 전에 금지된 Phase 3 candidate/drop
+  transaction은 시작하지 않았다.
+
 ### Phase 3 — transient drag와 candidate/drop transaction
 
 - free XY를 `PanelWorkspaceDragSession.previewGeometry`로 격리한다.

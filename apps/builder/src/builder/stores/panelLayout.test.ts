@@ -10,7 +10,14 @@ import {
   PANEL_WORKSPACE_LAYOUT_V1_BACKUP_KEY,
   parsePanelLayoutV1BackupEnvelope,
 } from "../layout/panelWorkspaceLayoutV2Persistence";
+import { migratePanelWorkspaceStorageToV3 } from "../layout/panelWorkspaceLayoutV3Persistence";
+import {
+  PANEL_WORKSPACE_LAYOUT_V3_ROLLBACK_BACKUP_KEY,
+  parsePanelLayoutV3RollbackEnvelope,
+} from "../layout/panelWorkspaceLayoutV3Rollback";
 import { createPanelLayoutSlice, type PanelLayoutSlice } from "./panelLayout";
+
+const SURFACE_RECT = { width: 1200, height: 800 } as const;
 
 function createPanelLayoutStore() {
   return createStore<PanelLayoutSlice>()(createPanelLayoutSlice);
@@ -44,7 +51,10 @@ describe("ADR-922 production panel layout store", () => {
     expect(
       store
         .getState()
-        .initializePanelWorkspaceLayout(PANEL_WORKSPACE_TEST_REGISTRY),
+        .initializePanelWorkspaceLayout(
+          PANEL_WORKSPACE_TEST_REGISTRY,
+          SURFACE_RECT,
+        ),
     ).toBe(true);
 
     expect(store.getState().panelWorkspaceLayout?.version).toBe(2);
@@ -69,7 +79,10 @@ describe("ADR-922 production panel layout store", () => {
     expect(
       store
         .getState()
-        .initializePanelWorkspaceLayout(PANEL_WORKSPACE_TEST_REGISTRY),
+        .initializePanelWorkspaceLayout(
+          PANEL_WORKSPACE_TEST_REGISTRY,
+          SURFACE_RECT,
+        ),
     ).toBe(true);
 
     expect(localStorage.getItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY)).toBe(raw);
@@ -79,13 +92,56 @@ describe("ADR-922 production panel layout store", () => {
     ).toBeNull();
   });
 
+  it("actual placement surface를 받은 Phase 2 store는 v3 primary를 valid v2로 rollback한다", () => {
+    const v2Raw = JSON.stringify(createPanelWorkspaceLayoutV2());
+    localStorage.setItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY, v2Raw);
+    expect(
+      migratePanelWorkspaceStorageToV3({
+        storage: localStorage,
+        registry: PANEL_WORKSPACE_TEST_REGISTRY,
+        surfaceRect: SURFACE_RECT,
+        createMigrationId: () => "store-v2-v3",
+        now: () => "2026-08-19T00:00:00.000Z",
+      }),
+    ).toMatchObject({ status: "migrated" });
+    const store = createPanelLayoutStore();
+
+    expect(
+      store
+        .getState()
+        .initializePanelWorkspaceLayout(
+          PANEL_WORKSPACE_TEST_REGISTRY,
+          SURFACE_RECT,
+        ),
+    ).toBe(true);
+
+    expect(store.getState()).toMatchObject({
+      panelWorkspaceHydrationStatus: "ready",
+      panelWorkspaceLayout: { version: 2 },
+    });
+    expect(localStorage.getItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY)).toBe(
+      v2Raw,
+    );
+    expect(
+      parsePanelLayoutV3RollbackEnvelope(
+        localStorage.getItem(PANEL_WORKSPACE_LAYOUT_V3_ROLLBACK_BACKUP_KEY),
+      ),
+    ).toMatchObject({
+      ok: true,
+      value: { state: "committed", targetKind: "exact-v2" },
+    });
+  });
+
   it("interaction end store commit은 debounce 뒤 primary write를 한 번만 수행한다", () => {
     const raw = JSON.stringify(createPanelWorkspaceLayoutV2());
     localStorage.setItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY, raw);
     const store = createPanelLayoutStore();
     store
       .getState()
-      .initializePanelWorkspaceLayout(PANEL_WORKSPACE_TEST_REGISTRY);
+      .initializePanelWorkspaceLayout(
+        PANEL_WORKSPACE_TEST_REGISTRY,
+        SURFACE_RECT,
+      );
     const setItem = vi.spyOn(Storage.prototype, "setItem");
     setItem.mockClear();
     const next = createPanelWorkspaceLayoutV2();
@@ -111,7 +167,10 @@ describe("ADR-922 production panel layout store", () => {
     const first = createPanelLayoutStore();
     first
       .getState()
-      .initializePanelWorkspaceLayout(PANEL_WORKSPACE_TEST_REGISTRY);
+      .initializePanelWorkspaceLayout(
+        PANEL_WORKSPACE_TEST_REGISTRY,
+        SURFACE_RECT,
+      );
     const next = createPanelWorkspaceLayoutV2();
     next.visibility.history = true;
     next.clusters.push({
@@ -144,7 +203,10 @@ describe("ADR-922 production panel layout store", () => {
     expect(
       refreshed
         .getState()
-        .initializePanelWorkspaceLayout(PANEL_WORKSPACE_TEST_REGISTRY),
+        .initializePanelWorkspaceLayout(
+          PANEL_WORKSPACE_TEST_REGISTRY,
+          SURFACE_RECT,
+        ),
     ).toBe(true);
 
     expect(JSON.stringify(refreshed.getState().panelWorkspaceLayout)).toBe(
@@ -161,7 +223,10 @@ describe("ADR-922 production panel layout store", () => {
     expect(
       store
         .getState()
-        .initializePanelWorkspaceLayout(PANEL_WORKSPACE_TEST_REGISTRY),
+        .initializePanelWorkspaceLayout(
+          PANEL_WORKSPACE_TEST_REGISTRY,
+          SURFACE_RECT,
+        ),
     ).toBe(false);
     expect(store.getState()).toMatchObject({
       panelWorkspaceHydrationStatus: "memory-fallback",

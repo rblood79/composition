@@ -1,4 +1,4 @@
-import type { PanelId } from "../panels/core/types";
+import type { PanelFrameGeometry, PanelId } from "../panels/core/types";
 import {
   MAX_PANEL_WORKSPACE_COLUMNS,
   PANEL_WORKSPACE_GAP,
@@ -65,6 +65,24 @@ export interface PanelWorkspaceLayoutV3 {
   clusterFocusOrder: string[];
 }
 
+export interface PanelWorkspaceSolvedClusterGeometryV3 extends PanelFrameGeometry {
+  clusterId: string;
+  placementZone: PanelWorkspacePlacementZone;
+}
+
+export interface PanelWorkspaceSolvedFrameGeometryV3 extends PanelFrameGeometry {
+  clusterId: string;
+  placementZone: PanelWorkspacePlacementZone;
+}
+
+export interface PanelWorkspaceLayoutSolutionV3 {
+  layout: PanelWorkspaceLayoutV3;
+  surfaceRect: PanelWorkspaceRect;
+  clusterGeometries: ReadonlyMap<string, PanelWorkspaceSolvedClusterGeometryV3>;
+  frameGeometries: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometryV3>;
+  visiblePanelIds: ReadonlySet<PanelId>;
+}
+
 interface RawPanelWorkspaceRowV3 {
   panelId: string;
   height: number;
@@ -110,6 +128,28 @@ function isNonEmptyString(value: unknown): value is string {
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(value, maximum));
+}
+
+export function panelWorkspaceZoneOrigin(
+  placementZone: PanelWorkspacePlacementZone,
+  surfaceRect: PanelWorkspaceRect,
+  clusterSize: { width: number; height: number },
+): { x: number; y: number } {
+  const remainingWidth = Math.max(0, surfaceRect.width - clusterSize.width);
+  const remainingHeight = Math.max(0, surfaceRect.height - clusterSize.height);
+  const x =
+    placementZone.endsWith("left") || placementZone === "left"
+      ? 0
+      : placementZone.endsWith("right") || placementZone === "right"
+        ? remainingWidth
+        : remainingWidth / 2;
+  const y =
+    placementZone.startsWith("top") || placementZone === "top"
+      ? 0
+      : placementZone.startsWith("bottom") || placementZone === "bottom"
+        ? remainingHeight
+        : remainingHeight / 2;
+  return { x, y };
 }
 
 export function isPanelWorkspacePlacementZone(
@@ -633,6 +673,93 @@ export function parsePanelWorkspaceLayoutV3(
     registry,
     surfaceRect,
   );
+}
+
+export function solvePanelWorkspaceLayoutV3(
+  layout: PanelWorkspaceLayoutV3,
+  registry: readonly PanelWorkspaceRegistryEntry[],
+  surfaceRect: PanelWorkspaceRect,
+): PanelWorkspaceResult<PanelWorkspaceLayoutSolutionV3> {
+  const normalized = normalizePanelWorkspaceLayoutV3(
+    layout,
+    registry,
+    surfaceRect,
+  );
+  if (!normalized.ok) return normalized;
+
+  const clusterGeometries = new Map<
+    string,
+    PanelWorkspaceSolvedClusterGeometryV3
+  >();
+  const frameGeometries = new Map<
+    PanelId,
+    PanelWorkspaceSolvedFrameGeometryV3
+  >();
+  const visiblePanelIds = new Set<PanelId>();
+
+  for (const cluster of normalized.value.clusters) {
+    const visibleColumns = cluster.columns.flatMap((column) => {
+      const rows = column.rows.filter(
+        (row) => normalized.value.visibility[row.panelId] === true,
+      );
+      return rows.length > 0 ? [{ column, rows }] : [];
+    });
+    if (visibleColumns.length === 0) continue;
+
+    const width =
+      visibleColumns.reduce((sum, { column }) => sum + column.width, 0) +
+      PANEL_WORKSPACE_GAP * Math.max(0, visibleColumns.length - 1);
+    const height = Math.max(
+      0,
+      ...visibleColumns.map(
+        ({ rows }) =>
+          rows.reduce((sum, row) => sum + row.height, 0) +
+          PANEL_WORKSPACE_GAP * Math.max(0, rows.length - 1),
+      ),
+    );
+    const origin = panelWorkspaceZoneOrigin(
+      cluster.placementZone,
+      surfaceRect,
+      { width, height },
+    );
+    clusterGeometries.set(cluster.id, {
+      clusterId: cluster.id,
+      placementZone: cluster.placementZone,
+      x: origin.x,
+      y: origin.y,
+      width,
+      height,
+    });
+
+    let columnX = origin.x;
+    for (const { column, rows } of visibleColumns) {
+      let rowY = origin.y;
+      for (const row of rows) {
+        visiblePanelIds.add(row.panelId);
+        frameGeometries.set(row.panelId, {
+          clusterId: cluster.id,
+          placementZone: cluster.placementZone,
+          x: columnX,
+          y: rowY,
+          width: column.width,
+          height: row.height,
+        });
+        rowY += row.height + PANEL_WORKSPACE_GAP;
+      }
+      columnX += column.width + PANEL_WORKSPACE_GAP;
+    }
+  }
+
+  return {
+    ok: true,
+    value: {
+      layout: normalized.value,
+      surfaceRect: { ...surfaceRect },
+      clusterGeometries,
+      frameGeometries,
+      visiblePanelIds,
+    },
+  };
 }
 
 export function createDefaultPanelWorkspaceLayoutV3(

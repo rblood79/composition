@@ -94,6 +94,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
         [...TEST_CONFIGS, STYLES_TEST_CONFIG].map(
           createPanelWorkspaceRegistryEntry,
         ),
+        { width: 1592, height: 844 },
       );
     useStore.setState({
       panelWorkspaceLayout: createPanelWorkspaceLayoutV2(),
@@ -119,6 +120,9 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     const dockSurface = container.querySelector<HTMLElement>(
       ".panel-dock-surface",
     );
+    const placementSurface = container.querySelector<HTMLElement>(
+      ".panel-workspace-placement-surface",
+    );
     const nodesFrame = container.querySelector<HTMLElement>(
       '.workspace-panel-frame[data-panel="nodes"]',
     );
@@ -143,11 +147,12 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     );
     expect(dock?.getAttribute("data-layout-type")).toBe("floating");
     expect(dock?.getAttribute("data-column-limit")).toBe("2");
-    expect(dockSurface?.style.left).toBe("52px");
+    expect(dockSurface?.style.inset).toBe("0px");
+    expect(dockSurface?.parentElement?.parentElement).toBe(placementSurface);
     expect(nodesFrame?.parentElement).toBe(dockSurface);
     expect(propertiesFrame?.parentElement).toBe(dockSurface);
-    expect(nodesFrame?.style.left).toBe("0px");
-    expect(propertiesFrame?.style.left).toBe("1176px");
+    expect(nodesFrame?.style.left).toBe("52px");
+    expect(propertiesFrame?.style.left).toBe("1228px");
     expect(dockSurface?.querySelectorAll(".panel-dock-rail")).toHaveLength(2);
     expect(dockSurface?.querySelectorAll(".panel-dock-dropper")).toHaveLength(
       4,

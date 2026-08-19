@@ -36,10 +36,18 @@
 
   .panel-workspace {
     --panel-rail-size: 48px;
+    --panel-workspace-gap: 4px;
 
     position: absolute;
-    inset: 4px;
+    inset: 0;
     z-index: 40;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .panel-workspace-placement-surface {
+    position: absolute;
+    inset: var(--panel-workspace-gap);
     overflow: hidden;
     pointer-events: none;
   }
@@ -52,6 +60,7 @@
 
   .panel-dock-surface {
     position: absolute;
+    inset: 0;
     pointer-events: none;
   }
 
