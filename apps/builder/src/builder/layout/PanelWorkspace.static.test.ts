@@ -17,6 +17,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
 
     expect(source).toContain("PanelRegistry.getAllPanels()");
     expect(source).toContain("configs.map((config) => (");
+    expect(source).toContain('className="panel-dock"');
+    expect(source).toContain('data-layout-type="floating"');
     expect(source).toMatch(/<SnapshotPanelFrame\s+[\s\S]*?key=\{config\.id\}/);
     expect(source).toContain("usePanelWorkspaceFrameSnapshot(");
     expect(source).toMatch(

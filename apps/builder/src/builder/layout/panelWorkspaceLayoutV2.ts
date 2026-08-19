@@ -583,12 +583,11 @@ export function normalizePanelWorkspaceLayoutV2(
         placedPanelIds.add(entry.id);
         targetColumn.rows.push({
           panelId: entry.id,
-          height: clamp(
+          height: Math.max(
+            entry.minHeight,
             isFiniteNumber(sourceRow.height)
               ? sourceRow.height
               : entry.defaultHeight,
-            entry.minHeight,
-            entry.maxHeight,
           ),
         });
       }
@@ -915,9 +914,10 @@ function placeClusterFrames(
   const columnRows = visibleColumns.map(({ rows }) => {
     const verticalGap = PANEL_WORKSPACE_GAP * Math.max(0, rows.length - 1);
     const leadingGap = cluster.anchor === "floating" ? 0 : PANEL_WORKSPACE_GAP;
+    const reservedBottom = cluster.anchor === "floating" ? 0 : rails.bottom;
     const availableHeight = Math.max(
       0,
-      workspace.height - rails.bottom - leadingGap - verticalGap,
+      workspace.height - reservedBottom - leadingGap - verticalGap,
     );
     const heights = fitTracks(
       rows.map((row) => row.height),

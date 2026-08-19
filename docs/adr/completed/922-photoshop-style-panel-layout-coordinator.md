@@ -25,6 +25,8 @@ correction에서 전건 수정하고 native RAF 5초 Gate를 다시 통과했다
 Nodes/Properties는 열린 floating frame으로 시작하고, left/right/bottom activity rail은 Canvas
 위 overlay로만 존재한다. 따라서 production `occupiedInsets`는 Canvas main track을 줄이지
 않으며, 읽어 들인 legacy anchored v2 record는 runtime에서 floating placement로 승격한다.
+같은 amendment에서 panel height resize는 config `maxHeight`가 아니라 actual workspace height를
+상한으로 사용하도록 전환했다.
 
 ## Context
 

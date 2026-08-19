@@ -89,6 +89,31 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
     );
   });
 
+  it("stored panel height는 config maxHeight가 아니라 minHeight만 clamp한다", () => {
+    const input = createPanelWorkspaceLayoutV2();
+    const right = input.clusters.find((cluster) => cluster.anchor === "right");
+    const properties = right?.columns[0]?.rows.find(
+      (row) => row.panelId === "properties",
+    );
+    if (!properties) throw new Error("properties row is required");
+    properties.height = 1200;
+
+    const result = normalizePanelWorkspaceLayoutV2(
+      input,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const normalizedRight = result.value.clusters.find(
+      (cluster) => cluster.anchor === "right",
+    );
+    expect(
+      normalizedRight?.columns[0]?.rows.find(
+        (row) => row.panelId === "properties",
+      )?.height,
+    ).toBe(1200);
+  });
+
   it("registry add/remove 뒤 기존 known geometry/order를 보존하고 신규 panel만 default로 추가한다", () => {
     const previousRegistry = PANEL_WORKSPACE_TEST_REGISTRY.filter(
       ({ id }) => id !== "history",

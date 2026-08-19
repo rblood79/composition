@@ -161,7 +161,10 @@ function sharedSplitterContract(
       controls: `panel-${panelId}-content`,
       edge: "bottom",
       label: `${beforeNames} / ${afterNames} 패널 행 크기 조절`,
-      maxValue: config.maxHeight ?? 800,
+      maxValue: Math.max(
+        config.minHeight ?? 160,
+        snapshot.workspaceRect.height,
+      ),
       minValue: config.minHeight ?? 160,
       panelId,
       value: frame.height,
@@ -191,6 +194,7 @@ function sharedSplitterContract(
 function sharedSplitterStyle(
   splitter: PanelWorkspaceSplitterGeometry,
   zIndex: number,
+  dockOrigin: PanelDockOrigin,
 ): CSSProperties {
   const hitSize = 10;
   const { geometry } = splitter;
@@ -198,9 +202,9 @@ function sharedSplitterStyle(
     return {
       bottom: "auto",
       height: hitSize,
-      left: geometry.x,
+      left: geometry.x - dockOrigin.x,
       right: "auto",
-      top: geometry.y + geometry.height / 2 - hitSize / 2,
+      top: geometry.y - dockOrigin.y + geometry.height / 2 - hitSize / 2,
       width: geometry.width,
       zIndex,
     };
@@ -208,20 +212,25 @@ function sharedSplitterStyle(
   return {
     bottom: "auto",
     height: geometry.height,
-    left: geometry.x + geometry.width / 2 - hitSize / 2,
+    left: geometry.x - dockOrigin.x + geometry.width / 2 - hitSize / 2,
     right: "auto",
-    top: geometry.y,
+    top: geometry.y - dockOrigin.y,
     width: hitSize,
     zIndex,
   };
 }
 
-interface PanelWorkspaceSharedSplittersProps {
+interface PanelWorkspaceRuntimeProps {
   runtime: PanelWorkspaceRuntime;
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
 }
 
+interface PanelWorkspaceSharedSplittersProps extends PanelWorkspaceRuntimeProps {
+  dockOrigin: PanelDockOrigin;
+}
+
 function PanelWorkspaceSharedSplitters({
+  dockOrigin,
   runtime,
   setWorkspaceLayout,
 }: PanelWorkspaceSharedSplittersProps) {
@@ -247,6 +256,7 @@ function PanelWorkspaceSharedSplitters({
             style={sharedSplitterStyle(
               splitter,
               splitterZIndex(runtime, splitter.clusterId),
+              dockOrigin,
             )}
             onResizeStart={() => runtime.beginInteraction()}
             onResize={(deltaX, deltaY) => {
@@ -288,7 +298,7 @@ function waitForPresentationFrame(): Promise<number> {
 function PanelWorkspaceTraceDriver({
   runtime,
   setWorkspaceLayout,
-}: PanelWorkspaceSharedSplittersProps) {
+}: PanelWorkspaceRuntimeProps) {
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
   const [isRunning, setIsRunning] = useState(false);
   const candidate = [...snapshot.frameGeometries.entries()].find(
@@ -383,6 +393,7 @@ const PanelFrameContent = memo(function PanelFrameContent({
 
 interface PanelFrameProps {
   config: PanelConfig;
+  dockOrigin: PanelDockOrigin;
   runtime: PanelWorkspaceRuntime;
   snapshotFrame: PanelWorkspaceFrameSnapshot | null;
   side: PanelSide;
@@ -392,6 +403,7 @@ interface PanelFrameProps {
 
 const PanelFrame = memo(function PanelFrame({
   config,
+  dockOrigin,
   runtime,
   snapshotFrame,
   side,
@@ -608,8 +620,8 @@ const PanelFrame = memo(function PanelFrame({
     height: 0,
   };
   const frameStyle: CSSProperties = {
-    left: appliedGeometry.x,
-    top: appliedGeometry.y,
+    left: appliedGeometry.x - dockOrigin.x,
+    top: appliedGeometry.y - dockOrigin.y,
     width: appliedGeometry.width,
     height: appliedGeometry.height,
     zIndex: frameZIndex(runtime, snapshotFrame, isMoving),
@@ -686,7 +698,10 @@ const PanelFrame = memo(function PanelFrame({
           maxValue={
             edge === "left" || edge === "right"
               ? (config.maxWidth ?? 800)
-              : (config.maxHeight ?? 800)
+              : Math.max(
+                  config.minHeight ?? 160,
+                  runtime.coordinator.getSnapshot().workspaceRect.height,
+                )
           }
           layoutVersion={snapshotFrame?.layoutVersion}
           onResizeStart={() => {
@@ -710,6 +725,7 @@ const PanelFrame = memo(function PanelFrame({
 
 interface SnapshotPanelFrameProps {
   config: PanelConfig;
+  dockOrigin: PanelDockOrigin;
   runtime: PanelWorkspaceRuntime;
   side: PanelSide;
   onCommitLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
@@ -771,6 +787,55 @@ interface PanelWorkspaceOverlayProps {
   workspaceLayout: PanelWorkspaceLayoutV2;
 }
 
+interface PanelDockOrigin {
+  x: number;
+  y: number;
+}
+
+interface PanelDockRenderProps {
+  origin: PanelDockOrigin;
+  surfaceStyle: CSSProperties;
+}
+
+interface PanelDockProps {
+  children: (props: PanelDockRenderProps) => ReactNode;
+  runtime: PanelWorkspaceRuntime;
+}
+
+function PanelDock({ children, runtime }: PanelDockProps) {
+  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  const frames = [...snapshot.frameGeometries.values()];
+  const origin = {
+    x: frames.length > 0 ? Math.min(...frames.map((frame) => frame.x)) : 0,
+    y: frames.length > 0 ? Math.min(...frames.map((frame) => frame.y)) : 0,
+  };
+  const right =
+    frames.length > 0
+      ? Math.max(...frames.map((frame) => frame.x + frame.width))
+      : 0;
+  const bottom =
+    frames.length > 0
+      ? Math.max(...frames.map((frame) => frame.y + frame.height))
+      : 0;
+  const surfaceStyle: CSSProperties = {
+    height: bottom - origin.y,
+    left: origin.x,
+    top: origin.y,
+    width: right - origin.x,
+  };
+
+  return (
+    <div
+      className="panel-dock"
+      data-column-limit="2"
+      data-layout-type="floating"
+      data-layout-version={snapshot.version}
+    >
+      {children({ origin, surfaceStyle })}
+    </div>
+  );
+}
+
 const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   configs,
   focusFloatingPanel,
@@ -786,46 +851,56 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
 
   return (
     <div className="panel-workspace" aria-label="패널 작업 영역">
-      {(["left", "right", "bottom"] as const).map((side) => {
-        const panelIds = workspaceLayout.railOrder[side];
-        if (panelIds.length === 0) return null;
-        return (
-          <div
-            key={side}
-            className="panel-activity-rail"
-            data-side={side}
-            style={{ zIndex: 2_100 }}
-          >
-            <PanelNav
-              side={side}
-              panelIds={panelIds}
-              activePanels={activePanels(side)}
-              onPanelClick={togglePanel}
-            />
-          </div>
-        );
-      })}
+      <PanelDock runtime={runtime}>
+        {({ origin, surfaceStyle }) => (
+          <>
+            {(["left", "right", "bottom"] as const).map((side) => {
+              const panelIds = workspaceLayout.railOrder[side];
+              if (panelIds.length === 0) return null;
+              return (
+                <div
+                  key={side}
+                  className="panel-activity-rail"
+                  data-side={side}
+                  style={{ zIndex: 2_100 }}
+                >
+                  <PanelNav
+                    side={side}
+                    panelIds={panelIds}
+                    activePanels={activePanels(side)}
+                    onPanelClick={togglePanel}
+                  />
+                </div>
+              );
+            })}
 
-      {configs.map((config) => (
-        <SnapshotPanelFrame
-          key={config.id}
-          config={config}
-          runtime={runtime}
-          side={railSideForPanel(workspaceLayout, config)}
-          onCommitLayout={setWorkspaceLayout}
-          onFocusPanel={focusFloatingPanel}
-        />
-      ))}
-      <PanelWorkspaceSharedSplitters
-        runtime={runtime}
-        setWorkspaceLayout={setWorkspaceLayout}
-      />
-      {isPanelWorkspaceDiagnosticsEnabled() && (
-        <PanelWorkspaceTraceDriver
-          runtime={runtime}
-          setWorkspaceLayout={setWorkspaceLayout}
-        />
-      )}
+            <div className="panel-dock-surface" style={surfaceStyle}>
+              {configs.map((config) => (
+                <SnapshotPanelFrame
+                  key={config.id}
+                  config={config}
+                  dockOrigin={origin}
+                  runtime={runtime}
+                  side={railSideForPanel(workspaceLayout, config)}
+                  onCommitLayout={setWorkspaceLayout}
+                  onFocusPanel={focusFloatingPanel}
+                />
+              ))}
+              <PanelWorkspaceSharedSplitters
+                dockOrigin={origin}
+                runtime={runtime}
+                setWorkspaceLayout={setWorkspaceLayout}
+              />
+              {isPanelWorkspaceDiagnosticsEnabled() && (
+                <PanelWorkspaceTraceDriver
+                  runtime={runtime}
+                  setWorkspaceLayout={setWorkspaceLayout}
+                />
+              )}
+            </div>
+          </>
+        )}
+      </PanelDock>
     </div>
   );
 });

@@ -115,6 +115,16 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     );
     const host = container.querySelector<HTMLElement>(".panel-workspace-host");
     const main = container.querySelector<HTMLElement>(".panel-workspace-main");
+    const dock = container.querySelector<HTMLElement>(".panel-dock");
+    const dockSurface = container.querySelector<HTMLElement>(
+      ".panel-dock-surface",
+    );
+    const nodesFrame = container.querySelector<HTMLElement>(
+      '.workspace-panel-frame[data-panel="nodes"]',
+    );
+    const propertiesFrame = container.querySelector<HTMLElement>(
+      '.workspace-panel-frame[data-panel="properties"]',
+    );
 
     expect(host?.style.getPropertyValue("--panel-workspace-inset-left")).toBe(
       "0px",
@@ -130,6 +140,16 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(main?.getAttribute("data-main-height")).toBe("852");
     expect(main?.getAttribute("data-layout-version")).toBe(
       host?.getAttribute("data-layout-version"),
+    );
+    expect(dock?.getAttribute("data-layout-type")).toBe("floating");
+    expect(dock?.getAttribute("data-column-limit")).toBe("2");
+    expect(dockSurface?.style.left).toBe("52px");
+    expect(nodesFrame?.parentElement).toBe(dockSurface);
+    expect(propertiesFrame?.parentElement).toBe(dockSurface);
+    expect(nodesFrame?.style.left).toBe("0px");
+    expect(propertiesFrame?.style.left).toBe("1176px");
+    expect(dock?.querySelectorAll(".workspace-panel-frame")).toHaveLength(
+      TEST_CONFIGS.length + 1,
     );
 
     const bottomRail = container.querySelector(
@@ -210,7 +230,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     ).not.toBeNull();
   });
 
-  it("right/left rail activation은 legacy anchor를 되살리지 않고 floating placement를 유지한다", () => {
+  it("right/left rail activation은 floating-first launch에서도 stack과 반대쪽 column을 유지한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
     const left = layout.clusters.find((cluster) => cluster.anchor === "left");
     const right = layout.clusters.find((cluster) => cluster.anchor === "right");
@@ -251,14 +271,30 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     };
 
     clickRailButton("right", "history");
+    clickRailButton("right", "styles");
+    clickRailButton("left", "datatableEditor");
     clickRailButton("left", "settings");
 
     const updated = useStore.getState().panelWorkspaceLayout!;
-    expect(updated.visibility.history).toBe(true);
-    expect(updated.visibility.settings).toBe(true);
+    const updatedRight = updated.clusters.find(
+      (cluster) => cluster.id === "anchor:right",
+    );
+    const updatedLeft = updated.clusters.find(
+      (cluster) => cluster.id === "anchor:left",
+    );
     expect(
       updated.clusters.every((cluster) => cluster.anchor === "floating"),
     ).toBe(true);
+    expect(
+      updatedRight?.columns.map((column) =>
+        column.rows.map((row) => row.panelId),
+      ),
+    ).toEqual([["styles"], ["properties", "history"]]);
+    expect(
+      updatedLeft?.columns.map((column) =>
+        column.rows.map((row) => row.panelId),
+      ),
+    ).toEqual([["nodes", "datatableEditor"], ["settings"]]);
   });
 
   it("cross-rail snap은 anchor 기준 outer edge와 shared column splitter 하나를 렌더링한다", () => {

@@ -28,6 +28,10 @@ export interface PanelWorkspaceActivationOptions {
   workspaceRect: PanelWorkspaceRect;
 }
 
+export interface PanelWorkspaceResizeOptions {
+  maxHeight?: number;
+}
+
 interface PanelPlacement {
   clusterIndex: number;
   columnIndex: number;
@@ -161,12 +165,10 @@ function activationColumnIndex(
 }
 
 function activationAvailableHeight(
-  layout: PanelWorkspaceLayoutV2,
+  _layout: PanelWorkspaceLayoutV2,
   options: PanelWorkspaceActivationOptions,
 ): number {
-  const bottomRail =
-    layout.railOrder.bottom.length > 0 ? options.railSizes.bottom : 0;
-  return Math.max(0, options.workspaceRect.height - bottomRail);
+  return Math.max(0, options.workspaceRect.height);
 }
 
 function registryEntry(
@@ -261,7 +263,7 @@ export function detachPanelToFloatingCluster(
         rows: [
           {
             panelId,
-            height: clamp(geometry.height, entry.minHeight, entry.maxHeight),
+            height: Math.max(entry.minHeight, geometry.height),
           },
         ],
       },
@@ -349,20 +351,35 @@ export function activatePanelWorkspacePanel(
     sourcePlacement === null
       ? undefined
       : layout.clusters[sourcePlacement.clusterIndex];
-  if (sourceCluster?.anchor !== side) {
+  if (!sourceCluster) {
+    return setPanelWorkspacePanelVisibility(layout, registry, panelId, true);
+  }
+  const isFloatingRailCluster =
+    sourceCluster.anchor === "floating" &&
+    sourceCluster.id === `anchor:${side}`;
+  if (sourceCluster.anchor !== side && !isFloatingRailCluster) {
     return setPanelWorkspacePanelVisibility(layout, registry, panelId, true);
   }
 
   const detached = detachPanel(layout, panelId);
   if (!detached.ok) return detached;
   const next = detached.value.layout;
-  let targetCluster = next.clusters.find((cluster) => cluster.anchor === side);
+  let targetCluster = isFloatingRailCluster
+    ? next.clusters.find((cluster) => cluster.id === sourceCluster.id)
+    : next.clusters.find((cluster) => cluster.anchor === side);
   if (!targetCluster) {
-    targetCluster = {
-      id: uniqueClusterId(next, `anchor:${side}`),
-      anchor: side,
-      columns: [],
-    };
+    targetCluster = isFloatingRailCluster
+      ? {
+          id: sourceCluster.id,
+          anchor: "floating",
+          position: { ...sourceCluster.position },
+          columns: [],
+        }
+      : {
+          id: uniqueClusterId(next, `anchor:${side}`),
+          anchor: side,
+          columns: [],
+        };
     next.clusters.push(targetCluster);
   }
 
@@ -379,7 +396,7 @@ export function activatePanelWorkspacePanel(
   const nextRowHeight = clamp(
     detached.value.height,
     entry.minHeight,
-    entry.maxHeight,
+    Math.max(entry.minHeight, options.workspaceRect.height),
   );
   const stackedHeight = targetColumn
     ? visibleRowHeight(targetColumn, next.visibility) +
@@ -432,9 +449,56 @@ export function activatePanelWorkspacePanel(
 function rowBounds(
   registry: readonly PanelWorkspaceRegistryEntry[],
   panelId: PanelId,
+  options?: PanelWorkspaceResizeOptions,
 ): { min: number; max: number } | null {
   const entry = registryEntry(registry, panelId);
-  return entry ? { min: entry.minHeight, max: entry.maxHeight } : null;
+  if (!entry) return null;
+  const workspaceMax = options?.maxHeight;
+  return {
+    min: entry.minHeight,
+    max: Math.max(
+      entry.minHeight,
+      Number.isFinite(workspaceMax)
+        ? (workspaceMax ?? entry.maxHeight)
+        : entry.maxHeight,
+    ),
+  };
+}
+
+function visibleRowNeighbor(
+  column: PanelWorkspaceColumnV2,
+  rowIndex: number,
+  direction: -1 | 1,
+  visibility: Partial<Record<PanelId, boolean>>,
+): PanelWorkspaceColumnV2["rows"][number] | undefined {
+  for (
+    let index = rowIndex + direction;
+    index >= 0 && index < column.rows.length;
+    index += direction
+  ) {
+    const candidate = column.rows[index];
+    if (candidate && visibility[candidate.panelId] === true) return candidate;
+  }
+  return undefined;
+}
+
+function visibleColumnNeighbor(
+  cluster: PanelWorkspaceClusterV2,
+  columnIndex: number,
+  direction: -1 | 1,
+  visibility: Partial<Record<PanelId, boolean>>,
+): PanelWorkspaceColumnV2 | undefined {
+  for (
+    let index = columnIndex + direction;
+    index >= 0 && index < cluster.columns.length;
+    index += direction
+  ) {
+    const candidate = cluster.columns[index];
+    if (candidate?.rows.some((row) => visibility[row.panelId] === true)) {
+      return candidate;
+    }
+  }
+  return undefined;
 }
 
 function columnBounds(
@@ -483,6 +547,7 @@ export function resizePanelWorkspaceBoundary(
   edge: PanelResizeEdge,
   deltaX: number,
   deltaY: number,
+  options?: PanelWorkspaceResizeOptions,
 ): PanelWorkspaceResult<PanelWorkspaceInteractionResult> {
   const next = cloneLayout(layout);
   const placement = findPlacement(next, panelId);
@@ -496,12 +561,16 @@ export function resizePanelWorkspaceBoundary(
   const affected: PanelId[] = [panelId];
 
   if (edge === "top" || edge === "bottom") {
-    const neighborIndex = placement.rowIndex + (edge === "top" ? -1 : 1);
-    const neighbor = column.rows[neighborIndex];
-    const sourceBounds = rowBounds(registry, panelId);
+    const neighbor = visibleRowNeighbor(
+      column,
+      placement.rowIndex,
+      edge === "top" ? -1 : 1,
+      next.visibility,
+    );
+    const sourceBounds = rowBounds(registry, panelId, options);
     if (!sourceBounds) return failure(`Unknown panel "${panelId}"`);
     if (neighbor) {
-      const neighborBounds = rowBounds(registry, neighbor.panelId);
+      const neighborBounds = rowBounds(registry, neighbor.panelId, options);
       if (!neighborBounds)
         return failure(`Unknown panel "${neighbor.panelId}"`);
       const before = edge === "top" ? neighbor : row;
@@ -531,8 +600,12 @@ export function resizePanelWorkspaceBoundary(
       }
     }
   } else {
-    const neighborIndex = placement.columnIndex + (edge === "left" ? -1 : 1);
-    const neighbor = cluster.columns[neighborIndex];
+    const neighbor = visibleColumnNeighbor(
+      cluster,
+      placement.columnIndex,
+      edge === "left" ? -1 : 1,
+      next.visibility,
+    );
     const sourceBounds = columnBounds(registry, column, next.visibility);
     if (!sourceBounds) return failure(`Column for "${panelId}" has no panels`);
     if (neighbor) {
@@ -660,7 +733,7 @@ export function updatePanelWorkspacePanelSize(
   const bounds = columnBounds(registry, column, next.visibility);
   if (!bounds) return failure(`Column for "${panelId}" has no panels`);
   column.width = clamp(size.width, bounds.min, bounds.max);
-  row.height = clamp(size.height, entry.minHeight, entry.maxHeight);
+  row.height = Math.max(entry.minHeight, size.height);
   return normalizeResult(
     next,
     registry,

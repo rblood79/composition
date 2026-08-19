@@ -44,6 +44,17 @@
     pointer-events: none;
   }
 
+  .panel-dock {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .panel-dock-surface {
+    position: absolute;
+    pointer-events: none;
+  }
+
   .panel-activity-rail {
     position: absolute;
     top: 0;
@@ -103,7 +114,7 @@
     flex: none;
     flex-direction: column;
     min-width: 0;
-    max-height: calc(100% - var(--spacing-sm) * 2);
+    max-height: 100%;
     margin: 0;
     overflow: visible;
     color: var(--fg);

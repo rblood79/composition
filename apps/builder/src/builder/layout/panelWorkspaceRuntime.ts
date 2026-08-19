@@ -203,6 +203,7 @@ export function createPanelWorkspaceRuntime(
             edge,
             deltaX,
             deltaY,
+            { maxHeight: currentWorkspaceRect.height },
           ),
         );
       },
@@ -215,6 +216,7 @@ export function createPanelWorkspaceRuntime(
             edge,
             deltaX,
             deltaY,
+            { maxHeight: currentWorkspaceRect.height },
           ),
         );
       },

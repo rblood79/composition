@@ -307,6 +307,29 @@ describe("ADR-922 PanelWorkspace v2 interaction transaction", () => {
     ]);
   });
 
+  it("hidden row는 outer vertical resize의 neighbor 제약에 포함하지 않는다", () => {
+    const layout = createPanelWorkspaceLayoutV2();
+
+    const result = resizePanelWorkspaceBoundary(
+      layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      "properties",
+      "bottom",
+      0,
+      400,
+      { maxHeight: 900 },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const right = result.value.layout.clusters.find(
+      (cluster) => cluster.anchor === "right",
+    );
+    expect(
+      right?.columns[0]?.rows.find((row) => row.panelId === "properties"),
+    ).toEqual({ panelId: "properties", height: 900 });
+  });
+
   it("floating left/top outer resize는 반대쪽 edge를 고정한다", () => {
     const detached = detachPanelToFloatingCluster(
       visibleRightStack(),

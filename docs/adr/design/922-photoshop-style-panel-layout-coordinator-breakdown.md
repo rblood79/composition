@@ -329,12 +329,32 @@ pointer cancel/Escape
 - cache-clear default와 읽어 들인 legacy v2 record의 `left`/`right`/`bottom` anchored
   cluster는 production runtime에서 viewport 기준 floating cluster로 승격한다. Nodes와
   Properties는 visibility를 유지하되 Canvas 위 독립 frame으로 시작한다.
+- 승격된 `anchor:left`/`anchor:right` floating cluster의 rail activation은 기존
+  Photoshop식 cascade를 유지한다. 세로 여유가 있으면 같은 column에 stack하고, 부족하면
+  left rail은 오른쪽·right rail은 왼쪽에 두 번째 column을 만든다. 직접 move/cross-snap한
+  일반 floating cluster는 사용자 배치를 보존해 visibility만 바꾼다.
 - activity rail은 panel toggle 진입점으로 유지하지만 left/right/bottom 모두 absolute overlay다.
   `occupiedInsets`는 항상 `0/0/0`이며 Canvas main track은 host 전체 rect를 사용한다.
 - anchored schema/parser는 rollback과 구 record 읽기를 위한 compatibility boundary로만 남긴다.
   새 interaction과 successful persistence는 floating cluster graph를 기록한다.
 - bottom Monitor rail도 Canvas 위 overlay다. Monitor frame은 열릴 때만 floating frame으로
   나타나며, rail button 자체는 Canvas height를 차감하지 않는다.
+- panel `maxHeight`는 initial preferred size와 legacy record validation metadata로만 사용한다.
+  runtime resize와 persisted row normalization은 config 상한으로 height를 clamp하지 않으며,
+  실제 workspace height가 panel resize의 상한이다. hidden row/column은 visible frame의
+  resize neighbor로 취급하지 않는다.
+
+### 3.4.2 PanelDock shell restoration — Phase 1 (2026-08-19)
+
+- Photoshop의 `ue-panel-dock` 관찰을 data cluster만으로 축소했던 결함을 바로잡는다.
+  production `PanelWorkspace`는 하나의 안정된 floating `PanelDock` DOM shell 아래에
+  activity rail, registry panel frame, shared splitter와 향후 dropper/column rail을 둔다.
+- panel frame은 cluster가 바뀌어도 같은 `PanelDock` parent 아래에서 stable key를 유지한다.
+  따라서 floating dock 관계를 추가해도 React panel local state/scroll/Activity 수명이
+  reparent로 끊기지 않는다.
+- Phase 1은 physical ownership과 layout version boundary만 도입한다. cluster-local dock
+  bounds, shared column width policy, dropper/rail geometry는 다음 phase에서 coordinator
+  snapshot으로 옮긴다.
 
 ### 3.5 visibility와 고비용 work
 
