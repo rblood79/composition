@@ -12,6 +12,7 @@ import { floatAnchoredPanelWorkspaceClusters } from "./panelWorkspaceLayoutV2";
 import {
   activatePanelWorkspacePanel,
   detachPanelToFloatingCluster,
+  dropPanelWorkspacePanel,
   resizePanelWorkspaceBoundary,
   snapPanelWorkspacePanel,
   type PanelWorkspaceInteractionResult,
@@ -24,6 +25,7 @@ import type {
   PanelWorkspaceResult,
 } from "./panelWorkspaceLayoutV2";
 import type { PanelSnapCandidate } from "./panelSnap";
+import type { PanelDockDropTarget } from "./panelWorkspaceDockDrop";
 import { resolvePanelSnapFromSnapshot } from "./panelWorkspaceShadowAdapter";
 
 export interface PanelWorkspaceRuntimeMutation {
@@ -50,6 +52,10 @@ export interface PanelWorkspaceRuntime {
     panelId: PanelId,
     targetPanelId: PanelId,
     edge: PanelSnapEdge,
+  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
+  dropPanel(
+    panelId: PanelId,
+    target: PanelDockDropTarget,
   ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
   resizePanel(
     panelId: PanelId,
@@ -192,6 +198,11 @@ export function createPanelWorkspaceRuntime(
             targetPanelId,
             edge,
           ),
+        );
+      },
+      dropPanel(panelId, target) {
+        return applyInteraction(
+          dropPanelWorkspacePanel(layout, registry, panelId, target),
         );
       },
       resizePanel(panelId, edge, deltaX, deltaY) {

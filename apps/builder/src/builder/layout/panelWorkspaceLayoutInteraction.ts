@@ -17,6 +17,7 @@ import {
   type PanelWorkspaceRegistryEntry,
   type PanelWorkspaceResult,
 } from "./panelWorkspaceLayoutV2";
+import type { PanelDockDropTarget } from "./panelWorkspaceDockDrop";
 
 export interface PanelWorkspaceInteractionResult {
   layout: PanelWorkspaceLayoutV2;
@@ -140,6 +141,16 @@ function insertionIndexAfterVisibleRows(
     if (visibility[row.panelId] === true) lastVisible = index;
   });
   return lastVisible + 1;
+}
+
+function insertionIndexBeforeVisibleRows(
+  column: PanelWorkspaceColumnV2,
+  visibility: Partial<Record<PanelId, boolean>>,
+): number {
+  const firstVisible = column.rows.findIndex(
+    (row) => visibility[row.panelId] === true,
+  );
+  return firstVisible >= 0 ? firstVisible : 0;
 }
 
 function activationColumnIndex(
@@ -325,6 +336,45 @@ export function snapPanelWorkspacePanel(
   return normalizeResult(next, registry, [
     ...detached.value.affectedPanelIds,
     ...beforePanelIds,
+    ...panelIdsInCluster(targetCluster),
+  ]);
+}
+
+export function dropPanelWorkspacePanel(
+  layout: PanelWorkspaceLayoutV2,
+  registry: readonly PanelWorkspaceRegistryEntry[],
+  sourcePanelId: PanelId,
+  target: PanelDockDropTarget,
+): PanelWorkspaceResult<PanelWorkspaceInteractionResult> {
+  const detached = detachPanel(layout, sourcePanelId);
+  if (!detached.ok) return detached;
+  const next = detached.value.layout;
+  const targetCluster = next.clusters.find(
+    (cluster) => cluster.id === target.clusterId,
+  );
+  const targetColumn = targetCluster?.columns[target.columnIndex];
+  if (!targetCluster || !targetColumn) {
+    return failure(`Dock drop target "${target.clusterId}" is unavailable`);
+  }
+
+  const insertIndex =
+    target.position === "first"
+      ? insertionIndexBeforeVisibleRows(targetColumn, next.visibility)
+      : insertionIndexAfterVisibleRows(targetColumn, next.visibility);
+  targetColumn.rows.splice(insertIndex, 0, {
+    panelId: sourcePanelId,
+    height: detached.value.height,
+  });
+  next.visibility[sourcePanelId] = true;
+  if (targetCluster.anchor === "floating") {
+    next.floatingFocusOrder = [
+      ...next.floatingFocusOrder.filter((id) => id !== targetCluster.id),
+      targetCluster.id,
+    ];
+  }
+
+  return normalizeResult(next, registry, [
+    ...detached.value.affectedPanelIds,
     ...panelIdsInCluster(targetCluster),
   ]);
 }

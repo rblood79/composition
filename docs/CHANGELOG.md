@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **floating-first initial rail activation에도 Photoshop식 cascade를 유지**: 승격된 `anchor:left`/`anchor:right` floating cluster는 세로 여유가 있으면 기존 column 아래에 쌓고, 공간이 부족하면 left는 오른쪽·right는 왼쪽 새 column으로 전환한다. 사용자가 직접 이동하거나 cross-snap한 일반 floating cluster의 토글 관계는 보존한다
 - **panel height resize의 config max 제한을 제거**: `maxHeight`는 초기 선호 높이와 호환 metadata로만 유지하며, resize·normalization·floating move 경로는 실제 workspace 높이를 상한으로 사용한다. 숨겨진 row는 outer resize의 neighbor 제약에 포함하지 않는다
 - **physical `PanelDock` shell을 복원**: 모든 activity rail, stable panel frame, shared splitter는 하나의 floating dock DOM 아래에서 렌더한다. cluster 이동에도 panel React identity를 유지하는 dock-local geometry 이관의 Phase 1이다
+- **dock rail/dropper presentation을 snapshot으로 파생**: visible column마다 dock-local rail과 first/last dropper를 렌더한다. dropper는 drag 중에만 표시되며, 실제 insertion mutation은 다음 phase에서 연결한다
 - anchored placement schema는 기존 record를 읽기 위한 compatibility boundary로만 남긴다. production에서 panel move/snap/resize 뒤에는 floating cluster graph가 정본이다
 
 ## [ADR-922 panel stack viewport fit과 shared resize 복구] - 2026-08-19
@@ -11289,3 +11290,5 @@ SelectTrigger, SelectValue, SelectIcon 등의 BoxSprite가 기본 흰색 불투�
 | `apps/builder/src/builder/factories/definitions/SelectionComponents.ts` | factory 정의에 `backgroundColor: 'transparent'` 추가                      |
 
 ---
+
+- ADR-922 PanelDock dropper가 드래그 중 첫/마지막 삽입 target을 설정하고, 드래그 종료 시 기존 snap mutation 경로로 패널을 실제 stack에 삽입하도록 연결했습니다.

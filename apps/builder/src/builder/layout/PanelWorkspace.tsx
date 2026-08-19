@@ -44,6 +44,7 @@ import type {
 } from "./panelWorkspaceLayoutCoordinator";
 import {
   createPanelWorkspaceRegistryEntry,
+  type PanelWorkspaceClusterV2,
   type PanelWorkspaceLayoutV2,
   type PanelWorkspaceRegistryEntry,
 } from "./panelWorkspaceLayoutV2";
@@ -560,7 +561,15 @@ const PanelFrame = memo(function PanelFrame({
       }
       const geometry = visualGeometryRef.current;
       const nearbyCandidate = runtime.resolveSnap(config.id, geometry);
-      if (nearbyCandidate && !suppressSnapRef.current) {
+      const dropMutation = snapTarget
+        ? runtime.snapPanel(config.id, snapTarget.panelId, snapTarget.edge)
+        : null;
+      if (dropMutation?.ok) {
+        recordPanelWorkspaceLayoutInput(
+          dropMutation.value.expectedVersion,
+          dropMutation.value.affectedPanelIds,
+        );
+      } else if (nearbyCandidate && !suppressSnapRef.current) {
         const mutation = runtime.snapPanel(
           config.id,
           nearbyCandidate.targetPanelId,
@@ -792,6 +801,146 @@ interface PanelDockOrigin {
   y: number;
 }
 
+interface PanelDockColumnPresentation {
+  clusterId: string;
+  columnIndex: number;
+  height: number;
+  width: number;
+  x: number;
+  y: number;
+  visiblePanelIds: PanelId[];
+}
+
+function panelDockColumns(
+  clusters: readonly PanelWorkspaceClusterV2[],
+  snapshot: PanelWorkspaceLayoutSnapshot,
+): PanelDockColumnPresentation[] {
+  return clusters.flatMap((cluster) =>
+    cluster.columns.flatMap((column, columnIndex) => {
+      const frames = column.rows.flatMap((row) => {
+        const frame = snapshot.frameGeometries.get(row.panelId);
+        return frame ? [frame] : [];
+      });
+      if (frames.length === 0) return [];
+      const x = Math.min(...frames.map((frame) => frame.x));
+      const y = Math.min(...frames.map((frame) => frame.y));
+      const right = Math.max(...frames.map((frame) => frame.x + frame.width));
+      const bottom = Math.max(...frames.map((frame) => frame.y + frame.height));
+      return [
+        {
+          clusterId: cluster.id,
+          columnIndex,
+          height: bottom - y,
+          width: right - x,
+          x,
+          y,
+          visiblePanelIds: column.rows
+            .filter((row) => snapshot.frameGeometries.has(row.panelId))
+            .map((row) => row.panelId),
+        },
+      ];
+    }),
+  );
+}
+
+interface PanelDockClusterPresentationProps {
+  dockOrigin: PanelDockOrigin;
+  runtime: PanelWorkspaceRuntime;
+}
+
+function PanelDockClusterPresentation({
+  dockOrigin,
+  runtime,
+}: PanelDockClusterPresentationProps) {
+  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  const { draggedPanelId, snapTarget, updatePanelSnapTarget } =
+    usePanelSnapInteraction();
+  const columns = panelDockColumns(runtime.getLayout().clusters, snapshot);
+  const isDragging = draggedPanelId !== null;
+  const dropperSize = 10;
+
+  return (
+    <>
+      {columns.map((column) => {
+        const left = column.x - dockOrigin.x;
+        const top = column.y - dockOrigin.y;
+        const bottom = top + column.height;
+        const firstPanelId = column.visiblePanelIds[0];
+        const lastPanelId = column.visiblePanelIds.at(-1);
+        const setDropTarget = (
+          panelId: PanelId | undefined,
+          edge: PanelSnapEdge,
+        ) => {
+          if (!draggedPanelId || !panelId || draggedPanelId === panelId) return;
+          updatePanelSnapTarget({ panelId, edge });
+        };
+        return (
+          <div
+            key={`${column.clusterId}:${column.columnIndex}`}
+            className="panel-dock-column-presentation"
+            data-cluster-id={column.clusterId}
+            data-column-index={column.columnIndex}
+          >
+            <div
+              aria-hidden="true"
+              className="panel-dock-rail"
+              style={{
+                height: column.height,
+                left: left + column.width - 1,
+                top,
+              }}
+            />
+            <div
+              aria-hidden="true"
+              className="panel-dock-dropper"
+              data-active={isDragging}
+              data-position="first"
+              data-target-panel={firstPanelId}
+              data-target-edge="top"
+              onPointerEnter={() => setDropTarget(firstPanelId, "top")}
+              onPointerLeave={() => {
+                if (
+                  snapTarget?.panelId === firstPanelId &&
+                  snapTarget.edge === "top"
+                )
+                  updatePanelSnapTarget(null);
+              }}
+              style={{
+                height: dropperSize,
+                left,
+                top: top - dropperSize / 2,
+                width: column.width,
+              }}
+            />
+            <div
+              aria-hidden="true"
+              className="panel-dock-dropper"
+              data-active={isDragging}
+              data-position="last"
+              data-target-panel={lastPanelId}
+              data-target-edge="bottom"
+              onPointerEnter={() => setDropTarget(lastPanelId, "bottom")}
+              onPointerLeave={() => {
+                if (
+                  snapTarget?.panelId === lastPanelId &&
+                  snapTarget?.edge === "bottom"
+                )
+                  updatePanelSnapTarget(null);
+              }}
+              style={{
+                height: dropperSize,
+                left,
+                top: bottom - dropperSize / 2,
+                width: column.width,
+              }}
+            />
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 interface PanelDockRenderProps {
   origin: PanelDockOrigin;
   surfaceStyle: CSSProperties;
@@ -875,6 +1024,10 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
             })}
 
             <div className="panel-dock-surface" style={surfaceStyle}>
+              <PanelDockClusterPresentation
+                dockOrigin={origin}
+                runtime={runtime}
+              />
               {configs.map((config) => (
                 <SnapshotPanelFrame
                   key={config.id}

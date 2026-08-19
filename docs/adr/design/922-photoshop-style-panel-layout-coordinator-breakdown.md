@@ -355,6 +355,9 @@ pointer cancel/Escape
 - Phase 1은 physical ownership과 layout version boundary만 도입한다. cluster-local dock
   bounds, shared column width policy, dropper/rail geometry는 다음 phase에서 coordinator
   snapshot으로 옮긴다.
+- Phase 1.1은 coordinator snapshot의 visible column bounds에서 dock-local rail과
+  first/last dropper presentation을 순수 파생한다. dropper는 drag 중에만 보이며 mutation을
+  소유하지 않는다. 실제 drop target 해석과 insertion command는 다음 interaction phase다.
 
 ### 3.5 visibility와 고비용 work
 
