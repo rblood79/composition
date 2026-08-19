@@ -434,6 +434,19 @@ v3 raw와 v2 projection이 모두 parse되지 않으면 fail closed한다.
 - reference-frame resize와 paired shared splitter를 전 zone에서 검증한다.
 - **G4** 통과 전 compatibility path 제거를 시작하지 않는다.
 
+#### 실행 기록 — G4 PASS (2026-08-19)
+
+- [Phase 4 activation, identity, resize, and reset policy](186-phase-4-policy-identity-resize.md)에
+  Photoshop 기본 stack/안쪽 overflow, dormant hidden placement, rail identity와 explicit reset
+  계약을 기록했다.
+- panel workspace layout Vitest 22 files, 235 tests, typecheck와 preflight를 통과했다.
+- 9/9 zone의 left/right/top/bottom outer resize anchor, paired row/column 합계와 anchor를
+  고정했고 clamp overrun 뒤 reference delta로 복귀할 때 drift 0을 확인했다.
+- local Builder에서 rightmost Properties/History stack, 왼쪽 Styles overflow column, 4px gap과
+  surface right/bottom anchor를 실측했다. hide/reopen과 resize 원복 뒤 reload geometry도 동일했다.
+- production primary와 coordinator public layout은 계속 v2 compatibility path다. Phase 5의 v3
+  primary cutover와 persisted free-XY/legacy compatibility 제거는 시작하지 않았다.
+
 ### Phase 5 — production cutover와 v2 free-XY 제거
 
 - coordinator/runtime/persistence의 production type을 v3로 전환한다.

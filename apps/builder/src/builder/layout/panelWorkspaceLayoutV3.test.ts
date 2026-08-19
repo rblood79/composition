@@ -275,9 +275,12 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
         Math.max(0, cluster.columns.length - 1) * 4;
       expect(totalWidth).toBeLessThanOrEqual(SURFACE_RECT.width);
       for (const column of cluster.columns) {
+        const visibleRows = column.rows.filter(
+          (row) => first.value.visibility[row.panelId] === true,
+        );
         const totalHeight =
-          column.rows.reduce((sum, row) => sum + row.height, 0) +
-          Math.max(0, column.rows.length - 1) * 4;
+          visibleRows.reduce((sum, row) => sum + row.height, 0) +
+          Math.max(0, visibleRows.length - 1) * 4;
         expect(totalHeight).toBeLessThanOrEqual(SURFACE_RECT.height);
       }
     }

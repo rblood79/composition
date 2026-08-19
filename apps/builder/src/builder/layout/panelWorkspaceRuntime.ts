@@ -10,10 +10,8 @@ import {
 } from "./panelWorkspaceLayoutCoordinator";
 import { floatAnchoredPanelWorkspaceClusters } from "./panelWorkspaceLayoutV2";
 import {
-  activatePanelWorkspacePanel,
   detachPanelToFloatingCluster,
   dropPanelWorkspacePanel,
-  resizePanelWorkspaceBoundary,
   snapPanelWorkspacePanel,
   type PanelWorkspaceInteractionResult,
 } from "./panelWorkspaceLayoutInteraction";
@@ -28,6 +26,13 @@ import type { PanelSnapCandidate } from "./panelSnap";
 import type { PanelDockDropTarget } from "./panelWorkspaceDockDrop";
 import { projectPanelWorkspaceLayoutV3ToV2 } from "./panelWorkspaceLayoutV3Rollback";
 import { migratePanelWorkspaceLayoutV2ToV3 } from "./panelWorkspaceLayoutV3Migration";
+import type { PanelWorkspaceLayoutV3 } from "./panelWorkspaceLayoutV3";
+import {
+  activatePanelWorkspacePanelV3,
+  resetPanelWorkspaceLayoutV3,
+  resizePanelWorkspaceBoundaryV3,
+  type PanelWorkspacePolicyResultV3,
+} from "./panelWorkspacePolicyV3";
 import {
   beginPanelWorkspaceDragSession,
   commitPanelWorkspaceDragSession,
@@ -76,6 +81,7 @@ export interface PanelWorkspaceRuntime {
   activatePanel(
     panelId: PanelId,
   ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
+  resetLayout(): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
   movePanel(
     panelId: PanelId,
     geometry: PanelFrameGeometry,
@@ -127,6 +133,7 @@ export function createPanelWorkspaceRuntime(
   let layout = initialFloatingLayout.value;
   let committedLayout = initialFloatingLayout.value;
   let interactionBaseLayout: PanelWorkspaceLayoutV2 | null = null;
+  let interactionBasePolicyLayout: PanelWorkspaceLayoutV3 | null = null;
   let dragSession: PanelWorkspaceDragSession | null = null;
   const coordinatorResult = createPanelWorkspaceLayoutCoordinator({
     layout,
@@ -162,6 +169,35 @@ export function createPanelWorkspaceRuntime(
       },
     };
   };
+  const applyPolicyInteraction = (
+    result: PanelWorkspaceResult<PanelWorkspacePolicyResultV3>,
+  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation> => {
+    if (!result.ok) return result;
+    const projected = projectPanelWorkspaceLayoutV3ToV2(
+      result.value.layout,
+      registry,
+      currentWorkspaceRect,
+    );
+    if (!projected.ok) return projected;
+    layout = projected.value;
+    return {
+      ok: true,
+      value: {
+        expectedVersion: queueCurrentLayout(),
+        affectedPanelIds: result.value.affectedPanelIds.filter(
+          (panelId) => layout.visibility[panelId] === true,
+        ),
+      },
+    };
+  };
+  const migratePolicySource = (
+    source: PanelWorkspaceLayoutV2,
+    operation: string,
+  ) =>
+    migratePanelWorkspaceLayoutV2ToV3(source, registry, {
+      surfaceRect: currentWorkspaceRect,
+      migrationId: `phase-4-policy:${operation}`,
+    });
 
   return {
     ok: true,
@@ -302,11 +338,17 @@ export function createPanelWorkspaceRuntime(
       beginInteraction(): void {
         if (interactionBaseLayout === null) {
           interactionBaseLayout = committedLayout;
+          const migrated = migratePolicySource(
+            committedLayout,
+            "reference-resize",
+          );
+          interactionBasePolicyLayout = migrated.ok ? migrated.value : null;
         }
       },
       endInteraction(): PanelWorkspaceLayoutV2 {
         committedLayout = layout;
         interactionBaseLayout = null;
+        interactionBasePolicyLayout = null;
         return layout;
       },
       cancelInteraction(): PanelWorkspaceLayoutV2 {
@@ -314,6 +356,7 @@ export function createPanelWorkspaceRuntime(
           layout = interactionBaseLayout;
           committedLayout = interactionBaseLayout;
           interactionBaseLayout = null;
+          interactionBasePolicyLayout = null;
           queueCurrentLayout();
         }
         return layout;
@@ -329,11 +372,26 @@ export function createPanelWorkspaceRuntime(
         queueCurrentLayout();
       },
       activatePanel(panelId) {
-        return applyInteraction(
-          activatePanelWorkspacePanel(layout, registry, panelId, {
-            railSizes,
-            workspaceRect: currentWorkspaceRect,
-          }),
+        const migrated = migratePolicySource(layout, `activate:${panelId}`);
+        if (!migrated.ok) return migrated;
+        return applyPolicyInteraction(
+          activatePanelWorkspacePanelV3(
+            migrated.value,
+            registry,
+            panelId,
+            currentWorkspaceRect,
+          ),
+        );
+      },
+      resetLayout() {
+        const migrated = migratePolicySource(layout, "reset");
+        if (!migrated.ok) return migrated;
+        return applyPolicyInteraction(
+          resetPanelWorkspaceLayoutV3(
+            migrated.value,
+            registry,
+            currentWorkspaceRect,
+          ),
         );
       },
       movePanel(panelId, geometry) {
@@ -358,34 +416,37 @@ export function createPanelWorkspaceRuntime(
         );
       },
       resizePanel(panelId, edge, deltaX, deltaY) {
-        return applyInteraction(
-          resizePanelWorkspaceBoundary(
-            layout,
+        const migrated = migratePolicySource(layout, `resize:${panelId}`);
+        if (!migrated.ok) return migrated;
+        return applyPolicyInteraction(
+          resizePanelWorkspaceBoundaryV3(
+            migrated.value,
             registry,
             panelId,
             edge,
             deltaX,
             deltaY,
-            {
-              maxHeight: currentWorkspaceRect.height,
-              workspaceRect: currentWorkspaceRect,
-            },
+            currentWorkspaceRect,
           ),
         );
       },
       resizePanelFromReference(panelId, edge, deltaX, deltaY) {
-        return applyInteraction(
-          resizePanelWorkspaceBoundary(
-            interactionBaseLayout ?? layout,
+        const migrated = interactionBasePolicyLayout
+          ? { ok: true as const, value: interactionBasePolicyLayout }
+          : migratePolicySource(
+              interactionBaseLayout ?? layout,
+              `reference-resize:${panelId}`,
+            );
+        if (!migrated.ok) return migrated;
+        return applyPolicyInteraction(
+          resizePanelWorkspaceBoundaryV3(
+            migrated.value,
             registry,
             panelId,
             edge,
             deltaX,
             deltaY,
-            {
-              maxHeight: currentWorkspaceRect.height,
-              workspaceRect: currentWorkspaceRect,
-            },
+            currentWorkspaceRect,
           ),
         );
       },

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-186 G4 — zone activation·rail identity·reference resize 정책] - 2026-08-19
+
+### Architecture
+
+- **Photoshop 기본 activation을 v3 zone policy로 전환**: left/right panel은 아래로 stack하고 실제 높이가 부족하면 left는 오른쪽, right는 왼쪽 안쪽에 최대 두 번째 column을 만든다. hidden row/column은 graph와 선호 크기를 보존하되 fit 수요에서는 제외해 hide/reopen 시 마지막 zone·row를 그대로 복원한다
+- **activity rail identity와 current placement를 분리**: panel-relative cross-rail snap은 target zone만 승계하고 `railOrder`는 byte-equivalent로 유지한다. explicit reset만 registry의 default rail/zone/size를 복원하며 현재 visibility는 보존한다
+- **outer/shared resize를 immutable reference graph에서 계산**: 9/9 zone에서 outer anchor와 paired row/column 총량을 고정하고 min/max overrun 후 복귀 drift를 0으로 만들었다. local Builder에서 우측 stack/왼쪽 overflow, 4px gap, right/bottom anchor와 paired row resize·reload를 확인했다
+- production storage/coordinator public type은 계속 v2 compatibility path를 사용한다. Phase 5의 v3 primary cutover, `floatAnchoredPanelWorkspaceClusters`와 persisted free-XY 제거는 아직 시작하지 않았다
+- 위치: `apps/builder/src/builder/layout/panelWorkspacePolicyV3.ts`, `panelWorkspaceRuntime.ts`, `panelWorkspaceLayoutV3*.ts`, `docs/adr/design/186-phase-4-policy-identity-resize.md`
+
 ## [ADR-186 G3 — transient panel drag와 candidate/drop transaction] - 2026-08-19
 
 ### Architecture

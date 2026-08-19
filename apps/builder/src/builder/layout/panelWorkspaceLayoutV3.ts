@@ -406,43 +406,66 @@ function fitTrackSizes(
 function fitClusterToSurface(
   cluster: PanelWorkspaceClusterV3,
   entries: ReadonlyMap<PanelId, PanelWorkspaceRegistryEntry>,
+  visibility: Partial<Record<PanelId, boolean>>,
   surfaceRect: PanelWorkspaceRect,
 ): void {
+  const visibleColumnIndexes = cluster.columns.flatMap((column, columnIndex) =>
+    column.rows.some((row) => visibility[row.panelId] === true)
+      ? [columnIndex]
+      : [],
+  );
   const horizontalGap =
-    PANEL_WORKSPACE_GAP * Math.max(0, cluster.columns.length - 1);
+    PANEL_WORKSPACE_GAP * Math.max(0, visibleColumnIndexes.length - 1);
   const availableWidth = Math.max(0, surfaceRect.width - horizontalGap);
   const columnMinimums = cluster.columns.map((column) => {
+    const visibleRows = column.rows.filter(
+      (row) => visibility[row.panelId] === true,
+    );
+    const constrainingRows =
+      visibleRows.length > 0 ? visibleRows : column.rows.slice(0, 1);
     const minimum = Math.max(
       0,
-      ...column.rows.map((row) => entries.get(row.panelId)?.minWidth ?? 0),
+      ...constrainingRows.map((row) => entries.get(row.panelId)?.minWidth ?? 0),
     );
-    return Math.min(minimum, availableWidth);
+    return Math.min(minimum, surfaceRect.width);
   });
   const columnPreferred = cluster.columns.map((column, columnIndex) => {
+    const visibleRows = column.rows.filter(
+      (row) => visibility[row.panelId] === true,
+    );
+    const constrainingRows =
+      visibleRows.length > 0 ? visibleRows : column.rows.slice(0, 1);
     const maximum = Math.max(
       columnMinimums[columnIndex] ?? 0,
       Math.min(
         surfaceRect.width,
-        ...column.rows.map(
+        ...constrainingRows.map(
           (row) => entries.get(row.panelId)?.maxWidth ?? surfaceRect.width,
         ),
       ),
     );
     return clamp(column.width, columnMinimums[columnIndex] ?? 0, maximum);
   });
-  const fittedWidths = fitTrackSizes(
-    columnPreferred,
-    columnMinimums,
+  const fittedVisibleWidths = fitTrackSizes(
+    visibleColumnIndexes.map((index) => columnPreferred[index] ?? 0),
+    visibleColumnIndexes.map((index) => columnMinimums[index] ?? 0),
     availableWidth,
   );
 
   cluster.columns.forEach((column, columnIndex) => {
-    column.width = fittedWidths[columnIndex] ?? 0;
+    const visibleColumnIndex = visibleColumnIndexes.indexOf(columnIndex);
+    column.width =
+      visibleColumnIndex >= 0
+        ? (fittedVisibleWidths[visibleColumnIndex] ?? 0)
+        : (columnPreferred[columnIndex] ?? 0);
+    const visibleRowIndexes = column.rows.flatMap((row, rowIndex) =>
+      visibility[row.panelId] === true ? [rowIndex] : [],
+    );
     const verticalGap =
-      PANEL_WORKSPACE_GAP * Math.max(0, column.rows.length - 1);
+      PANEL_WORKSPACE_GAP * Math.max(0, visibleRowIndexes.length - 1);
     const availableHeight = Math.max(0, surfaceRect.height - verticalGap);
     const minimums = column.rows.map((row) =>
-      Math.min(entries.get(row.panelId)?.minHeight ?? 0, availableHeight),
+      Math.min(entries.get(row.panelId)?.minHeight ?? 0, surfaceRect.height),
     );
     const preferred = column.rows.map((row, rowIndex) => {
       const entry = entries.get(row.panelId);
@@ -453,9 +476,17 @@ function fitClusterToSurface(
       );
       return clamp(row.height, minimum, maximum);
     });
-    const fittedHeights = fitTrackSizes(preferred, minimums, availableHeight);
+    const fittedVisibleHeights = fitTrackSizes(
+      visibleRowIndexes.map((index) => preferred[index] ?? 0),
+      visibleRowIndexes.map((index) => minimums[index] ?? 0),
+      availableHeight,
+    );
     column.rows.forEach((row, rowIndex) => {
-      row.height = fittedHeights[rowIndex] ?? 0;
+      const visibleRowIndex = visibleRowIndexes.indexOf(rowIndex);
+      row.height =
+        visibleRowIndex >= 0
+          ? (fittedVisibleHeights[visibleRowIndex] ?? 0)
+          : (preferred[rowIndex] ?? 0);
     });
   });
 }
@@ -627,7 +658,7 @@ export function normalizePanelWorkspaceLayoutV3(
   }
 
   for (const cluster of clusters) {
-    fitClusterToSurface(cluster, entries, surface.value);
+    fitClusterToSurface(cluster, entries, visibility, surface.value);
   }
 
   const clusterIds = clusters.map((cluster) => cluster.id);

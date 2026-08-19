@@ -170,7 +170,7 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
     const runtime = createPanelWorkspaceRuntime(
       layout,
       PANEL_WORKSPACE_TEST_REGISTRY,
-      { width: 1440, height: 852 },
+      { width: 1440, height: 1200 },
       { left: 48, right: 48, bottom: 48 },
     );
     expect(runtime.ok).toBe(true);
@@ -180,20 +180,96 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
     expect(
       runtime.value.resizePanelFromReference("properties", "bottom", 0, 400).ok,
     ).toBe(true);
-    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(810);
-    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(160);
+    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(800);
+    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(170);
 
     expect(
       runtime.value.resizePanelFromReference("properties", "bottom", 0, 290).ok,
     ).toBe(true);
-    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(810);
-    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(160);
+    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(800);
+    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(170);
 
     expect(
       runtime.value.resizePanelFromReference("properties", "bottom", 0, 260).ok,
     ).toBe(true);
     expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(780);
     expect(rowHeight(runtime.value.getLayout(), "history")).toBe(190);
+    runtime.value.destroy();
+  });
+
+  it("Phase 4 activation은 right stack overflow를 top-right의 왼쪽 column에 만든다", () => {
+    const runtime = createPanelWorkspaceRuntime(
+      createPanelWorkspaceLayoutV2(),
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      { width: 1200, height: 800 },
+      { left: 48, right: 48, bottom: 48 },
+    );
+    expect(runtime.ok).toBe(true);
+    if (!runtime.ok) return;
+
+    const activated = runtime.value.activatePanel("history");
+    expect(activated.ok).toBe(true);
+    if (!activated.ok) return;
+    const cluster = runtime.value
+      .getLayout()
+      .clusters.find((candidate) =>
+        candidate.columns.some((column) =>
+          column.rows.some((row) => row.panelId === "properties"),
+        ),
+      );
+    expect(cluster?.columns.map((column) => column.rows)).toEqual([
+      [{ panelId: "history", height: 450 }],
+      [{ panelId: "properties", height: 520 }],
+    ]);
+    expect(runtime.value.getLayout().railOrder.right).toEqual([
+      "properties",
+      "history",
+    ]);
+    runtime.value.destroy();
+  });
+
+  it("Phase 4 explicit reset은 default rail과 zone placement를 compatibility layout에 복원한다", () => {
+    const runtime = createPanelWorkspaceRuntime(
+      createPanelWorkspaceLayoutV2(),
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      { width: 1200, height: 800 },
+      { left: 48, right: 48, bottom: 48 },
+    );
+    expect(runtime.ok).toBe(true);
+    if (!runtime.ok) return;
+
+    expect(runtime.value.beginDrag("properties").ok).toBe(true);
+    expect(
+      runtime.value.updateDrag(
+        "properties",
+        { x: 500, y: 650, width: 233, height: 100 },
+        { x: 600, y: 700 },
+      ).ok,
+    ).toBe(true);
+    expect(runtime.value.endDrag("properties")).toMatchObject({
+      ok: true,
+      value: { committed: true },
+    });
+
+    const reset = runtime.value.resetLayout();
+    expect(reset.ok).toBe(true);
+    if (!reset.ok) return;
+    runtime.value.endInteraction();
+    expect(runtime.value.getLayout().railOrder.right).toEqual([
+      "properties",
+      "history",
+    ]);
+    const started = runtime.value.beginDrag("properties");
+    expect(started.ok).toBe(true);
+    if (!started.ok) return;
+    expect(
+      started.value.baseLayout.clusters.find((cluster) =>
+        cluster.columns.some((column) =>
+          column.rows.some((row) => row.panelId === "properties"),
+        ),
+      )?.placementZone,
+    ).toBe("top-right");
+    runtime.value.cancelDrag();
     runtime.value.destroy();
   });
 });
