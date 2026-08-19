@@ -214,8 +214,15 @@ function sharedSplitterStyle(
     return {
       bottom: "auto",
       height: hitSize,
-      left: geometry.x - dockOrigin.x,
-      right: "auto",
+      ...(rightAnchored
+        ? {
+            right: dockOrigin.workspaceWidth - geometry.x - geometry.width,
+            left: "auto",
+          }
+        : {
+            left: geometry.x - dockOrigin.x,
+            right: "auto",
+          }),
       top: geometry.y - dockOrigin.y + geometry.height / 2 - hitSize / 2,
       width: geometry.width,
       zIndex,

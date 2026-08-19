@@ -308,7 +308,9 @@ function rowBounds(
   const min = Math.min(entry.minHeight, surfaceRect.height);
   return {
     min,
-    max: Math.max(min, Math.min(entry.maxHeight, surfaceRect.height)),
+    // 패널 height는 surface가 허용하는 브라우저 높이까지 확장 가능해야 한다.
+    // PanelConfig.maxHeight는 콘텐츠 기본 크기 메타데이터이며 workspace resize 상한이 아니다.
+    max: surfaceRect.height,
   };
 }
 

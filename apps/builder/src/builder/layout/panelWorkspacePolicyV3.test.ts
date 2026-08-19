@@ -486,4 +486,34 @@ describe("ADR-186 G4 v3 panel policy", () => {
       { panelId: "styles", height: 100 },
     ]);
   });
+
+  it("config maxHeight보다 큰 브라우저 surface 높이까지 패널을 확장한다", () => {
+    const surfaceRect = { width: 1200, height: 800 } as const;
+    const registry = REGISTRY.map((entry) =>
+      entry.id === "properties" ? { ...entry, maxHeight: 100 } : entry,
+    );
+    const base = singleZoneLayout("top-right");
+    const resized = resizePanelWorkspaceBoundaryV3(
+      base,
+      registry,
+      "properties",
+      "bottom",
+      0,
+      700,
+      surfaceRect,
+    );
+
+    expect(resized.ok).toBe(true);
+    if (!resized.ok) return;
+    const solved = solvePanelWorkspaceLayoutV3(
+      resized.value.layout,
+      registry,
+      surfaceRect,
+    );
+    expect(solved.ok).toBe(true);
+    if (!solved.ok) return;
+    expect(solved.value.frameGeometries.get("properties")).toMatchObject({
+      height: 800,
+    });
+  });
 });

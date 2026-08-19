@@ -169,14 +169,14 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
     expect(
       runtime.value.resizePanelFromReference("properties", "bottom", 0, 400).ok,
     ).toBe(true);
-    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(800);
-    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(170);
+    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(810);
+    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(160);
 
     expect(
       runtime.value.resizePanelFromReference("properties", "bottom", 0, 290).ok,
     ).toBe(true);
-    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(800);
-    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(170);
+    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(810);
+    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(160);
 
     expect(
       runtime.value.resizePanelFromReference("properties", "bottom", 0, 260).ok,

@@ -470,10 +470,7 @@ function fitClusterToSurface(
     const preferred = column.rows.map((row, rowIndex) => {
       const entry = entries.get(row.panelId);
       const minimum = minimums[rowIndex] ?? 0;
-      const maximum = Math.max(
-        minimum,
-        Math.min(entry?.maxHeight ?? surfaceRect.height, surfaceRect.height),
-      );
+      const maximum = Math.max(minimum, surfaceRect.height);
       return clamp(row.height, minimum, maximum);
     });
     const fittedVisibleHeights = fitTrackSizes(
