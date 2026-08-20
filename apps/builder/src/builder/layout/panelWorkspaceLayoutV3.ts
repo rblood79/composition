@@ -25,6 +25,18 @@ export const PANEL_WORKSPACE_PLACEMENT_ZONES = [
 export type PanelWorkspacePlacementZone =
   (typeof PANEL_WORKSPACE_PLACEMENT_ZONES)[number];
 
+/** Interactive snap targets. The legacy center placement remains readable. */
+export const PANEL_WORKSPACE_SNAP_ZONES = [
+  "top-left",
+  "top",
+  "top-right",
+  "left",
+  "right",
+  "bottom-left",
+  "bottom",
+  "bottom-right",
+] as const satisfies readonly Exclude<PanelWorkspacePlacementZone, "center">[];
+
 export const PANEL_WORKSPACE_DEFAULT_ZONE_BY_RAIL: Record<
   PanelWorkspaceRailSide,
   PanelWorkspacePlacementZone
@@ -53,6 +65,8 @@ export interface PanelWorkspaceColumnV3 {
 export interface PanelWorkspaceClusterV3 {
   id: string;
   placementZone: PanelWorkspacePlacementZone;
+  /** Resize-preserved displacement from the zone's computed origin. */
+  originOffset?: { x: number; y: number };
   columns: PanelWorkspaceColumnV3[];
 }
 
@@ -97,6 +111,7 @@ interface RawPanelWorkspaceColumnV3 {
 interface RawPanelWorkspaceClusterV3 {
   id: string;
   placementZone: PanelWorkspacePlacementZone;
+  originOffset?: { x: number; y: number };
   columns: RawPanelWorkspaceColumnV3[];
 }
 
@@ -128,6 +143,19 @@ function isNonEmptyString(value: unknown): value is string {
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(value, maximum));
+}
+
+function readOriginOffset(
+  value: unknown,
+): { x: number; y: number } | undefined {
+  if (
+    !isRecord(value) ||
+    !isFiniteNumber(value.x) ||
+    !isFiniteNumber(value.y)
+  ) {
+    return undefined;
+  }
+  return { x: value.x, y: value.y };
 }
 
 export function panelWorkspaceZoneOrigin(
@@ -288,6 +316,7 @@ function parseRawLayout(
     clusters.push({
       id: clusterValue.id,
       placementZone: clusterValue.placementZone,
+      originOffset: readOriginOffset(clusterValue.originOffset),
       columns,
     });
   }
@@ -350,6 +379,9 @@ function rawToTypedLayout(
     clusters: raw.clusters.map((cluster) => ({
       id: cluster.id,
       placementZone: cluster.placementZone,
+      ...(cluster.originOffset
+        ? { originOffset: { ...cluster.originOffset } }
+        : {}),
       columns: cluster.columns.map((column) => ({
         id: column.id,
         width: column.width,
@@ -570,6 +602,9 @@ export function normalizePanelWorkspaceLayoutV3(
       targetCluster = {
         id: uniqueId(sourceCluster.id, usedClusterIds),
         placementZone: sourceCluster.placementZone,
+        ...(sourceCluster.originOffset
+          ? { originOffset: { ...sourceCluster.originOffset } }
+          : {}),
         columns: [],
       };
       clusterByZone.set(sourceCluster.placementZone, targetCluster);
@@ -750,18 +785,23 @@ export function solvePanelWorkspaceLayoutV3(
       surfaceRect,
       { width, height },
     );
+    const originOffset = cluster.originOffset ?? { x: 0, y: 0 };
+    const resolvedOrigin = {
+      x: origin.x + originOffset.x,
+      y: origin.y + originOffset.y,
+    };
     clusterGeometries.set(cluster.id, {
       clusterId: cluster.id,
       placementZone: cluster.placementZone,
-      x: origin.x,
-      y: origin.y,
+      x: resolvedOrigin.x,
+      y: resolvedOrigin.y,
       width,
       height,
     });
 
-    let columnX = origin.x;
+    let columnX = resolvedOrigin.x;
     for (const { column, rows } of visibleColumns) {
-      let rowY = origin.y;
+      let rowY = resolvedOrigin.y;
       for (const row of rows) {
         visiblePanelIds.add(row.panelId);
         frameGeometries.set(row.panelId, {

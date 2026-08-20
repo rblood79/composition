@@ -6,6 +6,7 @@ import {
 } from "./panelWorkspaceLayoutV2.testFixtures";
 import {
   PANEL_WORKSPACE_PLACEMENT_ZONES,
+  PANEL_WORKSPACE_SNAP_ZONES,
   solvePanelWorkspaceLayoutV3,
   type PanelWorkspaceLayoutV3,
   type PanelWorkspacePlacementZone,
@@ -67,7 +68,7 @@ function zonePoint(zone: PanelWorkspacePlacementZone): {
 }
 
 describe("ADR-186 Phase 3 panel workspace zone drop", () => {
-  it.each(PANEL_WORKSPACE_PLACEMENT_ZONES)(
+  it.each(PANEL_WORKSPACE_SNAP_ZONES)(
     "%s hit region은 panel edge가 없을 때 단일 zone candidate를 만든다",
     (zone) => {
       const layout = createV3Layout();
@@ -244,7 +245,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
       PANEL_WORKSPACE_TEST_REGISTRY,
       SURFACE,
       { ...frame, x: 500, y: 350 },
-      zonePoint("center"),
+      zonePoint("top"),
     );
     expect(updated.ok).toBe(true);
     if (!updated.ok) return;
@@ -266,7 +267,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
           column.rows.some((row) => row.panelId === "properties"),
         ),
       )?.placementZone,
-    ).toBe("center");
+    ).toBe("top");
     expect(JSON.stringify(committed.value.layout)).not.toMatch(
       /"(?:position|x|y)"\s*:/,
     );

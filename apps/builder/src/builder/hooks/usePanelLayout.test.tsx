@@ -77,7 +77,7 @@ function createV1Layout(): PanelLayoutState {
 }
 
 function registry() {
-  return TEST_PANELS.map(createPanelWorkspaceRegistryEntry);
+  return TEST_PANELS.map((config) => createPanelWorkspaceRegistryEntry(config));
 }
 
 function createWorkspaceLayout(): PanelWorkspaceLayoutV3 {

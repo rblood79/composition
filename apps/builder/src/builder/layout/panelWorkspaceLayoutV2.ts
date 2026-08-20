@@ -1,5 +1,6 @@
 import type {
   PanelConfig,
+  PanelDimension,
   PanelFrameGeometry,
   PanelId,
   PanelSide,
@@ -214,27 +215,68 @@ function registryMap(
 
 export function createPanelWorkspaceRegistryEntry(
   config: PanelConfig,
+  surfaceRect?: PanelWorkspaceRect,
 ): PanelWorkspaceRegistryEntry {
-  const minWidth = config.minWidth ?? 200;
-  const maxWidth = Math.max(minWidth, config.maxWidth ?? 800);
-  const minHeight = config.minHeight ?? 160;
-  const maxHeight = Math.max(minHeight, config.maxHeight ?? 800);
+  const resolve = (
+    value: PanelDimension | undefined,
+    basis: number,
+    fallback: number,
+    field: string,
+  ): number => {
+    if (value === undefined) return fallback;
+    if (typeof value === "number") return value;
+    const match = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+))%$/.exec(value.trim());
+    if (!match) {
+      throw new Error(`Invalid panel ${field} dimension "${value}"`);
+    }
+    if (!Number.isFinite(basis) || basis <= 0) {
+      throw new Error(
+        `Panel ${field} percentage requires a positive workspace surface`,
+      );
+    }
+    const percentage = Number(match[1]);
+    if (!Number.isFinite(percentage) || percentage < 0) {
+      throw new Error(`Invalid panel ${field} percentage "${value}"`);
+    }
+    return (basis * percentage) / 100;
+  };
+
+  const widthBasis = surfaceRect?.width ?? Number.NaN;
+  const heightBasis = surfaceRect?.height ?? Number.NaN;
+  const minWidth = resolve(config.minWidth, widthBasis, 200, "minWidth");
+  const maxWidth = Math.max(
+    minWidth,
+    resolve(config.maxWidth, widthBasis, 800, "maxWidth"),
+  );
+  const minHeight = resolve(config.minHeight, heightBasis, 160, "minHeight");
+  const maxHeight = Math.max(
+    minHeight,
+    resolve(config.maxHeight, heightBasis, 800, "maxHeight"),
+  );
   return {
     id: config.id,
     defaultPosition: config.defaultPosition,
     minWidth,
     maxWidth,
     defaultWidth: clamp(
-      config.defaultWidth ??
-        config.minWidth ??
-        (config.defaultPosition === "bottom" ? 600 : 320),
+      resolve(
+        config.defaultWidth ?? config.minWidth,
+        widthBasis,
+        config.defaultPosition === "bottom" ? 600 : 320,
+        "defaultWidth",
+      ),
       minWidth,
       maxWidth,
     ),
     minHeight,
     maxHeight,
     defaultHeight: clamp(
-      config.defaultHeight ?? config.minHeight ?? 420,
+      resolve(
+        config.defaultHeight ?? config.minHeight,
+        heightBasis,
+        420,
+        "defaultHeight",
+      ),
       minHeight,
       maxHeight,
     ),

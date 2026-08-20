@@ -53,8 +53,8 @@ const STYLES_TEST_CONFIG: PanelConfig = {
   maxHeight: 800,
 };
 
-const TEST_REGISTRY = [...TEST_CONFIGS, STYLES_TEST_CONFIG].map(
-  createPanelWorkspaceRegistryEntry,
+const TEST_REGISTRY = [...TEST_CONFIGS, STYLES_TEST_CONFIG].map((config) =>
+  createPanelWorkspaceRegistryEntry(config),
 );
 
 function migrateFixture(

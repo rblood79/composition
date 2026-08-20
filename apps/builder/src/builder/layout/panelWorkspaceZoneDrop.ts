@@ -90,6 +90,9 @@ function cloneLayout(layout: PanelWorkspaceLayoutV3): PanelWorkspaceLayoutV3 {
     clusters: layout.clusters.map((cluster) => ({
       id: cluster.id,
       placementZone: cluster.placementZone,
+      ...(cluster.originOffset
+        ? { originOffset: { ...cluster.originOffset } }
+        : {}),
       columns: cluster.columns.map((column) => ({
         id: column.id,
         width: column.width,
@@ -379,7 +382,8 @@ function zoneForPoint(
   }
   const column = Math.min(2, Math.floor((pointer.x * 3) / surfaceRect.width));
   const row = Math.min(2, Math.floor((pointer.y * 3) / surfaceRect.height));
-  return PANEL_WORKSPACE_PLACEMENT_ZONES[row * 3 + column] ?? null;
+  const zone = PANEL_WORKSPACE_PLACEMENT_ZONES[row * 3 + column] ?? null;
+  return zone === "center" ? null : zone;
 }
 
 function zoneIsAvailable(
@@ -547,6 +551,9 @@ function insertPanelInZone(
     };
     layout.clusters.push(cluster);
   } else {
+    // A zone drop establishes the zone's canonical origin; do not inherit a
+    // previous resize displacement from a hidden/empty cluster.
+    delete cluster.originOffset;
     const side = railSideForPanel(layout, session.panelId);
     const columnIndex =
       side === "left" ? Math.max(0, cluster.columns.length - 1) : 0;

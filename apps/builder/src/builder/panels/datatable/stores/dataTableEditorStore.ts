@@ -39,13 +39,19 @@ function currentPlacementSurfaceRect(): PanelWorkspaceRect | null {
 }
 
 function setEditorPanelVisibility(visible: boolean) {
-  const registry = PanelRegistry.getAllPanels().map(
-    createPanelWorkspaceRegistryEntry,
+  const surfaceRect = currentPlacementSurfaceRect();
+  const registry = PanelRegistry.getAllPanels().map((config) =>
+    createPanelWorkspaceRegistryEntry(
+      config,
+      surfaceRect ?? {
+        width: window.innerWidth,
+        height: Math.max(1, window.innerHeight - 48),
+      },
+    ),
   );
   if (registry.length === 0) return;
   let state = useStore.getState();
   if (!state.panelWorkspaceLayout) {
-    const surfaceRect = currentPlacementSurfaceRect();
     if (!surfaceRect) return;
     state.initializePanelWorkspaceLayout(registry, surfaceRect);
     state = useStore.getState();

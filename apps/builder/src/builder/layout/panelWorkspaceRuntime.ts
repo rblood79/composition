@@ -51,6 +51,7 @@ export interface PanelWorkspaceRuntimeDragEnd {
 export interface PanelWorkspaceRuntime {
   coordinator: PanelWorkspaceLayoutCoordinator;
   getLayout(): PanelWorkspaceLayoutV3;
+  getRegistry(): readonly PanelWorkspaceRegistryEntry[];
   getDragSession(): PanelWorkspaceDragSession | null;
   replaceCommittedLayout(layout: PanelWorkspaceLayoutV3): void;
   beginDrag(panelId: PanelId): PanelWorkspaceResult<PanelWorkspaceDragSession>;
@@ -66,6 +67,7 @@ export interface PanelWorkspaceRuntime {
   endInteraction(): PanelWorkspaceLayoutV3;
   cancelInteraction(): PanelWorkspaceLayoutV3;
   updateWorkspaceRect(workspaceRect: PanelWorkspaceRect): void;
+  updateRegistry(registry: readonly PanelWorkspaceRegistryEntry[]): void;
   activatePanel(
     panelId: PanelId,
   ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
@@ -90,10 +92,11 @@ export function createPanelWorkspaceRuntime(
   registry: readonly PanelWorkspaceRegistryEntry[],
   workspaceRect: PanelWorkspaceRect,
 ): PanelWorkspaceResult<PanelWorkspaceRuntime> {
+  let currentRegistry = [...registry];
   let currentWorkspaceRect = { ...workspaceRect };
   const initial = normalizePanelWorkspaceLayoutV3(
     initialLayout,
-    registry,
+    currentRegistry,
     currentWorkspaceRect,
   );
   if (!initial.ok) return initial;
@@ -103,7 +106,7 @@ export function createPanelWorkspaceRuntime(
   let dragSession: PanelWorkspaceDragSession | null = null;
   const coordinatorResult = createPanelWorkspaceLayoutCoordinator({
     layout,
-    registry,
+    registry: currentRegistry,
     workspaceRect: currentWorkspaceRect,
   });
   if (!coordinatorResult.ok) return coordinatorResult;
@@ -113,7 +116,7 @@ export function createPanelWorkspaceRuntime(
     const expectedVersion = coordinator.getSnapshot().version + 1;
     coordinator.queueInput({
       layout,
-      registry,
+      registry: currentRegistry,
       workspaceRect: currentWorkspaceRect,
     });
     return expectedVersion;
@@ -140,11 +143,12 @@ export function createPanelWorkspaceRuntime(
     value: {
       coordinator,
       getLayout: () => layout,
+      getRegistry: () => currentRegistry,
       getDragSession: () => dragSession,
       replaceCommittedLayout(nextLayout): void {
         const normalized = normalizePanelWorkspaceLayoutV3(
           nextLayout,
-          registry,
+          currentRegistry,
           currentWorkspaceRect,
         );
         if (!normalized.ok) return;
@@ -163,7 +167,7 @@ export function createPanelWorkspaceRuntime(
         }
         const session = beginPanelWorkspaceDragSession(
           committedLayout,
-          registry,
+          currentRegistry,
           currentWorkspaceRect,
           panelId,
         );
@@ -177,7 +181,7 @@ export function createPanelWorkspaceRuntime(
         }
         const updated = updatePanelWorkspaceDragSession(
           dragSession,
-          registry,
+          currentRegistry,
           currentWorkspaceRect,
           geometry,
           pointer,
@@ -207,7 +211,7 @@ export function createPanelWorkspaceRuntime(
         dragSession = null;
         const committed = commitPanelWorkspaceDragSession(
           session,
-          registry,
+          currentRegistry,
           currentWorkspaceRect,
         );
         if (!committed.ok) {
@@ -286,7 +290,23 @@ export function createPanelWorkspaceRuntime(
         currentWorkspaceRect = { ...nextWorkspaceRect };
         const normalized = normalizePanelWorkspaceLayoutV3(
           layout,
-          registry,
+          currentRegistry,
+          currentWorkspaceRect,
+        );
+        if (normalized.ok) {
+          layout = normalized.value;
+          if (interactionBaseLayout === null && dragSession === null) {
+            committedLayout = normalized.value;
+          }
+        }
+        queueCurrentLayout();
+      },
+      updateRegistry(nextRegistry): void {
+        if (currentRegistry === nextRegistry) return;
+        currentRegistry = [...nextRegistry];
+        const normalized = normalizePanelWorkspaceLayoutV3(
+          layout,
+          currentRegistry,
           currentWorkspaceRect,
         );
         if (normalized.ok) {
@@ -301,7 +321,7 @@ export function createPanelWorkspaceRuntime(
         return applyPolicyInteraction(
           activatePanelWorkspacePanelV3(
             layout,
-            registry,
+            currentRegistry,
             panelId,
             currentWorkspaceRect,
           ),
@@ -309,14 +329,18 @@ export function createPanelWorkspaceRuntime(
       },
       resetLayout() {
         return applyPolicyInteraction(
-          resetPanelWorkspaceLayoutV3(layout, registry, currentWorkspaceRect),
+          resetPanelWorkspaceLayoutV3(
+            layout,
+            currentRegistry,
+            currentWorkspaceRect,
+          ),
         );
       },
       resizePanel(panelId, edge, deltaX, deltaY) {
         return applyPolicyInteraction(
           resizePanelWorkspaceBoundaryV3(
             layout,
-            registry,
+            currentRegistry,
             panelId,
             edge,
             deltaX,
@@ -329,7 +353,7 @@ export function createPanelWorkspaceRuntime(
         return applyPolicyInteraction(
           resizePanelWorkspaceBoundaryV3(
             interactionBaseLayout ?? layout,
-            registry,
+            currentRegistry,
             panelId,
             edge,
             deltaX,

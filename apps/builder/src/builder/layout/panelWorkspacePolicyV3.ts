@@ -50,6 +50,9 @@ function cloneLayout(layout: PanelWorkspaceLayoutV3): PanelWorkspaceLayoutV3 {
     clusters: layout.clusters.map((cluster) => ({
       id: cluster.id,
       placementZone: cluster.placementZone,
+      ...(cluster.originOffset
+        ? { originOffset: { ...cluster.originOffset } }
+        : {}),
       columns: cluster.columns.map((column) => ({
         id: column.id,
         width: column.width,
@@ -158,6 +161,26 @@ function normalizeResult(
       affectedPanelIds: [...new Set(affectedPanelIds)],
     },
   };
+}
+
+function isHorizontallyCenteredZone(
+  placementZone: PanelWorkspaceClusterV3["placementZone"],
+): boolean {
+  return (
+    placementZone === "top" ||
+    placementZone === "center" ||
+    placementZone === "bottom"
+  );
+}
+
+function isVerticallyCenteredZone(
+  placementZone: PanelWorkspaceClusterV3["placementZone"],
+): boolean {
+  return (
+    placementZone === "left" ||
+    placementZone === "center" ||
+    placementZone === "right"
+  );
 }
 
 function placeOverflowRow(
@@ -435,8 +458,19 @@ export function resizePanelWorkspaceBoundaryV3(
         sourceBounds.min,
         Math.min(sourceBounds.max, available),
       );
+      const beforeHeight = row.height;
       const signedDelta = edge === "top" ? -deltaY : deltaY;
       row.height = clamp(row.height + signedDelta, sourceBounds.min, maximum);
+      if (isVerticallyCenteredZone(cluster.placementZone)) {
+        const heightDelta = row.height - beforeHeight;
+        const originOffset = cluster.originOffset ?? { x: 0, y: 0 };
+        cluster.originOffset = {
+          ...originOffset,
+          y:
+            originOffset.y +
+            (edge === "top" ? -heightDelta / 2 : heightDelta / 2),
+        };
+      }
     }
   } else {
     const neighbor = visibleColumnNeighbor(
@@ -495,12 +529,23 @@ export function resizePanelWorkspaceBoundaryV3(
         sourceBounds.min,
         Math.min(sourceBounds.max, available),
       );
+      const beforeWidth = column.width;
       const signedDelta = edge === "left" ? -deltaX : deltaX;
       column.width = clamp(
         column.width + signedDelta,
         sourceBounds.min,
         maximum,
       );
+      if (isHorizontallyCenteredZone(cluster.placementZone)) {
+        const widthDelta = column.width - beforeWidth;
+        const originOffset = cluster.originOffset ?? { x: 0, y: 0 };
+        cluster.originOffset = {
+          ...originOffset,
+          x:
+            originOffset.x +
+            (edge === "left" ? -widthDelta / 2 : widthDelta / 2),
+        };
+      }
       affected.push(...column.rows.map((candidate) => candidate.panelId));
     }
   }

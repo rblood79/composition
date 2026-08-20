@@ -13,7 +13,9 @@ import type { PanelWorkspaceLayoutV3 } from "../layout/panelWorkspaceLayoutV3";
 import { activatePanelWorkspacePanelV3 } from "../layout/panelWorkspacePolicyV3";
 
 function registryEntries(): PanelWorkspaceRegistryEntry[] {
-  return PanelRegistry.getAllPanels().map(createPanelWorkspaceRegistryEntry);
+  return PanelRegistry.getAllPanels().map((config) =>
+    createPanelWorkspaceRegistryEntry(config, fallbackSurfaceRect()),
+  );
 }
 
 function currentWorkspaceLayout(): PanelWorkspaceLayoutV3 | null {

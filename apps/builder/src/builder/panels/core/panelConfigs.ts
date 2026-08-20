@@ -103,7 +103,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     category: "editor",
     defaultPosition: "left",
     minWidth: 233,
-    maxWidth: 1000,
+    maxWidth: "100%",
     defaultHeight: 600,
     description: "DataTable, API, Variable 편집",
   },

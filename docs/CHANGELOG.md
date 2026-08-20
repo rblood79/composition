@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## PanelConfig 퍼센트 치수 지원 - 2026-08-20
+
+### Fixed
+
+- `PanelConfig`의 width/height 치수 설정이 px 숫자와 surface 기준 `%` 문자열을 모두
+  지원하도록 정규화 경로를 통합했다. splitter와 layout solver는 해석된 숫자 registry만
+  소비하며, workspace surface 크기 변경 시 registry도 다시 계산한다.
+
 ## [ADR-186 Implemented — production 9-zone panel workspace cutover] - 2026-08-19
 
 ### Architecture

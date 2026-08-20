@@ -62,7 +62,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain('dropCandidate?.kind === "panel-edge"');
     expect(source).toContain("data-edge={dropCandidate.edge}");
     expect(source).not.toContain("SNAP_EDGES.map");
-    expect(source).toContain("PANEL_WORKSPACE_PLACEMENT_ZONES.map((zone)");
+    expect(source).toContain("PANEL_WORKSPACE_SNAP_ZONES.map((zone)");
     expect(source).toContain('className="panel-zone-overlay"');
     expect(styles).toContain(
       "--panel-interaction-line-color: var(--focus-ring)",

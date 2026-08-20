@@ -50,6 +50,7 @@ import {
 } from "./panelWorkspaceLayoutV2";
 import {
   PANEL_WORKSPACE_PLACEMENT_ZONES,
+  PANEL_WORKSPACE_SNAP_ZONES,
   type PanelWorkspaceClusterV3,
   type PanelWorkspaceLayoutV3,
 } from "./panelWorkspaceLayoutV3";
@@ -147,6 +148,7 @@ interface SharedSplitterContract {
 function sharedSplitterContract(
   splitter: PanelWorkspaceSplitterGeometry,
   snapshot: PanelWorkspaceLayoutSnapshot,
+  registry: readonly PanelWorkspaceRegistryEntry[],
 ): SharedSplitterContract | null {
   const panelId = splitter.beforePanelIds[0];
   if (!panelId) return null;
@@ -157,6 +159,11 @@ function sharedSplitterContract(
     return config ? [config] : [];
   });
   if (beforeConfigs.length === 0) return null;
+  const beforeEntries = splitter.beforePanelIds.flatMap((candidate) => {
+    const entry = registry.find((item) => item.id === candidate);
+    return entry ? [entry] : [];
+  });
+  if (beforeEntries.length === 0) return null;
   const beforeNames = beforeConfigs.map((config) => config.name).join(", ");
   const afterNames = splitter.afterPanelIds
     .flatMap((candidate) => {
@@ -166,28 +173,24 @@ function sharedSplitterContract(
     .join(", ");
 
   if (splitter.kind === "row") {
-    const config = beforeConfigs[0];
-    if (!config) return null;
     return {
       controls: `panel-${panelId}-content`,
       edge: "bottom",
       label: `${beforeNames} / ${afterNames} 패널 행 크기 조절`,
       maxValue: Math.max(
-        config.minHeight ?? 160,
+        Math.max(...beforeEntries.map((entry) => entry.minHeight)),
         snapshot.workspaceRect.height,
       ),
-      minValue: config.minHeight ?? 160,
+      minValue: Math.max(...beforeEntries.map((entry) => entry.minHeight)),
       panelId,
       value: frame.height,
     };
   }
 
-  const minValue = Math.max(
-    ...beforeConfigs.map((config) => config.minWidth ?? 200),
-  );
+  const minValue = Math.max(...beforeEntries.map((entry) => entry.minWidth));
   const maxValue = Math.max(
     minValue,
-    Math.min(...beforeConfigs.map((config) => config.maxWidth ?? 800)),
+    Math.min(...beforeEntries.map((entry) => entry.maxWidth)),
   );
   return {
     controls: splitter.beforePanelIds
@@ -267,7 +270,11 @@ function PanelWorkspaceSharedSplitters({
   return (
     <>
       {snapshot.splitters.map((splitter) => {
-        const contract = sharedSplitterContract(splitter, snapshot);
+        const contract = sharedSplitterContract(
+          splitter,
+          snapshot,
+          runtime.getRegistry(),
+        );
         if (!contract) return null;
         return (
           <PanelSplitter
@@ -647,6 +654,12 @@ const PanelFrame = memo(function PanelFrame({
   }, [cancelInteraction, isMoving]);
 
   const resizeEdges = snapshotFrame?.resizeEdges ?? [];
+  const registryEntry = runtime
+    .getRegistry()
+    .find((entry) => entry.id === config.id);
+  const minWidth = registryEntry?.minWidth ?? 200;
+  const maxWidth = registryEntry?.maxWidth ?? 800;
+  const minHeight = registryEntry?.minHeight ?? 160;
 
   const handleResize = (
     edge: PanelResizeEdge,
@@ -769,16 +782,12 @@ const PanelFrame = memo(function PanelFrame({
               ? appliedGeometry.width
               : appliedGeometry.height
           }
-          minValue={
-            edge === "left" || edge === "right"
-              ? (config.minWidth ?? 200)
-              : (config.minHeight ?? 160)
-          }
+          minValue={edge === "left" || edge === "right" ? minWidth : minHeight}
           maxValue={
             edge === "left" || edge === "right"
-              ? (config.maxWidth ?? 800)
+              ? maxWidth
               : Math.max(
-                  config.minHeight ?? 160,
+                  minHeight,
                   runtime.coordinator.getSnapshot().workspaceRect.height,
                 )
           }
@@ -957,16 +966,23 @@ function PanelWorkspaceZoneOverlay() {
 
   return (
     <div className="panel-zone-overlay" aria-hidden="true">
-      {PANEL_WORKSPACE_PLACEMENT_ZONES.map((zone) => (
-        <span
-          key={zone}
-          className="panel-zone-target"
-          data-zone={zone}
-          data-active={
-            dropCandidate?.kind === "zone" && dropCandidate.zone === zone
-          }
-        />
-      ))}
+      {PANEL_WORKSPACE_SNAP_ZONES.map((zone) => {
+        const zoneIndex = PANEL_WORKSPACE_PLACEMENT_ZONES.indexOf(zone);
+        return (
+          <span
+            key={zone}
+            className="panel-zone-target"
+            data-zone={zone}
+            style={{
+              gridColumn: (zoneIndex % 3) + 1,
+              gridRow: Math.floor(zoneIndex / 3) + 1,
+            }}
+            data-active={
+              dropCandidate?.kind === "zone" && dropCandidate.zone === zone
+            }
+          />
+        );
+      })}
     </div>
   );
 }
@@ -1107,6 +1123,10 @@ function HydratedPanelWorkspace({
     }
   }, [runtime, workspaceLayout]);
 
+  useEffect(() => {
+    runtime.updateRegistry(registry);
+  }, [registry, runtime]);
+
   useEffect(
     () =>
       registerPanelWorkspaceActivationDispatcher((panelId) => {
@@ -1174,13 +1194,18 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
     focusPanel,
   } = usePanelLayout();
   const configs = useMemo(() => PanelRegistry.getAllPanels(), []);
-  const registry = useMemo(
-    () => configs.map(createPanelWorkspaceRegistryEntry),
-    [configs],
-  );
   const placementSurfaceRef = useRef<HTMLDivElement>(null);
   const [placementSurfaceRect, setPlacementSurfaceRect] =
     useState<PanelWorkspaceRect | null>(null);
+  const registry = useMemo(
+    () =>
+      placementSurfaceRect
+        ? configs.map((config) =>
+            createPanelWorkspaceRegistryEntry(config, placementSurfaceRect),
+          )
+        : [],
+    [configs, placementSurfaceRect],
+  );
   const isHydrated = workspaceLayout !== null;
 
   useLayoutEffect(() => {

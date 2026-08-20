@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { PanelId } from "../panels/core/types";
+import type { PanelConfig, PanelId } from "../panels/core/types";
 import {
+  createPanelWorkspaceRegistryEntry,
   normalizePanelWorkspaceLayoutV2,
   parsePanelWorkspaceLayoutV2,
   solvePanelWorkspaceLayoutV2,
@@ -26,6 +27,37 @@ function panelOccurrences(
 }
 
 describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
+  it("PanelConfig의 px와 % 치수를 surface 기준 숫자로 정규화한다", () => {
+    const config = {
+      id: "properties",
+      name: "Properties",
+      icon: (() => null) as unknown as PanelConfig["icon"],
+      component: (() => null) as PanelConfig["component"],
+      category: "editor",
+      defaultPosition: "right",
+      minWidth: "20%",
+      maxWidth: "100%",
+      defaultWidth: "25%",
+      minHeight: "10%",
+      maxHeight: "100%",
+      defaultHeight: "50%",
+    } satisfies PanelConfig;
+
+    expect(
+      createPanelWorkspaceRegistryEntry(config, { width: 1200, height: 800 }),
+    ).toMatchObject({
+      minWidth: 240,
+      maxWidth: 1200,
+      defaultWidth: 300,
+      minHeight: 80,
+      maxHeight: 800,
+      defaultHeight: 400,
+    });
+    expect(() => createPanelWorkspaceRegistryEntry(config)).toThrow(
+      /requires a positive workspace surface/,
+    );
+  });
+
   it("valid v2 record를 idempotent하게 parse한다", () => {
     const input = createPanelWorkspaceLayoutV2();
     const first = parsePanelWorkspaceLayoutV2(

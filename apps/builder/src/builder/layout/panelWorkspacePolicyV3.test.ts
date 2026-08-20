@@ -356,12 +356,86 @@ describe("ADR-186 G4 v3 panel policy", () => {
       expect(afterFrame).toBeDefined();
       if (!beforeFrame || !afterFrame) return;
 
-      expect(anchorPoint(zone, afterFrame)).toEqual(
-        anchorPoint(zone, beforeFrame),
-      );
+      const horizontallyCentered =
+        zone === "top" || zone === "center" || zone === "bottom";
+      const verticallyCentered =
+        zone === "left" || zone === "center" || zone === "right";
+      if (horizontallyCentered && (edge === "left" || edge === "right")) {
+        if (edge === "left") {
+          expect(afterFrame.x + afterFrame.width).toBe(
+            beforeFrame.x + beforeFrame.width,
+          );
+          expect(afterFrame.x).toBe(beforeFrame.x + deltaX);
+        } else {
+          expect(afterFrame.x).toBe(beforeFrame.x);
+          expect(afterFrame.x + afterFrame.width).toBe(
+            beforeFrame.x + beforeFrame.width + deltaX,
+          );
+        }
+      } else if (verticallyCentered && (edge === "top" || edge === "bottom")) {
+        if (edge === "top") {
+          expect(afterFrame.y + afterFrame.height).toBe(
+            beforeFrame.y + beforeFrame.height,
+          );
+          expect(afterFrame.y).toBe(beforeFrame.y + deltaY);
+        } else {
+          expect(afterFrame.y).toBe(beforeFrame.y);
+          expect(afterFrame.y + afterFrame.height).toBe(
+            beforeFrame.y + beforeFrame.height + deltaY,
+          );
+        }
+      } else {
+        expect(anchorPoint(zone, afterFrame)).toEqual(
+          anchorPoint(zone, beforeFrame),
+        );
+      }
       expect(afterFrame).toMatchObject({ width, height });
     },
   );
+
+  it("center zone outer horizontal resize keeps the opposite edge fixed", () => {
+    const surfaceRect = { width: 1200, height: 800 } as const;
+    const base = singleZoneLayout("center");
+    const beforeResult = solvePanelWorkspaceLayoutV3(
+      base,
+      REGISTRY,
+      surfaceRect,
+    );
+    expect(beforeResult.ok).toBe(true);
+    if (!beforeResult.ok) return;
+    const before = beforeResult.value.frameGeometries.get("properties");
+    expect(before).toBeDefined();
+    if (!before) return;
+
+    const resized = resizePanelWorkspaceBoundaryV3(
+      base,
+      REGISTRY,
+      "properties",
+      "right",
+      40,
+      0,
+      surfaceRect,
+    );
+    expect(resized.ok).toBe(true);
+    if (!resized.ok) return;
+    const afterResult = solvePanelWorkspaceLayoutV3(
+      resized.value.layout,
+      REGISTRY,
+      surfaceRect,
+    );
+    expect(afterResult.ok).toBe(true);
+    if (!afterResult.ok) return;
+    const after = afterResult.value.frameGeometries.get("properties");
+    expect(after).toBeDefined();
+    if (!after) return;
+
+    expect(after.x).toBe(before.x);
+    expect(after.x + after.width).toBe(before.x + before.width + 40);
+    expect(resized.value.layout.clusters[0]?.originOffset).toEqual({
+      x: 20,
+      y: 0,
+    });
+  });
 
   it.each(ZONES)(
     "%s paired row resize는 합계와 zone anchor를 고정한다",
