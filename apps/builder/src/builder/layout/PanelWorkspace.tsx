@@ -932,25 +932,19 @@ function PanelDockClusterPresentation({
         return (
           <div
             key={`${column.clusterId}:${column.columnIndex}`}
-            className="panel-dock-column-presentation"
-            data-cluster-id={column.clusterId}
-            data-column-index={column.columnIndex}
-          >
-            <div
-              aria-hidden="true"
-              className="panel-dock-rail"
-              style={{
-                height: column.height,
-                ...(isRightAnchored
-                  ? {
-                      right:
-                        dockOrigin.workspaceWidth - column.x - column.width + 1,
-                    }
-                  : { left: left + column.width - 1 }),
-                top,
-              }}
-            />
-          </div>
+            aria-hidden="true"
+            className="panel-dock-rail"
+            style={{
+              height: column.height,
+              ...(isRightAnchored
+                ? {
+                    right:
+                      dockOrigin.workspaceWidth - column.x - column.width + 1,
+                  }
+                : { left: left + column.width - 1 }),
+              top,
+            }}
+          />
         );
       })}
     </>
@@ -1037,19 +1031,13 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
                 const panelIds = workspaceLayout.railOrder[side];
                 if (panelIds.length === 0) return null;
                 return (
-                  <div
+                  <PanelNav
                     key={side}
-                    className="panel-activity-rail"
-                    data-side={side}
-                    style={{ zIndex: 2_100 }}
-                  >
-                    <PanelNav
-                      side={side}
-                      panelIds={panelIds}
-                      activePanels={activePanels(side)}
-                      onPanelClick={togglePanel}
-                    />
-                  </div>
+                    side={side}
+                    panelIds={panelIds}
+                    activePanels={activePanels(side)}
+                    onPanelClick={togglePanel}
+                  />
                 );
               })}
 

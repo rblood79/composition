@@ -78,35 +78,6 @@
     background: color-mix(in srgb, var(--border) 60%, transparent);
   }
 
-  .panel-dock-dropper {
-    position: absolute;
-    z-index: 1500;
-    pointer-events: none;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    opacity: 0;
-  }
-
-  .panel-dock-dropper::before {
-    position: absolute;
-    top: 50%;
-    right: 0;
-    left: 0;
-    height: var(--panel-interaction-line-size);
-    background: var(--panel-interaction-line-color);
-    transform: translateY(-50%);
-    content: "";
-  }
-
-  .panel-dock-dropper[data-enabled="true"] {
-    pointer-events: auto;
-  }
-
-  .panel-dock-dropper[data-active="true"] {
-    opacity: 1;
-  }
-
   .panel-zone-overlay {
     position: absolute;
     inset: 0;
@@ -140,27 +111,26 @@
     opacity: 0.8;
   }
 
-  .panel-activity-rail {
+  .panel-dock > .panel-nav {
     position: relative;
     top: 0;
     bottom: 0;
-    z-index: 60;
+    z-index: 2_100;
     flex: 0 0 var(--panel-rail-size);
     width: var(--panel-rail-size);
     height: 100%;
     pointer-events: auto;
   }
 
-  .panel-activity-rail[data-side="left"] {
+  .panel-dock > .panel-nav[data-side="left"] {
     order: 0;
   }
 
-  .panel-activity-rail[data-side="right"] {
+  .panel-dock > .panel-nav[data-side="right"] {
     order: 2;
   }
 
-  .panel-activity-rail > .panel-nav {
-    width: 100%;
+  .panel-dock > .panel-nav {
     height: 100%;
     justify-content: center;
     overflow: hidden;
@@ -168,7 +138,7 @@
     box-shadow: var(--shadow-sm);
   }
 
-  .panel-activity-rail .nav-list {
+  .panel-dock > .panel-nav .nav-list {
     max-height: 100%;
     overflow-x: hidden;
     overflow-y: auto;

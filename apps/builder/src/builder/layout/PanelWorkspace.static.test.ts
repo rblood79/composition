@@ -46,7 +46,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(canvasStyles).toContain(
       ".app :where(aside, .panel-workspace) .panel-header",
     );
-    expect(source).toContain("style={{ zIndex: 2_100 }}");
+    expect(styles).toContain(".panel-dock > .panel-nav");
   });
 
   it("모든 활성 패널을 React Aria move로 직접 이동하고 panel-relative snap target을 제공한다", async () => {
@@ -203,7 +203,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(styles).toMatch(
       /\.panel-dock-surface\s*\{[\s\S]*?position: relative;[\s\S]*?flex: 1;/,
     );
-    expect(styles).not.toContain('.panel-activity-rail[data-side="bottom"]');
+    expect(styles).not.toContain(".panel-activity-rail");
+    expect(styles).not.toContain(".panel-dock-dropper");
   });
 
   it("G2b 통과 뒤 모든 production frame이 coordinator snapshot만 소비한다", async () => {

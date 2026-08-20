@@ -167,6 +167,10 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(dock?.getAttribute("data-column-limit")).toBe("2");
     expect(dockSurface?.style.inset).toBe("0px");
     expect(dockSurface?.parentElement?.parentElement).toBe(placementSurface);
+    expect(dock?.querySelectorAll(":scope > .panel-nav")).toHaveLength(2);
+    expect(
+      dock?.querySelectorAll(":scope > .panel-activity-rail"),
+    ).toHaveLength(0);
     expect(nodesFrame?.parentElement).toBe(dockSurface);
     expect(propertiesFrame?.parentElement).toBe(dockSurface);
     expect(nodesFrame?.style.left).toBe("0px");
@@ -182,7 +186,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     );
 
     expect(
-      container.querySelector('.panel-activity-rail[data-side="bottom"]'),
+      container.querySelector('.panel-nav[data-side="bottom"]'),
     ).toBeNull();
     expect(container.querySelector(".panel-trace-driver")).toBeNull();
     expect(
@@ -241,11 +245,11 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     );
 
     expect(
-      container.querySelector('.panel-activity-rail[data-side="bottom"]'),
+      container.querySelector('.panel-nav[data-side="bottom"]'),
     ).toBeNull();
     expect(
       container.querySelector(
-        '.panel-activity-rail[data-side="right"] button[aria-label="monitor"]',
+        '.panel-nav[data-side="right"] button[aria-label="monitor"]',
       ),
     ).not.toBeNull();
     expect(
@@ -287,7 +291,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
 
     const clickRailButton = (side: "left" | "right", panelId: string) => {
       const button = container.querySelector<HTMLButtonElement>(
-        `.panel-activity-rail[data-side="${side}"] button[aria-label="${panelId}"]`,
+        `.panel-nav[data-side="${side}"] button[aria-label="${panelId}"]`,
       );
       if (!button) throw new Error(`${panelId} rail button is required`);
       fireEvent.click(button);
