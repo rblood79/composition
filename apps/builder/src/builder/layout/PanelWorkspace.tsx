@@ -104,13 +104,30 @@ function panelBelongsToMultiPanelCluster(
   runtime: PanelWorkspaceRuntime,
   panelId: PanelId,
 ): boolean {
-  return runtime.getLayout().clusters.some((cluster) => {
-    const panelIds = cluster.columns.flatMap((column) =>
-      column.rows.map((row) => row.panelId),
-    );
-    return panelIds.length > 1 && panelIds.includes(panelId);
-  });
+  const layout = runtime.getLayout();
+  const cached = multiPanelClusterMembershipCache.get(runtime);
+  if (cached?.layout === layout) return cached.panelIds.has(panelId);
+
+  const panelIds = new Set<PanelId>();
+  for (const cluster of layout.clusters) {
+    let clusterPanelCount = 0;
+    for (const column of cluster.columns) {
+      clusterPanelCount += column.rows.length;
+    }
+    if (clusterPanelCount <= 1) continue;
+    for (const column of cluster.columns) {
+      for (const row of column.rows) panelIds.add(row.panelId);
+    }
+  }
+
+  multiPanelClusterMembershipCache.set(runtime, { layout, panelIds });
+  return panelIds.has(panelId);
 }
+
+const multiPanelClusterMembershipCache = new WeakMap<
+  PanelWorkspaceRuntime,
+  { layout: PanelWorkspaceLayoutV3; panelIds: ReadonlySet<PanelId> }
+>();
 
 function frameZIndex(
   runtime: PanelWorkspaceRuntime,
@@ -695,9 +712,11 @@ const PanelFrame = memo(function PanelFrame({
   }, [cancelInteraction, isMoving]);
 
   const resizeEdges = snapshotFrame?.resizeEdges ?? [];
-  const registryEntry = runtime
-    .getRegistry()
-    .find((entry) => entry.id === config.id);
+  const registry = runtime.getRegistry();
+  const registryEntry = useMemo(
+    () => registry.find((entry) => entry.id === config.id),
+    [config.id, registry],
+  );
   const minWidth = registryEntry?.minWidth ?? 200;
   const maxWidth = registryEntry?.maxWidth ?? 800;
   const minHeight = registryEntry?.minHeight ?? 160;
@@ -1040,11 +1059,14 @@ interface PanelDockProps {
 }
 
 function PanelDock({ children, surfaceWidth, version }: PanelDockProps) {
-  const origin = {
-    x: 0,
-    y: 0,
-    workspaceWidth: surfaceWidth,
-  };
+  const origin = useMemo<PanelDockOrigin>(() => {
+    const origin = {
+      x: 0,
+      y: 0,
+      workspaceWidth: surfaceWidth,
+    };
+    return origin;
+  }, [surfaceWidth]);
   const surfaceStyle: CSSProperties = {
     inset: 0,
   };
