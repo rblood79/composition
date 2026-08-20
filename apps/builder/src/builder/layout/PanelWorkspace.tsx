@@ -27,6 +27,7 @@ import {
   PanelSnapInteractionProvider,
   usePanelSnapInteraction,
 } from "./PanelSnapContext";
+import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
 import { PanelSplitter } from "./PanelSplitter";
 import {
   mountPanelWorkspaceDiagnostics,
@@ -473,6 +474,43 @@ const PanelFrame = memo(function PanelFrame({
   const isInteractingRef = useRef(false);
   const suppressSnapRef = useRef(false);
   const interactionCancelledRef = useRef(false);
+  const pendingDropCandidateRef = useRef<PanelDropCandidate>(null);
+  const dropCandidateFrameRef = useRef<number | null>(null);
+
+  const flushDropCandidate = useCallback(() => {
+    if (dropCandidateFrameRef.current !== null) {
+      cancelAnimationFrame(dropCandidateFrameRef.current);
+      dropCandidateFrameRef.current = null;
+    }
+    const candidate = pendingDropCandidateRef.current;
+    pendingDropCandidateRef.current = null;
+    if (candidate !== null || dropCandidate !== null) {
+      updatePanelDropCandidate(candidate);
+    }
+  }, [dropCandidate, updatePanelDropCandidate]);
+
+  const scheduleDropCandidate = useCallback(
+    (candidate: PanelDropCandidate) => {
+      pendingDropCandidateRef.current = candidate;
+      if (dropCandidateFrameRef.current !== null) return;
+      dropCandidateFrameRef.current = requestAnimationFrame(() => {
+        dropCandidateFrameRef.current = null;
+        const nextCandidate = pendingDropCandidateRef.current;
+        pendingDropCandidateRef.current = null;
+        updatePanelDropCandidate(nextCandidate);
+      });
+    },
+    [updatePanelDropCandidate],
+  );
+
+  useEffect(
+    () => () => {
+      if (dropCandidateFrameRef.current !== null) {
+        cancelAnimationFrame(dropCandidateFrameRef.current);
+      }
+    },
+    [],
+  );
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
   const [isMoving, setIsMoving] = useState(false);
   const isActive = snapshotFrame !== null;
@@ -558,8 +596,9 @@ const PanelFrame = memo(function PanelFrame({
     setIsMoving(false);
     suppressSnapRef.current = false;
     pointerRef.current = null;
+    flushDropCandidate();
     endPanelDrag();
-  }, [endPanelDrag, runtime]);
+  }, [endPanelDrag, flushDropCandidate, runtime]);
 
   const { moveProps } = useMove({
     onMoveStart: () => {
@@ -607,9 +646,9 @@ const PanelFrame = memo(function PanelFrame({
       }
       if (suppressSnapRef.current && candidate?.kind === "panel-edge") {
         runtime.suppressDragCandidate();
-        updatePanelDropCandidate(null);
+        scheduleDropCandidate(null);
       } else {
-        updatePanelDropCandidate(candidate);
+        scheduleDropCandidate(candidate);
       }
     },
     onMoveEnd: () => {
@@ -620,10 +659,12 @@ const PanelFrame = memo(function PanelFrame({
         setIsMoving(false);
         suppressSnapRef.current = false;
         pointerRef.current = null;
+        flushDropCandidate();
         endPanelDrag();
         return;
       }
       const ended = runtime.endDrag(config.id);
+      flushDropCandidate();
       if (ended.ok) {
         recordPanelWorkspaceLayoutInput(
           ended.value.expectedVersion,
@@ -994,15 +1035,15 @@ interface PanelDockRenderProps {
 
 interface PanelDockProps {
   children: (props: PanelDockRenderProps) => ReactNode;
-  runtime: PanelWorkspaceRuntime;
+  surfaceWidth: number;
+  version: number;
 }
 
-function PanelDock({ children, runtime }: PanelDockProps) {
-  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+function PanelDock({ children, surfaceWidth, version }: PanelDockProps) {
   const origin = {
     x: 0,
     y: 0,
-    workspaceWidth: snapshot.workspaceRect.width,
+    workspaceWidth: surfaceWidth,
   };
   const surfaceStyle: CSSProperties = {
     inset: 0,
@@ -1013,7 +1054,7 @@ function PanelDock({ children, runtime }: PanelDockProps) {
       className="panel-dock"
       data-column-limit="2"
       data-layout-type="floating"
-      data-layout-version={snapshot.version}
+      data-layout-version={version}
     >
       {children({ origin, surfaceStyle })}
     </div>
@@ -1029,6 +1070,54 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   workspaceLayout,
   placementSurfaceRef,
 }: PanelWorkspaceOverlayProps) {
+  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const [surfaceWidth, setSurfaceWidth] = useState(
+    snapshot.workspaceRect.width,
+  );
+  const [surfaceHeight, setSurfaceHeight] = useState(
+    snapshot.workspaceRect.height,
+  );
+
+  useLayoutEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const updateSurface = (): void => {
+      if (surface.clientWidth <= 0) return;
+      setSurfaceWidth((current) =>
+        current === surface.clientWidth ? current : surface.clientWidth,
+      );
+      setSurfaceHeight((current) =>
+        current === surface.clientHeight ? current : surface.clientHeight,
+      );
+    };
+    updateSurface();
+    const observer = new ResizeObserver(updateSurface);
+    observer.observe(surface);
+    return () => observer.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (
+      surfaceWidth <= 0 ||
+      surfaceHeight <= 0 ||
+      (surfaceWidth === snapshot.workspaceRect.width &&
+        surfaceHeight === snapshot.workspaceRect.height)
+    ) {
+      return;
+    }
+    runtime.updateWorkspaceRect({
+      width: surfaceWidth,
+      height: surfaceHeight,
+    });
+  }, [
+    runtime,
+    snapshot.workspaceRect.height,
+    snapshot.workspaceRect.width,
+    surfaceHeight,
+    surfaceWidth,
+  ]);
+
   const activePanels = (side: PanelSide): PanelId[] =>
     workspaceLayout.railOrder[side].filter(
       (panelId) => workspaceLayout.visibility[panelId] === true,
@@ -1040,7 +1129,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
         ref={placementSurfaceRef}
         className="panel-workspace-placement-surface"
       >
-        <PanelDock runtime={runtime}>
+        <PanelDock surfaceWidth={surfaceWidth} version={snapshot.version}>
           {({ origin, surfaceStyle }) => (
             <>
               {(["left", "right"] as const).map((side) => {
@@ -1057,7 +1146,11 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
                 );
               })}
 
-              <div className="panel-dock-surface" style={surfaceStyle}>
+              <div
+                ref={surfaceRef}
+                className="panel-dock-surface"
+                style={surfaceStyle}
+              >
                 <PanelWorkspaceZoneOverlay />
                 <PanelDockClusterPresentation
                   dockOrigin={origin}
@@ -1136,10 +1229,6 @@ function HydratedPanelWorkspace({
       }),
     [runtime, setWorkspaceLayout],
   );
-
-  useEffect(() => {
-    runtime.updateWorkspaceRect(placementSurfaceRect);
-  }, [placementSurfaceRect, runtime]);
 
   useEffect(
     () => () => {

@@ -134,11 +134,21 @@ function panelIdsInCluster(cluster: PanelWorkspaceClusterV3): PanelId[] {
   );
 }
 
+const registryLookupCache = new WeakMap<
+  readonly PanelWorkspaceRegistryEntry[],
+  ReadonlyMap<PanelId, PanelWorkspaceRegistryEntry>
+>();
+
 function registryEntry(
   registry: readonly PanelWorkspaceRegistryEntry[],
   panelId: PanelId,
 ): PanelWorkspaceRegistryEntry | null {
-  return registry.find((entry) => entry.id === panelId) ?? null;
+  let lookup = registryLookupCache.get(registry);
+  if (!lookup) {
+    lookup = new Map(registry.map((entry) => [entry.id, entry]));
+    registryLookupCache.set(registry, lookup);
+  }
+  return lookup.get(panelId) ?? null;
 }
 
 function visibleRowIndexes(

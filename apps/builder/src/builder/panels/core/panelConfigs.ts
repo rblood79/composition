@@ -89,7 +89,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     category: "navigation",
     defaultPosition: "left",
     minWidth: 233,
-    maxWidth: 800,
+    maxWidth: "100%",
     defaultHeight: 520,
     description: "DataTables, APIs, Variables 관리",
     shortcut: "Ctrl+Shift+T",
