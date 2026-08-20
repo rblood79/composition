@@ -1,0 +1,483 @@
+# Spectrum design-data 컴포넌트 스키마 감사 — 전 컴포넌트 D2 옵션 / D3 guideline 수치 대조
+
+> 작성: 2026-08-20
+> 계기: [Adobe OSS 적용성 지도] 권장 우선순위 1 의 잔여 항목 — `spectrum-design-data` component-schemas 를 D2 감사의 외부 대조군으로 활용. 2026-08-20 Button 시범 감사 (staticColor 채택 29db31bef + sizes.minWidth 신설 cdeb6d91e) 를 전 컴포넌트로 확장한 것.
+> 대상: composition 컴포넌트 63종 (하위 부품 포함, 8개 패밀리) ↔ design-data 스키마 93종 (프리페치 전수) + RSP 스냅샷 (`.agents/skills/react-spectrum/references/components`) + RAC 스냅샷 (`.agents/skills/react-aria/references/components`)
+> 참조: [2026-08-20 인터랙션 registry 감사](./2026-08-20-interaction-registry-rac-rsp-coverage.md) (이벤트/callback 축 — 본 감사에서 제외), ADR-142 (D3 SSOT = catalog), `.claude/rules/ssot-hierarchy.md`
+
+## 0. 감사 축과 제외 범위
+
+| 축         | 내용                                                                                  | 근거 소스                            |
+| ---------- | ------------------------------------------------------------------------------------- | ------------------------------------ |
+| A. D2 옵션 | variant/size/state/boolean 옵션·prop ↔ binding `accepts` + rules table variants/sizes | design-data options + RSP/RAC 스냅샷 |
+| B. D3 수치 | documentBlocks guideline 의 수치·규칙성 내용 ↔ rules table 현행 값                    | design-data documentBlocks           |
+| 제외       | 이벤트 (`on*`) / controlled prop (selectedKeys 등) accepts 부재                       | 2026-08-20 인터랙션 감사가 기록 완료 |
+
+분류 어휘: **채택후보-D2** / **채택후보-D3수치** / **이미정합** / **근거없음** (design-data·RSP·RAC 전부 부재) / **관찰** (비표준·house-style 가능 — 위반 단정 아님, 판정 보류).
+
+**방법 주의 (함정 ④)**: design-data 스키마는 RSP S2 실제 코드보다 뒤처진다 (Button premium/genai 부재 실측). "스키마에 없음" 단독으로 "RSP 에 없음" 판정하지 않고 RSP/RAC .md 교차 후에만 "근거없음" 확정. 상세: 메모리 `reference-design-data-mcp-installed-query-traps`.
+
+## 1. 결론 — 전 패밀리 통합
+
+### 1-1. 표면 단절·죽은 채널 (구현 존재·배선만 결손 — 최소 수리 성격)
+
+| 컴포넌트          | 발견                                                                                                             | 성격                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Tooltip           | rules table 에 D3 variants 4종 (neutral/info/positive/negative) 존재하나 **binding accepts 에 variant 미선언**   | D2 표면 단절               |
+| Toast             | **info variant fill 이 neutral 과 완전 동일값** — informative(blue) 시맨틱 죽음 (Tooltip.info 는 blue 계열 보유) | D3 시맨틱 미배선           |
+| Toast             | renderToast 가 `data-position` 소비하나 binding accepts 에 placement 미선언 (Modal.isOpen 동형 함정)             | D2 표면 단절               |
+| Select / ComboBox | renderSelect/renderComboBox 가 `selectedKey`/`inputValue` 기소비 — accepts 노출만 결손                           | D2 표면 단절               |
+| DatePicker        | 렌더러 resolvePlaceholder 가 placeholderValue 기소비 — 배선 결손. hourCycle 은 커스텀 `timeFormat` 직접 read     | D2 표면 단절 + 비표준 잔존 |
+| TextArea          | isQuiet 를 D2 로 받으나 rules table 에 quiet 규칙 없음 (quiet 보유 field 목록에서 TextArea 만 누락)              | dead prop 의심             |
+| ToggleButton      | isQuiet 수용 + data-quiet emit 까지 있으나 quiet CSS 규칙 0건 + rules/Skia 미소비                                | dead prop                  |
+| ToggleButtonGroup | density 수용하나 소비자 0 (컴포넌트 미읽음, CSS 0건, rules 분기 없음)                                            | dead prop                  |
+| Tree              | containerStyles maxHeight 300px 잔존 — ListBox 는 2026-07-29 동일 값을 사용자 결정으로 제거                      | 내부 비일관                |
+| DateField         | delegation 에 xs 변수가 있으나 rules sizes 는 sm~xl — 패널 옵션 파생상 xs dead 분기                              | dead 분기                  |
+
+### 1-2. 반복 gap 3대 축 (다수 컴포넌트 공통 — 스윕 후보)
+
+1. **field 공통 prop 결손**: `labelAlign` / `contextualHelp` (+date 계열은 `form`/`showFormatHelpText`) 가 TextField·TextArea·NumberField·SearchField·CheckboxGroup·RadioGroup·Slider·Select·ComboBox·TagGroup·DatePicker·DateRangePicker·DateField·TimeField 에 일괄 부재. contextualHelp 는 ssot-hierarchy D2 원칙의 명시 채택 예시이고, labelAlign 은 ColorField/Form 에 노출 선례가 있다.
+2. **컬렉션 selectionStyle/quiet/density 결손**: selectionStyle (checkbox/highlight) 이 TableView·GridList·Tree·Menu 공통 부재, quiet 이 Table·GridList 부재, TableView density 는 D2 만 있고 D3 수치 채널 없음.
+3. **staticColor 잔여 전개**: Button/Link 는 기채택 (CSS/Skia 대칭 스킴 보유) — ToggleButton·ToggleButtonGroup·ProgressBar·ProgressCircle 에 동일 축 미전개. IconButton 은 root binding 수용·propsSchema 미노출 (노출만 결손).
+
+### 1-3. 형제·패밀리 내 비대칭 (기존 채택 이력과의 불일치)
+
+| 비대칭                                       | 내용                                                                                      |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| TextArea vs TextField                        | value/errorMessage/necessityIndicator/입력 힌트 5종/contextualHelp 이 TextField 에만 존재 |
+| RangeCalendar vs Calendar                    | isInvalid/autoFocus/pageBehavior 가 Calendar 에만 존재                                    |
+| TimeField vs DateField                       | minValue/maxValue 가 DateField 에만 존재; TimeField granularity 에 근거 없는 "day" 잔존   |
+| ProgressCircle vs ProgressBar                | minValue/maxValue 가 ProgressBar 에만 존재                                                |
+| Checkbox(+Group) vs Radio/Switch             | xl size 가 Checkbox 계열만 결손 (Spectrum 은 4단계 규정)                                  |
+| Tag itemSchema vs Select/ComboBox itemSchema | icon 채널이 Tag 에만 없음                                                                 |
+| isDisabled (Badge/StatusLight/Avatar)        | rules table `states.disabled` (D3) 는 준비됐으나 binding 노출만 결손                      |
+
+### 1-4. 채택후보-D3수치 (Button minWidth 채택과 동형의 수치 하한·규칙)
+
+| 컴포넌트    | guideline 수치                                          | 현행                                            |
+| ----------- | ------------------------------------------------------- | ----------------------------------------------- |
+| TextField   | min-width = 1.5 × height                                | minWidth 채널 없음 (Button 만 2.25×h 채택 상태) |
+| SearchField | min-width = 3 × height                                  | minWidth 채널 없음                              |
+| ProgressBar | min-width 48px / max-width 768px                        | 채널 없음 (`width:100%` 만)                     |
+| ColorSlider | 최소 길이 80px (desktop) / 100px (mobile)               | 채널 없음                                       |
+| Tooltip     | maxWidth 160px (스키마 수치 명시)                       | 채널 없음                                       |
+| Separator   | size 축 = 두께 단계 (S/M/L)                             | 전 size `height:1` 동일 — size 축 시각 무력     |
+| TableView   | density = 폰트 유지·수직 padding 만 변화                | density 별 행높이/padding 채널 없음             |
+| Table (행)  | 행 hover 상시 + selected row 배경 (highlight selection) | TableRow fill 에 hover/selected 키 없음         |
+| TextArea    | quiet 시각 규칙 (RSP isQuiet 규정)                      | rules quiet 부재 (1-1 dead prop 과 동일 건)     |
+| Toast       | informative = blue 시맨틱                               | info fill 이 neutral 동일값 (1-1 과 동일 건)    |
+
+### 1-5. default 발산·guideline 충돌 (관찰 — 채택 판정 보류)
+
+- **default 반전 2건**: DisclosureGroup 다중 확장 default true (Spectrum false) / Disclosure 확장 default true (Spectrum collapsed) — 빌더 편집 편의 가능성.
+- **default variant 발산**: Button primary (dd accent), Badge accent (RSP neutral), InlineAlert info (양쪽 neutral), Toast info (dd neutral), StatusLight neutral (dd informative), ButtonGroup align end (RSP start), ColorSwatchPicker rounding default (외부 none).
+- **guideline 명시 충돌 1건**: Table `striped` variant — Spectrum 은 "Zebra striping adds visual noise" 로 명시 반대. 유일한 정면 충돌 항목.
+- **house-style 전면 확장 (관찰)**: xs size 단계 (Button/Select/ComboBox/Tag 등), size 축 자체가 외부 미규정인 컴포넌트 (Tabs/Slider/Link/Tooltip/InlineAlert 등), variant 축 자체 도입 (Toolbar/Nav/Popover/Menu 버튼 스킴 등). 전부 의도 이력 가능 — `feedback-audit-high-can-be-intended-house-style`.
+## 2. 패밀리별 상세
+
+### 2-A. 버튼/액션 (Button·IconButton·ToggleButton·ToggleButtonGroup·ButtonGroup·Link·Toolbar)
+
+#### Button (↔ button)
+
+| 축  | 항목                                    | 외부 근거                                | composition 현행                                                                  | 분류                 |
+| --- | --------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------- | -------------------- |
+| A   | staticColor                             | dd white/black + RSP S2 auto/black/white | binding auto/white/black (2026-08-20 채택)                                        | 이미정합             |
+| B   | min-width = 2.25×height                 | dd guideline                             | rules sizes.minWidth 45/50/68/95/122 (2026-08-20 채택)                            | 이미정합             |
+| A   | variant 집합 (premium/genai 포함 6종)   | dd 4종 + RSP S2 확장 2종                 | rules 6종 전부                                                                    | 이미정합             |
+| A   | style ↔ fillStyle (fill/outline)        | dd `style`                               | binding `fillStyle` (이름만 상이)                                                 | 이미정합             |
+| A   | isPending/isDisabled/type/autoFocus     | dd + RSP                                 | 전부 수용                                                                         | 이미정합             |
+| A   | 기본 variant                            | dd default=accent                        | default=primary                                                                   | 관찰(house-style)    |
+| A   | size 집합                               | dd s/m/l/xl 4종                          | xs~xl 5종 (xs 확장)                                                               | 관찰(house 확장)     |
+| A   | isLabelHidden + icon                    | dd (icon-only 모드)                      | Button leaf 는 icon 미번들 — IconButton reusable 로 구조 분리 (binding 주석 명시) | 관찰(구조 분리 의도) |
+| A   | form/formAction/…/name/value            | RSP Button.md                            | 없음 (type submit/reset 만)                                                       | 채택후보-D2 (낮음)   |
+| A   | excludeFromTabOrder/preventFocusOnPress | RSP                                      | 없음                                                                              | 채택후보-D2 (미세)   |
+| B   | padding = height 절반                   | dd guideline                             | paddingX 4/8/12/16/24 — 절반 (10/11/15/21/27) 미달, xl 만 근접                    | 관찰                 |
+| B   | pending 1초 지연 / 텍스트 wrap          | dd guideline                             | rules 채널 없음 (RAC/CSS 거동 영역)                                               | 관찰                 |
+
+#### IconButton (↔ action-button) — 표면 = reusable propsSchema (label/icon/variant/size 4종)
+
+| 축  | 항목                          | 외부 근거                                | composition 현행                                                                                        | 분류                 |
+| --- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------- |
+| A   | size / icon                   | dd                                       | propsSchema 정합                                                                                        | 이미정합             |
+| A   | hideLabel (icon-only)         | dd + RSP ActionButton 관용구             | 없음 — label Text child 상시 렌더                                                                       | 채택후보-D2          |
+| A   | isQuiet                       | dd + RSP ActionButton                    | 없음. composition IconButton 은 Button+icon 조합 (S2 Button 엔 isQuiet 없음) — 채택 시 정체성 판정 필요 | 채택후보-D2 (조건부) |
+| A   | staticColor / isDisabled      | dd + RSP                                 | Button root binding 수용 — propsSchema 미노출 (instance 편집 불가)                                      | 채택후보-D2 (노출만) |
+| A   | isSelected/isEmphasized       | dd                                       | selected 축은 ToggleButton 으로 분리                                                                    | 관찰(구조 분리 의도) |
+| A   | hasHoldIcon/selectedTextColor | dd 에만 — RSP 없음                       | 없음                                                                                                    | 근거없음             |
+| A   | variant (Button variant 상속) | Spectrum ActionButton 은 variant 축 없음 | propsSchema variant 존재                                                                                | 관찰(house-style)    |
+| B   | 텍스트 truncation + tooltip   | dd guideline                             | 채널 없음                                                                                               | 관찰                 |
+
+#### ToggleButton (↔ action-button + RSP ToggleButton.md)
+
+| 축  | 항목                                                      | 외부 근거                         | composition 현행                                                          | 분류                 |
+| --- | --------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------- | -------------------- |
+| A   | isSelected/isEmphasized/isDisabled/isQuiet/autoFocus/size | dd + RSP                          | 전부 수용 (rules selected/emphasizedSelected 보유)                        | 이미정합             |
+| A   | staticColor                                               | dd + RSP ToggleButton white/black | 없음 — Button/Link 기채택 스킴 재사용 가능 축                             | 채택후보-D2          |
+| A   | defaultSelected                                           | RSP                               | 없음 (builder 는 isSelected 직접 편집)                                    | 채택후보-D2 (경미)   |
+| A   | excludeFromTabOrder/preventFocusOnPress                   | RSP                               | 없음                                                                      | 채택후보-D2 (미세)   |
+| A   | hasHoldIcon/selectedTextColor                             | dd 에만                           | 없음                                                                      | 근거없음             |
+| A   | isQuiet 시각 소비                                         | dd quiet=배경 없음                | data-quiet emit 까지 존재·quiet CSS 0건·rules/Skia 미소비 — **dead prop** | 관찰(소비 경로 부재) |
+
+#### ToggleButtonGroup (↔ action-group + RSP S2 ToggleButtonGroup/ActionButtonGroup.md)
+
+| 축  | 항목                                                                                  | 외부 근거                              | composition 현행                      | 분류                 |
+| --- | ------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------- | -------------------- |
+| A   | orientation/selectionMode/isDisabled/size/isEmphasized/isQuiet/disallowEmptySelection | dd + RSP                               | 전부 수용                             | 이미정합             |
+| A   | isJustified                                                                           | dd + RSP S2 양쪽                       | 없음                                  | 채택후보-D2          |
+| A   | staticColor                                                                           | RSP S2 ActionButtonGroup (상속)        | 없음                                  | 채택후보-D2          |
+| A   | overflowMode (wrap/collapse)                                                          | dd 에만 — RSP S2 없음 (v3 유물)        | 없음                                  | 근거없음             |
+| A   | 무선택 그룹 (ActionButtonGroup 대응)                                                  | RSP 는 컴포넌트 분리                   | 선택형만 존재                         | 관찰(커버리지)       |
+| A   | density 소비                                                                          | dd + RSP                               | 수용하나 소비자 0 — **dead prop**     | 관찰(소비 경로 부재) |
+| B   | compact=connected 규칙                                                                | dd: regular=간격 분리, compact 만 연결 | density 무관 상시 connected segmented | 관찰                 |
+| B   | indicatorMode (sliding pill)                                                          | 근거 없음                              | composition 전용                      | 관찰(house-style)    |
+
+#### ButtonGroup (↔ button-group)
+
+| 축  | 항목                                 | 외부 근거              | composition 현행                                        | 분류     |
+| --- | ------------------------------------ | ---------------------- | ------------------------------------------------------- | -------- |
+| A   | orientation/isDisabled/size/align 값 | dd + RSP               | 전부 수용                                               | 이미정합 |
+| A   | align 기본값                         | RSP default start      | default end (dialog 우측 정렬 가이드의 house 기본 가능) | 관찰     |
+| A   | overflowMode                         | dd 에만                | 없음                                                    | 근거없음 |
+| B   | 공간 부족 시 자동 수직 스택          | dd + RSP Key Behaviors | 자동 전환 채널 없음 (수동 orientation)                  | 관찰     |
+
+#### Link (↔ link) / Toolbar (design-data 없음)
+
+| 축  | 항목                                                                  | 외부 근거                                             | composition 현행                                  | 분류               |
+| --- | --------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- | ------------------ |
+| A   | Link variant/isQuiet/staticColor/href/target/rel/isDisabled/autoFocus | dd + S2                                               | 전부 수용 (data-quiet/static-color CSS 소비 확인) | 이미정합           |
+| A   | Link hrefLang/download/ping/referrerPolicy                            | RSP                                                   | 없음                                              | 채택후보-D2 (낮음) |
+| A   | Link size / isExternal / showExternalIcon                             | 외부 근거 없음 (live consumer 존재)                   | binding 전용                                      | 관찰(house-style)  |
+| B   | Link quiet=underline 제거                                             | dd guideline                                          | 정합 (+opacity 0.72 는 house 추가)                | 이미정합/관찰      |
+| —   | LinkButton (버튼 외형 링크)                                           | RSP S2 LinkButton.md                                  | 대응 없음 (Button 의 v3 href 표면도 미수용)       | 관찰(커버리지)     |
+| A   | Toolbar orientation                                                   | RAC                                                   | 수용                                              | 이미정합           |
+| A   | Toolbar variant/size                                                  | 외부 근거 없음 (RAC unstyled·RSP 부재) — D3 자유 영역 | 보유                                              | 관찰(house-style)  |
+
+### 2-B. 텍스트 입력 (TextField·TextArea·NumberField·SearchField·Form·FormField·Field 계열)
+
+#### TextField (↔ text-field)
+
+| 축  | 항목                                                                                                         | 외부 근거                                 | composition 현행                                      | 분류                            |
+| --- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ----------------------------------------------------- | ------------------------------- |
+| A   | label/value/placeholder/size/labelPosition/isRequired/isDisabled/errorMessage/description/necessityIndicator | 양쪽                                      | 완비                                                  | 이미정합                        |
+| A   | contextualHelp                                                                                               | RSP S2                                    | 없음                                                  | 채택후보-D2                     |
+| A   | prefix                                                                                                       | RSP S2 신설 (input 앞 비인터랙티브 요소)  | 없음                                                  | 채택후보-D2                     |
+| A   | defaultValue                                                                                                 | RSP (uncontrolled)                        | value 단일 채널                                       | 관찰(canonical 모델 house 가능) |
+| A   | labelAlign (field-level)                                                                                     | RSP start/end                             | Form binding 에만 존재, 개별 field 미소비             | 관찰                            |
+| A   | validate/validationBehavior/form/excludeFromTabOrder                                                         | RSP                                       | 없음                                                  | 관찰(편집 표면 과잉 가능)       |
+| A   | hasCharacterCount / showValidIcon                                                                            | dd 만 (RSP S2 .md 근거 없음)              | 없음                                                  | 관찰                            |
+| A   | hideLabel                                                                                                    | dd 만 (RSP 는 label 생략+aria-label 패턴) | 없음                                                  | 근거없음                        |
+| B   | min-width = 1.5×height                                                                                       | dd guideline                              | minWidth 채널 없음 (Button 선례만 존재)               | 채택후보-D3수치                 |
+| B   | default width = field-default-width 토큰                                                                     | dd guideline                              | `width:100%` (2026-06-24 field 패밀리 정본 결정 주석) | 관찰(의도된 house)              |
+| B   | size 4단계                                                                                                   | dd + RSP                                  | 5단계 xs~xl                                           | 관찰(house 확장)                |
+
+#### TextArea (↔ text-area) — 패밀리 내 비대칭 최다
+
+| 축  | 항목                                                                                                  | 외부 근거                                             | composition 현행                                              | 분류            |
+| --- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- | --------------- |
+| A   | value/defaultValue                                                                                    | dd + RSP                                              | **accepts 에 value 자체 없음** (TextField 는 있음)            | 채택후보-D2     |
+| A   | errorMessage / necessityIndicator                                                                     | dd + RSP                                              | **없음** (다른 field 3종은 있음)                              | 채택후보-D2     |
+| A   | inputMode/autoComplete/autoCorrect/spellCheck/enterKeyHint                                            | RSP (ADR-915 P1.5-b 가 TextField/SearchField 만 채택) | 없음                                                          | 채택후보-D2     |
+| A   | contextualHelp                                                                                        | RSP                                                   | 없음                                                          | 채택후보-D2     |
+| A   | inputType                                                                                             | dd 만 — RSP TextArea 에 type 없음                     | 없음                                                          | 근거없음        |
+| A   | hideDragIcon / height(resizable)                                                                      | dd 만                                                 | `rows` 로 우회                                                | 관찰            |
+| A   | label/description/placeholder/size/labelPosition/isQuiet/state 4종/name/maxLength/minLength/autoFocus | 양쪽                                                  | 완비                                                          | 이미정합        |
+| B   | quiet 시각 규칙                                                                                       | RSP isQuiet 규정                                      | **rules table quiet 부재** — D2 수용·D3 무반응 dead prop 의심 | 채택후보-D3수치 |
+
+#### NumberField (↔ number-field)
+
+| 축  | 항목                                                                                  | 외부 근거                                  | composition 현행                                    | 분류               |
+| --- | ------------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------- | ------------------ |
+| A   | hideStepper                                                                           | dd + RSP                                   | 없음 — stepper 상시 렌더                            | 채택후보-D2        |
+| A   | contextualHelp                                                                        | RSP                                        | 없음                                                | 채택후보-D2        |
+| A   | formatOptions                                                                         | RSP                                        | 의도적 미노출 (binding 주석: locale-dependent 후속) | 관찰(의도된 defer) |
+| A   | defaultValue / value 타입(number) / labelAlign                                        | RSP                                        | value 단일 (kind string)                            | 관찰               |
+| A   | locale                                                                                | RSP/RAC prop 표면 없음 (I18nProvider 표준) | accepts 존재 + DOM live                             | 관찰(비표준 가능)  |
+| A   | hideLabel                                                                             | dd 만                                      | 없음                                                | 근거없음           |
+| A   | 나머지 표면 (min/max/step/isQuiet/isWheelDisabled/necessityIndicator/errorMessage 등) | 양쪽                                       | 완비 (quiet D3 존재)                                | 이미정합           |
+| B   | size 4단계                                                                            | dd                                         | 5단계 xs~xl                                         | 관찰(house 확장)   |
+
+#### SearchField (↔ search-field)
+
+| 축  | 항목                        | 외부 근거                                                                             | composition 현행              | 분류                                    |
+| --- | --------------------------- | ------------------------------------------------------------------------------------- | ----------------------------- | --------------------------------------- |
+| A   | icon (custom)               | dd (label 부재 시 필수) + RSP icon                                                    | 없음 (하드코딩)               | 채택후보-D2                             |
+| A   | type                        | RSP (default search)                                                                  | 없음 (TextField 는 type 있음) | 채택후보-D2                             |
+| A   | contextualHelp / labelAlign | RSP                                                                                   | 없음                          | 채택후보-D2 / 관찰                      |
+| A   | error 표면                  | dd guideline "Search fields do not have an error state" vs RSP 코드는 validation 지원 | accepts 존재                  | 관찰(디자인 지침 vs 코드 API 충돌 지점) |
+| A   | hideLabel                   | dd 만                                                                                 | 없음                          | 근거없음                                |
+| A   | 나머지 표면                 | 양쪽                                                                                  | 완비 (quiet D3 존재)          | 이미정합                                |
+| B   | min-width = 3×height        | dd guideline                                                                          | minWidth 채널 없음            | 채택후보-D3수치                         |
+
+#### Form / FormField / Field 계열
+
+| 축  | 항목                                                                        | 외부 근거                                                 | composition 현행                                                                  | 분류                |
+| --- | --------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------- |
+| A   | Form isDisabled/isRequired/isReadOnly/isQuiet/isEmphasized (자식 일괄 상속) | RSP 5종                                                   | 전부 없음 — 상속 hint 는 labelPosition/labelAlign/necessityIndicator 만           | 채택후보-D2         |
+| A   | Form validationErrors                                                       | RSP + RAC (server-side `Record<string, ValidationError>`) | 없음                                                                              | 채택후보-D2         |
+| A   | Form autoComplete/autoCapitalize / method dialog                            | RSP                                                       | 없음 / get·post 만                                                                | 채택후보-D2         |
+| A   | Form variant/size/autoFocus/restoreFocus                                    | RSP 근거 없음                                             | accepts 존재                                                                      | 관찰(비표준 가능)   |
+| A   | Form validationBehavior default                                             | RSP v3 aria (RAC native)                                  | native                                                                            | 관찰(RAC 기준 선택) |
+| —   | FormField ↔ form-item/field                                                 | dd 는 stub 스키마 (options 없음)                          | layout wrapper 역할 정의 일치                                                     | 이미정합            |
+| A   | help-text variant (neutral/negative)                                        | dd                                                        | Description/FieldError 분리로 커버                                                | 이미정합            |
+| A   | help-text size 4단계 (s/m/l/xl)                                             | dd                                                        | Description/FieldError sm/md/lg 3단계 (xl 부재), Label 은 xs~xl 5단계 자체 비대칭 | 채택후보-D2         |
+| A   | help-text hideIcon / isDisabled                                             | dd                                                        | FieldError 아이콘 채널·Description disabled 표면 없음                             | 관찰                |
+| A   | field-label labelPosition/necessityIndicator/isRequired                     | dd                                                        | 부모 field 채널로 흡수 (resolveLabelNecessity)                                    | 이미정합(채널 상이) |
+| B   | field-label "small=medium 동일 font (padding 만 상이)"                      | dd guideline                                              | Label sm=12/md=14 — 폰트 상이                                                     | 관찰(house 가능)    |
+
+### 2-C. 선택 입력 (Checkbox·CheckboxGroup·RadioGroup·Radio·Switch·Slider·Select·ComboBox·TagGroup·Tag)
+
+#### Checkbox (↔ checkbox) / CheckboxGroup (↔ checkbox-group)
+
+| 축  | 항목                                              | 외부 근거   | composition 현행                                                                          | 분류                  |
+| --- | ------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- | --------------------- |
+| A+B | size 4단계 (xl 포함)                              | dd + RSP S2 | **sm/md/lg 3단계 — xl 결손** (Radio/Switch/RadioGroup 은 4단계 — toggle 패밀리 내 비대칭) | 채택후보-D2           |
+| A   | isEmphasized                                      | dd + RSP S2 | variant "emphasized" enum 으로 의미 대응 (기본 gray→emphasized accent 취지 정합)          | 이미정합(형식만 상이) |
+| A   | description/errorMessage (leaf)                   | RSP S2      | 없음 (Group 레벨만)                                                                       | 채택후보-D2           |
+| A   | validationBehavior/form (leaf)                    | RSP S2      | 없음 (ComboBox 채택 선례)                                                                 | 채택후보-D2 (낮음)    |
+| A   | defaultSelected                                   | RSP S2      | 없음                                                                                      | 관찰                  |
+| A   | Group isEmphasized (자식 전파)                    | RSP         | 없음 — group variants 는 text 색 축일 뿐                                                  | 채택후보-D2           |
+| A   | Group labelAlign / contextualHelp / showErrorIcon | RSP         | 없음                                                                                      | 채택후보-D2           |
+| A   | Group value/defaultValue (string[])               | RSP         | 자식 isSelected 관리 (canonical children 구조)                                            | 관찰(house 구조)      |
+
+#### RadioGroup (↔ radio-group) / Radio (↔ radio-button)
+
+| 축  | 항목                                                              | 외부 근거                                 | composition 현행                                                                                                                   | 분류                                |
+| --- | ----------------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| A   | Group isEmphasized / labelAlign / contextualHelp                  | dd + RSP S2                               | 없음                                                                                                                               | 채택후보-D2                         |
+| A   | Group defaultValue                                                | RSP S2                                    | 없음                                                                                                                               | 관찰                                |
+| A   | Group size 4종/value/orientation/labelPosition/necessityIndicator | 양쪽                                      | 완비                                                                                                                               | 이미정합                            |
+| A   | Radio description                                                 | RSP S2                                    | 없음                                                                                                                               | 채택후보-D2                         |
+| B   | 기본 selected 색                                                  | dd guideline "기본 non-emphasized (gray)" | Radio default selected=accent(blue), gray 는 별도 neutral variant — **Checkbox 와 기본값 방향 반대** + default/accent 값 동일 중복 | 관찰(house 가능·패밀리 비대칭 기록) |
+| A   | Radio isSelected 직접 노출 / negative variant                     | RSP/RAC 근거 없음                         | 존재                                                                                                                               | 관찰(builder 편의)                  |
+
+#### Switch (↔ switch)
+
+| 축  | 항목                                           | 외부 근거                                                            | composition 현행 | 분류                        |
+| --- | ---------------------------------------------- | -------------------------------------------------------------------- | ---------------- | --------------------------- |
+| A   | description                                    | RSP S2                                                               | 없음             | 채택후보-D2                 |
+| A   | isInvalid/errorMessage/isRequired              | RSP S2 타입 표면 존재 — 단 guideline 은 "switch 는 error state 없음" | 없음             | 관찰(취지 충돌 — 판정 보류) |
+| A   | defaultSelected                                | RSP S2                                                               | 없음             | 관찰                        |
+| A+B | 나머지 표면 + 기본 gray selected + radius.full | 양쪽                                                                 | 전부 정합        | 이미정합                    |
+
+#### Slider (↔ slider) — D2 gap 최다 컴포넌트
+
+| 축  | 항목                                                      | 외부 근거                       | composition 현행                                            | 분류               |
+| --- | --------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------- | ------------------ |
+| A   | fill (hasFill/isFilled) / fillStart/fillOffset / gradient | dd + RSP                        | 전부 없음 — track fill 시각 prop 부재                       | 채택후보-D2        |
+| A   | 값 포맷 (valueFormat/formatOptions) / contextualHelp      | dd + RSP                        | 없음                                                        | 채택후보-D2        |
+| A   | RangeSlider / isRange                                     | RSP RangeSlider.md + dd isRange | **대응 없음** (catalog/renderer 참조 0)                     | 관찰(커버리지)     |
+| A   | getValueLabel                                             | RSP (함수 prop)                 | 없음                                                        | 관찰(직렬화 불가)  |
+| A   | orientation                                               | RSP                             | 2026-07-16 의도적 패널 제거 (labelPosition 대체, 주석 명시) | 관찰(의도된 house) |
+| A   | progressionScale/isEditable                               | dd 만                           | 없음                                                        | 근거없음           |
+| A   | size                                                      | dd/RSP 모두 slider size 없음    | sm~xl 4종                                                   | 관찰(house scale)  |
+| A   | labelPosition/min/max/step/value/showValueLabel           | RSP                             | 존재                                                        | 이미정합           |
+
+#### Select (↔ picker) / ComboBox (↔ combo-box)
+
+| 축  | 항목                                                                                           | 외부 근거                                        | composition 현행                                                 | 분류                            |
+| --- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------- | ------------------------------- |
+| A   | Select selectedKey                                                                             | dd value + RSP selectedKey                       | **renderSelect 기소비 — accepts 미노출** (패널 편집 표면만 결손) | 채택후보-D2 (기배선)            |
+| A   | ComboBox selectedKey/inputValue                                                                | dd + RSP S2                                      | **renderComboBox 기소비 — accepts 미노출**                       | 채택후보-D2 (기배선)            |
+| A   | labelAlign / contextualHelp (양쪽)                                                             | RSP                                              | 없음                                                             | 채택후보-D2                     |
+| A   | 메뉴 배치 (align/direction/shouldFlip/menuWidth 등)                                            | RSP                                              | 없음                                                             | 채택후보-D2 (낮음·묶음)         |
+| A   | Select isLoading / ComboBox loadingState·formValue                                             | RSP                                              | 없음 (dataBinding 존재로 유의미)                                 | 채택후보-D2 (낮음)              |
+| A   | Select selectionMode multiple                                                                  | RSP Picker 는 단일 선택 전용                     | single/multiple 노출                                             | 관찰(RSP 미규정 — D2 재검점)    |
+| A   | ComboBox isQuiet                                                                               | RSP S2·dd 모두 없음 (v3 유래; picker 만 isQuiet) | 존재                                                             | 관찰(S2 에서 quiet 소멸 가능성) |
+| A   | ComboBox prefix                                                                                | RSP S2 ReactNode                                 | iconName (icon 한정) 부분 대응                                   | 관찰                            |
+| A   | ComboBox hasAutocomplete / Select menuContainer                                                | dd 만                                            | 없음                                                             | 근거없음                        |
+| A   | size xs                                                                                        | Spectrum 4단계                                   | xs~xl 5종                                                        | 관찰(house 확장)                |
+| A   | 나머지 표면 (menuTrigger/allowsCustomValue/validationBehavior/disabledKeys→item isDisabled 등) | 양쪽                                             | 정합                                                             | 이미정합                        |
+
+#### TagGroup (↔ tag-group) / Tag (↔ tag)
+
+| 축  | 항목                                                 | 외부 근거                        | composition 현행                                                                           | 분류          |
+| --- | ---------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------ | ------------- |
+| A   | actionLabel                                          | dd + RSP                         | 없음                                                                                       | 채택후보-D2   |
+| A   | errorMessage/isInvalid / labelAlign / contextualHelp | RSP                              | description 만 존재                                                                        | 채택후보-D2   |
+| A   | Tag avatar/icon 슬롯                                 | dd hasAvatar + RSP Item children | Tag binding·itemSchema 에 icon 없음 (**Select/ComboBox itemSchema 는 icon 보유 — 비대칭**) | 채택후보-D2   |
+| A   | renderEmptyState / escapeKeyBehavior 등              | RSP                              | 없음                                                                                       | 관찰          |
+| A   | Tag isError/isReadOnly                               | dd 만                            | 없음                                                                                       | 관찰          |
+| A+B | TagGroup size 3종 / Tag 표면 (allowsRemoving 등)     | dd + RAC                         | 정합 (Tag 만 xs~xl 5종 — 그룹 3 vs 칩 5 비대칭 관찰)                                       | 이미정합/관찰 |
+### 2-D. 날짜/시간 (Calendar·RangeCalendar·DatePicker·DateRangePicker·DateField·TimeField)
+
+**소스 공백 주의**: design-data 의 single/double/triple-calendar·date-field·time-field JSON 은 메타만 있고 options/documentBlocks 이 빈 스키마 — 실질 근거는 calendar.json + date-picker.json 2개 (+RSP .md).
+
+| 축  | 컴포넌트        | 항목                                                                              | 외부 근거                                | composition 현행                                                                                          | 분류                      |
+| --- | --------------- | --------------------------------------------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------- |
+| A   | Calendar        | firstDayOfWeek / selectionAlignment                                               | RSP S2                                   | 없음                                                                                                      | 채택후보-D2               |
+| A   | Calendar        | visibleMonths 상한 3                                                              | dd guideline + RSP "(max 3)"             | maxVisibleMonths min:1 만 (max 미제약)                                                                    | 채택후보-D2 (max:3)       |
+| A   | Calendar        | isDateUnavailable                                                                 | RSP (함수형)                             | 없음                                                                                                      | 관찰(직렬화 축 별도 판정) |
+| A   | Calendar        | variant/size                                                                      | 외부 근거 없음                           | 존재                                                                                                      | 관찰(house-style)         |
+| A   | Calendar        | showTimeZone                                                                      | dd 만                                    | 없음                                                                                                      | 근거없음                  |
+| B   | Calendar        | unavailable(취소선) vs disabled(회색) 이원 상태 / range 점선 외곽 token           | dd guideline + tokenBindings             | rules 는 disabled opacity 만 — day-cell 상태 값 없음 (skiaPrimitive 내부 미검증)                          | 관찰                      |
+| A   | RangeCalendar   | isInvalid/autoFocus/pageBehavior                                                  | RSP                                      | 없음 — **Calendar 는 3종 다 노출 (형제 비대칭)**                                                          | 채택후보-D2               |
+| A   | RangeCalendar   | firstDayOfWeek/selectionAlignment/max:3                                           | RSP                                      | 없음                                                                                                      | 채택후보-D2               |
+| A   | DatePicker      | hourCycle                                                                         | RSP + dd is24Hour                        | 없음 — 렌더러는 커스텀 `timeFormat` 직접 read (accepts 미등재·RSP 미규정 이름). 형제 3종은 hourCycle 노출 | 채택후보-D2 + 관찰        |
+| A   | DatePicker      | placeholderValue                                                                  | RSP                                      | 렌더러 resolvePlaceholder 기소비 — 배선만 없음 (커스텀 `placeholder` string 은 관찰)                      | 채택후보-D2 (기배선)      |
+| A   | DatePicker      | shouldFlip/firstDayOfWeek/labelAlign/contextualHelp/showFormatHelpText/form/max:3 | RSP                                      | 없음                                                                                                      | 채택후보-D2               |
+| A   | DatePicker      | isQuiet 주석 stale                                                                | —                                        | 주석은 "노출 보류"·accepts 엔 실존 — Skia quiet 대칭 미검증                                               | 관찰(D3 대칭 리스크)      |
+| A   | DatePicker      | showCalendarIcon/iconName                                                         | 외부 근거 없음                           | 존재                                                                                                      | 관찰(house-style)         |
+| A   | DatePicker      | dateField.hideLabel / timeFields.showStartTime·showEndTime                        | dd 만                                    | granularity 로 대응                                                                                       | 근거없음                  |
+| A   | DateRangePicker | placeholderValue                                                                  | RSP                                      | placeholder/placeholderValue **둘 다 부재** — 렌더러 기소비·DatePicker 와도 비대칭                        | 채택후보-D2               |
+| A   | DateRangePicker | shouldFlip/firstDayOfWeek/labelAlign/contextualHelp/showFormatHelpText/form/max:3 | RSP                                      | 없음                                                                                                      | 채택후보-D2               |
+| A   | DateField       | form/labelAlign/contextualHelp/showFormatHelpText                                 | RSP                                      | 없음                                                                                                      | 채택후보-D2               |
+| B   | DateField       | size 스케일                                                                       | —                                        | rules sm~xl 인데 delegation 에 xs 변수 — xs dead 분기, DatePicker(xs~xl)와 비대칭                         | 관찰                      |
+| A   | TimeField       | minValue/maxValue                                                                 | RSP                                      | 없음 — **DateField 는 노출 (비대칭)**                                                                     | 채택후보-D2               |
+| A   | TimeField       | granularity "day"                                                                 | RSP/dd 근거 없음 (hour/minute/second 만) | enum 에 day 포함 (DateField 복제 형태)                                                                    | 관찰(비표준 가능)         |
+| A   | TimeField       | form/labelAlign/contextualHelp                                                    | RSP                                      | 없음                                                                                                      | 채택후보-D2               |
+| A   | TimeField       | hourCycle 기본값                                                                  | RSP 는 locale 파생                       | default "24" 강제                                                                                         | 관찰(house)               |
+| B   | 패밀리 공통     | labelPosition side / 필수 표시 icon                                               | dd                                       | containerVariants side + necessityIndicator 정합                                                          | 이미정합                  |
+
+### 2-E. 컬렉션/오버레이 (Table·TableView·ListBox·GridList·Tree·Menu·Dialog·Modal·Popover·Tooltip·Toast)
+
+| 축  | 컴포넌트        | 항목                                                                         | 외부 근거                                                    | composition 현행                                                                                  | 분류                                    |
+| --- | --------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| A   | Table           | density / quiet / isSortable / hideHeader                                    | dd + RSP (TableView 는 density·quiet·allowsSorting 보유)     | Table.binding 에 없음 — TableView 와 표면 비대칭                                                  | 채택후보-D2                             |
+| A   | Table/TableView | overflowMode truncate·wrap / selectionStyle checkbox·highlight               | RSP TableView                                                | 없음                                                                                              | 채택후보-D2                             |
+| A   | Table           | per-column 옵션 (align/showDivider/컬럼별 isSortable/resizing/width/summary) | dd columns.\* + RSP Column                                   | generic columnMapping 만 — 컬럼 단위 표면 없음                                                    | 채택후보-D2                             |
+| B   | TableView       | density 별 수직 padding 변화 (폰트 유지)                                     | dd guideline                                                 | accepts 만 있고 rules 에 density 수치 채널 없음                                                   | 채택후보-D3수치                         |
+| B   | Table           | 행 hover 상시 / selected row 배경                                            | dd guideline + tokenBindings                                 | TableRow fill 에 hover/selected 키 없음                                                           | 채택후보-D3수치                         |
+| A   | Table           | striped variant                                                              | dd guideline **명시 반대** ("zebra striping = visual noise") | 존재                                                                                              | 관찰(guideline 충돌)                    |
+| A   | Table           | bordered variant                                                             | 근거 없음                                                    | 존재                                                                                              | 관찰(house)                             |
+| B   | Table           | 숫자 컬럼 우측 정렬                                                          | dd guideline (center 금지)                                   | Cell/Column textAlign left 고정                                                                   | 관찰(per-column align 부재와 동일 뿌리) |
+| A   | ListBox         | layout stack/grid / orientation                                              | RAC (GridList 는 layout 노출 — ListBox 만 누락)              | 없음                                                                                              | 채택후보-D2                             |
+| A   | ListBox         | shouldFocusWrap 등 포커스 boolean                                            | RAC                                                          | 없음                                                                                              | 채택후보-D2 (부차)                      |
+| A   | GridList        | isQuiet / overflowMode / selectionStyle                                      | dd + RSP ListView                                            | 없음                                                                                              | 채택후보-D2                             |
+| A   | GridList        | item hasChildItems / href                                                    | RSP + RAC (ListBox itemSchema 는 href 보유)                  | 없음                                                                                              | 채택후보-D2                             |
+| A   | GridList        | layout 기본값 grid                                                           | RAC default stack                                            | default grid (2026-07-29 사용자 결정 기록)                                                        | 관찰(의도된 house)                      |
+| B   | GridList        | non-quiet 컨테이너 시각 (배경·테두리)                                        | dd guideline                                                 | default 가 transparent 단일 — 사실상 quiet 형태만 존재                                            | 관찰                                    |
+| A   | Tree            | selectionStyle / selectionBehavior                                           | dd + RSP                                                     | 없음                                                                                              | 채택후보-D2                             |
+| A   | Tree            | isDetached/isEmphasized/showDragIcon                                         | dd 만 (RSP 스냅샷 없음)                                      | 없음                                                                                              | 채택후보-D2 (dd 단독 근거)              |
+| B   | Tree            | maxHeight 300px 고정                                                         | 근거 없음                                                    | ListBox 는 2026-07-29 제거·Tree 만 잔존                                                           | 관찰(내부 비일관)                       |
+| B   | Tree            | TreeItem md=lg 행 메트릭 동일                                                | dd size 4단 위계                                             | 컨테이너 size 축과 행 메트릭 비연동                                                               | 관찰                                    |
+| A   | Menu            | disallowEmptySelection                                                       | RSP (형제 컬렉션은 보유 — Menu 만 누락)                      | 없음                                                                                              | 채택후보-D2                             |
+| A   | Menu            | selectionStyle checkbox·switch / item isUnavailable                          | dd 만                                                        | 없음                                                                                              | 채택후보-D2 (dd 단독 근거)              |
+| A   | Menu            | submenu/isCollapsible/tray container                                         | dd                                                           | submenu 인프라 없음 (flat items+sections)                                                         | 관찰(커버리지)                          |
+| A   | Menu            | variants 6종 (Button 스킴 복제)                                              | Spectrum Menu 에 variant 축 없음                             | ADR-151 B7 사용자 결정                                                                            | 관찰(house 의도)                        |
+| A   | Dialog          | alert variant (confirmation/…/error)                                         | dd alert-dialog + RSP AlertDialog                            | role 구분만 — 시맨틱 variant 축 없음                                                              | 채택후보-D2                             |
+| A+B | Dialog          | size ↔ width 매핑                                                            | dd 3 widths + RSP size S/M/L                                 | sizes 5단이 **padding 스케일** — width 채널 없음                                                  | 관찰 + 채택후보-D3수치                  |
+| A   | Dialog          | hero image / takeover                                                        | dd + RSP                                                     | 전용 슬롯·대응 없음                                                                               | 관찰(커버리지)                          |
+| A   | Modal           | isDismissable / isKeyboardDismissDisabled                                    | RAC                                                          | 없음 (Dialog 쪽만)                                                                                | 채택후보-D2                             |
+| A   | Modal           | trapFocus/autoFocus/size                                                     | RAC 미규정                                                   | 존재                                                                                              | 관찰(house 가능)                        |
+| A   | Popover         | placement 어휘 22값                                                          | dd + RAC 전체                                                | enum 8값                                                                                          | 채택후보-D2 (옵션 확대)                 |
+| A   | Popover         | hideArrow/offset/crossOffset/containerPadding/shouldFlip                     | dd + RSP/RAC                                                 | 정합                                                                                              | 이미정합                                |
+| A   | Popover         | variants 3종                                                                 | 근거 없음                                                    | 존재                                                                                              | 관찰(house 가능)                        |
+| A   | Tooltip         | **variant 미노출**                                                           | dd + RSP variant                                             | rules 에 D3 4종 존재·binding accepts 미선언 — 표면 단절                                           | 채택후보-D2                             |
+| A   | Tooltip         | showIcon                                                                     | dd hasIcon + RSP (색약 접근성 근거)                          | 없음                                                                                              | 채택후보-D2                             |
+| B   | Tooltip         | **maxWidth 160px** (스키마 수치)                                             | dd                                                           | maxWidth 채널 없음                                                                                | 채택후보-D3수치                         |
+| A   | Toast           | actionLabel                                                                  | dd + RSP                                                     | 없음                                                                                              | 채택후보-D2                             |
+| A   | Toast           | placement                                                                    | RSP + dd                                                     | renderToast 가 data-position 소비 — accepts 미선언 (Modal.isOpen 동형 함정)                       | 채택후보-D2                             |
+| B   | Toast           | **info variant 색**                                                          | dd "informative = blue"                                      | info fill = neutral-subtle + border 동일값 — **neutral 과 완전 동일** (Tooltip.info 는 blue 보유) | 채택후보-D3수치                         |
+| B   | Toast           | variant 아이콘 + close button                                                | dd (색약 접근성)                                             | box-shell — 렌더 없음 (binding 주석 자체 인지)                                                    | 관찰(커버리지)                          |
+
+### 2-F. 상태/피드백 (Badge·StatusLight·InlineAlert·ProgressBar·ProgressCircle·Meter·Avatar·AvatarGroup)
+
+| 축  | 컴포넌트           | 항목                                                          | 외부 근거                      | composition 현행                                             | 분류                  |
+| --- | ------------------ | ------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------ | --------------------- |
+| A   | Badge              | variant 25종 / style↔fillStyle                                | dd                             | 25종 완전 일치 (info↔informative 명칭 대응)                  | 이미정합              |
+| A   | Badge              | icon 채널                                                     | dd + RSP 합성                  | children string 만                                           | 채택후보-D2           |
+| A   | Badge              | fixed (edge 고정)                                             | dd (S2 스키마 근거)            | 없음                                                         | 채택후보-D2           |
+| A   | Badge              | isDisabled                                                    | dd                             | binding 미노출 — rules `states.disabled` 는 존재 (D3 준비됨) | 채택후보-D2           |
+| A   | Badge              | isDot/isPulsing / xs 단계 / default accent                    | 외부 근거 없음                 | composition 전용                                             | 관찰(house 가능)      |
+| A   | StatusLight        | variant 4종 결손 (gray/red/orange/green)                      | dd 23종                        | 19종                                                         | 채택후보-D2           |
+| A   | StatusLight        | isDisabled                                                    | RSP                            | 미노출 (rules disabled 존재)                                 | 채택후보-D2           |
+| A   | InlineAlert        | variant accent / style bold·subtle·outline / actionLabel·href | dd                             | 없음                                                         | 채택후보-D2           |
+| B   | InlineAlert        | 기본 스타일 = outline                                         | dd guideline                   | subtle 배경 + variant border 혼합형 단일 스킴                | 관찰                  |
+| A   | ProgressBar        | staticColor / over background variant                         | dd + RSP                       | 없음 (Button 채택 선례 축)                                   | 채택후보-D2           |
+| B   | ProgressBar        | **min-width 48 / max-width 768**                              | dd guideline                   | 채널 없음 (`width:100%`)                                     | 채택후보-D3수치       |
+| A   | ProgressBar        | accent/neutral variant                                        | 외부 근거 없음                 | composition 전용                                             | 관찰(house 가능)      |
+| A   | ProgressCircle     | minValue/maxValue                                             | dd + RSP                       | 없음 — **ProgressBar 는 보유 (형제 비대칭)**                 | 채택후보-D2           |
+| A   | ProgressCircle     | staticColor/over background                                   | dd + RSP                       | variant 축 자체 없음                                         | 채택후보-D2           |
+| A   | Meter              | helpText                                                      | dd S2                          | 없음                                                         | 채택후보-D2           |
+| A   | Meter              | variant 명명                                                  | dd S2 notice/negative          | warning/critical (RSP v3 명명 — 색 토큰은 S2 색에 기매핑)    | 관찰(S2 개명 미반영)  |
+| A   | Avatar             | isDisabled / showStroke                                       | dd + RSP                       | 없음 (disabled D3 준비·stroke 채널 없음)                     | 채택후보-D2           |
+| A   | Avatar/AvatarGroup | size 체계 (numeric/px)                                        | dd 지수 스케일 + RSP custom px | xs~xl 5단계 고정                                             | 관찰(house 크기 체계) |
+| B   | AvatarGroup        | 그룹 내 stroke + 겹침(stacking) 규칙                          | dd guideline                   | stroke 채널·겹침 시각 없음 (flex-row 나열)                   | 관찰                  |
+| A   | 패밀리 공통        | labelPosition/valueLabel/size 단계/default                    | dd + RSP                       | 대체로 정합 (default variant 3건 발산은 §1-5)                | 이미정합              |
+
+### 2-G. 컨테이너/내비 (Card·CardView·Tabs·Breadcrumbs·Disclosure·DisclosureGroup·DropZone·IllustratedMessage·Separator·Nav)
+
+| 축  | 컴포넌트              | 항목                                        | 외부 근거                                 | composition 현행                               | 분류                                |
+| --- | --------------------- | ------------------------------------------- | ----------------------------------------- | ---------------------------------------------- | ----------------------------------- |
+| A   | Card                  | variant 4종/size 5단/root clip              | RSP S2                                    | 정합 (density 제외)                            | 이미정합                            |
+| A   | Card                  | density compact/regular/spacious            | RSP S2                                    | 없음 — padding 이 size 축에 결합               | 채택후보-D2                         |
+| A   | Card                  | textValue                                   | RSP S2                                    | 없음                                           | 채택후보-D2 (저순위)                |
+| A   | Card                  | orientation/isSelectable/accentColor        | 근거 없음 (card-horizontal 흡수 수단 등)  | 존재                                           | 관찰(house 가능)                    |
+| A   | CardView              | size 5단계                                  | RSP                                       | 3단계                                          | 채택후보-D2                         |
+| A   | CardView              | variant (자식 Card 일괄 지정)               | RSP                                       | 전달 채널 없음                                 | 채택후보-D2 (propagation 경로 필요) |
+| A   | CardView              | columns/gap                                 | RSP 근거 없음 (자동 배치)                 | 존재                                           | 관찰(house 가능)                    |
+| A   | Tabs                  | isQuiet / isEmphasized / keyboardActivation | dd + RSP                                  | 없음                                           | 채택후보-D2                         |
+| A   | Tabs                  | disabledKeys/selectedKey                    | RSP                                       | isDisabled(전체) 만                            | 채택후보-D2 (저순위)                |
+| A   | Tabs                  | size/showIndicator/variant                  | 외부 근거 없음 (Spectrum 은 density 소관) | 존재                                           | 관찰(house 가능)                    |
+| B   | Tabs                  | overflow 시 quiet picker·스크롤             | dd guideline                              | overflow 채널 없음                             | 관찰                                |
+| A   | Breadcrumbs           | autoFocusCurrent                            | RSP                                       | 없음                                           | 채택후보-D2                         |
+| B   | Breadcrumbs           | 최대 4개 표시 + truncation menu             | dd + RSP                                  | collapse 동작 없음 (전체 나열)                 | 관찰                                |
+| A   | Disclosure 계열       | isQuiet                                     | dd + RSP 양쪽                             | 없음                                           | 채택후보-D2                         |
+| A   | DisclosureGroup       | 다중 확장 default                           | dd false + RSP "기본 1개"                 | **default true (반전)**                        | 채택후보-D2 (default 정렬)          |
+| A   | Disclosure            | isExpanded default                          | RSP collapsed                             | **default true (반전)**                        | 관찰(빌더 편의 가능)                |
+| A   | DisclosureGroup       | density                                     | dd 만 (RSP 미규정)                        | 없음                                           | 채택후보-D2 (dd 단독 근거)          |
+| A   | DropZone              | isFilled / replaceMessage                   | RSP                                       | 없음                                           | 채택후보-D2                         |
+| B   | DropZone              | drag-over 피드백                            | dd guideline                              | data-drop-target 배선 정합                     | 이미정합                            |
+| A   | IllustratedMessage    | orientation                                 | dd (RSP 미규정)                           | 세로 고정                                      | 채택후보-D2                         |
+| A+B | Separator             | size 축 = 두께 (RSP "Controls thickness")   | dd + RSP                                  | 전 size height:1 동일 — **축 시각 무력**       | 채택후보-D3수치                     |
+| A   | Separator             | variant 7종                                 | 근거 없음                                 | 존재                                           | 관찰(house 가능)                    |
+| A   | Nav ↔ side-navigation | 컬렉션 모델 (selectionMode/item 옵션)       | dd                                        | 구조 상이 (generic nav 컨테이너) — 대응 명목상 | 관찰                                |
+
+### 2-H. 컬러 (ColorArea·ColorSlider·ColorWheel·ColorField·ColorSwatch·ColorSwatchPicker·ColorPicker)
+
+**공통 전제**: ColorArea/Slider/Wheel/Swatch 는 binding 주석에 **box-only cutover** (2026-06-11 사용자 방침 — 빌더 완성 후 진짜 구현) 명시 — 값·채널 계열 미노출은 의도적 보류 (†). 실구현 재개 시점의 일괄 채택 목록으로 읽을 것.
+
+| 축  | 컴포넌트          | 항목                                            | 외부 근거                                        | composition 현행                                       | 분류                           |
+| --- | ----------------- | ----------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------ | ------------------------------ |
+| A   | ColorArea         | xChannel/yChannel/colorSpace/value/defaultValue | RSP+RAC (+dd)                                    | 미노출                                                 | 채택후보-D2 †                  |
+| A   | ColorSlider       | channel/colorSpace/value/defaultValue           | 3소스                                            | 미노출                                                 | 채택후보-D2 †                  |
+| A   | ColorSlider       | showValueLabel / contextualHelp                 | RSP                                              | 미노출                                                 | 채택후보-D2                    |
+| B   | ColorSlider       | **최소 길이 80px (desktop)**                    | dd guideline                                     | 채널 없음                                              | 채택후보-D3수치                |
+| B   | ColorSlider       | 트랙 두께 고정                                  | dd guideline                                     | 크기별 가변 (16/20/24)                                 | 관찰(house 가능)               |
+| A   | ColorWheel        | value/defaultValue                              | 3소스                                            | 미노출                                                 | 채택후보-D2 †                  |
+| B   | ColorArea/Wheel   | 기본 크기 192px                                 | dd default                                       | md=180 (−12px 패턴)                                    | 관찰                           |
+| A   | ColorField        | value/defaultValue / contextualHelp             | RSP+RAC                                          | 미노출 (그 외 표면은 Color 계열 중 최상 정합)          | 채택후보-D2                    |
+| A   | ColorSwatch       | rounding / colorName / xs size                  | dd + RSP                                         | 미노출 (D3 radius.full 고정은 ADR-914 Tier1 의도 기록) | 채택후보-D2                    |
+| A   | ColorSwatchPicker | size 4단 (xs 포함)                              | dd + RSP                                         | 3단                                                    | 채택후보-D2 (ColorSwatch 연동) |
+| A   | ColorSwatchPicker | colorSpace / isDisabled                         | 3소스 모두 부재 (교차 완료)                      | accepts 존재                                           | 근거없음                       |
+| A   | ColorSwatchPicker | rounding 기본값                                 | 외부 none                                        | default "default"                                      | 관찰(기본값 발산)              |
+| A   | ColorPicker       | size/variant/isDisabled                         | RAC 무·dd options 무 (RSP S2 스냅샷 부재 — 잠정) | 존재                                                   | 근거없음(잠정)                 |
+| B   | Color 공통        | 핸들 focus 2배/loupe/checkerboard 부품          | dd 부품 스키마 3종                               | 전 계열 무대응 (box-only 손실 범위)                    | 관찰(커버리지)                 |
+
+## 3. 커버리지 축 — 컴포넌트·노출 결손
+
+### 3-1. binding 존재 + palette 미노출 (노출 결손 후보)
+
+TextArea (인터랙션 감사 기지) · Toast · Meter · Pagination · Color 계열 7종 (ColorArea/ColorField/ColorPicker/ColorSlider/ColorSwatch/ColorSwatchPicker/ColorWheel — box-only 보류와 연동 판단).
+
+### 3-2. 대응 컴포넌트 자체 부재 (외부 근거 있는 것만)
+
+| 외부 컴포넌트                                                                                                                                      | 근거                               | 비고                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| ActionBar                                                                                                                                          | dd + RSP                           | 선택 행 일괄 작업 — 인터랙션 감사 §4 와 동일 지적 (CRUD 삭제 UI 패턴) |
+| ContextualHelp                                                                                                                                     | dd + RSP                           | prop 채택후보 (§1-2) 와 별개로 단독 컴포넌트로도 존재                 |
+| SegmentedControl                                                                                                                                   | dd + RSP                           |                                                                       |
+| Rating / Steplist / CoachMark / AlertBanner / FloatingActionButton / SelectBox / TagField / SegmentedTextField / Tray / TakeoverDialog / Thumbnail | dd                                 | RSP 스냅샷 근거는 SegmentedControl·SelectBoxGroup 만                  |
+| LinkButton / ActionMenu / RangeSlider / LabeledValue                                                                                               | RSP                                | LinkButton·RangeSlider 는 §2 에서도 지적                              |
+| Autocomplete                                                                                                                                       | RAC 신규 (적용성 지도 Tier A 항목) | binding 0건                                                           |
+
+## 4. Adobe OSS 적용성 지도 — 로드맵 잔여 상태 (2026-08-20 기준)
+
+| 우선순위 | 항목                                              | 상태                                                                                                                                     |
+| -------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| P1       | design-data skill/MCP 설치                        | **완료** (2026-08-20, user scope — 도구 품질·함정 4종은 메모리 기록)                                                                     |
+| P1 잔여  | component-schemas 를 D2 감사 외부 대조군으로 활용 | **본 감사로 완료** — Button 시범 (staticColor·minWidth 채택) → 63종 확장                                                                 |
+| P2       | RAC 미활용 컴포넌트 소비                          | 부분 낡음 — Color 계열·Toast·Tree 는 binding 기존재 (지도 서술 갱신 필요). 실제 잔여 = §3 (palette 노출 + Autocomplete 등 부재 컴포넌트) |
+| P3       | leonardo 도입 검토                                | 미착수 (사용자 테마 생성 기능 착수 시)                                                                                                   |
+| P4       | svg-native-viewer 스펙 기준선                     | 미착수 (SVG/아이콘 Skia 렌더 도입 시)                                                                                                    |
+
+## 5. 재현 방법
+
+1. design-data 스키마 프리페치: `@adobe/design-data-mcp` stdio JSON-RPC (`initialize` → `tools/call design-data-component`) 로 93종 전수 덤프 (스크립트: 세션 job tmp `fetch-design-data.mjs`).
+2. composition 표면: `packages/shared/src/catalog/bindings/*.binding.ts` 의 `props.accepts` (D2) + `packages/shared/src/catalog/generated/componentRulesTable.ts` 해당 항목 (D3) + reusable 은 propsSchema (IconButton 등).
+3. 외부 교차: `.agents/skills/react-spectrum/references/components/*.md` / `.agents/skills/react-aria/references/components/*.md` 의 API 표 — design-data 스키마 단독 판정 금지 (함정 ④).
+4. 이벤트 축 제외 기준: [2026-08-20 인터랙션 registry 감사](./2026-08-20-interaction-registry-rac-rsp-coverage.md) §2 와 중복 기재 금지.
+
+---
+
+**본 감사는 인벤토리 전용이다** — 채택 여부·우선순위 확정은 별도 판정 (ADR 또는 사용자 지시) 을 거친다. §1-1 표면 단절 계열은 버그 성격이라 소규모 수리로 다룰 수 있고, §1-2~1-4 는 패밀리 스윕 단위의 계획 대상이다.
