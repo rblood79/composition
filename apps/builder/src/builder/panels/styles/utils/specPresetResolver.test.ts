@@ -526,13 +526,15 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
 
   describe("ADR-082 A2 — Transform extractor (containerStyles / composition string 값)", () => {
     it("containerStyles 의 string 값 → preset 통과 (width / maxHeight)", () => {
-      // 2026-07-29: ListBox 의 `maxHeight:"300px"` 고정값이 catalog 에서 제거돼
-      //   maxHeight 검체는 같은 형태를 유지하는 Tree 로 옮겼다. 이 테스트가 지키는 것은
-      //   "containerStyles 의 string 값이 transform extractor 를 통과한다" 이지
-      //   ListBox 가 300 이라는 사실이 아니다.
+      // 이 테스트가 지키는 것은 "containerStyles 의 string 값이 transform extractor 를
+      //   통과한다" 이지 특정 컴포넌트가 300 이라는 사실이 아니다. maxHeight 검체는 고정값
+      //   제거를 따라 두 번 이사했다 — ListBox(2026-07-29 제거) → Tree(2026-08-20 제거,
+      //   같은 근거) → Menu. 검체가 또 사라지면 그때 남아 있는 string 치수 보유 컴포넌트로
+      //   옮기면 된다(`grep 'maxHeight' componentRulesTable.ts`).
       expect(resolveSpecPreset("ListBox", undefined).width).toBe("100%");
       expect(resolveSpecPreset("ListBox", undefined).maxHeight).toBeUndefined();
-      expect(resolveSpecPreset("Tree", undefined).maxHeight).toBe("300px");
+      expect(resolveSpecPreset("Tree", undefined).maxHeight).toBeUndefined();
+      expect(resolveSpecPreset("Menu", undefined).maxHeight).toBe("300px");
     });
 
     it("Toolbar.composition.containerStyles.width='fit-content' → string 통과 (kebab 경로)", () => {

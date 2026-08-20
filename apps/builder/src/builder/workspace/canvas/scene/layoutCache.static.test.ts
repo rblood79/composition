@@ -111,4 +111,23 @@ describe("layoutCache filtered children republish contract", () => {
     const sigLarge = createPageLayoutSignature(null, [makeRow(30)]);
     expect(sigSmall).not.toBe(sigLarge);
   });
+
+  // density (2026-08-21): 컨테이너 prop 이지만 자손 레이아웃을 바꾼다 — TabList 는 자기
+  //   gap, TableView 는 자손 Column/Cell 의 세로 padding(applyImplicitStyles 주입). 계층 B
+  //   (캐시 시그니처) 미등재 시 편집해도 시그니처 불변 → 캐시 히트로 새로고침 전까지
+  //   무반영 (isExpanded / _slots 선례 동형). 계층 A 는 layoutInvalidation.test.ts 가 담당.
+  it("invalidates layout signature when container density changes", () => {
+    const makeTableView = (density: string): CanvasLayoutNode =>
+      ({
+        id: "tableview-1",
+        type: "TableView",
+        page_id: "page-1",
+        parent_id: "body",
+        props: { density, style: { width: "100%" } },
+      }) as unknown as CanvasLayoutNode;
+
+    expect(
+      createPageLayoutSignature(null, [makeTableView("compact")]),
+    ).not.toBe(createPageLayoutSignature(null, [makeTableView("spacious")]));
+  });
 });
