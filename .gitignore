@@ -107,7 +107,6 @@ packages/shared/src/**/*.d.ts.map
 .claude/.css-regen-pending
 .claude/.adr-split-commit-allowed
 .claude/stats/audits/
-.claude/stats/.last-drift-snapshot-sha
 .claude/settings.local.json
 
 # 개인 로컬 지침 (공식 권장: 비추적)
