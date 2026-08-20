@@ -24,6 +24,10 @@ export const LAYOUT_AFFECTING_PROP_KEYS = new Set([
   "minValue",
   "maxValue",
   "variant",
+  // density (2026-08-21): size 와 직교하는 간격 축. TabList 는 gap, TableView 는 자손
+  //   Column/Cell 의 세로 padding 을 바꾼다(applyImplicitStyles 주입) → 편집 시
+  //   layoutVersion 이 올라야 Skia 가 재계산한다. size 선례 동형.
+  "density",
   "granularity",
   "hourCycle",
   "locale",

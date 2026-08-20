@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - left-top panel의 좌우에 다른 panel frame을 맞춰도 포인터 중심이 target edge에서 멀어
   snap line과 commit이 발생하지 않던 문제를 수정했다. 기존 pointer-edge 판정을 우선
   유지하면서 panel frame의 4px edge adjacency를 fallback으로 판정한다.
+- 같은 cluster의 panel을 이동할 때 기존 결합을 떼는 suppression이 모든 후속
+  `panel-edge`까지 계속 제거하던 문제를 수정했다. drag 시작점에서 28px를 벗어난 뒤에는
+  suppression을 해제해, 세로 stack에서 바로 좌우 column snap으로 전환할 수 있다.
+- hidden panel만 든 두 번째 raw column이 있으면 화면상 column은 하나인데도 2-column
+  limit에 걸리던 문제를 수정했다. 좌우 snap 수용 여부는 visible column 수로 판정하고,
+  commit 중 transient raw column은 v3 normalization에서 두 column으로 정규화한다.
 
 ## density 채널 신설 (Spectrum 규칙) + Tabs density 교정 - 2026-08-21
 

@@ -35,6 +35,7 @@ import {
   allowsMultipleExpanded,
   resolveGroupExpandedDisclosureIds,
 } from "../utils/disclosureGroupExpansion";
+import { resolveCatalogDensityField } from "../catalog/resolvers/resolveCatalogContainer";
 import { resolveCalendarHeaderStyle } from "./DateRenderers";
 import type {
   PreviewElement,
@@ -2220,12 +2221,22 @@ const TABLEVIEW_CHILD_STYLE: Record<
 function renderTableViewSubtree(
   element: PreviewElement,
   context: RenderContext,
+  density?: string,
 ): React.ReactNode {
   const spec = TABLEVIEW_CHILD_STYLE[element.type];
   if (!spec) {
     // 알려진 TableView 자식 type 이 아니면 일반 렌더 경로(leaf element 등)에 위임.
     return context.renderElement(element, element.id);
   }
+
+  // density (2026-08-21): catalog `Column/Cell.densities` 의 paddingY 로 위 인라인 상수
+  //   `padding: 8` 의 세로 성분만 교체 (Spectrum 규칙 — 폰트·가로 여백 불변). Skia 는
+  //   같은 catalog 값을 applyImplicitStyles 가 paddingTop/Bottom 으로 주입해 읽으므로 두
+  //   consumer 가 동일 SSOT 를 본다. `densities` 미정의면 undefined → 인라인 상수 유지.
+  const densityPaddingY =
+    element.type === "Column" || element.type === "Cell"
+      ? resolveCatalogDensityField(element.type, density, "paddingY")
+      : undefined;
 
   const childElements = context.childrenByParent.get(element.id) ?? [];
   const textContent =
@@ -2243,11 +2254,16 @@ function renderTableViewSubtree(
       className={element.props.className}
       style={{
         ...spec.style,
+        ...(densityPaddingY !== undefined
+          ? { paddingTop: densityPaddingY, paddingBottom: densityPaddingY }
+          : {}),
         ...element.props.style,
       }}
     >
       {childElements.length > 0
-        ? childElements.map((child) => renderTableViewSubtree(child, context))
+        ? childElements.map((child) =>
+            renderTableViewSubtree(child, context, density),
+          )
         : textContent}
     </div>
   );
@@ -2275,12 +2291,18 @@ export const renderTableView = (
   //   없는 잔여 inline(둥근 모서리 클리핑).
   const userClassName = element.props.className as string | undefined;
 
+  // density (2026-08-21): Spectrum `table.item.padding × density` — 값은 TableView 가 갖고
+  //   소비 주체는 자손 Column/Cell 이라 서브트리로 내려보낸다. `data-density` 는 식별용
+  //   (자식 시각값은 인라인 완결 — 위 TABLEVIEW_CHILD_STYLE 주석의 className 비부여 규칙).
+  const density = element.props.density as string | undefined;
+
   return (
     <div
       key={element.id}
       data-element-id={element.id}
       data-custom-id={element.customId}
       data-variant={variant}
+      data-density={density}
       role="grid"
       style={{
         overflow: "hidden",
@@ -2295,7 +2317,7 @@ export const renderTableView = (
       {/* renderTabs 패턴: 자식 트리(TableHeader/TableBody/Column/Row/Cell)를 부모가 직접
           generic div 로 그린다. 자식 type 은 CATALOG_CUTOVER_TYPES 미등록 → CanonicalNodeRenderer
           위임 경유 시 빈 div 가 되므로 직접 렌더. */}
-      {children.map((child) => renderTableViewSubtree(child, context))}
+      {children.map((child) => renderTableViewSubtree(child, context, density))}
     </div>
   );
 };

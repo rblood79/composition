@@ -244,6 +244,82 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
     },
   );
 
+  it.each(["left", "right"] as const)(
+    "hidden-only second column이 있어도 보이는 left-top column의 %s snap을 허용한다",
+    (edge) => {
+      const layout = createV3Layout();
+      const targetCluster = layout.clusters.find(
+        (cluster) => cluster.placementZone === "top-left",
+      );
+      const targetColumn = targetCluster?.columns[0];
+      const hiddenRowIndex =
+        targetColumn?.rows.findIndex((row) => row.panelId === "settings") ?? -1;
+      const hiddenRow =
+        hiddenRowIndex >= 0
+          ? targetColumn?.rows.splice(hiddenRowIndex, 1)[0]
+          : null;
+      expect(targetCluster).toBeDefined();
+      expect(targetColumn).toBeDefined();
+      expect(hiddenRow).toBeDefined();
+      if (!targetCluster || !targetColumn || !hiddenRow) return;
+      targetCluster.columns.push({
+        id: `${targetCluster.id}:column:hidden`,
+        width: 233,
+        rows: [hiddenRow],
+      });
+      layout.visibility.settings = false;
+
+      const target = frameFor(layout, "nodes");
+      const source = frameFor(layout, "properties");
+      const session = beginPanelWorkspaceDragSession(
+        layout,
+        PANEL_WORKSPACE_TEST_REGISTRY,
+        SURFACE,
+        "properties",
+      );
+      expect(session.ok).toBe(true);
+      if (!session.ok) return;
+      const preview = {
+        ...source,
+        x:
+          edge === "left"
+            ? target.x - source.width - PANEL_WORKSPACE_GAP
+            : target.x + target.width + PANEL_WORKSPACE_GAP,
+        y: target.y,
+      };
+      const updated = updatePanelWorkspaceDragSession(
+        session.value,
+        PANEL_WORKSPACE_TEST_REGISTRY,
+        SURFACE,
+        preview,
+        { x: preview.x + preview.width / 2, y: preview.y + 7 },
+      );
+      expect(updated.ok).toBe(true);
+      if (!updated.ok) return;
+      expect(updated.value.candidate).toEqual({
+        kind: "panel-edge",
+        panelId: "nodes",
+        edge,
+      });
+
+      const committed = commitPanelWorkspaceDragSession(
+        updated.value,
+        PANEL_WORKSPACE_TEST_REGISTRY,
+        SURFACE,
+      );
+      expect(committed.ok).toBe(true);
+      if (!committed.ok) return;
+      expect(committed.value.committed).toBe(true);
+      const committedTargetCluster = committed.value.layout.clusters.find(
+        (cluster) =>
+          cluster.columns.some((column) =>
+            column.rows.some((row) => row.panelId === "nodes"),
+          ),
+      );
+      expect(committedTargetCluster?.columns).toHaveLength(2);
+    },
+  );
+
   it("같은 column에서 source를 숨겨도 보이는 committed target edge를 판정한다", () => {
     const layout = createV3Layout();
     layout.visibility.settings = true;

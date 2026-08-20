@@ -181,6 +181,11 @@ const LAYOUT_PROP_KEYS = [
   "placeholder",
   "value",
   "size",
+  // density (2026-08-21): size 와 직교하는 간격 축(catalog `densities`). 컨테이너 prop 이지만
+  //   자손 레이아웃을 바꾼다 — TabList 는 자기 gap, TableView 는 자손 Column/Cell 의 세로
+  //   padding(applyImplicitStyles 주입). 누락 시 편집해도 시그니처 불변 → 캐시 히트로
+  //   새로고침 전까지 무반영 (isExpanded 선례 동형).
+  "density",
   "layout",
   "orientation",
   "items",

@@ -10906,6 +10906,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 8,
       },
     },
+    // density (2026-08-21): Spectrum `table.item.padding` × density(compact/regular/spacious)
+    //   모델. Spectrum 은 행 높이를 size 축이 정하고 density 는 **item 내부 여백**만 바꾼다
+    //   (`table-row-height-*` 은 density 무관, 구 `-regular` 접미사는 deprecated). 폰트는
+    //   불변이므로 sizes 와 직교한 densities 축에 둔다. 소비 주체가 Column/Cell 이라 채널도
+    //   여기 산다 — TableView 는 density **값**만 넘긴다(applyImplicitStyles 위임).
+    //   행 높이 = lineHeight 24 + paddingY×2 → compact 32 / regular 40 / spacious 48.
+    //   Column/Cell 은 `structure` 미보유라 virtual spec 이 안 생기고, 따라서 generated CSS
+    //   emit 도 없다(DOM 은 renderTableViewSubtree 인라인이 정본) → CSS diff 0.
+    defaultDensity: "regular",
+    densities: {
+      compact: { paddingY: 4 },
+      regular: { paddingY: 8 },
+      spacious: { paddingY: 12 },
+    },
     containerStyles: {
       flex: "1",
       padding: "{spacing.sm}",
@@ -10942,6 +10956,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 8,
         paddingY: 8,
       },
+    },
+    // density: Column 과 동일 축·동일 값 (같은 행 안에서 header/body 여백이 갈리면 안 된다).
+    //   근거·행 높이 산식은 Column 주석 참조.
+    defaultDensity: "regular",
+    densities: {
+      compact: { paddingY: 4 },
+      regular: { paddingY: 8 },
+      spacious: { paddingY: 12 },
     },
     containerStyles: {
       flex: "1",

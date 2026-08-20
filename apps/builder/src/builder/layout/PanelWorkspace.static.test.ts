@@ -59,6 +59,9 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain("useMove({");
     expect(source).toMatch(/<button\s+\{\.\.\.moveProps\}/);
     expect(source).toContain("runtime.updateDrag(config.id, next, pointer)");
+    expect(source).toContain(
+      "panelDragMovedBeyondSnapThreshold(dragStart, next)",
+    );
     expect(source).toContain('dropCandidate?.kind === "panel-edge"');
     expect(source).toContain("function PanelSnapGuide(");
     expect(source).toContain("data-edge={candidate.edge}");

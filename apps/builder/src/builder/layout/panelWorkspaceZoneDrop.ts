@@ -199,17 +199,12 @@ function columnEdgeFits(
 ): boolean {
   const sourceEntry = registryEntry(registry, session.panelId);
   const cluster = session.candidateLayout.clusters[placement.clusterIndex];
-  if (
-    !sourceEntry ||
-    !cluster ||
-    cluster.columns.length >= MAX_PANEL_WORKSPACE_COLUMNS
-  ) {
-    return false;
-  }
+  if (!sourceEntry || !cluster) return false;
   const visibleColumns = visibleColumnIndexes(
     session.candidateLayout,
     placement.clusterIndex,
   );
+  if (visibleColumns.length >= MAX_PANEL_WORKSPACE_COLUMNS) return false;
   const minimumWidth =
     visibleColumns.reduce((sum, columnIndex) => {
       const column = cluster.columns[columnIndex];
@@ -492,9 +487,8 @@ function insertPanelEdge(
       height: detached.height,
     });
   } else {
-    if (targetCluster.columns.length >= MAX_PANEL_WORKSPACE_COLUMNS) {
-      return failure("Panel clusters support at most two columns");
-    }
+    // Hidden-only columns do not consume solved workspace width. A transient
+    // third raw column is folded into the second column by v3 normalization.
     const insertIndex =
       targetPlacement.columnIndex + (candidate.edge === "right" ? 1 : 0);
     targetCluster.columns.splice(insertIndex, 0, {

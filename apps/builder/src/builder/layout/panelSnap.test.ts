@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { PANEL_SNAP_GAP, resolvePanelSnap } from "./panelSnap";
+import {
+  PANEL_SNAP_GAP,
+  panelDragMovedBeyondSnapThreshold,
+  resolvePanelSnap,
+} from "./panelSnap";
 
 const target = {
   panelId: "properties" as const,
@@ -7,6 +11,17 @@ const target = {
 };
 
 describe("panel-relative snap", () => {
+  it("cluster detach suppression은 drag 시작점에서 snap threshold를 벗어날 때 해제한다", () => {
+    const start = { x: 100, y: 100, width: 240, height: 200 };
+
+    expect(panelDragMovedBeyondSnapThreshold(start, { ...start, x: 128 })).toBe(
+      false,
+    );
+    expect(panelDragMovedBeyondSnapThreshold(start, { ...start, x: 129 })).toBe(
+      true,
+    );
+  });
+
   it.each([
     ["top", { x: 900, y: 40 - 200 - PANEL_SNAP_GAP }],
     ["right", { x: 900 + 280 + PANEL_SNAP_GAP, y: 40 }],

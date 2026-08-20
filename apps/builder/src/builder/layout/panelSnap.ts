@@ -22,6 +22,14 @@ export interface PanelSnapCandidate {
 export const PANEL_SNAP_GAP = 4;
 export const PANEL_SNAP_THRESHOLD = 28;
 
+export function panelDragMovedBeyondSnapThreshold(
+  start: PanelFrameGeometry,
+  current: PanelFrameGeometry,
+  threshold = PANEL_SNAP_THRESHOLD,
+): boolean {
+  return Math.hypot(current.x - start.x, current.y - start.y) > threshold;
+}
+
 function candidatePositions(
   source: PanelFrameGeometry,
   target: PanelSnapTarget,

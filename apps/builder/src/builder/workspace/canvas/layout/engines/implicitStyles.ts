@@ -903,6 +903,47 @@ function injectCollectionItemFontStyles(
   });
 }
 
+/**
+ * TableView density → 자손 Column/Cell 의 세로 padding 주입 (2026-08-21).
+ *
+ * **Why 자식 주입인가**: density 의 소비 주체는 Column/Cell(catalog `densities`)인데 값을
+ * 지정하는 prop 은 조상 TableView 에 있다 (Spectrum `table.item.padding × density` 모델 —
+ * 행 높이는 size 축이 정하고 density 는 item 내부 여백만 바꾼다). `calculateContentHeight`
+ * 의 Column/Cell 분기(§1.56)는 부모 접근 인자가 없어 조상 조회를 못 하는 대신
+ * `style.paddingTop ?? style.padding` 을 **우선** 읽는다 — 여기서 longhand 로 주입하면 행
+ * 높이(= 텍스트 24 + 상하 padding)가 그대로 따라온다. Skia 텍스트는 baseline middle 이라
+ * 셀이 커져도 자동으로 세로 중앙에 남는다.
+ *
+ * 사용자 style 우선(`cs.paddingTop ?? 주입값`) — Inspector 편집을 덮지 않는다. `densities`
+ * 미정의면 undefined → 주입 없음(기존 동작 보존).
+ */
+function injectTableDensityPadding(
+  children: CanvasLayoutNode[],
+  density: string | undefined,
+): CanvasLayoutNode[] {
+  return children.map((child) => {
+    if (child.type !== "Column" && child.type !== "Cell") return child;
+    const paddingY = resolveCatalogDensityField(
+      child.type,
+      density,
+      "paddingY",
+    );
+    if (paddingY === undefined) return child;
+    const cs = (child.props?.style as Record<string, unknown>) || {};
+    return {
+      ...child,
+      props: {
+        ...child.props,
+        style: {
+          ...cs,
+          paddingTop: cs.paddingTop ?? paddingY,
+          paddingBottom: cs.paddingBottom ?? paddingY,
+        },
+      },
+    };
+  });
+}
+
 function injectSideLabelLabelAndWrapperStyles(
   children: CanvasLayoutNode[],
   wrapperTags: ReadonlySet<string>,
@@ -1808,6 +1849,28 @@ export function applyImplicitStyles(
       width: "100%",
       ...(tabGap !== undefined ? { gap: tabGap } : {}),
     });
+  }
+
+  // ── TableHeader / Row (TableView density) ─────────────────────────
+  // density 값은 TableView 에 있고 소비 주체는 그 자손 Column/Cell 이라, 행을 소유한
+  //   컨테이너(TableHeader→Column, Row→Cell)에서 위임 주입한다. 조상에 TableView 가
+  //   없으면(= data-driven Table 의 Row 등) 건너뛴다 — 그쪽은 density 축 밖이다.
+  if (containerTag === "tableheader" || containerTag === "row") {
+    const tableViewParent = findAncestorByTag(
+      containerEl,
+      "TableView",
+      elementById,
+      3,
+    );
+    if (tableViewParent) {
+      const density = (
+        tableViewParent.props as Record<string, unknown> | undefined
+      )?.density;
+      filteredChildren = injectTableDensityPadding(
+        filteredChildren,
+        typeof density === "string" ? density : undefined,
+      );
+    }
   }
 
   // ── ComboBox / Select / SearchField ───────────────────────────────

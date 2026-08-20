@@ -28,6 +28,7 @@ import {
   usePanelSnapInteractionActions,
   usePanelSnapInteractionState,
 } from "./PanelSnapContext";
+import { panelDragMovedBeyondSnapThreshold } from "./panelSnap";
 import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
 import { PanelSplitter } from "./PanelSplitter";
 import type {
@@ -403,6 +404,7 @@ const PanelFrame = memo(function PanelFrame({
     width: snapshotFrame?.width ?? 0,
     height: snapshotFrame?.height ?? 0,
   });
+  const dragStartGeometryRef = useRef<PanelFrameGeometry | null>(null);
   const scrollMemoryRef = useRef(
     new Map<Element, { top: number; left: number }>(),
   );
@@ -526,6 +528,7 @@ const PanelFrame = memo(function PanelFrame({
     isInteractingRef.current = false;
     setIsMoving(false);
     suppressSnapRef.current = false;
+    dragStartGeometryRef.current = null;
     pointerRef.current = null;
     flushDropCandidate();
     endPanelDrag();
@@ -545,6 +548,7 @@ const PanelFrame = memo(function PanelFrame({
         width: snapshotFrame.width,
         height: snapshotFrame.height,
       };
+      dragStartGeometryRef.current = { ...visualGeometryRef.current };
       beginPanelDrag(config.id);
       if (isClustered) suppressSnapRef.current = true;
     },
@@ -566,10 +570,15 @@ const PanelFrame = memo(function PanelFrame({
       pointerRef.current = pointer;
       const mutation = runtime.updateDrag(config.id, next, pointer);
       const candidate = mutation.ok ? mutation.value.candidate : null;
-      if (suppressSnapRef.current && candidate?.kind !== "panel-edge") {
+      const dragStart = dragStartGeometryRef.current;
+      if (
+        suppressSnapRef.current &&
+        dragStart &&
+        panelDragMovedBeyondSnapThreshold(dragStart, next)
+      ) {
         suppressSnapRef.current = false;
       }
-      if (suppressSnapRef.current && candidate?.kind === "panel-edge") {
+      if (suppressSnapRef.current) {
         runtime.suppressDragCandidate();
         scheduleDropCandidate(null);
       } else {
@@ -583,6 +592,7 @@ const PanelFrame = memo(function PanelFrame({
         isInteractingRef.current = false;
         setIsMoving(false);
         suppressSnapRef.current = false;
+        dragStartGeometryRef.current = null;
         pointerRef.current = null;
         flushDropCandidate();
         endPanelDrag();
@@ -598,6 +608,7 @@ const PanelFrame = memo(function PanelFrame({
       isInteractingRef.current = false;
       setIsMoving(false);
       suppressSnapRef.current = false;
+      dragStartGeometryRef.current = null;
       pointerRef.current = null;
       endPanelDrag();
     },
