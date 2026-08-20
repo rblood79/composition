@@ -9,6 +9,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     readFile(resolve(__dirname, "PanelWorkspace.css"), "utf-8");
   const readSplitter = () =>
     readFile(resolve(__dirname, "PanelSplitter.tsx"), "utf-8");
+  const readRuntime = () =>
+    readFile(resolve(__dirname, "panelWorkspaceRuntime.ts"), "utf-8");
   const readCanvasStyles = () =>
     readFile(resolve(__dirname, "../styles/layout/canvas.css"), "utf-8");
 
@@ -44,7 +46,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(canvasStyles).toContain(
       ".app :where(aside, .panel-workspace) .panel-header",
     );
-    expect(source).toContain("style={{ zIndex: 2_100 }}");
+    expect(styles).toContain(".panel-dock > .panel-nav");
   });
 
   it("모든 활성 패널을 React Aria move로 직접 이동하고 panel-relative snap target을 제공한다", async () => {
@@ -56,21 +58,40 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
 
     expect(source).toContain("useMove({");
     expect(source).toMatch(/<button\s+\{\.\.\.moveProps\}/);
-    expect(source).toContain("runtime.resolveSnap(config.id, next)");
-    expect(source).toContain("snapTarget?.panelId === config.id");
-    expect(source).toContain("data-edge={snapTarget.edge}");
+    expect(source).toContain("runtime.updateDrag(config.id, next, pointer)");
+    expect(source).toContain('dropCandidate?.kind === "panel-edge"');
+    expect(source).toContain("function PanelSnapGuide(");
+    expect(source).toContain("data-edge={candidate.edge}");
+    expect(source).toContain("PANEL_WORKSPACE_GAP / 2");
+    expect(source).toContain("snapshot.workspaceRect.width - lineSize");
+    expect(source).toContain("snapshot.workspaceRect.height - lineSize");
     expect(source).not.toContain("SNAP_EDGES.map");
-    expect(source).toContain("data-active={isFirstDropTarget}");
-    expect(source).toContain("data-active={isLastDropTarget}");
-    expect(source).toContain("data-enabled={isDragging}");
-    expect(styles).toMatch(
-      /\.panel-dock-dropper\[data-enabled="true"\]\s*\{[\s\S]*?pointer-events: auto;/,
+    expect(source).toContain("PANEL_WORKSPACE_SNAP_ZONES.map((zone)");
+    expect(source).toContain('className="panel-zone-overlay"');
+    expect(styles).toContain(
+      "--panel-interaction-line-color: var(--focus-ring)",
     );
-    expect(styles).toContain("--panel-snap-color: var(--focus-ring)");
-    expect(styles).toContain("height: 2px");
-    expect(styles).toContain("width: 2px");
+    expect(styles).toContain("--panel-interaction-line-size: 2px");
+    expect(styles).toMatch(
+      /\.panel-snap-target\[data-edge="top"\],[\s\S]*?height: var\(--panel-interaction-line-size\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-resize-handle\[data-edge="top"\]::after,[\s\S]*?height: var\(--panel-interaction-line-size\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-snap-target\[data-edge="left"\],[\s\S]*?width: var\(--panel-interaction-line-size\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-resize-handle\[data-edge="left"\]::after,[\s\S]*?width: var\(--panel-interaction-line-size\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-snap-target\[data-edge="top"\],[\s\S]*?background: var\(--panel-interaction-line-color\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-resize-handle::after\s*\{[\s\S]*?background: var\(--panel-interaction-line-color\);/,
+    );
     expect(styles).toMatch(/\.panel-snap-target\s*\{[\s\S]*?border-radius: 0;/);
-    expect(source).toContain('className="panel-snap-target"');
+    expect(source).toContain('className="panel-snap-target panel-snap-guide"');
     expect(source).not.toContain("PanelDropZone");
     expect(source).not.toContain("useDrag({");
     expect(source).not.toContain("useDrop({");
@@ -85,14 +106,28 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(splitter).toContain("aria-valuemax={maxValue}");
   });
 
-  it("viewport dock 대신 자유 위치 또는 인접 panel column/stack 관계를 persist한다", async () => {
-    const source = await readWorkspace();
+  it("drag 자유 좌표는 preview로만 publish하고 valid candidate만 v3 graph에 commit한다", async () => {
+    const [source, runtime] = await Promise.all([
+      readWorkspace(),
+      readRuntime(),
+    ]);
 
-    expect(source).toContain("runtime.movePanel(config.id, next)");
-    expect(source).toContain("runtime.snapPanel(");
-    expect(source).toContain("onCommitLayout(runtime.endInteraction())");
+    expect(source).toContain("runtime.beginDrag(config.id)");
+    expect(source).toContain("runtime.updateDrag(config.id, next, pointer)");
+    expect(source).toContain("runtime.endDrag(config.id)");
+    expect(source).toContain("if (ended.value.committed)");
+    expect(source).not.toContain("runtime.movePanel(config.id, next)");
+    expect(runtime).not.toContain("movePanel(panelId, geometry)");
+    expect(runtime).toContain("coordinator.queuePreview(panelId, geometry)");
+    expect(runtime).toContain("commitPanelWorkspaceDragSession(");
+    expect(runtime).not.toContain("projectPanelWorkspaceLayoutV3ToV2(");
+    expect(runtime).not.toContain("PanelWorkspaceLayoutV2");
     expect(source).toContain("data-clustered=");
-    expect(source).toContain("runtime.cancelInteraction()");
+    expect(source).toContain("runtime.cancelDrag()");
+    expect(source).toContain(
+      'document.addEventListener("keydown", onKeyDown, true)',
+    );
+    expect(source).toContain('if (event.key !== "Escape") return');
     expect(source).not.toContain("EDGE_DOCK_THRESHOLD");
     expect(source).not.toContain("panel-dock-drop-zone");
     expect(source).not.toContain("ModalOverlay");
@@ -126,8 +161,6 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
   it("cluster resize 중에는 인접 panel까지 transient layout으로 갱신하고 종료 시 한 번만 persist한다", async () => {
     const source = await readWorkspace();
 
-    expect(source).toContain("recordPanelWorkspaceLayoutInput(");
-    expect(source).toContain("mutation.value.affectedPanelIds");
     expect(source).toContain(
       "data-layout-version={snapshotFrame?.layoutVersion}",
     );
@@ -156,15 +189,26 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
   it("공통 placement surface가 4px inset과 모든 frame의 단일 containing block을 소유한다", async () => {
     const [source, styles] = await Promise.all([readWorkspace(), readStyles()]);
 
-    expect(source).toContain('className="panel-workspace-placement-surface"');
-    expect(source).toContain("const origin = { x: 0, y: 0 }");
+    expect(source).not.toContain(
+      'className="panel-workspace-placement-surface"',
+    );
+    expect(source).toMatch(
+      /const origin = \{[\s\S]*?x: 0,[\s\S]*?y: 0,[\s\S]*?workspaceWidth:/,
+    );
     expect(source).toContain("inset: 0");
     expect(styles).toContain("--panel-workspace-gap: 4px");
     expect(styles).toMatch(
-      /\.panel-workspace-placement-surface\s*\{[\s\S]*?inset: var\(--panel-workspace-gap\);/,
+      /\.panel-dock\s*\{[\s\S]*?inset: var\(--panel-workspace-gap\);/,
     );
     expect(styles).toMatch(/\.panel-workspace\s*\{[\s\S]*?inset: 0;/);
-    expect(styles).toMatch(/\.panel-dock-surface\s*\{[\s\S]*?inset: 0;/);
+    expect(styles).toMatch(
+      /\.panel-dock\s*\{[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;/,
+    );
+    expect(styles).toMatch(
+      /\.panel-dock-surface\s*\{[\s\S]*?position: relative;[\s\S]*?flex: 1;/,
+    );
+    expect(styles).not.toContain(".panel-activity-rail");
+    expect(styles).not.toContain(".panel-dock-dropper");
   });
 
   it("G2b 통과 뒤 모든 production frame이 coordinator snapshot만 소비한다", async () => {
@@ -176,7 +220,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).not.toContain("createPanelWorkspaceRealFrameCanary");
   });
 
-  it("shortcut scope와 DataTable activation이 legacy active array 대신 v2 visibility를 소비한다", async () => {
+  it("shortcut scope와 DataTable activation이 legacy active array 대신 v3 visibility를 소비한다", async () => {
     const [activeScope, dataTableEditor] = await Promise.all([
       readFile(resolve(__dirname, "../hooks/useActiveScope.ts"), "utf-8"),
       readFile(
@@ -190,7 +234,9 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
 
     expect(activeScope).toContain("state.panelWorkspaceLayout");
     expect(activeScope).not.toContain("state.panelLayout");
-    expect(dataTableEditor).toContain("setPanelWorkspacePanelVisibility(");
+    expect(dataTableEditor).toContain("setPanelWorkspaceLayout({");
     expect(dataTableEditor).not.toContain("activeLeftPanels");
+    expect(dataTableEditor).toContain('".panel-dock"');
+    expect(dataTableEditor).not.toContain("panel-workspace-placement-surface");
   });
 });

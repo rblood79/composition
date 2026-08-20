@@ -25,6 +25,18 @@ export const PANEL_WORKSPACE_PLACEMENT_ZONES = [
 export type PanelWorkspacePlacementZone =
   (typeof PANEL_WORKSPACE_PLACEMENT_ZONES)[number];
 
+/** Interactive snap targets. The legacy center placement remains readable. */
+export const PANEL_WORKSPACE_SNAP_ZONES = [
+  "top-left",
+  "top",
+  "top-right",
+  "left",
+  "right",
+  "bottom-left",
+  "bottom",
+  "bottom-right",
+] as const satisfies readonly Exclude<PanelWorkspacePlacementZone, "center">[];
+
 export const PANEL_WORKSPACE_DEFAULT_ZONE_BY_RAIL: Record<
   PanelWorkspaceRailSide,
   PanelWorkspacePlacementZone
@@ -53,6 +65,8 @@ export interface PanelWorkspaceColumnV3 {
 export interface PanelWorkspaceClusterV3 {
   id: string;
   placementZone: PanelWorkspacePlacementZone;
+  /** Resize-preserved displacement from the zone's computed origin. */
+  originOffset?: { x: number; y: number };
   columns: PanelWorkspaceColumnV3[];
 }
 
@@ -97,6 +111,7 @@ interface RawPanelWorkspaceColumnV3 {
 interface RawPanelWorkspaceClusterV3 {
   id: string;
   placementZone: PanelWorkspacePlacementZone;
+  originOffset?: { x: number; y: number };
   columns: RawPanelWorkspaceColumnV3[];
 }
 
@@ -128,6 +143,19 @@ function isNonEmptyString(value: unknown): value is string {
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(value, maximum));
+}
+
+function readOriginOffset(
+  value: unknown,
+): { x: number; y: number } | undefined {
+  if (
+    !isRecord(value) ||
+    !isFiniteNumber(value.x) ||
+    !isFiniteNumber(value.y)
+  ) {
+    return undefined;
+  }
+  return { x: value.x, y: value.y };
 }
 
 export function panelWorkspaceZoneOrigin(
@@ -288,6 +316,7 @@ function parseRawLayout(
     clusters.push({
       id: clusterValue.id,
       placementZone: clusterValue.placementZone,
+      originOffset: readOriginOffset(clusterValue.originOffset),
       columns,
     });
   }
@@ -350,6 +379,9 @@ function rawToTypedLayout(
     clusters: raw.clusters.map((cluster) => ({
       id: cluster.id,
       placementZone: cluster.placementZone,
+      ...(cluster.originOffset
+        ? { originOffset: { ...cluster.originOffset } }
+        : {}),
       columns: cluster.columns.map((column) => ({
         id: column.id,
         width: column.width,
@@ -406,56 +438,84 @@ function fitTrackSizes(
 function fitClusterToSurface(
   cluster: PanelWorkspaceClusterV3,
   entries: ReadonlyMap<PanelId, PanelWorkspaceRegistryEntry>,
+  visibility: Partial<Record<PanelId, boolean>>,
   surfaceRect: PanelWorkspaceRect,
 ): void {
+  const visibleColumnIndexes = cluster.columns.flatMap((column, columnIndex) =>
+    column.rows.some((row) => visibility[row.panelId] === true)
+      ? [columnIndex]
+      : [],
+  );
   const horizontalGap =
-    PANEL_WORKSPACE_GAP * Math.max(0, cluster.columns.length - 1);
+    PANEL_WORKSPACE_GAP * Math.max(0, visibleColumnIndexes.length - 1);
   const availableWidth = Math.max(0, surfaceRect.width - horizontalGap);
   const columnMinimums = cluster.columns.map((column) => {
+    const visibleRows = column.rows.filter(
+      (row) => visibility[row.panelId] === true,
+    );
+    const constrainingRows =
+      visibleRows.length > 0 ? visibleRows : column.rows.slice(0, 1);
     const minimum = Math.max(
       0,
-      ...column.rows.map((row) => entries.get(row.panelId)?.minWidth ?? 0),
+      ...constrainingRows.map((row) => entries.get(row.panelId)?.minWidth ?? 0),
     );
-    return Math.min(minimum, availableWidth);
+    return Math.min(minimum, surfaceRect.width);
   });
   const columnPreferred = cluster.columns.map((column, columnIndex) => {
+    const visibleRows = column.rows.filter(
+      (row) => visibility[row.panelId] === true,
+    );
+    const constrainingRows =
+      visibleRows.length > 0 ? visibleRows : column.rows.slice(0, 1);
     const maximum = Math.max(
       columnMinimums[columnIndex] ?? 0,
       Math.min(
         surfaceRect.width,
-        ...column.rows.map(
+        ...constrainingRows.map(
           (row) => entries.get(row.panelId)?.maxWidth ?? surfaceRect.width,
         ),
       ),
     );
     return clamp(column.width, columnMinimums[columnIndex] ?? 0, maximum);
   });
-  const fittedWidths = fitTrackSizes(
-    columnPreferred,
-    columnMinimums,
+  const fittedVisibleWidths = fitTrackSizes(
+    visibleColumnIndexes.map((index) => columnPreferred[index] ?? 0),
+    visibleColumnIndexes.map((index) => columnMinimums[index] ?? 0),
     availableWidth,
   );
 
   cluster.columns.forEach((column, columnIndex) => {
-    column.width = fittedWidths[columnIndex] ?? 0;
+    const visibleColumnIndex = visibleColumnIndexes.indexOf(columnIndex);
+    column.width =
+      visibleColumnIndex >= 0
+        ? (fittedVisibleWidths[visibleColumnIndex] ?? 0)
+        : (columnPreferred[columnIndex] ?? 0);
+    const visibleRowIndexes = column.rows.flatMap((row, rowIndex) =>
+      visibility[row.panelId] === true ? [rowIndex] : [],
+    );
     const verticalGap =
-      PANEL_WORKSPACE_GAP * Math.max(0, column.rows.length - 1);
+      PANEL_WORKSPACE_GAP * Math.max(0, visibleRowIndexes.length - 1);
     const availableHeight = Math.max(0, surfaceRect.height - verticalGap);
     const minimums = column.rows.map((row) =>
-      Math.min(entries.get(row.panelId)?.minHeight ?? 0, availableHeight),
+      Math.min(entries.get(row.panelId)?.minHeight ?? 0, surfaceRect.height),
     );
     const preferred = column.rows.map((row, rowIndex) => {
       const entry = entries.get(row.panelId);
       const minimum = minimums[rowIndex] ?? 0;
-      const maximum = Math.max(
-        minimum,
-        Math.min(entry?.maxHeight ?? surfaceRect.height, surfaceRect.height),
-      );
+      const maximum = Math.max(minimum, surfaceRect.height);
       return clamp(row.height, minimum, maximum);
     });
-    const fittedHeights = fitTrackSizes(preferred, minimums, availableHeight);
+    const fittedVisibleHeights = fitTrackSizes(
+      visibleRowIndexes.map((index) => preferred[index] ?? 0),
+      visibleRowIndexes.map((index) => minimums[index] ?? 0),
+      availableHeight,
+    );
     column.rows.forEach((row, rowIndex) => {
-      row.height = fittedHeights[rowIndex] ?? 0;
+      const visibleRowIndex = visibleRowIndexes.indexOf(rowIndex);
+      row.height =
+        visibleRowIndex >= 0
+          ? (fittedVisibleHeights[visibleRowIndex] ?? 0)
+          : (preferred[rowIndex] ?? 0);
     });
   });
 }
@@ -542,6 +602,9 @@ export function normalizePanelWorkspaceLayoutV3(
       targetCluster = {
         id: uniqueId(sourceCluster.id, usedClusterIds),
         placementZone: sourceCluster.placementZone,
+        ...(sourceCluster.originOffset
+          ? { originOffset: { ...sourceCluster.originOffset } }
+          : {}),
         columns: [],
       };
       clusterByZone.set(sourceCluster.placementZone, targetCluster);
@@ -627,7 +690,7 @@ export function normalizePanelWorkspaceLayoutV3(
   }
 
   for (const cluster of clusters) {
-    fitClusterToSurface(cluster, entries, surface.value);
+    fitClusterToSurface(cluster, entries, visibility, surface.value);
   }
 
   const clusterIds = clusters.map((cluster) => cluster.id);
@@ -722,18 +785,23 @@ export function solvePanelWorkspaceLayoutV3(
       surfaceRect,
       { width, height },
     );
+    const originOffset = cluster.originOffset ?? { x: 0, y: 0 };
+    const resolvedOrigin = {
+      x: origin.x + originOffset.x,
+      y: origin.y + originOffset.y,
+    };
     clusterGeometries.set(cluster.id, {
       clusterId: cluster.id,
       placementZone: cluster.placementZone,
-      x: origin.x,
-      y: origin.y,
+      x: resolvedOrigin.x,
+      y: resolvedOrigin.y,
       width,
       height,
     });
 
-    let columnX = origin.x;
+    let columnX = resolvedOrigin.x;
     for (const { column, rows } of visibleColumns) {
-      let rowY = origin.y;
+      let rowY = resolvedOrigin.y;
       for (const row of rows) {
         visiblePanelIds.add(row.panelId);
         frameGeometries.set(row.panelId, {

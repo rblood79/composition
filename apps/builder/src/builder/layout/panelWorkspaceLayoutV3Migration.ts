@@ -196,6 +196,32 @@ function railMembership(
   return membership;
 }
 
+function legacyFloatingAnchorSide(
+  cluster: PanelWorkspaceFloatingClusterV2,
+  membership: ReadonlyMap<PanelId, PanelWorkspaceRailSide>,
+): PanelWorkspaceRailSide | null {
+  for (const side of RAIL_SIDES) {
+    if (cluster.id !== `anchor:${side}`) continue;
+    const panelIds = clusterPanelIds(cluster);
+    return panelIds.length > 0 &&
+      panelIds.every((panelId) => membership.get(panelId) === side)
+      ? side
+      : null;
+  }
+  return null;
+}
+
+function projectedPlacementZone(
+  cluster: PanelWorkspaceFloatingClusterV2,
+): PanelWorkspacePlacementZone | null {
+  return (
+    PANEL_WORKSPACE_PLACEMENT_ZONES.find(
+      (zone) =>
+        cluster.id === `zone:${zone}` || cluster.id.startsWith(`zone:${zone}#`),
+    ) ?? null
+  );
+}
+
 function mergeColumnForSide(
   target: PanelWorkspaceClusterV3,
   side: PanelWorkspaceRailSide,
@@ -296,11 +322,27 @@ export function migratePanelWorkspaceLayoutV2ToV3(
   const assignments = new Map<string, PanelWorkspacePlacementZone>();
   const occupied = new Set<PanelWorkspacePlacementZone>();
   const floatingEntries: FloatingMigrationEntry[] = [];
+  const membership = railMembership(layout);
   layout.clusters.forEach((cluster, clusterIndex) => {
     if (cluster.anchor !== "floating") {
       const zone = PANEL_WORKSPACE_DEFAULT_ZONE_BY_RAIL[cluster.anchor];
       assignments.set(cluster.id, zone);
       occupied.add(zone);
+      return;
+    }
+    const projectedZone = projectedPlacementZone(cluster);
+    if (projectedZone && !occupied.has(projectedZone)) {
+      assignments.set(cluster.id, projectedZone);
+      occupied.add(projectedZone);
+      return;
+    }
+    const legacySide = legacyFloatingAnchorSide(cluster, membership);
+    const legacyZone = legacySide
+      ? PANEL_WORKSPACE_DEFAULT_ZONE_BY_RAIL[legacySide]
+      : null;
+    if (legacyZone && !occupied.has(legacyZone)) {
+      assignments.set(cluster.id, legacyZone);
+      occupied.add(legacyZone);
       return;
     }
     floatingEntries.push({
@@ -338,7 +380,7 @@ export function migratePanelWorkspaceLayoutV2ToV3(
     const placementZone = assignments.get(cluster.id);
     return placementZone ? [cloneClusterAsV3(cluster, placementZone)] : [];
   });
-  routeOverflowClusters(overflow, outputClusters, railMembership(layout));
+  routeOverflowClusters(overflow, outputClusters, membership);
 
   return normalizePanelWorkspaceLayoutV3(
     {

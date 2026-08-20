@@ -2,61 +2,76 @@ import type {
   PanelFrameGeometry,
   PanelId,
   PanelResizeEdge,
-  PanelSnapEdge,
 } from "../panels/core/types";
 import {
   createPanelWorkspaceLayoutCoordinator,
   type PanelWorkspaceLayoutCoordinator,
 } from "./panelWorkspaceLayoutCoordinator";
-import { floatAnchoredPanelWorkspaceClusters } from "./panelWorkspaceLayoutV2";
-import {
-  activatePanelWorkspacePanel,
-  detachPanelToFloatingCluster,
-  dropPanelWorkspacePanel,
-  resizePanelWorkspaceBoundary,
-  snapPanelWorkspacePanel,
-  type PanelWorkspaceInteractionResult,
-} from "./panelWorkspaceLayoutInteraction";
 import type {
-  PanelWorkspaceLayoutV2,
-  PanelWorkspaceRailSizes,
   PanelWorkspaceRect,
   PanelWorkspaceRegistryEntry,
   PanelWorkspaceResult,
 } from "./panelWorkspaceLayoutV2";
-import type { PanelSnapCandidate } from "./panelSnap";
-import type { PanelDockDropTarget } from "./panelWorkspaceDockDrop";
-import { resolvePanelSnapFromSnapshot } from "./panelWorkspaceShadowAdapter";
+import {
+  normalizePanelWorkspaceLayoutV3,
+  type PanelWorkspaceLayoutV3,
+} from "./panelWorkspaceLayoutV3";
+import {
+  activatePanelWorkspacePanelV3,
+  resetPanelWorkspaceLayoutV3,
+  resizePanelWorkspaceBoundaryV3,
+  type PanelWorkspacePolicyResultV3,
+} from "./panelWorkspacePolicyV3";
+import {
+  beginPanelWorkspaceDragSession,
+  commitPanelWorkspaceDragSession,
+  updatePanelWorkspaceDragSession,
+  type PanelDropCandidate,
+  type PanelWorkspaceDragSession,
+  type PanelWorkspacePointerPosition,
+} from "./panelWorkspaceZoneDrop";
 
 export interface PanelWorkspaceRuntimeMutation {
   expectedVersion: number;
   affectedPanelIds: readonly PanelId[];
 }
 
+export interface PanelWorkspaceRuntimeDragMutation extends PanelWorkspaceRuntimeMutation {
+  candidate: PanelDropCandidate;
+}
+
+export interface PanelWorkspaceRuntimeDragEnd {
+  layout: PanelWorkspaceLayoutV3;
+  committed: boolean;
+  candidate: PanelDropCandidate;
+  expectedVersion: number;
+  affectedPanelIds: readonly PanelId[];
+}
+
 export interface PanelWorkspaceRuntime {
   coordinator: PanelWorkspaceLayoutCoordinator;
-  getLayout(): PanelWorkspaceLayoutV2;
-  replaceCommittedLayout(layout: PanelWorkspaceLayoutV2): void;
+  getLayout(): PanelWorkspaceLayoutV3;
+  getRegistry(): readonly PanelWorkspaceRegistryEntry[];
+  getDragSession(): PanelWorkspaceDragSession | null;
+  replaceCommittedLayout(layout: PanelWorkspaceLayoutV3): void;
+  beginDrag(panelId: PanelId): PanelWorkspaceResult<PanelWorkspaceDragSession>;
+  updateDrag(
+    panelId: PanelId,
+    geometry: PanelFrameGeometry,
+    pointer: PanelWorkspacePointerPosition,
+  ): PanelWorkspaceResult<PanelWorkspaceRuntimeDragMutation>;
+  suppressDragCandidate(): void;
+  endDrag(panelId: PanelId): PanelWorkspaceResult<PanelWorkspaceRuntimeDragEnd>;
+  cancelDrag(): PanelWorkspaceRuntimeDragEnd;
   beginInteraction(): void;
-  endInteraction(): PanelWorkspaceLayoutV2;
-  cancelInteraction(): PanelWorkspaceLayoutV2;
+  endInteraction(): PanelWorkspaceLayoutV3;
+  cancelInteraction(): PanelWorkspaceLayoutV3;
   updateWorkspaceRect(workspaceRect: PanelWorkspaceRect): void;
+  updateRegistry(registry: readonly PanelWorkspaceRegistryEntry[]): void;
   activatePanel(
     panelId: PanelId,
   ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
-  movePanel(
-    panelId: PanelId,
-    geometry: PanelFrameGeometry,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
-  snapPanel(
-    panelId: PanelId,
-    targetPanelId: PanelId,
-    edge: PanelSnapEdge,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
-  dropPanel(
-    panelId: PanelId,
-    target: PanelDockDropTarget,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
+  resetLayout(): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
   resizePanel(
     panelId: PanelId,
     edge: PanelResizeEdge,
@@ -69,37 +84,30 @@ export interface PanelWorkspaceRuntime {
     deltaX: number,
     deltaY: number,
   ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
-  resolveSnap(
-    panelId: PanelId,
-    geometry: PanelFrameGeometry,
-  ): PanelSnapCandidate | null;
   destroy(): void;
 }
 
 export function createPanelWorkspaceRuntime(
-  initialLayout: PanelWorkspaceLayoutV2,
+  initialLayout: PanelWorkspaceLayoutV3,
   registry: readonly PanelWorkspaceRegistryEntry[],
   workspaceRect: PanelWorkspaceRect,
-  railSizes: PanelWorkspaceRailSizes,
 ): PanelWorkspaceResult<PanelWorkspaceRuntime> {
+  let currentRegistry = [...registry];
   let currentWorkspaceRect = { ...workspaceRect };
-  const floatAnchoredClusters = (
-    nextLayout: PanelWorkspaceLayoutV2,
-  ): PanelWorkspaceResult<PanelWorkspaceLayoutV2> =>
-    floatAnchoredPanelWorkspaceClusters(nextLayout, registry, {
-      workspaceRect: currentWorkspaceRect,
-      railSizes,
-    });
-  const initialFloatingLayout = floatAnchoredClusters(initialLayout);
-  if (!initialFloatingLayout.ok) return initialFloatingLayout;
-  let layout = initialFloatingLayout.value;
-  let committedLayout = initialFloatingLayout.value;
-  let interactionBaseLayout: PanelWorkspaceLayoutV2 | null = null;
+  const initial = normalizePanelWorkspaceLayoutV3(
+    initialLayout,
+    currentRegistry,
+    currentWorkspaceRect,
+  );
+  if (!initial.ok) return initial;
+  let layout = initial.value;
+  let committedLayout = initial.value;
+  let interactionBaseLayout: PanelWorkspaceLayoutV3 | null = null;
+  let dragSession: PanelWorkspaceDragSession | null = null;
   const coordinatorResult = createPanelWorkspaceLayoutCoordinator({
     layout,
-    registry,
+    registry: currentRegistry,
     workspaceRect: currentWorkspaceRect,
-    railSizes,
   });
   if (!coordinatorResult.ok) return coordinatorResult;
   const coordinator = coordinatorResult.value;
@@ -108,14 +116,14 @@ export function createPanelWorkspaceRuntime(
     const expectedVersion = coordinator.getSnapshot().version + 1;
     coordinator.queueInput({
       layout,
-      registry,
+      registry: currentRegistry,
       workspaceRect: currentWorkspaceRect,
-      railSizes,
     });
     return expectedVersion;
   };
-  const applyInteraction = (
-    result: PanelWorkspaceResult<PanelWorkspaceInteractionResult>,
+
+  const applyPolicyInteraction = (
+    result: PanelWorkspaceResult<PanelWorkspacePolicyResultV3>,
   ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation> => {
     if (!result.ok) return result;
     layout = result.value.layout;
@@ -135,29 +143,135 @@ export function createPanelWorkspaceRuntime(
     value: {
       coordinator,
       getLayout: () => layout,
+      getRegistry: () => currentRegistry,
+      getDragSession: () => dragSession,
       replaceCommittedLayout(nextLayout): void {
-        const floatingLayout = floatAnchoredClusters(nextLayout);
-        if (!floatingLayout.ok) return;
-        committedLayout = floatingLayout.value;
-        if (interactionBaseLayout !== null) return;
-        if (JSON.stringify(layout) === JSON.stringify(floatingLayout.value)) {
-          layout = floatingLayout.value;
+        const normalized = normalizePanelWorkspaceLayoutV3(
+          nextLayout,
+          currentRegistry,
+          currentWorkspaceRect,
+        );
+        if (!normalized.ok) return;
+        committedLayout = normalized.value;
+        if (interactionBaseLayout !== null || dragSession !== null) return;
+        if (JSON.stringify(layout) === JSON.stringify(normalized.value)) {
+          layout = normalized.value;
           return;
         }
-        layout = floatingLayout.value;
+        layout = normalized.value;
         queueCurrentLayout();
+      },
+      beginDrag(panelId) {
+        if (dragSession !== null) {
+          return { ok: false, error: "A panel drag session is already active" };
+        }
+        const session = beginPanelWorkspaceDragSession(
+          committedLayout,
+          currentRegistry,
+          currentWorkspaceRect,
+          panelId,
+        );
+        if (!session.ok) return session;
+        dragSession = session.value;
+        return session;
+      },
+      updateDrag(panelId, geometry, pointer) {
+        if (dragSession === null || dragSession.panelId !== panelId) {
+          return { ok: false, error: `Panel "${panelId}" has no drag session` };
+        }
+        const updated = updatePanelWorkspaceDragSession(
+          dragSession,
+          currentRegistry,
+          currentWorkspaceRect,
+          geometry,
+          pointer,
+        );
+        if (!updated.ok) return updated;
+        dragSession = updated.value;
+        const expectedVersion = coordinator.getSnapshot().version + 1;
+        coordinator.queuePreview(panelId, geometry);
+        return {
+          ok: true,
+          value: {
+            expectedVersion,
+            affectedPanelIds: [panelId],
+            candidate: dragSession.candidate,
+          },
+        };
+      },
+      suppressDragCandidate(): void {
+        if (dragSession === null) return;
+        dragSession = { ...dragSession, candidate: null };
+      },
+      endDrag(panelId) {
+        if (dragSession === null || dragSession.panelId !== panelId) {
+          return { ok: false, error: `Panel "${panelId}" has no drag session` };
+        }
+        const session = dragSession;
+        dragSession = null;
+        const committed = commitPanelWorkspaceDragSession(
+          session,
+          currentRegistry,
+          currentWorkspaceRect,
+        );
+        if (!committed.ok) {
+          coordinator.clearPreview();
+          return committed;
+        }
+        const expectedVersion = coordinator.getSnapshot().version + 1;
+        if (!committed.value.committed) {
+          coordinator.clearPreview();
+          return {
+            ok: true,
+            value: {
+              layout: committedLayout,
+              committed: false,
+              candidate: null,
+              expectedVersion,
+              affectedPanelIds: [],
+            },
+          };
+        }
+        layout = committed.value.layout;
+        committedLayout = committed.value.layout;
+        queueCurrentLayout();
+        coordinator.clearPreview();
+        return {
+          ok: true,
+          value: {
+            layout,
+            committed: true,
+            candidate: committed.value.candidate,
+            expectedVersion,
+            affectedPanelIds: committed.value.affectedPanelIds.filter(
+              (affectedPanelId) => layout.visibility[affectedPanelId] === true,
+            ),
+          },
+        };
+      },
+      cancelDrag() {
+        dragSession = null;
+        const expectedVersion = coordinator.getSnapshot().version + 1;
+        coordinator.clearPreview();
+        return {
+          layout: committedLayout,
+          committed: false,
+          candidate: null,
+          expectedVersion,
+          affectedPanelIds: [],
+        };
       },
       beginInteraction(): void {
         if (interactionBaseLayout === null) {
           interactionBaseLayout = committedLayout;
         }
       },
-      endInteraction(): PanelWorkspaceLayoutV2 {
+      endInteraction(): PanelWorkspaceLayoutV3 {
         committedLayout = layout;
         interactionBaseLayout = null;
         return layout;
       },
-      cancelInteraction(): PanelWorkspaceLayoutV2 {
+      cancelInteraction(): PanelWorkspaceLayoutV3 {
         if (interactionBaseLayout !== null) {
           layout = interactionBaseLayout;
           committedLayout = interactionBaseLayout;
@@ -174,77 +288,82 @@ export function createPanelWorkspaceRuntime(
           return;
         }
         currentWorkspaceRect = { ...nextWorkspaceRect };
+        const normalized = normalizePanelWorkspaceLayoutV3(
+          layout,
+          currentRegistry,
+          currentWorkspaceRect,
+        );
+        if (normalized.ok) {
+          layout = normalized.value;
+          if (interactionBaseLayout === null && dragSession === null) {
+            committedLayout = normalized.value;
+          }
+        }
+        queueCurrentLayout();
+      },
+      updateRegistry(nextRegistry): void {
+        if (currentRegistry === nextRegistry) return;
+        currentRegistry = [...nextRegistry];
+        const normalized = normalizePanelWorkspaceLayoutV3(
+          layout,
+          currentRegistry,
+          currentWorkspaceRect,
+        );
+        if (normalized.ok) {
+          layout = normalized.value;
+          if (interactionBaseLayout === null && dragSession === null) {
+            committedLayout = normalized.value;
+          }
+        }
         queueCurrentLayout();
       },
       activatePanel(panelId) {
-        return applyInteraction(
-          activatePanelWorkspacePanel(layout, registry, panelId, {
-            railSizes,
-            workspaceRect: currentWorkspaceRect,
-          }),
-        );
-      },
-      movePanel(panelId, geometry) {
-        return applyInteraction(
-          detachPanelToFloatingCluster(layout, registry, panelId, geometry),
-        );
-      },
-      snapPanel(panelId, targetPanelId, edge) {
-        return applyInteraction(
-          snapPanelWorkspacePanel(
+        return applyPolicyInteraction(
+          activatePanelWorkspacePanelV3(
             layout,
-            registry,
+            currentRegistry,
             panelId,
-            targetPanelId,
-            edge,
+            currentWorkspaceRect,
           ),
         );
       },
-      dropPanel(panelId, target) {
-        return applyInteraction(
-          dropPanelWorkspacePanel(layout, registry, panelId, target),
+      resetLayout() {
+        return applyPolicyInteraction(
+          resetPanelWorkspaceLayoutV3(
+            layout,
+            currentRegistry,
+            currentWorkspaceRect,
+          ),
         );
       },
       resizePanel(panelId, edge, deltaX, deltaY) {
-        return applyInteraction(
-          resizePanelWorkspaceBoundary(
+        return applyPolicyInteraction(
+          resizePanelWorkspaceBoundaryV3(
             layout,
-            registry,
+            currentRegistry,
             panelId,
             edge,
             deltaX,
             deltaY,
-            {
-              maxHeight: currentWorkspaceRect.height,
-              workspaceRect: currentWorkspaceRect,
-            },
+            currentWorkspaceRect,
           ),
         );
       },
       resizePanelFromReference(panelId, edge, deltaX, deltaY) {
-        return applyInteraction(
-          resizePanelWorkspaceBoundary(
+        return applyPolicyInteraction(
+          resizePanelWorkspaceBoundaryV3(
             interactionBaseLayout ?? layout,
-            registry,
+            currentRegistry,
             panelId,
             edge,
             deltaX,
             deltaY,
-            {
-              maxHeight: currentWorkspaceRect.height,
-              workspaceRect: currentWorkspaceRect,
-            },
+            currentWorkspaceRect,
           ),
         );
       },
-      resolveSnap(panelId, geometry) {
-        return resolvePanelSnapFromSnapshot(
-          coordinator.getSnapshot(),
-          panelId,
-          geometry,
-        );
-      },
       destroy(): void {
+        dragSession = null;
         coordinator.destroy();
       },
     },

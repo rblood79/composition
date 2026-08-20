@@ -1,6 +1,7 @@
 import {
   Activity,
   memo,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -19,25 +20,16 @@ import type {
   PanelId,
   PanelResizeEdge,
   PanelSide,
-  PanelSnapEdge,
 } from "../panels/core/types";
 import { PanelNav } from "./PanelNav";
 import { registerPanelWorkspaceActivationDispatcher } from "./panelWorkspaceActivationDispatcher";
 import {
   PanelSnapInteractionProvider,
-  usePanelSnapInteraction,
+  usePanelSnapInteractionActions,
+  usePanelSnapInteractionState,
 } from "./PanelSnapContext";
+import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
 import { PanelSplitter } from "./PanelSplitter";
-import {
-  mountPanelWorkspaceDiagnostics,
-  isPanelWorkspaceDiagnosticsEnabled,
-  recordPanelFrameApplied,
-  recordPanelFrameCommit,
-  recordPanelWorkspaceCommit,
-  recordPanelWorkspaceLayoutInput,
-  recordPanelWorkspaceSolve,
-  startPanelWorkspaceManualTrace,
-} from "./panelWorkspaceDiagnostics";
 import type {
   PanelWorkspaceFrameSnapshot,
   PanelWorkspaceLayoutSnapshot,
@@ -45,11 +37,16 @@ import type {
 } from "./panelWorkspaceLayoutCoordinator";
 import {
   createPanelWorkspaceRegistryEntry,
-  type PanelWorkspaceClusterV2,
-  type PanelWorkspaceLayoutV2,
+  PANEL_WORKSPACE_GAP,
   type PanelWorkspaceRect,
   type PanelWorkspaceRegistryEntry,
 } from "./panelWorkspaceLayoutV2";
+import {
+  PANEL_WORKSPACE_PLACEMENT_ZONES,
+  PANEL_WORKSPACE_SNAP_ZONES,
+  type PanelWorkspaceClusterV3,
+  type PanelWorkspaceLayoutV3,
+} from "./panelWorkspaceLayoutV3";
 import {
   createPanelWorkspaceRuntime,
   type PanelWorkspaceRuntime,
@@ -60,8 +57,16 @@ import {
 } from "./usePanelWorkspaceLayoutSnapshot";
 import "./PanelWorkspace.css";
 
-const PANEL_RAIL_SIZE = 48;
-type PanelFrameMode = "hidden" | "anchored" | "placed";
+type PanelFrameMode = "hidden" | "placed";
+
+function isRightAnchoredPlacementZone(
+  placementZone: PanelWorkspaceClusterV3["placementZone"] | undefined,
+): boolean {
+  return Boolean(
+    placementZone &&
+    (placementZone === "right" || placementZone.endsWith("-right")),
+  );
+}
 
 const RESIZE_EDGE_LABELS: Record<PanelResizeEdge, string> = {
   left: "왼쪽",
@@ -71,7 +76,7 @@ const RESIZE_EDGE_LABELS: Record<PanelResizeEdge, string> = {
 };
 
 function railSideForPanel(
-  layout: PanelWorkspaceLayoutV2,
+  layout: PanelWorkspaceLayoutV3,
   config: PanelConfig,
 ): PanelSide {
   for (const side of ["left", "right", "bottom"] as const) {
@@ -84,20 +89,37 @@ function frameMode(
   snapshotFrame: PanelWorkspaceFrameSnapshot | null,
 ): PanelFrameMode {
   if (!snapshotFrame) return "hidden";
-  return snapshotFrame.anchor === "floating" ? "placed" : "anchored";
+  return "placed";
 }
 
 function panelBelongsToMultiPanelCluster(
   runtime: PanelWorkspaceRuntime,
   panelId: PanelId,
 ): boolean {
-  return runtime.getLayout().clusters.some((cluster) => {
-    const panelIds = cluster.columns.flatMap((column) =>
-      column.rows.map((row) => row.panelId),
-    );
-    return panelIds.length > 1 && panelIds.includes(panelId);
-  });
+  const layout = runtime.getLayout();
+  const cached = multiPanelClusterMembershipCache.get(runtime);
+  if (cached?.layout === layout) return cached.panelIds.has(panelId);
+
+  const panelIds = new Set<PanelId>();
+  for (const cluster of layout.clusters) {
+    let clusterPanelCount = 0;
+    for (const column of cluster.columns) {
+      clusterPanelCount += column.rows.length;
+    }
+    if (clusterPanelCount <= 1) continue;
+    for (const column of cluster.columns) {
+      for (const row of column.rows) panelIds.add(row.panelId);
+    }
+  }
+
+  multiPanelClusterMembershipCache.set(runtime, { layout, panelIds });
+  return panelIds.has(panelId);
 }
+
+const multiPanelClusterMembershipCache = new WeakMap<
+  PanelWorkspaceRuntime,
+  { layout: PanelWorkspaceLayoutV3; panelIds: ReadonlySet<PanelId> }
+>();
 
 function frameZIndex(
   runtime: PanelWorkspaceRuntime,
@@ -105,9 +127,9 @@ function frameZIndex(
   isMoving: boolean,
 ): number {
   if (isMoving) return 2_000;
-  if (!snapshotFrame || snapshotFrame.anchor !== "floating") return 30;
+  if (!snapshotFrame) return 30;
   const layout = runtime.getLayout();
-  const focusIndex = layout.floatingFocusOrder.indexOf(snapshotFrame.clusterId);
+  const focusIndex = layout.clusterFocusOrder.indexOf(snapshotFrame.clusterId);
   return 1_000 + Math.max(0, focusIndex);
 }
 
@@ -116,11 +138,23 @@ function splitterZIndex(
   clusterId: string,
 ): number {
   const layout = runtime.getLayout();
-  const cluster = layout.clusters.find(
-    (candidate) => candidate.id === clusterId,
-  );
-  if (cluster?.anchor !== "floating") return 30;
-  return 1_000 + Math.max(0, layout.floatingFocusOrder.indexOf(clusterId));
+  if (!layout.clusterFocusOrder.includes(clusterId)) return 30;
+  return 1_000 + Math.max(0, layout.clusterFocusOrder.indexOf(clusterId));
+}
+
+const registryLookupCache = new WeakMap<
+  readonly PanelWorkspaceRegistryEntry[],
+  ReadonlyMap<PanelId, PanelWorkspaceRegistryEntry>
+>();
+
+function registryEntryMap(
+  registry: readonly PanelWorkspaceRegistryEntry[],
+): ReadonlyMap<PanelId, PanelWorkspaceRegistryEntry> {
+  const cached = registryLookupCache.get(registry);
+  if (cached) return cached;
+  const entries = new Map(registry.map((entry) => [entry.id, entry] as const));
+  registryLookupCache.set(registry, entries);
+  return entries;
 }
 
 interface SharedSplitterContract {
@@ -136,47 +170,51 @@ interface SharedSplitterContract {
 function sharedSplitterContract(
   splitter: PanelWorkspaceSplitterGeometry,
   snapshot: PanelWorkspaceLayoutSnapshot,
+  registry: readonly PanelWorkspaceRegistryEntry[],
+  configsByPanelId: ReadonlyMap<PanelId, PanelConfig>,
 ): SharedSplitterContract | null {
   const panelId = splitter.beforePanelIds[0];
   if (!panelId) return null;
   const frame = snapshot.frameGeometries.get(panelId);
   if (!frame) return null;
+  const entriesByPanelId = registryEntryMap(registry);
   const beforeConfigs = splitter.beforePanelIds.flatMap((candidate) => {
-    const config = PanelRegistry.getPanel(candidate);
+    const config = configsByPanelId.get(candidate);
     return config ? [config] : [];
   });
   if (beforeConfigs.length === 0) return null;
+  const beforeEntries = splitter.beforePanelIds.flatMap((candidate) => {
+    const entry = entriesByPanelId.get(candidate);
+    return entry ? [entry] : [];
+  });
+  if (beforeEntries.length === 0) return null;
   const beforeNames = beforeConfigs.map((config) => config.name).join(", ");
   const afterNames = splitter.afterPanelIds
     .flatMap((candidate) => {
-      const config = PanelRegistry.getPanel(candidate);
+      const config = configsByPanelId.get(candidate);
       return config ? [config.name] : [];
     })
     .join(", ");
 
   if (splitter.kind === "row") {
-    const config = beforeConfigs[0];
-    if (!config) return null;
     return {
       controls: `panel-${panelId}-content`,
       edge: "bottom",
       label: `${beforeNames} / ${afterNames} 패널 행 크기 조절`,
       maxValue: Math.max(
-        config.minHeight ?? 160,
+        Math.max(...beforeEntries.map((entry) => entry.minHeight)),
         snapshot.workspaceRect.height,
       ),
-      minValue: config.minHeight ?? 160,
+      minValue: Math.max(...beforeEntries.map((entry) => entry.minHeight)),
       panelId,
       value: frame.height,
     };
   }
 
-  const minValue = Math.max(
-    ...beforeConfigs.map((config) => config.minWidth ?? 200),
-  );
+  const minValue = Math.max(...beforeEntries.map((entry) => entry.minWidth));
   const maxValue = Math.max(
     minValue,
-    Math.min(...beforeConfigs.map((config) => config.maxWidth ?? 800)),
+    Math.min(...beforeEntries.map((entry) => entry.maxWidth)),
   );
   return {
     controls: splitter.beforePanelIds
@@ -195,6 +233,7 @@ function sharedSplitterStyle(
   splitter: PanelWorkspaceSplitterGeometry,
   zIndex: number,
   dockOrigin: PanelDockOrigin,
+  rightAnchored: boolean,
 ): CSSProperties {
   const hitSize = 10;
   const { geometry } = splitter;
@@ -202,18 +241,34 @@ function sharedSplitterStyle(
     return {
       bottom: "auto",
       height: hitSize,
-      left: geometry.x - dockOrigin.x,
-      right: "auto",
+      ...(rightAnchored
+        ? {
+            right: dockOrigin.workspaceWidth - geometry.x - geometry.width,
+            left: "auto",
+          }
+        : {
+            left: geometry.x - dockOrigin.x,
+            right: "auto",
+          }),
       top: geometry.y - dockOrigin.y + geometry.height / 2 - hitSize / 2,
       width: geometry.width,
       zIndex,
     };
   }
+  const left = geometry.x - dockOrigin.x + geometry.width / 2 - hitSize / 2;
   return {
     bottom: "auto",
     height: geometry.height,
-    left: geometry.x - dockOrigin.x + geometry.width / 2 - hitSize / 2,
-    right: "auto",
+    ...(rightAnchored
+      ? {
+          right:
+            dockOrigin.workspaceWidth -
+            geometry.x -
+            geometry.width / 2 -
+            hitSize / 2,
+          left: "auto",
+        }
+      : { left, right: "auto" }),
     top: geometry.y - dockOrigin.y,
     width: hitSize,
     zIndex,
@@ -222,24 +277,35 @@ function sharedSplitterStyle(
 
 interface PanelWorkspaceRuntimeProps {
   runtime: PanelWorkspaceRuntime;
-  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
 }
 
 interface PanelWorkspaceSharedSplittersProps extends PanelWorkspaceRuntimeProps {
+  configs: readonly PanelConfig[];
   dockOrigin: PanelDockOrigin;
 }
 
 function PanelWorkspaceSharedSplitters({
+  configs,
   dockOrigin,
   runtime,
   setWorkspaceLayout,
 }: PanelWorkspaceSharedSplittersProps) {
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  const configsByPanelId = useMemo(
+    () => new Map(configs.map((config) => [config.id, config] as const)),
+    [configs],
+  );
 
   return (
     <>
       {snapshot.splitters.map((splitter) => {
-        const contract = sharedSplitterContract(splitter, snapshot);
+        const contract = sharedSplitterContract(
+          splitter,
+          snapshot,
+          runtime.getRegistry(),
+          configsByPanelId,
+        );
         if (!contract) return null;
         return (
           <PanelSplitter
@@ -257,109 +323,27 @@ function PanelWorkspaceSharedSplitters({
               splitter,
               splitterZIndex(runtime, splitter.clusterId),
               dockOrigin,
+              isRightAnchoredPlacementZone(
+                runtime
+                  .getLayout()
+                  .clusters.find((cluster) => cluster.id === splitter.clusterId)
+                  ?.placementZone,
+              ),
             )}
             onResizeStart={() => runtime.beginInteraction()}
             onResize={(deltaX, deltaY) => {
-              recordPanelWorkspaceSolve();
-              const mutation = runtime.resizePanelFromReference(
+              runtime.resizePanelFromReference(
                 contract.panelId,
                 contract.edge,
                 deltaX,
                 deltaY,
               );
-              if (mutation.ok) {
-                recordPanelWorkspaceLayoutInput(
-                  mutation.value.expectedVersion,
-                  mutation.value.affectedPanelIds,
-                );
-              }
             }}
             onResizeEnd={() => setWorkspaceLayout(runtime.endInteraction())}
           />
         );
       })}
     </>
-  );
-}
-
-function deltaForTrace(
-  edge: PanelResizeEdge,
-  delta: number,
-): { deltaX: number; deltaY: number } {
-  return edge === "left" || edge === "right"
-    ? { deltaX: delta, deltaY: 0 }
-    : { deltaX: 0, deltaY: delta };
-}
-
-function waitForPresentationFrame(): Promise<number> {
-  return new Promise((resolve) => requestAnimationFrame(resolve));
-}
-
-function PanelWorkspaceTraceDriver({
-  runtime,
-  setWorkspaceLayout,
-}: PanelWorkspaceRuntimeProps) {
-  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const [isRunning, setIsRunning] = useState(false);
-  const candidate = [...snapshot.frameGeometries.entries()].find(
-    ([, frame]) => frame.resizeEdges.length > 0,
-  );
-
-  const runTrace = async () => {
-    if (isRunning || !candidate) return;
-    const [panelId, frame] = candidate;
-    const edge = frame.resizeEdges.includes("bottom")
-      ? "bottom"
-      : frame.resizeEdges[0];
-    if (!edge) return;
-
-    setIsRunning(true);
-    startPanelWorkspaceManualTrace("resize");
-    runtime.beginInteraction();
-    let offset = 0;
-    const startedAt = performance.now();
-
-    while (performance.now() - startedAt < 5_100) {
-      await waitForPresentationFrame();
-      const nextOffset = offset === 0 ? 1 : 0;
-      const { deltaX, deltaY } = deltaForTrace(edge, nextOffset - offset);
-      recordPanelWorkspaceSolve();
-      const mutation = runtime.resizePanel(panelId, edge, deltaX, deltaY);
-      if (mutation.ok) {
-        recordPanelWorkspaceLayoutInput(
-          mutation.value.expectedVersion,
-          mutation.value.affectedPanelIds,
-        );
-      }
-      offset = nextOffset;
-    }
-
-    if (offset !== 0) {
-      const { deltaX, deltaY } = deltaForTrace(edge, -offset);
-      recordPanelWorkspaceSolve();
-      const mutation = runtime.resizePanel(panelId, edge, deltaX, deltaY);
-      if (mutation.ok) {
-        recordPanelWorkspaceLayoutInput(
-          mutation.value.expectedVersion,
-          mutation.value.affectedPanelIds,
-        );
-      }
-    }
-    await waitForPresentationFrame();
-    setWorkspaceLayout(runtime.endInteraction());
-    setIsRunning(false);
-  };
-
-  return (
-    <button
-      type="button"
-      className="panel-trace-driver"
-      data-running={isRunning}
-      disabled={isRunning || !candidate}
-      onClick={() => void runTrace()}
-    >
-      {isRunning ? "Panel trace running" : "Run panel resize trace"}
-    </button>
   );
 }
 
@@ -397,7 +381,7 @@ interface PanelFrameProps {
   runtime: PanelWorkspaceRuntime;
   snapshotFrame: PanelWorkspaceFrameSnapshot | null;
   side: PanelSide;
-  onCommitLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  onCommitLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   onFocusPanel: (panelId: PanelId) => void;
 }
 
@@ -410,13 +394,8 @@ const PanelFrame = memo(function PanelFrame({
   onCommitLayout,
   onFocusPanel,
 }: PanelFrameProps) {
-  const {
-    draggedPanelId,
-    snapTarget,
-    beginPanelDrag,
-    updatePanelSnapTarget,
-    endPanelDrag,
-  } = usePanelSnapInteraction();
+  const { beginPanelDrag, updatePanelDropCandidate, endPanelDrag } =
+    usePanelSnapInteractionActions();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const visualGeometryRef = useRef<PanelFrameGeometry>({
     x: snapshotFrame?.x ?? 0,
@@ -432,6 +411,42 @@ const PanelFrame = memo(function PanelFrame({
   const isInteractingRef = useRef(false);
   const suppressSnapRef = useRef(false);
   const interactionCancelledRef = useRef(false);
+  const pendingDropCandidateRef = useRef<PanelDropCandidate>(null);
+  const dropCandidateFrameRef = useRef<number | null>(null);
+
+  const flushDropCandidate = useCallback(() => {
+    if (dropCandidateFrameRef.current !== null) {
+      cancelAnimationFrame(dropCandidateFrameRef.current);
+      dropCandidateFrameRef.current = null;
+    }
+    const candidate = pendingDropCandidateRef.current;
+    pendingDropCandidateRef.current = null;
+    updatePanelDropCandidate(candidate);
+  }, [updatePanelDropCandidate]);
+
+  const scheduleDropCandidate = useCallback(
+    (candidate: PanelDropCandidate) => {
+      pendingDropCandidateRef.current = candidate;
+      if (dropCandidateFrameRef.current !== null) return;
+      dropCandidateFrameRef.current = requestAnimationFrame(() => {
+        dropCandidateFrameRef.current = null;
+        const nextCandidate = pendingDropCandidateRef.current;
+        pendingDropCandidateRef.current = null;
+        updatePanelDropCandidate(nextCandidate);
+      });
+    },
+    [updatePanelDropCandidate],
+  );
+
+  useEffect(
+    () => () => {
+      if (dropCandidateFrameRef.current !== null) {
+        cancelAnimationFrame(dropCandidateFrameRef.current);
+      }
+    },
+    [],
+  );
+  const pointerRef = useRef<{ x: number; y: number } | null>(null);
   const [isMoving, setIsMoving] = useState(false);
   const isActive = snapshotFrame !== null;
   const mode = frameMode(snapshotFrame);
@@ -439,7 +454,7 @@ const PanelFrame = memo(function PanelFrame({
   const contentId = `panel-${config.id}-content`;
 
   useLayoutEffect(() => {
-    recordPanelFrameCommit(config.id);
+    // Keep panel content measurement in the same layout phase as the shell.
   });
 
   useEffect(() => {
@@ -504,10 +519,27 @@ const PanelFrame = memo(function PanelFrame({
     };
   }, [isActive]);
 
+  const cancelInteraction = useCallback(() => {
+    if (!isInteractingRef.current) return;
+    interactionCancelledRef.current = true;
+    if (runtime.getDragSession() !== null) {
+      runtime.cancelDrag();
+    } else {
+      runtime.cancelInteraction();
+    }
+    isInteractingRef.current = false;
+    setIsMoving(false);
+    suppressSnapRef.current = false;
+    pointerRef.current = null;
+    flushDropCandidate();
+    endPanelDrag();
+  }, [endPanelDrag, flushDropCandidate, runtime]);
+
   const { moveProps } = useMove({
     onMoveStart: () => {
       if (!snapshotFrame) return;
-      runtime.beginInteraction();
+      const started = runtime.beginDrag(config.id);
+      if (!started.ok) return;
       interactionCancelledRef.current = false;
       isInteractingRef.current = true;
       setIsMoving(true);
@@ -521,8 +553,7 @@ const PanelFrame = memo(function PanelFrame({
       if (isClustered) suppressSnapRef.current = true;
     },
     onMove: (event) => {
-      if (!snapshotFrame) return;
-      recordPanelWorkspaceSolve();
+      if (!snapshotFrame || !isInteractingRef.current) return;
       const current = visualGeometryRef.current;
       const next = {
         ...current,
@@ -530,23 +561,24 @@ const PanelFrame = memo(function PanelFrame({
         y: current.y + event.deltaY,
       };
       visualGeometryRef.current = next;
-      const mutation = runtime.movePanel(config.id, next);
-      if (mutation.ok) {
-        recordPanelWorkspaceLayoutInput(
-          mutation.value.expectedVersion,
-          mutation.value.affectedPanelIds,
-        );
-      }
-      const nearbyCandidate = runtime.resolveSnap(config.id, next);
-      if (suppressSnapRef.current && nearbyCandidate === null) {
+      const pointer = pointerRef.current
+        ? {
+            x: pointerRef.current.x + event.deltaX,
+            y: pointerRef.current.y + event.deltaY,
+          }
+        : { x: next.x + next.width / 2, y: next.y + next.height / 2 };
+      pointerRef.current = pointer;
+      const mutation = runtime.updateDrag(config.id, next, pointer);
+      const candidate = mutation.ok ? mutation.value.candidate : null;
+      if (suppressSnapRef.current && candidate?.kind !== "panel-edge") {
         suppressSnapRef.current = false;
       }
-      const candidate = suppressSnapRef.current ? null : nearbyCandidate;
-      updatePanelSnapTarget(
-        candidate
-          ? { panelId: candidate.targetPanelId, edge: candidate.edge }
-          : null,
-      );
+      if (suppressSnapRef.current && candidate?.kind === "panel-edge") {
+        runtime.suppressDragCandidate();
+        scheduleDropCandidate(null);
+      } else {
+        scheduleDropCandidate(candidate);
+      }
     },
     onMoveEnd: () => {
       if (!snapshotFrame) return;
@@ -555,70 +587,54 @@ const PanelFrame = memo(function PanelFrame({
         isInteractingRef.current = false;
         setIsMoving(false);
         suppressSnapRef.current = false;
+        pointerRef.current = null;
+        flushDropCandidate();
         endPanelDrag();
         return;
       }
-      const geometry = visualGeometryRef.current;
-      const nearbyCandidate = runtime.resolveSnap(config.id, geometry);
-      const dropMutation = snapTarget
-        ? runtime.snapPanel(config.id, snapTarget.panelId, snapTarget.edge)
-        : null;
-      if (dropMutation?.ok) {
-        recordPanelWorkspaceLayoutInput(
-          dropMutation.value.expectedVersion,
-          dropMutation.value.affectedPanelIds,
-        );
-      } else if (nearbyCandidate && !suppressSnapRef.current) {
-        const mutation = runtime.snapPanel(
-          config.id,
-          nearbyCandidate.targetPanelId,
-          nearbyCandidate.edge,
-        );
-        if (mutation.ok) {
-          recordPanelWorkspaceLayoutInput(
-            mutation.value.expectedVersion,
-            mutation.value.affectedPanelIds,
-          );
+      const ended = runtime.endDrag(config.id);
+      flushDropCandidate();
+      if (ended.ok) {
+        if (ended.value.committed) {
+          onCommitLayout(ended.value.layout);
         }
       }
-      onCommitLayout(runtime.endInteraction());
       isInteractingRef.current = false;
       setIsMoving(false);
-      if (nearbyCandidate === null) suppressSnapRef.current = false;
+      suppressSnapRef.current = false;
+      pointerRef.current = null;
       endPanelDrag();
     },
   });
 
+  useEffect(() => {
+    if (!isMoving) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      cancelInteraction();
+    };
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [cancelInteraction, isMoving]);
+
   const resizeEdges = snapshotFrame?.resizeEdges ?? [];
+  const registry = runtime.getRegistry();
+  const registryEntry = useMemo(
+    () => registry.find((entry) => entry.id === config.id),
+    [config.id, registry],
+  );
+  const minWidth = registryEntry?.minWidth ?? 200;
+  const maxWidth = registryEntry?.maxWidth ?? 800;
+  const minHeight = registryEntry?.minHeight ?? 160;
 
   const handleResize = (
     edge: PanelResizeEdge,
     deltaX: number,
     deltaY: number,
   ) => {
-    recordPanelWorkspaceSolve();
-    const mutation = runtime.resizePanelFromReference(
-      config.id,
-      edge,
-      deltaX,
-      deltaY,
-    );
-    if (mutation.ok) {
-      recordPanelWorkspaceLayoutInput(
-        mutation.value.expectedVersion,
-        mutation.value.affectedPanelIds,
-      );
-    }
-  };
-
-  const cancelInteraction = () => {
-    if (!isInteractingRef.current) return;
-    interactionCancelledRef.current = true;
-    runtime.cancelInteraction();
-    isInteractingRef.current = false;
-    setIsMoving(false);
-    suppressSnapRef.current = false;
-    endPanelDrag();
+    runtime.resizePanelFromReference(config.id, edge, deltaX, deltaY);
   };
 
   const appliedGeometry = snapshotFrame ?? {
@@ -627,8 +643,21 @@ const PanelFrame = memo(function PanelFrame({
     width: 0,
     height: 0,
   };
+  // 수평 렌더링 기준은 원래 rail이 아니라 현재 배치된 zone이어야 한다.
+  // cross-rail snap 이후에도 railSideForPanel()은 rail identity를 보존하므로
+  // side를 기준으로 하면 반대편 anchor가 무시된다.
+  const rightAnchored = isRightAnchoredPlacementZone(
+    snapshotFrame?.placementZone,
+  );
   const frameStyle: CSSProperties = {
-    left: appliedGeometry.x - dockOrigin.x,
+    ...(rightAnchored
+      ? {
+          right:
+            dockOrigin.workspaceWidth -
+            appliedGeometry.x -
+            appliedGeometry.width,
+        }
+      : { left: appliedGeometry.x - dockOrigin.x }),
     top: appliedGeometry.y - dockOrigin.y,
     width: appliedGeometry.width,
     height: appliedGeometry.height,
@@ -641,7 +670,7 @@ const PanelFrame = memo(function PanelFrame({
       className="panel-wrapper workspace-panel-frame"
       data-panel={config.id}
       data-active={isActive}
-      data-anchor={snapshotFrame?.anchor}
+      data-zone={snapshotFrame?.placementZone}
       data-mode={mode}
       data-side={side}
       data-dragging={isMoving}
@@ -650,7 +679,7 @@ const PanelFrame = memo(function PanelFrame({
       style={frameStyle}
       onPointerDown={(event) => {
         if (
-          snapshotFrame?.anchor === "floating" &&
+          snapshotFrame !== null &&
           event.target instanceof Element &&
           !event.target.closest(".panel-move-handle, .panel-resize-handle")
         ) {
@@ -664,20 +693,29 @@ const PanelFrame = memo(function PanelFrame({
         type="button"
         className="panel-move-handle"
         aria-label={`${config.name} 패널 이동`}
+        onPointerDownCapture={(event) => {
+          if (!snapshotFrame) return;
+          const target = event.target;
+          let offsetX = event.nativeEvent.offsetX;
+          let offsetY = event.nativeEvent.offsetY;
+          if (target instanceof HTMLElement && target !== event.currentTarget) {
+            offsetX += target.offsetLeft;
+            offsetY += target.offsetTop;
+          }
+          pointerRef.current = {
+            x: snapshotFrame.x + offsetX,
+            y: snapshotFrame.y + offsetY,
+          };
+        }}
+        onKeyDownCapture={(event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          event.stopPropagation();
+          cancelInteraction();
+        }}
       >
         <span />
       </button>
-      {draggedPanelId !== null &&
-        draggedPanelId !== config.id &&
-        snapTarget?.panelId === config.id && (
-          <div className="panel-snap-targets" aria-hidden="true">
-            <span
-              className="panel-snap-target"
-              data-edge={snapTarget.edge}
-              data-active="true"
-            />
-          </div>
-        )}
       <PanelFrameContent
         config={config}
         contentId={contentId}
@@ -695,16 +733,12 @@ const PanelFrame = memo(function PanelFrame({
               ? appliedGeometry.width
               : appliedGeometry.height
           }
-          minValue={
-            edge === "left" || edge === "right"
-              ? (config.minWidth ?? 200)
-              : (config.minHeight ?? 160)
-          }
+          minValue={edge === "left" || edge === "right" ? minWidth : minHeight}
           maxValue={
             edge === "left" || edge === "right"
-              ? (config.maxWidth ?? 800)
+              ? maxWidth
               : Math.max(
-                  config.minHeight ?? 160,
+                  minHeight,
                   runtime.coordinator.getSnapshot().workspaceRect.height,
                 )
           }
@@ -733,7 +767,7 @@ interface SnapshotPanelFrameProps {
   dockOrigin: PanelDockOrigin;
   runtime: PanelWorkspaceRuntime;
   side: PanelSide;
-  onCommitLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  onCommitLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   onFocusPanel: (panelId: PanelId) => void;
 }
 
@@ -743,25 +777,15 @@ function SnapshotPanelFrame(props: SnapshotPanelFrameProps) {
     props.config.id,
   );
 
-  useLayoutEffect(() => {
-    if (snapshotFrame) {
-      recordPanelFrameApplied(props.config.id, snapshotFrame.layoutVersion);
-    }
-  }, [props.config.id, snapshotFrame]);
-
   return <PanelFrame {...props} snapshotFrame={snapshotFrame} />;
 }
 
 function createRuntime(
-  layout: PanelWorkspaceLayoutV2,
+  layout: PanelWorkspaceLayoutV3,
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
 ): PanelWorkspaceRuntime {
-  const result = createPanelWorkspaceRuntime(layout, registry, surfaceRect, {
-    left: PANEL_RAIL_SIZE,
-    right: PANEL_RAIL_SIZE,
-    bottom: PANEL_RAIL_SIZE,
-  });
+  const result = createPanelWorkspaceRuntime(layout, registry, surfaceRect);
   if (!result.ok) {
     throw new Error(
       `Failed to create panel workspace runtime: ${result.error}`,
@@ -772,29 +796,30 @@ function createRuntime(
 
 interface HydratedPanelWorkspaceProps {
   children: ReactNode;
-  workspaceLayout: PanelWorkspaceLayoutV2;
+  workspaceLayout: PanelWorkspaceLayoutV3;
   configs: readonly PanelConfig[];
   registry: readonly PanelWorkspaceRegistryEntry[];
-  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   togglePanel: (panelId: PanelId) => void;
-  focusFloatingPanel: (panelId: PanelId) => void;
+  focusPanel: (panelId: PanelId) => void;
   placementSurfaceRect: PanelWorkspaceRect;
   placementSurfaceRef: RefObject<HTMLDivElement | null>;
 }
 
 interface PanelWorkspaceOverlayProps {
   configs: readonly PanelConfig[];
-  focusFloatingPanel: (panelId: PanelId) => void;
+  focusPanel: (panelId: PanelId) => void;
   runtime: PanelWorkspaceRuntime;
-  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV2) => boolean;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   togglePanel: (panelId: PanelId) => void;
-  workspaceLayout: PanelWorkspaceLayoutV2;
+  workspaceLayout: PanelWorkspaceLayoutV3;
   placementSurfaceRef: RefObject<HTMLDivElement | null>;
 }
 
 interface PanelDockOrigin {
   x: number;
   y: number;
+  workspaceWidth: number;
 }
 
 interface PanelDockColumnPresentation {
@@ -804,39 +829,47 @@ interface PanelDockColumnPresentation {
   width: number;
   x: number;
   y: number;
-  visiblePanelIds: PanelId[];
 }
 
 function panelDockColumns(
-  clusters: readonly PanelWorkspaceClusterV2[],
+  clusters: readonly PanelWorkspaceClusterV3[],
   snapshot: PanelWorkspaceLayoutSnapshot,
 ): PanelDockColumnPresentation[] {
-  return clusters.flatMap((cluster) =>
-    cluster.columns.flatMap((column, columnIndex) => {
-      const frames = column.rows.flatMap((row) => {
+  const columns: PanelDockColumnPresentation[] = [];
+  for (const cluster of clusters) {
+    for (
+      let columnIndex = 0;
+      columnIndex < cluster.columns.length;
+      columnIndex += 1
+    ) {
+      const column = cluster.columns[columnIndex];
+      if (!column) continue;
+      let x = Number.POSITIVE_INFINITY;
+      let y = Number.POSITIVE_INFINITY;
+      let right = Number.NEGATIVE_INFINITY;
+      let bottom = Number.NEGATIVE_INFINITY;
+      let hasFrame = false;
+      for (const row of column.rows) {
         const frame = snapshot.frameGeometries.get(row.panelId);
-        return frame ? [frame] : [];
+        if (!frame) continue;
+        hasFrame = true;
+        x = Math.min(x, frame.x);
+        y = Math.min(y, frame.y);
+        right = Math.max(right, frame.x + frame.width);
+        bottom = Math.max(bottom, frame.y + frame.height);
+      }
+      if (!hasFrame) continue;
+      columns.push({
+        clusterId: cluster.id,
+        columnIndex,
+        height: bottom - y,
+        width: right - x,
+        x,
+        y,
       });
-      if (frames.length === 0) return [];
-      const x = Math.min(...frames.map((frame) => frame.x));
-      const y = Math.min(...frames.map((frame) => frame.y));
-      const right = Math.max(...frames.map((frame) => frame.x + frame.width));
-      const bottom = Math.max(...frames.map((frame) => frame.y + frame.height));
-      return [
-        {
-          clusterId: cluster.id,
-          columnIndex,
-          height: bottom - y,
-          width: right - x,
-          x,
-          y,
-          visiblePanelIds: column.rows
-            .filter((row) => snapshot.frameGeometries.has(row.panelId))
-            .map((row) => row.panelId),
-        },
-      ];
-    }),
-  );
+    }
+  }
+  return columns;
 }
 
 interface PanelDockClusterPresentationProps {
@@ -849,97 +882,130 @@ function PanelDockClusterPresentation({
   runtime,
 }: PanelDockClusterPresentationProps) {
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const { draggedPanelId, snapTarget, updatePanelSnapTarget } =
-    usePanelSnapInteraction();
-  const columns = panelDockColumns(runtime.getLayout().clusters, snapshot);
-  const isDragging = draggedPanelId !== null;
-  const dropperSize = 10;
+  const layout = runtime.getLayout();
+  const columns = panelDockColumns(layout.clusters, snapshot);
+  const clustersById = useMemo(
+    () =>
+      new Map(layout.clusters.map((cluster) => [cluster.id, cluster] as const)),
+    [layout],
+  );
 
   return (
     <>
       {columns.map((column) => {
         const left = column.x - dockOrigin.x;
         const top = column.y - dockOrigin.y;
-        const bottom = top + column.height;
-        const firstPanelId = column.visiblePanelIds[0];
-        const lastPanelId = column.visiblePanelIds.at(-1);
-        const isFirstDropTarget =
-          snapTarget?.panelId === firstPanelId && snapTarget?.edge === "top";
-        const isLastDropTarget =
-          snapTarget?.panelId === lastPanelId && snapTarget?.edge === "bottom";
-        const setDropTarget = (
-          panelId: PanelId | undefined,
-          edge: PanelSnapEdge,
-        ) => {
-          if (!draggedPanelId || !panelId || draggedPanelId === panelId) return;
-          updatePanelSnapTarget({ panelId, edge });
-        };
+        const cluster = clustersById.get(column.clusterId);
+        const isRightAnchored = isRightAnchoredPlacementZone(
+          cluster?.placementZone,
+        );
         return (
           <div
             key={`${column.clusterId}:${column.columnIndex}`}
-            className="panel-dock-column-presentation"
-            data-cluster-id={column.clusterId}
-            data-column-index={column.columnIndex}
-          >
-            <div
-              aria-hidden="true"
-              className="panel-dock-rail"
-              style={{
-                height: column.height,
-                left: left + column.width - 1,
-                top,
-              }}
-            />
-            <div
-              aria-hidden="true"
-              className="panel-dock-dropper"
-              data-active={isFirstDropTarget}
-              data-enabled={isDragging}
-              data-position="first"
-              data-target-panel={firstPanelId}
-              data-target-edge="top"
-              onPointerEnter={() => setDropTarget(firstPanelId, "top")}
-              onPointerLeave={() => {
-                if (
-                  snapTarget?.panelId === firstPanelId &&
-                  snapTarget.edge === "top"
-                )
-                  updatePanelSnapTarget(null);
-              }}
-              style={{
-                height: dropperSize,
-                left,
-                top: top - dropperSize / 2,
-                width: column.width,
-              }}
-            />
-            <div
-              aria-hidden="true"
-              className="panel-dock-dropper"
-              data-active={isLastDropTarget}
-              data-enabled={isDragging}
-              data-position="last"
-              data-target-panel={lastPanelId}
-              data-target-edge="bottom"
-              onPointerEnter={() => setDropTarget(lastPanelId, "bottom")}
-              onPointerLeave={() => {
-                if (
-                  snapTarget?.panelId === lastPanelId &&
-                  snapTarget?.edge === "bottom"
-                )
-                  updatePanelSnapTarget(null);
-              }}
-              style={{
-                height: dropperSize,
-                left,
-                top: bottom - dropperSize / 2,
-                width: column.width,
-              }}
-            />
-          </div>
+            aria-hidden="true"
+            className="panel-dock-rail"
+            style={{
+              height: column.height,
+              ...(isRightAnchored
+                ? {
+                    right:
+                      dockOrigin.workspaceWidth - column.x - column.width + 1,
+                  }
+                : { left: left + column.width - 1 }),
+              top,
+            }}
+          />
         );
       })}
     </>
+  );
+}
+
+function PanelWorkspaceZoneOverlay() {
+  const { draggedPanelId, dropCandidate } = usePanelSnapInteractionState();
+  if (draggedPanelId === null) return null;
+
+  return (
+    <div className="panel-zone-overlay" aria-hidden="true">
+      {PANEL_WORKSPACE_SNAP_ZONES.map((zone) => {
+        const zoneIndex = PANEL_WORKSPACE_PLACEMENT_ZONES.indexOf(zone);
+        return (
+          <span
+            key={zone}
+            className="panel-zone-target"
+            data-zone={zone}
+            style={{
+              gridColumn: (zoneIndex % 3) + 1,
+              gridRow: Math.floor(zoneIndex / 3) + 1,
+            }}
+            data-active={
+              dropCandidate?.kind === "zone" && dropCandidate.zone === zone
+            }
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+interface PanelSnapGuideProps {
+  candidate: Exclude<PanelDropCandidate, null | { kind: "zone" }>;
+  dockOrigin: PanelDockOrigin;
+  snapshot: PanelWorkspaceLayoutSnapshot;
+}
+
+function PanelSnapGuide({
+  candidate,
+  dockOrigin,
+  snapshot,
+}: PanelSnapGuideProps) {
+  const target = snapshot.frameGeometries.get(candidate.panelId);
+  if (!target) return null;
+
+  const halfGap = PANEL_WORKSPACE_GAP / 2;
+  const lineSize = 2;
+  const rawLeft =
+    candidate.edge === "left"
+      ? target.x - dockOrigin.x - halfGap
+      : candidate.edge === "right"
+        ? target.x - dockOrigin.x + target.width + halfGap
+        : target.x - dockOrigin.x;
+  const rawTop =
+    candidate.edge === "top"
+      ? target.y - dockOrigin.y - halfGap
+      : candidate.edge === "bottom"
+        ? target.y - dockOrigin.y + target.height + halfGap
+        : target.y - dockOrigin.y;
+  const left = Math.min(
+    Math.max(0, rawLeft),
+    Math.max(0, snapshot.workspaceRect.width - lineSize),
+  );
+  const top = Math.min(
+    Math.max(0, rawTop),
+    Math.max(0, snapshot.workspaceRect.height - lineSize),
+  );
+  const style: CSSProperties = {
+    bottom: "auto",
+    height:
+      candidate.edge === "top" || candidate.edge === "bottom"
+        ? lineSize
+        : target.height,
+    left,
+    right: "auto",
+    top,
+    width:
+      candidate.edge === "left" || candidate.edge === "right"
+        ? lineSize
+        : target.width,
+    zIndex: 2_100,
+  };
+
+  return (
+    <span
+      className="panel-snap-target panel-snap-guide"
+      data-edge={candidate.edge}
+      style={style}
+    />
   );
 }
 
@@ -950,22 +1016,36 @@ interface PanelDockRenderProps {
 
 interface PanelDockProps {
   children: (props: PanelDockRenderProps) => ReactNode;
-  runtime: PanelWorkspaceRuntime;
+  placementSurfaceRef: RefObject<HTMLDivElement | null>;
+  surfaceWidth: number;
+  version: number;
 }
 
-function PanelDock({ children, runtime }: PanelDockProps) {
-  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const origin = { x: 0, y: 0 };
+function PanelDock({
+  children,
+  placementSurfaceRef,
+  surfaceWidth,
+  version,
+}: PanelDockProps) {
+  const origin = useMemo<PanelDockOrigin>(() => {
+    const origin = {
+      x: 0,
+      y: 0,
+      workspaceWidth: surfaceWidth,
+    };
+    return origin;
+  }, [surfaceWidth]);
   const surfaceStyle: CSSProperties = {
     inset: 0,
   };
 
   return (
     <div
+      ref={placementSurfaceRef}
       className="panel-dock"
       data-column-limit="2"
       data-layout-type="floating"
-      data-layout-version={snapshot.version}
+      data-layout-version={version}
     >
       {children({ origin, surfaceStyle })}
     </div>
@@ -974,79 +1054,137 @@ function PanelDock({ children, runtime }: PanelDockProps) {
 
 const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   configs,
-  focusFloatingPanel,
+  focusPanel,
   runtime,
   setWorkspaceLayout,
   togglePanel,
   workspaceLayout,
   placementSurfaceRef,
 }: PanelWorkspaceOverlayProps) {
-  const activePanels = (side: PanelSide): PanelId[] =>
-    workspaceLayout.railOrder[side].filter(
-      (panelId) => workspaceLayout.visibility[panelId] === true,
-    );
+  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  const { draggedPanelId, dropCandidate } = usePanelSnapInteractionState();
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const [surfaceWidth, setSurfaceWidth] = useState(
+    snapshot.workspaceRect.width,
+  );
+  const [surfaceHeight, setSurfaceHeight] = useState(
+    snapshot.workspaceRect.height,
+  );
+
+  useLayoutEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const updateSurface = (): void => {
+      if (surface.clientWidth <= 0) return;
+      setSurfaceWidth((current) =>
+        current === surface.clientWidth ? current : surface.clientWidth,
+      );
+      setSurfaceHeight((current) =>
+        current === surface.clientHeight ? current : surface.clientHeight,
+      );
+    };
+    updateSurface();
+    const observer = new ResizeObserver(updateSurface);
+    observer.observe(surface);
+    return () => observer.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (
+      surfaceWidth <= 0 ||
+      surfaceHeight <= 0 ||
+      (surfaceWidth === snapshot.workspaceRect.width &&
+        surfaceHeight === snapshot.workspaceRect.height)
+    ) {
+      return;
+    }
+    runtime.updateWorkspaceRect({
+      width: surfaceWidth,
+      height: surfaceHeight,
+    });
+  }, [
+    runtime,
+    snapshot.workspaceRect.height,
+    snapshot.workspaceRect.width,
+    surfaceHeight,
+    surfaceWidth,
+  ]);
+
+  const activePanelsBySide = useMemo(
+    () =>
+      (["left", "right", "bottom"] as const).reduce(
+        (result, side) => {
+          result[side] = workspaceLayout.railOrder[side].filter(
+            (panelId) => workspaceLayout.visibility[panelId] === true,
+          );
+          return result;
+        },
+        {} as Record<PanelSide, PanelId[]>,
+      ),
+    [workspaceLayout],
+  );
 
   return (
     <div className="panel-workspace" aria-label="패널 작업 영역">
-      <div
-        ref={placementSurfaceRef}
-        className="panel-workspace-placement-surface"
+      <PanelDock
+        placementSurfaceRef={placementSurfaceRef}
+        surfaceWidth={surfaceWidth}
+        version={snapshot.version}
       >
-        <PanelDock runtime={runtime}>
-          {({ origin, surfaceStyle }) => (
-            <>
-              {(["left", "right", "bottom"] as const).map((side) => {
-                const panelIds = workspaceLayout.railOrder[side];
-                if (panelIds.length === 0) return null;
-                return (
-                  <div
-                    key={side}
-                    className="panel-activity-rail"
-                    data-side={side}
-                    style={{ zIndex: 2_100 }}
-                  >
-                    <PanelNav
-                      side={side}
-                      panelIds={panelIds}
-                      activePanels={activePanels(side)}
-                      onPanelClick={togglePanel}
-                    />
-                  </div>
-                );
-              })}
+        {({ origin, surfaceStyle }) => (
+          <>
+            {(["left", "right"] as const).map((side) => {
+              const panelIds = workspaceLayout.railOrder[side];
+              if (panelIds.length === 0) return null;
+              return (
+                <PanelNav
+                  key={side}
+                  side={side}
+                  panelIds={panelIds}
+                  activePanels={activePanelsBySide[side]}
+                  onPanelClick={togglePanel}
+                />
+              );
+            })}
 
-              <div className="panel-dock-surface" style={surfaceStyle}>
-                <PanelDockClusterPresentation
+            <div
+              ref={surfaceRef}
+              className="panel-dock-surface"
+              style={surfaceStyle}
+            >
+              <PanelWorkspaceZoneOverlay />
+              {dropCandidate?.kind === "panel-edge" && (
+                <PanelSnapGuide
+                  candidate={dropCandidate}
+                  dockOrigin={origin}
+                  snapshot={snapshot}
+                />
+              )}
+              <PanelDockClusterPresentation
+                dockOrigin={origin}
+                runtime={runtime}
+              />
+              {configs.map((config) => (
+                <SnapshotPanelFrame
+                  key={config.id}
+                  config={config}
                   dockOrigin={origin}
                   runtime={runtime}
+                  side={railSideForPanel(workspaceLayout, config)}
+                  onCommitLayout={setWorkspaceLayout}
+                  onFocusPanel={focusPanel}
                 />
-                {configs.map((config) => (
-                  <SnapshotPanelFrame
-                    key={config.id}
-                    config={config}
-                    dockOrigin={origin}
-                    runtime={runtime}
-                    side={railSideForPanel(workspaceLayout, config)}
-                    onCommitLayout={setWorkspaceLayout}
-                    onFocusPanel={focusFloatingPanel}
-                  />
-                ))}
-                <PanelWorkspaceSharedSplitters
-                  dockOrigin={origin}
-                  runtime={runtime}
-                  setWorkspaceLayout={setWorkspaceLayout}
-                />
-                {isPanelWorkspaceDiagnosticsEnabled() && (
-                  <PanelWorkspaceTraceDriver
-                    runtime={runtime}
-                    setWorkspaceLayout={setWorkspaceLayout}
-                  />
-                )}
-              </div>
-            </>
-          )}
-        </PanelDock>
-      </div>
+              ))}
+              <PanelWorkspaceSharedSplitters
+                configs={configs}
+                dockOrigin={origin}
+                runtime={runtime}
+                setWorkspaceLayout={setWorkspaceLayout}
+              />
+            </div>
+          </>
+        )}
+      </PanelDock>
     </div>
   );
 });
@@ -1058,7 +1196,7 @@ function HydratedPanelWorkspace({
   registry,
   setWorkspaceLayout,
   togglePanel,
-  focusFloatingPanel,
+  focusPanel,
   placementSurfaceRect,
   placementSurfaceRef,
 }: HydratedPanelWorkspaceProps) {
@@ -1072,13 +1210,15 @@ function HydratedPanelWorkspace({
     "--panel-workspace-inset-bottom": `${snapshot.occupiedInsets.bottom}px`,
   } as CSSProperties;
 
-  useEffect(() => mountPanelWorkspaceDiagnostics(), []);
-
   useEffect(() => {
     if (runtime && workspaceLayout) {
       runtime.replaceCommittedLayout(workspaceLayout);
     }
   }, [runtime, workspaceLayout]);
+
+  useEffect(() => {
+    runtime.updateRegistry(registry);
+  }, [registry, runtime]);
 
   useEffect(
     () =>
@@ -1090,20 +1230,12 @@ function HydratedPanelWorkspace({
     [runtime, setWorkspaceLayout],
   );
 
-  useEffect(() => {
-    runtime.updateWorkspaceRect(placementSurfaceRect);
-  }, [placementSurfaceRect, runtime]);
-
   useEffect(
     () => () => {
       runtime?.destroy();
     },
     [runtime],
   );
-
-  useLayoutEffect(() => {
-    recordPanelWorkspaceCommit();
-  });
 
   return (
     <div
@@ -1123,7 +1255,7 @@ function HydratedPanelWorkspace({
 
       <PanelWorkspaceOverlay
         configs={configs}
-        focusFloatingPanel={focusFloatingPanel}
+        focusPanel={focusPanel}
         runtime={runtime}
         setWorkspaceLayout={setWorkspaceLayout}
         togglePanel={togglePanel}
@@ -1144,16 +1276,21 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
     initializeWorkspaceLayout,
     setWorkspaceLayout,
     togglePanel,
-    focusFloatingPanel,
+    focusPanel,
   } = usePanelLayout();
   const configs = useMemo(() => PanelRegistry.getAllPanels(), []);
-  const registry = useMemo(
-    () => configs.map(createPanelWorkspaceRegistryEntry),
-    [configs],
-  );
   const placementSurfaceRef = useRef<HTMLDivElement>(null);
   const [placementSurfaceRect, setPlacementSurfaceRect] =
     useState<PanelWorkspaceRect | null>(null);
+  const registry = useMemo(
+    () =>
+      placementSurfaceRect
+        ? configs.map((config) =>
+            createPanelWorkspaceRegistryEntry(config, placementSurfaceRect),
+          )
+        : [],
+    [configs, placementSurfaceRect],
+  );
   const isHydrated = workspaceLayout !== null;
 
   useLayoutEffect(() => {
@@ -1193,10 +1330,7 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
       <div className="panel-workspace-host">
         <div className="panel-workspace-main">{children}</div>
         <div className="panel-workspace" aria-label="패널 작업 영역">
-          <div
-            ref={placementSurfaceRef}
-            className="panel-workspace-placement-surface"
-          />
+          <div ref={placementSurfaceRef} className="panel-dock" />
         </div>
       </div>
     );
@@ -1210,7 +1344,7 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
       registry={registry}
       setWorkspaceLayout={setWorkspaceLayout}
       togglePanel={togglePanel}
-      focusFloatingPanel={focusFloatingPanel}
+      focusPanel={focusPanel}
       placementSurfaceRect={placementSurfaceRect}
       placementSurfaceRef={placementSurfaceRef}
     />

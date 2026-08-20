@@ -82,7 +82,7 @@ bottom-left   bottom   bottom-right
 
 ### 1.4 공통 placement surface
 
-`.panel-workspace-placement-surface`를 panel frame의 유일한 containing block으로 둔다.
+`.panel-dock`을 panel frame의 유일한 containing block으로 둔다.
 이 surface는 CSS `inset: var(--panel-workspace-gap)`으로 workspace 안쪽에 배치한다.
 solver는 이미 inset된 surface의 local `width/height`만 소비하며 개별 edge마다 4px를
 더하거나 빼지 않는다.
@@ -260,7 +260,7 @@ move 중에는 `previewGeometry`로 presentation snapshot만 갱신한다. 매 m
 ### 4.1 v2 -> v3
 
 1. 현행 v2 parser/normalizer로 input을 먼저 검증한다.
-2. migrator는 실제 `.panel-workspace-placement-surface`의 non-zero local rect를 필수 입력으로
+2. migrator는 실제 `.panel-dock`의 non-zero local rect를 필수 입력으로
    받는다. store 초기화 시 임의 viewport 상수로 migration하지 않으며, primary는 v2로 parse한
    뒤 surface 최초 측정 전까지 v3 write를 보류한다. fixture는 같은 v2 raw, registry,
    migrationId와 surface rect에 byte-identical JSON을 요구한다.
@@ -413,12 +413,39 @@ v3 raw와 v2 projection이 모두 parse되지 않으면 fail closed한다.
 - snap/resize bar token과 thickness를 단일화한다.
 - **G3** 통과 전 v2 free-position path를 제거하지 않는다.
 
+#### 실행 기록 — G3 PASS (2026-08-19)
+
+- [Phase 3 transient drag and candidate/drop transaction](186-phase-3-drag-transaction.md)에
+  session-only free XY, 단일 panel/zone candidate resolver, valid 1 commit과
+  invalid/Escape/cancel 0 commit rollback을 기록했다.
+- panel workspace layout Vitest 21 files, 173 tests, typecheck와 preflight를 통과했다.
+- local Builder 실제 pointer drag에서 drag 중 9-zone overlay 1개/active cell 1개,
+  panel-edge snap line 1개, Escape exact rollback과 valid bottom-right drop/reload를 확인했다.
+- 5초 trace는 pointer move 147회에서 solve/DOM geometry query/version mismatch/long task 0,
+  presentation commit 147 <= RAF sample 601, applied-frame p95 약 8.4ms였다.
+- snap line과 resize hover bar는 computed color와 가로 height/세로 width 모두 동일한 2px로
+  확인했다. v2 compatibility writer와 legacy resize/activation path는 유지했고 Phase 4는
+  시작하지 않았다.
+
 ### Phase 4 — activation, resize, reset 정책
 
 - rail activation의 Photoshop 기본 stack/overflow를 v3 zone cluster에 연결한다.
 - hidden reopen, cross-rail snap 시 rail identity 보존, explicit reset을 검증한다.
 - reference-frame resize와 paired shared splitter를 전 zone에서 검증한다.
 - **G4** 통과 전 compatibility path 제거를 시작하지 않는다.
+
+#### 실행 기록 — G4 PASS (2026-08-19)
+
+- [Phase 4 activation, identity, resize, and reset policy](186-phase-4-policy-identity-resize.md)에
+  Photoshop 기본 stack/안쪽 overflow, dormant hidden placement, rail identity와 explicit reset
+  계약을 기록했다.
+- panel workspace layout Vitest 22 files, 235 tests, typecheck와 preflight를 통과했다.
+- 9/9 zone의 left/right/top/bottom outer resize anchor, paired row/column 합계와 anchor를
+  고정했고 clamp overrun 뒤 reference delta로 복귀할 때 drift 0을 확인했다.
+- local Builder에서 rightmost Properties/History stack, 왼쪽 Styles overflow column, 4px gap과
+  surface right/bottom anchor를 실측했다. hide/reopen과 resize 원복 뒤 reload geometry도 동일했다.
+- production primary와 coordinator public layout은 계속 v2 compatibility path다. Phase 5의 v3
+  primary cutover와 persisted free-XY/legacy compatibility 제거는 시작하지 않았다.
 
 ### Phase 5 — production cutover와 v2 free-XY 제거
 
@@ -432,6 +459,19 @@ v3 raw와 v2 projection이 모두 parse되지 않으면 fail closed한다.
   rollback rehearsal을 통과한다.
 - **G5** 통과 뒤 ADR-186을 Implemented로 승격하고 ADR-922의 placement 부분 대체 링크를
   추가한다.
+
+#### 실행 기록 — G5 PASS (2026-08-19)
+
+- [Phase 5 production v3 cutover and free-XY removal](186-phase-5-production-cutover.md)에
+  store/coordinator/runtime/persistence v3 primary 전환, legacy free-XY writer 제거와 actual
+  Builder move/resize/snap/reload/reset 결과를 기록했다.
+- panel workspace focused Vitest 24 files, 234 tests, typecheck와 preflight를 통과했다.
+- 5초 actual pointer trace는 약 120.48Hz에서 delivery 99.83%, baseline 대비 -0.17pp,
+  input-to-applied-frame p95 7.9ms, long task/DOM query/version mismatch 0이었다.
+- persisted v3의 `position/x/y`는 0건이며 exact/migrated-post-edit/v3-born rollback 뒤 old-code
+  valid v2 hydration rehearsal을 모두 통과했다.
+- G0~G5가 모두 통과해 ADR-186을 Implemented로 승격하고 ADR-922의 persisted placement와
+  production interaction 부분을 대체한다.
 
 ## 6. 파일 경계
 

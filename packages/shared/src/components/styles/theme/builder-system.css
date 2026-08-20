@@ -57,7 +57,7 @@
   [data-context="builder"],
   [data-builder-theme] body:not([data-preview="true"]) > :not(#root) {
     /* ===== Surface (Light) ===== */
-    --bg: var(--color-gray-100);
+    --bg: var(--color-neutral-200);
     --bg-raised: var(--color-gray-50);
     --bg-overlay: var(--color-white);
     --bg-muted: var(--color-gray-200);

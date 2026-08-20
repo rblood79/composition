@@ -7,12 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## PanelConfig 퍼센트 치수 지원 - 2026-08-20
+
+### Fixed
+
+- `PanelConfig`의 width/height 치수 설정이 px 숫자와 surface 기준 `%` 문자열을 모두
+  지원하도록 정규화 경로를 통합했다. splitter와 layout solver는 해석된 숫자 registry만
+  소비하며, workspace surface 크기 변경 시 registry도 다시 계산한다.
+
+## [ADR-186 Implemented — production 9-zone panel workspace cutover] - 2026-08-19
+
+### Architecture
+
+- **panel workspace production state를 zone-owned v3 graph로 전환**: store, coordinator,
+  runtime과 persistence가 `placementZone` + column/row size를 직접 소비하며 arbitrary
+  `position/x/y`를 저장하지 않는다. v2 parser/exact backup과 v3-aware projection은 rollback
+  compatibility boundary로만 유지한다
+- **Photoshop 기본 activation과 Pencil 9-zone을 하나의 interaction graph로 종결**:
+  left/right/bottom panel은 top-left/top-right/bottom에서 시작하고 빈 9-zone drop과
+  panel-relative outer-face snap을 지원한다. invalid/Escape/cancel은 committed graph나
+  storage를 쓰지 않는다
+- **legacy free-XY production writer 제거**: anchored cluster floating 승격,
+  `panelWorkspaceLayoutInteraction`의 persisted position mutation, v2 dock drop projection과
+  unsnapped drop commit을 삭제했다
+- **실제 workspace reset command 추가**: header의 `Reset Panel Layout`이 actual measured
+  placement surface와 registry default를 사용해 기본 rail/zone/size graph를 즉시 복원한다
+- G0~G5를 완료하고 ADR-186을 Implemented로 승격했다. actual Builder
+  move/resize/snap/reload/reset, focused Vitest 24 files/234 tests, typecheck/preflight,
+  native 약 120Hz 5초 pointer trace(baseline -0.17pp), persisted XY 0과
+  exact/post-edit/v3-born old-code rollback rehearsal을 통과했다
+
+## [ADR-186 G4 — zone activation·rail identity·reference resize 정책] - 2026-08-19
+
+### Architecture
+
+- **Photoshop 기본 activation을 v3 zone policy로 전환**: left/right panel은 아래로 stack하고 실제 높이가 부족하면 left는 오른쪽, right는 왼쪽 안쪽에 최대 두 번째 column을 만든다. hidden row/column은 graph와 선호 크기를 보존하되 fit 수요에서는 제외해 hide/reopen 시 마지막 zone·row를 그대로 복원한다
+- **activity rail identity와 current placement를 분리**: panel-relative cross-rail snap은 target zone만 승계하고 `railOrder`는 byte-equivalent로 유지한다. explicit reset만 registry의 default rail/zone/size를 복원하며 현재 visibility는 보존한다
+- **outer/shared resize를 immutable reference graph에서 계산**: 9/9 zone에서 outer anchor와 paired row/column 총량을 고정하고 min/max overrun 후 복귀 drift를 0으로 만들었다. local Builder에서 우측 stack/왼쪽 overflow, 4px gap, right/bottom anchor와 paired row resize·reload를 확인했다
+- production storage/coordinator public type은 계속 v2 compatibility path를 사용한다. Phase 5의 v3 primary cutover, `floatAnchoredPanelWorkspaceClusters`와 persisted free-XY 제거는 아직 시작하지 않았다
+- 위치: `apps/builder/src/builder/layout/panelWorkspacePolicyV3.ts`, `panelWorkspaceRuntime.ts`, `panelWorkspaceLayoutV3*.ts`, `docs/adr/design/186-phase-4-policy-identity-resize.md`
+
+## [ADR-186 G3 — transient panel drag와 candidate/drop transaction] - 2026-08-19
+
+### Architecture
+
+- **free XY를 drag session preview로 격리**: pointermove는 committed v2 layout이나 storage를 쓰지 않고 coordinator의 transient preview만 RAF 단위로 publish한다. valid panel-edge/9-zone drop만 graph를 한 번 commit하며 invalid drop, Escape, pointer cancel은 byte-equivalent base layout으로 돌아간다
+- **Photoshop panel adjacency와 Pencil 9-zone을 단일 candidate resolver로 통합**: panel의 실제 snap 가능한 outer face를 zone보다 우선하고 candidate는 항상 최대 1개만 노출한다. drag 중에만 3x3 zone overlay를 표시하며 기존 모든 면 dropper는 제거했다
+- **snap line과 resize hover bar의 시각 계약을 통일**: 공통 focus-ring color token과 2px thickness를 사용해 가로 방향 height와 세로 방향 width가 일치한다. 실제 Builder pointer trace에서 solve/DOM geometry query/version mismatch/long task 0, Escape rollback과 valid drop reload를 확인했다
+- production persistence와 activation/resize는 계속 v2 compatibility path를 사용한다. Phase 4 정책 전환과 Phase 5 v3 production cutover/free-XY 제거는 아직 시작하지 않았다
+- 위치: `apps/builder/src/builder/layout/panelWorkspaceZoneDrop.ts`, `PanelWorkspace.*`, `panelWorkspaceRuntime.ts`, `panelWorkspaceLayoutCoordinator.ts`, `docs/adr/design/186-phase-3-drag-transaction.md`
+
 ## [ADR-186 G2 — 9-zone solver와 common placement surface] - 2026-08-19
 
 ### Architecture
 
 - **fit-before-origin 9-zone panel geometry를 추가**: top/center/bottom과 left/center/right origin을 actual placement surface local rect에서 순수 계산해 cluster 크기가 바뀌어도 right/top/bottom anchor가 흔들리지 않는다. 320x180 경계에서도 visible frame이 surface를 벗어나지 않는다
-- **panel frame의 containing block을 공통 4px placement surface로 통일**: workspace edge마다 별도 보정하지 않고 `.panel-workspace-placement-surface`가 CSS inset을 정확히 한 번 소유한다. local Builder 실측에서 네 edge 4px, dock-surface edge 오차 0px를 확인했다
+- **panel frame의 containing block을 공통 4px dock으로 통일**: 별도 placement wrapper 없이 `.panel-dock`이 CSS inset을 정확히 한 번 소유하고, `.panel-dock-surface`는 좌우 nav 사이의 dynamic frame 영역만 제공한다. local Builder 실측에서 네 edge 4px, dock-surface edge 오차 0px를 확인했다
 - **Phase 2 build를 v3 operational rollback target으로 연결**: migration 직후 record는 exact v2 raw를 복원하고, migrated-post-edit와 v3-born record는 current v3 graph를 valid v2 floating layout으로 projection한다. current v3 prepared backup → v2 primary → committed marker의 세 crash 경계를 재실행 가능한 fixture로 고정했다
 - production drag/runtime/state는 계속 v2이며 Phase 3 candidate/drop transaction과 v3 production writer는 아직 전환하지 않았다
 - 위치: `apps/builder/src/builder/layout/panelWorkspaceLayoutV3*.ts`, `apps/builder/src/builder/layout/PanelWorkspace.*`, `docs/adr/design/186-phase-2-zone-solver-placement-surface.md`

@@ -7,7 +7,9 @@ import {
   PANEL_WORKSPACE_TEST_REGISTRY,
   createPanelWorkspaceLayoutV2,
 } from "./panelWorkspaceLayoutV2.testFixtures";
-import { solvePanelWorkspaceLayoutV2 } from "./panelWorkspaceLayoutV2";
+import { solvePanelWorkspaceLayoutV3 } from "./panelWorkspaceLayoutV3";
+import { createPanelWorkspaceLayoutV3Fixture } from "./panelWorkspaceLayoutV3.testFixtures";
+import { migratePanelWorkspaceLayoutV2ToV3 } from "./panelWorkspaceLayoutV3Migration";
 import {
   createPanelWorkspaceLayoutCoordinator,
   type PanelWorkspaceLayoutCoordinatorInput,
@@ -48,10 +50,9 @@ function createInput(
   overrides: Partial<PanelWorkspaceLayoutCoordinatorInput> = {},
 ): PanelWorkspaceLayoutCoordinatorInput {
   return {
-    layout: createPanelWorkspaceLayoutV2(),
+    layout: createPanelWorkspaceLayoutV3Fixture(),
     registry: PANEL_WORKSPACE_TEST_REGISTRY,
     workspaceRect: { width: 1400, height: 900 },
-    railSizes: { left: 48, right: 48, bottom: 48 },
     ...overrides,
   };
 }
@@ -59,7 +60,7 @@ function createInput(
 function requireCoordinator(
   input: PanelWorkspaceLayoutCoordinatorInput,
   scheduler: PanelWorkspaceLayoutFrameScheduler,
-  solve = solvePanelWorkspaceLayoutV2,
+  solve = solvePanelWorkspaceLayoutV3,
 ) {
   const result = createPanelWorkspaceLayoutCoordinator(input, {
     scheduler,
@@ -73,9 +74,9 @@ function requireCoordinator(
 describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
   it("하나의 immutable snapshot에 frame/shell/splitter version을 함께 고정한다", () => {
     const scheduler = new TestFrameScheduler();
-    const layout = createPanelWorkspaceLayoutV2();
-    layout.visibility.history = true;
-    const rightCluster = layout.clusters.find(
+    const source = createPanelWorkspaceLayoutV2();
+    source.visibility.history = true;
+    const rightCluster = source.clusters.find(
       (cluster) => cluster.anchor === "right",
     );
     if (!rightCluster) throw new Error("right cluster is required");
@@ -91,7 +92,19 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
         rows: [{ panelId: "properties", height: 520 }],
       },
     ];
-    const coordinator = requireCoordinator(createInput({ layout }), scheduler);
+    const migrated = migratePanelWorkspaceLayoutV2ToV3(
+      source,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      {
+        surfaceRect: { width: 1400, height: 900 },
+        migrationId: "coordinator-column-fixture",
+      },
+    );
+    if (!migrated.ok) throw new Error(migrated.error);
+    const coordinator = requireCoordinator(
+      createInput({ layout: migrated.value }),
+      scheduler,
+    );
 
     const snapshot = coordinator.getSnapshot();
 
@@ -121,7 +134,7 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
 
   it("같은 column의 visible row 사이에서 horizontal splitter를 파생한다", () => {
     const scheduler = new TestFrameScheduler();
-    const layout = createPanelWorkspaceLayoutV2();
+    const layout = createPanelWorkspaceLayoutV3Fixture();
     layout.visibility.history = true;
     const coordinator = requireCoordinator(createInput({ layout }), scheduler);
 
@@ -132,16 +145,16 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
         layoutVersion: 0,
         beforePanelIds: ["properties"],
         afterPanelIds: ["history"],
-        geometry: { x: 1028, y: 524, width: 320, height: 4 },
+        geometry: { x: 1080, y: 520, width: 320, height: 4 },
       }),
     ]);
   });
 
   it("frame outer resize edge는 rail이 아니라 snapshot anchor와 shared boundary에서 파생한다", () => {
     const scheduler = new TestFrameScheduler();
-    const layout = createPanelWorkspaceLayoutV2();
-    layout.visibility.history = true;
-    const rightCluster = layout.clusters.find(
+    const source = createPanelWorkspaceLayoutV2();
+    source.visibility.history = true;
+    const rightCluster = source.clusters.find(
       (cluster) => cluster.anchor === "right",
     );
     if (!rightCluster) throw new Error("right cluster is required");
@@ -157,7 +170,19 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
         rows: [{ panelId: "properties", height: 520 }],
       },
     ];
-    const coordinator = requireCoordinator(createInput({ layout }), scheduler);
+    const migrated = migratePanelWorkspaceLayoutV2ToV3(
+      source,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      {
+        surfaceRect: { width: 1400, height: 900 },
+        migrationId: "coordinator-edge-fixture",
+      },
+    );
+    if (!migrated.ok) throw new Error(migrated.error);
+    const coordinator = requireCoordinator(
+      createInput({ layout: migrated.value }),
+      scheduler,
+    );
     const snapshot = coordinator.getSnapshot();
 
     expect(snapshot.frameGeometries.get("history")?.resizeEdges).toEqual([
@@ -171,7 +196,7 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
 
   it("같은 display frame의 여러 input을 최신 값으로 합쳐 solve/publish를 한 번만 수행한다", () => {
     const scheduler = new TestFrameScheduler();
-    const solve = vi.fn(solvePanelWorkspaceLayoutV2);
+    const solve = vi.fn(solvePanelWorkspaceLayoutV3);
     const coordinator = requireCoordinator(createInput(), scheduler, solve);
     solve.mockClear();
     const listenerA = vi.fn();
@@ -205,6 +230,65 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
       version: 1,
       workspaceRect: { width: 1200, height: 860 },
     });
+  });
+
+  it("drag preview는 committed graph solve 없이 RAF당 최신 geometry 한 번만 publish하고 clear 시 base frame을 복원한다", () => {
+    const scheduler = new TestFrameScheduler();
+    const solve = vi.fn(solvePanelWorkspaceLayoutV3);
+    const coordinator = requireCoordinator(createInput(), scheduler, solve);
+    solve.mockClear();
+    const listener = vi.fn();
+    coordinator.subscribe(listener);
+    const baseFrame = coordinator.getSnapshot().frameGeometries.get("nodes");
+    const basePropertiesFrame = coordinator
+      .getSnapshot()
+      .frameGeometries.get("properties");
+    if (!baseFrame) throw new Error("nodes frame is required");
+    if (!basePropertiesFrame) throw new Error("properties frame is required");
+
+    coordinator.queuePreview("nodes", {
+      x: 240,
+      y: 120,
+      width: baseFrame.width,
+      height: baseFrame.height,
+    });
+    coordinator.queuePreview("nodes", {
+      x: 360,
+      y: 180,
+      width: baseFrame.width,
+      height: baseFrame.height,
+    });
+
+    expect(scheduler.pendingCount).toBe(1);
+    scheduler.flush();
+    expect(solve).not.toHaveBeenCalled();
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(coordinator.getSnapshot().version).toBe(1);
+    expect(
+      coordinator.getSnapshot().frameGeometries.get("nodes"),
+    ).toMatchObject({ x: 360, y: 180 });
+    expect(coordinator.getSnapshot().frameGeometries.get("nodes")).not.toBe(
+      baseFrame,
+    );
+    expect(coordinator.getSnapshot().frameGeometries.get("properties")).toBe(
+      basePropertiesFrame,
+    );
+
+    coordinator.clearPreview();
+    expect(scheduler.pendingCount).toBe(1);
+    scheduler.flush();
+    expect(solve).not.toHaveBeenCalled();
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(coordinator.getSnapshot().version).toBe(2);
+    expect(
+      coordinator.getSnapshot().frameGeometries.get("nodes"),
+    ).toMatchObject({ x: baseFrame.x, y: baseFrame.y });
+    expect(coordinator.getSnapshot().frameGeometries.get("nodes")).toBe(
+      baseFrame,
+    );
+    expect(coordinator.getSnapshot().frameGeometries.get("properties")).toBe(
+      basePropertiesFrame,
+    );
   });
 
   it("invalid queued input은 현재 snapshot을 유지하고 publish하지 않는다", () => {
@@ -260,7 +344,7 @@ describe("ADR-922 useSyncExternalStore snapshot selectors", () => {
     expect(root.result.current.version).toBe(0);
     expect(frame.result.current?.layoutVersion).toBe(0);
 
-    const layout = createPanelWorkspaceLayoutV2();
+    const layout = createPanelWorkspaceLayoutV3Fixture();
     layout.visibility.nodes = false;
     act(() => {
       coordinator.queueInput(createInput({ layout }));

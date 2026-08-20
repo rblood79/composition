@@ -41,6 +41,9 @@ export interface PanelSize {
   height: number;
 }
 
+/** 패널 치수. 숫자는 px, 문자열은 surface 기준 백분율이다. */
+export type PanelDimension = number | `${number}%`;
+
 export type PanelSnapEdge = "top" | "right" | "bottom" | "left";
 export type PanelResizeEdge = "left" | "right" | "top" | "bottom";
 
@@ -106,23 +109,23 @@ export interface PanelConfig {
   /** 기본 위치 */
   defaultPosition: PanelSide;
 
-  /** 최소 너비 (px, 옵션) */
-  minWidth?: number;
+  /** 최소 너비 (px 또는 surface 기준 %, 옵션) */
+  minWidth?: PanelDimension;
 
-  /** 최대 너비 (px, 옵션) */
-  maxWidth?: number;
+  /** 최대 너비 (px 또는 surface 기준 %, 옵션) */
+  maxWidth?: PanelDimension;
 
-  /** 기본 너비 (px, modal 초기값) */
-  defaultWidth?: number;
+  /** 기본 너비 (px 또는 surface 기준 %, modal 초기값) */
+  defaultWidth?: PanelDimension;
 
-  /** 기본 높이 (px, modal 초기값) */
-  defaultHeight?: number;
+  /** 기본 높이 (px 또는 surface 기준 %, modal 초기값) */
+  defaultHeight?: PanelDimension;
 
-  /** 최소 높이 (px, modal 제약) */
-  minHeight?: number;
+  /** 최소 높이 (px 또는 surface 기준 %, modal 제약) */
+  minHeight?: PanelDimension;
 
-  /** 최대 높이 (px, modal 제약) */
-  maxHeight?: number;
+  /** 최대 높이 (px 또는 surface 기준 %, modal 제약) */
+  maxHeight?: PanelDimension;
 
   /** 설명 (옵션) */
   description?: string;

@@ -7,19 +7,17 @@ import {
   ADR_186_ZONE_ORIGIN_FIXTURES,
   createAdr186TenPlusFloatingFixture,
 } from "./panelWorkspaceAdr186.testFixtures";
+import { PANEL_WORKSPACE_TEST_REGISTRY } from "./panelWorkspaceLayoutV2.testFixtures";
+import { createPanelWorkspaceLayoutV3Fixture } from "./panelWorkspaceLayoutV3.testFixtures";
 import {
-  PANEL_WORKSPACE_TEST_REGISTRY,
-  createPanelWorkspaceLayoutV2,
-} from "./panelWorkspaceLayoutV2.testFixtures";
-import {
-  activatePanelWorkspacePanel,
-  resizePanelWorkspaceBoundary,
-} from "./panelWorkspaceLayoutInteraction";
+  activatePanelWorkspacePanelV3,
+  resizePanelWorkspaceBoundaryV3,
+} from "./panelWorkspacePolicyV3";
 import { createPanelWorkspaceRuntime } from "./panelWorkspaceRuntime";
 
 const ACTIVATION_OPTIONS = {
-  workspaceRect: { width: 1600, height: 900 },
-  railSizes: { left: 48, right: 48, bottom: 48 },
+  width: 1600,
+  height: 900,
 } as const;
 
 function placedPanelIds(
@@ -83,55 +81,37 @@ describe("ADR-186 G0 placement contract fixtures", () => {
     ]);
   });
 
-  it("현 v2는 unsnapped move를 자유 XY로 commit하고 cancel은 시작 graph를 복원한다", () => {
+  it("v3 production은 unsnapped move를 commit하지 않고 시작 graph를 보존한다", () => {
     const runtime = createPanelWorkspaceRuntime(
-      createPanelWorkspaceLayoutV2(),
+      createPanelWorkspaceLayoutV3Fixture({ width: 1440, height: 852 }),
       PANEL_WORKSPACE_TEST_REGISTRY,
       { width: 1440, height: 852 },
-      { left: 48, right: 48, bottom: 48 },
     );
     expect(runtime.ok).toBe(true);
     if (!runtime.ok) return;
 
-    runtime.value.beginInteraction();
-    expect(
-      runtime.value.movePanel("properties", {
-        x: 720,
-        y: 96,
-        width: 320,
-        height: 520,
-      }).ok,
-    ).toBe(true);
-    const committed = runtime.value.endInteraction();
-    const floating = committed.clusters.find((cluster) =>
-      cluster.columns.some((column) =>
-        column.rows.some((row) => row.panelId === "properties"),
-      ),
+    const initialRaw = JSON.stringify(runtime.value.getLayout());
+    expect(runtime.value.beginDrag("properties").ok).toBe(true);
+    const updated = runtime.value.updateDrag(
+      "properties",
+      { x: 5000, y: 5000, width: 320, height: 520 },
+      { x: 5000, y: 5000 },
     );
-    expect(floating).toMatchObject({
-      anchor: "floating",
-      position: { x: 720, y: 96 },
+    expect(updated.ok).toBe(true);
+    if (!updated.ok) return;
+    expect(updated.value.candidate).toBeNull();
+    const ended = runtime.value.endDrag("properties");
+    expect(ended).toMatchObject({
+      ok: true,
+      value: { committed: false, candidate: null },
     });
-
-    const committedRaw = JSON.stringify(committed);
-    runtime.value.beginInteraction();
-    expect(
-      runtime.value.movePanel("properties", {
-        x: 100,
-        y: 100,
-        width: 320,
-        height: 520,
-      }).ok,
-    ).toBe(true);
-    expect(JSON.stringify(runtime.value.cancelInteraction())).toBe(
-      committedRaw,
-    );
+    expect(JSON.stringify(runtime.value.getLayout())).toBe(initialRaw);
     runtime.value.destroy();
   });
 
   it("hidden reopen은 row를 중복하지 않고 paired resize는 인접 합계를 보존한다", () => {
-    const layout = createPanelWorkspaceLayoutV2();
-    const firstOpen = activatePanelWorkspacePanel(
+    const layout = createPanelWorkspaceLayoutV3Fixture(ACTIVATION_OPTIONS);
+    const firstOpen = activatePanelWorkspacePanelV3(
       layout,
       PANEL_WORKSPACE_TEST_REGISTRY,
       "history",
@@ -139,7 +119,7 @@ describe("ADR-186 G0 placement contract fixtures", () => {
     );
     expect(firstOpen.ok).toBe(true);
     if (!firstOpen.ok) return;
-    const hidden = activatePanelWorkspacePanel(
+    const hidden = activatePanelWorkspacePanelV3(
       firstOpen.value.layout,
       PANEL_WORKSPACE_TEST_REGISTRY,
       "history",
@@ -147,7 +127,7 @@ describe("ADR-186 G0 placement contract fixtures", () => {
     );
     expect(hidden.ok).toBe(true);
     if (!hidden.ok) return;
-    const reopened = activatePanelWorkspacePanel(
+    const reopened = activatePanelWorkspacePanelV3(
       hidden.value.layout,
       PANEL_WORKSPACE_TEST_REGISTRY,
       "history",
@@ -167,29 +147,42 @@ describe("ADR-186 G0 placement contract fixtures", () => {
       "history",
     ]);
 
-    const pairedLayout = createPanelWorkspaceLayoutV2();
+    const pairedLayout =
+      createPanelWorkspaceLayoutV3Fixture(ACTIVATION_OPTIONS);
     pairedLayout.visibility.history = true;
-    const right = pairedLayout.clusters.find(
-      (cluster) => cluster.anchor === "right",
-    );
-    const before = right?.columns[0]?.rows ?? [];
-    const beforeTotal = before.reduce((sum, row) => sum + row.height, 0);
-    const resized = resizePanelWorkspaceBoundary(
+    const normalized = resizePanelWorkspaceBoundaryV3(
       pairedLayout,
       PANEL_WORKSPACE_TEST_REGISTRY,
       "properties",
       "bottom",
       0,
+      0,
+      ACTIVATION_OPTIONS,
+    );
+    expect(normalized.ok).toBe(true);
+    if (!normalized.ok) return;
+    const right = normalized.value.layout.clusters.find(
+      (cluster) => cluster.placementZone === "top-right",
+    );
+    const before = right?.columns[0]?.rows ?? [];
+    const beforeTotal = before.reduce((sum, row) => sum + row.height, 0);
+    const resized = resizePanelWorkspaceBoundaryV3(
+      normalized.value.layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      "properties",
+      "bottom",
+      0,
       30,
+      ACTIVATION_OPTIONS,
     );
     expect(resized.ok).toBe(true);
     if (!resized.ok) return;
     const after = resized.value.layout.clusters.find(
-      (cluster) => cluster.anchor === "right",
+      (cluster) => cluster.placementZone === "top-right",
     )?.columns[0]?.rows;
     expect(after).toEqual([
       { panelId: "properties", height: 550 },
-      { panelId: "history", height: 420 },
+      { panelId: "history", height: 346 },
     ]);
     expect(after?.reduce((sum, row) => sum + row.height, 0)).toBe(beforeTotal);
   });

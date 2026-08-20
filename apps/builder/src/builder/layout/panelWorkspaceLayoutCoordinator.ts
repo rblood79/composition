@@ -3,25 +3,28 @@ import type {
   PanelId,
   PanelResizeEdge,
 } from "../panels/core/types";
-import {
-  solvePanelWorkspaceLayoutV2,
-  type PanelWorkspaceAnchorPresentation,
-  type PanelWorkspaceClusterV2,
-  type PanelWorkspaceLayoutSolution,
-  type PanelWorkspaceLayoutV2,
-  type PanelWorkspaceRailSizes,
-  type PanelWorkspaceRegistryEntry,
-  type PanelWorkspaceResult,
-  type PanelWorkspaceSolvedFrameGeometry,
-  type PanelWorkspaceSolveOptions,
+import type {
+  PanelWorkspaceRailSizes,
+  PanelWorkspaceRect,
+  PanelWorkspaceRegistryEntry,
+  PanelWorkspaceResult,
 } from "./panelWorkspaceLayoutV2";
+import {
+  solvePanelWorkspaceLayoutV3,
+  type PanelWorkspaceClusterV3,
+  type PanelWorkspaceLayoutSolutionV3,
+  type PanelWorkspaceLayoutV3,
+  type PanelWorkspacePlacementZone,
+  type PanelWorkspaceSolvedFrameGeometryV3,
+} from "./panelWorkspaceLayoutV3";
 
-export interface PanelWorkspaceLayoutCoordinatorInput extends PanelWorkspaceSolveOptions {
-  layout: PanelWorkspaceLayoutV2;
+export interface PanelWorkspaceLayoutCoordinatorInput {
+  layout: PanelWorkspaceLayoutV3;
   registry: readonly PanelWorkspaceRegistryEntry[];
+  workspaceRect: PanelWorkspaceRect;
 }
 
-export interface PanelWorkspaceFrameSnapshot extends PanelWorkspaceSolvedFrameGeometry {
+export interface PanelWorkspaceFrameSnapshot extends PanelWorkspaceSolvedFrameGeometryV3 {
   layoutVersion: number;
   resizeEdges: readonly PanelResizeEdge[];
 }
@@ -43,17 +46,13 @@ export interface PanelWorkspaceSplitterGeometry {
 
 export interface PanelWorkspaceLayoutSnapshot {
   version: number;
-  workspaceRect: Readonly<{ width: number; height: number }>;
+  workspaceRect: Readonly<PanelWorkspaceRect>;
   mainContentRect: Readonly<PanelFrameGeometry>;
   frameGeometries: ReadonlyMap<PanelId, PanelWorkspaceFrameSnapshot>;
   occupiedInsets: Readonly<PanelWorkspaceRailSizes>;
-  presentations: Readonly<
-    Record<"left" | "right" | "bottom", PanelWorkspaceAnchorPresentation>
-  >;
   splitters: readonly PanelWorkspaceSplitterGeometry[];
   visiblePanelIds: ReadonlySet<PanelId>;
   panelOrder: readonly PanelId[];
-  constrainedOverlayOrder: readonly ("left" | "right" | "bottom")[];
 }
 
 export interface PanelWorkspaceLayoutFrameScheduler {
@@ -62,10 +61,10 @@ export interface PanelWorkspaceLayoutFrameScheduler {
 }
 
 export type PanelWorkspaceLayoutSolver = (
-  layout: PanelWorkspaceLayoutV2,
+  layout: PanelWorkspaceLayoutV3,
   registry: readonly PanelWorkspaceRegistryEntry[],
-  options: PanelWorkspaceSolveOptions,
-) => PanelWorkspaceResult<PanelWorkspaceLayoutSolution>;
+  surfaceRect: PanelWorkspaceRect,
+) => PanelWorkspaceResult<PanelWorkspaceLayoutSolutionV3>;
 
 export interface PanelWorkspaceLayoutCoordinatorOptions {
   scheduler?: PanelWorkspaceLayoutFrameScheduler;
@@ -76,8 +75,15 @@ export interface PanelWorkspaceLayoutCoordinator {
   getSnapshot: () => PanelWorkspaceLayoutSnapshot;
   subscribe: (listener: () => void) => () => void;
   queueInput: (input: PanelWorkspaceLayoutCoordinatorInput) => void;
+  queuePreview: (panelId: PanelId, geometry: PanelFrameGeometry) => void;
+  clearPreview: () => void;
   getLastError: () => string | null;
   destroy: () => void;
+}
+
+interface PanelWorkspaceFramePreview {
+  panelId: PanelId;
+  geometry: Readonly<PanelFrameGeometry>;
 }
 
 const BROWSER_FRAME_SCHEDULER: PanelWorkspaceLayoutFrameScheduler = {
@@ -125,9 +131,9 @@ function readonlySetView<T>(source: ReadonlySet<T>): ReadonlySet<T> {
 }
 
 function visiblePanelIdsForColumn(
-  cluster: PanelWorkspaceClusterV2,
+  cluster: PanelWorkspaceClusterV3,
   columnIndex: number,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometry>,
+  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometryV3>,
 ): PanelId[] {
   const column = cluster.columns[columnIndex];
   if (!column) return [];
@@ -137,9 +143,9 @@ function visiblePanelIdsForColumn(
 }
 
 function createRowSplitters(
-  cluster: PanelWorkspaceClusterV2,
+  cluster: PanelWorkspaceClusterV3,
   columnIndex: number,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometry>,
+  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometryV3>,
   layoutVersion: number,
 ): PanelWorkspaceSplitterGeometry[] {
   const column = cluster.columns[columnIndex];
@@ -176,8 +182,8 @@ function createRowSplitters(
 }
 
 function createColumnSplitters(
-  cluster: PanelWorkspaceClusterV2,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometry>,
+  cluster: PanelWorkspaceClusterV3,
+  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometryV3>,
   layoutVersion: number,
 ): PanelWorkspaceSplitterGeometry[] {
   const visibleColumns = cluster.columns.flatMap((column, columnIndex) => {
@@ -232,61 +238,82 @@ function createColumnSplitters(
 }
 
 function createSplitters(
-  solution: PanelWorkspaceLayoutSolution,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometry>,
+  solution: PanelWorkspaceLayoutSolutionV3,
   layoutVersion: number,
 ): readonly PanelWorkspaceSplitterGeometry[] {
   const splitters: PanelWorkspaceSplitterGeometry[] = [];
   for (const cluster of solution.layout.clusters) {
     cluster.columns.forEach((_column, columnIndex) => {
       splitters.push(
-        ...createRowSplitters(cluster, columnIndex, frames, layoutVersion),
+        ...createRowSplitters(
+          cluster,
+          columnIndex,
+          solution.frameGeometries,
+          layoutVersion,
+        ),
       );
     });
-    splitters.push(...createColumnSplitters(cluster, frames, layoutVersion));
+    splitters.push(
+      ...createColumnSplitters(
+        cluster,
+        solution.frameGeometries,
+        layoutVersion,
+      ),
+    );
   }
   return Object.freeze(splitters);
 }
 
+function zoneOuterResizeEdges(
+  placementZone: PanelWorkspacePlacementZone,
+): PanelResizeEdge[] {
+  const edges: PanelResizeEdge[] = [];
+  if (placementZone.endsWith("right") || placementZone === "right") {
+    edges.push("left");
+  } else if (placementZone.endsWith("left") || placementZone === "left") {
+    edges.push("right");
+  } else {
+    edges.push("left", "right");
+  }
+  if (placementZone.startsWith("bottom") || placementZone === "bottom") {
+    edges.push("top");
+  } else if (placementZone.startsWith("top") || placementZone === "top") {
+    edges.push("bottom");
+  } else {
+    edges.push("top", "bottom");
+  }
+  return edges;
+}
+
 function createFrameResizeEdges(
   panelId: PanelId,
-  anchor: PanelWorkspaceSolvedFrameGeometry["anchor"],
+  placementZone: PanelWorkspacePlacementZone,
   splitters: readonly PanelWorkspaceSplitterGeometry[],
 ): readonly PanelResizeEdge[] {
-  const edges: PanelResizeEdge[] =
-    anchor === "floating"
-      ? ["left", "right", "bottom"]
-      : anchor === "left"
-        ? ["right", "bottom"]
-        : anchor === "right"
-          ? ["left", "bottom"]
-          : ["top"];
   const internalEdges = new Set<PanelResizeEdge>();
-
   for (const splitter of splitters) {
     if (splitter.kind === "row") {
       if (splitter.beforePanelIds.includes(panelId))
         internalEdges.add("bottom");
       if (splitter.afterPanelIds.includes(panelId)) internalEdges.add("top");
-      continue;
+    } else {
+      if (splitter.beforePanelIds.includes(panelId)) internalEdges.add("right");
+      if (splitter.afterPanelIds.includes(panelId)) internalEdges.add("left");
     }
-    if (splitter.beforePanelIds.includes(panelId)) internalEdges.add("right");
-    if (splitter.afterPanelIds.includes(panelId)) internalEdges.add("left");
   }
-
-  return Object.freeze(edges.filter((edge) => !internalEdges.has(edge)));
+  return Object.freeze(
+    zoneOuterResizeEdges(placementZone).filter(
+      (edge) => !internalEdges.has(edge),
+    ),
+  );
 }
 
 function createSnapshot(
-  solution: PanelWorkspaceLayoutSolution,
+  solution: PanelWorkspaceLayoutSolutionV3,
   registry: readonly PanelWorkspaceRegistryEntry[],
   version: number,
 ): PanelWorkspaceLayoutSnapshot {
-  const splitters = createSplitters(
-    solution,
-    solution.frameGeometries,
-    version,
-  );
+  const splitters = createSplitters(solution, version);
   const mutableFrames = new Map<PanelId, PanelWorkspaceFrameSnapshot>();
   for (const [panelId, geometry] of solution.frameGeometries) {
     mutableFrames.set(
@@ -296,27 +323,59 @@ function createSnapshot(
         layoutVersion: version,
         resizeEdges: createFrameResizeEdges(
           panelId,
-          geometry.anchor,
+          geometry.placementZone,
           splitters,
         ),
       }),
     );
   }
   const frameGeometries = readonlyMapView(mutableFrames);
-  const visiblePanelIds = readonlySetView(new Set(mutableFrames.keys()));
   return Object.freeze({
     version,
-    workspaceRect: Object.freeze({ ...solution.workspaceRect }),
-    mainContentRect: freezeRect(solution.mainContentRect),
+    workspaceRect: Object.freeze({ ...solution.surfaceRect }),
+    mainContentRect: freezeRect({
+      x: 0,
+      y: 0,
+      width: solution.surfaceRect.width,
+      height: solution.surfaceRect.height,
+    }),
     frameGeometries,
-    occupiedInsets: Object.freeze({ ...solution.occupiedInsets }),
-    presentations: Object.freeze({ ...solution.presentations }),
+    occupiedInsets: Object.freeze({ left: 0, right: 0, bottom: 0 }),
     splitters,
-    visiblePanelIds,
+    visiblePanelIds: readonlySetView(new Set(mutableFrames.keys())),
     panelOrder: Object.freeze(registry.map((entry) => entry.id)),
-    constrainedOverlayOrder: Object.freeze([
-      ...solution.constrainedOverlayOrder,
-    ]),
+  });
+}
+
+function createTransientSnapshot(
+  committedSnapshot: PanelWorkspaceLayoutSnapshot,
+  version: number,
+  preview: PanelWorkspaceFramePreview | null,
+): PanelWorkspaceLayoutSnapshot {
+  const mutableFrames = new Map<PanelId, PanelWorkspaceFrameSnapshot>();
+  for (const [panelId, frame] of committedSnapshot.frameGeometries) {
+    if (!preview || preview.panelId !== panelId) {
+      mutableFrames.set(panelId, frame);
+      continue;
+    }
+    mutableFrames.set(
+      panelId,
+      Object.freeze({
+        ...frame,
+        x: preview.geometry.x,
+        y: preview.geometry.y,
+        width: preview.geometry.width,
+        height: preview.geometry.height,
+        layoutVersion: version,
+      }),
+    );
+  }
+  return Object.freeze({
+    ...committedSnapshot,
+    version,
+    frameGeometries: readonlyMapView(mutableFrames),
+    splitters: committedSnapshot.splitters,
+    visiblePanelIds: committedSnapshot.visiblePanelIds,
   });
 }
 
@@ -327,13 +386,15 @@ function copyInput(
     layout: input.layout,
     registry: input.registry,
     workspaceRect: { ...input.workspaceRect },
-    railSizes: { ...input.railSizes },
   };
 }
 
 class PanelWorkspaceLayoutCoordinatorStore implements PanelWorkspaceLayoutCoordinator {
   private snapshot: PanelWorkspaceLayoutSnapshot;
+  private committedSnapshot: PanelWorkspaceLayoutSnapshot;
   private pendingInput: PanelWorkspaceLayoutCoordinatorInput | null = null;
+  private preview: PanelWorkspaceFramePreview | null = null;
+  private previewDirty = false;
   private frameHandle: number | null = null;
   private lastError: string | null = null;
   private destroyed = false;
@@ -345,6 +406,7 @@ class PanelWorkspaceLayoutCoordinatorStore implements PanelWorkspaceLayoutCoordi
     private readonly solve: PanelWorkspaceLayoutSolver,
   ) {
     this.snapshot = initialSnapshot;
+    this.committedSnapshot = initialSnapshot;
   }
 
   getSnapshot = (): PanelWorkspaceLayoutSnapshot => this.snapshot;
@@ -352,16 +414,37 @@ class PanelWorkspaceLayoutCoordinatorStore implements PanelWorkspaceLayoutCoordi
   subscribe = (listener: () => void): (() => void) => {
     if (this.destroyed) return () => undefined;
     this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
+    return () => this.listeners.delete(listener);
   };
 
   queueInput = (input: PanelWorkspaceLayoutCoordinatorInput): void => {
     if (this.destroyed) return;
     this.pendingInput = copyInput(input);
-    if (this.frameHandle !== null) return;
-    this.frameHandle = this.scheduler.request(this.flushPendingInput);
+    this.scheduleFlush();
+  };
+
+  queuePreview = (panelId: PanelId, geometry: PanelFrameGeometry): void => {
+    if (
+      this.destroyed ||
+      !Number.isFinite(geometry.x) ||
+      !Number.isFinite(geometry.y) ||
+      !Number.isFinite(geometry.width) ||
+      !Number.isFinite(geometry.height) ||
+      geometry.width <= 0 ||
+      geometry.height <= 0
+    ) {
+      return;
+    }
+    this.preview = { panelId, geometry: freezeRect(geometry) };
+    this.previewDirty = true;
+    this.scheduleFlush();
+  };
+
+  clearPreview = (): void => {
+    if (this.destroyed || (this.preview === null && !this.previewDirty)) return;
+    this.preview = null;
+    this.previewDirty = true;
+    this.scheduleFlush();
   };
 
   getLastError = (): string | null => this.lastError;
@@ -370,6 +453,8 @@ class PanelWorkspaceLayoutCoordinatorStore implements PanelWorkspaceLayoutCoordi
     if (this.destroyed) return;
     this.destroyed = true;
     this.pendingInput = null;
+    this.preview = null;
+    this.previewDirty = false;
     if (this.frameHandle !== null) {
       this.scheduler.cancel(this.frameHandle);
       this.frameHandle = null;
@@ -382,34 +467,48 @@ class PanelWorkspaceLayoutCoordinatorStore implements PanelWorkspaceLayoutCoordi
     if (this.destroyed) return;
     const input = this.pendingInput;
     this.pendingInput = null;
-    if (!input) return;
-    const solved = this.solve(input.layout, input.registry, {
-      workspaceRect: input.workspaceRect,
-      railSizes: input.railSizes,
-    });
-    if (!solved.ok) {
-      this.lastError = solved.error;
-      return;
+    const hadPreviewUpdate = this.previewDirty;
+    this.previewDirty = false;
+    if (!input && !hadPreviewUpdate) return;
+    const nextVersion = this.snapshot.version + 1;
+    if (input) {
+      const solved = this.solve(
+        input.layout,
+        input.registry,
+        input.workspaceRect,
+      );
+      if (!solved.ok) {
+        this.lastError = solved.error;
+        if (!hadPreviewUpdate) return;
+      } else {
+        this.lastError = null;
+        this.committedSnapshot = createSnapshot(
+          solved.value,
+          input.registry,
+          nextVersion,
+        );
+      }
     }
-    this.lastError = null;
-    this.snapshot = createSnapshot(
-      solved.value,
-      input.registry,
-      this.snapshot.version + 1,
+    this.snapshot = createTransientSnapshot(
+      this.committedSnapshot,
+      nextVersion,
+      this.preview,
     );
     for (const listener of [...this.listeners]) listener();
   };
+
+  private scheduleFlush(): void {
+    if (this.frameHandle !== null) return;
+    this.frameHandle = this.scheduler.request(this.flushPendingInput);
+  }
 }
 
 export function createPanelWorkspaceLayoutCoordinator(
   input: PanelWorkspaceLayoutCoordinatorInput,
   options: PanelWorkspaceLayoutCoordinatorOptions = {},
 ): PanelWorkspaceResult<PanelWorkspaceLayoutCoordinator> {
-  const solve = options.solve ?? solvePanelWorkspaceLayoutV2;
-  const initial = solve(input.layout, input.registry, {
-    workspaceRect: input.workspaceRect,
-    railSizes: input.railSizes,
-  });
+  const solve = options.solve ?? solvePanelWorkspaceLayoutV3;
+  const initial = solve(input.layout, input.registry, input.workspaceRect);
   if (!initial.ok) return initial;
   return {
     ok: true,

@@ -7,23 +7,23 @@ import {
   type ReactNode,
 } from "react";
 import type { PanelId } from "../panels/core/types";
-import type { PanelSnapEdge } from "./panelSnap";
+import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
 
-interface ActivePanelSnapTarget {
-  panelId: PanelId;
-  edge: PanelSnapEdge;
-}
-
-interface PanelSnapInteractionValue {
-  draggedPanelId: PanelId | null;
-  snapTarget: ActivePanelSnapTarget | null;
+interface PanelSnapInteractionActions {
   beginPanelDrag: (panelId: PanelId) => void;
-  updatePanelSnapTarget: (target: ActivePanelSnapTarget | null) => void;
+  updatePanelDropCandidate: (candidate: PanelDropCandidate) => void;
   endPanelDrag: () => void;
 }
 
-const PanelSnapInteractionContext =
-  createContext<PanelSnapInteractionValue | null>(null);
+interface PanelSnapInteractionState {
+  draggedPanelId: PanelId | null;
+  dropCandidate: PanelDropCandidate;
+}
+
+const PanelSnapInteractionActionsContext =
+  createContext<PanelSnapInteractionActions | null>(null);
+const PanelSnapInteractionStateContext =
+  createContext<PanelSnapInteractionState | null>(null);
 
 export function PanelSnapInteractionProvider({
   children,
@@ -31,50 +31,56 @@ export function PanelSnapInteractionProvider({
   children: ReactNode;
 }) {
   const [draggedPanelId, setDraggedPanelId] = useState<PanelId | null>(null);
-  const [snapTarget, setSnapTarget] = useState<ActivePanelSnapTarget | null>(
-    null,
-  );
+  const [dropCandidate, setDropCandidate] = useState<PanelDropCandidate>(null);
   const beginPanelDrag = useCallback((panelId: PanelId) => {
     setDraggedPanelId(panelId);
-    setSnapTarget(null);
+    setDropCandidate(null);
   }, []);
-  const updatePanelSnapTarget = useCallback(
-    (target: ActivePanelSnapTarget | null) => setSnapTarget(target),
+  const updatePanelDropCandidate = useCallback(
+    (candidate: PanelDropCandidate) => setDropCandidate(candidate),
     [],
   );
   const endPanelDrag = useCallback(() => {
     setDraggedPanelId(null);
-    setSnapTarget(null);
+    setDropCandidate(null);
   }, []);
-  const value = useMemo(
+  const actions = useMemo(
     () => ({
-      draggedPanelId,
-      snapTarget,
       beginPanelDrag,
-      updatePanelSnapTarget,
+      updatePanelDropCandidate,
       endPanelDrag,
     }),
-    [
-      beginPanelDrag,
-      draggedPanelId,
-      endPanelDrag,
-      snapTarget,
-      updatePanelSnapTarget,
-    ],
+    [beginPanelDrag, endPanelDrag, updatePanelDropCandidate],
+  );
+  const state = useMemo(
+    () => ({ draggedPanelId, dropCandidate }),
+    [draggedPanelId, dropCandidate],
   );
 
   return (
-    <PanelSnapInteractionContext.Provider value={value}>
-      {children}
-    </PanelSnapInteractionContext.Provider>
+    <PanelSnapInteractionActionsContext.Provider value={actions}>
+      <PanelSnapInteractionStateContext.Provider value={state}>
+        {children}
+      </PanelSnapInteractionStateContext.Provider>
+    </PanelSnapInteractionActionsContext.Provider>
   );
 }
 
-export function usePanelSnapInteraction(): PanelSnapInteractionValue {
-  const value = useContext(PanelSnapInteractionContext);
+export function usePanelSnapInteractionActions(): PanelSnapInteractionActions {
+  const value = useContext(PanelSnapInteractionActionsContext);
   if (!value) {
     throw new Error(
-      "usePanelSnapInteraction must be used within PanelSnapInteractionProvider",
+      "usePanelSnapInteractionActions must be used within PanelSnapInteractionProvider",
+    );
+  }
+  return value;
+}
+
+export function usePanelSnapInteractionState(): PanelSnapInteractionState {
+  const value = useContext(PanelSnapInteractionStateContext);
+  if (!value) {
+    throw new Error(
+      "usePanelSnapInteractionState must be used within PanelSnapInteractionProvider",
     );
   }
   return value;

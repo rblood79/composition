@@ -8,7 +8,6 @@ import {
   Tablet,
   Smartphone,
   GitBranch,
-  Settings,
   Command,
   FolderOpen,
   Download,
@@ -92,7 +91,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   showWorkflowOverlay,
   onWorkflowOverlayToggle,
 }) => {
-  const { floatPanel } = usePanelLayout();
+  const { togglePanel, resetWorkspaceLayout } = usePanelLayout();
   const isCompareMode = useCompareModeStore((state) => state.isCompareMode);
   const toggleCompareMode = useCompareModeStore(
     (state) => state.toggleCompareMode,
@@ -114,7 +113,12 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             offset={8}
             containerPadding={0}
           >
-            <Menu className="header-menu" onAction={(key) => console.log(key)}>
+            <Menu
+              className="header-menu"
+              onAction={(key) => {
+                if (key === "reset-panel-layout") resetWorkspaceLayout();
+              }}
+            >
               <MenuItem id="open" className="header-menu-item">
                 <FolderOpen size={14} />
                 <span>Open Project</span>
@@ -132,6 +136,11 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               <MenuItem id="delete" className="header-menu-item">
                 <DeleteIcon size={14} />
                 <span>Delete Project</span>
+              </MenuItem>
+              <Separator className="header-menu-separator" />
+              <MenuItem id="reset-panel-layout" className="header-menu-item">
+                <Columns size={14} />
+                <span>Reset Panel Layout</span>
               </MenuItem>
               <Separator className="header-menu-separator" />
               <MenuItem id="help" className="header-menu-item">
@@ -301,11 +310,11 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             />
           </ToggleButton>
           <ToggleButton
-            id="settings"
-            aria-label="Settings"
-            onPress={() => floatPanel("settings")}
+            id="monitor"
+            aria-label="Monitor"
+            onPress={() => togglePanel("monitor")}
           >
-            <Settings
+            <Monitor
               color={iconProps.color}
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}

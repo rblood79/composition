@@ -9,7 +9,6 @@ import type { DataTableEditorStore, ApiEditorTab } from "../types/editorTypes";
 import { useStore } from "../../../stores";
 import { PanelRegistry } from "../../core/PanelRegistry";
 import { dispatchPanelWorkspaceActivation } from "../../../layout/panelWorkspaceActivationDispatcher";
-import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceLayoutInteraction";
 import {
   createPanelWorkspaceRegistryEntry,
   type PanelWorkspaceRect,
@@ -30,9 +29,7 @@ function deactivateEditorPanel() {
 }
 
 function currentPlacementSurfaceRect(): PanelWorkspaceRect | null {
-  const surface = document.querySelector<HTMLElement>(
-    ".panel-workspace-placement-surface",
-  );
+  const surface = document.querySelector<HTMLElement>(".panel-dock");
   if (!surface || surface.clientWidth <= 0 || surface.clientHeight <= 0) {
     return null;
   }
@@ -40,13 +37,19 @@ function currentPlacementSurfaceRect(): PanelWorkspaceRect | null {
 }
 
 function setEditorPanelVisibility(visible: boolean) {
-  const registry = PanelRegistry.getAllPanels().map(
-    createPanelWorkspaceRegistryEntry,
+  const surfaceRect = currentPlacementSurfaceRect();
+  const registry = PanelRegistry.getAllPanels().map((config) =>
+    createPanelWorkspaceRegistryEntry(
+      config,
+      surfaceRect ?? {
+        width: window.innerWidth,
+        height: Math.max(1, window.innerHeight - 48),
+      },
+    ),
   );
   if (registry.length === 0) return;
   let state = useStore.getState();
   if (!state.panelWorkspaceLayout) {
-    const surfaceRect = currentPlacementSurfaceRect();
     if (!surfaceRect) return;
     state.initializePanelWorkspaceLayout(registry, surfaceRect);
     state = useStore.getState();
@@ -59,13 +62,13 @@ function setEditorPanelVisibility(visible: boolean) {
     return;
   }
   if (visible && dispatchPanelWorkspaceActivation("datatableEditor")) return;
-  const result = setPanelWorkspacePanelVisibility(
-    panelWorkspaceLayout,
-    registry,
-    "datatableEditor",
-    visible,
-  );
-  if (result.ok) setPanelWorkspaceLayout(result.value.layout);
+  setPanelWorkspaceLayout({
+    ...panelWorkspaceLayout,
+    visibility: {
+      ...panelWorkspaceLayout.visibility,
+      datatableEditor: visible,
+    },
+  });
 }
 
 /**

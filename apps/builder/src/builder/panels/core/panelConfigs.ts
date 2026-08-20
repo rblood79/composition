@@ -89,7 +89,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     category: "navigation",
     defaultPosition: "left",
     minWidth: 233,
-    maxWidth: 800,
+    maxWidth: "100%",
     defaultHeight: 520,
     description: "DataTables, APIs, Variables 관리",
     shortcut: "Ctrl+Shift+T",
@@ -103,24 +103,9 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     category: "editor",
     defaultPosition: "left",
     minWidth: 233,
-    maxWidth: 1000,
+    maxWidth: "100%",
     defaultHeight: 600,
     description: "DataTable, API, Variable 편집",
-  },
-
-  // Font Manager panel
-  {
-    id: "fonts",
-    name: "폰트",
-    nameEn: "Fonts",
-    icon: Type,
-    component: FontManagerPanel,
-    category: "tool",
-    defaultPosition: "right",
-    minWidth: 233,
-    maxWidth: 640,
-    defaultHeight: 520,
-    description: "커스텀 폰트 업로드 및 관리",
   },
 
   // Tool panels
@@ -131,28 +116,12 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     icon: SwatchBook,
     component: ThemesPanel,
     category: "tool",
-    defaultPosition: "right",
+    defaultPosition: "left",
     minWidth: 233,
     maxWidth: 640,
     defaultHeight: 520,
     description: "Tint 프리셋 및 테마 설정",
   },
-  {
-    id: "ai",
-    name: "AI",
-    nameEn: "AI",
-    icon: Bot,
-    component: AIPanel,
-    category: "tool",
-    defaultPosition: "right",
-    minWidth: 233,
-    maxWidth: 800,
-    defaultWidth: 360,
-    defaultHeight: 500,
-    description: "AI 도구 및 제안",
-    displayModes: ["panel", "floating"],
-  },
-
   // System panels
   {
     id: "settings",
@@ -168,6 +137,22 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultHeight: 500,
     description: "앱 설정 및 환경설정",
     shortcut: "Ctrl+,",
+    displayModes: ["panel", "floating"],
+  },
+
+  {
+    id: "ai",
+    name: "AI",
+    nameEn: "AI",
+    icon: Bot,
+    component: AIPanel,
+    category: "tool",
+    defaultPosition: "right",
+    minWidth: 233,
+    maxWidth: 800,
+    defaultWidth: 360,
+    defaultHeight: 500,
+    description: "AI 도구 및 제안",
     displayModes: ["panel", "floating"],
   },
 
@@ -233,6 +218,20 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     description: "변경 내역 확인 및 복원",
     shortcut: "Ctrl+Shift+H",
     displayModes: ["panel", "floating"],
+  },
+  // Font Manager panel
+  {
+    id: "fonts",
+    name: "폰트",
+    nameEn: "Fonts",
+    icon: Type,
+    component: FontManagerPanel,
+    category: "tool",
+    defaultPosition: "right",
+    minWidth: 233,
+    maxWidth: 640,
+    defaultHeight: 520,
+    description: "커스텀 폰트 업로드 및 관리",
   },
 
   // Bottom panels

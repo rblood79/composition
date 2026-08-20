@@ -10,6 +10,7 @@ import {
   Tooltip,
   TooltipTrigger,
 } from "react-aria-components";
+import { memo } from "react";
 import type { PanelSide, PanelId } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import { iconProps, iconPropsOn } from "../../utils/ui/uiConstants";
@@ -29,7 +30,7 @@ export interface PanelNavProps {
   onPanelClick: (panelId: PanelId) => void;
 }
 
-export function PanelNav({
+export const PanelNav = memo(function PanelNav({
   side,
   panelIds,
   activePanels,
@@ -85,4 +86,4 @@ export function PanelNav({
       </ul>
     </nav>
   );
-}
+});
