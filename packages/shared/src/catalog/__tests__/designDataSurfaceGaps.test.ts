@@ -85,6 +85,24 @@ describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드
    * cascade layer 규칙상 수동이 항상 이겨 canonical 이 catalog 대신 런타임 값을
    * 받는다 (Skia 는 catalog 직접 read → 시각 비대칭). 스코프 이탈을 고정한다.
    */
+  /**
+   * 2026-07-29 사용자 결정 — "컨테이너 높이는 내용이 정하고, 잘라야 하면 요소별로
+   * 저작한다. catalog 가 전 인스턴스에 300 을 강제할 근거가 없다." ListBox 에만
+   * 적용되고 동형 collection 인 Tree 에는 누락돼 있었다 (게다가 수동 Tree.css 는
+   * `max-height:100%` 라 DOM↔Skia 상한이 서로 달랐다). 재유입을 막는다.
+   */
+  it("collection 컨테이너: catalog 가 고정 maxHeight 를 강제하지 않는다", () => {
+    for (const type of ["ListBox", "Tree"] as const) {
+      const container = COMPONENT_RULES_TABLE[type]?.containerStyles as
+        | Record<string, unknown>
+        | undefined;
+      expect(container, `${type} containerStyles`).toBeDefined();
+      expect(container?.maxHeight, `${type} 고정 maxHeight`).toBeUndefined();
+      // overflow 는 남아야 한다 — 높이를 저작했을 때 스크롤이 살아나는 채널.
+      expect(container?.overflow).toBe("auto");
+    }
+  });
+
   it("Toast: 수동 CSS 의 .react-aria-Toast 규칙이 런타임 region 스코프를 벗어나지 않는다", () => {
     const cssPath = fileURLToPath(
       new URL("../../components/styles/Toast.css", import.meta.url),

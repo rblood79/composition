@@ -33,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DateRangePicker `placeholder` 편집 표면 추가** — 렌더러 `resolvePlaceholder` 가 이미
   소비하는데 accepts 선언이 없어 표면이 통째 결손이었다 (DatePicker 는 노출 중 — 형제 대칭 회복).
 
+### Changed
+
+- **Tree 의 catalog 고정 `maxHeight: 300px` 제거** — ListBox 가 2026-07-29 사용자 결정으로
+  같은 값을 뺀 것의 누락 적용분. Tree 는 발산까지 있었다 — 수동 `Tree.css` 는
+  `max-height: 100%`(부모 기준)인데 catalog 만 300 고정이라 DOM 과 Skia 가 서로 다른 상한을
+  썼다. `overflow: auto` 는 유지 (높이를 저작하면 그때 스크롤이 산다). generated CSS 변경 0건
+  — 생성기가 top-level containerStyles 를 읽지 않아 Skia 경로 전용 수정이다.
+
 ## Button min-width 식별성 하한 채택 (Spectrum 2.25×height) - 2026-08-20
 
 ### Features

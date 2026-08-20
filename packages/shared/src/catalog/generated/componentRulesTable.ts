@@ -12893,7 +12893,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       gap: "0px",
       padding: "{spacing.xs}",
       width: "100%",
-      maxHeight: "300px",
+      // 2026-08-20: `maxHeight: "300px"` 제거 — ListBox 가 2026-07-29 사용자 결정으로
+      //   같은 값을 뺀 것의 누락 적용분이다 ("컨테이너 높이는 내용이 정하고, 잘라야 하면
+      //   요소별로 저작한다 — catalog 가 전 인스턴스에 300 을 강제할 근거가 없다").
+      //   Tree 는 발산까지 있었다: 수동 `Tree.css` 는 `max-height: 100%`(부모 기준)인데
+      //   catalog 만 300 고정이라 DOM↔Skia 가 서로 다른 상한을 썼다. `overflow:auto` 는
+      //   남긴다 — 높이를 저작하면 그때 스크롤이 산다 (ListBox 선례 동형).
       overflow: "auto",
       outline: "none",
       // ADR-151 B5 (2026-07-16): 수동 Tree.css `border: 1px solid` 를 layout 이 미반영해
