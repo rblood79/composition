@@ -179,6 +179,7 @@ function sharedSplitterContract(
   splitter: PanelWorkspaceSplitterGeometry,
   snapshot: PanelWorkspaceLayoutSnapshot,
   registry: readonly PanelWorkspaceRegistryEntry[],
+  configsByPanelId: ReadonlyMap<PanelId, PanelConfig>,
 ): SharedSplitterContract | null {
   const panelId = splitter.beforePanelIds[0];
   if (!panelId) return null;
@@ -186,7 +187,7 @@ function sharedSplitterContract(
   if (!frame) return null;
   const entriesByPanelId = registryEntryMap(registry);
   const beforeConfigs = splitter.beforePanelIds.flatMap((candidate) => {
-    const config = PanelRegistry.getPanel(candidate);
+    const config = configsByPanelId.get(candidate);
     return config ? [config] : [];
   });
   if (beforeConfigs.length === 0) return null;
@@ -198,7 +199,7 @@ function sharedSplitterContract(
   const beforeNames = beforeConfigs.map((config) => config.name).join(", ");
   const afterNames = splitter.afterPanelIds
     .flatMap((candidate) => {
-      const config = PanelRegistry.getPanel(candidate);
+      const config = configsByPanelId.get(candidate);
       return config ? [config.name] : [];
     })
     .join(", ");
@@ -288,15 +289,21 @@ interface PanelWorkspaceRuntimeProps {
 }
 
 interface PanelWorkspaceSharedSplittersProps extends PanelWorkspaceRuntimeProps {
+  configs: readonly PanelConfig[];
   dockOrigin: PanelDockOrigin;
 }
 
 function PanelWorkspaceSharedSplitters({
+  configs,
   dockOrigin,
   runtime,
   setWorkspaceLayout,
 }: PanelWorkspaceSharedSplittersProps) {
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  const configsByPanelId = useMemo(
+    () => new Map(configs.map((config) => [config.id, config] as const)),
+    [configs],
+  );
 
   return (
     <>
@@ -305,6 +312,7 @@ function PanelWorkspaceSharedSplitters({
           splitter,
           snapshot,
           runtime.getRegistry(),
+          configsByPanelId,
         );
         if (!contract) return null;
         return (
@@ -1228,6 +1236,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
                   />
                 ))}
                 <PanelWorkspaceSharedSplitters
+                  configs={configs}
                   dockOrigin={origin}
                   runtime={runtime}
                   setWorkspaceLayout={setWorkspaceLayout}
