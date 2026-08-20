@@ -146,11 +146,23 @@ function splitterZIndex(
   clusterId: string,
 ): number {
   const layout = runtime.getLayout();
-  const cluster = layout.clusters.find(
-    (candidate) => candidate.id === clusterId,
-  );
-  if (!cluster) return 30;
+  if (!layout.clusterFocusOrder.includes(clusterId)) return 30;
   return 1_000 + Math.max(0, layout.clusterFocusOrder.indexOf(clusterId));
+}
+
+const registryLookupCache = new WeakMap<
+  readonly PanelWorkspaceRegistryEntry[],
+  ReadonlyMap<PanelId, PanelWorkspaceRegistryEntry>
+>();
+
+function registryEntryMap(
+  registry: readonly PanelWorkspaceRegistryEntry[],
+): ReadonlyMap<PanelId, PanelWorkspaceRegistryEntry> {
+  const cached = registryLookupCache.get(registry);
+  if (cached) return cached;
+  const entries = new Map(registry.map((entry) => [entry.id, entry] as const));
+  registryLookupCache.set(registry, entries);
+  return entries;
 }
 
 interface SharedSplitterContract {
@@ -172,13 +184,14 @@ function sharedSplitterContract(
   if (!panelId) return null;
   const frame = snapshot.frameGeometries.get(panelId);
   if (!frame) return null;
+  const entriesByPanelId = registryEntryMap(registry);
   const beforeConfigs = splitter.beforePanelIds.flatMap((candidate) => {
     const config = PanelRegistry.getPanel(candidate);
     return config ? [config] : [];
   });
   if (beforeConfigs.length === 0) return null;
   const beforeEntries = splitter.beforePanelIds.flatMap((candidate) => {
-    const entry = registry.find((item) => item.id === candidate);
+    const entry = entriesByPanelId.get(candidate);
     return entry ? [entry] : [];
   });
   if (beforeEntries.length === 0) return null;
@@ -985,16 +998,18 @@ function PanelDockClusterPresentation({
   runtime,
 }: PanelDockClusterPresentationProps) {
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const columns = panelDockColumns(runtime.getLayout().clusters, snapshot);
+  const layout = runtime.getLayout();
+  const columns = panelDockColumns(layout.clusters, snapshot);
+  const clustersById = new Map(
+    layout.clusters.map((cluster) => [cluster.id, cluster] as const),
+  );
 
   return (
     <>
       {columns.map((column) => {
         const left = column.x - dockOrigin.x;
         const top = column.y - dockOrigin.y;
-        const cluster = runtime
-          .getLayout()
-          .clusters.find((candidate) => candidate.id === column.clusterId);
+        const cluster = clustersById.get(column.clusterId);
         const isRightAnchored = isRightAnchoredPlacementZone(
           cluster?.placementZone,
         );
