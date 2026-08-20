@@ -619,7 +619,11 @@ export const renderTooltip = (
     <Tooltip
       key={element.id}
       data-element-id={element.id}
-      data-variant={element.props.variant || "default"}
+      // catalog defaultVariant 와 정렬 (2026-08-20): 구 fallback "default" 는
+      //   generated CSS 에 대응 규칙이 없어(neutral/info/positive/negative 4종만)
+      //   존재하지 않는 variant 를 가리키는 거짓 신호였다. base 규칙이 neutral 값과
+      //   같아 시각 결과는 동일하나, Skia(defaultVariant "neutral") 와 표기를 맞춘다.
+      data-variant={element.props.variant || "neutral"}
       data-size={element.props.size || "md"}
       style={element.props.style}
       className={element.props.className}

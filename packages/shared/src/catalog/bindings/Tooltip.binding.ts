@@ -19,6 +19,17 @@ export const tooltipBinding: PrimitiveBinding = {
   skiaPrimitive: "tooltip_arrow",
   props: {
     accepts: {
+      // design-data 감사 (2026-08-20): D3 rules table 에 variants 4종
+      //   (neutral/info/positive/negative) + generated CSS `[data-variant]` 4규칙이
+      //   이미 있고 renderTooltip 도 `data-variant` 를 emit 하는데, accepts 선언만
+      //   없어 프로퍼티 패널에서 편집 불가였다 (D2 표면 단절). Spectrum tooltip 은
+      //   variant 를 정식 옵션으로 규정 (dd neutral/informative/negative + RSP variant).
+      variant: {
+        kind: "variant",
+        label: "Variant",
+        section: "appearance",
+        default: "neutral",
+      },
       size: {
         kind: "size",
         label: "Size",
