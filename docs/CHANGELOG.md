@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [AI 어시스턴트 패널 개편 — Photoshop-style contextual composer] - 2026-08-20
+
+### Features
+
+- **AI Assistant를 Photoshop식 context-aware 추천·composer 구조로 개편**:
+  - 현재 page/selection을 반영한 `해주세요`·`보여주세요` 추천 카드와 하단 고정 composer, 참조 이미지 affordance, AI 응답 확인 고지를 추가했다
+  - 기존 agent loop, 대화 초기화·중단 동작은 유지하고 `.panel > PanelHeader + .panel-contents` 공통 shell과 activity rail·move·resize 계약을 그대로 사용한다
+  - 위치: `apps/builder/src/builder/panels/ai/AIPanel.tsx`, `AIPanel.css`, `components/AgentControls.tsx`
+
 ## Panel workspace snap guide 정합성 - 2026-08-20
 
 ### Fixed

@@ -2,7 +2,8 @@
  * AgentControls - 에이전트 실행 중 제어 UI
  */
 
-import { Square } from 'lucide-react';
+import { Square } from "lucide-react";
+import { ActionIconButton } from "../../../components";
 
 interface AgentControlsProps {
   currentTurn: number;
@@ -11,20 +12,17 @@ interface AgentControlsProps {
 
 export function AgentControls({ currentTurn, onStop }: AgentControlsProps) {
   return (
-    <div className="agent-controls">
-      <span className="agent-status">
-        도구 실행 중 ({currentTurn}/10)
-      </span>
-      <button
-        className="agent-stop-btn"
-        onClick={onStop}
+    <div className="ai-agent-controls">
+      <span className="ai-agent-status">도구 실행 중 ({currentTurn}/10)</span>
+      <ActionIconButton
+        className="ai-agent-stop"
+        onPress={onStop}
         type="button"
         aria-label="에이전트 중단"
-        title="중단"
+        tooltip="에이전트 중단"
       >
         <Square size={12} />
-        <span>중단</span>
-      </button>
+      </ActionIconButton>
     </div>
   );
 }

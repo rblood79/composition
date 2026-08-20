@@ -12,9 +12,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { PanelHeader } from "../../components";
+import { ActionIconButton, PanelHeader } from "../../components";
 import { Button } from "@composition/shared/components";
-import { MessageCircle, Bot } from "lucide-react";
+import { ArrowRight, Bot, ImagePlus, Send, UserRound } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useConversationStore } from "../../stores/conversation";
 import { useStore } from "../../stores";
@@ -32,6 +32,10 @@ import { ACTION_ICONS } from "../../config/actionIcons";
 const DeleteIcon = ACTION_ICONS.delete;
 
 const EMPTY_ELEMENTS: BuilderContext["elements"] = [];
+
+function formatElementType(type: string): string {
+  return `${type.charAt(0).toUpperCase()}${type.slice(1)}`;
+}
 
 /**
  * ChatMessage - 개별 메시지 표시
@@ -56,19 +60,15 @@ function ChatMessage({ message }: ChatMessageProps) {
     });
   };
 
-  const getAvatarLabel = () => {
-    if (role === "user") return "U";
-    if (role === "assistant") return "AI";
-    return "?";
-  };
-
   return (
-    <div className="chat-message" data-role={role} data-status={status}>
-      <div className="avatar">{getAvatarLabel()}</div>
+    <div className="ai-message" data-role={role} data-status={status}>
+      <div className="ai-message-avatar" aria-hidden="true">
+        {role === "user" ? <UserRound size={14} /> : <Bot size={14} />}
+      </div>
 
-      <div className="content">
-        <div className="bubble">{content}</div>
-        <div className="timestamp">{formatTimestamp(timestamp)}</div>
+      <div className="ai-message-content">
+        <div className="ai-message-bubble">{content}</div>
+        <div className="ai-message-timestamp">{formatTimestamp(timestamp)}</div>
       </div>
     </div>
   );
@@ -86,7 +86,7 @@ interface ChatInputProps {
 function ChatInput({
   onSend,
   disabled = false,
-  placeholder = "메시지를 입력하세요... (Shift+Enter로 줄바꿈)",
+  placeholder = "무엇이든 물어보세요",
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -119,7 +119,7 @@ function ChatInput({
   };
 
   return (
-    <div className="chat-input">
+    <div className="ai-composer">
       <textarea
         ref={textareaRef}
         value={value}
@@ -128,18 +128,30 @@ function ChatInput({
         onInput={handleInput}
         placeholder={placeholder}
         disabled={disabled}
-        rows={1}
-        aria-label="메시지 입력"
+        rows={3}
+        aria-label="무엇이든 물어보세요"
       />
-      <Button
-        onPress={handleSend}
-        isDisabled={disabled || !value.trim()}
-        aria-label="전송"
-        variant="primary"
-        size="sm"
-      >
-        전송
-      </Button>
+      <div className="ai-composer-actions">
+        <ActionIconButton
+          type="button"
+          isDisabled
+          aria-label="참조 이미지 추가"
+          tooltip="참조 이미지 추가 (준비 중)"
+          tooltipPlacement="top"
+        >
+          <ImagePlus size={iconProps.size} />
+        </ActionIconButton>
+        <ActionIconButton
+          type="button"
+          onPress={handleSend}
+          isDisabled={disabled || !value.trim()}
+          aria-label="질문 제출"
+          tooltip="질문 제출"
+          tooltipPlacement="top"
+        >
+          <Send size={iconProps.size} />
+        </ActionIconButton>
+      </div>
     </div>
   );
 }
@@ -151,12 +163,14 @@ interface ChatContainerProps {
   messages: ChatMessageType[];
   onSendMessage: (message: string) => void;
   isDisabled: boolean;
+  selectedElementType?: string;
 }
 
 function ChatContainer({
   messages,
   onSendMessage,
   isDisabled,
+  selectedElementType,
 }: ChatContainerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -165,25 +179,39 @@ function ChatContainer({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const suggestions = ["빨간 버튼 추가", "테이블 생성", "선택한 요소 수정"];
+  const targetLabel = selectedElementType
+    ? `선택한 ${formatElementType(selectedElementType)}`
+    : "현재 페이지";
+  const suggestions = [
+    `해주세요: ${targetLabel}의 시각적 계층을 개선해 주세요.`,
+    `해주세요: ${targetLabel}의 간격과 정렬을 정리해 주세요.`,
+    `보여주세요: ${targetLabel} 편집 방법을 알려 주세요.`,
+  ];
 
   return (
-    <div className="chat-container">
-      <div className="messages-list">
+    <div className="panel-contents ai-contents">
+      <div className="ai-transcript" aria-live="polite">
         {messages.length === 0 ? (
-          <div className="empty-state">
-            <MessageCircle size={32} strokeWidth={1} />
-            <p>AI 어시스턴트에게 디자인을 요청하세요</p>
-            <div className="suggestions">
-              {suggestions.map((s) => (
-                <button
-                  key={s}
-                  className="suggestion-btn"
-                  onClick={() => onSendMessage(s)}
-                  type="button"
+          <div className="ai-welcome">
+            <p className="ai-intro">
+              AI와 composition의 강력한 기능을 사용하여 디자인을 개선하세요.
+            </p>
+            <p className="ai-context-label">
+              다음은 {targetLabel}에 대한 맞춤형 아이디어입니다.
+            </p>
+            <div className="ai-suggestions" role="group" aria-label="추천 요청">
+              {suggestions.map((suggestion) => (
+                <Button
+                  key={suggestion}
+                  className="ai-suggestion"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => onSendMessage(suggestion)}
+                  isDisabled={isDisabled}
                 >
-                  {s}
-                </button>
+                  <ArrowRight size={iconProps.size} aria-hidden="true" />
+                  <span>{suggestion}</span>
+                </Button>
               ))}
             </div>
           </div>
@@ -197,7 +225,12 @@ function ChatContainer({
         )}
       </div>
 
-      <ChatInput onSend={onSendMessage} disabled={isDisabled} />
+      <div className="ai-composer-region">
+        <ChatInput onSend={onSendMessage} disabled={isDisabled} />
+        <p className="ai-disclaimer">
+          AI 생성 응답입니다. 사용하기 전에 확인해야 합니다.
+        </p>
+      </div>
     </div>
   );
 }
@@ -224,6 +257,9 @@ function AIPanelContent() {
         : undefined,
     ) ?? EMPTY_ELEMENTS;
   const selectedElementId = useStore((state) => state.selectedElementId);
+  const selectedElementType = selectedElementId
+    ? pageElements.find((element) => element.id === selectedElementId)?.type
+    : undefined;
 
   const { updateContext, clearConversation } = useConversationStore();
 
@@ -249,7 +285,7 @@ function AIPanelContent() {
   const isDisabled = isStreaming || isAgentRunning;
 
   return (
-    <div className="panel ai-panel">
+    <div className="panel">
       <PanelHeader
         icon={<Bot size={iconProps.size} />}
         title="AI Assistant"
@@ -259,19 +295,18 @@ function AIPanelContent() {
               <AgentControls currentTurn={currentTurn} onStop={stopAgent} />
             )}
             {messages.length > 0 && !isAgentRunning && (
-              <button
-                className="iconButton"
-                onClick={clearConversation}
+              <ActionIconButton
+                onPress={clearConversation}
                 type="button"
                 aria-label="Clear conversation"
-                title="대화 초기화"
+                tooltip="대화 초기화"
               >
                 <DeleteIcon
                   color={iconProps.color}
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
                 />
-              </button>
+              </ActionIconButton>
             )}
           </>
         }
@@ -280,6 +315,7 @@ function AIPanelContent() {
         messages={messages}
         onSendMessage={runAgent}
         isDisabled={isDisabled}
+        selectedElementType={selectedElementType}
       />
     </div>
   );
