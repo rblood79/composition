@@ -271,36 +271,13 @@ function pointerEdgeDistance(
   return Math.hypot(axisDistance, crossAxisDistance);
 }
 
-function panelSideDistance(
-  preview: PanelFrameGeometry,
-  target: PanelFrameGeometry,
-  edge: "left" | "right",
-): number {
-  const axisDistance = Math.abs(
-    edge === "left"
-      ? preview.x + preview.width + PANEL_WORKSPACE_GAP - target.x
-      : preview.x - (target.x + target.width + PANEL_WORKSPACE_GAP),
-  );
-  const previewCrossStart = preview.y;
-  const previewCrossEnd = preview.y + preview.height;
-  const targetCrossStart = target.y;
-  const targetCrossEnd = target.y + target.height;
-  const crossAxisDistance = Math.max(
-    0,
-    targetCrossStart - previewCrossEnd,
-    previewCrossStart - targetCrossEnd,
-  );
-  return Math.hypot(axisDistance, crossAxisDistance);
-}
-
 function resolvePanelEdgeCandidate(
   session: PanelWorkspaceDragSession,
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
   pointer: PanelWorkspacePointerPosition,
 ): ScoredPanelCandidate | null {
-  let closestPointer: ScoredPanelCandidate | null = null;
-  let closestPanelEdge: ScoredPanelCandidate | null = null;
+  let closest: ScoredPanelCandidate | null = null;
   for (const [panelId, target] of session.snapTargetFrameGeometries) {
     if (panelId === session.panelId) continue;
     for (const edge of availableEdges(
@@ -315,34 +292,16 @@ function resolvePanelEdgeCandidate(
         session.candidate.edge === edge;
       const limit =
         PANEL_SNAP_THRESHOLD + (isCurrent ? PANEL_DROP_HYSTERESIS : 0);
-      const pointerDistance = pointerEdgeDistance(pointer, target, edge);
-      if (
-        pointerDistance <= limit &&
-        (!closestPointer || closestPointer.distance > pointerDistance)
-      ) {
-        closestPointer = {
+      const distance = pointerEdgeDistance(pointer, target, edge);
+      if (distance <= limit && (!closest || closest.distance > distance)) {
+        closest = {
           candidate: { kind: "panel-edge", panelId, edge },
-          distance: pointerDistance,
-        };
-      }
-      if (edge !== "left" && edge !== "right") continue;
-      const previewDistance = panelSideDistance(
-        session.previewGeometry,
-        target,
-        edge,
-      );
-      if (
-        previewDistance <= limit &&
-        (!closestPanelEdge || closestPanelEdge.distance > previewDistance)
-      ) {
-        closestPanelEdge = {
-          candidate: { kind: "panel-edge", panelId, edge },
-          distance: previewDistance,
+          distance,
         };
       }
     }
   }
-  return closestPointer ?? closestPanelEdge;
+  return closest;
 }
 
 function zoneForPoint(

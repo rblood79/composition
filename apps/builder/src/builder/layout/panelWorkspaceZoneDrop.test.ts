@@ -167,7 +167,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
   });
 
   it.each(["left", "right"] as const)(
-    "left-top target의 %s에 이동 panel edge를 맞추면 포인터 중심이 멀어도 snap한다",
+    "마우스가 target edge에서 멀면 이동 panel의 %s edge가 닿아도 snap하지 않는다",
     (edge) => {
       const layout = createV3Layout();
       const target = frameFor(layout, "nodes");
@@ -202,45 +202,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
 
       expect(updated.ok).toBe(true);
       if (!updated.ok) return;
-      expect(updated.value.candidate).toEqual({
-        kind: "panel-edge",
-        panelId: "nodes",
-        edge,
-      });
-
-      const committed = commitPanelWorkspaceDragSession(
-        updated.value,
-        PANEL_WORKSPACE_TEST_REGISTRY,
-        SURFACE,
-      );
-      expect(committed.ok).toBe(true);
-      if (!committed.ok) return;
-      expect(committed.value).toMatchObject({
-        committed: true,
-        commitCount: 1,
-        candidate: {
-          kind: "panel-edge",
-          panelId: "nodes",
-          edge,
-        },
-      });
-      const solved = solvePanelWorkspaceLayoutV3(
-        committed.value.layout,
-        PANEL_WORKSPACE_TEST_REGISTRY,
-        SURFACE,
-      );
-      expect(solved.ok).toBe(true);
-      if (!solved.ok) return;
-      const committedSource = solved.value.frameGeometries.get("properties");
-      const committedTarget = solved.value.frameGeometries.get("nodes");
-      expect(committedSource).toBeDefined();
-      expect(committedTarget).toBeDefined();
-      if (!committedSource || !committedTarget) return;
-      expect(
-        edge === "left"
-          ? committedTarget.x - (committedSource.x + committedSource.width)
-          : committedSource.x - (committedTarget.x + committedTarget.width),
-      ).toBe(PANEL_WORKSPACE_GAP);
+      expect(updated.value.candidate?.kind).not.toBe("panel-edge");
     },
   );
 
@@ -292,7 +254,10 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
         PANEL_WORKSPACE_TEST_REGISTRY,
         SURFACE,
         preview,
-        { x: preview.x + preview.width / 2, y: preview.y + 7 },
+        {
+          x: edge === "left" ? target.x : target.x + target.width,
+          y: target.y + 7,
+        },
       );
       expect(updated.ok).toBe(true);
       if (!updated.ok) return;
