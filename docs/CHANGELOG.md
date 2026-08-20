@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## quiet fill preset 채널 신설 — isQuiet dead prop 해소 (ToggleButton) - 2026-08-21
+
+### Features
+
+- **`FillTokenSpec.quiet` 채널 신설** — `isQuiet` boolean prop 이 고르는 fill preset.
+  기존 키(outline/subtle)가 `fillStyle` enum 값인 것과 달리 boolean 이 고르며, 두 축을 함께
+  노출하는 컴포넌트가 없어 경쟁하지 않는다. **`fill.quiet` 이 정의된 경우에만** 분기하므로
+  미정의 컴포넌트의 기존 동작은 그대로다.
+- Skia(`buildCatalogShapes`)와 DOM(`CSSGenerator` → `[data-quiet]` 규칙)이 **같은
+  `fill.quiet` 데이터를 읽어** 대칭이 성립한다. selected 는 quiet 을 타지 않아 선택 표시가
+  유지된다 (Spectrum quiet ActionButton 정합).
+
+### Fixed
+
+- **ToggleButton `isQuiet` 이 실제로 동작** — D2 표면과 `data-quiet` emit 은 있었으나 시각
+  정의가 rules·CSS 어디에도 없어 켜도 아무 일이 없던 dead prop 이었다. `fill.quiet`
+  (기본 투명, hover/pressed 에서만 배경) 정의로 해소.
+
+> **왜 containerVariants 가 아니라 fill 축인가**: field 계열의 기존 quiet 은
+> `containerVariants.quiet.true` 에 있는데, 그 Skia 소비 경로
+> (`implicitStyles.resolveActiveContainerVariants`)는 layout 채널이라 색상을 보지 않는다.
+> 거기에 두면 DOM 만 바뀌고 Skia 는 그대로여서 즉시 비대칭이 난다 — 실제로 그 quiet nested
+> 규칙들이 "DOM generated CSS 전용" 으로 기록돼 있던 이유다. 배경은 ADR-908 fill preset 이
+> SSOT 이므로 그쪽으로 통합했다.
+
 ## design-data 감사 §1-1 표면 단절 수리 (Tooltip variant / Toast 시맨틱·스코프) - 2026-08-20
 
 ### Fixed

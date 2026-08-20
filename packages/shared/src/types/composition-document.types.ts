@@ -121,11 +121,17 @@ export interface ComponentRuleFillState {
   emphasizedSelected?: string;
 }
 
-/** fillStyle(fill/outline/subtle) × state 2축 — ADR-908 FillTokenSpec 투영. */
+/** fillStyle(fill/outline/subtle) × state 2축 + quiet — ADR-908 FillTokenSpec 투영. */
 export interface ComponentRuleFill {
   default: ComponentRuleFillState;
   outline?: Partial<ComponentRuleFillState>;
   subtle?: Partial<ComponentRuleFillState>;
+  /**
+   * quiet 변형 — 배경 없는 저강조 스타일 (RSP `isQuiet`, 2026-08-21 신설).
+   * 다른 키가 `fillStyle` enum 값인 것과 달리 boolean prop 이 고르는 preset 이다.
+   * 상세 계약은 specs `FillTokenSpec.quiet` 주석 참조.
+   */
+  quiet?: Partial<ComponentRuleFillState>;
   /** 배경 투명도 0-1 */
   alpha?: number;
 }

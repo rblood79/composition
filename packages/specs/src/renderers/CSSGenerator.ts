@@ -475,6 +475,55 @@ export function generateCSS<Props>(
         lines.push("");
       }
 
+      // ─── quiet 변형 (2026-08-21) — boolean prop `isQuiet` 이 고르는 fill preset ───
+      //   컴포넌트가 `data-quiet={isQuiet || undefined}` 를 emit 하므로 존재 셀렉터로 매칭한다
+      //   (false 면 속성 자체가 없다). specificity 0-3-0 으로 base variant 규칙(0-2-0)을 이긴다.
+      //   Skia 대칭: buildCatalogShapes 의 isQuiet 분기가 같은 `fill.quiet` 을 읽는다.
+      if (fill.quiet?.base) {
+        lines.push(
+          `.react-aria-${spec.name}[data-variant="${variantName}"][data-quiet] {`,
+        );
+        lines.push(
+          emitColorLine(
+            "background",
+            tokenToCSSVar(fill.quiet.base),
+            variantMode,
+          ),
+        );
+        lines.push("}");
+        lines.push("");
+
+        if (fill.quiet.hover) {
+          lines.push(
+            `.react-aria-${spec.name}[data-variant="${variantName}"][data-quiet]:where([data-hovered]) {`,
+          );
+          lines.push(
+            emitColorLine(
+              "background",
+              tokenToCSSVar(fill.quiet.hover),
+              variantMode,
+            ),
+          );
+          lines.push("}");
+          lines.push("");
+        }
+
+        if (fill.quiet.pressed) {
+          lines.push(
+            `.react-aria-${spec.name}[data-variant="${variantName}"][data-quiet]:where([data-pressed]) {`,
+          );
+          lines.push(
+            emitColorLine(
+              "background",
+              tokenToCSSVar(fill.quiet.pressed),
+              variantMode,
+            ),
+          );
+          lines.push("}");
+          lines.push("");
+        }
+      }
+
       // ─── Phase 2b: fillStyle subtle 변형 ───
       if (fill.subtle?.base) {
         lines.push(

@@ -12316,6 +12316,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             selected: "{color.neutral}",
             emphasizedSelected: "{color.accent}",
           },
+          // quiet (2026-08-21): `isQuiet` D2 표면과 `data-quiet` emit 은 있었으나 시각
+          //   정의가 rules/CSS 어디에도 없어 켜도 아무 일이 없던 dead prop 이었다. Spectrum
+          //   quiet ActionButton 정의대로 "기본은 배경 없음, hover/pressed 에서만 표시".
+          //   selected 는 quiet 을 타지 않는다 — buildCatalogShapes 가 isSelected 를
+          //   fillStates 보다 우선 처리하므로 선택 표시가 유지된다 (Spectrum 정합).
+          //   border 는 이미 `{color.transparent}` 라 별도 quiet 채널이 필요 없다.
+          quiet: {
+            base: "{color.transparent}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-hover}",
+          },
         },
         colors: {
           text: "{color.neutral}",

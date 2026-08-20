@@ -150,11 +150,18 @@ export function buildCatalogShapes(
   const fillStyleProp = (props.fillStyle as string | undefined) ?? "fill";
   const isOutline = fillStyleProp === "outline";
   const isSubtle = fillStyleProp === "subtle";
-  const fillStates = isOutline
-    ? fill?.outline
-    : isSubtle
-      ? fill?.subtle
-      : fill?.default;
+  // quiet preset (2026-08-21) — boolean prop `isQuiet` 이 고르는 fill 축. **정의된 경우에만**
+  //   분기해 quiet 미정의 컴포넌트의 기존 동작을 보존한다(정의 없이 켜면 배경이 통째 사라짐).
+  //   fillStyle 과 동시 지정 시 quiet 우선 — 다만 현재 두 축을 함께 노출하는 컴포넌트는 없다
+  //   (quiet 보유 = ToggleButton/TextArea/field 계열, fillStyle 보유 = Button/Badge 계열).
+  const isQuiet = props.isQuiet === true && fill?.quiet != null;
+  const fillStates = isQuiet
+    ? fill?.quiet
+    : isOutline
+      ? fill?.outline
+      : isSubtle
+        ? fill?.subtle
+        : fill?.default;
 
   // selected 축 (ToggleButton 류) — props.isSelected + isEmphasized.
   // state(default/hover/pressed)와 직교하는 selection 차원. spec.variant.fill.default.

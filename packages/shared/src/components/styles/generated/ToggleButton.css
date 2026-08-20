@@ -59,6 +59,18 @@
   }
 }
 
+.react-aria-ToggleButton[data-variant="default"][data-quiet] {
+  --button-color: transparent;
+}
+
+.react-aria-ToggleButton[data-variant="default"][data-quiet]:where([data-hovered]) {
+  --button-color: var(--bg-muted);
+}
+
+.react-aria-ToggleButton[data-variant="default"][data-quiet]:where([data-pressed]) {
+  --button-color: color-mix(in srgb, var(--bg-muted) 85%, black);
+}
+
 .react-aria-ToggleButton[data-icon-only] {
   padding: 0;
   aspect-ratio: 1;

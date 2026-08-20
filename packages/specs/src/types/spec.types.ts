@@ -852,6 +852,22 @@ export interface FillTokenSpec {
   outline?: Partial<FillStateTokens>;
   /** subtle fillStyle — VariantSpec.subtleBackground 대응 */
   subtle?: Partial<FillStateTokens>;
+  /**
+   * quiet 변형 — 배경 없는 저강조 스타일 (RSP `isQuiet`, 2026-08-21 신설).
+   *
+   * 다른 키가 `fillStyle` enum 값인 것과 달리 quiet 은 **boolean prop(`isQuiet`)** 이
+   * 고르는 preset 이다. 두 축이 경쟁하지 않는 이유: quiet 을 D2 로 노출하는 컴포넌트
+   * (ToggleButton/TextArea/field 계열)에는 `fillStyle` prop 이 없고, `fillStyle` 을 갖는
+   * Button 계열에는 `isQuiet` 이 없다. 동시 지정 시에는 더 구체적인 요청인 quiet 이 이긴다
+   * (`buildCatalogShapes` 분기 순서).
+   *
+   * **왜 containerVariants 가 아닌 fill 축인가**: containerVariants 의 Skia 소비
+   * (`implicitStyles.resolveActiveContainerVariants`)는 layout 채널이고 색상은 보지 않는다.
+   * quiet 을 거기에 두면 DOM 만 바뀌고 Skia 는 그대로여서 즉시 시각 비대칭이 난다 — 실제로
+   * field 계열의 quiet nested 규칙이 "DOM generated CSS 전용" 으로 기록돼 있던 이유다.
+   * 배경/테두리는 ADR-908 fill preset 이 SSOT 이므로 여기로 통합한다.
+   */
+  quiet?: Partial<FillStateTokens>;
   /** 배경 투명도 0-1 — VariantSpec.backgroundAlpha 대응 */
   alpha?: number;
 }
