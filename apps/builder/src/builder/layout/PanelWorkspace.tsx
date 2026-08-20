@@ -802,8 +802,8 @@ interface HydratedPanelWorkspaceProps {
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   togglePanel: (panelId: PanelId) => void;
   focusPanel: (panelId: PanelId) => void;
-  placementSurfaceRect: PanelWorkspaceRect;
-  placementSurfaceRef: RefObject<HTMLDivElement | null>;
+  dockRect: PanelWorkspaceRect;
+  dockRef: RefObject<HTMLDivElement | null>;
 }
 
 interface PanelWorkspaceOverlayProps {
@@ -813,7 +813,7 @@ interface PanelWorkspaceOverlayProps {
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   togglePanel: (panelId: PanelId) => void;
   workspaceLayout: PanelWorkspaceLayoutV3;
-  placementSurfaceRef: RefObject<HTMLDivElement | null>;
+  dockRef: RefObject<HTMLDivElement | null>;
 }
 
 interface PanelDockOrigin {
@@ -1016,14 +1016,14 @@ interface PanelDockRenderProps {
 
 interface PanelDockProps {
   children: (props: PanelDockRenderProps) => ReactNode;
-  placementSurfaceRef: RefObject<HTMLDivElement | null>;
+  dockRef: RefObject<HTMLDivElement | null>;
   surfaceWidth: number;
   version: number;
 }
 
 function PanelDock({
   children,
-  placementSurfaceRef,
+  dockRef,
   surfaceWidth,
   version,
 }: PanelDockProps) {
@@ -1041,7 +1041,7 @@ function PanelDock({
 
   return (
     <div
-      ref={placementSurfaceRef}
+      ref={dockRef}
       className="panel-dock"
       data-column-limit="2"
       data-layout-type="floating"
@@ -1059,7 +1059,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   setWorkspaceLayout,
   togglePanel,
   workspaceLayout,
-  placementSurfaceRef,
+  dockRef,
 }: PanelWorkspaceOverlayProps) {
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
   const { draggedPanelId, dropCandidate } = usePanelSnapInteractionState();
@@ -1127,7 +1127,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   return (
     <div className="panel-workspace" aria-label="패널 작업 영역">
       <PanelDock
-        placementSurfaceRef={placementSurfaceRef}
+        dockRef={dockRef}
         surfaceWidth={surfaceWidth}
         version={snapshot.version}
       >
@@ -1197,11 +1197,11 @@ function HydratedPanelWorkspace({
   setWorkspaceLayout,
   togglePanel,
   focusPanel,
-  placementSurfaceRect,
-  placementSurfaceRef,
+  dockRect,
+  dockRef,
 }: HydratedPanelWorkspaceProps) {
   const [runtime] = useState(() =>
-    createRuntime(workspaceLayout, registry, placementSurfaceRect),
+    createRuntime(workspaceLayout, registry, dockRect),
   );
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
   const hostStyle = {
@@ -1260,7 +1260,7 @@ function HydratedPanelWorkspace({
         setWorkspaceLayout={setWorkspaceLayout}
         togglePanel={togglePanel}
         workspaceLayout={workspaceLayout}
-        placementSurfaceRef={placementSurfaceRef}
+        dockRef={dockRef}
       />
     </div>
   );
@@ -1279,30 +1279,29 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
     focusPanel,
   } = usePanelLayout();
   const configs = useMemo(() => PanelRegistry.getAllPanels(), []);
-  const placementSurfaceRef = useRef<HTMLDivElement>(null);
-  const [placementSurfaceRect, setPlacementSurfaceRect] =
-    useState<PanelWorkspaceRect | null>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const [dockRect, setDockRect] = useState<PanelWorkspaceRect | null>(null);
   const registry = useMemo(
     () =>
-      placementSurfaceRect
+      dockRect
         ? configs.map((config) =>
-            createPanelWorkspaceRegistryEntry(config, placementSurfaceRect),
+            createPanelWorkspaceRegistryEntry(config, dockRect),
           )
         : [],
-    [configs, placementSurfaceRect],
+    [configs, dockRect],
   );
   const isHydrated = workspaceLayout !== null;
 
   useLayoutEffect(() => {
-    const surface = placementSurfaceRef.current;
-    if (!surface) return;
+    const dock = dockRef.current;
+    if (!dock) return;
     const updateRect = (): void => {
       const next = {
-        width: surface.clientWidth,
-        height: surface.clientHeight,
+        width: dock.clientWidth,
+        height: dock.clientHeight,
       };
       if (next.width <= 0 || next.height <= 0) return;
-      setPlacementSurfaceRect((current) =>
+      setDockRect((current) =>
         current?.width === next.width && current.height === next.height
           ? current
           : next,
@@ -1310,27 +1309,22 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
     };
     updateRect();
     const observer = new ResizeObserver(updateRect);
-    observer.observe(surface);
+    observer.observe(dock);
     return () => observer.disconnect();
   }, [isHydrated]);
 
   useLayoutEffect(() => {
-    if (!workspaceLayout && placementSurfaceRect) {
-      initializeWorkspaceLayout(registry, placementSurfaceRect);
+    if (!workspaceLayout && dockRect) {
+      initializeWorkspaceLayout(registry, dockRect);
     }
-  }, [
-    initializeWorkspaceLayout,
-    placementSurfaceRect,
-    registry,
-    workspaceLayout,
-  ]);
+  }, [initializeWorkspaceLayout, dockRect, registry, workspaceLayout]);
 
-  if (!workspaceLayout || !placementSurfaceRect) {
+  if (!workspaceLayout || !dockRect) {
     return (
       <div className="panel-workspace-host">
         <div className="panel-workspace-main">{children}</div>
         <div className="panel-workspace" aria-label="패널 작업 영역">
-          <div ref={placementSurfaceRef} className="panel-dock" />
+          <div ref={dockRef} className="panel-dock" />
         </div>
       </div>
     );
@@ -1345,8 +1339,8 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
       setWorkspaceLayout={setWorkspaceLayout}
       togglePanel={togglePanel}
       focusPanel={focusPanel}
-      placementSurfaceRect={placementSurfaceRect}
-      placementSurfaceRef={placementSurfaceRef}
+      dockRect={dockRect}
+      dockRef={dockRef}
     />
   );
 }
