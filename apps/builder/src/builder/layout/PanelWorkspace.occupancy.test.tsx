@@ -364,12 +364,14 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
         <div />
       </PanelWorkspace>,
     );
-    const settingsFrame = container.querySelector(
+    const settingsFrame = container.querySelector<HTMLElement>(
       '.workspace-panel-frame[data-panel="settings"]',
     );
 
     expect(settingsFrame?.getAttribute("data-side")).toBe("left");
     expect(settingsFrame?.getAttribute("data-zone")).toBe("top-right");
+    expect(settingsFrame?.style.left).toBe("");
+    expect(settingsFrame?.style.right).not.toBe("");
     expect(
       [...(settingsFrame?.querySelectorAll(".panel-resize-handle") ?? [])].map(
         (handle) => handle.getAttribute("data-edge"),
@@ -380,5 +382,45 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
         '.panel-cluster-splitter[data-splitter-kind="column"]',
       ),
     ).toHaveLength(1);
+  });
+
+  it("우측 rail 패널을 좌측 zone에 배치하면 좌측 anchor로 렌더링한다", () => {
+    const layout = migrateFixture();
+    const rightCluster = layout.clusters.find(
+      (cluster) => cluster.placementZone === "top-right",
+    );
+    const leftCluster = layout.clusters.find(
+      (cluster) => cluster.placementZone === "top-left",
+    );
+    if (!rightCluster || !leftCluster) {
+      throw new Error("anchored clusters are required");
+    }
+
+    const rightColumn = rightCluster.columns[0];
+    const leftColumn = leftCluster.columns[0];
+    if (!rightColumn || !leftColumn) {
+      throw new Error("anchored columns are required");
+    }
+    const propertiesRowIndex = rightColumn.rows.findIndex(
+      (row) => row.panelId === "properties",
+    );
+    const propertiesRow = rightColumn.rows.splice(propertiesRowIndex, 1)[0];
+    if (!propertiesRow) throw new Error("properties row is required");
+    leftColumn.rows.push(propertiesRow);
+
+    useStore.setState({ panelWorkspaceLayout: layout });
+    const { container } = render(
+      <PanelWorkspace>
+        <div />
+      </PanelWorkspace>,
+    );
+    const propertiesFrame = container.querySelector<HTMLElement>(
+      '.workspace-panel-frame[data-panel="properties"]',
+    );
+
+    expect(propertiesFrame?.getAttribute("data-side")).toBe("right");
+    expect(propertiesFrame?.getAttribute("data-zone")).toBe("top-left");
+    expect(propertiesFrame?.style.left).not.toBe("");
+    expect(propertiesFrame?.style.right).toBe("");
   });
 });

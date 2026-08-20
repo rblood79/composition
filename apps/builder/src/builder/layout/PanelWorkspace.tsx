@@ -674,8 +674,14 @@ const PanelFrame = memo(function PanelFrame({
     width: 0,
     height: 0,
   };
+  // 수평 렌더링 기준은 원래 rail이 아니라 현재 배치된 zone이어야 한다.
+  // cross-rail snap 이후에도 railSideForPanel()은 rail identity를 보존하므로
+  // side를 기준으로 하면 반대편 anchor가 무시된다.
+  const rightAnchored = isRightAnchoredPlacementZone(
+    snapshotFrame?.placementZone,
+  );
   const frameStyle: CSSProperties = {
-    ...(side === "right"
+    ...(rightAnchored
       ? {
           right:
             dockOrigin.workspaceWidth -
