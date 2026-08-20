@@ -2340,14 +2340,24 @@ export function calculateContentHeight(
     const lineHeight =
       parseNumericValue(style?.lineHeight) ?? ruleSize?.lineHeight;
     const textHeight = estimateTextHeight(fontSize, lineHeight);
+    // 세로 padding 은 **style 에 없는 축만** 여기서 싣는다 (2026-08-21 정정).
+    //   **Why**: 엔진은 style 의 padding 을 스스로 border-box 에 더한다 — style 에 있는 축까지
+    //   여기서 더하면 이중 계산이다. 구 코드는 `style ?? ruleSize` 로 **항상** 더했는데,
+    //   catalog `containerStyles.padding` 은 leaf Column/Cell 에 도달하지 않아(§sizes 채널만
+    //   읽힘) style 이 늘 비어 있었고 그래서 결과가 우연히 맞았다. TableView density 주입
+    //   (applyImplicitStyles)이 paddingTop/Bottom 을 style 에 넣자 즉시 드러났다 — 실측
+    //   regular 에서 행 40(CSS) 대신 56, density 4px 차이가 행 높이 16px 로 증폭.
+    //   style padding 0 명시 시 24 를 내던 기존 동작도 이 규칙과 같은 결과다.
+    const padTopFromStyle = parseNumericValue(
+      style?.paddingTop ?? style?.padding,
+    );
+    const padBottomFromStyle = parseNumericValue(
+      style?.paddingBottom ?? style?.padding,
+    );
     const padTop =
-      parseNumericValue(style?.paddingTop ?? style?.padding) ??
-      ruleSize?.paddingY ??
-      0;
+      padTopFromStyle !== undefined ? 0 : (ruleSize?.paddingY ?? 0);
     const padBottom =
-      parseNumericValue(style?.paddingBottom ?? style?.padding) ??
-      ruleSize?.paddingY ??
-      0;
+      padBottomFromStyle !== undefined ? 0 : (ruleSize?.paddingY ?? 0);
     return textHeight + padTop + padBottom;
   }
 

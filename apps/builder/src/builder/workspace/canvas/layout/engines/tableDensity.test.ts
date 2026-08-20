@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { applyImplicitStyles } from "./implicitStyles";
+import { calculateContentHeight } from "./utils";
 import type { CanvasLayoutNode } from "../layoutNode";
 
 /**
@@ -92,6 +93,33 @@ describe("TableView density → Column/Cell padding 위임", () => {
       paddingTop: 4,
       paddingBottom: 4,
     });
+  });
+
+  it("주입값이 그대로 행 높이가 된다 — 이중 계산 없이 텍스트 24 + paddingY×2", () => {
+    // applyImplicitStyles 주입 → calculateContentHeight → (엔진이 style padding 을 더함)
+    //   경로를 그대로 이어 붙여, 라이브 실측(compact 32 / regular 40 / spacious 48)과
+    //   같은 값이 나오는지 확인한다.
+    const rowHeight = (density: string) => {
+      const style = runRow(density);
+      const cell = node("cell-1", "Cell", "row-1", {
+        children: "Alice",
+        style,
+      });
+      const contentH = calculateContentHeight(cell);
+      const enginePad =
+        (style.paddingTop as number) + (style.paddingBottom as number);
+      return contentH + enginePad;
+    };
+    expect(rowHeight("compact")).toBe(32);
+    expect(rowHeight("regular")).toBe(40);
+    expect(rowHeight("spacious")).toBe(48);
+  });
+
+  it("style 에 세로 padding 이 없으면 catalog paddingY 를 실어 준다 — 주입 밖 경로 보존", () => {
+    // 엔진이 더해 줄 style padding 이 없으므로 여기서 border-box 를 내야 40 이 유지된다
+    //   (catalog containerStyles.padding 은 leaf Column/Cell 에 도달하지 않는다).
+    const bare = node("cell-x", "Cell", "row-x", { children: "Alice" });
+    expect(calculateContentHeight(bare)).toBe(40);
   });
 
   it("조상에 TableView 가 없는 Row 는 주입 대상 아님 — data-driven Table 은 density 축 밖", () => {

@@ -96,3 +96,118 @@ describe("ADR-151 후속 — TableView catalog CSS 채널", () => {
     expect(indexCss).toContain('@import "./generated/TableView.css"');
   });
 });
+
+/**
+ * TableView density → 자손 Column/Cell 세로 padding (2026-08-21).
+ *
+ * Spectrum `table.item.padding × density` — 행 높이는 size 축이 정하고 density 는 item
+ * 내부 여백만 바꾼다. DOM 축은 `renderTableViewSubtree` 인라인이 정본이므로(자식은
+ * className 비부여 — Table.css 의 `position:absolute` 누수 방어), 여기서 catalog
+ * `Column/Cell.densities` 를 읽어 인라인 `padding: 8` 의 **세로 성분만** 교체한다.
+ * Skia 는 같은 catalog 값을 applyImplicitStyles 가 주입해 읽는다(D3 symmetric).
+ */
+describe("TableView density — 자손 Column/Cell 인라인 padding", () => {
+  /** 렌더 트리에서 특정 data-tableview-part 의 props 를 찾는다. */
+  function findPart(node: unknown, part: string): Record<string, unknown> {
+    if (Array.isArray(node)) {
+      for (const child of node) {
+        const hit = findPart(child, part);
+        if (Object.keys(hit).length > 0) return hit;
+      }
+      return {};
+    }
+    if (!isValidElement(node)) return {};
+    const props = node.props as Record<string, unknown>;
+    if (props["data-tableview-part"] === part) return props;
+    return findPart(props.children, part);
+  }
+
+  function renderTree(tableViewProps: Record<string, unknown> = {}) {
+    const tv = makeElement(tableViewProps);
+    const body: PreviewElement = { id: "tb", type: "TableBody", props: {} };
+    const row: PreviewElement = { id: "row", type: "Row", props: {} };
+    const cell: PreviewElement = {
+      id: "cell",
+      type: "Cell",
+      props: { children: "Alice" },
+    };
+    const header: PreviewElement = { id: "th", type: "TableHeader", props: {} };
+    const column: PreviewElement = {
+      id: "col",
+      type: "Column",
+      props: { children: "Name" },
+    };
+    const context: RenderContext = {
+      ...makeContext(tv),
+      childrenByParent: new Map([
+        [tv.id, [header, body]],
+        [header.id, [column]],
+        [body.id, [row]],
+        [row.id, [cell]],
+      ]),
+    };
+    return renderTableView(tv, context);
+  }
+
+  const cellPadding = (density?: string) => {
+    const props = findPart(
+      renderTree(density ? { density } : {}),
+      "Cell",
+    ) as Record<string, unknown>;
+    return props.style as Record<string, unknown>;
+  };
+
+  it("compact/regular/spacious 가 세로 padding 만 바꾼다 (가로 8 고정)", () => {
+    expect(cellPadding("compact")).toMatchObject({
+      padding: 8,
+      paddingTop: 4,
+      paddingBottom: 4,
+    });
+    expect(cellPadding("spacious")).toMatchObject({
+      padding: 8,
+      paddingTop: 12,
+      paddingBottom: 12,
+    });
+  });
+
+  it("density 미지정이면 defaultDensity(regular=8) — 기존 인라인 상수와 같은 값", () => {
+    expect(cellPadding()).toMatchObject({ paddingTop: 8, paddingBottom: 8 });
+  });
+
+  it("Column 도 같은 값을 받는다 — 한 표 안에서 header/body 여백이 갈리면 안 된다", () => {
+    const col = findPart(
+      renderTree({ density: "compact" }),
+      "Column",
+    ) as Record<string, unknown>;
+    expect(col.style).toMatchObject({ paddingTop: 4, paddingBottom: 4 });
+  });
+
+  it("사용자 style 이 density 를 이긴다 — 주입 순서 계약", () => {
+    const tv = makeElement({ density: "spacious" });
+    const row: PreviewElement = { id: "row", type: "Row", props: {} };
+    const cell: PreviewElement = {
+      id: "cell",
+      type: "Cell",
+      props: { children: "Alice", style: { paddingTop: 2 } },
+    };
+    const context: RenderContext = {
+      ...makeContext(tv),
+      childrenByParent: new Map([
+        [tv.id, [row]],
+        [row.id, [cell]],
+      ]),
+    };
+    const style = (
+      findPart(renderTableView(tv, context), "Cell") as Record<string, unknown>
+    ).style as Record<string, unknown>;
+    expect(style.paddingTop).toBe(2);
+    expect(style.paddingBottom).toBe(12);
+  });
+
+  it("root 에 data-density 를 방출한다", () => {
+    const el = makeElement({ density: "compact" });
+    expect(
+      rootProps(renderTableView(el, makeContext(el)))["data-density"],
+    ).toBe("compact");
+  });
+});
