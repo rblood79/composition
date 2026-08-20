@@ -1169,10 +1169,19 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     surfaceWidth,
   ]);
 
-  const activePanels = (side: PanelSide): PanelId[] =>
-    workspaceLayout.railOrder[side].filter(
-      (panelId) => workspaceLayout.visibility[panelId] === true,
-    );
+  const activePanelsBySide = useMemo(
+    () =>
+      (["left", "right", "bottom"] as const).reduce(
+        (result, side) => {
+          result[side] = workspaceLayout.railOrder[side].filter(
+            (panelId) => workspaceLayout.visibility[panelId] === true,
+          );
+          return result;
+        },
+        {} as Record<PanelSide, PanelId[]>,
+      ),
+    [workspaceLayout],
+  );
 
   return (
     <div className="panel-workspace" aria-label="패널 작업 영역">
@@ -1191,7 +1200,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
                     key={side}
                     side={side}
                     panelIds={panelIds}
-                    activePanels={activePanels(side)}
+                    activePanels={activePanelsBySide[side]}
                     onPanelClick={togglePanel}
                   />
                 );
