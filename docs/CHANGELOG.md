@@ -7,13 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## Panel workspace 이동 cursor 복원 - 2026-08-21
+## Panel workspace 이동 cursor 및 좌우 edge snap 복원 - 2026-08-21
 
 ### Fixed
 
 - 패널 상단 이동 영역에서 `grab`, mouse down에서 `grabbing`, 실제 패널 이동 중에는
   `default` cursor로 전환되는 계약을 복원했다. drag 중에도 `grabbing`이 유지되던 회귀를
   `data-dragging` shell 상태로 바로잡고 cascade 순서를 회귀 테스트로 고정했다.
+- left-top panel의 좌우에 다른 panel frame을 맞춰도 포인터 중심이 target edge에서 멀어
+  snap line과 commit이 발생하지 않던 문제를 수정했다. 기존 pointer-edge 판정을 우선
+  유지하면서 panel frame의 4px edge adjacency를 fallback으로 판정한다.
+
+## density 채널 신설 (Spectrum 규칙) + Tabs density 교정 - 2026-08-21
+
+### Features
+
+- **`ComponentRule.densities` 채널 신설** — Spectrum 규칙 채택: density 는 **폰트(size 축)를
+  유지하고 간격·수직 padding 만** 바꾼다. 그래서 `sizes` 와 직교하는 축으로 두었다
+  (sizes 안에 중첩하면 size×density 조합이 폭발하고 폰트까지 끌려간다).
+- Skia 는 `resolveCatalogDensityField`, DOM 은 generate-css 가 `[data-density="…"]` 규칙으로
+  emit 해 **같은 catalog 데이터**를 읽는다. `densities` 미정의 컴포넌트는 density prop 이
+  있어도 반응하지 않아 기존 동작이 그대로다.
+- **TabList density** 정의 (compact gap 0 / regular gap 8). Spectrum 근거:
+  `tab-item-to-tab-item-compact-horizontal-medium` = "Spacing (between tab items, horizontal)".
+
+### Fixed
+
+- **Tabs density 가 Spectrum 규칙에 맞게 교정** — 구현이 "density=regular 이면 **size 를 lg 로
+  승격**해 TabPanel padding 을 키우는" 방식이라 폰트까지 커졌고(규칙 위반), 대상도 탭 항목이
+  아니라 패널이었다. 게다가 DOM 에는 대응 CSS 가 0건이라 **Skia 에서만 발현하는 비대칭**이었다.
+  이제 TabPanel padding 은 size 축 단독이고, density 는 TabList 의 탭 간 간격을 제어한다.
+  **Why**: `resolveTabPanelPadding` 이 `"tabpanels"` 문자열을 하드코딩해 컴포넌트를 식별하고
+  있어 catalog SSOT 밖에 규칙이 살아 있었다.
+
+> 기본 density 는 현행 시각 보존을 위해 `compact` 로 두었다 — Spectrum 스키마 default 는
+> `regular` 이나, 기본값 전환은 기존 프로젝트의 탭 간격을 일괄 변경하므로 별도 판단으로 남긴다.
 
 ## quiet fill preset 채널 신설 — isQuiet dead prop 해소 (ToggleButton) - 2026-08-21
 

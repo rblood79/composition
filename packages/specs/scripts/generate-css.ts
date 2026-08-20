@@ -203,6 +203,49 @@ function ruleVariantToVariantSpec(v: ComponentRuleVariant): VariantSpec {
  * ComponentSpec 배열로 합성. spec 파일 존재 여부와 무관 — virtual emit 집합은 `rule.structure`
  * 보유 여부가 정한다 (ADR-912 Phase 2 — generator-local STRUCTURE_META Map 삭제).
  */
+/**
+ * `rule.densities` → `composition.containerVariants.density` 합성 (2026-08-21).
+ *
+ * density 는 Spectrum 규칙상 폰트를 건드리지 않고 간격/수직 padding 만 바꾸므로 size 축과
+ * 분리된 `densities` 에 산다. CSS 는 이미 containerVariants 를 `[data-{attr}="{value}"]` 로
+ * emit 하므로, 별도 emit 경로를 만들지 않고 여기서 합성해 재사용한다.
+ * 기존 containerVariants 가 있으면 보존하고 `density` 키만 얹는다.
+ */
+function mergeDensityVariants(
+  composition: ComponentSpec<unknown>["composition"] | undefined,
+  densities: Record<string, { gap?: number; paddingY?: number }> | undefined,
+): ComponentSpec<unknown>["composition"] {
+  if (!densities || Object.keys(densities).length === 0) {
+    return composition as ComponentSpec<unknown>["composition"];
+  }
+
+  const densityVariants: Record<string, { styles: Record<string, string> }> =
+    {};
+  for (const [densityName, spacing] of Object.entries(densities)) {
+    const styles: Record<string, string> = {};
+    if (spacing.gap !== undefined) styles.gap = `${spacing.gap}px`;
+    if (spacing.paddingY !== undefined) {
+      styles["padding-top"] = `${spacing.paddingY}px`;
+      styles["padding-bottom"] = `${spacing.paddingY}px`;
+    }
+    if (Object.keys(styles).length > 0) {
+      densityVariants[densityName] = { styles };
+    }
+  }
+
+  if (Object.keys(densityVariants).length === 0) {
+    return composition as ComponentSpec<unknown>["composition"];
+  }
+
+  return {
+    ...(composition ?? {}),
+    containerVariants: {
+      ...(composition?.containerVariants ?? {}),
+      density: densityVariants,
+    },
+  } as ComponentSpec<unknown>["composition"];
+}
+
 function buildVirtualSpecs(): ComponentSpec<unknown>[] {
   const table = getComponentRulesTable();
   const result: ComponentSpec<unknown>[] = [];
@@ -256,7 +299,15 @@ function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       // cssEmitMode: Button/ToggleButton 의 button-base(변수 + color-mix 파생). 미설정 시 direct.
       ...(meta.cssEmitMode ? { cssEmitMode: meta.cssEmitMode } : {}),
       // composition: rule 에 없는 CSS selector 메타(Link underline 등). 미설정 시 미적용.
-      ...(meta.composition ? { composition: meta.composition } : {}),
+      //   density (2026-08-21): `rule.densities` 를 `containerVariants.density` 로 합성해
+      //   기존 emit 경로를 재사용한다 (`[data-density="compact"] { gap: 0px }`). Skia 는 같은
+      //   `rule.densities` 를 `resolveCatalogDensityField` 로 읽으므로 두 consumer 가 동일
+      //   SSOT 를 본다. densities 미정의 컴포넌트는 합성 자체가 없어 CSS diff 0.
+      ...(meta.composition || rule.densities
+        ? {
+            composition: mergeDensityVariants(meta.composition, rule.densities),
+          }
+        : {}),
       // indicatorMode: ToggleButtonGroup 의 selection indicator 구조. 미설정 시 미emit.
       ...(meta.indicatorMode ? { indicatorMode: meta.indicatorMode } : {}),
       render: {

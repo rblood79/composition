@@ -22,6 +22,7 @@ import type {
   ComponentRule,
   ComponentRuleComposition,
   ComponentRuleContainerVariantStyles,
+  ComponentRuleDensity,
   ComponentRuleSize,
   ComponentRuleStructure,
   CompositionDocument,
@@ -179,4 +180,28 @@ export function resolveCatalogSizeField(
 ): ComponentRuleSize[keyof ComponentRuleSize] | undefined {
   const rule: ComponentRule | undefined = resolveComponentRule(type, doc);
   return rule?.sizes?.[size]?.[field];
+}
+
+/**
+ * density 별 spacing override 조회 (2026-08-21) — `sizes` 와 직교하는 축.
+ *
+ * Spectrum 규칙상 density 는 폰트를 건드리지 않고 간격/수직 padding 만 바꾸므로 size 조회와
+ * 분리한다. `densities` 미정의 컴포넌트는 항상 `undefined` 를 돌려주어, density prop 이
+ * 있어도 기존 동작이 유지된다(회귀 0). density 미지정 시 `defaultDensity`, 그마저 없으면
+ * "compact" 로 간주한다.
+ *
+ * DOM 은 generate-css 가 같은 데이터를 `[data-density="…"]` 규칙으로 emit 하므로 두 consumer
+ * 가 동일 SSOT 를 읽는다.
+ */
+export function resolveCatalogDensityField(
+  type: string,
+  density: string | undefined,
+  field: keyof ComponentRuleDensity,
+  doc?: CompositionDocument | null,
+): ComponentRuleDensity[keyof ComponentRuleDensity] | undefined {
+  const rule: ComponentRule | undefined = resolveComponentRule(type, doc);
+  const densities = rule?.densities;
+  if (!densities) return undefined;
+  const key = density ?? rule?.defaultDensity ?? "compact";
+  return densities[key]?.[field];
 }

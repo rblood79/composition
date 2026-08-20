@@ -10609,6 +10609,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   TabList: {
     defaultSize: "md",
     variants: {},
+    // density (2026-08-21) — Spectrum 규칙 채택: 폰트(size 축)는 유지하고 **탭 항목 사이
+    //   간격만** 바꾼다 (design-data tabs tokenBindings `tab-item-to-tab-item-compact-
+    //   horizontal-medium` = "Spacing (between tab items, horizontal)").
+    //   기본은 현행 시각 보존을 위해 compact(gap 0) — Spectrum 스키마 default 는 regular 이나,
+    //   기본값 전환은 기존 프로젝트의 탭 간격을 일괄 변경하므로 별도 판단으로 남긴다.
+    defaultDensity: "compact",
+    densities: {
+      compact: { gap: 0 },
+      regular: { gap: 8 },
+    },
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",

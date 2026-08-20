@@ -370,11 +370,38 @@ export interface ComponentRuleContainerVariantStyles {
   }>;
 }
 
+/**
+ * density 별 spacing override (2026-08-21 신설).
+ *
+ * Spectrum 규칙: **density 는 폰트(size 축)를 유지하고 수직 padding·간격만 바꾼다.**
+ * 그래서 `sizes` 와 직교하는 별도 축으로 둔다 — sizes 안에 중첩하면 size×density
+ * 조합이 폭발하고, 폰트까지 끌려가 규칙에 어긋난다.
+ *
+ * **왜 containerVariants 가 아닌가**: containerVariants 의 Skia 소비
+ * (`implicitStyles.resolveActiveContainerVariants`)는 결과 styles 를 layout 값으로
+ * 적용하지 않고 side-label 모드 판정에만 쓴다 — 거기에 gap 을 넣으면 DOM 만 반영되고
+ * Skia 는 무시해 비대칭이 난다. `fill.quiet` 이 색상 축에서 같은 이유로 전용 채널을
+ * 받은 것과 동형 (2026-08-21).
+ */
+export interface ComponentRuleDensity {
+  /** 자식 간 간격 (px). Spectrum tab-item-to-tab-item 계열. */
+  gap?: number;
+  /** 수직 padding (px) — 폰트 불변, 높이만 조절. */
+  paddingY?: number;
+}
+
 export interface ComponentRule {
   defaultVariant?: string;
   defaultSize?: string;
   variants: Record<string, ComponentRuleVariant>;
   sizes: Record<string, ComponentRuleSize>;
+  /**
+   * density 별 spacing override — size 축과 직교. 정의된 컴포넌트만 density 에 반응한다
+   * (미정의 시 density prop 은 무시되어 기존 동작 유지).
+   */
+  densities?: Record<string, ComponentRuleDensity>;
+  /** density 미지정 시 사용할 기본 키. 미설정 시 consumer 가 "compact" 로 간주. */
+  defaultDensity?: string;
   /**
    * root text-decoration (예: Link underline). spec.composition.rootSelectors["&"] 의 D3 메타 투영.
    * underline 등 시각상 의미 있는 값만 — "none"(기본값 동일)은 생성기에서 생략.

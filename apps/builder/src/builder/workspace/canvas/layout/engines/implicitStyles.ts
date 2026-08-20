@@ -37,6 +37,7 @@ import {
   isDisclosureExpandedInContext,
   resolveCatalogContainerBase,
   resolveCatalogContainerVariants,
+  resolveCatalogDensityField,
   resolveComponentRule,
 } from "@composition/shared";
 import type {
@@ -49,18 +50,18 @@ import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────
 
-/** CSS density 정합: size 명시 → size 기반, size 미명시 → density="regular"이면 lg */
-function resolveTabPanelPadding(
-  sizeName: string,
-  hasExplicitSize: boolean,
-  density: string,
-): number {
-  // ADR-091 Phase 2: TABS_PANEL_PADDING 중간 캐시 → specSizeField 직접 lookup.
-  //   `specSizeField` 내부 `sizes[sz] ?? sizes[defaultSize]` fallback 활용 → md 명시 불필요.
-  if (hasExplicitSize)
-    return specSizeField("tabpanels", sizeName, "paddingX") ?? 16;
-  if (density === "regular")
-    return specSizeField("tabpanels", "lg", "paddingX") ?? 16;
+/**
+ * TabPanel 의 padding — **size 축 단독** (2026-08-21 교정).
+ *
+ * 구 구현은 `density === "regular"` 일 때 size 를 lg 로 승격해 padding 을 키웠다. 그러나
+ * Spectrum 의 density 는 "폰트(size 축)를 유지하고 간격만 바꾼다" 이고, 대상도 TabPanel 이
+ * 아니라 **탭 항목 사이 간격**이다 (design-data tabs tokenBindings
+ * `tab-item-to-tab-item-compact-horizontal-medium`). 게다가 DOM 에는 대응 CSS 규칙이 0건이라
+ * Skia 에서만 발현하는 비대칭이었다. density 는 `TabList.densities`(catalog SSOT) 로 옮기고,
+ * 여기서는 size 만 읽는다 — `specSizeField` 내부 fallback 이 미정의 size 를 defaultSize 로
+ * 해소하므로 분기 자체가 불필요하다.
+ */
+function resolveTabPanelPadding(sizeName: string): number {
   return specSizeField("tabpanels", sizeName, "paddingX") ?? 16;
 }
 
@@ -1688,12 +1689,7 @@ export function applyImplicitStyles(
   if (containerTag === "tabs") {
     const sizeName = (containerProps?.size as string) ?? "md";
     const tabBarHeight = specSizeField("tabs", sizeName, "height") ?? 30;
-    const density = (containerProps?.density as string) ?? "compact";
-    const tabPanelPadding = resolveTabPanelPadding(
-      sizeName,
-      !!containerProps?.size,
-      density,
-    );
+    const tabPanelPadding = resolveTabPanelPadding(sizeName);
 
     const tabListEl = children.find((c) => c.type === "TabList");
     const tabPanelsEl = children.find((c) => c.type === "TabPanels");
@@ -1759,12 +1755,7 @@ export function applyImplicitStyles(
     const tabsParent = findAncestorByTag(containerEl, "Tabs", elementById, 3);
     const tabsProps = tabsParent?.props as Record<string, unknown> | undefined;
     const sizeName = (tabsProps?.size as string) ?? "md";
-    const density = (tabsProps?.density as string) ?? "compact";
-    const tabPanelPadding = resolveTabPanelPadding(
-      sizeName,
-      !!tabsProps?.size,
-      density,
-    );
+    const tabPanelPadding = resolveTabPanelPadding(sizeName);
     const selectedKey =
       (tabsProps?.selectedKey as string | undefined) ??
       (tabsProps?.defaultSelectedKey as string | undefined);
@@ -1798,6 +1789,15 @@ export function applyImplicitStyles(
     const tabsProps = tabsParent?.props as Record<string, unknown> | undefined;
     const sizeName = (tabsProps?.size as string) ?? "md";
     const tabBarHeight = specSizeField("tabs", sizeName, "height") ?? 30;
+    // density (2026-08-21): Spectrum 규칙상 density 는 폰트가 아니라 **탭 항목 사이 간격**을
+    //   바꾼다 (design-data `tab-item-to-tab-item-compact-horizontal-medium`). catalog
+    //   `TabList.densities` 가 SSOT 이고 DOM 은 generate-css 가 같은 데이터를
+    //   `[data-density]` 로 emit 한다. densities 미정의 시 undefined → gap 미주입(기존 동작).
+    const tabGap = resolveCatalogDensityField(
+      "TabList",
+      tabsProps?.density as string | undefined,
+      "gap",
+    );
 
     // ADR-087 SP2: display/flexDirection 은 TabList.spec containerStyles 로 리프팅됨.
     //   height/width 는 size-based tabBarHeight 주입 (runtime 잔존). filteredChildren 은
@@ -1806,6 +1806,7 @@ export function applyImplicitStyles(
       ...(containerEl.props?.style as Record<string, unknown> | undefined),
       height: tabBarHeight,
       width: "100%",
+      ...(tabGap !== undefined ? { gap: tabGap } : {}),
     });
   }
 

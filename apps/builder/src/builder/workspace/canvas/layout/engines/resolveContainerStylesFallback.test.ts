@@ -275,7 +275,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   (ToggleButtonGroup slice 0 / ListBox 선례 동형 — spec 삭제 시 Skia layout fallback
   //   빈 객체 → TreeItem 세로 배치 안 됨, DOM 은 starter Tree.css flex column 적용 → 비대칭).
   describe("tree — Tree.containerStyles (ADR-913 slice 4, ListBox/Menu 동형)", () => {
-    it("empty parentStyle → display:flex/column + 9 필드 반환 (starter Tree.css 정합)", () => {
+    it("empty parentStyle → display:flex/column + 8 필드 반환 (starter Tree.css 정합)", () => {
       const fb = resolveContainerStylesFallback("tree", {});
       expect(fb).toEqual({
         display: "flex",
@@ -283,7 +283,9 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         gap: "0px", // starter Tree.css @supports :has 블록이 gap:0 재선언 — 실효값 (2026-07-14)
         padding: 4, // {spacing.xs} = starter --spacing-1
         width: "100%",
-        maxHeight: "300px",
+        // maxHeight 는 2026-08-21 제거 — ListBox 가 2026-07-29 사용자 결정으로 뺀 값의 누락
+        //   적용분이고, 수동 Tree.css 는 `max-height:100%` 라 catalog 만 300 고정이던 발산도
+        //   함께 해소됐다 (9 → 8 필드).
         overflow: "auto",
         outline: "none",
         borderWidth: "1px", // ADR-151 B5 (2026-07-16) — Tree.css border 1px layout 반영
@@ -417,14 +419,14 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       });
     });
 
-    it("tree → 9필드 (ADR-913 slice 4, listbox 동형 + ADR-151 B5 borderWidth)", () => {
+    it("tree → 8필드 (ADR-913 slice 4, listbox 동형 + ADR-151 B5 borderWidth)", () => {
       expect(resolveContainerStylesFallback("tree", {})).toEqual({
         display: "flex",
         flexDirection: "column",
         gap: "0px", // starter Tree.css @supports :has 블록이 gap:0 재선언 — 실효값 (2026-07-14)
         padding: 4,
         width: "100%",
-        maxHeight: "300px",
+        // maxHeight 제거 (2026-08-21) — 위 tree describe 참조. listbox 와 같은 8필드가 됐다.
         overflow: "auto",
         outline: "none",
         borderWidth: "1px", // ADR-151 B5 (2026-07-16)
