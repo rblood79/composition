@@ -175,25 +175,46 @@ export function buildCatalogShapes(
         ? (fillStates?.pressed ?? fillStates?.base)
         : fillStates?.base;
 
-  // 상태별 배경색 (사용자 스타일 우선). outline 은 base 미정의 시 transparent.
-  //   Show all chip 은 투명 배경(테두리도 없음 — 아래 borderColor override).
-  const bgColor = isShowAllChip
-    ? ("{color.transparent}" as unknown as string)
-    : ((style?.backgroundColor as string | undefined) ??
-      stateBg ??
-      (isOutline ? ("{color.transparent}" as unknown as string) : undefined));
-
-  // staticColor: theme 무관 고정 텍스트색 (Link/Button/ToggleButton 공유 D2 prop).
-  //   black→#000000 / white→#ffffff. auto·undefined 는 미적용(variant 색 경로 유지).
-  //   render.shapes 의 `style?.color ?? staticTextColor ?? variant 색` 우선순위 재현 —
-  //   style.color(사용자 명시) > staticColor(prop) > variant/state 색.
+  // staticColor (RSP S2 D2 prop — Link/Button/ToggleButton 공유): theme 무관 고정 흑백 스킴.
+  //   black/white 외(auto·undefined)는 미적용(variant 색 경로 유지). 2026-08-20 Button 채택으로
+  //   텍스트 단독 → 스킴 확장:
+  //   - opaque bg 채널 보유 + fill: bg=static, text=역상(흑↔백), border=static — CSS Button.css
+  //     `[data-static-color]:not([data-fill-style="outline"])` 와 대칭.
+  //   - outline/subtle 또는 bg 시각 부재(Link 형 transparent base/alpha 0): text·border=static,
+  //     역상 미적용 (기존 Link text-only 동작 보존).
+  //   우선순위는 사용자 명시가 항상 위: style.backgroundColor/color/borderColor > static > variant.
+  //   컴포넌트 식별 분기 아님 — staticColor prop + bg 채널 데이터 유무로만 분기 (ADR-142 §3).
   const staticColorProp = props.staticColor as string | undefined;
-  const staticTextColor =
+  const staticHex =
     staticColorProp === "black"
       ? "#000000"
       : staticColorProp === "white"
         ? "#ffffff"
         : undefined;
+  const staticOnOpaqueBg =
+    staticHex != null &&
+    !isOutline &&
+    !isSubtle &&
+    stateBg != null &&
+    stateBg !== "{color.transparent}" &&
+    (fill?.alpha ?? 1) !== 0;
+  const staticTextColor =
+    staticHex == null
+      ? undefined
+      : staticOnOpaqueBg
+        ? staticHex === "#000000"
+          ? "#ffffff"
+          : "#000000"
+        : staticHex;
+
+  // 상태별 배경색 (사용자 스타일 우선). outline 은 base 미정의 시 transparent.
+  //   Show all chip 은 투명 배경(테두리도 없음 — 아래 borderColor override).
+  const bgColor = isShowAllChip
+    ? ("{color.transparent}" as unknown as string)
+    : ((style?.backgroundColor as string | undefined) ??
+      (staticOnOpaqueBg ? staticHex : undefined) ??
+      stateBg ??
+      (isOutline ? ("{color.transparent}" as unknown as string) : undefined));
 
   // 텍스트색: selected→selectedText/emphasizedSelectedText, outline→outlineText,
   // subtle→subtleText, 그 외 hover textHover / text. (visual = resolveComponentVisual 어댑터)
@@ -214,19 +235,23 @@ export function buildCatalogShapes(
               : visual?.text));
 
   // 테두리색: selected→selectedBorder/emphasizedSelectedBorder, outline→outlineBorder,
-  // 그 외 hover borderHover / border.
+  // 그 외 hover borderHover / border. static 은 variant border 채널이 있을 때만 대체
+  // (채널 없는 컴포넌트에 테두리를 새로 만들지 않음 — Link 보존).
+  const variantBorderColor = isSelected
+    ? isEmphasized
+      ? (visual?.emphasizedSelectedBorder ?? visual?.selectedBorder)
+      : visual?.selectedBorder
+    : isOutline
+      ? (visual?.outlineBorder ?? visual?.border)
+      : state === "hover" && visual?.borderHover
+        ? visual.borderHover
+        : visual?.border;
   const borderColor = isShowAllChip
     ? undefined
     : ((style?.borderColor as string | undefined) ??
-      (isSelected
-        ? isEmphasized
-          ? (visual?.emphasizedSelectedBorder ?? visual?.selectedBorder)
-          : visual?.selectedBorder
-        : isOutline
-          ? (visual?.outlineBorder ?? visual?.border)
-          : state === "hover" && visual?.borderHover
-            ? visual.borderHover
-            : visual?.border));
+      (staticHex != null && variantBorderColor != null
+        ? staticHex
+        : variantBorderColor));
 
   const text =
     (props.label as string | undefined) ||

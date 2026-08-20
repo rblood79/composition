@@ -6,7 +6,7 @@ import {
 } from "react-aria-components";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
-import type { ButtonVariant, ComponentSize } from "../types";
+import type { ButtonVariant, ComponentSize, StaticColor } from "../types";
 import { Skeleton } from "./Skeleton";
 import "./styles/Button.css";
 
@@ -15,6 +15,8 @@ export interface ButtonProps extends RACButtonProps {
   /** Fill style: fill (solid) or outline (S2) */
   fillStyle?: "fill" | "outline";
   size?: ComponentSize;
+  /** Static color for colored/image backgrounds (S2) — fixed black/white scheme */
+  staticColor?: StaticColor;
   /** Show loading skeleton instead of content */
   isLoading?: boolean;
   /** Accessible label shown during loading */
@@ -35,6 +37,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       fillStyle = "fill",
       size = "md",
+      staticColor = "auto",
       className,
       style,
       ...restProps
@@ -50,6 +53,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         data-variant={variant}
         data-fill-style={fillStyle}
         data-size={size}
+        data-static-color={staticColor}
         data-focus-visible={isFocusVisible || undefined}
         data-loading={isLoading || undefined}
         aria-busy={isLoading || undefined}

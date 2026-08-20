@@ -756,6 +756,28 @@ export function resolveButtonChildColor(
   const isSelected = parentProps.isSelected === true;
   const isEmphasized = parentProps.isEmphasized === true;
 
+  // staticColor 분기 (2026-08-20 Button 채택) — buildCatalogShapes 의 static 스킴과 동일:
+  //   opaque bg + fill 이면 역상(흑↔백), outline/subtle 또는 bg 시각 부재면 static 자체.
+  //   CSS 는 [data-static-color] 가 --button-text 재지정 → `.button-base > * { color: inherit }`
+  //   전파 — Skia 자식도 동일 값 상속. 자식 자신의 style.color 는 소비처
+  //   (`textColor = style?.color ?? ...`)에서 여전히 최우선.
+  const staticRaw = parentProps.staticColor as string | undefined;
+  if (staticRaw === "black" || staticRaw === "white") {
+    const staticHex = staticRaw === "black" ? "#000000" : "#ffffff";
+    const base = visual.fill?.default?.base;
+    const staticOnOpaqueBg =
+      fillStyle !== "outline" &&
+      fillStyle !== "subtle" &&
+      base != null &&
+      base !== "{color.transparent}" &&
+      (visual.fill?.alpha ?? 1) !== 0;
+    return staticOnOpaqueBg
+      ? staticRaw === "black"
+        ? "#ffffff"
+        : "#000000"
+      : staticHex;
+  }
+
   // buildCatalogShapes.textColor 와 동일 분기: selected → outline → subtle → text.
   const text = isSelected
     ? isEmphasized

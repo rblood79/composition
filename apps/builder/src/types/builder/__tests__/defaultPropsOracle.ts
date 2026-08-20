@@ -28,6 +28,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
       size: "md",
       fillStyle: "fill", // catalog bindingOnly — factory 누락분 보강(옵션 B)
       type: "button", // catalog bindingOnly — factory 누락분 보강(옵션 B)
+      staticColor: "auto", // catalog bindingOnly — RSP S2 staticColor 채택(2026-08-20)
       // builder-local overlay
       children: "Button",
       name: "",

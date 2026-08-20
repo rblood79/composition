@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Button staticColor prop 채택 (RSP S2) - 2026-08-20
+
+### Features
+
+- **Button 에 RSP S2 `staticColor` prop (auto/white/black) 추가** — 유색·이미지 배경 위에서
+  테마 무관 고정 흑백 스킴. fill 은 배경=static + 텍스트 역상 + 테두리=static, outline 은
+  텍스트·테두리만 static (배경은 outline 투명 유지). Link 와 동일한 D2 surface.
+- CSS(`Button.css [data-static-color]`)와 Skia(`buildCatalogShapes` static 스킴 +
+  `resolveButtonChildColor` 자식 상속) 양 경로 대칭 구현. generic 투영(`toRacProps`)은
+  `staticColor` 를 `data-static-color` 로 라우팅해 raw prop DOM 누출을 차단 (Link 의
+  generic 경로 동일 결함 함께 교정).
+
 ## [AI 어시스턴트 패널 개편 — Photoshop-style contextual composer] - 2026-08-20
 
 ### Features

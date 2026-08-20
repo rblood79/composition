@@ -79,6 +79,20 @@ export const buttonBinding: PrimitiveBinding = {
           { value: "outline", label: "Outline" },
         ],
       },
+      // RSP S2 staticColor (2026-08-20 채택) — 유색/이미지 배경 위 고정 흑백 스킴.
+      //   Link.binding 과 동일 surface. CSS: Button.css [data-static-color] /
+      //   Skia: buildCatalogShapes static 블록 + resolveButtonChildColor.
+      staticColor: {
+        kind: "enum",
+        label: "Static Color",
+        section: "appearance",
+        default: "auto",
+        options: [
+          { value: "auto", label: "Auto" },
+          { value: "white", label: "White" },
+          { value: "black", label: "Black" },
+        ],
+      },
       // RAC Button props
       type: {
         kind: "enum",

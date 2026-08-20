@@ -27,6 +27,8 @@ describe("Button binding → toRacProps", () => {
       "data-size": "lg",
       // fillStyle default "fill" → 항상 emit (base style, [data-fill-style="outline"] 미매칭)
       "data-fill-style": "fill",
+      // staticColor default "auto" → data-* 만 emit (raw prop 누출 차단, CSS 는 black/white 만 매칭)
+      "data-static-color": "auto",
     });
   });
 
@@ -47,6 +49,7 @@ describe("Button binding → toRacProps", () => {
       "data-variant": "primary",
       "data-size": "md",
       "data-fill-style": "fill",
+      "data-static-color": "auto",
     });
   });
 

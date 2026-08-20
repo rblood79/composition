@@ -45,6 +45,10 @@ const DATA_ATTR_ENUM_KEYS: ReadonlySet<string> = new Set([
   "labelPosition",
   "labelAlign",
   "necessityIndicator",
+  // RSP S2 staticColor (Button/Link, 2026-08-20) — RAC prop 아님. theme CSS 가
+  // [data-static-color] 로 소비 (Button.css/Link.css). raw prop 누출 시 React
+  // unknown-prop 경고 + CSS 미적용 (labelPosition 과 동일 결함 축).
+  "staticColor",
 ]);
 
 /** camelCase → kebab-case. data-* 속성명 변환용. 예: `fillStyle` → `fill-style`. */

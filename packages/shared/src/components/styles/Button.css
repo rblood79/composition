@@ -96,6 +96,41 @@
       background: transparent;
     }
 
+    /* ===== Static Color (RSP S2 staticColor — 유색/이미지 배경 위 고정 흑백 스킴) =====
+       fill: bg=static + text=역상 + border=static / outline: text·border=static (bg 는
+       outline 투명 유지). hover/pressed 는 .button-base color-mix ramp 가 static 값 기준으로
+       그대로 동작. [data-static-color] 중복으로 0-4-0 — generated/Button.css outline
+       per-variant(0-3-0)를 로드 순서와 무관하게 이긴다 (publish 앱은 generated 가 수동 CSS
+       뒤에 로드되어 동률이 지는 것을 실측, 2026-08-20).
+       Skia 대칭: buildCatalogShapes static 블록(opaque-bg 데이터 분기) + resolveButtonChildColor.
+       알려진 한계: genai 의 직접 background gradient 는 static fill 로 대체되지 않음
+       (재지정 시 hover ramp 소실 trade-off, 2026-08-20). */
+    &[data-static-color="black"][data-static-color]:not(
+        [data-fill-style="outline"]
+      ) {
+      --button-color: var(--color-black, #000);
+      --button-text: var(--color-white, #fff);
+      --button-border: var(--color-black, #000);
+    }
+
+    &[data-static-color="white"][data-static-color]:not(
+        [data-fill-style="outline"]
+      ) {
+      --button-color: var(--color-white, #fff);
+      --button-text: var(--color-black, #000);
+      --button-border: var(--color-white, #fff);
+    }
+
+    &[data-static-color="black"][data-fill-style="outline"][data-static-color] {
+      --button-text: var(--color-black, #000);
+      --button-border: var(--color-black, #000);
+    }
+
+    &[data-static-color="white"][data-fill-style="outline"][data-static-color] {
+      --button-text: var(--color-white, #fff);
+      --button-border: var(--color-white, #fff);
+    }
+
     /* ===== Size Variants ===== */
 
     &[data-size="xs"] {

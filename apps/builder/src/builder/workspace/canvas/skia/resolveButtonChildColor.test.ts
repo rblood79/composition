@@ -108,3 +108,43 @@ describe("resolveButtonChildColor — fillStyle 분기", () => {
     expect(resolveButtonChildColor(other, elementsMap)).toBeNull();
   });
 });
+
+describe("resolveButtonChildColor — staticColor 분기 (2026-08-20 Button 채택)", () => {
+  // CSS 대칭: Button.css [data-static-color] 가 --button-text 를 재지정하고
+  // .button-base > * { color: inherit } 로 자식에 전파 — Skia 도 동일 값 상속.
+  it("fill + staticColor=white → 역상 #000000 (흰 배경 위 검정 텍스트)", () => {
+    const { textChild, iconChild, elementsMap } = setup({
+      variant: "accent",
+      staticColor: "white",
+    });
+    expect(resolveButtonChildColor(textChild, elementsMap)).toBe("#000000");
+    expect(resolveButtonChildColor(iconChild, elementsMap)).toBe("#000000");
+  });
+
+  it("fill + staticColor=black → 역상 #ffffff", () => {
+    const { textChild, elementsMap } = setup({
+      variant: "accent",
+      staticColor: "black",
+    });
+    expect(resolveButtonChildColor(textChild, elementsMap)).toBe("#ffffff");
+  });
+
+  it("outline + staticColor=white → static 자체 #ffffff (투명 배경 위)", () => {
+    const { textChild, elementsMap } = setup({
+      variant: "accent",
+      fillStyle: "outline",
+      staticColor: "white",
+    });
+    expect(resolveButtonChildColor(textChild, elementsMap)).toBe("#ffffff");
+  });
+
+  it("staticColor=auto → 기존 variant 경로 유지", () => {
+    const { textChild, elementsMap } = setup({
+      variant: "accent",
+      staticColor: "auto",
+    });
+    expect(resolveButtonChildColor(textChild, elementsMap)).toBe(
+      "{color.on-accent}",
+    );
+  });
+});

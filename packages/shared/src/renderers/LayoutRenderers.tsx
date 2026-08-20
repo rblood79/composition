@@ -542,6 +542,9 @@ export const renderButton = (
       }
       fillStyle={(element.props.fillStyle as "fill" | "outline") || "fill"}
       size={element.props.size as "xs" | "sm" | "md" | "lg" | "xl"}
+      staticColor={
+        (element.props.staticColor as "auto" | "black" | "white") || "auto"
+      }
       type={(element.props.type as "button" | "submit" | "reset") || "button"}
       isDisabled={Boolean(element.props.isDisabled as boolean)}
       isPending={Boolean(element.props.isPending)}
