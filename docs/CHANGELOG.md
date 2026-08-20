@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DateRangePicker `placeholder` 편집 표면 추가** — 렌더러 `resolvePlaceholder` 가 이미
   소비하는데 accepts 선언이 없어 표면이 통째 결손이었다 (DatePicker 는 노출 중 — 형제 대칭 회복).
 
+- **RangeCalendar 에 `isInvalid` / `autoFocus` / `pageBehavior` 편집 표면 추가** — Calendar 만
+  노출 중이던 RSP 규정 prop 3종의 형제 대칭 회복. 렌더러도 함께 보강했다 (컴포넌트는
+  `AriaRangeCalendarProps` 를 spread 하므로 전달만으로 RAC 에 닿는다).
 - **ToggleButton 에 RSP S2 `staticColor` prop (auto/white/black) 추가** — Button/Link 에 이미
   있던 축의 잔여 전개. 유색·이미지 배경 위에서 테마 무관 고정 흑백 스킴 (배경=static,
   텍스트=역상, 테두리=static). Skia 는 `buildCatalogShapes` 의 static 블록이 컴포넌트 식별

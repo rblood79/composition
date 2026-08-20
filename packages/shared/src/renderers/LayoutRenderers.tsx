@@ -1995,6 +1995,15 @@ export const renderRangeCalendar = (
   // locale/calendarSystem/size 변경 시 리마운트
   const remountKey = `${element.id}-${locale || ""}-${calendarSystem || ""}-${size || ""}`;
 
+  // design-data 감사 §1-3 (2026-08-21): Calendar 는 노출 중인 3종을 RangeCalendar 만
+  //   전달하지 않아 편집 표면이 비대칭이었다 (RSP RangeCalendar 규정 prop). 컴포넌트는
+  //   `AriaRangeCalendarProps` 를 extends 하고 `{...props}` 로 spread 하므로 전달만 하면
+  //   RAC 에 닿는다. renderCalendar 동형 처리.
+  const getPageBehavior = () => {
+    const pb = element.props.pageBehavior;
+    return pb === "visible" || pb === "single" ? pb : "visible";
+  };
+
   // CalendarHeader 자식 style 의 layout 부분을 `<header>` 로 전달 (2026-07-02 B2, Calendar 동형).
   const headerStyle = resolveCalendarHeaderStyle(element, context);
 
@@ -2017,6 +2026,9 @@ export const renderRangeCalendar = (
       }
       isDisabled={Boolean(element.props.isDisabled)}
       isReadOnly={Boolean(element.props.isReadOnly)}
+      isInvalid={Boolean(element.props.isInvalid)}
+      autoFocus={Boolean(element.props.autoFocus)}
+      pageBehavior={getPageBehavior() as "visible" | "single"}
       maxVisibleMonths={maxVisibleMonths}
       allowsNonContiguousRanges={Boolean(
         element.props.allowsNonContiguousRanges,

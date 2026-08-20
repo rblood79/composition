@@ -78,6 +78,28 @@ describe("design-data 감사 §1-2 — staticColor 축 전개", () => {
   });
 });
 
+describe("design-data 감사 §1-3 — 형제 비대칭 회복", () => {
+  /**
+   * Calendar 만 노출하고 RangeCalendar 는 빠져 있던 RSP 규정 prop 3종. 렌더러
+   * 전달까지 함께 보강했으므로 표면과 형제 동등성을 같이 고정한다.
+   */
+  it("Calendar/RangeCalendar: isInvalid·autoFocus·pageBehavior 표면이 동등하다", () => {
+    const calendar = getPrimitiveBinding("Calendar")?.props?.accepts;
+    const range = getPrimitiveBinding("RangeCalendar")?.props?.accepts;
+
+    for (const key of ["isInvalid", "autoFocus", "pageBehavior"] as const) {
+      expect(calendar?.[key], `Calendar.${key}`).toBeDefined();
+      expect(range?.[key], `RangeCalendar.${key}`).toBeDefined();
+      expect(range?.[key]?.kind).toBe(calendar?.[key]?.kind);
+    }
+
+    const rangePageBehavior = (range?.pageBehavior?.options ?? []).map(
+      (o) => o.value,
+    );
+    expect(rangePageBehavior.sort()).toEqual(["single", "visible"]);
+  });
+});
+
 describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드", () => {
   /**
    * 시맨틱 variant(info/positive/negative)는 각자의 의미색을 가져야 한다.
