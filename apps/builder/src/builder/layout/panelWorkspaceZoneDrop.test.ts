@@ -135,6 +135,36 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
     });
   });
 
+  it("스냅 edge는 드래그 패널 프레임이 아니라 포인터가 가까운 대상면을 선택한다", () => {
+    const layout = createV3Layout();
+    const target = frameFor(layout, "nodes");
+    const source = frameFor(layout, "properties");
+    const session = beginPanelWorkspaceDragSession(
+      layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      SURFACE,
+      "properties",
+    );
+    expect(session.ok).toBe(true);
+    if (!session.ok) return;
+
+    const updated = updatePanelWorkspaceDragSession(
+      session.value,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      SURFACE,
+      { ...source, x: target.x + 260, y: target.y + 260 },
+      { x: target.x + target.width / 2, y: target.y + target.height + 4 },
+    );
+
+    expect(updated.ok).toBe(true);
+    if (!updated.ok) return;
+    expect(updated.value.candidate).toEqual({
+      kind: "panel-edge",
+      panelId: "nodes",
+      edge: "bottom",
+    });
+  });
+
   it("같은 column의 내부 row 경계는 panel-edge 후보로 노출하지 않는다", () => {
     const layout = createV3Layout();
     layout.visibility.settings = true;

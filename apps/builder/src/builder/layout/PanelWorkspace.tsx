@@ -30,16 +30,6 @@ import {
 } from "./PanelSnapContext";
 import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
 import { PanelSplitter } from "./PanelSplitter";
-import {
-  mountPanelWorkspaceDiagnostics,
-  isPanelWorkspaceDiagnosticsEnabled,
-  recordPanelFrameApplied,
-  recordPanelFrameCommit,
-  recordPanelWorkspaceCommit,
-  recordPanelWorkspaceLayoutInput,
-  recordPanelWorkspaceSolve,
-  startPanelWorkspaceManualTrace,
-} from "./panelWorkspaceDiagnostics";
 import type {
   PanelWorkspaceFrameSnapshot,
   PanelWorkspaceLayoutSnapshot,
@@ -47,6 +37,7 @@ import type {
 } from "./panelWorkspaceLayoutCoordinator";
 import {
   createPanelWorkspaceRegistryEntry,
+  PANEL_WORKSPACE_GAP,
   type PanelWorkspaceRect,
   type PanelWorkspaceRegistryEntry,
 } from "./panelWorkspaceLayoutV2";
@@ -341,106 +332,18 @@ function PanelWorkspaceSharedSplitters({
             )}
             onResizeStart={() => runtime.beginInteraction()}
             onResize={(deltaX, deltaY) => {
-              recordPanelWorkspaceSolve();
-              const mutation = runtime.resizePanelFromReference(
+              runtime.resizePanelFromReference(
                 contract.panelId,
                 contract.edge,
                 deltaX,
                 deltaY,
               );
-              if (mutation.ok) {
-                recordPanelWorkspaceLayoutInput(
-                  mutation.value.expectedVersion,
-                  mutation.value.affectedPanelIds,
-                );
-              }
             }}
             onResizeEnd={() => setWorkspaceLayout(runtime.endInteraction())}
           />
         );
       })}
     </>
-  );
-}
-
-function deltaForTrace(
-  edge: PanelResizeEdge,
-  delta: number,
-): { deltaX: number; deltaY: number } {
-  return edge === "left" || edge === "right"
-    ? { deltaX: delta, deltaY: 0 }
-    : { deltaX: 0, deltaY: delta };
-}
-
-function waitForPresentationFrame(): Promise<number> {
-  return new Promise((resolve) => requestAnimationFrame(resolve));
-}
-
-function PanelWorkspaceTraceDriver({
-  runtime,
-  setWorkspaceLayout,
-}: PanelWorkspaceRuntimeProps) {
-  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const [isRunning, setIsRunning] = useState(false);
-  const candidate = [...snapshot.frameGeometries.entries()].find(
-    ([, frame]) => frame.resizeEdges.length > 0,
-  );
-
-  const runTrace = async () => {
-    if (isRunning || !candidate) return;
-    const [panelId, frame] = candidate;
-    const edge = frame.resizeEdges.includes("bottom")
-      ? "bottom"
-      : frame.resizeEdges[0];
-    if (!edge) return;
-
-    setIsRunning(true);
-    startPanelWorkspaceManualTrace("resize");
-    runtime.beginInteraction();
-    let offset = 0;
-    const startedAt = performance.now();
-
-    while (performance.now() - startedAt < 5_100) {
-      await waitForPresentationFrame();
-      const nextOffset = offset === 0 ? 1 : 0;
-      const { deltaX, deltaY } = deltaForTrace(edge, nextOffset - offset);
-      recordPanelWorkspaceSolve();
-      const mutation = runtime.resizePanel(panelId, edge, deltaX, deltaY);
-      if (mutation.ok) {
-        recordPanelWorkspaceLayoutInput(
-          mutation.value.expectedVersion,
-          mutation.value.affectedPanelIds,
-        );
-      }
-      offset = nextOffset;
-    }
-
-    if (offset !== 0) {
-      const { deltaX, deltaY } = deltaForTrace(edge, -offset);
-      recordPanelWorkspaceSolve();
-      const mutation = runtime.resizePanel(panelId, edge, deltaX, deltaY);
-      if (mutation.ok) {
-        recordPanelWorkspaceLayoutInput(
-          mutation.value.expectedVersion,
-          mutation.value.affectedPanelIds,
-        );
-      }
-    }
-    await waitForPresentationFrame();
-    setWorkspaceLayout(runtime.endInteraction());
-    setIsRunning(false);
-  };
-
-  return (
-    <button
-      type="button"
-      className="panel-trace-driver"
-      data-running={isRunning}
-      disabled={isRunning || !candidate}
-      onClick={() => void runTrace()}
-    >
-      {isRunning ? "Panel trace running" : "Run panel resize trace"}
-    </button>
   );
 }
 
@@ -475,7 +378,6 @@ const PanelFrameContent = memo(function PanelFrameContent({
 interface PanelFrameProps {
   config: PanelConfig;
   dockOrigin: PanelDockOrigin;
-  snapTargetEdge: PanelResizeEdge | null;
   runtime: PanelWorkspaceRuntime;
   snapshotFrame: PanelWorkspaceFrameSnapshot | null;
   side: PanelSide;
@@ -486,7 +388,6 @@ interface PanelFrameProps {
 const PanelFrame = memo(function PanelFrame({
   config,
   dockOrigin,
-  snapTargetEdge,
   runtime,
   snapshotFrame,
   side,
@@ -553,7 +454,7 @@ const PanelFrame = memo(function PanelFrame({
   const contentId = `panel-${config.id}-content`;
 
   useLayoutEffect(() => {
-    recordPanelFrameCommit(config.id);
+    // Keep panel content measurement in the same layout phase as the shell.
   });
 
   useEffect(() => {
@@ -668,12 +569,6 @@ const PanelFrame = memo(function PanelFrame({
         : { x: next.x + next.width / 2, y: next.y + next.height / 2 };
       pointerRef.current = pointer;
       const mutation = runtime.updateDrag(config.id, next, pointer);
-      if (mutation.ok) {
-        recordPanelWorkspaceLayoutInput(
-          mutation.value.expectedVersion,
-          mutation.value.affectedPanelIds,
-        );
-      }
       const candidate = mutation.ok ? mutation.value.candidate : null;
       if (suppressSnapRef.current && candidate?.kind !== "panel-edge") {
         suppressSnapRef.current = false;
@@ -700,10 +595,6 @@ const PanelFrame = memo(function PanelFrame({
       const ended = runtime.endDrag(config.id);
       flushDropCandidate();
       if (ended.ok) {
-        recordPanelWorkspaceLayoutInput(
-          ended.value.expectedVersion,
-          ended.value.affectedPanelIds,
-        );
         if (ended.value.committed) {
           onCommitLayout(ended.value.layout);
         }
@@ -743,19 +634,7 @@ const PanelFrame = memo(function PanelFrame({
     deltaX: number,
     deltaY: number,
   ) => {
-    recordPanelWorkspaceSolve();
-    const mutation = runtime.resizePanelFromReference(
-      config.id,
-      edge,
-      deltaX,
-      deltaY,
-    );
-    if (mutation.ok) {
-      recordPanelWorkspaceLayoutInput(
-        mutation.value.expectedVersion,
-        mutation.value.affectedPanelIds,
-      );
-    }
+    runtime.resizePanelFromReference(config.id, edge, deltaX, deltaY);
   };
 
   const appliedGeometry = snapshotFrame ?? {
@@ -816,9 +695,16 @@ const PanelFrame = memo(function PanelFrame({
         aria-label={`${config.name} 패널 이동`}
         onPointerDownCapture={(event) => {
           if (!snapshotFrame) return;
+          const target = event.target;
+          let offsetX = event.nativeEvent.offsetX;
+          let offsetY = event.nativeEvent.offsetY;
+          if (target instanceof HTMLElement && target !== event.currentTarget) {
+            offsetX += target.offsetLeft;
+            offsetY += target.offsetTop;
+          }
           pointerRef.current = {
-            x: snapshotFrame.x + event.nativeEvent.offsetX,
-            y: snapshotFrame.y + event.nativeEvent.offsetY,
+            x: snapshotFrame.x + offsetX,
+            y: snapshotFrame.y + offsetY,
           };
         }}
         onKeyDownCapture={(event) => {
@@ -830,16 +716,6 @@ const PanelFrame = memo(function PanelFrame({
       >
         <span />
       </button>
-      {snapTargetEdge !== null && (
-        <div className="panel-snap-targets" aria-hidden="true">
-          {/* data-edge={dropCandidate.edge} */}
-          <span
-            className="panel-snap-target"
-            data-edge={snapTargetEdge}
-            data-active="true"
-          />
-        </div>
-      )}
       <PanelFrameContent
         config={config}
         contentId={contentId}
@@ -889,7 +765,6 @@ const PanelFrame = memo(function PanelFrame({
 interface SnapshotPanelFrameProps {
   config: PanelConfig;
   dockOrigin: PanelDockOrigin;
-  snapTargetEdge: PanelResizeEdge | null;
   runtime: PanelWorkspaceRuntime;
   side: PanelSide;
   onCommitLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
@@ -901,12 +776,6 @@ function SnapshotPanelFrame(props: SnapshotPanelFrameProps) {
     props.runtime.coordinator,
     props.config.id,
   );
-
-  useLayoutEffect(() => {
-    if (snapshotFrame) {
-      recordPanelFrameApplied(props.config.id, snapshotFrame.layoutVersion);
-    }
-  }, [props.config.id, snapshotFrame]);
 
   return <PanelFrame {...props} snapshotFrame={snapshotFrame} />;
 }
@@ -1079,6 +948,56 @@ function PanelWorkspaceZoneOverlay() {
   );
 }
 
+interface PanelSnapGuideProps {
+  candidate: Exclude<PanelDropCandidate, null | { kind: "zone" }>;
+  dockOrigin: PanelDockOrigin;
+  snapshot: PanelWorkspaceLayoutSnapshot;
+}
+
+function PanelSnapGuide({
+  candidate,
+  dockOrigin,
+  snapshot,
+}: PanelSnapGuideProps) {
+  const target = snapshot.frameGeometries.get(candidate.panelId);
+  if (!target) return null;
+
+  const halfGap = PANEL_WORKSPACE_GAP / 2;
+  const lineSize = 2;
+  const style: CSSProperties = {
+    bottom: "auto",
+    height:
+      candidate.edge === "top" || candidate.edge === "bottom"
+        ? lineSize
+        : target.height,
+    left:
+      candidate.edge === "left"
+        ? target.x - dockOrigin.x - halfGap
+        : candidate.edge === "right"
+          ? target.x - dockOrigin.x + target.width + halfGap
+          : target.x - dockOrigin.x,
+    right: "auto",
+    top:
+      candidate.edge === "top"
+        ? target.y - dockOrigin.y - halfGap
+        : candidate.edge === "bottom"
+          ? target.y - dockOrigin.y + target.height + halfGap
+          : target.y - dockOrigin.y,
+    width:
+      candidate.edge === "left" || candidate.edge === "right"
+        ? lineSize
+        : target.width,
+  };
+
+  return (
+    <span
+      className="panel-snap-target panel-snap-guide"
+      data-edge={candidate.edge}
+      style={style}
+    />
+  );
+}
+
 interface PanelDockRenderProps {
   origin: PanelDockOrigin;
   surfaceStyle: CSSProperties;
@@ -1216,6 +1135,13 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
                 style={surfaceStyle}
               >
                 <PanelWorkspaceZoneOverlay />
+                {dropCandidate?.kind === "panel-edge" && (
+                  <PanelSnapGuide
+                    candidate={dropCandidate}
+                    dockOrigin={origin}
+                    snapshot={snapshot}
+                  />
+                )}
                 <PanelDockClusterPresentation
                   dockOrigin={origin}
                   runtime={runtime}
@@ -1225,14 +1151,6 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
                     key={config.id}
                     config={config}
                     dockOrigin={origin}
-                    snapTargetEdge={
-                      draggedPanelId !== null &&
-                      draggedPanelId !== config.id &&
-                      dropCandidate?.kind === "panel-edge" &&
-                      dropCandidate.panelId === config.id
-                        ? dropCandidate.edge
-                        : null
-                    }
                     runtime={runtime}
                     side={railSideForPanel(workspaceLayout, config)}
                     onCommitLayout={setWorkspaceLayout}
@@ -1245,12 +1163,6 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
                   runtime={runtime}
                   setWorkspaceLayout={setWorkspaceLayout}
                 />
-                {isPanelWorkspaceDiagnosticsEnabled() && (
-                  <PanelWorkspaceTraceDriver
-                    runtime={runtime}
-                    setWorkspaceLayout={setWorkspaceLayout}
-                  />
-                )}
               </div>
             </>
           )}
@@ -1281,8 +1193,6 @@ function HydratedPanelWorkspace({
     "--panel-workspace-inset-bottom": `${snapshot.occupiedInsets.bottom}px`,
   } as CSSProperties;
 
-  useEffect(() => mountPanelWorkspaceDiagnostics(), []);
-
   useEffect(() => {
     if (runtime && workspaceLayout) {
       runtime.replaceCommittedLayout(workspaceLayout);
@@ -1309,10 +1219,6 @@ function HydratedPanelWorkspace({
     },
     [runtime],
   );
-
-  useLayoutEffect(() => {
-    recordPanelWorkspaceCommit();
-  });
 
   return (
     <div

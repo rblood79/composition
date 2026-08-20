@@ -293,57 +293,37 @@ function availableEdges(
   return edges;
 }
 
-function candidatePosition(
-  source: PanelFrameGeometry,
-  target: PanelFrameGeometry,
-  edge: PanelSnapEdge,
-): { x: number; y: number } {
-  if (edge === "top") {
-    return { x: target.x, y: target.y - source.height - PANEL_WORKSPACE_GAP };
-  }
-  if (edge === "right") {
-    return { x: target.x + target.width + PANEL_WORKSPACE_GAP, y: target.y };
-  }
-  if (edge === "bottom") {
-    return { x: target.x, y: target.y + target.height + PANEL_WORKSPACE_GAP };
-  }
-  return { x: target.x - source.width - PANEL_WORKSPACE_GAP, y: target.y };
-}
-
-function crossAxisDistance(
-  source: PanelFrameGeometry,
+function pointerEdgeDistance(
+  pointer: PanelWorkspacePointerPosition,
   target: PanelFrameGeometry,
   edge: PanelSnapEdge,
 ): number {
-  const horizontal = edge === "top" || edge === "bottom";
-  const sourceStart = horizontal ? source.x : source.y;
-  const sourceEnd = horizontal
-    ? source.x + source.width
-    : source.y + source.height;
-  const targetStart = horizontal ? target.x : target.y;
-  const targetEnd = horizontal
-    ? target.x + target.width
-    : target.y + target.height;
-  return Math.max(0, targetStart - sourceEnd, sourceStart - targetEnd);
-}
-
-function panelCandidateDistance(
-  source: PanelFrameGeometry,
-  target: PanelFrameGeometry,
-  edge: PanelSnapEdge,
-): number {
-  const position = candidatePosition(source, target, edge);
   const horizontal = edge === "top" || edge === "bottom";
   const axisDistance = horizontal
-    ? Math.abs(source.y - position.y)
-    : Math.abs(source.x - position.x);
-  return Math.hypot(axisDistance, crossAxisDistance(source, target, edge));
+    ? Math.abs(
+        pointer.y - (edge === "top" ? target.y : target.y + target.height),
+      )
+    : Math.abs(
+        pointer.x - (edge === "left" ? target.x : target.x + target.width),
+      );
+  const crossStart = horizontal ? target.x : target.y;
+  const crossEnd = horizontal
+    ? target.x + target.width
+    : target.y + target.height;
+  const crossPoint = horizontal ? pointer.x : pointer.y;
+  const crossAxisDistance = Math.max(
+    0,
+    crossStart - crossPoint,
+    crossPoint - crossEnd,
+  );
+  return Math.hypot(axisDistance, crossAxisDistance);
 }
 
 function resolvePanelEdgeCandidate(
   session: PanelWorkspaceDragSession,
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
+  pointer: PanelWorkspacePointerPosition,
 ): ScoredPanelCandidate | null {
   let closest: ScoredPanelCandidate | null = null;
   for (const [panelId, target] of session.candidateFrameGeometries) {
@@ -354,11 +334,7 @@ function resolvePanelEdgeCandidate(
       surfaceRect,
       panelId,
     )) {
-      const distance = panelCandidateDistance(
-        session.previewGeometry,
-        target,
-        edge,
-      );
+      const distance = pointerEdgeDistance(pointer, target, edge);
       const isCurrent =
         session.candidate?.kind === "panel-edge" &&
         session.candidate.panelId === panelId &&
@@ -644,7 +620,12 @@ export function updatePanelWorkspaceDragSession(
     return failure("Panel drag preview geometry is invalid");
   }
   const next = { ...session, previewGeometry: { ...previewGeometry } };
-  const panelCandidate = resolvePanelEdgeCandidate(next, registry, surfaceRect);
+  const panelCandidate = resolvePanelEdgeCandidate(
+    next,
+    registry,
+    surfaceRect,
+    pointer,
+  );
   return {
     ok: true,
     value: {

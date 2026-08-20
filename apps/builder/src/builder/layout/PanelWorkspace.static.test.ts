@@ -60,7 +60,9 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toMatch(/<button\s+\{\.\.\.moveProps\}/);
     expect(source).toContain("runtime.updateDrag(config.id, next, pointer)");
     expect(source).toContain('dropCandidate?.kind === "panel-edge"');
-    expect(source).toContain("data-edge={dropCandidate.edge}");
+    expect(source).toContain("function PanelSnapGuide(");
+    expect(source).toContain("data-edge={candidate.edge}");
+    expect(source).toContain("PANEL_WORKSPACE_GAP / 2");
     expect(source).not.toContain("SNAP_EDGES.map");
     expect(source).toContain("PANEL_WORKSPACE_SNAP_ZONES.map((zone)");
     expect(source).toContain('className="panel-zone-overlay"');
@@ -87,7 +89,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
       /\.panel-resize-handle::after\s*\{[\s\S]*?background: var\(--panel-interaction-line-color\);/,
     );
     expect(styles).toMatch(/\.panel-snap-target\s*\{[\s\S]*?border-radius: 0;/);
-    expect(source).toContain('className="panel-snap-target"');
+    expect(source).toContain('className="panel-snap-target panel-snap-guide"');
     expect(source).not.toContain("PanelDropZone");
     expect(source).not.toContain("useDrag({");
     expect(source).not.toContain("useDrop({");
@@ -157,8 +159,6 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
   it("cluster resize 중에는 인접 panel까지 transient layout으로 갱신하고 종료 시 한 번만 persist한다", async () => {
     const source = await readWorkspace();
 
-    expect(source).toContain("recordPanelWorkspaceLayoutInput(");
-    expect(source).toContain("mutation.value.affectedPanelIds");
     expect(source).toContain(
       "data-layout-version={snapshotFrame?.layoutVersion}",
     );

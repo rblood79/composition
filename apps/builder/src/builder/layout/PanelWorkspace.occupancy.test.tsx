@@ -188,7 +188,6 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(
       container.querySelector('.panel-nav[data-side="bottom"]'),
     ).toBeNull();
-    expect(container.querySelector(".panel-trace-driver")).toBeNull();
     expect(
       container
         .querySelector('.workspace-panel-frame[data-panel="nodes"]')
