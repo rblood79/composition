@@ -114,9 +114,6 @@ importers:
       '@internationalized/number':
         specifier: ^3.6.7
         version: 3.6.7
-      '@material/material-color-utilities':
-        specifier: ^0.4.0
-        version: 0.4.0
       '@react-aria/focus':
         specifier: ^3.22.1
         version: 3.22.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -1087,9 +1084,6 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
-
-  '@material/material-color-utilities@0.4.0':
-    resolution: {integrity: sha512-dlq6VExJReb8dhjj3a/yTigr3ncNwoFmL5Iy2ENtbDX03EmNeOEdZ+vsaGrj7RTuO+mB7L58II4LCsl4NpM8uw==}
 
   '@playwright/mcp@0.0.76':
     resolution: {integrity: sha512-ICcW6wAV+HoNEco19eni+JTVylCIIedruWkrRl2Rsv/qcGhBZLT/c0I1VounjIjSVSupw3pHmcr3CNCikTHTBQ==}
@@ -4040,8 +4034,6 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
-
-  '@material/material-color-utilities@0.4.0': {}
 
   '@playwright/mcp@0.0.76':
     dependencies:
