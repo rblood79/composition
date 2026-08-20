@@ -90,6 +90,9 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(styles).toMatch(
       /\.panel-resize-handle::after\s*\{[\s\S]*?background: var\(--panel-interaction-line-color\);/,
     );
+    expect(styles).toMatch(
+      /\.panel-move-handle\s*\{[\s\S]*?cursor: grab;[\s\S]*?\.panel-move-handle:active\s*\{[\s\S]*?cursor: grabbing;[\s\S]*?\.workspace-panel-frame\[data-dragging="true"\] \.panel-move-handle\s*\{[\s\S]*?cursor: default;/,
+    );
     expect(styles).toMatch(/\.panel-snap-target\s*\{[\s\S]*?border-radius: 0;/);
     expect(source).toContain('className="panel-snap-target panel-snap-guide"');
     expect(source).not.toContain("PanelDropZone");

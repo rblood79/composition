@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Panel workspace 이동 cursor 복원 - 2026-08-21
+
+### Fixed
+
+- 패널 상단 이동 영역에서 `grab`, mouse down에서 `grabbing`, 실제 패널 이동 중에는
+  `default` cursor로 전환되는 계약을 복원했다. drag 중에도 `grabbing`이 유지되던 회귀를
+  `data-dragging` shell 상태로 바로잡고 cascade 순서를 회귀 테스트로 고정했다.
+
 ## quiet fill preset 채널 신설 — isQuiet dead prop 해소 (ToggleButton) - 2026-08-21
 
 ### Features

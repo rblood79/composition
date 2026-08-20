@@ -45,15 +45,33 @@
 
 #### 수리 현황 (2026-08-20~21)
 
-| 항목                                                     | 조치                                                                                                                                                                                                    |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tooltip variant                                          | **수리 완료** — accepts 선언 + 렌더러 fallback 을 defaultVariant 로 정렬                                                                                                                                |
-| DateRangePicker placeholder                              | **수리 완료** — accepts 선언 (DatePicker 와 형제 대칭)                                                                                                                                                  |
-| Toast info 시맨틱                                        | **수리 완료** — `{color.informative-subtle}`/`{color.informative}` 로 정렬                                                                                                                              |
-| Toast 런타임 CSS 충돌                                    | **수리 완료** — 수동 `Toast.css` 를 `.react-aria-ToastRegion` 스코프로 격리 (아래 발견 참조)                                                                                                            |
-| Tree maxHeight                                           | **수리 완료** — ListBox 2026-07-29 결정의 누락 적용분 제거                                                                                                                                              |
-| DateField xs                                             | **변경 없음** — 패널 옵션이 `Object.keys(sizes)` 파생이라 xs 를 선택할 경로 자체가 없다. 런타임 영향 0 인 타입 넓힘이고, size 스케일 자체는 §2-D 에서 house-style 관찰로 분류돼 있어 과잉 변경을 피했다 |
-| TextArea / ToggleButton quiet, ToggleButtonGroup density | **미수리** — D2 표면만 있고 D3 구현이 없다. 해소는 "구현 신설" vs "dead 표면 제거" 판정이 선행돼야 하므로 §1-2 스윕과 함께 다룬다                                                                       |
+| 항목                        | 조치                                                                                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tooltip variant             | **수리 완료** — accepts 선언 + 렌더러 fallback 을 defaultVariant 로 정렬                                                                                                                                |
+| DateRangePicker placeholder | **수리 완료** — accepts 선언 (DatePicker 와 형제 대칭)                                                                                                                                                  |
+| Toast info 시맨틱           | **수리 완료** — `{color.informative-subtle}`/`{color.informative}` 로 정렬                                                                                                                              |
+| Toast 런타임 CSS 충돌       | **수리 완료** — 수동 `Toast.css` 를 `.react-aria-ToastRegion` 스코프로 격리 (아래 발견 참조)                                                                                                            |
+| Tree maxHeight              | **수리 완료** — ListBox 2026-07-29 결정의 누락 적용분 제거                                                                                                                                              |
+| DateField xs                | **변경 없음** — 패널 옵션이 `Object.keys(sizes)` 파생이라 xs 를 선택할 경로 자체가 없다. 런타임 영향 0 인 타입 넓힘이고, size 스케일 자체는 §2-D 에서 house-style 관찰로 분류돼 있어 과잉 변경을 피했다 |
+| ToggleButton quiet          | **수리 완료 (2026-08-21)** — `FillTokenSpec.quiet` 채널 신설로 해소. 아래 "quiet/density 채널 판정" 참조                                                                                                |
+| TextArea quiet              | **미수리** — 채널은 생겼으나 field 계열 quiet 은 배경(fill 축) + 밑줄(nested 축) 복합이라 TextField 의 nested 규칙과 함께 설계해야 한다                                                                 |
+| ToggleButtonGroup density   | **미수리 — 정책 판정 선행** (아래 참조)                                                                                                                                                                 |
+
+#### quiet / density 채널 판정 (2026-08-21)
+
+**quiet 은 fill 축으로 신설했다.** field 계열의 기존 quiet 이 `containerVariants.quiet.true` 에 있어 그 자리를 쓰려 했으나, containerVariants 의 Skia 소비 경로(`implicitStyles.resolveActiveContainerVariants`)는 **layout 채널이라 색상을 보지 않는다**. 거기에 두면 DOM 만 바뀌고 Skia 는 그대로여서 즉시 비대칭이 난다 — 실제로 field quiet 의 nested 규칙들이 "DOM generated CSS 전용" 으로 기록돼 있던 이유다. 배경은 ADR-908 fill preset 이 SSOT 이므로 `FillTokenSpec.quiet` 로 통합했고, Skia(`buildCatalogShapes` isQuiet 분기)와 DOM(`CSSGenerator` `[data-quiet]` emit)이 같은 데이터를 읽는다. 정의된 경우에만 분기하므로 미정의 컴포넌트는 회귀가 없다.
+
+**density 는 채널을 만들기 전에 "무엇을 density 로 볼 것인가" 판정이 필요하다.** 실측 결과:
+
+| 축               | 실측                                                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| catalog 표현     | **0건** — 어떤 컴포넌트도 density 를 catalog 에 갖고 있지 않다                                                                                                                |
+| 유일한 동작 구현 | Tabs — 그런데 Skia 쪽이 `resolveTabPanelPadding` 에 하드코딩돼 있고(`"tabpanels"` 문자열 식별), 규칙이 "density=regular 이면 **size 를 lg 로 승격**" 이라 **폰트까지 커진다** |
+| Spectrum 규칙    | "density 는 폰트를 유지하고 수직 padding·간격만 바꾼다" — 현행 Tabs 구현과 **불일치**                                                                                         |
+| 나머지 3종       | ToggleButtonGroup(컴포넌트가 prop 자체를 안 받음) / TableView(렌더러 미전달) / CardView·ColorSwatchPicker — 전부 dead                                                         |
+| 의미의 분기      | 탭 패널 padding / 세그먼트 간격 / 행 높이 — 컴포넌트마다 density 가 가리키는 대상이 다르다                                                                                    |
+
+즉 quiet 처럼 "시각 정의가 자명한" 상태가 아니다. 선행 판정 2개: (a) Spectrum 규칙(폰트 유지)을 채택할 것인가, 현행 Tabs 방식(size 승격)을 정본으로 둘 것인가, (b) ToggleButtonGroup 의 density 는 segmented 기하 전체(연결/분리 + 코너 radius + Skia `_groupPosition` 산출)에 종속되므로 gap 만 바꾸면 "떨어졌는데 가운데 코너가 각진" 어중간한 시각이 된다 — 기하까지 함께 설계할 것인가. 채널만 먼저 만드는 것은 dormant foundation 이라 피했다.
 
 #### 추가 발견 — Toast 는 두 세계가 클래스를 공유하고 있었다
 
