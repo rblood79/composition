@@ -237,6 +237,14 @@ export interface ComponentRuleSize {
    */
   minHeight?: number | string;
   /**
+   * 최소 너비 base (Spectrum 식별성 하한 채택 2026-08-20 — Button 등 짧은 라벨 box 형).
+   * 값 = ceil(2.25 × size 별 border-box height) — Spectrum Button 가이드라인
+   * ("min-width = 2.25× height"). generate-css 가 `min-width: {minWidth}px` 로 emit (DOM),
+   * implicitStyles button 분기가 style.minWidth 로 주입해 엔진 min_width clamp 소비 (Skia) —
+   * 두 경로 동일 catalog 값 (D3 symmetric). 사용자 inline minWidth 는 양 경로 모두 우선.
+   */
+  minWidth?: number | string;
+  /**
    * 텍스트 두께 base (ADR-912 collection item leaf — ListBoxItem 등 spec.sizes.fontWeight 이전).
    * generate-css virtual 이 `font-weight: {fontWeight}` 로 emit. ListBoxItem label 은
    * 600(semibold) 고정 — 기존 generated childSpec block 의 `font-weight: 600` 동형 복원.

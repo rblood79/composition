@@ -36,6 +36,7 @@
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
   border-width: 1px;
+  min-width: 68px;
   gap: 8px;
   --icon-size: 18px;
   --icon-gap: 8px;
@@ -131,6 +132,7 @@
   border-radius: var(--radius-sm);
   line-height: var(--text-2xs--line-height);
   border-width: 1px;
+  min-width: 45px;
   gap: 4px;
   --icon-size: 14px;
   --icon-gap: 4px;
@@ -143,6 +145,7 @@
   border-radius: var(--radius-sm);
   line-height: var(--text-xs--line-height);
   border-width: 1px;
+  min-width: 50px;
   gap: 6px;
   --icon-size: 16px;
   --icon-gap: 6px;
@@ -155,6 +158,7 @@
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
   border-width: 1px;
+  min-width: 68px;
   gap: 8px;
   --icon-size: 18px;
   --icon-gap: 8px;
@@ -167,6 +171,7 @@
   border-radius: var(--radius-lg);
   line-height: var(--text-base--line-height);
   border-width: 1px;
+  min-width: 95px;
   gap: 10px;
   --icon-size: 24px;
   --icon-gap: 10px;
@@ -179,6 +184,7 @@
   border-radius: var(--radius-xl);
   line-height: var(--text-lg--line-height);
   border-width: 1px;
+  min-width: 122px;
   gap: 12px;
   --icon-size: 28px;
   --icon-gap: 12px;

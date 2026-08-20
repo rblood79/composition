@@ -775,6 +775,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // minWidth (Spectrum 식별성 하한 채택 2026-08-20): ceil(2.25 × border-box height),
+    //   height = lineHeight + 2·paddingY + 2·borderWidth (xs 20 / sm 22 / md 30 / lg 42 / xl 54).
+    //   짧은 라벨("OK" 등) 버튼의 식별 가능 형태 보장 — Spectrum Button "min-width = 2.25× height".
+    //   DOM 은 generate-css `min-width` emit, Skia 는 implicitStyles 주입 → 엔진 min_width clamp.
     sizes: {
       xs: {
         fontSize: "{typography.text-2xs}",
@@ -782,6 +786,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.sm}",
         borderWidth: 1,
         height: 0,
+        minWidth: 45,
         iconSize: 14,
         paddingX: 4,
         paddingY: 1,
@@ -794,6 +799,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.sm}",
         borderWidth: 1,
         height: 0,
+        minWidth: 50,
         iconSize: 16,
         paddingX: 8,
         paddingY: 2,
@@ -806,6 +812,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         borderWidth: 1,
         height: 0,
+        minWidth: 68,
         iconSize: 18,
         paddingX: 12,
         paddingY: 4,
@@ -818,6 +825,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         borderWidth: 1,
         height: 0,
+        minWidth: 95,
         iconSize: 24,
         paddingX: 16,
         paddingY: 8,
@@ -830,6 +838,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xl}",
         borderWidth: 1,
         height: 0,
+        minWidth: 122,
         iconSize: 28,
         paddingX: 24,
         paddingY: 12,

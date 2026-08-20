@@ -228,7 +228,13 @@ describe("TransformSection sizing controls", () => {
 
     render(<TransformSection />);
 
-    for (const label of ["Min W", "Max W", "Min H", "Max H"]) {
+    // Min W: Button 은 catalog sizes.minWidth(Spectrum 2.25×height 하한, md=68) 가
+    //   spec default 로 표시된다 (ADR-082 A2 — inline 없으면 specPreset fallback,
+    //   sizes[size] generic 매핑). 미설정 constraint 의 "0" 오표시 방지 의도는
+    //   나머지 3필드 blank 로 유지.
+    const minW = screen.getByRole("combobox", { name: "Min W" });
+    expect((minW as HTMLInputElement).value).toBe("68");
+    for (const label of ["Max W", "Min H", "Max H"]) {
       const input = screen.getByRole("combobox", { name: label });
       expect((input as HTMLInputElement).value).toBe("");
     }

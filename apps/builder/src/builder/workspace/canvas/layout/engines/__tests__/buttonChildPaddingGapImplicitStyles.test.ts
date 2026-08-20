@@ -156,3 +156,65 @@ describe("Button/ToggleButton 자식 padding·gap implicitStyles 주입", () => 
     expect(ps.columnGap).toBe(8);
   });
 });
+
+describe("Button minWidth 주입 (Spectrum 2.25×height 식별성 하한, 2026-08-20)", () => {
+  // catalog Button.sizes[*].minWidth = ceil(2.25 × border-box height).
+  //   height = lineHeight + 2·paddingY + 2·borderWidth →
+  //   xs 20→45 / sm 22→50 / md 30→68 / lg 42→95 / xl 54→122.
+  // DOM 은 generated CSS `min-width` (CSSGenerator size.minWidth emit),
+  // Skia 는 본 주입 → 엔진 min_width clamp — 두 경로 동일 catalog 값.
+  const icon = makeChild("ic2", "Icon", { iconName: "star" });
+  const text = makeChild("tx2", "Text", { children: "OK" });
+
+  it("Button size=md → minWidth 68 주입", () => {
+    const { effectiveParent } = applyButtonLike("Button", { size: "md" }, [
+      icon,
+      text,
+    ]);
+    const ps = (effectiveParent.props?.style ?? {}) as Record<string, unknown>;
+    expect(ps.minWidth).toBe(68);
+  });
+
+  it("Button size=xs → 45, size=xl → 122 (catalog read-through)", () => {
+    const xs = applyButtonLike("Button", { size: "xs" }, [icon, text]);
+    expect(
+      ((xs.effectiveParent.props?.style ?? {}) as Record<string, unknown>)
+        .minWidth,
+    ).toBe(45);
+    const xl = applyButtonLike("Button", { size: "xl" }, [icon, text]);
+    expect(
+      ((xl.effectiveParent.props?.style ?? {}) as Record<string, unknown>)
+        .minWidth,
+    ).toBe(122);
+  });
+
+  it("standalone (자식 0) 에도 주입 — 엔진 clamp 가 leaf/조합 공통 하한", () => {
+    const { effectiveParent } = applyButtonLike(
+      "Button",
+      { size: "md", children: "OK" },
+      [],
+    );
+    const ps = (effectiveParent.props?.style ?? {}) as Record<string, unknown>;
+    expect(ps.minWidth).toBe(68);
+  });
+
+  it("user 명시 minWidth 보존 — 0 도 명시값 (falsy 함정 금지)", () => {
+    const { effectiveParent } = applyButtonLike(
+      "Button",
+      { size: "md", style: { minWidth: 0 } },
+      [icon, text],
+    );
+    const ps = (effectiveParent.props?.style ?? {}) as Record<string, unknown>;
+    expect(ps.minWidth).toBe(0);
+  });
+
+  it("ToggleButton — catalog minWidth 부재 → 미주입 (undefined)", () => {
+    const { effectiveParent } = applyButtonLike(
+      "ToggleButton",
+      { size: "md" },
+      [icon, text],
+    );
+    const ps = (effectiveParent.props?.style ?? {}) as Record<string, unknown>;
+    expect(ps.minWidth).toBeUndefined();
+  });
+});

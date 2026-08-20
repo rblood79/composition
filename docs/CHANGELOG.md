@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Button min-width 식별성 하한 채택 (Spectrum 2.25×height) - 2026-08-20
+
+### Features
+
+- **Button 에 size 별 `min-width` 하한 추가** — Spectrum Button 가이드라인
+  ("min-width = 높이의 2.25배") 채택. 짧은 라벨("OK" 등) 버튼도 식별 가능한 형태 유지
+  (xs 45 / sm 50 / md 68 / lg 95 / xl 122px = ceil(2.25 × border-box height)).
+  긴 라벨은 영향 없음, 사용자 inline `minWidth`(0 포함)는 양 경로 모두 우선.
+- catalog `sizes[*].minWidth` 단일 SSOT — DOM 은 generate-css `min-width` 자동 emit,
+  Skia 는 implicitStyles 주입 → 엔진 `min_width` clamp (standalone/조합 공통).
+  `ComponentRuleSize.minWidth` 필드 신설 (minHeight 선례 동형).
+
 ## Button staticColor prop 채택 (RSP S2) - 2026-08-20
 
 ### Features

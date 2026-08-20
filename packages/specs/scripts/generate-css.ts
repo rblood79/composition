@@ -118,6 +118,9 @@ function ruleSizeToSizeSpec(
     // ADR-912 collection item leaf (2026-06-14): ListBoxItem 의 `min-height` (virtual/short 콘텐츠
     //   축소 하한, line-box 최소) 가 rule.sizes.minHeight 에서 emit 되도록 변환에 포함. 미정의 leaf 는 미emit.
     ...(s.minHeight !== undefined ? { minHeight: s.minHeight as number } : {}),
+    // Spectrum 식별성 하한 (2026-08-20): Button 의 `min-width`(2.25×height) 가 rule.sizes.minWidth
+    //   에서 emit 되도록 변환에 포함 (CSSGenerator size.minWidth → `min-width: {n}px`). 미정의 leaf 는 미emit.
+    ...(s.minWidth !== undefined ? { minWidth: s.minWidth as number } : {}),
     // ADR-912 collection item leaf (2026-06-14): ListBoxItem label `font-weight: 600` (semibold)
     //   가 rule.sizes.fontWeight 에서 emit 되도록 변환에 포함. 미정의 leaf 는 미emit (CSSGenerator
     //   가 size.fontWeight 미존재 시 font-weight 줄 자체를 skip).

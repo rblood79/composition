@@ -1426,6 +1426,12 @@ export function applyImplicitStyles(
     //   (md container 28 vs leaf 30, CSS 는 box-sizing:border-box 로 30 → Skia↔CSS 발산).
     //   selecttrigger 분기(borderWidth ?? 1) 동형. catalog 값 read-through(모든 size borderWidth=1).
     const bw = specSizeField(containerTag, sizeName, "borderWidth");
+    // minWidth (Spectrum 2.25×height 식별성 하한, 2026-08-20): catalog sizes.minWidth 를
+    //   style.minWidth 로 주입 → 엔진 min_width clamp 가 standalone leaf(주입 explicit width)/
+    //   조합(fit-content 측정) 양쪽을 동일 하한으로 clamp. DOM 은 generated CSS `min-width`
+    //   (같은 catalog 값) — D3 symmetric. 사용자 명시 minWidth(0 포함 — falsy 함정 금지,
+    //   `??` 판정) 우선. catalog 미정의 컴포넌트(ToggleButton 등)는 미주입.
+    const mw = specSizeField(containerTag, sizeName, "minWidth");
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
       paddingLeft: parentStyle.paddingLeft ?? parentStyle.padding ?? px,
@@ -1435,6 +1441,7 @@ export function applyImplicitStyles(
       rowGap: parentStyle.rowGap ?? parentStyle.gap ?? gapVal,
       columnGap: parentStyle.columnGap ?? parentStyle.gap ?? gapVal,
       borderWidth: parentStyle.borderWidth ?? bw ?? 1,
+      ...(parentStyle.minWidth == null && mw != null ? { minWidth: mw } : {}),
     });
   }
 
