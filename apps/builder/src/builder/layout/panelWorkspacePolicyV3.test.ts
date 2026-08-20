@@ -249,7 +249,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
     );
     expect(started.ok).toBe(true);
     if (!started.ok) return;
-    const target = started.value.candidateFrameGeometries.get("nodes");
+    const target = started.value.snapTargetFrameGeometries.get("nodes");
     expect(target).toBeDefined();
     if (!target) return;
     const updated = updatePanelWorkspaceDragSession(
@@ -262,7 +262,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
         width: 200,
         height: 100,
       },
-      { x: target.x + 100, y: target.y + target.height + 54 },
+      { x: target.x + 100, y: target.y + target.height + 4 },
     );
     expect(updated.ok).toBe(true);
     if (!updated.ok) return;

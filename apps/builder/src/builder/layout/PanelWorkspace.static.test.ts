@@ -63,8 +63,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain("function PanelSnapGuide(");
     expect(source).toContain("data-edge={candidate.edge}");
     expect(source).toContain("PANEL_WORKSPACE_GAP / 2");
-    expect(source).toContain("snapshot.workspaceRect.width - lineSize");
-    expect(source).toContain("snapshot.workspaceRect.height - lineSize");
+    expect(source).toContain("const extent = extentEnd - extentStart");
+    expect(source).toContain("var(--panel-interaction-line-size) / 2");
     expect(source).not.toContain("SNAP_EDGES.map");
     expect(source).toContain("PANEL_WORKSPACE_SNAP_ZONES.map((zone)");
     expect(source).toContain('className="panel-zone-overlay"');
@@ -96,7 +96,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).not.toContain("useDrag({");
     expect(source).not.toContain("useDrop({");
     expect(source).not.toContain("querySelectorAll(");
-    expect(source).not.toContain("getBoundingClientRect(");
+    expect(source).toContain("event.currentTarget.getBoundingClientRect()");
+    expect(source.match(/getBoundingClientRect\(/g)).toHaveLength(1);
     expect(source).toContain("<PanelSplitter");
     expect(splitter).toContain("useMove({");
     expect(splitter).toContain("useKeyboard({");
@@ -203,6 +204,10 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(styles).toMatch(/\.panel-workspace\s*\{[\s\S]*?inset: 0;/);
     expect(styles).toMatch(
       /\.panel-dock\s*\{[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;/,
+    );
+    expect(styles).toMatch(/\.panel-dock\s*\{[\s\S]*?overflow: hidden;/);
+    expect(styles).toMatch(
+      /\.panel-dock > \.panel-nav\s*\{[\s\S]*?z-index: 2100;/,
     );
     expect(styles).toMatch(
       /\.panel-dock-surface\s*\{[\s\S]*?position: relative;[\s\S]*?flex: 1;/,

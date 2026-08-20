@@ -165,35 +165,40 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
     });
   });
 
-  it("left zone의 두 번째 column 오른쪽 면도 후보로 허용한다", () => {
+  it("같은 column에서 source를 숨겨도 보이는 committed target edge를 판정한다", () => {
     const layout = createV3Layout();
-    const leftCluster = layout.clusters.find(
-      (cluster) => cluster.placementZone === "top-left",
-    );
-    if (!leftCluster) throw new Error("Missing left cluster");
-    leftCluster.columns.push({
-      id: `${leftCluster.id}:column:test`,
-      width: 233,
-      rows: [{ panelId: "settings", height: 500 }],
-    });
     layout.visibility.settings = true;
-    const target = frameFor(layout, "settings");
-    const source = frameFor(layout, "properties");
+    const committedTarget = frameFor(layout, "settings");
+    const source = frameFor(layout, "nodes");
     const session = beginPanelWorkspaceDragSession(
       layout,
       PANEL_WORKSPACE_TEST_REGISTRY,
       SURFACE,
-      "properties",
+      "nodes",
     );
     expect(session.ok).toBe(true);
     if (!session.ok) return;
+
+    const candidateSolved = solvePanelWorkspaceLayoutV3(
+      session.value.candidateLayout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      SURFACE,
+    );
+    expect(candidateSolved.ok).toBe(true);
+    if (!candidateSolved.ok) return;
+    expect(candidateSolved.value.frameGeometries.get("settings")?.y).not.toBe(
+      committedTarget.y,
+    );
 
     const updated = updatePanelWorkspaceDragSession(
       session.value,
       PANEL_WORKSPACE_TEST_REGISTRY,
       SURFACE,
       source,
-      { x: target.x + target.width + 4, y: target.y + target.height / 2 },
+      {
+        x: committedTarget.x + committedTarget.width / 2,
+        y: committedTarget.y + 4,
+      },
     );
 
     expect(updated.ok).toBe(true);
@@ -201,16 +206,8 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
     expect(updated.value.candidate).toEqual({
       kind: "panel-edge",
       panelId: "settings",
-      edge: "right",
+      edge: "top",
     });
-    const committed = commitPanelWorkspaceDragSession(
-      updated.value,
-      PANEL_WORKSPACE_TEST_REGISTRY,
-      SURFACE,
-    );
-    expect(committed.ok).toBe(true);
-    if (!committed.ok) return;
-    expect(committed.value.committed).toBe(true);
   });
 
   it("같은 column의 내부 row 경계도 panel-edge 후보로 노출한다", () => {
@@ -242,9 +239,11 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
 
     expect(updated.ok).toBe(true);
     if (!updated.ok) return;
-    expect(updated.value.candidate?.kind).toBe("panel-edge");
-    if (updated.value.candidate?.kind !== "panel-edge") return;
-    expect(["top", "bottom"]).toContain(updated.value.candidate.edge);
+    expect(updated.value.candidate).toEqual({
+      kind: "panel-edge",
+      panelId: "settings",
+      edge: "top",
+    });
   });
 
   it("valid panel-edge drop은 target cluster에 한 번 commit하고 rail identity를 유지한다", () => {

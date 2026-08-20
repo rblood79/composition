@@ -37,7 +37,7 @@ export interface PanelWorkspaceDragSession {
   previewGeometry: PanelFrameGeometry;
   candidate: PanelDropCandidate;
   candidateLayout: PanelWorkspaceLayoutV3;
-  candidateFrameGeometries: ReadonlyMap<
+  snapTargetFrameGeometries: ReadonlyMap<
     PanelId,
     PanelWorkspaceSolvedFrameGeometryV3
   >;
@@ -48,7 +48,6 @@ export interface PanelWorkspaceDragCommitResult {
   committed: boolean;
   commitCount: 0 | 1;
   candidate: PanelDropCandidate;
-  affectedPanelIds: readonly PanelId[];
 }
 
 interface PanelPlacementV3 {
@@ -61,7 +60,6 @@ interface DetachedPanelV3 {
   layout: PanelWorkspaceLayoutV3;
   width: number;
   height: number;
-  affectedPanelIds: PanelId[];
 }
 
 interface ScoredPanelCandidate {
@@ -126,12 +124,6 @@ function findPlacement(
     }
   }
   return null;
-}
-
-function panelIdsInCluster(cluster: PanelWorkspaceClusterV3): PanelId[] {
-  return cluster.columns.flatMap((column) =>
-    column.rows.map((row) => row.panelId),
-  );
 }
 
 const registryLookupCache = new WeakMap<
@@ -244,18 +236,16 @@ function availableEdges(
 ): PanelSnapEdge[] {
   const placement = findPlacement(session.candidateLayout, targetPanelId);
   if (!placement) return [];
-  const edges: PanelSnapEdge[] = [];
-  if (rowEdgeFits(session, registry, surfaceRect, placement)) {
-    edges.push("top");
-  }
-  if (rowEdgeFits(session, registry, surfaceRect, placement)) {
-    edges.push("bottom");
-  }
+  const edges: PanelSnapEdge[] = rowEdgeFits(
+    session,
+    registry,
+    surfaceRect,
+    placement,
+  )
+    ? ["top", "bottom"]
+    : [];
   if (columnEdgeFits(session, registry, surfaceRect, placement)) {
-    edges.push("left");
-  }
-  if (columnEdgeFits(session, registry, surfaceRect, placement)) {
-    edges.push("right");
+    edges.push("left", "right");
   }
   return edges;
 }
@@ -293,7 +283,7 @@ function resolvePanelEdgeCandidate(
   pointer: PanelWorkspacePointerPosition,
 ): ScoredPanelCandidate | null {
   let closest: ScoredPanelCandidate | null = null;
-  for (const [panelId, target] of session.candidateFrameGeometries) {
+  for (const [panelId, target] of session.snapTargetFrameGeometries) {
     if (panelId === session.panelId) continue;
     for (const edge of availableEdges(
       session,
@@ -405,7 +395,6 @@ function detachPanel(
   if (!cluster || !column || !row) {
     return failure(`Panel "${panelId}" placement is invalid`);
   }
-  const affectedPanelIds = panelIdsInCluster(cluster);
   const width = column.width;
   const height = row.height;
   column.rows.splice(placement.rowIndex, 1);
@@ -419,7 +408,7 @@ function detachPanel(
   }
   return {
     ok: true,
-    value: { layout: next, width, height, affectedPanelIds },
+    value: { layout: next, width, height },
   };
 }
 
@@ -437,7 +426,7 @@ function insertPanelEdge(
   candidate: Exclude<PanelDropCandidate, null | { kind: "zone" }>,
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
-): PanelWorkspaceResult<readonly PanelId[]> {
+): PanelWorkspaceResult<void> {
   const targetPlacement = findPlacement(detached.layout, candidate.panelId);
   if (!targetPlacement) return failure("Panel edge target is unavailable");
   const targetCluster = detached.layout.clusters[targetPlacement.clusterIndex];
@@ -454,7 +443,6 @@ function insertPanelEdge(
   if (!allowed.includes(candidate.edge)) {
     return failure("Panel edge target is no longer available");
   }
-  const beforePanelIds = panelIdsInCluster(targetCluster);
   if (candidate.edge === "top" || candidate.edge === "bottom") {
     const insertIndex =
       targetPlacement.rowIndex + (candidate.edge === "bottom" ? 1 : 0);
@@ -474,17 +462,14 @@ function insertPanelEdge(
       rows: [{ panelId: session.panelId, height: detached.height }],
     });
   }
-  return {
-    ok: true,
-    value: [...beforePanelIds, ...panelIdsInCluster(targetCluster)],
-  };
+  return { ok: true, value: undefined };
 }
 
 function insertPanelInZone(
   detached: DetachedPanelV3,
   session: PanelWorkspaceDragSession,
   zone: PanelWorkspacePlacementZone,
-): readonly PanelId[] {
+): void {
   const layout = detached.layout;
   let cluster = layout.clusters.find(
     (candidate) => candidate.placementZone === zone,
@@ -529,7 +514,6 @@ function insertPanelInZone(
     ...layout.clusterFocusOrder.filter((clusterId) => clusterId !== cluster.id),
     cluster.id,
   ];
-  return panelIdsInCluster(cluster);
 }
 
 export function beginPanelWorkspaceDragSession(
@@ -564,7 +548,7 @@ export function beginPanelWorkspaceDragSession(
       },
       candidate: null,
       candidateLayout: candidateSolved.value.layout,
-      candidateFrameGeometries: candidateSolved.value.frameGeometries,
+      snapTargetFrameGeometries: baseSolved.value.frameGeometries,
     },
   };
 }
@@ -617,13 +601,11 @@ export function commitPanelWorkspaceDragSession(
         committed: false,
         commitCount: 0,
         candidate: null,
-        affectedPanelIds: [],
       },
     };
   }
   const detached = detachPanel(session.baseLayout, session.panelId);
   if (!detached.ok) return detached;
-  let targetPanelIds: readonly PanelId[];
   if (session.candidate.kind === "panel-edge") {
     const inserted = insertPanelEdge(
       detached.value,
@@ -640,11 +622,9 @@ export function commitPanelWorkspaceDragSession(
           committed: false,
           commitCount: 0,
           candidate: null,
-          affectedPanelIds: [],
         },
       };
     }
-    targetPanelIds = inserted.value;
   } else {
     if (!zoneIsAvailable(session.candidateLayout, session.candidate.zone)) {
       return {
@@ -654,15 +634,10 @@ export function commitPanelWorkspaceDragSession(
           committed: false,
           commitCount: 0,
           candidate: null,
-          affectedPanelIds: [],
         },
       };
     }
-    targetPanelIds = insertPanelInZone(
-      detached.value,
-      session,
-      session.candidate.zone,
-    );
+    insertPanelInZone(detached.value, session, session.candidate.zone);
   }
   detached.value.layout.visibility[session.panelId] = true;
   const normalized = normalizePanelWorkspaceLayoutV3(
@@ -678,13 +653,6 @@ export function commitPanelWorkspaceDragSession(
       committed: true,
       commitCount: 1,
       candidate: session.candidate,
-      affectedPanelIds: [
-        ...new Set([
-          ...detached.value.affectedPanelIds,
-          ...targetPanelIds,
-          session.panelId,
-        ]),
-      ],
     },
   };
 }

@@ -52,6 +52,7 @@
     inset: var(--panel-workspace-gap);
     display: flex;
     justify-content: space-between;
+    overflow: hidden;
     pointer-events: none;
     gap: var(--panel-workspace-gap);
   }
@@ -108,7 +109,7 @@
     position: relative;
     top: 0;
     bottom: 0;
-    z-index: 2_100;
+    z-index: 2100;
     flex: 0 0 var(--panel-rail-size);
     width: var(--panel-rail-size);
     height: 100%;
@@ -195,10 +196,6 @@
     cursor: grabbing;
   }
 
-  .workspace-panel-frame[data-dragging="true"] .panel-move-handle {
-    cursor: default;
-  }
-
   .panel-move-handle > span {
     width: 28px;
     height: 4px;
@@ -274,8 +271,7 @@
   }
 
   .panel-snap-guide {
-    right: auto;
-    bottom: auto;
+    z-index: 2100;
   }
 
   .panel-resize-handle {

@@ -18,7 +18,6 @@ import {
 
 export interface PanelWorkspacePolicyResultV3 {
   layout: PanelWorkspaceLayoutV3;
-  affectedPanelIds: PanelId[];
 }
 
 interface PanelPlacementV3 {
@@ -106,12 +105,6 @@ function registryEntry(
   return registry.find((entry) => entry.id === panelId) ?? null;
 }
 
-function panelIdsInCluster(cluster: PanelWorkspaceClusterV3): PanelId[] {
-  return cluster.columns.flatMap((column) =>
-    column.rows.map((row) => row.panelId),
-  );
-}
-
 function visibleColumnHeight(
   layout: PanelWorkspaceLayoutV3,
   column: PanelWorkspaceColumnV3,
@@ -146,7 +139,6 @@ function normalizeResult(
   layout: PanelWorkspaceLayoutV3,
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
-  affectedPanelIds: readonly PanelId[],
 ): PanelWorkspaceResult<PanelWorkspacePolicyResultV3> {
   const normalized = normalizePanelWorkspaceLayoutV3(
     layout,
@@ -156,10 +148,7 @@ function normalizeResult(
   if (!normalized.ok) return normalized;
   return {
     ok: true,
-    value: {
-      layout: normalized.value,
-      affectedPanelIds: [...new Set(affectedPanelIds)],
-    },
+    value: { layout: normalized.value },
   };
 }
 
@@ -243,11 +232,10 @@ export function activatePanelWorkspacePanelV3(
   if (!placement) return failure(`Panel "${panelId}" has no placement`);
   const cluster = next.clusters[placement.clusterIndex];
   if (!cluster) return failure(`Panel "${panelId}" placement is invalid`);
-  const affected = panelIdsInCluster(cluster);
 
   if (next.visibility[panelId] === true) {
     next.visibility[panelId] = false;
-    return normalizeResult(next, registry, surfaceRect, affected);
+    return normalizeResult(next, registry, surfaceRect);
   }
 
   const entry = registryEntry(registry, panelId);
@@ -270,7 +258,7 @@ export function activatePanelWorkspacePanelV3(
     ...next.clusterFocusOrder.filter((clusterId) => clusterId !== cluster.id),
     cluster.id,
   ];
-  return normalizeResult(next, registry, surfaceRect, affected);
+  return normalizeResult(next, registry, surfaceRect);
 }
 
 export function resetPanelWorkspaceLayoutV3(
@@ -286,10 +274,7 @@ export function resetPanelWorkspaceLayoutV3(
   if (!reset.ok) return reset;
   return {
     ok: true,
-    value: {
-      layout: reset.value,
-      affectedPanelIds: registry.map((entry) => entry.id),
-    },
+    value: { layout: reset.value },
   };
 }
 
@@ -415,7 +400,6 @@ export function resizePanelWorkspaceBoundaryV3(
   if (!cluster || !column || !row) {
     return failure(`Panel "${panelId}" placement is invalid`);
   }
-  const affected: PanelId[] = [panelId];
 
   if (edge === "top" || edge === "bottom") {
     const neighbor = visibleRowNeighbor(
@@ -444,7 +428,6 @@ export function resizePanelWorkspaceBoundaryV3(
       );
       before.height += delta;
       after.height -= delta;
-      affected.push(neighbor.panelId);
     } else {
       const visibleOthers = column.rows.filter(
         (candidate) =>
@@ -509,10 +492,6 @@ export function resizePanelWorkspaceBoundaryV3(
       );
       before.width += delta;
       after.width -= delta;
-      affected.push(
-        ...before.rows.map((candidate) => candidate.panelId),
-        ...after.rows.map((candidate) => candidate.panelId),
-      );
     } else {
       const visibleOthers = cluster.columns.filter(
         (candidate) =>
@@ -546,9 +525,8 @@ export function resizePanelWorkspaceBoundaryV3(
             (edge === "left" ? -widthDelta / 2 : widthDelta / 2),
         };
       }
-      affected.push(...column.rows.map((candidate) => candidate.panelId));
     }
   }
 
-  return normalizeResult(next, registry, surfaceRect, affected);
+  return normalizeResult(next, registry, surfaceRect);
 }

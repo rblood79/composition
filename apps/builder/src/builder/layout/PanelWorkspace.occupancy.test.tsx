@@ -329,7 +329,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     );
     expect(started.ok).toBe(true);
     if (!started.ok) return;
-    const target = started.value.candidateFrameGeometries.get("properties");
+    const target = started.value.snapTargetFrameGeometries.get("properties");
     if (!target) throw new Error("properties frame is required");
     const updated = updatePanelWorkspaceDragSession(
       started.value,

@@ -31,12 +31,7 @@ import {
   type PanelWorkspacePointerPosition,
 } from "./panelWorkspaceZoneDrop";
 
-export interface PanelWorkspaceRuntimeMutation {
-  expectedVersion: number;
-  affectedPanelIds: readonly PanelId[];
-}
-
-export interface PanelWorkspaceRuntimeDragMutation extends PanelWorkspaceRuntimeMutation {
+export interface PanelWorkspaceRuntimeDragMutation {
   candidate: PanelDropCandidate;
 }
 
@@ -44,8 +39,6 @@ export interface PanelWorkspaceRuntimeDragEnd {
   layout: PanelWorkspaceLayoutV3;
   committed: boolean;
   candidate: PanelDropCandidate;
-  expectedVersion: number;
-  affectedPanelIds: readonly PanelId[];
 }
 
 export interface PanelWorkspaceRuntime {
@@ -68,22 +61,20 @@ export interface PanelWorkspaceRuntime {
   cancelInteraction(): PanelWorkspaceLayoutV3;
   updateWorkspaceRect(workspaceRect: PanelWorkspaceRect): void;
   updateRegistry(registry: readonly PanelWorkspaceRegistryEntry[]): void;
-  activatePanel(
-    panelId: PanelId,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
-  resetLayout(): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
+  activatePanel(panelId: PanelId): PanelWorkspaceResult<void>;
+  resetLayout(): PanelWorkspaceResult<void>;
   resizePanel(
     panelId: PanelId,
     edge: PanelResizeEdge,
     deltaX: number,
     deltaY: number,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
+  ): PanelWorkspaceResult<void>;
   resizePanelFromReference(
     panelId: PanelId,
     edge: PanelResizeEdge,
     deltaX: number,
     deltaY: number,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation>;
+  ): PanelWorkspaceResult<void>;
   destroy(): void;
 }
 
@@ -112,30 +103,21 @@ export function createPanelWorkspaceRuntime(
   if (!coordinatorResult.ok) return coordinatorResult;
   const coordinator = coordinatorResult.value;
 
-  const queueCurrentLayout = (): number => {
-    const expectedVersion = coordinator.getSnapshot().version + 1;
+  const queueCurrentLayout = (): void => {
     coordinator.queueInput({
       layout,
       registry: currentRegistry,
       workspaceRect: currentWorkspaceRect,
     });
-    return expectedVersion;
   };
 
   const applyPolicyInteraction = (
     result: PanelWorkspaceResult<PanelWorkspacePolicyResultV3>,
-  ): PanelWorkspaceResult<PanelWorkspaceRuntimeMutation> => {
+  ): PanelWorkspaceResult<void> => {
     if (!result.ok) return result;
     layout = result.value.layout;
-    return {
-      ok: true,
-      value: {
-        expectedVersion: queueCurrentLayout(),
-        affectedPanelIds: result.value.affectedPanelIds.filter(
-          (panelId) => layout.visibility[panelId] === true,
-        ),
-      },
-    };
+    queueCurrentLayout();
+    return { ok: true, value: undefined };
   };
 
   return {
@@ -188,15 +170,10 @@ export function createPanelWorkspaceRuntime(
         );
         if (!updated.ok) return updated;
         dragSession = updated.value;
-        const expectedVersion = coordinator.getSnapshot().version + 1;
         coordinator.queuePreview(panelId, geometry);
         return {
           ok: true,
-          value: {
-            expectedVersion,
-            affectedPanelIds: [panelId],
-            candidate: dragSession.candidate,
-          },
+          value: { candidate: dragSession.candidate },
         };
       },
       suppressDragCandidate(): void {
@@ -218,7 +195,6 @@ export function createPanelWorkspaceRuntime(
           coordinator.clearPreview();
           return committed;
         }
-        const expectedVersion = coordinator.getSnapshot().version + 1;
         if (!committed.value.committed) {
           coordinator.clearPreview();
           return {
@@ -227,8 +203,6 @@ export function createPanelWorkspaceRuntime(
               layout: committedLayout,
               committed: false,
               candidate: null,
-              expectedVersion,
-              affectedPanelIds: [],
             },
           };
         }
@@ -242,23 +216,16 @@ export function createPanelWorkspaceRuntime(
             layout,
             committed: true,
             candidate: committed.value.candidate,
-            expectedVersion,
-            affectedPanelIds: committed.value.affectedPanelIds.filter(
-              (affectedPanelId) => layout.visibility[affectedPanelId] === true,
-            ),
           },
         };
       },
       cancelDrag() {
         dragSession = null;
-        const expectedVersion = coordinator.getSnapshot().version + 1;
         coordinator.clearPreview();
         return {
           layout: committedLayout,
           committed: false,
           candidate: null,
-          expectedVersion,
-          affectedPanelIds: [],
         };
       },
       beginInteraction(): void {

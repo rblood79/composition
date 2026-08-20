@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Panel workspace snap guide 정합성 - 2026-08-20
+
+### Fixed
+
+- panel-relative snap 판정과 가이드가 동일한 committed frame geometry를 사용하도록
+  통합하고, pointer가 보이는 panel edge에 근접했을 때만 drop candidate를 노출한다.
+- gap 중앙의 snap guide를 interaction line token 기준으로 정렬하고 dock 경계 안에서
+  길이를 clamp한다. panel dock clipping, activity rail z-index와 drag cursor도 함께
+  복원했다.
+
 ## PanelConfig 퍼센트 치수 지원 - 2026-08-20
 
 ### Fixed

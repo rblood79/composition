@@ -453,10 +453,6 @@ const PanelFrame = memo(function PanelFrame({
   const isClustered = panelBelongsToMultiPanelCluster(runtime, config.id);
   const contentId = `panel-${config.id}-content`;
 
-  useLayoutEffect(() => {
-    // Keep panel content measurement in the same layout phase as the shell.
-  });
-
   useEffect(() => {
     if (isInteractingRef.current || !snapshotFrame) return;
     visualGeometryRef.current = {
@@ -695,16 +691,10 @@ const PanelFrame = memo(function PanelFrame({
         aria-label={`${config.name} 패널 이동`}
         onPointerDownCapture={(event) => {
           if (!snapshotFrame) return;
-          const target = event.target;
-          let offsetX = event.nativeEvent.offsetX;
-          let offsetY = event.nativeEvent.offsetY;
-          if (target instanceof HTMLElement && target !== event.currentTarget) {
-            offsetX += target.offsetLeft;
-            offsetY += target.offsetTop;
-          }
+          const handleRect = event.currentTarget.getBoundingClientRect();
           pointerRef.current = {
-            x: snapshotFrame.x + offsetX,
-            y: snapshotFrame.y + offsetY,
+            x: snapshotFrame.x + event.clientX - handleRect.left,
+            y: snapshotFrame.y + event.clientY - handleRect.top,
           };
         }}
         onKeyDownCapture={(event) => {
@@ -963,41 +953,36 @@ function PanelSnapGuide({
   if (!target) return null;
 
   const halfGap = PANEL_WORKSPACE_GAP / 2;
-  const lineSize = 2;
-  const rawLeft =
-    candidate.edge === "left"
-      ? target.x - dockOrigin.x - halfGap
-      : candidate.edge === "right"
-        ? target.x - dockOrigin.x + target.width + halfGap
-        : target.x - dockOrigin.x;
-  const rawTop =
-    candidate.edge === "top"
-      ? target.y - dockOrigin.y - halfGap
-      : candidate.edge === "bottom"
-        ? target.y - dockOrigin.y + target.height + halfGap
-        : target.y - dockOrigin.y;
-  const left = Math.min(
-    Math.max(0, rawLeft),
-    Math.max(0, snapshot.workspaceRect.width - lineSize),
+  const horizontal = candidate.edge === "top" || candidate.edge === "bottom";
+  const targetLeft = target.x - dockOrigin.x;
+  const targetTop = target.y - dockOrigin.y;
+  const rawExtentStart = horizontal ? targetLeft : targetTop;
+  const rawExtentEnd =
+    rawExtentStart + (horizontal ? target.width : target.height);
+  const workspaceExtent = horizontal
+    ? snapshot.workspaceRect.width
+    : snapshot.workspaceRect.height;
+  const extentStart = Math.min(workspaceExtent, Math.max(0, rawExtentStart));
+  const extentEnd = Math.min(
+    workspaceExtent,
+    Math.max(extentStart, rawExtentEnd),
   );
-  const top = Math.min(
-    Math.max(0, rawTop),
-    Math.max(0, snapshot.workspaceRect.height - lineSize),
-  );
+  const extent = extentEnd - extentStart;
+  const guideCenter = horizontal
+    ? candidate.edge === "top"
+      ? targetTop - halfGap
+      : targetTop + target.height + halfGap
+    : candidate.edge === "left"
+      ? targetLeft - halfGap
+      : targetLeft + target.width + halfGap;
+  const centeredGuidePosition = `clamp(0px, calc(${guideCenter}px - var(--panel-interaction-line-size) / 2), calc(100% - var(--panel-interaction-line-size)))`;
   const style: CSSProperties = {
     bottom: "auto",
-    height:
-      candidate.edge === "top" || candidate.edge === "bottom"
-        ? lineSize
-        : target.height,
-    left,
+    height: horizontal ? undefined : extent,
+    left: horizontal ? extentStart : centeredGuidePosition,
     right: "auto",
-    top,
-    width:
-      candidate.edge === "left" || candidate.edge === "right"
-        ? lineSize
-        : target.width,
-    zIndex: 2_100,
+    top: horizontal ? centeredGuidePosition : extentStart,
+    width: horizontal ? extent : undefined,
   };
 
   return (
@@ -1062,7 +1047,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   dockRef,
 }: PanelWorkspaceOverlayProps) {
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const { draggedPanelId, dropCandidate } = usePanelSnapInteractionState();
+  const { dropCandidate } = usePanelSnapInteractionState();
   const surfaceRef = useRef<HTMLDivElement>(null);
   const [surfaceWidth, setSurfaceWidth] = useState(
     snapshot.workspaceRect.width,

@@ -84,7 +84,6 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
     expect(ended.ok).toBe(true);
     if (!ended.ok) return;
     expect(ended.value.committed).toBe(false);
-    expect(ended.value.affectedPanelIds).toEqual([]);
     expect(JSON.stringify(ended.value.layout)).toBe(baseRaw);
     runtime.value.destroy();
   });
@@ -119,7 +118,14 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
       kind: "zone",
       zone: "bottom",
     });
-    expect(ended.value.affectedPanelIds).toContain("properties");
+    const bottomCluster = ended.value.layout.clusters.find(
+      (cluster) => cluster.placementZone === "bottom",
+    );
+    expect(
+      bottomCluster?.columns.some((column) =>
+        column.rows.some((row) => row.panelId === "properties"),
+      ),
+    ).toBe(true);
     expect(ended.value.layout.version).toBe(3);
     runtime.value.destroy();
   });
