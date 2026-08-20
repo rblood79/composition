@@ -964,25 +964,35 @@ function PanelSnapGuide({
 
   const halfGap = PANEL_WORKSPACE_GAP / 2;
   const lineSize = 2;
+  const rawLeft =
+    candidate.edge === "left"
+      ? target.x - dockOrigin.x - halfGap
+      : candidate.edge === "right"
+        ? target.x - dockOrigin.x + target.width + halfGap
+        : target.x - dockOrigin.x;
+  const rawTop =
+    candidate.edge === "top"
+      ? target.y - dockOrigin.y - halfGap
+      : candidate.edge === "bottom"
+        ? target.y - dockOrigin.y + target.height + halfGap
+        : target.y - dockOrigin.y;
+  const left = Math.min(
+    Math.max(0, rawLeft),
+    Math.max(0, snapshot.workspaceRect.width - lineSize),
+  );
+  const top = Math.min(
+    Math.max(0, rawTop),
+    Math.max(0, snapshot.workspaceRect.height - lineSize),
+  );
   const style: CSSProperties = {
     bottom: "auto",
     height:
       candidate.edge === "top" || candidate.edge === "bottom"
         ? lineSize
         : target.height,
-    left:
-      candidate.edge === "left"
-        ? target.x - dockOrigin.x - halfGap
-        : candidate.edge === "right"
-          ? target.x - dockOrigin.x + target.width + halfGap
-          : target.x - dockOrigin.x,
+    left,
     right: "auto",
-    top:
-      candidate.edge === "top"
-        ? target.y - dockOrigin.y - halfGap
-        : candidate.edge === "bottom"
-          ? target.y - dockOrigin.y + target.height + halfGap
-          : target.y - dockOrigin.y,
+    top,
     width:
       candidate.edge === "left" || candidate.edge === "right"
         ? lineSize

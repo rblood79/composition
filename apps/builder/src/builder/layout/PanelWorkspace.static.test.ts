@@ -63,6 +63,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain("function PanelSnapGuide(");
     expect(source).toContain("data-edge={candidate.edge}");
     expect(source).toContain("PANEL_WORKSPACE_GAP / 2");
+    expect(source).toContain("snapshot.workspaceRect.width - lineSize");
+    expect(source).toContain("snapshot.workspaceRect.height - lineSize");
     expect(source).not.toContain("SNAP_EDGES.map");
     expect(source).toContain("PANEL_WORKSPACE_SNAP_ZONES.map((zone)");
     expect(source).toContain('className="panel-zone-overlay"');
