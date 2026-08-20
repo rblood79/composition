@@ -63,6 +63,21 @@ export const toggleButtonBinding: PrimitiveBinding = {
         section: "appearance",
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
+      // RSP S2 staticColor (2026-08-21 채택) — 유색/이미지 배경 위 고정 흑백 스킴.
+      //   Button/Link 와 동일 surface. CSS: 수동 ToggleButton.css [data-static-color]
+      //   (catalog 토큰으로 표현 불가한 고정 흑백) / Skia: buildCatalogShapes 의 static
+      //   블록이 컴포넌트 식별 없이 staticColor prop + fill 채널로만 분기해 이미 커버.
+      staticColor: {
+        kind: "enum",
+        label: "Static Color",
+        section: "appearance",
+        default: "auto",
+        options: [
+          { value: "auto", label: "Auto" },
+          { value: "white", label: "White" },
+          { value: "black", label: "Black" },
+        ],
+      },
       // RAC ToggleButton selection / state props
       isSelected: { kind: "boolean", label: "Selected", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

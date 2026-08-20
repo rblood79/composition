@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DateRangePicker `placeholder` 편집 표면 추가** — 렌더러 `resolvePlaceholder` 가 이미
   소비하는데 accepts 선언이 없어 표면이 통째 결손이었다 (DatePicker 는 노출 중 — 형제 대칭 회복).
 
+- **ToggleButton 에 RSP S2 `staticColor` prop (auto/white/black) 추가** — Button/Link 에 이미
+  있던 축의 잔여 전개. 유색·이미지 배경 위에서 테마 무관 고정 흑백 스킴 (배경=static,
+  텍스트=역상, 테두리=static). Skia 는 `buildCatalogShapes` 의 static 블록이 컴포넌트 식별
+  없이 `staticColor` prop + fill 채널로만 분기하도록 이미 작성돼 있어 D2 표면과 수동 CSS
+  추가만으로 대칭이 성립한다 (라이브 검증: black → bg #000/text #fff, white → 반대).
+
 ### Changed
 
 - **Tree 의 catalog 고정 `maxHeight: 300px` 제거** — ListBox 가 2026-07-29 사용자 결정으로

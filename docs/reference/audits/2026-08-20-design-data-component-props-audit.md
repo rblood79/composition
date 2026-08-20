@@ -33,7 +33,7 @@
 | ToggleButton      | isQuiet 수용 + data-quiet emit 까지 있으나 quiet CSS 규칙 0건 + rules/Skia 미소비                                | dead prop                  |
 | ToggleButtonGroup | density 수용하나 소비자 0 (컴포넌트 미읽음, CSS 0건, rules 분기 없음)                                            | dead prop                  |
 | Tree              | containerStyles maxHeight 300px 잔존 — ListBox 는 2026-07-29 동일 값을 사용자 결정으로 제거                      | 내부 비일관                |
-| DateField         | delegation 에 xs 변수가 있으나 rules sizes 는 sm~xl — 패널 옵션 파생상 xs dead 분기                              | dead 분기                  |
+| DateField         | delegation 에 xs 변수가 있으나 rules sizes 는 sm~xl — 패널 옵션 파생상 xs dead 분기                              | dead 분기 (영향 0 — 아래)  |
 
 #### 정정 — 실측으로 갈린 "기소비" 3건 (2026-08-20 Phase A 착수 시)
 
@@ -42,6 +42,22 @@
 1. **Toast `position`** — `renderToast` 는 `<div role="alert" class="react-aria-Toast">` 에 `data-position` 을 emit 하지만, `Toast.css` 의 position 규칙 6종은 전부 `.react-aria-ToastRegion[data-position]` 셀렉터다. ToastRegion 은 imperative 런타임 컨테이너(`ToastProvider`)의 것이고 canonical Toast element 는 그 클래스를 갖지 않는다 → 매칭되는 규칙이 0건. accepts 에 넣으면 편집은 되지만 시각 변화가 없다. 수리는 "canonical Toast 에 position 을 어떤 축으로 줄 것인가" (런타임 region 위임 vs 자체 규칙 신설) 판정이 선행돼야 한다.
 2. **Select / ComboBox `selectedKey`·`inputValue`** — `renderSelect` 는 `defaultSelectedKey={currentSelectedKey}` 로 **uncontrolled** 소비한다 (`SelectionRenderers.tsx:1328`). mount 시점만 읽으므로 패널 편집이 반영되지 않는다. 즉 인터랙션 감사가 "원인 A(accepts 부재)" 로 분류한 이 2종은 실제로 **A + B(렌더러 uncontrolled) 동시 해당**이다. 같은 파일의 collection 경로가 쓰는 key 시그니처 remount 우회 (`SelectionRenderers.tsx:354-367`, Checkbox 의 `remount:true` 와 동형) 를 함께 적용해야 동작한다.
 3. **DatePicker `placeholderValue` / `hourCycle`** — `resolvePlaceholder`(`DateRenderers.tsx:86`) 는 `placeholderValue` → `placeholder` 순으로 읽지만 **둘 다 string 을 컴포넌트의 `placeholder` 로 넘긴다**. RSP 의 `placeholderValue` 는 DateValue 타입(포맷 결정용)이라 이름만 같고 의미가 다르므로, 이 채널에 RSP 이름을 붙이는 것은 표준 준수가 아니라 혼동이다. `hourCycle` 도 DatePicker/DateRangePicker 컴포넌트가 커스텀 `timeFormat`("12h"/"24h") 을 받도록 배선돼 있어 (`DateRenderers.tsx:259/361`), accepts 추가 전에 컴포넌트 prop 계약 전환이 필요하다. — 다만 **DateRangePicker 는 `placeholder` 자체가 accepts 에 없어 편집 표면이 통째 결손**이었고, 이는 선언만으로 해소되므로 위 표에 별도 행으로 승격했다.
+
+#### 수리 현황 (2026-08-20~21)
+
+| 항목                                                     | 조치                                                                                                                                                                                                    |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tooltip variant                                          | **수리 완료** — accepts 선언 + 렌더러 fallback 을 defaultVariant 로 정렬                                                                                                                                |
+| DateRangePicker placeholder                              | **수리 완료** — accepts 선언 (DatePicker 와 형제 대칭)                                                                                                                                                  |
+| Toast info 시맨틱                                        | **수리 완료** — `{color.informative-subtle}`/`{color.informative}` 로 정렬                                                                                                                              |
+| Toast 런타임 CSS 충돌                                    | **수리 완료** — 수동 `Toast.css` 를 `.react-aria-ToastRegion` 스코프로 격리 (아래 발견 참조)                                                                                                            |
+| Tree maxHeight                                           | **수리 완료** — ListBox 2026-07-29 결정의 누락 적용분 제거                                                                                                                                              |
+| DateField xs                                             | **변경 없음** — 패널 옵션이 `Object.keys(sizes)` 파생이라 xs 를 선택할 경로 자체가 없다. 런타임 영향 0 인 타입 넓힘이고, size 스케일 자체는 §2-D 에서 house-style 관찰로 분류돼 있어 과잉 변경을 피했다 |
+| TextArea / ToggleButton quiet, ToggleButtonGroup density | **미수리** — D2 표면만 있고 D3 구현이 없다. 해소는 "구현 신설" vs "dead 표면 제거" 판정이 선행돼야 하므로 §1-2 스윕과 함께 다룬다                                                                       |
+
+#### 추가 발견 — Toast 는 두 세계가 클래스를 공유하고 있었다
+
+Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperative 런타임 Toast(`components/Toast.tsx` — ToastProvider/ToastRegion/showToast)와 canonical Toast element(`renderToast`)가 **같은 `.react-aria-Toast` 클래스를 쓰는데 variant 어휘가 다르다** (런타임 `info|success|warning|error` ↔ catalog `info|positive|neutral|negative`). 수동 `Toast.css` 는 unlayered, generated 는 `@layer components` 안이라 cascade layer 규칙상 **수동이 항상 이겨** canonical Toast 가 catalog 대신 런타임 값을 받고 있었다 (DOM=accent 12% mix, Skia=catalog → 비대칭). 수동 규칙 전체를 `.react-aria-ToastRegion` 하위로 스코프해 격리했다. 남은 부채: 런타임 CSS 의 원시 토큰(`--color-green-500`)·하드코딩(`#ff9800`)과 variant 어휘 이원화는 어휘 통일 시 함께 정리.
 
 ### 1-2. 반복 gap 3대 축 (다수 컴포넌트 공통 — 스윕 후보)
 

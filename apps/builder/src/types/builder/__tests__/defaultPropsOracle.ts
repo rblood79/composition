@@ -67,6 +67,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
       children: "Toggle Button",
       isEmphasized: false,
       isQuiet: false,
+      staticColor: "auto", // catalog bindingOnly — RSP S2 staticColor 채택(2026-08-21)
       isSelected: false,
       isDisabled: false,
     },

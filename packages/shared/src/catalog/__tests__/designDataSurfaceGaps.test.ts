@@ -47,6 +47,37 @@ describe("design-data 감사 §1-1 — 표면 단절 회귀 가드", () => {
   });
 });
 
+describe("design-data 감사 §1-2 — staticColor 축 전개", () => {
+  /**
+   * Skia 의 static 블록(`buildCatalogShapes`)은 컴포넌트를 식별하지 않고
+   * `staticColor` prop + fill 채널 유무로만 분기한다. 따라서 D2 표면이 있고
+   * fill 이 opaque 이면 별도 Skia 작업 없이 bg=static + text=역상이 성립한다.
+   * 이 전제가 깨지면(예: fill 이 transparent 로 바뀌면) CSS 만 static 이 되어
+   * 비대칭이 나므로, 표면과 전제를 함께 고정한다.
+   */
+  it("ToggleButton: staticColor D2 표면이 Button/Link 와 같은 3값으로 열려 있다", () => {
+    const accepts = getPrimitiveBinding("ToggleButton")?.props?.accepts;
+    const staticColor = accepts?.staticColor;
+
+    expect(staticColor, "ToggleButton accepts.staticColor").toBeDefined();
+    expect(staticColor?.default).toBe("auto");
+    expect((staticColor?.options ?? []).map((o) => o.value).sort()).toEqual([
+      "auto",
+      "black",
+      "white",
+    ]);
+  });
+
+  it("ToggleButton: default variant fill 이 opaque — Skia static 분기 전제", () => {
+    const rule = COMPONENT_RULES_TABLE.ToggleButton;
+    const defaultVariant = rule?.variants?.[rule?.defaultVariant ?? ""];
+    const base = defaultVariant?.fill?.default?.base;
+
+    expect(base, "ToggleButton default fill base").toBeDefined();
+    expect(base).not.toBe("{color.transparent}");
+  });
+});
+
 describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드", () => {
   /**
    * 시맨틱 variant(info/positive/negative)는 각자의 의미색을 가져야 한다.

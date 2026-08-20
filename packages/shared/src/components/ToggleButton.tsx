@@ -5,13 +5,15 @@ import {
   SelectionIndicator,
   composeRenderProps,
 } from "react-aria-components";
-import type { ComponentSizeSubset } from "../types";
+import type { ComponentSizeSubset, StaticColor } from "../types";
 import {
   useToggleButtonGroupEmphasized,
   useToggleButtonGroupIndicator,
   useToggleButtonGroupMembership,
 } from "./ToggleButtonGroupContext";
 import "./styles/generated/ToggleButton.css";
+// staticColor 전용 수동 CSS (catalog 토큰으로 표현 불가한 고정 흑백) — Button.tsx 동형.
+import "./styles/ToggleButton.css";
 
 export interface ToggleButtonExtendedProps extends ToggleButtonProps {
   /**
@@ -29,6 +31,11 @@ export interface ToggleButtonExtendedProps extends ToggleButtonProps {
    * @default 'md'
    */
   size?: ComponentSizeSubset;
+  /**
+   * Fixed black/white scheme for placement over colored or image backgrounds (RSP S2).
+   * @default 'auto'
+   */
+  staticColor?: StaticColor;
 }
 
 /**
@@ -41,6 +48,7 @@ export function ToggleButton({
   isEmphasized = false,
   isQuiet = false,
   size = "md",
+  staticColor = "auto",
   children,
   ...props
 }: ToggleButtonExtendedProps) {
@@ -56,6 +64,7 @@ export function ToggleButton({
       data-emphasized={effectiveEmphasized || undefined}
       data-quiet={isQuiet || undefined}
       data-size={size}
+      data-static-color={staticColor}
       className={composeRenderProps(props.className, (cls) => {
         const base = showIndicator
           ? "react-aria-ToggleButton"

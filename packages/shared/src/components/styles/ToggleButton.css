@@ -1,0 +1,43 @@
+/**
+ * ToggleButton 수동 CSS — RSP S2 `staticColor` 한정.
+ *
+ * 시각 토큰(variant/size/selected)은 전부 generated CSS(catalog 파생)가 담당한다. 이
+ * 파일은 **catalog 토큰 체계로 표현할 수 없는 값**만 다룬다 — staticColor 는 테마와
+ * 무관한 고정 흑백(#000/#fff)이라 theme 토큰으로 파생되지 않는다 (Button.css 선례
+ * 동형, 2026-08-20).
+ *
+ * Skia 대칭: `buildCatalogShapes` 의 static 블록이 이미 컴포넌트 식별 없이
+ * `props.staticColor` + fill 채널 유무로만 분기하도록 작성돼 있어(주석에 "Link/Button/
+ * ToggleButton 공유" 명시) 별도 Skia 작업 없이 대칭이 성립한다. ToggleButton 의 fill 은
+ * opaque(`--button-color: var(--bg-muted)`)이므로 Skia 의 opaque-bg 분기를 타
+ * bg=static + text=역상 + border=static 이 되고, 아래 CSS 와 같은 결과를 낸다.
+ *
+ * Specificity: generated 의 최고값은 `[data-emphasized][data-selected]`(0-3-0)다. 로드
+ * 순서와 무관하게 이기도록 `[data-static-color]` 를 중복해 0-4-0 을 만든다 (publish 앱은
+ * generated 가 수동 CSS 뒤에 로드되어 동률이 지는 것을 Button 에서 실측).
+ *
+ * `isQuiet` 은 여기 없다 — D2 표면과 `data-quiet` emit 은 있으나 Skia 측 quiet 구현이
+ * 없어, CSS 만 추가하면 즉시 시각 비대칭이 된다. catalog 에 quiet 채널을 정의하는 것이
+ * 선행 조건 (감사 문서 §1-1 참조).
+ */
+
+@layer components {
+  .react-aria-ToggleButton {
+    /* ===== Static Color (RSP S2 staticColor — 유색/이미지 배경 위 고정 흑백 스킴) ===== */
+    &[data-static-color="black"][data-static-color]:not(
+        [data-static-color="auto"]
+      ) {
+      --button-color: var(--color-black, #000);
+      --button-text: var(--color-white, #fff);
+      --button-border: var(--color-black, #000);
+    }
+
+    &[data-static-color="white"][data-static-color]:not(
+        [data-static-color="auto"]
+      ) {
+      --button-color: var(--color-white, #fff);
+      --button-text: var(--color-black, #000);
+      --button-border: var(--color-white, #fff);
+    }
+  }
+}
