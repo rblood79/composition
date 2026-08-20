@@ -138,9 +138,6 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     const dockSurface = container.querySelector<HTMLElement>(
       ".panel-dock-surface",
     );
-    const placementSurface = container.querySelector<HTMLElement>(
-      ".panel-workspace-placement-surface",
-    );
     const nodesFrame = container.querySelector<HTMLElement>(
       '.workspace-panel-frame[data-panel="nodes"]',
     );
@@ -166,7 +163,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     expect(dock?.getAttribute("data-layout-type")).toBe("floating");
     expect(dock?.getAttribute("data-column-limit")).toBe("2");
     expect(dockSurface?.style.inset).toBe("0px");
-    expect(dockSurface?.parentElement?.parentElement).toBe(placementSurface);
+    expect(dockSurface?.parentElement).toBe(dock);
     expect(dock?.querySelectorAll(":scope > .panel-nav")).toHaveLength(2);
     expect(
       dock?.querySelectorAll(":scope > .panel-activity-rail"),

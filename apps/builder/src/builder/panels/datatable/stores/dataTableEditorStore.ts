@@ -29,9 +29,7 @@ function deactivateEditorPanel() {
 }
 
 function currentPlacementSurfaceRect(): PanelWorkspaceRect | null {
-  const surface = document.querySelector<HTMLElement>(
-    ".panel-workspace-placement-surface",
-  );
+  const surface = document.querySelector<HTMLElement>(".panel-dock");
   if (!surface || surface.clientWidth <= 0 || surface.clientHeight <= 0) {
     return null;
   }

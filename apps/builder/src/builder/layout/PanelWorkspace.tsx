@@ -1016,11 +1016,17 @@ interface PanelDockRenderProps {
 
 interface PanelDockProps {
   children: (props: PanelDockRenderProps) => ReactNode;
+  placementSurfaceRef: RefObject<HTMLDivElement | null>;
   surfaceWidth: number;
   version: number;
 }
 
-function PanelDock({ children, surfaceWidth, version }: PanelDockProps) {
+function PanelDock({
+  children,
+  placementSurfaceRef,
+  surfaceWidth,
+  version,
+}: PanelDockProps) {
   const origin = useMemo<PanelDockOrigin>(() => {
     const origin = {
       x: 0,
@@ -1035,6 +1041,7 @@ function PanelDock({ children, surfaceWidth, version }: PanelDockProps) {
 
   return (
     <div
+      ref={placementSurfaceRef}
       className="panel-dock"
       data-column-limit="2"
       data-layout-type="floating"
@@ -1119,66 +1126,65 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
 
   return (
     <div className="panel-workspace" aria-label="패널 작업 영역">
-      <div
-        ref={placementSurfaceRef}
-        className="panel-workspace-placement-surface"
+      <PanelDock
+        placementSurfaceRef={placementSurfaceRef}
+        surfaceWidth={surfaceWidth}
+        version={snapshot.version}
       >
-        <PanelDock surfaceWidth={surfaceWidth} version={snapshot.version}>
-          {({ origin, surfaceStyle }) => (
-            <>
-              {(["left", "right"] as const).map((side) => {
-                const panelIds = workspaceLayout.railOrder[side];
-                if (panelIds.length === 0) return null;
-                return (
-                  <PanelNav
-                    key={side}
-                    side={side}
-                    panelIds={panelIds}
-                    activePanels={activePanelsBySide[side]}
-                    onPanelClick={togglePanel}
-                  />
-                );
-              })}
+        {({ origin, surfaceStyle }) => (
+          <>
+            {(["left", "right"] as const).map((side) => {
+              const panelIds = workspaceLayout.railOrder[side];
+              if (panelIds.length === 0) return null;
+              return (
+                <PanelNav
+                  key={side}
+                  side={side}
+                  panelIds={panelIds}
+                  activePanels={activePanelsBySide[side]}
+                  onPanelClick={togglePanel}
+                />
+              );
+            })}
 
-              <div
-                ref={surfaceRef}
-                className="panel-dock-surface"
-                style={surfaceStyle}
-              >
-                <PanelWorkspaceZoneOverlay />
-                {dropCandidate?.kind === "panel-edge" && (
-                  <PanelSnapGuide
-                    candidate={dropCandidate}
-                    dockOrigin={origin}
-                    snapshot={snapshot}
-                  />
-                )}
-                <PanelDockClusterPresentation
+            <div
+              ref={surfaceRef}
+              className="panel-dock-surface"
+              style={surfaceStyle}
+            >
+              <PanelWorkspaceZoneOverlay />
+              {dropCandidate?.kind === "panel-edge" && (
+                <PanelSnapGuide
+                  candidate={dropCandidate}
+                  dockOrigin={origin}
+                  snapshot={snapshot}
+                />
+              )}
+              <PanelDockClusterPresentation
+                dockOrigin={origin}
+                runtime={runtime}
+              />
+              {configs.map((config) => (
+                <SnapshotPanelFrame
+                  key={config.id}
+                  config={config}
                   dockOrigin={origin}
                   runtime={runtime}
+                  side={railSideForPanel(workspaceLayout, config)}
+                  onCommitLayout={setWorkspaceLayout}
+                  onFocusPanel={focusPanel}
                 />
-                {configs.map((config) => (
-                  <SnapshotPanelFrame
-                    key={config.id}
-                    config={config}
-                    dockOrigin={origin}
-                    runtime={runtime}
-                    side={railSideForPanel(workspaceLayout, config)}
-                    onCommitLayout={setWorkspaceLayout}
-                    onFocusPanel={focusPanel}
-                  />
-                ))}
-                <PanelWorkspaceSharedSplitters
-                  configs={configs}
-                  dockOrigin={origin}
-                  runtime={runtime}
-                  setWorkspaceLayout={setWorkspaceLayout}
-                />
-              </div>
-            </>
-          )}
-        </PanelDock>
-      </div>
+              ))}
+              <PanelWorkspaceSharedSplitters
+                configs={configs}
+                dockOrigin={origin}
+                runtime={runtime}
+                setWorkspaceLayout={setWorkspaceLayout}
+              />
+            </div>
+          </>
+        )}
+      </PanelDock>
     </div>
   );
 });
@@ -1324,10 +1330,7 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
       <div className="panel-workspace-host">
         <div className="panel-workspace-main">{children}</div>
         <div className="panel-workspace" aria-label="패널 작업 영역">
-          <div
-            ref={placementSurfaceRef}
-            className="panel-workspace-placement-surface"
-          />
+          <div ref={placementSurfaceRef} className="panel-dock" />
         </div>
       </div>
     );

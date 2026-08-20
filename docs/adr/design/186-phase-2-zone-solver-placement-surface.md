@@ -39,10 +39,10 @@ normalized layout에 그대로 보존한다. 사후 position clamp를 사용하�
 
 ## 공통 placement surface
 
-`.panel-workspace`는 host 전체를 덮고 `.panel-workspace-placement-surface`가
-`inset: var(--panel-workspace-gap)`을 정확히 한 번 적용한다. activity rail, dock와 모든
-stable panel frame은 이 surface 아래에 있고 `.panel-dock-surface`는 dynamic frame bounds가
-아닌 `inset: 0` common containing block이다.
+`.panel-workspace`는 host 전체를 덮고 `.panel-dock`이
+`inset: var(--panel-workspace-gap)`을 정확히 한 번 적용한다. 좌우 `PanelNav`와 모든
+stable panel frame은 이 dock 아래에 있고 `.panel-dock-surface`는 좌우 nav 사이의
+dynamic frame 영역을 제공한다.
 
 production store 초기화는 pending surface의 실제 `clientWidth/clientHeight`가 측정된 뒤
 실행한다. runtime도 같은 measured rect로 생성되고 ResizeObserver가 publish한 rect만

@@ -189,14 +189,16 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
   it("공통 placement surface가 4px inset과 모든 frame의 단일 containing block을 소유한다", async () => {
     const [source, styles] = await Promise.all([readWorkspace(), readStyles()]);
 
-    expect(source).toContain('className="panel-workspace-placement-surface"');
+    expect(source).not.toContain(
+      'className="panel-workspace-placement-surface"',
+    );
     expect(source).toMatch(
       /const origin = \{[\s\S]*?x: 0,[\s\S]*?y: 0,[\s\S]*?workspaceWidth:/,
     );
     expect(source).toContain("inset: 0");
     expect(styles).toContain("--panel-workspace-gap: 4px");
     expect(styles).toMatch(
-      /\.panel-workspace-placement-surface\s*\{[\s\S]*?inset: var\(--panel-workspace-gap\);/,
+      /\.panel-dock\s*\{[\s\S]*?inset: var\(--panel-workspace-gap\);/,
     );
     expect(styles).toMatch(/\.panel-workspace\s*\{[\s\S]*?inset: 0;/);
     expect(styles).toMatch(
@@ -234,5 +236,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(activeScope).not.toContain("state.panelLayout");
     expect(dataTableEditor).toContain("setPanelWorkspaceLayout({");
     expect(dataTableEditor).not.toContain("activeLeftPanels");
+    expect(dataTableEditor).toContain('".panel-dock"');
+    expect(dataTableEditor).not.toContain("panel-workspace-placement-surface");
   });
 });

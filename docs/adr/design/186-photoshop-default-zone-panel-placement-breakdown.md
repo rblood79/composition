@@ -82,7 +82,7 @@ bottom-left   bottom   bottom-right
 
 ### 1.4 공통 placement surface
 
-`.panel-workspace-placement-surface`를 panel frame의 유일한 containing block으로 둔다.
+`.panel-dock`을 panel frame의 유일한 containing block으로 둔다.
 이 surface는 CSS `inset: var(--panel-workspace-gap)`으로 workspace 안쪽에 배치한다.
 solver는 이미 inset된 surface의 local `width/height`만 소비하며 개별 edge마다 4px를
 더하거나 빼지 않는다.
@@ -260,7 +260,7 @@ move 중에는 `previewGeometry`로 presentation snapshot만 갱신한다. 매 m
 ### 4.1 v2 -> v3
 
 1. 현행 v2 parser/normalizer로 input을 먼저 검증한다.
-2. migrator는 실제 `.panel-workspace-placement-surface`의 non-zero local rect를 필수 입력으로
+2. migrator는 실제 `.panel-dock`의 non-zero local rect를 필수 입력으로
    받는다. store 초기화 시 임의 viewport 상수로 migration하지 않으며, primary는 v2로 parse한
    뒤 surface 최초 측정 전까지 v3 write를 보류한다. fixture는 같은 v2 raw, registry,
    migrationId와 surface rect에 byte-identical JSON을 요구한다.
