@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## design-data 감사 §1-1 표면 단절 수리 (Tooltip variant / Toast 시맨틱·스코프) - 2026-08-20
+
+### Fixed
+
+- **Toast `info` variant 가 informative(파랑) 시맨틱을 되찾음** — catalog 에서 `info` 가
+  fill·border 모두 `neutral` 과 완전 동일값이라 "variant 를 골라도 아무 변화가 없는"
+  상태였다. `{color.informative-subtle}` + `{color.informative}` 로 정렬해 positive/negative
+  형제와 같은 스킴이 됐다 (Spectrum toast guideline).
+- **canonical Toast element 가 catalog(D3 SSOT) 시각을 받도록 복구** — 수동 `Toast.css` 는
+  imperative 런타임(ToastProvider/ToastRegion) 전용인데 canonical Toast 와 `.react-aria-Toast`
+  클래스를 공유했고, 수동은 unlayered·generated 는 `@layer components` 안이라 cascade layer
+  규칙상 **수동이 항상 이겼다**. 그 결과 DOM 은 런타임 값(accent 12% mix), Skia 는 catalog 값을
+  그려 비대칭이었다. 수동 규칙 전체를 `.react-aria-ToastRegion` 하위로 스코프해 두 경로를
+  격리 — 런타임 시각은 보존, canonical 은 generated 로 복귀. variant 어휘도 서로 다르다
+  (런타임 `info|success|warning|error` ↔ catalog `info|positive|neutral|negative`).
+
+### Features
+
+- **Tooltip `variant` 를 프로퍼티 패널에 노출** — rules table variants 4종
+  (neutral/info/positive/negative) + generated CSS `[data-variant]` 4규칙 + 렌더러
+  `data-variant` emit 이 모두 있었으나 binding `accepts` 선언만 없어 편집이 불가능했다.
+  렌더러 fallback 도 대응 규칙이 없는 `"default"` → catalog `defaultVariant`(neutral) 로 정렬
+  (시각 결과 불변 — base 규칙이 neutral 값).
+- **DateRangePicker `placeholder` 편집 표면 추가** — 렌더러 `resolvePlaceholder` 가 이미
+  소비하는데 accepts 선언이 없어 표면이 통째 결손이었다 (DatePicker 는 노출 중 — 형제 대칭 회복).
+
 ## Button min-width 식별성 하한 채택 (Spectrum 2.25×height) - 2026-08-20
 
 ### Features

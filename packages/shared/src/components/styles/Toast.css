@@ -1,3 +1,24 @@
+/*
+ * imperative 런타임 Toast 전용 스타일 (`components/Toast.tsx` — ToastProvider /
+ * ToastRegion / showToast).
+ *
+ * **전 규칙이 `.react-aria-ToastRegion` 하위로 스코프된다 (2026-08-20)**: canonical
+ * `Toast` element (팔레트/AI/import 로 생성되어 `renderToast` 가 `<div role="alert"
+ * class="react-aria-Toast">` 로 렌더) 와 런타임 Toast 가 **같은 클래스명을 공유**하는데,
+ * 이 파일은 unlayered 이고 generated CSS 는 `@layer components` 안이라 cascade layer
+ * 규칙상 이 파일이 **항상 이겼다**. 그 결과 canonical Toast 가 catalog(D3 SSOT) 대신
+ * 런타임용 값을 받아 Skia(=catalog 직접 read)와 시각 비대칭이 발생했다
+ * (`[data-variant="info"]` 는 catalog `{color.informative-subtle}` 대신 accent 12% mix).
+ * 또한 variant 어휘 자체가 서로 다르다 — 런타임은 `info|success|warning|error`
+ * (`ToastVariant`), catalog 은 `info|positive|neutral|negative`. ToastRegion 스코프로
+ * 한정하면 런타임 시각은 그대로 보존되고 canonical 은 generated(catalog 파생) 로
+ * 되돌아간다. D3 규칙: 수동 CSS 가 SSOT 에서 파생 아닌 경우 위반 (`.claude/rules/
+ * css-tokens.md`, ADR-059 계열).
+ *
+ * 원시 토큰(`--color-green-500`) / 하드코딩(`#ff9800`) 잔존은 런타임 경로 한정 기술
+ * 부채 — variant 어휘를 catalog 과 통일할 때 함께 정리 대상.
+ */
+
 /* Toast Region - Container for all toasts */
 .react-aria-ToastRegion {
   position: fixed;
@@ -43,8 +64,8 @@
   transform: translateX(-50%);
 }
 
-/* Individual Toast */
-.react-aria-Toast {
+/* Individual Toast (런타임 region 내부 한정) */
+.react-aria-ToastRegion .react-aria-Toast {
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-sm, 8px);
@@ -73,21 +94,17 @@
 }
 
 /* Variant: info */
-.react-aria-Toast[data-variant="info"] {
-  background-color: color-mix(
-    in srgb,
-    var(--accent) 12%,
-    var(--bg-overlay)
-  );
+.react-aria-ToastRegion .react-aria-Toast[data-variant="info"] {
+  background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-overlay));
   color: var(--fg);
 }
 
-.react-aria-Toast[data-variant="info"] .toast-icon {
+.react-aria-ToastRegion .react-aria-Toast[data-variant="info"] .toast-icon {
   color: var(--accent);
 }
 
 /* Variant: success */
-.react-aria-Toast[data-variant="success"] {
+.react-aria-ToastRegion .react-aria-Toast[data-variant="success"] {
   background-color: color-mix(
     in srgb,
     var(--color-green-500, #4caf50) 12%,
@@ -96,67 +113,63 @@
   color: var(--fg);
 }
 
-.react-aria-Toast[data-variant="success"] .toast-icon {
+.react-aria-ToastRegion .react-aria-Toast[data-variant="success"] .toast-icon {
   color: var(--color-green-500, #4caf50);
 }
 
 /* Variant: warning */
-.react-aria-Toast[data-variant="warning"] {
+.react-aria-ToastRegion .react-aria-Toast[data-variant="warning"] {
   background-color: color-mix(in srgb, #ff9800 12%, var(--bg-overlay));
   color: var(--fg);
 }
 
-.react-aria-Toast[data-variant="warning"] .toast-icon {
+.react-aria-ToastRegion .react-aria-Toast[data-variant="warning"] .toast-icon {
   color: #ff9800;
 }
 
 /* Variant: error */
-.react-aria-Toast[data-variant="error"] {
-  background-color: color-mix(
-    in srgb,
-    var(--negative) 12%,
-    var(--bg-overlay)
-  );
+.react-aria-ToastRegion .react-aria-Toast[data-variant="error"] {
+  background-color: color-mix(in srgb, var(--negative) 12%, var(--bg-overlay));
   color: var(--fg);
 }
 
-.react-aria-Toast[data-variant="error"] .toast-icon {
+.react-aria-ToastRegion .react-aria-Toast[data-variant="error"] .toast-icon {
   color: var(--negative);
 }
 
-/* Toast content */
-.toast-icon {
+/* Toast content (런타임 region 내부 한정) */
+.react-aria-ToastRegion .toast-icon {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.toast-content {
+.react-aria-ToastRegion .toast-content {
   flex: 1;
   min-width: 0;
 }
 
-.toast-title {
+.react-aria-ToastRegion .toast-title {
   font-size: var(--text-base, 16px);
   font-weight: 500;
   line-height: 1.4;
 }
 
-.toast-description {
+.react-aria-ToastRegion .toast-description {
   font-size: var(--text-sm, 14px);
   margin-top: var(--spacing-xs, 4px);
   opacity: 0.8;
   line-height: 1.4;
 }
 
-.toast-close {
+.react-aria-ToastRegion .toast-close {
   flex-shrink: 0;
   margin-left: auto;
   opacity: 0.6;
   transition: opacity 0.2s;
 }
 
-.toast-close:hover {
+.react-aria-ToastRegion .toast-close:hover {
   opacity: 1;
 }

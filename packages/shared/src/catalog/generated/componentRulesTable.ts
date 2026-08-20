@@ -12206,17 +12206,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "info",
     defaultSize: "md",
     variants: {
+      // design-data 감사 (2026-08-20): info 가 fill/border 모두 neutral 과 완전
+      //   동일값이라 informative 시맨틱이 죽어 있었다 (positive/negative 는 자기
+      //   시맨틱 색 보유, Tooltip.info 는 informative-subtle 사용 — 내부 비대칭).
+      //   Spectrum toast guideline "informative toast uses the informative
+      //   semantic color (blue)" 에 맞춰 형제 variant 와 같은 스킴으로 정렬.
       info: {
         fill: {
           default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+            base: "{color.informative-subtle}",
+            hover: "{color.informative-subtle}",
+            pressed: "{color.informative-subtle}",
           },
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.border}",
+          border: "{color.informative}",
         },
       },
       positive: {

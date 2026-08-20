@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "../bindings";
@@ -41,5 +44,60 @@ describe("design-data 감사 §1-1 — 표면 단절 회귀 가드", () => {
       expect(accepts?.placeholder, `${type} accepts.placeholder`).toBeDefined();
       expect(accepts?.placeholder?.kind).toBe("string");
     }
+  });
+});
+
+describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드", () => {
+  /**
+   * 시맨틱 variant(info/positive/negative)는 각자의 의미색을 가져야 한다.
+   * Toast.info 가 neutral 과 완전 동일값이라 informative(blue) 가 죽어 있던
+   * 회귀를 고정한다 — 값이 같아지면 "variant 를 골라도 아무 일이 없다".
+   */
+  it("Toast: info 가 neutral 과 다른 fill/border 를 갖는다", () => {
+    const variants = COMPONENT_RULES_TABLE.Toast?.variants;
+    const info = variants?.info;
+    const neutral = variants?.neutral;
+
+    expect(info, "Toast.variants.info").toBeDefined();
+    expect(neutral, "Toast.variants.neutral").toBeDefined();
+
+    const infoBase = info?.fill?.default?.base;
+    const neutralBase = neutral?.fill?.default?.base;
+    expect(infoBase).not.toBe(neutralBase);
+    expect(infoBase).toContain("informative");
+    expect(info?.colors?.border).toContain("informative");
+  });
+
+  it("Toast: 시맨틱 variant 3종이 각각 고유한 fill 을 갖는다", () => {
+    const variants = COMPONENT_RULES_TABLE.Toast?.variants ?? {};
+    const bases = (["info", "positive", "negative"] as const).map(
+      (key) => variants[key]?.fill?.default?.base,
+    );
+
+    expect(bases.every(Boolean), "3종 fill base 존재").toBe(true);
+    expect(new Set(bases).size, "3종이 서로 다른 fill").toBe(3);
+  });
+
+  /**
+   * 수동 `Toast.css` 는 imperative 런타임(ToastProvider/ToastRegion) 전용인데
+   * canonical Toast element 와 `.react-aria-Toast` 클래스를 공유한다. 이 파일은
+   * unlayered, generated CSS 는 `@layer components` 안이라 스코프 없이 두면
+   * cascade layer 규칙상 수동이 항상 이겨 canonical 이 catalog 대신 런타임 값을
+   * 받는다 (Skia 는 catalog 직접 read → 시각 비대칭). 스코프 이탈을 고정한다.
+   */
+  it("Toast: 수동 CSS 의 .react-aria-Toast 규칙이 런타임 region 스코프를 벗어나지 않는다", () => {
+    const cssPath = fileURLToPath(
+      new URL("../../components/styles/Toast.css", import.meta.url),
+    );
+    const css = readFileSync(cssPath, "utf8");
+
+    // 주석을 걷어낸 뒤 셀렉터 줄만 본다 (주석 안의 클래스명은 설명 텍스트).
+    const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const unscoped = withoutComments
+      .split("\n")
+      .filter((line) => line.includes(".react-aria-Toast"))
+      .filter((line) => !line.includes(".react-aria-ToastRegion"));
+
+    expect(unscoped, "런타임 스코프를 벗어난 셀렉터").toEqual([]);
   });
 });
