@@ -151,18 +151,6 @@ function registryEntry(
   return lookup.get(panelId) ?? null;
 }
 
-function visibleRowIndexes(
-  layout: PanelWorkspaceLayoutV3,
-  clusterIndex: number,
-  columnIndex: number,
-): number[] {
-  const column = layout.clusters[clusterIndex]?.columns[columnIndex];
-  if (!column) return [];
-  return column.rows.flatMap((row, rowIndex) =>
-    layout.visibility[row.panelId] === true ? [rowIndex] : [],
-  );
-}
-
 function visibleColumnIndexes(
   layout: PanelWorkspaceLayoutV3,
   clusterIndex: number,
@@ -256,38 +244,17 @@ function availableEdges(
 ): PanelSnapEdge[] {
   const placement = findPlacement(session.candidateLayout, targetPanelId);
   if (!placement) return [];
-  const rows = visibleRowIndexes(
-    session.candidateLayout,
-    placement.clusterIndex,
-    placement.columnIndex,
-  );
-  const columns = visibleColumnIndexes(
-    session.candidateLayout,
-    placement.clusterIndex,
-  );
   const edges: PanelSnapEdge[] = [];
-  if (
-    rows[0] === placement.rowIndex &&
-    rowEdgeFits(session, registry, surfaceRect, placement)
-  ) {
+  if (rowEdgeFits(session, registry, surfaceRect, placement)) {
     edges.push("top");
   }
-  if (
-    rows.at(-1) === placement.rowIndex &&
-    rowEdgeFits(session, registry, surfaceRect, placement)
-  ) {
+  if (rowEdgeFits(session, registry, surfaceRect, placement)) {
     edges.push("bottom");
   }
-  if (
-    columns[0] === placement.columnIndex &&
-    columnEdgeFits(session, registry, surfaceRect, placement)
-  ) {
+  if (columnEdgeFits(session, registry, surfaceRect, placement)) {
     edges.push("left");
   }
-  if (
-    columns.at(-1) === placement.columnIndex &&
-    columnEdgeFits(session, registry, surfaceRect, placement)
-  ) {
+  if (columnEdgeFits(session, registry, surfaceRect, placement)) {
     edges.push("right");
   }
   return edges;

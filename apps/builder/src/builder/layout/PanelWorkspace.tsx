@@ -987,6 +987,7 @@ function PanelSnapGuide({
       candidate.edge === "left" || candidate.edge === "right"
         ? lineSize
         : target.width,
+    zIndex: 2_100,
   };
 
   return (
