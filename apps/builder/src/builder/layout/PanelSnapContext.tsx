@@ -9,16 +9,21 @@ import {
 import type { PanelId } from "../panels/core/types";
 import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
 
-interface PanelSnapInteractionValue {
-  draggedPanelId: PanelId | null;
-  dropCandidate: PanelDropCandidate;
+interface PanelSnapInteractionActions {
   beginPanelDrag: (panelId: PanelId) => void;
   updatePanelDropCandidate: (candidate: PanelDropCandidate) => void;
   endPanelDrag: () => void;
 }
 
-const PanelSnapInteractionContext =
-  createContext<PanelSnapInteractionValue | null>(null);
+interface PanelSnapInteractionState {
+  draggedPanelId: PanelId | null;
+  dropCandidate: PanelDropCandidate;
+}
+
+const PanelSnapInteractionActionsContext =
+  createContext<PanelSnapInteractionActions | null>(null);
+const PanelSnapInteractionStateContext =
+  createContext<PanelSnapInteractionState | null>(null);
 
 export function PanelSnapInteractionProvider({
   children,
@@ -39,35 +44,43 @@ export function PanelSnapInteractionProvider({
     setDraggedPanelId(null);
     setDropCandidate(null);
   }, []);
-  const value = useMemo(
+  const actions = useMemo(
     () => ({
-      draggedPanelId,
-      dropCandidate,
       beginPanelDrag,
       updatePanelDropCandidate,
       endPanelDrag,
     }),
-    [
-      beginPanelDrag,
-      draggedPanelId,
-      dropCandidate,
-      endPanelDrag,
-      updatePanelDropCandidate,
-    ],
+    [beginPanelDrag, endPanelDrag, updatePanelDropCandidate],
+  );
+  const state = useMemo(
+    () => ({ draggedPanelId, dropCandidate }),
+    [draggedPanelId, dropCandidate],
   );
 
   return (
-    <PanelSnapInteractionContext.Provider value={value}>
-      {children}
-    </PanelSnapInteractionContext.Provider>
+    <PanelSnapInteractionActionsContext.Provider value={actions}>
+      <PanelSnapInteractionStateContext.Provider value={state}>
+        {children}
+      </PanelSnapInteractionStateContext.Provider>
+    </PanelSnapInteractionActionsContext.Provider>
   );
 }
 
-export function usePanelSnapInteraction(): PanelSnapInteractionValue {
-  const value = useContext(PanelSnapInteractionContext);
+export function usePanelSnapInteractionActions(): PanelSnapInteractionActions {
+  const value = useContext(PanelSnapInteractionActionsContext);
   if (!value) {
     throw new Error(
-      "usePanelSnapInteraction must be used within PanelSnapInteractionProvider",
+      "usePanelSnapInteractionActions must be used within PanelSnapInteractionProvider",
+    );
+  }
+  return value;
+}
+
+export function usePanelSnapInteractionState(): PanelSnapInteractionState {
+  const value = useContext(PanelSnapInteractionStateContext);
+  if (!value) {
+    throw new Error(
+      "usePanelSnapInteractionState must be used within PanelSnapInteractionProvider",
     );
   }
   return value;

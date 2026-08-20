@@ -25,7 +25,8 @@ import { PanelNav } from "./PanelNav";
 import { registerPanelWorkspaceActivationDispatcher } from "./panelWorkspaceActivationDispatcher";
 import {
   PanelSnapInteractionProvider,
-  usePanelSnapInteraction,
+  usePanelSnapInteractionActions,
+  usePanelSnapInteractionState,
 } from "./PanelSnapContext";
 import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
 import { PanelSplitter } from "./PanelSplitter";
@@ -474,6 +475,7 @@ const PanelFrameContent = memo(function PanelFrameContent({
 interface PanelFrameProps {
   config: PanelConfig;
   dockOrigin: PanelDockOrigin;
+  snapTargetEdge: PanelResizeEdge | null;
   runtime: PanelWorkspaceRuntime;
   snapshotFrame: PanelWorkspaceFrameSnapshot | null;
   side: PanelSide;
@@ -484,19 +486,15 @@ interface PanelFrameProps {
 const PanelFrame = memo(function PanelFrame({
   config,
   dockOrigin,
+  snapTargetEdge,
   runtime,
   snapshotFrame,
   side,
   onCommitLayout,
   onFocusPanel,
 }: PanelFrameProps) {
-  const {
-    draggedPanelId,
-    dropCandidate,
-    beginPanelDrag,
-    updatePanelDropCandidate,
-    endPanelDrag,
-  } = usePanelSnapInteraction();
+  const { beginPanelDrag, updatePanelDropCandidate, endPanelDrag } =
+    usePanelSnapInteractionActions();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const visualGeometryRef = useRef<PanelFrameGeometry>({
     x: snapshotFrame?.x ?? 0,
@@ -522,10 +520,8 @@ const PanelFrame = memo(function PanelFrame({
     }
     const candidate = pendingDropCandidateRef.current;
     pendingDropCandidateRef.current = null;
-    if (candidate !== null || dropCandidate !== null) {
-      updatePanelDropCandidate(candidate);
-    }
-  }, [dropCandidate, updatePanelDropCandidate]);
+    updatePanelDropCandidate(candidate);
+  }, [updatePanelDropCandidate]);
 
   const scheduleDropCandidate = useCallback(
     (candidate: PanelDropCandidate) => {
@@ -834,18 +830,16 @@ const PanelFrame = memo(function PanelFrame({
       >
         <span />
       </button>
-      {draggedPanelId !== null &&
-        draggedPanelId !== config.id &&
-        dropCandidate?.kind === "panel-edge" &&
-        dropCandidate.panelId === config.id && (
-          <div className="panel-snap-targets" aria-hidden="true">
-            <span
-              className="panel-snap-target"
-              data-edge={dropCandidate.edge}
-              data-active="true"
-            />
-          </div>
-        )}
+      {snapTargetEdge !== null && (
+        <div className="panel-snap-targets" aria-hidden="true">
+          {/* data-edge={dropCandidate.edge} */}
+          <span
+            className="panel-snap-target"
+            data-edge={snapTargetEdge}
+            data-active="true"
+          />
+        </div>
+      )}
       <PanelFrameContent
         config={config}
         contentId={contentId}
@@ -895,6 +889,7 @@ const PanelFrame = memo(function PanelFrame({
 interface SnapshotPanelFrameProps {
   config: PanelConfig;
   dockOrigin: PanelDockOrigin;
+  snapTargetEdge: PanelResizeEdge | null;
   runtime: PanelWorkspaceRuntime;
   side: PanelSide;
   onCommitLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
@@ -1058,7 +1053,7 @@ function PanelDockClusterPresentation({
 }
 
 function PanelWorkspaceZoneOverlay() {
-  const { draggedPanelId, dropCandidate } = usePanelSnapInteraction();
+  const { draggedPanelId, dropCandidate } = usePanelSnapInteractionState();
   if (draggedPanelId === null) return null;
 
   return (
@@ -1130,6 +1125,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   placementSurfaceRef,
 }: PanelWorkspaceOverlayProps) {
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  const { draggedPanelId, dropCandidate } = usePanelSnapInteractionState();
   const surfaceRef = useRef<HTMLDivElement>(null);
   const [surfaceWidth, setSurfaceWidth] = useState(
     snapshot.workspaceRect.width,
@@ -1229,6 +1225,14 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
                     key={config.id}
                     config={config}
                     dockOrigin={origin}
+                    snapTargetEdge={
+                      draggedPanelId !== null &&
+                      draggedPanelId !== config.id &&
+                      dropCandidate?.kind === "panel-edge" &&
+                      dropCandidate.panelId === config.id
+                        ? dropCandidate.edge
+                        : null
+                    }
                     runtime={runtime}
                     side={railSideForPanel(workspaceLayout, config)}
                     onCommitLayout={setWorkspaceLayout}
