@@ -963,29 +963,41 @@ function panelDockColumns(
   clusters: readonly PanelWorkspaceClusterV3[],
   snapshot: PanelWorkspaceLayoutSnapshot,
 ): PanelDockColumnPresentation[] {
-  return clusters.flatMap((cluster) =>
-    cluster.columns.flatMap((column, columnIndex) => {
-      const frames = column.rows.flatMap((row) => {
+  const columns: PanelDockColumnPresentation[] = [];
+  for (const cluster of clusters) {
+    for (
+      let columnIndex = 0;
+      columnIndex < cluster.columns.length;
+      columnIndex += 1
+    ) {
+      const column = cluster.columns[columnIndex];
+      if (!column) continue;
+      let x = Number.POSITIVE_INFINITY;
+      let y = Number.POSITIVE_INFINITY;
+      let right = Number.NEGATIVE_INFINITY;
+      let bottom = Number.NEGATIVE_INFINITY;
+      let hasFrame = false;
+      for (const row of column.rows) {
         const frame = snapshot.frameGeometries.get(row.panelId);
-        return frame ? [frame] : [];
+        if (!frame) continue;
+        hasFrame = true;
+        x = Math.min(x, frame.x);
+        y = Math.min(y, frame.y);
+        right = Math.max(right, frame.x + frame.width);
+        bottom = Math.max(bottom, frame.y + frame.height);
+      }
+      if (!hasFrame) continue;
+      columns.push({
+        clusterId: cluster.id,
+        columnIndex,
+        height: bottom - y,
+        width: right - x,
+        x,
+        y,
       });
-      if (frames.length === 0) return [];
-      const x = Math.min(...frames.map((frame) => frame.x));
-      const y = Math.min(...frames.map((frame) => frame.y));
-      const right = Math.max(...frames.map((frame) => frame.x + frame.width));
-      const bottom = Math.max(...frames.map((frame) => frame.y + frame.height));
-      return [
-        {
-          clusterId: cluster.id,
-          columnIndex,
-          height: bottom - y,
-          width: right - x,
-          x,
-          y,
-        },
-      ];
-    }),
-  );
+    }
+  }
+  return columns;
 }
 
 interface PanelDockClusterPresentationProps {
@@ -1000,8 +1012,10 @@ function PanelDockClusterPresentation({
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
   const layout = runtime.getLayout();
   const columns = panelDockColumns(layout.clusters, snapshot);
-  const clustersById = new Map(
-    layout.clusters.map((cluster) => [cluster.id, cluster] as const),
+  const clustersById = useMemo(
+    () =>
+      new Map(layout.clusters.map((cluster) => [cluster.id, cluster] as const)),
+    [layout],
   );
 
   return (
