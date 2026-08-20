@@ -183,6 +183,9 @@ interface ActivePanelWorkspaceTrace {
   inputToAppliedFrameMs: number[];
   appliedVersionMismatchCount: number;
   pointerDomGeometryQueryCount: number;
+  appliedVersionTracker: ReturnType<
+    typeof createPanelWorkspaceAppliedVersionTracker
+  >;
   longTaskObserver: PerformanceObserver | null;
   timeoutId: ReturnType<typeof setTimeout>;
 }
@@ -192,8 +195,6 @@ class PanelWorkspaceDiagnostics {
   private animationFrameId = 0;
   private previousFrameTime: number | null = null;
   private readonly idleFrameIntervals: number[] = [];
-  private readonly appliedVersionTracker =
-    createPanelWorkspaceAppliedVersionTracker();
   private appliedPresentationFrameId: number | null = null;
 
   constructor() {
@@ -243,7 +244,7 @@ class PanelWorkspaceDiagnostics {
     inputAtMs: number,
   ): void {
     if (!this.activeTrace) return;
-    this.appliedVersionTracker.recordInput({
+    this.activeTrace.appliedVersionTracker.recordInput({
       expectedVersion,
       affectedPanelIds,
       inputAtMs,
@@ -251,20 +252,20 @@ class PanelWorkspaceDiagnostics {
   }
 
   recordFrameApplied(panelId: PanelId, version: number): void {
-    if (!this.activeTrace) return;
-    this.appliedVersionTracker.recordFrameApplied(panelId, version);
+    const trace = this.activeTrace;
+    if (!trace) return;
+    trace.appliedVersionTracker.recordFrameApplied(panelId, version);
     if (this.appliedPresentationFrameId !== null) return;
     this.appliedPresentationFrameId = requestAnimationFrame((timestamp) => {
       this.appliedPresentationFrameId = null;
-      if (!this.activeTrace) return;
-      let applied = this.appliedVersionTracker.takeReadyPresentation(timestamp);
+      if (this.activeTrace !== trace) return;
+      let applied =
+        trace.appliedVersionTracker.takeReadyPresentation(timestamp);
       while (applied) {
-        this.activeTrace.inputToAppliedFrameMs.push(
-          applied.inputToAppliedFrameMs,
-        );
-        this.activeTrace.appliedVersionMismatchCount +=
+        trace.inputToAppliedFrameMs.push(applied.inputToAppliedFrameMs);
+        trace.appliedVersionMismatchCount +=
           applied.appliedVersionMismatchCount;
-        applied = this.appliedVersionTracker.takeReadyPresentation(timestamp);
+        applied = trace.appliedVersionTracker.takeReadyPresentation(timestamp);
       }
     });
   }
@@ -349,6 +350,7 @@ class PanelWorkspaceDiagnostics {
       inputToAppliedFrameMs: [],
       appliedVersionMismatchCount: 0,
       pointerDomGeometryQueryCount: 0,
+      appliedVersionTracker: createPanelWorkspaceAppliedVersionTracker(),
       longTaskObserver: null,
       timeoutId: setTimeout(() => this.finishTrace(trace), TRACE_DURATION_MS),
     };
