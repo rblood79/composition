@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## TableView density 적용 + Column/Cell 세로 padding 이중 계산 수정 - 2026-08-21
+
+### Features
+
+- **TableView `density` 가 실제로 동작한다** — 프로퍼티 패널에 선언만 있고 소비 경로가 없던
+  dead prop 이었다. Spectrum `table.item.padding × density` 모델을 따라 **행 높이는 size 축이
+  정하고 density 는 item 내부 여백만** 바꾼다 (`table-row-height-*` 토큰은 density 무관하며
+  구 `-regular` 접미사 토큰은 deprecated).
+- 채널을 TableView 가 아니라 **소비 주체인 Column/Cell** (`catalog densities`) 에 두고,
+  TableView 는 density 값만 자손에 위임한다 — Skia 는 `applyImplicitStyles` 주입, DOM 은
+  `renderTableViewSubtree` 인자. 행 높이 = 텍스트 24 + paddingY×2 → **compact 32 / regular 40
+  / spacious 48** (Spectrum medium 계열과 일치). 기본값 `regular` 는 기존 값과 같아 미지정
+  프로젝트의 시각 변화가 없다.
+
+### Fixed
+
+- **density 편집이 캔버스에 즉시 반영된다** — `density` 가 layoutVersion 트리거와 레이아웃
+  캐시 시그니처 **양쪽에 미등재**여서, 어제 추가한 Tabs density 도 새로고침 전까지 Skia 에
+  반영되지 않았다. 두 계층은 AND 조건이라 함께 등재했다.
+- **표 행 높이가 CSS 와 어긋나던 이중 계산 제거** — 레이아웃이 Column/Cell 의 세로 padding 을
+  border-box 로 반환하는데 엔진이 style 의 padding 을 다시 더하고 있었다. catalog
+  `containerStyles.padding` 이 leaf 에 도달하지 않아 style 이 늘 비어 있던 탓에 여태 우연히
+  맞았고, density 주입이 style 에 값을 넣자 드러났다 (실측 행 40 대신 56, 4px 차이가 16px 로
+  증폭). 이제 세로 padding 은 style 에 없는 축만 레이아웃이 싣는다.
+
+> 관찰 (후속 과제): publish 앱은 TableView/Column/Cell 을 클래스 없는 `<div>` 로만 등록해
+> 표 시각 자체가 없다 — density 이전의 결손이다.
+
 ## Panel workspace 이동 cursor 및 좌우 edge snap 복원 - 2026-08-21
 
 ### Fixed
@@ -14,9 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 패널 상단 이동 영역에서 `grab`, mouse down에서 `grabbing`, 실제 패널 이동 중에는
   `default` cursor로 전환되는 계약을 복원했다. drag 중에도 `grabbing`이 유지되던 회귀를
   `data-dragging` shell 상태로 바로잡고 cascade 순서를 회귀 테스트로 고정했다.
-- left-top panel의 좌우에 다른 panel frame을 맞춰도 포인터 중심이 target edge에서 멀어
-  snap line과 commit이 발생하지 않던 문제를 수정했다. 기존 pointer-edge 판정을 우선
-  유지하면서 panel frame의 4px edge adjacency를 fallback으로 판정한다.
+- left/right snap candidate를 이동 panel frame 접촉이 아니라 target edge에 대한 마우스
+  위치로만 판정하도록 복원했다. panel frame의 left/right가 4px 위치에 닿아도 pointer가
+  target edge에서 멀면 snap line이나 commit을 만들지 않는다.
 - 같은 cluster의 panel을 이동할 때 기존 결합을 떼는 suppression이 모든 후속
   `panel-edge`까지 계속 제거하던 문제를 수정했다. drag 시작점에서 28px를 벗어난 뒤에는
   suppression을 해제해, 세로 stack에서 바로 좌우 column snap으로 전환할 수 있다.
