@@ -354,15 +354,18 @@ function createTransientSnapshot(
 ): PanelWorkspaceLayoutSnapshot {
   const mutableFrames = new Map<PanelId, PanelWorkspaceFrameSnapshot>();
   for (const [panelId, frame] of committedSnapshot.frameGeometries) {
-    const geometry = preview?.panelId === panelId ? preview.geometry : frame;
+    if (!preview || preview.panelId !== panelId) {
+      mutableFrames.set(panelId, frame);
+      continue;
+    }
     mutableFrames.set(
       panelId,
       Object.freeze({
         ...frame,
-        x: geometry.x,
-        y: geometry.y,
-        width: geometry.width,
-        height: geometry.height,
+        x: preview.geometry.x,
+        y: preview.geometry.y,
+        width: preview.geometry.width,
+        height: preview.geometry.height,
         layoutVersion: version,
       }),
     );
@@ -371,12 +374,8 @@ function createTransientSnapshot(
     ...committedSnapshot,
     version,
     frameGeometries: readonlyMapView(mutableFrames),
-    splitters: Object.freeze(
-      committedSnapshot.splitters.map((splitter) =>
-        Object.freeze({ ...splitter, layoutVersion: version }),
-      ),
-    ),
-    visiblePanelIds: readonlySetView(new Set(mutableFrames.keys())),
+    splitters: committedSnapshot.splitters,
+    visiblePanelIds: committedSnapshot.visiblePanelIds,
   });
 }
 

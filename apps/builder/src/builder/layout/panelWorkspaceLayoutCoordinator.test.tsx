@@ -240,7 +240,11 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
     const listener = vi.fn();
     coordinator.subscribe(listener);
     const baseFrame = coordinator.getSnapshot().frameGeometries.get("nodes");
+    const basePropertiesFrame = coordinator
+      .getSnapshot()
+      .frameGeometries.get("properties");
     if (!baseFrame) throw new Error("nodes frame is required");
+    if (!basePropertiesFrame) throw new Error("properties frame is required");
 
     coordinator.queuePreview("nodes", {
       x: 240,
@@ -263,6 +267,12 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
     expect(
       coordinator.getSnapshot().frameGeometries.get("nodes"),
     ).toMatchObject({ x: 360, y: 180 });
+    expect(coordinator.getSnapshot().frameGeometries.get("nodes")).not.toBe(
+      baseFrame,
+    );
+    expect(coordinator.getSnapshot().frameGeometries.get("properties")).toBe(
+      basePropertiesFrame,
+    );
 
     coordinator.clearPreview();
     expect(scheduler.pendingCount).toBe(1);
@@ -273,6 +283,12 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
     expect(
       coordinator.getSnapshot().frameGeometries.get("nodes"),
     ).toMatchObject({ x: baseFrame.x, y: baseFrame.y });
+    expect(coordinator.getSnapshot().frameGeometries.get("nodes")).toBe(
+      baseFrame,
+    );
+    expect(coordinator.getSnapshot().frameGeometries.get("properties")).toBe(
+      basePropertiesFrame,
+    );
   });
 
   it("invalid queued input은 현재 snapshot을 유지하고 publish하지 않는다", () => {
