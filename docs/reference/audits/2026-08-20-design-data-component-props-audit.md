@@ -65,17 +65,33 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 2. **컬렉션 selectionStyle/quiet/density 결손**: selectionStyle (checkbox/highlight) 이 TableView·GridList·Tree·Menu 공통 부재, quiet 이 Table·GridList 부재, TableView density 는 D2 만 있고 D3 수치 채널 없음.
 3. **staticColor 잔여 전개**: Button/Link 는 기채택 (CSS/Skia 대칭 스킴 보유) — ToggleButton·ToggleButtonGroup·ProgressBar·ProgressCircle 에 동일 축 미전개. IconButton 은 root binding 수용·propsSchema 미노출 (노출만 결손).
 
+#### 수리 현황 — 축 ③ 부분 완료 (2026-08-21)
+
+**ToggleButton staticColor 채택 완료.** Skia 는 추가 작업이 없었다 — `buildCatalogShapes` 의 static 블록이 컴포넌트를 식별하지 않고 `staticColor` prop + fill 채널 유무로만 분기하도록 작성돼 있어(주석에 "Link/Button/ToggleButton 공유" 명시), D2 표면과 수동 CSS(고정 흑백은 catalog 토큰으로 표현 불가)만 추가하면 대칭이 성립한다. 라이브 검증: `black` → bg #000/text #fff, `white` → 반대, `auto` → variant 경로 유지.
+
+**잔여 3종은 "선례 이식" 이 성립하지 않는다** — 각각 새 설계가 필요하다:
+
+| 대상                 | 선례가 안 통하는 이유                                                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ToggleButtonGroup    | 그룹→자식 전파 축이다. `ToggleButtonGroupContext`(isEmphasized 전파 선례)에 채널을 늘리는 것과 별개로, Skia 는 propagation 규칙이 없으면 위임이 끊긴다 |
+| ProgressBar / Circle | Button 형 fill 스킴이 아니라 track/indicator 2채널이다. Spectrum 도 staticColor 가 아니라 "over background" variant 로 규정                            |
+| IconButton           | reusable propsSchema 노출만 하면 되나, 함께 지적된 isQuiet 정체성 판정(Button+icon 조합인가 ActionButton 인가)과 묶여 있다                             |
+
+**축 ①②는 미착수**: `contextualHelp` 는 RSP 대응 컴포넌트 자체가 없어 신규 컴포넌트 작업이고(§3-2), `labelAlign` 은 14종 각각의 렌더러·컴포넌트 배선이며, 컬렉션 selectionStyle/quiet/density 는 D3 채널 정의가 선행이다.
+
 ### 1-3. 형제·패밀리 내 비대칭 (기존 채택 이력과의 불일치)
 
-| 비대칭                                       | 내용                                                                                      |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| TextArea vs TextField                        | value/errorMessage/necessityIndicator/입력 힌트 5종/contextualHelp 이 TextField 에만 존재 |
-| RangeCalendar vs Calendar                    | isInvalid/autoFocus/pageBehavior 가 Calendar 에만 존재                                    |
-| TimeField vs DateField                       | minValue/maxValue 가 DateField 에만 존재; TimeField granularity 에 근거 없는 "day" 잔존   |
-| ProgressCircle vs ProgressBar                | minValue/maxValue 가 ProgressBar 에만 존재                                                |
-| Checkbox(+Group) vs Radio/Switch             | xl size 가 Checkbox 계열만 결손 (Spectrum 은 4단계 규정)                                  |
-| Tag itemSchema vs Select/ComboBox itemSchema | icon 채널이 Tag 에만 없음                                                                 |
-| isDisabled (Badge/StatusLight/Avatar)        | rules table `states.disabled` (D3) 는 준비됐으나 binding 노출만 결손                      |
+| 비대칭                                       | 내용                                                                                                                                                                  |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TextArea vs TextField                        | value/errorMessage/necessityIndicator/입력 힌트 5종/contextualHelp 이 TextField 에만 존재                                                                             |
+| ~~RangeCalendar vs Calendar~~                | **수리 완료 (2026-08-21)** — isInvalid/autoFocus/pageBehavior 를 binding + 렌더러 양쪽에 보강. 컴포넌트는 `AriaRangeCalendarProps` spread 라 전달만으로 RAC 에 닿았다 |
+| TimeField vs DateField                       | minValue/maxValue 가 DateField 에만 존재; TimeField granularity 에 근거 없는 "day" 잔존                                                                               |
+| ProgressCircle vs ProgressBar                | minValue/maxValue 가 ProgressBar 에만 존재                                                                                                                            |
+| Checkbox(+Group) vs Radio/Switch             | xl size 가 Checkbox 계열만 결손 (Spectrum 은 4단계 규정)                                                                                                              |
+| Tag itemSchema vs Select/ComboBox itemSchema | icon 채널이 Tag 에만 없음                                                                                                                                             |
+| isDisabled (Badge/StatusLight/Avatar)        | rules table `states.disabled` (D3) 는 준비됐으나 binding 노출만 결손                                                                                                  |
+
+**잔여 비대칭의 성격 (2026-08-21 실측)**: RangeCalendar 처럼 "선언 + 전달" 로 끝나는 것은 소진됐다. TimeField 의 min/maxValue 는 컴포넌트가 `TimeValue` 객체를 받는데 DateField 계열은 ISO 문자열을 렌더러가 파싱하는 구조라 파싱 배선이 필요하고, ProgressCircle 의 min/maxValue 는 DOM(`(value/100)*circumference`, `aria-valuemax={100}`)과 Skia(`value_fill_arc`)가 **0–100 스케일을 하드코딩**하고 있어 양쪽 스케일 계산을 함께 바꿔야 한다.
 
 ### 1-4. 채택후보-D3수치 (Button minWidth 채택과 동형의 수치 하한·규칙)
 
