@@ -68,3 +68,4 @@
 {"sha":"1e5320a8390a2b065ea27067705308cb5ebd2844","date":"2026-08-16T02:09:25+09:00","promoted_adrs":["docs/adr/182-builder-context-menu.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"370e9f7dbea9f47526c828abb8be6c2fb15a8124","date":"2026-08-16T22:46:01+09:00","promoted_adrs":["docs/adr/completed/158-interactions-rules-capability-registry.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"5ce42511ab4769aa5402153e420def6171460cf1","date":"2026-08-18T22:26:43+09:00","promoted_adrs":["docs/adr/completed/922-photoshop-style-panel-layout-coordinator.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"59c2b73312083fcffbb1489351dbf00c2d32490d","date":"2026-08-19T22:33:25+09:00","promoted_adrs":["docs/adr/completed/186-photoshop-default-zone-panel-placement.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
