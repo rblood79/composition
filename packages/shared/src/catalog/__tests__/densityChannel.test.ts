@@ -148,8 +148,10 @@ describe("density 채널 — ToggleButtonGroup(segmented ↔ 분리)", () => {
     // orientation 은 flex-direction 만 — 연결 규칙을 여기 두면 regular 에서도 붙는다.
     expect(cv?.orientation?.horizontal?.nested).toBeUndefined();
     expect(cv?.orientation?.vertical?.nested).toBeUndefined();
-    // compact 는 horizontal 3 + vertical 3 (middle / first / last × 2축).
-    expect(cv?.density?.compact?.nested).toHaveLength(6);
+    // compact 는 (middle / first / last) × (horizontal / vertical) × (marker 경유 / 직접 자식).
+    //   marker div 는 빌더 preview 구조이고 publish 는 ToggleButton 이 직접 자식이라 두 형태를
+    //   함께 emit 한다 — 한쪽만 두면 그 축에서 연결이 안 걸린다(2026-08-21 publish 실측).
+    expect(cv?.density?.compact?.nested).toHaveLength(12);
     // regular 에는 코너 override 가 없어야 버튼이 자기 균등 radius 를 유지한다.
     expect(cv?.density?.regular?.nested).toBeUndefined();
   });

@@ -12615,6 +12615,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               //   marker div 가 아닌 ToggleButton 자신에 적용해야 시각 반영(box 미생성).
               //   reference 시각 규칙(양끝만 둥근 segmented bar)은 동일, selector 형태만 marker
               //   구조 적응(2026-06-22, Skia 는 marker 없어 _groupPosition 으로 직접 판정).
+              //
+              // **직접-자식 형태도 함께 emit 한다 (2026-08-21)**: marker div 는 빌더 preview
+              //   (CanonicalNodeRenderer)의 구조이고, publish 앱은 ToggleButton 을 그룹의
+              //   **직접 자식**으로 렌더한다(registry 가 shared 컴포넌트를 그대로 씀). 그래서
+              //   marker 경유 selector 만 두면 publish 에서 매칭 0 → compact 인데 버튼이 각자
+              //   radius 6px 를 유지해 연결이 안 보인다(2026-08-21 라이브 실측, 구 orientation
+              //   gate 시절부터의 결함). 두 형태는 상호 배타라 동시 매칭되지 않는다 — marker 가
+              //   있으면 `> .btn:first-child` 가, 없으면 `> *:first-child > .btn` 이 안 걸린다.
               nested: [
                 {
                   selector:
@@ -12662,6 +12670,57 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 {
                   selector:
                     '&[data-orientation="vertical"] > *:last-child > .react-aria-ToggleButton',
+                  styles: {
+                    "border-radius":
+                      "0 0 var(--btn-border-radius) var(--btn-border-radius)",
+                  },
+                },
+                // ── 직접-자식 형태 (publish 축) — 위 6규칙과 값 동일, marker 경유가 없을 뿐.
+                {
+                  selector:
+                    '&[data-orientation="horizontal"] > .react-aria-ToggleButton',
+                  styles: {
+                    "border-radius": "0",
+                    "margin-inline-start": "-1px",
+                  },
+                },
+                {
+                  selector:
+                    '&[data-orientation="horizontal"] > .react-aria-ToggleButton:first-child',
+                  styles: {
+                    "border-radius":
+                      "var(--btn-border-radius) 0 0 var(--btn-border-radius)",
+                    "margin-inline-start": "0",
+                  },
+                },
+                {
+                  selector:
+                    '&[data-orientation="horizontal"] > .react-aria-ToggleButton:last-child',
+                  styles: {
+                    "border-radius":
+                      "0 var(--btn-border-radius) var(--btn-border-radius) 0",
+                  },
+                },
+                {
+                  selector:
+                    '&[data-orientation="vertical"] > .react-aria-ToggleButton',
+                  styles: {
+                    "border-radius": "0",
+                    "margin-block-start": "-1px",
+                  },
+                },
+                {
+                  selector:
+                    '&[data-orientation="vertical"] > .react-aria-ToggleButton:first-child',
+                  styles: {
+                    "border-radius":
+                      "var(--btn-border-radius) var(--btn-border-radius) 0 0",
+                    "margin-block-start": "0",
+                  },
+                },
+                {
+                  selector:
+                    '&[data-orientation="vertical"] > .react-aria-ToggleButton:last-child',
                   styles: {
                     "border-radius":
                       "0 0 var(--btn-border-radius) var(--btn-border-radius)",

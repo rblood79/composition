@@ -122,6 +122,34 @@
   border-radius: 0 0 var(--btn-border-radius) var(--btn-border-radius);
 }
 
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > .react-aria-ToggleButton {
+  border-radius: 0;
+  margin-inline-start: -1px;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > .react-aria-ToggleButton:first-child {
+  border-radius: var(--btn-border-radius) 0 0 var(--btn-border-radius);
+  margin-inline-start: 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > .react-aria-ToggleButton:last-child {
+  border-radius: 0 var(--btn-border-radius) var(--btn-border-radius) 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > .react-aria-ToggleButton {
+  border-radius: 0;
+  margin-block-start: -1px;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > .react-aria-ToggleButton:first-child {
+  border-radius: var(--btn-border-radius) var(--btn-border-radius) 0 0;
+  margin-block-start: 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > .react-aria-ToggleButton:last-child {
+  border-radius: 0 0 var(--btn-border-radius) var(--btn-border-radius);
+}
+
 .react-aria-ToggleButtonGroup[data-density="regular"] {
   gap: 8px;
 }
