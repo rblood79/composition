@@ -128,6 +128,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Menu",
   },
   {
+    // 재캡처 2026-08-21 — creator↔팔레트 전수 대조로 적발한 미노출 3종(Pagination/ColorField/Meter).
+    type: "Pagination",
+    category: "layout",
+    label: "pagination",
+    icon: "ChevronsLeftRight",
+  },
+  {
     type: "DisclosureGroup",
     category: "layout",
     label: "disclosure group",
@@ -222,6 +229,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Search",
   },
   {
+    type: "ColorField",
+    category: "forms",
+    label: "color field",
+    icon: "Palette",
+  },
+  {
     type: "Checkbox",
     category: "forms",
     label: "checkbox",
@@ -262,6 +275,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     category: "forms",
     label: "slider",
     icon: "SlidersHorizontal",
+  },
+  {
+    type: "Meter",
+    category: "forms",
+    label: "meter",
+    icon: "Gauge",
   },
   {
     type: "TailSwatch",

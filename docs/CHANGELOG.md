@@ -7,14 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## TextArea 를 컴포넌트 패널에서 꺼낼 수 있다 - 2026-08-21
+## 컴포넌트 패널에서 꺼낼 수 없던 4종 노출 — TextArea·Meter·Pagination·ColorField - 2026-08-21
 
 ### Fixed
 
 - **TextArea 가 컴포넌트 패널에 없어서 애초에 배치할 수가 없었다.** catalog 의 패널 정보
   (Forms / "text area" / 아이콘)와 생성 함수는 처음부터 있었는데 팔레트 표시 순서 배열에만
   빠져 있었다 — 2026-06-11 에 구 정적 목록에서 자동 캡처할 때 없던 것이 그대로 굳은 결손이지
-  의도적 비노출이 아니다. Forms 14종 → 15종.
+  의도적 비노출이 아니다.
+- **같은 형태가 3종 더 있었다** — 생성 함수와 팔레트 목록을 전수 대조해 찾았다. **Meter**
+  (형제 ProgressBar 는 목록에 있었다), **Pagination**, **ColorField**(형제 TextField/
+  NumberField/SearchField 는 있었다). 셋 다 패널 정보·생성 함수·전용 렌더러를 모두 갖췄는데
+  목록에만 없어 꺼낼 수 없었고, 제외 사유는 코드 어디에도 없었다. Forms 14종 → 17종,
+  Layout 10종 → 11종.
+
+> 남은 미노출 중 **의도적인 것 4종**: 알림(Toast — 코드로만 띄움) / Radio(라디오 그룹 안에서만
+> 의미) / Navigation(Nav 의 다른 이름) / DataTable(화면 표현 없는 데이터). **판단이 필요한 것
+> 2종**: ColorPicker·ColorSwatchPicker 는 카탈로그 분류가 `color` 인데 팔레트에는 그 분류가
+> 아예 없다 — 배열 누락이 아니라 분류를 forms 로 옮길지 새로 만들지 결정이 먼저다.
 
 ## TextArea 가 드디어 여러 줄이 된다 + field 크기 전파 결손 해소 - 2026-08-21
 
