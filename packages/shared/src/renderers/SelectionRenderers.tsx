@@ -19,6 +19,8 @@ import {
   Text as AriaText,
 } from "react-aria-components";
 import { DataField } from "../components/Field";
+// ListBoxItem 행 slot 마크업 단일 소스 — Select/ComboBox 팝오버와 공유 (2026-08-21).
+import { renderListBoxItemSlotContent } from "../components/listBoxItemSlotContent";
 import type {
   PreviewElement,
   RenderContext,
@@ -77,72 +79,6 @@ function compileRowTemplateFor(
     templateItemProps ?? null,
   );
   return source ? compileFieldTemplate(source) : null;
-}
-
-/**
- * ADR-147/148: ListBoxItem slot 콘텐츠 — RAC `<Text slot="label">`/`<Text slot="description">`
- * + decorative icon + selection 체크마크. Builder Skia `listbox_item` skiaPrimitive 의
- * icon/label/description/check 와 D3 시각 대칭. 체크마크는 `isSelected` 일 때만(Skia 와 동일).
- *
- * **ADR-148 Phase 0 (slot 자식 배선)**: `slotComposition`(origin slot 조합 자식에서 파생) 이
- * 있으면 slot **존재 gating**(구성에 없는 slot 미 emit) + **스타일 overlay**(slot 자식
- * props.style) + **emit 순서**(label/description 등장 순서 — ListBox.css 가 flex-column 이라
- * DOM 순서 = 시각 스택 순서, Skia stackEntries 와 대칭) 를 소비한다. null 이면 기존 동작(BC).
- */
-function renderListBoxItemSlotContent(opts: {
-  label: React.ReactNode;
-  description: string | null;
-  iconName: string | null;
-  isSelected: boolean;
-  slotComposition?: SlotComposition | null;
-}): React.ReactNode {
-  const { label, description, iconName, isSelected, slotComposition } = opts;
-  const slotStyleOf = (role: SlotRole): React.CSSProperties | undefined =>
-    slotComposition?.slots[role]?.style as React.CSSProperties | undefined;
-
-  const iconStyle = slotStyleOf("icon");
-  const iconNode =
-    isSlotEnabled(slotComposition, "icon") && iconName ? (
-      // 컨테이너 박스·텍스트 여백은 ListBox.css `--lb-icon-size` 가 스케일 (행 스코프 주입).
-      <span slot="icon" aria-hidden="true">
-        <Icon iconName={iconName} style={{ fontSize: 16, ...iconStyle }} />
-      </span>
-    ) : null;
-
-  const labelNode = isSlotEnabled(slotComposition, "label") ? (
-    <AriaText slot="label" style={slotStyleOf("label")}>
-      {label}
-    </AriaText>
-  ) : null;
-  const descriptionNode =
-    isSlotEnabled(slotComposition, "description") && description ? (
-      <AriaText slot="description" style={slotStyleOf("description")}>
-        {description}
-      </AriaText>
-    ) : null;
-
-  // label/description emit 순서 — slot 자식 등장 순서 (기본: label → description).
-  const descriptionFirst =
-    slotComposition != null &&
-    slotComposition.order.indexOf("description") !== -1 &&
-    slotComposition.order.indexOf("description") <
-      slotComposition.order.indexOf("label");
-
-  return (
-    <>
-      {iconNode}
-      {descriptionFirst ? descriptionNode : labelNode}
-      {descriptionFirst ? labelNode : descriptionNode}
-      {isSelected ? (
-        <Icon
-          iconName="check"
-          aria-hidden="true"
-          className="listbox-item-check"
-          style={{ fontSize: 16 }}
-        />
-      ) : null}
-    </>
-  );
 }
 
 /**
@@ -1269,6 +1205,9 @@ export const renderSelect = (
     };
   } else if (hasItemsArray) {
     // 경로 2 (ADR-073 NEW): items[] SSOT — Canonical contract
+    // icon/description slot 렌더 (2026-08-21): itemSchema 가 두 필드를 선언하고 패널 편집도
+    //   되는데 여기서 `{item.label}` 문자열만 emit 해 화면에 나오지 않았다(§1-1 표면 단절).
+    //   마크업은 ListBox 행과 같은 단일 소스(renderListBoxItemSlotContent).
     renderChildren = storedItems!.map((item) => (
       <SelectItem
         key={item.id}
@@ -1277,7 +1216,16 @@ export const renderSelect = (
         textValue={item.textValue ?? item.label}
         isDisabled={Boolean(item.isDisabled)}
       >
-        {item.label}
+        {({ isSelected }) =>
+          renderListBoxItemSlotContent({
+            label: item.label,
+            description: item.description ?? null,
+            iconName: item.icon ?? null,
+            isSelected,
+            // 팝오버는 좌측 gutter ::before ✓ 를 이미 그린다 — 우측 체크 중복 방지.
+            showSelectionCheck: false,
+          })
+        }
       </SelectItem>
     ));
   } else {
@@ -1530,6 +1478,7 @@ export const renderComboBox = (
     };
   } else if (cbHasItemsArray) {
     // 경로 2 (ADR-073 NEW): items[] SSOT — Canonical contract
+    // icon/description slot 렌더 (2026-08-21, Select 동형 — §1-1 표면 단절 수리).
     cbRenderChildren = cbStoredItems!.map((item) => (
       <ComboBoxItem
         key={item.id}
@@ -1538,7 +1487,16 @@ export const renderComboBox = (
         textValue={item.textValue ?? item.label}
         isDisabled={Boolean(item.isDisabled)}
       >
-        {item.label}
+        {({ isSelected }) =>
+          renderListBoxItemSlotContent({
+            label: item.label,
+            description: item.description ?? null,
+            iconName: item.icon ?? null,
+            isSelected,
+            // 팝오버는 좌측 gutter ::before ✓ 를 이미 그린다 — 우측 체크 중복 방지.
+            showSelectionCheck: false,
+          })
+        }
       </ComboBoxItem>
     ));
   } else {

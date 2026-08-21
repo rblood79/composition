@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Select·ComboBox 팝오버 행 icon/description 렌더 - 2026-08-21
+
+### Bug Fixes
+
+- **itemSchema 의 icon/description 이 팝오버에서 안 보였다** (design-data 감사 §1-1):
+  - 두 컴포넌트의 `itemSchema` 는 icon/description 을 선언하고 패널 편집도 되는데, 팝오버
+    행은 `{label}` 문자열만 emit 했다. ListBox 행만 slot 마크업을 emit 했고 ListBox.css 의
+    `[slot="icon"]`/`[slot="description"]` 규칙은 클래스 스코프라 팝오버 행에도 이미
+    적용되고 있었다 — **빠진 것은 마크업뿐**.
+  - **Why**: 같은 `.react-aria-ListBoxItem` 행을 세 곳(ListBox 렌더러 / Select 팝오버 /
+    ComboBox 팝오버)이 각자 만들고 있었다. 마크업을 `renderListBoxItemSlotContent` 단일
+    소스로 모아 재발을 막는다.
+  - 팝오버는 canvas projection 이 없는 DOM 전용 표면이라(트리거만 그린다) Skia 대칭 영향 없음.
+- **팝오버 컨텍스트 충돌 2건 동반 수리**:
+  - 좌측 `--spacing-xl` gutter 는 선택 표시(`[data-selected]::before` ✓)가 쓰는 자리인데
+    icon 이 같은 자리에 놓여 라벨과 겹쳤다 → icon 을 gutter 다음으로 옮기고 텍스트 여백을
+    `calc(--spacing-xl + icon + 6px)` 로 확장.
+  - 행 우측 체크마크까지 렌더되면 선택 행에 체크가 둘이 된다 → 팝오버 경로는
+    `showSelectionCheck: false` (좌측 ✓ 가 이미 담당).
+- live: preview iframe 에서 icon/label/description 3행 렌더 + icon 행 padding-left 46px /
+  icon left 24px(겹침 없음) + 선택 행 trailing check 0개 + 트리거는 라벨만 표시
+  (description 은 catalog 규칙이 이미 `display:none`).
+
 ## field labelAlign — 죽어 있던 side 라벨 정렬 채널 복구 (축① 완결) - 2026-08-21
 
 ### Bug Fixes

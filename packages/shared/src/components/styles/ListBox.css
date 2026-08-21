@@ -303,6 +303,20 @@
       padding: var(--lb-item-padding);
       padding-left: var(--spacing-xl);
 
+      /* 팝오버 행의 icon slot (2026-08-21) — 좌측 `--spacing-xl` gutter 는 선택 ✓
+       * (`[data-selected]::before`, left:0 width:18px)가 쓰므로 icon 은 그 **다음**에 놓고
+       * 텍스트를 icon 폭만큼 더 민다. 평면 ListBox 규칙(`left: --spacing-md`,
+       * `padding-left: calc(--spacing-md + icon + 6px)`)을 그대로 쓰면 24px gutter 와
+       * 겹쳐 아이콘이 라벨 위로 올라온다(실측). Select/ComboBox itemSchema 의 icon 이
+       * 실제로 렌더되기 시작한 2026-08-21 이전에는 드러나지 않던 조합. */
+      [slot="icon"] {
+        left: var(--spacing-xl);
+      }
+
+      &:has([slot="icon"]) {
+        padding-left: calc(var(--spacing-xl) + var(--lb-icon-size, 16px) + 6px);
+      }
+
       &[data-focus-visible] {
         outline: none;
       }

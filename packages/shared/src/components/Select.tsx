@@ -30,6 +30,7 @@ import type {
 } from "../types";
 
 import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconSize";
+import { renderListBoxItemSlotContent } from "./listBoxItemSlotContent";
 import { useResolvedCollectionItems } from "../hooks";
 import {
   type NecessityIndicator,
@@ -250,6 +251,18 @@ export function Select<T extends object>({
               ? String(item.label)
               : undefined;
 
+          // itemSchema 의 icon/description 을 실제로 렌더한다 (2026-08-21) — 이전에는
+          //   label 문자열만 emit 해서 두 필드가 편집만 되고 화면에 안 나왔다.
+          //   마크업은 ListBox 행과 같은 단일 소스(renderListBoxItemSlotContent).
+          const itemIcon =
+            typeof item.icon === "string" && item.icon.length > 0
+              ? item.icon
+              : null;
+          const itemDescription =
+            typeof item.description === "string" && item.description.length > 0
+              ? item.description
+              : null;
+
           return (
             <ListBoxItem
               key={itemId}
@@ -257,7 +270,16 @@ export function Select<T extends object>({
               textValue={itemLabel}
               className="react-aria-ListBoxItem"
             >
-              {itemLabel}
+              {({ isSelected }) =>
+                renderListBoxItemSlotContent({
+                  label: itemLabel,
+                  description: itemDescription,
+                  iconName: itemIcon,
+                  isSelected,
+                  // 팝오버는 좌측 gutter ::before ✓ 를 이미 그린다 — 우측 체크 중복 방지.
+                  showSelectionCheck: false,
+                })
+              }
             </ListBoxItem>
           );
         }) as (item: T) => React.ReactNode;

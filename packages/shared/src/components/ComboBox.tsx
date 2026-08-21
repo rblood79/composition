@@ -25,6 +25,7 @@ import type { ComponentSize } from "../types";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconSize";
+import { renderListBoxItemSlotContent } from "./listBoxItemSlotContent";
 import { useResolvedCollectionItems } from "../hooks";
 import {
   type NecessityIndicator,
@@ -216,13 +217,31 @@ export function ComboBox<T extends object>({
 
       // 정규화 rows 기반 기본 render function (정적 items / columnMapping 없는 dynamic 공통)
       if (hasResolvedRows) {
+        // itemSchema 의 icon/description 렌더 (2026-08-21, Select 동형) — 이전에는 label
+        //   문자열만 emit 해서 두 필드가 편집만 되고 화면에 안 나왔다.
         return ((item: Record<string, unknown>) => (
           <ListBoxItem
             key={String(item.id)}
             id={String(item.id)}
             textValue={String(item.label)}
           >
-            {String(item.label)}
+            {({ isSelected }) =>
+              renderListBoxItemSlotContent({
+                label: String(item.label),
+                description:
+                  typeof item.description === "string" &&
+                  item.description.length > 0
+                    ? item.description
+                    : null,
+                iconName:
+                  typeof item.icon === "string" && item.icon.length > 0
+                    ? item.icon
+                    : null,
+                isSelected,
+                // 팝오버는 좌측 gutter ::before ✓ 를 이미 그린다 — 우측 체크 중복 방지.
+                showSelectionCheck: false,
+              })
+            }
           </ListBoxItem>
         )) as (item: T) => React.ReactNode;
       }
