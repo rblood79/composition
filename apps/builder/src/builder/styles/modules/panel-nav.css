@@ -24,7 +24,7 @@
   .nav-list {
     display: flex;
     flex-direction: column;
-    padding: var(--spacing-sm);
+    padding: var(--spacing);
     gap: var(--spacing-sm);
     z-index: 1;
     background-color: var(--bg-raised);

@@ -35,7 +35,6 @@
   }
 
   .panel-workspace {
-    --panel-rail-size: 48px;
     --panel-workspace-gap: 4px;
     --panel-interaction-line-color: var(--focus-ring);
     --panel-interaction-line-size: 2px;
@@ -110,8 +109,7 @@
     top: 0;
     bottom: 0;
     z-index: 2100;
-    flex: 0 0 var(--panel-rail-size);
-    width: var(--panel-rail-size);
+    width: fit-content;
     height: 100%;
     pointer-events: auto;
   }
