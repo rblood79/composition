@@ -2183,6 +2183,11 @@ function appendTagRowProjection(
     if (variant) chipProps.variant = variant;
     if (size) chipProps.size = size;
     if (row.isDisabled) chipProps.isDisabled = true;
+    // 항목별 leading icon (2026-08-21): itemSchema 의 `icon` 을 chip props 로 전달한다.
+    //   Tag rule 의 `leadingIcon.nameProp: "icon"` 이 이 값을 읽어 glyph + text shift 를 만들고,
+    //   값이 없는 chip 은 아이콘 없이 기존 폭을 유지한다(레이아웃 폭 계산도 같은 조건).
+    //   `row.icon` 은 resolveCollectionItems 가 정규화한 필드(ADR-147, ListBox 행과 동일 소스).
+    if (row.icon) chipProps.icon = row.icon;
     // ADR-912 영역 B (A) — Tag catalog cutover (2026-06-12): X(remove)는 chip 본체가 line×2 로
     //   직접 그리던 것(Tag.spec)을 폐기하고 **trailing_icon(icon_font "x" Lucide glyph)**으로 그린다
     //   — X = line 이 아니라 icon 데이터(SelectIcon/SearchField clear 와 동일 Lucide "x"), DOM Button

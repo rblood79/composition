@@ -11475,6 +11475,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   true 일 때만 text 우측에 덧그림(SearchField clear / DOM Button slot=remove 와 동일 icon).
         //   color 는 variant text 와 동일(default=neutral). showProp = generic 렌더러가 Tag 전용
         //   prop 이름을 모르도록 데이터로 가시성 조건 격리(ADR-142 §3 컴포넌트 식별 분기 금지).
+        // leading icon (2026-08-21, design-data 감사 §2-? Tag avatar/icon 슬롯):
+        //   chip 아이콘은 **항목별 데이터**라 rule 에 정적 이름을 둘 수 없다 → `nameProp` 으로
+        //   `props.icon`(itemSchema 의 icon 필드)을 읽는다. 값이 없는 chip 은 아이콘도, 텍스트
+        //   shift 도 없다(폭 = 라벨 + padding 그대로). trailingIcon 의 `showProp` 과 같은
+        //   데이터-게이팅 idiom — 컴포넌트 식별 분기 아님(ADR-142 §3).
+        //   크기는 `sizes[*].iconSize`(전 size 14 — DOM 고정 14px glyph 컨벤션과 대칭).
+        leadingIcon: {
+          nameProp: "icon",
+          gap: 4,
+          color: "{color.neutral}",
+        },
         trailingIcon: {
           name: "x",
           gap: 2,
@@ -11498,6 +11509,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.accent}",
         },
         // selected variant: remove X color = on-accent (text 와 동일).
+        // leading icon (2026-08-21, design-data 감사 §2-? Tag avatar/icon 슬롯):
+        //   chip 아이콘은 **항목별 데이터**라 rule 에 정적 이름을 둘 수 없다 → `nameProp` 으로
+        //   `props.icon`(itemSchema 의 icon 필드)을 읽는다. 값이 없는 chip 은 아이콘도, 텍스트
+        //   shift 도 없다(폭 = 라벨 + padding 그대로). trailingIcon 의 `showProp` 과 같은
+        //   데이터-게이팅 idiom — 컴포넌트 식별 분기 아님(ADR-142 §3).
+        //   크기는 `sizes[*].iconSize`(전 size 14 — DOM 고정 14px glyph 컨벤션과 대칭).
+        leadingIcon: {
+          nameProp: "icon",
+          gap: 4,
+          color: "{color.on-accent}",
+        },
         trailingIcon: {
           name: "x",
           gap: 2,

@@ -185,8 +185,18 @@ export interface ComponentRuleVariant {
    *   본 필드는 Skia generic 재현 전용(DOM 대칭은 부모 RAC 가 담당).
    * - `gap`: icon ↔ text 간격(px, 기본 6).
    * - `color`: icon fill(TokenRef 문자열). 미지정 시 variant `colors.text` fallback.
+   * - `nameProp`: glyph 이름을 **행 데이터**에서 읽을 때 쓰는 props 키(예: Tag chip 의
+   *   `icon`). 지정 시 `props[nameProp]` 이 비어 있으면 icon 을 그리지 않고 text shift 도
+   *   하지 않는다 — 같은 rule 로 "아이콘 있는 항목/없는 항목"이 섞인 컬렉션을 표현한다
+   *   (trailingIcon 의 `showProp` 과 같은 데이터-게이팅 idiom). `name` 과 함께 있으면
+   *   props 값이 우선하고 없으면 `name` 이 기본값.
    */
-  leadingIcon?: { name: string; gap?: number; color?: string };
+  leadingIcon?: {
+    name?: string;
+    nameProp?: string;
+    gap?: number;
+    color?: string;
+  };
   /**
    * trailing icon (텍스트 우측 아이콘 — CalendarHeader 다음달 chevron 등 보편 D3 속성, ADR-912 (B+icon)).
    * `inline_icon_text` skiaPrimitive(replace 모드)가 leadingIcon + center text + 본 필드를 함께

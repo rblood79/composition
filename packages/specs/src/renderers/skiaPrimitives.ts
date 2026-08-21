@@ -37,7 +37,10 @@ import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { resolveIllustratedMessageMetric } from "./utils/illustratedMessageMetrics";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
-import { resolveTreeIndent } from "./buildCatalogShapes";
+import {
+  resolveLeadingIconName,
+  resolveTreeIndent,
+} from "./buildCatalogShapes";
 import { measureSpecTextWidth } from "./utils/measureText";
 import { breadcrumbSeparatorAfterPaddingXPx } from "../primitives/spacing";
 
@@ -2443,6 +2446,11 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const li = visual?.leadingIcon;
   if (!li) return [];
+  // 행 데이터 게이팅(2026-08-21): `nameProp` rule 은 glyph 이름을 props 에서 읽고, 값이 없으면
+  //   아이콘을 그리지 않는다 — buildCatalogShapes 의 text shift 와 **같은 helper** 로 판정해야
+  //   "폭은 밀렸는데 아이콘이 없다"(또는 반대) 가 생기지 않는다.
+  const resolvedName = resolveLeadingIconName(li, props);
+  if (!resolvedName) return [];
 
   // ADR-912 R1 후속 (TreeItem catalog cutover): TreeItem chevron 은 자식 TreeItem 이
   //   있을 때만 표시한다. buildSpecNodeData 가 `_hasTreeChildren`(boolean)을 주입 —
@@ -2480,9 +2488,10 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   //   chevron-down(expanded)/chevron-right(collapsed)로 바꾼다. isExpanded 는 부모
   //   Disclosure 에서 buildSpecNodeData(resolveDisclosureHeaderParent)가 전파. chevron 류가
   //   아닌 leadingIcon(다른 컴포넌트)은 li.name 그대로 — 데이터 분기(컴포넌트 식별 없음).
-  const isChevron = li.name === "chevron-right" || li.name === "chevron-down";
+  const isChevron =
+    resolvedName === "chevron-right" || resolvedName === "chevron-down";
   const iconName =
-    isChevron && props.isExpanded === true ? "chevron-down" : li.name;
+    isChevron && props.isExpanded === true ? "chevron-down" : resolvedName;
 
   return [
     {
@@ -2523,7 +2532,11 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
   const li = visual?.leadingIcon;
   const ti = visual?.trailingIcon;
   // 좌·우 icon 둘 다 있어야 inline_icon_text 모델 — 아니면 leading_icon/box+text 가 처리.
+  //   leadingIcon 은 `nameProp`(행 데이터) 형태도 있어 name 이 없을 수 있다 — 좌우 대칭 배치
+  //   모델은 **정적 이름**을 전제하므로 그 경우도 본 module 대상이 아니다(2026-08-21).
   if (!li || !ti) return null;
+  const leadingName = resolveLeadingIconName(li, props);
+  if (!leadingName) return null;
 
   const fontSize = resolveSpecFontSize(
     (style?.fontSize as string | number | undefined) ?? size.fontSize,
@@ -2627,7 +2640,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
     return [
       {
         type: "icon_font",
-        iconName: li.name,
+        iconName: leadingName,
         x: cx,
         y: padLeft > 0 ? padLeft + cellSize / 2 : cellSize / 2,
         fontSize: chevronGlyphSize,
@@ -2688,7 +2701,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
   return [
     {
       type: "icon_font",
-      iconName: li.name,
+      iconName: leadingName,
       x: leftIconX,
       y: cy,
       fontSize: chevronGlyphSize,

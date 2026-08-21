@@ -18,6 +18,12 @@ export interface StoredTagItem {
   id: string;
   label: string;
   isDisabled?: boolean;
+  /**
+   * chip 좌측 아이콘 이름 (lucide, 2026-08-21) — Select/ComboBox itemSchema 의 `icon` 과 같은 채널.
+   * DOM 은 chip 안 glyph(`.tag-leading-icon`), Skia 는 Tag rule 의 `leadingIcon.nameProp:"icon"`.
+   * 미지정 chip 은 아이콘 없이 기존 폭을 유지한다(폭 계산도 같은 조건).
+   */
+  icon?: string;
   /** Tag 별 개별 삭제 허용 (TagGroup.allowsRemoving 기본값 override) */
   allowsRemoving?: boolean;
 }

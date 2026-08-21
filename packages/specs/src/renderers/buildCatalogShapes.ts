@@ -25,6 +25,7 @@ import type {
   ComponentState,
   Shape,
   SizeSpec,
+  TokenRef,
 } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { measureSpecTextWidth } from "./utils/measureText";
@@ -109,6 +110,33 @@ export function resolveSegmentedRadius(
     return vertical ? [0, 0, radius, radius] : [0, radius, radius, 0];
   }
   return [0, 0, 0, 0]; // middle — 전부 직각
+}
+
+/**
+ * leading icon glyph 이름 해석 — rule 의 정적 `name` 과 행 데이터 `nameProp` 을 합성한다.
+ *
+ * `nameProp` 이 있으면 `props[nameProp]`(예: Tag chip 의 `icon`)이 우선이고, 값이 없으면
+ * rule 의 `name` 으로 폴백한다. 둘 다 없으면 **아이콘 없음** — 호출부는 glyph 도 그리지 않고
+ * text shift 도 하지 않아야 한다(아이콘 없는 항목의 폭이 커지는 것을 막는다).
+ *
+ * 컴포넌트 식별 분기가 아니라 rule 데이터 기반 게이팅이다 (ADR-142 §3, trailingIcon 의
+ * `showProp` 과 같은 idiom). buildCatalogShapes(폭 shift)와 `leading_icon` skiaPrimitive
+ * (glyph)가 **같은 함수**를 써야 둘이 어긋나지 않는다.
+ */
+export function resolveLeadingIconName(
+  leadingIcon:
+    | { name?: string; nameProp?: string; gap?: number; color?: TokenRef }
+    | undefined,
+  props: Record<string, unknown>,
+): string | null {
+  if (!leadingIcon) return null;
+  if (leadingIcon.nameProp) {
+    const fromProps = props[leadingIcon.nameProp];
+    if (typeof fromProps === "string" && fromProps.length > 0) return fromProps;
+  }
+  return leadingIcon.name && leadingIcon.name.length > 0
+    ? leadingIcon.name
+    : null;
 }
 
 /**
@@ -379,10 +407,14 @@ export function buildCatalogShapes(
     //   우측 shift (icon 은 leading_icon skiaPrimitive 가 좌측 paddingX 에 그림 — text 중복 없음).
     //   컴포넌트별 if 아님 — visual.leadingIcon 데이터 유무로만 분기(ADR-142 §3). icon glyph 크기 =
     //   size.iconSize(rule, size 별). 미정의 시 fontSize*1.1 fallback(leading_icon module 과 동형).
-    const leadingIconWidth = visual?.leadingIcon
+    //   `nameProp`(행 데이터 게이팅, 2026-08-21): glyph 이름을 props 에서 읽는 rule 은 그 값이
+    //   비어 있으면 **shift 도 하지 않는다** — 아이콘 없는 chip 까지 좌측 여백이 생기면 폭이
+    //   어긋난다(Tag chip 은 fit-content 라 폭 = 시각). leading_icon module 의 게이팅과 동일 식.
+    const leadingIconName = resolveLeadingIconName(visual?.leadingIcon, props);
+    const leadingIconWidth = leadingIconName
       ? (typeof size.iconSize === "number" && size.iconSize > 0
           ? size.iconSize
-          : Math.round(fontSize * 1.1)) + (visual.leadingIcon.gap ?? 6)
+          : Math.round(fontSize * 1.1)) + (visual!.leadingIcon!.gap ?? 6)
       : 0;
     const textX = paddingX + leadingIconWidth;
     // font-weight: 사용자 style 우선, 없으면 visual.textWeight(variant 시각 — DropZone 400 등),
@@ -438,7 +470,7 @@ export function buildCatalogShapes(
     const textAlign =
       (style?.textAlign as "left" | "center" | "right") ||
       visual?.textAlign ||
-      (visual?.leadingIcon
+      (leadingIconName
         ? "left"
         : props.placeholder != null
           ? "left"

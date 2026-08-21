@@ -81,7 +81,9 @@ export interface ComponentVisualRule {
    * buildCatalogShapes 가 `size.iconSize` 존재 시 text x 를 `iconSize + gap` 만큼 우측 shift.
    * DOM 은 부모 컴포넌트가 self-compose → Skia generic 재현 전용.
    */
-  leadingIcon: { name: string; gap?: number; color?: TokenRef } | undefined;
+  leadingIcon:
+    | { name?: string; nameProp?: string; gap?: number; color?: TokenRef }
+    | undefined;
   /**
    * trailing icon (텍스트 우측 아이콘 — CalendarHeader 다음달 chevron 등, ADR-912 (B+icon)).
    * `inline_icon_text` skiaPrimitive(replace 모드)가 본 필드와 leadingIcon + center text 를

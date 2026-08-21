@@ -873,6 +873,18 @@ export function resolveTagListGap(sizeName: string): number {
  * Tag rule 의 height 와 lineHeight 로 도출(`(height - lineHeight) / 2`) — 기존 TAG_CHIP_SIZES.paddingY
  * 와 sm/md/lg 전 사이즈 동일 값(2/4/8). 값 보존(치수 현상 보존): 회귀 0, 차이는 spec 삭제 후에도 0.
  */
+/**
+ * Tag chip leading icon 치수 (2026-08-21) — catalog `Tag.sizes[*].iconSize`(전 size 14) +
+ * `variants[*].leadingIcon.gap`(4) 과 같은 값.
+ *
+ * layout(폭 계산) / Skia 렌더(buildCatalogShapes shift) / DOM(chip flex gap) 세 곳이 같은 값을
+ * 써야 chip 폭이 어긋나지 않는다. rule 을 layout 에서 직접 읽지 않는 이유는 이 함수가
+ * 텍스트 측정 hot path 라 rule lookup 을 매 chip 마다 돌리지 않기 위함 —
+ * 값이 바뀌면 `tagLeadingIconMetric.test.ts` 가 catalog 와의 불일치를 잡는다.
+ */
+export const TAG_LEADING_ICON_SIZE = 14;
+export const TAG_LEADING_ICON_GAP = 4;
+
 function resolveTagChipMetric(sizeName: string): {
   paddingX: number;
   paddingY: number;
@@ -929,7 +941,7 @@ function resolveTagChipMetric(sizeName: string): {
  *   조회)에서만 호출. wrap 공식은 삭제된 TagList.spec.ts shapes() Phase 1 과 문자 그대로 동일.
  */
 export function resolveTagWrapLayout(input: {
-  items: ReadonlyArray<{ label?: string }>;
+  items: ReadonlyArray<{ label?: string; icon?: string | null }>;
   containerWidth: number;
   sizeName: string;
   allowsRemoving: boolean;
@@ -972,8 +984,17 @@ export function resolveTagWrapLayout(input: {
   for (let i = 0; i < items.length; i++) {
     const label = items[i].label || `Tag ${i + 1}`;
     const textWidth = measureTextWidth(label, fontSize, "Pretendard", 400);
+    // leading icon 보유 chip 은 아이콘 + gap 만큼 넓다 — 행 wrap/maxRows 접힘 판정이
+    //   실제 배치와 어긋나지 않도록 같은 값을 더한다(DOM 미러 측정도 아이콘을 포함해야 정합).
+    const iconExtraWidth = items[i].icon
+      ? TAG_LEADING_ICON_SIZE + TAG_LEADING_ICON_GAP
+      : 0;
     const chipWidth =
-      textWidth + chipSize.paddingX + chipPaddingRight + removeExtraWidth;
+      textWidth +
+      chipSize.paddingX +
+      chipPaddingRight +
+      removeExtraWidth +
+      iconExtraWidth;
     const gapBefore = i > 0 && currentRowWidth > 0 ? gap : 0;
 
     if (i > 0 && currentRowWidth + gapBefore + chipWidth > cw) {
@@ -2025,6 +2046,14 @@ export function calculateContentWidth(
           const removePad = 2; // --spacing-2xs
           removeExtra = removeGap + removePad * 2 + removeIconSize;
         }
+        // 항목별 leading icon(2026-08-21): chip 은 fit-content 라 아이콘 폭이 곧 시각 폭이다.
+        //   Skia 렌더(buildCatalogShapes text shift)·DOM(chip flex gap)과 같은 값을 더해야
+        //   "아이콘은 그렸는데 박스가 좁아 라벨이 잘리는" 발산이 안 생긴다.
+        //   상수는 Tag rule 정본과 동일: iconSize=TAG_LEADING_ICON_SIZE, gap=TAG_LEADING_ICON_GAP.
+        const tagIcon = (element.props as { icon?: unknown } | undefined)?.icon;
+        if (typeof tagIcon === "string" && tagIcon.length > 0) {
+          removeExtra += TAG_LEADING_ICON_SIZE + TAG_LEADING_ICON_GAP;
+        }
       }
 
       // minWidth 적용: totalWidth = contentWidth + padding >= minWidth
@@ -2764,7 +2793,9 @@ export function calculateContentHeight(
   //   wrap 공식은 chip 의 Taffy flex-wrap 배치와 정합해야 한다(rows × chipHeight + (rows-1)×rowGap).
   if (tag1 === "taglist") {
     const props = element.props as Record<string, unknown> | undefined;
-    const items = props?.items as Array<{ label?: string }> | undefined;
+    const items = props?.items as
+      | Array<{ label?: string; icon?: string | null }>
+      | undefined;
     if (!items || items.length === 0) return 0;
 
     // ADR-907 Layer D: wrap 시뮬레이션 SSOT = resolveTagWrapLayout (Skia chip render skip 과

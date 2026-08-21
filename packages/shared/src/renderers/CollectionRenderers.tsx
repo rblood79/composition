@@ -10,6 +10,8 @@ import {
   MenuItem,
   Toolbar,
 } from "../components/list";
+// chip leading icon glyph (2026-08-21) — 고정 14px, 수동 TagGroup.css `.tag-leading-icon` 소비.
+import { Icon } from "../components/Icon";
 import {
   MenuSection as AriaMenuSection,
   Header as AriaMenuHeader,
@@ -349,6 +351,16 @@ export const renderTagGroup = (
             data-element-id={element.id}
             isDisabled={Boolean(item.isDisabled)}
           >
+            {/* 항목별 leading icon (2026-08-21) — itemSchema 의 `icon`. Skia 는 Tag rule
+                `leadingIcon.nameProp:"icon"` 으로 같은 값을 읽는다. 크기/간격은 수동
+                TagGroup.css `.tag-leading-icon`(14px + 4px)이 정본. */}
+            {item.icon && (
+              <Icon
+                iconName={item.icon}
+                aria-hidden="true"
+                className="tag-leading-icon"
+              />
+            )}
             {item.label}
           </Tag>
         ))

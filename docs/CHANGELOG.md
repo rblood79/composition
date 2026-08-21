@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Tag chip 항목별 leading icon - 2026-08-21
+
+### Features
+
+- **TagGroup itemSchema `icon` 채택** (design-data 감사 §2-A Tag avatar/icon 슬롯):
+  - Select/ComboBox itemSchema 와 같은 `icon` 채널을 Tag 항목에 추가 — 패널에서 chip 별
+    아이콘을 지정한다.
+  - DOM: chip 안 `.tag-leading-icon` glyph(14px + 4px 간격, 프로젝트 고정-크기 아이콘 관례).
+  - Skia: catalog `Tag.variants[*].leadingIcon.nameProp: "icon"` + `leading_icon`
+    skiaPrimitive(append). **rule 데이터 게이팅** — 아이콘 이름이 없는 chip 은 glyph 도,
+    텍스트 shift 도 없다(chip 은 fit-content 라 여백만 생기면 폭이 그대로 발산한다).
+  - 폭은 세 곳이 같은 값(icon 14 + gap 4)을 쓴다: catalog rule / layout 상수
+    (`TAG_LEADING_ICON_SIZE`·`GAP` — chip 박스 폭 + wrap·maxRows 접힘 판정) / 수동 CSS.
+    `tagLeadingIconMetric.test.ts` 가 catalog 와 상수의 불일치를 잡는다.
+
+### Architecture
+
+- **`leadingIcon.nameProp` — rule 정적 이름과 행 데이터의 합성 채널**:
+  - 기존 leadingIcon 은 rule 의 고정 glyph(DisclosureHeader chevron 등) 전용이라 항목별
+    아이콘을 표현할 수 없었다. `nameProp` 으로 `props[key]` 를 읽고, 없으면 `name` 폴백,
+    둘 다 없으면 미표시 — trailingIcon 의 `showProp` 과 같은 데이터-게이팅 idiom.
+  - 폭 shift(`buildCatalogShapes`)와 glyph(`leading_icon` primitive)가 **같은 helper**
+    (`resolveLeadingIconName`)로 판정한다 — 둘이 갈리면 "폭은 밀렸는데 아이콘이 없다"가 된다
+    (실제로 이번 작업 중 stale dist 상태에서 그 증상이 재현됐다).
+
 ## Select·ComboBox 팝오버 행 icon/description 렌더 - 2026-08-21
 
 ### Bug Fixes

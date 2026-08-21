@@ -30,6 +30,9 @@ export const tagGroupBinding: PrimitiveBinding = {
           defaultItem: { id: "", label: "New Tag", isDisabled: false },
           itemSchema: [
             { key: "label", type: "string", label: "Label" },
+            // 항목별 leading icon (2026-08-21) — Select/ComboBox itemSchema 와 같은 `icon` 채널.
+            //   DOM 은 chip 안 glyph, Skia 는 Tag rule 의 `leadingIcon.nameProp:"icon"` 이 소비.
+            { key: "icon", type: "icon", label: "Icon" },
             { key: "isDisabled", type: "boolean", label: "Disabled" },
             {
               key: "allowsRemoving",

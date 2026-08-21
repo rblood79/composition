@@ -60,4 +60,9 @@ export const tagBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
+  // 항목별 leading icon (2026-08-21): `leading_icon` 은 **append 모드** escape 라 generic
+  //   box+text 위에 glyph 만 덧그린다. 자기 게이팅(`leadingIcon.nameProp` 값이 없으면 빈 배열)
+  //   이라 아이콘 없는 chip 에는 아무 영향이 없다 — Tag rule 의 leadingIcon 데이터가 실제
+  //   가시성을 정한다(컴포넌트 식별 분기 아님, ADR-142 §3).
+  skiaPrimitive: "leading_icon",
 };

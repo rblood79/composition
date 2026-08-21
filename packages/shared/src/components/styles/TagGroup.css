@@ -84,6 +84,23 @@
       --tag-border: var(--accent);
     }
 
+    /* chip leading icon (2026-08-21) — itemSchema 의 `icon`.
+     * 크기는 DOM 고정 14px 관례(remove X 와 동일)이고 Skia 는 Tag rule `sizes[*].iconSize`
+     * (전 size 14)로 같은 값을 쓴다. 라벨과의 간격 4px 는 rule `leadingIcon.gap` 및 layout
+     * 폭 계산 상수(TAG_LEADING_ICON_GAP)와 같은 값 — 세 경로가 어긋나면 chip 폭이 발산한다. */
+    .tag-leading-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      font-size: 14px;
+      margin-right: 4px;
+      flex-shrink: 0;
+      color: inherit;
+      pointer-events: none;
+    }
+
     /* Remove button styling */
     .tag-remove-btn {
       background: none;
