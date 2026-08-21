@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## TextArea 생성 CSS 가 통째로 미매칭이던 문제 해소 + Skia 사이즈 스케일 정렬 - 2026-08-21
+
+### Fixed
+
+- **캔버스(Skia)와 미리보기(DOM)가 TextArea 의 크기 스케일에서 한 단계 어긋나 있었다.**
+  미리보기 실측값과 catalog 값이 이렇게 달랐다:
+
+  | 항목      | 미리보기(DOM) 실측  | 구 catalog 값 (캔버스) |
+  | --------- | ------------------- | ---------------------- |
+  | paddingX  | 8 / 12 / 16 / 24    | 10 / 14 / 16 / 24      |
+  | 모서리    | 4 / 6 / 8 / 12      | 4 / 6 / 6 / 8          |
+  | 글자 크기 | xs / sm / base / lg | sm / base / lg / xl    |
+
+  Spectrum 도 text area 를 "text field 가 지원하는 표준 옵션 전부"로 규정하므로 타입 스케일
+  공유가 정본이다 — 어긋난 쪽은 캔버스였다. 이제 두 화면이 같은 값을 본다. 여러 줄 입력
+  상자라는 성질에서 오는 `height`(64/80/120/160)만 TextArea 고유값으로 남겼다.
+
+- **원인은 도달할 수 없는 CSS 였다.** canonical `TextArea` 는 DOM 에서 RAC `TextField` 로
+  렌더된다 — RAC 에는 TextArea **컨테이너** primitive 가 없어 TextField 가 감싸고, RAC 가
+  자기 이름으로 클래스를 붙이기 때문이다. 그래서 `.react-aria-TextArea` 를 노리던 생성
+  `TextArea.css` 는 **구조적으로 영원히 걸리지 않았고**, 실제 시각은 TextField 의 생성 CSS
+  가 담당했다. 겉보기로는 정상이라 드러나지 않던 상태다.
+- 이제 그런 rule 은 **CSS 를 만들지 않는다**. 게이트는 컴포넌트 이름 목록이 아니라 binding
+  데이터에서 파생하므로(`source.component ≠ rule key`) 같은 형태가 새로 생겨도 자동 적용된다.
+  나머지 92개 파일의 생성 결과는 바이트 단위로 동일하다.
+- `.react-aria-TextArea` 라는 이름을 되살리지 않은 것은 그것이 RAC 에서 **안쪽 `<textarea>`**
+  의 클래스이기 때문이다. 컨테이너 규칙을 그 이름으로 내보내면 나중에 진짜 textarea 가
+  들어오는 순간 엉뚱한 요소에 걸린다.
+
+> 스코프 밖 (이번에 발견, 별도 과제): ① 팔레트가 만드는 TextArea 의 입력 자식이 `Input`
+> 이라 DOM 은 **한 줄 `<input>`** 으로 렌더된다 — `rows` 가 시각에 반영되지 않는다.
+> ② field 패밀리의 부모→자식 크기 위임(`.react-aria-TextField[data-size] .react-aria-Input`)
+> 이 CSS 에만 있고 캔버스에는 없어, 자리표시자 글자 크기가 두 화면에서 갈린다.
+
 ## TextArea quiet 배선 — boolean 시각 prop 의 data-\* 라우팅 - 2026-08-21
 
 ### Fixed

@@ -122,7 +122,11 @@
 
 /* Text Input Components — skipCSSGeneration, 수동 CSS */
 @import "./generated/TextField.css";
-@import "./generated/TextArea.css";
+/* TextArea.css 는 생성하지 않는다 (2026-08-21) — canonical `TextArea` 는 DOM 에서 RAC
+   `TextField` 컨테이너로 렌더되므로(`binding.source.component = "TextField"`)
+   `.react-aria-TextArea` 컨테이너 selector 가 구조적으로 미매칭이었다. 시각은 바로 위
+   TextField.css 가 담당하고, catalog `COMPONENT_RULES_TABLE.TextArea` 값은 Skia 가 소비한다.
+   생성 게이트: packages/specs/scripts/generate-css.ts (binding 파생, 컴포넌트 목록 아님). */
 @import "./generated/NumberField.css";
 @import "./generated/SearchField.css";
 @import "./generated/DateField.css";

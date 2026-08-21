@@ -18,6 +18,7 @@ import {
 //   도 같은 경계 외 직접 import 패턴이었고 단계 5 step 3 에서 삭제됨 — 본 generate-css 가 그 직접 import 패턴 유지).
 import {
   getComponentRulesTable,
+  getPrimitiveBinding,
   type ComponentRuleVariant,
 } from "../../shared/src/index";
 import type { SizeSpec, VariantSpec } from "../src/types";
@@ -272,6 +273,29 @@ function buildVirtualSpecs(): ComponentSpec<unknown>[] {
   for (const [key, rule] of Object.entries(table)) {
     const meta = rule.structure;
     if (!meta) continue;
+
+    // D1(RAC)이 컨테이너 클래스의 권위다 (2026-08-21). binding 의 `source.component` 가 rule key 와
+    //   다르면 DOM 에는 RAC 가 자기 이름으로 `.react-aria-{source.component}` 를 붙이므로,
+    //   `.react-aria-{key}` 를 노리는 생성 CSS 는 **구조적으로 영원히 미매칭**이다. 시각은
+    //   `source.component` 쪽 생성 CSS 가 담당하고, rule 의 값은 Skia 가 소비한다.
+    //   실측 사례: TextArea (rac.primitive = TextField — RAC 에 TextArea **컨테이너** primitive 가
+    //   없어 TextField 로 감싼다) → DOM 은 `.react-aria-TextField`, 생성 `TextArea.css` 는 전량 dead.
+    //   더 나쁜 점은 `.react-aria-TextArea` 가 RAC 에서 **안쪽 `<textarea>`** 의 클래스라는 것 —
+    //   그 이름으로 컨테이너 규칙(display:flex/gap)을 emit 하면 나중에 진짜 textarea 가 들어오는
+    //   순간 엉뚱한 요소에 걸린다. 그래서 "안 걸리는 CSS 를 고치는" 방향이 아니라 만들지 않는다.
+    //   컴포넌트 이름 목록이 아니라 binding 에서 파생 — 향후 같은 형태가 생겨도 자동 적용.
+    const domComponent = getPrimitiveBinding(key)?.source;
+    if (
+      domComponent?.kind === "rac" &&
+      domComponent.component !== key &&
+      // lowercase key(body)는 아래에서 PascalCase 로 복원하므로 대소문자만 다른 경우는 제외.
+      domComponent.component.toLowerCase() !== key.toLowerCase()
+    ) {
+      console.log(
+        `  ⏭  Skipped CSS emit: ${key} (DOM class = .react-aria-${domComponent.component} — selector unmatchable)`,
+      );
+      continue;
+    }
 
     // spec name: rule key 는 대부분 PascalCase(spec name 동일)이나, 일부 container shell(body)은
     //   canonical element.type 정합 위해 lowercase key 로 등재(componentRulesTable.body).

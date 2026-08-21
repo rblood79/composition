@@ -11569,31 +11569,42 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (TextArea.spec.sizes 미러). padding 은 input-base archetype + composition
       //   ownsContainerBox → 미emit 이라 paddingX/paddingY 보강 불요(gap 만).
+      //
+      // 2026-08-21 — fontSize / paddingX / borderRadius 를 **field 패밀리 스케일(TextField)** 로
+      //   정렬했다. 이 rule 은 DOM 에 도달하지 않는다(컨테이너 클래스가 `.react-aria-TextField` —
+      //   generate-css.ts 의 binding 파생 게이트 참조). 즉 CSS 는 TextField 값을, Skia 는 이 값을
+      //   읽고 있었고 **한 단계 어긋나 있었다**. 라이브 실측(preview computed style):
+      //     paddingX  DOM 8/12/16/24  ↔ 구 rule 10/14/16/24  (md 2px 어긋남)
+      //     radius    DOM 4/6/8/12    ↔ 구 rule sm/md/md/lg = 4/6/6/8  (lg·xl 어긋남)
+      //     fontSize  DOM xs/sm/base/lg ↔ 구 rule sm/base/lg/xl  (전 구간 한 단계 큼)
+      //   Spectrum 도 text-area 를 "text field 가 지원하는 표준 옵션 전부"로 규정하므로 타입
+      //   스케일 공유가 정본이다 — 어긋난 쪽은 Skia. `height`(64/80/120/160)만 TextArea 고유:
+      //   여러 줄 입력 박스라 TextField(22/30/42/54)와 달라야 한다. gap 은 원래 동일.
       sm: {
-        paddingX: 10,
-        fontSize: "{typography.text-sm}",
+        paddingX: 8,
+        fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 64,
         gap: 4,
       },
       md: {
-        paddingX: 14,
-        fontSize: "{typography.text-base}",
+        paddingX: 12,
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 80,
         gap: 6,
       },
       lg: {
         paddingX: 16,
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.md}",
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.lg}",
         height: 120,
         gap: 8,
       },
       xl: {
         paddingX: 24,
-        fontSize: "{typography.text-xl}",
-        borderRadius: "{radius.lg}",
+        fontSize: "{typography.text-lg}",
+        borderRadius: "{radius.xl}",
         height: 160,
         gap: 10,
       },
@@ -11648,15 +11659,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           // quiet: **여기 두지 않는다** (2026-08-21 라이브 실측). TextArea 는 DOM 에서
           //   `.react-aria-TextArea` 가 아니라 **`.react-aria-TextField` 클래스로 렌더된다** —
-          //   binding 의 `rac.primitive` 가 `TextField` 라(RAC 에 TextArea 컨테이너가 없다)
-          //   CanonicalNodeRenderer 가 그 이름으로 클래스를 붙이기 때문이다. 그래서 이 rule 이
-          //   만드는 `.react-aria-TextArea[...]` 규칙은 **전부 미매칭 dead** 이고, 실제 시각은
+          //   binding 의 `source.component` 가 `TextField` 라(RAC 에 TextArea **컨테이너**
+          //   primitive 가 없다) CanonicalNodeRenderer 의 cutover 경로가 `RAC.TextField` 를
+          //   그대로 렌더하고 RAC 가 자기 이름으로 클래스를 붙이기 때문이다. 실제 시각은
           //   TextField 의 generated CSS 가 담당한다(quiet 포함 — `data-quiet` 은 toRacProps 가
           //   emit 하므로 그 규칙이 그대로 걸린다. 라이브 확인: 배경 투명 + 아래 테두리 1px +
           //   radius 0).
-          //   여기에 규칙을 더하면 "있는데 안 걸리는" 함정만 늘어난다. TextArea rule 의
-          //   generated CSS 가 통째로 dead 인 문제는 별도 과제.
+          //   그래서 이 rule 은 **CSS 를 아예 생성하지 않는다** — generate-css.ts 가 binding 에서
+          //   파생한 게이트로 skip 한다(2026-08-21). 여기에 컨테이너 규칙을 더해도 emit 되지 않고,
+          //   `.react-aria-TextArea` 라는 이름은 RAC 에서 **안쪽 `<textarea>`** 의 클래스라
+          //   되살리면 엉뚱한 요소에 걸린다.
         },
+        // delegation 은 **CSS 전용 채널**이다(CSSGenerator Tier 2). 위 게이트로 TextArea 는
+        //   CSS 를 생성하지 않으므로 현재 emit 되지 않는다 — 삭제하지 않고 남겨 두는 이유는
+        //   label 폰트 브리지의 의도를 보존하기 위함이고, 컨테이너 클래스 문제가 해소되면
+        //   그대로 되살아난다. Skia 는 `composition.layout` / `containerStyles` /
+        //   `containerVariants` 만 읽는다(resolveCatalogContainer) — delegation 은 안 읽는다.
         delegation: [
           {
             childSelector: ".react-aria-Label",
