@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## GridList 카드 선택 체크박스 Skia 대칭 - 2026-08-22
+
+### Bug Fixes
+
+- `selectionStyle="checkbox"` 인 GridList 카드에서 캔버스(Skia)가 선택 체크박스를 그리지
+  않고 카드 높이도 highlight 기준으로 남던 문제를 수정했다. 카드는 세로 스택이라 체크박스가
+  라벨 위에 서고 카드가 22px 높아진다(브라우저 실측 98 vs 76) — 이제 두 화면의 카드 높이와
+  체크박스 위치가 같다.
+- Properties 패널에서 Selection Style 을 바꿔도 새로고침 전에는 캔버스 카드 높이가 그대로던
+  문제를 수정했다. 선택 축이 레이아웃에 영향을 주는 prop 으로 등록되고, 행 레이아웃 캐시가
+  체크박스 표시 여부를 시그니처에 포함한다.
+- GridList 카드가 선택돼도 캔버스에서 accent 테두리·체크 표시가 나오지 않던 문제를 수정했다
+  (행 투영이 선택 신호를 한 가지 이름으로만 전달하고 있었다).
+
 ## Tree 선택 체크박스 Skia 대칭 - 2026-08-21
 
 ### Bug Fixes
