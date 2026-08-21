@@ -1,7 +1,7 @@
 import { resolve } from "path";
 import { defineConfig } from "vite";
 import type { Connect, ViteDevServer } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import wasm from "vite-plugin-wasm";
 import type { IncomingMessage, ServerResponse } from "http";
 

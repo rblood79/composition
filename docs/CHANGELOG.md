@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **vite 7.3.6 → 8.2.2**: catalog 단일 버전으로 builder/publish 동시 전환.
   `build.rollupOptions` → `build.rolldownOptions`, Tailwind v4 `@utility`
   호환을 위해 `build.cssMinify: "esbuild"` 유지 (Vite 8 기본 Lightning CSS 미사용).
+  - 후속: `@vitejs/plugin-react-swc` → `@vitejs/plugin-react` 6.1 (Oxc React
+    refresh) — SWC 플러그인 미사용이라 Rolldown 권장 경로로 전환.
   - 검증: type-check PASS, test 3926 PASS, `vite build` builder+publish,
     live `http://127.0.0.1:5173` 랜딩·dashboard 로드.
 
