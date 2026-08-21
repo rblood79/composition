@@ -36,13 +36,13 @@
     "codex:session-start": "bash scripts/codex/session-start.sh"
   },
   "devDependencies": {
-    "@playwright/mcp": "^0.0.76",
-    "@playwright/test": "^1.61.0",
+    "@playwright/mcp": "^0.0.79",
+    "@playwright/test": "^1.62.1",
     "gray-matter": "^4.0.3",
-    "playwright": "^1.61.0",
-    "prettier": "^3.8.4",
-    "tsx": "^4.22.4",
-    "turbo": "^2.9.18",
+    "playwright": "^1.62.1",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.12",
+    "turbo": "^2.10.11",
     "vitest": "catalog:"
   },
   "packageManager": "pnpm@10.26.2",
