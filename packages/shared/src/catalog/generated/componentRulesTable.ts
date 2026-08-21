@@ -11646,6 +11646,40 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
+          // quiet (2026-08-21): `isQuiet` D2 표면은 binding 에 있었지만 시각 규칙이 0건이라
+          //   완전한 dead prop 이었다 — field 패밀리 11종 중 TextArea 만 빠진 형제 비대칭.
+          //   TextField 와 동형 규칙(배경·테두리 제거 + 밑줄 1선)을 쓴다. 값이 갈리면 같은
+          //   패밀리 안에서 quiet 의 뜻이 둘이 되므로 의도적으로 복제한다.
+          //   구 TextField 쪽의 `--tf-border`/`--tf-bg` 선언은 소비처 0건(dead)이라 옮기지 않는다.
+          quiet: {
+            true: {
+              nested: [
+                {
+                  selector: ".react-aria-Input",
+                  styles: {
+                    background: "transparent",
+                    "border-color": "transparent",
+                    "box-shadow": "none",
+                    "border-radius": "0",
+                    "border-bottom": "1px solid var(--border)",
+                  },
+                },
+                {
+                  selector: ".react-aria-Input:where([data-focused])",
+                  styles: {
+                    outline: "none",
+                    "border-bottom-color": "var(--accent)",
+                  },
+                },
+                {
+                  selector: ".react-aria-Input:where([data-invalid])",
+                  styles: {
+                    "border-bottom-color": "var(--negative)",
+                  },
+                },
+              ],
+            },
+          },
         },
         delegation: [
           {

@@ -51,6 +51,27 @@ const DATA_ATTR_ENUM_KEYS: ReadonlySet<string> = new Set([
   "staticColor",
 ]);
 
+/**
+ * boolean 시각 prop → `data-*` 라우팅 (2026-08-21). 값이 아니라 **키 → 속성명** 명시 매핑이다.
+ *
+ * `isQuiet` 을 기계 변환하면 `data-is-quiet` 이 되는데 theme CSS 는 `[data-quiet]` 를 본다
+ * (전용 컴포넌트 13종이 `data-quiet` 를 emit 하는 house 규약). 그래서 접두 제거를 규칙으로
+ * 두지 않고 매핑으로 고정한다 — 규칙화하면 `isRequired`(RAC 실제 prop) 같은 키까지 휩쓴다.
+ *
+ * **false/undefined 는 아무것도 emit 하지 않는다** — CSS 가 존재 셀렉터(`[data-quiet]`)로
+ * 매칭하므로 `data-quiet="false"` 를 붙이면 꺼진 상태에서도 규칙이 걸린다. 전용 컴포넌트의
+ * `isQuiet ? "true" : undefined` 규약과 같은 형태.
+ *
+ * **Why (2026-08-21)**: `isQuiet` 은 kind 가 `boolean` 이라 else 분기로 빠져 raw React prop 으로
+ * 통과했다 — RAC primitive 는 이 prop 을 모르므로 DOM 에 누출되거나 무시되고, `data-quiet` 이
+ * 없어 CSS 도 미적용이었다(`labelPosition`/`staticColor` 와 같은 결함 축). 실질 피해는
+ * **TextArea 하나** — isQuiet 을 선언한 15 binding 중 13개는 전용 컴포넌트(delegating renderer)가
+ * 직접 emit 하고 그 경로는 본 projector 를 타지 않으며, TableView 는 `variant:"quiet"` 로 흡수했다.
+ */
+const DATA_ATTR_BOOLEAN_KEYS: ReadonlyMap<string, string> = new Map([
+  ["isQuiet", "data-quiet"],
+]);
+
 /** camelCase → kebab-case. data-* 속성명 변환용. 예: `fillStyle` → `fill-style`. */
 function toDataAttrName(key: string): string {
   return key.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
@@ -70,7 +91,14 @@ export function toRacProps(
     const value = hasValue ? props[key] : contract.default;
     if (value === undefined) continue;
 
-    if (DATA_ATTR_KINDS.has(contract.kind) && passthrough?.includes(key)) {
+    const booleanDataAttr = DATA_ATTR_BOOLEAN_KEYS.get(key);
+    if (booleanDataAttr) {
+      // true 일 때만 emit — false 를 실으면 존재 셀렉터가 꺼진 상태에도 걸린다.
+      if (value === true) out[booleanDataAttr] = "true";
+    } else if (
+      DATA_ATTR_KINDS.has(contract.kind) &&
+      passthrough?.includes(key)
+    ) {
       // propPassthrough 키: visual-enum 이라도 React prop 으로 통과 + data-* 도 함께 emit
       // (CSS/debug marker 보존). internal source leaf 의 semantic prop 전용.
       // (ADR-912 StatusLight slice — variant 가 dot 색 계산 input 인 outlier)
