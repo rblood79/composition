@@ -537,7 +537,7 @@ function resolveBreadcrumbItemContext(
   };
 }
 
-/** ToggleButton group position + indicator mode */
+/** ToggleButton group position + indicator mode + staticColor 상속 */
 function resolveToggleGroupContext(
   element: CanvasSceneNode,
   elementsMap: Map<string, CanvasSceneNode>,
@@ -551,19 +551,30 @@ function resolveToggleGroupContext(
     density: string;
   } | null;
   indicatorMode: boolean;
+  staticColor: string | null;
 } {
   if (element.type !== "ToggleButton" || !element.parent_id) {
-    return { position: null, indicatorMode: false };
+    return { position: null, indicatorMode: false, staticColor: null };
   }
 
   const parent = elementsMap.get(element.parent_id);
   if (!parent || parent.type !== "ToggleButtonGroup") {
-    return { position: null, indicatorMode: false };
+    return { position: null, indicatorMode: false, staticColor: null };
   }
 
   const parentProps = getProps(parent);
   const orientation = (parentProps.orientation as string) || "horizontal";
   const indicatorMode = Boolean(parentProps.indicator);
+  // staticColor (2026-08-21): RSP S2 ActionButtonGroup 은 staticColor 를 그룹 자체 시각이
+  //   아니라 **자식 상속**으로 정의한다. 그룹의 fill 은 transparent 라 그릴 것이 없고,
+  //   흑백 스킴은 자식 ToggleButton 의 bg/text/border 에서 성립한다.
+  //   propagation rule(override:true, 자식 props 로 materialize)이 아니라 orientation/
+  //   density 와 같은 **주입 채널**로 두는 이유: (a) 자식이 자기 staticColor 를 명시한
+  //   경우를 덮어쓰지 않는다(DOM 은 context 해석에서 자식 우선 — 같은 우선순위),
+  //   (b) 문서를 변형하지 않으므로 그룹 값 변경이 즉시 반영된다.
+  const groupStatic = parentProps.staticColor as string | undefined;
+  const staticColor =
+    groupStatic && groupStatic !== "auto" ? groupStatic : null;
   // density (2026-08-21): Spectrum ActionGroup 규칙상 **연결 여부가 density 의 성질**이다
   //   (compact = 연결, regular = 분리). 코너 radius 를 산출하는 resolveSegmentedRadius 는
   //   ToggleButton 자신의 props 만 보므로, 부모의 density 를 여기서 실어 보낸다
@@ -572,11 +583,11 @@ function resolveToggleGroupContext(
 
   const siblings = childrenMap?.get(parent.id);
   if (!siblings || siblings.length === 0) {
-    return { position: null, indicatorMode };
+    return { position: null, indicatorMode, staticColor };
   }
 
   const index = siblings.findIndex((s) => s.id === element.id);
-  if (index === -1) return { position: null, indicatorMode };
+  if (index === -1) return { position: null, indicatorMode, staticColor };
 
   return {
     position: {
@@ -587,6 +598,7 @@ function resolveToggleGroupContext(
       density,
     },
     indicatorMode,
+    staticColor,
   };
 }
 
@@ -1281,6 +1293,14 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   }
   if (toggleCtx.indicatorMode) {
     specProps = { ...specProps, _indicatorMode: true };
+  }
+  // 그룹 staticColor 상속 — 자식 명시값(auto 아님)이 있으면 자식 우선 (DOM
+  //   ToggleButtonGroupStaticColorContext 해석과 같은 규칙).
+  if (
+    toggleCtx.staticColor &&
+    (specProps.staticColor == null || specProps.staticColor === "auto")
+  ) {
+    specProps = { ...specProps, staticColor: toggleCtx.staticColor };
   }
 
   // DateInput parent delegation

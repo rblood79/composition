@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ToggleButtonGroup staticColor — 그룹→자식 상속 채널 (축③ 완결) - 2026-08-21
+
+### Features
+
+- **ToggleButtonGroup staticColor** (design-data 감사 §1-2 축③ 마지막 1종):
+  - RSP S2 ActionButtonGroup 정의대로 **자식 상속 채널**. 그룹 자체 fill 은 transparent
+    이라 시각이 바뀌지 않고, 흑백 스킴은 자식 ToggleButton 에서 성립한다.
+  - DOM: `ToggleButtonGroupStaticColorContext` → 자식 `data-static-color`.
+    Skia: `resolveToggleGroupContext` 주입(orientation/density 와 같은 경로).
+    **두 경로 모두 자식 명시값 우선** — propagation rule(override:true)은 자식이 지정한
+    값을 덮어쓰고 문서를 변형하므로 채택하지 않았다.
+  - indicator 모드 조합 시각 확정: 트랙 = static 25% wash / 선택 pill = solid static /
+    비선택 라벨 = static 색 (수동 `ToggleButtonGroup.css`). Skia 는 indicator 모드
+    렌더 자체가 없는 **기존** 비대칭이라 DOM 쪽만 깨지지 않게 유지.
+
+### Fixed
+
+- **ToggleButton isQuiet / staticColor 가 DOM 경로에서만 dead 였던 결손**:
+  delegating renderer(`renderToggleButton`)가 두 prop 을 shared 컴포넌트로 넘기지 않아,
+  catalog·CSS·D2 표면이 모두 갖춰진 뒤에도 Preview/publish 에서 미적용이었다(Skia 는
+  canonical props 직독이라 CSS↔Skia 비대칭). 그룹 렌더러도 staticColor 전달 추가.
+- **static 이 border-width 채널 없는 컨테이너에 검은 테두리를 그리던 Skia 결손**:
+  `buildCatalogShapes` 가 `size.borderWidth ?? 1` fallback 탓에 DOM 이 그리지 않는
+  테두리를 static 색으로 그렸다. "border-width 채널 보유 또는 불투명 border 색" 을
+  데이터 기준으로 판정하도록 수정(ToggleButton 형 대칭은 그대로 유지).
+- live 검증: 패널 Static Color=Black → 캔버스 3버튼 흑백, 자식 1개만 White 지정 시
+  그 버튼만 반전, Preview iframe computed(bg #000/#fff, 그룹 border-width 0px).
+- 회귀: DOM 상속 4케이스 + renderer 전달 3케이스 + Skia 주입 3케이스 + static 테두리
+  조건 3케이스.
+
 ## ProgressBar·ProgressCircle over background — staticColor 채택 - 2026-08-21
 
 ### Features

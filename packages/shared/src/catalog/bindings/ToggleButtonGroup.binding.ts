@@ -53,6 +53,22 @@ export const toggleButtonGroupBinding: PrimitiveBinding = {
         section: "appearance",
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
+      // RSP S2 staticColor (2026-08-21 채택) — ActionButtonGroup 은 staticColor 를 자체
+      //   시각이 아니라 **자식 상속**으로 정의한다. 그룹 자신의 fill 은 transparent 라
+      //   시각 변화가 없고, 채널은 자식 ToggleButton 으로 내려간다:
+      //   DOM = ToggleButtonGroupStaticColorContext → 자식 data-static-color,
+      //   Skia = buildSpecNodeData.resolveToggleGroupContext 주입 (둘 다 자식 명시값 우선).
+      staticColor: {
+        kind: "enum",
+        label: "Static Color",
+        section: "appearance",
+        default: "auto",
+        options: [
+          { value: "auto", label: "Auto" },
+          { value: "white", label: "White" },
+          { value: "black", label: "Black" },
+        ],
+      },
       density: {
         kind: "enum",
         label: "Density",

@@ -10,6 +10,7 @@ import {
   useToggleButtonGroupEmphasized,
   useToggleButtonGroupIndicator,
   useToggleButtonGroupMembership,
+  useToggleButtonGroupStaticColor,
 } from "./ToggleButtonGroupContext";
 import "./styles/generated/ToggleButton.css";
 // staticColor 전용 수동 CSS (catalog 토큰으로 표현 불가한 고정 흑백) — Button.tsx 동형.
@@ -55,7 +56,12 @@ export function ToggleButton({
   const showIndicator = useToggleButtonGroupIndicator();
   const groupEmphasized = useToggleButtonGroupEmphasized();
   const isGroupMember = useToggleButtonGroupMembership();
+  const groupStaticColor = useToggleButtonGroupStaticColor();
   const effectiveEmphasized = isEmphasized || groupEmphasized;
+  // 그룹 상속 (RSP S2 ActionButtonGroup): 자식 명시값이 우선, `auto` 일 때만 그룹 값.
+  //   Skia 는 buildSpecNodeData.resolveToggleGroupContext 가 같은 우선순위로 주입한다.
+  const effectiveStaticColor =
+    staticColor !== "auto" ? staticColor : groupStaticColor;
 
   return (
     <RACToggleButton
@@ -64,7 +70,7 @@ export function ToggleButton({
       data-emphasized={effectiveEmphasized || undefined}
       data-quiet={isQuiet || undefined}
       data-size={size}
-      data-static-color={staticColor}
+      data-static-color={effectiveStaticColor}
       className={composeRenderProps(props.className, (cls) => {
         const base = showIndicator
           ? "react-aria-ToggleButton"

@@ -10,14 +10,19 @@ import type {
   ColumnMapping,
   DataBindingValue,
   ComponentSizeSubset,
+  StaticColor,
 } from "../types";
 import { useCollectionData } from "../hooks";
 import {
   ToggleButtonGroupEmphasizedContext,
   ToggleButtonGroupIndicatorContext,
   ToggleButtonGroupMembershipContext,
+  ToggleButtonGroupStaticColorContext,
 } from "./ToggleButtonGroupContext";
 import "./styles/generated/ToggleButtonGroup.css";
+// staticColor × indicator 조합 전용 수동 CSS (ToggleButton.css 동형 — 고정 흑백은 catalog
+// 토큰으로 표현 불가). 기본(segmented) 모드는 자식 ToggleButton 의 수동 CSS 가 담당한다.
+import "./styles/ToggleButtonGroup.css";
 
 export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {
   indicator?: boolean;
@@ -44,6 +49,13 @@ export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {
    * @default 'regular'
    */
   density?: "compact" | "regular";
+  /**
+   * 유색/이미지 배경 위 고정 흑백 스킴 (RSP S2). 그룹 자신의 시각(배경 transparent)은
+   * 바뀌지 않고 **자식 ToggleButton 으로 상속**된다 — RSP S2 ActionButtonGroup 정의 동형.
+   * 자식이 자기 `staticColor` 를 `auto` 가 아닌 값으로 지정하면 자식 값이 우선.
+   * @default 'auto'
+   */
+  staticColor?: StaticColor;
   dataBinding?: DataBinding | DataBindingValue;
   columnMapping?: ColumnMapping;
 }
@@ -54,6 +66,7 @@ export function ToggleButtonGroup({
   isQuiet = false,
   size = "md",
   density = "regular",
+  staticColor = "auto",
   dataBinding,
   columnMapping,
   children,
@@ -102,13 +115,16 @@ export function ToggleButtonGroup({
       data-quiet={isQuiet || undefined}
       data-size={size}
       data-density={density}
+      data-static-color={staticColor}
       className={toggleButtonGroupClassName}
       isDisabled={isDisabled || props.isDisabled}
     >
       <ToggleButtonGroupMembershipContext.Provider value={true}>
         <ToggleButtonGroupEmphasizedContext.Provider value={isEmphasized}>
           <ToggleButtonGroupIndicatorContext.Provider value={indicator}>
-            {content}
+            <ToggleButtonGroupStaticColorContext.Provider value={staticColor}>
+              {content}
+            </ToggleButtonGroupStaticColorContext.Provider>
           </ToggleButtonGroupIndicatorContext.Provider>
         </ToggleButtonGroupEmphasizedContext.Provider>
       </ToggleButtonGroupMembershipContext.Provider>

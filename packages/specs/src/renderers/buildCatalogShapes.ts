@@ -268,10 +268,24 @@ export function buildCatalogShapes(
       : state === "hover" && visual?.borderHover
         ? visual.borderHover
         : visual?.border;
+  // static 이 테두리를 **대체**하는 조건 = 그 컴포넌트가 실제로 테두리를 그리는가.
+  //   border 채널이 `{color.transparent}` 인 컴포넌트는 두 부류로 갈린다:
+  //   - ToggleButton: transparent + `sizes[size].borderWidth: 1` → DOM 도 border-width 1px
+  //     위에 `--button-border` 를 칠하므로 static 흑백 테두리가 보인다 (대칭 유지 필요).
+  //   - ToggleButtonGroup 류 컨테이너: transparent + borderWidth 채널 자체가 없음 → DOM 은
+  //     border-width 0 이라 border-color 를 무엇으로 줘도 안 보인다. 여기서 static 을 실으면
+  //     Skia 만 `borderWidth ?? 1` fallback 으로 검은 사각형을 그려 **새 비대칭**이 생긴다
+  //     (그룹 staticColor 는 자식 상속 채널 — 2026-08-21 §축③).
+  //   따라서 "border-width 채널 보유" 를 데이터 기준으로 쓴다 (컴포넌트 식별 아님, ADR-142 §3).
+  const hasBorderWidthChannel =
+    size.borderWidth != null || style?.borderWidth != null;
+  const staticBorderEligible =
+    variantBorderColor != null &&
+    (variantBorderColor !== "{color.transparent}" || hasBorderWidthChannel);
   const borderColor = isShowAllChip
     ? undefined
     : ((style?.borderColor as string | undefined) ??
-      (staticHex != null && variantBorderColor != null
+      (staticHex != null && staticBorderEligible
         ? staticHex
         : variantBorderColor));
 

@@ -83,15 +83,15 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 2. **컬렉션 selectionStyle/quiet/density 결손**: selectionStyle (checkbox/highlight) 이 TableView·GridList·Tree·Menu 공통 부재, quiet 이 Table·GridList 부재, TableView density 는 D2 만 있고 D3 수치 채널 없음.
 3. **staticColor 잔여 전개**: Button/Link 는 기채택 (CSS/Skia 대칭 스킴 보유) — ToggleButton·ToggleButtonGroup·ProgressBar·ProgressCircle 에 동일 축 미전개. IconButton 은 root binding 수용·propsSchema 미노출 (노출만 결손).
 
-#### 수리 현황 — 축 ③ 부분 완료 (2026-08-21)
+#### 수리 현황 — 축 ③ 완료 (2026-08-21)
 
 **ToggleButton staticColor 채택 완료.** Skia 는 추가 작업이 없었다 — `buildCatalogShapes` 의 static 블록이 컴포넌트를 식별하지 않고 `staticColor` prop + fill 채널 유무로만 분기하도록 작성돼 있어(주석에 "Link/Button/ToggleButton 공유" 명시), D2 표면과 수동 CSS(고정 흑백은 catalog 토큰으로 표현 불가)만 추가하면 대칭이 성립한다. 라이브 검증: `black` → bg #000/text #fff, `white` → 반대, `auto` → variant 경로 유지.
 
-**잔여 3종은 "선례 이식" 이 성립하지 않는다** — 각각 새 설계가 필요하다:
+**잔여 3종 전부 수리 완료** — 각각 선례 이식이 아니라 새 설계였다:
 
 | 대상                 | 선례가 안 통하는 이유                                                                                                                                  |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ToggleButtonGroup    | 그룹→자식 전파 축이다. `ToggleButtonGroupContext`(isEmphasized 전파 선례)에 채널을 늘리는 것과 별개로, Skia 는 propagation 규칙이 없으면 위임이 끊긴다 |
+| ~~ToggleButtonGroup~~ | **수리 완료 (2026-08-21)** — RSP S2 ActionButtonGroup 정의대로 **자식 상속 채널**로 구현 (그룹 자체 fill 은 transparent 라 시각 무변화). DOM = `ToggleButtonGroupStaticColorContext` → 자식 `data-static-color`, Skia = `resolveToggleGroupContext` 주입 (orientation/density 와 같은 경로) — 둘 다 **자식 명시값 우선**. propagation rule(override:true)을 쓰지 않은 이유 = 자식이 지정한 staticColor 를 덮어쓰고 문서를 변형하기 때문. 동반 수리 2건: (a) `renderToggleButton` 이 `isQuiet`/`staticColor` 를 떨어뜨려 **DOM 경로에서만 dead** 였던 결손, (b) `buildCatalogShapes` 가 border-width 채널 없는 컨테이너에도 static 테두리를 그려 Skia 에만 검은 사각형이 생기던 결손. live: 패널 Static Color=Black → 캔버스 3버튼 흑백 + 자식 하나만 white 지정 시 그 버튼만 반전, Preview iframe computed(bg #000/#fff, 그룹 border-width 0) |
 | ~~ProgressBar / Circle~~ | **수리 완료 (2026-08-21)** — Button 형 이식이 아니라 value-fill 2채널 스킴 신설: track=static 25% wash / fill·indicator=solid / ProgressBar 텍스트=static. DOM(수동 ProgressBar.css var 재정의 + ProgressCircle.tsx 인라인) ↔ Skia(value_fill_bar/arc static + buildCatalogShapes fillBar-채널 wash + propagation staticColor→Track·텍스트 style.color) 동일 상수 0.25. live: 캔버스 black 60% bar/ring + wash + auto 대조군, DOM computed(--fill-color #000 / --track-color rgb(0 0 0/.25)), 패널 Static Color 노출 실측 |
 | ~~IconButton~~       | **수리 완료 (2026-08-21)** — staticColor/isDisabled propsSchema 노출. isQuiet 은 정체성 판정 결과 기각 (§2-A IconButton 행 참조)                       |
 
@@ -184,11 +184,11 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 | 축  | 항목                                                      | 외부 근거                         | composition 현행                                                          | 분류                 |
 | --- | --------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------- | -------------------- |
 | A   | isSelected/isEmphasized/isDisabled/isQuiet/autoFocus/size | dd + RSP                          | 전부 수용 (rules selected/emphasizedSelected 보유)                        | 이미정합             |
-| A   | staticColor                                               | dd + RSP ToggleButton white/black | 없음 — Button/Link 기채택 스킴 재사용 가능 축                             | 채택후보-D2          |
+| A   | staticColor | dd + RSP ToggleButton white/black | **수리 완료 (2026-08-21)** — 수동 ToggleButton.css 흑백 스킴 + buildCatalogShapes static 블록 공유. 후속으로 `renderToggleButton` prop 전달 결손까지 수리(DOM 경로 dead 였음) | 수리 완료 |
 | A   | defaultSelected                                           | RSP                               | 없음 (builder 는 isSelected 직접 편집)                                    | 채택후보-D2 (경미)   |
 | A   | excludeFromTabOrder/preventFocusOnPress                   | RSP                               | 없음                                                                      | 채택후보-D2 (미세)   |
 | A   | hasHoldIcon/selectedTextColor                             | dd 에만                           | 없음                                                                      | 근거없음             |
-| A   | isQuiet 시각 소비                                         | dd quiet=배경 없음                | data-quiet emit 까지 존재·quiet CSS 0건·rules/Skia 미소비 — **dead prop** | 관찰(소비 경로 부재) |
+| A   | isQuiet 시각 소비 | dd quiet=배경 없음 | **수리 완료 (2026-08-21)** — catalog `fill.quiet` preset(base transparent / hover·pressed 만 표시) + generated `[data-quiet]` CSS. renderer prop 전달 결손도 동반 수리 | 수리 완료 |
 
 #### ToggleButtonGroup (↔ action-group + RSP S2 ToggleButtonGroup/ActionButtonGroup.md)
 
@@ -196,7 +196,7 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 | --- | ------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------- | -------------------- |
 | A   | orientation/selectionMode/isDisabled/size/isEmphasized/isQuiet/disallowEmptySelection | dd + RSP                               | 전부 수용                             | 이미정합             |
 | A   | isJustified                                                                           | dd + RSP S2 양쪽                       | 없음                                  | 채택후보-D2          |
-| A   | staticColor                                                                           | RSP S2 ActionButtonGroup (상속)        | 없음                                  | 채택후보-D2          |
+| A   | staticColor | RSP S2 ActionButtonGroup (상속) | **수리 완료 (2026-08-21)** — 자식 상속 채널 (context + Skia 주입, 자식 명시값 우선). §1-2 축③ 표 참조 | 수리 완료 |
 | A   | overflowMode (wrap/collapse)                                                          | dd 에만 — RSP S2 없음 (v3 유물)        | 없음                                  | 근거없음             |
 | A   | 무선택 그룹 (ActionButtonGroup 대응)                                                  | RSP 는 컴포넌트 분리                   | 선택형만 존재                         | 관찰(커버리지)       |
 | A   | density 소비                                                                          | dd + RSP                               | 수용하나 소비자 0 — **dead prop**     | 관찰(소비 경로 부재) |

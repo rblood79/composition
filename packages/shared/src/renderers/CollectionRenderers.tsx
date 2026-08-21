@@ -659,6 +659,12 @@ export const renderToggleButtonGroup = (
       indicator={indicator}
       isEmphasized={Boolean(element.props.isEmphasized)}
       isQuiet={Boolean(element.props.isQuiet)}
+      // staticColor (2026-08-21): 그룹→자식 상속 채널. 그룹 자신의 시각은 그대로고
+      //   ToggleButtonGroupStaticColorContext 로 자식 ToggleButton 에 내려간다.
+      staticColor={
+        (element.props.staticColor as "auto" | "white" | "black" | undefined) ||
+        "auto"
+      }
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
       // density (2026-08-21): Spectrum ActionGroup 규칙 — compact 는 버튼이 연결되고
       //   regular 는 분리된다. 기본값은 catalog `defaultDensity` 와 같은 regular 이며,
@@ -741,6 +747,15 @@ export const renderToggleButton = (
       isDisabled={Boolean(element.props.isDisabled)}
       autoFocus={Boolean(element.props.autoFocus)}
       isEmphasized={Boolean(element.props.isEmphasized)}
+      // isQuiet / staticColor 전달 (2026-08-21 결손 수리): 둘 다 D2 표면·CSS·catalog 는
+      //   갖췄으나 본 delegating renderer 가 prop 을 떨어뜨려 **DOM 경로에서만 dead** 였다
+      //   (Skia 는 canonical props 를 직접 읽어 정상 → CSS↔Skia 비대칭). quiet 은 generated
+      //   ToggleButton.css `[data-quiet]`, static 은 수동 ToggleButton.css 가 소비.
+      isQuiet={Boolean(element.props.isQuiet)}
+      staticColor={
+        (element.props.staticColor as "auto" | "white" | "black" | undefined) ||
+        "auto"
+      }
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
       style={element.props.style}
       className={element.props.className}

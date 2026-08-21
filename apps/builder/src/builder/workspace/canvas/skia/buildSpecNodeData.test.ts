@@ -1053,4 +1053,56 @@ describe("buildSpecNodeData", () => {
       expect(findIconPath(node)).toBeNull();
     });
   });
+
+  // design-data 감사 §1-2 축③ (2026-08-21) — ToggleButtonGroup staticColor 자식 상속.
+  //   RSP S2 ActionButtonGroup 은 staticColor 를 자체 시각이 아니라 자식 상속으로 정의한다.
+  //   Skia 는 propagation rule(자식 props materialize)이 아니라 orientation/density 와 같은
+  //   **주입 채널**(resolveToggleGroupContext)로 받는다 — 자식 명시값 우선 규칙이 DOM
+  //   ToggleButtonGroupStaticColorContext 해석과 같아야 대칭이 성립한다.
+  describe("ToggleButtonGroup staticColor → 자식 ToggleButton 주입", () => {
+    const buildChild = (
+      groupProps: Record<string, unknown>,
+      childProps: Record<string, unknown>,
+    ) => {
+      const group = makeElement("tbg", {
+        type: "ToggleButtonGroup",
+        props: groupProps,
+      });
+      const child = makeElement("tb", {
+        type: "ToggleButton",
+        parent_id: group.id,
+        props: { children: "A", ...childProps },
+      });
+      return buildSpecNodeData({
+        element: child,
+        layout: makeLayout({ x: 0, y: 0, width: 80, height: 32 }),
+        theme: "light",
+        elementsMap: new Map([
+          [group.id, group],
+          [child.id, child],
+        ]),
+        childrenMap: new Map([[group.id, [child]]]),
+      });
+    };
+
+    const rgb = (node: SkiaNodeData | null) =>
+      Array.from(node?.box?.fillColor ?? []).slice(0, 3);
+
+    it("그룹 black → 자식 배경이 고정 흑색", () => {
+      expect(rgb(buildChild({ staticColor: "black" }, {}))).toEqual([0, 0, 0]);
+    });
+
+    it("자식 명시값 우선 (그룹 black + 자식 white → 흰색)", () => {
+      expect(
+        rgb(buildChild({ staticColor: "black" }, { staticColor: "white" })),
+      ).toEqual([1, 1, 1]);
+    });
+
+    it("그룹 auto/미지정 → variant 색 경로 유지", () => {
+      expect(rgb(buildChild({ staticColor: "auto" }, {}))).not.toEqual([
+        0, 0, 0,
+      ]);
+      expect(rgb(buildChild({}, {}))).not.toEqual([0, 0, 0]);
+    });
+  });
 });
