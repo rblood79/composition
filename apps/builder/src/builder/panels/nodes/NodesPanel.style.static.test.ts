@@ -116,4 +116,23 @@ describe("NodesPanel shared panel style contract", () => {
       /\.elementItem\.active \{[^}]*(?:box-shadow|outline):/s,
     );
   });
+
+  it("keeps authoring trees outside the public Tree style scope", async () => {
+    const [treeBaseSource, virtualizedTreeSource, pagesSource] =
+      await Promise.all([
+        readFile(resolve(__dirname, "tree/TreeBase/TreeBase.tsx"), "utf-8"),
+        readFile(
+          resolve(__dirname, "tree/TreeBase/VirtualizedTree.tsx"),
+          "utf-8",
+        ),
+        readFile(resolve(__dirname, "PagesSection.tsx"), "utf-8"),
+      ]);
+
+    expect(treeBaseSource).toContain('from "react-aria-components"');
+    expect(treeBaseSource).not.toContain("@composition/shared/components/Tree");
+    expect(treeBaseSource).not.toContain("data-composition-tree");
+    expect(virtualizedTreeSource).toContain("className={`virtual-tree-item");
+    expect(virtualizedTreeSource).not.toContain("data-composition-tree");
+    expect(pagesSource).toContain('className="elementItem active"');
+  });
 });

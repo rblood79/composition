@@ -105,6 +105,7 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
             ? `react-aria-Tree ${restProps.className}`
             : "react-aria-Tree"
         }
+        data-composition-tree="true"
         data-variant={variant}
         data-size={size}
         role="tree"
@@ -164,6 +165,7 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
       <AriaTree
         {...restProps}
         className={treeClassName}
+        data-composition-tree="true"
         data-variant={variant}
         data-size={size}
       >
@@ -187,6 +189,7 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
     <AriaTree
       {...restProps}
       className={treeClassName}
+      data-composition-tree="true"
       data-variant={variant}
       data-size={size}
     >

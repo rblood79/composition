@@ -9,7 +9,9 @@
 
 @layer components {
   /* ========== Base Tree Container ========== */
-  .react-aria-Tree {
+  /* Public Tree styles are opt-in. Builder authoring trees use raw RAC classes and
+ * must not inherit this component surface. */
+  .react-aria-Tree:where([data-composition-tree]) {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-2xs);
@@ -55,7 +57,7 @@
   }
 
   /* ========== Base TreeItem ========== */
-  .react-aria-TreeItem {
+  :where(.react-aria-Tree[data-composition-tree]) .react-aria-TreeItem {
     display: flex;
     align-items: center;
     gap: var(--spacing-2xs);
@@ -193,23 +195,28 @@
 
   /* Join selected items if :has selector is supported */
   @supports selector(:has(.foo)) {
-    .react-aria-Tree {
+    .react-aria-Tree:where([data-composition-tree]) {
       gap: 0;
+    }
 
+    :where(.react-aria-Tree[data-composition-tree])
       .react-aria-TreeItem[data-selected]:has(+ [data-selected]) {
-        border-end-start-radius: 0;
-        border-end-end-radius: 0;
-      }
+      border-end-start-radius: 0;
+      border-end-end-radius: 0;
+    }
 
-      .react-aria-TreeItem[data-selected] + [data-selected] {
-        border-start-start-radius: 0;
-        border-start-end-radius: 0;
-      }
+    :where(.react-aria-Tree[data-composition-tree])
+      .react-aria-TreeItem[data-selected]
+      + [data-selected] {
+      border-start-start-radius: 0;
+      border-start-end-radius: 0;
     }
   }
 
   /* Checkbox styling within Tree */
-  :where(.react-aria-TreeItem) .react-aria-Checkbox {
+  :where(.react-aria-Tree[data-composition-tree])
+    :where(.react-aria-TreeItem)
+    .react-aria-Checkbox {
     --selected-color: var(--accent);
     --selected-color-pressed: var(--accent);
     --checkmark-color: var(--fg-on-accent);
@@ -217,7 +224,7 @@
   }
 
   /* Drop indicator */
-  .react-aria-Tree .react-aria-DropIndicator {
+  :where(.react-aria-Tree[data-composition-tree]) .react-aria-DropIndicator {
     &[data-drop-target] {
       outline: 1px solid var(--accent);
       margin-left: calc(
@@ -230,7 +237,7 @@
   /* ========== M3 Variant Colors ========== */
 
   /* ===== Primary Variant ===== */
-  .react-aria-Tree.primary {
+  .react-aria-Tree:where([data-composition-tree]).primary {
     border-color: var(--border);
 
     &[data-focus-visible] {
@@ -241,30 +248,31 @@
       outline-color: var(--accent);
       background: color-mix(in srgb, var(--accent) 8%, transparent);
     }
+  }
 
-    .react-aria-TreeItem {
-      &[data-focus-visible] {
-        outline-color: var(--accent);
-      }
-
-      &[data-selected] {
-        background: var(--accent-subtle);
-        color: var(--fg-on-accent);
-      }
-
-      &[data-drop-target] {
-        outline-color: var(--accent);
-        background: color-mix(in srgb, var(--accent) 8%, transparent);
-      }
+  .react-aria-Tree:where([data-composition-tree]).primary .react-aria-TreeItem {
+    &[data-focus-visible] {
+      outline-color: var(--accent);
     }
 
-    .react-aria-DropIndicator[data-drop-target] {
+    &[data-selected] {
+      background: var(--accent-subtle);
+      color: var(--fg-on-accent);
+    }
+
+    &[data-drop-target] {
       outline-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
     }
   }
 
+  .react-aria-Tree:where([data-composition-tree]).primary
+    .react-aria-DropIndicator[data-drop-target] {
+    outline-color: var(--accent);
+  }
+
   /* ===== Secondary Variant ===== */
-  .react-aria-Tree.secondary {
+  .react-aria-Tree:where([data-composition-tree]).secondary {
     border-color: var(--border);
 
     &[data-focus-visible] {
@@ -275,30 +283,32 @@
       outline-color: var(--bg-inset);
       background: color-mix(in srgb, var(--bg-inset) 8%, transparent);
     }
+  }
 
+  .react-aria-Tree:where([data-composition-tree]).secondary
     .react-aria-TreeItem {
-      &[data-focus-visible] {
-        outline-color: var(--bg-inset);
-      }
-
-      &[data-selected] {
-        background: var(--bg-inset);
-        color: var(--fg-emphasis);
-      }
-
-      &[data-drop-target] {
-        outline-color: var(--bg-inset);
-        background: color-mix(in srgb, var(--bg-inset) 8%, transparent);
-      }
+    &[data-focus-visible] {
+      outline-color: var(--bg-inset);
     }
 
-    .react-aria-DropIndicator[data-drop-target] {
+    &[data-selected] {
+      background: var(--bg-inset);
+      color: var(--fg-emphasis);
+    }
+
+    &[data-drop-target] {
       outline-color: var(--bg-inset);
+      background: color-mix(in srgb, var(--bg-inset) 8%, transparent);
     }
   }
 
+  .react-aria-Tree:where([data-composition-tree]).secondary
+    .react-aria-DropIndicator[data-drop-target] {
+    outline-color: var(--bg-inset);
+  }
+
   /* ===== Tertiary Variant ===== */
-  .react-aria-Tree.tertiary {
+  .react-aria-Tree:where([data-composition-tree]).tertiary {
     border-color: var(--border);
 
     &[data-focus-visible] {
@@ -309,89 +319,91 @@
       outline-color: var(--color-purple-600);
       background: color-mix(in srgb, var(--color-purple-600) 8%, transparent);
     }
+  }
 
+  .react-aria-Tree:where([data-composition-tree]).tertiary
     .react-aria-TreeItem {
-      &[data-focus-visible] {
-        outline-color: var(--color-purple-600);
-      }
-
-      &[data-selected] {
-        background: var(--color-purple-100);
-        color: var(--color-purple-900);
-      }
-
-      &[data-drop-target] {
-        outline-color: var(--color-purple-600);
-        background: color-mix(in srgb, var(--color-purple-600) 8%, transparent);
-      }
-    }
-
-    .react-aria-DropIndicator[data-drop-target] {
+    &[data-focus-visible] {
       outline-color: var(--color-purple-600);
     }
+
+    &[data-selected] {
+      background: var(--color-purple-100);
+      color: var(--color-purple-900);
+    }
+
+    &[data-drop-target] {
+      outline-color: var(--color-purple-600);
+      background: color-mix(in srgb, var(--color-purple-600) 8%, transparent);
+    }
+  }
+
+  .react-aria-Tree:where([data-composition-tree]).tertiary
+    .react-aria-DropIndicator[data-drop-target] {
+    outline-color: var(--color-purple-600);
   }
 
   /* ========== Size Variants ========== */
 
   /* ===== Small Size ===== */
-  .react-aria-Tree.sm {
+  .react-aria-Tree:where([data-composition-tree]).sm {
     padding: var(--spacing-sm);
     gap: 1px;
+  }
 
-    .react-aria-TreeItem {
-      min-height: 28px;
-      padding: var(--spacing-2xs) var(--spacing-xs);
-      font-size: var(--text-xs);
+  .react-aria-Tree:where([data-composition-tree]).sm .react-aria-TreeItem {
+    min-height: 28px;
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    font-size: var(--text-xs);
 
-      .react-aria-Button[slot="chevron"] {
-        width: 16px;
+    .react-aria-Button[slot="chevron"] {
+      width: 16px;
 
-        svg {
-          width: 12px;
-          height: 12px;
-        }
+      svg {
+        width: 12px;
+        height: 12px;
       }
     }
   }
 
   /* ===== Medium Size (Default) ===== */
-  .react-aria-Tree.md {
+  .react-aria-Tree:where([data-composition-tree]).md {
     padding: var(--spacing);
     gap: var(--spacing-2xs);
+  }
 
-    .react-aria-TreeItem {
-      min-height: 32px;
-      padding: var(--spacing-xs) var(--spacing-sm);
-      font-size: var(--text-base);
+  .react-aria-Tree:where([data-composition-tree]).md .react-aria-TreeItem {
+    min-height: 32px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--text-base);
 
-      .react-aria-Button[slot="chevron"] {
-        width: 20px;
+    .react-aria-Button[slot="chevron"] {
+      width: 20px;
 
-        svg {
-          width: 16px;
-          height: 16px;
-        }
+      svg {
+        width: 16px;
+        height: 16px;
       }
     }
   }
 
   /* ===== Large Size ===== */
-  .react-aria-Tree.lg {
+  .react-aria-Tree:where([data-composition-tree]).lg {
     padding: var(--spacing-md);
     gap: var(--spacing-xs);
+  }
 
-    .react-aria-TreeItem {
-      min-height: 40px;
-      padding: var(--spacing-sm) var(--spacing);
-      font-size: var(--text-base);
+  .react-aria-Tree:where([data-composition-tree]).lg .react-aria-TreeItem {
+    min-height: 40px;
+    padding: var(--spacing-sm) var(--spacing);
+    font-size: var(--text-base);
 
-      .react-aria-Button[slot="chevron"] {
-        width: 24px;
+    .react-aria-Button[slot="chevron"] {
+      width: 24px;
 
-        svg {
-          width: 20px;
-          height: 20px;
-        }
+      svg {
+        width: 20px;
+        height: 20px;
       }
     }
   }
@@ -404,7 +416,7 @@
   /* ========== Browser Fallbacks ========== */
   /* For browsers that don't support color-mix() (Safari < 16.2) */
   @supports not (color: color-mix(in srgb, red 50%, blue)) {
-    .react-aria-TreeItem {
+    :where(.react-aria-Tree[data-composition-tree]) .react-aria-TreeItem {
       &[data-hovered] {
         background: rgba(0, 0, 0, 0.08);
       }
@@ -418,11 +430,13 @@
       }
     }
 
-    .react-aria-Tree[data-drop-target] {
+    .react-aria-Tree:where([data-composition-tree])[data-drop-target] {
       background: rgba(0, 0, 0, 0.08);
     }
 
-    [data-theme="dark"] .react-aria-TreeItem {
+    [data-theme="dark"]
+      :where(.react-aria-Tree[data-composition-tree])
+      .react-aria-TreeItem {
       &[data-hovered] {
         background: rgba(255, 255, 255, 0.08);
       }
@@ -432,24 +446,27 @@
       }
     }
 
-    [data-theme="dark"] .react-aria-Tree[data-drop-target] {
+    [data-theme="dark"]
+      .react-aria-Tree:where([data-composition-tree])[data-drop-target] {
       background: rgba(255, 255, 255, 0.08);
     }
   }
 
   /* ========== Forced Colors Mode (High Contrast) ========== */
   @media (forced-colors: active) {
-    .react-aria-Tree,
-    .react-aria-TreeItem {
+    .react-aria-Tree:where([data-composition-tree]),
+    :where(.react-aria-Tree[data-composition-tree]) .react-aria-TreeItem {
       forced-color-adjust: auto;
     }
 
-    .react-aria-TreeItem[data-selected] {
+    :where(.react-aria-Tree[data-composition-tree])
+      .react-aria-TreeItem[data-selected] {
       background: Highlight;
       color: HighlightText;
     }
 
-    .react-aria-TreeItem[data-focus-visible] {
+    :where(.react-aria-Tree[data-composition-tree])
+      .react-aria-TreeItem[data-focus-visible] {
       outline-color: Highlight;
     }
   }
