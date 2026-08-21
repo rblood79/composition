@@ -55,6 +55,10 @@ export const badgeBinding: PrimitiveBinding = {
       },
       isDot: { kind: "boolean", label: "Dot Badge", section: "state" },
       isPulsing: { kind: "boolean", label: "Pulsing", section: "state" },
+      // design-data 감사 §2-F (2026-08-21): D3 states.disabled(opacity 0.38)는 준비돼
+      //   있었으나 binding 미노출 결손. DOM = Badge.tsx data-disabled emit → generated
+      //   `[data-disabled]` CSS / Skia = buildSpecNodeData componentState generic.
+      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
     // Badge.tsx 가 {...props} 뒤에 자기 data-variant/data-size/data-fill-style 를 재작성 →

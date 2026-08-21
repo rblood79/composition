@@ -31,6 +31,8 @@ export interface StatusLightProps {
   size?: "sm" | "md" | "lg" | "xl";
   /** 라벨 텍스트 */
   children?: React.ReactNode;
+  /** disabled dim — generated CSS class 미부여 outlier 라 인라인 적용 (Avatar 동형, catalog 0.38) */
+  isDisabled?: boolean;
   /** 인라인 style override (cutover 경로의 toReactStyle 결과) */
   style?: React.CSSProperties;
   /** 추가 className */
@@ -57,6 +59,7 @@ export function StatusLight({
   variant = "neutral",
   size = "md",
   children,
+  isDisabled,
   style,
   className,
   ...rest
@@ -86,6 +89,7 @@ export function StatusLight({
         alignItems: "center",
         gap: 8,
         ...(boxHeight !== undefined ? { height: boxHeight } : {}),
+        ...(isDisabled ? { opacity: 0.38, pointerEvents: "none" } : {}),
         ...style,
       }}
       className={className}

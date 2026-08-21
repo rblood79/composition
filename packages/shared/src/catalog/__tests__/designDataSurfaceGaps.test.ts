@@ -172,3 +172,34 @@ describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드
     expect(unscoped, "런타임 스코프를 벗어난 셀렉터").toEqual([]);
   });
 });
+
+describe("design-data 감사 §2-F — isDisabled 노출 결손 보수 (2026-08-21)", () => {
+  // D3 states.disabled(opacity 0.38)는 3종 모두 준비돼 있었으나 binding accepts 미노출로
+  // 패널 편집이 불가능하던 결손. Skia 는 buildSpecNodeData componentState generic 이 소비,
+  // DOM 은 Badge=data-disabled(generated CSS)/StatusLight·Avatar=인라인 dim (class 미부여 outlier).
+  it.each(["Badge", "StatusLight", "Avatar"] as const)(
+    "%s: rules states.disabled 존재 + accepts.isDisabled 선언",
+    (type) => {
+      const rule = (
+        COMPONENT_RULES_TABLE as Record<
+          string,
+          | {
+              structure?: {
+                states?: { disabled?: { opacity?: number | string } };
+              };
+            }
+          | undefined
+        >
+      )[type];
+      expect(
+        rule?.structure?.states?.disabled?.opacity,
+        `${type} D3 states.disabled`,
+      ).toBeDefined();
+
+      const accepts = getPrimitiveBinding(type)?.props?.accepts;
+      expect(accepts?.isDisabled, `${type} accepts.isDisabled`).toBeDefined();
+      expect(accepts?.isDisabled?.kind).toBe("boolean");
+      expect(accepts?.isDisabled?.section).toBe("state");
+    },
+  );
+});

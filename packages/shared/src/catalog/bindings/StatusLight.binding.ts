@@ -48,6 +48,10 @@ export const statusLightBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      // design-data 감사 §2-F (2026-08-21): D3 states.disabled 준비·binding 미노출 결손.
+      //   DOM = StatusLight.tsx 인라인 dim (generated CSS class 미부여 outlier — Avatar 동형) /
+      //   Skia = buildSpecNodeData componentState generic.
+      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
     // variant/size 는 dot 색·크기 계산의 semantic input → data-attr 가 아니라 React prop 으로

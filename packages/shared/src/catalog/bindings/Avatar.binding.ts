@@ -60,6 +60,9 @@ export const avatarBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      // design-data 감사 §2-F (2026-08-21): Avatar.tsx 는 isDisabled 소비(opacity 0.38
+      //   인라인)를 기보유 — binding 노출만 결손이던 축. Skia 는 componentState generic.
+      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
     // size 는 Avatar.tsx(INTERNAL_RENDERERS 어댑터)의 크기·fontSize 계산 input → data-attr 가 아니라

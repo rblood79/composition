@@ -221,10 +221,13 @@ describe("ADR-148 Phase 2 IconButton reusable origin", () => {
 
     const contract = resolveEditContract(instance, doc);
     const semantic = contract.fields.filter((f) => f.origin === "semantic");
+    // staticColor/isDisabled: §2-A 노출 결손 보수 (2026-08-21) — root props passthrough 축.
     expect(semantic.map((f) => f.key).sort()).toEqual([
       "icon",
+      "isDisabled",
       "label",
       "size",
+      "staticColor",
       "variant",
     ]);
 

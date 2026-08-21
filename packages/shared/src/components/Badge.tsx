@@ -38,6 +38,11 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
    * @default false
    */
   isLoading?: boolean;
+  /**
+   * Disabled dim (generated CSS `[data-disabled]` — catalog states.disabled 0.38)
+   * @default false
+   */
+  isDisabled?: boolean;
 }
 
 /**
@@ -60,6 +65,7 @@ export function Badge({
   isPulsing = false,
   fillStyle,
   isLoading = false,
+  isDisabled = false,
   className,
   children,
   ...props
@@ -87,6 +93,7 @@ export function Badge({
       data-dot={isDot || undefined}
       data-pulsing={isPulsing || undefined}
       data-fill-style={fillStyle || undefined}
+      data-disabled={isDisabled || undefined}
     >
       {!isDot && children}
     </span>

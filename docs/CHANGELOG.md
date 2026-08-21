@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## isDisabled 노출 3종 + IconButton 편집 표면 확장 - 2026-08-21
+
+### Features
+
+- **Badge/StatusLight/Avatar isDisabled 노출** (design-data 감사 §2-F):
+  - D3 `states.disabled`(opacity 0.38)는 3종 모두 준비돼 있었으나 binding accepts
+    미노출로 패널 편집 불가. Badge 는 data-disabled → generated CSS, StatusLight 는
+    인라인 dim(generated class 미부여 outlier — Avatar 동형), Skia 는 componentState
+    generic 이 즉시 소비.
+  - live 검증: 캔버스 dim(뱃지·dot·아바타 0.38) + publish DOM data-disabled/opacity 실측.
+- **IconButton instance 편집 표면 확장 — Static Color/Disabled** (감사 §2-A):
+  - Button root binding 은 기수용이나 propsSchema 미노출로 instance 편집 불가하던 결손.
+    repairOrigin 이 구버전 seed 문서 root props 에도 기본값을 채운다.
+  - isQuiet 은 기각 판정 — composition IconButton 정체성은 Button+icon 조합(S2 Button
+    엔 isQuiet 없음), ActionButton 계열 신설 시에만 재개.
+  - live 검증: 패널 Static Color/Disabled 필드 + staticColor black → 캔버스 흑백 스킴.
+
 ## Toggle 계열 xl 완결 — Checkbox 채택 + indicator catalog 배선 - 2026-08-21
 
 ### Bug Fixes

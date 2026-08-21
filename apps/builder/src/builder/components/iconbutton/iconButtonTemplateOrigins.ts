@@ -60,6 +60,26 @@ export const ICONBUTTON_PROPS_SCHEMA: PropsSchema = {
     default: "md",
     section: "appearance",
   },
+  // design-data 감사 §2-A (2026-08-21): Button root binding 은 staticColor/isDisabled 를
+  //   기수용하나 propsSchema 미노출로 instance 편집 불가하던 결손. 둘 다 variant/size 와
+  //   같은 root props passthrough 축 (origin root Button 이 직접 소비 — R2 불변식).
+  staticColor: {
+    kind: "enum",
+    label: "Static Color",
+    default: "auto",
+    section: "appearance",
+    options: [
+      { value: "auto", label: "Auto" },
+      { value: "white", label: "White" },
+      { value: "black", label: "Black" },
+    ],
+  },
+  isDisabled: {
+    kind: "boolean",
+    label: "Disabled",
+    default: false,
+    section: "state",
+  },
 };
 
 /**
@@ -158,6 +178,8 @@ function createIconButtonOrigin(): CanonicalNode {
     props: {
       variant: "primary",
       size: "md",
+      staticColor: "auto",
+      isDisabled: false,
     },
     children: iconButtonOriginChildren(),
     metadata: {
@@ -175,7 +197,9 @@ function repairOrigin(
 ): CanonicalNode {
   const base = createNode();
   if (!existing) return base;
-  const props = existing.props ?? base.props;
+  // schema 진화(키 추가) 시 구버전 seed 문서의 root props 에도 새 passthrough 기본값을
+  // 채운다 (부재 시에만 — 사용자 값 우선). metadata.propsSchema 코드 정본 원칙과 동축.
+  const props = { ...base.props, ...(existing.props ?? {}) };
   const rootSize =
     typeof (props as { size?: unknown } | undefined)?.size === "string"
       ? (props as { size: string }).size

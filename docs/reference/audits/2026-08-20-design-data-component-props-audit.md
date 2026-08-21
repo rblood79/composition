@@ -93,7 +93,7 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | ToggleButtonGroup    | 그룹→자식 전파 축이다. `ToggleButtonGroupContext`(isEmphasized 전파 선례)에 채널을 늘리는 것과 별개로, Skia 는 propagation 규칙이 없으면 위임이 끊긴다 |
 | ProgressBar / Circle | Button 형 fill 스킴이 아니라 track/indicator 2채널이다. Spectrum 도 staticColor 가 아니라 "over background" variant 로 규정                            |
-| IconButton           | reusable propsSchema 노출만 하면 되나, 함께 지적된 isQuiet 정체성 판정(Button+icon 조합인가 ActionButton 인가)과 묶여 있다                             |
+| ~~IconButton~~       | **수리 완료 (2026-08-21)** — staticColor/isDisabled propsSchema 노출. isQuiet 은 정체성 판정 결과 기각 (§2-A IconButton 행 참조)                       |
 
 **축 ①②는 미착수**: `contextualHelp` 는 RSP 대응 컴포넌트 자체가 없어 신규 컴포넌트 작업이고(§3-2), `labelAlign` 은 14종 각각의 렌더러·컴포넌트 배선이며, 컬렉션 selectionStyle/quiet/density 는 D3 채널 정의가 선행이다.
 
@@ -168,16 +168,16 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 
 #### IconButton (↔ action-button) — 표면 = reusable propsSchema (label/icon/variant/size 4종)
 
-| 축  | 항목                          | 외부 근거                                | composition 현행                                                                                        | 분류                 |
-| --- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------- |
-| A   | size / icon                   | dd                                       | propsSchema 정합                                                                                        | 이미정합             |
-| A   | hideLabel (icon-only)         | dd + RSP ActionButton 관용구             | 없음 — label Text child 상시 렌더                                                                       | 채택후보-D2          |
-| A   | isQuiet                       | dd + RSP ActionButton                    | 없음. composition IconButton 은 Button+icon 조합 (S2 Button 엔 isQuiet 없음) — 채택 시 정체성 판정 필요 | 채택후보-D2 (조건부) |
-| A   | staticColor / isDisabled      | dd + RSP                                 | Button root binding 수용 — propsSchema 미노출 (instance 편집 불가)                                      | 채택후보-D2 (노출만) |
-| A   | isSelected/isEmphasized       | dd                                       | selected 축은 ToggleButton 으로 분리                                                                    | 관찰(구조 분리 의도) |
-| A   | hasHoldIcon/selectedTextColor | dd 에만 — RSP 없음                       | 없음                                                                                                    | 근거없음             |
-| A   | variant (Button variant 상속) | Spectrum ActionButton 은 variant 축 없음 | propsSchema variant 존재                                                                                | 관찰(house-style)    |
-| B   | 텍스트 truncation + tooltip   | dd guideline                             | 채널 없음                                                                                               | 관찰                 |
+| 축  | 항목                          | 외부 근거                                | composition 현행                                                                                                                                                                                               | 분류                 |
+| --- | ----------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| A   | size / icon                   | dd                                       | propsSchema 정합                                                                                                                                                                                               | 이미정합             |
+| A   | hideLabel (icon-only)         | dd + RSP ActionButton 관용구             | 없음 — label Text child 상시 렌더                                                                                                                                                                              | 채택후보-D2          |
+| A   | isQuiet                       | dd + RSP ActionButton                    | **기각 (2026-08-21 판정)** — composition IconButton 의 정체성은 Button+icon 조합(binding/catalog 주석 명시 구조 분리 의도)이고 S2 Button 엔 isQuiet 없음. ActionButton 계열을 신설하는 구조 재판정 시에만 재개 | 기각(정체성 유지)    |
+| A   | staticColor / isDisabled      | dd + RSP                                 | **수리 완료 (2026-08-21)** — propsSchema 에 노출 (root props passthrough 축, repairOrigin 이 구버전 문서에도 기본값 채움). live: 패널 Static Color/Disabled 필드 + staticColor black → 캔버스 흑백 스킴 실측   | 수리 완료            |
+| A   | isSelected/isEmphasized       | dd                                       | selected 축은 ToggleButton 으로 분리                                                                                                                                                                           | 관찰(구조 분리 의도) |
+| A   | hasHoldIcon/selectedTextColor | dd 에만 — RSP 없음                       | 없음                                                                                                                                                                                                           | 근거없음             |
+| A   | variant (Button variant 상속) | Spectrum ActionButton 은 variant 축 없음 | propsSchema variant 존재                                                                                                                                                                                       | 관찰(house-style)    |
+| B   | 텍스트 truncation + tooltip   | dd guideline                             | 채널 없음                                                                                                                                                                                                      | 관찰                 |
 
 #### ToggleButton (↔ action-button + RSP ToggleButton.md)
 
@@ -450,10 +450,10 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 | A   | Badge              | variant 25종 / style↔fillStyle                                | dd                             | 25종 완전 일치 (info↔informative 명칭 대응)                  | 이미정합              |
 | A   | Badge              | icon 채널                                                     | dd + RSP 합성                  | children string 만                                           | 채택후보-D2           |
 | A   | Badge              | fixed (edge 고정)                                             | dd (S2 스키마 근거)            | 없음                                                         | 채택후보-D2           |
-| A   | Badge              | isDisabled                                                    | dd                             | binding 미노출 — rules `states.disabled` 는 존재 (D3 준비됨) | 채택후보-D2           |
+| A   | Badge              | isDisabled                                                    | dd                             | **수리 완료 (2026-08-21)** — accepts 노출 + Badge.tsx data-disabled emit (generated CSS 0.38) | 수리 완료             |
 | A   | Badge              | isDot/isPulsing / xs 단계 / default accent                    | 외부 근거 없음                 | composition 전용                                             | 관찰(house 가능)      |
 | A   | StatusLight        | variant 4종 결손 (gray/red/orange/green)                      | dd 23종                        | 19종                                                         | 채택후보-D2           |
-| A   | StatusLight        | isDisabled                                                    | RSP                            | 미노출 (rules disabled 존재)                                 | 채택후보-D2           |
+| A   | StatusLight        | isDisabled                                                    | RSP                            | **수리 완료 (2026-08-21)** — accepts 노출 + 인라인 dim (generated class 미부여 outlier, Avatar 동형) | 수리 완료             |
 | A   | InlineAlert        | variant accent / style bold·subtle·outline / actionLabel·href | dd                             | 없음                                                         | 채택후보-D2           |
 | B   | InlineAlert        | 기본 스타일 = outline                                         | dd guideline                   | subtle 배경 + variant border 혼합형 단일 스킴                | 관찰                  |
 | A   | ProgressBar        | staticColor / over background variant                         | dd + RSP                       | 없음 (Button 채택 선례 축)                                   | 채택후보-D2           |
@@ -463,7 +463,7 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 | A   | ProgressCircle     | staticColor/over background                                   | dd + RSP                       | variant 축 자체 없음                                         | 채택후보-D2           |
 | A   | Meter              | helpText                                                      | dd S2                          | 없음                                                         | 채택후보-D2           |
 | A   | Meter              | variant 명명                                                  | dd S2 notice/negative          | warning/critical (RSP v3 명명 — 색 토큰은 S2 색에 기매핑)    | 관찰(S2 개명 미반영)  |
-| A   | Avatar             | isDisabled / showStroke                                       | dd + RSP                       | 없음 (disabled D3 준비·stroke 채널 없음)                     | 채택후보-D2           |
+| A   | Avatar             | isDisabled / showStroke                                       | dd + RSP                       | isDisabled **수리 완료 (2026-08-21)** — accepts 노출 (컴포넌트 dim 기보유). showStroke 는 채널 없음 유지 | 부분 수리             |
 | A   | Avatar/AvatarGroup | size 체계 (numeric/px)                                        | dd 지수 스케일 + RSP custom px | xs~xl 5단계 고정                                             | 관찰(house 크기 체계) |
 | B   | AvatarGroup        | 그룹 내 stroke + 겹침(stacking) 규칙                          | dd guideline                   | stroke 채널·겹침 시각 없음 (flex-row 나열)                   | 관찰                  |
 | A   | 패밀리 공통        | labelPosition/valueLabel/size 단계/default                    | dd + RSP                       | 대체로 정합 (default variant 3건 발산은 §1-5)                | 이미정합              |

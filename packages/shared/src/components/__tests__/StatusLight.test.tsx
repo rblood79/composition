@@ -138,3 +138,31 @@ describe("StatusLight — cutover DOM 경로 (toRacProps propPassthrough)", () =
     expect(cutoverHtml("yellow")).toContain('data-variant="yellow"');
   });
 });
+
+/**
+ * design-data 감사 §2-F isDisabled 노출 (2026-08-21) — cutover 경로 dim 고정.
+ * StatusLight 은 generated CSS class 미부여 outlier 라 `[data-disabled]` CSS 를 못 쓰고
+ * 컴포넌트가 인라인 dim(opacity 0.38 + pointer-events none, Avatar 동형)을 적용한다.
+ */
+describe("StatusLight — isDisabled 인라인 dim (§2-F, 2026-08-21)", () => {
+  function cutoverHtml(props: Record<string, unknown>): string {
+    const node = { id: "x", type: "StatusLight", props };
+    const { children, ...rest } = toRacProps(node as never, statusLightBinding);
+    return renderToStaticMarkup(
+      <StatusLight {...(rest as Record<string, never>)}>
+        {children as React.ReactNode}
+      </StatusLight>,
+    );
+  }
+
+  it("isDisabled → root 인라인 opacity:0.38 + pointer-events:none", () => {
+    const html = cutoverHtml({ variant: "positive", isDisabled: true });
+    expect(html).toMatch(/opacity:0\.38/);
+    expect(html).toMatch(/pointer-events:none/);
+  });
+
+  it("미지정 시 dim 없음 (대조군)", () => {
+    const html = cutoverHtml({ variant: "positive" });
+    expect(html).not.toMatch(/opacity:0\.38/);
+  });
+});

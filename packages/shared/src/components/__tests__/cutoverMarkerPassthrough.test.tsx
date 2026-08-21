@@ -84,3 +84,16 @@ describe("cutover internal leaf marker passthrough (ADR-151 후속)", () => {
     },
   );
 });
+
+/** design-data 감사 §2-F isDisabled 노출 (2026-08-21) — Badge 는 data-disabled attr 로
+ *  generated `[data-disabled]` CSS(opacity 0.38)에 연결된다 (raw prop 누출 없음). */
+describe("Badge — isDisabled → data-disabled (§2-F, 2026-08-21)", () => {
+  it("isDisabled true → data-disabled attr / false → 부재", () => {
+    const on = renderToStaticMarkup(<Badge isDisabled>b</Badge>);
+    expect(on).toContain("data-disabled");
+    const off = renderToStaticMarkup(<Badge>b</Badge>);
+    expect(off).not.toContain("data-disabled");
+    // raw isDisabled 속성 누출 없음 (React unknown-attr 경고 축)
+    expect(on).not.toContain("isdisabled");
+  });
+});
