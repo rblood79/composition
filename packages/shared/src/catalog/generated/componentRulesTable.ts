@@ -10751,7 +10751,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 4,
         gap: 8,
-        indicator: { trackWidth: 32, trackHeight: 18, thumbSize: 14, thumbOffset: 2 },
+        indicator: {
+          trackWidth: 32,
+          trackHeight: 18,
+          thumbSize: 14,
+          thumbOffset: 2,
+        },
       },
       md: {
         fontSize: "{typography.text-sm}",
@@ -10760,7 +10765,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 4,
         gap: 10,
-        indicator: { trackWidth: 36, trackHeight: 20, thumbSize: 16, thumbOffset: 2 },
+        indicator: {
+          trackWidth: 36,
+          trackHeight: 20,
+          thumbSize: 16,
+          thumbOffset: 2,
+        },
       },
       lg: {
         fontSize: "{typography.text-base}",
@@ -10769,7 +10779,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 4,
         gap: 12,
-        indicator: { trackWidth: 44, trackHeight: 24, thumbSize: 20, thumbOffset: 2 },
+        indicator: {
+          trackWidth: 44,
+          trackHeight: 24,
+          thumbSize: 20,
+          thumbOffset: 2,
+        },
       },
       xl: {
         fontSize: "{typography.text-lg}",
@@ -10778,7 +10793,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 4,
         gap: 14,
-        indicator: { trackWidth: 52, trackHeight: 30, thumbSize: 24, thumbOffset: 3 },
+        indicator: {
+          trackWidth: 52,
+          trackHeight: 30,
+          thumbSize: 24,
+          thumbOffset: 3,
+        },
       },
     },
     structure: {
@@ -11486,6 +11506,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 4,
           color: "{color.neutral}",
         },
+        // leading avatar (2026-08-21, design-data 감사 §2-C Tag avatar 슬롯):
+        //   icon 과 **같은 좌측 슬롯**의 이미지 표현 — 항목이 둘 다 가지면 avatar 가 이긴다
+        //   (resolveLeadingSlot 단일 판정). `srcProp` 으로 `props.avatar`(itemSchema)를 읽고,
+        //   비면 이미지도 text shift 도 없다(leadingIcon nameProp 과 동형 게이팅).
+        //   지름은 chip size 무관 고정 16 — DOM `.tag-leading-avatar` 와 같은 값.
+        leadingAvatar: {
+          srcProp: "avatar",
+          size: 16,
+          gap: 4,
+          fallbackFill: "{color.neutral-subtle}",
+        },
         trailingIcon: {
           name: "x",
           gap: 2,
@@ -11519,6 +11550,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           nameProp: "icon",
           gap: 4,
           color: "{color.on-accent}",
+        },
+        // leading avatar (2026-08-21) — default variant 와 같은 채널. 선택 chip 만 아바타가
+        //   사라지면 안 되므로 양 variant 에 동일 배선(폭 계약 테스트가 불일치를 잡는다).
+        //   fallback 원은 accent 배경 위라 layer-1(밝은 자리표시).
+        leadingAvatar: {
+          srcProp: "avatar",
+          size: 16,
+          gap: 4,
+          fallbackFill: "{color.layer-1}",
         },
         trailingIcon: {
           name: "x",

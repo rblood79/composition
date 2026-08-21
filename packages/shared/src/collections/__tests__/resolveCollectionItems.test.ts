@@ -15,6 +15,7 @@ import {
   COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
   COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
   DEFAULT_COLLECTION_OVERSCAN,
+  toItemProjectionRow,
   type CollectionDataSource,
 } from "../resolveCollectionItems";
 
@@ -351,5 +352,50 @@ describe("ADR-157 — 샘플 상수 + remainder 메타", () => {
     const rows = getFlatProjectionRows({ props: { items } });
     expect(rows).toHaveLength(Math.min(COLLECTION_ROW_PROJECTION_WINDOW_LIMIT, 100));
     expect(rows).toHaveLength(100);
+  });
+});
+
+/**
+ * icon ↔ avatar slot 분리 (2026-08-21).
+ *
+ * 두 slot 은 소비 측에서 **같은 좌측 자리**를 공유하므로, 한 값이 양쪽에 동시에 잡히면
+ * 폭 계산과 시각이 갈린다. 판정 기준은 값의 형태다 — glyph 이름에는 경로 구분자도
+ * 확장자도 없고, URL/경로는 아이콘 이름일 수 없다. 종전에는 `avatar`/`image` 키의 URL 이
+ * icon slot 으로 흘러가 **아무것도 렌더되지 않는 채** 아이콘 폭만 예약됐다.
+ */
+describe("icon / avatar slot 분리", () => {
+  const row = (item: unknown) => toItemProjectionRow(item, 0);
+
+  it("glyph 이름은 icon, 이미지 참조는 avatar", () => {
+    expect(row({ label: "A", icon: "star" })).toMatchObject({
+      icon: "star",
+      avatar: null,
+    });
+    expect(row({ label: "A", avatar: "https://x.test/a.png" })).toMatchObject({
+      icon: null,
+      avatar: "https://x.test/a.png",
+    });
+    // 상대 경로 / data URI / 확장자 — 전부 이미지 참조
+    for (const src of ["/img/a.png", "./a.jpg", "data:image/png;base64,AA", "a.webp"]) {
+      expect(row({ label: "A", avatar: src })).toMatchObject({ avatar: src, icon: null });
+    }
+  });
+
+  it("`avatar` 키에 glyph 이름이 들어오면 icon 으로 남는다 (기존 휴리스틱 보존)", () => {
+    expect(row({ label: "A", avatar: "star" })).toMatchObject({
+      icon: "star",
+      avatar: null,
+    });
+  });
+
+  it("둘 다 지정되면 각 slot 이 자기 값을 갖는다 (우선순위는 소비 측 책임)", () => {
+    expect(row({ label: "A", icon: "star", avatar: "/a.png" })).toMatchObject({
+      icon: "star",
+      avatar: "/a.png",
+    });
+  });
+
+  it("값 없음 → 양쪽 null", () => {
+    expect(row({ label: "A" })).toMatchObject({ icon: null, avatar: null });
   });
 });

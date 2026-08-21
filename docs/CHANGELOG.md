@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Tag chip 항목별 avatar 슬롯 - 2026-08-21
+
+### Features
+
+- **TagGroup itemSchema `avatar` 채택** (design-data 감사 §2-C Tag avatar 슬롯 — icon 에 이어
+  같은 항목의 나머지 절반):
+  - 항목별 이미지 URL 을 지정하면 chip 좌측에 원형 아바타가 그려진다. `icon`(glyph)과 **같은
+    좌측 슬롯**을 공유하며, 둘 다 지정된 항목은 **avatar 가 이긴다** — 나란히 그리면 chip
+    (fit-content) 폭과 시각이 함께 어긋난다.
+  - DOM: `.tag-leading-avatar`(16px 원 + object-fit cover + 4px 간격, 장식이라
+    `alt=""`/`aria-hidden`). Skia: catalog `Tag.variants[*].leadingAvatar.srcProp: "avatar"`
+    - `leading_avatar` skiaPrimitive(append) — 원 배경 위에 원형 클립 이미지.
+  - 폭은 세 곳이 같은 값(지름 16 + gap 4): catalog rule / layout 상수
+    (`TAG_LEADING_AVATAR_SIZE`·`GAP`) / 수동 CSS. `tagLeadingIconMetric.test.ts` 가
+    catalog 와의 불일치 + "두 슬롯 폭 합산 금지" 를 잡는다.
+
+### Bug Fixes
+
+- **행 데이터의 이미지 URL 이 icon slot 으로 새고 있었다**: `getItemIcon` 이 `avatar`/`image`
+  키를 아이콘 이름 fallback 으로 읽어, URL 이 들어 있으면 **아무것도 렌더되지 않은 채 아이콘
+  폭만 예약**됐다(ListBox/GridList 포함). 이제 값의 형태로 갈린다 — glyph 이름에는 경로
+  구분자도 확장자도 없고, URL/경로/data URI 는 아이콘 이름일 수 없다. 이미지 참조는 신설
+  `avatar` slot(`getItemAvatar`)으로, glyph 이름은 종전대로 icon slot 으로 간다.
+
+### Architecture
+
+- **`leadingAvatar` — 좌측 슬롯의 두 번째 표현**:
+  - 슬롯이 하나뿐이라 판정도 하나여야 한다. `resolveLeadingSlot`(buildCatalogShapes)이
+    avatar > icon > 없음을 정하고, **폭 shift 와 그리기 primitive 2종이 그 결론을 공유**한다.
+    DOM 도 `renderTagLeadingSlot` 단일 헬퍼로 같은 우선순위를 쓴다(chip 본체 / maxRows 미러 /
+    `renderTagGroup` items 경로 3곳).
+  - Skia 는 이미지가 비동기 로드라 원 배경을 먼저 그린다 — URL 이 잘못된 항목이 빈 자리로
+    남지 않도록 DOM `<img>` 의 빈 영역과 대응하는 자리표시를 둔다.
+
 ## Tag chip 항목별 leading icon - 2026-08-21
 
 ### Features

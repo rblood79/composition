@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import { resolveComponentRule } from "@composition/shared";
 
 import {
+  TAG_LEADING_AVATAR_GAP,
+  TAG_LEADING_AVATAR_SIZE,
   TAG_LEADING_ICON_GAP,
   TAG_LEADING_ICON_SIZE,
+  resolveTagLeadingExtraWidth,
   resolveTagWrapLayout,
 } from "../utils";
 
@@ -82,5 +85,80 @@ describe("Tag leading icon 폭 계약", () => {
       ],
     });
     expect(withNullIcons).toEqual(before);
+  });
+});
+
+/**
+ * Tag chip leading avatar 폭 계약 (2026-08-21).
+ *
+ * avatar 는 icon 과 **같은 좌측 슬롯**의 이미지 표현이라 폭도 하나만 잡혀야 한다. 두 값을
+ * 더하면 행당 chip 수가 모자라고, 빼면 라벨이 잘린다. 우선순위는 Skia `resolveLeadingSlot`
+ * / DOM `renderTagLeadingSlot` 과 동일하게 **avatar > icon**.
+ */
+describe("Tag leading avatar 폭 계약", () => {
+  it("layout 상수 = catalog Tag rule 의 leadingAvatar 값", () => {
+    const rule = resolveComponentRule("Tag");
+    const variants = rule?.variants as
+      | Record<
+          string,
+          { leadingAvatar?: { size?: number; gap?: number; srcProp?: string } }
+        >
+      | undefined;
+
+    for (const name of ["default", "selected"]) {
+      const la = variants?.[name]?.leadingAvatar;
+      expect(la?.srcProp).toBe("avatar");
+      expect(la?.size).toBe(TAG_LEADING_AVATAR_SIZE);
+      expect(la?.gap).toBe(TAG_LEADING_AVATAR_GAP);
+    }
+  });
+
+  it("슬롯 추가 폭은 avatar > icon > 0 — 합산 금지", () => {
+    expect(resolveTagLeadingExtraWidth({})).toBe(0);
+    expect(resolveTagLeadingExtraWidth({ icon: "star" })).toBe(
+      TAG_LEADING_ICON_SIZE + TAG_LEADING_ICON_GAP,
+    );
+    expect(resolveTagLeadingExtraWidth({ avatar: "/a.png" })).toBe(
+      TAG_LEADING_AVATAR_SIZE + TAG_LEADING_AVATAR_GAP,
+    );
+    expect(
+      resolveTagLeadingExtraWidth({ icon: "star", avatar: "/a.png" }),
+    ).toBe(TAG_LEADING_AVATAR_SIZE + TAG_LEADING_AVATAR_GAP);
+  });
+
+  it("wrap 폭 계산이 avatar 를 반영한다 (icon 보다 2px 넓음)", () => {
+    const base = {
+      containerWidth: 400,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 0,
+    };
+    const plain = resolveTagWrapLayout({
+      ...base,
+      items: [{ label: "A" }],
+    });
+    const withAvatar = resolveTagWrapLayout({
+      ...base,
+      items: [{ label: "A", avatar: "/a.png" }],
+    });
+    // 한 행에 다 들어가므로 rowCount 는 같고, 폭 반영은 좁은 컨테이너에서 갈린다.
+    expect(withAvatar.rowCount).toBe(plain.rowCount);
+
+    const narrow = { ...base, containerWidth: 120 };
+    const iconRows = resolveTagWrapLayout({
+      ...narrow,
+      items: Array.from({ length: 6 }, () => ({
+        label: "Tag",
+        icon: "star",
+      })),
+    }).rowCount;
+    const avatarRows = resolveTagWrapLayout({
+      ...narrow,
+      items: Array.from({ length: 6 }, () => ({
+        label: "Tag",
+        avatar: "/a.png",
+      })),
+    }).rowCount;
+    expect(avatarRows).toBeGreaterThanOrEqual(iconRows);
   });
 });

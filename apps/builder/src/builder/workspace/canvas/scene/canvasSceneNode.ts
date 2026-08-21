@@ -1090,8 +1090,7 @@ function appendListBoxRowProjection(
         activeBreakpoint,
       );
       const originProps = originNode.props as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       originGapValue =
         originStyle.rowGap ??
         originStyle.columnGap ??
@@ -2188,6 +2187,11 @@ function appendTagRowProjection(
     //   값이 없는 chip 은 아이콘 없이 기존 폭을 유지한다(레이아웃 폭 계산도 같은 조건).
     //   `row.icon` 은 resolveCollectionItems 가 정규화한 필드(ADR-147, ListBox 행과 동일 소스).
     if (row.icon) chipProps.icon = row.icon;
+    // 항목별 avatar 이미지 (2026-08-21): Tag rule 의 `leadingAvatar.srcProp: "avatar"` 가 읽는다.
+    //   icon 과 **같은 좌측 슬롯**이라 둘 다 실려도 `resolveLeadingSlot` 이 avatar 하나만 그린다
+    //   (DOM `renderTagLeadingSlot` 과 같은 우선순위). row.avatar 는 값이 이미지 참조일 때만
+    //   채워지므로 glyph 이름이 아바타로 새지 않는다(getItemAvatar/getItemIcon 분리).
+    if (row.avatar) chipProps.avatar = row.avatar;
     // ADR-912 영역 B (A) — Tag catalog cutover (2026-06-12): X(remove)는 chip 본체가 line×2 로
     //   직접 그리던 것(Tag.spec)을 폐기하고 **trailing_icon(icon_font "x" Lucide glyph)**으로 그린다
     //   — X = line 이 아니라 icon 데이터(SelectIcon/SearchField clear 와 동일 Lucide "x"), DOM Button

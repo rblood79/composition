@@ -885,6 +885,32 @@ export function resolveTagListGap(sizeName: string): number {
 export const TAG_LEADING_ICON_SIZE = 14;
 export const TAG_LEADING_ICON_GAP = 4;
 
+/**
+ * Tag chip leading avatar 치수 (2026-08-21) — catalog `Tag.variants[*].leadingAvatar`
+ * (size 16 / gap 4) + 수동 CSS `.tag-leading-avatar` 와 같은 값.
+ *
+ * icon 과 달리 chip size 무관 고정 지름이라 `sizes[*]` 가 아니라 채널에 값이 있다.
+ * 불일치는 `tagLeadingIconMetric.test.ts` 가 catalog 대조로 잡는다.
+ */
+export const TAG_LEADING_AVATAR_SIZE = 16;
+export const TAG_LEADING_AVATAR_GAP = 4;
+
+/**
+ * chip 좌측 슬롯이 차지하는 추가 폭 — **avatar > icon > 없음** (Skia `resolveLeadingSlot`,
+ * DOM `renderTagLeadingSlot` 과 같은 우선순위).
+ *
+ * chip 은 fit-content 라 이 값이 곧 시각 폭이다. 둘을 더하면(양쪽 다 있는 항목) 실제보다
+ * 넓게 잡혀 행당 chip 수가 모자라고, 빼면 라벨이 잘린다.
+ */
+export function resolveTagLeadingExtraWidth(item: {
+  icon?: string | null;
+  avatar?: string | null;
+}): number {
+  if (item.avatar) return TAG_LEADING_AVATAR_SIZE + TAG_LEADING_AVATAR_GAP;
+  if (item.icon) return TAG_LEADING_ICON_SIZE + TAG_LEADING_ICON_GAP;
+  return 0;
+}
+
 function resolveTagChipMetric(sizeName: string): {
   paddingX: number;
   paddingY: number;
@@ -941,7 +967,11 @@ function resolveTagChipMetric(sizeName: string): {
  *   조회)에서만 호출. wrap 공식은 삭제된 TagList.spec.ts shapes() Phase 1 과 문자 그대로 동일.
  */
 export function resolveTagWrapLayout(input: {
-  items: ReadonlyArray<{ label?: string; icon?: string | null }>;
+  items: ReadonlyArray<{
+    label?: string;
+    icon?: string | null;
+    avatar?: string | null;
+  }>;
   containerWidth: number;
   sizeName: string;
   allowsRemoving: boolean;
@@ -984,11 +1014,9 @@ export function resolveTagWrapLayout(input: {
   for (let i = 0; i < items.length; i++) {
     const label = items[i].label || `Tag ${i + 1}`;
     const textWidth = measureTextWidth(label, fontSize, "Pretendard", 400);
-    // leading icon 보유 chip 은 아이콘 + gap 만큼 넓다 — 행 wrap/maxRows 접힘 판정이
-    //   실제 배치와 어긋나지 않도록 같은 값을 더한다(DOM 미러 측정도 아이콘을 포함해야 정합).
-    const iconExtraWidth = items[i].icon
-      ? TAG_LEADING_ICON_SIZE + TAG_LEADING_ICON_GAP
-      : 0;
+    // 좌측 슬롯(avatar/icon) 보유 chip 은 그만큼 넓다 — 행 wrap/maxRows 접힘 판정이
+    //   실제 배치와 어긋나지 않도록 같은 값을 더한다(DOM 미러 측정도 슬롯을 포함해야 정합).
+    const iconExtraWidth = resolveTagLeadingExtraWidth(items[i]);
     const chipWidth =
       textWidth +
       chipSize.paddingX +
@@ -2046,14 +2074,16 @@ export function calculateContentWidth(
           const removePad = 2; // --spacing-2xs
           removeExtra = removeGap + removePad * 2 + removeIconSize;
         }
-        // 항목별 leading icon(2026-08-21): chip 은 fit-content 라 아이콘 폭이 곧 시각 폭이다.
+        // 항목별 좌측 슬롯(2026-08-21): chip 은 fit-content 라 슬롯 폭이 곧 시각 폭이다.
         //   Skia 렌더(buildCatalogShapes text shift)·DOM(chip flex gap)과 같은 값을 더해야
-        //   "아이콘은 그렸는데 박스가 좁아 라벨이 잘리는" 발산이 안 생긴다.
-        //   상수는 Tag rule 정본과 동일: iconSize=TAG_LEADING_ICON_SIZE, gap=TAG_LEADING_ICON_GAP.
-        const tagIcon = (element.props as { icon?: unknown } | undefined)?.icon;
-        if (typeof tagIcon === "string" && tagIcon.length > 0) {
-          removeExtra += TAG_LEADING_ICON_SIZE + TAG_LEADING_ICON_GAP;
-        }
+        //   "슬롯은 그렸는데 박스가 좁아 라벨이 잘리는" 발산이 안 생긴다. avatar > icon
+        //   우선순위도 `resolveLeadingSlot`/`renderTagLeadingSlot` 과 같다.
+        const tagProps = element.props as
+          { icon?: unknown; avatar?: unknown } | undefined;
+        removeExtra += resolveTagLeadingExtraWidth({
+          icon: typeof tagProps?.icon === "string" ? tagProps.icon : null,
+          avatar: typeof tagProps?.avatar === "string" ? tagProps.avatar : null,
+        });
       }
 
       // minWidth 적용: totalWidth = contentWidth + padding >= minWidth
@@ -2794,7 +2824,7 @@ export function calculateContentHeight(
   if (tag1 === "taglist") {
     const props = element.props as Record<string, unknown> | undefined;
     const items = props?.items as
-      | Array<{ label?: string; icon?: string | null }>
+      | Array<{ label?: string; icon?: string | null; avatar?: string | null }>
       | undefined;
     if (!items || items.length === 0) return 0;
 

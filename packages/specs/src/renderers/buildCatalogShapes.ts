@@ -139,6 +139,89 @@ export function resolveLeadingIconName(
     : null;
 }
 
+/** 좌측 슬롯 해석 결과 — icon(폰트 glyph) 또는 avatar(원형 이미지) 중 하나. */
+export type LeadingSlotResolution =
+  | {
+      kind: "icon";
+      /** lucide glyph 이름 */
+      name: string;
+      /** glyph 크기(px) */
+      size: number;
+      /** slot ↔ text 간격(px) */
+      gap: number;
+      /** text 우측 shift 폭 = size + gap */
+      width: number;
+    }
+  | {
+      kind: "avatar";
+      /** 이미지 URL */
+      src: string;
+      /** 원 지름(px) */
+      size: number;
+      gap: number;
+      width: number;
+      /** 이미지 로드 전/실패 시 원 배경 */
+      fallbackFill: TokenRef | undefined;
+    };
+
+/**
+ * 텍스트 **좌측 슬롯** 단일 판정 — avatar(이미지) > icon(glyph) > 없음.
+ *
+ * 좌측 슬롯은 하나뿐이라 두 채널이 동시에 그려지면 폭·시각이 모두 어긋난다. 판정을 여기
+ * 한 곳에 모아 두 소비자가 같은 결론을 공유한다:
+ *   - `buildCatalogShapes` — text x shift 폭
+ *   - `leading_icon` / `leading_avatar` skiaPrimitive — 실제 glyph/이미지 생성
+ * 갈리면 "폭은 밀렸는데 아무것도 안 그려진다"(또는 반대)가 된다 — Tag icon 슬라이스에서
+ * stale dist 로 실제 재현된 증상.
+ *
+ * 두 채널 모두 **행 데이터 게이팅**(`nameProp`/`srcProp`)을 지원한다: 값이 비면 그 항목은
+ * 슬롯이 없는 것으로 보고 shift 도 하지 않는다(컴포넌트 식별 분기 아님 — ADR-142 §3).
+ */
+export function resolveLeadingSlot(
+  visual: ComponentVisualRule | undefined,
+  props: Record<string, unknown>,
+  size: SizeSpec,
+  fontSize: number,
+): LeadingSlotResolution | null {
+  const la = visual?.leadingAvatar;
+  if (la) {
+    let src: string | null = null;
+    if (la.srcProp) {
+      const fromProps = props[la.srcProp];
+      if (typeof fromProps === "string" && fromProps.length > 0)
+        src = fromProps;
+    }
+    if (!src && la.src && la.src.length > 0) src = la.src;
+    if (src) {
+      const diameter = la.size ?? 16;
+      const gap = la.gap ?? 4;
+      return {
+        kind: "avatar",
+        src,
+        size: diameter,
+        gap,
+        width: diameter + gap,
+        fallbackFill: la.fallbackFill,
+      };
+    }
+  }
+
+  const iconName = resolveLeadingIconName(visual?.leadingIcon, props);
+  if (!iconName) return null;
+  const iconSize =
+    typeof size.iconSize === "number" && size.iconSize > 0
+      ? size.iconSize
+      : Math.round(fontSize * 1.1);
+  const gap = visual!.leadingIcon!.gap ?? 6;
+  return {
+    kind: "icon",
+    name: iconName,
+    size: iconSize,
+    gap,
+    width: iconSize + gap,
+  };
+}
+
 /**
  * generic box+text 시각 생성기 (ADR-142 G2(b) B — spec-free).
  *
@@ -410,12 +493,10 @@ export function buildCatalogShapes(
     //   `nameProp`(행 데이터 게이팅, 2026-08-21): glyph 이름을 props 에서 읽는 rule 은 그 값이
     //   비어 있으면 **shift 도 하지 않는다** — 아이콘 없는 chip 까지 좌측 여백이 생기면 폭이
     //   어긋난다(Tag chip 은 fit-content 라 폭 = 시각). leading_icon module 의 게이팅과 동일 식.
-    const leadingIconName = resolveLeadingIconName(visual?.leadingIcon, props);
-    const leadingIconWidth = leadingIconName
-      ? (typeof size.iconSize === "number" && size.iconSize > 0
-          ? size.iconSize
-          : Math.round(fontSize * 1.1)) + (visual!.leadingIcon!.gap ?? 6)
-      : 0;
+    //   `leadingAvatar`(2026-08-21): 같은 좌측 슬롯의 이미지 표현. avatar 가 우선이고
+    //   폭도 avatar 기준(지름 + gap) — 판정은 `resolveLeadingSlot` 단일 helper.
+    const leadingSlot = resolveLeadingSlot(visual, props, size, fontSize);
+    const leadingIconWidth = leadingSlot?.width ?? 0;
     const textX = paddingX + leadingIconWidth;
     // font-weight: 사용자 style 우선, 없으면 visual.textWeight(variant 시각 — DropZone 400 등),
     // 최종 fallback 500. textWeight 는 보편 D3 속성(CSS font-weight 동형).
@@ -470,7 +551,7 @@ export function buildCatalogShapes(
     const textAlign =
       (style?.textAlign as "left" | "center" | "right") ||
       visual?.textAlign ||
-      (leadingIconName
+      (leadingSlot
         ? "left"
         : props.placeholder != null
           ? "left"

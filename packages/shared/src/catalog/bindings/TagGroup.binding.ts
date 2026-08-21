@@ -33,6 +33,9 @@ export const tagGroupBinding: PrimitiveBinding = {
             // 항목별 leading icon (2026-08-21) — Select/ComboBox itemSchema 와 같은 `icon` 채널.
             //   DOM 은 chip 안 glyph, Skia 는 Tag rule 의 `leadingIcon.nameProp:"icon"` 이 소비.
             { key: "icon", type: "icon", label: "Icon" },
+            // 항목별 avatar 이미지 URL (2026-08-21) — icon 과 같은 좌측 슬롯이며 둘 다
+            //   있으면 avatar 가 이긴다. Skia 는 Tag rule `leadingAvatar.srcProp:"avatar"`.
+            { key: "avatar", type: "string", label: "Avatar URL" },
             { key: "isDisabled", type: "boolean", label: "Disabled" },
             {
               key: "allowsRemoving",

@@ -101,6 +101,22 @@
       pointer-events: none;
     }
 
+    /* chip leading avatar (2026-08-21) — itemSchema 의 `avatar`(이미지 URL).
+     * icon 과 **같은 좌측 슬롯**이라 둘 다 있으면 avatar 만 렌더된다(renderTagLeadingSlot).
+     * 지름 16px 는 chip size 와 무관한 고정값 — Skia 는 Tag rule `leadingAvatar.size`(16),
+     * layout 은 TAG_LEADING_AVATAR_SIZE 로 같은 값을 쓴다(3지점 동기). 간격 4px 도 동일. */
+    .tag-leading-avatar {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 4px;
+      flex-shrink: 0;
+      pointer-events: none;
+      /* 이미지 로드 전/실패 시 자리표시 — Skia 의 fallback circle 과 대응. */
+      background-color: var(--bg-muted);
+    }
+
     /* Remove button styling */
     .tag-remove-btn {
       background: none;

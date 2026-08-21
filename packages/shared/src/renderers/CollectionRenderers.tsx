@@ -11,7 +11,7 @@ import {
   Toolbar,
 } from "../components/list";
 // chip leading icon glyph (2026-08-21) — 고정 14px, 수동 TagGroup.css `.tag-leading-icon` 소비.
-import { Icon } from "../components/Icon";
+import { renderTagLeadingSlot } from "../components/tagLeadingSlot";
 import {
   MenuSection as AriaMenuSection,
   Header as AriaMenuHeader,
@@ -351,16 +351,11 @@ export const renderTagGroup = (
             data-element-id={element.id}
             isDisabled={Boolean(item.isDisabled)}
           >
-            {/* 항목별 leading icon (2026-08-21) — itemSchema 의 `icon`. Skia 는 Tag rule
-                `leadingIcon.nameProp:"icon"` 으로 같은 값을 읽는다. 크기/간격은 수동
-                TagGroup.css `.tag-leading-icon`(14px + 4px)이 정본. */}
-            {item.icon && (
-              <Icon
-                iconName={item.icon}
-                aria-hidden="true"
-                className="tag-leading-icon"
-              />
-            )}
+            {/* 항목별 좌측 슬롯 (2026-08-21) — itemSchema 의 `avatar`(이미지) > `icon`(glyph).
+                Skia 는 Tag rule 의 `leadingAvatar.srcProp`/`leadingIcon.nameProp` 으로 같은 값을
+                읽고 `resolveLeadingSlot` 이 같은 우선순위로 하나만 고른다. 크기/간격은 수동
+                TagGroup.css `.tag-leading-avatar`(16px + 4px) / `.tag-leading-icon`(14px + 4px). */}
+            {renderTagLeadingSlot(item)}
             {item.label}
           </Tag>
         ))

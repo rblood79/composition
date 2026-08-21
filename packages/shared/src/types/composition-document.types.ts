@@ -198,6 +198,31 @@ export interface ComponentRuleVariant {
     color?: string;
   };
   /**
+   * leading avatar (텍스트 좌측 **이미지** 슬롯 — Tag chip 사용자 아바타 등, 2026-08-21).
+   *
+   * `leadingIcon` 과 **같은 좌측 슬롯**을 공유하되 표현이 다르다: icon 은 폰트 glyph,
+   * avatar 는 원형 이미지다. 한 항목이 둘 다 가지면 avatar 가 이긴다 — 슬롯이 하나뿐이라
+   * 둘을 나란히 그리면 폭 계산과 시각이 모두 어긋난다. 판정은 `resolveLeadingSlot`
+   * (buildCatalogShapes) **단일 helper** 로만 하고, 폭 shift 와 glyph/이미지 생성이 같은
+   * 결론을 쓰도록 강제한다.
+   * - `srcProp`: 이미지 URL 을 **행 데이터**에서 읽는 props 키(예: Tag chip 의 `avatar`).
+   *   값이 비면 이미지도, text shift 도 없다(leadingIcon `nameProp` 과 동형 게이팅).
+   * - `src`: 정적 URL(행 데이터 없이 rule 이 고정 이미지를 줄 때). `srcProp` 값이 우선.
+   * - `size`: 지름(px, 기본 16). glyph 와 달리 `sizes[*].iconSize` 를 쓰지 않는다 —
+   *   아바타는 chip size 와 무관하게 고정 지름이 DOM 관례(`.tag-leading-avatar`)라
+   *   채널 자체에 둔다.
+   * - `gap`: avatar ↔ text 간격(px, 기본 4).
+   * - `fallbackFill`: 이미지 로드 전/실패 시 원 배경(TokenRef 문자열). Skia 는 이미지가
+   *   비동기 로드라 이 원이 먼저 그려진다(DOM `<img>` 의 빈 영역과 대응).
+   */
+  leadingAvatar?: {
+    srcProp?: string;
+    src?: string;
+    size?: number;
+    gap?: number;
+    fallbackFill?: string;
+  };
+  /**
    * trailing icon (텍스트 우측 아이콘 — CalendarHeader 다음달 chevron 등 보편 D3 속성, ADR-912 (B+icon)).
    * `inline_icon_text` skiaPrimitive(replace 모드)가 leadingIcon + center text + 본 필드를 함께
    * 그린다(좌 icon + center text + 우 icon — leading_icon 의 좌측 단일 모델과 다른 레이아웃 가정 →

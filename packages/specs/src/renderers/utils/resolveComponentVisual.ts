@@ -85,6 +85,21 @@ export interface ComponentVisualRule {
     | { name?: string; nameProp?: string; gap?: number; color?: TokenRef }
     | undefined;
   /**
+   * leading avatar (텍스트 좌측 **이미지** 슬롯 — Tag chip 사용자 아바타, 2026-08-21).
+   * leadingIcon 과 같은 좌측 슬롯을 공유하며 둘 다 있으면 avatar 우선 — 판정은
+   * `resolveLeadingSlot`(buildCatalogShapes) 단일 helper 가 하고, 폭 shift 와
+   * `leading_avatar` primitive 가 그 결론을 공유한다.
+   */
+  leadingAvatar:
+    | {
+        srcProp?: string;
+        src?: string;
+        size?: number;
+        gap?: number;
+        fallbackFill?: TokenRef;
+      }
+    | undefined;
+  /**
    * trailing icon (텍스트 우측 아이콘 — CalendarHeader 다음달 chevron 등, ADR-912 (B+icon)).
    * `inline_icon_text` skiaPrimitive(replace 모드)가 본 필드와 leadingIcon + center text 를
    * 함께 그린다(좌 icon + center text + 우 icon = leading_icon 의 좌측 단일 모델과 다른
@@ -157,9 +172,10 @@ export function variantToVisual(variant: VariantSpec): ComponentVisualRule {
     selectedBorder: variant.selectedBorder,
     emphasizedSelectedText: variant.emphasizedSelectedText,
     emphasizedSelectedBorder: variant.emphasizedSelectedBorder,
-    // production-dead(test fixture 전용) — leadingIcon/trailingIcon/textAlign 은 production 의
-    //   ruleVariantToVisual 만 rule 에서 채운다. VariantSpec 에는 해당 필드 없음(spec 삭제 예정).
+    // production-dead(test fixture 전용) — leadingIcon/leadingAvatar/trailingIcon/textAlign 은
+    //   production 의 ruleVariantToVisual 만 rule 에서 채운다. VariantSpec 에는 해당 필드 없음.
     leadingIcon: undefined,
+    leadingAvatar: undefined,
     trailingIcon: undefined,
     textAlign: undefined,
   };

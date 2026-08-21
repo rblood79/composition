@@ -152,6 +152,12 @@ export type CollectionProjectionRow = {
   description: string | null;
   /** ADR-147: icon slot — lucide icon name (data row field) 또는 null. */
   icon: string | null;
+  /**
+   * avatar slot — 이미지 URL (data row field) 또는 null (2026-08-21). icon 과 **같은 좌측
+   * 슬롯**이라 소비자는 avatar 를 우선한다. 값이 이미지 참조로 읽힐 때만 채워진다
+   * (glyph 이름은 icon slot 이 가져감 — `getItemAvatar` / `getItemIcon`).
+   */
+  avatar: string | null;
   isDisabled: boolean;
   item: unknown;
   itemKey: string;
@@ -178,11 +184,7 @@ export interface ResolvedCollectionItems {
   rows: CollectionProjectionRow[];
   /** source 판정 — 어느 경로에서 rows 가 나왔는지. */
   sourceKind:
-    | "static-items"
-    | "dataBinding"
-    | "collection"
-    | "fallback"
-    | "empty";
+    "static-items" | "dataBinding" | "collection" | "fallback" | "empty";
   /** ADR-150 A2: window 적용 전 원본 행 전체 수 (총 content height / scrollbar 산출용). */
   totalRows: number;
 }
@@ -287,12 +289,51 @@ export function getItemDescription(item: unknown): string | null {
 }
 
 /**
+ * 이미지 **참조**로 읽히는 문자열인가 — lucide glyph 이름과 구분하는 판정 (2026-08-21).
+ *
+ * glyph 이름(`star`, `chevron-right`)에는 경로 구분자도 확장자도 없다. 반대로 URL/경로
+ * (`https://…`, `/img/a.png`, `data:image/…`)는 아이콘 이름일 수 없다. 이 구분이 없으면
+ * `avatar` 필드에 든 URL 이 icon slot 으로 흘러가 **아무것도 렌더되지 않는 채** 아이콘
+ * 폭만 예약된다(기존 동작).
+ */
+function isImageReference(value: string): boolean {
+  if (/^(https?:|data:|blob:)/i.test(value)) return true;
+  if (value.includes("/")) return true;
+  return /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(value);
+}
+
+/**
  * ADR-147: icon slot 값 — data row field 에서 lucide icon name 추출.
  * label/description 와 동일한 fixed-field 휴리스틱.
+ *
+ * 2026-08-21: `avatar`/`image` 키는 아이콘 이름 fallback 으로 남기되, 값이 이미지 참조면
+ * icon 이 아니라 **avatar slot** 으로 간다(`getItemAvatar`) — 한 값이 두 slot 에 동시에
+ * 잡히면 chip 좌측 슬롯 판정과 폭이 어긋난다.
  */
 export function getItemIcon(item: unknown): string | null {
   if (!isRecord(item)) return null;
-  return readStringField(item, ["icon", "iconName", "avatar", "image"]);
+  const raw = readStringField(item, ["icon", "iconName", "avatar", "image"]);
+  if (raw == null) return null;
+  return isImageReference(raw) ? null : raw;
+}
+
+/**
+ * avatar slot 값 — data row field 에서 **이미지 URL** 추출 (2026-08-21).
+ *
+ * icon slot 과 같은 좌측 슬롯을 공유하며(소비자에서 avatar 우선), 값이 이미지 참조로
+ * 읽힐 때만 채워진다. glyph 이름이 들어 있으면 여기선 null 이고 icon slot 이 가져간다.
+ */
+export function getItemAvatar(item: unknown): string | null {
+  if (!isRecord(item)) return null;
+  const raw = readStringField(item, [
+    "avatar",
+    "avatarUrl",
+    "image",
+    "imageUrl",
+    "picture",
+  ]);
+  if (raw == null) return null;
+  return isImageReference(raw) ? raw : null;
 }
 
 export function getItemValue(item: unknown): string | null {
@@ -316,6 +357,7 @@ export function toItemProjectionRow(
   const itemKey = getItemKey(item, rowIndex);
   return {
     kind: "item",
+    avatar: getItemAvatar(item),
     description: getItemDescription(item),
     icon: getItemIcon(item),
     isDisabled: getItemDisabled(item),

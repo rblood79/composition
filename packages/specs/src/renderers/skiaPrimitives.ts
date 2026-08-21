@@ -39,6 +39,7 @@ import { resolveIllustratedMessageMetric } from "./utils/illustratedMessageMetri
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import {
   resolveLeadingIconName,
+  resolveLeadingSlot,
   resolveTreeIndent,
 } from "./buildCatalogShapes";
 import { measureSpecTextWidth } from "./utils/measureText";
@@ -2446,11 +2447,6 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const li = visual?.leadingIcon;
   if (!li) return [];
-  // 행 데이터 게이팅(2026-08-21): `nameProp` rule 은 glyph 이름을 props 에서 읽고, 값이 없으면
-  //   아이콘을 그리지 않는다 — buildCatalogShapes 의 text shift 와 **같은 helper** 로 판정해야
-  //   "폭은 밀렸는데 아이콘이 없다"(또는 반대) 가 생기지 않는다.
-  const resolvedName = resolveLeadingIconName(li, props);
-  if (!resolvedName) return [];
 
   // ADR-912 R1 후속 (TreeItem catalog cutover): TreeItem chevron 은 자식 TreeItem 이
   //   있을 때만 표시한다. buildSpecNodeData 가 `_hasTreeChildren`(boolean)을 주입 —
@@ -2462,10 +2458,13 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     (style?.fontSize as string | number | undefined) ?? size.fontSize,
     14,
   );
-  const iconSize =
-    typeof size.iconSize === "number" && size.iconSize > 0
-      ? size.iconSize
-      : Math.round(fontSize * 1.1);
+  // 좌측 슬롯 게이팅(2026-08-21): 이름/크기 판정은 buildCatalogShapes 의 text shift 와
+  //   **같은 helper**(resolveLeadingSlot) 로 한다 — 갈리면 "폭은 밀렸는데 아이콘이 없다"
+  //   (또는 반대) 가 된다. avatar 가 이긴 항목은 `leading_avatar` 가 그리므로 여기선 미생성.
+  const slot = resolveLeadingSlot(visual, props, size, fontSize);
+  if (slot?.kind !== "icon") return [];
+  const resolvedName = slot.name;
+  const iconSize = slot.size;
   const paddingX =
     parsePxValue(
       (style?.paddingLeft ?? style?.paddingRight ?? style?.padding) as
@@ -2502,6 +2501,65 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       fontSize: iconSize,
       fill: iconColor,
       strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
+    },
+  ];
+};
+
+/**
+ * `leading_avatar` — 텍스트 좌측 **원형 이미지** 슬롯 (Tag chip 아바타, 2026-08-21, append 모드).
+ *
+ * `leading_icon` 과 같은 좌측 슬롯·같은 배치 규칙(paddingX 기준, 세로 중앙)이고 표현만 다르다
+ * (glyph → 이미지). 슬롯 판정은 `resolveLeadingSlot` 단일 helper — avatar 가 이긴 항목에서만
+ * 그리고, 그 결정은 buildCatalogShapes 의 text shift 와 같은 값을 쓴다.
+ *
+ * **circle bg 를 먼저 그린다**: Skia 이미지는 비동기 로드(specShapeConverter 가 캐시 미스 시
+ * 로딩 트리거)라 첫 프레임엔 이미지가 없다. 원 배경이 없으면 chip 좌측이 잠깐 비어 보이고
+ * URL 이 잘못된 항목은 영구히 빈 자리로 남는다 — DOM `<img>` 의 빈 영역과 대응하는 자리표시.
+ * `avatar` primitive(내부 leaf, replace)와 달리 이니셜 텍스트는 두지 않는다(chip 안 원은
+ * 16px 라 2글자가 들어가지 않는다).
+ */
+const leadingAvatar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  if (!visual?.leadingAvatar) return [];
+  const fontSize = resolveSpecFontSize(
+    (style?.fontSize as string | number | undefined) ?? size.fontSize,
+    14,
+  );
+  const slot = resolveLeadingSlot(visual, props, size, fontSize);
+  if (slot?.kind !== "avatar") return [];
+
+  const paddingX = parsePxValue(
+    (style?.paddingLeft ?? style?.paddingRight ?? style?.padding) as
+      string | number | undefined,
+    size.paddingX ?? 0,
+  );
+  const height =
+    typeof size.height === "number" && size.height > 0
+      ? size.height
+      : fontSize + 16;
+  const diameter = slot.size;
+  const radius = diameter / 2;
+  const top = Math.round((height - diameter) / 2);
+
+  return [
+    {
+      id: "avatar-bg",
+      type: "circle" as const,
+      x: paddingX + radius,
+      y: top + radius,
+      radius,
+      fill:
+        slot.fallbackFill ??
+        visual.border ??
+        ("{color.neutral-subtle}" as TokenRef),
+    },
+    {
+      type: "image" as const,
+      x: paddingX,
+      y: top,
+      width: diameter,
+      height: diameter,
+      src: slot.src,
+      radius,
     },
   ];
 };
@@ -3109,6 +3167,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   avatar,
   // ADR-912 (B+icon) leading icon escape (append 모드 — 좌측 chevron, base text 위)
   leading_icon: leadingIcon,
+  // 좌측 슬롯 이미지 표현 (append 모드 — Tag chip 아바타, 2026-08-21)
+  leading_avatar: leadingAvatar,
   // ADR-912 (B+icon) inline icon text escape (replace 모드 — 좌 icon + center text + 우 icon, CalendarHeader)
   inline_icon_text: inlineIconText,
 };
@@ -3167,6 +3227,9 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 (B+icon): leading_icon 은 base box+text 위 좌측 chevron → append.
   //   text 는 buildCatalogShapes 가 iconSize 만큼 우측 shift, 본 module 은 icon 만 그림.
   leading_icon: "append",
+  // 좌측 슬롯 이미지(2026-08-21): leading_icon 과 같은 합성 규칙 — base box+text 위 원+이미지.
+  //   text 는 buildCatalogShapes 가 avatar 지름 + gap 만큼 우측 shift(동일 helper 판정).
+  leading_avatar: "append",
   // ADR-912 (B+icon): inline_icon_text 는 좌 icon + center text + 우 icon 자체 생성, box+text 대체
   //   → replace. center text 가 buildCatalogShapes 의 좌측/center 단일 text 와 충돌하므로 base 미생성.
   inline_icon_text: "replace",

@@ -16,7 +16,7 @@ import {
 import { X } from "lucide-react";
 // chip leading icon glyph — DOM 아이콘은 프로젝트 관례상 고정 크기(14px), Skia 는
 //   Tag rule `sizes[*].iconSize`(전 size 14)로 같은 값을 쓴다.
-import { Icon } from "./Icon";
+import { renderTagLeadingSlot } from "./tagLeadingSlot";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import { useResolvedCollectionItems } from "../hooks";
@@ -279,21 +279,24 @@ export function TagGroup<T extends object>({
   // 미러 DOM 텍스트 추출 (maxRows 측정 전용).
   //   정규화 rows 가 source 면 row.label 에서, 외부 static children 이면 child props 에서 추출.
   const tagTexts = React.useMemo<
-    Array<{ text: string; icon: string | null }>
+    Array<{ text: string; icon: string | null; avatar: string | null }>
   >(() => {
     if (hasDataBinding) return [];
     if (filteredRows.length > 0)
       return filteredRows.map((row) => ({
         text: row.label,
         icon: row.icon ?? null,
+        avatar: row.avatar ?? null,
       }));
     if (!Array.isArray(allMappedChildren)) return [];
     return allMappedChildren.map((child) => {
-      if (!React.isValidElement(child)) return { text: "", icon: null };
+      if (!React.isValidElement(child))
+        return { text: "", icon: null, avatar: null };
       const p = child.props as { textValue?: string; children?: unknown };
       return {
         text: p.textValue || String(p.children || ""),
         icon: null,
+        avatar: null,
       };
     });
   }, [hasDataBinding, filteredRows, allMappedChildren]);
@@ -533,6 +536,9 @@ export function TagGroup<T extends object>({
           // 항목별 leading icon (2026-08-21) — Skia 는 Tag rule `leadingIcon.nameProp` 으로
           //   같은 값을 읽는다. 폭(fit-content)에 직접 영향이라 미러 측정도 함께 반영해야 한다.
           icon: row.icon,
+          // 항목별 avatar 이미지 (2026-08-21) — icon 과 **같은 좌측 슬롯**이라 둘 다 있으면
+          //   avatar 만 그린다(Skia `resolveLeadingSlot` 의 우선순위와 같은 결론).
+          avatar: row.avatar,
         })),
     [filteredRows, removedItemIds],
   );
@@ -582,16 +588,10 @@ export function TagGroup<T extends object>({
         >
           {tagTexts.map((entry, i) => (
             <span key={i} className="react-aria-Tag">
-              {/* 미러는 실제 chip 의 **정확한 폭 대체**여야 한다 — leading icon 을 빼면
-                  아이콘 있는 chip 이 실제보다 좁게 측정돼 행당 개수가 과다 산출된다
+              {/* 미러는 실제 chip 의 **정확한 폭 대체**여야 한다 — 좌측 슬롯(icon/avatar)을
+                  빼면 슬롯 있는 chip 이 실제보다 좁게 측정돼 행당 개수가 과다 산출된다
                   (같은 축의 과거 결함: chip size CSS 미적용 / side-label 폭 미차감). */}
-              {entry.icon && (
-                <Icon
-                  iconName={entry.icon}
-                  aria-hidden="true"
-                  className="tag-leading-icon"
-                />
-              )}
+              {renderTagLeadingSlot(entry)}
               {entry.text}
             </span>
           ))}
@@ -629,13 +629,7 @@ export function TagGroup<T extends object>({
                 >
                   {({ allowsRemoving: removing }) => (
                     <>
-                      {item.icon && (
-                        <Icon
-                          iconName={item.icon}
-                          aria-hidden="true"
-                          className="tag-leading-icon"
-                        />
-                      )}
+                      {renderTagLeadingSlot(item)}
                       {item.label}
                       {removing && (
                         <Button slot="remove" className="tag-remove-btn">

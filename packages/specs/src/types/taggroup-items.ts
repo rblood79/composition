@@ -24,6 +24,12 @@ export interface StoredTagItem {
    * 미지정 chip 은 아이콘 없이 기존 폭을 유지한다(폭 계산도 같은 조건).
    */
   icon?: string;
+  /**
+   * chip 좌측 **아바타 이미지 URL** (2026-08-21). `icon` 과 **같은 좌측 슬롯**이라 둘 다
+   * 지정되면 아바타가 이긴다 — 나란히 그리면 폭·시각이 어긋난다. DOM 은 원형
+   * `<img class="tag-leading-avatar">`, Skia 는 Tag rule 의 `leadingAvatar.srcProp:"avatar"`.
+   */
+  avatar?: string;
   /** Tag 별 개별 삭제 허용 (TagGroup.allowsRemoving 기본값 override) */
   allowsRemoving?: boolean;
 }
