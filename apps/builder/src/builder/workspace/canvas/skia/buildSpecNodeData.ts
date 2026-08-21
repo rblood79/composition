@@ -274,12 +274,63 @@ const NOWRAP_PARENTS = new Set([
   "Slider",
 ]);
 
-const FORM_INHERITANCE_TAGS = new Set([
+/**
+ * side 라벨 컬럼을 가진 field 패밀리 (2026-08-21, design-data 감사 §1-2 축①).
+ *
+ * 이 집합 = **Skia layout 이 Label 에 `FORM_SIDE_LABEL_WIDTH`(176px) 고정폭을 주입하는
+ * 패밀리**(implicitStyles 의 injectSideLabelLabelAndWrapperStyles / ...AndContentStyles
+ * 호출 대상)와 동일하고, DOM 도 같은 10종에만 catalog nested rule
+ * (`[data-label-position="side"] > .react-aria-Label { width: var(--form-label-width,11rem) }`)
+ * 을 emit 한다 — 세 지점이 같은 목록이어야 대칭이 성립한다.
+ *
+ * CheckboxGroup/RadioGroup 은 의도적으로 제외 — 그 패밀리는 side 에서도 라벨 자연폭을
+ * 쓰기로 이미 정리됐다(implicitStyles "width 강제 없음" 주석). 라벨 박스가 텍스트 폭이면
+ * 정렬은 시각적으로 무의미하므로 labelAlign 대상도 아니다.
+ */
+const SIDE_LABEL_COLUMN_TAGS = new Set([
   "TextField",
+  "TextArea",
   "NumberField",
   "SearchField",
-  "ColorField",
+  "Select",
+  "ComboBox",
+  "DateField",
+  "TimeField",
+  "DatePicker",
+  "DateRangePicker",
 ]);
+
+/**
+ * 그 중 **Form 조상에서 label 관련 prop 을 상속받는** 패밀리 (DOM 과 목록 일치 필수).
+ *
+ * DOM 은 `FormRenderers` 의 4종만 `element.props.X ?? inheritedProps.X`(가장 가까운 Form)
+ * 로 상속하고, Date/Selection 렌더러의 6종은 자기 prop 만 쓴다. Skia 가 전 패밀리에서
+ * Form 까지 올라가면 그 6종에서 DOM 에 없는 정렬이 캔버스에만 생긴다 — 렌더러별 상속 범위를
+ * 그대로 복제해 둔다. (labelPosition 자체의 상속 범위 불일치는 본 축 밖 관찰 항목.)
+ */
+const FORM_INHERITING_FIELD_TAGS = new Set([
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "SearchField",
+]);
+
+/**
+ * RSP `labelAlign`(start|center|end) → Skia text shape align(left|center|right).
+ *
+ * **Why (2026-08-21)**: shape.align 타입은 left|center|right 뿐인데 resolveLabelAlignment 이
+ * labelAlign 원문("start"/"end")을 그대로 style.textAlign 에 실어, converter 의
+ * `align === "right"` 분기에 걸리지 않아 **end 정렬이 조용히 좌측으로** 그려졌다. CSS 는
+ * text-align 이 start/end 를 그대로 이해하므로 DOM 만 정상 — 값 어휘 불일치가 만든 비대칭.
+ */
+function labelAlignToTextAlign(
+  value: unknown,
+): "left" | "center" | "right" | null {
+  if (value === "center") return "center";
+  if (value === "end") return "right";
+  if (value === "start") return "left";
+  return null;
+}
 
 const PARENT_LABEL_PROP_SOURCE_TAGS = new Set([
   "TextField",
@@ -701,32 +752,54 @@ function resolveLabelNecessity(
   return { indicator, isRequired: Boolean(pp.isRequired) };
 }
 
-/** Label alignment from Form ancestor chain */
+/**
+ * side 라벨 컬럼 안에서의 Label 정렬 (RSP `labelAlign`).
+ *
+ * **nearest-wins 2축 합성**: 부모 field 의 `labelPosition`/`labelAlign` 을 먼저 읽고,
+ * 그 field 가 Form 상속 패밀리(`FORM_INHERITING_FIELD_TAGS`)일 때만 조상 Form 까지 올라가
+ * 비어 있는 값을 채운다 — DOM 렌더러의 `element.props.X ?? inheritedProps.X` 와 같은 규칙,
+ * 같은 범위다. field 가 자기 labelAlign 만 갖고 labelPosition 은 Form 에서 받는 조합이
+ * 실제 사용형이라, 한 조상에서 두 값이 **동시에** 잡혀야 했던 구 조건은 그 조합을 놓쳤다.
+ *
+ * 정렬은 `labelPosition === "side"` 일 때만 적용한다 — top 모드의 Label 은 자연폭
+ * (fit-content, 3경로 계약)이라 정렬이 시각적으로 나타나지 않는다.
+ */
 function resolveLabelAlignment(
   element: CanvasSceneNode,
   elementsMap: Map<string, CanvasSceneNode>,
-): string | null {
+): "left" | "center" | "right" | null {
   if (element.type !== "Label" || !element.parent_id) return null;
 
-  // Walk from parent → ancestors looking for Form
-  let currentId: string | null | undefined = element.parent_id;
-  const visited = new Set<string>([element.id]);
-  while (currentId) {
-    if (visited.has(currentId)) break;
-    visited.add(currentId);
-    const ancestor = elementsMap.get(currentId);
-    if (!ancestor) break;
+  const field = elementsMap.get(element.parent_id);
+  if (!field || !SIDE_LABEL_COLUMN_TAGS.has(field.type)) return null;
 
-    if (ancestor.type === "Form" || FORM_INHERITANCE_TAGS.has(ancestor.type)) {
-      const pp = getProps(ancestor);
-      if (pp.labelPosition === "side" && pp.labelAlign) {
-        return pp.labelAlign as string;
+  const fieldProps = getProps(field);
+  let labelPosition: unknown = fieldProps.labelPosition;
+  let labelAlign: unknown = fieldProps.labelAlign;
+
+  if (FORM_INHERITING_FIELD_TAGS.has(field.type)) {
+    let currentId: string | null | undefined = field.parent_id;
+    const visited = new Set<string>([element.id, field.id]);
+    while (
+      currentId &&
+      (labelPosition === undefined || labelAlign === undefined)
+    ) {
+      if (visited.has(currentId)) break;
+      visited.add(currentId);
+      const ancestor = elementsMap.get(currentId);
+      if (!ancestor) break;
+      if (ancestor.type === "Form") {
+        const pp = getProps(ancestor);
+        if (labelPosition === undefined) labelPosition = pp.labelPosition;
+        if (labelAlign === undefined) labelAlign = pp.labelAlign;
+        break;
       }
+      currentId = ancestor.parent_id;
     }
-
-    currentId = ancestor.parent_id;
   }
-  return null;
+
+  if (labelPosition !== "side") return null;
+  return labelAlignToTextAlign(labelAlign);
 }
 
 // `.button-base` membership 은 catalog `structure.cssEmitMode`/`structure.buttonBase` 파생의

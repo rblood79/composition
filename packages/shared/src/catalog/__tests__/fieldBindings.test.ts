@@ -96,6 +96,9 @@ describe("family ② fields — toRacProps 변환 계약", () => {
       //   "does not recognize the labelPosition prop" 경고 + theme `[data-label-position]`
       //   selector 미매칭. (2026-07-22 fix)
       "data-label-position": "side",
+      // labelAlign (2026-08-21 채택) — 노드가 생략해도 계약 default("start")가 emit 된다
+      //   (labelPosition/size 와 동일 규칙). start 는 CSS 규칙이 없어 시각적으로 inert.
+      "data-label-align": "start",
       isRequired: true,
     });
     // raw prop 누출 없음 확인

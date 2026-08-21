@@ -282,6 +282,20 @@
   align-items: flex-start;
 }
 
+.react-aria-Select[data-label-position="side"] > .react-aria-Label {
+  width: var(--form-label-width, 11rem);
+  flex-shrink: 0;
+  text-align: var(--form-label-align, start);
+}
+
+.react-aria-Select[data-label-align="center"] {
+  --form-label-align: center;
+}
+
+.react-aria-Select[data-label-align="end"] {
+  --form-label-align: end;
+}
+
 .react-aria-Select[data-disabled="true"] .react-aria-Button {
   background: color-mix(in srgb, var(--fg) 4%, transparent);
   border-color: color-mix(in srgb, var(--fg) 12%, transparent);

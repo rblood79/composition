@@ -218,6 +218,9 @@ export const renderDatePicker = (
         element.props.necessityIndicator as "icon" | "label" | undefined
       }
       labelPosition={(element.props.labelPosition as "top" | "side") || "top"}
+      labelAlign={
+        element.props.labelAlign as "start" | "center" | "end" | undefined
+      }
       name={element.props.name ? String(element.props.name) : undefined}
       form={element.props.form ? String(element.props.form) : undefined}
       autoComplete={
@@ -313,6 +316,9 @@ export const renderDateRangePicker = (
         element.props.necessityIndicator as "icon" | "label" | undefined
       }
       labelPosition={(element.props.labelPosition as "top" | "side") || "top"}
+      labelAlign={
+        element.props.labelAlign as "start" | "center" | "end" | undefined
+      }
       defaultValue={undefined}
       minValue={element.props.minValue as string | undefined}
       maxValue={element.props.maxValue as string | undefined}
@@ -417,6 +423,9 @@ export const renderDateField = (
         element.props.necessityIndicator as "icon" | "label" | undefined
       }
       labelPosition={(element.props.labelPosition as "top" | "side") || "top"}
+      labelAlign={
+        element.props.labelAlign as "start" | "center" | "end" | undefined
+      }
       name={element.props.name ? String(element.props.name) : undefined}
       autoFocus={Boolean(element.props.autoFocus)}
       hideTimeZone={element.props.hideTimeZone !== false}
@@ -490,6 +499,9 @@ export const renderTimeField = (
         element.props.necessityIndicator as "icon" | "label" | undefined
       }
       labelPosition={(element.props.labelPosition as "top" | "side") || "top"}
+      labelAlign={
+        element.props.labelAlign as "start" | "center" | "end" | undefined
+      }
       name={element.props.name ? String(element.props.name) : undefined}
       autoFocus={Boolean(element.props.autoFocus)}
       hideTimeZone={element.props.hideTimeZone !== false}

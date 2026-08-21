@@ -1105,4 +1105,70 @@ describe("buildSpecNodeData", () => {
       expect(rgb(buildChild({}, {}))).not.toEqual([0, 0, 0]);
     });
   });
+  // design-data 감사 §1-2 축① (2026-08-21) — side 라벨 컬럼 안의 labelAlign.
+  //   값 어휘가 두 층에서 다르다: RSP labelAlign 은 start|center|end, Skia text shape align 은
+  //   left|center|right. 매핑을 빠뜨리면 "end" 가 조용히 좌측 정렬로 그려진다(구 결함).
+  describe("labelAlign -> Label text align", () => {
+    const buildLabel = (
+      fieldProps: Record<string, unknown>,
+      formProps?: Record<string, unknown>,
+    ) => {
+      const form = makeElement("form-1", {
+        type: "Form",
+        props: formProps ?? {},
+      });
+      const field = makeElement("field-1", {
+        type: "TextField",
+        parent_id: formProps ? form.id : null,
+        props: fieldProps,
+      });
+      const label = makeElement("label-1", {
+        type: "Label",
+        parent_id: field.id,
+        props: { children: "Name" },
+      });
+      const nodes = formProps ? [form, field, label] : [field, label];
+      return buildSpecNodeData({
+        element: label,
+        layout: makeLayout({ x: 0, y: 0, width: 176, height: 20 }),
+        theme: "light",
+        elementsMap: new Map(nodes.map((n) => [n.id, n])),
+      });
+    };
+
+    // Label 은 box 노드 + text 자식 구조 → 첫 text 노드의 align 을 찾는다.
+    const alignOf = (node: SkiaNodeData | null | undefined): unknown => {
+      if (!node) return undefined;
+      if (node.text?.align) return node.text.align;
+      for (const child of node.children ?? []) {
+        const found = alignOf(child);
+        if (found) return found;
+      }
+      return undefined;
+    };
+
+    it("field side + end -> 우측 정렬 (start|center|end -> left|center|right 매핑)", () => {
+      expect(
+        alignOf(buildLabel({ labelPosition: "side", labelAlign: "end" })),
+      ).toBe("right");
+    });
+
+    it("field side + center -> 중앙 정렬", () => {
+      expect(
+        alignOf(buildLabel({ labelPosition: "side", labelAlign: "center" })),
+      ).toBe("center");
+    });
+
+    it("labelPosition 은 Form 상속 + labelAlign 은 field 자신 (nearest-wins 합성)", () => {
+      expect(
+        alignOf(buildLabel({ labelAlign: "end" }, { labelPosition: "side" })),
+      ).toBe("right");
+    });
+
+    it("top 모드는 정렬 미적용 (라벨 자연폭이라 시각 효과 없음)", () => {
+      expect(
+        alignOf(buildLabel({ labelPosition: "top", labelAlign: "end" })),
+      ).toBe("left");
+    });
+  });
 });

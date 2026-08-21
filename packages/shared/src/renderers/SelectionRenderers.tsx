@@ -1336,6 +1336,9 @@ export const renderSelect = (
         elementProps.necessityIndicator as "icon" | "label" | undefined
       }
       labelPosition={(elementProps.labelPosition as "top" | "side") || "top"}
+      labelAlign={
+        elementProps.labelAlign as "start" | "center" | "end" | undefined
+      }
       name={elementProps.name ? String(elementProps.name) : undefined}
       autoFocus={Boolean(elementProps.autoFocus)}
       dataBinding={getElementDataBinding(element) as DataBinding | undefined}
@@ -1613,6 +1616,9 @@ export const renderComboBox = (
         (element.props.validationBehavior as "native" | "aria") || undefined
       }
       labelPosition={(element.props.labelPosition as "top" | "side") || "top"}
+      labelAlign={
+        element.props.labelAlign as "start" | "center" | "end" | undefined
+      }
       necessityIndicator={
         element.props.necessityIndicator as "icon" | "label" | undefined
       }

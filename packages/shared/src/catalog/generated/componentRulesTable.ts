@@ -2548,6 +2548,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "flex-direction": "row",
                 "align-items": "flex-start",
               },
+              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
+              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
+              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
+              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
+              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
+              //   fallback 11rem 으로 같은 값에 도달한다.
+              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
+              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            center: {
+              styles: {
+                "--form-label-align": "center",
+              },
+            },
+            end: {
+              styles: {
+                "--form-label-align": "end",
+              },
             },
           },
           quiet: {
@@ -3008,6 +3039,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "flex-direction": "row",
                 "align-items": "flex-start",
               },
+              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
+              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
+              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
+              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
+              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
+              //   fallback 11rem 으로 같은 값에 도달한다.
+              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
+              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            center: {
+              styles: {
+                "--form-label-align": "center",
+              },
+            },
+            end: {
+              styles: {
+                "--form-label-align": "end",
+              },
             },
           },
           quiet: {
@@ -3383,6 +3445,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+              },
+              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
+              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
+              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
+              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
+              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
+              //   fallback 11rem 으로 같은 값에 도달한다.
+              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
+              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            center: {
+              styles: {
+                "--form-label-align": "center",
+              },
+            },
+            end: {
+              styles: {
+                "--form-label-align": "end",
               },
             },
           },
@@ -3824,6 +3917,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+              },
+              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
+              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
+              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
+              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
+              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
+              //   fallback 11rem 으로 같은 값에 도달한다.
+              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
+              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            center: {
+              styles: {
+                "--form-label-align": "center",
+              },
+            },
+            end: {
+              styles: {
+                "--form-label-align": "end",
               },
             },
           },
@@ -7153,6 +7277,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "flex-direction": "row",
                 "align-items": "flex-start",
               },
+              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
+              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
+              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
+              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
+              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
+              //   fallback 11rem 으로 같은 값에 도달한다.
+              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
+              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            center: {
+              styles: {
+                "--form-label-align": "center",
+              },
+            },
+            end: {
+              styles: {
+                "--form-label-align": "end",
+              },
             },
           },
           quiet: {
@@ -8660,6 +8815,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "flex-direction": "row",
                 "align-items": "flex-start",
               },
+              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
+              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
+              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
+              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
+              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
+              //   fallback 11rem 으로 같은 값에 도달한다.
+              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
+              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            center: {
+              styles: {
+                "--form-label-align": "center",
+              },
+            },
+            end: {
+              styles: {
+                "--form-label-align": "end",
+              },
             },
           },
           quiet: {
@@ -9172,6 +9358,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+              },
+              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
+              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
+              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
+              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
+              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
+              //   fallback 11rem 으로 같은 값에 도달한다.
+              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
+              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            center: {
+              styles: {
+                "--form-label-align": "center",
+              },
+            },
+            end: {
+              styles: {
+                "--form-label-align": "end",
               },
             },
           },
@@ -11706,6 +11923,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "flex-direction": "row",
                 "align-items": "flex-start",
               },
+              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
+              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
+              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
+              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
+              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
+              //   fallback 11rem 으로 같은 값에 도달한다.
+              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
+              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            center: {
+              styles: {
+                "--form-label-align": "center",
+              },
+            },
+            end: {
+              styles: {
+                "--form-label-align": "end",
+              },
             },
           },
           // quiet: **여기 두지 않는다** (2026-08-21 라이브 실측). TextArea 는 DOM 에서
@@ -11860,6 +12108,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+              },
+              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
+              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
+              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
+              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
+              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
+              //   fallback 11rem 으로 같은 값에 도달한다.
+              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
+              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            center: {
+              styles: {
+                "--form-label-align": "center",
+              },
+            },
+            end: {
+              styles: {
+                "--form-label-align": "end",
               },
             },
           },
@@ -12107,6 +12386,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+              },
+              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
+              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
+              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
+              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
+              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
+              //   fallback 11rem 으로 같은 값에 도달한다.
+              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
+              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            center: {
+              styles: {
+                "--form-label-align": "center",
+              },
+            },
+            end: {
+              styles: {
+                "--form-label-align": "end",
               },
             },
           },

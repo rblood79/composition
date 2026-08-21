@@ -66,6 +66,22 @@ export const textAreaBinding: PrimitiveBinding = {
           { value: "side", label: "Side" },
         ],
       },
+      // RSP labelAlign (2026-08-21, design-data 감사 §1-2 축①) — side 라벨 컬럼 안에서의
+      //   라벨 텍스트 정렬. DOM 은 `data-label-align` → catalog nested rule 의
+      //   `text-align: var(--form-label-align)`, Skia 는 buildSpecNodeData.resolveLabelAlignment
+      //   (start|center|end → left|center|right 매핑). Form 조상 값은 renderer/조상 walk 로 상속하고
+      //   자신이 지정하면 자신이 우선 (nearest-wins, 양 경로 동일).
+      labelAlign: {
+        kind: "enum",
+        label: "Label Align",
+        section: "appearance",
+        default: "start",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "center", label: "Center" },
+          { value: "end", label: "End" },
+        ],
+      },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

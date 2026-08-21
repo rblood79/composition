@@ -318,6 +318,20 @@
   align-items: flex-start;
 }
 
+.react-aria-SearchField[data-label-position="side"] > .react-aria-Label {
+  width: var(--form-label-width, 11rem);
+  flex-shrink: 0;
+  text-align: var(--form-label-align, start);
+}
+
+.react-aria-SearchField[data-label-align="center"] {
+  --form-label-align: center;
+}
+
+.react-aria-SearchField[data-label-align="end"] {
+  --form-label-align: end;
+}
+
 .react-aria-SearchField[data-quiet="true"] .searchfield-container {
   background: transparent;
   border-color: transparent;

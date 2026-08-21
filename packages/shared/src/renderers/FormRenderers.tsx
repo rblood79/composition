@@ -202,6 +202,10 @@ export const renderTextField = (
         inheritedProps.labelPosition ??
         "top"
       }
+      labelAlign={
+        (element.props.labelAlign as "start" | "center" | "end" | undefined) ??
+        inheritedProps.labelAlign
+      }
       name={element.props.name ? String(element.props.name) : undefined}
       maxLength={
         element.props.maxLength !== undefined
@@ -275,6 +279,10 @@ export const renderTextArea = (
         (element.props.labelPosition as "top" | "side" | undefined) ??
         inheritedProps.labelPosition ??
         "top"
+      }
+      labelAlign={
+        (element.props.labelAlign as "start" | "center" | "end" | undefined) ??
+        inheritedProps.labelAlign
       }
       name={element.props.name ? String(element.props.name) : undefined}
       maxLength={
@@ -356,6 +364,10 @@ export const renderNumberField = (
         inheritedProps.labelPosition ??
         "top"
       }
+      labelAlign={
+        (element.props.labelAlign as "start" | "center" | "end" | undefined) ??
+        inheritedProps.labelAlign
+      }
       name={element.props.name ? String(element.props.name) : undefined}
       autoFocus={Boolean(element.props.autoFocus)}
       isWheelDisabled={Boolean(element.props.isWheelDisabled)}
@@ -424,6 +436,10 @@ export const renderSearchField = (
         (element.props.labelPosition as "top" | "side" | undefined) ??
         inheritedProps.labelPosition ??
         "top"
+      }
+      labelAlign={
+        (element.props.labelAlign as "start" | "center" | "end" | undefined) ??
+        inheritedProps.labelAlign
       }
       name={element.props.name ? String(element.props.name) : undefined}
       maxLength={

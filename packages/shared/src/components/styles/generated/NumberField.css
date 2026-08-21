@@ -294,6 +294,20 @@
   align-items: flex-start;
 }
 
+.react-aria-NumberField[data-label-position="side"] > .react-aria-Label {
+  width: var(--form-label-width, 11rem);
+  flex-shrink: 0;
+  text-align: var(--form-label-align, start);
+}
+
+.react-aria-NumberField[data-label-align="center"] {
+  --form-label-align: center;
+}
+
+.react-aria-NumberField[data-label-align="end"] {
+  --form-label-align: end;
+}
+
 .react-aria-NumberField[data-quiet="true"] .react-aria-Group {
   background: transparent;
   border-color: transparent;

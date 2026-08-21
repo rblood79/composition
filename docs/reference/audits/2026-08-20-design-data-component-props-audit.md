@@ -80,6 +80,27 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 ### 1-2. 반복 gap 3대 축 (다수 컴포넌트 공통 — 스윕 후보)
 
 1. **field 공통 prop 결손**: `labelAlign` / `contextualHelp` (+date 계열은 `form`/`showFormatHelpText`) 가 TextField·TextArea·NumberField·SearchField·CheckboxGroup·RadioGroup·Slider·Select·ComboBox·TagGroup·DatePicker·DateRangePicker·DateField·TimeField 에 일괄 부재. contextualHelp 는 ssot-hierarchy D2 원칙의 명시 채택 예시이고, labelAlign 은 ColorField/Form 에 노출 선례가 있다.
+
+#### 수리 현황 — 축① labelAlign 완료 (2026-08-21)
+
+`labelAlign` 은 "prop 미노출" 이 아니라 **채널 전체가 죽어 있던** 상태였다 (착수 전 실측):
+
+| 층 | 착수 전 |
+| --- | --- |
+| D2 binding | Form/ColorField 만 (NumberField 는 주석에 "개별 field 미소비" 명시) |
+| DOM renderer | Form 만 전달 — field 10종은 `labelPosition` 만 상속 전달하고 labelAlign 은 누락 |
+| DOM CSS | `--form-label-align` / `--form-label-width` 를 **정의만** 하고 읽는 rule 0건 |
+| Skia | `resolveLabelAlignment` 이 `start`/`end` 를 그대로 실었는데 shape align 은 left/center/right 만 인식 → **end 가 조용히 좌측** |
+| 폭 | Skia 는 side 에서 Label 176px 강제, DOM 은 자연폭 → **10종 비대칭** |
+
+수리: catalog `label-position.side` 에 `> .react-aria-Label { width: var(--form-label-width, 11rem); flex-shrink: 0; text-align: var(--form-label-align, start) }` nested rule + `label-align` variant 추가(10종), 컴포넌트 `data-label-align` emit, 렌더러 전달(FormRenderers 4종은 Form 상속 포함), Skia 값 매핑 + nearest-wins 해석.
+
+**제외 판정**: CheckboxGroup/RadioGroup 은 라벨 자연폭이 이미 정본(implicitStyles "width 강제 없음")이라 정렬이 시각적으로 성립하지 않는다. ColorField 는 Skia side 처리 자체가 없어 DOM 만 컬럼을 주면 새 비대칭이 된다.
+
+live: 패널 Label Position=Side / Label Align=End 노출 → 캔버스 라벨이 176px 컬럼 우측 정렬, Compare Mode preview computed(width 176px / text-align end / flex-shrink 0) 동일. 인라인 폭이 없는 라벨도 양 경로 176px 로 일치.
+
+**잔여 관찰**: (a) `labelPosition` 의 Form 상속 범위가 렌더러마다 다르다 — FormRenderers 4종만 상속하고 Date/Selection 6종은 자기 prop 만 쓰며, Skia 는 전 패밀리가 자기 prop 이다. 본 축 밖. (b) `contextualHelp` 는 신규 컴포넌트라 미착수(§3-2).
+
 2. **컬렉션 selectionStyle/quiet/density 결손**: selectionStyle (checkbox/highlight) 이 TableView·GridList·Tree·Menu 공통 부재, quiet 이 Table·GridList 부재, TableView density 는 D2 만 있고 D3 수치 채널 없음.
 3. **staticColor 잔여 전개**: Button/Link 는 기채택 (CSS/Skia 대칭 스킴 보유) — ToggleButton·ToggleButtonGroup·ProgressBar·ProgressCircle 에 동일 축 미전개. IconButton 은 root binding 수용·propsSchema 미노출 (노출만 결손).
 

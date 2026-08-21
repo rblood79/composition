@@ -48,6 +48,12 @@ export interface NumberFieldProps extends AriaNumberFieldProps {
   size?: ComponentSize;
   necessityIndicator?: NecessityIndicator;
   labelPosition?: "top" | "side";
+  /**
+   * side 라벨 컬럼 안에서의 라벨 텍스트 정렬 (RSP `labelAlign`). Form 조상이 지정하면
+   * 상속하고, 자신이 지정하면 그것이 우선 (renderer 의 nearest-wins).
+   * @default 'start'
+   */
+  labelAlign?: "start" | "center" | "end";
   isQuiet?: boolean;
 }
 
@@ -58,6 +64,7 @@ export function NumberField({
   size = "md",
   necessityIndicator,
   labelPosition = "top",
+  labelAlign,
   isQuiet,
   formatOptions,
   ...props
@@ -72,6 +79,7 @@ export function NumberField({
       )}
       data-size={size}
       data-label-position={labelPosition}
+      data-label-align={labelAlign}
       data-quiet={isQuiet ? "true" : undefined}
       formatOptions={formatOptions}
     >

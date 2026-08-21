@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## field labelAlign — 죽어 있던 side 라벨 정렬 채널 복구 (축① 완결) - 2026-08-21
+
+### Bug Fixes
+
+- **side 라벨 폭이 캔버스와 preview 에서 달랐다** (10종 field):
+  - Skia 는 `labelPosition="side"` 에서 Label 에 176px 고정폭을 주입하는데 DOM 에는 대응
+    rule 이 없어 라벨이 자연폭이었다. catalog 가 `--form-label-width: 11rem` 을 정의만 하고
+    **읽는 CSS rule 이 0건**이었던 것이 원인.
+  - **Why**: 폭 채널이 반쪽만 배선돼 있으면 같은 문서가 두 화면에서 다르게 보인다 —
+    labelAlign 이 시각으로 나타나는 전제(라벨 박스가 텍스트보다 넓음)도 함께 무너진다.
+- **labelAlign "end" 가 캔버스에서 조용히 좌측 정렬됐다**:
+  - `resolveLabelAlignment` 이 RSP 값(`start`/`end`)을 그대로 shape align 에 실었는데 Skia
+    shape align 은 `left|center|right` 만 인식 → 미지 값이 좌측으로 떨어졌다. CSS 는
+    `text-align: start/end` 를 그대로 이해해 DOM 만 정상이었다 (값 어휘 불일치).
+
+### Features
+
+- **field 10종 labelAlign 채택** (design-data 감사 §1-2 축①):
+  - TextField/TextArea/NumberField/SearchField/Select/ComboBox/DateField/TimeField/
+    DatePicker/DateRangePicker — binding accepts + 컴포넌트 `data-label-align` + 렌더러 전달.
+  - DOM: catalog nested rule 이 side 모드 라벨에 `width: var(--form-label-width, 11rem)` +
+    `text-align: var(--form-label-align, start)` 적용. Skia: `start|center|end` →
+    `left|center|right` 매핑.
+  - 상속 규칙은 양 경로 동일(nearest-wins): 자기 prop 우선, 없으면 Form 조상 —
+    **Form 상속 범위도 DOM 렌더러와 동일하게** FormRenderers 4종으로 한정(Date/Selection
+    6종은 자기 prop만; 그 범위 불일치 자체는 별도 관찰 항목).
+  - CheckboxGroup/RadioGroup 제외 — 라벨 자연폭이 이미 정본이라 정렬이 성립하지 않는다.
+
 ## ToggleButtonGroup staticColor — 그룹→자식 상속 채널 (축③ 완결) - 2026-08-21
 
 ### Features
@@ -127,6 +155,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     2px focus ring을 사용하며, selected의 중복 배경·outline·inset shadow를 제거했다.
     우측 action은 hover·selected뿐 아니라 keyboard focus와 `:focus-within`에서도
     노출된다.
+  - Public `Tree.css`는 `<Tree data-composition-tree>` 경계 안에서만 적용되도록
+    격리했다. raw React Aria Tree를 사용하는 authoring panel이 public Tree의
+    hover/pressed/selected 배경을 함께 상속해 반투명 상태가 이중 합성되던 전역
+    selector 충돌을 원인에서 차단했다.
   - Page/Layer/Frame tree의 텍스트 앞 타입 아이콘, depth 들여쓰기 세로선,
     expand·selection·drag action은 기존 tree 정보구조 그대로 유지했다.
   - **Why:** 초기 sidebar 전용 `.section-content { all: unset; }`과 수동

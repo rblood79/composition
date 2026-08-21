@@ -241,6 +241,20 @@
   align-items: flex-start;
 }
 
+.react-aria-TimeField[data-label-position="side"] > .react-aria-Label {
+  width: var(--form-label-width, 11rem);
+  flex-shrink: 0;
+  text-align: var(--form-label-align, start);
+}
+
+.react-aria-TimeField[data-label-align="center"] {
+  --form-label-align: center;
+}
+
+.react-aria-TimeField[data-label-align="end"] {
+  --form-label-align: end;
+}
+
 .react-aria-TimeField[data-quiet="true"] .react-aria-DateInput {
   background: transparent;
   border-color: transparent;
