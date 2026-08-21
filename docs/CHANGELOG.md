@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## 메뉴 선택 표시 - 2026-08-22
+
+### Bug Fixes
+
+- 메뉴에서 선택 모드를 켜고 항목을 골라도 어떤 항목이 선택됐는지 화면에 표시되지 않던 문제를
+  수정했다. 선택 상태 자체는 정상 저장되고 있었고 표시만 없었다. 이제 다중 선택 메뉴는 선택한
+  항목에 체크(✓), 단일 선택 메뉴는 점(●)을 accent 색으로 표시한다.
+- 표시 자리는 선택 여부와 관계없이 확보되므로 항목을 고를 때 글자가 밀리지 않는다. 선택을 쓰지
+  않는 메뉴(선택 모드 None)는 자리도 만들지 않아 기존 메뉴 모양이 그대로다.
+
 ## GridList quiet - 2026-08-22
 
 ### Added
