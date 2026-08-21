@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## TextArea quiet 배선 — boolean 시각 prop 의 data-\* 라우팅 - 2026-08-21
+
+### Fixed
+
+- **TextArea 의 Quiet 편집 항목이 실제로 동작한다** — field 패밀리 11종 중 TextArea 만 quiet
+  시각 규칙이 0건인 형제 비대칭이었다. 프로퍼티 패널에는 항목이 있는데 아무 일도 일어나지
+  않던 상태다.
+- 근본 원인은 prop 투영기(`toRacProps`)였다. `isQuiet` 은 boolean 이라 raw React prop 으로
+  통과했는데, RAC primitive 는 모르는 prop 이라 무시되고 `data-quiet` 도 붙지 않아 theme CSS
+  가 걸리지 않았다 (`labelPosition`/`staticColor` 가 겪은 것과 같은 결함 축). 이제 boolean
+  시각 prop 을 `data-*` 로 라우팅한다 — **켜졌을 때만** 내보내, 꺼진 상태에서 존재 셀렉터가
+  걸리는 일이 없다.
+- 부수 효과로 raw 경로를 타던 ColorField/ComboBox/DatePicker/DateRangePicker/Link/Select 의
+  quiet 도 함께 살아난다.
+- TextArea 의 quiet 시각은 TextField 와 **동형**(배경·테두리 제거 + 밑줄 1선)으로 맞췄다 —
+  같은 패밀리 안에서 quiet 의 뜻이 갈리지 않도록 의도적으로 복제했다.
+
+> 스코프 밖 (알려진 상태): field 계열 quiet 은 DOM 전용이고 캔버스(Skia)는 여전히 일반 입력
+> 상자로 그린다. quiet 의 캔버스 표현에는 배경 외에 테두리 제거·밑줄 채널이 필요한데 아직
+> 없다 — TextArea 만 반쪽을 넣으면 패밀리 안에서 또 갈리므로 기존 10종과 같은 상태로 두었다.
+
 ## ToggleButtonGroup density + Tabs·ToggleButtonGroup 기본값 Spectrum default 전환 - 2026-08-21
 
 ### Features
