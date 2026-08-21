@@ -27,6 +27,7 @@
   padding: 6px 10px;
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
+  max-width: 160px;
 }
 
 .react-aria-Tooltip[data-variant="neutral"] {
@@ -86,6 +87,7 @@
   padding: 4px 8px;
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
+  max-width: 160px;
 }
 
 .react-aria-Tooltip[data-size="md"] {
@@ -93,6 +95,7 @@
   padding: 6px 10px;
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
+  max-width: 160px;
 }
 
 .react-aria-Tooltip[data-size="lg"] {
@@ -100,6 +103,7 @@
   padding: 8px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
+  max-width: 160px;
 }
 
 .react-aria-Tooltip[data-focus-visible] {

@@ -156,3 +156,75 @@ describe("TextField applyImplicitStyles — ADR-108 P2 helper 소비", () => {
     expect(filteredChildren.find((c) => c.type === "Input")).toBeDefined();
   });
 });
+
+describe("TextField minWidth — Spectrum 1.5×height 식별성 하한 (2026-08-21)", () => {
+  const label = makeChild("lbl2", "Label");
+  const input = makeChild("inp2", "Input");
+
+  it("md (기본) → catalog sizes.md.minWidth=45 주입", () => {
+    const { effectiveParent } = applyTF({}, [label, input]);
+    const ps = (effectiveParent.props?.style ?? {}) as Record<string, unknown>;
+    expect(ps.minWidth).toBe(45);
+  });
+
+  it("size 축 스케일 — xs=27 / xl=81", () => {
+    const xs = applyTF({ size: "xs" }, [label, input]);
+    const xl = applyTF({ size: "xl" }, [label, input]);
+    expect(
+      ((xs.effectiveParent.props?.style ?? {}) as Record<string, unknown>)
+        .minWidth,
+    ).toBe(27);
+    expect(
+      ((xl.effectiveParent.props?.style ?? {}) as Record<string, unknown>)
+        .minWidth,
+    ).toBe(81);
+  });
+
+  it("side-label variant 에서도 주입", () => {
+    const { effectiveParent } = applyTF({ labelPosition: "side" }, [
+      label,
+      input,
+    ]);
+    const ps = (effectiveParent.props?.style ?? {}) as Record<string, unknown>;
+    expect(ps.minWidth).toBe(45);
+  });
+
+  it("사용자 명시 minWidth(0 포함) 우선 — 주입이 덮지 않음", () => {
+    const container = makeTextField({ style: { minWidth: 0 } }, [label, input]);
+    const byId = new Map<string, Element>([
+      [container.id, container],
+      [label.id, label],
+      [input.id, input],
+    ]);
+    const { effectiveParent } = applyImplicitStyles(
+      container,
+      [label, input],
+      () => [],
+      byId,
+    );
+    const ps = (effectiveParent.props?.style ?? {}) as Record<string, unknown>;
+    expect(ps.minWidth).toBe(0);
+  });
+
+  it("TextArea 는 catalog minWidth 미정의 → 미주입", () => {
+    const container: Element = {
+      id: "ta-1",
+      type: "TextArea",
+      props: { label: "Memo" },
+      childrenIds: [label.id, input.id],
+    } as Element;
+    const byId = new Map<string, Element>([
+      [container.id, container],
+      [label.id, label],
+      [input.id, input],
+    ]);
+    const { effectiveParent } = applyImplicitStyles(
+      container,
+      [label, input],
+      () => [],
+      byId,
+    );
+    const ps = (effectiveParent.props?.style ?? {}) as Record<string, unknown>;
+    expect(ps.minWidth).toBeUndefined();
+  });
+});

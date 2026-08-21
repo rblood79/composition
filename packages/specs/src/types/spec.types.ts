@@ -968,6 +968,9 @@ export interface SizeSpec {
   /** 최소 너비 (optional, px) */
   minWidth?: number;
 
+  /** 최대 너비 (optional, px) — Spectrum guideline 수치 (ProgressBar 768 / Tooltip 160) */
+  maxWidth?: number;
+
   /** 최소 높이 (optional, px) */
   minHeight?: number;
 

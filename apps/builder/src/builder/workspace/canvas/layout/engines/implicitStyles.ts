@@ -1937,10 +1937,25 @@ export function applyImplicitStyles(
         new Set([wrapperChildTag]),
       );
     }
+    // minWidth (Spectrum 3×height 식별성 하한, 2026-08-21): catalog sizes.minWidth →
+    //   엔진 min_width clamp. DOM 은 generated CSS `min-width` (같은 catalog 값) — D3 symmetric.
+    //   catalog 미정의 컴포넌트(combobox/select)는 미주입. 사용자 명시 minWidth(0 포함) 우선.
+    const fieldMw = specSizeField(
+      containerTag,
+      (containerProps?.size as string) ?? "md",
+      "minWidth",
+    );
+    const fieldMwPatch =
+      rawParentStyle.minWidth == null && fieldMw != null
+        ? { minWidth: fieldMw }
+        : {};
     effectiveParent = withParentStyle(
       containerEl,
       sideMode
-        ? getSideLabelParentStyle(specFallback, rawParentStyle)
+        ? {
+            ...getSideLabelParentStyle(specFallback, rawParentStyle),
+            ...fieldMwPatch,
+          }
         : {
             // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 제거 (specFallback=catalog base).
             ...specFallback,
@@ -1955,6 +1970,7 @@ export function applyImplicitStyles(
               specFallback.gap ??
               4,
             ...rawParentStyle,
+            ...fieldMwPatch,
           },
     );
   }
@@ -2182,15 +2198,26 @@ export function applyImplicitStyles(
     );
     const tfSideMode = hasResolvedSideLabelVariant(tfVariant.styles);
 
+    // minWidth (Spectrum 1.5×height 식별성 하한, 2026-08-21): catalog sizes.minWidth →
+    //   엔진 min_width clamp. DOM 은 generated CSS `min-width` (같은 catalog 값) — D3 symmetric.
+    //   catalog 미정의(textarea)는 미주입. 사용자 명시 minWidth(0 포함) 우선.
+    const tfMw = specSizeField(
+      containerTag,
+      (containerProps?.size as string) ?? "md",
+      "minWidth",
+    );
+    const tfMwPatch =
+      rawParentStyle.minWidth == null && tfMw != null ? { minWidth: tfMw } : {};
+
     if (tfSideMode) {
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
         new Set(["Input"]),
       );
-      effectiveParent = withParentStyle(
-        containerEl,
-        getSideLabelParentStyle(specFallback, rawParentStyle),
-      );
+      effectiveParent = withParentStyle(containerEl, {
+        ...getSideLabelParentStyle(specFallback, rawParentStyle),
+        ...tfMwPatch,
+      });
     } else {
       // ADR-912 Phase 3-A-3a: display/flexDirection 인라인 fallback 제거 — specFallback 이
       //   catalog structure.composition base(display:flex/flexDirection:column)를 담는다.
@@ -2205,6 +2232,7 @@ export function applyImplicitStyles(
           specFallback.gap ??
           4,
         ...rawParentStyle,
+        ...tfMwPatch,
       });
     }
   }
@@ -2428,6 +2456,22 @@ export function applyImplicitStyles(
       rowGap:
         parentStyle.rowGap ?? specSizeField(containerTag, sizeName, "gap") ?? 4,
       columnGap: progressGap,
+      // min/maxWidth (Spectrum guideline 48~768, 2026-08-21): catalog sizes.minWidth/maxWidth →
+      //   엔진 min/max_width clamp. DOM 은 generated CSS `min-width`/`max-width` (같은 catalog 값)
+      //   — D3 symmetric. catalog 미등록 tag(progress/loadingbar/gauge)는 undefined → 미주입.
+      //   사용자 명시값(0 포함) 우선.
+      ...((): Record<string, unknown> => {
+        const mw = specSizeField(containerTag, sizeName, "minWidth");
+        const mx = specSizeField(containerTag, sizeName, "maxWidth");
+        return {
+          ...(parentStyle.minWidth == null && mw != null
+            ? { minWidth: mw }
+            : {}),
+          ...(parentStyle.maxWidth == null && mx != null
+            ? { maxWidth: mx }
+            : {}),
+        };
+      })(),
     });
   }
 

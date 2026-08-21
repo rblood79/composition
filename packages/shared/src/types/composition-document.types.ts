@@ -251,6 +251,13 @@ export interface ComponentRuleSize {
    */
   minWidth?: number | string;
   /**
+   * 최대 너비 base (Spectrum guideline 수치 채택 2026-08-21 — ProgressBar 768 / Tooltip 160).
+   * generate-css 가 `max-width: {maxWidth}px` 로 emit (DOM), implicitStyles 가 style.maxWidth 로
+   * 주입해 엔진 max_width clamp 소비 (Skia) — 두 경로 동일 catalog 값 (D3 symmetric).
+   * 사용자 inline maxWidth 는 양 경로 모두 우선.
+   */
+  maxWidth?: number | string;
+  /**
    * 텍스트 두께 base (ADR-912 collection item leaf — ListBoxItem 등 spec.sizes.fontWeight 이전).
    * generate-css virtual 이 `font-weight: {fontWeight}` 로 emit. ListBoxItem label 은
    * 600(semibold) 고정 — 기존 generated childSpec block 의 `font-weight: 600` 동형 복원.

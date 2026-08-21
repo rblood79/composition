@@ -983,6 +983,9 @@ function generateSizeStyles(
   if (size.minHeight !== undefined) {
     lines.push(`  min-height: ${size.minHeight}px;`);
   }
+  if (size.maxWidth !== undefined) {
+    lines.push(`  max-width: ${size.maxWidth}px;`);
+  }
 
   // gap — ADR-071: containerStyles.gap 존재 시 skip (이중 emit 방지)
   if (size.gap && !options?.skipGap) {

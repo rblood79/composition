@@ -7759,6 +7759,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
         height: 4,
+        minWidth: 48, // Spectrum guideline 48~768 (2026-08-21)
+        maxWidth: 768,
         gap: 4,
       },
       md: {
@@ -7766,6 +7768,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
         height: 8,
+        minWidth: 48,
+        maxWidth: 768,
         gap: 4,
       },
       lg: {
@@ -7773,6 +7777,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.md}",
         height: 12,
+        minWidth: 48,
+        maxWidth: 768,
         gap: 4,
       },
       xl: {
@@ -7780,6 +7786,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.md}",
         height: 16,
+        minWidth: 48,
+        maxWidth: 768,
         gap: 4,
       },
     },
@@ -8546,6 +8554,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
+        minWidth: 66, // Spectrum 3×height — 식별성 하한 (2026-08-21)
         gap: 6,
         iconSize: 14,
       },
@@ -8553,6 +8562,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
+        minWidth: 90,
         gap: 8,
         iconSize: 18,
       },
@@ -8560,6 +8570,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
+        minWidth: 126,
         gap: 10,
         iconSize: 22,
       },
@@ -8567,6 +8578,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
+        minWidth: 162,
         gap: 10,
         iconSize: 28,
       },
@@ -11722,6 +11734,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.sm}",
         height: 18,
+        minWidth: 27, // Spectrum 1.5×height — 식별성 하한 (design-data 감사 §1-4, 2026-08-21)
         gap: 2,
       },
       sm: {
@@ -11729,6 +11742,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
+        minWidth: 33,
         gap: 4,
       },
       md: {
@@ -11736,6 +11750,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
+        minWidth: 45,
         gap: 6,
       },
       lg: {
@@ -11743,6 +11758,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
+        minWidth: 63,
         gap: 8,
       },
       xl: {
@@ -11750,6 +11766,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
+        minWidth: 81,
         gap: 10,
       },
     },
@@ -13009,6 +13026,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 0,
+        maxWidth: 160, // Spectrum 스키마 maxWidth (2026-08-21)
       },
       md: {
         paddingX: 10,
@@ -13016,6 +13034,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 0,
+        maxWidth: 160,
       },
       lg: {
         paddingX: 12,
@@ -13023,6 +13042,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
+        maxWidth: 160,
       },
     },
     structure: {
