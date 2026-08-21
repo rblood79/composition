@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Vite 8 — Rolldown 번들러 전환 - 2026-08-21
+
+### Infrastructure
+
+- **vite 7.3.6 → 8.2.2**: catalog 단일 버전으로 builder/publish 동시 전환.
+  `build.rollupOptions` → `build.rolldownOptions`, Tailwind v4 `@utility`
+  호환을 위해 `build.cssMinify: "esbuild"` 유지 (Vite 8 기본 Lightning CSS 미사용).
+  - 검증: type-check PASS, test 3926 PASS, `vite build` builder+publish,
+    live `http://127.0.0.1:5173` 랜딩·dashboard 로드.
+
 ## Node 패널 공통 디자인 정렬 — Panel/Section style contract - 2026-08-21
 
 ### Bug Fixes

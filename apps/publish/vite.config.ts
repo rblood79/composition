@@ -35,7 +35,9 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: true,
-    rollupOptions: {
+    // Vite 8 기본 Lightning CSS는 Tailwind v4 @utility 등을 미지원 → esbuild 유지
+    cssMinify: "esbuild",
+    rolldownOptions: {
       input: {
         main: path.resolve(__dirname, "index.html"),
       },

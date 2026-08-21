@@ -139,11 +139,11 @@ export default defineConfig(({ command }) => {
     },
     base: command === "build" ? "/composition/" : "/",
     build: {
-      // 브라우저 호환성 명시 (필요시)
-      // 'baseline-widely-available'은 Vite 7의 기본값
-      // 더 넓은 호환성이 필요하면 'modules' 사용
-      target: "baseline-widely-available", // 또는 'modules'
-      rollupOptions: {
+      // 브라우저 호환성 — Vite 8 baseline-widely-available 기본(Chrome/Edge 111+)
+      target: "baseline-widely-available",
+      // Vite 8 기본 Lightning CSS는 Tailwind v4 @utility 등을 미지원 → esbuild 유지
+      cssMinify: "esbuild",
+      rolldownOptions: {
         input: {
           main: resolve(import.meta.dirname, "index.html"),
           preview: resolve(import.meta.dirname, "preview.html"),
