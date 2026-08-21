@@ -586,10 +586,12 @@ describe("ADR-914 entry universe contract", () => {
       // exception 으로만 허용된다 (allowlist 가 없으면 차단).
       expect(allowedAbsent("TAG_SPEC_MAP", comp)).toBe(true);
     }
-    // TextArea/frame 은 placeable & !renderer (load-bearing rendererMap).
+    // frame 은 placeable & !renderer (load-bearing rendererMap).
     //   InlineAlert 는 ADR-148 Phase 3 reusable 전환으로 primitive placeable:false —
     //   placeable 전제가 깨져 exception 루프에서 제외 (ref instance 경로).
-    for (const comp of ["TextArea", "frame"]) {
+    //   TextArea 는 2026-08-21 에 전용 renderer 를 얻어 exception 에서 빠졌다 — generic
+    //   경로가 RAC TextField + canonical Input 자식을 그려 DOM 이 한 줄 `<input>` 이었다.
+    for (const comp of ["frame"]) {
       const e = resolveComponentEntryRuntime(comp);
       expect(
         e.placeable && !e.render.hasRendererEntry,

@@ -5,6 +5,7 @@ export * from "./Button";
 export * from "./ToggleButton";
 export * from "./ToggleButtonGroup";
 export * from "./TextField";
+export * from "./TextArea";
 export * from "./NumberField";
 export * from "./SearchField";
 export * from "./Field";

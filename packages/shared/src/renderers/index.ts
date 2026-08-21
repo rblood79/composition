@@ -23,6 +23,7 @@ export const rendererMap: Record<
   // Form 컴포넌트
   Form: FormRenderers.renderForm,
   TextField: FormRenderers.renderTextField,
+  TextArea: FormRenderers.renderTextArea,
   NumberField: FormRenderers.renderNumberField,
   SearchField: FormRenderers.renderSearchField,
   Input: FormRenderers.renderInput,

@@ -11874,7 +11874,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           {
-            childSelector: ".react-aria-Input",
+            // `:is(...)` 로 `<textarea>` 까지 덮는다 (2026-08-21). canonical `TextArea` 는
+            //   DOM 에서 RAC `TextField` 컨테이너로 렌더되고 그 안의 control 은
+            //   `.react-aria-TextArea` 클래스를 단 `<textarea>` 다 — `.react-aria-Input` 만
+            //   노리면 TextArea 의 control 이 size 위임(padding/font-size/line-height)과
+            //   state(hover/focus/invalid/disabled) 를 통째로 못 받는다.
+            //   `:is()` 의 특이도는 인자 중 최대값이라 `.react-aria-Input` 단독과 동일 —
+            //   기존 TextField 렌더 결과는 바뀌지 않는다(상위집합 매칭).
+            childSelector: ":is(.react-aria-Input, .react-aria-TextArea)",
             prefix: "tf-input",
             variables: {
               xs: {

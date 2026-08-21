@@ -2,6 +2,7 @@ import React from "react";
 import {
   Form,
   TextField,
+  TextArea,
   NumberField,
   SearchField,
   Input,
@@ -223,6 +224,75 @@ export const renderTextField = (
           value: String(value),
         };
         updateElementProps(element.id, updatedProps);
+      }}
+    />
+  );
+};
+
+/**
+ * TextArea 렌더링 (2026-08-21 신설).
+ *
+ * 이전에는 catalog generic 경로가 `RAC.TextField` 를 그리고 그 안에 canonical `Input` 자식이
+ * 들어가 DOM 이 **한 줄 `<input>`** 이었다 — `rows` 무반영. TextField 선례대로 wrapper 로
+ * self-compose 해서 진짜 `<textarea>` 를 그린다. canonical 자식(Label/Input/FieldError)은
+ * TextField 와 마찬가지로 DOM 에서 소비하지 않는다 — 그 자식들은 캔버스(Skia) 트리의 것이다.
+ */
+export const renderTextArea = (
+  element: PreviewElement,
+  context: RenderContext,
+): React.ReactNode => {
+  const { updateElementProps } = context;
+  const inheritedProps = resolveInheritedFormFieldProps(element, context);
+
+  return (
+    <TextArea
+      key={element.id}
+      id={element.customId}
+      data-element-id={element.id}
+      style={element.props.style}
+      className={element.props.className}
+      size={(element.props.size as "xs" | "sm" | "md" | "lg" | "xl") || "md"}
+      label={String(element.props.label || "")}
+      description={String(element.props.description || "")}
+      errorMessage={String(element.props.errorMessage || "")}
+      placeholder={String(element.props.placeholder || "")}
+      rows={
+        element.props.rows !== undefined
+          ? Number(element.props.rows)
+          : undefined
+      }
+      defaultValue={String(element.props.value || "")}
+      isDisabled={Boolean(element.props.isDisabled || false)}
+      isRequired={Boolean(element.props.isRequired || false)}
+      isReadOnly={Boolean(element.props.isReadOnly || false)}
+      isInvalid={Boolean(element.props.isInvalid || false)}
+      isQuiet={Boolean(element.props.isQuiet || false)}
+      necessityIndicator={
+        (element.props.necessityIndicator as "icon" | "label" | undefined) ??
+        inheritedProps.necessityIndicator
+      }
+      labelPosition={
+        (element.props.labelPosition as "top" | "side" | undefined) ??
+        inheritedProps.labelPosition ??
+        "top"
+      }
+      name={element.props.name ? String(element.props.name) : undefined}
+      maxLength={
+        element.props.maxLength !== undefined
+          ? Number(element.props.maxLength)
+          : undefined
+      }
+      minLength={
+        element.props.minLength !== undefined
+          ? Number(element.props.minLength)
+          : undefined
+      }
+      autoFocus={Boolean(element.props.autoFocus)}
+      onChange={(value) => {
+        updateElementProps(element.id, {
+          ...element.props,
+          value: String(value),
+        });
       }}
     />
   );

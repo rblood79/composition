@@ -300,6 +300,12 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
       'renderTextField 가 composition TextField wrapper(data-label-position emit)로 self-compose. generic 경로(RAC TextField 직접)는 labelPosition(enum)을 data-* 로 미emit → generated CSS [data-label-position="side"] selector 영원히 미매칭 → Label 항상 top (ADR-913 후속).',
   },
   {
+    key: "TextArea",
+    kind: "delegating-rac",
+    reason:
+      "renderTextArea 가 composition TextArea wrapper 로 self-compose — RAC `<TextField>` 안에 `<TextArea>` control 을 넣는 D1 계약을 만족시킨다. generic 경로(RAC TextField 직접 + canonical Input 자식)는 DOM 이 한 줄 `<input>` 이라 rows 무반영이었다. data-size/label-position/quiet 는 wrapper 가 직접 emit(delegating 은 toRacProps 를 안 탄다).",
+  },
+  {
     key: "CheckboxGroup",
     kind: "delegating-rac",
     reason:

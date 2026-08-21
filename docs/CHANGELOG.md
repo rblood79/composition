@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## TextArea 가 드디어 여러 줄이 된다 + field 크기 전파 결손 해소 - 2026-08-21
+
+### Fixed
+
+- **TextArea 가 미리보기에서 한 줄 `<input>` 으로 그려지고 있었다.** 이름이 TextArea 인데
+  여러 줄이 아니었고 `rows` 를 바꿔도 아무 변화가 없었다. 원인은 렌더 경로였다 — catalog
+  generic 경로가 RAC `TextField` 를 그리고 그 안에 팔레트가 만든 `Input` 자식이 들어갔다.
+  RAC 에는 TextArea **컨테이너** 자체가 없고 `<TextField>` 안에 `<TextArea>` 입력을 넣는 것이
+  정본 구조라, TextField 와 같은 방식(wrapper self-compose)으로 맞췄다. 이제 진짜
+  `<textarea>` 가 그려지고 `rows` 가 높이에 반영된다 (실측 md: 3줄 70px → 6줄 130px).
+- **크기 위임이 `<textarea>` 에 닿지 않던 것도 함께 고쳤다.** 크기별 글자·여백 규칙이
+  `.react-aria-Input` 만 노리고 있어 textarea 는 통째로 못 받았다. 실측 결과 이제 S~XL 에서
+  글자 12/14/16/18px, 여백 2·8 → 12·24px 로 따라간다.
+- **TextArea 의 크기 전파 규칙이 `Label` 하나뿐이었다** (형제 TextField 에는 `Input` 규칙이
+  있다). 증상이 한쪽에만 나타나 눈에 잘 안 띄었다 — 미리보기는 CSS 자손 규칙 덕분에 정상으로
+  보였고 **캔버스만** 입력 상자가 기본 크기(M)에 고정됐다. 전파 규칙이 없으면 속성 패널 전파와
+  캔버스 위임이 **동시에** 끊긴다(같은 색인을 공유한다). `label`·`placeholder` 전파도 함께
+  채웠다. 크기 전파 계약 테스트에 TextArea/TextField 와 `Input` 자식을 추가해 재발을 막았다.
+
 ## TextArea 생성 CSS 가 통째로 미매칭이던 문제 해소 + Skia 사이즈 스케일 정렬 - 2026-08-21
 
 ### Fixed

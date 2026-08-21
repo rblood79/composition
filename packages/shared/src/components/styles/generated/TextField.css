@@ -103,61 +103,61 @@
   --label-margin: var(--tf-label-margin);
 }
 
-.react-aria-TextField[data-size="xs"] .react-aria-Input {
+.react-aria-TextField[data-size="xs"] :is(.react-aria-Input, .react-aria-TextArea) {
   --tf-input-padding: var(--spacing-3xs) var(--spacing-xs);
   --tf-input-size: var(--text-2xs);
   --tf-input-line-height: var(--text-2xs--line-height);
 }
 
-.react-aria-TextField[data-size="sm"] .react-aria-Input {
+.react-aria-TextField[data-size="sm"] :is(.react-aria-Input, .react-aria-TextArea) {
   --tf-input-padding: var(--spacing-2xs) var(--spacing-sm);
   --tf-input-size: var(--text-xs);
   --tf-input-line-height: var(--text-xs--line-height);
 }
 
-.react-aria-TextField[data-size="md"] .react-aria-Input {
+.react-aria-TextField[data-size="md"] :is(.react-aria-Input, .react-aria-TextArea) {
   --tf-input-padding: var(--spacing-xs) var(--spacing-md);
   --tf-input-size: var(--text-sm);
   --tf-input-line-height: var(--text-sm--line-height);
 }
 
-.react-aria-TextField[data-size="lg"] .react-aria-Input {
+.react-aria-TextField[data-size="lg"] :is(.react-aria-Input, .react-aria-TextArea) {
   --tf-input-padding: var(--spacing-sm) var(--spacing-lg);
   --tf-input-size: var(--text-base);
   --tf-input-line-height: var(--text-base--line-height);
 }
 
-.react-aria-TextField[data-size="xl"] .react-aria-Input {
+.react-aria-TextField[data-size="xl"] :is(.react-aria-Input, .react-aria-TextArea) {
   --tf-input-padding: var(--spacing-md) var(--spacing-xl);
   --tf-input-size: var(--text-lg);
   --tf-input-line-height: var(--text-lg--line-height);
 }
 
-.react-aria-TextField .react-aria-Input {
+.react-aria-TextField :is(.react-aria-Input, .react-aria-TextArea) {
   --input-padding: var(--tf-input-padding);
   --input-font-size: var(--tf-input-size);
   --input-line-height: var(--tf-input-line-height);
 }
 
-.react-aria-TextField .react-aria-Input:where([data-hovered]:not([data-focused]):not([data-disabled])) {
+.react-aria-TextField :is(.react-aria-Input, .react-aria-TextArea):where([data-hovered]:not([data-focused]):not([data-disabled])) {
   border-color: var(--border-hover);
 }
 
-.react-aria-TextField .react-aria-Input:where([data-focused]) {
+.react-aria-TextField :is(.react-aria-Input, .react-aria-TextArea):where([data-focused]) {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
   border-color: var(--accent);
 }
 
-.react-aria-TextField .react-aria-Input:where([data-invalid]) {
+.react-aria-TextField :is(.react-aria-Input, .react-aria-TextArea):where([data-invalid]) {
   border-color: var(--negative);
 }
 
-.react-aria-TextField .react-aria-Input:where([data-invalid][data-focused]) {
+.react-aria-TextField :is(.react-aria-Input, .react-aria-TextArea):where([data-invalid][data-focused]) {
   outline-color: var(--negative);
 }
 
-.react-aria-TextField .react-aria-Input:where([data-disabled]) {
+.react-aria-TextField :is(.react-aria-Input, .react-aria-TextArea):where([data-disabled]) {
   border-color: color-mix(in srgb, var(--fg) 12%, transparent);
   color: color-mix(in srgb, var(--fg) 38%, transparent);
   cursor: not-allowed;

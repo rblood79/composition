@@ -283,8 +283,31 @@ const searchFieldPropagationRules: PropagationRule[] = [
 ];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): TextArea.spec 삭제 — propagation.rules 인라인 보존.
+//
+// **2026-08-21 보강 — Input 규칙이 통째로 없었다** (TextField 와 형제 비대칭). factory 트리는
+//   `TextArea > {Label, Input, FieldError}` 로 TextField 와 같은데 size/label/placeholder 규칙이
+//   Label 하나뿐이었다. 결과가 두 갈래로 갈렸다:
+//     - DOM: 부모 size 가 CSS 자손 셀렉터(`.react-aria-TextField[data-size] …`)로 내려가 **반영됨**
+//     - 캔버스(Skia): `resolveParentDelegatedSize` 가 이 registry 의 **역인덱스**
+//       (`getParentTagsForChild`)로 부모를 찾는데 Input 항목이 없어 delegation 이 null →
+//       자식이 catalog 기본값(md) 고정. xl 에서 자리표시자 글자 크기가 육안으로 갈렸다.
+//   registry 부재가 Inspector 전파와 Skia delegation 을 **동시에** 죽이는 형태 (Disclosure
+//   2026-07-15 선례와 동형).
 const textAreaPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
+  { parentProp: "size", childPath: "Input", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "placeholder",
+    childPath: "Input",
+    childProp: "placeholder",
+    override: true,
+  },
 ];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): NumberField.spec 삭제 — propagation.rules 인라인 보존.

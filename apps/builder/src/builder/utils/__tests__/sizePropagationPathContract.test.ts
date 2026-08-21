@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   createNumberFieldDefinition,
   createSearchFieldDefinition,
+  createTextAreaDefinition,
+  createTextFieldDefinition,
 } from "../../factories/definitions/FormComponents";
 import {
   createDatePickerDefinition,
@@ -89,6 +91,11 @@ const TARGETS = [
   // 2026-07-15 후속 적발 — DisclosureGroup 도 동일 부재. 여기는 **3단 중첩**
   //   (Group > Disclosure > {Header, Content}) 이라 childPath 가 배열이어야 한다.
   { type: "DisclosureGroup", build: createDisclosureGroupDefinition },
+  // 2026-08-21 적발 — TextArea 는 `Input` 규칙이 **통째로 없었다**(형제 TextField 에는 있다).
+  //   DOM 은 CSS 자손 셀렉터로 부모 size 가 내려가 정상으로 보였고, 캔버스(Skia)만 자식이
+  //   catalog 기본값(md)에 고정됐다 — 한쪽만 어긋나 눈에 잘 안 띄던 형태.
+  { type: "TextArea", build: createTextAreaDefinition },
+  { type: "TextField", build: createTextFieldDefinition },
 ] as const;
 
 /**
@@ -113,6 +120,8 @@ const TARGETS = [
  * 바꿔도 자식 Disclosure/Header/Content 가 md 에 머무는 원인.
  */
 const SIZE_BEARING_CHILDREN = [
+  // field 패밀리의 입력 상자. 2026-08-21 추가 — TextArea 결손을 잡는 축.
+  "Input",
   "SelectTrigger",
   "SelectValue",
   "SelectIcon",

@@ -10,7 +10,7 @@
  * 추가됨(cutover 누락 toggle 미동작 버그 정정, rac 10→12). parity 는 declaration↔export 동등성을
  * 검증하므로 멤버 추가 후에도 유효 — INVENTORY 카운트만 동반 갱신. 검증 항목:
  *   - parity A: 파생 set == CanonicalNodeRenderer export set (멤버 + insertion order).
- *   - parity B: declaration 30종이 inventory 카운트(internal 18 / rac 12)와 일치.
+ *   - parity B: declaration 전수가 inventory 카운트(INVENTORY 상수)와 일치.
  *   - parity C: 30종 모두 위임 사유(reason) 가 비어있지 않음 (무손실 audit — 사유 1:1 이전).
  *   - parity D: key 중복 없음 (internal/rac 각 namespace 내).
  *
@@ -62,7 +62,12 @@ import {
 //   자식 style 의 headerStyle 전달이 안 돼 Style 패널 Layout 편집이 DOM `<header>` 에 미반영(Skia
 //   inline_icon_text 만 반영 → CSS↔Skia 비대칭). delegating 전환으로 renderCalendar 위임 + 자식
 //   CalendarHeader/CalendarGrid 는 Calendar self-compose 라 재귀 skip.
-const INVENTORY = { delegatingInternal: 31, delegatingRac: 12 } as const;
+// rac 12 → 13 (2026-08-21): TextArea 추가. generic rac 경로는 RAC TextField 를 그리고 그 안에
+//   factory 가 만든 canonical `Input` 자식이 들어가 DOM 이 **한 줄 `<input>`** 이었다 — 이름이
+//   TextArea 인데 여러 줄이 아니었고 `rows` 도 시각에 반영되지 않았다. RAC 에는 TextArea
+//   **컨테이너** primitive 가 없고 `<TextField>` 안에 `<TextArea>` control 을 넣는 것이 D1
+//   계약이라, TextField 선례대로 wrapper self-compose 위임으로 등록.
+const INVENTORY = { delegatingInternal: 31, delegatingRac: 13 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == CanonicalNodeRenderer DELEGATING_INTERNAL (멤버 + 순서)", () => {
@@ -97,7 +102,7 @@ describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
     }
   });
 
-  it("parity B — declaration 카운트 == inventory (internal 18 / rac 12)", () => {
+  it("parity B — declaration 카운트 == inventory (INVENTORY 상수 기준)", () => {
     const internal = RENDER_FACET_DELEGATIONS.filter(
       (d) => d.kind === "delegating-internal",
     );
