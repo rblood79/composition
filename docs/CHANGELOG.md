@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     panel shell·header·content padding·semantic color token을 현재 패널 규칙에 맞췄다.
   - Tree row도 Layout의 ID·Class Name control과 같은 28px 높이와 6px radius
     token을 사용하도록 맞췄다.
+  - Row의 좌우 padding은 `--spacing`, 우측 action은 Parent Page Select 내부와
+    같은 `--text-xl` 크기를 사용해 control 내부 rhythm도 통일했다.
   - Page/Layer/Frame tree의 텍스트 앞 타입 아이콘, depth 들여쓰기 세로선,
     expand·selection·drag action은 기존 tree 정보구조 그대로 유지했다.
   - **Why:** 초기 sidebar 전용 `.section-content { all: unset; }`과 수동

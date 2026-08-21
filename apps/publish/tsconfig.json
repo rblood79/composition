@@ -1,7 +1,6 @@
 {
   "extends": "@composition/config/tsconfig/react-app",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@composition/shared": ["../../packages/shared/src"],
       "@composition/shared/*": ["../../packages/shared/src/*"]

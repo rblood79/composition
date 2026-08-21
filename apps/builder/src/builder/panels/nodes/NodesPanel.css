@@ -9,6 +9,7 @@
   align-items: center;
   justify-content: space-between;
   min-height: var(--inspector-control-size);
+  padding-inline: var(--spacing);
   border-radius: var(--radius-md);
   transition:
     background-color 0.2s ease,
@@ -121,9 +122,9 @@
 }
 
 .elementItemActions .iconButton {
-  width: var(--inspector-control-size);
-  height: var(--inspector-control-size);
-  padding: var(--spacing);
+  width: var(--text-xl);
+  height: var(--text-xl);
+  padding: 0 var(--spacing);
   border-radius: var(--radius-md);
   box-sizing: border-box;
 }

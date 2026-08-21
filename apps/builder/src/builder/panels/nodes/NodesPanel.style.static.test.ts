@@ -81,10 +81,13 @@ describe("NodesPanel shared panel style contract", () => {
       /\.nodes-panel-content \.react-aria-TreeItem \{[^}]*min-height: var\(--inspector-control-size\);[^}]*border-radius: var\(--radius-md\);/s,
     );
     expect(css).toMatch(
-      /\.elementItem \{[^}]*min-height: var\(--inspector-control-size\);[^}]*border-radius: var\(--radius-md\);/s,
+      /\.elementItem \{[^}]*min-height: var\(--inspector-control-size\);[^}]*padding-inline: var\(--spacing\);[^}]*border-radius: var\(--radius-md\);/s,
     );
     expect(css).toMatch(
       /\.elementItemIndent \{[^}]*height: var\(--inspector-control-size\);/s,
+    );
+    expect(css).toMatch(
+      /\.elementItemActions \.iconButton \{[^}]*width: var\(--text-xl\);[^}]*height: var\(--text-xl\);[^}]*padding: 0 var\(--spacing\);/s,
     );
     expect(layerTreeSource).toContain("itemHeight={28}");
     expect(frameTreeSource).toContain("itemHeight={28}");
