@@ -57,6 +57,17 @@
       line-height: var(--text-lg--line-height);
     }
 
+    /* xl (2026-08-21, design-data 감사 §1-3) — Radio/Switch 형제 4단계 미러.
+       catalog Checkbox.sizes.xl + Skia indicator boxSize 30(--text-3xl) 대칭. */
+    &[data-size="xl"] {
+      --cb-font-size: var(--text-xl);
+      --cb-box-size: var(--text-3xl);
+      --cb-gap: 12px;
+      --label-font-size: var(--text-lg);
+      font-size: var(--text-xl);
+      line-height: var(--text-xl--line-height);
+    }
+
     &[data-size] {
       font-size: var(--cb-font-size);
 
@@ -175,6 +186,10 @@
     --label-font-size: var(--text-base);
   }
 
+  .react-aria-CheckboxGroup[data-checkbox-size="xl"] {
+    --label-font-size: var(--text-lg);
+  }
+
   .react-aria-CheckboxGroup[data-checkbox-size="sm"] .react-aria-Checkbox {
     --cb-font-size: var(--text-sm);
     --cb-box-size: var(--text-base);
@@ -197,6 +212,14 @@
     --cb-gap: 10px;
     --label-font-size: var(--text-base);
     line-height: var(--text-base--line-height);
+  }
+
+  .react-aria-CheckboxGroup[data-checkbox-size="xl"] .react-aria-Checkbox {
+    --cb-font-size: var(--text-xl);
+    --cb-box-size: var(--text-3xl);
+    --cb-gap: 12px;
+    --label-font-size: var(--text-lg);
+    line-height: var(--text-lg--line-height);
   }
 
   .react-aria-CheckboxGroup[data-checkbox-size] .react-aria-Checkbox {

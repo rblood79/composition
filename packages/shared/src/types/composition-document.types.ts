@@ -354,8 +354,23 @@ export interface ComponentRuleSize {
    *   fallback 으로 thumb 박스 layout 크기를 소비.
    * flat 평탄화하면 위 두 reader 를 모두 정정해야 하므로 nested 가 변경 표면 최소.
    * Slider.spec.sizes.*.indicator SSOT 미러 — trackHeight sm4/md8/lg12/xl16, thumbSize sm14/md18/lg22/xl26.
+   *
+   * **toggle-indicator 확장 (2026-08-21, design-data 감사 §1-3 xl 완결)**: Skia primitive
+   * (`checkbox`/`radio`/`switch_toggle`)는 처음부터 `size.indicator.{boxSize,boxRadius,dotSize,
+   * trackWidth,thumbOffset}` 를 읽도록 작성돼 있었으나 catalog 에 대응 필드가 없어 모든 size 가
+   * 하드코딩 fallback(md 값)으로 고정 렌더됐다 — DOM 수동 CSS(size 별 16/20/24/30)와 비대칭.
+   * specs `IndicatorSpec` 과 동형으로 확장해 기존 Skia 채널을 catalog SSOT 에 배선한다
+   * (ruleSizeToSizeSpec 은 cast passthrough 라 타입 확장만으로 흐른다).
    */
-  indicator?: { trackHeight?: number; thumbSize?: number };
+  indicator?: {
+    boxSize?: number;
+    boxRadius?: number;
+    dotSize?: number;
+    trackWidth?: number;
+    trackHeight?: number;
+    thumbSize?: number;
+    thumbOffset?: number;
+  };
 }
 
 /** 단일 컴포넌트의 시각 규칙. */
@@ -450,10 +465,7 @@ export interface ComponentRule {
 
 /** CSS emit layout token (generate-css `COMPOSITION_LAYOUT_STYLES` key 의 catalog 대응). */
 export type ComponentRuleLayoutToken =
-  | "flex-column"
-  | "flex-row"
-  | "inline-flex"
-  | "grid";
+  "flex-column" | "flex-row" | "inline-flex" | "grid";
 
 /**
  * 구조 메타 base (ADR-912 — generate-css `StructureMeta` 의 shared 대응).
@@ -630,9 +642,7 @@ export type DescendantChildrenMode = {
  * `DescendantPatchMode`는 두 필드 모두 `never` — 구조적 배제.
  */
 export type DescendantOverride =
-  | DescendantReplaceMode
-  | DescendantChildrenMode
-  | DescendantPatchMode;
+  DescendantReplaceMode | DescendantChildrenMode | DescendantPatchMode;
 
 // ─────────────────────────────────────────────
 // CanonicalNode — discriminated union 공통 베이스

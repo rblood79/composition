@@ -45,6 +45,12 @@
   gap: 16px;
 }
 
+.react-aria-CheckboxGroup[data-size="xl"] {
+  font-size: var(--text-xl);
+  border-radius: var(--radius-none);
+  gap: 20px;
+}
+
 .react-aria-CheckboxGroup[data-hovered] {
 }
 

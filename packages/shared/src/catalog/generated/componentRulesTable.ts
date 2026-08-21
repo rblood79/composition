@@ -1604,6 +1604,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Checkbox.spec 삭제 대비 gap/paddingX/
       //   paddingY 보강 (Checkbox.css size 별 gap 6/8/10 + padding 0px 0px 정합). indicator(boxSize/
       //   boxRadius)는 generated CSS 미emit(수동/React) → rule 불요.
+      // indicator 채널 배선 + xl (2026-08-21, design-data 감사 §1-3): Skia `checkbox` primitive 는
+      //   size.indicator.{boxSize,boxRadius} 를 읽으나 catalog 부재로 전 size 20px 고정이었다
+      //   (DOM Checkbox.css --cb-box-size 16/20/24 와 비대칭). boxSize 는 CSS 미러
+      //   (--text-base/xl/2xl/3xl = 16/20/24/30). xl 은 Radio 형제 미러 (Spectrum 4단계 규정).
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
@@ -1611,6 +1615,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 6,
+        indicator: { boxSize: 16, boxRadius: 4 },
       },
       md: {
         fontSize: "{typography.text-base}",
@@ -1619,6 +1624,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 8,
+        indicator: { boxSize: 20, boxRadius: 4 },
       },
       lg: {
         fontSize: "{typography.text-lg}",
@@ -1627,6 +1633,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 10,
+        indicator: { boxSize: 24, boxRadius: 4 },
+      },
+      xl: {
+        fontSize: "{typography.text-xl}",
+        borderRadius: "{radius.none}",
+        height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 12,
+        indicator: { boxSize: 30, boxRadius: 4 },
       },
     },
     structure: {
@@ -1700,6 +1716,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.none}",
         height: 0,
         gap: 16,
+      },
+      // xl (2026-08-21, design-data 감사 §1-3): Checkbox xl 채택 동반 — RadioGroup xl(gap 20) 미러.
+      xl: {
+        fontSize: "{typography.text-xl}",
+        borderRadius: "{radius.none}",
+        height: 0,
+        gap: 20,
       },
     },
     // ADR-912 단계5 step4 (2026-06-17): CheckboxGroup.spec.composition.containerVariants 의
@@ -8230,6 +8253,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Radio.spec 삭제 대비 gap/paddingX/
       //   paddingY 보강 (Radio.css size 별 gap 6/8/10/12 + padding 0px 0px 정합). indicator(boxSize/
       //   dotSize)는 generated CSS 미emit(수동/React) → rule 불요.
+      // indicator 채널 배선 (2026-08-21, design-data 감사 §1-3): Skia `radio` primitive 는
+      //   size.indicator.{boxSize,dotSize} 를 읽으나 catalog 부재로 전 size 20/8 고정이었다.
+      //   boxSize = Radio.css :before (--text-base/xl/2xl/3xl), dotSize = boxSize - 2×selected
+      //   border-width (5/6/7/8) 미러.
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
@@ -8237,6 +8264,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 6,
+        indicator: { boxSize: 16, dotSize: 6 },
       },
       md: {
         fontSize: "{typography.text-base}",
@@ -8245,6 +8273,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 8,
+        indicator: { boxSize: 20, dotSize: 8 },
       },
       lg: {
         fontSize: "{typography.text-lg}",
@@ -8253,6 +8282,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 10,
+        indicator: { boxSize: 24, dotSize: 10 },
       },
       xl: {
         fontSize: "{typography.text-xl}",
@@ -8261,6 +8291,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 12,
+        indicator: { boxSize: 30, dotSize: 14 },
       },
     },
     structure: {
@@ -10492,6 +10523,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   정합). indicator(trackWidth/thumbSize)는 generated CSS 미emit(수동/React) → rule 불요.
       // ADR-171 Phase 1 (2026-07-29): paddingY 0 → 4. 수동 `Switch.css` 의
       //   `padding: var(--spacing) 0` 실효값 이관 — size 무관 상수 (값 불변).
+      // indicator 채널 배선 (2026-08-21, design-data 감사 §1-3): Skia `switch_toggle` 은
+      //   size.indicator.{trackWidth,trackHeight,thumbSize,thumbOffset} 를 읽으나 catalog
+      //   부재로 전 size 36/20/16/2(md) 고정이었다. 값은 Switch.css indicator 미러 —
+      //   track 32/36/44/52 × 18/20/24/30, thumb 14/16/20/24, offset = (track높이-thumb)/2.
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
@@ -10499,6 +10534,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 4,
         gap: 8,
+        indicator: { trackWidth: 32, trackHeight: 18, thumbSize: 14, thumbOffset: 2 },
       },
       md: {
         fontSize: "{typography.text-sm}",
@@ -10507,6 +10543,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 4,
         gap: 10,
+        indicator: { trackWidth: 36, trackHeight: 20, thumbSize: 16, thumbOffset: 2 },
       },
       lg: {
         fontSize: "{typography.text-base}",
@@ -10515,6 +10552,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 4,
         gap: 12,
+        indicator: { trackWidth: 44, trackHeight: 24, thumbSize: 20, thumbOffset: 2 },
       },
       xl: {
         fontSize: "{typography.text-lg}",
@@ -10523,6 +10561,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 4,
         gap: 14,
+        indicator: { trackWidth: 52, trackHeight: 30, thumbSize: 24, thumbOffset: 3 },
       },
     },
     structure: {

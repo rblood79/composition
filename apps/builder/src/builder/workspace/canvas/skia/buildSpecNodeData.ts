@@ -69,6 +69,7 @@ import {
 import {
   PHANTOM_INDICATOR_CONFIGS,
   parseLineHeight,
+  phantomIndicatorSizeKey,
 } from "../layout/engines/utils";
 import {
   parseCSSSize,
@@ -1677,9 +1678,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     const rawOpacity =
       (spec?.states?.disabled?.opacity as number | string | undefined) ??
       (catalogRule?.structure?.states?.disabled?.opacity as
-        | number
-        | string
-        | undefined);
+        number | string | undefined);
     const parsed =
       typeof rawOpacity === "string"
         ? Number.parseFloat(rawOpacity)
@@ -1897,7 +1896,7 @@ function applyPhantomIndicatorOffset(
   const contentH = specHeight - padTop - padBottom;
 
   // align-items 세로 정렬
-  const s = (size as "sm" | "md" | "lg") || "md";
+  const s = phantomIndicatorSizeKey(size);
   const indicatorH = indicatorConfig.heights[s] ?? indicatorConfig.heights.md;
   const alignItems = style.alignItems as string | undefined;
   let alignOffsetY = 0;

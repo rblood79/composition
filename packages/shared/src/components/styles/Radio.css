@@ -106,6 +106,10 @@
     --label-font-size: var(--text-base);
   }
 
+  .react-aria-RadioGroup[data-radio-size="xl"] {
+    --label-font-size: var(--text-lg);
+  }
+
   .react-aria-RadioGroup[data-radio-size="sm"] .react-aria-Radio {
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
@@ -154,6 +158,26 @@
 
     &[data-selected]:before {
       border-width: 7px;
+    }
+  }
+
+  /* xl (2026-08-21, design-data 감사 §1-3) — catalog Radio.sizes.xl 은 기존재했으나
+     본 수동 CSS xl 블록 부재로 xl 선택 시 md 기본값으로 렌더되던 결손 보수.
+     Skia indicator boxSize 30 / dotSize 14 (= 30 - 2×8 border) 대칭. */
+  .react-aria-RadioGroup[data-radio-size="xl"] .react-aria-Radio {
+    font-size: var(--text-xl);
+    line-height: var(--text-xl--line-height);
+    --label-font-size: var(--text-lg);
+    --radio-gap: 12px;
+
+    &:before {
+      width: var(--text-3xl);
+      height: var(--text-3xl);
+      border-radius: var(--text-3xl);
+    }
+
+    &[data-selected]:before {
+      border-width: 8px;
     }
   }
 }

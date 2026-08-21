@@ -15,6 +15,7 @@ import {
   parsePadding,
   PHANTOM_INDICATOR_CONFIGS,
   phantomIndicatorGap,
+  phantomIndicatorSizeKey,
 } from "./utils";
 import {
   // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert padding/gap/자식 font
@@ -255,8 +256,7 @@ function specSizeField<K extends keyof SizeSpec>(
   }
   const ruleSize = ruleSizeRecord(type, sizeName);
   return ruleSize?.[field as keyof ComponentRuleSize] as
-    | SizeSpec[K]
-    | undefined;
+    SizeSpec[K] | undefined;
 }
 
 /** `spec.sizes[size].fontSize` TokenRef → px number resolve. 실패 시 undefined. */
@@ -347,8 +347,7 @@ export function resolveContainerStylesFallback(
   //   (CSS 생성기는 merge 쪽 의미를 쓴다 — DOM Menu root 는 popover 라 그게 맞다.)
   const rule = resolveComponentRule(pascalKey);
   const topLevelBox = rule?.containerStyles as
-    | Record<string, string | number>
-    | undefined;
+    Record<string, string | number> | undefined;
   for (const [rawKey, rawValue] of Object.entries(
     topLevelBox ?? resolveCatalogContainerBase(pascalKey),
   )) {
@@ -447,8 +446,7 @@ function catalogRootOverflow(lowerType: string): string | undefined {
   return (rule.containerStyles?.overflow ??
     rule.structure?.containerStyles?.overflow ??
     rule.structure?.composition?.containerStyles?.overflow) as
-    | string
-    | undefined;
+    string | undefined;
 }
 
 export function resolveEffectiveOverflow(
@@ -457,8 +455,7 @@ export function resolveEffectiveOverflow(
 ): string | undefined {
   const style = rawStyle ?? {};
   const raw = (style.overflow ?? style.overflowY ?? style.overflowX) as
-    | string
-    | undefined;
+    string | undefined;
   if (raw != null) return raw;
   if (!type) return undefined;
   const key = type.toLowerCase();
@@ -552,8 +549,7 @@ function catalogRootBoxShadow(lowerType: string): string | undefined {
   return (rule.containerStyles?.boxShadow ??
     rule.structure?.containerStyles?.boxShadow ??
     rule.structure?.composition?.containerStyles?.boxShadow) as
-    | string
-    | undefined;
+    string | undefined;
 }
 
 /**
@@ -1164,8 +1160,7 @@ export function applyImplicitStyles(
     ...rawParentStyle,
   };
   const containerProps = containerEl.props as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
 
   let effectiveParent = containerEl;
   let filteredChildren = children;
@@ -2098,8 +2093,7 @@ export function applyImplicitStyles(
         const fieldType = fieldEl?.type;
         if (fieldType === "DatePicker" || fieldType === "DateRangePicker") {
           const fieldProps = fieldEl?.props as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
           return {
             ...child,
             props: {
@@ -2124,8 +2118,7 @@ export function applyImplicitStyles(
         //   구 ComboBoxInput/SearchInput 분기 동작 흡수 (조부모 우선, 기존 정밀도 보존).
         const fieldEl = elementById.get(containerEl.parent_id ?? "");
         const fieldProps = fieldEl?.props as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const placeholder = fieldProps?.placeholder ?? child.props?.placeholder;
         return {
           ...child,
@@ -2153,8 +2146,7 @@ export function applyImplicitStyles(
         // Select → SelectTrigger → SelectIcon: 조부모(Select)의 iconName 전파
         const selectEl = elementById.get(containerEl.parent_id ?? "");
         const selectProps = selectEl?.props as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const iconName =
           (child.props as Record<string, unknown> | undefined)?.iconName ??
           selectProps?.iconName;
@@ -2893,7 +2885,7 @@ export function applyImplicitStyles(
     containerTag === "switch"
   ) {
     const sizeName = (containerProps?.size as string) ?? "md";
-    const s = sizeName as "sm" | "md" | "lg";
+    const s = phantomIndicatorSizeKey(sizeName);
     const phantomConfig = PHANTOM_INDICATOR_CONFIGS[containerTag];
     const indicatorWidth = phantomConfig?.widths[s] ?? 20;
     const defaultGap = phantomConfig
@@ -2932,10 +2924,9 @@ export function applyImplicitStyles(
           containerTag === "switch";
         let synLabelMargin = 0;
         if (isIndicatorTag) {
-          const sn = ((containerProps?.size as string) ?? "md") as
-            | "sm"
-            | "md"
-            | "lg";
+          const sn = phantomIndicatorSizeKey(
+            (containerProps?.size as string) ?? "md",
+          );
           const pc = PHANTOM_INDICATOR_CONFIGS[containerTag];
           const indWidth = pc?.widths[sn] ?? 20;
           const indGap = pc ? phantomIndicatorGap(pc, sn) : 8;
@@ -3063,8 +3054,7 @@ export function applyImplicitStyles(
   // 부모 field의 necessityIndicator/isRequired → Label children 텍스트에 직접 반영
   // (레이아웃 측정 + Spec shapes 양쪽에서 동일한 텍스트를 사용하기 위함)
   const parentNecessity = containerProps?.necessityIndicator as
-    | string
-    | undefined;
+    string | undefined;
   const parentRequired = containerProps?.isRequired as boolean | undefined;
 
   if (parentNecessity && NECESSITY_INDICATOR_TAGS.has(containerTag)) {

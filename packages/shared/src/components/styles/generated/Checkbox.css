@@ -81,6 +81,14 @@
   gap: 10px;
 }
 
+.react-aria-Checkbox[data-size="xl"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-xl);
+  border-radius: var(--radius-none);
+  gap: 12px;
+}
+
 .react-aria-Checkbox[data-hovered] {
 }
 

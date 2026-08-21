@@ -132,8 +132,7 @@ function circleLeafDiameter(type: string, sizeName: string): number {
   const catalogKey = CIRCLE_LEAF_TAGS.get(type);
   const sizes = catalogKey
     ? (resolveSkiaRule(catalogKey)?.sizes as
-        | Record<string, ComponentRuleSize>
-        | undefined)
+        Record<string, ComponentRuleSize> | undefined)
     : undefined;
   const entry = sizes?.[sizeName] ?? sizes?.md;
   const h = entry?.height;
@@ -156,8 +155,7 @@ function disclosureHeaderDims(sizeName: string = "md"): {
   iconSize: number;
 } {
   const sizes = resolveSkiaRule("DisclosureHeader")?.sizes as
-    | Record<string, ComponentRuleSize>
-    | undefined;
+    Record<string, ComponentRuleSize> | undefined;
   const entry = sizes?.[sizeName] ?? sizes?.md;
   const num = (v: unknown, fb: number) => (typeof v === "number" ? v : fb);
   return {
@@ -192,8 +190,7 @@ function specSizeGap(
   fallback: number,
 ): number {
   const sizes = resolveSkiaRule(ruleType)?.sizes as
-    | Record<string, ComponentRuleSize>
-    | undefined;
+    Record<string, ComponentRuleSize> | undefined;
   const entry = sizes?.[sizeName] ?? sizes?.md;
   const gap = entry?.gap;
   return typeof gap === "number" ? gap : fallback;
@@ -210,8 +207,7 @@ function specSizeGap(
 //   size 미존재 시 md fallback (구 상수 동형).
 function valueFillTrackHeight(ruleType: string, sizeName: string): number {
   const sizes = resolveSkiaRule(ruleType)?.sizes as
-    | Record<string, ComponentRuleSize>
-    | undefined;
+    Record<string, ComponentRuleSize> | undefined;
   const entry = sizes?.[sizeName] ?? sizes?.md;
   const h = entry?.height;
   return typeof h === "number" ? h : 8;
@@ -224,9 +220,16 @@ function valueFillTrackHeight(ruleType: string, sizeName: string): number {
 
 interface PhantomIndicatorConfig {
   ruleType: string; // PascalCase catalog key (gap read-through 용)
-  widths: { sm: number; md: number; lg: number };
-  heights: { sm: number; md: number; lg: number };
-  rowHeights: { sm: number; md: number; lg: number };
+  widths: { sm: number; md: number; lg: number; xl: number };
+  heights: { sm: number; md: number; lg: number; xl: number };
+  rowHeights: { sm: number; md: number; lg: number; xl: number };
+}
+
+/** phantom indicator size 키 정규화 — 미지 값은 md 로 (구 `as "sm"|"md"|"lg"` 캐스트 대체). */
+export function phantomIndicatorSizeKey(
+  size?: string,
+): "sm" | "md" | "lg" | "xl" {
+  return size === "sm" || size === "lg" || size === "xl" ? size : "md";
 }
 
 // ADR-912 Phase 5 (catalog SSOT collapse): `gaps` 축은 catalog `.sizes.*.gap`(Switch {8,10,12}/
@@ -235,23 +238,26 @@ interface PhantomIndicatorConfig {
 //   indicator box / row height 대응 키 부재(`.sizes.height=0`)라 layout-private 유지(Δ8 예외).
 export const PHANTOM_INDICATOR_CONFIGS: Record<string, PhantomIndicatorConfig> =
   {
+    // xl (2026-08-21, design-data 감사 §1-3): catalog Radio/Switch 는 xl 을 기보유했으나
+    //   본 config 에 xl 키가 없어 md fallback 으로 배치되던 결손 보수 + Checkbox xl 신규 채택.
+    //   값은 catalog `.sizes.*.indicator` 미러 (Skia primitive 와 동일 소스).
     switch: {
       ruleType: "Switch",
-      widths: { sm: 32, md: 36, lg: 44 },
-      heights: { sm: 18, md: 20, lg: 24 },
-      rowHeights: { sm: 18, md: 20, lg: 24 },
+      widths: { sm: 32, md: 36, lg: 44, xl: 52 },
+      heights: { sm: 18, md: 20, lg: 24, xl: 30 },
+      rowHeights: { sm: 18, md: 20, lg: 24, xl: 30 },
     },
     checkbox: {
       ruleType: "Checkbox",
-      widths: { sm: 16, md: 20, lg: 24 },
-      heights: { sm: 16, md: 20, lg: 24 },
-      rowHeights: { sm: 20, md: 24, lg: 28 }, // layout 전용 행 높이(catalog .sizes.height=0)
+      widths: { sm: 16, md: 20, lg: 24, xl: 30 },
+      heights: { sm: 16, md: 20, lg: 24, xl: 30 },
+      rowHeights: { sm: 20, md: 24, lg: 28, xl: 34 }, // layout 전용 행 높이(catalog .sizes.height=0)
     },
     radio: {
       ruleType: "Radio",
-      widths: { sm: 16, md: 20, lg: 24 },
-      heights: { sm: 16, md: 20, lg: 24 },
-      rowHeights: { sm: 20, md: 24, lg: 28 }, // layout 전용 행 높이(catalog .sizes.height=0)
+      widths: { sm: 16, md: 20, lg: 24, xl: 30 },
+      heights: { sm: 16, md: 20, lg: 24, xl: 30 },
+      rowHeights: { sm: 20, md: 24, lg: 28, xl: 34 }, // layout 전용 행 높이(catalog .sizes.height=0)
     },
   };
 
@@ -271,7 +277,7 @@ export function getPhantomIndicatorSpace(
 ): { width: number; height: number; gap: number } | null {
   const config = PHANTOM_INDICATOR_CONFIGS[type];
   if (!config) return null;
-  const s = (size ?? "md") as "sm" | "md" | "lg";
+  const s = phantomIndicatorSizeKey(size);
   const w = config.widths[s] ?? config.widths.md;
   const h = config.heights[s] ?? config.heights.md;
   const gap = phantomIndicatorGap(config, size);
@@ -1041,8 +1047,7 @@ function statusLightDims(sizeName: string): {
   fontSize: number;
 } {
   const sizes = resolveSkiaRule("StatusLight")?.sizes as
-    | Record<string, ComponentRuleSize>
-    | undefined;
+    Record<string, ComponentRuleSize> | undefined;
   const entry = sizes?.[sizeName] ?? sizes?.md;
   const height = typeof entry?.height === "number" ? entry.height : 24;
   const gap = typeof entry?.gap === "number" ? entry.gap : 8;
@@ -1669,8 +1674,7 @@ export function calculateContentWidth(
     if (childElements && childElements.length > 0) {
       const buttonWidths = childElements.map((child) => {
         const childStyle = child.props?.style as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const explicitW = parseNumericValue(childStyle?.width);
         if (explicitW !== undefined) return explicitW;
         const grandChildren = getChildElements?.(child.id);
@@ -1765,8 +1769,7 @@ export function calculateContentWidth(
   ) {
     const defaultSize = DEFAULT_SIZE_BY_TAG[type] ?? "md";
     const sizeName = (element.props as Record<string, unknown>)?.size as
-      | string
-      | undefined;
+      string | undefined;
     const configMap =
       type === "togglebutton" ? TOGGLEBUTTON_SIZE_CONFIG : BUTTON_SIZE_CONFIG;
     const sizeConfig =
@@ -1779,8 +1782,7 @@ export function calculateContentWidth(
     let gapCount = 0;
     for (const child of childElements) {
       const childStyle = child.props?.style as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       const explicitW = parseNumericValue(childStyle?.width);
       const grandChildren = getChildElements?.(child.id);
       const childContent =
@@ -1822,8 +1824,7 @@ export function calculateContentWidth(
 
       const childWidths = childElements.map((child) => {
         const childStyle = child.props?.style as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const explicitW = parseNumericValue(childStyle?.width);
         if (explicitW !== undefined) return explicitW;
         // content-box 너비
@@ -1897,7 +1898,7 @@ export function calculateContentWidth(
   if (indicatorConfig) {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
-    const s = sizeName as "sm" | "md" | "lg";
+    const s = phantomIndicatorSizeKey(sizeName);
     const indicatorSize =
       indicatorConfig.widths[s] ?? indicatorConfig.widths.md;
     const specIndicatorGap = phantomIndicatorGap(indicatorConfig, sizeName);
@@ -2111,15 +2112,11 @@ export function calculateContentWidth(
         letterSpacing,
         wordSpacing,
         fontStyle: (style?.fontStyle ?? computedStyle?.fontStyle) as
-          | number
-          | string
-          | undefined,
+          number | string | undefined,
         fontStretch: (style?.fontStretch ?? computedStyle?.fontStretch) as
-          | string
-          | undefined,
+          string | undefined,
         fontVariant: (style?.fontVariant ?? computedStyle?.fontVariant) as
-          | string
-          | undefined,
+          string | undefined,
         lineHeight,
       },
     );
@@ -2249,8 +2246,7 @@ export function calculateContentHeight(
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
     const imSizes = resolveSkiaRule("IllustratedMessage")?.sizes as
-      | Record<string, ComponentRuleSize>
-      | undefined;
+      Record<string, ComponentRuleSize> | undefined;
     const m = resolveIllustratedMessageMetric(
       sizeName,
       imSizes?.[sizeName] ?? imSizes?.md,
@@ -2333,8 +2329,7 @@ export function calculateContentHeight(
     const sizeName = String(props?.size ?? "md");
     const ruleSize = resolveSkiaRule(tag1 === "column" ? "Column" : "Cell")
       ?.sizes[sizeName] as
-      | { fontSize?: number; lineHeight?: number; paddingY?: number }
-      | undefined;
+      { fontSize?: number; lineHeight?: number; paddingY?: number } | undefined;
     const fontSize =
       parseNumericValue(style?.fontSize) ?? ruleSize?.fontSize ?? 14;
     const lineHeight =
@@ -3069,8 +3064,7 @@ export function calculateContentHeight(
         // Button 등 자식이 auto height일 때 padding/border를 포함해야 정확한 합산
         // (일반 flex 컨테이너 브랜치와 동일 패턴)
         const childStyle = child.props?.style as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const childTag = (child.type ?? "").toLowerCase();
         const childExplicitH = parseNumericValue(childStyle?.height);
         const childIsFormEl = ["button", "input", "select"].includes(childTag);
@@ -3384,8 +3378,7 @@ export function calculateContentHeight(
             // ADR-051: Description/Label 텍스트 줄바꿈 시 높이 동적 확장
             // 텍스트가 있고 availableWidth가 있으면 measureWrappedTextHeight로 정확한 높이 계산
             const childProps = child.props as
-              | Record<string, unknown>
-              | undefined;
+              Record<string, unknown> | undefined;
             const childText = String(
               childProps?.children ?? childProps?.text ?? "",
             );
@@ -3405,15 +3398,9 @@ export function calculateContentHeight(
                   maxTextW,
                   resolvedLH,
                   childStyle.wordBreak as
-                    | "normal"
-                    | "break-all"
-                    | "keep-all"
-                    | undefined,
+                    "normal" | "break-all" | "keep-all" | undefined,
                   childStyle.overflowWrap as
-                    | "normal"
-                    | "break-word"
-                    | "anywhere"
-                    | undefined,
+                    "normal" | "break-word" | "anywhere" | undefined,
                 );
                 childH = Math.max(wrappedH, resolvedLH);
               } else {
@@ -3430,8 +3417,7 @@ export function calculateContentHeight(
           } else {
             // ADR-051: 텍스트가 있으면 줄바꿈 포함 높이 계산
             const otherProps = child.props as
-              | Record<string, unknown>
-              | undefined;
+              Record<string, unknown> | undefined;
             const otherText = String(
               otherProps?.children ?? otherProps?.text ?? "",
             );
@@ -3497,8 +3483,7 @@ export function calculateContentHeight(
         parseLineHeight(labelStyle, labelFontSize) ?? labelFontSize * 1.5;
       // ADR-051: Label 텍스트 줄바꿈 포함 높이 계산
       const labelProps = labelChild?.props as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       const labelText = String(
         labelProps?.children ?? labelProps?.text ?? props?.label ?? "",
       );
@@ -3530,7 +3515,7 @@ export function calculateContentHeight(
   if (heightIndicatorConfig) {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
-    const s = sizeName as "sm" | "md" | "lg";
+    const s = phantomIndicatorSizeKey(sizeName);
     const indicatorH =
       heightIndicatorConfig.heights[s] ?? heightIndicatorConfig.heights.md;
     const specGap = phantomIndicatorGap(heightIndicatorConfig, sizeName);
@@ -3610,8 +3595,7 @@ export function calculateContentHeight(
     const rspSize = normalizeBreadcrumbRspSizeKey(String(props?.size ?? "M"));
     return (
       (resolveSkiaRule("Breadcrumbs")?.sizes[rspSize]?.height as
-        | number
-        | undefined) ?? 24
+        number | undefined) ?? 24
     );
   }
 
@@ -3622,8 +3606,7 @@ export function calculateContentHeight(
     const rspSize = normalizeBreadcrumbRspSizeKey(String(props?.size ?? "M"));
     return (
       (resolveSkiaRule("Breadcrumbs")?.sizes[rspSize]?.height as
-        | number
-        | undefined) ?? 24
+        number | undefined) ?? 24
     );
   }
 
@@ -3745,8 +3728,7 @@ export function calculateContentHeight(
         );
         const childBox = parseBoxModel(child, 0, -1);
         const childStyle = child.props?.style as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const childExplicitH = parseNumericValue(childStyle?.height);
         // content-box + padding + border (border-box) 환산. explicit border-box 가 있으면 그대로 사용.
         const childBorderBox =
@@ -3843,8 +3825,7 @@ export function calculateContentHeight(
       // display: none 자식은 레이아웃에서 제외 (높이 0, gap 미적용)
       const visibleChildren = childElements.filter((child) => {
         const childStyle = child.props?.style as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         return childStyle?.display !== "none";
       });
 
@@ -3860,8 +3841,7 @@ export function calculateContentHeight(
         // calculateContentHeight가 반환한 값이 이미 border-box 높이이므로
         // padding+border를 추가하면 이중 계산됨
         const childStyle = child.props?.style as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const childTag = (child.type ?? "").toLowerCase();
         const childExplicitH = parseNumericValue(childStyle?.height);
         const childIsFormEl = ["button", "input", "select"].includes(childTag);
@@ -3916,8 +3896,7 @@ export function calculateContentHeight(
         let maxBottom = 0;
         for (const child of visibleBlockChildren) {
           const childStyle = child.props?.style as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
           const childTop = parseNumericValue(childStyle?.top) ?? 0;
           const grandChildren = getChildElements?.(child.id);
           const contentH = calculateContentHeight(
@@ -3948,8 +3927,7 @@ export function calculateContentHeight(
           getChildElements,
         );
         const childStyle = child.props?.style as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const childTag = (child.type ?? "").toLowerCase();
         const childExplicitH = parseNumericValue(childStyle?.height);
         const childIsFormEl = ["button", "input", "select"].includes(childTag);
@@ -4043,15 +4021,9 @@ export function calculateContentHeight(
         const resolvedLH =
           parseLineHeight(style, fs0) ?? textLeafSpec?.lineHeight ?? fs0 * 1.5;
         const wb1 = style?.wordBreak as string as
-          | "normal"
-          | "break-all"
-          | "keep-all"
-          | undefined;
+          "normal" | "break-all" | "keep-all" | undefined;
         const ow1 = style?.overflowWrap as string as
-          | "normal"
-          | "break-word"
-          | "anywhere"
-          | undefined;
+          "normal" | "break-word" | "anywhere" | undefined;
         const wrappedHeight = measureWrappedTextHeight(
           textContent,
           fs0,
@@ -5535,8 +5507,7 @@ export function resolveParentContext(
   context?: LayoutContext,
 ): { parentComputed: ComputedStyle; cssCtx: CSSValueContext } {
   const parentRawStyle = parent.props?.style as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   const parentComputed =
     context?.parentComputedStyle ??
     resolveStyle(parentRawStyle, getRootComputedStyle());

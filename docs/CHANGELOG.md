@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Toggle 계열 xl 완결 — Checkbox 채택 + indicator catalog 배선 - 2026-08-21
+
+### Bug Fixes
+
+- **Radio/Switch xl 이 md 로 렌더되던 결손 수정** (design-data 감사 §1-3):
+  - catalog 에 xl 이 기존재했으나 수동 CSS xl 블록(Radio.css/Switch.css)과 layout
+    `PHANTOM_INDICATOR_CONFIGS` xl 키가 없어 xl 선택 시 시각·배치 모두 md fallback.
+  - **Why**: size 축 확장이 catalog(D2/D3 emit)에만 반영되고 수동 CSS 미러와
+    layout config 의 `as "sm"|"md"|"lg"` 캐스트 4곳이 xl 을 md 로 강제 정규화.
+  - 수정: CSS xl 블록 + config xl + `phantomIndicatorSizeKey()` 헬퍼로 캐스트 교체.
+- **Checkbox/Radio/Switch Skia indicator 가 전 size 고정(md 값)이던 비대칭 수정**:
+  - Skia primitive 는 처음부터 `size.indicator.*` 를 읽도록 작성돼 있었으나 catalog
+    에 대응 필드 부재로 box 20 / track 36×20 하드코딩 fallback — DOM(16/20/24)과 비대칭.
+  - 수정: `ComponentRuleSize.indicator` 를 specs `IndicatorSpec` 동형으로 확장,
+    Checkbox(boxSize 16~~30)/Radio(+dotSize 6~~14)/Switch(track 32~52) catalog 배선.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+
+### Features
+
+- **Checkbox/CheckboxGroup xl size 채택** (Spectrum 4단계 규정 — Radio/Switch 형제 대칭):
+  - catalog xl(fontSize text-xl·gap 12 / gap 20) + Checkbox.css xl + generated CSS.
+  - live 검증: 캔버스 XL indicator 30px + 패널 Size S/M/L/XL + publish DOM
+    computed(box 30px·gap 12px / Switch track 52×30) — 3 leg 동일 값.
+  - 회귀: `toggleIndicatorXlCatalog.test.ts` 11케이스 (catalog↔layout↔Skia 3자 동치).
+
 ## Vite 8 — Rolldown 번들러 전환 - 2026-08-21
 
 ### Infrastructure
