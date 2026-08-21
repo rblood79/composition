@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## TextArea 를 컴포넌트 패널에서 꺼낼 수 있다 - 2026-08-21
+
+### Fixed
+
+- **TextArea 가 컴포넌트 패널에 없어서 애초에 배치할 수가 없었다.** catalog 의 패널 정보
+  (Forms / "text area" / 아이콘)와 생성 함수는 처음부터 있었는데 팔레트 표시 순서 배열에만
+  빠져 있었다 — 2026-06-11 에 구 정적 목록에서 자동 캡처할 때 없던 것이 그대로 굳은 결손이지
+  의도적 비노출이 아니다. Forms 14종 → 15종.
+
 ## TextArea 가 드디어 여러 줄이 된다 + field 크기 전파 결손 해소 - 2026-08-21
 
 ### Fixed

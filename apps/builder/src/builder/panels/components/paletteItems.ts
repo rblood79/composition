@@ -197,6 +197,12 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "ButtonGroup", source: "overlay" },
   { type: "Menu", source: "catalog" },
   { type: "TextField", source: "catalog" },
+  // TextArea 추가 (2026-08-21). catalog panel meta(forms/"text area"/RectangleEllipsis)와
+  //   factory creator(ComponentFactory.createTextArea)는 처음부터 있었는데 본 배열에만 빠져 있어
+  //   **팔레트에서 꺼낼 수가 없었다** — 2026-06-11 AUTO-CAPTURE 당시 구 정적 배열에 없던 것이
+  //   그대로 굳은 결손이지 의도적 비노출이 아니다(sub-part/leaf 미포함 규칙과 무관: TextArea 는
+  //   placeable top-level field). TextField 바로 뒤 = field 패밀리 자연 순서.
+  { type: "TextArea", source: "catalog" },
   { type: "NumberField", source: "catalog" },
   { type: "SearchField", source: "catalog" },
   { type: "Checkbox", source: "catalog" },

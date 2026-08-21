@@ -202,6 +202,14 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "RectangleEllipsis",
   },
   {
+    // 재캡처 2026-08-21 — TextArea 팔레트 노출 (의도적 변경). catalog panel meta 와 factory
+    //   creator 는 처음부터 있었는데 PALETTE_ORDER 에만 빠져 꺼낼 수 없던 결손을 메운 것.
+    type: "TextArea",
+    category: "forms",
+    label: "text area",
+    icon: "RectangleEllipsis",
+  },
+  {
     type: "NumberField",
     category: "forms",
     label: "number field",
