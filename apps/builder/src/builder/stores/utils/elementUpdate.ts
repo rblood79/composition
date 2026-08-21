@@ -32,6 +32,10 @@ import {
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 import { isRenderProjectionId } from "../../projection/renderProjectionIds";
+import {
+  INHERITED_LAYOUT_PROPS_UPDATE,
+  NON_LAYOUT_PROPS_UPDATE,
+} from "../../presentation/invalidation/editorMutationEffectRegistry";
 
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
 type ElementUpdateLookup<TElement extends Element = Element> = Map<
@@ -42,81 +46,6 @@ type ElementUpdateChildrenByParent<TElement extends Element = Element> = Map<
   string,
   TElement[]
 >;
-
-// ─── Dirty Tracking 유틸리티 ─────────────────────────────────────────
-// elements.ts의 NON_LAYOUT_PROPS/INHERITED_LAYOUT_PROPS를 재사용하지 않고
-// 독립 모듈로 유지 (순환 import 방지)
-
-/** 레이아웃에 영향 없는 CSS 속성 집합 (elementUpdate 전용) */
-const NON_LAYOUT_PROPS_UPDATE = new Set([
-  "color",
-  "backgroundColor",
-  "background",
-  "backgroundImage",
-  "backgroundSize",
-  "backgroundPosition",
-  "backgroundRepeat",
-  "opacity",
-  "visibility",
-  "boxShadow",
-  "textShadow",
-  "filter",
-  "backdropFilter",
-  "borderColor",
-  "borderTopColor",
-  "borderRightColor",
-  "borderBottomColor",
-  "borderLeftColor",
-  "borderStyle",
-  "borderTopStyle",
-  "borderRightStyle",
-  "borderBottomStyle",
-  "borderLeftStyle",
-  "borderRadius",
-  "borderTopLeftRadius",
-  "borderTopRightRadius",
-  "borderBottomLeftRadius",
-  "borderBottomRightRadius",
-  "outlineColor",
-  "outlineStyle",
-  "cursor",
-  "pointerEvents",
-  "userSelect",
-  "transition",
-  "transitionProperty",
-  "transitionDuration",
-  "animation",
-  "animationName",
-  "animationDuration",
-  "textDecoration",
-  "textDecorationColor",
-  "textDecorationStyle",
-  "zIndex",
-  "objectFit",
-  "objectPosition",
-  "mixBlendMode",
-  "clipPath",
-  "mask",
-  "maskImage",
-  "transformOrigin",
-]);
-
-/** 자식에게 상속되어 레이아웃에 영향을 주는 CSS 속성 (elementUpdate 전용) */
-const INHERITED_LAYOUT_PROPS_UPDATE = new Set([
-  "fontSize",
-  "fontFamily",
-  "fontWeight",
-  "fontStyle",
-  "lineHeight",
-  "letterSpacing",
-  "wordSpacing",
-  "whiteSpace",
-  "wordBreak",
-  "overflowWrap",
-  "textAlign",
-  "direction",
-  "writingMode",
-]);
 
 function syncUpdatedElementToCanonical(
   element: Element,

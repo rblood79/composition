@@ -777,6 +777,25 @@ G4 실패로 처리한다.
 
 ### Phase 1 — core runtime, classifier, lifecycle
 
+**진행 상태: Complete — 2026-08-22.**
+
+- **G1 PASS** — `editorPresentationRuntime.test.ts`의 injected fake frame scheduler가
+  100회 publish의 single latest-wins apply, 서로 다른 target의 단일-frame batch,
+  immutable payload/snapshot과 selector identity, explicit final 우선, terminal idempotency,
+  project-scoped target ownership/overlay, target-scoped subscription, 7개 cancel reason,
+  supersede, unrelated-version rebase와 same-target conflict를 검증한다. invalid final
+  descriptor와 commit failure는 throw 또는 stale overlay 대신 failed session과 검증된 final
+  overlay를 유지한다.
+  cancel된 callback을 강제 호출해도 apply/commit/snapshot 변화는 0이고 DEV 진단 counter만
+  증가한다.
+- **G2 PASS** — `editorMutationEffectRegistry.test.ts`와 Phase 0 static test가 neutral
+  registry에서 파생한 5-symbol view를 frozen JSON과 exact order/axis/inheritance/
+  cache-signature 100% 대조한다. classifier는 `paint < layout < structure` lattice를
+  적용하고 unknown style 및 continuous 미등록 descriptor를 throw한다.
+- Phase 1은 semantic `canonical-node | ref-descendant` target과 project-scoped key까지만
+  확정했다. render-id adapter와 canonical commit 구현은 Phase 2 소유이며, renderer,
+  picker, Preview production path에는 연결하지 않았다.
+
 - `EditorPresentationTransactionRuntime`
 - immutable snapshot/target selectors
 - single frame scheduler/latest-wins
@@ -980,21 +999,21 @@ renderer output이 stale이면 실패다.
 
 - [x] Phase 0 production baseline과 counter evidence가 있다.
 - [ ] Hard Constraint 1~12가 각각 test/trace/gate에 연결된다.
-- [ ] descriptor inventory 100%와 unknown RED fixture가 있다.
-- [ ] neutral registry에서 5-symbol view가 파생되고 frozen baseline parity/정적 guard를
+- [x] descriptor inventory 100%와 unknown RED fixture가 있다.
+- [x] neutral registry에서 5-symbol view가 파생되고 frozen baseline parity/정적 guard를
       통과한다.
-- [ ] runtime scheduler가 유일한 frame owner다.
-- [ ] finish/cancel 후 stale callback 0이 증명된다.
-- [ ] paint publish는 canonical/legacy/layout/projection/full-scene write 0이다.
+- [x] runtime scheduler가 Phase 1 core의 유일한 frame owner다.
+- [x] finish/cancel 후 stale callback의 apply/commit/state change 0이 증명된다.
+- [x] Phase 1 paint publish는 canonical/legacy/layout/projection/full-scene write 0이다.
 - [ ] semantic target이 origin/ref root/descendant를 양 renderer local index에서 같은
       시각 결과로 해석하고 hot path는 실제 projection `k`에만 비례한다.
 - [ ] Preview finish/canonical 두 stream의 모든 도착 순서에서 final overlay가 유지되며
       canonical revision 도달 시 atomic retirement한다.
 - [ ] finish는 canonical-first runner 1회, history 1회, persist 최대 1회다.
-- [ ] conflict/rebase/wrong-target 조건이 테스트됐다.
+- [x] conflict/rebase/wrong-target 조건이 core runtime에서 테스트됐다.
 - [ ] N=50/500/5,000 production benchmark가 HC10을 통과했다.
 - [ ] layout lane의 affected subtree 계약이 통과하거나 별도 ADR로 명시 분리됐다.
-- [ ] structure continuous 지원 범위가 실제 gate 결과와 일치한다.
+- [x] structure는 분류만 지원하고 continuous runtime 진입은 G2에서 fail-closed한다.
 - [ ] migrated editor의 old preview/RAF/dual-write 경로가 제거됐다.
 - [ ] CSS↔Skia Preview cross-check와 populated Builder live smoke가 통과했다.
 - [ ] targeted Vitest, typecheck, preflight, diff-check가 통과했다.
