@@ -1,0 +1,53 @@
+{
+  "artboards": [
+    {
+      "file": "Current.dc.html",
+      "title": "현재 구현",
+      "x": 0,
+      "y": 0,
+      "w": 600,
+      "h": 700
+    },
+    {
+      "file": "Main.dc.html",
+      "title": "권장 상태 모델",
+      "x": 720,
+      "y": 0,
+      "w": 600,
+      "h": 700
+    },
+    {
+      "file": "LightTheme.dc.html",
+      "title": "Light 대조",
+      "x": 1440,
+      "y": 0,
+      "w": 600,
+      "h": 700
+    },
+    {
+      "file": "StateSpec.dc.html",
+      "title": "스펙 시트",
+      "x": 0,
+      "y": 840,
+      "w": 1320,
+      "h": 640
+    }
+  ],
+  "annotations": [
+    {
+      "id": "audit-source",
+      "x": 0,
+      "y": -150,
+      "w": 400,
+      "text": "출처: docs/reference/audits/2026-08-21-nodes-panel-tree-item-interaction-states.md\n\n판정: hover 는 넣는 것이 맞다. 문제는 hover 유무가 아니라 hover 와 selected 가 같은 채널을 쓴다는 점이다."
+    },
+    {
+      "id": "order-of-work",
+      "x": 1440,
+      "y": 840,
+      "w": 400,
+      "text": "적용 순서\n\n1. CSS:487 이중 선언 정리 (F1)\n2. selected 를 accent bar 로 이동 + hover outline 제거 (F2·F3)\n3. hoveredElementId 배선 (F5)\n4. :focus-within 추가 (F4)\n5. 접힌 부모의 선택 상속 (F6)\n\n1·2·4 는 빌더 패널 전용 CSS — D3 catalog SSOT 밖이라 cross-check 대상이 아니다."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

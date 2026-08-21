@@ -179,6 +179,14 @@ const listBoxPropagationRules: PropagationRule[] = [];
 
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBar.spec 삭제 — propagation.rules 인라인 보존.
 //   label → Label.children + size → ProgressBarTrack/ProgressBarValue/Label. childPath string 이라 spec 의존 0.
+// staticColor(over background, §2-F 2026-08-21) 전파 2형:
+//   - Track: raw prop — value_fill_bar(fill solid static) + buildCatalogShapes(track 25% wash) 소비.
+//   - Label/Value 텍스트: style.color 주입 (white/black → hex) — buildCatalogShapes 텍스트색
+//     우선순위의 사용자 style 슬롯 경유. DOM 은 root color 상속(수동 ProgressBar.css)과 대칭.
+//     skipIfSet: 사용자가 텍스트색을 명시하면 전파 skip (override 아님).
+const staticColorToHex = (v: unknown): unknown =>
+  v === "white" ? "#ffffff" : v === "black" ? "#000000" : undefined;
+
 const progressBarPropagationRules: PropagationRule[] = [
   {
     parentProp: "label",
@@ -189,6 +197,23 @@ const progressBarPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "ProgressBarTrack", override: true },
   { parentProp: "size", childPath: "ProgressBarValue", override: true },
   { parentProp: "size", childPath: "Label", override: true },
+  { parentProp: "staticColor", childPath: "ProgressBarTrack", override: true },
+  {
+    parentProp: "staticColor",
+    childPath: "Label",
+    childProp: "color",
+    asStyle: true,
+    transform: staticColorToHex,
+    skipIfSet: ["color"],
+  },
+  {
+    parentProp: "staticColor",
+    childPath: "ProgressBarValue",
+    childProp: "color",
+    asStyle: true,
+    transform: staticColorToHex,
+    skipIfSet: ["color"],
+  },
 ];
 
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): Meter.spec 삭제 — propagation.rules 인라인 보존.

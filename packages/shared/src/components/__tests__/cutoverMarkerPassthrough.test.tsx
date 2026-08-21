@@ -20,6 +20,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { Icon } from "../Icon";
 import { Badge } from "../Badge";
+import { ProgressBar } from "../ProgressBar";
 import { Skeleton } from "../Skeleton";
 import { IllustratedMessage } from "../IllustratedMessage";
 import { StatusLight } from "../StatusLight";
@@ -95,5 +96,22 @@ describe("Badge — isDisabled → data-disabled (§2-F, 2026-08-21)", () => {
     expect(off).not.toContain("data-disabled");
     // raw isDisabled 속성 누출 없음 (React unknown-attr 경고 축)
     expect(on).not.toContain("isdisabled");
+  });
+});
+
+/** design-data 감사 §2-F (2026-08-21) — ProgressBar staticColor → data-static-color
+ *  (수동 ProgressBar.css [data-static-color] var 재정의가 소비). */
+describe("ProgressBar — staticColor → data-static-color (§2-F, 2026-08-21)", () => {
+  it("white → attr emit / auto·미지정 → 부재", () => {
+    const on = renderToStaticMarkup(
+      <ProgressBar value={40} staticColor="white" />,
+    );
+    expect(on).toContain('data-static-color="white"');
+    const off = renderToStaticMarkup(<ProgressBar value={40} />);
+    expect(off).not.toContain("data-static-color");
+    const auto = renderToStaticMarkup(
+      <ProgressBar value={40} staticColor="auto" />,
+    );
+    expect(auto).not.toContain("data-static-color");
   });
 });

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ProgressBar·ProgressCircle over background — staticColor 채택 - 2026-08-21
+
+### Features
+
+- **ProgressBar/ProgressCircle staticColor (RSP S2 "over background")** (design-data 감사 §2-F, §1-2 축③):
+  - 유색/이미지 배경 위 고정 흑백 — Button 형(bg 반전) 이식이 아니라 value-fill 2채널
+    스킴 신설: track = static 25% wash / fill·indicator = solid static / ProgressBar
+    label·value 텍스트 = static.
+  - DOM: 수동 `ProgressBar.css` `[data-static-color]` var 재정의(unlayered — generated
+    variant var 를 cascade 로 이김) + ProgressCircle.tsx 인라인 stroke.
+  - Skia: value_fill_bar/arc static 분기 + buildCatalogShapes **fillBar-채널 데이터
+    분기**(track wash 0.25 — Button 형 solid 반전과 구분) + propagation
+    (staticColor → ProgressBarTrack raw / Label·Value 텍스트 style.color) +
+    ArcShape.strokeAlpha 채널 신설.
+  - toRacProps: DATA_ATTR_ENUM_KEYS 도 propPassthrough 허용 (ProgressCircle 어댑터가
+    staticColor 를 색 계산 input 으로 소비하는 outlier — StatusLight variant 동형).
+  - live 검증: 캔버스 black 60% bar/ring + 25% wash + auto 대조군, DOM
+    computed(--fill-color #000 / --track-color rgb(0 0 0 / 0.25)), 패널 Static Color 노출.
+  - 회귀: skiaPrimitives.progressStaticColor 7케이스 + DOM leg 4케이스.
+
 ## isDisabled 노출 3종 + IconButton 편집 표면 확장 - 2026-08-21
 
 ### Features

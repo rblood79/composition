@@ -96,12 +96,14 @@ export function toRacProps(
       // true 일 때만 emit — false 를 실으면 존재 셀렉터가 꺼진 상태에도 걸린다.
       if (value === true) out[booleanDataAttr] = "true";
     } else if (
-      DATA_ATTR_KINDS.has(contract.kind) &&
+      (DATA_ATTR_KINDS.has(contract.kind) || DATA_ATTR_ENUM_KEYS.has(key)) &&
       passthrough?.includes(key)
     ) {
       // propPassthrough 키: visual-enum 이라도 React prop 으로 통과 + data-* 도 함께 emit
       // (CSS/debug marker 보존). internal source leaf 의 semantic prop 전용.
       // (ADR-912 StatusLight slice — variant 가 dot 색 계산 input 인 outlier)
+      // DATA_ATTR_ENUM_KEYS 도 동일 규칙(2026-08-21) — ProgressCircle.staticColor 가
+      // 어댑터의 stroke 색 계산 input 인 outlier (StatusLight variant 동형).
       out[key] = value;
       out[`data-${toDataAttrName(key)}`] = String(value);
     } else if (

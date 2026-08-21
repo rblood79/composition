@@ -148,8 +148,7 @@ export function buildCatalogShapes(
   // shape.radius 타입은 number | [4] (TokenRef 미허용) — TokenRef 는 specShapeConverter.resolveRadius
   //   가 런타임 해소하므로 cast(기존 `as unknown` 패턴 동형). 배열(TokenRef 요소 포함)은 보존.
   const borderRadius = (segmentedRadius ?? scalarRadius) as unknown as
-    | number
-    | [number, number, number, number];
+    number | [number, number, number, number];
   // border-width: 사용자 style 우선, 없으면 size.borderWidth(보편 D3 속성), 최종 fallback 1.
   const borderWidth = parseBorderWidth(
     style?.borderWidth,
@@ -215,10 +214,16 @@ export function buildCatalogShapes(
     stateBg != null &&
     stateBg !== "{color.transparent}" &&
     (fill?.alpha ?? 1) !== 0;
+  // value-fill track(over background, §2-F 2026-08-21): rule 이 fillBar 채널을 보유한
+  //   컴포넌트(ProgressBarTrack 류)의 static bg 는 Button 형 solid 반전이 아니라 **25% wash**
+  //   — fill 막대(value_fill_bar solid static)와의 대비가 스킴의 본질. 데이터 분기
+  //   (visual.fillBar 유무 — 컴포넌트 식별 아님, ADR-142 §3). DOM 수동 ProgressBar.css
+  //   `--track-color: rgb(.../0.25)` 와 동일 상수.
+  const staticTrackWash = staticOnOpaqueBg && visual?.fillBar != null;
   const staticTextColor =
     staticHex == null
       ? undefined
-      : staticOnOpaqueBg
+      : staticOnOpaqueBg && !staticTrackWash
         ? staticHex === "#000000"
           ? "#ffffff"
           : "#000000"
@@ -314,7 +319,9 @@ export function buildCatalogShapes(
       height: "auto" as unknown as number,
       radius: borderRadius,
       fill: bgColor,
-      fillAlpha: (fill?.alpha ?? 1) * fillBgAlpha,
+      // staticTrackWash: value-fill track 의 static bg 25% (위 §2-F 분기 주석 참조).
+      fillAlpha:
+        (fill?.alpha ?? 1) * fillBgAlpha * (staticTrackWash ? 0.25 : 1),
     });
     // border-style 은 보편 D3 속성(CSS border-style 동형). 3경로 공통 우선순위:
     //   사용자 style.borderStyle → catalog visual.borderStyle → (미지정 시)

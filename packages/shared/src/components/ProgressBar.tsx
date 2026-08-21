@@ -16,6 +16,8 @@ import { formatPercent } from "../utils/core/numberUtils";
 import { Skeleton } from "./Skeleton";
 
 import "./styles/generated/ProgressBar.css";
+// 수동 static-color 오버레이 — 고정 흑백(over background)은 catalog 토큰으로 표현 불가 (Button.css 선례).
+import "./styles/ProgressBar.css";
 
 export interface ProgressBarProps extends AriaProgressBarProps {
   label?: string;
@@ -59,6 +61,12 @@ export interface ProgressBarProps extends AriaProgressBarProps {
    * @default false
    */
   isLoading?: boolean;
+  /**
+   * RSP S2 "over background" — 유색/이미지 배경 위 고정 흑백 스킴.
+   * track = static 25% wash / fill·label·value = solid static (Skia value_fill_bar 0.25 대칭).
+   * @default 'auto'
+   */
+  staticColor?: "auto" | "white" | "black";
 }
 
 /**
@@ -77,6 +85,7 @@ export function ProgressBar({
   labelPosition = "top",
   isLoading,
   isIndeterminate,
+  staticColor,
   ...props
 }: ProgressBarProps) {
   if (isLoading) {
@@ -127,6 +136,11 @@ export function ProgressBar({
       data-size={size}
       data-label-position={labelPosition}
       data-indeterminate={isIndet ? "true" : undefined}
+      data-static-color={
+        staticColor === "white" || staticColor === "black"
+          ? staticColor
+          : undefined
+      }
     >
       {({ percentage, valueText }) => (
         <>

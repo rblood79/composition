@@ -365,7 +365,13 @@ export function specShapesToSkia(
       }
 
       case "arc": {
-        const arcStrokeColor = colorValueToFloat32(shape.stroke, theme);
+        // strokeAlpha(0-1, 기본 1) — staticColor track wash(0.25) 등 alpha 운반 채널
+        //   (hex8 은 hex6 전용 색 파서와 충돌 — ArcShape.strokeAlpha 주석 참조).
+        const arcStrokeColor = colorValueToFloat32(
+          shape.stroke,
+          theme,
+          shape.strokeAlpha ?? 1,
+        );
         const arcDiameter = shape.radius * 2 + shape.strokeWidth;
         // Arc를 box 타입으로 변환 — renderBox에서 node.arc를 감지하여 렌더링
         // (별도 "arc" 타입은 renderNodeInternal switch 도달 문제로 사용하지 않음)
@@ -857,10 +863,7 @@ export function specShapesToSkia(
             ...(shape.verticalAlign
               ? {
                   verticalAlign: shape.verticalAlign as
-                    | "top"
-                    | "middle"
-                    | "bottom"
-                    | "baseline",
+                    "top" | "middle" | "bottom" | "baseline",
                 }
               : {}),
             autoCenter: false,

@@ -46,6 +46,11 @@ export interface ProgressCircleProps {
   isIndeterminate?: boolean;
   /** 비활성 */
   isDisabled?: boolean;
+  /**
+   * RSP S2 "over background" — 유색/이미지 배경 위 고정 흑백 스킴 (§2-F, 2026-08-21).
+   * track = static 25% wash / indicator = solid static (Skia value_fill_arc 0.25 대칭).
+   */
+  staticColor?: "auto" | "white" | "black";
   /** 인라인 style override (cutover 경로의 toReactStyle 결과) */
   style?: React.CSSProperties;
   /** 추가 className */
@@ -81,6 +86,7 @@ export function ProgressCircle({
   size = "md",
   isIndeterminate,
   isDisabled,
+  staticColor,
   style,
   className,
   ...rest
@@ -101,13 +107,20 @@ export function ProgressCircle({
   const offset = circumference - fraction * circumference;
 
   // track 색 = rule fill base, indicator 색 = {color.accent}. Skia escape(value_fill_arc) 와 동일 source.
+  // staticColor(white/black) 시 over-background 스킴 — track=25% wash / indicator=solid
+  //   (Skia value_fill_arc 동일 상수 0.25, 고정 흑백은 catalog 토큰 표현 불가라 리터럴).
   const rule = resolveComponentRule("ProgressCircle");
   const variant = rule?.variants?.default;
-  const trackColor = colorTokenToCss(
-    variant?.fill?.default?.base,
-    "var(--bg-muted)",
-  );
-  const indicatorColor = colorTokenToCss("{color.accent}", "var(--accent)");
+  const isStatic = staticColor === "white" || staticColor === "black";
+  const staticRgb = staticColor === "white" ? "255 255 255" : "0 0 0";
+  const trackColor = isStatic
+    ? `rgb(${staticRgb} / 0.25)`
+    : colorTokenToCss(variant?.fill?.default?.base, "var(--bg-muted)");
+  const indicatorColor = isStatic
+    ? staticColor === "white"
+      ? "var(--color-white, #fff)"
+      : "var(--color-black, #000)"
+    : colorTokenToCss("{color.accent}", "var(--accent)");
 
   return (
     <div

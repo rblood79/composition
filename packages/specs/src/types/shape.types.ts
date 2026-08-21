@@ -106,6 +106,9 @@ export interface ArcShape {
   strokeWidth: number;
   /** 선 색상 */
   stroke: ColorValue;
+  /** 선 투명도 0-1 (기본 1) — staticColor track wash(0.25) 등. hex8 은 색 채널 시프트
+   *  함정이 있어(builder 색 파서 hex6 전용) alpha 는 본 필드로 운반한다. */
+  strokeAlpha?: number;
   /** 선 끝 모양 */
   strokeCap?: "butt" | "round" | "square";
 }

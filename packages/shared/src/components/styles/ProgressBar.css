@@ -1,0 +1,25 @@
+/**
+ * ProgressBar — 수동 static-color 오버레이 (RSP S2 "over background", 2026-08-21).
+ *
+ * design-data 감사 §2-F: 유색/이미지 배경 위 고정 흑백 스킴. 고정 흑백은 catalog
+ * 토큰(테마 연동)으로 표현 불가라 수동 CSS — Button.css [data-static-color] 선례 동형.
+ * Button 형(bg 반전)이 아니라 value-fill 2채널 스킴:
+ *   track = static 25% wash / fill·label·value 텍스트 = solid static.
+ * Skia 대칭: buildCatalogShapes track wash(0.25) + value_fill_bar solid +
+ * propagation(Label/ProgressBarValue style.color) — 동일 상수.
+ *
+ * generated ProgressBar.css 는 @layer components 안이므로 본 unlayered 규칙이 variant
+ * var 재정의를 항상 이긴다 (cascade layer 규칙 — 의도된 우선).
+ */
+
+.react-aria-ProgressBar[data-static-color="white"] {
+  --fill-color: var(--color-white, #fff);
+  --track-color: rgb(255 255 255 / 0.25);
+  color: var(--color-white, #fff);
+}
+
+.react-aria-ProgressBar[data-static-color="black"] {
+  --fill-color: var(--color-black, #000);
+  --track-color: rgb(0 0 0 / 0.25);
+  color: var(--color-black, #000);
+}

@@ -161,3 +161,39 @@ describe("ProgressCircle — cutover DOM 경로 (toRacProps propPassthrough)", (
     expect(html).toContain("stroke-dashoffset");
   });
 });
+
+/**
+ * design-data 감사 §2-F "over background" (2026-08-21) — staticColor DOM leg.
+ * track = static 25% wash / indicator = solid static (Skia value_fill_arc 동일 상수).
+ */
+describe("ProgressCircle — staticColor over background (§2-F, 2026-08-21)", () => {
+  function cutoverHtml(props: Record<string, unknown>) {
+    const node = { id: "x", type: "ProgressCircle", props };
+    const rest = toRacProps(node as never, progressCircleBinding);
+    return renderToStaticMarkup(
+      <ProgressCircle {...(rest as Record<string, never>)} />,
+    );
+  }
+
+  it("white → track rgb(255 255 255 / 0.25) + indicator var(--color-white)", () => {
+    const html = cutoverHtml({ value: 50, staticColor: "white" });
+    expect(html).toContain("rgb(255 255 255 / 0.25)");
+    expect(html).toContain("var(--color-white");
+  });
+
+  it("auto/미지정 → variant 경로 유지 (wash 부재)", () => {
+    const html = cutoverHtml({ value: 50, staticColor: "auto" });
+    expect(html).not.toContain("/ 0.25)");
+  });
+
+  it("binding propPassthrough 로 staticColor 가 React prop + data-static-color 둘 다 emit", () => {
+    const node = {
+      id: "x",
+      type: "ProgressCircle",
+      props: { staticColor: "black" },
+    };
+    const racProps = toRacProps(node as never, progressCircleBinding);
+    expect(racProps.staticColor).toBe("black");
+    expect(racProps["data-static-color"]).toBe("black");
+  });
+});

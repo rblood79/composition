@@ -1757,8 +1757,7 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
 
   const textColor =
     ((props.style as Record<string, unknown> | undefined)?.color as
-      | string
-      | undefined) ??
+      string | undefined) ??
     visual?.text ??
     ("{color.neutral}" as TokenRef);
 
@@ -2094,8 +2093,18 @@ const valueFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     typeof size.borderRadius === "number" ? size.borderRadius : height / 2,
   );
 
+  // staticColor(over background, §2-F 2026-08-21): fill 은 solid static — 사용자 style.color
+  //   가 항상 우선, 그 다음 static, 마지막 variant(fillBar). track wash(0.25)는
+  //   buildCatalogShapes(box)가 담당 — DOM ProgressBar.css [data-static-color] 대칭.
+  const staticFill =
+    props.staticColor === "white"
+      ? "#ffffff"
+      : props.staticColor === "black"
+        ? "#000000"
+        : undefined;
   const barColor =
     (style?.color as string | undefined) ??
+    staticFill ??
     visual?.fillBar ??
     ("{color.accent}" as TokenRef);
 
@@ -2341,12 +2350,24 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const cy = outerRadius;
   const trackRadius = outerRadius - strokeWidth / 2;
 
+  // staticColor(over background, §2-F 2026-08-21): track=static 25% wash / indicator=solid.
+  //   사용자 style.backgroundColor/color 가 항상 우선. DOM ProgressCircle.tsx 동일 상수(0.25).
+  const staticArc =
+    props.staticColor === "white"
+      ? "#ffffff"
+      : props.staticColor === "black"
+        ? "#000000"
+        : undefined;
   const trackColor =
     (style?.backgroundColor as string | undefined) ??
+    staticArc ??
     visual?.fill?.default.base ??
     ("{color.neutral-subtle}" as TokenRef);
+  const trackAlpha =
+    staticArc != null && style?.backgroundColor == null ? 0.25 : undefined;
   const indicatorColor =
     (style?.color as string | undefined) ??
+    staticArc ??
     visual?.fillBar ??
     ("{color.accent}" as TokenRef);
 
@@ -2360,6 +2381,7 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       sweepAngle: 360,
       strokeWidth,
       stroke: trackColor,
+      ...(trackAlpha != null ? { strokeAlpha: trackAlpha } : {}),
       strokeCap: "butt",
     },
   ];
@@ -2439,9 +2461,7 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const paddingX =
     parsePxValue(
       (style?.paddingLeft ?? style?.paddingRight ?? style?.padding) as
-        | string
-        | number
-        | undefined,
+        string | number | undefined,
       size.paddingX ?? 0,
     ) + resolveTreeIndent(props, size); // TreeItem depth 들여쓰기 (text 와 동일 helper)
   const height =
@@ -2571,9 +2591,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
   // chevron 슬롯(cellSize)↔text 여백. 기본 0(기존 배치 유지) — style 로만 벌린다.
   const itemGap = parsePxValue(
     (style?.columnGap ?? style?.rowGap ?? style?.gap) as
-      | string
-      | number
-      | undefined,
+      string | number | undefined,
     0,
   );
   const justify =

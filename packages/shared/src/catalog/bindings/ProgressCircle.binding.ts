@@ -62,11 +62,26 @@ export const progressCircleBinding: PrimitiveBinding = {
         label: "Indeterminate",
         section: "content",
       },
+      // RSP S2 "over background" (design-data 감사 §2-F, 2026-08-21): 유색/이미지 배경 위
+      //   고정 흑백 스킴 — Button 형(bg 반전)이 아니라 track=static 25% wash + indicator=solid.
+      //   DOM = ProgressCircle.tsx 인라인 stroke / Skia = value_fill_arc 동일 상수 (0.25 대칭).
+      staticColor: {
+        kind: "enum",
+        label: "Static Color",
+        section: "appearance",
+        default: "auto",
+        options: [
+          { value: "auto", label: "Auto" },
+          { value: "white", label: "White" },
+          { value: "black", label: "Black" },
+        ],
+      },
     },
     toRacProps: "default",
     // size 는 ProgressCircle.tsx(INTERNAL_RENDERERS 어댑터)의 지름·strokeWidth 계산 input → data-attr
     // 가 아니라 React prop 으로 통과(Avatar 선례 동형). data-size 도 함께 emit(CSS/debug marker 보존).
-    propPassthrough: ["size"],
+    // staticColor(enum kind → data-attr 라우팅)도 어댑터의 stroke 색 계산 input — 동일 사유 통과.
+    propPassthrough: ["size", "staticColor"],
   },
   skiaPrimitive: "value_fill_arc",
 };

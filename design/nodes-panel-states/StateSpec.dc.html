@@ -1,0 +1,407 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <style>
+          body {
+            margin: 0;
+            font-family:
+              Pretendard,
+              -apple-system,
+              BlinkMacSystemFont,
+              system-ui,
+              Roboto,
+              "Helvetica Neue",
+              "Segoe UI",
+              sans-serif;
+            line-height: 1.5;
+          }
+          a {
+            color: #60a5fa;
+          }
+          a:hover {
+            color: #93c5fd;
+          }
+          code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 10px;
+          }
+        </style>
+      </helmet>
+
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          padding: 32px;
+          background: #202023;
+          min-height: 100%;
+          box-sizing: border-box;
+        "
+      >
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div
+            style="
+              font-size: 11px;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: #71717a;
+            "
+          >
+            스펙 시트
+          </div>
+          <div style="font-size: 18px; font-weight: 600; color: #f4f4f5">
+            상태 × 채널 × 대비
+          </div>
+          <div style="font-size: 12px; color: #a1a1aa; text-wrap: pretty">
+            대비는 패널 바닥(<code>--bg-inset</code>) 기준. WCAG 1.4.11 은 상태를
+            식별하는 정보에만 3:1 을 요구하므로, 판정 대상은 배경이 아니라
+            <strong style="color: #f4f4f5">상태를 알려주는 요소</strong>다.
+          </div>
+        </div>
+
+        <!-- 표 -->
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              gap: 12px;
+              padding: 8px 12px;
+              background: #27272a;
+              font-size: 10px;
+              font-weight: 600;
+              letter-spacing: 0.04em;
+              color: #a1a1aa;
+            "
+          >
+            <span style="flex: 0 0 132px">상태</span>
+            <span style="flex: 0 0 210px">채널</span>
+            <span style="flex: 0 0 150px">Dark</span>
+            <span style="flex: 0 0 150px">Light</span>
+            <span style="flex: 0 0 96px">대비</span>
+            <span style="flex: 0 0 78px">판정</span>
+            <span style="flex: 1 1 auto">근거</span>
+          </div>
+
+          <sc-for list="{{specs}}" as="s" hint-placeholder-count="8">
+            <div
+              style="
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                padding: 8px 12px;
+                background: {{s.rowBg}};
+                border-top: 1px solid #27272a;
+                font-size: 11px;
+              "
+            >
+              <span
+                style="
+                  flex: 0 0 132px;
+                  color: {{s.nameFg}};
+                  font-weight: 600;
+                  white-space: nowrap;
+                "
+                >{{s.name}}</span
+              >
+              <span style="flex: 0 0 210px; color: #a1a1aa">{{s.channel}}</span>
+              <span
+                style="
+                  flex: 0 0 150px;
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                "
+              >
+                <span
+                  style="
+                    display: inline-block;
+                    width: 16px;
+                    height: 12px;
+                    flex: 0 0 16px;
+                    border-radius: 2px;
+                    border: 1px solid #52525b;
+                    background: {{s.dark}};
+                  "
+                ></span>
+                <code style="color: #71717a">{{s.darkHex}}</code>
+              </span>
+              <span
+                style="
+                  flex: 0 0 150px;
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                "
+              >
+                <span
+                  style="
+                    display: inline-block;
+                    width: 16px;
+                    height: 12px;
+                    flex: 0 0 16px;
+                    border-radius: 2px;
+                    border: 1px solid #52525b;
+                    background: {{s.light}};
+                  "
+                ></span>
+                <code style="color: #71717a">{{s.lightHex}}</code>
+              </span>
+              <span style="flex: 0 0 96px; color: {{s.ratioFg}}"
+                ><code style="font-size: 11px">{{s.ratio}}</code></span
+              >
+              <span style="flex: 0 0 78px">
+                <span
+                  style="
+                    display: inline-flex;
+                    align-items: center;
+                    padding: 1px 6px;
+                    border-radius: 3px;
+                    font-size: 10px;
+                    font-weight: 700;
+                    background: {{s.badgeBg}};
+                    color: {{s.badgeFg}};
+                  "
+                  >{{s.verdict}}</span
+                >
+              </span>
+              <span style="flex: 1 1 auto; color: #71717a">{{s.why}}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- 배선 항목 -->
+        <div style="display: flex; gap: 16px; align-items: stretch">
+          <sc-for list="{{wiring}}" as="w" hint-placeholder-count="3">
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                flex: 1 1 0;
+                padding: 14px 16px;
+                background: #18181b;
+                border: 1px solid #3f3f46;
+                border-radius: 6px;
+                min-width: 0;
+              "
+            >
+              <div style="display: flex; align-items: center; gap: 8px">
+                <span
+                  style="
+                    display: inline-flex;
+                    align-items: center;
+                    padding: 1px 6px;
+                    border-radius: 3px;
+                    background: #3f3f46;
+                    color: #d4d4d8;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.04em;
+                  "
+                  >{{w.tag}}</span
+                >
+                <span style="font-size: 12px; font-weight: 600; color: #f4f4f5"
+                  >{{w.title}}</span
+                >
+              </div>
+              <div
+                style="
+                  font-size: 11px;
+                  color: #a1a1aa;
+                  text-wrap: pretty;
+                  line-height: 1.6;
+                "
+              >
+                {{w.body}}
+              </div>
+              <div
+                style="
+                  font-size: 10px;
+                  color: #71717a;
+                  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                "
+              >
+                {{w.where}}
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </x-dc>
+
+    <script data-dc-script data-props='{"$preview":{"width":1320,"height":640}}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const pass = { badgeBg: "#14532d", badgeFg: "#bbf7d0" };
+          const fail = { badgeBg: "#7f1d1d", badgeFg: "#fecaca" };
+          const na = { badgeBg: "#3f3f46", badgeFg: "#d4d4d8" };
+
+          const specs = [
+            {
+              name: "hover (현재)",
+              channel: "bg-inset ×85% black + outline",
+              dark: "#141417",
+              darkHex: "#141417",
+              light: "#d4d5d5",
+              lightHex: "#d4d5d5",
+              ratio: "1.04:1",
+              ratioFg: "#fca5a5",
+              why: "dark 에서 바닥보다 어두워져 사실상 안 보인다",
+              ...na,
+              verdict: "약함",
+              nameFg: "#fca5a5",
+              rowBg: "rgba(127, 29, 29, 0.14)",
+            },
+            {
+              name: "hover (권장)",
+              channel: "transparent 92% + --fg 8%",
+              dark: "#2a2a2c",
+              darkHex: "#2a2a2c",
+              light: "#ecedef",
+              lightHex: "#ecedef",
+              ratio: "1.24:1",
+              ratioFg: "#a1a1aa",
+              why: "3:1 불요 — 포인터가 위치를 알린다 (VS Code 와 동급)",
+              ...na,
+              verdict: "해당없음",
+              nameFg: "#f4f4f5",
+              rowBg: "transparent",
+            },
+            {
+              name: "selected (현재)",
+              channel: "--bg-muted (F1 override)",
+              dark: "#3f3f46",
+              darkHex: "#3f3f46",
+              light: "#e5e7eb",
+              lightHex: "#e5e7eb",
+              ratio: "1.70 / 1.17",
+              ratioFg: "#fca5a5",
+              why: "상태 식별 정보가 배경 하나뿐인데 3:1 미달",
+              ...fail,
+              verdict: "미달",
+              nameFg: "#fca5a5",
+              rowBg: "rgba(127, 29, 29, 0.14)",
+            },
+            {
+              name: "selected 배경 (권장)",
+              channel: "--accent-subtle",
+              dark: "#333338",
+              darkHex: "#333338",
+              light: "#e4e6e9",
+              lightHex: "#e4e6e9",
+              ratio: "1.41 / 1.20",
+              ratioFg: "#a1a1aa",
+              why: "보조 채널 — 3:1 은 아래 bar 가 책임진다",
+              ...na,
+              verdict: "보조",
+              nameFg: "#f4f4f5",
+              rowBg: "transparent",
+            },
+            {
+              name: "selected bar (권장)",
+              channel: "2px --accent (좌측)",
+              dark: "#e4e4e7",
+              darkHex: "#e4e4e7",
+              light: "#374151",
+              lightHex: "#374151",
+              ratio: "10.0 / 8.3",
+              ratioFg: "#86efac",
+              why: "상태를 식별하는 요소가 3:1 을 크게 넘긴다",
+              ...pass,
+              verdict: "충족",
+              nameFg: "#f4f4f5",
+              rowBg: "rgba(20, 83, 45, 0.14)",
+            },
+            {
+              name: "selected + hover",
+              channel: "accent-subtle + --fg 6%",
+              dark: "#3f3f43",
+              darkHex: "#3f3f43",
+              light: "#d9dce0",
+              lightHex: "#d9dce0",
+              ratio: "—",
+              ratioFg: "#71717a",
+              why: "현재는 표현 불가 — 채널이 겹쳐 있어서다",
+              ...na,
+              verdict: "신규",
+              nameFg: "#f4f4f5",
+              rowBg: "transparent",
+            },
+            {
+              name: "selected · inactive",
+              channel: "bar 유지 + 배경 채도 50%",
+              dark: "#262629",
+              darkHex: "#262629",
+              light: "#eef0f2",
+              lightHex: "#eef0f2",
+              ratio: "—",
+              ratioFg: "#71717a",
+              why: "포커스가 캔버스로 갈 때 — 현재 상태 자체가 없다",
+              ...na,
+              verdict: "신규",
+              nameFg: "#f4f4f5",
+              rowBg: "transparent",
+            },
+            {
+              name: "focus-visible",
+              channel: "2px --focus-ring inset",
+              dark: "#60a5fa",
+              darkHex: "#60a5fa",
+              light: "#60a5fa",
+              lightHex: "#60a5fa",
+              ratio: "4.9 / 2.1",
+              ratioFg: "#fcd34d",
+              why: "light 바닥에서 2.1:1 — 테마별 focus-ring 값 분리 필요",
+              ...na,
+              verdict: "확인",
+              nameFg: "#f4f4f5",
+              rowBg: "rgba(120, 53, 15, 0.14)",
+            },
+          ];
+
+          const wiring = [
+            {
+              tag: "F4",
+              title: "액션 노출 조건",
+              body: "drag handle 이 :hover 와 .active 에서만 나온다. :focus-within 을 조건에 더해야 키보드·터치 사용자가 도달한다. WCAG 3.2.7 / 1.4.13.",
+              where: "NodesPanel.css:150",
+            },
+            {
+              tag: "F5",
+              title: "패널 → 캔버스 하이라이트",
+              body: "store 에 hoveredElementId 와 setter 가 있으나 호출자가 0건이다. 캔버스 hover 는 로컬 ref 로만 돌아 store 를 지나가지 않는다.",
+              where: "stores/selection.ts:24,44,98,234",
+            },
+            {
+              tag: "F6",
+              title: "접힌 부모의 선택 상속",
+              body: "선택된 자식의 부모가 접혀 있으면 부모가 선택을 상속해야 컨텍스트가 유지된다 (Carbon). 지금은 접는 순간 선택이 화면에서 사라진다.",
+              where: "tree/LayerTree/*",
+            },
+          ];
+
+          return { specs, wiring };
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,556 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <style>
+          body {
+            margin: 0;
+            font-family:
+              Pretendard,
+              -apple-system,
+              BlinkMacSystemFont,
+              system-ui,
+              Roboto,
+              "Helvetica Neue",
+              "Segoe UI",
+              sans-serif;
+            line-height: 1.5;
+          }
+          a {
+            color: #60a5fa;
+          }
+          a:hover {
+            color: #93c5fd;
+          }
+          code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 10px;
+          }
+        </style>
+      </helmet>
+
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          padding: 32px;
+          background: #202023;
+          min-height: 100%;
+          box-sizing: border-box;
+        "
+      >
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div
+            style="
+              font-size: 11px;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: #f87171;
+            "
+          >
+            현재 구현 · Dark
+          </div>
+          <div style="font-size: 18px; font-weight: 600; color: #f4f4f5">
+            채널 중복 + 선언 충돌
+          </div>
+          <div
+            style="
+              font-size: 12px;
+              color: #a1a1aa;
+              max-width: 480px;
+              text-wrap: pretty;
+            "
+          >
+            hover 와 selected 가 같은 채널(배경 명도 + 1px outline)을 쓰고,
+            outline 토큰 값까지 동일하다.
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 24px; align-items: flex-start">
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 1px;
+              width: 240px;
+              flex: 0 0 240px;
+              padding: 4px;
+              background: #18181b;
+              border: 1px solid #3f3f46;
+              border-radius: 6px;
+              box-sizing: border-box;
+            "
+          >
+            <sc-for list="{{rows}}" as="row" hint-placeholder-count="7">
+              <div
+                style="
+                  position: relative;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  min-height: 28px;
+                  padding-inline: 4px;
+                  border-radius: 6px;
+                  box-sizing: border-box;
+                  overflow: hidden;
+                  background: {{row.bg}};
+                  outline: {{row.outline}};
+                  outline-offset: -1px;
+                  box-shadow: {{row.shadow}};
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    min-width: 0;
+                  "
+                >
+                  <span
+                    style="display: inline-block; width: {{row.indent}}"
+                  ></span>
+                  <span
+                    style="
+                      display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      width: 16px;
+                      height: 16px;
+                      flex: 0 0 16px;
+                      color: #a1a1aa;
+                    "
+                  >
+                    <sc-if
+                      value="{{row.hasChildren}}"
+                      hint-placeholder-val="{{true}}"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        style="transform: rotate(90deg)"
+                      >
+                        <path d="m9 18 6-6-6-6"></path>
+                      </svg>
+                    </sc-if>
+                    <sc-if value="{{row.isLeaf}}" hint-placeholder-val="{{true}}">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
+                        ></path>
+                        <path d="m3.3 7 8.7 5 8.7-5"></path>
+                        <path d="M12 22V12"></path>
+                      </svg>
+                    </sc-if>
+                  </span>
+                  <span
+                    style="
+                      font-size: 12px;
+                      color: {{row.fg}};
+                      white-space: nowrap;
+                      overflow: hidden;
+                      text-overflow: ellipsis;
+                    "
+                    >{{row.name}}</span
+                  >
+                </div>
+                <sc-if value="{{row.showActions}}" hint-placeholder-val="{{true}}">
+                  <span
+                    style="
+                      display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      width: 16px;
+                      height: 16px;
+                      flex: 0 0 16px;
+                      color: #a1a1aa;
+                    "
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="9" cy="6" r="1"></circle>
+                      <circle cx="9" cy="12" r="1"></circle>
+                      <circle cx="9" cy="18" r="1"></circle>
+                      <circle cx="15" cy="6" r="1"></circle>
+                      <circle cx="15" cy="12" r="1"></circle>
+                      <circle cx="15" cy="18" r="1"></circle>
+                    </svg>
+                  </span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 1px;
+              flex: 1 1 auto;
+              padding: 4px 0;
+              min-width: 0;
+            "
+          >
+            <sc-for list="{{rows}}" as="row" hint-placeholder-count="7">
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  min-height: 28px;
+                  box-sizing: border-box;
+                "
+              >
+                <span
+                  style="
+                    font-size: 11px;
+                    font-weight: 600;
+                    color: #d4d4d8;
+                    white-space: nowrap;
+                  "
+                  >{{row.state}}</span
+                >
+                <span
+                  style="
+                    font-size: 11px;
+                    color: {{row.noteFg}};
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  "
+                  >{{row.note}}</span
+                >
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- F1 specificity -->
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px;
+            background: #18181b;
+            border: 1px solid #7f1d1d;
+            border-radius: 6px;
+          "
+        >
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span
+              style="
+                display: inline-flex;
+                align-items: center;
+                padding: 1px 6px;
+                border-radius: 3px;
+                background: #7f1d1d;
+                color: #fecaca;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+              "
+              >F1</span
+            >
+            <span style="font-size: 12px; font-weight: 600; color: #f4f4f5"
+              >selection 이중 선언 — <code>.active</code> 배경이 죽는다</span
+            >
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <sc-for list="{{selectors}}" as="s" hint-placeholder-count="3">
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  padding: 5px 8px;
+                  border-radius: 4px;
+                  background: {{s.rowBg}};
+                "
+              >
+                <span
+                  style="
+                    font-size: 10px;
+                    color: #71717a;
+                    flex: 0 0 44px;
+                    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                  "
+                  >{{s.line}}</span
+                >
+                <span
+                  style="
+                    font-size: 10px;
+                    color: {{s.fg}};
+                    flex: 1 1 auto;
+                    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  "
+                  >{{s.sel}}</span
+                >
+                <span
+                  style="
+                    font-size: 10px;
+                    color: {{s.fg}};
+                    flex: 0 0 44px;
+                    text-align: right;
+                    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                  "
+                  >{{s.spec}}</span
+                >
+                <span
+                  style="
+                    display: inline-block;
+                    width: 22px;
+                    height: 14px;
+                    flex: 0 0 22px;
+                    border-radius: 3px;
+                    border: 1px solid #52525b;
+                    background: {{s.swatch}};
+                  "
+                ></span>
+                <span
+                  style="
+                    font-size: 10px;
+                    color: {{s.fg}};
+                    flex: 0 0 62px;
+                    text-align: right;
+                  "
+                  >{{s.verdict}}</span
+                >
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size: 11px; color: #a1a1aa; text-wrap: pretty">
+            <code>isSelected</code> 는 RAC state 에서 오므로
+            <code>.active</code> 와 <code>[aria-selected="true"]</code> 는 항상
+            함께 붙는다. (0,3,0) 이 이겨 선택 배경은
+            <code>--bg-muted</code> 하나만 남고, <code>:hover</code> (0,2,0) 도
+            함께 진다 — 선택된 행은 hover 에 반응하지 않는다.
+          </div>
+        </div>
+
+        <!-- F2 token collision -->
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #18181b;
+            border: 1px solid #7f1d1d;
+            border-radius: 6px;
+          "
+        >
+          <span
+            style="
+              display: inline-flex;
+              align-items: center;
+              padding: 1px 6px;
+              border-radius: 3px;
+              background: #7f1d1d;
+              color: #fecaca;
+              font-size: 10px;
+              font-weight: 700;
+              letter-spacing: 0.04em;
+            "
+            >F2</span
+          >
+          <span style="font-size: 11px; color: #a1a1aa; flex: 1 1 auto">
+            <code>--border-hover</code> 와 <code>--border-pressed</code> 가 같은
+            값 — outline 으로는 두 상태를 구분할 수 없다
+          </span>
+          <span style="display: flex; align-items: center; gap: 6px">
+            <span
+              style="
+                display: inline-block;
+                width: 22px;
+                height: 14px;
+                border-radius: 3px;
+                background: #52525b;
+              "
+            ></span>
+            <code style="color: #71717a">#52525b</code>
+          </span>
+        </div>
+      </div>
+    </x-dc>
+
+    <script
+      data-dc-script
+      data-props='{"$preview":{"width":600,"height":700}}'
+    >
+      class Component extends DCLogic {
+        renderVals() {
+          const fg = "#f4f4f5";
+          const fgMuted = "#a1a1aa";
+          const danger = "#fca5a5";
+
+          const rows = [
+            {
+              name: "body",
+              depth: 0,
+              hasChildren: true,
+              state: "rest",
+              note: "기준 상태",
+              noteFg: "#71717a",
+              bg: "transparent",
+              outline: "none",
+              shadow: "none",
+              fg: fgMuted,
+              showActions: false,
+            },
+            {
+              name: "frame",
+              depth: 1,
+              hasChildren: true,
+              state: "hover",
+              note: "#141417 — 패널 바닥보다 어둡다",
+              noteFg: danger,
+              bg: "#141417",
+              outline: "1px solid #52525b",
+              shadow: "none",
+              fg: fg,
+              showActions: true,
+            },
+            {
+              name: "Heading",
+              depth: 2,
+              hasChildren: false,
+              state: "focus-visible",
+              note: "focus-ring + bg-overlay 동시 변경",
+              noteFg: "#71717a",
+              bg: "#27272a",
+              outline: "2px solid #60a5fa",
+              shadow: "none",
+              fg: fgMuted,
+              showActions: false,
+            },
+            {
+              name: "Button",
+              depth: 2,
+              hasChildren: false,
+              state: "selected",
+              note: "실제 렌더 = --bg-muted (F1)",
+              noteFg: danger,
+              bg: "#3f3f46",
+              outline: "1px solid #52525b",
+              shadow: "inset 0 2px 4px rgb(0 0 0 / 0.05)",
+              fg: fg,
+              showActions: true,
+            },
+            {
+              name: "TextField",
+              depth: 2,
+              hasChildren: false,
+              state: "selected + hover",
+              note: "hover 무반응 — 위 행과 동일 (F1)",
+              noteFg: danger,
+              bg: "#3f3f46",
+              outline: "1px solid #52525b",
+              shadow: "inset 0 2px 4px rgb(0 0 0 / 0.05)",
+              fg: fg,
+              showActions: true,
+            },
+            {
+              name: "ListBox",
+              depth: 1,
+              hasChildren: true,
+              state: "selected · inactive",
+              note: "상태 자체가 없음 — selected 와 동일",
+              noteFg: danger,
+              bg: "#3f3f46",
+              outline: "1px solid #52525b",
+              shadow: "inset 0 2px 4px rgb(0 0 0 / 0.05)",
+              fg: fg,
+              showActions: true,
+            },
+            {
+              name: "Icon",
+              depth: 2,
+              hasChildren: false,
+              state: "drop-target",
+              note: "정상 — 유일하게 accent 채널 사용",
+              noteFg: "#71717a",
+              bg: "rgba(161, 161, 170, 0.2)",
+              outline: "1px solid #60a5fa",
+              shadow: "none",
+              fg: fg,
+              showActions: false,
+            },
+          ];
+
+          const selectors = [
+            {
+              line: ":20",
+              sel: ".elementItem:hover",
+              spec: "(0,2,0)",
+              swatch: "#141417",
+              verdict: "무시됨",
+              fg: "#71717a",
+              rowBg: "transparent",
+            },
+            {
+              line: ":25",
+              sel: ".elementItem.active",
+              spec: "(0,2,0)",
+              swatch: "#121214",
+              verdict: "무시됨",
+              fg: "#71717a",
+              rowBg: "transparent",
+            },
+            {
+              line: ":487",
+              sel: '.react-aria-TreeItem[aria-selected="true"] .elementItem',
+              spec: "(0,3,0)",
+              swatch: "#3f3f46",
+              verdict: "적용",
+              fg: "#fca5a5",
+              rowBg: "rgba(127, 29, 29, 0.25)",
+            },
+          ];
+
+          return {
+            rows: rows.map((r) => ({
+              ...r,
+              isLeaf: !r.hasChildren,
+              indent: r.depth * 8 + "px",
+            })),
+            selectors,
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

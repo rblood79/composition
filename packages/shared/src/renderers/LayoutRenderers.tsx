@@ -267,10 +267,7 @@ export const renderCard = (
         }
         cardType={
           (element.props.cardType as
-            | "default"
-            | "asset"
-            | "user"
-            | "product") || undefined
+            "default" | "asset" | "user" | "product") || undefined
         }
         // ADR-148 Phase 3 cross-check: variant 전달 누락 정정 — 미전달 시 Card 내부
         // default "primary" 로 고정되어 data-variant 가 편집을 무시 (Skia 는 catalog
@@ -796,6 +793,9 @@ export const renderProgressBar = (
       }
       isIndeterminate={Boolean(element.props.isIndeterminate || false)}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
+      staticColor={
+        element.props.staticColor as "auto" | "white" | "black" | undefined
+      }
       showValueLabel={element.props.showValueLabel !== false}
       valueLabel={
         element.props.valueLabel ? String(element.props.valueLabel) : undefined
@@ -850,10 +850,7 @@ export const renderMeter = (
       }
       variant={
         (element.props.variant as
-          | "informative"
-          | "positive"
-          | "warning"
-          | "critical") || "informative"
+          "informative" | "positive" | "warning" | "critical") || "informative"
       }
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
       showValueLabel={element.props.showValueLabel !== false}
@@ -1293,10 +1290,7 @@ export const renderSkeleton = (
       data-element-id={element.id}
       variant={
         (element.props.variant as
-          | "text"
-          | "circular"
-          | "rectangular"
-          | "rounded") || "text"
+          "text" | "circular" | "rectangular" | "rounded") || "text"
       }
       animation={
         (element.props.animation as "shimmer" | "pulse" | "wave" | "none") ||
@@ -1324,8 +1318,7 @@ export const renderSkeleton = (
       }
       componentVariant={
         element.props.componentVariant as
-          | import("../components/Skeleton").ComponentSkeletonVariant
-          | undefined
+          import("../components/Skeleton").ComponentSkeletonVariant | undefined
       }
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
       style={element.props.style}

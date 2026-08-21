@@ -1,0 +1,385 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <style>
+          body {
+            margin: 0;
+            font-family:
+              Pretendard,
+              -apple-system,
+              BlinkMacSystemFont,
+              system-ui,
+              Roboto,
+              "Helvetica Neue",
+              "Segoe UI",
+              sans-serif;
+            line-height: 1.5;
+          }
+          a {
+            color: #2563eb;
+          }
+          a:hover {
+            color: #1d4ed8;
+          }
+          code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 10px;
+          }
+        </style>
+      </helmet>
+
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          padding: 32px;
+          background: #e5e5e5;
+          min-height: 100%;
+          box-sizing: border-box;
+        "
+      >
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div
+            style="
+              font-size: 11px;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: #6b7280;
+            "
+          >
+            대조 · Light
+          </div>
+          <div style="font-size: 18px; font-weight: 600; color: #1f2937">
+            명도 역전 — hover 가 selected 보다 강하다
+          </div>
+          <div
+            style="
+              font-size: 12px;
+              color: #4b5563;
+              max-width: 480px;
+              text-wrap: pretty;
+            "
+          >
+            light 테마에서 hover 배경(<code>#d4d5d5</code>)이 실제 선택
+            배경(<code>#e5e7eb</code>)보다 어둡다. 아직 고르지도 않은 행이 고른
+            행보다 진하게 보인다.
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 24px; align-items: flex-start">
+          <sc-for list="{{panels}}" as="panel" hint-placeholder-count="2">
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                flex: 0 0 240px;
+                width: 240px;
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  font-size: 11px;
+                  font-weight: 600;
+                  color: {{panel.titleFg}};
+                "
+              >
+                <span
+                  style="
+                    display: inline-block;
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 3px;
+                    background: {{panel.dot}};
+                  "
+                ></span>
+                {{panel.title}}
+              </div>
+              <div
+                style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 1px;
+                  padding: 4px;
+                  background: #f9fafb;
+                  border: 1px solid #e5e7eb;
+                  border-radius: 6px;
+                  box-sizing: border-box;
+                "
+              >
+                <sc-for list="{{panel.rows}}" as="row" hint-placeholder-count="5">
+                  <div
+                    style="
+                      position: relative;
+                      display: flex;
+                      align-items: center;
+                      min-height: 28px;
+                      padding-inline: 4px;
+                      border-radius: 6px;
+                      box-sizing: border-box;
+                      overflow: hidden;
+                      background: {{row.bg}};
+                      outline: {{row.outline}};
+                      outline-offset: -1px;
+                    "
+                  >
+                    <sc-if value="{{row.bar}}" hint-placeholder-val="{{true}}">
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 3px;
+                          bottom: 3px;
+                          width: 2px;
+                          border-radius: 1px;
+                          background: #374151;
+                        "
+                      ></span>
+                    </sc-if>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        min-width: 0;
+                      "
+                    >
+                      <span
+                        style="display: inline-block; width: {{row.indent}}"
+                      ></span>
+                      <span
+                        style="
+                          display: inline-flex;
+                          align-items: center;
+                          justify-content: center;
+                          width: 16px;
+                          height: 16px;
+                          flex: 0 0 16px;
+                          color: #6b7280;
+                        "
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path
+                            d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
+                          ></path>
+                          <path d="m3.3 7 8.7 5 8.7-5"></path>
+                          <path d="M12 22V12"></path>
+                        </svg>
+                      </span>
+                      <span
+                        style="
+                          font-size: 12px;
+                          color: {{row.fg}};
+                          white-space: nowrap;
+                        "
+                        >{{row.name}}</span
+                      >
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 3px;
+                  padding-top: 2px;
+                "
+              >
+                <sc-for list="{{panel.rows}}" as="row" hint-placeholder-count="5">
+                  <div style="display: flex; align-items: center; gap: 6px">
+                    <span
+                      style="
+                        display: inline-block;
+                        width: 14px;
+                        height: 10px;
+                        flex: 0 0 14px;
+                        border-radius: 2px;
+                        border: 1px solid #d1d5db;
+                        background: {{row.swatch}};
+                      "
+                    ></span>
+                    <code style="color: #6b7280; flex: 0 0 58px"
+                      >{{row.hex}}</code
+                    >
+                    <span style="font-size: 10px; color: #4b5563"
+                      >{{row.state}}</span
+                    >
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px;
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+          "
+        >
+          <div style="font-size: 12px; font-weight: 600; color: #1f2937">
+            왜 역전이 생기나
+          </div>
+          <div
+            style="font-size: 11px; color: #4b5563; text-wrap: pretty; line-height: 1.6"
+          >
+            hover 는 <code>--bg-inset</code> 을 검정과 15% 섞어 만들고
+            (<code>#f9fafb</code> → <code>#d4d5d5</code>), 선택은 F1 때문에
+            <code>--bg-muted</code> (<code>#e5e7eb</code>) 로 고정된다. 두 값이
+            같은 명도 축 위에 있고 hover 쪽이 더 멀리 갔다. 권장안은 선택을
+            명도 축에서 빼내 accent bar 로 옮기므로 축 자체가 겹치지 않는다.
+          </div>
+        </div>
+      </div>
+    </x-dc>
+
+    <script data-dc-script data-props='{"$preview":{"width":600,"height":700}}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const fg = "#1f2937";
+          const fgMuted = "#6b7280";
+
+          const currentRows = [
+            {
+              name: "body",
+              depth: 0,
+              state: "rest",
+              bg: "transparent",
+              swatch: "#f9fafb",
+              hex: "#f9fafb",
+              outline: "none",
+              bar: false,
+              fg: fgMuted,
+            },
+            {
+              name: "frame",
+              depth: 1,
+              state: "hover",
+              bg: "#d4d5d5",
+              swatch: "#d4d5d5",
+              hex: "#d4d5d5",
+              outline: "1px solid #d1d5db",
+              bar: false,
+              fg: fg,
+            },
+            {
+              name: "Button",
+              depth: 2,
+              state: "selected",
+              bg: "#e5e7eb",
+              swatch: "#e5e7eb",
+              hex: "#e5e7eb",
+              outline: "1px solid #d1d5db",
+              bar: false,
+              fg: fg,
+            },
+            {
+              name: "TextField",
+              depth: 2,
+              state: "selected + hover",
+              bg: "#e5e7eb",
+              swatch: "#e5e7eb",
+              hex: "#e5e7eb",
+              outline: "1px solid #d1d5db",
+              bar: false,
+              fg: fg,
+            },
+          ];
+
+          const proposedRows = [
+            {
+              name: "body",
+              depth: 0,
+              state: "rest",
+              bg: "transparent",
+              swatch: "#f9fafb",
+              hex: "#f9fafb",
+              outline: "none",
+              bar: false,
+              fg: fgMuted,
+            },
+            {
+              name: "frame",
+              depth: 1,
+              state: "hover",
+              bg: "#ecedef",
+              swatch: "#ecedef",
+              hex: "#ecedef",
+              outline: "none",
+              bar: false,
+              fg: fg,
+            },
+            {
+              name: "Button",
+              depth: 2,
+              state: "selected",
+              bg: "#e4e6e9",
+              swatch: "#374151",
+              hex: "#374151",
+              outline: "none",
+              bar: true,
+              fg: fg,
+            },
+            {
+              name: "TextField",
+              depth: 2,
+              state: "selected + hover",
+              bg: "#d9dce0",
+              swatch: "#374151",
+              hex: "#374151",
+              outline: "none",
+              bar: true,
+              fg: fg,
+            },
+          ];
+
+          const withIndent = (rows) =>
+            rows.map((r) => ({ ...r, indent: r.depth * 8 + "px" }));
+
+          return {
+            panels: [
+              {
+                title: "현재 구현",
+                titleFg: "#b91c1c",
+                dot: "#dc2626",
+                rows: withIndent(currentRows),
+              },
+              {
+                title: "권장",
+                titleFg: "#1f2937",
+                dot: "#374151",
+                rows: withIndent(proposedRows),
+              },
+            ],
+          };
+        }
+      }
+    </script>
+  </body>
+</html>
