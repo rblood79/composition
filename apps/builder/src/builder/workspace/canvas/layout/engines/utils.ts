@@ -34,6 +34,9 @@ import {
   // ADR-160 후속: ListBoxItem 행 좌우 inset(textX/rightReserve) SSOT + GridList within-card gap SSOT.
   resolveListBoxItemInset,
   resolveGridListItemMetric,
+  // 2026-08-22: GridList 카드 선택 체크박스 블록 — escape/virtualization 과 공유 심볼.
+  buildCardSelectionEntry,
+  resolveCardSelectionExtra,
   isListBoxSectionEntry,
   resolveGridListSpacingMetric,
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
@@ -77,7 +80,11 @@ import {
 } from "@composition/specs";
 import type { ComponentRuleSize } from "@composition/shared";
 // ADR-148 Phase 0 — projection 주입 slot 구성(_slots) gating (listbox_item escape 와 Layer D 대칭).
-import { isSlotEnabled, readSlotComposition } from "@composition/shared";
+import {
+  isSlotEnabled,
+  readSlotComposition,
+  resolveSelectionCheckboxVisible,
+} from "@composition/shared";
 import {
   resolveSkiaRule,
   ruleSizeToSizeSpec,
@@ -2639,6 +2646,16 @@ export function calculateContentHeight(
     const labelText =
       typeof props?.children === "string" ? props.children : undefined;
     const entries: CollectionRowMetricEntry[] = [
+      // 선택 체크박스(2026-08-22)는 카드 flex-column 의 **첫 블록** — scene projection 이
+      //   `_showSelectionCheckbox` 로 가시성을 주입한다. escape(gridlist_card)와 같은 심볼로
+      //   블록을 만들어야 카드 높이(측정)와 그리기(paint)가 같은 +22 를 쓴다.
+      ...(props?._showSelectionCheckbox === true
+        ? [
+            buildCardSelectionEntry(
+              resolveGridListItemMetric(labelFs).selectionBoxSize,
+            ),
+          ]
+        : []),
       {
         role: "label",
         text: wrap ? (labelText ?? "") : "",
@@ -2746,9 +2763,25 @@ export function calculateContentHeight(
     //   cardBorderWidth*2 (catalog GridListItem.sizes.md.borderWidth=1, colors.border 렌더)를
     //   가산해야 projected 카드(content+padding+border=76) 와 정합 — 누락 시 카드당 -2px 로
     //   컨테이너가 rows-group 보다 짧아진다(stack 3카드 -6 / grid 행 수 비례).
+    // 선택 체크박스(2026-08-22) — 카드 스택 첫 블록이라 카드마다 `box + gap` 만큼 높아진다.
+    //   owner 는 자기 props 로 직접 판정 가능(projection 신호 불요). virtualization stride
+    //   (`resolveGridListRowStride`)와 **같은 helper** 를 써야 컨테이너와 행이 안 갈린다.
+    const gridSelectionExtra = resolveCardSelectionExtra({
+      visible: resolveSelectionCheckboxVisible({
+        selectionMode: props?.selectionMode,
+        selectionStyle: props?.selectionStyle,
+        selectionBehavior: props?.selectionBehavior,
+        defaultSelectionMode: "none",
+        fallback: "toggle",
+      }),
+      selectionBoxSize:
+        resolveGridListItemMetric(cardTextFontSize).selectionBoxSize,
+      gap: descGap,
+    });
     const cardHeight = (item: { description?: string }) =>
       cardPaddingY * 2 +
       cardBorderWidth * 2 +
+      gridSelectionExtra +
       getTextLineHeight(cardTextFontSize) +
       (item.description && isSlotEnabled(gridSlotComposition, "description")
         ? getTextLineHeight(cardTextFontSize) + descGap

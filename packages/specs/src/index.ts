@@ -330,6 +330,13 @@ export type {
   CollectionRowMetricInput,
   CollectionRowMetricEntry,
   CollectionRowSlotBlock,
+  CollectionRowSlotRole,
+} from "./renderers/utils/collectionItemMetrics";
+// 2026-08-22: GridList 카드 선택 체크박스 블록 — 카드 높이 4경로(escape / layout per-card /
+//   layout owner / virtualization stride)가 같은 심볼로 블록·델타를 얻는다.
+export {
+  buildCardSelectionEntry,
+  resolveCardSelectionExtra,
 } from "./renderers/utils/collectionItemMetrics";
 // ADR-160 후속: ListBoxItem 행 텍스트 좌우 inset(textX/rightReserve) 단일 공식. escape·M1 공동 호출.
 export { resolveListBoxItemInset } from "./renderers/utils/collectionItemMetrics";

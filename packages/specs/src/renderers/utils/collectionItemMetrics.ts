@@ -120,6 +120,18 @@ export function resolveListBoxItemRowHeight(input: {
 }
 
 /**
+ * 행/카드 수직 스택의 블록 역할.
+ *
+ * `selection`(2026-08-22)은 **텍스트가 아닌 블록** — GridList 카드의 flex-column 첫 자식으로
+ * 서는 선택 체크박스다. 별도 입력 필드(`leadingBlockHeight` 류)가 아니라 entry 로 넣는 이유는,
+ * 스택 gap 누적·contentHeight 합산·블록 top offset 이 이미 이 함수 하나에 있기 때문이다 —
+ * 밖에서 더하면 layout(§1.55b2/§1.55c)·virtualization·escape 4곳이 각자 +22 를 재구현하게 된다
+ * (memory: gridlist-card-metric-multivalue-desync). `text: ""` 라 wrap 측정은 건너뛰고
+ * `lineHeight`(= 체크박스 한 변)가 그대로 블록 높이가 된다.
+ */
+export type CollectionRowSlotRole = "label" | "description" | "selection";
+
+/**
  * ADR-160: collection projection 행(ListBoxItem / GridListItem) 텍스트 측정 SSOT.
  *
  * layout(M1, `utils.ts`)·escape(M3, `skiaPrimitives.ts`)·`buildSpecNodeData` 가 **동일 심볼**로
@@ -142,7 +154,7 @@ export function resolveListBoxItemRowHeight(input: {
  * 본 함수는 블록 wrap 측정·스택 offset·rowHeight 공식만 소유한다(폰트/reserve/lineHeight 는 caller 산출).
  */
 export interface CollectionRowMetricEntry {
-  role: "label" | "description";
+  role: CollectionRowSlotRole;
   text: string;
   fontSize: number;
   fontWeight: number | string;
@@ -194,9 +206,9 @@ export interface CollectionRowMetric {
   /** 패딩 제외 콘텐츠 높이(px). */
   contentHeight: number;
   /** 존재하는 slot 의 블록 geometry. */
-  slotBlocks: Partial<Record<"label" | "description", CollectionRowSlotBlock>>;
+  slotBlocks: Partial<Record<CollectionRowSlotRole, CollectionRowSlotBlock>>;
   /** 표시 순서 slot 목록(입력 순서 보존). */
-  order: Array<"label" | "description">;
+  order: CollectionRowSlotRole[];
 }
 
 export function resolveCollectionRowMetric(
@@ -239,7 +251,7 @@ export function resolveCollectionRowMetric(
     );
 
   const slotBlocks: Partial<
-    Record<"label" | "description", CollectionRowSlotBlock>
+    Record<CollectionRowSlotRole, CollectionRowSlotBlock>
   > = {};
   const order = input.entries.map((e) => e.role);
 
@@ -357,6 +369,7 @@ export function resolveGridListItemMetric(fontSize: number): {
   cardBorderRadius: number;
   cardBorderWidth: number;
   descGap: number;
+  selectionBoxSize: number;
 } {
   // cardBorderWidth = componentRulesTable.GridListItem.sizes.md.borderWidth(1) — 카드 border-box
   //   높이 산출용(부모 GridList §1.55c). colors.border 로 실제 렌더되는 1px 테두리를 반영해야
@@ -370,6 +383,7 @@ export function resolveGridListItemMetric(fontSize: number): {
       cardBorderRadius: 12,
       cardBorderWidth: 1,
       descGap: 2,
+      selectionBoxSize: 20,
     };
   }
   // fontSize>12: medium 카드 (16/12/8) — rule sizes.md 기본값 매칭
@@ -380,6 +394,7 @@ export function resolveGridListItemMetric(fontSize: number): {
       cardBorderRadius: 8,
       cardBorderWidth: 1,
       descGap: 2,
+      selectionBoxSize: 20,
     };
   }
   // fontSize≤12: small 카드 (12/10/8)
@@ -389,7 +404,45 @@ export function resolveGridListItemMetric(fontSize: number): {
     cardBorderRadius: 8,
     cardBorderWidth: 1,
     descGap: 2,
+    selectionBoxSize: 20,
   };
+}
+
+/**
+ * GridList 카드의 선택 체크박스 블록 — 카드 높이를 읽는 **모든 경로의 단일 심볼** (2026-08-22).
+ *
+ * DOM 실측(md 카드, preview iframe): `checkbox 20 → gap 2 → label 24 → gap 2 → description 24`
+ * + padding 24 + border 2 = **98**. 체크박스가 없으면 76. 차이 22 = `selectionBoxSize + descGap`.
+ * 카드는 `flex-direction: column` 이라 체크박스가 라벨 **왼쪽이 아니라 위**에 서고, 항목 사이
+ * 간격은 라벨↔설명과 같은 카드 gap(`--spacing-2xs` = descGap)을 그대로 쓴다 — 체크박스 전용
+ * 간격이 따로 있는 게 아니다.
+ *
+ * 카드 높이를 산출하는 지점이 4곳(escape `gridlist_card` / layout §1.55b2 per-card /
+ * layout §1.55c owner / virtualization stride)이라, 각자 `+22` 를 적으면 한 곳만 고쳐졌을 때
+ * 컨테이너가 카드보다 짧아지는 방식으로 조용히 어긋난다. 두 형태를 여기서 함께 낸다:
+ *  - `buildCardSelectionEntry`: `resolveCollectionRowMetric` 에 넣는 스택 블록(정확한 geometry).
+ *  - `resolveCardSelectionExtra`: 공식으로 높이를 더하는 경로(owner/stride)용 델타.
+ */
+export function buildCardSelectionEntry(
+  selectionBoxSize: number,
+): CollectionRowMetricEntry {
+  return {
+    role: "selection",
+    // 텍스트 없음 → wrap 측정을 건너뛰고 lineHeight 가 곧 블록 높이(= 체크박스 한 변).
+    text: "",
+    fontSize: 0,
+    fontWeight: 400,
+    lineHeight: selectionBoxSize,
+  };
+}
+
+/** 체크박스가 서면 카드 높이에 더해지는 값(px) — 안 서면 0. */
+export function resolveCardSelectionExtra(input: {
+  visible: boolean;
+  selectionBoxSize: number;
+  gap: number;
+}): number {
+  return input.visible ? input.selectionBoxSize + input.gap : 0;
 }
 
 /**

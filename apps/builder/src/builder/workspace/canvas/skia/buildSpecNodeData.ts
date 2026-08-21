@@ -37,7 +37,7 @@ import {
   isCatalogCutover,
   getPrimitiveBinding,
   isDisclosureExpandedInContext,
-  resolveSelectionBehavior,
+  resolveSelectionCheckboxVisible,
   toSkiaStyle,
   usesButtonBaseUtility,
 } from "@composition/shared";
@@ -573,17 +573,14 @@ function resolveTreeSelectionCheckboxVisible(
     if (!ancestor) return false;
     if (ancestor.type === "Tree") {
       const p = ancestor.props as Record<string, unknown>;
-      const mode = p.selectionMode;
-      // renderTree 의 기본값과 동일 — 미지정 Tree 는 "single".
-      const effectiveMode = typeof mode === "string" ? mode : "single";
-      if (effectiveMode === "none") return false;
-      return (
-        resolveSelectionBehavior({
-          selectionStyle: p.selectionStyle,
-          selectionBehavior: p.selectionBehavior,
-          fallback: "replace",
-        }) === "toggle"
-      );
+      return resolveSelectionCheckboxVisible({
+        selectionMode: p.selectionMode,
+        selectionStyle: p.selectionStyle,
+        selectionBehavior: p.selectionBehavior,
+        // renderTree 의 기본값과 동일 — 미지정 Tree 는 "single" / "replace".
+        defaultSelectionMode: "single",
+        fallback: "replace",
+      });
     }
     if (ancestor.type !== "TreeItem") return false;
     currentId = ancestor.parent_id;

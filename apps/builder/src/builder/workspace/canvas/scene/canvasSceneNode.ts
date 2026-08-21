@@ -16,6 +16,7 @@ import {
   interpolateFieldTemplate,
   resolveComponentRule,
   resolveRowTemplateSource,
+  resolveSelectionCheckboxVisible,
   resolveSlotComposition,
 } from "@composition/shared";
 // ADR-157 gap 배선 (②): ListBox 소유자 gap 을 px 로 해석 (style longhand/shorthand + props.gap).
@@ -1519,6 +1520,17 @@ function appendGridListRowProjection(
   //   100%=grid area(=track 169) 라 (169-gap)/2=78 로 이중 분할돼 텍스트 과도 wrap 됐다. stack 도 100%.
   const cardWidthStyle = "100%";
 
+  // 선택 체크박스 가시성 — RAC 는 selectionMode!=="none" && selectionBehavior==="toggle" 일 때만
+  //   카드 첫 자식으로 `<Checkbox slot="selection">` 을 낸다. renderGridList 가 넘기는 기본값
+  //   ("none" / "toggle")과 같은 인자를 써야 두 표면이 같은 조건에서 체크박스를 그린다.
+  const showSelectionCheckbox = resolveSelectionCheckboxVisible({
+    selectionMode: props.selectionMode,
+    selectionStyle: props.selectionStyle,
+    selectionBehavior: props.selectionBehavior,
+    defaultSelectionMode: "none",
+    fallback: "toggle",
+  });
+
   for (const row of rows) {
     const projectionId = toCollectionRowProjectionId(
       "gridlist",
@@ -1545,8 +1557,15 @@ function appendGridListRowProjection(
       // ADR-148 Phase 4: origin style overlay (ListBox templateAnchorStyle 동형).
       //   카드 폭은 layout(stack|grid) 산식이 항상 우선.
       style: { ...originStyle, width: cardWidthStyle },
+      // 보편 selection 축(ADR-142 §3) — gridlist_card escape 는 `props.isSelected` 를 읽는다
+      //   (selected accent border, 체크 표시). ListBox 행이 2026-07-20 에 같은 이유로 두 키를
+      //   함께 주입하도록 고쳐졌는데 GridList 는 `_isSelected` 만 남아 있어 dead 였다.
+      isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
       _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
     };
+    // 체크박스 블록 신호 — catalog `GridListItem.selectionCheckbox` 채널이 소비(폭이 아니라
+    //   카드 높이를 늘리는 스택 첫 블록). 컴포넌트 식별 분기 없이 데이터 게이팅.
+    if (showSelectionCheckbox) rowProps._showSelectionCheckbox = true;
     if (row.value) rowProps.value = row.value;
     if (row.isDisabled) rowProps.isDisabled = true;
     // ADR-148 Phase 4: slot 구성(존재·순서·slot 자식 style) — gridlist_card escape/DOM emit 소비.

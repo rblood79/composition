@@ -22,6 +22,7 @@ import {
   getDescriptionLineHeight,
 } from "../primitives/typography";
 import {
+  buildCardSelectionEntry,
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
   resolveCollectionRowMetric,
   resolveListBoxItemInset,
@@ -513,6 +514,11 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   //   미설정(항상 top) + textX=cardPaddingX(icon/check 예약 없음) + description lineHeight 1.5×.
   //   `cardWidth`(=style.width)는 buildSpecNodeData width injection 이 확정한 실제 카드 폭.
   const explicitHeight = parsePxValue(style?.height, undefined);
+  // 선택 체크박스(2026-08-22) — Tree 행과 달리 카드는 flex-column 이라 라벨 **왼쪽이 아니라 위**에
+  //   선다. 그래서 leading 슬롯처럼 textX 를 밀지 않고 스택 **첫 블록**으로 들어간다(간격도 카드
+  //   자체 gap = descGap 을 그대로 공유 — DOM 실측 checkbox 20 → gap 2 → label). 가시성 신호는
+  //   builder 가 부모 GridList 의 selectionMode·selectionStyle 을 해석해 주입한다(ADR-142 §3).
+  const selectionSlot = resolveSelectionSlot(visual, props);
   const cardMetric = resolveCollectionRowMetric({
     containerWidth: cardWidth,
     paddingTop: cardPaddingY,
@@ -525,13 +531,16 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     textX: cardPaddingX,
     rightReserve: 0,
     fontFamily: ff,
-    entries: stackEntries.map((entry) => ({
-      role: entry,
-      text: entry === "label" ? label : (description ?? ""),
-      fontSize: entry === "label" ? labelFontSize : descFontSize,
-      fontWeight: entry === "label" ? labelWeight : descriptionWeight,
-      lineHeight: entryLineHeight(entry),
-    })),
+    entries: [
+      ...(selectionSlot ? [buildCardSelectionEntry(selectionSlot.size)] : []),
+      ...stackEntries.map((entry) => ({
+        role: entry,
+        text: entry === "label" ? label : (description ?? ""),
+        fontSize: entry === "label" ? labelFontSize : descFontSize,
+        fontWeight: entry === "label" ? labelWeight : descriptionWeight,
+        lineHeight: entryLineHeight(entry),
+      })),
+    ],
     fallbackLineHeight: 0,
   });
   const textMaxWidth = cardMetric.maxWidth;
@@ -579,7 +588,26 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const descriptionFill =
     (descriptionSlotStyle?.color as string | undefined) ??
     ("{color.neutral-subdued}" as TokenRef);
-  let stackY = cardPaddingY;
+  // 체크박스 블록 — 스택 첫 자리(라벨 위). geometry 는 metric 의 블록 offset 그대로라
+  //   높이 계산(측정)과 그리기(paint)가 어긋날 수 없다. shell 모드에서도 그린다: 체크박스는
+  //   카드 chrome 이지 slot 자식이 렌더하는 내용이 아니다(선택 상태는 owner 소유).
+  const selectionBlock = cardMetric.slotBlocks.selection;
+  if (selectionSlot && selectionBlock) {
+    shapes.push(
+      ...buildSelectionCheckboxShapes({
+        sc: visual!.selectionCheckbox!,
+        x: cardPaddingX,
+        y: selectionBlock.y,
+        box: selectionSlot.size,
+        isSelected: selectionSlot.isSelected,
+      }),
+    );
+  }
+
+  let stackY =
+    selectionSlot && selectionBlock
+      ? selectionBlock.y + selectionBlock.height + descGap
+      : cardPaddingY;
   // shell 모드: 내용 스택은 실 자식 노드가 렌더 (이중 렌더 차단).
   for (const entry of contentHidden ? [] : stackEntries) {
     if (entry === "label") {
@@ -2523,6 +2551,79 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *
  * 색은 rule 채널 데이터 — DOM `Checkbox.css` 의 시맨틱 토큰과 같은 값을 catalog 가 들고 있다.
  */
+/**
+ * 체크박스 상자 자체를 그리는 공용 helper — `selection_checkbox`(Tree 행: 세로 중앙, 라벨 왼쪽)와
+ * `gridlist_card`(카드: flex-column 첫 블록, 라벨 위)가 배치만 달리하고 **같은 상자**를 그린다.
+ * 두 곳이 각자 그리면 테두리 두께·radius·체크 비율이 조용히 갈린다.
+ */
+function buildSelectionCheckboxShapes(input: {
+  sc: NonNullable<ComponentVisualRule["selectionCheckbox"]>;
+  x: number;
+  y: number;
+  box: number;
+  isSelected: boolean;
+}): Shape[] {
+  const { sc, x, y, box, isSelected } = input;
+  // DOM `.react-aria-Checkbox` 실측 — 2px 테두리 + radius 4.
+  const borderWidth = 2;
+  const radius = 4;
+  const shapes: Shape[] = [
+    {
+      id: "selection-box",
+      type: "roundRect",
+      x,
+      y,
+      width: box,
+      height: box,
+      radius,
+      fill: isSelected
+        ? (sc.selectedFill ?? ("{color.accent}" as TokenRef))
+        : (sc.fill ?? ("{color.base}" as TokenRef)),
+    },
+    {
+      type: "border",
+      target: "selection-box",
+      borderWidth,
+      color: isSelected
+        ? (sc.selectedFill ?? ("{color.accent}" as TokenRef))
+        : (sc.border ?? ("{color.border}" as TokenRef)),
+      radius,
+    },
+  ];
+
+  if (isSelected) {
+    // 체크 표시 — 2-segment polyline (Skia checkbox primitive 와 같은 비율).
+    const pad = box * 0.25;
+    const left = x + pad;
+    const right = x + box - pad;
+    const midX = x + box * 0.42;
+    const midY = y + box - pad;
+    const checkColor = sc.checkColor ?? ("{color.on-accent}" as TokenRef);
+    shapes.push(
+      {
+        type: "line",
+        x1: left,
+        y1: y + box * 0.52,
+        x2: midX,
+        y2: midY,
+        stroke: checkColor,
+        strokeWidth: 2,
+      },
+      {
+        type: "line",
+        x1: midX,
+        y1: midY,
+        x2: right,
+        y2: y + pad,
+        stroke: checkColor,
+        strokeWidth: 2,
+      },
+    );
+  }
+
+  return shapes;
+}
+
 const selectionCheckbox: SkiaPrimitiveDrawFn = ({
   props,
   size,
@@ -2548,66 +2649,15 @@ const selectionCheckbox: SkiaPrimitiveDrawFn = ({
       ? size.height
       : fontSize + 16;
   const box = slot.size;
+  // 행 배치 — 세로 중앙(라벨과 같은 줄).
   const top = Math.round((height - box) / 2);
-  // DOM `.react-aria-Checkbox` 실측 — 2px 테두리 + radius 4.
-  const borderWidth = 2;
-  const radius = 4;
-
-  const shapes: Shape[] = [
-    {
-      id: "selection-box",
-      type: "roundRect",
-      x: paddingX,
-      y: top,
-      width: box,
-      height: box,
-      radius,
-      fill: slot.isSelected
-        ? (sc.selectedFill ?? ("{color.accent}" as TokenRef))
-        : (sc.fill ?? ("{color.base}" as TokenRef)),
-    },
-    {
-      type: "border",
-      target: "selection-box",
-      borderWidth,
-      color: slot.isSelected
-        ? (sc.selectedFill ?? ("{color.accent}" as TokenRef))
-        : (sc.border ?? ("{color.border}" as TokenRef)),
-      radius,
-    },
-  ];
-
-  if (slot.isSelected) {
-    // 체크 표시 — 2-segment polyline (Skia checkbox primitive 와 같은 비율).
-    const pad = box * 0.25;
-    const left = paddingX + pad;
-    const right = paddingX + box - pad;
-    const midX = paddingX + box * 0.42;
-    const midY = top + box - pad;
-    const checkColor = sc.checkColor ?? ("{color.on-accent}" as TokenRef);
-    shapes.push(
-      {
-        type: "line",
-        x1: left,
-        y1: top + box * 0.52,
-        x2: midX,
-        y2: midY,
-        stroke: checkColor,
-        strokeWidth: 2,
-      },
-      {
-        type: "line",
-        x1: midX,
-        y1: midY,
-        x2: right,
-        y2: top + pad,
-        stroke: checkColor,
-        strokeWidth: 2,
-      },
-    );
-  }
-
-  return shapes;
+  return buildSelectionCheckboxShapes({
+    sc,
+    x: paddingX,
+    y: top,
+    box,
+    isSelected: slot.isSelected,
+  });
 };
 
 /**

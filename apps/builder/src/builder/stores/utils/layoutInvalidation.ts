@@ -46,6 +46,14 @@ export const LAYOUT_AFFECTING_PROP_KEYS = new Set([
   //   collectDirtyElementSubtree 가 자식까지 dirty 로 만들어 자식 Disclosure 도 갱신된다.
   "isExpanded",
   "allowsMultipleExpanded",
+  // 선택 축 (2026-08-22): GridList 카드는 flex-column 이라 선택 체크박스가 라벨 **위**에 서고
+  //   카드 높이가 +22 된다(DOM 실측 98 vs 76). 즉 `selectionStyle`/`selectionMode` 는 시각
+  //   토글이 아니라 **레이아웃 prop** 이다 — 빠지면 패널에서 checkbox↔highlight 를 바꿔도
+  //   layoutVersion 이 안 올라 캔버스가 이전 카드 높이로 남는다(실측 확인).
+  //   `selectionBehavior` 는 selectionStyle 도입 전 문서에 남아 있을 수 있는 동일 축 키.
+  "selectionMode",
+  "selectionStyle",
+  "selectionBehavior",
   "padding",
   "paddingTop",
   "paddingRight",

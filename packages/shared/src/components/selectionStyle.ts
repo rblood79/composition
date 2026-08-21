@@ -39,3 +39,36 @@ export function resolveSelectionBehavior(input: {
 export function toSelectionStyle(behavior: SelectionBehavior): SelectionStyle {
   return behavior === "replace" ? "highlight" : "checkbox";
 }
+
+/**
+ * 컬렉션 항목에 선택 체크박스가 서는가 — Skia 가 `_showSelectionCheckbox` 로 주입하는 신호의
+ * 판정식 (2026-08-22).
+ *
+ * RAC 는 `selectionMode !== "none"` 이고 `selectionBehavior === "toggle"` 일 때만
+ * `<Checkbox slot="selection">` 을 항목에 렌더한다. 두 조건 중 하나만 보면 어긋난다 —
+ * `selectionMode="none"` 인데 체크박스를 그리거나, highlight 모드에서 자리만 비워두거나.
+ *
+ * 소유자(Tree / GridList)마다 `selectionMode` 기본값과 `selectionBehavior` fallback 이 달라
+ * 둘 다 인자로 받는다.
+ */
+export function resolveSelectionCheckboxVisible(input: {
+  selectionMode?: unknown;
+  selectionStyle?: unknown;
+  selectionBehavior?: unknown;
+  /** 해당 컬렉션 렌더러가 `selectionMode` 미지정 시 넘기는 값. */
+  defaultSelectionMode: "none" | "single" | "multiple";
+  fallback: SelectionBehavior;
+}): boolean {
+  const mode =
+    typeof input.selectionMode === "string"
+      ? input.selectionMode
+      : input.defaultSelectionMode;
+  if (mode === "none") return false;
+  return (
+    resolveSelectionBehavior({
+      selectionStyle: input.selectionStyle,
+      selectionBehavior: input.selectionBehavior,
+      fallback: input.fallback,
+    }) === "toggle"
+  );
+}

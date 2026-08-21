@@ -241,6 +241,14 @@ const LAYOUT_PROP_KEYS = [
   //   layer A(layoutVersion)는 origin 자식 size/style 편집이 이미 bump, _slots 는 scene 파생이라
   //   layer B(본 시그니처)만 필요. 값이 객체라 serializeLayoutRelevantValue 가 JSON 직렬화(fontSize 포함).
   "_slots",
+  // 선택 체크박스 신호 (2026-08-22): scene(appendGridListRowProjection)이 owner 의
+  //   selectionMode·selectionStyle 을 해석해 카드 행에 주입한다. GridList 카드는 flex-column
+  //   이라 체크박스가 라벨 위에 서서 카드 높이가 +22 되는데(§1.55b2 가 소비), 본 키가 없으면
+  //   행 props 시그니처가 불변이라 캐시 히트로 이전 높이가 남는다 — 패널에서 checkbox↔highlight
+  //   를 바꿔도 새로고침 전까지 캔버스 카드 높이가 그대로였다(2026-08-22 라이브 실측).
+  //   _slots / _projectedRowsContentHeight 선례 동형: layer A(layoutVersion)는 layoutInvalidation
+  //   의 selectionStyle 등재가 올리고, 본 키는 scene 파생 신호용 layer B.
+  "_showSelectionCheckbox",
 ];
 
 function serializeLayoutRelevantValue(value: unknown): string {
@@ -414,8 +422,7 @@ export function getCachedPageLayout({
     return cachedEntry.fullTreeLayoutMap;
   }
   const bodyStyle = bodyElement.props?.style as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   const bodyBorderVal = parseBorder(bodyStyle);
   const bodyPaddingVal = parsePadding(bodyStyle, pageWidth);
   const availableWidth =

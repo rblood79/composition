@@ -20,6 +20,7 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import {
   resolveCollectionItems,
   resolveCollectionWindow,
+  resolveSelectionCheckboxVisible,
   resolveSlotComposition,
   isSlotEnabled,
   getTableProjectionRows,
@@ -28,6 +29,8 @@ import {
   type CollectionWindow,
 } from "@composition/shared";
 import {
+  resolveCardSelectionExtra,
+  resolveGridListItemMetric,
   resolveGridListSpacingMetric,
   getTextLineHeight,
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
@@ -189,8 +192,23 @@ function resolveGridListRowStride(
   };
   const labelFs = slotFontOf("label") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
   const descFs = slotFontOf("description") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
+  // 선택 체크박스(2026-08-22) — 카드 스택 첫 블록. layout §1.55c 와 **같은 helper** 로 더한다;
+  //   stride 만 빠지면 sample mode 소유자에서 `_projectedRowsContentHeight` 가 카드 합보다
+  //   짧아져 마지막 행이 잘린다.
+  const selectionExtra = resolveCardSelectionExtra({
+    visible: resolveSelectionCheckboxVisible({
+      selectionMode: props?.selectionMode,
+      selectionStyle: props?.selectionStyle,
+      selectionBehavior: props?.selectionBehavior,
+      defaultSelectionMode: "none",
+      fallback: "toggle",
+    }),
+    selectionBoxSize: resolveGridListItemMetric(labelFs).selectionBoxSize,
+    gap: metric.descGap,
+  });
   const cardHeight =
     metric.cardPaddingY * 2 +
+    selectionExtra +
     getTextLineHeight(labelFs) +
     (hasDescription ? getTextLineHeight(descFs) + metric.descGap : 0);
   return { rowHeight: cardHeight + metric.rowGap, columns: metric.numCols };

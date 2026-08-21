@@ -5384,6 +5384,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         // 카드 label 굵기 (spec fontWeight 600). buildCatalogShapes 가 visual.textWeight 소비.
         textWeight: 600,
+        /* 선택 체크박스 (2026-08-22, 감사 §1-2 축② 잔여) — DOM 은 RAC 가 카드 flex-column 첫
+           자식으로 `<Checkbox slot="selection">` 을 렌더한다(라벨 왼쪽이 아니라 **위**). Skia
+           escape(gridlist_card)가 이 채널을 소비해 같은 자리에 그리고, 카드 높이도 같은 블록으로
+           +22(box 20 + 카드 gap 2) 늘어난다 — DOM 실측 98 vs 76. 가시성은 `_showSelectionCheckbox`
+           데이터 신호(부모 GridList 의 selectionMode·selectionStyle 해석 결과). 색은 DOM
+           `Checkbox.css` 와 같은 시맨틱 토큰. */
+        selectionCheckbox: {
+          size: 20,
+          gap: 2,
+          fill: "{color.base}",
+          border: "{color.border}",
+          selectedFill: "{color.accent}",
+          checkColor: "{color.on-accent}",
+        },
       },
     },
     sizes: {
