@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { useParams as useRouterParams } from "react-router-dom";
+import { useParams as useRouterParams } from "react-router";
 import { RouterContext } from "./canvasRouterContext";
 
 export function useCanvasNavigate() {

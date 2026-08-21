@@ -5,7 +5,7 @@
  * 편집 UI는 DataTableEditorPanel에서 처리
  */
 
-import { Variable, Edit2 } from "lucide-react";
+import { Variable, SquarePen } from "lucide-react";
 import { useDataStore, useVariables } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { Section } from "../../../components";
@@ -102,7 +102,7 @@ export function VariableList({ projectId }: VariableListProps) {
           onClick={(e) => handleEdit(variable.id, e)}
           title="편집"
         >
-          <Edit2 {...iconEditProps} />
+          <SquarePen {...iconEditProps} />
         </button>
         <button
           type="button"

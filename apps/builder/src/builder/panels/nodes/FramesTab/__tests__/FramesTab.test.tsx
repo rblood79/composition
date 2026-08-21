@@ -62,7 +62,7 @@ const mockGetAllElements = vi.fn(async () => [] as Element[]);
 const mockGetDescendants = vi.fn(async () => [] as Element[]);
 
 // ─── module mocks ───────────────────────────────────────────────────────────
-vi.mock("react-router-dom", () => ({
+vi.mock("react-router", () => ({
   useParams: () => ({ projectId: "test-project" }),
 }));
 

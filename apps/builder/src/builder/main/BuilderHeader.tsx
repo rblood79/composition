@@ -12,7 +12,7 @@ import {
   FolderOpen,
   Download,
   Upload,
-  HelpCircle,
+  CircleHelp,
   Info,
   Columns,
 } from "lucide-react";
@@ -144,7 +144,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               </MenuItem>
               <Separator className="header-menu-separator" />
               <MenuItem id="help" className="header-menu-item">
-                <HelpCircle size={14} />
+                <CircleHelp size={14} />
                 <span>Help</span>
               </MenuItem>
               <MenuItem id="about" className="header-menu-item">

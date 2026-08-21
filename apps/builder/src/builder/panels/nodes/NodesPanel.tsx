@@ -12,7 +12,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import "./NodesPanel.css";
 import { useStore } from "../../stores";
 import { useEditModeStore } from "../../stores/editMode";

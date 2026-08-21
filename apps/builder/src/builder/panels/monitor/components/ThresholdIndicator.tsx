@@ -7,7 +7,7 @@
  * - 60% 미만: 정상 (녹색)
  */
 
-import { AlertTriangle, AlertCircle, CheckCircle } from "lucide-react";
+import { AlertTriangle, CircleAlert, CircleCheck } from "lucide-react";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 
 type ThresholdLevel = "safe" | "warning" | "danger";
@@ -33,22 +33,18 @@ export function ThresholdIndicator({
     value >= dangerThreshold
       ? "danger"
       : value >= warningThreshold
-      ? "warning"
-      : "safe";
+        ? "warning"
+        : "safe";
 
   const Icon =
     threshold === "danger"
-      ? AlertCircle
+      ? CircleAlert
       : threshold === "warning"
-      ? AlertTriangle
-      : CheckCircle;
+        ? AlertTriangle
+        : CircleCheck;
 
   const statusText =
-    threshold === "danger"
-      ? "위험"
-      : threshold === "warning"
-      ? "경고"
-      : "정상";
+    threshold === "danger" ? "위험" : threshold === "warning" ? "경고" : "정상";
 
   return (
     <div className="threshold-indicator" data-threshold={threshold}>

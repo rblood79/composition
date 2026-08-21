@@ -5,7 +5,7 @@
  */
 
 import { memo, useMemo, useCallback, useState } from "react";
-import { FolderTree, AlertCircle } from "lucide-react";
+import { FolderTree, CircleAlert } from "lucide-react";
 import {
   PropertySelect,
   PropertySection,
@@ -247,7 +247,7 @@ export const PageParentSelector = memo(function PageParentSelector({
         />
         {slugError && (
           <div className="page-slug-error">
-            <AlertCircle size={iconSmall.size} />
+            <CircleAlert size={iconSmall.size} />
             <span>{slugError}</span>
           </div>
         )}

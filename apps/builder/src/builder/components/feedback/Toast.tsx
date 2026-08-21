@@ -5,7 +5,7 @@
  * - Action 버튼 지원 (Undo 등)
  */
 
-import { X, AlertCircle, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { X, CircleAlert, AlertTriangle, CircleCheck, Info } from "lucide-react";
 import { Button } from "react-aria-components";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
 import type { ToastType } from "@/builder/hooks";
@@ -13,9 +13,9 @@ import type { ToastAction } from "../../stores/toast";
 import "./Toast.css";
 
 const ICONS = {
-  success: CheckCircle,
+  success: CircleCheck,
   warning: AlertTriangle,
-  error: AlertCircle,
+  error: CircleAlert,
   info: Info,
 } as const;
 
@@ -41,10 +41,7 @@ export function Toast({ id, type, message, onDismiss, action }: ToastProps) {
       <Icon size={iconProps.size} className="toast-icon" aria-hidden="true" />
       <span className="toast-message">{message}</span>
       {action && (
-        <Button
-          className="toast-action"
-          onPress={handleAction}
-        >
+        <Button className="toast-action" onPress={handleAction}>
           {action.label}
         </Button>
       )}

@@ -9,7 +9,7 @@
 
 import type { ComponentSpec, TokenRef } from "../types";
 import { parsePxValue, parseBorderWidth } from "../primitives";
-import { FileText, Type, AlertCircle } from "lucide-react";
+import { FileText, Type, CircleAlert } from "lucide-react";
 
 /**
  * Slot Props
@@ -91,7 +91,7 @@ export const SlotSpec: ComponentSpec<SlotProps> = {
             key: "required",
             type: "boolean",
             label: "Required",
-            icon: AlertCircle,
+            icon: CircleAlert,
           },
         ],
       },

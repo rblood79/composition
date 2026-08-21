@@ -23,7 +23,7 @@ import {
 } from "./interactions";
 import { navigateInPreview } from "./router/canvasNavigation";
 import { ToastProvider, useToast } from "@composition/shared/components";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { rendererMap } from "@composition/shared/renderers";
 import {
   adaptElementStyle,
@@ -285,8 +285,7 @@ function CanvasContent() {
         for (const entry of masterSlot) {
           if (typeof entry !== "string") continue;
           const metadata = byId.get(entry)?.metadata as
-            | { variant?: unknown }
-            | undefined;
+            { variant?: unknown } | undefined;
           if (metadata?.variant === "selected") return entry;
         }
         if (typeof masterSlot[1] === "string") return masterSlot[1];
@@ -786,10 +785,7 @@ function CanvasContent() {
       // rendererMap에서 해당 태그의 렌더러 찾기
       const renderer = rendererMap[adaptedElement.type];
       if (renderer) {
-        return renderer(
-          adaptedElement,
-          renderContext,
-        );
+        return renderer(adaptedElement, renderContext);
       }
 
       // 렌더러가 없으면 기본 HTML 렌더링
@@ -808,8 +804,7 @@ function CanvasContent() {
       //   와 동일 헬퍼). spec 삭제(step 4) 후에도 className/data-size 보존.
       const specBacked = isSpecOrCatalogBacked(adaptedElement.type);
       const tagProps = adaptedElement.props as
-        | { size?: string; variant?: string; className?: string }
-        | undefined;
+        { size?: string; variant?: string; className?: string } | undefined;
       // ADR-913 slice 1 (2026-06-18): cssEmitMode "button-base" 컴포넌트는 background 를
       //   `.button-base` utility 에 위임 → DOM 에 button-base 클래스 필수 (CanonicalNodeRenderer
       //   와 동일 정합). 누락 시 --button-color 만 설정되고 background 미적용(회색).
@@ -1026,10 +1021,7 @@ function CanvasContent() {
       // rendererMap에서 렌더러가 있으면 사용
       const renderer = rendererMap[adaptedElement.type];
       if (renderer) {
-        return renderer(
-          adaptedElement,
-          renderContext,
-        );
+        return renderer(adaptedElement, renderContext);
       }
 
       return React.createElement(
@@ -1069,10 +1061,7 @@ function CanvasContent() {
       // rendererMap에서 렌더러가 있으면 사용
       const renderer = rendererMap[adaptedElement.type];
       if (renderer) {
-        return renderer(
-          adaptedElement,
-          renderContext,
-        );
+        return renderer(adaptedElement, renderContext);
       }
 
       return React.createElement(

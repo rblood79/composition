@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## lucide-react 1.x · react-router 8 - 2026-08-21
+
+### Infrastructure
+
+- **lucide-react 0.575 → 1.33**: 구 alias 아이콘명을 정식명으로 교체
+  (`AlertCircle`→`CircleAlert` 등), extract 스크립트를 `.mjs`/동적 resolve 로 갱신.
+- **react-router 7 → 8**: `react-router-dom` 패키지 제거, import 를 `react-router` 로 통일.
+
 ## 의존성 보안 패치 — vitest/vite/react-router/postcss/nanoid - 2026-08-21
 
 ### Infrastructure

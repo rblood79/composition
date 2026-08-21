@@ -7,7 +7,7 @@
  */
 
 import { useMemo } from "react";
-import { Table2, Edit2, Link } from "lucide-react";
+import { Table2, SquarePen, Link } from "lucide-react";
 import { Button } from "react-aria-components";
 import { useDataStore } from "../../../stores/data";
 import { Section } from "../../../components";
@@ -134,7 +134,7 @@ export function DataTableList({
                     onClick={(e) => handleEdit(table.id, e)}
                     title="편집"
                   >
-                    <Edit2 {...iconEditProps} />
+                    <SquarePen {...iconEditProps} />
                   </button>
                   <button
                     type="button"

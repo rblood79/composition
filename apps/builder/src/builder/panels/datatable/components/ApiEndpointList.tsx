@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { Globe, Edit2, Play } from "lucide-react";
+import { Globe, SquarePen, Play } from "lucide-react";
 import { useDataStore, useApiEndpoints } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { Section } from "../../../components";
@@ -147,7 +147,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
                   onClick={(e) => handleEdit(endpoint.id, e)}
                   title="편집"
                 >
-                  <Edit2 {...iconEditProps} />
+                  <SquarePen {...iconEditProps} />
                 </button>
                 <button
                   type="button"

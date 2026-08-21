@@ -11,7 +11,7 @@
  */
 
 import React from "react";
-import { AlertCircle, RefreshCw, Loader2, Inbox } from "lucide-react";
+import { CircleAlert, RefreshCw, LoaderCircle, Inbox } from "lucide-react";
 import "./CollectionErrorState.css";
 
 interface CollectionErrorStateProps {
@@ -43,7 +43,7 @@ export function CollectionLoadingState({
       className={`collection-state collection-loading ${size}`}
       style={height ? { height } : undefined}
     >
-      <Loader2
+      <LoaderCircle
         className="collection-state-spinner"
         size={size === "sm" ? 16 : size === "lg" ? 24 : 20}
       />
@@ -67,7 +67,7 @@ export function CollectionErrorDisplay({
       style={height ? { height } : undefined}
     >
       <div className="collection-error-icon">
-        <AlertCircle size={size === "sm" ? 16 : size === "lg" ? 24 : 20} />
+        <CircleAlert size={size === "sm" ? 16 : size === "lg" ? 24 : 20} />
       </div>
       <div className="collection-error-content">
         <span className="collection-error-message">

@@ -13,7 +13,7 @@ import {
   useNavigate,
   useLocation,
   type NavigateFunction,
-} from "react-router-dom";
+} from "react-router";
 import { RouterContext } from "./canvasRouterContext";
 import { useCanvasParams } from "./canvasRouterHooks";
 import { useRuntimeStore } from "../store";

@@ -1,6 +1,6 @@
 // src/App.tsx
 import { useCallback, useRef, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import "./App.css";
 import "./hero.css";
 import {

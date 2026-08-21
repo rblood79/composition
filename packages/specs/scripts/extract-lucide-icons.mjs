@@ -9,16 +9,16 @@
  */
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-// lucide-react ESM icons 디렉토리 (pnpm 구조)
-const LUCIDE_ICONS_DIR = resolve(
-  __dirname,
-  "../../../node_modules/.pnpm/lucide-react@0.575.0_react@19.2.4/node_modules/lucide-react/dist/esm/icons",
-);
+// lucide-react ESM icons — resolve via package (pin 경로 하드코딩 금지)
+const require = createRequire(import.meta.url);
+const lucidePkgJson = require.resolve("lucide-react/package.json");
+const LUCIDE_ICONS_DIR = join(dirname(lucidePkgJson), "dist/esm/icons");
 const OUTPUT_FILE = resolve(
   __dirname,
   "../src/icons/lucideIconData.generated.ts",
@@ -78,16 +78,26 @@ function parseIconFile(content, fileName) {
     });
   }
 
-  // line 요소 추출
-  const lineRegex =
-    /\[\s*"line",\s*\{[\s\S]*?x1:\s*"([^"]+)"[\s\S]*?y1:\s*"([^"]+)"[\s\S]*?x2:\s*"([^"]+)"[\s\S]*?y2:\s*"([^"]+)"/g;
+  // line 요소 추출 (속성 순서 비의존 — v1 는 x1,x2,y1,y2 순이 흔함)
+  const lineRegex = /\[\s*"line",\s*\{([\s\S]*?)\}/g;
   while ((match = lineRegex.exec(nodeArrayStr)) !== null) {
-    lines.push({
-      x1: parseFloat(match[1]),
-      y1: parseFloat(match[2]),
-      x2: parseFloat(match[3]),
-      y2: parseFloat(match[4]),
-    });
+    const attrs = match[1];
+    const getAttr = (name) => {
+      const m = attrs.match(new RegExp(`${name}:\\s*"([^"]+)"`));
+      return m ? m[1] : null;
+    };
+    const x1 = getAttr("x1");
+    const y1 = getAttr("y1");
+    const x2 = getAttr("x2");
+    const y2 = getAttr("y2");
+    if (x1 != null && y1 != null && x2 != null && y2 != null) {
+      lines.push({
+        x1: parseFloat(x1),
+        y1: parseFloat(y1),
+        x2: parseFloat(x2),
+        y2: parseFloat(y2),
+      });
+    }
   }
 
   // rect 요소 추출
@@ -193,7 +203,7 @@ async function main() {
 
   const files = await readdir(LUCIDE_ICONS_DIR);
   const jsFiles = files
-    .filter((f) => f.endsWith(".js") && !f.endsWith(".map"))
+    .filter((f) => (f.endsWith(".js") || f.endsWith(".mjs")) && !f.endsWith(".map"))
     .sort();
 
   console.log(`Found ${jsFiles.length} icon files`);
@@ -204,12 +214,12 @@ async function main() {
   const skippedNames = [];
 
   for (const file of jsFiles) {
-    const name = file.replace(".js", "");
+    const name = file.replace(/\.mjs$/, "").replace(/\.js$/, "");
     const content = await readFile(join(LUCIDE_ICONS_DIR, file), "utf-8");
 
-    // Check if this is an alias (re-export)
+    // Check if this is an alias (re-export) — v0 `.js` / v1 `.mjs`
     const aliasMatch = content.match(
-      /export \{ default \} from '\.\/([^']+)\.js'/,
+      /export \{\s*default\s*\}\s*from\s*['"]\.\/([^'"]+)\.(?:js|mjs)['"]/,
     );
     if (aliasMatch) {
       aliases.set(name, aliasMatch[1]);
@@ -232,12 +242,15 @@ async function main() {
     console.log("Skipped icons (first 10):", skippedNames.slice(0, 10));
   }
 
+  const lucideVersion =
+    require(lucidePkgJson).version ?? "unknown";
+
   // Generate TypeScript
   let output = `/**
  * Lucide 아이콘 SVG path 데이터 (자동 생성)
  *
  * 생성 스크립트: packages/specs/scripts/extract-lucide-icons.mjs
- * lucide-react v0.575.0 기준
+ * lucide-react v${lucideVersion} 기준
  *
  * @generated
  */

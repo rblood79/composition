@@ -5,7 +5,7 @@
  * EventEngine 등 비컴포넌트 컨텍스트에서 네비게이션 트리거에 사용.
  */
 
-import type { NavigateFunction } from "react-router-dom";
+import type { NavigateFunction } from "react-router";
 
 let globalNavigate: NavigateFunction | null = null;
 

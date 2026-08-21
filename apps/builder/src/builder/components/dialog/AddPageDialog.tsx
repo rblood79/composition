@@ -18,7 +18,7 @@ import {
   Input,
   TextField,
 } from "react-aria-components";
-import { FolderTree, Layout, Link, AlertCircle } from "lucide-react";
+import { FolderTree, Layout, Link, CircleAlert } from "lucide-react";
 import { useStore } from "../../stores";
 import { useCanonicalReusableFrameLayouts } from "../../stores/canonical/canonicalFrameStore";
 import {
@@ -243,7 +243,7 @@ export function AddPageDialog({
               />
               {slugError && (
                 <div className="add-page-error">
-                  <AlertCircle size={iconSmall.size} />
+                  <CircleAlert size={iconSmall.size} />
                   <span>{slugError}</span>
                 </div>
               )}

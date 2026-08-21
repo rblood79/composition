@@ -1,6 +1,6 @@
 import { useCallback, useState, ReactNode } from "react";
 import { Button } from "./Button";
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from "lucide-react";
+import { X, CircleCheck, CircleAlert, AlertTriangle, Info } from "lucide-react";
 import { ToastContext } from "./ToastContext";
 
 import "./styles/Toast.css";
@@ -138,9 +138,9 @@ function Toast({ toast, onDismiss }: ToastProps) {
 
   const Icon = {
     info: Info,
-    success: CheckCircle,
+    success: CircleCheck,
     warning: AlertTriangle,
-    error: AlertCircle,
+    error: CircleAlert,
   }[variant];
 
   return (

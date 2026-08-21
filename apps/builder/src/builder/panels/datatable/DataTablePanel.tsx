@@ -18,7 +18,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { Table2, Globe, Variable, RefreshCw, Database } from "lucide-react";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
 import type { PanelProps } from "../core/types";

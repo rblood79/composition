@@ -196,7 +196,6 @@ export default defineConfig(({ command }) => {
         "react",
         "react-dom",
         "react-router",
-        "react-router-dom",
         "@supabase/supabase-js",
         "react-aria-components",
         "zustand",

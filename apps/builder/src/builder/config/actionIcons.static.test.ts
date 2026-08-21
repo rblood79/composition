@@ -122,11 +122,7 @@ const BANNED_VARIANTS: Record<string, { canonicalKey: string; why: string }> = {
     canonicalKey: "add",
     why:
       "추가 어포던스 정본은 `Plus` 하나 — 아이콘 단독 버튼이라고 원형 변종을 " +
-      "쓰지 않는다. 그 자리의 다른 아이콘(gear/trash)이 전부 선화 단독이다.",
-  },
-  PlusCircle: {
-    canonicalKey: "add",
-    why: "`CirclePlus` 의 구 lucide 별칭 — 같은 이유로 금지.",
+      "쓰지 않는다. 구 lucide 별칭 `PlusCircle` 도 동일 이유로 금지.",
   },
 };
 

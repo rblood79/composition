@@ -14,7 +14,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { FrameList } from "./FrameList";
 import { FrameElementTree } from "./FrameElementTree";
 import {

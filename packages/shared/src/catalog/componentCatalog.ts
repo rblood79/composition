@@ -190,7 +190,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("FieldError", "primitives", FAMILY_1_CUTOVER, {
     category: "forms",
     label: "field error",
-    icon: "AlertCircle",
+    icon: "CircleAlert",
   }),
   // ADR-912 위험군 해소(선행-6): field 입력 영역 자식 leaf. rac source(RAC <Input> 이 부모 TextField
   //   controller slot 소비) → catalog cutover 후에도 DOM 은 <RAC.Input> 유지, Skia 는 buildCatalogShapes
