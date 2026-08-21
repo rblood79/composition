@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ToggleButtonGroup density + Tabs·ToggleButtonGroup 기본값 Spectrum default 전환 - 2026-08-21
+
+### Features
+
+- **ToggleButtonGroup 에 `density` 가 생겼다** — Spectrum ActionGroup 규정을 근거로 삼았다:
+  _"compact density retains the same font and icon sizes, but has tighter spacing. **The
+  action buttons also become connected** for non-quiet action groups."_ 즉 버튼이 연결되는
+  것은 orientation 의 성질이 아니라 **compact density 의 성질**이다.
+  - `regular` (기본): 버튼 분리 — gap 8 + 버튼별 균등 radius
+  - `compact`: 연결 — gap 0 + 양끝만 radius + 인접 겹침 (종전 시각)
+- 구 구조는 연결 규칙을 `orientation` 에 매달아 **항상 연결**이었고(= Spectrum 기준 compact
+  고정) default 인 regular 를 표현할 수 없었다. 2축 조합은 `&[data-orientation="…"]`
+  compound selector 로 표현한다 — catalog 의 attr gate 는 하나만 붙기 때문이다.
+
+### Changed
+
+- **기본 density 2건을 Spectrum 스키마 default 인 `regular` 로 전환** (사용자 결정):
+  - **Tabs/TabList**: 탭 사이 간격 0 → 8. DOM 렌더러는 이미 `data-density` 기본을 regular 로
+    내보내고 있어서, 구 catalog 기본 `compact` 는 오히려 DOM↔Skia 비대칭이었다.
+  - **ToggleButtonGroup**: 기존 그룹의 시각이 연결 bar 에서 분리 형태로 바뀐다.
+- 두 컴포넌트의 `density` 편집 항목은 프로퍼티 패널에 이미 있었으나 소비 경로가 없는 dead
+  prop 이었다 — 이번에 실제로 배선됐다.
+
+### Fixed
+
+- **publish 에서 compact 연결이 보이지 않던 문제** — segmented 규칙 selector 가 marker
+  div(`> * >`) 경유 형태만 있었는데, 그 marker 는 빌더 preview 의 구조이고 publish 앱은
+  ToggleButton 을 그룹의 직접 자식으로 렌더한다. 두 형태를 함께 내보낸다. 구 `orientation`
+  gate 시절부터의 결함이다.
+
+> 잔존 관찰: 인접 버튼 겹침(`margin-inline-start: -1px`)이 computed 에 반영되지 않는다.
+> ToggleButton border 가 transparent 라 시각 영향은 없고 구 코드에서도 같은 선언이었다.
+
 ## TableView density 적용 + Column/Cell 세로 padding 이중 계산 수정 - 2026-08-21
 
 ### Features
