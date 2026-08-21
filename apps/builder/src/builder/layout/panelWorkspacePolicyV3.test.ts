@@ -361,13 +361,16 @@ describe("ADR-186 G4 v3 panel policy", () => {
       const verticallyCentered =
         zone === "left" || zone === "center" || zone === "right";
       if (horizontallyCentered && (edge === "left" || edge === "right")) {
+        expect(afterFrame.x + afterFrame.width / 2).toBe(
+          beforeFrame.x + beforeFrame.width / 2,
+        );
         if (edge === "left") {
-          expect(afterFrame.x + afterFrame.width).toBe(
-            beforeFrame.x + beforeFrame.width,
-          );
           expect(afterFrame.x).toBe(beforeFrame.x + deltaX);
+          expect(afterFrame.x + afterFrame.width).toBe(
+            beforeFrame.x + beforeFrame.width - deltaX,
+          );
         } else {
-          expect(afterFrame.x).toBe(beforeFrame.x);
+          expect(afterFrame.x).toBe(beforeFrame.x - deltaX);
           expect(afterFrame.x + afterFrame.width).toBe(
             beforeFrame.x + beforeFrame.width + deltaX,
           );
@@ -389,53 +392,119 @@ describe("ADR-186 G4 v3 panel policy", () => {
           anchorPoint(zone, beforeFrame),
         );
       }
-      expect(afterFrame).toMatchObject({ width, height });
+      const expectedWidth =
+        horizontallyCentered && (edge === "left" || edge === "right")
+          ? beforeFrame.width + (edge === "left" ? -2 * deltaX : 2 * deltaX)
+          : width;
+      expect(afterFrame).toMatchObject({ width: expectedWidth, height });
     },
   );
 
-  it("center zone outer horizontal resize keeps the opposite edge fixed", () => {
-    const surfaceRect = { width: 1200, height: 800 } as const;
-    const base = singleZoneLayout("center");
-    const beforeResult = solvePanelWorkspaceLayoutV3(
-      base,
-      REGISTRY,
-      surfaceRect,
-    );
-    expect(beforeResult.ok).toBe(true);
-    if (!beforeResult.ok) return;
-    const before = beforeResult.value.frameGeometries.get("properties");
-    expect(before).toBeDefined();
-    if (!before) return;
+  it.each(["top", "center", "bottom"] as const)(
+    "%s zone outer horizontal resize는 center를 고정하고 pointer edge를 따른다",
+    (zone) => {
+      const surfaceRect = { width: 1200, height: 800 } as const;
+      const base = singleZoneLayout(zone);
+      const beforeResult = solvePanelWorkspaceLayoutV3(
+        base,
+        REGISTRY,
+        surfaceRect,
+      );
+      expect(beforeResult.ok).toBe(true);
+      if (!beforeResult.ok) return;
+      const before = beforeResult.value.frameGeometries.get("properties");
+      expect(before).toBeDefined();
+      if (!before) return;
 
-    const resized = resizePanelWorkspaceBoundaryV3(
-      base,
-      REGISTRY,
-      "properties",
-      "right",
-      40,
-      0,
-      surfaceRect,
-    );
-    expect(resized.ok).toBe(true);
-    if (!resized.ok) return;
-    const afterResult = solvePanelWorkspaceLayoutV3(
-      resized.value.layout,
-      REGISTRY,
-      surfaceRect,
-    );
-    expect(afterResult.ok).toBe(true);
-    if (!afterResult.ok) return;
-    const after = afterResult.value.frameGeometries.get("properties");
-    expect(after).toBeDefined();
-    if (!after) return;
+      const resized = resizePanelWorkspaceBoundaryV3(
+        base,
+        REGISTRY,
+        "properties",
+        "right",
+        40,
+        0,
+        surfaceRect,
+      );
+      expect(resized.ok).toBe(true);
+      if (!resized.ok) return;
+      const afterResult = solvePanelWorkspaceLayoutV3(
+        resized.value.layout,
+        REGISTRY,
+        surfaceRect,
+      );
+      expect(afterResult.ok).toBe(true);
+      if (!afterResult.ok) return;
+      const after = afterResult.value.frameGeometries.get("properties");
+      expect(after).toBeDefined();
+      if (!after) return;
 
-    expect(after.x).toBe(before.x);
-    expect(after.x + after.width).toBe(before.x + before.width + 40);
-    expect(resized.value.layout.clusters[0]?.originOffset).toEqual({
-      x: 20,
-      y: 0,
-    });
-  });
+      expect(after.x + after.width / 2).toBe(before.x + before.width / 2);
+      expect(after.x).toBe(before.x - 40);
+      expect(after.x + after.width).toBe(before.x + before.width + 40);
+      expect(after.width).toBe(before.width + 80);
+      expect(resized.value.layout.clusters[0]?.originOffset).toBeUndefined();
+    },
+  );
+
+  it.each([
+    { edge: "left", overDelta: -1000, returnDelta: -20 },
+    { edge: "right", overDelta: 1000, returnDelta: 20 },
+  ] as const)(
+    "centered $edge resize는 clamp를 넘겼다가 돌아와도 pointer와 center가 어긋나지 않는다",
+    ({ edge, overDelta, returnDelta }) => {
+      const surfaceRect = { width: 1200, height: 800 } as const;
+      const base = singleZoneLayout("top");
+      const beforeResult = solvePanelWorkspaceLayoutV3(
+        base,
+        REGISTRY,
+        surfaceRect,
+      );
+      const over = resizePanelWorkspaceBoundaryV3(
+        base,
+        REGISTRY,
+        "properties",
+        edge,
+        overDelta,
+        0,
+        surfaceRect,
+      );
+      const returned = resizePanelWorkspaceBoundaryV3(
+        base,
+        REGISTRY,
+        "properties",
+        edge,
+        returnDelta,
+        0,
+        surfaceRect,
+      );
+      expect(beforeResult.ok).toBe(true);
+      expect(over.ok).toBe(true);
+      expect(returned.ok).toBe(true);
+      if (!beforeResult.ok || !over.ok || !returned.ok) return;
+      const returnedResult = solvePanelWorkspaceLayoutV3(
+        returned.value.layout,
+        REGISTRY,
+        surfaceRect,
+      );
+      expect(returnedResult.ok).toBe(true);
+      if (!returnedResult.ok) return;
+      const before = beforeResult.value.frameGeometries.get("properties");
+      const after = returnedResult.value.frameGeometries.get("properties");
+      expect(before).toBeDefined();
+      expect(after).toBeDefined();
+      if (!before || !after) return;
+
+      expect(after.x + after.width / 2).toBe(before.x + before.width / 2);
+      expect(after.width).toBe(before.width + 40);
+      if (edge === "left") {
+        expect(after.x).toBe(before.x + returnDelta);
+      } else {
+        expect(after.x + after.width).toBe(
+          before.x + before.width + returnDelta,
+        );
+      }
+    },
+  );
 
   it.each(ZONES)(
     "%s paired row resize는 합계와 zone anchor를 고정한다",
@@ -483,6 +552,70 @@ describe("ADR-186 G4 v3 panel policy", () => {
       expect(anchorPoint(zone, afterCluster)).toEqual(
         anchorPoint(zone, beforeCluster),
       );
+    },
+  );
+
+  it.each(["top-left", "top", "top-right"] as const)(
+    "%s short row stack은 paired min 이후 남은 workspace 높이까지 확장한다",
+    (zone) => {
+      const surfaceRect = { width: 1200, height: 800 } as const;
+      const base = singleZoneLayout(zone);
+      base.visibility.styles = true;
+      base.clusters[0]!.columns[0]!.rows.push({
+        panelId: "styles",
+        height: 100,
+      });
+
+      const resized = resizePanelWorkspaceBoundaryV3(
+        base,
+        REGISTRY,
+        "properties",
+        "bottom",
+        0,
+        700,
+        surfaceRect,
+      );
+      const returned = resizePanelWorkspaceBoundaryV3(
+        base,
+        REGISTRY,
+        "properties",
+        "bottom",
+        0,
+        300,
+        surfaceRect,
+      );
+      expect(resized.ok).toBe(true);
+      expect(returned.ok).toBe(true);
+      if (!resized.ok || !returned.ok) return;
+
+      expect(
+        resized.value.layout.clusters[0]!.columns[0]!.rows.filter(
+          (row) => resized.value.layout.visibility[row.panelId] === true,
+        ),
+      ).toEqual([
+        { panelId: "properties", height: 736 },
+        { panelId: "styles", height: 60 },
+      ]);
+      const solved = solvePanelWorkspaceLayoutV3(
+        resized.value.layout,
+        REGISTRY,
+        surfaceRect,
+      );
+      expect(solved.ok).toBe(true);
+      if (!solved.ok) return;
+      const lastFrame = solved.value.frameGeometries.get("styles");
+      expect(lastFrame).toBeDefined();
+      if (!lastFrame) return;
+      expect(lastFrame.y + lastFrame.height).toBe(surfaceRect.height);
+
+      expect(
+        returned.value.layout.clusters[0]!.columns[0]!.rows.filter(
+          (row) => returned.value.layout.visibility[row.panelId] === true,
+        ),
+      ).toEqual([
+        { panelId: "properties", height: 400 },
+        { panelId: "styles", height: 60 },
+      ]);
     },
   );
 

@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
+import type { PanelFrameGeometry } from "../panels/core/types";
 import { PANEL_WORKSPACE_TEST_REGISTRY } from "./panelWorkspaceLayoutV2.testFixtures";
+import {
+  solvePanelWorkspaceLayoutV3,
+  type PanelWorkspaceLayoutV3,
+} from "./panelWorkspaceLayoutV3";
 import { createPanelWorkspaceLayoutV3Fixture } from "./panelWorkspaceLayoutV3.testFixtures";
 import { createPanelWorkspaceRuntime } from "./panelWorkspaceRuntime";
 
@@ -11,6 +16,24 @@ function rowHeight(
     .flatMap((cluster) => cluster.columns)
     .flatMap((column) => column.rows)
     .find((row) => row.panelId === panelId)?.height;
+}
+
+function solvedFrame(
+  layout: PanelWorkspaceLayoutV3,
+  panelId: "properties",
+  surfaceRect: { width: number; height: number },
+): PanelFrameGeometry {
+  const solved = solvePanelWorkspaceLayoutV3(
+    layout,
+    PANEL_WORKSPACE_TEST_REGISTRY,
+    surfaceRect,
+  );
+  expect(solved.ok).toBe(true);
+  if (!solved.ok) throw new Error(solved.error);
+  const frame = solved.value.frameGeometries.get(panelId);
+  expect(frame).toBeDefined();
+  if (!frame) throw new Error(`Missing frame for "${panelId}"`);
+  return frame;
 }
 
 describe("ADR-922 PanelWorkspace production runtime", () => {
@@ -157,7 +180,7 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
     runtime.value.destroy();
   });
 
-  it("reference resize는 max를 넘겼다가 되돌아와도 pointer 기준 위치에서 다시 resize한다", () => {
+  it("reference row resize는 paired min 이후 남은 workspace를 사용하고 clamp에서 복귀한다", () => {
     const layout = createPanelWorkspaceLayoutV3Fixture({
       width: 1440,
       height: 1200,
@@ -173,9 +196,16 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
 
     runtime.value.beginInteraction();
     expect(
+      runtime.value.resizePanelFromReference("properties", "bottom", 0, 1000)
+        .ok,
+    ).toBe(true);
+    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(1036);
+    expect(rowHeight(runtime.value.getLayout(), "history")).toBe(160);
+
+    expect(
       runtime.value.resizePanelFromReference("properties", "bottom", 0, 400).ok,
     ).toBe(true);
-    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(810);
+    expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(920);
     expect(rowHeight(runtime.value.getLayout(), "history")).toBe(160);
 
     expect(
@@ -189,6 +219,47 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
     ).toBe(true);
     expect(rowHeight(runtime.value.getLayout(), "properties")).toBe(780);
     expect(rowHeight(runtime.value.getLayout(), "history")).toBe(190);
+    runtime.value.destroy();
+  });
+
+  it("center-top reference resize는 clamp 복귀 뒤에도 center와 pointer edge를 유지한다", () => {
+    const surfaceRect = { width: 1200, height: 800 } as const;
+    const layout = createPanelWorkspaceLayoutV3Fixture(surfaceRect);
+    const cluster = layout.clusters.find((candidate) =>
+      candidate.columns.some((column) =>
+        column.rows.some((row) => row.panelId === "properties"),
+      ),
+    );
+    expect(cluster).toBeDefined();
+    if (!cluster) return;
+    cluster.placementZone = "top";
+    delete cluster.originOffset;
+
+    const before = solvedFrame(layout, "properties", surfaceRect);
+    const runtime = createPanelWorkspaceRuntime(
+      layout,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      surfaceRect,
+    );
+    expect(runtime.ok).toBe(true);
+    if (!runtime.ok) return;
+
+    runtime.value.beginInteraction();
+    expect(
+      runtime.value.resizePanelFromReference("properties", "right", 1000, 0).ok,
+    ).toBe(true);
+    expect(
+      runtime.value.resizePanelFromReference("properties", "right", 20, 0).ok,
+    ).toBe(true);
+    const after = solvedFrame(
+      runtime.value.getLayout(),
+      "properties",
+      surfaceRect,
+    );
+
+    expect(after.x + after.width / 2).toBe(before.x + before.width / 2);
+    expect(after.x + after.width).toBe(before.x + before.width + 20);
+    expect(after.width).toBe(before.width + 40);
     runtime.value.destroy();
   });
 

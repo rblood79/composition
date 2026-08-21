@@ -172,6 +172,12 @@ function isVerticallyCenteredZone(
   );
 }
 
+function isTopAnchoredZone(
+  placementZone: PanelWorkspaceClusterV3["placementZone"],
+): boolean {
+  return placementZone === "top" || placementZone.startsWith("top-");
+}
+
 function placeOverflowRow(
   layout: PanelWorkspaceLayoutV3,
   cluster: PanelWorkspaceClusterV3,
@@ -428,6 +434,18 @@ export function resizePanelWorkspaceBoundaryV3(
       );
       before.height += delta;
       after.height -= delta;
+
+      if (isTopAnchoredZone(cluster.placementZone) && deltaY > delta) {
+        const occupiedHeight = visibleColumnHeight(next, column);
+        const topOffset = Math.max(0, cluster.originOffset?.y ?? 0);
+        const freeHeight = Math.max(
+          0,
+          surfaceRect.height - occupiedHeight - topOffset,
+        );
+        const unconsumedDelta = deltaY - delta;
+        const beforeHeadroom = Math.max(0, beforeBounds.max - before.height);
+        before.height += Math.min(unconsumedDelta, freeHeight, beforeHeadroom);
+      }
     } else {
       const visibleOthers = column.rows.filter(
         (candidate) =>
@@ -508,23 +526,19 @@ export function resizePanelWorkspaceBoundaryV3(
         sourceBounds.min,
         Math.min(sourceBounds.max, available),
       );
-      const beforeWidth = column.width;
-      const signedDelta = edge === "left" ? -deltaX : deltaX;
+      const horizontallyCentered = isHorizontallyCenteredZone(
+        cluster.placementZone,
+      );
+      // Centered zones keep their horizontal anchor fixed. The grabbed edge must
+      // still follow the pointer, so the column grows by the pointer displacement
+      // on both sides instead of translating originOffset to pin the opposite edge.
+      const signedDelta =
+        (edge === "left" ? -deltaX : deltaX) * (horizontallyCentered ? 2 : 1);
       column.width = clamp(
         column.width + signedDelta,
         sourceBounds.min,
         maximum,
       );
-      if (isHorizontallyCenteredZone(cluster.placementZone)) {
-        const widthDelta = column.width - beforeWidth;
-        const originOffset = cluster.originOffset ?? { x: 0, y: 0 };
-        cluster.originOffset = {
-          ...originOffset,
-          x:
-            originOffset.x +
-            (edge === "left" ? -widthDelta / 2 : widthDelta / 2),
-        };
-      }
     }
   }
 

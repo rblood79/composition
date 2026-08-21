@@ -182,7 +182,7 @@
     height: 14px;
     padding: 4px 0 6px;
     color: var(--fg-muted);
-    background: var(--bg-overlay);
+    background: var(--bg-raised);
     border: 0;
     cursor: grab;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;

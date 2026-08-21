@@ -27,6 +27,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 표시 자리는 선택 여부와 관계없이 확보되므로 항목을 고를 때 글자가 밀리지 않는다. 선택을 쓰지
   않는 메뉴(선택 모드 None)는 자리도 만들지 않아 기존 메뉴 모양이 그대로다.
 
+## 세로 snap panel stack의 남은 높이 resize - 2026-08-22
+
+### Bug Fixes
+
+- top-left/top/top-right에 snap된 세로 panel stack에서 내부 splitter를 아래로
+  resize할 때, 아래 panel이 `minHeight`에 닿으면 browser 아래쪽에 공간이 남아도
+  위 panel이 더 이상 커지지 않던 문제를 수정했다.
+- paired resize가 소비하지 못한 pointer 이동량을 같은 column의 실제 남은 workspace
+  높이로 이어서 계산한다. 마지막 panel의 bottom이 workspace 끝에 닿을 때까지
+  splitter가 pointer를 따르며, interaction 시작 layout 기준 계산으로 clamp 이후 복귀도
+  유지한다.
+
+## Center snap 패널 수평 대칭 resize - 2026-08-22
+
+### Bug Fixes
+
+- center-top/center/center-bottom zone에 snap된 패널의 좌·우 resize가 반대쪽 edge를
+  고정하며 패널 중심을 이동시키던 문제를 수정했다. center anchor와 기존
+  `originOffset.x`는 유지하고 width를 pointer edge 이동량의 2배로 계산해, 잡은 edge는
+  마우스를 정확히 따르면서 반대 edge가 같은 거리만큼 반대 방향으로 이동한다.
+- resize는 interaction 시작 layout을 기준으로 계속 계산하므로 min/max clamp를 넘겼다가
+  돌아와도 pointer와 panel edge가 다시 일치한다. 좌·우 양 edge와 top/center/bottom zone을
+  회귀 테스트로 고정했다.
+
 ## GridList quiet - 2026-08-22
 
 ### Added
