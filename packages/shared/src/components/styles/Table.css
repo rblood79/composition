@@ -134,6 +134,13 @@
       outline-offset: -2px;
     }
 
+    /* Spectrum: 행 hover 상시 피드백 (2026-08-21) — catalog TableRow
+       fill.default.hover {color.neutral-subtle} 미러. selected/pressed 가
+       이기도록 선행 선언 (동일 특이도, 후행 우선). */
+    &[data-hovered] {
+      background: var(--bg-muted);
+    }
+
     &[data-pressed] {
       background: var(--bg-overlay);
     }

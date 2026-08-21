@@ -1878,9 +1878,13 @@ export function createDefaultBreadcrumbsProps(): BreadcrumbsElementProps {
 
 export function createDefaultSeparatorProps(): SeparatorElementProps {
   return {
-    style: {
-      height: 1,
-    },
+    // 두께(height)는 catalog Separator.sizes[size].height 가 SSOT (Spectrum divider
+    //   S1/M2/L4, 2026-08-21) — 엔진 L3 size 축 주입 + Skia divider primitive + CSS
+    //   per-size 규칙이 같은 값을 read-through 한다. factory inline `height: 1` 은
+    //   사용자 명시값으로 취급되어 세 소비처를 전부 은폐했다 (size 변경에도 두께
+    //   불변 — "축 시각 무력"의 병인). layout 기본값은 catalog 소관, factory
+    //   인라인 금지 (feedback-layout-default-belongs-in-catalog-not-factory-overlay).
+    style: {},
   };
 }
 

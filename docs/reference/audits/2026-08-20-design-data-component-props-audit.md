@@ -126,6 +126,14 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 | TextArea    | quiet 시각 규칙 (RSP isQuiet 규정)                      | rules quiet 부재 (1-1 dead prop 과 동일 건)     |
 | Toast       | informative = blue 시맨틱                               | info fill 이 neutral 동일값 (1-1 과 동일 건)    |
 
+#### 수리 현황 — 수치 스윕 (2026-08-21, commits 88f57aa95 · bc28daf35 + TableRow hover)
+
+- **채택 완료 6건**: TextField minWidth 1.5×h (xs27~xl81) / SearchField 3×h (sm66~xl162) / ProgressBar 48~768 (`sizes.maxWidth` 채널 신설 — 타입 + CSSGenerator emit + generate-css 변환) / Tooltip maxWidth 160 (+ 엔진 tooltip 분기 신설: catalog 값이 DOM 에만 도달하고 엔진 채널이 없던 결손 해소, width:fit-content 로 blockify stretch 발산도 정렬) / Separator 두께 축 S1/M2/L4 (catalog height 가 엔진 L3·Skia divider·generated CSS 3소비처 공용 — 수동 CSS 미러 1/1/2 와 catalog 1/1/1 의 선재 비대칭도 함께 해소, 기본 md 1→2px) / Table 행 hover 배경 (catalog `TableRow.fill.default.hover` + 수동 Table.css `[data-hovered]` 미러 — selected 는 기구현이라 hover 만 결손이었음)
+- **기수리 판명 2건 (표가 낡음)**: TableView density (79a9c6740 등 08-21 선행 수리) / Toast info 시맨틱 (854dbf2a0)
+- **별도 건 1건**: TextArea quiet — §1-1 의 설계 건 (TextField nested 축과 함께)
+- **보류 1건**: ColorSlider 최소 길이 80 — Skia registry 에서 제거된 box-only leaf (ADR-912 ⑥ collapse) + 수동 CSS(skipCSSGeneration) 라 catalog sizes → CSS/엔진 표준 채널이 둘 다 없다. 채택하려면 채널 신설 비용 > 실익 (ColorPicker composite 내부 사용이 지배적). 재개 조건 = standalone ColorSlider 의 사용자 배치 경로가 실사용으로 등장할 때.
+- **관찰 (선재 결함, 미수정)**: standalone vertical Separator 는 엔진에서 catalog height 가 두께 축 반대(height 축)로 주입되고 width 채널 부재 — orientation 게이트가 L3 size 축 주입에 없다. Toolbar 내부 vertical 은 명시 style 로 무증상.
+
 ### 1-5. default 발산·guideline 충돌 (관찰 — 채택 판정 보류)
 
 - **default 반전 2건**: DisclosureGroup 다중 확장 default true (Spectrum false) / Disclosure 확장 default true (Spectrum collapsed) — 빌더 편집 편의 가능성.

@@ -383,7 +383,8 @@ function resolveSubpartContextDefaultStyle(
   }
   // ── 2026-06-24 reusable composite origin(ADR-912 R-5) 자식 baseline — origin 템플릿 style 미러 ──
   if (type === "Separator" && parentType === "Toolbar") {
-    // Toolbar origin 안 세로 구분선(1×20). 단독 Separator 는 createDefaultSeparatorProps(height:1) baseline.
+    // Toolbar origin 안 세로 구분선(1×20). 단독 Separator 는 baseline {} — 두께는 catalog
+    //   Separator.sizes[size].height SSOT (2026-08-21, 구 factory height:1 인라인 제거).
     //   width/height 가 부모 컨텍스트별 정본이라 subpart 로 분리(type-only baseline 에 박으면 단독 깨짐).
     return { width: "1px", height: "20px" };
   }

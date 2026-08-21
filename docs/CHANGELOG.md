@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Spectrum 수치 규칙 일괄 채택 — 필드 최소폭·ProgressBar 상하한·Tooltip 최대폭·Separator 두께 축·Table 행 hover - 2026-08-21
+
+### Added
+
+- **짧은 필드가 알아볼 수 없게 좁아지지 않는다.** TextField 는 높이의 1.5배
+  (xs 27 ~ xl 81px), SearchField 는 3배(sm 66 ~ xl 162px)를 최소폭으로 갖는다 —
+  Spectrum 식별성 하한, Button(2.25×) 채택과 동형. 캔버스(Skia)와 미리보기(DOM)가
+  같은 catalog 값을 읽는다.
+- **ProgressBar 는 48px 아래로 접히지 않고 768px 위로 늘어나지 않는다** (Spectrum
+  guideline). 이를 위해 catalog `sizes.maxWidth` 채널을 신설했다 (타입 + CSS 생성
+  - 엔진 주입).
+- **Tooltip 은 160px 에서 줄바꿈한다** (Spectrum 스키마 수치). 캔버스 쪽은 tooltip
+  전용 주입 분기를 신설해 해소 — catalog 값이 미리보기에만 도달하고 캔버스 엔진
+  채널이 없던 결손이었고, 함께 `width: fit-content` 를 주입해 캔버스 tooltip 이
+  부모 폭으로 늘어나던 발산도 정렬했다.
+- **Separator 크기가 이제 실제로 두께를 바꾼다** — sm 1px / md 2px / lg 4px
+  (Spectrum divider S/M/L). 종전엔 세 크기가 전부 같은 두께라 크기 축이 시각적으로
+  무력했다. 기본(md) 구분선이 1px → 2px 로 굵어진다.
+- **Table 행에 hover 배경이 생겼다** (Spectrum: 행 hover 상시 피드백). 선택 배경은
+  기존 그대로.
+
+### Fixed
+
+- **Separator 크기 축이 죽어 있던 근본 원인 제거** — 생성 시점에 factory 가
+  `height: 1` 을 요소 style 에 구워 넣어, catalog 두께 값(캔버스·미리보기·CSS 3
+  소비처)이 영구히 가려졌다. 기존 문서의 구분선은 저장된 1px 을 유지한다 (신규
+  생성분부터 catalog 두께 적용).
+- 수동 Separator.css(1/1/2px)와 catalog(1/1/1px)가 서로 달랐던 선재 비대칭도 두께
+  축 정렬로 함께 해소.
+
+> 판정 기록: ColorSlider 최소 길이 80px 은 보류 (표준 채널 부재 — 감사 문서 §1-4
+> 수리 현황 참조). vertical Separator 의 캔버스 두께 축은 선재 결손으로 별도 추적.
+
 ## 컴포넌트 패널에서 꺼낼 수 없던 4종 노출 — TextArea·Meter·Pagination·ColorField - 2026-08-21
 
 ### Fixed

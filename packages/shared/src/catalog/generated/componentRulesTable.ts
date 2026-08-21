@@ -13269,6 +13269,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fill: {
           default: {
             base: "{color.base}",
+            // Spectrum: 행 hover 상시 피드백 (design-data 감사 §1-4, 2026-08-21).
+            //   DOM 소비 = 수동 Table.css `[data-hovered]` 미러 (Table 은 manual-CSS 컨테이너).
+            //   Skia 는 hover 를 그리지 않는다 (runtime interaction = Preview/D1 영역) — 무표현 정합.
+            hover: "{color.neutral-subtle}",
           },
         },
       },
