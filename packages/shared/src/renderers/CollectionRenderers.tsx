@@ -12,6 +12,7 @@ import {
 } from "../components/list";
 // chip leading icon glyph (2026-08-21) — 고정 14px, 수동 TagGroup.css `.tag-leading-icon` 소비.
 import { renderTagLeadingSlot } from "../components/tagLeadingSlot";
+import { resolveSelectionBehavior } from "../components/selectionStyle";
 import {
   MenuSection as AriaMenuSection,
   Header as AriaMenuHeader,
@@ -136,9 +137,14 @@ export const renderTree = (
         "single"
       }
       disallowEmptySelection={Boolean(element.props.disallowEmptySelection)}
-      selectionBehavior={
-        (element.props.selectionBehavior as "replace" | "toggle") || "replace"
-      }
+      // selectionStyle(RSP, 패널 표면) → selectionBehavior(RAC) — shared helper 단일 소스.
+      //   fallback 이 `"replace"` 인 것은 Tree 가 오래 이 값으로 렌더돼 체크박스 없는 상태가
+      //   실질 기본이었기 때문 — 무지정 문서의 시각을 보존한다(GridList 는 "toggle").
+      selectionBehavior={resolveSelectionBehavior({
+        selectionStyle: element.props.selectionStyle,
+        selectionBehavior: element.props.selectionBehavior,
+        fallback: "replace",
+      })}
       expandedKeys={
         Array.isArray(element.props.expandedKeys)
           ? (element.props.expandedKeys as unknown as string[])

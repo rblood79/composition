@@ -12,6 +12,7 @@ import {
 } from "react-aria-components";
 import { InfoIcon, ChevronRightIcon, Minus } from "lucide-react";
 import { MyCheckbox } from "./Checkbox";
+import { resolveSelectionBehavior } from "./selectionStyle";
 import type { DataBinding } from "../types";
 import type { ComponentSize } from "../types";
 import { useCollectionData } from "../hooks";
@@ -44,6 +45,16 @@ export interface MyTreeProps<T extends object> extends TreeProps<T> {
    * @default 3
    */
   skeletonNodeCount?: number;
+  /**
+   * RSP TreeView `selectionStyle` (2026-08-21) — 선택을 **무엇으로 표시하는가**.
+   * - `"checkbox"`(기본): 행에 선택 체크박스를 그린다.
+   * - `"highlight"`: 체크박스 없이 배경 강조만으로 표시하고, 클릭이 선택을 교체한다.
+   *
+   * RAC 는 같은 축을 `selectionBehavior`(`"toggle"` | `"replace"`)로 부른다 — D2 표면은
+   * RSP 이름을 쓰고 변환은 아래 한 곳에서만 한다. 체크박스 자체는 `TreeItemContent` 가
+   * RAC renderProps(`selectionBehavior`)로 판정하므로 이 값이 그대로 전파된다.
+   */
+  selectionStyle?: "checkbox" | "highlight";
 }
 
 /**
@@ -82,8 +93,23 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
     isLoading: externalLoading,
     skeletonNodeCount = 3,
     children,
-    ...restProps
+    selectionStyle,
+    ...rest
   } = props;
+
+  // selectionStyle(RSP) → selectionBehavior(RAC) 변환 단일 지점. 두 `<AriaTree>` 경로
+  //   (dataBinding / static children)가 같은 객체를 spread 하므로 한쪽만 걸리는 일이 없다.
+  //   호출자가 selectionBehavior 를 직접 준 경우는 그대로 존중.
+  const restProps = {
+    ...rest,
+    // fallback 이 GridList("toggle")와 다르다 — Tree 는 렌더러가 오래 `"replace"` 를 넘겨
+    //   체크박스 없는 상태가 실질 기본이었다. 무지정 문서의 동작을 보존한다.
+    selectionBehavior: resolveSelectionBehavior({
+      selectionStyle,
+      selectionBehavior: rest.selectionBehavior,
+      fallback: "replace",
+    }),
+  };
 
   // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
   const {

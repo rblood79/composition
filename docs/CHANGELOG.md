@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## 컬렉션 selectionStyle 채널 (GridList·Tree) - 2026-08-21
+
+### Features
+
+- **`selectionStyle` D2 표면 신설** (design-data 감사 §1-2 축②):
+  - RSP ListView/TreeView 의 `selectionStyle` — 선택을 **무엇으로 표시하는가**.
+    `"checkbox"`(행 체크박스) | `"highlight"`(배경 강조만, 클릭이 선택을 교체).
+  - RAC 는 같은 축을 `selectionBehavior`(`"toggle"`/`"replace"`)로 부른다. 패널·binding 은
+    RSP 이름을 쓰고 변환은 `resolveSelectionBehavior` 한 곳에서만 한다.
+  - 기본값은 **컴포넌트마다 다르다** — GridList `checkbox`, Tree `highlight`. 두 렌더러가
+    종전에 넘기던 `selectionBehavior`(각각 toggle/replace)를 그대로 보존한 값이라, 기존
+    문서의 시각이 이 변경으로 바뀌지 않는다(RSP 기본은 둘 다 checkbox).
+
+### Bug Fixes
+
+- **선택 축이 패널에서 편집 불가였다**: 두 렌더러가 `element.props.selectionBehavior` 를
+  이미 읽고 있었으나 `accepts` 에 없어 패널에 노출되지 않았고, RSP 이름도 없었다.
+
+### Architecture
+
+- **변환을 한 곳에 모은 이유 — 기본값이 갈려 있었다**: Tree 렌더러는 `"replace"`, GridList
+  렌더러는 `"toggle"` 을 기본으로 넘겼다. 컴포넌트와 렌더러가 각자 변환하면 같은 사용자
+  선택이 한쪽에서만 체크박스를 낸다. 그래서 helper 가 **fallback 을 인자로 받는다**.
+
+### Known Issue
+
+- **checkbox 모드는 Skia 가 체크박스를 그리지 않는다** (기존 결손, 이번 변경 이전부터).
+  실측: GridList 행 DOM 98px(체크박스) vs 76px(highlight), Skia 컨테이너 164 = 76×2+gap 12 →
+  **Skia 는 highlight 기하**. 즉 `highlight` 는 지금 두 표면이 일치하고, `checkbox` 는
+  DOM 에만 체크박스가 있다. Skia 대칭은 후속 슬라이스.
+
 ## Tag chip 항목별 avatar 슬롯 - 2026-08-21
 
 ### Features

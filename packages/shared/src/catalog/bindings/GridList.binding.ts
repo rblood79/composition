@@ -78,6 +78,21 @@ export const gridListBinding: PrimitiveBinding = {
         ],
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // RSP ListView `selectionStyle` (design-data 감사 §1-2 축②, 2026-08-21).
+      //   선택을 무엇으로 표시하는가 — checkbox(행 체크박스) | highlight(배경 강조만).
+      //   RAC 는 같은 축을 `selectionBehavior`("toggle"|"replace") 로 부르고, 변환은
+      //   `resolveSelectionBehavior` 단일 helper 가 한다(컴포넌트 + 렌더러 공유).
+      //   기본 checkbox = 이 컴포넌트가 종전에 넘기던 selectionBehavior:"toggle" 과 동일 시각.
+      selectionStyle: {
+        kind: "enum",
+        label: "Selection Style",
+        section: "state",
+        default: "checkbox",
+        options: [
+          { value: "checkbox", label: "Checkbox" },
+          { value: "highlight", label: "Highlight" },
+        ],
+      },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — renderGridList 기소비.
       disallowEmptySelection: {
         kind: "boolean",

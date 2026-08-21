@@ -43,6 +43,20 @@ export const treeBinding: PrimitiveBinding = {
         ],
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // RSP TreeView `selectionStyle` (design-data 감사 §1-2 축②, 2026-08-21).
+      //   기본이 GridList 와 다른 `highlight` 인 것은 renderTree 가 오래 selectionBehavior:
+      //   "replace" 를 넘겨 체크박스 없는 상태가 실질 기본이었기 때문 — 무지정 문서의 시각을
+      //   보존한다(RSP 기본은 checkbox 지만 기존 문서를 조용히 바꾸지 않는다).
+      selectionStyle: {
+        kind: "enum",
+        label: "Selection Style",
+        section: "state",
+        default: "highlight",
+        options: [
+          { value: "checkbox", label: "Checkbox" },
+          { value: "highlight", label: "Highlight" },
+        ],
+      },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — renderTree 배선 동반.
       disallowEmptySelection: {
         kind: "boolean",

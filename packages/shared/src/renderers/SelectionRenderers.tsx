@@ -19,6 +19,7 @@ import {
   Text as AriaText,
 } from "react-aria-components";
 import { DataField } from "../components/Field";
+import { resolveSelectionBehavior } from "../components/selectionStyle";
 // ListBoxItem 행 slot 마크업 단일 소스 — Select/ComboBox 팝오버와 공유 (2026-08-21).
 import { renderListBoxItemSlotContent } from "../components/listBoxItemSlotContent";
 import type {
@@ -206,8 +207,7 @@ export const renderListBox = (
   //   유지되고 origin style 은 inline override 층이다. 미주입(null) = legacy → 기존 동작.
   const rowTemplateStyles = context.listBoxRowTemplateStyles;
   const rowBaseTemplateStyle = (rowTemplateStyles?.base ?? undefined) as
-    | React.CSSProperties
-    | undefined;
+    React.CSSProperties | undefined;
   const rowSelectedTemplateStyle = (rowTemplateStyles?.selected ??
     undefined) as React.CSSProperties | undefined;
   const composeRowStyle = (
@@ -321,8 +321,7 @@ export const renderListBox = (
       context,
     );
     const customHandler = eventHandlerMap?.["onSelectionChange"] as
-      | ((value: unknown) => void)
-      | undefined;
+      ((value: unknown) => void) | undefined;
     customHandler?.(selectedKeys);
   };
 
@@ -421,13 +420,11 @@ export const renderListBox = (
             rowSlotStyleVars
               ? {
                   ...(listBoxItemTemplate.props.style as
-                    | React.CSSProperties
-                    | undefined),
+                    React.CSSProperties | undefined),
                   ...rowSlotStyleVars,
                 }
               : (listBoxItemTemplate.props.style as
-                  | React.CSSProperties
-                  | undefined),
+                  React.CSSProperties | undefined),
           )}
           textValue={label}
         >
@@ -709,8 +706,7 @@ export const renderDataField = (
     if (parent && path) {
       // 부모의 value에서 데이터 추출
       const parentValue = parent.props.value as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
 
       if (parentValue && typeof parentValue === "object") {
         const rawValue = parentValue[path];
@@ -964,9 +960,15 @@ export const renderGridList = (
         (element.props.selectionMode as "none" | "single" | "multiple") ||
         "none"
       }
-      selectionBehavior={
-        (element.props.selectionBehavior as "toggle" | "replace") || "toggle"
-      }
+      // selectionStyle(RSP, 패널 표면) → selectionBehavior(RAC) — 변환은 shared helper
+      //   단일 소스. 렌더러가 selectionBehavior 를 **항상 명시**로 넘기므로, 여기서
+      //   selectionStyle 을 반영하지 않으면 컴포넌트 쪽 변환이 이 값에 가려 dead 가 된다
+      //   (delegating renderer 가 prop 을 떨어뜨리는 이 저장소의 반복 결함 축).
+      selectionBehavior={resolveSelectionBehavior({
+        selectionStyle: element.props.selectionStyle,
+        selectionBehavior: element.props.selectionBehavior,
+        fallback: "toggle",
+      })}
       disallowEmptySelection={Boolean(element.props.disallowEmptySelection)}
       autoFocus={Boolean(element.props.autoFocus)}
       filterText={
@@ -999,8 +1001,7 @@ export const renderGridList = (
           context,
         );
         const customHandler = eventHandlerMap?.["onSelectionChange"] as
-          | ((value: unknown) => void)
-          | undefined;
+          ((value: unknown) => void) | undefined;
         customHandler?.(selectedKeys);
       }}
     >
@@ -1150,8 +1151,7 @@ export const renderSelect = (
   // 경로 2: items[] SSOT (hasItemsArray) — NEW
   // 경로 3: legacy SelectItem element tree — P6 소멸 예정
   let renderChildren:
-    | React.ReactNode
-    | ((item: Record<string, unknown>) => React.ReactNode);
+    React.ReactNode | ((item: Record<string, unknown>) => React.ReactNode);
 
   if (hasValidTemplate) {
     // 경로 1: dataBinding/columnMapping template 기반 렌더링 (현 동작 유지)
@@ -1345,8 +1345,7 @@ export const renderSelect = (
           context,
         );
         const customHandler = eventHandlerMap?.["onSelectionChange"] as
-          | ((value: unknown) => void)
-          | undefined;
+          ((value: unknown) => void) | undefined;
         customHandler?.(selectedKey);
       }}
       onOpenChange={(isOpen) => {
@@ -1356,8 +1355,7 @@ export const renderSelect = (
           context,
         );
         const customHandler = eventHandlerMap?.["onOpenChange"] as
-          | ((value: unknown) => void)
-          | undefined;
+          ((value: unknown) => void) | undefined;
         customHandler?.(isOpen);
       }}
     >
@@ -1410,8 +1408,7 @@ export const renderComboBox = (
   // 경로 2: items[] SSOT (cbHasItemsArray) — NEW
   // 경로 3: legacy ComboBoxItem element tree — P6 소멸 예정
   let cbRenderChildren:
-    | React.ReactNode
-    | ((item: Record<string, unknown>) => React.ReactNode);
+    React.ReactNode | ((item: Record<string, unknown>) => React.ReactNode);
 
   if (cbHasValidTemplate) {
     // 경로 1: dataBinding/columnMapping template 기반 렌더링 (현 동작 유지)
@@ -1679,8 +1676,7 @@ export const renderComboBox = (
           context,
         );
         const customHandler = eventHandlerMap?.["onSelectionChange"] as
-          | ((value: unknown) => void)
-          | undefined;
+          ((value: unknown) => void) | undefined;
         customHandler?.(selectedKey);
       }}
       onOpenChange={(isOpen) => {
@@ -1690,8 +1686,7 @@ export const renderComboBox = (
           context,
         );
         const customHandler = eventHandlerMap?.["onOpenChange"] as
-          | ((value: unknown) => void)
-          | undefined;
+          ((value: unknown) => void) | undefined;
         customHandler?.(isOpen);
       }}
       onInputChange={(rawInputValue) => {

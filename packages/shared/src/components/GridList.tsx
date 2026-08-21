@@ -18,6 +18,7 @@ import { MyCheckbox } from "./Checkbox";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import { useResolvedCollectionItems } from "../hooks";
+import { resolveSelectionBehavior } from "./selectionStyle";
 // ADR-159 P3 — 행 텍스트 템플릿: Skia projection 과 동일 shared resolver (G2).
 import {
   compileFieldTemplate,
@@ -71,6 +72,16 @@ interface ExtendedGridListProps<T extends object> extends Omit<
    * 토큰 없으면 compile null → 기존 label/description (BC).
    */
   rowTemplateSources?: { label?: string | null; description?: string | null };
+  /**
+   * RSP ListView `selectionStyle` (2026-08-21) — 선택을 **무엇으로 표시하는가**.
+   * - `"checkbox"`(기본): 행에 선택 체크박스를 그린다.
+   * - `"highlight"`: 체크박스 없이 배경 강조만으로 표시하고, 클릭이 선택을 교체한다.
+   *
+   * RAC 는 같은 축을 `selectionBehavior`(`"toggle"` | `"replace"`)로 부른다 — D2 표면은
+   * RSP 이름을 쓰고 변환은 아래 한 곳에서만 한다(두 이름이 코드 전체에 섞이면 어느 쪽이
+   * 정본인지 사라진다). 호출자가 `selectionBehavior` 를 직접 준 경우는 그대로 존중.
+   */
+  selectionStyle?: "checkbox" | "highlight";
 }
 
 export function GridList<T extends object>({
@@ -86,8 +97,20 @@ export function GridList<T extends object>({
   filterText,
   filterFields = ["label", "name", "title"] as (keyof T)[],
   rowTemplateSources,
-  ...props
+  selectionStyle,
+  ...restProps
 }: ExtendedGridListProps<T>) {
+  // selectionStyle(RSP) → selectionBehavior(RAC) 변환 단일 지점. 아래 모든 `<AriaGridList>`
+  //   가 이 객체를 spread 하므로 loading/error/stack/grid 어느 경로로 가도 같은 값이 걸린다
+  //   (경로별로 따로 넘기면 그 중 하나를 빠뜨린다 — 이 컴포넌트만 8곳).
+  const props = {
+    ...restProps,
+    selectionBehavior: resolveSelectionBehavior({
+      selectionStyle,
+      selectionBehavior: restProps.selectionBehavior,
+      fallback: "toggle",
+    }),
+  };
   // ADR-159 P3: 템플릿 compile — 렌더 당 1회 (compileFieldTemplate 은 text 키 캐시).
   const rowLabelTemplate = rowTemplateSources?.label
     ? compileFieldTemplate(rowTemplateSources.label)
