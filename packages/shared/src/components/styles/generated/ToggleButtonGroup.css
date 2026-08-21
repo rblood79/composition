@@ -85,37 +85,45 @@
   flex-direction: row;
 }
 
-.react-aria-ToggleButtonGroup[data-orientation="horizontal"] > * > .react-aria-ToggleButton {
-  border-radius: 0;
-  margin-inline-start: -1px;
-}
-
-.react-aria-ToggleButtonGroup[data-orientation="horizontal"] > *:first-child > .react-aria-ToggleButton {
-  border-radius: var(--btn-border-radius) 0 0 var(--btn-border-radius);
-  margin-inline-start: 0;
-}
-
-.react-aria-ToggleButtonGroup[data-orientation="horizontal"] > *:last-child > .react-aria-ToggleButton {
-  border-radius: 0 var(--btn-border-radius) var(--btn-border-radius) 0;
-}
-
 .react-aria-ToggleButtonGroup[data-orientation="vertical"] {
   flex-direction: column;
   width: fit-content;
 }
 
-.react-aria-ToggleButtonGroup[data-orientation="vertical"] > * > .react-aria-ToggleButton {
+.react-aria-ToggleButtonGroup[data-density="compact"] {
+  gap: 0px;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > * > .react-aria-ToggleButton {
+  border-radius: 0;
+  margin-inline-start: -1px;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > *:first-child > .react-aria-ToggleButton {
+  border-radius: var(--btn-border-radius) 0 0 var(--btn-border-radius);
+  margin-inline-start: 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="horizontal"] > *:last-child > .react-aria-ToggleButton {
+  border-radius: 0 var(--btn-border-radius) var(--btn-border-radius) 0;
+}
+
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > * > .react-aria-ToggleButton {
   border-radius: 0;
   margin-block-start: -1px;
 }
 
-.react-aria-ToggleButtonGroup[data-orientation="vertical"] > *:first-child > .react-aria-ToggleButton {
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > *:first-child > .react-aria-ToggleButton {
   border-radius: var(--btn-border-radius) var(--btn-border-radius) 0 0;
   margin-block-start: 0;
 }
 
-.react-aria-ToggleButtonGroup[data-orientation="vertical"] > *:last-child > .react-aria-ToggleButton {
+.react-aria-ToggleButtonGroup[data-density="compact"][data-orientation="vertical"] > *:last-child > .react-aria-ToggleButton {
   border-radius: 0 0 var(--btn-border-radius) var(--btn-border-radius);
+}
+
+.react-aria-ToggleButtonGroup[data-density="regular"] {
+  gap: 8px;
 }
 
 

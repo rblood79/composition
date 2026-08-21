@@ -547,6 +547,7 @@ function resolveToggleGroupContext(
     isFirst: boolean;
     isLast: boolean;
     isOnly: boolean;
+    density: string;
   } | null;
   indicatorMode: boolean;
 } {
@@ -562,6 +563,11 @@ function resolveToggleGroupContext(
   const parentProps = getProps(parent);
   const orientation = (parentProps.orientation as string) || "horizontal";
   const indicatorMode = Boolean(parentProps.indicator);
+  // density (2026-08-21): Spectrum ActionGroup 규칙상 **연결 여부가 density 의 성질**이다
+  //   (compact = 연결, regular = 분리). 코너 radius 를 산출하는 resolveSegmentedRadius 는
+  //   ToggleButton 자신의 props 만 보므로, 부모의 density 를 여기서 실어 보낸다
+  //   (orientation 과 같은 이유·같은 경로). 기본값은 catalog `defaultDensity` 와 같은 regular.
+  const density = (parentProps.density as string) || "regular";
 
   const siblings = childrenMap?.get(parent.id);
   if (!siblings || siblings.length === 0) {
@@ -577,6 +583,7 @@ function resolveToggleGroupContext(
       isFirst: index === 0,
       isLast: index === siblings.length - 1,
       isOnly: siblings.length === 1,
+      density,
     },
     indicatorMode,
   };

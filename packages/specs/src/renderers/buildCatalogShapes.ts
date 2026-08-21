@@ -63,8 +63,14 @@ export function resolveTreeIndent(
  * (ADR-142 §3 — 컴포넌트 식별 `if(type==="ToggleButton")` 금지, `resolveTreeIndent` 의 `_treeLevel`
  * 동형). `_groupPosition` 은 buildSpecNodeData.resolveToggleGroupContext 가 주입.
  *
+ * **density=regular 은 대상이 아니다 (2026-08-21)**: Spectrum ActionGroup 규정상 버튼이
+ * 연결되는 것은 **compact density 의 성질**이고(`"The action buttons also become connected"`),
+ * regular 은 버튼이 분리돼 각자 균등 radius 를 유지한다. 그래서 regular 이면 `isOnly` 와
+ * 같이 null 을 반환한다 — DOM 축의 `[data-density="compact"]` gate 와 같은 판정
+ * (generated ToggleButtonGroup.css: regular 에는 코너 override 규칙이 emit 되지 않는다).
+ *
  * 위치별 코너(reference 공식, [tl, tr, br, bl]):
- * - isOnly(또는 미주입): null 반환 → caller 가 균등 radius 유지(단독 버튼 = 4코너 동일).
+ * - isOnly / density=regular(또는 미주입): null 반환 → caller 가 균등 radius 유지.
  * - horizontal: first=[r,0,0,r] / last=[0,r,r,0] / middle=[0,0,0,0].
  * - vertical:   first=[r,r,0,0] / last=[0,0,r,r] / middle=[0,0,0,0].
  *
@@ -87,9 +93,13 @@ export function resolveSegmentedRadius(
         isFirst?: boolean;
         isLast?: boolean;
         isOnly?: boolean;
+        density?: string;
       }
     | undefined;
   if (!pos || pos.isOnly) return null;
+  // density 미주입(구 데이터/미배선 경로)은 종전 동작인 연결 유지 — 명시적으로 regular 일
+  //   때만 분리한다. 신규 주입 경로는 항상 값을 싣는다(buildSpecNodeData).
+  if (pos.density === "regular") return null;
 
   const vertical = pos.orientation === "vertical";
   if (pos.isFirst) {

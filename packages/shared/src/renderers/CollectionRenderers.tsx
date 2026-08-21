@@ -660,6 +660,14 @@ export const renderToggleButtonGroup = (
       isEmphasized={Boolean(element.props.isEmphasized)}
       isQuiet={Boolean(element.props.isQuiet)}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
+      // density (2026-08-21): Spectrum ActionGroup 규칙 — compact 는 버튼이 연결되고
+      //   regular 는 분리된다. 기본값은 catalog `defaultDensity` 와 같은 regular 이며,
+      //   미지정 시에도 `data-density` 를 내보내야 generated CSS 의 gate 가 걸린다
+      //   (Tabs 렌더러 동형).
+      density={
+        (element.props.density as "compact" | "regular" | undefined) ||
+        "regular"
+      }
       // uncontrolled (defaultSelectedKeys) — RadioGroup defaultValue 동형.
       //   preview 는 canonicalDocument(node)를 렌더하는데 onSelectionChange→batchUpdateElementProps
       //   는 legacy runtimeStore.elements 만 갱신하여 canonical node 에 미반영 → controlled

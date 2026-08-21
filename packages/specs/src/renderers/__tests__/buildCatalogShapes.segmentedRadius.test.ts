@@ -186,3 +186,56 @@ describe("resolveSegmentedRadius — TokenRef radius 분배", () => {
     ).toEqual([0, 0, "{radius.lg}", "{radius.lg}"]);
   });
 });
+
+/**
+ * density (2026-08-21) — Spectrum ActionGroup 규정: "compact density retains the same font
+ * and icon sizes, but has tighter spacing. **The action buttons also become connected**."
+ * 즉 연결(segmented)은 orientation 이 아니라 **compact density 의 성질**이다. regular 은
+ * 버튼이 분리돼 각자 균등 radius 를 유지하므로 `isOnly` 와 같이 null 을 낸다.
+ *
+ * DOM 축 대칭: generated ToggleButtonGroup.css 는 코너 override 를
+ * `[data-density="compact"][data-orientation="…"]` 에만 emit 하고 regular 에는 emit 하지
+ * 않는다 — 같은 판정을 두 consumer 가 각자 표현한 형태.
+ */
+describe("resolveSegmentedRadius — density 게이트", () => {
+  const R = 6;
+  const withDensity = (density: string, isFirst: boolean, isLast: boolean) => ({
+    _groupPosition: {
+      orientation: "horizontal",
+      isFirst,
+      isLast,
+      isOnly: false,
+      density,
+    },
+  });
+
+  it("regular → null (버튼 분리, 균등 radius 유지)", () => {
+    expect(resolveSegmentedRadius(withDensity("regular", true, false), R)).toBe(
+      null,
+    );
+    expect(resolveSegmentedRadius(withDensity("regular", false, true), R)).toBe(
+      null,
+    );
+    expect(resolveSegmentedRadius(withDensity("regular", false, false), R)).toBe(
+      null,
+    );
+  });
+
+  it("compact → 종전 segmented 공식 그대로", () => {
+    expect(
+      resolveSegmentedRadius(withDensity("compact", true, false), R),
+    ).toEqual([R, 0, 0, R]);
+    expect(
+      resolveSegmentedRadius(withDensity("compact", false, true), R),
+    ).toEqual([0, R, R, 0]);
+  });
+
+  it("density 미주입은 연결 유지 — 구 데이터/미배선 경로 회귀 0", () => {
+    expect(resolveSegmentedRadius(pos("horizontal", true, false), R)).toEqual([
+      R,
+      0,
+      0,
+      R,
+    ]);
+  });
+});

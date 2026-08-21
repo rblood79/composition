@@ -210,6 +210,12 @@ function ruleVariantToVariantSpec(v: ComponentRuleVariant): VariantSpec {
  * 분리된 `densities` 에 산다. CSS 는 이미 containerVariants 를 `[data-{attr}="{value}"]` 로
  * emit 하므로, 별도 emit 경로를 만들지 않고 여기서 합성해 재사용한다.
  * 기존 containerVariants 가 있으면 보존하고 `density` 키만 얹는다.
+ *
+ * **수동 `containerVariants.density` 와 병합한다 (2026-08-21)**: 간격(gap/paddingY)만으로
+ * 표현되지 않는 density 차이가 있다 — ToggleButtonGroup 의 compact 는 Spectrum 규칙상
+ * 버튼이 **연결**되므로(양끝만 radius + `-1px` 겹침) nested selector 가 필요하다. 그건
+ * `densities` 스키마로 표현할 수 없어 catalog 에 직접 쓰는데, 여기서 통째로 덮어쓰면
+ * 그 nested 가 사라진다. 그래서 density 이름별로 `styles` 만 얹고 `nested` 는 보존한다.
  */
 function mergeDensityVariants(
   composition: ComponentSpec<unknown>["composition"] | undefined,
@@ -219,8 +225,12 @@ function mergeDensityVariants(
     return composition as ComponentSpec<unknown>["composition"];
   }
 
-  const densityVariants: Record<string, { styles: Record<string, string> }> =
-    {};
+  const existing = (composition?.containerVariants?.density ?? {}) as Record<
+    string,
+    { styles?: Record<string, string>; nested?: unknown }
+  >;
+  const densityVariants: Record<string, unknown> = { ...existing };
+
   for (const [densityName, spacing] of Object.entries(densities)) {
     const styles: Record<string, string> = {};
     if (spacing.gap !== undefined) styles.gap = `${spacing.gap}px`;
@@ -228,9 +238,14 @@ function mergeDensityVariants(
       styles["padding-top"] = `${spacing.paddingY}px`;
       styles["padding-bottom"] = `${spacing.paddingY}px`;
     }
-    if (Object.keys(styles).length > 0) {
-      densityVariants[densityName] = { styles };
-    }
+    if (Object.keys(styles).length === 0) continue;
+    // 수동 정의(주로 `nested`)를 보존하고 `styles` 만 얹는다 — 같은 속성이면 densities 우선
+    //   (`densities` 가 간격의 SSOT 이고 수동 쪽은 표현 불가한 규칙만 담는다).
+    const prev = existing[densityName];
+    densityVariants[densityName] = {
+      ...prev,
+      styles: { ...prev?.styles, ...styles },
+    };
   }
 
   if (Object.keys(densityVariants).length === 0) {

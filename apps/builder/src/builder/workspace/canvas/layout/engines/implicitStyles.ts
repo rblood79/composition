@@ -1496,6 +1496,16 @@ export function applyImplicitStyles(
   //   self-node 와 함께 vertical 전환을 무력화했다. CSS([data-orientation]) 와 동일 기준 정렬.
   if (containerTag === "togglebuttongroup") {
     const orientation = containerProps?.orientation as string | undefined;
+    // density (2026-08-21): Spectrum ActionGroup 규칙 — compact 는 버튼이 연결(gap 0 +
+    //   양끝만 radius, 코너는 `resolveSegmentedRadius` 가 `_groupPosition.density` 로 판정)
+    //   되고 regular 은 분리(gap 8)된다. DOM 은 generated CSS 의 `[data-density]` 가 같은
+    //   catalog 값을 emit 한다. containerVariants 로는 안 되는 이유 — Skia 소비가 그 결과를
+    //   layout 에 적용하지 않는다(side-label 판정 전용).
+    const groupGap = resolveCatalogDensityField(
+      "ToggleButtonGroup",
+      containerProps?.density as string | undefined,
+      "gap",
+    );
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
       flexDirection:
@@ -1504,6 +1514,7 @@ export function applyImplicitStyles(
           : orientation === "horizontal"
             ? "row"
             : (parentStyle.flexDirection ?? "row"),
+      ...(groupGap !== undefined ? { gap: groupGap } : {}),
     });
   }
 

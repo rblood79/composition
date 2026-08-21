@@ -10612,9 +10612,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // density (2026-08-21) — Spectrum 규칙 채택: 폰트(size 축)는 유지하고 **탭 항목 사이
     //   간격만** 바꾼다 (design-data tabs tokenBindings `tab-item-to-tab-item-compact-
     //   horizontal-medium` = "Spacing (between tab items, horizontal)").
-    //   기본은 현행 시각 보존을 위해 compact(gap 0) — Spectrum 스키마 default 는 regular 이나,
-    //   기본값 전환은 기존 프로젝트의 탭 간격을 일괄 변경하므로 별도 판단으로 남긴다.
-    defaultDensity: "compact",
+    //   기본은 Spectrum 스키마 default 인 regular (design-data `tabs.options.items.density.default`
+    //   = "regular", ActionGroup 도 동일). 2026-08-21 사용자 결정으로 구 compact 기본에서
+    //   전환 — 탭 사이 간격이 0 에서 8 로 벌어진다.
+    defaultDensity: "regular",
     densities: {
       compact: { gap: 0 },
       regular: { gap: 8 },
@@ -12467,6 +12468,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       alignItems: "center",
       width: "fit-content",
     },
+    // density (2026-08-21) — Spectrum ActionGroup 규칙: "compact density retains the same
+    //   font and icon sizes, but has tighter spacing. The action buttons also become
+    //   connected." 즉 **연결 여부까지 density 의 성질**이다.
+    //   - regular(기본, Spectrum default): 버튼 분리 — gap 8 + 버튼별 균등 radius
+    //   - compact: 연결 — gap 0 + 양끝만 radius + `-1px` 겹침(structure.composition
+    //     .containerVariants.density.compact.nested 가 담당)
+    //   구 구현은 연결 규칙을 orientation 에 매달아 **항상 연결**이었다(= Spectrum 기준
+    //   compact 고정). 2026-08-21 사용자 결정으로 regular 를 기본으로 전환 — 기존 그룹의
+    //   시각이 분리 형태로 바뀐다.
+    //   Skia: gap 은 implicitStyles 가 `resolveCatalogDensityField` 로 주입하고, 코너는
+    //   `resolveSegmentedRadius` 가 `_groupPosition.density` 로 판정(regular → null = 균등).
+    defaultDensity: "regular",
+    densities: {
+      compact: { gap: 0 },
+      regular: { gap: 8 },
+    },
     variants: {
       default: {
         fill: {
@@ -12556,18 +12573,38 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //    ToggleButtonGroup.css:32-67 동형, 2026-06-22) ──
         //   그룹 안 ToggleButton 은 양끝만 바깥쪽 코너가 둥글고(--btn-border-radius, size별),
         //   중간은 0, 인접 버튼은 -1px margin 으로 border 겹침(double border 제거 = 단일 분할선).
-        //   orientation × first/last/middle 조합. CSS: CSSGenerator containerVariants nested emit
-        //   (root 인접 [data-orientation] + `> .react-aria-ToggleButton:first-child`).
         //   Skia: buildCatalogShapes 가 props._groupPosition 으로 four-corner radius 산출(대칭).
         //   nested(top-level 아님) 필수 — top-level containerVariants 는 Skia resolver 전용,
         //   CSS emit 은 structure.composition.containerVariants 만 소비
         //   (feedback-catalog-variant-toplevel-vs-nested-asymmetry).
+        //
+        // **density 축으로 이동 (2026-08-21)**: Spectrum ActionGroup 규정 — "compact density
+        //   retains the same font and icon sizes, but has tighter spacing. **The action buttons
+        //   also become connected** for non-quiet action groups." 즉 연결(segmented)은
+        //   orientation 의 성질이 아니라 **compact density 의 성질**이다. 구 구조는 이 규칙을
+        //   orientation 에 매달아 무조건 연결이었고, 그래서 Spectrum default 인 regular(분리)를
+        //   표현할 수 없었다. orientation 은 flex-direction 만 남기고, 연결 규칙은
+        //   density=compact 로 옮긴다. regular 에는 nested 가 없어 버튼이 자기 균등 radius
+        //   (ToggleButton sizes.borderRadius)를 유지하고 겹침도 사라진다 — gap 은 `densities`
+        //   가 공급(generate-css mergeDensityVariants 가 styles 만 얹고 nested 는 보존).
+        //   orientation 은 `&[data-orientation="…"]` compound 로 selector 안에서 결합한다
+        //   (containerVariants 는 attr gate 를 하나만 붙이므로 2축 조합의 유일한 표현).
         containerVariants: {
           orientation: {
             horizontal: {
               styles: {
                 "flex-direction": "row",
               },
+            },
+            vertical: {
+              styles: {
+                "flex-direction": "column",
+                width: "fit-content",
+              },
+            },
+          },
+          density: {
+            compact: {
               // selector 가 `> * >` 로 marker div(display:contents) 를 경유하는 이유:
               //   빌더 preview(CanonicalNodeRenderer)는 delegating 컴포넌트의 각 자식을
               //   `<div style="display:contents">`(data-element-id marker, 보편 패턴) 로 감싼다.
@@ -12580,14 +12617,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               //   구조 적응(2026-06-22, Skia 는 marker 없어 _groupPosition 으로 직접 판정).
               nested: [
                 {
-                  selector: "> * > .react-aria-ToggleButton",
+                  selector:
+                    '&[data-orientation="horizontal"] > * > .react-aria-ToggleButton',
                   styles: {
                     "border-radius": "0",
                     "margin-inline-start": "-1px",
                   },
                 },
                 {
-                  selector: "> *:first-child > .react-aria-ToggleButton",
+                  selector:
+                    '&[data-orientation="horizontal"] > *:first-child > .react-aria-ToggleButton',
                   styles: {
                     "border-radius":
                       "var(--btn-border-radius) 0 0 var(--btn-border-radius)",
@@ -12595,30 +12634,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
                 {
-                  selector: "> *:last-child > .react-aria-ToggleButton",
+                  selector:
+                    '&[data-orientation="horizontal"] > *:last-child > .react-aria-ToggleButton',
                   styles: {
                     "border-radius":
                       "0 var(--btn-border-radius) var(--btn-border-radius) 0",
                   },
                 },
-              ],
-            },
-            vertical: {
-              styles: {
-                "flex-direction": "column",
-                width: "fit-content",
-              },
-              // horizontal 동형 — marker div(display:contents) 경유 selector. 상세 위 주석.
-              nested: [
+                // vertical — horizontal 동형 (margin 축과 radius 방향만 다름).
                 {
-                  selector: "> * > .react-aria-ToggleButton",
+                  selector:
+                    '&[data-orientation="vertical"] > * > .react-aria-ToggleButton',
                   styles: {
                     "border-radius": "0",
                     "margin-block-start": "-1px",
                   },
                 },
                 {
-                  selector: "> *:first-child > .react-aria-ToggleButton",
+                  selector:
+                    '&[data-orientation="vertical"] > *:first-child > .react-aria-ToggleButton',
                   styles: {
                     "border-radius":
                       "var(--btn-border-radius) var(--btn-border-radius) 0 0",
@@ -12626,7 +12660,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
                 {
-                  selector: "> *:last-child > .react-aria-ToggleButton",
+                  selector:
+                    '&[data-orientation="vertical"] > *:last-child > .react-aria-ToggleButton',
                   styles: {
                     "border-radius":
                       "0 0 var(--btn-border-radius) var(--btn-border-radius)",

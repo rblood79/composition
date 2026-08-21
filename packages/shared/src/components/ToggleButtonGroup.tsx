@@ -36,6 +36,14 @@ export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {
    * @default 'md'
    */
   size?: ComponentSizeSubset;
+  /**
+   * S2 density — Spectrum ActionGroup 규칙: 폰트·아이콘 크기는 그대로 두고 간격만 바꾸며,
+   * `compact` 에서는 버튼이 **연결**된다(양끝만 radius + `-1px` 겹침 = 단일 bar).
+   * `regular` 는 버튼이 분리되고 그 사이에 gap 이 생긴다.
+   * 시각 규칙은 generated CSS 의 `[data-density]` 가 담당한다 (catalog SSOT).
+   * @default 'regular'
+   */
+  density?: "compact" | "regular";
   dataBinding?: DataBinding | DataBindingValue;
   columnMapping?: ColumnMapping;
 }
@@ -45,6 +53,7 @@ export function ToggleButtonGroup({
   isEmphasized = false,
   isQuiet = false,
   size = "md",
+  density = "regular",
   dataBinding,
   columnMapping,
   children,
@@ -92,6 +101,7 @@ export function ToggleButtonGroup({
       data-emphasized={isEmphasized || undefined}
       data-quiet={isQuiet || undefined}
       data-size={size}
+      data-density={density}
       className={toggleButtonGroupClassName}
       isDisabled={isDisabled || props.isDisabled}
     >
