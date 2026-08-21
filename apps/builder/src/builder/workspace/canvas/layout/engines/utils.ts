@@ -2772,6 +2772,8 @@ export function calculateContentHeight(
         selectionStyle: props?.selectionStyle,
         selectionBehavior: props?.selectionBehavior,
         defaultSelectionMode: "none",
+        // GridList.tsx 게이트와 동일 — single 은 DOM 에 체크박스가 없다.
+        checkboxModes: ["multiple"],
         fallback: "toggle",
       }),
       selectionBoxSize:

@@ -54,15 +54,22 @@
     transition: all 150ms ease;
     forced-color-adjust: none;
 
-    &[data-hovered] {
+    /* quiet 카드는 hover/pressed 배경을 생성 CSS(`[data-variant="quiet"]`, catalog
+       GridListItem.variants.quiet.fill)가 소유한다 — 여기서 배경·테두리를 다시 칠하면
+       quiet 이 hover 순간 일반 카드로 돌아간다. 두 규칙 다 (0,2,0) 이라 순서 의존이
+       되므로, 이쪽 선택자를 quiet 제외로 좁혀 승부를 없앤다. */
+    &[data-hovered]:not([data-variant="quiet"]) {
       border-color: var(--border-hover);
       background: color-mix(in srgb, var(--bg-overlay) 90%, var(--bg-muted));
     }
 
     &[data-pressed] {
-      background: color-mix(in srgb, var(--bg-overlay) 80%, var(--bg-muted));
       /* ADR-140 C1-b: press-scale 0.98 (transition: all 이 scale 포함) */
       scale: 0.98;
+    }
+
+    &[data-pressed]:not([data-variant="quiet"]) {
+      background: color-mix(in srgb, var(--bg-overlay) 80%, var(--bg-muted));
     }
 
     &[data-focus-visible] {

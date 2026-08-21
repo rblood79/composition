@@ -82,6 +82,15 @@ interface ExtendedGridListProps<T extends object> extends Omit<
    * 정본인지 사라진다). 호출자가 `selectionBehavior` 를 직접 준 경우는 그대로 존중.
    */
   selectionStyle?: "checkbox" | "highlight";
+  /**
+   * RSP ListView `isQuiet` (2026-08-22) — 카드에서 배경·테두리를 걷어낸 표현.
+   *
+   * 컨테이너가 아니라 **항목(카드)** 의 시각이다. GridList 컨테이너는 이미
+   * `background: transparent; border: none` 이라 여기에 quiet 를 걸면 아무 일도 안 일어난다.
+   * 그래서 값은 `data-variant="quiet"` 로 카드에 실리고, 시각 정의는 catalog
+   * `GridListItem.variants.quiet` 한 곳이다(Skia 도 같은 variant 를 읽는다).
+   */
+  isQuiet?: boolean;
 }
 
 export function GridList<T extends object>({
@@ -98,8 +107,14 @@ export function GridList<T extends object>({
   filterFields = ["label", "name", "title"] as (keyof T)[],
   rowTemplateSources,
   selectionStyle,
+  isQuiet,
   ...restProps
 }: ExtendedGridListProps<T>) {
+  // 카드 variant — quiet 이 유일한 항목 축이다(컨테이너의 default/accent 와 별개).
+  //   생성 CSS `.react-aria-GridListItem[data-variant="quiet"]` 가 이 값으로 걸린다.
+  //   항목에 data-variant 를 붙이는 것 자체가 신규다 — 생성 CSS 는 진작 variant 별 규칙을
+  //   내고 있었는데 마크업이 속성을 안 달아 아무 규칙도 매칭되지 않고 있었다.
+  const itemVariant = isQuiet ? "quiet" : "default";
   // selectionStyle(RSP) → selectionBehavior(RAC) 변환 단일 지점. 아래 모든 `<AriaGridList>`
   //   가 이 객체를 spread 하므로 loading/error/stack/grid 어느 경로로 가도 같은 값이 걸린다
   //   (경로별로 따로 넘기면 그 중 하나를 빠뜨린다 — 이 컴포넌트만 8곳).
@@ -251,6 +266,7 @@ export function GridList<T extends object>({
             key="loading"
             value={{}}
             className="react-aria-GridListItem"
+            data-variant={itemVariant}
           >
             {({ selectionMode, selectionBehavior, allowsDragging }) => (
               <>
@@ -281,6 +297,7 @@ export function GridList<T extends object>({
             key="error"
             value={{}}
             className="react-aria-GridListItem"
+            data-variant={itemVariant}
           >
             {({ selectionMode, selectionBehavior, allowsDragging }) => (
               <>
@@ -350,6 +367,7 @@ export function GridList<T extends object>({
             key="loading"
             value={{}}
             className="react-aria-GridListItem"
+            data-variant={itemVariant}
           >
             {({ selectionMode, selectionBehavior, allowsDragging }) => (
               <>
@@ -380,6 +398,7 @@ export function GridList<T extends object>({
             key="error"
             value={{}}
             className="react-aria-GridListItem"
+            data-variant={itemVariant}
           >
             {({ selectionMode, selectionBehavior, allowsDragging }) => (
               <>
@@ -435,6 +454,7 @@ export function GridList<T extends object>({
                 id={item.id}
                 textValue={rowLabel}
                 className="react-aria-GridListItem"
+                data-variant={itemVariant}
               >
                 {({ selectionMode, selectionBehavior, allowsDragging }) => (
                   <>
@@ -480,9 +500,12 @@ export { GridList as MyGridList };
 
 export function GridListItem({
   children,
+  isQuiet,
   ...props
 }: Omit<GridListItemProps, "children"> & {
   children?: React.ReactNode;
+  /** 카드 quiet — 부모 GridList 가 아니라 직접 쓰는 경로용(부모 경로는 GridList 가 판정). */
+  isQuiet?: boolean;
 }) {
   const textValue = typeof children === "string" ? children : undefined;
   return (
@@ -490,6 +513,7 @@ export function GridListItem({
       textValue={textValue}
       {...props}
       className="react-aria-GridListItem"
+      data-variant={isQuiet ? "quiet" : "default"}
     >
       {({ selectionMode, selectionBehavior, allowsDragging }) => (
         <>

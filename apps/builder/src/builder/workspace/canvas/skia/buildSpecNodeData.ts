@@ -579,6 +579,8 @@ function resolveTreeSelectionCheckboxVisible(
         selectionBehavior: p.selectionBehavior,
         // renderTree 의 기본값과 동일 — 미지정 Tree 는 "single" / "replace".
         defaultSelectionMode: "single",
+        // Tree.tsx 게이트 = `selectionMode !== "none"` (RAC starter 원본) → single 포함.
+        checkboxModes: ["single", "multiple"],
         fallback: "replace",
       });
     }

@@ -1523,11 +1523,15 @@ function appendGridListRowProjection(
   // 선택 체크박스 가시성 — RAC 는 selectionMode!=="none" && selectionBehavior==="toggle" 일 때만
   //   카드 첫 자식으로 `<Checkbox slot="selection">` 을 낸다. renderGridList 가 넘기는 기본값
   //   ("none" / "toggle")과 같은 인자를 써야 두 표면이 같은 조건에서 체크박스를 그린다.
+  const cardIsQuiet = props.isQuiet === true;
   const showSelectionCheckbox = resolveSelectionCheckboxVisible({
     selectionMode: props.selectionMode,
     selectionStyle: props.selectionStyle,
     selectionBehavior: props.selectionBehavior,
     defaultSelectionMode: "none",
+    // GridList.tsx 게이트 = `selectionMode === "multiple"` (RAC starter 원본) → single 제외.
+    //   Tree 규칙(single 포함)을 여기 쓰면 DOM 에 없는 체크박스를 그리고 카드가 22px 높아진다.
+    checkboxModes: ["multiple"],
     fallback: "toggle",
   });
 
@@ -1566,6 +1570,11 @@ function appendGridListRowProjection(
     // 체크박스 블록 신호 — catalog `GridListItem.selectionCheckbox` 채널이 소비(폭이 아니라
     //   카드 높이를 늘리는 스택 첫 블록). 컴포넌트 식별 분기 없이 데이터 게이팅.
     if (showSelectionCheckbox) rowProps._showSelectionCheckbox = true;
+    // quiet (2026-08-22) — owner 의 `isQuiet` 이 고르는 **카드 variant**. DOM 이 항목에
+    //   `data-variant="quiet"` 를 다는 것과 같은 값이고, 시각 정의는 catalog
+    //   `GridListItem.variants.quiet` 한 곳이다. 컨테이너 variant(default/accent)와는
+    //   다른 축이라 그 값을 카드로 내려보내지 않는다.
+    if (cardIsQuiet) rowProps.variant = "quiet";
     if (row.value) rowProps.value = row.value;
     if (row.isDisabled) rowProps.isDisabled = true;
     // ADR-148 Phase 4: slot 구성(존재·순서·slot 자식 style) — gridlist_card escape/DOM emit 소비.

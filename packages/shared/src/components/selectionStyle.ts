@@ -44,12 +44,19 @@ export function toSelectionStyle(behavior: SelectionBehavior): SelectionStyle {
  * 컬렉션 항목에 선택 체크박스가 서는가 — Skia 가 `_showSelectionCheckbox` 로 주입하는 신호의
  * 판정식 (2026-08-22).
  *
- * RAC 는 `selectionMode !== "none"` 이고 `selectionBehavior === "toggle"` 일 때만
- * `<Checkbox slot="selection">` 을 항목에 렌더한다. 두 조건 중 하나만 보면 어긋난다 —
- * `selectionMode="none"` 인데 체크박스를 그리거나, highlight 모드에서 자리만 비워두거나.
+ * 판정은 두 축의 AND 다: `selectionBehavior === "toggle"` (highlight 면 체크박스가 없다) 이고,
+ * `selectionMode` 가 그 컬렉션이 체크박스를 그리는 모드일 것.
  *
- * 소유자(Tree / GridList)마다 `selectionMode` 기본값과 `selectionBehavior` fallback 이 달라
- * 둘 다 인자로 받는다.
+ * **모드 조건은 컬렉션마다 다르다** — 그리고 이건 통일할 대상이 아니라 D1(RAC) 이 정한 것을
+ * 따라야 하는 값이다. 각 컴포넌트가 RAC starter 원본의 게이트를 그대로 쓰고 있다:
+ * - `Tree.tsx`: `selectionBehavior === "toggle" && selectionMode !== "none"` → single 포함
+ * - `GridList.tsx`: `selectionMode === "multiple" && selectionBehavior === "toggle"` → single 제외
+ *
+ * 그래서 `checkboxModes` 를 인자로 받는다. 한쪽 규칙을 양쪽에 쓰면 그 차이만큼 Skia 가 DOM 에
+ * 없는 체크박스를 그린다 — GridList 카드에서는 그게 **카드 높이 +22** 로 번진다 (2026-08-22
+ * 라이브에서 `selectionMode: "single"` 로 실제 발생, 같은 날 수정).
+ *
+ * `defaultSelectionMode` 도 컬렉션마다 다르다 (renderTree "single" / renderGridList "none").
  */
 export function resolveSelectionCheckboxVisible(input: {
   selectionMode?: unknown;
@@ -57,13 +64,16 @@ export function resolveSelectionCheckboxVisible(input: {
   selectionBehavior?: unknown;
   /** 해당 컬렉션 렌더러가 `selectionMode` 미지정 시 넘기는 값. */
   defaultSelectionMode: "none" | "single" | "multiple";
+  /** 체크박스를 그리는 selectionMode — 그 컴포넌트의 DOM 게이트와 같은 집합이어야 한다. */
+  checkboxModes: ReadonlyArray<"single" | "multiple">;
   fallback: SelectionBehavior;
 }): boolean {
   const mode =
     typeof input.selectionMode === "string"
       ? input.selectionMode
       : input.defaultSelectionMode;
-  if (mode === "none") return false;
+  if (mode !== "single" && mode !== "multiple") return false;
+  if (!input.checkboxModes.includes(mode)) return false;
   return (
     resolveSelectionBehavior({
       selectionStyle: input.selectionStyle,

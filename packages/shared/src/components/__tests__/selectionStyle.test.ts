@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveSelectionBehavior, toSelectionStyle } from "../selectionStyle";
+import {
+  resolveSelectionBehavior,
+  resolveSelectionCheckboxVisible,
+  toSelectionStyle,
+} from "../selectionStyle";
 
 /**
  * selectionStyle(RSP) ↔ selectionBehavior(RAC) 변환 계약 (design-data 감사 §1-2 축②, 2026-08-21).
@@ -62,5 +66,47 @@ describe("resolveSelectionBehavior", () => {
   it("역변환은 왕복한다", () => {
     expect(toSelectionStyle("toggle")).toBe("checkbox");
     expect(toSelectionStyle("replace")).toBe("highlight");
+  });
+});
+
+describe("체크박스 가시성 — 모드 게이트가 컬렉션마다 다르다", () => {
+  const gridList = (selectionMode: unknown, selectionStyle?: unknown) =>
+    resolveSelectionCheckboxVisible({
+      selectionMode,
+      selectionStyle,
+      defaultSelectionMode: "none",
+      checkboxModes: ["multiple"],
+      fallback: "toggle",
+    });
+  const tree = (selectionMode: unknown, selectionStyle?: unknown) =>
+    resolveSelectionCheckboxVisible({
+      selectionMode,
+      selectionStyle,
+      defaultSelectionMode: "single",
+      checkboxModes: ["single", "multiple"],
+      fallback: "replace",
+    });
+
+  it("GridList 는 multiple 에서만 — single 은 DOM 에 체크박스가 없다", () => {
+    // 2026-08-22 라이브 회귀: Tree 규칙을 GridList 에 그대로 써서 single 에서도 Skia 가
+    //   체크박스를 그렸고, 카드가 DOM 보다 22px 높아졌다.
+    expect(gridList("single")).toBe(false);
+    expect(gridList("single", "checkbox")).toBe(false);
+    expect(gridList("multiple")).toBe(true);
+    expect(gridList("none")).toBe(false);
+    expect(gridList(undefined)).toBe(false);
+  });
+
+  it("Tree 는 single 도 포함 (RAC starter 게이트가 그렇다)", () => {
+    expect(tree("single", "checkbox")).toBe(true);
+    expect(tree("multiple", "checkbox")).toBe(true);
+    // 기본 fallback 은 replace → highlight 라 체크박스 없음.
+    expect(tree("single")).toBe(false);
+    expect(tree("none", "checkbox")).toBe(false);
+  });
+
+  it("highlight 은 모드와 무관하게 체크박스를 없앤다", () => {
+    expect(gridList("multiple", "highlight")).toBe(false);
+    expect(tree("multiple", "highlight")).toBe(false);
   });
 });

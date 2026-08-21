@@ -763,6 +763,12 @@ export const renderGridList = (
 ): React.ReactNode => {
   const { updateElementProps } = context;
 
+  // quiet (2026-08-22) — 카드 배경·테두리를 걷어낸 표현. 컨테이너가 아니라 **카드**의 시각이라
+  //   여기서 각 카드에 내려보낸다. GridList.tsx 내부 항목 경로도 같은 값을 쓰지만, 이 렌더러가
+  //   만드는 카드(`<GridListItem>` 헬퍼)가 실제 문서 경로이므로 여기서 빠지면 DOM 만 dead 가
+  //   된다 — 이 저장소에서 반복된 "컴포넌트는 갖췄는데 렌더러가 prop 을 떨어뜨림" 축.
+  const cardIsQuiet = Boolean(element.props.isQuiet);
+
   // 실제 GridListItem 자식 요소들을 찾기
   const gridListChildren = (
     context.childrenByParent.get(element.id) ?? []
@@ -849,6 +855,7 @@ export const renderGridList = (
             value={item}
             isDisabled={Boolean(gridListItemTemplate.props.isDisabled)}
             className={gridListItemTemplate.props.className}
+            isQuiet={cardIsQuiet}
           >
             {fieldChildren.length > 0
               ? fieldChildren.map((field) => {
@@ -906,6 +913,7 @@ export const renderGridList = (
               data-element-id={element.id}
               textValue={item.textValue ?? item.label}
               isDisabled={Boolean(item.isDisabled)}
+              isQuiet={cardIsQuiet}
             >
               {/* ADR-159 P3: 정적 items 카드에도 slot 템플릿 적용 (Skia 대칭). */}
               {renderGridListItemSlotContent({
@@ -954,6 +962,9 @@ export const renderGridList = (
       className={element.props.className}
       style={element.props.style as React.CSSProperties | undefined}
       variant={(element.props.variant as "default" | "accent") || "default"}
+      // RSP ListView isQuiet (2026-08-22) — 카드 배경·테두리 제거. 컨테이너 variant 와
+      //   직교한 축이라 따로 넘긴다(전달을 빠뜨리면 DOM 경로에서만 dead 가 되는 축).
+      isQuiet={Boolean(element.props.isQuiet)}
       layout={(element.props.layout as "stack" | "grid") || "grid"}
       columns={(element.props.columns as number) || 2}
       selectionMode={

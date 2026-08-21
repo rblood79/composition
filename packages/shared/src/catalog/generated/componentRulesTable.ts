@@ -5399,6 +5399,42 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           checkColor: "{color.on-accent}",
         },
       },
+      /* quiet (2026-08-22, 감사 §1-2 축② 잔여) — 컬렉션 quiet 은 **컨테이너가 아니라 카드**
+         에서 성립한다. GridList 컨테이너는 catalog·CSS 양쪽 다 이미 transparent/border none
+         이라 거기에 quiet 를 두면 시각 변화가 0인 dead prop 이 된다. 실제 chrome(배경 layer-1
+         + 1px border + radius)은 카드가 들고 있다.
+         fill 축(`fill.quiet` preset)이 아니라 **variant** 인 이유: quiet 이 배경과 **테두리를
+         함께** 지워야 하는데 fill preset 은 배경만 다룬다(ToggleButton 은 border 가 이미
+         transparent 라 fill 만으로 충분했다). variant 는 fill+colors 를 한 벌로 갖고, 생성 CSS
+         `[data-variant="quiet"]` 와 Skia 의 variant 해석이 추가 배선 없이 그대로 작동한다.
+         selectedBorder 는 accent 를 유지한다 — 선택 표시까지 지우면 어떤 카드가 선택됐는지
+         알 수 없다(ToggleButton quiet 이 selected 를 그대로 둔 것과 같은 판단). */
+      quiet: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            // 쉬는 상태만 비우고 hover/pressed 에서는 배경이 돌아온다 — Spectrum quiet 의
+            //   정의이자 "누를 수 있는 것" 이라는 신호를 남기는 최소한이다. 테두리는
+            //   hover 에서도 돌아오지 않는다(그러면 quiet 이 아니다).
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-hover}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+          border: "{color.transparent}",
+          selectedBorder: "{color.accent}",
+        },
+        textWeight: 600,
+        selectionCheckbox: {
+          size: 20,
+          gap: 2,
+          fill: "{color.base}",
+          border: "{color.border}",
+          selectedFill: "{color.accent}",
+          checkColor: "{color.on-accent}",
+        },
+      },
     },
     sizes: {
       md: {

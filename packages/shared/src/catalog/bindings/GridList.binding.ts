@@ -43,6 +43,12 @@ export const gridListBinding: PrimitiveBinding = {
         section: "appearance",
         default: "default",
       },
+      // RSP ListView `isQuiet` (2026-08-22) — 카드에서 배경·테두리를 걷어낸 표현.
+      //   컨테이너 variant(default/accent, hover·선택 tint)와 **직교**한 축이라 그 enum 에
+      //   섞지 않는다. 소비 주체가 카드이므로 catalog 정의는 `GridListItem.variants.quiet`
+      //   에 있고, 여기 boolean 은 그 variant 를 고르는 owner 표면이다
+      //   (DOM=GridList.tsx 가 항목에 data-variant, Skia=projection 이 카드 props.variant).
+      isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       size: {
         kind: "size",
         label: "Size",
