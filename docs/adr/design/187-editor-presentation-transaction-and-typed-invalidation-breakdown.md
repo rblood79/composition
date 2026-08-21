@@ -243,6 +243,16 @@ Phase 1 DEV/test에서 throw하고 해당 editor는 old commit-only path를 유�
 production에서 unknown을 무조건 `structure`로 승격해 안전한 척하지 않는다. 그것은
 다시 whole-document 비용을 숨기는 경로가 되기 때문이다.
 
+inventory의 1차 대조 소스는 기존 layout 무효화 분류 배열이다 —
+`LAYOUT_AFFECTING_PROP_KEYS` (`stores/utils/layoutInvalidation.ts`),
+`NON_LAYOUT_PROPS_UPDATE` (`stores/utils/elementUpdate.ts:51`),
+`LAYOUT_STYLE_KEYS`/`LAYOUT_PROP_KEYS` (`workspace/canvas/scene/layoutCache.ts:84,175`).
+이 배열들은 canonical commit 이후 경로의 무효화·캐시 시그니처 판정을 계속
+소유하므로, G2는 key별로 `classifyEditorMutation` lane과 기존 배열 소속의 축별
+대조표를 만들고 불일치는 어느 쪽이 맞는지 판정 후 양쪽을 정렬한다. 대조 없이
+두 분류 소스가 병존하면 drag 중 (신규 classifier) 과 commit 후 (기존 체인) 의
+무효화 범위가 달라지는 비대칭이 조용히 생긴다.
+
 ### 2.4 snapshot 안정성
 
 - 변경 없는 publish는 snapshot/version/subscriber notify를 만들지 않는다.
@@ -657,26 +667,26 @@ layout/structure가 별도 ADR로 분리되면 ADR 본문에 실제 범위를 �
 경로와 이름은 Phase 1에서 repository convention에 맞춰 조정할 수 있으나 책임
 경계는 유지한다.
 
-| 분류             | 예상 파일/모듈                                                     | 변경 책임                                                                 |
-| ---------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| 신규 core        | `apps/builder/src/builder/presentation/editorPresentationTypes.ts` | descriptor/session/snapshot 타입                                          |
-| 신규 core        | `.../editorPresentationRuntime.ts`                                 | lifecycle, scheduler, immutable overlay                                   |
-| 신규 core        | `.../editorMutationClassifier.ts`                                  | property registry와 invalidation lattice SSOT                             |
-| 신규 core        | `.../editorPresentationCommitAdapter.ts`                           | canonical indexed read, conflict, runner commit                           |
-| Style pilot      | `panels/styles/components/ColorPickerPanel.tsx`                    | runtime handle 호출, local UI state 유지, 외부 RAF 제거                   |
-| Style pilot      | `panels/styles/hooks/useFillActions.ts`                            | descriptor/commit adapter로 축소, full traversal 제거                     |
-| Style pilot      | `panels/styles/sections/FillSection.tsx`                           | begin/publish/finish/cancel 배선                                          |
-| legacy store     | `stores/inspectorActions.ts`                                       | preview mutation 삭제, commit action은 canonical-first 유지               |
-| Skia             | `workspace/canvas/skia/StoreRenderBridge.ts`                       | target presentation paint apply                                           |
-| Skia             | `workspace/canvas/skia/SkiaCanvas.tsx`                             | dedicated bridge subscription, typed invalidation 소비                    |
-| invalidation     | `workspace/canvas/renderInvalidation.ts` 및 scene/layout modules   | lane reason/counter, presentation이 full scene key에 들어가지 않도록 분리 |
-| canonical        | `adapters/canonical/*`                                             | indexed target read와 ADR-184 runner adapter, schema 변경 없음            |
-| Preview sender   | `builder/hooks/useIframeMessenger.ts` 또는 전용 messenger          | delta/terminal message, drag full-doc resend 금지                         |
-| Preview receiver | `preview/messaging/messageHandler.ts`, message type/validator      | revision/tombstone 처리                                                   |
-| Preview store    | `preview/store/runtimeStore.ts`, `types.ts`                        | node별 editor presentation overlay                                        |
-| Preview renderer | `preview/components/CanonicalNodeRenderer.tsx`                     | canonical/interaction/editor overlay merge                                |
-| tests            | 각 모듈 인접 `*.test.ts(x)`                                        | state machine, classifier, renderer parity, perf/static guards            |
-| docs             | ADR evidence, `docs/CHANGELOG.md`                                  | phase evidence와 사용자-가시 성능 변경 기록                               |
+| 분류             | 예상 파일/모듈                                                        | 변경 책임                                                                 |
+| ---------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| 신규 core        | `apps/builder/src/builder/presentation/editorPresentationTypes.ts`    | descriptor/session/snapshot 타입                                          |
+| 신규 core        | `.../editorPresentationRuntime.ts`                                    | lifecycle, scheduler, immutable overlay                                   |
+| 신규 core        | `.../editorMutationClassifier.ts`                                     | property registry와 invalidation lattice SSOT                             |
+| 신규 core        | `.../editorPresentationCommitAdapter.ts`                              | canonical indexed read, conflict, runner commit                           |
+| Style pilot      | `panels/styles/components/ColorPickerPanel.tsx`                       | runtime handle 호출, local UI state 유지, 외부 RAF 제거                   |
+| Style pilot      | `panels/styles/hooks/useFillActions.ts`                               | descriptor/commit adapter로 축소, full traversal 제거                     |
+| Style pilot      | `panels/styles/sections/FillSection.tsx`                              | begin/publish/finish/cancel 배선                                          |
+| legacy store     | `stores/inspectorActions.ts`                                          | preview mutation 삭제, commit action은 canonical-first 유지               |
+| Skia             | `workspace/canvas/skia/StoreRenderBridge.ts`                          | target presentation paint apply                                           |
+| Skia             | `workspace/canvas/skia/SkiaCanvas.tsx`                                | dedicated bridge subscription, typed invalidation 소비                    |
+| invalidation     | `workspace/canvas/skia/renderInvalidation.ts` 및 scene/layout modules | lane reason/counter, presentation이 full scene key에 들어가지 않도록 분리 |
+| canonical        | `adapters/canonical/*`                                                | indexed target read와 ADR-184 runner adapter, schema 변경 없음            |
+| Preview sender   | `builder/hooks/useIframeMessenger.ts` 또는 전용 messenger             | delta/terminal message, drag full-doc resend 금지                         |
+| Preview receiver | `preview/messaging/messageHandler.ts`, message type/validator         | revision/tombstone 처리                                                   |
+| Preview store    | `preview/store/runtimeStore.ts`, `types.ts`                           | node별 editor presentation overlay                                        |
+| Preview renderer | `preview/components/CanonicalNodeRenderer.tsx`                        | canonical/interaction/editor overlay merge                                |
+| tests            | 각 모듈 인접 `*.test.ts(x)`                                           | state machine, classifier, renderer parity, perf/static guards            |
+| docs             | ADR evidence, `docs/CHANGELOG.md`                                     | phase evidence와 사용자-가시 성능 변경 기록                               |
 
 ### 변경 금지/보호 경계
 

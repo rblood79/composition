@@ -105,8 +105,9 @@ Preview transient message만 바꾸며 `packages/specs`, generator, 저장 schem
 2. scheduling owner는 transaction runtime 하나다. raw publish는 latest-wins로
    합쳐 display frame당 최대 1회 적용한다. control/hook/renderer가 중첩 RAF를
    추가하지 않는다.
-3. `finish`, `cancel`, selection change, `pointercancel`, `Escape`, blur, unmount 뒤에는
-   해당 session의 callback이 0회 실행되어야 한다. `finish`는 pending 값과 종료
+3. `finish`, `cancel`, selection change, `pointercancel`, `Escape`, window blur, unmount
+   뒤에는 해당 session의 callback이 0회 실행되어야 한다. 일반 focus blur는 control의
+   기존 commit 의미를 따르며 일괄 cancel 대상이 아니다. `finish`는 pending 값과 종료
    event의 최종 값을 한 번 합성한 뒤 예약 RAF를 취소한다.
 4. caller는 invalidation kind를 직접 선언하지 않는다. 중앙
    `classifyEditorMutation(descriptor)`만 `paint | layout | structure`를 판정하며,
@@ -227,6 +228,12 @@ lifecycle 중복이라는 기술·유지보수 HIGH를 남긴다.
    structure mutation을 discriminated union으로 표현한다.
    `classifyEditorMutation`이 invalidation lattice의 유일한 SSOT다. unknown key는
    명시적인 classifier inventory 없이는 continuous preview 대상이 될 수 없다.
+   기존 layout 무효화 분류 배열 (`LAYOUT_AFFECTING_PROP_KEYS` —
+   `stores/utils/layoutInvalidation.ts`, `NON_LAYOUT_PROPS_UPDATE` —
+   `stores/utils/elementUpdate.ts`, `LAYOUT_STYLE_KEYS`/`LAYOUT_PROP_KEYS` —
+   `scene/layoutCache.ts`) 은 canonical commit 이후 경로에서 계속 동작하므로,
+   G2 inventory는 이 배열들과의 축별 대조를 포함해 두 분류 소스의 drift
+   (drag 중 신규 classifier ↔ commit 후 기존 체인 판정 불일치) 를 차단한다.
 4. version을 단일 `sceneVersion` 의미로 사용하지 않는다. presentation에는
    target별 paint revision, layout revision/affected roots, structure revision을
    분리한다. canonical commit 뒤 기존 canonical consumers가 한 번 갱신되는 것은
