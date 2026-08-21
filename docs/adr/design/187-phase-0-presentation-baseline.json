@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "adr": 187,
+  "phase": 0,
+  "gate": "G0",
+  "verdict": "PASS",
+  "capturedAt": "2026-08-21T19:37:43.177Z",
+  "sourceRevision": "1d102fe282cd11dc806cc310cb2bd911f5b6f457",
+  "environment": {
+    "build": "production Vite bundle",
+    "browser": "Chrome 151.0.7922.170",
+    "durationMs": 5000,
+    "headless": false,
+    "previewSurface": "Builder top toggle group split mode",
+    "repeats": 5,
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    }
+  },
+  "fixture": {
+    "activeDocumentNodes": [50, 500, 5000],
+    "fanoutProjectionCounts": [1, 4, 16],
+    "targetCount": 1,
+    "targetProjectionCount": 1
+  },
+  "tiers": [
+    {
+      "n": 50,
+      "activePageElementCount": 50,
+      "totalStoreElementCount": 100,
+      "previewRenderedElementCount": 51,
+      "actualDragDurationMsRange": [5004, 5017],
+      "rawMoveCounts": [196, 202, 202, 201, 201],
+      "medianDragCounters": {
+        "rawInputCount": 203,
+        "controlRafCallbackCount": 202,
+        "actionRafCallbackCount": 202,
+        "frameApplyCount": 202,
+        "canonicalWriteCount": 202,
+        "legacyWriteCount": 202,
+        "layoutPublishCount": 202,
+        "projectionSignatureCount": 202,
+        "bridgeFullRebuildCount": 404,
+        "targetIncrementalPatchCount": 0,
+        "previewFullDocumentMessageCount": 202,
+        "previewFullDocumentBytes": 8313512,
+        "previewDeltaMessageCount": 0,
+        "previewDeltaBytes": 0,
+        "staleCallbackAfterTerminalCount": 0
+      },
+      "medianFrameApplyMs": {
+        "p95": 0.4,
+        "p99": 0.4,
+        "max": 0.4
+      },
+      "longTaskOccurrences": 0,
+      "maxLongTaskMs": 0
+    },
+    {
+      "n": 500,
+      "activePageElementCount": 500,
+      "totalStoreElementCount": 550,
+      "previewRenderedElementCount": 501,
+      "actualDragDurationMsRange": [5000, 5030],
+      "rawMoveCounts": [151, 151, 150, 151, 150],
+      "medianDragCounters": {
+        "rawInputCount": 152,
+        "controlRafCallbackCount": 151,
+        "actionRafCallbackCount": 151,
+        "frameApplyCount": 151,
+        "canonicalWriteCount": 151,
+        "legacyWriteCount": 151,
+        "layoutPublishCount": 151,
+        "projectionSignatureCount": 151,
+        "bridgeFullRebuildCount": 302,
+        "targetIncrementalPatchCount": 0,
+        "previewFullDocumentMessageCount": 151,
+        "previewFullDocumentBytes": 43024128,
+        "previewDeltaMessageCount": 0,
+        "previewDeltaBytes": 0,
+        "staleCallbackAfterTerminalCount": 0
+      },
+      "medianFrameApplyMs": {
+        "p95": 1,
+        "p99": 1,
+        "max": 1.1
+      },
+      "longTaskOccurrences": 0,
+      "maxLongTaskMs": 0
+    },
+    {
+      "n": 5000,
+      "activePageElementCount": 5000,
+      "totalStoreElementCount": 5050,
+      "previewRenderedElementCount": 5001,
+      "actualDragDurationMsRange": [5049, 5200],
+      "rawMoveCounts": [22, 23, 23, 23, 22],
+      "medianDragCounters": {
+        "rawInputCount": 24,
+        "controlRafCallbackCount": 23,
+        "actionRafCallbackCount": 23,
+        "frameApplyCount": 23,
+        "canonicalWriteCount": 23,
+        "legacyWriteCount": 23,
+        "layoutPublishCount": 23,
+        "projectionSignatureCount": 23,
+        "bridgeFullRebuildCount": 46,
+        "targetIncrementalPatchCount": 0,
+        "previewFullDocumentMessageCount": 23,
+        "previewFullDocumentBytes": 63275990,
+        "previewDeltaMessageCount": 0,
+        "previewDeltaBytes": 0,
+        "staleCallbackAfterTerminalCount": 0
+      },
+      "medianFrameApplyMs": {
+        "p95": 8.1,
+        "p99": 9.3,
+        "max": 9.3
+      },
+      "longTaskOccurrences": 118,
+      "maxLongTaskMs": 197
+    }
+  ],
+  "perApplyInvariant": {
+    "canonicalWrites": 1,
+    "legacyWrites": 1,
+    "layoutPublishes": 1,
+    "projectionSignatures": 1,
+    "bridgeFullRebuilds": 2,
+    "previewFullDocumentMessages": 1,
+    "targetIncrementalPatches": 0
+  },
+  "terminalInvariant": {
+    "terminalEvents": 1,
+    "controlRafCallbacks": 0,
+    "actionRafCallbacks": 0,
+    "staleCallbacks": 0,
+    "canonicalWrites": 1,
+    "layoutPublishes": 1,
+    "projectionSignatures": 1,
+    "bridgeFullRebuilds": 2,
+    "previewFullDocumentMessages": 1
+  },
+  "traceManifest": [
+    {
+      "n": 50,
+      "run": 1,
+      "gzipBytes": 786630,
+      "sha256": "e877de42ccabe338bc24dee7c315b0f5dca88c35855d0bd2a682729162d7bd5c"
+    },
+    {
+      "n": 50,
+      "run": 2,
+      "gzipBytes": 670808,
+      "sha256": "10282cf5091f29c33f25fe5f9027174e8e8a66d88f562db5ccfb600872fddd2e"
+    },
+    {
+      "n": 50,
+      "run": 3,
+      "gzipBytes": 670977,
+      "sha256": "77f8b161f5c0a5b9f76dfe6fc5b6a74ba0bd93b66f13279af1e9e73f6d22a4f6"
+    },
+    {
+      "n": 50,
+      "run": 4,
+      "gzipBytes": 644005,
+      "sha256": "80ef4d4f023fdfcf7f0604519660ffe84fc4fb44b2251f8404fe680ac2584e91"
+    },
+    {
+      "n": 50,
+      "run": 5,
+      "gzipBytes": 646826,
+      "sha256": "8cc48032f4ac8b294eee7a3cfdd78e7fa4bfc515c5c2cf3eb08c786af1887bae"
+    },
+    {
+      "n": 500,
+      "run": 1,
+      "gzipBytes": 649896,
+      "sha256": "2a0285ea97a0cfac993f05f472ead586835d534d5143565b9929ea02c8a25bd2"
+    },
+    {
+      "n": 500,
+      "run": 2,
+      "gzipBytes": 646460,
+      "sha256": "4f0fe767737f307d14432a5c76ad4fc1e360b5ae5bf732288e39ef1aaf22ba45"
+    },
+    {
+      "n": 500,
+      "run": 3,
+      "gzipBytes": 636635,
+      "sha256": "5be43ac3bb2e8e5f4e000e4971eb89682af81159dbd852e02c709f6c9f2e1d84"
+    },
+    {
+      "n": 500,
+      "run": 4,
+      "gzipBytes": 675253,
+      "sha256": "ed7664fe64533a634e0c69e879dc00577768867cf965ebe5887fb286758e9854"
+    },
+    {
+      "n": 500,
+      "run": 5,
+      "gzipBytes": 658765,
+      "sha256": "c9e5b0dfcac317527611034a8d9fb8138cf245d1a8563a4519975b78c70751e3"
+    },
+    {
+      "n": 5000,
+      "run": 1,
+      "gzipBytes": 246815,
+      "sha256": "b6fdadceb0a9ea997e0c570f2e6450f0eca1f6a8eeeb523239c5a66e0fdd41de"
+    },
+    {
+      "n": 5000,
+      "run": 2,
+      "gzipBytes": 255338,
+      "sha256": "a99d77da2210bc78cd7b0c931d5c1c9bebcab83c1e56b88c96c8884e63f60d2c"
+    },
+    {
+      "n": 5000,
+      "run": 3,
+      "gzipBytes": 245281,
+      "sha256": "9754880730b31c360f2db01a31259b8949d21502748d1eac3e0f8274ef837638"
+    },
+    {
+      "n": 5000,
+      "run": 4,
+      "gzipBytes": 241627,
+      "sha256": "f0529449c98f1d7e3de8a41ecaa7c3d451e7387c0b2bf1e85e725e23d8814c53"
+    },
+    {
+      "n": 5000,
+      "run": 5,
+      "gzipBytes": 264160,
+      "sha256": "775dd8989aa40b423424b3f08ad00775e5e14b01b1e77cdb1fccbfd18fb1b5ef"
+    }
+  ],
+  "rawResult": {
+    "path": "/private/tmp/adr187-phase0-presentation-baseline.json",
+    "sha256": "81c63c52add236d12d37114c7dd8d54964a2b78cb0e63fb8bbdb1d75a9db845d"
+  },
+  "environmentLimitations": [
+    "The local static production host does not package composition-engine-pkg/composition_engine.js, so the layout engine used its existing timeout fallback.",
+    "Existing Pretendard production asset resolution emitted font decode warnings.",
+    "The product Preview iframe rendered real data-element-id nodes in Builder split mode for every tier despite these unrelated baseline diagnostics."
+  ]
+}

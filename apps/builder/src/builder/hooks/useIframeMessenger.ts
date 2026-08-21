@@ -60,6 +60,7 @@ import { useActiveCanonicalDocument } from "../stores/canonical/canonicalElement
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
 import type { CompositionDocument } from "@composition/shared";
+import { recordEditorPresentationPreviewFullDocumentMessage } from "../performance/editorPresentationPhase0Metrics";
 // ADR-006 P2-2: postMessage 보안 검증
 import {
   isValidBootstrapMessage,
@@ -75,10 +76,7 @@ import { normalizeExternalFillIngressBatch } from "../panels/styles/utils/fillEx
 import { includeCanonicalRefDependencies } from "../utils/canonicalRefDependencies";
 
 export type IframeReadyState =
-  | "not_initialized"
-  | "loading"
-  | "ready"
-  | "error";
+  "not_initialized" | "loading" | "ready" | "error";
 
 // 🎯 모듈 레벨 변수: 모든 useIframeMessenger 인스턴스가 공유
 let pendingAutoSelectElementId: string | null = null;
@@ -311,6 +309,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         type: "UPDATE_CANONICAL_DOCUMENT" as const,
         document,
       };
+      recordEditorPresentationPreviewFullDocumentMessage(message);
 
       if (currentReadyState !== "ready" || !iframe?.contentWindow) {
         messageQueueRef.current.push({

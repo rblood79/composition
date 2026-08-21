@@ -26,6 +26,7 @@ import {
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
 import { resolveElementFills } from "../utils/fillMigration";
+import { recordEditorPresentationActionRaf } from "../../../performance/editorPresentationPhase0Metrics";
 
 export interface FillActions {
   addFill: (type?: FillType, initialColor?: string) => void;
@@ -173,6 +174,7 @@ export function useFillActions(): FillActions {
       if (rafRef.current !== null) return;
 
       rafRef.current = requestAnimationFrame(() => {
+        const startedAt = performance.now();
         rafRef.current = null;
         const pending = pendingUpdateRef.current;
         if (!pending) return;
@@ -184,6 +186,7 @@ export function useFillActions(): FillActions {
           return { ...f, ...pending.updates } as FillItem;
         });
         useStore.getState().updateSelectedFillsPreviewLightweight(newFills);
+        recordEditorPresentationActionRaf(performance.now() - startedAt);
       });
     },
     [],

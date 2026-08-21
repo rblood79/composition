@@ -34,6 +34,7 @@ import {
 } from "../scene/layoutCache";
 import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
 import { useStore } from "../../../stores";
+import { recordEditorPresentationLayoutPublish } from "../../../performance/editorPresentationPhase0Metrics";
 
 interface PageLayoutInput {
   pageId: string;
@@ -107,6 +108,7 @@ export function useLayoutPublisher(
     .join("||");
 
   useEffect(() => {
+    recordEditorPresentationLayoutPublish();
     const all = [...pagesRef.current, ...framePagesRef.current];
     // ADR-154: 현재 activeBreakpoint 를 publish 시점에 읽어 resolve 에 사용.
     // activeBreakpoint 변경은 bridge(invalidateLayout)로 layoutVersion 을 bump →

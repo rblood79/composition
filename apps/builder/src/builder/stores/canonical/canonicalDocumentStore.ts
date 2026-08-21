@@ -38,6 +38,7 @@ import {
   moveDescendantChild as moveDescendantChildInDocument,
   removeCanonicalChild,
 } from "@composition/shared";
+import { recordEditorPresentationCanonicalWrite } from "../../performance/editorPresentationPhase0Metrics";
 
 // ─────────────────────────────────────────────
 // Store state
@@ -248,6 +249,7 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
     },
 
     setDocument: (projectId, doc) => {
+      recordEditorPresentationCanonicalWrite();
       set((state) => {
         const next = new Map(state.documents);
         next.set(projectId, doc);

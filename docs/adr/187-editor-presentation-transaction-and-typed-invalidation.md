@@ -19,14 +19,14 @@ canonical document 변경으로 표현하고 전역 파생 경로를 깨우는 �
 원인이다.
 
 1. `ColorPickerPanel.handleChange`가 RAF를 소유하고
-   (`ColorPickerPanel.tsx:85-100`), `useFillActions.updateFillPreviewThrottled`가 다시
-   RAF를 소유한다 (`useFillActions.ts:169-187`). 바깥 RAF는 종료 시 취소되지만
+   (`ColorPickerPanel.tsx:91-131`), `useFillActions.updateFillPreviewThrottled`가 다시
+   RAF를 소유한다 (`useFillActions.ts:170-190`). 바깥 RAF는 종료 시 취소되지만
    안쪽 RAF는 `handleColorChangeEnd`가 commit하기 전에 취소·flush되지 않는다.
    따라서 이미 commit된 최종 값 뒤에 stale preview가 실행될 수 있다.
 2. `updateSelectedFillsPreviewLightweight`는 이름과 달리 전체 legacy `elements`
    배열과 `elementsMap`을 다시 만들고, dirty subtree를 수집하고,
    `layoutVersion`을 무조건 증가시킨 뒤 canonical을 동기화한다
-   (`inspectorActions.ts:1399-1443`). `fills`는 paint 데이터인데 layout 변경으로
+   (`inspectorActions.ts:1397-1446`). `fills`는 paint 데이터인데 layout 변경으로
    승격된다.
 3. 같은 함수는 legacy store `set`을 먼저 수행하고 canonical mutation을 나중에
    호출한다. 이는 ADR-122/184의 canonical-first 순서와 반대이며, 한 frame 안에서도
@@ -34,10 +34,10 @@ canonical document 변경으로 표현하고 전역 파생 경로를 깨우는 �
    만든다.
 4. `BuilderCanvas`는 active canonical document 전체 identity를 구독하고
    (`BuilderCanvas.tsx:246-315`), fill을 포함한 projection signature를 전체 scene에
-   대해 계산한다 (`buildSceneSnapshot.ts:createNodeProjectionSignature`). projection
+   대해 계산한다 (`buildSceneSnapshot.ts:createResolvedProjectionSignature`). projection
    변경은 `StoreRenderBridge`의 full rebuild로 승격될 수 있고, Preview는 RAF에서
-   canonical document 전체를 `postMessage`한다 (`useIframeMessenger.ts:306-324,
-1087-1106`). 대상 한 개의 색상 변경 비용이 문서 요소 수 `N`과 결합한다.
+   canonical document 전체를 `postMessage`한다 (`useIframeMessenger.ts:303-324,
+1080-1107`). 대상 한 개의 색상 변경 비용이 문서 요소 수 `N`과 결합한다.
 
 즉, 이 문제는 RAF 한 번을 지우거나 52ms 경고를 숨기는 것으로 닫히지 않는다.
 현재 모델에는 다음 두 개의 시간축과 세 종류의 변경이 구분되어 있지 않다.

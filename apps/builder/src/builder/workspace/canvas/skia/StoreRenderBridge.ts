@@ -48,6 +48,10 @@ import { isCatalogCutover } from "@composition/shared";
 import { parsePxValue } from "@composition/specs";
 import { resolveInstanceWithSharedCache } from "@/resolvers/canonical/storeBridge";
 import { resolveCanonicalRefElement } from "../../../utils/canonicalRefResolution";
+import {
+  recordEditorPresentationBridgeFullRebuild,
+  recordEditorPresentationTargetIncrementalPatches,
+} from "../../../performance/editorPresentationPhase0Metrics";
 
 function isImageElement(element: CanvasSceneNode): boolean {
   return IMAGE_TAGS.has(element.type);
@@ -487,6 +491,8 @@ export class StoreRenderBridge {
       }
     }
 
+    recordEditorPresentationTargetIncrementalPatches(expandedIds.size);
+
     // ADR-066: synthetic elements (virtual Tab 등)도 증분 처리. 렌더링을 위해
     // Skia node가 필요하며 items 등 변경 시 rebuild 필요.
     const syntheticMap = getSyntheticElementsMap();
@@ -564,6 +570,7 @@ export class StoreRenderBridge {
     theme: "light" | "dark",
     childrenMap: Map<string, CanvasSceneNode[]> | null,
   ): void {
+    recordEditorPresentationBridgeFullRebuild();
     const ctx: BuildContext = {
       layoutMap: layoutMap ?? EMPTY_LAYOUT_MAP,
       theme,
@@ -810,8 +817,7 @@ export class StoreRenderBridge {
     if (!tm) return;
 
     const nextStyle = (nextElement.props as Record<string, unknown>)?.style as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     if (!nextStyle) return;
 
     const transitionValue = nextStyle.transition as string | undefined;

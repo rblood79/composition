@@ -19,6 +19,11 @@ import { ColorSlider } from "@composition/shared/components/ColorSlider";
 import { ColorInputModeSelector } from "./ColorInputModeSelector";
 import { ColorInputFields } from "./ColorInputFields";
 import { EyeDropperButton } from "./EyeDropperButton";
+import {
+  recordEditorPresentationControlRaf,
+  recordEditorPresentationRawInput,
+  recordEditorPresentationTerminalEvent,
+} from "../../../performance/editorPresentationPhase0Metrics";
 
 import "./ColorPickerPanel.css";
 
@@ -86,16 +91,19 @@ function ColorPickerPanelInner({
   const handleChange = useCallback(
     (color: Color | null) => {
       if (!color) return;
+      recordEditorPresentationRawInput();
       setLocalColor(color);
       latestColorRef.current = color;
 
       if (localRafRef.current !== null) return;
 
       localRafRef.current = requestAnimationFrame(() => {
+        const startedAt = performance.now();
         localRafRef.current = null;
         const latest = latestColorRef.current;
         if (!latest) return;
         onChange(latest.toString("hexa"));
+        recordEditorPresentationControlRaf(performance.now() - startedAt);
       });
     },
     [onChange],
@@ -104,6 +112,7 @@ function ColorPickerPanelInner({
   // 드래그 종료: 보류 중인 RAF 취소 + 최종 값 flush + 실제 저장
   const handleChangeEnd = useCallback(
     (color: Color) => {
+      recordEditorPresentationTerminalEvent();
       // 보류 중인 RAF 취소 (이중 업데이트 방지)
       if (localRafRef.current !== null) {
         cancelAnimationFrame(localRafRef.current);

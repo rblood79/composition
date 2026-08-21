@@ -15,6 +15,7 @@ import type {
   SceneSnapshot,
   SceneStructureSnapshot,
 } from "./sceneSnapshotTypes";
+import { recordEditorPresentationProjectionSignature } from "../../../performance/editorPresentationPhase0Metrics";
 
 interface BuildSceneSelectionInput {
   currentPageId: string | null;
@@ -83,7 +84,8 @@ export function createResolvedProjectionSignature(input: {
   // useMemo)는 전체 snapshot 없이 pageDataMap(ScenePageData) 으로 호출.
   pageSnapshots: Map<string, ScenePageData>;
 }): number {
-  return hashString(
+  const startedAt = performance.now();
+  const signature = hashString(
     stableSerialize({
       rawSceneNodes: input.elements.map(createNodeProjectionSignature),
       resolvedPages: Array.from(input.pageSnapshots.entries()).map(
@@ -97,6 +99,8 @@ export function createResolvedProjectionSignature(input: {
       ),
     }),
   );
+  recordEditorPresentationProjectionSignature(performance.now() - startedAt);
+  return signature;
 }
 
 /**

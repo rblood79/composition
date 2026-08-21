@@ -751,6 +751,12 @@ G4 실패로 처리한다.
 
 ### Phase 0 — inventory와 production baseline freeze
 
+**진행 상태: Complete — 2026-08-22 (G0 PASS).** 근거는
+[Phase 0 baseline](./187-phase-0-presentation-baseline.md),
+[benchmark JSON](./187-phase-0-presentation-baseline.json),
+[5-symbol fixture](./187-phase-0-invalidation-baseline.json)에 동결했다. 제품 Preview는
+별도 서버가 아니라 Builder 상단 토글의 split mode에서 검증했다.
+
 - continuous editor, preview action, RAF owner, invalidation writer, canonical traversal,
   Preview message를 전수 inventory한다.
 - Preview `resolveCanonicalDocument`와 Skia `resolveCanonicalRefTree`의 origin/ref
@@ -972,7 +978,7 @@ renderer output이 stale이면 실패다.
 
 ## 9. 완료 체크리스트
 
-- [ ] Phase 0 production baseline과 counter evidence가 있다.
+- [x] Phase 0 production baseline과 counter evidence가 있다.
 - [ ] Hard Constraint 1~12가 각각 test/trace/gate에 연결된다.
 - [ ] descriptor inventory 100%와 unknown RED fixture가 있다.
 - [ ] neutral registry에서 5-symbol view가 파생되고 frozen baseline parity/정적 guard를

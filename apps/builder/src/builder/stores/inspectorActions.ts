@@ -419,8 +419,7 @@ function buildInspectorPersistencePayload(
   }
   const mirrorDescendantPatches = (
     additionalUpdates as
-      | Record<typeof COMPONENT_DESCENDANTS_MIRROR_FIELD, unknown>
-      | undefined
+      Record<typeof COMPONENT_DESCENDANTS_MIRROR_FIELD, unknown> | undefined
   )?.[COMPONENT_DESCENDANTS_MIRROR_FIELD];
   if (mirrorDescendantPatches !== undefined) {
     payload[COMPONENT_DESCENDANTS_MIRROR_FIELD] = mirrorDescendantPatches;
@@ -1045,8 +1044,7 @@ export const createInspectorActionsSlice: StateCreator<
       const baseStyle =
         (resolved.props?.style as Record<string, unknown>) || {};
       const respStyles = element.responsive?.styles as
-        | Record<string, ResponsiveValue<unknown>>
-        | undefined;
+        Record<string, ResponsiveValue<unknown>> | undefined;
 
       let nextResponsive = element.responsive;
       for (const key of longhands) {
@@ -1397,6 +1395,7 @@ export const createInspectorActionsSlice: StateCreator<
     },
 
     updateSelectedFillsPreviewLightweight: (fills) => {
+      const startedAt = performance.now();
       const { elements, selectedElementId } = get();
       if (!selectedElementId) return;
 
@@ -1440,7 +1439,11 @@ export const createInspectorActionsSlice: StateCreator<
           dirtyElementIds: dirtyIds,
         } as Partial<CombinedState>;
       });
+      window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__?.recordLegacyWrite();
       syncInspectorElementToCanonical(updatedElement);
+      window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__?.recordFrameApply(
+        performance.now() - startedAt,
+      );
     },
 
     // ============================================
@@ -1460,8 +1463,7 @@ export const createInspectorActionsSlice: StateCreator<
 
       // 변경 없으면 스킵
       const prevComputedStyle = currentProps.computedStyle as
-        | Record<string, string>
-        | undefined;
+        Record<string, string> | undefined;
       if (prevComputedStyle) {
         const prevKeys = Object.keys(prevComputedStyle);
         const newKeys = Object.keys(computedStyle);
@@ -1492,8 +1494,12 @@ export const createInspectorActionsSlice: StateCreator<
  * Used by panels to get selected element in Inspector-compatible format
  */
 export function mapElementToSelectedElement(element: Element): SelectedElement {
-  const { style, computedStyle, events: _events, ...otherProps } =
-    element.props as Record<string, unknown>;
+  const {
+    style,
+    computedStyle,
+    events: _events,
+    ...otherProps
+  } = element.props as Record<string, unknown>;
 
   return {
     id: element.id,
