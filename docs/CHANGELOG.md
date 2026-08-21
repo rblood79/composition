@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## GridList quiet - 2026-08-22
+
+### Added
+
+- GridList 에 Quiet 표시를 추가했다. 켜면 카드에서 배경과 테두리가 사라지고 라벨·설명만 남으며
+  (마우스를 올리면 배경이 돌아온다), 선택된 카드의 accent 테두리는 그대로 유지된다. 캔버스와
+  미리보기가 같은 결과를 낸다.
+
+### Bug Fixes
+
+- `selectionMode` 가 Single 인 GridList 의 캔버스 카드에 미리보기에는 없는 선택 체크박스가
+  그려지고 카드가 22px 높아지던 문제를 수정했다(2026-08-21 변경에서 유입). GridList 는
+  Multiple 에서만 체크박스를 그린다 — Tree 는 Single 에서도 그리며, 둘의 차이는 의도된 것이다.
+- GridList 카드가 variant 별 시각 규칙을 전혀 적용받지 못하던 문제를 수정했다(규칙 파일이
+  스타일 목록에 빠져 있었고 카드 마크업에도 속성이 없었다). 기본 카드의 시각은 변화 없다.
+
 ## GridList 카드 선택 체크박스 Skia 대칭 - 2026-08-22
 
 ### Bug Fixes
