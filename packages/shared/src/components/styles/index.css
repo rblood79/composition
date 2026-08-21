@@ -154,6 +154,7 @@
 /* Menu Components */
 @import "./generated/Menu.css";
 @import "./generated/MenuItem.css";
+@import "./Menu.css"; /* 수동 보충 — 선택 표시 ::before (generator 가 pseudo content 미지원) */
 
 /* Selection Components — skipCSSGeneration, 수동 CSS */
 @import "./generated/Select.css";

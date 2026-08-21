@@ -1,0 +1,50 @@
+/* ============================================================
+ * Menu Selection Indicator Supplement (manual — generated Menu/MenuItem CSS 보충)
+ *
+ * **왜 필요한가**: RAC starter 의 `MenuItem` 은 선택된 항목에 표시를 그린다
+ * (`packages/react-aria-starter/src/Menu.tsx` — multiple 이면 `<Check/>`, single 이면
+ * `<Dot/>`, 그리고 Menu.css 가 `&[data-selection-mode]` 아래에서 그 자리를 `check` 열로
+ * 잡는다). composition 의 `Menu.tsx` 는 그 render-prop 분기를 옮겨오지 않았고 catalog
+ * `MenuItem` rule 에도 selected 채널이 없어서, `selectionMode` 를 켜고 항목을 골라도
+ * **DOM 이 아무 표시도 내지 않았다** (배경도 글리프도 없음). selection 상태 배선
+ * (renderMenu → MenuButton → RAC Menu 의 selectedKeys/onSelectionChange) 은 이미 정상이라,
+ * 빠진 것은 시각 채널 하나였다 (design-data 감사 §2-E "Menu selectionStyle", 2026-08-22).
+ *
+ * **왜 수동 CSS 인가**: 표시를 ::before 로 그리기 때문 — pseudo-element `content` 는 CSS
+ * generator 가 표현하지 못한다 (`TabsIndicator.css` / `ListBox.css [data-selected]::before`
+ * 와 같은 부류의 보충). 대신 독립 수치를 만들지 않는다: 글리프 폭은 `1em`(생성 CSS 의
+ * size 별 font-size 파생), 라벨과의 간격은 MenuItem 의 `gap`(catalog sizes 파생), 색은
+ * `--accent` 토큰. 즉 catalog 가 값을 바꾸면 이 열도 따라간다.
+ *
+ * **Skia 대칭 없음 — 의도**: Menu 는 트리거 버튼만 캔버스에 렌더되고 MenuItem 자식은
+ * Popover 라 레이아웃/렌더에서 제외된다 (`layout/engines/implicitStyles.ts` 의 동일 취지
+ * 주석). 그리는 consumer 가 DOM 하나뿐이라 대칭 대상이 없다.
+ *
+ * **게이팅은 데이터로**: RAC 가 항목마다 `[data-selection-mode="single|multiple"]` 을
+ * emit 한다 (`react-aria-components` `ItemRenderProps.selectionMode`). 컴포넌트 이름 분기
+ * 없이 이 속성만 보면 되고, `selectionMode: "none"` 이면 두 값 중 어디에도 안 걸려 열 자체가
+ * 생기지 않는다 — 선택을 안 쓰는 기존 메뉴의 배치는 그대로다.
+ * ============================================================ */
+
+@layer components {
+  /* 선택 표시 열 — 선택 가능한 메뉴에서만 확보한다. 선택 여부와 무관하게 빈 열을 잡아야
+     항목을 고를 때 라벨이 밀리지 않는다 (starter 의 `check` 그리드 열과 같은 역할). */
+  .react-aria-MenuItem[data-selection-mode="single"]::before,
+  .react-aria-MenuItem[data-selection-mode="multiple"]::before {
+    content: "";
+    flex: none;
+    width: 1em;
+    text-align: center;
+    color: var(--accent);
+  }
+
+  /* 글리프 자체는 장식 — `/ ""` 로 대체 텍스트를 비워 스크린리더가 두 번 말하지 않게 한다
+     (선택 여부는 RAC 가 aria-checked / aria-selected 로 이미 전달한다). */
+  .react-aria-MenuItem[data-selection-mode="multiple"][data-selected]::before {
+    content: "✓" / "";
+  }
+
+  .react-aria-MenuItem[data-selection-mode="single"][data-selected]::before {
+    content: "●" / "";
+  }
+}

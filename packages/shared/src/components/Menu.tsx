@@ -27,6 +27,7 @@ import {
   type SlotRole,
 } from "../catalog/slotRoles";
 import "./styles/generated/Menu.css";
+import "./styles/Menu.css";
 
 /**
  * Phase 4: data-* 패턴 전환
@@ -382,10 +383,7 @@ export function MenuButton<T extends object>({
       if (hasSubmenu) {
         return (
           <SubmenuTrigger key={item.id}>
-            <AriaMenuItem
-              textValue={item.label}
-              isDisabled={item.isDisabled}
-            >
+            <AriaMenuItem textValue={item.label} isDisabled={item.isDisabled}>
               {content}
             </AriaMenuItem>
             <Popover data-size={size}>
