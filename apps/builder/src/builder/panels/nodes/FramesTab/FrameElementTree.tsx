@@ -22,7 +22,7 @@ import { iconProps } from "../../../../utils/ui/uiConstants";
 import type { ElementProps } from "../../../../types/integrations/supabase.types";
 import type { ElementTreeItem } from "../../../../types/builder/stately.types";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
-import { PanelHeader } from "../../../components";
+import { ActionIconButton, Section } from "../../../components";
 import { TreeBase, VirtualizedTree } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
 import type { PanelNode } from "../../panelNode";
@@ -141,59 +141,58 @@ export function FrameElementTree({
   );
 
   return (
-    <div className="section">
-      <PanelHeader
-        title="Layers"
-        actions={
-          <button
-            className="iconButton"
-            aria-label="Collapse All"
-            onClick={onCollapseAll}
-          >
-            <Minimize
-              color={iconProps.color}
-              strokeWidth={iconProps.strokeWidth}
-              size={iconProps.size}
-            />
-          </button>
-        }
-      />
-      <div className="section-content elements">
-        {!frameId ? (
-          <p className="no_element">Select a frame to view elements</p>
-        ) : tree.length === 0 ? (
-          <p className="no_element">No elements in this frame</p>
-        ) : treeNodes.length >= 12 ? (
-          <VirtualizedTree<FrameElementTreeNode>
-            aria-label="Layers"
-            items={treeNodes}
-            getKey={(node) => node.id}
-            getTextValue={getFrameElementDisplayName}
-            renderContent={renderContent}
-            selectedKeys={selectedKeys}
-            expandedKeys={resolvedExpandedKeys}
-            onSelectionChange={handleSelectionChange}
-            onExpandedChange={handleExpandedChange}
-            itemHeight={32}
-            overscan={8}
-            className="frame-tree frame-tree--virtualized"
+    <Section
+      className="node-tree-section"
+      title="Layers"
+      collapsible={false}
+      actions={
+        <ActionIconButton
+          aria-label="Collapse All"
+          tooltip="모두 접기"
+          onPress={onCollapseAll}
+        >
+          <Minimize
+            color={iconProps.color}
+            strokeWidth={iconProps.strokeWidth}
+            size={iconProps.size}
           />
-        ) : (
-          <TreeBase<FrameElementTreeNode>
-            aria-label="Layers"
-            items={treeNodes}
-            getKey={(node) => node.id}
-            getTextValue={getFrameElementDisplayName}
-            renderContent={renderContent}
-            selectedKeys={selectedKeys}
-            expandedKeys={resolvedExpandedKeys}
-            onSelectionChange={handleSelectionChange}
-            onExpandedChange={handleExpandedChange}
-            className="frame-tree"
-          />
-        )}
-      </div>
-    </div>
+        </ActionIconButton>
+      }
+    >
+      {!frameId ? (
+        <p className="no_element">Select a frame to view elements</p>
+      ) : tree.length === 0 ? (
+        <p className="no_element">No elements in this frame</p>
+      ) : treeNodes.length >= 12 ? (
+        <VirtualizedTree<FrameElementTreeNode>
+          aria-label="Layers"
+          items={treeNodes}
+          getKey={(node) => node.id}
+          getTextValue={getFrameElementDisplayName}
+          renderContent={renderContent}
+          selectedKeys={selectedKeys}
+          expandedKeys={resolvedExpandedKeys}
+          onSelectionChange={handleSelectionChange}
+          onExpandedChange={handleExpandedChange}
+          itemHeight={28}
+          overscan={8}
+          className="frame-tree frame-tree--virtualized"
+        />
+      ) : (
+        <TreeBase<FrameElementTreeNode>
+          aria-label="Layers"
+          items={treeNodes}
+          getKey={(node) => node.id}
+          getTextValue={getFrameElementDisplayName}
+          renderContent={renderContent}
+          selectedKeys={selectedKeys}
+          expandedKeys={resolvedExpandedKeys}
+          onSelectionChange={handleSelectionChange}
+          onExpandedChange={handleExpandedChange}
+          className="frame-tree"
+        />
+      )}
+    </Section>
   );
 }
 

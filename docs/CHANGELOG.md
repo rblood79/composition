@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Node 패널 공통 디자인 정렬 — Panel/Section style contract - 2026-08-21
+
+### Bug Fixes
+
+- **Node 패널이 Properties/Styles 패널과 다른 sidebar 스타일로 남아 있던 문제 수정**:
+  - Pages·Layers·Frames를 공통 `Section`과 `ActionIconButton` 구조로 전환하고,
+    panel shell·header·content padding·semantic color token을 현재 패널 규칙에 맞췄다.
+  - Tree row도 Layout의 ID·Class Name control과 같은 28px 높이와 6px radius
+    token을 사용하도록 맞췄다.
+  - Page/Layer/Frame tree의 텍스트 앞 타입 아이콘, depth 들여쓰기 세로선,
+    expand·selection·drag action은 기존 tree 정보구조 그대로 유지했다.
+  - **Why:** 초기 sidebar 전용 `.section-content { all: unset; }`과 수동
+    `PanelHeader` 조합이 공통 8px padding/background/typography를 제거하고 있었다.
+  - 위치: `apps/builder/src/builder/panels/nodes/`
+
 ## lucide-react 1.x · react-router 8 - 2026-08-21
 
 ### Infrastructure

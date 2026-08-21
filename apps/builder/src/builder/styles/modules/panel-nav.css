@@ -28,6 +28,7 @@
     gap: var(--spacing-sm);
     z-index: 1;
     background-color: var(--bg-raised);
+    border: 1px solid var(--border-pressed);
     border-radius: var(--radius-md);
   }
 

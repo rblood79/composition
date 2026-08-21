@@ -6,11 +6,10 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { Key } from "react-stately";
-import { Button } from "react-aria-components";
 import { Minimize } from "lucide-react";
 import { useStore } from "../../stores";
 import { useCanonicalPanelElements } from "./useCanonicalPanelElements";
-import { PanelHeader } from "../../components";
+import { ActionIconButton, Section } from "../../components";
 import { LayerTree } from "./tree/LayerTree";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { resolveEditingContextForTreeSelection } from "../../utils/hierarchicalSelection";
@@ -210,41 +209,40 @@ export const LayersSection = memo(function LayersSection({
   );
 
   return (
-    <div className="section">
-      <PanelHeader
-        title="Layers"
-        actions={
-          <Button
-            className="iconButton"
-            aria-label="Collapse All"
-            onPress={handleCollapseAll}
-          >
-            <Minimize
-              color={iconProps.color}
-              strokeWidth={iconProps.strokeWidth}
-              size={iconProps.size}
-            />
-          </Button>
-        }
-      />
-      <div className="section-content">
-        {isTreeVisible ? (
-          <LayerTree
-            elements={currentPageElements}
-            selectedElementId={selectedElementId}
-            expandedKeys={expandedKeys}
-            onExpandedChange={handleExpandedChange}
-            onItemClick={handleItemClick}
-            onItemDelete={handleItemDelete}
+    <Section
+      className="node-tree-section"
+      title="Layers"
+      collapsible={false}
+      actions={
+        <ActionIconButton
+          aria-label="Collapse All"
+          tooltip="모두 접기"
+          onPress={handleCollapseAll}
+        >
+          <Minimize
+            color={iconProps.color}
+            strokeWidth={iconProps.strokeWidth}
+            size={iconProps.size}
           />
-        ) : (
-          <div
-            className="layer-tree-placeholder"
-            aria-hidden="true"
-            style={{ minHeight: 32 }}
-          />
-        )}
-      </div>
-    </div>
+        </ActionIconButton>
+      }
+    >
+      {isTreeVisible ? (
+        <LayerTree
+          elements={currentPageElements}
+          selectedElementId={selectedElementId}
+          expandedKeys={expandedKeys}
+          onExpandedChange={handleExpandedChange}
+          onItemClick={handleItemClick}
+          onItemDelete={handleItemDelete}
+        />
+      ) : (
+        <div
+          className="layer-tree-placeholder"
+          aria-hidden="true"
+          style={{ minHeight: 32 }}
+        />
+      )}
+    </Section>
   );
 });

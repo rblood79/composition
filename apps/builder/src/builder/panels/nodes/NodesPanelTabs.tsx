@@ -53,7 +53,7 @@ export function NodesPanelTabs({
 
   return (
     <div
-      className="nodes-panel-tabs"
+      className="panel-header nodes-panel-tabs"
       role="tablist"
       aria-label="Nodes Panel Tabs"
     >

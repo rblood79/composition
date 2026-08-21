@@ -179,7 +179,12 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
         />,
       );
 
-      expect(container.firstElementChild?.className).toBe("section");
+      expect(container.firstElementChild?.classList.contains("section")).toBe(
+        true,
+      );
+      expect(
+        container.firstElementChild?.classList.contains("node-tree-section"),
+      ).toBe(true);
       expect(container.querySelector(".section-content")).toBeTruthy();
       expect(container.querySelector(".frame-tree")).toBeTruthy();
       expect(container.querySelector(".sidebar_elements")).toBeNull();

@@ -19,7 +19,7 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
 import { iconProps } from "../../../../utils/ui/uiConstants";
-import { PanelHeader } from "../../../components";
+import { ActionIconButton, Section } from "../../../components";
 import { TreeBase } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
@@ -97,37 +97,39 @@ export function FrameList({
   );
 
   return (
-    <div className="section">
-      <PanelHeader
-        title="Frames"
-        actions={
-          <Button className="iconButton" aria-label="Add Frame" onPress={onAdd}>
-            <AddIcon
-              color={iconProps.color}
-              strokeWidth={iconProps.strokeWidth}
-              size={iconProps.size}
-            />
-          </Button>
-        }
-      />
-
-      <div className="section-content elements">
-        {frames.length === 0 ? (
-          <p className="no_element">No frames available</p>
-        ) : (
-          <TreeBase<FrameListNode>
-            aria-label="Frames"
-            items={treeNodes}
-            getKey={(node) => node.id}
-            getTextValue={(node) => node.name}
-            renderContent={renderContent}
-            selectedKeys={selectedKeys}
-            onSelectionChange={handleSelectionChange}
-            className="frame-tree"
+    <Section
+      className="node-tree-section"
+      title="Frames"
+      collapsible={false}
+      actions={
+        <ActionIconButton
+          aria-label="Add Frame"
+          tooltip="프레임 추가"
+          onPress={onAdd}
+        >
+          <AddIcon
+            color={iconProps.color}
+            strokeWidth={iconProps.strokeWidth}
+            size={iconProps.size}
           />
-        )}
-      </div>
-    </div>
+        </ActionIconButton>
+      }
+    >
+      {frames.length === 0 ? (
+        <p className="no_element">No frames available</p>
+      ) : (
+        <TreeBase<FrameListNode>
+          aria-label="Frames"
+          items={treeNodes}
+          getKey={(node) => node.id}
+          getTextValue={(node) => node.name}
+          renderContent={renderContent}
+          selectedKeys={selectedKeys}
+          onSelectionChange={handleSelectionChange}
+          className="frame-tree"
+        />
+      )}
+    </Section>
   );
 }
 

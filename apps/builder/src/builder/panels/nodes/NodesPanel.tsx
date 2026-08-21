@@ -67,10 +67,10 @@ export function NodesPanel() {
   );
 
   return (
-    <div className="nodes-panel nodes-panel--new-tree">
+    <div className="panel nodes-panel nodes-panel--new-tree">
       <NodesPanelTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
-      <div className="nodes-panel-content">
+      <div className="panel-contents nodes-panel-content">
         {activeTab === "pages" ? (
           <PagesTabContent projectId={projectId} />
         ) : (
@@ -157,7 +157,11 @@ const PagesTabContent = memo(function PagesTabContent({
       {activeLayerPageId ? (
         <LayersSection currentPageId={activeLayerPageId} />
       ) : (
-        <div className="section" aria-hidden="true" style={{ minHeight: 72 }} />
+        <div
+          className="node-tree-section-placeholder"
+          aria-hidden="true"
+          style={{ minHeight: 72 }}
+        />
       )}
     </>
   );

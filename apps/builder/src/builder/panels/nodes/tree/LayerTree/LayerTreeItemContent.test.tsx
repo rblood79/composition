@@ -75,6 +75,20 @@ describe("LayerTreeItemContent editing semantics marker", () => {
     cleanup();
   });
 
+  it("텍스트 앞의 layer 아이콘과 depth guide를 유지한다", () => {
+    const { container } = renderItem(makeNode({ depth: 2 }));
+
+    const row = container.querySelector(".elementItem");
+    const indent = row?.querySelector<HTMLElement>(".elementItemIndent");
+    const icon = row?.querySelector(".elementItemIcon svg");
+    const label = row?.querySelector(".elementItemLabel");
+
+    expect(indent?.style.width).toBe("16px");
+    expect(icon).toBeTruthy();
+    expect(label?.textContent).toContain("Origin Button");
+    expect(icon?.parentElement?.nextElementSibling).toBe(label);
+  });
+
   it("origin node renders Pencil origin semantic dot with accessible label", () => {
     renderItem(makeNode());
 

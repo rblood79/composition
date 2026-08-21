@@ -148,8 +148,8 @@
     overflow: visible;
     color: var(--fg);
     background: var(--bg-overlay);
-    border: 0;
     border-radius: var(--radius-lg);
+    border: 1px solid var(--border-pressed);
     box-shadow: var(--shadow-lg);
     opacity: 1;
     transform: none;

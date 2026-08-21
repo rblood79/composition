@@ -1,10 +1,3 @@
-/* Content */
-
-/* Elements */
-.elements {
-  padding: 0;
-}
-
 .element {
   position: relative;
   cursor: pointer;
@@ -15,6 +8,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: var(--inspector-control-size);
+  border-radius: var(--radius-md);
   transition:
     background-color 0.2s ease,
     outline 0s ease;
@@ -36,7 +31,7 @@
 .elementItemIndent {
   display: inline-block;
   width: var(--spacing-lg);
-  height: var(--spacing-2xl);
+  height: var(--inspector-control-size);
   /*var(--spacing-lg);*/
   position: relative;
 
@@ -126,7 +121,11 @@
 }
 
 .elementItemActions .iconButton {
-  padding: var(--spacing-sm);
+  width: var(--inspector-control-size);
+  height: var(--inspector-control-size);
+  padding: var(--spacing);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
 }
 
 .elementItemActions .layer-drag-handle {
@@ -185,7 +184,7 @@
 .react-aria-TreeItem[data-drop-target] {
   outline: 1px solid var(--focus-ring);
   outline-offset: -1px;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background-color: var(--accent-subtle);
   z-index: 1;
 }
@@ -239,38 +238,47 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .nodes-panel-content {
-  flex: 1;
-  overflow-y: auto;
+  min-width: 0;
   overflow-x: hidden;
+}
 
-  .section {
-    .section-content {
-      all: unset;
+.nodes-panel-content .node-tree-section .section-content {
+  min-width: 0;
+}
 
-      .react-aria-Tree,
-      .page-tree,
-      .frame-tree {
-        all: unset;
+.nodes-panel-content :is(.react-aria-Tree, .page-tree, .frame-tree) {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  max-height: none;
+  gap: 0;
+  overflow: visible;
+  padding: 0;
+  color: var(--fg);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-sizing: border-box;
+}
 
-        .react-aria-TreeItem {
-          padding: 0;
+.nodes-panel-content .react-aria-TreeItem {
+  min-height: var(--inspector-control-size);
+  padding: 0;
+  border-radius: var(--radius-md);
+}
 
-          .elementItem {
-            width: 100%;
+.nodes-panel-content .elementItem {
+  width: 100%;
+}
 
-            .elementItemActions {
-              .layer-drag-handle {
-                cursor: grab;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+.nodes-panel-content .elementItemActions .layer-drag-handle {
+  cursor: grab;
 }
 
 .nodes-panel .panel-empty-state {
@@ -286,6 +294,7 @@
 .nodes-panel-tabs {
   display: flex;
   flex-direction: row;
+  width: 100%;
   gap: 0;
   background-color: var(--bg-raised);
 }
@@ -301,9 +310,11 @@
   background: var(--bg-muted);
   cursor: pointer;
   font-size: var(--text-xs);
-  line-height: var(--text-xs);
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
+  line-height: var(--text-xs--line-height);
+  color: var(--fg-muted);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .nodes-panel-tab-label {
@@ -312,12 +323,12 @@
 }
 
 .nodes-panel-tab:hover {
-  background-color: var(--accent-subtle);
-  color: var(--text-primary);
+  background-color: var(--bg-overlay);
+  color: var(--fg);
 }
 
 .nodes-panel-tab.active {
-  color: var(--text-primary);
+  color: var(--fg);
   background-color: var(--bg-raised);
 }
 
@@ -327,7 +338,7 @@
 
 /* Slot Element 특별 표시 */
 .element[data-tag="Slot"] .elementItemLabel {
-  color: var(--color-primary-600);
+  color: var(--informative);
   font-weight: var(--font-weight-medium);
 }
 
@@ -342,8 +353,8 @@
   padding: 0 var(--spacing-sm);
   margin-left: var(--spacing-sm);
   font-size: var(--text-2xs);
-  background-color: var(--color-primary-100);
-  color: var(--color-primary-700);
+  background-color: var(--bg-muted);
+  color: var(--fg);
   border-radius: var(--radius-sm);
 }
 
@@ -354,8 +365,8 @@
   padding: 0 var(--spacing-sm);
   margin-left: var(--spacing-sm);
   font-size: var(--text-2xs);
-  background-color: var(--color-secondary-100);
-  color: var(--color-secondary-700);
+  background-color: var(--bg-muted);
+  color: var(--fg);
   border-radius: var(--radius-sm);
 }
 
@@ -407,7 +418,7 @@
 
 /* 자식이 있는 페이지 (폴더 아이콘) */
 .element[data-has-children="true"] .elementItemIcon svg {
-  stroke: var(--color-primary-500);
+  stroke: var(--fg);
 }
 
 /* 자식이 없는 페이지 (파일 아이콘) */
@@ -424,7 +435,7 @@
   outline: none;
 
   &:focus-visible {
-    outline: 2px solid var(--color-primary-500);
+    outline: 2px solid var(--focus-ring);
     outline-offset: -2px;
   }
 }
@@ -438,23 +449,23 @@
 
 /* ♿ Keyboard Focus 상태 (ARIA) */
 .elementItem.focused {
-  outline: 2px solid var(--color-primary-400);
+  outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
   background-color: var(--bg-overlay);
 }
 
 .elementItem.focused.active {
-  outline-color: var(--color-primary-600);
+  outline-color: var(--focus-ring);
 }
 
 /* Focus visible 상태 (탭 키로 포커스 시) */
 .element[data-focused="true"] .elementItem {
-  outline: 2px solid var(--color-primary-400);
+  outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
 }
 
 .element[data-focused="true"] .elementItem.active {
-  outline-color: var(--color-primary-600);
+  outline-color: var(--focus-ring);
 }
 
 /* react-aria TreeItem 스타일 */

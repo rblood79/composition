@@ -50,17 +50,37 @@ vi.mock("@/builder/hooks", () => ({
 }));
 
 vi.mock("../../components", () => ({
-  PanelHeader: ({
+  Section: ({
     title,
     actions,
+    children,
   }: {
     title: string;
     actions?: React.ReactNode;
+    children: React.ReactNode;
   }) => (
-    <div>
-      <span>{title}</span>
-      {actions}
+    <div className="section">
+      <div className="section-header">
+        <span>{title}</span>
+        {actions}
+      </div>
+      <div className="section-content">{children}</div>
     </div>
+  ),
+  ActionIconButton: ({
+    "aria-label": ariaLabel,
+    isDisabled,
+    onPress,
+    children,
+  }: {
+    "aria-label": string;
+    isDisabled?: boolean;
+    onPress?: () => void;
+    children: React.ReactNode;
+  }) => (
+    <button aria-label={ariaLabel} disabled={isDisabled} onClick={onPress}>
+      {children}
+    </button>
   ),
 }));
 

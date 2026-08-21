@@ -186,7 +186,7 @@ export function LayerTree({
     return (
       <VirtualizedTree<LayerTreeNode>
         {...sharedTreeProps}
-        itemHeight={32}
+        itemHeight={28}
         overscan={8}
         className="layer-tree layer-tree--virtualized"
       />

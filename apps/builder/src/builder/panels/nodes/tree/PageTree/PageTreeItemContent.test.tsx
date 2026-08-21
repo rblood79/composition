@@ -40,6 +40,32 @@ describe("PageTreeItemContent", () => {
     cleanup();
   });
 
+  it("텍스트 앞의 page 아이콘과 depth guide를 유지한다", () => {
+    const node = { ...makeNode(), depth: 2 };
+    const { container } = render(
+      <PageTreeItemContent
+        node={node}
+        state={{
+          isSelected: false,
+          isExpanded: false,
+          isDisabled: false,
+          isFocusVisible: false,
+        }}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    const row = container.querySelector(".elementItem");
+    const indent = row?.querySelector<HTMLElement>(".elementItemIndent");
+    const icon = row?.querySelector(".elementItemIcon svg");
+    const label = row?.querySelector(".elementItemLabel");
+
+    expect(indent?.style.width).toBe("16px");
+    expect(icon).toBeTruthy();
+    expect(label?.textContent).toBe("Home");
+    expect(icon?.parentElement?.nextElementSibling).toBe(label);
+  });
+
   it("선택된 page 행을 다시 클릭하면 reselect callback을 호출한다", () => {
     const page = makePage();
     const onReselect = vi.fn();

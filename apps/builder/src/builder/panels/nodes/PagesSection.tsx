@@ -14,12 +14,11 @@ import React, {
   useState,
 } from "react";
 import type { Key } from "react-stately";
-import { Button } from "react-aria-components";
 import { Home } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
 import { useIframeMessenger, usePageManager } from "@/builder/hooks";
-import { PanelHeader } from "../../components";
+import { ActionIconButton, Section } from "../../components";
 import { PageTree } from "./tree/PageTree";
 import { getDB } from "../../../lib/db";
 import type { Element, Page } from "../../../types/builder/unified.types";
@@ -344,102 +343,98 @@ export const PagesSection = memo(function PagesSection({
   );
 
   return (
-    <div className="section">
-      <PanelHeader
-        title="Pages"
-        actions={
-          <Button
-            className="iconButton"
-            aria-label="Add Page"
-            isDisabled={isCreatingPage}
-            onPress={handleAddPage}
-          >
-            <AddIcon
+    <Section
+      className="node-tree-section"
+      title="Pages"
+      collapsible={false}
+      actions={
+        <ActionIconButton
+          aria-label="Add Page"
+          tooltip="페이지 추가"
+          isDisabled={isCreatingPage}
+          onPress={handleAddPage}
+        >
+          <AddIcon
+            color={iconProps.color}
+            strokeWidth={iconProps.strokeWidth}
+            size={iconProps.size}
+          />
+        </ActionIconButton>
+      }
+    >
+      {isFallbackTransitioning ? (
+        <div aria-hidden="true" style={{ minHeight: 120 }} />
+      ) : singlePage ? (
+        <div
+          className="elementItem active"
+          role="button"
+          tabIndex={0}
+          aria-label={`Select page ${singlePage.title || "Untitled"}`}
+          onClick={(event) => {
+            const target = event.target;
+            if (target instanceof HTMLElement && target.closest("input"))
+              return;
+            handlePageSelect(singlePage);
+          }}
+          onDoubleClick={(event) => {
+            const target = event.target;
+            if (target instanceof HTMLElement && target.closest("input"))
+              return;
+            if (isComponentsPageMirror(singlePage)) return;
+            singlePageRenameCancelRef.current = false;
+            setIsRenamingSinglePage(true);
+          }}
+          onKeyDown={handleSinglePageKeyDown}
+        >
+          <div className="elementItemIndent" style={{ width: "0px" }} />
+          <div className="elementItemIcon">
+            <Home
               color={iconProps.color}
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}
+              style={{ padding: "2px" }}
             />
-          </Button>
-        }
-      />
-      <div className="section-content">
-        {isFallbackTransitioning ? (
-          <div aria-hidden="true" style={{ minHeight: 120 }} />
-        ) : singlePage ? (
-          <div
-            className="elementItem active"
-            role="button"
-            tabIndex={0}
-            aria-label={`Select page ${singlePage.title || "Untitled"}`}
-            onClick={(event) => {
-              const target = event.target;
-              if (target instanceof HTMLElement && target.closest("input"))
-                return;
-              handlePageSelect(singlePage);
-            }}
-            onDoubleClick={(event) => {
-              const target = event.target;
-              if (target instanceof HTMLElement && target.closest("input"))
-                return;
-              if (isComponentsPageMirror(singlePage)) return;
-              singlePageRenameCancelRef.current = false;
-              setIsRenamingSinglePage(true);
-            }}
-            onKeyDown={handleSinglePageKeyDown}
-          >
-            <div className="elementItemIndent" style={{ width: "0px" }} />
-            <div className="elementItemIcon">
-              <Home
-                color={iconProps.color}
-                strokeWidth={iconProps.strokeWidth}
-                size={iconProps.size}
-                style={{ padding: "2px" }}
-              />
-            </div>
-            <div className="elementItemLabel">
-              {isRenamingSinglePage ? (
-                <input
-                  className="page-title-rename-input"
-                  aria-label={`Rename page ${singlePage.title || "Untitled"}`}
-                  defaultValue={singlePage.title}
-                  autoFocus
-                  onFocus={(event) => event.currentTarget.select()}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onBlur={(event) =>
-                    commitSinglePageRename(
-                      singlePage,
-                      event.currentTarget.value,
-                    )
-                  }
-                  onKeyDown={(event) => {
-                    event.stopPropagation();
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      event.currentTarget.blur();
-                    } else if (event.key === "Escape") {
-                      event.preventDefault();
-                      singlePageRenameCancelRef.current = true;
-                      event.currentTarget.blur();
-                    }
-                  }}
-                />
-              ) : (
-                singlePage.title || "Untitled"
-              )}
-            </div>
           </div>
-        ) : (
-          <PageTree
-            pages={pages}
-            selectedPageId={deferredSelectedPageId}
-            expandedKeys={expandedKeys}
-            onExpandedChange={setExpandedKeys}
-            onPageSelect={handlePageSelect}
-            onPageDelete={handlePageDelete}
-            onPageRename={handlePageRename}
-          />
-        )}
-      </div>
-    </div>
+          <div className="elementItemLabel">
+            {isRenamingSinglePage ? (
+              <input
+                className="page-title-rename-input"
+                aria-label={`Rename page ${singlePage.title || "Untitled"}`}
+                defaultValue={singlePage.title}
+                autoFocus
+                onFocus={(event) => event.currentTarget.select()}
+                onPointerDown={(event) => event.stopPropagation()}
+                onBlur={(event) =>
+                  commitSinglePageRename(singlePage, event.currentTarget.value)
+                }
+                onKeyDown={(event) => {
+                  event.stopPropagation();
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  } else if (event.key === "Escape") {
+                    event.preventDefault();
+                    singlePageRenameCancelRef.current = true;
+                    event.currentTarget.blur();
+                  }
+                }}
+              />
+            ) : (
+              singlePage.title || "Untitled"
+            )}
+          </div>
+        </div>
+      ) : (
+        <PageTree
+          pages={pages}
+          selectedPageId={deferredSelectedPageId}
+          expandedKeys={expandedKeys}
+          onExpandedChange={setExpandedKeys}
+          onPageSelect={handlePageSelect}
+          onPageDelete={handlePageDelete}
+          onPageRename={handlePageRename}
+        />
+      )}
+    </Section>
   );
 });
