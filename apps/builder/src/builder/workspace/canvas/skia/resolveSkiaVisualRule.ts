@@ -53,6 +53,9 @@ export function ruleVariantToVisual(
     // leading avatar (2026-08-21 Tag chip 아바타) — leadingIcon 과 같은 좌측 슬롯,
     //   둘 다 있으면 avatar 우선(resolveLeadingSlot 단일 판정). 동형 캐스팅.
     leadingAvatar: v.leadingAvatar as ComponentVisualRule["leadingAvatar"],
+    // selection checkbox (2026-08-21) — leading 슬롯 **앞**의 별도 슬롯(가산). 동형 캐스팅.
+    selectionCheckbox:
+      v.selectionCheckbox as ComponentVisualRule["selectionCheckbox"],
     // trailing icon + textAlign (ADR-912 (B+icon) CalendarHeader) — inline_icon_text replace
     //   module 이 leading+center text+trailing 을 함께 그릴 때 사용. 동형 캐스팅.
     trailingIcon: v.trailingIcon as ComponentVisualRule["trailingIcon"],

@@ -139,6 +139,46 @@ export function resolveLeadingIconName(
     : null;
 }
 
+/** selection checkbox 슬롯 해석 결과 (행 맨 앞 — leading 슬롯보다 앞선다). */
+export interface SelectionSlotResolution {
+  /** 정사각형 한 변(px) */
+  size: number;
+  /** 체크박스 ↔ 다음 슬롯 간격(px) */
+  gap: number;
+  /** 뒤따르는 모든 것이 밀리는 폭 = size + gap */
+  width: number;
+  /** 체크 표시 여부 */
+  isSelected: boolean;
+}
+
+/**
+ * 행 맨 앞 selection checkbox 슬롯 — `showProp` boolean 이 true 일 때만 선다.
+ *
+ * leading 슬롯(icon/avatar)과 **배타가 아니다**: DOM 실측상 Tree 행은
+ * `checkbox → chevron → label` 순서라 둘 다 서고 폭이 **가산**된다. 그래서
+ * `resolveLeadingSlot` 과 별개 helper 이고, 호출부는 둘을 더한다.
+ *
+ * 가시성 신호(`_showSelectionCheckbox`)는 builder 가 부모 컬렉션의 selectionMode·
+ * selectionStyle 을 해석해 주입한다 — 여기서 컴포넌트를 식별하지 않는다(ADR-142 §3).
+ */
+export function resolveSelectionSlot(
+  visual: ComponentVisualRule | undefined,
+  props: Record<string, unknown>,
+): SelectionSlotResolution | null {
+  const sc = visual?.selectionCheckbox;
+  if (!sc) return null;
+  const showKey = sc.showProp ?? "_showSelectionCheckbox";
+  if (props[showKey] !== true) return null;
+  const size = sc.size ?? 20;
+  const gap = sc.gap ?? 2;
+  return {
+    size,
+    gap,
+    width: size + gap,
+    isSelected: props.isSelected === true,
+  };
+}
+
 /** 좌측 슬롯 해석 결과 — icon(폰트 glyph) 또는 avatar(원형 이미지) 중 하나. */
 export type LeadingSlotResolution =
   | {
@@ -496,7 +536,11 @@ export function buildCatalogShapes(
     //   `leadingAvatar`(2026-08-21): 같은 좌측 슬롯의 이미지 표현. avatar 가 우선이고
     //   폭도 avatar 기준(지름 + gap) — 판정은 `resolveLeadingSlot` 단일 helper.
     const leadingSlot = resolveLeadingSlot(visual, props, size, fontSize);
-    const leadingIconWidth = leadingSlot?.width ?? 0;
+    //   selection checkbox(2026-08-21)는 leading 슬롯 **앞**에 서므로 폭이 가산된다 —
+    //   DOM Tree 행 실측 `checkbox(8..28) → chevron(30..46) → label(52)` 과 같은 누적.
+    const selectionSlot = resolveSelectionSlot(visual, props);
+    const leadingIconWidth =
+      (selectionSlot?.width ?? 0) + (leadingSlot?.width ?? 0);
     const textX = paddingX + leadingIconWidth;
     // font-weight: 사용자 style 우선, 없으면 visual.textWeight(variant 시각 — DropZone 400 등),
     // 최종 fallback 500. textWeight 는 보편 D3 속성(CSS font-weight 동형).
@@ -551,7 +595,7 @@ export function buildCatalogShapes(
     const textAlign =
       (style?.textAlign as "left" | "center" | "right") ||
       visual?.textAlign ||
-      (leadingSlot
+      (leadingSlot || selectionSlot
         ? "left"
         : props.placeholder != null
           ? "left"

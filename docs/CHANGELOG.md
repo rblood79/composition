@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Tree 선택 체크박스 Skia 대칭 - 2026-08-21
+
+### Bug Fixes
+
+- **`selectionStyle="checkbox"` 인데 캔버스에는 체크박스가 없었다** (감사 §1-2 축② 2/2):
+  - DOM 은 RAC 가 `<Checkbox slot="selection">` 을 Tree 행 첫 자식으로 렌더하는데 Skia 는
+    그 슬롯 자체가 없었다. 실측 — DOM 라벨 x=52 / Skia 30 (정확히 체크박스 폭 22 만큼 어긋남).
+  - **Why**: 체크박스는 `leadingIcon`(chevron) 과 **다른 슬롯**이다. 기존 좌측 슬롯 모델은
+    icon ↔ avatar 처럼 배타 관계만 다뤘고, "앞에 하나 더 서는" 가산 슬롯이 없었다.
+  - 신설 `selectionCheckbox` 채널 + `selection_checkbox` primitive(append). 폭 예약은
+    `resolveSelectionSlot` 한 helper 를 text(buildCatalogShapes)와 chevron(leading_icon)이
+    함께 더한다 — 갈리면 라벨이 체크박스 위에 겹친다.
+  - 가시성 신호(`_showSelectionCheckbox`)는 builder 가 부모 Tree 의 selectionMode·
+    selectionStyle 로 산출해 주입하고, DOM 렌더러와 **같은 helper**(`resolveSelectionBehavior`,
+    같은 fallback)를 쓴다 — 두 표면의 판정이 갈리지 않게.
+
 ## 컬렉션 selectionStyle 채널 (GridList·Tree) - 2026-08-21
 
 ### Features

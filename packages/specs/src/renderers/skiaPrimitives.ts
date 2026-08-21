@@ -40,6 +40,7 @@ import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import {
   resolveLeadingIconName,
   resolveLeadingSlot,
+  resolveSelectionSlot,
   resolveTreeIndent,
 } from "./buildCatalogShapes";
 import { measureSpecTextWidth } from "./utils/measureText";
@@ -2470,7 +2471,11 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       (style?.paddingLeft ?? style?.paddingRight ?? style?.padding) as
         string | number | undefined,
       size.paddingX ?? 0,
-    ) + resolveTreeIndent(props, size); // TreeItem depth 들여쓰기 (text 와 동일 helper)
+    ) +
+    resolveTreeIndent(props, size) + // TreeItem depth 들여쓰기 (text 와 동일 helper)
+    //   selection checkbox 는 leading 슬롯 **앞**에 서므로 icon 도 그만큼 밀린다 —
+    //   buildCatalogShapes 의 text shift 와 같은 helper·같은 누적이어야 어긋나지 않는다.
+    (resolveSelectionSlot(visual, props)?.width ?? 0);
   const height =
     typeof size.height === "number" && size.height > 0
       ? size.height
@@ -2503,6 +2508,106 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
     },
   ];
+};
+
+/**
+ * `selection_checkbox` — 행 **맨 앞** 선택 체크박스 (Tree/컬렉션 행, 2026-08-21, append 모드).
+ *
+ * DOM 은 RAC 가 `<Checkbox slot="selection">` 을 행 첫 자식으로 렌더하고 그 뒤에 chevron·
+ * label 이 온다. Skia 는 그 체크박스를 통째로 안 그리고 있어서, `selectionStyle="checkbox"`
+ * 모드에서 두 표면이 어긋났다(실측 Tree 행: DOM 은 label x=52, Skia 는 30).
+ *
+ * 폭 예약은 `resolveSelectionSlot` 이 하고 `buildCatalogShapes`(text)와 `leading_icon`
+ * (chevron)이 같은 값을 더한다 — 셋이 같은 helper 를 쓰지 않으면 "체크박스는 그렸는데
+ * 라벨이 그 위에 겹친다" 가 된다(Tag 슬라이스에서 배운 축).
+ *
+ * 색은 rule 채널 데이터 — DOM `Checkbox.css` 의 시맨틱 토큰과 같은 값을 catalog 가 들고 있다.
+ */
+const selectionCheckbox: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  style,
+}) => {
+  const slot = resolveSelectionSlot(visual, props);
+  if (!slot) return [];
+  const sc = visual!.selectionCheckbox!;
+
+  const fontSize = resolveSpecFontSize(
+    (style?.fontSize as string | number | undefined) ?? size.fontSize,
+    14,
+  );
+  const paddingX =
+    parsePxValue(
+      (style?.paddingLeft ?? style?.paddingRight ?? style?.padding) as
+        string | number | undefined,
+      size.paddingX ?? 0,
+    ) + resolveTreeIndent(props, size);
+  const height =
+    typeof size.height === "number" && size.height > 0
+      ? size.height
+      : fontSize + 16;
+  const box = slot.size;
+  const top = Math.round((height - box) / 2);
+  // DOM `.react-aria-Checkbox` 실측 — 2px 테두리 + radius 4.
+  const borderWidth = 2;
+  const radius = 4;
+
+  const shapes: Shape[] = [
+    {
+      id: "selection-box",
+      type: "roundRect",
+      x: paddingX,
+      y: top,
+      width: box,
+      height: box,
+      radius,
+      fill: slot.isSelected
+        ? (sc.selectedFill ?? ("{color.accent}" as TokenRef))
+        : (sc.fill ?? ("{color.base}" as TokenRef)),
+    },
+    {
+      type: "border",
+      target: "selection-box",
+      borderWidth,
+      color: slot.isSelected
+        ? (sc.selectedFill ?? ("{color.accent}" as TokenRef))
+        : (sc.border ?? ("{color.border}" as TokenRef)),
+      radius,
+    },
+  ];
+
+  if (slot.isSelected) {
+    // 체크 표시 — 2-segment polyline (Skia checkbox primitive 와 같은 비율).
+    const pad = box * 0.25;
+    const left = paddingX + pad;
+    const right = paddingX + box - pad;
+    const midX = paddingX + box * 0.42;
+    const midY = top + box - pad;
+    const checkColor = sc.checkColor ?? ("{color.on-accent}" as TokenRef);
+    shapes.push(
+      {
+        type: "line",
+        x1: left,
+        y1: top + box * 0.52,
+        x2: midX,
+        y2: midY,
+        stroke: checkColor,
+        strokeWidth: 2,
+      },
+      {
+        type: "line",
+        x1: midX,
+        y1: midY,
+        x2: right,
+        y2: top + pad,
+        stroke: checkColor,
+        strokeWidth: 2,
+      },
+    );
+  }
+
+  return shapes;
 };
 
 /**
@@ -3169,6 +3274,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   leading_icon: leadingIcon,
   // 좌측 슬롯 이미지 표현 (append 모드 — Tag chip 아바타, 2026-08-21)
   leading_avatar: leadingAvatar,
+  // 행 맨 앞 선택 체크박스 (append 모드 — Tree/컬렉션 행, 2026-08-21)
+  selection_checkbox: selectionCheckbox,
   // ADR-912 (B+icon) inline icon text escape (replace 모드 — 좌 icon + center text + 우 icon, CalendarHeader)
   inline_icon_text: inlineIconText,
 };
@@ -3230,6 +3337,9 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // 좌측 슬롯 이미지(2026-08-21): leading_icon 과 같은 합성 규칙 — base box+text 위 원+이미지.
   //   text 는 buildCatalogShapes 가 avatar 지름 + gap 만큼 우측 shift(동일 helper 판정).
   leading_avatar: "append",
+  // 행 맨 앞 선택 체크박스(2026-08-21): base box+text 위에 덧그리고, text·leading icon 은
+  //   `resolveSelectionSlot` 폭만큼 우측으로 밀린다(같은 helper 공유) → append.
+  selection_checkbox: "append",
   // ADR-912 (B+icon): inline_icon_text 는 좌 icon + center text + 우 icon 자체 생성, box+text 대체
   //   → replace. center text 가 buildCatalogShapes 의 좌측/center 단일 text 와 충돌하므로 base 미생성.
   inline_icon_text: "replace",

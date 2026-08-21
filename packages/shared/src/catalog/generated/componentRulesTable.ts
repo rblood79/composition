@@ -13583,6 +13583,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           gap: 6,
           color: "{color.neutral-subdued}",
         },
+        // selection checkbox (2026-08-21, design-data 감사 §1-2 축②): DOM 은 RAC 가
+        //   `<Checkbox slot="selection">` 을 행 첫 자식으로 렌더한다(chevron 앞). Skia 는
+        //   `selection_checkbox` escape 가 같은 자리에 그리고, chevron·label 은 폭만큼 밀린다.
+        //   size/gap 은 DOM 실측값 — `.react-aria-Checkbox` 20px + Tree 행 `gap: 2px`.
+        //   가시성은 `_showSelectionCheckbox`(builder 가 부모 Tree 의 selectionMode·
+        //   selectionStyle 로 산출해 주입) — 컴포넌트 식별 분기 아님(ADR-142 §3).
+        selectionCheckbox: {
+          size: 20,
+          gap: 2,
+          fill: "{color.base}",
+          border: "{color.border}",
+          selectedFill: "{color.accent}",
+          checkColor: "{color.on-accent}",
+        },
       },
     },
     sizes: {

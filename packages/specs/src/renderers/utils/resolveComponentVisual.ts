@@ -100,6 +100,21 @@ export interface ComponentVisualRule {
       }
     | undefined;
   /**
+   * selection checkbox (행 맨 앞 선택 체크박스 — Tree/컬렉션 행, 2026-08-21).
+   * leading 슬롯과 **배타가 아니라 가산** — 체크박스가 서고 그 뒤에 icon/avatar 가 선다.
+   */
+  selectionCheckbox:
+    | {
+        size?: number;
+        gap?: number;
+        showProp?: string;
+        fill?: TokenRef;
+        border?: TokenRef;
+        selectedFill?: TokenRef;
+        checkColor?: TokenRef;
+      }
+    | undefined;
+  /**
    * trailing icon (텍스트 우측 아이콘 — CalendarHeader 다음달 chevron 등, ADR-912 (B+icon)).
    * `inline_icon_text` skiaPrimitive(replace 모드)가 본 필드와 leadingIcon + center text 를
    * 함께 그린다(좌 icon + center text + 우 icon = leading_icon 의 좌측 단일 모델과 다른
@@ -176,6 +191,7 @@ export function variantToVisual(variant: VariantSpec): ComponentVisualRule {
     //   production 의 ruleVariantToVisual 만 rule 에서 채운다. VariantSpec 에는 해당 필드 없음.
     leadingIcon: undefined,
     leadingAvatar: undefined,
+    selectionCheckbox: undefined,
     trailingIcon: undefined,
     textAlign: undefined,
   };

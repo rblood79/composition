@@ -27,3 +27,8 @@ export * from "./collections";
 
 // Interactions (ADR-158) — CAPABILITY_REGISTRY (When/Do 어휘 SSOT) + InteractionRule
 export * from "./interactions";
+
+// selectionStyle(RSP) ↔ selectionBehavior(RAC) 변환 (2026-08-21) — DOM 컴포넌트·렌더러와
+//   Skia(buildSpecNodeData 의 체크박스 가시성 판정)가 **같은 식**을 써야 두 표면이 갈리지
+//   않는다. React 의존 없는 순수 모듈이라 barrel 노출이 안전하다.
+export * from "./components/selectionStyle";

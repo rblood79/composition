@@ -51,5 +51,8 @@ export const treeItemBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
-  skiaPrimitive: "leading_icon",
+  //   `selection_checkbox`(2026-08-21)도 같은 append 규칙 — chevron **앞**의 별도 슬롯이라
+  //   둘이 함께 그려지고 폭이 가산된다(leading_avatar 처럼 배타가 아니다). 배열 등록이
+  //   없으면 dispatch 자체가 안 돼 rule 이 있어도 캔버스만 조용히 비는 축.
+  skiaPrimitive: ["leading_icon", "selection_checkbox"],
 };

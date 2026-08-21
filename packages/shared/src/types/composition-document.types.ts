@@ -223,6 +223,36 @@ export interface ComponentRuleVariant {
     fallbackFill?: string;
   };
   /**
+   * selection checkbox (행 **맨 앞**의 선택 체크박스 — Tree/컬렉션 행, 2026-08-21).
+   *
+   * `leadingIcon`/`leadingAvatar` 와 **다른 슬롯**이다: 그 둘은 서로 배타인 한 자리를 다투지만,
+   * 체크박스는 그 앞에 따로 선다(DOM 실측 — Tree 행은 `checkbox → chevron → label`).
+   * 그래서 폭도 배타가 아니라 **가산**이고, 있으면 leading 슬롯과 텍스트가 함께 밀린다.
+   *
+   * 가시성은 `showProp` 이 가리키는 boolean prop 이 정한다(기본 `_showSelectionCheckbox` —
+   * builder 가 부모 컬렉션의 `selectionMode`/`selectionStyle` 을 해석해 주입). 컴포넌트 식별
+   * 분기가 아니라 데이터 게이팅이다(trailingIcon `showProp` 동형, ADR-142 §3).
+   *
+   * 색은 DOM `Checkbox.css` 와 같은 시맨틱 토큰을 데이터로 들고 있는다 — Skia 가 shared
+   * catalog 를 못 읽어(패키지 방향 specs ← shared) rule 이 유일한 전달 수단이다.
+   */
+  selectionCheckbox?: {
+    /** 정사각형 한 변(px, 기본 20 — DOM `.react-aria-Checkbox` 실측) */
+    size?: number;
+    /** 체크박스 ↔ 다음 슬롯 간격(px, 기본 2 — Tree 행 `gap` 실측) */
+    gap?: number;
+    /** 가시성 boolean prop 키 (기본 `_showSelectionCheckbox`) */
+    showProp?: string;
+    /** 미선택 배경 */
+    fill?: string;
+    /** 미선택 테두리 */
+    border?: string;
+    /** 선택 배경 */
+    selectedFill?: string;
+    /** 체크 표시 색 */
+    checkColor?: string;
+  };
+  /**
    * trailing icon (텍스트 우측 아이콘 — CalendarHeader 다음달 chevron 등 보편 D3 속성, ADR-912 (B+icon)).
    * `inline_icon_text` skiaPrimitive(replace 모드)가 leadingIcon + center text + 본 필드를 함께
    * 그린다(좌 icon + center text + 우 icon — leading_icon 의 좌측 단일 모델과 다른 레이아웃 가정 →

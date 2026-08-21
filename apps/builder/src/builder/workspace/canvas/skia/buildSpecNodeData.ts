@@ -37,6 +37,7 @@ import {
   isCatalogCutover,
   getPrimitiveBinding,
   isDisclosureExpandedInContext,
+  resolveSelectionBehavior,
   toSkiaStyle,
   usesButtonBaseUtility,
 } from "@composition/shared";
@@ -548,6 +549,46 @@ function resolveTreeItemLevel(
     }
   }
   return level;
+}
+
+/**
+ * TreeItem 행에 선택 체크박스를 그릴지 — 부모 Tree 의 selection 축에서 산출 (2026-08-21).
+ *
+ * DOM(`TreeItemContent`)은 RAC renderProps 로 `selectionBehavior === "toggle" &&
+ * selectionMode !== "none"` 를 본다. Skia 는 RAC 를 거치지 않으므로 같은 식을 부모 Tree 의
+ * props 에서 재현한다 — `selectionBehavior` 산출은 DOM 렌더러와 **같은 helper**
+ * (`resolveSelectionBehavior`, fallback 도 renderTree 와 동일한 `"replace"`)를 써야
+ * 두 표면의 판정이 갈리지 않는다.
+ *
+ * `_treeLevel` 과 같은 자리에서 주입되며, 소비는 rule 의 `selectionCheckbox.showProp` 이다
+ * (generic 렌더러가 Tree 를 알 필요 없음 — ADR-142 §3).
+ */
+function resolveTreeSelectionCheckboxVisible(
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
+): boolean {
+  let currentId: string | null | undefined = element.parent_id;
+  for (let guard = 0; guard < 32 && currentId; guard++) {
+    const ancestor: CanvasSceneNode | undefined = elementsMap.get(currentId);
+    if (!ancestor) return false;
+    if (ancestor.type === "Tree") {
+      const p = ancestor.props as Record<string, unknown>;
+      const mode = p.selectionMode;
+      // renderTree 의 기본값과 동일 — 미지정 Tree 는 "single".
+      const effectiveMode = typeof mode === "string" ? mode : "single";
+      if (effectiveMode === "none") return false;
+      return (
+        resolveSelectionBehavior({
+          selectionStyle: p.selectionStyle,
+          selectionBehavior: p.selectionBehavior,
+          fallback: "replace",
+        }) === "toggle"
+      );
+    }
+    if (ancestor.type !== "TreeItem") return false;
+    currentId = ancestor.parent_id;
+  }
+  return false;
 }
 
 /** Breadcrumb → 부모 Breadcrumbs의 구분자·마지막 여부·비활성 */
@@ -1542,6 +1583,14 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       ...specProps,
       _treeLevel: resolveTreeItemLevel(element, elementsMap),
       _hasTreeChildren: treeItemHasChildren,
+      // 선택 체크박스 가시성(2026-08-21) — DOM 은 RAC renderProps 로 같은 판정을 한다
+      //   (`selectionBehavior === "toggle" && selectionMode !== "none"`). Skia 는 부모
+      //   Tree 의 props 를 직접 읽어 같은 식을 재현한다. rule 의 `selectionCheckbox.showProp`
+      //   이 이 값을 읽으므로, 여기서 컴포넌트를 식별하는 대신 **데이터로** 전달한다.
+      _showSelectionCheckbox: resolveTreeSelectionCheckboxVisible(
+        element,
+        elementsMap,
+      ),
     };
   }
 
