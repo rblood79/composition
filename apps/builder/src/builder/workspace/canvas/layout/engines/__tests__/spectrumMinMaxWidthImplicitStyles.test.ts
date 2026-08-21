@@ -154,3 +154,52 @@ describe("ProgressBar min/maxWidth — Spectrum 48~768 (2026-08-21)", () => {
     expect(ps.maxWidth).toBeUndefined();
   });
 });
+
+describe("Tooltip maxWidth — Spectrum 스키마 160 (2026-08-21)", () => {
+  const desc = makeChild("tdesc", "Description");
+
+  function makeTooltip(props: Record<string, unknown>): Element {
+    return {
+      id: "tt-1",
+      type: "Tooltip",
+      props: { children: "hint", ...props },
+      childrenIds: [desc.id],
+    } as Element;
+  }
+
+  it("md (기본) → maxWidth 160 + width fit-content 주입 (DOM inline-flex shrink-wrap 대칭)", () => {
+    const ps = rootStyle(apply(makeTooltip({}), [desc]));
+    expect(ps.maxWidth).toBe(160);
+    expect(ps.width).toBe("fit-content");
+  });
+
+  it("사용자 명시 width/maxWidth 우선", () => {
+    const ps = rootStyle(
+      apply(makeTooltip({ style: { width: 200, maxWidth: 300 } }), [desc]),
+    );
+    expect(ps.width).toBe(200);
+    expect(ps.maxWidth).toBe(300);
+  });
+});
+
+describe("Separator 두께 축 — Spectrum divider S1/M2/L4 (2026-08-21)", () => {
+  function makeSeparator(props: Record<string, unknown>): Element {
+    return {
+      id: "sep-1",
+      type: "Separator",
+      props,
+      childrenIds: [],
+    } as Element;
+  }
+
+  it("catalog sizes.height 가 두께 단계 — sm1/md2/lg4 (엔진 L3 size 축 주입 + Skia divider 두께 공용)", () => {
+    for (const [size, h] of [
+      ["sm", 1],
+      ["md", 2],
+      ["lg", 4],
+    ] as const) {
+      const ps = rootStyle(apply(makeSeparator({ size }), []));
+      expect(ps.height).toBe(h);
+    }
+  });
+});

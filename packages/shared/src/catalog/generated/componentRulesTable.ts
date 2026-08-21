@@ -9768,21 +9768,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
-        height: 1,
+        height: 1, // Spectrum divider S=1px
         paddingX: 0,
         paddingY: 0,
       },
       md: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
-        height: 1,
+        height: 2, // Spectrum divider M=2px (두께 축, 2026-08-21)
         paddingX: 0,
         paddingY: 0,
       },
       lg: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
-        height: 1,
+        height: 4, // Spectrum divider L=4px
         paddingX: 0,
         paddingY: 0,
       },

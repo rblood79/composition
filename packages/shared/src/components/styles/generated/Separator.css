@@ -22,7 +22,7 @@
   border: 1px solid var(--border);
 
   /* Default size */
-  height: 1px;
+  height: 2px;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
@@ -141,14 +141,14 @@
 }
 
 .react-aria-Separator[data-size="md"] {
-  height: 1px;
+  height: 2px;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
 }
 
 .react-aria-Separator[data-size="lg"] {
-  height: 1px;
+  height: 4px;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);

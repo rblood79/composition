@@ -1267,6 +1267,25 @@ export function applyImplicitStyles(
     }
   }
 
+  // ── Tooltip ────────────────────────────────────────────────────────
+  // maxWidth (Spectrum 스키마 160, 2026-08-21): catalog sizes.maxWidth → 엔진 max_width clamp.
+  //   DOM 은 generated CSS `max-width: 160px` (같은 catalog 값) — D3 symmetric.
+  //   width: fit-content 동반 주입 — DOM root 는 inline-flex 라 shrink-wrap 인데 엔진은
+  //   inline-flex 를 block-level 로 blockify 해 부모 폭 stretch 가 된다 (taffyDisplayAdapter).
+  //   fit-content 없이는 Skia tooltip 이 항상 정확히 maxWidth 폭이 되어 짧은 텍스트에서 발산.
+  //   사용자 명시값(0 포함) 우선.
+  if (containerTag === "tooltip") {
+    const ttSize = (containerProps?.size as string) ?? "md";
+    const ttMx = specSizeField(containerTag, ttSize, "maxWidth");
+    effectiveParent = withParentStyle(containerEl, {
+      ...parentStyle,
+      width: parentStyle.width ?? "fit-content",
+      ...(parentStyle.maxWidth == null && ttMx != null
+        ? { maxWidth: ttMx }
+        : {}),
+    });
+  }
+
   // ── TagGroup ───────────────────────────────────────────────────────
   // CSS 구조: TagGroup(column) > Label + TagList(row wrap) > Tags
   // TagList가 있으면 column 통과, 없으면(레거시) row wrap으로 보정

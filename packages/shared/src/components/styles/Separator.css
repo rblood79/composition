@@ -54,12 +54,14 @@
     margin: var(--spacing-xs) 0;
   }
 
+  /* 두께 축 = catalog Separator.sizes[*].height 미러 (Spectrum divider S1/M2/L4, 2026-08-21)
+     — Skia 는 같은 catalog 값을 divider primitive 두께로 읽는다 (D3 symmetric). */
   .react-aria-Separator.horizontal.md,
   .react-aria-Separator[aria-orientation="horizontal"].md,
   .react-aria-Separator[data-size="md"]:not(.vertical):not(
       [aria-orientation="vertical"]
     ) {
-    height: 1px;
+    height: 2px;
     margin: var(--spacing-sm) 0;
   }
 
@@ -68,7 +70,7 @@
   .react-aria-Separator[data-size="lg"]:not(.vertical):not(
       [aria-orientation="vertical"]
     ) {
-    height: 2px;
+    height: 4px;
     margin: var(--spacing-lg) 0;
   }
 
@@ -83,14 +85,14 @@
   .react-aria-Separator.vertical.md,
   .react-aria-Separator[aria-orientation="vertical"].md,
   .react-aria-Separator[aria-orientation="vertical"][data-size="md"] {
-    width: 1px;
+    width: 2px;
     margin: 0 var(--spacing-sm);
   }
 
   .react-aria-Separator.vertical.lg,
   .react-aria-Separator[aria-orientation="vertical"].lg,
   .react-aria-Separator[aria-orientation="vertical"][data-size="lg"] {
-    width: 2px;
+    width: 4px;
     margin: 0 var(--spacing-lg);
   }
 
@@ -122,14 +124,18 @@
     border-left: 1px dotted var(--border);
   }
 
-  /* Large dashed/dotted thickness */
-  .react-aria-Separator.lg.dashed,
-  .react-aria-Separator[data-size="lg"][data-variant="dashed"] {
+  /* dashed/dotted thickness — 두께 축(S1/M2/L4) 미러 (border 렌더라 height 대신 border-width) */
+  .react-aria-Separator.md.dashed,
+  .react-aria-Separator[data-size="md"][data-variant="dashed"],
+  .react-aria-Separator.md.dotted,
+  .react-aria-Separator[data-size="md"][data-variant="dotted"] {
     border-width: 2px;
   }
 
+  .react-aria-Separator.lg.dashed,
+  .react-aria-Separator[data-size="lg"][data-variant="dashed"],
   .react-aria-Separator.lg.dotted,
   .react-aria-Separator[data-size="lg"][data-variant="dotted"] {
-    border-width: 2px;
+    border-width: 4px;
   }
 }
