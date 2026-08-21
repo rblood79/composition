@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## Select/ComboBox 선택값 표시 - 2026-08-22
+
+### Bug Fixes
+
+- Select·ComboBox 에서 옵션을 골라도 캔버스에는 계속 안내 문구(placeholder)가 보이던 문제를
+  수정했다. 미리보기와 캔버스가 이제 같은 값을 보여준다. 값을 지우면 양쪽 다 안내 문구로
+  돌아온다.
+- 실행 취소(undo)로 선택이 되돌아가도 미리보기가 이전 선택을 계속 표시하던 문제를 함께
+  수정했다. 캔버스는 바로 바뀌고 미리보기만 남아 있어 둘이 어긋나 보였다.
+
 ## 메뉴 선택 표시 - 2026-08-22
 
 ### Bug Fixes
