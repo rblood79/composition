@@ -10,3 +10,4 @@
 export * from "./cellValue";
 export * from "./fieldTemplate";
 export * from "./resolveCollectionItems";
+export * from "./selectDisplayValue";

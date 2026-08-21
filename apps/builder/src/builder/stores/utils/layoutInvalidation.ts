@@ -54,6 +54,13 @@ export const LAYOUT_AFFECTING_PROP_KEYS = new Set([
   "selectionMode",
   "selectionStyle",
   "selectionBehavior",
+  // Select/ComboBox 표시값 (2026-08-22): 자식 SelectValue 가 그리는 텍스트가 이 3키에서
+  //   파생된다(applyImplicitStyles → resolveSelectDisplayValue). 텍스트가 바뀌면 폭이
+  //   바뀌므로 시각 토글이 아니라 레이아웃 prop 이다 — placeholder 가 이미 등재된 것과
+  //   같은 이유. `inputValue` 는 ComboBox 자유 입력 축.
+  "selectedKey",
+  "selectedValue",
+  "inputValue",
   "padding",
   "paddingTop",
   "paddingRight",

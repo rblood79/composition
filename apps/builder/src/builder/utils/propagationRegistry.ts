@@ -7,7 +7,10 @@
  */
 import type { ComponentSpec, PropagationRule } from "@composition/specs";
 import { resolveToken } from "@composition/specs";
-import { resolveComponentRule } from "@composition/shared";
+import {
+  resolveComponentRule,
+  resolveSelectDisplayValue,
+} from "@composition/shared";
 // ADR-912 단계5 step4: 아래 컴포넌트들은 모두 catalog cutover spec 삭제로 @composition/specs 의
 //   named Spec import 가 전부 제거됨 (전부 createPropagationOnlySpec 인라인 이관). value import 0건이라
 //   import 구문 자체 제거 — 이력은 아래 주석으로 보존.
@@ -983,11 +986,19 @@ const selectPropagationRules: PropagationRule[] = [
     childProp: "children",
     override: true,
   },
+  // 표시 텍스트 (2026-08-22): 구 rule 은 placeholder 를 그대로 children 으로 넘겨서, 옵션을
+  //   골라도 캔버스가 계속 placeholder 를 그렸다 — DOM 은 RAC SelectValue 가 내부 selection
+  //   state 에서 라벨을 그리므로 두 consumer 가 같은 문서를 다르게 그리는 D3 비대칭이었다.
+  //   `transform` 이 owner props 전체를 받으므로 selectedKey/items 까지 보고 최종 표시값을
+  //   낸다(판정은 shared `resolveSelectDisplayValue` 단일 소스). parentProp 은 그대로
+  //   placeholder — rule 발화 게이트이자 미선택 시의 값이다.
   {
     parentProp: "placeholder",
     childPath: ["SelectTrigger", "SelectValue"],
     childProp: "children",
     override: true,
+    transform: (placeholder, ownerProps) =>
+      resolveSelectDisplayValue({ ownerProps, placeholder }) ?? placeholder,
   },
 ];
 
@@ -1019,6 +1030,18 @@ const comboBoxPropagationRules: PropagationRule[] = [
     childPath: ["SelectTrigger", "SelectValue"],
     childProp: "placeholder",
     override: true,
+  },
+  // 표시 텍스트 (2026-08-22): ComboBox 는 위 rule 이 placeholder 를 HTML input attribute 로만
+  //   넘기고 `children` rule 이 없어서, 값을 골라도(또는 입력해도) 캔버스가 placeholder 를
+  //   계속 그렸다. Select 와 같은 판정식을 쓰되 childProp 만 children 으로 둔다 — 미선택이면
+  //   placeholder 와 같은 값이라 기존 표시가 그대로다.
+  {
+    parentProp: "placeholder",
+    childPath: ["SelectTrigger", "SelectValue"],
+    childProp: "children",
+    override: true,
+    transform: (placeholder, ownerProps) =>
+      resolveSelectDisplayValue({ ownerProps, placeholder }) ?? placeholder,
   },
 ];
 

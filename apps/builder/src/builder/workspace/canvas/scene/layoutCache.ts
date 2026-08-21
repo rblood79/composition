@@ -179,6 +179,13 @@ const LAYOUT_PROP_KEYS = [
   "title",
   "description",
   "placeholder",
+  // Select/ComboBox 표시값 (2026-08-22): 자식 SelectValue 의 텍스트가 owner 의 이 3키에서
+  //   파생된다(applyImplicitStyles → resolveSelectDisplayValue). 텍스트 폭이 바뀌는데
+  //   본 키가 없으면 owner 시그니처 불변 → 캐시 히트로 이전 표시가 남는다 — 바로 위
+  //   placeholder 가 등재된 것과 같은 이유이고, 파생 주체가 owner props 라 layer A/B 둘 다 필요.
+  "selectedKey",
+  "selectedValue",
+  "inputValue",
   "value",
   "size",
   // density (2026-08-21): size 와 직교하는 간격 축(catalog `densities`). 컨테이너 prop 이지만

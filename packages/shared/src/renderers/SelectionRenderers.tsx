@@ -1148,6 +1148,19 @@ export const renderSelect = (
   // selectedKey 상태 확인
   const currentSelectedKey = elementProps.selectedKey;
 
+  // key 시그니처용 — 선택 상태 직렬화 (2026-08-22). `defaultSelectedKey`(uncontrolled) 는
+  //   mount 시점만 읽으므로, undo/redo·history 복원처럼 **RAC 내부 state 를 거치지 않고**
+  //   props 가 바뀌는 경로에서 DOM 이 이전 선택을 계속 표시했다. 시그니처가 바뀌면 key 가
+  //   달라져 Select 가 re-mount → 새 default 를 다시 읽는다 (Tabs/ListBox/GridList 동형).
+  //   Skia 는 SelectValue 자식이 매 rebuild 마다 props 를 직접 읽으므로 즉시 반영 —
+  //   remount key 가 없으면 그 차이가 그대로 CSS↔Skia 비대칭이 된다.
+  const selectionSignature = JSON.stringify([
+    typeof currentSelectedKey === "string" ? currentSelectedKey : null,
+    typeof elementProps.selectedValue === "string"
+      ? elementProps.selectedValue
+      : null,
+  ]);
+
   // 접근성을 위한 aria-label 설정
   const ariaLabel = processedLabel
     ? undefined
@@ -1262,7 +1275,7 @@ export const renderSelect = (
 
   return (
     <Select
-      key={element.id}
+      key={`${element.id}:${selectionSignature}`}
       id={element.customId}
       data-element-id={element.id}
       style={elementProps.style}
@@ -1545,9 +1558,23 @@ export const renderComboBox = (
     ? String(inputEl.props?.placeholder || "")
     : String(element.props.placeholder || "");
 
+  // key 시그니처 — renderSelect 와 동형. ComboBox 는 `defaultInputValue` 도 uncontrolled 라
+  //   자유 입력값까지 시그니처에 넣는다 (셋 다 Skia SelectValue 가 즉시 읽는 축이다).
+  const comboSelectionSignature = JSON.stringify([
+    typeof element.props.selectedKey === "string"
+      ? element.props.selectedKey
+      : null,
+    typeof element.props.selectedValue === "string"
+      ? element.props.selectedValue
+      : null,
+    typeof element.props.inputValue === "string"
+      ? element.props.inputValue
+      : null,
+  ]);
+
   return (
     <ComboBox
-      key={element.id}
+      key={`${element.id}:${comboSelectionSignature}`}
       id={element.customId}
       data-element-id={element.id}
       style={element.props.style}

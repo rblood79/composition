@@ -7,8 +7,10 @@ import {
 } from "../CollectionRenderers";
 import { renderTabs } from "../LayoutRenderers";
 import {
+  renderComboBox,
   renderGridList,
   renderListBox,
+  renderSelect,
   renderSlider,
 } from "../SelectionRenderers";
 
@@ -22,7 +24,14 @@ import {
  *
  * Checkbox/CheckboxGroup/RadioGroup 과 동종. 정적 교차조사로 drift 확정된 5개:
  *   ToggleButton / ToggleButtonGroup / Tabs / ListBox / GridList.
- *   (Select/ComboBox/Menu 는 Skia selection 표시 미구현 → drift 무의미라 제외)
+ *
+ * **2026-08-22 — Select/ComboBox 편입**: 구 제외 사유("Skia selection 표시 미구현 → drift
+ *   무의미")는 전제가 바뀌어 더는 성립하지 않는다. Skia SelectValue 가 owner 의
+ *   selectedKey/selectedValue/inputValue 를 읽어 선택된 라벨을 그리게 되면서(design-data
+ *   감사 §1-1), 두 경로가 같은 prop 을 보는 대칭 상태가 됐다. 그러면 uncontrolled 렌더의
+ *   원래 결함이 드러난다 — undo/redo·history 복원처럼 **RAC 내부 state 를 거치지 않고**
+ *   props 만 바뀌는 경로에서 Skia 는 즉시 바뀌고 DOM 은 이전 선택을 계속 표시한다.
+ *   (Menu 는 여전히 제외 — 트리거 버튼만 캔버스에 렌더되고 항목은 Popover 라 Skia 대응물이 없다.)
  *
  * **fix**: uncontrolled 유지(preview 직접 클릭 UX 보존)하되 `key` 에 selection 시그니처를
  * 묶어 패널 토글 시 re-mount → 새 default 를 다시 읽게 한다.
@@ -154,6 +163,36 @@ describe("selection 컴포넌트 패널 토글 re-mount (회귀 방지 2026-06-3
       ),
     );
     expect(keyOf(a)).not.toBe(keyOf(b));
+  });
+
+  it("Select: selectedKey 변경 시 key 가 달라진다", () => {
+    const props = {
+      items: [{ id: "opt-1", label: "A", value: "a" }],
+      placeholder: "선택",
+    };
+    const sel: PreviewElement = { id: "sel-1", type: "Select", props };
+    const picked: PreviewElement = {
+      ...sel,
+      props: { ...props, selectedKey: "opt-1", selectedValue: "a" },
+    };
+    expect(keyOf(renderSelect(sel, makeContext(sel, [])))).not.toBe(
+      keyOf(renderSelect(picked, makeContext(picked, []))),
+    );
+  });
+
+  it("ComboBox: inputValue 변경 시 key 가 달라진다 (자유 입력도 uncontrolled)", () => {
+    const cb: PreviewElement = {
+      id: "cb-1",
+      type: "ComboBox",
+      props: { items: [], inputValue: "" },
+    };
+    const typed: PreviewElement = {
+      ...cb,
+      props: { items: [], inputValue: "서울" },
+    };
+    expect(keyOf(renderComboBox(cb, makeContext(cb, [])))).not.toBe(
+      keyOf(renderComboBox(typed, makeContext(typed, []))),
+    );
   });
 
   // Slider 는 uncontrolled(defaultValue) 렌더 → value/min/max 편집 시 key 변경으로

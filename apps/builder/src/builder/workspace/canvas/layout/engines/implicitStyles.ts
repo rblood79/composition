@@ -2120,6 +2120,10 @@ export function applyImplicitStyles(
         const fieldProps = fieldEl?.props as
           Record<string, unknown> | undefined;
         const placeholder = fieldProps?.placeholder ?? child.props?.placeholder;
+        // 선택된 값(children)은 여기서 주입하지 않는다 — Skia 가 읽는 채널은
+        //   `propagationRegistry` 의 Select/ComboBox rule 이고(placeholder → SelectValue.children
+        //   가 이미 그 rule 이다), 본 분기는 layout 노드만 만든다. 2026-08-22 에 여기에 넣었다가
+        //   캔버스가 안 바뀌어 드러났다.
         return {
           ...child,
           props: {
