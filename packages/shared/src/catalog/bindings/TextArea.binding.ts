@@ -93,6 +93,84 @@ export const textAreaBinding: PrimitiveBinding = {
       maxLength: { kind: "number", label: "Max Length", section: "state" },
       minLength: { kind: "number", label: "Min Length", section: "state" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      // design-data 감사 §1-3 (2026-08-22) — TextField 와의 형제 비대칭 해소.
+      //   아래 7개는 **이미 소비되고 있었는데 편집 표면만 없었다**:
+      //     errorMessage / necessityIndicator → `renderTextArea` 가 그대로 shared
+      //       TextArea 에 넘기고 있었다 (FieldError / renderNecessityIndicator).
+      //     입력 힌트 5종 → ADR-915 P1.5-b 가 TextField/SearchField 에만 채택했던 것.
+      //       `renderTextArea` 에 `resolveInputHintProps` 전개를 같이 추가했다.
+      //   `value` 는 여기 없다 — 표시 채널이 따로 필요해 별도 단계에서 다룬다.
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
+      // RSP 표준 required 표시 방식 (icon "*" / label "(required)").
+      //   캔버스 경로도 준비돼 있다 — `NECESSITY_INDICATOR_TAGS` 에 textarea 가 이미 있어
+      //   Label children 에 접미사가 붙는다 (D3 대칭).
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
+      // 텍스트 HTML 입력 힌트 attr — RAC TextField 공식 prop 이라 `<textarea>` 로 전달된다
+      //   (RAC 가 TextAreaContext 로 inputProps 를 내려준다). controlled-value 와 직교.
+      autoComplete: {
+        kind: "string",
+        label: "Auto Complete",
+        section: "content",
+      },
+      autoCorrect: {
+        kind: "enum",
+        label: "Auto Correct",
+        section: "content",
+        options: [
+          { value: "on", label: "On" },
+          { value: "off", label: "Off" },
+        ],
+      },
+      inputMode: {
+        kind: "enum",
+        label: "Input Mode",
+        section: "content",
+        options: [
+          { value: "text", label: "Text" },
+          { value: "numeric", label: "Numeric" },
+          { value: "decimal", label: "Decimal" },
+          { value: "tel", label: "Tel" },
+          { value: "url", label: "URL" },
+          { value: "email", label: "Email" },
+          { value: "search", label: "Search" },
+          { value: "none", label: "None" },
+        ],
+      },
+      enterKeyHint: {
+        kind: "enum",
+        label: "Enter Key Hint",
+        section: "content",
+        options: [
+          { value: "enter", label: "Enter" },
+          { value: "done", label: "Done" },
+          { value: "go", label: "Go" },
+          { value: "next", label: "Next" },
+          { value: "previous", label: "Previous" },
+          { value: "search", label: "Search" },
+          { value: "send", label: "Send" },
+        ],
+      },
+      spellCheck: {
+        kind: "enum",
+        label: "Spell Check",
+        section: "content",
+        options: [
+          { value: "true", label: "On" },
+          { value: "false", label: "Off" },
+        ],
+      },
     },
     toRacProps: "default",
   },

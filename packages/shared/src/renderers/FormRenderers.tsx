@@ -61,18 +61,11 @@ export function resolveInheritedFormFieldProps(
 
   return {
     labelPosition: formElement.props.labelPosition as
-      | "top"
-      | "side"
-      | undefined,
+      "top" | "side" | undefined,
     labelAlign: formElement.props.labelAlign as
-      | "start"
-      | "center"
-      | "end"
-      | undefined,
+      "start" | "center" | "end" | undefined,
     necessityIndicator: formElement.props.necessityIndicator as
-      | "icon"
-      | "label"
-      | undefined,
+      "icon" | "label" | undefined,
   };
 }
 
@@ -126,11 +119,7 @@ export const renderForm = (
       }
       target={
         (element.props.target as
-          | "_self"
-          | "_blank"
-          | "_parent"
-          | "_top"
-          | undefined) || undefined
+          "_self" | "_blank" | "_parent" | "_top" | undefined) || undefined
       }
       autoFocus={Boolean(element.props.autoFocus)}
       restoreFocus={Boolean(element.props.restoreFocus)}
@@ -296,6 +285,7 @@ export const renderTextArea = (
           : undefined
       }
       autoFocus={Boolean(element.props.autoFocus)}
+      {...resolveInputHintProps(element.props)}
       onChange={(value) => {
         updateElementProps(element.id, {
           ...element.props,
