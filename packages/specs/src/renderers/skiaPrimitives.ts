@@ -2377,18 +2377,23 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       strokeCap: "round",
     });
   } else {
-    const value = Math.max(
-      0,
-      Math.min(100, typeof props.value === "number" ? props.value : 0),
-    );
-    if (value > 0) {
+    // (value-min)/(max-min) 정규화 — DOM ProgressCircle.tsx 와 동일 공식
+    //   (형제 대칭 §1-3, 2026-08-21 — 구 0-100 하드코딩 해소). span<=0 방어는 0 비율.
+    const p = props as Record<string, unknown>;
+    const min = typeof p.minValue === "number" ? p.minValue : 0;
+    const max = typeof p.maxValue === "number" ? p.maxValue : 100;
+    const span = max - min;
+    const raw = typeof props.value === "number" ? props.value : 0;
+    const clamped = Math.max(min, Math.min(max, raw));
+    const fraction = span > 0 ? (clamped - min) / span : 0;
+    if (fraction > 0) {
       shapes.push({
         type: "arc",
         x: cx,
         y: cy,
         radius: trackRadius,
         startAngle: -90,
-        sweepAngle: (value / 100) * 360,
+        sweepAngle: fraction * 360,
         strokeWidth,
         stroke: indicatorColor,
         strokeCap: "round",

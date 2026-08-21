@@ -498,6 +498,8 @@ export const renderTimeField = (
         (element.props.validationBehavior as "native" | "aria") || undefined
       }
       placeholderValue={element.props.placeholderValue as string | undefined}
+      minValue={element.props.minValue as string | undefined}
+      maxValue={element.props.maxValue as string | undefined}
       defaultValue={new Time(9, 0)}
       granularity={granularity}
       hourCycle={hourCycle as 12 | 24 | undefined}

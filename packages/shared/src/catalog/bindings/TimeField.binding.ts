@@ -73,13 +73,18 @@ export const timeFieldBinding: PrimitiveBinding = {
         kind: "enum",
         label: "Granularity",
         section: "content",
+        // "day" 제거 (§1-3 2026-08-21): 시각 필드에 근거 없는 옵션 — RAC TimeField
+        //   granularity 는 hour/minute/second 뿐이고 renderTimeField 도 그 3종만 수용.
         options: [
-          { value: "day", label: "Day" },
           { value: "hour", label: "Hour" },
           { value: "minute", label: "Minute" },
           { value: "second", label: "Second" },
         ],
       },
+      // 형제 대칭 (§1-3 2026-08-21): DateField minValue/maxValue 동형 — "HH:mm(:ss)"
+      //   문자열, TimeField.tsx 가 Time 으로 파싱 (renderTimeField 전달 배선 포함).
+      minValue: { kind: "string", label: "Min Value", section: "state" },
+      maxValue: { kind: "string", label: "Max Value", section: "state" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },

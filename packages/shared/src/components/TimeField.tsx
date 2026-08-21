@@ -59,8 +59,10 @@ export interface TimeFieldProps<T extends TimeValue> extends Omit<
   shouldForceLeadingZeros?: boolean;
   /** @example "09:00" */
   placeholderValue?: string | T;
-  minValue?: T;
-  maxValue?: T;
+  /** 최소 시각 — "HH:mm(:ss)" 문자열 자동 파싱 (DateField minValue 동형, §1-3 2026-08-21) */
+  minValue?: string | T;
+  /** 최대 시각 — "HH:mm(:ss)" 문자열 자동 파싱 */
+  maxValue?: string | T;
   form?: string;
   validationBehavior?: "native" | "aria";
 }
@@ -84,11 +86,11 @@ export function TimeField<T extends TimeValue>({
   validationBehavior,
   ...props
 }: TimeFieldProps<T>) {
-  // placeholderValue 문자열 자동 파싱 ("HH:MM" → Time)
-  const parsedPlaceholderValue = (() => {
-    if (!placeholderValue || typeof placeholderValue !== "string")
-      return placeholderValue as T | undefined;
-    const parts = placeholderValue.split(":");
+  // "HH:MM(:SS)" 문자열 자동 파싱 — placeholderValue/minValue/maxValue 공용
+  //   (min/max 는 DateField 의 safeParseDateString 파싱 동형, §1-3 2026-08-21)
+  const parseTimeString = (v: string | T | undefined): T | undefined => {
+    if (!v || typeof v !== "string") return v as T | undefined;
+    const parts = v.split(":");
     if (parts.length >= 2) {
       const h = parseInt(parts[0], 10);
       const m = parseInt(parts[1], 10);
@@ -96,7 +98,10 @@ export function TimeField<T extends TimeValue>({
       if (!isNaN(h) && !isNaN(m)) return new Time(h, m, s) as T;
     }
     return undefined;
-  })();
+  };
+  const parsedPlaceholderValue = parseTimeString(placeholderValue);
+  const parsedMinValue = parseTimeString(minValue);
+  const parsedMaxValue = parseTimeString(maxValue);
 
   return (
     <AriaTimeField
@@ -113,8 +118,8 @@ export function TimeField<T extends TimeValue>({
       placeholderValue={parsedPlaceholderValue}
       hideTimeZone={hideTimeZone}
       shouldForceLeadingZeros={shouldForceLeadingZeros}
-      minValue={minValue}
-      maxValue={maxValue}
+      minValue={parsedMinValue}
+      maxValue={parsedMaxValue}
       form={form}
       validationBehavior={validationBehavior}
     >

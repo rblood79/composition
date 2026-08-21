@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ProgressCircle·TimeField 형제 대칭 — min/max 지원 - 2026-08-21
+
+### Added
+
+- **ProgressCircle 이 minValue/maxValue 를 받는다** (ProgressBar 형제 대칭). 종전엔
+  0–100 스케일이 캔버스 호(arc)와 미리보기 SVG 양쪽에 하드코딩되어 있었다 — 이제
+  둘 다 `(value-min)/(max-min)` 비율로 그려지고 aria-valuemin/max 도 따라간다.
+  실측: min 50 / max 150 / value 100 → 반원(50%).
+- **TimeField 가 minValue/maxValue 를 받는다** (DateField 형제 대칭). "HH:mm" 문자열을
+  패널에 입력하면 컴포넌트가 Time 으로 파싱해 RAC 검증에 전달한다.
+
+### Fixed
+
+- TimeField granularity 옵션에서 근거 없는 "Day" 제거 — 시각 필드의 RAC granularity
+  는 hour/minute/second 뿐이고 렌더러도 그 3종만 수용하고 있었다 (죽은 옵션).
+
 ## Spectrum 수치 규칙 일괄 채택 — 필드 최소폭·ProgressBar 상하한·Tooltip 최대폭·Separator 두께 축·Table 행 hover - 2026-08-21
 
 ### Added

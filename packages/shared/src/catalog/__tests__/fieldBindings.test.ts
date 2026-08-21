@@ -197,3 +197,39 @@ describe("family ② fields — toRacProps 변환 계약", () => {
     expect(result.label).toBe("X");
   });
 });
+
+describe("TimeField 형제 대칭 — minValue/maxValue + granularity (§1-3, 2026-08-21)", () => {
+  it("minValue/maxValue accepts 선언 (DateField 동형 — string kind, state 섹션)", () => {
+    for (const key of ["minValue", "maxValue"] as const) {
+      const tf = timeFieldBinding.props.accepts[key];
+      const df = dateFieldBinding.props.accepts[key];
+      expect(tf, `TimeField accepts.${key}`).toBeDefined();
+      expect(tf?.kind).toBe("string");
+      expect(tf?.section).toBe(df?.section);
+    }
+  });
+
+  it("granularity 옵션에 근거 없는 'day' 부재 (hour/minute/second 만)", () => {
+    const g = timeFieldBinding.props.accepts.granularity as {
+      options?: Array<{ value: string }>;
+    };
+    expect(g.options?.map((o) => o.value)).toEqual([
+      "hour",
+      "minute",
+      "second",
+    ]);
+  });
+
+  it("toRacProps 가 minValue/maxValue 문자열을 통과시킨다", () => {
+    const out = toRacProps(
+      {
+        id: "tf1",
+        type: "TimeField",
+        props: { minValue: "09:00", maxValue: "18:00" },
+      },
+      timeFieldBinding,
+    );
+    expect(out.minValue).toBe("09:00");
+    expect(out.maxValue).toBe("18:00");
+  });
+});

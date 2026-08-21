@@ -34,8 +34,12 @@ import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule"
 import { colorTokenToCss } from "../catalog/resolvers/colorTokenToCss";
 
 export interface ProgressCircleProps {
-  /** 진행률 0-100 */
+  /** 진행률 (minValue~maxValue 구간, 기본 0-100) */
   value?: number;
+  /** 최소값 (기본 0) — ProgressBar 형제 대칭 (2026-08-21) */
+  minValue?: number;
+  /** 최대값 (기본 100) */
+  maxValue?: number;
   /** 크기 */
   size?: "sm" | "md" | "lg";
   /** 불결정 모드 (75% 정적 호 + CSS 회전 애니메이션) */
@@ -72,6 +76,8 @@ const STROKE_WIDTH = 3;
  */
 export function ProgressCircle({
   value = 0,
+  minValue = 0,
+  maxValue = 100,
   size = "md",
   isIndeterminate,
   isDisabled,
@@ -85,8 +91,14 @@ export function ProgressCircle({
 
   const radius = (diameter - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const clamped = Math.max(0, Math.min(100, Number(value) || 0));
-  const offset = circumference - (clamped / 100) * circumference;
+  // (value-min)/(max-min) 정규화 — 구 0-100 하드코딩 해소 (§1-3, 2026-08-21).
+  //   Skia escape(value_fill_arc)와 동일 공식. span<=0 방어는 0 비율.
+  const min = Number(minValue) || 0;
+  const max = Number(maxValue) || 0;
+  const span = max - min;
+  const clamped = Math.max(min, Math.min(max, Number(value) || 0));
+  const fraction = span > 0 ? (clamped - min) / span : 0;
+  const offset = circumference - fraction * circumference;
 
   // track 색 = rule fill base, indicator 색 = {color.accent}. Skia escape(value_fill_arc) 와 동일 source.
   const rule = resolveComponentRule("ProgressCircle");
@@ -101,8 +113,8 @@ export function ProgressCircle({
     <div
       {...rest}
       role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={100}
+      aria-valuemin={min}
+      aria-valuemax={max}
       aria-valuenow={isIndeterminate ? undefined : clamped}
       style={{
         width: diameter,
@@ -126,7 +138,7 @@ export function ProgressCircle({
           stroke={trackColor}
           strokeWidth={strokeWidth}
         />
-        {!isIndeterminate && clamped > 0 && (
+        {!isIndeterminate && fraction > 0 && (
           <circle
             cx={diameter / 2}
             cy={diameter / 2}

@@ -111,6 +111,8 @@ Toast info 수리 중 cross-check 에서 드러난 구조 결함이다. imperati
 
 **잔여 비대칭의 성격 (2026-08-21 실측)**: RangeCalendar 처럼 "선언 + 전달" 로 끝나는 것은 소진됐다. TimeField 의 min/maxValue 는 컴포넌트가 `TimeValue` 객체를 받는데 DateField 계열은 ISO 문자열을 렌더러가 파싱하는 구조라 파싱 배선이 필요하고, ProgressCircle 의 min/maxValue 는 DOM(`(value/100)*circumference`, `aria-valuemax={100}`)과 Skia(`value_fill_arc`)가 **0–100 스케일을 하드코딩**하고 있어 양쪽 스케일 계산을 함께 바꿔야 한다.
 
+**수리 완료 (2026-08-21 후속)**: 위 2건 종결. TimeField — placeholderValue 의 "HH:mm" 파싱을 min/max 로 일반화(`parseTimeString` 공용) + renderTimeField 전달 배선 + binding accepts(DateField 동형 string kind) + granularity "day" 옵션 제거(RAC 3종만). ProgressCircle — DOM(ProgressCircle.tsx)·Skia(value_fill_arc) 양쪽을 `(value-min)/(max-min)` 정규화로 통일(aria-valuemin/max 동반), binding accepts ProgressBar 동형. live: 캔버스 min50/max150/value100 → 반원(180°) + 패널 State 섹션 Min/Max 노출 실측. Checkbox xl 등 잔여 행은 §1-3 표 참조.
+
 ### 1-4. 채택후보-D3수치 (Button minWidth 채택과 동형의 수치 하한·규칙)
 
 | 컴포넌트    | guideline 수치                                          | 현행                                            |
