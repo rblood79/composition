@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## 의존성 보안 패치 — vitest/vite/react-router/postcss/nanoid - 2026-08-21
+
+### Infrastructure
+
+- **critical/high 취약점 일괄 해소**: `@vitest/browser` 4.1.11, `vite` 7.3.6,
+  `react-router` 7.18.2, `postcss` 8.5.26, `nanoid` 5.1.16 등 범위 내 갱신 +
+  저위험 major(`jsdom` 30, `puppeteer` 25, `eslint` 10 in config).
+  `pnpm audit --audit-level high` 기준 critical/high 0건.
+
 ## ProgressCircle·TimeField 형제 대칭 — min/max 지원 - 2026-08-21
 
 ### Added
@@ -479,7 +488,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
-- **Phase 0~6과 G0~G6를 완료하고 panel layout runtime을 v2 coordinator 하나로 통일**:
+- **Phase 0~~6과 G0~~G6를 완료하고 panel layout runtime을 v2 coordinator 하나로 통일**:
   - Zustand의 v1 `panelLayout` projection과 set/reset/save/load 및 bottom/modal compatibility action을 제거했다. panel UI는 side 인자 없는 visibility toggle, floating command, coordinator snapshot만 사용한다
   - unused `PanelArea`/`BottomPanelArea`/`PanelContainer`/`ModalPanelContainer`, v1 `panelStackLayout`, DOM inset `panelLayoutRuntime`과 전용 CSS/export/test 약 2,800줄을 제거했다
   - rail order가 비어 있는 side는 `<nav><ul /></nav>`를 만들지 않는다. default bottom Monitor fixture와 이동된 Monitor fixture를 함께 유지해 bottom 기능 삭제 없이 빈 rail DOM만 제거했다
@@ -1744,7 +1753,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **paragraph 소유를 전역 LRU 에서 텍스트 노드로 전환 완결** (ADR-174 Phase 2 재적용 + Phase 3~4, commit: `30c6661fb`/`9fd5233f1`):
   - 오전 되돌림(아래 엔트리)의 진범이 노드 소유 설계가 아니라 폰트 인스턴스 복제 버그(아래 수리 엔트리)로 확정되어, 수리 위에서 설계 원안을 재적용 — 실측: retained **5,336개 보유에도 힙 128 MB 평탄** (구 단가였다면 22 GB 급).
   - Phase 3: 전역 `paragraphCache`(상한 1,000)/전환 플래그/`VITE_PARAGRAPH_CACHE_SIZE` env 전량 제거 — 상한→퇴거→프레임 중 폐기라는 텍스트 소실 병인 자체가 소멸. paragraph 수명 = 노드 수명 (`releaseParagraphsIn` 3지점), fontMgr 무효화는 per-entry 검사.
-  - Phase 4 검증: G5 — 편집 즉시 반영(stale 0) / 페이지 전환 왕복 / 줌 10~14%↔100% ×2 전 텍스트 유지 + 저줌 5,336 → 복귀 490 (해제 경로 실동작). G4 A/B(LRU+수리 팔 대비) — record p50/p95 동등~우위, 최악 프레임 총비용 동등(longtask max 229 vs 234), 불리 경로는 cold walk record 최대 1건 +41ms (dedup 2.8× 1회성)로 최악 프레임 미형성.
+  - Phase 4 검증: G5 — 편집 즉시 반영(stale 0) / 페이지 전환 왕복 / 줌 10~~14%↔100% ×2 전 텍스트 유지 + 저줌 5,336 → 복귀 490 (해제 경로 실동작). G4 A/B(LRU+수리 팔 대비) — record p50/p95 동등~~우위, 최악 프레임 총비용 동등(longtask max 229 vs 234), 불리 경로는 cold walk record 최대 1건 +41ms (dedup 2.8× 1회성)로 최악 프레임 미형성.
   - 규칙 정정: `canvas-rendering.md` §3 — "Paragraph 캐싱 금지" 는 측정 경로 한정, 렌더 측은 노드 소유 retained + 공유 FontCollection 의무.
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/{nodeRendererText,nodeRendererState,retainedParagraph,renderCommands,useSkiaNode}.ts`
 
@@ -2482,7 +2491,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   | 사이드바 250px / 1920px           | 13.0%     | 10.4px                     | 12px 구간        |
   | 슬롯 이름표 (`fontSize` 8)        | —         | 높이 4.8px + 가로 75% 압축 | 제거 → 호버 툴팁 |
   - 증상: mobile 에서 `전체화면 / 수직 2단 / 수직 3단 / 좌측·우측 사이드바 / 목록-상세` **6개가 사실상 동일한 회색 사각형**이었고, `피드` 만 카드 격자 덕에 구분됐다. 슬롯 이름표는 어느 프리셋에서도 읽히지 않았다.
-  - **Why**: 썸네일이 **실제 프레임의 픽셀 비율을 그대로** 80×60 에 그렸다. 1080px 안의 60px 밴드는 5.6% = 3.3px 이고, 1px 테두리 두 개를 빼면 내부가 1~2px 라 선 한 줄로 읽힌다. 프리셋을 구분하는 특징(어떤 밴드·열이 있는가)이 전부 3~13px 구간에 몰리고 서로의 차이는 1~3px 였다. 썸네일의 용도는 **식별**이지 계측이 아닌데 비율 충실성이 식별성을 잡아먹은 셈이다.
+  - **Why**: 썸네일이 **실제 프레임의 픽셀 비율을 그대로** 80×60 에 그렸다. 1080px 안의 60px 밴드는 5.6% = 3.3px 이고, 1px 테두리 두 개를 빼면 내부가 1~~2px 라 선 한 줄로 읽힌다. 프리셋을 구분하는 특징(어떤 밴드·열이 있는가)이 전부 3~~13px 구간에 몰리고 서로의 차이는 1~3px 였다. 썸네일의 용도는 **식별**이지 계측이 아닌데 비율 충실성이 식별성을 잡아먹은 셈이다.
   - 좌표계 왜곡이 나머지 절반이었다. `viewBox="0 0 100 100"` + `preserveAspectRatio="none"` 로 정사각 좌표를 80×60 에 눌러 담아 x·y 배율이 0.8 / 0.6 으로 갈렸다 — `strokeWidth: 1` 이 가로 0.8px·세로 0.6px, `rx: 2` 가 1.6×1.2 타원, `fontSize: 8` 이 높이 4.8px + 가로 75% 압축이었다.
   - 인접 슬롯이 경계를 공유해 각자의 1px 테두리가 같은 선에 겹쳐, 별개 블록이 아니라 **한 덩어리에 칸막이가 있는 모양**으로 읽혔다.
   - 위치: `panels/properties/editors/LayoutPresetSelector/{normalizeThumbnailAreas,PresetPreview,index}.tsx`
@@ -3918,7 +3927,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Performance
 
 - **비활성 패널을 React 19.2 `<Activity mode="hidden">` 으로 gating — 선택 클릭 시 숨은 패널 작업 완전 소거** (ADR-155 Phase 0~3 Implemented):
-  - **Why**: `PanelContainer` 의 `isActive={true}` 하드코딩 + memo 전파 차단으로 화면에 없는 패널 14종이 매 선택 클릭마다 store 구독 갱신을 실행 — 클릭당 ~110ms (86~205ms) 동기 long task 의 본체가 숨은 패널 commit effect 순회 (busy 샘플 ~74%, 숨은 스타일 입력 25개 host update = 클릭당 DOM 속성 쓰기 93건)
+  - **Why**: `PanelContainer` 의 `isActive={true}` 하드코딩 + memo 전파 차단으로 화면에 없는 패널 14종이 매 선택 클릭마다 store 구독 갱신을 실행 — 클릭당 ~~110ms (86~~205ms) 동기 long task 의 본체가 숨은 패널 commit effect 순회 (busy 샘플 ~74%, 숨은 스타일 입력 25개 host update = 클릭당 DOM 속성 쓰기 93건)
   - 수정: `PanelWrapper` 가 비활성 패널을 Activity hidden 으로 무조건부 래핑 — hidden 중 uSES 구독 자체가 해제되어 갱신 알림을 받지 않음 (DOM·컴포넌트 상태 보존, 재활성 시 최신화). 슬라이드 애니메이션의 `data-active` CSS 채널은 속성축 분리로 공존
   - 숨김 중에도 필요하던 캔버스 전역 단축키 (Cmd+C/V/D/A·Escape·그룹·정렬 등 PropertiesPanel 발 11 핸들러 + Styles Copy/Paste) 는 신설 `CanvasSelectionShortcuts` host (BuilderCore mount) 로 이전 — properties 패널이 닫혀 있어도 동작
   - Activity `display:none` 이 소실시키는 패널 스크롤 위치는 scroll 기록 → 재활성 rAF 복원으로 보완 (실측 420→0 회귀 → 1600px 보존)
@@ -3967,7 +3976,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
-- **Calendar/RangeCalendar 대형 발산 (dw+6~24/dh+2~26 → 0/0)** (ADR-151 Phase 1):
+- **Calendar/RangeCalendar 대형 발산 (dw+6~~24/dh+2~~26 → 0/0)** (ADR-151 Phase 1):
   - **Why**: generated RangeCalendar.css 미import (컨테이너 chrome 전체 죽음) + 셀 메트릭이 컨테이너 gap 값을 inter-cell 간격으로 오용 + border 1px layout 미반영 — 3겹 원인
   - 수정: import 추가 + DOM `td { padding: 2px }` 셀 박스 모델 정렬 (cellBox=cellSize+4) + catalog `borderWidth: "1px"` layout 채널
   - 위치: `packages/shared/styles/index.css`, `apps/builder/.../layout/engines/utils.ts`, `packages/specs/src/renderers/skiaPrimitives.ts`
@@ -4067,7 +4076,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: ① canvas 컴포넌트용 generated Select.css(unlayered)의 `[data-focus-visible]`/`[data-pressed]` outline 이 `@layer builder-system` 보다 cascade 우선이라 빌더 패널 컨텍스트로 leak — 패널 focus 설계(부모 `.react-aria-Group:focus-within` 단일 ring)와 충돌. ② Select 는 popover 열림 시 focus 가 ListBox(portal)로 이동해 `:focus-within` 을 잃음. ③ 닫힘 시 focus 가 body 로 낙하했다가 RAC FocusScope 복원까지 수십~수백 ms gap 동안 CSS 가 볼 수 있는 신호가 전부 꺼짐 (`data-focused` 도 리렌더 타이밍에 따라 해제 — 레이스라 CSS 단독 해결 불가).
   - 수정: ① form-controls.css 에서 Group 하위 Select/Button 의 `[data-focus-visible|pressed|focused]` outline 제거 (`!important` — unlayered leak 차단, Switch 기존 패턴과 동일). ② Group ring 조건에 `:has(.react-aria-Select[data-open])` + `[data-focused]` 추가 — popover 열린 동안 유지. ③ `useSelectTriggerFocusRestore` 훅 신설 — 닫힘 시 다음 frame(paint 직전)에 focus 가 popover 내부/body 미아 상태면 트리거로 복원. 외부 클릭으로 다른 컨트롤에 간 focus 는 강탈하지 않음(동기 무조건 복원은 focus 강탈 회귀 실측으로 기각). PropertySelect + PropertyDataBinding(소스/이름/갱신 모드 Select 3개) 적용.
   - 유사 패턴 전수 점검: GradientEditor/MeshGradientEditor(Fill popover portal — `.section` 밖이라 부모 ring 패턴 비대상), SelectionMemory·이벤트 패널 계열·SettingsPanel(부모 ring 없음) 해당 없음 판정. PropertyIconPicker(DialogTrigger 기반 인접 패턴)는 증상 미실측으로 보류.
-  - 검증: Chrome MCP 실빌더 rAF 프레임 레코더 — Tab focus 단일 ring, popover 열림 중 ring 유지, 값 선택/재클릭 닫힘 시 ring off ~170ms → 0~1 frame(인지 불가), 외부 클릭 시 RAC 기본 동작 보존. type-check PASS.
+  - 검증: Chrome MCP 실빌더 rAF 프레임 레코더 — Tab focus 단일 ring, popover 열림 중 ring 유지, 값 선택/재클릭 닫힘 시 ring off ~~170ms → 0~~1 frame(인지 불가), 외부 클릭 시 RAC 기본 동작 보존. type-check PASS.
   - 위치: `apps/builder/src/builder/components/styles/form-controls.css`, `apps/builder/src/builder/components/property/{PropertySelect,PropertyDataBinding}.tsx`, `apps/builder/src/builder/components/property/useSelectTriggerFocusRestore.ts`(신규)
 
 ## [추가 Fill(FillLayerRow) 팝오버 24px 붕괴 수정] - 2026-07-16
@@ -4781,7 +4790,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - **ADR-916 본문 파일이 Status=Implemented(2026-07-06) 인데도 `docs/adr/completed/`로 이동되지 않고 루트에 잔존**:
-  - **Why**: 900번대 다른 Implemented ADR(900/902~909/912~914)은 모두 `completed/`에 있는데 916만 예외로 남아 있어 디렉터리 컨벤션과 실제 상태가 어긋났다. 정본 조회 시 "Implemented는 completed/에 있다"는 가정이 깨지는 지점.
+  - **Why**: 900번대 다른 Implemented ADR(900/902~~909/912~~914)은 모두 `completed/`에 있는데 916만 예외로 남아 있어 디렉터리 컨벤션과 실제 상태가 어긋났다. 정본 조회 시 "Implemented는 completed/에 있다"는 가정이 깨지는 지점.
   - 조치: `git mv docs/adr/916-unified-rust-engine.md docs/adr/completed/916-unified-rust-engine.md`. 참조 경로 갱신 — `.claude/skills/composition-patterns/SKILL.md`, `.claude/skills/composition-patterns/reference/layout-engine.md`, `docs/reference/components/SPEC_CSS_BOUNDARY.md`, `docs/adr/design/916-unified-rust-engine-breakdown.md`, `docs/adr/README.md` 완료 표 링크. 별도 계획 문서와 `docs/adr/reviews/916.md`는 실행 당시 시점 기록으로만 보존한다.
   - design/reviews 하위 폴더(`docs/adr/design/`, `docs/adr/reviews/`)는 completed 여부와 무관하게 ADR 번호 기준으로 유지되는 기존 컨벤션 확인 — 916도 동일 패턴이라 본문 파일만 이동.
 
@@ -5407,7 +5416,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **icon Button 자식 padding/gap 미적용** (자식이 경계에 붙음 + Icon↔Text 간격 0):
   - `applyImplicitStyles` 에 `button` / `togglebutton` 분기 추가 — catalog `sizes[size].paddingX/paddingY/gap` 을 자식 보유 Button 의 Taffy 노드 style 로 주입(paddingX/Y → padding{Left,Right,Top,Bottom} longhand, gap → rowGap/columnGap). 사용자 inline 값 우선(Toolbar 분기 패턴 동형)
   - **Why**: catalog `sizes[size]` 의 padding/gap 은 standalone leaf 렌더(`buildCatalogShapes` / `calculateContentWidth·Height`)에서만 소비되고, 자식(Icon/Text element)을 가진 Button 은 `hasTaffyChildren=true` → leaf 경로 미진입 → sizes 값이 Taffy 노드로 흘러가지 않아 padding=0/gap=0. `resolveContainerStylesFallback` 도 `containerStyles` 만 보강하는데 padding/gap 은 size 별이라 거기 없다. `parsePadding` 은 longhand 만 읽으므로 paddingX/Y → longhand 변환 필수
-  - 영향 범위: 자식 보유 Button / ToggleButton 한정. gap/padding 은 size 별(md = padding 12/4, gap 8; xs~xl 4~24 / 1~12 / 4~12)
+  - 영향 범위: 자식 보유 Button / ToggleButton 한정. gap/padding 은 size 별(md = padding 12/4, gap 8; xs~~xl 4~~24 / 1~~12 / 4~~12)
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`(button/togglebutton 분기), `__tests__/buttonChildPaddingGapImplicitStyles.test.ts`(회귀 5 case)
   - 검증: buttonChildPaddingGapImplicitStyles 5/5, layout engine suite 139 passed(무관한 radius 토큰 스냅샷 2건은 사전 존재 drift — 본 변경 무관), type-check PASS(baseline 69). **live(빌더)**: icon Button(md) selection 크기 98×24 → **106×32**(paddingY 4×2 + gap/paddingX 반영), Skia 캔버스에서 아이콘↔텍스트 간격 + 박스 내부 여백 확인
 
@@ -10072,7 +10081,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - 다음: ADR-112 Component/Slot base 우선 구현
 - **ADR-111 Frozen (Phase 3 후속 동결)**:
   - 위치: `docs/adr/completed/111-layout-frameset-pencil-redesign.md` Status `In Progress → Frozen`
-  - 보존 범위: Phase 0~2 (Implemented) + Phase 3 P3-α/β/γ/δ + δ fix #1~#4 + B1 filter + θ scope + θ regression fix #1 모두 land 보존 — 사용자 가시 동작 (frame default + page slot fill GREEN) 유지
+  - 보존 범위: Phase 0~~2 (Implemented) + Phase 3 P3-α/β/γ/δ + δ fix #1~~#4 + B1 filter + θ scope + θ regression fix #1 모두 land 보존 — 사용자 가시 동작 (frame default + page slot fill GREEN) 유지
   - 정지 영역: P3-ε (FramesTab inline frame editing) / P3-ζ (Chrome MCP 회귀 검증) / G3-θ (d) Chrome MCP screenshot — 모두 ADR-112 Component/Slot base 완료 후 재개
   - 재개 조건: ADR-112 Component/Slot base 완료 시 P3-ε / P3-ζ 가 frame authoring 편의 확장으로 재설계 진입
 
@@ -10186,7 +10195,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 - **ADR-113 Phase 4 READ-ONLY 3 단계 main land** — DB schema 변환 prep. dryRun=true 고정으로 DB 무변경:
   - **Step 4-1** IndexedDB DB_VERSION 8 → 9 schema bump (no schema change — `tag` index 미존재). `MetaRecord.schemaVersion` enum 에 `"composition-1.1"` 추가 (composition-1.0 = tag 기반 / composition-1.1 = type 기반). `metaStore.test.ts` test 1 갱신. **비파괴**: 기존 프로젝트 (composition-1.0) read-through 유지 — schemaVersion 단계 추적 (legacy → composition-1.0 ADR-903 P3-E → composition-1.1 ADR-113 P4)
   - 위치: `apps/builder/src/lib/db/indexedDB/adapter.ts` + `types.ts` + `__tests__/metaStore.test.ts`
-  - **Step 4-2** 신규 파일 `apps/builder/src/lib/db/migrationTagType.ts` 분리 (ADR-903 P3-E `runLegacyToCanonicalMigration` 과 독립 schema 차원 — 책임 분리). `transformElementTagToType(el)` pure transformer (tag-only → rename / type-only → no-op / 둘 다 → type 우선 + tag 제거 / 둘 다 missing → orphan error) + `runTagTypeMigration(adapter, projectId, { dryRun=true })` (composition-1.1 already-migrated → skipped, `createMigrationBackup` 호출 fallback 안전망, `elements.getAll()` read-only → transformations 결과 반환, `dryRun=false` → throw 안내). 16 신규 tests (TC-T1~T5 transformer + TC-M1~M11 integration, **50 fixture round-trip 포함**)
+  - **Step 4-2** 신규 파일 `apps/builder/src/lib/db/migrationTagType.ts` 분리 (ADR-903 P3-E `runLegacyToCanonicalMigration` 과 독립 schema 차원 — 책임 분리). `transformElementTagToType(el)` pure transformer (tag-only → rename / type-only → no-op / 둘 다 → type 우선 + tag 제거 / 둘 다 missing → orphan error) + `runTagTypeMigration(adapter, projectId, { dryRun=true })` (composition-1.1 already-migrated → skipped, `createMigrationBackup` 호출 fallback 안전망, `elements.getAll()` read-only → transformations 결과 반환, `dryRun=false` → throw 안내). 16 신규 tests (TC-T1~~T5 transformer + TC-M1~~M11 integration, **50 fixture round-trip 포함**)
   - 위치: `apps/builder/src/lib/db/migrationTagType.ts` + `__tests__/migrationTagType.test.ts`
   - **Step 4-3** `usePageManager.initializeProject` 의 P3-E migration 호출 직후에 `runTagTypeMigration(db, projectId, { dryRun: true })` 추가. 진입 조건: `metaRecord` 미존재 또는 `schemaVersion ∈ {legacy, composition-1.0}`. dev console 로그 — skipped/일반/transformedCount > 0 시 `${N} elements need tag→type migration`. try/catch graceful degrade (BC)
   - 위치: `apps/builder/src/builder/hooks/usePageManager.ts`
@@ -10746,7 +10755,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 
 - **ADR-903 P3-D-5 step 1~5d — canonical adapter helper 통합 + workflow edges 경로 canonical activation** (commits `74996fd2` ~ `4594afd6`, 8 commits):
 
-  P3-D-5 (BuilderCore + workspace canvas) 의 큰 작업 (~3-4h, HIGH 위험) 을 6 step 분해하여 step 1~5d 완료. 각 step 회귀 위험 0 보장 (doc 안 받는 caller 는 legacy fallback).
+  P3-D-5 (BuilderCore + workspace canvas) 의 큰 작업 (~~3-4h, HIGH 위험) 을 6 step 분해하여 step 1~~5d 완료. 각 step 회귀 위험 0 보장 (doc 안 받는 caller 는 legacy fallback).
   - **Step 1 (`74996fd2`)**: useCanvasDragDropHelpers 의 ownership 비교 3 분기 (L158/258/282) 를 local `sameOwnership` helper 추출
   - **Step 2 (`47ed4952`)**: BuilderCore.tsx 의 layout membership 비교 2 분기 (L283/457) 를 local `belongsToLayout` helper 추출
   - **Step 3 (`31035bb6`)**: local helper 를 `adapters/canonical/index.ts` 로 통합 — `sameLegacyOwnership` + `belongsToLegacyLayout` export, `doc?: CompositionDocument | null` 시그니처 추가
@@ -10978,7 +10987,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - 위치: `docs/adr/design/903-residual-grep-audit-2026-04-26.md` (536 LOC)
 
 - **ADR-903 Phase 4 G4 sub-breakdown 검증** (agent dispatch 결과 cover 확증):
-  - 기존 `docs/adr/design/903-phase4-editing-semantics-breakdown.md` (637 LOC, 2026-04-25) 가 이미 7 요구사항 baseline + P4-A~F 6 sub-phase 분할 + Sub-Gate G4-A~G4-F 모두 cover
+  - 기존 `docs/adr/design/903-phase4-editing-semantics-breakdown.md` (637 LOC, 2026-04-25) 가 이미 7 요구사항 baseline + P4-A~~F 6 sub-phase 분할 + Sub-Gate G4-A~~G4-F 모두 cover
   - 신규 plan 작성 불필요 (중복 회피, agent 의 ROI 판단 정확)
   - Phase 4 진입 가능 시점: P3 G3 통과 후
 
