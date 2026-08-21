@@ -11646,40 +11646,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
-          // quiet (2026-08-21): `isQuiet` D2 표면은 binding 에 있었지만 시각 규칙이 0건이라
-          //   완전한 dead prop 이었다 — field 패밀리 11종 중 TextArea 만 빠진 형제 비대칭.
-          //   TextField 와 동형 규칙(배경·테두리 제거 + 밑줄 1선)을 쓴다. 값이 갈리면 같은
-          //   패밀리 안에서 quiet 의 뜻이 둘이 되므로 의도적으로 복제한다.
-          //   구 TextField 쪽의 `--tf-border`/`--tf-bg` 선언은 소비처 0건(dead)이라 옮기지 않는다.
-          quiet: {
-            true: {
-              nested: [
-                {
-                  selector: ".react-aria-Input",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-focused])",
-                  styles: {
-                    outline: "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-invalid])",
-                  styles: {
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
-            },
-          },
+          // quiet: **여기 두지 않는다** (2026-08-21 라이브 실측). TextArea 는 DOM 에서
+          //   `.react-aria-TextArea` 가 아니라 **`.react-aria-TextField` 클래스로 렌더된다** —
+          //   binding 의 `rac.primitive` 가 `TextField` 라(RAC 에 TextArea 컨테이너가 없다)
+          //   CanonicalNodeRenderer 가 그 이름으로 클래스를 붙이기 때문이다. 그래서 이 rule 이
+          //   만드는 `.react-aria-TextArea[...]` 규칙은 **전부 미매칭 dead** 이고, 실제 시각은
+          //   TextField 의 generated CSS 가 담당한다(quiet 포함 — `data-quiet` 은 toRacProps 가
+          //   emit 하므로 그 규칙이 그대로 걸린다. 라이브 확인: 배경 투명 + 아래 테두리 1px +
+          //   radius 0).
+          //   여기에 규칙을 더하면 "있는데 안 걸리는" 함정만 늘어난다. TextArea rule 의
+          //   generated CSS 가 통째로 dead 인 문제는 별도 과제.
         },
         delegation: [
           {

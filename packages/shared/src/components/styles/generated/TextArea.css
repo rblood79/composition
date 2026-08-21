@@ -101,23 +101,6 @@
   align-items: flex-start;
 }
 
-.react-aria-TextArea[data-quiet="true"] .react-aria-Input {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-radius: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.react-aria-TextArea[data-quiet="true"] .react-aria-Input:where([data-focused]) {
-  outline: none;
-  border-bottom-color: var(--accent);
-}
-
-.react-aria-TextArea[data-quiet="true"] .react-aria-Input:where([data-invalid]) {
-  border-bottom-color: var(--negative);
-}
-
 
 @media (forced-colors: active) {
   .react-aria-TextArea {
