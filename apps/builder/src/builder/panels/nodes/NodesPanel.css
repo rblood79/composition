@@ -11,21 +11,21 @@
   min-height: var(--inspector-control-size);
   padding-inline: var(--spacing);
   border-radius: var(--radius-md);
-  transition:
-    background-color 0.2s ease,
-    outline 0s ease;
+  transition: background-color 100ms ease;
   overflow: hidden;
 }
 
 .elementItem:hover {
-  background-color: color-mix(in srgb, var(--bg-inset) 85%, black);
-  outline: 1px solid var(--border-hover);
+  background-color: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+
+.elementItem:active,
+.react-aria-TreeItem[data-pressed] .elementItem {
+  background-color: color-mix(in srgb, var(--fg) 12%, transparent);
 }
 
 .elementItem.active {
-  box-shadow: var(--inset-shadow-sm);
-  background-color: color-mix(in srgb, var(--bg-inset) 75%, black);
-  outline: 1px solid var(--border-pressed);
+  background-color: var(--accent-subtle);
   z-index: 1;
 }
 
@@ -117,7 +117,7 @@
 .elementItemActions {
   display: flex;
   flex-direction: row;
-  transition: transform 0.24s ease-in-out;
+  transition: transform 100ms ease;
   transform: translateX(100%);
 }
 
@@ -148,7 +148,9 @@
 }
 
 .elementItem:hover .elementItemActions,
-.elementItem.active .elementItemActions {
+.elementItem.active .elementItemActions,
+.elementItem.focused .elementItemActions,
+.elementItem:focus-within .elementItemActions {
   transform: translateX(0%);
 }
 
@@ -452,7 +454,6 @@
 .elementItem.focused {
   outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
-  background-color: var(--bg-overlay);
 }
 
 .elementItem.focused.active {
@@ -481,11 +482,6 @@
 /* 트리 아이템 전환 애니메이션 */
 .react-aria-TreeItem .elementItemIcon svg {
   transition: transform 150ms ease;
-}
-
-/* 선택 가능한 요소 시각적 피드백 */
-.react-aria-TreeItem[aria-selected="true"] .elementItem {
-  background-color: var(--bg-muted);
 }
 
 /* 펼침/접기 상태 표시 */

@@ -92,6 +92,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     token을 사용하도록 맞췄다.
   - Row의 좌우 padding은 `--spacing`, 우측 action은 Parent Page Select 내부와
     같은 `--text-xl` 크기를 사용해 control 내부 rhythm도 통일했다.
+  - Tree interaction도 Builder 공통 flat row 상태로 정리했다. hover/pressed는
+    foreground 8%/12% tint, selected는 `--accent-subtle`, keyboard focus는 독립된
+    2px focus ring을 사용하며, selected의 중복 배경·outline·inset shadow를 제거했다.
+    우측 action은 hover·selected뿐 아니라 keyboard focus와 `:focus-within`에서도
+    노출된다.
   - Page/Layer/Frame tree의 텍스트 앞 타입 아이콘, depth 들여쓰기 세로선,
     expand·selection·drag action은 기존 tree 정보구조 그대로 유지했다.
   - **Why:** 초기 sidebar 전용 `.section-content { all: unset; }`과 수동

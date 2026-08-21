@@ -92,4 +92,28 @@ describe("NodesPanel shared panel style contract", () => {
     expect(layerTreeSource).toContain("itemHeight={28}");
     expect(frameTreeSource).toContain("itemHeight={28}");
   });
+
+  it("uses the shared Builder interaction states for tree rows", async () => {
+    const css = await readFile(resolve(__dirname, "NodesPanel.css"), "utf-8");
+
+    expect(css).toMatch(
+      /\.elementItem:hover \{[^}]*background-color: color-mix\(in srgb, var\(--fg\) 8%, transparent\);/s,
+    );
+    expect(css).toMatch(
+      /\.react-aria-TreeItem\[data-pressed\] \.elementItem \{[^}]*background-color: color-mix\(in srgb, var\(--fg\) 12%, transparent\);/s,
+    );
+    expect(css).toMatch(
+      /\.elementItem\.active \{[^}]*background-color: var\(--accent-subtle\);/s,
+    );
+    expect(css).toMatch(
+      /\.elementItem\.focused \{[^}]*outline: 2px solid var\(--focus-ring\);[^}]*outline-offset: -2px;/s,
+    );
+    expect(css).toContain(".elementItem:focus-within .elementItemActions {");
+    expect(css).not.toContain(
+      '.react-aria-TreeItem[aria-selected="true"] .elementItem',
+    );
+    expect(css).not.toMatch(
+      /\.elementItem\.active \{[^}]*(?:box-shadow|outline):/s,
+    );
+  });
 });
