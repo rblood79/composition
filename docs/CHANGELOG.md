@@ -34,8 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 로컬 G2 fixture에서 trailing span 이동, write budget, bounds/hit/SpatialIndex/revision
   원자성 및 기존 presentation 회귀를 검증했다. type-check 신규 위반은 0개다.
-- populated canonical live gate는 새 project의 canonical index hydration 부족으로
-  보류했다. [Phase 2 evidence](adr/design/189-phase-2-g2-command-splice.md)
+- populated canonical live trace에서 201개 active node `fills.replace` commit의
+  `queue/success/fallback=1/1/0`, `patchWriteCount=6`, commit 후 full build `0`,
+  subtree visit `1`, command cache miss `0`, console error `0`을 확인했다. full rebuild와의
+  pixel diff 0은 Phase 2 closure에서 추가 검증한다. [Phase 2 evidence](adr/design/189-phase-2-g2-command-splice.md)
 
 ## ADR-188 targeted layout input/result — 2026-08-22
 

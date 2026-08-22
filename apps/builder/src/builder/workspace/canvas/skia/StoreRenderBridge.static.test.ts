@@ -15,7 +15,8 @@ describe("StoreRenderBridge layout publish contract", () => {
     expect(source).toMatch(
       /this\.unsubscribeLayout = onLayoutPublished\(\(\) => resync\(true\)\);/,
     );
-    expect(source).toMatch(/forceFullRebuild \|\| themeChanged/);
+    expect(source).toMatch(/if \(themeChanged\)/);
+    expect(source).toContain("projectionChanged");
   });
 
   it("does not independently resolve canonical refs inside the bridge sync path", async () => {

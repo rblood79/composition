@@ -94,9 +94,13 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
 - 로컬 fixture에서 replacement span 길이 변화와 후속 sibling span 이동을 확인했고,
   splice write는 replacement span 길이 이하로 고정했다. 관련 35 tests와
   bridge/presentation 11 tests, type-check 신규 위반 0개가 통과했다.
-- 새 project live harness는 canonical document index가 준비되지 않아 target
-  hydration에서 중단되었다. populated canonical live/pixel gate는 G2 closure 전에
-  수행한다.
+- dashboard 생성 경로의 populated canonical project에서 201개 active node를 seed한
+  `fills.replace` commit live trace를 통과했다. `queue/success/fallback=1/1/0`,
+  `patchWriteCount=6`, commit 후 full build `0`, subtree visit `1`, command cache miss
+  `0`, console error `0`을 확인했다. layout publish 전 대기와 후속 cache promotion도
+  함께 검증했다.
+- full rebuild와의 pixel diff 0은 아직 별도 closure harness에서 수행해야 하므로
+  Phase 2는 command live gate 완료·pixel closure pending이다.
 
 ### Phase 3 — G3: content 부분 재기록 (damage clip)
 

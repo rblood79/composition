@@ -65,6 +65,10 @@ import {
   buildSubtreeCommandStream,
   getCachedCommandStreamSnapshot,
   recordCommitLanePatchFallback,
+  recordCommitLanePatchSuccess,
+  recordCommitLaneQueue,
+  recordCommitLanePromotedSyncSkip,
+  recordCommitLaneSync,
 } from "./renderCommands";
 import { applyCommitSubtreeCommandPatch } from "./subtreeCommandPatch";
 import { createCommitPatchPlan } from "../../../presentation/commitPatchPlan";
@@ -271,6 +275,11 @@ function isSpecPath(element: CanvasSceneNode): boolean {
 // StoreRenderBridge
 // ---------------------------------------------------------------------------
 
+export interface StoreRenderSyncResult {
+  readonly commandStreamPatched: boolean;
+  readonly commandStreamInvalidated: boolean;
+}
+
 export class StoreRenderBridge {
   private unsubscribe: (() => void) | null = null;
   private unsubscribeLayout: (() => void) | null = null;
@@ -283,6 +292,7 @@ export class StoreRenderBridge {
   /** 이전 elementsMap 참조 (증분 갱신용) */
   private prevElementsMap: Map<string, CanvasSceneNode> | null = null;
   private prevProjectionVersion: number | null = null;
+  private lastObservedCanonicalRevision: number | null = null;
   /** 이전 theme (변경 감지 → fullRebuild 강제) */
   private prevTheme: "light" | "dark" = "light";
   /**
@@ -315,7 +325,11 @@ export class StoreRenderBridge {
   private pendingCommit: {
     readonly mutations: readonly EditorMutationDescriptor[];
     readonly revision: number;
+    readonly queuedCanonicalRevision: number | null;
+    layoutWaited: boolean;
   } | null = null;
+  /** patch 직후 layout publish가 한 번 더 들어와도 promoted stream을 보존한다. */
+  private lastPatchedCanonicalRevision: number | null = null;
   /** CSS transition 애니메이션 매니저 (선택 연결) */
   public transitionManager: TransitionManager | null = null;
 
@@ -409,7 +423,13 @@ export class StoreRenderBridge {
     ) {
       return;
     }
-    this.pendingCommit = { mutations: [...mutations], revision };
+    this.pendingCommit = {
+      mutations: [...mutations],
+      revision,
+      queuedCanonicalRevision: this.lastObservedCanonicalRevision,
+      layoutWaited: false,
+    };
+    recordCommitLaneQueue();
   }
 
   /**
@@ -423,7 +443,7 @@ export class StoreRenderBridge {
     getCanonicalRevision?: () => number;
     subscribe: (callback: () => void) => () => void;
     getTheme?: () => "light" | "dark";
-    onDidSync?: () => void;
+    onDidSync?: (result: StoreRenderSyncResult) => void;
     theme?: "light" | "dark";
   }): void {
     this.dispose();
@@ -443,7 +463,7 @@ export class StoreRenderBridge {
     const resolveTheme = getTheme ?? (() => theme);
 
     const resync = (forceFullRebuild = false) => {
-      this.sync(
+      const result = this.sync(
         getElements(),
         getLayoutMap(),
         resolveTheme(),
@@ -452,7 +472,7 @@ export class StoreRenderBridge {
         forceFullRebuild,
         getCanonicalRevision?.(),
       );
-      onDidSync?.();
+      onDidSync?.(result);
     };
     this.pendingResync = () => resync(true);
 
@@ -493,7 +513,10 @@ export class StoreRenderBridge {
         resolveTheme(),
         getChildrenMap?.() ?? null,
       );
-      onDidSync?.();
+      onDidSync?.({
+        commandStreamPatched: false,
+        commandStreamInvalidated: true,
+      });
     });
   }
 
@@ -508,7 +531,11 @@ export class StoreRenderBridge {
     projectionVersion: number,
     forceFullRebuild = false,
     canonicalRevision?: number,
-  ): boolean {
+  ): StoreRenderSyncResult {
+    recordCommitLaneSync(this.pendingCommit !== null);
+    if (canonicalRevision !== undefined) {
+      this.lastObservedCanonicalRevision = canonicalRevision;
+    }
     // theme 변경 시 전체 rebuild 강제 (모든 Spec 색상 재계산 필요)
     const themeChanged = theme !== this.prevTheme;
     this.prevTheme = theme;
@@ -542,8 +569,41 @@ export class StoreRenderBridge {
       prevInputs.breakpoint === breakpoint &&
       prevInputs.themeVersion === themeVersion
     ) {
-      return false;
+      return {
+        commandStreamPatched: false,
+        commandStreamInvalidated: false,
+      };
     }
+
+    // canonical commit은 rendererInput과 layout publish를 서로 다른 React
+    // 경계에서 발행한다. patch 성공 직후 같은 map/layout을 가진 후속
+    // projection sync가 forceFullRebuild로 들어오면, 이미 승격한 stream을
+    // 다시 무효화하지 않는다. 요소/map/layout이 달라진 경우에는 이 guard를
+    // 통과하지 않아 기존 full rebuild 경계를 보존한다.
+    if (
+      this.pendingCommit === null &&
+      this.lastPatchedCanonicalRevision !== null &&
+      canonicalRevision === this.lastPatchedCanonicalRevision &&
+      (projectionChanged || forceFullRebuild) &&
+      prevInputs !== null &&
+      prevInputs.layoutMap === layoutMap
+    ) {
+      const changedAfterPatch =
+        this.prevElementsMap === elementsMap
+          ? new Set<string>()
+          : this.detectChangedIds(elementsMap);
+      if (changedAfterPatch?.size === 0) {
+        recordCommitLanePromotedSyncSkip();
+        this.prevElementsMap = elementsMap;
+        this.prevProjectionVersion = projectionVersion;
+        return {
+          commandStreamPatched: false,
+          commandStreamInvalidated: false,
+        };
+      }
+    }
+
+    this.lastPatchedCanonicalRevision = null;
     this.externalDirty = false;
     this.prevSyncInputs = {
       layoutMap,
@@ -554,7 +614,7 @@ export class StoreRenderBridge {
     };
 
     const changedIds =
-      (this.pendingCommit !== null && !themeChanged && !projectionChanged) ||
+      (this.pendingCommit !== null && !themeChanged) ||
       (!forceFullRebuild && !themeChanged && !projectionChanged)
         ? this.detectChangedIds(elementsMap)
         : null;
@@ -563,12 +623,34 @@ export class StoreRenderBridge {
       // rendererInput effect는 legacy 호환상 forceFullRebuild=true로 호출되지만,
       // pending commit이 있으면 먼저 변경 ID만 registry에 반영하고 현재 stream의
       // dirty root를 splice한다. patch 실패 시에만 아래 full rebuild를 실행한다.
-      if (themeChanged || projectionChanged) {
+      // canonical commit 자체가 scene/projection version을 증가시킨다. pending
+      // descriptor와 같은 post-commit projection 변경은 dirty-root patch의
+      // 입력이며, projectionChanged를 full rebuild 조건으로 취급하면 commit
+      // lane이 항상 탈락한다. theme 변경처럼 descriptor 범위를 벗어난 전역
+      // 입력만 fail-closed 한다.
+      const shouldWaitForPublishedLayout =
+        !this.pendingCommit.layoutWaited &&
+        projectionChanged &&
+        canonicalRevision !== undefined &&
+        this.pendingCommit.queuedCanonicalRevision !== null &&
+        canonicalRevision === this.pendingCommit.queuedCanonicalRevision;
+      if (shouldWaitForPublishedLayout) {
+        this.pendingCommit.layoutWaited = true;
+        return {
+          commandStreamPatched: false,
+          commandStreamInvalidated: false,
+        };
+      }
+      if (themeChanged) {
         this.pendingCommit = null;
         this.fullRebuild(elementsMap, layoutMap, theme, childrenMap);
         this.prevElementsMap = elementsMap;
         this.prevProjectionVersion = projectionVersion;
-        return false;
+        this.lastPatchedCanonicalRevision = null;
+        return {
+          commandStreamPatched: false,
+          commandStreamInvalidated: true,
+        };
       }
       const pendingChangedIds =
         changedIds ?? new Set<string>(elementsMap.keys());
@@ -590,7 +672,11 @@ export class StoreRenderBridge {
       if (didPatch) {
         this.prevElementsMap = elementsMap;
         this.prevProjectionVersion = projectionVersion;
-        return true;
+        this.lastPatchedCanonicalRevision = canonicalRevision ?? null;
+        return {
+          commandStreamPatched: true,
+          commandStreamInvalidated: false,
+        };
       }
       this.pendingCommit = null;
       this.fullRebuild(elementsMap, layoutMap, theme, childrenMap);
@@ -615,7 +701,11 @@ export class StoreRenderBridge {
 
     this.prevElementsMap = elementsMap;
     this.prevProjectionVersion = projectionVersion;
-    return false;
+    this.lastPatchedCanonicalRevision = null;
+    return {
+      commandStreamPatched: false,
+      commandStreamInvalidated: true,
+    };
   }
 
   private applyPendingCommitPatch(
@@ -686,6 +776,7 @@ export class StoreRenderBridge {
     if (canonicalRevision !== undefined) {
       current.baseCanonicalRevision = canonicalRevision;
     }
+    recordCommitLanePatchSuccess();
     return true;
   }
 
@@ -1174,9 +1265,11 @@ export class StoreRenderBridge {
     this.pendingCommit = null;
     this.prevElementsMap = null;
     this.prevProjectionVersion = null;
+    this.lastObservedCanonicalRevision = null;
     // no-op 가드 스냅샷 리셋 — 재연결 직후 sync 가 skip 되지 않도록
     this.prevSyncInputs = null;
     this.externalDirty = false;
+    this.lastPatchedCanonicalRevision = null;
 
     for (const id of this.registeredIds) {
       unregisterSkiaNode(id);

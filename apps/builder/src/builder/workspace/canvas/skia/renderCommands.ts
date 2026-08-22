@@ -101,6 +101,11 @@ const commitLaneSpatialIndexDurationsMs: number[] = [];
 let commitLaneVisitCount = 0;
 let commitLanePatchFallbackCount = 0;
 let commitLanePatchWriteCount = 0;
+let commitLaneQueueCount = 0;
+let commitLanePatchSuccessCount = 0;
+let commitLaneSyncCount = 0;
+let commitLanePendingSyncCount = 0;
+let commitLanePromotedSyncSkipCount = 0;
 
 function recordCommitLaneVisit(): void {
   if (adr189MetricsEnabled) commitLaneVisitCount += 1;
@@ -131,6 +136,11 @@ function resetCommitLaneMetrics(): void {
   commitLaneVisitCount = 0;
   commitLanePatchFallbackCount = 0;
   commitLanePatchWriteCount = 0;
+  commitLaneQueueCount = 0;
+  commitLanePatchSuccessCount = 0;
+  commitLaneSyncCount = 0;
+  commitLanePendingSyncCount = 0;
+  commitLanePromotedSyncSkipCount = 0;
 }
 
 export function recordCommitLanePatchFallback(): void {
@@ -141,6 +151,23 @@ export function recordCommitLanePatchWrites(count: number): void {
   if (adr189MetricsEnabled) commitLanePatchWriteCount += count;
 }
 
+export function recordCommitLaneQueue(): void {
+  if (adr189MetricsEnabled) commitLaneQueueCount += 1;
+}
+
+export function recordCommitLanePatchSuccess(): void {
+  if (adr189MetricsEnabled) commitLanePatchSuccessCount += 1;
+}
+
+export function recordCommitLaneSync(hasPendingCommit: boolean): void {
+  if (adr189MetricsEnabled) commitLaneSyncCount += 1;
+  if (adr189MetricsEnabled && hasPendingCommit) commitLanePendingSyncCount += 1;
+}
+
+export function recordCommitLanePromotedSyncSkip(): void {
+  if (adr189MetricsEnabled) commitLanePromotedSyncSkipCount += 1;
+}
+
 function getCommitLaneMetricsSnapshot() {
   return {
     buildCount: commitLaneBuildMetrics.length,
@@ -149,6 +176,11 @@ function getCommitLaneMetricsSnapshot() {
     totalVisits: commitLaneVisitCount,
     patchFallbackCount: commitLanePatchFallbackCount,
     patchWriteCount: commitLanePatchWriteCount,
+    queueCount: commitLaneQueueCount,
+    patchSuccessCount: commitLanePatchSuccessCount,
+    syncCount: commitLaneSyncCount,
+    pendingSyncCount: commitLanePendingSyncCount,
+    promotedSyncSkipCount: commitLanePromotedSyncSkipCount,
     enabled: adr189MetricsEnabled,
   };
 }

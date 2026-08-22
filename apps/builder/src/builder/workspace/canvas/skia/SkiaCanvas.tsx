@@ -284,20 +284,19 @@ export function SkiaCanvas({
     documentPageFrameVersionRef.current =
       rendererInput.sceneSnapshot.document.allPageFrameVersion;
     rendererRef.current?.invalidateContent();
-    const didPatch =
-      storeRenderBridgeRef.current?.sync(
-        rendererInput.renderNodesMap,
-        getSharedLayoutMap(),
-        resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
-        rendererInput.childrenMap,
-        rendererInput.projectionVersion,
-        true,
-        getSharedLayoutVersion(),
-      ) ?? false;
+    const syncResult = storeRenderBridgeRef.current?.sync(
+      rendererInput.renderNodesMap,
+      getSharedLayoutMap(),
+      resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
+      rendererInput.childrenMap,
+      rendererInput.projectionVersion,
+      true,
+      getSharedLayoutVersion(),
+    ) ?? { commandStreamPatched: false, commandStreamInvalidated: true };
     // StoreRenderBridge가 pending canonical commit을 현재 cached stream에 먼저
     // splice할 수 있도록 cache invalidation은 sync 이후에 수행한다. patch 실패 시
     // bridge가 full rebuild를 완료하고 여기서 일반 cache miss를 강제한다.
-    if (didPatch) {
+    if (syncResult.commandStreamPatched) {
       markCachedCommandStreamPatched({
         registryVersion: getRegistryVersion(),
         pagePosVersion:
@@ -305,7 +304,7 @@ export function SkiaCanvas({
         framePosVersion: rendererInput.framePositionsVersion,
         layoutVersion: getSharedLayoutVersion(),
       });
-    } else {
+    } else if (syncResult.commandStreamInvalidated) {
       invalidateCommandStreamCache();
     }
     editorPresentationBridgeRef.current?.handleStoreSync(
@@ -385,7 +384,19 @@ export function SkiaCanvas({
       },
       // themeConfigStore에서 매 sync마다 동적으로 읽기
       getTheme: () => resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
-      onDidSync: () => {
+      onDidSync: (syncResult) => {
+        if (syncResult.commandStreamPatched) {
+          markCachedCommandStreamPatched({
+            registryVersion: getRegistryVersion(),
+            pagePosVersion:
+              rendererInputRef.current.sceneSnapshot.document
+                .visiblePagePositionVersion,
+            framePosVersion: rendererInputRef.current.framePositionsVersion,
+            layoutVersion: getSharedLayoutVersion(),
+          });
+        } else if (syncResult.commandStreamInvalidated) {
+          invalidateCommandStreamCache();
+        }
         editorPresentationBridgeRef.current?.handleStoreSync(
           rendererInputRef.current.documentRevision,
         );

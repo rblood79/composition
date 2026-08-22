@@ -188,18 +188,20 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 
 ## Implementation Progress
 
-- **Phase 2 / G2 — Implementation landed, live gate pending (2026-08-23)**:
+- **Phase 2 / G2 — Implementation + populated command live gate (2026-08-23)**:
   `renderCommands.ts`에 Array-compatible piece-table command buffer와 cursor 기반
   lazy span map을 추가해 variable-length commit splice가 tail `O(N)` write를
   만들지 않게 했다. ADR-188 고정 길이 presentation patcher는 기존 reject 계약을
   유지하고, ADR-189 commit lane은 `applyCommitSubtreeCommandPatch`로 자식 추가·
   제거/command-count 변화를 허용한다. `StoreRenderBridge`는 canonical terminal
   descriptor를 post-commit sync에서 소비하고 성공 시 cache key를 새 layout revision으로
-  승격하며, 실패 시 full rebuild로 수렴한다. 로컬 G2 fixture, 기존 render/subtree/
-  bridge/Skia static tests 및 type-check는 통과했다. 새 project live harness는
-  legacy mirror만 만들고 canonical index를 준비하지 않아 target hydration에서
-  중단되었고, 기존 project는 사용자 문서 변경 위험으로 사용하지 않았다. 따라서
-  G2는 구현 완료·live closure pending이며 [Phase 2 evidence](design/189-phase-2-g2-command-splice.md)
+  승격하며, 실패 시 full rebuild로 수렴한다. layout publish 경계에서도 patch 결과를
+  동일하게 승격하고, stale layout map은 한 번 보류한다. 로컬 G2 fixture, 기존
+  render/subtree/bridge/Skia static tests 및 type-check와 populated canonical live trace가
+  통과했다. 201개 active node에서 `queue/success/fallback=1/1/0`, `patchWriteCount=6`,
+  commit 후 full command build `0`, subtree visit `1`, command cache miss `0`을 확인했다.
+  full rebuild와의 pixel diff 0은 아직 별도 closure harness에서 검증해야 하므로
+  G2는 command live gate 완료·pixel closure pending 상태다. [Phase 2 evidence](design/189-phase-2-g2-command-splice.md)
   를 참조한다.
 
 - **Phase 1 / G1 — Implemented (2026-08-22)**: `commitPatchPlan.ts` 가 commit 의
