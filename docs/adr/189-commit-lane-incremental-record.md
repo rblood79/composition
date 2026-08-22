@@ -5,7 +5,9 @@
 Proposed — 2026-08-22
 
 Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](188-targeted-layout-and-skia-subtree-patching.md),
-[ADR-153 렌더 최적화 measurement-first 도입](completed/153-render-optimization-measurement-first-adoption.md)
+[ADR-153 렌더 최적화 measurement-first 도입](completed/153-render-optimization-measurement-first-adoption.md),
+[ADR-921 RenderScene·Backend 통합](921-render-scene-backend-integration.md)
+(Proposed — command stream 계약이 교차하므로 어느 쪽이든 착수 시 상호 조정)
 
 ## Context
 
@@ -166,13 +168,13 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 
 ## Risks
 
-| ID  | 위험                                                                                                                                                                                                     | 심각도 | 대응                                                                                                                                                                          |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | 가변 길이 splice 후 후속 span offset 재계산이 `O(N)` write 로 남아 HC1 을 위장 통과. 경로: `renderCommands.ts::buildRenderCommandStream`, `subtreeCommandPatch.ts`, `skiaFramePipeline.ts`               |  HIGH  | span 을 (segment, offset) 2계층 또는 lazy shift 로 재표현 (breakdown §Phase 2). G2 에서 splice write 수 ≤ 재기록 span 길이 단언 + N=5,000 counter                             |
-| R2  | damage rect 누락/과소 산출로 stale pixel 이 화면에 남음 (fallback 이 발동하지 않는 조용한 시각 결함). 경로: `SkiaRenderer.ts` content 재기록, `renderCommands.ts` boundsMap, `renderInvalidation.ts`     |  HIGH  | damage = 이전∪이후 bounds 합집합 고정 + G3 full-rebuild pixel diff 0 fixture (스크롤/클립/z-order/그림자 경계 포함). 의심 케이스는 damage 확대가 아니라 full rebuild fallback |
-| R3  | CanvasKit CoW `makeImageSnapshot` 이 damage clip 과 무관하게 전면 복사로 남아 Phase 3 효과가 0 이 됨. 경로: `SkiaRenderer.ts` flush/snapshot, `createSurface.ts`                                         |  MED   | G3 에서 damage 면적 비례성 실측 — 비례하지 않으면 Phase 3 기각, Phase 2 까지로 종결 (ADR-153 R7 과 동일 판정 구조)                                                            |
-| R4  | commit dirty-root 도출이 시각 변화 범위를 과소 포함 (조상 재분배/형제 이동 누락) — ADR-188 R1 의 commit lane 재현. 경로: `renderInvalidation.ts`, `editorPresentationLayoutLane.ts`, `fullTreeLayout.ts` |  HIGH  | ADR-188 Phase 1 promotion 판정(usedSizeEffect × container 규칙표) 을 그대로 재사용 — 신규 diff 계층 신설 금지. G1 에서 편집 유형 fixture 별 full 대조 diff 0                  |
-| R5  | hit/SpatialIndex 부분 갱신과 draw 의 revision 이 어긋나 ghost hit 재발. 경로: `subtreeCommandPatch.ts`, `StoreRenderBridge.ts`, `renderCommands.ts::syncSpatialIndex`                                    |  MED   | ADR-188 G4 원자 교체 계약을 commit lane 에 그대로 계승 — patcher 밖 부분 갱신 경로 신설 금지                                                                                  |
+| ID  | 위험                                                                                                                                                                                                                                         | 심각도 | 대응                                                                                                                                                                          |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 가변 길이 splice 후 후속 span offset 재계산이 `O(N)` write 로 남아 HC1 을 위장 통과. 경로: `renderCommands.ts::buildRenderCommandStream`, `subtreeCommandPatch.ts`, `skiaFramePipeline.ts`                                                   |  HIGH  | span 을 (segment, offset) 2계층 또는 lazy shift 로 재표현 (breakdown §Phase 2). G2 에서 splice write 수 ≤ 재기록 span 길이 단언 + N=5,000 counter                             |
+| R2  | damage rect 누락/과소 산출로 stale pixel 이 화면에 남음 (fallback 이 발동하지 않는 조용한 시각 결함). 경로: `SkiaRenderer.ts` content 재기록, `renderCommands.ts` boundsMap, `skiaFramePipeline.ts`                                          |  HIGH  | damage = 이전∪이후 bounds 합집합 고정 + G3 full-rebuild pixel diff 0 fixture (스크롤/클립/z-order/그림자 경계 포함). 의심 케이스는 damage 확대가 아니라 full rebuild fallback |
+| R3  | CanvasKit CoW `makeImageSnapshot` 이 damage clip 과 무관하게 전면 복사로 남아 Phase 3 효과가 0 이 됨. 경로: `SkiaRenderer.ts` flush/snapshot, `createSurface.ts`                                                                             |  MED   | G3 에서 damage 면적 비례성 실측 — 비례하지 않으면 Phase 3 기각, Phase 2 까지로 종결 (ADR-153 R7 과 동일 판정 구조)                                                            |
+| R4  | commit dirty-root 도출이 시각 변화 범위를 과소 포함 (조상 재분배/형제 이동 누락) — ADR-188 R1 의 commit lane 재현. 경로: `presentation/invalidation/editorMutationEffectRegistry.ts`, `editorPresentationLayoutLane.ts`, `fullTreeLayout.ts` |  HIGH  | ADR-188 Phase 1 promotion 판정(usedSizeEffect × container 규칙표) 을 그대로 재사용 — 신규 diff 계층 신설 금지. G1 에서 편집 유형 fixture 별 full 대조 diff 0                  |
+| R5  | hit/SpatialIndex 부분 갱신과 draw 의 revision 이 어긋나 ghost hit 재발. 경로: `subtreeCommandPatch.ts`, `StoreRenderBridge.ts`, `renderCommands.ts::syncSpatialIndex`                                                                        |  MED   | ADR-188 G4 원자 교체 계약을 commit lane 에 그대로 계승 — patcher 밖 부분 갱신 경로 신설 금지                                                                                  |
 
 ## Gates
 
@@ -198,8 +200,8 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 ### Negative
 
 - `renderCommands.ts` 의 span 표현이 절대 인덱스에서 2계층으로 바뀌면 기존
-  span 소비자 (`nodePictureCache.ts`, `skiaFramePipeline.ts`) 가 계약 변경을
-  따라야 한다.
+  span 소비자 (`skiaFramePipeline.ts` selfSpans 전달, `subtreeCommandPatch.ts`)
+  가 계약 변경을 따라야 한다.
 - commit 경로에 patch plan 분기가 생겨 full/증분 두 경로의 동작 동일성을
   지속 검증해야 한다 (G2 대조 fixture 유지 비용).
 - ADR-188 G6 이전에는 Phase 2+ 를 착수할 수 없어 완결까지 선행 의존이 있다.

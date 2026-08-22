@@ -49,8 +49,11 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
 - 입력: ADR-188 Phase 1 의 targeted layout 결과 (affected id set + promoted
   ancestor). commit 경로에서도 같은 dirty-root 집합을 재사용한다 — 새 diff 계층
   신설 금지.
-- layout 결과가 없는 commit (paint-only prop 편집) 은 `renderInvalidation.ts` 의
-  typed invalidation 축으로 dirty-root 를 도출한다.
+- layout 결과가 없는 commit (paint-only prop 편집) 은 ADR-187 typed invalidation
+  축 — `presentation/invalidation/editorMutationEffectRegistry.ts` (effect 축) +
+  `editorPresentationInvalidation.ts` — 으로 dirty-root 를 도출한다.
+  (`workspace/canvas/skia/renderInvalidation.ts` 는 ADR-035 의 무효화 **이유
+  진단 히스토리**라 도출 채널이 아님 — 리뷰 round 1 정정.)
 - 산출: `CommitPatchPlan { rootKey, dirtyRootIds, affectedIds, revision }`.
 - 검증: 편집 유형 fixture (위치/크기/텍스트/스타일/자식 추가·제거) 별로
   dirtyRootIds 가 실제 시각 변화 범위를 포함하는지 full rebuild 대조 diff 0.
@@ -88,15 +91,15 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
 
 ## 4. 파일 경계
 
-| 파일                                           | Phase | 변경                                            |
-| ---------------------------------------------- | :---: | ----------------------------------------------- |
-| `apps/builder/.../skia/renderCommands.ts`      |   2   | commit lane splice 진입점, 세그먼트 span 재표현 |
-| `apps/builder/.../skia/subtreeCommandPatch.ts` |   2   | 가변 길이 splice + full-rebuild fallback        |
-| `apps/builder/.../skia/renderInvalidation.ts`  |   1   | paint-only commit 의 dirty-root 도출            |
-| `apps/builder/.../skia/SkiaRenderer.ts`        |   3   | damage clip 부분 재기록 + snapshot 정책         |
-| `apps/builder/.../skia/StoreRenderBridge.ts`   |   2   | commit resync 를 patch plan 소비로 전환         |
-| `apps/builder/.../skia/nodePictureCache.ts`    |  2·3  | dirty-root 무효화를 plan 기반으로 정렬          |
-| `packages/composition-engine` (필요 시)        |   1   | 없음 — ADR-188 Phase 1 산출 재사용이 원칙       |
+| 파일                                                                         | Phase | 변경                                                          |
+| ---------------------------------------------------------------------------- | :---: | ------------------------------------------------------------- |
+| `apps/builder/.../skia/renderCommands.ts`                                    |   2   | commit lane splice 진입점, 세그먼트 span 재표현               |
+| `apps/builder/.../skia/subtreeCommandPatch.ts`                               |   2   | 가변 길이 splice + full-rebuild fallback                      |
+| `apps/builder/.../presentation/invalidation/editorMutationEffectRegistry.ts` |   1   | paint-only commit 의 dirty-root 도출 (ADR-187 effect 축 소비) |
+| `apps/builder/.../skia/SkiaRenderer.ts`                                      |   3   | damage clip 부분 재기록 + snapshot 정책                       |
+| `apps/builder/.../skia/StoreRenderBridge.ts`                                 |   2   | commit resync 를 patch plan 소비로 전환                       |
+| `apps/builder/.../skia/nodePictureCache.ts`                                  |  2·3  | dirty-root 무효화를 plan 기반으로 정렬                        |
+| `packages/composition-engine` (필요 시)                                      |   1   | 없음 — ADR-188 Phase 1 산출 재사용이 원칙                     |
 
 ## 5. 검증 체크리스트 (Phase 공통)
 
