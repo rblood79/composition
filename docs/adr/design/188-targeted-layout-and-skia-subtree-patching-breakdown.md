@@ -450,6 +450,21 @@ ADR-187 paint lane은 이미 stale 거부 계약을 운용한다 — `SessionPro
 - G2 관련 5 files / 29 Vitest와 type-check를 통과했다. Phase 3은 이 channel의 Skia
   subtree span/hit-test consumer를 구현한다.
 
+### Phase 5 / G6 — RED (2026-08-22)
+
+- evidence: [188-phase-5-g6-live-parity.md](188-phase-5-g6-live-parity.md)
+- 실제 Builder 상단 split Preview에서 `Left` geometry commit과 numeric
+  `style.patch` presentation overlay를 exercise했다. Preview DOM은 `20/30 → 80/30`
+  canonical commit 및 `100/45` transient overlay를 관측했고, overlay 중 canonical
+  store는 `80/30`으로 유지됐다.
+- headless CanvasKit의 command snapshot이 cold(`getCachedCommandStreamSnapshot() ===
+null`)로 남아 Skia draw/hit parity의 live 증거를 확보하지 못했다. 따라서 DOM 결과만으로
+  G6을 통과시키지 않는다.
+- N=50/500은 long task 0이었으나 N=5,000은 1초 trace 9건(max 248ms), 3초 trace
+  24건(max 249ms)으로 hard gate를 위반했다. 모든 tier에서 기존 lowercase `<box>`
+  console error 1건이 관측되어 strict console 0 조건도 RED다.
+- focused Vitest 6 files / 46 tests는 PASS했지만, 이는 G6 live gate를 대체하지 않는다.
+
 ## 9. Rollback 및 후속 경계
 
 G3 또는 G4가 실패하면 해당 descriptor를 continuous layout allowlist에서 제거하고

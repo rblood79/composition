@@ -224,6 +224,14 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
   Preview `CanonicalNodeRenderer`도 같은 allowlist를 소비해 DOM/Skia capability를
   분리하지 않는다.
   [G5 evidence](design/188-phase-4-g5-adr187-layout-wiring.md)
+- **Phase 5 / G6 — RED (2026-08-22)**: 인증된 populated Builder의 상단 split Preview에서
+  geometry commit과 numeric absolute-position presentation patch를 실제 발화했다.
+  Preview DOM은 canonical store를 보존한 채 `left/top` overlay를 반영했지만, headless
+  CanvasKit 세션에서는 command-stream snapshot과 Skia bounds/hit snapshot을 관측하지
+  못해 DOM/Skia parity를 GREEN으로 판정할 수 없었다. N=5,000 trace에서는 long task
+  9건(1초, max 248ms) 및 24건(3초, max 249ms)이 발생했고, 기존 lowercase `<box>`
+  console error 1건도 남아 G6의 strict `long task=0`/`console error,warn=0` 조건을
+  충족하지 못했다. [G6 evidence](design/188-phase-5-g6-live-parity.md)
 
 ## Consequences
 
