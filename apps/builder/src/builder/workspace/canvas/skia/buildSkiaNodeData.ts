@@ -55,6 +55,10 @@ export function buildSkiaNodeData(
   // → command stream 트리 순회가 끊기지 않도록 함
   if (!style) {
     const layout = ctx.layoutMap.get(element.id);
+    const box: NonNullable<SkiaNodeData["box"]> = {
+      fillColor: Float32Array.of(0, 0, 0, 0),
+      borderRadius: 0,
+    };
     return {
       type: "box",
       elementId: element.id,
@@ -63,10 +67,8 @@ export function buildSkiaNodeData(
       width: layout?.width ?? 0,
       height: layout?.height ?? 0,
       visible: true,
-      box: {
-        fillColor: Float32Array.of(0, 0, 0, 0),
-        borderRadius: 0,
-      },
+      box,
+      presentationFillTargets: [{ color: box.fillColor, opacityMultiplier: 1 }],
     };
   }
 
@@ -131,6 +133,12 @@ export function buildSkiaNodeData(
   const strokeColor = stroke?.color
     ? colorIntToFloat32(stroke.color, stroke.alpha ?? 1)
     : undefined;
+  const box: NonNullable<SkiaNodeData["box"]> = {
+    fillColor,
+    borderRadius: borderRadius ?? 0,
+    strokeColor,
+    strokeWidth: stroke?.width,
+  };
 
   // 기본 SkiaNodeData (box 타입)
   const nodeData: SkiaNodeData = {
@@ -148,12 +156,8 @@ export function buildSkiaNodeData(
     clipPath,
     ...(isSticky && { isSticky, stickyTop, stickyLeft }),
     ...(isFixed && { isFixed }),
-    box: {
-      fillColor,
-      borderRadius: borderRadius ?? 0,
-      strokeColor,
-      strokeWidth: stroke?.width,
-    },
+    box,
+    presentationFillTargets: [{ color: box.fillColor, opacityMultiplier: 1 }],
   };
 
   if (skiaEffects.effects) nodeData.effects = skiaEffects.effects;

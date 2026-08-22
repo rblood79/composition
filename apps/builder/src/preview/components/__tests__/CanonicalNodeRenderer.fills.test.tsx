@@ -94,4 +94,35 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
     ) as HTMLElement | null;
     expect(el!.style.backgroundColor).toBe("rgb(255, 0, 0)");
   });
+
+  it("catalog cutover primitive도 canonical fills를 inline style로 전달한다", () => {
+    const node: ResolvedNode = {
+      id: "button-fill",
+      type: "Button",
+      props: { children: "Button", variant: "primary" },
+      fills: [
+        {
+          id: "fill-1",
+          type: "color",
+          enabled: true,
+          opacity: 1,
+          blendMode: "normal",
+          color: "#8C3A3AFF",
+        },
+      ],
+    } as ResolvedNode;
+
+    const { container } = render(
+      <CanonicalNodeRenderer
+        node={node}
+        renderContext={ctx}
+        cutoverPrimitives={new Set(["Button"])}
+      />,
+    );
+    const el = container.querySelector(
+      "[data-canonical-id='button-fill']",
+    ) as HTMLElement | null;
+    expect(el).not.toBeNull();
+    expect(el!.style.backgroundColor).toBe("rgb(140, 58, 58)");
+  });
 });

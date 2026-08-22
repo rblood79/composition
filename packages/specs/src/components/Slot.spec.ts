@@ -99,6 +99,7 @@ export const SlotSpec: ComponentSpec<SlotProps> = {
   },
 
   render: {
+    presentation: { fills: "background" },
     shapes: (props, size, _state = "default") => {
       // 사용자 스타일 우선, 없으면 spec 기본값
       const borderRadius = parsePxValue(
@@ -113,6 +114,7 @@ export const SlotSpec: ComponentSpec<SlotProps> = {
       return [
         {
           id: "bg",
+          presentationRole: "background-fill",
           type: "roundRect" as const,
           x: 0,
           y: 0,

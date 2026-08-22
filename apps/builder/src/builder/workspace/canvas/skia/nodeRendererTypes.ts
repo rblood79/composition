@@ -59,6 +59,8 @@ export interface SkiaNodeData {
     /** G1+G2: CSS box-shadow 목록. renderBoxShadows()에서 RRect로 직접 렌더 */
     shadows?: DropShadowEffect[];
   };
+  /** ADR-187: canonical top-level fill을 실제로 소비하는 draw color slot들. */
+  presentationFillTargets?: readonly SkiaPresentationFillTarget[];
   text?: {
     content: string;
     fontFamilies: string[];
@@ -150,6 +152,13 @@ export interface SkiaNodeData {
   /** sticky left 값 (px) */
   stickyLeft?: number;
   children?: SkiaNodeData[];
+}
+
+export interface SkiaPresentationFillTarget {
+  /** box fillColor / line·arc strokeColor가 공유하는 mutable Color4f slot. */
+  readonly color: Float32Array;
+  /** canonical fill alpha 위에 유지할 primitive 고유 opacity. */
+  readonly opacityMultiplier: number;
 }
 
 export type ParagraphCache = Map<string, Paragraph>;

@@ -21,6 +21,10 @@ export type ColorValue = TokenRef | string | number;
 export interface ShapeBase {
   /** 고유 식별자 (Border/Shadow 적용 대상 지정용) */
   id?: string;
+  /** ADR-187: canonical top-level fill을 실제로 소비하는 paint primitive. */
+  presentationRole?: "background-fill";
+  /** canonical fill alpha 위에 유지할 primitive 고유 opacity multiplier. */
+  presentationOpacityMultiplier?: number;
 }
 
 /**
@@ -390,6 +394,8 @@ export interface LineShape {
   x2: number | "auto";
   y2: number | "auto";
   stroke: ColorValue;
+  /** 선 투명도 0-1. presentation background 역할의 line alpha 운반 채널. */
+  strokeAlpha?: number;
   strokeWidth: number;
   strokeDasharray?: number[];
   strokeCap?: "butt" | "round" | "square";

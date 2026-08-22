@@ -11,6 +11,10 @@ import type {
   CanonicalFrameElementScope,
   CanonicalFrameElementScopeMap,
 } from "../../../../adapters/canonical/frameElementScope";
+import {
+  SkiaPresentationProjectionIndexBuilder,
+  type SkiaPresentationProjectionIndex,
+} from "../../../presentation/skiaPresentationProjectionIndex";
 
 export interface LayoutPublisherInput {
   bodyElement: CanvasLayoutNode | null;
@@ -202,6 +206,7 @@ export interface SkiaRendererInput {
   sceneNodes: CanvasSceneNode[];
   sceneNodesMap: Map<string, CanvasSceneNode>;
   dirtyElementIds: Set<string>;
+  documentRevision: number;
   editMode: "page" | "layout";
   pageIndex: PageElementIndex;
   pagePositionsVersion: number;
@@ -210,6 +215,7 @@ export interface SkiaRendererInput {
   projectionVersion: number;
   pages: Page[];
   sceneSnapshot: SceneStructureSnapshot;
+  presentationProjectionIndex: SkiaPresentationProjectionIndex;
 
   // ADR-111 P3-δ: reusable frame canvas authoring 시각 path
   /** P3-α store: frame id (legacy layoutId) → 캔버스 영역 좌표/크기 */
@@ -232,6 +238,7 @@ interface CreateSkiaRendererInputOptions {
   sceneNodes: CanvasSceneNode[];
   sceneNodesMap: Map<string, CanvasSceneNode>;
   dirtyElementIds: Set<string>;
+  documentRevision: number;
   editMode: "page" | "layout";
   pageIndex: PageElementIndex;
   pagePositionsVersion: number;
@@ -247,14 +254,85 @@ interface CreateSkiaRendererInputOptions {
   frameElementScopes: CanonicalFrameElementScopeMap;
 }
 
-function buildSceneParentById(
-  childrenByParent: Map<string, CanvasSceneNode[]>,
+function addPresentationProjection(
+  builder: SkiaPresentationProjectionIndexBuilder,
+  element: CanvasSceneNode,
+): void {
+  builder.addCanonicalProjection(element.sourceNode.id, element.id);
+  if (typeof element.ref === "string") {
+    builder.addCanonicalProjection(element.ref, element.id);
+  }
+  if (
+    element.projection?.kind === "page-frame-element" ||
+    element.projection?.kind === "page-slot-fill"
+  ) {
+    builder.addCanonicalProjection(
+      element.projection.sourceElementId,
+      element.id,
+    );
+  }
+}
+
+function buildPresentationProjectionIndex(
+  input: CreateSkiaRendererInputOptions,
+): SkiaPresentationProjectionIndex {
+  const builder = new SkiaPresentationProjectionIndexBuilder();
+  if (input.editMode === "page") {
+    for (const pageSnapshot of input.sceneSnapshot.pageSnapshots.values()) {
+      if (!pageSnapshot.isVisible) continue;
+      if (pageSnapshot.bodyElement) {
+        addPresentationProjection(builder, pageSnapshot.bodyElement);
+      }
+      for (const element of pageSnapshot.pageElements) {
+        // page-frame / slot-fill projection은 resolvePageWithFrame가 만든
+        // page snapshot에만 존재할 수 있다. source sceneNodes를 다시 훑으면
+        // 실제 render id(::page-frame::)가 누락되므로 visible render tree 자체를
+        // projection index의 SSOT로 사용한다.
+        addPresentationProjection(builder, element);
+      }
+    }
+    return builder.build();
+  }
+
+  const visibleRenderIds = new Set<string>();
+  const visibleFrameElementIds = new Set<string>();
+  for (const area of input.frameAreas) {
+    const scope = input.frameElementScopes.get(area.frameId);
+    if (!scope) continue;
+    for (const elementId of scope.elementIds) {
+      visibleFrameElementIds.add(elementId);
+    }
+  }
+
+  const visibleDescendantQueue: string[] = [];
+  for (const node of input.sceneNodes) {
+    if (!visibleFrameElementIds.has(node.id)) continue;
+    visibleRenderIds.add(node.id);
+    visibleDescendantQueue.push(node.id);
+  }
+  for (let index = 0; index < visibleDescendantQueue.length; index += 1) {
+    const parentId = visibleDescendantQueue[index]!;
+    for (const child of input.sceneChildrenByParent.get(parentId) ?? []) {
+      if (visibleRenderIds.has(child.id)) continue;
+      visibleRenderIds.add(child.id);
+      visibleDescendantQueue.push(child.id);
+    }
+  }
+  for (const node of input.sceneNodes) {
+    if (visibleRenderIds.has(node.id)) {
+      addPresentationProjection(builder, node);
+    }
+  }
+  return builder.build();
+}
+
+function buildSceneParentIndex(
+  nodes: readonly CanvasSceneNode[],
 ): Map<string, string> {
   const parentById = new Map<string, string>();
-  for (const [parentId, children] of childrenByParent) {
-    for (const child of children) {
-      parentById.set(child.id, parentId);
-    }
+  for (const node of nodes) {
+    const parentId = node.parentId ?? node.parent_id ?? null;
+    if (parentId) parentById.set(node.id, parentId);
   }
   return parentById;
 }
@@ -331,7 +409,7 @@ export function createSkiaRendererInput(
     childrenByParent: input.sceneChildrenByParent,
     nodes: input.sceneNodes,
     nodesMap: input.sceneNodesMap,
-    parentById: buildSceneParentById(input.sceneChildrenByParent),
+    parentById: buildSceneParentIndex(input.sceneNodes),
   };
 
   return {
@@ -344,6 +422,7 @@ export function createSkiaRendererInput(
     sceneNodes: sourceSceneGraph.nodes,
     sceneNodesMap: sourceSceneGraph.nodesMap,
     dirtyElementIds: input.dirtyElementIds,
+    documentRevision: input.documentRevision,
     editMode: input.editMode,
     pageIndex: input.pageIndex,
     pagePositionsVersion: input.pagePositionsVersion,
@@ -352,6 +431,7 @@ export function createSkiaRendererInput(
     projectionVersion: input.sceneSnapshot.sceneVersion,
     pages: input.pages,
     sceneSnapshot: input.sceneSnapshot,
+    presentationProjectionIndex: buildPresentationProjectionIndex(input),
     framePositions: input.framePositions,
     framePositionsVersion: input.framePositionsVersion,
     frameAreas: input.frameAreas,

@@ -5,6 +5,7 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { ScenePageSnapshot } from "../scene";
 import type { SkiaRendererInput } from "../renderers";
 import { collectVisiblePageRoots } from "./visiblePageRoots";
+import { EMPTY_SKIA_PRESENTATION_PROJECTION_INDEX } from "../../../presentation/skiaPresentationProjectionIndex";
 
 const makeElement = (overrides: Partial<CanvasSceneNode>): CanvasSceneNode =>
   ({
@@ -32,10 +33,12 @@ const makeInput = (partial: Partial<SkiaRendererInput>): SkiaRendererInput => ({
   interactionNodesMap: new Map(),
   renderNodesMap: new Map(),
   projectionVersion: 0,
+  presentationProjectionIndex: EMPTY_SKIA_PRESENTATION_PROJECTION_INDEX,
   sceneChildrenByParent: new Map(),
   sceneNodes: [],
   sceneNodesMap: new Map(),
   dirtyElementIds: new Set(),
+  documentRevision: 0,
   editMode: "page",
   pageIndex: { elementsByPage: new Map() } as never,
   pagePositionsVersion: 0,

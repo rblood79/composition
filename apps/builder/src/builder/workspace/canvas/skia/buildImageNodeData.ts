@@ -174,8 +174,7 @@ export function buildImageNodeData(
       : null;
 
   const userBg = (style.backgroundColor ?? style.background) as
-    | string
-    | undefined;
+    string | undefined;
   const isSolidUserBg =
     typeof userBg === "string" &&
     userBg !== "" &&
@@ -206,6 +205,10 @@ export function buildImageNodeData(
   }
 
   // ---------- Assemble SkiaNodeData ----------
+  const box: NonNullable<SkiaNodeData["box"]> = {
+    fillColor,
+    borderRadius: borderRadius ?? 0,
+  };
   const nodeData: SkiaNodeData = {
     type: "image",
     elementId: element.id,
@@ -215,10 +218,8 @@ export function buildImageNodeData(
     height: h,
     visible,
     // 배경 box — placeholder(미로드)와 로드 경로 양쪽에서 이미지 뒤 배경으로 그린다
-    box: {
-      fillColor,
-      borderRadius: borderRadius ?? 0,
-    },
+    box,
+    presentationFillTargets: [{ color: box.fillColor, opacityMultiplier: 1 }],
     image: {
       skImage,
       contentX: imageContent.x,

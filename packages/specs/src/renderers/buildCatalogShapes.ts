@@ -472,11 +472,15 @@ export function buildCatalogShapes(
   // 이라 alpha 는 본 데이터 키로만 운반된다 (ADR-142 §3 데이터 분기).
   const fillBgAlpha =
     typeof props._fillBgAlpha === "number" ? props._fillBgAlpha : 1;
+  const presentationOpacityMultiplier =
+    (fill?.alpha ?? 1) * (staticTrackWash ? 0.25 : 1);
 
   const shapes: Shape[] = [];
   if (hasVisibleBg) {
     shapes.push({
       id: "bg",
+      presentationRole: "background-fill",
+      presentationOpacityMultiplier,
       type: "roundRect",
       x: 0,
       y: 0,
@@ -485,8 +489,7 @@ export function buildCatalogShapes(
       radius: borderRadius,
       fill: bgColor,
       // staticTrackWash: value-fill track 의 static bg 25% (위 §2-F 분기 주석 참조).
-      fillAlpha:
-        (fill?.alpha ?? 1) * fillBgAlpha * (staticTrackWash ? 0.25 : 1),
+      fillAlpha: presentationOpacityMultiplier * fillBgAlpha,
     });
     // border-style 은 보편 D3 속성(CSS border-style 동형). 3경로 공통 우선순위:
     //   사용자 style.borderStyle → catalog visual.borderStyle → (미지정 시)

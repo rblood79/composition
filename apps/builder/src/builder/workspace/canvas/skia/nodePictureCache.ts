@@ -67,6 +67,9 @@ const imageIndex = new Map<SkImage, Set<string>>();
 /** transition/animation tick 이 in-place mutate 중인 노드 — 캐시 대상 제외 */
 let volatileIds: ReadonlySet<string> | null = null;
 
+/** ADR-187 presentation overlay가 draw data를 in-place mutate 중인 노드 */
+let presentationVolatileIds: ReadonlySet<string> | null = null;
+
 /** 폰트 로딩으로 fontMgr 가 교체되면 record 된 글리프가 stale — 전량 폐기 기준 */
 let lastFontMgr: FontMgr | null = null;
 
@@ -80,9 +83,22 @@ export function setVolatileNodeIds(ids: ReadonlySet<string> | null): void {
   volatileIds = ids && ids.size > 0 ? ids : null;
 }
 
+/**
+ * Editor presentation patch가 활성인 노드를 Picture 캐시에서 제외한다.
+ * transition owner와 수명이 다르므로 별도 set으로 유지하고 조회 시 합성한다.
+ */
+export function setPresentationVolatileNodeIds(
+  ids: ReadonlySet<string> | null,
+): void {
+  presentationVolatileIds = ids && ids.size > 0 ? ids : null;
+}
+
 /** 해당 노드가 이번 프레임 volatile(캐시 제외) 인지 판정 */
 export function isVolatileNode(elementId: string): boolean {
-  return volatileIds !== null && volatileIds.has(elementId);
+  return (
+    (volatileIds !== null && volatileIds.has(elementId)) ||
+    (presentationVolatileIds !== null && presentationVolatileIds.has(elementId))
+  );
 }
 
 /**

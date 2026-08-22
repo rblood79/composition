@@ -1101,6 +1101,11 @@ export interface SpecRenderContext {
  * 렌더링 스펙
  */
 export interface RenderSpec<Props> {
+  /** Editor presentation이 canonical fills를 materialize할 수 있는 native render 계약. */
+  presentation?: {
+    readonly fills?: "background";
+  };
+
   /**
    * 공통 도형 정의
    * React와 Skia Canvas에서 사용하는 도형 구조

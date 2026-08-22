@@ -31,6 +31,7 @@ import {
   useSelectedReusableFrameId,
 } from "../../stores/canonical/canonicalFrameStore";
 import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import {
   resolveContextMenuDisposition,
   useContextMenu,
@@ -245,6 +246,9 @@ export function BuilderCanvas({
 
   const layouts = useCanonicalReusableFrameLayouts();
   const activeCanonicalDocument = useActiveCanonicalDocument();
+  const canonicalDocumentRevision = useCanonicalDocumentStore(
+    (state) => state.documentVersion,
+  );
   const collectionsMap = useDataStore((state) => state.collections);
   const collections = useMemo(
     () => Array.from(collectionsMap.values()),
@@ -709,6 +713,7 @@ export function BuilderCanvas({
     return createSkiaRendererInput({
       childrenMap: sceneChildrenByParent,
       dirtyElementIds,
+      documentRevision: canonicalDocumentRevision,
       editMode: currentEditMode,
       elements: sceneNodes,
       renderNodesMap: sceneNodesMap,
@@ -726,6 +731,7 @@ export function BuilderCanvas({
       frameElementScopes,
     });
   }, [
+    canonicalDocumentRevision,
     currentEditMode,
     dirtyElementIds,
     sceneChildrenByParent,

@@ -38,6 +38,9 @@ function safeParseColor(value: string): Color {
 interface ColorPickerPanelProps {
   value: string; // "#RRGGBBAA" hex8
   resetKey?: string;
+  /** ADR-187 runtime이 유일한 frame scheduler인 migrated control. */
+  presentationOwnsFrameScheduling?: boolean;
+  onPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
   onChange: (color: string) => void;
   onChangeEnd: (color: string) => void;
 }
@@ -49,11 +52,15 @@ interface ColorPickerPanelProps {
 function ColorPickerPanelInner({
   initialValue,
   resetKey,
+  presentationOwnsFrameScheduling = false,
+  onPresentationCancel,
   onChange,
   onChangeEnd,
 }: {
   initialValue: string;
   resetKey?: string;
+  presentationOwnsFrameScheduling?: boolean;
+  onPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
   onChange: (color: string) => void;
   onChangeEnd: (color: string) => void;
 }) {
@@ -95,6 +102,11 @@ function ColorPickerPanelInner({
       setLocalColor(color);
       latestColorRef.current = color;
 
+      if (presentationOwnsFrameScheduling) {
+        onChange(color.toString("hexa"));
+        return;
+      }
+
       if (localRafRef.current !== null) return;
 
       localRafRef.current = requestAnimationFrame(() => {
@@ -106,7 +118,7 @@ function ColorPickerPanelInner({
         recordEditorPresentationControlRaf(performance.now() - startedAt);
       });
     },
-    [onChange],
+    [onChange, presentationOwnsFrameScheduling],
   );
 
   // 드래그 종료: 보류 중인 RAF 취소 + 최종 값 flush + 실제 저장
@@ -124,12 +136,12 @@ function ColorPickerPanelInner({
       setLocalColor(color);
 
       const hex = color.toString("hexa");
-      if (hex !== lastSavedRef.current) {
+      if (presentationOwnsFrameScheduling || hex !== lastSavedRef.current) {
         lastSavedRef.current = hex;
         onChangeEnd(hex);
       }
     },
-    [onChangeEnd],
+    [onChangeEnd, presentationOwnsFrameScheduling],
   );
 
   // InputFields에서 직접 hex8 문자열로 변경
@@ -151,7 +163,19 @@ function ColorPickerPanelInner({
 
   return (
     <AriaColorPicker value={localColor} onChange={handleChange}>
-      <div className="color-picker-panel">
+      <div
+        className="color-picker-panel"
+        onKeyDownCapture={(event) => {
+          if (presentationOwnsFrameScheduling && event.key === "Escape") {
+            onPresentationCancel?.("escape");
+          }
+        }}
+        onPointerCancelCapture={() => {
+          if (presentationOwnsFrameScheduling) {
+            onPresentationCancel?.("pointer-cancel");
+          }
+        }}
+      >
         <ColorArea
           colorSpace="hsb"
           xChannel="saturation"
@@ -179,6 +203,8 @@ function ColorPickerPanelInner({
 export const ColorPickerPanel = memo(function ColorPickerPanel({
   value,
   resetKey,
+  presentationOwnsFrameScheduling,
+  onPresentationCancel,
   onChange,
   onChangeEnd,
 }: ColorPickerPanelProps) {
@@ -186,6 +212,8 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
     <ColorPickerPanelInner
       initialValue={value}
       resetKey={resetKey}
+      presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
+      onPresentationCancel={onPresentationCancel}
       onChange={onChange}
       onChangeEnd={onChangeEnd}
     />

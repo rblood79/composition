@@ -7,7 +7,10 @@
 
 import type { Shape, ColorValue } from "@composition/specs";
 import { getIconData } from "@composition/specs";
-import type { SkiaNodeData } from "./nodeRenderers";
+import type {
+  SkiaNodeData,
+  SkiaPresentationFillTarget,
+} from "./nodeRendererTypes";
 import type { EffectStyle, FillStyle } from "./types";
 import {
   resolveColor,
@@ -159,6 +162,8 @@ export function specShapesToSkia(
   // First background box data (extracted from first rect/roundRect)
   let bgBox: SkiaNodeData["box"] | undefined;
   let bgExtracted = false;
+  let namedBackgroundBox: SkiaNodeData["box"] | undefined;
+  const presentationFillTargets: SkiaPresentationFillTarget[] = [];
 
   // Deferred shapes: shadow/border with explicit target (forward reference)
   const deferredShapes: Shape[] = [];
@@ -206,6 +211,14 @@ export function specShapesToSkia(
   }
 
   // Build the top-level container
+  const fallbackPresentationBox = namedBackgroundBox ?? bgBox;
+  if (presentationFillTargets.length === 0 && fallbackPresentationBox) {
+    presentationFillTargets.push({
+      color: fallbackPresentationBox.fillColor,
+      opacityMultiplier: 1,
+    });
+  }
+
   const result = {
     type: "box" as const,
     x: 0,
@@ -214,6 +227,7 @@ export function specShapesToSkia(
     height: containerHeight,
     visible: true,
     box: bgBox ?? { fillColor: TRANSPARENT, borderRadius: 0 },
+    ...(presentationFillTargets.length > 0 ? { presentationFillTargets } : {}),
     children: children.length > 0 ? children : undefined,
   };
 
@@ -239,6 +253,8 @@ export function specShapesToSkia(
           visible: true,
           box: { fillColor, borderRadius: radius },
         };
+        if (shape.id === "bg") namedBackgroundBox = node.box;
+        collectPresentationFillTarget(shape, node);
 
         // First rect/roundRect at origin = component background
         // 'auto' 또는 containerWidth의 90% 이상이면 full-width 배경으로 추출
@@ -290,6 +306,8 @@ export function specShapesToSkia(
           visible: true,
           box: { fillColor, borderRadius: 0 },
         };
+        if (shape.id === "bg") namedBackgroundBox = node.box;
+        collectPresentationFillTarget(shape, node);
 
         // 음수 좌표를 가진 shape는 backdrop 등 전체화면 오버레이이므로 bgBox로 추출하지 않음
         const isPositiveOriginR = shape.x >= 0 && shape.y >= 0;
@@ -357,6 +375,8 @@ export function specShapesToSkia(
           visible: true,
           box: circleBox,
         };
+        if (shape.id === "bg") namedBackgroundBox = circleBox;
+        collectPresentationFillTarget(shape, node);
 
         children.push(node);
         if (shape.id) nodeById.set(shape.id, node);
@@ -395,6 +415,7 @@ export function specShapesToSkia(
             strokeCap: shape.strokeCap,
           },
         };
+        collectPresentationFillTarget(shape, arcNode);
         children.push(arcNode);
         if (shape.id) nodeById.set(shape.id, arcNode);
         lastNode = arcNode;
@@ -402,7 +423,11 @@ export function specShapesToSkia(
       }
 
       case "line": {
-        const strokeColor = colorValueToFloat32(shape.stroke, theme);
+        const strokeColor = colorValueToFloat32(
+          shape.stroke,
+          theme,
+          shape.strokeAlpha ?? 1,
+        );
 
         // Resolve 'auto' values (used by Separator, Tabs, Panel line shapes)
         const x1 = shape.x1 === "auto" ? containerWidth : shape.x1;
@@ -432,6 +457,7 @@ export function specShapesToSkia(
           },
         };
 
+        collectPresentationFillTarget(shape, node);
         children.push(node);
         lastNode = node;
         break;
@@ -1082,6 +1108,33 @@ export function specShapesToSkia(
         lastNode = imgNode;
         break;
       }
+    }
+  }
+
+  function collectPresentationFillTarget(
+    shape: Shape,
+    node: SkiaNodeData,
+  ): void {
+    if (shape.presentationRole !== "background-fill") return;
+    if (node.line) {
+      presentationFillTargets.push({
+        color: node.line.strokeColor,
+        opacityMultiplier: shape.presentationOpacityMultiplier ?? 1,
+      });
+      return;
+    }
+    if (node.arc) {
+      presentationFillTargets.push({
+        color: node.arc.strokeColor,
+        opacityMultiplier: shape.presentationOpacityMultiplier ?? 1,
+      });
+      return;
+    }
+    if (node.box) {
+      presentationFillTargets.push({
+        color: node.box.fillColor,
+        opacityMultiplier: shape.presentationOpacityMultiplier ?? 1,
+      });
     }
   }
 }

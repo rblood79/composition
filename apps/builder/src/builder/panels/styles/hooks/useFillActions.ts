@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useRef, useEffect } from "react";
-import { useStore } from "../../../stores";
+import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
 import type { Element } from "../../../../types/builder/unified.types";
 import type {
   FillItem,
@@ -24,9 +24,19 @@ import {
   createDefaultFill,
 } from "../../../../types/builder/fill.types";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
-import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
+import { getCanonicalDocumentElementsView } from "../../../stores/canonical/canonicalElementsView";
 import { resolveElementFills } from "../utils/fillMigration";
 import { recordEditorPresentationActionRaf } from "../../../performance/editorPresentationPhase0Metrics";
+import {
+  editorPresentationFillPilotRuntime,
+  resolveFillPresentationPilotTarget,
+} from "../../../presentation/editorPresentationFillPilot";
+import type {
+  EditorPresentationCancelReason,
+  EditorMutationDescriptor,
+  EditorPresentationHandle,
+  EditorPresentationTargetRef,
+} from "../../../presentation/editorPresentationTypes";
 
 export interface FillActions {
   addFill: (type?: FillType, initialColor?: string) => void;
@@ -42,6 +52,12 @@ export interface FillActions {
     fillId: string,
     updates: Partial<FillItem>,
   ) => void;
+  isFirstFillColorPresentationOwned: (fillId: string) => boolean;
+  previewFirstFillColorPresentation: (fillId: string, color: string) => boolean;
+  commitFirstFillColorPresentation: (fillId: string, color: string) => boolean;
+  cancelFirstFillColorPresentation: (
+    reason: EditorPresentationCancelReason,
+  ) => boolean;
   changeFillType: (fillId: string, newType: FillType) => void;
 }
 
@@ -61,10 +77,9 @@ function getCurrentFills(): FillItem[] {
 
   const doc = getActiveCanonicalDocument();
   if (doc) {
-    let found: Element | undefined;
-    visitCanonicalDocumentElements(doc, (element) => {
-      if (element.id === selectedElementId) found = element;
-    });
+    const found = getCanonicalDocumentElementsView(doc).byId.get(
+      selectedElementId,
+    ) as Element | undefined;
     return resolveElementFills(found);
   }
   return resolveElementFills(elementsMap.get(selectedElementId));
@@ -77,15 +92,168 @@ export function useFillActions(): FillActions {
     fillId: string;
     updates: Partial<FillItem>;
   } | null>(null);
+  const presentationRef = useRef<{
+    baseFills: readonly FillItem[];
+    fillId: string;
+    handle: EditorPresentationHandle;
+    phase: "active" | "cancelled" | "failed";
+    selectedElementId: string;
+    target: EditorPresentationTargetRef;
+  } | null>(null);
+  const ownerIdRef = useRef<string | null>(null);
+  const ownerId = ownerIdRef.current ?? `fill-color-owner-${nextFillOwnerId++}`;
+  ownerIdRef.current = ownerId;
 
   // cleanup on unmount
   useEffect(() => {
+    const unsubscribeSelection = useStore.subscribe(() => {
+      const presentation = presentationRef.current;
+      if (!presentation) return;
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      if (selectedElementId === presentation.selectedElementId) return;
+      presentation.handle.cancel("selection-change");
+      presentation.phase = "cancelled";
+      // terminal callback이 뒤늦게 도착해도 legacy fallback으로 흘려
+      // 새 selection을 쓰지 않도록 owner marker는 terminal까지 유지한다.
+    });
+    const handleWindowBlur = (): void => {
+      const presentation = presentationRef.current;
+      if (!presentation || presentation.phase !== "active") return;
+      presentation.handle.cancel("blur");
+      presentation.phase = "cancelled";
+    };
+    window.addEventListener("blur", handleWindowBlur);
     return () => {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
       }
+      presentationRef.current?.handle.cancel("unmount");
+      presentationRef.current = null;
+      unsubscribeSelection();
+      window.removeEventListener("blur", handleWindowBlur);
     };
   }, []);
+
+  const isFirstFillColorPresentationOwned = useCallback((fillId: string) => {
+    const { selectedElementId } = readImmediateSelectionSnapshot();
+    return (
+      resolveFillPresentationPilotTarget(selectedElementId, fillId) !== null
+    );
+  }, []);
+
+  const previewFirstFillColorPresentation = useCallback(
+    (fillId: string, color: string): boolean => {
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const existing = presentationRef.current;
+      if (existing?.phase === "cancelled") {
+        if (
+          existing.selectedElementId !== selectedElementId &&
+          existing.fillId === fillId
+        ) {
+          return true;
+        }
+        presentationRef.current = null;
+      }
+      if (existing?.phase === "failed") {
+        existing.handle.cancel("superseded");
+        presentationRef.current = null;
+      }
+      let presentation = presentationRef.current;
+      if (
+        presentation &&
+        (presentation.fillId !== fillId ||
+          presentation.selectedElementId !== selectedElementId)
+      ) {
+        presentation.handle.cancel("selection-change");
+        presentation = null;
+        presentationRef.current = null;
+      }
+      if (!presentation) {
+        const pilot = resolveFillPresentationPilotTarget(
+          selectedElementId,
+          fillId,
+        );
+        if (!pilot || !selectedElementId) return false;
+        presentation = {
+          baseFills: pilot.fills,
+          fillId,
+          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+            commitIntent: "fill-color",
+            ownerId,
+            projectId: pilot.projectId,
+            targets: [pilot.target],
+          }),
+          phase: "active",
+          selectedElementId,
+          target: pilot.target,
+        };
+        presentationRef.current = presentation;
+      }
+
+      const descriptor: EditorMutationDescriptor = {
+        fills: presentation.baseFills.map((fill) =>
+          fill.id === fillId ? { ...fill, color } : fill,
+        ) as FillItem[],
+        target: presentation.target,
+        type: "fills.replace",
+      };
+      if (!presentation.handle.publish(descriptor)) {
+        presentation.phase = "cancelled";
+      }
+      return true;
+    },
+    [ownerId],
+  );
+
+  const commitFirstFillColorPresentation = useCallback(
+    (fillId: string, color: string): boolean => {
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const active = presentationRef.current;
+      if (active?.phase === "cancelled") {
+        presentationRef.current = null;
+        return true;
+      }
+      if (!active) {
+        if (!previewFirstFillColorPresentation(fillId, color)) return false;
+      }
+
+      const presentation = presentationRef.current;
+      if (
+        !presentation ||
+        presentation.fillId !== fillId ||
+        presentation.selectedElementId !== selectedElementId
+      ) {
+        presentation?.handle.cancel("selection-change");
+        presentationRef.current = null;
+        return true;
+      }
+      const result = presentation.handle.finish({
+        fills: presentation.baseFills.map((fill) =>
+          fill.id === fillId ? { ...fill, color } : fill,
+        ) as FillItem[],
+        target: presentation.target,
+        type: "fills.replace",
+      });
+      if (result.status === "failed") {
+        presentation.phase = "failed";
+      } else {
+        presentationRef.current = null;
+      }
+      return true;
+    },
+    [previewFirstFillColorPresentation],
+  );
+
+  const cancelFirstFillColorPresentation = useCallback(
+    (reason: EditorPresentationCancelReason): boolean => {
+      const presentation = presentationRef.current;
+      if (!presentation || presentation.phase !== "active") return false;
+      presentation.handle.cancel(reason);
+      presentation.phase = "cancelled";
+      return true;
+    },
+    [],
+  );
 
   const addFill = useCallback(
     (type: FillType = FillType.Color, initialColor?: string) => {
@@ -269,6 +437,12 @@ export function useFillActions(): FillActions {
     updateFill,
     updateFillPreview,
     updateFillPreviewThrottled,
+    isFirstFillColorPresentationOwned,
+    previewFirstFillColorPresentation,
+    commitFirstFillColorPresentation,
+    cancelFirstFillColorPresentation,
     changeFillType,
   };
 }
+
+let nextFillOwnerId = 1;

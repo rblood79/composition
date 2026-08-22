@@ -191,6 +191,7 @@ describe("createSkiaRendererInput", () => {
         ["page-2-body", [page2Fill]],
       ]),
       dirtyElementIds: new Set(),
+      documentRevision: 1,
       editMode: "page",
       elements,
       renderNodesMap,
@@ -224,6 +225,130 @@ describe("createSkiaRendererInput", () => {
     expect(
       input.interactionChildrenMap.get(page1Slot.id)?.map((el) => el.id),
     ).toEqual(["page-1-fill"]);
+  });
+
+  it("indexes the actual visible page-frame render projection instead of its offscreen source", () => {
+    const origin = makeSceneNode({
+      id: "origin-button",
+      page_id: "definitions",
+      reusable: true,
+      type: "Button",
+    });
+    const visibleBody = makeSceneNode({
+      id: "visible-body",
+      page_id: "visible-page",
+      type: "body",
+    });
+    const hiddenBody = makeSceneNode({
+      id: "hidden-body",
+      page_id: "hidden-page",
+      type: "body",
+    });
+    const visibleProjection = makeSceneNode({
+      id: toPageFrameElementId("visible-page", origin.id),
+      page_id: "visible-page",
+      parent_id: visibleBody.id,
+      projection: {
+        canonicalParentId: null,
+        kind: "page-frame-element",
+        pageId: "visible-page",
+        renderElementId: toPageFrameElementId("visible-page", origin.id),
+        renderParentId: visibleBody.id,
+        sourceElementId: origin.id,
+      },
+      type: "Button",
+    });
+    const hiddenProjection = makeSceneNode({
+      id: toPageFrameElementId("hidden-page", origin.id),
+      page_id: "hidden-page",
+      parent_id: hiddenBody.id,
+      projection: {
+        canonicalParentId: null,
+        kind: "page-frame-element",
+        pageId: "hidden-page",
+        renderElementId: toPageFrameElementId("hidden-page", origin.id),
+        renderParentId: hiddenBody.id,
+        sourceElementId: origin.id,
+      },
+      type: "Button",
+    });
+    const sourceNodes = [origin, visibleBody, hiddenBody];
+    const sceneSnapshot = makeSceneSnapshot(
+      new Map([
+        [
+          "visible-page",
+          {
+            bodyElement: visibleBody,
+            contentVersion: 1,
+            frame: {
+              elementCount: 1,
+              height: 800,
+              id: "visible-page",
+              title: "visible-page",
+              width: 400,
+              x: 0,
+              y: 0,
+            },
+            isVisible: true,
+            pageElements: [visibleProjection],
+            pageId: "visible-page",
+            positionVersion: 1,
+          },
+        ],
+        [
+          "hidden-page",
+          {
+            bodyElement: hiddenBody,
+            contentVersion: 1,
+            frame: {
+              elementCount: 1,
+              height: 800,
+              id: "hidden-page",
+              title: "hidden-page",
+              width: 400,
+              x: 1000,
+              y: 0,
+            },
+            isVisible: false,
+            pageElements: [hiddenProjection],
+            pageId: "hidden-page",
+            positionVersion: 1,
+          },
+        ],
+      ]),
+    );
+
+    const input = createSkiaRendererInput({
+      childrenMap: buildChildrenByParent(sourceNodes),
+      dirtyElementIds: new Set(),
+      documentRevision: 1,
+      editMode: "page",
+      elements: sourceNodes,
+      renderNodesMap: new Map(sourceNodes.map((node) => [node.id, node])),
+      frameAreas: [],
+      framePositions: {},
+      framePositionsVersion: 1,
+      frameElementScopes: new Map(),
+      pageIndex: { elementsByPage: new Map(), rootsByPage: new Map() },
+      pagePositions: {},
+      pagePositionsVersion: 1,
+      pages: [makePage("visible-page"), makePage("hidden-page")],
+      ...makeSceneGraphInput(sourceNodes),
+      sceneSnapshot,
+    });
+
+    expect(
+      input.presentationProjectionIndex.resolve({
+        kind: "canonical-node",
+        nodeId: origin.id,
+      }),
+    ).toEqual([visibleProjection.id]);
+    expect(
+      input.presentationProjectionIndex.resolve({
+        kind: "canonical-node",
+        nodeId: hiddenProjection.id,
+      }),
+    ).toEqual([]);
   });
 
   it("builds childrenMap from page snapshot source order instead of legacy order_num", () => {
@@ -272,6 +397,7 @@ describe("createSkiaRendererInput", () => {
     const input = createSkiaRendererInput({
       childrenMap: new Map([[body.id, [first, second]]]),
       dirtyElementIds: new Set(),
+      documentRevision: 1,
       editMode: "page",
       elements: [body, first, second],
       renderNodesMap: new Map([
@@ -331,11 +457,24 @@ describe("createSkiaRendererInput", () => {
       parent_id: body.id,
       ref: origin.id,
     });
+    const hiddenInstance = makeSceneNode({
+      id: "hidden-instance-card",
+      type: "ref",
+      parentId: body.id,
+      parent_id: body.id,
+      ref: origin.id,
+    });
     const sceneChildrenByParent = new Map<string, CanvasSceneNode[]>([
-      [body.id, [instance]],
+      [body.id, [instance, hiddenInstance]],
       [origin.id, [originLabel]],
     ]);
-    const sceneNodes = [sceneBody, origin, originLabel, instance];
+    const sceneNodes = [
+      sceneBody,
+      origin,
+      originLabel,
+      instance,
+      hiddenInstance,
+    ];
     const sceneNodesMap = new Map(sceneNodes.map((node) => [node.id, node]));
 
     const resolvedScene = resolveCanonicalRefTree({
@@ -347,6 +486,7 @@ describe("createSkiaRendererInput", () => {
     const input = createSkiaRendererInput({
       childrenMap: new Map(),
       dirtyElementIds: new Set(),
+      documentRevision: 1,
       editMode: "page",
       elements: [body],
       renderNodesMap: new Map([[body.id, body]]),
@@ -361,7 +501,34 @@ describe("createSkiaRendererInput", () => {
       sceneChildrenByParent: resolvedScene.childrenMap,
       sceneNodes: resolvedScene.elements,
       sceneNodesMap: resolvedScene.elementsMap,
-      sceneSnapshot: makeSceneSnapshot(new Map()),
+      sceneSnapshot: makeSceneSnapshot(
+        new Map([
+          [
+            "page-1",
+            {
+              bodyElement: resolvedScene.elementsMap.get(body.id)!,
+              contentVersion: 1,
+              frame: {
+                elementCount: resolvedScene.elements.length,
+                height: 800,
+                id: "page-1",
+                title: "page-1",
+                width: 400,
+                x: 0,
+                y: 0,
+              },
+              isVisible: true,
+              pageElements: resolvedScene.elements.filter(
+                (element) =>
+                  element.id !== body.id &&
+                  !element.id.startsWith("hidden-instance-card"),
+              ),
+              pageId: "page-1",
+              positionVersion: 1,
+            },
+          ],
+        ]),
+      ),
     });
 
     const resolvedInstance = input.sceneNodesMap.get(instance.id);
@@ -375,5 +542,126 @@ describe("createSkiaRendererInput", () => {
     expect(
       input.sceneChildrenByParent.get(instance.id)?.map((child) => child.id),
     ).toEqual(["instance-card/origin-label"]);
+    expect(
+      input.presentationProjectionIndex.resolve({
+        kind: "canonical-node",
+        nodeId: origin.id,
+      }),
+    ).toEqual([origin.id, instance.id]);
+    expect(
+      input.presentationProjectionIndex.resolve({
+        kind: "canonical-node",
+        nodeId: originLabel.id,
+      }),
+    ).toEqual([originLabel.id, "instance-card/origin-label"]);
+  });
+
+  it("indexes only frameAreas-backed canonical scopes and their resolved descendants in layout mode", () => {
+    const visibleBody = makeSceneNode({
+      id: "visible-body",
+      pageId: null,
+      type: "body",
+    });
+    const visibleRef = makeSceneNode({
+      id: "visible-ref",
+      pageId: null,
+      parentId: visibleBody.id,
+      ref: "origin-card",
+      type: "Card",
+    });
+    const resolvedChild = makeSceneNode({
+      id: "visible-ref/origin-label",
+      pageId: null,
+      parentId: visibleRef.id,
+      sourceNode: {
+        id: "origin-label",
+        props: {},
+        type: "Text",
+      },
+      type: "Text",
+    });
+    const hiddenBody = makeSceneNode({
+      id: "hidden-body",
+      pageId: null,
+      type: "body",
+    });
+    const hiddenRef = makeSceneNode({
+      id: "hidden-ref",
+      pageId: null,
+      parentId: hiddenBody.id,
+      ref: "origin-card",
+      type: "Card",
+    });
+    const nodes = [
+      visibleBody,
+      visibleRef,
+      resolvedChild,
+      hiddenBody,
+      hiddenRef,
+    ];
+
+    const input = createSkiaRendererInput({
+      childrenMap: buildChildrenByParent(nodes),
+      dirtyElementIds: new Set(),
+      documentRevision: 1,
+      editMode: "layout",
+      elements: nodes,
+      renderNodesMap: new Map(nodes.map((node) => [node.id, node])),
+      frameAreas: [
+        {
+          frameId: "visible-frame",
+          frameName: "Visible Frame",
+          height: 600,
+          width: 800,
+          x: 0,
+          y: 0,
+        },
+      ],
+      framePositions: {},
+      framePositionsVersion: 1,
+      frameElementScopes: new Map([
+        [
+          "visible-frame",
+          {
+            bodyElementId: visibleBody.id,
+            elementIds: new Set([visibleBody.id, visibleRef.id]),
+            frameId: "visible-frame",
+          },
+        ],
+        [
+          "hidden-frame",
+          {
+            bodyElementId: hiddenBody.id,
+            elementIds: new Set([hiddenBody.id, hiddenRef.id]),
+            frameId: "hidden-frame",
+          },
+        ],
+      ]),
+      pageIndex: { elementsByPage: new Map(), rootsByPage: new Map() },
+      pagePositions: {},
+      pagePositionsVersion: 1,
+      pages: [],
+      ...makeSceneGraphInput(nodes),
+      sceneSnapshot: makeSceneSnapshot(new Map()),
+    });
+
+    expect(
+      input.presentationProjectionIndex.resolve({
+        kind: "canonical-node",
+        nodeId: "origin-card",
+      }),
+    ).toEqual([visibleRef.id]);
+    expect(
+      input.presentationProjectionIndex.resolve({
+        kind: "canonical-node",
+        nodeId: "origin-label",
+      }),
+    ).toEqual([resolvedChild.id]);
+    expect(
+      input.presentationProjectionIndex.resolve({
+        kind: "canonical-node",
+        nodeId: hiddenRef.id,
+      }),
+    ).toEqual([]);
   });
 });

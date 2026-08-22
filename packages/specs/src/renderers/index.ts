@@ -48,10 +48,15 @@ export type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 
 // ADR-142 §3 — 비-DOM-trivial primitive(원/선/아이콘) skiaPrimitive draw module
 export {
+  canMaterializeSkiaPresentationFill,
   getSkiaPrimitive,
   getSkiaPrimitiveMode,
   SKIA_PRIMITIVES,
 } from "./skiaPrimitives";
-export type { SkiaPrimitiveDrawFn, SkiaPrimitiveMode } from "./skiaPrimitives";
+export type {
+  SkiaPresentationMaterializationContext,
+  SkiaPrimitiveDrawFn,
+  SkiaPrimitiveMode,
+} from "./skiaPrimitives";
 // ADR-142 Inc3 — overlay 패턴 z-order 합성
 export { composeCatalogShapes } from "./composeCatalogShapes";

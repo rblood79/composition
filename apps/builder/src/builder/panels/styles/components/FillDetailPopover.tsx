@@ -37,6 +37,8 @@ import "./FillDetailPopover.css";
 
 interface FillDetailPopoverProps {
   fill: FillItem;
+  presentationOwnsColorFrameScheduling?: boolean;
+  onColorPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
   onColorChange: (color: string) => void;
   onColorChangeEnd: (color: string) => void;
   onUpdate: (updates: Partial<FillItem>) => void;
@@ -76,6 +78,8 @@ function categoryToDefaultFillType(category: FillCategory): FillType {
 
 export const FillDetailPopover = memo(function FillDetailPopover({
   fill,
+  presentationOwnsColorFrameScheduling,
+  onColorPresentationCancel,
   onColorChange,
   onColorChangeEnd,
   onUpdate,
@@ -149,6 +153,8 @@ export const FillDetailPopover = memo(function FillDetailPopover({
         <ColorPickerPanel
           value={committedColorValue}
           resetKey={`${fill.id}:${fill.type}`}
+          presentationOwnsFrameScheduling={presentationOwnsColorFrameScheduling}
+          onPresentationCancel={onColorPresentationCancel}
           onChange={onColorChange}
           onChangeEnd={handleColorChangeEndCommitted}
         />

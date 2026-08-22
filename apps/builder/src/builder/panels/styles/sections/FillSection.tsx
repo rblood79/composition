@@ -218,6 +218,10 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
     toggleFill,
     updateFill,
     updateFillPreviewThrottled,
+    isFirstFillColorPresentationOwned,
+    previewFirstFillColorPresentation,
+    commitFirstFillColorPresentation,
+    cancelFirstFillColorPresentation,
     changeFillType,
   } = useFillActions();
 
@@ -235,6 +239,9 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
 
   // popover에 전달할 fill: 실제 fill이 있으면 그것, 없으면 가상 fill
   const popoverFill = firstFill ?? virtualFill;
+  const presentationOwnsColor =
+    firstFill?.type === FillType.Color &&
+    isFirstFillColorPresentationOwned(firstFill.id);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -271,6 +278,7 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
   const handleColorChange = useCallback(
     (color: string) => {
       if (firstFill && firstFill.type === FillType.Color) {
+        if (previewFirstFillColorPresentation(firstFill.id, color)) return;
         updateFillPreviewThrottled(firstFill.id, {
           color,
         } as Partial<ColorFillItem>);
@@ -279,18 +287,31 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
         ensureColorFill(color);
       }
     },
-    [firstFill, updateFillPreviewThrottled, ensureColorFill],
+    [
+      firstFill,
+      previewFirstFillColorPresentation,
+      updateFillPreviewThrottled,
+      ensureColorFill,
+    ],
   );
 
   const handleColorChangeEnd = useCallback(
     (color: string) => {
       if (firstFill && firstFill.type === FillType.Color) {
+        if (commitFirstFillColorPresentation(firstFill.id, color)) return;
         updateFill(firstFill.id, { color } as Partial<ColorFillItem>);
       } else if (!firstFill) {
         ensureColorFill(color);
       }
     },
-    [firstFill, updateFill, ensureColorFill],
+    [firstFill, commitFirstFillColorPresentation, updateFill, ensureColorFill],
+  );
+
+  const handleColorPresentationCancel = useCallback(
+    (reason: "pointer-cancel" | "escape") => {
+      cancelFirstFillColorPresentation(reason);
+    },
+    [cancelFirstFillColorPresentation],
   );
 
   const handleFillUpdate = useCallback(
@@ -367,6 +388,8 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
             >
               <FillDetailPopover
                 fill={popoverFill}
+                presentationOwnsColorFrameScheduling={presentationOwnsColor}
+                onColorPresentationCancel={handleColorPresentationCancel}
                 onColorChange={handleColorChange}
                 onColorChangeEnd={handleColorChangeEnd}
                 onUpdate={handleFillUpdate}

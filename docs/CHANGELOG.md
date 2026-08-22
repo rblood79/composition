@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ADR-187 색상 드래그 presentation 기반 - 2026-08-22
+
+### Architecture
+
+- Style Panel 색상 편집을 canonical document와 분리된 Editor Presentation Transaction으로
+  옮길 수 있는 공용 runtime과 mutation classifier를 추가했다. 드래그 중 값은 session overlay로
+  유지하고, 종료할 때만 canonical-first runner를 1회 실행해 history와 저장을 함께 확정한다.
+- Skia는 semantic target에서 현재 보이는 draw slot만 찾는 projection index와 typed fill
+  capability를 사용한다. box·line·arc의 실제 color buffer만 갱신하며 component 고유 opacity를
+  보존하고, cancel·projection 이동·canonical handoff 시 원래 값을 정확히 복원하거나 ownership만
+  해제한다.
+
+### Performance
+
+- hidden `?adr187FillPilot` 경로에서 Color Picker의 raw input은 중첩 RAF나 document 재순회 없이
+  frame당 최신 값 한 번만 `O(1) + O(k)`로 Skia에 적용된다. 실제 Style popover alpha 드래그에서
+  canonical·legacy·layout·projection·full rebuild가 모두 0회였고, mouseup에서만 canonical
+  commit 1회를 확인했다.
+  - **Why**: 기존에는 picker와 store action의 중첩 RAF 뒤에 full-document preview/scene 작업이
+    이어져 단일 `requestAnimationFrame` callback이 52ms까지 길어질 수 있었다.
+
 ## 여러 줄 입력(TextArea) 속성 편집 - 2026-08-22
 
 ### Bug Fixes

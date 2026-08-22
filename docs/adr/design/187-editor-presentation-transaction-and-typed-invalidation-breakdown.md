@@ -26,7 +26,9 @@ cancel은 overlay 제거까지만 수행하고 canonical/history/persist를 건�
 
 - React Aria color primitive 재구현
 - CSS color parsing/색 공간 알고리즘 변경
-- component Spec/catalog/generator 변경
+- component visual rule/catalog/generator 변경. 단, 실제 fill draw slot을 선언하는
+  `Shape.presentationRole`과 native `RenderSpec.presentation` capability metadata는
+  Phase 2 materialization 정합을 위해 허용한다.
 - canonical document schema 또는 DB migration
 - CanvasKit backend/OffscreenCanvas/Worker 전환
 - 일반적인 React render 최적화나 unrelated subscriber cleanup
@@ -777,7 +779,7 @@ G4 실패로 처리한다.
 
 ### Phase 1 — core runtime, classifier, lifecycle
 
-**진행 상태: Complete — 2026-08-22.**
+**진행 상태: Complete — 2026-08-22 (G1/G2 PASS).**
 
 - **G1 PASS** — `editorPresentationRuntime.test.ts`의 injected fake frame scheduler가
   100회 publish의 single latest-wins apply, 서로 다른 target의 단일-frame batch,
@@ -807,6 +809,42 @@ G4 실패로 처리한다.
 이 phase는 renderer production path에 연결하지 않는다. G1/G2를 먼저 통과한다.
 
 ### Phase 2 — fill color Skia pilot + canonical commit adapter
+
+**진행 상태: Complete — 2026-08-22 (G3 PASS).**
+
+- **G3 PASS** — canonical-node의 single enabled solid fill만
+  `?adr187FillPilot` hidden allowlist로 이관했다. drag publish는 runtime scheduler와
+  immutable overlay만 사용하며 canonical/legacy/history/persist/layout/scene sync를
+  호출하지 않는다. selection 변경 뒤 늦은 terminal도 신규 owner가 소비해 wrong-target
+  legacy write로 fallback하지 않는다. capability/ancestor/child 구조와 initial fills는
+  session 최초 acquire에서 한 번만 resolve/capture하며 active raw input은 document를
+  재순회하지 않는다.
+- canonical adapter는 indexed target/base equality와 document conflict를 runner 진입 전에
+  판정한다. 실제 finish만 `runCanonicalMutation`을 1회 호출해 canonical-first,
+  index rebuild, history 1회, persist 1회 순서를 지키며 replace history event로
+  undo/redo/reload 왕복한다. disjoint mutation은 rebase하고 same-target mutation은
+  cancel한다.
+- Skia projection index는 visible page/body/page-frame의 resolved renderer input에서
+  직접 구축한다. publish는 semantic lookup `O(1)` + visible projection `O(k)`만
+  수행하고 runtime은 pending session ID만 순회한다. immutable public snapshot은 실제
+  조회 시에만 materialize한다.
+- `Shape.presentationRole`, `RenderSpec.presentation`, primitive capability registry가
+  generic/native/replace renderer의 fill materialization 가능 여부를 선언한다. 실제 draw
+  slot은 `presentationFillTargets[]`로 box fill과 line/arc stroke를 동일 계약으로 다루며,
+  primitive 고유 opacity multiplier를 canonical alpha 위에 유지한다. unsupported replace
+  primitive와 container-only native spec은 legacy owner에 남는다.
+- Store bridge는 registry/geometry/children identity를 유지한 in-place color-slot patch와
+  node Picture/content invalidate만 수행한다. cancel과 projection A→B 이동은 old target의
+  draw data를 exact restore한다. finish는 final overlay를 새 canonical renderer input
+  도착까지 유지한 뒤 base 복원 없이 ownership만 release해 color/alpha flash를 막는다.
+- focused 검증은 Builder 13 files/95 tests, specs 2 files/10 tests, forced type-check를
+  통과했다. 실제 Style popover alpha pointer drag에서 drag 중 canonical/legacy/layout/
+  projection/full rebuild가 모두 0이었고, mouseup 뒤 canonical 1회 commit과 Skia alpha
+  유지를 확인했다. Builder 상단 Compare Mode split의 Preview DOM도 동일
+  `rgba(199, 40, 40, 0.97)`를 소비했으며 console error/warning은 0이었다.
+- ref-descendant owner/commit과 Preview transient delta는 Phase 3 범위다. Phase 2에서는
+  finish 뒤 canonical document를 소비하는 상단 split Preview의 정지 상태 parity만
+  가능하며 일반 production default cutover는 하지 않는다.
 
 - `fills.replace` descriptor와 indexed canonical read
 - Skia semantic target→projection index와 StoreRenderBridge `k` target paint patch
@@ -875,32 +913,34 @@ layout/structure가 별도 ADR로 분리되면 ADR 본문에 실제 범위를 �
 경로와 이름은 Phase 1에서 repository convention에 맞춰 조정할 수 있으나 책임
 경계는 유지한다.
 
-| 분류             | 예상 파일/모듈                                                        | 변경 책임                                                                  |
-| ---------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 신규 core        | `apps/builder/src/builder/presentation/editorPresentationTypes.ts`    | semantic target/descriptor/session/snapshot 타입                           |
-| 신규 core        | `.../editorPresentationRuntime.ts`                                    | lifecycle, scheduler, immutable overlay                                    |
-| 신규 neutral     | `.../invalidation/editorMutationEffectRegistry.ts`                    | property-effect data SSOT + 5-symbol derived view                          |
-| 신규 core        | `.../editorMutationClassifier.ts`                                     | registry 기반 유일 판정 entrypoint와 invalidation lattice                  |
-| 신규 core        | `.../editorPresentationCommitAdapter.ts`                              | render id→semantic target, canonical indexed read, conflict, runner commit |
-| Style pilot      | `panels/styles/components/ColorPickerPanel.tsx`                       | runtime handle 호출, local UI state 유지, 외부 RAF 제거                    |
-| Style pilot      | `panels/styles/hooks/useFillActions.ts`                               | descriptor/commit adapter로 축소, full traversal 제거                      |
-| Style pilot      | `panels/styles/sections/FillSection.tsx`                              | begin/publish/finish/cancel 배선                                           |
-| legacy store     | `stores/inspectorActions.ts`                                          | preview mutation 삭제, commit action은 canonical-first 유지                |
-| Skia             | `workspace/canvas/skia/StoreRenderBridge.ts`                          | semantic target projection index + `k` target paint apply                  |
-| Skia             | `workspace/canvas/skia/SkiaCanvas.tsx`                                | dedicated bridge subscription, typed invalidation 소비                     |
-| invalidation     | `workspace/canvas/skia/renderInvalidation.ts` 및 scene/layout modules | lane reason/counter, presentation이 full scene key에 들어가지 않도록 분리  |
-| canonical target | `adapters/canonical/*`, `builder/projection/*`                        | render id→semantic write target, indexed read, runner adapter              |
-| resolver index   | `resolvers/canonical/index.ts`, `canonicalRefResolution.ts`           | 기존 traversal 중 semantic target→local render key index 동시 생성         |
-| Preview sender   | `builder/hooks/useIframeMessenger.ts` 또는 전용 messenger             | document revision envelope, delta/terminal shared queue                    |
-| Preview receiver | `preview/messaging/messageHandler.ts`, message type/validator         | semantic target, revision/tombstone/latch 처리                             |
-| Preview store    | `preview/store/runtimeStore.ts`, `types.ts`                           | render-key overlay + atomic canonical/retirement action                    |
-| Preview renderer | `preview/components/CanonicalNodeRenderer.tsx`                        | traversal render key, canonical/interaction/editor overlay merge           |
-| tests            | 각 모듈 인접 `*.test.ts(x)`                                           | state machine, classifier, renderer parity, perf/static guards             |
-| docs             | ADR evidence, `docs/CHANGELOG.md`                                     | phase evidence와 사용자-가시 성능 변경 기록                                |
+| 분류              | 예상 파일/모듈                                                        | 변경 책임                                                                  |
+| ----------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 신규 core         | `apps/builder/src/builder/presentation/editorPresentationTypes.ts`    | semantic target/descriptor/session/snapshot 타입                           |
+| 신규 core         | `.../editorPresentationRuntime.ts`                                    | lifecycle, scheduler, immutable overlay                                    |
+| 신규 neutral      | `.../invalidation/editorMutationEffectRegistry.ts`                    | property-effect data SSOT + 5-symbol derived view                          |
+| 신규 core         | `.../editorMutationClassifier.ts`                                     | registry 기반 유일 판정 entrypoint와 invalidation lattice                  |
+| 신규 core         | `.../editorPresentationCommitAdapter.ts`                              | render id→semantic target, canonical indexed read, conflict, runner commit |
+| Style pilot       | `panels/styles/components/ColorPickerPanel.tsx`                       | runtime handle 호출, local UI state 유지, 외부 RAF 제거                    |
+| Style pilot       | `panels/styles/hooks/useFillActions.ts`                               | descriptor/commit adapter로 축소, full traversal 제거                      |
+| Style pilot       | `panels/styles/sections/FillSection.tsx`                              | begin/publish/finish/cancel 배선                                           |
+| legacy store      | `stores/inspectorActions.ts`                                          | preview mutation 삭제, commit action은 canonical-first 유지                |
+| Skia              | `workspace/canvas/skia/StoreRenderBridge.ts`                          | semantic target projection index + `k` target paint apply                  |
+| Skia              | `workspace/canvas/skia/SkiaCanvas.tsx`                                | dedicated bridge subscription, typed invalidation 소비                     |
+| invalidation      | `workspace/canvas/skia/renderInvalidation.ts` 및 scene/layout modules | lane reason/counter, presentation이 full scene key에 들어가지 않도록 분리  |
+| canonical target  | `adapters/canonical/*`, `builder/projection/*`                        | render id→semantic write target, indexed read, runner adapter              |
+| resolver index    | `resolvers/canonical/index.ts`, `canonicalRefResolution.ts`           | 기존 traversal 중 semantic target→local render key index 동시 생성         |
+| Preview sender    | `builder/hooks/useIframeMessenger.ts` 또는 전용 messenger             | document revision envelope, delta/terminal shared queue                    |
+| Preview receiver  | `preview/messaging/messageHandler.ts`, message type/validator         | semantic target, revision/tombstone/latch 처리                             |
+| Preview store     | `preview/store/runtimeStore.ts`, `types.ts`                           | render-key overlay + atomic canonical/retirement action                    |
+| Preview renderer  | `preview/components/CanonicalNodeRenderer.tsx`                        | traversal render key, canonical/interaction/editor overlay merge           |
+| tests             | 각 모듈 인접 `*.test.ts(x)`                                           | state machine, classifier, renderer parity, perf/static guards             |
+| renderer contract | `packages/specs/src/types/*`, `renderers/skiaPrimitives.ts`           | typed fill role/capability/opacity multiplier                              |
+| docs              | ADR evidence, `docs/CHANGELOG.md`                                     | phase evidence와 사용자-가시 성능 변경 기록                                |
 
 ### 변경 금지/보호 경계
 
-- `packages/specs`, generated catalog/CSS: 변경 없음
+- generated catalog/CSS와 component visual rule 값: 변경 없음. `packages/specs`는
+  Phase 2 typed renderer materialization metadata/shape role 범위만 변경
 - canonical persisted schema/Supabase: 변경 없음
 - React Aria primitive public props와 accessibility semantics: 변경 없음
 - unrelated PanelWorkspace/Canvas gesture code: 수정 없음
@@ -1009,12 +1049,12 @@ renderer output이 stale이면 실패다.
       시각 결과로 해석하고 hot path는 실제 projection `k`에만 비례한다.
 - [ ] Preview finish/canonical 두 stream의 모든 도착 순서에서 final overlay가 유지되며
       canonical revision 도달 시 atomic retirement한다.
-- [ ] finish는 canonical-first runner 1회, history 1회, persist 최대 1회다.
+- [x] finish는 canonical-first runner 1회, history 1회, persist 최대 1회다.
 - [x] conflict/rebase/wrong-target 조건이 core runtime에서 테스트됐다.
 - [ ] N=50/500/5,000 production benchmark가 HC10을 통과했다.
 - [ ] layout lane의 affected subtree 계약이 통과하거나 별도 ADR로 명시 분리됐다.
 - [x] structure는 분류만 지원하고 continuous runtime 진입은 G2에서 fail-closed한다.
 - [ ] migrated editor의 old preview/RAF/dual-write 경로가 제거됐다.
-- [ ] CSS↔Skia Preview cross-check와 populated Builder live smoke가 통과했다.
-- [ ] targeted Vitest, typecheck, preflight, diff-check가 통과했다.
-- [ ] `docs/CHANGELOG.md`와 ADR README 현황이 최종 상태에 맞게 갱신됐다.
+- [x] CSS↔Skia Preview cross-check와 populated Builder live smoke가 통과했다.
+- [x] targeted Vitest, typecheck, preflight, diff-check가 통과했다.
+- [x] `docs/CHANGELOG.md`와 ADR README 현황이 최종 상태에 맞게 갱신됐다.

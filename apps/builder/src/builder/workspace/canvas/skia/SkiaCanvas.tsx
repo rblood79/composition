@@ -78,6 +78,9 @@ import {
   getPageGuideRevision,
   subscribePageGuideRevision,
 } from "../interaction/pageGuideRevision";
+import { SkiaEditorPresentationBridge } from "../../../presentation/skiaEditorPresentationBridge";
+import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
+import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 
 // Dev profiler — window.__composition_PROFILER 노출 (side-effect import)
 import "../benchmarks/devProfiler";
@@ -218,6 +221,8 @@ export function SkiaCanvas({
   const invalidationPacketRef = useRef(invalidationPacket);
   const rendererInputRef = useRef(rendererInput);
   const storeRenderBridgeRef = useRef<StoreRenderBridge | null>(null);
+  const editorPresentationBridgeRef =
+    useRef<SkiaEditorPresentationBridge | null>(null);
   const lastWorkflowOverlaySignatureRef = useRef("");
   const lastWorkflowGraphSignatureRef = useRef("");
   const lastWfSubTogglesRef = useRef("");
@@ -278,6 +283,9 @@ export function SkiaCanvas({
       rendererInput.childrenMap,
       rendererInput.projectionVersion,
       true,
+    );
+    editorPresentationBridgeRef.current?.handleStoreSync(
+      rendererInput.documentRevision,
     );
     recordInvalidation("content", "rendererInput");
   }, [rendererInput]);
@@ -349,9 +357,31 @@ export function SkiaCanvas({
       },
       // themeConfigStore에서 매 sync마다 동적으로 읽기
       getTheme: () => resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
+      onDidSync: () => {
+        editorPresentationBridgeRef.current?.handleStoreSync(
+          rendererInputRef.current.documentRevision,
+        );
+      },
     });
+    const presentationBridge = new SkiaEditorPresentationBridge({
+      getActiveProjectId: () =>
+        useCanonicalDocumentStore.getState().currentProjectId,
+      getProjectionIndex: () =>
+        rendererInputRef.current.presentationProjectionIndex,
+      getStoreRenderBridge: () => storeRenderBridgeRef.current,
+      onPaintInvalidated: () => {
+        rendererRef.current?.invalidateContent();
+        recordInvalidation("content", "editorPresentation");
+      },
+      runtime: editorPresentationFillPilotRuntime,
+    });
+    editorPresentationBridgeRef.current = presentationBridge;
 
     return () => {
+      if (editorPresentationBridgeRef.current === presentationBridge) {
+        editorPresentationBridgeRef.current = null;
+      }
+      presentationBridge.dispose();
       if (storeRenderBridgeRef.current === bridge) {
         storeRenderBridgeRef.current = null;
       }

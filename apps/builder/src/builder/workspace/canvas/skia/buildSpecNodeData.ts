@@ -1240,7 +1240,9 @@ function buildCatalogShapesOrPrimitive(
   for (const key of primitiveKeys) {
     if (getSkiaPrimitiveMode(key) !== "replace") continue;
     const replaceShapes = getSkiaPrimitive(key)?.(ctx);
-    if (replaceShapes) return replaceShapes;
+    if (replaceShapes) {
+      return applyPresentationFillAlpha(replaceShapes, specProps);
+    }
   }
 
   // ADR-912 단계 4 C3 (text 중복 방지, shell-only 강제, 2026-06-03): SYNTHETIC 컨테이너
@@ -1286,12 +1288,50 @@ function buildCatalogShapesOrPrimitive(
   for (const key of primitiveKeys) {
     const mode = getSkiaPrimitiveMode(key);
     if (mode === "replace") continue;
-    const shapes = getSkiaPrimitive(key)?.(ctx);
+    const primitiveShapes = getSkiaPrimitive(key)?.(ctx);
+    const shapes = primitiveShapes
+      ? applyPresentationFillAlpha(primitiveShapes, specProps)
+      : null;
     if (!shapes) continue;
     if (mode === "prepend") prepend.push(...shapes);
     else append.push(...shapes);
   }
   return composeCatalogShapes(base, prepend, append);
+}
+
+/**
+ * Primitive/native spec의 typed background role에 canonical fill 합성 alpha를 적용한다.
+ * catalog generic box는 buildCatalogShapes가 같은 `_fillBgAlpha`를 이미 소비하므로
+ * 호출하지 않아 중복 곱을 막는다.
+ */
+function applyPresentationFillAlpha(
+  shapes: Shape[],
+  props: Readonly<Record<string, unknown>>,
+): Shape[] {
+  const alpha = typeof props._fillBgAlpha === "number" ? props._fillBgAlpha : 1;
+
+  return shapes.map((shape) => {
+    if (shape.presentationRole !== "background-fill") return shape;
+    if (
+      shape.type === "rect" ||
+      shape.type === "roundRect" ||
+      shape.type === "circle"
+    ) {
+      return {
+        ...shape,
+        fillAlpha: (shape.fillAlpha ?? 1) * alpha,
+        presentationOpacityMultiplier: shape.fillAlpha ?? 1,
+      };
+    }
+    if (shape.type === "arc" || shape.type === "line") {
+      return {
+        ...shape,
+        presentationOpacityMultiplier: shape.strokeAlpha ?? 1,
+        strokeAlpha: (shape.strokeAlpha ?? 1) * alpha,
+      };
+    }
+    return shape;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1724,7 +1764,10 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         componentState,
         theme,
       )
-    : (spec?.render.shapes(specProps, sizeSpec, componentState) ?? []);
+    : applyPresentationFillAlpha(
+        spec?.render.shapes(specProps, sizeSpec, componentState) ?? [],
+        specProps,
+      );
   if (type === "Slot" && specProps._slotChrome === "hidden") {
     shapes.length = 0;
   }

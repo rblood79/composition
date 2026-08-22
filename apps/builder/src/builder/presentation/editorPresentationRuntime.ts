@@ -64,8 +64,21 @@ export interface EditorPresentationRuntimeOptions {
 
 export interface EditorPresentationRuntimeDiagnostics {
   readonly frameApplyCount: number;
+  readonly frameSessionVisitCount: number;
+  readonly snapshotMaterializationCount: number;
   readonly staleFrameCallbackCount: number;
 }
+
+export type EditorPresentationSessionEvent =
+  | {
+      readonly session: EditorPresentationSession;
+      readonly type: "updated";
+    }
+  | {
+      readonly result: EditorPresentationFinishResult;
+      readonly session: EditorPresentationSession;
+      readonly type: "terminal";
+    };
 
 class ImmutableMap<K, V> implements ReadonlyMap<K, V> {
   readonly #values: Map<K, V>;
@@ -297,20 +310,33 @@ export class EditorPresentationTransactionRuntime {
     EditorPresentationRuntimeOptions["isDescriptorEqualToBase"]
   >;
   readonly #listeners = new Set<() => void>();
+  readonly #sessionEventListeners = new Set<
+    (event: EditorPresentationSessionEvent) => void
+  >();
   readonly #onCancel: EditorPresentationRuntimeOptions["onCancel"];
   readonly #readDocumentVersion: EditorPresentationRuntimeOptions["readDocumentVersion"];
   readonly #readTargetValue: EditorPresentationRuntimeOptions["readTargetValue"];
   readonly #scheduler: EditorPresentationFrameScheduler;
+  readonly #pendingSessionIds = new Set<string>();
+  readonly #publicSessions = new Map<string, EditorPresentationSession>();
   readonly #sessions = new Map<string, RuntimeSession>();
+  readonly #overlaysByTarget = new Map<
+    EditorPresentationScopedTargetKey,
+    readonly ClassifiedEditorMutation[]
+  >();
   readonly #targetListeners = new Map<
     EditorPresentationScopedTargetKey,
     Set<() => void>
   >();
 
   #frameApplyCount = 0;
+  #frameSessionVisitCount = 0;
   #frameToken = 0;
   #nextSessionId = 0;
   #scheduledFrame: ScheduledFrame | null = null;
+  #snapshotDirty = false;
+  #snapshotMaterializationCount = 0;
+  #snapshotVersion = 0;
   #snapshot: EditorPresentationSnapshot = Object.freeze({
     overlaysByTarget: new ImmutableMap<
       EditorPresentationScopedTargetKey,
@@ -332,14 +358,25 @@ export class EditorPresentationTransactionRuntime {
     this.#scheduler = options.scheduler ?? browserFrameScheduler;
   }
 
-  getSnapshot = (): EditorPresentationSnapshot => this.#snapshot;
+  getSnapshot = (): EditorPresentationSnapshot => {
+    if (this.#snapshotDirty) {
+      this.#snapshot = Object.freeze({
+        overlaysByTarget: new ImmutableMap(this.#overlaysByTarget),
+        sessions: new ImmutableMap(this.#publicSessions),
+        version: this.#snapshotVersion,
+      });
+      this.#snapshotDirty = false;
+      this.#snapshotMaterializationCount += 1;
+    }
+    return this.#snapshot;
+  };
 
   getTargetSnapshot(
     projectId: string,
     target: EditorPresentationTargetRef,
   ): readonly ClassifiedEditorMutation[] {
     return (
-      this.#snapshot.overlaysByTarget.get(
+      this.#overlaysByTarget.get(
         toEditorPresentationScopedTargetKey(projectId, target),
       ) ?? EMPTY_TARGET_SNAPSHOT
     );
@@ -348,6 +385,8 @@ export class EditorPresentationTransactionRuntime {
   getDiagnostics(): EditorPresentationRuntimeDiagnostics {
     return Object.freeze({
       frameApplyCount: this.#frameApplyCount,
+      frameSessionVisitCount: this.#frameSessionVisitCount,
+      snapshotMaterializationCount: this.#snapshotMaterializationCount,
       staleFrameCallbackCount: this.#staleFrameCallbackCount,
     });
   }
@@ -356,6 +395,13 @@ export class EditorPresentationTransactionRuntime {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
   };
+
+  subscribeSessionEvents(
+    listener: (event: EditorPresentationSessionEvent) => void,
+  ): () => void {
+    this.#sessionEventListeners.add(listener);
+    return () => this.#sessionEventListeners.delete(listener);
+  }
 
   subscribeTarget(
     projectId: string,
@@ -526,6 +572,7 @@ export class EditorPresentationTransactionRuntime {
     }
 
     session.pending = normalized;
+    this.#pendingSessionIds.add(sessionId);
     this.#scheduleFrame();
     return true;
   }
@@ -546,13 +593,18 @@ export class EditorPresentationTransactionRuntime {
   }
 
   #flushFrame(): void {
+    const pendingSessionIds = [...this.#pendingSessionIds];
+    this.#pendingSessionIds.clear();
     const changedSessions = new Map<string, RuntimeSession>();
     const overlayChanges = new Map<
       EditorPresentationScopedTargetKey,
       readonly ClassifiedEditorMutation[] | null
     >();
 
-    for (const session of this.#sessions.values()) {
+    for (const sessionId of pendingSessionIds) {
+      this.#frameSessionVisitCount += 1;
+      const session = this.#sessions.get(sessionId);
+      if (!session) continue;
       if (session.status !== "active" || !session.pending) continue;
       const descriptor = session.pending;
       session.pending = null;
@@ -602,10 +654,7 @@ export class EditorPresentationTransactionRuntime {
 
   #cancelScheduledFrameIfIdle(): void {
     if (!this.#scheduledFrame) return;
-    const hasPending = [...this.#sessions.values()].some(
-      (session) => session.status === "active" && session.pending !== null,
-    );
-    if (hasPending) return;
+    if (this.#pendingSessionIds.size > 0) return;
     this.#scheduler.cancel(this.#scheduledFrame.handle);
     this.#scheduledFrame = null;
   }
@@ -650,10 +699,12 @@ export class EditorPresentationTransactionRuntime {
       }
     } catch (error: unknown) {
       session.pending = null;
+      this.#pendingSessionIds.delete(sessionId);
       this.#cancelScheduledFrameIfIdle();
       return this.#failSession(session, error, null);
     }
     session.pending = null;
+    this.#pendingSessionIds.delete(sessionId);
     this.#cancelScheduledFrameIfIdle();
 
     if (this.#hasConflict(session)) {
@@ -679,6 +730,8 @@ export class EditorPresentationTransactionRuntime {
       this.#completeSession(session, result);
       return result;
     }
+
+    this.#applyClosingDescriptor(session, descriptor);
 
     try {
       const commitResult = this.#commit(
@@ -719,6 +772,14 @@ export class EditorPresentationTransactionRuntime {
       return result;
     }
 
+    if (
+      session.applied &&
+      arePresentationValuesEqual(session.applied.descriptor, finalDescriptor)
+    ) {
+      this.#replaceSnapshotSession(session);
+      return result;
+    }
+
     const previousTargetKey = session.applied
       ? toEditorPresentationTargetKey(session.applied.descriptor.target)
       : null;
@@ -747,6 +808,45 @@ export class EditorPresentationTransactionRuntime {
     return result;
   }
 
+  #applyClosingDescriptor(
+    session: RuntimeSession,
+    descriptor: EditorMutationDescriptor,
+  ): void {
+    if (
+      session.applied &&
+      arePresentationValuesEqual(session.applied.descriptor, descriptor)
+    ) {
+      this.#replaceSnapshotSession(session);
+      return;
+    }
+
+    const previousTargetKey = session.applied
+      ? toEditorPresentationTargetKey(session.applied.descriptor.target)
+      : null;
+    const nextTargetKey = toEditorPresentationTargetKey(descriptor.target);
+    const classified = classifyEditorMutation(descriptor);
+    session.applied = classified;
+    session.revision += 1;
+    const overlayChanges = new Map<
+      EditorPresentationScopedTargetKey,
+      readonly ClassifiedEditorMutation[] | null
+    >();
+    if (previousTargetKey && previousTargetKey !== nextTargetKey) {
+      overlayChanges.set(
+        session.scopedTargetKeys.get(previousTargetKey)!,
+        null,
+      );
+    }
+    overlayChanges.set(
+      session.scopedTargetKeys.get(nextTargetKey)!,
+      Object.freeze([classified]),
+    );
+    this.#applySnapshotChanges(
+      new Map([[session.sessionId, session]]),
+      overlayChanges,
+    );
+  }
+
   #cancelSession(
     sessionId: string,
     reason: EditorPresentationCancelReason,
@@ -765,9 +865,14 @@ export class EditorPresentationTransactionRuntime {
     });
     session.handleState.finishResult = result;
     session.pending = null;
+    this.#pendingSessionIds.delete(sessionId);
+    const publicSession = toPublicSession(session);
     this.#removeSession(session);
     this.#cancelScheduledFrameIfIdle();
     this.#removeSnapshotSession(session);
+    this.#publishSessionEvent(
+      Object.freeze({ result, session: publicSession, type: "terminal" }),
+    );
     this.#onCancel?.(sessionId, reason);
     return true;
   }
@@ -777,11 +882,16 @@ export class EditorPresentationTransactionRuntime {
     result: EditorPresentationFinishResult,
   ): void {
     session.handleState.finishResult = result;
+    const publicSession = toPublicSession(session);
     this.#removeSession(session);
     this.#removeSnapshotSession(session);
+    this.#publishSessionEvent(
+      Object.freeze({ result, session: publicSession, type: "terminal" }),
+    );
   }
 
   #removeSession(session: RuntimeSession): void {
+    this.#pendingSessionIds.delete(session.sessionId);
     this.#sessions.delete(session.sessionId);
     for (const key of session.scopedTargetKeys.values()) {
       if (this.#activeSessionIdByTarget.get(key) === session.sessionId) {
@@ -809,28 +919,21 @@ export class EditorPresentationTransactionRuntime {
   }
 
   #replaceSnapshotSession(session: RuntimeSession): void {
-    const sessions = new Map(this.#snapshot.sessions);
-    sessions.set(session.sessionId, toPublicSession(session));
-    this.#publishSnapshot(
-      new ImmutableMap(sessions),
-      this.#snapshot.overlaysByTarget,
-      EMPTY_SCOPED_TARGET_KEYS,
+    const publicSession = toPublicSession(session);
+    this.#publicSessions.set(session.sessionId, publicSession);
+    this.#publishSnapshot(EMPTY_SCOPED_TARGET_KEYS);
+    this.#publishSessionEvent(
+      Object.freeze({ session: publicSession, type: "updated" }),
     );
   }
 
   #removeSnapshotSession(session: RuntimeSession): void {
-    const sessions = new Map(this.#snapshot.sessions);
-    sessions.delete(session.sessionId);
-    const overlays = new Map(this.#snapshot.overlaysByTarget);
+    this.#publicSessions.delete(session.sessionId);
     const changedTargetKeys = new Set<EditorPresentationScopedTargetKey>();
     for (const key of session.scopedTargetKeys.values()) {
-      if (overlays.delete(key)) changedTargetKeys.add(key);
+      if (this.#overlaysByTarget.delete(key)) changedTargetKeys.add(key);
     }
-    this.#publishSnapshot(
-      new ImmutableMap(sessions),
-      new ImmutableMap(overlays),
-      changedTargetKeys,
-    );
+    this.#publishSnapshot(changedTargetKeys);
   }
 
   #applySnapshotChanges(
@@ -840,35 +943,30 @@ export class EditorPresentationTransactionRuntime {
       readonly ClassifiedEditorMutation[] | null
     >,
   ): void {
-    const sessions = new Map(this.#snapshot.sessions);
     for (const session of changedSessions.values()) {
-      sessions.set(session.sessionId, toPublicSession(session));
+      this.#publicSessions.set(session.sessionId, toPublicSession(session));
     }
-    const overlays = new Map(this.#snapshot.overlaysByTarget);
     for (const [key, value] of overlayChanges) {
-      if (value) overlays.set(key, value);
-      else overlays.delete(key);
+      if (value) this.#overlaysByTarget.set(key, value);
+      else this.#overlaysByTarget.delete(key);
     }
-    this.#publishSnapshot(
-      new ImmutableMap(sessions),
-      new ImmutableMap(overlays),
-      new Set(overlayChanges.keys()),
-    );
+    this.#publishSnapshot(new Set(overlayChanges.keys()));
+    for (const session of changedSessions.values()) {
+      this.#publishSessionEvent(
+        Object.freeze({ session: toPublicSession(session), type: "updated" }),
+      );
+    }
+  }
+
+  #publishSessionEvent(event: EditorPresentationSessionEvent): void {
+    for (const listener of this.#sessionEventListeners) listener(event);
   }
 
   #publishSnapshot(
-    sessions: ReadonlyMap<string, EditorPresentationSession>,
-    overlaysByTarget: ReadonlyMap<
-      EditorPresentationScopedTargetKey,
-      readonly ClassifiedEditorMutation[]
-    >,
     changedTargetKeys: ReadonlySet<EditorPresentationScopedTargetKey>,
   ): void {
-    this.#snapshot = Object.freeze({
-      overlaysByTarget,
-      sessions,
-      version: this.#snapshot.version + 1,
-    });
+    this.#snapshotVersion += 1;
+    this.#snapshotDirty = true;
     for (const listener of this.#listeners) listener();
     for (const key of changedTargetKeys) {
       for (const listener of this.#targetListeners.get(key) ?? []) listener();

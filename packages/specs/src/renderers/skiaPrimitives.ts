@@ -121,6 +121,7 @@ const dot: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const dotSize = size.height === 20 ? 8 : size.height === 24 ? 10 : 12;
   return [
     {
+      presentationRole: "background-fill",
       type: "circle",
       x: dotSize / 2,
       y: dotSize / 2,
@@ -555,6 +556,7 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   //   metric cardHeight 는 flat props 기준이라 자식 합산 높이와 어긋난다.
   shapes.push({
     id: "card-bg",
+    presentationRole: "background-fill",
     type: "roundRect",
     x: 0,
     y: 0,
@@ -888,6 +890,7 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   if (needsRowRect) {
     shapes.push({
       id: "row-bg",
+      presentationRole: "background-fill",
       type: "roundRect",
       x: 0,
       y: 0,
@@ -1083,6 +1086,7 @@ const checkbox: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const shapes: Shape[] = [
     {
       id: "box",
+      presentationRole: "background-fill",
       type: "roundRect",
       x: 0,
       y: 0,
@@ -1311,6 +1315,13 @@ const TOOLTIP_ARROW_MAX_WIDTH: Record<string, number> = {
   lg: 200,
 };
 
+function markPresentationBackground(shapes: Shape[]): Shape[] {
+  return shapes.map((shape) => ({
+    ...shape,
+    presentationRole: "background-fill" as const,
+  }));
+}
+
 /**
  * `tooltip_arrow` — Tooltip V-arrow(placement 기반 2-line). showArrow===true 일 때만 적용.
  * 좌표식은 (구) TooltipSpec.render.shapes 1:1 이식(회귀 0). 색 = bg fill(style/visual).
@@ -1330,7 +1341,7 @@ const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
     "{color.transparent}") as TokenRef;
 
   if (placement === "top") {
-    return [
+    return markPresentationBackground([
       {
         type: "line",
         x1: centerX - arrowSize,
@@ -1349,10 +1360,10 @@ const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
         stroke,
         strokeWidth: 2,
       },
-    ];
+    ]);
   }
   if (placement === "bottom") {
-    return [
+    return markPresentationBackground([
       {
         type: "line",
         x1: centerX - arrowSize,
@@ -1371,11 +1382,11 @@ const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
         stroke,
         strokeWidth: 2,
       },
-    ];
+    ]);
   }
   if (placement === "right") {
     const midY = approxHeight / 2;
-    return [
+    return markPresentationBackground([
       {
         type: "line",
         x1: 0,
@@ -1394,11 +1405,11 @@ const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
         stroke,
         strokeWidth: 2,
       },
-    ];
+    ]);
   }
   // left
   const midY = approxHeight / 2;
-  return [
+  return markPresentationBackground([
     {
       type: "line",
       x1: maxWidth,
@@ -1417,7 +1428,7 @@ const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
       stroke,
       strokeWidth: 2,
     },
-  ];
+  ]);
 };
 
 /**
@@ -1435,7 +1446,7 @@ const popoverArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
     "{color.transparent}") as TokenRef;
 
   if (placement === "bottom") {
-    return [
+    return markPresentationBackground([
       {
         type: "line",
         x1: cx - arrowSize,
@@ -1454,10 +1465,10 @@ const popoverArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
         stroke,
         strokeWidth: 2,
       },
-    ];
+    ]);
   }
   if (placement === "top") {
-    return [
+    return markPresentationBackground([
       {
         type: "line",
         x1: cx - arrowSize,
@@ -1476,10 +1487,10 @@ const popoverArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
         stroke,
         strokeWidth: 2,
       },
-    ];
+    ]);
   }
   if (placement === "right") {
-    return [
+    return markPresentationBackground([
       {
         type: "line",
         x1: 0,
@@ -1498,10 +1509,10 @@ const popoverArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
         stroke,
         strokeWidth: 2,
       },
-    ];
+    ]);
   }
   // left
-  return [
+  return markPresentationBackground([
     {
       type: "line",
       x1: cx,
@@ -1520,7 +1531,7 @@ const popoverArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
       stroke,
       strokeWidth: 2,
     },
-  ];
+  ]);
 };
 
 /*
@@ -1620,6 +1631,7 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const shapes: Shape[] = [
     {
       id: "bg",
+      presentationRole: "background-fill",
       type: "roundRect" as const,
       x: 0,
       y: 0,
@@ -2065,6 +2077,7 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
   return [
     {
       id: "input-bg",
+      presentationRole: "background-fill",
       type: "roundRect" as const,
       x: 0,
       y: 0,
@@ -2264,6 +2277,7 @@ const sliderFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     // track 배경 (세로 중앙)
     {
       id: "track",
+      presentationRole: "background-fill",
       type: "roundRect",
       x: 0,
       y: trackY,
@@ -2406,6 +2420,7 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 
   const shapes: Shape[] = [
     {
+      presentationRole: "background-fill",
       type: "arc",
       x: cx,
       y: cy,
@@ -3138,6 +3153,7 @@ const statusLight: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     // 상태 표시 dot (수직 중앙 정렬)
     {
       id: "dot",
+      presentationRole: "background-fill",
       type: "circle" as const,
       x: dotRadius,
       y: centerY,
@@ -3206,6 +3222,7 @@ const avatar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     // 원형 배경 (circle 전체가 아바타 외형)
     {
       id: "bg",
+      presentationRole: "background-fill",
       type: "circle" as const,
       x: radius,
       y: radius,
@@ -3414,4 +3431,67 @@ export function getSkiaPrimitiveMode(
   key: string | undefined,
 ): SkiaPrimitiveMode {
   return (key && SKIA_PRIMITIVE_MODES[key]) || "replace";
+}
+
+export interface SkiaPresentationMaterializationContext {
+  readonly ancestorTypes?: readonly string[];
+  readonly hasGenericBackground?: boolean;
+  readonly hasChildren?: boolean;
+}
+
+type PresentationFillCapability = (
+  props: Readonly<Record<string, unknown>>,
+  context: SkiaPresentationMaterializationContext,
+) => boolean;
+
+const PRESENTATION_FILL_CAPABILITIES: Readonly<
+  Record<string, PresentationFillCapability>
+> = {
+  avatar: () => true,
+  calendar_grid: () => true,
+  checkbox: () => true,
+  datefield_segments: (_props, context) =>
+    !context.ancestorTypes?.some(
+      (type) => type === "DatePicker" || type === "DateRangePicker",
+    ),
+  datefield_trigger: (_props, context) => context.hasChildren !== true,
+  dot: (props) => props.isDot === true,
+  gridlist_card: () => true,
+  listbox_item: () => true,
+  slider_fill_bar: () => true,
+  status_light: () => true,
+  value_fill_arc: (_props, context) => context.hasChildren !== true,
+};
+
+/**
+ * ADR-187 fill pilot owner gate.
+ *
+ * prepend/append primitive는 generic background box를 유지하는 renderer에서만 가능하다.
+ * replace primitive는 실제 background-fill role을 내는 capability만 허용한다. `dot`이
+ * 적용되지 않는 경우에는 primitive가 null을 반환하므로 generic background 계약을 확인한다.
+ */
+export function canMaterializeSkiaPresentationFill(
+  primitiveBinding: string | readonly string[] | undefined,
+  props: Readonly<Record<string, unknown>>,
+  context: SkiaPresentationMaterializationContext = {},
+): boolean {
+  const keys = primitiveBinding
+    ? Array.isArray(primitiveBinding)
+      ? primitiveBinding
+      : [primitiveBinding]
+    : [];
+
+  let needsGenericBackground = keys.length === 0;
+  for (const key of keys) {
+    if (getSkiaPrimitiveMode(key) !== "replace") {
+      needsGenericBackground = true;
+      continue;
+    }
+    if (key === "dot" && props.isDot !== true) {
+      needsGenericBackground = true;
+      continue;
+    }
+    return PRESENTATION_FILL_CAPABILITIES[key]?.(props, context) ?? false;
+  }
+  return !needsGenericBackground || context.hasGenericBackground === true;
 }

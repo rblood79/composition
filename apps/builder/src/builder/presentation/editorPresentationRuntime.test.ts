@@ -6,6 +6,7 @@ import {
 import type {
   EditorMutationDescriptor,
   EditorPresentationCancelReason,
+  EditorPresentationFinishResult,
   EditorPresentationTargetRef,
 } from "./editorPresentationTypes";
 
@@ -134,6 +135,45 @@ describe("EditorPresentationTransactionRuntime", () => {
     expect(runtime.getDiagnostics()).toMatchObject({ frameApplyCount: 1 });
   });
 
+  it("visits only pending sessions when many sessions are active", () => {
+    const { runtime, scheduler, values } = createRuntime();
+    const handles = Array.from({ length: 100 }, (_, index) => {
+      const sessionTarget: EditorPresentationTargetRef = {
+        kind: "canonical-node",
+        nodeId: `node-${index + 1}`,
+      };
+      values.set(`canonical-node:${sessionTarget.nodeId}`, 0);
+      return {
+        handle: runtime.beginEditorPresentation({
+          commitIntent: "style-opacity",
+          ownerId: `control-${index + 1}`,
+          projectId,
+          targets: [sessionTarget],
+        }),
+        target: sessionTarget,
+      };
+    });
+    const before = runtime.getDiagnostics();
+
+    handles[73]!.handle.publish(opacityDescriptor(0.5, handles[73]!.target));
+    scheduler.flush();
+
+    const afterFrame = runtime.getDiagnostics();
+    expect(
+      afterFrame.frameSessionVisitCount - before.frameSessionVisitCount,
+    ).toBe(1);
+    expect(
+      afterFrame.snapshotMaterializationCount -
+        before.snapshotMaterializationCount,
+    ).toBe(0);
+
+    runtime.getSnapshot();
+    expect(
+      runtime.getDiagnostics().snapshotMaterializationCount -
+        before.snapshotMaterializationCount,
+    ).toBe(1);
+  });
+
   it("keeps snapshot and target selector identities stable for no-op frames", () => {
     const { runtime, scheduler } = createRuntime();
     const handle = begin(runtime);
@@ -147,6 +187,26 @@ describe("EditorPresentationTransactionRuntime", () => {
 
     expect(runtime.getSnapshot()).toBe(snapshot);
     expect(runtime.getTargetSnapshot(projectId, target)).toBe(targetSnapshot);
+  });
+
+  it("keeps an already materialized snapshot immutable across later frames", () => {
+    const { runtime, scheduler } = createRuntime();
+    const handle = begin(runtime);
+    handle.publish(opacityDescriptor(0.25));
+    scheduler.flush();
+    const firstSnapshot = runtime.getSnapshot();
+
+    handle.publish(opacityDescriptor(0.75));
+    scheduler.flush();
+    const secondSnapshot = runtime.getSnapshot();
+
+    expect(secondSnapshot).not.toBe(firstSnapshot);
+    expect(
+      firstSnapshot.overlaysByTarget.values().next().value?.[0]?.descriptor,
+    ).toEqual(opacityDescriptor(0.25));
+    expect(
+      secondSnapshot.overlaysByTarget.values().next().value?.[0]?.descriptor,
+    ).toEqual(opacityDescriptor(0.75));
   });
 
   it("batches independent targets and preserves unchanged selector identity", () => {
@@ -238,6 +298,61 @@ describe("EditorPresentationTransactionRuntime", () => {
     });
     expect(handle.finish(opacityDescriptor(1))).toBe(result);
     expect(commit).toHaveBeenCalledTimes(1);
+  });
+
+  it("materializes an explicit final descriptor before canonical handoff", () => {
+    const { runtime, scheduler } = createRuntime();
+    const handle = begin(runtime);
+    const observed: Array<EditorMutationDescriptor | null> = [];
+    runtime.subscribeTarget(projectId, target, () => {
+      observed.push(
+        runtime.getTargetSnapshot(projectId, target)[0]?.descriptor ?? null,
+      );
+    });
+    handle.publish(opacityDescriptor(0.25));
+    scheduler.flush();
+
+    handle.finish(opacityDescriptor(0.75));
+
+    expect(observed).toEqual([
+      opacityDescriptor(0.25),
+      opacityDescriptor(0.75),
+      null,
+    ]);
+  });
+
+  it("emits explicit committed and cancelled terminal outcomes", () => {
+    const { runtime } = createRuntime();
+    const events: Array<{
+      result?: EditorPresentationFinishResult;
+      sessionId: string;
+      type: "terminal" | "updated";
+    }> = [];
+    runtime.subscribeSessionEvents((event) => {
+      events.push({
+        ...(event.type === "terminal" ? { result: event.result } : {}),
+        sessionId: event.session.sessionId,
+        type: event.type,
+      });
+    });
+
+    const committed = begin(runtime);
+    committed.finish(opacityDescriptor(0.75));
+    const cancelled = begin(runtime);
+    cancelled.cancel("pointer-cancel");
+
+    expect(events.filter((event) => event.type === "terminal")).toEqual([
+      {
+        result: { committedDocumentRevision: 2, status: "committed" },
+        sessionId: committed.sessionId,
+        type: "terminal",
+      },
+      {
+        result: { reason: "pointer-cancel", status: "cancelled" },
+        sessionId: cancelled.sessionId,
+        type: "terminal",
+      },
+    ]);
   });
 
   it.each<EditorPresentationCancelReason>([

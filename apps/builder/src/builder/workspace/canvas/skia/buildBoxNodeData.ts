@@ -283,6 +283,19 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
         )
       : undefined;
 
+  const box: NonNullable<SkiaNodeData["box"]> = {
+    fillColor,
+    ...(cssBgImageFill
+      ? { fill: cssBgImageFill }
+      : gradientFill
+        ? { fill: gradientFill }
+        : {}),
+    borderRadius: br,
+    strokeColor,
+    strokeWidth: suppressBorder ? undefined : stroke?.width,
+    ...(strokeStyleValue ? { strokeStyle: strokeStyleValue } : {}),
+  };
+
   return {
     type: "box",
     elementId: element.id,
@@ -300,17 +313,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     ...(zIndex !== undefined ? { zIndex } : {}),
     ...(isStackingCtx ? { isStackingContext: true } : {}),
     ...(clipPath ? { clipPath } : {}),
-    box: {
-      fillColor,
-      ...(cssBgImageFill
-        ? { fill: cssBgImageFill }
-        : gradientFill
-          ? { fill: gradientFill }
-          : {}),
-      borderRadius: br,
-      strokeColor,
-      strokeWidth: suppressBorder ? undefined : stroke?.width,
-      ...(strokeStyleValue ? { strokeStyle: strokeStyleValue } : {}),
-    },
+    box,
+    presentationFillTargets: [{ color: box.fillColor, opacityMultiplier: 1 }],
   } as SkiaNodeData;
 }

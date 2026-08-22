@@ -5,6 +5,7 @@ import type { SkiaRendererInput } from "../renderers";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { CanonicalFrameElementScope } from "../../../../adapters/canonical/frameElementScope";
 import { collectVisibleFrameRoots } from "./visibleFrameRoots";
+import { EMPTY_SKIA_PRESENTATION_PROJECTION_INDEX } from "../../../presentation/skiaPresentationProjectionIndex";
 
 type ElementFixtureOptions = Partial<CanvasSceneNode> & {
   frameId?: string | null;
@@ -47,10 +48,12 @@ const makeInput = (partial: Partial<SkiaRendererInput>): SkiaRendererInput => {
     interactionNodesMap: partial.interactionNodesMap ?? renderNodesMap,
     renderNodesMap,
     projectionVersion: 0,
+    presentationProjectionIndex: EMPTY_SKIA_PRESENTATION_PROJECTION_INDEX,
     sceneChildrenByParent: partial.sceneChildrenByParent ?? new Map(),
     sceneNodes,
     sceneNodesMap,
     dirtyElementIds: new Set(),
+    documentRevision: 0,
     editMode: "layout",
     pageIndex: { elementsByPage: new Map() } as never,
     pagePositionsVersion: 0,

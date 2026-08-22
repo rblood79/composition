@@ -249,8 +249,7 @@ function resolveNodeType(node: ResolvedNode): string {
   return (
     (cp._tag as string | undefined) ??
     ((node.metadata as Record<string, unknown> | undefined)?.originalTag as
-      | string
-      | undefined) ??
+      string | undefined) ??
     String(node.type)
   );
 }
@@ -376,8 +375,7 @@ export function CanonicalNodeRenderer({
   const type =
     (canonicalProps._tag as string | undefined) ??
     ((node.metadata as Record<string, unknown> | undefined)?.originalTag as
-      | string
-      | undefined) ??
+      string | undefined) ??
     String(node.type);
 
   // 자식에게 물려줄 collection 조상 — 자기 자신이 collection 이면 자기 type 으로 갱신.
@@ -499,9 +497,13 @@ export function CanonicalNodeRenderer({
       // override(props.style) 전용. data-* 변형/사이즈는 racRest(toRacProps)가 emit.
       // ADR-158 Phase 3 실측 — `node` 를 넘기면 공통 show/hide/toggle 이 무반응이었다
       // (`style.display` patch 가 여기서 버려진다).
-      const overrideStyle = toReactStyle(renderNode) as
-        | React.CSSProperties
-        | undefined;
+      const resolvedStyle = toReactStyle(renderNode) as
+        React.CSSProperties | undefined;
+      const adaptedStyle = adaptedEl.props?.style as
+        React.CSSProperties | undefined;
+      const overrideStyle = adaptedStyle
+        ? { ...(resolvedStyle ?? {}), ...adaptedStyle }
+        : resolvedStyle;
       // ADR-913 slice 1 (2026-06-18): cssEmitMode "button-base" 컴포넌트(Button/ToggleButton/
       //   ToggleButtonGroup)는 generated CSS 가 `--button-color` 만 emit 하고 background 는
       //   `.button-base` utility 에 위임 → DOM 에 button-base 클래스 필수. toRacProps 는 className 을

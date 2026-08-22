@@ -151,6 +151,7 @@ export function buildDatePickerShapes(input: DatePickerShapesInput): Shape[] {
   return [
     {
       id: "input-bg",
+      presentationRole: "background-fill",
       type: "roundRect" as const,
       x: 0,
       y: 0,

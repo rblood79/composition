@@ -20,7 +20,10 @@ import {
   isComponentInstanceMirrorElement as isInstanceElement,
 } from "../../../../adapters/canonical/componentSemanticsMirror";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
-import type { SkiaNodeData } from "./nodeRendererTypes";
+import type {
+  SkiaNodeData,
+  SkiaPresentationFillTarget,
+} from "./nodeRendererTypes";
 import { buildSkiaNodeData, type BuildContext } from "./buildSkiaNodeData";
 import { buildBoxNodeData } from "./buildBoxNodeData";
 import { buildImageNodeData } from "./buildImageNodeData";
@@ -52,6 +55,50 @@ import {
   recordEditorPresentationBridgeFullRebuild,
   recordEditorPresentationTargetIncrementalPatches,
 } from "../../../performance/editorPresentationPhase0Metrics";
+import type { FillItem } from "../../../../types/builder/fill.types";
+import { fillsToSkiaFillColor } from "../../../panels/styles/utils/fillToSkia";
+import {
+  invalidateNodePicture,
+  setPresentationVolatileNodeIds,
+} from "./nodePictureCache";
+
+function presentationColorEquals(
+  target: SkiaPresentationFillTarget,
+  canonicalColor: Float32Array,
+): boolean {
+  return (
+    target.color.length === canonicalColor.length &&
+    target.color[0] === canonicalColor[0] &&
+    target.color[1] === canonicalColor[1] &&
+    target.color[2] === canonicalColor[2] &&
+    target.color[3] ===
+      Math.fround(canonicalColor[3] * target.opacityMultiplier)
+  );
+}
+
+function setPresentationColor(
+  target: SkiaPresentationFillTarget,
+  canonicalColor: Float32Array,
+): void {
+  target.color[0] = canonicalColor[0];
+  target.color[1] = canonicalColor[1];
+  target.color[2] = canonicalColor[2];
+  target.color[3] = canonicalColor[3] * target.opacityMultiplier;
+}
+
+function haveSamePresentationColorSlots(
+  left: readonly SkiaPresentationFillTarget[],
+  right: readonly SkiaPresentationFillTarget[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every(
+      (target, index) =>
+        target.color === right[index]?.color &&
+        target.opacityMultiplier === right[index]?.opacityMultiplier,
+    )
+  );
+}
 
 function isImageElement(element: CanvasSceneNode): boolean {
   return IMAGE_TAGS.has(element.type);
@@ -247,8 +294,91 @@ export class StoreRenderBridge {
   } | null = null;
   /** ref 비교 밖 입력 변경 (bridge 자체 이미지 로드 등) — 다음 sync 가드 1회 해제 */
   private externalDirty = false;
+  /** ADR-187: presentation 종료 시 exact restore할 draw color slot snapshot. */
+  private presentationBaseById = new Map<
+    string,
+    {
+      readonly colors: readonly Float32Array[];
+      readonly targets: readonly SkiaPresentationFillTarget[];
+    }
+  >();
+  private presentationNodeIds = new Set<string>();
   /** CSS transition 애니메이션 매니저 (선택 연결) */
   public transitionManager: TransitionManager | null = null;
+
+  /**
+   * ADR-187 paint lane: registry/command-stream/layout identity를 바꾸지 않고
+   * 기존 draw color slot만 교체한다. canonical sync entrypoint는 호출하지 않는다.
+   */
+  applyPresentationFillPatch(
+    elementId: string,
+    fills: readonly FillItem[],
+  ): boolean {
+    const node = getSkiaNode(elementId);
+    const targets = node?.presentationFillTargets;
+    if (!node || !targets || targets.length === 0) return false;
+
+    const nextFillColor = fillsToSkiaFillColor([...fills]);
+    if (!nextFillColor) return false;
+
+    if (
+      targets.every((target) => presentationColorEquals(target, nextFillColor))
+    ) {
+      return false;
+    }
+
+    const existingBase = this.presentationBaseById.get(elementId);
+    if (
+      !existingBase ||
+      !haveSamePresentationColorSlots(existingBase.targets, targets)
+    ) {
+      this.presentationBaseById.set(elementId, {
+        colors: targets.map((target) => Float32Array.from(target.color)),
+        targets,
+      });
+    }
+    for (const target of targets) setPresentationColor(target, nextFillColor);
+    invalidateNodePicture(elementId);
+    this.presentationNodeIds.add(elementId);
+    setPresentationVolatileNodeIds(this.presentationNodeIds);
+    return true;
+  }
+
+  /** terminal/canonical handoff 전에 presentation draw data를 exact 복원한다. */
+  restorePresentationFillPatch(elementId: string): boolean {
+    const base = this.presentationBaseById.get(elementId);
+    if (!base) return false;
+
+    const node = getSkiaNode(elementId);
+    const targets = node?.presentationFillTargets;
+    const canRestore =
+      targets !== undefined &&
+      haveSamePresentationColorSlots(base.targets, targets);
+    if (canRestore) {
+      targets.forEach((target, index) => target.color.set(base.colors[index]));
+      invalidateNodePicture(elementId);
+    }
+    this.presentationBaseById.delete(elementId);
+    this.presentationNodeIds.delete(elementId);
+    setPresentationVolatileNodeIds(this.presentationNodeIds);
+    return canRestore;
+  }
+
+  /** canonical renderer input이 도착한 뒤 base 복원 없이 overlay ownership만 해제한다. */
+  releasePresentationFillPatch(elementId: string): boolean {
+    if (!this.presentationBaseById.delete(elementId)) return false;
+    this.presentationNodeIds.delete(elementId);
+    setPresentationVolatileNodeIds(this.presentationNodeIds);
+    return true;
+  }
+
+  restoreAllPresentationFillPatches(): number {
+    let restored = 0;
+    for (const elementId of [...this.presentationBaseById.keys()]) {
+      if (this.restorePresentationFillPatch(elementId)) restored += 1;
+    }
+    return restored;
+  }
 
   /**
    * Store에 연결하여 elementsMap 변경 시 skiaNodeRegistry를 갱신.
@@ -260,6 +390,7 @@ export class StoreRenderBridge {
     getProjectionVersion: () => number;
     subscribe: (callback: () => void) => () => void;
     getTheme?: () => "light" | "dark";
+    onDidSync?: () => void;
     theme?: "light" | "dark";
   }): void {
     this.dispose();
@@ -271,6 +402,7 @@ export class StoreRenderBridge {
       getProjectionVersion,
       subscribe,
       getTheme,
+      onDidSync,
       theme = "light",
     } = options;
 
@@ -285,6 +417,7 @@ export class StoreRenderBridge {
         getProjectionVersion(),
         forceFullRebuild,
       );
+      onDidSync?.();
     };
     this.pendingResync = () => resync(true);
 
@@ -325,6 +458,7 @@ export class StoreRenderBridge {
         resolveTheme(),
         getChildrenMap?.() ?? null,
       );
+      onDidSync?.();
     });
   }
 
@@ -878,6 +1012,7 @@ export class StoreRenderBridge {
    * 연결 해제 + 등록 해제
    */
   dispose(): void {
+    this.restoreAllPresentationFillPatches();
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
