@@ -912,14 +912,18 @@ paint target과 별도의 revision/root 집합으로 승격되도록 했다.
   병합하여 비영향 node의 value/reference를 유지한다.
 - `resolveCanonicalNodeWithPresentation`은 canonical node를 변경하지 않고 style/geometry
   overlay를 layout input으로 합성한다.
+- `PersistentTaffyTree.getLayoutsForIds`를 추가해 계산 후 결과 수집을 semantic
+  `elementId` 집합 `k`로 제한했다. TagList의 post-fold 측정도 전체
+  `getLayoutsBatch()` 대신 chip/RowsGroup/TagList 결과만 요청한다.
 - runtime/plan/invalidation 테스트가 paint-only, layout, parent promotion, unaffected
   identity를 고정한다.
 
-현재 composition engine의 공개 layout entrypoint는 page-root 전체 DFS와
-`getLayoutsBatch()` 결과를 반환하므로 이 slice에서는 targeted Taffy 계산을 production
-경로에 연결하지 않았다. 전역 `layoutVersion++` fallback으로 G6을 통과시키지 않으며,
-다음 slice에서 engine이 subtree 입력/used-size 상향을 실제로 지원하는지 증명한 뒤
-`useLayoutPublisher`와 Skia hit-test 소비자에 연결한다.
+현재 composition engine의 공개 layout entrypoint는 여전히 page-root 전체 DFS와
+root compute를 사용한다. `getLayoutsForIds`는 계산 이후 WASM 결과 전달만 `O(k)`로
+줄이는 경계이며, subtree 입력/used-size 상향을 계산 단계에서 보장하지 않는다. 따라서
+이 slice에서는 이를 `useLayoutPublisher`나 Skia hit-test 소비자에 연결했다고 주장하지
+않는다. 전역 `layoutVersion++` fallback으로 G6을 통과시키지 않으며, 다음 slice에서
+dirty parent 전파와 targeted compute의 실제 engine 계약을 별도로 증명한다.
 
 targeted layout이 현재 engine에서 성립하지 않으면 해당 slice를 별도 ADR로 분리하고
 ADR-187 paint runtime은 유지한다. phase scope inflation은 fork 사유가 아니다.

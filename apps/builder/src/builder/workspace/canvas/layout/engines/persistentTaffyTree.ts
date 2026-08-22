@@ -379,6 +379,43 @@ export class PersistentTaffyTree {
     return this.taffy.getLayoutsBatch(handles);
   }
 
+  /**
+   * 요청된 elementId의 레이아웃 결과만 수집한다.
+   *
+   * `computeLayout()`은 여전히 persistent root에서 수행되어야 한다. 부모 used-size
+   * 전파와 엔진 dirty-cache 경계를 이 메서드가 임의로 잘라서는 안 되기 때문이다.
+   * 이 메서드는 계산 이후의 결과 전달만 O(k)로 제한하는 seam이며, 전체 문서
+   * `getLayoutsBatch()`를 targeted publish 경로에서 호출하는 것을 금지하는 계약이다.
+   * 등록되지 않은 ID는 fail-closed로 건너뛰고 중복 ID는 한 번만 요청한다.
+   *
+   * @param elementIds - 결과가 필요한 semantic element ID iterable
+   * @returns elementId → LayoutResult 매핑
+   */
+  getLayoutsForIds(elementIds: Iterable<string>): Map<string, LayoutResult> {
+    const requestedHandles: TaffyNodeHandle[] = [];
+    const elementIdsByHandle = new Map<TaffyNodeHandle, string>();
+    const seenElementIds = new Set<string>();
+
+    for (const elementId of elementIds) {
+      if (seenElementIds.has(elementId)) continue;
+      seenElementIds.add(elementId);
+      const handle = this.handleMap.get(elementId);
+      if (handle === undefined || elementIdsByHandle.has(handle)) continue;
+      requestedHandles.push(handle);
+      elementIdsByHandle.set(handle, elementId);
+    }
+
+    if (requestedHandles.length === 0) return new Map();
+
+    const layouts = this.taffy.getLayoutsBatch(requestedHandles);
+    const result = new Map<string, LayoutResult>();
+    for (const [handle, layout] of layouts) {
+      const elementId = elementIdsByHandle.get(handle);
+      if (elementId !== undefined) result.set(elementId, layout);
+    }
+    return result;
+  }
+
   // ─── 조회 유틸리티 ──────────────────────────────────────────────────
 
   /**

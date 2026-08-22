@@ -2899,7 +2899,20 @@ export function calculateFullTreeLayout(
       //   **Why (2026-07-02, 미접힘 여분 공백 근본)**: 이전 재설계는 접힘 경로만 실측으로 갔고
       //   미접힘 height 는 추정 잔존 → 11 tag/maxRows3(접힘 없음) 에서 추정 4행 = selection 156.
       if (projectionTagLists.length > 0) {
-        const postFoldLayouts = persistentTree.getLayoutsBatch();
+        // 계산은 persistent root에서 수행하지만, 이 pass가 실제로 소비하는 결과는
+        // chip bottom과 TagList/RowsGroup뿐이다. 전체
+        // getLayoutsBatch()를 다시 호출하지 않아 targeted result seam의 O(k) 계약을
+        // 보존한다.
+        const postFoldElementIds = new Set<string>();
+        for (const { tagListId, rowsGroupId } of projectionTagLists) {
+          postFoldElementIds.add(tagListId);
+          postFoldElementIds.add(rowsGroupId);
+          for (const chipId of filteredChildIdsMap.get(rowsGroupId) ?? []) {
+            postFoldElementIds.add(chipId);
+          }
+        }
+        const postFoldLayouts =
+          persistentTree.getLayoutsForIds(postFoldElementIds);
         let tagListHeightChanged = false;
         for (const { tagListId, rowsGroupId } of projectionTagLists) {
           // **Why 자식 실측(RowsGroup 컨테이너 실측 아님)**: Taffy `setChildren` 으로 chip 을 제거해도
@@ -2911,8 +2924,7 @@ export function calculateFullTreeLayout(
           if (!chipIds || chipIds.length === 0) continue;
           let maxBottom = 0;
           for (const chipId of chipIds) {
-            const ch = persistentTree.getHandle(chipId);
-            const cl = ch !== undefined ? postFoldLayouts.get(ch) : undefined;
+            const cl = postFoldLayouts.get(chipId);
             if (!cl) continue;
             const bottom = cl.y + cl.height;
             if (bottom > maxBottom) maxBottom = bottom;
@@ -2964,18 +2976,12 @@ export function calculateFullTreeLayout(
             }
           }
 
-          const tlHandle = persistentTree.getHandle(tagListId);
-          const tlLayout =
-            tlHandle !== undefined ? postFoldLayouts.get(tlHandle) : undefined;
+          const tlLayout = postFoldLayouts.get(tagListId);
           const tlAligned =
             tlLayout &&
             Math.abs(tlLayout.height - newHeight) <= WIDTH_TOLERANCE;
           // RowsGroup 컨테이너 stale height 도 명시 강제(자식 bottom) → TagGroup 세로 합산 정합.
-          const rowsHandle = persistentTree.getHandle(rowsGroupId);
-          const rowsLayout =
-            rowsHandle !== undefined
-              ? postFoldLayouts.get(rowsHandle)
-              : undefined;
+          const rowsLayout = postFoldLayouts.get(rowsGroupId);
           const rowsAligned =
             rowsLayout &&
             Math.abs(rowsLayout.height - newHeight) <= WIDTH_TOLERANCE;
