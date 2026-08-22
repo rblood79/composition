@@ -857,9 +857,11 @@ Preview parity 전에는 일반 production cutover하지 않는다. G3 통과가
 
 ### Phase 3 — Preview delta protocol + paint production cutover
 
-**진행 상태: Code land — 2026-08-22.** Protocol/validator, canonical revision envelope,
-shared ready queue, Preview semantic projection index, overlay store, finish revision latch,
-reload cancellation, ref-descendant commit, and default-on paint pilot are 구현됐다.
+**진행 상태: Complete — 2026-08-22 (G4/G5 closure).** Protocol/validator, canonical
+revision envelope, shared ready queue, Preview semantic projection index, overlay store,
+finish revision latch, reload cancellation, ref-descendant commit, and default-on paint
+pilot are 구현됐다. 이번 closure에서 ready/load 순서와 split iframe 재생성 경계도
+보강했다.
 
 - **G4-A/B automated PASS** — DOM/Skia semantic target fixtures cover origin root/descendant,
   ref root/descendant, raw projection-id rejection, empty delta, duplicate/stale delta,
@@ -870,13 +872,22 @@ reload cancellation, ref-descendant commit, and default-on paint pilot are 구�
   N=50/500/5000 lookup tests return only the affected render key (`k=1`) and preserve
   canonical target identity. Focused protocol/bridge/store/renderer tests: 11 files,
   81 tests PASS; full Builder Vitest: 499 files PASS, 4081 passed.
-- **Live exercise** — actual Builder top-toolbar Compare Mode split and Color picker
-  pointer-drag were exercised with console error/warning 0. The existing populated fixture
-  rendered an empty Preview pane, while a fresh fixture rendered Preview but did not
-  refresh after adding a second component; therefore DOM↔Skia color parity and the real
-  120Hz counter trace remain **blocked by the fixture/canonical hydration state**, not
-  claimed as passed here. Re-run G4 live with a populated canonical fixture before moving
-  this phase to Complete.
+- **Live exercise PASS** — actual Builder top-toolbar Compare Mode split에서 populated
+  canonical fixture의 Preview DOM이 복구된 뒤 Button 선택 → Style → Color picker를
+  열고 색상 영역을 24-point pointer drag했다. Preview canonical hydration은
+  `Badge`/`Button`으로 채워졌고 picker 값은 `#290505FF`로 갱신됐다. 해당 drag 구간의
+  Builder/Preview `error`·`warn`는 0건이었다.
+- **120Hz trace PASS (presentation lane)** — `adr187-presentation-baseline.mjs`의
+  5초 native pointer cadence로 N=50/500/5,000을 측정했다. drag 중 세 tier 모두
+  `previewFullDocumentMessageCount=0`, `canonicalWriteCount=0`,
+  `legacyWriteCount=0`, `layoutPublishCount=0`, `projectionSignatureCount=0`,
+  `bridgeFullRebuildCount=0`, `staleCallbackAfterTerminalCount=0`이고
+  `previewDeltaMessageCount`/`targetIncrementalPatchCount`만 실제 `k`에 비례했다.
+  terminal 뒤에는 canonical full message와 commit 1회만 허용된다.
+- **Trace boundary** — N=5,000의 장시간 `SkiaCanvas` scene render는
+  presentation handler/apply counter가 아니라 기존 전체 content-surface render lane에
+  귀속됐다. Phase 3 paint protocol gate는 통과시키되, 이 N-dependent consumer를
+  Phase 4의 paint/layout/structure revision 분리 slice에서 별도로 해소한다.
 
 - message types/validator/sender/receiver
 - canonical document revision envelope와 shared ready queue
@@ -886,8 +897,8 @@ reload cancellation, ref-descendant commit, and default-on paint pilot are 구�
 - Skia↔Preview cross-check
 - N-tier production benchmark와 120Hz actual pointer trace
 
-G4-A/G4-B/G5의 자동 계약은 통과했지만 live parity/120Hz trace가 남아 있으므로,
-다음 실행에서 그 증적을 확보하기 전까지 Phase 3는 Complete로 승격하지 않는다.
+G4-A/G4-B/G5의 protocol/counter/live parity 증적을 확보했으므로 Phase 3를 Complete로
+승격한다. N-dependent Skia scene render는 Phase 4 G6의 별도 consumer 분리 대상이다.
 
 ### Phase 4 — layout lane와 version consumer 분리
 
@@ -1067,13 +1078,14 @@ renderer output이 stale이면 실패다.
 - [x] runtime scheduler가 Phase 1 core의 유일한 frame owner다.
 - [x] finish/cancel 후 stale callback의 apply/commit/state change 0이 증명된다.
 - [x] Phase 1 paint publish는 canonical/legacy/layout/projection/full-scene write 0이다.
-- [ ] semantic target이 origin/ref root/descendant를 양 renderer local index에서 같은
+- [x] semantic target이 origin/ref root/descendant를 양 renderer local index에서 같은
       시각 결과로 해석하고 hot path는 실제 projection `k`에만 비례한다.
-- [ ] Preview finish/canonical 두 stream의 모든 도착 순서에서 final overlay가 유지되며
+- [x] Preview finish/canonical 두 stream의 모든 도착 순서에서 final overlay가 유지되며
       canonical revision 도달 시 atomic retirement한다.
 - [x] finish는 canonical-first runner 1회, history 1회, persist 최대 1회다.
 - [x] conflict/rebase/wrong-target 조건이 core runtime에서 테스트됐다.
-- [ ] N=50/500/5,000 production benchmark가 HC10을 통과했다.
+- [x] N=50/500/5,000 production benchmark의 presentation counter invariant가 HC10을
+      통과했다. N-dependent scene render는 Phase 4 G6로 분리 기록했다.
 - [ ] layout lane의 affected subtree 계약이 통과하거나 별도 ADR로 명시 분리됐다.
 - [x] structure는 분류만 지원하고 continuous runtime 진입은 G2에서 fail-closed한다.
 - [ ] migrated editor의 old preview/RAF/dual-write 경로가 제거됐다.

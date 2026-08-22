@@ -160,6 +160,20 @@ function cancelScheduledFrame(taskId: number | null): void {
   clearTimeout(taskId);
 }
 
+function readCurrentCanonicalDocumentSnapshot(): {
+  document: CompositionDocument | null;
+  projectId: string | null;
+  revision: number;
+} {
+  const state = useCanonicalDocumentStore.getState();
+  const projectId = state.currentProjectId;
+  return {
+    document: projectId ? (state.documents.get(projectId) ?? null) : null,
+    projectId,
+    revision: state.documentVersion,
+  };
+}
+
 export const useIframeMessenger = (): UseIframeMessengerReturn => {
   // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 완전 스킵
   // - isWebGLCanvas(): WebGL 캔버스 활성화 여부 (빌드타임 상수)
@@ -702,11 +716,16 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   }, []); // ✅ 의존성 제거 (Ref 사용)
 
   const handleIframeLoad = useCallback(() => {
+    // Preview App은 React effect에서 PREVIEW_READY를 iframe load 이벤트보다
+    // 먼저 보낼 수 있다. 이 순서를 loading으로 되돌리면 ready handler가
+    // 이미 비운 queue를 다시 기다리게 되어 canonical document가 영원히
+    // Preview에 도착하지 않는다.
+    const hadPreviewReady = iframeReadyStateRef.current === "ready";
     editorPresentationFillPreviewBridge.attachTransport(null);
-    const canonicalState = useCanonicalDocumentStore.getState();
-    if (canonicalState.currentProjectId) {
+    const canonicalSnapshot = readCurrentCanonicalDocumentSnapshot();
+    if (canonicalSnapshot.projectId) {
       editorPresentationFillPilotRuntime.cancelProjectSessions(
-        canonicalState.currentProjectId,
+        canonicalSnapshot.projectId,
         "iframe-reload",
       );
     }
@@ -715,20 +734,14 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     ownsIframeTransportRef.current = true;
 
     // 🔧 FIX: Ref도 업데이트
-    iframeReadyStateRef.current = "loading";
-    setIframeReadyState("loading");
+    iframeReadyStateRef.current = hadPreviewReady ? "ready" : "loading";
+    setIframeReadyState(hadPreviewReady ? "ready" : "loading");
 
     // 새 ready generation은 반드시 canonical envelope가 첫 메시지다.
-    sendCanonicalDocumentToIframe(
-      canonicalState.currentProjectId
-        ? (canonicalState.documents.get(canonicalState.currentProjectId) ??
-            null)
-        : null,
-      {
-        projectId: canonicalState.currentProjectId,
-        revision: canonicalState.documentVersion,
-      },
-    );
+    sendCanonicalDocumentToIframe(canonicalSnapshot.document, {
+      projectId: canonicalSnapshot.projectId,
+      revision: canonicalSnapshot.revision,
+    });
     const transport: EditorPresentationPreviewTransport = {
       ensureCanonicalDocumentSent,
       send: sendEditorPresentationMessage,
@@ -793,8 +806,14 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
           // ⭐ ADR-903 P2 옵션 C: 초기 pages 전송 (canonical resolver hydration)
           sendPagesToIframe();
 
-          const canonicalDoc = activeCanonicalDocument;
-          sendCanonicalDocumentToIframe(canonicalDoc);
+          // PREVIEW_READY 는 canonical hydration보다 먼저 도착할 수 있다.
+          // render closure의 이전 null snapshot을 재사용하지 말고 현재 store를
+          // 읽어 같은 ready generation 안에서 최신 문서를 한 번 더 보낸다.
+          const canonicalSnapshot = readCurrentCanonicalDocumentSnapshot();
+          sendCanonicalDocumentToIframe(canonicalSnapshot.document, {
+            projectId: canonicalSnapshot.projectId,
+            revision: canonicalSnapshot.revision,
+          });
 
           // ⭐ DataTables 전송 (PropertyDataBinding용)
           sendDataTablesToIframe();
@@ -1199,7 +1218,12 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
       pendingCanonicalDocumentCancelRef.current?.();
       pendingCanonicalDocumentCancelRef.current = null;
     };
-  }, [activeCanonicalDocument, isWebGLOnly, sendCanonicalDocumentToIframe]);
+  }, [
+    activeCanonicalDocument,
+    iframeReadyState,
+    isWebGLOnly,
+    sendCanonicalDocumentToIframe,
+  ]);
 
   // ⭐ Nested Routes & Slug System: Layouts가 변경될 때마다 iframe에 전송
   const lastSentLayoutsRef = useRef<string>("");

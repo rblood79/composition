@@ -3,6 +3,7 @@ import { FillType } from "../../types/builder/fill.types";
 
 import {
   isEditorPresentationProtocolMessage,
+  isUpdateCanonicalDocumentMessage,
   type EditorPresentationPatchMessage,
 } from "./editorPresentationProtocol";
 
@@ -86,5 +87,37 @@ describe("ADR-187 editor presentation protocol validation", () => {
         mutations: [],
       }),
     ).toBe(true);
+  });
+
+  it("accepts shared plain references while rejecting cyclic canonical data", () => {
+    const sharedProps = { style: { color: "#112233" } };
+    expect(
+      isUpdateCanonicalDocumentMessage({
+        type: "UPDATE_CANONICAL_DOCUMENT",
+        projectId: "project-1",
+        documentRevision: 1,
+        document: {
+          version: "composition-1.0",
+          children: [
+            { id: "node-1", type: "Button", props: sharedProps },
+            { id: "node-2", type: "Button", props: sharedProps },
+          ],
+        },
+      }),
+    ).toBe(true);
+
+    const cyclicDocument: Record<string, unknown> = {
+      version: "composition-1.0",
+      children: [],
+    };
+    cyclicDocument.self = cyclicDocument;
+    expect(
+      isUpdateCanonicalDocumentMessage({
+        type: "UPDATE_CANONICAL_DOCUMENT",
+        projectId: "project-1",
+        documentRevision: 1,
+        document: cyclicDocument,
+      }),
+    ).toBe(false);
   });
 });

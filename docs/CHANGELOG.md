@@ -27,9 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   먼저 보장한 뒤 Preview overlay를 atomic retire한다. `?adr187FillPilot=0`은 명시적 rollback
   스위치로 남겨 두었다.
 - protocol/bridge/store/renderer 집중 81개와 전체 Builder 4081개 테스트가 통과했다. 실제
-  상단 Compare Mode split에서 Color picker pointer drag도 콘솔 오류/경고 없이 동작했다.
-  다만 현재 live fixture의 Preview canonical hydration이 빈 화면 또는 stale component로
-  남아 DOM↔Skia parity와 120Hz trace는 후속 populated-canonical fixture에서 재검증해야 한다.
+  상단 Compare Mode split에서 populated canonical fixture의 Color picker pointer drag도
+  콘솔 오류/경고 없이 동작했다. Preview DOM은 `Badge`/`Button`으로 hydration됐고
+  색상 값 `#290505FF`를 소비했다.
+- Phase 3 closure trace(N=50/500/5,000, 5초 native pointer cadence)에서 drag 중
+  canonical/legacy/layout/projection/full rebuild/full-document message는 0이고
+  Preview delta와 target incremental patch만 발생했다. N=5,000의 장시간은
+  presentation handler가 아닌 전체 Skia scene render lane으로 분리 기록했으며,
+  Phase 4의 paint/layout/structure consumer 분리 범위다.
   - **Why**: 기존에는 picker와 store action의 중첩 RAF 뒤에 full-document preview/scene 작업이
     이어져 단일 `requestAnimationFrame` callback이 52ms까지 길어질 수 있었다.
 

@@ -73,7 +73,7 @@ describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)",
       const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
       const source = await fs.readFile(filePath, "utf-8");
       const effectBlock = source.match(
-        /ownsIframeTransportRef\.current[\s\S]{0,1200}sendCanonicalDocumentToIframe\(activeCanonicalDocument\);[\s\S]{0,300}\[activeCanonicalDocument, isWebGLOnly, sendCanonicalDocumentToIframe\]/,
+        /ownsIframeTransportRef\.current[\s\S]{0,1200}sendCanonicalDocumentToIframe\(activeCanonicalDocument\);[\s\S]{0,300}\[[\s\S]{0,180}activeCanonicalDocument,[\s\S]{0,180}iframeReadyState,[\s\S]{0,180}isWebGLOnly,[\s\S]{0,180}sendCanonicalDocumentToIframe,[\s\S]{0,180}\]/,
       );
       expect(
         effectBlock,
@@ -123,9 +123,23 @@ describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)",
 
       expect(source).toContain("useActiveCanonicalDocument");
       expect(source).toContain("UPDATE_CANONICAL_DOCUMENT");
-      expect(source).toContain("sendCanonicalDocumentToIframe(canonicalDoc)");
+      expect(source).toContain("readCurrentCanonicalDocumentSnapshot");
       expect(source).toContain(
         "sendCanonicalDocumentToIframe(activeCanonicalDocument)",
+      );
+    });
+
+    it("iframe load가 PREVIEW_READY를 먼저 받은 세대의 ready 상태를 되돌리지 않는다", async () => {
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
+      const source = await fs.readFile(filePath, "utf-8");
+
+      expect(source).toContain(
+        'const hadPreviewReady = iframeReadyStateRef.current === "ready"',
+      );
+      expect(source).toContain(
+        'iframeReadyStateRef.current = hadPreviewReady ? "ready" : "loading"',
       );
     });
 

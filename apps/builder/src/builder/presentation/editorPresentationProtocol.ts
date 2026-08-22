@@ -72,11 +72,21 @@ function isPlainCloneData(
   if (typeof value !== "object") return false;
   if (seen.has(value)) return false;
   seen.add(value);
+  let valid = true;
   if (Array.isArray(value)) {
-    return value.every((entry) => isPlainCloneData(entry, seen));
+    valid = value.every((entry) => isPlainCloneData(entry, seen));
+  } else if (!isRecord(value)) {
+    valid = false;
+  } else {
+    valid = Object.values(value).every((entry) =>
+      isPlainCloneData(entry, seen),
+    );
   }
-  if (!isRecord(value)) return false;
-  return Object.values(value).every((entry) => isPlainCloneData(entry, seen));
+  // `seen` is an ancestor set, not a global visited set. Structured-clone data
+  // may legally share an object reference in two sibling fields; only a cycle
+  // must be rejected at this protocol boundary.
+  seen.delete(value);
+  return valid;
 }
 
 function isSemanticTarget(
