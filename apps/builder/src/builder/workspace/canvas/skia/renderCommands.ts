@@ -149,6 +149,19 @@ export interface SubtreeSpan {
   end: number;
 }
 
+/** subtree만 다시 기록할 때 필요한 DFS parent/render context snapshot. */
+export interface SubtreeBuildContext {
+  parentAbsX: number;
+  parentAbsY: number;
+  clipRect: ClipRect;
+  cmdOffsetX: number;
+  cmdOffsetY: number;
+  parentElementId: string | null;
+  zOrderKey: string;
+  scrollContextKey: string;
+  topLayerSubtree: boolean;
+}
+
 export interface RenderCommandStream {
   commands: RenderCommand[];
   /** elementId → self-draw 커맨드 구간 (노드 Picture 캐시 record/replay 단위) */
@@ -161,6 +174,8 @@ export interface RenderCommandStream {
   zOrderKeyByElement: Map<string, string>;
   /** elementId → 해당 element가 의존하는 조상 scroll/sticky context 키 */
   scrollContextKeyByElement: Map<string, string>;
+  /** elementId → local subtree 재기록에 필요한 parent/render context */
+  subtreeBuildContextByElement: Map<string, SubtreeBuildContext>;
   /** drag/fixed 재배치 layer에 포함된 element 집합 */
   topLayerElementIds: Set<string>;
   boundsMap: Map<string, BoundingBox>;
@@ -176,8 +191,22 @@ export interface RenderCommandStream {
   hitBoundsMap: Map<string, BoundingBox>;
   /** draw/hit snapshot이 함께 소비하는 presentation revision */
   presentationRevision: number;
+  /** rootKey별 targeted presentation revision */
+  presentationRevisionByRootKey: Map<string, number>;
   /** presentation delta가 얹힌 canonical full publish revision */
   baseCanonicalRevision: number;
+}
+
+export interface SubtreeCommandBuildInput {
+  readonly rootId: string;
+  readonly childrenMap: Map<string, CanvasSceneNode[]>;
+  readonly layoutMap: ReadonlyMap<string, ComputedLayout>;
+  readonly context: SubtreeBuildContext;
+  readonly revision: {
+    presentationRevision: number;
+    baseCanonicalRevision: number;
+    presentationRevisionByRootKey?: ReadonlyMap<string, number>;
+  };
 }
 
 /** 씬 절대 좌표 clip rect (조상 누적 교차 결과). null = 클립 없음 */
@@ -290,6 +319,19 @@ export function notifyBoundsPatch(
   }
 }
 
+/**
+ * targeted patch가 cache hit frame에서도 bounds/hit snapshot SSOT를 갱신하도록 한다.
+ * 다음 full command rebuild까지 기다리면 overlay와 pointer hit-test가 이전 위치를
+ * 읽는 split-brain이 생기므로, patcher의 원자 교체 직후 호출한다.
+ */
+export function publishPatchedCommandStreamSnapshot(
+  stream: Pick<RenderCommandStream, "boundsMap" | "hitBoundsMap">,
+): void {
+  _lastBoundsMap = stream.boundsMap;
+  _lastHitBoundsMap = stream.hitBoundsMap;
+  _notifyBoundsListeners(stream.boundsMap);
+}
+
 // ── updateTextChildren (SkiaOverlay.tsx:91-129에서 이동) ──────────────
 
 function updateTextChildren(
@@ -375,12 +417,17 @@ function classifyCommandStreamMiss(
 export function getCachedCommandStream(
   rootElementIds: string[],
   childrenMap: Map<string, CanvasSceneNode[]>,
-  layoutMap: Map<string, ComputedLayout>,
+  layoutMap: ReadonlyMap<string, ComputedLayout>,
   pagePositions: Record<string, { x: number; y: number }>,
   registryVersion: number,
   pagePosVersion: number,
   framePosVersion: number,
   layoutVersion: number,
+  revision: {
+    presentationRevision?: number;
+    baseCanonicalRevision?: number;
+    presentationRevisionByRootKey?: ReadonlyMap<string, number>;
+  } = {},
 ): RenderCommandStream {
   const rootSignature = rootElementIds.join("|");
   if (
@@ -414,6 +461,11 @@ export function getCachedCommandStream(
     childrenMap,
     layoutMap,
     pagePositions,
+    {
+      presentationRevision: revision.presentationRevision ?? 0,
+      baseCanonicalRevision: revision.baseCanonicalRevision ?? layoutVersion,
+      presentationRevisionByRootKey: revision.presentationRevisionByRootKey,
+    },
   );
 
   _cachedStream = stream;
@@ -445,12 +497,18 @@ export function invalidateCommandStreamCache(): void {
 export function buildRenderCommandStream(
   rootElementIds: string[],
   childrenMap: Map<string, CanvasSceneNode[]>,
-  layoutMap: Map<string, ComputedLayout>,
+  layoutMap: ReadonlyMap<string, ComputedLayout>,
   pagePositions: Record<string, { x: number; y: number }>,
   revision: {
     presentationRevision: number;
     baseCanonicalRevision: number;
+    presentationRevisionByRootKey?: ReadonlyMap<string, number>;
   } = { presentationRevision: 0, baseCanonicalRevision: 0 },
+  options: {
+    syncSpatialIndexSnapshot?: boolean;
+    publishBoundsSnapshot?: boolean;
+    subtreeContext?: SubtreeBuildContext;
+  } = {},
 ): RenderCommandStream {
   const commands: RenderCommand[] = [];
   const selfSpans = new Map<string, SelfSpan>();
@@ -458,9 +516,13 @@ export function buildRenderCommandStream(
   const clipContextByElement = new Map<string, ClipRect>();
   const zOrderKeyByElement = new Map<string, string>();
   const scrollContextKeyByElement = new Map<string, string>();
+  const subtreeBuildContextByElement = new Map<string, SubtreeBuildContext>();
   const topLayerElementIds = new Set<string>();
   const boundsMap = new Map<string, BoundingBox>();
   const hitBoundsMap = new Map<string, BoundingBox>();
+  const presentationRevisionByRootKey = new Map(
+    revision.presentationRevisionByRootKey ?? [],
+  );
   const dragRootIds = getDragVisualOffset()?.elementIds ?? null;
   const deferredDragRoots: DeferredDragRootVisit[] = [];
   const visitOptions: VisitOptions = {
@@ -473,27 +535,33 @@ export function buildRenderCommandStream(
     const offsetX = pagePos?.x ?? 0;
     const offsetY = pagePos?.y ?? 0;
 
+    const subtreeContext = options.subtreeContext;
     visitElement(
       bodyId,
-      offsetX,
-      offsetY,
+      subtreeContext?.parentAbsX ?? offsetX,
+      subtreeContext?.parentAbsY ?? offsetY,
       commands,
       selfSpans,
       subtreeSpans,
       clipContextByElement,
       zOrderKeyByElement,
       scrollContextKeyByElement,
+      subtreeBuildContextByElement,
       topLayerElementIds,
       boundsMap,
       hitBoundsMap,
-      null,
+      subtreeContext?.clipRect ?? null,
       childrenMap,
       layoutMap,
-      offsetX,
-      offsetY,
-      null,
-      visitOptions,
-      `${bodyId}:root`,
+      subtreeContext?.cmdOffsetX ?? offsetX,
+      subtreeContext?.cmdOffsetY ?? offsetY,
+      subtreeContext?.parentElementId ?? null,
+      subtreeContext
+        ? { renderAsTopLayer: subtreeContext.topLayerSubtree }
+        : visitOptions,
+      subtreeContext?.zOrderKey ?? `${bodyId}:root`,
+      subtreeContext?.scrollContextKey ?? "root-scroll-context",
+      subtreeContext?.topLayerSubtree ?? false,
     );
   }
 
@@ -510,6 +578,7 @@ export function buildRenderCommandStream(
       clipContextByElement,
       zOrderKeyByElement,
       scrollContextKeyByElement,
+      subtreeBuildContextByElement,
       topLayerElementIds,
       boundsMap,
       hitBoundsMap,
@@ -527,14 +596,16 @@ export function buildRenderCommandStream(
   }
 
   // SpatialIndex 동기화: 클립 인지 히트 영역을 반영 (화면에 없는 영역은 히트 불가)
-  if (WASM_FLAGS.SPATIAL_INDEX) {
+  if (options.syncSpatialIndexSnapshot !== false && WASM_FLAGS.SPATIAL_INDEX) {
     syncSpatialIndex(hitBoundsMap);
   }
 
   // 최신 boundsMap 캐시 (TextEditOverlay 등 외부 접근용)
-  _lastBoundsMap = boundsMap;
-  _lastHitBoundsMap = hitBoundsMap;
-  _notifyBoundsListeners(boundsMap);
+  if (options.publishBoundsSnapshot !== false) {
+    _lastBoundsMap = boundsMap;
+    _lastHitBoundsMap = hitBoundsMap;
+    _notifyBoundsListeners(boundsMap);
+  }
 
   return {
     commands,
@@ -543,12 +614,39 @@ export function buildRenderCommandStream(
     clipContextByElement,
     zOrderKeyByElement,
     scrollContextKeyByElement,
+    subtreeBuildContextByElement,
     topLayerElementIds,
     boundsMap,
     hitBoundsMap,
     presentationRevision: revision.presentationRevision,
+    presentationRevisionByRootKey,
     baseCanonicalRevision: revision.baseCanonicalRevision,
   };
+}
+
+/**
+ * 현재 stream의 parent/render context를 재사용해 단일 subtree만 기록한다.
+ * 전체 scene root를 다시 순회하거나 SpatialIndex full snapshot을 덮어쓰지 않는다.
+ */
+export function buildSubtreeCommandStream(
+  input: SubtreeCommandBuildInput,
+): RenderCommandStream {
+  return buildRenderCommandStream(
+    [input.rootId],
+    input.childrenMap,
+    input.layoutMap,
+    {},
+    input.revision,
+    {
+      syncSpatialIndexSnapshot: false,
+      publishBoundsSnapshot: false,
+      subtreeContext: input.context,
+    },
+  );
+}
+
+export function getCachedCommandStreamSnapshot(): RenderCommandStream | null {
+  return _cachedStream;
 }
 
 /**
@@ -599,12 +697,13 @@ function visitElement(
   clipContextByElement: Map<string, ClipRect>,
   zOrderKeyByElement: Map<string, string>,
   scrollContextKeyByElement: Map<string, string>,
+  subtreeBuildContextByElement: Map<string, SubtreeBuildContext>,
   topLayerElementIds: Set<string>,
   boundsMap: Map<string, BoundingBox>,
   hitBoundsMap: Map<string, BoundingBox>,
   clipRect: ClipRect,
   childrenMap: Map<string, CanvasSceneNode[]>,
-  layoutMap: Map<string, ComputedLayout>,
+  layoutMap: ReadonlyMap<string, ComputedLayout>,
   cmdOffsetX: number = 0,
   cmdOffsetY: number = 0,
   parentElementId: string | null = null,
@@ -626,8 +725,19 @@ function visitElement(
     return;
   }
 
-  const isTopLayer = topLayerSubtree || options.renderAsTopLayer;
+  const isTopLayer = topLayerSubtree || options.renderAsTopLayer === true;
   const subtreeStart = commands.length;
+  subtreeBuildContextByElement.set(elementId, {
+    parentAbsX,
+    parentAbsY,
+    clipRect: cloneClipRect(clipRect),
+    cmdOffsetX,
+    cmdOffsetY,
+    parentElementId,
+    zOrderKey,
+    scrollContextKey,
+    topLayerSubtree: isTopLayer,
+  });
   clipContextByElement.set(elementId, cloneClipRect(clipRect));
   zOrderKeyByElement.set(
     elementId,
@@ -816,6 +926,7 @@ function visitElement(
         clipContextByElement,
         zOrderKeyByElement,
         scrollContextKeyByElement,
+        subtreeBuildContextByElement,
         topLayerElementIds,
         boundsMap,
         hitBoundsMap,

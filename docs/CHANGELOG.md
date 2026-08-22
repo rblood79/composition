@@ -30,6 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   scroll/z-order/top-layer 또는 revision 전제가 깨지면 fail-closed로 거부한다. 실제
   publication subscription과 allowlist 연결은 다음 Phase에서 수행한다.
   [ADR-188 Phase 3 evidence](adr/design/188-phase-3-g3-g4-skia-subtree-patch.md)
+- ADR-187 runtime의 layout event를 `SkiaEditorPresentationLayoutBridge`가
+  production에서 소비한다. `position:absolute` 숫자형 `left/top`·`x/y`만
+  rootKey별 typed publication과 local subtree draw/hit patch로 승격하고, reflow·size·
+  intrinsic·fixed/sticky·ref descendant·문자열 값은 commit-only로 fail-closed 처리한다.
+  cancel/no-op/failed terminal의 canonical restore와 committed revision latch를
+  Store sync에 연결했다. Preview `CanonicalNodeRenderer`도 같은 allowlist를 사용해
+  DOM/Skia geometry capability를 맞춘다. [ADR-188 Phase 4 evidence](adr/design/188-phase-4-g5-adr187-layout-wiring.md)
 
 ## ADR-187 색상 드래그 presentation 기반 - 2026-08-22
 

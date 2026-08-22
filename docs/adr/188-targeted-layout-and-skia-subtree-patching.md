@@ -214,6 +214,16 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
   거부한다. leaf/nested/clipped/scroll-sticky fixture와 ghost-hit 제거, static full
   rebuild 금지 guard를 통과했다. production publication subscription과 descriptor
   allowlist 연결은 Phase 4 범위다. [G3/G4 evidence](design/188-phase-3-g3-g4-skia-subtree-patch.md)
+- **Phase 4 / G5 — Implemented (2026-08-22)**: `SkiaEditorPresentationLayoutBridge`를
+  ADR-187 runtime의 production Skia consumer로 연결했다. `position:absolute`의
+  숫자형 `left/top` 또는 `x/y`만 layout publication → local subtree command/hit
+  patch로 승격하며, size·reflow·intrinsic·fixed/sticky·ref descendant·문자열 값은
+  commit-only로 fail-closed 처리한다. rootKey별 presentation revision과
+  canonical base revision을 함께 검사하고, cancel/no-op/failed terminal은
+  canonical subtree restore, committed terminal은 Store sync 이후 retire한다.
+  Preview `CanonicalNodeRenderer`도 같은 allowlist를 소비해 DOM/Skia capability를
+  분리하지 않는다.
+  [G5 evidence](design/188-phase-4-g5-adr187-layout-wiring.md)
 
 ## Consequences
 

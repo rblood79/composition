@@ -3,7 +3,7 @@ import type { BoundingBox } from "../selection/types";
 import { WASM_FLAGS } from "../wasm-bindings/featureFlags";
 import * as spatialIndex from "../wasm-bindings/spatialIndex";
 import {
-  notifyBoundsPatch,
+  publishPatchedCommandStreamSnapshot,
   type ClipRect,
   type RenderCommandStream,
   type SelfSpan,
@@ -33,7 +33,8 @@ export interface ApplySubtreeCommandPatchInput {
   readonly publication: Pick<
     PresentationTargetedLayoutPublication,
     "presentationRevision" | "baseCanonicalRevision"
-  >;
+  > &
+    Partial<Pick<PresentationTargetedLayoutPublication, "rootKey">>;
   readonly canonicalRevision: number;
 }
 
@@ -153,9 +154,14 @@ export function applySubtreeCommandPatch(
   const { current, replacement, rootId, publication, canonicalRevision } =
     input;
 
+  const rootKey = publication.rootKey ?? "__default__";
+  const currentRootRevision =
+    current.presentationRevisionByRootKey.get(rootKey) ??
+    current.presentationRevision;
+
   if (
     !isValidRevision(publication.presentationRevision) ||
-    publication.presentationRevision <= current.presentationRevision
+    publication.presentationRevision <= currentRootRevision
   ) {
     return { applied: false, reason: "stale-revision" };
   }
@@ -277,6 +283,8 @@ export function applySubtreeCommandPatch(
     current.subtreeSpans.delete(elementId);
     current.clipContextByElement.delete(elementId);
     current.zOrderKeyByElement.delete(elementId);
+    current.scrollContextKeyByElement.delete(elementId);
+    current.subtreeBuildContextByElement.delete(elementId);
     current.topLayerElementIds.delete(elementId);
     current.boundsMap.delete(elementId);
     current.hitBoundsMap.delete(elementId);
@@ -306,6 +314,16 @@ export function applySubtreeCommandPatch(
     if (nextZOrderKey !== undefined) {
       current.zOrderKeyByElement.set(elementId, nextZOrderKey);
     }
+    const nextScrollContextKey =
+      replacement.scrollContextKeyByElement.get(elementId);
+    if (nextScrollContextKey !== undefined) {
+      current.scrollContextKeyByElement.set(elementId, nextScrollContextKey);
+    }
+    const nextBuildContext =
+      replacement.subtreeBuildContextByElement.get(elementId);
+    if (nextBuildContext !== undefined) {
+      current.subtreeBuildContextByElement.set(elementId, nextBuildContext);
+    }
     if (replacement.topLayerElementIds.has(elementId)) {
       current.topLayerElementIds.add(elementId);
     }
@@ -331,15 +349,17 @@ export function applySubtreeCommandPatch(
     }
   }
 
-  current.presentationRevision = publication.presentationRevision;
+  current.presentationRevisionByRootKey.set(
+    rootKey,
+    publication.presentationRevision,
+  );
+  current.presentationRevision = Math.max(
+    current.presentationRevision,
+    publication.presentationRevision,
+  );
   current.baseCanonicalRevision = publication.baseCanonicalRevision;
 
-  const changedBounds = new Map<string, BoundingBox>();
-  for (const elementId of replacementIds) {
-    const bounds = current.boundsMap.get(elementId);
-    if (bounds) changedBounds.set(elementId, bounds);
-  }
-  notifyBoundsPatch(changedBounds);
+  publishPatchedCommandStreamSnapshot(current);
 
   return { applied: true };
 }

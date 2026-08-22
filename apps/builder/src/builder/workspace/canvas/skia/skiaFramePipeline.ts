@@ -245,6 +245,9 @@ function buildViaCommandStream(
     pagePosVersion,
     rendererInput.framePositionsVersion,
     layoutVersion,
+    {
+      baseCanonicalRevision: layoutVersion,
+    },
   );
 
   if (process.env.NODE_ENV === "development") {

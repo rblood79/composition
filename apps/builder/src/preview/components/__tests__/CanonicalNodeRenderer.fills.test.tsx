@@ -6,7 +6,10 @@ import { FillType } from "../../../types/builder/fill.types";
 
 import type { RenderContext } from "../../types/index";
 import { getRuntimeStore } from "../../store/runtimeStore";
-import { CanonicalNodeRenderer } from "../CanonicalNodeRenderer";
+import {
+  CanonicalNodeRenderer,
+  resolvePresentationLayoutProps,
+} from "../CanonicalNodeRenderer";
 
 /**
  * Background(fills) canonical Preview 회귀 테스트 (2026-07-15).
@@ -186,5 +189,29 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
       "[data-canonical-id='frame-fill']",
     ) as HTMLElement;
     expect(el.style.backgroundColor).toBe("rgb(204, 68, 34)");
+  });
+
+  it("Skia와 같은 absolute 숫자형 layout allowlist만 Preview에 반영한다", () => {
+    const base = {
+      style: { position: "absolute", left: 10, top: 20 },
+    };
+    expect(
+      resolvePresentationLayoutProps(base, [
+        {
+          patch: { x: 40, y: 50 },
+          target: { kind: "canonical-node", nodeId: "frame-layout" },
+          type: "geometry.patch",
+        },
+      ]),
+    ).toEqual({ style: { position: "absolute", left: 40, top: 50 } });
+    expect(
+      resolvePresentationLayoutProps(base, [
+        {
+          patch: { width: 200 },
+          target: { kind: "canonical-node", nodeId: "frame-layout" },
+          type: "style.patch",
+        },
+      ]),
+    ).toBe(base);
   });
 });

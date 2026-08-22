@@ -60,7 +60,10 @@ import {
 } from "./skiaFramePlan";
 import { viewportState as mutableViewport } from "../viewport/viewportState";
 import { StoreRenderBridge } from "./StoreRenderBridge";
-import { getSharedLayoutMap } from "../layout/engines/fullTreeLayout";
+import {
+  getSharedLayoutMap,
+  getSharedLayoutVersion,
+} from "../layout/engines/fullTreeLayout";
 import { useCanvasLifecycleStore } from "../stores";
 import { useStore } from "../../../stores";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
@@ -79,6 +82,7 @@ import {
   subscribePageGuideRevision,
 } from "../interaction/pageGuideRevision";
 import { SkiaEditorPresentationBridge } from "../../../presentation/skiaEditorPresentationBridge";
+import { SkiaEditorPresentationLayoutBridge } from "../../../presentation/skiaEditorPresentationLayoutBridge";
 import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 
@@ -223,6 +227,8 @@ export function SkiaCanvas({
   const storeRenderBridgeRef = useRef<StoreRenderBridge | null>(null);
   const editorPresentationBridgeRef =
     useRef<SkiaEditorPresentationBridge | null>(null);
+  const editorPresentationLayoutBridgeRef =
+    useRef<SkiaEditorPresentationLayoutBridge | null>(null);
   const lastWorkflowOverlaySignatureRef = useRef("");
   const lastWorkflowGraphSignatureRef = useRef("");
   const lastWfSubTogglesRef = useRef("");
@@ -285,6 +291,9 @@ export function SkiaCanvas({
       true,
     );
     editorPresentationBridgeRef.current?.handleStoreSync(
+      rendererInput.documentRevision,
+    );
+    editorPresentationLayoutBridgeRef.current?.handleStoreSync(
       rendererInput.documentRevision,
     );
     recordInvalidation("content", "rendererInput");
@@ -361,6 +370,9 @@ export function SkiaCanvas({
         editorPresentationBridgeRef.current?.handleStoreSync(
           rendererInputRef.current.documentRevision,
         );
+        editorPresentationLayoutBridgeRef.current?.handleStoreSync(
+          rendererInputRef.current.documentRevision,
+        );
       },
     });
     const presentationBridge = new SkiaEditorPresentationBridge({
@@ -376,12 +388,34 @@ export function SkiaCanvas({
       runtime: editorPresentationFillPilotRuntime,
     });
     editorPresentationBridgeRef.current = presentationBridge;
+    const presentationLayoutBridge = new SkiaEditorPresentationLayoutBridge({
+      getActiveProjectId: () =>
+        useCanonicalDocumentStore.getState().currentProjectId,
+      getCanonicalRevision: () => getSharedLayoutVersion(),
+      getChildrenMap: () => rendererInputRef.current.childrenMap,
+      getLayoutMap: () => getSharedLayoutMap(),
+      getRenderNode: (nodeId) =>
+        rendererInputRef.current.renderNodesMap.get(nodeId),
+      onPatched: (stream) => {
+        hitBoundsMapRef.current = stream.hitBoundsMap;
+        rendererRef.current?.invalidateContent();
+        recordInvalidation("content", "editorPresentationLayout");
+      },
+      runtime: editorPresentationFillPilotRuntime,
+    });
+    editorPresentationLayoutBridgeRef.current = presentationLayoutBridge;
 
     return () => {
       if (editorPresentationBridgeRef.current === presentationBridge) {
         editorPresentationBridgeRef.current = null;
       }
       presentationBridge.dispose();
+      if (
+        editorPresentationLayoutBridgeRef.current === presentationLayoutBridge
+      ) {
+        editorPresentationLayoutBridgeRef.current = null;
+      }
+      presentationLayoutBridge.dispose();
       if (storeRenderBridgeRef.current === bridge) {
         storeRenderBridgeRef.current = null;
       }

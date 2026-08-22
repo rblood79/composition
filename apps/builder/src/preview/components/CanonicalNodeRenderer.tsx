@@ -74,6 +74,7 @@ import {
   withFrameElementMirrorId,
 } from "../../adapters/canonical/frameMirror";
 import type { FillItem } from "../../types/builder/fill.types";
+import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -353,6 +354,51 @@ function resolvePresentationFills(
   return fills;
 }
 
+/** Skia layout bridge와 동일한 보수적 layout presentation allowlist. */
+export function resolvePresentationLayoutProps(
+  base: Record<string, unknown>,
+  mutations: readonly EditorMutationDescriptor[] | undefined,
+): Record<string, unknown> {
+  const baseStyle = base.style;
+  if (!baseStyle || typeof baseStyle !== "object") return base;
+  const style = baseStyle as Record<string, unknown>;
+  if (style.position !== "absolute") return base;
+
+  let nextStyle = style;
+  for (const mutation of mutations ?? []) {
+    const patch =
+      mutation.type === "style.patch"
+        ? mutation.patch
+        : mutation.type === "geometry.patch"
+          ? mutation.patch
+          : null;
+    if (!patch) continue;
+    const keys = Object.keys(patch);
+    const isStylePatch = mutation.type === "style.patch";
+    const allowedKeys = isStylePatch ? ["left", "top"] : ["x", "y"];
+    if (
+      keys.length === 0 ||
+      keys.some((key) => !allowedKeys.includes(key)) ||
+      keys.some(
+        (key) => typeof patch[key] !== "number" || !Number.isFinite(patch[key]),
+      )
+    ) {
+      continue;
+    }
+    nextStyle = {
+      ...nextStyle,
+      ...(isStylePatch
+        ? patch
+        : {
+            ...(patch.x !== undefined ? { left: patch.x } : {}),
+            ...(patch.y !== undefined ? { top: patch.y } : {}),
+          }),
+    };
+  }
+  if (nextStyle === style) return base;
+  return { ...base, style: nextStyle };
+}
+
 export function CanonicalNodeRenderer({
   node,
   renderContext,
@@ -375,6 +421,10 @@ export function CanonicalNodeRenderer({
     extractCanonicalPropsFromResolved(node),
     useRuntimeStore((s) => s.interactionOverrides[node.id]),
   );
+  const presentationProps = resolvePresentationLayoutProps(
+    canonicalProps,
+    editorPresentation?.mutations,
+  );
 
   // **node 로부터 props 를 읽는 모든 소비자는 이것을 쓴다.** `node` 를 직접 넘기면
   // 발화 override 가 통째로 무시되는데, 그 실수를 소비처마다 따로 저지르기 쉽다 —
@@ -382,7 +432,9 @@ export function CanonicalNodeRenderer({
   // 차례로 같은 형태로 드러났다. 병합 결과가 원본과 같으면 참조를 유지해 하위
   // 비교(===)가 종전대로 동작한다.
   const renderNode: ResolvedNode =
-    canonicalProps === node.props ? node : { ...node, props: canonicalProps };
+    presentationProps === node.props
+      ? node
+      : { ...node, props: presentationProps };
 
   // ── type 복원 ─────────────────────────────────────────────────────────────
   // node.type 이 canonical ComponentTag SSOT (예: "TextField", "Input", "frame").
@@ -392,7 +444,7 @@ export function CanonicalNodeRenderer({
   //    으로 오인되어 generic fallthrough 에서 `<text>` raw tag 로 렌더되던 버그 수정.
   //    resolveNodeType 과 동일 규칙.)
   const type =
-    (canonicalProps._tag as string | undefined) ??
+    (presentationProps._tag as string | undefined) ??
     ((node.metadata as Record<string, unknown> | undefined)?.originalTag as
       string | undefined) ??
     String(node.type);
@@ -409,7 +461,7 @@ export function CanonicalNodeRenderer({
     {
       id: elementId,
       type,
-      props: canonicalProps as PreviewElement["props"],
+      props: presentationProps as PreviewElement["props"],
       parent_id: null,
       page_id: null,
       fills: resolvePresentationFills(
@@ -417,7 +469,7 @@ export function CanonicalNodeRenderer({
         editorPresentation?.mutations,
       ),
     },
-    getFrameElementMirrorId(canonicalProps),
+    getFrameElementMirrorId(presentationProps),
   );
 
   // fills + style 변환 (adaptElementStyle)
