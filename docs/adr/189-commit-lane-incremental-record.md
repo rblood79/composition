@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-22
+Accepted — 2026-08-22 (Proposed 2026-08-22, 리뷰 round 1 이슈 3건 전건 fixed — reviews/189.md)
 
 Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](188-targeted-layout-and-skia-subtree-patching.md),
 [ADR-153 렌더 최적화 measurement-first 도입](completed/153-render-optimization-measurement-first-adoption.md),
