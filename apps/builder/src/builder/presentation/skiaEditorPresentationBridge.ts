@@ -6,6 +6,7 @@ import type {
   EditorPresentationTransactionRuntime,
 } from "./editorPresentationRuntime";
 import type {
+  EditorMutationDescriptor,
   EditorPresentationSession,
   EditorPresentationTargetRef,
 } from "./editorPresentationTypes";
@@ -16,6 +17,11 @@ interface SkiaEditorPresentationBridgeOptions {
   readonly getProjectionIndex: () => SkiaPresentationProjectionIndex;
   readonly getStoreRenderBridge: () => StoreRenderBridge | null;
   readonly onPaintInvalidated: () => void;
+  /** canonical terminal descriptor를 commit lane에 전달한다. */
+  readonly onCommitted?: (input: {
+    readonly descriptor: EditorMutationDescriptor;
+    readonly revision: number;
+  }) => void;
   readonly runtime: EditorPresentationTransactionRuntime;
 }
 
@@ -126,6 +132,12 @@ export class SkiaEditorPresentationBridge {
     }
 
     if (event.result.status === "committed") {
+      if (event.finalDescriptor) {
+        this.#options.onCommitted?.({
+          descriptor: event.finalDescriptor,
+          revision: event.result.committedDocumentRevision,
+        });
+      }
       const state = this.#stateBySessionId.get(event.session.sessionId);
       if (!state) return;
       const handoffState: SessionProjectionState = Object.freeze({

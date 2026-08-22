@@ -99,6 +99,8 @@ interface CommitLaneBuildMetric {
 const commitLaneBuildMetrics: CommitLaneBuildMetric[] = [];
 const commitLaneSpatialIndexDurationsMs: number[] = [];
 let commitLaneVisitCount = 0;
+let commitLanePatchFallbackCount = 0;
+let commitLanePatchWriteCount = 0;
 
 function recordCommitLaneVisit(): void {
   if (adr189MetricsEnabled) commitLaneVisitCount += 1;
@@ -127,6 +129,16 @@ function resetCommitLaneMetrics(): void {
   commitLaneBuildMetrics.length = 0;
   commitLaneSpatialIndexDurationsMs.length = 0;
   commitLaneVisitCount = 0;
+  commitLanePatchFallbackCount = 0;
+  commitLanePatchWriteCount = 0;
+}
+
+export function recordCommitLanePatchFallback(): void {
+  if (adr189MetricsEnabled) commitLanePatchFallbackCount += 1;
+}
+
+export function recordCommitLanePatchWrites(count: number): void {
+  if (adr189MetricsEnabled) commitLanePatchWriteCount += count;
 }
 
 function getCommitLaneMetricsSnapshot() {
@@ -135,6 +147,8 @@ function getCommitLaneMetricsSnapshot() {
     buildMetrics: commitLaneBuildMetrics.map((metric) => ({ ...metric })),
     spatialIndexDurationsMs: [...commitLaneSpatialIndexDurationsMs],
     totalVisits: commitLaneVisitCount,
+    patchFallbackCount: commitLanePatchFallbackCount,
+    patchWriteCount: commitLanePatchWriteCount,
     enabled: adr189MetricsEnabled,
   };
 }
@@ -224,6 +238,406 @@ export interface SelfSpan {
 export interface SubtreeSpan {
   start: number;
   end: number;
+}
+
+/**
+ * ADR-189 commit lane의 piece-table command buffer.
+ *
+ * `Array` 호환 Proxy를 유지하므로 기존 실행기/디버거는 `commands[i]`와
+ * `commands.length`를 그대로 사용한다. 실제 저장소는 immutable source segment
+ * 목록이며, subtree 교체는 segment descriptor만 바꾼다. 따라서 tail의 명령을
+ * O(N)으로 이동시키지 않고, 새로 기록한 span 길이와 segment 수에 비례한다.
+ */
+interface CommandSegment {
+  readonly source: readonly RenderCommand[];
+  readonly start: number;
+  readonly end: number;
+}
+
+interface CommandCursor {
+  readonly source: readonly RenderCommand[];
+  readonly offset: number;
+  readonly bias: "before" | "after";
+}
+
+interface CommandBufferState {
+  segments: CommandSegment[];
+  starts: number[];
+  length: number;
+  spliceWriteCount: number;
+}
+
+const commandBufferStates = new WeakMap<RenderCommand[], CommandBufferState>();
+
+function isArrayIndex(property: PropertyKey): boolean {
+  return (
+    typeof property === "string" &&
+    property.length > 0 &&
+    String(Number(property)) === property &&
+    Number.isSafeInteger(Number(property)) &&
+    Number(property) >= 0
+  );
+}
+
+function rebuildCommandBufferStarts(state: CommandBufferState): void {
+  state.starts = [];
+  let cursor = 0;
+  for (const segment of state.segments) {
+    state.starts.push(cursor);
+    cursor += segment.end - segment.start;
+  }
+  state.length = cursor;
+}
+
+function commandAt(
+  state: CommandBufferState,
+  index: number,
+): RenderCommand | undefined {
+  if (index < 0 || index >= state.length) return undefined;
+  let low = 0;
+  let high = state.segments.length - 1;
+  while (low <= high) {
+    const middle = (low + high) >> 1;
+    const start = state.starts[middle]!;
+    const segment = state.segments[middle]!;
+    const end = start + segment.end - segment.start;
+    if (index < start) high = middle - 1;
+    else if (index >= end) low = middle + 1;
+    else return segment.source[segment.start + index - start];
+  }
+  return undefined;
+}
+
+function commandBufferToArray(state: CommandBufferState): RenderCommand[] {
+  const result: RenderCommand[] = [];
+  result.length = state.length;
+  let cursor = 0;
+  for (const segment of state.segments) {
+    for (let index = segment.start; index < segment.end; index += 1) {
+      result[cursor++] = segment.source[index]!;
+    }
+  }
+  return result;
+}
+
+function commandCursorAt(
+  state: CommandBufferState,
+  index: number,
+  bias: "before" | "after",
+): CommandCursor {
+  if (state.segments.length === 0) {
+    return { source: [], offset: 0, bias };
+  }
+  const clamped = Math.max(0, Math.min(index, state.length));
+  for (
+    let segmentIndex = 0;
+    segmentIndex < state.segments.length;
+    segmentIndex += 1
+  ) {
+    const logicalStart = state.starts[segmentIndex]!;
+    const segment = state.segments[segmentIndex]!;
+    const segmentLength = segment.end - segment.start;
+    const logicalEnd = logicalStart + segmentLength;
+    if (
+      (bias === "after" && clamped >= logicalStart && clamped < logicalEnd) ||
+      (bias === "before" && clamped > logicalStart && clamped <= logicalEnd) ||
+      (clamped === 0 && segmentIndex === 0) ||
+      (clamped === state.length && segmentIndex === state.segments.length - 1)
+    ) {
+      return {
+        source: segment.source,
+        offset: segment.start + clamped - logicalStart,
+        bias,
+      };
+    }
+  }
+  const last = state.segments[state.segments.length - 1]!;
+  return { source: last.source, offset: last.end, bias };
+}
+
+function commandCursorIndex(
+  state: CommandBufferState,
+  cursor: CommandCursor,
+): number {
+  let logicalStart = 0;
+  for (const segment of state.segments) {
+    const segmentLength = segment.end - segment.start;
+    if (segment.source === cursor.source) {
+      if (
+        cursor.bias === "before" &&
+        cursor.offset >= segment.start &&
+        cursor.offset <= segment.end
+      ) {
+        return logicalStart + cursor.offset - segment.start;
+      }
+      if (
+        cursor.bias === "after" &&
+        cursor.offset >= segment.start &&
+        cursor.offset < segment.end
+      ) {
+        return logicalStart + cursor.offset - segment.start;
+      }
+    }
+    logicalStart += segmentLength;
+  }
+  // A cursor in a replaced segment is only queried for a stale map entry. Clamp
+  // it to the nearest current boundary rather than returning an invalid offset.
+  return cursor.bias === "before" ? 0 : state.length;
+}
+
+export class CommandSpanMap<T extends SelfSpan | SubtreeSpan> extends Map<
+  string,
+  T
+> {
+  readonly #buffer: RenderCommand[];
+  readonly #raw = new Map<
+    string,
+    { start: CommandCursor; end: CommandCursor }
+  >();
+
+  constructor(buffer: RenderCommand[], source: ReadonlyMap<string, T>) {
+    super();
+    this.#buffer = buffer;
+    for (const [key, span] of source) this.set(key, span);
+  }
+
+  override get(key: string): T | undefined {
+    const span = this.#raw.get(key);
+    if (!span) return undefined;
+    const state = commandBufferStates.get(this.#buffer);
+    if (!state) return undefined;
+    return {
+      start: commandCursorIndex(state, span.start),
+      end: commandCursorIndex(state, span.end),
+    } as T;
+  }
+
+  override set(key: string, span: T): this {
+    const state = commandBufferStates.get(this.#buffer);
+    if (!state) return this;
+    this.#raw.set(key, {
+      start: commandCursorAt(state, span.start, "after"),
+      end: commandCursorAt(state, span.end, "before"),
+    });
+    return this;
+  }
+
+  override delete(key: string): boolean {
+    return this.#raw.delete(key);
+  }
+
+  override has(key: string): boolean {
+    return this.#raw.has(key);
+  }
+
+  override clear(): void {
+    this.#raw.clear();
+  }
+
+  override get size(): number {
+    return this.#raw.size;
+  }
+
+  override entries(): MapIterator<[string, T]> {
+    return (function* (owner: CommandSpanMap<T>) {
+      for (const key of owner.#raw.keys()) {
+        const value = owner.get(key);
+        if (value) yield [key, value] as [string, T];
+      }
+    })(this) as unknown as MapIterator<[string, T]>;
+  }
+
+  override keys(): MapIterator<string> {
+    return this.#raw.keys() as MapIterator<string>;
+  }
+
+  override values(): MapIterator<T> {
+    return (function* (owner: CommandSpanMap<T>) {
+      for (const key of owner.#raw.keys()) {
+        const value = owner.get(key);
+        if (value) yield value;
+      }
+    })(this) as unknown as MapIterator<T>;
+  }
+
+  override forEach(
+    callbackfn: (value: T, key: string, map: Map<string, T>) => void,
+    thisArg?: unknown,
+  ): void {
+    for (const [key, value] of this.entries()) {
+      callbackfn.call(thisArg, value, key, this);
+    }
+  }
+
+  override [Symbol.iterator](): MapIterator<[string, T]> {
+    return this.entries();
+  }
+}
+
+export function createSegmentedCommandBuffer(
+  commands: RenderCommand[],
+): RenderCommand[] {
+  const state: CommandBufferState = {
+    segments: [{ source: commands, start: 0, end: commands.length }],
+    starts: [0],
+    length: commands.length,
+    spliceWriteCount: 0,
+  };
+  const buffer = new Proxy([] as RenderCommand[], {
+    get(target, property, receiver) {
+      if (property === "length") return state.length;
+      if (isArrayIndex(property)) return commandAt(state, Number(property));
+      if (property === "slice") {
+        return (start?: number, end?: number) =>
+          commandBufferToArray(state).slice(start, end);
+      }
+      if (property === "at") {
+        return (index: number) =>
+          commandAt(state, index < 0 ? state.length + index : index);
+      }
+      if (
+        property === "map" ||
+        property === "filter" ||
+        property === "forEach" ||
+        property === "some" ||
+        property === "every" ||
+        property === "find" ||
+        property === "findIndex" ||
+        property === "reduce" ||
+        property === "reduceRight" ||
+        property === "includes" ||
+        property === "indexOf" ||
+        property === "join"
+      ) {
+        const materialized = commandBufferToArray(state) as unknown as Record<
+          string,
+          (...args: unknown[]) => unknown
+        >;
+        return (...args: unknown[]) => materialized[property](...args);
+      }
+      if (property === Symbol.iterator) {
+        return function* iterator() {
+          for (let index = 0; index < state.length; index += 1) {
+            yield commandAt(state, index);
+          }
+        };
+      }
+      return Reflect.get(target, property, receiver);
+    },
+    ownKeys() {
+      return [
+        "length",
+        ...Array.from({ length: state.length }, (_, i) => String(i)),
+      ];
+    },
+    getOwnPropertyDescriptor(target, property) {
+      if (isArrayIndex(property)) {
+        const index = Number(property);
+        if (index < state.length) {
+          return {
+            configurable: true,
+            enumerable: true,
+            value: commandAt(state, index),
+            writable: true,
+          };
+        }
+      }
+      return Reflect.getOwnPropertyDescriptor(target, property);
+    },
+    set(_target, property, value) {
+      if (isArrayIndex(property)) {
+        const index = Number(property);
+        if (index < 0 || index >= state.length) return false;
+        const replacement = [value as RenderCommand];
+        replaceCommandRange(buffer, index, index + 1, replacement);
+        return true;
+      }
+      return false;
+    },
+  });
+  commandBufferStates.set(buffer, state);
+  return buffer;
+}
+
+export function isSegmentedCommandBuffer(commands: RenderCommand[]): boolean {
+  return commandBufferStates.has(commands);
+}
+
+/** 가변 길이 subtree splice. 반환값은 실제로 교체한 command 수(k)다. */
+export function replaceCommandRange(
+  commands: RenderCommand[],
+  start: number,
+  end: number,
+  replacement: readonly RenderCommand[],
+): number {
+  const state = commandBufferStates.get(commands);
+  if (!state) {
+    commands.splice(start, end - start, ...replacement);
+    return replacement.length;
+  }
+  if (
+    start < 0 ||
+    end < start ||
+    end > state.length ||
+    !Number.isInteger(start) ||
+    !Number.isInteger(end)
+  ) {
+    throw new RangeError("Invalid command buffer splice range");
+  }
+
+  const next: CommandSegment[] = [];
+  let logicalStart = 0;
+  for (const segment of state.segments) {
+    const segmentLength = segment.end - segment.start;
+    const logicalEnd = logicalStart + segmentLength;
+    if (logicalEnd <= start || logicalStart >= end) {
+      next.push(segment);
+    } else {
+      if (logicalStart < start) {
+        next.push({
+          source: segment.source,
+          start: segment.start,
+          end: segment.start + start - logicalStart,
+        });
+      }
+      if (logicalEnd > end) {
+        next.push({
+          source: segment.source,
+          start: segment.end - (logicalEnd - end),
+          end: segment.end,
+        });
+      }
+    }
+    logicalStart = logicalEnd;
+  }
+
+  if (replacement.length > 0) {
+    let insertAt = 0;
+    let cursor = 0;
+    while (insertAt < next.length && cursor < start) {
+      cursor += next[insertAt]!.end - next[insertAt]!.start;
+      insertAt += 1;
+    }
+    const replacementSource = Array.isArray(replacement)
+      ? replacement
+      : [...replacement];
+    next.splice(insertAt, 0, {
+      source: replacementSource,
+      start: 0,
+      end: replacementSource.length,
+    });
+  }
+
+  state.segments = next;
+  state.spliceWriteCount += replacement.length;
+  rebuildCommandBufferStarts(state);
+  return replacement.length;
+}
+
+export function getCommandBufferSpliceWriteCount(
+  commands: RenderCommand[],
+): number {
+  return commandBufferStates.get(commands)?.spliceWriteCount ?? 0;
 }
 
 /** subtree만 다시 기록할 때 필요한 DFS parent/render context snapshot. */
@@ -566,6 +980,26 @@ export function invalidateCommandStreamCache(): void {
 }
 
 /**
+ * commit lane splice가 cached stream을 갱신한 뒤 cache key만 최신 renderer input에
+ * 맞춘다. stream object 자체를 버리면 다음 RAF에서 layoutVersion mismatch로 다시
+ * full DFS가 발생하므로, patch 성공 경로에서만 호출한다.
+ */
+export function markCachedCommandStreamPatched(input: {
+  readonly registryVersion: number;
+  readonly pagePosVersion: number;
+  readonly framePosVersion: number;
+  readonly layoutVersion: number;
+}): boolean {
+  if (!_cachedStream) return false;
+  _cacheRegVersion = input.registryVersion;
+  _cachePagePosVersion = input.pagePosVersion;
+  _cacheFramePosVersion = input.framePosVersion;
+  _cacheLayoutVersion = input.layoutVersion;
+  _explicitInvalidate = false;
+  return true;
+}
+
+/**
  * elementsMap + childrenMap + layoutMap + skiaNodeRegistry에서 직접
  * RenderCommand[] 플랫 배열을 구성한다.
  *
@@ -696,10 +1130,15 @@ export function buildRenderCommandStream(
     );
   }
 
+  // commit lane은 이후 subtree splice가 tail command를 이동시키지 않도록
+  // piece-table buffer와 cursor 기반 span map으로 승격한다. build 중에는
+  // 일반 배열/Map을 사용하므로 DFS hot path의 push 비용은 변하지 않는다.
+  const commandBuffer = createSegmentedCommandBuffer(commands);
+
   return {
-    commands,
-    selfSpans,
-    subtreeSpans,
+    commands: commandBuffer,
+    selfSpans: new CommandSpanMap<SelfSpan>(commandBuffer, selfSpans),
+    subtreeSpans: new CommandSpanMap<SubtreeSpan>(commandBuffer, subtreeSpans),
     clipContextByElement,
     zOrderKeyByElement,
     scrollContextKeyByElement,

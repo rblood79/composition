@@ -188,6 +188,20 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 
 ## Implementation Progress
 
+- **Phase 2 / G2 — Implementation landed, live gate pending (2026-08-23)**:
+  `renderCommands.ts`에 Array-compatible piece-table command buffer와 cursor 기반
+  lazy span map을 추가해 variable-length commit splice가 tail `O(N)` write를
+  만들지 않게 했다. ADR-188 고정 길이 presentation patcher는 기존 reject 계약을
+  유지하고, ADR-189 commit lane은 `applyCommitSubtreeCommandPatch`로 자식 추가·
+  제거/command-count 변화를 허용한다. `StoreRenderBridge`는 canonical terminal
+  descriptor를 post-commit sync에서 소비하고 성공 시 cache key를 새 layout revision으로
+  승격하며, 실패 시 full rebuild로 수렴한다. 로컬 G2 fixture, 기존 render/subtree/
+  bridge/Skia static tests 및 type-check는 통과했다. 새 project live harness는
+  legacy mirror만 만들고 canonical index를 준비하지 않아 target hydration에서
+  중단되었고, 기존 project는 사용자 문서 변경 위험으로 사용하지 않았다. 따라서
+  G2는 구현 완료·live closure pending이며 [Phase 2 evidence](design/189-phase-2-g2-command-splice.md)
+  를 참조한다.
+
 - **Phase 1 / G1 — Implemented (2026-08-22)**: `commitPatchPlan.ts` 가 commit 의
   dirty-root 를 rootKey 별 `CommitPatchPlan` 으로 도출한다. promotion 판정은
   ADR-188 lane 의 `createPresentationLayoutPlan` + `getDescriptorUsedSizeEffect`

@@ -7,9 +7,13 @@ import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
 import { setDragVisualOffset } from "./nodeRendererTree";
 import {
   buildRenderCommandStream,
+  getCommandBufferSpliceWriteCount,
   type RenderCommandStream,
 } from "./renderCommands";
-import { applySubtreeCommandPatch } from "./subtreeCommandPatch";
+import {
+  applyCommitSubtreeCommandPatch,
+  applySubtreeCommandPatch,
+} from "./subtreeCommandPatch";
 
 function makeElement(
   id: string,
@@ -47,6 +51,7 @@ interface FixtureOptions {
   readonly leafY?: number;
   readonly bodyClipChildren?: boolean;
   readonly includeSecondLeaf?: boolean;
+  readonly includeTrailingLeaf?: boolean;
   readonly revision?: number;
 }
 
@@ -55,6 +60,9 @@ function buildFixture(options: FixtureOptions = {}): RenderCommandStream {
   const owner = makeElement("patch-owner", { parent_id: body.id });
   const leaf = makeElement("patch-leaf", { parent_id: owner.id });
   const secondLeaf = makeElement("patch-second-leaf", { parent_id: owner.id });
+  const trailingLeaf = makeElement("patch-trailing-leaf", {
+    parent_id: body.id,
+  });
 
   registerNode(body.id, {
     width: 800,
@@ -66,9 +74,12 @@ function buildFixture(options: FixtureOptions = {}): RenderCommandStream {
   if (options.includeSecondLeaf) {
     registerNode(secondLeaf.id, { width: 80, height: 40 });
   }
+  if (options.includeTrailingLeaf) {
+    registerNode(trailingLeaf.id, { width: 80, height: 40 });
+  }
 
   const children = new Map<string, CanvasSceneNode[]>([
-    [body.id, [owner]],
+    [body.id, options.includeTrailingLeaf ? [owner, trailingLeaf] : [owner]],
     [owner.id, options.includeSecondLeaf ? [leaf, secondLeaf] : [leaf]],
   ]);
   const layout = new Map<string, ComputedLayout>([
@@ -86,6 +97,14 @@ function buildFixture(options: FixtureOptions = {}): RenderCommandStream {
   if (options.includeSecondLeaf) {
     layout.set(secondLeaf.id, {
       x: 100,
+      y: 20,
+      width: 80,
+      height: 40,
+    } as ComputedLayout);
+  }
+  if (options.includeTrailingLeaf) {
+    layout.set(trailingLeaf.id, {
+      x: 220,
       y: 20,
       width: 80,
       height: 40,
@@ -290,6 +309,46 @@ describe("applySubtreeCommandPatch", () => {
     expect(result).toEqual({ applied: false, reason: "command-count-changed" });
     expect(current.commands).toEqual(before);
     expect(current.presentationRevision).toBe(0);
+  });
+
+  it("commit lane은 variable-length subtree를 splice하고 후속 span을 보존한다", () => {
+    const current = buildFixture({ includeTrailingLeaf: true });
+    const replacement = buildFixture({
+      includeSecondLeaf: true,
+      includeTrailingLeaf: true,
+      revision: 1,
+    });
+    const currentLength = current.commands.length;
+    const currentRootLength =
+      current.subtreeSpans.get("patch-owner")!.end -
+      current.subtreeSpans.get("patch-owner")!.start;
+    const trailingStartBefore = current.subtreeSpans.get(
+      "patch-trailing-leaf",
+    )!.start;
+    const replacementLength =
+      replacement.subtreeSpans.get("patch-owner")!.end -
+      replacement.subtreeSpans.get("patch-owner")!.start;
+
+    const result = applyCommitSubtreeCommandPatch({
+      current,
+      replacement,
+      rootId: "patch-owner",
+      revision: 1,
+      canonicalRevision: 0,
+    });
+
+    expect(result).toEqual({ applied: true, writeCount: replacementLength });
+    expect(current.commands.length).toBe(
+      currentLength + (replacementLength - currentRootLength),
+    );
+    expect(current.subtreeSpans.has("patch-second-leaf")).toBe(true);
+    expect(
+      getCommandBufferSpliceWriteCount(current.commands),
+    ).toBeLessThanOrEqual(replacementLength);
+    expect(current.subtreeSpans.get("patch-trailing-leaf")!.start).toBe(
+      trailingStartBefore + replacementLength - currentRootLength,
+    );
+    expect(current.presentationRevision).toBe(1);
   });
 
   it("patch root의 조상 clip context가 바뀌면 거부한다", () => {

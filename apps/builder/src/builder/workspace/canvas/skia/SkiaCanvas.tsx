@@ -38,7 +38,10 @@ import {
 import { tickAnimations, getInterpolatedOffsets } from "./dragAnimator";
 import { setDragSiblingOffsets } from "./nodeRendererTree";
 import { buildSkiaFrameContent } from "./skiaFramePipeline";
-import { invalidateCommandStreamCache } from "./renderCommands";
+import {
+  invalidateCommandStreamCache,
+  markCachedCommandStreamPatched,
+} from "./renderCommands";
 import { type PageFrame } from "./workflowRenderer";
 import { type CachedEdgeGeometry } from "./workflowHitTest";
 import {
@@ -280,16 +283,31 @@ export function SkiaCanvas({
     rendererInputRef.current = rendererInput;
     documentPageFrameVersionRef.current =
       rendererInput.sceneSnapshot.document.allPageFrameVersion;
-    invalidateCommandStreamCache();
     rendererRef.current?.invalidateContent();
-    storeRenderBridgeRef.current?.sync(
-      rendererInput.renderNodesMap,
-      getSharedLayoutMap(),
-      resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
-      rendererInput.childrenMap,
-      rendererInput.projectionVersion,
-      true,
-    );
+    const didPatch =
+      storeRenderBridgeRef.current?.sync(
+        rendererInput.renderNodesMap,
+        getSharedLayoutMap(),
+        resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
+        rendererInput.childrenMap,
+        rendererInput.projectionVersion,
+        true,
+        getSharedLayoutVersion(),
+      ) ?? false;
+    // StoreRenderBridge가 pending canonical commit을 현재 cached stream에 먼저
+    // splice할 수 있도록 cache invalidation은 sync 이후에 수행한다. patch 실패 시
+    // bridge가 full rebuild를 완료하고 여기서 일반 cache miss를 강제한다.
+    if (didPatch) {
+      markCachedCommandStreamPatched({
+        registryVersion: getRegistryVersion(),
+        pagePosVersion:
+          rendererInput.sceneSnapshot.document.visiblePagePositionVersion,
+        framePosVersion: rendererInput.framePositionsVersion,
+        layoutVersion: getSharedLayoutVersion(),
+      });
+    } else {
+      invalidateCommandStreamCache();
+    }
     editorPresentationBridgeRef.current?.handleStoreSync(
       rendererInput.documentRevision,
     );
@@ -345,6 +363,7 @@ export function SkiaCanvas({
       getLayoutMap: () => getSharedLayoutMap(),
       getChildrenMap: () => rendererInputRef.current.childrenMap,
       getProjectionVersion: () => rendererInputRef.current.projectionVersion,
+      getCanonicalRevision: () => getSharedLayoutVersion(),
       // rendererInput 변경은 위 effect 에서 직접 bridge.sync 를 호출한다.
       // 이 subscription 은 theme-only invalidation boundary 로 제한한다.
       subscribe: (cb) => {
@@ -384,6 +403,9 @@ export function SkiaCanvas({
       onPaintInvalidated: () => {
         rendererRef.current?.invalidateContent();
         recordInvalidation("content", "editorPresentation");
+      },
+      onCommitted: ({ descriptor, revision }) => {
+        storeRenderBridgeRef.current?.queueCommitPatch([descriptor], revision);
       },
       runtime: editorPresentationFillPilotRuntime,
     });

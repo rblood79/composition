@@ -61,6 +61,14 @@ import {
   invalidateNodePicture,
   setPresentationVolatileNodeIds,
 } from "./nodePictureCache";
+import {
+  buildSubtreeCommandStream,
+  getCachedCommandStreamSnapshot,
+  recordCommitLanePatchFallback,
+} from "./renderCommands";
+import { applyCommitSubtreeCommandPatch } from "./subtreeCommandPatch";
+import { createCommitPatchPlan } from "../../../presentation/commitPatchPlan";
+import type { EditorMutationDescriptor } from "../../../presentation/editorPresentationTypes";
 
 function presentationColorEquals(
   target: SkiaPresentationFillTarget,
@@ -303,6 +311,11 @@ export class StoreRenderBridge {
     }
   >();
   private presentationNodeIds = new Set<string>();
+  /** canonical commit descriptor — 다음 rendererInput sync에서만 소비한다. */
+  private pendingCommit: {
+    readonly mutations: readonly EditorMutationDescriptor[];
+    readonly revision: number;
+  } | null = null;
   /** CSS transition 애니메이션 매니저 (선택 연결) */
   public transitionManager: TransitionManager | null = null;
 
@@ -381,6 +394,25 @@ export class StoreRenderBridge {
   }
 
   /**
+   * canonical terminal event를 queue한다. canonical store와 rendererInput은
+   * 서로 다른 React/effect 경계를 가지므로 여기서 즉시 stream을 만들지 않고,
+   * post-commit elements/layout map이 도착한 다음 sync에서 원자적으로 소비한다.
+   */
+  queueCommitPatch(
+    mutations: readonly EditorMutationDescriptor[],
+    revision: number,
+  ): void {
+    if (
+      mutations.length === 0 ||
+      !Number.isSafeInteger(revision) ||
+      revision < 0
+    ) {
+      return;
+    }
+    this.pendingCommit = { mutations: [...mutations], revision };
+  }
+
+  /**
    * Store에 연결하여 elementsMap 변경 시 skiaNodeRegistry를 갱신.
    */
   connect(options: {
@@ -388,6 +420,7 @@ export class StoreRenderBridge {
     getLayoutMap: () => Map<string, ComputedLayout> | null;
     getChildrenMap?: () => Map<string, CanvasSceneNode[]>;
     getProjectionVersion: () => number;
+    getCanonicalRevision?: () => number;
     subscribe: (callback: () => void) => () => void;
     getTheme?: () => "light" | "dark";
     onDidSync?: () => void;
@@ -400,6 +433,7 @@ export class StoreRenderBridge {
       getLayoutMap,
       getChildrenMap,
       getProjectionVersion,
+      getCanonicalRevision,
       subscribe,
       getTheme,
       onDidSync,
@@ -416,6 +450,7 @@ export class StoreRenderBridge {
         getChildrenMap?.() ?? null,
         getProjectionVersion(),
         forceFullRebuild,
+        getCanonicalRevision?.(),
       );
       onDidSync?.();
     };
@@ -472,7 +507,8 @@ export class StoreRenderBridge {
     childrenMap: Map<string, CanvasSceneNode[]> | null = null,
     projectionVersion: number,
     forceFullRebuild = false,
-  ): void {
+    canonicalRevision?: number,
+  ): boolean {
     // theme 변경 시 전체 rebuild 강제 (모든 Spec 색상 재계산 필요)
     const themeChanged = theme !== this.prevTheme;
     this.prevTheme = theme;
@@ -494,6 +530,7 @@ export class StoreRenderBridge {
     const themeVersion = useThemeConfigStore.getState().themeVersion;
     const prevInputs = this.prevSyncInputs;
     if (
+      this.pendingCommit === null &&
       !this.externalDirty &&
       !themeChanged &&
       !projectionChanged &&
@@ -505,7 +542,7 @@ export class StoreRenderBridge {
       prevInputs.breakpoint === breakpoint &&
       prevInputs.themeVersion === themeVersion
     ) {
-      return;
+      return false;
     }
     this.externalDirty = false;
     this.prevSyncInputs = {
@@ -517,11 +554,47 @@ export class StoreRenderBridge {
     };
 
     const changedIds =
-      forceFullRebuild || themeChanged || projectionChanged
-        ? null
-        : this.detectChangedIds(elementsMap);
+      (this.pendingCommit !== null && !themeChanged && !projectionChanged) ||
+      (!forceFullRebuild && !themeChanged && !projectionChanged)
+        ? this.detectChangedIds(elementsMap)
+        : null;
 
-    if (changedIds === null || changedIds.size === 0) {
+    if (this.pendingCommit !== null) {
+      // rendererInput effect는 legacy 호환상 forceFullRebuild=true로 호출되지만,
+      // pending commit이 있으면 먼저 변경 ID만 registry에 반영하고 현재 stream의
+      // dirty root를 splice한다. patch 실패 시에만 아래 full rebuild를 실행한다.
+      if (themeChanged || projectionChanged) {
+        this.pendingCommit = null;
+        this.fullRebuild(elementsMap, layoutMap, theme, childrenMap);
+        this.prevElementsMap = elementsMap;
+        this.prevProjectionVersion = projectionVersion;
+        return false;
+      }
+      const pendingChangedIds =
+        changedIds ?? new Set<string>(elementsMap.keys());
+      if (pendingChangedIds.size > 0) {
+        this.incrementalSync(
+          pendingChangedIds,
+          elementsMap,
+          layoutMap,
+          theme,
+          childrenMap,
+        );
+      }
+      const didPatch = this.applyPendingCommitPatch(
+        elementsMap,
+        layoutMap,
+        childrenMap,
+        canonicalRevision,
+      );
+      if (didPatch) {
+        this.prevElementsMap = elementsMap;
+        this.prevProjectionVersion = projectionVersion;
+        return true;
+      }
+      this.pendingCommit = null;
+      this.fullRebuild(elementsMap, layoutMap, theme, childrenMap);
+    } else if (changedIds === null || changedIds.size === 0) {
       // null(첫 실행, theme 변경, layout publish, image load)과 빈 집합(동일
       // 참조 = 요소 변경 없음, layout만 변경) 모두 전체 rebuild.
       // layout publish는 layout-dependent Spec node를 materialize한다.
@@ -542,6 +615,78 @@ export class StoreRenderBridge {
 
     this.prevElementsMap = elementsMap;
     this.prevProjectionVersion = projectionVersion;
+    return false;
+  }
+
+  private applyPendingCommitPatch(
+    elementsMap: Map<string, CanvasSceneNode>,
+    layoutMap: Map<string, ComputedLayout> | null,
+    childrenMap: Map<string, CanvasSceneNode[]> | null,
+    canonicalRevision?: number,
+  ): boolean {
+    const pending = this.pendingCommit;
+    const current = getCachedCommandStreamSnapshot();
+    if (!pending || !current || !childrenMap) {
+      if (pending) recordCommitLanePatchFallback();
+      return false;
+    }
+
+    const tree = buildCommitTreeIndex(elementsMap, childrenMap);
+    const planResult = createCommitPatchPlan({
+      mutations: pending.mutations,
+      revision: pending.revision,
+      tree,
+    });
+    if (!planResult.ok) {
+      recordCommitLanePatchFallback();
+      return false;
+    }
+
+    // presentation revision과 canonical document revision은 서로 다른 producer가
+    // 발행한다. 두 값이 역전되어도 stale reject가 commit을 잃지 않도록 stream 내부
+    // revision은 단조 증가 envelope로 만든다. canonical revision 자체는 별도의
+    // baseCanonicalRevision으로 검증/승격한다.
+    const patchRevision = Math.max(
+      pending.revision,
+      current.presentationRevision + 1,
+    );
+
+    for (const plan of planResult.plans) {
+      for (const rootId of plan.dirtyRootIds) {
+        const context = current.subtreeBuildContextByElement.get(rootId);
+        if (!context) {
+          recordCommitLanePatchFallback();
+          return false;
+        }
+        const replacement = buildSubtreeCommandStream({
+          rootId,
+          childrenMap,
+          layoutMap: layoutMap ?? EMPTY_LAYOUT_MAP,
+          context,
+          revision: {
+            presentationRevision: patchRevision,
+            baseCanonicalRevision: current.baseCanonicalRevision,
+            presentationRevisionByRootKey: new Map([
+              [plan.rootKey, patchRevision],
+            ]),
+          },
+        });
+        const result = applyCommitSubtreeCommandPatch({
+          current,
+          replacement,
+          rootId,
+          rootKey: plan.rootKey,
+          revision: patchRevision,
+          canonicalRevision: current.baseCanonicalRevision,
+        });
+        if (!result.applied) return false;
+      }
+    }
+    this.pendingCommit = null;
+    if (canonicalRevision !== undefined) {
+      current.baseCanonicalRevision = canonicalRevision;
+    }
+    return true;
   }
 
   /**
@@ -1026,6 +1171,7 @@ export class StoreRenderBridge {
       this.unsubscribeScroll = null;
     }
     this.pendingResync = null;
+    this.pendingCommit = null;
     this.prevElementsMap = null;
     this.prevProjectionVersion = null;
     // no-op 가드 스냅샷 리셋 — 재연결 직후 sync 가 skip 되지 않도록
@@ -1052,6 +1198,52 @@ export class StoreRenderBridge {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function buildCommitTreeIndex(
+  elementsMap: Map<string, CanvasSceneNode>,
+  childrenMap: Map<string, CanvasSceneNode[]>,
+): {
+  readonly childrenByParent: ReadonlyMap<string, readonly string[]>;
+  readonly parentById: ReadonlyMap<string, string | null>;
+  readonly nodeById: ReadonlyMap<string, CanvasLayoutNode>;
+  readonly rootKeyByNodeId: ReadonlyMap<string, string>;
+} {
+  const childrenByParent = new Map<string, readonly string[]>();
+  for (const [parentId, children] of childrenMap) {
+    childrenByParent.set(
+      parentId,
+      children.map((child) => child.id),
+    );
+  }
+  const parentById = new Map<string, string | null>();
+  const rootKeyByNodeId = new Map<string, string>();
+  for (const [id, element] of elementsMap) {
+    parentById.set(id, element.parent_id ?? element.parentId ?? null);
+  }
+  const rootKeyFor = (id: string): string => {
+    let current = id;
+    const visited = new Set<string>();
+    while (!visited.has(current)) {
+      visited.add(current);
+      const element = elementsMap.get(current);
+      if (!element) break;
+      const parentId = element.parent_id ?? element.parentId ?? null;
+      if (!parentId) {
+        const pageId = element.page_id ?? element.pageId ?? "unknown";
+        return `page:${pageId}`;
+      }
+      current = parentId;
+    }
+    return "__default__";
+  };
+  for (const id of elementsMap.keys()) rootKeyByNodeId.set(id, rootKeyFor(id));
+  return {
+    childrenByParent,
+    parentById,
+    nodeById: elementsMap as unknown as ReadonlyMap<string, CanvasLayoutNode>,
+    rootKeyByNodeId,
+  };
+}
 
 function getImageSrc(element: CanvasSceneNode): string | null {
   const props = element.props as Record<string, unknown> | undefined;

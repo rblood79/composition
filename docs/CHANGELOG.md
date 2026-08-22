@@ -18,6 +18,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`, `apps/builder/scripts/adr189-commit-baseline.mjs`
   - 증적: [ADR-189 Phase 0 G0 baseline](adr/design/189-phase-0-g0-baseline.md)
 
+## ADR-189 Phase 2 command span splice — 2026-08-23
+
+### Architecture
+
+- variable-length commit subtree를 위해 command stream을 Array-compatible piece-table로
+  유지하고 span을 cursor 기반으로 지연 해석한다. 자식 추가·제거와 command-count 변화가
+  있어도 tail 전체를 다시 쓰지 않는다.
+- ADR-188 presentation lane의 고정 길이 reject 계약은 보존하고, commit lane만 별도
+  patch API와 full-rebuild fallback counter를 사용한다. canonical terminal descriptor는
+  `StoreRenderBridge`가 post-commit sync에서 소비하며, 성공한 stream은 새 cache key로
+  승격한다.
+
+### Verification
+
+- 로컬 G2 fixture에서 trailing span 이동, write budget, bounds/hit/SpatialIndex/revision
+  원자성 및 기존 presentation 회귀를 검증했다. type-check 신규 위반은 0개다.
+- populated canonical live gate는 새 project의 canonical index hydration 부족으로
+  보류했다. [Phase 2 evidence](adr/design/189-phase-2-g2-command-splice.md)
+
 ## ADR-188 targeted layout input/result — 2026-08-22
 
 ### Architecture

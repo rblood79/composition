@@ -85,6 +85,19 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
 - static guard: commit 경로에서 `layoutVersion` 전역 bump 로 인한 full stream
   rebuild 호출이 dirty-root 미도출 케이스에만 남는지 counter 단언.
 
+#### 실행 기록 — G2 implementation slice (2026-08-23)
+
+- `renderCommands.ts`의 piece-table command buffer와 cursor span map,
+  `subtreeCommandPatch.ts`의 variable-length commit patch,
+  `StoreRenderBridge`의 post-commit queue/cache promotion을 구현했다. 기존
+  ADR-188 presentation patcher는 fixed-length reject를 유지한다.
+- 로컬 fixture에서 replacement span 길이 변화와 후속 sibling span 이동을 확인했고,
+  splice write는 replacement span 길이 이하로 고정했다. 관련 35 tests와
+  bridge/presentation 11 tests, type-check 신규 위반 0개가 통과했다.
+- 새 project live harness는 canonical document index가 준비되지 않아 target
+  hydration에서 중단되었다. populated canonical live/pixel gate는 G2 closure 전에
+  수행한다.
+
 ### Phase 3 — G3: content 부분 재기록 (damage clip)
 
 - dirty subtree 의 이전/이후 hitBounds 합집합으로 damage rect 산출 → content

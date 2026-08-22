@@ -10,11 +10,11 @@ describe("SkiaCanvas render invalidation contract", () => {
     );
 
     expect(source).toMatch(
-      /import \{ invalidateCommandStreamCache \} from "\.\/renderCommands";/,
+      /import \{[\s\S]*invalidateCommandStreamCache,[\s\S]*\} from "\.\/renderCommands";/,
     );
 
     const effectBlock = source.match(
-      /useEffect\(\(\) => \{[\s\S]*?rendererInputRef\.current = rendererInput;[\s\S]*?invalidateCommandStreamCache\(\);[\s\S]*?rendererRef\.current\?\.invalidateContent\(\);[\s\S]*?\}, \[rendererInput\]\);/,
+      /useEffect\(\(\) => \{[\s\S]*?rendererInputRef\.current = rendererInput;[\s\S]*?storeRenderBridgeRef\.current\?\.sync\([\s\S]*?invalidateCommandStreamCache\(\);[\s\S]*?\}, \[rendererInput\]\);/,
     );
 
     expect(
