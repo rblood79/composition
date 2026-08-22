@@ -16,7 +16,17 @@ import type {
   RuntimeDataTable,
   RuntimeApiEndpoint,
   RuntimeVariable,
+  PreviewEditorPresentationActivePatch,
 } from "./types";
+import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
+import type {
+  EditorPresentationPatchMessage,
+  EditorPresentationFinishMessage,
+} from "../../builder/presentation/editorPresentationProtocol";
+import {
+  EMPTY_PREVIEW_PRESENTATION_PROJECTION_INDEX,
+  type PreviewPresentationProjectionIndex,
+} from "../presentation/editorPresentationProjectionIndex";
 
 function hasShallowPatchChanges(
   prev: Record<string, unknown>,
@@ -28,6 +38,167 @@ function hasShallowPatchChanges(
   return false;
 }
 
+function deleteRecordKey<T>(
+  record: Record<string, T | undefined>,
+  key: string,
+): Record<string, T | undefined> {
+  if (!(key in record)) return record;
+  const next = { ...record };
+  delete next[key];
+  return next;
+}
+
+function removePresentationSession(
+  state: RuntimeStoreState,
+  sessionId: string,
+): RuntimeStoreState {
+  const renderKeys =
+    state.editorPresentationRenderKeysBySession[sessionId] ?? [];
+  let renderOverrides = state.editorPresentationOverrides;
+  for (const renderKey of renderKeys) {
+    if (renderOverrides[renderKey]?.sessionId !== sessionId) continue;
+    if (renderOverrides === state.editorPresentationOverrides) {
+      renderOverrides = { ...renderOverrides };
+    }
+    delete renderOverrides[renderKey];
+  }
+  return {
+    ...state,
+    editorPresentationOverrides: renderOverrides,
+    editorPresentationActivePatches: deleteRecordKey(
+      state.editorPresentationActivePatches,
+      sessionId,
+    ),
+    editorPresentationRenderKeysBySession: deleteRecordKey(
+      state.editorPresentationRenderKeysBySession,
+      sessionId,
+    ),
+    editorPresentationFinishLatches: deleteRecordKey(
+      state.editorPresentationFinishLatches,
+      sessionId,
+    ),
+    pendingEditorPresentationPatches: deleteRecordKey(
+      state.pendingEditorPresentationPatches,
+      sessionId,
+    ),
+  };
+}
+
+function materializePresentationPatch(
+  state: RuntimeStoreState,
+  patch: PreviewEditorPresentationActivePatch,
+  projectionIndex: PreviewPresentationProjectionIndex,
+): RuntimeStoreState {
+  const previousRenderKeys =
+    state.editorPresentationRenderKeysBySession[patch.sessionId] ?? [];
+  const renderOverrides = { ...state.editorPresentationOverrides };
+  for (const renderKey of previousRenderKeys) {
+    if (renderOverrides[renderKey]?.sessionId === patch.sessionId) {
+      delete renderOverrides[renderKey];
+    }
+  }
+
+  const mutationsByRenderKey = new Map<string, EditorMutationDescriptor[]>();
+  for (const mutation of patch.mutations) {
+    for (const renderKey of projectionIndex.resolve(mutation.target)) {
+      const mutations = mutationsByRenderKey.get(renderKey);
+      if (mutations) mutations.push(mutation);
+      else mutationsByRenderKey.set(renderKey, [mutation]);
+    }
+  }
+
+  // Canonical envelope가 먼저 와 projection rebuild가 아직 끝나지 않은 짧은
+  // 구간에는 이전 render key를 유지해 old-canonical-without-overlay flash를 막는다.
+  if (mutationsByRenderKey.size === 0 && previousRenderKeys.length > 0) {
+    for (const renderKey of previousRenderKeys) {
+      mutationsByRenderKey.set(renderKey, [...patch.mutations]);
+    }
+  }
+
+  const nextRenderKeys = [...mutationsByRenderKey.keys()];
+  for (const [renderKey, mutations] of mutationsByRenderKey) {
+    renderOverrides[renderKey] = Object.freeze({
+      mutations: Object.freeze(mutations),
+      revision: patch.revision,
+      sessionId: patch.sessionId,
+    });
+  }
+
+  return {
+    ...state,
+    editorPresentationOverrides: renderOverrides,
+    editorPresentationActivePatches: {
+      ...state.editorPresentationActivePatches,
+      [patch.sessionId]: patch,
+    },
+    editorPresentationRenderKeysBySession: {
+      ...state.editorPresentationRenderKeysBySession,
+      [patch.sessionId]: Object.freeze(nextRenderKeys),
+    },
+    editorPresentationLastRevisions: {
+      ...state.editorPresentationLastRevisions,
+      [patch.sessionId]: patch.revision,
+    },
+    pendingEditorPresentationPatches: deleteRecordKey(
+      state.pendingEditorPresentationPatches,
+      patch.sessionId,
+    ),
+  };
+}
+
+function applyPresentationPatchState(
+  state: RuntimeStoreState,
+  message: EditorPresentationPatchMessage,
+): RuntimeStoreState {
+  if (
+    state.canonicalProjectId !== null &&
+    state.canonicalProjectId !== message.projectId
+  ) {
+    return state;
+  }
+  const tombstone = state.editorPresentationTombstones[message.sessionId] ?? -1;
+  const lastRevision =
+    state.editorPresentationLastRevisions[message.sessionId] ?? -1;
+  if (message.revision <= tombstone || message.revision <= lastRevision) {
+    return state;
+  }
+  if (
+    state.canonicalProjectId === null ||
+    state.canonicalDocumentRevision < message.baseDocumentRevision ||
+    state.editorPresentationProjectionIndex.revision !==
+      state.canonicalDocumentRevision
+  ) {
+    const pending = state.pendingEditorPresentationPatches[message.sessionId];
+    if (pending && pending.revision >= message.revision) return state;
+    return {
+      ...state,
+      pendingEditorPresentationPatches: {
+        ...state.pendingEditorPresentationPatches,
+        [message.sessionId]: message,
+      },
+    };
+  }
+  if (message.mutations.length === 0) {
+    const next = removePresentationSession(state, message.sessionId);
+    return {
+      ...next,
+      editorPresentationLastRevisions: {
+        ...next.editorPresentationLastRevisions,
+        [message.sessionId]: message.revision,
+      },
+    };
+  }
+  return materializePresentationPatch(
+    state,
+    Object.freeze({
+      mutations: message.mutations,
+      revision: message.revision,
+      sessionId: message.sessionId,
+    }),
+    state.editorPresentationProjectionIndex,
+  );
+}
+
 export const createRuntimeStore = () =>
   create<RuntimeStoreState>((set, get) => ({
     // ============================================
@@ -36,10 +207,186 @@ export const createRuntimeStore = () =>
     elements: [],
     setElements: (elements: RuntimeElement[]) => set({ elements }),
     canonicalDocument: null,
+    canonicalProjectId: null,
+    canonicalDocumentRevision: -1,
     setCanonicalDocument: (canonicalDocument) =>
       // 문서가 새로 오면 발화 override 는 버린다 — 편집 결과를 덮어쓴 채로 남으면
       // 사용자가 방금 바꾼 값이 preview 에서 무시되는 것처럼 보인다.
       set({ canonicalDocument, interactionOverrides: {} }),
+    receiveCanonicalDocument: (message) => {
+      set((state) => {
+        const projectChanged = state.canonicalProjectId !== message.projectId;
+        if (
+          !projectChanged &&
+          message.documentRevision <= state.canonicalDocumentRevision
+        ) {
+          return state;
+        }
+        if (projectChanged || message.projectId === null) {
+          return {
+            ...state,
+            canonicalDocument: message.document,
+            canonicalProjectId: message.projectId,
+            canonicalDocumentRevision: message.documentRevision,
+            interactionOverrides: {},
+            editorPresentationProjectionIndex:
+              EMPTY_PREVIEW_PRESENTATION_PROJECTION_INDEX,
+            editorPresentationOverrides: {},
+            editorPresentationActivePatches: {},
+            editorPresentationRenderKeysBySession: {},
+            editorPresentationLastRevisions: {},
+            editorPresentationTombstones: {},
+            editorPresentationFinishLatches: {},
+            pendingEditorPresentationPatches: {},
+          };
+        }
+
+        let next: RuntimeStoreState = {
+          ...state,
+          canonicalDocument: message.document,
+          canonicalDocumentRevision: message.documentRevision,
+          interactionOverrides: {},
+          editorPresentationProjectionIndex:
+            EMPTY_PREVIEW_PRESENTATION_PROJECTION_INDEX,
+        };
+        for (const latch of Object.values(
+          state.editorPresentationFinishLatches,
+        )) {
+          if (
+            latch &&
+            latch.committedDocumentRevision <= message.documentRevision
+          ) {
+            next = removePresentationSession(next, latch.sessionId);
+          }
+        }
+        return next;
+      });
+    },
+
+    editorPresentationProjectionIndex:
+      EMPTY_PREVIEW_PRESENTATION_PROJECTION_INDEX,
+    editorPresentationOverrides: {},
+    editorPresentationActivePatches: {},
+    editorPresentationRenderKeysBySession: {},
+    editorPresentationLastRevisions: {},
+    editorPresentationTombstones: {},
+    editorPresentationFinishLatches: {},
+    pendingEditorPresentationPatches: {},
+    setEditorPresentationProjectionIndex: (index) => {
+      set((state) => {
+        if (index.revision !== state.canonicalDocumentRevision) return state;
+        let next: RuntimeStoreState = {
+          ...state,
+          editorPresentationProjectionIndex: index,
+          editorPresentationOverrides: {},
+          editorPresentationRenderKeysBySession: {},
+        };
+        for (const active of Object.values(
+          state.editorPresentationActivePatches,
+        )) {
+          if (active) {
+            next = materializePresentationPatch(next, active, index);
+          }
+        }
+        const pending = Object.values(state.pendingEditorPresentationPatches)
+          .filter((message): message is EditorPresentationPatchMessage =>
+            Boolean(message),
+          )
+          .sort((left, right) => left.revision - right.revision);
+        for (const message of pending) {
+          next = applyPresentationPatchState(next, message);
+        }
+        return next;
+      });
+    },
+    applyEditorPresentationPatch: (message) => {
+      set((state) => applyPresentationPatchState(state, message));
+    },
+    finishEditorPresentation: (message: EditorPresentationFinishMessage) => {
+      set((state) => {
+        if (state.canonicalProjectId !== message.projectId) return state;
+        const tombstone =
+          state.editorPresentationTombstones[message.sessionId] ?? -1;
+        const lastRevision =
+          state.editorPresentationLastRevisions[message.sessionId] ?? -1;
+        if (message.revision <= tombstone || message.revision < lastRevision) {
+          return state;
+        }
+
+        let next: RuntimeStoreState = {
+          ...state,
+          editorPresentationTombstones: {
+            ...state.editorPresentationTombstones,
+            [message.sessionId]: message.revision,
+          },
+          pendingEditorPresentationPatches: deleteRecordKey(
+            state.pendingEditorPresentationPatches,
+            message.sessionId,
+          ),
+        };
+        if (
+          state.canonicalDocumentRevision >= message.committedDocumentRevision
+        ) {
+          next = removePresentationSession(next, message.sessionId);
+          return {
+            ...next,
+            editorPresentationLastRevisions: {
+              ...next.editorPresentationLastRevisions,
+              [message.sessionId]: message.revision,
+            },
+            editorPresentationTombstones: {
+              ...next.editorPresentationTombstones,
+              [message.sessionId]: message.revision,
+            },
+          };
+        }
+
+        next = materializePresentationPatch(
+          next,
+          Object.freeze({
+            mutations: message.finalMutations,
+            revision: message.revision,
+            sessionId: message.sessionId,
+          }),
+          state.editorPresentationProjectionIndex,
+        );
+        return {
+          ...next,
+          editorPresentationFinishLatches: {
+            ...next.editorPresentationFinishLatches,
+            [message.sessionId]: Object.freeze({
+              committedDocumentRevision: message.committedDocumentRevision,
+              sessionId: message.sessionId,
+              terminalRevision: message.revision,
+            }),
+          },
+          editorPresentationTombstones: {
+            ...next.editorPresentationTombstones,
+            [message.sessionId]: message.revision,
+          },
+        };
+      });
+    },
+    cancelEditorPresentation: (message) => {
+      set((state) => {
+        if (state.canonicalProjectId !== message.projectId) return state;
+        const tombstone =
+          state.editorPresentationTombstones[message.sessionId] ?? -1;
+        if (message.revision < tombstone) return state;
+        const next = removePresentationSession(state, message.sessionId);
+        return {
+          ...next,
+          editorPresentationLastRevisions: {
+            ...next.editorPresentationLastRevisions,
+            [message.sessionId]: message.revision,
+          },
+          editorPresentationTombstones: {
+            ...next.editorPresentationTombstones,
+            [message.sessionId]: message.revision,
+          },
+        };
+      });
+    },
 
     // ── ADR-158 Phase 3 — 발화 override ──────────────────────────────
     //

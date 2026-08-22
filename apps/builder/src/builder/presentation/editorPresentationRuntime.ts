@@ -75,6 +75,7 @@ export type EditorPresentationSessionEvent =
       readonly type: "updated";
     }
   | {
+      readonly finalDescriptor: EditorMutationDescriptor | null;
       readonly result: EditorPresentationFinishResult;
       readonly session: EditorPresentationSession;
       readonly type: "terminal";
@@ -537,6 +538,20 @@ export class EditorPresentationTransactionRuntime {
     }
   }
 
+  cancelProjectSessions(
+    projectId: string,
+    reason: EditorPresentationCancelReason,
+  ): number {
+    const sessionIds = [...this.#sessions.values()]
+      .filter((session) => session.projectId === projectId)
+      .map((session) => session.sessionId);
+    let cancelled = 0;
+    for (const sessionId of sessionIds) {
+      if (this.#cancelSession(sessionId, reason)) cancelled += 1;
+    }
+    return cancelled;
+  }
+
   #createHandle(session: RuntimeSession): EditorPresentationHandle {
     return Object.freeze({
       cancel: (reason: EditorPresentationCancelReason): boolean =>
@@ -715,7 +730,7 @@ export class EditorPresentationTransactionRuntime {
 
     if (!descriptor) {
       const result: EditorPresentationFinishResult = { status: "no-op" };
-      this.#completeSession(session, result);
+      this.#completeSession(session, result, null);
       return result;
     }
 
@@ -727,7 +742,7 @@ export class EditorPresentationTransactionRuntime {
       )
     ) {
       const result: EditorPresentationFinishResult = { status: "no-op" };
-      this.#completeSession(session, result);
+      this.#completeSession(session, result, descriptor);
       return result;
     }
 
@@ -748,7 +763,7 @@ export class EditorPresentationTransactionRuntime {
         committedDocumentRevision: commitResult.committedDocumentRevision,
         status: "committed",
       });
-      this.#completeSession(session, result);
+      this.#completeSession(session, result, descriptor);
       return result;
     } catch (error: unknown) {
       return this.#failSession(session, error, descriptor);
@@ -871,7 +886,12 @@ export class EditorPresentationTransactionRuntime {
     this.#cancelScheduledFrameIfIdle();
     this.#removeSnapshotSession(session);
     this.#publishSessionEvent(
-      Object.freeze({ result, session: publicSession, type: "terminal" }),
+      Object.freeze({
+        finalDescriptor: null,
+        result,
+        session: publicSession,
+        type: "terminal",
+      }),
     );
     this.#onCancel?.(sessionId, reason);
     return true;
@@ -880,13 +900,19 @@ export class EditorPresentationTransactionRuntime {
   #completeSession(
     session: RuntimeSession,
     result: EditorPresentationFinishResult,
+    finalDescriptor: EditorMutationDescriptor | null,
   ): void {
     session.handleState.finishResult = result;
     const publicSession = toPublicSession(session);
     this.#removeSession(session);
     this.#removeSnapshotSession(session);
     this.#publishSessionEvent(
-      Object.freeze({ result, session: publicSession, type: "terminal" }),
+      Object.freeze({
+        finalDescriptor,
+        result,
+        session: publicSession,
+        type: "terminal",
+      }),
     );
   }
 

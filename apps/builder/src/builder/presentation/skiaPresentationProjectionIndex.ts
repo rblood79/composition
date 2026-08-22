@@ -1,4 +1,5 @@
 import type { EditorPresentationTargetRef } from "./editorPresentationTypes";
+import { toEditorPresentationTargetKey } from "./editorPresentationTypes";
 
 export interface SkiaPresentationProjectionIndex {
   resolve(target: EditorPresentationTargetRef): readonly string[];
@@ -8,6 +9,7 @@ const EMPTY_RENDER_IDS: readonly string[] = Object.freeze([]);
 
 export class SkiaPresentationProjectionIndexBuilder {
   readonly #renderIdsByCanonicalNodeId = new Map<string, Set<string>>();
+  readonly #renderIdsByRefDescendant = new Map<string, Set<string>>();
 
   addCanonicalProjection(nodeId: string, renderId: string): void {
     if (!nodeId || !renderId) return;
@@ -19,16 +21,37 @@ export class SkiaPresentationProjectionIndexBuilder {
     this.#renderIdsByCanonicalNodeId.set(nodeId, new Set([renderId]));
   }
 
+  addRefDescendantProjection(
+    refId: string,
+    pathKey: string,
+    renderId: string,
+  ): void {
+    if (!refId || !pathKey || !renderId) return;
+    const targetKey = toEditorPresentationTargetKey({
+      kind: "ref-descendant",
+      pathKey,
+      refId,
+    });
+    const ids = this.#renderIdsByRefDescendant.get(targetKey);
+    if (ids) ids.add(renderId);
+    else this.#renderIdsByRefDescendant.set(targetKey, new Set([renderId]));
+  }
+
   build(): SkiaPresentationProjectionIndex {
     const frozen = new Map<string, readonly string[]>();
     for (const [nodeId, ids] of this.#renderIdsByCanonicalNodeId) {
       frozen.set(nodeId, Object.freeze([...ids]));
     }
+    for (const [targetKey, ids] of this.#renderIdsByRefDescendant) {
+      frozen.set(targetKey, Object.freeze([...ids]));
+    }
     return Object.freeze({
       resolve: (target: EditorPresentationTargetRef): readonly string[] => {
-        // ref-descendant projection/commit은 ADR-187 Phase 3에서 활성화한다.
-        if (target.kind !== "canonical-node") return EMPTY_RENDER_IDS;
-        return frozen.get(target.nodeId) ?? EMPTY_RENDER_IDS;
+        const targetKey =
+          target.kind === "canonical-node"
+            ? target.nodeId
+            : toEditorPresentationTargetKey(target);
+        return frozen.get(targetKey) ?? EMPTY_RENDER_IDS;
       },
     });
   }

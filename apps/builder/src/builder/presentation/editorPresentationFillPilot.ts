@@ -6,14 +6,20 @@ import {
 import {
   getPrimitiveBinding,
   isCatalogCutover,
+  type CanonicalNode,
   type CompositionDocument,
 } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import { getCanonicalDocumentElementsView } from "../stores/canonical/canonicalElementsView";
 import type { FillItem } from "../../types/builder/fill.types";
 import { FillType } from "../../types/builder/fill.types";
-import { editorPresentationCanonicalRuntimeOptions } from "./editorPresentationCommitAdapter";
+import {
+  editorPresentationCanonicalRuntimeOptions,
+  getEditorPresentationTargetNode,
+  resolveEditorPresentationTarget,
+} from "./editorPresentationCommitAdapter";
 import { EditorPresentationTransactionRuntime } from "./editorPresentationRuntime";
+import { EditorPresentationPreviewBridge } from "./editorPresentationPreviewBridge";
 import type { EditorPresentationTargetRef } from "./editorPresentationTypes";
 
 const FILL_PILOT_QUERY_PARAM = "adr187FillPilot";
@@ -26,6 +32,15 @@ export const editorPresentationFillPilotRuntime =
   new EditorPresentationTransactionRuntime(
     editorPresentationCanonicalRuntimeOptions,
   );
+
+export const editorPresentationFillPreviewBridge =
+  new EditorPresentationPreviewBridge({
+    readDocumentRevision: (projectId) => {
+      const state = useCanonicalDocumentStore.getState();
+      return state.currentProjectId === projectId ? state.documentVersion : -1;
+    },
+    runtime: editorPresentationFillPilotRuntime,
+  });
 
 let previousDocumentVersion =
   useCanonicalDocumentStore.getState().documentVersion;
@@ -47,15 +62,19 @@ export interface FillPresentationPilotTarget {
 }
 
 export function isFillPresentationPilotEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  // Phase 3 production cutover: default-on. `?adr187FillPilot=0` is the
+  // explicit rollback switch for diagnosing a live regression.
   return (
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).has(FILL_PILOT_QUERY_PARAM)
+    new URLSearchParams(window.location.search).get(FILL_PILOT_QUERY_PARAM) !==
+    "0"
   );
 }
 
 function getMaterializationContext(
   document: CompositionDocument,
   selectedElementId: string,
+  elementOverride?: CanonicalNode,
 ): SkiaPresentationMaterializationContext {
   let documentCache = materializationContextByDocument.get(document);
   if (!documentCache) {
@@ -66,10 +85,19 @@ function getMaterializationContext(
   if (cached) return cached;
 
   const elementsView = getCanonicalDocumentElementsView(document);
-  const element = elementsView.byId.get(selectedElementId);
+  const element = elementOverride ?? elementsView.byId.get(selectedElementId);
+  if (!element) {
+    return Object.freeze({
+      ancestorTypes: Object.freeze([]),
+      hasGenericBackground: false,
+      hasChildren: false,
+    });
+  }
   const ancestorTypes: string[] = [];
   const visitedAncestorIds = new Set<string>([selectedElementId]);
-  let parentId = element?.parent_id;
+  let parentId = elementOverride
+    ? null
+    : (element as { parent_id?: string | null }).parent_id;
   while (parentId && !visitedAncestorIds.has(parentId)) {
     visitedAncestorIds.add(parentId);
     const parent = elementsView.byId.get(parentId);
@@ -85,9 +113,11 @@ function getMaterializationContext(
       (isCatalogCutover(element.type) ||
         nativeSpec === undefined ||
         nativeSpec.render.presentation?.fills === "background"),
-    hasChildren: elementsView.elements.some(
-      (candidate) => candidate.parent_id === selectedElementId,
-    ),
+    hasChildren: elementOverride
+      ? (elementOverride.children?.length ?? 0) > 0
+      : elementsView.elements.some(
+          (candidate) => candidate.parent_id === selectedElementId,
+        ),
   });
   documentCache.set(selectedElementId, context);
   return context;
@@ -103,8 +133,10 @@ export function resolveFillPresentationPilotTarget(
   const projectId = state.currentProjectId;
   const document = projectId ? state.documents.get(projectId) : null;
   if (!projectId || !document) return null;
-  const elementsView = getCanonicalDocumentElementsView(document);
-  const element = elementsView.byId.get(selectedElementId);
+
+  const target = resolveEditorPresentationTarget(projectId, selectedElementId);
+  if (!target) return null;
+  const element = getEditorPresentationTargetNode(projectId, target);
   if (!element) return null;
 
   const primitiveBinding = getPrimitiveBinding(element.type)?.skiaPrimitive;
@@ -112,16 +144,14 @@ export function resolveFillPresentationPilotTarget(
     !canMaterializeSkiaPresentationFill(
       primitiveBinding,
       (element.props ?? {}) as Readonly<Record<string, unknown>>,
-      getMaterializationContext(document, selectedElementId),
+      target.kind === "canonical-node"
+        ? getMaterializationContext(document, selectedElementId)
+        : getMaterializationContext(document, selectedElementId, element),
     )
   ) {
     return null;
   }
 
-  const target: EditorPresentationTargetRef = {
-    kind: "canonical-node",
-    nodeId: selectedElementId,
-  };
   if (!editorPresentationCanonicalRuntimeOptions.hasTarget(projectId, target)) {
     return null;
   }

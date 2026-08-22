@@ -1,9 +1,11 @@
-import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import type { ResolvedNode } from "@composition/shared";
+import { FillType } from "../../../types/builder/fill.types";
 
 import type { RenderContext } from "../../types/index";
+import { getRuntimeStore } from "../../store/runtimeStore";
 import { CanonicalNodeRenderer } from "../CanonicalNodeRenderer";
 
 /**
@@ -19,6 +21,11 @@ const ctx = {} as unknown as RenderContext;
 
 // canonical page shell 계열이 아닌 일반 컨테이너로 generic div 경로를 태운다.
 const FRAME_TYPE = "frame" as ResolvedNode["type"];
+
+afterEach(() => {
+  cleanup();
+  getRuntimeStore().setState({ editorPresentationOverrides: {} });
+});
 
 function renderNode(node: ResolvedNode) {
   return render(
@@ -124,5 +131,60 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
     ) as HTMLElement | null;
     expect(el).not.toBeNull();
     expect(el!.style.backgroundColor).toBe("rgb(140, 58, 58)");
+  });
+
+  it("traversal render key의 editor presentation fill을 canonical보다 우선한다", () => {
+    const node: ResolvedNode = {
+      id: "frame-fill",
+      type: FRAME_TYPE,
+      props: { style: { display: "block" } },
+      fills: [
+        {
+          id: "fill-1",
+          type: "color",
+          enabled: true,
+          opacity: 1,
+          blendMode: "normal",
+          color: "#112233FF",
+        },
+      ],
+    };
+    getRuntimeStore().setState({
+      editorPresentationOverrides: {
+        "page-1/frame-fill": {
+          sessionId: "session-1",
+          revision: 1,
+          mutations: [
+            {
+              type: "fills.replace",
+              target: { kind: "canonical-node", nodeId: "frame-fill" },
+              fills: [
+                {
+                  id: "fill-1",
+                  type: FillType.Color,
+                  enabled: true,
+                  opacity: 1,
+                  blendMode: "normal",
+                  color: "#CC4422FF",
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const { container } = render(
+      <CanonicalNodeRenderer
+        node={node}
+        parentPath="page-1"
+        renderContext={ctx}
+        cutoverPrimitives={new Set()}
+      />,
+    );
+    const el = container.querySelector(
+      "[data-canonical-id='frame-fill']",
+    ) as HTMLElement;
+    expect(el.style.backgroundColor).toBe("rgb(204, 68, 34)");
   });
 });

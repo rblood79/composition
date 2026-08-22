@@ -24,6 +24,15 @@ describe("SkiaPresentationProjectionIndex", () => {
         refId: "ref-a",
       }),
     ).toEqual([]);
+
+    builder.addRefDescendantProjection("ref-a", "child/0", "ref-a/child/0");
+    expect(
+      builder.build().resolve({
+        kind: "ref-descendant",
+        pathKey: "child/0",
+        refId: "ref-a",
+      }),
+    ).toEqual(["ref-a/child/0"]);
   });
 
   it.each([1, 4, 16])(

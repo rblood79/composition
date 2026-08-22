@@ -21,10 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
-- hidden `?adr187FillPilot` 경로에서 Color Picker의 raw input은 중첩 RAF나 document 재순회 없이
-  frame당 최신 값 한 번만 `O(1) + O(k)`로 Skia에 적용된다. 실제 Style popover alpha 드래그에서
-  canonical·legacy·layout·projection·full rebuild가 모두 0회였고, mouseup에서만 canonical
-  commit 1회를 확인했다.
+- Phase 3 code land에서 Color Picker의 raw input은 중첩 RAF나 document 재순회 없이 frame당
+  최신 semantic delta 한 번만 `O(1) + O(k)`로 Skia와 상단 Compare Mode의 Preview에 전달된다.
+  finish 전에는 canonical document를 다시 보내지 않고, finish 시 canonical revision envelope를
+  먼저 보장한 뒤 Preview overlay를 atomic retire한다. `?adr187FillPilot=0`은 명시적 rollback
+  스위치로 남겨 두었다.
+- protocol/bridge/store/renderer 집중 81개와 전체 Builder 4081개 테스트가 통과했다. 실제
+  상단 Compare Mode split에서 Color picker pointer drag도 콘솔 오류/경고 없이 동작했다.
+  다만 현재 live fixture의 Preview canonical hydration이 빈 화면 또는 stale component로
+  남아 DOM↔Skia parity와 120Hz trace는 후속 populated-canonical fixture에서 재검증해야 한다.
   - **Why**: 기존에는 picker와 store action의 중첩 RAF 뒤에 full-document preview/scene 작업이
     이어져 단일 `requestAnimationFrame` callback이 52ms까지 길어질 수 있었다.
 

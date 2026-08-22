@@ -59,6 +59,7 @@ import { isLegacyFrameElementForFrame } from "../adapters/canonical/frameElement
 import { hasFrameElementMirrorId } from "../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../adapters/canonical/slotMirror";
 import { projectPageFrameNodes } from "../adapters/canonical/projectPageFrameTree";
+import { buildPreviewPresentationProjectionIndex } from "./presentation/editorPresentationProjectionIndex";
 
 /**
  * ADR-142 — catalog generic 렌더로 cutover 된 primitive type 집합 (componentCatalog 파생).
@@ -139,6 +140,12 @@ function CanvasContent() {
   const currentLayoutId = useRuntimeStore((s) => s.currentLayoutId);
   const currentPageId = useRuntimeStore((s) => s.currentPageId);
   const canonicalDocument = useRuntimeStore((s) => s.canonicalDocument);
+  const canonicalDocumentRevision = useRuntimeStore(
+    (s) => s.canonicalDocumentRevision,
+  );
+  const setEditorPresentationProjectionIndex = useRuntimeStore(
+    (s) => s.setEditorPresentationProjectionIndex,
+  );
   const [importRegistryVersion, bumpImportRegistryVersion] = useState(0);
   const navigate = useNavigate();
 
@@ -231,6 +238,39 @@ function CanvasContent() {
       return null;
     }
   }, [canonicalDocument, importRegistryVersion]);
+
+  // Renderer와 semantic target index가 같은 visible projection tree를 소비해야
+  // ref/page-frame fan-out과 traversal render key가 어긋나지 않는다.
+  const visibleCanonicalNodes = useMemo(() => {
+    if (!resolvedCanonicalNodes) return null;
+    const matchedPageNodes = resolvedCanonicalNodes.filter((node) => {
+      if (!isRuntimePageNode(node)) return false;
+      const meta = node.metadata as Record<string, unknown> | undefined;
+      if (!currentPageId) return true;
+      const resolvedPageId =
+        typeof meta?.pageId === "string" && meta.pageId.length > 0
+          ? meta.pageId
+          : node.id;
+      return resolvedPageId === currentPageId;
+    });
+    return canonicalDocument
+      ? projectPageFrameNodes(matchedPageNodes, canonicalDocument)
+      : matchedPageNodes;
+  }, [canonicalDocument, currentPageId, resolvedCanonicalNodes]);
+
+  useEffect(() => {
+    if (!visibleCanonicalNodes) return;
+    setEditorPresentationProjectionIndex(
+      buildPreviewPresentationProjectionIndex(
+        visibleCanonicalNodes,
+        canonicalDocumentRevision,
+      ),
+    );
+  }, [
+    canonicalDocumentRevision,
+    setEditorPresentationProjectionIndex,
+    visibleCanonicalNodes,
+  ]);
 
   // ADR-148 Phase 0/4 — collection item template 의 slot 구성 (문서 1회 계산 → renderContext
   //   주입). 표준 instance 는 anchor-less bare ref 라 renderer 의 subtree childrenByParent 로는
@@ -1153,25 +1193,7 @@ function CanvasContent() {
         // 현재 page 에 해당하는 top-level 노드 필터링.
         // page 식별은 runtime audience helper를 사용한다.
         // currentPageId 없으면 (layout-edit 모드) 모든 page 노드 통과.
-        const matchedPageNodes = resolvedCanonicalNodes.filter((node) => {
-          if (!isRuntimePageNode(node)) return false;
-          const meta = node.metadata as Record<string, unknown> | undefined;
-          if (!currentPageId) return true;
-
-          const resolvedPageId =
-            typeof meta?.pageId === "string" && meta.pageId.length > 0
-              ? meta.pageId
-              : node.id;
-          return resolvedPageId === currentPageId;
-        });
-
-        // 프레임을 참조하는 페이지는 슬롯 투영이 필요하다. resolver 는 master(프레임 body)와
-        // instance(page body) 자식을 **이어 붙이므로**, 그대로 렌더하면 빈 슬롯이 뷰포트를
-        // 채우고 페이지 콘텐츠가 그 아래로 밀려난다 (Skia 축은 `resolvePageWithFrame` 이
-        // 같은 합성을 수행 — 정책은 `pageFrameProjection` 에서 공유).
-        const pageNodes = canonicalDocument
-          ? projectPageFrameNodes(matchedPageNodes, canonicalDocument)
-          : matchedPageNodes;
+        const pageNodes = visibleCanonicalNodes ?? [];
 
         if (pageNodes.length === 0) {
           // canonical 결과 없음 → legacy fallback (안전망)
@@ -1281,6 +1303,7 @@ function CanvasContent() {
     return rootElements.map((el) => renderElement(el, el.id));
   }, [
     resolvedCanonicalNodes,
+    visibleCanonicalNodes,
     resolvedElements,
     renderElement,
     currentLayoutId,
@@ -1325,6 +1348,10 @@ export function App() {
     messageHandlerRef.current = new MessageHandler({
       setElements: storeState.setElements,
       setCanonicalDocument: storeState.setCanonicalDocument,
+      receiveCanonicalDocument: storeState.receiveCanonicalDocument,
+      applyEditorPresentationPatch: storeState.applyEditorPresentationPatch,
+      finishEditorPresentation: storeState.finishEditorPresentation,
+      cancelEditorPresentation: storeState.cancelEditorPresentation,
       updateElementProps: storeState.updateElementProps,
       setThemeVars: storeState.setThemeVars,
       setDarkMode: storeState.setDarkMode,

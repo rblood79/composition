@@ -15,6 +15,7 @@ import {
   commitEditorPresentationFills,
   editorPresentationCanonicalRuntimeOptions,
   getEditorPresentationCommitAdapterDiagnostics,
+  resolveEditorPresentationTarget,
 } from "./editorPresentationCommitAdapter";
 import { EditorPresentationTransactionRuntime } from "./editorPresentationRuntime";
 
@@ -242,5 +243,67 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
       }),
     ).toEqual({ reason: "conflict", status: "cancelled" });
     expect(currentColor()).toBe("#555555FF");
+  });
+
+  it("ref-descendant fill은 stable path를 통해 DOM/Skia 공통 semantic target으로 commit한다", () => {
+    const refDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "master-card",
+          type: "frame",
+          reusable: true,
+          children: [
+            {
+              id: "label",
+              type: "frame",
+              fills: [fill("#111111FF")],
+              props: {},
+            },
+          ],
+        },
+        {
+          id: "instance-card",
+          type: "ref",
+          ref: "master-card",
+          descendants: {},
+        },
+      ],
+    } as unknown as CompositionDocument;
+    useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, refDocument);
+
+    const target = resolveEditorPresentationTarget(
+      PROJECT_ID,
+      "instance-card/label",
+    );
+    expect(target).toEqual({
+      kind: "ref-descendant",
+      refId: "instance-card",
+      pathKey: "label",
+    });
+
+    commitEditorPresentationFills({
+      baseDocumentVersion: useCanonicalDocumentStore.getState().documentVersion,
+      commitIntent: "fill-color",
+      descriptor: {
+        type: "fills.replace",
+        target: target!,
+        fills: [fill("#ABCDEF80")],
+      },
+      projectId: PROJECT_ID,
+      sessionId: "ref-session",
+      targets: [target!],
+    });
+
+    const next = useCanonicalDocumentStore
+      .getState()
+      .documents.get(PROJECT_ID)
+      ?.children.find(
+        (candidate) => candidate.id === "instance-card",
+      ) as unknown as { descendants?: Record<string, { fills?: FillItem[] }> };
+    expect(
+      (next.descendants?.label?.fills?.[0] as { color?: string } | undefined)
+        ?.color,
+    ).toBe("#ABCDEF80");
   });
 });

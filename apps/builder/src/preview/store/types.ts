@@ -7,6 +7,14 @@
 
 import type { CSSProperties } from "react";
 import type { CompositionDocument } from "@composition/shared";
+import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
+import type {
+  EditorPresentationCancelMessage,
+  EditorPresentationFinishMessage,
+  EditorPresentationPatchMessage,
+  UpdateCanonicalDocumentMessage,
+} from "../../builder/presentation/editorPresentationProtocol";
+import type { PreviewPresentationProjectionIndex } from "../presentation/editorPresentationProjectionIndex";
 
 // Runtime node shape (Preview에서 사용하는 최소 타입)
 export interface RuntimeElement {
@@ -104,6 +112,24 @@ export interface RuntimeVariable {
   page_id?: string;
 }
 
+export interface PreviewEditorPresentationOverride {
+  readonly sessionId: string;
+  readonly revision: number;
+  readonly mutations: readonly EditorMutationDescriptor[];
+}
+
+export interface PreviewPresentationFinishLatch {
+  readonly sessionId: string;
+  readonly terminalRevision: number;
+  readonly committedDocumentRevision: number;
+}
+
+export interface PreviewEditorPresentationActivePatch {
+  readonly sessionId: string;
+  readonly revision: number;
+  readonly mutations: readonly EditorMutationDescriptor[];
+}
+
 // `DataState` 는 여기 없다 (2026-08-17 제거) — 아래 §Data Sources 의 tombstone 참조.
 
 // 상태 계층
@@ -123,6 +149,41 @@ export interface RuntimeStoreState extends StateHierarchy {
   setElements: (elements: RuntimeElement[]) => void;
   canonicalDocument: CompositionDocument | null;
   setCanonicalDocument: (document: CompositionDocument | null) => void;
+  canonicalProjectId: string | null;
+  canonicalDocumentRevision: number;
+  receiveCanonicalDocument: (message: UpdateCanonicalDocumentMessage) => void;
+
+  editorPresentationProjectionIndex: PreviewPresentationProjectionIndex;
+  editorPresentationOverrides: Record<
+    string,
+    PreviewEditorPresentationOverride | undefined
+  >;
+  editorPresentationActivePatches: Record<
+    string,
+    PreviewEditorPresentationActivePatch | undefined
+  >;
+  editorPresentationRenderKeysBySession: Record<
+    string,
+    readonly string[] | undefined
+  >;
+  editorPresentationLastRevisions: Record<string, number | undefined>;
+  editorPresentationTombstones: Record<string, number | undefined>;
+  editorPresentationFinishLatches: Record<
+    string,
+    PreviewPresentationFinishLatch | undefined
+  >;
+  pendingEditorPresentationPatches: Record<
+    string,
+    EditorPresentationPatchMessage | undefined
+  >;
+  setEditorPresentationProjectionIndex: (
+    index: PreviewPresentationProjectionIndex,
+  ) => void;
+  applyEditorPresentationPatch: (
+    message: EditorPresentationPatchMessage,
+  ) => void;
+  finishEditorPresentation: (message: EditorPresentationFinishMessage) => void;
+  cancelEditorPresentation: (message: EditorPresentationCancelMessage) => void;
 
   /**
    * ADR-158 Phase 3 — 인터랙션 발화가 쌓는 **임시** prop override (elementId → patch).

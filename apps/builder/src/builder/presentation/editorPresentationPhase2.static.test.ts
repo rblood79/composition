@@ -7,11 +7,11 @@ async function source(path: string): Promise<string> {
 }
 
 describe("ADR-187 Phase 2 migration guards", () => {
-  it("pilot은 hidden query opt-in이며 production default를 바꾸지 않는다", async () => {
+  it("Phase 3 pilot은 production default-on이며 query=0만 rollback이다", async () => {
     const pilot = await source("editorPresentationFillPilot.ts");
     expect(pilot).toContain('FILL_PILOT_QUERY_PARAM = "adr187FillPilot"');
-    expect(pilot).toContain("new URLSearchParams(window.location.search).has(");
-    expect(pilot).not.toMatch(/\?\?\s*true|default.*true/i);
+    expect(pilot).toContain("new URLSearchParams(window.location.search).get(");
+    expect(pilot).toContain('!==\n    "0"');
   });
 
   it("migrated owner는 runtime 외 RAF와 legacy preview write를 호출하지 않는다", async () => {
@@ -129,15 +129,11 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(rendererInput).toContain("visibleRenderIds.has(node.id)");
   });
 
-  it("ref-descendant는 Phase 3까지 projection과 owner에서 제외한다", async () => {
+  it("ref-descendant는 Phase 3 projection과 owner에서 semantic 처리한다", async () => {
     const projection = await source("skiaPresentationProjectionIndex.ts");
     const pilot = await source("editorPresentationFillPilot.ts");
-    expect(projection).toContain(
-      'if (target.kind !== "canonical-node") return EMPTY_RENDER_IDS',
-    );
-    expect(pilot).toMatch(
-      /const target: EditorPresentationTargetRef = \{\s*kind: "canonical-node"/,
-    );
-    expect(pilot).not.toContain('kind: "ref-descendant"');
+    expect(projection).toContain("addRefDescendantProjection");
+    expect(pilot).toContain("resolveEditorPresentationTarget");
+    expect(pilot).toContain("getEditorPresentationTargetNode");
   });
 });

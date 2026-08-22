@@ -857,6 +857,27 @@ Preview parity 전에는 일반 production cutover하지 않는다. G3 통과가
 
 ### Phase 3 — Preview delta protocol + paint production cutover
 
+**진행 상태: Code land — 2026-08-22.** Protocol/validator, canonical revision envelope,
+shared ready queue, Preview semantic projection index, overlay store, finish revision latch,
+reload cancellation, ref-descendant commit, and default-on paint pilot are 구현됐다.
+
+- **G4-A/B automated PASS** — DOM/Skia semantic target fixtures cover origin root/descendant,
+  ref root/descendant, raw projection-id rejection, empty delta, duplicate/stale delta,
+  finish-before-document, document-before-finish, future-base buffering, cancel tombstone,
+  and iframe reload cancellation. The store retires overlay and canonical replacement in
+  one state transition when `committedDocumentRevision` arrives.
+- **G5 deterministic lookup PASS** — Preview and Skia projection indexes are renderer-local;
+  N=50/500/5000 lookup tests return only the affected render key (`k=1`) and preserve
+  canonical target identity. Focused protocol/bridge/store/renderer tests: 11 files,
+  81 tests PASS; full Builder Vitest: 499 files PASS, 4081 passed.
+- **Live exercise** — actual Builder top-toolbar Compare Mode split and Color picker
+  pointer-drag were exercised with console error/warning 0. The existing populated fixture
+  rendered an empty Preview pane, while a fresh fixture rendered Preview but did not
+  refresh after adding a second component; therefore DOM↔Skia color parity and the real
+  120Hz counter trace remain **blocked by the fixture/canonical hydration state**, not
+  claimed as passed here. Re-run G4 live with a populated canonical fixture before moving
+  this phase to Complete.
+
 - message types/validator/sender/receiver
 - canonical document revision envelope와 shared ready queue
 - Preview semantic target→render-key index, node별 overlay store와 renderer merge
@@ -865,7 +886,8 @@ Preview parity 전에는 일반 production cutover하지 않는다. G3 통과가
 - Skia↔Preview cross-check
 - N-tier production benchmark와 120Hz actual pointer trace
 
-G4-A/G4-B/G5를 통과하면 fill color pilot을 production default로 전환한다.
+G4-A/G4-B/G5의 자동 계약은 통과했지만 live parity/120Hz trace가 남아 있으므로,
+다음 실행에서 그 증적을 확보하기 전까지 Phase 3는 Complete로 승격하지 않는다.
 
 ### Phase 4 — layout lane와 version consumer 분리
 

@@ -73,7 +73,7 @@ describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)",
       const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
       const source = await fs.readFile(filePath, "utf-8");
       const effectBlock = source.match(
-        /lastSentCanonicalDocumentRef[\s\S]{0,900}sendCanonicalDocumentToIframe\(activeCanonicalDocument\);[\s\S]{0,300}\[activeCanonicalDocument, isWebGLOnly, sendCanonicalDocumentToIframe\]/,
+        /ownsIframeTransportRef\.current[\s\S]{0,1200}sendCanonicalDocumentToIframe\(activeCanonicalDocument\);[\s\S]{0,300}\[activeCanonicalDocument, isWebGLOnly, sendCanonicalDocumentToIframe\]/,
       );
       expect(
         effectBlock,

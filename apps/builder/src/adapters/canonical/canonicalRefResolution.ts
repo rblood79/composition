@@ -40,6 +40,22 @@ type CanonicalRefFields = {
 
 type OverrideNode = Record<string, unknown>;
 
+/**
+ * Reusable descendant의 canonical path segment SSOT.
+ * DOM, Skia, commit adapter가 customId/componentName/name/id를 서로 다르게
+ * 선택하면 같은 semantic target이 한 renderer에서만 갱신되므로 resolver와
+ * presentation projection이 이 helper를 공유한다.
+ */
+export function getCanonicalRefPathSegment<
+  T extends Pick<CanonicalRefResolvableNode, "id"> & {
+    customId?: string | null;
+    componentName?: string | null;
+    name?: string;
+  },
+>(node: T): string {
+  return node.customId || node.componentName || node.name || node.id;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -97,6 +113,34 @@ export function getCanonicalRefTarget<T extends CanonicalRefResolvableNode>(
 
   const masterId = (node as T & LegacyElementMirrorFields).masterId;
   return typeof masterId === "string" && masterId.length > 0 ? masterId : null;
+}
+
+type CanonicalRefDescendantOwner = CanonicalRefResolvableNode & {
+  descendants?: Record<string, Record<string, unknown>>;
+};
+
+export function getCanonicalRefDescendantOverride(
+  node: CanonicalRefResolvableNode,
+  pathKey: string,
+): Record<string, unknown> | null {
+  const override = (node as CanonicalRefDescendantOwner).descendants?.[pathKey];
+  return isRecord(override) ? override : null;
+}
+
+export function withCanonicalRefDescendantFills<
+  T extends CanonicalRefResolvableNode,
+>(node: T, pathKey: string, fills: readonly unknown[]): T {
+  const owner = node as T & CanonicalRefDescendantOwner;
+  return {
+    ...node,
+    descendants: {
+      ...(owner.descendants ?? {}),
+      [pathKey]: {
+        ...(owner.descendants?.[pathKey] ?? {}),
+        fills,
+      },
+    },
+  } as T;
 }
 
 export function resolveCanonicalRefMaster<T extends CanonicalRefResolvableNode>(
@@ -195,12 +239,6 @@ export type ResolvedCanonicalRefTree<T extends CanonicalRefResolvableNode> = {
   elementsMap: Map<string, T>;
 };
 
-function getStableSegment<T extends CanonicalRefResolvableNode>(
-  node: T,
-): string {
-  return node.customId ?? node.componentName ?? node.name ?? node.id;
-}
-
 function buildChildrenMapFromElements<T extends CanonicalRefResolvableNode>(
   elements: Iterable<T>,
 ): Map<string, T[]> {
@@ -236,6 +274,7 @@ function propsFromDescendantPatch(
     children,
     descendants: _descendants,
     id: _id,
+    fills: _fills,
     metadata: _metadata,
     name: _name,
     ref: _ref,
@@ -269,6 +308,7 @@ function getOverrideNodeProps(node: OverrideNode): Record<string, unknown> {
     customId: _customId,
     descendants: _descendants,
     id: _id,
+    fills: _fills,
     metadata: _metadata,
     name: _name,
     ref: _ref,
@@ -333,6 +373,7 @@ function applyDescendantPatchToElement<T extends CanonicalRefResolvableNode>(
     ...element,
     type: patchedType,
     props: mergePropsWithStyleDeep(getNodeProps(element), patchProps),
+    ...(Array.isArray(patch.fills) ? { fills: patch.fills } : {}),
   } as T;
 }
 
@@ -540,7 +581,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
   const syntheticChildren: T[] = [];
 
   sourceChildren.forEach((sourceChild, index) => {
-    const segment = getStableSegment(sourceChild);
+    const segment = getCanonicalRefPathSegment(sourceChild);
     const path = pathPrefix ? `${pathPrefix}/${segment}` : segment;
     const patch = getDescendantPatch(refElement, path);
     const syntheticId = `${refElement.id}/${path}`;
@@ -611,6 +652,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
             templateBindings,
           )
         : mergePropsWithStyleDeep(getNodeProps(sourceChild), patchProps),
+      ...(patch && Array.isArray(patch.fills) ? { fills: patch.fills } : {}),
       reusable: undefined,
     } as T;
 

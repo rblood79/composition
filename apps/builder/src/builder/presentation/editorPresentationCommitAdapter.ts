@@ -17,6 +17,12 @@ import type {
   EditorMutationDescriptor,
   EditorPresentationTargetRef,
 } from "./editorPresentationTypes";
+import {
+  getCanonicalRefDescendantOverride,
+  getCanonicalRefPathSegment,
+  getCanonicalRefTarget,
+  withCanonicalRefDescendantFills,
+} from "../../adapters/canonical/canonicalRefResolution";
 
 interface IndexedCanonicalNode {
   readonly indexPath: readonly number[];
@@ -106,6 +112,60 @@ function getIndexedNode(
     : null;
 }
 
+function findDescendantNode(
+  root: CanonicalNode,
+  pathKey: string,
+): CanonicalNode | null {
+  let current: CanonicalNode = root;
+  for (const segment of pathKey.split("/")) {
+    const next = current.children?.find(
+      (child) => getCanonicalRefPathSegment(child) === segment,
+    );
+    if (!next) return null;
+    current = next;
+  }
+  return current;
+}
+
+export function getEditorPresentationTargetNode(
+  projectId: string,
+  target: EditorPresentationTargetRef,
+): CanonicalNode | null {
+  if (target.kind === "canonical-node") {
+    return getIndexedNode(projectId, target)?.node ?? null;
+  }
+  const refRoot = getIndexedNode(projectId, {
+    kind: "canonical-node",
+    nodeId: target.refId,
+  });
+  if (!refRoot) return null;
+  const masterId = getCanonicalRefTarget(refRoot.node);
+  if (!masterId) return null;
+  const master = getIndexedNode(projectId, {
+    kind: "canonical-node",
+    nodeId: masterId,
+  });
+  return master ? findDescendantNode(master.node, target.pathKey) : null;
+}
+
+export function resolveEditorPresentationTarget(
+  projectId: string,
+  selectedElementId: string,
+): EditorPresentationTargetRef | null {
+  if (!selectedElementId.includes("/")) {
+    const target = {
+      kind: "canonical-node",
+      nodeId: selectedElementId,
+    } as const;
+    return getEditorPresentationTargetNode(projectId, target) ? target : null;
+  }
+  const separator = selectedElementId.indexOf("/");
+  const refId = selectedElementId.slice(0, separator);
+  const pathKey = selectedElementId.slice(separator + 1);
+  const target = { kind: "ref-descendant", refId, pathKey } as const;
+  return getEditorPresentationTargetNode(projectId, target) ? target : null;
+}
+
 function cloneFillItems(fills: readonly FillItem[]): FillItem[] {
   return fills.map((fill) => structuredClone(fill));
 }
@@ -158,11 +218,21 @@ function readTargetFills(
   projectId: string,
   target: EditorPresentationTargetRef,
 ): readonly FillItem[] | null {
-  const entry = getIndexedNode(projectId, target);
-  if (!entry) return null;
-  return Array.isArray(entry.node.fills)
-    ? (entry.node.fills as FillItem[])
-    : [];
+  const node = getEditorPresentationTargetNode(projectId, target);
+  if (!node) return null;
+  if (target.kind === "ref-descendant") {
+    const refRoot = getIndexedNode(projectId, {
+      kind: "canonical-node",
+      nodeId: target.refId,
+    })?.node;
+    const override = refRoot
+      ? getCanonicalRefDescendantOverride(refRoot, target.pathKey)
+      : null;
+    if (Array.isArray(override?.fills)) {
+      return override.fills as FillItem[];
+    }
+  }
+  return Array.isArray(node.fills) ? (node.fills as FillItem[]) : [];
 }
 
 function buildReplaceHistoryEvents(
@@ -190,10 +260,8 @@ export function commitEditorPresentationFills(
 ): EditorPresentationCommitResult {
   const descriptor = input.descriptor;
   const target = descriptor.target;
-  if (descriptor.type !== "fills.replace" || target.kind !== "canonical-node") {
-    throw new Error(
-      "ADR-187 Phase 2 commit allowlist only accepts canonical fills.replace",
-    );
+  if (descriptor.type !== "fills.replace") {
+    throw new Error("ADR-187 fill commit allowlist only accepts fills.replace");
   }
 
   const canonical = useCanonicalDocumentStore.getState();
@@ -207,15 +275,18 @@ export function commitEditorPresentationFills(
   }
   const document = canonical.documents.get(input.projectId);
   const before = document
-    ? getDocumentIndex(document).get(target.nodeId)
+    ? getDocumentIndex(document).get(
+        target.kind === "canonical-node" ? target.nodeId : target.refId,
+      )
     : undefined;
-  if (!document || !before) {
+  const targetNode = getEditorPresentationTargetNode(input.projectId, target);
+  if (!document || !before || !targetNode) {
     throw new Error("Editor presentation canonical target no longer exists");
   }
 
   const nextFills = cloneFillItems(descriptor.fills);
-  const previousFills = Array.isArray(before.node.fills)
-    ? (before.node.fills as FillItem[])
+  const previousFills = Array.isArray(targetNode.fills)
+    ? (targetNode.fills as FillItem[])
     : [];
   if (areFillItemsEqual(previousFills, nextFills)) {
     return { committedDocumentRevision: canonical.documentVersion };
@@ -226,7 +297,10 @@ export function commitEditorPresentationFills(
     );
   }
 
-  const nextNode: CanonicalNode = { ...before.node, fills: nextFills };
+  const nextNode: CanonicalNode =
+    target.kind === "canonical-node"
+      ? { ...before.node, fills: nextFills }
+      : withCanonicalRefDescendantFills(before.node, target.pathKey, nextFills);
   const nextDocument = replaceNodeAtIndexPath(
     document,
     before.indexPath,
@@ -251,7 +325,8 @@ export function commitEditorPresentationFills(
     history: () => {
       historyManager.addEntry({
         type: "update",
-        elementId: target.nodeId,
+        elementId:
+          target.kind === "canonical-node" ? target.nodeId : target.refId,
         data: { canonicalEvents: historyEvents },
       });
     },
@@ -274,7 +349,8 @@ export const editorPresentationCanonicalRuntimeOptions: Required<
   >
 > = {
   commit: commitEditorPresentationFills,
-  hasTarget: (projectId, target) => getIndexedNode(projectId, target) !== null,
+  hasTarget: (projectId, target) =>
+    getEditorPresentationTargetNode(projectId, target) !== null,
   isDescriptorEqualToBase: (descriptor, baseValue) =>
     descriptor.type === "fills.replace" &&
     areFillItemsEqual(

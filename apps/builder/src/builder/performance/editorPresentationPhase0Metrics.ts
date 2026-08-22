@@ -197,6 +197,20 @@ export function recordEditorPresentationPreviewFullDocumentMessage(
   counters.previewFullDocumentBytes += previewFullDocumentRepresentativeBytes;
 }
 
+export function recordEditorPresentationPreviewDeltaMessage(
+  payload: unknown,
+): void {
+  if (!enabled) return;
+  increment("previewDeltaMessageCount");
+  try {
+    counters.previewDeltaBytes += new TextEncoder().encode(
+      JSON.stringify(payload),
+    ).byteLength;
+  } catch {
+    // structured-clone validator가 먼저 차단한다. 계측은 제품 전송을 막지 않는다.
+  }
+}
+
 export function getEditorPresentationPhase0Snapshot(): EditorPresentationPhase0Snapshot {
   return {
     counters: { ...counters },

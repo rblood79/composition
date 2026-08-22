@@ -262,6 +262,16 @@ function addPresentationProjection(
   if (typeof element.ref === "string") {
     builder.addCanonicalProjection(element.ref, element.id);
   }
+  // canonical ref descendant는 renderer synthetic id를 protocol로 노출하지 않고
+  // `<refId>/<stable path>`를 semantic target index로 환원한다.
+  const syntheticSeparator = element.id.indexOf("/");
+  if (syntheticSeparator > 0 && !element.id.startsWith("projection:")) {
+    builder.addRefDescendantProjection(
+      element.id.slice(0, syntheticSeparator),
+      element.id.slice(syntheticSeparator + 1),
+      element.id,
+    );
+  }
   if (
     element.projection?.kind === "page-frame-element" ||
     element.projection?.kind === "page-slot-fill"

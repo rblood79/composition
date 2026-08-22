@@ -23,7 +23,14 @@ import type {
   RuntimeApiEndpoint,
   RuntimeVariable,
 } from "../store/types";
-import type { CompositionDocument } from "@composition/shared";
+import {
+  isEditorPresentationProtocolMessage,
+  isUpdateCanonicalDocumentMessage,
+  type EditorPresentationCancelMessage,
+  type EditorPresentationFinishMessage,
+  type EditorPresentationPatchMessage,
+  type UpdateCanonicalDocumentMessage,
+} from "../../builder/presentation/editorPresentationProtocol";
 
 // ============================================
 // Helper: Get Target Origin for postMessage
@@ -45,10 +52,7 @@ function getTargetOrigin(): string {
 // Builder → Preview 의 active channel 은 UPDATE_CANONICAL_DOCUMENT 단일.
 // 기존 UpdateElementsMessage interface 는 본 phase 에서 삭제됨.
 
-export interface UpdateCanonicalDocumentMessage {
-  type: "UPDATE_CANONICAL_DOCUMENT";
-  document: CompositionDocument | null;
-}
+export type { UpdateCanonicalDocumentMessage };
 
 export interface UpdateElementPropsMessage {
   type: "UPDATE_ELEMENT_PROPS";
@@ -132,6 +136,9 @@ export interface RequestElementSelectionMessage {
 
 export type BuilderToPreviewMessage =
   | UpdateCanonicalDocumentMessage
+  | EditorPresentationPatchMessage
+  | EditorPresentationFinishMessage
+  | EditorPresentationCancelMessage
   | UpdateElementPropsMessage
   | ThemeVarsMessage
   | SetDarkModeMessage
@@ -154,6 +161,10 @@ type StoreActions = Pick<
   PreviewStoreState,
   | "setElements"
   | "setCanonicalDocument"
+  | "receiveCanonicalDocument"
+  | "applyEditorPresentationPatch"
+  | "finishEditorPresentation"
+  | "cancelEditorPresentation"
   | "updateElementProps"
   | "setThemeVars"
   | "setDarkMode"
@@ -209,7 +220,27 @@ export class MessageHandler {
 
     switch (data.type) {
       case "UPDATE_CANONICAL_DOCUMENT":
-        this.handleUpdateCanonicalDocument(data);
+        if (isUpdateCanonicalDocumentMessage(data)) {
+          this.handleUpdateCanonicalDocument(data);
+        }
+        break;
+
+      case "EDITOR_PRESENTATION_PATCH":
+        if (isEditorPresentationProtocolMessage(data)) {
+          this.store.applyEditorPresentationPatch(data);
+        }
+        break;
+
+      case "EDITOR_PRESENTATION_FINISH":
+        if (isEditorPresentationProtocolMessage(data)) {
+          this.store.finishEditorPresentation(data);
+        }
+        break;
+
+      case "EDITOR_PRESENTATION_CANCEL":
+        if (isEditorPresentationProtocolMessage(data)) {
+          this.store.cancelEditorPresentation(data);
+        }
         break;
 
       case "UPDATE_ELEMENT_PROPS":
@@ -279,7 +310,7 @@ export class MessageHandler {
   private handleUpdateCanonicalDocument(
     data: UpdateCanonicalDocumentMessage,
   ): void {
-    this.store.setCanonicalDocument(data.document ?? null);
+    this.store.receiveCanonicalDocument(data);
   }
 
   private handleUpdateElementProps(data: UpdateElementPropsMessage): void {

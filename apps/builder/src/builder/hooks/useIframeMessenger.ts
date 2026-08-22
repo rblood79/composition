@@ -74,6 +74,11 @@ import {
 import { useThemeConfigStore } from "../../stores/themeConfigStore";
 import { normalizeExternalFillIngressBatch } from "../panels/styles/utils/fillExternalIngress";
 import { includeCanonicalRefDependencies } from "../utils/canonicalRefDependencies";
+import {
+  editorPresentationFillPilotRuntime,
+  editorPresentationFillPreviewBridge,
+} from "../presentation/editorPresentationFillPilot";
+import type { EditorPresentationPreviewTransport } from "../presentation/editorPresentationPreviewBridge";
 
 export type IframeReadyState =
   "not_initialized" | "loading" | "ready" | "error";
@@ -177,6 +182,14 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   const isSendingRef = useRef(false); // ✅ 전송 중 플래그
   const previewGeneratedElementsRef = useRef<Map<string, Element>>(new Map());
   const previewGeneratedElementsFlushIdRef = useRef<number | null>(null);
+  const ownsIframeTransportRef = useRef(false);
+  const previewTransportRef = useRef<EditorPresentationPreviewTransport | null>(
+    null,
+  );
+  const lastSentCanonicalEnvelopeRef = useRef<{
+    projectId: string | null;
+    revision: number;
+  } | null>(null);
 
   const activeCanonicalDocument = useActiveCanonicalDocument();
   const currentPageId = useStore((state) => state.currentPageId);
@@ -302,12 +315,32 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   }, []); // ✅ 의존성 제거 (Ref 사용)
 
   const sendCanonicalDocumentToIframe = useCallback(
-    (document: CompositionDocument | null) => {
+    (
+      document: CompositionDocument | null,
+      envelope?: { projectId: string | null; revision: number },
+    ) => {
+      const canonicalState = useCanonicalDocumentStore.getState();
+      const projectId = envelope?.projectId ?? canonicalState.currentProjectId;
+      const documentRevision =
+        envelope?.revision ?? canonicalState.documentVersion;
+      const lastEnvelope = lastSentCanonicalEnvelopeRef.current;
+      if (
+        lastEnvelope?.projectId === projectId &&
+        lastEnvelope.revision >= documentRevision
+      ) {
+        return;
+      }
       const iframe = MessageService.getIframe();
       const currentReadyState = iframeReadyStateRef.current;
       const message = {
         type: "UPDATE_CANONICAL_DOCUMENT" as const,
+        projectId,
+        documentRevision,
         document,
+      };
+      lastSentCanonicalEnvelopeRef.current = {
+        projectId,
+        revision: documentRevision,
       };
       recordEditorPresentationPreviewFullDocumentMessage(message);
 
@@ -322,6 +355,35 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
       iframe.contentWindow.postMessage(message, window.location.origin);
     },
     [],
+  );
+
+  const sendEditorPresentationMessage = useCallback(
+    (message: Parameters<EditorPresentationPreviewTransport["send"]>[0]) => {
+      const iframe = MessageService.getIframe();
+      if (iframeReadyStateRef.current !== "ready" || !iframe?.contentWindow) {
+        messageQueueRef.current.push({ type: message.type, payload: message });
+        return;
+      }
+      iframe.contentWindow.postMessage(message, window.location.origin);
+    },
+    [],
+  );
+
+  const ensureCanonicalDocumentSent = useCallback(
+    (projectId: string, revision: number) => {
+      const canonicalState = useCanonicalDocumentStore.getState();
+      if (
+        canonicalState.currentProjectId !== projectId ||
+        canonicalState.documentVersion < revision
+      ) {
+        return;
+      }
+      sendCanonicalDocumentToIframe(
+        canonicalState.documents.get(projectId) ?? null,
+        { projectId, revision: canonicalState.documentVersion },
+      );
+    },
+    [sendCanonicalDocumentToIframe],
   );
 
   // ⭐ Layout/Slot System: Page 정보를 iframe에 전송
@@ -633,18 +695,54 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
       } else if (item.type === "UPDATE_VARIABLES") {
         // ⭐ Variables 전송 (PropertyDataBinding용)
         iframe.contentWindow!.postMessage(item.payload, window.location.origin);
+      } else if (item.type.startsWith("EDITOR_PRESENTATION_")) {
+        iframe.contentWindow!.postMessage(item.payload, window.location.origin);
       }
     });
   }, []); // ✅ 의존성 제거 (Ref 사용)
 
   const handleIframeLoad = useCallback(() => {
+    editorPresentationFillPreviewBridge.attachTransport(null);
+    const canonicalState = useCanonicalDocumentStore.getState();
+    if (canonicalState.currentProjectId) {
+      editorPresentationFillPilotRuntime.cancelProjectSessions(
+        canonicalState.currentProjectId,
+        "iframe-reload",
+      );
+    }
+    messageQueueRef.current = [];
+    lastSentCanonicalEnvelopeRef.current = null;
+    ownsIframeTransportRef.current = true;
+
     // 🔧 FIX: Ref도 업데이트
     iframeReadyStateRef.current = "loading";
     setIframeReadyState("loading");
 
+    // 새 ready generation은 반드시 canonical envelope가 첫 메시지다.
+    sendCanonicalDocumentToIframe(
+      canonicalState.currentProjectId
+        ? (canonicalState.documents.get(canonicalState.currentProjectId) ??
+            null)
+        : null,
+      {
+        projectId: canonicalState.currentProjectId,
+        revision: canonicalState.documentVersion,
+      },
+    );
+    const transport: EditorPresentationPreviewTransport = {
+      ensureCanonicalDocumentSent,
+      send: sendEditorPresentationMessage,
+    };
+    previewTransportRef.current = transport;
+    editorPresentationFillPreviewBridge.attachTransport(transport);
+
     // 🔧 FIX: 요소 전송은 PREVIEW_READY 핸들러에서 처리
     // (여기서는 DOM 로드만 확인하고, Preview의 React 앱 마운트를 기다림)
-  }, []);
+  }, [
+    ensureCanonicalDocumentSent,
+    sendCanonicalDocumentToIframe,
+    sendEditorPresentationMessage,
+  ]);
 
   const handleMessage = useCallback(
     (event: MessageEvent) => {
@@ -986,6 +1084,11 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   useEffect(() => {
     return () => {
       cancelScheduledFrame(previewGeneratedElementsFlushIdRef.current);
+      if (ownsIframeTransportRef.current) {
+        editorPresentationFillPreviewBridge.attachTransport(null);
+        previewTransportRef.current = null;
+        ownsIframeTransportRef.current = false;
+      }
     };
   }, []);
 
@@ -1078,23 +1181,17 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     sendPageInfoToIframe,
   ]);
 
-  const lastSentCanonicalDocumentRef = useRef<CompositionDocument | null>(null);
   // hidden 탭에서도 발화하는 스케줄러 사용 (rAF 는 background 탭 미발화 → preview 정체).
   // 취소는 스케줄러 종류 무관 cancel 함수로 수행하므로 numeric frame id 대신 cancel 을 보관.
   const pendingCanonicalDocumentCancelRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (isWebGLOnly) return;
-
-    if (lastSentCanonicalDocumentRef.current === activeCanonicalDocument) {
-      return;
-    }
+    if (isWebGLOnly || !ownsIframeTransportRef.current) return;
 
     pendingCanonicalDocumentCancelRef.current?.();
 
     pendingCanonicalDocumentCancelRef.current = scheduleFrameOrTimeout(() => {
       pendingCanonicalDocumentCancelRef.current = null;
-      lastSentCanonicalDocumentRef.current = activeCanonicalDocument;
       sendCanonicalDocumentToIframe(activeCanonicalDocument);
     });
 

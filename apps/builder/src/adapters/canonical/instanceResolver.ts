@@ -105,14 +105,14 @@ export function resolveCanonicalDescendantOverride(
   }
 
   const childProps = child.props ?? {};
-  const mergedProps = mergePropsWithStyleDeep(
-    childProps,
-    override as Record<string, unknown>,
-  );
+  const overrideRecord = override as Record<string, unknown>;
+  const { fills: overrideFills, ...overrideProps } = overrideRecord;
+  const mergedProps = mergePropsWithStyleDeep(childProps, overrideProps);
 
   return {
     ...child,
     props: mergedProps,
+    ...(Array.isArray(overrideFills) ? { fills: overrideFills } : {}),
   };
 }
 

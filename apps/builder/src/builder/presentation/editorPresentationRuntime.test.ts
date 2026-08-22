@@ -355,6 +355,21 @@ describe("EditorPresentationTransactionRuntime", () => {
     ]);
   });
 
+  it("terminal event가 exact final descriptor를 전달하고 iframe reload로 project session을 정리한다", () => {
+    const { runtime } = createRuntime();
+    const terminals: Array<EditorMutationDescriptor | null> = [];
+    runtime.subscribeSessionEvents((event) => {
+      if (event.type === "terminal") terminals.push(event.finalDescriptor);
+    });
+    const committed = begin(runtime);
+    const finalDescriptor = opacityDescriptor(0.75);
+    committed.finish(finalDescriptor);
+
+    begin(runtime);
+    expect(runtime.cancelProjectSessions(projectId, "iframe-reload")).toBe(1);
+    expect(terminals).toEqual([finalDescriptor, null]);
+  });
+
   it.each<EditorPresentationCancelReason>([
     "pointer-cancel",
     "escape",

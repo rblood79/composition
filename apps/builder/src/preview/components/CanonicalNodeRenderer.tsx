@@ -73,6 +73,7 @@ import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
 } from "../../adapters/canonical/frameMirror";
+import type { FillItem } from "../../types/builder/fill.types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -337,6 +338,21 @@ function mergeInteractionOverride(
   return merged;
 }
 
+function resolvePresentationFills(
+  canonicalFills: ResolvedNode["fills"],
+  mutations:
+    | readonly import("../../builder/presentation/editorPresentationTypes").EditorMutationDescriptor[]
+    | undefined,
+): ResolvedNode["fills"] {
+  let fills = canonicalFills;
+  for (const mutation of mutations ?? []) {
+    if (mutation.type === "fills.replace") {
+      fills = mutation.fills as readonly FillItem[] as ResolvedNode["fills"];
+    }
+  }
+  return fills;
+}
+
 export function CanonicalNodeRenderer({
   node,
   renderContext,
@@ -345,6 +361,9 @@ export function CanonicalNodeRenderer({
   collectionAncestor,
 }: CanonicalNodeRendererProps): React.ReactElement | null {
   const currentPath = parentPath ? `${parentPath}/${node.id}` : node.id;
+  const editorPresentation = useRuntimeStore(
+    (state) => state.editorPresentationOverrides[currentPath],
+  );
 
   // ── canonical props 추출 ──────────────────────────────────────────────────
   //
@@ -393,7 +412,10 @@ export function CanonicalNodeRenderer({
       props: canonicalProps as PreviewElement["props"],
       parent_id: null,
       page_id: null,
-      fills: node.fills,
+      fills: resolvePresentationFills(
+        node.fills,
+        editorPresentation?.mutations,
+      ),
     },
     getFrameElementMirrorId(canonicalProps),
   );
