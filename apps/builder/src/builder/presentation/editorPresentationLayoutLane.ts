@@ -65,7 +65,10 @@ export function createPresentationLayoutPlan(input: {
     let rootId =
       target.kind === "canonical-node" ? target.nodeId : target.refId;
     let parentId = input.tree.parentById.get(rootId) ?? null;
+    const visited = new Set([rootId]);
     while (parentId && promote(parentId, rootId)) {
+      if (visited.has(parentId)) break;
+      visited.add(parentId);
       rootId = parentId;
       parentId = input.tree.parentById.get(rootId) ?? null;
     }
@@ -147,10 +150,21 @@ export function resolveCanonicalNodeWithPresentation(
         props: { ...props, style: { ...style, ...layoutPatch } },
       };
     } else if (mutation.type === "geometry.patch") {
-      const geometry = Object.fromEntries(
-        Object.entries(mutation.patch).filter(([key]) => isGeometryKey(key)),
+      const geometryStyle = Object.fromEntries(
+        Object.entries(mutation.patch)
+          .filter(([key]) => isGeometryKey(key))
+          .map(([key, value]) => [
+            key === "x" ? "left" : key === "y" ? "top" : key,
+            value,
+          ]),
       );
-      next = { ...next, ...geometry };
+      if (Object.keys(geometryStyle).length === 0) continue;
+      const props = (next.props ?? {}) as Record<string, unknown>;
+      const style = (props.style ?? {}) as Record<string, unknown>;
+      next = {
+        ...next,
+        props: { ...props, style: { ...style, ...geometryStyle } },
+      };
     }
   }
   return next;

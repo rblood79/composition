@@ -56,13 +56,9 @@ describe("editor presentation layout lane", () => {
       type: "Box",
       width: 100,
       height: 20,
-      x: 0,
-      y: 0,
     } as CanvasLayoutNode & {
       height: number;
       width: number;
-      x: number;
-      y: number;
     };
     const target = { kind: "canonical-node", nodeId: "node-1" } as const;
     const next = resolveCanonicalNodeWithPresentation(node, target, [
@@ -71,9 +67,9 @@ describe("editor presentation layout lane", () => {
     ]);
 
     expect(next).not.toBe(node);
-    expect(next.props).toEqual({ style: { width: 140, color: "red" } });
-    expect((next as CanvasLayoutNode & { x?: number }).x).toBe(12);
-    expect(node.x).toBe(0);
+    expect(next.props).toEqual({
+      style: { width: 140, color: "red", left: 12 },
+    });
     expect(node.props?.style).toEqual({ width: 100, color: "red" });
   });
 
