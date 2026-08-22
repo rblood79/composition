@@ -80,6 +80,8 @@
 //! 전환)은 flex/block/grid 트리 dual-run(Taffy self-diff 0) 통과 후 별도 단계.
 
 use serde::Deserialize;
+#[cfg(test)]
+use std::cell::Cell;
 
 use crate::block;
 use crate::flex;
@@ -382,6 +384,10 @@ pub struct LayoutTree {
     /// `Option` 분기 1회다 (HC1). `Box` 인 이유는 off 상태 `LayoutTree` 를
     /// 포인터 하나만큼만 키우기 위함.
     trace: Option<Box<TraceSink>>,
+    /// ADR-188 G0 baseline only. Test builds count skip-walk visits without
+    /// changing the production/WASM layout tree representation.
+    #[cfg(test)]
+    skip_walk_visits: Cell<usize>,
 }
 
 impl LayoutTree {
@@ -913,6 +919,9 @@ impl LayoutTree {
     /// 재귀를 생략할 수 있다. dirty 노드가 하나라도 있으면 정확성을 위해 해당
     /// 노드부터 전체 재solve(자식 available 이 부모 재배치로 바뀔 수 있으므로).
     fn subtree_has_dirty(&self, handle: usize) -> bool {
+        #[cfg(test)]
+        self.skip_walk_visits
+            .set(self.skip_walk_visits.get().saturating_add(1));
         let Some(node) = self.get(handle) else {
             return false;
         };
@@ -7450,5 +7459,66 @@ mod tests {
             Some((42.0, 118.0)),
             "grid 측정 후 형제 값이 흔들림"
         );
+    }
+
+    /// ADR-188 G0 — dirty leaf 1개에서 엔진 skip walk와 `compute_layout()` 비용을
+    /// 호출부 계측과 분리해 동결한다.
+    ///
+    /// root 아래에 큰 clean subtree와 마지막 dirty leaf를 둔다. root 자체는 dirty라
+    /// 즉시 반환하지만 clean subtree의 `subtree_has_dirty`가 모든 clean node를 걷고,
+    /// flex 배치의 자식 재진입에서도 같은 게이트가 반복된다. 따라서 현재 구현의
+    /// 방문 수는 `3N - 2`로 관측된다.
+    #[test]
+    fn adr188_g0_engine_skip_walk_baseline() {
+        use std::time::Instant;
+
+        fn build_tree(node_count: usize) -> (LayoutTree, usize, usize) {
+            let mut tree = LayoutTree::new();
+            let clean_leaf_count = node_count - 2; // clean root + dirty leaf 제외
+            let clean_leaves = (0..clean_leaf_count)
+                .map(|_| tree.create_node(px_leaf(1.0, 20.0)))
+                .collect::<Vec<_>>();
+            let clean_root = tree.create_node(flex_row_fixed(5_000.0, 40.0));
+            tree.set_children(clean_root, clean_leaves);
+            let dirty_leaf = tree.create_node(px_leaf(1.0, 20.0));
+            let root = tree.create_node(flex_row_fixed(5_000.0, 80.0));
+            tree.set_children(root, vec![clean_root, dirty_leaf]);
+            tree.compute_layout(root, 5_000.0, 80.0);
+            (tree, root, dirty_leaf)
+        }
+
+        for node_count in [50usize, 500, 5_000] {
+            let (mut tree, root, dirty_leaf) = build_tree(node_count);
+            for _ in 0..8 {
+                tree.update_style(dirty_leaf, px_leaf(2.0, 20.0));
+                tree.skip_walk_visits.set(0);
+                tree.compute_layout(root, 5_000.0, 80.0);
+            }
+
+            let mut samples = Vec::with_capacity(24);
+            let mut visits = Vec::with_capacity(24);
+            for _ in 0..24 {
+                tree.update_style(dirty_leaf, px_leaf(1.0, 20.0));
+                tree.skip_walk_visits.set(0);
+                let started = Instant::now();
+                tree.compute_layout(root, 5_000.0, 80.0);
+                samples.push(started.elapsed().as_nanos());
+                visits.push(tree.skip_walk_visits.get());
+                std::hint::black_box(tree.get_layout(root));
+            }
+            samples.sort_unstable();
+            visits.sort_unstable();
+            let median_ns = samples[samples.len() / 2];
+            let p95_ns = samples[samples.len() * 19 / 20];
+            let expected_visits = node_count * 3 - 2;
+            assert!(
+                visits.iter().all(|&count| count == expected_visits),
+                "G0 baseline walk count changed for N={node_count}: {visits:?}"
+            );
+            println!(
+                "ADR-188 G0 engine_skip_walk n={node_count} visits={} median_ns={median_ns} p95_ns={p95_ns}",
+                visits[visits.len() / 2]
+            );
+        }
     }
 }

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-22
+Accepted — 2026-08-22
 
 Related: [ADR-187 에디터 프레젠테이션 트랜잭션과 타입 기반 무효화](187-editor-presentation-transaction-and-typed-invalidation.md)
 
@@ -187,6 +187,15 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
 | G5   | Phase 4 | ADR-187 runtime과 finish/cancel/revision latch 정합, paint lane counter 불변                                                                                                                               | ADR-187 layout allowlist 축소                                                     |
 | G6   | Phase 5 | populated Builder split Preview live parity, 120Hz p95 `<4ms`, p99 `<8.33ms`, console error/warn 0                                                                                                         | 대안 D 및 별도 재설계 검토                                                        |
 
+## Implementation Progress
+
+- **Phase 0 / G0 — Complete (2026-08-22)**: N=50/500/5,000 whole-tree baseline,
+  engine `subtree_has_dirty` walk counter, targeted full-sync negative contract,
+  and ADR-187 paint regression tests are fixed in
+  [G0 evidence](design/188-phase-0-g0-baseline.md). N=5,000·dirty leaf 1개에서
+  engine skip walk p95 22.720ms가 측정되어 1ms 예산을 초과했다. 따라서 Phase 1의
+  Rust subtree-dirty 요약 플래그 작업은 조건부가 아니라 필수 선행 범위다.
+
 ## Consequences
 
 ### Positive
@@ -204,8 +213,8 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
   생긴다.
 - parent propagation, text measurement, clip/sticky/scroll 같은 기존 full-tree
   암묵 전제를 명시적으로 테스트해야 한다.
-- G0 실측 결과에 따라 엔진 증분 skip 판정을 `O(1)` 요약 플래그로 바꾸는 Rust 작업이
-  Phase 1의 조건부 필수 범위로 들어온다 — 예산 안이면 계측 기록만 남기고 진행한다.
+- G0 실측 결과 엔진 증분 skip 판정을 `O(1)` 요약 플래그로 바꾸는 Rust 작업이
+  Phase 1의 필수 범위로 확정됐다(5,000 node p95 22.720ms > 1ms 예산).
 - publication이 base map을 복사하지 않으므로 layout map 소비자는 단일 `Map` 참조 대신
   overlay lookup 계약을 따라야 한다. publication은 rootKey별로 분할되므로 다중 선택
   소비자는 그룹 단위 적용/거부를 처리해야 한다.

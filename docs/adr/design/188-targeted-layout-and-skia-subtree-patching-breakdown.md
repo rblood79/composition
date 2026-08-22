@@ -23,14 +23,14 @@ paint lane, Preview protocol, canonical finish commit은 선행 결정으로 유
 
 ## 2. Phase 개요
 
-| Phase | 범위                                                                                                  | 산출물                                                                | 종료 Gate |
-| ----- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------- |
-| 0     | 현재 whole-tree 경계 및 baseline 고정                                                                 | inventory, N-tier trace, 엔진 skip walk 실측, negative contract       | G0        |
-| 1     | persistent layout의 targeted input/result API (+ G0 초과 시 엔진 subtree-dirty 요약 플래그 선행 작업) | dirty-root propagation, affected result map, 호출부/엔진 분리 counter | G1        |
-| 2     | layout publisher의 typed publication channel                                                          | base/full과 presentation/targeted 분리, delta overlay + revision 필드 | G2        |
-| 3     | Skia subtree command span 및 hit-test patch                                                           | subtree render/hit projection patcher, revision 원자 교체             | G3/G4     |
-| 4     | ADR-187 layout lane 연결과 fail-closed fallback                                                       | allowlist, rollback switch, no global bump                            | G5        |
-| 5     | DOM/Skia parity 및 120Hz 성능 검증                                                                    | populated Builder trace, cross-check report                           | G6        |
+| Phase | 범위                                                                                                  | 산출물                                                                | 종료 Gate                              |
+| ----- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------- |
+| 0     | 현재 whole-tree 경계 및 baseline 고정                                                                 | inventory, N-tier trace, 엔진 skip walk 실측, negative contract       | G0 — ✅ 2026-08-22 (P1 Rust 선행 필수) |
+| 1     | persistent layout의 targeted input/result API (+ G0 초과 시 엔진 subtree-dirty 요약 플래그 선행 작업) | dirty-root propagation, affected result map, 호출부/엔진 분리 counter | G1                                     |
+| 2     | layout publisher의 typed publication channel                                                          | base/full과 presentation/targeted 분리, delta overlay + revision 필드 | G2                                     |
+| 3     | Skia subtree command span 및 hit-test patch                                                           | subtree render/hit projection patcher, revision 원자 교체             | G3/G4                                  |
+| 4     | ADR-187 layout lane 연결과 fail-closed fallback                                                       | allowlist, rollback switch, no global bump                            | G5                                     |
+| 5     | DOM/Skia parity 및 120Hz 성능 검증                                                                    | populated Builder trace, cross-check report                           | G6                                     |
 
 ## 3. 현재 경계와 문제 증거
 
@@ -405,7 +405,20 @@ ADR-187 paint lane은 이미 stale 거부 계약을 운용한다 — `SessionPro
 - DOM/Skia geometry, clipping, hit-test parity를 확인한다.
 - 120Hz trace에서 `N` 증가에 따른 frame/apply cost 발산이 없고, console error/warn 0이다.
 
-## 8. Rollback 및 후속 경계
+## 8. 진행 로그
+
+### Phase 0 / G0 — Complete with mandatory Phase 1 engine prerequisite (2026-08-22)
+
+- evidence: [188-phase-0-g0-baseline.md](188-phase-0-g0-baseline.md)
+- N=50/500/5,000 baseline과 엔진 skip-walk 방문 수를 분리 계측했다. 현재 방문 수는
+  `3N - 2`이며 `compute_layout()` p95는 각각 0.566ms / 2.708ms / 22.720ms다.
+- N=5,000 결과가 frame 예산 25%(1ms)를 초과해 Phase 1의 Rust
+  `subtree-dirty` 요약 플래그(`O(1)` skip 판정)를 필수 선행 작업으로 승격했다.
+- targeted lane full-sync escape hatch negative contract와 ADR-187 paint bridge/protocol
+  회귀 3 files / 18 tests를 통과했다.
+- 다음 진입점은 Phase 1이며 JS targeted input보다 Rust summary flag를 먼저 구현·재측정한다.
+
+## 9. Rollback 및 후속 경계
 
 G3 또는 G4가 실패하면 해당 descriptor를 continuous layout allowlist에서 제거하고
 commit-only로 유지한다. global full rebuild fallback을 presentation hot path에

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import {
   createPresentationLayoutPlan,
   publishPresentationLayout,
@@ -85,5 +87,17 @@ describe("editor presentation layout lane", () => {
         { patch: { color: "blue" }, target, type: "style.patch" },
       ]),
     ).toBe(node);
+  });
+
+  it("ADR-188 G0: targeted layout has no full-sync escape hatch", async () => {
+    const source = await readFile(
+      resolve(__dirname, "editorPresentationLayoutLane.ts"),
+      "utf-8",
+    );
+
+    expect(source).not.toMatch(/layoutVersion/);
+    expect(source).not.toMatch(/resync\(true\)/);
+    expect(source).not.toMatch(/onLayoutPublished/);
+    expect(source).not.toMatch(/buildRenderCommandStream/);
   });
 });
