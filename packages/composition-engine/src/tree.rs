@@ -304,8 +304,15 @@ impl NodeLayout {
     const ZERO: NodeLayout = NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
 }
 
-/// 측정 패스 전후 복구 단위 — `(handle, dirty, layout, last_avail, last_solved)`.
-type SubtreeSnap = (usize, bool, NodeLayout, Option<(f32, f32)>, Option<(f32, f32)>);
+/// 측정 패스 전후 복구 단위 — `(handle, dirty, subtree_dirty, layout, last_avail, last_solved)`.
+type SubtreeSnap = (
+    usize,
+    bool,
+    bool,
+    NodeLayout,
+    Option<(f32, f32)>,
+    Option<(f32, f32)>,
+);
 
 /// 트리 노드 (style + 자식 handle + 계산 결과).
 #[derive(Debug, Clone)]
@@ -316,6 +323,12 @@ struct TreeNode {
     /// 이 노드 자신의 style/children 변경 여부. 다음 compute_layout 에서
     /// (조상 dirty 전파와 결합해) 재계산 대상 판정에 사용.
     dirty: bool,
+    /// 이 노드의 자손 중 dirty 노드가 있는지 요약한다.
+    ///
+    /// `subtree_has_dirty`가 clean subtree를 매번 재귀 순회하지 않도록 하는
+    /// O(1) 게이트다. `dirty`는 자기 자신, 이 필드는 자손 요약을 나타내며,
+    /// solve 완료 시 두 값을 함께 clear한다.
+    subtree_dirty: bool,
     /// 부모 handle (조상 dirty 전파용). root 는 None.
     ///
     /// **Why**: taffy 계약(taffy_bridge.rs:890-893)은 "dirty 를 조상까지 자동
@@ -384,8 +397,8 @@ pub struct LayoutTree {
     /// `Option` 분기 1회다 (HC1). `Box` 인 이유는 off 상태 `LayoutTree` 를
     /// 포인터 하나만큼만 키우기 위함.
     trace: Option<Box<TraceSink>>,
-    /// ADR-188 G0 baseline only. Test builds count skip-walk visits without
-    /// changing the production/WASM layout tree representation.
+    /// ADR-188 G0/G1 계측. Test builds count skip-gate invocations separately from
+    /// production layout behavior.
     #[cfg(test)]
     skip_walk_visits: Cell<usize>,
 }
@@ -541,6 +554,7 @@ impl LayoutTree {
             children: Vec::new(),
             layout: NodeLayout::ZERO,
             dirty: true,
+            subtree_dirty: false,
             parent: None,
             escaped_mt: 0.0,
             escaped_mb: 0.0,
@@ -596,15 +610,27 @@ impl LayoutTree {
                 break; // 순환 방지 안전판 (정상 트리에선 도달 불가)
             }
             guard -= 1;
-            let Some(node) = self.get_mut(h) else { break };
-            if node.dirty {
-                // 이미 dirty → 조상도 이미 전파됐다고 가정하고 조기 종료.
-                // (증분 API 는 항상 propagate 를 leaf→root 로 완주하므로 dirty 노드의
-                //  조상은 반드시 dirty. 중복 전파 비용 절감.)
+            let Some((parent, already_dirty)) = self
+                .get(h)
+                .map(|node| (node.parent, node.dirty))
+            else {
+                break;
+            };
+            if let Some(parent_handle) = parent {
+                if let Some(parent_node) = self.get_mut(parent_handle) {
+                    parent_node.subtree_dirty = true;
+                }
+            }
+            if already_dirty {
+                // 이미 dirty인 노드는 이전 전파에서 조상까지 dirty/summary를
+                // 올렸으므로 중복 전파를 생략한다. 단, 바로 위 부모 summary는
+                // 위에서 먼저 갱신해 재부모화 경계에서도 보수적으로 유지한다.
                 break;
             }
-            node.dirty = true;
-            cur = node.parent;
+            if let Some(node) = self.get_mut(h) {
+                node.dirty = true;
+            }
+            cur = parent;
         }
     }
 
@@ -669,6 +695,7 @@ impl LayoutTree {
                 children: child_handles.clone(),
                 layout: NodeLayout::ZERO,
                 dirty: true,
+                subtree_dirty: !child_handles.is_empty(),
                 parent: None,
                 escaped_mt: 0.0,
                 escaped_mb: 0.0,
@@ -915,9 +942,10 @@ impl LayoutTree {
 
     /// 서브트리(`handle` 포함)에 dirty 노드가 하나라도 있으면 true.
     ///
-    /// clean 서브트리(전부 false)는 `solve_node` 가 저장된 layout 을 재사용하고
-    /// 재귀를 생략할 수 있다. dirty 노드가 하나라도 있으면 정확성을 위해 해당
-    /// 노드부터 전체 재solve(자식 available 이 부모 재배치로 바뀔 수 있으므로).
+    /// 자손 요약 플래그로 판정하므로 clean subtree를 재귀 순회하지 않는다.
+    /// dirty 노드가 하나라도 있으면 정확성을 위해 해당 노드부터 전체 재solve
+    /// (자식 available 이 부모 재배치로 바뀔 수 있으므로).
+    #[inline]
     fn subtree_has_dirty(&self, handle: usize) -> bool {
         #[cfg(test)]
         self.skip_walk_visits
@@ -925,10 +953,7 @@ impl LayoutTree {
         let Some(node) = self.get(handle) else {
             return false;
         };
-        if node.dirty {
-            return true;
-        }
-        node.children.iter().any(|&c| self.subtree_has_dirty(c))
+        node.dirty || node.subtree_dirty
     }
 
     /// display:none 서브트리(`handle` 포함) 전체를 zero layout + clean 처리.
@@ -943,6 +968,7 @@ impl LayoutTree {
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
             n.dirty = false;
+            n.subtree_dirty = false;
         }
         for c in children {
             self.zero_subtree_layout(c);
@@ -963,6 +989,7 @@ impl LayoutTree {
         };
         if let Some(node) = self.get_mut(handle) {
             node.dirty = true;
+            node.subtree_dirty = !children.is_empty();
         }
         for c in children {
             self.mark_subtree_dirty(c);
@@ -971,10 +998,18 @@ impl LayoutTree {
 
     // ── intrinsic 측정 패스 (ADR-169 Phase 1) ──
 
-    /// 서브트리의 `(dirty, layout, last_avail)` 를 수집 — 측정 패스 전후 원상 복구용.
+    /// 서브트리의 `(dirty, subtree_dirty, layout, last_avail, last_solved)` 를
+    /// 수집 — 측정 패스 전후 원상 복구용.
     fn snapshot_subtree(&self, handle: usize, out: &mut Vec<SubtreeSnap>) {
         let Some(node) = self.get(handle) else { return };
-        out.push((handle, node.dirty, node.layout, node.last_avail, node.last_solved));
+        out.push((
+            handle,
+            node.dirty,
+            node.subtree_dirty,
+            node.layout,
+            node.last_avail,
+            node.last_solved,
+        ));
         for c in node.children.clone() {
             self.snapshot_subtree(c, &mut *out);
         }
@@ -986,9 +1021,10 @@ impl LayoutTree {
     /// 그 값이 남으면 skip 게이트의 키가 측정값으로 오염된다 (복구 대상은
     /// layout·dirty·available 3종이 한 묶음).
     fn restore_subtree(&mut self, snap: &[SubtreeSnap]) {
-        for &(h, dirty, layout, last_avail, last_solved) in snap {
+        for &(h, dirty, subtree_dirty, layout, last_avail, last_solved) in snap {
             if let Some(node) = self.get_mut(h) {
                 node.dirty = dirty;
+                node.subtree_dirty = subtree_dirty;
                 node.layout = layout;
                 node.last_avail = last_avail;
                 node.last_solved = last_solved;
@@ -1130,8 +1166,9 @@ impl LayoutTree {
         //
         // ADR-183: 판정은 `skip_decision` **단일 함수**가 내리고 게이트와 트레이스가
         // 그것을 공유한다 — 트레이스 쪽에 조건을 복제하면 게이트를 고칠 때 explain 만
-        // 옛 조건을 보고해 거짓 안심을 준다 (R2). `subtree_has_dirty` 는 트리 walk 라
-        // 클로저로 넘겨 **기존 단축 평가를 보존**한다 (last_solved 가 없으면 안 돈다).
+        // 옛 조건을 보고해 거짓 안심을 준다 (R2). `subtree_has_dirty` 는 O(1) 요약
+        // 게이트지만 클로저로 넘겨 **기존 단축 평가를 보존**한다 (last_solved 가
+        // 없으면 요약 판정도 호출하지 않는다).
         let (skip_reason, skip_prev) =
             Self::skip_decision(node, || self.subtree_has_dirty(handle), avail_w, avail_h);
         if let Some(prev) = skip_prev {
@@ -1420,6 +1457,7 @@ impl LayoutTree {
             if let Some(n) = self.get_mut(handle) {
                 n.layout = NodeLayout { x: 0.0, y: 0.0, width: w, height: h };
                 n.dirty = false;
+                n.subtree_dirty = false;
             }
             if !abs_children.is_empty() {
                 self.place_absolute_children(handle, &abs_children, w, h, avail_w);
@@ -1664,6 +1702,7 @@ impl LayoutTree {
                     height: nh,
                 };
                 n.dirty = false;
+                n.subtree_dirty = false;
             }
         }
     }
@@ -2428,6 +2467,7 @@ impl LayoutTree {
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: container_w, height: container_h };
             n.dirty = false;
+            n.subtree_dirty = false;
         }
         (container_w, container_h)
     }
@@ -2648,6 +2688,7 @@ impl LayoutTree {
             n.escaped_mt = escaped_top;
             n.escaped_mb = escaped_bottom;
             n.dirty = false;
+            n.subtree_dirty = false;
         }
         (container_w, container_h)
     }
@@ -3344,6 +3385,7 @@ impl LayoutTree {
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout { x: 0.0, y: 0.0, width: final_w, height: final_h };
             n.dirty = false;
+            n.subtree_dirty = false;
         }
         (final_w, final_h)
     }
@@ -6971,6 +7013,32 @@ mod tests {
         );
     }
 
+    /// ADR-188 Phase 1: subtree dirty 요약은 clean subtree 판정을 재귀 순회 없이
+    /// O(1)로 수행하고, solve 완료 후 요약 상태를 함께 정리한다.
+    #[test]
+    fn subtree_dirty_summary_is_constant_and_cleared_after_solve() {
+        let mut tree = LayoutTree::new();
+        let child = tree.create_node(px_leaf(100.0, 50.0));
+        let root = tree.create_node(flex_row_fixed(400.0, 100.0));
+        tree.set_children(root, vec![child]);
+        tree.compute_layout(root, 400.0, 100.0);
+
+        assert!(!tree.get(root).unwrap().subtree_dirty);
+        tree.skip_walk_visits.set(0);
+        assert!(!tree.subtree_has_dirty(root));
+        assert_eq!(tree.skip_walk_visits.get(), 1, "clean summary 판정은 root 1회");
+
+        tree.update_style(child, px_leaf(200.0, 50.0));
+        assert!(tree.get(root).unwrap().dirty);
+        assert!(tree.get(root).unwrap().subtree_dirty);
+
+        tree.compute_layout(root, 400.0, 100.0);
+        assert!(!tree.get(root).unwrap().dirty);
+        assert!(!tree.get(root).unwrap().subtree_dirty);
+        assert!(!tree.get(child).unwrap().dirty);
+        assert!(!tree.get(child).unwrap().subtree_dirty);
+    }
+
     /// explicit mark_dirty 후 재계산해도 값이 유지된다 (taffy 계약: cache invalidation).
     #[test]
     fn explicit_mark_dirty_preserves_value() {
@@ -7510,7 +7578,11 @@ mod tests {
             visits.sort_unstable();
             let median_ns = samples[samples.len() / 2];
             let p95_ns = samples[samples.len() * 19 / 20];
-            let expected_visits = node_count * 3 - 2;
+            // summary 플래그는 clean subtree 내부의 재귀 walk를 제거한다. 현재
+            // flex 배치가 자식 solve 진입 자체는 모두 필요로 하므로, 계측값은
+            // 기존 3N-2에서 2N으로 줄고 subtree 크기 자체는 여전히 layout kernel
+            // 방문 항으로 남는다. 이 두 항을 혼동하지 않도록 수치를 고정한다.
+            let expected_visits = node_count * 2;
             assert!(
                 visits.iter().all(|&count| count == expected_visits),
                 "G0 baseline walk count changed for N={node_count}: {visits:?}"

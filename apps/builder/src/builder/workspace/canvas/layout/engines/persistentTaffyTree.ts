@@ -63,6 +63,29 @@ export interface PersistentBatchNode {
   enrichAvailWidth?: number;
 }
 
+/**
+ * Presentation layout lane이 계산한 immutable targeted input snapshot.
+ * `roots`는 used-size promotion 이후 dirty 처리할 root이고, `affectedNodeIds`는
+ * publication으로 반환할 결과 집합이다. `parentChain`은 promotion 비용을 별도
+ * 계측하기 위한 호출부 경계이며, 엔진 내부에서 다시 전체 트리를 추정하지 않는다.
+ */
+export interface PersistentLayoutTargetSet {
+  readonly affectedNodeIds: readonly string[];
+  readonly parentChain: readonly string[];
+  readonly roots: readonly string[];
+}
+
+export interface PersistentTargetedLayoutMetrics {
+  readonly engineComputeCalls: number;
+  readonly inputNodeVisits: number;
+  readonly resultNodeVisits: number;
+}
+
+export interface PersistentTargetedLayoutResult {
+  readonly layoutMap: Map<string, LayoutResult>;
+  readonly metrics: PersistentTargetedLayoutMetrics;
+}
+
 // ─── 클래스 ───────────────────────────────────────────────────────────
 
 /**
@@ -435,17 +458,64 @@ export class PersistentTaffyTree {
     availableWidth: number,
     availableHeight: number,
   ): Map<string, LayoutResult> {
-    const dirtyIds = new Set<string>();
-    for (const elementId of dirtyElementIds) {
-      if (this.handleMap.has(elementId)) dirtyIds.add(elementId);
-    }
-    if (dirtyIds.size === 0) return new Map();
+    return this.computeTargetedLayout(
+      {
+        affectedNodeIds: [...new Set(resultElementIds)],
+        parentChain: [],
+        roots: [...new Set(dirtyElementIds)],
+      },
+      availableWidth,
+      availableHeight,
+    ).layoutMap;
+  }
 
-    for (const elementId of dirtyIds) {
+  /**
+   * typed targeted input/result 경계.
+   *
+   * 입력 집합 정규화·dirty root 마킹·persistent root 계산·affected 결과 수집을 한
+   * 호출로 묶되, 결과는 `affectedNodeIds` 밖으로 확장하지 않는다. `metrics`는 JS
+   * 호출부 방문 항과 엔진 compute 호출을 분리해 G1에서 전체 tree 수집을 위장하지
+   * 않도록 한다.
+   */
+  computeTargetedLayout(
+    targetSet: PersistentLayoutTargetSet,
+    availableWidth: number,
+    availableHeight: number,
+  ): PersistentTargetedLayoutResult {
+    const roots = [...new Set(targetSet.roots)].filter((id) =>
+      this.handleMap.has(id),
+    );
+    const affectedNodeIds = [...new Set(targetSet.affectedNodeIds)].filter(
+      (id) => this.handleMap.has(id),
+    );
+    const parentChain = [...new Set(targetSet.parentChain)];
+    const inputNodeVisits =
+      roots.length + parentChain.length + affectedNodeIds.length;
+
+    if (roots.length === 0) {
+      return {
+        layoutMap: new Map(),
+        metrics: {
+          engineComputeCalls: 0,
+          inputNodeVisits,
+          resultNodeVisits: 0,
+        },
+      };
+    }
+
+    for (const elementId of roots) {
       this.markDirty(elementId);
     }
     this.computeLayout(availableWidth, availableHeight);
-    return this.getLayoutsForIds(resultElementIds);
+    const layoutMap = this.getLayoutsForIds(affectedNodeIds);
+    return {
+      layoutMap,
+      metrics: {
+        engineComputeCalls: 1,
+        inputNodeVisits,
+        resultNodeVisits: layoutMap.size,
+      },
+    };
   }
 
   // ─── 조회 유틸리티 ──────────────────────────────────────────────────

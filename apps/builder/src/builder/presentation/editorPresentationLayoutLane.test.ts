@@ -24,20 +24,140 @@ describe("editor presentation layout lane", () => {
           ["sibling", "parent"],
         ]),
       },
-      shouldPromoteParent: (parentId) => parentId === "parent",
+      promotionOverrideForTest: (parentId) => parentId === "parent",
     });
 
     expect(plan.roots).toEqual(["parent"]);
+    expect(plan.parentChain).toEqual(["parent"]);
     expect(plan.affectedNodeIds).toEqual(
       new Set(["parent", "child", "sibling"]),
     );
+  });
+
+  it("derives runtime promotion from used-size registry and stops at a sized ancestor", () => {
+    const target = { kind: "canonical-node", nodeId: "child" } as const;
+    const plan = createPresentationLayoutPlan({
+      targets: [target],
+      mutations: [{ patch: { width: 140 }, target, type: "style.patch" }],
+      tree: {
+        childrenByParent: new Map([
+          ["page", ["parent"]],
+          ["parent", ["child", "sibling"]],
+        ]),
+        parentById: new Map([
+          ["page", null],
+          ["parent", "page"],
+          ["child", "parent"],
+          ["sibling", "parent"],
+        ]),
+        nodeById: new Map([
+          [
+            "page",
+            {
+              id: "page",
+              type: "Page",
+              props: { style: { width: 600, height: 400 } },
+            },
+          ],
+          [
+            "parent",
+            {
+              id: "parent",
+              type: "Box",
+              props: { style: { display: "flex", width: 400, height: 100 } },
+            },
+          ],
+          [
+            "child",
+            {
+              id: "child",
+              type: "Box",
+              props: { style: { width: 100, height: 20 } },
+            },
+          ],
+          [
+            "sibling",
+            {
+              id: "sibling",
+              type: "Box",
+              props: { style: { width: 80, height: 20 } },
+            },
+          ],
+        ]),
+      },
+    });
+
+    expect(plan.roots).toEqual(["parent"]);
+    expect(plan.parentChain).toEqual(["parent"]);
+    expect(plan.affectedNodeIds).toEqual(
+      new Set(["parent", "child", "sibling"]),
+    );
+  });
+
+  it("does not promote an out-of-flow child or a paint-only mutation", () => {
+    const target = { kind: "canonical-node", nodeId: "absolute" } as const;
+    const tree = {
+      childrenByParent: new Map([["parent", ["absolute", "sibling"]]]),
+      parentById: new Map([
+        ["parent", null],
+        ["absolute", "parent"],
+        ["sibling", "parent"],
+      ]),
+      nodeById: new Map([
+        [
+          "parent",
+          { id: "parent", type: "Box", props: { style: { display: "flex" } } },
+        ],
+        [
+          "absolute",
+          {
+            id: "absolute",
+            type: "Box",
+            props: { style: { position: "absolute", width: 100, height: 20 } },
+          },
+        ],
+        [
+          "sibling",
+          {
+            id: "sibling",
+            type: "Box",
+            props: { style: { width: 80, height: 20 } },
+          },
+        ],
+      ]),
+    };
+
+    const geometryPlan = createPresentationLayoutPlan({
+      targets: [target],
+      mutations: [{ patch: { width: 140 }, target, type: "style.patch" }],
+      tree,
+    });
+    expect(geometryPlan.roots).toEqual(["absolute"]);
+    expect(geometryPlan.affectedNodeIds).toEqual(new Set(["absolute"]));
+
+    const paintPlan = createPresentationLayoutPlan({
+      targets: [{ kind: "canonical-node", nodeId: "sibling" }],
+      mutations: [
+        {
+          patch: { color: "blue" },
+          target: { kind: "canonical-node", nodeId: "sibling" },
+          type: "style.patch",
+        },
+      ],
+      tree,
+    });
+    expect(paintPlan.roots).toEqual(["sibling"]);
   });
 
   it("preserves unaffected layout object identity when merging a targeted result", () => {
     const unaffected = { x: 1 };
     const changed = { x: 2 };
     const result = publishPresentationLayout({
-      plan: { roots: ["child"], affectedNodeIds: new Set(["child"]) },
+      plan: {
+        parentChain: [],
+        roots: ["child"],
+        affectedNodeIds: new Set(["child"]),
+      },
       previousLayoutMap: new Map([
         ["root", unaffected],
         ["child", { x: 0 }],
@@ -99,5 +219,6 @@ describe("editor presentation layout lane", () => {
     expect(source).not.toMatch(/resync\(true\)/);
     expect(source).not.toMatch(/onLayoutPublished/);
     expect(source).not.toMatch(/buildRenderCommandStream/);
+    expect(source).not.toMatch(/shouldPromoteParent/);
   });
 });

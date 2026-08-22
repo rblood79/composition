@@ -5,6 +5,7 @@ export type EditorMutationEffectAxis =
 
 export type EditorMutationEffectPropagation = "self" | "inherited-subtree";
 export type EditorMutationCacheSignature = "prop" | "style" | null;
+export type EditorMutationUsedSizeEffect = "none" | "self-box" | "content-box";
 
 interface EditorMutationLegacyViewOrder {
   readonly inheritedLayoutStyle?: number;
@@ -22,6 +23,7 @@ export interface EditorPropertyEffectRule {
   readonly key: string;
   readonly legacyViewOrder: EditorMutationLegacyViewOrder;
   readonly propagation: EditorMutationEffectPropagation;
+  readonly usedSizeEffect: EditorMutationUsedSizeEffect;
 }
 
 const LAYOUT_AFFECTING_PROP_SOURCE = [
@@ -310,6 +312,101 @@ interface MutableEditorPropertyEffectRule {
     nonLayoutStyle?: number;
   };
   propagation: EditorMutationEffectPropagation;
+  usedSizeEffect: EditorMutationUsedSizeEffect;
+}
+
+const CONTENT_BOX_PROP_KEYS = new Set([
+  "children",
+  "text",
+  "label",
+  "title",
+  "description",
+  "placeholder",
+  "value",
+  "selectedKey",
+  "selectedValue",
+  "inputValue",
+  "items",
+  "options",
+  "rows",
+  "columns",
+  "iconName",
+  "iconPosition",
+  "maxRows",
+  "granularity",
+  "hourCycle",
+  "locale",
+  "calendar",
+  "calendarSystem",
+  "necessityIndicator",
+  "isRequired",
+  "labelPosition",
+  "formatOptions",
+  "showValueLabel",
+  "valueLabel",
+  "isExpanded",
+  "allowsMultipleExpanded",
+]);
+
+const SELF_BOX_PROP_KEYS = new Set([
+  "style",
+  "size",
+  "layout",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "borderWidth",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+]);
+
+const CONTENT_BOX_STYLE_KEYS = new Set<string>(INHERITED_LAYOUT_STYLE_SOURCE);
+const NON_USED_SIZE_STYLE_KEYS = new Set([
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "transform",
+  "objectFit",
+]);
+const SELF_BOX_STYLE_KEYS = new Set<string>([
+  ...LAYOUT_STYLE_CACHE_SOURCE.filter(
+    (key) => !NON_USED_SIZE_STYLE_KEYS.has(key),
+  ),
+]);
+
+function inferUsedSizeEffect(
+  axis: EditorMutationEffectAxis,
+  key: string,
+): EditorMutationUsedSizeEffect {
+  if (axis === "geometry") {
+    return key === "width" || key === "height" ? "self-box" : "none";
+  }
+  if (axis === "prop") {
+    if (CONTENT_BOX_PROP_KEYS.has(key)) return "content-box";
+    if (SELF_BOX_PROP_KEYS.has(key)) return "self-box";
+    return "none";
+  }
+  if (axis === "style") {
+    if (CONTENT_BOX_STYLE_KEYS.has(key)) return "content-box";
+    if (SELF_BOX_STYLE_KEYS.has(key)) return "self-box";
+  }
+  return "none";
+}
+
+function mergeUsedSizeEffect(
+  current: EditorMutationUsedSizeEffect,
+  next: EditorMutationUsedSizeEffect,
+): EditorMutationUsedSizeEffect {
+  if (current === "content-box" || next === "content-box") {
+    return "content-box";
+  }
+  if (current === "self-box" || next === "self-box") return "self-box";
+  return "none";
 }
 
 function toRegistryKey(axis: EditorMutationEffectAxis, key: string): string {
@@ -333,6 +430,10 @@ function mergeRule(input: {
     if (input.propagation === "inherited-subtree") {
       current.propagation = input.propagation;
     }
+    current.usedSizeEffect = mergeUsedSizeEffect(
+      current.usedSizeEffect,
+      inferUsedSizeEffect(input.axis, input.key),
+    );
     Object.assign(current.legacyViewOrder, input.viewOrder);
     return;
   }
@@ -345,6 +446,7 @@ function mergeRule(input: {
     key: input.key,
     legacyViewOrder: { ...input.viewOrder },
     propagation: input.propagation ?? "self",
+    usedSizeEffect: inferUsedSizeEffect(input.axis, input.key),
   });
 }
 

@@ -418,6 +418,20 @@ ADR-187 paint lane은 이미 stale 거부 계약을 운용한다 — `SessionPro
   회귀 3 files / 18 tests를 통과했다.
 - 다음 진입점은 Phase 1이며 JS targeted input보다 Rust summary flag를 먼저 구현·재측정한다.
 
+### Phase 1 / G1 — Implemented (2026-08-22)
+
+- evidence: [188-phase-1-g1-targeted-input.md](188-phase-1-g1-targeted-input.md)
+- Rust `TreeNode.subtree_dirty` 요약 플래그, dirty 전파/solve 완료 정리 및 intrinsic
+  snapshot 복구를 반영했다. skip gate는 clean subtree recursive walk 없이 O(1) summary를
+  읽는다.
+- mutation registry에 `usedSizeEffect`를 추가하고 layout lane이 display 규칙표와 합성해
+  in-flow sibling을 포함하는 runtime parent promotion을 수행한다. explicit sized ancestor,
+  absolute child, paint-only descriptor의 fail-closed 경계를 테스트했다.
+- persistent engine에 typed targeted input/result API와 `inputNodeVisits` /
+  `resultNodeVisits` / `engineComputeCalls` 분리 counter를 추가했다.
+- G1 관련 3 files / 14 Vitest, Rust 전체 325+15+10+11 및 doc test, type-check, live smoke를
+  통과했다. Phase 2는 typed publication channel로 진입한다.
+
 ## 9. Rollback 및 후속 경계
 
 G3 또는 G4가 실패하면 해당 descriptor를 continuous layout allowlist에서 제거하고

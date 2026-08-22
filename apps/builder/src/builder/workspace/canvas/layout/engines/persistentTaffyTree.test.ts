@@ -136,4 +136,39 @@ describe("PersistentTaffyTree targeted layout result collection", () => {
     expect(result.has("child")).toBe(true);
     expect(result.has("root")).toBe(false);
   });
+
+  it("keeps targeted input and result counters separate from engine compute", () => {
+    const engine = new FakeLayoutEngine();
+    const tree = new PersistentTaffyTree(engine);
+    tree.buildFull(
+      "root",
+      [
+        { elementId: "child", style: {}, children: [] },
+        { elementId: "root", style: {}, children: [0] },
+      ],
+      new Map([
+        ["child", []],
+        ["root", ["child"]],
+      ]),
+    );
+
+    const targeted = tree.computeTargetedLayout(
+      {
+        affectedNodeIds: ["child", "child"],
+        parentChain: ["parent", "parent"],
+        roots: ["root", "missing", "root"],
+      },
+      320,
+      180,
+    );
+
+    expect(targeted.metrics).toEqual({
+      engineComputeCalls: 1,
+      inputNodeVisits: 3,
+      resultNodeVisits: 1,
+    });
+    expect(targeted.layoutMap).toEqual(
+      new Map([["child", { x: 1, y: 0, width: 100, height: 20 }]]),
+    );
+  });
 });

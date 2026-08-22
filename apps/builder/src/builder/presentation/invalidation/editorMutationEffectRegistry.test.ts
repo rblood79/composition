@@ -50,6 +50,7 @@ describe("EDITOR_MUTATION_EFFECT_REGISTRY", () => {
       continuous: true,
       invalidation: "layout",
       propagation: "inherited-subtree",
+      usedSizeEffect: "content-box",
     });
     expect(getEditorMutationEffectRule("style", "objectFit")).toMatchObject({
       cacheSignature: "style",
@@ -58,10 +59,12 @@ describe("EDITOR_MUTATION_EFFECT_REGISTRY", () => {
     expect(getEditorMutationEffectRule("prop", "size")).toMatchObject({
       cacheSignature: "prop",
       invalidation: "layout",
+      usedSizeEffect: "self-box",
     });
     expect(getEditorMutationEffectRule("style", "left")).toMatchObject({
       continuous: true,
       invalidation: "layout",
+      usedSizeEffect: "none",
     });
     expect(getEditorMutationEffectRule("style", "borderRadius")).toMatchObject({
       continuous: true,

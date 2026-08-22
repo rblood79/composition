@@ -195,6 +195,11 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
   [G0 evidence](design/188-phase-0-g0-baseline.md). N=5,000·dirty leaf 1개에서
   engine skip walk p95 22.720ms가 측정되어 1ms 예산을 초과했다. 따라서 Phase 1의
   Rust subtree-dirty 요약 플래그 작업은 조건부가 아니라 필수 선행 범위다.
+- **Phase 1 / G1 — Implemented (2026-08-22)**: Rust subtree-dirty summary와 dirty
+  전파/측정 snapshot 경계를 반영하고, registry `usedSizeEffect` × layout container
+  규칙표 기반 runtime promotion, persistent targeted input/result API 및 분리 counter를
+  추가했다. explicit sized ancestor stop, in-flow sibling 포함, absolute child/paint-only
+  fail-closed를 검증했다. [G1 evidence](design/188-phase-1-g1-targeted-input.md)
 
 ## Consequences
 

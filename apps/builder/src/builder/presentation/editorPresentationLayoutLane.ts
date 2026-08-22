@@ -5,14 +5,20 @@ import {
   type EditorMutationDescriptor,
   type EditorPresentationTargetRef,
 } from "./editorPresentationTypes";
-import { getEditorMutationEffectRule } from "./invalidation/editorMutationEffectRegistry";
+import {
+  getEditorMutationEffectRule,
+  type EditorMutationUsedSizeEffect,
+} from "./invalidation/editorMutationEffectRegistry";
 
 export interface PresentationLayoutTreeIndex {
   readonly childrenByParent: ReadonlyMap<string, readonly string[]>;
   readonly parentById: ReadonlyMap<string, string | null>;
+  /** promotion 규칙이 읽는 layout/style 입력. 없으면 promotion은 fail-closed 한다. */
+  readonly nodeById?: ReadonlyMap<string, CanvasLayoutNode>;
 }
 
 export interface PresentationLayoutPlan {
+  readonly parentChain: readonly string[];
   readonly roots: readonly string[];
   readonly affectedNodeIds: ReadonlySet<string>;
 }
@@ -48,27 +54,147 @@ function addSubtree(
   }
 }
 
+function mergeUsedSizeEffects(
+  current: EditorMutationUsedSizeEffect,
+  next: EditorMutationUsedSizeEffect,
+): EditorMutationUsedSizeEffect {
+  if (current === "content-box" || next === "content-box") {
+    return "content-box";
+  }
+  if (current === "self-box" || next === "self-box") return "self-box";
+  return "none";
+}
+
+function getDescriptorUsedSizeEffect(
+  descriptor: EditorMutationDescriptor,
+): EditorMutationUsedSizeEffect {
+  if (
+    descriptor.type !== "style.patch" &&
+    descriptor.type !== "geometry.patch"
+  ) {
+    return "none";
+  }
+  const axis = descriptor.type === "style.patch" ? "style" : "geometry";
+
+  let effect: EditorMutationUsedSizeEffect = "none";
+  for (const key of Object.keys(descriptor.patch)) {
+    effect = mergeUsedSizeEffects(
+      effect,
+      getEditorMutationEffectRule(axis, key)?.usedSizeEffect ?? "none",
+    );
+  }
+  return effect;
+}
+
+function getNodeStyle(
+  node: CanvasLayoutNode | undefined,
+): Record<string, unknown> {
+  return (node?.props?.style ?? {}) as Record<string, unknown>;
+}
+
+function isOutOfFlow(node: CanvasLayoutNode | undefined): boolean {
+  const position = getNodeStyle(node).position;
+  return position === "absolute" || position === "fixed";
+}
+
+function isFullySized(node: CanvasLayoutNode | undefined): boolean {
+  const style = getNodeStyle(node);
+  const hasExplicitSize = (value: unknown): boolean =>
+    value !== undefined && value !== null && value !== "auto";
+  return hasExplicitSize(style.width) && hasExplicitSize(style.height);
+}
+
+type LayoutContainerDisplay = "block" | "flex" | "grid" | "none";
+
+function getLayoutContainerDisplay(
+  node: CanvasLayoutNode | undefined,
+): LayoutContainerDisplay {
+  const display = getNodeStyle(node).display;
+  if (display === "none") return "none";
+  if (display === "flex" || display === "grid") return display;
+  return "block";
+}
+
+/** 부모가 자식 used-size 변경을 받아 in-flow 배치를 재분배하는 규칙표. */
+function parentRedistributesUsedSize(
+  parent: CanvasLayoutNode | undefined,
+  child: CanvasLayoutNode | undefined,
+): boolean {
+  if (!parent || !child || isOutOfFlow(child)) return false;
+  return getLayoutContainerDisplay(parent) !== "none";
+}
+
+function shouldPromoteUsedSizeParent(input: {
+  readonly childId: string;
+  readonly parentId: string;
+  readonly sourceTargetId: string;
+  readonly tree: PresentationLayoutTreeIndex;
+  readonly usedSizeEffect: EditorMutationUsedSizeEffect;
+}): boolean {
+  if (input.usedSizeEffect === "none") return false;
+  const child = input.tree.nodeById?.get(input.childId);
+  const parent = input.tree.nodeById?.get(input.parentId);
+  if (!child || !parent) return false;
+  // 첫 promotion은 mutation 대상의 used-size 변화로 판단한다. 이후 조상으로
+  // 계속 올릴 때는 이미 승격된 child가 fully-sized면 그 경계에서 멈춘다.
+  if (input.childId !== input.sourceTargetId && isFullySized(child)) {
+    return false;
+  }
+  return parentRedistributesUsedSize(parent, child);
+}
+
 /**
  * semantic target에서 layout root와 affected subtree를 계산한다.
- * `shouldPromoteParent`가 true인 경우에만 used-size 영향으로 parent를 상향한다.
- * 따라서 호출부가 모르는 부모 경계를 전역 문서 순회로 추정하지 않는다.
+ * mutation registry의 used-size 축과 layout container 규칙표가 함께 true인 경우에만
+ * used-size 영향으로 parent를 상향한다. 테스트는 `promotionOverrideForTest` seam으로
+ * 규칙을 대체할 수 있다.
  */
 export function createPresentationLayoutPlan(input: {
   readonly targets: readonly EditorPresentationTargetRef[];
+  readonly mutations?: readonly EditorMutationDescriptor[];
   readonly tree: PresentationLayoutTreeIndex;
-  readonly shouldPromoteParent?: (parentId: string, childId: string) => boolean;
+  /** 테스트에서만 container 규칙을 대체할 수 있는 seam. */
+  readonly promotionOverrideForTest?: (
+    parentId: string,
+    childId: string,
+  ) => boolean;
 }): PresentationLayoutPlan {
   const roots = new Set<string>();
-  const promote = input.shouldPromoteParent ?? (() => false);
+  const parentChain = new Set<string>();
 
   for (const target of input.targets) {
     let rootId =
       target.kind === "canonical-node" ? target.nodeId : target.refId;
     let parentId = input.tree.parentById.get(rootId) ?? null;
     const visited = new Set([rootId]);
-    while (parentId && promote(parentId, rootId)) {
+    const targetKey = toEditorPresentationTargetKey(target);
+    const usedSizeEffect = (input.mutations ?? [])
+      .filter(
+        (mutation) =>
+          toEditorPresentationTargetKey(mutation.target) === targetKey,
+      )
+      .reduce<EditorMutationUsedSizeEffect>(
+        (effect, mutation) =>
+          mergeUsedSizeEffects(effect, getDescriptorUsedSizeEffect(mutation)),
+        "none",
+      );
+    const sourceTargetId =
+      target.kind === "canonical-node" ? target.nodeId : target.refId;
+    while (
+      parentId &&
+      (input.promotionOverrideForTest
+        ? input.promotionOverrideForTest(parentId, rootId)
+        : shouldPromoteUsedSizeParent({
+            childId: rootId,
+            parentId,
+            sourceTargetId,
+            tree: input.tree,
+            usedSizeEffect,
+          }))
+    ) {
       if (visited.has(parentId)) break;
       visited.add(parentId);
+      parentChain.add(parentId);
       rootId = parentId;
       parentId = input.tree.parentById.get(rootId) ?? null;
     }
@@ -81,6 +207,7 @@ export function createPresentationLayoutPlan(input: {
   }
 
   return Object.freeze({
+    parentChain: Object.freeze([...parentChain]),
     roots: Object.freeze([...roots]),
     affectedNodeIds,
   });

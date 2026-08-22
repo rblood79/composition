@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ADR-188 targeted layout input/result — 2026-08-22
+
+### Architecture
+
+- persistent layout에 `roots`/`parentChain`/`affectedNodeIds` typed input과 targeted result
+  collection을 추가하고, input 방문·result 수집·engine compute counter를 분리했다.
+- mutation registry의 `usedSizeEffect`와 layout container 규칙표를 합성해 in-flow sibling을
+  포함하는 parent promotion을 runtime에서 판정한다. explicit sized ancestor와
+  `position:absolute` 경계는 fail-closed로 유지한다.
+- Rust layout tree는 `subtree_dirty` 요약 플래그를 사용해 clean subtree skip 판정을 O(1)로
+  바꾸고, dirty 전파·intrinsic 측정 snapshot/restore·solve 완료 정리를 같은 상태 계약으로
+  묶었다. [ADR-188 Phase 1 evidence](adr/design/188-phase-1-g1-targeted-input.md)
+
 ## ADR-187 색상 드래그 presentation 기반 - 2026-08-22
 
 ### Architecture
