@@ -85,7 +85,13 @@ function mergeUsedSizeEffects(
   return "none";
 }
 
-function getDescriptorUsedSizeEffect(
+/**
+ * descriptor 의 used-size 축을 registry 에서 읽는다.
+ *
+ * ADR-189 Phase 1 의 commit lane 이 같은 판정을 재사용한다 — 두 lane 이 서로 다른
+ * diff 계층을 갖지 않게 하려면 이 함수가 유일한 진입점이어야 한다 (ADR-189 R4).
+ */
+export function getDescriptorUsedSizeEffect(
   descriptor: EditorMutationDescriptor,
 ): EditorMutationUsedSizeEffect {
   if (

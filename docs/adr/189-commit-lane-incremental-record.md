@@ -186,6 +186,21 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 | G3   | Phase 3 | damage 부분 재기록 pixel diff 0 + 비용이 damage 면적 비례 실측                                                | Phase 3 기각, Phase 2 종결                      |
 | G4   | Phase 4 | live exercise (편집 유형별) + `/cross-check` 대칭 + 120Hz p95 <4ms / p99 <8.33ms, commit 직후 스파이크 제거   | 대안 A 로 회귀 (fallback 상시화) 후 재설계 검토 |
 
+## Implementation Progress
+
+- **Phase 1 / G1 — Implemented (2026-08-22)**: `commitPatchPlan.ts` 가 commit 의
+  dirty-root 를 rootKey 별 `CommitPatchPlan` 으로 도출한다. promotion 판정은
+  ADR-188 lane 의 `createPresentationLayoutPlan` + `getDescriptorUsedSizeEffect`
+  만 경유하고(정적 가드로 재구현 0 고정), commit lane 이 더한 축은 structure
+  (`add`/`remove`/`order` → 부모가 dirty root) · rootKey 분할 · full rebuild 방향
+  fail-closed 셋이다. 편집 5유형 fixture + fallback 4종, 14 test PASS,
+  presentation 96 test 무회귀, type-check 신규 위반 0.
+  **Gate 문구 중 렌더 대조 diff 0 은 G2 로 이월** — 대조할 증분 렌더 경로가
+  Phase 2 에서 생기기 때문이며, G2 가 이미 "stream 구조 full 대조 동일"을
+  포함해 공백은 없다. [G1 evidence](design/189-phase-1-g1-commit-dirty-root.md)
+- **Phase 0 / G0 — 미착수**: commit 1회 축별 비용 baseline. Phase 2 착수 전
+  필요 (Phase 2·3 축소 종결 판정의 근거).
+
 ## Consequences
 
 ### Positive
