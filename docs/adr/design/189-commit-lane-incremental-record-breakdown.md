@@ -39,10 +39,22 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
   stream rebuild (JS) / content record (replay 포함) / flush+snapshot / SpatialIndex.
   ADR-188 G0 하니스 (`188-phase-0-g0-baseline.md`) 재사용.
 - negative contract: 현행 경로가 실제로 full rebuild 인지 counter 로 고정
-  (`buildRenderCommandStream` 호출 시 방문 노드 수 = N 단언).
+  (`buildRenderCommandStream` 호출 시 방문 노드 수 = fixture N + visible page
+  shell 고정항, 증가량 1/N 단언). fixture의 고정 shell을 N에 숨겨 literal
+  `visits === N`으로 보고하지 않는다.
 - **판정**: N=5,000 에서 commit 1회 record+stream 축이 frame 예산 (8.33ms) 의
   50% 미만이면 Phase 2·3 의 우선순위를 재평가하고 본 ADR 을 축소 종결할 수 있다
   (측정 우선 — ADR-153 대안 B 와 같은 종결 경로 내장).
+
+#### 실행 기록 — G0 RED (2026-08-23)
+
+- [G0 evidence](189-phase-0-g0-baseline.md)의 Chrome 151 live Builder trace에서
+  N=50/500/5,000 fixture를 5회씩 측정했다.
+- N=5,000 p95는 stream `6.1ms` + content record `70.2ms` = `75.1ms`로,
+  budget 50%(`4.165ms`)를 약 18배 초과했다. flush+snapshot `0.5ms`,
+  SpatialIndex `1.8ms`가 뒤따르며 long task 10회가 관측됐다.
+- full build count 1, subtree build 0인 음성 계약을 확인했다. 축소 종결 조건은
+  불충족하므로 Phase 2/3을 진행한다.
 
 ### Phase 1 — G1: commit dirty-root 도출
 

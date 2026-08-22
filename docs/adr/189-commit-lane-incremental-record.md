@@ -178,13 +178,13 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 
 ## Gates
 
-| Gate | 시점    | 통과 조건                                                                                                     | 실패 시 대안                                    |
-| ---- | ------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| G0   | Phase 0 | N=50/500/5,000 commit 1회 축별 비용 baseline 고정, full rebuild 방문 수 = N negative contract                 | 예산 여유면 축소 종결 (대안 A 부분 보존)        |
-| G1   | Phase 1 | 편집 유형별 dirty-root 가 시각 변화 범위 포함 — full 대조 diff 0, ADR-188 promotion 재사용 (신규 diff 계층 0) | 해당 편집 유형 full rebuild 유지                |
-| G2   | Phase 2 | splice write ≤ 재기록 span 길이, stream 구조 full 대조 동일, 실패 조건 전부 fallback counter 로 관측          | full rebuild fallback 유지 (부분 승격만)        |
-| G3   | Phase 3 | damage 부분 재기록 pixel diff 0 + 비용이 damage 면적 비례 실측                                                | Phase 3 기각, Phase 2 종결                      |
-| G4   | Phase 4 | live exercise (편집 유형별) + `/cross-check` 대칭 + 120Hz p95 <4ms / p99 <8.33ms, commit 직후 스파이크 제거   | 대안 A 로 회귀 (fallback 상시화) 후 재설계 검토 |
+| Gate | 시점    | 통과 조건                                                                                                                             | 실패 시 대안                                                     |
+| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| G0   | Phase 0 | N=50/500/5,000 commit 1회 축별 비용 baseline 고정, full rebuild 방문 수가 fixture N에 고정 shell offset을 더한 선형 full DFS임을 확인 | `record+stream`이 예산 50% 미만이면 축소 종결 (대안 A 부분 보존) |
+| G1   | Phase 1 | 편집 유형별 dirty-root 가 시각 변화 범위 포함 — full 대조 diff 0, ADR-188 promotion 재사용 (신규 diff 계층 0)                         | 해당 편집 유형 full rebuild 유지                                 |
+| G2   | Phase 2 | splice write ≤ 재기록 span 길이, stream 구조 full 대조 동일, 실패 조건 전부 fallback counter 로 관측                                  | full rebuild fallback 유지 (부분 승격만)                         |
+| G3   | Phase 3 | damage 부분 재기록 pixel diff 0 + 비용이 damage 면적 비례 실측                                                                        | Phase 3 기각, Phase 2 종결                                       |
+| G4   | Phase 4 | live exercise (편집 유형별) + `/cross-check` 대칭 + 120Hz p95 <4ms / p99 <8.33ms, commit 직후 스파이크 제거                           | 대안 A 로 회귀 (fallback 상시화) 후 재설계 검토                  |
 
 ## Implementation Progress
 
@@ -198,8 +198,14 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
   **Gate 문구 중 렌더 대조 diff 0 은 G2 로 이월** — 대조할 증분 렌더 경로가
   Phase 2 에서 생기기 때문이며, G2 가 이미 "stream 구조 full 대조 동일"을
   포함해 공백은 없다. [G1 evidence](design/189-phase-1-g1-commit-dirty-root.md)
-- **Phase 0 / G0 — 미착수**: commit 1회 축별 비용 baseline. Phase 2 착수 전
-  필요 (Phase 2·3 축소 종결 판정의 근거).
+- **Phase 0 / G0 — Complete / RED (2026-08-23)**: 실제 Builder에서 N=50/500/5,000
+  단일 style commit을 5회씩 측정했다. full command stream 방문은 fixture N에
+  visible page shell 56개가 더해진 `106/556/5,056`으로 선형 증가했고, 매 run
+  full build 1회·subtree build 0회로 현재 경로의 full rebuild를 고정했다.
+  N=5,000 `record+stream` p95는 `75.1ms`(stream `6.1ms` + content record
+  `70.2ms`)로 8.33ms frame budget의 9.0배이며, 축소 종결 기준 4.165ms도
+  초과했다. 따라서 ADR을 축소 종결하지 않고 Phase 2 subtree splice와 Phase 3
+  damage record를 계속한다. [G0 evidence](design/189-phase-0-g0-baseline.md)
 
 ## Consequences
 

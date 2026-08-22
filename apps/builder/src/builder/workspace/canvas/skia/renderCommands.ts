@@ -78,6 +78,83 @@ const CMD_CHILDREN_END = 3 as const;
 const CMD_ELEMENT_END = 4 as const;
 const DRAG_ELEMENT_ALPHA = 0.9;
 
+/**
+ * ADR-189 Phase 0/G0 read-only baseline metrics.
+ *
+ * This boundary is deliberately query-opt-in outside the dev server. It
+ * counts the actual DFS visits and the SpatialIndex full-snapshot duration
+ * without changing the render path or scheduling any work.
+ */
+const adr189MetricsEnabled =
+  typeof window !== "undefined" &&
+  (import.meta.env?.DEV ||
+    new URLSearchParams(window.location.search).has("adr189Metrics"));
+
+interface CommitLaneBuildMetric {
+  readonly durationMs: number;
+  readonly visits: number;
+  readonly subtree: boolean;
+}
+
+const commitLaneBuildMetrics: CommitLaneBuildMetric[] = [];
+const commitLaneSpatialIndexDurationsMs: number[] = [];
+let commitLaneVisitCount = 0;
+
+function recordCommitLaneVisit(): void {
+  if (adr189MetricsEnabled) commitLaneVisitCount += 1;
+}
+
+function recordCommitLaneBuild(
+  startedAt: number,
+  visitStart: number,
+  subtree: boolean,
+): void {
+  if (!adr189MetricsEnabled) return;
+  commitLaneBuildMetrics.push({
+    durationMs: performance.now() - startedAt,
+    visits: commitLaneVisitCount - visitStart,
+    subtree,
+  });
+}
+
+function recordCommitLaneSpatialIndex(startedAt: number): void {
+  if (adr189MetricsEnabled) {
+    commitLaneSpatialIndexDurationsMs.push(performance.now() - startedAt);
+  }
+}
+
+function resetCommitLaneMetrics(): void {
+  commitLaneBuildMetrics.length = 0;
+  commitLaneSpatialIndexDurationsMs.length = 0;
+  commitLaneVisitCount = 0;
+}
+
+function getCommitLaneMetricsSnapshot() {
+  return {
+    buildCount: commitLaneBuildMetrics.length,
+    buildMetrics: commitLaneBuildMetrics.map((metric) => ({ ...metric })),
+    spatialIndexDurationsMs: [...commitLaneSpatialIndexDurationsMs],
+    totalVisits: commitLaneVisitCount,
+    enabled: adr189MetricsEnabled,
+  };
+}
+
+declare global {
+  interface Window {
+    __composition_COMMIT_LANE_DEBUG__?: {
+      reset: typeof resetCommitLaneMetrics;
+      snapshot: typeof getCommitLaneMetricsSnapshot;
+    };
+  }
+}
+
+if (typeof window !== "undefined" && adr189MetricsEnabled) {
+  window.__composition_COMMIT_LANE_DEBUG__ = {
+    reset: resetCommitLaneMetrics,
+    snapshot: getCommitLaneMetricsSnapshot,
+  };
+}
+
 interface ElementBeginCmd {
   type: typeof CMD_ELEMENT_BEGIN;
   x: number;
@@ -510,6 +587,8 @@ export function buildRenderCommandStream(
     subtreeContext?: SubtreeBuildContext;
   } = {},
 ): RenderCommandStream {
+  const metricsBuildStart = adr189MetricsEnabled ? performance.now() : 0;
+  const metricsVisitStart = commitLaneVisitCount;
   const commands: RenderCommand[] = [];
   const selfSpans = new Map<string, SelfSpan>();
   const subtreeSpans = new Map<string, SubtreeSpan>();
@@ -597,7 +676,9 @@ export function buildRenderCommandStream(
 
   // SpatialIndex 동기화: 클립 인지 히트 영역을 반영 (화면에 없는 영역은 히트 불가)
   if (options.syncSpatialIndexSnapshot !== false && WASM_FLAGS.SPATIAL_INDEX) {
+    const spatialIndexStart = adr189MetricsEnabled ? performance.now() : 0;
     syncSpatialIndex(hitBoundsMap);
+    if (adr189MetricsEnabled) recordCommitLaneSpatialIndex(spatialIndexStart);
   }
 
   // 최신 boundsMap 캐시 (TextEditOverlay 등 외부 접근용)
@@ -605,6 +686,14 @@ export function buildRenderCommandStream(
     _lastBoundsMap = boundsMap;
     _lastHitBoundsMap = hitBoundsMap;
     _notifyBoundsListeners(boundsMap);
+  }
+
+  if (adr189MetricsEnabled) {
+    recordCommitLaneBuild(
+      metricsBuildStart,
+      metricsVisitStart,
+      options.subtreeContext !== undefined,
+    );
   }
 
   return {
@@ -775,6 +864,8 @@ function visitElement(
     });
     return;
   }
+
+  recordCommitLaneVisit();
 
   const isTopLayer = topLayerSubtree || options.renderAsTopLayer === true;
   const subtreeStart = commands.length;

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ADR-189 Phase 0 commit lane baseline — 2026-08-23
+
+### Performance
+
+- **N-tier canonical commit baseline 고정**:
+  - 실제 Builder에서 N=50/500/5,000 한 요소 style commit을 5회씩 측정해 full stream DFS, content record, flush+snapshot, SpatialIndex 축을 분리했다.
+  - N=5,000 `record+stream` p95가 75.1ms로 확인되어, 단일 요소 commit도 문서 크기에 따라 frame budget을 초과할 수 있음을 고정했다.
+  - **Why:** 기존 commit 경로가 dirty subtree patch가 아니라 full DFS + full content record를 수행해 `requestAnimationFrame` commit-after 구간을 N에 비례하게 만들기 때문이다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`, `apps/builder/scripts/adr189-commit-baseline.mjs`
+  - 증적: [ADR-189 Phase 0 G0 baseline](adr/design/189-phase-0-g0-baseline.md)
+
 ## ADR-188 targeted layout input/result — 2026-08-22
 
 ### Architecture
