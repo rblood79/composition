@@ -135,6 +135,27 @@ describe("EditorPresentationTransactionRuntime", () => {
     expect(runtime.getDiagnostics()).toMatchObject({ frameApplyCount: 1 });
   });
 
+  it("publishes layout invalidation separately from the paint lane", () => {
+    const { runtime, scheduler } = createRuntime();
+    const handle = begin(runtime);
+    handle.publish({
+      patch: { width: 120 },
+      target,
+      type: "style.patch",
+    });
+    scheduler.flush();
+
+    const invalidation = runtime.getSnapshot().invalidation;
+    expect(invalidation.paintTargets).toEqual(
+      new Set(["canonical-node:node-1"]),
+    );
+    expect(invalidation.layoutRoots).toEqual(new Set(["node-1"]));
+    expect(invalidation.structureRoots).toEqual(new Set());
+    expect(invalidation.paintRevision).toBe(1);
+    expect(invalidation.layoutRevision).toBe(1);
+    expect(invalidation.structureRevision).toBe(0);
+  });
+
   it("visits only pending sessions when many sessions are active", () => {
     const { runtime, scheduler, values } = createRuntime();
     const handles = Array.from({ length: 100 }, (_, index) => {

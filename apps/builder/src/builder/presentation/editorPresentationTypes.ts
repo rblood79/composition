@@ -53,6 +53,22 @@ export interface ClassifiedEditorMutation {
   readonly invalidation: EditorInvalidationKind;
 }
 
+/**
+ * Presentation frame에서 canonical/store version과 분리해 소비하는 lane 신호.
+ *
+ * layout/structure mutation도 먼저 paint target을 갱신할 수 있어
+ * `paintTargets`에는 모든 active presentation target이 포함된다. layout과
+ * structure는 각각의 root 집합과 revision으로만 승격된다.
+ */
+export interface EditorPresentationInvalidation {
+  readonly paintTargets: ReadonlySet<EditorPresentationTargetKey>;
+  readonly layoutRoots: ReadonlySet<string>;
+  readonly structureRoots: ReadonlySet<string>;
+  readonly paintRevision: number;
+  readonly layoutRevision: number;
+  readonly structureRevision: number;
+}
+
 export type EditorPresentationSessionStatus = "active" | "closing" | "failed";
 
 export interface EditorPresentationSession {
@@ -74,6 +90,7 @@ export interface EditorPresentationSnapshot {
     EditorPresentationScopedTargetKey,
     readonly ClassifiedEditorMutation[]
   >;
+  readonly invalidation: EditorPresentationInvalidation;
   readonly sessions: ReadonlyMap<string, EditorPresentationSession>;
   readonly version: number;
 }

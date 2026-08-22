@@ -10,6 +10,7 @@ import {
   type EditorPresentationCancelReason,
   type EditorPresentationFinishResult,
   type EditorPresentationHandle,
+  type EditorPresentationInvalidation,
   type EditorPresentationScopedTargetKey,
   type EditorPresentationSession,
   type EditorPresentationSnapshot,
@@ -19,6 +20,10 @@ import {
   toEditorPresentationScopedTargetKey,
 } from "./editorPresentationTypes";
 import type { FillItem } from "../../types/builder/fill.types";
+import {
+  EMPTY_EDITOR_PRESENTATION_INVALIDATION,
+  updateEditorPresentationInvalidation,
+} from "./editorPresentationInvalidation";
 
 export interface EditorPresentationFrameScheduler {
   cancel(handle: number): void;
@@ -344,8 +349,11 @@ export class EditorPresentationTransactionRuntime {
       readonly ClassifiedEditorMutation[]
     >(),
     sessions: new ImmutableMap<string, EditorPresentationSession>(),
+    invalidation: EMPTY_EDITOR_PRESENTATION_INVALIDATION,
     version: 0,
   });
+  #invalidation: EditorPresentationInvalidation =
+    EMPTY_EDITOR_PRESENTATION_INVALIDATION;
   #staleFrameCallbackCount = 0;
 
   constructor(options: EditorPresentationRuntimeOptions) {
@@ -364,6 +372,7 @@ export class EditorPresentationTransactionRuntime {
       this.#snapshot = Object.freeze({
         overlaysByTarget: new ImmutableMap(this.#overlaysByTarget),
         sessions: new ImmutableMap(this.#publicSessions),
+        invalidation: this.#invalidation,
         version: this.#snapshotVersion,
       });
       this.#snapshotDirty = false;
@@ -947,7 +956,10 @@ export class EditorPresentationTransactionRuntime {
   #replaceSnapshotSession(session: RuntimeSession): void {
     const publicSession = toPublicSession(session);
     this.#publicSessions.set(session.sessionId, publicSession);
-    this.#publishSnapshot(EMPTY_SCOPED_TARGET_KEYS);
+    this.#publishSnapshot(
+      EMPTY_SCOPED_TARGET_KEYS,
+      session.applied ? [session.applied] : [],
+    );
     this.#publishSessionEvent(
       Object.freeze({ session: publicSession, type: "updated" }),
     );
@@ -959,7 +971,10 @@ export class EditorPresentationTransactionRuntime {
     for (const key of session.scopedTargetKeys.values()) {
       if (this.#overlaysByTarget.delete(key)) changedTargetKeys.add(key);
     }
-    this.#publishSnapshot(changedTargetKeys);
+    this.#publishSnapshot(
+      changedTargetKeys,
+      session.applied ? [session.applied] : [],
+    );
   }
 
   #applySnapshotChanges(
@@ -976,7 +991,14 @@ export class EditorPresentationTransactionRuntime {
       if (value) this.#overlaysByTarget.set(key, value);
       else this.#overlaysByTarget.delete(key);
     }
-    this.#publishSnapshot(new Set(overlayChanges.keys()));
+    this.#publishSnapshot(
+      new Set(overlayChanges.keys()),
+      [...changedSessions.values()]
+        .map((session) => session.applied)
+        .filter((mutation): mutation is ClassifiedEditorMutation =>
+          Boolean(mutation),
+        ),
+    );
     for (const session of changedSessions.values()) {
       this.#publishSessionEvent(
         Object.freeze({ session: toPublicSession(session), type: "updated" }),
@@ -990,9 +1012,15 @@ export class EditorPresentationTransactionRuntime {
 
   #publishSnapshot(
     changedTargetKeys: ReadonlySet<EditorPresentationScopedTargetKey>,
+    changedMutations: readonly ClassifiedEditorMutation[] = [],
   ): void {
     this.#snapshotVersion += 1;
     this.#snapshotDirty = true;
+    this.#invalidation = updateEditorPresentationInvalidation(
+      this.#invalidation,
+      this.#publicSessions.values(),
+      changedMutations,
+    );
     for (const listener of this.#listeners) listener();
     for (const key of changedTargetKeys) {
       for (const listener of this.#targetListeners.get(key) ?? []) listener();
