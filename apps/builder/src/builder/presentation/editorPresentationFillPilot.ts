@@ -20,7 +20,12 @@ import {
 } from "./editorPresentationCommitAdapter";
 import { EditorPresentationTransactionRuntime } from "./editorPresentationRuntime";
 import { EditorPresentationPreviewBridge } from "./editorPresentationPreviewBridge";
-import type { EditorPresentationTargetRef } from "./editorPresentationTypes";
+import type {
+  BeginEditorPresentationInput,
+  EditorPresentationHandle,
+  EditorPresentationTargetRef,
+} from "./editorPresentationTypes";
+import type { EditorPresentationRuntimeDiagnostics } from "./editorPresentationRuntime";
 
 const FILL_PILOT_QUERY_PARAM = "adr187FillPilot";
 const materializationContextByDocument = new WeakMap<
@@ -32,6 +37,30 @@ export const editorPresentationFillPilotRuntime =
   new EditorPresentationTransactionRuntime(
     editorPresentationCanonicalRuntimeOptions,
   );
+
+declare global {
+  interface Window {
+    __composition_EDITOR_PRESENTATION_DEBUG__?: {
+      begin(input: BeginEditorPresentationInput): EditorPresentationHandle;
+      diagnostics(): EditorPresentationRuntimeDiagnostics;
+    };
+  }
+}
+
+// 실제 Builder의 singleton runtime을 브라우저 검증 하니스가 사용하도록 한다.
+// 동적 import는 Vite query가 다른 module instance를 만들 수 있으므로 live parity
+// 증거로 사용할 수 없다. production benchmark도 같은 query를 사용하므로 metrics
+// opt-in에서만 동일 instance를 노출한다(overlay 전용이며 canonical commit API는 없다).
+if (
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).has("adr187Metrics")
+) {
+  window.__composition_EDITOR_PRESENTATION_DEBUG__ = {
+    begin: (input) =>
+      editorPresentationFillPilotRuntime.beginEditorPresentation(input),
+    diagnostics: () => editorPresentationFillPilotRuntime.getDiagnostics(),
+  };
+}
 
 export const editorPresentationFillPreviewBridge =
   new EditorPresentationPreviewBridge({

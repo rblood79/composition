@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted — 2026-08-22
+Implemented — 2026-08-22
 
-Related: [ADR-187 에디터 프레젠테이션 트랜잭션과 타입 기반 무효화](187-editor-presentation-transaction-and-typed-invalidation.md)
+Related: [ADR-187 에디터 프레젠테이션 트랜잭션과 타입 기반 무효화](../187-editor-presentation-transaction-and-typed-invalidation.md)
 
 ## Context
 
@@ -160,7 +160,7 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
 - **대안 D 기각(단기 fallback으로만 보존)**: 현재 안전하지만 layout slider의
   continuous preview 목표를 포기한다. capability별 실패 시 fallback으로는 허용한다.
 
-> 구현 상세: [188-targeted-layout-and-skia-subtree-patching-breakdown.md](design/188-targeted-layout-and-skia-subtree-patching-breakdown.md)
+> 구현 상세: [188-targeted-layout-and-skia-subtree-patching-breakdown.md](../design/188-targeted-layout-and-skia-subtree-patching-breakdown.md)
 
 ## Risks
 
@@ -192,20 +192,20 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
 - **Phase 0 / G0 — Complete (2026-08-22)**: N=50/500/5,000 whole-tree baseline,
   engine `subtree_has_dirty` walk counter, targeted full-sync negative contract,
   and ADR-187 paint regression tests are fixed in
-  [G0 evidence](design/188-phase-0-g0-baseline.md). N=5,000·dirty leaf 1개에서
+  [G0 evidence](../design/188-phase-0-g0-baseline.md). N=5,000·dirty leaf 1개에서
   engine skip walk p95 22.720ms가 측정되어 1ms 예산을 초과했다. 따라서 Phase 1의
   Rust subtree-dirty 요약 플래그 작업은 조건부가 아니라 필수 선행 범위다.
 - **Phase 1 / G1 — Implemented (2026-08-22)**: Rust subtree-dirty summary와 dirty
   전파/측정 snapshot 경계를 반영하고, registry `usedSizeEffect` × layout container
   규칙표 기반 runtime promotion, persistent targeted input/result API 및 분리 counter를
   추가했다. explicit sized ancestor stop, in-flow sibling 포함, absolute child/paint-only
-  fail-closed를 검증했다. [G1 evidence](design/188-phase-1-g1-targeted-input.md)
+  fail-closed를 검증했다. [G1 evidence](../design/188-phase-1-g1-targeted-input.md)
 - **Phase 2 / G2 — Implemented (2026-08-22)**: canonical-full과 presentation-targeted
   publication을 typed channel로 분리하고, affected delta만 보유하는 overlay와 root별
   revision을 추가했다. page/frame rootKey 파생을 공용 helper로 단일화했으며, multi-root
   plan은 `planSequence` group으로 원자 적용/거부한다. base map 전체 복사,
   `getSharedLayoutMap()` targeted base, full-sync callback은 static/runtime guard에서
-  0건이다. [G2 evidence](design/188-phase-2-g2-publication.md)
+  0건이다. [G2 evidence](../design/188-phase-2-g2-publication.md)
 - **Phase 3 / G3·G4 — Implemented (2026-08-22)**: 단일 Skia DFS에서 subtree span,
   조상 clip, z-order, scroll/sticky context와 drag/fixed top-layer metadata를 함께
   기록한다. 고정 길이 subtree command와 `boundsMap`/`hitBoundsMap`/SpatialIndex를
@@ -213,7 +213,7 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
   revision·span context·command count·clip·scroll·z-order·top-layer 위반을 각각
   거부한다. leaf/nested/clipped/scroll-sticky fixture와 ghost-hit 제거, static full
   rebuild 금지 guard를 통과했다. production publication subscription과 descriptor
-  allowlist 연결은 Phase 4 범위다. [G3/G4 evidence](design/188-phase-3-g3-g4-skia-subtree-patch.md)
+  allowlist 연결은 Phase 4 범위다. [G3/G4 evidence](../design/188-phase-3-g3-g4-skia-subtree-patch.md)
 - **Phase 4 / G5 — Implemented (2026-08-22)**: `SkiaEditorPresentationLayoutBridge`를
   ADR-187 runtime의 production Skia consumer로 연결했다. `position:absolute`의
   숫자형 `left/top` 또는 `x/y`만 layout publication → local subtree command/hit
@@ -223,15 +223,15 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
   canonical subtree restore, committed terminal은 Store sync 이후 retire한다.
   Preview `CanonicalNodeRenderer`도 같은 allowlist를 소비해 DOM/Skia capability를
   분리하지 않는다.
-  [G5 evidence](design/188-phase-4-g5-adr187-layout-wiring.md)
-- **Phase 5 / G6 — RED (2026-08-22)**: 인증된 populated Builder의 상단 split Preview에서
-  geometry commit과 numeric absolute-position presentation patch를 실제 발화했다.
-  Preview DOM은 canonical store를 보존한 채 `left/top` overlay를 반영했지만, headless
-  CanvasKit 세션에서는 command-stream snapshot과 Skia bounds/hit snapshot을 관측하지
-  못해 DOM/Skia parity를 GREEN으로 판정할 수 없었다. N=5,000 trace에서는 long task
-  9건(1초, max 248ms) 및 24건(3초, max 249ms)이 발생했고, 기존 lowercase `<box>`
-  console error 1건도 남아 G6의 strict `long task=0`/`console error,warn=0` 조건을
-  충족하지 못했다. [G6 evidence](design/188-phase-5-g6-live-parity.md)
+  [G5 evidence](../design/188-phase-4-g5-adr187-layout-wiring.md)
+- **Phase 5 / G6 — Implemented (2026-08-22)**: 초기 RED가 layout이 아닌 paint lane,
+  synthetic `Box`, `V=N` dense fixture와 별도 Vite module instance의 cold snapshot을
+  측정한 하니스 결함임을 분리했다. 실제 runtime/Skia singleton과 constant-visible-workload
+  fixture로 N=50/500/5,000 × 5회를 재측정했다. N=5,000 runtime apply 중앙
+  p95/p99 `0.165/0.179ms`, Skia frame `1.487/1.548ms`, long task 0,
+  console error/warn 0이다. DOM/Skia clipped width 15/15, SpatialIndex hit 15/15,
+  canvas pixel cancel 복원 15/15와 canonical store 불변을 확인했다.
+  [G6 evidence](../design/188-phase-5-g6-live-parity.md)
 
 ## Consequences
 
@@ -257,4 +257,5 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
   소비자는 그룹 단위 적용/거부를 처리해야 한다.
 - promotion 판정이 registry `usedSizeEffect` 축과 container 재분배 규칙표의 합성이 되므로,
   새 layout 속성을 추가할 때 두 축의 값을 함께 채워야 continuous allowlist에 들어간다.
-- G6을 통과하기 전까지 layout slider는 일부 또는 전체가 commit-only일 수 있다.
+- allowlist 밖 reflow/size/intrinsic/fixed/sticky descriptor는 설계대로 commit-only를
+  유지하며, continuous 승격에는 별도 capability 검증이 필요하다.

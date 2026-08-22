@@ -1,5 +1,6 @@
 import type { ComputedLayout } from "../workspace/canvas/layout/engines/LayoutEngine";
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNode";
+import { recordEditorPresentationTargetIncrementalPatches } from "../performance/editorPresentationPhase0Metrics";
 import {
   buildSubtreeCommandStream,
   getCachedCommandStreamSnapshot,
@@ -273,6 +274,7 @@ export class SkiaEditorPresentationLayoutBridge {
       canonicalRevision,
     });
     if (!result.applied) return;
+    recordEditorPresentationTargetIncrementalPatches(affectedNodeIds.size);
     this.#presentationRevisionByRootKey.set(rootKey, nextRevision);
     this.#sessionState.set(session.sessionId, {
       rootKey,
@@ -333,6 +335,7 @@ export class SkiaEditorPresentationLayoutBridge {
       canonicalRevision,
     });
     if (!result.applied) return;
+    recordEditorPresentationTargetIncrementalPatches(affectedNodeIds.size);
     this.#presentationRevisionByRootKey.set(state.rootKey, nextRevision);
     this.#options.onPatched(current);
   }

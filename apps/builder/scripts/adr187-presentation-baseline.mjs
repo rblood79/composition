@@ -17,7 +17,9 @@ function parseArgs(argv) {
     baseUrl: "http://localhost:5173/composition",
     durationMs: 5000,
     distDir: resolve("apps/builder/dist"),
+    fixtureProfile: "dense",
     headed: false,
+    lane: "paint",
     out: "/private/tmp/adr187-phase0-baseline.json",
     repeats: 5,
     storageState: resolve("apps/builder/scripts/.auth-session.json"),
@@ -31,10 +33,12 @@ function parseArgs(argv) {
     if (value === "--base-url") options.baseUrl = next;
     else if (value === "--dist-dir") options.distDir = resolve(next);
     else if (value === "--duration-ms") options.durationMs = Number(next);
+    else if (value === "--fixture-profile") options.fixtureProfile = next;
     else if (value === "--headed") {
       options.headed = true;
       continue;
     } else if (value === "--out") options.out = next;
+    else if (value === "--lane") options.lane = next;
     else if (value === "--repeats") options.repeats = Number(next);
     else if (value === "--serve-dist") {
       options.serveDist = true;
@@ -63,12 +67,19 @@ function assertOptions(options) {
     options.durationMs <= 0 ||
     !Number.isInteger(options.repeats) ||
     options.repeats <= 0 ||
+    !["dense", "document-scale"].includes(options.fixtureProfile) ||
+    !["paint", "layout"].includes(options.lane) ||
     options.tiers.some((tier) => !Number.isInteger(tier) || tier < 2)
   ) {
     throw new Error("duration, repeats, and tiers must be positive");
   }
+  if (
+    options.lane === "layout" &&
+    options.fixtureProfile !== "document-scale"
+  ) {
+    throw new Error("layout lane requires --fixture-profile document-scale");
+  }
 }
-
 const contentTypes = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -136,6 +147,55 @@ function median(values) {
     : sorted[midpoint];
 }
 
+function percentile(values, p) {
+  const sorted = [...values].sort((a, b) => a - b);
+  if (sorted.length === 0) return 0;
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
+}
+
+function summarizeDurations(values) {
+  if (values.length === 0) {
+    return { count: 0, max: 0, p50: 0, p95: 0, p99: 0 };
+  }
+  const round = (value) => Number(value.toFixed(3));
+  return {
+    count: values.length,
+    max: round(Math.max(...values)),
+    p50: round(percentile(values, 0.5)),
+    p95: round(percentile(values, 0.95)),
+    p99: round(percentile(values, 0.99)),
+  };
+}
+
+function summarizeLayoutTrace(events) {
+  const functionCalls = events.filter(
+    (event) => event.ph === "X" && event.name === "FunctionCall",
+  );
+  const readDurations = (predicate) =>
+    functionCalls
+      .filter(predicate)
+      .map((event) => Number(event.dur ?? 0) / 1000);
+  return {
+    previewHandleMessage: summarizeDurations(
+      readDurations(
+        (event) => event.args?.data?.functionName === "handleMessage",
+      ),
+    ),
+    runtimeApply: summarizeDurations(
+      readDurations((event) =>
+        String(event.args?.data?.url ?? "").includes(
+          "/presentation/editorPresentationRuntime.ts",
+        ),
+      ),
+    ),
+    skiaRenderFrame: summarizeDurations(
+      readDurations(
+        (event) => event.args?.data?.functionName === "renderFrame",
+      ),
+    ),
+  };
+}
+
 function aggregateRuns(runs) {
   const counterKeys = Object.keys(runs[0]?.drag.counters ?? {});
   const medianCounters = Object.fromEntries(
@@ -168,6 +228,89 @@ function aggregateRuns(runs) {
       0,
       ...runs.flatMap((run) => run.longTasks.map((summary) => summary.max)),
     ),
+    ...(runs.some((run) => run.layout)
+      ? {
+          layout: {
+            allSkiaSnapshotsAvailable: runs.every(
+              (run) => run.layout?.during?.available === true,
+            ),
+            allCanvasChangedDuring: runs.every(
+              (run) =>
+                run.layout?.canvasBefore?.sha256 !==
+                run.layout?.canvasDuring?.sha256,
+            ),
+            allCanvasRestored: runs.every(
+              (run) =>
+                run.layout?.canvasBefore?.sha256 ===
+                run.layout?.canvasRestored?.sha256,
+            ),
+            allCenterHitsContainTarget: runs.every((run) =>
+              run.layout?.during?.centerHitIds?.includes("adr187-target"),
+            ),
+            allClippedHitWidthsMatchPreview: runs.every(
+              (run) =>
+                run.layout?.during?.hitBounds?.width ===
+                run.layout?.previewGeometry?.clippedWidth,
+            ),
+            allCommandCountsStable: runs.every(
+              (run) =>
+                run.layout?.before?.commandCount ===
+                  run.layout?.during?.commandCount &&
+                run.layout?.before?.commandCount ===
+                  run.layout?.restored?.commandCount,
+            ),
+            allDrawHitBoundsAtomic: runs.every(
+              (run) =>
+                JSON.stringify(run.layout?.during?.bounds) !==
+                  JSON.stringify(run.layout?.before?.bounds) &&
+                run.layout?.during?.presentationRevision >
+                  run.layout?.before?.presentationRevision &&
+                run.layout?.during?.presentationRevision <
+                  run.layout?.restored?.presentationRevision,
+            ),
+            medianRawPublishP95Ms: median(
+              runs.map((run) =>
+                percentile(run.layout?.rawPublishDurationsMs ?? [], 0.95),
+              ),
+            ),
+            medianRuntimeFrameApplyCount: median(
+              runs.map((run) => run.layout?.runtimeFrameApplyCount ?? 0),
+            ),
+            medianRuntimeApplyP95Ms: median(
+              runs.map(
+                (run) => run.layout?.traceDurations?.runtimeApply.p95 ?? 0,
+              ),
+            ),
+            medianRuntimeApplyP99Ms: median(
+              runs.map(
+                (run) => run.layout?.traceDurations?.runtimeApply.p99 ?? 0,
+              ),
+            ),
+            medianSkiaRenderFrameP95Ms: median(
+              runs.map(
+                (run) => run.layout?.traceDurations?.skiaRenderFrame.p95 ?? 0,
+              ),
+            ),
+            medianSkiaRenderFrameP99Ms: median(
+              runs.map(
+                (run) => run.layout?.traceDurations?.skiaRenderFrame.p99 ?? 0,
+              ),
+            ),
+            medianPreviewHandleP95Ms: median(
+              runs.map(
+                (run) =>
+                  run.layout?.traceDurations?.previewHandleMessage.p95 ?? 0,
+              ),
+            ),
+            medianPreviewHandleP99Ms: median(
+              runs.map(
+                (run) =>
+                  run.layout?.traceDurations?.previewHandleMessage.p99 ?? 0,
+              ),
+            ),
+          },
+        }
+      : {}),
   };
 }
 
@@ -203,9 +346,9 @@ async function createIsolatedProject(page, baseUrl) {
   return { projectName, projectUrl: page.url() };
 }
 
-async function seedTier(page, tier, previousTier) {
+async function seedTier(page, tier, previousTier, fixtureProfile) {
   return page.evaluate(
-    async ({ targetTier, priorTier }) => {
+    async ({ targetTier, priorTier, profile }) => {
       const store = window.__composition_STORE__;
       if (!store) throw new Error("Builder store global is unavailable");
       const state = store.getState();
@@ -226,36 +369,50 @@ async function seedTier(page, tier, previousTier) {
       }
       if (countToAdd > 0) {
         const offset = Math.max(priorTier, existingCount);
-        const makeBox = (index, id) => ({
-          id,
-          type: "Box",
-          parent_id: body.id,
-          page_id: currentPageId,
-          order_num: offset + index,
-          props: {
-            style: {
-              height: index === 0 && priorTier === 0 ? "120px" : "8px",
-              left: `${(offset + index) % 100}px`,
-              position: "absolute",
-              top: `${Math.floor((offset + index) / 100) * 9}px`,
-              width: index === 0 && priorTier === 0 ? "120px" : "8px",
+        const makeBox = (index, id) => {
+          const isTarget = index === 0 && priorTier === 0;
+          const documentScale = profile === "document-scale";
+          const absoluteIndex = offset + index;
+          return {
+            id,
+            // `Box`는 Skia scene 내부 synthetic type이라 canonical Preview DOM fixture로
+            // 사용하면 React가 <box> unknown tag warning을 낸다. document-scale profile은
+            // 실제 canonical layout primitive인 frame을 사용한다.
+            type: documentScale ? "frame" : "Box",
+            parent_id: body.id,
+            page_id: currentPageId,
+            order_num: offset + index,
+            props: {
+              style: {
+                height: isTarget ? "120px" : "8px",
+                left: documentScale ? "20px" : `${absoluteIndex % 100}px`,
+                position: "absolute",
+                // document-scale은 총 문서 N만 늘리고 가시 draw workload V는 고정한다.
+                // dense profile은 기존 ADR-187 baseline 재현을 위해 그대로 보존한다.
+                top: documentScale
+                  ? isTarget
+                    ? "30px"
+                    : `${2000 + absoluteIndex * 12}px`
+                  : `${Math.floor(absoluteIndex / 100) * 9}px`,
+                width: isTarget ? "120px" : "8px",
+              },
             },
-          },
-          ...(index === 0 && priorTier === 0
-            ? {
-                fills: [
-                  {
-                    id: "adr187-fill",
-                    type: "color",
-                    color: "#3366CCFF",
-                    enabled: true,
-                    opacity: 1,
-                    blendMode: "normal",
-                  },
-                ],
-              }
-            : {}),
-        });
+            ...(isTarget
+              ? {
+                  fills: [
+                    {
+                      id: "adr187-fill",
+                      type: "color",
+                      color: "#3366CCFF",
+                      enabled: true,
+                      opacity: 1,
+                      blendMode: "normal",
+                    },
+                  ],
+                }
+              : {}),
+          };
+        };
         const batchId =
           priorTier === 0 ? "adr187-target" : `adr187-seed-${targetTier}`;
         const parent = makeBox(0, batchId);
@@ -280,7 +437,11 @@ async function seedTier(page, tier, previousTier) {
         totalStoreElementCount: nextState.elements.length,
       };
     },
-    { targetTier: tier, priorTier: previousTier },
+    {
+      targetTier: tier,
+      priorTier: previousTier,
+      profile: fixtureProfile,
+    },
   );
 }
 
@@ -390,6 +551,16 @@ async function finishTrace(cdp, events, path) {
   };
 }
 
+async function captureCanvasScreenshot(page) {
+  const bytes = await page
+    .locator('canvas[data-testid="skia-canvas-unified"]')
+    .screenshot({ animations: "disabled" });
+  return {
+    byteLength: bytes.byteLength,
+    sha256: createHash("sha256").update(bytes).digest("hex"),
+  };
+}
+
 async function runDrag(page, cdp, options, tier, repeat, traceDir) {
   let colorArea = page.locator(".react-aria-ColorArea");
   let bounds = await colorArea
@@ -463,6 +634,237 @@ async function runDrag(page, cdp, options, tier, repeat, traceDir) {
   };
 }
 
+async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
+  await page.waitForFunction(
+    () =>
+      Boolean(
+        window.__composition_EDITOR_PRESENTATION_DEBUG__ &&
+          window.__composition_RENDER_COMMAND_DEBUG__,
+      ),
+    undefined,
+    { timeout: 30000 },
+  );
+  await page.evaluate(() => {
+    window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__.reset();
+    window.__composition_PERF__?.resetLongTasks();
+  });
+
+  const canvasBefore = await captureCanvasScreenshot(page);
+  const traceEvents = await startTrace(cdp);
+  const runStartedAt = Date.now();
+  const rawLayout = await page.evaluate(
+    async ({ durationMs, runIndex }) => {
+      const presentation = window.__composition_EDITOR_PRESENTATION_DEBUG__;
+      const renderCommands = window.__composition_RENDER_COMMAND_DEBUG__;
+      const store = window.__composition_STORE__;
+      if (!presentation || !renderCommands || !store) {
+        throw new Error("ADR-188 live debug boundary is unavailable");
+      }
+      const projectId = window.location.pathname
+        .split("/")
+        .filter(Boolean)
+        .at(-1);
+      if (!projectId) throw new Error("project id is unavailable");
+
+      const targetId = "adr187-target";
+      const target = { kind: "canonical-node", nodeId: targetId };
+      const currentPageId = store.getState().currentPageId;
+      const clipOwnerId = store
+        .getState()
+        .elements.find(
+          (element) =>
+            element.page_id === currentPageId && element.type === "body",
+        )?.id;
+      const before = renderCommands.readNode(targetId);
+      const clipOwnerBefore = clipOwnerId
+        ? renderCommands.readNode(clipOwnerId)
+        : null;
+      const canonicalBefore = store.getState().elementsMap.get(targetId)?.props
+        ?.style;
+      const diagnosticsBefore = presentation.diagnostics();
+      const handle = presentation.begin({
+        commitIntent: "layout-position",
+        ownerId: `adr188-g6-layout-${runIndex}`,
+        projectId,
+        targets: [target],
+      });
+
+      const rawPublishDurationsMs = [];
+      const cadenceMs = 1000 / 120;
+      const startedAt = performance.now();
+      let lastLeft = 80;
+      let lastTop = 45;
+      let rawPublishCount = 0;
+      const finalLeft = Math.max(
+        80,
+        (clipOwnerBefore?.bounds?.width ?? 800) - 40,
+      );
+      while (performance.now() - startedAt < durationMs) {
+        const progress = Math.min(
+          1,
+          (performance.now() - startedAt) / durationMs,
+        );
+        lastLeft = 80 + Math.round(progress * (finalLeft - 80));
+        lastTop = 45 + Math.round(Math.sin(progress * Math.PI * 4) * 15);
+        const publishStartedAt = performance.now();
+        handle.publish({
+          patch: { left: lastLeft, top: lastTop },
+          target,
+          type: "style.patch",
+        });
+        rawPublishDurationsMs.push(performance.now() - publishStartedAt);
+        rawPublishCount += 1;
+        await new Promise((resolvePromise) =>
+          setTimeout(resolvePromise, cadenceMs),
+        );
+      }
+
+      await new Promise((resolvePromise) => {
+        let remaining = 4;
+        const next = () => {
+          remaining -= 1;
+          if (remaining <= 0) resolvePromise();
+          else requestAnimationFrame(next);
+        };
+        requestAnimationFrame(next);
+      });
+
+      const during = renderCommands.readNode(targetId);
+      const iframe = document.querySelector("iframe#previewFrame");
+      const previewTarget = iframe?.contentDocument?.querySelector(
+        `[data-canonical-id="${targetId}"]`,
+      );
+      const previewClipOwner = clipOwnerId
+        ? iframe?.contentDocument?.querySelector(
+            `[data-canonical-id="${clipOwnerId}"]`,
+          )
+        : null;
+      const previewStyle = previewTarget
+        ? {
+            left: getComputedStyle(previewTarget).left,
+            top: getComputedStyle(previewTarget).top,
+          }
+        : null;
+      const previewTargetRect = previewTarget?.getBoundingClientRect();
+      const previewClipOwnerRect = previewClipOwner?.getBoundingClientRect();
+      const previewGeometry =
+        previewTargetRect && previewClipOwnerRect
+          ? {
+              clippedHeight: Math.max(
+                0,
+                Math.min(previewTargetRect.bottom, previewClipOwnerRect.bottom) -
+                  Math.max(previewTargetRect.top, previewClipOwnerRect.top),
+              ),
+              clippedWidth: Math.max(
+                0,
+                Math.min(previewTargetRect.right, previewClipOwnerRect.right) -
+                  Math.max(previewTargetRect.left, previewClipOwnerRect.left),
+              ),
+              ownerHeight: previewClipOwnerRect.height,
+              ownerWidth: previewClipOwnerRect.width,
+              targetHeight: previewTargetRect.height,
+              targetWidth: previewTargetRect.width,
+            }
+          : null;
+      const diagnosticsDuring = presentation.diagnostics();
+      const canonicalDuring = store.getState().elementsMap.get(targetId)?.props
+        ?.style;
+      const phaseMetricsDuring =
+        window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__.snapshot();
+      window.__composition_ADR188_G6_ACTIVE_HANDLE__ = handle;
+
+      return {
+        before,
+        canonicalBefore,
+        canonicalDuring,
+        clipOwnerBefore,
+        during,
+        expected: { left: lastLeft, top: lastTop },
+        phaseMetricsDuring,
+        previewGeometry,
+        previewStyle,
+        rawPublishCount,
+        rawPublishDurationsMs,
+        runtimeFrameApplyCount:
+          diagnosticsDuring.frameApplyCount - diagnosticsBefore.frameApplyCount,
+      };
+    },
+    { durationMs: options.durationMs, runIndex: repeat },
+  );
+  const longTasks = await page.evaluate(
+    () => window.__composition_PERF__?.snapshotLongTasks() ?? [],
+  );
+  const tracePath = resolve(
+    traceDir,
+    `adr188-layout-n${tier}-run${repeat + 1}.trace.json.gz`,
+  );
+  const trace = await finishTrace(cdp, traceEvents, tracePath);
+  const canvasDuring = await captureCanvasScreenshot(page);
+  const terminal = await page.evaluate(async () => {
+    const handle = window.__composition_ADR188_G6_ACTIVE_HANDLE__;
+    const renderCommands = window.__composition_RENDER_COMMAND_DEBUG__;
+    const store = window.__composition_STORE__;
+    if (!handle || !renderCommands || !store) {
+      throw new Error("ADR-188 terminal boundary is unavailable");
+    }
+    handle.cancel("pointer-cancel");
+    delete window.__composition_ADR188_G6_ACTIVE_HANDLE__;
+    await new Promise((resolvePromise) => {
+      let remaining = 4;
+      const next = () => {
+        remaining -= 1;
+        if (remaining <= 0) resolvePromise();
+        else requestAnimationFrame(next);
+      };
+      requestAnimationFrame(next);
+    });
+    const targetId = "adr187-target";
+    const iframe = document.querySelector("iframe#previewFrame");
+    const previewTarget = iframe?.contentDocument?.querySelector(
+      `[data-canonical-id="${targetId}"]`,
+    );
+    return {
+      canonicalAfter: store.getState().elementsMap.get(targetId)?.props?.style,
+      phaseMetricsAfterTerminal:
+        window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__.snapshot(),
+      previewStyleAfter: previewTarget
+        ? {
+            left: getComputedStyle(previewTarget).left,
+            top: getComputedStyle(previewTarget).top,
+          }
+        : null,
+      restored: renderCommands.readNode(targetId),
+    };
+  });
+  const canvasRestored = await captureCanvasScreenshot(page);
+  const { phaseMetricsDuring: drag, ...layoutDuring } = rawLayout;
+  const { phaseMetricsAfterTerminal: afterTerminal, ...terminalLayout } =
+    terminal;
+  const layout = {
+    ...layoutDuring,
+    ...terminalLayout,
+    canvasBefore,
+    canvasDuring,
+    canvasRestored,
+  };
+  layout.traceDurations = summarizeLayoutTrace(traceEvents);
+
+  return {
+    afterTerminal,
+    actualDragDurationMs: Date.now() - runStartedAt,
+    drag,
+    layout,
+    longTasks,
+    rawMoveCount: layout.rawPublishCount,
+    runWallTimeMs: Date.now() - runStartedAt,
+    terminalDelta: subtractCounters(
+      afterTerminal.counters,
+      drag.counters,
+    ),
+    trace,
+  };
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   assertOptions(options);
@@ -485,6 +887,27 @@ async function main() {
         name: "composition-auth-prod",
         value: devSession.value,
       });
+    }
+  }
+  if (options.serveDist) {
+    const benchmarkOrigin = new URL(options.baseUrl).origin;
+    const hasBenchmarkOrigin = storageState.origins?.some(
+      (entry) => entry.origin === benchmarkOrigin,
+    );
+    if (!hasBenchmarkOrigin) {
+      const authenticatedOrigin = storageState.origins?.find((entry) =>
+        entry.localStorage?.some(
+          (item) => item.name === "composition-auth-prod",
+        ),
+      );
+      if (authenticatedOrigin) {
+        storageState.origins.push({
+          origin: benchmarkOrigin,
+          localStorage: authenticatedOrigin.localStorage.map((entry) => ({
+            ...entry,
+          })),
+        });
+      }
     }
   }
   let browser;
@@ -532,23 +955,37 @@ async function main() {
     const tiers = [];
     let previousTier = 0;
     for (const tier of options.tiers) {
-      const seed = await seedTier(page, tier, previousTier);
+      const seed = await seedTier(
+        page,
+        tier,
+        previousTier,
+        options.fixtureProfile,
+      );
       previousTier = tier;
       await page.waitForTimeout(tier >= 5000 ? 5000 : 2000);
       await waitForSettledFrames(page);
       const productPreview = await enableSplitPreview(page);
-      await openColorArea(page);
+      if (options.lane === "paint") await openColorArea(page);
       const runs = [];
       for (let repeat = 0; repeat < options.repeats; repeat += 1) {
         runs.push(
-          await runDrag(
-            page,
-            cdp,
-            options,
-            tier,
-            repeat,
-            options.traceDir,
-          ),
+          options.lane === "layout"
+            ? await runLayoutDrag(
+                page,
+                cdp,
+                options,
+                tier,
+                repeat,
+                options.traceDir,
+              )
+            : await runDrag(
+                page,
+                cdp,
+                options,
+                tier,
+                repeat,
+                options.traceDir,
+              ),
         );
       }
       tiers.push({
@@ -567,7 +1004,9 @@ async function main() {
         baseUrl: options.baseUrl,
         browser: await browser.version(),
         durationMs: options.durationMs,
+        fixtureProfile: options.fixtureProfile,
         headless: !options.headed,
+        lane: options.lane,
         productPreview: "Builder top toggle group split mode",
         repeats: options.repeats,
         viewport: { width: 1440, height: 900 },

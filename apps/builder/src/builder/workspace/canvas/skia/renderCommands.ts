@@ -649,6 +649,57 @@ export function getCachedCommandStreamSnapshot(): RenderCommandStream | null {
   return _cachedStream;
 }
 
+interface RenderCommandDebugNodeSnapshot {
+  readonly available: boolean;
+  readonly baseCanonicalRevision?: number;
+  readonly bounds?: BoundingBox;
+  readonly centerHitIds?: readonly string[];
+  readonly commandCount?: number;
+  readonly hitBounds?: BoundingBox;
+  readonly presentationRevision?: number;
+  readonly subtreeSpan?: SubtreeSpan;
+}
+
+declare global {
+  interface Window {
+    __composition_RENDER_COMMAND_DEBUG__?: {
+      readNode(elementId: string): RenderCommandDebugNodeSnapshot;
+    };
+  }
+}
+
+// SkiaCanvas가 실제 소비하는 renderCommands module singleton을 live 검증에 노출한다.
+// 직접 dynamic import한 module은 Vite HMR query 차이로 cold cache를 읽을 수 있다.
+// dev parity와 opt-in production benchmark에서만 read-only summary를 제공한다.
+if (
+  typeof window !== "undefined" &&
+  (import.meta.env?.DEV ||
+    new URLSearchParams(window.location.search).has("adr187Metrics"))
+) {
+  window.__composition_RENDER_COMMAND_DEBUG__ = {
+    readNode: (elementId) => {
+      const stream = getCachedCommandStreamSnapshot();
+      if (!stream) return { available: false };
+      const hitBounds = stream.hitBoundsMap.get(elementId);
+      return {
+        available: true,
+        baseCanonicalRevision: stream.baseCanonicalRevision,
+        bounds: stream.boundsMap.get(elementId),
+        centerHitIds: hitBounds
+          ? spatialIndex.hitTestPoint(
+              hitBounds.x + hitBounds.width / 2,
+              hitBounds.y + hitBounds.height / 2,
+            )
+          : [],
+        commandCount: stream.commands.length,
+        hitBounds,
+        presentationRevision: stream.presentationRevision,
+        subtreeSpan: stream.subtreeSpans.get(elementId),
+      };
+    },
+  };
+}
+
 /**
  * boundsMap → SpatialIndex 동기화.
  *

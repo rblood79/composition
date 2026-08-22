@@ -450,20 +450,22 @@ ADR-187 paint lane은 이미 stale 거부 계약을 운용한다 — `SessionPro
 - G2 관련 5 files / 29 Vitest와 type-check를 통과했다. Phase 3은 이 channel의 Skia
   subtree span/hit-test consumer를 구현한다.
 
-### Phase 5 / G6 — RED (2026-08-22)
+### Phase 5 / G6 — Implemented (2026-08-22)
 
 - evidence: [188-phase-5-g6-live-parity.md](188-phase-5-g6-live-parity.md)
-- 실제 Builder 상단 split Preview에서 `Left` geometry commit과 numeric
-  `style.patch` presentation overlay를 exercise했다. Preview DOM은 `20/30 → 80/30`
-  canonical commit 및 `100/45` transient overlay를 관측했고, overlay 중 canonical
-  store는 `80/30`으로 유지됐다.
-- headless CanvasKit의 command snapshot이 cold(`getCachedCommandStreamSnapshot() ===
-null`)로 남아 Skia draw/hit parity의 live 증거를 확보하지 못했다. 따라서 DOM 결과만으로
-  G6을 통과시키지 않는다.
-- N=50/500은 long task 0이었으나 N=5,000은 1초 trace 9건(max 248ms), 3초 trace
-  24건(max 249ms)으로 hard gate를 위반했다. 모든 tier에서 기존 lowercase `<box>`
-  console error 1건이 관측되어 strict console 0 조건도 RED다.
-- focused Vitest 6 files / 46 tests는 PASS했지만, 이는 G6 live gate를 대체하지 않는다.
+- 초기 RED는 paint ColorArea를 발화한 layout apply 0 하니스, N개 노드를 모두 가시화한
+  `V=N` dense fixture, canonical synthetic `Box`와 동적 import의 별도 Vite module
+  instance를 측정한 결과였다. 제품 layout hot path 판정에서 제외했다.
+- 실제 `EditorPresentationTransactionRuntime`/Skia command singleton을 query-opt-in
+  read-only boundary로 관측하고, canonical `frame` target 1개만 가시화한
+  document-scale fixture에서 N=50/500/5,000 × 5회 120Hz trace를 수행했다.
+- N=5,000 runtime apply 중앙 p95/p99 `0.165/0.179ms`, Skia frame
+  `1.487/1.548ms`, 15개 전체 long task 0, console error/warn 및 page error 0이다.
+  canonical/legacy/layout/projection/full rebuild/full-document counter는 모두 0이다.
+- Preview와 Skia clipped width가 15/15 일치하고, 실제 WASM SpatialIndex center hit,
+  동일 revision draw/hit 교체, command count 불변, canvas composited pixel 변화 및 cancel
+  완전 복원, canonical store 불변을 모두 확인했다.
+- focused Vitest 3 files / 28 tests와 baseline-aware type-check를 통과했다.
 
 ## 9. Rollback 및 후속 경계
 

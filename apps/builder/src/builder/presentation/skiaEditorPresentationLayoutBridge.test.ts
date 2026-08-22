@@ -145,6 +145,14 @@ describe("SkiaEditorPresentationLayoutBridge", () => {
     expect(stream.boundsMap.get(target.id)).toMatchObject({ x: 50, y: 60 });
     expect(stream.hitBoundsMap.get(target.id)).toMatchObject({ x: 50, y: 60 });
     expect(getSceneBounds(target.id)).toMatchObject({ x: 50, y: 60 });
+    expect(
+      window.__composition_RENDER_COMMAND_DEBUG__?.readNode(target.id),
+    ).toMatchObject({
+      available: true,
+      baseCanonicalRevision: 7,
+      bounds: { x: 50, y: 60 },
+      hitBounds: { x: 50, y: 60 },
+    });
     expect(stream.presentationRevisionByRootKey.get("page-1")).toBe(1);
     bridge.dispose();
   });

@@ -4,7 +4,7 @@
 
 Accepted — 2026-08-22 (Proposed 2026-08-22, 리뷰 round 1 이슈 3건 전건 fixed — reviews/189.md)
 
-Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](188-targeted-layout-and-skia-subtree-patching.md),
+Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](completed/188-targeted-layout-and-skia-subtree-patching.md),
 [ADR-153 렌더 최적화 measurement-first 도입](completed/153-render-optimization-measurement-first-adoption.md),
 [ADR-921 RenderScene·Backend 통합](921-render-scene-backend-integration.md)
 (Proposed — command stream 계약이 교차하므로 어느 쪽이든 착수 시 상호 조정)

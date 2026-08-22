@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-22",
+  "verdict": "GREEN",
+  "environment": {
+    "surface": "Builder top toggle group split Preview + Skia",
+    "baseUrl": "http://localhost:5173",
+    "viewport": { "width": 1440, "height": 900 },
+    "durationMs": 1000,
+    "repeatsPerTier": 5,
+    "targetCadenceHz": 120,
+    "fixtureProfile": "document-scale",
+    "visibleTargetCount": 1
+  },
+  "thresholdsMs": {
+    "runtimeApplyP95Max": 4,
+    "runtimeApplyP99Max": 8.33,
+    "longTaskOccurrencesMax": 0
+  },
+  "tiers": [
+    {
+      "n": 50,
+      "commandCount": 621,
+      "medianRuntimeApplyP95Ms": 0.163,
+      "medianRuntimeApplyP99Ms": 0.193,
+      "medianSkiaFrameP95Ms": 0.904,
+      "medianSkiaFrameP99Ms": 0.987,
+      "medianPreviewHandleP95Ms": 0.093,
+      "medianPreviewHandleP99Ms": 0.151,
+      "longTaskOccurrences": 0,
+      "allParityChecksPassed": true
+    },
+    {
+      "n": 500,
+      "commandCount": 3321,
+      "medianRuntimeApplyP95Ms": 0.179,
+      "medianRuntimeApplyP99Ms": 0.221,
+      "medianSkiaFrameP95Ms": 0.994,
+      "medianSkiaFrameP99Ms": 1.181,
+      "medianPreviewHandleP95Ms": 0.203,
+      "medianPreviewHandleP99Ms": 0.242,
+      "longTaskOccurrences": 0,
+      "allParityChecksPassed": true
+    },
+    {
+      "n": 5000,
+      "commandCount": 30321,
+      "medianRuntimeApplyP95Ms": 0.165,
+      "medianRuntimeApplyP99Ms": 0.179,
+      "medianSkiaFrameP95Ms": 1.487,
+      "medianSkiaFrameP99Ms": 1.548,
+      "medianPreviewHandleP95Ms": 1.017,
+      "medianPreviewHandleP99Ms": 1.091,
+      "longTaskOccurrences": 0,
+      "allParityChecksPassed": true
+    }
+  ],
+  "worstRunMs": {
+    "runtimeApplyP95": 0.2,
+    "runtimeApplyP99": 0.315,
+    "skiaFrameP95": 1.509,
+    "skiaFrameP99": 1.751
+  },
+  "parity": {
+    "skiaSnapshots": "15/15",
+    "canvasChangedDuring": "15/15",
+    "canvasRestoredAfterCancel": "15/15",
+    "spatialIndexCenterHit": "15/15",
+    "domSkiaClippedWidthMatch": "15/15",
+    "commandCountStable": "15/15",
+    "canonicalStyleStable": "15/15",
+    "consoleErrorsOrWarnings": 0,
+    "pageErrors": 0
+  },
+  "rawResult": {
+    "path": "/private/tmp/adr188-g6-layout-final-5x.json",
+    "sha256": "79bc2988bd2ee07ea64109bac4809f5cd0a752bb5c845b50c228e1e63f1737a7",
+    "traceCount": 15,
+    "traceGzipTotal": "2.2MB"
+  }
+}

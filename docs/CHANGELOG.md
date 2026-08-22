@@ -38,6 +38,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Store sync에 연결했다. Preview `CanonicalNodeRenderer`도 같은 allowlist를 사용해
   DOM/Skia geometry capability를 맞춘다. [ADR-188 Phase 4 evidence](adr/design/188-phase-4-g5-adr187-layout-wiring.md)
 
+### Performance
+
+- ADR-188을 `Implemented`로 종결했다. 실제 Builder 상단 Compare Mode split에서
+  document N=50/500/5,000, 가시 target 1개 조건으로 120Hz layout presentation을
+  tier당 5회 측정했다. N=5,000 runtime apply 중앙 p95/p99는
+  `0.165/0.179ms`, Skia frame은 `1.487/1.548ms`이며 전체 15회 long task와
+  console error/warn는 0이다.
+- DOM/Skia clipped width, WASM SpatialIndex hit, draw/hit revision, command span 불변,
+  canvas pixel 변화·cancel 완전 복원과 canonical store 불변을 15/15 확인했다. 초기 G6
+  RED는 paint lane, `V=N` dense fixture, synthetic `Box`, 별도 Vite module instance를
+  측정한 하니스 결함으로 분리하고 layout 전용 constant-visible-workload 하니스로
+  교정했다. [ADR-188 Phase 5 evidence](adr/design/188-phase-5-g6-live-parity.md)
+
 ## ADR-187 색상 드래그 presentation 기반 - 2026-08-22
 
 ### Architecture
