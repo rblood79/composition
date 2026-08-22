@@ -7,6 +7,12 @@ import {
 } from "./persistentTaffyTree";
 
 class FakeLayoutEngine implements LayoutEngineAPI {
+  readonly computedRoots: Array<{
+    availableHeight: number;
+    availableWidth: number;
+    root: number;
+  }> = [];
+  readonly dirtyHandles: number[] = [];
   readonly requestedBatches: number[][] = [];
   #nextHandle = 1;
 
@@ -35,11 +41,19 @@ class FakeLayoutEngine implements LayoutEngineAPI {
 
   setChildren(): void {}
 
-  markDirty(): void {}
+  markDirty(handle: number): void {
+    this.dirtyHandles.push(handle);
+  }
 
   removeNode(): void {}
 
-  computeLayout(): void {}
+  computeLayout(
+    root: number,
+    availableWidth: number,
+    availableHeight: number,
+  ): void {
+    this.computedRoots.push({ availableHeight, availableWidth, root });
+  }
 
   getLayoutsBatch(handles: number[]): Map<number, LayoutResult> {
     this.requestedBatches.push([...handles]);
@@ -90,5 +104,36 @@ describe("PersistentTaffyTree targeted layout result collection", () => {
 
     expect(tree.getLayoutsForIds(["missing"])).toEqual(new Map());
     expect(engine.requestedBatches).toEqual([]);
+  });
+
+  it("marks promoted dirty roots, computes the persistent root, and collects only affected results", () => {
+    const engine = new FakeLayoutEngine();
+    const tree = new PersistentTaffyTree(engine);
+    tree.buildFull(
+      "root",
+      [
+        { elementId: "child", style: {}, children: [] },
+        { elementId: "root", style: {}, children: [0] },
+      ],
+      new Map([
+        ["child", []],
+        ["root", ["child"]],
+      ]),
+    );
+
+    const result = tree.computeDirtyLayoutForIds(
+      ["root", "missing", "root"],
+      ["child"],
+      320,
+      180,
+    );
+
+    expect(engine.dirtyHandles).toEqual([2]);
+    expect(engine.computedRoots).toEqual([
+      { availableHeight: 180, availableWidth: 320, root: 2 },
+    ]);
+    expect(engine.requestedBatches).toEqual([[1]]);
+    expect(result.has("child")).toBe(true);
+    expect(result.has("root")).toBe(false);
   });
 });

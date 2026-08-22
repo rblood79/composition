@@ -915,15 +915,18 @@ paint target과 별도의 revision/root 집합으로 승격되도록 했다.
 - `PersistentTaffyTree.getLayoutsForIds`를 추가해 계산 후 결과 수집을 semantic
   `elementId` 집합 `k`로 제한했다. TagList의 post-fold 측정도 전체
   `getLayoutsBatch()` 대신 chip/RowsGroup/TagList 결과만 요청한다.
+- `computeDirtyLayoutForIds`를 추가해 호출부가 used-size parent promotion을 완료한
+  dirty root와 결과를 읽을 affected subtree를 별도로 전달할 수 있게 했다. 엔진은
+  persistent root에서 compute하되 dirty cache와 결과 수집 경계를 보존한다.
 - runtime/plan/invalidation 테스트가 paint-only, layout, parent promotion, unaffected
   identity를 고정한다.
 
 현재 composition engine의 공개 layout entrypoint는 여전히 page-root 전체 DFS와
-root compute를 사용한다. `getLayoutsForIds`는 계산 이후 WASM 결과 전달만 `O(k)`로
-줄이는 경계이며, subtree 입력/used-size 상향을 계산 단계에서 보장하지 않는다. 따라서
-이 slice에서는 이를 `useLayoutPublisher`나 Skia hit-test 소비자에 연결했다고 주장하지
-않는다. 전역 `layoutVersion++` fallback으로 G6을 통과시키지 않으며, 다음 slice에서
-dirty parent 전파와 targeted compute의 실제 engine 계약을 별도로 증명한다.
+root compute를 사용한다. 두 메서드는 dirty cache 기반 compute와 결과 전달을 `O(k)`로
+제한하는 경계지만, subtree 입력 자체와 `useLayoutPublisher`/Skia hit-test 연결을
+완료한 것은 아니다. 전역 `layoutVersion++` fallback으로 G6을 통과시키지 않으며,
+다음 slice에서 layout publisher가 이 명시적 dirty-root/result 계약을 실제로 소비하는지
+증명한다.
 
 targeted layout이 현재 engine에서 성립하지 않으면 해당 slice를 별도 ADR로 분리하고
 ADR-187 paint runtime은 유지한다. phase scope inflation은 fork 사유가 아니다.

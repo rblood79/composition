@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   추가해 TagList post-fold 측정처럼 실제 소비 노드 `k`개만 WASM batch로 되돌려받도록
   했다. 계산 자체는 여전히 page-root dirty compute 경계에 있으며, production
   `useLayoutPublisher`/Skia targeted 연결은 다음 slice의 G6 증명 전까지 보류한다.
+  `computeDirtyLayoutForIds`도 추가해 used-size 승격 dirty root와 affected 결과 집합을
+  분리하는 엔진 계약을 고정했다.
   - **Why**: 기존에는 picker와 store action의 중첩 RAF 뒤에 full-document preview/scene 작업이
     이어져 단일 `requestAnimationFrame` callback이 52ms까지 길어질 수 있었다.
 

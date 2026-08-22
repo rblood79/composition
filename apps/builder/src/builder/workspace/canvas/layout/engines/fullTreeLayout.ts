@@ -2778,12 +2778,13 @@ export function calculateFullTreeLayout(
       for (const { rowsGroupId, keep } of foldChipRemovals) {
         filteredChildIdsMap.set(rowsGroupId, keep);
         persistentTree.updateChildren(rowsGroupId, keep);
-        persistentTree.markDirty(rowsGroupId);
         needsSecondPass = true;
       }
 
       if (needsSecondPass) {
-        const parentsToMarkDirty = new Set<string>();
+        const dirtyLayoutRoots = new Set<string>(
+          foldChipRemovals.map(({ rowsGroupId }) => rowsGroupId),
+        );
 
         for (const { nodeIndex, actualWidth } of childUpdates) {
           const node = batch[nodeIndex];
@@ -2870,21 +2871,30 @@ export function calculateFullTreeLayout(
 
           // 자식 height 변경 시 부모 dirty 수집
           if (styleChanged && childEl.parent_id) {
-            parentsToMarkDirty.add(childEl.parent_id);
+            dirtyLayoutRoots.add(childEl.parent_id);
           }
         }
 
         // 부모 + 조부모 명시적 dirty 마킹
         // grid 내 flex 컨테이너(GridListItem) 등에서 dirty propagation 보장
-        for (const parentId of parentsToMarkDirty) {
-          persistentTree.markDirty(parentId);
+        for (const parentId of dirtyLayoutRoots) {
           const parentEl = elementsMap.get(parentId);
           if (parentEl?.parent_id) {
-            persistentTree.markDirty(parentEl.parent_id);
+            dirtyLayoutRoots.add(parentEl.parent_id);
           }
         }
 
-        persistentTree.computeLayout(availableWidth, availableHeight);
+        if (dirtyLayoutRoots.size > 0) {
+          persistentTree.computeDirtyLayoutForIds(
+            dirtyLayoutRoots,
+            [],
+            availableWidth,
+            availableHeight,
+          );
+        } else {
+          // 기존 2-pass 계약: re-enrich 결과가 동일해도 root compute는 수행한다.
+          persistentTree.computeLayout(availableWidth, availableHeight);
+        }
       }
 
       // ── Step 4.5c: RowsGroup Taffy 실측 height → TagList height 강제 (접힘 여부 무관) ──────

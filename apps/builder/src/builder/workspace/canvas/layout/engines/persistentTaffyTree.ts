@@ -416,6 +416,38 @@ export class PersistentTaffyTree {
     return result;
   }
 
+  /**
+   * presentation layout lane용 dirty compute 진입점.
+   *
+   * `dirtyElementIds`는 used-size 전파가 끝난 layout root 집합이어야 한다. 엔진은
+   * persistent root에서 `computeLayout()`을 수행하지만, dirty cache가 해당 root와
+   * 조상만 재계산하고 결과 수집은 `resultElementIds`로 제한한다. 따라서 이 메서드는
+   * page-root 전체 계산이 없다고 주장하지 않으며, 호출부가 parent promotion을 먼저
+   * 완료했는지 검증할 수 있는 명시적 경계를 제공한다.
+   *
+   * @param dirtyElementIds - style/children 변경으로 dirty 처리할 root ID 집합
+   * @param resultElementIds - layout 결과가 필요한 affected subtree ID 집합
+   * @returns elementId → LayoutResult 매핑
+   */
+  computeDirtyLayoutForIds(
+    dirtyElementIds: Iterable<string>,
+    resultElementIds: Iterable<string>,
+    availableWidth: number,
+    availableHeight: number,
+  ): Map<string, LayoutResult> {
+    const dirtyIds = new Set<string>();
+    for (const elementId of dirtyElementIds) {
+      if (this.handleMap.has(elementId)) dirtyIds.add(elementId);
+    }
+    if (dirtyIds.size === 0) return new Map();
+
+    for (const elementId of dirtyIds) {
+      this.markDirty(elementId);
+    }
+    this.computeLayout(availableWidth, availableHeight);
+    return this.getLayoutsForIds(resultElementIds);
+  }
+
   // ─── 조회 유틸리티 ──────────────────────────────────────────────────
 
   /**
