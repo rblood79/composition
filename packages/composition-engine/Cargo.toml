@@ -33,7 +33,9 @@ harness = false
 
 [profile.release]
 panic = "abort"
-opt-level = "s"
+# opt-level 3: WASM A/B 벤치 (2026-08-22, Node/V8 4-arm) 에서 "s" 대비 solve 14-33% /
+# buildTreeBatch 16% 개선, gzip +10KB (124→134KB). +simd128 / wasm-opt 는 노이즈 이내로 기각.
+opt-level = 3
 lto = true
 codegen-units = 1
 strip = true
