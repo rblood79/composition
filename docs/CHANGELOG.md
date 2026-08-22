@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rust layout tree는 `subtree_dirty` 요약 플래그를 사용해 clean subtree skip 판정을 O(1)로
   바꾸고, dirty 전파·intrinsic 측정 snapshot/restore·solve 완료 정리를 같은 상태 계약으로
   묶었다. [ADR-188 Phase 1 evidence](adr/design/188-phase-1-g1-targeted-input.md)
+- canonical-full과 presentation-targeted layout publication을 별도 typed channel로
+  분리했다. targeted lane은 canonical base map을 복사하지 않고 affected delta overlay와
+  root별 revision만 보유하며, page/frame multi-root plan은 `planSequence` group으로
+  원자 적용/거부한다. rootKey 파생은 publisher/cache/engine 공용 helper로 단일화했다.
+  [ADR-188 Phase 2 evidence](adr/design/188-phase-2-g2-publication.md)
 
 ## ADR-187 색상 드래그 presentation 기반 - 2026-08-22
 

@@ -63,3 +63,6 @@ export {
   getSharedLayoutVersion,
   onLayoutPublished,
 } from "./engines";
+
+// ADR-188 Phase 2: page/frame publication root partition SSOT
+export { getLayoutRootKey } from "./layoutRootKey";

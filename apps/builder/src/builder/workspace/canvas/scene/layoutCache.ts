@@ -1,5 +1,5 @@
-import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import type { CanvasLayoutNode } from "../layout/layoutNode";
+import { getLayoutRootKey } from "../layout/layoutRootKey";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
   calculateFullTreeLayoutFromSceneModel,
@@ -192,14 +192,6 @@ export function buildChildrenIdMap(
   return childrenIdMap;
 }
 
-function getLayoutPublishKey(bodyElement: CanvasLayoutNode): string {
-  return (
-    bodyElement.page_id ??
-    getFrameElementMirrorId(bodyElement) ??
-    bodyElement.id
-  );
-}
-
 interface GetCachedPageLayoutInput {
   bodyElement: CanvasLayoutNode | null;
   childrenIdMap: Map<string, string[]>;
@@ -227,7 +219,7 @@ export function getCachedPageLayout({
     return null;
   }
 
-  const rootKey = getLayoutPublishKey(bodyElement);
+  const rootKey = getLayoutRootKey(bodyElement);
   const cacheKey = getPageLayoutCacheKey(bodyElement);
   const cachedEntry = pageLayoutCache.get(cacheKey);
 

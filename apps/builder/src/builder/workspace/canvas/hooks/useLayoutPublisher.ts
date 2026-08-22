@@ -14,7 +14,6 @@
  */
 
 import { useEffect, useRef } from "react";
-import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import type { LayoutPublisherInput } from "../renderers";
 import {
   publishFilteredChildrenMap,
@@ -23,6 +22,7 @@ import {
 } from "../layout";
 import type { ComputedLayout } from "../layout";
 import type { CanvasLayoutNode } from "../layout/layoutNode";
+import { getLayoutRootKey } from "../layout/layoutRootKey";
 import {
   getCachedPageLayout,
   createPageElementsSignature,
@@ -138,10 +138,7 @@ export function useLayoutPublisher(
         activeLayoutCacheKeys.add(getPageLayoutCacheKey(bodyElement));
       }
       if (!bodyElement || !wasmLayoutReady) continue;
-      const key =
-        bodyElement.page_id ??
-        getFrameElementMirrorId(bodyElement) ??
-        bodyElement.id;
+      const key = getLayoutRootKey(bodyElement);
       activeKeys.add(key);
 
       // ADR-154: responsive override resolve (base ⊕ cascade). desktop 은 원본

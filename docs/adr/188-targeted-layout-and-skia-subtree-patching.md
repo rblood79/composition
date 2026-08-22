@@ -200,6 +200,12 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
   규칙표 기반 runtime promotion, persistent targeted input/result API 및 분리 counter를
   추가했다. explicit sized ancestor stop, in-flow sibling 포함, absolute child/paint-only
   fail-closed를 검증했다. [G1 evidence](design/188-phase-1-g1-targeted-input.md)
+- **Phase 2 / G2 — Implemented (2026-08-22)**: canonical-full과 presentation-targeted
+  publication을 typed channel로 분리하고, affected delta만 보유하는 overlay와 root별
+  revision을 추가했다. page/frame rootKey 파생을 공용 helper로 단일화했으며, multi-root
+  plan은 `planSequence` group으로 원자 적용/거부한다. base map 전체 복사,
+  `getSharedLayoutMap()` targeted base, full-sync callback은 static/runtime guard에서
+  0건이다. [G2 evidence](design/188-phase-2-g2-publication.md)
 
 ## Consequences
 

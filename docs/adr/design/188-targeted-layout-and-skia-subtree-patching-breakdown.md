@@ -432,6 +432,24 @@ ADR-187 paint lane은 이미 stale 거부 계약을 운용한다 — `SessionPro
 - G1 관련 3 files / 14 Vitest, Rust 전체 325+15+10+11 및 doc test, type-check, live smoke를
   통과했다. Phase 2는 typed publication channel로 진입한다.
 
+### Phase 2 / G2 — Implemented (2026-08-22)
+
+- evidence: [188-phase-2-g2-publication.md](188-phase-2-g2-publication.md)
+- `LayoutPublication` union과 canonical-full/targeted 별도 listener lane을 추가했다.
+  targeted publication은 affected `layoutDelta`와 root별
+  `presentationRevision`/`baseCanonicalRevision`/`planSequence`만 보유한다.
+- 기존 base map 전체 복사 merge를 제거하고 `delta → base` overlay lookup으로 바꿨다.
+  `writeCount`는 affected delta write만 계측하며 `getSharedLayoutMap()`은 targeted base로
+  사용하지 않는다.
+- `page_id ?? getFrameElementMirrorId(body) ?? body.id` rootKey 파생을 공용 helper로
+  단일화했다. page/frame multi-root plan은 rootKey별 publication으로 분할하고, unknown
+  root 또는 cross-root node는 fail-closed한다.
+- group의 모든 publication을 먼저 검사한 뒤 한 번에 revision/overlay를 적용한다. 한 root의
+  base/revision 오류가 다른 root의 revision을 기록하지 않으며, 거부된 동일 plan 재시도가
+  가능하다.
+- G2 관련 5 files / 29 Vitest와 type-check를 통과했다. Phase 3은 이 channel의 Skia
+  subtree span/hit-test consumer를 구현한다.
+
 ## 9. Rollback 및 후속 경계
 
 G3 또는 G4가 실패하면 해당 descriptor를 continuous layout allowlist에서 제거하고

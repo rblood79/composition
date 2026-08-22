@@ -3,8 +3,14 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   createPresentationLayoutPlan,
+  createPresentationLayoutPublications,
   publishPresentationLayout,
   resolveCanonicalNodeWithPresentation,
+} from "./editorPresentationLayoutLane";
+import {
+  createLayoutOverlay,
+  LayoutPublicationChannel,
+  PresentationLayoutPublicationStore,
 } from "./editorPresentationLayoutLane";
 import type { CanvasLayoutNode } from "../workspace/canvas/layout/layoutNode";
 
@@ -149,8 +155,7 @@ describe("editor presentation layout lane", () => {
     expect(paintPlan.roots).toEqual(["sibling"]);
   });
 
-  it("preserves unaffected layout object identity when merging a targeted result", () => {
-    const unaffected = { x: 1 };
+  it("publishes only affected layout delta without copying a canonical base map", () => {
     const changed = { x: 2 };
     const result = publishPresentationLayout({
       plan: {
@@ -158,15 +163,193 @@ describe("editor presentation layout lane", () => {
         roots: ["child"],
         affectedNodeIds: new Set(["child"]),
       },
-      previousLayoutMap: new Map([
-        ["root", unaffected],
-        ["child", { x: 0 }],
-      ]),
       resolveNode: () => new Map([["child", changed]]),
     });
 
-    expect(result.layoutMap.get("root")).toBe(unaffected);
-    expect(result.layoutMap.get("child")).toBe(changed);
+    expect(result.layoutDelta.size).toBe(1);
+    expect(result.layoutDelta.get("child")).toBe(changed);
+    expect(result.writeCount).toBe(1);
+    expect(result).not.toHaveProperty("layoutMap");
+  });
+
+  it("resolves delta before base without creating a merged map", () => {
+    const base = new Map([
+      ["root", { x: 1 }],
+      ["child", { x: 2 }],
+    ]);
+    const delta = new Map([["child", { x: 3 }]]);
+    const overlay = createLayoutOverlay(base, delta);
+
+    expect(overlay.base).toBe(base);
+    expect(overlay.delta).toBe(delta);
+    expect(overlay.resolve("root")).toBe(base.get("root"));
+    expect(overlay.resolve("child")).toBe(delta.get("child"));
+  });
+
+  it("partitions multi-root plans and applies the group atomically", () => {
+    const rootKeyByNodeId = new Map([
+      ["page-root", "page"],
+      ["page-child", "page"],
+      ["frame-root", "frame"],
+      ["frame-child", "frame"],
+    ]);
+    const plan = {
+      parentChain: [],
+      roots: ["page-root", "frame-root"],
+      affectedNodeIds: new Set([
+        "page-root",
+        "page-child",
+        "frame-root",
+        "frame-child",
+      ]),
+    };
+    const layoutDelta = new Map([
+      ["page-root", { x: 10 }],
+      ["page-child", { x: 11 }],
+      ["frame-root", { x: 20 }],
+      ["frame-child", { x: 21 }],
+    ]);
+    const partitioned = createPresentationLayoutPublications({
+      plan,
+      layoutDelta,
+      tree: {
+        childrenByParent: new Map(),
+        parentById: new Map(),
+        rootKeyByNodeId,
+      },
+      baseCanonicalRevision: 4,
+      planSequence: 12,
+      presentationRevisionByRootKey: new Map([
+        ["page", 1],
+        ["frame", 1],
+      ]),
+    });
+    expect(partitioned.ok).toBe(true);
+    if (!partitioned.ok) return;
+    expect(partitioned.publications).toHaveLength(2);
+    expect(
+      partitioned.publications.every((publication) =>
+        [...publication.layoutDelta.keys()].every(
+          (nodeId) => rootKeyByNodeId.get(nodeId) === publication.rootKey,
+        ),
+      ),
+    ).toBe(true);
+
+    const store = new PresentationLayoutPublicationStore({
+      initialCanonicalRevision: 4,
+      rootKeyForNode: (nodeId) => rootKeyByNodeId.get(nodeId),
+      getCanonicalBase: (rootKey) =>
+        new Map(
+          [...rootKeyByNodeId.entries()]
+            .filter(([, value]) => value === rootKey)
+            .map(([nodeId]) => [nodeId, { x: 0 }]),
+        ),
+    });
+    expect(store.applyTargetedGroup(partitioned.publications)).toBe(true);
+    expect(store.getRevision("page")).toBe(1);
+    expect(store.getRevision("frame")).toBe(1);
+    expect(store.getOverlay("page")?.resolve("page-child")).toEqual({
+      x: 11,
+    });
+  });
+
+  it("fails closed when an affected node crosses the root boundary", () => {
+    const result = createPresentationLayoutPublications({
+      plan: {
+        parentChain: [],
+        roots: ["page-root"],
+        affectedNodeIds: new Set(["page-root", "frame-child"]),
+      },
+      layoutDelta: new Map([["page-root", { x: 1 }]]),
+      tree: {
+        childrenByParent: new Map(),
+        parentById: new Map(),
+        rootKeyByNodeId: new Map([
+          ["page-root", "page"],
+          ["frame-child", "frame"],
+        ]),
+      },
+      baseCanonicalRevision: 1,
+      planSequence: 1,
+      presentationRevisionByRootKey: new Map([["page", 1]]),
+    });
+    expect(result).toEqual({ ok: false, reason: "cross-root-plan" });
+  });
+
+  it("rejects a group without recording a revision, then accepts its retry", () => {
+    const roots = new Map([
+      ["page-root", "page"],
+      ["frame-root", "frame"],
+    ]);
+    const base = (rootKey: string): ReadonlyMap<string, { x: number }> =>
+      new Map(
+        [...roots.entries()]
+          .filter(([, value]) => value === rootKey)
+          .map(([nodeId]) => [nodeId, { x: 0 }]),
+      );
+    const store = new PresentationLayoutPublicationStore({
+      initialCanonicalRevision: 7,
+      rootKeyForNode: (nodeId) => roots.get(nodeId),
+      getCanonicalBase: base,
+    });
+    const page = {
+      kind: "presentation-targeted" as const,
+      rootKey: "page",
+      roots: ["page-root"],
+      affectedNodeIds: new Set(["page-root"]),
+      layoutDelta: new Map([["page-root", { x: 1 }]]),
+      presentationRevision: 2,
+      baseCanonicalRevision: 7,
+      planSequence: 22,
+    };
+    const frame = {
+      kind: "presentation-targeted" as const,
+      rootKey: "frame",
+      roots: ["frame-root"],
+      affectedNodeIds: new Set(["frame-root"]),
+      layoutDelta: new Map([["frame-root", { x: 2 }]]),
+      presentationRevision: 2,
+      baseCanonicalRevision: 6,
+      planSequence: 22,
+    };
+    expect(store.applyTargetedGroup([page, frame])).toBe(false);
+    expect(store.getRevision("page")).toBeUndefined();
+    expect(store.getRevision("frame")).toBeUndefined();
+    expect(
+      store.applyTargetedGroup([{ ...frame, baseCanonicalRevision: 7 }]),
+    ).toBe(true);
+    expect(store.getRevision("frame")).toBe(2);
+  });
+
+  it("keeps canonical-full and targeted listeners separate", () => {
+    const channel = new LayoutPublicationChannel({
+      rootKeyForNode: () => "page",
+      getCanonicalBase: () => new Map([["root", { x: 0 }]]),
+      initialCanonicalRevision: 0,
+    });
+    const canonicalEvents: number[] = [];
+    const targetedEvents: number[] = [];
+    channel.onCanonicalFull(({ version }) => canonicalEvents.push(version));
+    channel.onPresentationTargeted((publications) =>
+      targetedEvents.push(publications.length),
+    );
+    expect(channel.publishCanonicalFull(1)?.kind).toBe("canonical-full");
+    expect(
+      channel.publishPresentationTargeted([
+        {
+          kind: "presentation-targeted",
+          rootKey: "page",
+          roots: ["root"],
+          affectedNodeIds: new Set(["root"]),
+          layoutDelta: new Map([["root", { x: 1 }]]),
+          presentationRevision: 1,
+          baseCanonicalRevision: 1,
+          planSequence: 1,
+        },
+      ]),
+    ).toBe(true);
+    expect(canonicalEvents).toEqual([1]);
+    expect(targetedEvents).toEqual([1]);
   });
 
   it("merges style and geometry without mutating the canonical layout node", () => {
@@ -220,5 +403,7 @@ describe("editor presentation layout lane", () => {
     expect(source).not.toMatch(/onLayoutPublished/);
     expect(source).not.toMatch(/buildRenderCommandStream/);
     expect(source).not.toMatch(/shouldPromoteParent/);
+    expect(source).not.toMatch(/previousLayoutMap/);
+    expect(source).not.toMatch(/getSharedLayoutMap/);
   });
 });

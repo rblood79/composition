@@ -30,9 +30,9 @@ describe("useLayoutPublisher invalidation contract", () => {
 
     expect(source).toContain("const publishedKeysRef = useRef<Set<string>>");
     expect(source).toContain("const layoutUpdates: Array<");
-    expect(source).toMatch(
-      /const key =\s*bodyElement\.page_id\s*\?\?\s*getFrameElementMirrorId\(bodyElement\)\s*\?\?\s*bodyElement\.id;/,
-    );
+    expect(source).toContain("const key = getLayoutRootKey(bodyElement);");
+    expect(source).toContain('from "../layout/layoutRootKey"');
+    expect(source).not.toContain("getFrameElementMirrorId");
     expect(source).toContain("activeKeys.add(key);");
     expect(source).toContain(
       "const sourceElementById = new Map<string, CanvasLayoutNode>();",

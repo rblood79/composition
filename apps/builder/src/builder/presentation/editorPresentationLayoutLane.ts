@@ -9,12 +9,32 @@ import {
   getEditorMutationEffectRule,
   type EditorMutationUsedSizeEffect,
 } from "./invalidation/editorMutationEffectRegistry";
+import {
+  createPresentationTargetedPublications,
+  type CreatePresentationPublicationsResult,
+} from "./editorLayoutPublication";
+
+export {
+  createCanonicalFullLayoutPublication,
+  createLayoutOverlay,
+  createPresentationTargetedPublications,
+  LayoutPublicationChannel,
+  PresentationLayoutPublicationStore,
+  type CanonicalFullLayoutPublication,
+  type CreatePresentationPublicationsInput,
+  type CreatePresentationPublicationsResult,
+  type LayoutOverlay,
+  type LayoutPublication,
+  type PresentationTargetedLayoutPublication,
+} from "./editorLayoutPublication";
 
 export interface PresentationLayoutTreeIndex {
   readonly childrenByParent: ReadonlyMap<string, readonly string[]>;
   readonly parentById: ReadonlyMap<string, string | null>;
   /** promotion 규칙이 읽는 layout/style 입력. 없으면 promotion은 fail-closed 한다. */
   readonly nodeById?: ReadonlyMap<string, CanvasLayoutNode>;
+  /** targeted publication root partition을 위한 canonical node → rootKey index. */
+  readonly rootKeyByNodeId?: ReadonlyMap<string, string>;
 }
 
 export interface PresentationLayoutPlan {
@@ -25,7 +45,6 @@ export interface PresentationLayoutPlan {
 
 export interface PublishPresentationLayoutInput<T> {
   readonly plan: PresentationLayoutPlan;
-  readonly previousLayoutMap: ReadonlyMap<string, T>;
   readonly resolveNode: (
     rootId: string,
     affectedNodeIds: ReadonlySet<string>,
@@ -34,8 +53,9 @@ export interface PublishPresentationLayoutInput<T> {
 
 export interface PublishedPresentationLayout<T> {
   readonly affectedNodeIds: ReadonlySet<string>;
-  readonly layoutMap: ReadonlyMap<string, T>;
+  readonly layoutDelta: ReadonlyMap<string, T>;
   readonly roots: readonly string[];
+  readonly writeCount: number;
 }
 
 function addSubtree(
@@ -213,26 +233,50 @@ export function createPresentationLayoutPlan(input: {
   });
 }
 
-/**
- * targeted resolver가 반환한 map만 기존 map에 병합한다.
- * affected subtree 밖의 값과 object identity는 그대로 유지된다.
- */
+/** targeted resolver가 반환한 affected 값만 delta에 기록한다. base map은 읽지 않는다. */
 export function publishPresentationLayout<T>(
   input: PublishPresentationLayoutInput<T>,
 ): PublishedPresentationLayout<T> {
-  const layoutMap = new Map(input.previousLayoutMap);
+  const layoutDelta = new Map<string, T>();
   for (const rootId of input.plan.roots) {
     const resolved = input.resolveNode(rootId, input.plan.affectedNodeIds);
     for (const [nodeId, layout] of resolved) {
       if (input.plan.affectedNodeIds.has(nodeId)) {
-        layoutMap.set(nodeId, layout);
+        layoutDelta.set(nodeId, layout);
       }
     }
   }
   return Object.freeze({
     affectedNodeIds: input.plan.affectedNodeIds,
-    layoutMap,
+    layoutDelta,
     roots: input.plan.roots,
+    writeCount: layoutDelta.size,
+  });
+}
+
+/**
+ * PresentationLayoutTreeIndex의 rootKey SSOT를 publication partition에 연결한다.
+ * index가 없거나 node가 누락되면 targeted publication을 만들지 않는다.
+ */
+export function createPresentationLayoutPublications<T>(input: {
+  readonly plan: PresentationLayoutPlan;
+  readonly layoutDelta: ReadonlyMap<string, T>;
+  readonly tree: PresentationLayoutTreeIndex;
+  readonly baseCanonicalRevision: number;
+  readonly planSequence: number;
+  readonly presentationRevisionByRootKey: ReadonlyMap<string, number>;
+}): CreatePresentationPublicationsResult<T> {
+  const rootKeyByNodeId = input.tree.rootKeyByNodeId;
+  if (!rootKeyByNodeId) {
+    return { ok: false, reason: "unknown-root-key" };
+  }
+  return createPresentationTargetedPublications({
+    plan: input.plan,
+    layoutDelta: input.layoutDelta,
+    rootKeyForNode: (nodeId) => rootKeyByNodeId.get(nodeId),
+    baseCanonicalRevision: input.baseCanonicalRevision,
+    planSequence: input.planSequence,
+    presentationRevisionByRootKey: input.presentationRevisionByRootKey,
   });
 }
 
