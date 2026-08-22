@@ -1,3 +1,9 @@
+---
+adr: 127
+title: Framing Violation Retro
+reviews: []
+---
+
 # ADR-127 Framing Violation Retro — 2026-05-11
 
 > **분류**: 거버넌스 retro (코드 retro 아님). ADR-127 자체 결과 코드 (helper API + scene model 재설계) 는 회귀 안전망 통과 + 자연 그루핑 합리성 (대안 C 채택 사유 유효). 본 retro 는 **fork 발의 절차** 의 framing 위반만 다룸.
