@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   root별 revision만 보유하며, page/frame multi-root plan은 `planSequence` group으로
   원자 적용/거부한다. rootKey 파생은 publisher/cache/engine 공용 helper로 단일화했다.
   [ADR-188 Phase 2 evidence](adr/design/188-phase-2-g2-publication.md)
+- Skia command stream이 단일 DFS에서 element subtree span, 조상 clip, z-order,
+  scroll/sticky context와 top-layer metadata를 함께 보유한다. 고정 길이 subtree의 draw
+  command·bounds·hit bounds·SpatialIndex를 같은 revision으로 원자 교체하고, span/clip/
+  scroll/z-order/top-layer 또는 revision 전제가 깨지면 fail-closed로 거부한다. 실제
+  publication subscription과 allowlist 연결은 다음 Phase에서 수행한다.
+  [ADR-188 Phase 3 evidence](adr/design/188-phase-3-g3-g4-skia-subtree-patch.md)
 
 ## ADR-187 색상 드래그 presentation 기반 - 2026-08-22
 

@@ -206,6 +206,14 @@ fallback + 단계별 G0\~G6**으로 제한해 잔존 HIGH를 gates로 관리한�
   plan은 `planSequence` group으로 원자 적용/거부한다. base map 전체 복사,
   `getSharedLayoutMap()` targeted base, full-sync callback은 static/runtime guard에서
   0건이다. [G2 evidence](design/188-phase-2-g2-publication.md)
+- **Phase 3 / G3·G4 — Implemented (2026-08-22)**: 단일 Skia DFS에서 subtree span,
+  조상 clip, z-order, scroll/sticky context와 drag/fixed top-layer metadata를 함께
+  기록한다. 고정 길이 subtree command와 `boundsMap`/`hitBoundsMap`/SpatialIndex를
+  하나의 동기 구간에서 원자 교체하는 fail-closed patcher를 추가했으며, stale/base
+  revision·span context·command count·clip·scroll·z-order·top-layer 위반을 각각
+  거부한다. leaf/nested/clipped/scroll-sticky fixture와 ghost-hit 제거, static full
+  rebuild 금지 guard를 통과했다. production publication subscription과 descriptor
+  allowlist 연결은 Phase 4 범위다. [G3/G4 evidence](design/188-phase-3-g3-g4-skia-subtree-patch.md)
 
 ## Consequences
 

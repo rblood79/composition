@@ -127,12 +127,8 @@ interface ElementEndCmd {
   effectLayerCount: number;
 }
 
-type RenderCommand =
-  | ElementBeginCmd
-  | DrawCmd
-  | ChildrenBeginCmd
-  | ChildrenEndCmd
-  | ElementEndCmd;
+export type RenderCommand =
+  ElementBeginCmd | DrawCmd | ChildrenBeginCmd | ChildrenEndCmd | ElementEndCmd;
 
 /**
  * 요소의 self-draw 블록 커맨드 구간 — [start, end).
@@ -147,10 +143,26 @@ export interface SelfSpan {
   end: number;
 }
 
+/** element의 ELEMENT_BEGIN부터 짝이 되는 ELEMENT_END 다음까지의 subtree 구간. */
+export interface SubtreeSpan {
+  start: number;
+  end: number;
+}
+
 export interface RenderCommandStream {
   commands: RenderCommand[];
   /** elementId → self-draw 커맨드 구간 (노드 Picture 캐시 record/replay 단위) */
   selfSpans: Map<string, SelfSpan>;
+  /** elementId → 전체 subtree 커맨드 구간 ([start, end)) */
+  subtreeSpans: Map<string, SubtreeSpan>;
+  /** elementId → 해당 element에 적용된 조상 누적 clip rect snapshot */
+  clipContextByElement: Map<string, ClipRect>;
+  /** elementId → 형제 순서/z-index/top-layer를 포함한 순서 키 */
+  zOrderKeyByElement: Map<string, string>;
+  /** elementId → 해당 element가 의존하는 조상 scroll/sticky context 키 */
+  scrollContextKeyByElement: Map<string, string>;
+  /** drag/fixed 재배치 layer에 포함된 element 집합 */
+  topLayerElementIds: Set<string>;
   boundsMap: Map<string, BoundingBox>;
   /**
    * 클립 인지 히트 영역 — `boundsMap` 을 조상 clip rect 로 교차한 결과.
@@ -162,10 +174,19 @@ export interface RenderCommandStream {
    * 교차 결과가 비면 아예 등재하지 않는다 = 히트 불가.
    */
   hitBoundsMap: Map<string, BoundingBox>;
+  /** draw/hit snapshot이 함께 소비하는 presentation revision */
+  presentationRevision: number;
+  /** presentation delta가 얹힌 canonical full publish revision */
+  baseCanonicalRevision: number;
 }
 
 /** 씬 절대 좌표 clip rect (조상 누적 교차 결과). null = 클립 없음 */
-type ClipRect = { x: number; y: number; width: number; height: number } | null;
+export type ClipRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} | null;
 
 /** 교차 영역 0 — 서브트리 전체가 잘림. 크기 0 이라 모든 교차가 null 이 된다. */
 const EMPTY_CLIP: ClipRect = { x: 0, y: 0, width: 0, height: 0 };
@@ -182,6 +203,10 @@ function intersectBounds(
 ): BoundingBox | null {
   if (!clip) return bounds;
   return intersectBoxes(bounds, clip);
+}
+
+function cloneClipRect(clip: ClipRect): ClipRect {
+  return clip ? { ...clip } : null;
 }
 
 interface DeferredDragRootVisit {
@@ -250,6 +275,18 @@ function _notifyBoundsListeners(boundsMap: Map<string, BoundingBox>): void {
     if (bounds) {
       for (const fn of listeners) fn(id, bounds);
     }
+  }
+}
+
+/** targeted subtree patch 후 변경된 bounds만 외부 위치 소비자에 알린다. */
+export function notifyBoundsPatch(
+  boundsMap: ReadonlyMap<string, BoundingBox>,
+): void {
+  if (_boundsListeners.size === 0) return;
+  for (const [id, listeners] of _boundsListeners) {
+    const bounds = boundsMap.get(id);
+    if (!bounds) continue;
+    for (const fn of listeners) fn(id, bounds);
   }
 }
 
@@ -410,9 +447,18 @@ export function buildRenderCommandStream(
   childrenMap: Map<string, CanvasSceneNode[]>,
   layoutMap: Map<string, ComputedLayout>,
   pagePositions: Record<string, { x: number; y: number }>,
+  revision: {
+    presentationRevision: number;
+    baseCanonicalRevision: number;
+  } = { presentationRevision: 0, baseCanonicalRevision: 0 },
 ): RenderCommandStream {
   const commands: RenderCommand[] = [];
   const selfSpans = new Map<string, SelfSpan>();
+  const subtreeSpans = new Map<string, SubtreeSpan>();
+  const clipContextByElement = new Map<string, ClipRect>();
+  const zOrderKeyByElement = new Map<string, string>();
+  const scrollContextKeyByElement = new Map<string, string>();
+  const topLayerElementIds = new Set<string>();
   const boundsMap = new Map<string, BoundingBox>();
   const hitBoundsMap = new Map<string, BoundingBox>();
   const dragRootIds = getDragVisualOffset()?.elementIds ?? null;
@@ -433,6 +479,11 @@ export function buildRenderCommandStream(
       offsetY,
       commands,
       selfSpans,
+      subtreeSpans,
+      clipContextByElement,
+      zOrderKeyByElement,
+      scrollContextKeyByElement,
+      topLayerElementIds,
       boundsMap,
       hitBoundsMap,
       null,
@@ -442,6 +493,7 @@ export function buildRenderCommandStream(
       offsetY,
       null,
       visitOptions,
+      `${bodyId}:root`,
     );
   }
 
@@ -454,6 +506,11 @@ export function buildRenderCommandStream(
       deferred.parentAbsY,
       commands,
       selfSpans,
+      subtreeSpans,
+      clipContextByElement,
+      zOrderKeyByElement,
+      scrollContextKeyByElement,
+      topLayerElementIds,
       boundsMap,
       hitBoundsMap,
       null,
@@ -463,6 +520,9 @@ export function buildRenderCommandStream(
       0,
       deferred.parentElementId,
       { renderAsTopLayer: true },
+      `top-layer:${deferred.elementId}`,
+      "top-layer-scroll-context",
+      true,
     );
   }
 
@@ -476,7 +536,19 @@ export function buildRenderCommandStream(
   _lastHitBoundsMap = hitBoundsMap;
   _notifyBoundsListeners(boundsMap);
 
-  return { commands, selfSpans, boundsMap, hitBoundsMap };
+  return {
+    commands,
+    selfSpans,
+    subtreeSpans,
+    clipContextByElement,
+    zOrderKeyByElement,
+    scrollContextKeyByElement,
+    topLayerElementIds,
+    boundsMap,
+    hitBoundsMap,
+    presentationRevision: revision.presentationRevision,
+    baseCanonicalRevision: revision.baseCanonicalRevision,
+  };
 }
 
 /**
@@ -523,6 +595,11 @@ function visitElement(
   parentAbsY: number,
   commands: RenderCommand[],
   selfSpans: Map<string, SelfSpan>,
+  subtreeSpans: Map<string, SubtreeSpan>,
+  clipContextByElement: Map<string, ClipRect>,
+  zOrderKeyByElement: Map<string, string>,
+  scrollContextKeyByElement: Map<string, string>,
+  topLayerElementIds: Set<string>,
   boundsMap: Map<string, BoundingBox>,
   hitBoundsMap: Map<string, BoundingBox>,
   clipRect: ClipRect,
@@ -532,6 +609,9 @@ function visitElement(
   cmdOffsetY: number = 0,
   parentElementId: string | null = null,
   options: VisitOptions = {},
+  zOrderKey = elementId,
+  scrollContextKey = "root-scroll-context",
+  topLayerSubtree = false,
 ): void {
   const skiaData = getSkiaNode(elementId);
   if (!skiaData) return;
@@ -545,6 +625,19 @@ function visitElement(
     });
     return;
   }
+
+  const isTopLayer = topLayerSubtree || options.renderAsTopLayer;
+  const subtreeStart = commands.length;
+  clipContextByElement.set(elementId, cloneClipRect(clipRect));
+  zOrderKeyByElement.set(
+    elementId,
+    isTopLayer ? `top-layer/${zOrderKey}` : zOrderKey,
+  );
+  const elementScrollContextKey = `${scrollContextKey}|self:${
+    skiaData.isFixed ? "fixed" : skiaData.isSticky ? "sticky" : "normal"
+  }`;
+  scrollContextKeyByElement.set(elementId, elementScrollContextKey);
+  if (isTopLayer || skiaData.isFixed) topLayerElementIds.add(elementId);
 
   // layoutMap에서 부모 기준 상대 좌표 + 크기 조회
   const layout = layoutMap.get(elementId);
@@ -712,13 +805,18 @@ function visitElement(
           ) ?? EMPTY_CLIP)
         : clipRect;
 
-    for (const child of sortedChildren) {
+    for (const [childIndex, child] of sortedChildren.entries()) {
       visitElement(
         child.id,
         absX - scrollX,
         absY - scrollY,
         commands,
         selfSpans,
+        subtreeSpans,
+        clipContextByElement,
+        zOrderKeyByElement,
+        scrollContextKeyByElement,
+        topLayerElementIds,
         boundsMap,
         hitBoundsMap,
         childClipRect,
@@ -728,6 +826,9 @@ function visitElement(
         0,
         elementId,
         childVisitOptions,
+        `${zOrderKey}/${childIndex}:${getChildZIndex(child)}`,
+        `${elementScrollContextKey}|scroll:${elementId}:${scrollX},${scrollY}`,
+        isTopLayer,
       );
     }
 
@@ -756,6 +857,11 @@ function visitElement(
     hasBlend: !!(skiaData.blendMode && skiaData.blendMode !== "normal"),
     effectLayerCount: effectCount,
   });
+  subtreeSpans.set(elementId, { start: subtreeStart, end: commands.length });
+}
+
+function getChildZIndex(child: CanvasSceneNode): number {
+  return getSkiaNode(child.id)?.zIndex ?? 0;
 }
 
 /**
@@ -779,7 +885,7 @@ function sortChildElementsByZIndex(
   const indexed = children.map((child, i) => ({
     child,
     originalIndex: i,
-    zIndex: getSkiaNode(child.id)?.zIndex ?? 0,
+    zIndex: getChildZIndex(child),
   }));
   indexed.sort((a, b) => {
     if (a.zIndex !== b.zIndex) return a.zIndex - b.zIndex;
