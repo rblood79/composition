@@ -131,7 +131,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(storeBridge).toContain("parseBoxShadowEffects");
   });
 
-  it("Typography Text color는 standalone text presentation owner로 fail-closed한다", async () => {
+  it("Typography Text/Button color는 text-bearing root presentation owner로 fail-closed한다", async () => {
     const typography = await source(
       "../panels/styles/sections/TypographySection.tsx",
     );
@@ -142,11 +142,13 @@ describe("ADR-187 Phase 2 migration guards", () => {
     const renderer = await source(
       "../workspace/canvas/skia/nodeRendererText.ts",
     );
+    const textColorTypes = await source("editorPresentationTextColor.ts");
     expect(typography).toContain("previewTextColorPresentation");
     expect(typography).toContain("commitTextColorPresentation");
     expect(typography).toContain("presentationOwnsFrameScheduling");
     expect(stylePilot).toContain("resolveTextColorPresentationPilotTarget");
-    expect(stylePilot).toContain('element.type !== "Text"');
+    expect(stylePilot).toContain("isTextColorPresentationType");
+    expect(textColorTypes).toContain('new Set(["Button", "Text"])');
     expect(nodeTypes).toContain("presentationTextTargets");
     expect(renderer).toContain("drawTextWithPresentationColor");
   });

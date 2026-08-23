@@ -17,6 +17,7 @@ import type {
   EditorMutationDescriptor,
   EditorPresentationTargetRef,
 } from "./editorPresentationTypes";
+import { isTextColorPresentationType } from "./editorPresentationTextColor";
 import {
   getCanonicalRefDescendantOverride,
   getCanonicalRefPathSegment,
@@ -441,9 +442,9 @@ export function commitEditorPresentationStyle(
   if (!document || !before || !targetNode || !previousStyle) {
     throw new Error("Editor presentation canonical target no longer exists");
   }
-  if (isTextColorPatch && targetNode.type !== "Text") {
+  if (isTextColorPatch && !isTextColorPresentationType(targetNode.type)) {
     throw new Error(
-      "ADR-187 Text color presentation target must be a Text node",
+      "ADR-187 Text color presentation target must own a materialized text target",
     );
   }
   if (areStylePatchValuesEqual(descriptor.patch, previousStyle)) {

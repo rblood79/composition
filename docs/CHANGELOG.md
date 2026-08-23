@@ -88,6 +88,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `0/0`이었다.
   - 증적: [ADR-187 Phase 5 standalone Text color live parity](adr/design/187-phase-5-text-color-live-parity.md)
 
+## ADR-187 Phase 5 Button text-bearing color presentation slice — 2026-08-24
+
+### Architecture
+
+- **Button root Typography color를 typed presentation owner로 확장**:
+  - Button과 standalone Text만 명시적 text-bearing capability로 허용하고, Button 자체
+    Skia node의 text slots와 Preview root `style.patch.color`를 같은 semantic target에
+    연결했다.
+  - multi-child inherited subtree와 기타 component root는 descendant projection이
+    materialize되지 않으면 canonical/legacy 경로로 fail-closed한다.
+  - **Why:** component root의 inherited text color도 geometry·child topology를 건드리지
+    않고 paint target에 한정하되, 임의 container의 partial descendant patch는 허용하지
+    않기 위해서다.
+  - 위치: `apps/builder/src/builder/presentation/{editorPresentationTextColor.ts,editorPresentationStylePilot.ts,editorPresentationCommitAdapter.ts}`
+
+### Performance
+
+- **Builder Compare Mode live gate**:
+  - Button `220×120` ColorArea drag에서 Preview color가
+    `rgb(17,34,51) → rgb(44,121,199)`으로 반영되고 rect는 유지됐다.
+  - drag 중 canonical color 유지, target patch `+60`, Preview delta message `+8`,
+    presentation frame apply `+8`, action/control RAF `0/0`, legacy write `0`이었다.
+  - terminal에서 canonical color `#2C79C7`와 Preview가 수렴했고 canonical write와
+    Preview full-document message는 각각 `+1`, application console error/warning은
+    `0/0`이었다.
+  - 증적: [ADR-187 Phase 5 Button text-bearing color live parity](adr/design/187-phase-5-text-bearing-color-live-parity.md)
+
 ## ADR-187 Phase 5 border color presentation slice — 2026-08-23
 
 ### Architecture

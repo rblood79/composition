@@ -5,6 +5,7 @@ import {
 } from "./editorPresentationCommitAdapter";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import type { EditorPresentationTargetRef } from "./editorPresentationTypes";
+import { isTextColorPresentationType } from "./editorPresentationTextColor";
 import { parseBoxShadowEffects } from "../workspace/canvas/styleConversion/styleConverter";
 
 const STYLE_PILOT_QUERY_PARAM = "adr187FillPilot";
@@ -105,9 +106,10 @@ export function resolveBoxShadowPresentationPilotTarget(
 }
 
 /**
- * Text color pilot is intentionally restricted to standalone Text nodes.
- * Inherited component color can fan out to multiple semantic descendants and
- * remains on the canonical/legacy path until that projection is materialized.
+ * Text color pilot is intentionally restricted to nodes whose own Skia
+ * materialization owns text targets. Button is the first component-root slice;
+ * multi-child inherited color remains on the canonical/legacy path until its
+ * descendant projection is materialized.
  */
 export function resolveTextColorPresentationPilotTarget(
   selectedElementId: string | null,
@@ -126,7 +128,7 @@ export function resolveTextColorPresentationPilotTarget(
     return null;
   }
   const element = getEditorPresentationTargetNode(projectId, target);
-  if (!element || element.type !== "Text") return null;
+  if (!element || !isTextColorPresentationType(element.type)) return null;
   const style = editorPresentationCanonicalRuntimeOptions.readTargetValue(
     projectId,
     target,
