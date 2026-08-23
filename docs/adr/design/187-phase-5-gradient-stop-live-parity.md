@@ -14,14 +14,14 @@
 `Compare Mode (Preview + Skia)` split을 켜고 Style 패널의 gradient stop을 8-step
 pointer drag했다.
 
-| 구간                     | 관측 결과                                                                                                               |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| pointer                  | `down=1`, `move=9`, `up=1`                                                                                              |
-| drag 중 canonical/legacy | canonical write `2`(fixture baseline 유지), legacy write `0`                                                            |
-| drag 중 Skia             | `targetIncrementalPatchCount=8`, `bridgeFullRebuildCount=0`, `layoutPublishCount=0`, `projectionSignatureCount=0`       |
-| drag 중 Preview          | full-document message `1`(fixture baseline), delta message `8`, Preview CSS `linear-gradient(... 28% ...)`              |
-| terminal 후              | stop position `0.282957...`, Preview CSS `28%`, canonical write `3`(finish 1회), delta message `10`, stale callback `0` |
-| console                  | error `0`, warning `0`                                                                                                  |
+| 구간                     | 관측 결과                                                                                                                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| pointer                  | `down=1`, `move=9`, `up=1`                                                                                                        |
+| drag 중 canonical/legacy | canonical write `2`(fixture baseline 유지), legacy write `0`                                                                      |
+| drag 중 Skia             | counter 증가분: `targetIncrementalPatchCount=8`, `bridgeFullRebuildCount=0`, `layoutPublishCount=0`, `projectionSignatureCount=0` |
+| drag 중 Preview          | full-document message `1`(fixture baseline), delta message `8`, Preview CSS `linear-gradient(... 28% ...)`                        |
+| terminal 후              | stop position `0.282957...`, Preview CSS `28%`, canonical write `3`(finish 1회), delta message `10`, stale callback `0`           |
+| console                  | error `0`, warning `0`                                                                                                            |
 
 drag 중 Builder store의 canonical stop 배열은 시작값을 유지하고, Skia/Preview만
 presentation overlay를 소비했다. mouseup 뒤 canonical finish와 overlay handoff 후에도

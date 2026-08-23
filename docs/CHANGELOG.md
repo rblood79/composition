@@ -23,8 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Performance
 
 - **Builder Compare Mode live gate**:
-  - drag 중 legacy write/full rebuild/layout publish는 `0`, Skia target patch `8`,
-    Preview delta `8`, console error/warning `0`을 확인했다.
+  - drag 구간의 증가분은 legacy write/full rebuild/layout publish `0`, Skia target
+    patch `8`, Preview delta `8`, console error/warning `0`이었다.
   - terminal 후 stop position `0.282957...`와 Preview gradient `28%`가 유지되고
     canonical finish는 1회였다.
   - 증적: [ADR-187 Phase 5 gradient stop live parity](adr/design/187-phase-5-gradient-stop-live-parity.md)
