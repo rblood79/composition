@@ -26,6 +26,7 @@ import type {
   SkiaPresentationFillTarget,
   SkiaPresentationShadowTarget,
   SkiaPresentationStrokeTarget,
+  SkiaPresentationTextTarget,
 } from "./nodeRendererTypes";
 import { buildSkiaNodeData, type BuildContext } from "./buildSkiaNodeData";
 import { buildBoxNodeData } from "./buildBoxNodeData";
@@ -141,6 +142,16 @@ function haveSamePresentationShadowSlots(
   return (
     left.length === right.length &&
     left.every((target, index) => target.effect === right[index]?.effect)
+  );
+}
+
+function haveSamePresentationTextSlots(
+  left: readonly SkiaPresentationTextTarget[],
+  right: readonly SkiaPresentationTextTarget[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((target, index) => target.color === right[index]?.color)
   );
 }
 
@@ -448,6 +459,13 @@ export class StoreRenderBridge {
       readonly targets: readonly SkiaPresentationStrokeTarget[];
     }
   >();
+  private presentationTextBaseById = new Map<
+    string,
+    {
+      readonly colors: readonly Float32Array[];
+      readonly targets: readonly SkiaPresentationTextTarget[];
+    }
+  >();
   private presentationShadowBaseById = new Map<
     string,
     {
@@ -472,7 +490,8 @@ export class StoreRenderBridge {
     if (
       this.presentationBaseById.has(elementId) ||
       this.presentationStyleBaseById.has(elementId) ||
-      this.presentationShadowBaseById.has(elementId)
+      this.presentationShadowBaseById.has(elementId) ||
+      this.presentationTextBaseById.has(elementId)
     ) {
       this.presentationNodeIds.add(elementId);
     } else {
@@ -643,6 +662,36 @@ export class StoreRenderBridge {
     if (keys.length === 1 && keys[0] === "boxShadow") {
       return this.applyPresentationShadowPatch(elementId, patch.boxShadow);
     }
+    if (keys.length === 1 && keys[0] === "color") {
+      const nextColor = parsePresentationHexColor(patch.color);
+      const node = getSkiaNode(elementId);
+      const targets = node?.presentationTextTargets;
+      if (!nextColor || !node || !targets || targets.length === 0) {
+        return false;
+      }
+
+      const changed = targets.some((target) =>
+        target.color.some(
+          (channel, index) => !Object.is(channel, nextColor[index]),
+        ),
+      );
+      if (!changed) return false;
+
+      const existingBase = this.presentationTextBaseById.get(elementId);
+      if (
+        !existingBase ||
+        !haveSamePresentationTextSlots(existingBase.targets, targets)
+      ) {
+        this.presentationTextBaseById.set(elementId, {
+          colors: targets.map((target) => Float32Array.from(target.color)),
+          targets,
+        });
+      }
+      for (const target of targets) target.color.set(nextColor);
+      invalidateNodePicture(elementId);
+      this.refreshPresentationVolatileNode(elementId);
+      return true;
+    }
     if (keys.length !== 1 || keys[0] !== "borderColor") return false;
     const nextColor = parsePresentationHexColor(patch.borderColor);
     const node = getSkiaNode(elementId);
@@ -769,14 +818,32 @@ export class StoreRenderBridge {
       }
       this.presentationShadowBaseById.delete(elementId);
     }
+
+    const textBase = this.presentationTextBaseById.get(elementId);
+    if (textBase) {
+      const node = getSkiaNode(elementId);
+      const targets = node?.presentationTextTargets;
+      const canRestore =
+        targets !== undefined &&
+        haveSamePresentationTextSlots(textBase.targets, targets);
+      if (canRestore) {
+        targets.forEach((target, index) =>
+          target.color.set(textBase.colors[index]!),
+        );
+        invalidateNodePicture(elementId);
+        restored = true;
+      }
+      this.presentationTextBaseById.delete(elementId);
+    }
     this.refreshPresentationVolatileNode(elementId);
     return restored;
   }
 
   releasePresentationStylePatch(elementId: string): boolean {
-    const released =
-      this.presentationStyleBaseById.delete(elementId) ||
-      this.presentationShadowBaseById.delete(elementId);
+    const releasedStyle = this.presentationStyleBaseById.delete(elementId);
+    const releasedShadow = this.presentationShadowBaseById.delete(elementId);
+    const releasedText = this.presentationTextBaseById.delete(elementId);
+    const released = releasedStyle || releasedShadow || releasedText;
     if (released) this.refreshPresentationVolatileNode(elementId);
     return released;
   }

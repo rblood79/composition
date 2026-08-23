@@ -4,6 +4,7 @@ import { editorPresentationFillPilotRuntime } from "../../../presentation/editor
 import {
   resolveBorderColorPresentationPilotTarget,
   resolveBoxShadowPresentationPilotTarget,
+  resolveTextColorPresentationPilotTarget,
 } from "../../../presentation/editorPresentationStylePilot";
 import {
   haveSameBoxShadowPresentationTopology,
@@ -51,6 +52,12 @@ export interface StylePresentationActions {
   commitBoxShadowModelPresentation: (
     value: BoxShadowPresentationValue,
   ) => boolean;
+  isTextColorPresentationOwned: () => boolean;
+  previewTextColorPresentation: (color: string) => boolean;
+  commitTextColorPresentation: (color: string) => boolean;
+  cancelTextColorPresentation: (
+    reason: EditorPresentationCancelReason,
+  ) => boolean;
   cancelBoxShadowPresentation: (
     reason: EditorPresentationCancelReason,
   ) => boolean;
@@ -72,14 +79,26 @@ export function useStylePresentationActions(): StylePresentationActions {
     selectedElementId: string;
     target: EditorPresentationTargetRef;
   } | null>(null);
+  const textColorPresentationRef = useRef<{
+    baseStyle: Readonly<Record<string, unknown>>;
+    handle: EditorPresentationHandle;
+    phase: "active" | "cancelled" | "failed";
+    selectedElementId: string;
+    target: EditorPresentationTargetRef;
+  } | null>(null);
   const ownerIdRef = useRef<string | null>(null);
   const shadowOwnerIdRef = useRef<string | null>(null);
+  const textColorOwnerIdRef = useRef<string | null>(null);
   const ownerId =
     ownerIdRef.current ?? `style-border-color-owner-${nextStyleOwnerId++}`;
   ownerIdRef.current = ownerId;
   const shadowOwnerId =
     shadowOwnerIdRef.current ?? `style-box-shadow-owner-${nextStyleOwnerId++}`;
   shadowOwnerIdRef.current = shadowOwnerId;
+  const textColorOwnerId =
+    textColorOwnerIdRef.current ??
+    `style-text-color-owner-${nextStyleOwnerId++}`;
+  textColorOwnerIdRef.current = textColorOwnerId;
 
   useEffect(() => {
     const unsubscribeSelection = useStore.subscribe(() => {
@@ -100,6 +119,14 @@ export function useStylePresentationActions(): StylePresentationActions {
         shadowPresentation.handle.cancel("selection-change");
         shadowPresentation.phase = "cancelled";
       }
+      const textColorPresentation = textColorPresentationRef.current;
+      if (
+        textColorPresentation &&
+        selectedElementId !== textColorPresentation.selectedElementId
+      ) {
+        textColorPresentation.handle.cancel("selection-change");
+        textColorPresentation.phase = "cancelled";
+      }
     });
     const handleWindowBlur = (): void => {
       const presentation = presentationRef.current;
@@ -112,13 +139,20 @@ export function useStylePresentationActions(): StylePresentationActions {
         shadowPresentation.handle.cancel("blur");
         shadowPresentation.phase = "cancelled";
       }
+      const textColorPresentation = textColorPresentationRef.current;
+      if (textColorPresentation?.phase === "active") {
+        textColorPresentation.handle.cancel("blur");
+        textColorPresentation.phase = "cancelled";
+      }
     };
     window.addEventListener("blur", handleWindowBlur);
     return () => {
       presentationRef.current?.handle.cancel("unmount");
       shadowPresentationRef.current?.handle.cancel("unmount");
+      textColorPresentationRef.current?.handle.cancel("unmount");
       presentationRef.current = null;
       shadowPresentationRef.current = null;
+      textColorPresentationRef.current = null;
       unsubscribeSelection();
       window.removeEventListener("blur", handleWindowBlur);
     };
@@ -466,6 +500,109 @@ export function useStylePresentationActions(): StylePresentationActions {
     [],
   );
 
+  const isTextColorPresentationOwned = useCallback(
+    () =>
+      resolveTextColorPresentationPilotTarget(
+        readImmediateSelectionSnapshot().selectedElementId,
+      ) !== null,
+    [],
+  );
+
+  const previewTextColorPresentation = useCallback(
+    (color: string): boolean => {
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const existing = textColorPresentationRef.current;
+      if (existing?.phase === "cancelled") {
+        if (existing.selectedElementId !== selectedElementId) return true;
+        textColorPresentationRef.current = null;
+      }
+      if (existing?.phase === "failed") {
+        existing.handle.cancel("superseded");
+        textColorPresentationRef.current = null;
+      }
+
+      let presentation = textColorPresentationRef.current;
+      if (
+        presentation &&
+        presentation.selectedElementId !== selectedElementId
+      ) {
+        presentation.handle.cancel("selection-change");
+        presentation = null;
+        textColorPresentationRef.current = null;
+      }
+      if (!presentation) {
+        const pilot =
+          resolveTextColorPresentationPilotTarget(selectedElementId);
+        if (!pilot || !selectedElementId) return false;
+        presentation = {
+          baseStyle: pilot.style,
+          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+            commitIntent: "style-text-color",
+            ownerId: textColorOwnerId,
+            projectId: pilot.projectId,
+            targets: [pilot.target],
+          }),
+          phase: "active",
+          selectedElementId,
+          target: pilot.target,
+        };
+        textColorPresentationRef.current = presentation;
+      }
+
+      const descriptor: EditorMutationDescriptor = {
+        patch: { color },
+        target: presentation.target,
+        type: "style.patch",
+      };
+      if (!presentation.handle.publish(descriptor)) {
+        presentation.phase = "cancelled";
+      }
+      return true;
+    },
+    [textColorOwnerId],
+  );
+
+  const commitTextColorPresentation = useCallback(
+    (color: string): boolean => {
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const active = textColorPresentationRef.current;
+      if (active?.phase === "cancelled") {
+        textColorPresentationRef.current = null;
+        return true;
+      }
+      if (!active && !previewTextColorPresentation(color)) return false;
+      const presentation = textColorPresentationRef.current;
+      if (
+        !presentation ||
+        presentation.selectedElementId !== selectedElementId
+      ) {
+        presentation?.handle.cancel("selection-change");
+        textColorPresentationRef.current = null;
+        return true;
+      }
+      const result = presentation.handle.finish({
+        patch: { color },
+        target: presentation.target,
+        type: "style.patch",
+      });
+      if (result.status === "failed") presentation.phase = "failed";
+      else textColorPresentationRef.current = null;
+      return true;
+    },
+    [previewTextColorPresentation],
+  );
+
+  const cancelTextColorPresentation = useCallback(
+    (reason: EditorPresentationCancelReason): boolean => {
+      const presentation = textColorPresentationRef.current;
+      if (!presentation || presentation.phase !== "active") return false;
+      presentation.handle.cancel(reason);
+      presentation.phase = "cancelled";
+      return true;
+    },
+    [],
+  );
+
   return {
     cancelBorderColorPresentation,
     commitBorderColorPresentation,
@@ -477,5 +614,9 @@ export function useStylePresentationActions(): StylePresentationActions {
     isBoxShadowPresentationOwned,
     previewBoxShadowPresentation,
     previewBoxShadowModelPresentation,
+    cancelTextColorPresentation,
+    commitTextColorPresentation,
+    isTextColorPresentationOwned,
+    previewTextColorPresentation,
   };
 }

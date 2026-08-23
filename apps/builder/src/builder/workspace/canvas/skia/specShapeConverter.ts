@@ -10,6 +10,7 @@ import { getIconData } from "@composition/specs";
 import type {
   SkiaNodeData,
   SkiaPresentationFillTarget,
+  SkiaPresentationTextTarget,
 } from "./nodeRendererTypes";
 import type { EffectStyle, FillStyle } from "./types";
 import {
@@ -164,6 +165,7 @@ export function specShapesToSkia(
   let bgExtracted = false;
   let namedBackgroundBox: SkiaNodeData["box"] | undefined;
   const presentationFillTargets: SkiaPresentationFillTarget[] = [];
+  const presentationTextTargets: SkiaPresentationTextTarget[] = [];
 
   // Deferred shapes: shadow/border with explicit target (forward reference)
   const deferredShapes: Shape[] = [];
@@ -228,6 +230,7 @@ export function specShapesToSkia(
     visible: true,
     box: bgBox ?? { fillColor: TRANSPARENT, borderRadius: 0 },
     ...(presentationFillTargets.length > 0 ? { presentationFillTargets } : {}),
+    ...(presentationTextTargets.length > 0 ? { presentationTextTargets } : {}),
     children: children.length > 0 ? children : undefined,
   };
 
@@ -847,6 +850,11 @@ export function specShapesToSkia(
           textContent = textContent.replace(/\b\w/g, (c) => c.toUpperCase());
         }
 
+        const presentationTextColor = Float32Array.from(fillColor);
+        const presentationTextTarget: SkiaPresentationTextTarget = {
+          color: presentationTextColor,
+        };
+        presentationTextTargets.push(presentationTextTarget);
         const node: SkiaNodeData = {
           type: "text",
           x: 0,
@@ -856,12 +864,14 @@ export function specShapesToSkia(
           visible: true,
           // 편집 중 Skia 텍스트 숨김용 (nodeRenderers의 _editingElementId 검사)
           elementId,
+          presentationTextTargets: [presentationTextTarget],
           text: {
             content: textContent,
             fontFamilies,
             fontSize,
             fontWeight,
             color: fillColor,
+            presentationColor: presentationTextColor,
             align: shape.align ?? "left",
             letterSpacing: shape.letterSpacing,
             lineHeight:

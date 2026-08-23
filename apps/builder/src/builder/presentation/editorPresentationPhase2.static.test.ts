@@ -131,6 +131,26 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(storeBridge).toContain("parseBoxShadowEffects");
   });
 
+  it("Typography Text color는 standalone text presentation owner로 fail-closed한다", async () => {
+    const typography = await source(
+      "../panels/styles/sections/TypographySection.tsx",
+    );
+    const stylePilot = await source("editorPresentationStylePilot.ts");
+    const nodeTypes = await source(
+      "../workspace/canvas/skia/nodeRendererTypes.ts",
+    );
+    const renderer = await source(
+      "../workspace/canvas/skia/nodeRendererText.ts",
+    );
+    expect(typography).toContain("previewTextColorPresentation");
+    expect(typography).toContain("commitTextColorPresentation");
+    expect(typography).toContain("presentationOwnsFrameScheduling");
+    expect(stylePilot).toContain("resolveTextColorPresentationPilotTarget");
+    expect(stylePilot).toContain('element.type !== "Text"');
+    expect(nodeTypes).toContain("presentationTextTargets");
+    expect(renderer).toContain("drawTextWithPresentationColor");
+  });
+
   it("Skia publish consumer는 targeted in-place patch 외 forbidden rebuild 경로가 없다", async () => {
     const bridge = await source("skiaEditorPresentationBridge.ts");
     for (const forbidden of [

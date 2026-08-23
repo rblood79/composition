@@ -5,6 +5,35 @@ import { getSkiaPrimitive, type Shape } from "@composition/specs";
 import { specShapesToSkia } from "./specShapeConverter";
 
 describe("specShapesToSkia presentation fill materialization", () => {
+  it("materializes standalone text color as a root-owned paint slot", () => {
+    const node = specShapesToSkia(
+      [
+        {
+          align: "left",
+          fill: "#123456",
+          fontFamily: "Inter",
+          fontSize: 14,
+          id: "text",
+          text: "Hello",
+          type: "text",
+          x: 0,
+          y: 0,
+        },
+      ],
+      "light",
+      100,
+      40,
+    );
+
+    expect(node.presentationTextTargets).toHaveLength(1);
+    expect(node.presentationTextTargets?.[0]?.color).toBe(
+      node.children?.[0]?.text?.presentationColor,
+    );
+    expect(node.children?.[0]?.text?.color).not.toBe(
+      node.children?.[0]?.text?.presentationColor,
+    );
+  });
+
   it("maps a full-size bg rect to the root draw primitive", () => {
     const shapes: Shape[] = [
       {

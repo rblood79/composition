@@ -348,6 +348,58 @@ export function renderText(
     }
   };
 
+  const drawTextWithPresentationColor = (
+    paragraph: Paragraph,
+    drawX: number,
+    drawY: number,
+  ): void => {
+    const presentationColor = node.text!.presentationColor;
+    const canonicalColor = node.text!.color;
+    const presentationColorIsCanonical =
+      !presentationColor ||
+      !canonicalColor ||
+      (presentationColor.length === canonicalColor.length &&
+        presentationColor.every(
+          (channel, index) => channel === canonicalColor[index],
+        ));
+    if (presentationColorIsCanonical) {
+      canvas.drawParagraph(paragraph, drawX, drawY);
+      return;
+    }
+
+    // Keep paragraph metrics and the retained paragraph cache canonical. The
+    // presentation slot only changes the paint color for this draw pass.
+    const colorPaint = acquirePooledPaint(ck);
+    colorPaint.setColorFilter(
+      ck.ColorFilter.MakeMatrix([
+        0,
+        0,
+        0,
+        0,
+        presentationColor[0],
+        0,
+        0,
+        0,
+        0,
+        presentationColor[1],
+        0,
+        0,
+        0,
+        0,
+        presentationColor[2],
+        0,
+        0,
+        0,
+        presentationColor[3],
+        0,
+      ]),
+    );
+    canvas.saveLayer(colorPaint);
+    releasePooledPaint(colorPaint);
+    canvas.drawParagraph(paragraph, drawX, drawY);
+    canvas.restore();
+  };
+
   observeParagraphDraw(key, node.elementId);
 
   // 소유자는 이 텍스트 노드 객체다. 노드 identity 는 내용이 실제로 바뀔 때만
@@ -359,7 +411,7 @@ export function renderText(
     const drawY = computeDrawY(retained.paragraph);
     const drawX = node.text.paddingLeft + textIndent + retained.alignOffset;
     renderTextShadows(retained.paragraph, drawX, drawY);
-    canvas.drawParagraph(retained.paragraph, drawX, drawY);
+    drawTextWithPresentationColor(retained.paragraph, drawX, drawY);
     return;
   }
   if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordMiss();
@@ -717,7 +769,7 @@ export function renderText(
 
     const drawX = node.text.paddingLeft + textIndent + alignOffset;
     renderTextShadows(paragraph, drawX, drawY);
-    canvas.drawParagraph(paragraph, drawX, drawY);
+    drawTextWithPresentationColor(paragraph, drawX, drawY);
 
     if (shouldClip) {
       canvas.restore();

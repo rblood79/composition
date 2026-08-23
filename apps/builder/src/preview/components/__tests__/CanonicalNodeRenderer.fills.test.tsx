@@ -237,6 +237,26 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
     });
   });
 
+  it("text color style patch는 Preview color만 바꾸고 geometry style을 보존한다", () => {
+    const base = {
+      props: { children: "Hello" },
+      style: { color: "#111111", fontSize: "16px", width: "120px" },
+    } as never;
+
+    expect(
+      resolvePresentationPaintProps(base, [
+        {
+          patch: { color: "#ABCDEF" },
+          target: { kind: "canonical-node", nodeId: "text-1" },
+          type: "style.patch",
+        },
+      ]),
+    ).toEqual({
+      props: { children: "Hello" },
+      style: { color: "#ABCDEF", fontSize: "16px", width: "120px" },
+    });
+  });
+
   it("boxShadow style patch는 Preview style만 바꾸고 geometry를 보존한다", () => {
     const base = {
       style: {

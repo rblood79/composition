@@ -65,6 +65,8 @@ export interface SkiaNodeData {
   presentationStrokeTargets?: readonly SkiaPresentationStrokeTarget[];
   /** ADR-187 Phase 5: box-shadow가 소비하는 mutable effect slots. */
   presentationShadowTargets?: readonly SkiaPresentationShadowTarget[];
+  /** ADR-187 Phase 5: text color가 소비하는 mutable presentation slots. */
+  presentationTextTargets?: readonly SkiaPresentationTextTarget[];
   text?: {
     content: string;
     fontFamilies: string[];
@@ -72,6 +74,8 @@ export interface SkiaNodeData {
     fontWeight?: number;
     fontStyle?: number;
     color: Float32Array;
+    /** Continuous presentation override; paragraph layout/style remains canonical. */
+    presentationColor?: Float32Array;
     align?: EmbindEnumEntity | "left" | "center" | "right";
     letterSpacing?: number;
     wordSpacing?: number;
@@ -186,6 +190,11 @@ export interface SkiaPresentationStrokeTarget {
 export interface SkiaPresentationShadowTarget {
   /** node.effects 안의 기존 drop-shadow object를 직접 갱신한다. */
   readonly effect: DropShadowEffect;
+}
+
+export interface SkiaPresentationTextTarget {
+  /** Text draw color override consumed without changing paragraph metrics. */
+  readonly color: Float32Array;
 }
 
 export type ParagraphCache = Map<string, Paragraph>;

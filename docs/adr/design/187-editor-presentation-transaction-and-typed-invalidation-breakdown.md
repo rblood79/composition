@@ -936,11 +936,12 @@ Phase 5의 allowlist gate를 통과한 항목만 진행한다.
 
 ### Phase 5 — continuous editor migration과 structure 판정
 
-**진행 상태: slices 진행 — 2026-08-23 (single-fill gradient stop + fill opacity + border color + box-shadow paint + continuous shadow editor slices).**
+**진행 상태: slices 진행 — 2026-08-23 (single-fill gradient stop + fill opacity + border color + box-shadow paint + continuous shadow editor + standalone Text color slices).**
 [Gradient stop live parity evidence](187-phase-5-gradient-stop-live-parity.md),
 [fill opacity live parity evidence](187-phase-5-fill-opacity-live-parity.md),
 [border color live parity evidence](187-phase-5-border-color-live-parity.md),
-[box-shadow live parity evidence](187-phase-5-box-shadow-live-parity.md)에 실제 Builder
+[box-shadow live parity evidence](187-phase-5-box-shadow-live-parity.md),
+[standalone Text color live parity evidence](187-phase-5-text-color-live-parity.md)에 실제 Builder
 상단 Compare Mode split과 focused gate를 기록했다. 첫 slice는 하나의 enabled
 `linear/radial/angular` fill에서 stop 색상·position을, 두 번째 slice는 같은 단일 paint
 owner에서 fill opacity를, 세 번째 slice는 border color를, 네 번째 slice는 기존
@@ -954,19 +955,24 @@ canonical commit으로 handoff한다. 이번 연속 shadow editor slice는
 단일 model로 사용하고, Skia는 typed effect slot, Preview는 순수 CSS serializer를
 소비한다. 실제 Builder에서 숫자 4개와 ColorArea drag의 geometry 불변,
 action/control RAF `0/0`, legacy write `0`, console error/warning `0/0`을 확인했다.
+standalone Text color slice는 Typography의 selected `Text`에만 owner를 열고,
+paragraph metric/cache를 유지한 Skia color slot과 Preview `style.patch.color`를
+연결한다. canonical color는 drag 중 유지되고 terminal에서만 1회 handoff되며,
+실제 Builder에서 rect 불변, action/control RAF `0/0`, legacy write `0`, console
+error/warning `0/0`과 Preview/Skia 색상 수렴을 확인했다.
 
 다중 fill, image/mesh fill, gradient geometry, border width/radius/style와 shadow의
 layer topology 변경은 각 slice의 materialization 조건을 충족하지 않으므로 기존
-commit/legacy 경로에 남긴다. continuous shadow offset/blur/spread/color drag gate는
-이 slice로 종결됐지만 opacity/paint slider, layout allowlist 확대, text/resource와
-structure는 남은 Phase 5 범위다.
+commit/legacy 경로에 남긴다. continuous shadow offset/blur/spread/color drag gate와
+standalone Text color gate는 종결됐지만 inherited/component color, 다른 opacity/paint
+slider, layout allowlist 확대, text metrics/resource와 structure는 남은 Phase 5 범위다.
 따라서 ADR-187 전체 Phase 5 또는 `Implemented` 승격으로 해석하지 않는다.
 
 권장 순서:
 
 1. fill opacity와 gradient stop (single-fill gradient stop·opacity slices 완료)
 2. border/stroke paint와 shadow paint fields (border color·box-shadow slot·continuous shadow editor slices 완료)
-3. opacity/paint 계열 Property slider
+3. opacity/paint 계열 Property slider (standalone Text color slice 완료; inherited/기타 대상 잔여)
 4. width/height/padding/gap 등 layout slider — Phase 4 gate 통과 항목만
 5. text metrics/resource 항목 — explicit classifier fixture가 있는 항목만
 6. structure descriptor — G6 scoped scene gate 통과 시에만

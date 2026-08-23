@@ -402,12 +402,17 @@ export function commitEditorPresentationStyle(
     patchKeys[0] === "boxShadow" &&
     descriptor.type === "style.patch" &&
     typeof descriptor.patch.boxShadow === "string";
+  const isTextColorPatch =
+    patchKeys.length === 1 &&
+    patchKeys[0] === "color" &&
+    descriptor.type === "style.patch" &&
+    typeof descriptor.patch.color === "string";
   if (
     descriptor.type !== "style.patch" ||
-    (!isBorderColorPatch && !isBoxShadowPatch)
+    (!isBorderColorPatch && !isBoxShadowPatch && !isTextColorPatch)
   ) {
     throw new Error(
-      "ADR-187 style commit allowlist only accepts style.patch.borderColor or style.patch.boxShadow",
+      "ADR-187 style commit allowlist only accepts style.patch.borderColor, style.patch.boxShadow, or Text style.patch.color",
     );
   }
 
@@ -435,6 +440,11 @@ export function commitEditorPresentationStyle(
   const previousStyle = readTargetStyle(input.projectId, descriptor.target);
   if (!document || !before || !targetNode || !previousStyle) {
     throw new Error("Editor presentation canonical target no longer exists");
+  }
+  if (isTextColorPatch && targetNode.type !== "Text") {
+    throw new Error(
+      "ADR-187 Text color presentation target must be a Text node",
+    );
   }
   if (areStylePatchValuesEqual(descriptor.patch, previousStyle)) {
     return { committedDocumentRevision: canonical.documentVersion };

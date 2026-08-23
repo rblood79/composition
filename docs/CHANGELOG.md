@@ -62,6 +62,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     canonical style에 수렴했다.
   - 증적: [ADR-187 Phase 5 box-shadow live parity — continuous editor](adr/design/187-phase-5-box-shadow-live-parity.md)
 
+## ADR-187 Phase 5 standalone Text color presentation slice — 2026-08-23
+
+### Architecture
+
+- **Typography Text color picker를 typed presentation owner로 연결**:
+  - standalone `Text` 선택에서만 `style.patch.color`를 허용하고, drag 중 canonical
+    style은 유지한 채 Skia `presentationTextTargets` color slot과 Preview semantic
+    delta를 갱신한다.
+  - paragraph content/metrics/cache와 geometry는 보존하며, inherited/component color,
+    text metrics/resource와 structure는 기존 commit-only 경계로 fail-closed한다.
+  - **Why:** text color만 바뀌는 drag가 paragraph 재생성·layout publication·canonical
+    document fan-out으로 확대되지 않도록 paint-only target을 고정하기 위해서다.
+  - 위치: `apps/builder/src/builder/{presentation/editorPresentationStylePilot.ts,panels/styles/sections/TypographySection.tsx,workspace/canvas/skia/{nodeRendererTypes.ts,specShapeConverter.ts,nodeRendererText.ts,StoreRenderBridge.ts}}`
+
+### Performance
+
+- **Builder Compare Mode live gate**:
+  - standalone Text `220×80` ColorArea drag에서 Preview color가
+    `rgb(17,34,51) → rgb(45,121,196)`으로 반영되고 rect는 유지됐다.
+  - drag 중 canonical color 유지, target patch `+60`, Preview delta message `+8`,
+    presentation frame apply `+8`, action/control RAF `0/0`, legacy write `0`이었다.
+  - terminal에서 canonical color `#2D79C4`와 Preview가 수렴했고 canonical write와
+    Preview full-document message는 각각 `+1`, application console error/warning은
+    `0/0`이었다.
+  - 증적: [ADR-187 Phase 5 standalone Text color live parity](adr/design/187-phase-5-text-color-live-parity.md)
+
 ## ADR-187 Phase 5 border color presentation slice — 2026-08-23
 
 ### Architecture

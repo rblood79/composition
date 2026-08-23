@@ -243,6 +243,68 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     expect(put).toHaveBeenCalledTimes(1);
   });
 
+  it("Text color style patch는 Text canonical/history/persist를 한 번만 수행한다", async () => {
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, documentWith());
+    const document = useCanonicalDocumentStore
+      .getState()
+      .documents.get(PROJECT_ID)!;
+    useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, {
+      ...document,
+      children: [
+        {
+          ...node("node-1", "#111111FF", { color: "#112233" }),
+          type: "Text",
+        } as CanonicalNode,
+        document.children[1]!,
+      ],
+    });
+    const result = commitEditorPresentationStyle({
+      baseDocumentVersion: useCanonicalDocumentStore.getState().documentVersion,
+      commitIntent: "style-text-color",
+      descriptor: {
+        patch: { color: "#ABCDEF" },
+        target: { kind: "canonical-node", nodeId: "node-1" },
+        type: "style.patch",
+      },
+      projectId: PROJECT_ID,
+      sessionId: "text-color-session",
+      targets: [{ kind: "canonical-node", nodeId: "node-1" }],
+    });
+
+    expect(result.committedDocumentRevision).toBe(
+      useCanonicalDocumentStore.getState().documentVersion,
+    );
+    const next = useCanonicalDocumentStore.getState().documents.get(PROJECT_ID)
+      ?.children[0];
+    expect(
+      (next?.props?.style as Record<string, unknown> | undefined)?.color,
+    ).toBe("#ABCDEF");
+    expect(rebuildIndexes).toHaveBeenCalledTimes(1);
+    expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
+    await flushPersist();
+    expect(put).toHaveBeenCalledTimes(1);
+  });
+
+  it("Text color style patch는 non-Text target에서 fail-closed한다", () => {
+    expect(() =>
+      commitEditorPresentationStyle({
+        baseDocumentVersion:
+          useCanonicalDocumentStore.getState().documentVersion,
+        commitIntent: "style-text-color",
+        descriptor: {
+          patch: { color: "#ABCDEF" },
+          target: { kind: "canonical-node", nodeId: "node-1" },
+          type: "style.patch",
+        },
+        projectId: PROJECT_ID,
+        sessionId: "text-color-non-text-session",
+        targets: [{ kind: "canonical-node", nodeId: "node-1" }],
+      }),
+    ).toThrow("Text color presentation target must be a Text node");
+  });
+
   it("begin indexed read는 document tree를 lazy rebuild하지 않는다", () => {
     const before = getEditorPresentationCommitAdapterDiagnostics();
     const runtime = new EditorPresentationTransactionRuntime(

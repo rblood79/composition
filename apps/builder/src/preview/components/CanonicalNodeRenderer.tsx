@@ -484,8 +484,12 @@ export function resolvePresentationPaintProps(
     const keys = Object.keys(patch);
     if (
       keys.length === 0 ||
-      keys.some((key) => key !== "borderColor" && key !== "boxShadow") ||
+      keys.some(
+        (key) =>
+          key !== "borderColor" && key !== "boxShadow" && key !== "color",
+      ) ||
       (keys.includes("borderColor") && typeof patch.borderColor !== "string") ||
+      (keys.includes("color") && typeof patch.color !== "string") ||
       (keys.includes("boxShadow") &&
         typeof patch.boxShadow !== "string" &&
         !isTypedBoxShadowPresentationValue(patch.boxShadow))
@@ -509,6 +513,7 @@ export function resolvePresentationPaintProps(
       ...(keys.includes("borderColor")
         ? { borderColor: patch.borderColor }
         : {}),
+      ...(keys.includes("color") ? { color: patch.color } : {}),
       ...(keys.includes("boxShadow") ? { boxShadow } : {}),
     };
   }

@@ -80,6 +80,30 @@ function makeShadowNode(): SkiaNodeData {
   return node;
 }
 
+function makeTextNode(): SkiaNodeData {
+  const color = Float32Array.of(0.1, 0.2, 0.3, 1);
+  const presentationColor = Float32Array.from(color);
+  return {
+    height: 20,
+    presentationTextTargets: [{ color: presentationColor }],
+    text: {
+      color,
+      content: "Text",
+      fontFamilies: ["sans-serif"],
+      fontSize: 14,
+      maxWidth: 100,
+      paddingLeft: 0,
+      paddingTop: 0,
+      presentationColor,
+    },
+    type: "text",
+    visible: true,
+    width: 100,
+    x: 0,
+    y: 0,
+  };
+}
+
 describe("StoreRenderBridge ADR-187 presentation patch", () => {
   beforeEach(() => clearSkiaRegistry());
   afterEach(() => clearSkiaRegistry());
@@ -125,6 +149,24 @@ describe("StoreRenderBridge ADR-187 presentation patch", () => {
     expect(strokeColor).toEqual(Float32Array.of(1, 0, 0, 128 / 255));
     expect(bridge.restorePresentationStylePatch("border-1")).toBe(true);
     expect(strokeColor).toEqual(Float32Array.of(0.1, 0.2, 0.3, 1));
+  });
+
+  it("text color style patch는 paragraph metrics를 보존한 presentation slot만 갱신한다", () => {
+    const node = makeTextNode();
+    const presentationColor = node.presentationTextTargets![0]!.color;
+    const baseColor = Float32Array.from(presentationColor);
+    registerSkiaNode("text-color-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("text-color-1", {
+        color: "#FF000080",
+      }),
+    ).toBe(true);
+    expect(presentationColor).toEqual(Float32Array.of(1, 0, 0, 128 / 255));
+    expect(node.text?.presentationColor).toBe(presentationColor);
+    expect(bridge.restorePresentationStylePatch("text-color-1")).toBe(true);
+    expect(presentationColor).toEqual(baseColor);
   });
 
   it("boxShadow style patch는 기존 drop-shadow slot만 갱신하고 exact restore한다", () => {

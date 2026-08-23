@@ -39,6 +39,7 @@ import {
 import { useStore } from "../../../stores";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
+import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
 import { useTypographyValues } from "../hooks/useTypographyValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import {
@@ -54,6 +55,12 @@ const TypographySectionContent = memo(function TypographySectionContent() {
   const { togglePanel } = usePanelLayout();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
+  const {
+    cancelTextColorPresentation,
+    commitTextColorPresentation,
+    isTextColorPresentationOwned,
+    previewTextColorPresentation,
+  } = useStylePresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const styleValues = useTypographyValues(selectedId);
   const [registryFaces, setRegistryFaces] = useState(() =>
@@ -167,6 +174,32 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     [styleValues?.fontFamily, registryFaces],
   );
 
+  const presentationOwnsTextColor = isTextColorPresentationOwned();
+
+  const handleTextColorPreview = useCallback(
+    (value: string): void => {
+      if (presentationOwnsTextColor && previewTextColorPresentation(value)) {
+        return;
+      }
+      updateStylePreview("color", value);
+    },
+    [
+      presentationOwnsTextColor,
+      previewTextColorPresentation,
+      updateStylePreview,
+    ],
+  );
+
+  const handleTextColorCommit = useCallback(
+    (value: string): void => {
+      if (presentationOwnsTextColor && commitTextColorPresentation(value)) {
+        return;
+      }
+      updateStyle("color", value);
+    },
+    [commitTextColorPresentation, presentationOwnsTextColor, updateStyle],
+  );
+
   if (!styleValues) return null;
 
   return (
@@ -185,8 +218,10 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         label="Color"
         className="color"
         value={styleValues.color}
-        onChange={(value) => updateStyle("color", value)}
-        onPreview={(value) => updateStylePreview("color", value)}
+        onChange={handleTextColorCommit}
+        onPreview={handleTextColorPreview}
+        presentationOwnsFrameScheduling={presentationOwnsTextColor}
+        onPresentationCancel={cancelTextColorPresentation}
         placeholder="#000000"
       />
 
