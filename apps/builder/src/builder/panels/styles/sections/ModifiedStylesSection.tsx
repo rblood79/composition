@@ -15,6 +15,7 @@ import type { SelectedElement } from "../../../inspector/types";
 import { useDirtyStyleProps } from "../hooks/useResetStyles";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
+import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
 import { Type, Square, RulerDimensionLine } from "lucide-react";
 import {
   FONT_FAMILIES,
@@ -42,6 +43,19 @@ export function ModifiedStylesSection({
   const modifiedProperties = useDirtyStyleProps();
   const { updateStyle } = useStyleActions();
   const { updateStylePreview } = useOptimizedStyleActions();
+  const {
+    cancelBorderColorPresentation,
+    commitBorderColorPresentation,
+    isBorderColorPresentationOwned,
+    previewBorderColorPresentation,
+    cancelTextColorPresentation,
+    commitTextColorPresentation,
+    isTextColorPresentationOwned,
+    previewTextColorPresentation,
+  } = useStylePresentationActions();
+
+  const presentationOwnsBorderColor = isBorderColorPresentationOwned();
+  const presentationOwnsTextColor = isTextColorPresentationOwned();
 
   if (modifiedProperties.length === 0) {
     return (
@@ -139,14 +153,61 @@ export function ModifiedStylesSection({
 
     // Color properties
     if (["backgroundColor", "borderColor", "color"].includes(property)) {
+      const isBorderColor = property === "borderColor";
+      const isTextColor = property === "color";
+      const presentationOwnsFrameScheduling = isBorderColor
+        ? presentationOwnsBorderColor
+        : isTextColor
+          ? presentationOwnsTextColor
+          : false;
       return (
         <PropertyColor
           key={property}
           icon={Square}
           label={formatLabel(property)}
           value={String(value)}
-          onChange={(newValue) => updateStyle(property, newValue)}
-          onPreview={(newValue) => updateStylePreview(property, newValue)}
+          onChange={(newValue) => {
+            if (
+              isBorderColor &&
+              presentationOwnsBorderColor &&
+              commitBorderColorPresentation(newValue)
+            ) {
+              return;
+            }
+            if (
+              isTextColor &&
+              presentationOwnsTextColor &&
+              commitTextColorPresentation(newValue)
+            ) {
+              return;
+            }
+            updateStyle(property, newValue);
+          }}
+          onPreview={(newValue) => {
+            if (
+              isBorderColor &&
+              presentationOwnsBorderColor &&
+              previewBorderColorPresentation(newValue)
+            ) {
+              return;
+            }
+            if (
+              isTextColor &&
+              presentationOwnsTextColor &&
+              previewTextColorPresentation(newValue)
+            ) {
+              return;
+            }
+            updateStylePreview(property, newValue);
+          }}
+          presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
+          onPresentationCancel={
+            isBorderColor
+              ? cancelBorderColorPresentation
+              : isTextColor
+                ? cancelTextColorPresentation
+                : undefined
+          }
         />
       );
     }

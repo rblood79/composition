@@ -153,6 +153,33 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(renderer).toContain("drawTextWithPresentationColor");
   });
 
+  it("Modified Styles color editor도 typed owner가 legacy preview보다 먼저 선택된다", async () => {
+    const modified = await source(
+      "../panels/styles/sections/ModifiedStylesSection.tsx",
+    );
+    expect(modified).toContain("useStylePresentationActions");
+    expect(modified).toContain("previewBorderColorPresentation");
+    expect(modified).toContain("previewTextColorPresentation");
+    expect(modified).toContain("commitBorderColorPresentation");
+    expect(modified).toContain("commitTextColorPresentation");
+    expect(modified).toContain("presentationOwnsFrameScheduling");
+    expect(modified).toContain("onPresentationCancel");
+
+    const borderPreviewOwner = modified.indexOf(
+      "previewBorderColorPresentation(newValue)",
+    );
+    const textPreviewOwner = modified.indexOf(
+      "previewTextColorPresentation(newValue)",
+    );
+    const legacyPreview = modified.indexOf(
+      "updateStylePreview(property, newValue)",
+    );
+    expect(borderPreviewOwner).toBeGreaterThan(-1);
+    expect(textPreviewOwner).toBeGreaterThan(-1);
+    expect(legacyPreview).toBeGreaterThan(borderPreviewOwner);
+    expect(legacyPreview).toBeGreaterThan(textPreviewOwner);
+  });
+
   it("Skia publish consumer는 targeted in-place patch 외 forbidden rebuild 경로가 없다", async () => {
     const bridge = await source("skiaEditorPresentationBridge.ts");
     for (const forbidden of [

@@ -444,7 +444,7 @@ export function commitEditorPresentationStyle(
   }
   if (isTextColorPatch && !isTextColorPresentationType(targetNode.type)) {
     throw new Error(
-      "ADR-187 Text color presentation target must own a materialized text target",
+      "ADR-187 text color presentation target must own a materialized text target",
     );
   }
   if (areStylePatchValuesEqual(descriptor.patch, previousStyle)) {

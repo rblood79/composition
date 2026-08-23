@@ -350,7 +350,7 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
         targets: [{ kind: "canonical-node", nodeId: "node-1" }],
       }),
     ).toThrow(
-      "Text color presentation target must own a materialized text target",
+      "text color presentation target must own a materialized text target",
     );
   });
 

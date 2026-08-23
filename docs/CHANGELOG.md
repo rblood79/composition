@@ -115,6 +115,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `0/0`이었다.
   - 증적: [ADR-187 Phase 5 Button text-bearing color live parity](adr/design/187-phase-5-text-bearing-color-live-parity.md)
 
+## ADR-187 Phase 5 Modified Styles color presentation slice — 2026-08-24
+
+### Architecture
+
+- **Modified Styles 필터도 typed color owner를 사용**:
+  - `borderColor`는 border presentation owner, `color`는 검증된 Text/Button root
+    owner를 사용한다.
+  - owner가 없는 background/다중 child/미검증 component root는 기존 fallback을
+    유지한다. `backgroundColor`는 Fill V2 파생 스타일이므로 수정하지 않는다.
+  - 위치: `apps/builder/src/builder/panels/styles/sections/ModifiedStylesSection.tsx`
+
+### Performance
+
+- **Builder Modify filter live gate**:
+  - Button ColorArea drag에서 canonical color는 drag 중 유지되고 terminal에서 1회
+    `#297ACC`로 handoff됐다.
+  - Preview `rgb(41, 122, 204)`, rect `220×120` 불변, action/control RAF `0/0`,
+    legacy write `0`, terminal event `1`, console error/warning `0/0`이었다.
+  - 증적: [ADR-187 Phase 5 Modified Styles color live parity](adr/design/187-phase-5-modified-styles-color-live-parity.md)
+
 ## ADR-187 Phase 5 border color presentation slice — 2026-08-23
 
 ### Architecture
