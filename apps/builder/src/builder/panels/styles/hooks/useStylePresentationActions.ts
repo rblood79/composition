@@ -4,6 +4,7 @@ import { editorPresentationFillPilotRuntime } from "../../../presentation/editor
 import {
   resolveBorderColorPresentationPilotTarget,
   resolveBoxShadowPresentationPilotTarget,
+  resolveOpacityPresentationPilotTarget,
   resolveTextColorPresentationPilotTarget,
 } from "../../../presentation/editorPresentationStylePilot";
 import {
@@ -13,6 +14,7 @@ import {
   serializeBoxShadowPresentation,
   type BoxShadowPresentationValue,
 } from "../../../presentation/boxShadowPresentation";
+import { parsePresentationOpacity } from "../../../presentation/editorPresentationOpacity";
 import type {
   EditorMutationDescriptor,
   EditorPresentationCancelReason,
@@ -61,6 +63,12 @@ export interface StylePresentationActions {
   cancelBoxShadowPresentation: (
     reason: EditorPresentationCancelReason,
   ) => boolean;
+  isOpacityPresentationOwned: () => boolean;
+  previewOpacityPresentation: (opacity: string) => boolean;
+  commitOpacityPresentation: (opacity: string) => boolean;
+  cancelOpacityPresentation: (
+    reason: EditorPresentationCancelReason,
+  ) => boolean;
 }
 
 export function useStylePresentationActions(): StylePresentationActions {
@@ -86,9 +94,17 @@ export function useStylePresentationActions(): StylePresentationActions {
     selectedElementId: string;
     target: EditorPresentationTargetRef;
   } | null>(null);
+  const opacityPresentationRef = useRef<{
+    baseStyle: Readonly<Record<string, unknown>>;
+    handle: EditorPresentationHandle;
+    phase: "active" | "cancelled" | "failed";
+    selectedElementId: string;
+    target: EditorPresentationTargetRef;
+  } | null>(null);
   const ownerIdRef = useRef<string | null>(null);
   const shadowOwnerIdRef = useRef<string | null>(null);
   const textColorOwnerIdRef = useRef<string | null>(null);
+  const opacityOwnerIdRef = useRef<string | null>(null);
   const ownerId =
     ownerIdRef.current ?? `style-border-color-owner-${nextStyleOwnerId++}`;
   ownerIdRef.current = ownerId;
@@ -99,6 +115,9 @@ export function useStylePresentationActions(): StylePresentationActions {
     textColorOwnerIdRef.current ??
     `style-text-color-owner-${nextStyleOwnerId++}`;
   textColorOwnerIdRef.current = textColorOwnerId;
+  const opacityOwnerId =
+    opacityOwnerIdRef.current ?? `style-opacity-owner-${nextStyleOwnerId++}`;
+  opacityOwnerIdRef.current = opacityOwnerId;
 
   useEffect(() => {
     const unsubscribeSelection = useStore.subscribe(() => {
@@ -127,6 +146,14 @@ export function useStylePresentationActions(): StylePresentationActions {
         textColorPresentation.handle.cancel("selection-change");
         textColorPresentation.phase = "cancelled";
       }
+      const opacityPresentation = opacityPresentationRef.current;
+      if (
+        opacityPresentation &&
+        selectedElementId !== opacityPresentation.selectedElementId
+      ) {
+        opacityPresentation.handle.cancel("selection-change");
+        opacityPresentation.phase = "cancelled";
+      }
     });
     const handleWindowBlur = (): void => {
       const presentation = presentationRef.current;
@@ -144,15 +171,22 @@ export function useStylePresentationActions(): StylePresentationActions {
         textColorPresentation.handle.cancel("blur");
         textColorPresentation.phase = "cancelled";
       }
+      const opacityPresentation = opacityPresentationRef.current;
+      if (opacityPresentation?.phase === "active") {
+        opacityPresentation.handle.cancel("blur");
+        opacityPresentation.phase = "cancelled";
+      }
     };
     window.addEventListener("blur", handleWindowBlur);
     return () => {
       presentationRef.current?.handle.cancel("unmount");
       shadowPresentationRef.current?.handle.cancel("unmount");
       textColorPresentationRef.current?.handle.cancel("unmount");
+      opacityPresentationRef.current?.handle.cancel("unmount");
       presentationRef.current = null;
       shadowPresentationRef.current = null;
       textColorPresentationRef.current = null;
+      opacityPresentationRef.current = null;
       unsubscribeSelection();
       window.removeEventListener("blur", handleWindowBlur);
     };
@@ -603,6 +637,115 @@ export function useStylePresentationActions(): StylePresentationActions {
     [],
   );
 
+  const isOpacityPresentationOwned = useCallback(
+    () =>
+      resolveOpacityPresentationPilotTarget(
+        readImmediateSelectionSnapshot().selectedElementId,
+      ) !== null,
+    [],
+  );
+
+  const previewOpacityPresentation = useCallback(
+    (opacity: string): boolean => {
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const existing = opacityPresentationRef.current;
+      if (existing?.phase === "cancelled") {
+        if (existing.selectedElementId !== selectedElementId) return true;
+        opacityPresentationRef.current = null;
+      }
+      if (existing?.phase === "failed") {
+        existing.handle.cancel("superseded");
+        opacityPresentationRef.current = null;
+      }
+
+      let presentation = opacityPresentationRef.current;
+      if (
+        presentation &&
+        presentation.selectedElementId !== selectedElementId
+      ) {
+        presentation.handle.cancel("selection-change");
+        presentation = null;
+        opacityPresentationRef.current = null;
+      }
+      if (!presentation) {
+        const pilot = resolveOpacityPresentationPilotTarget(selectedElementId);
+        if (!pilot || !selectedElementId) return false;
+        presentation = {
+          baseStyle: pilot.style,
+          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+            commitIntent: "style-opacity",
+            ownerId: opacityOwnerId,
+            projectId: pilot.projectId,
+            targets: [pilot.target],
+          }),
+          phase: "active",
+          selectedElementId,
+          target: pilot.target,
+        };
+        opacityPresentationRef.current = presentation;
+      }
+
+      const descriptor: EditorMutationDescriptor = {
+        patch: { opacity },
+        target: presentation.target,
+        type: "style.patch",
+      };
+      if (!presentation.handle.publish(descriptor)) {
+        presentation.phase = "cancelled";
+      }
+      return true;
+    },
+    [opacityOwnerId],
+  );
+
+  const commitOpacityPresentation = useCallback(
+    (opacity: string): boolean => {
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const active = opacityPresentationRef.current;
+      if (active?.phase === "cancelled") {
+        opacityPresentationRef.current = null;
+        return true;
+      }
+      if (parsePresentationOpacity(opacity) === null) {
+        if (active) {
+          active.handle.cancel("superseded");
+          opacityPresentationRef.current = null;
+        }
+        return false;
+      }
+      if (!active && !previewOpacityPresentation(opacity)) return false;
+      const presentation = opacityPresentationRef.current;
+      if (
+        !presentation ||
+        presentation.selectedElementId !== selectedElementId
+      ) {
+        presentation?.handle.cancel("selection-change");
+        opacityPresentationRef.current = null;
+        return true;
+      }
+      const result = presentation.handle.finish({
+        patch: { opacity },
+        target: presentation.target,
+        type: "style.patch",
+      });
+      if (result.status === "failed") presentation.phase = "failed";
+      else opacityPresentationRef.current = null;
+      return true;
+    },
+    [previewOpacityPresentation],
+  );
+
+  const cancelOpacityPresentation = useCallback(
+    (reason: EditorPresentationCancelReason): boolean => {
+      const presentation = opacityPresentationRef.current;
+      if (!presentation || presentation.phase !== "active") return false;
+      presentation.handle.cancel(reason);
+      presentation.phase = "cancelled";
+      return true;
+    },
+    [],
+  );
+
   return {
     cancelBorderColorPresentation,
     commitBorderColorPresentation,
@@ -618,5 +761,9 @@ export function useStylePresentationActions(): StylePresentationActions {
     commitTextColorPresentation,
     isTextColorPresentationOwned,
     previewTextColorPresentation,
+    cancelOpacityPresentation,
+    commitOpacityPresentation,
+    isOpacityPresentationOwned,
+    previewOpacityPresentation,
   };
 }

@@ -29,6 +29,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Vite/Rolldown 및 React plugin 전환, lucide/react-router 업데이트, 보안 패치와 미사용 dependency 제거를
     반영했다.
 
+## ADR-187 Phase 5 Modified Styles opacity presentation slice — 2026-08-24
+
+### Architecture
+
+- **명시적 Modified Styles opacity owner 연결**:
+  - 기존 Skia `opacity` effect slot의 값만 갱신하고 Preview에는 semantic
+    `style.patch.opacity`를 전달한다. `PANEL_STYLE_PROPS`와 Appearance reset union도
+    함께 갱신해 modified count/reset baseline을 일치시켰다.
+  - effect materialization이 없는 `opacity: 1`, inherited/state opacity는
+    fail-closed하여 기존 commit 경로를 유지한다.
+  - **Why:** opacity drag가 layout/scene 재구축과 중첩 RAF로 확장되지 않도록 명시적
+    paint slot만 연속 업데이트하기 위해서다.
+  - 증적: [ADR-187 Phase 5 Modified Styles opacity live parity](adr/design/187-phase-5-modified-styles-opacity-live-parity.md)
+
+### Performance
+
+- 실제 Builder Compare Mode에서 `220×120` Button의 opacity `0.5 → 0` drag를 검증했다.
+  rect 불변, action/control RAF `0/0`, legacy write `0`, console error/warning `0/0`,
+  Preview delta `+1`, frame apply `+1`을 확인했다.
+
 ## ADR-187 Phase 5 box-shadow presentation slice — 2026-08-23
 
 ### Architecture

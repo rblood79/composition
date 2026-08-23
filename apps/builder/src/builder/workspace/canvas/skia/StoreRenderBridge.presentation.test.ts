@@ -104,6 +104,12 @@ function makeTextNode(): SkiaNodeData {
   };
 }
 
+function makeOpacityNode(): SkiaNodeData {
+  const node = makeNode();
+  node.effects = [{ type: "opacity", value: 0.5 }];
+  return node;
+}
+
 describe("StoreRenderBridge ADR-187 presentation patch", () => {
   beforeEach(() => clearSkiaRegistry());
   afterEach(() => clearSkiaRegistry());
@@ -149,6 +155,22 @@ describe("StoreRenderBridge ADR-187 presentation patch", () => {
     expect(strokeColor).toEqual(Float32Array.of(1, 0, 0, 128 / 255));
     expect(bridge.restorePresentationStylePatch("border-1")).toBe(true);
     expect(strokeColor).toEqual(Float32Array.of(0.1, 0.2, 0.3, 1));
+  });
+
+  it("opacity style patch는 기존 opacity effect slot만 갱신하고 exact restore한다", () => {
+    const node = makeOpacityNode();
+    const effect = node.effects![0]!;
+    registerSkiaNode("opacity-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("opacity-1", { opacity: "0.25" }),
+    ).toBe(true);
+    expect(effect).toEqual({ type: "opacity", value: 0.25 });
+    expect(isVolatileNode("opacity-1")).toBe(true);
+    expect(bridge.restorePresentationStylePatch("opacity-1")).toBe(true);
+    expect(effect).toEqual({ type: "opacity", value: 0.5 });
+    expect(isVolatileNode("opacity-1")).toBe(false);
   });
 
   it("text color style patch는 paragraph metrics를 보존한 presentation slot만 갱신한다", () => {

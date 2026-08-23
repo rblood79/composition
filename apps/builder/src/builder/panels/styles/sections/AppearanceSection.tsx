@@ -338,6 +338,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
  */
 const APPEARANCE_PROPS = [
   "backgroundColor",
+  "opacity",
   "borderColor",
   "borderWidth",
   "borderRadius",

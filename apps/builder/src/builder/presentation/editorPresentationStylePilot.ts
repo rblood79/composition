@@ -6,6 +6,7 @@ import {
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import type { EditorPresentationTargetRef } from "./editorPresentationTypes";
 import { isTextColorPresentationType } from "./editorPresentationTextColor";
+import { parsePresentationOpacity } from "./editorPresentationOpacity";
 import { parseBoxShadowEffects } from "../workspace/canvas/styleConversion/styleConverter";
 
 const STYLE_PILOT_QUERY_PARAM = "adr187FillPilot";
@@ -23,6 +24,12 @@ export interface BoxShadowPresentationPilotTarget {
 }
 
 export interface TextColorPresentationPilotTarget {
+  readonly projectId: string;
+  readonly style: Readonly<Record<string, unknown>>;
+  readonly target: EditorPresentationTargetRef;
+}
+
+export interface OpacityPresentationPilotTarget {
   readonly projectId: string;
   readonly style: Readonly<Record<string, unknown>>;
   readonly target: EditorPresentationTargetRef;
@@ -136,4 +143,38 @@ export function resolveTextColorPresentationPilotTarget(
   );
   if (!style || typeof style !== "object" || Array.isArray(style)) return null;
   return { projectId, style: style as Record<string, unknown>, target };
+}
+
+/**
+ * 명시적 unitless opacity가 이미 Skia opacity effect로 materialize된 경우만
+ * 연속 paint lane을 연다. 상속/상태 opacity와 effect가 없는 1은 fail-closed한다.
+ */
+export function resolveOpacityPresentationPilotTarget(
+  selectedElementId: string | null,
+): OpacityPresentationPilotTarget | null {
+  if (!isStylePresentationPilotEnabled() || !selectedElementId) return null;
+
+  const state = useCanonicalDocumentStore.getState();
+  const projectId = state.currentProjectId;
+  if (!projectId || !state.documents.has(projectId)) return null;
+
+  const target = resolveEditorPresentationTarget(projectId, selectedElementId);
+  if (
+    !target ||
+    !editorPresentationCanonicalRuntimeOptions.hasTarget(projectId, target)
+  ) {
+    return null;
+  }
+  const element = getEditorPresentationTargetNode(projectId, target);
+  if (!element) return null;
+  const style = editorPresentationCanonicalRuntimeOptions.readTargetValue(
+    projectId,
+    target,
+    "style-opacity",
+  );
+  if (!style || typeof style !== "object" || Array.isArray(style)) return null;
+  const styleRecord = style as Record<string, unknown>;
+  const opacity = parsePresentationOpacity(styleRecord.opacity);
+  if (opacity === null || opacity >= 1) return null;
+  return { projectId, style: styleRecord, target };
 }

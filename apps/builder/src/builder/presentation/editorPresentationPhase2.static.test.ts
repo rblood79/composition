@@ -162,6 +162,8 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(modified).toContain("previewTextColorPresentation");
     expect(modified).toContain("commitBorderColorPresentation");
     expect(modified).toContain("commitTextColorPresentation");
+    expect(modified).toContain("previewOpacityPresentation");
+    expect(modified).toContain("commitOpacityPresentation");
     expect(modified).toContain("presentationOwnsFrameScheduling");
     expect(modified).toContain("onPresentationCancel");
 
@@ -171,11 +173,22 @@ describe("ADR-187 Phase 2 migration guards", () => {
     const textPreviewOwner = modified.indexOf(
       "previewTextColorPresentation(newValue)",
     );
+    const opacityBlock = modified.slice(
+      modified.indexOf('property === "opacity"'),
+    );
+    const opacityPreviewOwner = opacityBlock.indexOf(
+      "previewOpacityPresentation(newValue)",
+    );
+    const opacityLegacyPreview = opacityBlock.indexOf(
+      "updateStylePreview(property, newValue)",
+    );
     const legacyPreview = modified.indexOf(
       "updateStylePreview(property, newValue)",
     );
     expect(borderPreviewOwner).toBeGreaterThan(-1);
     expect(textPreviewOwner).toBeGreaterThan(-1);
+    expect(opacityPreviewOwner).toBeGreaterThan(-1);
+    expect(opacityLegacyPreview).toBeGreaterThan(opacityPreviewOwner);
     expect(legacyPreview).toBeGreaterThan(borderPreviewOwner);
     expect(legacyPreview).toBeGreaterThan(textPreviewOwner);
   });

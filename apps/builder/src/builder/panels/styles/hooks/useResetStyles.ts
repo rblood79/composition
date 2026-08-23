@@ -657,6 +657,7 @@ export const PANEL_STYLE_PROPS: readonly string[] = [
   "marginLeft",
   // Appearance
   "backgroundColor",
+  "opacity",
   "borderColor",
   "borderWidth",
   "borderRadius",
@@ -677,8 +678,7 @@ function collectBreakpointOverrideStyle(
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   const styles = responsive?.styles as
-    | Record<string, Record<string, unknown>>
-    | undefined;
+    Record<string, Record<string, unknown>> | undefined;
   if (!styles) return out;
   for (const [key, byBreakpoint] of Object.entries(styles)) {
     const value = byBreakpoint?.[breakpoint];
@@ -776,8 +776,7 @@ function computeBaseDirtyStyleProps(
   const hasFills = Array.isArray(element.fills) && element.fills.length > 0;
   const currentStyle = hasFills
     ? ((adaptStyleWithFills(rawStyle as CSSProperties, element.fills) as
-        | Record<string, unknown>
-        | undefined) ?? rawStyle)
+        Record<string, unknown> | undefined) ?? rawStyle)
     : rawStyle;
   const { legacyStyle, specStyle, subpartStyle } = resolveResetBaseline(
     element,

@@ -200,6 +200,47 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     expect(put).toHaveBeenCalledTimes(1);
   });
 
+  it("opacity style patch는 canonical/history/persist를 한 번만 수행한다", async () => {
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, documentWith());
+    const document = useCanonicalDocumentStore
+      .getState()
+      .documents.get(PROJECT_ID)!;
+    useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, {
+      ...document,
+      children: [
+        node("node-1", "#111111FF", { opacity: "0.5" }),
+        document.children[1]!,
+      ],
+    });
+    const result = commitEditorPresentationStyle({
+      baseDocumentVersion: useCanonicalDocumentStore.getState().documentVersion,
+      commitIntent: "style-opacity",
+      descriptor: {
+        patch: { opacity: "0.25" },
+        target: { kind: "canonical-node", nodeId: "node-1" },
+        type: "style.patch",
+      },
+      projectId: PROJECT_ID,
+      sessionId: "opacity-session",
+      targets: [{ kind: "canonical-node", nodeId: "node-1" }],
+    });
+
+    expect(result.committedDocumentRevision).toBe(
+      useCanonicalDocumentStore.getState().documentVersion,
+    );
+    const next = useCanonicalDocumentStore.getState().documents.get(PROJECT_ID)
+      ?.children[0];
+    expect(
+      (next?.props?.style as Record<string, unknown> | undefined)?.opacity,
+    ).toBe("0.25");
+    expect(rebuildIndexes).toHaveBeenCalledTimes(1);
+    expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
+    await flushPersist();
+    expect(put).toHaveBeenCalledTimes(1);
+  });
+
   it("boxShadow style patch는 canonical/history/persist를 한 번만 수행한다", async () => {
     useCanonicalDocumentStore
       .getState()

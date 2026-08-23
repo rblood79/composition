@@ -18,6 +18,7 @@ import type {
   EditorPresentationTargetRef,
 } from "./editorPresentationTypes";
 import { isTextColorPresentationType } from "./editorPresentationTextColor";
+import { parsePresentationOpacity } from "./editorPresentationOpacity";
 import {
   getCanonicalRefDescendantOverride,
   getCanonicalRefPathSegment,
@@ -408,12 +409,20 @@ export function commitEditorPresentationStyle(
     patchKeys[0] === "color" &&
     descriptor.type === "style.patch" &&
     typeof descriptor.patch.color === "string";
+  const isOpacityPatch =
+    patchKeys.length === 1 &&
+    patchKeys[0] === "opacity" &&
+    descriptor.type === "style.patch" &&
+    parsePresentationOpacity(descriptor.patch.opacity) !== null;
   if (
     descriptor.type !== "style.patch" ||
-    (!isBorderColorPatch && !isBoxShadowPatch && !isTextColorPatch)
+    (!isBorderColorPatch &&
+      !isBoxShadowPatch &&
+      !isTextColorPatch &&
+      !isOpacityPatch)
   ) {
     throw new Error(
-      "ADR-187 style commit allowlist only accepts style.patch.borderColor, style.patch.boxShadow, or Text style.patch.color",
+      "ADR-187 style commit allowlist only accepts style.patch.borderColor, style.patch.boxShadow, Text style.patch.color, or style.patch.opacity",
     );
   }
 

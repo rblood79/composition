@@ -768,6 +768,12 @@ describe("useResetStyles — appearance select baseline (M3/M5)", () => {
     const { result } = renderHook(() => useHasDirtyStyles(["borderStyle"]));
     expect(result.current).toBe(true);
   });
+
+  it("명시적 opacity는 Modified Styles 범위에서 dirty로 전환된다", () => {
+    selectWithStyle({ opacity: "0.5" });
+    const { result } = renderHook(() => useHasDirtyStyles(["opacity"]));
+    expect(result.current).toBe(true);
+  });
 });
 
 /**

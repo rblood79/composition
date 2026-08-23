@@ -76,6 +76,7 @@ import {
 import type { FillItem } from "../../types/builder/fill.types";
 import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
 import type { BoxShadowPresentationValue } from "../../builder/presentation/boxShadowPresentation";
+import { parsePresentationOpacity } from "../../builder/presentation/editorPresentationOpacity";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -486,10 +487,15 @@ export function resolvePresentationPaintProps(
       keys.length === 0 ||
       keys.some(
         (key) =>
-          key !== "borderColor" && key !== "boxShadow" && key !== "color",
+          key !== "borderColor" &&
+          key !== "boxShadow" &&
+          key !== "color" &&
+          key !== "opacity",
       ) ||
       (keys.includes("borderColor") && typeof patch.borderColor !== "string") ||
       (keys.includes("color") && typeof patch.color !== "string") ||
+      (keys.includes("opacity") &&
+        parsePresentationOpacity(patch.opacity) === null) ||
       (keys.includes("boxShadow") &&
         typeof patch.boxShadow !== "string" &&
         !isTypedBoxShadowPresentationValue(patch.boxShadow))
@@ -514,6 +520,7 @@ export function resolvePresentationPaintProps(
         ? { borderColor: patch.borderColor }
         : {}),
       ...(keys.includes("color") ? { color: patch.color } : {}),
+      ...(keys.includes("opacity") ? { opacity: patch.opacity } : {}),
       ...(keys.includes("boxShadow") ? { boxShadow } : {}),
     };
   }

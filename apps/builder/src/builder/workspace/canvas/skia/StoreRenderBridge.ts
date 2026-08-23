@@ -65,11 +65,12 @@ import {
   fillsToSkiaFillStyle,
 } from "../../../panels/styles/utils/fillToSkia";
 import { parseBoxShadowEffects } from "../styleConversion/styleConverter";
-import type { DropShadowEffect } from "./types";
+import type { DropShadowEffect, OpacityEffect } from "./types";
 import {
   boxShadowPresentationToEffects,
   isBoxShadowPresentationValue,
 } from "../../../presentation/boxShadowPresentation";
+import { parsePresentationOpacity } from "../../../presentation/editorPresentationOpacity";
 import {
   invalidateNodePicture,
   setPresentationVolatileNodeIds,
@@ -459,6 +460,10 @@ export class StoreRenderBridge {
       readonly targets: readonly SkiaPresentationStrokeTarget[];
     }
   >();
+  private presentationOpacityBaseById = new Map<
+    string,
+    { readonly effect: OpacityEffect; readonly value: number }
+  >();
   private presentationTextBaseById = new Map<
     string,
     {
@@ -490,6 +495,7 @@ export class StoreRenderBridge {
     if (
       this.presentationBaseById.has(elementId) ||
       this.presentationStyleBaseById.has(elementId) ||
+      this.presentationOpacityBaseById.has(elementId) ||
       this.presentationShadowBaseById.has(elementId) ||
       this.presentationTextBaseById.has(elementId)
     ) {
@@ -659,6 +665,25 @@ export class StoreRenderBridge {
     patch: Readonly<Record<string, unknown>>,
   ): boolean {
     const keys = Object.keys(patch);
+    if (keys.length === 1 && keys[0] === "opacity") {
+      const nextOpacity = parsePresentationOpacity(patch.opacity);
+      if (nextOpacity === null) return false;
+      const effect = getSkiaNode(elementId)?.effects?.find(
+        (candidate): candidate is OpacityEffect => candidate.type === "opacity",
+      );
+      if (!effect || Object.is(effect.value, nextOpacity)) return false;
+      const existingBase = this.presentationOpacityBaseById.get(elementId);
+      if (!existingBase || existingBase.effect !== effect) {
+        this.presentationOpacityBaseById.set(elementId, {
+          effect,
+          value: effect.value,
+        });
+      }
+      effect.value = nextOpacity;
+      invalidateNodePicture(elementId);
+      this.refreshPresentationVolatileNode(elementId);
+      return true;
+    }
     if (keys.length === 1 && keys[0] === "boxShadow") {
       return this.applyPresentationShadowPatch(elementId, patch.boxShadow);
     }
@@ -785,6 +810,18 @@ export class StoreRenderBridge {
   restorePresentationStylePatch(elementId: string): boolean {
     const base = this.presentationStyleBaseById.get(elementId);
     let restored = false;
+    const opacityBase = this.presentationOpacityBaseById.get(elementId);
+    if (opacityBase) {
+      const effect = getSkiaNode(elementId)?.effects?.find(
+        (candidate): candidate is OpacityEffect => candidate.type === "opacity",
+      );
+      if (effect === opacityBase.effect) {
+        effect.value = opacityBase.value;
+        invalidateNodePicture(elementId);
+        restored = true;
+      }
+      this.presentationOpacityBaseById.delete(elementId);
+    }
     if (base) {
       const node = getSkiaNode(elementId);
       const targets = node?.presentationStrokeTargets;
@@ -841,9 +878,11 @@ export class StoreRenderBridge {
 
   releasePresentationStylePatch(elementId: string): boolean {
     const releasedStyle = this.presentationStyleBaseById.delete(elementId);
+    const releasedOpacity = this.presentationOpacityBaseById.delete(elementId);
     const releasedShadow = this.presentationShadowBaseById.delete(elementId);
     const releasedText = this.presentationTextBaseById.delete(elementId);
-    const released = releasedStyle || releasedShadow || releasedText;
+    const released =
+      releasedStyle || releasedOpacity || releasedShadow || releasedText;
     if (released) this.refreshPresentationVolatileNode(elementId);
     return released;
   }

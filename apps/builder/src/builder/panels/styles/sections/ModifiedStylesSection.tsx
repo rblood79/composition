@@ -52,10 +52,14 @@ export function ModifiedStylesSection({
     commitTextColorPresentation,
     isTextColorPresentationOwned,
     previewTextColorPresentation,
+    commitOpacityPresentation,
+    isOpacityPresentationOwned,
+    previewOpacityPresentation,
   } = useStylePresentationActions();
 
   const presentationOwnsBorderColor = isBorderColorPresentationOwned();
   const presentationOwnsTextColor = isTextColorPresentationOwned();
+  const presentationOwnsOpacity = isOpacityPresentationOwned();
 
   if (modifiedProperties.length === 0) {
     return (
@@ -103,6 +107,7 @@ export function ModifiedStylesSection({
         "borderStyle",
         "overflow",
         "boxShadow",
+        "opacity",
       ].includes(p),
     ),
     typography: modifiedProperties.filter((p) =>
@@ -208,6 +213,39 @@ export function ModifiedStylesSection({
                 ? cancelTextColorPresentation
                 : undefined
           }
+        />
+      );
+    }
+
+    if (property === "opacity") {
+      return (
+        <PropertyUnitInput
+          key={property}
+          icon={RulerDimensionLine}
+          label={formatLabel(property)}
+          value={String(value)}
+          units={["reset"]}
+          allowKeywords={false}
+          onDrag={(newValue) => {
+            if (
+              presentationOwnsOpacity &&
+              previewOpacityPresentation(newValue)
+            ) {
+              return;
+            }
+            updateStylePreview(property, newValue);
+          }}
+          onChange={(newValue) => {
+            if (
+              presentationOwnsOpacity &&
+              commitOpacityPresentation(newValue)
+            ) {
+              return;
+            }
+            updateStyle(property, newValue);
+          }}
+          min={0}
+          max={1}
         />
       );
     }
