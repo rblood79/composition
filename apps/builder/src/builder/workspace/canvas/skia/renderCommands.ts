@@ -1228,8 +1228,23 @@ interface RenderCommandDebugNodeSnapshot {
   readonly centerHitIds?: readonly string[];
   readonly commandCount?: number;
   readonly hitBounds?: BoundingBox;
+  readonly boundsIdentity?: number;
+  readonly hitBoundsIdentity?: number;
   readonly presentationRevision?: number;
   readonly subtreeSpan?: SubtreeSpan;
+}
+
+const renderCommandDebugIdentity = new WeakMap<object, number>();
+let nextRenderCommandDebugIdentity = 1;
+
+function readRenderCommandDebugIdentity(value: unknown): number | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const object = value as object;
+  const existing = renderCommandDebugIdentity.get(object);
+  if (existing !== undefined) return existing;
+  const identity = nextRenderCommandDebugIdentity++;
+  renderCommandDebugIdentity.set(object, identity);
+  return identity;
 }
 
 declare global {
@@ -1257,6 +1272,9 @@ if (
         available: true,
         baseCanonicalRevision: stream.baseCanonicalRevision,
         bounds: stream.boundsMap.get(elementId),
+        boundsIdentity: readRenderCommandDebugIdentity(
+          stream.boundsMap.get(elementId),
+        ),
         centerHitIds: hitBounds
           ? spatialIndex.hitTestPoint(
               hitBounds.x + hitBounds.width / 2,
@@ -1265,6 +1283,7 @@ if (
           : [],
         commandCount: stream.commands.length,
         hitBounds,
+        hitBoundsIdentity: readRenderCommandDebugIdentity(hitBounds),
         presentationRevision: stream.presentationRevision,
         subtreeSpan: stream.subtreeSpans.get(elementId),
       };

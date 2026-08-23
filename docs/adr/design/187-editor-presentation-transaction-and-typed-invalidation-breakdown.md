@@ -947,6 +947,7 @@ Phase 5의 allowlist gate를 통과한 항목만 진행한다.
 [Modified Styles opacity live parity evidence](187-phase-5-modified-styles-opacity-live-parity.md),
 [explicit opacity `1` materialization slice](187-phase-5-opacity-default-effect-live-parity.md),
 [targeted layout spacing slice](187-phase-5-layout-width-height-live-parity.md),
+[non-grid flow live parity harness](187-phase-5-layout-flow-live-parity.md),
 [text metrics/resource/structure residual slice](187-phase-5-text-metrics-resource-structure-fail-closed.md),
 [inherited/state/component paint fail-closed slice](187-phase-5-inherited-state-component-paint-fail-closed.md)에
 구현 범위와 focused gate를 기록했다. 실제 Builder
@@ -990,16 +991,18 @@ console error/warning `0/0`과 Preview/canonical opacity 수렴을 확인했다.
 layer topology 변경은 각 slice의 materialization 조건을 충족하지 않으므로 기존
 commit/legacy 경로에 남긴다. continuous shadow offset/blur/spread/color drag gate와
 Text/Button root, Modified Styles color 및 명시적 opacity gate는 종결됐다. explicit
-opacity `1` materialization과 targeted width/height/padding/gap은 구현·focused gate까지
-착수했지만 실제 Builder live gate가 남아 있다. fixed Text fontSize/fontWeight는 standalone Text
-paragraph slot과 targeted invalidation까지 구현했지만 live gate가 남아 있다.
+opacity `1` materialization과 targeted width/height/padding/gap은 구현·focused gate와
+재현 가능한 parity harness까지 착수했지만 실제 Builder live gate가 남아 있다. fixed Text
+fontSize/fontWeight는 standalone Text paragraph slot과 targeted invalidation, bounds/hitBounds
+parity harness까지 구현했지만 live gate가 남아 있다.
 inherited/state opacity, Button 외 multi-child inherited/component color, 미검증 component root,
 grid spacing, fontFamily/lineHeight/letterSpacing, resource와 structure는
 fail-closed 계약과 잔여 consumer gate를 유지한다. 상세 판정은 [paint fail-closed slice](187-phase-5-inherited-state-component-paint-fail-closed.md)와
 [text/resource residual slice](187-phase-5-text-metrics-resource-structure-fail-closed.md)에 기록한다.
 absolute leaf width/height는 실제 Builder Compare Mode에서 `200×120` → `240×130` 변경이
 Preview DOM에 수렴하는 것까지 확인했지만, Skia 내부 bounds와 terminal handoff 계측은
-추가 게이트로 남아 있다. explicit opacity `1`은 아직 Builder live exercise가 없다.
+추가 게이트로 남아 있다. explicit opacity `1`은 deterministic harness가 통과했으나
+실제 Builder live exercise는 sandbox의 listen/dashboard blocker로 수행하지 못했다.
 따라서 ADR-187 전체 Phase 5 또는 `Implemented` 승격으로 해석하지 않는다. targeted
 spacing과 fixed Text metric은 focused gate를 통과했지만 populated Builder의 Skia
 internal bounds/hit-test/terminal handoff live evidence가 아직 없다.

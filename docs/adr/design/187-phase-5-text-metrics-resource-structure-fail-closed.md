@@ -36,7 +36,7 @@ scene publication을 열어 주는 consumer는 아니다.
 
 ## 검증
 
-- registry/classifier/Preview/metric/converter/Skia focused gate: 6 files / 37 tests PASS.
+- registry/classifier/Preview/paragraph-key/parity/converter/Skia focused gate: 8 files / 39 tests PASS.
 - `pnpm run codex:typecheck`: baseline 43 known errors 외 신규 오류 없음.
 - fixed Text `fontSize`/`fontWeight`는 focused gate까지 통과했으나 paragraph/rect parity Builder
   live는 아직 실행 대상이다. 나머지 metrics/resource/structure는 원자 consumer가
@@ -45,12 +45,12 @@ scene publication을 열어 주는 consumer는 아니다.
 검증 명령:
 
 ```text
-pnpm exec vitest run --config vitest.config.ts src/preview/components/presentationTextMetricProps.test.ts src/builder/workspace/canvas/skia/specShapeConverter.presentation.test.ts src/builder/workspace/canvas/skia/StoreRenderBridge.presentation.test.ts src/builder/presentation/editorPresentationTextMetricValue.test.ts src/builder/presentation/invalidation/editorMutationEffectRegistry.test.ts src/builder/presentation/editorMutationClassifier.test.ts
+pnpm exec vitest run --config vitest.config.ts src/preview/components/presentationTextMetricProps.test.ts src/builder/presentation/editorPresentationTextMetricValue.test.ts src/builder/presentation/editorPresentationTextMetricParity.test.ts src/builder/presentation/invalidation/editorMutationEffectRegistry.test.ts src/builder/presentation/editorMutationClassifier.test.ts src/builder/workspace/canvas/skia/specShapeConverter.presentation.test.ts src/builder/workspace/canvas/skia/StoreRenderBridge.presentation.test.ts src/builder/workspace/canvas/skia/textParagraphKey.test.ts
 pnpm run codex:typecheck
 git diff --check
 ```
 
-결과는 6 files/37 tests PASS, `git diff --check` PASS, typecheck는 baseline 43 known
+결과는 8 files/39 tests PASS, `git diff --check` PASS, typecheck는 baseline 43 known
 errors 외 신규 오류 없음이다. 이 범위는 owner가 없으므로 populated Builder live
 trace를 성공으로 기록하지 않았다.
 

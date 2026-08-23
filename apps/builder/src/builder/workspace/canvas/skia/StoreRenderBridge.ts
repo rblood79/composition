@@ -698,6 +698,22 @@ export class StoreRenderBridge {
       const nextOpacity = parsePresentationOpacity(patch.opacity);
       const node = getSkiaNode(elementId);
       if (nextOpacity === null || !node) return false;
+      const opacityEffects = node.effects?.filter(
+        (candidate): candidate is OpacityEffect => candidate.type === "opacity",
+      );
+      // Legacy/source-less and animation-owned opacity have no atomic style
+      // slot contract. The pilot rejects these targets; keep the consumer
+      // fail-closed as a second boundary for direct bridge callers.
+      if (
+        opacityEffects?.some(
+          (candidate) =>
+            candidate.source !== "style" &&
+            candidate.source !== "state" &&
+            candidate.source !== "presentation",
+        )
+      ) {
+        return false;
+      }
       // A presentation patch owns only the style slot. State and animation
       // opacity are independent effects and must remain in the stack.
       const existingBase = this.presentationOpacityBaseById.get(elementId);

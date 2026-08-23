@@ -240,6 +240,20 @@ describe("StoreRenderBridge ADR-187 presentation patch", () => {
     expect(node.effects).toEqual([stateEffect]);
   });
 
+  it("source 없는 legacy opacity는 presentation bridge에서 fail-closed한다", () => {
+    const node = makeNode();
+    node.effects = [{ type: "opacity", value: 0.5 }];
+    registerSkiaNode("opacity-legacy-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("opacity-legacy-1", {
+        opacity: "0.25",
+      }),
+    ).toBe(false);
+    expect(node.effects).toEqual([{ type: "opacity", value: 0.5 }]);
+  });
+
   it("opacity:1 no-op은 transient effect를 만들지 않는다", () => {
     const node = makeNode();
     node.effects = [];

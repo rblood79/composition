@@ -30,6 +30,7 @@ import { skiaFontManager } from "./fontManager";
 import { getCacheMetrics } from "./cacheMetrics";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import { getTextParagraphCacheKey } from "./textParagraphKey";
 import {
   getRetainedParagraphCount,
   resolveRetainedParagraph,
@@ -168,12 +169,8 @@ export function renderText(
     whiteSpace === "nowrap" || whiteSpace === "pre"
       ? 100000
       : node.text.maxWidth;
-
   const wordBreak = node.text.wordBreak ?? "normal";
   const overflowWrap = node.text.overflowWrap ?? "normal";
-
-  const color = node.text.color;
-  const colorKey = `${color[0].toFixed(3)},${color[1].toFixed(3)},${color[2].toFixed(3)},${color[3].toFixed(3)}`;
   const heightMultiplier = node.text.lineHeight
     ? node.text.lineHeight / node.text.fontSize
     : 0;
@@ -182,33 +179,8 @@ export function renderText(
     node.text.textOverflow === "ellipsis" &&
     whiteSpace === "nowrap" &&
     !!node.text.clipText;
-  const dc = node.text.decorationColor;
-  const decorationColorKey = dc
-    ? `${dc[0].toFixed(3)},${dc[1].toFixed(3)},${dc[2].toFixed(3)},${dc[3].toFixed(3)}`
-    : "";
-  const key = [
-    processedText,
-    layoutMaxWidth,
-    node.text.fontFamilies.join("|"),
-    node.text.fontSize,
-    node.text.fontWeight ?? 400,
-    node.text.fontStyle ?? 0,
-    node.text.fontVariant ?? "normal",
-    node.text.fontStretch ?? "normal",
-    node.text.letterSpacing ?? 0,
-    node.text.wordSpacing ?? 0,
-    heightMultiplier,
-    typeof node.text.align === "string" ? node.text.align : "enum",
-    node.text.decoration ?? 0,
-    node.text.decorationStyle ?? "solid",
-    decorationColorKey,
-    colorKey,
-    whiteSpace,
-    wordBreak,
-    overflowWrap,
-    isEllipsis ? node.text.maxWidth : "0",
-    textIndent,
-  ].join("\u0000");
+
+  const key = getTextParagraphCacheKey(node);
 
   const computeDrawY = (paragraph: Paragraph): number => {
     const verticalAlign = node.text!.verticalAlign;

@@ -16,13 +16,26 @@ commit-only 경로에 남긴다.
 
 ## 검증 상태
 
-- `StoreRenderBridge.presentation.test.ts`: transient materialization/restore 및 no-op
-  회귀 테스트 추가.
-- 관련 presentation/Preview focused gate: 34 files / 225 tests PASS.
+- `StoreRenderBridge.presentation.test.ts`: transient materialization/restore, state
+  slot 보존, source-less legacy fail-closed 및 no-op 회귀 테스트 추가.
+- `editorPresentationOpacity.liveHarness.test.ts`: populated Button fixture를
+  사용한 deterministic Preview/Skia harness. explicit `opacity:1 → 0.42`에서
+  cancel/finish 모두 geometry 불변, Preview/Skia parity, terminal event `1`,
+  action/control RAF `0/0`, legacy write `0`, console error `0`, canonical write
+  `0/1`(cancel/finish), stale callback `0`을 검증한다.
+- disabled/state fixture는 owner gate가 `null`이고 Skia state effect
+  `{source:"state", value:0.38}`가 유지되는 것을 검증한다.
+- 실행 명령: `cd apps/builder && pnpm exec vitest run
+src/builder/presentation/editorPresentationOpacity.liveHarness.test.ts
+src/builder/workspace/canvas/skia/StoreRenderBridge.presentation.test.ts`
 - `pnpm run codex:typecheck`: baseline 43 known errors 외 신규 오류 없음.
-- 실제 Builder live 검증은 아직 수행하지 않아 이 slice는 Phase 5 종결로 표시하지 않는다.
+- 실제 Builder live 서버는 현재 sandbox의 `listen EPERM 127.0.0.1:5174`로
+  기동할 수 없어 populated browser gate 대신 위 harness를 재현 가능한 증거로
+  사용한다. 외부 Builder 실행 환경에서는 기존 Playwright runner로 terminal
+  screenshot/console/RAF trace를 추가해야 한다.
 
 ## 남은 게이트
 
-Builder Compare Mode에서 explicit `opacity: 1 → <1` drag의 Skia/Preview parity,
-geometry 불변, terminal canonical handoff와 state-effect fail-closed를 확인해야 한다.
+외부 Builder Compare Mode에서 explicit `opacity: 1 → <1` drag의 실제 canvas/DOM
+parity, terminal screenshot, console/long-task trace를 추가 확인해야 한다. inherited
+opacity와 ref-descendant/state owner는 provenance가 없는 한 계속 fail-closed한다.

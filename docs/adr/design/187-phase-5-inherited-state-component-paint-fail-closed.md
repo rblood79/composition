@@ -13,15 +13,18 @@ commit-only에 남긴다.
 - Skia opacity effect에 `style`/`state`/`animation`/`presentation` source provenance를
   부여하고, `StoreRenderBridge.applyPresentationStylePatch`는 style/presentation
   slot만 갱신한다.
-- state/disabled effect의 Skia patch/restore는 typed provenance 회귀 테스트로
-  검증했지만, DOM state cascade와의 별도 Preview/Skia 합성 fixture는 아직 없다.
+- state/disabled effect의 Skia slot 보존과 explicit opacity `1`의 Preview/Skia
+  cancel/finish parity는 `editorPresentationOpacity.liveHarness.test.ts`의
+  populated Button/disabled fixture로 검증했다. DOM state cascade와의 실제
+  Builder 합성 trace는 sandbox의 `listen EPERM`으로 아직 수집하지 못했다.
 - 따라서 opacity pilot은 canonical root만 허용하고, ref-descendant 및
   `isDisabled`/`disabled` target은 fail-closed한다. 명시적 `opacity: 1`은
   기존 opacity effect가 없는 rendered root에서만 transient materialization한다.
 
 재개 조건은 Preview에도 explicit opacity layer와 state opacity layer의 provenance를
 동일하게 보존하고, inherited/disabled Builder fixture에서 두 layer를 독립적으로
-patch/restore하는 공통 합성 계약을 확보하는 것이다.
+patch/restore하는 공통 합성 계약 및 실제 browser console/RAF trace를 확보하는
+것이다.
 
 ### Multi-child inherited/component color
 

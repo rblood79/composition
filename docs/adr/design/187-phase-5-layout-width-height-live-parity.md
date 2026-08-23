@@ -35,7 +35,9 @@ longhand/shorthand와 `gap`/`rowGap`/`columnGap`을 targeted layout publication�
 
 Builder Compare Mode에서 absolute leaf Width/Height drag 중 Skia 내부 bounds,
 비영향 node identity, terminal canonical handoff와 unsupported parent fallback을
-추가 계측해야 한다.
+추가 계측해야 한다. non-grid flow의 width/height/padding/gap 측정 절차는
+[Phase 5 flow live parity harness](187-phase-5-layout-flow-live-parity.md)에
+고정했다.
 
 ## 잔여 범위 blocker와 재개 조건
 

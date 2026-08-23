@@ -20,6 +20,7 @@ function parseArgs(argv) {
     fixtureProfile: "dense",
     headed: false,
     lane: "paint",
+    layoutProperty: "position",
     out: "/private/tmp/adr187-phase0-baseline.json",
     repeats: 5,
     storageState: resolve("apps/builder/scripts/.auth-session.json"),
@@ -39,6 +40,7 @@ function parseArgs(argv) {
       continue;
     } else if (value === "--out") options.out = next;
     else if (value === "--lane") options.lane = next;
+    else if (value === "--layout-property") options.layoutProperty = next;
     else if (value === "--repeats") options.repeats = Number(next);
     else if (value === "--serve-dist") {
       options.serveDist = true;
@@ -67,17 +69,44 @@ function assertOptions(options) {
     options.durationMs <= 0 ||
     !Number.isInteger(options.repeats) ||
     options.repeats <= 0 ||
-    !["dense", "document-scale"].includes(options.fixtureProfile) ||
+    !["dense", "document-scale", "flow-layout"].includes(options.fixtureProfile) ||
     !["paint", "layout"].includes(options.lane) ||
+    !["position", "width", "height", "padding", "gap"].includes(
+      options.layoutProperty,
+    ) ||
     options.tiers.some((tier) => !Number.isInteger(tier) || tier < 2)
   ) {
     throw new Error("duration, repeats, and tiers must be positive");
   }
   if (
     options.lane === "layout" &&
-    options.fixtureProfile !== "document-scale"
+    !["document-scale", "flow-layout"].includes(options.fixtureProfile)
   ) {
-    throw new Error("layout lane requires --fixture-profile document-scale");
+    throw new Error(
+      "layout lane requires --fixture-profile document-scale or flow-layout",
+    );
+  }
+  if (
+    options.fixtureProfile !== "flow-layout" &&
+    options.layoutProperty !== "position"
+  ) {
+    throw new Error(
+      "width/height/padding/gap layout runs require --fixture-profile flow-layout",
+    );
+  }
+  if (
+    options.fixtureProfile === "flow-layout" &&
+    options.tiers.some((tier) => tier < 5)
+  ) {
+    throw new Error("flow-layout fixture requires tiers >= 5");
+  }
+  if (
+    options.fixtureProfile === "flow-layout" &&
+    options.layoutProperty === "position"
+  ) {
+    throw new Error(
+      "flow-layout fixture supports width/height/padding/gap, not position",
+    );
   }
 }
 const contentTypes = {
@@ -268,6 +297,49 @@ function aggregateRuns(runs) {
                 run.layout?.during?.presentationRevision <
                   run.layout?.restored?.presentationRevision,
             ),
+            allUnaffectedIdentityStable: runs.every(
+              (run) =>
+                run.layout?.unrelatedBefore?.boundsIdentity ===
+                  run.layout?.unrelatedDuring?.boundsIdentity &&
+                run.layout?.unrelatedBefore?.hitBoundsIdentity ===
+                  run.layout?.unrelatedDuring?.hitBoundsIdentity &&
+                run.layout?.unrelatedBefore?.boundsIdentity ===
+                  run.layout?.unrelatedRestored?.boundsIdentity,
+            ),
+            allAffectedDrawHitGeometryAtomic: runs.every((run) => {
+              const bounds = run.layout?.during?.bounds;
+              const hitBounds = run.layout?.during?.hitBounds;
+              return Boolean(
+                bounds &&
+                  hitBounds &&
+                  bounds.x === hitBounds.x &&
+                  bounds.y === hitBounds.y &&
+                  bounds.width === hitBounds.width &&
+                  bounds.height === hitBounds.height,
+              );
+            }),
+            allTerminalCanonicalHandoff: runs.every((run) => {
+              const before = run.layout?.canonicalBefore;
+              const during = run.layout?.canonicalDuring;
+              const after = run.layout?.canonicalAfter;
+              return (
+                JSON.stringify(before) === JSON.stringify(during) &&
+                JSON.stringify(before) === JSON.stringify(after) &&
+                run.layout?.restored?.bounds?.x ===
+                  run.layout?.before?.bounds?.x &&
+                run.layout?.restored?.bounds?.y ===
+                  run.layout?.before?.bounds?.y &&
+                run.layout?.restored?.bounds?.width ===
+                  run.layout?.before?.bounds?.width &&
+                run.layout?.restored?.bounds?.height ===
+                  run.layout?.before?.bounds?.height
+              );
+            }),
+            allPreviewSiblingCaptured: runs.every(
+              (run) =>
+                run.layout?.siblingDuring !== null &&
+                run.layout?.previewSiblingRect !== null,
+            ),
             medianRawPublishP95Ms: median(
               runs.map((run) =>
                 percentile(run.layout?.rawPublishDurationsMs ?? [], 0.95),
@@ -373,7 +445,90 @@ async function seedTier(page, tier, previousTier, fixtureProfile) {
           `tier ${targetTier} is smaller than active count ${existingCount}`,
         );
       }
-      if (countToAdd > 0) {
+      if (profile === "flow-layout" && priorTier === 0) {
+        const flowParent = {
+          id: "adr187-flow-parent",
+          type: "frame",
+          parent_id: body.id,
+          page_id: currentPageId,
+          order_num: 0,
+          props: {
+            style: {
+              display: "flex",
+              flexDirection: "row",
+              gap: "8px",
+              height: "180px",
+              padding: "8px",
+              position: "static",
+              width: "360px",
+            },
+          },
+        };
+        const flowTarget = {
+          id: "adr187-target",
+          type: "frame",
+          parent_id: flowParent.id,
+          page_id: currentPageId,
+          order_num: 0,
+          props: {
+            style: {
+              height: "60px",
+              position: "static",
+              width: "100px",
+            },
+          },
+          fills: [
+            {
+              id: "adr187-fill",
+              type: "color",
+              color: "#3366CCFF",
+              enabled: true,
+              opacity: 1,
+              blendMode: "normal",
+            },
+          ],
+        };
+        const flowSibling = {
+          id: "adr187-flow-sibling",
+          type: "frame",
+          parent_id: flowParent.id,
+          page_id: currentPageId,
+          order_num: 1,
+          props: {
+            style: {
+              height: "60px",
+              position: "static",
+              width: "100px",
+            },
+          },
+        };
+        await state.addComplexElement(flowParent, [flowTarget, flowSibling]);
+        const afterFlow = store.getState();
+        const flowCount = afterFlow.elements.filter(
+          (element) => element.page_id === currentPageId,
+        ).length;
+        const fillerCount = targetTier - flowCount;
+        for (let index = 0; index < fillerCount; index += 1) {
+          await afterFlow.addComplexElement(
+            {
+              id: `adr187-flow-filler-${index}`,
+              type: "frame",
+              parent_id: body.id,
+              page_id: currentPageId,
+              order_num: index + 10,
+              props: {
+                style: {
+                  height: "8px",
+                  position: "absolute",
+                  top: `${2000 + index * 12}px`,
+                  width: "8px",
+                },
+              },
+            },
+            [],
+          );
+        }
+      } else if (countToAdd > 0) {
         const offset = Math.max(priorTier, existingCount);
         const makeBox = (index, id) => {
           const isTarget = index === 0 && priorTier === 0;
@@ -384,7 +539,8 @@ async function seedTier(page, tier, previousTier, fixtureProfile) {
             // `Box`는 Skia scene 내부 synthetic type이라 canonical Preview DOM fixture로
             // 사용하면 React가 <box> unknown tag warning을 낸다. document-scale profile은
             // 실제 canonical layout primitive인 frame을 사용한다.
-            type: documentScale ? "frame" : "Box",
+            type:
+              documentScale || profile === "flow-layout" ? "frame" : "Box",
             parent_id: body.id,
             page_id: currentPageId,
             order_num: offset + index,
@@ -640,7 +796,15 @@ async function runDrag(page, cdp, options, tier, repeat, traceDir) {
   };
 }
 
-async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
+async function runLayoutDrag(
+  page,
+  cdp,
+  options,
+  tier,
+  repeat,
+  traceDir,
+  layoutProperty,
+) {
   await page.waitForFunction(
     () =>
       Boolean(
@@ -659,7 +823,7 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
   const traceEvents = await startTrace(cdp);
   const runStartedAt = Date.now();
   const rawLayout = await page.evaluate(
-    async ({ durationMs, runIndex }) => {
+    async ({ durationMs, runIndex, property }) => {
       const presentation = window.__composition_EDITOR_PRESENTATION_DEBUG__;
       const renderCommands = window.__composition_RENDER_COMMAND_DEBUG__;
       const store = window.__composition_STORE__;
@@ -672,7 +836,15 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
         .at(-1);
       if (!projectId) throw new Error("project id is unavailable");
 
-      const targetId = "adr187-target";
+      const targetId =
+        property === "padding" || property === "gap"
+          ? "adr187-flow-parent"
+          : "adr187-target";
+      const siblingId =
+        property === "position" ? null : "adr187-flow-sibling";
+      const unrelatedId = siblingId
+        ? "adr187-flow-filler-0"
+        : "adr187-node-2";
       const target = { kind: "canonical-node", nodeId: targetId };
       const currentPageId = store.getState().currentPageId;
       const clipOwnerId = store
@@ -682,6 +854,10 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
             element.page_id === currentPageId && element.type === "body",
         )?.id;
       const before = renderCommands.readNode(targetId);
+      const siblingBefore = siblingId
+        ? renderCommands.readNode(siblingId)
+        : null;
+      const unrelatedBefore = renderCommands.readNode(unrelatedId);
       const clipOwnerBefore = clipOwnerId
         ? renderCommands.readNode(clipOwnerId)
         : null;
@@ -689,7 +865,7 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
         ?.style;
       const diagnosticsBefore = presentation.diagnostics();
       const handle = presentation.begin({
-        commitIntent: "layout-position",
+        commitIntent: `layout-${property}`,
         ownerId: `adr188-g6-layout-${runIndex}`,
         projectId,
         targets: [target],
@@ -698,8 +874,9 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
       const rawPublishDurationsMs = [];
       const cadenceMs = 1000 / 120;
       const startedAt = performance.now();
-      let lastLeft = 80;
-      let lastTop = 45;
+      let lastValue =
+        property === "padding" ? 24 : property === "gap" ? 32 : 180;
+      let lastPosition = { left: 80, top: 45 };
       let rawPublishCount = 0;
       const finalLeft = Math.max(
         80,
@@ -710,11 +887,33 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
           1,
           (performance.now() - startedAt) / durationMs,
         );
-        lastLeft = 80 + Math.round(progress * (finalLeft - 80));
-        lastTop = 45 + Math.round(Math.sin(progress * Math.PI * 4) * 15);
+        const value =
+          property === "position"
+            ? {
+                left: 80 + Math.round(progress * (finalLeft - 80)),
+                top: 45 + Math.round(Math.sin(progress * Math.PI * 4) * 15),
+              }
+            : {
+                [property]:
+                  property === "width"
+                    ? 100 + Math.round(progress * 80)
+                    : property === "height"
+                      ? 60 + Math.round(progress * 40)
+                      : property === "padding"
+                        ? 8 + Math.round(progress * 16)
+                        : 8 + Math.round(progress * 24),
+              };
+        lastValue =
+          property === "position"
+            ? value.left
+            : value[property];
+        if (property === "position") lastPosition = value;
         const publishStartedAt = performance.now();
         handle.publish({
-          patch: { left: lastLeft, top: lastTop },
+          patch:
+            property === "position"
+              ? value
+              : { [property]: lastValue },
           target,
           type: "style.patch",
         });
@@ -736,6 +935,10 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
       });
 
       const during = renderCommands.readNode(targetId);
+      const siblingDuring = siblingId
+        ? renderCommands.readNode(siblingId)
+        : null;
+      const unrelatedDuring = renderCommands.readNode(unrelatedId);
       const iframe = document.querySelector("iframe#previewFrame");
       const previewTarget = iframe?.contentDocument?.querySelector(
         `[data-canonical-id="${targetId}"]`,
@@ -747,10 +950,20 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
         : null;
       const previewStyle = previewTarget
         ? {
+            gap: getComputedStyle(previewTarget).gap,
+            height: getComputedStyle(previewTarget).height,
             left: getComputedStyle(previewTarget).left,
+            padding: getComputedStyle(previewTarget).padding,
             top: getComputedStyle(previewTarget).top,
+            width: getComputedStyle(previewTarget).width,
           }
         : null;
+      const previewSibling = siblingId
+        ? iframe?.contentDocument?.querySelector(
+            `[data-canonical-id="${siblingId}"]`,
+          )
+        : null;
+      const previewSiblingRect = previewSibling?.getBoundingClientRect();
       const previewTargetRect = previewTarget?.getBoundingClientRect();
       const previewClipOwnerRect = previewClipOwner?.getBoundingClientRect();
       const previewGeometry =
@@ -768,6 +981,8 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
               ),
               ownerHeight: previewClipOwnerRect.height,
               ownerWidth: previewClipOwnerRect.width,
+              targetX: previewTargetRect.x,
+              targetY: previewTargetRect.y,
               targetHeight: previewTargetRect.height,
               targetWidth: previewTargetRect.width,
             }
@@ -785,17 +1000,32 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
         canonicalDuring,
         clipOwnerBefore,
         during,
-        expected: { left: lastLeft, top: lastTop },
+        expected:
+          property === "position"
+            ? lastPosition
+            : { property, value: lastValue },
         phaseMetricsDuring,
         previewGeometry,
         previewStyle,
+        previewSiblingRect: previewSiblingRect
+          ? {
+              height: previewSiblingRect.height,
+              width: previewSiblingRect.width,
+              x: previewSiblingRect.x,
+              y: previewSiblingRect.y,
+            }
+          : null,
         rawPublishCount,
         rawPublishDurationsMs,
+        siblingBefore,
+        siblingDuring,
+        unrelatedBefore,
+        unrelatedDuring,
         runtimeFrameApplyCount:
           diagnosticsDuring.frameApplyCount - diagnosticsBefore.frameApplyCount,
       };
     },
-    { durationMs: options.durationMs, runIndex: repeat },
+    { durationMs: options.durationMs, runIndex: repeat, property: layoutProperty },
   );
   const longTasks = await page.evaluate(
     () => window.__composition_PERF__?.snapshotLongTasks() ?? [],
@@ -806,7 +1036,7 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
   );
   const trace = await finishTrace(cdp, traceEvents, tracePath);
   const canvasDuring = await captureCanvasScreenshot(page);
-  const terminal = await page.evaluate(async () => {
+  const terminal = await page.evaluate(async (property) => {
     const handle = window.__composition_ADR188_G6_ACTIVE_HANDLE__;
     const renderCommands = window.__composition_RENDER_COMMAND_DEBUG__;
     const store = window.__composition_STORE__;
@@ -824,7 +1054,15 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
       };
       requestAnimationFrame(next);
     });
-    const targetId = "adr187-target";
+    const targetId =
+      property === "padding" || property === "gap"
+        ? "adr187-flow-parent"
+        : "adr187-target";
+    const unrelatedId =
+      property !== "position"
+        ? "adr187-flow-filler-0"
+        : "adr187-node-2";
+    const siblingId = property === "position" ? null : "adr187-flow-sibling";
     const iframe = document.querySelector("iframe#previewFrame");
     const previewTarget = iframe?.contentDocument?.querySelector(
       `[data-canonical-id="${targetId}"]`,
@@ -835,13 +1073,21 @@ async function runLayoutDrag(page, cdp, options, tier, repeat, traceDir) {
         window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__.snapshot(),
       previewStyleAfter: previewTarget
         ? {
+            gap: getComputedStyle(previewTarget).gap,
+            height: getComputedStyle(previewTarget).height,
             left: getComputedStyle(previewTarget).left,
+            padding: getComputedStyle(previewTarget).padding,
             top: getComputedStyle(previewTarget).top,
+            width: getComputedStyle(previewTarget).width,
           }
         : null,
       restored: renderCommands.readNode(targetId),
+      siblingRestored: siblingId
+        ? renderCommands.readNode(siblingId)
+        : null,
+      unrelatedRestored: renderCommands.readNode(unrelatedId),
     };
-  });
+  }, layoutProperty);
   const canvasRestored = await captureCanvasScreenshot(page);
   const { phaseMetricsDuring: drag, ...layoutDuring } = rawLayout;
   const { phaseMetricsAfterTerminal: afterTerminal, ...terminalLayout } =
@@ -979,11 +1225,12 @@ async function main() {
             ? await runLayoutDrag(
                 page,
                 cdp,
-                options,
-                tier,
-                repeat,
-                options.traceDir,
-              )
+              options,
+              tier,
+              repeat,
+              options.traceDir,
+              options.layoutProperty,
+            )
             : await runDrag(
                 page,
                 cdp,
@@ -1013,6 +1260,7 @@ async function main() {
         fixtureProfile: options.fixtureProfile,
         headless: !options.headed,
         lane: options.lane,
+        layoutProperty: options.layoutProperty,
         productPreview: "Builder top toggle group split mode",
         repeats: options.repeats,
         viewport: { width: 1440, height: 900 },
