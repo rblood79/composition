@@ -66,6 +66,10 @@ import {
 import { parseBoxShadowEffects } from "../styleConversion/styleConverter";
 import type { DropShadowEffect } from "./types";
 import {
+  boxShadowPresentationToEffects,
+  isBoxShadowPresentationValue,
+} from "../../../presentation/boxShadowPresentation";
+import {
   invalidateNodePicture,
   setPresentationVolatileNodeIds,
 } from "./nodePictureCache";
@@ -678,12 +682,19 @@ export class StoreRenderBridge {
     elementId: string,
     rawBoxShadow: unknown,
   ): boolean {
-    if (typeof rawBoxShadow !== "string") return false;
     const node = getSkiaNode(elementId);
     const targets = node?.presentationShadowTargets;
     if (!node || !targets || targets.length === 0) return false;
 
-    const nextEffects = parseBoxShadowEffects(rawBoxShadow);
+    // Typed continuous-editor values are already parsed presentation fields;
+    // keep this hot path free of CSS string parsing. The legacy discrete
+    // string lane remains intentionally fail-closed on topology changes.
+    const nextEffects = isBoxShadowPresentationValue(rawBoxShadow)
+      ? boxShadowPresentationToEffects(rawBoxShadow)
+      : typeof rawBoxShadow === "string"
+        ? parseBoxShadowEffects(rawBoxShadow)
+        : null;
+    if (!nextEffects) return false;
     if (
       nextEffects.length !== targets.length ||
       nextEffects.some(

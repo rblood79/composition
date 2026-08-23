@@ -42,6 +42,12 @@ import { useStylePresentationActions } from "../hooks/useStylePresentationAction
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
+import { BoxShadowEditor } from "../components/BoxShadowEditor";
+import {
+  parseBoxShadowPresentation,
+  serializeBoxShadowPresentation,
+  type BoxShadowPresentationValue,
+} from "../../../presentation/boxShadowPresentation";
 
 const LazyFillBackgroundInline = lazy(() =>
   import("./FillSection").then((m) => ({ default: m.FillBackgroundInline })),
@@ -90,8 +96,11 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
     commitBorderColorPresentation,
     isBorderColorPresentationOwned,
     previewBorderColorPresentation,
+    cancelBoxShadowPresentation,
     commitBoxShadowPresentation,
+    commitBoxShadowModelPresentation,
     isBoxShadowPresentationOwned,
+    previewBoxShadowModelPresentation,
   } = useStylePresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const styleValues = useAppearanceValues(selectedId);
@@ -100,6 +109,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
 
   const presentationOwnsBorderColor = isBorderColorPresentationOwned();
   const presentationOwnsBoxShadow = isBoxShadowPresentationOwned();
+  const boxShadowModel = parseBoxShadowPresentation(styleValues.boxShadow);
 
   const handleBorderColorPreview = (value: string): void => {
     if (presentationOwnsBorderColor && previewBorderColorPresentation(value)) {
@@ -146,6 +156,25 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
       return;
     }
     updateStyle("boxShadow", nextBoxShadow);
+  };
+
+  const handleBoxShadowModelPreview = (
+    value: BoxShadowPresentationValue,
+  ): void => {
+    if (presentationOwnsBoxShadow) {
+      previewBoxShadowModelPresentation(value);
+      return;
+    }
+    updateStylePreview("boxShadow", serializeBoxShadowPresentation(value));
+  };
+
+  const handleBoxShadowModelCommit = (
+    value: BoxShadowPresentationValue,
+  ): void => {
+    if (presentationOwnsBoxShadow && commitBoxShadowModelPresentation(value)) {
+      return;
+    }
+    updateStyle("boxShadow", serializeBoxShadowPresentation(value));
   };
 
   return (
@@ -233,8 +262,10 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
             //   기록하던 과거 동작은 영구 dirty 원인이었다(M3). "none" 항목은 사용자가
             //   명시적으로 고른 값이므로 그대로 기록.
             if (value === "") {
+              cancelBoxShadowPresentation("superseded");
               updateStyle("boxShadow", "");
             } else if (value === "none") {
+              cancelBoxShadowPresentation("superseded");
               updateStyle("boxShadow", "none");
             } else {
               // **light 를 정규형으로 기록한다** (ADR-166 후속). 저장 형식은 리터럴이라
@@ -275,6 +306,16 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
             />
           </SwatchIconToggleButton>
         </fieldset>
+        {boxShadowModel !== null && (
+          <BoxShadowEditor
+            key={`${selectedId ?? "none"}:${styleValues.boxShadow}`}
+            value={boxShadowModel}
+            onPreview={handleBoxShadowModelPreview}
+            onCommit={handleBoxShadowModelCommit}
+            onCancel={cancelBoxShadowPresentation}
+            presentationOwnsFrameScheduling={presentationOwnsBoxShadow}
+          />
+        )}
       </div>
 
       {/* Overflow */}

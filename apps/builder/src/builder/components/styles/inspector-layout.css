@@ -390,7 +390,9 @@
         grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
-        grid-template-areas: "box-shadow box-shadow icon";
+        grid-template-areas:
+          "box-shadow box-shadow icon"
+          "shadow-editor shadow-editor shadow-editor";
 
         > * {
           min-width: 0;
@@ -399,6 +401,27 @@
 
       .box-shadow {
         grid-area: box-shadow;
+      }
+
+      .box-shadow-editor {
+        grid-area: shadow-editor;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--spacing-sm);
+
+        > * {
+          min-width: 0;
+        }
+      }
+
+      .box-shadow-editor-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--spacing-sm);
+
+        > * {
+          min-width: 0;
+        }
       }
 
       .style-overflow {

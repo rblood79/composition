@@ -936,7 +936,7 @@ Phase 5의 allowlist gate를 통과한 항목만 진행한다.
 
 ### Phase 5 — continuous editor migration과 structure 판정
 
-**진행 상태: slices 진행 — 2026-08-23 (single-fill gradient stop + fill opacity + border color + box-shadow paint slices).**
+**진행 상태: slices 진행 — 2026-08-23 (single-fill gradient stop + fill opacity + border color + box-shadow paint + continuous shadow editor slices).**
 [Gradient stop live parity evidence](187-phase-5-gradient-stop-live-parity.md),
 [fill opacity live parity evidence](187-phase-5-fill-opacity-live-parity.md),
 [border color live parity evidence](187-phase-5-border-color-live-parity.md),
@@ -949,18 +949,23 @@ owner에서 fill opacity를, 세 번째 slice는 border color를, 네 번째 sli
 Skia typed paint slot과 Preview semantic delta를 같은 target에 적용한다. border color는
 기존 stroke slot만, box-shadow는 같은 layer 수·inset topology의 effect slot만 갱신해
 geometry/layout을 건드리지 않는다. terminal에서는 exact base snapshot을 복원한 뒤
-canonical commit으로 handoff한다.
+canonical commit으로 handoff한다. 이번 연속 shadow editor slice는
+`BoxShadowPresentationValue`를 layer selector, offset X/Y, blur, spread, color 입력의
+단일 model로 사용하고, Skia는 typed effect slot, Preview는 순수 CSS serializer를
+소비한다. 실제 Builder에서 숫자 4개와 ColorArea drag의 geometry 불변,
+action/control RAF `0/0`, legacy write `0`, console error/warning `0/0`을 확인했다.
 
 다중 fill, image/mesh fill, gradient geometry, border width/radius/style와 shadow의
 layer topology 변경은 각 slice의 materialization 조건을 충족하지 않으므로 기존
-commit/legacy 경로에 남긴다. 현재 shadow control은 discrete select라 continuous
-offset/blur/spread/color drag gate는 별도 잔여로 남긴다.
+commit/legacy 경로에 남긴다. continuous shadow offset/blur/spread/color drag gate는
+이 slice로 종결됐지만 opacity/paint slider, layout allowlist 확대, text/resource와
+structure는 남은 Phase 5 범위다.
 따라서 ADR-187 전체 Phase 5 또는 `Implemented` 승격으로 해석하지 않는다.
 
 권장 순서:
 
 1. fill opacity와 gradient stop (single-fill gradient stop·opacity slices 완료)
-2. border/stroke paint와 shadow paint fields (border color·box-shadow slot slices 완료; continuous shadow editor 잔여)
+2. border/stroke paint와 shadow paint fields (border color·box-shadow slot·continuous shadow editor slices 완료)
 3. opacity/paint 계열 Property slider
 4. width/height/padding/gap 등 layout slider — Phase 4 gate 통과 항목만
 5. text metrics/resource 항목 — explicit classifier fixture가 있는 항목만

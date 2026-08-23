@@ -16,8 +16,8 @@ materialize하고, shadow의 offset·blur·spread·color만 mutable slot에서 �
 이 조건들은 command/effect topology를 바꾸므로 기존 canonical commit 경로로
 fail-closed한다. 따라서 command stream의 `effectLayerCount`를 stale 상태로
 두지 않는다. `boxShadow` select의 discrete finish는 canonical handoff 후 기존
-commit lane의 fallback을 사용하며, continuous shadow field가 추가될 때 같은
-owner가 frame publish를 담당할 수 있다.
+commit lane의 fallback을 사용한다. 연속 편집기는 아래 same-topology typed model을
+같은 owner에 연결해 숫자 필드와 color picker 모두 frame publish를 위임한다.
 
 ## 실제 Builder 검증
 
@@ -38,19 +38,42 @@ owner가 frame publish를 담당할 수 있다.
 fail-closed 계약의 live 확인이다. `presentationShadowTargets` object identity,
 숫자/색상 patch와 exact restore는 focused Vitest로 고정했다.
 
+## 연속 shadow editor slice
+
+2026-08-23 다섯 번째 box-shadow paint slice로 `BoxShadowEditor`를 추가했다.
+파싱된 `BoxShadowPresentationValue`가 layer selector, `Offset X/Y`, `Blur`,
+`Spread`, `Shadow Color`의 단일 local model이며, `begin/publish/finish/cancel`은
+기존 `useStylePresentationActions` owner가 소유한다. typed publish는 Skia에서 CSS
+문자열을 다시 파싱하지 않고 effect slot으로 변환하고, Preview iframe은 같은 typed
+값을 순수 CSS serializer로 투영한다. layer 수와 `inset` 순서가 달라지면 양쪽 모두
+presentation patch를 거부하고 canonical 경로로 fail-closed한다.
+
+실제 Builder에서 outer + inset 2-layer Button을 선택하고 상단
+`Compare Mode (Preview + Skia)` split에서 숫자 필드 4개와 ColorArea drag를 수행했다.
+
+| 구간            | 관측 결과                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| canvas/geometry | unified Skia canvas 존재; 모든 구간 Preview rect `x=110, y=70, width=220, height=120` 유지                                      |
+| numeric during  | Preview computed shadow가 X `1px`, Y `5px`, blur `13px`, spread `1px`로 즉시 반영; `frameApplyCount +4`, Preview delta `+10`    |
+| color during    | ColorArea drag에서 outer color가 `rgba(204, 47, 47, 0.08)`로 반영; `rawInputCount +5`, `frameApplyCount +5`, Preview delta `+5` |
+| scheduling      | 숫자·색상 모두 action/control RAF `+0/+0`, legacy write `+0`, console error/warning `0/0`                                       |
+| terminal        | 각 numeric/color finish 뒤 canonical style 문자열이 한 번씩 수렴하고, 최종 color는 `#CC2F2F14`로 저장됨                         |
+
+이 evidence는 continuous shadow field gate를 닫지만 Phase 5 전체 또는 ADR-187
+`Implemented` 승격을 의미하지 않는다.
+
 ## 자동 검증
 
-- focused Vitest: 관련 5 files, 12 selected tests PASS; shadow effect/build,
-  StoreRenderBridge slot/restore/topology guard, canonical commit, Preview semantic
-  delta, static wiring guard 포함
+- focused Vitest: 관련 5 files, 38 tests PASS; typed shadow model, BoxShadowEditor
+  layer/color wiring, StoreRenderBridge slot/restore/topology guard, canonical commit,
+  Preview semantic delta, static wiring guard 포함
 - `pnpm run codex:typecheck`: `TYPE-CHECK PASS — no new violations` (baseline 43 known)
 - `git diff --check`: PASS
 
 ## 남은 Phase 5 범위
 
-이 slice는 box-shadow paint materialization과 topology fail-closed만 완료했다.
-현재 Appearance shadow control은 discrete select라 terminal canonical handoff가
-발생하며, continuous offset/blur/spread/color editor의 G7 drag gate는 아직
-남아 있다. opacity/paint slider, layout allowlist 확대, text/resource와
-structure는 migration하지 않았으므로 ADR-187 전체 Phase 5 또는 `Implemented`
-승격의 근거가 아니다.
+continuous offset/blur/spread/color editor는 완료했다. 다중/image/mesh fill,
+gradient geometry, border width/radius/style와 shadow layer topology 변경은 기존
+commit/legacy 경로에 남아 있다. opacity/paint slider, layout allowlist 확대,
+text/resource와 structure도 migration하지 않았으므로 ADR-187 전체 Phase 5 또는
+`Implemented` 승격의 근거가 아니다.

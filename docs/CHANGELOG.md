@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Catch-up 2026-08-20 ~ 2026-08-23] - 2026-08-23
+
+### Architecture
+
+- **ADR-187/188/189 presentation·layout·commit lane bundle**:
+  - 에디터 프레젠테이션 transaction runtime과 typed invalidation, targeted layout/Skia subtree patch,
+    incremental commit record 설계를 각각 Accepted/Implemented 범위까지 단계적으로 연결했다.
+  - **Why**: paint·layout·canonical commit의 전체 문서 fan-out을 분리하고, 실제 affected target만 갱신하는
+    경계를 고정하기 위해서다.
+
+### Features
+
+- **Spectrum authoring surface parity bundle**:
+  - TextArea, GridList/Tree selectionStyle, ToggleButtonGroup density/staticColor, quiet/isDisabled,
+    Tag avatar/icon, Progress/TimeField min/max 등 감사에서 확인된 DOM·catalog·Skia 표면 단절을 복구했다.
+
+### Infrastructure
+
+- **Build/runtime maintenance bundle**:
+  - Vite/Rolldown 및 React plugin 전환, lucide/react-router 업데이트, 보안 패치와 미사용 dependency 제거를
+    반영했다.
+
 ## ADR-187 Phase 5 box-shadow presentation slice — 2026-08-23
 
 ### Architecture
@@ -19,12 +41,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     어긋날 수 있고, paint-only shadow를 full scene materialization으로 일반화하면 `requestAnimationFrame` 비용이 다시 문서 크기에 결합된다.
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/{nodeRendererTypes.ts,StoreRenderBridge.ts,styleConversion/styleConverter.ts}`
 
+- **Continuous BoxShadowEditor 연결 (ADR-187 Phase 5)**:
+  - 다중 shadow layer selector와 offset X/Y·blur·spread·color 편집을 하나의
+    `BoxShadowPresentationValue` typed model로 연결했다. same-topology 조건에서만 Skia effect slot과
+    Preview CSS를 함께 갱신하고, topology 변경은 canonical 경로로 fail-closed한다.
+  - **Why:** shadow field별 CSS 재파싱과 control별 RAF를 제거해 연속 편집 비용을 target paint에 고정하기 위해서다.
+  - 위치: `apps/builder/src/builder/{presentation/boxShadowPresentation.ts,panels/styles/components/BoxShadowEditor.tsx}`
+
 ### Performance
 
 - **Builder Compare Mode live gate**:
   - 3-layer `md → lg` 변경에서 Skia target patch `+60`, Preview delta `+2`, legacy write `+0`, action/control RAF `0/0`을 확인했다.
   - Preview computed shadow가 `lg` 3-layer로 수렴했고 rect `110×70, 220×120`은 유지됐다. discrete terminal commit의 기존 commit-lane fallback/full rebuild은 증적에 분리 기록했다.
   - 증적: [ADR-187 Phase 5 box-shadow live parity](adr/design/187-phase-5-box-shadow-live-parity.md)
+
+- **Continuous shadow live gate**:
+  - 실제 Builder 2-layer outer+inset shadow에서 숫자 4개와 ColorArea drag를 수행해 Preview rect 불변,
+    action/control RAF `0/0`, legacy write `0`, console error/warning `0/0`을 확인했다.
+  - numeric frame apply `+4`, color frame apply `+5`, Preview delta `+10/+5`, 최종 color `#CC2F2F14`가
+    canonical style에 수렴했다.
+  - 증적: [ADR-187 Phase 5 box-shadow live parity — continuous editor](adr/design/187-phase-5-box-shadow-live-parity.md)
 
 ## ADR-187 Phase 5 border color presentation slice — 2026-08-23
 

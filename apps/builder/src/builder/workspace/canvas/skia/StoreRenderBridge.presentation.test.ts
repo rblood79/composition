@@ -157,6 +157,104 @@ describe("StoreRenderBridge ADR-187 presentation patch", () => {
     });
   });
 
+  it("typed boxShadow presentation은 CSS parse 없이 slot을 갱신하고 동일 값은 no-op이다", () => {
+    const node = makeShadowNode();
+    const shadow = node.presentationShadowTargets![0]!.effect;
+    registerSkiaNode("shadow-typed-1", node);
+    const bridge = new StoreRenderBridge();
+    const value = {
+      layers: [
+        {
+          offsetX: 5,
+          offsetY: -3,
+          blur: 14,
+          spread: 2,
+          color: "rgba(255, 0, 0, 0.5)",
+          inset: false,
+        },
+      ],
+    } as const;
+
+    expect(
+      bridge.applyPresentationStylePatch("shadow-typed-1", {
+        boxShadow: value,
+      }),
+    ).toBe(true);
+    expect(shadow).toMatchObject({
+      dx: 5,
+      dy: -3,
+      sigmaX: 14 / 2.355,
+      sigmaY: 14 / 2.355,
+      spread: 2,
+      inner: false,
+    });
+    expect(shadow.color).toEqual(Float32Array.of(1, 0, 0, 0.5));
+    expect(
+      bridge.applyPresentationStylePatch("shadow-typed-1", {
+        boxShadow: value,
+      }),
+    ).toBe(false);
+    expect(bridge.restorePresentationStylePatch("shadow-typed-1")).toBe(true);
+    expect(shadow).toMatchObject({
+      dx: 0,
+      dy: 2,
+      sigmaX: 2,
+      sigmaY: 2,
+      spread: 0,
+      inner: false,
+    });
+    expect(shadow.color).toEqual(Float32Array.of(0, 0, 0, 0.25));
+  });
+
+  it("typed boxShadow presentation은 layer 수와 inset topology 변경을 거부한다", () => {
+    const node = makeShadowNode();
+    registerSkiaNode("shadow-typed-topology-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("shadow-typed-topology-1", {
+        boxShadow: {
+          layers: [
+            {
+              offsetX: 0,
+              offsetY: 2,
+              blur: 4,
+              spread: 0,
+              color: "#000000",
+              inset: false,
+            },
+            {
+              offsetX: 0,
+              offsetY: 1,
+              blur: 2,
+              spread: 0,
+              color: "#000000",
+              inset: false,
+            },
+          ],
+        },
+      }),
+    ).toBe(false);
+    expect(
+      bridge.applyPresentationStylePatch("shadow-typed-topology-1", {
+        boxShadow: {
+          layers: [
+            {
+              offsetX: 0,
+              offsetY: 2,
+              blur: 4,
+              spread: 0,
+              color: "#000000",
+              inset: true,
+            },
+          ],
+        },
+      }),
+    ).toBe(false);
+    expect(node.presentationShadowTargets![0]!.effect.dy).toBe(2);
+    expect(node.presentationShadowTargets![0]!.effect.inner).toBe(false);
+  });
+
   it("boxShadow layer topology가 바뀌면 paint lane을 선택하지 않는다", () => {
     const node = makeShadowNode();
     registerSkiaNode("shadow-topology-1", node);

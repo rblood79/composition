@@ -75,6 +75,7 @@ import {
 } from "../../adapters/canonical/frameMirror";
 import type { FillItem } from "../../types/builder/fill.types";
 import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
+import type { BoxShadowPresentationValue } from "../../builder/presentation/boxShadowPresentation";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -339,6 +340,76 @@ function mergeInteractionOverride(
   return merged;
 }
 
+function isTypedBoxShadowPresentationValue(
+  value: unknown,
+): value is BoxShadowPresentationValue {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const layers = (value as { layers?: unknown }).layers;
+  if (!Array.isArray(layers) || layers.length === 0) return false;
+  return layers.every((layer) => {
+    if (!layer || typeof layer !== "object" || Array.isArray(layer)) {
+      return false;
+    }
+    const candidate = layer as Partial<
+      BoxShadowPresentationValue["layers"][number]
+    >;
+    return (
+      typeof candidate.offsetX === "number" &&
+      Number.isFinite(candidate.offsetX) &&
+      typeof candidate.offsetY === "number" &&
+      Number.isFinite(candidate.offsetY) &&
+      typeof candidate.blur === "number" &&
+      Number.isFinite(candidate.blur) &&
+      candidate.blur >= 0 &&
+      typeof candidate.spread === "number" &&
+      Number.isFinite(candidate.spread) &&
+      typeof candidate.color === "string" &&
+      candidate.color.length > 0 &&
+      typeof candidate.inset === "boolean"
+    );
+  });
+}
+
+function formatBoxShadowNumber(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  const rounded = Math.round(value * 1000) / 1000;
+  return Object.is(rounded, -0) ? "0" : String(rounded);
+}
+
+/**
+ * Preview iframe owns only this pure typed-value serialization step. It does
+ * not import the builder style parser and therefore cannot affect geometry.
+ */
+function serializeTypedBoxShadowPresentation(
+  value: BoxShadowPresentationValue,
+): string {
+  return value.layers
+    .map(
+      (layer) =>
+        `${layer.inset ? "inset " : ""}${formatBoxShadowNumber(layer.offsetX)}px ${formatBoxShadowNumber(layer.offsetY)}px ${formatBoxShadowNumber(layer.blur)}px ${formatBoxShadowNumber(layer.spread)}px ${layer.color}`,
+    )
+    .join(", ");
+}
+
+function boxShadowTopology(raw: unknown): readonly boolean[] | null {
+  if (typeof raw !== "string" || raw.trim() === "" || raw === "none") {
+    return null;
+  }
+  return raw.split(/,(?![^(]*\))/).map((layer) => /\binset\b/.test(layer));
+}
+
+function hasSameBoxShadowTopology(
+  base: unknown,
+  value: BoxShadowPresentationValue,
+): boolean {
+  const baseTopology = boxShadowTopology(base);
+  return (
+    baseTopology !== null &&
+    baseTopology.length === value.layers.length &&
+    baseTopology.every((inset, index) => inset === value.layers[index]?.inset)
+  );
+}
+
 function resolvePresentationFills(
   canonicalFills: ResolvedNode["fills"],
   mutations:
@@ -415,16 +486,30 @@ export function resolvePresentationPaintProps(
       keys.length === 0 ||
       keys.some((key) => key !== "borderColor" && key !== "boxShadow") ||
       (keys.includes("borderColor") && typeof patch.borderColor !== "string") ||
-      (keys.includes("boxShadow") && typeof patch.boxShadow !== "string")
+      (keys.includes("boxShadow") &&
+        typeof patch.boxShadow !== "string" &&
+        !isTypedBoxShadowPresentationValue(patch.boxShadow))
     ) {
       continue;
     }
+    const typedBoxShadow = isTypedBoxShadowPresentationValue(patch.boxShadow)
+      ? patch.boxShadow
+      : null;
+    if (
+      typedBoxShadow &&
+      !hasSameBoxShadowTopology(style.boxShadow, typedBoxShadow)
+    ) {
+      continue;
+    }
+    const boxShadow = typedBoxShadow
+      ? serializeTypedBoxShadowPresentation(typedBoxShadow)
+      : patch.boxShadow;
     nextStyle = {
       ...nextStyle,
       ...(keys.includes("borderColor")
         ? { borderColor: patch.borderColor }
         : {}),
-      ...(keys.includes("boxShadow") ? { boxShadow: patch.boxShadow } : {}),
+      ...(keys.includes("boxShadow") ? { boxShadow } : {}),
     };
   }
   if (nextStyle === style) return base;

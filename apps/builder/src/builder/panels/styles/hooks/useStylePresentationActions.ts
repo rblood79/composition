@@ -5,7 +5,13 @@ import {
   resolveBorderColorPresentationPilotTarget,
   resolveBoxShadowPresentationPilotTarget,
 } from "../../../presentation/editorPresentationStylePilot";
-import { parseBoxShadowEffects } from "../../../workspace/canvas/styleConversion/styleConverter";
+import {
+  haveSameBoxShadowPresentationTopology,
+  isBoxShadowPresentationValue,
+  parseBoxShadowPresentation,
+  serializeBoxShadowPresentation,
+  type BoxShadowPresentationValue,
+} from "../../../presentation/boxShadowPresentation";
 import type {
   EditorMutationDescriptor,
   EditorPresentationCancelReason,
@@ -20,14 +26,12 @@ function canPatchBoxShadowInPlace(
   nextBoxShadow: string,
 ): boolean {
   if (typeof baseBoxShadow !== "string") return false;
-  const baseEffects = parseBoxShadowEffects(baseBoxShadow);
-  const nextEffects = parseBoxShadowEffects(nextBoxShadow);
+  const baseValue = parseBoxShadowPresentation(baseBoxShadow);
+  const nextValue = parseBoxShadowPresentation(nextBoxShadow);
   return (
-    baseEffects.length > 0 &&
-    baseEffects.length === nextEffects.length &&
-    baseEffects.every(
-      (effect, index) => effect.inner === nextEffects[index]?.inner,
-    )
+    baseValue !== null &&
+    nextValue !== null &&
+    haveSameBoxShadowPresentationTopology(baseValue, nextValue)
   );
 }
 
@@ -41,6 +45,12 @@ export interface StylePresentationActions {
   isBoxShadowPresentationOwned: () => boolean;
   previewBoxShadowPresentation: (boxShadow: string) => boolean;
   commitBoxShadowPresentation: (boxShadow: string) => boolean;
+  previewBoxShadowModelPresentation: (
+    value: BoxShadowPresentationValue,
+  ) => boolean;
+  commitBoxShadowModelPresentation: (
+    value: BoxShadowPresentationValue,
+  ) => boolean;
   cancelBoxShadowPresentation: (
     reason: EditorPresentationCancelReason,
   ) => boolean;
@@ -56,6 +66,7 @@ export function useStylePresentationActions(): StylePresentationActions {
   } | null>(null);
   const shadowPresentationRef = useRef<{
     baseStyle: Readonly<Record<string, unknown>>;
+    baseValue: BoxShadowPresentationValue;
     handle: EditorPresentationHandle;
     phase: "active" | "cancelled" | "failed";
     selectedElementId: string;
@@ -250,11 +261,18 @@ export function useStylePresentationActions(): StylePresentationActions {
         const pilot =
           resolveBoxShadowPresentationPilotTarget(selectedElementId);
         if (!pilot || !selectedElementId) return false;
-        if (!canPatchBoxShadowInPlace(pilot.style.boxShadow, boxShadow)) {
+        const baseBoxShadow = pilot.style.boxShadow;
+        if (
+          typeof baseBoxShadow !== "string" ||
+          !canPatchBoxShadowInPlace(baseBoxShadow, boxShadow)
+        ) {
           return false;
         }
+        const baseValue = parseBoxShadowPresentation(baseBoxShadow);
+        if (baseValue === null) return false;
         presentation = {
           baseStyle: pilot.style,
+          baseValue,
           handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
             commitIntent: "style-box-shadow",
             ownerId: shadowOwnerId,
@@ -278,6 +296,79 @@ export function useStylePresentationActions(): StylePresentationActions {
 
       const descriptor: EditorMutationDescriptor = {
         patch: { boxShadow },
+        target: presentation.target,
+        type: "style.patch",
+      };
+      if (!presentation.handle.publish(descriptor)) {
+        presentation.phase = "cancelled";
+      }
+      return true;
+    },
+    [shadowOwnerId],
+  );
+
+  const previewBoxShadowModelPresentation = useCallback(
+    (value: BoxShadowPresentationValue): boolean => {
+      if (!isBoxShadowPresentationValue(value)) return false;
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const existing = shadowPresentationRef.current;
+      if (existing?.phase === "cancelled") {
+        if (existing.selectedElementId !== selectedElementId) return true;
+        shadowPresentationRef.current = null;
+      }
+      if (existing?.phase === "failed") {
+        existing.handle.cancel("superseded");
+        shadowPresentationRef.current = null;
+      }
+
+      let presentation = shadowPresentationRef.current;
+      if (
+        presentation &&
+        presentation.selectedElementId !== selectedElementId
+      ) {
+        presentation.handle.cancel("selection-change");
+        presentation = null;
+        shadowPresentationRef.current = null;
+      }
+      if (!presentation) {
+        const pilot =
+          resolveBoxShadowPresentationPilotTarget(selectedElementId);
+        if (!pilot || !selectedElementId) return false;
+        const baseBoxShadow = pilot.style.boxShadow;
+        if (typeof baseBoxShadow !== "string") return false;
+        const baseValue = parseBoxShadowPresentation(baseBoxShadow);
+        if (
+          baseValue === null ||
+          !haveSameBoxShadowPresentationTopology(baseValue, value)
+        ) {
+          return false;
+        }
+        presentation = {
+          baseStyle: pilot.style,
+          baseValue,
+          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+            commitIntent: "style-box-shadow",
+            ownerId: shadowOwnerId,
+            projectId: pilot.projectId,
+            targets: [pilot.target],
+          }),
+          phase: "active",
+          selectedElementId,
+          target: pilot.target,
+        };
+        shadowPresentationRef.current = presentation;
+      }
+
+      if (
+        !haveSameBoxShadowPresentationTopology(presentation.baseValue, value)
+      ) {
+        presentation.handle.cancel("superseded");
+        shadowPresentationRef.current = null;
+        return false;
+      }
+
+      const descriptor: EditorMutationDescriptor = {
+        patch: { boxShadow: value },
         target: presentation.target,
         type: "style.patch",
       };
@@ -326,6 +417,44 @@ export function useStylePresentationActions(): StylePresentationActions {
     [previewBoxShadowPresentation],
   );
 
+  const commitBoxShadowModelPresentation = useCallback(
+    (value: BoxShadowPresentationValue): boolean => {
+      if (!isBoxShadowPresentationValue(value)) return false;
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const active = shadowPresentationRef.current;
+      if (active?.phase === "cancelled") {
+        shadowPresentationRef.current = null;
+        return true;
+      }
+      if (!active && !previewBoxShadowModelPresentation(value)) return false;
+      const presentation = shadowPresentationRef.current;
+      if (
+        !presentation ||
+        presentation.selectedElementId !== selectedElementId
+      ) {
+        presentation?.handle.cancel("selection-change");
+        shadowPresentationRef.current = null;
+        return true;
+      }
+      if (
+        !haveSameBoxShadowPresentationTopology(presentation.baseValue, value)
+      ) {
+        presentation.handle.cancel("superseded");
+        shadowPresentationRef.current = null;
+        return false;
+      }
+      const result = presentation.handle.finish({
+        patch: { boxShadow: serializeBoxShadowPresentation(value) },
+        target: presentation.target,
+        type: "style.patch",
+      });
+      if (result.status === "failed") presentation.phase = "failed";
+      else shadowPresentationRef.current = null;
+      return true;
+    },
+    [previewBoxShadowModelPresentation],
+  );
+
   const cancelBoxShadowPresentation = useCallback(
     (reason: EditorPresentationCancelReason): boolean => {
       const presentation = shadowPresentationRef.current;
@@ -344,7 +473,9 @@ export function useStylePresentationActions(): StylePresentationActions {
     previewBorderColorPresentation,
     cancelBoxShadowPresentation,
     commitBoxShadowPresentation,
+    commitBoxShadowModelPresentation,
     isBoxShadowPresentationOwned,
     previewBoxShadowPresentation,
+    previewBoxShadowModelPresentation,
   };
 }

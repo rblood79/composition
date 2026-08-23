@@ -116,8 +116,15 @@ describe("ADR-187 Phase 2 migration guards", () => {
     const storeBridge = await source(
       "../workspace/canvas/skia/StoreRenderBridge.ts",
     );
+    const shadowEditor = await source(
+      "../panels/styles/components/BoxShadowEditor.tsx",
+    );
     expect(appearance).toContain("commitBoxShadowPresentation");
+    expect(appearance).toContain("previewBoxShadowModelPresentation");
+    expect(appearance).toContain("commitBoxShadowModelPresentation");
     expect(appearance).toContain("isBoxShadowPresentationOwned");
+    expect(shadowEditor).toContain("presentationOwnsFrameScheduling");
+    expect(shadowEditor).toContain("patchBoxShadowPresentation");
     expect(stylePilot).toContain("resolveBoxShadowPresentationPilotTarget");
     expect(stylePilot).toContain('"style-box-shadow"');
     expect(storeBridge).toContain("presentationShadowTargets");

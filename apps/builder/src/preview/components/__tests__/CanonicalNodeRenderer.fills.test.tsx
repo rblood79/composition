@@ -261,4 +261,87 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
       },
     });
   });
+
+  it("typed boxShadow presentation은 semantic CSS로 직렬화하고 geometry를 보존한다", () => {
+    const base = {
+      style: {
+        boxShadow: "0 2px 8px 0 rgba(0,0,0,0.2), inset 0 1px 4px 0 #00000033",
+        borderRadius: "8px",
+        width: "120px",
+      },
+    };
+    expect(
+      resolvePresentationPaintProps(base, [
+        {
+          patch: {
+            boxShadow: {
+              layers: [
+                {
+                  offsetX: 4,
+                  offsetY: -2,
+                  blur: 12,
+                  spread: 1,
+                  color: "rgba(255, 0, 0, 0.5)",
+                  inset: false,
+                },
+                {
+                  offsetX: 0,
+                  offsetY: 1,
+                  blur: 4,
+                  spread: 0,
+                  color: "#00000033",
+                  inset: true,
+                },
+              ],
+            },
+          },
+          target: { kind: "canonical-node", nodeId: "frame-shadow-typed" },
+          type: "style.patch",
+        },
+      ]),
+    ).toEqual({
+      style: {
+        boxShadow:
+          "4px -2px 12px 1px rgba(255, 0, 0, 0.5), inset 0px 1px 4px 0px #00000033",
+        borderRadius: "8px",
+        width: "120px",
+      },
+    });
+  });
+
+  it("typed boxShadow topology 변경은 Preview에서도 fail-closed한다", () => {
+    const base = {
+      style: { boxShadow: "0 2px 8px 0 rgba(0,0,0,0.2)" },
+    };
+    expect(
+      resolvePresentationPaintProps(base, [
+        {
+          patch: {
+            boxShadow: {
+              layers: [
+                {
+                  offsetX: 0,
+                  offsetY: 2,
+                  blur: 8,
+                  spread: 0,
+                  color: "#00000080",
+                  inset: false,
+                },
+                {
+                  offsetX: 0,
+                  offsetY: 1,
+                  blur: 4,
+                  spread: 0,
+                  color: "#00000040",
+                  inset: false,
+                },
+              ],
+            },
+          },
+          target: { kind: "canonical-node", nodeId: "frame-shadow-topology" },
+          type: "style.patch",
+        },
+      ]),
+    ).toBe(base);
+  });
 });
