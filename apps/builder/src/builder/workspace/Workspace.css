@@ -393,7 +393,7 @@
 .workspace-compare-resizer {
   width: 2px;
   cursor: col-resize;
-  background-color: var(--border);
+  background-color: #f24cb8;
   position: relative;
   z-index: 10;
   touch-action: none;
@@ -402,7 +402,7 @@
 
 .workspace-compare-resizer:hover,
 .workspace-compare-resizer:active {
-  background-color: var(--accent);
+  background-color: #c4278a;
 }
 
 .workspace-compare-label {
