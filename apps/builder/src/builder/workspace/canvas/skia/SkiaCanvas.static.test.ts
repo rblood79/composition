@@ -23,6 +23,18 @@ describe("SkiaCanvas render invalidation contract", () => {
     ).not.toBeNull();
   });
 
+  it("keeps subtree damage scoped to the matching canonical revision", async () => {
+    const source = await readFile(
+      resolve(__dirname, "SkiaCanvas.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("pendingDamageRevisionRef");
+    expect(source).toContain("syncResult.damageRevision");
+    expect(source).toContain("syncResult.damageBounds");
+    expect(source).toContain("isRedundantDamageInvalidation");
+  });
+
   it("invalidates the content cache when page position presentation changes", async () => {
     const source = await readFile(
       resolve(__dirname, "SkiaCanvas.tsx"),

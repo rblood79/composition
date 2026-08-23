@@ -15,6 +15,7 @@
 
 import type { CanvasLayoutNode } from "../layout/layoutNode";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import type { BoundingBox } from "../selection/types";
 import {
   getComponentMasterReference as getInstanceMasterRef,
   isComponentInstanceMirrorElement as isInstanceElement,
@@ -65,6 +66,7 @@ import {
   buildSubtreeCommandStream,
   getCachedCommandStreamSnapshot,
   recordCommitLanePatchFallback,
+  recordCommitLanePatchDamage,
   recordCommitLanePatchSuccess,
   recordCommitLaneQueue,
   recordCommitLanePromotedSyncSkip,
@@ -278,6 +280,29 @@ function isSpecPath(element: CanvasSceneNode): boolean {
 export interface StoreRenderSyncResult {
   readonly commandStreamPatched: boolean;
   readonly commandStreamInvalidated: boolean;
+  /** 성공한 subtree patch의 이전/이후 hit bounds 합집합. */
+  readonly damageBounds?: BoundingBox;
+  /** patch를 발생시킨 canonical document revision. */
+  readonly damageRevision?: number;
+}
+
+interface PendingCommitPatchResult {
+  readonly applied: boolean;
+  readonly damageBounds?: BoundingBox;
+  readonly revision?: number;
+}
+
+function unionDamageBounds(
+  current: BoundingBox | undefined,
+  next: BoundingBox | undefined,
+): BoundingBox | undefined {
+  if (!current) return next;
+  if (!next) return current;
+  const left = Math.min(current.x, next.x);
+  const top = Math.min(current.y, next.y);
+  const right = Math.max(current.x + current.width, next.x + next.width);
+  const bottom = Math.max(current.y + current.height, next.y + next.height);
+  return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
 export class StoreRenderBridge {
@@ -663,19 +688,21 @@ export class StoreRenderBridge {
           childrenMap,
         );
       }
-      const didPatch = this.applyPendingCommitPatch(
+      const patchResult = this.applyPendingCommitPatch(
         elementsMap,
         layoutMap,
         childrenMap,
         canonicalRevision,
       );
-      if (didPatch) {
+      if (patchResult.applied) {
         this.prevElementsMap = elementsMap;
         this.prevProjectionVersion = projectionVersion;
         this.lastPatchedCanonicalRevision = canonicalRevision ?? null;
         return {
           commandStreamPatched: true,
           commandStreamInvalidated: false,
+          damageBounds: patchResult.damageBounds,
+          damageRevision: patchResult.revision,
         };
       }
       this.pendingCommit = null;
@@ -713,12 +740,12 @@ export class StoreRenderBridge {
     layoutMap: Map<string, ComputedLayout> | null,
     childrenMap: Map<string, CanvasSceneNode[]> | null,
     canonicalRevision?: number,
-  ): boolean {
+  ): PendingCommitPatchResult {
     const pending = this.pendingCommit;
     const current = getCachedCommandStreamSnapshot();
     if (!pending || !current || !childrenMap) {
       if (pending) recordCommitLanePatchFallback();
-      return false;
+      return { applied: false };
     }
 
     const tree = buildCommitTreeIndex(elementsMap, childrenMap);
@@ -729,7 +756,7 @@ export class StoreRenderBridge {
     });
     if (!planResult.ok) {
       recordCommitLanePatchFallback();
-      return false;
+      return { applied: false };
     }
 
     // presentation revision과 canonical document revision은 서로 다른 producer가
@@ -741,12 +768,13 @@ export class StoreRenderBridge {
       current.presentationRevision + 1,
     );
 
+    let damageBounds: BoundingBox | undefined;
     for (const plan of planResult.plans) {
       for (const rootId of plan.dirtyRootIds) {
         const context = current.subtreeBuildContextByElement.get(rootId);
         if (!context) {
           recordCommitLanePatchFallback();
-          return false;
+          return { applied: false };
         }
         const replacement = buildSubtreeCommandStream({
           rootId,
@@ -769,7 +797,8 @@ export class StoreRenderBridge {
           revision: patchRevision,
           canonicalRevision: current.baseCanonicalRevision,
         });
-        if (!result.applied) return false;
+        if (!result.applied) return { applied: false };
+        damageBounds = unionDamageBounds(damageBounds, result.damageBounds);
       }
     }
     this.pendingCommit = null;
@@ -777,7 +806,8 @@ export class StoreRenderBridge {
       current.baseCanonicalRevision = canonicalRevision;
     }
     recordCommitLanePatchSuccess();
-    return true;
+    recordCommitLanePatchDamage(damageBounds);
+    return { applied: true, damageBounds, revision: pending.revision };
   }
 
   /**

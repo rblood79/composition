@@ -114,6 +114,23 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
   남으면 이 Phase 는 기각하고 Phase 2 까지로 종결한다 (ADR-153 R7 과 동일 축).
 - 시각 무결성: full rebuild 대조 pixel diff 0 (스크롤/클립/z-order 경계 fixture).
 
+#### 실행 기록 — G3 Complete (2026-08-23)
+
+- `subtreeCommandPatch`가 current/replacement `hitBoundsMap` 합집합을 산출하고,
+  `StoreRenderBridge`가 다중 dirty root damage와 `damageRevision`을 함께 전달한다.
+  `SkiaCanvas`는 같은 canonical revision의 visible-content 감지 중복 full
+  invalidation을 제거하고, `SkiaRenderer`는 ping-pong standby surface에서 damage
+  clip 재기록을 수행한다. 전제 실패는 기존 full rebuild fallback으로 수렴한다.
+- populated Builder의 258 active node에서 small-80 / large-240 두 commit을
+  실측했다. patch subtree visits는 각각 `1`, full command build는 `0`,
+  `damageRender/fallback=1/0`이며 damage ratio는 `0.0014546` / `0.0079577`이다.
+  큰 damage hitBounds 면적 5.625배에 대해 ratio 5.47배로 증가해 비용이 damage
+  면적에 비례하는 방향임을 확인했다.
+- patch 결과와 reload full rebuild의 canvas backing buffer는 `1440 × 852`,
+  differing pixels `0`, max/mean channel delta `0`으로 닫혔다. Builder-local
+  Vitest 3 files / 21 tests, type-check 신규 위반 0, console error/warning 0/0.
+  [Phase 3 evidence](189-phase-3-g3-damage-clip.md)
+
 ### Phase 4 — G4: live parity + cross-check
 
 - populated builder 에서 편집 유형별 live exercise (CLAUDE.md §완료 기준).

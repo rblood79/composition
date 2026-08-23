@@ -188,6 +188,18 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 
 ## Implementation Progress
 
+- **Phase 3 / G3 — Complete (2026-08-23)**: commit subtree의 이전·이후
+  `hitBounds` 합집합을 damage rect로 산출해 `StoreRenderBridge`에서
+  `SkiaRenderer`까지 전달하고, ping-pong standby surface에 직전 snapshot을
+  blit한 뒤 damage만 clip 재기록한다. 같은 canonical document revision의
+  `visibleContentVersion` 감지가 damage를 full invalidation으로 덮어쓰던 중복
+  경계도 revision latch로 제거했다. 실제 Builder 258 active node fixture의
+  small-80 / large-240 commit에서 patch visits `1`, full build `0`,
+  `damageRender=1`, fallback `0`을 각각 확인했고, damage 면적 비율은
+  `0.0014546` → `0.0079577`(면적 5.625배에 대해 5.47배)로 증가했다. patch와
+  reload full rebuild의 `1440 × 852` backing-buffer diff는 `0`, max/mean
+  channel delta도 `0`, console error/warning `0/0`이었다. [Phase 3 evidence](design/189-phase-3-g3-damage-clip.md)
+
 - **Phase 2 / G2 — Complete (2026-08-23)**:
   `renderCommands.ts`에 Array-compatible piece-table command buffer와 cursor 기반
   lazy span map을 추가해 variable-length commit splice가 tail `O(N)` write를

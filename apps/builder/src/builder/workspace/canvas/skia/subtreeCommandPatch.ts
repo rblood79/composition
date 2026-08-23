@@ -58,6 +58,8 @@ export interface ApplySubtreeCommandPatchInput {
 export interface SubtreeCommandPatchResult {
   readonly applied: boolean;
   readonly reason?: SubtreePatchRejectReason;
+  /** 이전/이후 hit bounds 합집합 — content damage clip의 최소 영역. */
+  readonly damageBounds?: BoundingBox;
 }
 
 export interface ApplyCommitSubtreeCommandPatchInput {
@@ -74,6 +76,8 @@ export interface CommitSubtreeCommandPatchResult {
   readonly reason?: CommitSubtreePatchRejectReason;
   /** 실제 splice가 기록한 replacement command 수(k). */
   readonly writeCount?: number;
+  /** 이전/이후 hit bounds 합집합 — content damage clip의 최소 영역. */
+  readonly damageBounds?: BoundingBox;
 }
 
 function isValidRevision(value: number): boolean {
@@ -172,6 +176,36 @@ function copyBounds(bounds: BoundingBox): BoundingBox {
     width: bounds.width,
     height: bounds.height,
   };
+}
+
+function unionBounds(
+  current: BoundingBox | undefined,
+  next: BoundingBox | undefined,
+): BoundingBox | undefined {
+  if (!current) return next ? copyBounds(next) : undefined;
+  if (!next) return copyBounds(current);
+  const left = Math.min(current.x, next.x);
+  const top = Math.min(current.y, next.y);
+  const right = Math.max(current.x + current.width, next.x + next.width);
+  const bottom = Math.max(current.y + current.height, next.y + next.height);
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+/** 이전/이후 subtree의 실제 hit 영역만 합쳐 damage를 산출한다. */
+export function getSubtreeDamageBounds(
+  current: Pick<RenderCommandStream, "hitBoundsMap">,
+  replacement: Pick<RenderCommandStream, "hitBoundsMap">,
+  currentIds: ReadonlySet<string>,
+  replacementIds: ReadonlySet<string>,
+): BoundingBox | undefined {
+  let damage: BoundingBox | undefined;
+  for (const elementId of currentIds) {
+    damage = unionBounds(damage, current.hitBoundsMap.get(elementId));
+  }
+  for (const elementId of replacementIds) {
+    damage = unionBounds(damage, replacement.hitBoundsMap.get(elementId));
+  }
+  return damage;
 }
 
 /**
@@ -305,6 +339,13 @@ export function applySubtreeCommandPatch(
     if (replacement.hitBoundsMap.has(elementId)) nextHitIds.add(elementId);
   }
 
+  const damageBounds = getSubtreeDamageBounds(
+    current,
+    replacement,
+    currentIds,
+    replacementIds,
+  );
+
   // 아래부터는 동기 JS 구간이다. 모든 reject 조건은 위에서 끝났으므로 부분 적용이 없다.
   const fixedReplacement = [];
   for (let index = 0; index < replacementLength; index += 1) {
@@ -400,7 +441,7 @@ export function applySubtreeCommandPatch(
 
   publishPatchedCommandStreamSnapshot(current);
 
-  return { applied: true };
+  return damageBounds ? { applied: true, damageBounds } : { applied: true };
 }
 
 /**
@@ -485,6 +526,13 @@ export function applyCommitSubtreeCommandPatch(
   for (const elementId of replacementIds) {
     if (!replacement.boundsMap.has(elementId)) return fail("bounds-missing");
   }
+
+  const damageBounds = getSubtreeDamageBounds(
+    current,
+    replacement,
+    currentIds,
+    replacementIds,
+  );
 
   const replacementLength = replacementSpan.end - replacementSpan.start;
   const replacementCommands: RenderCommand[] = [];
@@ -588,8 +636,14 @@ export function applyCommitSubtreeCommandPatch(
   current.baseCanonicalRevision = canonicalRevision;
   publishPatchedCommandStreamSnapshot(current);
 
-  return {
-    applied: true,
-    writeCount: replacementLength,
-  };
+  return damageBounds
+    ? {
+        applied: true,
+        writeCount: replacementLength,
+        damageBounds,
+      }
+    : {
+        applied: true,
+        writeCount: replacementLength,
+      };
 }

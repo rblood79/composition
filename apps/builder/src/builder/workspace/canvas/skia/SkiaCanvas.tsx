@@ -259,6 +259,10 @@ export function SkiaCanvas({
   const pageFrameMapRef = useRef<Map<string, PageFrame>>(new Map());
   const lastHoveredEdgeRef = useRef<string | null>(null);
   const lastFocusedPageRef = useRef<string | null>(null);
+  // StoreRenderBridge의 subtree patch가 전달한 damage는 같은 canonical
+  // document revision의 visibleContentVersion 감지에서 full invalidation으로
+  // 승격되면 안 된다. revision이 바뀐 unrelated 변경은 fail-closed 한다.
+  const pendingDamageRevisionRef = useRef<number | null>(null);
 
   // Minimap
   const minimapConfigRef = useRef<MinimapConfig>(DEFAULT_MINIMAP_CONFIG);
@@ -283,7 +287,6 @@ export function SkiaCanvas({
     rendererInputRef.current = rendererInput;
     documentPageFrameVersionRef.current =
       rendererInput.sceneSnapshot.document.allPageFrameVersion;
-    rendererRef.current?.invalidateContent();
     const syncResult = storeRenderBridgeRef.current?.sync(
       rendererInput.renderNodesMap,
       getSharedLayoutMap(),
@@ -304,8 +307,11 @@ export function SkiaCanvas({
         framePosVersion: rendererInput.framePositionsVersion,
         layoutVersion: getSharedLayoutVersion(),
       });
+      pendingDamageRevisionRef.current =
+        syncResult.damageRevision ?? rendererInput.documentRevision;
     } else if (syncResult.commandStreamInvalidated) {
       invalidateCommandStreamCache();
+      pendingDamageRevisionRef.current = null;
     }
     editorPresentationBridgeRef.current?.handleStoreSync(
       rendererInput.documentRevision,
@@ -313,6 +319,17 @@ export function SkiaCanvas({
     editorPresentationLayoutBridgeRef.current?.handleStoreSync(
       rendererInput.documentRevision,
     );
+    // 이 effect는 bridge.sync()를 직접 호출하므로 onDidSync callback을
+    // 거치지 않는다. presentation handoff가 paint invalidation을 덧씌울 수
+    // 있으므로 두 handoff 이후 마지막에 G3 damage를 renderer에 전달한다.
+    if (syncResult.commandStreamPatched) {
+      pendingDamageRevisionRef.current =
+        syncResult.damageRevision ?? rendererInputRef.current.documentRevision;
+      rendererRef.current?.invalidateContent(syncResult.damageBounds);
+    } else if (syncResult.commandStreamInvalidated) {
+      pendingDamageRevisionRef.current = null;
+      rendererRef.current?.invalidateContent();
+    }
     recordInvalidation("content", "rendererInput");
   }, [rendererInput]);
 
@@ -403,6 +420,18 @@ export function SkiaCanvas({
         editorPresentationLayoutBridgeRef.current?.handleStoreSync(
           rendererInputRef.current.documentRevision,
         );
+        // G3: commit subtree patch가 계산한 이전/이후 hit bounds 합집합만
+        // content damage로 전달한다. presentation handoff가 paint invalidation을
+        // 덧씌울 수 있으므로 두 handoff 이후 마지막에 renderer를 무효화한다.
+        if (syncResult.commandStreamPatched) {
+          pendingDamageRevisionRef.current =
+            syncResult.damageRevision ??
+            rendererInputRef.current.documentRevision;
+          rendererRef.current?.invalidateContent(syncResult.damageBounds);
+        } else if (syncResult.commandStreamInvalidated) {
+          pendingDamageRevisionRef.current = null;
+          rendererRef.current?.invalidateContent();
+        }
       },
     });
     const presentationBridge = new SkiaEditorPresentationBridge({
@@ -751,9 +780,15 @@ export function SkiaCanvas({
         sceneDocument.visibleContentVersion !==
         lastVisibleContentVersionRef.current
       ) {
+        const pendingDamageRevision = pendingDamageRevisionRef.current;
+        const isRedundantDamageInvalidation =
+          pendingDamageRevision === currentRendererInput.documentRevision;
         lastVisibleContentVersionRef.current =
           sceneDocument.visibleContentVersion;
-        renderer.invalidateContent();
+        pendingDamageRevisionRef.current = null;
+        if (!isRedundantDamageInvalidation) {
+          renderer.invalidateContent();
+        }
         recordInvalidation("content", "visiblePages");
       }
 
@@ -763,12 +798,14 @@ export function SkiaCanvas({
       ) {
         lastVisiblePagePositionVersionRef.current =
           sceneDocument.visiblePagePositionVersion;
+        pendingDamageRevisionRef.current = null;
         renderer.invalidateContent();
         recordInvalidation("viewport", "visiblePagePosition");
         setPagePosStaleFrames(3);
       }
 
       if (tickPagePosStaleFrames()) {
+        pendingDamageRevisionRef.current = null;
         renderer.invalidateContent();
       }
 
@@ -806,6 +843,7 @@ export function SkiaCanvas({
       if (!contentResult) {
         renderer.clearFrame();
         renderer.invalidateContent();
+        pendingDamageRevisionRef.current = null;
         return;
       }
 

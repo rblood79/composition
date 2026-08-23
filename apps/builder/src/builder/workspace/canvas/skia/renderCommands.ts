@@ -106,6 +106,7 @@ let commitLanePatchSuccessCount = 0;
 let commitLaneSyncCount = 0;
 let commitLanePendingSyncCount = 0;
 let commitLanePromotedSyncSkipCount = 0;
+let commitLaneLastDamageBounds: BoundingBox | null = null;
 
 function recordCommitLaneVisit(): void {
   if (adr189MetricsEnabled) commitLaneVisitCount += 1;
@@ -141,6 +142,7 @@ function resetCommitLaneMetrics(): void {
   commitLaneSyncCount = 0;
   commitLanePendingSyncCount = 0;
   commitLanePromotedSyncSkipCount = 0;
+  commitLaneLastDamageBounds = null;
 }
 
 export function recordCommitLanePatchFallback(): void {
@@ -168,6 +170,13 @@ export function recordCommitLanePromotedSyncSkip(): void {
   if (adr189MetricsEnabled) commitLanePromotedSyncSkipCount += 1;
 }
 
+export function recordCommitLanePatchDamage(
+  damageBounds: BoundingBox | undefined,
+): void {
+  if (!adr189MetricsEnabled) return;
+  commitLaneLastDamageBounds = damageBounds ? { ...damageBounds } : null;
+}
+
 function getCommitLaneMetricsSnapshot() {
   return {
     buildCount: commitLaneBuildMetrics.length,
@@ -181,6 +190,9 @@ function getCommitLaneMetricsSnapshot() {
     syncCount: commitLaneSyncCount,
     pendingSyncCount: commitLanePendingSyncCount,
     promotedSyncSkipCount: commitLanePromotedSyncSkipCount,
+    lastDamageBounds: commitLaneLastDamageBounds
+      ? { ...commitLaneLastDamageBounds }
+      : null,
     enabled: adr189MetricsEnabled,
   };
 }

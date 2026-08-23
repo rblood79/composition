@@ -150,7 +150,10 @@ describe("applySubtreeCommandPatch", () => {
       canonicalRevision: 0,
     });
 
-    expect(result).toEqual({ applied: true });
+    expect(result).toMatchObject({
+      applied: true,
+      damageBounds: { x: 30, y: 50, width: 80, height: 140 },
+    });
     expect(current.presentationRevision).toBe(1);
     expect(current.commands[leafStart]).toMatchObject({ x: 10, y: 120 });
     expect(current.boundsMap.get("patch-leaf")).toEqual({
@@ -222,7 +225,10 @@ describe("applySubtreeCommandPatch", () => {
       canonicalRevision: 0,
     });
 
-    expect(result).toEqual({ applied: true });
+    expect(result).toMatchObject({
+      applied: true,
+      damageBounds: { x: 20, y: 100, width: 100, height: 80 },
+    });
     expect(current.scrollContextKeyByElement.get(sticky.id)).toBe(
       replacement.scrollContextKeyByElement.get(sticky.id),
     );
@@ -337,7 +343,11 @@ describe("applySubtreeCommandPatch", () => {
       canonicalRevision: 0,
     });
 
-    expect(result).toEqual({ applied: true, writeCount: replacementLength });
+    expect(result).toMatchObject({
+      applied: true,
+      writeCount: replacementLength,
+      damageBounds: { x: 20, y: 30, width: 400, height: 300 },
+    });
     expect(current.commands.length).toBe(
       currentLength + (replacementLength - currentRootLength),
     );

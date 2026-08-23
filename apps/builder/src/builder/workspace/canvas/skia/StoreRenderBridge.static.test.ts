@@ -40,4 +40,15 @@ describe("StoreRenderBridge layout publish contract", () => {
     expect(source).toContain("private prevProjectionVersion");
     expect(source).toContain("projectionChanged");
   });
+
+  it("publishes the commit revision together with subtree damage", async () => {
+    const source = await readFile(
+      resolve(__dirname, "StoreRenderBridge.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("readonly damageBounds?: BoundingBox;");
+    expect(source).toContain("readonly damageRevision?: number;");
+    expect(source).toContain("damageRevision: patchResult.revision");
+  });
 });

@@ -32,6 +32,87 @@ import type { TransitionManager } from "./transitionManager";
 import type { AnimationEngine } from "./animationEngine";
 import { getSkiaNode } from "./useSkiaNode";
 import { setVolatileNodeIds } from "./nodePictureCache";
+import type { BoundingBox } from "../selection/types";
+
+interface DamageMetricsSnapshot {
+  damageRenderCount: number;
+  damageFallbackCount: number;
+  damageAreaRatios: number[];
+  damageRenderTimesMs: number[];
+  invalidationTrace: Array<{
+    kind: "full" | "damage";
+    bounds?: BoundingBox;
+    caller?: string;
+  }>;
+}
+
+const damageMetrics: DamageMetricsSnapshot = {
+  damageRenderCount: 0,
+  damageFallbackCount: 0,
+  damageAreaRatios: [],
+  damageRenderTimesMs: [],
+  invalidationTrace: [],
+};
+
+const damageMetricsEnabled =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).has("adr189Metrics");
+
+function resetDamageMetrics(): void {
+  damageMetrics.damageRenderCount = 0;
+  damageMetrics.damageFallbackCount = 0;
+  damageMetrics.damageAreaRatios = [];
+  damageMetrics.damageRenderTimesMs = [];
+  damageMetrics.invalidationTrace = [];
+}
+
+function recordDamageMetric(areaRatio: number, durationMs: number): void {
+  if (!damageMetricsEnabled) return;
+  damageMetrics.damageRenderCount += 1;
+  damageMetrics.damageAreaRatios.push(areaRatio);
+  damageMetrics.damageRenderTimesMs.push(durationMs);
+  if (damageMetrics.damageAreaRatios.length > 120) {
+    damageMetrics.damageAreaRatios.shift();
+    damageMetrics.damageRenderTimesMs.shift();
+  }
+}
+
+function recordDamageInvalidation(damageBounds?: BoundingBox): void {
+  if (!damageMetricsEnabled) return;
+  const caller = new Error().stack?.split("\n").slice(2, 4).join(" | ");
+  damageMetrics.invalidationTrace.push(
+    damageBounds
+      ? { kind: "damage", bounds: { ...damageBounds }, caller }
+      : { kind: "full", caller },
+  );
+  if (damageMetrics.invalidationTrace.length > 40) {
+    damageMetrics.invalidationTrace.shift();
+  }
+}
+
+if (typeof window !== "undefined" && damageMetricsEnabled) {
+  (
+    window as unknown as {
+      __composition_DAMAGE_METRICS__?: {
+        snapshot: () => DamageMetricsSnapshot;
+        reset: () => void;
+      };
+    }
+  ).__composition_DAMAGE_METRICS__ = {
+    snapshot: () => ({
+      damageRenderCount: damageMetrics.damageRenderCount,
+      damageFallbackCount: damageMetrics.damageFallbackCount,
+      damageAreaRatios: [...damageMetrics.damageAreaRatios],
+      damageRenderTimesMs: [...damageMetrics.damageRenderTimesMs],
+      invalidationTrace: damageMetrics.invalidationTrace.map((entry) => ({
+        kind: entry.kind,
+        bounds: entry.bounds ? { ...entry.bounds } : undefined,
+        caller: entry.caller,
+      })),
+    }),
+    reset: resetDamageMetrics,
+  };
+}
 
 /** classifyFrame 판정 결과 — content/full 프레임은 승격 사유를 동반한다 (ADR-153 Phase 1-a) */
 interface FrameClassification {
@@ -97,6 +178,8 @@ export class SkiaRenderer {
   private standbySurface: Surface | null = null;
   private standbyCanvas: Canvas | null = null;
   private contentDirty = true;
+  /** commit subtree patch가 제공한 이전/이후 hit bounds 합집합. */
+  private pendingDamage: BoundingBox | null = null;
   private lastRegistryVersion = -1;
   private lastOverlayVersion = -1;
   private lastScreenOverlayVersion = -1;
@@ -158,9 +241,34 @@ export class SkiaRenderer {
     this.overlayNode = node;
   }
 
-  /** 컨텐츠 캐시를 무효화하여 다음 프레임에서 전체 재렌더링하도록 한다. */
-  invalidateContent(): void {
+  /** 컨텐츠 캐시를 무효화하고, damage가 있으면 다음 프레임 부분 재기록을 예약한다. */
+  invalidateContent(damageBounds?: BoundingBox): void {
     this.contentDirty = true;
+    recordDamageInvalidation(damageBounds);
+    if (!damageBounds) {
+      this.pendingDamage = null;
+      return;
+    }
+    if (!this.pendingDamage) {
+      this.pendingDamage = { ...damageBounds };
+      return;
+    }
+    const left = Math.min(this.pendingDamage.x, damageBounds.x);
+    const top = Math.min(this.pendingDamage.y, damageBounds.y);
+    const right = Math.max(
+      this.pendingDamage.x + this.pendingDamage.width,
+      damageBounds.x + damageBounds.width,
+    );
+    const bottom = Math.max(
+      this.pendingDamage.y + this.pendingDamage.height,
+      damageBounds.y + damageBounds.height,
+    );
+    this.pendingDamage = {
+      x: left,
+      y: top,
+      width: right - left,
+      height: bottom - top,
+    };
   }
 
   /** 메인 캔버스를 클리어한다 (페이지 전환/초기화용). */
@@ -357,6 +465,101 @@ export class SkiaRenderer {
     this.standbyCanvas = this.standbySurface.getCanvas();
   }
 
+  private canRenderDamage(camera: CameraState): boolean {
+    return (
+      this.pendingDamage !== null &&
+      this.contentSnapshot !== null &&
+      this.resolveSnapshotPolicy() === "ping-pong" &&
+      this.standbySurface !== null &&
+      this.standbyCanvas !== null &&
+      camera.zoom === this.snapshotCamera.zoom &&
+      camera.panX === this.snapshotCamera.panX &&
+      camera.panY === this.snapshotCamera.panY
+    );
+  }
+
+  /**
+   * 이전 content snapshot을 standby surface에 복사한 뒤 damage rect만 재기록한다.
+   * snapshot 표면과 draw 표면을 분리해 CoW를 피하고, command culling bounds도
+   * damage로 좁혀 전체 DFS 이후의 record 비용을 다시 만들지 않는다.
+   */
+  private renderDamagedContent(
+    camera: CameraState,
+    damage: BoundingBox,
+  ): boolean {
+    if (!this.canRenderDamage(camera)) return false;
+    const oldSnapshot = this.contentSnapshot;
+    const targetSurface = this.standbySurface;
+    const targetCanvas = this.standbyCanvas;
+    if (!oldSnapshot || !targetSurface || !targetCanvas || !this.contentNode) {
+      return false;
+    }
+
+    const start = damageMetricsEnabled ? performance.now() : 0;
+    const padCss = this.contentPaddingDevicePx / this.dpr;
+    const safety = 1 / Math.max(camera.zoom, 0.001);
+    const sceneDamage = new DOMRect(
+      damage.x - safety,
+      damage.y - safety,
+      damage.width + safety * 2,
+      damage.height + safety * 2,
+    );
+    const left =
+      (sceneDamage.x * camera.zoom + camera.panX + padCss) * this.dpr;
+    const top = (sceneDamage.y * camera.zoom + camera.panY + padCss) * this.dpr;
+    const right =
+      ((sceneDamage.x + sceneDamage.width) * camera.zoom +
+        camera.panX +
+        padCss) *
+      this.dpr;
+    const bottom =
+      ((sceneDamage.y + sceneDamage.height) * camera.zoom +
+        camera.panY +
+        padCss) *
+      this.dpr;
+
+    targetCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
+    targetCanvas.drawImage(oldSnapshot, 0, 0);
+    targetCanvas.save();
+    const damageRect = this.ck.LTRBRect(left, top, right, bottom);
+    targetCanvas.clipRect(damageRect, this.ck.ClipOp.Intersect, true);
+    targetCanvas.save();
+    targetCanvas.scale(this.dpr, this.dpr);
+    targetCanvas.translate(padCss, padCss);
+    targetCanvas.translate(camera.panX, camera.panY);
+    targetCanvas.scale(camera.zoom, camera.zoom);
+    this.contentNode.renderSkia(targetCanvas, sceneDamage);
+    targetCanvas.restore();
+    targetCanvas.restore();
+
+    targetSurface.flush();
+    oldSnapshot.delete();
+    this.contentSnapshot = targetSurface.makeImageSnapshot();
+    [this.contentSurface, this.standbySurface] = [
+      this.standbySurface,
+      this.contentSurface,
+    ];
+    [this.contentCanvas, this.standbyCanvas] = [
+      this.standbyCanvas,
+      this.contentCanvas,
+    ];
+    this.snapshotCamera.zoom = camera.zoom;
+    this.snapshotCamera.panX = camera.panX;
+    this.snapshotCamera.panY = camera.panY;
+    this.pendingDamage = null;
+    this.contentDirty = false;
+
+    if (damageMetricsEnabled) {
+      const surfaceArea = targetSurface.width() * targetSurface.height();
+      const damageArea = Math.max(0, right - left) * Math.max(0, bottom - top);
+      recordDamageMetric(
+        surfaceArea > 0 ? Math.min(1, damageArea / surfaceArea) : 1,
+        performance.now() - start,
+      );
+    }
+    return true;
+  }
+
   /**
    * Content Surface에 씬을 렌더링한다.
    */
@@ -378,6 +581,18 @@ export class SkiaRenderer {
     // 스냅샷 정책 (ADR-153 Phase 3 — R7): CoW 복사 회피
     const policy = this.resolveSnapshotPolicy();
     if (policy === "ping-pong") this.ensureStandbySurface();
+    const pendingDamage = this.pendingDamage;
+    if (
+      pendingDamage &&
+      policy === "ping-pong" &&
+      this.renderDamagedContent(camera, pendingDamage)
+    ) {
+      return;
+    }
+    if (pendingDamage && damageMetricsEnabled) {
+      damageMetrics.damageFallbackCount += 1;
+    }
+    this.pendingDamage = null;
     // 대기 표면이 없으면(single 정책 또는 생성 실패) content 표면에 직접 그린다
     const standby =
       policy === "ping-pong" && this.standbySurface && this.standbyCanvas
@@ -718,7 +933,10 @@ export class SkiaRenderer {
     // ADR-153 Phase 1-a: contentSurface 캐시 hit(스냅샷 재사용) / miss(재렌더 + 사유)
     if (process.env.NODE_ENV === "development") {
       if (frameType === "content" || frameType === "full") {
-        getCacheMetrics("contentSurface").recordMiss(frameReason ?? "unknown");
+        const renderReason = this.canRenderDamage(camera)
+          ? "damage"
+          : (frameReason ?? "unknown");
+        getCacheMetrics("contentSurface").recordMiss(renderReason);
       } else if (frameType === "present" || frameType === "camera-only") {
         getCacheMetrics("contentSurface").recordHit();
       }
@@ -879,6 +1097,7 @@ export class SkiaRenderer {
   private disposeContentSurface(): void {
     this.contentSnapshot?.delete();
     this.contentSnapshot = null;
+    this.pendingDamage = null;
     this.contentSurface?.delete();
     this.contentSurface = null;
     this.contentCanvas = null;

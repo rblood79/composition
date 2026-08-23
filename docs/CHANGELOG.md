@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`, `apps/builder/scripts/adr189-commit-baseline.mjs`
   - 증적: [ADR-189 Phase 0 G0 baseline](adr/design/189-phase-0-g0-baseline.md)
 
-## ADR-189 Phase 2 command span splice — 2026-08-23
+## ADR-189 Phase 2 command span splice + Phase 3 damage clip — 2026-08-23
 
 ### Architecture
 
@@ -41,6 +41,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   결과로 대조해 `1440 × 852`, differing pixels `0`, max/mean channel delta `0`,
   console error/warning `0/0`을 확인했다. G2 splice 구조·write budget·pixel closure가
   모두 완료됐다. [Phase 2 evidence](adr/design/189-phase-2-g2-command-splice.md)
+
+- **G3 damage clip — 부분 재기록과 snapshot 면적 비례 검증**:
+  - commit subtree의 이전·이후 `hitBounds` 합집합을 `StoreRenderBridge`에서
+    `SkiaRenderer`까지 전달하고, ping-pong standby surface에 직전 snapshot을
+    blit한 뒤 damage rect만 clip 재기록한다. 같은 canonical revision의
+    `visibleContentVersion` 감지가 damage를 full invalidation으로 덮어쓰던 경계도
+    제거했다.
+  - populated Builder 258 active node의 small-80 / large-240 commit에서 patch
+    visits `1`, full build `0`, `damageRender/fallback=1/0`을 각각 확인했다.
+    damage ratio `0.0014546` → `0.0079577`은 hitBounds 면적 5.625배에 대해
+    5.47배로 증가했다.
+  - patch와 reload full rebuild의 `1440 × 852` canvas backing buffer diff는
+    differing pixels `0`, max/mean channel delta `0`, console error/warning `0/0`이다.
+    [Phase 3 evidence](adr/design/189-phase-3-g3-damage-clip.md)
 
 ## ADR-188 targeted layout input/result — 2026-08-22
 
