@@ -32,6 +32,7 @@ import { ImageFillEditor } from "./ImageFillEditor";
 import { Blend } from "lucide-react";
 import { PropertySelect } from "../../../components";
 import { BLEND_MODE_OPTIONS } from "../constants/styleOptions";
+import { ScrubInput } from "./ScrubInput";
 
 import "./FillDetailPopover.css";
 
@@ -41,6 +42,8 @@ interface FillDetailPopoverProps {
   onColorPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
   onColorChange: (color: string) => void;
   onColorChangeEnd: (color: string) => void;
+  onOpacityChange: (opacity: number) => void;
+  onOpacityChangeEnd: (opacity: number) => void;
   onUpdate: (updates: Partial<FillItem>) => void;
   onUpdateEnd: (updates: Partial<FillItem>) => void;
   onTypeChange: (newType: FillType) => void;
@@ -82,6 +85,8 @@ export const FillDetailPopover = memo(function FillDetailPopover({
   onColorPresentationCancel,
   onColorChange,
   onColorChangeEnd,
+  onOpacityChange,
+  onOpacityChangeEnd,
   onUpdate,
   onUpdateEnd,
   onTypeChange,
@@ -183,6 +188,17 @@ export const FillDetailPopover = memo(function FillDetailPopover({
           onUpdateEnd={onUpdateEnd}
         />
       )}
+
+      <ScrubInput
+        value={Math.round(fill.opacity * 100)}
+        onScrub={(value) => onOpacityChange(value / 100)}
+        onCommit={(value) => onOpacityChangeEnd(value / 100)}
+        min={0}
+        max={100}
+        suffix="%"
+        label="Fill opacity"
+        className="fill-detail-popover__opacity"
+      />
 
       <div className="fill-detail-popover__divider" />
       <PropertySelect

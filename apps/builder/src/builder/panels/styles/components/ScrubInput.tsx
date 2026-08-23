@@ -188,7 +188,13 @@ export const ScrubInput = memo(function ScrubInput({
           if (Math.abs(dx) < DRAG_THRESHOLD) return;
           hasMoved.current = true;
           // pointerLock 시도 (지원 시)
-          scrubRef.current?.requestPointerLock?.();
+          try {
+            void Promise.resolve(
+              scrubRef.current?.requestPointerLock?.(),
+            ).catch(() => undefined);
+          } catch {
+            // pointer lock을 사용할 수 없는 문서/iframe에서는 dx 경로를 유지한다.
+          }
         }
 
         const effectiveStep = ev.shiftKey

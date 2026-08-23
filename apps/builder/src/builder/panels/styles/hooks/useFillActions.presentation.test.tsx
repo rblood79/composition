@@ -172,7 +172,7 @@ describe("useFillActions ADR-187 owner switch", () => {
     expect(result.current.isFirstFillPresentationOwned("fill-1")).toBe(true);
     act(() => {
       expect(
-        result.current.previewFirstFillGradientPresentation("fill-1", {
+        result.current.previewFirstFillPaintPresentation("fill-1", {
           stops,
         }),
       ).toBe(true);
@@ -180,11 +180,35 @@ describe("useFillActions ADR-187 owner switch", () => {
         editorPresentationFillPilotRuntime.getSnapshot().sessions.size,
       ).toBe(1);
       expect(
-        result.current.commitFirstFillGradientPresentation("fill-1", {
+        result.current.commitFirstFillPaintPresentation("fill-1", {
           stops,
         }),
       ).toBe(true);
     });
+
+    expect(terminalResult).toMatchObject({ status: "committed" });
+    unsubscribeTerminal();
+    unmount();
+  });
+
+  it("single fill opacity는 같은 paint presentation owner에서 publish/finish한다", () => {
+    const { result, unmount } = renderHook(() => useFillActions());
+    let terminalResult: unknown;
+    const unsubscribeTerminal =
+      editorPresentationFillPilotRuntime.subscribeSessionEvents((event) => {
+        if (event.type === "terminal") terminalResult = event.result;
+      });
+
+    expect(
+      result.current.previewFirstFillPaintPresentation("fill-1", {
+        opacity: 0.42,
+      }),
+    ).toBe(true);
+    expect(
+      result.current.commitFirstFillPaintPresentation("fill-1", {
+        opacity: 0.42,
+      }),
+    ).toBe(true);
 
     expect(terminalResult).toMatchObject({ status: "committed" });
     unsubscribeTerminal();
@@ -281,6 +305,16 @@ describe("useFillActions ADR-187 owner switch", () => {
     expect(result.current.isFirstFillColorPresentationOwned("fill-1")).toBe(
       false,
     );
+    expect(
+      result.current.previewFirstFillPaintPresentation("fill-1", {
+        opacity: 0.5,
+      }),
+    ).toBe(false);
+    expect(
+      result.current.commitFirstFillPaintPresentation("fill-1", {
+        opacity: 0.5,
+      }),
+    ).toBe(false);
 
     window.history.replaceState({}, "", "/builder/test");
     expect(result.current.isFirstFillColorPresentationOwned("fill-1")).toBe(

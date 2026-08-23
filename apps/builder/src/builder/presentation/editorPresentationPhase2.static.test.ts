@@ -48,7 +48,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
     const publish = action.indexOf("presentation.handle.publish", resolvePilot);
     const commitBody = action.slice(
       commitStart,
-      action.indexOf("const previewFirstFillGradientPresentation", commitStart),
+      action.indexOf("const previewFirstFillPaintPresentation", commitStart),
     );
 
     expect(acquireGuard).toBeGreaterThan(previewStart);

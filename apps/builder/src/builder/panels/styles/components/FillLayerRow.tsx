@@ -158,6 +158,8 @@ export const FillLayerRow = memo(function FillLayerRow({
             fill={fill}
             onColorChange={handleColorChange}
             onColorChangeEnd={handleColorChangeEnd}
+            onOpacityChange={(opacity) => onUpdatePreview(fill.id, { opacity })}
+            onOpacityChangeEnd={(opacity) => onUpdate(fill.id, { opacity })}
             onUpdate={handleFillUpdate}
             onUpdateEnd={handleFillUpdateEnd}
             onTypeChange={handleTypeChange}

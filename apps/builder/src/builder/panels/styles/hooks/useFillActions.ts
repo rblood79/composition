@@ -56,11 +56,11 @@ export interface FillActions {
   isFirstFillColorPresentationOwned: (fillId: string) => boolean;
   previewFirstFillColorPresentation: (fillId: string, color: string) => boolean;
   commitFirstFillColorPresentation: (fillId: string, color: string) => boolean;
-  previewFirstFillGradientPresentation: (
+  previewFirstFillPaintPresentation: (
     fillId: string,
     updates: Partial<FillItem>,
   ) => boolean;
-  commitFirstFillGradientPresentation: (
+  commitFirstFillPaintPresentation: (
     fillId: string,
     updates: Partial<FillItem>,
   ) => boolean;
@@ -265,9 +265,14 @@ export function useFillActions(): FillActions {
     [previewFirstFillColorPresentation],
   );
 
-  const previewFirstFillGradientPresentation = useCallback(
+  const previewFirstFillPaintPresentation = useCallback(
     (fillId: string, updates: Partial<FillItem>): boolean => {
-      if (!("stops" in updates) || !Array.isArray(updates.stops)) {
+      const hasStopsUpdate = "stops" in updates && Array.isArray(updates.stops);
+      const hasOpacityUpdate =
+        "opacity" in updates &&
+        typeof updates.opacity === "number" &&
+        Number.isFinite(updates.opacity);
+      if (!hasStopsUpdate && !hasOpacityUpdate) {
         return false;
       }
       const { selectedElementId } = readImmediateSelectionSnapshot();
@@ -305,7 +310,9 @@ export function useFillActions(): FillActions {
           baseFills: pilot.fills,
           fillId,
           handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
-            commitIntent: "fill-gradient-stop",
+            commitIntent: hasStopsUpdate
+              ? "fill-gradient-stop"
+              : "fill-opacity",
             ownerId,
             projectId: pilot.projectId,
             targets: [pilot.target],
@@ -330,9 +337,14 @@ export function useFillActions(): FillActions {
     [ownerId],
   );
 
-  const commitFirstFillGradientPresentation = useCallback(
+  const commitFirstFillPaintPresentation = useCallback(
     (fillId: string, updates: Partial<FillItem>): boolean => {
-      if (!("stops" in updates) || !Array.isArray(updates.stops)) {
+      const hasStopsUpdate = "stops" in updates && Array.isArray(updates.stops);
+      const hasOpacityUpdate =
+        "opacity" in updates &&
+        typeof updates.opacity === "number" &&
+        Number.isFinite(updates.opacity);
+      if (!hasStopsUpdate && !hasOpacityUpdate) {
         return false;
       }
       const { selectedElementId } = readImmediateSelectionSnapshot();
@@ -342,8 +354,7 @@ export function useFillActions(): FillActions {
         return true;
       }
       if (!active) {
-        if (!previewFirstFillGradientPresentation(fillId, updates))
-          return false;
+        if (!previewFirstFillPaintPresentation(fillId, updates)) return false;
       }
 
       const presentation = presentationRef.current;
@@ -368,7 +379,7 @@ export function useFillActions(): FillActions {
       }
       return true;
     },
-    [previewFirstFillGradientPresentation],
+    [previewFirstFillPaintPresentation],
   );
 
   const cancelFirstFillColorPresentation = useCallback(
@@ -568,8 +579,8 @@ export function useFillActions(): FillActions {
     isFirstFillColorPresentationOwned,
     previewFirstFillColorPresentation,
     commitFirstFillColorPresentation,
-    previewFirstFillGradientPresentation,
-    commitFirstFillGradientPresentation,
+    previewFirstFillPaintPresentation,
+    commitFirstFillPaintPresentation,
     cancelFirstFillColorPresentation,
     changeFillType,
   };

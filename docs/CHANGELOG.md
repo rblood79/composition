@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ADR-187 Phase 5 단일 fill opacity presentation slice — 2026-08-23
+
+### Architecture
+
+- **단일 fill opacity presentation owner 연결**:
+  - Style 패널 Fill detail popover의 opacity scrub을 single-fill
+    `color/linear/radial/angular` paint presentation owner와 연결했다.
+  - drag 중 typed Skia target patch와 Preview semantic delta만 publish하고 pointer-up에서
+    canonical `fills.replace`로 handoff한다. 다중/image/mesh fill은 기존 경로를 유지한다.
+  - **Why:** opacity drag가 매 pointer event마다 legacy full-store preview와 겹치면
+    presentation frame 비용이 문서 크기와 RAF 중첩에 결합하기 때문이다.
+  - 위치: `apps/builder/src/builder/panels/styles/{sections/FillSection.tsx,components/FillDetailPopover.tsx,hooks/useFillActions.ts}`
+
+### Performance
+
+- **Builder Compare Mode live gate**:
+  - opacity drag 중 legacy write/full rebuild/layout publish/projection 증가 `0`, Skia
+    target patch `8`, Preview delta `8`, action/control RAF `0`을 확인했다.
+  - terminal canonical opacity와 Preview gradient alpha가 모두 `0.55`로 수렴하고,
+    pointer-lock rejection은 dx scrub fallback으로 흡수되어 console error/warning `0/0`이었다.
+  - 증적: [ADR-187 Phase 5 fill opacity live parity](adr/design/187-phase-5-fill-opacity-live-parity.md)
+
 ## ADR-187 Phase 5 gradient stop presentation slice — 2026-08-23
 
 ### Architecture

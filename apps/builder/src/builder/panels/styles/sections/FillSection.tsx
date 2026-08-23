@@ -221,8 +221,8 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
     isFirstFillPresentationOwned,
     previewFirstFillColorPresentation,
     commitFirstFillColorPresentation,
-    previewFirstFillGradientPresentation,
-    commitFirstFillGradientPresentation,
+    previewFirstFillPaintPresentation,
+    commitFirstFillPaintPresentation,
     cancelFirstFillColorPresentation,
     changeFillType,
   } = useFillActions();
@@ -249,6 +249,9 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
       firstFill?.type === FillType.RadialGradient ||
       firstFill?.type === FillType.AngularGradient) &&
     isFirstFillPresentationOwned(firstFill.id);
+  const presentationOwnsPaint = firstFill
+    ? isFirstFillPresentationOwned(firstFill.id)
+    : false;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -326,7 +329,7 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
       if (
         firstFill &&
         presentationOwnsGradientStops &&
-        previewFirstFillGradientPresentation(firstFill.id, updates)
+        previewFirstFillPaintPresentation(firstFill.id, updates)
       ) {
         return;
       }
@@ -335,7 +338,7 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
     [
       firstFill,
       presentationOwnsGradientStops,
-      previewFirstFillGradientPresentation,
+      previewFirstFillPaintPresentation,
       updateFillPreviewThrottled,
     ],
   );
@@ -345,7 +348,7 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
       if (
         firstFill &&
         presentationOwnsGradientStops &&
-        commitFirstFillGradientPresentation(firstFill.id, updates)
+        commitFirstFillPaintPresentation(firstFill.id, updates)
       ) {
         return;
       }
@@ -354,7 +357,45 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
     [
       firstFill,
       presentationOwnsGradientStops,
-      commitFirstFillGradientPresentation,
+      commitFirstFillPaintPresentation,
+      updateFill,
+    ],
+  );
+
+  const handleFillOpacityChange = useCallback(
+    (opacity: number) => {
+      if (
+        firstFill &&
+        presentationOwnsPaint &&
+        previewFirstFillPaintPresentation(firstFill.id, { opacity })
+      ) {
+        return;
+      }
+      if (firstFill) updateFillPreviewThrottled(firstFill.id, { opacity });
+    },
+    [
+      firstFill,
+      presentationOwnsPaint,
+      previewFirstFillPaintPresentation,
+      updateFillPreviewThrottled,
+    ],
+  );
+
+  const handleFillOpacityChangeEnd = useCallback(
+    (opacity: number) => {
+      if (
+        firstFill &&
+        presentationOwnsPaint &&
+        commitFirstFillPaintPresentation(firstFill.id, { opacity })
+      ) {
+        return;
+      }
+      if (firstFill) updateFill(firstFill.id, { opacity });
+    },
+    [
+      firstFill,
+      presentationOwnsPaint,
+      commitFirstFillPaintPresentation,
       updateFill,
     ],
   );
@@ -425,6 +466,8 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
                 onColorPresentationCancel={handleColorPresentationCancel}
                 onColorChange={handleColorChange}
                 onColorChangeEnd={handleColorChangeEnd}
+                onOpacityChange={handleFillOpacityChange}
+                onOpacityChangeEnd={handleFillOpacityChangeEnd}
                 onUpdate={handleFillUpdate}
                 onUpdateEnd={handleFillUpdateEnd}
                 onTypeChange={handleTypeChange}
