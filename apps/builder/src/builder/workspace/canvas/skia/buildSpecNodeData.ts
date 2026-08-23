@@ -45,6 +45,7 @@ import {
   fillsToSkiaFillColor,
   fillsToSkiaFallbackColor,
   fillsToSkiaFillStyle,
+  getTopEnabledFill,
 } from "../../../panels/styles/utils/fillToSkia";
 import {
   resolveSkiaVisualRule,
@@ -1816,8 +1817,28 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     specNode.box
   ) {
     const fillStyle = fillsToSkiaFillStyle(element.fills, w, specHeight);
-    if (fillStyle && fillStyle.type !== "color") {
+    if (
+      fillStyle &&
+      (fillStyle.type === "linear-gradient" ||
+        fillStyle.type === "radial-gradient" ||
+        fillStyle.type === "angular-gradient")
+    ) {
       specNode.box.fill = fillStyle;
+      const topEnabledFill = getTopEnabledFill(element.fills);
+      if (topEnabledFill) {
+        specNode.presentationFillTargets = [
+          ...(specNode.presentationFillTargets ?? []),
+          {
+            color: specNode.box.fillColor,
+            opacityMultiplier: 1,
+            fillId: topEnabledFill.id,
+            gradientColors: fillStyle.colors,
+            gradientPositions: fillStyle.positions,
+            gradientWidth: w,
+            gradientHeight: specHeight,
+          },
+        ];
+      }
     }
   }
 

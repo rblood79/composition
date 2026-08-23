@@ -159,6 +159,19 @@ export interface SkiaPresentationFillTarget {
   readonly color: Float32Array;
   /** canonical fill alpha 위에 유지할 primitive 고유 opacity. */
   readonly opacityMultiplier: number;
+  /**
+   * gradient background이 소비하는 mutable stop color slots.
+   * `color`는 기존 fallback/primitive slot이고, 이 배열이 있으면 paint lane이
+   * shader를 재생성하지 않고 기존 FillStyle 배열만 교체한다.
+   */
+  readonly gradientColors?: readonly Float32Array[];
+  /** gradient stop position slots (`FillStyle.positions`의 동일 배열). */
+  readonly gradientPositions?: number[];
+  /** gradient target과 canonical fill을 연결하는 semantic fill id. */
+  readonly fillId?: string;
+  /** gradient geometry를 재계산하지 않기 위한 build-time 기준 크기. */
+  readonly gradientWidth?: number;
+  readonly gradientHeight?: number;
 }
 
 export type ParagraphCache = Map<string, Paragraph>;

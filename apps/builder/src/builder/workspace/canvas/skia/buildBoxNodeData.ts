@@ -32,8 +32,10 @@ import {
 import {
   fillsToSkiaFillColor,
   fillsToSkiaFillStyle,
+  getTopEnabledFill,
   cssBgImageToSkia,
 } from "../../../panels/styles/utils/fillToSkia";
+import type { FillItem } from "../../../../types/builder/fill.types";
 import { hexToColor4fChannels } from "./themeWatcher";
 
 // ---------------------------------------------------------------------------
@@ -167,7 +169,14 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
         )
       : null;
   const gradientFill =
-    fillV2Style && fillV2Style.type !== "color" ? fillV2Style : undefined;
+    fillV2Style &&
+    (fillV2Style.type === "linear-gradient" ||
+      fillV2Style.type === "radial-gradient" ||
+      fillV2Style.type === "angular-gradient")
+      ? fillV2Style
+      : undefined;
+  const topEnabledFill =
+    fills && fills.length > 0 ? getTopEnabledFill(fills as FillItem[]) : null;
 
   // CSS background-image: url(...)
   const cssBgImageFill = gradientFill
@@ -296,6 +305,20 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     ...(strokeStyleValue ? { strokeStyle: strokeStyleValue } : {}),
   };
 
+  const presentationFillTarget = {
+    color: box.fillColor,
+    opacityMultiplier: 1,
+    ...(gradientFill && topEnabledFill
+      ? {
+          fillId: topEnabledFill.id,
+          gradientColors: gradientFill.colors,
+          gradientPositions: gradientFill.positions,
+          gradientWidth: w,
+          gradientHeight: h,
+        }
+      : {}),
+  };
+
   return {
     type: "box",
     elementId: element.id,
@@ -314,6 +337,6 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     ...(isStackingCtx ? { isStackingContext: true } : {}),
     ...(clipPath ? { clipPath } : {}),
     box,
-    presentationFillTargets: [{ color: box.fillColor, opacityMultiplier: 1 }],
+    presentationFillTargets: [presentationFillTarget],
   } as SkiaNodeData;
 }

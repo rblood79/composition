@@ -190,13 +190,19 @@ export function resolveFillPresentationPilotTarget(
   );
   const fills = Array.isArray(value) ? (value as FillItem[]) : [];
   const fill = fills[0];
+  const isMutableGradient =
+    fill?.type === FillType.LinearGradient ||
+    fill?.type === FillType.RadialGradient ||
+    fill?.type === FillType.AngularGradient;
   if (
     fills.length !== 1 ||
     !fill ||
     fill.id !== fillId ||
-    fill.type !== FillType.Color ||
     !fill.enabled ||
-    !/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(fill.color)
+    (fill.type === FillType.Color &&
+      !/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(fill.color)) ||
+    (isMutableGradient && (!("stops" in fill) || fill.stops.length < 2)) ||
+    (fill.type !== FillType.Color && !isMutableGradient)
   ) {
     return null;
   }

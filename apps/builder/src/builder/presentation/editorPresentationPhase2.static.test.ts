@@ -18,9 +18,14 @@ describe("ADR-187 Phase 2 migration guards", () => {
     const pilot = await source("editorPresentationFillPilot.ts");
     const bridge = await source("skiaEditorPresentationBridge.ts");
     const action = await source("../panels/styles/hooks/useFillActions.ts");
+    const gradientBar = await source(
+      "../panels/styles/components/GradientBar.tsx",
+    );
 
     expect(pilot).not.toContain("requestAnimationFrame");
     expect(bridge).not.toContain("requestAnimationFrame");
+    expect(gradientBar).not.toContain("requestAnimationFrame");
+    expect(gradientBar).not.toContain("cancelAnimationFrame");
     expect(pilot).not.toMatch(/updateSelected.*Preview/);
     expect(bridge).not.toMatch(/updateSelected.*Preview/);
     expect(action).toContain("previewFirstFillColorPresentation");
@@ -43,7 +48,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
     const publish = action.indexOf("presentation.handle.publish", resolvePilot);
     const commitBody = action.slice(
       commitStart,
-      action.indexOf("const cancel", commitStart),
+      action.indexOf("const previewFirstFillGradientPresentation", commitStart),
     );
 
     expect(acquireGuard).toBeGreaterThan(previewStart);
@@ -116,8 +121,8 @@ describe("ADR-187 Phase 2 migration guards", () => {
       "../workspace/canvas/renderers/rendererInput.ts",
     );
 
-    expect(storeBridge).toContain("onDidSync?.()");
-    expect(canvas).toContain("onDidSync: () =>");
+    expect(storeBridge).toContain("onDidSync?.(");
+    expect(canvas).toContain("onDidSync:");
     expect(canvas).toContain("handleStoreSync(");
     expect(rendererInput).toContain("if (!pageSnapshot.isVisible) continue;");
     expect(rendererInput).toContain(

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ADR-187 Phase 5 gradient stop presentation slice — 2026-08-23
+
+### Architecture
+
+- **단일 gradient stop presentation owner 연결**:
+  - Style 패널의 single-fill linear/radial/angular gradient stop 색상·position을
+    typed Skia paint slot과 Preview semantic delta에 연결했다.
+  - `GradientBar` 자체 RAF를 제거하고 runtime이 frame ownership을 단일화했다.
+  - **Why:** stop drag가 control/action RAF와 legacy full-store preview를 겹쳐
+    `requestAnimationFrame` handler 비용과 문서 N 의존성을 함께 만들지 않도록 하기 위해서다.
+  - 위치: `apps/builder/src/builder/panels/styles/components/GradientBar.tsx`,
+    `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`
+
+### Performance
+
+- **Builder Compare Mode live gate**:
+  - drag 중 legacy write/full rebuild/layout publish는 `0`, Skia target patch `8`,
+    Preview delta `8`, console error/warning `0`을 확인했다.
+  - terminal 후 stop position `0.282957...`와 Preview gradient `28%`가 유지되고
+    canonical finish는 1회였다.
+  - 증적: [ADR-187 Phase 5 gradient stop live parity](adr/design/187-phase-5-gradient-stop-live-parity.md)
+
 ## ADR-189 Phase 0 commit lane baseline — 2026-08-23
 
 ### Performance

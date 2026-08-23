@@ -162,6 +162,7 @@ export const FillDetailPopover = memo(function FillDetailPopover({
       {isGradient && (
         <GradientEditor
           fill={fill as Parameters<typeof GradientEditor>[0]["fill"]}
+          presentationOwnsFrameScheduling={presentationOwnsColorFrameScheduling}
           onChange={onUpdate}
           onChangeEnd={onUpdateEnd}
           onSubTypeChange={handleGradientSubTypeChange}

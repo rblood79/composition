@@ -17,6 +17,21 @@ function colorFill(): FillItem {
   };
 }
 
+function linearGradientFill(): FillItem {
+  return {
+    blendMode: "normal",
+    enabled: true,
+    id: "fill-gradient",
+    opacity: 0.5,
+    rotation: 0,
+    stops: [
+      { color: "#FF0000FF", position: 0 },
+      { color: "#0000FFFF", position: 1 },
+    ],
+    type: FillType.LinearGradient,
+  };
+}
+
 function build(type: string) {
   const element = {
     fills: [colorFill()],
@@ -62,5 +77,35 @@ describe("buildSpecNodeData presentation materialization", () => {
 
     expect(target?.opacityMultiplier).toBe(0.5);
     expect(target?.color[3]).toBeCloseTo(0.5 * 0.5 * 0.5, 5);
+  });
+
+  it("gradient background은 semantic fill id와 mutable stop 배열을 연결한다", () => {
+    const element = {
+      fills: [linearGradientFill()],
+      id: "Button-gradient",
+      order_num: 0,
+      page_id: "page-1",
+      parent_id: null,
+      props: { children: "Ready", size: "md" },
+      type: "Button",
+    } as unknown as CanvasSceneNode;
+    const node = buildSpecNodeData({
+      element,
+      elementsMap: new Map([[element.id, element]]),
+      layout: { height: 40, width: 120, x: 0, y: 0 } as ComputedLayout,
+      theme: "light",
+    });
+
+    const target = node?.presentationFillTargets?.find(
+      (candidate) => candidate.fillId === "fill-gradient",
+    );
+    expect(target?.gradientColors).toBe(
+      (node?.box?.fill as { colors: Float32Array[] } | undefined)?.colors,
+    );
+    expect(target?.gradientPositions).toBe(
+      (node?.box?.fill as { positions: number[] } | undefined)?.positions,
+    );
+    expect(target?.gradientWidth).toBe(120);
+    expect(target?.gradientHeight).toBe(40);
   });
 });

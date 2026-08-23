@@ -13,6 +13,14 @@ import {
   resolveFillPresentationPilotTarget,
 } from "../../../presentation/editorPresentationFillPilot";
 import { useFillActions } from "./useFillActions";
+import {
+  registerCanonicalMutationRunnerBridge,
+  resetCanonicalMutationRunnerBridge,
+} from "../../../../adapters/canonical/canonicalMutationRunner";
+
+vi.mock("../../../../lib/db", () => ({
+  getDB: vi.fn(async () => ({ documents: { put: vi.fn() } })),
+}));
 
 function node(id: string, fillId: string, color: string): CanonicalNode {
   return {
@@ -33,8 +41,32 @@ function node(id: string, fillId: string, color: string): CanonicalNode {
   } as unknown as CanonicalNode;
 }
 
+function gradientNode(id: string, fillId: string): CanonicalNode {
+  return {
+    children: [],
+    fills: [
+      {
+        blendMode: "normal",
+        enabled: true,
+        id: fillId,
+        opacity: 1,
+        rotation: 0,
+        stops: [
+          { color: "#FF0000FF", position: 0 },
+          { color: "#0000FFFF", position: 1 },
+        ],
+        type: FillType.LinearGradient,
+      },
+    ],
+    id,
+    props: {},
+    type: "Button",
+  } as unknown as CanonicalNode;
+}
+
 describe("useFillActions ADR-187 owner switch", () => {
   beforeEach(() => {
+    registerCanonicalMutationRunnerBridge({ rebuildIndexes: () => {} });
     window.history.replaceState({}, "", "/builder/test?adr187FillPilot");
     vi.stubGlobal(
       "requestAnimationFrame",
@@ -69,6 +101,7 @@ describe("useFillActions ADR-187 owner switch", () => {
   afterEach(() => {
     window.history.replaceState({}, "", "/");
     vi.unstubAllGlobals();
+    resetCanonicalMutationRunnerBridge();
     historyManager.clearAllHistory();
   });
 
@@ -115,6 +148,46 @@ describe("useFillActions ADR-187 owner switch", () => {
 
     expect(historyManager.getCurrentPageEntries()).toHaveLength(0);
     expect(cancelAnimationFrame).toHaveBeenCalledTimes(1);
+    unmount();
+  });
+
+  it("single gradient stop은 같은 presentation owner에서 publish/finish한다", () => {
+    const canonical = useCanonicalDocumentStore.getState();
+    const current = canonical.documents.get("project-1")!;
+    canonical.setDocument("project-1", {
+      ...current,
+      children: [gradientNode("node-1", "fill-1"), current.children[1]!],
+    });
+    const { result, unmount } = renderHook(() => useFillActions());
+    let terminalResult: unknown;
+    const unsubscribeTerminal =
+      editorPresentationFillPilotRuntime.subscribeSessionEvents((event) => {
+        if (event.type === "terminal") terminalResult = event.result;
+      });
+    const stops = [
+      { color: "#00FF00FF", position: 0.2 },
+      { color: "#000000FF", position: 0.8 },
+    ];
+
+    expect(result.current.isFirstFillPresentationOwned("fill-1")).toBe(true);
+    act(() => {
+      expect(
+        result.current.previewFirstFillGradientPresentation("fill-1", {
+          stops,
+        }),
+      ).toBe(true);
+      expect(
+        editorPresentationFillPilotRuntime.getSnapshot().sessions.size,
+      ).toBe(1);
+      expect(
+        result.current.commitFirstFillGradientPresentation("fill-1", {
+          stops,
+        }),
+      ).toBe(true);
+    });
+
+    expect(terminalResult).toMatchObject({ status: "committed" });
+    unsubscribeTerminal();
     unmount();
   });
 

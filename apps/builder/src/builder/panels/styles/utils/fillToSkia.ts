@@ -528,6 +528,19 @@ export function fillsToSkiaFillColor(fills: FillItem[]): Float32Array | null {
 }
 
 /**
+ * fills 배열에서 실제로 최상단에 그려지는 enabled fill을 반환한다.
+ * presentation target이 canonical fill id를 보존할 때만 사용하며, 배열 순서를
+ * 다시 추론하는 호출부가 각 renderer에 복제되지 않도록 이 경계에 둔다.
+ */
+export function getTopEnabledFill(fills: readonly FillItem[]): FillItem | null {
+  for (let i = fills.length - 1; i >= 0; i -= 1) {
+    const fill = fills[i];
+    if (fill?.enabled) return fill;
+  }
+  return null;
+}
+
+/**
  * fills 배열 → 비-color fill 의 대표 단색 fallback (top enabled 기준)
  *
  * gradient(linear/radial/angular)는 첫 stop, mesh 는 첫 point 색을 사용한다.

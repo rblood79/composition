@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { FillType, type FillItem } from "../../../../types/builder/fill.types";
+import {
+  FillType,
+  type FillItem,
+  type LinearGradientFillItem,
+} from "../../../../types/builder/fill.types";
 import { StoreRenderBridge } from "./StoreRenderBridge";
 import { isVolatileNode } from "./nodePictureCache";
 import type { SkiaNodeData } from "./nodeRendererTypes";
@@ -20,6 +24,25 @@ function fill(color: string): FillItem {
     id: "fill-1",
     opacity: 1,
     type: FillType.Color,
+  };
+}
+
+function gradientFill(
+  firstColor: string,
+  secondColor: string,
+  opacity = 1,
+): LinearGradientFillItem {
+  return {
+    blendMode: "normal",
+    enabled: true,
+    id: "fill-1",
+    opacity,
+    rotation: 0,
+    stops: [
+      { color: firstColor, position: 0 },
+      { color: secondColor, position: 1 },
+    ],
+    type: FillType.LinearGradient,
   };
 }
 
@@ -168,5 +191,106 @@ describe("StoreRenderBridge ADR-187 presentation patch", () => {
     expect(bridge.releasePresentationFillPatch("alpha-1")).toBe(true);
     expect(color).toEqual(Float32Array.of(1, 0, 0, 0.25));
     expect(isVolatileNode("alpha-1")).toBe(false);
+  });
+
+  it("single gradient의 stop color/position/opacity를 shader 배열만 patch하고 exact restore한다", () => {
+    const fallbackColor = Float32Array.of(0, 0, 0, 0);
+    const gradientColors = [
+      Float32Array.of(1, 0, 0, 1),
+      Float32Array.of(0, 0, 1, 1),
+    ];
+    const gradientPositions = [0, 1];
+    const node: SkiaNodeData = {
+      box: {
+        borderRadius: 0,
+        fillColor: fallbackColor,
+        fill: {
+          type: "linear-gradient",
+          start: [0, 0],
+          end: [80, 0],
+          colors: gradientColors,
+          positions: gradientPositions,
+        },
+      },
+      height: 40,
+      presentationFillTargets: [
+        {
+          color: fallbackColor,
+          opacityMultiplier: 1,
+          fillId: "fill-1",
+          gradientColors,
+          gradientPositions,
+          gradientWidth: 80,
+          gradientHeight: 40,
+        },
+      ],
+      type: "box",
+      visible: true,
+      width: 80,
+      x: 0,
+      y: 0,
+    };
+    registerSkiaNode("gradient-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationFillPatch("gradient-1", [
+        gradientFill("#00FF0080", "#0000FFFF", 0.5),
+      ]),
+    ).toBe(true);
+    expect(gradientColors[0]).toEqual(Float32Array.of(0, 1, 0, 0.25));
+    expect(gradientColors[1]).toEqual(Float32Array.of(0, 0, 1, 0.5));
+    expect(gradientPositions).toEqual([0, 1]);
+    expect(bridge.restorePresentationFillPatch("gradient-1")).toBe(true);
+    expect(gradientColors[0]).toEqual(Float32Array.of(1, 0, 0, 1));
+    expect(gradientColors[1]).toEqual(Float32Array.of(0, 0, 1, 1));
+    expect(gradientPositions).toEqual([0, 1]);
+  });
+
+  it("gradient stop 위치 변경은 기존 position array identity를 유지한다", () => {
+    const node = makeNode();
+    const gradientColors = [
+      Float32Array.of(1, 0, 0, 1),
+      Float32Array.of(0, 0, 1, 1),
+    ];
+    const gradientPositions = [0, 1];
+    node.box!.fill = {
+      type: "linear-gradient",
+      start: [0, 0],
+      end: [80, 0],
+      colors: gradientColors,
+      positions: gradientPositions,
+    };
+    node.presentationFillTargets = [
+      {
+        color: node.box!.fillColor,
+        opacityMultiplier: 1,
+        fillId: "fill-1",
+        gradientColors,
+        gradientPositions,
+        gradientWidth: 80,
+        gradientHeight: 40,
+      },
+    ];
+    registerSkiaNode("gradient-position-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationFillPatch("gradient-position-1", [
+        {
+          ...gradientFill("#FF0000FF", "#0000FFFF"),
+          stops: [
+            { color: "#FF0000FF", position: 0.25 },
+            { color: "#0000FFFF", position: 0.75 },
+          ],
+        },
+      ]),
+    ).toBe(true);
+    expect(gradientPositions).toBe(node.box!.fill.positions);
+    expect(gradientPositions).toEqual([0.25, 0.75]);
+    expect(bridge.restorePresentationFillPatch("gradient-position-1")).toBe(
+      true,
+    );
+    expect(gradientPositions).toEqual([0, 1]);
   });
 });

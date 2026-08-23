@@ -218,9 +218,11 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
     toggleFill,
     updateFill,
     updateFillPreviewThrottled,
-    isFirstFillColorPresentationOwned,
+    isFirstFillPresentationOwned,
     previewFirstFillColorPresentation,
     commitFirstFillColorPresentation,
+    previewFirstFillGradientPresentation,
+    commitFirstFillGradientPresentation,
     cancelFirstFillColorPresentation,
     changeFillType,
   } = useFillActions();
@@ -241,7 +243,12 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
   const popoverFill = firstFill ?? virtualFill;
   const presentationOwnsColor =
     firstFill?.type === FillType.Color &&
-    isFirstFillColorPresentationOwned(firstFill.id);
+    isFirstFillPresentationOwned(firstFill.id);
+  const presentationOwnsGradientStops =
+    (firstFill?.type === FillType.LinearGradient ||
+      firstFill?.type === FillType.RadialGradient ||
+      firstFill?.type === FillType.AngularGradient) &&
+    isFirstFillPresentationOwned(firstFill.id);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -316,16 +323,40 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
 
   const handleFillUpdate = useCallback(
     (updates: Partial<FillItem>) => {
+      if (
+        firstFill &&
+        presentationOwnsGradientStops &&
+        previewFirstFillGradientPresentation(firstFill.id, updates)
+      ) {
+        return;
+      }
       if (firstFill) updateFillPreviewThrottled(firstFill.id, updates);
     },
-    [firstFill, updateFillPreviewThrottled],
+    [
+      firstFill,
+      presentationOwnsGradientStops,
+      previewFirstFillGradientPresentation,
+      updateFillPreviewThrottled,
+    ],
   );
 
   const handleFillUpdateEnd = useCallback(
     (updates: Partial<FillItem>) => {
+      if (
+        firstFill &&
+        presentationOwnsGradientStops &&
+        commitFirstFillGradientPresentation(firstFill.id, updates)
+      ) {
+        return;
+      }
       if (firstFill) updateFill(firstFill.id, updates);
     },
-    [firstFill, updateFill],
+    [
+      firstFill,
+      presentationOwnsGradientStops,
+      commitFirstFillGradientPresentation,
+      updateFill,
+    ],
   );
 
   const handleTypeChange = useCallback(
@@ -388,7 +419,9 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
             >
               <FillDetailPopover
                 fill={popoverFill}
-                presentationOwnsColorFrameScheduling={presentationOwnsColor}
+                presentationOwnsColorFrameScheduling={
+                  presentationOwnsColor || presentationOwnsGradientStops
+                }
                 onColorPresentationCancel={handleColorPresentationCancel}
                 onColorChange={handleColorChange}
                 onColorChangeEnd={handleColorChangeEnd}

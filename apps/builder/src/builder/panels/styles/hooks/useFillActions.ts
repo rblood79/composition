@@ -52,9 +52,18 @@ export interface FillActions {
     fillId: string,
     updates: Partial<FillItem>,
   ) => void;
+  isFirstFillPresentationOwned: (fillId: string) => boolean;
   isFirstFillColorPresentationOwned: (fillId: string) => boolean;
   previewFirstFillColorPresentation: (fillId: string, color: string) => boolean;
   commitFirstFillColorPresentation: (fillId: string, color: string) => boolean;
+  previewFirstFillGradientPresentation: (
+    fillId: string,
+    updates: Partial<FillItem>,
+  ) => boolean;
+  commitFirstFillGradientPresentation: (
+    fillId: string,
+    updates: Partial<FillItem>,
+  ) => boolean;
   cancelFirstFillColorPresentation: (
     reason: EditorPresentationCancelReason,
   ) => boolean;
@@ -83,6 +92,16 @@ function getCurrentFills(): FillItem[] {
     return resolveElementFills(found);
   }
   return resolveElementFills(elementsMap.get(selectedElementId));
+}
+
+function applyFillUpdates(
+  fills: readonly FillItem[],
+  fillId: string,
+  updates: Partial<FillItem>,
+): FillItem[] {
+  return fills.map((fill) =>
+    fill.id === fillId ? ({ ...fill, ...updates } as FillItem) : fill,
+  );
 }
 
 export function useFillActions(): FillActions {
@@ -140,6 +159,8 @@ export function useFillActions(): FillActions {
       resolveFillPresentationPilotTarget(selectedElementId, fillId) !== null
     );
   }, []);
+
+  const isFirstFillPresentationOwned = isFirstFillColorPresentationOwned;
 
   const previewFirstFillColorPresentation = useCallback(
     (fillId: string, color: string): boolean => {
@@ -242,6 +263,112 @@ export function useFillActions(): FillActions {
       return true;
     },
     [previewFirstFillColorPresentation],
+  );
+
+  const previewFirstFillGradientPresentation = useCallback(
+    (fillId: string, updates: Partial<FillItem>): boolean => {
+      if (!("stops" in updates) || !Array.isArray(updates.stops)) {
+        return false;
+      }
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const existing = presentationRef.current;
+      if (existing?.phase === "cancelled") {
+        if (
+          existing.selectedElementId !== selectedElementId &&
+          existing.fillId === fillId
+        ) {
+          return true;
+        }
+        presentationRef.current = null;
+      }
+      if (existing?.phase === "failed") {
+        existing.handle.cancel("superseded");
+        presentationRef.current = null;
+      }
+      let presentation = presentationRef.current;
+      if (
+        presentation &&
+        (presentation.fillId !== fillId ||
+          presentation.selectedElementId !== selectedElementId)
+      ) {
+        presentation.handle.cancel("selection-change");
+        presentation = null;
+        presentationRef.current = null;
+      }
+      if (!presentation) {
+        const pilot = resolveFillPresentationPilotTarget(
+          selectedElementId,
+          fillId,
+        );
+        if (!pilot || !selectedElementId) return false;
+        presentation = {
+          baseFills: pilot.fills,
+          fillId,
+          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+            commitIntent: "fill-gradient-stop",
+            ownerId,
+            projectId: pilot.projectId,
+            targets: [pilot.target],
+          }),
+          phase: "active",
+          selectedElementId,
+          target: pilot.target,
+        };
+        presentationRef.current = presentation;
+      }
+
+      const descriptor: EditorMutationDescriptor = {
+        fills: applyFillUpdates(presentation.baseFills, fillId, updates),
+        target: presentation.target,
+        type: "fills.replace",
+      };
+      if (!presentation.handle.publish(descriptor)) {
+        presentation.phase = "cancelled";
+      }
+      return true;
+    },
+    [ownerId],
+  );
+
+  const commitFirstFillGradientPresentation = useCallback(
+    (fillId: string, updates: Partial<FillItem>): boolean => {
+      if (!("stops" in updates) || !Array.isArray(updates.stops)) {
+        return false;
+      }
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const active = presentationRef.current;
+      if (active?.phase === "cancelled") {
+        presentationRef.current = null;
+        return true;
+      }
+      if (!active) {
+        if (!previewFirstFillGradientPresentation(fillId, updates))
+          return false;
+      }
+
+      const presentation = presentationRef.current;
+      if (
+        !presentation ||
+        presentation.fillId !== fillId ||
+        presentation.selectedElementId !== selectedElementId
+      ) {
+        presentation?.handle.cancel("selection-change");
+        presentationRef.current = null;
+        return true;
+      }
+      const result = presentation.handle.finish({
+        fills: applyFillUpdates(presentation.baseFills, fillId, updates),
+        target: presentation.target,
+        type: "fills.replace",
+      });
+      if (result.status === "failed") {
+        presentation.phase = "failed";
+      } else {
+        presentationRef.current = null;
+      }
+      return true;
+    },
+    [previewFirstFillGradientPresentation],
   );
 
   const cancelFirstFillColorPresentation = useCallback(
@@ -437,9 +564,12 @@ export function useFillActions(): FillActions {
     updateFill,
     updateFillPreview,
     updateFillPreviewThrottled,
+    isFirstFillPresentationOwned,
     isFirstFillColorPresentationOwned,
     previewFirstFillColorPresentation,
     commitFirstFillColorPresentation,
+    previewFirstFillGradientPresentation,
+    commitFirstFillGradientPresentation,
     cancelFirstFillColorPresentation,
     changeFillType,
   };

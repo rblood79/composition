@@ -10,10 +10,10 @@
  * @since 2026-02-10 Gradient Phase 2
  */
 
-import { memo, useState, useCallback, useRef, useEffect } from 'react';
-import type { GradientStop } from '../../../../types/builder/fill.types';
+import { memo, useState, useCallback, useRef } from "react";
+import type { GradientStop } from "../../../../types/builder/fill.types";
 
-import './GradientBar.css';
+import "./GradientBar.css";
 
 interface GradientBarProps {
   stops: GradientStop[];
@@ -42,17 +42,6 @@ export const GradientBar = memo(function GradientBar({
     startY: number;
   } | null>(null);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  // 언마운트 시 pending RAF 정리
-  useEffect(() => {
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-    };
-  }, []);
-
   const getPosition = useCallback((clientX: number): number => {
     const bar = barRef.current;
     if (!bar) return 0;
@@ -73,7 +62,9 @@ export const GradientBar = memo(function GradientBar({
     [onStopSelect],
   );
 
-  // 🚀 RAF throttle: 초당 최대 60회로 제한
+  // 프레임 소유권은 상위 editor adapter에 있다. legacy 경로도
+  // updateFillPreviewThrottled가 단일 RAF를 소유하므로 이 컴포넌트가 중첩 RAF를
+  // 만들지 않는다.
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       const drag = draggingRef.current;
@@ -82,20 +73,12 @@ export const GradientBar = memo(function GradientBar({
       const clientX = e.clientX;
       const clientY = e.clientY;
 
-      // 이미 예약된 RAF가 있으면 스킵
-      if (rafRef.current !== null) return;
+      const position = getPosition(clientX);
+      const deltaY = Math.abs(clientY - drag.startY);
 
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        const position = getPosition(clientX);
-        const deltaY = Math.abs(clientY - drag.startY);
+      if (deltaY > 30 && stops.length > 2) return;
 
-        if (deltaY > 30 && stops.length > 2) {
-          return;
-        }
-
-        onStopMove(drag.index, position);
-      });
+      onStopMove(drag.index, position);
     },
     [getPosition, onStopMove, stops.length],
   );
@@ -106,12 +89,6 @@ export const GradientBar = memo(function GradientBar({
       if (!drag) return;
       draggingRef.current = null;
       setDraggingIndex(null);
-
-      // pending RAF 취소
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
 
       const deltaY = Math.abs(e.clientY - drag.startY);
       if (deltaY > 30 && stops.length > 2) {
@@ -127,7 +104,9 @@ export const GradientBar = memo(function GradientBar({
 
   const handleBarClick = useCallback(
     (e: React.MouseEvent) => {
-      if ((e.target as HTMLElement).classList.contains('gradient-bar__handle')) {
+      if (
+        (e.target as HTMLElement).classList.contains("gradient-bar__handle")
+      ) {
         return;
       }
       const position = getPosition(e.clientX);

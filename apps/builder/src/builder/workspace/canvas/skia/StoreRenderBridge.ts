@@ -56,8 +56,11 @@ import {
   recordEditorPresentationBridgeFullRebuild,
   recordEditorPresentationTargetIncrementalPatches,
 } from "../../../performance/editorPresentationPhase0Metrics";
-import type { FillItem } from "../../../../types/builder/fill.types";
-import { fillsToSkiaFillColor } from "../../../panels/styles/utils/fillToSkia";
+import { FillType, type FillItem } from "../../../../types/builder/fill.types";
+import {
+  fillsToSkiaFillColor,
+  fillsToSkiaFillStyle,
+} from "../../../panels/styles/utils/fillToSkia";
 import {
   invalidateNodePicture,
   setPresentationVolatileNodeIds,
@@ -109,8 +112,29 @@ function haveSamePresentationColorSlots(
     left.every(
       (target, index) =>
         target.color === right[index]?.color &&
-        target.opacityMultiplier === right[index]?.opacityMultiplier,
+        target.opacityMultiplier === right[index]?.opacityMultiplier &&
+        target.fillId === right[index]?.fillId &&
+        target.gradientWidth === right[index]?.gradientWidth &&
+        target.gradientHeight === right[index]?.gradientHeight &&
+        target.gradientColors === right[index]?.gradientColors &&
+        target.gradientPositions === right[index]?.gradientPositions,
     )
+  );
+}
+
+function isMutableGradientFill(fill: FillItem | undefined): fill is Extract<
+  FillItem,
+  {
+    type:
+      | FillType.LinearGradient
+      | FillType.RadialGradient
+      | FillType.AngularGradient;
+  }
+> {
+  return (
+    fill?.type === FillType.LinearGradient ||
+    fill?.type === FillType.RadialGradient ||
+    fill?.type === FillType.AngularGradient
   );
 }
 
@@ -342,6 +366,8 @@ export class StoreRenderBridge {
     string,
     {
       readonly colors: readonly Float32Array[];
+      readonly gradientColors: readonly (readonly Float32Array[] | undefined)[];
+      readonly gradientPositions: readonly (readonly number[] | undefined)[];
       readonly targets: readonly SkiaPresentationFillTarget[];
     }
   >();
@@ -371,13 +397,47 @@ export class StoreRenderBridge {
     if (!node || !targets || targets.length === 0) return false;
 
     const nextFillColor = fillsToSkiaFillColor([...fills]);
-    if (!nextFillColor) return false;
+    let changed = false;
+    for (const target of targets) {
+      if (nextFillColor && !presentationColorEquals(target, nextFillColor)) {
+        changed = true;
+      }
 
-    if (
-      targets.every((target) => presentationColorEquals(target, nextFillColor))
-    ) {
-      return false;
+      if (!target.gradientColors || !target.fillId) continue;
+      const nextFill = fills.find((fill) => fill.id === target.fillId);
+      if (!isMutableGradientFill(nextFill)) continue;
+      const nextStyle = fillsToSkiaFillStyle(
+        [nextFill],
+        target.gradientWidth ?? node.width,
+        target.gradientHeight ?? node.height,
+      );
+      if (
+        !nextStyle ||
+        !(
+          nextStyle.type === "linear-gradient" ||
+          nextStyle.type === "radial-gradient" ||
+          nextStyle.type === "angular-gradient"
+        ) ||
+        target.gradientColors.length !== nextStyle.colors.length ||
+        (target.gradientPositions?.length ?? 0) !== nextStyle.positions.length
+      ) {
+        continue;
+      }
+      if (
+        target.gradientColors.some((color, index) =>
+          color.some(
+            (channel, channelIndex) =>
+              !Object.is(channel, nextStyle.colors[index]?.[channelIndex]),
+          ),
+        ) ||
+        target.gradientPositions?.some(
+          (position, index) => !Object.is(position, nextStyle.positions[index]),
+        )
+      ) {
+        changed = true;
+      }
     }
+    if (!changed) return false;
 
     const existingBase = this.presentationBaseById.get(elementId);
     if (
@@ -386,10 +446,50 @@ export class StoreRenderBridge {
     ) {
       this.presentationBaseById.set(elementId, {
         colors: targets.map((target) => Float32Array.from(target.color)),
+        gradientColors: targets.map((target) =>
+          target.gradientColors?.map((color) => Float32Array.from(color)),
+        ),
+        gradientPositions: targets.map((target) =>
+          target.gradientPositions ? [...target.gradientPositions] : undefined,
+        ),
         targets,
       });
     }
-    for (const target of targets) setPresentationColor(target, nextFillColor);
+    for (const target of targets) {
+      if (nextFillColor) setPresentationColor(target, nextFillColor);
+      if (!target.gradientColors || !target.fillId) continue;
+      const nextFill = fills.find((fill) => fill.id === target.fillId);
+      if (!isMutableGradientFill(nextFill)) continue;
+      const nextStyle = fillsToSkiaFillStyle(
+        [nextFill],
+        target.gradientWidth ?? node.width,
+        target.gradientHeight ?? node.height,
+      );
+      if (
+        !nextStyle ||
+        !(
+          nextStyle.type === "linear-gradient" ||
+          nextStyle.type === "radial-gradient" ||
+          nextStyle.type === "angular-gradient"
+        ) ||
+        target.gradientColors.length !== nextStyle.colors.length
+      ) {
+        continue;
+      }
+      target.gradientColors.forEach((color, index) =>
+        color.set(nextStyle.colors[index]!),
+      );
+      if (
+        target.gradientPositions &&
+        target.gradientPositions.length === nextStyle.positions.length
+      ) {
+        target.gradientPositions.splice(
+          0,
+          target.gradientPositions.length,
+          ...nextStyle.positions,
+        );
+      }
+    }
     invalidateNodePicture(elementId);
     this.presentationNodeIds.add(elementId);
     setPresentationVolatileNodeIds(this.presentationNodeIds);
@@ -407,7 +507,24 @@ export class StoreRenderBridge {
       targets !== undefined &&
       haveSamePresentationColorSlots(base.targets, targets);
     if (canRestore) {
-      targets.forEach((target, index) => target.color.set(base.colors[index]));
+      targets.forEach((target, index) => {
+        target.color.set(base.colors[index]!);
+        const gradientColors = base.gradientColors[index];
+        if (gradientColors && target.gradientColors) {
+          target.gradientColors.forEach((color, colorIndex) => {
+            const snapshot = gradientColors[colorIndex];
+            if (snapshot) color.set(snapshot);
+          });
+        }
+        const gradientPositions = base.gradientPositions[index];
+        if (gradientPositions && target.gradientPositions) {
+          target.gradientPositions.splice(
+            0,
+            target.gradientPositions.length,
+            ...gradientPositions,
+          );
+        }
+      });
       invalidateNodePicture(elementId);
     }
     this.presentationBaseById.delete(elementId);
