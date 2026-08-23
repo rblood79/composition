@@ -24,6 +24,7 @@ import {
   type PresentationLayoutComputeRequest,
   type PresentationLayoutTreeIndex,
 } from "./editorPresentationLayoutLane";
+import { normalizePresentationSpacingPatch } from "./editorPresentationStyleNormalization";
 
 export type { PresentationLayoutComputeRequest } from "./editorPresentationLayoutLane";
 
@@ -87,7 +88,10 @@ function readLayoutPatch(
     return null;
   }
 
-  const patch = descriptor.patch;
+  const patch =
+    descriptor.type === "style.patch"
+      ? normalizePresentationSpacingPatch(descriptor.patch)
+      : descriptor.patch;
   const allowedKeys =
     descriptor.type === "style.patch"
       ? ["left", "top", "width", "height", ...TARGETED_SPACING_KEYS]

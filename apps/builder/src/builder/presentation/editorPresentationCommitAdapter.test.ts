@@ -322,9 +322,10 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     );
     const next = useCanonicalDocumentStore.getState().documents.get(PROJECT_ID)
       ?.children[0];
-    expect(
-      (next?.props?.style as Record<string, unknown> | undefined)?.gap,
-    ).toBe("16px");
+    const nextStyle = next?.props?.style as Record<string, unknown> | undefined;
+    expect(nextStyle?.gap).toBeUndefined();
+    expect(nextStyle?.rowGap).toBe("16px");
+    expect(nextStyle?.columnGap).toBe("16px");
     expect(rebuildIndexes).toHaveBeenCalledTimes(1);
     expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
     await flushPersist();

@@ -30,6 +30,13 @@ longhand/shorthand와 `gap`/`rowGap`/`columnGap`을 targeted layout publication�
   unified canvas는 `671.5×940`으로 동시에 표시됐다.
 - 이번 실측은 Preview geometry와 분할 surface 존재를 증명하지만 Skia 내부 픽셀
   bounds/terminal handoff까지 독립적으로 읽는 계측은 아직 없다.
+- 2026-08-24 실행 중인 Builder의 `Compare Mode`에서 `Badge` spacing spot-check도
+  수행했다. `padding: 12px 24px → 20px`, `gap: 8px → 24px`가 Preview computed
+  style에 반영됐고 rect는 `102.109375 × 52px → 94.109375 × 68px`로 변했다.
+  수정 전 재현되던 shorthand/longhand React 경고는 normalization 적용 후
+  `console.error`/`console.warn = 0/0`으로 사라졌으며, Undo 후 원래 geometry와
+  style로 복귀했다. 이 결과는 단일 `Badge`의 실제 Preview spot-check이며,
+  generic non-grid flex sibling의 Skia `bounds`/`hitBounds` parity 증거는 아니다.
 
 ## 남은 게이트
 

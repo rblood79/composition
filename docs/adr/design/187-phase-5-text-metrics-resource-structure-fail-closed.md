@@ -36,21 +36,24 @@ scene publication을 열어 주는 consumer는 아니다.
 
 ## 검증
 
-- registry/classifier/Preview/paragraph-key/parity/converter/Skia focused gate: 8 files / 39 tests PASS.
+- registry/classifier/Preview/paragraph-key/populated-harness/residual-fail-closed/parity/converter/Skia focused gate: 10 files / 46 tests PASS.
 - `pnpm run codex:typecheck`: baseline 43 known errors 외 신규 오류 없음.
-- fixed Text `fontSize`/`fontWeight`는 focused gate까지 통과했으나 paragraph/rect parity Builder
-  live는 아직 실행 대상이다. 나머지 metrics/resource/structure는 원자 consumer가
-  없어 Builder live를 실행하지 않는다.
+- fixed Text `fontSize`/`fontWeight`는 populated fixture harness에서 paragraph key,
+  Preview/Skia 값, rect, cancel restore 및 console error 0을 검증했다. 실제 populated
+  Builder 브라우저 trace는 별도 운영 증거로 남긴다. 나머지 metrics/resource/structure는
+  residual deterministic harness에서 publish scheduler/overlay/commit을 열지 않고,
+  structure 실패 후 명시적 cancel terminal만 통과하는 것을 검증했다. 원자 consumer가
+  없어 resource/structure Builder live를 성공으로 기록하지 않는다.
 
 검증 명령:
 
 ```text
-pnpm exec vitest run --config vitest.config.ts src/preview/components/presentationTextMetricProps.test.ts src/builder/presentation/editorPresentationTextMetricValue.test.ts src/builder/presentation/editorPresentationTextMetricParity.test.ts src/builder/presentation/invalidation/editorMutationEffectRegistry.test.ts src/builder/presentation/editorMutationClassifier.test.ts src/builder/workspace/canvas/skia/specShapeConverter.presentation.test.ts src/builder/workspace/canvas/skia/StoreRenderBridge.presentation.test.ts src/builder/workspace/canvas/skia/textParagraphKey.test.ts
+pnpm exec vitest run --config vitest.config.ts src/preview/components/presentationTextMetricProps.test.ts src/builder/presentation/editorPresentationTextMetricValue.test.ts src/builder/presentation/editorPresentationTextMetricParity.test.ts src/builder/presentation/editorPresentationTextMetrics.liveHarness.test.ts src/builder/presentation/editorPresentationResidualFailClosed.test.ts src/builder/presentation/invalidation/editorMutationEffectRegistry.test.ts src/builder/presentation/editorMutationClassifier.test.ts src/builder/workspace/canvas/skia/specShapeConverter.presentation.test.ts src/builder/workspace/canvas/skia/StoreRenderBridge.presentation.test.ts src/builder/workspace/canvas/skia/textParagraphKey.test.ts
 pnpm run codex:typecheck
 git diff --check
 ```
 
-결과는 8 files/39 tests PASS, `git diff --check` PASS, typecheck는 baseline 43 known
+결과는 10 files/46 tests PASS, `git diff --check` PASS, typecheck는 baseline 43 known
 errors 외 신규 오류 없음이다. 이 범위는 owner가 없으므로 populated Builder live
 trace를 성공으로 기록하지 않았다.
 

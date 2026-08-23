@@ -1,5 +1,5 @@
 import { cleanup, render } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ResolvedNode } from "@composition/shared";
 import { FillType } from "../../../types/builder/fill.types";
@@ -238,7 +238,15 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
         },
       ]),
     ).toEqual({
-      style: { position: "absolute", left: 10, top: 20, padding: 12 },
+      style: {
+        position: "absolute",
+        left: 10,
+        top: 20,
+        paddingTop: 12,
+        paddingRight: 12,
+        paddingBottom: 12,
+        paddingLeft: 12,
+      },
     });
 
     expect(
@@ -253,8 +261,96 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
         ],
       ),
     ).toEqual({
-      style: { position: "static", display: "flex", gap: 16, paddingTop: 12 },
+      style: {
+        position: "static",
+        display: "flex",
+        rowGap: 16,
+        columnGap: 16,
+        paddingTop: 12,
+      },
     });
+  });
+
+  it("presentation spacing merge는 shorthand와 longhand를 함께 렌더하지 않는다", () => {
+    const base = {
+      style: {
+        display: "flex",
+        gap: "8px",
+        rowGap: "4px",
+        padding: "8px",
+        paddingTop: "4px",
+      },
+    };
+    const resolved = resolvePresentationLayoutProps(base, [
+      {
+        patch: { gap: 16, padding: 12 },
+        target: { kind: "canonical-node", nodeId: "flow-spacing" },
+        type: "style.patch",
+      },
+    ]);
+
+    expect(resolved.style).toEqual({
+      display: "flex",
+      rowGap: 16,
+      columnGap: 16,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
+    });
+    expect(resolved.style).not.toHaveProperty("gap");
+    expect(resolved.style).not.toHaveProperty("padding");
+  });
+
+  it("renderer가 canonical spacing 충돌 없이 Preview style을 적용한다", () => {
+    const node: ResolvedNode = {
+      id: "frame-spacing",
+      type: FRAME_TYPE,
+      props: {
+        style: {
+          display: "flex",
+          gap: "8px",
+          rowGap: "4px",
+          padding: "8px",
+          paddingTop: "4px",
+        },
+      },
+    };
+    getRuntimeStore().setState({
+      editorPresentationOverrides: {
+        "frame-spacing": {
+          sessionId: "spacing-session",
+          revision: 1,
+          mutations: [
+            {
+              patch: { gap: 16, padding: 12 },
+              target: { kind: "canonical-node", nodeId: "frame-spacing" },
+              type: "style.patch",
+            },
+          ],
+        },
+      },
+    });
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { container } = renderNode(node);
+    const element = container.querySelector(
+      "[data-canonical-id='frame-spacing']",
+    ) as HTMLElement;
+    expect(element.style.gap).toBe("");
+    expect(element.style.rowGap).toBe("16px");
+    expect(element.style.columnGap).toBe("16px");
+    expect(element.style.paddingTop).toBe("12px");
+    expect(element.style.paddingRight).toBe("12px");
+    expect(
+      errorSpy.mock.calls.some((args) =>
+        args.some(
+          (argument) =>
+            typeof argument === "string" && argument.includes("Removing"),
+        ),
+      ),
+    ).toBe(false);
+    errorSpy.mockRestore();
   });
 
   it("borderColor style patch는 Preview style만 바꾸고 나머지 style을 보존한다", () => {

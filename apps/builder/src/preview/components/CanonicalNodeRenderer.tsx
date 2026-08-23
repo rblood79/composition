@@ -77,6 +77,10 @@ import type { FillItem } from "../../types/builder/fill.types";
 import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
 import type { BoxShadowPresentationValue } from "../../builder/presentation/boxShadowPresentation";
 import { parsePresentationOpacity } from "../../builder/presentation/editorPresentationOpacity";
+import {
+  normalizePresentationSpacingPatch,
+  normalizePresentationSpacingStyle,
+} from "../../builder/presentation/editorPresentationStyleNormalization";
 import { resolvePresentationTextMetricProps } from "./presentationTextMetricProps";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -334,10 +338,10 @@ function mergeInteractionOverride(
   if (!override) return base;
   const merged: Record<string, unknown> = { ...base, ...override };
   if (override.style && typeof override.style === "object") {
-    merged.style = {
+    merged.style = normalizePresentationSpacingStyle({
       ...((base.style as Record<string, unknown> | undefined) ?? {}),
       ...(override.style as Record<string, unknown>),
-    };
+    });
   }
   return merged;
 }
@@ -435,18 +439,24 @@ export function resolvePresentationLayoutProps(
 ): Record<string, unknown> {
   const baseStyle = base.style;
   if (!baseStyle || typeof baseStyle !== "object") return base;
-  const style = baseStyle as Record<string, unknown>;
+  const style = normalizePresentationSpacingStyle(
+    baseStyle as Record<string, unknown>,
+  );
   if (style.position === "fixed" || style.position === "sticky") return base;
 
   let nextStyle = style;
   for (const mutation of mutations ?? []) {
-    const patch =
+    const rawPatch =
       mutation.type === "style.patch"
         ? mutation.patch
         : mutation.type === "geometry.patch"
           ? mutation.patch
           : null;
-    if (!patch) continue;
+    if (!rawPatch) continue;
+    const patch =
+      mutation.type === "style.patch"
+        ? normalizePresentationSpacingPatch(rawPatch)
+        : rawPatch;
     const keys = Object.keys(patch);
     const isStylePatch = mutation.type === "style.patch";
     const allowedKeys = isStylePatch
@@ -466,18 +476,6 @@ export function resolvePresentationLayoutProps(
         ]
       : ["x", "y", "width", "height"];
     const hasSizePatch = keys.includes("width") || keys.includes("height");
-    const hasSpacingPatch = keys.some((key) =>
-      [
-        "padding",
-        "paddingTop",
-        "paddingRight",
-        "paddingBottom",
-        "paddingLeft",
-        "gap",
-        "rowGap",
-        "columnGap",
-      ].includes(key),
-    );
     const hasPositionPatch = keys.some((key) =>
       ["left", "top", "x", "y"].includes(key),
     );

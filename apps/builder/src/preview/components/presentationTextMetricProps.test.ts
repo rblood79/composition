@@ -72,5 +72,12 @@ describe("Preview fixed Text metric presentation", () => {
         "Text",
       ),
     ).toBe(relativeBase);
+    expect(
+      resolvePresentationTextMetricProps(
+        base,
+        [patch({ fontSize: 18, padding: 12 })],
+        "Text",
+      ),
+    ).toBe(base);
   });
 });

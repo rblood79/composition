@@ -571,6 +571,44 @@ describe("EditorPresentationTransactionRuntime", () => {
     expect(commit).not.toHaveBeenCalled();
   });
 
+  it("normalizes spacing shorthand before overlay and terminal commit", () => {
+    const { commit, runtime, scheduler } = createRuntime();
+    const handle = begin(runtime);
+    const spacing = {
+      target,
+      type: "style.patch" as const,
+    };
+
+    handle.publish({ ...spacing, patch: { gap: 12, padding: 8 } });
+    scheduler.flush();
+
+    expect(runtime.getTargetSnapshot(projectId, target)[0]?.descriptor).toEqual(
+      {
+        ...spacing,
+        patch: {
+          columnGap: 12,
+          paddingBottom: 8,
+          paddingLeft: 8,
+          paddingRight: 8,
+          paddingTop: 8,
+          rowGap: 12,
+        },
+      },
+    );
+
+    expect(handle.finish({ ...spacing, patch: { gap: "16px" } })).toMatchObject(
+      { status: "committed" },
+    );
+    expect(commit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        descriptor: {
+          ...spacing,
+          patch: { columnGap: "16px", rowGap: "16px" },
+        },
+      }),
+    );
+  });
+
   it("converts invalid final descriptor normalization into a failed session", () => {
     const { commit, runtime } = createRuntime();
     const handle = begin(runtime);

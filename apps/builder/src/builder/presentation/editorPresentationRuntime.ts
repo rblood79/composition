@@ -24,6 +24,7 @@ import {
   EMPTY_EDITOR_PRESENTATION_INVALIDATION,
   updateEditorPresentationInvalidation,
 } from "./editorPresentationInvalidation";
+import { normalizePresentationSpacingPatch } from "./editorPresentationStyleNormalization";
 
 export interface EditorPresentationFrameScheduler {
   cancel(handle: number): void;
@@ -278,9 +279,9 @@ function normalizeDescriptor(
       });
     case "style.patch":
       return Object.freeze({
-        patch: clonePresentationValue(descriptor.patch) as Readonly<
-          Record<string, unknown>
-        >,
+        patch: clonePresentationValue(
+          normalizePresentationSpacingPatch(descriptor.patch),
+        ) as Readonly<Record<string, unknown>>,
         ...(descriptor.propagation
           ? { propagation: descriptor.propagation }
           : {}),

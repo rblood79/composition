@@ -31,6 +31,13 @@ import {
   withCanonicalRefDescendantFills,
   withCanonicalRefDescendantStylePatch,
 } from "../../adapters/canonical/canonicalRefResolution";
+import {
+  hasPresentationSpacingPatch,
+  normalizePresentationSpacingPatch,
+  normalizePresentationSpacingStyle,
+  presentationGapLonghands,
+  presentationPaddingLonghands,
+} from "./editorPresentationStyleNormalization";
 
 interface IndexedCanonicalNode {
   readonly indexPath: readonly number[];
@@ -270,8 +277,14 @@ function applyStylePatch(
   baseStyle: Readonly<Record<string, unknown>>,
   patch: Readonly<Record<string, unknown>>,
 ): Record<string, unknown> {
-  const nextStyle = { ...baseStyle };
-  for (const [key, value] of Object.entries(patch)) {
+  const hasSpacing = hasPresentationSpacingPatch(patch);
+  const nextStyle = hasSpacing
+    ? normalizePresentationSpacingStyle(baseStyle)
+    : { ...baseStyle };
+  const normalizedPatch = hasSpacing
+    ? normalizePresentationSpacingPatch(patch)
+    : patch;
+  for (const [key, value] of Object.entries(normalizedPatch)) {
     if (value === "") delete nextStyle[key];
     else nextStyle[key] = value;
   }
@@ -283,8 +296,15 @@ function areStylePatchValuesEqual(
   baseStyle: unknown,
 ): boolean {
   if (!isRecord(baseStyle)) return false;
-  return Object.entries(patch).every(([key, value]) => {
-    const baseValue = baseStyle[key];
+  const hasSpacing = hasPresentationSpacingPatch(patch);
+  const normalizedPatch = hasSpacing
+    ? normalizePresentationSpacingPatch(patch)
+    : patch;
+  const normalizedBaseStyle = hasSpacing
+    ? normalizePresentationSpacingStyle(baseStyle)
+    : baseStyle;
+  return Object.entries(normalizedPatch).every(([key, value]) => {
+    const baseValue = normalizedBaseStyle[key];
     return value === "" ? baseValue === undefined : Object.is(baseValue, value);
   });
 }
@@ -395,7 +415,13 @@ export function commitEditorPresentationFills(
 export function commitEditorPresentationStyle(
   input: EditorPresentationCommitInput,
 ): EditorPresentationCommitResult {
-  const descriptor = input.descriptor;
+  const descriptor =
+    input.descriptor.type === "style.patch"
+      ? {
+          ...input.descriptor,
+          patch: normalizePresentationSpacingPatch(input.descriptor.patch),
+        }
+      : input.descriptor;
   const patchKeys = Object.keys(
     descriptor.type === "style.patch" ? descriptor.patch : {},
   );
@@ -419,23 +445,34 @@ export function commitEditorPresentationStyle(
     patchKeys[0] === "opacity" &&
     descriptor.type === "style.patch" &&
     parsePresentationOpacity(descriptor.patch.opacity) !== null;
-  const isLayoutPatch =
-    patchKeys.length === 1 &&
-    [
-      "width",
-      "height",
-      "padding",
-      "paddingTop",
-      "paddingRight",
-      "paddingBottom",
-      "paddingLeft",
-      "gap",
-      "rowGap",
-      "columnGap",
-    ].includes(patchKeys[0] ?? "") &&
+  const spacingKeys = [
+    ...presentationGapLonghands,
+    ...presentationPaddingLonghands,
+  ];
+  const isGapLonghand = (key: string): boolean =>
+    (presentationGapLonghands as readonly string[]).includes(key);
+  const isPaddingLonghand = (key: string): boolean =>
+    (presentationPaddingLonghands as readonly string[]).includes(key);
+  const isSpacingPatch =
     descriptor.type === "style.patch" &&
-    typeof descriptor.patch[patchKeys[0]] === "string" &&
-    /^\s*(\d+(?:\.\d+)?)px\s*$/.test(descriptor.patch[patchKeys[0]] as string);
+    patchKeys.every((key) =>
+      (spacingKeys as readonly string[]).some((candidate) => candidate === key),
+    ) &&
+    (patchKeys.length === 1 ||
+      (patchKeys.length === presentationGapLonghands.length &&
+        patchKeys.every(isGapLonghand)) ||
+      (patchKeys.length === presentationPaddingLonghands.length &&
+        patchKeys.every(isPaddingLonghand)));
+  const isLayoutPatch =
+    descriptor.type === "style.patch" &&
+    ((patchKeys.length === 1 &&
+      ["width", "height"].includes(patchKeys[0] ?? "")) ||
+      isSpacingPatch) &&
+    patchKeys.every(
+      (key) =>
+        typeof descriptor.patch[key] === "string" &&
+        /^\s*(\d+(?:\.\d+)?)px\s*$/.test(descriptor.patch[key] as string),
+    );
   const isTextMetricPatch =
     patchKeys.length === 1 &&
     descriptor.type === "style.patch" &&

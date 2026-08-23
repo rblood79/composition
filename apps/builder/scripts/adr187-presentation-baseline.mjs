@@ -22,6 +22,7 @@ function parseArgs(argv) {
     lane: "paint",
     layoutProperty: "position",
     out: "/private/tmp/adr187-phase0-baseline.json",
+    projectUrl: null,
     repeats: 5,
     storageState: resolve("apps/builder/scripts/.auth-session.json"),
     serveDist: false,
@@ -39,6 +40,7 @@ function parseArgs(argv) {
       options.headed = true;
       continue;
     } else if (value === "--out") options.out = next;
+    else if (value === "--project-url") options.projectUrl = next;
     else if (value === "--lane") options.lane = next;
     else if (value === "--layout-property") options.layoutProperty = next;
     else if (value === "--repeats") options.repeats = Number(next);
@@ -60,6 +62,23 @@ function parseArgs(argv) {
 function assertOptions(options) {
   if (!existsSync(options.storageState)) {
     throw new Error(`storage state not found: ${options.storageState}`);
+  }
+  if (options.projectUrl) {
+    const projectUrl = new URL(options.projectUrl);
+    const baseUrl = new URL(options.baseUrl);
+    if (projectUrl.origin !== baseUrl.origin) {
+      throw new Error(
+        `--project-url origin must match --base-url: ${projectUrl.origin} !== ${baseUrl.origin}`,
+      );
+    }
+    if (!/^\/builder\/[^/]+$/.test(projectUrl.pathname)) {
+      throw new Error("--project-url must point to /builder/<project-id>");
+    }
+    if (options.tiers.length !== 1) {
+      throw new Error(
+        "--project-url runs require exactly one --tiers value to avoid mutating an existing project across tiers",
+      );
+    }
   }
   if (options.serveDist && !existsSync(join(options.distDir, "index.html"))) {
     throw new Error(`production dist is unavailable: ${options.distDir}`);
@@ -424,9 +443,37 @@ async function createIsolatedProject(page, baseUrl) {
   return { projectName, projectUrl: page.url() };
 }
 
-async function seedTier(page, tier, previousTier, fixtureProfile) {
+async function openExistingProject(page, projectUrl) {
+  const url = new URL(projectUrl);
+  url.searchParams.set("adr187Metrics", "1");
+  await page.goto(url.toString(), { waitUntil: "networkidle" });
+  // Keep the G6 geometry contract independent of the operator's persisted
+  // breakpoint while reusing the already authenticated Builder project.
+  await page.evaluate(() => {
+    window.localStorage.setItem("builder-breakpoint", "mobile");
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForFunction(
+    () =>
+      Boolean(
+        window.__composition_STORE__ &&
+          window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__,
+      ),
+    undefined,
+    { timeout: 30000 },
+  );
+  return { mode: "existing", projectName: null, projectUrl: page.url() };
+}
+
+async function seedTier(
+  page,
+  tier,
+  previousTier,
+  fixtureProfile,
+  allowExistingProject = false,
+) {
   return page.evaluate(
-    async ({ targetTier, priorTier, profile }) => {
+    async ({ targetTier, priorTier, profile, allowExistingProject }) => {
       const store = window.__composition_STORE__;
       if (!store) throw new Error("Builder store global is unavailable");
       const state = store.getState();
@@ -440,93 +487,143 @@ async function seedTier(page, tier, previousTier, fixtureProfile) {
 
       const existingCount = activeElements.length;
       const countToAdd = targetTier - existingCount;
-      if (countToAdd < 0) {
+      const flowIds = [
+        "adr187-flow-parent",
+        "adr187-target",
+        "adr187-flow-sibling",
+      ];
+      const existingFlowElements = activeElements.filter((element) =>
+        flowIds.includes(element.id),
+      );
+      const hasFlowFixture = existingFlowElements.length === flowIds.length;
+      const shouldSeedFlow =
+        profile === "flow-layout" && priorTier === 0 && !hasFlowFixture;
+      if (countToAdd < 0 && !(allowExistingProject && shouldSeedFlow)) {
         throw new Error(
           `tier ${targetTier} is smaller than active count ${existingCount}`,
         );
       }
       if (profile === "flow-layout" && priorTier === 0) {
-        const flowParent = {
-          id: "adr187-flow-parent",
-          type: "frame",
-          parent_id: body.id,
-          page_id: currentPageId,
-          order_num: 0,
-          props: {
-            style: {
-              display: "flex",
-              flexDirection: "row",
-              gap: "8px",
-              height: "180px",
-              padding: "8px",
-              position: "static",
-              width: "360px",
-            },
-          },
-        };
-        const flowTarget = {
-          id: "adr187-target",
-          type: "frame",
-          parent_id: flowParent.id,
-          page_id: currentPageId,
-          order_num: 0,
-          props: {
-            style: {
-              height: "60px",
-              position: "static",
-              width: "100px",
-            },
-          },
-          fills: [
-            {
-              id: "adr187-fill",
-              type: "color",
-              color: "#3366CCFF",
-              enabled: true,
-              opacity: 1,
-              blendMode: "normal",
-            },
-          ],
-        };
-        const flowSibling = {
-          id: "adr187-flow-sibling",
-          type: "frame",
-          parent_id: flowParent.id,
-          page_id: currentPageId,
-          order_num: 1,
-          props: {
-            style: {
-              height: "60px",
-              position: "static",
-              width: "100px",
-            },
-          },
-        };
-        await state.addComplexElement(flowParent, [flowTarget, flowSibling]);
-        const afterFlow = store.getState();
-        const flowCount = afterFlow.elements.filter(
-          (element) => element.page_id === currentPageId,
-        ).length;
-        const fillerCount = targetTier - flowCount;
-        for (let index = 0; index < fillerCount; index += 1) {
-          await afterFlow.addComplexElement(
-            {
-              id: `adr187-flow-filler-${index}`,
-              type: "frame",
-              parent_id: body.id,
-              page_id: currentPageId,
-              order_num: index + 10,
-              props: {
-                style: {
-                  height: "8px",
-                  position: "absolute",
-                  top: `${2000 + index * 12}px`,
-                  width: "8px",
+        if (existingFlowElements.length > 0 && !hasFlowFixture) {
+          throw new Error(
+            `existing flow fixture is incomplete: ${existingFlowElements
+              .map((element) => element.id)
+              .join(", ")}`,
+          );
+        }
+        if (hasFlowFixture && !allowExistingProject) {
+          throw new Error("flow fixture already exists in isolated project");
+        }
+        if (hasFlowFixture) {
+          const hasFiller = activeElements.some(
+            (element) => element.id === "adr187-flow-filler-0",
+          );
+          if (!hasFiller) {
+            await state.addComplexElement(
+              {
+                id: "adr187-flow-filler-0",
+                type: "frame",
+                parent_id: body.id,
+                page_id: currentPageId,
+                order_num: 10,
+                props: {
+                  style: {
+                    height: "8px",
+                    position: "absolute",
+                    top: "2000px",
+                    width: "8px",
+                  },
                 },
               },
+              [],
+            );
+          }
+        }
+        if (!hasFlowFixture) {
+          const flowParent = {
+            id: "adr187-flow-parent",
+            type: "frame",
+            parent_id: body.id,
+            page_id: currentPageId,
+            order_num: 0,
+            props: {
+              style: {
+                display: "flex",
+                flexDirection: "row",
+                gap: "8px",
+                height: "180px",
+                padding: "8px",
+                position: "static",
+                width: "360px",
+              },
             },
-            [],
-          );
+          };
+          const flowTarget = {
+            id: "adr187-target",
+            type: "frame",
+            parent_id: flowParent.id,
+            page_id: currentPageId,
+            order_num: 0,
+            props: {
+              style: {
+                height: "60px",
+                position: "static",
+                width: "100px",
+              },
+            },
+            fills: [
+              {
+                id: "adr187-fill",
+                type: "color",
+                color: "#3366CCFF",
+                enabled: true,
+                opacity: 1,
+                blendMode: "normal",
+              },
+            ],
+          };
+          const flowSibling = {
+            id: "adr187-flow-sibling",
+            type: "frame",
+            parent_id: flowParent.id,
+            page_id: currentPageId,
+            order_num: 1,
+            props: {
+              style: {
+                height: "60px",
+                position: "static",
+                width: "100px",
+              },
+            },
+          };
+          await state.addComplexElement(flowParent, [flowTarget, flowSibling]);
+          const afterFlow = store.getState();
+          const flowCount = afterFlow.elements.filter(
+            (element) => element.page_id === currentPageId,
+          ).length;
+          const fillerCount = allowExistingProject
+            ? Math.max(1, targetTier - flowCount)
+            : targetTier - flowCount;
+          for (let index = 0; index < fillerCount; index += 1) {
+            await afterFlow.addComplexElement(
+              {
+                id: `adr187-flow-filler-${index}`,
+                type: "frame",
+                parent_id: body.id,
+                page_id: currentPageId,
+                order_num: index + 10,
+                props: {
+                  style: {
+                    height: "8px",
+                    position: "absolute",
+                    top: `${2000 + index * 12}px`,
+                    width: "8px",
+                  },
+                },
+              },
+              [],
+            );
+          }
         }
       } else if (countToAdd > 0) {
         const offset = Math.max(priorTier, existingCount);
@@ -588,7 +685,7 @@ async function seedTier(page, tier, previousTier, fixtureProfile) {
       const nextActiveCount = nextState.elements.filter(
         (element) => element.page_id === currentPageId,
       ).length;
-      if (nextActiveCount !== targetTier) {
+      if (!allowExistingProject && nextActiveCount !== targetTier) {
         throw new Error(
           `active page count mismatch: expected ${targetTier}, got ${nextActiveCount}`,
         );
@@ -603,6 +700,7 @@ async function seedTier(page, tier, previousTier, fixtureProfile) {
       targetTier: tier,
       priorTier: previousTier,
       profile: fixtureProfile,
+      allowExistingProject,
     },
   );
 }
@@ -1203,7 +1301,9 @@ async function main() {
       }
     });
 
-    const project = await createIsolatedProject(page, options.baseUrl);
+    const project = options.projectUrl
+      ? await openExistingProject(page, options.projectUrl)
+      : await createIsolatedProject(page, options.baseUrl);
     const tiers = [];
     let previousTier = 0;
     for (const tier of options.tiers) {
@@ -1212,6 +1312,7 @@ async function main() {
         tier,
         previousTier,
         options.fixtureProfile,
+        Boolean(options.projectUrl),
       );
       previousTier = tier;
       await page.waitForTimeout(tier >= 5000 ? 5000 : 2000);

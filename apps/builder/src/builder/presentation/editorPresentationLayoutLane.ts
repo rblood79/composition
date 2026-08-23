@@ -13,6 +13,10 @@ import {
   createPresentationTargetedPublications,
   type CreatePresentationPublicationsResult,
 } from "./editorLayoutPublication";
+import {
+  normalizePresentationSpacingPatch,
+  normalizePresentationSpacingStyle,
+} from "./editorPresentationStyleNormalization";
 
 export {
   createCanonicalFullLayoutPublication,
@@ -329,16 +333,20 @@ export function resolveCanonicalNodeWithPresentation(
       continue;
     }
     if (mutation.type === "style.patch") {
-      const layoutPatch = Object.fromEntries(
-        Object.entries(mutation.patch).filter(
-          ([key]) =>
-            getEditorMutationEffectRule("style", key)?.invalidation ===
-            "layout",
+      const layoutPatch = normalizePresentationSpacingPatch(
+        Object.fromEntries(
+          Object.entries(mutation.patch).filter(
+            ([key]) =>
+              getEditorMutationEffectRule("style", key)?.invalidation ===
+              "layout",
+          ),
         ),
       );
       if (Object.keys(layoutPatch).length === 0) continue;
       const props = (next.props ?? {}) as Record<string, unknown>;
-      const style = (props.style ?? {}) as Record<string, unknown>;
+      const style = normalizePresentationSpacingStyle(
+        (props.style ?? {}) as Record<string, unknown>,
+      );
       next = {
         ...next,
         props: { ...props, style: { ...style, ...layoutPatch } },

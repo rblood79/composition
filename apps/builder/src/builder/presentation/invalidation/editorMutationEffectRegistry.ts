@@ -148,6 +148,12 @@ const CONTINUOUS_STYLE_KEYS = new Set([
   "top",
   "transform",
   "width",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "rowGap",
+  "columnGap",
   "fontSize",
   "fontWeight",
 ]);

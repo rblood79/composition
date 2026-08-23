@@ -235,8 +235,18 @@ describe("SkiaEditorPresentationLayoutBridge", () => {
         );
         const hasSpacingPatch =
           input.descriptor.type === "style.patch" &&
-          (input.descriptor.patch.padding !== undefined ||
-            input.descriptor.patch.gap !== undefined);
+          Object.keys(input.descriptor.patch).some((key) =>
+            [
+              "padding",
+              "paddingTop",
+              "paddingRight",
+              "paddingBottom",
+              "paddingLeft",
+              "gap",
+              "rowGap",
+              "columnGap",
+            ].includes(key),
+          );
         return new Map<string, ComputedLayout>([
           [
             body.id,
