@@ -319,6 +319,10 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
       : {}),
   };
 
+  const presentationStrokeTargets = strokeColor
+    ? [{ color: strokeColor }]
+    : undefined;
+
   return {
     type: "box",
     elementId: element.id,
@@ -338,5 +342,6 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     ...(clipPath ? { clipPath } : {}),
     box,
     presentationFillTargets: [presentationFillTarget],
+    ...(presentationStrokeTargets ? { presentationStrokeTargets } : {}),
   } as SkiaNodeData;
 }

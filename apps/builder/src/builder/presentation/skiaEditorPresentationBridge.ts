@@ -26,7 +26,9 @@ interface SkiaEditorPresentationBridgeOptions {
 }
 
 interface SessionProjectionState {
-  readonly fills: readonly FillItem[];
+  readonly fills?: readonly FillItem[];
+  readonly stylePatch?: Readonly<Record<string, unknown>>;
+  readonly kind: "fills" | "style";
   readonly projectId: string;
   readonly sequence: number;
   readonly target: EditorPresentationTargetRef;
@@ -110,12 +112,19 @@ export class SkiaEditorPresentationBridge {
     let changed = 0;
     if (storeBridge) {
       for (const [renderId, layers] of this.#layersByRenderId) {
-        const hasActiveLayer = [...layers.values()].some(
-          (layer) => layer.terminalRevision === null,
-        );
-        const didChange = hasActiveLayer
-          ? storeBridge.restorePresentationFillPatch(renderId)
-          : storeBridge.releasePresentationFillPatch(renderId);
+        let didChange = false;
+        for (const layer of layers.values()) {
+          const hasActiveLayer = layer.terminalRevision === null;
+          didChange =
+            (layer.kind === "fills"
+              ? hasActiveLayer
+                ? storeBridge.restorePresentationFillPatch(renderId)
+                : storeBridge.releasePresentationFillPatch(renderId)
+              : hasActiveLayer
+                ? storeBridge.restorePresentationStylePatch(renderId)
+                : storeBridge.releasePresentationStylePatch(renderId)) ||
+            didChange;
+        }
         if (didChange) changed += 1;
       }
     }
@@ -167,8 +176,7 @@ export class SkiaEditorPresentationBridge {
     if (
       session.projectId !== activeProjectId ||
       !descriptor ||
-      descriptor.type !== "fills.replace" ||
-      descriptor.target.kind !== "canonical-node"
+      (descriptor.type !== "fills.replace" && descriptor.type !== "style.patch")
     ) {
       this.#reconcileRenderIds(
         this.#removeSessionState(session.sessionId),
@@ -180,7 +188,9 @@ export class SkiaEditorPresentationBridge {
     const affectedRenderIds = this.#detachSessionLayers(session.sessionId);
     this.#sequence += 1;
     const state: SessionProjectionState = Object.freeze({
-      fills: descriptor.fills,
+      ...(descriptor.type === "fills.replace"
+        ? { fills: descriptor.fills, kind: "fills" as const }
+        : { kind: "style" as const, stylePatch: descriptor.patch }),
       projectId: session.projectId,
       sequence: this.#sequence,
       target: descriptor.target,
@@ -244,28 +254,56 @@ export class SkiaEditorPresentationBridge {
     let changed = 0;
     for (const renderId of renderIds) {
       const layers = this.#layersByRenderId.get(renderId);
-      let effective: SessionProjectionState | null = null;
+      const effectiveByKind = new Map<
+        SessionProjectionState["kind"],
+        SessionProjectionState
+      >();
       for (const layer of layers?.values() ?? []) {
+        const effective = effectiveByKind.get(layer.kind);
         if (!effective || layer.sequence > effective.sequence) {
-          effective = layer;
+          effectiveByKind.set(layer.kind, layer);
         }
       }
 
-      if (effective) {
-        if (emptyAction === "release") {
-          if (storeBridge.releasePresentationFillPatch(renderId)) changed += 1;
+      for (const kind of ["fills", "style"] as const) {
+        const effective = effectiveByKind.get(kind);
+        if (effective) {
+          if (emptyAction === "release") {
+            changed +=
+              kind === "fills"
+                ? Number(storeBridge.releasePresentationFillPatch(renderId))
+                : Number(storeBridge.releasePresentationStylePatch(renderId));
+          }
+          changed +=
+            kind === "fills"
+              ? Number(
+                  storeBridge.applyPresentationFillPatch(
+                    renderId,
+                    effective.fills ?? [],
+                  ),
+                )
+              : Number(
+                  storeBridge.applyPresentationStylePatch(
+                    renderId,
+                    effective.stylePatch ?? {},
+                  ),
+                );
+          continue;
         }
-        if (storeBridge.applyPresentationFillPatch(renderId, effective.fills)) {
-          changed += 1;
-        }
-        continue;
-      }
 
-      const didChange =
-        emptyAction === "release"
-          ? storeBridge.releasePresentationFillPatch(renderId)
-          : storeBridge.restorePresentationFillPatch(renderId);
-      if (didChange) changed += 1;
+        changed +=
+          kind === "fills"
+            ? Number(
+                emptyAction === "release"
+                  ? storeBridge.releasePresentationFillPatch(renderId)
+                  : storeBridge.restorePresentationFillPatch(renderId),
+              )
+            : Number(
+                emptyAction === "release"
+                  ? storeBridge.releasePresentationStylePatch(renderId)
+                  : storeBridge.restorePresentationStylePatch(renderId),
+              );
+      }
     }
 
     if (changed === 0) return;

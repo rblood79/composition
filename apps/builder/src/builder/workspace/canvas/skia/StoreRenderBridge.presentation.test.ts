@@ -92,6 +92,24 @@ describe("StoreRenderBridge ADR-187 presentation patch", () => {
     expect(isVolatileNode("node-1")).toBe(false);
   });
 
+  it("borderColor style patch는 mutable stroke slot만 갱신하고 exact restore한다", () => {
+    const node = makeNode();
+    const strokeColor = Float32Array.of(0.1, 0.2, 0.3, 1);
+    node.box!.strokeColor = strokeColor;
+    node.presentationStrokeTargets = [{ color: strokeColor }];
+    registerSkiaNode("border-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("border-1", {
+        borderColor: "#FF000080",
+      }),
+    ).toBe(true);
+    expect(strokeColor).toEqual(Float32Array.of(1, 0, 0, 128 / 255));
+    expect(bridge.restorePresentationStylePatch("border-1")).toBe(true);
+    expect(strokeColor).toEqual(Float32Array.of(0.1, 0.2, 0.3, 1));
+  });
+
   it("동일 presentation 값은 no-op이고 없는/non-box 대상은 건너뛴다", () => {
     const node = makeNode();
     registerSkiaNode("node-1", node);

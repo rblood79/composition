@@ -22,6 +22,7 @@ import {
   getCanonicalRefPathSegment,
   getCanonicalRefTarget,
   withCanonicalRefDescendantFills,
+  withCanonicalRefDescendantStylePatch,
 } from "../../adapters/canonical/canonicalRefResolution";
 
 interface IndexedCanonicalNode {
@@ -174,6 +175,10 @@ function cloneCanonicalNode(node: CanonicalNode): CanonicalNode {
   return structuredClone(node);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 function replaceNodeAtIndexPath(
   document: CompositionDocument,
   indexPath: readonly number[],
@@ -233,6 +238,48 @@ function readTargetFills(
     }
   }
   return Array.isArray(node.fills) ? (node.fills as FillItem[]) : [];
+}
+
+function readTargetStyle(
+  projectId: string,
+  target: EditorPresentationTargetRef,
+): Readonly<Record<string, unknown>> | null {
+  const node = getEditorPresentationTargetNode(projectId, target);
+  if (!node) return null;
+  if (target.kind === "ref-descendant") {
+    const refRoot = getIndexedNode(projectId, {
+      kind: "canonical-node",
+      nodeId: target.refId,
+    })?.node;
+    const override = refRoot
+      ? getCanonicalRefDescendantOverride(refRoot, target.pathKey)
+      : null;
+    if (isRecord(override?.style)) return override.style;
+  }
+  return isRecord(node.props?.style) ? node.props.style : {};
+}
+
+function applyStylePatch(
+  baseStyle: Readonly<Record<string, unknown>>,
+  patch: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+  const nextStyle = { ...baseStyle };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === "") delete nextStyle[key];
+    else nextStyle[key] = value;
+  }
+  return nextStyle;
+}
+
+function areStylePatchValuesEqual(
+  patch: Readonly<Record<string, unknown>>,
+  baseStyle: unknown,
+): boolean {
+  if (!isRecord(baseStyle)) return false;
+  return Object.entries(patch).every(([key, value]) => {
+    const baseValue = baseStyle[key];
+    return value === "" ? baseValue === undefined : Object.is(baseValue, value);
+  });
 }
 
 function buildReplaceHistoryEvents(
@@ -338,6 +385,107 @@ export function commitEditorPresentationFills(
   };
 }
 
+export function commitEditorPresentationStyle(
+  input: EditorPresentationCommitInput,
+): EditorPresentationCommitResult {
+  const descriptor = input.descriptor;
+  if (
+    descriptor.type !== "style.patch" ||
+    Object.keys(descriptor.patch).some((key) => key !== "borderColor") ||
+    typeof descriptor.patch.borderColor !== "string"
+  ) {
+    throw new Error(
+      "ADR-187 border color commit allowlist only accepts style.patch.borderColor",
+    );
+  }
+
+  const canonical = useCanonicalDocumentStore.getState();
+  if (canonical.currentProjectId !== input.projectId) {
+    throw new Error("Editor presentation project is no longer active");
+  }
+  if (canonical.documentVersion !== input.baseDocumentVersion) {
+    throw new Error(
+      "Editor presentation document version changed before commit",
+    );
+  }
+  const document = canonical.documents.get(input.projectId);
+  const before = document
+    ? getDocumentIndex(document).get(
+        descriptor.target.kind === "canonical-node"
+          ? descriptor.target.nodeId
+          : descriptor.target.refId,
+      )
+    : undefined;
+  const targetNode = getEditorPresentationTargetNode(
+    input.projectId,
+    descriptor.target,
+  );
+  const previousStyle = readTargetStyle(input.projectId, descriptor.target);
+  if (!document || !before || !targetNode || !previousStyle) {
+    throw new Error("Editor presentation canonical target no longer exists");
+  }
+  if (areStylePatchValuesEqual(descriptor.patch, previousStyle)) {
+    return { committedDocumentRevision: canonical.documentVersion };
+  }
+  if (!historyManager.getCurrentPageId()) {
+    throw new Error(
+      "Editor presentation commit requires an active history page",
+    );
+  }
+
+  const nextNode: CanonicalNode =
+    descriptor.target.kind === "canonical-node"
+      ? {
+          ...before.node,
+          props: {
+            ...(before.node.props ?? {}),
+            style: applyStylePatch(previousStyle, descriptor.patch),
+          },
+        }
+      : withCanonicalRefDescendantStylePatch(
+          before.node,
+          descriptor.target.pathKey,
+          descriptor.patch,
+        );
+  const nextDocument = replaceNodeAtIndexPath(
+    document,
+    before.indexPath,
+    nextNode,
+  );
+  const historyEvents = buildReplaceHistoryEvents(before, nextNode);
+
+  runCanonicalMutation<CanonicalMutationResult>({
+    canonical: () => {
+      useCanonicalDocumentStore
+        .getState()
+        .setDocument(input.projectId, nextDocument);
+      return { changed: true, document: nextDocument };
+    },
+    store: () => {
+      const elements = canonicalDocumentToElements(nextDocument);
+      useStore.setState((state) => ({
+        elements,
+        layoutVersion: state.layoutVersion + 1,
+      }));
+    },
+    history: () => {
+      historyManager.addEntry({
+        type: "update",
+        elementId:
+          descriptor.target.kind === "canonical-node"
+            ? descriptor.target.nodeId
+            : descriptor.target.refId,
+        data: { canonicalEvents: historyEvents },
+      });
+    },
+  });
+
+  return {
+    committedDocumentRevision:
+      useCanonicalDocumentStore.getState().documentVersion,
+  };
+}
+
 export const editorPresentationCanonicalRuntimeOptions: Required<
   Pick<
     EditorPresentationRuntimeOptions,
@@ -348,20 +496,28 @@ export const editorPresentationCanonicalRuntimeOptions: Required<
     | "readTargetValue"
   >
 > = {
-  commit: commitEditorPresentationFills,
+  commit: (input) =>
+    input.descriptor.type === "fills.replace"
+      ? commitEditorPresentationFills(input)
+      : commitEditorPresentationStyle(input),
   hasTarget: (projectId, target) =>
     getEditorPresentationTargetNode(projectId, target) !== null,
   isDescriptorEqualToBase: (descriptor, baseValue) =>
-    descriptor.type === "fills.replace" &&
-    areFillItemsEqual(
-      descriptor.fills,
-      Array.isArray(baseValue) ? (baseValue as FillItem[]) : [],
-    ),
+    descriptor.type === "fills.replace"
+      ? areFillItemsEqual(
+          descriptor.fills,
+          Array.isArray(baseValue) ? (baseValue as FillItem[]) : [],
+        )
+      : descriptor.type === "style.patch" &&
+        areStylePatchValuesEqual(descriptor.patch, baseValue),
   readDocumentVersion: (projectId) => {
     const state = useCanonicalDocumentStore.getState();
     return state.currentProjectId === projectId ? state.documentVersion : -1;
   },
-  readTargetValue: (projectId, target) => readTargetFills(projectId, target),
+  readTargetValue: (projectId, target, commitIntent) =>
+    commitIntent?.startsWith("style-")
+      ? readTargetStyle(projectId, target)
+      : readTargetFills(projectId, target),
 };
 
 export function isCanonicalFillDescriptor(

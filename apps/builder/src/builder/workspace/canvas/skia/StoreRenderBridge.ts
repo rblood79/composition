@@ -24,6 +24,7 @@ import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type {
   SkiaNodeData,
   SkiaPresentationFillTarget,
+  SkiaPresentationStrokeTarget,
 } from "./nodeRendererTypes";
 import { buildSkiaNodeData, type BuildContext } from "./buildSkiaNodeData";
 import { buildBoxNodeData } from "./buildBoxNodeData";
@@ -101,6 +102,29 @@ function setPresentationColor(
   target.color[1] = canonicalColor[1];
   target.color[2] = canonicalColor[2];
   target.color[3] = canonicalColor[3] * target.opacityMultiplier;
+}
+
+function parsePresentationHexColor(value: unknown): Float32Array | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  if (!/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(normalized)) return null;
+  const hex = normalized.slice(1);
+  return Float32Array.of(
+    Number.parseInt(hex.slice(0, 2), 16) / 255,
+    Number.parseInt(hex.slice(2, 4), 16) / 255,
+    Number.parseInt(hex.slice(4, 6), 16) / 255,
+    hex.length === 8 ? Number.parseInt(hex.slice(6, 8), 16) / 255 : 1,
+  );
+}
+
+function haveSamePresentationStrokeSlots(
+  left: readonly SkiaPresentationStrokeTarget[],
+  right: readonly SkiaPresentationStrokeTarget[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((target, index) => target.color === right[index]?.color)
+  );
 }
 
 function haveSamePresentationColorSlots(
@@ -371,6 +395,13 @@ export class StoreRenderBridge {
       readonly targets: readonly SkiaPresentationFillTarget[];
     }
   >();
+  private presentationStyleBaseById = new Map<
+    string,
+    {
+      readonly colors: readonly Float32Array[];
+      readonly targets: readonly SkiaPresentationStrokeTarget[];
+    }
+  >();
   private presentationNodeIds = new Set<string>();
   /** canonical commit descriptor — 다음 rendererInput sync에서만 소비한다. */
   private pendingCommit: {
@@ -539,6 +570,68 @@ export class StoreRenderBridge {
     this.presentationNodeIds.delete(elementId);
     setPresentationVolatileNodeIds(this.presentationNodeIds);
     return true;
+  }
+
+  applyPresentationStylePatch(
+    elementId: string,
+    patch: Readonly<Record<string, unknown>>,
+  ): boolean {
+    const nextColor = parsePresentationHexColor(patch.borderColor);
+    const node = getSkiaNode(elementId);
+    const targets = node?.presentationStrokeTargets;
+    if (!nextColor || !node || !targets || targets.length === 0) return false;
+
+    const changed = targets.some((target) =>
+      target.color.some(
+        (channel, index) => !Object.is(channel, nextColor[index]),
+      ),
+    );
+    if (!changed) return false;
+
+    const existingBase = this.presentationStyleBaseById.get(elementId);
+    if (
+      !existingBase ||
+      !haveSamePresentationStrokeSlots(existingBase.targets, targets)
+    ) {
+      this.presentationStyleBaseById.set(elementId, {
+        colors: targets.map((target) => Float32Array.from(target.color)),
+        targets,
+      });
+    }
+    for (const target of targets) target.color.set(nextColor);
+    invalidateNodePicture(elementId);
+    this.presentationNodeIds.add(elementId);
+    setPresentationVolatileNodeIds(this.presentationNodeIds);
+    return true;
+  }
+
+  restorePresentationStylePatch(elementId: string): boolean {
+    const base = this.presentationStyleBaseById.get(elementId);
+    if (!base) return false;
+    const node = getSkiaNode(elementId);
+    const targets = node?.presentationStrokeTargets;
+    const canRestore =
+      targets !== undefined &&
+      haveSamePresentationStrokeSlots(base.targets, targets);
+    if (canRestore) {
+      targets.forEach((target, index) => target.color.set(base.colors[index]!));
+      invalidateNodePicture(elementId);
+    }
+    this.presentationStyleBaseById.delete(elementId);
+    if (!this.presentationBaseById.has(elementId)) {
+      this.presentationNodeIds.delete(elementId);
+      setPresentationVolatileNodeIds(this.presentationNodeIds);
+    }
+    return canRestore;
+  }
+
+  releasePresentationStylePatch(elementId: string): boolean {
+    const released = this.presentationStyleBaseById.delete(elementId);
+    if (released && !this.presentationBaseById.has(elementId)) {
+      this.presentationNodeIds.delete(elementId);
+      setPresentationVolatileNodeIds(this.presentationNodeIds);
+    }
+    return released;
   }
 
   restoreAllPresentationFillPatches(): number {

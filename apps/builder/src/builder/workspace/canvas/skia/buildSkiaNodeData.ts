@@ -158,6 +158,9 @@ export function buildSkiaNodeData(
     ...(isFixed && { isFixed }),
     box,
     presentationFillTargets: [{ color: box.fillColor, opacityMultiplier: 1 }],
+    ...(strokeColor
+      ? { presentationStrokeTargets: [{ color: strokeColor }] }
+      : {}),
   };
 
   if (skiaEffects.effects) nodeData.effects = skiaEffects.effects;

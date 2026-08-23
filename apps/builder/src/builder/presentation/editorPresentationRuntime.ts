@@ -63,6 +63,7 @@ export interface EditorPresentationRuntimeOptions {
   readonly readTargetValue: (
     projectId: string,
     target: EditorPresentationTargetRef,
+    commitIntent?: string,
   ) => unknown;
   readonly scheduler?: EditorPresentationFrameScheduler;
 }
@@ -483,7 +484,9 @@ export class EditorPresentationTransactionRuntime {
     for (const target of targets) {
       baseValues.set(
         toEditorPresentationTargetKey(target),
-        clonePresentationValue(this.#readTargetValue(input.projectId, target)),
+        clonePresentationValue(
+          this.#readTargetValue(input.projectId, target, input.commitIntent),
+        ),
       );
     }
     const baseDocumentVersion = this.#readDocumentVersion(input.projectId);
@@ -944,7 +947,11 @@ export class EditorPresentationTransactionRuntime {
       if (
         !arePresentationValuesEqual(
           session.baseValues.get(key),
-          this.#readTargetValue(session.projectId, target),
+          this.#readTargetValue(
+            session.projectId,
+            target,
+            session.commitIntent,
+          ),
         )
       ) {
         return true;

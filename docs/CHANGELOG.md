@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ADR-187 Phase 5 border color presentation slice — 2026-08-23
+
+### Architecture
+
+- **Border Color picker를 typed paint presentation owner로 연결**:
+  - Appearance의 `borderColor` pointer drag는 canonical style을 매 event마다 쓰지 않고
+    Skia mutable stroke slot과 Preview semantic delta만 갱신한다.
+  - pointer-up에서 `style.patch` canonical commit으로 handoff하며, `borderWidth`·radius·style와
+    shadow 등 layout/topology 축은 기존 경로에 남긴다.
+  - **Why:** 색상만 바뀌는 drag가 full-store preview/layout publication과 겹치면
+    `requestAnimationFrame` handler 비용이 문서 크기와 결합되기 때문이다.
+  - 위치: `apps/builder/src/builder/panels/styles/{sections/AppearanceSection.tsx,hooks/useStylePresentationActions.ts}`
+
+### Performance
+
+- **Builder Compare Mode live gate**:
+  - drag 중 typed Skia target patch `6`, Preview delta `6`, legacy write/full rebuild/layout
+    publish/projection 증가 `0`, action/control RAF `0`을 확인했다.
+  - canonical style은 시작값을 유지했고, terminal 후 canonical write `1회`와 Preview
+    computed border color `rgb(209,209,209)`로 수렴했다.
+  - 증적: [ADR-187 Phase 5 border color live parity](adr/design/187-phase-5-border-color-live-parity.md)
+
 ## ADR-187 Phase 5 단일 fill opacity presentation slice — 2026-08-23
 
 ### Architecture

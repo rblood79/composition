@@ -13,6 +13,7 @@ import { useStore } from "../stores";
 import { FillType, type FillItem } from "../../types/builder/fill.types";
 import {
   commitEditorPresentationFills,
+  commitEditorPresentationStyle,
   editorPresentationCanonicalRuntimeOptions,
   getEditorPresentationCommitAdapterDiagnostics,
   resolveEditorPresentationTarget,
@@ -45,12 +46,16 @@ function fill(color: string): FillItem {
   };
 }
 
-function node(id: string, color: string): CanonicalNode {
+function node(
+  id: string,
+  color: string,
+  style: Record<string, unknown> = {},
+): CanonicalNode {
   return {
     children: [],
     fills: [fill(color)],
     id,
-    props: {},
+    props: { style },
     type: "div",
   } as unknown as CanonicalNode;
 }
@@ -149,6 +154,50 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     expect(currentColor()).toBe("#111111FF");
     await useStore.getState().redo();
     expect(currentColor()).toBe("#222222FF");
+  });
+
+  it("borderColor style patch는 canonical/history/persist를 한 번만 수행한다", async () => {
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, documentWith());
+    const document = useCanonicalDocumentStore
+      .getState()
+      .documents.get(PROJECT_ID)!;
+    useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, {
+      ...document,
+      children: [
+        node("node-1", "#111111FF", {
+          borderColor: "#111111",
+          borderWidth: "1px",
+        }),
+        document.children[1]!,
+      ],
+    });
+    const result = commitEditorPresentationStyle({
+      baseDocumentVersion: useCanonicalDocumentStore.getState().documentVersion,
+      commitIntent: "style-border-color",
+      descriptor: {
+        patch: { borderColor: "#ABCDEF" },
+        target: { kind: "canonical-node", nodeId: "node-1" },
+        type: "style.patch",
+      },
+      projectId: PROJECT_ID,
+      sessionId: "style-session",
+      targets: [{ kind: "canonical-node", nodeId: "node-1" }],
+    });
+
+    expect(result.committedDocumentRevision).toBe(
+      useCanonicalDocumentStore.getState().documentVersion,
+    );
+    const next = useCanonicalDocumentStore.getState().documents.get(PROJECT_ID)
+      ?.children[0];
+    expect(
+      (next?.props?.style as Record<string, unknown> | undefined)?.borderColor,
+    ).toBe("#ABCDEF");
+    expect(rebuildIndexes).toHaveBeenCalledTimes(1);
+    expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
+    await flushPersist();
+    expect(put).toHaveBeenCalledTimes(1);
   });
 
   it("begin indexed read는 document tree를 lazy rebuild하지 않는다", () => {

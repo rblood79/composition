@@ -399,6 +399,31 @@ export function resolvePresentationLayoutProps(
   return { ...base, style: nextStyle };
 }
 
+export function resolvePresentationPaintProps(
+  base: Record<string, unknown>,
+  mutations: readonly EditorMutationDescriptor[] | undefined,
+): Record<string, unknown> {
+  const baseStyle = base.style;
+  if (!baseStyle || typeof baseStyle !== "object") return base;
+  const style = baseStyle as Record<string, unknown>;
+  let nextStyle = style;
+  for (const mutation of mutations ?? []) {
+    if (mutation.type !== "style.patch") continue;
+    const patch = mutation.patch;
+    const keys = Object.keys(patch);
+    if (
+      keys.length === 0 ||
+      keys.some((key) => key !== "borderColor") ||
+      typeof patch.borderColor !== "string"
+    ) {
+      continue;
+    }
+    nextStyle = { ...nextStyle, borderColor: patch.borderColor };
+  }
+  if (nextStyle === style) return base;
+  return { ...base, style: nextStyle };
+}
+
 export function CanonicalNodeRenderer({
   node,
   renderContext,
@@ -421,8 +446,12 @@ export function CanonicalNodeRenderer({
     extractCanonicalPropsFromResolved(node),
     useRuntimeStore((s) => s.interactionOverrides[node.id]),
   );
-  const presentationProps = resolvePresentationLayoutProps(
+  const layoutPresentationProps = resolvePresentationLayoutProps(
     canonicalProps,
+    editorPresentation?.mutations,
+  );
+  const presentationProps = resolvePresentationPaintProps(
+    layoutPresentationProps,
     editorPresentation?.mutations,
   );
 

@@ -91,6 +91,23 @@ describe("ADR-187 Phase 2 migration guards", () => {
     );
   });
 
+  it("borderColor picker는 style presentation owner를 사용하고 fallback은 단일 경로다", async () => {
+    const appearance = await source(
+      "../panels/styles/sections/AppearanceSection.tsx",
+    );
+    const propertyColor = await source(
+      "../components/property/PropertyColor.tsx",
+    );
+    const stylePilot = await source("editorPresentationStylePilot.ts");
+    expect(appearance).toContain("previewBorderColorPresentation");
+    expect(appearance).toContain("commitBorderColorPresentation");
+    expect(appearance).toContain("presentationOwnsFrameScheduling");
+    expect(propertyColor).toContain("onPresentationCancel");
+    expect(stylePilot).toContain('"style-border-color"');
+    expect(stylePilot).toContain('"borderColor" in styleRecord');
+    expect(stylePilot).toContain('"borderWidth" in styleRecord');
+  });
+
   it("Skia publish consumer는 targeted in-place patch 외 forbidden rebuild 경로가 없다", async () => {
     const bridge = await source("skiaEditorPresentationBridge.ts");
     for (const forbidden of [

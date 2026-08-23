@@ -187,6 +187,7 @@ export function resolveFillPresentationPilotTarget(
   const value = editorPresentationCanonicalRuntimeOptions.readTargetValue(
     projectId,
     target,
+    "fill-paint",
   );
   const fills = Array.isArray(value) ? (value as FillItem[]) : [];
   const fill = fills[0];

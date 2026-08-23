@@ -64,6 +64,14 @@ function createNode(): SkiaNodeData {
   };
 }
 
+function createBorderNode(): SkiaNodeData {
+  const node = createNode();
+  const strokeColor = Float32Array.of(0.1, 0.2, 0.3, 1);
+  node.box!.strokeColor = strokeColor;
+  node.presentationStrokeTargets = [{ color: strokeColor }];
+  return node;
+}
+
 function replaceNodeBox(node: SkiaNodeData, fillColor: Float32Array): void {
   const box: NonNullable<SkiaNodeData["box"]> = {
     borderRadius: 0,
@@ -128,6 +136,47 @@ describe("SkiaEditorPresentationBridge canonical handoff", () => {
 
     expect(node.box?.fillColor).toEqual(Float32Array.of(0, 0, 1, 1));
     expect(isVolatileNode("node-1")).toBe(false);
+    presentationBridge.dispose();
+  });
+
+  it("style borderColor session은 Skia stroke slot만 patch하고 cancel에서 복원한다", () => {
+    const scheduler = createScheduler();
+    const node = createBorderNode();
+    const baseStrokeColor = node.box!.strokeColor!;
+    registerSkiaNode("border-node", node);
+    const runtime = new EditorPresentationTransactionRuntime({
+      commit: () => ({ committedDocumentRevision: 2 }),
+      readDocumentVersion: () => 1,
+      readTargetValue: (_projectId, _target, commitIntent) =>
+        commitIntent?.startsWith("style-")
+          ? { borderColor: "#1A334D" }
+          : [fill("#000000FF")],
+      scheduler,
+    });
+    const storeBridge = new StoreRenderBridge();
+    const presentationBridge = new SkiaEditorPresentationBridge({
+      getActiveProjectId: () => "project-1",
+      getProjectionIndex: () => ({ resolve: () => ["border-node"] }),
+      getStoreRenderBridge: () => storeBridge,
+      onPaintInvalidated: () => undefined,
+      runtime,
+    });
+    const handle = runtime.beginEditorPresentation({
+      commitIntent: "style-border-color",
+      ownerId: "owner-border",
+      projectId: "project-1",
+      targets: [{ kind: "canonical-node", nodeId: "border-node" }],
+    });
+    handle.publish({
+      patch: { borderColor: "#FF000080" },
+      target: { kind: "canonical-node", nodeId: "border-node" },
+      type: "style.patch",
+    });
+    scheduler.flush();
+
+    expect(node.box!.strokeColor).toEqual(Float32Array.of(1, 0, 0, 128 / 255));
+    handle.cancel("pointer-cancel");
+    expect(node.box!.strokeColor).toBe(baseStrokeColor);
     presentationBridge.dispose();
   });
 

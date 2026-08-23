@@ -61,6 +61,8 @@ export interface SkiaNodeData {
   };
   /** ADR-187: canonical top-level fill을 실제로 소비하는 draw color slot들. */
   presentationFillTargets?: readonly SkiaPresentationFillTarget[];
+  /** ADR-187 Phase 5: style paint가 소비하는 mutable stroke color slots. */
+  presentationStrokeTargets?: readonly SkiaPresentationStrokeTarget[];
   text?: {
     content: string;
     fontFamilies: string[];
@@ -172,6 +174,11 @@ export interface SkiaPresentationFillTarget {
   /** gradient geometry를 재계산하지 않기 위한 build-time 기준 크기. */
   readonly gradientWidth?: number;
   readonly gradientHeight?: number;
+}
+
+export interface SkiaPresentationStrokeTarget {
+  /** box.strokeColor와 공유하는 mutable Color4f slot. */
+  readonly color: Float32Array;
 }
 
 export type ParagraphCache = Map<string, Paragraph>;

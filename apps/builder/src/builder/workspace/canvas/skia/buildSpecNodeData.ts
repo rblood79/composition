@@ -1844,6 +1844,9 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
 
   // ---------- Inline CSS border overlay ----------
   applyInlineBorderOverlay(specNode, style);
+  if (specNode.box?.strokeColor) {
+    specNode.presentationStrokeTargets = [{ color: specNode.box.strokeColor }];
+  }
 
   // ---------- Phantom indicator offset ----------
   applyPhantomIndicatorOffset(specNode, type, size, style, specHeight);

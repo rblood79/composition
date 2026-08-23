@@ -19,6 +19,9 @@ interface PropertyColorProps {
    * 생략 시 커밋-only 동작 (드롭 시점에만 캔버스 반영).
    */
   onPreview?: (value: string) => void;
+  /** ADR-187: migrated owner가 frame scheduling을 직접 소유하는지 여부. */
+  presentationOwnsFrameScheduling?: boolean;
+  onPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
   icon?: React.ComponentType<{
     color?: string;
     size?: number;
@@ -66,6 +69,8 @@ export const PropertyColor = memo(
     value,
     onChange,
     onPreview,
+    presentationOwnsFrameScheduling = false,
+    onPresentationCancel,
     className,
   }: PropertyColorProps) {
     const selectedElementId = useStore((state) => state.selectedElementId);
@@ -105,6 +110,8 @@ export const PropertyColor = memo(
               resetKey={selectedElementId ?? "none"}
               onChange={handlePreview}
               onChangeEnd={handleCommit}
+              presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
+              onPresentationCancel={onPresentationCancel}
             />
           </Popover>
         </DialogTrigger>
@@ -118,7 +125,9 @@ export const PropertyColor = memo(
       prevProps.value === nextProps.value &&
       prevProps.className === nextProps.className &&
       prevProps.icon === nextProps.icon &&
-      prevProps.placeholder === nextProps.placeholder
+      prevProps.placeholder === nextProps.placeholder &&
+      prevProps.presentationOwnsFrameScheduling ===
+        nextProps.presentationOwnsFrameScheduling
     );
   },
 );

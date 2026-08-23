@@ -9,6 +9,7 @@ import { getRuntimeStore } from "../../store/runtimeStore";
 import {
   CanonicalNodeRenderer,
   resolvePresentationLayoutProps,
+  resolvePresentationPaintProps,
 } from "../CanonicalNodeRenderer";
 
 /**
@@ -213,5 +214,26 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
         },
       ]),
     ).toBe(base);
+  });
+
+  it("borderColor style patch는 Preview style만 바꾸고 나머지 style을 보존한다", () => {
+    const base = {
+      style: { borderColor: "#111111", borderWidth: "1px", display: "block" },
+    };
+    expect(
+      resolvePresentationPaintProps(base, [
+        {
+          patch: { borderColor: "#ABCDEF" },
+          target: { kind: "canonical-node", nodeId: "frame-border" },
+          type: "style.patch",
+        },
+      ]),
+    ).toEqual({
+      style: {
+        borderColor: "#ABCDEF",
+        borderWidth: "1px",
+        display: "block",
+      },
+    });
   });
 });

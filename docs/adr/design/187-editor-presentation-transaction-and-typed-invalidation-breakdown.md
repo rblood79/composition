@@ -936,24 +936,26 @@ Phase 5의 allowlist gate를 통과한 항목만 진행한다.
 
 ### Phase 5 — continuous editor migration과 structure 판정
 
-**진행 상태: slices 진행 — 2026-08-23 (single-fill gradient stop + fill opacity G7 slices).**
-[Gradient stop live parity evidence](187-phase-5-gradient-stop-live-parity.md)와
-[fill opacity live parity evidence](187-phase-5-fill-opacity-live-parity.md)에 실제 Builder
+**진행 상태: slices 진행 — 2026-08-23 (single-fill gradient stop + fill opacity + border color G7 slices).**
+[Gradient stop live parity evidence](187-phase-5-gradient-stop-live-parity.md),
+[fill opacity live parity evidence](187-phase-5-fill-opacity-live-parity.md),
+[border color live parity evidence](187-phase-5-border-color-live-parity.md)에 실제 Builder
 상단 Compare Mode split과 focused gate를 기록했다. 첫 slice는 하나의 enabled
 `linear/radial/angular` fill에서 stop 색상·position을, 두 번째 slice는 같은 단일 paint
-owner에서 fill opacity를 `EditorPresentationTransactionRuntime`으로 연결한다.
-`GradientBar` 자체 RAF를 제거하고 runtime 한 곳이 frame scheduling을 소유하며, Skia typed
-paint slot과 Preview semantic delta를 같은 target에 적용한다. terminal에서는 exact base
+owner에서 fill opacity를, 세 번째 slice는 border color를 `EditorPresentationTransactionRuntime`으로
+연결한다. `GradientBar` 자체 RAF를 제거하고 runtime 한 곳이 frame scheduling을 소유하며,
+Skia typed paint slot과 Preview semantic delta를 같은 target에 적용한다. border color는
+기존 stroke slot만 갱신해 geometry/layout을 건드리지 않는다. terminal에서는 exact base
 snapshot을 복원한 뒤 canonical commit으로 handoff한다.
 
-다중 fill, image/mesh fill, gradient geometry와 border/shadow 변경은 각 slice의
-materialization 조건을 충족하지 않으므로 기존 commit/legacy 경로에 남긴다. 따라서
-ADR-187 전체 Phase 5 또는 `Implemented` 승격으로 해석하지 않는다.
+다중 fill, image/mesh fill, gradient geometry, border width/radius/style와 shadow 변경은
+각 slice의 materialization 조건을 충족하지 않으므로 기존 commit/legacy 경로에 남긴다.
+따라서 ADR-187 전체 Phase 5 또는 `Implemented` 승격으로 해석하지 않는다.
 
 권장 순서:
 
 1. fill opacity와 gradient stop (single-fill gradient stop·opacity slices 완료)
-2. border/stroke paint와 shadow paint fields
+2. border/stroke paint와 shadow paint fields (border color slice 완료; shadow 잔여)
 3. opacity/paint 계열 Property slider
 4. width/height/padding/gap 등 layout slider — Phase 4 gate 통과 항목만
 5. text metrics/resource 항목 — explicit classifier fixture가 있는 항목만

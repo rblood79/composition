@@ -38,6 +38,7 @@ import {
 import type { ShadowPresetKey } from "@composition/specs";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
+import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
@@ -84,10 +85,32 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
   const { updateStyle } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
+  const {
+    cancelBorderColorPresentation,
+    commitBorderColorPresentation,
+    isBorderColorPresentationOwned,
+    previewBorderColorPresentation,
+  } = useStylePresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const styleValues = useAppearanceValues(selectedId);
 
   if (!styleValues) return null;
+
+  const presentationOwnsBorderColor = isBorderColorPresentationOwned();
+
+  const handleBorderColorPreview = (value: string): void => {
+    if (presentationOwnsBorderColor && previewBorderColorPresentation(value)) {
+      return;
+    }
+    updateStylePreview("borderColor", value);
+  };
+
+  const handleBorderColorCommit = (value: string): void => {
+    if (presentationOwnsBorderColor && commitBorderColorPresentation(value)) {
+      return;
+    }
+    updateStyle("borderColor", value);
+  };
 
   // Box Shadow 2축 모델: Select = out shadow 프리셋 (sm~lg), inset 토글 = 직교 modifier.
   //   프리셋 키 판정은 inset-stripped 값 기준 — "lg + inset 토글" 상태에서도 Select 는
@@ -131,8 +154,10 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
           label="Color"
           className="border-color"
           value={styleValues.borderColor}
-          onChange={(value) => updateStyle("borderColor", value)}
-          onPreview={(value) => updateStylePreview("borderColor", value)}
+          onChange={handleBorderColorCommit}
+          onPreview={handleBorderColorPreview}
+          presentationOwnsFrameScheduling={presentationOwnsBorderColor}
+          onPresentationCancel={cancelBorderColorPresentation}
           placeholder="#000000"
         />
         <PropertyUnitInput

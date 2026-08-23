@@ -143,6 +143,24 @@ export function withCanonicalRefDescendantFills<
   } as T;
 }
 
+export function withCanonicalRefDescendantStylePatch<
+  T extends CanonicalRefResolvableNode,
+>(node: T, pathKey: string, patch: Readonly<Record<string, unknown>>): T {
+  const owner = node as T & CanonicalRefDescendantOwner;
+  const current = owner.descendants?.[pathKey];
+  const currentStyle = isRecord(current?.style) ? current.style : {};
+  return {
+    ...node,
+    descendants: {
+      ...(owner.descendants ?? {}),
+      [pathKey]: {
+        ...(current ?? {}),
+        style: { ...currentStyle, ...patch },
+      },
+    },
+  } as T;
+}
+
 export function resolveCanonicalRefMaster<T extends CanonicalRefResolvableNode>(
   ref: string,
   nodes: Iterable<T>,
