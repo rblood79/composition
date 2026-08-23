@@ -188,7 +188,7 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 
 ## Implementation Progress
 
-- **Phase 2 / G2 — Implementation + populated command live gate (2026-08-23)**:
+- **Phase 2 / G2 — Complete (2026-08-23)**:
   `renderCommands.ts`에 Array-compatible piece-table command buffer와 cursor 기반
   lazy span map을 추가해 variable-length commit splice가 tail `O(N)` write를
   만들지 않게 했다. ADR-188 고정 길이 presentation patcher는 기존 reject 계약을
@@ -200,9 +200,11 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
   render/subtree/bridge/Skia static tests 및 type-check와 populated canonical live trace가
   통과했다. 201개 active node에서 `queue/success/fallback=1/1/0`, `patchWriteCount=6`,
   commit 후 full command build `0`, subtree visit `1`, command cache miss `0`을 확인했다.
-  full rebuild와의 pixel diff 0은 아직 별도 closure harness에서 검증해야 하므로
-  G2는 command live gate 완료·pixel closure pending 상태다. [Phase 2 evidence](design/189-phase-2-g2-command-splice.md)
-  를 참조한다.
+  full rebuild와의 pixel diff closure도 통과했다. 동일 target selection 상태에서
+  `canvas[data-testid="skia-canvas-unified"]` backing buffer를 대조해 `1440 × 852`,
+  `differing pixels=0`, `max/mean channel delta=0`, console error/warning `0/0`을
+  확인했다. G2의 모든 조건이 충족됐고 다음 미반영 phase는 Phase 3 / G3 damage clip이다.
+  [Phase 2 evidence](design/189-phase-2-g2-command-splice.md)를 참조한다.
 
 - **Phase 1 / G1 — Implemented (2026-08-22)**: `commitPatchPlan.ts` 가 commit 의
   dirty-root 를 rootKey 별 `CommitPatchPlan` 으로 도출한다. promotion 판정은

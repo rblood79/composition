@@ -36,8 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   원자성 및 기존 presentation 회귀를 검증했다. type-check 신규 위반은 0개다.
 - populated canonical live trace에서 201개 active node `fills.replace` commit의
   `queue/success/fallback=1/1/0`, `patchWriteCount=6`, commit 후 full build `0`,
-  subtree visit `1`, command cache miss `0`, console error `0`을 확인했다. full rebuild와의
-  pixel diff 0은 Phase 2 closure에서 추가 검증한다. [Phase 2 evidence](adr/design/189-phase-2-g2-command-splice.md)
+  subtree visit `1`, command cache miss `0`, console error `0`을 확인했다.
+- 동일 target selection 상태의 canvas backing buffer를 patch 결과와 reload full rebuild
+  결과로 대조해 `1440 × 852`, differing pixels `0`, max/mean channel delta `0`,
+  console error/warning `0/0`을 확인했다. G2 splice 구조·write budget·pixel closure가
+  모두 완료됐다. [Phase 2 evidence](adr/design/189-phase-2-g2-command-splice.md)
 
 ## ADR-188 targeted layout input/result — 2026-08-22
 

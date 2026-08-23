@@ -99,8 +99,11 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
   `patchWriteCount=6`, commit 후 full build `0`, subtree visit `1`, command cache miss
   `0`, console error `0`을 확인했다. layout publish 전 대기와 후속 cache promotion도
   함께 검증했다.
-- full rebuild와의 pixel diff 0은 아직 별도 closure harness에서 수행해야 하므로
-  Phase 2는 command live gate 완료·pixel closure pending이다.
+- full rebuild와의 pixel diff closure harness도 통과했다. 동일 target selection 상태의
+  `canvas[data-testid="skia-canvas-unified"]` backing buffer(`1440 × 852`)를 대조해
+  `differing pixels=0`, `max/mean channel delta=0`, console error/warning `0/0`을
+  확인했다. 따라서 Phase 2 / G2는 **Complete**이며 다음 진입점은 Phase 3 / G3
+  damage clip이다. [Phase 2 evidence](189-phase-2-g2-command-splice.md)를 참조한다.
 
 ### Phase 3 — G3: content 부분 재기록 (damage clip)
 

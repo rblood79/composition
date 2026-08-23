@@ -1,8 +1,8 @@
 # ADR-189 Phase 2 / G2 evidence — variable command span splice
 
 > 대상: [ADR-189](../189-commit-lane-incremental-record.md) Phase 2.
-> 상태: 구현·로컬 계약·populated canonical command live gate 완료, pixel diff는 Phase 2
-> closure에서 최종 검증 대기.
+> 상태: G2 closure 완료 — 구현·로컬 계약·populated canonical command live gate·pixel
+> 대조가 모두 통과했다 (2026-08-23).
 
 ## 1. 구현 범위
 
@@ -55,7 +55,26 @@ Builder package config으로 실행한 bridge/presentation 회귀는 2 files / 1
 | console errors                                     | `0`                                      |
 
 layout publish 전 stale map을 먼저 소비하지 않도록 1회 대기하고, layout sync에서 patch
-성공 결과를 cache key 승격까지 연결했다. 이 trace는 command 구조·write budget·full
-fallback 경계를 통과하지만, full rebuild와의 **pixel diff 0**은 아직 별도 closure
-harness가 필요하다. 따라서 Phase 2는 구현 및 command live gate 완료 상태이며 G2 최종
-Accepted/Complete 승격은 pixel 대조 후로 유지한다.
+성공 결과를 cache key 승격까지 연결했다.
+
+## 4. pixel closure
+
+동일한 populated canonical fixture에서 `fills.replace` 직후의 patch 결과와 reload 후
+full rebuild 결과를 같은 target selection 상태로 캡처했다. 검증 대상은 UI 합성 레이어가
+아닌 `canvas[data-testid="skia-canvas-unified"]` backing buffer의 `toDataURL()` PNG다.
+
+| 검증                                   | 결과              |
+| -------------------------------------- | ----------------- |
+| 캔버스 크기                            | `1440 × 852` 동일 |
+| 비교 pixel 수                          | `1,226,880`       |
+| differing pixels / ratio               | `0 / 0`           |
+| max channel delta / mean channel delta | `0 / 0`           |
+| patch target fill                      | `#D14B4BFF`       |
+| reload full target fill                | `#D14B4BFF`       |
+| console error / warning                | `0 / 0`           |
+
+초기 locator screenshot 비교에서만 `right preview` 하단 scrollbar 8px이 차이로
+포함됐다. 이는 reload 시 selection hydration이 page에서 target으로 바뀌는 UI 합성
+차이였으며, 동일 selection과 backing-buffer oracle로 재검증해 제거했다. command stream
+자체의 pixel diff는 0이다. 따라서 G2의 splice write, full rebuild 대조, fallback 관측
+조건을 모두 충족하며 Phase 2를 Accepted/Complete로 승격한다.
