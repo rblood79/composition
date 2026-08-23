@@ -18,6 +18,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`, `apps/builder/scripts/adr189-commit-baseline.mjs`
   - 증적: [ADR-189 Phase 0 G0 baseline](adr/design/189-phase-0-g0-baseline.md)
 
+## ADR-187 Phase 4 targeted layout lane — 2026-08-23
+
+### Architecture
+
+- **G6 scoped layout presentation 종결**:
+  - ADR-188 targeted publication/Skia subtree patch를 ADR-187 layout lane의 실제
+    production consumer로 검증했다. `position:absolute` 숫자형 `left/top`·`x/y`만
+    affected subtree patch로 승격하고 reflow·size/intrinsic·fixed/sticky·ref descendant·
+    structure는 commit-only fail-closed로 유지한다.
+  - Builder 상단 Compare Mode split에서 Preview DOM과 Skia draw/hit bounds의 clipped
+    geometry, revision 원자성, cancel 복원을 N=50/500/5,000에서 재현했다.
+  - Why: layout overlay를 전역 `layoutVersion++` 또는 full page traversal로 승격하면
+    대상 하나의 continuous edit가 문서 N에 결합하고, Preview/Skia hit-test가 서로 다른
+    geometry를 소비할 수 있기 때문이다.
+  - 위치: `apps/builder/src/builder/presentation/skiaEditorPresentationLayoutBridge.ts`,
+    `apps/builder/src/builder/workspace/canvas/skia/SkiaCanvas.tsx`,
+    `apps/builder/scripts/adr187-presentation-baseline.mjs`
+
+### Performance
+
+- **120Hz live gate**:
+  - N=5,000에서도 runtime apply p95/p99 `0.617/0.674ms`, Skia frame
+    p95/p99 `3.913/4.064ms`, long task `0`이었다.
+  - canonical/legacy write, global layout publish, projection signature, full rebuild,
+    Preview full-document message, stale terminal callback은 모두 `0`이었다.
+  - 증적: [ADR-187 Phase 4/G6 live parity](adr/design/187-phase-4-g6-live-parity.md)
+
 ## ADR-189 Phase 2 command span splice + Phase 3 damage clip + Phase 4 G4 live parity — 2026-08-23
 
 ### Architecture

@@ -902,7 +902,9 @@ G4-A/G4-B/G5의 protocol/counter/live parity 증적을 확보했으므로 Phase 
 
 ### Phase 4 — layout lane와 version consumer 분리
 
-**진행 상태: In Progress — 2026-08-22.** Phase 4의 첫 slice로
+**진행 상태: Complete — 2026-08-23 (G6 scoped allowlist PASS).**
+세부 live parity와 120Hz trace는
+[Phase 4 / G6 evidence](187-phase-4-g6-live-parity.md)에 기록했다. Phase 4의 첫 slice로
 `EditorPresentationInvalidation`을 runtime snapshot에 노출하고, layout/structure가
 paint target과 별도의 revision/root 집합으로 승격되도록 했다.
 
@@ -921,15 +923,16 @@ paint target과 별도의 revision/root 집합으로 승격되도록 했다.
 - runtime/plan/invalidation 테스트가 paint-only, layout, parent promotion, unaffected
   identity를 고정한다.
 
-현재 composition engine의 공개 layout entrypoint는 여전히 page-root 전체 DFS와
-root compute를 사용한다. 두 메서드는 dirty cache 기반 compute와 결과 전달을 `O(k)`로
-제한하는 경계지만, subtree 입력 자체와 `useLayoutPublisher`/Skia hit-test 연결을
-완료한 것은 아니다. 전역 `layoutVersion++` fallback으로 G6을 통과시키지 않으며,
-다음 slice에서 layout publisher가 이 명시적 dirty-root/result 계약을 실제로 소비하는지
-증명한다.
+composition engine의 공개 layout entrypoint가 page-root 전체 DFS와 root compute를
+사용하는 경계는 남아 있으므로, 이를 G6 성공으로 확대 해석하지 않는다. 대신 ADR-188
+Phase 5가 `useLayoutPublisher`의 targeted publication을 `SkiaEditorPresentationLayoutBridge`
+와 연결했고, Preview/Skia가 동일한 `position:absolute` 숫자형 allowlist를 소비한다.
+affected subtree 밖의 값/reference는 유지되며, reflow·size/intrinsic·fixed/sticky·ref
+descendant·structure는 commit-only로 fail-closed한다. 전역 `layoutVersion++` fallback은
+사용하지 않는다.
 
-targeted layout이 현재 engine에서 성립하지 않으면 해당 slice를 별도 ADR로 분리하고
-ADR-187 paint runtime은 유지한다. phase scope inflation은 fork 사유가 아니다.
+따라서 Phase 4는 이 명시적 범위에서 종결하고, 일반 layout/structure migration은
+Phase 5의 allowlist gate를 통과한 항목만 진행한다.
 
 ### Phase 5 — continuous editor migration과 structure 판정
 
@@ -1107,7 +1110,8 @@ renderer output이 stale이면 실패다.
 - [x] conflict/rebase/wrong-target 조건이 core runtime에서 테스트됐다.
 - [x] N=50/500/5,000 production benchmark의 presentation counter invariant가 HC10을
       통과했다. N-dependent scene render는 Phase 4 G6로 분리 기록했다.
-- [ ] layout lane의 affected subtree 계약이 통과하거나 별도 ADR로 명시 분리됐다.
+- [x] layout lane의 affected subtree 계약이 targeted allowlist 범위에서 통과했다.
+      일반 layout/structure는 ADR-188의 commit-only fail-closed 범위로 명시 분리됐다.
 - [x] structure는 분류만 지원하고 continuous runtime 진입은 G2에서 fail-closed한다.
 - [ ] migrated editor의 old preview/RAF/dual-write 경로가 제거됐다.
 - [x] CSS↔Skia Preview cross-check와 populated Builder live smoke가 통과했다.

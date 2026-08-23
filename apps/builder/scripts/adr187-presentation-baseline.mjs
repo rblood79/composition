@@ -316,6 +316,12 @@ function aggregateRuns(runs) {
 
 async function createIsolatedProject(page, baseUrl) {
   await page.goto(`${baseUrl}/dashboard`, { waitUntil: "networkidle" });
+  // G6 layout fixture is defined against the 390x844 mobile canvas. Do not
+  // inherit the operator's persisted breakpoint (desktop would overlap the
+  // system page and change the clipping contract under test).
+  await page.evaluate(() => {
+    window.localStorage.setItem("builder-breakpoint", "mobile");
+  });
   const projectName = `codex-adr187-phase0-${Date.now()}`;
   const projectNameInput = page.getByLabel("New project name");
   try {
