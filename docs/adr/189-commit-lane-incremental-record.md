@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-22 (Proposed 2026-08-22, 리뷰 round 1 이슈 3건 전건 fixed — reviews/189.md)
+Implemented — 2026-08-23 (Phase 0~~4 / G0~~G4 complete; Proposed 2026-08-22, 리뷰 round 1 이슈 3건 전건 fixed — reviews/189.md)
 
 Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](completed/188-targeted-layout-and-skia-subtree-patching.md),
 [ADR-153 렌더 최적화 measurement-first 도입](completed/153-render-optimization-measurement-first-adoption.md),
@@ -187,6 +187,19 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 | G4   | Phase 4 | live exercise (편집 유형별) + `/cross-check` 대칭 + 120Hz p95 <4ms / p99 <8.33ms, commit 직후 스파이크 제거                           | 대안 A 로 회귀 (fallback 상시화) 후 재설계 검토                  |
 
 ## Implementation Progress
+
+- **Phase 4 / G4 — Complete (2026-08-23)**: 실제 Builder의 상단 Compare Mode split에서
+  258 active node populated fixture를 열고 `fills.replace` 8회, generic
+  style/layout 1회, structure add 1회를 exercise했다. paint는 매회
+  `queue/success/fallback=1/1/0`, subtree visits `1`, full build `0`,
+  `damageRender/fallback=1/0`이었다. CSS Preview DOM과 Skia hitBounds는 compare
+  pane offset을 정규화한 뒤 `24/24/120/120` 및 style commit 후
+  `220/24/120/120`으로 일치했고, 색상·presentation/canonical revision도 함께
+  갱신됐다. paint 8회 `render.frame` p95/p99는 `1.3/1.3ms`(기준 `<4/<8.33ms`),
+  50/100ms violation `0/0`, console error/warning `0/0`이었다. generic
+  style/layout·structure는 descriptor 없는 canonical mutation으로 full rebuild에
+  수렴했으며 각각 frame p95/p99 `2.2/2.2ms`, `1.7/1.7ms`로 stale 없이 닫혔다.
+  [Phase 4 evidence](design/189-phase-4-g4-live-parity.md)
 
 - **Phase 3 / G3 — Complete (2026-08-23)**: commit subtree의 이전·이후
   `hitBounds` 합집합을 damage rect로 산출해 `StoreRenderBridge`에서

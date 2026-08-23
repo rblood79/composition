@@ -131,12 +131,21 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
   Vitest 3 files / 21 tests, type-check 신규 위반 0, console error/warning 0/0.
   [Phase 3 evidence](189-phase-3-g3-damage-clip.md)
 
-### Phase 4 — G4: live parity + cross-check
+### Phase 4 — G4: live parity + cross-check — Complete (2026-08-23)
 
 - populated builder 에서 편집 유형별 live exercise (CLAUDE.md §완료 기준).
 - `/cross-check` — Builder(Skia) ↔ Preview(DOM) 시각 대칭 (D3 symmetric consumer).
 - 120Hz p95 <4ms / p99 <8.33ms (ADR-187/188 계승) + commit 직후 프레임 스파이크
   제거 확인.
+
+실행 증적: [189 Phase 4 G4 live parity](189-phase-4-g4-live-parity.md).
+258 active node populated Builder의 Compare Mode split에서 paint 8회는
+`patchSuccess/fallback=1/0`, subtree visits `1`, full build `0`, damage
+`1/0`을 유지했다. `render.frame` p95/p99는 `1.3/1.3ms`, console
+error/warning은 `0/0`이었다. style/layout·structure generic mutation은
+full-rebuild fallback으로 수렴했고 frame p95/p99는 `2.2/2.2ms`, `1.7/1.7ms`였다.
+CSS DOM target과 Skia hitBounds는 compare pane offset 정규화 후 rect·색상이
+일치했으며, G3 backing-buffer pixel oracle은 differing pixels `0`이다.
 
 ## 4. 파일 경계
 
@@ -152,7 +161,7 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
 
 ## 5. 검증 체크리스트 (Phase 공통)
 
-- [ ] full rebuild 대조 diff 0 (stream 구조 + pixel)
-- [ ] fallback 경로 counter — 실패 descriptor 가 조용히 stale 로 남지 않음
-- [ ] `hitBoundsMap`/SpatialIndex 가 draw 와 같은 revision 원자 교체 (ADR-188 G4 계승)
-- [ ] 회귀 벤치: ADR-188 G0 하니스에 commit-lane 시나리오 추가
+- [x] full rebuild 대조 diff 0 (stream 구조 + pixel) — G2/G3 oracle
+- [x] fallback 경로 counter — 실패 조건은 full rebuild로 수렴하고 G2 fallback counter로 관측; G4 generic mutation은 descriptor 부재를 명시적으로 full path로 분류
+- [x] `hitBoundsMap`/SpatialIndex 가 draw 와 같은 revision 원자 교체 (ADR-188 G4 계승) — G3/G4 live
+- [x] 회귀 벤치: ADR-188 G0 하니스에 commit-lane 시나리오 추가 — G0 N-tier + G4 populated live

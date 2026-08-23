@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`, `apps/builder/scripts/adr189-commit-baseline.mjs`
   - 증적: [ADR-189 Phase 0 G0 baseline](adr/design/189-phase-0-g0-baseline.md)
 
-## ADR-189 Phase 2 command span splice + Phase 3 damage clip — 2026-08-23
+## ADR-189 Phase 2 command span splice + Phase 3 damage clip + Phase 4 G4 live parity — 2026-08-23
 
 ### Architecture
 
@@ -55,6 +55,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - patch와 reload full rebuild의 `1440 × 852` canvas backing buffer diff는
     differing pixels `0`, max/mean channel delta `0`, console error/warning `0/0`이다.
     [Phase 3 evidence](adr/design/189-phase-3-g3-damage-clip.md)
+
+### Phase 4 / G4
+
+- 실제 Builder 상단 Compare Mode split에서 258 active node populated fixture의
+  paint·style/layout·structure 편집을 exercise했다. paint 8회는
+  `patchSuccess/fallback=1/0`, subtree visits `1`, full build `0`,
+  `damageRender/fallback=1/0`을 유지했고 CSS Preview DOM과 Skia hitBounds의
+  rect·색상·revision이 일치했다.
+- paint `render.frame` p95/p99 `1.3/1.3ms`로 120Hz 기준 `<4/<8.33ms`를 통과했고,
+  50/100ms violation 및 console error/warning은 `0/0`이었다. generic
+  style/layout·structure는 descriptor 부재를 full-rebuild fallback으로 분류해
+  각각 p95/p99 `2.2/2.2ms`, `1.7/1.7ms`로 stale 없이 수렴했다.
+- ADR-189 Status를 `Accepted → Implemented`로 승격했다. [Phase 4 evidence](adr/design/189-phase-4-g4-live-parity.md)
 
 ## ADR-188 targeted layout input/result — 2026-08-22
 
