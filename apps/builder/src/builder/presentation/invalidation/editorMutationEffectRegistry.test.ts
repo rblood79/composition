@@ -72,6 +72,38 @@ describe("EDITOR_MUTATION_EFFECT_REGISTRY", () => {
     });
   });
 
+  it("opens only fixed Text fontSize while other metrics and resources stay commit-only", () => {
+    for (const key of ["fontFamily", "lineHeight", "letterSpacing"]) {
+      expect(getEditorMutationEffectRule("style", key)).toMatchObject({
+        continuous: false,
+        invalidation: "layout",
+        propagation: "inherited-subtree",
+      });
+    }
+    expect(getEditorMutationEffectRule("style", "fontSize")).toMatchObject({
+      continuous: true,
+      invalidation: "layout",
+      propagation: "inherited-subtree",
+    });
+    expect(getEditorMutationEffectRule("style", "fontWeight")).toMatchObject({
+      continuous: true,
+      invalidation: "layout",
+      propagation: "inherited-subtree",
+    });
+
+    expect(getEditorMutationEffectRule("prop", "src")).toMatchObject({
+      continuous: false,
+      invalidation: "layout",
+      cacheSignature: "prop",
+    });
+    expect(
+      getEditorMutationEffectRule("descriptor", "structure.patch"),
+    ).toMatchObject({
+      continuous: false,
+      invalidation: "structure",
+    });
+  });
+
   it("guards the five consumers against independent key literals", () => {
     const consumers = [
       "apps/builder/src/builder/stores/utils/layoutInvalidation.ts",

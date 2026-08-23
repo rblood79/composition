@@ -153,6 +153,25 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(renderer).toContain("drawTextWithPresentationColor");
   });
 
+  it("explicit opacity:1은 state effect와 ref descendant를 fail-closed한다", async () => {
+    const stylePilot = await source("editorPresentationStylePilot.ts");
+    expect(stylePilot).toContain('target.kind !== "canonical-node"');
+    expect(stylePilot).toContain("Boolean(props.isDisabled)");
+    expect(stylePilot).toContain("Boolean(props.disabled)");
+    expect(stylePilot).toContain('effect.type === "opacity"');
+    expect(stylePilot).toContain("getSkiaNode(target.nodeId)");
+  });
+
+  it("multi-child/component text color는 검증된 root와 projection consumer가 없으면 닫힌다", async () => {
+    const textColorTypes = await source("editorPresentationTextColor.ts");
+    const projectionIndex = await source("skiaPresentationProjectionIndex.ts");
+    expect(textColorTypes).toContain('new Set(["Button", "Text"])');
+    expect(textColorTypes).not.toContain("Card");
+    expect(projectionIndex).toContain("#renderIdsByCanonicalNodeId");
+    expect(projectionIndex).toContain("#renderIdsByRefDescendant");
+    expect(projectionIndex).not.toContain("getSubtreeElementIds");
+  });
+
   it("Modified Styles color editor도 typed owner가 legacy preview보다 먼저 선택된다", async () => {
     const modified = await source(
       "../panels/styles/sections/ModifiedStylesSection.tsx",
@@ -206,9 +225,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
     ]) {
       expect(bridge).not.toContain(forbidden);
     }
-    expect(bridge).toContain(
-      "this.#options.getProjectionIndex().resolve(descriptor.target)",
-    );
+    expect(bridge).toContain("projectionIndex.resolve(descriptor.target)");
     expect(bridge).toContain("subscribeSessionEvents");
     expect(bridge).toContain("applyPresentationFillPatch");
     expect(bridge).toContain("restorePresentationFillPatch");
@@ -228,10 +245,10 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(canvas).toContain("handleStoreSync(");
     expect(rendererInput).toContain("if (!pageSnapshot.isVisible) continue;");
     expect(rendererInput).toContain(
-      "addPresentationProjection(builder, pageSnapshot.bodyElement)",
+      "addPresentationProjection(\n          builder,\n          pageSnapshot.bodyElement,\n          input.sceneNodesMap,\n        )",
     );
     expect(rendererInput).toContain(
-      "addPresentationProjection(builder, element)",
+      "addPresentationProjection(builder, element, input.sceneNodesMap)",
     );
     expect(rendererInput).toContain("visibleRenderIds.has(node.id)");
   });

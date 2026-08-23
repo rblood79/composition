@@ -48,4 +48,23 @@ describe("SkiaPresentationProjectionIndex", () => {
       ).toHaveLength(count);
     },
   );
+
+  it("inherited-subtree propagation은 self projection과 분리된 atomic target set을 반환한다", () => {
+    const builder = new SkiaPresentationProjectionIndexBuilder();
+    builder.addCanonicalProjection("button-1", "button-1");
+    builder.addCanonicalProjection("label-1", "label-1");
+    builder.addInheritedCanonicalProjection("button-1", "button-1");
+    builder.addInheritedCanonicalProjection("button-1", "label-1");
+    const index = builder.build();
+
+    expect(
+      index.resolve({ kind: "canonical-node", nodeId: "button-1" }),
+    ).toEqual(["button-1"]);
+    expect(
+      index.resolve(
+        { kind: "canonical-node", nodeId: "button-1" },
+        "inherited-subtree",
+      ),
+    ).toEqual(["button-1", "label-1"]);
+  });
 });

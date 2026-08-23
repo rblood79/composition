@@ -1903,7 +1903,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     if (opacityVal < 1) {
       specNode.effects = [
         ...(specNode.effects ?? []),
-        { type: "opacity" as const, value: opacityVal },
+        { type: "opacity" as const, value: opacityVal, source: "state" },
       ];
     }
   }

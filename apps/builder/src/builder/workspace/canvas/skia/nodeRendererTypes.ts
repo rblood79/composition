@@ -67,6 +67,8 @@ export interface SkiaNodeData {
   presentationShadowTargets?: readonly SkiaPresentationShadowTarget[];
   /** ADR-187 Phase 5: text color가 소비하는 mutable presentation slots. */
   presentationTextTargets?: readonly SkiaPresentationTextTarget[];
+  /** ADR-187 Phase 5: fixed Text leaf font-size가 소비하는 paragraph slots. */
+  presentationTextMetricTargets?: readonly SkiaPresentationTextMetricTarget[];
   text?: {
     content: string;
     fontFamilies: string[];
@@ -195,6 +197,11 @@ export interface SkiaPresentationShadowTarget {
 export interface SkiaPresentationTextTarget {
   /** Text draw color override consumed without changing paragraph metrics. */
   readonly color: Float32Array;
+}
+
+export interface SkiaPresentationTextMetricTarget {
+  /** The text object is retained so paragraph-key inputs can change in place. */
+  readonly text: NonNullable<SkiaNodeData["text"]>;
 }
 
 export type ParagraphCache = Map<string, Paragraph>;

@@ -135,6 +135,23 @@ describe("EditorPresentationTransactionRuntime", () => {
     expect(runtime.getDiagnostics()).toMatchObject({ frameApplyCount: 1 });
   });
 
+  it("preserves typed inherited-subtree propagation at the runtime boundary", () => {
+    const { runtime, scheduler } = createRuntime();
+    const handle = begin(runtime);
+    const descriptor: EditorMutationDescriptor = {
+      patch: { color: "#222222" },
+      propagation: "inherited-subtree",
+      target,
+      type: "style.patch",
+    };
+
+    expect(handle.publish(descriptor)).toBe(true);
+    scheduler.flush();
+    expect(runtime.getTargetSnapshot(projectId, target)[0]?.descriptor).toEqual(
+      descriptor,
+    );
+  });
+
   it("publishes layout invalidation separately from the paint lane", () => {
     const { runtime, scheduler } = createRuntime();
     const handle = begin(runtime);

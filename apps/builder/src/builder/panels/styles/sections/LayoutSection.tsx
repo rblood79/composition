@@ -42,6 +42,7 @@ import {
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
 import { isDirectionDrivenTag } from "../utils/orientationDrivenTags";
+import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 
 // 4방향 값 추출은 이제 useLayoutValues 훅에서 처리됨
 
@@ -129,10 +130,7 @@ function FourWayGrid({ values, onChange }: FourWayGridProps) {
     <div className="four-way-grid">
       {FOUR_WAY_DIRECTIONS.map(({ direction, slot, placeholder }) => {
         const key = direction.toLowerCase() as
-          | "top"
-          | "left"
-          | "right"
-          | "bottom";
+          "top" | "left" | "right" | "bottom";
         return (
           <Input
             key={direction}
@@ -187,6 +185,8 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
   // 🚀 Phase 1: RAF 기반 스로틀 업데이트
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
+  const { commitLayoutPresentation, previewLayoutPresentation } =
+    useLayoutPresentationActions();
 
   // ADR-067 Phase 2: Zustand 직접 구독 + Spec 직접 lookup
   const selectedId = useStore((s) => s.selectedElementId);
@@ -211,7 +211,18 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     direction: "Top" | "Right" | "Bottom" | "Left",
     value: string,
   ) => {
-    updateStyleImmediate(`padding${direction}`, value);
+    commitLayoutPresentation(`padding${direction}`, value) ||
+      updateStyleImmediate(`padding${direction}`, value);
+  };
+
+  const handleSpacingCommit = (property: "gap" | "padding", value: string) => {
+    commitLayoutPresentation(property, value) ||
+      updateStyleImmediate(property, value);
+  };
+
+  const handleSpacingPreview = (property: "gap" | "padding", value: string) => {
+    previewLayoutPresentation(property, value) ||
+      updateStylePreview(property, value);
   };
 
   const handleMarginChange = (
@@ -416,8 +427,8 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           className="displayGap"
           value={styleValues.gap}
           units={["reset", "px"]}
-          onChange={(value) => updateStyleImmediate("gap", value)}
-          onDrag={(value) => updateStylePreview("gap", value)}
+          onChange={(value) => handleSpacingCommit("gap", value)}
+          onDrag={(value) => handleSpacingPreview("gap", value)}
           min={0}
           max={500}
         />
@@ -433,8 +444,8 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             className="padding"
             value={styleValues.padding}
             units={["reset", "px"]}
-            onChange={(value) => updateStyleImmediate("padding", value)}
-            onDrag={(value) => updateStylePreview("padding", value)}
+            onChange={(value) => handleSpacingCommit("padding", value)}
+            onDrag={(value) => handleSpacingPreview("padding", value)}
             min={0}
             max={500}
           />

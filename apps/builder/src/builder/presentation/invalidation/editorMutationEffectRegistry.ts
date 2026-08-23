@@ -133,14 +133,9 @@ const CONTINUOUS_STYLE_KEYS = new Set([
   "borderWidth",
   "boxShadow",
   "color",
-  "fontFamily",
-  "fontSize",
-  "fontWeight",
   "gap",
   "height",
   "left",
-  "letterSpacing",
-  "lineHeight",
   "margin",
   "maxHeight",
   "maxWidth",
@@ -153,6 +148,8 @@ const CONTINUOUS_STYLE_KEYS = new Set([
   "top",
   "transform",
   "width",
+  "fontSize",
+  "fontWeight",
 ]);
 
 const NON_LAYOUT_STYLE_SOURCE = [

@@ -2,6 +2,9 @@ import type { FillItem } from "../../types/builder/fill.types";
 
 export type EditorInvalidationKind = "paint" | "layout" | "structure";
 
+/** Paint propagation scope. Inherited fan-out is opt-in and projection-indexed. */
+export type EditorMutationPropagation = "self" | "inherited-subtree";
+
 export type EditorPresentationTargetRef =
   | {
       readonly kind: "canonical-node";
@@ -32,6 +35,7 @@ export type EditorMutationDescriptor =
     }
   | {
       readonly patch: Readonly<Record<string, unknown>>;
+      readonly propagation?: EditorMutationPropagation;
       readonly target: EditorPresentationTargetRef;
       readonly type: "style.patch";
     }

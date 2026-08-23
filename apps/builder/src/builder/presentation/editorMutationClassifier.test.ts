@@ -78,6 +78,22 @@ describe("classifyEditorMutation", () => {
     ).toThrow(/not registered for continuous presentation/);
   });
 
+  it("opens fixed Text font metrics and keeps other metrics commit-only", () => {
+    expect(() =>
+      assertContinuousEditorMutation(stylePatch({ fontSize: "18px" })),
+    ).not.toThrow();
+    expect(() =>
+      assertContinuousEditorMutation(stylePatch({ fontWeight: "700" })),
+    ).not.toThrow();
+    for (const key of ["fontFamily", "lineHeight", "letterSpacing"]) {
+      const descriptor = stylePatch({ [key]: "18px" });
+      expect(classifyEditorMutation(descriptor).invalidation).toBe("layout");
+      expect(() => assertContinuousEditorMutation(descriptor)).toThrow(
+        /not registered for continuous presentation/,
+      );
+    }
+  });
+
   it("serializes canonical and ref-descendant targets without collisions", () => {
     expect(
       toEditorPresentationTargetKey({

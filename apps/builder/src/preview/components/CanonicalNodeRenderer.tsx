@@ -77,6 +77,7 @@ import type { FillItem } from "../../types/builder/fill.types";
 import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
 import type { BoxShadowPresentationValue } from "../../builder/presentation/boxShadowPresentation";
 import { parsePresentationOpacity } from "../../builder/presentation/editorPresentationOpacity";
+import { resolvePresentationTextMetricProps } from "./presentationTextMetricProps";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -430,11 +431,12 @@ function resolvePresentationFills(
 export function resolvePresentationLayoutProps(
   base: Record<string, unknown>,
   mutations: readonly EditorMutationDescriptor[] | undefined,
+  hasChildren = false,
 ): Record<string, unknown> {
   const baseStyle = base.style;
   if (!baseStyle || typeof baseStyle !== "object") return base;
   const style = baseStyle as Record<string, unknown>;
-  if (style.position !== "absolute") return base;
+  if (style.position === "fixed" || style.position === "sticky") return base;
 
   let nextStyle = style;
   for (const mutation of mutations ?? []) {
@@ -447,12 +449,48 @@ export function resolvePresentationLayoutProps(
     if (!patch) continue;
     const keys = Object.keys(patch);
     const isStylePatch = mutation.type === "style.patch";
-    const allowedKeys = isStylePatch ? ["left", "top"] : ["x", "y"];
+    const allowedKeys = isStylePatch
+      ? [
+          "left",
+          "top",
+          "width",
+          "height",
+          "padding",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "paddingLeft",
+          "gap",
+          "rowGap",
+          "columnGap",
+        ]
+      : ["x", "y", "width", "height"];
+    const hasSizePatch = keys.includes("width") || keys.includes("height");
+    const hasSpacingPatch = keys.some((key) =>
+      [
+        "padding",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "gap",
+        "rowGap",
+        "columnGap",
+      ].includes(key),
+    );
+    const hasPositionPatch = keys.some((key) =>
+      ["left", "top", "x", "y"].includes(key),
+    );
     if (
       keys.length === 0 ||
+      (hasPositionPatch && style.position !== "absolute") ||
+      (hasChildren && style.position === "absolute" && hasSizePatch) ||
       keys.some((key) => !allowedKeys.includes(key)) ||
       keys.some(
-        (key) => typeof patch[key] !== "number" || !Number.isFinite(patch[key]),
+        (key) =>
+          typeof patch[key] !== "number" ||
+          !Number.isFinite(patch[key]) ||
+          patch[key] < 0,
       )
     ) {
       continue;
@@ -551,8 +589,14 @@ export function CanonicalNodeRenderer({
     useRuntimeStore((s) => s.interactionOverrides[node.id]),
   );
   const layoutPresentationProps = resolvePresentationLayoutProps(
-    canonicalProps,
+    resolvePresentationTextMetricProps(
+      canonicalProps,
+      editorPresentation?.mutations,
+      resolveNodeType(node),
+      (node.children?.length ?? 0) > 0,
+    ),
     editorPresentation?.mutations,
+    (node.children?.length ?? 0) > 0,
   );
   const presentationProps = resolvePresentationPaintProps(
     layoutPresentationProps,

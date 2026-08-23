@@ -164,3 +164,23 @@ describe("fullTreeLayout grid dimension-change full rebuild contract", () => {
     expect(source).toMatch(/result\.maxHeight =/);
   });
 });
+
+describe("presentation targeted spacing consumer contract", () => {
+  it("normalizes spacing into persistent style and publishes only affected results", async () => {
+    const source = await readFile(
+      resolve(__dirname, "fullTreeLayout.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain(
+      "export function computePresentationLayoutTargeted(",
+    );
+    expect(source).toContain('"paddingTop"');
+    expect(source).toContain('"rowGap"');
+    expect(source).toContain("tree.computeTargetedLayout(");
+    expect(source).toContain("tree.getLastJson(elementId)");
+    expect(source).toContain("targeted.layoutMap");
+    expect(source).toContain("finally");
+    expect(source).toContain('=== "grid"');
+  });
+});

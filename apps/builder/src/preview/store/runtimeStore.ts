@@ -100,7 +100,10 @@ function materializePresentationPatch(
 
   const mutationsByRenderKey = new Map<string, EditorMutationDescriptor[]>();
   for (const mutation of patch.mutations) {
-    for (const renderKey of projectionIndex.resolve(mutation.target)) {
+    for (const renderKey of projectionIndex.resolve(
+      mutation.target,
+      mutation.type === "style.patch" ? mutation.propagation : undefined,
+    )) {
       const mutations = mutationsByRenderKey.get(renderKey);
       if (mutations) mutations.push(mutation);
       else mutationsByRenderKey.set(renderKey, [mutation]);

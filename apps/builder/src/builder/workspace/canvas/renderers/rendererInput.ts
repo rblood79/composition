@@ -257,8 +257,36 @@ interface CreateSkiaRendererInputOptions {
 function addPresentationProjection(
   builder: SkiaPresentationProjectionIndexBuilder,
   element: CanvasSceneNode,
+  sceneNodesMap: Map<string, CanvasSceneNode>,
 ): void {
   builder.addCanonicalProjection(element.sourceNode.id, element.id);
+  // Keep inherited color fan-out separate from the ordinary self projection.
+  // A render node enters the inherited set only when its own style has no
+  // color declaration; this makes the target set atomic while preserving
+  // explicit descendant colors.
+  const hasOwnColor = (node: { props?: Record<string, unknown> }): boolean => {
+    const style = node.props?.style;
+    return (
+      style !== null &&
+      typeof style === "object" &&
+      !Array.isArray(style) &&
+      Object.prototype.hasOwnProperty.call(style, "color")
+    );
+  };
+  if (hasOwnColor(element.sourceNode)) {
+    builder.addInheritedCanonicalProjection(element.sourceNode.id, element.id);
+  }
+  let parentId = element.parentId ?? element.parent_id ?? null;
+  while (parentId) {
+    const parent = sceneNodesMap.get(parentId);
+    if (!parent) break;
+    if (hasOwnColor(parent)) {
+      if (!hasOwnColor(element.sourceNode)) {
+        builder.addInheritedCanonicalProjection(parent.id, element.id);
+      }
+    }
+    parentId = parent.parentId ?? parent.parent_id ?? null;
+  }
   if (typeof element.ref === "string") {
     builder.addCanonicalProjection(element.ref, element.id);
   }
@@ -291,14 +319,18 @@ function buildPresentationProjectionIndex(
     for (const pageSnapshot of input.sceneSnapshot.pageSnapshots.values()) {
       if (!pageSnapshot.isVisible) continue;
       if (pageSnapshot.bodyElement) {
-        addPresentationProjection(builder, pageSnapshot.bodyElement);
+        addPresentationProjection(
+          builder,
+          pageSnapshot.bodyElement,
+          input.sceneNodesMap,
+        );
       }
       for (const element of pageSnapshot.pageElements) {
         // page-frame / slot-fill projection은 resolvePageWithFrame가 만든
         // page snapshot에만 존재할 수 있다. source sceneNodes를 다시 훑으면
         // 실제 render id(::page-frame::)가 누락되므로 visible render tree 자체를
         // projection index의 SSOT로 사용한다.
-        addPresentationProjection(builder, element);
+        addPresentationProjection(builder, element, input.sceneNodesMap);
       }
     }
     return builder.build();
@@ -330,7 +362,7 @@ function buildPresentationProjectionIndex(
   }
   for (const node of input.sceneNodes) {
     if (visibleRenderIds.has(node.id)) {
-      addPresentationProjection(builder, node);
+      addPresentationProjection(builder, node, input.sceneNodesMap);
     }
   }
   return builder.build();

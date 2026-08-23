@@ -20,6 +20,11 @@ import type {
 import { isTextColorPresentationType } from "./editorPresentationTextColor";
 import { parsePresentationOpacity } from "./editorPresentationOpacity";
 import {
+  isFixedTextMetricStyle,
+  parsePresentationFontSize,
+  parsePresentationFontWeight,
+} from "./editorPresentationTextMetricValue";
+import {
   getCanonicalRefDescendantOverride,
   getCanonicalRefPathSegment,
   getCanonicalRefTarget,
@@ -414,15 +419,41 @@ export function commitEditorPresentationStyle(
     patchKeys[0] === "opacity" &&
     descriptor.type === "style.patch" &&
     parsePresentationOpacity(descriptor.patch.opacity) !== null;
+  const isLayoutPatch =
+    patchKeys.length === 1 &&
+    [
+      "width",
+      "height",
+      "padding",
+      "paddingTop",
+      "paddingRight",
+      "paddingBottom",
+      "paddingLeft",
+      "gap",
+      "rowGap",
+      "columnGap",
+    ].includes(patchKeys[0] ?? "") &&
+    descriptor.type === "style.patch" &&
+    typeof descriptor.patch[patchKeys[0]] === "string" &&
+    /^\s*(\d+(?:\.\d+)?)px\s*$/.test(descriptor.patch[patchKeys[0]] as string);
+  const isTextMetricPatch =
+    patchKeys.length === 1 &&
+    descriptor.type === "style.patch" &&
+    ((patchKeys[0] === "fontSize" &&
+      parsePresentationFontSize(descriptor.patch.fontSize) !== null) ||
+      (patchKeys[0] === "fontWeight" &&
+        parsePresentationFontWeight(descriptor.patch.fontWeight) !== null));
   if (
     descriptor.type !== "style.patch" ||
     (!isBorderColorPatch &&
       !isBoxShadowPatch &&
       !isTextColorPatch &&
-      !isOpacityPatch)
+      !isOpacityPatch &&
+      !isLayoutPatch &&
+      !isTextMetricPatch)
   ) {
     throw new Error(
-      "ADR-187 style commit allowlist only accepts style.patch.borderColor, style.patch.boxShadow, Text style.patch.color, or style.patch.opacity",
+      "ADR-187 style commit allowlist only accepts borderColor, boxShadow, Text color, opacity, scoped layout width/height/spacing, or fixed Text fontSize/fontWeight patches",
     );
   }
 
@@ -454,6 +485,19 @@ export function commitEditorPresentationStyle(
   if (isTextColorPatch && !isTextColorPresentationType(targetNode.type)) {
     throw new Error(
       "ADR-187 text color presentation target must own a materialized text target",
+    );
+  }
+  if (
+    isTextMetricPatch &&
+    (descriptor.target.kind !== "canonical-node" ||
+      targetNode.type !== "Text" ||
+      (targetNode.children?.length ?? 0) > 0 ||
+      !isFixedTextMetricStyle(previousStyle) ||
+      (patchKeys[0] === "fontWeight" &&
+        parsePresentationFontWeight(previousStyle.fontWeight) === null))
+  ) {
+    throw new Error(
+      "ADR-187 text metric presentation target must be a fixed standalone Text leaf",
     );
   }
   if (areStylePatchValuesEqual(descriptor.patch, previousStyle)) {

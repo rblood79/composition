@@ -91,6 +91,7 @@ export function useStylePresentationActions(): StylePresentationActions {
     baseStyle: Readonly<Record<string, unknown>>;
     handle: EditorPresentationHandle;
     phase: "active" | "cancelled" | "failed";
+    propagation: "self" | "inherited-subtree";
     selectedElementId: string;
     target: EditorPresentationTargetRef;
   } | null>(null);
@@ -577,6 +578,7 @@ export function useStylePresentationActions(): StylePresentationActions {
             targets: [pilot.target],
           }),
           phase: "active",
+          propagation: pilot.propagation,
           selectedElementId,
           target: pilot.target,
         };
@@ -585,6 +587,7 @@ export function useStylePresentationActions(): StylePresentationActions {
 
       const descriptor: EditorMutationDescriptor = {
         patch: { color },
+        propagation: presentation.propagation,
         target: presentation.target,
         type: "style.patch",
       };
@@ -616,6 +619,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       }
       const result = presentation.handle.finish({
         patch: { color },
+        propagation: presentation.propagation,
         target: presentation.target,
         type: "style.patch",
       });

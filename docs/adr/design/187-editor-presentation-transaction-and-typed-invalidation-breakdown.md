@@ -936,7 +936,7 @@ Phase 5의 allowlist gate를 통과한 항목만 진행한다.
 
 ### Phase 5 — continuous editor migration과 structure 판정
 
-**진행 상태: slices 진행 — 2026-08-24 (single-fill gradient stop + fill opacity + border color + box-shadow paint + continuous shadow editor + Text/Button color + Modified Styles color + explicit Modified Styles opacity slices).**
+**진행 상태: slices 진행 — 2026-08-24 (single-fill gradient stop + fill opacity + border color + box-shadow paint + continuous shadow editor + Text/Button color + Modified Styles color + explicit Modified Styles opacity + explicit opacity `1` materialization + targeted width/height/padding/gap + fixed Text fontSize/fontWeight + text/resource/structure residual slices).**
 [Gradient stop live parity evidence](187-phase-5-gradient-stop-live-parity.md),
 [fill opacity live parity evidence](187-phase-5-fill-opacity-live-parity.md),
 [border color live parity evidence](187-phase-5-border-color-live-parity.md),
@@ -944,7 +944,12 @@ Phase 5의 allowlist gate를 통과한 항목만 진행한다.
 [standalone Text color live parity evidence](187-phase-5-text-color-live-parity.md),
 [Button text-bearing color live parity evidence](187-phase-5-text-bearing-color-live-parity.md),
 [Modified Styles color live parity evidence](187-phase-5-modified-styles-color-live-parity.md),
-[Modified Styles opacity live parity evidence](187-phase-5-modified-styles-opacity-live-parity.md)에 실제 Builder
+[Modified Styles opacity live parity evidence](187-phase-5-modified-styles-opacity-live-parity.md),
+[explicit opacity `1` materialization slice](187-phase-5-opacity-default-effect-live-parity.md),
+[targeted layout spacing slice](187-phase-5-layout-width-height-live-parity.md),
+[text metrics/resource/structure residual slice](187-phase-5-text-metrics-resource-structure-fail-closed.md),
+[inherited/state/component paint fail-closed slice](187-phase-5-inherited-state-component-paint-fail-closed.md)에
+구현 범위와 focused gate를 기록했다. 실제 Builder
 상단 Compare Mode split과 focused gate를 기록했다. 첫 slice는 하나의 enabled
 `linear/radial/angular` fill에서 stop 색상·position을, 두 번째 slice는 같은 단일 paint
 owner에서 fill opacity를, 세 번째 slice는 border color를, 네 번째 slice는 기존
@@ -984,11 +989,20 @@ console error/warning `0/0`과 Preview/canonical opacity 수렴을 확인했다.
 다중 fill, image/mesh fill, gradient geometry, border width/radius/style와 shadow의
 layer topology 변경은 각 slice의 materialization 조건을 충족하지 않으므로 기존
 commit/legacy 경로에 남긴다. continuous shadow offset/blur/spread/color drag gate와
-Text/Button root, Modified Styles color 및 명시적 opacity gate는 종결됐지만 default
-opacity `1` effect materialization, inherited/state opacity, multi-child
-inherited/component color, 미검증 component root, layout allowlist 확대, text
-metrics/resource와 structure는 남은 Phase 5 범위다.
-따라서 ADR-187 전체 Phase 5 또는 `Implemented` 승격으로 해석하지 않는다.
+Text/Button root, Modified Styles color 및 명시적 opacity gate는 종결됐다. explicit
+opacity `1` materialization과 targeted width/height/padding/gap은 구현·focused gate까지
+착수했지만 실제 Builder live gate가 남아 있다. fixed Text fontSize/fontWeight는 standalone Text
+paragraph slot과 targeted invalidation까지 구현했지만 live gate가 남아 있다.
+inherited/state opacity, Button 외 multi-child inherited/component color, 미검증 component root,
+grid spacing, fontFamily/lineHeight/letterSpacing, resource와 structure는
+fail-closed 계약과 잔여 consumer gate를 유지한다. 상세 판정은 [paint fail-closed slice](187-phase-5-inherited-state-component-paint-fail-closed.md)와
+[text/resource residual slice](187-phase-5-text-metrics-resource-structure-fail-closed.md)에 기록한다.
+absolute leaf width/height는 실제 Builder Compare Mode에서 `200×120` → `240×130` 변경이
+Preview DOM에 수렴하는 것까지 확인했지만, Skia 내부 bounds와 terminal handoff 계측은
+추가 게이트로 남아 있다. explicit opacity `1`은 아직 Builder live exercise가 없다.
+따라서 ADR-187 전체 Phase 5 또는 `Implemented` 승격으로 해석하지 않는다. targeted
+spacing과 fixed Text metric은 focused gate를 통과했지만 populated Builder의 Skia
+internal bounds/hit-test/terminal handoff live evidence가 아직 없다.
 
 권장 순서:
 

@@ -7,6 +7,7 @@ import type {
 } from "./editorPresentationRuntime";
 import type {
   EditorMutationDescriptor,
+  EditorMutationPropagation,
   EditorPresentationSession,
   EditorPresentationTargetRef,
 } from "./editorPresentationTypes";
@@ -27,6 +28,7 @@ interface SkiaEditorPresentationBridgeOptions {
 
 interface SessionProjectionState {
   readonly fills?: readonly FillItem[];
+  readonly stylePropagation?: EditorMutationPropagation;
   readonly stylePatch?: Readonly<Record<string, unknown>>;
   readonly kind: "fills" | "style";
   readonly projectId: string;
@@ -92,7 +94,11 @@ export class SkiaEditorPresentationBridge {
       }
 
       this.#addAll(restoreRenderIds, this.#detachSessionLayers(sessionId));
-      const nextRenderIds = new Set(projectionIndex.resolve(state.target));
+      const nextRenderIds = new Set(
+        state.stylePropagation
+          ? projectionIndex.resolve(state.target, state.stylePropagation)
+          : projectionIndex.resolve(state.target),
+      );
       this.#attachSessionLayers(sessionId, state, nextRenderIds);
       this.#addAll(restoreRenderIds, nextRenderIds);
     }
@@ -190,14 +196,21 @@ export class SkiaEditorPresentationBridge {
     const state: SessionProjectionState = Object.freeze({
       ...(descriptor.type === "fills.replace"
         ? { fills: descriptor.fills, kind: "fills" as const }
-        : { kind: "style" as const, stylePatch: descriptor.patch }),
+        : {
+            kind: "style" as const,
+            stylePatch: descriptor.patch,
+            stylePropagation: descriptor.propagation,
+          }),
       projectId: session.projectId,
       sequence: this.#sequence,
       target: descriptor.target,
       terminalRevision: null,
     });
+    const projectionIndex = this.#options.getProjectionIndex();
     const nextRenderIds = new Set(
-      this.#options.getProjectionIndex().resolve(descriptor.target),
+      descriptor.type === "style.patch" && descriptor.propagation
+        ? projectionIndex.resolve(descriptor.target, descriptor.propagation)
+        : projectionIndex.resolve(descriptor.target),
     );
     this.#stateBySessionId.set(session.sessionId, state);
     this.#attachSessionLayers(session.sessionId, state, nextRenderIds);

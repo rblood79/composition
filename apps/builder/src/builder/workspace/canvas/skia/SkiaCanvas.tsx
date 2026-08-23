@@ -64,6 +64,7 @@ import {
 import { viewportState as mutableViewport } from "../viewport/viewportState";
 import { StoreRenderBridge } from "./StoreRenderBridge";
 import {
+  computePresentationLayoutTargeted,
   getSharedLayoutMap,
   getSharedLayoutVersion,
 } from "../layout/engines/fullTreeLayout";
@@ -458,6 +459,7 @@ export function SkiaCanvas({
       getLayoutMap: () => getSharedLayoutMap(),
       getRenderNode: (nodeId) =>
         rendererInputRef.current.renderNodesMap.get(nodeId),
+      computeTargetedLayout: computePresentationLayoutTargeted,
       onPatched: (stream) => {
         hitBoundsMapRef.current = stream.hitBoundsMap;
         rendererRef.current?.invalidateContent();

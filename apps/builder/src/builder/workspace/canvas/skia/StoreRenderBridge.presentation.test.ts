@@ -83,19 +83,22 @@ function makeShadowNode(): SkiaNodeData {
 function makeTextNode(): SkiaNodeData {
   const color = Float32Array.of(0.1, 0.2, 0.3, 1);
   const presentationColor = Float32Array.from(color);
+  const text = {
+    color,
+    content: "Text",
+    fontFamilies: ["sans-serif"],
+    fontSize: 14,
+    fontWeight: 400,
+    maxWidth: 100,
+    paddingLeft: 0,
+    paddingTop: 0,
+    presentationColor,
+  };
   return {
     height: 20,
     presentationTextTargets: [{ color: presentationColor }],
-    text: {
-      color,
-      content: "Text",
-      fontFamilies: ["sans-serif"],
-      fontSize: 14,
-      maxWidth: 100,
-      paddingLeft: 0,
-      paddingTop: 0,
-      presentationColor,
-    },
+    presentationTextMetricTargets: [{ text }],
+    text,
     type: "text",
     visible: true,
     width: 100,
@@ -106,7 +109,7 @@ function makeTextNode(): SkiaNodeData {
 
 function makeOpacityNode(): SkiaNodeData {
   const node = makeNode();
-  node.effects = [{ type: "opacity", value: 0.5 }];
+  node.effects = [{ type: "opacity", value: 0.5, source: "style" }];
   return node;
 }
 
@@ -166,11 +169,90 @@ describe("StoreRenderBridge ADR-187 presentation patch", () => {
     expect(
       bridge.applyPresentationStylePatch("opacity-1", { opacity: "0.25" }),
     ).toBe(true);
-    expect(effect).toEqual({ type: "opacity", value: 0.25 });
+    expect(effect).toEqual({
+      type: "opacity",
+      value: 0.25,
+      source: "style",
+    });
     expect(isVolatileNode("opacity-1")).toBe(true);
     expect(bridge.restorePresentationStylePatch("opacity-1")).toBe(true);
-    expect(effect).toEqual({ type: "opacity", value: 0.5 });
+    expect(effect).toEqual({
+      type: "opacity",
+      value: 0.5,
+      source: "style",
+    });
     expect(isVolatileNode("opacity-1")).toBe(false);
+  });
+
+  it("명시적 opacity:1은 drag 중 effect를 materialize하고 cancel 시 topology까지 복원한다", () => {
+    const node = makeNode();
+    node.effects = undefined;
+    registerSkiaNode("opacity-default-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("opacity-default-1", {
+        opacity: "0.75",
+      }),
+    ).toBe(true);
+    expect(node.effects).toEqual([
+      { type: "opacity", value: 0.75, source: "presentation" },
+    ]);
+    expect(isVolatileNode("opacity-default-1")).toBe(true);
+
+    expect(bridge.restorePresentationStylePatch("opacity-default-1")).toBe(
+      true,
+    );
+    expect(node.effects).toEqual([]);
+    expect(isVolatileNode("opacity-default-1")).toBe(false);
+  });
+
+  it("state opacity slot을 보존하고 presentation slot만 patch/restore한다", () => {
+    const node = makeNode();
+    const stateEffect = {
+      type: "opacity" as const,
+      value: 0.38,
+      source: "state" as const,
+    };
+    node.effects = [stateEffect];
+    registerSkiaNode("opacity-state-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("opacity-state-1", {
+        opacity: "0.75",
+      }),
+    ).toBe(true);
+    expect(node.effects).toEqual([
+      stateEffect,
+      { type: "opacity", value: 0.75, source: "presentation" },
+    ]);
+    expect(
+      bridge.applyPresentationStylePatch("opacity-state-1", {
+        opacity: "0.5",
+      }),
+    ).toBe(true);
+    expect(node.effects).toEqual([
+      stateEffect,
+      { type: "opacity", value: 0.5, source: "presentation" },
+    ]);
+    expect(bridge.restorePresentationStylePatch("opacity-state-1")).toBe(true);
+    expect(node.effects).toEqual([stateEffect]);
+  });
+
+  it("opacity:1 no-op은 transient effect를 만들지 않는다", () => {
+    const node = makeNode();
+    node.effects = [];
+    registerSkiaNode("opacity-default-noop", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("opacity-default-noop", {
+        opacity: "1",
+      }),
+    ).toBe(false);
+    expect(node.effects).toEqual([]);
+    expect(isVolatileNode("opacity-default-noop")).toBe(false);
   });
 
   it("text color style patch는 paragraph metrics를 보존한 presentation slot만 갱신한다", () => {
@@ -189,6 +271,30 @@ describe("StoreRenderBridge ADR-187 presentation patch", () => {
     expect(node.text?.presentationColor).toBe(presentationColor);
     expect(bridge.restorePresentationStylePatch("text-color-1")).toBe(true);
     expect(presentationColor).toEqual(baseColor);
+  });
+
+  it("fixed Text metric patch는 fontSize/fontWeight paragraph key만 갱신하고 exact restore한다", () => {
+    const node = makeTextNode();
+    const metricText = node.presentationTextMetricTargets![0]!.text;
+    registerSkiaNode("text-metric-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("text-metric-1", { fontSize: 18 }),
+    ).toBe(true);
+    expect(metricText.fontSize).toBe(18);
+    expect(metricText.fontWeight).toBe(400);
+    expect(bridge.restorePresentationStylePatch("text-metric-1")).toBe(true);
+    expect(metricText.fontSize).toBe(14);
+
+    expect(
+      bridge.applyPresentationStylePatch("text-metric-1", {
+        fontWeight: "700",
+      }),
+    ).toBe(true);
+    expect(metricText.fontWeight).toBe(700);
+    expect(bridge.restorePresentationStylePatch("text-metric-1")).toBe(true);
+    expect(metricText.fontWeight).toBe(400);
   });
 
   it("boxShadow style patch는 기존 drop-shadow slot만 갱신하고 exact restore한다", () => {

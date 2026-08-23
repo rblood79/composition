@@ -29,6 +29,10 @@ describe("specShapesToSkia presentation fill materialization", () => {
     expect(node.presentationTextTargets?.[0]?.color).toBe(
       node.children?.[0]?.text?.presentationColor,
     );
+    expect(node.presentationTextMetricTargets).toHaveLength(1);
+    expect(node.presentationTextMetricTargets?.[0]?.text).toBe(
+      node.children?.[0]?.text,
+    );
     expect(node.children?.[0]?.text?.color).not.toBe(
       node.children?.[0]?.text?.presentationColor,
     );

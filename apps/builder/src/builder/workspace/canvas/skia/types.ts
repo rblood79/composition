@@ -109,9 +109,19 @@ export type FillStyle =
 // Effect Types
 // ============================================
 
+/** Opacity owner. Legacy effects without source are intentionally unowned. */
+export type OpacityEffectSource =
+  "style" | "state" | "animation" | "presentation";
+
 export interface OpacityEffect {
   type: "opacity";
   value: number; // 0-1
+  /**
+   * Provenance is optional only for legacy serialized/runtime nodes. New
+   * producers must set it so a presentation patch cannot overwrite state or
+   * animation opacity.
+   */
+  source?: OpacityEffectSource;
 }
 
 export interface BackgroundBlurEffect {
@@ -319,19 +329,15 @@ export interface SelectionOverlayBuildResult {
   semanticTargets: Array<{
     bounds: import("../selection/types").BoundingBox;
     semanticRole:
-      | import("../../../utils/editingSemantics").EditingSemanticsRole
-      | null;
+      import("../../../utils/editingSemantics").EditingSemanticsRole | null;
     slotMarkerRole:
-      | import("../../../utils/editingSemantics").EditingSemanticsRole
-      | null;
+      import("../../../utils/editingSemantics").EditingSemanticsRole | null;
   }>;
   semanticRole:
-    | import("../../../utils/editingSemantics").EditingSemanticsRole
-    | null;
+    import("../../../utils/editingSemantics").EditingSemanticsRole | null;
   showHandles: boolean;
   slotMarkerRole:
-    | import("../../../utils/editingSemantics").EditingSemanticsRole
-    | null;
+    import("../../../utils/editingSemantics").EditingSemanticsRole | null;
 }
 
 /**

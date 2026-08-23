@@ -213,7 +213,48 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
           type: "style.patch",
         },
       ]),
+    ).toEqual({
+      style: { position: "absolute", left: 10, top: 20, width: 200 },
+    });
+    expect(
+      resolvePresentationLayoutProps(
+        base,
+        [
+          {
+            patch: { width: 200 },
+            target: { kind: "canonical-node", nodeId: "frame-layout" },
+            type: "style.patch",
+          },
+        ],
+        true,
+      ),
     ).toBe(base);
+    expect(
+      resolvePresentationLayoutProps(base, [
+        {
+          patch: { padding: 12 },
+          target: { kind: "canonical-node", nodeId: "frame-layout" },
+          type: "style.patch",
+        },
+      ]),
+    ).toEqual({
+      style: { position: "absolute", left: 10, top: 20, padding: 12 },
+    });
+
+    expect(
+      resolvePresentationLayoutProps(
+        { style: { position: "static", display: "flex" } },
+        [
+          {
+            patch: { gap: 16, paddingTop: 12 },
+            target: { kind: "canonical-node", nodeId: "flow-layout" },
+            type: "style.patch",
+          },
+        ],
+      ),
+    ).toEqual({
+      style: { position: "static", display: "flex", gap: 16, paddingTop: 12 },
+    });
   });
 
   it("borderColor style patch는 Preview style만 바꾸고 나머지 style을 보존한다", () => {

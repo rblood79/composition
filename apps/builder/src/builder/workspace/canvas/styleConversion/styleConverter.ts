@@ -1112,7 +1112,7 @@ export function buildSkiaEffects(
   if (style.opacity !== undefined) {
     const value = parseCSSSize(style.opacity, undefined, 1);
     if (value < 1) {
-      effects.push({ type: "opacity", value });
+      effects.push({ type: "opacity", value, source: "style" });
     }
   }
 

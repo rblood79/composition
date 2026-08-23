@@ -241,6 +241,96 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     expect(put).toHaveBeenCalledTimes(1);
   });
 
+  it("absolute leaf width style patch는 canonical/history/persist를 한 번만 수행한다", async () => {
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, documentWith());
+    const document = useCanonicalDocumentStore
+      .getState()
+      .documents.get(PROJECT_ID)!;
+    useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, {
+      ...document,
+      children: [
+        node("node-1", "#111111FF", {
+          position: "absolute",
+          width: "120px",
+          height: "80px",
+        }),
+        document.children[1]!,
+      ],
+    });
+    const result = commitEditorPresentationStyle({
+      baseDocumentVersion: useCanonicalDocumentStore.getState().documentVersion,
+      commitIntent: "style-layout-width",
+      descriptor: {
+        patch: { width: "200px" },
+        target: { kind: "canonical-node", nodeId: "node-1" },
+        type: "style.patch",
+      },
+      projectId: PROJECT_ID,
+      sessionId: "layout-session",
+      targets: [{ kind: "canonical-node", nodeId: "node-1" }],
+    });
+
+    expect(result.committedDocumentRevision).toBe(
+      useCanonicalDocumentStore.getState().documentVersion,
+    );
+    const next = useCanonicalDocumentStore.getState().documents.get(PROJECT_ID)
+      ?.children[0];
+    expect(
+      (next?.props?.style as Record<string, unknown> | undefined)?.width,
+    ).toBe("200px");
+    expect(rebuildIndexes).toHaveBeenCalledTimes(1);
+    expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
+    await flushPersist();
+    expect(put).toHaveBeenCalledTimes(1);
+  });
+
+  it("numeric spacing style patch는 canonical/history/persist를 한 번만 수행한다", async () => {
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, documentWith());
+    const document = useCanonicalDocumentStore
+      .getState()
+      .documents.get(PROJECT_ID)!;
+    useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, {
+      ...document,
+      children: [
+        node("node-1", "#111111FF", {
+          display: "flex",
+          gap: "8px",
+          paddingTop: "4px",
+        }),
+        document.children[1]!,
+      ],
+    });
+    const result = commitEditorPresentationStyle({
+      baseDocumentVersion: useCanonicalDocumentStore.getState().documentVersion,
+      commitIntent: "style-layout-gap",
+      descriptor: {
+        patch: { gap: "16px" },
+        target: { kind: "canonical-node", nodeId: "node-1" },
+        type: "style.patch",
+      },
+      projectId: PROJECT_ID,
+      sessionId: "layout-gap-session",
+      targets: [{ kind: "canonical-node", nodeId: "node-1" }],
+    });
+
+    expect(result.committedDocumentRevision).toBe(
+      useCanonicalDocumentStore.getState().documentVersion,
+    );
+    const next = useCanonicalDocumentStore.getState().documents.get(PROJECT_ID)
+      ?.children[0];
+    expect(
+      (next?.props?.style as Record<string, unknown> | undefined)?.gap,
+    ).toBe("16px");
+    expect(rebuildIndexes).toHaveBeenCalledTimes(1);
+    expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
+    await flushPersist();
+    expect(put).toHaveBeenCalledTimes(1);
+  });
+
   it("boxShadow style patch는 canonical/history/persist를 한 번만 수행한다", async () => {
     useCanonicalDocumentStore
       .getState()

@@ -118,6 +118,13 @@ function isMutationDescriptor(
     case "fills.replace":
       return Array.isArray(value.fills) && isPlainCloneData(value.fills);
     case "style.patch":
+      return (
+        (value.propagation === undefined ||
+          value.propagation === "self" ||
+          value.propagation === "inherited-subtree") &&
+        isRecord(value.patch) &&
+        isPlainCloneData(value.patch)
+      );
     case "geometry.patch":
       return isRecord(value.patch) && isPlainCloneData(value.patch);
     case "structure.patch":

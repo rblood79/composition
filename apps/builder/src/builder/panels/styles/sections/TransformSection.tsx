@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { LayoutFreeform } from "../../../components/icons";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
+import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { useTransformValues } from "../hooks/useTransformValues";
 import {
   useWidthSizeMode,
@@ -295,6 +296,8 @@ const PagePositionRow = memo(function PagePositionRow({
 const TransformSectionContent = memo(function TransformSectionContent() {
   const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();
+  const { commitLayoutPresentation, previewLayoutPresentation } =
+    useLayoutPresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const bundle = useTransformValues(selectedId);
 
@@ -537,8 +540,14 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           className="width"
           value={displayWidth}
           units={["reset", "px", "%", "vw"]}
-          onChange={(value) => updateStyleImmediate("width", value)}
-          onDrag={(value) => updateStylePreview("width", value)}
+          onChange={(value) =>
+            commitLayoutPresentation("width", value) ||
+            updateStyleImmediate("width", value)
+          }
+          onDrag={(value) =>
+            previewLayoutPresentation("width", value) ||
+            updateStylePreview("width", value)
+          }
           min={0}
           max={9999}
         />
@@ -548,8 +557,14 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           className="height"
           value={displayHeight}
           units={["reset", "px", "%", "vh"]}
-          onChange={(value) => updateStyleImmediate("height", value)}
-          onDrag={(value) => updateStylePreview("height", value)}
+          onChange={(value) =>
+            commitLayoutPresentation("height", value) ||
+            updateStyleImmediate("height", value)
+          }
+          onDrag={(value) =>
+            previewLayoutPresentation("height", value) ||
+            updateStylePreview("height", value)
+          }
           min={0}
           max={9999}
         />

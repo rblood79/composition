@@ -43,6 +43,23 @@ export interface PresentationLayoutPlan {
   readonly affectedNodeIds: ReadonlySet<string>;
 }
 
+/**
+ * Layout engine이 presentation frame의 targeted used-size 계산을 소비하는 계약.
+ *
+ * `affectedNodeIds` 밖의 결과를 반환하거나 전체 tree map을 수집하는 구현은
+ * publisher가 거부한다. 따라서 bridge와 persistent layout engine 사이에는
+ * 이 immutable snapshot만 전달한다.
+ */
+export interface PresentationLayoutComputeRequest {
+  readonly affectedNodeIds: ReadonlySet<string>;
+  readonly availableHeight: number;
+  readonly availableWidth: number;
+  readonly descriptor: EditorMutationDescriptor;
+  readonly parentChain: readonly string[];
+  readonly rootKey: string;
+  readonly roots: readonly string[];
+}
+
 export interface PublishPresentationLayoutInput<T> {
   readonly plan: PresentationLayoutPlan;
   readonly resolveNode: (

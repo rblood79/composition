@@ -14,7 +14,10 @@ import {
   registerSkiaNode,
 } from "../workspace/canvas/skia/useSkiaNode";
 import { EditorPresentationTransactionRuntime } from "./editorPresentationRuntime";
-import { SkiaEditorPresentationLayoutBridge } from "./skiaEditorPresentationLayoutBridge";
+import {
+  SkiaEditorPresentationLayoutBridge,
+  type PresentationLayoutComputeRequest,
+} from "./skiaEditorPresentationLayoutBridge";
 
 function createScheduler() {
   const callbacks: Array<(timestamp: number) => void> = [];
@@ -55,6 +58,7 @@ function makeNode(
 function primeStream() {
   const body = makeNode("layout-body", null);
   const target = makeNode("layout-target", body.id, "absolute");
+  const sibling = makeNode("layout-sibling", body.id, "absolute");
   registerSkiaNode(body.id, {
     elementId: body.id,
     type: "container",
@@ -73,10 +77,20 @@ function primeStream() {
     x: 10,
     y: 20,
   } as never);
-  const childrenMap = new Map([[body.id, [target]]]);
+  registerSkiaNode(sibling.id, {
+    elementId: sibling.id,
+    type: "container",
+    visible: true,
+    width: 80,
+    height: 40,
+    x: 300,
+    y: 40,
+  } as never);
+  const childrenMap = new Map([[body.id, [target, sibling]]]);
   const layoutMap = new Map<string, ComputedLayout>([
     [body.id, { x: 0, y: 0, width: 800, height: 600 } as ComputedLayout],
     [target.id, { x: 10, y: 20, width: 120, height: 80 } as ComputedLayout],
+    [sibling.id, { x: 300, y: 40, width: 80, height: 40 } as ComputedLayout],
   ]);
   getCachedCommandStream(
     [body.id],
@@ -89,7 +103,7 @@ function primeStream() {
     7,
     { baseCanonicalRevision: 7 },
   );
-  return { body, target, childrenMap, layoutMap };
+  return { body, target, sibling, childrenMap, layoutMap };
 }
 
 function createRuntime(scheduler: ReturnType<typeof createScheduler>) {
@@ -108,7 +122,7 @@ afterEach(() => {
 
 describe("SkiaEditorPresentationLayoutBridge", () => {
   it("absolute left/top만 subtree draw/hit patch로 승격한다", () => {
-    const { target, childrenMap, layoutMap } = primeStream();
+    const { body, target, sibling, childrenMap, layoutMap } = primeStream();
     const scheduler = createScheduler();
     const runtime = createRuntime(scheduler);
     const onPatched = vi.fn();
@@ -118,11 +132,13 @@ describe("SkiaEditorPresentationLayoutBridge", () => {
       getChildrenMap: () => childrenMap,
       getLayoutMap: () => layoutMap,
       getRenderNode: (nodeId) =>
-        nodeId === target.id || nodeId === "layout-body"
-          ? nodeId === target.id
-            ? target
-            : childrenMap.get("layout-body")?.[0]
-          : undefined,
+        nodeId === target.id
+          ? target
+          : nodeId === "layout-body"
+            ? body
+            : nodeId === "layout-sibling"
+              ? sibling
+              : undefined,
       onPatched,
       runtime,
     });
@@ -157,8 +173,8 @@ describe("SkiaEditorPresentationLayoutBridge", () => {
     bridge.dispose();
   });
 
-  it("size/문자열/fixed 성격의 unsupported descriptor는 commit-only로 남긴다", () => {
-    const { target, childrenMap, layoutMap } = primeStream();
+  it("absolute leaf width/height는 targeted patch로 승격한다", () => {
+    const { body, target, sibling, childrenMap, layoutMap } = primeStream();
     const scheduler = createScheduler();
     const runtime = createRuntime(scheduler);
     const onPatched = vi.fn();
@@ -167,7 +183,14 @@ describe("SkiaEditorPresentationLayoutBridge", () => {
       getCanonicalRevision: () => 7,
       getChildrenMap: () => childrenMap,
       getLayoutMap: () => layoutMap,
-      getRenderNode: () => target,
+      getRenderNode: (nodeId) =>
+        nodeId === target.id
+          ? target
+          : nodeId === "layout-body"
+            ? body
+            : nodeId === "layout-sibling"
+              ? sibling
+              : undefined,
       onPatched,
       runtime,
     });
@@ -178,21 +201,123 @@ describe("SkiaEditorPresentationLayoutBridge", () => {
       targets: [{ kind: "canonical-node", nodeId: target.id }],
     });
     handle.publish({
-      patch: { width: 200 },
+      patch: { width: 200, height: 90 },
+      target: { kind: "canonical-node", nodeId: target.id },
+      type: "style.patch",
+    });
+    const siblingBoundsBefore = getCachedCommandStreamSnapshot()!.boundsMap.get(
+      sibling.id,
+    );
+    scheduler.flush();
+
+    expect(onPatched).toHaveBeenCalledTimes(1);
+    expect(
+      getCachedCommandStreamSnapshot()!.boundsMap.get(target.id),
+    ).toMatchObject({ x: 10, y: 20, width: 200, height: 90 });
+    expect(getCachedCommandStreamSnapshot()!.boundsMap.get(sibling.id)).toBe(
+      siblingBoundsBefore,
+    );
+    bridge.dispose();
+  });
+
+  it("in-flow width는 parent와 sibling을 atomic targeted publication으로 갱신한다", () => {
+    const { body, target, sibling, childrenMap, layoutMap } = primeStream();
+    const staticTarget = makeNode(target.id, body.id, "static");
+    const staticSibling = makeNode(sibling.id, body.id, "static");
+    const scheduler = createScheduler();
+    const runtime = createRuntime(scheduler);
+    const onPatched = vi.fn();
+    const computeTargetedLayout = vi.fn(
+      (input: PresentationLayoutComputeRequest) => {
+        expect(input.roots).toEqual([body.id]);
+        expect(input.affectedNodeIds).toEqual(
+          new Set([body.id, target.id, sibling.id]),
+        );
+        const hasSpacingPatch =
+          input.descriptor.type === "style.patch" &&
+          (input.descriptor.patch.padding !== undefined ||
+            input.descriptor.patch.gap !== undefined);
+        return new Map<string, ComputedLayout>([
+          [
+            body.id,
+            { elementId: body.id, x: 0, y: 0, width: 800, height: 600 },
+          ],
+          [
+            target.id,
+            {
+              elementId: target.id,
+              x: 10,
+              y: 20,
+              width: hasSpacingPatch ? 184 : 180,
+              height: 80,
+            },
+          ],
+          [
+            sibling.id,
+            {
+              elementId: sibling.id,
+              x: hasSpacingPatch ? 194 : 190,
+              y: 20,
+              width: 80,
+              height: 40,
+            },
+          ],
+        ]);
+      },
+    );
+    const bridge = new SkiaEditorPresentationLayoutBridge({
+      getActiveProjectId: () => "project-1",
+      getCanonicalRevision: () => 7,
+      getChildrenMap: () => childrenMap,
+      getLayoutMap: () => layoutMap,
+      getRenderNode: (nodeId) =>
+        nodeId === body.id
+          ? body
+          : nodeId === target.id
+            ? staticTarget
+            : nodeId === sibling.id
+              ? staticSibling
+              : undefined,
+      computeTargetedLayout,
+      onPatched,
+      runtime,
+    });
+    const handle = runtime.beginEditorPresentation({
+      commitIntent: "layout",
+      ownerId: "layout-test",
+      projectId: "project-1",
+      targets: [{ kind: "canonical-node", nodeId: target.id }],
+    });
+    handle.publish({
+      patch: { width: 180 },
       target: { kind: "canonical-node", nodeId: target.id },
       type: "style.patch",
     });
     scheduler.flush();
 
-    expect(onPatched).not.toHaveBeenCalled();
+    expect(computeTargetedLayout).toHaveBeenCalledTimes(1);
+    expect(onPatched).toHaveBeenCalledTimes(1);
+    const stream = getCachedCommandStreamSnapshot()!;
+    expect(stream.boundsMap.get(target.id)).toMatchObject({ width: 180 });
+    expect(stream.boundsMap.get(sibling.id)).toMatchObject({ x: 190 });
+    expect(stream.hitBoundsMap.get(sibling.id)).toMatchObject({ x: 190 });
+
+    handle.publish({
+      patch: { padding: 12 },
+      target: { kind: "canonical-node", nodeId: target.id },
+      type: "style.patch",
+    });
+    scheduler.flush();
+    expect(computeTargetedLayout).toHaveBeenCalledTimes(2);
     expect(
-      getCachedCommandStreamSnapshot()!.boundsMap.get(target.id),
-    ).toMatchObject({ x: 10, y: 20 });
+      getCachedCommandStreamSnapshot()!.hitBoundsMap.get(sibling.id),
+    ).toMatchObject({ x: 194 });
     bridge.dispose();
   });
 
-  it("cancel terminal event는 canonical layout으로 local handoff한다", () => {
-    const { target, childrenMap, layoutMap } = primeStream();
+  it("targeted engine이 없으면 in-flow/문자열/spacing은 commit-only로 fail-closed한다", () => {
+    const { body, target, sibling, childrenMap, layoutMap } = primeStream();
+    const inFlowTarget = makeNode(target.id, "layout-body", "static");
     const scheduler = createScheduler();
     const runtime = createRuntime(scheduler);
     const onPatched = vi.fn();
@@ -201,7 +326,62 @@ describe("SkiaEditorPresentationLayoutBridge", () => {
       getCanonicalRevision: () => 7,
       getChildrenMap: () => childrenMap,
       getLayoutMap: () => layoutMap,
-      getRenderNode: () => target,
+      getRenderNode: (nodeId) =>
+        nodeId === target.id
+          ? inFlowTarget
+          : nodeId === "layout-body"
+            ? body
+            : nodeId === "layout-sibling"
+              ? makeNode(sibling.id, body.id, "static")
+              : undefined,
+      onPatched,
+      runtime,
+    });
+    const handle = runtime.beginEditorPresentation({
+      commitIntent: "layout",
+      ownerId: "layout-test",
+      projectId: "project-1",
+      targets: [{ kind: "canonical-node", nodeId: target.id }],
+    });
+    for (const patch of [
+      { width: 200 },
+      { padding: 12 },
+      { gap: 12 },
+      { width: "200px" },
+    ]) {
+      handle.publish({
+        patch,
+        target: { kind: "canonical-node", nodeId: target.id },
+        type: "style.patch",
+      });
+      scheduler.flush();
+    }
+
+    expect(onPatched).not.toHaveBeenCalled();
+    expect(
+      getCachedCommandStreamSnapshot()!.boundsMap.get(target.id),
+    ).toMatchObject({ x: 10, y: 20, width: 120, height: 80 });
+    bridge.dispose();
+  });
+
+  it("cancel terminal event는 canonical layout으로 local handoff한다", () => {
+    const { body, target, sibling, childrenMap, layoutMap } = primeStream();
+    const scheduler = createScheduler();
+    const runtime = createRuntime(scheduler);
+    const onPatched = vi.fn();
+    const bridge = new SkiaEditorPresentationLayoutBridge({
+      getActiveProjectId: () => "project-1",
+      getCanonicalRevision: () => 7,
+      getChildrenMap: () => childrenMap,
+      getLayoutMap: () => layoutMap,
+      getRenderNode: (nodeId) =>
+        nodeId === target.id
+          ? target
+          : nodeId === "layout-body"
+            ? body
+            : nodeId === "layout-sibling"
+              ? sibling
+              : undefined,
       onPatched,
       runtime,
     });

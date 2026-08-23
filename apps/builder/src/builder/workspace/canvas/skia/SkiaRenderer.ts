@@ -859,12 +859,22 @@ export class SkiaRenderer {
    * SkiaNodeData의 effects 배열에 OpacityEffect를 추가하거나 기존 항목을 갱신한다.
    */
   private applyOpacityToNode(
-    node: { effects?: Array<{ type: string; value?: number }> },
+    node: {
+      effects?: Array<{ type: string; value?: number; source?: string }>;
+    },
     opacity: number,
   ): void {
     if (!node.effects) node.effects = [];
-    const existingIdx = node.effects.findIndex((e) => e.type === "opacity");
-    const effect: OpacityEffect = { type: "opacity", value: opacity };
+    // Animation must own its own slot. Replacing style/state opacity here
+    // would make the next animation tick destroy canonical provenance.
+    const existingIdx = node.effects.findIndex(
+      (e) => e.type === "opacity" && e.source === "animation",
+    );
+    const effect: OpacityEffect = {
+      type: "opacity",
+      value: opacity,
+      source: "animation",
+    };
     if (existingIdx >= 0) {
       node.effects[existingIdx] = effect;
     } else {

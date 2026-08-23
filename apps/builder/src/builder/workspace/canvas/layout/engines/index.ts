@@ -49,7 +49,11 @@ export {
 export { createVariableScopeWithDOMFallback } from "./cssValueParser";
 
 // ADR-005 Phase 2: Persistent Taffy Tree + Incremental Layout
-export { calculateFullTreeLayout, resetPersistentTree } from "./fullTreeLayout";
+export {
+  calculateFullTreeLayout,
+  computePresentationLayoutTargeted,
+  resetPersistentTree,
+} from "./fullTreeLayout";
 
 // ADR-005 Phase 3: Flat Render Command Stream — 공유 Layout Map
 export {

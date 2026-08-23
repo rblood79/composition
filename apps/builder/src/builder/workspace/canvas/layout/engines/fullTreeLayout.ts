@@ -60,6 +60,7 @@ import { fontFamily as specFontFamily } from "@composition/specs";
 import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import { useScrollState } from "../../../../stores/scrollState";
+import type { PresentationLayoutComputeRequest } from "../../../../presentation/editorPresentationLayoutLane";
 
 // ─── 모듈 수준 상수 ──────────────────────────────────────────────────
 
@@ -262,6 +263,163 @@ export function resetPersistentTree(pageId?: string): void {
       publishLayoutMap(null, key);
     }
     clearSyntheticElements();
+  }
+}
+
+function presentationSizeToPx(value: unknown): string | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return null;
+  }
+  return `${value}px`;
+}
+
+const PRESENTATION_TARGETED_STYLE_KEYS = new Set([
+  "width",
+  "height",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "gap",
+  "rowGap",
+  "columnGap",
+]);
+
+/**
+ * Presentation layout lane이 요청한 in-flow width/height/spacing을 persistent tree에
+ * 임시 합성하고, 엔진의 used-size 전파 결과만 반환한다.
+ *
+ * 이 seam은 canonical tree를 영구 변경하지 않는다. `finally`에서 원래 style
+ * record를 복구하므로 commit publisher가 canonical 스타일을 반영할 때까지
+ * presentation frame만 소비한다. 결과 수집은 `getLayoutsForIds`로 제한해
+ * 전체 layout map 재수집을 금지한다.
+ */
+export function computePresentationLayoutTargeted(
+  input: PresentationLayoutComputeRequest,
+): ReadonlyMap<string, ComputedLayout> | null {
+  const tree = persistentTrees.get(input.rootKey);
+  if (!tree?.isInitialized) return null;
+  if (
+    input.descriptor.type !== "style.patch" ||
+    input.descriptor.target.kind !== "canonical-node"
+  ) {
+    return null;
+  }
+
+  const patch = input.descriptor.patch;
+  const patchKeys = Object.keys(patch);
+  if (
+    patchKeys.length === 0 ||
+    patchKeys.some((key) => !PRESENTATION_TARGETED_STYLE_KEYS.has(key))
+  ) {
+    return null;
+  }
+
+  const targetId = input.descriptor.target.nodeId;
+  const originalStyle = new Map<string, Record<string, unknown>>();
+  const originalJson = tree.getLastJson(targetId);
+  if (!originalJson) return null;
+
+  let baseStyle: Record<string, unknown>;
+  try {
+    const parsed: unknown = JSON.parse(originalJson);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+    baseStyle = { ...(parsed as Record<string, unknown>) };
+  } catch {
+    return null;
+  }
+
+  // Grid placement has a known persistent update limitation: track/placement
+  // caches require a full rebuild. Keep this lane fail-closed for any grid
+  // consumer in the affected ancestry.
+  for (const elementId of input.affectedNodeIds) {
+    const json = tree.getLastJson(elementId);
+    if (!json) return null;
+    try {
+      const parsed: unknown = JSON.parse(json);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed) &&
+        ((parsed as Record<string, unknown>).display === "grid" ||
+          (parsed as Record<string, unknown>).display === "inline-grid")
+      ) {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  const nextStyle = { ...baseStyle };
+  for (const key of ["width", "height"] as const) {
+    if (patch[key] === undefined) continue;
+    const value = presentationSizeToPx(patch[key]);
+    if (value === null) return null;
+    nextStyle[key] = value;
+  }
+  const spacingKeys = [
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+  ] as const;
+  if (patch.padding !== undefined) {
+    const value = presentationSizeToPx(patch.padding);
+    if (value === null) return null;
+    for (const key of spacingKeys) nextStyle[key] = value;
+  }
+  for (const key of spacingKeys) {
+    if (patch[key] === undefined) continue;
+    const value = presentationSizeToPx(patch[key]);
+    if (value === null) return null;
+    nextStyle[key] = value;
+  }
+  if (patch.gap !== undefined) {
+    const value = presentationSizeToPx(patch.gap);
+    if (value === null) return null;
+    nextStyle.rowGap = value;
+    nextStyle.columnGap = value;
+  }
+  for (const key of ["rowGap", "columnGap"] as const) {
+    if (patch[key] === undefined) continue;
+    const value = presentationSizeToPx(patch[key]);
+    if (value === null) return null;
+    nextStyle[key] = value;
+  }
+
+  originalStyle.set(targetId, baseStyle);
+  tree.updateNodeStyle(targetId, nextStyle);
+  try {
+    const targeted = tree.computeTargetedLayout(
+      {
+        affectedNodeIds: [...input.affectedNodeIds],
+        parentChain: input.parentChain,
+        roots: input.roots,
+      },
+      input.availableWidth,
+      input.availableHeight,
+    );
+    if (targeted.layoutMap.size !== input.affectedNodeIds.size) return null;
+
+    const result = new Map<string, ComputedLayout>();
+    for (const [elementId, layout] of targeted.layoutMap) {
+      result.set(elementId, {
+        elementId,
+        height: layout.height,
+        width: layout.width,
+        x: layout.x,
+        y: layout.y,
+      });
+    }
+    return result;
+  } finally {
+    for (const [elementId, style] of originalStyle) {
+      tree.updateNodeStyle(elementId, style);
+    }
   }
 }
 
@@ -1661,8 +1819,7 @@ function traversePostOrder(
     //   **문자 수**(8)가 나온다 — 자식 availableWidth 가 1/8 로 쪼그라들어 텍스트가
     //   실제보다 훨씬 좁은 폭에서 줄바꿈 측정된다(높이 과대).
     const gridCols = coerceGridTrack(elementStyle.gridTemplateColumns) as
-      | string[]
-      | undefined;
+      string[] | undefined;
     if (gridCols && gridCols.length > 0) {
       const numCols = gridCols.length;
       // store 는 longhand 만 저장한다 (style-ssot.md) — `gap` 만 읽으면 항상 0.
@@ -1896,8 +2053,7 @@ function traversePostOrder(
               ...filteredChild.props,
               style: {
                 ...(filteredChild.props?.style as
-                  | Record<string, unknown>
-                  | undefined),
+                  Record<string, unknown> | undefined),
                 fontSize: childFs,
               },
             },
@@ -1961,8 +2117,7 @@ function traversePostOrder(
   if (getLabelDelegationParents()?.has(containerTag)) {
     const parentSize =
       ((rawElement.props as Record<string, unknown> | undefined)?.size as
-        | string
-        | undefined) || "md";
+        string | undefined) || "md";
     {
       const delegated = LABEL_SIZE_STYLE[parentSize];
       if (delegated) {
@@ -2958,11 +3113,9 @@ export function calculateFullTreeLayout(
           if (tagListParentId) {
             const parentEl = elementsMap.get(tagListParentId);
             const parentProps = parentEl?.props as
-              | Record<string, unknown>
-              | undefined;
+              Record<string, unknown> | undefined;
             const parentStyle = parentProps?.style as
-              | Record<string, unknown>
-              | undefined;
+              Record<string, unknown> | undefined;
             if (
               shouldClearSideLabelTagGroupHeight({
                 type: parentEl?.type,
@@ -3090,8 +3243,7 @@ export function calculateFullTreeLayout(
       // overflow 가 catalog containerStyles 에만 있는 컨테이너(ListBox/Tree/body 등)도 스크롤이
       //   발화하도록 catalog fallback 포괄. ref instance 는 resolved type(componentName). raw 우선.
       const elWithNameForOverflow = el as
-        | { componentName?: unknown }
-        | undefined;
+        { componentName?: unknown } | undefined;
       const overflowType =
         (typeof elWithNameForOverflow?.componentName === "string"
           ? elWithNameForOverflow.componentName
@@ -3118,8 +3270,7 @@ export function calculateFullTreeLayout(
           (id) => {
             const childEl = elementsMap.get(id);
             const childNamed = childEl as
-              | { componentName?: unknown }
-              | undefined;
+              { componentName?: unknown } | undefined;
             const childType =
               (typeof childNamed?.componentName === "string"
                 ? childNamed.componentName

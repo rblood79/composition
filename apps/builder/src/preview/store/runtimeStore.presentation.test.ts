@@ -107,6 +107,54 @@ describe("ADR-187 Preview runtime presentation ordering", () => {
     store.getState().setEditorPresentationProjectionIndex(projection(1));
   });
 
+  it("inherited color patch는 Preview에서 own-color 없는 descendant까지 patch/cancel한다", () => {
+    const inheritedStore = createRuntimeStore();
+    inheritedStore
+      .getState()
+      .receiveCanonicalDocument(canonical(1, "#111111FF"));
+    inheritedStore.getState().setEditorPresentationProjectionIndex(
+      buildPreviewPresentationProjectionIndex(
+        [
+          {
+            id: "button-1",
+            type: "Button",
+            props: { style: { color: "#111111" } },
+            children: [{ id: "label-1", type: "Text" }],
+          },
+        ] as unknown as ResolvedNode[],
+        1,
+      ),
+    );
+
+    inheritedStore.getState().applyEditorPresentationPatch({
+      type: "EDITOR_PRESENTATION_PATCH",
+      projectId: PROJECT_ID,
+      sessionId: "color-session",
+      revision: 1,
+      baseDocumentRevision: 1,
+      mutations: [
+        {
+          patch: { color: "#222222" },
+          propagation: "inherited-subtree",
+          target: { kind: "canonical-node", nodeId: "button-1" },
+          type: "style.patch",
+        },
+      ],
+    });
+
+    expect(
+      Object.keys(inheritedStore.getState().editorPresentationOverrides).sort(),
+    ).toEqual(["button-1", "button-1/label-1"]);
+
+    inheritedStore.getState().cancelEditorPresentation({
+      type: "EDITOR_PRESENTATION_CANCEL",
+      projectId: PROJECT_ID,
+      sessionId: "color-session",
+      revision: 2,
+    });
+    expect(inheritedStore.getState().editorPresentationOverrides).toEqual({});
+  });
+
   it("finish-before-document keeps final overlay until atomic canonical retirement", () => {
     store.getState().applyEditorPresentationPatch(patch(1));
     store.getState().finishEditorPresentation(finish(2));

@@ -269,11 +269,21 @@ function normalizeDescriptor(
         type: descriptor.type,
       });
     case "geometry.patch":
+      return Object.freeze({
+        patch: clonePresentationValue(descriptor.patch) as Readonly<
+          Record<string, unknown>
+        >,
+        target,
+        type: descriptor.type,
+      });
     case "style.patch":
       return Object.freeze({
         patch: clonePresentationValue(descriptor.patch) as Readonly<
           Record<string, unknown>
         >,
+        ...(descriptor.propagation
+          ? { propagation: descriptor.propagation }
+          : {}),
         target,
         type: descriptor.type,
       });

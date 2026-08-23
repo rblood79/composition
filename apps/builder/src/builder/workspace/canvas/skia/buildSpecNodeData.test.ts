@@ -677,7 +677,12 @@ describe("buildSpecNodeData", () => {
 
     it("style.opacity<1 → opacity effect 접붙임", () => {
       const node = buildWithStyle({ opacity: 0.5 });
-      expect(node?.effects?.some((e) => e.type === "opacity")).toBe(true);
+      const opacity = node?.effects?.find((e) => e.type === "opacity");
+      expect(opacity).toMatchObject({
+        type: "opacity",
+        source: "style",
+        value: 0.5,
+      });
     });
 
     it("style.filter: blur() → layer-blur effect 접붙임", () => {
@@ -904,7 +909,11 @@ describe("buildSpecNodeData", () => {
 
     it("Button 은 catalog 0.38 dim effect 부착", () => {
       const effects = buildDisabled("Button")?.effects ?? [];
-      expect(effects).toContainEqual({ type: "opacity", value: 0.38 });
+      expect(effects).toContainEqual({
+        type: "opacity",
+        value: 0.38,
+        source: "state",
+      });
     });
 
     it("Breadcrumbs 는 catalog opacity 1 → dim effect 미부착 (DOM [data-disabled] opacity:1 대칭)", () => {
@@ -916,7 +925,11 @@ describe("buildSpecNodeData", () => {
 
     it('테이블 문자열 값("0.38", Select)도 number 로 coerce', () => {
       const effects = buildDisabled("Select")?.effects ?? [];
-      expect(effects).toContainEqual({ type: "opacity", value: 0.38 });
+      expect(effects).toContainEqual({
+        type: "opacity",
+        value: 0.38,
+        source: "state",
+      });
     });
   });
 

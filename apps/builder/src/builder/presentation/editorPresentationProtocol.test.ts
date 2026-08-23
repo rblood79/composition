@@ -80,6 +80,32 @@ describe("ADR-187 editor presentation protocol validation", () => {
     ).toBe(false);
   });
 
+  it("validates the optional inherited-subtree propagation contract", () => {
+    const message = patch({ kind: "canonical-node", nodeId: "button-1" });
+    const accepted = {
+      ...message,
+      mutations: [
+        {
+          patch: { color: "#222222" },
+          propagation: "inherited-subtree" as const,
+          target: { kind: "canonical-node" as const, nodeId: "button-1" },
+          type: "style.patch" as const,
+        },
+      ],
+    };
+    expect(isEditorPresentationProtocolMessage(accepted)).toBe(true);
+    const rejected = {
+      ...accepted,
+      mutations: [
+        {
+          ...accepted.mutations[0],
+          propagation: "unknown",
+        },
+      ],
+    };
+    expect(isEditorPresentationProtocolMessage(rejected)).toBe(false);
+  });
+
   it("accepts empty patch as an active-session overlay clear", () => {
     expect(
       isEditorPresentationProtocolMessage({

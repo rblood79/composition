@@ -40,6 +40,7 @@ import { useStore } from "../../../stores";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
+import { useTextMetricsPresentationActions } from "../hooks/useTextMetricsPresentationActions";
 import { useTypographyValues } from "../hooks/useTypographyValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import {
@@ -61,6 +62,11 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     isTextColorPresentationOwned,
     previewTextColorPresentation,
   } = useStylePresentationActions();
+  const {
+    commitTextMetricPresentation,
+    isTextMetricPresentationOwned,
+    previewTextMetricPresentation,
+  } = useTextMetricsPresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const styleValues = useTypographyValues(selectedId);
   const [registryFaces, setRegistryFaces] = useState(() =>
@@ -175,6 +181,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
   );
 
   const presentationOwnsTextColor = isTextColorPresentationOwned();
+  const presentationOwnsTextMetric = isTextMetricPresentationOwned("fontSize");
 
   const handleTextColorPreview = useCallback(
     (value: string): void => {
@@ -198,6 +205,40 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       updateStyle("color", value);
     },
     [commitTextColorPresentation, presentationOwnsTextColor, updateStyle],
+  );
+
+  const handleTextMetricPreview = useCallback(
+    (value: string): void => {
+      if (
+        presentationOwnsTextMetric &&
+        previewTextMetricPresentation("fontSize", value)
+      ) {
+        return;
+      }
+      updateStylePreview("fontSize", value);
+    },
+    [
+      presentationOwnsTextMetric,
+      previewTextMetricPresentation,
+      updateStylePreview,
+    ],
+  );
+
+  const handleTextMetricCommit = useCallback(
+    (value: string): void => {
+      if (
+        presentationOwnsTextMetric &&
+        commitTextMetricPresentation("fontSize", value)
+      ) {
+        return;
+      }
+      updateStyleImmediate("fontSize", value);
+    },
+    [
+      commitTextMetricPresentation,
+      presentationOwnsTextMetric,
+      updateStyleImmediate,
+    ],
   );
 
   if (!styleValues) return null;
@@ -245,8 +286,8 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         value={styleValues.fontSize}
         units={["reset", "px"]}
         defaultUnit="px"
-        onChange={(value) => updateStyleImmediate("fontSize", value)}
-        onDrag={(value) => updateStylePreview("fontSize", value)}
+        onChange={handleTextMetricCommit}
+        onDrag={handleTextMetricPreview}
         min={8}
         max={200}
       />
@@ -269,7 +310,15 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         className="font-weight"
         value={styleValues.fontWeight}
         options={fontWeightOptions}
-        onChange={(value) => updateStyle("fontWeight", value)}
+        onChange={(value) => {
+          if (
+            isTextMetricPresentationOwned("fontWeight") &&
+            commitTextMetricPresentation("fontWeight", value)
+          ) {
+            return;
+          }
+          updateStyle("fontWeight", value);
+        }}
       />
       <PropertyUnitInput
         icon={Type}

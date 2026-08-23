@@ -10,6 +10,7 @@ import { getIconData } from "@composition/specs";
 import type {
   SkiaNodeData,
   SkiaPresentationFillTarget,
+  SkiaPresentationTextMetricTarget,
   SkiaPresentationTextTarget,
 } from "./nodeRendererTypes";
 import type { EffectStyle, FillStyle } from "./types";
@@ -166,6 +167,7 @@ export function specShapesToSkia(
   let namedBackgroundBox: SkiaNodeData["box"] | undefined;
   const presentationFillTargets: SkiaPresentationFillTarget[] = [];
   const presentationTextTargets: SkiaPresentationTextTarget[] = [];
+  const presentationTextMetricTargets: SkiaPresentationTextMetricTarget[] = [];
 
   // Deferred shapes: shadow/border with explicit target (forward reference)
   const deferredShapes: Shape[] = [];
@@ -231,6 +233,9 @@ export function specShapesToSkia(
     box: bgBox ?? { fillColor: TRANSPARENT, borderRadius: 0 },
     ...(presentationFillTargets.length > 0 ? { presentationFillTargets } : {}),
     ...(presentationTextTargets.length > 0 ? { presentationTextTargets } : {}),
+    ...(presentationTextMetricTargets.length > 0
+      ? { presentationTextMetricTargets }
+      : {}),
     children: children.length > 0 ? children : undefined,
   };
 
@@ -905,6 +910,8 @@ export function specShapesToSkia(
             autoCenter: false,
           },
         };
+
+        presentationTextMetricTargets.push({ text: node.text! });
 
         children.push(node);
         break;

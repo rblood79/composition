@@ -26,6 +26,7 @@ import type {
   SkiaPresentationFillTarget,
   SkiaPresentationShadowTarget,
   SkiaPresentationStrokeTarget,
+  SkiaPresentationTextMetricTarget,
   SkiaPresentationTextTarget,
 } from "./nodeRendererTypes";
 import { buildSkiaNodeData, type BuildContext } from "./buildSkiaNodeData";
@@ -71,6 +72,10 @@ import {
   isBoxShadowPresentationValue,
 } from "../../../presentation/boxShadowPresentation";
 import { parsePresentationOpacity } from "../../../presentation/editorPresentationOpacity";
+import {
+  parsePresentationFontSize,
+  parsePresentationFontWeight,
+} from "../../../presentation/editorPresentationTextMetricValue";
 import {
   invalidateNodePicture,
   setPresentationVolatileNodeIds,
@@ -153,6 +158,16 @@ function haveSamePresentationTextSlots(
   return (
     left.length === right.length &&
     left.every((target, index) => target.color === right[index]?.color)
+  );
+}
+
+function haveSamePresentationTextMetricSlots(
+  left: readonly SkiaPresentationTextMetricTarget[],
+  right: readonly SkiaPresentationTextMetricTarget[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((target, index) => target.text === right[index]?.text)
   );
 }
 
@@ -462,13 +477,26 @@ export class StoreRenderBridge {
   >();
   private presentationOpacityBaseById = new Map<
     string,
-    { readonly effect: OpacityEffect; readonly value: number }
+    {
+      readonly effect: OpacityEffect;
+      readonly value: number;
+      /** explicit opacity:1에서 presentation 중에만 추가한 effect인지 여부 */
+      readonly created: boolean;
+    }
   >();
   private presentationTextBaseById = new Map<
     string,
     {
       readonly colors: readonly Float32Array[];
       readonly targets: readonly SkiaPresentationTextTarget[];
+    }
+  >();
+  private presentationTextMetricBaseById = new Map<
+    string,
+    {
+      readonly property: "fontSize" | "fontWeight";
+      readonly values: readonly (number | undefined)[];
+      readonly targets: readonly SkiaPresentationTextMetricTarget[];
     }
   >();
   private presentationShadowBaseById = new Map<
@@ -497,7 +525,8 @@ export class StoreRenderBridge {
       this.presentationStyleBaseById.has(elementId) ||
       this.presentationOpacityBaseById.has(elementId) ||
       this.presentationShadowBaseById.has(elementId) ||
-      this.presentationTextBaseById.has(elementId)
+      this.presentationTextBaseById.has(elementId) ||
+      this.presentationTextMetricBaseById.has(elementId)
     ) {
       this.presentationNodeIds.add(elementId);
     } else {
@@ -667,16 +696,38 @@ export class StoreRenderBridge {
     const keys = Object.keys(patch);
     if (keys.length === 1 && keys[0] === "opacity") {
       const nextOpacity = parsePresentationOpacity(patch.opacity);
-      if (nextOpacity === null) return false;
-      const effect = getSkiaNode(elementId)?.effects?.find(
-        (candidate): candidate is OpacityEffect => candidate.type === "opacity",
-      );
-      if (!effect || Object.is(effect.value, nextOpacity)) return false;
+      const node = getSkiaNode(elementId);
+      if (nextOpacity === null || !node) return false;
+      // A presentation patch owns only the style slot. State and animation
+      // opacity are independent effects and must remain in the stack.
       const existingBase = this.presentationOpacityBaseById.get(elementId);
+      let effect = node.effects?.find(
+        (candidate): candidate is OpacityEffect =>
+          candidate.type === "opacity" && candidate.source === "style",
+      );
+      if (
+        !effect &&
+        existingBase?.effect &&
+        node.effects?.includes(existingBase.effect)
+      ) {
+        effect = existingBase.effect;
+      }
+      let created = false;
+      if (!effect) {
+        // 명시적 opacity:1은 canonical target resolver가 보장한다. 1→1은
+        // no-op으로 두고, 실제 drag가 시작될 때만 transient effect를 추가한다.
+        if (nextOpacity === 1) return false;
+        node.effects ??= [];
+        effect = { type: "opacity", value: 1, source: "presentation" };
+        node.effects.push(effect);
+        created = true;
+      }
+      if (Object.is(effect.value, nextOpacity)) return false;
       if (!existingBase || existingBase.effect !== effect) {
         this.presentationOpacityBaseById.set(elementId, {
           effect,
           value: effect.value,
+          created,
         });
       }
       effect.value = nextOpacity;
@@ -713,6 +764,45 @@ export class StoreRenderBridge {
         });
       }
       for (const target of targets) target.color.set(nextColor);
+      invalidateNodePicture(elementId);
+      this.refreshPresentationVolatileNode(elementId);
+      return true;
+    }
+    if (
+      keys.length === 1 &&
+      (keys[0] === "fontSize" || keys[0] === "fontWeight")
+    ) {
+      const property = keys[0] as "fontSize" | "fontWeight";
+      const nextValue =
+        property === "fontSize"
+          ? parsePresentationFontSize(patch.fontSize)
+          : parsePresentationFontWeight(patch.fontWeight);
+      const node = getSkiaNode(elementId);
+      const targets = node?.presentationTextMetricTargets;
+      if (nextValue === null || !node || !targets || targets.length === 0) {
+        return false;
+      }
+      const changed = targets.some(
+        (target) => !Object.is(target.text[property] ?? 400, nextValue),
+      );
+      if (!changed) return false;
+
+      const existingBase = this.presentationTextMetricBaseById.get(elementId);
+      if (
+        !existingBase ||
+        existingBase.property !== property ||
+        !haveSamePresentationTextMetricSlots(existingBase.targets, targets)
+      ) {
+        this.presentationTextMetricBaseById.set(elementId, {
+          property,
+          values: targets.map((target) => target.text[property]),
+          targets,
+        });
+      }
+      for (const target of targets) target.text[property] = nextValue;
+      // renderText derives the retained paragraph key from text metrics. Invalidating
+      // the owner picture makes the next walk rebuild the paragraph atomically;
+      // the fixed-box target resolver guarantees hit bounds remain unchanged.
       invalidateNodePicture(elementId);
       this.refreshPresentationVolatileNode(elementId);
       return true;
@@ -813,10 +903,19 @@ export class StoreRenderBridge {
     const opacityBase = this.presentationOpacityBaseById.get(elementId);
     if (opacityBase) {
       const effect = getSkiaNode(elementId)?.effects?.find(
-        (candidate): candidate is OpacityEffect => candidate.type === "opacity",
+        (candidate): candidate is OpacityEffect =>
+          candidate.type === "opacity" && candidate === opacityBase.effect,
       );
       if (effect === opacityBase.effect) {
-        effect.value = opacityBase.value;
+        if (opacityBase.created) {
+          const effects = getSkiaNode(elementId)?.effects;
+          if (effects) {
+            const index = effects.indexOf(effect);
+            if (index >= 0) effects.splice(index, 1);
+          }
+        } else {
+          effect.value = opacityBase.value;
+        }
         invalidateNodePicture(elementId);
         restored = true;
       }
@@ -872,6 +971,23 @@ export class StoreRenderBridge {
       }
       this.presentationTextBaseById.delete(elementId);
     }
+    const textMetricBase = this.presentationTextMetricBaseById.get(elementId);
+    if (textMetricBase) {
+      const node = getSkiaNode(elementId);
+      const targets = node?.presentationTextMetricTargets;
+      const canRestore =
+        targets !== undefined &&
+        haveSamePresentationTextMetricSlots(textMetricBase.targets, targets);
+      if (canRestore) {
+        targets.forEach((target, index) => {
+          const value = textMetricBase.values[index];
+          if (value !== undefined) target.text[textMetricBase.property] = value;
+        });
+        invalidateNodePicture(elementId);
+        restored = true;
+      }
+      this.presentationTextMetricBaseById.delete(elementId);
+    }
     this.refreshPresentationVolatileNode(elementId);
     return restored;
   }
@@ -881,8 +997,14 @@ export class StoreRenderBridge {
     const releasedOpacity = this.presentationOpacityBaseById.delete(elementId);
     const releasedShadow = this.presentationShadowBaseById.delete(elementId);
     const releasedText = this.presentationTextBaseById.delete(elementId);
+    const releasedTextMetric =
+      this.presentationTextMetricBaseById.delete(elementId);
     const released =
-      releasedStyle || releasedOpacity || releasedShadow || releasedText;
+      releasedStyle ||
+      releasedOpacity ||
+      releasedShadow ||
+      releasedText ||
+      releasedTextMetric;
     if (released) this.refreshPresentationVolatileNode(elementId);
     return released;
   }
