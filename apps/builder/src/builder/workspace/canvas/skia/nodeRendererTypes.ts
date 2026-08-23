@@ -63,6 +63,8 @@ export interface SkiaNodeData {
   presentationFillTargets?: readonly SkiaPresentationFillTarget[];
   /** ADR-187 Phase 5: style paint가 소비하는 mutable stroke color slots. */
   presentationStrokeTargets?: readonly SkiaPresentationStrokeTarget[];
+  /** ADR-187 Phase 5: box-shadow가 소비하는 mutable effect slots. */
+  presentationShadowTargets?: readonly SkiaPresentationShadowTarget[];
   text?: {
     content: string;
     fontFamilies: string[];
@@ -179,6 +181,11 @@ export interface SkiaPresentationFillTarget {
 export interface SkiaPresentationStrokeTarget {
   /** box.strokeColor와 공유하는 mutable Color4f slot. */
   readonly color: Float32Array;
+}
+
+export interface SkiaPresentationShadowTarget {
+  /** node.effects 안의 기존 drop-shadow object를 직접 갱신한다. */
+  readonly effect: DropShadowEffect;
 }
 
 export type ParagraphCache = Map<string, Paragraph>;

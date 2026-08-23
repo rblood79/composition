@@ -133,6 +133,9 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   const skiaEffects = buildSkiaEffects(
     effectsStyle as Parameters<typeof buildSkiaEffects>[0],
   );
+  const presentationShadowTargets = skiaEffects.effects
+    ?.filter((effect) => effect.type === "drop-shadow")
+    .map((effect) => ({ effect }));
 
   const w = layout?.width ?? transform.width;
   const h = layout?.height ?? transform.height;
@@ -335,6 +338,9 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     ...(scrollOffset ? { scrollOffset } : {}),
     ...(scrollbar ? { scrollbar } : {}),
     ...(skiaEffects.effects ? { effects: skiaEffects.effects } : {}),
+    ...(presentationShadowTargets && presentationShadowTargets.length > 0
+      ? { presentationShadowTargets }
+      : {}),
     ...(skiaEffects.blendMode ? { blendMode: skiaEffects.blendMode } : {}),
     ...(skiaTransform ? { transform: skiaTransform } : {}),
     ...(zIndex !== undefined ? { zIndex } : {}),

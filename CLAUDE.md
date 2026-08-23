@@ -212,7 +212,7 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 ## 병렬 워크플로 (Boris 패턴)
 
 - 대규모 리팩토링: `isolation: "worktree"`로 격리된 에이전트 실행
-- 독립 작업 2+ 개: `/dispatch` 스킬로 병렬 에이전트 실행
+- 독립 작업 2+ 개: Agent tool 병렬 호출로 동시 실행 (단일 응답에 복수 agent)
 - reviewer + implementer 분리: 구현 에이전트 완료 후 reviewer 에이전트로 검증
 - **worktree 통합은 main 직접 merge** (PR 경유 금지): `git merge <worktree-branch>` → `git push origin main` → `git worktree remove`. 상세: `.claude/rules/git-workflow.md`
 - `/loop` 활용: 렌더링 파리티 반복 검증에 적합

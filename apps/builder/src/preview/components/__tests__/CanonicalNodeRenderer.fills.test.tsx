@@ -236,4 +236,29 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
       },
     });
   });
+
+  it("boxShadow style patch는 Preview style만 바꾸고 geometry를 보존한다", () => {
+    const base = {
+      style: {
+        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+        borderRadius: "8px",
+        width: "120px",
+      },
+    };
+    expect(
+      resolvePresentationPaintProps(base, [
+        {
+          patch: { boxShadow: "inset 0 4px 10px 1px rgba(0,0,0,0.3)" },
+          target: { kind: "canonical-node", nodeId: "frame-shadow" },
+          type: "style.patch",
+        },
+      ]),
+    ).toEqual({
+      style: {
+        boxShadow: "inset 0 4px 10px 1px rgba(0,0,0,0.3)",
+        borderRadius: "8px",
+        width: "120px",
+      },
+    });
+  });
 });

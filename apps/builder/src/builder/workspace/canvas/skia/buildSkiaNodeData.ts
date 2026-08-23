@@ -92,6 +92,9 @@ export function buildSkiaNodeData(
   const skiaEffects = buildSkiaEffects(
     style as Parameters<typeof buildSkiaEffects>[0],
   );
+  const presentationShadowTargets = skiaEffects.effects
+    ?.filter((effect) => effect.type === "drop-shadow")
+    .map((effect) => ({ effect }));
 
   const overflow = style.overflow as string | undefined;
   const clipChildren =
@@ -164,6 +167,9 @@ export function buildSkiaNodeData(
   };
 
   if (skiaEffects.effects) nodeData.effects = skiaEffects.effects;
+  if (presentationShadowTargets && presentationShadowTargets.length > 0) {
+    nodeData.presentationShadowTargets = presentationShadowTargets;
+  }
   if (skiaEffects.blendMode) nodeData.blendMode = skiaEffects.blendMode;
   if (skiaEffects.transform) nodeData.transform = skiaEffects.transform;
 

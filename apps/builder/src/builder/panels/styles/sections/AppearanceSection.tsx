@@ -90,6 +90,8 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
     commitBorderColorPresentation,
     isBorderColorPresentationOwned,
     previewBorderColorPresentation,
+    commitBoxShadowPresentation,
+    isBoxShadowPresentationOwned,
   } = useStylePresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const styleValues = useAppearanceValues(selectedId);
@@ -97,6 +99,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
   if (!styleValues) return null;
 
   const presentationOwnsBorderColor = isBorderColorPresentationOwned();
+  const presentationOwnsBoxShadow = isBoxShadowPresentationOwned();
 
   const handleBorderColorPreview = (value: string): void => {
     if (presentationOwnsBorderColor && previewBorderColorPresentation(value)) {
@@ -133,12 +136,16 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
 
   const handleInsetChange = (isSelected: boolean) => {
     if (!hasShadow) return;
-    updateStyle(
-      "boxShadow",
-      isSelected
-        ? applyInset(styleValues.boxShadow)
-        : stripInset(styleValues.boxShadow),
-    );
+    const nextBoxShadow = isSelected
+      ? applyInset(styleValues.boxShadow)
+      : stripInset(styleValues.boxShadow);
+    if (
+      presentationOwnsBoxShadow &&
+      commitBoxShadowPresentation(nextBoxShadow)
+    ) {
+      return;
+    }
+    updateStyle("boxShadow", nextBoxShadow);
   };
 
   return (
@@ -240,10 +247,16 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
               const cssValue =
                 getShadowToken(value as ShadowPresetKey, "light") ?? value;
               // 프리셋 전환 시 inset 토글 상태 유지 (sm~lg × inset 직교 축)
-              updateStyle(
-                "boxShadow",
-                insetActiveRef.current ? applyInset(cssValue) : cssValue,
-              );
+              const nextBoxShadow = insetActiveRef.current
+                ? applyInset(cssValue)
+                : cssValue;
+              if (
+                presentationOwnsBoxShadow &&
+                commitBoxShadowPresentation(nextBoxShadow)
+              ) {
+                return;
+              }
+              updateStyle("boxShadow", nextBoxShadow);
             }
           }}
         />

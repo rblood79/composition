@@ -634,6 +634,10 @@ describe("buildSpecNodeData", () => {
         boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
       });
       expect(node?.effects?.some((e) => e.type === "drop-shadow")).toBe(true);
+      expect(node?.presentationShadowTargets).toHaveLength(1);
+      expect(node?.presentationShadowTargets?.[0]?.effect).toBe(
+        node?.effects?.find((e) => e.type === "drop-shadow"),
+      );
     });
 
     it("다중 boxShadow → drop-shadow effect 2개", () => {
@@ -649,6 +653,7 @@ describe("buildSpecNodeData", () => {
       expect(node?.effects?.some((e) => e.type === "drop-shadow")).not.toBe(
         true,
       );
+      expect(node?.presentationShadowTargets).toBeUndefined();
     });
 
     it("inset boxShadow → drop-shadow effect 에 inner:true (renderInnerBoxShadows 입력 계약)", () => {

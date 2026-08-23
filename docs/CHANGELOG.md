@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ADR-187 Phase 5 box-shadow presentation slice — 2026-08-23
+
+### Architecture
+
+- **Box Shadow effect slot presentation owner 연결**:
+  - Appearance의 `boxShadow` 변경은 기존 Skia `drop-shadow` effect slot의 offset·blur·spread·color를
+    같은 layer 수와 inset topology 안에서만 in-place 갱신하고, Preview에는 semantic style delta를 보낸다.
+  - layer 추가/삭제와 inset 전환은 command/effect topology가 달라져 legacy canonical commit으로 fail-closed한다.
+  - **Why:** topology가 바뀐 shadow를 기존 command stream에 덮어쓰면 `effectLayerCount`가 stale해져 canvas stack이
+    어긋날 수 있고, paint-only shadow를 full scene materialization으로 일반화하면 `requestAnimationFrame` 비용이 다시 문서 크기에 결합된다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{nodeRendererTypes.ts,StoreRenderBridge.ts,styleConversion/styleConverter.ts}`
+
+### Performance
+
+- **Builder Compare Mode live gate**:
+  - 3-layer `md → lg` 변경에서 Skia target patch `+60`, Preview delta `+2`, legacy write `+0`, action/control RAF `0/0`을 확인했다.
+  - Preview computed shadow가 `lg` 3-layer로 수렴했고 rect `110×70, 220×120`은 유지됐다. discrete terminal commit의 기존 commit-lane fallback/full rebuild은 증적에 분리 기록했다.
+  - 증적: [ADR-187 Phase 5 box-shadow live parity](adr/design/187-phase-5-box-shadow-live-parity.md)
+
 ## ADR-187 Phase 5 border color presentation slice — 2026-08-23
 
 ### Architecture

@@ -646,8 +646,7 @@ export function convertToFillStyle(
   const bg =
     style?.backgroundColor ??
     ((style as Record<string, unknown> | undefined)?.background as
-      | string
-      | undefined);
+      string | undefined);
   const color = cssColorToHex(bg, 0xffffff, resolvedColor);
   const alpha =
     style?.opacity !== undefined
@@ -1171,6 +1170,15 @@ function parseAllBoxShadows(raw: string): DropShadowEffect[] {
 }
 
 /**
+ * ADR-187 Phase 5: materialized box-shadow presentation target을 만들 때도
+ * canonical Skia parser와 같은 CSS 해석을 사용한다. 호출자는 반환된 effect를
+ * 기존 node.effects slot에 덮어쓸 수 있을 때만 paint lane을 선택한다.
+ */
+export function parseBoxShadowEffects(raw: string): DropShadowEffect[] {
+  return parseAllBoxShadows(raw);
+}
+
+/**
  * 단일 CSS boxShadow 값을 파싱하여 DropShadowEffect로 변환
  *
  * 지원 포맷: [inset] offsetX offsetY [blurRadius [spreadRadius]] [color]
@@ -1204,6 +1212,7 @@ function parseOneShadow(raw: string): DropShadowEffect | null {
   const dx = nums[0];
   const dy = nums[1];
   const blurRadius = nums[2] ?? 0;
+  const spread = nums[3] ?? 0;
   // CSS blur-radius → Skia sigma (W3C: σ = radius / 2.355)
   const sigma = blurRadius / 2.355;
 
@@ -1225,6 +1234,7 @@ function parseOneShadow(raw: string): DropShadowEffect | null {
     sigmaY: sigma,
     color,
     inner,
+    spread,
   };
 }
 

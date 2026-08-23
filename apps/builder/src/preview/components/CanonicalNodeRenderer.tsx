@@ -413,12 +413,19 @@ export function resolvePresentationPaintProps(
     const keys = Object.keys(patch);
     if (
       keys.length === 0 ||
-      keys.some((key) => key !== "borderColor") ||
-      typeof patch.borderColor !== "string"
+      keys.some((key) => key !== "borderColor" && key !== "boxShadow") ||
+      (keys.includes("borderColor") && typeof patch.borderColor !== "string") ||
+      (keys.includes("boxShadow") && typeof patch.boxShadow !== "string")
     ) {
       continue;
     }
-    nextStyle = { ...nextStyle, borderColor: patch.borderColor };
+    nextStyle = {
+      ...nextStyle,
+      ...(keys.includes("borderColor")
+        ? { borderColor: patch.borderColor }
+        : {}),
+      ...(keys.includes("boxShadow") ? { boxShadow: patch.boxShadow } : {}),
+    };
   }
   if (nextStyle === style) return base;
   return { ...base, style: nextStyle };

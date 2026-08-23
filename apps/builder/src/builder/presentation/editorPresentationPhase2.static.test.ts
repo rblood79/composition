@@ -108,6 +108,22 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(stylePilot).toContain('"borderWidth" in styleRecord');
   });
 
+  it("boxShadow select는 topology가 유지되는 paint presentation owner를 사용한다", async () => {
+    const appearance = await source(
+      "../panels/styles/sections/AppearanceSection.tsx",
+    );
+    const stylePilot = await source("editorPresentationStylePilot.ts");
+    const storeBridge = await source(
+      "../workspace/canvas/skia/StoreRenderBridge.ts",
+    );
+    expect(appearance).toContain("commitBoxShadowPresentation");
+    expect(appearance).toContain("isBoxShadowPresentationOwned");
+    expect(stylePilot).toContain("resolveBoxShadowPresentationPilotTarget");
+    expect(stylePilot).toContain('"style-box-shadow"');
+    expect(storeBridge).toContain("presentationShadowTargets");
+    expect(storeBridge).toContain("parseBoxShadowEffects");
+  });
+
   it("Skia publish consumer는 targeted in-place patch 외 forbidden rebuild 경로가 없다", async () => {
     const bridge = await source("skiaEditorPresentationBridge.ts");
     for (const forbidden of [

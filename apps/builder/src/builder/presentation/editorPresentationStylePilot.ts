@@ -5,10 +5,17 @@ import {
 } from "./editorPresentationCommitAdapter";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import type { EditorPresentationTargetRef } from "./editorPresentationTypes";
+import { parseBoxShadowEffects } from "../workspace/canvas/styleConversion/styleConverter";
 
 const STYLE_PILOT_QUERY_PARAM = "adr187FillPilot";
 
 export interface BorderColorPresentationPilotTarget {
+  readonly projectId: string;
+  readonly style: Readonly<Record<string, unknown>>;
+  readonly target: EditorPresentationTargetRef;
+}
+
+export interface BoxShadowPresentationPilotTarget {
   readonly projectId: string;
   readonly style: Readonly<Record<string, unknown>>;
   readonly target: EditorPresentationTargetRef;
@@ -49,6 +56,43 @@ export function resolveBorderColorPresentationPilotTarget(
   const styleRecord = style as Record<string, unknown>;
   if (styleRecord.borderStyle === "none") return null;
   if (!("borderColor" in styleRecord) && !("borderWidth" in styleRecord)) {
+    return null;
+  }
+  return { projectId, style: styleRecord, target };
+}
+
+export function resolveBoxShadowPresentationPilotTarget(
+  selectedElementId: string | null,
+): BoxShadowPresentationPilotTarget | null {
+  if (!isStylePresentationPilotEnabled() || !selectedElementId) return null;
+
+  const state = useCanonicalDocumentStore.getState();
+  const projectId = state.currentProjectId;
+  if (!projectId || !state.documents.has(projectId)) return null;
+
+  const target = resolveEditorPresentationTarget(projectId, selectedElementId);
+  if (
+    !target ||
+    !editorPresentationCanonicalRuntimeOptions.hasTarget(projectId, target)
+  ) {
+    return null;
+  }
+  const element = getEditorPresentationTargetNode(projectId, target);
+  if (!element) return null;
+  const style = editorPresentationCanonicalRuntimeOptions.readTargetValue(
+    projectId,
+    target,
+    "style-box-shadow",
+  );
+  if (!style || typeof style !== "object" || Array.isArray(style)) return null;
+  const styleRecord = style as Record<string, unknown>;
+  const boxShadow = styleRecord.boxShadow;
+  if (
+    typeof boxShadow !== "string" ||
+    boxShadow === "" ||
+    boxShadow === "none" ||
+    parseBoxShadowEffects(boxShadow).length === 0
+  ) {
     return null;
   }
   return { projectId, style: styleRecord, target };

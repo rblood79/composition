@@ -389,13 +389,25 @@ export function commitEditorPresentationStyle(
   input: EditorPresentationCommitInput,
 ): EditorPresentationCommitResult {
   const descriptor = input.descriptor;
+  const patchKeys = Object.keys(
+    descriptor.type === "style.patch" ? descriptor.patch : {},
+  );
+  const isBorderColorPatch =
+    patchKeys.length === 1 &&
+    patchKeys[0] === "borderColor" &&
+    descriptor.type === "style.patch" &&
+    typeof descriptor.patch.borderColor === "string";
+  const isBoxShadowPatch =
+    patchKeys.length === 1 &&
+    patchKeys[0] === "boxShadow" &&
+    descriptor.type === "style.patch" &&
+    typeof descriptor.patch.boxShadow === "string";
   if (
     descriptor.type !== "style.patch" ||
-    Object.keys(descriptor.patch).some((key) => key !== "borderColor") ||
-    typeof descriptor.patch.borderColor !== "string"
+    (!isBorderColorPatch && !isBoxShadowPatch)
   ) {
     throw new Error(
-      "ADR-187 border color commit allowlist only accepts style.patch.borderColor",
+      "ADR-187 style commit allowlist only accepts style.patch.borderColor or style.patch.boxShadow",
     );
   }
 

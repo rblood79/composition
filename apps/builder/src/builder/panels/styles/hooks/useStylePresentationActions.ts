@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef } from "react";
 import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
 import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
-import { resolveBorderColorPresentationPilotTarget } from "../../../presentation/editorPresentationStylePilot";
+import {
+  resolveBorderColorPresentationPilotTarget,
+  resolveBoxShadowPresentationPilotTarget,
+} from "../../../presentation/editorPresentationStylePilot";
+import { parseBoxShadowEffects } from "../../../workspace/canvas/styleConversion/styleConverter";
 import type {
   EditorMutationDescriptor,
   EditorPresentationCancelReason,
@@ -11,11 +15,33 @@ import type {
 
 let nextStyleOwnerId = 1;
 
+function canPatchBoxShadowInPlace(
+  baseBoxShadow: unknown,
+  nextBoxShadow: string,
+): boolean {
+  if (typeof baseBoxShadow !== "string") return false;
+  const baseEffects = parseBoxShadowEffects(baseBoxShadow);
+  const nextEffects = parseBoxShadowEffects(nextBoxShadow);
+  return (
+    baseEffects.length > 0 &&
+    baseEffects.length === nextEffects.length &&
+    baseEffects.every(
+      (effect, index) => effect.inner === nextEffects[index]?.inner,
+    )
+  );
+}
+
 export interface StylePresentationActions {
   isBorderColorPresentationOwned: () => boolean;
   previewBorderColorPresentation: (color: string) => boolean;
   commitBorderColorPresentation: (color: string) => boolean;
   cancelBorderColorPresentation: (
+    reason: EditorPresentationCancelReason,
+  ) => boolean;
+  isBoxShadowPresentationOwned: () => boolean;
+  previewBoxShadowPresentation: (boxShadow: string) => boolean;
+  commitBoxShadowPresentation: (boxShadow: string) => boolean;
+  cancelBoxShadowPresentation: (
     reason: EditorPresentationCancelReason,
   ) => boolean;
 }
@@ -28,30 +54,60 @@ export function useStylePresentationActions(): StylePresentationActions {
     selectedElementId: string;
     target: EditorPresentationTargetRef;
   } | null>(null);
+  const shadowPresentationRef = useRef<{
+    baseStyle: Readonly<Record<string, unknown>>;
+    handle: EditorPresentationHandle;
+    phase: "active" | "cancelled" | "failed";
+    selectedElementId: string;
+    target: EditorPresentationTargetRef;
+  } | null>(null);
   const ownerIdRef = useRef<string | null>(null);
+  const shadowOwnerIdRef = useRef<string | null>(null);
   const ownerId =
     ownerIdRef.current ?? `style-border-color-owner-${nextStyleOwnerId++}`;
   ownerIdRef.current = ownerId;
+  const shadowOwnerId =
+    shadowOwnerIdRef.current ?? `style-box-shadow-owner-${nextStyleOwnerId++}`;
+  shadowOwnerIdRef.current = shadowOwnerId;
 
   useEffect(() => {
     const unsubscribeSelection = useStore.subscribe(() => {
       const presentation = presentationRef.current;
-      if (!presentation) return;
       const { selectedElementId } = readImmediateSelectionSnapshot();
-      if (selectedElementId === presentation.selectedElementId) return;
-      presentation.handle.cancel("selection-change");
-      presentation.phase = "cancelled";
+      if (
+        presentation &&
+        selectedElementId !== presentation.selectedElementId
+      ) {
+        presentation.handle.cancel("selection-change");
+        presentation.phase = "cancelled";
+      }
+      const shadowPresentation = shadowPresentationRef.current;
+      if (
+        shadowPresentation &&
+        selectedElementId !== shadowPresentation.selectedElementId
+      ) {
+        shadowPresentation.handle.cancel("selection-change");
+        shadowPresentation.phase = "cancelled";
+      }
     });
     const handleWindowBlur = (): void => {
       const presentation = presentationRef.current;
-      if (!presentation || presentation.phase !== "active") return;
-      presentation.handle.cancel("blur");
-      presentation.phase = "cancelled";
+      if (presentation?.phase === "active") {
+        presentation.handle.cancel("blur");
+        presentation.phase = "cancelled";
+      }
+      const shadowPresentation = shadowPresentationRef.current;
+      if (shadowPresentation?.phase === "active") {
+        shadowPresentation.handle.cancel("blur");
+        shadowPresentation.phase = "cancelled";
+      }
     };
     window.addEventListener("blur", handleWindowBlur);
     return () => {
       presentationRef.current?.handle.cancel("unmount");
+      shadowPresentationRef.current?.handle.cancel("unmount");
       presentationRef.current = null;
+      shadowPresentationRef.current = null;
       unsubscribeSelection();
       window.removeEventListener("blur", handleWindowBlur);
     };
@@ -160,10 +216,135 @@ export function useStylePresentationActions(): StylePresentationActions {
     [],
   );
 
+  const isBoxShadowPresentationOwned = useCallback(
+    () =>
+      resolveBoxShadowPresentationPilotTarget(
+        readImmediateSelectionSnapshot().selectedElementId,
+      ) !== null,
+    [],
+  );
+
+  const previewBoxShadowPresentation = useCallback(
+    (boxShadow: string): boolean => {
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const existing = shadowPresentationRef.current;
+      if (existing?.phase === "cancelled") {
+        if (existing.selectedElementId !== selectedElementId) return true;
+        shadowPresentationRef.current = null;
+      }
+      if (existing?.phase === "failed") {
+        existing.handle.cancel("superseded");
+        shadowPresentationRef.current = null;
+      }
+
+      let presentation = shadowPresentationRef.current;
+      if (
+        presentation &&
+        presentation.selectedElementId !== selectedElementId
+      ) {
+        presentation.handle.cancel("selection-change");
+        presentation = null;
+        shadowPresentationRef.current = null;
+      }
+      if (!presentation) {
+        const pilot =
+          resolveBoxShadowPresentationPilotTarget(selectedElementId);
+        if (!pilot || !selectedElementId) return false;
+        if (!canPatchBoxShadowInPlace(pilot.style.boxShadow, boxShadow)) {
+          return false;
+        }
+        presentation = {
+          baseStyle: pilot.style,
+          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+            commitIntent: "style-box-shadow",
+            ownerId: shadowOwnerId,
+            projectId: pilot.projectId,
+            targets: [pilot.target],
+          }),
+          phase: "active",
+          selectedElementId,
+          target: pilot.target,
+        };
+        shadowPresentationRef.current = presentation;
+      }
+
+      if (
+        !canPatchBoxShadowInPlace(presentation.baseStyle.boxShadow, boxShadow)
+      ) {
+        presentation.handle.cancel("superseded");
+        shadowPresentationRef.current = null;
+        return false;
+      }
+
+      const descriptor: EditorMutationDescriptor = {
+        patch: { boxShadow },
+        target: presentation.target,
+        type: "style.patch",
+      };
+      if (!presentation.handle.publish(descriptor)) {
+        presentation.phase = "cancelled";
+      }
+      return true;
+    },
+    [shadowOwnerId],
+  );
+
+  const commitBoxShadowPresentation = useCallback(
+    (boxShadow: string): boolean => {
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const active = shadowPresentationRef.current;
+      if (active?.phase === "cancelled") {
+        shadowPresentationRef.current = null;
+        return true;
+      }
+      if (!active && !previewBoxShadowPresentation(boxShadow)) return false;
+      const presentation = shadowPresentationRef.current;
+      if (
+        !presentation ||
+        presentation.selectedElementId !== selectedElementId
+      ) {
+        presentation?.handle.cancel("selection-change");
+        shadowPresentationRef.current = null;
+        return true;
+      }
+      if (
+        !canPatchBoxShadowInPlace(presentation.baseStyle.boxShadow, boxShadow)
+      ) {
+        presentation.handle.cancel("superseded");
+        shadowPresentationRef.current = null;
+        return false;
+      }
+      const result = presentation.handle.finish({
+        patch: { boxShadow },
+        target: presentation.target,
+        type: "style.patch",
+      });
+      if (result.status === "failed") presentation.phase = "failed";
+      else shadowPresentationRef.current = null;
+      return true;
+    },
+    [previewBoxShadowPresentation],
+  );
+
+  const cancelBoxShadowPresentation = useCallback(
+    (reason: EditorPresentationCancelReason): boolean => {
+      const presentation = shadowPresentationRef.current;
+      if (!presentation || presentation.phase !== "active") return false;
+      presentation.handle.cancel(reason);
+      presentation.phase = "cancelled";
+      return true;
+    },
+    [],
+  );
+
   return {
     cancelBorderColorPresentation,
     commitBorderColorPresentation,
     isBorderColorPresentationOwned,
     previewBorderColorPresentation,
+    cancelBoxShadowPresentation,
+    commitBoxShadowPresentation,
+    isBoxShadowPresentationOwned,
+    previewBoxShadowPresentation,
   };
 }

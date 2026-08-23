@@ -1872,6 +1872,12 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   );
   if (cssEffects.effects && cssEffects.effects.length > 0) {
     specNode.effects = [...(specNode.effects ?? []), ...cssEffects.effects];
+    const presentationShadowTargets = cssEffects.effects
+      .filter((effect) => effect.type === "drop-shadow")
+      .map((effect) => ({ effect }));
+    if (presentationShadowTargets.length > 0) {
+      specNode.presentationShadowTargets = presentationShadowTargets;
+    }
   }
   if (cssEffects.blendMode && !specNode.blendMode) {
     specNode.blendMode = cssEffects.blendMode;

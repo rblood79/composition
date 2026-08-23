@@ -24,6 +24,7 @@ import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type {
   SkiaNodeData,
   SkiaPresentationFillTarget,
+  SkiaPresentationShadowTarget,
   SkiaPresentationStrokeTarget,
 } from "./nodeRendererTypes";
 import { buildSkiaNodeData, type BuildContext } from "./buildSkiaNodeData";
@@ -62,6 +63,8 @@ import {
   fillsToSkiaFillColor,
   fillsToSkiaFillStyle,
 } from "../../../panels/styles/utils/fillToSkia";
+import { parseBoxShadowEffects } from "../styleConversion/styleConverter";
+import type { DropShadowEffect } from "./types";
 import {
   invalidateNodePicture,
   setPresentationVolatileNodeIds,
@@ -125,6 +128,45 @@ function haveSamePresentationStrokeSlots(
     left.length === right.length &&
     left.every((target, index) => target.color === right[index]?.color)
   );
+}
+
+function haveSamePresentationShadowSlots(
+  left: readonly SkiaPresentationShadowTarget[],
+  right: readonly SkiaPresentationShadowTarget[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((target, index) => target.effect === right[index]?.effect)
+  );
+}
+
+function arePresentationShadowEffectsEqual(
+  left: DropShadowEffect,
+  right: DropShadowEffect,
+): boolean {
+  return (
+    left.dx === right.dx &&
+    left.dy === right.dy &&
+    left.sigmaX === right.sigmaX &&
+    left.sigmaY === right.sigmaY &&
+    left.inner === right.inner &&
+    left.spread === right.spread &&
+    left.color.length === right.color.length &&
+    left.color.every((channel, index) => Object.is(channel, right.color[index]))
+  );
+}
+
+function setPresentationShadowEffect(
+  target: DropShadowEffect,
+  next: DropShadowEffect,
+): void {
+  target.dx = next.dx;
+  target.dy = next.dy;
+  target.sigmaX = next.sigmaX;
+  target.sigmaY = next.sigmaY;
+  target.inner = next.inner;
+  target.spread = next.spread;
+  target.color.set(next.color);
 }
 
 function haveSamePresentationColorSlots(
@@ -402,6 +444,13 @@ export class StoreRenderBridge {
       readonly targets: readonly SkiaPresentationStrokeTarget[];
     }
   >();
+  private presentationShadowBaseById = new Map<
+    string,
+    {
+      readonly effects: readonly DropShadowEffect[];
+      readonly targets: readonly SkiaPresentationShadowTarget[];
+    }
+  >();
   private presentationNodeIds = new Set<string>();
   /** canonical commit descriptor — 다음 rendererInput sync에서만 소비한다. */
   private pendingCommit: {
@@ -414,6 +463,19 @@ export class StoreRenderBridge {
   private lastPatchedCanonicalRevision: number | null = null;
   /** CSS transition 애니메이션 매니저 (선택 연결) */
   public transitionManager: TransitionManager | null = null;
+
+  private refreshPresentationVolatileNode(elementId: string): void {
+    if (
+      this.presentationBaseById.has(elementId) ||
+      this.presentationStyleBaseById.has(elementId) ||
+      this.presentationShadowBaseById.has(elementId)
+    ) {
+      this.presentationNodeIds.add(elementId);
+    } else {
+      this.presentationNodeIds.delete(elementId);
+    }
+    setPresentationVolatileNodeIds(this.presentationNodeIds);
+  }
 
   /**
    * ADR-187 paint lane: registry/command-stream/layout identity를 바꾸지 않고
@@ -522,8 +584,7 @@ export class StoreRenderBridge {
       }
     }
     invalidateNodePicture(elementId);
-    this.presentationNodeIds.add(elementId);
-    setPresentationVolatileNodeIds(this.presentationNodeIds);
+    this.refreshPresentationVolatileNode(elementId);
     return true;
   }
 
@@ -559,16 +620,14 @@ export class StoreRenderBridge {
       invalidateNodePicture(elementId);
     }
     this.presentationBaseById.delete(elementId);
-    this.presentationNodeIds.delete(elementId);
-    setPresentationVolatileNodeIds(this.presentationNodeIds);
+    this.refreshPresentationVolatileNode(elementId);
     return canRestore;
   }
 
   /** canonical renderer input이 도착한 뒤 base 복원 없이 overlay ownership만 해제한다. */
   releasePresentationFillPatch(elementId: string): boolean {
     if (!this.presentationBaseById.delete(elementId)) return false;
-    this.presentationNodeIds.delete(elementId);
-    setPresentationVolatileNodeIds(this.presentationNodeIds);
+    this.refreshPresentationVolatileNode(elementId);
     return true;
   }
 
@@ -576,6 +635,11 @@ export class StoreRenderBridge {
     elementId: string,
     patch: Readonly<Record<string, unknown>>,
   ): boolean {
+    const keys = Object.keys(patch);
+    if (keys.length === 1 && keys[0] === "boxShadow") {
+      return this.applyPresentationShadowPatch(elementId, patch.boxShadow);
+    }
+    if (keys.length !== 1 || keys[0] !== "borderColor") return false;
     const nextColor = parsePresentationHexColor(patch.borderColor);
     const node = getSkiaNode(elementId);
     const targets = node?.presentationStrokeTargets;
@@ -600,37 +664,109 @@ export class StoreRenderBridge {
     }
     for (const target of targets) target.color.set(nextColor);
     invalidateNodePicture(elementId);
-    this.presentationNodeIds.add(elementId);
-    setPresentationVolatileNodeIds(this.presentationNodeIds);
+    this.refreshPresentationVolatileNode(elementId);
+    return true;
+  }
+
+  /**
+   * box-shadow presentation은 기존 drop-shadow object의 수와 inset/outer
+   * topology가 동일할 때만 수치·색상 slot을 교체한다. 레이어 추가/제거는
+   * command/effect topology를 다시 materialize해야 하므로 legacy commit으로
+   * fail-closed한다.
+   */
+  private applyPresentationShadowPatch(
+    elementId: string,
+    rawBoxShadow: unknown,
+  ): boolean {
+    if (typeof rawBoxShadow !== "string") return false;
+    const node = getSkiaNode(elementId);
+    const targets = node?.presentationShadowTargets;
+    if (!node || !targets || targets.length === 0) return false;
+
+    const nextEffects = parseBoxShadowEffects(rawBoxShadow);
+    if (
+      nextEffects.length !== targets.length ||
+      nextEffects.some(
+        (effect, index) => effect.inner !== targets[index]?.effect.inner,
+      )
+    ) {
+      return false;
+    }
+    const changed = nextEffects.some((effect, index) => {
+      const target = targets[index];
+      return target
+        ? !arePresentationShadowEffectsEqual(target.effect, effect)
+        : true;
+    });
+    if (!changed) return false;
+
+    const existingBase = this.presentationShadowBaseById.get(elementId);
+    if (
+      !existingBase ||
+      !haveSamePresentationShadowSlots(existingBase.targets, targets)
+    ) {
+      this.presentationShadowBaseById.set(elementId, {
+        effects: targets.map((target) => ({
+          ...target.effect,
+          color: Float32Array.from(target.effect.color),
+        })),
+        targets,
+      });
+    }
+    targets.forEach((target, index) => {
+      const next = nextEffects[index];
+      if (next) setPresentationShadowEffect(target.effect, next);
+    });
+    invalidateNodePicture(elementId);
+    this.refreshPresentationVolatileNode(elementId);
     return true;
   }
 
   restorePresentationStylePatch(elementId: string): boolean {
     const base = this.presentationStyleBaseById.get(elementId);
-    if (!base) return false;
-    const node = getSkiaNode(elementId);
-    const targets = node?.presentationStrokeTargets;
-    const canRestore =
-      targets !== undefined &&
-      haveSamePresentationStrokeSlots(base.targets, targets);
-    if (canRestore) {
-      targets.forEach((target, index) => target.color.set(base.colors[index]!));
-      invalidateNodePicture(elementId);
+    let restored = false;
+    if (base) {
+      const node = getSkiaNode(elementId);
+      const targets = node?.presentationStrokeTargets;
+      const canRestore =
+        targets !== undefined &&
+        haveSamePresentationStrokeSlots(base.targets, targets);
+      if (canRestore) {
+        targets.forEach((target, index) =>
+          target.color.set(base.colors[index]!),
+        );
+        invalidateNodePicture(elementId);
+        restored = true;
+      }
+      this.presentationStyleBaseById.delete(elementId);
     }
-    this.presentationStyleBaseById.delete(elementId);
-    if (!this.presentationBaseById.has(elementId)) {
-      this.presentationNodeIds.delete(elementId);
-      setPresentationVolatileNodeIds(this.presentationNodeIds);
+
+    const shadowBase = this.presentationShadowBaseById.get(elementId);
+    if (shadowBase) {
+      const node = getSkiaNode(elementId);
+      const targets = node?.presentationShadowTargets;
+      const canRestore =
+        targets !== undefined &&
+        haveSamePresentationShadowSlots(shadowBase.targets, targets);
+      if (canRestore) {
+        targets.forEach((target, index) => {
+          const snapshot = shadowBase.effects[index];
+          if (snapshot) setPresentationShadowEffect(target.effect, snapshot);
+        });
+        invalidateNodePicture(elementId);
+        restored = true;
+      }
+      this.presentationShadowBaseById.delete(elementId);
     }
-    return canRestore;
+    this.refreshPresentationVolatileNode(elementId);
+    return restored;
   }
 
   releasePresentationStylePatch(elementId: string): boolean {
-    const released = this.presentationStyleBaseById.delete(elementId);
-    if (released && !this.presentationBaseById.has(elementId)) {
-      this.presentationNodeIds.delete(elementId);
-      setPresentationVolatileNodeIds(this.presentationNodeIds);
-    }
+    const released =
+      this.presentationStyleBaseById.delete(elementId) ||
+      this.presentationShadowBaseById.delete(elementId);
+    if (released) this.refreshPresentationVolatileNode(elementId);
     return released;
   }
 

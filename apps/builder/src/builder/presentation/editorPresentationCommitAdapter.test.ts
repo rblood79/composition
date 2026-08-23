@@ -200,6 +200,49 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     expect(put).toHaveBeenCalledTimes(1);
   });
 
+  it("boxShadow style patch는 canonical/history/persist를 한 번만 수행한다", async () => {
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, documentWith());
+    const document = useCanonicalDocumentStore
+      .getState()
+      .documents.get(PROJECT_ID)!;
+    useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, {
+      ...document,
+      children: [
+        node("node-1", "#111111FF", {
+          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+        }),
+        document.children[1]!,
+      ],
+    });
+    const result = commitEditorPresentationStyle({
+      baseDocumentVersion: useCanonicalDocumentStore.getState().documentVersion,
+      commitIntent: "style-box-shadow",
+      descriptor: {
+        patch: { boxShadow: "inset 0 4px 10px 1px rgba(0,0,0,0.3)" },
+        target: { kind: "canonical-node", nodeId: "node-1" },
+        type: "style.patch",
+      },
+      projectId: PROJECT_ID,
+      sessionId: "shadow-session",
+      targets: [{ kind: "canonical-node", nodeId: "node-1" }],
+    });
+
+    expect(result.committedDocumentRevision).toBe(
+      useCanonicalDocumentStore.getState().documentVersion,
+    );
+    const next = useCanonicalDocumentStore.getState().documents.get(PROJECT_ID)
+      ?.children[0];
+    expect(
+      (next?.props?.style as Record<string, unknown> | undefined)?.boxShadow,
+    ).toBe("inset 0 4px 10px 1px rgba(0,0,0,0.3)");
+    expect(rebuildIndexes).toHaveBeenCalledTimes(1);
+    expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
+    await flushPersist();
+    expect(put).toHaveBeenCalledTimes(1);
+  });
+
   it("begin indexed read는 document tree를 lazy rebuild하지 않는다", () => {
     const before = getEditorPresentationCommitAdapterDiagnostics();
     const runtime = new EditorPresentationTransactionRuntime(

@@ -63,6 +63,23 @@ function makeNode(): SkiaNodeData {
   };
 }
 
+function makeShadowNode(): SkiaNodeData {
+  const node = makeNode();
+  const shadow = {
+    color: Float32Array.of(0, 0, 0, 0.25),
+    dx: 0,
+    dy: 2,
+    inner: false,
+    sigmaX: 2,
+    sigmaY: 2,
+    spread: 0,
+    type: "drop-shadow" as const,
+  };
+  node.effects = [shadow];
+  node.presentationShadowTargets = [{ effect: shadow }];
+  return node;
+}
+
 describe("StoreRenderBridge ADR-187 presentation patch", () => {
   beforeEach(() => clearSkiaRegistry());
   afterEach(() => clearSkiaRegistry());
@@ -108,6 +125,49 @@ describe("StoreRenderBridge ADR-187 presentation patch", () => {
     expect(strokeColor).toEqual(Float32Array.of(1, 0, 0, 128 / 255));
     expect(bridge.restorePresentationStylePatch("border-1")).toBe(true);
     expect(strokeColor).toEqual(Float32Array.of(0.1, 0.2, 0.3, 1));
+  });
+
+  it("boxShadow style patch는 기존 drop-shadow slot만 갱신하고 exact restore한다", () => {
+    const node = makeShadowNode();
+    const shadow = node.presentationShadowTargets![0]!.effect;
+    const baseColor = shadow.color;
+    registerSkiaNode("shadow-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("shadow-1", {
+        boxShadow: "4px 6px 12px 2px rgba(255, 0, 0, 0.5)",
+      }),
+    ).toBe(true);
+    expect(shadow.dx).toBe(4);
+    expect(shadow.dy).toBe(6);
+    expect(shadow.sigmaX).toBeCloseTo(12 / 2.355);
+    expect(shadow.spread).toBe(2);
+    expect(shadow.inner).toBe(false);
+    expect(shadow.color).toEqual(Float32Array.of(1, 0, 0, 0.5));
+    expect(bridge.restorePresentationStylePatch("shadow-1")).toBe(true);
+    expect(shadow.color).toBe(baseColor);
+    expect(shadow).toMatchObject({
+      dx: 0,
+      dy: 2,
+      inner: false,
+      sigmaX: 2,
+      sigmaY: 2,
+      spread: 0,
+    });
+  });
+
+  it("boxShadow layer topology가 바뀌면 paint lane을 선택하지 않는다", () => {
+    const node = makeShadowNode();
+    registerSkiaNode("shadow-topology-1", node);
+    const bridge = new StoreRenderBridge();
+
+    expect(
+      bridge.applyPresentationStylePatch("shadow-topology-1", {
+        boxShadow: "inset 0 2px 4px #000",
+      }),
+    ).toBe(false);
+    expect(node.presentationShadowTargets![0]!.effect.dy).toBe(2);
   });
 
   it("동일 presentation 값은 no-op이고 없는/non-box 대상은 건너뛴다", () => {

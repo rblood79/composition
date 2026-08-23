@@ -231,6 +231,12 @@ export function buildImageNodeData(
   };
 
   if (effects) nodeData.effects = effects;
+  const presentationShadowTargets = effects
+    ?.filter((effect) => effect.type === "drop-shadow")
+    .map((effect) => ({ effect }));
+  if (presentationShadowTargets && presentationShadowTargets.length > 0) {
+    nodeData.presentationShadowTargets = presentationShadowTargets;
+  }
   if (blendMode) nodeData.blendMode = blendMode;
   if (skiaTransform) nodeData.transform = skiaTransform;
   if (clipPath) nodeData.clipPath = clipPath;
