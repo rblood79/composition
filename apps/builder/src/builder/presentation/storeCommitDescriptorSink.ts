@@ -70,7 +70,13 @@ export function publishStoreCommitDescriptor(
   }
 }
 
-if (typeof window !== "undefined") {
+// commit lane 계측과 같은 flag 를 쓴다 — 진단 전역이 production 표면에 남지
+// 않게 하고, probe 는 이미 `?adr189Metrics=1` 로 진입한다.
+const debugSurfaceEnabled =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).has("adr189Metrics");
+
+if (debugSurfaceEnabled) {
   (
     window as typeof window & {
       __composition_STORE_COMMIT_SINK_DEBUG__?: {
