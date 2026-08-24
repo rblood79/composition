@@ -1,0 +1,141 @@
+# ADR-190 구현 상세 — commit descriptor emitter 확장
+
+> 본문: [190-commit-descriptor-emitter-expansion.md](../190-commit-descriptor-emitter-expansion.md)
+
+## 1. 전제·관점 4 질문 lock-in
+
+1. **base/응용 분류**: ADR-189 (sparse commit lane 메커니즘) = base, 본 ADR-190
+   (emitter 커버리지 확장) = 응용. base 는 Implemented (2026-08-24) 로 prerequisite
+   충족.
+2. **schema 직교성**: `EditorMutationDescriptor` union (`editorPresentationTypes.ts:30`)
+   은 ADR-187/189 에서 이미 `fills.replace | style.patch | geometry.patch |
+structure.patch` 로 정의됨. 본 ADR 은 신규 descriptor 스키마를 만들지 않고
+   **생산자(emitter)만** 추가한다 — specialization 아님.
+3. **선행 ADR 전제 reverse 검증**: 소비자 체계 (`createCommitPatchPlan`,
+   `commitPatchPlan.ts:120`) 가 style/geometry/structure(add/remove/order) plan 을
+   이미 지원함을 코드로 확증 — 189→190 단방향 의존, 역방향 없음.
+4. **사용자 confirm 기록**: 2026-08-24 사용자 명시 요청 ("descriptor emitter 확장
+   후속 ADR로 제안해줘"). ADR-189 Phase 4 잔존 범위가 예고한 후속 작업이다.
+
+## 2. 실측 현황 (2026-08-24, 착수 근거)
+
+before/after 재실측 (`node apps/builder/scripts/adr189-commit-baseline.mjs`,
+N=50/500/5,000, 5회 p95):
+
+| 경로                                             | N=5,000 record+stream p95 | full DFS visits | 비고                            |
+| ------------------------------------------------ | ------------------------: | --------------: | ------------------------------- |
+| generic `updateElementProps` (G0 2026-08-22)     |                    75.1ms |           5,056 | ADR-189 이전                    |
+| generic `updateElementProps` (2026-08-24 재실측) |                    73.1ms |           5,056 | ADR-189 이후 — **변화 없음**    |
+| `fills.replace` (presentation 터미널, Phase 4/5) |  damage 0.4/0.5ms p50/p95 |  patch visits 1 | sparse command 11 vs full 1,533 |
+
+probe 실측: generic mutation 은 `queueCount=0` / `patchFallbackCount=0` — fallback
+이 아니라 **patch queue 진입 자체가 없다**. 유일 생산자는
+`SkiaCanvas.tsx:449` (`SkiaEditorPresentationBridge.onCommitted →
+StoreRenderBridge.queueCommitPatch`, `StoreRenderBridge.ts:1041`) 이고, 터미널
+commit 라우터 (`editorPresentationCommitAdapter.ts` §
+`editorPresentationCanonicalRuntimeOptions.commit`) 는 `fills.replace` 전량 +
+`style.patch` 협소 allowlist (borderColor / boxShadow / text color / opacity /
+px 고정 width·height·spacing longhand / fontSize·fontWeight) 만 canonical commit
+으로 받는다.
+
+## 3. 현행 경로 지도
+
+```
+[커버됨]  Style 패널 presentation session → finish(finalDescriptor)
+          → runtime #commit (adapter allowlist) → onCommitted
+          → queueCommitPatch → createCommitPatchPlan → subtree splice + damage
+[미커버]  updateElementProps / addComplexElement / removeElement / move·reorder
+          / undo·redo / AI tool / 키보드 nudge → canonical store 직접 mutation
+          → descriptor 없음 → full DFS rebuild + full content record
+```
+
+소비자 측 기지원 범위 (`commitPatchPlan.ts`):
+
+- `style.patch` / `geometry.patch` — used-size 승격 판정 포함 (ADR-188 lane 공유)
+- `structure.patch` — `add` / `remove` / `order` (dirty root = 부모). `reparent` /
+  `ref` / `slot` 은 `unsupported-structure-operation` fail-closed — **본 ADR 에서도
+  유지** (범위 특정 불가, full rebuild 수렴)
+
+## 4. Phase 분할
+
+### Phase 0 — emitter 지점 inventory freeze + baseline 고정
+
+- canonical mutation action 전수 grep: `updateElementProps`,
+  `addComplexElement`, `removeElement(s)`, move/reorder 계열, group/ungroup,
+  undo/redo apply, AI tool 경유 mutation, ADR-184 러너 경유 신규 경로. 각
+  action → descriptor 축 (style/structure) 매핑 표 + 제외 목록 (reparent 계열,
+  page-level mutation) 산출.
+- presentation session 발 commit 과의 경로 중첩 지점 (이중 큐 후보) 식별.
+- baseline 은 §2 의 2026-08-24 재실측을 freeze (재측정 불요 — 동일 스크립트,
+  browser error 0).
+- 산출물: 본 문서 §7 inventory 표 갱신.
+
+### Phase 1 — style 축 emitter (updateElementProps 경계)
+
+- `updateElementProps` 가 자신의 patch 를 `style.patch` descriptor 로 서술해
+  post-commit revision 과 함께 `queueCommitPatch` 로 전달.
+- **fail-closed 계약**: descriptor 화 불가능한 키 (예: 구조 유발 prop) 가 하나라도
+  섞이면 descriptor 를 내지 않는다 — 전체 commit full rebuild (부분 patch 금지,
+  ADR-189 HC4).
+- **이중 큐 dedupe**: presentation session 발 canonical commit (adapter 경유) 은
+  commit origin 표식으로 store emitter 를 스킵 — `pendingCommit` 단일 슬롯
+  덮어쓰기 차단. 회귀 테스트 필수.
+- adapter allowlist 는 그대로 유지 (ADR-187 계약 무변경) — emitter 는 allowlist
+  밖 키를 commitPatchPlan 판정에 위임한다.
+- G1 통과 후 commit.
+
+### Phase 2 — structure 축 emitter (add / remove / order)
+
+- `addComplexElement` / `removeElement` / reorder 가 `structure.patch`
+  (payload.parentId 포함 — post-commit 트리에서 remove 대상은 부모 참조가 유일
+  단서) descriptor 를 emit.
+- `reparent`/`ref`/`slot` 은 emit 하지 않음 (소비자 fail-closed 유지).
+- G2 통과 후 commit.
+
+### Phase 3 — 잔여 호출자 수렴 + 대량 mutation 임계
+
+- undo/redo apply, AI tool, 키보드 nudge, 드래그 터미널 commit 이 Phase 1/2
+  emitter 경유로 수렴하는지 실측. 미수렴 경로는 개별 배선 또는 의도적 full
+  rebuild 로 명시 분류.
+- 대량 mutation (undo 로 다수 노드 동시 변경): dirty root 수 / affectedIds 비율
+  임계 초과 시 full rebuild 조기 판정 — sparse 역전 방지. 임계값은 N-tier 벤치로
+  산정.
+- G3 통과 후 commit.
+
+### Phase 4 — closure
+
+- G0 스크립트 재실측 before/after 표 (본 문서 §2 대비) — N=5,000 generic commit
+  이 sparse lane 수치로 내려왔는지 확정.
+- live builder exercise (CLAUDE.md §완료 기준): Chrome 에서 패널 편집 + undo +
+  구조 추가 각 1회 이상, `queueCount/patchSuccess` 및 pixel 확인.
+- CHANGELOG / README 갱신, Implemented 승격 (closure 5단계).
+
+## 5. Gate 상세
+
+| Gate | 시점    | 통과 조건                                                                                                                                                            | 실패 시 대안                           |
+| ---- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| G1   | Phase 1 | probe 기준 generic style commit `queueCount≥1`·`patchSuccess=1`·full build 0; patch vs full pixel diff 0; N=5,000 `render.frame` p95 < 4ms; 이중 큐 회귀 테스트 PASS | emitter 를 dirty-key allowlist 로 축소 |
+| G2   | Phase 2 | structure add/remove/order commit patch 성공 + 신규/삭제 노드 자체의 DOM↔Skia parity; reparent fail-closed 계약 테스트 PASS                                          | structure 축을 add 단독으로 축소       |
+| G3   | Phase 3 | undo/redo·AI·드래그 경로 분류표 100% (수렴 or 명시 full rebuild); 대량 mutation 임계 벤치에서 sparse ≤ full 역전 0                                                   | 임계 하향 (보수적 full rebuild 확대)   |
+| G4   | Phase 4 | N-tier 50/500/5,000 재실측 — generic commit sparse command 수 N 비결합, long task 0, console error 0; live exercise 기록                                             | 미달 축을 Phase 3 로 반송, 승격 보류   |
+
+## 6. 파일 경계 (예상)
+
+| 파일                                                                       | 변경                                                     |
+| -------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `apps/builder/src/builder/stores/elements.ts` (canonical mutation 지점)    | style/structure emitter 호출 + origin 표식               |
+| `apps/builder/src/builder/presentation/commitPatchPlan.ts`                 | 변경 없음 목표 (기지원) — 대량 mutation 임계만 추가 가능 |
+| `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`      | `queueCommitPatch` origin dedupe                         |
+| `apps/builder/src/builder/workspace/canvas/skia/SkiaCanvas.tsx`            | emitter 배선 (기존 449 라인 경로와 병렬)                 |
+| `apps/builder/src/builder/presentation/editorPresentationCommitAdapter.ts` | 무변경 (ADR-187 allowlist 계약 유지)                     |
+
+정확한 목록은 Phase 0 inventory 에서 freeze — 추정 vs 실측 gap 은 Phase 0 보강
+commit 으로 흡수 (adr-writing.md M3).
+
+## 7. Phase 0 inventory 표
+
+(Phase 0 실행 시 채움)
+
+| canonical action | 호출자 수 (grep) | descriptor 축 | 판정 (emit / fail-closed / 비스코프) |
+| ---------------- | ---------------- | ------------- | ------------------------------------ |
+| [TODO]           |                  |               |                                      |
