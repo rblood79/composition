@@ -206,16 +206,47 @@ effect registry 에 `prop` 축은 이미 있으나
 정의해야 한다. 나중에 fold 대상 타입이 하나 추가되면 조용히 깨지는 형태고, 이는
 ADR-190 R1 이 경계하는 stale 픽셀 실패 모양 그대로다.
 
-`resetInstanceOverrideField` 는 상대적으로 낫다 — 되돌리는 필드가 prop 축에
-등재돼 있으면 규칙 조회로 승격을 판정할 수 있다. 다만 `descendantPath` 분기는
-**자손**의 resolved props 를 바꾸므로 승격 산출 기준점이 어긋나 fail-closed 가
-필요하다.
+### 6-4. `resetInstanceOverrideField` 단독 진입 검토 — 계약 지점이 없다
 
-### 6-4. 판정 — 보류
+`reusable` 을 제외하고 이 경로만 편입할 수 있는지 따로 봤다. **불가하다.**
 
-진입에는 `prop.patch` descriptor 축 신설이 전제다. 얻는 것은 드문 authoring
-조작 1회의 full rebuild 제거뿐이고 (N=5,000 기준 ~73ms **1회**, 프레임당 비용이
-아니다), `reusable` 쪽 안전 범위는 위와 같이 부서지기 쉽다. 비용·위험 대비
-이득이 작아 보류한다.
+emit 계약은 canonical 갱신 **뒤**, `set()` **앞**이다
+(`storeCommitEmitter.ts` 헤더). 이 함수의 실제 순서는 반대다 — `:962` 에서
+`set()`, `:983` 에서 `syncInstanceElementsToCanonical()`. 그 사이가 존재하지
+않으므로 emit 을 끼울 자리가 없다. set 앞에서 부르면 canonical 이 stale 이라
+`documentVersion` 이 틀리고, canonical sync 뒤에 부르면 이미 sync 가
+`pendingCommit` 없이 changedIds 를 소비한 뒤라 patch 가 stale revision 이 된다.
 
-**재개 조건**: `prop.patch` 축이 다른 이유로 도입될 때 함께 편입.
+**`updateElement` 의 제외 사유와 동일**하며, 이 순서 자체는 ADR-122 의 알려진
+잔존이다 (`.claude/rules/state-management.md` §잔존 영역 — `createInstance` /
+`resetInstanceOverrideField` 2건, 순서 반전은 "회귀 위험 대비 이득이 작음" 으로
+보류). 계약 지점 유무로 4개 경로를 다시 세우면 앞선 우선순위가 뒤집힌다:
+
+| 경로                                      | canonical / set 순서      | 계약 지점 | 잔여 차단 요인                   |
+| ----------------------------------------- | ------------------------- | :-------: | -------------------------------- |
+| `detachInstance`                          | canonical 1차 (:605→:622) |    ✅     | 요소 통째 교체 + 자손 신규 생성  |
+| `toggleComponentOrigin` (origin 분기)     | 동일                      |    ✅     | 다중 root + `reusable` carve-out |
+| `toggleComponentOrigin` (비-origin, :806) | 동일                      |    ✅     | `reusable` carve-out (§6-3)      |
+| `resetInstanceOverrideField` (:962→:983)  | **set 1차**               |  **❌**   | —                                |
+| `createInstance` (:697→:703)              | **set 1차**               |  **❌**   | 호출자 0건                       |
+
+부수 확인: fieldKey 공간 자체는 문제가 아니었다. `type === "ref"` 의 root
+override 키는 `Object.keys(instance.props)` 인데
+(`editingSemantics.ts:180-186`), prop 축 registry 가 `label` / `text` /
+`children` / `size` / `items` / `columns` / `value` 등 흔한 키를 이미 담고 있다
+(`editorMutationEffectRegistry.ts:83-108`). 계약 지점이 없어 무의미할 뿐이다.
+
+### 6-5. 판정 — 보류
+
+계약 지점이 있는 경로(`detachInstance` / `toggleComponentOrigin`)는
+`prop.patch` descriptor 축 신설이 전제이고, `reusable` 안전 범위가 §6-3 처럼
+부서지기 쉽다. 계약 지점이 없는 경로(`resetInstanceOverrideField` /
+`createInstance`)는 ADR-122 순서 반전이 선행 조건인데, 그것 자체가 이미 보류
+판정된 항목이다.
+
+얻는 것은 어느 쪽이든 드문 authoring 조작 1회의 full rebuild 제거뿐이다
+(N=5,000 기준 ~73ms **1회**, 프레임당 비용이 아니다). 비용·위험 대비 이득이
+작아 4개 경로 전부 보류한다.
+
+**재개 조건**: (a) `prop.patch` 축이 다른 이유로 도입되거나, (b) ADR-122 잔존
+순서 반전이 다른 이유로 진행될 때 함께 편입.
