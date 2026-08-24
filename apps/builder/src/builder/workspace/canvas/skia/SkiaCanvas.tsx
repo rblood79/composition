@@ -88,6 +88,7 @@ import {
 import { SkiaEditorPresentationBridge } from "../../../presentation/skiaEditorPresentationBridge";
 import { SkiaEditorPresentationLayoutBridge } from "../../../presentation/skiaEditorPresentationLayoutBridge";
 import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
+import { setStoreCommitDescriptorSink } from "../../../presentation/storeCommitDescriptorSink";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 
 // Dev profiler — window.__composition_PROFILER 노출 (side-effect import)
@@ -451,6 +452,13 @@ export function SkiaCanvas({
       runtime: editorPresentationFillPilotRuntime,
     });
     editorPresentationBridgeRef.current = presentationBridge;
+    // ADR-190: presentation session 을 거치지 않는 generic canonical commit
+    // (Properties 패널 / 캔버스 텍스트 / AI tool / preview ingress) 도 같은
+    // commit lane 으로 보낸다. presentation adapter 는 store action 이 아니라
+    // useStore.setState 직접 경로라 두 생산자가 겹치지 않는다 (ADR-190 Phase 0).
+    setStoreCommitDescriptorSink((descriptor, revision) => {
+      storeRenderBridgeRef.current?.queueCommitPatch([descriptor], revision);
+    });
     const presentationLayoutBridge = new SkiaEditorPresentationLayoutBridge({
       getActiveProjectId: () =>
         useCanonicalDocumentStore.getState().currentProjectId,
@@ -470,6 +478,7 @@ export function SkiaCanvas({
     editorPresentationLayoutBridgeRef.current = presentationLayoutBridge;
 
     return () => {
+      setStoreCommitDescriptorSink(null);
       if (editorPresentationBridgeRef.current === presentationBridge) {
         editorPresentationBridgeRef.current = null;
       }

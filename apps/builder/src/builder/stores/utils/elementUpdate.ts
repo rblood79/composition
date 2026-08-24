@@ -36,6 +36,8 @@ import {
   INHERITED_LAYOUT_PROPS_UPDATE,
   NON_LAYOUT_PROPS_UPDATE,
 } from "../../presentation/invalidation/editorMutationEffectRegistry";
+import { createStoreStyleCommitDescriptor } from "../../presentation/storeCommitDescriptor";
+import { publishStoreCommitDescriptor } from "../../presentation/storeCommitDescriptorSink";
 
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
 type ElementUpdateLookup<TElement extends Element = Element> = Map<
@@ -59,6 +61,25 @@ function syncUpdatedElementToCanonical(
     return;
   }
   syncUpdatedElementsToCanonical([element]);
+}
+
+/**
+ * ADR-190: props patch 를 commit lane 의 style.patch descriptor 로 흘려보낸다.
+ *
+ * canonical 갱신 **뒤**에 호출해야 `documentVersion` 이 post-commit revision 이다.
+ * 서술 불가능한 patch (prop 축 혼입 / registry 미등재 style 키 / projected id) 는
+ * descriptor 가 `null` 이라 아무것도 보내지 않고 기존 full rebuild 로 수렴한다.
+ */
+function emitStoreStyleCommitDescriptor(
+  elementId: string,
+  patch: Readonly<Record<string, unknown>>,
+): void {
+  const descriptor = createStoreStyleCommitDescriptor({ elementId, patch });
+  if (!descriptor) return;
+  publishStoreCommitDescriptor(
+    descriptor,
+    useCanonicalDocumentStore.getState().documentVersion,
+  );
 }
 
 function isStructuralOrderMirrorPatch(updates: Partial<Element>): boolean {
@@ -396,6 +417,14 @@ export const createUpdateElementPropsAction =
       : Object.keys(patch).some((k) => k !== "style"); // style 외 props 변경은 레이아웃 영향으로 간주
 
     syncUpdatedElementToCanonical(updatedElement);
+
+    // ADR-190: canonical 갱신 직후 ~ set() 직전이 commit lane 의 유일한 진입
+    // 시점이다. canonical 이 갱신됐으므로 documentVersion 이 post-commit
+    // revision 이고, set() 이 store 구독(StoreRenderBridge resync)을 발화시키기
+    // 전이라 그 sync 가 pending commit 을 본다. set() 뒤로 밀리면 sync 는
+    // pendingCommit 없이 changedIds 를 소비해 뒤늦은 patch 가 stale 이 된다.
+    // 서술 불가한 patch 는 descriptor 가 null 이라 기존 full rebuild 유지.
+    emitStoreStyleCommitDescriptor(elementId, patch);
 
     // updateElementProps는 element 구조(parent_id/page_id/type/variableBindings 등)를 바꾸지 않으므로,
     // 전체 인덱스 재구축(O(n)) 대신 변경된 요소만 O(1)로 갱신한다.

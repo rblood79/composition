@@ -91,7 +91,9 @@ px 고정 width·height·spacing longhand / fontSize·fontWeight) 만 canonical 
   window 안) 에 queue 한다 — 늦으면 sync 가 pendingCommit 없이 changedIds 를
   소비해 뒤늦은 patch 가 stale revision 이 된다. G1 probe (`queueCount`/
   `patchSuccess`) 로 검출.
-- G1 통과 후 commit.
+- **Phase 1 완료 (2026-08-24)** — G1 전 항목 통과. 증적:
+  [190-phase-1-g1-style-emitter.md](190-phase-1-g1-style-emitter.md).
+  N=5,000 `render.frame` p95 73.1ms → **2.6ms**, full build 0, pixel diff 0.
 
 ### Phase 2 — structure 축 emitter (add / remove / order)
 
