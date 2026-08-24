@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Key } from "react-stately";
+import { resolveVirtualizedSelection } from "./selectionModel";
 import type { BaseTreeNode, TreeItemState, DropPosition } from "./types";
 
 interface FlattenedNode<TNode extends BaseTreeNode> {
@@ -41,6 +42,8 @@ interface VirtualizedTreeProps<TNode extends BaseTreeNode> {
   expandedKeys: Set<Key>;
   disabledKeys?: Set<Key>;
   focusedKey?: Key | null;
+  selectionMode?: "single" | "multiple" | "none";
+  selectionBehavior?: "replace" | "toggle";
 
   // 콜백
   onSelectionChange?: (keys: Set<Key>) => void;
@@ -90,6 +93,8 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
   expandedKeys,
   disabledKeys,
   focusedKey,
+  selectionMode = "single",
+  selectionBehavior,
   onSelectionChange,
   onExpandedChange,
   dnd,
@@ -100,6 +105,7 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
 }: VirtualizedTreeProps<TNode>) {
   "use no memo";
   const scrollRef = useRef<HTMLDivElement>(null);
+  const anchorKeyRef = useRef<Key | null>(null);
   const [draggingKey, setDraggingKey] = useState<Key | null>(null);
   const [dropTarget, setDropTarget] = useState<{
     key: Key;
@@ -153,13 +159,33 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
     }
   }, [focusedKey, flattenedNodes, virtualizer]);
 
-  // 노드 클릭 핸들러
+  // 노드 클릭 핸들러 — 수식어 해석은 TreeBase(RAC) 경로와 같은 규칙을 쓴다
   const handleNodeClick = useCallback(
     (key: Key, event: React.MouseEvent) => {
       event.preventDefault();
-      onSelectionChange?.(new Set([key]));
+      const result = resolveVirtualizedSelection({
+        anchorKey: anchorKeyRef.current,
+        key,
+        modifiers: {
+          ctrlKey: event.ctrlKey,
+          metaKey: event.metaKey,
+          shiftKey: event.shiftKey,
+        },
+        orderedKeys: flattenedNodes.map((entry) => entry.key),
+        selectedKeys,
+        selectionBehavior,
+        selectionMode,
+      });
+      anchorKeyRef.current = result.anchorKey;
+      onSelectionChange?.(result.keys);
     },
-    [onSelectionChange],
+    [
+      flattenedNodes,
+      onSelectionChange,
+      selectedKeys,
+      selectionBehavior,
+      selectionMode,
+    ],
   );
 
   // 확장 토글

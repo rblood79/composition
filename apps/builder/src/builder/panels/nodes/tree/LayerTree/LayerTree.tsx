@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import type { Key } from "react-stately";
 import { TreeBase, VirtualizedTree } from "../TreeBase";
 import type { TreeBaseDndConfig, TreeItemState } from "../TreeBase/types";
+import type { PanelNode } from "../../../panelNode";
 import type { LayerTreeNode, LayerTreeProps } from "./types";
 import { useLayerTreeData } from "./useLayerTreeData";
 import { calculateMoveUpdates } from "./useLayerTreeDnd";
@@ -27,10 +28,11 @@ function readDragPreviewText(item: unknown): string | null {
 export function LayerTree({
   elements,
   selectedElementId,
+  selectedElementIds,
   selectedTab,
   expandedKeys,
   onExpandedChange,
-  onItemClick,
+  onSelectionChange,
   onItemDelete,
   onSelectTabElement,
 }: LayerTreeProps) {
@@ -40,33 +42,53 @@ export function LayerTree({
     new Set(),
   );
 
+  /** 가상 자식 행(projected row/cell 등)은 canonical 요소가 아니라 선택에서 뺀다. */
+  const resolveSelectedElements = useCallback(
+    (keys: Iterable<Key>) => {
+      const elementsForKeys: PanelNode[] = [];
+      for (const key of keys) {
+        const node = nodeMap.get(String(key));
+        if (!node || node.virtualChildType) continue;
+        elementsForKeys.push(node.element);
+      }
+      return elementsForKeys;
+    },
+    [nodeMap],
+  );
+
   // 포커스 관리 훅
   const { focusedKey, handleAfterMove } = useFocusManagement({
     nodeMap: focusNodeMap,
     onSelectionChange: (keys) => {
-      const key = [...keys][0] as string;
-      if (key) {
-        const node = nodeMap.get(key);
-        if (node && !node.virtualChildType) {
-          onItemClick(node.element);
-        }
-      }
+      const selected = resolveSelectedElements(keys);
+      if (selected.length > 0) onSelectionChange(selected);
     },
   });
 
+  const activeSelectedIds = useMemo(() => {
+    if (selectedElementIds && selectedElementIds.length > 0) {
+      return selectedElementIds;
+    }
+    return selectedElementId ? [selectedElementId] : [];
+  }, [selectedElementId, selectedElementIds]);
+
   const resolvedExpandedKeys = expandedKeys ?? internalExpandedKeys;
   const effectiveExpandedKeys = useMemo(() => {
-    if (!selectedElementId) return resolvedExpandedKeys;
+    if (activeSelectedIds.length === 0) return resolvedExpandedKeys;
     const next = new Set<Key>(resolvedExpandedKeys);
+    // 선택된 요소 **전부**의 조상을 펼친다 — 하나만 펼치면 다중 선택의 나머지가
+    // 접힌 채 남아 선택 표시가 부분적으로만 보인다.
     const visited = new Set<string>();
-    let parentId = nodeMap.get(selectedElementId)?.parentId ?? null;
-    while (parentId && !visited.has(parentId)) {
-      visited.add(parentId);
-      next.add(parentId);
-      parentId = nodeMap.get(parentId)?.parentId ?? null;
+    for (const selectedId of activeSelectedIds) {
+      let parentId = nodeMap.get(selectedId)?.parentId ?? null;
+      while (parentId && !visited.has(parentId)) {
+        visited.add(parentId);
+        next.add(parentId);
+        parentId = nodeMap.get(parentId)?.parentId ?? null;
+      }
     }
     return next;
-  }, [nodeMap, resolvedExpandedKeys, selectedElementId]);
+  }, [activeSelectedIds, nodeMap, resolvedExpandedKeys]);
 
   const handleExpandedChange = useCallback(
     (keys: Set<Key>) => {
@@ -80,14 +102,17 @@ export function LayerTree({
 
   const handleSelectionChange = useCallback(
     (keys: Set<Key>) => {
-      const key = [...keys][0] as string;
-      if (!key) return;
-
-      const node = nodeMap.get(key);
-      if (!node || node.virtualChildType) return;
-      onItemClick(node.element);
+      // 가상 자식만 클릭한 경우 (걸러진 결과가 비었는데 원본은 비지 않음) 는
+      // 선택 해제가 아니라 무시다.
+      if (keys.size > 0) {
+        const selected = resolveSelectedElements(keys);
+        if (selected.length === 0) return;
+        onSelectionChange(selected);
+        return;
+      }
+      onSelectionChange([]);
     },
-    [nodeMap, onItemClick],
+    [onSelectionChange, resolveSelectedElements],
   );
 
   // DnD 유효성 검사 (클로저로 tree 캡처)
@@ -165,9 +190,13 @@ export function LayerTree({
     getKey: (node: LayerTreeNode) => node.id,
     getTextValue: (node: LayerTreeNode) => node.name,
     renderContent,
-    selectedKeys: selectedElementId
-      ? new Set([selectedElementId])
-      : new Set<Key>(),
+    selectedKeys: new Set<Key>(activeSelectedIds),
+    // 캔버스와 같은 다중 선택을 트리에서도 만들고 표시한다. 수식어 의미는 RAC
+    // 규칙을 그대로 쓴다 — shift 는 구간, meta/ctrl 은 개별 토글 (D1 권위).
+    // RAC 기본 `toggle` 은 수식어 없는 클릭까지 토글로 만들어(체크박스 목록 어법)
+    // 레이어 패널에서는 "클릭했는데 선택이 풀린다" 가 된다.
+    selectionMode: "multiple" as const,
+    selectionBehavior: "replace" as const,
     expandedKeys: effectiveExpandedKeys,
     disabledKeys,
     focusedKey,

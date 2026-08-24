@@ -301,7 +301,7 @@ describe("useLayerTreeData", () => {
           <LayerTree
             elements={elements}
             selectedElementId={null}
-            onItemClick={vi.fn()}
+            onSelectionChange={vi.fn()}
             onItemDelete={vi.fn().mockResolvedValue(undefined)}
           />
         </ContextMenuProvider>,

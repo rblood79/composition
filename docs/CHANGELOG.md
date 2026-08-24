@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [레이어 트리 다중 선택] - 2026-08-24
+
+### Bug Fixes
+
+- **레이어 트리에서 shift-클릭이 선택을 추가하지 않고 교체하던 문제**:
+  - 캔버스에서는 shift-클릭으로 여러 요소를 잡을 수 있었지만 Layers 트리는 항상
+    한 개만 선택됐다. 캔버스에서 만든 다중 선택도 트리에는 대표 요소 하나만
+    강조돼 어떤 요소들이 잡혀 있는지 보이지 않았다.
+  - 트리를 다중 선택으로 전환하고, 선택 상태를 store 의 `selectedElementIds`
+    에서 그대로 읽는다 — 캔버스 ↔ 트리 양방향으로 같은 선택이 보인다.
+  - 수식어 의미는 React Aria 규칙을 따른다: **shift = 구간 선택**,
+    **⌘/Ctrl = 개별 토글**, 수식어 없는 클릭 = 단일 교체. 트리는 행 순서가 있어
+    구간 선택이 자연스럽고, 파일 탐색기·다른 디자인 도구의 레이어 패널과 같다.
+  - 선택된 요소가 여럿이면 그 **전부**의 조상을 펼친다. 종전에는 대표 요소의
+    조상만 펼쳐 나머지가 접힌 채 남았다.
+  - 다중 선택은 editingContext(편집 깊이)를 옮기지 않는다 — 마지막 클릭 하나가
+    나머지의 깊이 기준을 바꾸면 안 되기 때문이며, 캔버스 shift 경로도 같다.
+  - 위치: `apps/builder/src/builder/panels/nodes/LayersSection.tsx`,
+    `apps/builder/src/builder/panels/nodes/tree/LayerTree/LayerTree.tsx`,
+    `apps/builder/src/builder/panels/nodes/tree/TreeBase/`
+
+### Architecture
+
+- 가상화 트리(300 노드 초과)는 react-aria Tree 대신 행을 직접 그리므로 클릭
+  해석도 직접 한다. 두 경로가 갈리면 문서가 커지는 순간 선택 동작이 조용히
+  바뀌므로, 수식어 해석을 `TreeBase/selectionModel.ts` 한 곳으로 모으고 RAC 의
+  `selectionBehavior="replace"` 규칙을 미러했다.
+
 ## [ADR-189 후속 — 다중 선택 편집이 sparse commit lane 을 타지 못하던 결함] - 2026-08-24
 
 ### Bug Fixes

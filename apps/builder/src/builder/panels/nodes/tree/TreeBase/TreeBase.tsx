@@ -29,6 +29,7 @@ export function TreeBase<TNode extends BaseTreeNode>({
   disabledKeys,
   focusedKey,
   selectionMode = "single",
+  selectionBehavior,
   onSelectionChange,
   onExpandedChange,
   dnd,
@@ -188,6 +189,7 @@ export function TreeBase<TNode extends BaseTreeNode>({
       aria-label={ariaLabel}
       items={items}
       selectionMode={selectionMode}
+      selectionBehavior={selectionBehavior}
       selectedKeys={selectedKeys}
       expandedKeys={resolvedExpanded}
       disabledKeys={disabledKeys}

@@ -51,6 +51,53 @@ export function resolveLayerTreeEditingContext(
   return resolveEditingContextForTreeSelection(element.id, lookup);
 }
 
+/**
+ * 선택된 요소 **전부**의 조상을 펼침 대상으로 모은다.
+ *
+ * 단일 선택만 보면 다중 선택의 나머지 요소가 접힌 채 남아 선택 표시가 부분적으로만
+ * 보인다 — 캔버스에서 shift 로 잡은 선택이 트리에 반쯤만 나타나는 증상.
+ */
+export function collectAutoExpandedParents(
+  selectedIds: readonly string[],
+  elementsMap: Map<string, PanelNode>,
+): Set<Key> {
+  const parents = new Set<Key>();
+  const visited = new Set<string>();
+
+  for (const selectedId of selectedIds) {
+    let currentParentId = elementsMap.get(selectedId)?.parent_id ?? null;
+    while (currentParentId && !visited.has(currentParentId)) {
+      visited.add(currentParentId);
+      parents.add(currentParentId);
+      currentParentId = elementsMap.get(currentParentId)?.parent_id ?? null;
+    }
+  }
+  return parents;
+}
+
+export type LayerTreeSelectionIntent =
+  | { readonly kind: "clear" }
+  | { readonly kind: "single"; readonly element: PanelNode }
+  | { readonly kind: "multiple"; readonly elementIds: string[] };
+
+/**
+ * 트리 선택 결과를 store 호출로 번역한다.
+ *
+ * 단일 선택만 editingContext 를 조정한다. 다중 선택에서 context 를 옮기면 마지막
+ * 클릭 하나가 나머지의 깊이 기준을 바꿔 버리며, 캔버스의 shift 경로도 같은 이유로
+ * context 를 건드리지 않는다 (`useCanvasElementSelectionHandlers`).
+ */
+export function resolveLayerTreeSelectionIntent(
+  elements: readonly PanelNode[],
+): LayerTreeSelectionIntent {
+  if (elements.length === 0) return { kind: "clear" };
+  if (elements.length === 1) return { element: elements[0], kind: "single" };
+  return {
+    elementIds: elements.map((element) => element.id),
+    kind: "multiple",
+  };
+}
+
 export const LayersSection = memo(function LayersSection({
   currentPageId,
 }: LayersSectionProps) {
@@ -99,7 +146,10 @@ export const LayersSection = memo(function LayersSection({
 
   // 🚀 selectedElementId만 구독 - pages 변경 시 리렌더링 안됨
   const selectedElementId = useStore((state) => state.selectedElementId);
+  const selectedElementIds = useStore((state) => state.selectedElementIds);
   const setSelectedElement = useStore((state) => state.setSelectedElement);
+  const setSelectedElements = useStore((state) => state.setSelectedElements);
+  const clearSelection = useStore((state) => state.clearSelection);
   const removeElement = useStore((state) => state.removeElement);
 
   // 사용자가 직접 조작한 expandedKeys (collapse all, 수동 토글)
@@ -110,24 +160,11 @@ export const LayersSection = memo(function LayersSection({
   );
 
   // 🚀 선택된 요소의 부모 체인 계산 (파생 상태)
-  const autoExpandedParents = useMemo(() => {
-    if (!selectedElementId) return new Set<Key>();
-
-    const selectedElement = currentPageElementsMap.get(selectedElementId);
-    if (!selectedElement) return new Set<Key>();
-
-    const parents = new Set<Key>();
-    const visited = new Set<string>();
-    let currentParentId = selectedElement.parent_id;
-
-    while (currentParentId && !visited.has(currentParentId)) {
-      visited.add(currentParentId);
-      parents.add(currentParentId);
-      const parentElement = currentPageElementsMap.get(currentParentId);
-      currentParentId = parentElement?.parent_id ?? null;
-    }
-    return parents;
-  }, [selectedElementId, currentPageElementsMap]);
+  const autoExpandedParents = useMemo(
+    () =>
+      collectAutoExpandedParents(selectedElementIds, currentPageElementsMap),
+    [selectedElementIds, currentPageElementsMap],
+  );
 
   // 🚀 최종 expandedKeys = (사용자 조작 + 자동 펼침) - 사용자가 닫은 키
   const expandedKeys = useMemo(() => {
@@ -143,20 +180,37 @@ export const LayersSection = memo(function LayersSection({
 
   // 🚀 useCallback으로 메모이제이션 - 매 렌더링마다 새 함수 생성 방지
   // 계층적 선택: 트리에서 직접 선택 시 editingContext 자동 조정
-  const handleItemClick = useCallback(
-    (element: PanelNode) => {
+  const handleSelectionChange = useCallback(
+    (elements: PanelNode[]) => {
+      const intent = resolveLayerTreeSelectionIntent(elements);
+
+      if (intent.kind === "clear") {
+        clearSelection();
+        return;
+      }
+
+      if (intent.kind === "multiple") {
+        setSelectedElements(intent.elementIds);
+        return;
+      }
+
       const state = useStore.getState();
       const newContextId = resolveLayerTreeEditingContext(
-        element,
+        intent.element,
         currentPageElementsMap,
       );
 
       if (newContextId !== state.editingContextId) {
         state.setEditingContext(newContextId);
       }
-      setSelectedElement(element.id);
+      setSelectedElement(intent.element.id);
     },
-    [currentPageElementsMap, setSelectedElement],
+    [
+      clearSelection,
+      currentPageElementsMap,
+      setSelectedElement,
+      setSelectedElements,
+    ],
   );
 
   const handleItemDelete = useCallback(
@@ -231,9 +285,10 @@ export const LayersSection = memo(function LayersSection({
         <LayerTree
           elements={currentPageElements}
           selectedElementId={selectedElementId}
+          selectedElementIds={selectedElementIds}
           expandedKeys={expandedKeys}
           onExpandedChange={handleExpandedChange}
-          onItemClick={handleItemClick}
+          onSelectionChange={handleSelectionChange}
           onItemDelete={handleItemDelete}
         />
       ) : (

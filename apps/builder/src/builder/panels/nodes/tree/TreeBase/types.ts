@@ -79,6 +79,12 @@ export interface TreeBaseProps<TNode extends BaseTreeNode> {
 
   // Selection 설정
   selectionMode?: "single" | "multiple" | "none";
+  /**
+   * RAC 기본값은 `"toggle"` — 수식어 없는 클릭이 항목을 껐다 켠다 (체크박스 목록
+   * 어법). 레이어 패널은 `"replace"` 여야 한다: 일반 클릭은 교체, shift 는 구간,
+   * meta/ctrl 은 개별 토글. 캔버스 클릭 어법과도 이쪽이 맞는다.
+   */
+  selectionBehavior?: "replace" | "toggle";
 
   // 콜백
   onSelectionChange?: (keys: Set<Key>) => void;

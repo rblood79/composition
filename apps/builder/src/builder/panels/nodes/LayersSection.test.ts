@@ -4,7 +4,9 @@ import { resolve } from "node:path";
 import type { Element } from "../../../types/builder/unified.types";
 import {
   buildLayerSectionElementMap,
+  collectAutoExpandedParents,
   resolveLayerTreeEditingContext,
+  resolveLayerTreeSelectionIntent,
 } from "./LayersSection";
 
 function makeElement(id: string, overrides: Partial<Element> = {}): Element {
@@ -70,5 +72,61 @@ describe("LayersSection canonical read helpers", () => {
     );
 
     expect(context).toBe("group");
+  });
+});
+
+describe("LayersSection 다중 선택", () => {
+  it("단일 선택만 editingContext 조정 경로로 보낸다", () => {
+    const one = makeElement("one");
+    expect(resolveLayerTreeSelectionIntent([one])).toEqual({
+      element: one,
+      kind: "single",
+    });
+  });
+
+  it("둘 이상은 editingContext 를 건드리지 않는 다중 경로다", () => {
+    const one = makeElement("one");
+    const two = makeElement("two");
+    expect(resolveLayerTreeSelectionIntent([one, two])).toEqual({
+      elementIds: ["one", "two"],
+      kind: "multiple",
+    });
+  });
+
+  it("빈 선택은 해제다", () => {
+    expect(resolveLayerTreeSelectionIntent([])).toEqual({ kind: "clear" });
+  });
+
+  it("선택된 요소 전부의 조상을 펼친다", () => {
+    const body = makeElement("body", { type: "body" });
+    const groupA = makeElement("group-a", { parent_id: "body" });
+    const groupB = makeElement("group-b", { parent_id: "body" });
+    const childA = makeElement("child-a", { parent_id: "group-a" });
+    const childB = makeElement("child-b", { parent_id: "group-b" });
+    const map = new Map(
+      [body, groupA, groupB, childA, childB].map((element) => [
+        element.id,
+        element,
+      ]),
+    );
+
+    // 한쪽 조상만 펼치면 나머지 선택이 접힌 채 남아 표시가 반만 보인다.
+    expect([
+      ...collectAutoExpandedParents(["child-a", "child-b"], map),
+    ]).toEqual(["group-a", "body", "group-b"]);
+  });
+
+  it("순환 parent 참조에도 멈춘다", () => {
+    const a = makeElement("a", { parent_id: "b" });
+    const b = makeElement("b", { parent_id: "a" });
+    const map = new Map([
+      ["a", a],
+      ["b", b],
+    ]);
+
+    expect([...collectAutoExpandedParents(["a"], map)].sort()).toEqual([
+      "a",
+      "b",
+    ]);
   });
 });
