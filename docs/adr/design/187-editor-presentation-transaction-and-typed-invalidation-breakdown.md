@@ -1018,9 +1018,12 @@ Preview DOM에 수렴하는 것까지 확인했지만, Skia 내부 bounds와 ter
 `console.error`/`console.warn 0/0`을 확인했다. explicit opacity `1`은 deterministic
 harness가 통과했고 실제 Builder live exercise도 `--project-url` 경로로 종결했다.
 따라서 **Phase 5 구현 allowlist는 코드·deterministic gate 기준 승격 준비 상태**다.
-다만 이번 populated Builder 재검증에서 explicit `opacity:1` session의
-`targetIncrementalPatchCount=0`과 terminal counter `0`이 확인되어, 해당 Skia
-projection/store bridge live gate를 먼저 닫아야 최종 Phase 5 승격으로 판정한다.
+pre-fix populated Builder 재검증에서 explicit `opacity:1` session의
+`targetIncrementalPatchCount=0`과 terminal counter `0`이 확인된 원인은 page snapshot이
+일시적으로 불완전한 store sync에서 visible `renderNodesMap` fallback을 projection
+index가 누락한 것이었다. visible fallback 보강과 hidden-page 차단 회귀 테스트를
+반영했으며, 최종 Phase 5 승격 전에는 동일 Builder live counter를 post-fix로 한 번 더
+확인한다.
 `fontFamily`/`lineHeight`/`letterSpacing`, resource, structure 및 absolute leaf 내부
 bounds는 기존 fail-closed 경계를 유지한다. ADR-187 문서 자체의 `Implemented` 승격은
 Phase 6 legacy 제거 및 G0~G8 전체 조건을 별도로 만족한 뒤에 판정한다. 이번 실행에서

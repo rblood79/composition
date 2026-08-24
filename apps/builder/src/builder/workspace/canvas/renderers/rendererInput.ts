@@ -316,8 +316,10 @@ function buildPresentationProjectionIndex(
 ): SkiaPresentationProjectionIndex {
   const builder = new SkiaPresentationProjectionIndexBuilder();
   if (input.editMode === "page") {
+    const visiblePageIds = new Set<string>();
     for (const pageSnapshot of input.sceneSnapshot.pageSnapshots.values()) {
       if (!pageSnapshot.isVisible) continue;
+      visiblePageIds.add(pageSnapshot.pageId);
       if (pageSnapshot.bodyElement) {
         addPresentationProjection(
           builder,
@@ -332,6 +334,19 @@ function buildPresentationProjectionIndex(
         // projection index의 SSOT로 사용한다.
         addPresentationProjection(builder, element, input.sceneNodesMap);
       }
+    }
+
+    // StoreRenderBridge가 실제 Skia registry를 채우는 renderNodesMap은
+    // page snapshot보다 먼저 canonical store 변경을 볼 수 있다. 그 짧은
+    // window에 pageElements만 SSOT로 사용하면 registry에는 node가 있는데
+    // projection index에는 target이 없어 paint overlay가 조용히 no-op 된다.
+    // visible pageId가 증명되는 render node만 보강하여 hidden page/source
+    // element를 continuous lane에 노출하지 않는다.
+    for (const element of input.renderNodesMap.values()) {
+      if (element.deleted) continue;
+      const pageId = element.pageId ?? element.page_id ?? null;
+      if (!pageId || !visiblePageIds.has(pageId)) continue;
+      addPresentationProjection(builder, element, input.sceneNodesMap);
     }
     return builder.build();
   }

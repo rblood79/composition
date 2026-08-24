@@ -351,6 +351,80 @@ describe("createSkiaRendererInput", () => {
     ).toEqual([]);
   });
 
+  it("indexes visible render-tree fallback nodes for presentation patches", () => {
+    const body = makeSceneNode({
+      id: "page-1-body",
+      type: "body",
+      page_id: "page-1",
+    });
+    const fallbackButton = makeSceneNode({
+      id: "fallback-button",
+      type: "Button",
+      page_id: "page-1",
+      parent_id: body.id,
+    });
+    const hiddenButton = makeSceneNode({
+      id: "hidden-button",
+      type: "Button",
+      page_id: "page-2",
+    });
+    const nodes = [body, fallbackButton, hiddenButton];
+    const input = createSkiaRendererInput({
+      childrenMap: buildChildrenByParent(nodes),
+      dirtyElementIds: new Set(),
+      documentRevision: 1,
+      editMode: "page",
+      elements: nodes,
+      renderNodesMap: new Map(nodes.map((node) => [node.id, node])),
+      frameAreas: [],
+      framePositions: {},
+      framePositionsVersion: 1,
+      frameElementScopes: new Map(),
+      pageIndex: { elementsByPage: new Map(), rootsByPage: new Map() },
+      pagePositions: {},
+      pagePositionsVersion: 1,
+      pages: [makePage("page-1"), makePage("page-2")],
+      ...makeSceneGraphInput(nodes),
+      sceneSnapshot: makeSceneSnapshot(
+        new Map([
+          [
+            "page-1",
+            {
+              bodyElement: body,
+              contentVersion: 1,
+              frame: {
+                elementCount: 0,
+                height: 800,
+                id: "page-1",
+                title: "page-1",
+                width: 400,
+                x: 0,
+                y: 0,
+              },
+              isVisible: true,
+              pageElements: [],
+              pageId: "page-1",
+              positionVersion: 1,
+            },
+          ],
+        ]),
+      ),
+    });
+
+    expect(
+      input.presentationProjectionIndex.resolve({
+        kind: "canonical-node",
+        nodeId: fallbackButton.id,
+      }),
+    ).toEqual([fallbackButton.id]);
+    expect(
+      input.presentationProjectionIndex.resolve({
+        kind: "canonical-node",
+        nodeId: hiddenButton.id,
+      }),
+    ).toEqual([]);
+  });
+
   it("builds childrenMap from page snapshot source order instead of legacy order_num", () => {
     const body = makeSceneNode({
       id: "page-body",

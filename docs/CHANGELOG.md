@@ -66,10 +66,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - ADR-187 Phase 5 구현 allowlist를 갱신했다. generic multi-sibling layout과 fixed
-  Text metric은 승격 준비 상태지만, populated explicit opacity의 Skia
-  `targetIncrementalPatchCount=0` blocker를 해소하기 전까지 최종 Phase 5 승격은
-  보류한다. ADR 전체 `Implemented` 승격은 Phase 6 legacy 제거 및 G0~G8 전체 조건
-  이후로 유지한다.
+  Text metric은 승격 준비 상태이며, explicit opacity의 pre-fix
+  `targetIncrementalPatchCount=0` 원인인 visible `renderNodesMap` projection 누락도
+  보강했다. 최종 Phase 5 승격 전에는 post-fix populated Builder live counter만
+  재확인한다. ADR 전체 `Implemented` 승격은 Phase 6 legacy 제거 및 G0~G8 전체
+  조건 이후로 유지한다.
 
 ## ADR-187 Phase 5 Modified Styles opacity presentation slice — 2026-08-24
 

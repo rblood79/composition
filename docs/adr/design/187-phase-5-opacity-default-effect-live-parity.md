@@ -21,6 +21,10 @@ commit-only 경로에 남긴다.
 - `skiaEditorPresentationBridge.test.ts`: 실제 Skia presentation consumer를 통과하는
   explicit `opacity:1 → 0.42` materialization, `presentation` source 보존 및
   canonical `style` effect handoff/volatile release를 검증한다.
+- `rendererInput.ts`는 page snapshot이 일시적으로 불완전한 store sync에서도 실제
+  visible `renderNodesMap` fallback을 canonical target projection index에 보강하고,
+  hidden page node는 제외한다. `createSkiaRendererInput.test.ts`가 이 lookup과
+  hidden-page fail-closed를 고정한다.
 - `editorPresentationOpacity.liveHarness.test.ts`: populated Button fixture를
   사용한 deterministic Preview/Skia harness. explicit `opacity:1 → 0.42`에서
   cancel/finish 모두 geometry 불변, Preview/Skia parity, terminal event `1`,
