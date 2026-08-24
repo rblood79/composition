@@ -36,7 +36,10 @@ import {
   INHERITED_LAYOUT_PROPS_UPDATE,
   NON_LAYOUT_PROPS_UPDATE,
 } from "../../presentation/invalidation/editorMutationEffectRegistry";
-import { emitStoreStyleCommitDescriptor } from "../../presentation/storeCommitEmitter";
+import {
+  emitStoreStyleCommitDescriptor,
+  emitStoreStyleCommitDescriptors,
+} from "../../presentation/storeCommitEmitter";
 
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
 type ElementUpdateLookup<TElement extends Element = Element> = Map<
@@ -746,6 +749,16 @@ export const createBatchUpdateElementPropsAction =
       updatedElementMap.values(),
     );
     syncUpdatedElementsToCanonical(updatedElementsForPersistence);
+
+    // ADR-190 Phase 3: 다중 선택 편집·정렬·드래그가 여기로 모인다. 요소마다
+    // 따로 queue 하면 pendingCommit 단일 슬롯이 앞선 patch 를 덮어쓰므로
+    // **한 번에** 배열로 넘긴다 (R6).
+    emitStoreStyleCommitDescriptors(
+      validUpdates.map(({ elementId, props }) => ({
+        elementId,
+        patch: props as Record<string, unknown>,
+      })),
+    );
 
     if (hasAnyLayoutChange) {
       set((prevState) => ({

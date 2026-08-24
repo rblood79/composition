@@ -1992,6 +1992,12 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         // 읽는다 (`reorderElementWithinParent` 와 같은 함정).
         store: (mutationResult) => {
           if (!mutationResult.changed) return;
+          // ADR-190 Phase 3: 러너의 canonical 스테이지가 끝난 뒤·set() 앞.
+          // 형제 끝으로 보내기도 부모 span 안의 순서만 바뀐다.
+          emitStoreStructureCommitDescriptors(
+            [{ elementId, parentId: target.parentId }],
+            "order",
+          );
           const nextElements = getCanonicalOrStoreElements(get());
           set((state) => ({
             elements: nextElements,

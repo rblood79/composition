@@ -114,7 +114,13 @@ px 고정 width·height·spacing longhand / fontSize·fontWeight) 만 canonical 
 - 대량 mutation (undo 로 다수 노드 동시 변경): dirty root 수 / affectedIds 비율
   임계 초과 시 full rebuild 조기 판정 — sparse 역전 방지. 임계값은 N-tier 벤치로
   산정.
-- G3 통과 후 commit.
+- **Phase 3 완료 (2026-08-24)** — G3 전 항목 통과. 증적:
+  [190-phase-3-g3-path-classification.md](190-phase-3-g3-path-classification.md).
+  경로 전수 분류 완료 (AI tool 은 Phase 1·2 배선으로 자동 커버). **R4 는 임계
+  상수를 도입하지 않는 것으로 판정** — 경계가 batch 크기가 아니라 dirty root
+  개수 1이고, 2개부터 이미 소비자가 fail-closed 하므로 임계 로직이 도달 불가
+  코드가 된다. 대신 무익한 시도를 막는 가드를 넣어 다중 항목의 queue/fallback
+  을 4/4 → 0/0 으로 제거했다.
 
 ### Phase 4 — closure
 

@@ -22,7 +22,28 @@ let sink: StoreCommitDescriptorSink | null = null;
  * 던졌다" 는 런타임 증상이 모두 `queueCount=0` 으로 똑같이 보이기 때문에,
  * G1 게이트가 셋을 구분하려면 이 층에서 세어야 한다.
  */
-const diagnostics = { delivered: 0, failed: 0, published: 0, unsinked: 0 };
+const diagnostics = {
+  delivered: 0,
+  failed: 0,
+  published: 0,
+  /** descriptor 화가 거부돼 full rebuild 로 간 commit 수 (축별). */
+  rejectedStructure: 0,
+  rejectedStyle: 0,
+  unsinked: 0,
+};
+
+/**
+ * 거부를 센다. 거부 자체는 정상 동작(fail-closed)이지만, **조용히** 늘어나면
+ * 성능이 서서히 옛 경로로 되돌아간다 — 특히 effect registry 에 등재하지 않은
+ * style 키를 새로 도입하면 그 요소는 영구히 lane 밖에 남는다 (ADR-190 Phase 1).
+ * 화면에는 아무 증상이 없으므로 세지 않으면 발견 수단이 없다.
+ */
+export function recordStoreCommitDescriptorRejection(
+  axis: "structure" | "style",
+): void {
+  if (axis === "style") diagnostics.rejectedStyle += 1;
+  else diagnostics.rejectedStructure += 1;
+}
 
 export function readStoreCommitDescriptorDiagnostics(): Readonly<
   typeof diagnostics
@@ -34,6 +55,8 @@ export function resetStoreCommitDescriptorDiagnostics(): void {
   diagnostics.delivered = 0;
   diagnostics.failed = 0;
   diagnostics.published = 0;
+  diagnostics.rejectedStructure = 0;
+  diagnostics.rejectedStyle = 0;
   diagnostics.unsinked = 0;
 }
 
