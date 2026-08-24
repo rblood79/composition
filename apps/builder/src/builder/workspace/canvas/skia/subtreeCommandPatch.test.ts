@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
@@ -13,6 +13,7 @@ import {
 import {
   applyCommitSubtreeCommandPatch,
   applySubtreeCommandPatch,
+  getSubtreeElementIds,
 } from "./subtreeCommandPatch";
 
 function makeElement(
@@ -52,6 +53,7 @@ interface FixtureOptions {
   readonly bodyClipChildren?: boolean;
   readonly includeSecondLeaf?: boolean;
   readonly includeTrailingLeaf?: boolean;
+  readonly leafDamageUnsafe?: boolean;
   readonly revision?: number;
 }
 
@@ -70,7 +72,13 @@ function buildFixture(options: FixtureOptions = {}): RenderCommandStream {
     clipChildren: options.bodyClipChildren ?? false,
   });
   registerNode(owner.id, { width: 400, height: 300 });
-  registerNode(leaf.id, { width: 80, height: 40 });
+  registerNode(leaf.id, {
+    width: 80,
+    height: 40,
+    effects: options.leafDamageUnsafe
+      ? [{ type: "opacity", opacity: 0.5 }]
+      : undefined,
+  });
   if (options.includeSecondLeaf) {
     registerNode(secondLeaf.id, { width: 80, height: 40 });
   }
@@ -352,6 +360,13 @@ describe("applySubtreeCommandPatch", () => {
       currentLength + (replacementLength - currentRootLength),
     );
     expect(current.subtreeSpans.has("patch-second-leaf")).toBe(true);
+    const ownerOffset =
+      current.subtreeSpans.get("patch-owner")!.start -
+      replacement.subtreeSpans.get("patch-owner")!.start;
+    expect(current.childrenSpans.get("patch-owner")).toEqual({
+      start: replacement.childrenSpans.get("patch-owner")!.start + ownerOffset,
+      end: replacement.childrenSpans.get("patch-owner")!.end + ownerOffset,
+    });
     expect(
       getCommandBufferSpliceWriteCount(current.commands),
     ).toBeLessThanOrEqual(replacementLength);
@@ -359,6 +374,57 @@ describe("applySubtreeCommandPatch", () => {
       trailingStartBefore + replacementLength - currentRootLength,
     );
     expect(current.presentationRevision).toBe(1);
+  });
+
+  it("dirty subtree ID 수집은 전체 span map을 순회하지 않는다", () => {
+    const stream = buildFixture({
+      includeSecondLeaf: true,
+      includeTrailingLeaf: true,
+    });
+    const span = stream.subtreeSpans.get("patch-owner")!;
+    const entries = vi
+      .spyOn(stream.subtreeSpans, "entries")
+      .mockImplementation(() => {
+        throw new Error("global span iteration");
+      });
+
+    expect([...getSubtreeElementIds(stream, span)].sort()).toEqual([
+      "patch-leaf",
+      "patch-owner",
+      "patch-second-leaf",
+    ]);
+    expect(entries).not.toHaveBeenCalled();
+  });
+
+  it("patch 뒤 sparse-damage fail-safe 요소 집합을 원자 교체한다", () => {
+    const current = buildFixture();
+    const unsafeReplacement = buildFixture({
+      leafDamageUnsafe: true,
+      revision: 1,
+    });
+
+    expect(
+      applySubtreeCommandPatch({
+        current,
+        replacement: unsafeReplacement,
+        rootId: "patch-leaf",
+        publication: publication(1),
+        canonicalRevision: 0,
+      }),
+    ).toMatchObject({ applied: true });
+    expect(current.damageUnsafeElementIds).toEqual(new Set(["patch-leaf"]));
+
+    const safeReplacement = buildFixture({ revision: 2 });
+    expect(
+      applySubtreeCommandPatch({
+        current,
+        replacement: safeReplacement,
+        rootId: "patch-leaf",
+        publication: publication(2),
+        canonicalRevision: 0,
+      }),
+    ).toMatchObject({ applied: true });
+    expect(current.damageUnsafeElementIds.size).toBe(0);
   });
 
   it("patch root의 조상 clip context가 바뀌면 거부한다", () => {

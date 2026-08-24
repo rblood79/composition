@@ -108,10 +108,12 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
 ### Phase 3 — G3: content 부분 재기록 (damage clip)
 
 - dirty subtree 의 이전/이후 hitBounds 합집합으로 damage rect 산출 → content
-  재기록 시 `canvas.clipRect(damage)` + 비손상 영역은 직전 content snapshot blit.
-- CoW snapshot 상호작용: 부분 재기록이 `makeImageSnapshot` 비용을 줄이는지
-  (damage 면적 비례인지) G3 에서 실측 — CanvasKit 내부 CoW 가 전면 복사로
-  남으면 이 Phase 는 기각하고 Phase 2 까지로 종결한다 (ADR-153 R7 과 동일 축).
+  재기록 시 `canvas.clipRect(damage)` + 비손상 영역은 revision이 동기화된 standby
+  surface의 기존 픽셀을 유지한다. 매 commit의 직전 snapshot 전면 blit은 금지한다.
+- CoW snapshot 상호작용: 두 surface가 같은 revision을 유지하고 damage region만
+  반대 surface에 복제하는지 확인한다. area와 actual duration은 함께 기록하되
+  ratio를 서로 대체하지 않는다. 전면 blit이 남으면 이 Phase는 기각하고 Phase 2
+  까지로 종결한다 (ADR-153 R7과 동일 축).
 - 시각 무결성: full rebuild 대조 pixel diff 0 (스크롤/클립/z-order 경계 fixture).
 
 #### 실행 기록 — G3 Complete (2026-08-23)
@@ -124,8 +126,8 @@ record.content mean 2.05ms (줌 활성 프레임의 ~40%), 대형 1920 페이지
 - populated Builder의 258 active node에서 small-80 / large-240 두 commit을
   실측했다. patch subtree visits는 각각 `1`, full command build는 `0`,
   `damageRender/fallback=1/0`이며 damage ratio는 `0.0014546` / `0.0079577`이다.
-  큰 damage hitBounds 면적 5.625배에 대해 ratio 5.47배로 증가해 비용이 damage
-  면적에 비례하는 방향임을 확인했다.
+  이 값은 clip 기하가 입력 면적을 따랐다는 증거이며 wall-clock 비용 비례의
+  대용치가 아니다. actual duration 판정은 Phase 5 / G5에서 정정했다.
 - patch 결과와 reload full rebuild의 canvas backing buffer는 `1440 × 852`,
   differing pixels `0`, max/mean channel delta `0`으로 닫혔다. Builder-local
   Vitest 3 files / 21 tests, type-check 신규 위반 0, console error/warning 0/0.
@@ -147,14 +149,37 @@ full-rebuild fallback으로 수렴했고 frame p95/p99는 `2.2/2.2ms`, `1.7/1.7m
 CSS DOM target과 Skia hitBounds는 compare pane offset 정규화 후 rect·색상이
 일치했으며, G3 backing-buffer pixel oracle은 differing pixels `0`이다.
 
+### Phase 5 — G5: Round 2 corrective closure — Complete (2026-08-24)
+
+- commit patch의 dirty ID 수집에서 전체 `subtreeSpans` map scan을 제거하고 dirty
+  command span 내부 `CMD_ELEMENT_BEGIN`만 열거한다.
+- command stream에 cursor 기반 `childrenSpans`를 추가하고, SpatialIndex 교차 후보와
+  ancestor closure만 original paint order의 balanced sequence로 구성한다. damage
+  render는 이 compact sequence만 실행하며 전제 실패는 full rebuild로 수렴한다.
+- 그림자·outline·transform 등 hit bounds 밖 paint 가능 요소를 장면 단위
+  `damageUnsafeElementIds`로 유지한다. 하나라도 있으면 SpatialIndex 후보를 과신하지
+  않고 damage replay를 full rebuild로 fail-safe 전환한다.
+- ping-pong surface를 revision 동기 상태로 유지해 damage마다 old snapshot 전면
+  blit하지 않는다. damage rect만 clear/repaint/region-sync한다.
+- full sync에서 1px region `clip + clear + blit`을 예열한다. 실제 Chrome cold first
+  sample `31.3ms`는 예열 뒤 `0.5ms`로 내려갔고 이후 `0.3~~0.5ms`를 유지했다.
+- N=50/500/5,000 wide-sibling 테스트는 compact sequence를 조상+target 2개,
+  10개 미만 command로 고정했다. 258-node patch/full backing-buffer diff는 0이다.
+- 별도 Chrome 프로젝트에서 신규 Button을 실제로 추가하고 Preview DOM과 Skia
+  draw/hit-selection을 `80 × 40`, 동일 text/fill로 직접 대조했다.
+
+실행 증적: [189 Phase 5 G5 Round 2 closure](189-phase-5-g5-round2-closure.md).
+
 ## 4. 파일 경계
 
 | 파일                                                                         | Phase | 변경                                                          |
 | ---------------------------------------------------------------------------- | :---: | ------------------------------------------------------------- |
-| `apps/builder/.../skia/renderCommands.ts`                                    |   2   | commit lane splice 진입점, 세그먼트 span 재표현               |
+| `apps/builder/.../skia/renderCommands.ts`                                    |  2·5  | commit splice, cursor span, sparse damage sequence            |
 | `apps/builder/.../skia/subtreeCommandPatch.ts`                               |   2   | 가변 길이 splice + full-rebuild fallback                      |
 | `apps/builder/.../presentation/invalidation/editorMutationEffectRegistry.ts` |   1   | paint-only commit 의 dirty-root 도출 (ADR-187 effect 축 소비) |
-| `apps/builder/.../skia/SkiaRenderer.ts`                                      |   3   | damage clip 부분 재기록 + snapshot 정책                       |
+| `apps/builder/.../skia/SkiaRenderer.ts`                                      |  3·5  | damage clip, region-synced surface, duration/command metrics  |
+| `apps/builder/.../skia/skiaFramePipeline.ts`                                 |   5   | sparse damage playback를 renderable 계약에 연결               |
+| `apps/builder/.../skia/types.ts`                                             |   5   | optional `renderDamageSkia` fail-safe 표면                    |
 | `apps/builder/.../skia/StoreRenderBridge.ts`                                 |   2   | commit resync 를 patch plan 소비로 전환                       |
 | `apps/builder/.../skia/nodePictureCache.ts`                                  |  2·3  | dirty-root 무효화를 plan 기반으로 정렬                        |
 | `packages/composition-engine` (필요 시)                                      |   1   | 없음 — ADR-188 Phase 1 산출 재사용이 원칙                     |
@@ -165,3 +190,6 @@ CSS DOM target과 Skia hitBounds는 compare pane offset 정규화 후 rect·색�
 - [x] fallback 경로 counter — 실패 조건은 full rebuild로 수렴하고 G2 fallback counter로 관측; G4 generic mutation은 descriptor 부재를 명시적으로 full path로 분류
 - [x] `hitBoundsMap`/SpatialIndex 가 draw 와 같은 revision 원자 교체 (ADR-188 G4 계승) — G3/G4 live
 - [x] 회귀 벤치: ADR-188 G0 하니스에 commit-lane 시나리오 추가 — G0 N-tier + G4 populated live
+- [x] Round 2 corrective N-tier: span-map global scan 0 + compact damage command 수 상수 — G5
+- [x] hit bounds 밖 paint contributor 장면은 sparse 진입 차단 + full fallback — G5
+- [x] 신규 structure affected-output 자체의 Preview DOM↔Skia draw/hit 대조 — G5

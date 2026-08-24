@@ -32,6 +32,7 @@ import {
 } from "../layout/engines/fullTreeLayout";
 import {
   getCachedCommandStream,
+  executeDamageRenderCommands,
   executeRenderCommands,
   buildAIBoundsFromStream,
 } from "./renderCommands";
@@ -292,6 +293,18 @@ function buildViaCommandStream(
         bounds,
         fontMgr,
         stream.selfSpans,
+        bodyPageIds,
+        currentPagePositionSnapshot,
+      );
+    },
+    renderDamageSkia(canvas, bounds) {
+      const currentPagePositionSnapshot = getPagePositionPresentationSnapshot();
+      return executeDamageRenderCommands(
+        ck,
+        canvas,
+        stream,
+        bounds,
+        fontMgr,
         bodyPageIds,
         currentPagePositionSnapshot,
       );

@@ -145,13 +145,14 @@ export function getSubtreeElementIds(
   span: SubtreeSpan,
 ): Set<string> {
   const ids = new Set<string>();
-  for (const [elementId, candidate] of stream.subtreeSpans) {
+  for (let index = span.start; index < span.end; index += 1) {
+    const command = stream.commands[index];
     if (
-      candidate.start >= span.start &&
-      candidate.end <= span.end &&
-      candidate.start < candidate.end
+      command?.type === CMD_ELEMENT_BEGIN &&
+      "elementId" in command &&
+      command.elementId.length > 0
     ) {
-      ids.add(elementId);
+      ids.add(command.elementId);
     }
   }
   return ids;
@@ -361,6 +362,8 @@ export function applySubtreeCommandPatch(
   for (const elementId of currentIds) {
     current.selfSpans.delete(elementId);
     current.subtreeSpans.delete(elementId);
+    current.childrenSpans.delete(elementId);
+    current.damageUnsafeElementIds.delete(elementId);
     current.clipContextByElement.delete(elementId);
     current.zOrderKeyByElement.delete(elementId);
     current.scrollContextKeyByElement.delete(elementId);
@@ -385,6 +388,16 @@ export function applySubtreeCommandPatch(
         elementId,
         copySpanWithOffset(nextSubtreeSpan, commandOffset),
       );
+    }
+    const nextChildrenSpan = replacement.childrenSpans.get(elementId);
+    if (nextChildrenSpan) {
+      current.childrenSpans.set(
+        elementId,
+        copySpanWithOffset(nextChildrenSpan, commandOffset),
+      );
+    }
+    if (replacement.damageUnsafeElementIds.has(elementId)) {
+      current.damageUnsafeElementIds.add(elementId);
     }
     const nextClip = replacement.clipContextByElement.get(elementId);
     if (nextClip !== undefined) {
@@ -558,6 +571,8 @@ export function applyCommitSubtreeCommandPatch(
     invalidateNodePicture(elementId);
     current.selfSpans.delete(elementId);
     current.subtreeSpans.delete(elementId);
+    current.childrenSpans.delete(elementId);
+    current.damageUnsafeElementIds.delete(elementId);
     current.clipContextByElement.delete(elementId);
     current.zOrderKeyByElement.delete(elementId);
     current.scrollContextKeyByElement.delete(elementId);
@@ -583,6 +598,16 @@ export function applyCommitSubtreeCommandPatch(
         start: nextSubtreeSpan.start + commandOffset,
         end: nextSubtreeSpan.end + commandOffset,
       });
+    }
+    const nextChildrenSpan = replacement.childrenSpans.get(elementId);
+    if (nextChildrenSpan) {
+      current.childrenSpans.set(elementId, {
+        start: nextChildrenSpan.start + commandOffset,
+        end: nextChildrenSpan.end + commandOffset,
+      });
+    }
+    if (replacement.damageUnsafeElementIds.has(elementId)) {
+      current.damageUnsafeElementIds.add(elementId);
     }
     const nextClip = replacement.clipContextByElement.get(elementId);
     if (nextClip !== undefined)

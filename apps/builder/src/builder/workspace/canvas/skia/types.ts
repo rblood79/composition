@@ -21,6 +21,11 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
  */
 export interface SkiaRenderable {
   renderSkia(canvas: Canvas, cullingBounds: DOMRect): void;
+  /**
+   * 현재 scene에서 damage와 교차하는 paint contributor만 재생한다.
+   * null은 sparse playback 전제 불충족이며 caller가 full render로 수렴해야 한다.
+   */
+  renderDamageSkia?(canvas: Canvas, damageBounds: DOMRect): number | null;
 }
 
 // ============================================

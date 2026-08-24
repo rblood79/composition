@@ -2,7 +2,8 @@
 
 ## Status
 
-Implemented — 2026-08-23 (Phase 0~~4 / G0~~G4 complete; Proposed 2026-08-22, 리뷰 round 1 이슈 3건 전건 fixed — reviews/189.md)
+Implemented — 2026-08-24 (Phase 0~~5 / G0~~G5 complete; Proposed 2026-08-22,
+리뷰 round 1·2 이슈 전건 fixed, round 3 승인 — reviews/189.md)
 
 Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](completed/188-targeted-layout-and-skia-subtree-patching.md),
 [ADR-153 렌더 최적화 measurement-first 도입](completed/153-render-optimization-measurement-first-adoption.md),
@@ -31,8 +32,9 @@ root 기반 targeted layout, subtree command span, clip/z-order 4전제, draw·h
 원자 교체 patcher(`subtreeCommandPatch.ts`). 그러나 Phase 4 승격 범위는
 `position:absolute` 숫자형 left/top presentation descriptor 로 한정되고,
 **canonical commit 자체는 여전히 full rebuild** 다. 본 ADR 은 그 기계를 commit
-lane 으로 일반화한다. vello 의 scene fragment 사상(장면을 요소 단위 retained
-fragment 로 조립, 변경분만 재인코딩)과 같은 방향이다.
+lane 으로 일반화한다. Vello의 scene fragment 조립 API는 구조를 나누는 참고
+사례지만 `Scene::append` 자체가 증분 복잡도를 보장하지는 않는다. 본 결정의
+`O(k)` 판정 근거는 로컬 command span·SpatialIndex 계약과 N-tier Gate뿐이다.
 
 3-domain 판정: 본 결정은 D3 시각 스타일의 Builder(Skia) consumer **내부** 렌더
 파이프라인이다. D1 DOM/접근성, D2 Props/API, canonical document/persistence
@@ -41,13 +43,15 @@ schema 는 변경하지 않는다. Preview(DOM) 대칭은 시각 결과 무변�
 
 **Hard Constraints**:
 
-1. commit 1회의 stream 재구축 + content 재기록 비용은 전체 가시 노드 수 `N` 이
-   아니라 dirty subtree 크기 `k` 와 damage 면적에 비례해야 한다. splice 로 인한
-   후속 span 재계산이 `O(N)` write 로 남으면 이 제약 위반이다 (ADR-188 HC1 의
-   "복사 후 덮어쓰기 금지" 와 동형).
+1. 증분 승격 대상 commit 1회의 stream 재구축 + content 재기록 비용은 전체 가시
+   노드 수 `N` 이 아니라 dirty subtree 크기 `k` 와 damage 면적에 비례해야 한다.
+   splice 로 인한 후속 span 재계산이 `O(N)` write 로 남으면 이 제약 위반이다
+   (ADR-188 HC1 의 "복사 후 덮어쓰기 금지" 와 동형). descriptor·paint-bounds
+   전제가 없는 commit은 승격 대상이 아니며 full fallback을 유지한다.
 2. 시각 결과는 full rebuild 와 **pixel 동일**해야 한다 — 증분 경로와 full 경로의
    대조 diff 0 이 모든 Gate 의 전제다 (D3 symmetric consumer 불변).
-3. 120Hz 기준 commit 직후 프레임 p95 4ms 이하, p99 8.33ms 미만 (ADR-187/188 계승).
+3. 120Hz 기준 증분 승격 commit 직후 프레임 p95 4ms 이하, p99 8.33ms 미만
+   (ADR-187/188 계승).
 4. draw bounds 와 `hitBoundsMap`/SpatialIndex 는 같은 revision 을 원자 교체한다
    (ADR-188 HC4 계승). 부분 갱신이 두 소비자를 다른 상태로 두는 중간 프레임 금지.
 5. 실패한 patch 는 stale 화면이 아니라 **full rebuild fallback** 으로 수렴한다 —
@@ -82,13 +86,16 @@ schema 는 변경하지 않는다. Preview(DOM) 대칭은 시각 결과 무변�
   재사용해 (1) command stream 은 subtree span splice(가변 길이 허용)로, (2)
   content surface 는 damage rect clip 부분 재기록으로, (3) hit/SpatialIndex 는
   기존 원자 교체 patcher 로 갱신한다. 실패 시 full rebuild fallback.
-- 근거: vello 는 장면을 fragment 단위로 인코딩해 append 조립한다
-  ([vello Scene/fragment API](https://docs.rs/vello/latest/vello/struct.Scene.html)).
-  Skia `SkPicture` 는 cull rect 기반 부분 playback 을 명시한다
-  ([SkPicture reference](https://api.skia.org/classSkPicture.html)). Chromium
-  compositor 는 damage tracking 으로 부분 래스터를 수행한다
+- 근거: Vello의 scene fragment/append API는 장면 조립 단위를 나눌 수 있다는 구조적
+  참고 사례다. 다만 append 비용은 입력 fragment 크기에 비례하므로 로컬 `O(k)`의
+  증거로 사용하지 않는다
+  ([Vello Scene API](https://docs.rs/vello/latest/vello/struct.Scene.html)). Skia
+  `SkPicture::cullRect()`도 quick-reject용 bounds hint이며 clip 보장이 아니다
+  ([SkPicture reference](https://api.skia.org/classSkPicture.html)). Chromium의
+  damage tracking은 부분 raster의 책임 분리를 참고하는 선례다
   ([cc damage/raster](https://chromium.googlesource.com/chromium/src/+/main/docs/how_cc_works.md)).
-  세 시스템 모두 "변경분만 재인코딩/재래스터" 를 검증된 경계로 제공한다.
+  정확성과 복잡도는 외부 API가 아니라 G2/G3/G5의 로컬 counter·pixel oracle로
+  판정한다.
 - 위험:
   - 기술: HIGH — 가변 길이 splice 의 span offset 재표현, damage rect 정확성,
     CoW snapshot 과의 상호작용이 미검증.
@@ -104,8 +111,9 @@ schema 는 변경하지 않는다. Preview(DOM) 대칭은 시각 결과 무변�
   전면 전환하거나 vello_hybrid 류 렌더러로 교체한다.
 - 근거: vello_hybrid 는 CPU 전처리 + WebGL2 로 동작하는 fragment 기반 렌더러다
   ([vello_hybrid](https://github.com/linebender/vello/tree/main/sparse_strips/vello_hybrid)).
-  단 alpha 상태이고 mask/filter 미지원, 텍스트 스택(parley)이 Skia Paragraph 와
-  비호환 — 2026-08-22 조사에서 "추적만" 판정.
+  `sparse_strips` 연구 경로에 놓인 별도 렌더러이며 지원 범위·API 안정성이 본
+  제품의 CanvasKit 대체 계약으로 고정되지 않았다. 텍스트·필터·마스크 parity를
+  로컬에서 증명하지 못했으므로 2026-08-22 조사에서 "추적만" 판정했다.
 - 위험:
   - 기술: CRITICAL — 텍스트/필터/마스크 스택 전면 재작성.
   - 성능: MEDIUM — 이론 상한은 높으나 미검증.
@@ -151,8 +159,9 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 2. 잔존 HIGH(기술) 는 "성공해야만 켜지는" 구조로 수용 가능하다 — 실패 조건은
    전부 full rebuild fallback 으로 수렴해 시각 정확성(HC2)이 위험에 노출되지
    않고, G0 측정으로 착수 자체를 기각할 수 있는 종결 경로를 내장한다.
-3. vello fragment/Skia partial playback/Chromium damage tracking — 세 외부
-   시스템이 같은 경계를 검증했다.
+3. Vello fragment와 Chromium damage tracking은 책임 분리의 참고 사례로만 쓰고,
+   SkPicture cull bounds는 clip으로 간주하지 않는다. 채택 근거는 로컬 G0의 병목
+   재현과 G2/G3/G5의 counter·pixel oracle이다.
 
 기각 사유:
 
@@ -168,94 +177,32 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 
 ## Risks
 
-| ID  | 위험                                                                                                                                                                                                                                         | 심각도 | 대응                                                                                                                                                                          |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | 가변 길이 splice 후 후속 span offset 재계산이 `O(N)` write 로 남아 HC1 을 위장 통과. 경로: `renderCommands.ts::buildRenderCommandStream`, `subtreeCommandPatch.ts`, `skiaFramePipeline.ts`                                                   |  HIGH  | span 을 (segment, offset) 2계층 또는 lazy shift 로 재표현 (breakdown §Phase 2). G2 에서 splice write 수 ≤ 재기록 span 길이 단언 + N=5,000 counter                             |
-| R2  | damage rect 누락/과소 산출로 stale pixel 이 화면에 남음 (fallback 이 발동하지 않는 조용한 시각 결함). 경로: `SkiaRenderer.ts` content 재기록, `renderCommands.ts` boundsMap, `skiaFramePipeline.ts`                                          |  HIGH  | damage = 이전∪이후 bounds 합집합 고정 + G3 full-rebuild pixel diff 0 fixture (스크롤/클립/z-order/그림자 경계 포함). 의심 케이스는 damage 확대가 아니라 full rebuild fallback |
-| R3  | CanvasKit CoW `makeImageSnapshot` 이 damage clip 과 무관하게 전면 복사로 남아 Phase 3 효과가 0 이 됨. 경로: `SkiaRenderer.ts` flush/snapshot, `createSurface.ts`                                                                             |  MED   | G3 에서 damage 면적 비례성 실측 — 비례하지 않으면 Phase 3 기각, Phase 2 까지로 종결 (ADR-153 R7 과 동일 판정 구조)                                                            |
-| R4  | commit dirty-root 도출이 시각 변화 범위를 과소 포함 (조상 재분배/형제 이동 누락) — ADR-188 R1 의 commit lane 재현. 경로: `presentation/invalidation/editorMutationEffectRegistry.ts`, `editorPresentationLayoutLane.ts`, `fullTreeLayout.ts` |  HIGH  | ADR-188 Phase 1 promotion 판정(usedSizeEffect × container 규칙표) 을 그대로 재사용 — 신규 diff 계층 신설 금지. G1 에서 편집 유형 fixture 별 full 대조 diff 0                  |
-| R5  | hit/SpatialIndex 부분 갱신과 draw 의 revision 이 어긋나 ghost hit 재발. 경로: `subtreeCommandPatch.ts`, `StoreRenderBridge.ts`, `renderCommands.ts::syncSpatialIndex`                                                                        |  MED   | ADR-188 G4 원자 교체 계약을 commit lane 에 그대로 계승 — patcher 밖 부분 갱신 경로 신설 금지                                                                                  |
+| ID  | 위험                                                                                                                                                                                                                                                  | 심각도 | 대응                                                                                                                                                                          |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 가변 길이 splice 뒤의 span 이동 또는 dirty subtree ID 수집이 전체 metadata map을 훑어 HC1을 위장 통과. 경로: `renderCommands.ts::CommandSpanMap`, `subtreeCommandPatch.ts::getSubtreeElementIds`                                                      |  HIGH  | piece-table cursor span + dirty command 구간 내부 `CMD_ELEMENT_BEGIN` 열거로 제한. G2/G5에서 splice write와 ID 방문이 재기록 span 길이를 넘지 않는지 단언                     |
+| R2  | damage rect 누락/과소 산출로 stale pixel 이 화면에 남음 (fallback 이 발동하지 않는 조용한 시각 결함). 경로: `SkiaRenderer.ts` content 재기록, `renderCommands.ts` boundsMap, `skiaFramePipeline.ts`                                                   |  HIGH  | damage = 이전∪이후 bounds 합집합 고정 + G3 full-rebuild pixel diff 0. 그림자·outline·transform처럼 hit bounds 밖 paint가 있는 장면은 `damageUnsafeElementIds`로 full fallback |
+| R3  | CanvasKit CoW `makeImageSnapshot` 이 damage clip 과 무관하게 전면 복사로 남아 Phase 3 효과가 0 이 됨. 경로: `SkiaRenderer.ts` flush/snapshot, `createSurface.ts`                                                                                      |  MED   | 두 surface를 revision 동기화하고 damage region만 복제. G3/G5에서 area·actual duration을 함께 기록하되 ratio를 대체하지 않으며, 전면 blit이 남으면 Phase 3 기각                |
+| R4  | commit dirty-root 도출이 시각 변화 범위를 과소 포함 (조상 재분배/형제 이동 누락) — ADR-188 R1 의 commit lane 재현. 경로: `presentation/invalidation/editorMutationEffectRegistry.ts`, `editorPresentationLayoutLane.ts`, `fullTreeLayout.ts`          |  HIGH  | ADR-188 Phase 1 promotion 판정(usedSizeEffect × container 규칙표) 을 그대로 재사용 — 신규 diff 계층 신설 금지. G1 에서 편집 유형 fixture 별 full 대조 diff 0                  |
+| R5  | hit/SpatialIndex 부분 갱신과 draw 의 revision 이 어긋나 ghost hit 재발. 경로: `subtreeCommandPatch.ts`, `StoreRenderBridge.ts`, `renderCommands.ts::syncSpatialIndex`                                                                                 |  MED   | ADR-188 G4 원자 교체 계약을 commit lane 에 그대로 계승 — patcher 밖 부분 갱신 경로 신설 금지                                                                                  |
+| R6  | damage rect를 clip해도 전체 command stream을 재생하면 JS dispatch가 `O(N)`으로 남거나, sparse 재생이 조상 clip/겹친 형제를 누락해 stale pixel을 만듦. 경로: `renderCommands.ts::executeDamageRenderCommands`, `SkiaRenderer.ts::renderDamagedContent` |  HIGH  | SpatialIndex 후보+조상 closure만 balanced sequence로 구성. paint bounds를 hit index로 열거할 수 없는 장면은 full fallback, G5 N-tier command 수 + pixel oracle로 판정         |
 
 ## Gates
 
-| Gate | 시점    | 통과 조건                                                                                                                             | 실패 시 대안                                                     |
-| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| G0   | Phase 0 | N=50/500/5,000 commit 1회 축별 비용 baseline 고정, full rebuild 방문 수가 fixture N에 고정 shell offset을 더한 선형 full DFS임을 확인 | `record+stream`이 예산 50% 미만이면 축소 종결 (대안 A 부분 보존) |
-| G1   | Phase 1 | 편집 유형별 dirty-root 가 시각 변화 범위 포함 — full 대조 diff 0, ADR-188 promotion 재사용 (신규 diff 계층 0)                         | 해당 편집 유형 full rebuild 유지                                 |
-| G2   | Phase 2 | splice write ≤ 재기록 span 길이, stream 구조 full 대조 동일, 실패 조건 전부 fallback counter 로 관측                                  | full rebuild fallback 유지 (부분 승격만)                         |
-| G3   | Phase 3 | damage 부분 재기록 pixel diff 0 + 비용이 damage 면적 비례 실측                                                                        | Phase 3 기각, Phase 2 종결                                       |
-| G4   | Phase 4 | live exercise (편집 유형별) + `/cross-check` 대칭 + 120Hz p95 <4ms / p99 <8.33ms, commit 직후 스파이크 제거                           | 대안 A 로 회귀 (fallback 상시화) 후 재설계 검토                  |
-
-## Implementation Progress
-
-- **Phase 4 / G4 — Complete (2026-08-23)**: 실제 Builder의 상단 Compare Mode split에서
-  258 active node populated fixture를 열고 `fills.replace` 8회, generic
-  style/layout 1회, structure add 1회를 exercise했다. paint는 매회
-  `queue/success/fallback=1/1/0`, subtree visits `1`, full build `0`,
-  `damageRender/fallback=1/0`이었다. CSS Preview DOM과 Skia hitBounds는 compare
-  pane offset을 정규화한 뒤 `24/24/120/120` 및 style commit 후
-  `220/24/120/120`으로 일치했고, 색상·presentation/canonical revision도 함께
-  갱신됐다. paint 8회 `render.frame` p95/p99는 `1.3/1.3ms`(기준 `<4/<8.33ms`),
-  50/100ms violation `0/0`, console error/warning `0/0`이었다. generic
-  style/layout·structure는 descriptor 없는 canonical mutation으로 full rebuild에
-  수렴했으며 각각 frame p95/p99 `2.2/2.2ms`, `1.7/1.7ms`로 stale 없이 닫혔다.
-  [Phase 4 evidence](design/189-phase-4-g4-live-parity.md)
-
-- **Phase 3 / G3 — Complete (2026-08-23)**: commit subtree의 이전·이후
-  `hitBounds` 합집합을 damage rect로 산출해 `StoreRenderBridge`에서
-  `SkiaRenderer`까지 전달하고, ping-pong standby surface에 직전 snapshot을
-  blit한 뒤 damage만 clip 재기록한다. 같은 canonical document revision의
-  `visibleContentVersion` 감지가 damage를 full invalidation으로 덮어쓰던 중복
-  경계도 revision latch로 제거했다. 실제 Builder 258 active node fixture의
-  small-80 / large-240 commit에서 patch visits `1`, full build `0`,
-  `damageRender=1`, fallback `0`을 각각 확인했고, damage 면적 비율은
-  `0.0014546` → `0.0079577`(면적 5.625배에 대해 5.47배)로 증가했다. patch와
-  reload full rebuild의 `1440 × 852` backing-buffer diff는 `0`, max/mean
-  channel delta도 `0`, console error/warning `0/0`이었다. [Phase 3 evidence](design/189-phase-3-g3-damage-clip.md)
-
-- **Phase 2 / G2 — Complete (2026-08-23)**:
-  `renderCommands.ts`에 Array-compatible piece-table command buffer와 cursor 기반
-  lazy span map을 추가해 variable-length commit splice가 tail `O(N)` write를
-  만들지 않게 했다. ADR-188 고정 길이 presentation patcher는 기존 reject 계약을
-  유지하고, ADR-189 commit lane은 `applyCommitSubtreeCommandPatch`로 자식 추가·
-  제거/command-count 변화를 허용한다. `StoreRenderBridge`는 canonical terminal
-  descriptor를 post-commit sync에서 소비하고 성공 시 cache key를 새 layout revision으로
-  승격하며, 실패 시 full rebuild로 수렴한다. layout publish 경계에서도 patch 결과를
-  동일하게 승격하고, stale layout map은 한 번 보류한다. 로컬 G2 fixture, 기존
-  render/subtree/bridge/Skia static tests 및 type-check와 populated canonical live trace가
-  통과했다. 201개 active node에서 `queue/success/fallback=1/1/0`, `patchWriteCount=6`,
-  commit 후 full command build `0`, subtree visit `1`, command cache miss `0`을 확인했다.
-  full rebuild와의 pixel diff closure도 통과했다. 동일 target selection 상태에서
-  `canvas[data-testid="skia-canvas-unified"]` backing buffer를 대조해 `1440 × 852`,
-  `differing pixels=0`, `max/mean channel delta=0`, console error/warning `0/0`을
-  확인했다. G2의 모든 조건이 충족됐고 다음 미반영 phase는 Phase 3 / G3 damage clip이다.
-  [Phase 2 evidence](design/189-phase-2-g2-command-splice.md)를 참조한다.
-
-- **Phase 1 / G1 — Implemented (2026-08-22)**: `commitPatchPlan.ts` 가 commit 의
-  dirty-root 를 rootKey 별 `CommitPatchPlan` 으로 도출한다. promotion 판정은
-  ADR-188 lane 의 `createPresentationLayoutPlan` + `getDescriptorUsedSizeEffect`
-  만 경유하고(정적 가드로 재구현 0 고정), commit lane 이 더한 축은 structure
-  (`add`/`remove`/`order` → 부모가 dirty root) · rootKey 분할 · full rebuild 방향
-  fail-closed 셋이다. 편집 5유형 fixture + fallback 4종, 14 test PASS,
-  presentation 96 test 무회귀, type-check 신규 위반 0.
-  **Gate 문구 중 렌더 대조 diff 0 은 G2 로 이월** — 대조할 증분 렌더 경로가
-  Phase 2 에서 생기기 때문이며, G2 가 이미 "stream 구조 full 대조 동일"을
-  포함해 공백은 없다. [G1 evidence](design/189-phase-1-g1-commit-dirty-root.md)
-- **Phase 0 / G0 — Complete / RED (2026-08-23)**: 실제 Builder에서 N=50/500/5,000
-  단일 style commit을 5회씩 측정했다. full command stream 방문은 fixture N에
-  visible page shell 56개가 더해진 `106/556/5,056`으로 선형 증가했고, 매 run
-  full build 1회·subtree build 0회로 현재 경로의 full rebuild를 고정했다.
-  N=5,000 `record+stream` p95는 `75.1ms`(stream `6.1ms` + content record
-  `70.2ms`)로 8.33ms frame budget의 9.0배이며, 축소 종결 기준 4.165ms도
-  초과했다. 따라서 ADR을 축소 종결하지 않고 Phase 2 subtree splice와 Phase 3
-  damage record를 계속한다. [G0 evidence](design/189-phase-0-g0-baseline.md)
+| Gate | 시점    | 통과 조건                                                                                                                                                                      | 실패 시 대안                                                       |
+| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| G0   | Phase 0 | N=50/500/5,000 commit 1회 축별 비용 baseline 고정, full rebuild 방문 수가 fixture N에 고정 shell offset을 더한 선형 full DFS임을 확인                                          | `record+stream`이 예산 50% 미만이면 축소 종결 (대안 A 부분 보존)   |
+| G1   | Phase 1 | 편집 유형별 dirty-root 가 시각 변화 범위 포함 — full 대조 diff 0, ADR-188 promotion 재사용 (신규 diff 계층 0)                                                                  | 해당 편집 유형 full rebuild 유지                                   |
+| G2   | Phase 2 | splice write ≤ 재기록 span 길이, stream 구조 full 대조 동일, 실패 조건 전부 fallback counter 로 관측                                                                           | full rebuild fallback 유지 (부분 승격만)                           |
+| G3   | Phase 3 | damage 부분 재기록 pixel diff 0 + area/duration을 함께 기록. wall-clock은 GPU 고정비를 포함하므로 면적 ratio 자체를 비용 ratio로 대체하지 않음                                 | 전면 blit/CoW가 남으면 Phase 3 기각, Phase 2 종결                  |
+| G4   | Phase 4 | live exercise (편집 유형별) + `/cross-check` 대칭 + 120Hz p95 <4ms / p99 <8.33ms, commit 직후 스파이크 제거                                                                    | 대안 A 로 회귀 (fallback 상시화) 후 재설계 검토                    |
+| G5   | Phase 5 | Round 2 결함 폐쇄: global scan 0, N=50/500/5,000 sparse command 수 상수, hit bounds 밖 paint 장면 full fallback, actual duration, 새 structure node DOM↔Skia 1:1, pixel diff 0 | 하나라도 실패하면 Implemented 승격 철회 후 해당 경로 full fallback |
 
 ## Consequences
 
 ### Positive
 
-- commit 경로의 record/flush 비용이 문서 크기와 분리되어 대형 문서 편집
-  응답성이 상수화된다 — enterprise 목표의 첫 frame-예산 초과 축 제거.
+- 증분 승격된 paint commit의 record/flush 비용이 문서 크기와 분리되어 대형 문서
+  편집 응답성이 상수화된다 — 해당 allowlist의 첫 frame-예산 초과 축 제거.
 - ADR-188 presentation lane 과 commit lane 이 같은 patch 기계·revision 계약을
   공유해 두 lane 의 시각/히트 정합을 한 fixture 군으로 검증할 수 있다.
 - 실패가 전부 full rebuild 로 수렴하므로 부분 승격(편집 유형별 allowlist)이
@@ -263,9 +210,10 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 
 ### Negative
 
-- `renderCommands.ts` 의 span 표현이 절대 인덱스에서 2계층으로 바뀌면 기존
-  span 소비자 (`skiaFramePipeline.ts` selfSpans 전달, `subtreeCommandPatch.ts`)
-  가 계약 변경을 따라야 한다.
+- `renderCommands.ts`의 piece-table cursor span, `childrenSpans`, sparse balanced
+  sequence가 함께 유지되어야 하므로 metadata 계약의 회귀 테스트 비용이 늘어난다.
 - commit 경로에 patch plan 분기가 생겨 full/증분 두 경로의 동작 동일성을
   지속 검증해야 한다 (G2 대조 fixture 유지 비용).
-- ADR-188 G6 이전에는 Phase 2+ 를 착수할 수 없어 완결까지 선행 의존이 있다.
+- 그림자·outline·transform처럼 hit bounds 밖 paint가 가능한 장면은 현재 full
+  fallback이다. sparse로 승격하려면 별도 paint-bounds index와 patch/full pixel
+  oracle을 함께 추가해야 한다.

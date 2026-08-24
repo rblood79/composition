@@ -11,6 +11,7 @@ import {
   setVolatileNodeIds,
 } from "./nodePictureCache";
 import {
+  buildDamageRenderCommandSequence,
   buildRenderCommandStream,
   executeRenderCommands,
 } from "./renderCommands";
@@ -520,6 +521,109 @@ describe("buildRenderCommandStream clip-aware hit bounds", () => {
       width: 100,
       height: 100,
     });
+  });
+});
+
+describe("ADR-189 damage command selection", () => {
+  afterEach(() => {
+    clearSkiaRegistry();
+  });
+
+  function buildWideSiblingStream(count: number) {
+    const body = makeElement(`damage-body-${count}`, { type: "body" });
+    const children: CanvasSceneNode[] = [];
+    const layout = new Map<string, ComputedLayout>();
+    registerNode(body.id, { width: count * 12, height: 100 });
+    for (let index = 0; index < count; index += 1) {
+      const child = makeElement(`damage-child-${count}-${index}`, {
+        parent_id: body.id,
+      });
+      children.push(child);
+      registerNode(child.id, { type: "box", width: 10, height: 10 });
+      layout.set(child.id, {
+        x: index * 12,
+        y: 0,
+        width: 10,
+        height: 10,
+      } as ComputedLayout);
+    }
+    return {
+      body,
+      target: children[children.length - 1]!,
+      stream: buildRenderCommandStream(
+        [body.id],
+        new Map([[body.id, children]]),
+        layout,
+        { [body.id]: { x: 0, y: 0 } },
+      ),
+    };
+  }
+
+  it.each([50, 500, 5_000])(
+    "N=%i에서도 교차 sibling과 조상 command만 구성한다",
+    (count) => {
+      const { body, target, stream } = buildWideSiblingStream(count);
+      const sequence = buildDamageRenderCommandSequence(stream, [
+        body.id,
+        target.id,
+      ]);
+
+      expect(sequence).not.toBeNull();
+      expect(elementCommandIds(sequence!.commands)).toEqual([
+        body.id,
+        target.id,
+      ]);
+      expect(sequence!.elementCount).toBe(2);
+      expect(sequence!.commands.length).toBeLessThan(10);
+      expect(sequence!.commands.length).toBeLessThan(stream.commands.length);
+    },
+  );
+
+  it("hit bounds 밖 paint contributor가 있으면 full fallback을 요구한다", () => {
+    const body = makeElement("damage-unsafe-body", { type: "body" });
+    const target = makeElement("damage-safe-target", { parent_id: body.id });
+    const shadowSibling = makeElement("damage-shadow-sibling", {
+      parent_id: body.id,
+    });
+    registerNode(body.id, { width: 400, height: 200 });
+    registerNode(target.id, { type: "box", width: 80, height: 40 });
+    registerNode(shadowSibling.id, {
+      type: "box",
+      width: 80,
+      height: 40,
+      box: {
+        fillColor: Float32Array.of(1, 1, 1, 1),
+        borderRadius: 0,
+        shadows: [
+          {
+            type: "drop-shadow",
+            color: Float32Array.of(0, 0, 0, 0.4),
+            dx: -40,
+            dy: 0,
+            sigmaX: 8,
+            sigmaY: 8,
+            inner: false,
+          },
+        ],
+      },
+    });
+    const stream = buildRenderCommandStream(
+      [body.id],
+      new Map([[body.id, [target, shadowSibling]]]),
+      new Map([
+        [target.id, { x: 0, y: 0, width: 80, height: 40 } as ComputedLayout],
+        [
+          shadowSibling.id,
+          { x: 100, y: 0, width: 80, height: 40 } as ComputedLayout,
+        ],
+      ]),
+      { [body.id]: { x: 0, y: 0 } },
+    );
+
+    expect(stream.damageUnsafeElementIds).toEqual(new Set([shadowSibling.id]));
+    expect(buildDamageRenderCommandSequence(stream, [body.id, target.id])).toBe(
+      null,
+    );
   });
 });
 

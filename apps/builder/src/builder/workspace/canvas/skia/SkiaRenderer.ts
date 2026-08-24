@@ -39,6 +39,7 @@ interface DamageMetricsSnapshot {
   damageFallbackCount: number;
   damageAreaRatios: number[];
   damageRenderTimesMs: number[];
+  damageCommandCounts: number[];
   invalidationTrace: Array<{
     kind: "full" | "damage";
     bounds?: BoundingBox;
@@ -51,6 +52,7 @@ const damageMetrics: DamageMetricsSnapshot = {
   damageFallbackCount: 0,
   damageAreaRatios: [],
   damageRenderTimesMs: [],
+  damageCommandCounts: [],
   invalidationTrace: [],
 };
 
@@ -63,17 +65,24 @@ function resetDamageMetrics(): void {
   damageMetrics.damageFallbackCount = 0;
   damageMetrics.damageAreaRatios = [];
   damageMetrics.damageRenderTimesMs = [];
+  damageMetrics.damageCommandCounts = [];
   damageMetrics.invalidationTrace = [];
 }
 
-function recordDamageMetric(areaRatio: number, durationMs: number): void {
+function recordDamageMetric(
+  areaRatio: number,
+  durationMs: number,
+  commandCount: number,
+): void {
   if (!damageMetricsEnabled) return;
   damageMetrics.damageRenderCount += 1;
   damageMetrics.damageAreaRatios.push(areaRatio);
   damageMetrics.damageRenderTimesMs.push(durationMs);
+  damageMetrics.damageCommandCounts.push(commandCount);
   if (damageMetrics.damageAreaRatios.length > 120) {
     damageMetrics.damageAreaRatios.shift();
     damageMetrics.damageRenderTimesMs.shift();
+    damageMetrics.damageCommandCounts.shift();
   }
 }
 
@@ -104,6 +113,7 @@ if (typeof window !== "undefined" && damageMetricsEnabled) {
       damageFallbackCount: damageMetrics.damageFallbackCount,
       damageAreaRatios: [...damageMetrics.damageAreaRatios],
       damageRenderTimesMs: [...damageMetrics.damageRenderTimesMs],
+      damageCommandCounts: [...damageMetrics.damageCommandCounts],
       invalidationTrace: damageMetrics.invalidationTrace.map((entry) => ({
         kind: entry.kind,
         bounds: entry.bounds ? { ...entry.bounds } : undefined,
@@ -177,6 +187,8 @@ export class SkiaRenderer {
   /** ping-pong 정책 전용 대기 표면 (lazy 생성) — 그리는 표면 ≠ 스냅샷 표면 보장 */
   private standbySurface: Surface | null = null;
   private standbyCanvas: Canvas | null = null;
+  /** 두 ping-pong surface가 같은 content revision을 보유하는지 여부. */
+  private standbyContentSynchronized = false;
   private contentDirty = true;
   /** commit subtree patch가 제공한 이전/이후 hit bounds 합집합. */
   private pendingDamage: BoundingBox | null = null;
@@ -463,6 +475,63 @@ export class SkiaRenderer {
     if (this.standbySurface || !this.contentSurface) return;
     this.standbySurface = this.createContentSizedSurface();
     this.standbyCanvas = this.standbySurface.getCanvas();
+    this.standbyContentSynchronized = false;
+  }
+
+  /**
+   * 현재 content snapshot을 반대편 surface에 복제한다.
+   *
+   * full render 직후에는 전면 1회, damage render 직후에는 같은 damage rect만
+   * 동기화한다. 이 불변식 덕분에 다음 damage가 이전 snapshot 전면 blit을 하지
+   * 않고도 standby의 기존 픽셀을 재사용할 수 있다.
+   */
+  private syncStandbyFromContentSnapshot(deviceBounds?: {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  }): void {
+    const snapshot = this.contentSnapshot;
+    const surface = this.standbySurface;
+    const canvas = this.standbyCanvas;
+    if (!snapshot || !surface || !canvas) {
+      this.standbyContentSynchronized = false;
+      return;
+    }
+
+    canvas.save();
+    if (deviceBounds) {
+      const rect = this.ck.LTRBRect(
+        deviceBounds.left,
+        deviceBounds.top,
+        deviceBounds.right,
+        deviceBounds.bottom,
+      );
+      canvas.clipRect(rect, this.ck.ClipOp.Intersect, true);
+      canvas.drawColor(this.ck.Color4f(0, 0, 0, 0), this.ck.BlendMode.Clear);
+    } else {
+      // full sync 시에도 damage와 같은 clear draw path를 사용해 cold shader/setup
+      // 비용을 초기 content render에서 지불한다. 첫 commit이 이 비용을 떠안지 않는다.
+      canvas.drawColor(this.ck.Color4f(0, 0, 0, 0), this.ck.BlendMode.Clear);
+    }
+    canvas.drawImage(snapshot, 0, 0);
+    if (!deviceBounds) {
+      // region clip + clear + restore 또한 첫 damage에서만 필요한 GPU 상태를 만들 수
+      // 있다. 1px 영역에서 실제 damage와 같은 순서를 예열하고 snapshot으로 즉시
+      // 복원해 최종 픽셀은 바꾸지 않는다.
+      canvas.save();
+      canvas.clipRect(
+        this.ck.LTRBRect(0, 0, 1, 1),
+        this.ck.ClipOp.Intersect,
+        true,
+      );
+      canvas.drawColor(this.ck.Color4f(0, 0, 0, 0), this.ck.BlendMode.Clear);
+      canvas.drawImage(snapshot, 0, 0);
+      canvas.restore();
+    }
+    canvas.restore();
+    surface.flush();
+    this.standbyContentSynchronized = true;
   }
 
   private canRenderDamage(camera: CameraState): boolean {
@@ -472,6 +541,8 @@ export class SkiaRenderer {
       this.resolveSnapshotPolicy() === "ping-pong" &&
       this.standbySurface !== null &&
       this.standbyCanvas !== null &&
+      this.standbyContentSynchronized &&
+      this.contentNode?.renderDamageSkia !== undefined &&
       camera.zoom === this.snapshotCamera.zoom &&
       camera.panX === this.snapshotCamera.panX &&
       camera.panY === this.snapshotCamera.panY
@@ -479,9 +550,10 @@ export class SkiaRenderer {
   }
 
   /**
-   * 이전 content snapshot을 standby surface에 복사한 뒤 damage rect만 재기록한다.
-   * snapshot 표면과 draw 표면을 분리해 CoW를 피하고, command culling bounds도
-   * damage로 좁혀 전체 DFS 이후의 record 비용을 다시 만들지 않는다.
+   * 직전 revision과 동기화된 standby surface에서 damage rect만 비운 뒤
+   * 교차 contributor의 compact command sequence만 다시 기록한다.
+   * snapshot 표면과 draw 표면을 분리해 CoW를 피하고, 전체 command stream 재생도
+   * 만들지 않는다.
    */
   private renderDamagedContent(
     camera: CameraState,
@@ -494,6 +566,8 @@ export class SkiaRenderer {
     if (!oldSnapshot || !targetSurface || !targetCanvas || !this.contentNode) {
       return false;
     }
+    const renderDamage = this.contentNode.renderDamageSkia;
+    if (!renderDamage) return false;
 
     const start = damageMetricsEnabled ? performance.now() : 0;
     const padCss = this.contentPaddingDevicePx / this.dpr;
@@ -518,19 +592,28 @@ export class SkiaRenderer {
         padCss) *
       this.dpr;
 
-    targetCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
-    targetCanvas.drawImage(oldSnapshot, 0, 0);
     targetCanvas.save();
     const damageRect = this.ck.LTRBRect(left, top, right, bottom);
     targetCanvas.clipRect(damageRect, this.ck.ClipOp.Intersect, true);
+    // standby는 직전 content revision과 동기화되어 있다. damage 영역만 비운 뒤
+    // 현재 scene의 교차 contributor를 다시 그리면 삭제/투명 변경도 ghost 없이 복원된다.
+    targetCanvas.drawColor(
+      this.ck.Color4f(0, 0, 0, 0),
+      this.ck.BlendMode.Clear,
+    );
     targetCanvas.save();
     targetCanvas.scale(this.dpr, this.dpr);
     targetCanvas.translate(padCss, padCss);
     targetCanvas.translate(camera.panX, camera.panY);
     targetCanvas.scale(camera.zoom, camera.zoom);
-    this.contentNode.renderSkia(targetCanvas, sceneDamage);
+    const damageCommandCount = renderDamage.call(
+      this.contentNode,
+      targetCanvas,
+      sceneDamage,
+    );
     targetCanvas.restore();
     targetCanvas.restore();
+    if (damageCommandCount === null) return false;
 
     targetSurface.flush();
     oldSnapshot.delete();
@@ -543,6 +626,7 @@ export class SkiaRenderer {
       this.standbyCanvas,
       this.contentCanvas,
     ];
+    this.syncStandbyFromContentSnapshot({ left, top, right, bottom });
     this.snapshotCamera.zoom = camera.zoom;
     this.snapshotCamera.panX = camera.panX;
     this.snapshotCamera.panY = camera.panY;
@@ -555,6 +639,7 @@ export class SkiaRenderer {
       recordDamageMetric(
         surfaceArea > 0 ? Math.min(1, damageArea / surfaceArea) : 1,
         performance.now() - start,
+        damageCommandCount,
       );
     }
     return true;
@@ -658,6 +743,9 @@ export class SkiaRenderer {
         this.standbyCanvas,
         this.contentCanvas,
       ];
+      this.syncStandbyFromContentSnapshot();
+    } else {
+      this.standbyContentSynchronized = false;
     }
 
     this.snapshotCamera.zoom = camera.zoom; // camera-only blit 델타 기준점 갱신
@@ -1114,6 +1202,7 @@ export class SkiaRenderer {
     this.standbySurface?.delete();
     this.standbySurface = null;
     this.standbyCanvas = null;
+    this.standbyContentSynchronized = false;
   }
 
   /** 내부 Canvas 인스턴스 (직접 그리기용) */

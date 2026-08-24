@@ -22,11 +22,11 @@ geometry와 최종 화면을 stale 상태로 남기지 않았다.
 
 ## 편집 유형별 live 결과
 
-| 유형         | 실제 조작                              | command 경로                                                            | 결과                                                                        |
-| ------------ | -------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| paint        | `fills.replace` 색상 commit 8회        | `patchSuccess=1`, `patchFallback=0`, subtree visits `1`, full build `0` | 매회 committed, damage render/fallback `1/0`                                |
-| style/layout | `updateElementProps(style.left=220px)` | descriptor 없는 canonical mutation → full rebuild visits `314`          | target DOM/Skia 위치 일치, frame p95/p99 `2.2/2.2ms`                        |
-| structure    | sibling `addComplexElement` 1회        | descriptor 없는 canonical mutation → full rebuild visits `315`          | active node `258→259`, target DOM/Skia 위치 유지, frame p95/p99 `1.7/1.7ms` |
+| 유형         | 실제 조작                              | command 경로                                                            | 결과                                                                                      |
+| ------------ | -------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| paint        | `fills.replace` 색상 commit 8회        | `patchSuccess=1`, `patchFallback=0`, subtree visits `1`, full build `0` | 매회 committed, damage render/fallback `1/0`                                              |
+| style/layout | `updateElementProps(style.left=220px)` | descriptor 없는 canonical mutation → full rebuild visits `314`          | target DOM/Skia 위치 일치, frame p95/p99 `2.2/2.2ms`                                      |
+| structure    | sibling `addComplexElement` 1회        | descriptor 없는 canonical mutation → full rebuild visits `315`          | active node `258→259`, 기존 target 불변 확인. 추가 sibling 자체 oracle은 아래 G5에서 보강 |
 
 style/layout·structure의 `patchSuccess=0`은 silent stale가 아니라 typed terminal
 descriptor가 없는 generic mutation이므로 commit lane에 진입하지 않고 기존
@@ -49,6 +49,27 @@ paint 8회와 후속 style/layout·structure 상태에서 target의 CSS Preview 
 - G3에서 동일 fixture의 patch/full backing-buffer oracle은 `1440 × 852`,
   differing pixels `0`, max/mean channel delta `0`으로 이미 닫혔다
 
+### G5 structure affected-output 보강 (2026-08-24)
+
+Round 2는 위 structure exercise가 새 sibling이 아니라 기존 target만 다시 읽었다는
+증적 결함을 지적했다. 별도 실제 Chrome 탭을 foreground한 상태에서 dashboard로
+`codex-adr189-round2-*` 프로젝트를 만들고 Component panel의 `button`을 클릭해 body
+아래 새 `Button` 노드를 추가했다. 이후 실제 Style UI에서 fixed `80 × 40`과
+`#35B85AFF` fill을 commit하고 Compare Mode를 열었다.
+
+- Layers: body 아래 `Button` 1개, 생성 직후 history `1/1`.
+- Preview iframe: role `button`, text `Button`, visible count `1`, rect `80 × 40`,
+  background `rgb(53, 184, 90)`, radius `6px`.
+- Skia Canvas: 새 Button 자체에 selection outline과 `80 × 40` bounds badge가 표시되고,
+  같은 `Button` text와 green fill이 렌더됐다. 이는 기존 target 유지가 아니라 새로
+  추가한 노드의 draw와 hit-selection 결과를 직접 확인한 것이다.
+- cold region clear 예열 보정 뒤 같은 실제 Chrome에서 paint commit 8회가
+  `damageRender/fallback=8/0`, duration p50/p95 `0.4/0.5ms`, sparse command
+  `11 × 8`로 관측됐다.
+
+따라서 structure cross-check는 affected output인 신규 sibling 자체를 대상으로
+Preview DOM과 Skia draw/hit를 1:1로 닫았다.
+
 ## 120Hz performance gate
 
 paint commit 8회에서 수집한 `render.frame`의 요약은 다음과 같다.
@@ -68,7 +89,7 @@ style/layout과 structure의 full-rebuild exercise도 각각 p95/p99 `2.2/2.2ms`
 
 - Builder live harness: `/private/tmp/adr189-phase4-g4-live.json`
 - Phase 3 full-rebuild pixel oracle: [189-phase-3-g3-damage-clip.md](189-phase-3-g3-damage-clip.md)
-- Builder-local targeted Vitest: Phase 2/3 evidence의 3 files / 21 tests PASS
+- Builder-local targeted Vitest: sparse damage/patch/static guard 3 files / 39 tests PASS
 - `pnpm run codex:preflight`: guard, format, type-check baseline, registration `14/14` PASS
 
 ## 잔존 범위

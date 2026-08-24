@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-189 Phase 5 — sparse damage Round 2 closure] - 2026-08-24
+
+### Bug Fixes
+
+- **dirty commit이 여전히 전체 span map과 command stream을 순회하던 문제**:
+  - dirty subtree ID 수집을 해당 command span 내부로 제한하고, damage render는
+    SpatialIndex 교차 후보와 조상만 포함한 balanced compact sequence를 실행한다.
+  - **Why:** tail splice write만 `O(k)`여도 metadata map과 clipped full command replay가
+    `O(N)`이면 ADR-189의 대형 문서 비용 분리 계약을 충족하지 못한다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{renderCommands.ts,subtreeCommandPatch.ts,skiaFramePipeline.ts}`
+
+- **첫 damage commit의 cold region clear spike**:
+  - full surface sync에서 실제 damage와 같은 1px `clip + clear + blit`을 예열하고
+    snapshot을 즉시 복원한다.
+  - **Why:** 전체 clear 예열만으로는 region clip/clear GPU 상태가 준비되지 않아 실제
+    Chrome 첫 paint commit에서 `31.3ms`가 발생했다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/SkiaRenderer.ts`
+
+### Architecture
+
+- 두 ping-pong surface를 같은 content revision으로 유지하고 damage rect만
+  clear/repaint/region-sync한다. commit마다 old snapshot 전면 blit하지 않는다.
+- `childrenSpans`와 optional `renderDamageSkia` 계약을 추가하고 전제 불충족은 기존
+  full rebuild fallback으로 수렴시킨다.
+- 그림자·outline·transform처럼 hit bounds 밖 paint contributor가 있는 장면은
+  `damageUnsafeElementIds`로 sparse 진입을 차단해 stale pixel 대신 full rebuild로
+  수렴시킨다.
+
+### Performance
+
+- N=50/500/5,000 wide-sibling fixture에서 compact sequence를 조상+target 2개,
+  10개 미만 command로 고정했다.
+- 실제 Chrome의 `80×40` / `240×240` Button paint commit을 각 8회 측정해 모두
+  duration p50/p95 `0.4/0.5ms`, sparse command `11`, fallback `0`을 확인했다.
+- 258-node fixture는 전체 1,533 commands 대신 119/209 commands만 실행했고,
+  patch와 reload full rebuild의 `1440×852` pixel diff는 0이었다.
+- Builder-local sparse/patch/static 회귀 테스트 3 files / 39 tests가 통과했다.
+
+### Documentation
+
+- area ratio를 duration ratio로 대체하던 G3 판정을 정정하고, 신규 structure node
+  자체의 Preview DOM↔Skia 80×40 draw/hit parity를 G5 증적으로 추가했다.
+- ADR 본문의 Phase 중복을 breakdown으로 옮기고 ADR-189를 README 완료 표로 이동했다.
+
 ## ColorArea focus 접근성 경고 수정 — 2026-08-24
 
 ### Bug Fixes

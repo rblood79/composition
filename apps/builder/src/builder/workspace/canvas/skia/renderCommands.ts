@@ -703,6 +703,10 @@ export interface RenderCommandStream {
   selfSpans: Map<string, SelfSpan>;
   /** elementId → 전체 subtree 커맨드 구간 ([start, end)) */
   subtreeSpans: Map<string, SubtreeSpan>;
+  /** elementId → CHILDREN_BEGIN부터 CHILDREN_END 다음까지의 구간 ([start, end)) */
+  childrenSpans: Map<string, SubtreeSpan>;
+  /** hit bounds 밖 paint가 가능해 sparse damage 후보를 안전하게 한정할 수 없는 요소. */
+  damageUnsafeElementIds: Set<string>;
   /** elementId → 해당 element에 적용된 조상 누적 clip rect snapshot */
   clipContextByElement: Map<string, ClipRect>;
   /** elementId → 형제 순서/z-index/top-layer를 포함한 순서 키 */
@@ -1070,6 +1074,8 @@ export function buildRenderCommandStream(
   const commands: RenderCommand[] = [];
   const selfSpans = new Map<string, SelfSpan>();
   const subtreeSpans = new Map<string, SubtreeSpan>();
+  const childrenSpans = new Map<string, SubtreeSpan>();
+  const damageUnsafeElementIds = new Set<string>();
   const clipContextByElement = new Map<string, ClipRect>();
   const zOrderKeyByElement = new Map<string, string>();
   const scrollContextKeyByElement = new Map<string, string>();
@@ -1100,6 +1106,8 @@ export function buildRenderCommandStream(
       commands,
       selfSpans,
       subtreeSpans,
+      childrenSpans,
+      damageUnsafeElementIds,
       clipContextByElement,
       zOrderKeyByElement,
       scrollContextKeyByElement,
@@ -1132,6 +1140,8 @@ export function buildRenderCommandStream(
       commands,
       selfSpans,
       subtreeSpans,
+      childrenSpans,
+      damageUnsafeElementIds,
       clipContextByElement,
       zOrderKeyByElement,
       scrollContextKeyByElement,
@@ -1183,6 +1193,11 @@ export function buildRenderCommandStream(
     commands: commandBuffer,
     selfSpans: new CommandSpanMap<SelfSpan>(commandBuffer, selfSpans),
     subtreeSpans: new CommandSpanMap<SubtreeSpan>(commandBuffer, subtreeSpans),
+    childrenSpans: new CommandSpanMap<SubtreeSpan>(
+      commandBuffer,
+      childrenSpans,
+    ),
+    damageUnsafeElementIds,
     clipContextByElement,
     zOrderKeyByElement,
     scrollContextKeyByElement,
@@ -1336,6 +1351,8 @@ function visitElement(
   commands: RenderCommand[],
   selfSpans: Map<string, SelfSpan>,
   subtreeSpans: Map<string, SubtreeSpan>,
+  childrenSpans: Map<string, SubtreeSpan>,
+  damageUnsafeElementIds: Set<string>,
   clipContextByElement: Map<string, ClipRect>,
   zOrderKeyByElement: Map<string, string>,
   scrollContextKeyByElement: Map<string, string>,
@@ -1370,6 +1387,9 @@ function visitElement(
   recordCommitLaneVisit();
 
   const isTopLayer = topLayerSubtree || options.renderAsTopLayer === true;
+  if (isTopLayer || hasSparseDamageUnsafePaint(skiaData)) {
+    damageUnsafeElementIds.add(elementId);
+  }
   const subtreeStart = commands.length;
   subtreeBuildContextByElement.set(elementId, {
     parentAbsX,
@@ -1531,6 +1551,7 @@ function visitElement(
       : height
     : height;
   if (childElements && childElements.length > 0) {
+    const childrenStart = commands.length;
     commands.push({
       type: CMD_CHILDREN_BEGIN,
       clipChildren: skiaData.clipChildren ?? false,
@@ -1567,6 +1588,8 @@ function visitElement(
         commands,
         selfSpans,
         subtreeSpans,
+        childrenSpans,
+        damageUnsafeElementIds,
         clipContextByElement,
         zOrderKeyByElement,
         scrollContextKeyByElement,
@@ -1599,6 +1622,10 @@ function visitElement(
       scrollbar: skiaData.scrollbar,
       scrollbarNode: skiaData.scrollbar ? skiaData : undefined,
     });
+    childrenSpans.set(elementId, {
+      start: childrenStart,
+      end: commands.length,
+    });
   }
 
   // ELEMENT_END
@@ -1613,6 +1640,37 @@ function visitElement(
     effectLayerCount: effectCount,
   });
   subtreeSpans.set(elementId, { start: subtreeStart, end: commands.length });
+}
+
+/**
+ * SpatialIndex는 hit bounds를 인덱싱한다. 아래 paint는 그 bounds 밖 픽셀에 영향을
+ * 줄 수 있으므로 별도 paint-bounds index가 생기기 전까지 sparse replay를 금지한다.
+ * 장면 단위 Set으로 유지해 매 damage마다 전체 command stream을 검사하지 않는다.
+ */
+function hasSparseDamageUnsafePaint(node: SkiaNodeData): boolean {
+  if (
+    node.transform ||
+    node.isFixed ||
+    node.isSticky ||
+    node.maskImage ||
+    (node.blendMode !== undefined && node.blendMode !== "normal") ||
+    (node.effects?.length ?? 0) > 0
+  ) {
+    return true;
+  }
+
+  if (
+    node.box?.shadows?.some((shadow) => !shadow.inner) ||
+    (node.box?.outlineWidth ?? 0) > 0 ||
+    (node.text?.textShadows?.length ?? 0) > 0 ||
+    (node.line?.strokeWidth ?? 0) > 2 ||
+    (node.arc?.strokeWidth ?? 0) > 2 ||
+    (node.iconPath?.strokeWidth ?? 0) > 2
+  ) {
+    return true;
+  }
+
+  return node.children?.some(hasSparseDamageUnsafePaint) ?? false;
 }
 
 function getChildZIndex(child: CanvasSceneNode): number {
@@ -1746,6 +1804,182 @@ function emitInternalChildDraw(
     hasBlend: !!(node.blendMode && node.blendMode !== "normal"),
     effectLayerCount: effectCount,
   });
+}
+
+export interface DamageRenderCommandSequence {
+  readonly commands: RenderCommand[];
+  readonly candidateCount: number;
+  readonly elementCount: number;
+}
+
+function appendCommandRange(
+  source: RenderCommand[],
+  target: RenderCommand[],
+  start: number,
+  end: number,
+): boolean {
+  for (let index = start; index < end; index += 1) {
+    const command = source[index];
+    if (!command) return false;
+    target.push(command);
+  }
+  return true;
+}
+
+/**
+ * damage와 교차하는 요소 및 그 조상 context만 balanced command stream으로 압축한다.
+ *
+ * SpatialIndex 후보를 입력으로 받으므로 5,000 sibling 중 하나만 바뀐 경우에도
+ * 나머지 sibling span을 한 번씩 방문하지 않는다. 조상 self draw/clip/scroll과
+ * damage에 겹치는 형제는 원래 paint order로 포함되어 삭제·투명 fill 뒤의 배경도
+ * full rebuild와 같은 순서로 복원된다.
+ */
+export function buildDamageRenderCommandSequence(
+  stream: RenderCommandStream,
+  candidateElementIds: readonly string[],
+): DamageRenderCommandSequence | null {
+  // hit bounds 밖 paint contributor는 현재 SpatialIndex query로 완전 열거할 수 없다.
+  // 정확성 우선: 별도 paint-bounds index가 생기기 전까지 full rebuild로 수렴한다.
+  if (stream.damageUnsafeElementIds.size > 0) return null;
+
+  const candidates = new Set(candidateElementIds);
+  const relevant = new Set<string>();
+  const roots = new Set<string>();
+  const childrenByParent = new Map<string, Set<string>>();
+
+  for (const candidateId of candidates) {
+    if (!stream.subtreeSpans.has(candidateId)) return null;
+    let elementId: string | null = candidateId;
+    const pathGuard = new Set<string>();
+    while (elementId !== null) {
+      if (pathGuard.has(elementId)) return null;
+      pathGuard.add(elementId);
+      relevant.add(elementId);
+
+      const context = stream.subtreeBuildContextByElement.get(elementId);
+      if (!context) return null;
+      const parentId = context.parentElementId;
+      const isTopLayerRoot =
+        stream.topLayerElementIds.has(elementId) &&
+        (parentId === null || !stream.topLayerElementIds.has(parentId));
+      if (parentId === null || isTopLayerRoot) {
+        roots.add(elementId);
+        break;
+      }
+
+      let children = childrenByParent.get(parentId);
+      if (!children) {
+        children = new Set<string>();
+        childrenByParent.set(parentId, children);
+      }
+      children.add(elementId);
+      elementId = parentId;
+    }
+  }
+
+  const commands: RenderCommand[] = [];
+  const appendElement = (elementId: string): boolean => {
+    const subtreeSpan = stream.subtreeSpans.get(elementId);
+    if (!subtreeSpan) return false;
+    const childrenSpan = stream.childrenSpans.get(elementId);
+    if (!childrenSpan) {
+      return appendCommandRange(
+        stream.commands,
+        commands,
+        subtreeSpan.start,
+        subtreeSpan.end,
+      );
+    }
+    if (
+      childrenSpan.start < subtreeSpan.start ||
+      childrenSpan.end > subtreeSpan.end ||
+      childrenSpan.end - childrenSpan.start < 2
+    ) {
+      return false;
+    }
+
+    // ELEMENT_BEGIN + self draw + CHILDREN_BEGIN
+    if (
+      !appendCommandRange(
+        stream.commands,
+        commands,
+        subtreeSpan.start,
+        childrenSpan.start + 1,
+      )
+    ) {
+      return false;
+    }
+
+    const relevantChildren = [...(childrenByParent.get(elementId) ?? [])];
+    relevantChildren.sort((a, b) => {
+      const aStart =
+        stream.subtreeSpans.get(a)?.start ?? Number.MAX_SAFE_INTEGER;
+      const bStart =
+        stream.subtreeSpans.get(b)?.start ?? Number.MAX_SAFE_INTEGER;
+      return aStart - bStart;
+    });
+    for (const childId of relevantChildren) {
+      if (!appendElement(childId)) return false;
+    }
+
+    // CHILDREN_END + ELEMENT_END. 건너뛴 sibling command는 복사하지 않는다.
+    return appendCommandRange(
+      stream.commands,
+      commands,
+      childrenSpan.end - 1,
+      subtreeSpan.end,
+    );
+  };
+
+  const orderedRoots = [...roots];
+  orderedRoots.sort((a, b) => {
+    const aStart = stream.subtreeSpans.get(a)?.start ?? Number.MAX_SAFE_INTEGER;
+    const bStart = stream.subtreeSpans.get(b)?.start ?? Number.MAX_SAFE_INTEGER;
+    return aStart - bStart;
+  });
+  for (const rootId of orderedRoots) {
+    if (!appendElement(rootId)) return null;
+  }
+
+  return {
+    commands,
+    candidateCount: candidates.size,
+    elementCount: relevant.size,
+  };
+}
+
+/** SpatialIndex 후보만 압축 실행한다. null은 안전한 부분 재기록 불가 → full fallback. */
+export function executeDamageRenderCommands(
+  ck: CanvasKit,
+  canvas: Canvas,
+  stream: RenderCommandStream,
+  damageBounds: DOMRect,
+  fontMgr?: FontMgr,
+  pageRootPageIds?: ReadonlyMap<string, string>,
+  pagePositionSnapshot: PagePositionPresentationSnapshot = getPagePositionPresentationSnapshot(),
+): number | null {
+  if (!WASM_FLAGS.SPATIAL_INDEX || !spatialIndex.getSpatialIndex()) return null;
+  const candidateIds = spatialIndex.queryRect(
+    damageBounds.x,
+    damageBounds.y,
+    damageBounds.x + damageBounds.width,
+    damageBounds.y + damageBounds.height,
+  );
+  const sequence = buildDamageRenderCommandSequence(stream, candidateIds);
+  if (!sequence) return null;
+  executeRenderCommands(
+    ck,
+    canvas,
+    sequence.commands,
+    // 후보 선택은 SpatialIndex가 끝냈다. 여기서 ancestor AABB를 다시 적용하면
+    // overflow:visible 자식만 damage와 교차하는 경우 조상에서 잘못 탈락한다.
+    RECORD_BOUNDS,
+    fontMgr,
+    undefined,
+    pageRootPageIds,
+    pagePositionSnapshot,
+  );
+  return sequence.commands.length;
 }
 
 // ── executeRenderCommands ─────────────────────────────────────────────
