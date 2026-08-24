@@ -44,10 +44,25 @@ describe("store commit emitter — batch", () => {
     });
   });
 
-  it("다중 항목은 보내지 않는다 — style dirty root 가 요소마다 생겨 patcher 가 어차피 full rebuild 로 수렴한다", () => {
+  it("다중 항목도 한 번의 호출로 전달한다 — 요소마다 dirty root 가 생기고 patcher 가 splice 마다 revision 을 전진시킨다", () => {
     emitStoreStyleCommitDescriptors([
       { elementId: "el-1", patch: { style: { left: "10px" } } },
       { elementId: "el-2", patch: { style: { top: "20px" } } },
+    ]);
+
+    expect(sink).toHaveBeenCalledTimes(1);
+    const [descriptors] = sink.mock.calls[0];
+    expect(descriptors).toHaveLength(2);
+    expect(descriptors.map((descriptor) => descriptor.target)).toEqual([
+      { kind: "canonical-node", nodeId: "el-1" },
+      { kind: "canonical-node", nodeId: "el-2" },
+    ]);
+  });
+
+  it("다중 항목 중 하나라도 서술 불가능하면 전체를 버린다", () => {
+    emitStoreStyleCommitDescriptors([
+      { elementId: "el-1", patch: { style: { left: "10px" } } },
+      { elementId: "el-2", patch: { style: { someUnknownKey: "1px" } } },
     ]);
 
     expect(sink).not.toHaveBeenCalled();

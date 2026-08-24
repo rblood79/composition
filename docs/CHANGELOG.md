@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-189 후속 — 다중 선택 편집이 sparse commit lane 을 타지 못하던 결함] - 2026-08-24
+
+### Bug Fixes
+
+- **한 번에 여러 요소를 바꾸는 편집이 전부 전체 재기록으로 떨어지던 문제**:
+  - 다중 선택 이동·정렬·다중 드래그처럼 한 commit 이 여러 요소를 건드리면,
+    두 번째 요소부터 patch 가 `stale-revision` 으로 거부되고 commit 전체가
+    full rebuild 로 수렴했다.
+  - 원인은 미지원이 아니라 revision 부기였다. ADR-189 는 다중 dirty root 를
+    설계·구현했지만(`dirtyRootIds[]`, `plans[]`, 조상-자손 중복 제거, 중첩 루프),
+    `applyPendingCommitPatch` 가 commit 하나에 revision 하나를 계산해 모든 root
+    에 재사용했다. 첫 root 가 성공하면 그 값이 rootKey(`page:{id}`) 별 최신
+    revision 으로 기록되므로, 같은 페이지의 다음 root 가 자기 자신을 stale 로
+    판정했다.
+  - splice 하나가 곧 stream publication 하나이므로 루프 안에서 revision 을
+    전진시킨다 — presentation lane 이 이미 쓰던 규약과 같다.
+  - ADR-190 이전에는 발현할 수 없었다. 유일한 생산자였던 presentation lane 이
+    항상 요소 1개짜리 commit 만 보냈기 때문이며, ADR-190 emitter 가 다중 요소
+    commit 을 만들 수 있게 되면서 드러났다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`,
+    `apps/builder/src/builder/presentation/storeCommitEmitter.ts`
+
+### Performance
+
+- 2,000 요소 문서에서 한 번에 N개 요소를 편집할 때 `render.frame` p95:
+
+  | 동시 편집 요소 | 수정 전 |    수정 후 |
+  | -------------: | ------: | ---------: |
+  |              2 |  32.6ms |  **1.0ms** |
+  |             25 |  31.3ms |  **1.5ms** |
+  |            400 |  31.4ms |  **3.1ms** |
+  |          2,000 |  31.5ms | **25.1ms** |
+
+- 문서의 모든 요소를 한 번에 바꿔도 sparse 가 여전히 빠르다 (역전 없음). 이득이
+  단조 감소할 뿐이라 "일정 규모를 넘으면 전체 재기록" 하는 임계 상수를 두지
+  않는다.
+
+### Verification
+
+- 한 commit 이 4개 dirty root 를 splice 한 결과와 새로고침 전체 재기록 결과의
+  화면 차이: `1440 × 852` differing pixels **0**, max/mean channel delta 0.
+- 회귀 테스트: 같은 페이지의 형제 둘을 한 commit 으로 splice 하는 경로를
+  `StoreRenderBridge.commitPatch.test.ts` 로 고정 (수정 전 FAIL 확인).
+- 미검증 잔여: 다중 선택 **캔버스 드래그** 제스처는 브라우저 자동화로 드래그
+  세션을 시작하지 못해 수동 확인이 남아 있다. 같은 store 경로
+  (`batchUpdateElementProps`) 는 실제 브라우저에서 확인됐다.
+
 ## [ADR-190 Implemented — 일반 편집 경로의 sparse commit lane 진입] - 2026-08-24
 
 ### Performance
@@ -43,6 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 다중 선택 편집·정렬·다중 드래그처럼 한 번에 여러 요소를 바꾸는 편집은 종전
   동작(전체 재기록)을 유지한다. commit patcher 가 한 commit 에 dirty root 를
   하나만 처리하기 때문이며, 무익한 시도를 하지 않도록 막아 두었다.
+  — **정정 (같은 날 후속)**: 그 제약은 patcher 의 설계가 아니라 revision 부기
+  결함이었고 수정됐다. 위 "ADR-189 후속" 항목 참조.
 - 새 style 키를 도입하면서 무효화 registry 등재를 빠뜨리면 그 요소는 조용히
   옛 경로로 돌아간다. 축별 거부 카운터로 그 상황을 판독할 수 있게 했다.
 

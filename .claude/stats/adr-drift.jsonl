@@ -72,3 +72,4 @@
 {"sha":"f8558399d31641aa7fb96c3b6313415d3a047367","date":"2026-08-23T00:00:58+09:00","promoted_adrs":["docs/adr/completed/188-targeted-layout-and-skia-subtree-patching.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"19d013709d8fc3626b2ca13b92b8b81f42b482ad","date":"2026-08-23T18:59:48+09:00","promoted_adrs":["docs/adr/189-commit-lane-incremental-record.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"e9ee28077786f79d15b0e8ca1075446868fd2eac","date":"2026-08-24T13:13:25+09:00","promoted_adrs":["docs/adr/completed/187-editor-presentation-transaction-and-typed-invalidation.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"0aa3d43849526b1359b23310b16dea9456de3c12","date":"2026-08-24T20:26:45+09:00","promoted_adrs":["docs/adr/completed/190-commit-descriptor-emitter-expansion.md"],"readme_updated":true,"changelog_updated":true,"synced":true}

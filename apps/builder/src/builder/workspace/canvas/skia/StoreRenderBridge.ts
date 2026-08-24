@@ -1364,7 +1364,14 @@ export class StoreRenderBridge {
     // 발행한다. 두 값이 역전되어도 stale reject가 commit을 잃지 않도록 stream 내부
     // revision은 단조 증가 envelope로 만든다. canonical revision 자체는 별도의
     // baseCanonicalRevision으로 검증/승격한다.
-    const patchRevision = Math.max(
+    //
+    // splice 한 번이 곧 stream publication 한 번이므로 revision도 splice마다
+    // 전진시킨다. 한 commit의 dirty root가 둘 이상이면 rootKey(=`page:{id}`)를
+    // 공유하는데, 같은 값을 재사용하면 첫 root가 기록한 revision 탓에 다음 root가
+    // 자기 자신을 stale로 판정해(`applyCommitSubtreeCommandPatch`의 rootKey별
+    // 가드) commit 전체가 full rebuild로 떨어진다. presentation lane도 patch마다
+    // `+1` 하는 같은 규약을 쓴다.
+    let patchRevision = Math.max(
       pending.revision,
       current.presentationRevision + 1,
     );
@@ -1400,6 +1407,7 @@ export class StoreRenderBridge {
         });
         if (!result.applied) return { applied: false };
         damageBounds = unionDamageBounds(damageBounds, result.damageBounds);
+        patchRevision += 1;
       }
     }
     this.pendingCommit = null;

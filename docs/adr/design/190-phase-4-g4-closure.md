@@ -79,9 +79,24 @@ live 검증 첫 시도에서 `__composition_COMMIT_LANE_DEBUG__` 는 있는데
 
 ## 6. 잔존 (본 ADR 범위 밖)
 
-| 항목                                       | 다음 소유                                        |
-| ------------------------------------------ | ------------------------------------------------ |
-| commit patcher 의 다중 dirty root 지원     | ADR-189 영역 — 다중 선택·정렬·다중 드래그의 레버 |
-| `updateElement` 의 canonical sync 위치     | 별도 리팩터링 (emit 계약 지점 확보)              |
-| ADR-187 style allowlist 의 `%` 단위 미수용 | ADR-187 영역                                     |
-| instance snapshot batch                    | 다중 root 지원 이후 재검토                       |
+| 항목                                       | 다음 소유                                                       |
+| ------------------------------------------ | --------------------------------------------------------------- |
+| commit patcher 의 다중 dirty root          | **2026-08-24 해소** — ADR-189 revision 부기 결함 수정 (아래 §7) |
+| `updateElement` 의 canonical sync 위치     | 별도 리팩터링 (emit 계약 지점 확보)                             |
+| ADR-187 style allowlist 의 `%` 단위 미수용 | ADR-187 영역                                                    |
+| instance snapshot batch                    | 다중 root 가 열렸으므로 재검토 가능                             |
+
+## 7. 후속 — 다중 dirty root 는 미지원이 아니라 결함이었다 (2026-08-24)
+
+Phase 3 이 "patcher 가 다중 root 를 지원하지 않는다" 로 판정하고 생산자에 가드를
+넣었지만, 그 전제가 틀렸다. ADR-189 는 다중 root 를 설계·구현했고 실패 원인은
+revision 부기였다 — commit 하나에 revision 하나를 모든 root 에 재사용하는 바람에,
+같은 rootKey(`page:{id}`) 를 쓰는 둘째 root 가 첫 root 가 기록한 값에 걸려
+`stale-revision` 으로 자기 자신을 stale 판정했다.
+
+ADR-190 이전에는 도달 불가였다 — presentation lane 은 항상 원소 1개 배열만
+보냈다. ADR-190 이 처음으로 다중 root commit 을 만들 수 있게 되면서 발현했다.
+
+수정 후 2,000-node 문서 재실측: batch 1~2,000 전 구간 patch 성공 4/4, 역전 없음
+(1개 21.9배 → 2,000개 1.25배로 단조 감소). 다중 root splice 픽셀 차이 0
+(`adr190-multiroot-pixel-oracle.mjs`, 한 commit 에 root 4개). 상세: Phase 3 §1.

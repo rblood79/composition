@@ -5,6 +5,17 @@
 Implemented — 2026-08-24 (Phase 0~~5 / G0~~G5 complete; proposal origin 2026-08-22,
 리뷰 round 1·2 이슈 전건 fixed, round 3 승인 — reviews/189.md)
 
+> **사후 수정 (2026-08-24)**: 한 commit 의 dirty root 가 둘 이상일 때 둘째 root
+> 부터 `stale-revision` 으로 거부되던 결함을 고쳤다. 본 ADR 은 다중 root 를
+> 설계·구현했으나(`dirtyRootIds[]` / `plans[]` / `collapseDescendantRoots` /
+> 중첩 루프), `applyPendingCommitPatch` 가 commit 하나에 revision 하나를 계산해
+> 모든 root 에 재사용하는 바람에 같은 rootKey(`page:{id}`) 를 쓰는 다음 root 가
+> 앞 root 가 기록한 값에 걸렸다 (`subtreeCommandPatch.ts:483` 가드 ↔ `:656`
+> 기록). 당시 유일한 생산자였던 presentation lane 이 항상 원소 1개 배열만 보내
+> 도달 불가였고, ADR-190 emitter 가 다중 root commit 을 만들 수 있게 되면서
+> 발현했다. 수정은 splice 마다 revision 을 전진시키는 것 — presentation lane 이
+> 이미 쓰던 규약과 같다. 상세·실측: [ADR-190 Phase 3 §1](design/190-phase-3-g3-path-classification.md).
+
 Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](completed/188-targeted-layout-and-skia-subtree-patching.md),
 [ADR-153 렌더 최적화 measurement-first 도입](completed/153-render-optimization-measurement-first-adoption.md),
 [ADR-921 RenderScene·Backend 통합](921-render-scene-backend-integration.md)

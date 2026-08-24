@@ -28,13 +28,12 @@
 
 경계는 batch 크기가 아니라 **dirty root 개수**다. style patch 의 dirty root 는
 대상 요소 자신이므로 N개 요소 편집은 N개 dirty root 가 되고,
-`StoreRenderBridge.applyPendingCommitPatch` 는 한 commit 에 dirty root 가 둘
-이상이면 splice 를 포기한다. 즉 **2개부터 이미 full rebuild** 이고, 역전이
-일어날 만큼 큰 batch 는 애초에 sparse 경로를 타지 않는다.
+`StoreRenderBridge.applyPendingCommitPatch` 가 한 commit 에 dirty root 가 둘
+이상이면 splice 를 포기하고 있었다. 즉 **2개부터 이미 full rebuild** 였고, 역전이
+일어날 만큼 큰 batch 는 애초에 sparse 경로를 타지 않았다.
 
-따라서 "임계 초과 시 full rebuild 로 조기 판정" 하는 로직은 도달 불가 코드가
-된다. 대신 **무익한 시도 자체를 막는다** — 다중 항목은 emit 하지 않는다. 가드
-적용 전후:
+따라서 "임계 초과 시 full rebuild 로 조기 판정" 하는 로직은 도달 불가 코드였다.
+대신 **무익한 시도 자체를 막았다** — 다중 항목은 emit 하지 않는 가드. 적용 전후:
 
 | batch 크기 | 가드 전 queue/fallback | 가드 후 queue/fallback |
 | ---------: | ---------------------: | ---------------------: |
@@ -43,12 +42,51 @@
 |        400 |                  4 / 4 |              **0 / 0** |
 
 가드 전에는 "plan 계산 + 첫 splice 시도 + 폐기" 비용이 매 commit 에 실렸다
-(2~6% 손해). 가드 후에는 그 비용이 사라지고 결과는 종전과 같다.
+(2~6% 손해). 가드 후에는 그 비용이 사라지고 결과는 종전과 같았다.
 
-이 가드는 소비자 제약을 생산자에 적어 둔 것이므로, ADR-189 patcher 가 다중
-dirty root 를 지원하게 되면 `emitStoreStyleCommitDescriptors` 의 조건 한 줄만
-되돌리면 된다. **다중 root 지원이 이 영역의 다음 레버**다 — 다중 선택 편집·정렬·
-다중 드래그가 전부 여기 걸려 있다.
+### 2026-08-24 정정 — 다중 root 포기는 설계가 아니라 결함이었다
+
+위 판정의 전제 ("patcher 가 다중 dirty root 를 지원하지 않는다") 가 틀렸다.
+ADR-189 는 다중 root 를 **설계에 넣고 코드도 그렇게 썼다** —
+`dirtyRootIds: readonly string[]`, `plans: readonly CommitPatchPlan[]`,
+조상-자손 중복 제거(`collapseDescendantRoots`), 중첩 루프까지 전부 복수 전제다.
+
+실제 원인은 revision 부기였다. `applyPendingCommitPatch` 가 commit 하나에
+`patchRevision` **하나**를 계산해 모든 root 에 그대로 넘겼는데, 첫 root 가
+성공하면 `subtreeCommandPatch.ts:656` 이 그 값을 `presentationRevisionByRootKey`
+에 기록한다. 같은 rootKey(=`page:{id}`, 즉 같은 페이지)를 쓰는 둘째 root 는
+`:483` 의 `revision <= currentRootRevision` 에 걸려 `stale-revision` 으로 자기
+자신을 stale 판정했다 — commit 전체가 full rebuild 로 떨어진 이유.
+
+발현 조건이 ADR-190 이전에는 없었다. 유일한 생산자였던 presentation lane 은
+`queueCommitPatch([descriptor], revision)` 로 항상 원소 1개 배열만 보냈고,
+자기 쪽 patch 는 `plan.roots.length !== 1` 로 fail-closed 하면서 patch 마다
+revision 을 `+1` 한다 (`skiaEditorPresentationLayoutBridge.ts:393,465`). 즉 두
+설계가 만나는 지점의 결함이고, 다중 root commit 을 만들 주체가 없어 도달 불가
+상태로 남아 있었다.
+
+수정: splice 하나가 곧 publication 하나이므로 루프 안에서 revision 을 전진시킨다
+(presentation lane 과 같은 규약). 생산자 가드 `entries.length !== 1` 은 제거했다.
+2,000-node 문서 재실측:
+
+| batch 크기 | sparse p95 | full p95 | patch 성공 |       판정 |
+| ---------: | ---------: | -------: | ---------: | ---------: |
+|          1 |      1.6ms |   35.0ms |        4/4 |     21.9배 |
+|          2 |      1.0ms |   32.8ms |    **4/4** | **32.8배** |
+|          5 |      0.8ms |   31.5ms |        4/4 |     39.4배 |
+|         25 |      1.5ms |   31.4ms |        4/4 |     20.9배 |
+|        100 |      2.3ms |   30.5ms |        4/4 |     13.3배 |
+|        400 |      3.1ms |   30.7ms |        4/4 |      9.9배 |
+|      1,000 |      8.2ms |   33.5ms |        4/4 |      4.1배 |
+|      2,000 |     25.1ms |   31.5ms |        4/4 |     1.25배 |
+
+**R4 는 임계 불요로 재확인된다 — 이번엔 도달 가능한 상태에서.** 문서의 모든
+요소를 한 번에 바꿔도(2,000/2,000) sparse 가 여전히 빠르다. 이득은 단조 감소하되
+역전하지 않으므로 임계 상수를 둘 근거가 없다.
+
+픽셀 검증 (`adr190-multiroot-pixel-oracle.mjs`): 한 commit 이 4개 root 를 splice
+(`subtreeBuild 4` / `patchSuccess 1` / `fallback 0` / `fullBuild 0`) 한 결과와
+reload full rebuild 결과의 차이는 `1440 × 852` 에서 **0 픽셀**.
 
 ## 2. 경로 전수 분류
 
@@ -59,7 +97,7 @@ Phase 0 inventory 의 action 을 실제 배선 결과로 재분류했다.
 | 경로                               | 축        | 비고                                                      |
 | ---------------------------------- | --------- | --------------------------------------------------------- |
 | `updateElementProps`               | style     | 패널 / 캔버스 텍스트 / **AI tool** / preview ingress 포함 |
-| `batchUpdateElementProps`          | style     | **단일 항목일 때만** (§1)                                 |
+| `batchUpdateElementProps`          | style     | 항목 수 무관 (§1 정정 — 다중 root 지원)                   |
 | `addElement`                       | structure | AI tool `createElement` 포함                              |
 | `addComplexElement`                | structure | 부모+자식을 한 배열로 전달                                |
 | `removeElement` / `removeElements` | structure | AI tool `deleteElement` 포함. autoDetach 동반 시 제외     |
@@ -101,6 +139,7 @@ node apps/builder/scripts/adr190-bulk-threshold-probe.mjs
 node apps/builder/scripts/adr190-generic-commit-probe.mjs --repeats 8
 node apps/builder/scripts/adr190-structure-probe.mjs
 node apps/builder/scripts/adr190-pixel-oracle.mjs
+node apps/builder/scripts/adr190-multiroot-pixel-oracle.mjs
 ```
 
 - `pnpm type-check`: PASS (신규 위반 0)
@@ -116,8 +155,9 @@ node apps/builder/scripts/adr190-pixel-oracle.mjs
 
 ## 5. 잔존
 
-| 항목                                                  | 성격                                                           |
-| ----------------------------------------------------- | -------------------------------------------------------------- |
-| commit patcher 의 **다중 dirty root 지원**            | ADR-189 영역. 다중 선택 편집·정렬·다중 드래그의 유일한 레버    |
-| `updateElement` 의 canonical sync 위치                | `set` 콜백 밖으로 빼면 emit 계약 지점이 생긴다 — 별도 리팩터링 |
-| instance snapshot batch (`applyElementSnapshotBatch`) | 다중 root 지원 이후 재검토                                     |
+| 항목                                                  | 성격                                                                   |
+| ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| commit patcher 의 다중 dirty root                     | **2026-08-24 해소** (§1 정정 — revision 부기 결함 수정)                |
+| `updateElement` 의 canonical sync 위치                | `set` 콜백 밖으로 빼면 emit 계약 지점이 생긴다 — 별도 리팩터링         |
+| instance snapshot batch (`applyElementSnapshotBatch`) | 다중 root 가 열렸으므로 재검토 가능 — `applyElementSnapshotBatch` 배선 |
+| 다중 선택 드래그의 UI 제스처 검증                     | 브라우저 자동화로 드래그 세션을 시작하지 못했다 (수동 1회 확인 남음)   |
