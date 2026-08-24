@@ -33,6 +33,7 @@ import {
   type CanonicalReplaceCapture,
 } from "../history/canonicalHistoryEvents";
 import { isListBoxTemplateAnchor } from "../../components/listbox/listBoxTemplateOrigins";
+import { emitStoreStructureCommitDescriptors } from "../../presentation/storeCommitEmitter";
 import { isRenderProjectionId } from "../../projection/renderProjectionIds";
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
@@ -345,6 +346,26 @@ async function executeRemoval(
             },
       );
     }
+  }
+
+  // ADR-190 Phase 2: canonical 갱신 뒤 · set() 앞. 삭제된 노드는 post-commit
+  // 트리에 없으므로 부모 참조가 유일한 dirty root 단서이며, 그 부모는 mutation
+  // 전 스냅샷(`rootElements`)에서만 읽을 수 있다.
+  //
+  // 삭제 대상의 **자손**은 따로 싣지 않는다 — 부모 subtree 를 다시 기록하면
+  // 사라진 자손도 함께 사라진다. root 의 부모만 dirty 로 잡으면 충분하다.
+  //
+  // autoDetach 는 삭제와 별개로 다른 요소의 props 를 바꾸므로, 그 요소들이
+  // 있으면 structure descriptor 만으로 화면을 맞출 수 없다 → 전체를 포기하고
+  // full rebuild 로 보낸다.
+  if (autoDetach.elements.length === 0) {
+    emitStoreStructureCommitDescriptors(
+      rootElements.map((element) => ({
+        elementId: element.id,
+        parentId: element.parent_id,
+      })),
+      "remove",
+    );
   }
 
   set((state) => ({

@@ -60,6 +60,56 @@ describe("ADR-190 commit lane producer separation", () => {
     expect(emitIndex).toBeLessThan(setIndex);
   });
 
+  it("structure emitter 도 canonical sync 뒤 · set() 앞에서만 호출된다", async () => {
+    const creation = await readFile(
+      resolve(__dirname, "../stores/utils/elementCreation.ts"),
+      "utf-8",
+    );
+    const addSyncIndex = creation.indexOf(
+      "mergeCreatedElementsIntoCanonicalDocument([elementToAdd]);",
+    );
+    const addEmitIndex = creation.indexOf(
+      "emitStoreStructureCommitDescriptors([",
+    );
+    const addSetIndex = creation.indexOf(
+      "elements: [...prevState.elements, elementToAdd],",
+    );
+    expect(addSyncIndex).toBeGreaterThanOrEqual(0);
+    expect(addEmitIndex).toBeGreaterThanOrEqual(0);
+    expect(addSetIndex).toBeGreaterThanOrEqual(0);
+    expect(addSyncIndex).toBeLessThan(addEmitIndex);
+    expect(addEmitIndex).toBeLessThan(addSetIndex);
+
+    const removal = await readFile(
+      resolve(__dirname, "../stores/utils/elementRemoval.ts"),
+      "utf-8",
+    );
+    const removeSyncIndex = removal.indexOf(
+      "syncRemovedElementsToCanonical(updatedElements);",
+    );
+    const removeEmitIndex = removal.indexOf(
+      "emitStoreStructureCommitDescriptors(",
+    );
+    const removeSetIndex = removal.indexOf("elements: updatedElements,");
+    expect(removeSyncIndex).toBeGreaterThanOrEqual(0);
+    expect(removeEmitIndex).toBeGreaterThanOrEqual(0);
+    expect(removeSetIndex).toBeGreaterThanOrEqual(0);
+    expect(removeSyncIndex).toBeLessThan(removeEmitIndex);
+    expect(removeEmitIndex).toBeLessThan(removeSetIndex);
+  });
+
+  it("reparent/ref/slot 은 structure emitter 대상이 아니다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "./storeStructureCommitDescriptor.ts"),
+      "utf-8",
+    );
+    // 소비자(commitPatchPlan)가 fail-closed 하는 연산을 생산자가 만들어내면
+    // 매 commit 이 fallback 으로 떨어져 계측만 오염된다.
+    expect(source).not.toContain('"reparent"');
+    expect(source).not.toContain('"ref"');
+    expect(source).not.toContain('"slot"');
+  });
+
   it("commit lane sink 는 단일 슬롯이다 — listener Set 재도입 금지", async () => {
     const source = await readFile(
       resolve(__dirname, "./storeCommitDescriptorSink.ts"),

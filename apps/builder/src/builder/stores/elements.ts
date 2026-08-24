@@ -19,6 +19,7 @@ import {
   isCanonicalMutationRunnerBridgeRegistered,
   runCanonicalMutation,
 } from "../../adapters/canonical/canonicalMutationRunner";
+import { emitStoreStructureCommitDescriptors } from "../presentation/storeCommitEmitter";
 import { isRenderProjectionId } from "../projection/renderProjectionIds";
 import { getDB } from "../../lib/db";
 import {
@@ -1929,6 +1930,13 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       // `_rebuildIndexes()` 만으로는 부족하다 — 인덱스만 바꾸고 `elements` 배열은
       // stale 로 남아 연속 이동의 두 번째 호출이 옛 순서를 읽는다
       // (moveElementToContainer 의 2026-06-29 회귀와 같은 함정).
+      // ADR-190 Phase 2: canonical 갱신 뒤 · set() 앞. 형제 재배치는 부모의
+      // command span 안에서 순서만 바뀌므로 dirty root 가 부모다.
+      emitStoreStructureCommitDescriptors(
+        [{ elementId, parentId: target.parentId }],
+        "order",
+      );
+
       const nextElements = getCanonicalOrStoreElements(get());
       set((state) => ({
         elements: nextElements,

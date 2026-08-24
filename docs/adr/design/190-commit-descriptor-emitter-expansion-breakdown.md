@@ -101,7 +101,10 @@ px 고정 width·height·spacing longhand / fontSize·fontWeight) 만 canonical 
   (payload.parentId 포함 — post-commit 트리에서 remove 대상은 부모 참조가 유일
   단서) descriptor 를 emit.
 - `reparent`/`ref`/`slot` 은 emit 하지 않음 (소비자 fail-closed 유지).
-- G2 통과 후 commit.
+- **Phase 2 완료 (2026-08-24)** — G2 전 항목 통과. 증적:
+  [190-phase-2-g2-structure-emitter.md](190-phase-2-g2-structure-emitter.md).
+  deep add 22.3ms → 1.2ms / deep remove 19.4ms → 1.1ms, 렌더 정합성 12/12.
+  R6 은 sink 계약을 배열로 바꿔 구조적으로 해소.
 
 ### Phase 3 — 잔여 호출자 수렴 + 대량 mutation 임계
 

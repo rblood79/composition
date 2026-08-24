@@ -36,8 +36,7 @@ import {
   INHERITED_LAYOUT_PROPS_UPDATE,
   NON_LAYOUT_PROPS_UPDATE,
 } from "../../presentation/invalidation/editorMutationEffectRegistry";
-import { createStoreStyleCommitDescriptor } from "../../presentation/storeCommitDescriptor";
-import { publishStoreCommitDescriptor } from "../../presentation/storeCommitDescriptorSink";
+import { emitStoreStyleCommitDescriptor } from "../../presentation/storeCommitEmitter";
 
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
 type ElementUpdateLookup<TElement extends Element = Element> = Map<
@@ -61,25 +60,6 @@ function syncUpdatedElementToCanonical(
     return;
   }
   syncUpdatedElementsToCanonical([element]);
-}
-
-/**
- * ADR-190: props patch 를 commit lane 의 style.patch descriptor 로 흘려보낸다.
- *
- * canonical 갱신 **뒤**에 호출해야 `documentVersion` 이 post-commit revision 이다.
- * 서술 불가능한 patch (prop 축 혼입 / registry 미등재 style 키 / projected id) 는
- * descriptor 가 `null` 이라 아무것도 보내지 않고 기존 full rebuild 로 수렴한다.
- */
-function emitStoreStyleCommitDescriptor(
-  elementId: string,
-  patch: Readonly<Record<string, unknown>>,
-): void {
-  const descriptor = createStoreStyleCommitDescriptor({ elementId, patch });
-  if (!descriptor) return;
-  publishStoreCommitDescriptor(
-    descriptor,
-    useCanonicalDocumentStore.getState().documentVersion,
-  );
 }
 
 function isStructuralOrderMirrorPatch(updates: Partial<Element>): boolean {

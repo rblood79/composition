@@ -25,6 +25,7 @@ import {
   mergeElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { COMPONENT_MASTER_ID_MIRROR_FIELD } from "@/adapters/canonical/componentSemanticsMirror";
+import { emitStoreStructureCommitDescriptors } from "../../presentation/storeCommitEmitter";
 import { generateCustomId, getCustomIdBase } from "../../utils/idGeneration";
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
@@ -231,6 +232,12 @@ export const createAddElementAction =
       });
     }
 
+    // ADR-190 Phase 2: canonical 갱신 뒤 · set() 앞 — commit lane 진입 시점.
+    // 자식 추가는 부모의 subtree span 길이를 바꾸므로 dirty root 가 부모다.
+    emitStoreStructureCommitDescriptors([
+      { elementId: elementToAdd.id, parentId: elementToAdd.parent_id },
+    ]);
+
     // 2. derived store cache 업데이트 (불변 - 새로운 배열 참조 생성)
     // ADR-006 P3-1: 구조 변경 → layoutVersion 무조건 증가
     set((prevState) => ({
@@ -321,6 +328,15 @@ export const createAddComplexElementAction =
         },
       });
     }
+
+    // ADR-190 Phase 2: 부모와 자식이 한 편집의 결과이므로 **한 번에** 넘긴다.
+    // 요소마다 따로 queue 하면 pendingCommit 단일 슬롯이 앞선 patch 를 덮어쓴다.
+    emitStoreStructureCommitDescriptors(
+      allElements.map((element) => ({
+        elementId: element.id,
+        parentId: element.parent_id,
+      })),
+    );
 
     // 2. derived store cache 업데이트 (불변 - 새로운 배열 참조 생성)
     // ADR-006 P3-1: 구조 변경 → layoutVersion 무조건 증가

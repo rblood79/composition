@@ -456,8 +456,8 @@ export function SkiaCanvas({
     // (Properties 패널 / 캔버스 텍스트 / AI tool / preview ingress) 도 같은
     // commit lane 으로 보낸다. presentation adapter 는 store action 이 아니라
     // useStore.setState 직접 경로라 두 생산자가 겹치지 않는다 (ADR-190 Phase 0).
-    setStoreCommitDescriptorSink((descriptor, revision) => {
-      storeRenderBridgeRef.current?.queueCommitPatch([descriptor], revision);
+    setStoreCommitDescriptorSink((descriptors, revision) => {
+      storeRenderBridgeRef.current?.queueCommitPatch(descriptors, revision);
     });
     const presentationLayoutBridge = new SkiaEditorPresentationLayoutBridge({
       getActiveProjectId: () =>

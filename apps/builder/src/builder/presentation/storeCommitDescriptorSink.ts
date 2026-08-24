@@ -11,7 +11,7 @@
 import type { EditorMutationDescriptor } from "./editorPresentationTypes";
 
 export type StoreCommitDescriptorSink = (
-  descriptor: EditorMutationDescriptor,
+  descriptors: readonly EditorMutationDescriptor[],
   revision: number,
 ) => void;
 
@@ -52,17 +52,18 @@ export function setStoreCommitDescriptorSink(
  * 실패하면 commit lane 이 pending 없이 sync 를 돌아 기존 full rebuild 로
  * 수렴한다 (ADR-190 HC3 fail-closed).
  */
-export function publishStoreCommitDescriptor(
-  descriptor: EditorMutationDescriptor,
+export function publishStoreCommitDescriptors(
+  descriptors: readonly EditorMutationDescriptor[],
   revision: number,
 ): void {
+  if (descriptors.length === 0) return;
   diagnostics.published += 1;
   if (!sink) {
     diagnostics.unsinked += 1;
     return;
   }
   try {
-    sink(descriptor, revision);
+    sink(descriptors, revision);
     diagnostics.delivered += 1;
   } catch {
     // full rebuild 로 수렴 — 여기서 throw 하면 편집 자체가 롤백된다.
