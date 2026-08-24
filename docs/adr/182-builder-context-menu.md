@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — 2026-08-16 (Phase 0~5 완결, G1~G3 PASS. Accepted 2026-08-15 — 리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED 4 / LOW 2) + round 2 이슈 3건(MED 3) 전건 fixed, 잔존 pending 0, HIGH/CRITICAL 잔존 0 — [reviews/182.md](reviews/182.md))
+Implemented — 2026-08-16 (Phase 0~~5 완결, G1~~G3 PASS. Accepted 2026-08-15 — 리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED 4 / LOW 2) + round 2 이슈 3건(MED 3) 전건 fixed, 잔존 pending 0, HIGH/CRITICAL 잔존 0 — [reviews/182.md](reviews/182.md))
 
 ## Implementation Progress
 
@@ -12,6 +12,7 @@ Implemented — 2026-08-16 (Phase 0~5 완결, G1~G3 PASS. Accepted 2026-08-15 �
 - Phase 3 — Implemented 2026-08-16: wired LayerTree T3 to the shared T1 provider, preserved multi-selection when the row is already selected, selected an unselected row before opening, removed the legacy 3-item raw menu and duplicated CSS, and added the tokenized `@layer builder-system` context-menu stylesheet. Type-check, targeted RTL/context-menu tests (9 files / 29 tests), `reservedPrefix.static.test.ts`, and diff checks PASS.
 - Phase 4 — Implemented 2026-08-16: added `resolveSiblingEdgeTarget` + the store action `moveElementToSiblingEdge` (new mutation ⇒ routed through `runCanonicalMutation`, ADR-184/185), registered `]`/`[`/⌘]/⌘[, revived the dead ⌘X definition as `cutSelection` (copy must succeed before delete), wired the T1 z-order cluster, and set `destructive` on Delete. Copy as PNG stays deferred — it is absent from the §2 T1 canonical item table. **Scope reduction (reported)**: the z-order items show for single selection only; the §2 footnote never defined relative-order preservation for multi-select and the existing shortcut path also returns early, so "condition unmet ⇒ hidden" applies.
 - Phase 5 — Implemented 2026-08-16: G2 live behaviour verified in Chrome — four surfaces, multi-selection preserved on right-click, ruler strip suppressed without opening a menu, overlapping-page occlusion, the three-way T4 policy (panel suppressed / `input` native / DEV ⌥ pass-through), z-order via menu and all four shortcuts with single-step undo restore, and ⌘X cut with clipboard write plus undo recovery. Document state was restored after the probes. Type-check and 11 related test files / 53 tests PASS.
+- Post-implementation corrective fix — 2026-08-24: RAC `Popover`의 기본 modal 동작이 `#root`를 inert로 만들어 열린 메뉴가 다른 대상의 후속 우클릭을 받지 못하던 문제를 수정했다. 메뉴·서브메뉴를 `isNonModal`로 전환하고, 활성 요청이 있을 때만 바깥 `pointerdown`을 닫기 이벤트로 소비하며, 메뉴 포커스를 명시적으로 복원해 바깥 클릭·Escape 닫힘과 다음 대상의 메뉴 교체를 함께 보장한다. 캔버스→캔버스 및 캔버스→LayerTree 재우클릭 교체, root inert 해제, 바깥 클릭·Escape 닫힘을 Chrome에서 확인했다. 관련 테스트 8개 파일 / 43개 테스트, type-check, preflight PASS.
 
 ## Context
 
