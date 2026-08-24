@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — 2026-08-24 (Phase 0~~5 / G0~~G5 complete; Proposed 2026-08-22,
+Implemented — 2026-08-24 (Phase 0~~5 / G0~~G5 complete; proposal origin 2026-08-22,
 리뷰 round 1·2 이슈 전건 fixed, round 3 승인 — reviews/189.md)
 
 Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](completed/188-targeted-layout-and-skia-subtree-patching.md),
@@ -61,7 +61,7 @@ schema 는 변경하지 않는다. Preview(DOM) 대칭은 시각 결과 무변�
 **Soft Constraints**:
 
 - ADR-188 의 patcher/4전제/`SubtreeBuildContext` 를 재사용하고 병렬 패치 기계를
-  복제하지 않는다. ADR-188 G6 통과가 Phase 2+ 착수 조건.
+  복제하지 않는다. ADR-188 G6 통과는 Phase 2+ 착수 전제였으며, 현재 충족됐다.
 - ADR-153 의 node picture 캐시·측정 인프라를 확장 지점으로 사용한다.
 - Phase 별 rollback 가능, 실측으로 축소 종결 가능한 구조 (measurement-first).
 

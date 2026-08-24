@@ -67,7 +67,10 @@ rebuild 로 수렴한다.
 따라서 **렌더 대조 diff 0 은 G2 의 통과 조건으로 이월**한다. G2 문구가 이미
 "stream 구조 full 대조 동일"을 포함하므로 게이트 공백은 생기지 않는다.
 
-## 6. 다음
+## 6. 당시 다음 단계 기록
 
-Phase 2(splice)는 **ADR-188 G6 통과 후** 착수한다 (ADR-189 Soft Constraint).
-현재 ADR-188 은 Phase 4/G5 까지 Implemented, Phase 5/G6 진행 중이다.
+Phase 2(splice)는 **ADR-188 G6 통과 후** 착수한다는 순서로 기록했다
+(ADR-189 Soft Constraint).
+이 문서 작성 당시 ADR-188은 Phase 4/G5까지 Implemented, Phase 5/G6 진행 중이었다.
+현재 ADR-188은 G6까지 Implemented이며, ADR-189도 Phase 0~~5/G0~~G5를 모두
+종결했다.

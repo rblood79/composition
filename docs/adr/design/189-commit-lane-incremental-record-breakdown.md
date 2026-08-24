@@ -2,11 +2,14 @@
 
 > 본 문서는 [ADR-189](../189-commit-lane-incremental-record.md) 의 구현 상세다. 결정
 > 근거·대안·위험은 ADR 본문이 정본이고, 여기는 Phase 분해·파일 경계·검증 절차만 둔다.
+> 아래의 ‘착수 조건’·‘다음 진입점’ 표현은 각 Phase를 실행하던 당시의 순서를
+> 보존한 기록이다. 현재 ADR-189는 Phase 0~~5 / G0~~G5를 모두 종결한 Implemented 상태다.
 
 ## 1. 전제 lock-in
 
-- **선행 의존**: ADR-188 G6 통과 (Phase 5 live parity) 가 본 ADR Phase 2+ 의 착수
-  조건이다. Phase 0(측정) 과 Phase 1(dirty-root 도출) 은 ADR-188 과 병행 가능.
+- **선행 의존(당시 실행 순서)**: ADR-188 G6 통과 (Phase 5 live parity) 가 본 ADR
+  Phase 2+의 착수 전제였다. Phase 0(측정)과 Phase 1(dirty-root 도출)은 ADR-188과
+  병행 가능했고, 해당 전제는 현재 충족됐다.
 - **base/응용 분류**: ADR-188 의 subtree patch 기계 (span/clip/z-order 4전제,
   원자 교체 patcher) 가 base, 본 ADR 은 그 기계를 canonical commit lane 으로
   일반화하는 응용이다. 의존 방향은 188 → 189 단방향.
