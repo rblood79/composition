@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## ColorArea focus 접근성 경고 수정 — 2026-08-24
+
+### Bug Fixes
+
+- **ColorArea의 focus 중 `aria-hidden` 경고**:
+  - RAC `ColorArea`의 두 native range input이 focus 전환 중 active element에 `aria-hidden="true"`로 커밋되지 않도록 보정했다.
+  - **Why**: React의 `focusedInput` 상태가 브라우저의 `document.activeElement`보다 한 render 늦을 수 있어, 세로 y축 input이 아직 focus인 순간 hidden 처리될 수 있었다.
+  - 수정: `react-aria@3.51.0` patch에 active input 노출 guard 추가, controlled value update 회귀 테스트와 Builder live keyboard 검증을 반영했다.
+  - 위치: `patches/react-aria@3.51.0.patch`, `apps/builder/src/builder/panels/styles/components/ColorArea.ariaHidden.test.tsx`
+
 ## [Catch-up 2026-08-20 ~ 2026-08-23] - 2026-08-23
 
 ### Architecture
