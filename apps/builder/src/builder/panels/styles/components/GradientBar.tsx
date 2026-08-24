@@ -62,9 +62,8 @@ export const GradientBar = memo(function GradientBar({
     [onStopSelect],
   );
 
-  // 프레임 소유권은 상위 editor adapter에 있다. legacy 경로도
-  // updateFillPreviewThrottled가 단일 RAF를 소유하므로 이 컴포넌트가 중첩 RAF를
-  // 만들지 않는다.
+  // 프레임 소유권은 상위 editor adapter에 있다. 이 컴포넌트는 pointer 입력과
+  // 로컬 핸들 상태만 전달하며 자체 scheduler를 만들지 않는다.
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       const drag = draggingRef.current;

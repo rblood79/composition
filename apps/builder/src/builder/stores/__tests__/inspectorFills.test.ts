@@ -79,8 +79,7 @@ describe("inspectorActions fill write-through", () => {
 
     const element = useStore.getState().elementsMap.get("fill-target");
     const style = element?.props?.style as
-      | { backgroundColor?: string; backgroundImage?: string }
-      | undefined;
+      { backgroundColor?: string; backgroundImage?: string } | undefined;
 
     expect(element?.fills).toHaveLength(1);
     expect(style?.backgroundColor).toBeUndefined();
@@ -95,53 +94,6 @@ describe("inspectorActions fill write-through", () => {
       fills: expect.any(Array),
       props: { style: {} },
     });
-  });
-
-  it("lightweight preview 경로는 CSS background 는 건드리지 않고 fills 만 바꾼다", () => {
-    useStore.getState().updateSelectedFillsPreviewLightweight([
-      {
-        id: "fill-1",
-        type: FillType.Color,
-        color: "#ABCDEFff".toUpperCase(),
-        enabled: true,
-        opacity: 1,
-        blendMode: "normal",
-      },
-    ]);
-
-    const element = useStore.getState().elementsMap.get("fill-target");
-    const style = element?.props?.style as
-      | { backgroundColor?: string }
-      | undefined;
-
-    expect(element?.fills).toHaveLength(1);
-    expect(style?.backgroundColor).toBe("#ffffff");
-  });
-
-  it("preview 경로도 derived background style 을 다시 쓰지 않고 fills 만 반영한다", () => {
-    useStore.getState().updateSelectedFillsPreview([
-      {
-        id: "preview-fill-1",
-        type: FillType.LinearGradient,
-        enabled: true,
-        opacity: 1,
-        blendMode: "normal",
-        rotation: 90,
-        stops: [
-          { color: "#FF0000FF", position: 0 },
-          { color: "#00FF00FF", position: 1 },
-        ],
-      },
-    ]);
-
-    const element = useStore.getState().elementsMap.get("fill-target");
-    const style = element?.props?.style as
-      | { backgroundColor?: string; backgroundImage?: string }
-      | undefined;
-
-    expect(element?.fills).toHaveLength(1);
-    expect(style?.backgroundColor).toBeUndefined();
-    expect(style?.backgroundImage).toBeUndefined();
   });
 
   it("generic property update 경로는 Fill V2 에서 derived background style patch 를 제거한다", () => {
@@ -416,26 +368,4 @@ describe("inspectorActions fill write-through", () => {
 
   // 2026-08-13 — fills preview 가 layoutVersion 을 올리지 않으면 Skia 재렌더
   // trigger 부재로 캔버스 preview 무반영 (DOM preview iframe 만 반영되는 비대칭)
-  it("fills preview 2종은 layoutVersion 을 올려 Skia 재렌더를 트리거한다", () => {
-    const colorFill = {
-      id: "preview-c1",
-      type: FillType.Color,
-      enabled: true,
-      opacity: 1,
-      blendMode: "normal",
-      color: "#FF0000FF",
-    } as never;
-
-    const v0 = useStore.getState().layoutVersion;
-    useStore.getState().updateSelectedFillsPreviewLightweight([colorFill]);
-    expect(useStore.getState().layoutVersion).toBe(v0 + 1);
-    expect(
-      useStore.getState().elementsMap.get("fill-target")?.fills,
-    ).toHaveLength(1);
-    expect(useStore.getState().dirtyElementIds.has("fill-target")).toBe(true);
-
-    const v1 = useStore.getState().layoutVersion;
-    useStore.getState().updateSelectedFillsPreview([colorFill]);
-    expect(useStore.getState().layoutVersion).toBe(v1 + 1);
-  });
 });

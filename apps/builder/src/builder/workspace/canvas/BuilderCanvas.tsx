@@ -32,10 +32,8 @@ import {
 } from "../../stores/canonical/canonicalFrameStore";
 import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
-import {
-  resolveContextMenuDisposition,
-  useContextMenu,
-} from "../../components/overlay/contextMenu";
+import { useContextMenu } from "../../components/overlay/contextMenu/useContextMenu";
+import { resolveContextMenuDisposition } from "../../components/overlay/contextMenu/contextMenuPolicy";
 import { useCanvasLifecycleStore, useViewportSyncStore } from "./stores";
 import { isWebGLCanvas } from "../../../utils/featureFlags";
 import { isUnifiedFlag } from "./wasm-bindings/featureFlags";

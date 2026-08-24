@@ -522,7 +522,22 @@ function aggregateRuns(runs, environmentMessages = []) {
   };
 }
 
-async function createIsolatedProject(page, baseUrl) {
+async function activatePresentationMetrics(page) {
+  await page.waitForFunction(
+    () =>
+      Boolean(
+        window.__composition_STORE__ &&
+          window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__,
+      ),
+    undefined,
+    { timeout: 30000 },
+  );
+  await page.evaluate(() => {
+    window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__.enable?.();
+  });
+}
+
+async function createIsolatedProject(page, baseUrl, metricsQueryRequired) {
   await page.goto(`${baseUrl}/dashboard`, { waitUntil: "networkidle" });
   // G6 layout fixture is defined against the 390x844 mobile canvas. Do not
   // inherit the operator's persisted breakpoint (desktop would overlap the
@@ -544,25 +559,20 @@ async function createIsolatedProject(page, baseUrl) {
   await page.locator('form.new-project-form button[type="submit"]').click();
   await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 30000 });
   const projectUrl = page.url();
-  const separator = projectUrl.includes("?") ? "&" : "?";
-  await page.goto(`${projectUrl}${separator}adr187Metrics=1`, {
-    waitUntil: "networkidle",
-  });
-  await page.waitForFunction(
-    () =>
-      Boolean(
-        window.__composition_STORE__ &&
-          window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__,
-      ),
-    undefined,
-    { timeout: 30000 },
-  );
+  if (metricsQueryRequired) {
+    const separator = projectUrl.includes("?") ? "&" : "?";
+    await page.goto(`${projectUrl}${separator}adr187Metrics=1`, {
+      waitUntil: "networkidle",
+    });
+  }
+  await activatePresentationMetrics(page);
   return { projectName, projectUrl: page.url() };
 }
 
-async function openExistingProject(page, projectUrl) {
+async function openExistingProject(page, projectUrl, metricsQueryRequired) {
   const url = new URL(projectUrl);
-  url.searchParams.set("adr187Metrics", "1");
+  if (metricsQueryRequired) url.searchParams.set("adr187Metrics", "1");
+  else url.searchParams.delete("adr187Metrics");
   await page.goto(url.toString(), { waitUntil: "networkidle" });
   // Keep the G6 geometry contract independent of the operator's persisted
   // breakpoint while reusing the already authenticated Builder project.
@@ -570,15 +580,7 @@ async function openExistingProject(page, projectUrl) {
     window.localStorage.setItem("builder-breakpoint", "mobile");
   });
   await page.reload({ waitUntil: "networkidle" });
-  await page.waitForFunction(
-    () =>
-      Boolean(
-        window.__composition_STORE__ &&
-          window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__,
-      ),
-    undefined,
-    { timeout: 30000 },
-  );
+  await activatePresentationMetrics(page);
   return { mode: "existing", projectName: null, projectUrl: page.url() };
 }
 
@@ -1959,8 +1961,8 @@ async function main() {
     });
 
     const project = options.projectUrl
-      ? await openExistingProject(page, options.projectUrl)
-      : await createIsolatedProject(page, options.baseUrl);
+      ? await openExistingProject(page, options.projectUrl, options.serveDist)
+      : await createIsolatedProject(page, options.baseUrl, options.serveDist);
     const tiers = [];
     let previousTier = 0;
     for (const tier of options.tiers) {

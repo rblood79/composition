@@ -3,7 +3,7 @@
  *
  * Gradient Phase 2: Fill 배열 CRUD 액션 + 타입 변경
  * - fills 배열을 복사 → 변경 → store.updateSelectedFills() 호출
- * - 프리뷰 액션은 store.updateSelectedFillsPreview() 사용
+ * - 연속 프리뷰는 presentation runtime owner가 담당하며 미지원 대상은 commit-only
  * - changeFillType: Color ↔ Gradient 타입 전환
  *
  * @since 2026-02-10 Color Picker Phase 1
@@ -26,7 +26,6 @@ import {
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import { getCanonicalDocumentElementsView } from "../../../stores/canonical/canonicalElementsView";
 import { resolveElementFills } from "../utils/fillMigration";
-import { recordEditorPresentationActionRaf } from "../../../performance/editorPresentationPhase0Metrics";
 import {
   editorPresentationFillPilotRuntime,
   resolveFillPresentationPilotTarget,
@@ -46,12 +45,6 @@ export interface FillActions {
   reorderFill: (fromIndex: number, toIndex: number) => void;
   toggleFill: (fillId: string) => void;
   updateFill: (fillId: string, updates: Partial<FillItem>) => void;
-  updateFillPreview: (fillId: string, updates: Partial<FillItem>) => void;
-  /** RAF-throttled 경량 프리뷰 (드래그 전용) */
-  updateFillPreviewThrottled: (
-    fillId: string,
-    updates: Partial<FillItem>,
-  ) => void;
   isFirstFillPresentationOwned: (fillId: string) => boolean;
   isFirstFillColorPresentationOwned: (fillId: string) => boolean;
   previewFirstFillColorPresentation: (fillId: string, color: string) => boolean;
@@ -105,12 +98,6 @@ function applyFillUpdates(
 }
 
 export function useFillActions(): FillActions {
-  // RAF throttle refs
-  const rafRef = useRef<number | null>(null);
-  const pendingUpdateRef = useRef<{
-    fillId: string;
-    updates: Partial<FillItem>;
-  } | null>(null);
   const presentationRef = useRef<{
     baseFills: readonly FillItem[];
     fillId: string;
@@ -143,9 +130,6 @@ export function useFillActions(): FillActions {
     };
     window.addEventListener("blur", handleWindowBlur);
     return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
       presentationRef.current?.handle.cancel("unmount");
       presentationRef.current = null;
       unsubscribeSelection();
@@ -406,8 +390,8 @@ export function useFillActions(): FillActions {
     [],
   );
 
-  // 가상 fill 드래그 승격 전용 — create-or-update 라 드래그 tick 간 표시(firstFill)
-  // 재렌더 지연이 있어도 중복 append 가 구조적으로 불가능하다.
+  // 가상 fill terminal 승격 전용. create-or-update라 재렌더 지연이 있어도
+  // 중복 append가 구조적으로 불가능하다.
   const ensureColorFill = useCallback((color: string) => {
     const fills = getCurrentFills();
     const colorIndex = fills.findIndex((f) => f.type === FillType.Color);
@@ -457,43 +441,6 @@ export function useFillActions(): FillActions {
         return { ...f, ...updates } as FillItem;
       });
       useStore.getState().updateSelectedFills(newFills);
-    },
-    [],
-  );
-
-  const updateFillPreview = useCallback(
-    (fillId: string, updates: Partial<FillItem>) => {
-      const fills = getCurrentFills();
-      const newFills = fills.map((f) => {
-        if (f.id !== fillId) return f;
-        return { ...f, ...updates } as FillItem;
-      });
-      useStore.getState().updateSelectedFillsPreview(newFills);
-    },
-    [],
-  );
-
-  const updateFillPreviewThrottled = useCallback(
-    (fillId: string, updates: Partial<FillItem>) => {
-      pendingUpdateRef.current = { fillId, updates };
-
-      if (rafRef.current !== null) return;
-
-      rafRef.current = requestAnimationFrame(() => {
-        const startedAt = performance.now();
-        rafRef.current = null;
-        const pending = pendingUpdateRef.current;
-        if (!pending) return;
-        pendingUpdateRef.current = null;
-
-        const fills = getCurrentFills();
-        const newFills = fills.map((f) => {
-          if (f.id !== pending.fillId) return f;
-          return { ...f, ...pending.updates } as FillItem;
-        });
-        useStore.getState().updateSelectedFillsPreviewLightweight(newFills);
-        recordEditorPresentationActionRaf(performance.now() - startedAt);
-      });
     },
     [],
   );
@@ -573,8 +520,6 @@ export function useFillActions(): FillActions {
     reorderFill,
     toggleFill,
     updateFill,
-    updateFillPreview,
-    updateFillPreviewThrottled,
     isFirstFillPresentationOwned,
     isFirstFillColorPresentationOwned,
     previewFirstFillColorPresentation,

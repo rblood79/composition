@@ -29,6 +29,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Vite/Rolldown 및 React plugin 전환, lucide/react-router 업데이트, 보안 패치와 미사용 dependency 제거를
     반영했다.
 
+## ADR-187 Phase 6 종결 — exact-URL G8 live gate — 2026-08-24
+
+### Bug Fixes
+
+- **Builder Canvas context-menu provider identity 복구**:
+  - `BuilderViewport` provider와 `BuilderCanvas` consumer가 같은 정본 모듈을 직접 import하도록 통일했다.
+  - **Why:** Vite HMR에서 barrel 경로와 직접 경로가 서로 다른 context module identity로 materialize되어
+    `useContextMenu must be used within a ContextMenuProvider`가 발생했다.
+  - 위치: `apps/builder/src/builder/{main/BuilderViewport.tsx,workspace/canvas/BuilderCanvas.tsx}`
+
+### Architecture
+
+- ColorPicker와 fill hook/store의 외부 RAF·`updateSelectedFillsPreview*` 경로를 제거했다.
+- 지원되지 않는 fill 연속 편집은 commit-only로 fail-closed하고, 지원 대상은
+  presentation runtime 단일 scheduler를 계속 사용한다.
+- presentation owner가 없는 공용 `PropertyColor`도 raw input legacy preview를 호출하지
+  않고 pointer terminal에서만 commit한다.
+- fill이 없는 virtual-fill 상태도 raw ColorArea input에서 canonical fill을 생성하지 않고
+  pointer terminal에서 정확히 한 번 승격한다.
+- secondary `FillLayerRow`의 optional `onUpdatePreview` seam을 삭제하고 raw color/gradient/
+  opacity callback을 명시적 no-op으로 고정해 구 preview 경로 재연결을 차단했다.
+
+### Performance
+
+- Phase 6 정적 guard와 fill/store 회귀 테스트를 추가해 중첩 scheduler와 paint preview
+  `layoutVersion` write 재도입을 차단했다.
+- query 없는 정확한 Builder URL에서 DEV opt-in 계측을 활성화해 Button fill ColorArea를
+  5초 이상 5회(native raw input 1,080/run) 드래그했다. drag 중 canonical/legacy/layout/
+  Preview full-document/bridge full-rebuild는 전 회차 0, target patch는 573~~766회였다.
+- frame apply p95는 전 회차 `0.2ms`, p99 최대 `0.3ms`, max `1.6ms`였고 8.33ms 초과
+  sample은 0이다. terminal canonical write와 full-document message는 각 1회, stale callback과
+  console error/warning/`requestAnimationFrame` violation은 0이다.
+- exact-URL one-shot parity probe에서 drag plateau `#C94F4FFF`, terminal handoff, 원래
+  `#704848FF` 복원 상태의 Preview computed color와 Skia fill target max channel delta가
+  모두 `0`이어서 HC9(`≤1/255`, retirement 후 `0`)를 직접 통과했다.
+- 증적: [ADR-187 Phase 6 G8 exact-URL live parity](adr/design/187-phase-6-g8-live-parity.md)
+
+### Documentation
+
+- Phase 0~~6/G0~~G8 완료에 따라 ADR-187을 `Accepted → Implemented`로 승격하고
+  `docs/adr/completed/`로 이관했다.
+
 ## ADR-187 Phase 5 flow layout·Text metric parity 승격 gate — 2026-08-24
 
 ### Architecture

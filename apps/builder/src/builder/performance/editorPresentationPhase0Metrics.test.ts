@@ -2,20 +2,61 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 afterEach(() => {
+  window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS_DOM_ABORT__?.abort();
+  delete window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS_DOM_ABORT__;
   delete window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__;
+  delete document.documentElement.dataset.compositionAdr187Metrics;
+  document
+    .querySelectorAll("[data-adr187-metrics-command]")
+    .forEach((element) => element.remove());
   window.history.replaceState({}, "", "/");
   vi.resetModules();
 });
 
 describe("ADR-187 Phase 0 presentation metrics", () => {
-  it("is inert unless the production baseline query flag is present", async () => {
+  it("exposes an inactive dev controller on an exact Builder URL", async () => {
     const metrics = await import("./editorPresentationPhase0Metrics");
     metrics.recordEditorPresentationRawInput();
     metrics.recordEditorPresentationCanonicalWrite();
 
     expect(
       window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__,
-    ).toBeUndefined();
+    ).toBeDefined();
+    expect(metrics.getEditorPresentationPhase0Snapshot()).toMatchObject({
+      enabled: false,
+      counters: { canonicalWriteCount: 0, rawInputCount: 0 },
+    });
+
+    document
+      .querySelector<HTMLButtonElement>(
+        '[data-adr187-metrics-command="enable"]',
+      )
+      ?.click();
+    metrics.recordEditorPresentationRawInput();
+    metrics.recordEditorPresentationCanonicalWrite();
+    expect(metrics.getEditorPresentationPhase0Snapshot()).toMatchObject({
+      enabled: true,
+      counters: { canonicalWriteCount: 1, rawInputCount: 1 },
+    });
+    document
+      .querySelector<HTMLButtonElement>(
+        '[data-adr187-metrics-command="snapshot"]',
+      )
+      ?.click();
+    expect(
+      JSON.parse(
+        document.documentElement.dataset.compositionAdr187Metrics ?? "{}",
+      ),
+    ).toMatchObject({
+      enabled: true,
+      counters: { canonicalWriteCount: 1, rawInputCount: 1 },
+    });
+
+    document
+      .querySelector<HTMLButtonElement>(
+        '[data-adr187-metrics-command="disable"]',
+      )
+      ?.click();
     expect(metrics.getEditorPresentationPhase0Snapshot()).toMatchObject({
       enabled: false,
       counters: { canonicalWriteCount: 0, rawInputCount: 0 },
@@ -64,6 +105,17 @@ describe("ADR-187 Phase 0 presentation metrics", () => {
       terminalEventCount: 1,
     });
     expect(snapshot.counters.previewFullDocumentBytes).toBeGreaterThan(0);
+    expect(snapshot.beforeLastTerminal?.counters).toMatchObject({
+      canonicalWriteCount: 1,
+      rawInputCount: 1,
+      staleCallbackAfterTerminalCount: 0,
+      terminalEventCount: 0,
+    });
+    expect(snapshot.beforeFirstCanonicalWrite?.counters).toMatchObject({
+      canonicalWriteCount: 0,
+      frameApplyCount: 1,
+      rawInputCount: 1,
+    });
     expect(snapshot.durations.frameApply).toEqual({
       count: 1,
       max: 4,

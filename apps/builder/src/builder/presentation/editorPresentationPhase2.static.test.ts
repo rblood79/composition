@@ -62,17 +62,13 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(action).toContain("presentation.baseFills.map");
   });
 
-  it("picker owner switch는 migrated/legacy 중 한 경로만 실행한다", async () => {
+  it("picker owner switch는 migrated owner 또는 commit-only fallback만 실행한다", async () => {
     const section = await source("../panels/styles/sections/FillSection.tsx");
     const picker = await source(
       "../panels/styles/components/ColorPickerPanel.tsx",
     );
     const previewGuard = section.indexOf(
       "if (previewFirstFillColorPresentation(firstFill.id, color)) return;",
-    );
-    const legacyPreview = section.indexOf(
-      "updateFillPreviewThrottled(firstFill.id",
-      previewGuard,
     );
     const commitGuard = section.indexOf(
       "if (commitFirstFillColorPresentation(firstFill.id, color)) return;",
@@ -82,13 +78,12 @@ describe("ADR-187 Phase 2 migration guards", () => {
       commitGuard,
     );
     expect(previewGuard).toBeGreaterThan(-1);
-    expect(legacyPreview).toBeGreaterThan(previewGuard);
     expect(commitGuard).toBeGreaterThan(-1);
     expect(legacyCommit).toBeGreaterThan(commitGuard);
+    expect(section).not.toContain("updateFillPreviewThrottled");
     expect(picker).toContain("if (presentationOwnsFrameScheduling)");
-    expect(picker.indexOf("if (presentationOwnsFrameScheduling)")).toBeLessThan(
-      picker.indexOf("requestAnimationFrame", picker.indexOf("handleChange")),
-    );
+    expect(picker).not.toContain("requestAnimationFrame");
+    expect(picker).not.toContain("cancelAnimationFrame");
   });
 
   it("borderColor picker는 style presentation owner를 사용하고 fallback은 단일 경로다", async () => {

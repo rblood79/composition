@@ -936,7 +936,10 @@ Phase 5의 allowlist gate를 통과한 항목만 진행한다.
 
 ### Phase 5 — continuous editor migration과 structure 판정
 
-**진행 상태: Phase 5 implementation allowlist complete; final populated live gate pending — 2026-08-24 (single-fill gradient stop + fill opacity + border color + box-shadow paint + continuous shadow editor + Text/Button color + Modified Styles color + explicit Modified Styles opacity + explicit opacity `1` materialization + targeted width/height/padding/gap + spacing shorthand/longhand normalization + fixed Text fontSize/fontWeight + text/resource/structure residual slices).**
+**진행 상태: Complete — 2026-08-24 (Phase 0~~6 / G0~~G8 PASS).** Phase 5 allowlist와
+Phase 6 legacy fill cutover를 완료했고, 정확한 Builder URL의 5초 이상 native pointer
+trace 5회에서 drag hot path invariant, CSS Preview↔Skia parity, console/violation 0을
+확인했다. 근거는 [Phase 6 G8 live parity](./187-phase-6-g8-live-parity.md)다.
 여기서 width/height 승격 범위는 generic non-grid in-flow multi-sibling fixture이며,
 absolute leaf의 내부 bounds 계측과 grid/intrinsic/structure/resource는 기존
 commit-only fail-closed 경계를 유지한다.
@@ -1044,16 +1047,25 @@ Phase 6 legacy 제거 및 G0~G8 전체 조건을 별도로 만족한 뒤에 판�
 
 ### Phase 6 — legacy 제거와 final verification
 
-- `ColorPickerPanel` 외부 preview RAF 제거
-- `useFillActions.updateFillPreviewThrottled`와 pending refs 제거
-- `updateSelectedFillsPreview*`, presentation 목적 `prePreviewElement` 제거 또는 commit
-  history에 필요한 canonical adapter로 축소
-- paint preview 목적 `layoutVersion++` 테스트를 반대 단언으로 교체
-- legacy-first/canonical-second preview sync 제거
-- drag 중 canonical document Preview resend 금지 static/runtime guard
-- legacy 5-symbol consumer 파일의 독립 분류 literal 재도입 금지 guard
-- raw projection/synthetic id protocol 입력 금지 guard
-- G7/G8, changelog 반영
+- [x] `ColorPickerPanel` 외부 preview RAF 제거
+- [x] `useFillActions.updateFillPreviewThrottled`와 pending refs 제거
+- [x] `updateSelectedFillsPreview*` 제거. `prePreviewElement`는 미-migrated style
+      commit history fallback에만 남긴다.
+- [x] migrated fill paint preview의 `layoutVersion++` write와 테스트를 제거하고
+      미지원 fill은 commit-only로 fail-closed한다.
+- [x] presentation owner가 없는 공용 `PropertyColor`는 raw input legacy preview를
+      호출하지 않고 commit-only로 fail-closed한다.
+- [x] virtual fill의 최초 생성은 raw input이 아니라 pointer terminal에서 한 번만
+      수행해 canonical/history/persist drag write를 막는다.
+- [x] secondary `FillLayerRow`의 optional raw preview seam을 제거하고 color/gradient/
+      opacity raw callback을 명시적 no-op, terminal callback을 commit-only로 고정한다.
+- [x] legacy-first/canonical-second preview sync 제거
+- [x] drag 중 canonical document Preview resend 금지 static/runtime guard
+- [x] legacy 5-symbol consumer 파일의 독립 분류 literal 재도입 금지 guard
+- [x] raw projection/synthetic id protocol 입력 금지 guard
+- [x] fill legacy cleanup static guard와 changelog/ADR evidence 반영
+- [x] G7/G8 최종 populated Builder trace, Preview cross-check, console 0 —
+      [live evidence](./187-phase-6-g8-live-parity.md)
 
 Implemented 승격 조건은 Phase 0~~6과 G0~~G8 전부 통과다. paint runtime만 완료되고
 layout/structure가 별도 ADR로 분리되면 ADR 본문에 실제 범위를 명시한 addendum과
@@ -1189,7 +1201,7 @@ renderer output이 stale이면 실패다.
 ## 9. 완료 체크리스트
 
 - [x] Phase 0 production baseline과 counter evidence가 있다.
-- [ ] Hard Constraint 1~12가 각각 test/trace/gate에 연결된다.
+- [x] Hard Constraint 1~12가 각각 test/trace/gate에 연결된다.
 - [x] descriptor inventory 100%와 unknown RED fixture가 있다.
 - [x] neutral registry에서 5-symbol view가 파생되고 frozen baseline parity/정적 guard를
       통과한다.
@@ -1207,7 +1219,8 @@ renderer output이 stale이면 실패다.
 - [x] layout lane의 affected subtree 계약이 targeted allowlist 범위에서 통과했다.
       일반 layout/structure는 ADR-188의 commit-only fail-closed 범위로 명시 분리됐다.
 - [x] structure는 분류만 지원하고 continuous runtime 진입은 G2에서 fail-closed한다.
-- [ ] migrated editor의 old preview/RAF/dual-write 경로가 제거됐다.
+- [x] migrated fill editor의 old preview/RAF/dual-write 경로가 제거됐다. 미지원
+      layout/structure는 ADR-188 commit-only 경계로 유지한다.
 - [x] CSS↔Skia Preview cross-check와 populated Builder live smoke가 통과했다.
 - [x] targeted Vitest, typecheck, preflight, diff-check가 통과했다.
 - [x] `docs/CHANGELOG.md`와 ADR README 현황이 최종 상태에 맞게 갱신됐다.

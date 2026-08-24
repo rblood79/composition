@@ -20,7 +20,6 @@ import { ColorInputModeSelector } from "./ColorInputModeSelector";
 import { ColorInputFields } from "./ColorInputFields";
 import { EyeDropperButton } from "./EyeDropperButton";
 import {
-  recordEditorPresentationControlRaf,
   recordEditorPresentationRawInput,
   recordEditorPresentationTerminalEvent,
 } from "../../../performance/editorPresentationPhase0Metrics";
@@ -69,19 +68,7 @@ function ColorPickerPanelInner({
   );
   const lastSavedRef = useRef<string>(initialValue);
 
-  // RAF 스로틀: 외부 preview onChange만 프레임당 1회로 제한
-  // 로컬 색상 상태는 즉시 반영해 pointerdown 첫 프레임 좌표 불일치를 막는다.
-  const localRafRef = useRef<number | null>(null);
-  const latestColorRef = useRef<Color | null>(null);
   const lastResetKeyRef = useRef(resetKey);
-
-  useEffect(() => {
-    return () => {
-      if (localRafRef.current !== null) {
-        cancelAnimationFrame(localRafRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (lastResetKeyRef.current === resetKey) {
@@ -94,44 +81,22 @@ function ColorPickerPanelInner({
     lastSavedRef.current = parsed.toString("hexa");
   }, [initialValue, resetKey]);
 
-  // 드래그 중: 로컬 상태는 즉시 갱신, 외부 preview만 RAF 스로틀
+  // 드래그 중: 로컬 상태와 presentation runtime 입력을 즉시 갱신한다.
+  // 프레임 배칭은 editor presentation runtime 단일 owner가 담당한다.
   const handleChange = useCallback(
     (color: Color | null) => {
       if (!color) return;
       recordEditorPresentationRawInput();
       setLocalColor(color);
-      latestColorRef.current = color;
-
-      if (presentationOwnsFrameScheduling) {
-        onChange(color.toString("hexa"));
-        return;
-      }
-
-      if (localRafRef.current !== null) return;
-
-      localRafRef.current = requestAnimationFrame(() => {
-        const startedAt = performance.now();
-        localRafRef.current = null;
-        const latest = latestColorRef.current;
-        if (!latest) return;
-        onChange(latest.toString("hexa"));
-        recordEditorPresentationControlRaf(performance.now() - startedAt);
-      });
+      onChange(color.toString("hexa"));
     },
-    [onChange, presentationOwnsFrameScheduling],
+    [onChange],
   );
 
-  // 드래그 종료: 보류 중인 RAF 취소 + 최종 값 flush + 실제 저장
+  // 드래그 종료: 최종 값 flush + 실제 저장
   const handleChangeEnd = useCallback(
     (color: Color) => {
       recordEditorPresentationTerminalEvent();
-      // 보류 중인 RAF 취소 (이중 업데이트 방지)
-      if (localRafRef.current !== null) {
-        cancelAnimationFrame(localRafRef.current);
-        localRafRef.current = null;
-      }
-      latestColorRef.current = null;
-
       // 최종 색상으로 로컬 상태 동기화
       setLocalColor(color);
 

@@ -57,14 +57,12 @@ function SortableFillRow({
   fill,
   onToggle,
   onUpdate,
-  onUpdatePreview,
   onRemove,
   onTypeChange,
 }: {
   fill: FillItem;
   onToggle: (id: string) => void;
   onUpdate: (id: string, updates: Partial<FillItem>) => void;
-  onUpdatePreview: (id: string, updates: Partial<FillItem>) => void;
   onRemove: (id: string) => void;
   onTypeChange: (fillId: string, newType: FillType) => void;
 }) {
@@ -84,7 +82,6 @@ function SortableFillRow({
         fill={fill}
         onToggle={onToggle}
         onUpdate={onUpdate}
-        onUpdatePreview={onUpdatePreview}
         onRemove={onRemove}
         onTypeChange={onTypeChange}
       />
@@ -97,14 +94,8 @@ function SortableFillRow({
  */
 const FillSectionContent = memo(function FillSectionContent() {
   const { fills } = useFillValues();
-  const {
-    removeFill,
-    reorderFill,
-    toggleFill,
-    updateFill,
-    updateFillPreviewThrottled,
-    changeFillType,
-  } = useFillActions();
+  const { removeFill, reorderFill, toggleFill, updateFill, changeFillType } =
+    useFillActions();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -150,7 +141,6 @@ const FillSectionContent = memo(function FillSectionContent() {
                 fill={fill}
                 onToggle={toggleFill}
                 onUpdate={updateFill}
-                onUpdatePreview={updateFillPreviewThrottled}
                 onRemove={removeFill}
                 onTypeChange={changeFillType}
               />
@@ -217,7 +207,6 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
     reorderFill,
     toggleFill,
     updateFill,
-    updateFillPreviewThrottled,
     isFirstFillPresentationOwned,
     previewFirstFillColorPresentation,
     commitFirstFillColorPresentation,
@@ -283,26 +272,19 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
 
   // popover 콜백: fills가 없으면 fill 생성과 동시에 색상 적용
   // fills가 있으면 기존 fill 업데이트
-  // 가상 fill 승격은 ensureColorFill(create-or-update) — 드래그 tick 간 표시
-  // (firstFill) 재렌더 지연이 있어도 중복 append 불가 (2026-07-15 소스 분열 해소).
+  // 가상 fill 승격은 pointer terminal의 ensureColorFill(create-or-update) 한 번으로
+  // 제한한다. raw input 중에는 canonical/history/persist write를 만들지 않는다.
   const handleColorChange = useCallback(
     (color: string) => {
       if (firstFill && firstFill.type === FillType.Color) {
         if (previewFirstFillColorPresentation(firstFill.id, color)) return;
-        updateFillPreviewThrottled(firstFill.id, {
-          color,
-        } as Partial<ColorFillItem>);
+        // Unsupported fill targets remain commit-only by design.
       } else if (!firstFill) {
-        // 가상 fill 상태 → 실제 fill 생성 (사용자가 색상을 변경한 순간)
-        ensureColorFill(color);
+        // Virtual fill creation is commit-only. Raw pointer input must not
+        // create canonical/history/persist writes before pointer terminal.
       }
     },
-    [
-      firstFill,
-      previewFirstFillColorPresentation,
-      updateFillPreviewThrottled,
-      ensureColorFill,
-    ],
+    [firstFill, previewFirstFillColorPresentation],
   );
 
   const handleColorChangeEnd = useCallback(
@@ -311,6 +293,7 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
         if (commitFirstFillColorPresentation(firstFill.id, color)) return;
         updateFill(firstFill.id, { color } as Partial<ColorFillItem>);
       } else if (!firstFill) {
+        // 가상 fill은 pointer terminal에서 정확히 한 번 실제 fill로 승격한다.
         ensureColorFill(color);
       }
     },
@@ -333,13 +316,12 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
       ) {
         return;
       }
-      if (firstFill) updateFillPreviewThrottled(firstFill.id, updates);
+      // Unsupported gradient/mesh targets remain commit-only by design.
     },
     [
       firstFill,
       presentationOwnsGradientStops,
       previewFirstFillPaintPresentation,
-      updateFillPreviewThrottled,
     ],
   );
 
@@ -371,14 +353,9 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
       ) {
         return;
       }
-      if (firstFill) updateFillPreviewThrottled(firstFill.id, { opacity });
+      // Unsupported paint targets remain commit-only by design.
     },
-    [
-      firstFill,
-      presentationOwnsPaint,
-      previewFirstFillPaintPresentation,
-      updateFillPreviewThrottled,
-    ],
+    [firstFill, presentationOwnsPaint, previewFirstFillPaintPresentation],
   );
 
   const handleFillOpacityChangeEnd = useCallback(
@@ -503,7 +480,6 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
                   fill={fill}
                   onToggle={toggleFill}
                   onUpdate={updateFill}
-                  onUpdatePreview={updateFillPreviewThrottled}
                   onRemove={removeFill}
                   onTypeChange={changeFillType}
                 />

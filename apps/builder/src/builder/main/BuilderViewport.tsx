@@ -1,5 +1,5 @@
 import React from "react";
-import { ContextMenuProvider } from "../components";
+import { ContextMenuProvider } from "../components/overlay/contextMenu/useContextMenu";
 
 export interface BuilderViewportProps {
   children: React.ReactNode;

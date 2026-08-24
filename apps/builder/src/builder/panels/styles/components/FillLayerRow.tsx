@@ -40,16 +40,20 @@ interface FillLayerRowProps {
   fill: FillItem;
   onToggle: (fillId: string) => void;
   onUpdate: (fillId: string, updates: Partial<FillItem>) => void;
-  onUpdatePreview: (fillId: string, updates: Partial<FillItem>) => void;
   onRemove: (fillId: string) => void;
   onTypeChange: (fillId: string, newType: FillType) => void;
 }
+
+// 첫 fill 전용 presentation owner가 없는 secondary row는 terminal commit-only다.
+// raw callback에 canonical updater를 다시 연결하지 않도록 명시적인 no-op을 전달한다.
+const ignoreContinuousColorChange = (_color: string): void => {};
+const ignoreContinuousOpacityChange = (_opacity: number): void => {};
+const ignoreContinuousFillUpdate = (_updates: Partial<FillItem>): void => {};
 
 export const FillLayerRow = memo(function FillLayerRow({
   fill,
   onToggle,
   onUpdate,
-  onUpdatePreview,
   onRemove,
   onTypeChange,
 }: FillLayerRowProps) {
@@ -80,15 +84,6 @@ export const FillLayerRow = memo(function FillLayerRow({
     [fill.id, onUpdate],
   );
 
-  const handleColorChange = useCallback(
-    (color: string) => {
-      if (isColor) {
-        onUpdatePreview(fill.id, { color } as Partial<ColorFillItem>);
-      }
-    },
-    [fill.id, isColor, onUpdatePreview],
-  );
-
   const handleColorChangeEnd = useCallback(
     (color: string) => {
       if (isColor) {
@@ -96,13 +91,6 @@ export const FillLayerRow = memo(function FillLayerRow({
       }
     },
     [fill.id, isColor, onUpdate],
-  );
-
-  const handleFillUpdate = useCallback(
-    (updates: Partial<FillItem>) => {
-      onUpdatePreview(fill.id, updates);
-    },
-    [fill.id, onUpdatePreview],
   );
 
   const handleFillUpdateEnd = useCallback(
@@ -156,11 +144,11 @@ export const FillLayerRow = memo(function FillLayerRow({
         >
           <FillDetailPopover
             fill={fill}
-            onColorChange={handleColorChange}
+            onColorChange={ignoreContinuousColorChange}
             onColorChangeEnd={handleColorChangeEnd}
-            onOpacityChange={(opacity) => onUpdatePreview(fill.id, { opacity })}
+            onOpacityChange={ignoreContinuousOpacityChange}
             onOpacityChangeEnd={(opacity) => onUpdate(fill.id, { opacity })}
-            onUpdate={handleFillUpdate}
+            onUpdate={ignoreContinuousFillUpdate}
             onUpdateEnd={handleFillUpdateEnd}
             onTypeChange={handleTypeChange}
           />

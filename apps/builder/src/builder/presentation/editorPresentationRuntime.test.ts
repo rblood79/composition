@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   EditorPresentationTransactionRuntime,
   type EditorPresentationFrameScheduler,
@@ -9,6 +9,15 @@ import type {
   EditorPresentationFinishResult,
   EditorPresentationTargetRef,
 } from "./editorPresentationTypes";
+import {
+  disableEditorPresentationPhase0Metrics,
+  enableEditorPresentationPhase0Metrics,
+  getEditorPresentationPhase0Snapshot,
+} from "../performance/editorPresentationPhase0Metrics";
+
+afterEach(() => {
+  disableEditorPresentationPhase0Metrics();
+});
 
 interface FakeFrameScheduler extends EditorPresentationFrameScheduler {
   flush(): void;
@@ -133,6 +142,20 @@ describe("EditorPresentationTransactionRuntime", () => {
     expect(overlays[0]?.descriptor).toEqual(opacityDescriptor(1));
     expect(listener).toHaveBeenCalledTimes(1);
     expect(runtime.getDiagnostics()).toMatchObject({ frameApplyCount: 1 });
+  });
+
+  it("records the real frame apply duration when ADR-187 metrics are enabled", () => {
+    enableEditorPresentationPhase0Metrics();
+    const { runtime, scheduler } = createRuntime();
+    const handle = begin(runtime);
+
+    handle.publish(opacityDescriptor(0.5));
+    scheduler.flush();
+
+    expect(getEditorPresentationPhase0Snapshot()).toMatchObject({
+      counters: { frameApplyCount: 1 },
+      durations: { frameApply: { count: 1 } },
+    });
   });
 
   it("preserves typed inherited-subtree propagation at the runtime boundary", () => {

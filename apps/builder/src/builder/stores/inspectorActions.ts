@@ -480,7 +480,7 @@ export interface InspectorActionsState {
   // Actions for updating selected element
   updateSelectedStyle: (property: string, value: string) => void;
   updateSelectedStyles: (styles: Record<string, string>) => void;
-  /** 실시간 프리뷰: 히스토리/DB 저장 없이 캔버스만 업데이트 */
+  /** 비-migrated layout/structure editor의 commit-only fallback용 legacy preview */
   updateSelectedStylePreview: (property: string, value: string) => void;
   /**
    * ADR-154: breakpoint 별 가시성 override 편집 (tablet/mobile 만).
@@ -525,10 +525,6 @@ export interface InspectorActionsState {
   // Fill Actions (Color Picker Phase 1)
   /** fills 배열 업데이트 + style.backgroundColor 동기화 + 히스토리/DB 저장 */
   updateSelectedFills: (fills: FillItem[]) => void;
-  /** fills 실시간 프리뷰: 히스토리/DB 저장 없이 캔버스만 업데이트 */
-  updateSelectedFillsPreview: (fills: FillItem[]) => void;
-  /** fills 경량 프리뷰: CSS 변환 없이 fills만 업데이트 (드래그 전용) */
-  updateSelectedFillsPreviewLightweight: (fills: FillItem[]) => void;
 
   // ComputedStyle은 DB 저장 없이 메모리만 업데이트 (런타임 값)
   updateSelectedComputedStyle: (computedStyle: Record<string, string>) => void;
@@ -1332,117 +1328,6 @@ export const createInspectorActionsSlice: StateCreator<
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
           : undefined,
-      );
-    },
-
-    updateSelectedFillsPreview: (fills) => {
-      const { elements, selectedElementId } = get();
-      if (!selectedElementId) return;
-
-      const element = getInspectorElementById(elements, selectedElementId);
-      if (!element) return;
-
-      // 첫 프리뷰 시 원본 요소 스냅샷 저장 (히스토리 정확성)
-      if (!prePreviewElement || prePreviewElement.id !== selectedElementId) {
-        prePreviewElement = structuredClone(element);
-      }
-
-      const resolvedElement = getResolvedInspectorElement(
-        element,
-        getInspectorLookupElements(elements),
-      );
-      const currentStyle = sanitizeFillDerivedStylePatch(
-        (resolvedElement.props?.style as Record<string, string>) || {},
-        true,
-      );
-
-      const newProps = {
-        ...getInspectorWritableProps(element),
-        style: currentStyle,
-      };
-      const updatedElement = buildInspectorUpdatedElement(element, newProps, {
-        fills,
-      });
-
-      // elementsMap만 업데이트 (캔버스 렌더링용)
-      // selectedElementProps는 업데이트하지 않음 (Jotai atom value 유지)
-      const newElements = replaceInspectorElement(
-        elements,
-        selectedElementId,
-        updatedElement,
-      );
-      const newElementsMap = buildInspectorElementMap(newElements);
-      newElementsMap.set(selectedElementId, updatedElement);
-
-      // updateSelectedStylePreview 와 동일 tail — layoutVersion bump + canonical
-      // sync 가 없으면 Skia 재렌더 trigger 부재로 캔버스 preview 무반영 (DOM
-      // preview iframe 만 elements 구독으로 반영되던 비대칭, 2026-08-13 실측).
-      set((prevState) => {
-        const dirtyIds = new Set(prevState.dirtyElementIds);
-        collectDirtyElementSubtree(
-          selectedElementId,
-          buildInspectorChildrenByParent(prevState.elements),
-          dirtyIds,
-        );
-        return {
-          elements: newElements,
-          elementsMap: newElementsMap,
-          layoutVersion: prevState.layoutVersion + 1,
-          dirtyElementIds: dirtyIds,
-        } as Partial<CombinedState>;
-      });
-      syncInspectorElementToCanonical(updatedElement);
-    },
-
-    updateSelectedFillsPreviewLightweight: (fills) => {
-      const startedAt = performance.now();
-      const { elements, selectedElementId } = get();
-      if (!selectedElementId) return;
-
-      const element = getInspectorElementById(elements, selectedElementId);
-      if (!element) return;
-
-      // 첫 프리뷰 시 원본 요소 스냅샷 저장 (히스토리 정확성)
-      if (!prePreviewElement || prePreviewElement.id !== selectedElementId) {
-        prePreviewElement = structuredClone(element);
-      }
-
-      // CSS 변환 없이 fills만 업데이트 (드래그 성능 최적화)
-      const updatedElement: Element = { ...element, fills };
-
-      // 🚀 CSS Preview도 drag 중 fills를 반영해야 하므로 elements 배열도 동기화한다.
-      // selectedElementProps는 계속 건드리지 않아 패널 입력 리렌더는 막는다.
-      const newElements = replaceInspectorElement(
-        elements,
-        selectedElementId,
-        updatedElement,
-      );
-      const newElementsMap = buildInspectorElementMap(newElements);
-      newElementsMap.set(selectedElementId, updatedElement);
-
-      // updateSelectedStylePreview 와 동일 tail (위 updateSelectedFillsPreview
-      // 주석 참조) — Skia 는 element.fills 를 직접 소비하므로 (buildBoxNodeData /
-      // buildSpecNodeData::fillsToSkia*) CSS 변환 생략은 유지하고 재렌더
-      // trigger 만 보강한다. RAF throttle 은 호출부 (updateFillPreviewThrottled)
-      // 가 보장 — 프레임당 1회.
-      set((prevState) => {
-        const dirtyIds = new Set(prevState.dirtyElementIds);
-        collectDirtyElementSubtree(
-          selectedElementId,
-          buildInspectorChildrenByParent(prevState.elements),
-          dirtyIds,
-        );
-        return {
-          elements: newElements,
-          elementsMap: newElementsMap,
-          layoutVersion: prevState.layoutVersion + 1,
-          dirtyElementIds: dirtyIds,
-        } as Partial<CombinedState>;
-      });
-      window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__?.recordLegacyWrite();
-      syncInspectorElementToCanonical(updatedElement);
-      window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__?.recordFrameApply(
-        performance.now() - startedAt,
       );
     },
 

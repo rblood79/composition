@@ -25,6 +25,10 @@ import {
   updateEditorPresentationInvalidation,
 } from "./editorPresentationInvalidation";
 import { normalizePresentationSpacingPatch } from "./editorPresentationStyleNormalization";
+import {
+  isEditorPresentationPhase0MetricsEnabled,
+  recordEditorPresentationFrameApply,
+} from "../performance/editorPresentationPhase0Metrics";
 
 export interface EditorPresentationFrameScheduler {
   cancel(handle: number): void;
@@ -631,6 +635,8 @@ export class EditorPresentationTransactionRuntime {
   }
 
   #flushFrame(): void {
+    const metricsEnabled = isEditorPresentationPhase0MetricsEnabled();
+    const frameApplyStartedAt = metricsEnabled ? performance.now() : 0;
     const pendingSessionIds = [...this.#pendingSessionIds];
     this.#pendingSessionIds.clear();
     const changedSessions = new Map<string, RuntimeSession>();
@@ -688,6 +694,11 @@ export class EditorPresentationTransactionRuntime {
     if (changedSessions.size === 0) return;
     this.#frameApplyCount += 1;
     this.#applySnapshotChanges(changedSessions, overlayChanges);
+    if (metricsEnabled) {
+      recordEditorPresentationFrameApply(
+        performance.now() - frameApplyStartedAt,
+      );
+    }
   }
 
   #cancelScheduledFrameIfIdle(): void {

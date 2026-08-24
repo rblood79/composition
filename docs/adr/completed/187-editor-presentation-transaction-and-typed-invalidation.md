@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-22
+Implemented — 2026-08-24
 
 ## Context
 
@@ -223,6 +223,15 @@ lifecycle 중복이라는 기술·유지보수 HIGH를 남긴다.
 
 **대안 D — Editor Presentation Transaction + 중앙 typed invalidation**을 채택한다.
 
+**위험 수용 근거:** 대안 D의 기술·유지보수·마이그레이션 위험은 모두 MEDIUM이지만
+실패 범위가 semantic target/session 하나로 한정되고, revision/conflict 검사는
+fail-closed하며, 미지원 editor는 commit-only로 남길 수 있다. 중앙 runtime·classifier·
+protocol의 유지 비용은 control별 scheduler/store preview/renderer 해석 중복을 제거하는
+대가로 수용한다. 마이그레이션은 property allowlist와 단계별 G3/G4/G7 gate로 진행하고,
+각 slice는 legacy owner 또는 rollback switch로 독립 복귀할 수 있다. 따라서 성능 HIGH를
+남기는 A/B나 lifecycle·renderer parity HIGH를 남기는 C보다, HIGH+가 0이고 검증·복구
+경계가 명시된 D의 MEDIUM 잔여 위험이 운영상 더 작다.
+
 1. Builder 내부에 `EditorPresentationTransactionRuntime`을 둔다. runtime은
    immutable canonical reference와 session별 small overlay, pending latest
    descriptor, monotonic revision, 한 개의 frame scheduler를 소유한다.
@@ -275,7 +284,7 @@ lifecycle 중복이라는 기술·유지보수 HIGH를 남긴다.
 - **C 기각**: 단일 picker는 빠르게 만들 수 있으나 editor 수에 비례해 lifecycle과
   renderer 해석이 복제되어 완성도와 장기 성능을 함께 잃는다.
 
-> 구현 상세: [187-editor-presentation-transaction-and-typed-invalidation-breakdown.md](design/187-editor-presentation-transaction-and-typed-invalidation-breakdown.md)
+> 구현 상세: [187-editor-presentation-transaction-and-typed-invalidation-breakdown.md](../design/187-editor-presentation-transaction-and-typed-invalidation-breakdown.md)
 
 ## Risks
 
@@ -307,6 +316,16 @@ lifecycle 중복이라는 기술·유지보수 HIGH를 남긴다.
 | G6 layout/structure   | Phase 4 | layout descriptor는 affected subtree만 재계산하고 비영향 page/node 값·identity 유지. structure는 affected ancestry 외 full document traversal을 만들지 않거나, 불가하면 continuous structure publish를 비지원으로 고정                                                                                                                                                                                                 | lane 축소 또는 별도 ADR 분리                             |
 | G7 migration/cleanup  | Phase 5 | migrated editor에서 중첩 RAF, `updateSelected*Preview*`, presentation 목적 `layoutVersion++`, legacy-first/canonical-second 0건. 5-symbol consumer 파일의 독립 literal 분류 source 0건이며 static guard가 의도적 RED fixture를 잡는다                                                                                                                                                                                  | legacy 삭제·cutover 보류                                 |
 | G8 final              | Phase 6 | targeted Vitest, `pnpm run codex:typecheck`, `pnpm run codex:preflight`, `git diff --check`, populated Builder 120Hz trace, Preview cross-check, console error 0. 사용자-가시 성능 회귀이므로 `docs/CHANGELOG.md` 반영                                                                                                                                                                                                 | 실패 bucket의 phase로 복귀, ADR은 Proposed/Accepted 유지 |
+
+> **Phase 6 closure — 2026-08-24:** ColorPicker 외부 RAF, fill hook의
+> `updateFillPreviewThrottled`, store의 `updateSelectedFillsPreview*`를 제거했고,
+> 미지원 fill 연속 편집은 commit-only로 fail-closed했다. 정확한 Builder URL의
+> opt-in 계측으로 5초 이상 native pointer trace 5회를 수행해 drag 중
+> canonical/legacy/layout/full-document/full-rebuild 0, frame apply p95 `0.2ms`,
+> p99 최대 `0.3ms`, max `1.6ms`, terminal canonical/full-document 각 1회를 확인했다.
+> Compare Mode CSS Preview↔Skia parity와 현재 로드 이후 console/violation 0을 포함해
+> G0~~G8을 종결했다. 근거:
+> [Phase 6 G8 live parity](../design/187-phase-6-g8-live-parity.md).
 
 ## Consequences
 

@@ -4,7 +4,7 @@
 
 Implemented — 2026-08-22
 
-Related: [ADR-187 에디터 프레젠테이션 트랜잭션과 타입 기반 무효화](../187-editor-presentation-transaction-and-typed-invalidation.md)
+Related: [ADR-187 에디터 프레젠테이션 트랜잭션과 타입 기반 무효화](187-editor-presentation-transaction-and-typed-invalidation.md)
 
 ## Context
 
