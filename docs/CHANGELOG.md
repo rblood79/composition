@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-190 Phase 0~2 — 일반 편집 경로의 sparse commit lane 진입] - 2026-08-24
+
+### Performance
+
+- **패널·캔버스·AI 편집이 대형 문서에서 매번 전체 재기록하던 문제**:
+  - ADR-189 가 만든 sparse commit lane 의 진입점이 presentation 터미널
+    descriptor 하나뿐이라, `updateElementProps` 로 들어오는 일반 편집
+    (Properties 패널 / 캔버스 텍스트 편집 / AI tool / preview 역방향 동기화) 은
+    patch 큐에 진입조차 못 하고 전부 full rebuild 를 탔다.
+  - canonical store 경계에 descriptor emitter 를 배선해 같은 lane 을 태운다.
+  - 5,000 요소 문서에서 한 요소 스타일 편집: `render.frame` p95
+    **73.1ms → 2.6ms**, content 재기록 69.2ms → 0.
+  - 1,000 요소 문서에서 컨테이너 자식 추가/삭제: **22.3ms → 1.2ms** /
+    **19.4ms → 1.1ms**. body 직속 추가는 18.8ms → 7.4ms (dirty root 가 body 라
+    이득이 작다 — 임계 판정은 후속 phase).
+  - 위치: `apps/builder/src/builder/presentation/store*CommitDescriptor*.ts`,
+    `apps/builder/src/builder/stores/utils/{elementUpdate,elementCreation,elementRemoval}.ts`,
+    `apps/builder/src/builder/stores/elements.ts`
+
+### Architecture
+
+- descriptor 변환은 **fail-closed** 다 — patch 최상위가 `style` 단독이 아니거나,
+  effect registry 미등재 style 키가 하나라도 섞이거나, projected id 면 descriptor
+  를 내지 않고 기존 full rebuild 로 수렴한다. 최악이 종전 성능이라 안전 하한이
+  유지된다.
+- structure 축(추가/삭제/순서)의 dirty root 는 대상이 아니라 **부모**이며,
+  삭제는 post-commit 트리에서 대상이 사라지므로 mutation 전 스냅샷의 부모
+  참조를 payload 로 싣는다.
+- commit lane sink 계약을 배열로 정의해 한 편집이 만든 여러 mutation 을 한 번에
+  전달한다 — 개별 전달 시 `pendingCommit` 단일 슬롯이 앞선 patch 를 덮어썼다.
+- `reparent`/`ref`/`slot` 은 출발지·도착지 양쪽이 dirty 라 emit 대상이 아니며
+  기존 full rebuild 를 유지한다.
+
+### Verification
+
+- patch 경로와 full rebuild 경로의 backing buffer 비교: `1440 × 852`
+  differing pixels **0**, max/mean channel delta 0.
+- 신규/삭제 노드의 렌더 정합성 12/12 (추가는 store·Skia registry 양쪽 존재,
+  삭제는 양쪽 소멸), console error 0.
+
 ## [ADR-189 Phase 5 — sparse damage Round 2 closure] - 2026-08-24
 
 ### Bug Fixes
