@@ -106,15 +106,15 @@ Phase 0 inventory 의 action 을 실제 배선 결과로 재분류했다.
 
 ### 의도적 full rebuild (emit 하지 않음)
 
-| 경로                                                                                         | 사유                                                                                                                                                                   |
-| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `updateElement`                                                                              | canonical sync 가 `set` 콜백 **안**에 있어 emit 계약 지점(canonical 뒤·set 앞)이 없다. `parent_id`/`page_id`/`responsive` 등 구조 필드도 실려 style.patch 로 서술 불가 |
-| `undo` / `redo` / `goToHistoryIndex`                                                         | `setElementsCanonicalPrimary` 로 문서를 통째 교체 (`historyActions.ts:105`) — 요소 단위 mutation 이 아니다                                                             |
-| 캔버스 드래그의 reparent (`moveElementToCanonicalTarget`)                                    | 출발지·도착지 양쪽 dirty (`useDragBridge.ts:910,969`). 같은 드래그의 좌표 갱신은 `batchUpdateElementProps` 경유라 §1 규칙을 따른다                                     |
-| `moveElementToContainer`                                                                     | reparent. 남은 호출자는 레이어 트리 1곳                                                                                                                                |
-| `createInstance` / `detachInstance` / `toggleComponentOrigin` / `resetInstanceOverrideField` | `applyElementSnapshotBatch` 로 N+1 요소를 한 번에 교체 — 다중 root (§1 경계 밖). `createInstance` 는 호출자 0건                                                        |
-| `batchUpdateElements`                                                                        | 호출자 0건 (dead action)                                                                                                                                               |
-| page-level (`appendPageShell` / `removePageLocal` / `updatePagePosition*`)                   | element subtree 범위 밖                                                                                                                                                |
+| 경로                                                                                         | 사유                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `updateElement`                                                                              | canonical sync 가 `set` 콜백 **안**에 있어 emit 계약 지점(canonical 뒤·set 앞)이 없다. `parent_id`/`page_id`/`responsive` 등 구조 필드도 실려 style.patch 로 서술 불가      |
+| `undo` / `redo` / `goToHistoryIndex`                                                         | `setElementsCanonicalPrimary` 로 문서를 통째 교체 (`historyActions.ts:105`) — 요소 단위 mutation 이 아니다                                                                  |
+| 캔버스 드래그의 reparent (`moveElementToCanonicalTarget`)                                    | 출발지·도착지 양쪽 dirty (`useDragBridge.ts:910,969`). 같은 드래그의 좌표 갱신은 `batchUpdateElementProps` 경유라 §1 규칙을 따른다                                          |
+| `moveElementToContainer`                                                                     | reparent. 남은 호출자는 레이어 트리 1곳                                                                                                                                     |
+| `createInstance` / `detachInstance` / `toggleComponentOrigin` / `resetInstanceOverrideField` | 요소 **통째 교체** — `reusable`/`componentName`/override 저장소 필드는 prop 축이라 style.patch·structure.patch 어느 쪽으로도 서술 불가 (§6). `createInstance` 는 호출자 0건 |
+| `batchUpdateElements`                                                                        | 호출자 0건 (dead action)                                                                                                                                                    |
+| page-level (`appendPageShell` / `removePageLocal` / `updatePagePosition*`)                   | element subtree 범위 밖                                                                                                                                                     |
 
 **AI tool 은 별도 배선이 필요 없었다** — `createElement`/`updateElement`/
 `deleteElement` 세 tool 이 각각 `addElement`/`updateElementProps`/`removeElement`
@@ -155,9 +155,67 @@ node apps/builder/scripts/adr190-multiroot-pixel-oracle.mjs
 
 ## 5. 잔존
 
-| 항목                                                  | 성격                                                                   |
-| ----------------------------------------------------- | ---------------------------------------------------------------------- |
-| commit patcher 의 다중 dirty root                     | **2026-08-24 해소** (§1 정정 — revision 부기 결함 수정)                |
-| `updateElement` 의 canonical sync 위치                | `set` 콜백 밖으로 빼면 emit 계약 지점이 생긴다 — 별도 리팩터링         |
-| instance snapshot batch (`applyElementSnapshotBatch`) | 다중 root 가 열렸으므로 재검토 가능 — `applyElementSnapshotBatch` 배선 |
-| 다중 선택 드래그의 UI 제스처 검증                     | **2026-08-24 완료** — 정렬 버튼·캔버스 드래그 모두 subtree build 2     |
+| 항목                                                  | 성격                                                                                       |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| commit patcher 의 다중 dirty root                     | **2026-08-24 해소** (§1 정정 — revision 부기 결함 수정)                                    |
+| `updateElement` 의 canonical sync 위치                | `set` 콜백 밖으로 빼면 emit 계약 지점이 생긴다 — 별도 리팩터링                             |
+| instance snapshot batch (`applyElementSnapshotBatch`) | **재검토 완료 (2026-08-24) — 보류.** 다중 root 제약은 사라졌으나 제외 사유가 바뀌었다 (§6) |
+| 다중 선택 드래그의 UI 제스처 검증                     | **2026-08-24 완료** — 정렬 버튼·캔버스 드래그 모두 subtree build 2                         |
+
+## 6. instance snapshot batch 재검토 — 제외 사유가 바뀌었다 (2026-08-24)
+
+§1 정정으로 "다중 root" 라는 제외 사유가 사라져 §2 의 instance 경로 4개를
+재검토했다. 결론은 **여전히 제외, 단 사유가 다르다**.
+
+### 6-1. 애초에 다중 root 가 아니었던 것이 2개
+
+- `instanceActions.ts:806` — `toggleComponentOrigin` 의 비-origin 분기.
+  `[element] → [nextElement]`, 정확히 1개
+- `instanceActions.ts:962` — `resetInstanceOverrideField`. 단일 요소 교체
+
+측정이 아니라 **함수 이름 단위로 묶여서** 제외됐다. 옛 전제가 옳았더라도 이
+둘은 잘못 분류된 것이다.
+
+### 6-2. 진짜 차단 요인 — descriptor 어휘에 prop 축이 없다
+
+두 경로 모두 `props.style` 변경이 아니다. 현행 descriptor 3종 중 어느 것도
+서술하지 못한다.
+
+| descriptor        | 성립 조건                                   | 근거                                   |
+| ----------------- | ------------------------------------------- | -------------------------------------- |
+| `style.patch`     | patch key 가 정확히 `style` **하나**일 때만 | `storeCommitDescriptor.ts:43`          |
+| `structure.patch` | 부모 dirty 로 환원되는 add / remove / order | `storeStructureCommitDescriptor.ts:21` |
+| `geometry.patch`  | x / y / width / height                      | `editorMutationEffectRegistry.ts` 등재 |
+
+실제 변경 내용은 요소 **통째 교체**다 — `reusable` / `componentName`
+(`instanceActions.ts:801-808`), override 저장소 필드 (`:917-937`).
+
+effect registry 에 `prop` 축은 이미 있으나
+(`editorMutationEffectRegistry.ts:478`) `reusable` / `componentName` 은
+미등재이고, 등재만으로 끝나지 않는다.
+
+### 6-3. `reusable` 은 무해한 표식이 아니다
+
+- `canvasSceneNode.ts:2811` — ListBoxItem / GridListItem / MenuItem 의 slot
+  자식을 `reusable !== true` 일 때 **접는다**. 값이 뒤집히면 자식 집합이 바뀌어
+  intrinsic size 가 달라지고, 부모 승격 판정이 필요해진다.
+- `canvasSceneNode.ts:543` — `frame` + `reusable === true` 는 페이지 scope 밖으로
+  나간다. **rootKey 자체가 바뀌므로** subtree splice 로 서술 불가다.
+
+즉 안전 범위를 "frame 제외 + collection item 3종 제외" 라는 **부정 목록**으로
+정의해야 한다. 나중에 fold 대상 타입이 하나 추가되면 조용히 깨지는 형태고, 이는
+ADR-190 R1 이 경계하는 stale 픽셀 실패 모양 그대로다.
+
+`resetInstanceOverrideField` 는 상대적으로 낫다 — 되돌리는 필드가 prop 축에
+등재돼 있으면 규칙 조회로 승격을 판정할 수 있다. 다만 `descendantPath` 분기는
+**자손**의 resolved props 를 바꾸므로 승격 산출 기준점이 어긋나 fail-closed 가
+필요하다.
+
+### 6-4. 판정 — 보류
+
+진입에는 `prop.patch` descriptor 축 신설이 전제다. 얻는 것은 드문 authoring
+조작 1회의 full rebuild 제거뿐이고 (N=5,000 기준 ~73ms **1회**, 프레임당 비용이
+아니다), `reusable` 쪽 안전 범위는 위와 같이 부서지기 쉽다. 비용·위험 대비
+이득이 작아 보류한다.
+
+**재개 조건**: `prop.patch` 축이 다른 이유로 도입될 때 함께 편입.

@@ -79,12 +79,12 @@ live 검증 첫 시도에서 `__composition_COMMIT_LANE_DEBUG__` 는 있는데
 
 ## 6. 잔존 (본 ADR 범위 밖)
 
-| 항목                                       | 다음 소유                                                       |
-| ------------------------------------------ | --------------------------------------------------------------- |
-| commit patcher 의 다중 dirty root          | **2026-08-24 해소** — ADR-189 revision 부기 결함 수정 (아래 §7) |
-| `updateElement` 의 canonical sync 위치     | 별도 리팩터링 (emit 계약 지점 확보)                             |
-| ADR-187 style allowlist 의 `%` 단위 미수용 | ADR-187 영역                                                    |
-| instance snapshot batch                    | 다중 root 가 열렸으므로 재검토 가능                             |
+| 항목                                       | 다음 소유                                                                                |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| commit patcher 의 다중 dirty root          | **2026-08-24 해소** — ADR-189 revision 부기 결함 수정 (아래 §7)                          |
+| `updateElement` 의 canonical sync 위치     | 별도 리팩터링 (emit 계약 지점 확보)                                                      |
+| ADR-187 style allowlist 의 `%` 단위 미수용 | ADR-187 영역                                                                             |
+| instance snapshot batch                    | **재검토 완료 (2026-08-24) — 보류.** `prop.patch` descriptor 축 신설이 전제 (Phase 3 §6) |
 
 ## 7. 후속 — 다중 dirty root 는 미지원이 아니라 결함이었다 (2026-08-24)
 
