@@ -1,6 +1,6 @@
 # ADR-190 Phase 3 / G3 — 잔여 경로 분류와 대량 mutation 판정
 
-> 본문: [../190-commit-descriptor-emitter-expansion.md](../190-commit-descriptor-emitter-expansion.md) ·
+> 본문: [../completed/190-commit-descriptor-emitter-expansion.md](../completed/190-commit-descriptor-emitter-expansion.md) ·
 > Phase 0: [190-phase-0-emitter-inventory.md](190-phase-0-emitter-inventory.md) ·
 > Phase 1: [190-phase-1-g1-style-emitter.md](190-phase-1-g1-style-emitter.md) ·
 > Phase 2: [190-phase-2-g2-structure-emitter.md](190-phase-2-g2-structure-emitter.md)

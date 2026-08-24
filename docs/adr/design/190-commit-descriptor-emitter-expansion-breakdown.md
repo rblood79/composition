@@ -1,6 +1,6 @@
 # ADR-190 구현 상세 — commit descriptor emitter 확장
 
-> 본문: [190-commit-descriptor-emitter-expansion.md](../190-commit-descriptor-emitter-expansion.md)
+> 본문: [../completed/190-commit-descriptor-emitter-expansion.md](../completed/190-commit-descriptor-emitter-expansion.md)
 
 ## 1. 전제·관점 4 질문 lock-in
 

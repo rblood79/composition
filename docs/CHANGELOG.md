@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [ADR-190 Phase 0~2 — 일반 편집 경로의 sparse commit lane 진입] - 2026-08-24
+## [ADR-190 Implemented — 일반 편집 경로의 sparse commit lane 진입] - 2026-08-24
 
 ### Performance
 
@@ -40,12 +40,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `reparent`/`ref`/`slot` 은 출발지·도착지 양쪽이 dirty 라 emit 대상이 아니며
   기존 full rebuild 를 유지한다.
 
+- 다중 선택 편집·정렬·다중 드래그처럼 한 번에 여러 요소를 바꾸는 편집은 종전
+  동작(전체 재기록)을 유지한다. commit patcher 가 한 commit 에 dirty root 를
+  하나만 처리하기 때문이며, 무익한 시도를 하지 않도록 막아 두었다.
+- 새 style 키를 도입하면서 무효화 registry 등재를 빠뜨리면 그 요소는 조용히
+  옛 경로로 돌아간다. 축별 거부 카운터로 그 상황을 판독할 수 있게 했다.
+
 ### Verification
 
 - patch 경로와 full rebuild 경로의 backing buffer 비교: `1440 × 852`
   differing pixels **0**, max/mean channel delta 0.
 - 신규/삭제 노드의 렌더 정합성 12/12 (추가는 store·Skia registry 양쪽 존재,
   삭제는 양쪽 소멸), console error 0.
+- 실제 빌더 조작으로 확인: 컴포넌트 팔레트 클릭 추가 / Delete 키 삭제 / ⌘Z
+  복원 — 각각 patch 경로 진입과 캔버스 반영을 확인했다.
 
 ## [ADR-189 Phase 5 — sparse damage Round 2 closure] - 2026-08-24
 

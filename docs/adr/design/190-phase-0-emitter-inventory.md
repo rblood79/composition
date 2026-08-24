@@ -1,6 +1,6 @@
 # ADR-190 Phase 0 — emitter 지점 inventory freeze
 
-> 본문: [../190-commit-descriptor-emitter-expansion.md](../190-commit-descriptor-emitter-expansion.md) ·
+> 본문: [../completed/190-commit-descriptor-emitter-expansion.md](../completed/190-commit-descriptor-emitter-expansion.md) ·
 > breakdown: [190-commit-descriptor-emitter-expansion-breakdown.md](190-commit-descriptor-emitter-expansion-breakdown.md)
 
 ## 판정

@@ -1,6 +1,6 @@
 # ADR-190 Phase 2 / G2 — structure 축 emitter
 
-> 본문: [../190-commit-descriptor-emitter-expansion.md](../190-commit-descriptor-emitter-expansion.md) ·
+> 본문: [../completed/190-commit-descriptor-emitter-expansion.md](../completed/190-commit-descriptor-emitter-expansion.md) ·
 > Phase 0: [190-phase-0-emitter-inventory.md](190-phase-0-emitter-inventory.md) ·
 > Phase 1: [190-phase-1-g1-style-emitter.md](190-phase-1-g1-style-emitter.md)
 

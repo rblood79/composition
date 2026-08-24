@@ -94,11 +94,14 @@ export function publishStoreCommitDescriptors(
   }
 }
 
-// commit lane 계측과 같은 flag 를 쓴다 — 진단 전역이 production 표면에 남지
-// 않게 하고, probe 는 이미 `?adr189Metrics=1` 로 진입한다.
+// commit lane 계측(`renderCommands.ts` 의 `adr189MetricsEnabled`)과 **같은**
+// 조건이어야 한다. 둘이 어긋나면 `__composition_COMMIT_LANE_DEBUG__` 는 있는데
+// 이 카운터만 없는 상태가 생겨, queue 가 0인 이유를 구분하려던 목적이 그
+// 상황에서 무너진다 (2026-08-24 live 검증에서 실제로 겪음).
 const debugSurfaceEnabled =
   typeof window !== "undefined" &&
-  new URLSearchParams(window.location.search).has("adr189Metrics");
+  (import.meta.env?.DEV ||
+    new URLSearchParams(window.location.search).has("adr189Metrics"));
 
 if (debugSurfaceEnabled) {
   (

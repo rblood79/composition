@@ -2,7 +2,18 @@
 
 ## Status
 
-Accepted — 2026-08-24 (리뷰 round 1 승인 — 이슈 3건 전건 fixed, pending 0)
+Implemented — 2026-08-24 (Phase 0~~4 / G1~~G4 전건 통과)
+
+> 진행 로그: Proposed 2026-08-24 → 리뷰 round 1 승인 (이슈 3건 전건 fixed,
+> pending 0) → Accepted 2026-08-24 → Phase 0 inventory · Phase 1 style emitter
+> (G1) · Phase 2 structure emitter (G2) · Phase 3 경로 분류·R4 판정 (G3) ·
+> Phase 4 live 검증 (G4) → Implemented 2026-08-24.
+>
+> 종결 증적: [Phase 0](design/190-phase-0-emitter-inventory.md) ·
+> [Phase 1](design/190-phase-1-g1-style-emitter.md) ·
+> [Phase 2](design/190-phase-2-g2-structure-emitter.md) ·
+> [Phase 3](design/190-phase-3-g3-path-classification.md) ·
+> [Phase 4](design/190-phase-4-g4-closure.md)
 
 ## Context
 
