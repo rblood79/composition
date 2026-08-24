@@ -11,7 +11,7 @@ import {
 } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import { getCanonicalDocumentElementsView } from "../stores/canonical/canonicalElementsView";
-import type { FillItem } from "../../types/builder/fill.types";
+import type { ColorFillItem, FillItem } from "../../types/builder/fill.types";
 import { FillType } from "../../types/builder/fill.types";
 import { hex8ToFloat32 } from "../panels/styles/utils/colorUtils";
 import {
@@ -358,6 +358,7 @@ useCanonicalDocumentStore.subscribe((state) => {
 
 export interface FillPresentationPilotTarget {
   readonly fills: readonly FillItem[];
+  readonly materializedFallback: boolean;
   readonly projectId: string;
   readonly target: EditorPresentationTargetRef;
 }
@@ -427,6 +428,7 @@ function getMaterializationContext(
 export function resolveFillPresentationPilotTarget(
   selectedElementId: string | null,
   fillId: string,
+  fallbackFill?: ColorFillItem,
 ): FillPresentationPilotTarget | null {
   if (!isFillPresentationPilotEnabled() || !selectedElementId) return null;
 
@@ -461,7 +463,16 @@ export function resolveFillPresentationPilotTarget(
     target,
     "fill-paint",
   );
-  const fills = Array.isArray(value) ? (value as FillItem[]) : [];
+  const canonicalFills = Array.isArray(value) ? (value as FillItem[]) : [];
+  // 신규 요소와 legacy backgroundColor read-through는 아직 canonical fills가 없다.
+  // 이 경우에만 caller가 제공한 단일 color fill을 presentation overlay의 base로
+  // materialize한다. ref descendant는 style override 정리까지 atomic하게 보장할 수
+  // 없으므로 canonical root에만 허용한다.
+  const materializedFallback =
+    canonicalFills.length === 0 &&
+    target.kind === "canonical-node" &&
+    fallbackFill?.id === fillId;
+  const fills = materializedFallback ? [fallbackFill] : canonicalFills;
   const fill = fills[0];
   const isMutableGradient =
     fill?.type === FillType.LinearGradient ||
@@ -482,6 +493,7 @@ export function resolveFillPresentationPilotTarget(
 
   return {
     fills,
+    materializedFallback,
     projectId,
     target,
   };

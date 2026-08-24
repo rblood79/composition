@@ -220,13 +220,12 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(seq).toEqual([lightShadows.sm, lightShadows.md, lightShadows.lg]);
     });
 
-    // Popover 는 containerStyles 가 undefined 였다가 boxShadow 하나로 신설된 케이스 —
-    //   containerStyles 존재가 variant 색상 emit 을 끄지 않는지(=containerHasColors 오탐)
-    //   확인. 색상 필드가 없으므로 background/border preset 은 계속 미공급이어야 한다.
-    it("Popover.containerStyles 신설이 색상 tier 를 오염시키지 않는다", () => {
+    // Popover 는 containerStyles 가 boxShadow만 보유하므로 variant 색상 emit이 살아 있다.
+    // Style Panel도 generated CSS의 default variant 색상을 같은 catalog source에서 읽는다.
+    it("Popover.containerStyles의 비색상 필드가 default variant 색상 해석을 막지 않는다", () => {
       const preset = resolveAppearanceSpecPreset("Popover", "md");
-      expect(preset.backgroundColor).toBeUndefined();
-      expect(preset.borderColor).toBeUndefined();
+      expect(preset.backgroundColor).toBe("var(--bg-inset)");
+      expect(preset.borderColor).toBe("var(--border)");
     });
 
     it("Menu.containerStyles → Appearance preset", () => {

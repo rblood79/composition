@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [스타일 패널 컬러 동기화 복구] - 2026-08-24
+
+### Bug Fixes
+
+- **처음 여는 Background ColorArea가 드래그 종료 전까지 Canvas에 반영되지 않던 문제**:
+  - canonical fill이 아직 없는 요소도 virtual fill을 presentation owner로 연결해 클릭·드래그 중
+    Preview와 Skia에 즉시 반영한다. canonical document와 history는 pointer terminal에서만 한 번
+    갱신하며, 기존 `style.backgroundColor`는 fill 승격과 함께 제거해 fill을 SSOT로 유지한다.
+- **추가한 컴포넌트의 catalog 색상이 스타일 패널에 다르게 표시되던 문제**:
+  - 선택한 `variant`와 `fillStyle`의 catalog `background`/`text`/`border` 토큰을
+    Background, Text color, Border color의 baseline으로 해석한다. ColorPicker가 CSS var를
+    흰색·검정 fallback으로 표시하지 않도록 현재 light/dark Skia theme 색상으로 변환하며,
+    인라인 사용자가 지정한 값은 계속 우선한다.
+- 위치: `apps/builder/src/builder/panels/styles/{hooks,sections,utils}`,
+  `apps/builder/src/builder/presentation/`
+
 ## [레이어 트리 다중 선택] - 2026-08-24
 
 ### Bug Fixes

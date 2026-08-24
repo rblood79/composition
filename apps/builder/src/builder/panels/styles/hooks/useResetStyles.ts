@@ -110,8 +110,8 @@ function resolveSpecStyleDefaults(
   const size = typeof props?.size === "string" ? props.size : undefined;
   const transformPreset = resolveSpecPreset(type, size);
   const layoutPreset = resolveLayoutSpecPreset(type, size, props);
-  const appearancePreset = resolveAppearanceSpecPreset(type, size);
-  const typographyPreset = resolveTypographySpecPreset(type, size);
+  const appearancePreset = resolveAppearanceSpecPreset(type, size, props);
+  const typographyPreset = resolveTypographySpecPreset(type, size, props);
 
   return {
     width: normalizeStyleValue("width", transformPreset.width),

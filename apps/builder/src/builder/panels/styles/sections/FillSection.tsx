@@ -231,8 +231,11 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
   // popover에 전달할 fill: 실제 fill이 있으면 그것, 없으면 가상 fill
   const popoverFill = firstFill ?? virtualFill;
   const presentationOwnsColor =
-    firstFill?.type === FillType.Color &&
-    isFirstFillPresentationOwned(firstFill.id);
+    firstFill?.type === FillType.Color
+      ? isFirstFillPresentationOwned(firstFill.id, firstFill)
+      : !firstFill
+        ? isFirstFillPresentationOwned(virtualFill.id, virtualFill)
+        : false;
   const presentationOwnsGradientStops =
     (firstFill?.type === FillType.LinearGradient ||
       firstFill?.type === FillType.RadialGradient ||
@@ -277,27 +280,45 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
   const handleColorChange = useCallback(
     (color: string) => {
       if (firstFill && firstFill.type === FillType.Color) {
-        if (previewFirstFillColorPresentation(firstFill.id, color)) return;
+        if (previewFirstFillColorPresentation(firstFill.id, color, firstFill)) {
+          return;
+        }
         // Unsupported fill targets remain commit-only by design.
       } else if (!firstFill) {
-        // Virtual fill creation is commit-only. Raw pointer input must not
-        // create canonical/history/persist writes before pointer terminal.
+        if (
+          previewFirstFillColorPresentation(virtualFill.id, color, virtualFill)
+        ) {
+          return;
+        }
       }
     },
-    [firstFill, previewFirstFillColorPresentation],
+    [firstFill, virtualFill, previewFirstFillColorPresentation],
   );
 
   const handleColorChangeEnd = useCallback(
     (color: string) => {
       if (firstFill && firstFill.type === FillType.Color) {
-        if (commitFirstFillColorPresentation(firstFill.id, color)) return;
+        if (commitFirstFillColorPresentation(firstFill.id, color, firstFill)) {
+          return;
+        }
         updateFill(firstFill.id, { color } as Partial<ColorFillItem>);
       } else if (!firstFill) {
+        if (
+          commitFirstFillColorPresentation(virtualFill.id, color, virtualFill)
+        ) {
+          return;
+        }
         // 가상 fill은 pointer terminal에서 정확히 한 번 실제 fill로 승격한다.
         ensureColorFill(color);
       }
     },
-    [firstFill, commitFirstFillColorPresentation, updateFill, ensureColorFill],
+    [
+      firstFill,
+      virtualFill,
+      commitFirstFillColorPresentation,
+      updateFill,
+      ensureColorFill,
+    ],
   );
 
   const handleColorPresentationCancel = useCallback(

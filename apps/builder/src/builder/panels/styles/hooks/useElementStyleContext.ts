@@ -113,8 +113,7 @@ export function useElementStyleContext(id: string | null): ElementStyleContext {
   const activeBreakpoint = useStore((state) => state.activeBreakpoint);
   const element = id ? elementsMap.get(id) : undefined;
   const ownProps = element?.props as
-    | Readonly<Record<string, unknown>>
-    | undefined;
+    Readonly<Record<string, unknown>> | undefined;
   const type = resolveStyleSpecType(element, elementsMap);
 
   // reusable instance(`type: "ref"`)는 origin(master) props 를 baseline 으로 깔고 자기
@@ -124,8 +123,7 @@ export function useElementStyleContext(id: string | null): ElementStyleContext {
   // 으로 표시된다 — 캔버스/Preview 와 어긋난다(D3 대칭 위반).
   const origin = resolveStyleOriginElement(element, elementsMap);
   const originProps = origin?.props as
-    | Readonly<Record<string, unknown>>
-    | undefined;
+    Readonly<Record<string, unknown>> | undefined;
 
   const props = useMemo<Readonly<Record<string, unknown>> | undefined>(() => {
     if (!origin) return ownProps;

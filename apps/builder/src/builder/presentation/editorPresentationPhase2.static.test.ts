@@ -68,10 +68,10 @@ describe("ADR-187 Phase 2 migration guards", () => {
       "../panels/styles/components/ColorPickerPanel.tsx",
     );
     const previewGuard = section.indexOf(
-      "if (previewFirstFillColorPresentation(firstFill.id, color)) return;",
+      "previewFirstFillColorPresentation(firstFill.id, color, firstFill)",
     );
     const commitGuard = section.indexOf(
-      "if (commitFirstFillColorPresentation(firstFill.id, color)) return;",
+      "commitFirstFillColorPresentation(firstFill.id, color, firstFill)",
     );
     const legacyCommit = section.indexOf(
       "updateFill(firstFill.id",

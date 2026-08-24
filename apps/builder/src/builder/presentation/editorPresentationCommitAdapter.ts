@@ -189,6 +189,22 @@ function cloneCanonicalNode(node: CanonicalNode): CanonicalNode {
   return structuredClone(node);
 }
 
+function withoutFillDerivedStyle(node: CanonicalNode): CanonicalNode {
+  const style = node.props?.style;
+  if (!isRecord(style)) return node;
+  const nextStyle = { ...style };
+  delete nextStyle.backgroundColor;
+  delete nextStyle.backgroundImage;
+  delete nextStyle.backgroundSize;
+  return {
+    ...node,
+    props: {
+      ...(node.props ?? {}),
+      style: nextStyle,
+    },
+  };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -371,10 +387,14 @@ export function commitEditorPresentationFills(
     );
   }
 
-  const nextNode: CanonicalNode =
+  const nodeWithFills: CanonicalNode =
     target.kind === "canonical-node"
       ? { ...before.node, fills: nextFills }
       : withCanonicalRefDescendantFills(before.node, target.pathKey, nextFills);
+  const nextNode =
+    target.kind === "canonical-node" && previousFills.length === 0
+      ? withoutFillDerivedStyle(nodeWithFills)
+      : nodeWithFills;
   const nextDocument = replaceNodeAtIndexPath(
     document,
     before.indexPath,

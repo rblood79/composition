@@ -72,6 +72,8 @@ export interface TypographySpecPreset {
   lineHeight?: number;
   letterSpacing?: number;
   fontFamily?: string;
+  /** catalog variant 의 기본 텍스트 색상 CSS 값 */
+  color?: string;
 }
 
 /**
@@ -155,8 +157,7 @@ function catalogSpecShape(type: string): SpecShape {
     //   defaultVariant 가 "default" 가 아닌 컴포넌트 존재(단 textWeight 미보유라 무영향).
     defaultVariant: rule.defaultVariant,
     variants: rule.variants as
-      | Record<string, { textWeight?: number } | undefined>
-      | undefined,
+      Record<string, { textWeight?: number } | undefined> | undefined,
   };
 }
 
@@ -444,9 +445,9 @@ function appearanceFromContainerStyles(
   if (br !== undefined) out.borderRadius = br;
   const bw = resolveToPxNumber(cs.borderWidth);
   if (bw !== undefined) out.borderWidth = bw;
-  const bg = resolveToCSSVar(cs.background);
+  const bg = resolveToCSSVar(cs.backgroundColor ?? cs.background);
   if (bg) out.backgroundColor = bg;
-  const bc = resolveToCSSVar(cs.border);
+  const bc = resolveToCSSVar(cs.borderColor ?? cs.border);
   if (bc) out.borderColor = bc;
   // borderStyle / boxShadow / overflow — containerStyles 의 CSS 문자열 그대로 노출.
   //   normalizeContainerKeysToCamel 이 kebab(box-shadow/border-style)을 camel 로 collapse 하므로
@@ -510,10 +511,124 @@ export const resolveSpecPreset = createResolver<TransformSpecPreset>(
   transformFromContainerStyles,
 );
 
-export const resolveAppearanceSpecPreset = createResolver<AppearanceSpecPreset>(
+const resolveStaticAppearanceSpecPreset = createResolver<AppearanceSpecPreset>(
   (sizeEntry) => pickNumeric(sizeEntry, APPEARANCE_KEYS),
   appearanceFromContainerStyles,
 );
+
+interface CatalogColorPreset {
+  backgroundColor?: string;
+  borderColor?: string;
+  color?: string;
+}
+
+function readStringProp(
+  props: Readonly<Record<string, unknown>> | undefined,
+  key: string,
+): string | undefined {
+  const value = props?.[key];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+/**
+ * 현재 component variant/fillStyle 의 정적(base state) 색상을 catalog SSOT에서 해석한다.
+ * hover/pressed 같은 transient state는 패널 편집 baseline이 아니므로 포함하지 않는다.
+ */
+function resolveCatalogColorPreset(
+  type: string | undefined,
+  props: Readonly<Record<string, unknown>> | undefined,
+): CatalogColorPreset {
+  if (!type) return {};
+  const rule = resolveComponentRule(type);
+  if (!rule) return {};
+
+  // Menu/ListBox 같은 self-render container는 generated CSS가 containerStyles의
+  // background/text/border를 직접 emit하고 variant 색상 블록을 생략한다. 이 경우
+  // 패널도 같은 container tier를 유지해야 rule.variants의 item/state 색을 root 색으로
+  // 잘못 표시하지 않는다.
+  const containerColorKeys = new Set([
+    "background",
+    "backgroundColor",
+    "border",
+    "borderColor",
+    "color",
+    "text",
+  ]);
+  const containerStyleTiers = [
+    rule.structure?.containerStyles,
+    rule.structure?.composition?.containerStyles,
+    rule.containerStyles,
+  ];
+  if (
+    containerStyleTiers.some(
+      (tier) =>
+        tier && Object.keys(tier).some((key) => containerColorKeys.has(key)),
+    )
+  ) {
+    return {};
+  }
+
+  const variantName = readStringProp(props, "variant") ?? rule.defaultVariant;
+  const variant = variantName ? rule.variants[variantName] : undefined;
+  if (!variant) return {};
+
+  const fillStyle = readStringProp(props, "fillStyle");
+  const fillKey =
+    props?.isQuiet === true && variant.fill.quiet
+      ? "quiet"
+      : fillStyle === "outline" && variant.fill.outline
+        ? "outline"
+        : fillStyle === "subtle" && variant.fill.subtle
+          ? "subtle"
+          : "default";
+  const fill = variant.fill[fillKey] ?? variant.fill.default;
+  const colors = variant.colors;
+  const text =
+    fillKey === "outline"
+      ? (colors?.outlineText ?? colors?.text)
+      : fillKey === "subtle"
+        ? (colors?.subtleText ?? colors?.text)
+        : colors?.text;
+  const border =
+    fillKey === "outline"
+      ? (colors?.outlineBorder ?? colors?.border)
+      : colors?.border;
+
+  return {
+    backgroundColor: resolveToCSSVar(fill.base),
+    borderColor: resolveToCSSVar(border),
+    color: resolveToCSSVar(text),
+  };
+}
+
+const appearancePresetCache = new Map<string, AppearanceSpecPreset>();
+allCaches.push(appearancePresetCache as Map<string, unknown>);
+
+export function resolveAppearanceSpecPreset(
+  type: string | undefined,
+  size: string | undefined,
+  props?: Readonly<Record<string, unknown>>,
+): AppearanceSpecPreset {
+  const rule = type ? resolveComponentRule(type) : undefined;
+  const variant =
+    readStringProp(props, "variant") ?? rule?.defaultVariant ?? "";
+  const fillStyle = readStringProp(props, "fillStyle") ?? "";
+  const key = `${type ?? ""}:${size ?? "md"}:${variant}:${fillStyle}:${props?.isQuiet === true}`;
+  const cached = appearancePresetCache.get(key);
+  if (cached) return cached;
+
+  const base = resolveStaticAppearanceSpecPreset(type, size);
+  const colors = resolveCatalogColorPreset(type, props);
+  const preset = {
+    ...base,
+    ...(colors.backgroundColor
+      ? { backgroundColor: colors.backgroundColor }
+      : {}),
+    ...(colors.borderColor ? { borderColor: colors.borderColor } : {}),
+  };
+  appearancePresetCache.set(key, preset);
+  return preset;
+}
 
 // sizes 경로 전용: paddingX/Y (20+ spec 에서 사용) 를 paddingLeft/Right/Top/Bottom 4-way 로 정규화.
 // Panel 은 4-way 필드로 모델링되는데 spec sizes 는 축 형식으로 저장하므로 변환이 없으면 모두 0 표시됨.
@@ -570,7 +685,14 @@ export function resolveLayoutSpecPreset(
   return { ...base, ...pickLayoutVariantStyles(styles) };
 }
 
-export const resolveTypographySpecPreset = createResolver<TypographySpecPreset>(
+function typographyFromContainerStyles(
+  cs: Record<string, unknown>,
+): TypographySpecPreset {
+  const color = resolveToCSSVar(cs.color ?? cs.text);
+  return color ? { color } : {};
+}
+
+const resolveStaticTypographySpecPreset = createResolver<TypographySpecPreset>(
   (sizeEntry, spec) => {
     const preset: TypographySpecPreset = pickNumeric(
       sizeEntry,
@@ -594,8 +716,34 @@ export const resolveTypographySpecPreset = createResolver<TypographySpecPreset>(
     if (typeof fontFamily === "string") preset.fontFamily = fontFamily;
     return preset;
   },
-  // Typography: catalog base container 에는 fontSize 필드 없음 → containerExtractor 미지정 (sizes 전용).
+  typographyFromContainerStyles,
 );
+
+const typographyPresetCache = new Map<string, TypographySpecPreset>();
+allCaches.push(typographyPresetCache as Map<string, unknown>);
+
+export function resolveTypographySpecPreset(
+  type: string | undefined,
+  size: string | undefined,
+  props?: Readonly<Record<string, unknown>>,
+): TypographySpecPreset {
+  const rule = type ? resolveComponentRule(type) : undefined;
+  const variant =
+    readStringProp(props, "variant") ?? rule?.defaultVariant ?? "";
+  const fillStyle = readStringProp(props, "fillStyle") ?? "";
+  const key = `${type ?? ""}:${size ?? "md"}:${variant}:${fillStyle}:${props?.isQuiet === true}`;
+  const cached = typographyPresetCache.get(key);
+  if (cached) return cached;
+
+  const base = resolveStaticTypographySpecPreset(type, size);
+  const colors = resolveCatalogColorPreset(type, props);
+  const preset = {
+    ...base,
+    ...(colors.color ? { color: colors.color } : {}),
+  };
+  typographyPresetCache.set(key, preset);
+  return preset;
+}
 
 export function clearSpecPresetCache(): void {
   for (const cache of allCaches) cache.clear();

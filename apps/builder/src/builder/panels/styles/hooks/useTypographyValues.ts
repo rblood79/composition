@@ -4,6 +4,10 @@
 
 import { useMemo } from "react";
 import {
+  useResolvedSkiaTheme,
+  useThemeConfigVersion,
+} from "../../../../stores/themeConfigStore";
+import {
   resolveTypographySpecPreset,
   type TypographySpecPreset,
 } from "../utils/specPresetResolver";
@@ -12,7 +16,11 @@ import {
   extractFirstFontFamily,
   normalizeFontWeight,
 } from "../../../fonts/customFonts";
-import { numToPx, firstDefined } from "../utils/styleValueHelpers";
+import {
+  numToPx,
+  firstDefined,
+  resolveStylePanelColor,
+} from "../utils/styleValueHelpers";
 import { useElementStyleContext } from "./useElementStyleContext";
 
 export interface TypographyStyleValues {
@@ -64,11 +72,13 @@ function deriveTextBehaviorPreset(
 export function useTypographyValues(
   id: string | null,
 ): TypographyStyleValues | null {
-  const { style, type, size } = useElementStyleContext(id);
+  const { style, type, size, props } = useElementStyleContext(id);
+  const theme = useResolvedSkiaTheme();
+  const themeVersion = useThemeConfigVersion();
 
   const specPreset = useMemo<TypographySpecPreset>(
-    () => resolveTypographySpecPreset(type, size),
-    [type, size],
+    () => resolveTypographySpecPreset(type, size, props),
+    [type, size, props],
   );
 
   return useMemo(() => {
@@ -116,6 +126,7 @@ export function useTypographyValues(
     const overflowWrap = firstDefined(s.overflowWrap, undefined, "normal");
     const textOverflow = firstDefined(s.textOverflow, undefined, "clip");
     const overflow = firstDefined(s.overflow, undefined, "visible");
+    const color = firstDefined(s.color, specPreset.color, "#000000");
 
     return {
       fontFamily,
@@ -124,7 +135,7 @@ export function useTypographyValues(
       fontStyle: firstDefined(s.fontStyle, undefined, "normal"),
       lineHeight,
       letterSpacing,
-      color: firstDefined(s.color, undefined, "#000000"),
+      color: resolveStylePanelColor(color, theme),
       textAlign: firstDefined(s.textAlign, undefined, "left"),
       textDecoration: firstDefined(s.textDecoration, undefined, "none"),
       textTransform: firstDefined(s.textTransform, undefined, "none"),
@@ -143,5 +154,5 @@ export function useTypographyValues(
       ),
       isFontSizeFromPreset,
     };
-  }, [id, style, specPreset]);
+  }, [id, style, specPreset, theme, themeVersion]);
 }

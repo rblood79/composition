@@ -45,10 +45,24 @@ export interface FillActions {
   reorderFill: (fromIndex: number, toIndex: number) => void;
   toggleFill: (fillId: string) => void;
   updateFill: (fillId: string, updates: Partial<FillItem>) => void;
-  isFirstFillPresentationOwned: (fillId: string) => boolean;
-  isFirstFillColorPresentationOwned: (fillId: string) => boolean;
-  previewFirstFillColorPresentation: (fillId: string, color: string) => boolean;
-  commitFirstFillColorPresentation: (fillId: string, color: string) => boolean;
+  isFirstFillPresentationOwned: (
+    fillId: string,
+    fallbackFill?: ColorFillItem,
+  ) => boolean;
+  isFirstFillColorPresentationOwned: (
+    fillId: string,
+    fallbackFill?: ColorFillItem,
+  ) => boolean;
+  previewFirstFillColorPresentation: (
+    fillId: string,
+    color: string,
+    fallbackFill?: ColorFillItem,
+  ) => boolean;
+  commitFirstFillColorPresentation: (
+    fillId: string,
+    color: string,
+    fallbackFill?: ColorFillItem,
+  ) => boolean;
   previewFirstFillPaintPresentation: (
     fillId: string,
     updates: Partial<FillItem>,
@@ -100,6 +114,7 @@ function applyFillUpdates(
 export function useFillActions(): FillActions {
   const presentationRef = useRef<{
     baseFills: readonly FillItem[];
+    commitFillId: string;
     fillId: string;
     handle: EditorPresentationHandle;
     phase: "active" | "cancelled" | "failed";
@@ -137,17 +152,24 @@ export function useFillActions(): FillActions {
     };
   }, []);
 
-  const isFirstFillColorPresentationOwned = useCallback((fillId: string) => {
-    const { selectedElementId } = readImmediateSelectionSnapshot();
-    return (
-      resolveFillPresentationPilotTarget(selectedElementId, fillId) !== null
-    );
-  }, []);
+  const isFirstFillColorPresentationOwned = useCallback(
+    (fillId: string, fallbackFill?: ColorFillItem) => {
+      const { selectedElementId } = readImmediateSelectionSnapshot();
+      return (
+        resolveFillPresentationPilotTarget(
+          selectedElementId,
+          fillId,
+          fallbackFill,
+        ) !== null
+      );
+    },
+    [],
+  );
 
   const isFirstFillPresentationOwned = isFirstFillColorPresentationOwned;
 
   const previewFirstFillColorPresentation = useCallback(
-    (fillId: string, color: string): boolean => {
+    (fillId: string, color: string, fallbackFill?: ColorFillItem): boolean => {
       const { selectedElementId } = readImmediateSelectionSnapshot();
       const existing = presentationRef.current;
       if (existing?.phase === "cancelled") {
@@ -177,10 +199,14 @@ export function useFillActions(): FillActions {
         const pilot = resolveFillPresentationPilotTarget(
           selectedElementId,
           fillId,
+          fallbackFill,
         );
         if (!pilot || !selectedElementId) return false;
         presentation = {
           baseFills: pilot.fills,
+          commitFillId: pilot.materializedFallback
+            ? createDefaultColorFill().id
+            : fillId,
           fillId,
           handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
             commitIntent: "fill-color",
@@ -211,7 +237,7 @@ export function useFillActions(): FillActions {
   );
 
   const commitFirstFillColorPresentation = useCallback(
-    (fillId: string, color: string): boolean => {
+    (fillId: string, color: string, fallbackFill?: ColorFillItem): boolean => {
       const { selectedElementId } = readImmediateSelectionSnapshot();
       const active = presentationRef.current;
       if (active?.phase === "cancelled") {
@@ -219,7 +245,9 @@ export function useFillActions(): FillActions {
         return true;
       }
       if (!active) {
-        if (!previewFirstFillColorPresentation(fillId, color)) return false;
+        if (!previewFirstFillColorPresentation(fillId, color, fallbackFill)) {
+          return false;
+        }
       }
 
       const presentation = presentationRef.current;
@@ -234,7 +262,9 @@ export function useFillActions(): FillActions {
       }
       const result = presentation.handle.finish({
         fills: presentation.baseFills.map((fill) =>
-          fill.id === fillId ? { ...fill, color } : fill,
+          fill.id === fillId
+            ? { ...fill, color, id: presentation.commitFillId }
+            : fill,
         ) as FillItem[],
         target: presentation.target,
         type: "fills.replace",
@@ -292,6 +322,7 @@ export function useFillActions(): FillActions {
         if (!pilot || !selectedElementId) return false;
         presentation = {
           baseFills: pilot.fills,
+          commitFillId: fillId,
           fillId,
           handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
             commitIntent: hasStopsUpdate

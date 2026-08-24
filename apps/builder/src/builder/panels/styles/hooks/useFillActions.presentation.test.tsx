@@ -4,7 +4,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
-import { FillType } from "../../../../types/builder/fill.types";
+import { FillType, type FillItem } from "../../../../types/builder/fill.types";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { historyManager } from "../../../stores/history";
 import { useStore } from "../../../stores";
@@ -13,6 +13,10 @@ import {
   resolveFillPresentationPilotTarget,
 } from "../../../presentation/editorPresentationFillPilot";
 import { useFillActions } from "./useFillActions";
+import {
+  createVirtualColorFill,
+  VIRTUAL_FILL_ID,
+} from "../utils/fillPresentation";
 import {
   registerCanonicalMutationRunnerBridge,
   resetCanonicalMutationRunnerBridge,
@@ -60,6 +64,15 @@ function gradientNode(id: string, fillId: string): CanonicalNode {
     ],
     id,
     props: {},
+    type: "Button",
+  } as unknown as CanonicalNode;
+}
+
+function emptyFillNode(id: string): CanonicalNode {
+  return {
+    children: [],
+    id,
+    props: { style: { backgroundColor: "#112233" } },
     type: "Button",
   } as unknown as CanonicalNode;
 }
@@ -212,6 +225,77 @@ describe("useFillActions ADR-187 owner switch", () => {
 
     expect(terminalResult).toMatchObject({ status: "committed" });
     unsubscribeTerminal();
+    unmount();
+  });
+
+  it("fill이 없는 신규 요소도 virtual fill을 preview하고 terminal에서 한 번만 canonicalize한다", () => {
+    const canonical = useCanonicalDocumentStore.getState();
+    const current = canonical.documents.get("project-1")!;
+    canonical.setDocument("project-1", {
+      ...current,
+      children: [emptyFillNode("node-1"), current.children[1]!],
+    });
+    const virtualFill = createVirtualColorFill("#112233FF");
+    const { result, unmount } = renderHook(() => useFillActions());
+
+    expect(
+      result.current.isFirstFillColorPresentationOwned(
+        VIRTUAL_FILL_ID,
+        virtualFill,
+      ),
+    ).toBe(true);
+
+    act(() => {
+      expect(
+        result.current.previewFirstFillColorPresentation(
+          VIRTUAL_FILL_ID,
+          "#ABCDEF80",
+          virtualFill,
+        ),
+      ).toBe(true);
+    });
+    const scheduledFrame = vi
+      .mocked(requestAnimationFrame)
+      .mock.calls.at(-1)?.[0];
+    act(() => scheduledFrame?.(0));
+
+    const activeSession = [
+      ...editorPresentationFillPilotRuntime.getSnapshot().sessions.values(),
+    ][0];
+    expect(activeSession?.applied?.descriptor).toMatchObject({
+      fills: [{ color: "#ABCDEF80", id: VIRTUAL_FILL_ID }],
+      type: "fills.replace",
+    });
+    expect(
+      useCanonicalDocumentStore.getState().documents.get("project-1")
+        ?.children[0]?.fills,
+    ).toBeUndefined();
+    expect(historyManager.getCurrentPageEntries()).toHaveLength(0);
+
+    act(() => {
+      expect(
+        result.current.commitFirstFillColorPresentation(
+          VIRTUAL_FILL_ID,
+          "#ABCDEF80",
+          virtualFill,
+        ),
+      ).toBe(true);
+    });
+
+    const committedFills = useCanonicalDocumentStore
+      .getState()
+      .documents.get("project-1")?.children[0]?.fills as FillItem[] | undefined;
+    expect(committedFills).toHaveLength(1);
+    expect(committedFills?.[0]).toMatchObject({
+      color: "#ABCDEF80",
+      type: FillType.Color,
+    });
+    expect(committedFills?.[0]?.id).not.toBe(VIRTUAL_FILL_ID);
+    expect(
+      useCanonicalDocumentStore.getState().documents.get("project-1")
+        ?.children[0]?.props?.style,
+    ).not.toHaveProperty("backgroundColor");
+    expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
     unmount();
   });
 

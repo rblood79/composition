@@ -5,10 +5,18 @@
 import { useMemo, type CSSProperties } from "react";
 import { adaptStyleWithFills } from "@composition/shared";
 import {
+  useResolvedSkiaTheme,
+  useThemeConfigVersion,
+} from "../../../../stores/themeConfigStore";
+import {
   resolveAppearanceSpecPreset,
   type AppearanceSpecPreset,
 } from "../utils/specPresetResolver";
-import { numToPx, firstDefined } from "../utils/styleValueHelpers";
+import {
+  numToPx,
+  firstDefined,
+  resolveStylePanelColor,
+} from "../utils/styleValueHelpers";
 import { useElementStyleContext } from "./useElementStyleContext";
 
 export interface AppearanceStyleValues {
@@ -24,11 +32,13 @@ export interface AppearanceStyleValues {
 export function useAppearanceValues(
   id: string | null,
 ): AppearanceStyleValues | null {
-  const { style, type, size, fills } = useElementStyleContext(id);
+  const { style, type, size, fills, props } = useElementStyleContext(id);
+  const theme = useResolvedSkiaTheme();
+  const themeVersion = useThemeConfigVersion();
 
   const specPreset = useMemo<AppearanceSpecPreset>(
-    () => resolveAppearanceSpecPreset(type, size),
-    [type, size],
+    () => resolveAppearanceSpecPreset(type, size, props),
+    [type, size, props],
   );
 
   const effectiveStyle = useMemo(
@@ -43,17 +53,19 @@ export function useAppearanceValues(
   return useMemo(() => {
     if (!id) return null;
     const s = effectiveStyle ?? {};
+    const backgroundColor = firstDefined(
+      s.backgroundColor,
+      specPreset.backgroundColor,
+      "#FFFFFF",
+    );
+    const borderColor = firstDefined(
+      s.borderColor,
+      specPreset.borderColor,
+      "#000000",
+    );
     return {
-      backgroundColor: firstDefined(
-        s.backgroundColor,
-        specPreset.backgroundColor,
-        "#FFFFFF",
-      ),
-      borderColor: firstDefined(
-        s.borderColor,
-        specPreset.borderColor,
-        "#000000",
-      ),
+      backgroundColor: resolveStylePanelColor(backgroundColor, theme),
+      borderColor: resolveStylePanelColor(borderColor, theme),
       borderWidth: firstDefined(
         s.borderWidth,
         numToPx(specPreset.borderWidth),
@@ -68,5 +80,5 @@ export function useAppearanceValues(
       boxShadow: firstDefined(s.boxShadow, specPreset.boxShadow, "none"),
       overflow: firstDefined(s.overflow, specPreset.overflow, "visible"),
     };
-  }, [id, effectiveStyle, specPreset]);
+  }, [id, effectiveStyle, specPreset, theme, themeVersion]);
 }

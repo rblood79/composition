@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
+import { lightColors } from "@composition/specs";
+import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
 import { useAppearanceValues } from "./useAppearanceValues";
 import { useStore } from "../../../stores";
 import * as preset from "../utils/specPresetResolver";
@@ -15,6 +17,7 @@ function setTestElements(elements: Element[]): void {
 
 describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/borderColor)", () => {
   beforeEach(() => {
+    useThemeConfigStore.setState({ darkMode: "light", themeVersion: 0 });
     setTestElements([
       {
         id: "el-spec-only",
@@ -57,8 +60,8 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
 
   it("spec preset supplies backgroundColor/borderColor/borderRadius/borderWidth when inline absent", () => {
     const { result } = renderHook(() => useAppearanceValues("el-spec-only"));
-    expect(result.current?.backgroundColor).toBe("var(--bg-raised)");
-    expect(result.current?.borderColor).toBe("var(--border)");
+    expect(result.current?.backgroundColor).toBe(lightColors.raised);
+    expect(result.current?.borderColor).toBe(lightColors.border);
     expect(result.current?.borderRadius).toBe("8px");
     expect(result.current?.borderWidth).toBe("1px");
   });
@@ -67,14 +70,14 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     const { result } = renderHook(() => useAppearanceValues("el-inline-wins"));
     expect(result.current?.backgroundColor).toBe("#ABCDEF"); // inline
     expect(result.current?.borderRadius).toBe("12px"); // inline
-    expect(result.current?.borderColor).toBe("var(--border)"); // spec fallback
+    expect(result.current?.borderColor).toBe(lightColors.border); // spec fallback
     expect(result.current?.borderWidth).toBe("1px"); // spec fallback
   });
 
   it("fills color 가 있으면 inline backgroundColor 없이도 appearance 값이 fill 파생값을 본다", () => {
     const { result } = renderHook(() => useAppearanceValues("el-fills-color"));
     expect(result.current?.backgroundColor).toBe("#123456");
-    expect(result.current?.borderColor).toBe("var(--border)");
+    expect(result.current?.borderColor).toBe(lightColors.border);
   });
 
   it("spec preset supplies borderStyle/boxShadow/overflow when inline absent (M5)", () => {
