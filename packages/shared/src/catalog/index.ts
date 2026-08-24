@@ -19,6 +19,8 @@ export * from "./slotRoles";
 export * from "./templateBinding";
 // ADR-142 G2(b) B — 컴포넌트 시각 규칙 resolver (build-time 생성 테이블 소비, spec 참조 0)
 export * from "./resolvers/resolveComponentRule";
+// ADR-912 후속 Phase 1 — root symbolic paint state/precedence 단일 진입점
+export * from "./resolvers/resolveCatalogPaint";
 // 트리거 아이콘 glyph 크기 — DOM wrapper 와 Skia icon_font 가 공유하는 단일 SSOT
 export * from "./resolvers/resolveTriggerIconSize";
 // ADR-912 catalog SSOT collapse — 컨테이너 base/variant/structure/size-value 단일 진입 (specs import 0)

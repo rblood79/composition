@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-912 후속 Phase 1 — Symbolic Paint Resolver] - 2026-08-25
+
+### Architecture
+
+- catalog variant와 authored props/style에서 root background/text/border paint를 고르는
+  `resolveCatalogPaint` pure resolver를 `@composition/shared` public surface에 추가했다.
+- resolver는 component type, Canvas/DOM, React/Zustand를 입력하거나 참조하지 않으며
+  fillStyle/quiet/selected/staticColor와 interaction state 우선순위를 data channel만으로 계산한다.
+- 이 Phase에서는 production Canvas/Style Panel 소비 경로를 전환하지 않았다. 기존 Skia와
+  병렬 비교하는 8,244-case shadow matrix에서 semantic diff 0을 확인해 Phase 2 cutover 기준선을
+  먼저 고정했다.
+
 ## [스타일 패널 컬러 동기화 복구] - 2026-08-24
 
 ### Bug Fixes

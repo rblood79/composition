@@ -2,7 +2,7 @@
 
 ## 문서 상태와 상위 결정
 
-- 상태: Draft — 2026-08-25
+- 상태: In Progress — Phase 0~1 완료 (2026-08-25)
 - 상위 결정: [ADR-912](../completed/912-rac-pencil-rebuild-cutover.md)
 - 관련 결정:
   - [ADR-142](../completed/142-starter-spec-component-system-cutover.md) — catalog + theme/tokens D3 SSOT
@@ -314,6 +314,18 @@ Gate P1:
 - 기존 Skia 결과와 새 resolver를 병렬 비교하는 shadow fixture가 전체 matrix에서 동등해야 한다.
 - resolver 파일의 Canvas/DOM/Zustand/React import는 0건이어야 한다.
 - component type literal 분기 0건이어야 한다.
+
+> **Phase 1 완료 (2026-08-25)**
+>
+> - `resolveCatalogPaint`를 shared pure/O(1) resolver로 추가하고 catalog public surface에 export했다.
+> - 현재 catalog 123 types / 229 variants에 대해 12개 authored paint 축 ×
+>   default/hover/pressed를 조합한 **8,244-case** shadow fixture가 기존
+>   `buildCatalogShapes`와 semantic diff 0으로 통과했다.
+> - style override, selected/emphasized, quiet, fillStyle, static inverse text,
+>   border eligibility, alpha, value-fill track wash, visible/opaque capability를 단위 test로 고정했다.
+> - resolver의 Canvas/DOM/Zustand/React import와 component type literal 분기는 각각 0건이다.
+> - production Canvas/Style Panel wiring은 0건이며 Phase 0 D1~D5 fixture는 계속 expected RED다.
+>   따라서 화면/픽셀 변화가 없는 이 Phase의 cross-check는 source-level shadow parity로 닫았다.
 
 ### Phase 2 — Skia 단일 소비 전환
 
