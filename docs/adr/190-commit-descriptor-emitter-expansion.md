@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-24
+Accepted — 2026-08-24 (리뷰 round 1 승인 — 이슈 3건 전건 fixed, pending 0)
 
 ## Context
 

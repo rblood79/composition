@@ -141,10 +141,16 @@ px 고정 width·height·spacing longhand / fontSize·fontWeight) 만 canonical 
 정확한 목록은 Phase 0 inventory 에서 freeze — 추정 vs 실측 gap 은 Phase 0 보강
 commit 으로 흡수 (adr-writing.md M3).
 
-## 7. Phase 0 inventory 표
+## 7. Phase 0 inventory
 
-(Phase 0 실행 시 채움)
+**Phase 0 완료 (2026-08-24)** — 산출물은
+[190-phase-0-emitter-inventory.md](190-phase-0-emitter-inventory.md) 로 분리했다.
+Phase 1 진입 판정에 직결되는 결론 3건:
 
-| canonical action | 호출자 수 (grep) | descriptor 축 | 판정 (emit / fail-closed / 비스코프) |
-| ---------------- | ---------------- | ------------- | ------------------------------------ |
-| [TODO]           |                  |               |                                      |
+- emitter 삽입점 단일 특정 — `elementUpdate.ts:398` (canonical sync) 과 `:415`
+  (`set`) 사이. 정적 가드 무충돌, ADR-184 allowlist 추가 불요
+- **R2 (이중 큐) 는 코드 구조상 이미 분리** — presentation adapter 는
+  `runCanonicalMutation` + `useStore.setState` 직접 경로라 `updateElementProps`
+  를 경유하지 않는다. origin 표식 불요, 회귀 테스트로 대체
+- **R6 (다중 mutation) 은 `batchUpdate*` 2개 한정** — Phase 1 대상
+  `updateElementProps` 는 단일 element 수정이라 배치 로직 불요, Phase 3 로 이연
