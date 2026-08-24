@@ -82,6 +82,15 @@ px 고정 width·height·spacing longhand / fontSize·fontWeight) 만 canonical 
   덮어쓰기 차단. 회귀 테스트 필수.
 - adapter allowlist 는 그대로 유지 (ADR-187 계약 무변경) — emitter 는 allowlist
   밖 키를 commitPatchPlan 판정에 위임한다.
+- **다중 mutation 배치 (R6)**: instance sync / propagation fan-out 으로 한 사용자
+  편집이 다수 canonical mutation 을 만들면 `queueCommitPatch(mutations[])` **1회
+  배치**로 전달 — mutation 별 연속 queue 는 `pendingCommit` 단일 슬롯
+  (`StoreRenderBridge.ts:1052` 무조건 덮어쓰기) 이 앞선 patch 를 유실시킨다.
+  `createCommitPatchPlan` 은 mutations 배열을 기지원.
+- **queue 순서 계약**: emitter 는 store subscriber sync 실행 전 (같은 동기 commit
+  window 안) 에 queue 한다 — 늦으면 sync 가 pendingCommit 없이 changedIds 를
+  소비해 뒤늦은 patch 가 stale revision 이 된다. G1 probe (`queueCount`/
+  `patchSuccess`) 로 검출.
 - G1 통과 후 commit.
 
 ### Phase 2 — structure 축 emitter (add / remove / order)

@@ -19,8 +19,9 @@ sparse damage playback 으로 대체했고 Implemented (2026-08-24) 로 종결�
 
 before/after 재실측 (2026-08-24, `adr189-commit-baseline.mjs` N=5,000, 5회 p95):
 generic style commit 은 ADR-189 이전 75.1ms → 이후 **73.1ms 로 변화 없음** (full
-DFS visits 5,056 유지, long task 10). 같은 문서에서 `fills.replace` 는 damage
-duration p50/p95 0.4/0.5ms, sparse command 11 vs full 1,533 이다. 이 격차의
+DFS visits 5,056 유지, long task 10). 같은 lane 의 `fills.replace` 는 damage
+duration p50/p95 0.4/0.5ms (신규 Button fixture, commit 당 sparse command 11)
+이고, 258-node fixture 에서는 sparse command 119 vs full stream 1,533 이다. 이 격차의
 해소가 본 ADR 의 목적이며, ADR-189 Phase 4 잔존 범위 ("해당 emitter 를 추가하는
 경우 새 descriptor 별 dirty-root, Preview/Skia parity, N-tier 120Hz gate 를 다시
 통과해야 한다") 가 예고한 후속이다.
@@ -127,22 +128,23 @@ Builder(Skia) consumer 내부 렌더 파이프라인 성능 메커니즘이다. 
 
 ## Risks
 
-| ID  | 위험                                                                                                                                                   | 심각도 | 대응                                                                                                                      |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | :----: | ------------------------------------------------------------------------------------------------------------------------- |
-| R1  | descriptor fidelity — patch 키 오해석으로 dirty-root 과소 → stale 화면 (`updateElementProps` 임의 키 → `style.patch` 변환 경계)                        |  HIGH  | 해석 불가 키 1개라도 존재 시 descriptor 미발행 → full rebuild (부분 patch 금지). pixel oracle 을 G1/G2 통과 조건으로 강제 |
-| R2  | 이중 큐 — presentation session 발 commit 과 store emitter 가 같은 commit 을 중복 queue → `pendingCommit` 단일 슬롯 덮어쓰기, revision 원자성(HC4) 훼손 |  HIGH  | commit origin 표식으로 emitter 스킵 (`SkiaCanvas.tsx:449` 경로와 상호 배타) + 덮어쓰기 회귀 테스트를 G1 에 포함           |
-| R3  | revision 결합 — emitter 가 잘못된 revision 으로 queue 시 sync 스킵/오소비                                                                              |  MED   | post-commit documentVersion 후행 읽기 + 기존 `queuedCanonicalRevision` 검사 준용                                          |
-| R4  | 대량 mutation (undo/redo 다수 노드) 에서 dirty root 다수 → sparse 이득 역전                                                                            |  MED   | dirty root 수/affected 비율 임계 초과 시 full rebuild 조기 판정, 임계는 N-tier 벤치 산정 (G3)                             |
-| R5  | `damageUnsafeElementIds` (shadow/transform paint outset) 장면과의 상호작용                                                                             |  LOW   | ADR-189 기존 게이트 재사용 — unsafe 존재 시 sparse 거부 유지, 신규 로직 없음                                              |
+| ID  | 위험                                                                                                                                                                                                                   | 심각도 | 대응                                                                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | descriptor fidelity — patch 키 오해석으로 dirty-root 과소 → stale 화면 (`updateElementProps` 임의 키 → `style.patch` 변환 경계)                                                                                        |  HIGH  | 해석 불가 키 1개라도 존재 시 descriptor 미발행 → full rebuild (부분 patch 금지). pixel oracle 을 G1/G2 통과 조건으로 강제                                  |
+| R2  | 이중 큐 — presentation session 발 commit 과 store emitter 가 같은 commit 을 중복 queue → `pendingCommit` 단일 슬롯 덮어쓰기, revision 원자성(HC4) 훼손                                                                 |  HIGH  | commit origin 표식으로 emitter 스킵 (`SkiaCanvas.tsx:449` 경로와 상호 배타) + 덮어쓰기 회귀 테스트를 G1 에 포함                                            |
+| R3  | revision 결합 — emitter 가 잘못된 revision 으로 queue 시 sync 스킵/오소비                                                                                                                                              |  MED   | post-commit documentVersion 후행 읽기 + 기존 `queuedCanonicalRevision` 검사 준용                                                                           |
+| R4  | 대량 mutation (undo/redo 다수 노드) 에서 dirty root 다수 → sparse 이득 역전                                                                                                                                            |  MED   | dirty root 수/affected 비율 임계 초과 시 full rebuild 조기 판정, 임계는 N-tier 벤치 산정 (G3)                                                              |
+| R5  | `damageUnsafeElementIds` (shadow/transform paint outset) 장면과의 상호작용                                                                                                                                             |  LOW   | ADR-189 기존 게이트 재사용 — unsafe 존재 시 sparse 거부 유지, 신규 로직 없음                                                                               |
+| R6  | 단일 사용자 편집 → 다중 canonical mutation (instance sync / propagation fan-out) 을 mutation 별 연속 queue 하면 `pendingCommit` 단일 슬롯이 앞선 patch 를 덮어씀 — R2 는 이중 생산자, 본 항목은 동일 생산자 연속 queue |  MED   | 같은 commit window 의 mutation 을 `mutations[]` 배열 1회 queue 로 배치 (`queueCommitPatch`/`createCommitPatchPlan` 기지원) + 배치 회귀 테스트를 G1 에 포함 |
 
 ## Gates
 
-| Gate | 시점    | 통과 조건                                                                                                                                               | 실패 시 대안                           |
-| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| G1   | Phase 1 | generic style commit `queueCount≥1`·`patchSuccess=1`·full build 0 (probe); pixel diff 0; N=5,000 `render.frame` p95 < 4ms; 이중 큐(R2) 회귀 테스트 PASS | emitter 를 dirty-key allowlist 로 축소 |
-| G2   | Phase 2 | structure add/remove/order patch 성공 + 신규/삭제 노드 자체 DOM↔Skia parity; reparent fail-closed 계약 테스트 PASS                                      | structure 축을 add 단독으로 축소       |
-| G3   | Phase 3 | undo/redo·AI·드래그 경로 분류표 100% (수렴 또는 명시 full rebuild); 대량 mutation 벤치에서 sparse ≤ full 역전 0 (R4)                                    | 임계 하향 — 보수적 full rebuild 확대   |
-| G4   | Phase 4 | N-tier 재실측 sparse command N 비결합·long task 0·console error 0 + live builder exercise 기록                                                          | 미달 축 Phase 3 반송, 승격 보류        |
+| Gate | 시점    | 통과 조건                                                                                                                                                                      | 실패 시 대안                           |
+| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| G1   | Phase 1 | generic style commit `queueCount≥1`·`patchSuccess=1`·full build 0 (probe); pixel diff 0; N=5,000 `render.frame` p95 < 4ms; 이중 큐(R2)·다중 mutation 배치(R6) 회귀 테스트 PASS | emitter 를 dirty-key allowlist 로 축소 |
+| G2   | Phase 2 | structure add/remove/order patch 성공 + 신규/삭제 노드 자체 DOM↔Skia parity; reparent fail-closed 계약 테스트 PASS                                                             | structure 축을 add 단독으로 축소       |
+| G3   | Phase 3 | undo/redo·AI·드래그 경로 분류표 100% (수렴 또는 명시 full rebuild); 대량 mutation 벤치에서 sparse ≤ full 역전 0 (R4)                                                           | 임계 하향 — 보수적 full rebuild 확대   |
+| G4   | Phase 4 | N-tier 재실측 sparse command N 비결합·long task 0·console error 0 + live builder exercise 기록                                                                                 | 미달 축 Phase 3 반송, 승격 보류        |
 
 ## Consequences
 
