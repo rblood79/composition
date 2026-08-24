@@ -269,7 +269,7 @@ interface ResolvedEditorColor {
 
 ## 6. 구현 Phase
 
-### Phase 0 — Inventory freeze와 RED fixture
+### Phase 0 — Inventory freeze와 RED fixture — ✅ 완료 2026-08-25
 
 목표: 공통 resolver가 대체해야 할 현재 동작과 scope 밖 동작을 코드로 동결한다.
 
@@ -286,6 +286,13 @@ Gate P0:
 - inventory에 production consumer 파일/함수/채널이 모두 기록돼야 한다.
 - RED는 현재 결손 때문에 실패하고, 기존 Button color tests는 계속 통과해야 한다.
 - 추정 대비 consumer 수가 1.5배 이상이면 새 ADR로 분리하지 않고 Phase 0 inventory를 재freeze한다.
+
+> Phase 0 실행 산출물:
+> [912-selected-element-resolved-visual-style-inventory.md](912-selected-element-resolved-visual-style-inventory.md)
+>
+> 실측 결과: resolver/consumer 18경계, Skia direct paint primitive 26개, authored-state binding
+> 31조합을 재동결했다. D1~D5는 7개 `it.fails` fixture로 현재 결손을 고정했고, 기존 및 신규
+> GREEN oracle 104개를 함께 통과했다. production 동작 변경은 0건이다.
 
 ### Phase 1 — Shared symbolic paint resolver
 

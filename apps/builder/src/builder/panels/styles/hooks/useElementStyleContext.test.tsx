@@ -206,6 +206,46 @@ describe("useElementStyleContext", () => {
       expect(result.current.style?.width).toBe("50%");
     });
 
+    it("ref origin responsive 뒤에 instance inline/responsive override를 적용한다", () => {
+      useStore.setState({ activeBreakpoint: "mobile" } as never);
+      setDoc([
+        {
+          id: "button-origin",
+          type: "Button",
+          reusable: true,
+          props: {
+            style: {
+              paddingTop: 10,
+              width: "100%",
+            },
+          },
+          responsive: {
+            styles: {
+              paddingTop: { mobile: 2 },
+              width: { mobile: "50%" },
+            },
+          },
+        },
+        {
+          id: "button-ref",
+          type: "ref",
+          ref: "button-origin",
+          props: { style: { width: "75%" } },
+          responsive: {
+            styles: { height: { mobile: 80 } },
+          },
+        },
+      ]);
+
+      const { result } = renderHook(() => useElementStyleContext("button-ref"));
+
+      expect(result.current.style).toMatchObject({
+        paddingTop: 2,
+        width: "75%",
+        height: 80,
+      });
+    });
+
     it("falls back to the origin fills when the instance has none", () => {
       setDoc([
         {
