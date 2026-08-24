@@ -29,6 +29,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Vite/Rolldown 및 React plugin 전환, lucide/react-router 업데이트, 보안 패치와 미사용 dependency 제거를
     반영했다.
 
+## ADR-187 Phase 5 flow layout·Text metric parity 승격 gate — 2026-08-24
+
+### Architecture
+
+- **generic multi-sibling Skia layout handoff 종결**:
+  - fixed-size flow container의 `padding`/`gap` patch가 page/body root로
+    promotion되지 않도록 spacing mutation root를 자체 subtree에 고정했다.
+  - visible sibling fixture로 Preview rect, Skia `bounds`/`hitBounds`,
+    SpatialIndex hit, 비영향 identity, terminal canonical handoff를 같은
+    presentation revision에서 검증했다.
+  - **Why:** used-size parent promotion이 unrelated identity를 재생성해
+    다중 형제 hit topology와 Canvas 복귀를 불안정하게 만들 수 있었다.
+  - 위치: `apps/builder/src/builder/presentation/editorPresentationLayoutLane.ts`
+
+- **fixed Text metric parity live gate 종결**:
+  - `fontSize`/`fontWeight` presentation patch가 Preview CSS와 Skia
+    `presentationTextMetricTargets`·paragraph cache key를 함께 갱신하고
+    cancel terminal에서 exact restore하도록 populated Builder evidence를
+    추가했다.
+  - `fontFamily`/`lineHeight`/`letterSpacing`, resource, structure는
+    affected subtree consumer가 없어 commit-only fail-closed를 유지한다.
+  - 위치: `apps/builder/scripts/adr187-presentation-baseline.mjs`,
+    `apps/builder/src/builder/workspace/canvas/skia/useSkiaNode.ts`
+
+### Performance
+
+- **Phase 5 allowlist live evidence**:
+  - width/height/padding/gap 4개 property의 runtime apply p95 `0.45–1.56ms`,
+    Skia render p95 `1.02–1.18ms`, long task `0`을 확인했다.
+  - Text fontSize/fontWeight는 Canvas pixel 변경·복귀, paragraph key 변경·복귀,
+    bounds/hitBounds 불변과 Preview/Skia metric parity를 모두 통과했다.
+  - 증적: [flow layout live parity](adr/design/187-phase-5-layout-flow-live-parity.md),
+    [text metrics residual slice](adr/design/187-phase-5-text-metrics-resource-structure-fail-closed.md)
+
+### Documentation
+
+- ADR-187 Phase 5 구현 allowlist를 갱신했다. generic multi-sibling layout과 fixed
+  Text metric은 승격 준비 상태지만, populated explicit opacity의 Skia
+  `targetIncrementalPatchCount=0` blocker를 해소하기 전까지 최종 Phase 5 승격은
+  보류한다. ADR 전체 `Implemented` 승격은 Phase 6 legacy 제거 및 G0~G8 전체 조건
+  이후로 유지한다.
+
 ## ADR-187 Phase 5 Modified Styles opacity presentation slice — 2026-08-24
 
 ### Architecture

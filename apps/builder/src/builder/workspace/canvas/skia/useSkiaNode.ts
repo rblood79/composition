@@ -13,6 +13,7 @@
  */
 
 import type { SkiaNodeData } from "./nodeRenderers";
+import { getTextParagraphCacheKey } from "./textParagraphKey";
 import { recordInvalidation } from "./renderInvalidation";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
 import { releaseParagraphsIn } from "./retainedParagraph";
@@ -109,5 +110,6 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
   (window as unknown as Record<string, unknown>).__composition_SKIA_DEBUG__ = {
     getSkiaNode,
     getSkiaRegistrySize,
+    getTextParagraphCacheKey,
   };
 }

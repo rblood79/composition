@@ -34,16 +34,59 @@ size, descendant layout 또는 pointer hit 영역이 한 renderer에서만 갱�
 현재 `commitPatchPlan`은 commit lane의 부모 dirty-root 계산을 제공하지만 continuous
 scene publication을 열어 주는 consumer는 아니다.
 
+### Residual code-path evidence
+
+- resource: `EditorMutationDescriptor` union은
+  `apps/builder/src/builder/presentation/editorPresentationTypes.ts:30-51`에서
+  `fills/style/geometry/structure`만 허용한다. `prop:src`는
+  `apps/builder/src/builder/presentation/invalidation/editorMutationEffectRegistry.ts:483-488`의
+  legacy layout-cache registry entry일 뿐 presentation descriptor가 아니다.
+  `apps/builder/src/builder/workspace/canvas/skia/renderInvalidation.ts:19-55`의
+  `resource` reason은 decode/load invalidation 분류이며, intrinsic-size를
+  Preview overlay와 Skia `hitBoundsMap`에 같은 presentation revision으로 발행하는
+  consumer가 아니다.
+- structure: runtime publish는
+  `apps/builder/src/builder/presentation/editorPresentationRuntime.ts:593-600`에서
+  `assertContinuousEditorMutation`을 먼저 적용한다. `structure.patch`의 commit
+  dirty-root 계산은
+  `apps/builder/src/builder/presentation/commitPatchPlan.ts:129-148`에 있지만,
+  Preview child graph와 Skia `childrenMap`/`hitBoundsMap`/spatial index를 같은
+  continuous overlay revision으로 교체하지 않는다. 실제 `hitBoundsMap` 생성과
+  spatial index 동기화는
+  `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts:1078-1166`의
+  command-stream build lane에만 존재한다.
+
 ## 검증
 
-- registry/classifier/Preview/paragraph-key/populated-harness/residual-fail-closed/parity/converter/Skia focused gate: 10 files / 46 tests PASS.
+- registry/classifier/Preview/paragraph-key/populated-harness/residual-fail-closed/parity/converter/Skia focused gate: 10 files / 51 tests PASS.
 - `pnpm run codex:typecheck`: baseline 43 known errors 외 신규 오류 없음.
 - fixed Text `fontSize`/`fontWeight`는 populated fixture harness에서 paragraph key,
   Preview/Skia 값, rect, cancel restore 및 console error 0을 검증했다. 실제 populated
-  Builder 브라우저 trace는 별도 운영 증거로 남긴다. 나머지 metrics/resource/structure는
+  Builder에서도 동일 문서의 Compare Mode split을 사용해 두 property 모두 paragraph
+  key 변경→복귀, Skia metric↔Preview CSS parity, bounds/hitBounds 불변,
+  Canvas pixel 변경→복귀, canonical during 불변/terminal handoff를 확인했다.
+  Evidence는 `/private/tmp/adr187-phase5-text-fontsize-visible.json`과
+  `/private/tmp/adr187-phase5-text-fontweight-visible.json`이며 두 결과의
+  `allSkiaSnapshotsAvailable`, `allCanvasChangedDuring`, `allCanvasRestored`,
+  `allCanonicalHandoff`, `allFixedRectStable`, `allMetricParity`,
+  `allParagraphInvalidatedAndRestored`, `allPreviewRestored`가 모두 `true`다.
+  초기 fixture의 x 좌표가 Canvas raster 경계에 걸려 hash가 고정되는 하니스
+  관측을 분리하고, visible Text fixture로 재실행해 픽셀 gate를 닫았다. 나머지 metrics/resource/structure는
   residual deterministic harness에서 publish scheduler/overlay/commit을 열지 않고,
   structure 실패 후 명시적 cancel terminal만 통과하는 것을 검증했다. 원자 consumer가
   없어 resource/structure Builder live를 성공으로 기록하지 않는다.
+
+실행 명령은 다음과 같다(두 번째 실행은 `--text-property fontWeight`로 교체).
+
+```bash
+node apps/builder/scripts/adr187-presentation-baseline.mjs \
+  --base-url http://localhost:5173/composition \
+  --project-url http://localhost:5173/builder/36fb9ef0-94be-4389-a8ad-b7609985d188 \
+  --duration-ms 250 --repeats 1 --tiers 5 \
+  --fixture-profile text-metrics --lane text --text-property fontSize \
+  --out /private/tmp/adr187-phase5-text-fontsize-visible.json \
+  --trace-dir /private/tmp/adr187-phase5-text-fontsize-visible-traces
+```
 
 검증 명령:
 
@@ -53,15 +96,20 @@ pnpm run codex:typecheck
 git diff --check
 ```
 
-결과는 10 files/46 tests PASS, `git diff --check` PASS, typecheck는 baseline 43 known
-errors 외 신규 오류 없음이다. 이 범위는 owner가 없으므로 populated Builder live
-trace를 성공으로 기록하지 않았다.
+결과는 10 files/51 tests PASS, `git diff --check` PASS, typecheck는 baseline 43 known
+errors 외 신규 오류 없음이다. 위 live runner는 실행 중인 Builder의
+`/builder/36fb9ef0-94be-4389-a8ad-b7609985d188`에서 `project.mode=existing`, tier 5,
+repeat 1로 수행했으며 초기화 warning은 persist-back을 생략하는 harness 환경
+신호로 분리했다.
 
 ## 승격 판정
 
-이 slice는 fixed Text `fontSize`/`fontWeight`만 안전한 최소 범위로 확장하고 나머지는 재발 방지
-가드로 닫은 것이다. `fontSize` Builder live와 나머지 text/resource/structure
-consumer가 마련되기 전에는 ADR-187 Phase 5 전체를 Implemented로 승격하지 않는다.
+이 slice의 fixed Text `fontSize`/`fontWeight` 범위는 deterministic 및 populated
+Builder live gate를 모두 통과해 Phase 5 allowlist 승격 조건을 충족했다. `fontFamily`,
+`lineHeight`, `letterSpacing`, resource, structure는 affected subtree/intrinsic/
+children-map consumer가 없으므로 계속 commit-only fail-closed로 유지한다. 따라서
+Phase 5의 허용 목록은 완료로 기록하되, ADR-187 전체 `Implemented` 승격은 별도 Phase 6
+legacy 제거와 G0~G8 전체 조건을 만족할 때 판정한다.
 
 ## 재개 조건
 

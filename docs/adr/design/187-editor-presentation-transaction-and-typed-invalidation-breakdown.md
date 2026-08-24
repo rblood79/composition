@@ -936,7 +936,10 @@ Phase 5의 allowlist gate를 통과한 항목만 진행한다.
 
 ### Phase 5 — continuous editor migration과 structure 판정
 
-**진행 상태: slices 진행 — 2026-08-24 (single-fill gradient stop + fill opacity + border color + box-shadow paint + continuous shadow editor + Text/Button color + Modified Styles color + explicit Modified Styles opacity + explicit opacity `1` materialization + targeted width/height/padding/gap + spacing shorthand/longhand normalization + fixed Text fontSize/fontWeight + text/resource/structure residual slices).**
+**진행 상태: Phase 5 implementation allowlist complete; final populated live gate pending — 2026-08-24 (single-fill gradient stop + fill opacity + border color + box-shadow paint + continuous shadow editor + Text/Button color + Modified Styles color + explicit Modified Styles opacity + explicit opacity `1` materialization + targeted width/height/padding/gap + spacing shorthand/longhand normalization + fixed Text fontSize/fontWeight + text/resource/structure residual slices).**
+여기서 width/height 승격 범위는 generic non-grid in-flow multi-sibling fixture이며,
+absolute leaf의 내부 bounds 계측과 grid/intrinsic/structure/resource는 기존
+commit-only fail-closed 경계를 유지한다.
 [Gradient stop live parity evidence](187-phase-5-gradient-stop-live-parity.md),
 [fill opacity live parity evidence](187-phase-5-fill-opacity-live-parity.md),
 [border color live parity evidence](187-phase-5-border-color-live-parity.md),
@@ -950,8 +953,8 @@ Phase 5의 allowlist gate를 통과한 항목만 진행한다.
 [non-grid flow live parity harness](187-phase-5-layout-flow-live-parity.md),
 [text metrics/resource/structure residual slice](187-phase-5-text-metrics-resource-structure-fail-closed.md),
 [inherited/state/component paint fail-closed slice](187-phase-5-inherited-state-component-paint-fail-closed.md)에
-구현 범위와 focused gate를 기록했다. 실제 Builder 상단 Compare Mode split과
-focused gate를 기록했다. 첫 slice는 하나의 enabled
+구현 범위와 focused gate, 실제 Builder 상단 Compare Mode split 결과를 기록했다.
+첫 slice는 하나의 enabled
 `linear/radial/angular` fill에서 stop 색상·position을, 두 번째 slice는 같은 단일 paint
 owner에서 fill opacity를, 세 번째 slice는 border color를, 네 번째 slice는 기존
 `drop-shadow` effect slot의 shadow paint fields를 `EditorPresentationTransactionRuntime`으로
@@ -992,9 +995,16 @@ layer topology 변경은 각 slice의 materialization 조건을 충족하지 않
 commit/legacy 경로에 남긴다. continuous shadow offset/blur/spread/color drag gate와
 Text/Button root, Modified Styles color 및 명시적 opacity gate는 종결됐다. explicit
 opacity `1` materialization과 targeted width/height/padding/gap은 구현·focused gate와
-재현 가능한 parity harness까지 착수했지만 실제 Builder live gate가 남아 있다. fixed Text
-fontSize/fontWeight는 standalone Text paragraph slot과 targeted invalidation, bounds/hitBounds
-parity harness까지 구현했지만 live gate가 남아 있다.
+재현 가능한 parity harness를 통과했고, 이번에 populated Builder generic non-grid
+multi-sibling live gate까지 종결했다. `width`, `height`, `padding`, `gap` 각각에서
+Skia draw/hitBounds 원자성, Preview sibling geometry, 비영향 identity, Canvas pixel
+변경·복귀와 canonical terminal handoff가 모두 `true`였다. fixed Text
+`fontSize`/`fontWeight`도 standalone Text paragraph slot과 targeted invalidation,
+Preview CSS↔Skia metric parity, bounds/hitBounds 불변, paragraph key 변경·복귀,
+Canvas pixel 변경·복귀 및 canonical terminal handoff의 populated Builder live gate를
+통과했다. 상세 JSON은 [non-grid flow live parity harness](187-phase-5-layout-flow-live-parity.md)와
+[text metrics/resource/structure residual slice](187-phase-5-text-metrics-resource-structure-fail-closed.md)에
+기록했다.
 inherited/state opacity, Button 외 multi-child inherited/component color, 미검증 component root,
 grid spacing, fontFamily/lineHeight/letterSpacing, resource와 structure는
 fail-closed 계약과 잔여 consumer gate를 유지한다. 상세 판정은 [paint fail-closed slice](187-phase-5-inherited-state-component-paint-fail-closed.md)와
@@ -1006,16 +1016,16 @@ Preview DOM에 수렴하는 것까지 확인했지만, Skia 내부 bounds와 ter
 원인을 제거했고, 실행 중인 Builder의 `Badge` spot-check에서 `padding 12px 24px → 20px`,
 `gap 8px → 24px`, rect `102.109375 × 52px → 94.109375 × 68px` 및
 `console.error`/`console.warn 0/0`을 확인했다. explicit opacity `1`은 deterministic
-harness가 통과했으나 실제 Builder live exercise는 sandbox의 listen/dashboard blocker로
-수행하지 못했다. 따라서 ADR-187 전체 Phase 5 또는 `Implemented` 승격으로 해석하지 않는다.
-targeted spacing과 fixed Text metric은 focused gate 및 일부 실제 Preview spot-check를
-통과했지만 populated Builder의 non-grid multi-sibling Skia internal bounds/hit-test/
-terminal handoff live evidence와 authenticated generic runner 증거가 아직 없다. 이번
-병렬 잔여 범위 실행에서는 layout runner에 기존 project를 직접 여는 `--project-url`
-경로와 fixture fail-closed/evidence 필드를 보완했고, paint/text/resource/structure
-residual guard를 추가했다. 통합 focused gate는 27 files / 183 tests PASS,
-typecheck는 baseline 43건 외 신규 오류 없음이지만, generic Builder live runner는
-Playwright `SIGABRT`로 종료되어 multi-sibling Skia parity를 증명하지 못했다.
+harness가 통과했고 실제 Builder live exercise도 `--project-url` 경로로 종결했다.
+따라서 **Phase 5 구현 allowlist는 코드·deterministic gate 기준 승격 준비 상태**다.
+다만 이번 populated Builder 재검증에서 explicit `opacity:1` session의
+`targetIncrementalPatchCount=0`과 terminal counter `0`이 확인되어, 해당 Skia
+projection/store bridge live gate를 먼저 닫아야 최종 Phase 5 승격으로 판정한다.
+`fontFamily`/`lineHeight`/`letterSpacing`, resource, structure 및 absolute leaf 내부
+bounds는 기존 fail-closed 경계를 유지한다. ADR-187 문서 자체의 `Implemented` 승격은
+Phase 6 legacy 제거 및 G0~G8 전체 조건을 별도로 만족한 뒤에 판정한다. 이번 실행에서
+통합 focused gate는 12 files / 74 tests, typecheck는 baseline 43건 외 신규 오류
+없음이며 초기 Chrome `SIGABRT`는 재시도로 분리됐다.
 
 권장 순서:
 

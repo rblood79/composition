@@ -180,6 +180,72 @@ describe("SkiaEditorPresentationBridge canonical handoff", () => {
     presentationBridge.dispose();
   });
 
+  it("explicit opacity:1은 실제 Skia bridge에서 presentation slot을 materialize하고 terminal handoff한다", () => {
+    const scheduler = createScheduler();
+    const node = createNode();
+    node.effects = undefined;
+    registerSkiaNode("opacity-default-node", node);
+    let documentVersion = 1;
+    const runtime = new EditorPresentationTransactionRuntime({
+      commit: () => {
+        documentVersion += 1;
+        return { committedDocumentRevision: documentVersion };
+      },
+      readDocumentVersion: () => documentVersion,
+      readTargetValue: () => ({ opacity: 1 }),
+      scheduler,
+    });
+    const storeBridge = new StoreRenderBridge();
+    const presentationBridge = new SkiaEditorPresentationBridge({
+      getActiveProjectId: () => "project-1",
+      getProjectionIndex: () => ({ resolve: () => ["opacity-default-node"] }),
+      getStoreRenderBridge: () => storeBridge,
+      onPaintInvalidated: () => undefined,
+      runtime,
+    });
+    const target = {
+      kind: "canonical-node" as const,
+      nodeId: "opacity-default-node",
+    };
+    const handle = runtime.beginEditorPresentation({
+      commitIntent: "style-opacity",
+      ownerId: "owner-opacity",
+      projectId: "project-1",
+      targets: [target],
+    });
+
+    handle.publish({
+      patch: { opacity: "0.42" },
+      target,
+      type: "style.patch",
+    });
+    scheduler.flush();
+
+    expect(node.effects).toEqual([
+      { type: "opacity", value: 0.42, source: "presentation" },
+    ]);
+    expect(isVolatileNode("opacity-default-node")).toBe(true);
+
+    expect(
+      handle.finish({
+        patch: { opacity: "0.42" },
+        target,
+        type: "style.patch",
+      }).status,
+    ).toBe("committed");
+    expect(node.effects).toEqual([
+      { type: "opacity", value: 0.42, source: "presentation" },
+    ]);
+
+    node.effects = [{ type: "opacity", value: 0.42, source: "style" }];
+    presentationBridge.handleStoreSync(documentVersion);
+    expect(node.effects).toEqual([
+      { type: "opacity", value: 0.42, source: "style" },
+    ]);
+    expect(isVolatileNode("opacity-default-node")).toBe(false);
+    presentationBridge.dispose();
+  });
+
   it("cancel은 document revision이 그대로면 캡처한 base를 즉시 복원한다", () => {
     const scheduler = createScheduler();
     const node = createNode();

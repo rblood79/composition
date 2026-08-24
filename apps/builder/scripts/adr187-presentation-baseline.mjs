@@ -21,6 +21,7 @@ function parseArgs(argv) {
     headed: false,
     lane: "paint",
     layoutProperty: "position",
+    textProperty: "fontSize",
     out: "/private/tmp/adr187-phase0-baseline.json",
     projectUrl: null,
     repeats: 5,
@@ -43,6 +44,7 @@ function parseArgs(argv) {
     else if (value === "--project-url") options.projectUrl = next;
     else if (value === "--lane") options.lane = next;
     else if (value === "--layout-property") options.layoutProperty = next;
+    else if (value === "--text-property") options.textProperty = next;
     else if (value === "--repeats") options.repeats = Number(next);
     else if (value === "--serve-dist") {
       options.serveDist = true;
@@ -88,11 +90,14 @@ function assertOptions(options) {
     options.durationMs <= 0 ||
     !Number.isInteger(options.repeats) ||
     options.repeats <= 0 ||
-    !["dense", "document-scale", "flow-layout"].includes(options.fixtureProfile) ||
-    !["paint", "layout"].includes(options.lane) ||
+    !["dense", "document-scale", "flow-layout", "text-metrics"].includes(
+      options.fixtureProfile,
+    ) ||
+    !["paint", "layout", "text"].includes(options.lane) ||
     !["position", "width", "height", "padding", "gap"].includes(
       options.layoutProperty,
     ) ||
+    !["fontSize", "fontWeight"].includes(options.textProperty) ||
     options.tiers.some((tier) => !Number.isInteger(tier) || tier < 2)
   ) {
     throw new Error("duration, repeats, and tiers must be positive");
@@ -104,6 +109,18 @@ function assertOptions(options) {
     throw new Error(
       "layout lane requires --fixture-profile document-scale or flow-layout",
     );
+  }
+  if (
+    options.lane === "text" &&
+    options.fixtureProfile !== "text-metrics"
+  ) {
+    throw new Error("text lane requires --fixture-profile text-metrics");
+  }
+  if (
+    options.fixtureProfile === "text-metrics" &&
+    options.lane !== "text"
+  ) {
+    throw new Error("text-metrics fixture requires --lane text");
   }
   if (
     options.fixtureProfile !== "flow-layout" &&
@@ -244,7 +261,21 @@ function summarizeLayoutTrace(events) {
   };
 }
 
-function aggregateRuns(runs) {
+const LAYOUT_GEOMETRY_KEYS = ["x", "y", "width", "height"];
+
+function sameLayoutGeometry(left, right) {
+  return Boolean(
+    left &&
+      right &&
+      LAYOUT_GEOMETRY_KEYS.every((key) => left[key] === right[key]),
+  );
+}
+
+function sameOptionalLayoutGeometry(left, right) {
+  return (!left && !right) || sameLayoutGeometry(left, right);
+}
+
+function aggregateRuns(runs, environmentMessages = []) {
   const counterKeys = Object.keys(runs[0]?.drag.counters ?? {});
   const medianCounters = Object.fromEntries(
     counterKeys.map((key) => [
@@ -279,6 +310,7 @@ function aggregateRuns(runs) {
     ...(runs.some((run) => run.layout)
       ? {
           layout: {
+            allEnvironmentMessagesClear: environmentMessages.length === 0,
             allSkiaSnapshotsAvailable: runs.every(
               (run) => run.layout?.during?.available === true,
             ),
@@ -292,13 +324,25 @@ function aggregateRuns(runs) {
                 run.layout?.canvasBefore?.sha256 ===
                 run.layout?.canvasRestored?.sha256,
             ),
-            allCenterHitsContainTarget: runs.every((run) =>
-              run.layout?.during?.centerHitIds?.includes("adr187-target"),
-            ),
+            allCenterHitsContainTarget: runs.every((run) => {
+              const affectedId =
+                run.layout?.expected?.property === "padding" ||
+                run.layout?.expected?.property === "gap"
+                  ? "adr187-flow-visual"
+                  : "adr187-target";
+              const hitIds =
+                run.layout?.expected?.property === "padding" ||
+                run.layout?.expected?.property === "gap"
+                  ? run.layout?.siblingDuring?.centerHitIds
+                  : run.layout?.during?.centerHitIds;
+              return hitIds?.includes(affectedId);
+            }),
             allClippedHitWidthsMatchPreview: runs.every(
               (run) =>
-                run.layout?.during?.hitBounds?.width ===
-                run.layout?.previewGeometry?.clippedWidth,
+                Math.abs(
+                  (run.layout?.during?.hitBounds?.width ?? Number.NaN) -
+                    (run.layout?.previewGeometry?.clippedWidth ?? Number.NaN),
+                ) <= 0.5,
             ),
             allCommandCountsStable: runs.every(
               (run) =>
@@ -307,15 +351,53 @@ function aggregateRuns(runs) {
                 run.layout?.before?.commandCount ===
                   run.layout?.restored?.commandCount,
             ),
-            allDrawHitBoundsAtomic: runs.every(
-              (run) =>
-                JSON.stringify(run.layout?.during?.bounds) !==
-                  JSON.stringify(run.layout?.before?.bounds) &&
-                run.layout?.during?.presentationRevision >
-                  run.layout?.before?.presentationRevision &&
-                run.layout?.during?.presentationRevision <
-                  run.layout?.restored?.presentationRevision,
-            ),
+            allDrawHitBoundsAtomic: runs.every((run) => {
+              const targetBounds = run.layout?.during?.bounds;
+              const targetHitBounds = run.layout?.during?.hitBounds;
+              const siblingBounds = run.layout?.siblingDuring?.bounds;
+              const siblingHitBounds = run.layout?.siblingDuring?.hitBounds;
+              const siblingSnapshots = run.layout?.siblingsDuring ?? [];
+              const siblingSnapshotsBefore = run.layout?.siblingsBefore ?? [];
+              const allSiblingSnapshotsAtomic =
+                siblingSnapshots.length > 0 &&
+                siblingSnapshots.length === siblingSnapshotsBefore.length &&
+                siblingSnapshots.every(({ id, snapshot }) => {
+                  const before = siblingSnapshotsBefore.find(
+                    (entry) => entry.id === id,
+                  )?.snapshot;
+                  return Boolean(
+                    before &&
+                      snapshot?.bounds &&
+                      snapshot?.hitBounds &&
+                      sameLayoutGeometry(
+                        snapshot.bounds,
+                        snapshot.hitBounds,
+                      ) &&
+                      !sameLayoutGeometry(snapshot.bounds, before.bounds),
+                  );
+                });
+              const affectedChanged =
+                JSON.stringify(targetBounds) !==
+                  JSON.stringify(run.layout?.before?.bounds) ||
+                JSON.stringify(siblingBounds) !==
+                  JSON.stringify(run.layout?.siblingBefore?.bounds);
+              return Boolean(
+                affectedChanged &&
+                  targetBounds &&
+                  targetHitBounds &&
+                  siblingBounds &&
+                  siblingHitBounds &&
+                  JSON.stringify(targetBounds) ===
+                    JSON.stringify(targetHitBounds) &&
+                  JSON.stringify(siblingBounds) ===
+                    JSON.stringify(siblingHitBounds) &&
+                  allSiblingSnapshotsAtomic &&
+                  run.layout?.during?.presentationRevision >
+                    run.layout?.before?.presentationRevision &&
+                  run.layout?.during?.presentationRevision <
+                    run.layout?.restored?.presentationRevision,
+              );
+            }),
             allUnaffectedIdentityStable: runs.every(
               (run) =>
                 run.layout?.unrelatedBefore?.boundsIdentity ===
@@ -341,6 +423,28 @@ function aggregateRuns(runs) {
               const before = run.layout?.canonicalBefore;
               const during = run.layout?.canonicalDuring;
               const after = run.layout?.canonicalAfter;
+              const siblingSnapshotsBefore = run.layout?.siblingsBefore ?? [];
+              const siblingSnapshotsRestored =
+                run.layout?.siblingsRestored ?? [];
+              const allSiblingsRestored =
+                siblingSnapshotsBefore.length > 0 &&
+                siblingSnapshotsBefore.length ===
+                  siblingSnapshotsRestored.length &&
+                siblingSnapshotsBefore.every(({ id, snapshot }) => {
+                  const restored = siblingSnapshotsRestored.find(
+                    (entry) => entry.id === id,
+                  )?.snapshot;
+                  return Boolean(
+                    restored &&
+                      sameLayoutGeometry(snapshot?.bounds, restored.bounds) &&
+                      sameLayoutGeometry(
+                        snapshot?.hitBounds,
+                        restored.hitBounds,
+                      ),
+                  );
+                });
+              const unrelatedBefore = run.layout?.unrelatedBefore;
+              const unrelatedRestored = run.layout?.unrelatedRestored;
               return (
                 JSON.stringify(before) === JSON.stringify(during) &&
                 JSON.stringify(before) === JSON.stringify(after) &&
@@ -351,13 +455,26 @@ function aggregateRuns(runs) {
                 run.layout?.restored?.bounds?.width ===
                   run.layout?.before?.bounds?.width &&
                 run.layout?.restored?.bounds?.height ===
-                  run.layout?.before?.bounds?.height
+                  run.layout?.before?.bounds?.height &&
+                allSiblingsRestored &&
+                sameOptionalLayoutGeometry(
+                  unrelatedBefore?.bounds,
+                  unrelatedRestored?.bounds,
+                ) &&
+                sameOptionalLayoutGeometry(
+                  unrelatedBefore?.hitBounds,
+                  unrelatedRestored?.hitBounds,
+                )
               );
             }),
             allPreviewSiblingCaptured: runs.every(
               (run) =>
                 run.layout?.siblingDuring !== null &&
-                run.layout?.previewSiblingRect !== null,
+                run.layout?.previewSiblingRect !== null &&
+                run.layout?.previewSiblingRects?.length === 2 &&
+                run.layout.previewSiblingRects.every(
+                  (entry) => entry.rect !== null,
+                ),
             ),
             medianRawPublishP95Ms: median(
               runs.map((run) =>
@@ -496,14 +613,46 @@ async function seedTier(
         flowIds.includes(element.id),
       );
       const hasFlowFixture = existingFlowElements.length === flowIds.length;
+      const hasTextFixture = activeElements.some(
+        (element) => element.id === "adr187-text-metric-live-visible",
+      );
       const shouldSeedFlow =
         profile === "flow-layout" && priorTier === 0 && !hasFlowFixture;
-      if (countToAdd < 0 && !(allowExistingProject && shouldSeedFlow)) {
+      const shouldSeedText =
+        profile === "text-metrics" && priorTier === 0 && !hasTextFixture;
+      if (
+        countToAdd < 0 &&
+        !(allowExistingProject &&
+          (shouldSeedFlow || shouldSeedText || profile === "text-metrics"))
+      ) {
         throw new Error(
           `tier ${targetTier} is smaller than active count ${existingCount}`,
         );
       }
-      if (profile === "flow-layout" && priorTier === 0) {
+      if (profile === "text-metrics" && priorTier === 0) {
+        if (!hasTextFixture) {
+          await state.addElement({
+            id: "adr187-text-metric-live-visible",
+            type: "Text",
+            parent_id: body.id,
+            page_id: currentPageId,
+            order_num: 0,
+            props: {
+              children: "Parity",
+              style: {
+                fontFamily: "Inter",
+                fontSize: "16px",
+                fontWeight: "400",
+                height: "120px",
+                left: "20px",
+                position: "absolute",
+                top: "70px",
+                width: "220px",
+              },
+            },
+          });
+        }
+      } else if (profile === "flow-layout" && priorTier === 0) {
         if (existingFlowElements.length > 0 && !hasFlowFixture) {
           throw new Error(
             `existing flow fixture is incomplete: ${existingFlowElements
@@ -515,6 +664,62 @@ async function seedTier(
           throw new Error("flow fixture already exists in isolated project");
         }
         if (hasFlowFixture) {
+          const visualSibling = activeElements.find(
+            (element) => element.id === "adr187-flow-visual",
+          );
+          if (!visualSibling) {
+            await state.addElement({
+              id: "adr187-flow-visual",
+              type: "frame",
+              parent_id: "adr187-flow-parent",
+              page_id: currentPageId,
+              order_num: 2,
+              props: {
+                style: {
+                  height: "60px",
+                  position: "static",
+                  width: "100px",
+                },
+              },
+              fills: [
+                {
+                  id: "adr187-visual-fill",
+                  type: "color",
+                  color: "#FF8844FF",
+                  enabled: true,
+                  opacity: 1,
+                  blendMode: "normal",
+                },
+              ],
+            });
+          }
+          const flowSiblingElement = activeElements.find(
+            (element) => element.id === "adr187-flow-sibling",
+          );
+          if (
+            flowSiblingElement &&
+            (!Array.isArray(flowSiblingElement.fills) ||
+              flowSiblingElement.fills.length === 0)
+          ) {
+            state.mergeElements([
+              {
+                ...flowSiblingElement,
+                fills: [
+                  {
+                    id: "adr187-sibling-fill",
+                    type: "color",
+                    color: "#FF8844FF",
+                    enabled: true,
+                    opacity: 1,
+                    blendMode: "normal",
+                  },
+                ],
+              },
+            ]);
+            await new Promise((resolvePromise) =>
+              setTimeout(resolvePromise, 400),
+            );
+          }
           const hasFiller = activeElements.some(
             (element) => element.id === "adr187-flow-filler-0",
           );
@@ -595,8 +800,46 @@ async function seedTier(
                 width: "100px",
               },
             },
+            fills: [
+              {
+                id: "adr187-sibling-fill",
+                type: "color",
+                color: "#FF8844FF",
+                enabled: true,
+                opacity: 1,
+                blendMode: "normal",
+              },
+            ],
           };
-          await state.addComplexElement(flowParent, [flowTarget, flowSibling]);
+          const flowVisual = {
+            id: "adr187-flow-visual",
+            type: "frame",
+            parent_id: flowParent.id,
+            page_id: currentPageId,
+            order_num: 2,
+            props: {
+              style: {
+                height: "60px",
+                position: "static",
+                width: "100px",
+              },
+            },
+            fills: [
+              {
+                id: "adr187-visual-fill",
+                type: "color",
+                color: "#FF8844FF",
+                enabled: true,
+                opacity: 1,
+                blendMode: "normal",
+              },
+            ],
+          };
+          await state.addComplexElement(flowParent, [
+            flowTarget,
+            flowSibling,
+            flowVisual,
+          ]);
           const afterFlow = store.getState();
           const flowCount = afterFlow.elements.filter(
             (element) => element.page_id === currentPageId,
@@ -690,9 +933,27 @@ async function seedTier(
           `active page count mismatch: expected ${targetTier}, got ${nextActiveCount}`,
         );
       }
-      nextState.setSelectedElement("adr187-target");
+      nextState.setSelectedElement(
+        profile === "text-metrics"
+          ? "adr187-text-metric-live-visible"
+          : "adr187-target",
+      );
+      const flowSibling = nextState.elementsMap.get("adr187-flow-sibling");
+      const flowVisual = nextState.elementsMap.get("adr187-flow-visual");
       return {
         activePageElementCount: nextActiveCount,
+        flowSibling: flowSibling
+          ? {
+              fills: flowSibling.fills ?? null,
+              props: flowSibling.props ?? null,
+            }
+          : null,
+        flowVisual: flowVisual
+          ? {
+              fills: flowVisual.fills ?? null,
+              props: flowVisual.props ?? null,
+            }
+          : null,
         totalStoreElementCount: nextState.elements.length,
       };
     },
@@ -811,13 +1072,29 @@ async function finishTrace(cdp, events, path) {
   };
 }
 
-async function captureCanvasScreenshot(page) {
-  const bytes = await page
-    .locator('canvas[data-testid="skia-canvas-unified"]')
-    .screenshot({ animations: "disabled" });
+let canvasScreenshotOrdinal = 0;
+
+async function captureCanvasScreenshot(page, label = "canvas") {
+  const canvas = page.locator('canvas[data-testid="skia-canvas-unified"]');
+  const bytes = await canvas.screenshot({ animations: "disabled" });
+  const box = await canvas.boundingBox();
+  const screenshotDir = process.env.ADR187_SCREENSHOT_DIR;
+  if (screenshotDir) {
+    mkdirSync(screenshotDir, { recursive: true });
+    canvasScreenshotOrdinal += 1;
+    writeFileSync(
+      join(
+        screenshotDir,
+        `${String(canvasScreenshotOrdinal).padStart(2, "0")}-${label}.png`,
+      ),
+      bytes,
+    );
+  }
   return {
     byteLength: bytes.byteLength,
+    height: box?.height ?? null,
     sha256: createHash("sha256").update(bytes).digest("hex"),
+    width: box?.width ?? null,
   };
 }
 
@@ -894,6 +1171,76 @@ async function runDrag(page, cdp, options, tier, repeat, traceDir) {
   };
 }
 
+async function assertLayoutLiveBoundary(page, layoutProperty) {
+  const boundary = await page.evaluate((property) => {
+    const requiredGlobals = [
+      "__composition_STORE__",
+      "__composition_EDITOR_PRESENTATION_PHASE0_METRICS__",
+      "__composition_EDITOR_PRESENTATION_DEBUG__",
+      "__composition_RENDER_COMMAND_DEBUG__",
+    ];
+    const missingGlobals = requiredGlobals.filter((key) => !window[key]);
+    const store = window.__composition_STORE__;
+    const targetId =
+      property === "padding" || property === "gap"
+        ? "adr187-flow-parent"
+        : "adr187-target";
+    const siblingId = "adr187-flow-visual";
+    const unrelatedId = "adr187-flow-filler-0";
+    const elementIds = store
+      ? new Set(store.getState().elements.map((element) => element.id))
+      : new Set();
+    const requiredElementIds = [targetId, siblingId, unrelatedId];
+    const missingElements = requiredElementIds.filter(
+      (id) => !elementIds.has(id),
+    );
+    const renderCommands = window.__composition_RENDER_COMMAND_DEBUG__;
+    const unavailableSnapshots = renderCommands
+      ? requiredElementIds.filter(
+          (id) => renderCommands.readNode(id).available !== true,
+        )
+      : requiredElementIds;
+    const iframe = document.querySelector("iframe#previewFrame");
+    const previewDocument = iframe?.contentDocument;
+    const missingPreviewElements = requiredElementIds.filter(
+      (id) =>
+        !previewDocument?.querySelector(`[data-canonical-id="${id}"]`),
+    );
+    return {
+      missingGlobals,
+      missingElements,
+      missingPreviewElements,
+      unavailableSnapshots,
+    };
+  }, layoutProperty);
+  if (
+    boundary.missingGlobals.length > 0 ||
+    boundary.missingElements.length > 0 ||
+    boundary.missingPreviewElements.length > 0 ||
+    boundary.unavailableSnapshots.length > 0
+  ) {
+    throw new Error(
+      [
+        "ADR-187 layout live boundary unavailable; fail-closed",
+        boundary.missingGlobals.length > 0
+          ? `missing globals=${boundary.missingGlobals.join(",")}`
+          : null,
+        boundary.missingElements.length > 0
+          ? `missing fixture elements=${boundary.missingElements.join(",")}`
+          : null,
+        boundary.missingPreviewElements.length > 0
+          ? `missing Preview elements=${boundary.missingPreviewElements.join(",")}`
+          : null,
+        boundary.unavailableSnapshots.length > 0
+          ? `unavailable Skia snapshots=${boundary.unavailableSnapshots.join(",")}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("; "),
+    );
+  }
+}
+
 async function runLayoutDrag(
   page,
   cdp,
@@ -903,6 +1250,7 @@ async function runLayoutDrag(
   traceDir,
   layoutProperty,
 ) {
+  await assertLayoutLiveBoundary(page, layoutProperty);
   await page.waitForFunction(
     () =>
       Boolean(
@@ -917,7 +1265,7 @@ async function runLayoutDrag(
     window.__composition_PERF__?.resetLongTasks();
   });
 
-  const canvasBefore = await captureCanvasScreenshot(page);
+  const canvasBefore = await captureCanvasScreenshot(page, "before");
   const traceEvents = await startTrace(cdp);
   const runStartedAt = Date.now();
   const rawLayout = await page.evaluate(
@@ -939,10 +1287,16 @@ async function runLayoutDrag(
           ? "adr187-flow-parent"
           : "adr187-target";
       const siblingId =
-        property === "position" ? null : "adr187-flow-sibling";
+        property === "position" ? null : "adr187-flow-visual";
+      const siblingIds =
+        property === "position"
+          ? []
+          : ["adr187-flow-sibling", "adr187-flow-visual"];
       const unrelatedId = siblingId
         ? "adr187-flow-filler-0"
         : "adr187-node-2";
+      const readSnapshots = (ids) =>
+        ids.map((id) => ({ id, snapshot: renderCommands.readNode(id) }));
       const target = { kind: "canonical-node", nodeId: targetId };
       const currentPageId = store.getState().currentPageId;
       const clipOwnerId = store
@@ -955,6 +1309,7 @@ async function runLayoutDrag(
       const siblingBefore = siblingId
         ? renderCommands.readNode(siblingId)
         : null;
+      const siblingsBefore = readSnapshots(siblingIds);
       const unrelatedBefore = renderCommands.readNode(unrelatedId);
       const clipOwnerBefore = clipOwnerId
         ? renderCommands.readNode(clipOwnerId)
@@ -1036,6 +1391,7 @@ async function runLayoutDrag(
       const siblingDuring = siblingId
         ? renderCommands.readNode(siblingId)
         : null;
+      const siblingsDuring = readSnapshots(siblingIds);
       const unrelatedDuring = renderCommands.readNode(unrelatedId);
       const iframe = document.querySelector("iframe#previewFrame");
       const previewTarget = iframe?.contentDocument?.querySelector(
@@ -1062,6 +1418,23 @@ async function runLayoutDrag(
           )
         : null;
       const previewSiblingRect = previewSibling?.getBoundingClientRect();
+      const previewSiblingRects = siblingIds.map((id) => {
+        const element = iframe?.contentDocument?.querySelector(
+          `[data-canonical-id="${id}"]`,
+        );
+        const rect = element?.getBoundingClientRect();
+        return {
+          id,
+          rect: rect
+            ? {
+                height: rect.height,
+                width: rect.width,
+                x: rect.x,
+                y: rect.y,
+              }
+            : null,
+        };
+      });
       const previewTargetRect = previewTarget?.getBoundingClientRect();
       const previewClipOwnerRect = previewClipOwner?.getBoundingClientRect();
       const previewGeometry =
@@ -1113,10 +1486,13 @@ async function runLayoutDrag(
               y: previewSiblingRect.y,
             }
           : null,
+        previewSiblingRects,
         rawPublishCount,
         rawPublishDurationsMs,
         siblingBefore,
         siblingDuring,
+        siblingsBefore,
+        siblingsDuring,
         unrelatedBefore,
         unrelatedDuring,
         runtimeFrameApplyCount:
@@ -1133,7 +1509,7 @@ async function runLayoutDrag(
     `adr188-layout-n${tier}-run${repeat + 1}.trace.json.gz`,
   );
   const trace = await finishTrace(cdp, traceEvents, tracePath);
-  const canvasDuring = await captureCanvasScreenshot(page);
+  const canvasDuring = await captureCanvasScreenshot(page, "during");
   const terminal = await page.evaluate(async (property) => {
     const handle = window.__composition_ADR188_G6_ACTIVE_HANDLE__;
     const renderCommands = window.__composition_RENDER_COMMAND_DEBUG__;
@@ -1161,6 +1537,14 @@ async function runLayoutDrag(
         ? "adr187-flow-filler-0"
         : "adr187-node-2";
     const siblingId = property === "position" ? null : "adr187-flow-sibling";
+    const siblingIds =
+      property === "position"
+        ? []
+        : ["adr187-flow-sibling", "adr187-flow-visual"];
+    const siblingsRestored = siblingIds.map((id) => ({
+      id,
+      snapshot: renderCommands.readNode(id),
+    }));
     const iframe = document.querySelector("iframe#previewFrame");
     const previewTarget = iframe?.contentDocument?.querySelector(
       `[data-canonical-id="${targetId}"]`,
@@ -1183,10 +1567,11 @@ async function runLayoutDrag(
       siblingRestored: siblingId
         ? renderCommands.readNode(siblingId)
         : null,
+      siblingsRestored,
       unrelatedRestored: renderCommands.readNode(unrelatedId),
     };
   }, layoutProperty);
-  const canvasRestored = await captureCanvasScreenshot(page);
+  const canvasRestored = await captureCanvasScreenshot(page, "restored");
   const { phaseMetricsDuring: drag, ...layoutDuring } = rawLayout;
   const { phaseMetricsAfterTerminal: afterTerminal, ...terminalLayout } =
     terminal;
@@ -1212,6 +1597,266 @@ async function runLayoutDrag(
       drag.counters,
     ),
     trace,
+  };
+}
+
+async function runTextMetricParity(page, cdp, options, tier, repeat, traceDir) {
+  const textId = "adr187-text-metric-live-visible";
+  const textProperty = options.textProperty;
+  await page.waitForFunction(
+    (id) =>
+      Boolean(
+        window.__composition_EDITOR_PRESENTATION_DEBUG__ &&
+          window.__composition_RENDER_COMMAND_DEBUG__ &&
+          window.__composition_SKIA_DEBUG__?.getSkiaNode(id),
+      ),
+    textId,
+    { timeout: 30000 },
+  );
+  await page.evaluate(() => {
+    window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__.reset();
+    window.__composition_PERF__?.resetLongTasks();
+  });
+
+  const canvasBefore = await captureCanvasScreenshot(page, "text-before");
+  const traceEvents = await startTrace(cdp);
+  const runStartedAt = Date.now();
+  const raw = await page.evaluate(async ({ id, textProperty }) => {
+    const presentation = window.__composition_EDITOR_PRESENTATION_DEBUG__;
+    const renderCommands = window.__composition_RENDER_COMMAND_DEBUG__;
+    const skiaDebug = window.__composition_SKIA_DEBUG__;
+    const store = window.__composition_STORE__;
+    if (!presentation || !renderCommands || !skiaDebug || !store) {
+      throw new Error("ADR-187 text metric live debug boundary is unavailable");
+    }
+    const projectId = window.location.pathname.split("/").filter(Boolean).at(-1);
+    const target = { kind: "canonical-node", nodeId: id };
+    const readPreview = () => {
+      const iframe = document.querySelector("iframe#previewFrame");
+      const element = iframe?.contentDocument?.querySelector(
+        `[data-canonical-id="${id}"]`,
+      );
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return {
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        height: rect.height,
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+      };
+    };
+    const readSkiaText = () => {
+      const node = skiaDebug.getSkiaNode(id);
+      const metric = node?.presentationTextMetricTargets?.[0]?.text;
+      return {
+        content: metric?.content ?? node?.text?.content ?? null,
+        fontSize: metric?.fontSize ?? node?.text?.fontSize ?? null,
+        fontWeight: metric?.fontWeight ?? node?.text?.fontWeight ?? null,
+        maxWidth: metric?.maxWidth ?? node?.text?.maxWidth ?? null,
+        nodeType: node?.type ?? null,
+        childTypes: node?.children?.map((child) => child.type) ?? [],
+      };
+    };
+    const paragraphDebug = window.__composition_PARAGRAPH_DEBUG__;
+    paragraphDebug?.census.start();
+    await new Promise((resolvePromise) => requestAnimationFrame(resolvePromise));
+    const readSnapshot = () => {
+      const node = readSkiaText();
+      return {
+        canonicalStyle: store.getState().elementsMap.get(id)?.props?.style,
+        geometry: renderCommands.readNode(id),
+        paragraphKey: skiaDebug.getTextParagraphCacheKey({
+          ...skiaDebug.getSkiaNode(id),
+          text: skiaDebug.getSkiaNode(id)?.presentationTextMetricTargets?.[0]
+            ?.text,
+        }),
+        preview: readPreview(),
+        skiaText: node,
+      };
+    };
+    const before = readSnapshot();
+    const handle = presentation.begin({
+      commitIntent: "style-text-metrics",
+      ownerId: `adr187-text-metric-live-${id}`,
+      projectId,
+      targets: [target],
+    });
+    handle.publish({
+      patch: { [textProperty]: textProperty === "fontSize" ? 18 : 700 },
+      target,
+      type: "style.patch",
+    });
+    await new Promise((resolvePromise) => {
+      let remaining = 4;
+      const next = () => {
+        remaining -= 1;
+        if (remaining <= 0) resolvePromise();
+        else requestAnimationFrame(next);
+      };
+      requestAnimationFrame(next);
+    });
+    const during = readSnapshot();
+    const paragraphCensusDuring = paragraphDebug?.census.report() ?? null;
+    paragraphDebug?.census.stop();
+    window.__composition_ADR187_TEXT_ACTIVE_HANDLE__ = handle;
+    return {
+      before,
+      during,
+      paragraphCensusDuring,
+      phaseMetricsDuring:
+        window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__.snapshot(),
+      runtimeFrameApplyCount: presentation.diagnostics().frameApplyCount,
+    };
+  }, { id: textId, textProperty });
+  const longTasks = await page.evaluate(
+    () => window.__composition_PERF__?.snapshotLongTasks() ?? [],
+  );
+  const tracePath = resolve(
+    traceDir,
+    `adr187-text-metrics-n${tier}-run${repeat + 1}.trace.json.gz`,
+  );
+  const trace = await finishTrace(cdp, traceEvents, tracePath);
+  const canvasDuring = await captureCanvasScreenshot(page, "text-during");
+  const after = await page.evaluate(async (id) => {
+    const handle = window.__composition_ADR187_TEXT_ACTIVE_HANDLE__;
+    const renderCommands = window.__composition_RENDER_COMMAND_DEBUG__;
+    const skiaDebug = window.__composition_SKIA_DEBUG__;
+    const store = window.__composition_STORE__;
+    if (!handle || !renderCommands || !skiaDebug || !store) {
+      throw new Error("ADR-187 text metric terminal boundary is unavailable");
+    }
+    handle.cancel("pointer-cancel");
+    delete window.__composition_ADR187_TEXT_ACTIVE_HANDLE__;
+    await new Promise((resolvePromise) => {
+      let remaining = 4;
+      const next = () => {
+        remaining -= 1;
+        if (remaining <= 0) resolvePromise();
+        else requestAnimationFrame(next);
+      };
+      requestAnimationFrame(next);
+    });
+    const iframe = document.querySelector("iframe#previewFrame");
+    const element = iframe?.contentDocument?.querySelector(
+      `[data-canonical-id="${id}"]`,
+    );
+    const rect = element?.getBoundingClientRect();
+    const style = element ? getComputedStyle(element) : null;
+    const node = skiaDebug.getSkiaNode(id);
+    const metric = node?.presentationTextMetricTargets?.[0]?.text;
+    return {
+      canonicalStyle: store.getState().elementsMap.get(id)?.props?.style,
+      geometry: renderCommands.readNode(id),
+      paragraphKey: skiaDebug.getTextParagraphCacheKey({
+        ...node,
+        text: node?.presentationTextMetricTargets?.[0]?.text,
+      }),
+      preview: rect && style
+        ? {
+            fontSize: style.fontSize,
+            fontWeight: style.fontWeight,
+            height: rect.height,
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+          }
+        : null,
+      skiaText: {
+        content: metric?.content ?? node?.text?.content ?? null,
+        fontSize: metric?.fontSize ?? node?.text?.fontSize ?? null,
+        fontWeight: metric?.fontWeight ?? node?.text?.fontWeight ?? null,
+        maxWidth: metric?.maxWidth ?? node?.text?.maxWidth ?? null,
+        nodeType: node?.type ?? null,
+        childTypes: node?.children?.map((child) => child.type) ?? [],
+      },
+      phaseMetricsAfterTerminal:
+        window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__.snapshot(),
+    };
+  }, textId);
+  const canvasRestored = await captureCanvasScreenshot(page, "text-restored");
+  const { phaseMetricsDuring: drag, ...textDuring } = raw;
+  const { phaseMetricsAfterTerminal: afterTerminal, ...textAfter } = after;
+  return {
+    afterTerminal,
+    actualDragDurationMs: Date.now() - runStartedAt,
+    drag,
+    text: {
+      ...textDuring,
+      ...textAfter,
+      canvasBefore,
+      canvasDuring,
+      canvasRestored,
+      trace,
+    },
+    longTasks,
+    terminalDelta: subtractCounters(afterTerminal.counters, drag.counters),
+  };
+}
+
+function aggregateTextRuns(runs) {
+  return {
+    allCanvasChangedDuring: runs.every(
+      (run) =>
+        run.text.canvasBefore.sha256 !== run.text.canvasDuring.sha256,
+    ),
+    allCanvasRestored: runs.every(
+      (run) =>
+        run.text.canvasBefore.sha256 === run.text.canvasRestored.sha256,
+    ),
+    allCanonicalHandoff: runs.every(
+      (run) =>
+        JSON.stringify(run.text.before.canonicalStyle) ===
+          JSON.stringify(run.text.during.canonicalStyle) &&
+        JSON.stringify(run.text.before.canonicalStyle) ===
+          JSON.stringify(run.text.canonicalStyle),
+    ),
+    allFixedRectStable: runs.every((run) => {
+      const before = run.text.before.geometry;
+      const during = run.text.during.geometry;
+      const after = run.text.geometry;
+      return ["x", "y", "width", "height"].every(
+        (key) =>
+          before?.bounds?.[key] === during?.bounds?.[key] &&
+          before?.bounds?.[key] === after?.bounds?.[key] &&
+          before?.hitBounds?.[key] === during?.hitBounds?.[key] &&
+          before?.hitBounds?.[key] === after?.hitBounds?.[key],
+      );
+    }),
+    allMetricParity: runs.every((run) => {
+      const preview = run.text.during.preview;
+      const skia = run.text.during.skiaText;
+      return (
+        preview?.fontSize === `${skia?.fontSize}px` &&
+        Number(preview?.fontWeight) === skia?.fontWeight
+      );
+    }),
+    allParagraphInvalidatedAndRestored: runs.every(
+      (run) =>
+        run.text.before.paragraphKey !== run.text.during.paragraphKey &&
+        run.text.before.paragraphKey === run.text.paragraphKey,
+    ),
+    allPreviewRestored: runs.every((run) => {
+      const before = run.text.before.preview;
+      const after = run.text.preview;
+      return (
+        before?.fontSize === after?.fontSize &&
+        before?.fontWeight === after?.fontWeight &&
+        before?.width === after?.width &&
+        before?.height === after?.height
+      );
+    }),
+    allSkiaSnapshotsAvailable: runs.every(
+      (run) =>
+        run.text.before.geometry?.available === true &&
+        run.text.during.geometry?.available === true &&
+        run.text.geometry?.available === true,
+    ),
+    medianParagraphUpdateP95Ms: median(
+      runs.map((run) => run.text.trace?.skiaRenderFrame?.p95 ?? 0),
+    ),
   };
 }
 
@@ -1262,6 +1907,7 @@ async function main() {
   }
   let browser;
   const consoleMessages = [];
+  const environmentMessages = [];
   const pageErrors = [];
   try {
     browser = await chromium.launch({
@@ -1276,7 +1922,18 @@ async function main() {
     const cdp = await context.newCDPSession(page);
     page.on("console", (message) => {
       if (["error", "warning"].includes(message.type())) {
-        consoleMessages.push({ type: message.type(), text: message.text() });
+        const entry = { type: message.type(), text: message.text() };
+        const isExistingProjectFallback =
+          message.text().includes("[initializeProject] documents row") ||
+          message.text().includes("[BuilderCore] 프로젝트를 찾을 수 없음");
+        if (isExistingProjectFallback) {
+          environmentMessages.push(entry);
+          process.stderr.write(
+            `[browser:environment] ${message.text()}\n`,
+          );
+          return;
+        }
+        consoleMessages.push(entry);
         if (message.type() === "error") {
           process.stderr.write(`[browser:error] ${message.text()}\n`);
         }
@@ -1329,9 +1986,18 @@ async function main() {
               options,
               tier,
               repeat,
-              options.traceDir,
-              options.layoutProperty,
-            )
+                options.traceDir,
+                options.layoutProperty,
+              )
+            : options.lane === "text"
+              ? await runTextMetricParity(
+                  page,
+                  cdp,
+                  options,
+                  tier,
+                  repeat,
+                  options.traceDir,
+                )
             : await runDrag(
                 page,
                 cdp,
@@ -1343,7 +2009,10 @@ async function main() {
         );
       }
       tiers.push({
-        aggregate: aggregateRuns(runs),
+        aggregate:
+          options.lane === "text"
+            ? aggregateTextRuns(runs)
+            : aggregateRuns(runs, environmentMessages),
         n: tier,
         runs,
         seed,
@@ -1362,6 +2031,7 @@ async function main() {
         headless: !options.headed,
         lane: options.lane,
         layoutProperty: options.layoutProperty,
+        textProperty: options.textProperty,
         productPreview: "Builder top toggle group split mode",
         repeats: options.repeats,
         viewport: { width: 1440, height: 900 },
@@ -1370,6 +2040,7 @@ async function main() {
       tiers,
       diagnostics: {
         consoleMessages,
+        environmentMessages,
         pageErrors,
       },
     };

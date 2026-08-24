@@ -155,6 +155,89 @@ describe("editor presentation layout lane", () => {
     expect(paintPlan.roots).toEqual(["sibling"]);
   });
 
+  it.each(["padding", "gap"] as const)(
+    "keeps a fixed-size flow container %s patch scoped to its own subtree",
+    (property) => {
+      const target = {
+        kind: "canonical-node",
+        nodeId: "parent",
+      } as const;
+      const tree = {
+        childrenByParent: new Map([
+          ["page", ["parent", "filler"]],
+          ["parent", ["target", "sibling"]],
+        ]),
+        parentById: new Map([
+          ["page", null],
+          ["parent", "page"],
+          ["target", "parent"],
+          ["sibling", "parent"],
+          ["filler", "page"],
+        ]),
+        nodeById: new Map([
+          [
+            "page",
+            {
+              id: "page",
+              type: "Page",
+              props: { style: { display: "block" } },
+            },
+          ],
+          [
+            "parent",
+            {
+              id: "parent",
+              type: "Box",
+              props: { style: { display: "flex", width: 360, height: 180 } },
+            },
+          ],
+          [
+            "target",
+            {
+              id: "target",
+              type: "Box",
+              props: { style: { width: 100, height: 60 } },
+            },
+          ],
+          [
+            "sibling",
+            {
+              id: "sibling",
+              type: "Box",
+              props: { style: { width: 100, height: 60 } },
+            },
+          ],
+          [
+            "filler",
+            {
+              id: "filler",
+              type: "Box",
+              props: { style: { width: 8, height: 8 } },
+            },
+          ],
+        ]),
+      };
+
+      const plan = createPresentationLayoutPlan({
+        targets: [target],
+        mutations: [
+          {
+            patch: { [property]: 24 },
+            target,
+            type: "style.patch",
+          },
+        ],
+        tree,
+      });
+
+      expect(plan.roots).toEqual(["parent"]);
+      expect(plan.parentChain).toEqual([]);
+      expect(plan.affectedNodeIds).toEqual(
+        new Set(["parent", "target", "sibling"]),
+      );
+    },
+  );
+
   it("publishes only affected layout delta without copying a canonical base map", () => {
     const changed = { x: 2 };
     const result = publishPresentationLayout({
@@ -376,6 +459,46 @@ describe("editor presentation layout lane", () => {
       style: { width: 140, color: "red", left: 12 },
     });
     expect(node.props?.style).toEqual({ width: 100, color: "red" });
+  });
+
+  it("canonicalizes spacing shorthand before targeted engine input", () => {
+    const node = {
+      id: "flow-parent",
+      parent_id: null,
+      page_id: "page-1",
+      props: {
+        style: {
+          display: "flex",
+          gap: "8px",
+          padding: "4px 6px",
+        },
+      },
+      type: "frame",
+    } as CanvasLayoutNode;
+    const target = { kind: "canonical-node", nodeId: node.id } as const;
+
+    const next = resolveCanonicalNodeWithPresentation(node, target, [
+      {
+        patch: { gap: 16, padding: 12 },
+        target,
+        type: "style.patch",
+      },
+    ]);
+
+    expect(next.props?.style).toEqual({
+      columnGap: 16,
+      display: "flex",
+      paddingBottom: 12,
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 12,
+      rowGap: 16,
+    });
+    expect(node.props?.style).toEqual({
+      display: "flex",
+      gap: "8px",
+      padding: "4px 6px",
+    });
   });
 
   it("does not leak paint-only style into the layout input", () => {

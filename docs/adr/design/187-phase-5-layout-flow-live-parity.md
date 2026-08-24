@@ -13,7 +13,8 @@
 body
 ├─ adr187-flow-parent (display:flex; row; width:360px; padding:8px; gap:8px)
 │  ├─ adr187-target (in-flow; 100px × 60px)
-│  └─ adr187-flow-sibling (in-flow; 100px × 60px)
+│  ├─ adr187-flow-sibling (in-flow; 100px × 60px)
+│  └─ adr187-flow-visual (in-flow; 100px × 60px; visible fill)
 └─ adr187-flow-filler-0 (비영향 identity sentinel)
 ```
 
@@ -77,6 +78,8 @@ flow child를 target으로 삼는다. 모든 경우 sibling과 filler identity�
    Preview/Skia가 before 값으로 복귀한다.
 5. target command stream의 `presentationRevision`은 증가하고, terminal 뒤
    stale callback은 0이다.
+6. Preview/Skia의 sub-pixel layout 차이는 `0.5px` 이내이며, during/restored
+   Canvas hash가 각각 변경/복귀한다.
 
 ## Builder live spot-check — 2026-08-24
 
@@ -98,13 +101,68 @@ spacing 입력을 확인했다. Preview iframe과 Skia Canvas가 동시에 표�
   `102.109375 × 52px`가 복귀했고 복귀 후에도 경고가 없었다.
 
 이는 실제 Builder의 단일 `Badge` component spot-check로서 Preview geometry와
-경고 소거를 증명한다. generic non-grid flex multi-sibling fixture의 affected
-`bounds`/`hitBounds`, 비영향 identity, terminal handoff 또는 Skia 내부 좌표를
-증명하는 결과는 아니므로, 아래 runner blocker와 승격 조건은 유지한다.
+경고 소거를 증명한다. generic non-grid flex multi-sibling의 내부 좌표와
+terminal handoff는 아래 dedicated runner 결과로 보완한다.
 
-## 현재 실행 blocker
+## Builder live 결과 — 2026-08-24
 
-2026-08-24 현재 이 세션에서 실행한 명령:
+사용자가 실행 중인 Builder URL을 `--project-url`로 열어 generic non-grid
+multi-sibling fixture를 생성하고, 각 property를 독립 browser context에서
+실행했다. `project.mode=existing`, tier `5`, repeat `1`이며 네 property 모두
+아래 aggregate가 전부 `true`였다.
+
+```text
+width:   allSkiaSnapshotsAvailable=true  allCanvasChangedDuring=true
+         allCanvasRestored=true allCenterHitsContainTarget=true
+         allClippedHitWidthsMatchPreview=true allCommandCountsStable=true
+         allDrawHitBoundsAtomic=true allUnaffectedIdentityStable=true
+         allAffectedDrawHitGeometryAtomic=true allTerminalCanonicalHandoff=true
+         allPreviewSiblingCaptured=true
+height:  allSkiaSnapshotsAvailable=true  allCanvasChangedDuring=true
+         allCanvasRestored=true allCenterHitsContainTarget=true
+         allClippedHitWidthsMatchPreview=true allCommandCountsStable=true
+         allDrawHitBoundsAtomic=true allUnaffectedIdentityStable=true
+         allAffectedDrawHitGeometryAtomic=true allTerminalCanonicalHandoff=true
+         allPreviewSiblingCaptured=true
+padding: allSkiaSnapshotsAvailable=true  allCanvasChangedDuring=true
+         allCanvasRestored=true allCenterHitsContainTarget=true
+         allClippedHitWidthsMatchPreview=true allCommandCountsStable=true
+         allDrawHitBoundsAtomic=true allUnaffectedIdentityStable=true
+         allAffectedDrawHitGeometryAtomic=true allTerminalCanonicalHandoff=true
+         allPreviewSiblingCaptured=true
+gap:     allSkiaSnapshotsAvailable=true  allCanvasChangedDuring=true
+         allCanvasRestored=true allCenterHitsContainTarget=true
+         allClippedHitWidthsMatchPreview=true allCommandCountsStable=true
+         allDrawHitBoundsAtomic=true allUnaffectedIdentityStable=true
+         allAffectedDrawHitGeometryAtomic=true allTerminalCanonicalHandoff=true
+         allPreviewSiblingCaptured=true
+```
+
+Evidence JSON:
+
+- `/private/tmp/adr187-phase5-layout-width-final2.json`
+- `/private/tmp/adr187-phase5-layout-height-final.json`
+- `/private/tmp/adr187-phase5-layout-padding-final.json`
+- `/private/tmp/adr187-phase5-layout-gap-final.json`
+
+대표 성능 값은 raw publish p95 `0.10–0.20ms`, runtime apply p95
+`0.45–1.56ms`, Skia render-frame p95 `1.02–1.18ms`이며, 네 run 모두 long task
+`0`이다. `gap`은 기존 프로젝트에 색상이 없는 형제가 남아 Canvas hash가
+고정되는 하니스 결함을 확인한 뒤, 별도 visible sibling을 fixture에 추가해
+실제 픽셀 변경/복귀를 재검증했다. 기존 프로젝트 초기화 시 출력되는
+`documents row 미존재` warning은 persist-back을 생략하는 harness 환경 신호이며,
+네 aggregate의 product console error/pageerror 판정과 분리한다.
+
+## 원인과 수정
+
+고정 크기 flow container의 `padding`/`gap`은 used-size parent 승격 조건에
+걸려 page/body root까지 promotion되면서 unrelated bounds identity가 바뀌었다.
+`isContainerSpacingMutation`이 container spacing patch를 식별하고, source
+container 자체를 targeted root로 유지하도록 `createPresentationLayoutPlan`을
+수정했다. 회귀 테스트는 fixed-size flow container의 root가 `parent`에
+고정되고 affected set이 `parent/target/sibling`으로 제한되는지 잠근다.
+
+이전 blocker 기록:
 
 ```bash
 node apps/builder/scripts/adr187-presentation-baseline.mjs \
@@ -116,10 +174,8 @@ node apps/builder/scripts/adr187-presentation-baseline.mjs \
   --trace-dir /private/tmp/adr187-phase5-layout-padding-traces
 ```
 
-결과는 `dashboard form unavailable` timeout이며, Playwright가
-`getByLabel('New project name')` 표시를 10초 동안 기다리다 실패했다.
-기존 Builder URL을 재사용할 수 있도록 `--project-url` 경로를 추가하고, 다음
-명령으로 동일 fixture를 시도했다.
+격리 dashboard 경로는 `getByLabel('New project name')` timeout으로 사용할 수
+없었으므로, 위의 기존 Builder 경로를 live evidence로 사용했다.
 
 ```bash
 node apps/builder/scripts/adr187-presentation-baseline.mjs \
@@ -132,11 +188,5 @@ node apps/builder/scripts/adr187-presentation-baseline.mjs \
   --trace-dir /private/tmp/adr187-phase5-layout-padding-existing-traces
 ```
 
-이 시도는 dashboard 단계는 우회했지만 현재 세션의 Playwright Chrome 실행이
-`browserType.launch: Target page, context or browser has been closed`와
-`signal=SIGABRT`로 종료되어 Builder URL에 도달하지 못했다. 따라서 이번
-라운드에도 populated Builder GREEN이나 Badge spot-check을 generic multi-sibling
-parity로 승격하지 않는다. 실행 환경에서 Chrome/Builder dev server와
-authenticated storage state를 제공하면 위 `--project-url` 명령을
-`width`, `height`, `padding`, `gap` 각각 수행하고 결과 JSON의 aggregate를
-승격 근거로 사용할 수 있다.
+초기 몇 회에는 Playwright Chrome이 `SIGABRT`로 재시작되는 환경 변동이 있었지만,
+재시도 후 네 property의 live evidence가 모두 수집됐다.

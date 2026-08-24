@@ -171,6 +171,34 @@ function parentRedistributesUsedSize(
   return getLayoutContainerDisplay(parent) !== "none";
 }
 
+const FLOW_SPACING_STYLE_KEYS = new Set([
+  "gap",
+  "rowGap",
+  "columnGap",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+]);
+
+function isContainerSpacingMutation(
+  mutations: readonly EditorMutationDescriptor[],
+  targetKey: string,
+  tree: PresentationLayoutTreeIndex,
+): boolean {
+  if ((tree.childrenByParent.get(targetKey)?.length ?? 0) === 0) return false;
+  return mutations.some(
+    (mutation) =>
+      mutation.target.kind === "canonical-node" &&
+      mutation.target.nodeId === targetKey &&
+      mutation.type === "style.patch" &&
+      Object.keys(mutation.patch).some((key) =>
+        FLOW_SPACING_STYLE_KEYS.has(key),
+      ),
+  );
+}
+
 function shouldPromoteUsedSizeParent(input: {
   readonly childId: string;
   readonly parentId: string;
@@ -227,8 +255,14 @@ export function createPresentationLayoutPlan(input: {
       );
     const sourceTargetId =
       target.kind === "canonical-node" ? target.nodeId : target.refId;
+    const containerSpacingMutation = isContainerSpacingMutation(
+      input.mutations ?? [],
+      sourceTargetId,
+      input.tree,
+    );
     while (
       parentId &&
+      !(containerSpacingMutation && rootId === sourceTargetId) &&
       (input.promotionOverrideForTest
         ? input.promotionOverrideForTest(parentId, rootId)
         : shouldPromoteUsedSizeParent({

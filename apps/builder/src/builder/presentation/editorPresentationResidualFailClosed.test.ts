@@ -129,45 +129,52 @@ describe("ADR-187 Phase 5 residual fail-closed boundary", () => {
     expectRejectedWithoutOverlay(resourceLikeStyle);
   });
 
-  it("keeps structure terminal-only and emits no presentation overlay", () => {
-    const { commit, runtime, scheduler } = createRuntime();
-    const handle = begin(runtime);
-    const events: EditorPresentationSessionEvent[] = [];
-    runtime.subscribeSessionEvents((event) => events.push(event));
-    const descriptor: EditorMutationDescriptor = {
-      operation: {
-        payload: { parentId: "frame-1" },
-        type: "reparent",
-      },
-      target,
-      type: "structure.patch",
-    };
+  it.each(["add", "remove", "reparent", "order", "ref", "slot"] as const)(
+    "keeps structure %s terminal-only and emits no presentation overlay",
+    (operationType) => {
+      const { commit, runtime, scheduler } = createRuntime();
+      const handle = begin(runtime);
+      const events: EditorPresentationSessionEvent[] = [];
+      runtime.subscribeSessionEvents((event) => events.push(event));
+      const descriptor: EditorMutationDescriptor = {
+        operation: {
+          payload: { parentId: "frame-1" },
+          type: operationType,
+        },
+        target,
+        type: "structure.patch",
+      };
 
-    expect(() => handle.publish(descriptor)).toThrow(
-      /not registered for continuous presentation/,
-    );
-    expect(scheduler.pendingCount()).toBe(0);
-    expect(runtime.getTargetSnapshot(projectId, target)).toHaveLength(0);
-    expect(commit).not.toHaveBeenCalled();
+      expect(() => handle.publish(descriptor)).toThrow(
+        /not registered for continuous presentation/,
+      );
+      expect(scheduler.pendingCount()).toBe(0);
+      expect(runtime.getTargetSnapshot(projectId, target)).toHaveLength(0);
+      expect(commit).not.toHaveBeenCalled();
 
-    expect(handle.finish(descriptor).status).toBe("failed");
-    expect(commit).not.toHaveBeenCalled();
-    expect(runtime.getTargetSnapshot(projectId, target)).toHaveLength(0);
-    expect(runtime.getSnapshot().sessions.get(handle.sessionId)?.status).toBe(
-      "failed",
-    );
-    expect(events.filter((event) => event.type === "terminal")).toHaveLength(0);
+      expect(handle.finish(descriptor).status).toBe("failed");
+      expect(commit).not.toHaveBeenCalled();
+      expect(runtime.getTargetSnapshot(projectId, target)).toHaveLength(0);
+      expect(runtime.getSnapshot().sessions.get(handle.sessionId)?.status).toBe(
+        "failed",
+      );
+      expect(events.filter((event) => event.type === "terminal")).toHaveLength(
+        0,
+      );
 
-    expect(handle.cancel("escape")).toBe(true);
-    expect(runtime.getSnapshot().sessions.has(handle.sessionId)).toBe(false);
-    expect(runtime.getTargetSnapshot(projectId, target)).toHaveLength(0);
-    expect(events.filter((event) => event.type === "terminal")).toHaveLength(1);
-    expect(events.at(-1)).toMatchObject({
-      finalDescriptor: null,
-      result: { reason: "escape", status: "cancelled" },
-      type: "terminal",
-    });
-  });
+      expect(handle.cancel("escape")).toBe(true);
+      expect(runtime.getSnapshot().sessions.has(handle.sessionId)).toBe(false);
+      expect(runtime.getTargetSnapshot(projectId, target)).toHaveLength(0);
+      expect(events.filter((event) => event.type === "terminal")).toHaveLength(
+        1,
+      );
+      expect(events.at(-1)).toMatchObject({
+        finalDescriptor: null,
+        result: { reason: "escape", status: "cancelled" },
+        type: "terminal",
+      });
+    },
+  );
 
   it("does not mistake the legacy prop registry axis for a continuous descriptor", () => {
     const resourceRule = getEditorMutationEffectRule("prop", "src");
