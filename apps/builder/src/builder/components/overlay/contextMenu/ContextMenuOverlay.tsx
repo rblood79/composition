@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Check, ChevronRight } from "lucide-react";
 import {
   Keyboard,
@@ -35,6 +35,17 @@ export function ContextMenuOverlay({
   onClose,
 }: ContextMenuOverlayProps) {
   const anchorRef = useRef<HTMLSpanElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || !request) return;
+
+    const focusTimer = window.setTimeout(() => {
+      menuRef.current?.focus();
+    });
+
+    return () => window.clearTimeout(focusTimer);
+  }, [isOpen, request]);
 
   if (!request) {
     return null;
@@ -59,6 +70,7 @@ export function ContextMenuOverlay({
       <Popover
         className="context-menu-popover"
         isOpen={isOpen}
+        isNonModal
         onOpenChange={(open) => {
           if (!open) onClose();
         }}
@@ -69,6 +81,7 @@ export function ContextMenuOverlay({
           aria-label="Context menu"
           className="context-menu"
           onAction={() => undefined}
+          ref={menuRef}
         >
           {renderContextMenuItems(items, onClose)}
         </Menu>
@@ -113,7 +126,11 @@ function renderContextMenuItems(
               size={MENU_ICON_SIZE}
             />
           </MenuItem>
-          <Popover className="context-menu-popover" placement="right top">
+          <Popover
+            className="context-menu-popover"
+            isNonModal
+            placement="right top"
+          >
             <Menu aria-label={item.label} className="context-menu">
               {renderContextMenuItems(item.items, onClose)}
             </Menu>

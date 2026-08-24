@@ -29,6 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Vite/Rolldown 및 React plugin 전환, lucide/react-router 업데이트, 보안 패치와 미사용 dependency 제거를
     반영했다.
 
+## Builder 컨텍스트 메뉴 재우클릭 교체 — 2026-08-24
+
+### Bug Fixes
+
+- **컨텍스트 메뉴가 열린 상태에서 다른 대상·위치의 우클릭을 무시하던 문제**:
+  - 메뉴가 열린 뒤 캔버스의 다른 요소·빈 영역 또는 LayerTree 행을 다시 우클릭하면 기존 메뉴가 그대로 남던 문제를 수정했다.
+  - **Why**: RAC `Popover`의 modal underlay가 Builder root를 `inert`로 만들어 새 `contextmenu` 이벤트가 Canvas/LayerTree 소비자에 도달하지 않았다.
+  - 수정: context-menu Popover를 non-modal로 전환하고, 메뉴가 열린 동안에만 outside `pointerdown`을 소비해 기존 닫힘 동작을 보존했다. 이어지는 `contextmenu`는 새 대상에 전달되며 메뉴 포커스와 Escape 닫힘도 유지한다.
+  - 위치: `apps/builder/src/builder/components/overlay/contextMenu/{ContextMenuOverlay.tsx,useContextMenu.tsx}`
+
 ## ADR-187 Phase 6 종결 — exact-URL G8 live gate — 2026-08-24
 
 ### Bug Fixes

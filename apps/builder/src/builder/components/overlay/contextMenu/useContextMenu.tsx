@@ -53,6 +53,35 @@ export function ContextMenuProvider({
   );
 
   useEffect(() => {
+    if (!request) return;
+
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest(".context-menu-popover")
+      ) {
+        return;
+      }
+
+      // Non-modal RAC Popover 는 underlay 를 만들지 않으므로, 메뉴 밖의
+      // pointerdown 이 캔버스/패널 동작까지 통과하지 않도록 여기서 소비한다.
+      // 이어지는 contextmenu 이벤트는 막지 않아 새 대상의 메뉴를 열 수 있다.
+      close();
+      event.stopPropagation();
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown, true);
+    return () => {
+      document.removeEventListener(
+        "pointerdown",
+        handleOutsidePointerDown,
+        true,
+      );
+    };
+  }, [close, request]);
+
+  useEffect(() => {
     const handleContextMenu = (event: MouseEvent) => {
       const disposition = resolveContextMenuDisposition({
         altKey: event.altKey,

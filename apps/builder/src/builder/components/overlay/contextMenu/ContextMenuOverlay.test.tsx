@@ -1,11 +1,5 @@
 // @vitest-environment jsdom
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ContextMenuOverlay } from "./ContextMenuOverlay";
 
@@ -108,13 +102,11 @@ describe("ContextMenuOverlay", () => {
     );
   });
 
-  it("dismisses on an outside pointer without relying on a window listener", async () => {
-    const onClose = vi.fn();
-
+  it("does not render a modal underlay", async () => {
     render(
       <ContextMenuOverlay
         isOpen
-        onClose={onClose}
+        onClose={vi.fn()}
         request={{
           surface: "canvas-empty",
           clientX: 120,
@@ -126,10 +118,6 @@ describe("ContextMenuOverlay", () => {
     );
 
     await waitFor(() => expect(screen.getByRole("menu")).toBeTruthy());
-    const underlay = screen.getByTestId("underlay");
-    fireEvent.pointerDown(underlay);
-    fireEvent.click(underlay);
-
-    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId("underlay")).toBeNull();
   });
 });
