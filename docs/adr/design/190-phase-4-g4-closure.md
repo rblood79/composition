@@ -100,3 +100,20 @@ ADR-190 이전에는 도달 불가였다 — presentation lane 은 항상 원소
 수정 후 2,000-node 문서 재실측: batch 1~2,000 전 구간 patch 성공 4/4, 역전 없음
 (1개 21.9배 → 2,000개 1.25배로 단조 감소). 다중 root splice 픽셀 차이 0
 (`adr190-multiroot-pixel-oracle.mjs`, 한 commit 에 root 4개). 상세: Phase 3 §1.
+
+**UI 제스처 live 검증 (2026-08-24)**: 레이어 트리 shift-클릭으로 두 형제를 선택한
+뒤 두 경로를 각각 실행했다.
+
+| 조작                               | 경로                      | queue | patchSuccess | fallback | full build | subtree build |
+| ---------------------------------- | ------------------------- | ----: | -----------: | -------: | ---------: | ------------: |
+| Properties 패널 **왼쪽 정렬** 클릭 | `alignSelection`          |     1 |            1 |        0 |          0 |         **2** |
+| **캔버스 다중 드래그**             | `useDragBridge` 좌표 갱신 |     1 |            1 |        0 |          0 |         **2** |
+
+둘 다 `batchUpdateElementProps` 로 모이며, `subtree build 2` 가 한 commit 에서
+dirty root 두 개가 각각 splice 됐다는 직접 증거다. 두 요소가 실제로 함께
+움직였고 (정렬 후 bounding box 300×160 → 120×160, 드래그 후 동일 델타 이동)
+console error 0.
+
+> 앞선 세션에서 드래그가 안 잡힌 것은 자동화 한계가 아니라 **대상이 block flow
+> 라 드래그 이동 대상이 아니었기** 때문이다. `position:absolute` + px 좌표를 가진
+> 요소에서는 정상 동작한다 — 진단을 정정한다.

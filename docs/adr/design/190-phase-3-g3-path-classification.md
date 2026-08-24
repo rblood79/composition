@@ -160,4 +160,4 @@ node apps/builder/scripts/adr190-multiroot-pixel-oracle.mjs
 | commit patcher 의 다중 dirty root                     | **2026-08-24 해소** (§1 정정 — revision 부기 결함 수정)                |
 | `updateElement` 의 canonical sync 위치                | `set` 콜백 밖으로 빼면 emit 계약 지점이 생긴다 — 별도 리팩터링         |
 | instance snapshot batch (`applyElementSnapshotBatch`) | 다중 root 가 열렸으므로 재검토 가능 — `applyElementSnapshotBatch` 배선 |
-| 다중 선택 드래그의 UI 제스처 검증                     | 브라우저 자동화로 드래그 세션을 시작하지 못했다 (수동 1회 확인 남음)   |
+| 다중 선택 드래그의 UI 제스처 검증                     | **2026-08-24 완료** — 정렬 버튼·캔버스 드래그 모두 subtree build 2     |

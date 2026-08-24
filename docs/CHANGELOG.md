@@ -78,9 +78,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   화면 차이: `1440 × 852` differing pixels **0**, max/mean channel delta 0.
 - 회귀 테스트: 같은 페이지의 형제 둘을 한 commit 으로 splice 하는 경로를
   `StoreRenderBridge.commitPatch.test.ts` 로 고정 (수정 전 FAIL 확인).
-- 미검증 잔여: 다중 선택 **캔버스 드래그** 제스처는 브라우저 자동화로 드래그
-  세션을 시작하지 못해 수동 확인이 남아 있다. 같은 store 경로
-  (`batchUpdateElementProps`) 는 실제 브라우저에서 확인됐다.
+- **UI 제스처 확인 완료 (같은 날 후속)**: 레이어 트리 shift-클릭으로 두 형제를
+  선택한 뒤 ① Properties 패널의 **왼쪽 정렬 버튼 클릭** ② **캔버스 다중 드래그**
+  각각에서 `queue 1 / patchSuccess 1 / fallback 0 / full build 0`,
+  **subtree build 2** (= 한 commit 에 dirty root 2개 splice). 두 요소가 실제로
+  함께 이동했고 console error 0.
+  - 앞서 드래그가 안 잡힌 것은 자동화 한계가 아니라 대상 요소가 block flow
+    라 드래그 이동 대상이 아니었기 때문이다. `position:absolute` + px 좌표를
+    가진 요소에서는 정상 동작한다.
 
 ## [ADR-190 Implemented — 일반 편집 경로의 sparse commit lane 진입] - 2026-08-24
 
