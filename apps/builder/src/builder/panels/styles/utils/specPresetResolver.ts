@@ -7,7 +7,9 @@ import {
 import {
   resolveCatalogContainerBase,
   resolveCatalogContainerVariants,
+  resolveCatalogPaint,
   resolveComponentRule,
+  type ResolvedCatalogPaint,
 } from "@composition/shared";
 
 // ADR-912 Phase 4 (2026-06-20): Style Panel preset 의 source 를 builder-local spec map(spec 객체
@@ -516,12 +518,6 @@ const resolveStaticAppearanceSpecPreset = createResolver<AppearanceSpecPreset>(
   appearanceFromContainerStyles,
 );
 
-interface CatalogColorPreset {
-  backgroundColor?: string;
-  borderColor?: string;
-  color?: string;
-}
-
 function readStringProp(
   props: Readonly<Record<string, unknown>> | undefined,
   key: string,
@@ -531,103 +527,40 @@ function readStringProp(
 }
 
 /**
- * 현재 component variant/fillStyle 의 정적(base state) 색상을 catalog SSOT에서 해석한다.
- * hover/pressed 같은 transient state는 패널 편집 baseline이 아니므로 포함하지 않는다.
+ * Style Panel이 소비할 root paint snapshot. 동적 authored state는 cache하지 않는다.
+ * transient hover/pressed 대신 편집 가능한 authored default state만 해석한다.
  */
-function resolveCatalogColorPreset(
+export function resolveStylePanelCatalogPaint(
   type: string | undefined,
+  size: string | undefined,
   props: Readonly<Record<string, unknown>> | undefined,
-): CatalogColorPreset {
-  if (!type) return {};
+  style: Readonly<Record<string, unknown>> | undefined,
+): ResolvedCatalogPaint | undefined {
+  if (!type) return undefined;
   const rule = resolveComponentRule(type);
-  if (!rule) return {};
-
-  // Menu/ListBox 같은 self-render container는 generated CSS가 containerStyles의
-  // background/text/border를 직접 emit하고 variant 색상 블록을 생략한다. 이 경우
-  // 패널도 같은 container tier를 유지해야 rule.variants의 item/state 색을 root 색으로
-  // 잘못 표시하지 않는다.
-  const containerColorKeys = new Set([
-    "background",
-    "backgroundColor",
-    "border",
-    "borderColor",
-    "color",
-    "text",
-  ]);
-  const containerStyleTiers = [
-    rule.structure?.containerStyles,
-    rule.structure?.composition?.containerStyles,
-    rule.containerStyles,
-  ];
-  if (
-    containerStyleTiers.some(
-      (tier) =>
-        tier && Object.keys(tier).some((key) => containerColorKeys.has(key)),
-    )
-  ) {
-    return {};
-  }
+  if (!rule) return undefined;
 
   const variantName = readStringProp(props, "variant") ?? rule.defaultVariant;
   const variant = variantName ? rule.variants[variantName] : undefined;
-  if (!variant) return {};
+  const sizeName = size ?? rule.defaultSize;
+  const sizeRule = sizeName ? rule.sizes[sizeName] : undefined;
+  if (!variant) return undefined;
 
-  const fillStyle = readStringProp(props, "fillStyle");
-  const fillKey =
-    props?.isQuiet === true && variant.fill.quiet
-      ? "quiet"
-      : fillStyle === "outline" && variant.fill.outline
-        ? "outline"
-        : fillStyle === "subtle" && variant.fill.subtle
-          ? "subtle"
-          : "default";
-  const fill = variant.fill[fillKey] ?? variant.fill.default;
-  const colors = variant.colors;
-  const text =
-    fillKey === "outline"
-      ? (colors?.outlineText ?? colors?.text)
-      : fillKey === "subtle"
-        ? (colors?.subtleText ?? colors?.text)
-        : colors?.text;
-  const border =
-    fillKey === "outline"
-      ? (colors?.outlineBorder ?? colors?.border)
-      : colors?.border;
-
-  return {
-    backgroundColor: resolveToCSSVar(fill.base),
-    borderColor: resolveToCSSVar(border),
-    color: resolveToCSSVar(text),
-  };
+  return resolveCatalogPaint({
+    variant,
+    size: sizeRule,
+    props: props ?? {},
+    style,
+    interactionState: "default",
+  });
 }
-
-const appearancePresetCache = new Map<string, AppearanceSpecPreset>();
-allCaches.push(appearancePresetCache as Map<string, unknown>);
 
 export function resolveAppearanceSpecPreset(
   type: string | undefined,
   size: string | undefined,
-  props?: Readonly<Record<string, unknown>>,
+  _props?: Readonly<Record<string, unknown>>,
 ): AppearanceSpecPreset {
-  const rule = type ? resolveComponentRule(type) : undefined;
-  const variant =
-    readStringProp(props, "variant") ?? rule?.defaultVariant ?? "";
-  const fillStyle = readStringProp(props, "fillStyle") ?? "";
-  const key = `${type ?? ""}:${size ?? "md"}:${variant}:${fillStyle}:${props?.isQuiet === true}`;
-  const cached = appearancePresetCache.get(key);
-  if (cached) return cached;
-
-  const base = resolveStaticAppearanceSpecPreset(type, size);
-  const colors = resolveCatalogColorPreset(type, props);
-  const preset = {
-    ...base,
-    ...(colors.backgroundColor
-      ? { backgroundColor: colors.backgroundColor }
-      : {}),
-    ...(colors.borderColor ? { borderColor: colors.borderColor } : {}),
-  };
-  appearancePresetCache.set(key, preset);
-  return preset;
+  return resolveStaticAppearanceSpecPreset(type, size);
 }
 
 // sizes 경로 전용: paddingX/Y (20+ spec 에서 사용) 를 paddingLeft/Right/Top/Bottom 4-way 로 정규화.
@@ -719,30 +652,12 @@ const resolveStaticTypographySpecPreset = createResolver<TypographySpecPreset>(
   typographyFromContainerStyles,
 );
 
-const typographyPresetCache = new Map<string, TypographySpecPreset>();
-allCaches.push(typographyPresetCache as Map<string, unknown>);
-
 export function resolveTypographySpecPreset(
   type: string | undefined,
   size: string | undefined,
-  props?: Readonly<Record<string, unknown>>,
+  _props?: Readonly<Record<string, unknown>>,
 ): TypographySpecPreset {
-  const rule = type ? resolveComponentRule(type) : undefined;
-  const variant =
-    readStringProp(props, "variant") ?? rule?.defaultVariant ?? "";
-  const fillStyle = readStringProp(props, "fillStyle") ?? "";
-  const key = `${type ?? ""}:${size ?? "md"}:${variant}:${fillStyle}:${props?.isQuiet === true}`;
-  const cached = typographyPresetCache.get(key);
-  if (cached) return cached;
-
-  const base = resolveStaticTypographySpecPreset(type, size);
-  const colors = resolveCatalogColorPreset(type, props);
-  const preset = {
-    ...base,
-    ...(colors.color ? { color: colors.color } : {}),
-  };
-  typographyPresetCache.set(key, preset);
-  return preset;
+  return resolveStaticTypographySpecPreset(type, size);
 }
 
 export function clearSpecPresetCache(): void {

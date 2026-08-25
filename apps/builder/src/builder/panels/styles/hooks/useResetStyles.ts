@@ -19,6 +19,7 @@ import {
   resolveAppearanceSpecPreset,
   resolveLayoutSpecPreset,
   resolveSpecPreset,
+  resolveStylePanelCatalogPaint,
   resolveTypographySpecPreset,
 } from "../utils/specPresetResolver";
 import { numToPx, uniform4Way } from "../utils/styleValueHelpers";
@@ -112,6 +113,15 @@ function resolveSpecStyleDefaults(
   const layoutPreset = resolveLayoutSpecPreset(type, size, props);
   const appearancePreset = resolveAppearanceSpecPreset(type, size, props);
   const typographyPreset = resolveTypographySpecPreset(type, size, props);
+  const paint = resolveStylePanelCatalogPaint(type, size, props, {
+    ...(appearancePreset.backgroundColor
+      ? { backgroundColor: appearancePreset.backgroundColor }
+      : {}),
+    ...(appearancePreset.borderColor
+      ? { borderColor: appearancePreset.borderColor }
+      : {}),
+    ...(typographyPreset.color ? { color: typographyPreset.color } : {}),
+  });
 
   return {
     width: normalizeStyleValue("width", transformPreset.width),
@@ -196,11 +206,11 @@ function resolveSpecStyleDefaults(
     ),
     backgroundColor: normalizeStyleValue(
       "backgroundColor",
-      appearancePreset.backgroundColor,
+      paint?.backgroundColor ?? appearancePreset.backgroundColor,
     ),
     borderColor: normalizeStyleValue(
       "borderColor",
-      appearancePreset.borderColor,
+      paint?.borderColor ?? appearancePreset.borderColor,
     ),
     borderWidth: normalizeStyleValue(
       "borderWidth",

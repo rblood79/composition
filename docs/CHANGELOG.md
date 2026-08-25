@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-912 후속 Phase 3 — Style Panel Resolved Paint Read Model] - 2026-08-25
+
+### Architecture
+
+- 선택 요소의 ref-origin/responsive/fills merge 이후 catalog paint를 default authored state로
+  해석하는 read-only adapter를 추가했다. Appearance와 Typography의 background/border/text는
+  이 공통 경계를 소비하며, partial authored state만 키로 삼던 동적 preset cache는 제거했다.
+- own/ref-origin/ancestor `accentColor`와 현재 light/dark theme를 global token mutation 없이
+  concrete picker color로 변환한다. Modified Styles는 raw canonical 값과 dirty/write/reset 의미를
+  유지하고 ColorPicker 입력 경계에서만 CSS variable을 해소한다.
+
+### Performance
+
+- catalog paint 선택은 pure O(1) lookup이고, ancestor accent는 기존 canonical map에서 부모 chain만
+  O(depth)로 따라가며 전체 scene 순회는 하지 않는다. RAF scheduling과 canonical/history/DB mutation은
+  추가하지 않았고 ADR-187의 preview/terminal write 경로도 변경하지 않았다.
+
+### Verification
+
+- D2~D5(staticColor, selected/emphasized, own/ancestor accent, Modified Styles CSS variable),
+  light/dark sibling accent 격리, 동일 catalog key 선택 왕복 회귀를 통과했다. D1 Badge catalog
+  data 결손은 Phase 4 expected RED로 유지한다.
+- 기준 Builder project의 Components fallback 문서에서 Button의 Primary→Accent 및
+  `staticColor=Black` 변경이 Style Panel 3채널에 즉시 반영됐고, Undo와 Card↔Button 재선택 후
+  원래 값이 복원됐다. 해당 project의 Compare Mode Preview iframe은 비어 있어 live DOM↔Skia
+  판정은 보류하고 shared resolver shadow·renderer parity 회귀로 보완했다.
+
 ## [ADR-912 후속 Phase 2 — Skia Paint Owner Collapse] - 2026-08-25
 
 ### Architecture

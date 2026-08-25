@@ -111,6 +111,13 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
   });
 
   it("falls back to hardcoded defaults when neither inline nor spec present", () => {
+    setTestElements([
+      {
+        id: "el-spec-only",
+        type: "UnknownPaintType",
+        props: { size: "md", style: {} },
+      } as Element,
+    ]);
     vi.spyOn(preset, "resolveAppearanceSpecPreset").mockReturnValue({});
     const { result } = renderHook(() => useAppearanceValues("el-spec-only"));
     expect(result.current?.backgroundColor).toBe("#FFFFFF");

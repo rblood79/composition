@@ -2,22 +2,9 @@
  * useAppearanceValues - Appearance 섹션 전용 Zustand 스타일 값 훅
  */
 
-import { useMemo, type CSSProperties } from "react";
-import { adaptStyleWithFills } from "@composition/shared";
-import {
-  useResolvedSkiaTheme,
-  useThemeConfigVersion,
-} from "../../../../stores/themeConfigStore";
-import {
-  resolveAppearanceSpecPreset,
-  type AppearanceSpecPreset,
-} from "../utils/specPresetResolver";
-import {
-  numToPx,
-  firstDefined,
-  resolveStylePanelColor,
-} from "../utils/styleValueHelpers";
-import { useElementStyleContext } from "./useElementStyleContext";
+import { useMemo } from "react";
+import { numToPx, firstDefined } from "../utils/styleValueHelpers";
+import { useColorStyleValues } from "./useColorStyleValues";
 
 export interface AppearanceStyleValues {
   backgroundColor: string;
@@ -32,40 +19,15 @@ export interface AppearanceStyleValues {
 export function useAppearanceValues(
   id: string | null,
 ): AppearanceStyleValues | null {
-  const { style, type, size, fills, props } = useElementStyleContext(id);
-  const theme = useResolvedSkiaTheme();
-  const themeVersion = useThemeConfigVersion();
-
-  const specPreset = useMemo<AppearanceSpecPreset>(
-    () => resolveAppearanceSpecPreset(type, size, props),
-    [type, size, props],
-  );
-
-  const effectiveStyle = useMemo(
-    () =>
-      adaptStyleWithFills(
-        (style as CSSProperties | undefined) ?? undefined,
-        fills,
-      ) as Record<string, unknown> | undefined,
-    [style, fills],
-  );
+  const colorValues = useColorStyleValues(id);
 
   return useMemo(() => {
-    if (!id) return null;
-    const s = effectiveStyle ?? {};
-    const backgroundColor = firstDefined(
-      s.backgroundColor,
-      specPreset.backgroundColor,
-      "#FFFFFF",
-    );
-    const borderColor = firstDefined(
-      s.borderColor,
-      specPreset.borderColor,
-      "#000000",
-    );
+    if (!id || !colorValues) return null;
+    const s = colorValues.effectiveStyle ?? {};
+    const specPreset = colorValues.appearancePreset;
     return {
-      backgroundColor: resolveStylePanelColor(backgroundColor, theme),
-      borderColor: resolveStylePanelColor(borderColor, theme),
+      backgroundColor: colorValues.backgroundColor.concrete,
+      borderColor: colorValues.borderColor.concrete,
       borderWidth: firstDefined(
         s.borderWidth,
         numToPx(specPreset.borderWidth),
@@ -80,5 +42,5 @@ export function useAppearanceValues(
       boxShadow: firstDefined(s.boxShadow, specPreset.boxShadow, "none"),
       overflow: firstDefined(s.overflow, specPreset.overflow, "visible"),
     };
-  }, [id, effectiveStyle, specPreset, theme, themeVersion]);
+  }, [id, colorValues]);
 }

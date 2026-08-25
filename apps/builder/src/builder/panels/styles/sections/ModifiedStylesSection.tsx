@@ -16,6 +16,12 @@ import { useDirtyStyleProps } from "../hooks/useResetStyles";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
+import { useElementStyleContext } from "../hooks/useElementStyleContext";
+import { resolveStylePanelColor } from "../utils/styleValueHelpers";
+import {
+  useResolvedSkiaTheme,
+  useThemeConfigVersion,
+} from "../../../../stores/themeConfigStore";
 import { Type, Square, RulerDimensionLine } from "lucide-react";
 import {
   FONT_FAMILIES,
@@ -41,6 +47,9 @@ export function ModifiedStylesSection({
   //   getModifiedProperties(키 존재만 판정)는 factory 가 주입한 layout default 까지 modified 로 잡아
   //   reset 버튼과 비대칭이었음(2026-06-24). useDirtyStyleProps 가 reset 판정과 동일 baseline 공유.
   const modifiedProperties = useDirtyStyleProps();
+  const { accentColor } = useElementStyleContext(selectedElement.id);
+  const theme = useResolvedSkiaTheme();
+  useThemeConfigVersion();
   const { updateStyle } = useStyleActions();
   const { updateStylePreview } = useOptimizedStyleActions();
   const {
@@ -170,7 +179,7 @@ export function ModifiedStylesSection({
           key={property}
           icon={Square}
           label={formatLabel(property)}
-          value={String(value)}
+          value={resolveStylePanelColor(String(value), theme, accentColor)}
           onChange={(newValue) => {
             if (
               isBorderColor &&

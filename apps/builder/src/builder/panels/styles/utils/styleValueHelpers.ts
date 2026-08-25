@@ -2,7 +2,31 @@
  * 스타일 값 변환 헬퍼 — use*Values 훅 공용
  */
 
-import { cssVarToTokenRef, resolveToken } from "@composition/specs";
+import {
+  cssVarToTokenRef,
+  resolveToken,
+  type TokenRef,
+} from "@composition/specs";
+import {
+  resolveAccentColorTokens,
+  type AccentColorTokens,
+  type TintPreset,
+} from "../../../../utils/theme/tintToSkiaColors";
+
+const ACCENT_TOKEN_KEYS: Readonly<
+  Record<string, keyof AccentColorTokens | undefined>
+> = {
+  "{color.accent}": "accent",
+  "{color.accent-hover}": "accent-hover",
+  "{color.accent-pressed}": "accent-pressed",
+  "{color.on-accent}": "on-accent",
+  "{color.accent-subtle}": "accent-subtle",
+};
+
+function toTokenRef(value: string): TokenRef | null {
+  if (/^\{[a-z]+\.[^}]+\}$/.test(value)) return value as TokenRef;
+  return cssVarToTokenRef(value);
+}
 
 /**
  * catalog preset의 CSS var를 ColorPicker가 소비 가능한 현재 Skia theme 색상으로 해석한다.
@@ -11,9 +35,17 @@ import { cssVarToTokenRef, resolveToken } from "@composition/specs";
 export function resolveStylePanelColor(
   value: string,
   theme: "light" | "dark",
+  accentColor?: TintPreset,
 ): string {
-  const token = cssVarToTokenRef(value);
+  const token = toTokenRef(value);
   if (!token) return value;
+
+  const accentKey = ACCENT_TOKEN_KEYS[token];
+  if (accentKey) {
+    const accentTokens = resolveAccentColorTokens(accentColor, theme);
+    if (accentTokens) return accentTokens[accentKey];
+  }
+
   const resolved = resolveToken(token, theme);
   return typeof resolved === "string" ? resolved : value;
 }

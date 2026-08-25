@@ -2,7 +2,7 @@
 
 ## 문서 상태와 상위 결정
 
-- 상태: In Progress — Phase 0~2 완료 (2026-08-25)
+- 상태: In Progress — Phase 0~3 완료 (2026-08-25)
 - 상위 결정: [ADR-912](../completed/912-rac-pencil-rebuild-cutover.md)
 - 관련 결정:
   - [ADR-142](../completed/142-starter-spec-component-system-cutover.md) — catalog + theme/tokens D3 SSOT
@@ -396,6 +396,27 @@ Gate P3:
 - D2~D5 RED fixture GREEN.
 - 선택 전환 시 이전 요소의 resolved color가 남는 stale cache 재현 0.
 - panel read로 canonical/history/DB mutation 및 RAF scheduling 0.
+
+> **Phase 3 완료 (2026-08-25)**
+>
+> - 선택 요소의 ref-origin/responsive/fills merge가 끝난 read boundary에서
+>   `resolveCatalogPaint(interactionState="default")`를 호출하는 uncached
+>   `useColorStyleValues` adapter를 추가했다. Appearance와 Typography는 같은 adapter의
+>   background/border/text snapshot을 소비하고, 기존 partial-state 문자열 cache는 제거했다.
+> - own/ref-origin/ancestor `accentColor`를 canonical tree에서 찾고, global theme token을 mutation하지
+>   않는 pure accent adapter로 light/dark concrete color를 해소한다. sibling red/blue accent와
+>   ancestor accent의 교차오염 0을 회귀 test로 고정했다.
+> - Modified Styles는 raw canonical value로 dirty/write/reset 의미를 유지한 채
+>   `PropertyColor` 입력 경계에서만 `var(--accent)`를 concrete color로 변환한다.
+>   ADR-187 preview/commit action과 presentation owner는 변경하지 않았다.
+> - D2~D5와 동일 catalog key 선택 왕복 fixture가 GREEN이며, D1 Badge catalog data 결손만
+>   Phase 4 expected RED로 남는다. 구조 gate는 Panel read source의 canonical/history/DB mutation,
+>   RAF scheduling, `withAccentOverride`, dynamic paint cache가 모두 0임을 확인한다.
+> - 기준 project의 Components fallback 문서에서 Button `Primary → Accent`가 Style Panel
+>   `#2563eb/#2563eb/#fff`, 이어서 `staticColor=Black`이 `#000/#000/#fff`로 즉시 표시됐다.
+>   두 변경을 Undo한 뒤 Card↔Button 선택 왕복에서도 원래 `#171717/#171717/#fff`가 복원됐다.
+>   이 project의 Compare Mode Preview iframe은 빈 상태라 Preview↔Skia live parity는 판정하지 않고,
+>   Phase 1/2 shared resolver shadow·renderer parity 회귀로 보완했다.
 
 ### Phase 4 — Badge catalog SSOT 완결
 

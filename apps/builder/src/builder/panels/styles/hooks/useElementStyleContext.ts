@@ -6,6 +6,10 @@ import { mergePropsWithStyleDeep } from "../../../../adapters/canonical/instance
 import { useStore } from "../../../stores";
 import type { PanelNode } from "../../panelNode";
 import { useCanonicalPropertyElementsMap } from "../../properties/hooks/useCanonicalPropertyRead";
+import {
+  TINT_PRESETS,
+  type TintPreset,
+} from "../../../../utils/theme/tintToSkiaColors";
 
 export interface ElementStyleContext {
   style: Record<string, unknown> | undefined;
@@ -13,10 +17,17 @@ export interface ElementStyleContext {
   size: string | undefined;
   fills: unknown[] | undefined;
   props: Readonly<Record<string, unknown>> | undefined;
+  accentColor: TintPreset | undefined;
 }
 
 function asNonEmptyString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function asTintPreset(value: unknown): TintPreset | undefined {
+  return typeof value === "string" && value in TINT_PRESETS
+    ? (value as TintPreset)
+    : undefined;
 }
 
 /**
@@ -104,6 +115,17 @@ function resolveTierStyle(
   return resolveResponsiveStyleMap(style ?? {}, responsive, activeBreakpoint);
 }
 
+function readNodeAccentColor(
+  element: PanelNode,
+  elementsMap: ReadonlyMap<string, PanelNode>,
+): TintPreset | undefined {
+  const ownAccent = asTintPreset(element.props?.accentColor);
+  if (ownAccent) return ownAccent;
+
+  const origin = resolveStyleOriginElement(element, elementsMap);
+  return asTintPreset(origin?.props?.accentColor);
+}
+
 /**
  * Shared canonical property read for an element's style/type/size.
  * Section-value hooks reuse this so legacy fallback stays behind one boundary.
@@ -171,5 +193,23 @@ export function useElementStyleContext(id: string | null): ElementStyleContext {
   const fills =
     (element as { fills?: unknown[] } | undefined)?.fills ??
     (origin as { fills?: unknown[] } | undefined)?.fills;
-  return { style, type, size, fills, props };
+
+  const accentColor = useMemo<TintPreset | undefined>(() => {
+    const ownAccent = asTintPreset(props?.accentColor);
+    if (ownAccent) return ownAccent;
+
+    const visited = new Set<string>();
+    let parentId = element?.parent_id;
+    while (parentId && !visited.has(parentId)) {
+      visited.add(parentId);
+      const parent = elementsMap.get(parentId);
+      if (!parent) break;
+      const parentAccent = readNodeAccentColor(parent, elementsMap);
+      if (parentAccent) return parentAccent;
+      parentId = parent.parent_id;
+    }
+    return undefined;
+  }, [element, elementsMap, props]);
+
+  return { style, type, size, fills, props, accentColor };
 }

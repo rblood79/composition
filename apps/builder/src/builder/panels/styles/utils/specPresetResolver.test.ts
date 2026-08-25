@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   resolveSpecPreset,
   resolveAppearanceSpecPreset,
+  resolveStylePanelCatalogPaint,
   resolveLayoutSpecPreset,
   resolveTypographySpecPreset,
   clearSpecPresetCache,
@@ -224,8 +225,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     // Style Panel도 generated CSS의 default variant 색상을 같은 catalog source에서 읽는다.
     it("Popover.containerStyles의 비색상 필드가 default variant 색상 해석을 막지 않는다", () => {
       const preset = resolveAppearanceSpecPreset("Popover", "md");
-      expect(preset.backgroundColor).toBe("var(--bg-inset)");
-      expect(preset.borderColor).toBe("var(--border)");
+      const paint = resolveStylePanelCatalogPaint("Popover", "md", undefined, {
+        ...preset,
+      });
+      expect(paint?.backgroundColor).toBe("{color.layer-2}");
+      expect(paint?.borderColor).toBe("{color.border}");
     });
 
     it("Menu.containerStyles → Appearance preset", () => {

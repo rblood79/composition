@@ -128,25 +128,30 @@ function applyAccentColors(
   h: number,
   mode: "light" | "dark",
 ): void {
+  const resolved = createAccentColorTokens(c, h, mode);
+  for (const key of ACCENT_KEYS) {
+    (colors as unknown as Record<string, string>)[key] = resolved[key];
+  }
+}
+
+function createAccentColorTokens(
+  c: number,
+  h: number,
+  mode: "light" | "dark",
+): AccentColorTokens {
   const ls = LIGHTNESS[mode];
 
   // accent: highlight-background (55% lightness 고정)
   const accentHex = oklchToHex(ls.highlight, c, h);
-  colors.accent = accentHex;
-
-  // accent-hover: color-mix(in srgb, accent 85%, black) — CSS 정합
-  colors["accent-hover"] = mixWithBlackSrgb(accentHex, 85);
-
-  // accent-pressed: color-mix(in srgb, accent 75%, black) — CSS 정합
-  colors["accent-pressed"] = mixWithBlackSrgb(accentHex, 75);
-
-  // on-accent: 항상 대비색 (light → white, dark → near-black)
-  colors["on-accent"] = mode === "light" ? "#ffffff" : "#171717";
-
-  // accent-subtle: 연한 배경 (낮은 chroma, 높은 lightness)
   const subtleL = mode === "light" ? 0.95 : 0.25;
   const subtleC = c * 0.3;
-  colors["accent-subtle"] = oklchToHex(subtleL, subtleC, h);
+  return {
+    accent: accentHex,
+    "accent-hover": mixWithBlackSrgb(accentHex, 85),
+    "accent-pressed": mixWithBlackSrgb(accentHex, 75),
+    "on-accent": mode === "light" ? "#ffffff" : "#171717",
+    "accent-subtle": oklchToHex(subtleL, subtleC, h),
+  };
 }
 
 // ============================================================================
@@ -154,7 +159,7 @@ function applyAccentColors(
 // ============================================================================
 
 /** accent 5개 토큰 스냅샷 */
-interface AccentSnapshot {
+export interface AccentColorTokens {
   accent: string;
   "accent-hover": string;
   "accent-pressed": string;
@@ -162,7 +167,7 @@ interface AccentSnapshot {
   "accent-subtle": string;
 }
 
-const ACCENT_KEYS: (keyof AccentSnapshot)[] = [
+const ACCENT_KEYS: (keyof AccentColorTokens)[] = [
   "accent",
   "accent-hover",
   "accent-pressed",
@@ -171,7 +176,7 @@ const ACCENT_KEYS: (keyof AccentSnapshot)[] = [
 ];
 
 /** 현재 accent 토큰을 스냅샷 */
-function snapshotAccent(colors: typeof lightColors): AccentSnapshot {
+function snapshotAccent(colors: typeof lightColors): AccentColorTokens {
   return {
     accent: colors.accent,
     "accent-hover": colors["accent-hover"],
@@ -184,11 +189,24 @@ function snapshotAccent(colors: typeof lightColors): AccentSnapshot {
 /** 스냅샷에서 accent 토큰 복원 */
 function restoreAccent(
   colors: typeof lightColors,
-  snapshot: AccentSnapshot,
+  snapshot: AccentColorTokens,
 ): void {
   for (const key of ACCENT_KEYS) {
     (colors as unknown as Record<string, string>)[key] = snapshot[key];
   }
+}
+
+/**
+ * 요소별 tint가 바꾸는 accent token만 pure value로 계산한다.
+ * Panel read 중 global lightColors/darkColors를 mutation하지 않는 경계다.
+ */
+export function resolveAccentColorTokens(
+  accentTint: TintPreset | undefined,
+  mode: "light" | "dark",
+): AccentColorTokens | undefined {
+  if (!accentTint || !(accentTint in TINT_PRESETS)) return undefined;
+  const { h, c } = TINT_PRESETS[accentTint];
+  return createAccentColorTokens(c, h, mode);
 }
 
 /**
