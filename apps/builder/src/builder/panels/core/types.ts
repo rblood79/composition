@@ -69,7 +69,6 @@ export type PanelId =
   | "datatableEditor" // DataTable 에디터 패널 (DataTablePanel과 함께 사용)
   // Tool panels
   | "theme"
-  | "fonts"
   | "ai"
   // System panels
   | "user"
@@ -257,7 +256,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
     "theme",
     "settings",
   ],
-  rightPanels: ["properties", "styles", "events", "ai", "fonts", "history"],
+  rightPanels: ["properties", "styles", "events", "ai", "history"],
   activeLeftPanels: ["nodes"], // Multi toggle 지원: 배열
   activeRightPanels: ["properties"], // Multi toggle 지원: 배열
   showLeft: true,

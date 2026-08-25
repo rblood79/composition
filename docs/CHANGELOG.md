@@ -28,7 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   빌트인이 2개뿐인 여기선 토글이 될 값이 없어 그룹 헤더로 대신했다.
 - 레지스트리 구독·CRUD 가 소비처마다 복제돼 있던 것을 `useFontRegistry` 훅 하나로 모았다
   (패널 / 모달 / Typography 의 Font Weight 옵션 3곳).
-- 기존 `fonts` 도킹 패널은 그대로 남는다 — 등록 해제는 별도 판단.
+- **`fonts` 도킹 패널을 등록 해제**했다 — `PanelId` 유니온 / `PANEL_CONFIGS` / 기본 레이아웃
+  `rightPanels` 에서 빠져 우측 레일 아이콘이 6개 → 5개가 됐다. 이미 저장된 레이아웃에 남아
+  있는 `"fonts"` 는 하이드레이션이 레지스트리에 없는 id 를 rail·visibility·cluster 세 경로
+  모두에서 버리므로 그대로 사라진다(마이그레이션 불필요).
 
 ### Verification
 
@@ -42,6 +45,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm type-check` PASS(신규 위반 0). RAC `Tab` 이 `title` 을 받지 않아 남아 있던 뷰 탭
   타입 위반 1건을 안쪽 요소로 옮겨 함께 해소했다. `vitest run src/builder/panels
 src/builder/components/styles` 92 파일 / 852 케이스 PASS.
+
+- 등록 해제 후 새로고침: 우측 레일에서 폰트 아이콘이 사라지고 살아 있는 패널 id 12개에
+  `fonts` 가 없다. 같은 세션에서 Styles → Text → 피커 → `폰트 추가` → 모달(제목 `폰트 관리` /
+  배지 `0/20` / 업로드 존)까지 다시 exercise 했고 콘솔 에러 0.
+  `vitest run src/builder/{layout,stores,panels}` 178 파일 / 1,561 케이스 PASS.
 
 ## [Style 패널 뷰 탭 — 선택된 탭에만 라벨] - 2026-08-25
 

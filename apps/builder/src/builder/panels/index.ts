@@ -21,7 +21,6 @@ export { ComponentsPanel } from "./components/ComponentsPanel";
 // Tool panels
 export { ThemesPanel } from "./themes/ThemesPanel";
 export { AIPanel } from "./ai/AIPanel";
-export { FontManagerPanel } from "./fonts/FontManagerPanel";
 
 // System panels
 export { SettingsPanel } from "./settings/SettingsPanel";

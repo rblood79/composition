@@ -17,7 +17,6 @@ import {
   FileEdit,
   Activity,
   History,
-  Type,
 } from "lucide-react";
 import type { PanelConfig } from "./types";
 import { PanelRegistry } from "./PanelRegistry";
@@ -40,9 +39,6 @@ import { HistoryPanel } from "../history/HistoryPanel";
 // ADR-131 Phase 8 (2026-05-13): DataPanel 제거 — DataTablePanel (기존) 가 data SSOT.
 // ADR-149 Phase 2c (2026-07-19): ActionsPanel 제거 — cross-event reuse 는 EventsPanel
 // L2 고급 토글로 흡수 예정 (Phase 3). document.actions 는 canonical read view.
-
-// Font Manager panel
-import { FontManagerPanel } from "../fonts/FontManagerPanel";
 
 // Bottom panels
 import { MonitorPanel } from "../monitor/MonitorPanel";
@@ -219,20 +215,9 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     shortcut: "Ctrl+Shift+H",
     displayModes: ["panel", "floating"],
   },
-  // Font Manager panel
-  {
-    id: "fonts",
-    name: "폰트",
-    nameEn: "Fonts",
-    icon: Type,
-    component: FontManagerPanel,
-    category: "tool",
-    defaultPosition: "right",
-    minWidth: 233,
-    maxWidth: 640,
-    defaultHeight: 520,
-    description: "커스텀 폰트 업로드 및 관리",
-  },
+  // 구 "폰트" 도킹 패널은 2026-08-25 에 등록 해제했다 — 폰트 관리는 Typography 의
+  // Font Family 피커가 여는 모달(`FontManagerDialog`)이 담당한다. 저빈도 작업이라
+  // 인스펙터 레일 한 칸을 상주로 차지할 이유가 없다 (Figma/Pen 도 그렇게 안 한다).
 
   // Bottom panels
   {
