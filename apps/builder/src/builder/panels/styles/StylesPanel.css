@@ -59,7 +59,10 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-xs);
-  border-radius: var(--radius-md);
+  /* 트랙은 radius-md(6px), 그 안의 pill 은 radius-sm(4px) — 세그먼트 컨트롤의
+     SelectionIndicator 가 쓰는 `--btn-border-radius: var(--radius-sm)` 와 같은 관계다.
+     안쪽 모서리를 바깥과 같은 6px 로 두면 pill 이 트랙 곡률을 덮어 뭉툭해진다. */
+  border-radius: var(--radius-sm);
   color: var(--fg-muted);
   cursor: pointer;
   outline: none;
