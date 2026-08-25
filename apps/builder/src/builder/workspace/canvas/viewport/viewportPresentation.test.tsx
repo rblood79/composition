@@ -19,6 +19,7 @@ import {
   useViewportPresentationZoom,
 } from "./viewportPresentation";
 import { ViewportController } from "./ViewportController";
+import { I18nProvider } from "@/i18n";
 
 describe("viewportPresentation", () => {
   afterEach(() => {
@@ -77,7 +78,11 @@ describe("viewportPresentation", () => {
 
   it("renders the transient controller zoom in the toolbar without a canonical store update", () => {
     const controller = new ViewportController();
-    render(<ZoomControls />);
+    render(
+      <I18nProvider initialLocale="en-US">
+        <ZoomControls />
+      </I18nProvider>,
+    );
 
     act(() => {
       controller.setPosition(40, 60, 1.25);

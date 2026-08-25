@@ -19,16 +19,21 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  render,
+  render as rtlRender,
   fireEvent,
   screen,
   cleanup,
   waitFor,
 } from "@testing-library/react";
+import { I18nProvider } from "@/i18n";
 import type { Element } from "@/types/core/store.types";
 import type { ElementTreeItem } from "@/types/builder/stately.types";
 import type { CompositionDocument } from "@composition/shared";
 import { withFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
+
+function render(ui: React.ReactElement) {
+  return rtlRender(<I18nProvider initialLocale="en-US">{ui}</I18nProvider>);
+}
 
 // ─── mock state holders ─────────────────────────────────────────────────────
 type LayoutLite = { id: string; name: string; project_id: string };

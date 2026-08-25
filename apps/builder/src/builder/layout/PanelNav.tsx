@@ -15,6 +15,8 @@ import type { PanelSide, PanelId } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import { iconProps, iconPropsOn } from "../../utils/ui/uiConstants";
 import "../components/ui/ActionIconButton.css";
+import { useI18n } from "../../i18n";
+import { getPanelLabel } from "./panelLabels";
 
 export interface PanelNavProps {
   /** 현재 사이드 (left/right) */
@@ -36,6 +38,8 @@ export const PanelNav = memo(function PanelNav({
   activePanels,
   onPanelClick,
 }: PanelNavProps) {
+  const { t } = useI18n();
+
   return (
     <nav className="panel-nav" data-side={side}>
       <ul className="nav-list">
@@ -47,6 +51,7 @@ export const PanelNav = memo(function PanelNav({
 
           const Icon = panelConfig.icon;
           const isActive = activePanels.includes(panelId);
+          const panelName = getPanelLabel(panelConfig, t);
 
           const tooltipPlacement =
             side === "left" ? "right" : side === "right" ? "left" : "top";
@@ -58,7 +63,7 @@ export const PanelNav = memo(function PanelNav({
                   className={`nav-button ${isActive ? "active" : ""}`}
                   onPress={() => onPanelClick(panelId)}
                   aria-pressed={isActive}
-                  aria-label={panelConfig.name}
+                  aria-label={panelName}
                 >
                   <Icon
                     color={isActive ? iconPropsOn.color : iconProps.color}
@@ -72,9 +77,7 @@ export const PanelNav = memo(function PanelNav({
                   placement={tooltipPlacement}
                   className="action-tooltip"
                 >
-                  <span className="action-tooltip-label">
-                    {panelConfig.name}
-                  </span>
+                  <span className="action-tooltip-label">{panelName}</span>
                   {panelConfig.shortcut && (
                     <kbd className="action-tooltip-kbd">
                       {panelConfig.shortcut}

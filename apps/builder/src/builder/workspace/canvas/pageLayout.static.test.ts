@@ -22,7 +22,7 @@ describe("explicit page layout command contract", () => {
     expect(source).toContain("alignPagesToScreen");
     expect(source).toContain('case "align-pages"');
     expect(source).toContain('id="align-pages"');
-    expect(source).toContain("화면 정렬");
+    expect(source).toContain('t("zoom.align")');
   });
 
   it("switches the active page-position snapshot with the breakpoint", async () => {

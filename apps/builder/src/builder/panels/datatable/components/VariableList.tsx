@@ -12,6 +12,7 @@ import { Section } from "../../../components";
 import type { Variable as VariableType } from "../../../../types/builder/data.types";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -23,6 +24,9 @@ interface VariableListProps {
 }
 
 export function VariableList({ projectId }: VariableListProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   const variables = useVariables();
   const createVariable = useDataStore((state) => state.createVariable);
   const deleteVariable = useDataStore((state) => state.deleteVariable);
@@ -100,7 +104,7 @@ export function VariableList({ projectId }: VariableListProps) {
           type="button"
           className="iconButton"
           onClick={(e) => handleEdit(variable.id, e)}
-          title="편집"
+          title={localize("edit", "편집")}
         >
           <SquarePen {...iconEditProps} />
         </button>
@@ -108,7 +112,7 @@ export function VariableList({ projectId }: VariableListProps) {
           type="button"
           className="iconButton"
           onClick={(e) => handleDelete(variable.id, e)}
-          title="삭제"
+          title={localize("delete", "삭제")}
         >
           <DeleteIcon {...iconEditProps} />
         </button>
@@ -119,7 +123,7 @@ export function VariableList({ projectId }: VariableListProps) {
   return (
     <Section
       id="variable-list"
-      title="Variable List"
+      title={localize("variableList", "Variable List")}
       badge={<span className="datatable-list-count">{variables.length}개</span>}
       collapsible={false}
     >
@@ -127,8 +131,9 @@ export function VariableList({ projectId }: VariableListProps) {
         <div className="datatable-empty">
           <Variable size={32} className="datatable-empty-icon" />
           <p className="datatable-empty-text">
-            변수가 없습니다.
-            <br />새 변수를 추가하세요.
+            {localize("variableEmpty", "No variables")}
+            <br />
+            {localize("addVariableHint", "Add a new variable.")}
           </p>
         </div>
       ) : (
@@ -137,7 +142,9 @@ export function VariableList({ projectId }: VariableListProps) {
           {globalVariables.length > 0 && (
             <div className="list-subgroup">
               <div className="list-subgroup-header">
-                <span className="list-subgroup-title">Global</span>
+                <span className="list-subgroup-title">
+                  {localize("global", "Global")}
+                </span>
                 <span className="list-subgroup-count">
                   {globalVariables.length}개
                 </span>
@@ -152,7 +159,9 @@ export function VariableList({ projectId }: VariableListProps) {
           {pageVariables.length > 0 && (
             <div className="list-subgroup">
               <div className="list-subgroup-header">
-                <span className="list-subgroup-title">Page</span>
+                <span className="list-subgroup-title">
+                  {localize("page", "Page")}
+                </span>
                 <span className="list-subgroup-count">
                   {pageVariables.length}개
                 </span>
@@ -171,7 +180,7 @@ export function VariableList({ projectId }: VariableListProps) {
         onClick={handleCreate}
       >
         <AddIcon {...iconProps} />
-        <span>Variable 추가</span>
+        <span>{localize("addVariable", "Add Variable")}</span>
       </button>
     </Section>
   );

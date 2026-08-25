@@ -18,6 +18,7 @@ import {
   scheduleNextFrame,
 } from "../../utils/scheduleTask";
 import type { PanelNode } from "../panelNode";
+import { useI18n } from "../../../i18n";
 
 interface LayersSectionProps {
   currentPageId: string;
@@ -101,6 +102,7 @@ export function resolveLayerTreeSelectionIntent(
 export const LayersSection = memo(function LayersSection({
   currentPageId,
 }: LayersSectionProps) {
+  const { t } = useI18n();
   const [isTreeVisible, setIsTreeVisible] = useState(
     () => !!useStore.getState().pageElementsSnapshot[currentPageId]?.length,
   );
@@ -265,12 +267,12 @@ export const LayersSection = memo(function LayersSection({
   return (
     <Section
       className="node-tree-section"
-      title="Layers"
+      title={t("nodes.layers")}
       collapsible={false}
       actions={
         <ActionIconButton
-          aria-label="Collapse All"
-          tooltip="모두 접기"
+          aria-label={t("nodes.collapseAll")}
+          tooltip={t("nodes.collapseAll")}
           onPress={handleCollapseAll}
         >
           <Minimize

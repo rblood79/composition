@@ -10,6 +10,7 @@
 import { useMemo } from "react";
 import type { DataPoint } from "../hooks/useTimeSeriesData";
 import { useResponsiveChartWidth } from "./useResponsiveChartWidth";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 interface RealtimeChartProps {
   data: DataPoint[];
@@ -26,6 +27,9 @@ export function RealtimeChart({
   metric = "memoryPercent",
   showThresholds = true,
 }: RealtimeChartProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
   const { chartRef, chartWidth: responsiveWidth } =
     useResponsiveChartWidth(width);
   const padding = { top: 10, right: 10, bottom: 20, left: 40 };
@@ -99,7 +103,12 @@ export function RealtimeChart({
       width="100%"
       height={height}
       className="realtime-chart"
-      aria-label={`Real-time ${metric} chart showing last ${data.length} seconds`}
+      aria-label={localize(
+        "realtimeChart",
+        `Real-time ${metric} chart showing last ${data.length} seconds`,
+      )
+        .replace("{metric}", metric)
+        .replace("{count}", String(data.length))}
       role="img"
     >
       {/* 배경 그리드 */}
@@ -207,7 +216,8 @@ export function RealtimeChart({
 
       {/* 스크린 리더용 현재 값 */}
       <text className="sr-only">
-        Current {metric}: {points[points.length - 1]?.value.toFixed(1) ?? "N/A"}
+        {localize("currentMetric", "Current")} {metric}:{" "}
+        {points[points.length - 1]?.value.toFixed(1) ?? "N/A"}
       </text>
     </svg>
   );

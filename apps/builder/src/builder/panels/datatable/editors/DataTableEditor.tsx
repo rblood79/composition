@@ -21,6 +21,11 @@ import { PropertySwitch } from "../../../components";
 import "./DataTableEditor.css";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import {
+  translateKey,
+  translateDisplayLabel,
+  useOptionalI18n,
+} from "../../../../i18n";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -246,6 +251,7 @@ function SchemaFieldRow({
   onUpdateField,
   onDeleteField,
 }: SchemaFieldRowProps) {
+  const i18n = useOptionalI18n();
   // 각 필드에 대한 로컬 상태 (key 변경 시 컴포넌트가 새로 마운트되어 자동 초기화)
   const [localKey, setLocalKey] = useState(field.key);
   const [localLabel, setLocalLabel] = useState(field.label || "");
@@ -287,7 +293,7 @@ function SchemaFieldRow({
           value={localLabel}
           onChange={(e) => setLocalLabel(e.target.value)}
           onBlur={() => onUpdateField(field.key, { label: localLabel })}
-          placeholder="Label"
+          placeholder={i18n ? translateDisplayLabel(i18n.t, "Label") : "Label"}
         />
       </td>
       <td className="cell-center">
@@ -318,6 +324,11 @@ function SchemaEditor({
   onDeleteField,
   onUpdateField,
 }: SchemaEditorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  const label = (value: string) =>
+    i18n ? translateDisplayLabel(i18n.t, value) : value;
   return (
     <div className="section">
       <div className="section-content">
@@ -325,10 +336,10 @@ function SchemaEditor({
           <table className="data-table">
             <thead>
               <tr>
-                <th>Key</th>
-                <th>Type</th>
-                <th>Label</th>
-                <th>Req</th>
+                <th>{label("Key")}</th>
+                <th>{label("Type")}</th>
+                <th>{label("Label")}</th>
+                <th>{label("Req")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -348,7 +359,7 @@ function SchemaEditor({
 
       <button type="button" className="add-field-btn" onClick={onAddField}>
         <AddIcon {...iconEditProps} />
-        Add Column
+        {localize("addColumn", "Add Column")}
       </button>
     </div>
   );
@@ -375,6 +386,9 @@ function MockDataEditor({
   onUpdateCell,
   onImportCSV,
 }: MockDataEditorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   const [filterText, setFilterText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -457,7 +471,11 @@ function MockDataEditor({
   }, [mockData, schema]);
 
   if (schema.length === 0) {
-    return <div className="data-empty">스키마를 먼저 정의하세요.</div>;
+    return (
+      <div className="data-empty">
+        {localize("schemaFirst", "Define the schema first.")}
+      </div>
+    );
   }
 
   return (
@@ -471,7 +489,7 @@ function MockDataEditor({
             <input
               type="text"
               className="filter-input"
-              placeholder="Filter rows..."
+              placeholder={localize("filterRows", "Filter rows...")}
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
             />
@@ -499,20 +517,20 @@ function MockDataEditor({
               type="button"
               className="toolbar-btn"
               onClick={() => fileInputRef.current?.click()}
-              title="Import CSV"
+              title={localize("importCsv", "Import CSV")}
             >
               <Upload {...iconEditProps} />
-              Import
+              {localize("import", "Import")}
             </button>
             <button
               type="button"
               className="toolbar-btn"
               onClick={handleExportCSV}
               disabled={mockData.length === 0}
-              title="Export CSV"
+              title={localize("exportCsv", "Export CSV")}
             >
               <Download {...iconEditProps} />
-              Export
+              {localize("export", "Export")}
             </button>
           </div>
         </div>
@@ -730,13 +748,18 @@ function SettingsEditor({
   onNameChange,
   onUseMockDataChange,
 }: SettingsEditorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   // 로컬 상태로 관리하여 타이핑 중 불필요한 리렌더링 방지
   const [localName, setLocalName] = useState(name);
 
   return (
     <div className="settings-editor">
       <div className="settings-field">
-        <label className="settings-label">테이블 이름</label>
+        <label className="settings-label">
+          {localize("tableName", "Table Name")}
+        </label>
         <input
           type="text"
           className="settings-input"
@@ -756,8 +779,11 @@ function SettingsEditor({
       />
       <p className="settings-description">
         {useMockData
-          ? "Table 데이터를 사용합니다. API 응답 대신 정의된 Table 데이터가 표시됩니다."
-          : "실제 API 응답 데이터를 사용합니다."}
+          ? localize(
+              "useTableDataHint",
+              "Using table data instead of the API response.",
+            )
+          : localize("useApiDataHint", "Using the actual API response data.")}
       </p>
     </div>
   );

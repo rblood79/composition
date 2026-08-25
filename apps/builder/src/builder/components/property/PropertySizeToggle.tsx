@@ -1,6 +1,10 @@
 import { memo, useCallback } from "react";
 import type { Key } from "react-aria-components";
-import { ToggleButton, ToggleButtonGroup } from "@composition/shared/components";
+import {
+  ToggleButton,
+  ToggleButtonGroup,
+} from "@composition/shared/components";
+import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
 
 interface PropertySizeToggleProps {
   label: string;
@@ -33,6 +37,8 @@ export const PropertySizeToggle = memo(function PropertySizeToggle({
   scale = "3",
   options,
 }: PropertySizeToggleProps) {
+  const i18n = useOptionalI18n();
+  const displayLabel = i18n ? translateDisplayLabel(i18n.t, label) : label;
   const items = options ?? (scale === "5" ? SIZE_5 : SIZE_3);
 
   const handleChange = useCallback(
@@ -45,9 +51,9 @@ export const PropertySizeToggle = memo(function PropertySizeToggle({
 
   return (
     <fieldset className="properties-aria">
-      <legend className="fieldset-legend">{label}</legend>
+      <legend className="fieldset-legend">{displayLabel}</legend>
       <ToggleButtonGroup
-        aria-label={label}
+        aria-label={displayLabel}
         selectionMode="single"
         selectedKeys={[value]}
         onSelectionChange={handleChange}
@@ -55,7 +61,7 @@ export const PropertySizeToggle = memo(function PropertySizeToggle({
       >
         {items.map((item) => (
           <ToggleButton key={item.id} id={item.id}>
-            {item.label}
+            {i18n ? translateDisplayLabel(i18n.t, item.label) : item.label}
           </ToggleButton>
         ))}
       </ToggleButtonGroup>

@@ -14,6 +14,7 @@ import { Button } from "react-aria-components";
 import type { DetectedColumn } from "../utils/columnDetector";
 import "./ColumnSelector.css";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 interface ColumnSelectorProps {
   columns: DetectedColumn[];
@@ -31,6 +32,9 @@ export function ColumnSelector({
   isImporting = false,
   defaultTableName = "",
 }: ColumnSelectorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   // defaultTableName이 있으면 기본값으로 사용
   const [tableName, setTableName] = useState(defaultTableName);
 
@@ -42,11 +46,11 @@ export function ColumnSelector({
   const handleToggle = useCallback(
     (key: string) => {
       const updated = columns.map((col) =>
-        col.key === key ? { ...col, selected: !col.selected } : col
+        col.key === key ? { ...col, selected: !col.selected } : col,
       );
       onColumnsChange(updated);
     },
-    [columns, onColumnsChange]
+    [columns, onColumnsChange],
   );
 
   // 전체 선택/해제
@@ -108,21 +112,24 @@ export function ColumnSelector({
       <div className="column-selector-header">
         <h4 className="column-selector-title">
           <Table2 {...iconProps} />
-          Detected Columns
+          {localize("detectedColumns", "Detected Columns")}
         </h4>
         <span className="column-selector-count">
-          {selectedCount} / {columns.length} selected
+          {selectedCount} / {columns.length} {localize("selected", "selected")}
         </span>
       </div>
 
       {/* 전체 선택 체크박스 */}
       <div className="column-selector-actions">
-        <Button
-          className="toggle-all-btn"
-          onPress={handleToggleAll}
-        >
-          {allSelected ? <CheckSquare {...iconProps} /> : <Square {...iconProps} />}
-          {allSelected ? "Deselect All" : "Select All"}
+        <Button className="toggle-all-btn" onPress={handleToggleAll}>
+          {allSelected ? (
+            <CheckSquare {...iconProps} />
+          ) : (
+            <Square {...iconProps} />
+          )}
+          {allSelected
+            ? localize("deselectAll", "Deselect All")
+            : localize("selectAll", "Select All")}
         </Button>
       </div>
 
@@ -145,7 +152,9 @@ export function ColumnSelector({
             <div className="column-info">
               <div className="column-key">{column.key}</div>
               <div className="column-meta">
-                <span className={`type-badge ${getTypeBadgeClass(column.type)}`}>
+                <span
+                  className={`type-badge ${getTypeBadgeClass(column.type)}`}
+                >
                   {column.type}
                 </span>
                 <span className="sample-value">
@@ -160,7 +169,9 @@ export function ColumnSelector({
       {/* Import 섹션 */}
       <div className="import-section">
         <div className="import-input-row">
-          <label className="import-label">DataTable Name</label>
+          <label className="import-label">
+            {localize("dataTableName", "DataTable Name")}
+          </label>
           <input
             type="text"
             className="import-input"
@@ -176,7 +187,9 @@ export function ColumnSelector({
           isDisabled={noneSelected || !tableName.trim() || isImporting}
         >
           <Download {...iconEditProps} />
-          {isImporting ? "Importing..." : `Import ${selectedCount} Columns`}
+          {isImporting
+            ? localize("importing", "Importing...")
+            : `${localize("import", "Import")} ${selectedCount} ${localize("columns", "Columns")}`}
         </Button>
       </div>
     </div>

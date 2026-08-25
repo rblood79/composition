@@ -49,6 +49,7 @@ import { LayoutFreeform } from "../../../components/icons";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { useTransformValues } from "../hooks/useTransformValues";
+import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
 import {
   useWidthSizeMode,
   useHeightSizeMode,
@@ -166,6 +167,9 @@ const SizeModeToggle = memo(function SizeModeToggle({
   fillDisabled?: boolean;
   fillDisabledReason?: string;
 }) {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n ? translateDisplayLabel(i18n.t, label) : label;
   const handleSelectionChange = useCallback(
     (keys: Set<Key>) => {
       const selected = Array.from(keys)[0] as SizeMode | undefined;
@@ -176,7 +180,9 @@ const SizeModeToggle = memo(function SizeModeToggle({
 
   return (
     <ToggleButtonGroup
-      aria-label={`${axis} size mode`}
+      aria-label={localize(
+        axis === "width" ? "Width size mode" : "Height size mode",
+      )}
       size="sm"
       indicator
       selectionMode="single"
@@ -184,13 +190,15 @@ const SizeModeToggle = memo(function SizeModeToggle({
       selectedKeys={[mode]}
       onSelectionChange={handleSelectionChange}
     >
-      <ToggleButton id="fixed" aria-label="Fixed">
+      <ToggleButton id="fixed" aria-label={localize("Fixed")}>
         <Minus size={ICON_SIZE} strokeWidth={ICON_STROKE} />
       </ToggleButton>
       <ToggleButton
         id="fill"
         aria-label={
-          fillDisabledReason ? `Fill (${fillDisabledReason})` : "Fill"
+          fillDisabledReason
+            ? `${localize("Fill")} (${fillDisabledReason})`
+            : localize("Fill")
         }
         isDisabled={fillDisabled}
       >
@@ -200,7 +208,7 @@ const SizeModeToggle = memo(function SizeModeToggle({
           style={axis === "height" ? { transform: "rotate(90deg)" } : undefined}
         />
       </ToggleButton>
-      <ToggleButton id="fit" aria-label="Hug">
+      <ToggleButton id="fit" aria-label={localize("Hug")}>
         <Shrink size={ICON_SIZE} strokeWidth={ICON_STROKE} />
       </ToggleButton>
     </ToggleButtonGroup>
@@ -294,6 +302,9 @@ const PagePositionRow = memo(function PagePositionRow({
 });
 
 const TransformSectionContent = memo(function TransformSectionContent() {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n ? translateDisplayLabel(i18n.t, label) : label;
   const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();
   const { commitLayoutPresentation, previewLayoutPresentation } =
@@ -513,7 +524,7 @@ const TransformSectionContent = memo(function TransformSectionContent() {
       {showSizeMode && (
         <div className="transform-row">
           <fieldset className="properties-aria size-mode-width">
-            <legend className="fieldset-legend">W Sizing</legend>
+            <legend className="fieldset-legend">{localize("W Sizing")}</legend>
             <SizeModeToggle
               axis="width"
               mode={widthMode}
@@ -522,7 +533,7 @@ const TransformSectionContent = memo(function TransformSectionContent() {
             />
           </fieldset>
           <fieldset className="properties-aria size-mode-height">
-            <legend className="fieldset-legend">H Sizing</legend>
+            <legend className="fieldset-legend">{localize("H Sizing")}</legend>
             <SizeModeToggle
               axis="height"
               mode={heightMode}
@@ -570,7 +581,7 @@ const TransformSectionContent = memo(function TransformSectionContent() {
         />
         <div className="fieldset-actions actions-size">
           <SwatchIconButton
-            aria-label="Toggle constraints"
+            aria-label={localize("Toggle constraints")}
             onPress={() => setShowConstraints((v) => !v)}
           >
             <ChevronsLeftRightEllipsis
@@ -647,7 +658,7 @@ const TransformSectionContent = memo(function TransformSectionContent() {
               }
             />
             <SwatchIconButton
-              aria-label="Lock aspect ratio"
+              aria-label={localize("Lock aspect ratio")}
               onPress={handleAspectRatioLock}
             >
               {styleValues.aspectRatio ? (
@@ -704,7 +715,7 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           />
           <div className="fieldset-actions actions-position">
             <SwatchIconToggleButton
-              aria-label="Absolute position"
+              aria-label={localize("Absolute position")}
               isSelected={styleValues.position === "absolute"}
               onChange={handleAbsolutePositionChange}
             >

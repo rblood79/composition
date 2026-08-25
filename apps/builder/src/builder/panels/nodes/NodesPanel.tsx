@@ -17,6 +17,7 @@ import "./NodesPanel.css";
 import { useStore } from "../../stores";
 import { useEditModeStore } from "../../stores/editMode";
 import { usePageManager, useIframeMessenger } from "@/builder/hooks";
+import { useI18n } from "../../../i18n";
 import { NodesPanelTabs, type NodesPanelTabType } from "./NodesPanelTabs";
 import { FramesTab } from "./FramesTab/FramesTab";
 // 🚀 Performance: 분리된 섹션 컴포넌트
@@ -89,6 +90,7 @@ const PagesTabContent = memo(function PagesTabContent({
 }: {
   projectId: string | undefined;
 }) {
+  const { t } = useI18n();
   const pageCount = useStore((state) => state.pages.length);
   const currentPageId = useStore((state) => state.currentPageId);
   const deferredCurrentPageId = useDeferredValue(currentPageId);
@@ -146,7 +148,7 @@ const PagesTabContent = memo(function PagesTabContent({
   if (!currentPageId && pageCount === 0) {
     return (
       <div className="panel-empty-state">
-        <p className="empty-message">페이지를 선택하세요</p>
+        <p className="empty-message">{t("nodes.selectPage")}</p>
       </div>
     );
   }

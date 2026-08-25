@@ -8,6 +8,7 @@ import { calculatePageMoveUpdates } from "./usePageTreeDnd";
 import { isValidPageDrop } from "./validation";
 import { PageTreeItemContent } from "./PageTreeItemContent";
 import { useFocusManagement } from "../hooks";
+import { useI18n } from "@/i18n";
 
 /**
  * PageTree - TreeBase 기반 구현
@@ -27,6 +28,7 @@ export function PageTree({
   onPageSettings,
   onPageRename,
 }: PageTreeProps) {
+  const { t } = useI18n();
   const { tree, treeNodes, nodeMap, syncToStore } = usePageTreeData(pages);
   const [internalExpandedKeys, setInternalExpandedKeys] = useState<Set<Key>>(
     new Set(),
@@ -137,7 +139,7 @@ export function PageTree({
 
   return (
     <TreeBase<PageTreeNode>
-      aria-label="Pages"
+      aria-label={t("nodes.pages")}
       items={treeNodes}
       getKey={(node) => node.id}
       getTextValue={(node) => node.name}

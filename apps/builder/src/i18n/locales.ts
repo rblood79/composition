@@ -4,50 +4,34 @@
  * Defines configuration for each supported locale
  */
 
-import type { LocaleConfig, SupportedLocale } from './types';
+import type { LocaleConfig, SupportedLocale } from "./types";
 
 /**
  * All locale configurations
  */
 export const localeConfigs: Record<SupportedLocale, LocaleConfig> = {
-  'ko-KR': {
-    locale: 'ko-KR',
-    name: '한국어',
-    direction: 'ltr',
-    dateFormat: 'YYYY년 MM월 DD일',
-    timeFormat: 24,
-    currency: 'KRW',
-  },
-  'en-US': {
-    locale: 'en-US',
-    name: 'English',
-    direction: 'ltr',
-    dateFormat: 'MM/DD/YYYY',
+  "en-US": {
+    locale: "en-US",
+    name: "English",
+    direction: "ltr",
+    dateFormat: "MM/DD/YYYY",
     timeFormat: 12,
-    currency: 'USD',
+    currency: "USD",
   },
-  'ja-JP': {
-    locale: 'ja-JP',
-    name: '日本語',
-    direction: 'ltr',
-    dateFormat: 'YYYY年MM月DD日',
+  "ko-KR": {
+    locale: "ko-KR",
+    name: "한국어",
+    direction: "ltr",
+    dateFormat: "YYYY년 MM월 DD일",
     timeFormat: 24,
-    currency: 'JPY',
-  },
-  'zh-CN': {
-    locale: 'zh-CN',
-    name: '简体中文',
-    direction: 'ltr',
-    dateFormat: 'YYYY年MM月DD日',
-    timeFormat: 24,
-    currency: 'CNY',
+    currency: "KRW",
   },
 };
 
 /**
  * Default locale
  */
-export const DEFAULT_LOCALE: SupportedLocale = 'ko-KR';
+export const DEFAULT_LOCALE: SupportedLocale = "en-US";
 
 /**
  * Get locale configuration
@@ -68,28 +52,28 @@ export function getBrowserLocale(): SupportedLocale {
   }
 
   // Check language prefix (e.g., 'ko' from 'ko-KR')
-  const languagePrefix = browserLocale.split('-')[0];
+  const languagePrefix = browserLocale.split("-")[0];
   const matchingLocale = Object.keys(localeConfigs).find((locale) =>
-    locale.startsWith(languagePrefix)
+    locale.startsWith(languagePrefix),
   );
 
   return (matchingLocale as SupportedLocale) || DEFAULT_LOCALE;
 }
 
 /**
- * Get locale from localStorage or browser
+ * Get locale from localStorage or the English default
  */
 export function getStoredLocale(): SupportedLocale {
   try {
-    const stored = localStorage.getItem('composition-locale');
+    const stored = localStorage.getItem("composition-locale");
     if (stored && stored in localeConfigs) {
       return stored as SupportedLocale;
     }
   } catch (error) {
-    console.error('Error reading locale from localStorage:', error);
+    console.error("Error reading locale from localStorage:", error);
   }
 
-  return getBrowserLocale();
+  return DEFAULT_LOCALE;
 }
 
 /**
@@ -97,8 +81,8 @@ export function getStoredLocale(): SupportedLocale {
  */
 export function setStoredLocale(locale: SupportedLocale): void {
   try {
-    localStorage.setItem('composition-locale', locale);
+    localStorage.setItem("composition-locale", locale);
   } catch (error) {
-    console.error('Error saving locale to localStorage:', error);
+    console.error("Error saving locale to localStorage:", error);
   }
 }

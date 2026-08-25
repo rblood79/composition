@@ -18,6 +18,7 @@ import { ChevronUp, RotateCcw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useSectionCollapse } from "../../panels/styles/hooks/useSectionCollapse";
+import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
 
 type LazyChildren = React.ReactNode | (() => React.ReactNode);
 
@@ -57,6 +58,17 @@ export const Section = memo(
     className,
     icon: Icon,
   }: SectionProps) {
+    const i18n = useOptionalI18n();
+    const displayTitle = i18n ? translateDisplayLabel(i18n.t, title) : title;
+    const resetLabel = i18n
+      ? translateDisplayLabel(i18n.t, "Reset section")
+      : "Reset section";
+    const collapseLabel = i18n
+      ? translateDisplayLabel(i18n.t, "Collapse section")
+      : "Collapse section";
+    const expandLabel = i18n
+      ? translateDisplayLabel(i18n.t, "Expand section")
+      : "Expand section";
     // 이 섹션의 collapsed 여부만 구독 (primitive boolean → 다른 섹션 toggle에 무반응)
     const persistedCollapsed = useSectionCollapse((s) => {
       if (!id) return false;
@@ -96,7 +108,7 @@ export const Section = memo(
                 strokeWidth={iconProps.strokeWidth}
               />
             )}
-            {title}
+            {displayTitle}
             {badge}
           </div>
           <div className="section-actions">
@@ -106,8 +118,8 @@ export const Section = memo(
                 className="iconButton"
                 type="button"
                 onClick={onReset}
-                aria-label="Reset section"
-                title="Reset section"
+                aria-label={resetLabel}
+                title={resetLabel}
               >
                 <RotateCcw
                   color={iconProps.color}
@@ -126,7 +138,7 @@ export const Section = memo(
                 className="iconButton"
                 type="button"
                 onClick={handleToggle}
-                aria-label={isExpanded ? "Collapse section" : "Expand section"}
+                aria-label={isExpanded ? collapseLabel : expandLabel}
               >
                 <ChevronUp
                   color={iconProps.color}

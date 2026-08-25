@@ -33,6 +33,7 @@ import {
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutValues } from "../hooks/useLayoutValues";
+import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
 import {
   useFlexDirectionKeys,
   useFlexAlignmentKeys,
@@ -173,6 +174,9 @@ const FOUR_WAY_DIRECTIONS = [
  * LayoutSection 내부 컨텐츠 — 섹션이 열릴 때만 마운트
  */
 const LayoutSectionContent = memo(function LayoutSectionContent() {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n ? translateDisplayLabel(i18n.t, label) : label;
   const [isSpacingExpanded, setIsSpacingExpanded] = useState(false);
 
   const {
@@ -252,9 +256,9 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     <>
       <div className="layout-direction">
         <div className="direction-controls flex-direction">
-          <legend className="fieldset-legend">Direction</legend>
+          <legend className="fieldset-legend">{localize("Direction")}</legend>
           <ToggleButtonGroup
-            aria-label="Flex direction"
+            aria-label={localize("Flex direction")}
             indicator
             selectedKeys={flexDirectionKeys}
             onSelectionChange={(keys) => {
@@ -286,9 +290,9 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           </ToggleButtonGroup>
         </div>
         <div className="direction-alignment-grid flex-alignment">
-          <legend className="fieldset-legend">Alignment</legend>
+          <legend className="fieldset-legend">{localize("Alignment")}</legend>
           <ToggleButtonGroup
-            aria-label="Flex alignment"
+            aria-label={localize("Flex alignment")}
             indicator
             selectionMode="single"
             selectedKeys={flexAlignmentKeys}
@@ -333,7 +337,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           </ToggleButtonGroup>
         </div>
         <div className="fieldset-actions">
-          <SwatchIconButton aria-label="Layout grid">
+          <SwatchIconButton aria-label={localize("Layout grid")}>
             <LayoutGrid
               color={iconProps.color}
               size={iconProps.size}
@@ -342,9 +346,9 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           </SwatchIconButton>
         </div>
         <div className="justify-control justify-content">
-          <legend className="fieldset-legend">Space</legend>
+          <legend className="fieldset-legend">{localize("Space")}</legend>
           <ToggleButtonGroup
-            aria-label="Justify content alignment"
+            aria-label={localize("Justify content alignment")}
             indicator
             selectionMode="single"
             selectedKeys={justifyContentSpacingKeys}
@@ -382,9 +386,9 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           </ToggleButtonGroup>
         </div>
         <div className="justify-control flex-wrap">
-          <legend className="fieldset-legend">Wrap</legend>
+          <legend className="fieldset-legend">{localize("Wrap")}</legend>
           <ToggleButtonGroup
-            aria-label="Flex wrap"
+            aria-label={localize("Flex wrap")}
             indicator
             selectionMode="single"
             selectedKeys={flexWrapKeys}
@@ -463,7 +467,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           <div className="fieldset-actions actions-spacing">
             <SwatchIconButton
               onPress={() => setIsSpacingExpanded(true)}
-              aria-label="Expand spacing to 4-way input"
+              aria-label={localize("Expand spacing to 4-way input")}
             >
               <Maximize2
                 color={iconProps.color}
@@ -477,7 +481,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
         /* 확장 모드: 4방향 그리드 입력 */
         <div className="layout-container layout-container-expanded">
           <fieldset className="properties-aria property-unit-input layout-padding">
-            <legend className="fieldset-legend">Padding</legend>
+            <legend className="fieldset-legend">{localize("Padding")}</legend>
             <div className="react-aria-Group layout-spacing">
               <FourWayGrid
                 values={paddingValues}
@@ -486,7 +490,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             </div>
           </fieldset>
           <fieldset className="properties-aria property-unit-input layout-margin">
-            <legend className="fieldset-legend">Margin</legend>
+            <legend className="fieldset-legend">{localize("Margin")}</legend>
             <div className="react-aria-Group layout-spacing">
               <FourWayGrid
                 values={marginValues}
@@ -498,7 +502,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           <div className="fieldset-actions actions-spacing">
             <SwatchIconButton
               onPress={() => setIsSpacingExpanded(false)}
-              aria-label="Collapse spacing to single input"
+              aria-label={localize("Collapse spacing to single input")}
             >
               <Minimize2
                 color={iconProps.color}

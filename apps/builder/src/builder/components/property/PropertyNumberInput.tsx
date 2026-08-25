@@ -3,6 +3,7 @@ import { NumberField, Input, Group, Button } from "react-aria-components";
 import { Minus, Plus } from "lucide-react";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useStore } from "../../stores";
+import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
 
 interface PropertyNumberInputProps {
   label?: string;
@@ -35,6 +36,9 @@ export const PropertyNumberInput = memo(
     className,
     allowEmpty = true,
   }: PropertyNumberInputProps) {
+    const i18n = useOptionalI18n();
+    const displayLabel =
+      label && i18n ? translateDisplayLabel(i18n.t, label) : label;
     const selectedElementId = useStore((state) => state.selectedElementId);
     const [localValue, setLocalValue] = useState<number | undefined>(value);
     const committedRef = useRef(false);
@@ -65,7 +69,10 @@ export const PropertyNumberInput = memo(
     return (
       <PropertyFieldset legend={label} icon={icon} className={className}>
         <NumberField
-          aria-label={label || "Number"}
+          aria-label={
+            displayLabel ||
+            (i18n ? translateDisplayLabel(i18n.t, "Number") : "Number")
+          }
           value={localValue ?? NaN}
           onChange={(val) => {
             // React Aria NumberField onChange는 커밋 시점에만 호출됨
@@ -119,14 +126,18 @@ export const PropertyNumberInput = memo(
               <Button
                 slot="decrement"
                 className="react-aria-NumberField-button"
-                aria-label="Decrease"
+                aria-label={
+                  i18n ? translateDisplayLabel(i18n.t, "Decrease") : "Decrease"
+                }
               >
                 <Minus size={10} />
               </Button>
               <Button
                 slot="increment"
                 className="react-aria-NumberField-button"
-                aria-label="Increase"
+                aria-label={
+                  i18n ? translateDisplayLabel(i18n.t, "Increase") : "Increase"
+                }
               >
                 <Plus size={10} />
               </Button>

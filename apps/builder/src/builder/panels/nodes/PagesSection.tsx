@@ -35,6 +35,7 @@ import {
 import { longTaskMonitor } from "../../../utils/longTaskMonitor";
 import type { PanelNode } from "../panelNode";
 import { ACTION_ICONS } from "../../config/actionIcons";
+import { useI18n } from "../../../i18n";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -69,6 +70,7 @@ function getActiveCanonicalPageElements(): Element[] | null {
 export const PagesSection = memo(function PagesSection({
   projectId,
 }: PagesSectionProps) {
+  const { t } = useI18n();
   // 🚀 Pages만 구독 - elements 변경 시 리렌더링 안됨
   const pages = useStore((state) => state.pages);
   const currentPageId = useStore((state) => state.currentPageId);
@@ -345,12 +347,12 @@ export const PagesSection = memo(function PagesSection({
   return (
     <Section
       className="node-tree-section"
-      title="Pages"
+      title={t("nodes.pages")}
       collapsible={false}
       actions={
         <ActionIconButton
-          aria-label="Add Page"
-          tooltip="페이지 추가"
+          aria-label={t("nodes.addPage")}
+          tooltip={t("nodes.addPage")}
           isDisabled={isCreatingPage}
           onPress={handleAddPage}
         >

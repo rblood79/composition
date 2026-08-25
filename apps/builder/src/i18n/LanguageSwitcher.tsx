@@ -4,12 +4,12 @@
  * Allows users to switch between supported locales
  */
 
-import React from 'react';
-import { Select, SelectItem } from "@composition/shared/components/Select";
-import { useI18n } from './useI18n';
-import { localeConfigs } from './locales';
-import type { SupportedLocale } from './types';
-import { Globe } from 'lucide-react';
+import { useMemo } from "react";
+import { Globe } from "lucide-react";
+import { PropertySelect } from "../builder/components/property/PropertySelect";
+import { useI18n } from "./useI18n";
+import { localeConfigs } from "./locales";
+import type { SupportedLocale } from "./types";
 
 export interface LanguageSwitcherProps {
   /**
@@ -45,29 +45,31 @@ export function LanguageSwitcher({
 }: LanguageSwitcherProps) {
   const { locale, setLocale, t } = useI18n();
 
-  const handleSelectionChange = (key: React.Key | null) => {
-    if (key) {
-      setLocale(key as SupportedLocale);
+  const options = useMemo(
+    () =>
+      Object.values(localeConfigs).map((config) => ({
+        value: config.locale,
+        label: config.name,
+      })),
+    [],
+  );
+
+  const handleSelectionChange = (value: string) => {
+    if (value in localeConfigs) {
+      setLocale(value as SupportedLocale);
     }
   };
 
-  const effectiveLabel = label || t('common.select');
+  const effectiveLabel = label || t("settings.language");
 
   return (
-    <div className={className} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-      {showIcon && <Globe size={16} />}
-      <Select
-        label={effectiveLabel}
-        selectedKey={locale}
-        onSelectionChange={handleSelectionChange}
-        aria-label="Select language"
-      >
-        {Object.values(localeConfigs).map((config) => (
-          <SelectItem key={config.locale} id={config.locale}>
-            {config.name}
-          </SelectItem>
-        ))}
-      </Select>
-    </div>
+    <PropertySelect
+      label={effectiveLabel}
+      value={locale}
+      onChange={handleSelectionChange}
+      options={options}
+      icon={showIcon ? Globe : undefined}
+      className={className}
+    />
   );
 }

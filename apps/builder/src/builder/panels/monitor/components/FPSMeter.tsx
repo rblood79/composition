@@ -10,6 +10,7 @@
 import { Activity } from "lucide-react";
 import type { FPSData } from "../hooks/useFPSMonitor";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 interface FPSMeterProps {
   fps: FPSData;
@@ -22,31 +23,34 @@ function getFPSStatus(fps: number): "good" | "warning" | "poor" {
 }
 
 export function FPSMeter({ fps }: FPSMeterProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
   const status = getFPSStatus(fps.current);
 
   return (
     <div className="fps-meter" data-status={status}>
       <div className="fps-meter-header">
         <Activity size={iconEditProps.size} aria-hidden="true" />
-        <span className="fps-meter-title">FPS</span>
+        <span className="fps-meter-title">{localize("fps", "FPS")}</span>
       </div>
 
       <div className="fps-meter-value">
         <span className="fps-current">{fps.current}</span>
-        <span className="fps-unit">fps</span>
+        <span className="fps-unit">{localize("fpsUnit", "fps")}</span>
       </div>
 
       <div className="fps-meter-stats">
         <div className="fps-stat">
-          <span className="fps-stat-label">Avg</span>
+          <span className="fps-stat-label">{localize("avg", "Avg")}</span>
           <span className="fps-stat-value">{fps.average}</span>
         </div>
         <div className="fps-stat">
-          <span className="fps-stat-label">Min</span>
+          <span className="fps-stat-label">{localize("min", "Min")}</span>
           <span className="fps-stat-value">{fps.min}</span>
         </div>
         <div className="fps-stat">
-          <span className="fps-stat-label">Max</span>
+          <span className="fps-stat-label">{localize("max", "Max")}</span>
           <span className="fps-stat-value">{fps.max}</span>
         </div>
       </div>

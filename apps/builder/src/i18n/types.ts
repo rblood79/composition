@@ -7,7 +7,7 @@
 /**
  * Supported locales
  */
-export type SupportedLocale = "ko-KR" | "en-US" | "ja-JP" | "zh-CN";
+export type SupportedLocale = "ko-KR" | "en-US";
 
 /**
  * Direction for text layout
@@ -77,6 +77,123 @@ export interface TranslationKeys {
     publish: string;
     settings: string;
   };
+  settings: {
+    title: string;
+    language: string;
+    rulersAndGuides: string;
+    showRulers: string;
+    snapToObjects: string;
+    pageLayout: string;
+    pageLayoutHorizontal: string;
+    pageLayoutVertical: string;
+    pageLayoutZigzag: string;
+    themeAppearance: string;
+    themeMode: string;
+    themeModeLight: string;
+    themeModeDark: string;
+    themeModeAuto: string;
+    uiScale: string;
+    uiScaleSmall: string;
+    uiScaleDefault: string;
+    uiScaleLarge: string;
+  };
+  header: {
+    menu: string;
+    openProject: string;
+    importProject: string;
+    exportProject: string;
+    deleteProject: string;
+    resetPanelLayout: string;
+    settings: string;
+    shortcuts: string;
+    help: string;
+    about: string;
+    noProject: string;
+    logo: string;
+    emptyHistory: string;
+    undo: string;
+    redo: string;
+    viewOptions: string;
+    compareMode: string;
+    skiaOnlyMode: string;
+    showWorkflowOverlay: string;
+    hideWorkflowOverlay: string;
+    preview: string;
+    monitor: string;
+    publish: string;
+    desktop: string;
+    tablet: string;
+    mobile: string;
+  };
+  workspace: {
+    workArea: string;
+    movePanel: string;
+    resizePanel: string;
+    resizeRow: string;
+    resizeColumn: string;
+    left: string;
+    right: string;
+    top: string;
+    bottom: string;
+  };
+  zoom: {
+    level: string;
+    menu: string;
+    in: string;
+    out: string;
+    fit: string;
+    fill: string;
+    align: string;
+  };
+  panels: {
+    nodes: string;
+    components: string;
+    dataTable: string;
+    dataTableEditor: string;
+    theme: string;
+    settings: string;
+    ai: string;
+    properties: string;
+    styles: string;
+    interactions: string;
+    history: string;
+    monitor: string;
+  };
+  nodes: {
+    pages: string;
+    frames: string;
+    panelTabs: string;
+    addPage: string;
+    selectPage: string;
+    addFrame: string;
+    noFrames: string;
+    selectFrame: string;
+    noElements: string;
+    layers: string;
+    collapseAll: string;
+  };
+  styles: {
+    view: string;
+    layout: string;
+    layoutHint: string;
+    style: string;
+    styleHint: string;
+    text: string;
+    textHint: string;
+    screen: string;
+    screenHint: string;
+    modified: string;
+    modifiedHint: string;
+    modifiedCount: string;
+    copyStyles: string;
+    pasteStyles: string;
+    focus: string;
+    selectElement: string;
+  };
+  labels: Record<string, string>;
+  datatable: Record<string, string>;
+  monitor: Record<string, string>;
+  debugger: Record<string, string>;
   components: {
     // Content
     text: string;
@@ -195,7 +312,7 @@ export interface I18nContextValue {
   /** Set locale */
   setLocale: (locale: SupportedLocale) => void;
   /** Translate function */
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   /** Current direction */
   direction: Direction;
   /** Current locale config */

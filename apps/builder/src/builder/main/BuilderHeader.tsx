@@ -36,6 +36,7 @@ import { ZoomControls } from "../workspace/ZoomControls";
 import { ActionIconButton } from "../components/ui";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import { ACTION_ICONS } from "../config/actionIcons";
+import { useI18n } from "../../i18n";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -90,6 +91,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   showWorkflowOverlay,
   onWorkflowOverlayToggle,
 }) => {
+  const { t } = useI18n();
   const { togglePanel, resetWorkspaceLayout } = usePanelLayout();
   const isCompareMode = useCompareModeStore((state) => state.isCompareMode);
   const toggleCompareMode = useCompareModeStore(
@@ -100,7 +102,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
     <nav className="header">
       <div className="header_contents header_left">
         <MenuTrigger>
-          <Button aria-label="menu">
+          <Button aria-label={t("header.menu")}>
             <MenuIcon
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}
@@ -123,55 +125,55 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             >
               <MenuItem id="open" className="header-menu-item">
                 <FolderOpen size={14} />
-                <span>Open Project</span>
+                <span>{t("header.openProject")}</span>
                 <Keyboard>⌘O</Keyboard>
               </MenuItem>
               <MenuItem id="import" className="header-menu-item">
                 <Download size={14} />
-                <span>Import</span>
+                <span>{t("header.importProject")}</span>
               </MenuItem>
               <MenuItem id="export" className="header-menu-item">
                 <Upload size={14} />
-                <span>Export</span>
+                <span>{t("header.exportProject")}</span>
               </MenuItem>
               <Separator className="header-menu-separator" />
               <MenuItem id="delete" className="header-menu-item">
                 <DeleteIcon size={14} />
-                <span>Delete Project</span>
+                <span>{t("header.deleteProject")}</span>
               </MenuItem>
               <Separator className="header-menu-separator" />
               <MenuItem id="reset-panel-layout" className="header-menu-item">
                 <Columns size={14} />
-                <span>Reset Panel Layout</span>
+                <span>{t("header.resetPanelLayout")}</span>
               </MenuItem>
               <MenuItem id="settings" className="header-menu-item">
                 <Settings size={14} />
-                <span>Settings</span>
+                <span>{t("header.settings")}</span>
               </MenuItem>
               <Separator className="header-menu-separator" />
               <MenuItem id="shortcuts" className="header-menu-item">
                 <Command size={14} />
-                <span>Shortcuts</span>
+                <span>{t("header.shortcuts")}</span>
                 <Keyboard>⌘K</Keyboard>
               </MenuItem>
               <MenuItem id="help" className="header-menu-item">
                 <CircleHelp size={14} />
-                <span>Help</span>
+                <span>{t("header.help")}</span>
               </MenuItem>
               <MenuItem id="about" className="header-menu-item">
                 <Info size={14} />
-                <span>About</span>
+                <span>{t("header.about")}</span>
               </MenuItem>
             </Menu>
           </Popover>
         </MenuTrigger>
         <div className="logo-container">
-          <img src="/appIcon.svg" alt="logo" />
+          <img src="/appIcon.svg" alt={t("header.logo")} />
         </div>
         <div className="project-info">
           {projectName && <span className="project-name">{projectName}</span>}
           {/*projectId && <code className="project-id">ID: {projectId}</code>*/}
-          {!projectId && !projectName && "No project loaded"}
+          {!projectId && !projectName && t("header.noProject")}
         </div>
       </div>
 
@@ -198,7 +200,19 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           indicator={true}
         >
           {breakpoints.map((bp) => (
-            <ToggleButton id={bp.id} key={bp.id} aria-label={bp.label}>
+            <ToggleButton
+              id={bp.id}
+              key={bp.id}
+              aria-label={
+                bp.id === "desktop"
+                  ? t("header.desktop")
+                  : bp.id === "tablet"
+                    ? t("header.tablet")
+                    : bp.id === "mobile"
+                      ? t("header.mobile")
+                      : bp.label
+              }
+            >
               {bp.id === "desktop" && (
                 <Monitor
                   color={iconProps.color}
@@ -230,10 +244,12 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
 
       <div className="header_contents header_right">
         <span className="history-info">
-          {historyInfo ? `${historyInfo.current}/${historyInfo.total}` : "0/0"}
+          {historyInfo
+            ? `${historyInfo.current}/${historyInfo.total}`
+            : t("header.emptyHistory")}
         </span>
         <ActionIconButton
-          aria-label="Undo"
+          aria-label={t("header.undo")}
           onPress={onUndo}
           isDisabled={!canUndo}
           shortcutId="undo"
@@ -246,7 +262,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           />
         </ActionIconButton>
         <ActionIconButton
-          aria-label="Redo"
+          aria-label={t("header.redo")}
           onPress={onRedo}
           isDisabled={!canRedo}
           shortcutId="redo"
@@ -283,12 +299,12 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               onWorkflowOverlayToggle();
             }
           }}
-          aria-label="View options"
+          aria-label={t("header.viewOptions")}
         >
           <ToggleButton
             id="compare"
             aria-label={
-              isCompareMode ? "Skia Only Mode" : "Compare Mode (Preview + Skia)"
+              isCompareMode ? t("header.skiaOnlyMode") : t("header.compareMode")
             }
           >
             <Columns
@@ -301,8 +317,8 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             id="workflow"
             aria-label={
               showWorkflowOverlay
-                ? "Hide Workflow Overlay"
-                : "Show Workflow Overlay"
+                ? t("header.hideWorkflowOverlay")
+                : t("header.showWorkflowOverlay")
             }
           >
             <GitBranch
@@ -313,7 +329,11 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               size={iconProps.size}
             />
           </ToggleButton>
-          <ToggleButton id="preview" aria-label="Preview" onPress={onPreview}>
+          <ToggleButton
+            id="preview"
+            aria-label={t("header.preview")}
+            onPress={onPreview}
+          >
             <Eye
               color={iconProps.color}
               strokeWidth={iconProps.strokeWidth}
@@ -322,7 +342,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           </ToggleButton>
           <ToggleButton
             id="monitor"
-            aria-label="Monitor"
+            aria-label={t("header.monitor")}
             onPress={() => togglePanel("monitor")}
           >
             <Monitor
@@ -332,8 +352,12 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             />
           </ToggleButton>
         </ToggleButtonGroup>
-        <button aria-label="Publish" className="publish" onClick={onPublish}>
-          Publish
+        <button
+          aria-label={t("header.publish")}
+          className="publish"
+          onClick={onPublish}
+        >
+          {t("header.publish")}
         </button>
       </div>
     </nav>

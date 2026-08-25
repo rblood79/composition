@@ -12,6 +12,7 @@ import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { Section } from "../../../components";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -23,6 +24,9 @@ interface ApiEndpointListProps {
 }
 
 export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   const apiEndpoints = useApiEndpoints();
   const createApiEndpoint = useDataStore((state) => state.createApiEndpoint);
   const deleteApiEndpoint = useDataStore((state) => state.deleteApiEndpoint);
@@ -96,7 +100,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
   return (
     <Section
       id="api-list"
-      title="API List"
+      title={localize("apiList", "API List")}
       badge={
         <span className="datatable-list-count">{apiEndpoints.length}개</span>
       }
@@ -106,8 +110,9 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
         <div className="datatable-empty">
           <Globe size={32} className="datatable-empty-icon" />
           <p className="datatable-empty-text">
-            API Endpoint가 없습니다.
-            <br />새 API를 추가하세요.
+            {localize("apiEmpty", "No API endpoints")}
+            <br />
+            {localize("addApiHint", "Add a new API.")}
           </p>
         </div>
       ) : (
@@ -137,7 +142,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
                   type="button"
                   className="iconButton"
                   onClick={(e) => handleExecute(endpoint.id, e)}
-                  title="테스트"
+                  title={localize("test", "Test")}
                 >
                   <Play {...iconEditProps} />
                 </button>
@@ -145,7 +150,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
                   type="button"
                   className="iconButton"
                   onClick={(e) => handleEdit(endpoint.id, e)}
-                  title="편집"
+                  title={localize("edit", "Edit")}
                 >
                   <SquarePen {...iconEditProps} />
                 </button>
@@ -153,7 +158,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
                   type="button"
                   className="iconButton"
                   onClick={(e) => handleDelete(endpoint.id, e)}
-                  title="삭제"
+                  title={localize("delete", "Delete")}
                 >
                   <DeleteIcon {...iconEditProps} />
                 </button>
@@ -169,7 +174,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
         onClick={handleCreate}
       >
         <AddIcon {...iconProps} />
-        <span>API 추가</span>
+        <span>{localize("addApi", "Add API")}</span>
       </button>
     </Section>
   );

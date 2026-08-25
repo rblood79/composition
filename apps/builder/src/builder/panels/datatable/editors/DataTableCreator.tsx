@@ -34,6 +34,7 @@ import type { DataTablePreset, PresetCategory } from "../presets/types";
 import { PRESET_CATEGORIES } from "../presets/types";
 import { getPresetsByCategory } from "../presets/dataTablePresets";
 import "./DataTableCreator.css";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 // ============================================
 // Icon Mapping
@@ -91,6 +92,9 @@ export function DataTableCreator({
   onClose,
   mode,
 }: DataTableCreatorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   const createDataTable = useDataStore((state) => state.createDataTable);
 
   // 선택 상태
@@ -184,17 +188,20 @@ export function DataTableCreator({
           /* Empty Table Form */
           <div className="creator-empty-form">
             <label className="creator-form-label">
-              테이블 이름
+              {localize("tableName", "Table Name")}
               <input
                 type="text"
                 className="creator-form-input"
                 value={tableName}
                 onChange={(e) => setTableName(e.target.value)}
-                placeholder="New Table"
+                placeholder={localize("newTable", "New Table")}
               />
             </label>
             <p className="creator-form-hint">
-              빈 테이블을 생성한 후 Schema 탭에서 필드를 추가할 수 있습니다.
+              {localize(
+                "emptyTableHint",
+                "After creating an empty table, add fields in the Schema tab.",
+              )}
             </p>
           </div>
         ) : (
@@ -251,13 +258,15 @@ export function DataTableCreator({
       {mode === "preset" && selectedPreset && (
         <Section
           id="schema-preview"
-          title={`${selectedPreset.name} Schema`}
+          title={`${selectedPreset.name} ${localize("schema", "Schema")}`}
           actions={
             <div className="creator-sample-count">
-              <label htmlFor="sample-count">row count</label>
+              <label htmlFor="sample-count">
+                {localize("rowCount", "row count")}
+              </label>
               <input
                 id="sample-count"
-                aria-label="row count"
+                aria-label={localize("rowCount", "row count")}
                 aria-required="true"
                 aria-invalid="false"
                 type="number"
@@ -292,14 +301,16 @@ export function DataTableCreator({
       {/* Footer */}
       <div className="creator-footer">
         <Button className="react-aria-Button secondary" onPress={onClose}>
-          취소
+          {i18n ? i18n.t("common.cancel") : "Cancel"}
         </Button>
         <Button
           className="react-aria-Button primary"
           onPress={handleCreate}
           isDisabled={mode === "preset" && !selectedPreset}
         >
-          {mode === "empty" ? "빈 테이블 생성" : "생성"}
+          {mode === "empty"
+            ? localize("createEmpty", "Create Empty Table")
+            : localize("create", "Create")}
         </Button>
       </div>
     </>

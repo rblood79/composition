@@ -27,6 +27,7 @@ import {
   type ShortcutId,
 } from "../config/keyboardShortcuts";
 import { formatShortcut } from "../hooks";
+import { useI18n } from "../../i18n";
 
 // ============================================
 // Constants
@@ -66,6 +67,7 @@ export interface ZoomControlsProps {
 export const ZoomControls = memo(function ZoomControls({
   className,
 }: ZoomControlsProps) {
+  const { t } = useI18n();
   const zoom = useViewportPresentationZoom();
 
   const zoomPercent = Math.round(zoom * 100);
@@ -212,10 +214,10 @@ export const ZoomControls = memo(function ZoomControls({
           onBlur={handleInputBlur}
           onKeyDown={handleKeyDown}
           onFocus={handleInputFocus}
-          aria-label="Zoom level"
+          aria-label={t("zoom.level")}
         />
         <MenuTrigger>
-          <Button className="zoom-chevron-button" aria-label="Zoom menu">
+          <Button className="zoom-chevron-button" aria-label={t("zoom.menu")}>
             <ChevronDown size={iconProps.size} />
           </Button>
           <Popover
@@ -225,11 +227,11 @@ export const ZoomControls = memo(function ZoomControls({
           >
             <Menu className="zoom-menu" onAction={handleAction}>
               <MenuItem id="zoom-in" className="zoom-menu-item">
-                <span>확대</span>
+                <span>{t("zoom.in")}</span>
                 <kbd>{shortcutLabel("zoomIn")}</kbd>
               </MenuItem>
               <MenuItem id="zoom-out" className="zoom-menu-item">
-                <span>축소</span>
+                <span>{t("zoom.out")}</span>
                 <kbd>{shortcutLabel("zoomOut")}</kbd>
               </MenuItem>
               <MenuItem id="zoom-100" className="zoom-menu-item">
@@ -241,14 +243,14 @@ export const ZoomControls = memo(function ZoomControls({
                 <kbd>{shortcutLabel("zoom200")}</kbd>
               </MenuItem>
               <MenuItem id="fit-to-screen" className="zoom-menu-item">
-                <span>화면에 맞추기</span>
+                <span>{t("zoom.fit")}</span>
                 <kbd>{shortcutLabel("zoomToFit")}</kbd>
               </MenuItem>
               <MenuItem id="fill-screen" className="zoom-menu-item">
-                <span>화면 채우기</span>
+                <span>{t("zoom.fill")}</span>
               </MenuItem>
               <MenuItem id="align-pages" className="zoom-menu-item">
-                <span>화면 정렬</span>
+                <span>{t("zoom.align")}</span>
               </MenuItem>
             </Menu>
           </Popover>

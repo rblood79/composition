@@ -22,6 +22,7 @@ import type {
   PanelSide,
 } from "../panels/core/types";
 import { PanelNav } from "./PanelNav";
+import { getPanelLabel } from "./panelLabels";
 import { registerPanelWorkspaceActivationDispatcher } from "./panelWorkspaceActivationDispatcher";
 import {
   PanelSnapInteractionProvider,
@@ -56,6 +57,7 @@ import {
   usePanelWorkspaceFrameSnapshot,
   usePanelWorkspaceLayoutSnapshot,
 } from "./usePanelWorkspaceLayoutSnapshot";
+import { useI18n } from "../../i18n";
 import "./PanelWorkspace.css";
 
 type PanelFrameMode = "hidden" | "placed";
@@ -69,11 +71,11 @@ function isRightAnchoredPlacementZone(
   );
 }
 
-const RESIZE_EDGE_LABELS: Record<PanelResizeEdge, string> = {
-  left: "왼쪽",
-  right: "오른쪽",
-  top: "상단",
-  bottom: "하단",
+const RESIZE_EDGE_TRANSLATION_KEYS: Record<PanelResizeEdge, string> = {
+  left: "workspace.left",
+  right: "workspace.right",
+  top: "workspace.top",
+  bottom: "workspace.bottom",
 };
 
 function railSideForPanel(
@@ -173,6 +175,8 @@ function sharedSplitterContract(
   snapshot: PanelWorkspaceLayoutSnapshot,
   registry: readonly PanelWorkspaceRegistryEntry[],
   configsByPanelId: ReadonlyMap<PanelId, PanelConfig>,
+  getPanelName: (config: PanelConfig) => string,
+  t: (key: string, params?: Record<string, string | number>) => string,
 ): SharedSplitterContract | null {
   const panelId = splitter.beforePanelIds[0];
   if (!panelId) return null;
@@ -189,11 +193,11 @@ function sharedSplitterContract(
     return entry ? [entry] : [];
   });
   if (beforeEntries.length === 0) return null;
-  const beforeNames = beforeConfigs.map((config) => config.name).join(", ");
+  const beforeNames = beforeConfigs.map(getPanelName).join(", ");
   const afterNames = splitter.afterPanelIds
     .flatMap((candidate) => {
       const config = configsByPanelId.get(candidate);
-      return config ? [config.name] : [];
+      return config ? [getPanelName(config)] : [];
     })
     .join(", ");
 
@@ -201,7 +205,10 @@ function sharedSplitterContract(
     return {
       controls: `panel-${panelId}-content`,
       edge: "bottom",
-      label: `${beforeNames} / ${afterNames} 패널 행 크기 조절`,
+      label: t("workspace.resizeRow", {
+        before: beforeNames,
+        after: afterNames,
+      }),
       maxValue: Math.max(
         Math.max(...beforeEntries.map((entry) => entry.minHeight)),
         snapshot.workspaceRect.height,
@@ -222,7 +229,10 @@ function sharedSplitterContract(
       .map((candidate) => `panel-${candidate}-content`)
       .join(" "),
     edge: "right",
-    label: `${beforeNames} / ${afterNames} 패널 열 크기 조절`,
+    label: t("workspace.resizeColumn", {
+      before: beforeNames,
+      after: afterNames,
+    }),
     maxValue,
     minValue,
     panelId,
@@ -292,6 +302,7 @@ function PanelWorkspaceSharedSplitters({
   runtime,
   setWorkspaceLayout,
 }: PanelWorkspaceSharedSplittersProps) {
+  const { t } = useI18n();
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
   const configsByPanelId = useMemo(
     () => new Map(configs.map((config) => [config.id, config] as const)),
@@ -306,6 +317,8 @@ function PanelWorkspaceSharedSplitters({
           snapshot,
           runtime.getRegistry(),
           configsByPanelId,
+          (config) => getPanelLabel(config, t),
+          t,
         );
         if (!contract) return null;
         return (
@@ -395,6 +408,7 @@ const PanelFrame = memo(function PanelFrame({
   onCommitLayout,
   onFocusPanel,
 }: PanelFrameProps) {
+  const { t } = useI18n();
   const { beginPanelDrag, updatePanelDropCandidate, endPanelDrag } =
     usePanelSnapInteractionActions();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -454,6 +468,7 @@ const PanelFrame = memo(function PanelFrame({
   const mode = frameMode(snapshotFrame);
   const isClustered = panelBelongsToMultiPanelCluster(runtime, config.id);
   const contentId = `panel-${config.id}-content`;
+  const panelName = getPanelLabel(config, t);
 
   useEffect(() => {
     if (isInteractingRef.current || !snapshotFrame) return;
@@ -699,7 +714,7 @@ const PanelFrame = memo(function PanelFrame({
         {...moveProps}
         type="button"
         className="panel-move-handle"
-        aria-label={`${config.name} 패널 이동`}
+        aria-label={t("workspace.movePanel", { panel: panelName })}
         onPointerDownCapture={(event) => {
           if (!snapshotFrame) return;
           const handleRect = event.currentTarget.getBoundingClientRect();
@@ -727,7 +742,10 @@ const PanelFrame = memo(function PanelFrame({
         <PanelSplitter
           key={edge}
           edge={edge}
-          label={`${config.name} 패널 ${RESIZE_EDGE_LABELS[edge]} 크기 조절`}
+          label={t("workspace.resizePanel", {
+            panel: panelName,
+            edge: t(RESIZE_EDGE_TRANSLATION_KEYS[edge]),
+          })}
           controls={contentId}
           value={
             edge === "left" || edge === "right"
@@ -873,6 +891,17 @@ function panelDockColumns(
   return columns;
 }
 
+function panelClusterMap(
+  layout: PanelWorkspaceLayoutV3,
+  invalidationRevision: number,
+): ReadonlyMap<string, PanelWorkspaceClusterV3> {
+  // Runtime layout is mutable; the revision invalidates the memoized map.
+  void invalidationRevision;
+  return new Map(
+    layout.clusters.map((cluster) => [cluster.id, cluster] as const),
+  );
+}
+
 interface PanelDockClusterPresentationProps {
   dockOrigin: PanelDockOrigin;
   runtime: PanelWorkspaceRuntime;
@@ -886,9 +915,8 @@ function PanelDockClusterPresentation({
   const layout = runtime.getLayout();
   const columns = panelDockColumns(layout.clusters, snapshot);
   const clustersById = useMemo(
-    () =>
-      new Map(layout.clusters.map((cluster) => [cluster.id, cluster] as const)),
-    [layout],
+    () => panelClusterMap(runtime.getLayout(), snapshot.version),
+    [runtime, snapshot.version],
   );
 
   return (
@@ -1057,6 +1085,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   workspaceLayout,
   dockRef,
 }: PanelWorkspaceOverlayProps) {
+  const { t } = useI18n();
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
   const { dropCandidate } = usePanelSnapInteractionState();
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -1121,7 +1150,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   );
 
   return (
-    <div className="panel-workspace" aria-label="패널 작업 영역">
+    <div className="panel-workspace" aria-label={t("workspace.workArea")}>
       <PanelDock
         dockRef={dockRef}
         surfaceWidth={surfaceWidth}
@@ -1267,6 +1296,7 @@ interface PanelWorkspaceContentProps {
 }
 
 function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
+  const { t } = useI18n();
   const {
     workspaceLayout,
     initializeWorkspaceLayout,
@@ -1319,7 +1349,7 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
     return (
       <div className="panel-workspace-host">
         <div className="panel-workspace-main">{children}</div>
-        <div className="panel-workspace" aria-label="패널 작업 영역">
+        <div className="panel-workspace" aria-label={t("workspace.workArea")}>
           <div ref={dockRef} className="panel-dock" />
         </div>
       </div>

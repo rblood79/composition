@@ -22,25 +22,7 @@ import { Tab, TabList } from "react-aria-components";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import type { StyleGroupId, StyleViewId } from "../constants/styleGroups";
 import { isStyleGroupId, STYLE_VIEW_IDS } from "../constants/styleGroups";
-
-const VIEW_META: Record<
-  StyleViewId,
-  { label: string; hint: string; Icon: typeof Frame }
-> = {
-  layout: { label: "Layout", hint: "Transform · Layout", Icon: Frame },
-  style: { label: "Style", hint: "Appearance", Icon: Paintbrush },
-  text: { label: "Text", hint: "Typography", Icon: Type },
-  screen: {
-    label: "Screen",
-    hint: "Responsive · Visibility",
-    Icon: Smartphone,
-  },
-  modified: {
-    label: "Modified",
-    hint: "기본값과 다른 속성만",
-    Icon: PencilRuler,
-  },
-};
+import { useI18n } from "../../../../i18n";
 
 interface StylesPanelTabsProps {
   /** 기본값과 다른 값을 가진 그룹 — 선택되지 않은 탭에 dot 을 띄운다. */
@@ -53,15 +35,49 @@ export function StylesPanelTabs({
   dirtyGroups,
   modifiedCount,
 }: StylesPanelTabsProps) {
+  const { t } = useI18n();
+  const viewMeta: Record<
+    StyleViewId,
+    { label: string; hint: string; Icon: typeof Frame }
+  > = {
+    layout: {
+      label: t("styles.layout"),
+      hint: t("styles.layoutHint"),
+      Icon: Frame,
+    },
+    style: {
+      label: t("styles.style"),
+      hint: t("styles.styleHint"),
+      Icon: Paintbrush,
+    },
+    text: {
+      label: t("styles.text"),
+      hint: t("styles.textHint"),
+      Icon: Type,
+    },
+    screen: {
+      label: t("styles.screen"),
+      hint: t("styles.screenHint"),
+      Icon: Smartphone,
+    },
+    modified: {
+      label: t("styles.modified"),
+      hint: t("styles.modifiedHint"),
+      Icon: PencilRuler,
+    },
+  };
+
   return (
-    <TabList className="styles-panel-tablist" aria-label="스타일 뷰">
+    <TabList className="styles-panel-tablist" aria-label={t("styles.view")}>
       {STYLE_VIEW_IDS.map((id) => {
-        const { label, hint, Icon } = VIEW_META[id];
+        const { label, hint, Icon } = viewMeta[id];
         const isGroup = isStyleGroupId(id);
         const title =
           isGroup || modifiedCount === 0
             ? `${label} — ${hint}`
-            : `${label} — ${hint} ${modifiedCount}개`;
+            : `${label} — ${hint} ${t("styles.modifiedCount", {
+                count: modifiedCount,
+              })}`;
         return (
           <Tab
             key={id}

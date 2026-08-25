@@ -23,6 +23,7 @@ import App from "./App.tsx";
 import Dashboard from "./dashboard";
 import Builder from "./builder";
 import Signin from "./auth/Signin";
+import { I18nProvider } from "./i18n";
 
 // Lazy load PublishApp to prevent CSS conflicts (CSS loads only when route is accessed)
 const PublishApp = lazy(() => import("@composition/publish"));
@@ -137,17 +138,19 @@ const basename = import.meta.env.PROD ? "/composition" : "/";
 
 ReactDOM.createRoot(root!).render(
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter basename={basename}>
-      <ParticleBackgroundProvider>
-        <AppLayout />
-      </ParticleBackgroundProvider>
-    </BrowserRouter>
-    {import.meta.env.DEV && isReactQueryDevtoolsEnabled() && (
-      <ReactQueryDevtools
-        initialIsOpen={false}
-        buttonPosition="top-right"
-        position="right"
-      />
-    )}
+    <I18nProvider>
+      <BrowserRouter basename={basename}>
+        <ParticleBackgroundProvider>
+          <AppLayout />
+        </ParticleBackgroundProvider>
+      </BrowserRouter>
+      {import.meta.env.DEV && isReactQueryDevtoolsEnabled() && (
+        <ReactQueryDevtools
+          initialIsOpen={false}
+          buttonPosition="top-right"
+          position="right"
+        />
+      )}
+    </I18nProvider>
   </QueryClientProvider>,
 );

@@ -48,6 +48,7 @@ import {
   serializeBoxShadowPresentation,
   type BoxShadowPresentationValue,
 } from "../../../presentation/boxShadowPresentation";
+import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
 
 const LazyFillBackgroundInline = lazy(() =>
   import("./FillSection").then((m) => ({ default: m.FillBackgroundInline })),
@@ -88,6 +89,9 @@ const stripInset = stripShadowInset;
 const applyInset = applyShadowInset;
 
 const AppearanceSectionContent = memo(function AppearanceSectionContent() {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n ? translateDisplayLabel(i18n.t, label) : label;
   const { updateStyle } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
@@ -238,7 +242,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
           onChange={(value) => updateStyle("borderStyle", value)}
         />
         <div className="fieldset-actions actions-icon">
-          <SwatchIconButton aria-label="More border options">
+          <SwatchIconButton aria-label={localize("More border options")}>
             <EllipsisVertical
               color={iconProps.color}
               size={iconProps.size}
@@ -292,9 +296,9 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
           }}
         />
         <fieldset className="properties-aria fieldset-actions actions-icon">
-          <legend className="fieldset-legend">inset</legend>
+          <legend className="fieldset-legend">{localize("inset")}</legend>
           <SwatchIconToggleButton
-            aria-label="Inset shadow"
+            aria-label={localize("Inset shadow")}
             isSelected={insetActive}
             isDisabled={!hasShadow}
             onChange={handleInsetChange}

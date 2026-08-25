@@ -30,6 +30,7 @@ import { DataTableList } from "./components/DataTableList";
 import { ApiEndpointList } from "./components/ApiEndpointList";
 import { VariableList } from "./components/VariableList";
 import "./DataTablePanel.css";
+import { translateKey, useOptionalI18n } from "../../../i18n";
 
 type DataTableTab = "tables" | "endpoints" | "variables";
 
@@ -46,6 +47,9 @@ const TABS: TabConfig[] = [
 ];
 
 export function DataTablePanel({ isActive }: PanelProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   const [activeTab, setActiveTab] = useState<DataTableTab>("tables");
 
   // Get projectId from URL params
@@ -119,9 +123,9 @@ export function DataTablePanel({ isActive }: PanelProps) {
       <div className="panel datatable-panel">
         <PanelHeader
           icon={<Database size={iconProps.size} />}
-          title="DataTable"
+          title={i18n ? i18n.t("panels.dataTable") : "DataTable"}
         />
-        <EmptyState message="프로젝트를 선택하세요" />
+        <EmptyState message={localize("noProject", "프로젝트를 선택하세요")} />
       </div>
     );
   }
@@ -151,13 +155,13 @@ export function DataTablePanel({ isActive }: PanelProps) {
     <div className="panel datatable-panel">
       <PanelHeader
         icon={<Database size={iconProps.size} />}
-        title="DataTable"
+        title={i18n ? i18n.t("panels.dataTable") : "DataTable"}
         actions={
           <button
             className="iconButton"
             type="button"
             onClick={handleRefresh}
-            title="새로고침"
+            title={localize("refresh", "새로고침")}
           >
             <RefreshCw size={iconProps.size} />
           </button>
@@ -182,7 +186,16 @@ export function DataTablePanel({ isActive }: PanelProps) {
             type="button"
           >
             <tab.icon size={iconEditProps.size} />
-            <span>{tab.label}</span>
+            <span>
+              {localize(
+                tab.id === "tables"
+                  ? "tables"
+                  : tab.id === "endpoints"
+                    ? "apis"
+                    : "variables",
+                tab.label,
+              )}
+            </span>
           </button>
         ))}
       </div>

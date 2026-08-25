@@ -9,6 +9,7 @@ import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
 import { ColorPickerPanel } from "../../panels/styles/components/ColorPickerPanel";
 import { useStore } from "../../stores";
+import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
 
 interface PropertyColorProps {
   label?: string;
@@ -74,6 +75,9 @@ export const PropertyColor = memo(
     onPresentationCancel,
     className,
   }: PropertyColorProps) {
+    const i18n = useOptionalI18n();
+    const displayLabel =
+      label && i18n ? translateDisplayLabel(i18n.t, label) : label;
     const selectedElementId = useStore((state) => state.selectedElementId);
 
     const handlePreview = useCallback(
@@ -94,11 +98,16 @@ export const PropertyColor = memo(
       <fieldset
         className={`properties-aria property-color-input ${className || ""}`}
       >
-        {label && <legend className="fieldset-legend">{label}</legend>}
+        {displayLabel && (
+          <legend className="fieldset-legend">{displayLabel}</legend>
+        )}
         <DialogTrigger>
           <AriaButton
             className="react-aria-Group color-swatch-button"
-            aria-label={label || "Color"}
+            aria-label={
+              displayLabel ||
+              (i18n ? translateDisplayLabel(i18n.t, "Color") : "Color")
+            }
           >
             <ColorSwatch color={safeSwatchColor(value)} />
           </AriaButton>

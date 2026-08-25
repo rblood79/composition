@@ -1,5 +1,6 @@
 import React from "react";
 import { iconProps } from "../../../utils/ui/uiConstants";
+import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
 
 interface PropertyFieldsetProps {
   legend?: string;
@@ -20,9 +21,14 @@ export function PropertyFieldset({
   afterControl,
   className = "",
 }: PropertyFieldsetProps) {
+  const i18n = useOptionalI18n();
+  const displayLegend =
+    legend && i18n ? translateDisplayLabel(i18n.t, legend) : legend;
   return (
     <fieldset className={`properties-aria ${className}`}>
-      {legend && <legend className="fieldset-legend">{legend}</legend>}
+      {displayLegend && (
+        <legend className="fieldset-legend">{displayLegend}</legend>
+      )}
       <div className="react-aria-control react-aria-Group">
         {Icon && (
           <label className="control-label">

@@ -19,6 +19,12 @@ composition 협업을 위한 Codex 실행 계약입니다. 이 파일은 항상 
   `.agents/README.md` 등 실파일만 해당합니다.
 - `dist/`, 생성물, 사용자 변경 파일은 요청 없이 수정하지 않습니다.
 
+## 공용 작업 상태
+
+- Codex와 Claude는 `.agent/task-state.json`을 현재 작업의 공용 상태로 사용합니다.
+- 세션 시작과 사용자 프롬프트마다 주입되는 상태를 먼저 읽고, 작업 시작·단계 전환·검증 완료·차단 발생 시 JSON을 갱신합니다.
+- `goal`, `guard`, `stop`은 사용자 승인 없이 바꾸지 않습니다. 상태 파일은 로컬 전용이며 커밋하지 않습니다.
+
 ## 프로젝트 구조
 
 - `apps/builder`: 핵심 Builder UI, 패널, 인스펙터, 캔버스 브리지.
@@ -44,9 +50,10 @@ Node/Turbo/pnpm 작업은 repo root에서 `pnpm` 스크립트로 실행합니다
 - 완료 전 기본 게이트: `pnpm run codex:preflight`
 - 단일 진입점: `pnpm run codex:harness -- help`
 
-Claude식 자동 `SessionStart`, `UserPromptSubmit`, `PreCompact`, `statusline`이
-Codex에서 자동 실행된다고 가정하지 않습니다. 필요한 자동화는 위 harness로
-명시적으로 실행합니다.
+Claude식 프로젝트 훅(`SessionStart`, `UserPromptSubmit`, `PreCompact`)과
+Codex harness를 혼동하지 않습니다. 공용 상태 주입은 전역 Codex/Claude 훅으로
+연결되어 있지만, 프로젝트 품질 게이트와 상태 갱신은 여전히 위 harness와
+작업 흐름에 따라 명시적으로 실행합니다.
 
 ## 구현 규칙
 

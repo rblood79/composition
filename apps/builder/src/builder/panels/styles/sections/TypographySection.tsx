@@ -45,8 +45,12 @@ import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { getFontWeightOptions } from "../../../fonts/customFonts";
 import { FontFamilyPicker } from "../../fonts/FontFamilyPicker";
 import { useFontRegistry } from "../../fonts/useFontRegistry";
+import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
 
 const TypographySectionContent = memo(function TypographySectionContent() {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n ? translateDisplayLabel(i18n.t, label) : label;
   const { updateStyle, updateStyles } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
@@ -270,9 +274,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       />
 
       <fieldset className="properties-aria text-align">
-        <legend className="fieldset-legend">Text Align</legend>
+        <legend className="fieldset-legend">{localize("Text Align")}</legend>
         <ToggleButtonGroup
-          aria-label="Text alignment"
+          aria-label={localize("Text alignment")}
           indicator
           selectedKeys={[styleValues.textAlign]}
           onSelectionChange={(keys) => {
@@ -305,9 +309,11 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       </fieldset>
 
       <fieldset className="properties-aria vertical-align">
-        <legend className="fieldset-legend">Vertical Align</legend>
+        <legend className="fieldset-legend">
+          {localize("Vertical Align")}
+        </legend>
         <ToggleButtonGroup
-          aria-label="Vertical alignment"
+          aria-label={localize("Vertical alignment")}
           indicator
           selectedKeys={[styleValues.verticalAlign]}
           onSelectionChange={(keys) => {
@@ -340,9 +346,11 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       </fieldset>
 
       <fieldset className="properties-aria text-decoration">
-        <legend className="fieldset-legend">Text Decoration</legend>
+        <legend className="fieldset-legend">
+          {localize("Text Decoration")}
+        </legend>
         <ToggleButtonGroup
-          aria-label="Text decoration"
+          aria-label={localize("Text decoration")}
           indicator
           selectedKeys={
             styleValues.textDecoration === "none"
@@ -381,9 +389,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       </fieldset>
 
       <fieldset className="properties-aria font-style">
-        <legend className="fieldset-legend">Font Style</legend>
+        <legend className="fieldset-legend">{localize("Font Style")}</legend>
         <ToggleButtonGroup
-          aria-label="Font style"
+          aria-label={localize("Font style")}
           indicator
           selectedKeys={[styleValues.fontStyle]}
           onSelectionChange={(keys) => {
@@ -417,9 +425,11 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       </fieldset>
 
       <fieldset className="properties-aria text-transform">
-        <legend className="fieldset-legend">Text Transform</legend>
+        <legend className="fieldset-legend">
+          {localize("Text Transform")}
+        </legend>
         <ToggleButtonGroup
-          aria-label="Text transform"
+          aria-label={localize("Text transform")}
           indicator
           selectedKeys={
             styleValues.textTransform === "none"

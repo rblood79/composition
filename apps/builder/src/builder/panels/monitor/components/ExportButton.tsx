@@ -8,6 +8,7 @@ import { Download } from "lucide-react";
 import { Button } from "@composition/shared/components";
 import type { MemoryStats } from "../hooks/useMemoryStats";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 interface ExportButtonProps {
   /** 내보낼 통계 데이터 */
@@ -17,6 +18,9 @@ interface ExportButtonProps {
 }
 
 export function ExportButton({ stats, format = "json" }: ExportButtonProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
   const handleExport = () => {
     if (!stats) return;
 
@@ -66,10 +70,15 @@ export function ExportButton({ stats, format = "json" }: ExportButtonProps) {
       size="sm"
       onPress={handleExport}
       isDisabled={!stats}
-      aria-label={`Export stats as ${format.toUpperCase()}`}
+      aria-label={localize(
+        "exportStats",
+        `Export stats as ${format.toUpperCase()}`,
+      ).replace("{format}", format.toUpperCase())}
     >
       <Download size={iconEditProps.size} aria-hidden="true" />
-      <span>Export {format.toUpperCase()}</span>
+      <span>
+        {localize("export", "Export")} {format.toUpperCase()}
+      </span>
     </Button>
   );
 }

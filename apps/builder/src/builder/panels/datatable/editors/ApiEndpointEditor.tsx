@@ -30,6 +30,7 @@ import {
 import "./ApiEndpointEditor.css";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -338,6 +339,9 @@ interface BasicEditorProps {
 }
 
 function BasicEditor({ endpoint, onUpdate }: BasicEditorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   return (
     <div className="basic-editor">
       <PropertySelect
@@ -363,7 +367,9 @@ function BasicEditor({ endpoint, onUpdate }: BasicEditorProps) {
 
       <div className="section-divider" />
 
-      <h4 className="section-title">Query Parameters</h4>
+      <h4 className="section-title">
+        {localize("queryParams", "Query Parameters")}
+      </h4>
       <QueryParamsEditor endpoint={endpoint} onUpdate={onUpdate} />
     </div>
   );
@@ -379,6 +385,9 @@ interface QueryParamsEditorProps {
 }
 
 function QueryParamsEditor({ endpoint, onUpdate }: QueryParamsEditorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   const params = endpoint.queryParams || [];
 
   const handleAdd = () => {
@@ -431,7 +440,7 @@ function QueryParamsEditor({ endpoint, onUpdate }: QueryParamsEditorProps) {
 
       <button type="button" className="add-kv-btn" onClick={handleAdd}>
         <AddIcon {...iconEditProps} />
-        Add Parameter
+        {localize("addParameter", "Add Parameter")}
       </button>
     </div>
   );
@@ -454,11 +463,16 @@ function HeadersEditor({
   onUpdate,
   onDelete,
 }: HeadersEditorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   return (
     <div className="kv-editor">
       <p className="kv-description">
-        HTTP 헤더를 설정합니다. {"{{변수명}}"} 형식으로 변수를 참조할 수
-        있습니다.
+        {localize(
+          "headersHint",
+          "Configure HTTP headers. Reference variables with {{variable}}.",
+        )}
       </p>
 
       <div className="kv-list">
@@ -543,6 +557,9 @@ interface ResponseEditorProps {
 }
 
 function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   const executeApiEndpoint = useDataStore((state) => state.executeApiEndpoint);
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectResult, setDetectResult] = useState<string | null>(null);
@@ -613,10 +630,15 @@ function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
           className="auto-detect-btn"
           onClick={handleAutoDetect}
           disabled={isDetecting}
-          title="API를 호출하여 배열 필드를 자동 감지합니다"
+          title={localize(
+            "autoDetect",
+            "Automatically detect array fields by calling the API",
+          )}
         >
           <Wand2 {...iconEditProps} />
-          {isDetecting ? "감지 중..." : "자동 감지"}
+          {isDetecting
+            ? localize("detecting", "Detecting...")
+            : localize("autoDetectShort", "Auto-detect")}
         </button>
       </div>
       {detectResult && (
@@ -643,7 +665,9 @@ function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
 
       <div className="section-divider" />
 
-      <h4 className="section-title">Field Mapping</h4>
+      <h4 className="section-title">
+        {localize("fieldMapping", "Field Mapping")}
+      </h4>
       <p className="field-description">
         API 응답 필드를 DataTable 필드에 매핑합니다.
       </p>
@@ -663,6 +687,9 @@ interface FieldMappingEditorProps {
 }
 
 function FieldMappingEditor({ endpoint, onUpdate }: FieldMappingEditorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   // fieldMappings is an array of { sourceKey, targetKey }
   const fieldMappings = endpoint.responseMapping?.fieldMappings || [];
 
@@ -742,7 +769,7 @@ function FieldMappingEditor({ endpoint, onUpdate }: FieldMappingEditorProps) {
 
       <button type="button" className="add-kv-btn" onClick={handleAdd}>
         <AddIcon {...iconEditProps} />
-        Add Mapping
+        {localize("addMapping", "Add Mapping")}
       </button>
     </div>
   );

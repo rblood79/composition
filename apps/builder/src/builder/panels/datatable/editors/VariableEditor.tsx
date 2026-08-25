@@ -11,10 +11,7 @@
  */
 
 import { useState, useCallback } from "react";
-import {
-  ChevronDown,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useDataStore } from "../../../stores/data";
 import type {
   Variable as VariableType,
@@ -29,6 +26,11 @@ import {
 } from "../../../components";
 import "./VariableEditor.css";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
+import {
+  translateDisplayLabel,
+  translateKey,
+  useOptionalI18n,
+} from "../../../../i18n";
 
 interface VariableEditorProps {
   variable: VariableType;
@@ -50,11 +52,15 @@ const VARIABLE_SCOPES: { value: VariableScope; label: string }[] = [
   { value: "component", label: "Component" },
 ];
 
-export function VariableEditor({ variable, onClose, activeTab }: VariableEditorProps) {
+export function VariableEditor({
+  variable,
+  onClose,
+  activeTab,
+}: VariableEditorProps) {
   const updateVariable = useDataStore((state) => state.updateVariable);
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(["validation"])
+    new Set(["validation"]),
   );
 
   // 업데이트
@@ -66,7 +72,7 @@ export function VariableEditor({ variable, onClose, activeTab }: VariableEditorP
         console.error("Variable 업데이트 실패:", error);
       }
     },
-    [variable.id, updateVariable]
+    [variable.id, updateVariable],
   );
 
   const toggleSection = (section: string) => {
@@ -88,10 +94,7 @@ export function VariableEditor({ variable, onClose, activeTab }: VariableEditorP
   return (
     <>
       {activeTab === "basic" && (
-        <BasicEditor
-          variable={variable}
-          onUpdate={handleUpdate}
-        />
+        <BasicEditor variable={variable} onUpdate={handleUpdate} />
       )}
 
       {activeTab === "validation" && (
@@ -104,10 +107,7 @@ export function VariableEditor({ variable, onClose, activeTab }: VariableEditorP
       )}
 
       {activeTab === "transform" && (
-        <TransformEditor
-          variable={variable}
-          onUpdate={handleUpdate}
-        />
+        <TransformEditor variable={variable} onUpdate={handleUpdate} />
       )}
     </>
   );
@@ -123,7 +123,13 @@ interface BasicEditorProps {
 }
 
 function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
-  const defaultValueStr = formatDefaultValue(variable.defaultValue, variable.type);
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  const defaultValueStr = formatDefaultValue(
+    variable.defaultValue,
+    variable.type,
+  );
 
   const handleDefaultValueChange = (value: string) => {
     const parsed = parseDefaultValue(value, variable.type);
@@ -146,14 +152,24 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
         options={VARIABLE_SCOPES}
       />
       <p className="field-description">
-        {variable.scope === "global" && "모든 페이지에서 접근 가능합니다."}
-        {variable.scope === "page" && "현재 페이지에서만 접근 가능합니다."}
-        {variable.scope === "component" && "특정 컴포넌트 내에서만 접근 가능합니다."}
+        {variable.scope === "global" &&
+          localize("globalHint", "Available on all pages.")}
+        {variable.scope === "page" &&
+          localize("pageHint", "Available only on the current page.")}
+        {variable.scope === "component" &&
+          localize(
+            "componentHint",
+            "Available only within a specific component.",
+          )}
       </p>
 
       <div className="section-divider" />
 
-      <h4 className="section-title">Default Value</h4>
+      <h4 className="section-title">
+        {i18n
+          ? translateDisplayLabel(i18n.t, "Default Value")
+          : "Default Value"}
+      </h4>
 
       {variable.type === "boolean" ? (
         <PropertySwitch
@@ -188,7 +204,10 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
         onChange={(checked) => onUpdate({ persist: checked })}
       />
       <p className="field-description">
-        활성화하면 페이지를 새로고침해도 값이 유지됩니다.
+        {localize(
+          "persistHint",
+          "The value persists after refreshing the page.",
+        )}
       </p>
     </div>
   );
@@ -211,6 +230,7 @@ function ValidationEditor({
   expandedSections,
   onToggleSection,
 }: ValidationEditorProps) {
+  const i18n = useOptionalI18n();
   const validation = variable.validation || {};
   const isExpanded = expandedSections.has("validation");
 
@@ -226,8 +246,16 @@ function ValidationEditor({
         className="variable-editor-section-toggle"
         onClick={() => onToggleSection("validation")}
       >
-        {isExpanded ? <ChevronDown {...iconEditProps} /> : <ChevronRight {...iconEditProps} />}
-        <span className="variable-editor-section-title">Validation Rules</span>
+        {isExpanded ? (
+          <ChevronDown {...iconEditProps} />
+        ) : (
+          <ChevronRight {...iconEditProps} />
+        )}
+        <span className="variable-editor-section-title">
+          {i18n
+            ? translateDisplayLabel(i18n.t, "Validation Rules")
+            : "Validation Rules"}
+        </span>
       </div>
 
       {isExpanded && (
@@ -306,7 +334,14 @@ function ValidationEditor({
               onChange={(value) =>
                 updateValidation({ schema: value || undefined })
               }
-              placeholder="JSON Schema URL or inline schema"
+              placeholder={
+                i18n
+                  ? translateDisplayLabel(
+                      i18n.t,
+                      "JSON Schema URL or inline schema",
+                    )
+                  : "JSON Schema URL or inline schema"
+              }
             />
           )}
         </div>
@@ -325,12 +360,21 @@ interface TransformEditorProps {
 }
 
 function TransformEditor({ variable, onUpdate }: TransformEditorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   return (
     <div className="transform-editor">
       <p className="editor-description">
-        값이 설정될 때 실행되는 변환 함수입니다.
+        {localize(
+          "transformDescription",
+          "A transform function executed when the value is set.",
+        )}
         <br />
-        {"함수는 (value, context) => transformedValue 형식입니다."}
+        {localize(
+          "transformSignature",
+          "Use the (value, context) => transformedValue form.",
+        )}
       </p>
 
       <div className="transform-input-wrapper">
@@ -346,19 +390,34 @@ function TransformEditor({ variable, onUpdate }: TransformEditorProps) {
       </div>
 
       <div className="transform-examples">
-        <h5 className="examples-title">Examples</h5>
+        <h5 className="examples-title">
+          {i18n ? translateDisplayLabel(i18n.t, "Examples") : "Examples"}
+        </h5>
         <div className="example-list">
           <div className="example-item">
             <code className="example-code">return value.trim();</code>
-            <span className="example-desc">문자열 앞뒤 공백 제거</span>
+            <span className="example-desc">
+              {localize("trimExample", "Remove whitespace around a string")}
+            </span>
           </div>
           <div className="example-item">
-            <code className="example-code">return Math.max(0, Math.min(100, value));</code>
-            <span className="example-desc">0-100 사이로 제한</span>
+            <code className="example-code">
+              return Math.max(0, Math.min(100, value));
+            </code>
+            <span className="example-desc">
+              {localize("clampExample", "Clamp to 0-100")}
+            </span>
           </div>
           <div className="example-item">
-            <code className="example-code">return value.filter(x ={">"} x !== null);</code>
-            <span className="example-desc">배열에서 null 제거</span>
+            <code className="example-code">
+              return value.filter(x ={">"} x !== null);
+            </code>
+            <span className="example-desc">
+              {localize(
+                "removeNullExample",
+                "Remove null values from an array",
+              )}
+            </span>
           </div>
         </div>
       </div>

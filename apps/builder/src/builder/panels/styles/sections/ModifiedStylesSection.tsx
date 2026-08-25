@@ -34,6 +34,7 @@ import {
   FLEX_WRAP_OPTIONS,
 } from "../constants/styleOptions";
 import { isFillDerivedStyleProp } from "../utils/fillDerivedStyleProps";
+import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
 
 import "./ModifiedStylesSection.css";
 interface ModifiedStylesSectionProps {
@@ -43,6 +44,9 @@ interface ModifiedStylesSectionProps {
 export function ModifiedStylesSection({
   selectedElement,
 }: ModifiedStylesSectionProps) {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n ? translateDisplayLabel(i18n.t, label) : label;
   // baseline(factory default / spec preset / subpart)과 실제로 다른 prop 만 modified 로 표시.
   //   getModifiedProperties(키 존재만 판정)는 factory 가 주입한 layout default 까지 modified 로 잡아
   //   reset 버튼과 비대칭이었음(2026-06-24). useDirtyStyleProps 가 reset 판정과 동일 baseline 공유.
@@ -74,8 +78,10 @@ export function ModifiedStylesSection({
     return (
       <PropertySection title="Modified Styles">
         <div className="empty-state">
-          <p className="empty-message">No modified styles</p>
-          <p className="empty-hint">Edit any style property to see it here</p>
+          <p className="empty-message">{localize("No modified styles")}</p>
+          <p className="empty-hint">
+            {localize("Edit any style property to see it here")}
+          </p>
         </div>
       </PropertySection>
     );
@@ -386,28 +392,28 @@ export function ModifiedStylesSection({
     <PropertySection title={`Modified Styles (${modifiedProperties.length})`}>
       {categorizedProps.layout.length > 0 && (
         <div className="modified-category">
-          <h4 className="category-title">Layout</h4>
+          <h4 className="category-title">{localize("Layout")}</h4>
           {categorizedProps.layout.map(renderProperty)}
         </div>
       )}
 
       {categorizedProps.spacing.length > 0 && (
         <div className="modified-category">
-          <h4 className="category-title">Spacing</h4>
+          <h4 className="category-title">{localize("Spacing")}</h4>
           {categorizedProps.spacing.map(renderProperty)}
         </div>
       )}
 
       {categorizedProps.appearance.length > 0 && (
         <div className="modified-category">
-          <h4 className="category-title">Appearance</h4>
+          <h4 className="category-title">{localize("Appearance")}</h4>
           {categorizedProps.appearance.map(renderProperty)}
         </div>
       )}
 
       {categorizedProps.typography.length > 0 && (
         <div className="modified-category">
-          <h4 className="category-title">Typography</h4>
+          <h4 className="category-title">{localize("Typography")}</h4>
           {categorizedProps.typography.map(renderProperty)}
         </div>
       )}

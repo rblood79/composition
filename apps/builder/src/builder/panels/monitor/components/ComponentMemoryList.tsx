@@ -15,6 +15,7 @@ import {
 import { formatBytes } from "../hooks/useMemoryStats";
 import { iconSmall, iconLarge } from "../../../../utils/ui/uiConstants";
 import { ActionIconButton, PropertySelect } from "../../../components";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 interface ComponentMemoryListProps {
   enabled?: boolean;
@@ -37,6 +38,9 @@ function getMemoryLevel(percentage: number): "high" | "medium" | "low" {
 export function ComponentMemoryList({
   enabled = true,
 }: ComponentMemoryListProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
   const [sortBy, setSortBy] = useState<SortBy>("memory");
   const { componentMemory, totalMemory, refresh } = useComponentMemory({
     enabled,
@@ -57,8 +61,14 @@ export function ComponentMemoryList({
         <ActionIconButton
           className="component-memory-refresh"
           onPress={refresh}
-          aria-label="Refresh component memory"
-          tooltip="Refresh component memory"
+          aria-label={localize(
+            "refreshComponentMemory",
+            "Refresh component memory",
+          )}
+          tooltip={localize(
+            "refreshComponentMemory",
+            "Refresh component memory",
+          )}
         >
           <RefreshCw size={iconSmall.size} />
         </ActionIconButton>
@@ -66,7 +76,9 @@ export function ComponentMemoryList({
 
       {/* Total */}
       <div className="component-memory-total">
-        <span className="total-label">Total Elements Memory:</span>
+        <span className="total-label">
+          {localize("totalElementsMemory", "Total Elements Memory:")}
+        </span>
         <span className="total-value">{formatBytes(totalMemory)}</span>
       </div>
 
@@ -80,7 +92,7 @@ export function ComponentMemoryList({
         {componentMemory.length === 0 && (
           <div className="component-memory-empty">
             <Box size={iconLarge.size} />
-            <p>No components to analyze</p>
+            <p>{localize("noComponents", "No components to analyze")}</p>
           </div>
         )}
       </div>

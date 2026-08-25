@@ -26,6 +26,7 @@ import {
 } from "../../../stores";
 import { ResponsiveVisibilityEditor } from "../../properties/editors/ResponsiveVisibilityEditor";
 import { useResponsiveOverrides } from "../hooks/useResponsiveOverrides";
+import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
 
 const BP_ICON: Record<BreakpointName, typeof Monitor> = {
   desktop: Monitor,
@@ -86,6 +87,9 @@ function formatPropLabel(prop: string): string {
 }
 
 export const ResponsiveSection = memo(function ResponsiveSection() {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n ? translateDisplayLabel(i18n.t, label) : label;
   const {
     activeBreakpoint,
     isBase,
@@ -197,8 +201,8 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
                       type="button"
                       className="responsive-chip-clear"
                       onClick={() => handleRemoveOverride(p.key)}
-                      aria-label={`Remove ${p.label} override`}
-                      title={`${p.label} 를 전역으로 되돌리기`}
+                      aria-label={`Remove ${localize(p.label)} override`}
+                      title={`${localize(p.label)} ${i18n?.locale === "ko-KR" ? "전역으로 되돌리기" : "restore globally"}`}
                     >
                       <X size={11} />
                     </button>
@@ -213,8 +217,8 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
                       type="button"
                       className="responsive-chip-clear"
                       onClick={() => handleRemoveOverride(key)}
-                      aria-label={`Remove ${key} override`}
-                      title={`${formatPropLabel(key)} 를 전역으로 되돌리기`}
+                      aria-label={`Remove ${localize(formatPropLabel(key))} override`}
+                      title={`${localize(formatPropLabel(key))} ${i18n?.locale === "ko-KR" ? "전역으로 되돌리기" : "restore globally"}`}
                     >
                       <X size={11} />
                     </button>
@@ -230,7 +234,7 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
                 onChange={handleAddOverride}
                 aria-label={`Add ${BP_LABEL[activeBreakpoint]} override`}
               >
-                <option value="">+ Add override…</option>
+                <option value="">{localize("+ Add override…")}</option>
                 {availableToAdd.map((p) => (
                   <option key={p.key} value={p.key}>
                     {p.label}
@@ -245,7 +249,7 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
           visibility={editorVisibility}
           onChange={handleVisibilityChange}
           lockedBreakpoints={["desktop"]}
-          title="Visibility"
+          title={localize("Visibility")}
         />
       </div>
     </PropertySection>

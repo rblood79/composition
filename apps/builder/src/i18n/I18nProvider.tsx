@@ -29,7 +29,7 @@ export const I18nContext = createContext<I18nContextValue | null>(null);
  */
 export interface I18nProviderProps {
   children: React.ReactNode;
-  /** Initial locale (optional, defaults to stored or browser locale) */
+  /** Initial locale (optional, defaults to stored or English locale) */
   initialLocale?: SupportedLocale;
 }
 

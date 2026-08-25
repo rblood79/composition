@@ -12,7 +12,7 @@ describe("MonitorPanel common panel contract", () => {
 
     expect(source).toContain('className="panel monitor-panel"');
     expect(source).toContain("<PanelHeader");
-    expect(source).toContain('title="Monitor"');
+    expect(source).toContain('i18n.t("panels.monitor")');
     expect(source).toContain(
       'className="panel-contents monitor-panel-contents"',
     );

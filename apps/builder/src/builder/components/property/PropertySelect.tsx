@@ -14,6 +14,7 @@ import {
   useControlPopoverMetrics,
   type PopoverWidthMode,
 } from "./useControlPopoverMetrics";
+import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
 
 interface PropertySelectProps {
   label: string;
@@ -41,6 +42,8 @@ export const PropertySelect = memo(
     className,
     popoverWidthMode = "fit-content",
   }: PropertySelectProps) {
+    const i18n = useOptionalI18n();
+    const displayLabel = i18n ? translateDisplayLabel(i18n.t, label) : label;
     // 🚀 Fix: 명시적 isOpen 관리로 "reset" 선택 시 팝업 닫힘 보장
     // React Aria의 controlled Select에서 onSelectionChange 내 onChange("") 호출이
     // 상태 변경을 유발하여 팝업 자동 닫힘을 방해하는 문제 해결
@@ -74,7 +77,7 @@ export const PropertySelect = memo(
 
     return (
       <fieldset className={`properties-aria ${className || ""}`}>
-        <legend className="fieldset-legend">{label}</legend>
+        <legend className="fieldset-legend">{displayLabel}</legend>
         <div className="react-aria-control react-aria-Group" ref={anchorRef}>
           <AriaSelect
             className="react-aria-Select"
@@ -89,7 +92,7 @@ export const PropertySelect = memo(
                 : value
             }
             onSelectionChange={handleChange}
-            aria-label={label}
+            aria-label={displayLabel}
           >
             <Button className="react-aria-Button" ref={triggerRef}>
               {Icon && (
@@ -116,9 +119,15 @@ export const PropertySelect = memo(
                     key={option.value}
                     id={option.value}
                     className="react-aria-ListBoxItem"
-                    textValue={option.label}
+                    textValue={
+                      i18n
+                        ? translateDisplayLabel(i18n.t, option.label)
+                        : option.label
+                    }
                   >
-                    {option.label}
+                    {i18n
+                      ? translateDisplayLabel(i18n.t, option.label)
+                      : option.label}
                   </ListBoxItem>
                 ))}
               </ListBox>

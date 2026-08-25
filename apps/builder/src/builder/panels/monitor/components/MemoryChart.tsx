@@ -10,6 +10,7 @@
 import { useMemo } from "react";
 import { formatBytes } from "../hooks/useMemoryStats";
 import { useResponsiveChartWidth } from "./useResponsiveChartWidth";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 interface MemoryChartProps {
   /** 메모리 사용량 히스토리 (bytes 배열) */
@@ -28,6 +29,9 @@ export function MemoryChart({
   height = 120,
   threshold,
 }: MemoryChartProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
   const { chartRef, chartWidth: responsiveWidth } =
     useResponsiveChartWidth(width);
   const padding = { top: 10, right: 10, bottom: 20, left: 50 };
@@ -99,7 +103,7 @@ export function MemoryChart({
         ref={chartRef}
         width="100%"
         height={height}
-        aria-label="Memory usage chart"
+        aria-label={localize("memoryUsageChart", "Memory usage chart")}
         role="img"
       >
         <g transform={`translate(${padding.left}, ${padding.top})`}>
@@ -171,7 +175,7 @@ export function MemoryChart({
       <div
         className={`chart-current-value ${isAboveThreshold ? "danger" : ""}`}
       >
-        <span className="label">Current:</span>
+        <span className="label">{localize("current", "Current:")}</span>
         <span className="value">{formatBytes(currentValue)}</span>
       </div>
     </div>

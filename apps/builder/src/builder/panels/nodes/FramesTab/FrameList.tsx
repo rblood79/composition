@@ -20,6 +20,7 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 const DeleteIcon = ACTION_ICONS.delete;
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { ActionIconButton, Section } from "../../../components";
+import { useI18n } from "../../../../i18n";
 import { TreeBase } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
@@ -54,6 +55,7 @@ export function FrameList({
   onDelete,
   onAdd,
 }: FrameListProps) {
+  const { t } = useI18n();
   const treeNodes = useMemo<FrameListNode[]>(
     () =>
       frames.map((frame) => ({
@@ -99,12 +101,12 @@ export function FrameList({
   return (
     <Section
       className="node-tree-section"
-      title="Frames"
+      title={t("nodes.frames")}
       collapsible={false}
       actions={
         <ActionIconButton
-          aria-label="Add Frame"
-          tooltip="프레임 추가"
+          aria-label={t("nodes.addFrame")}
+          tooltip={t("nodes.addFrame")}
           onPress={onAdd}
         >
           <AddIcon
@@ -116,10 +118,10 @@ export function FrameList({
       }
     >
       {frames.length === 0 ? (
-        <p className="no_element">No frames available</p>
+        <p className="no_element">{t("nodes.noFrames")}</p>
       ) : (
         <TreeBase<FrameListNode>
-          aria-label="Frames"
+          aria-label={t("nodes.frames")}
           items={treeNodes}
           getKey={(node) => node.id}
           getTextValue={(node) => node.name}

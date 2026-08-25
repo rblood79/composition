@@ -8,6 +8,7 @@
 import React from "react";
 import { FileText, Layout } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
+import { useI18n } from "../../../i18n";
 
 export type NodesPanelTabType = "pages" | "layouts";
 
@@ -20,6 +21,7 @@ export function NodesPanelTabs({
   activeTab,
   onTabChange,
 }: NodesPanelTabsProps) {
+  const { t } = useI18n();
   const tabs: {
     id: NodesPanelTabType;
     label: string;
@@ -27,7 +29,7 @@ export function NodesPanelTabs({
   }[] = [
     {
       id: "pages",
-      label: "Pages",
+      label: t("nodes.pages"),
       icon: (
         <FileText
           color={iconProps.color}
@@ -40,7 +42,7 @@ export function NodesPanelTabs({
       // ADR-111 P2 followup: UI 라벨만 "Frames" — 탭 id "layouts" / EditMode "layout"
       // 은 데이터 호환성 유지를 위해 그대로. 후속 PR 에서 정합화 가능.
       id: "layouts",
-      label: "Frames",
+      label: t("nodes.frames"),
       icon: (
         <Layout
           color={iconProps.color}
@@ -55,7 +57,7 @@ export function NodesPanelTabs({
     <div
       className="panel-header nodes-panel-tabs"
       role="tablist"
-      aria-label="Nodes Panel Tabs"
+      aria-label={t("nodes.panelTabs")}
     >
       {tabs.map((tab) => (
         <button

@@ -43,6 +43,7 @@ import { useSectionCollapse } from "./hooks/useSectionCollapse";
 import { useStyleActions } from "./hooks/useStyleActions";
 import { useDirtyStyleProps } from "./hooks/useResetStyles";
 import { useKeyboardShortcutsRegistry } from "@/builder/hooks";
+import { useI18n } from "../../../i18n";
 import "./StylesPanel.css";
 
 // 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
@@ -92,6 +93,7 @@ function GroupSections({ group }: { group: StyleGroupId }): ReactElement {
 }
 
 function StylesPanelContent() {
+  const { t } = useI18n();
   const hasSelectedElement = useStore((s) => s.selectedElementId != null);
   const selectedElement = useDebouncedSelectedElementData();
   const selectedStyle =
@@ -169,7 +171,7 @@ function StylesPanelContent() {
   ]);
 
   if (!hasSelectedElement) {
-    return <EmptyState message="요소를 선택하세요" />;
+    return <EmptyState message={t("styles.selectElement")} />;
   }
 
   return (
@@ -182,15 +184,17 @@ function StylesPanelContent() {
             strokeWidth={iconProps.strokeWidth}
           />
         }
-        title={selectedElement?.type ?? "Styles"}
+        title={selectedElement?.type ?? t("panels.styles")}
         actions={
           <>
-            {focusMode && <span className="focus-mode-indicator">Focus</span>}
+            {focusMode && (
+              <span className="focus-mode-indicator">{t("styles.focus")}</span>
+            )}
             <ActionIconButton
               onPress={handleCopyStyles}
-              aria-label="Copy styles"
+              aria-label={t("styles.copyStyles")}
               isDisabled={isCopyDisabled}
-              tooltip="스타일 복사"
+              tooltip={t("styles.copyStyles")}
             >
               <CopyIcon
                 color={iconProps.color}
@@ -200,8 +204,8 @@ function StylesPanelContent() {
             </ActionIconButton>
             <ActionIconButton
               onPress={handlePasteStyles}
-              aria-label="Paste styles"
-              tooltip="스타일 붙여넣기"
+              aria-label={t("styles.pasteStyles")}
+              tooltip={t("styles.pasteStyles")}
             >
               <PasteIcon
                 color={iconProps.color}

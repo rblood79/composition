@@ -42,6 +42,7 @@ import { DATATABLE_PRESETS, getPresetsByCategory } from "./dataTablePresets";
 import "./DataTablePresetSelector.css";
 import { iconProps, iconLarge } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -112,6 +113,9 @@ export function DataTablePresetSelector({
   isOpen: controlledIsOpen,
   onOpenChange,
 }: DataTablePresetSelectorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   // 내부 상태 (uncontrolled mode)
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = controlledIsOpen ?? internalIsOpen;
@@ -196,7 +200,7 @@ export function DataTablePresetSelector({
                 <div className="preset-modal-header">
                   <Heading slot="title" className="preset-modal-title">
                     <Database size={iconLarge.size} />
-                    DataTable 추가
+                    {localize("addDataTable", "Add DataTable")}
                   </Heading>
                   <Button className="preset-modal-close" onPress={close}>
                     <X size={iconProps.size} />
@@ -212,7 +216,9 @@ export function DataTablePresetSelector({
                       checked={mode === "empty"}
                       onChange={() => setMode("empty")}
                     />
-                    <span className="preset-mode-label">빈 테이블로 시작</span>
+                    <span className="preset-mode-label">
+                      {localize("emptyStart", "Start with an empty table")}
+                    </span>
                   </label>
                   <label className="preset-mode-option">
                     <input
@@ -221,7 +227,9 @@ export function DataTablePresetSelector({
                       checked={mode === "preset"}
                       onChange={() => setMode("preset")}
                     />
-                    <span className="preset-mode-label">Preset에서 선택</span>
+                    <span className="preset-mode-label">
+                      {localize("preset", "Choose from a preset")}
+                    </span>
                   </label>
                 </div>
 
@@ -279,7 +287,9 @@ export function DataTablePresetSelector({
                             {selectedPreset.name} Schema
                           </span>
                           <div className="preset-sample-count">
-                            <label>샘플 데이터:</label>
+                            <label>
+                              {localize("sampleData", "Sample data:")}
+                            </label>
                             <input
                               type="number"
                               min="0"
@@ -297,7 +307,7 @@ export function DataTablePresetSelector({
                                 )
                               }
                             />
-                            <span>개</span>
+                            <span>{localize("countUnit", "items")}</span>
                           </div>
                         </div>
                         <div className="preset-preview-schema">
@@ -334,14 +344,16 @@ export function DataTablePresetSelector({
                     className="react-aria-Button secondary"
                     onPress={close}
                   >
-                    취소
+                    {i18n ? i18n.t("common.cancel") : "Cancel"}
                   </Button>
                   <Button
                     className="react-aria-Button primary"
                     onPress={handleCreate}
                     isDisabled={mode === "preset" && !selectedPreset}
                   >
-                    {mode === "empty" ? "빈 테이블 생성" : "생성"}
+                    {mode === "empty"
+                      ? localize("createEmpty", "Create Empty Table")
+                      : localize("create", "Create")}
                   </Button>
                 </div>
               </>

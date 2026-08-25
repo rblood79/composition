@@ -11,6 +11,7 @@ import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
+import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
 
 interface PropertyUnitInputProps {
   label?: string;
@@ -105,6 +106,9 @@ export const PropertyUnitInput = memo(
     min = 0,
     max = 9999,
   }: PropertyUnitInputProps) {
+    const i18n = useOptionalI18n();
+    const displayLabel =
+      label && i18n ? translateDisplayLabel(i18n.t, label) : label;
     const selectedElementId = useStore((state) => state.selectedElementId);
     const isPreservedEmptyValue =
       preserveEmptyValueOnUnitChange && value.trim() === "";
@@ -396,7 +400,9 @@ export const PropertyUnitInput = memo(
       <fieldset
         className={`properties-aria property-unit-input ${className || ""}`}
       >
-        {label && <legend className="fieldset-legend">{label}</legend>}
+        {displayLabel && (
+          <legend className="fieldset-legend">{displayLabel}</legend>
+        )}
         <div className="react-aria-control react-aria-Group" ref={groupRef}>
           {Icon && (
             <label className="control-label">
@@ -426,7 +432,7 @@ export const PropertyUnitInput = memo(
                   ? "—"
                   : unit)
             }
-            aria-label="Unit"
+            aria-label={i18n ? translateDisplayLabel(i18n.t, "Unit") : "Unit"}
           >
             <div className="combobox-container" ref={comboBoxContainerRef}>
               <Input
@@ -438,7 +444,10 @@ export const PropertyUnitInput = memo(
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
                 onKeyDown={handleKeyDown}
-                aria-label={label || "Value"}
+                aria-label={
+                  displayLabel ||
+                  (i18n ? translateDisplayLabel(i18n.t, "Value") : "Value")
+                }
                 placeholder={placeholder}
               />
               <Button className="react-aria-Button">

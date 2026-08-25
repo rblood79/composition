@@ -48,6 +48,7 @@ import { useStore as useComposedStore } from "../../../stores";
 
 import "./FillSection.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -93,6 +94,9 @@ function SortableFillRow({
  * 내부 컨텐츠 - 섹션이 열릴 때만 마운트
  */
 const FillSectionContent = memo(function FillSectionContent() {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n ? translateDisplayLabel(i18n.t, label) : label;
   const { fills } = useFillValues();
   const { removeFill, reorderFill, toggleFill, updateFill, changeFillType } =
     useFillActions();
@@ -124,7 +128,7 @@ const FillSectionContent = memo(function FillSectionContent() {
   return (
     <div className="fill-section-content">
       {fills.length === 0 ? (
-        <div className="fill-section-empty">No background</div>
+        <div className="fill-section-empty">{localize("No background")}</div>
       ) : (
         <DndContext
           sensors={sensors}
@@ -157,6 +161,9 @@ const FillSectionContent = memo(function FillSectionContent() {
  * PropertySection 래퍼 없이 Background 콘텐츠만 제공
  */
 export const FillSectionInline = memo(function FillSectionInline() {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n ? translateDisplayLabel(i18n.t, label) : label;
   const { fills } = useFillValues();
   const { addFill } = useFillActions();
 
@@ -168,13 +175,15 @@ export const FillSectionInline = memo(function FillSectionInline() {
   return (
     <div className="fill-section-inline">
       <div className="fill-section-inline-header">
-        <span className="fill-section-inline-label">Background</span>
+        <span className="fill-section-inline-label">
+          {localize("Background")}
+        </span>
         <button
           type="button"
           className="fill-section-add-btn"
           onClick={handleAdd}
-          aria-label="Add background"
-          title="Add background"
+          aria-label={localize("Add background")}
+          title={localize("Add background")}
         >
           <AddIcon
             size={iconSmall.size}
@@ -197,6 +206,9 @@ export const FillSectionInline = memo(function FillSectionInline() {
  * - 추가 Fill(2번째~): 그리드 아래 FillLayerRow 리스트
  */
 export const FillBackgroundInline = memo(function FillBackgroundInline() {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n ? translateDisplayLabel(i18n.t, label) : label;
   const { fills } = useFillValues();
   const selectedId = useComposedStore((s) => s.selectedElementId);
   const styleValues = useAppearanceValues(selectedId);
@@ -431,11 +443,11 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
     <>
       <div className="style-background">
         <fieldset className="properties-aria property-color-input background-color">
-          <legend className="fieldset-legend">Background</legend>
+          <legend className="fieldset-legend">{localize("Background")}</legend>
           <DialogTrigger>
             <AriaButton
               className="react-aria-Group color-swatch-button"
-              aria-label="Edit background fill"
+              aria-label={localize("Edit background fill")}
             >
               {isColor && <ColorSwatch color={swatchColor!} />}
               {isGradient && (
@@ -474,7 +486,10 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
           </DialogTrigger>
         </fieldset>
         <div className="fieldset-actions actions-icon">
-          <SwatchIconButton onPress={handleAdd} aria-label="Add background">
+          <SwatchIconButton
+            onPress={handleAdd}
+            aria-label={localize("Add background")}
+          >
             <AddIcon
               color={iconProps.color}
               size={iconProps.size}

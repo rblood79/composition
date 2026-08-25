@@ -23,9 +23,12 @@ import {
   PanelHeader,
 } from "../../components";
 import { useThemeMessenger } from "@/builder/hooks";
+import { LanguageSwitcher } from "@/i18n";
+import { useI18n } from "@/i18n";
 
 function SettingsContent() {
   const { sendDarkMode } = useThemeMessenger();
+  const { t } = useI18n();
 
   // Grid & Guides 설정
   const snapToObjects = useStore((state) => state.snapToObjects);
@@ -58,21 +61,21 @@ function SettingsContent() {
   };
 
   const themeModeOptions = [
-    { value: "light", label: "Light" },
-    { value: "dark", label: "Dark" },
-    { value: "auto", label: "Auto (System)" },
+    { value: "light", label: t("settings.themeModeLight") },
+    { value: "dark", label: t("settings.themeModeDark") },
+    { value: "auto", label: t("settings.themeModeAuto") },
   ];
 
   const uiScaleOptions = [
-    { value: "80", label: "Small" },
-    { value: "100", label: "Default" },
-    { value: "120", label: "Large" },
+    { value: "80", label: t("settings.uiScaleSmall") },
+    { value: "100", label: t("settings.uiScaleDefault") },
+    { value: "120", label: t("settings.uiScaleLarge") },
   ];
 
   const pageLayoutOptions = [
-    { value: "horizontal", label: "Horizontal" },
-    { value: "vertical", label: "Vertical" },
-    { value: "zigzag", label: "Zigzag" },
+    { value: "horizontal", label: t("settings.pageLayoutHorizontal") },
+    { value: "vertical", label: t("settings.pageLayoutVertical") },
+    { value: "zigzag", label: t("settings.pageLayoutZigzag") },
   ];
 
   const handleThemeModeChange = (value: string) => {
@@ -93,15 +96,18 @@ function SettingsContent() {
 
   return (
     <div className="panel settings-panel">
-      <PanelHeader icon={<Settings size={iconProps.size} />} title="Settings" />
+      <PanelHeader
+        icon={<Settings size={iconProps.size} />}
+        title={t("settings.title")}
+      />
 
       <div className="panel-settings">
         {/* Rulers & Guides Section */}
-        <PropertySection title="Rulers & Guides">
+        <PropertySection title={t("settings.rulersAndGuides")}>
           {/* ADR-181 — 눈금자는 뷰포트 chrome (문서 데이터 아님).
               가이드 표시는 이 토글과 독립, 조작만 ON 을 요구한다 (C10). */}
           <PropertySwitch
-            label="Show Rulers"
+            label={t("settings.showRulers")}
             isSelected={showRulers}
             onChange={setShowRulers}
             icon={ACTION_ICONS.toggleRulers}
@@ -110,14 +116,14 @@ function SettingsContent() {
           {/* ADR-179 — 페이지 간 가장자리·중앙 흡착 + 정렬선. 수동 가이드도
               흡착 후보로 참여한다 (`usePageDrag` 의 `guideLines`). */}
           <PropertySwitch
-            label="Snap to Objects"
+            label={t("settings.snapToObjects")}
             isSelected={snapToObjects}
             onChange={setSnapToObjects}
             icon={ACTION_ICONS.toggleSnap}
           />
 
           <PropertySelect
-            label="Page Layout"
+            label={t("settings.pageLayout")}
             value={pageLayoutDirection}
             onChange={(value) =>
               setPageLayoutDirection(value as PageLayoutDirection)
@@ -128,9 +134,9 @@ function SettingsContent() {
         </PropertySection>
 
         {/* Theme Settings Section */}
-        <PropertySection title="Theme & Appearance">
+        <PropertySection title={t("settings.themeAppearance")}>
           <PropertySelect
-            label="Theme Mode"
+            label={t("settings.themeMode")}
             value={themeMode}
             onChange={handleThemeModeChange}
             options={themeModeOptions}
@@ -138,12 +144,16 @@ function SettingsContent() {
           />
 
           <PropertySelect
-            label="UI Scale"
+            label={t("settings.uiScale")}
             value={String(uiScale)}
             onChange={handleUiScaleChange}
             options={uiScaleOptions}
             icon={ZoomIn}
           />
+        </PropertySection>
+
+        <PropertySection title={t("settings.language")}>
+          <LanguageSwitcher />
         </PropertySection>
       </div>
     </div>

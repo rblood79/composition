@@ -10,6 +10,7 @@ import { Gauge, MousePointer, Layout, Clock, RefreshCw } from "lucide-react";
 import type { WebVitals } from "../hooks/useWebVitals";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ActionIconButton } from "../../../components";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 interface WebVitalsCardProps {
   vitals: WebVitals;
@@ -45,6 +46,9 @@ function formatValue(
 }
 
 export function WebVitalsCard({ vitals, onRefresh }: WebVitalsCardProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
   const metrics = [
     {
       key: "lcp" as const,
@@ -83,13 +87,15 @@ export function WebVitalsCard({ vitals, onRefresh }: WebVitalsCardProps) {
   return (
     <div className="web-vitals-card">
       <div className="web-vitals-header">
-        <h4 className="web-vitals-title">Core Web Vitals</h4>
+        <h4 className="web-vitals-title">
+          {localize("coreWebVitals", "Core Web Vitals")}
+        </h4>
         {onRefresh && (
           <ActionIconButton
             className="web-vitals-refresh"
             onPress={onRefresh}
-            aria-label="Refresh Web Vitals"
-            tooltip="Refresh Web Vitals"
+            aria-label={localize("refreshWebVitals", "Refresh Web Vitals")}
+            tooltip={localize("refreshWebVitals", "Refresh Web Vitals")}
           >
             <RefreshCw size={iconEditProps.size} aria-hidden="true" />
           </ActionIconButton>

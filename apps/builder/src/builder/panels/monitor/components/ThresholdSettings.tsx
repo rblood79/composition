@@ -17,6 +17,7 @@ import {
   type ThresholdConfig,
   saveThresholdConfig,
 } from "../utils/thresholdConfig";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 // 외부에서 사용하는 경우 별도 파일에서 직접 import하세요:
 // import { loadThresholdConfig, type ThresholdConfig } from "../utils/thresholdConfig";
@@ -30,6 +31,9 @@ export function ThresholdSettings({
   config,
   onChange,
 }: ThresholdSettingsProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
   const [isOpen, setIsOpen] = useState(false);
   const [localConfig, setLocalConfig] = useState(config);
 
@@ -66,7 +70,7 @@ export function ThresholdSettings({
     <DialogTrigger isOpen={isOpen} onOpenChange={handleOpenChange}>
       <ActionIconButton
         className="threshold-settings-btn"
-        aria-label="Threshold settings"
+        aria-label={localize("thresholdSettings", "Threshold settings")}
       >
         <Settings size={iconEditProps.size} aria-hidden="true" />
       </ActionIconButton>
@@ -78,14 +82,17 @@ export function ThresholdSettings({
       >
         <Dialog
           className="monitor-threshold-dialog"
-          aria-label="Threshold Settings"
+          aria-label={localize("thresholdSettings", "Threshold Settings")}
         >
           <div className="monitor-threshold-header">
-            <h3>Threshold Settings</h3>
+            <h3>{localize("thresholdSettings", "Threshold Settings")}</h3>
             <ActionIconButton
               className="monitor-threshold-close"
               onPress={() => setIsOpen(false)}
-              aria-label="Close threshold settings"
+              aria-label={localize(
+                "closeThresholdSettings",
+                "Close threshold settings",
+              )}
             >
               <X size={iconEditProps.size} />
             </ActionIconButton>
@@ -94,7 +101,7 @@ export function ThresholdSettings({
           <div className="monitor-threshold-content">
             <div className="monitor-threshold-slider">
               <PropertySlider
-                label="Warning threshold"
+                label={localize("warningThreshold", "Warning threshold")}
                 min={30}
                 max={90}
                 step={5}
@@ -113,7 +120,7 @@ export function ThresholdSettings({
 
             <div className="monitor-threshold-slider">
               <PropertySlider
-                label="Danger threshold"
+                label={localize("dangerThreshold", "Danger threshold")}
                 min={40}
                 max={95}
                 step={5}
@@ -159,10 +166,10 @@ export function ThresholdSettings({
           <div className="monitor-threshold-footer">
             <Button variant="secondary" size="sm" onPress={handleReset}>
               <RotateCcw size={iconSmall.size} />
-              Reset
+              {i18n ? i18n.t("common.reset") : "Reset"}
             </Button>
             <Button size="sm" onPress={handleSave}>
-              Save
+              {i18n ? i18n.t("common.save") : "Save"}
             </Button>
           </div>
         </Dialog>

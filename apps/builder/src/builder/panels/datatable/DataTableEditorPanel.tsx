@@ -42,6 +42,7 @@ import type {
 } from "./types/editorTypes";
 import "./DataTableEditorPanel.css";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
+import { translateKey, useOptionalI18n } from "../../../i18n";
 
 // 탭 설정 타입
 interface TabConfig<T extends string> {
@@ -86,6 +87,9 @@ interface EditorContentProps {
 }
 
 function EditorContent({ mode, close }: EditorContentProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   // 탭 상태 관리 - mode 변경 시 key가 바뀌어 자동 초기화됨
   const [tableTab, setTableTab] = useState<TableEditorTab>("schema");
   // API 에디터 초기 탭: mode.initialTab이 있으면 사용 (useEffect 대신 초기값으로)
@@ -119,25 +123,25 @@ function EditorContent({ mode, close }: EditorContentProps) {
   const getHeaderTitle = (): string => {
     switch (mode.type) {
       case "table-create":
-        return "Data Table Creator";
+        return localize("creatorTitle", "Data Table Creator");
       case "table-edit": {
         const dataTable = collections.find((t) => t.id === mode.tableId);
-        return dataTable?.name || "Table Editor";
+        return dataTable?.name || localize("tableEditor", "Table Editor");
       }
       case "api-create":
-        return "New API";
+        return localize("newApi", "New API");
       case "api-edit": {
         const endpoint = apiEndpoints.find((e) => e.id === mode.endpointId);
-        return endpoint?.name || "API Editor";
+        return endpoint?.name || localize("apiEditor", "API Editor");
       }
       case "variable-create":
-        return "New Variable";
+        return localize("newVariable", "New Variable");
       case "variable-edit": {
         const variable = variables.find((v) => v.id === mode.variableId);
-        return variable?.name || "Variable Editor";
+        return variable?.name || localize("variableEditor", "Variable Editor");
       }
       default:
-        return "Editor";
+        return localize("editor", "Editor");
     }
   };
 
@@ -156,7 +160,9 @@ function EditorContent({ mode, close }: EditorContentProps) {
                 onClick={() => setTableTab(tab.id)}
               >
                 <tab.icon {...iconEditProps} />
-                <span>{tab.label}</span>
+                <span>
+                  {localize(tab.id === "data" ? "table" : tab.id, tab.label)}
+                </span>
               </button>
             ))}
           </div>
@@ -173,7 +179,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
                 onClick={() => setApiTab(tab.id)}
               >
                 <tab.icon {...iconEditProps} />
-                <span>{tab.label}</span>
+                <span>{localize(tab.id, tab.label)}</span>
               </button>
             ))}
           </div>
@@ -192,7 +198,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
                 onClick={() => setVariableTab(tab.id)}
               >
                 <tab.icon {...iconEditProps} />
-                <span>{tab.label}</span>
+                <span>{localize(tab.id, tab.label)}</span>
               </button>
             ))}
           </div>
@@ -208,7 +214,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
                 checked={creatorMode === "empty"}
                 onChange={() => setCreatorMode("empty")}
               />
-              빈 테이블로 시작
+              {localize("emptyStart", "빈 테이블로 시작")}
             </label>
             <label className="datatable-creator-mode">
               <input
@@ -217,7 +223,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
                 checked={creatorMode === "preset"}
                 onChange={() => setCreatorMode("preset")}
               />
-              Preset에서 선택
+              {localize("preset", "Preset에서 선택")}
             </label>
           </div>
         );
@@ -245,7 +251,11 @@ function EditorContent({ mode, close }: EditorContentProps) {
       case "table-edit": {
         const dataTable = collections.find((t) => t.id === mode.tableId);
         if (!dataTable) {
-          return <EmptyState message="테이블을 찾을 수 없습니다" />;
+          return (
+            <EmptyState
+              message={localize("tableNotFound", "테이블을 찾을 수 없습니다")}
+            />
+          );
         }
         return (
           <DataTableEditor
@@ -258,12 +268,20 @@ function EditorContent({ mode, close }: EditorContentProps) {
 
       case "api-create":
         // TODO: ApiEndpointCreator 구현 필요
-        return <EmptyState message="API 생성 기능 준비 중" />;
+        return (
+          <EmptyState
+            message={localize("apiCreationPending", "API 생성 기능 준비 중")}
+          />
+        );
 
       case "api-edit": {
         const endpoint = apiEndpoints.find((e) => e.id === mode.endpointId);
         if (!endpoint) {
-          return <EmptyState message="API를 찾을 수 없습니다" />;
+          return (
+            <EmptyState
+              message={localize("apiNotFound", "API를 찾을 수 없습니다")}
+            />
+          );
         }
         return (
           <ApiEndpointEditor
@@ -276,12 +294,23 @@ function EditorContent({ mode, close }: EditorContentProps) {
 
       case "variable-create":
         // TODO: VariableCreator 구현 필요
-        return <EmptyState message="변수 생성 기능 준비 중" />;
+        return (
+          <EmptyState
+            message={localize(
+              "variableCreationPending",
+              "변수 생성 기능 준비 중",
+            )}
+          />
+        );
 
       case "variable-edit": {
         const variable = variables.find((v) => v.id === mode.variableId);
         if (!variable) {
-          return <EmptyState message="변수를 찾을 수 없습니다" />;
+          return (
+            <EmptyState
+              message={localize("variableNotFound", "변수를 찾을 수 없습니다")}
+            />
+          );
         }
         return (
           <VariableEditor
@@ -293,7 +322,11 @@ function EditorContent({ mode, close }: EditorContentProps) {
       }
 
       default:
-        return <EmptyState message="편집할 항목을 선택하세요" />;
+        return (
+          <EmptyState
+            message={localize("selectEditorItem", "편집할 항목을 선택하세요")}
+          />
+        );
     }
   };
 
@@ -307,7 +340,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
             type="button"
             className="iconButton"
             onClick={close}
-            title="닫기"
+            title={localize("close", "닫기")}
           >
             <X {...iconProps} />
           </button>
@@ -349,6 +382,9 @@ function getModeKey(mode: NonNullable<DataTableEditorMode>): string {
 
 // 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
 export function DataTableEditorPanel() {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   const mode = useDataTableEditorStore((state) => state.mode);
   const close = useDataTableEditorStore((state) => state.close);
 
@@ -356,9 +392,14 @@ export function DataTableEditorPanel() {
   if (!mode) {
     return (
       <div className="panel datatable-editor-panel">
-        <PanelHeader icon={<FileEdit size={iconProps.size} />} title="Editor" />
+        <PanelHeader
+          icon={<FileEdit size={iconProps.size} />}
+          title={localize("editor", "Editor")}
+        />
         <div className="panel-contents">
-          <EmptyState message="편집할 항목을 선택하세요" />
+          <EmptyState
+            message={localize("selectEditorItem", "Select an item to edit")}
+          />
         </div>
       </div>
     );

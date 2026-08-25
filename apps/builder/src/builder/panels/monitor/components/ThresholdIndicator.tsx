@@ -9,6 +9,7 @@
 
 import { AlertTriangle, CircleAlert, CircleCheck } from "lucide-react";
 import { iconProps } from "../../../../utils/ui/uiConstants";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 type ThresholdLevel = "safe" | "warning" | "danger";
 
@@ -29,6 +30,9 @@ export function ThresholdIndicator({
   dangerThreshold = 75,
   label = "Memory Usage",
 }: ThresholdIndicatorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
   const threshold: ThresholdLevel =
     value >= dangerThreshold
       ? "danger"
@@ -44,7 +48,11 @@ export function ThresholdIndicator({
         : CircleCheck;
 
   const statusText =
-    threshold === "danger" ? "위험" : threshold === "warning" ? "경고" : "정상";
+    threshold === "danger"
+      ? localize("danger", "Danger")
+      : threshold === "warning"
+        ? localize("warning", "Warning")
+        : localize("safe", "Safe");
 
   return (
     <div className="threshold-indicator" data-threshold={threshold}>

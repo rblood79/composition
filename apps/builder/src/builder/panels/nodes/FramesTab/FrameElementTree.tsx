@@ -23,6 +23,7 @@ import type { ElementProps } from "../../../../types/integrations/supabase.types
 import type { ElementTreeItem } from "../../../../types/builder/stately.types";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import { ActionIconButton, Section } from "../../../components";
+import { useI18n } from "../../../../i18n";
 import { TreeBase, VirtualizedTree } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
 import type { PanelNode } from "../../panelNode";
@@ -62,6 +63,7 @@ export function FrameElementTree({
   onElementClick,
   onElementDelete,
 }: FrameElementTreeProps) {
+  const { t } = useI18n();
   const treeNodes = useMemo(() => toFrameElementTreeNodes(tree), [tree]);
   const nodeMap = useMemo(() => {
     const map = new Map<string, FrameElementTreeNode>();
@@ -143,12 +145,12 @@ export function FrameElementTree({
   return (
     <Section
       className="node-tree-section"
-      title="Layers"
+      title={t("nodes.layers")}
       collapsible={false}
       actions={
         <ActionIconButton
-          aria-label="Collapse All"
-          tooltip="모두 접기"
+          aria-label={t("nodes.collapseAll")}
+          tooltip={t("nodes.collapseAll")}
           onPress={onCollapseAll}
         >
           <Minimize
@@ -160,12 +162,12 @@ export function FrameElementTree({
       }
     >
       {!frameId ? (
-        <p className="no_element">Select a frame to view elements</p>
+        <p className="no_element">{t("nodes.selectFrame")}</p>
       ) : tree.length === 0 ? (
-        <p className="no_element">No elements in this frame</p>
+        <p className="no_element">{t("nodes.noElements")}</p>
       ) : treeNodes.length >= 12 ? (
         <VirtualizedTree<FrameElementTreeNode>
-          aria-label="Layers"
+          aria-label={t("nodes.layers")}
           items={treeNodes}
           getKey={(node) => node.id}
           getTextValue={getFrameElementDisplayName}
@@ -180,7 +182,7 @@ export function FrameElementTree({
         />
       ) : (
         <TreeBase<FrameElementTreeNode>
-          aria-label="Layers"
+          aria-label={t("nodes.layers")}
           items={treeNodes}
           getKey={(node) => node.id}
           getTextValue={getFrameElementDisplayName}

@@ -8,6 +8,7 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@composition/shared/components";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -26,6 +27,9 @@ export function MemoryActions({
   recommendation,
   isOptimizing = false,
 }: MemoryActionsProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
   return (
     <div className="memory-actions">
       <div className="recommendation">
@@ -36,17 +40,17 @@ export function MemoryActions({
         size="sm"
         onPress={onOptimize}
         isDisabled={isOptimizing}
-        aria-label="Optimize memory"
+        aria-label={localize("optimizeMemory", "Optimize memory")}
       >
         {isOptimizing ? (
           <>
             <RefreshCw size={iconEditProps.size} className="spinning" />
-            <span>Optimizing...</span>
+            <span>{localize("optimizing", "Optimizing...")}</span>
           </>
         ) : (
           <>
             <DeleteIcon size={iconEditProps.size} />
-            <span>Optimize</span>
+            <span>{localize("optimize", "Optimize")}</span>
           </>
         )}
       </Button>

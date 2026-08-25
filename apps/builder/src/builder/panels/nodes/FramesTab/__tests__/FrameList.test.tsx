@@ -17,9 +17,19 @@
 
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, fireEvent, screen, cleanup } from "@testing-library/react";
+import {
+  render as rtlRender,
+  fireEvent,
+  screen,
+  cleanup,
+} from "@testing-library/react";
+import { I18nProvider } from "@/i18n";
 
 import { FrameList } from "../FrameList";
+
+function render(ui: React.ReactElement) {
+  return rtlRender(<I18nProvider initialLocale="en-US">{ui}</I18nProvider>);
+}
 
 function makeProps(
   override: Partial<React.ComponentProps<typeof FrameList>> = {},

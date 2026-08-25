@@ -13,6 +13,7 @@ import { useDataStore } from "../../../stores/data";
 import { Section } from "../../../components";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -32,6 +33,9 @@ export function DataTableList({
   onEditingChange,
   onCreateClick,
 }: DataTableListProps) {
+  const i18n = useOptionalI18n();
+  const localize = (key: string, fallback: string) =>
+    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   // 개별 selector로 Map 직접 구독 (리렌더링 최적화)
   const dataTablesMap = useDataStore((state) => state.collections);
   const apiEndpointsMap = useDataStore((state) => state.apiEndpoints);
@@ -80,7 +84,7 @@ export function DataTableList({
   return (
     <Section
       id="datatable-list"
-      title="Table List"
+      title={localize("tableList", "Table List")}
       badge={
         <span className="datatable-list-count">{collections.length}개</span>
       }
@@ -90,8 +94,9 @@ export function DataTableList({
         <div className="datatable-empty">
           <Table2 size={32} className="datatable-empty-icon" />
           <p className="datatable-empty-text">
-            데이터 테이블이 없습니다.
-            <br />새 테이블을 추가하세요.
+            {localize("tableEmpty", "No tables")}
+            <br />
+            {localize("addTableHint", "Add a new table.")}
           </p>
         </div>
       ) : (
@@ -132,7 +137,7 @@ export function DataTableList({
                     type="button"
                     className="iconButton"
                     onClick={(e) => handleEdit(table.id, e)}
-                    title="편집"
+                    title={localize("edit", "편집")}
                   >
                     <SquarePen {...iconEditProps} />
                   </button>
@@ -140,7 +145,7 @@ export function DataTableList({
                     type="button"
                     className="iconButton"
                     onClick={(e) => handleDelete(table.id, e)}
-                    title="삭제"
+                    title={localize("delete", "삭제")}
                   >
                     <DeleteIcon {...iconEditProps} />
                   </button>
@@ -153,7 +158,7 @@ export function DataTableList({
 
       <Button className="datatable-add-btn" onPress={onCreateClick}>
         <AddIcon {...iconProps} />
-        <span>Table 추가</span>
+        <span>{localize("addTable", "Add Table")}</span>
       </Button>
     </Section>
   );
