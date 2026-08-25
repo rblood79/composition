@@ -1,8 +1,8 @@
 /**
  * FontManagerBody - 폰트 업로드 영역 + 패밀리 목록
  *
- * 폰트 관리 UI 본문. 도킹 패널(FontManagerPanel)과 모달(FontManagerDialog) 이
- * 같은 본문을 쓴다 — 껍데기(패널 헤더 / 다이얼로그 헤더)만 다르다.
+ * 폰트 관리 UI 본문 — 업로드 존 + 패밀리별 face 목록. 껍데기(FontManagerDialog)와
+ * 분리해 둔 것은 이 본문이 모달 안에서만 살아야 할 이유가 없기 때문이다.
  */
 
 import { Type } from "lucide-react";
@@ -10,8 +10,7 @@ import { EmptyState } from "../../../components";
 import { FontUploadZone } from "./FontUploadZone";
 import { FontFamilyGroup } from "./FontFamilyGroup";
 import { useFontRegistry } from "../useFontRegistry";
-// 두 껍데기(패널·모달) 가 같은 본문 스타일을 쓰므로 본문이 스타일시트를 소유한다.
-import "../FontManagerPanel.css";
+import "../FontManager.css";
 
 export function FontManagerBody() {
   const { familyGroups, faceCount, isFull, upload, remove } = useFontRegistry();

@@ -1,10 +1,10 @@
+/**
+ * 폰트 관리 UI 스타일 — 본문(FontManagerBody) + 모달 껍데기(FontManagerDialog).
+ *
+ * 구 `fonts` 도킹 패널은 2026-08-25 에 등록 해제·삭제됐다. 폰트 관리는 Typography 의
+ * Font Family 피커가 여는 모달 하나로 들어온다.
+ */
 @layer builder-system {
-  .font-manager-panel {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-
   /* Count badge */
   .font-count-badge {
     font-size: var(--text-xs);
@@ -58,14 +58,12 @@
     opacity: 0.7;
   }
 
-  .font-manager-panel .section-content,
   .font-manager-dialog .section-content {
     display: grid;
     gap: var(--spacing-sm);
   }
 
-  /* ── 모달 껍데기 (FontManagerDialog) ───────────────────
-     본문은 패널과 같은 FontManagerBody 라 위 규칙을 그대로 쓴다. */
+  /* ── 모달 껍데기 (FontManagerDialog) ─────────────────── */
 
   .font-manager-overlay {
     position: fixed;

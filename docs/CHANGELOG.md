@@ -28,10 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   빌트인이 2개뿐인 여기선 토글이 될 값이 없어 그룹 헤더로 대신했다.
 - 레지스트리 구독·CRUD 가 소비처마다 복제돼 있던 것을 `useFontRegistry` 훅 하나로 모았다
   (패널 / 모달 / Typography 의 Font Weight 옵션 3곳).
-- **`fonts` 도킹 패널을 등록 해제**했다 — `PanelId` 유니온 / `PANEL_CONFIGS` / 기본 레이아웃
-  `rightPanels` 에서 빠져 우측 레일 아이콘이 6개 → 5개가 됐다. 이미 저장된 레이아웃에 남아
-  있는 `"fonts"` 는 하이드레이션이 레지스트리에 없는 id 를 rail·visibility·cluster 세 경로
-  모두에서 버리므로 그대로 사라진다(마이그레이션 불필요).
+- **`fonts` 도킹 패널을 등록 해제·삭제**했다 — `PanelId` 유니온 / `PANEL_CONFIGS` / 기본
+  레이아웃 `rightPanels` 에서 빠져 우측 레일 아이콘이 6개 → 5개가 됐고, `FontManagerPanel.tsx`
+  는 지웠다. 이미 저장된 레이아웃에 남아 있는 `"fonts"` 는 하이드레이션이 레지스트리에 없는
+  id 를 rail·visibility·cluster 세 경로 모두에서 버리므로 그대로 사라진다(마이그레이션 불필요).
+  스타일시트는 모달·본문이 계속 쓰므로 `FontManager.css` 로 이름만 바꿔 남긴다.
 
 ### Verification
 

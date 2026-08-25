@@ -5,9 +5,10 @@
  * - 같은 탭: `composition:custom-fonts-updated` CustomEvent
  * - 다른 탭: `storage` 이벤트
  *
- * 이 구독 코드가 소비처마다 복제돼 있었다 (FontManagerPanel / TypographySection).
- * 폰트 관리 진입점이 Font Family 피커 안으로 들어오면서 소비처가 셋으로 늘어나
- * 단일 소스로 모은다 — 한 곳에서 업로드하면 나머지 둘이 같은 프레임에 갱신된다.
+ * 이 구독 코드가 소비처마다 복제돼 있었다. 지금 소비처는 셋 — 관리 모달 본문
+ * (FontManagerBody) / 모달 헤더의 개수 배지 / Font Family 피커. 여기에 Typography 의
+ * Font Weight 옵션까지 같은 face 목록을 읽는다. 한 곳에서 업로드하면 나머지가 같은
+ * 프레임에 갱신되도록 단일 소스로 모은다.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
