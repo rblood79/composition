@@ -84,9 +84,17 @@ case "$EVENT" in
     if [ -n "$SUMMARY" ]; then
       CNT=${SUMMARY%%|*}
       TCNT=${SUMMARY##*|}
-      echo "${KIND}(${SCOPE}) — ${TEST_NOTE} · 이 scope 최근 30일 ${CNT}회 (회귀테스트 동반 ${TCNT}회)"
+      MESSAGE="${KIND}(${SCOPE}) — ${TEST_NOTE} · 이 scope 최근 30일 ${CNT}회 (회귀테스트 동반 ${TCNT}회)"
     else
-      echo "${KIND}(${SCOPE}) — ${TEST_NOTE}"
+      MESSAGE="${KIND}(${SCOPE}) — ${TEST_NOTE}"
+    fi
+    # Codex Stop 은 exit 0 stdout 을 JSON 으로 해석한다. SessionStart 의 plain text
+    # 계약과 다르므로 UI 표시용 공통 필드인 systemMessage 로 직렬화한다.
+    if command -v jq >/dev/null 2>&1; then
+      jq -cn --arg message "$MESSAGE" '{systemMessage: $message}'
+    else
+      # JSON 직렬화 도구가 없을 때는 invalid stdout 보다 표시 생략이 안전하다.
+      printf '%s\n' "$MESSAGE" >&2
     fi
     exit 0
     ;;
