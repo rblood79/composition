@@ -546,7 +546,7 @@ export function generateCSS<Props>(
           );
         }
         if (variantMode === "direct") {
-          lines.push("  border: none;");
+          lines.push("  border-color: transparent;");
         }
         lines.push("}");
         lines.push("");

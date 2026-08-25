@@ -5,423 +5,753 @@
  * ============================================================ */
 
 @layer components {
-
-.react-aria-Badge {
-  /* Base styles — archetype: simple */
+  .react-aria-Badge {
+    /* Base styles — archetype: simple */
     display: inline-flex;
     align-items: center;
     box-sizing: border-box;
 
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
-  align-items: center;
+    /* Container styles (ADR-071 + ADR-083 Phase 1) */
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
-  /* Default variant */
-  background: var(--accent);
-  color: var(--fg-on-accent);
-  border: none;
-
-  /* Default size */
-  height: auto;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-full);
-  line-height: var(--text-xs--line-height);
-  border-width: 0px;
-  gap: 4px;
-}
-
-.react-aria-Badge[data-variant="accent"] {
-  background: var(--accent);
-  color: var(--fg-on-accent);
-
-  &[data-hovered] {
+    /* Default variant */
     background: var(--accent);
+    color: var(--fg-on-accent);
+    border: 1px solid transparent;
+
+    /* Default size */
+    height: auto;
+    padding: 2px 8px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-full);
+    line-height: var(--text-xs--line-height);
+    font-weight: 600;
+    border-width: 1px;
+    gap: 4px;
   }
 
-  &[data-pressed] {
+  .react-aria-Badge[data-variant="accent"] {
     background: var(--accent);
+    color: var(--fg-on-accent);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--accent);
+    }
+
+    &[data-pressed] {
+      background: var(--accent);
+    }
   }
-}
 
-.react-aria-Badge[data-variant="informative"] {
-  background: var(--color-info-600);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="accent"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--accent);
+    border-color: var(--accent);
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="accent"][data-fill-style="subtle"] {
+    background: var(--accent-subtle);
+    color: var(--accent);
+    border-color: transparent;
+  }
+
+  .react-aria-Badge[data-variant="informative"] {
     background: var(--color-info-600);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--color-info-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-info-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-info-600);
+  .react-aria-Badge[data-variant="informative"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--color-info-600);
+    border-color: var(--color-info-600);
   }
-}
 
-.react-aria-Badge[data-variant="neutral"] {
-  background: var(--fg);
-  color: var(--bg);
+  .react-aria-Badge[data-variant="informative"][data-fill-style="subtle"] {
+    background: var(--color-info-100);
+    color: var(--color-info-600);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="neutral"] {
     background: var(--fg);
+    color: var(--bg);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--fg);
+    }
+
+    &[data-pressed] {
+      background: var(--fg);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--fg);
+  .react-aria-Badge[data-variant="neutral"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--fg);
+    border-color: var(--fg);
   }
-}
 
-.react-aria-Badge[data-variant="positive"] {
-  background: var(--color-green-600);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="neutral"][data-fill-style="subtle"] {
+    background: var(--bg-muted);
+    color: var(--fg);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="positive"] {
     background: var(--color-green-600);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--color-green-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-green-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-green-600);
+  .react-aria-Badge[data-variant="positive"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--color-green-600);
+    border-color: var(--color-green-600);
   }
-}
 
-.react-aria-Badge[data-variant="notice"] {
-  background: var(--color-warning-600);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="positive"][data-fill-style="subtle"] {
+    background: var(--color-green-100);
+    color: var(--color-green-600);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="notice"] {
     background: var(--color-warning-600);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--color-warning-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-warning-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-warning-600);
+  .react-aria-Badge[data-variant="notice"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--color-warning-600);
+    border-color: var(--color-warning-600);
   }
-}
 
-.react-aria-Badge[data-variant="negative"] {
-  background: var(--negative);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="notice"][data-fill-style="subtle"] {
+    background: var(--color-warning-100);
+    color: var(--color-warning-600);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="negative"] {
     background: var(--negative);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--negative);
+    }
+
+    &[data-pressed] {
+      background: var(--negative);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--negative);
+  .react-aria-Badge[data-variant="negative"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--negative);
+    border-color: var(--negative);
   }
-}
 
-.react-aria-Badge[data-variant="gray"] {
-  background: var(--color-neutral-500);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="negative"][data-fill-style="subtle"] {
+    background: var(--color-error-100);
+    color: var(--negative);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="gray"] {
     background: var(--color-neutral-500);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--color-neutral-500);
+    }
+
+    &[data-pressed] {
+      background: var(--color-neutral-500);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-neutral-500);
+  .react-aria-Badge[data-variant="gray"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--color-neutral-500);
+    border-color: var(--color-neutral-500);
   }
-}
 
-.react-aria-Badge[data-variant="red"] {
-  background: var(--color-red-600);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="gray"][data-fill-style="subtle"] {
+    background: var(--bg-muted);
+    color: var(--color-neutral-500);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="red"] {
     background: var(--color-red-600);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--color-red-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-red-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-red-600);
+  .react-aria-Badge[data-variant="red"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--color-red-600);
+    border-color: var(--color-red-600);
   }
-}
 
-.react-aria-Badge[data-variant="orange"] {
-  background: var(--color-orange-600);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="red"][data-fill-style="subtle"] {
+    background: var(--color-red-100);
+    color: var(--color-red-600);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="orange"] {
     background: var(--color-orange-600);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--color-orange-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-orange-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-orange-600);
+  .react-aria-Badge[data-variant="orange"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--color-orange-600);
+    border-color: var(--color-orange-600);
   }
-}
 
-.react-aria-Badge[data-variant="yellow"] {
-  background: var(--color-yellow-500);
-  color: var(--color-black);
+  .react-aria-Badge[data-variant="orange"][data-fill-style="subtle"] {
+    background: var(--color-orange-100);
+    color: var(--color-orange-600);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="yellow"] {
     background: var(--color-yellow-500);
+    color: var(--color-black);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--color-yellow-500);
+    }
+
+    &[data-pressed] {
+      background: var(--color-yellow-500);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-yellow-500);
+  .react-aria-Badge[data-variant="yellow"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--color-yellow-500);
+    border-color: var(--color-yellow-500);
   }
-}
 
-.react-aria-Badge[data-variant="green"] {
-  background: var(--color-green-600);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="yellow"][data-fill-style="subtle"] {
+    background: var(--color-yellow-100);
+    color: var(--color-yellow-500);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="green"] {
     background: var(--color-green-600);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--color-green-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-green-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-green-600);
+  .react-aria-Badge[data-variant="green"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--color-green-600);
+    border-color: var(--color-green-600);
   }
-}
 
-.react-aria-Badge[data-variant="blue"] {
-  background: var(--color-blue-600);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="green"][data-fill-style="subtle"] {
+    background: var(--color-green-100);
+    color: var(--color-green-600);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="blue"] {
     background: var(--color-blue-600);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--color-blue-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-blue-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-blue-600);
+  .react-aria-Badge[data-variant="blue"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--color-blue-600);
+    border-color: var(--color-blue-600);
   }
-}
 
-.react-aria-Badge[data-variant="purple"] {
-  background: var(--color-purple-600);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="blue"][data-fill-style="subtle"] {
+    background: var(--color-blue-100);
+    color: var(--color-blue-600);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="purple"] {
     background: var(--color-purple-600);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--color-purple-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-purple-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-purple-600);
+  .react-aria-Badge[data-variant="purple"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--color-purple-600);
+    border-color: var(--color-purple-600);
   }
-}
 
-.react-aria-Badge[data-variant="indigo"] {
-  background: oklch(0.45 0.2 284);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="purple"][data-fill-style="subtle"] {
+    background: var(--color-purple-100);
+    color: var(--color-purple-600);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="indigo"] {
     background: oklch(0.45 0.2 284);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: oklch(0.45 0.2 284);
+    }
+
+    &[data-pressed] {
+      background: oklch(0.45 0.2 284);
+    }
   }
 
-  &[data-pressed] {
-    background: oklch(0.45 0.2 284);
+  .react-aria-Badge[data-variant="indigo"][data-fill-style="outline"] {
+    background: transparent;
+    color: oklch(0.45 0.2 284);
+    border-color: oklch(0.45 0.2 284);
   }
-}
 
-.react-aria-Badge[data-variant="cyan"] {
-  background: oklch(0.5 0.14 220);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="indigo"][data-fill-style="subtle"] {
+    background: oklch(0.93 0.04 284);
+    color: oklch(0.45 0.2 284);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="cyan"] {
     background: oklch(0.5 0.14 220);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: oklch(0.5 0.14 220);
+    }
+
+    &[data-pressed] {
+      background: oklch(0.5 0.14 220);
+    }
   }
 
-  &[data-pressed] {
-    background: oklch(0.5 0.14 220);
+  .react-aria-Badge[data-variant="cyan"][data-fill-style="outline"] {
+    background: transparent;
+    color: oklch(0.5 0.14 220);
+    border-color: oklch(0.5 0.14 220);
   }
-}
 
-.react-aria-Badge[data-variant="pink"] {
-  background: oklch(0.6 0.18 348);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="cyan"][data-fill-style="subtle"] {
+    background: oklch(0.93 0.03 220);
+    color: oklch(0.5 0.14 220);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="pink"] {
     background: oklch(0.6 0.18 348);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: oklch(0.6 0.18 348);
+    }
+
+    &[data-pressed] {
+      background: oklch(0.6 0.18 348);
+    }
   }
 
-  &[data-pressed] {
-    background: oklch(0.6 0.18 348);
+  .react-aria-Badge[data-variant="pink"][data-fill-style="outline"] {
+    background: transparent;
+    color: oklch(0.6 0.18 348);
+    border-color: oklch(0.6 0.18 348);
   }
-}
 
-.react-aria-Badge[data-variant="turquoise"] {
-  background: oklch(0.55 0.1 195);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="pink"][data-fill-style="subtle"] {
+    background: oklch(0.93 0.04 348);
+    color: oklch(0.6 0.18 348);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="turquoise"] {
     background: oklch(0.55 0.1 195);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: oklch(0.55 0.1 195);
+    }
+
+    &[data-pressed] {
+      background: oklch(0.55 0.1 195);
+    }
   }
 
-  &[data-pressed] {
-    background: oklch(0.55 0.1 195);
+  .react-aria-Badge[data-variant="turquoise"][data-fill-style="outline"] {
+    background: transparent;
+    color: oklch(0.55 0.1 195);
+    border-color: oklch(0.55 0.1 195);
   }
-}
 
-.react-aria-Badge[data-variant="fuchsia"] {
-  background: oklch(0.55 0.22 320);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="turquoise"][data-fill-style="subtle"] {
+    background: oklch(0.93 0.02 195);
+    color: oklch(0.55 0.1 195);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="fuchsia"] {
     background: oklch(0.55 0.22 320);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: oklch(0.55 0.22 320);
+    }
+
+    &[data-pressed] {
+      background: oklch(0.55 0.22 320);
+    }
   }
 
-  &[data-pressed] {
-    background: oklch(0.55 0.22 320);
+  .react-aria-Badge[data-variant="fuchsia"][data-fill-style="outline"] {
+    background: transparent;
+    color: oklch(0.55 0.22 320);
+    border-color: oklch(0.55 0.22 320);
   }
-}
 
-.react-aria-Badge[data-variant="magenta"] {
-  background: oklch(0.55 0.2 335);
-  color: var(--color-white);
+  .react-aria-Badge[data-variant="fuchsia"][data-fill-style="subtle"] {
+    background: oklch(0.93 0.04 320);
+    color: oklch(0.55 0.22 320);
+    border-color: transparent;
+  }
 
-  &[data-hovered] {
+  .react-aria-Badge[data-variant="magenta"] {
     background: oklch(0.55 0.2 335);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: oklch(0.55 0.2 335);
+    }
+
+    &[data-pressed] {
+      background: oklch(0.55 0.2 335);
+    }
   }
 
-  &[data-pressed] {
-    background: oklch(0.55 0.2 335);
-  }
-}
-
-.react-aria-Badge[data-variant="chartreuse"] {
-  background: oklch(0.65 0.18 115);
-  color: var(--color-black);
-
-  &[data-hovered] {
-    background: var(--chartreuse-hover);
+  .react-aria-Badge[data-variant="magenta"][data-fill-style="outline"] {
+    background: transparent;
+    color: oklch(0.55 0.2 335);
+    border-color: oklch(0.55 0.2 335);
   }
 
-  &[data-pressed] {
-    background: var(--chartreuse-pressed);
-  }
-}
-
-.react-aria-Badge[data-variant="celery"] {
-  background: oklch(0.62 0.16 130);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--celery-hover);
+  .react-aria-Badge[data-variant="magenta"][data-fill-style="subtle"] {
+    background: oklch(0.93 0.04 335);
+    color: oklch(0.55 0.2 335);
+    border-color: transparent;
   }
 
-  &[data-pressed] {
-    background: var(--celery-pressed);
-  }
-}
+  .react-aria-Badge[data-variant="chartreuse"] {
+    background: oklch(0.65 0.18 115);
+    color: var(--color-black);
+    border-color: transparent;
 
-.react-aria-Badge[data-variant="seafoam"] {
-  background: var(--seafoam);
-  color: var(--color-white);
+    &[data-hovered] {
+      background: var(--chartreuse-hover);
+    }
 
-  &[data-hovered] {
-    background: var(--seafoam-hover);
-  }
-
-  &[data-pressed] {
-    background: var(--seafoam-pressed);
-  }
-}
-
-.react-aria-Badge[data-variant="brown"] {
-  background: var(--brown);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--brown-hover);
+    &[data-pressed] {
+      background: var(--chartreuse-pressed);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--brown-pressed);
-  }
-}
-
-.react-aria-Badge[data-variant="cinnamon"] {
-  background: var(--cinnamon);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--cinnamon-hover);
+  .react-aria-Badge[data-variant="chartreuse"][data-fill-style="outline"] {
+    background: transparent;
+    color: oklch(0.65 0.18 115);
+    border-color: oklch(0.65 0.18 115);
   }
 
-  &[data-pressed] {
-    background: var(--cinnamon-pressed);
-  }
-}
-
-.react-aria-Badge[data-variant="silver"] {
-  background: var(--silver);
-  color: var(--color-black);
-
-  &[data-hovered] {
-    background: var(--silver-hover);
+  .react-aria-Badge[data-variant="chartreuse"][data-fill-style="subtle"] {
+    background: oklch(0.93 0.04 115);
+    color: oklch(0.65 0.18 115);
+    border-color: transparent;
   }
 
-  &[data-pressed] {
-    background: var(--silver-pressed);
+  .react-aria-Badge[data-variant="celery"] {
+    background: oklch(0.62 0.16 130);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--celery-hover);
+    }
+
+    &[data-pressed] {
+      background: var(--celery-pressed);
+    }
   }
-}
 
-.react-aria-Badge[data-size="xs"] {
-  height: auto;
-  padding: 1px 4px;
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-full);
-  line-height: var(--text-2xs--line-height);
-  border-width: 0px;
-  gap: 2px;
-}
-
-.react-aria-Badge[data-size="sm"] {
-  height: auto;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-full);
-  line-height: var(--text-xs--line-height);
-  border-width: 0px;
-  gap: 4px;
-}
-
-.react-aria-Badge[data-size="md"] {
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
-  line-height: var(--text-sm--line-height);
-  border-width: 0px;
-  gap: 4px;
-}
-
-.react-aria-Badge[data-size="lg"] {
-  height: auto;
-  padding: 8px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-full);
-  line-height: var(--text-base--line-height);
-  border-width: 0px;
-  gap: 6px;
-}
-
-.react-aria-Badge[data-size="xl"] {
-  height: auto;
-  padding: 12px 24px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-full);
-  line-height: var(--text-lg--line-height);
-  border-width: 0px;
-  gap: 8px;
-}
-
-.react-aria-Badge[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Badge[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Badge {
-    forced-color-adjust: auto;
+  .react-aria-Badge[data-variant="celery"][data-fill-style="outline"] {
+    background: transparent;
+    color: oklch(0.62 0.16 130);
+    border-color: oklch(0.62 0.16 130);
   }
-}
 
+  .react-aria-Badge[data-variant="celery"][data-fill-style="subtle"] {
+    background: oklch(0.93 0.04 130);
+    color: oklch(0.62 0.16 130);
+    border-color: transparent;
+  }
 
+  .react-aria-Badge[data-variant="seafoam"] {
+    background: var(--seafoam);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--seafoam-hover);
+    }
+
+    &[data-pressed] {
+      background: var(--seafoam-pressed);
+    }
+  }
+
+  .react-aria-Badge[data-variant="seafoam"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--seafoam);
+    border-color: var(--seafoam);
+  }
+
+  .react-aria-Badge[data-variant="seafoam"][data-fill-style="subtle"] {
+    background: var(--bg-muted);
+    color: var(--seafoam);
+    border-color: transparent;
+  }
+
+  .react-aria-Badge[data-variant="brown"] {
+    background: var(--brown);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--brown-hover);
+    }
+
+    &[data-pressed] {
+      background: var(--brown-pressed);
+    }
+  }
+
+  .react-aria-Badge[data-variant="brown"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--brown);
+    border-color: var(--brown);
+  }
+
+  .react-aria-Badge[data-variant="brown"][data-fill-style="subtle"] {
+    background: var(--color-orange-100);
+    color: var(--brown);
+    border-color: transparent;
+  }
+
+  .react-aria-Badge[data-variant="cinnamon"] {
+    background: var(--cinnamon);
+    color: var(--color-white);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--cinnamon-hover);
+    }
+
+    &[data-pressed] {
+      background: var(--cinnamon-pressed);
+    }
+  }
+
+  .react-aria-Badge[data-variant="cinnamon"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--cinnamon);
+    border-color: var(--cinnamon);
+  }
+
+  .react-aria-Badge[data-variant="cinnamon"][data-fill-style="subtle"] {
+    background: var(--color-orange-100);
+    color: var(--cinnamon);
+    border-color: transparent;
+  }
+
+  .react-aria-Badge[data-variant="silver"] {
+    background: var(--silver);
+    color: var(--color-black);
+    border-color: transparent;
+
+    &[data-hovered] {
+      background: var(--silver-hover);
+    }
+
+    &[data-pressed] {
+      background: var(--silver-pressed);
+    }
+  }
+
+  .react-aria-Badge[data-variant="silver"][data-fill-style="outline"] {
+    background: transparent;
+    color: var(--silver);
+    border-color: var(--silver);
+  }
+
+  .react-aria-Badge[data-variant="silver"][data-fill-style="subtle"] {
+    background: var(--bg-muted);
+    color: var(--silver);
+    border-color: transparent;
+  }
+
+  .react-aria-Badge[data-size="xs"] {
+    height: auto;
+    padding: 1px 4px;
+    font-size: var(--text-2xs);
+    border-radius: var(--radius-full);
+    line-height: var(--text-2xs--line-height);
+    font-weight: 600;
+    border-width: 1px;
+    gap: 2px;
+  }
+
+  .react-aria-Badge[data-size="sm"] {
+    height: auto;
+    padding: 2px 8px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-full);
+    line-height: var(--text-xs--line-height);
+    font-weight: 600;
+    border-width: 1px;
+    gap: 4px;
+  }
+
+  .react-aria-Badge[data-size="md"] {
+    height: auto;
+    padding: 4px 12px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-full);
+    line-height: var(--text-sm--line-height);
+    font-weight: 600;
+    border-width: 1px;
+    gap: 4px;
+  }
+
+  .react-aria-Badge[data-size="lg"] {
+    height: auto;
+    padding: 8px 16px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-full);
+    line-height: var(--text-base--line-height);
+    font-weight: 600;
+    border-width: 1px;
+    gap: 6px;
+  }
+
+  .react-aria-Badge[data-size="xl"] {
+    height: auto;
+    padding: 12px 24px;
+    font-size: var(--text-lg);
+    border-radius: var(--radius-full);
+    line-height: var(--text-lg--line-height);
+    font-weight: 600;
+    border-width: 1px;
+    gap: 8px;
+  }
+
+  .react-aria-Badge[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-Badge[data-disabled] {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    .react-aria-Badge {
+      forced-color-adjust: auto;
+    }
+  }
 } /* @layer components */

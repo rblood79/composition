@@ -2,7 +2,7 @@
 
 ## 문서 상태와 상위 결정
 
-- 상태: In Progress — Phase 0~3 완료 (2026-08-25)
+- 상태: In Progress — Phase 0~4 완료 (2026-08-25)
 - 상위 결정: [ADR-912](../completed/912-rac-pencil-rebuild-cutover.md)
 - 관련 결정:
   - [ADR-142](../completed/142-starter-spec-component-system-cutover.md) — catalog + theme/tokens D3 SSOT
@@ -437,6 +437,23 @@ Gate P4:
 - D1 RED fixture GREEN.
 - Badge bold/subtle/outline CSS↔Skia↔Style Panel concrete color 일치.
 - 동일 selector가 manual/generated CSS 양쪽에 중복 정의되지 않아야 한다.
+
+> **Phase 4 완료 (2026-08-25)**
+>
+> - Badge binding이 노출하는 전 variant에 `default/subtle/outline` fill과
+>   text/border 채널을 catalog SSOT로 채웠다. semantic 6 variant × 3 fillStyle은 generated
+>   CSS token, Canvas symbolic paint, Style Panel light-theme concrete color가 모두 일치한다.
+> - `borderWidth: 1`과 transparent border로 기존 DOM의 20/22/30/42/54px box footprint를
+>   generated size 규칙에서 재현한다. generator의 subtle 규칙은 `border: none` 대신
+>   `border-color: transparent`를 emit해 fillStyle 전환 시 크기가 흔들리지 않는다.
+> - 수동 `Badge.css`에서 root variant/fillStyle/size 선택자를 제거했다. dot/pulse/forced-colors와
+>   generator가 표현하지 않는 보조 규칙만 남아 manual/generated 동일 selector는 0이다.
+> - Canvas renderer는 transparent border channel을 layout/panel 값으로 보존하되 border shape로
+>   materialize하지 않는다. bold/subtle의 추가 border shape는 0, outline만 1이며 resolver 호출 수와
+>   pure O(1) 상태 선택 경로는 바뀌지 않았다.
+> - D1 전수 coverage, 8,244-case resolver shadow parity, Badge shape/binding/size passthrough,
+>   generator snapshot 및 Style Panel/Canvas focused gate가 GREEN이다. 실제 Builder interaction과
+>   foreground performance 측정은 문서대로 Phase 5에서 수행한다.
 
 ### Phase 5 — 성능 및 실제 Builder 수렴
 

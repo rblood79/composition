@@ -138,4 +138,17 @@ describe("buildCatalogShapes — fillStyle(outline/subtle) generic 소비 (found
       "{color.accent}",
     );
   });
+
+  it("transparent border channel은 layout 폭만 보존하고 border shape를 추가하지 않는다", () => {
+    const visual = resolveComponentVisual(fillFixtureSpec, "primary")!;
+    const shapes = buildCatalogShapes(
+      { ...visual, border: "{color.transparent}" as TokenRef },
+      { children: "X", variant: "primary" },
+      { ...fixtureSize, borderWidth: 1 },
+      "default",
+    );
+
+    expect(shapes.some((shape) => shape.type === "roundRect")).toBe(true);
+    expect(shapes.some((shape) => shape.type === "border")).toBe(false);
+  });
 });

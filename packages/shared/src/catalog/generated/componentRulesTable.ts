@@ -140,9 +140,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.accent}",
             pressed: "{color.accent}",
           },
+          subtle: {
+            base: "{color.accent-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.on-accent}",
+          border: "{color.transparent}",
+          subtleText: "{color.accent}",
+          outlineText: "{color.accent}",
+          outlineBorder: "{color.accent}",
         },
       },
       informative: {
@@ -152,9 +162,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.informative}",
             pressed: "{color.informative}",
           },
+          subtle: {
+            base: "{color.informative-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.informative}",
+          outlineText: "{color.informative}",
+          outlineBorder: "{color.informative}",
         },
       },
       neutral: {
@@ -164,9 +184,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.neutral}",
             pressed: "{color.neutral}",
           },
+          subtle: {
+            base: "{color.neutral-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.base}",
+          border: "{color.transparent}",
+          subtleText: "{color.neutral}",
+          outlineText: "{color.neutral}",
+          outlineBorder: "{color.neutral}",
         },
       },
       positive: {
@@ -176,9 +206,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.positive}",
             pressed: "{color.positive}",
           },
+          subtle: {
+            base: "{color.positive-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.positive}",
+          outlineText: "{color.positive}",
+          outlineBorder: "{color.positive}",
         },
       },
       notice: {
@@ -188,9 +228,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.notice}",
             pressed: "{color.notice}",
           },
+          subtle: {
+            base: "{color.notice-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.notice}",
+          outlineText: "{color.notice}",
+          outlineBorder: "{color.notice}",
         },
       },
       negative: {
@@ -200,9 +250,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.negative}",
             pressed: "{color.negative}",
           },
+          subtle: {
+            base: "{color.negative-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.on-negative}",
+          border: "{color.transparent}",
+          subtleText: "{color.negative}",
+          outlineText: "{color.negative}",
+          outlineBorder: "{color.negative}",
         },
       },
       gray: {
@@ -212,9 +272,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.gray}",
             pressed: "{color.gray}",
           },
+          subtle: {
+            base: "{color.neutral-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.gray}",
+          outlineText: "{color.gray}",
+          outlineBorder: "{color.gray}",
         },
       },
       red: {
@@ -224,9 +294,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.red}",
             pressed: "{color.red}",
           },
+          subtle: {
+            base: "{color.red-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.red}",
+          outlineText: "{color.red}",
+          outlineBorder: "{color.red}",
         },
       },
       orange: {
@@ -236,9 +316,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.orange}",
             pressed: "{color.orange}",
           },
+          subtle: {
+            base: "{color.orange-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.orange}",
+          outlineText: "{color.orange}",
+          outlineBorder: "{color.orange}",
         },
       },
       yellow: {
@@ -248,9 +338,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.yellow}",
             pressed: "{color.yellow}",
           },
+          subtle: {
+            base: "{color.yellow-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.black}",
+          border: "{color.transparent}",
+          subtleText: "{color.yellow}",
+          outlineText: "{color.yellow}",
+          outlineBorder: "{color.yellow}",
         },
       },
       green: {
@@ -260,9 +360,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.green-named}",
             pressed: "{color.green-named}",
           },
+          subtle: {
+            base: "{color.green-named-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.green-named}",
+          outlineText: "{color.green-named}",
+          outlineBorder: "{color.green-named}",
         },
       },
       blue: {
@@ -272,9 +382,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.blue}",
             pressed: "{color.blue}",
           },
+          subtle: {
+            base: "{color.blue-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.blue}",
+          outlineText: "{color.blue}",
+          outlineBorder: "{color.blue}",
         },
       },
       purple: {
@@ -284,9 +404,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.purple}",
             pressed: "{color.purple}",
           },
+          subtle: {
+            base: "{color.purple-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.purple}",
+          outlineText: "{color.purple}",
+          outlineBorder: "{color.purple}",
         },
       },
       indigo: {
@@ -296,9 +426,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.indigo}",
             pressed: "{color.indigo}",
           },
+          subtle: {
+            base: "{color.indigo-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.indigo}",
+          outlineText: "{color.indigo}",
+          outlineBorder: "{color.indigo}",
         },
       },
       cyan: {
@@ -308,9 +448,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.cyan}",
             pressed: "{color.cyan}",
           },
+          subtle: {
+            base: "{color.cyan-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.cyan}",
+          outlineText: "{color.cyan}",
+          outlineBorder: "{color.cyan}",
         },
       },
       pink: {
@@ -320,9 +470,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.pink}",
             pressed: "{color.pink}",
           },
+          subtle: {
+            base: "{color.pink-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.pink}",
+          outlineText: "{color.pink}",
+          outlineBorder: "{color.pink}",
         },
       },
       turquoise: {
@@ -332,9 +492,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.turquoise}",
             pressed: "{color.turquoise}",
           },
+          subtle: {
+            base: "{color.turquoise-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.turquoise}",
+          outlineText: "{color.turquoise}",
+          outlineBorder: "{color.turquoise}",
         },
       },
       fuchsia: {
@@ -344,9 +514,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.fuchsia}",
             pressed: "{color.fuchsia}",
           },
+          subtle: {
+            base: "{color.fuchsia-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.fuchsia}",
+          outlineText: "{color.fuchsia}",
+          outlineBorder: "{color.fuchsia}",
         },
       },
       magenta: {
@@ -356,9 +536,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.magenta}",
             pressed: "{color.magenta}",
           },
+          subtle: {
+            base: "{color.magenta-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.magenta}",
+          outlineText: "{color.magenta}",
+          outlineBorder: "{color.magenta}",
         },
       },
       chartreuse: {
@@ -368,9 +558,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.chartreuse-hover}",
             pressed: "{color.chartreuse-pressed}",
           },
+          subtle: {
+            base: "{color.chartreuse-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.black}",
+          border: "{color.transparent}",
+          subtleText: "{color.chartreuse}",
+          outlineText: "{color.chartreuse}",
+          outlineBorder: "{color.chartreuse}",
         },
       },
       celery: {
@@ -380,9 +580,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.celery-hover}",
             pressed: "{color.celery-pressed}",
           },
+          subtle: {
+            base: "{color.celery-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.celery}",
+          outlineText: "{color.celery}",
+          outlineBorder: "{color.celery}",
         },
       },
       seafoam: {
@@ -392,9 +602,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.seafoam-hover}",
             pressed: "{color.seafoam-pressed}",
           },
+          subtle: {
+            base: "{color.neutral-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.seafoam}",
+          outlineText: "{color.seafoam}",
+          outlineBorder: "{color.seafoam}",
         },
       },
       brown: {
@@ -404,9 +624,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.brown-hover}",
             pressed: "{color.brown-pressed}",
           },
+          subtle: {
+            base: "{color.orange-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.brown}",
+          outlineText: "{color.brown}",
+          outlineBorder: "{color.brown}",
         },
       },
       cinnamon: {
@@ -416,9 +646,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.cinnamon-hover}",
             pressed: "{color.cinnamon-pressed}",
           },
+          subtle: {
+            base: "{color.orange-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.white}",
+          border: "{color.transparent}",
+          subtleText: "{color.cinnamon}",
+          outlineText: "{color.cinnamon}",
+          outlineBorder: "{color.cinnamon}",
         },
       },
       silver: {
@@ -428,9 +668,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             hover: "{color.silver-hover}",
             pressed: "{color.silver-pressed}",
           },
+          subtle: {
+            base: "{color.neutral-subtle}",
+          },
+          outline: {
+            base: "{color.transparent}",
+          },
         },
         colors: {
           text: "{color.black}",
+          border: "{color.transparent}",
+          subtleText: "{color.silver}",
+          outlineText: "{color.silver}",
+          outlineBorder: "{color.silver}",
         },
       },
     },
@@ -439,8 +689,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
+        fontWeight: 600,
         borderRadius: "{radius.full}",
-        borderWidth: 0, // ADR-151 B12: 전 variant border 색 부재 — DOM border:none 인데 Skia layout 만 +2px 소비하던 dead 값
+        borderWidth: 1,
         height: 0,
         paddingY: 1,
         gap: 2,
@@ -449,8 +700,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
+        fontWeight: 600,
         borderRadius: "{radius.full}",
-        borderWidth: 0,
+        borderWidth: 1,
         height: 0,
         paddingY: 2,
         gap: 4,
@@ -459,8 +711,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
+        fontWeight: 600,
         borderRadius: "{radius.full}",
-        borderWidth: 0,
+        borderWidth: 1,
         height: 0,
         paddingY: 4,
         gap: 4,
@@ -469,8 +722,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
+        fontWeight: 600,
         borderRadius: "{radius.full}",
-        borderWidth: 0,
+        borderWidth: 1,
         height: 0,
         paddingY: 8,
         gap: 6,
@@ -479,8 +733,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
+        fontWeight: 600,
         borderRadius: "{radius.full}",
-        borderWidth: 0,
+        borderWidth: 1,
         height: 0,
         paddingY: 12,
         gap: 8,
@@ -492,6 +747,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "inline-flex",
         alignItems: "center",
+        justifyContent: "center",
+        width: "fit-content",
       },
       states: {
         disabled: {

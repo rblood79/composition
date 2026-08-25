@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-912 후속 Phase 4 — Badge Catalog Paint SSOT] - 2026-08-25
+
+### Architecture
+
+- Badge의 bold/subtle/outline 배경·텍스트·테두리 채널을 catalog로 통합하고 generated CSS,
+  Canvas, Style Panel이 같은 variant 데이터를 소비하게 했다.
+- 수동 Badge CSS의 variant/fillStyle/size 규칙을 제거했다. 수동 파일은 dot, pulse,
+  forced-colors처럼 generator가 표현하지 않는 보조 동작만 담당한다.
+- subtle generated CSS가 border를 제거하지 않고 transparent color만 적용하게 해 outline 전환과
+  동일한 1px box footprint를 유지한다.
+
+### Performance
+
+- catalog paint 해석은 기존 pure O(1) resolver 1회를 그대로 사용한다. transparent border는
+  Panel/CSS layout channel로 보존하되 Canvas border shape로 생성하지 않아 bold/subtle의 draw shape를
+  늘리지 않는다.
+
+### Verification
+
+- Badge 전 variant의 binding↔catalog channel coverage와 semantic 6 variant × 3 fillStyle의
+  generated CSS↔Canvas↔Style Panel parity를 회귀 테스트로 고정했다.
+- 8,244-case resolver shadow parity, Badge shape/binding/size passthrough, generator snapshot 및
+  focused Builder 테스트를 통과했다. 실제 Builder interaction과 foreground 성능 측정은 Phase 5에서
+  수행한다.
+
 ## [ADR-912 후속 Phase 3 — Style Panel Resolved Paint Read Model] - 2026-08-25
 
 ### Architecture

@@ -134,15 +134,58 @@ describe("Style Panel catalog color values", () => {
   });
 
   describe("ADR-912 후속 — resolved catalog paint", () => {
-    it.fails(
-      "D1 Badge bold/subtle/outline의 3채널을 서로 다르게 표시한다",
-      () => {
+    it.each([
+      [
+        "accent",
+        lightColors.accent,
+        lightColors["accent-subtle"],
+        lightColors["on-accent"],
+        lightColors.accent,
+      ],
+      [
+        "informative",
+        lightColors.informative,
+        lightColors["informative-subtle"],
+        lightColors.white,
+        lightColors.informative,
+      ],
+      [
+        "neutral",
+        lightColors.neutral,
+        lightColors["neutral-subtle"],
+        lightColors.base,
+        lightColors.neutral,
+      ],
+      [
+        "positive",
+        lightColors.positive,
+        lightColors["positive-subtle"],
+        lightColors.white,
+        lightColors.positive,
+      ],
+      [
+        "notice",
+        lightColors.notice,
+        lightColors["notice-subtle"],
+        lightColors.white,
+        lightColors.notice,
+      ],
+      [
+        "negative",
+        lightColors.negative,
+        lightColors["negative-subtle"],
+        lightColors["on-negative"],
+        lightColors.negative,
+      ],
+    ])(
+      "D1 Badge %s의 bold/subtle/outline 3채널을 구분한다",
+      (variant, boldBackground, subtleBackground, boldText, hue) => {
         const actual = (["bold", "subtle", "outline"] as const).map(
           (fillStyle) => {
             setElements([
               makeElement("badge-1", "Badge", {
                 size: "sm",
-                variant: "accent",
+                variant,
                 fillStyle,
               }),
             ]);
@@ -152,19 +195,19 @@ describe("Style Panel catalog color values", () => {
 
         expect(actual).toEqual([
           {
-            backgroundColor: lightColors.accent,
+            backgroundColor: boldBackground,
             borderColor: lightColors.transparent,
-            color: lightColors["on-accent"],
+            color: boldText,
           },
           {
-            backgroundColor: lightColors["accent-subtle"],
+            backgroundColor: subtleBackground,
             borderColor: lightColors.transparent,
-            color: lightColors.accent,
+            color: hue,
           },
           {
             backgroundColor: lightColors.transparent,
-            borderColor: lightColors.accent,
-            color: lightColors.accent,
+            borderColor: hue,
+            color: hue,
           },
         ]);
       },

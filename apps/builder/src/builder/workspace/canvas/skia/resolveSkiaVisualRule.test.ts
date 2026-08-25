@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { isCatalogCutover } from "@composition/shared";
+import { buildCatalogShapes, type SizeSpec } from "@composition/specs";
 import { getSpecForTag } from "../styleConversion/tagSpecMap";
 import {
   resolveSkiaCatalogRenderInput,
@@ -170,4 +171,104 @@ describe("resolveSkiaCatalogRenderInput — ADR-912 후속 Phase 2 paint adapter
       borderColor: "#000000",
     });
   });
+
+  it.each([
+    [
+      "accent",
+      "{color.accent}",
+      "{color.accent-subtle}",
+      "{color.on-accent}",
+      "{color.accent}",
+    ],
+    [
+      "informative",
+      "{color.informative}",
+      "{color.informative-subtle}",
+      "{color.white}",
+      "{color.informative}",
+    ],
+    [
+      "neutral",
+      "{color.neutral}",
+      "{color.neutral-subtle}",
+      "{color.base}",
+      "{color.neutral}",
+    ],
+    [
+      "positive",
+      "{color.positive}",
+      "{color.positive-subtle}",
+      "{color.white}",
+      "{color.positive}",
+    ],
+    [
+      "notice",
+      "{color.notice}",
+      "{color.notice-subtle}",
+      "{color.white}",
+      "{color.notice}",
+    ],
+    [
+      "negative",
+      "{color.negative}",
+      "{color.negative-subtle}",
+      "{color.on-negative}",
+      "{color.negative}",
+    ],
+  ])(
+    "Badge %s의 bold/subtle/outline paint를 catalog에서 해소한다",
+    (variant, boldBackground, subtleBackground, boldText, hue) => {
+      const actual = (["bold", "subtle", "outline"] as const).map(
+        (fillStyle) =>
+          resolveSkiaCatalogRenderInput(
+            "Badge",
+            { size: "sm", variant, fillStyle },
+            "default",
+          ).paint,
+      );
+
+      expect(actual).toEqual([
+        expect.objectContaining({
+          backgroundColor: boldBackground,
+          borderColor: "{color.transparent}",
+          color: boldText,
+        }),
+        expect.objectContaining({
+          backgroundColor: subtleBackground,
+          borderColor: "{color.transparent}",
+          color: hue,
+        }),
+        expect.objectContaining({
+          backgroundColor: "{color.transparent}",
+          borderColor: hue,
+          color: hue,
+        }),
+      ]);
+
+      const borderShapeCounts = (["bold", "subtle", "outline"] as const).map(
+        (fillStyle) => {
+          const props = {
+            children: "Badge",
+            size: "sm",
+            variant,
+            fillStyle,
+          };
+          const input = resolveSkiaCatalogRenderInput(
+            "Badge",
+            props,
+            "default",
+          );
+          const size = ruleSizeToSizeSpec(input.rule!.sizes.sm) as SizeSpec;
+          return buildCatalogShapes(
+            input.visual,
+            input.paint,
+            props,
+            size,
+          ).filter((shape) => shape.type === "border").length;
+        },
+      );
+
+      expect(borderShapeCounts).toEqual([0, 0, 1]);
+    },
+  );
 });

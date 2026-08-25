@@ -361,7 +361,12 @@ export function buildCatalogShapes(
     //   "none" 은 테두리 숨김 의도 — border shape 자체를 생성하지 않는다(DOM border-style:none 대칭).
     const borderStyle =
       (style?.borderStyle as string | undefined) ?? visual?.borderStyle;
-    if (borderColor && borderStyle !== "none") {
+    if (
+      borderColor &&
+      borderColor !== "{color.transparent}" &&
+      borderColor !== "transparent" &&
+      borderStyle !== "none"
+    ) {
       shapes.push({
         type: "border",
         target: "bg",
