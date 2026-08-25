@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-912 후속 Phase 6 — 종결 후 전수 감사와 테스트 회귀 정정] - 2026-08-25
+
+### Bug Fixes
+
+- Phase 2가 Skia primitive draw fn에 root paint를 필수 주입으로 바꾸면서 `catalogPaintFixture`
+  이관을 `packages/specs` 안에서만 수행했고, `@composition/specs`의 `getSkiaPrimitive`를 직접
+  부르는 builder 테스트 2개(`gridListCardQuiet`, `toggleIndicatorXlCatalog`)가 `paint` 없이
+  호출해 TypeError로 파손돼 있었다. 두 파일을 production 경계
+  `resolveSkiaCatalogRenderInput` 1회 호출로 전환했다. production 렌더 경로는 adapter가
+  paint를 주입하므로 화면 동작 결손은 없었다.
+- Phase 3의 신규 `useColorStyleValues.test.tsx`가 store를 직접 seed하는 로컬 헬퍼를 쓰는데,
+  ADR-116 G4 grep gate의 제외 패턴이 `__tests__/` 디렉터리만 걸러 co-located `*.test.tsx`를
+  스캔해 baseline을 0에서 8로 올렸다. gate 대상은 production write site이므로 제외 패턴에
+  `*.test.ts(x)`를 추가했다. production 파일은 이 확장자를 갖지 않아 D18=A 격리 강도는 불변이다.
+
+### Verification
+
+- builder 전체 4,353건: 이전 10 실패에서 1 실패로 감소. specs 전체 721건은 24 실패 유지.
+  잔여 25건은 ADR-912와 무관한 기존 baseline이다 — arrow expected shape의 `presentationRole`
+  누락 24건과 catalog 경로의 mesh-gradient attachment 미지원 1건이며, Phase 2 전후로 해당
+  emit/분기가 동일함을 확인했다.
+- `pnpm type-check` 신규 위반 0(baseline 43). Phase 0~5의 종료 조건(D1~D5 GREEN, paint owner
+  1곳, `resolveCatalogColorPreset` 참조 0, Badge manual/generated selector 중복 0,
+  8,244-case shadow parity)은 재실행에서 모두 유지됐다.
+
+### Architecture
+
+- 전환된 두 테스트는 fixture로 paint를 재조립하지 않고 실제 소비 경로를 통과한다. 그 결과
+  `gridListCardQuiet`이 원래 목적("정의는 있는데 소비 경로가 안 닿음" 차단)을 catalog rule →
+  paint resolver → Skia shape 전 구간에서 지킨다.
+
 ## [ADR-912 후속 Phase 5 — Resolved Visual Style 수렴 완료] - 2026-08-25
 
 ### Bug Fixes

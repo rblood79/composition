@@ -2,7 +2,7 @@
 
 ## 문서 상태와 상위 결정
 
-- 상태: Implemented — Phase 0~5 완료 (2026-08-25)
+- 상태: Implemented — Phase 0~5 완료 + Phase 6 전수 감사 정정 (2026-08-25)
 - 상위 결정: [ADR-912](../completed/912-rac-pencil-rebuild-cutover.md)
 - 관련 결정:
   - [ADR-142](../completed/142-starter-spec-component-system-cutover.md) — catalog + theme/tokens D3 SSOT
@@ -363,6 +363,8 @@ Gate P2:
 >   전체 directory 실행에서 남은 기존 baseline은 arrow expected shape의
 >   `presentationRole` 누락 24건과 미지원 mesh-gradient attachment 1건이며, Phase 2 diff가
 >   해당 shape role/mesh 분기를 변경하지 않았음을 확인하고 focused gate에서 분리했다.
+>   **(2026-08-25 정정 — §Phase 6)**: 이 baseline 분류는 `packages/specs` 범위만 봤고,
+>   builder 쪽 primitive 테스트 7건이 같은 Phase 2 diff로 파손된 것을 놓쳤다.
 > - populated Builder 문서에서 Button/ToggleButton Preview↔Skia 초기 paint parity와
 >   Button `Primary → Accent → staticColor Black`의 즉시 Canvas 반영을 확인하고 원복했다.
 >   지정 project `97517aae-…`는 로컬 documents row가 없어 fallback 문서로 열렸으므로 그
@@ -506,6 +508,52 @@ Gate P5:
 >   action/control RAF 0/0, stale callback 0. drag frame apply p95는 `0.4ms`, terminal
 >   projection signature는 `0.5ms`였고 Panel/Preview는 최종 `#B82828`로 일치했다.
 >   실측 후 Button background는 catalog 기본 `#171717`로 원상복구했다.
+
+### Phase 6 — 종결 후 전수 감사와 회귀 3건 정정 (2026-08-25)
+
+Phase 0~5는 focused test 선택으로 gate를 닫았다. 종결 직후 `@composition/specs`와
+`@composition/builder` **전체 스위트**를 다시 돌려 focused 선택이 가린 실패를 분리했다.
+
+| 실패                                    | 건수 | 판정                     | 처리                            |
+| --------------------------------------- | :--: | ------------------------ | ------------------------------- |
+| `skiaPrimitives.overlay.test.ts`         |  24  | 기존 baseline (확인 완료) | 유지 — 본 작업 범위 밖           |
+| `buildSpecNodeData.test.ts` mesh         |  1   | 기존 baseline (확인 완료) | 유지 — 본 작업 범위 밖           |
+| `gridListCardQuiet.test.ts`              |  4   | **Phase 2 회귀**         | production 경계 호출로 전환      |
+| `toggleIndicatorXlCatalog.test.ts`       |  3   | **Phase 2 회귀**         | production 경계 호출로 전환      |
+| `exportSsotGrepGate.test.ts`             |  2   | **Phase 3 회귀**         | gate 제외 패턴 보강              |
+
+Phase 2 note의 "전체 directory 실행에서 남은 기존 baseline은 24 + 1" 서술은 **부정확했다**.
+실제로는 Phase 2가 만든 builder 쪽 파손 7건이 그 옆에 함께 있었고, focused gate가 해당
+파일을 선택하지 않아 드러나지 않았다.
+
+- **Phase 2 회귀 (7건)**: primitive draw fn이 root paint를 필수 주입으로 바뀌었는데
+  `catalogPaintFixture` 이관이 `packages/specs` 안에서만 이뤄졌다. `@composition/specs`의
+  `getSkiaPrimitive`를 직접 부르는 builder 테스트 2개가 `paint` 없이 호출해 TypeError로
+  파손됐다. production 경로는 adapter가 주입하므로 화면 동작 결손은 아니었다.
+  두 파일을 `resolveSkiaCatalogRenderInput` 1회 호출로 전환했다 — 테스트 안에서 paint를
+  다시 조립하면 상태 선택 owner가 둘로 갈리므로, fixture 대신 실제 소비 경로를 통과시킨다.
+  이 전환으로 `gridListCardQuiet`은 원래 목적("정의는 있는데 소비 경로가 안 닿음" 차단)을
+  catalog rule → paint resolver → shape 전 구간에서 지키게 됐다.
+- **Phase 3 회귀 (2건)**: 신규 `useColorStyleValues.test.tsx`가 store를 직접 seed하는 로컬
+  헬퍼를 쓰는데, ADR-116 G4 grep gate의 제외 패턴이 `__tests__/` **디렉터리**만 걸러
+  co-located `*.test.tsx`는 스캔 대상이었다. baseline 0 → 8. gate 대상은 production write
+  site이므로 제외 패턴에 `\.test\.tsx?$`를 추가했다 (production 파일은 이 확장자를 갖지
+  않으므로 D18=A 격리 강도 불변).
+
+정정 후 builder 4,353건 중 실패 1건(mesh, 기존 baseline), specs 721건 중 실패 24건(overlay,
+기존 baseline)이며 `pnpm type-check`는 신규 위반 0이다.
+
+**남은 커버리지 gap** (본 작업 범위로 닫지 않음, 후속 판단 대상):
+
+- §9 Link 행 전용 resolver/panel test 부재 — 8,244-case shadow에 Link variant가 포함돼
+  간접 커버되지만 "행마다 단위 test" 조건은 미충족.
+- §9 Modified Styles 행의 `hex`/`rgb` seed 케이스 부재 (`var(--token)` 2건, `transparent`는
+  `useColorStyleValues.test.tsx`에 존재).
+- `resolveCatalogPaint.shadow.test.ts`의 legacy oracle은 구 `buildCatalogShapes`를 호출하지
+  않고 test 파일 안에 재작성한 전사본이다. 회귀 감시로는 유효하나 독립 oracle이 아니므로
+  "8,244-case parity"의 증거 강도는 문서 서술보다 낮다.
+- `CSSGenerator.snapshot.test.ts`의 obsolete snapshot `Image 1` 1건.
+
 
 ## 7. 위험
 
