@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [단축키·설정 진입점을 헤더 좌측 메뉴로 — 상시 노출 토글 2개 제거] - 2026-08-25
+
+### Changed
+
+- 헤더 우측 토글 버튼 그룹의 **단축키(Command Palette) 버튼을 제거**하고 좌측 메뉴
+  팝오버의 `Shortcuts` 항목(⌘K 표기, Help 바로 위)으로 옮겼다. 여는 경로는 종전과 같은
+  `open-command-palette` 이벤트라 ⌘K 단축키·팔레트 동작은 그대로다. 우측 토글 5개 → 4개
+  (Compare / Workflow / Preview / Monitor).
+- 좌측 레일(PanelNav)의 **설정 토글 아이콘을 제거**하고 같은 메뉴의 `Settings` 항목
+  (Reset Panel Layout 아래)으로 옮겼다. 좌측 레일 아이콘 6개 → 5개.
+- 설정 패널은 **등록 해제하지 않았다** — `PanelConfig.hiddenFromRail` 플래그를 추가해
+  레일 아이콘만 빼고 등록·배치는 유지한다. `activatePanelWorkspacePanelV3` 가 railOrder
+  파생 placement 를 요구하므로 등록을 빼면 메뉴·커맨드 팔레트에서도 열 수 없게 된다.
+  도킹/floating 표시 모드와 저장된 레이아웃은 그대로다.
+- **Why**: 둘 다 저빈도 진입점인데 상시 노출 칸을 하나씩 차지하고 있었다. 폰트 관리를
+  피커 안 모달로 옮긴 것(같은 날 앞 엔트리)과 같은 방향 — 관리·보조 표면은 메뉴로,
+  상시 칸은 편집 중 반복해서 누르는 것에만 준다.
+
+### Verification
+
+- 라이브 빌더(localhost:5173): 좌측 레일 aria-label 이 노드/컴포넌트/데이터테이블/
+  데이터테이블 에디터/테마 5개로 설정이 빠졌고, 헤더 메뉴에서 `Settings` 클릭 시 설정
+  패널이 실제로 열리는 것(제목 `Settings` + Rulers & Guides / Theme & Appearance 본문)과
+  다시 클릭 시 닫히는 것까지 확인했다. 같은 세션에서 `Shortcuts` 항목이 명령어 팔레트
+  (71개 명령어)를 여는 것도 확인, 콘솔 에러 0.
+- `pnpm type-check` PASS(신규 위반 0). `vitest run src/builder/{layout,panels}
+src/builder/hooks/usePanelLayout.test.tsx` 110 파일 / 1,083 케이스 PASS.
+
 ## [폰트 관리 진입점을 Font Family 피커 안으로 — 도킹 패널에서 모달로] - 2026-08-25
 
 ### Changed

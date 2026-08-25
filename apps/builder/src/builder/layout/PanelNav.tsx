@@ -41,7 +41,9 @@ export const PanelNav = memo(function PanelNav({
       <ul className="nav-list">
         {panelIds.map((panelId) => {
           const panelConfig = PanelRegistry.getPanel(panelId);
-          if (!panelConfig) return null;
+          // `hiddenFromRail` 패널은 배치는 유지하되 아이콘만 뺀다 — 진입점이
+          // 헤더 메뉴/커맨드 팔레트에 따로 있는 저빈도 패널 (settings 등).
+          if (!panelConfig || panelConfig.hiddenFromRail) return null;
 
           const Icon = panelConfig.icon;
           const isActive = activePanels.includes(panelId);

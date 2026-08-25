@@ -134,6 +134,9 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     description: "앱 설정 및 환경설정",
     shortcut: "Ctrl+,",
     displayModes: ["panel", "floating"],
+    // 진입점은 2026-08-25 에 헤더 좌측 메뉴로 옮겼다 — 저빈도 작업이라 좌측
+    // 레일 한 칸을 상주로 차지할 이유가 없다. 패널 배치·토글 경로는 그대로다.
+    hiddenFromRail: true,
   },
 
   {

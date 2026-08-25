@@ -14,6 +14,7 @@ import {
   CircleHelp,
   Info,
   Columns,
+  Settings,
 } from "lucide-react";
 import {
   MenuTrigger,
@@ -115,6 +116,9 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               className="header-menu"
               onAction={(key: Key) => {
                 if (key === "reset-panel-layout") resetWorkspaceLayout();
+                if (key === "settings") togglePanel("settings");
+                if (key === "shortcuts")
+                  window.dispatchEvent(new CustomEvent("open-command-palette"));
               }}
             >
               <MenuItem id="open" className="header-menu-item">
@@ -140,7 +144,16 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 <Columns size={14} />
                 <span>Reset Panel Layout</span>
               </MenuItem>
+              <MenuItem id="settings" className="header-menu-item">
+                <Settings size={14} />
+                <span>Settings</span>
+              </MenuItem>
               <Separator className="header-menu-separator" />
+              <MenuItem id="shortcuts" className="header-menu-item">
+                <Command size={14} />
+                <span>Shortcuts</span>
+                <Keyboard>⌘K</Keyboard>
+              </MenuItem>
               <MenuItem id="help" className="header-menu-item">
                 <CircleHelp size={14} />
                 <span>Help</span>
@@ -313,19 +326,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             onPress={() => togglePanel("monitor")}
           >
             <Monitor
-              color={iconProps.color}
-              strokeWidth={iconProps.strokeWidth}
-              size={iconProps.size}
-            />
-          </ToggleButton>
-          <ToggleButton
-            id="shortcuts"
-            aria-label="Command Palette"
-            onPress={() =>
-              window.dispatchEvent(new CustomEvent("open-command-palette"))
-            }
-          >
-            <Command
               color={iconProps.color}
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}

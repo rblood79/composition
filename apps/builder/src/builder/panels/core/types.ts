@@ -134,6 +134,14 @@ export interface PanelConfig {
 
   /** 지원하는 표시 모드 목록 (기본: ['panel']) */
   displayModes?: PanelDisplayMode[];
+
+  /**
+   * 레일(PanelNav) 아이콘 노출에서 제외한다 (기본: false).
+   *
+   * 패널 자체는 그대로 등록·배치되므로 `togglePanel(id)` 로 여는 다른 진입점
+   * (헤더 메뉴 / 커맨드 팔레트) 은 계속 동작한다 — 상주 아이콘 한 칸만 뺀다.
+   */
+  hiddenFromRail?: boolean;
 }
 
 /**
