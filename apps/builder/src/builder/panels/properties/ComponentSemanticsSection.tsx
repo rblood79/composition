@@ -7,7 +7,10 @@ import { PropertySection } from "../../components";
 import { useStore } from "../../stores";
 import { globalToast } from "../../stores/toast";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
-import { resolveReference } from "../../../utils/component/referenceResolution";
+import {
+  resolveReference,
+  type ReferenceResolvable,
+} from "../../../utils/component/referenceResolution";
 import {
   canDetachInstance,
   getEditingSemanticsImpactInstanceIds,
@@ -29,7 +32,12 @@ function resolveOriginElement(
   elements: Iterable<PanelNode>,
 ): PanelNode | null {
   if (!originId) return null;
-  return resolveReference(originId, elements) ?? null;
+  return (
+    resolveReference(
+      originId,
+      elements as unknown as Iterable<PanelNode & ReferenceResolvable>,
+    ) ?? null
+  );
 }
 
 function getComponentDisplayName(

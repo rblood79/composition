@@ -605,6 +605,7 @@ export class ComponentFactory {
       parentElement,
       pageId,
       elements,
+      doc: { version: "composition-1.0", children: [] },
     };
     return await createColumnGroup(context);
   }

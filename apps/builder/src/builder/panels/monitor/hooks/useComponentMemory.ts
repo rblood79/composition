@@ -158,7 +158,7 @@ export function useComponentMemory(options: UseComponentMemoryOptions = {}) {
 
       memoryInfos.push({
         elementId: el.id,
-        customId: el.customId,
+        customId: el.customId ?? undefined,
         type: el.type,
         depth,
         memoryBytes,

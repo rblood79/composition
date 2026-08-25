@@ -36,8 +36,8 @@
  * mock action 주입 가능.
  */
 
-import type { Element } from "@/types/builder/unified.types";
-import type { Page, Layout } from "@/types/builder/unified.types";
+import type { Element, Page } from "@/types/builder/unified.types";
+import type { Layout } from "@/types/builder/layout.types";
 import type {
   CanonicalNode,
   CanonicalParentId,
@@ -1097,8 +1097,7 @@ function findSlotPathInNode(
   for (const node of nodes) {
     const currentPath = parentPath ? `${parentPath}/${node.id}` : node.id;
     const metadata = node.metadata as
-      | { type?: unknown; slotName?: unknown }
-      | undefined;
+      { type?: unknown; slotName?: unknown } | undefined;
     if (
       metadata?.type === "legacy-slot-hoisted" &&
       metadata.slotName === slotName

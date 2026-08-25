@@ -41,7 +41,7 @@ trap "rm -f '$CURRENT' '$NEW' '$RESOLVED'" EXIT
 {
   pnpm exec tsc -p tsconfig.app.json --noEmit 2>&1 || true
   pnpm exec tsc -p tsconfig.node.json --noEmit 2>&1 || true
-} | grep "error TS" | sort -u > "$CURRENT"
+} | { grep "error TS" || true; } | sort -u > "$CURRENT"
 
 # baseline 에 없는 새 위반
 comm -23 "$CURRENT" "$BASELINE" > "$NEW"

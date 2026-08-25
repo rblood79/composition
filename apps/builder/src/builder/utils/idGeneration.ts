@@ -1,5 +1,3 @@
-import type { Element } from "../../types/builder/unified.types";
-
 const CUSTOM_ID_BASE_PATTERN = /^([a-zA-Z][a-zA-Z0-9-]*)_\d+$/;
 
 function escapeRegExp(value: string): string {
@@ -26,7 +24,7 @@ export function getCustomIdBase(customId: string | undefined): string | null {
  */
 export function generateCustomId(
   type: string,
-  pageElements: Element[],
+  pageElements: Array<{ customId?: string | null }>,
 ): string {
   // Convert type to lowercase for ID format
   const tagLower = normalizeCustomIdBase(type);

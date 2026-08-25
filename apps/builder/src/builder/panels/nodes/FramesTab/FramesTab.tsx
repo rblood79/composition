@@ -43,7 +43,6 @@ import type { ElementProps } from "../../../../types/integrations/supabase.types
 import type { PanelNode } from "../../panelNode";
 import { buildTreeFromElements } from "../../../utils/treeUtils";
 import { MessageService } from "../../../../utils/messaging";
-import { getDB } from "../../../../lib/db";
 import { useTreeExpandState } from "@/builder/hooks";
 import {
   isWebGLCanvas,
@@ -51,6 +50,7 @@ import {
 } from "../../../../utils/featureFlags";
 
 const EMPTY_ELEMENTS: PanelNode[] = [];
+type LegacyFrameElement = Parameters<typeof buildTreeFromElements>[0][number];
 
 function collectCanonicalFrameElements(
   canonicalElements: PanelNode[] | null,
@@ -75,6 +75,14 @@ function findFrameBodyElement(elements: PanelNode[]): PanelNode | null {
   return (
     elements.find((element) => element.type === "body") ?? elements[0] ?? null
   );
+}
+
+function toLegacyFrameElement(element: PanelNode): LegacyFrameElement {
+  return {
+    ...element,
+    customId: element.customId ?? undefined,
+    componentName: element.componentName ?? undefined,
+  };
 }
 
 interface FramesTabProps {
@@ -169,11 +177,7 @@ export function FramesTab({
     const loadSelectedFrameElements = async () => {
       loadingFrameIdsRef.current.add(selectedReusableFrameId);
       try {
-        const db = await getDB();
-        const frameElements = await loadFrameElements(
-          db,
-          selectedReusableFrameId,
-        );
+        const frameElements = await loadFrameElements(selectedReusableFrameId);
         if (frameElements.length > 0) {
           mergeElementsCanonicalPrimary(frameElements);
           loadedFrameIdsRef.current.add(selectedReusableFrameId);
@@ -231,11 +235,10 @@ export function FramesTab({
 
     const loadMissingFrameElements = async () => {
       try {
-        const db = await getDB();
         const frameElementGroups = await Promise.all(
           missingFrameIds.map(async (frameId) => ({
             frameId,
-            elements: await loadFrameElements(db, frameId),
+            elements: await loadFrameElements(frameId),
           })),
         );
         const liveFrameIds = new Set(reusableFrames.map((frame) => frame.id));
@@ -295,8 +298,13 @@ export function FramesTab({
 
   // Frame 요소 트리 빌드
   const frameElementTree = useMemo(() => {
-    return buildTreeFromElements(frameElements);
+    return buildTreeFromElements(frameElements.map(toLegacyFrameElement));
   }, [frameElements]);
+
+  const legacyFrameElements = useMemo(
+    () => frameElements.map(toLegacyFrameElement),
+    [frameElements],
+  );
 
   // Frame 전용 트리 펼치기/접기 상태
   const {
@@ -306,8 +314,13 @@ export function FramesTab({
     expandKey,
   } = useTreeExpandState({
     selectedElementId,
-    elements: frameElements,
+    elements: legacyFrameElements,
   });
+
+  const expandedStringKeys = useMemo(
+    () => new Set([...expandedKeys].map(String)),
+    [expandedKeys],
+  );
 
   // Frame 전환 시 body 자동 펼치기 + 선택
   const prevFrameIdRef = React.useRef<string | null>(null);
@@ -402,8 +415,7 @@ export function FramesTab({
       loadingFrameIdsRef.current.add(frameId);
 
       try {
-        const db = await getDB();
-        const frameElements = await loadFrameElements(db, frameId);
+        const frameElements = await loadFrameElements(frameId);
         if (requestId !== frameSelectRequestRef.current) {
           return;
         }
@@ -520,7 +532,7 @@ export function FramesTab({
         tree={frameElementTree}
         frameId={currentFrame?.id ?? null}
         selectedElementId={selectedElementId}
-        expandedKeys={expandedKeys}
+        expandedKeys={expandedStringKeys}
         toggleKey={toggleKey}
         onCollapseAll={collapseFrameTree}
         onElementClick={(el) => {

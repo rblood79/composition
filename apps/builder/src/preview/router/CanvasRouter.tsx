@@ -232,14 +232,7 @@ export function CanvasRouter({ renderElements, children }: CanvasRouterProps) {
           },
           pageLayoutId,
         ),
-        layout: layout
-          ? {
-              id: layout.id,
-              name: layout.name,
-              project_id: "",
-              slug: layout.slug || undefined,
-            }
-          : null,
+        layout: layout ? { slug: layout.slug || undefined } : null,
         allPages: pagesAsPage,
       });
 

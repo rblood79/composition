@@ -41,6 +41,8 @@ import { buildLegacyElementMetadata } from "./legacyMetadata";
 import { buildIdPathContext, segId } from "./idPath";
 import { getCanonicalSlotDeclaration } from "./slotDeclaration";
 import { sortElementsBySource } from "../../builder/utils/elementOrdering";
+import { getElementSlotName } from "./legacyElementFields";
+import { getNullablePageFrameBindingId } from "./frameMirror";
 
 /**
  * ADR-116 Phase 5 G7 본격 cutover (2026-05-01) — element.events / dataBinding
@@ -75,8 +77,7 @@ function buildCompositionExtensionField(element: Element): {
  */
 export const convertSlotElement: ConvertSlotElementFn = (slotElement) => {
   const props = slotElement.props as Partial<{ name: string }>;
-  const slotName =
-    props.name ?? slotElement.slot_name ?? undefined ?? "content";
+  const slotName = props.name ?? getElementSlotName(slotElement) ?? "content";
   return {
     slotMeta: [], // 빈 배열 = "slot 정의는 있으나 추천 reusable IDs 미지정"
     slotName,
@@ -105,12 +106,13 @@ export const convertPageLayout: ConvertPageLayoutFn = (
   pageElements,
   slotPathMap,
 ) => {
-  if (!page.layout_id) return null;
+  const layoutId = getNullablePageFrameBindingId(page);
+  if (!layoutId) return null;
 
-  const layout = layouts.find((l) => l.id === page.layout_id);
+  const layout = layouts.find((l) => l.id === layoutId);
   if (!layout) {
     console.warn(
-      `[ADR-903 adapter] page ${page.id} references unknown layout ${page.layout_id}`,
+      `[ADR-903 adapter] page ${page.id} references unknown layout ${layoutId}`,
     );
     return null;
   }
@@ -119,7 +121,7 @@ export const convertPageLayout: ConvertPageLayoutFn = (
   const pageRoots = pageElements.filter((e) => e.parent_id == null);
   const bySlotName = new Map<string, Element[]>();
   for (const el of pageRoots) {
-    const slot = el.slot_name ?? "content"; // default slot
+    const slot = getElementSlotName(el) ?? "content"; // default slot
     const arr = bySlotName.get(slot) ?? [];
     arr.push(el);
     bySlotName.set(slot, arr);
@@ -188,7 +190,7 @@ export function buildSlotPathMap(
     if (!isLegacySlotTag(el.type)) continue;
     const fullPath = layoutIdPathMap.get(el.id) ?? el.id;
     const props = el.props as Partial<{ name: string }>;
-    const slotName = props.name ?? el.slot_name ?? "content";
+    const slotName = props.name ?? getElementSlotName(el) ?? "content";
     slotPathMap.set(slotName, fullPath);
   }
   return slotPathMap;
@@ -272,7 +274,7 @@ function convertElementToCanonical(
       props: { ...element.props },
       metadata: {
         type: "legacy-slot",
-        slot_name: element.slot_name ?? null,
+        slot_name: getElementSlotName(element),
       },
       children: childElements.map((c) =>
         convertElementToCanonical(c, allElements, idSegmentMap),
@@ -319,7 +321,7 @@ function convertElementWithSlotHoisting(
 ): CanonicalNode {
   if (isLegacySlotTag(element.type)) {
     const props = element.props as Partial<{ name: string }>;
-    const slotName = props.name ?? element.slot_name ?? undefined ?? "content";
+    const slotName = props.name ?? getElementSlotName(element) ?? "content";
     return {
       // slot frame id 는 segment-only (resolver path traverse 와 정합).
       id: segId(element.id, idSegmentMap),

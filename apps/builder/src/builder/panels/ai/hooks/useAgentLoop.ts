@@ -197,7 +197,7 @@ export function useAgentLoop() {
    * Agent 중단
    */
   const stopAgent = useCallback(() => {
-    agent.stop();
+    agent?.stop();
     useAIVisualFeedbackStore.getState().cancelGenerating();
     setAgentRunning(false);
     setStreamingStatus(false);

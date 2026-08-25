@@ -144,14 +144,7 @@ export function AddPageDialog({
 
     return generatePageUrl({
       page: tempPage,
-      layout: layout
-        ? {
-            id: layout.id,
-            name: layout.name,
-            project_id: layout.project_id,
-            slug: layout.slug || undefined,
-          }
-        : null,
+      layout: layout ? { slug: layout.slug || undefined } : null,
       allPages: pages.map(toUrlPage),
     });
   }, [title, slug, layoutId, parentId, layouts, pages]);

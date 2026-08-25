@@ -346,7 +346,10 @@ function buildInstanceDescendantPatches(
   if (!isInspectorInstanceElement(element)) return null;
 
   const current = getComponentDescendantsMirror(element) ?? {};
-  const next: Record<string, Record<string, unknown>> = { ...current };
+  const next: Record<string, Record<string, unknown>> = {};
+  for (const [path, patch] of Object.entries(current)) {
+    if (isRecord(patch)) next[path] = patch;
+  }
   let hasMappedChildPatch = false;
 
   for (const update of childUpdates) {

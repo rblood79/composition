@@ -62,14 +62,14 @@ export interface SavePayload {
 export class SaveService {
   private static instance: SaveService;
   private validationErrors: ValidationError[] = [];
-  private statusMessage: string = '';
+  private statusMessage: string = "";
   private metrics: PerformanceMetrics = {
     saveOperations: 0,
     averageSaveTime: 0,
     skipCounts: {
       preview: 0,
-      validation: 0
-    }
+      validation: 0,
+    },
   };
 
   private constructor() {}
@@ -115,7 +115,9 @@ export class SaveService {
   /**
    * 값 직렬화 가능성 검증
    */
-  private validateSerializable(data: Record<string, unknown>): Record<string, unknown> {
+  private validateSerializable(
+    data: Record<string, unknown>,
+  ): Record<string, unknown> {
     const validatedData: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(data)) {
@@ -124,10 +126,10 @@ export class SaveService {
         validatedData[key] = value;
       } catch {
         this.validationErrors.push({
-          elementId: 'unknown',
+          elementId: "unknown",
           field: key,
-          message: '직렬화 불가능한 값입니다.',
-          timestamp: new Date()
+          message: "직렬화 불가능한 값입니다.",
+          timestamp: new Date(),
         });
         this.metrics.skipCounts.validation++;
         this.statusMessage = `⚠️ 직렬화 불가능한 값 감지 - 필드: ${key}`;
@@ -145,10 +147,15 @@ export class SaveService {
 
     try {
       const db = await getDB();
-      await db[table].update(id, data);
+      if (table !== "projects") {
+        throw new Error(
+          `Legacy save table '${table}' is not available after canonical document cutover`,
+        );
+      }
+      await db.projects.update(id, data);
       this.statusMessage = `✅ [IndexedDB] ${table} 저장 완료: ${id}`;
     } catch (error) {
-      this.statusMessage = `❌ [IndexedDB] 저장 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
+      this.statusMessage = `❌ [IndexedDB] 저장 실패: ${error instanceof Error ? error.message : "알 수 없는 오류"}`;
       console.warn(`⚠️ [IndexedDB] ${table} 저장 중 오류:`, error);
       throw error;
     }
@@ -159,11 +166,14 @@ export class SaveService {
    * @param payload 저장할 데이터 정보
    * @param options 저장 옵션
    */
-  async savePropertyChange(payload: SavePayload, options: SaveOptions = {}): Promise<void> {
+  async savePropertyChange(
+    payload: SavePayload,
+    options: SaveOptions = {},
+  ): Promise<void> {
     const startTime = performance.now();
 
     // 프리뷰 상호작용 소스 확인
-    if (options.source === 'preview' && !options.allowPreviewSaves) {
+    if (options.source === "preview" && !options.allowPreviewSaves) {
       this.metrics.skipCounts.preview++;
       return;
     }
@@ -175,9 +185,10 @@ export class SaveService {
       } catch (error) {
         this.validationErrors.push({
           elementId: payload.id,
-          field: Object.keys(payload.data)[0] || 'unknown',
-          message: error instanceof Error ? error.message : '알 수 없는 검증 오류',
-          timestamp: new Date()
+          field: Object.keys(payload.data)[0] || "unknown",
+          message:
+            error instanceof Error ? error.message : "알 수 없는 검증 오류",
+          timestamp: new Date(),
         });
         return;
       }
@@ -190,7 +201,8 @@ export class SaveService {
     const endTime = performance.now();
     this.metrics.saveOperations++;
     this.metrics.averageSaveTime =
-      (this.metrics.averageSaveTime * (this.metrics.saveOperations - 1) + (endTime - startTime)) /
+      (this.metrics.averageSaveTime * (this.metrics.saveOperations - 1) +
+        (endTime - startTime)) /
       this.metrics.saveOperations;
   }
 
@@ -203,8 +215,8 @@ export class SaveService {
       averageSaveTime: 0,
       skipCounts: {
         preview: 0,
-        validation: 0
-      }
+        validation: 0,
+      },
     };
     this.statusMessage = "📊 SaveService 성능 메트릭이 리셋되었습니다.";
   }
@@ -217,15 +229,21 @@ export class SaveService {
     validationErrors: ValidationError[];
     summary: string;
   } {
-    const totalSkips = this.metrics.skipCounts.preview + this.metrics.skipCounts.validation;
-    const successRate = this.metrics.saveOperations > 0 ?
-      ((this.metrics.saveOperations - this.validationErrors.length) / this.metrics.saveOperations * 100).toFixed(2) :
-      "100.00";
+    const totalSkips =
+      this.metrics.skipCounts.preview + this.metrics.skipCounts.validation;
+    const successRate =
+      this.metrics.saveOperations > 0
+        ? (
+            ((this.metrics.saveOperations - this.validationErrors.length) /
+              this.metrics.saveOperations) *
+            100
+          ).toFixed(2)
+        : "100.00";
 
     return {
       metrics: this.metrics,
       validationErrors: this.validationErrors,
-      summary: `저장 작업: ${this.metrics.saveOperations}회, 평균 시간: ${this.metrics.averageSaveTime.toFixed(2)}ms, 건너뜀: ${totalSkips}회, 성공률: ${successRate}%`
+      summary: `저장 작업: ${this.metrics.saveOperations}회, 평균 시간: ${this.metrics.averageSaveTime.toFixed(2)}ms, 건너뜀: ${totalSkips}회, 성공률: ${successRate}%`,
     };
   }
 }
@@ -238,12 +256,14 @@ export const saveService = SaveService.getInstance();
 /**
  * 개발용 성능 모니터링 유틸리티 (콘솔에서 사용 가능)
  */
-if (typeof window !== 'undefined') {
-  (window as Window & typeof globalThis & { saveServiceUtils?: unknown }).saveServiceUtils = {
+if (typeof window !== "undefined") {
+  (
+    window as Window & typeof globalThis & { saveServiceUtils?: unknown }
+  ).saveServiceUtils = {
     getReport: () => saveService.getDetailedReport(),
     getMetrics: () => saveService.getPerformanceMetrics(),
     getValidationErrors: () => saveService.getValidationErrors(),
     resetMetrics: () => saveService.resetMetrics(),
-    clearValidationErrors: () => saveService.clearValidationErrors()
+    clearValidationErrors: () => saveService.clearValidationErrors(),
   };
 }

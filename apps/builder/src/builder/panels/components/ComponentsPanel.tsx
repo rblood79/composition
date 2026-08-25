@@ -19,12 +19,16 @@ import { belongsToLegacyLayout } from "../../../adapters/canonical";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
 import type { CompositionDocument } from "@composition/shared";
-import type { PanelNode } from "../panelNode";
+import type { Element } from "../../../types/core/store.types";
 
-function getComponentsPanelElements(doc: CompositionDocument): PanelNode[] {
-  const elements: PanelNode[] = [];
+function getComponentsPanelElements(doc: CompositionDocument): Element[] {
+  const elements: Element[] = [];
   visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
+    elements.push({
+      ...element,
+      customId: element.customId ?? undefined,
+      componentName: element.componentName ?? undefined,
+    });
   });
   return elements;
 }

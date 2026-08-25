@@ -55,10 +55,16 @@ import { generateCustomId } from "../../utils/idGeneration";
 
 type CanonicalElementFields = {
   children?: unknown;
+  reusable?: boolean;
+  [COMPONENT_ROLE_MIRROR_FIELD]?: "master" | "instance";
+  [COMPONENT_MASTER_ID_MIRROR_FIELD]?: string;
+  [COMPONENT_OVERRIDES_MIRROR_FIELD]?: Record<string, unknown>;
   [COMPONENT_DESCENDANTS_MIRROR_FIELD]?: Record<string, unknown>;
   metadata?: { type?: string; [key: string]: unknown };
   ref?: unknown;
 };
+
+type CanonicalElement = Element & CanonicalElementFields;
 
 function asCanonicalElement(
   element: Element,
@@ -201,8 +207,8 @@ function propsFromCanonicalOverride(
   return isRecord(override.props) ? override.props : props;
 }
 
-function stripCanonicalRuntimeFields(element: Element): Element {
-  const clone = { ...element } as Element & CanonicalElementFields;
+function stripCanonicalRuntimeFields(element: CanonicalElement): Element {
+  const clone = { ...element } as CanonicalElement;
   delete clone.children;
   delete clone[COMPONENT_DESCENDANTS_MIRROR_FIELD];
   delete clone.metadata;
@@ -513,17 +519,17 @@ function buildLegacyDetachSnapshot(
     };
   }
 
+  const detachedInstance: CanonicalElement = {
+    ...instance,
+    props: mergedProps,
+    [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
+    [COMPONENT_MASTER_ID_MIRROR_FIELD]: undefined,
+    [COMPONENT_OVERRIDES_MIRROR_FIELD]: undefined,
+    [COMPONENT_DESCENDANTS_MIRROR_FIELD]: undefined,
+  };
+
   return {
-    elements: [
-      {
-        ...instance,
-        props: mergedProps,
-        [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
-        [COMPONENT_MASTER_ID_MIRROR_FIELD]: undefined,
-        [COMPONENT_OVERRIDES_MIRROR_FIELD]: undefined,
-        [COMPONENT_DESCENDANTS_MIRROR_FIELD]: undefined,
-      },
-    ],
+    elements: [detachedInstance],
     previousElements: [{ ...instance }],
   };
 }
@@ -680,7 +686,7 @@ export function createInstance(
   // undefined 로 변경, 신규 legacy instance 는 IndexedDB 에 해당 field 자체를
   // 저장하지 않음 (read site 는 isRecord 검사 후 fallback 으로 안전).
   // legacy role 분기 자체는 ADR-111 P3 cleanup 영역.
-  const instanceElement: Element = {
+  const instanceElement: CanonicalElement = {
     id: uuidv4(),
     type: master.type,
     customId: generateCustomId(master.type, sourceElements),
@@ -798,7 +804,7 @@ export async function toggleComponentOrigin(
 
   const role = getEditingSemanticsRole(element);
   if (role !== "origin") {
-    const nextElement: Element = {
+    const nextElement: CanonicalElement = {
       ...element,
       componentName: getComponentNameForElement(element),
       reusable: true,
@@ -840,7 +846,7 @@ export async function toggleComponentOrigin(
     if (!t1Confirmed) return null;
   }
 
-  const nextOrigin: Element = {
+  const nextOrigin: CanonicalElement = {
     ...latestElement,
     [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
     reusable: false,
@@ -893,7 +899,7 @@ export function resetInstanceOverrideField(
   if (!instance || !fieldKey) return null;
 
   const previousState = { ...instance };
-  let nextElement: Element | null = null;
+  let nextElement: CanonicalElement | null = null;
 
   if (descendantPath && instance.type === "ref") {
     const legacyDescendantMap = getComponentDescendantsMirror(instance);

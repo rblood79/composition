@@ -1,5 +1,9 @@
 import type { Element } from "../../types/core/store.types";
-import type { ElementWithLegacyMirror } from "./legacyElementFields";
+import {
+  getElementLayoutId,
+  getElementSlotName,
+  type ElementWithLegacyMirror,
+} from "./legacyElementFields";
 
 // (ADR-128) `SupabaseElement` interface + `sanitizeElementForSupabase` 함수는
 // Supabase `elements` row schema (snake_case) 변환 전용으로, cloud data layer
@@ -61,7 +65,7 @@ function withSerializableElementFields(element: Element): Element {
 export const sanitizeElement = (element: Element): Element => {
   // ADR-903 P3-B 안전망 #2: page_id/layout_id 미설정 element dev-only 경고
   // P3-D canonical parent 전환 후 이 경고 발생 시 adapter 누락 점검 필요
-  if (import.meta.env.DEV && !element.page_id && !element.layout_id) {
+  if (import.meta.env.DEV && !element.page_id && !getElementLayoutId(element)) {
     console.warn(
       "[ADR-903] sanitizeElement: page_id/layout_id 없음 — canonical parent 의존 element?",
       element.id,
@@ -81,8 +85,8 @@ export const sanitizeElement = (element: Element): Element => {
       props: {},
       parent_id: element.parent_id,
       page_id: element.page_id || "",
-      layout_id: element.layout_id || null, // ⭐ Layout/Slot System: layout_id 포함
-      slot_name: element.slot_name || null,
+      layout_id: getElementLayoutId(element), // ⭐ Layout/Slot System: layout_id 포함
+      slot_name: getElementSlotName(element),
       dataBinding: element.dataBinding,
       events: element.events,
       componentRole: (element as ElementWithCanonicalFields).componentRole,

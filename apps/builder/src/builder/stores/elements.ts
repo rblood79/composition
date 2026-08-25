@@ -498,7 +498,9 @@ function getElementForItemsAction(
   elementId: string,
 ): Element | undefined {
   const state = get();
-  return findElementById(getCanonicalOrStoreElements(state), elementId);
+  return (
+    findElementById(getCanonicalOrStoreElements(state), elementId) ?? undefined
+  );
 }
 
 // Builder type-check gate가 기존 legacy 오류를 source line으로 식별하므로,
