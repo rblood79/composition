@@ -24,36 +24,41 @@
   min-height: 0;
 }
 
-/* 탭 줄 — 타이틀 줄과 같은 .panel-header 골격에 가로 여백만 얹는다. */
+/* 탭 줄 — 타이틀 줄과 같은 .panel-header 골격 안에 세그먼트 하나를 통째로 얹는다.
+   복사/붙여넣기는 타이틀 줄 우측에 그대로 두므로 이 줄은 탭이 전부 차지한다. */
 .styles-panel-tabrow {
-  gap: var(--spacing-xs);
-  padding: 0 var(--spacing-xs) 0 var(--spacing-xs);
+  padding: 0 var(--spacing-sm);
 }
 
-/* 회색 트랙 위의 세그먼트 — 4개 탭이 트랙 하나를 나눠 쓴다. */
+/* 트랙 치수는 이 패널의 ToggleButtonGroup(세그먼트 컨트롤)과 동일하다 —
+   28px 높이 / 4px 안쪽 여백 / 8px 간격 / radius-md / muted 트랙 + inset shadow.
+   같은 패널 안에서 같은 역할(배타 선택)을 하는 컨트롤이 서로 다른 치수를 쓰면
+   탭만 이물질로 읽힌다. 값을 바꾸려면 form-controls.css 의 세그먼트 정의와 함께 옮길 것. */
 .styles-panel-tablist {
   display: flex;
-  flex: 1;
-  min-width: 0;
-  gap: 2px;
-  padding: 2px;
+  align-items: center;
+  width: 100%;
+  height: var(--inspector-control-size, 28px);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs);
   border-radius: var(--radius-md);
-  background: var(--bg-muted);
+  background-color: var(--bg-muted);
   box-shadow: var(--inset-shadow-sm);
 }
 
-/* 비선택 탭은 아이콘 폭만 쓴다(flex 고정). 선택 탭만 남는 폭을 가져간다. */
+/* 비선택 탭은 세그먼트 버튼과 같은 20px 정사각(아이콘 폭)만 쓴다.
+   선택 탭만 남는 폭을 가져가 라벨 자리를 만든다. */
 .styles-panel-tab {
   position: relative;
   flex: 0 0 auto;
   min-width: 0;
-  height: 22px;
-  padding: 0 4px;
+  height: 20px;
+  padding: var(--spacing-xs);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
-  border-radius: var(--radius-sm);
+  gap: var(--spacing-sm);
+  border-radius: var(--radius-md);
   color: var(--fg-muted);
   cursor: pointer;
   outline: none;
@@ -70,20 +75,20 @@
 
 .styles-panel-tab[data-selected] {
   flex: 1 1 auto;
-  padding: 0 var(--spacing-xs);
   background: var(--bg-overlay);
   color: var(--fg);
   box-shadow: var(--shadow-sm);
 }
 
-/* 패널을 좁히면 라벨만 말줄임으로 줄고 아이콘은 남는다. */
+/* 패널을 좁히면 라벨만 말줄임으로 줄고 아이콘은 남는다.
+   글자 크기·굵기도 세그먼트 버튼과 같은 12px / regular. */
 .styles-panel-tab-label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--text-2xs);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
 }
 
 /* 지금 안 보이는 그룹에 수정된 값이 있다는 표시. */

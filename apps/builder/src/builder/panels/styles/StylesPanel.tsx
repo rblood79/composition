@@ -185,33 +185,28 @@ function StylesPanelContent() {
         actions={
           <>
             {focusMode && <span className="focus-mode-indicator">Focus</span>}
+            {/* 수정 개수는 아이콘 옆 텍스트 대신 tooltip 으로 — 헤더가 요소 이름과 자리를 다투지 않는다.
+                "어느 그룹이 수정됐나" 는 탭 dot 이 답한다. */}
             <ActionIconToggleButton
               isSelected={filter === "modified"}
               onChange={() =>
                 setFilter((prev) => (prev === "modified" ? "all" : "modified"))
               }
-              aria-label="Modify"
-              tooltip="수정된 스타일"
+              aria-label={
+                modifiedCount > 0 ? `Modify (${modifiedCount})` : "Modify"
+              }
+              tooltip={
+                modifiedCount > 0
+                  ? `수정된 스타일 ${modifiedCount}개`
+                  : "수정된 스타일"
+              }
             >
               <PencilRuler
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
               />
-              {modifiedCount > 0 && `modify ${modifiedCount}`}
             </ActionIconToggleButton>
-          </>
-        }
-      />
-
-      <Tabs
-        className="styles-panel-groups"
-        selectedKey={group}
-        onSelectionChange={handleGroupChange}
-      >
-        <div className="panel-header styles-panel-tabrow">
-          <StylesPanelTabs dirtyGroups={dirtyGroups} />
-          <div className="panel-actions">
             <ActionIconButton
               onPress={handleCopyStyles}
               aria-label="Copy styles"
@@ -235,7 +230,17 @@ function StylesPanelContent() {
                 strokeWidth={iconProps.strokeWidth}
               />
             </ActionIconButton>
-          </div>
+          </>
+        }
+      />
+
+      <Tabs
+        className="styles-panel-groups"
+        selectedKey={group}
+        onSelectionChange={handleGroupChange}
+      >
+        <div className="panel-header styles-panel-tabrow">
+          <StylesPanelTabs dirtyGroups={dirtyGroups} />
         </div>
 
         {STYLE_GROUP_IDS.map((id) => (
