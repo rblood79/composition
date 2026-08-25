@@ -13,6 +13,8 @@ import { useAppearanceValues } from "./useAppearanceValues";
 import { useTypographyValues } from "./useTypographyValues";
 import { clearSpecPresetCache } from "../utils/specPresetResolver";
 
+const PICKER_TRANSPARENT = "#00000000";
+
 function makeElement(
   id: string,
   type: string,
@@ -92,7 +94,7 @@ describe("Style Panel catalog color values", () => {
     const typography = renderHook(() => useTypographyValues("button-1"));
 
     expect(appearance.result.current).toMatchObject({
-      backgroundColor: "transparent",
+      backgroundColor: PICKER_TRANSPARENT,
       borderColor: lightColors["border-hover"],
     });
     expect(typography.result.current?.color).toBe(lightColors.accent);
@@ -196,16 +198,16 @@ describe("Style Panel catalog color values", () => {
         expect(actual).toEqual([
           {
             backgroundColor: boldBackground,
-            borderColor: lightColors.transparent,
+            borderColor: PICKER_TRANSPARENT,
             color: boldText,
           },
           {
             backgroundColor: subtleBackground,
-            borderColor: lightColors.transparent,
+            borderColor: PICKER_TRANSPARENT,
             color: hue,
           },
           {
-            backgroundColor: lightColors.transparent,
+            backgroundColor: PICKER_TRANSPARENT,
             borderColor: hue,
             color: hue,
           },

@@ -28,9 +28,14 @@ function toTokenRef(value: string): TokenRef | null {
   return cssVarToTokenRef(value);
 }
 
+function toPickerCompatibleColor(value: string): string {
+  return value.trim().toLowerCase() === "transparent" ? "#00000000" : value;
+}
+
 /**
  * catalog preset의 CSS var를 ColorPicker가 소비 가능한 현재 Skia theme 색상으로 해석한다.
- * inline hex/rgb/transparent 등 이미 파싱 가능한 CSS 색상은 그대로 보존한다.
+ * CSS keyword `transparent`는 React Aria parseColor 경계에서 보존 가능한 hex8로 정규화하고,
+ * 그 밖의 inline hex/rgb 등 이미 파싱 가능한 CSS 색상은 그대로 보존한다.
  */
 export function resolveStylePanelColor(
   value: string,
@@ -38,7 +43,7 @@ export function resolveStylePanelColor(
   accentColor?: TintPreset,
 ): string {
   const token = toTokenRef(value);
-  if (!token) return value;
+  if (!token) return toPickerCompatibleColor(value);
 
   const accentKey = ACCENT_TOKEN_KEYS[token];
   if (accentKey) {
@@ -47,7 +52,9 @@ export function resolveStylePanelColor(
   }
 
   const resolved = resolveToken(token, theme);
-  return typeof resolved === "string" ? resolved : value;
+  return typeof resolved === "string"
+    ? toPickerCompatibleColor(resolved)
+    : value;
 }
 
 export function numToPx(n: number | string | undefined): string | undefined {

@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-912 후속 Phase 5 — Resolved Visual Style 수렴 완료] - 2026-08-25
+
+### Bug Fixes
+
+- catalog의 `transparent` 색상이 Style Panel picker에서 검정으로 표시되던 마지막 결손을
+  수정했다. catalog/raw/CSS 값은 그대로 두고 React Aria ColorPicker 입력 경계에서만 완전
+  투명 hex8(`#00000000`)로 정규화해 Button outline, Badge, Card, ToggleButton의 투명
+  background/border가 정확히 표시된다.
+
+### Architecture
+
+- 존재하지 않는 기존 Builder project ID 대신 `multiroot-live-gate`를 ADR-912 후속의 기준
+  fixture로 고정하고 Button origin/instance, ToggleButton, Badge, Card 대표 요소를 hydration
+  가능한 상태로 보존했다.
+- Canvas, Preview, Style Panel은 계속 같은 catalog paint resolver의 대등한 consumer다.
+  picker 호환 정규화는 Panel concrete 표시 경계에만 있으며 production paint owner나
+  canonical write 경로를 추가하지 않는다.
+
+### Performance
+
+- 추가 경로는 color string 한 건의 O(1) 비교뿐이다. foreground drag에서 action/control RAF
+  `0/0`, drag canonical write `0`, terminal commit `1`, frame apply p95 `0.4ms`, terminal
+  projection signature `0.5ms`로 ADR-187 계약을 유지했다.
+
+### Verification
+
+- shared resolver 10건, Builder panel/Skia/presentation 152건, specs shape/CSS 8건 등 focused
+  170건을 통과했다.
+- hard reload된 Compare Mode에서 Button, Badge(bold/subtle/outline), ToggleButton(default 및
+  selected+emphasized), Card의 Properties→Style Panel→Preview를 대조했고 unified Skia Canvas
+  동시 렌더와 console error/warning `0/0`을 확인했다. 시험 상태는 모두 기본값으로 복구했다.
+
 ## [ADR-912 후속 Phase 4 — Badge Catalog Paint SSOT] - 2026-08-25
 
 ### Architecture

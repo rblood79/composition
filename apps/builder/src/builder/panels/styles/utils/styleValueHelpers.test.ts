@@ -30,6 +30,13 @@ describe("resolveStylePanelColor", () => {
     expect(darkColors.accent).toBe(darkBefore);
   });
 
+  it("transparent catalog 색을 picker가 보존 가능한 완전 투명 hex로 정규화한다", () => {
+    expect(resolveStylePanelColor("{color.transparent}", "light")).toBe(
+      "#00000000",
+    );
+    expect(resolveStylePanelColor("transparent", "dark")).toBe("#00000000");
+  });
+
   it("알 수 없는 CSS variable과 이미 concrete인 색은 원문을 보존한다", () => {
     expect(resolveStylePanelColor("var(--custom-color)", "light")).toBe(
       "var(--custom-color)",
