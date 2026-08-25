@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getSkiaPrimitive } from "@composition/specs";
 import type { Shape, SizeSpec } from "@composition/specs";
 
-import { resolveSkiaVisualRule } from "../resolveSkiaVisualRule";
+import { resolveSkiaCatalogRenderInput } from "../resolveSkiaVisualRule";
 
 /**
  * design-data 감사 §1-2 축② 잔여 — GridList quiet 이 **catalog rule → Skia shape** 까지 이어지는지
@@ -26,15 +26,32 @@ const size = {
 
 const draw = getSkiaPrimitive("gridlist_card")!;
 
-const cardShapes = (variant: string, props: Record<string, unknown> = {}) =>
-  draw({
-    props: { children: "Documents", description: "12 files", ...props },
-    size,
-    visual: resolveSkiaVisualRule("GridListItem", variant),
+// ADR-912 후속 Phase 2 이후 primitive 는 상태 선택을 하지 않고 root paint 를 주입받는다.
+//   quiet 이 catalog rule 에서 Skia shape 까지 닿는지 보려면 입력도 production 경계와
+//   같은 `resolveSkiaCatalogRenderInput` 1회 호출이어야 한다.
+const cardShapes = (variant: string, extra: Record<string, unknown> = {}) => {
+  const props = {
+    children: "Documents",
+    description: "12 files",
+    variant,
     style: { width: 189 },
+    ...extra,
+  };
+  const { visual, paint } = resolveSkiaCatalogRenderInput(
+    "GridListItem",
+    props,
+    "default",
+  );
+  return draw({
+    props,
+    size,
+    visual,
+    paint,
+    style: props.style,
   } as never) as Array<
     Shape & { id?: string; type: string; fill?: string; color?: string }
   >;
+};
 
 const bgOf = (out: ReturnType<typeof cardShapes>) =>
   out.find((s) => s.id === "card-bg") as unknown as {

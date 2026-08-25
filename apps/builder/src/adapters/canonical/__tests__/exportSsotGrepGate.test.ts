@@ -28,6 +28,12 @@ const SCAN_DIRS = [
 
 const EXCLUDE_PATTERNS: readonly RegExp[] = [
   /\/__tests__\//,
+  // 2026-08-25 (ADR-912 후속 Phase 3): 게이트 대상은 **production write site** 다.
+  //   `__tests__/` 디렉터리는 처음부터 제외였지만 co-located `*.test.ts(x)` 는 걸러지지
+  //   않아, store 를 직접 seed 하는 read-only hook test(`useColorStyleValues.test.tsx`)가
+  //   baseline 0 을 8 로 올렸다. production 파일은 이 확장자를 갖지 않으므로 D18=A
+  //   격리 강도는 그대로다.
+  /\.test\.tsx?$/,
   /\/apps\/builder\/src\/adapters\//,
   /\/apps\/builder\/src\/lib\/db\/migration[^/]*\.ts$/,
   /\/apps\/builder\/src\/builder\/utils\/exportLegacyDocument\.ts$/,

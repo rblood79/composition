@@ -8,7 +8,10 @@ import {
   getPhantomIndicatorSpace,
   phantomIndicatorSizeKey,
 } from "../utils";
-import { ruleSizeToSizeSpec } from "../../../skia/resolveSkiaVisualRule";
+import {
+  resolveSkiaCatalogRenderInput,
+  ruleSizeToSizeSpec,
+} from "../../../skia/resolveSkiaVisualRule";
 
 /**
  * design-data 감사 §1-3 toggle 계열 xl 완결 (2026-08-21).
@@ -125,14 +128,24 @@ describe("layout xl 공간 (구 sm|md|lg 캐스트로 xl 이 md fallback 이던 
 });
 
 describe("Skia leg — catalog size → ruleSizeToSizeSpec → primitive 소비", () => {
+  // ADR-912 후속 Phase 2 이후 primitive 는 root paint 를 **주입받는다**(상태 선택 0).
+  //   geometry 단언이 목적이지만 입력은 production 경계(resolveSkiaCatalogRenderInput)와
+  //   같은 visual/paint 를 쓴다 — 여기서 직접 조립하면 owner 가 둘로 갈린다.
   function shapesOf(primitive: string, type: string, size: string): Shape[] {
     const draw = getSkiaPrimitive(primitive)!;
+    const props = { size };
+    const { visual, paint } = resolveSkiaCatalogRenderInput(
+      type,
+      props,
+      "default",
+    );
     return draw({
-      props: {},
+      props,
       size: ruleSizeToSizeSpec(
         sizes(type)[size] as never,
       ) as unknown as SizeSpec,
-      visual: undefined,
+      visual,
+      paint,
       style: undefined,
     } as never) as Shape[];
   }
