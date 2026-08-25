@@ -17,12 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   스냅샷 복원 또는 다른 히스토리 작업 중에는 중복 실행되지 않도록 비활성화한다.
 - 전역 헤더의 현재/전체 히스토리 카운터도 제거해 히스토리 UI를 History 패널로
   일원화했다.
+- CSS에서 항상 숨겨져 있던 breakpoint 크기용 `.code.sizeInfo` 요소와 전용 스타일을
+  제거했다.
 
 ### Verification
 
-- 라이브 Builder(localhost:5173): 전역 chrome 내부 Undo/Redo 버튼과 `history-info`
-  0개, History 패널 액션 순서 `실행 취소 → 다시 실행 → 스냅샷 생성` 확인. Undo/Redo
-  왕복 시 기록 위치가 `26/26 → 25/26 → 26/26`으로 복귀했으며 브라우저 error/warn 0건.
+- 라이브 Builder(localhost:5173): 전역 chrome 내부 Undo/Redo 버튼, `history-info`,
+  `.code.sizeInfo`가 모두 0개이고 Desktop/Tablet/Mobile 선택기는 유지됨을 확인. History
+  패널 액션 순서는 `실행 취소 → 다시 실행 → 스냅샷 생성`이며, Undo/Redo 왕복 시 기록
+  위치가 `26/26 → 25/26 → 26/26`으로 복귀했고 브라우저 error/warn 0건.
 - HistoryPanel/BuilderCore 정적 회귀 테스트 13/13 PASS, `pnpm run codex:preflight` PASS
   (type-check 신규 위반 0, 기존 baseline 43건).
 

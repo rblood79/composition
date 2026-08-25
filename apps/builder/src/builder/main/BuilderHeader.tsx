@@ -160,18 +160,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
       </div>
 
       <div className="header_contents screen">
-        <code className="code sizeInfo">
-          {
-            breakpoints.find((bp) => bp.id === Array.from(breakpoint)[0])
-              ?.max_width
-          }
-          x
-          {
-            breakpoints.find((bp) => bp.id === Array.from(breakpoint)[0])
-              ?.max_height
-          }
-        </code>
-
         <ToggleButtonGroup
           selectionMode="single"
           selectedKeys={breakpoint}

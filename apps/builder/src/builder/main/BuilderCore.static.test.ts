@@ -146,8 +146,13 @@ describe("BuilderHeader history action ownership", () => {
       resolve(__dirname, "BuilderHeader.tsx"),
       "utf-8",
     );
+    const headerCss = await readFile(
+      resolve(__dirname, "../styles/layout/header.css"),
+      "utf-8",
+    );
 
     expect(headerSource).not.toContain('className="history-info"');
+    expect(headerSource).not.toContain('className="code sizeInfo"');
     expect(headerSource).not.toContain("historyInfo:");
     expect(headerSource).not.toContain('shortcutId="undo"');
     expect(headerSource).not.toContain('shortcutId="redo"');
@@ -156,5 +161,6 @@ describe("BuilderHeader history action ownership", () => {
     expect(coreSource).not.toContain("onUndo={handleUndo}");
     expect(coreSource).not.toContain("onRedo={handleRedo}");
     expect(coreSource).not.toContain("historyInfo={{");
+    expect(headerCss).not.toContain(".sizeInfo");
   });
 });
