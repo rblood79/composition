@@ -10,6 +10,8 @@ import {
   Minus,
   Move,
   Pencil,
+  Redo,
+  Undo,
   type LucideIcon,
 } from "lucide-react";
 import { Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
@@ -175,6 +177,16 @@ function HistoryPanelContent() {
     [activeSnapshotId, userSnapshots],
   );
 
+  const handleUndo = useCallback(async () => {
+    if (!historyInfo.canUndo || restoring || historyOperationInProgress) return;
+    await useStore.getState().undo();
+  }, [historyInfo.canUndo, historyOperationInProgress, restoring]);
+
+  const handleRedo = useCallback(async () => {
+    if (!historyInfo.canRedo || restoring || historyOperationInProgress) return;
+    await useStore.getState().redo();
+  }, [historyInfo.canRedo, historyOperationInProgress, restoring]);
+
   const handleCreateSnapshot = useCallback(async () => {
     if (!projectId) return;
     const doc = useCanonicalDocumentStore.getState().documents.get(projectId);
@@ -303,6 +315,26 @@ function HistoryPanelContent() {
         title="작업 내역"
         actions={
           <Toolbar className="history-actions" aria-label="작업 내역 도구">
+            <ActionIconButton
+              onPress={handleUndo}
+              isDisabled={
+                !historyInfo.canUndo || restoring || historyOperationInProgress
+              }
+              aria-label="실행 취소"
+              shortcutId="undo"
+            >
+              <Undo size={iconProps.size} />
+            </ActionIconButton>
+            <ActionIconButton
+              onPress={handleRedo}
+              isDisabled={
+                !historyInfo.canRedo || restoring || historyOperationInProgress
+              }
+              aria-label="다시 실행"
+              shortcutId="redo"
+            >
+              <Redo size={iconProps.size} />
+            </ActionIconButton>
             <ActionIconButton
               onPress={handleCreateSnapshot}
               isDisabled={!projectId || !canCreateSnapshot || restoring}

@@ -26,6 +26,26 @@ describe("HistoryPanel panel-system contract", () => {
     expect(source).not.toContain('aria-label="Clear history"');
   });
 
+  it("places undo and redo before snapshot actions in the panel header", async () => {
+    const source = await readHistorySource("HistoryPanel.tsx");
+    const actionsIndex = source.indexOf('<Toolbar className="history-actions"');
+    const undoIndex = source.indexOf('aria-label="실행 취소"', actionsIndex);
+    const redoIndex = source.indexOf('aria-label="다시 실행"', actionsIndex);
+    const snapshotIndex = source.indexOf(
+      'aria-label="스냅샷 생성"',
+      actionsIndex,
+    );
+
+    expect(actionsIndex).toBeGreaterThan(-1);
+    expect(undoIndex).toBeGreaterThan(actionsIndex);
+    expect(redoIndex).toBeGreaterThan(undoIndex);
+    expect(snapshotIndex).toBeGreaterThan(redoIndex);
+    expect(source).toContain('shortcutId="undo"');
+    expect(source).toContain('shortcutId="redo"');
+    expect(source).toContain("await useStore.getState().undo()");
+    expect(source).toContain("await useStore.getState().redo()");
+  });
+
   it("uses token-based flat rows and accent selection", async () => {
     const css = await readHistorySource("HistoryPanel.css");
     const sectionContentRuleStart = css.indexOf(

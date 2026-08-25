@@ -1,8 +1,6 @@
 import {
   Menu as MenuIcon,
   Eye,
-  Undo,
-  Redo,
   Monitor,
   Tablet,
   Smartphone,
@@ -51,23 +49,12 @@ const DeleteIcon = ACTION_ICONS.delete;
 export type { Breakpoint } from "../workspace/types";
 import type { Breakpoint } from "../workspace/types";
 
-// 새로운 히스토리 시스템 타입
-export interface HistoryInfo {
-  current: number;
-  total: number;
-}
-
 export interface BuilderHeaderProps {
   projectId?: string;
   projectName?: string;
   breakpoint: Set<Key>;
   breakpoints: Breakpoint[];
   onBreakpointChange: (value: Key) => void;
-  historyInfo: HistoryInfo;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
   onPreview: () => void;
   onPlay: () => void;
   onPublish: () => void;
@@ -81,11 +68,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   breakpoint,
   breakpoints,
   onBreakpointChange,
-  historyInfo,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
   onPreview,
   onPublish,
   showWorkflowOverlay,
@@ -243,37 +225,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
       </div>
 
       <div className="header_contents header_right">
-        <span className="history-info">
-          {historyInfo
-            ? `${historyInfo.current}/${historyInfo.total}`
-            : t("header.emptyHistory")}
-        </span>
-        <ActionIconButton
-          aria-label={t("header.undo")}
-          onPress={onUndo}
-          isDisabled={!canUndo}
-          shortcutId="undo"
-          tooltipPlacement="bottom"
-        >
-          <Undo
-            color={!canUndo ? "#999" : iconProps.color}
-            strokeWidth={iconProps.strokeWidth}
-            size={iconProps.size}
-          />
-        </ActionIconButton>
-        <ActionIconButton
-          aria-label={t("header.redo")}
-          onPress={onRedo}
-          isDisabled={!canRedo}
-          shortcutId="redo"
-          tooltipPlacement="bottom"
-        >
-          <Redo
-            color={!canRedo ? "#999" : iconProps.color}
-            strokeWidth={iconProps.strokeWidth}
-            size={iconProps.size}
-          />
-        </ActionIconButton>
         <ToggleButtonGroup
           selectionMode="multiple"
           selectedKeys={

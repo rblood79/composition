@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Undo/Redo를 History 패널 액션으로 이동] - 2026-08-26
+
+### Changed
+
+- 전역 `BuilderHeader`의 Undo/Redo 버튼을 제거하고 History 패널의 `PanelHeader`
+  `actions`로 이동했다. 두 버튼은 스냅샷 생성 액션 바로 앞에 배치한다.
+- 버튼의 기존 단축키 안내와 history store의 비동기 Undo/Redo 경로는 유지하며,
+  스냅샷 복원 또는 다른 히스토리 작업 중에는 중복 실행되지 않도록 비활성화한다.
+- 전역 헤더의 현재/전체 히스토리 카운터도 제거해 히스토리 UI를 History 패널로
+  일원화했다.
+
+### Verification
+
+- 라이브 Builder(localhost:5173): 전역 chrome 내부 Undo/Redo 버튼과 `history-info`
+  0개, History 패널 액션 순서 `실행 취소 → 다시 실행 → 스냅샷 생성` 확인. Undo/Redo
+  왕복 시 기록 위치가 `26/26 → 25/26 → 26/26`으로 복귀했으며 브라우저 error/warn 0건.
+- HistoryPanel/BuilderCore 정적 회귀 테스트 13/13 PASS, `pnpm run codex:preflight` PASS
+  (type-check 신규 위반 0, 기존 baseline 43건).
+
 ## [Canvas 전체 화면 overlay workspace] - 2026-08-25
 
 ### Changed

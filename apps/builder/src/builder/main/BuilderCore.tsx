@@ -192,8 +192,6 @@ export const BuilderCore: React.FC = () => {
     (state) => state.switchPagePositionsBreakpoint,
   );
   const invalidateLayout = useStore((state) => state.invalidateLayout);
-  const historyInfo = useStore((state) => state.historyInfo);
-
   // UI 설정 (글로벌 uiStore에서 가져옴 - Phase 1)
   const themeMode = useUiStore((state) => state.themeMode);
   const setHistoryInfo = useStore((state) => state.setHistoryInfo);
@@ -346,21 +344,6 @@ export const BuilderCore: React.FC = () => {
       return clearTheme;
     }
   }, [themeMode]);
-
-  // Undo/Redo 조건
-  const canUndo = historyInfo.canUndo;
-  const canRedo = historyInfo.canRedo;
-
-  // 새로운 히스토리 시스템의 Undo/Redo 핸들러
-  const handleUndo = useCallback(async () => {
-    const { undo } = useStore.getState();
-    await undo(); // ✅ async/await 추가 - 완료 대기
-  }, []);
-
-  const handleRedo = useCallback(async () => {
-    const { redo } = useStore.getState();
-    await redo(); // ✅ async/await 추가 - 완료 대기
-  }, []);
 
   // 훅 사용
   const { error, isLoading, setError, setIsLoading, handleError, clearError } =
@@ -1215,14 +1198,6 @@ export const BuilderCore: React.FC = () => {
             breakpoint={breakpoint}
             breakpoints={breakpoints}
             onBreakpointChange={handleBreakpointChange}
-            historyInfo={{
-              current: historyInfo.currentIndex + 1,
-              total: historyInfo.totalEntries,
-            }}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
             onPreview={handlePreview}
             onPlay={handlePlay}
             onPublish={handlePublish}
