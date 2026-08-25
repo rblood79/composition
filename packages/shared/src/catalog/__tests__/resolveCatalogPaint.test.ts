@@ -4,6 +4,7 @@ import type {
   ComponentRuleSize,
   ComponentRuleVariant,
 } from "../../types/composition-document.types";
+import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { resolveCatalogPaint } from "../resolvers/resolveCatalogPaint";
 
 const SIZE: ComponentRuleSize = { borderWidth: 1 };
@@ -202,5 +203,72 @@ describe("resolveCatalogPaint", () => {
       color: "{color.accent}",
       borderColor: undefined,
     });
+  });
+});
+
+/**
+ * §9 검증 매트릭스 "Link" 행 — staticColor auto/black/white + text-only.
+ *
+ * 위의 합성 text-only fixture 와 규칙은 같지만, 실제 catalog `Link` rule 로 한 번 더 고정한다.
+ * Link 는 `fill.alpha = 0` 에 border 채널이 없는 유일한 조합이라, staticColor 가 배경/테두리를
+ * 만들지 않고 **텍스트만** 바꾸는지가 이 행의 계약이다.
+ */
+describe("resolveCatalogPaint — catalog Link (§9 매트릭스 행)", () => {
+  const rule = COMPONENT_RULES_TABLE.Link;
+  const size = rule.sizes[rule.defaultSize ?? "md"];
+
+  function link(
+    props: Readonly<Record<string, unknown>>,
+    variantName = rule.defaultVariant ?? "primary",
+  ) {
+    return resolveCatalogPaint({
+      variant: rule.variants[variantName],
+      size,
+      props,
+      style: props.style as Readonly<Record<string, unknown>> | undefined,
+      interactionState: "default",
+    });
+  }
+
+  it("staticColor=auto 는 variant text 를 쓰고 box paint 를 만들지 않는다", () => {
+    const paint = link({});
+    expect(paint.color).toBe(rule.variants.primary.colors?.text);
+    expect(paint.hasVisibleBoxPaint).toBe(false);
+    expect(paint.hasOpaqueCatalogBackground).toBe(false);
+    expect(paint.borderColor).toBeUndefined();
+  });
+
+  it("staticColor=black/white 는 text 만 고정색으로 바꾼다 (역상 아님)", () => {
+    // alpha:0 이라 opaque background 가 아니므로 역상 규칙이 아니라 static 색 그대로다.
+    expect(link({ staticColor: "black" }).color).toBe("#000000");
+    expect(link({ staticColor: "white" }).color).toBe("#ffffff");
+  });
+
+  it("staticColor 가 Link 에 새 border 나 opaque box 를 만들지 않는다", () => {
+    for (const staticColor of ["black", "white"] as const) {
+      const paint = link({ staticColor });
+      expect(paint.borderColor).toBeUndefined();
+      expect(paint.hasVisibleBoxPaint).toBe(false);
+      expect(paint.hasOpaqueCatalogBackground).toBe(false);
+    }
+  });
+
+  it("inline override 는 Link 에서도 static/variant 보다 우선한다", () => {
+    const paint = link({
+      staticColor: "black",
+      style: { color: "#123456", backgroundColor: "#abcdef" },
+    });
+    expect(paint.color).toBe("#123456");
+    expect(paint.backgroundColor).toBe("#abcdef");
+    expect(paint.hasVisibleBoxPaint).toBe(true);
+    // inline background 는 catalog opaque archetype 을 바꾸지 않는다.
+    expect(paint.hasOpaqueCatalogBackground).toBe(false);
+  });
+
+  it("secondary variant 도 같은 text-only 계약을 따른다", () => {
+    const paint = link({ staticColor: "white" }, "secondary");
+    expect(paint.color).toBe("#ffffff");
+    expect(paint.borderColor).toBeUndefined();
+    expect(paint.hasVisibleBoxPaint).toBe(false);
   });
 });

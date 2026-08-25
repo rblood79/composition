@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [테스트 baseline 정리 — overlay fixture / obsolete snapshot / §9 매트릭스 커버리지] - 2026-08-25
+
+### Verification
+
+- `skiaPrimitives.overlay.test.ts` 의 arrow 기대값 24건을 ADR-187 계약에 맞췄다. arrow 선은
+  툴팁/팝오버의 **배경색**으로 긋기 때문에 background-fill presentation 드래그에 본체와 함께
+  따라와야 하고, 그래서 두 primitive 가 모든 line 에 `presentationRole: "background-fill"` 을
+  찍는다. production 은 옳았고 `expectedLines()` fixture 만 갱신되지 않은 상태였다. 좌표
+  기대값은 draw fn 1:1 미러로 두고 `asBackgroundFill()` 헬퍼로 role 만 씌운다.
+- ADR-912 후속 §9 검증 매트릭스의 "Link" 행에 실제 catalog `Link` rule 기반 named test 5건을
+  추가했다. `fill.alpha = 0` + border 채널 부재는 Link 고유 조합이라, staticColor 가 배경이나
+  테두리를 만들지 않고 텍스트만 바꾸는지가 이 행의 계약이다.
+- "Modified Styles" 행에 `hex`/`hex8`/`rgb()`/`rgba()` picker seed 케이스를 추가해 4형
+  (hex/rgb/transparent/`var(--token)`)을 채웠다.
+- ADR-912 cutover 로 `Image.spec` 이 삭제된 뒤 남아 있던 `CSSGenerator` obsolete snapshot
+  `Image 1` 을 제거했다.
+- 결과: specs 721 / shared 909 / builder 4,340 전건 GREEN, obsolete snapshot 0,
+  `pnpm type-check` 신규 위반 0.
+
 ## [Canvas mesh-gradient fill 배선] - 2026-08-25
 
 ### Bug Fixes

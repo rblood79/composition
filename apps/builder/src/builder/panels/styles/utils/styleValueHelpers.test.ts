@@ -43,4 +43,19 @@ describe("resolveStylePanelColor", () => {
     );
     expect(resolveStylePanelColor("#123456", "light")).toBe("#123456");
   });
+
+  // §9 매트릭스 "Modified Styles" 행 — picker seed 4형(hex/rgb/transparent/var(--token)).
+  //   hex 와 rgb 는 이미 parseColor 가능한 CSS 색이라 theme 무관 원문 통과가 계약이다.
+  it("hex/rgb 리터럴은 theme과 무관하게 그대로 picker seed가 된다", () => {
+    for (const theme of ["light", "dark"] as const) {
+      expect(resolveStylePanelColor("#FF0000", theme)).toBe("#FF0000");
+      expect(resolveStylePanelColor("#FF000080", theme)).toBe("#FF000080");
+      expect(resolveStylePanelColor("rgb(255, 0, 0)", theme)).toBe(
+        "rgb(255, 0, 0)",
+      );
+      expect(resolveStylePanelColor("rgba(255, 0, 0, 0.5)", theme)).toBe(
+        "rgba(255, 0, 0, 0.5)",
+      );
+    }
+  });
 });

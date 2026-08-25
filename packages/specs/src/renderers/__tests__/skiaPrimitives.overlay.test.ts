@@ -42,6 +42,19 @@ function only(shapes: Shape[], ...types: string[]): Shape[] {
   return shapes.filter((s) => types.includes(s.type));
 }
 
+/**
+ * ADR-187 (2026-05, `markPresentationBackground`): arrow 선은 툴팁/팝오버의 **배경색**으로
+ * 긋기 때문에 background-fill presentation 드래그에 본체와 함께 따라와야 한다. 그래서
+ * 두 arrow primitive 는 모든 line 에 `presentationRole: "background-fill"` 을 찍는다.
+ * 좌표 기대값은 draw fn 좌표식 1:1 미러로 두고, 이 role 만 여기서 한 번에 씌운다.
+ */
+function asBackgroundFill(lines: Shape[]): Shape[] {
+  return lines.map((line) => ({
+    ...line,
+    presentationRole: "background-fill",
+  })) as unknown as Shape[];
+}
+
 describe("skiaPrimitive 'tooltip_arrow' — Tooltip V-arrow (spec-free 절대값)", () => {
   const draw = getSkiaPrimitive("tooltip_arrow");
 
@@ -205,7 +218,7 @@ describe("skiaPrimitive 'tooltip_arrow' — Tooltip V-arrow (spec-free 절대값
         });
         // line shape 만 비교 (draw fn 은 line 만 반환).
         expect(only(shapes ?? [], "line")).toEqual(
-          expectedLines(placement, size),
+          asBackgroundFill(expectedLines(placement, size)),
         );
       });
     }
@@ -348,7 +361,7 @@ describe("skiaPrimitive 'popover_arrow' — Popover V-arrow (spec-free 절대값
           visual: popoverVisual,
           style: undefined,
         });
-        expect(shapes).toEqual(expectedLines(placement));
+        expect(shapes).toEqual(asBackgroundFill(expectedLines(placement)));
       });
     }
   }

@@ -543,17 +543,33 @@ Phase 2 note의 "전체 directory 실행에서 남은 기존 baseline은 24 + 1"
 정정 후 builder 4,353건 중 실패 1건(mesh, 기존 baseline), specs 721건 중 실패 24건(overlay,
 기존 baseline)이며 `pnpm type-check`는 신규 위반 0이다.
 
-**남은 커버리지 gap** (본 작업 범위로 닫지 않음, 후속 판단 대상):
+**남은 커버리지 gap — 전건 종결 (2026-08-25)**:
 
-- §9 Link 행 전용 resolver/panel test 부재 — 8,244-case shadow에 Link variant가 포함돼
-  간접 커버되지만 "행마다 단위 test" 조건은 미충족.
-- §9 Modified Styles 행의 `hex`/`rgb` seed 케이스 부재 (`var(--token)` 2건, `transparent`는
-  `useColorStyleValues.test.tsx`에 존재).
-- `resolveCatalogPaint.shadow.test.ts`의 legacy oracle은 구 `buildCatalogShapes`를 호출하지
-  않고 test 파일 안에 재작성한 전사본이다. 회귀 감시로는 유효하나 독립 oracle이 아니므로
-  "8,244-case parity"의 증거 강도는 문서 서술보다 낮다.
-- `CSSGenerator.snapshot.test.ts`의 obsolete snapshot `Image 1` 1건.
+- §9 Link 행: 실제 catalog `Link` rule 로 staticColor auto/black/white + text-only 계약을
+  고정하는 named test 5건을 추가했다 (`alpha:0` + border 채널 부재 조합이 Link 고유라,
+  staticColor 가 배경/테두리를 만들지 않고 텍스트만 바꾸는지가 이 행의 계약이다).
+- §9 Modified Styles 행: `hex`/`hex8`/`rgb()`/`rgba()` 리터럴이 theme 무관 원문 통과로
+  picker seed 가 되는 케이스를 추가해 4형(hex/rgb/transparent/`var(--token)`)을 채웠다.
+- `skiaPrimitives.overlay.test.ts` 24건: production 이 옳고 `expectedLines()` fixture 가
+  ADR-187 `markPresentationBackground` 이후 갱신되지 않은 것이었다. arrow 선은 툴팁/팝오버
+  **배경색**으로 긋기 때문에 background-fill presentation 드래그에 본체와 함께 따라와야 한다.
+  좌표 기대값은 draw fn 1:1 미러로 두고 `asBackgroundFill()` 헬퍼로 role 만 씌운다.
+- `CSSGenerator.snapshot.test.ts` 의 obsolete snapshot `Image 1`: ADR-912 cutover 로
+  `Image.spec` 이 삭제된 뒤 남은 잔재라 제거했다.
+- `resolveCatalogPaint.shadow.test.ts` 의 legacy oracle 자기참조성은 **유지**한다. 구
+  `buildCatalogShapes` 는 Phase 2 에서 삭제돼 소급 강화하려면 git history 를 되살려야 하고,
+  회귀 감시 목적으로는 현행 전사본으로 충분하다. 증거 강도가 문서 서술보다 낮다는 사실만
+  기록으로 남긴다.
 
+이로써 specs 721 / shared 909 / builder 4,340 전건 GREEN, obsolete snapshot 0 이다.
+mesh-gradient 1건은 ADR-912 무관 결함으로 별도 커밋에서 수정했다 (§아래 참조).
+
+**mesh-gradient (ADR-912 무관, 2026-08-25 별도 수정)**: Phase 6 감사에서 "기존 baseline"
+으로 분류했던 1건은 실제 D3 대칭 버그였다. `fillToSkia` 는 mesh FillStyle 을 만들고
+`fills.ts` 는 SkSL bilinear 셰이더까지 갖췄는데 `buildBoxNodeData` / `buildSpecNodeData` 가
+`linear|radial|angular` 만 화이트리스트해 mesh 가 `box.fill` 에 실리지 않았다 —
+Preview DOM 은 `fillAdapter` 의 SVG mesh, Canvas 는 첫 point 색 단색. 원인은 ADR-912 가
+아니라 `180e84924 "gradient fill 4종 Skia 렌더 복원"` 의 미완결(3종만 배선)이다.
 
 ## 7. 위험
 
