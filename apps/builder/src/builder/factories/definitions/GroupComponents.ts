@@ -13,7 +13,7 @@ import type { StoredTagItem, StoredBreadcrumbItem } from "@composition/specs";
 export function createFrameLayoutDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -44,7 +44,7 @@ export function createFrameLayoutDefinition(
 export function createToggleButtonGroupDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -94,7 +94,7 @@ export function createToggleButtonGroupDefinition(
 export function createCheckboxGroupDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -184,7 +184,7 @@ export function createCheckboxGroupDefinition(
 export function createRadioGroupDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -277,7 +277,7 @@ export function createRadioGroupDefinition(
 export function createTagGroupDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -342,7 +342,7 @@ export function createTagGroupDefinition(
 export function createBreadcrumbsDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ADR-912 영역 B (A): children-manager → items-manager 전환 (TagGroup 선례 동형).
@@ -383,7 +383,7 @@ export function createBreadcrumbsDefinition(
 export function createCheckboxDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -425,7 +425,7 @@ export function createCheckboxDefinition(
 export function createRadioDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -462,7 +462,7 @@ export function createRadioDefinition(
 export function createSwitchDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {

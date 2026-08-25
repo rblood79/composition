@@ -598,7 +598,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
   const sourceChildren = sourceChildrenMap.get(sourceParent.id) ?? [];
   const syntheticChildren: T[] = [];
 
-  sourceChildren.forEach((sourceChild, index) => {
+  sourceChildren.forEach((sourceChild) => {
     const segment = getCanonicalRefPathSegment(sourceChild);
     const path = pathPrefix ? `${pathPrefix}/${segment}` : segment;
     const patch = getDescendantPatch(refElement, path);

@@ -260,7 +260,6 @@ describe("ADR-914 entry universe contract", () => {
   });
 
   it("propagation facet — registered mirror == 31", () => {
-    const registered = entries.filter((e) => e.propagation.registered);
     // placeable 중 propagation 등록된 수. 전체 등록(31)에는 placeable 아닌
     // GridListItem/ListBoxItem 이 포함되므로, placeable ∩ propagation 으로 비교.
     const allRegisteredViaResolver = [

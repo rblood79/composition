@@ -18,7 +18,6 @@ import {
   parseCSSPropWithContext,
 } from "./utils";
 import type { CSSValueContext } from "./cssValueParser";
-import { toTaffyDisplay } from "./taffyDisplayAdapter";
 import type { TaffyDisplayConfig } from "./taffyDisplayAdapter";
 
 // ─── margin:auto 판별 ────────────────────────────────────────────────

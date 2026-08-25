@@ -1,6 +1,5 @@
 // 통합된 타입 정의 파일
 import React from "react";
-import { TokenValue, DesignToken } from "../theme";
 import type { StoredMenuItem, StoredTagItem } from "@composition/specs";
 import type { DataBinding as SharedDataBinding } from "@composition/shared";
 // ADR-912 6 registry collapse #3 — createDefault*Props 파생 SSOT.
@@ -139,12 +138,7 @@ export interface Page {
 export interface ButtonElementProps extends BaseElementProps {
   children?: React.ReactNode;
   variant?:
-    | "accent"
-    | "primary"
-    | "secondary"
-    | "negative"
-    | "premium"
-    | "genai";
+    "accent" | "primary" | "secondary" | "negative" | "premium" | "genai";
   fillStyle?: "bold" | "subtle" | "outline";
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   /** Lucide 아이콘 이름 */

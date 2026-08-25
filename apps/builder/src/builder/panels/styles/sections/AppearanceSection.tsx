@@ -6,7 +6,7 @@
  * Background 편집은 FillBackgroundInline 단일 경로를 사용한다.
  */
 
-import { memo, lazy, Suspense, useRef } from "react";
+import { memo, lazy, Suspense, useEffect, useRef } from "react";
 import {
   PropertySection,
   PropertyUnitInput,
@@ -114,6 +114,15 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
   } = useStylePresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const styleValues = useAppearanceValues(selectedId);
+  const insetActive = Boolean(
+    styleValues?.boxShadow &&
+    styleValues.boxShadow !== "none" &&
+    styleValues.boxShadow.includes("inset"),
+  );
+  const insetActiveRef = useRef(insetActive);
+  useEffect(() => {
+    insetActiveRef.current = insetActive;
+  }, [insetActive]);
 
   if (!styleValues) return null;
 
@@ -139,12 +148,9 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
   //   프리셋 키 판정은 inset-stripped 값 기준 — "lg + inset 토글" 상태에서도 Select 는
   //   custom 이 아니라 "lg" 를 유지한다.
   const hasShadow = !!styleValues.boxShadow && styleValues.boxShadow !== "none";
-  const insetActive = hasShadow && styleValues.boxShadow.includes("inset");
   // PropertySelect 의 memo 커스텀 비교는 onChange 참조 변경을 무시한다 — inset 토글만
   //   바뀌면 value/options 가 그대로라 재렌더가 스킵되어 onChange closure 의 insetActive
   //   가 stale (프리셋 전환 시 inset 소실 실측). ref 미러로 commit 시점 최신값을 읽는다.
-  const insetActiveRef = useRef(insetActive);
-  insetActiveRef.current = insetActive;
   const shadowKey = boxShadowToPresetKey(
     insetActive ? stripInset(styleValues.boxShadow) : styleValues.boxShadow,
   );

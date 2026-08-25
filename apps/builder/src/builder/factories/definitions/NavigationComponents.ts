@@ -11,7 +11,7 @@ import type { StoredMenuItem } from "@composition/specs";
 export function createMenuDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -57,7 +57,7 @@ export function createMenuDefinition(
 export function createNavDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -130,7 +130,7 @@ export function createNavDefinition(
 export function createPaginationDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -215,7 +215,7 @@ export function createPaginationDefinition(
 export function createDisclosureDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -276,7 +276,7 @@ export function createDisclosureDefinition(
 export function createDisclosureGroupDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System

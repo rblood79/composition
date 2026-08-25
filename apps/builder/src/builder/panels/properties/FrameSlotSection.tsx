@@ -20,12 +20,14 @@ import {
   isSlotCandidateAllowed,
   isSlotHostElement,
 } from "../../components/slotHostPolicy";
-import type { Element } from "../../../types/core/store.types";
 import type { PanelNode } from "../panelNode";
 import { ACTION_ICONS } from "../../config/actionIcons";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
+type AddElementInput = Parameters<
+  ReturnType<typeof useStore.getState>["addElement"]
+>[0];
 
 type SlotElement = PanelNode & {
   metadata?: Record<string, unknown>;
@@ -80,8 +82,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   elementId: string;
 }) {
   const element = useCanonicalPropertyElement(elementId) as
-    | SlotElement
-    | undefined;
+    SlotElement | undefined;
   const elementsById = useCanonicalPropertyElementsMap();
   const addElement = useStore((state) => state.addElement);
   const updateElement = useStore((state) => state.updateElement);
@@ -194,7 +195,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
           parent_id: latestElement.id,
           page_id: latestElement.page_id ?? null,
           props: {},
-        } as Element,
+        } as AddElementInput,
         getFrameElementMirrorId(latestElement),
       ),
     );

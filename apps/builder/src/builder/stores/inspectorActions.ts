@@ -597,10 +597,10 @@ export const createInspectorActionsSlice: StateCreator<
     const { elements, selectedElementId, currentPageId } = get();
     const canonicalElements = getActiveCanonicalInspectorElements();
     const normalizedState = normalizeElementTags(canonicalElements ?? elements);
-    let normalizedElements = normalizedState.elements;
-    let baseElementsMap = buildInspectorElementMap(normalizedElements);
+    const normalizedElements = normalizedState.elements;
+    const baseElementsMap = buildInspectorElementMap(normalizedElements);
 
-    let element = baseElementsMap.get(elementId);
+    const element = baseElementsMap.get(elementId);
     if (!element) return;
 
     // 선택된 요소의 props를 직접 업데이트하므로,

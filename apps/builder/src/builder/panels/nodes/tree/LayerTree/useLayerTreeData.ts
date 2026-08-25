@@ -1,6 +1,5 @@
 import { useMemo, useCallback } from "react";
 import { buildTreeFromElements } from "../../../../utils/treeUtils";
-import type { Element } from "../../../../../types/core/store.types";
 import type { ElementTreeItem } from "../../../../../types/builder/stately.types";
 import type { ElementProps } from "../../../../../types/integrations/supabase.types";
 import { useStore } from "../../../../stores";
@@ -22,9 +21,10 @@ import type { LayerTreeNode, VirtualChildType } from "./types";
 import type { PanelNode } from "../../../panelNode";
 
 const EMPTY_ELEMENTS: PanelNode[] = [];
+type LegacyTreeElement = Parameters<typeof buildTreeFromElements>[0][number];
 
-function asElementLike(element: PanelNode): Element {
-  return element as unknown as Element;
+function asElementLike(element: PanelNode): LegacyTreeElement {
+  return element as unknown as LegacyTreeElement;
 }
 
 export function useLayerTreeData(elements: PanelNode[]) {
@@ -110,15 +110,21 @@ export function useLayerTreeData(elements: PanelNode[]) {
   const projectedElements = useMemo(() => {
     if (sourceElements.length === 0) return sourceElements;
     const resolvedElements = resolveCanonicalRefTree({
-      elements: sourceElements as unknown as Element[],
-      elementsMap: resolutionElementsMap as unknown as Map<string, Element>,
+      elements: sourceElements as unknown as LegacyTreeElement[],
+      elementsMap: resolutionElementsMap as unknown as Map<
+        string,
+        LegacyTreeElement
+      >,
     }).elements;
 
     return dedupeLayerElementsById(resolvedElements as unknown as PanelNode[]);
   }, [resolutionElementsMap, sourceElements]);
 
   const elementTree = useMemo(
-    () => buildTreeFromElements(projectedElements as unknown as Element[]),
+    () =>
+      buildTreeFromElements(
+        projectedElements as unknown as LegacyTreeElement[],
+      ),
     [projectedElements],
   );
 

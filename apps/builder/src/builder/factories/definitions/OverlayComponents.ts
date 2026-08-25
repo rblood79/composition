@@ -13,7 +13,7 @@ import { ComponentDefinition, ComponentCreationContext } from "../types";
 export function createDialogDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -93,7 +93,7 @@ export function createDialogDefinition(
 export function createPopoverDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -161,7 +161,7 @@ export function createPopoverDefinition(
 export function createTooltipDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System

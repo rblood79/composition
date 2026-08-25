@@ -210,7 +210,7 @@ function stripCanonicalRuntimeFields(element: Element): Element {
   return clone;
 }
 
-function persistElementsAfterInstanceMutation(elements: Element[]): void {
+function persistElementsAfterInstanceMutation(_elements: Element[]): void {
   if (typeof indexedDB === "undefined") return;
   void (async () => {
     try {
@@ -357,9 +357,9 @@ function buildCanonicalDetachSnapshot(
     source: Element,
     parentId: string,
     relativePath: string,
+    // 중첩 descendant 재귀는 현재 경로에서 해석한 legacy map을 이어받는다.
     activeLegacyDescendantMap:
-      | Record<string, unknown>
-      | undefined = legacyDescendantMap,
+      Record<string, unknown> | undefined = legacyDescendantMap,
   ): Element => {
     const override = getDescendantOverride(
       activeLegacyDescendantMap,
@@ -644,11 +644,11 @@ function applyElementSnapshotBatch(
   });
   get()._rebuildIndexes();
   const sourceElements = getInstanceActionSourceElements(get());
-  const persistedElements = nextElements.map(
+  const _persistedElements = nextElements.map(
     (element) =>
       findInstanceActionElement(sourceElements, element.id) ?? element,
   );
-  persistElementsAfterInstanceMutation(persistedElements);
+  persistElementsAfterInstanceMutation(_persistedElements);
 }
 
 /**
@@ -983,10 +983,10 @@ export function resetInstanceOverrideField(
   syncInstanceElementsToCanonical([nextElement]);
   get()._rebuildIndexes();
   const persistedSourceElements = getInstanceActionSourceElements(get());
-  const persistedElement =
+  const _persistedElement =
     findInstanceActionElement(persistedSourceElements, instanceId) ??
     nextElement;
-  persistElementsAfterInstanceMutation([persistedElement]);
+  persistElementsAfterInstanceMutation([_persistedElement]);
 
   return { previousState };
 }

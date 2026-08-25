@@ -22,7 +22,6 @@ import type { CompositionDocument } from "@composition/shared";
 import { deriveProjectEditorPageModelFromDocument } from "@composition/shared";
 
 import type { ElementsState } from "../elements";
-import type { Element } from "../../../types/core/store.types";
 import type { PageLayoutDirection } from "../canvasSettings";
 import { getDB } from "../../../lib/db";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
@@ -68,7 +67,7 @@ export async function applySnapshotDocument(
     ...page,
     parent_id: page.parent_id ?? null,
   }));
-  const elements = canonicalDocumentToElements(docCopy) as Element[];
+  const elements = canonicalDocumentToElements(docCopy);
   store.hydrateProjectSnapshot(elements);
 
   const canvasSize = useViewportSyncStore.getState().canvasSize;

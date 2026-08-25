@@ -33,7 +33,7 @@ const textButton = (id: string, label: string): CanvasLayoutNode =>
   }) as CanvasLayoutNode;
 
 /** RSP composite icon ToggleButton: 자식 Icon + Text element. */
-const iconButton = (id: string, label: string): CanvasLayoutNode =>
+const iconButton = (id: string, _label: string): CanvasLayoutNode =>
   ({
     id,
     type: "ToggleButton",

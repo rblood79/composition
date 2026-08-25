@@ -245,10 +245,6 @@ export function useCentralCanvasPointerHandlers({
             selectedIds,
           })
         : [];
-      const selectedPageId =
-        selectedIds.length === 1 && selectedPageIds.length === 1
-          ? selectedPageIds[0]
-          : null;
       const now = Date.now();
 
       if (hasSelection && selectionBounds) {

@@ -54,7 +54,6 @@ import {
   getParentTagsForChild,
 } from "../../../../utils/propagationRegistry";
 import { extractSpecTextStyle } from "../../utils/specTextStyle";
-import { fontFamily as specFontFamily } from "@composition/specs";
 // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert 자식 font 분기를
 //   resolveSkiaRule("InlineAlert").sizes read-through 로 이관(spec 삭제 선행, rule fallback).
 import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";

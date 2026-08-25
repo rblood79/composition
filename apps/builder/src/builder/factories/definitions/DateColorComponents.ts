@@ -44,7 +44,7 @@ function buildCalendarInitData() {
 export function createDatePickerDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -172,7 +172,7 @@ export function createDatePickerDefinition(
 export function createDateRangePickerDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -293,7 +293,7 @@ export function createDateRangePickerDefinition(
 export function createCalendarDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -361,7 +361,7 @@ export function createCalendarDefinition(
 export function createDateFieldDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -424,7 +424,7 @@ export function createDateFieldDefinition(
 export function createTimeFieldDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -489,7 +489,7 @@ export function createTimeFieldDefinition(
 export function createColorFieldDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -573,7 +573,7 @@ export function createColorFieldDefinition(
 export function createColorPickerDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -642,7 +642,7 @@ export function createColorPickerDefinition(
 export function createColorSwatchPickerDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   const defaultColors = [
@@ -669,7 +669,7 @@ export function createColorSwatchPickerDefinition(
       } as ComponentElementProps,
       parent_id: parentId,
     },
-    children: defaultColors.map((color, index) => ({
+    children: defaultColors.map((color) => ({
       type: "ColorSwatch",
       props: {
         color,

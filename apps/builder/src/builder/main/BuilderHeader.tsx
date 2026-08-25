@@ -31,7 +31,6 @@ import {
 import { iconProps } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
 import { ZoomControls } from "../workspace/ZoomControls";
-import { ActionIconButton } from "../components/ui";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import { ACTION_ICONS } from "../config/actionIcons";
 import { useI18n } from "../../i18n";

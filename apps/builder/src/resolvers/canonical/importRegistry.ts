@@ -102,6 +102,7 @@ export function resolveCompositionImportSource(
   } catch (error: unknown) {
     throw new Error(
       `[ADR-116] Invalid import source ${source}: ${toError(error).message}`,
+      { cause: error },
     );
   }
 

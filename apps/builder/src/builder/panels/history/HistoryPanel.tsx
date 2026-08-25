@@ -129,19 +129,29 @@ function HistoryPanelContent() {
   // 스냅샷 (ADR-180 Phase 3)
   // ============================================
 
-  const [snapshots, setSnapshots] = useState<HistorySnapshot[]>([]);
+  const [snapshotState, setSnapshotState] = useState<{
+    projectId: string;
+    snapshots: HistorySnapshot[];
+  } | null>(null);
+  const snapshots = useMemo(
+    () =>
+      projectId && snapshotState?.projectId === projectId
+        ? snapshotState.snapshots
+        : [],
+    [projectId, snapshotState],
+  );
   const [restoring, setRestoring] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const renameCancelRef = useRef(false);
   const restoreTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!projectId) {
-      setSnapshots([]);
-      return;
-    }
+    if (!projectId) return;
     const updateSnapshots = () => {
-      setSnapshots([...snapshotManager.getSnapshots(projectId)]);
+      setSnapshotState({
+        projectId,
+        snapshots: [...snapshotManager.getSnapshots(projectId)],
+      });
     };
     updateSnapshots();
     const unsubscribe = snapshotManager.subscribe(updateSnapshots);

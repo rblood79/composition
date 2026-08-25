@@ -27,7 +27,7 @@ export class GpuTimer {
   readonly supported: boolean;
 
   constructor(canvas: HTMLCanvasElement) {
-    let gl: WebGL2RenderingContext | null = null;
+    let gl: WebGL2RenderingContext | null;
     try {
       gl = canvas.getContext("webgl2") as WebGL2RenderingContext | null;
     } catch {

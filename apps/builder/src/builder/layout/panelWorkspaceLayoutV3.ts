@@ -500,7 +500,6 @@ function fitClusterToSurface(
       Math.min(entries.get(row.panelId)?.minHeight ?? 0, surfaceRect.height),
     );
     const preferred = column.rows.map((row, rowIndex) => {
-      const entry = entries.get(row.panelId);
       const minimum = minimums[rowIndex] ?? 0;
       const maximum = Math.max(minimum, surfaceRect.height);
       return clamp(row.height, minimum, maximum);

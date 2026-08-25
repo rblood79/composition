@@ -1,5 +1,4 @@
 import { useStore } from "../../../stores";
-import type { Element } from "../../../../types/core/store.types";
 import {
   copyMultipleElements,
   deserializeCopiedElements,
@@ -21,6 +20,11 @@ import {
   trackMultiPaste,
   trackUngroup,
 } from "../../../stores/utils/historyHelpers";
+
+type CanvasActionElementsMap = Parameters<typeof copyMultipleElements>[1];
+type CanvasActionStoreElement = NonNullable<
+  ReturnType<CanvasActionElementsMap["get"]>
+>;
 
 export interface CanvasActionElement {
   id: string;
@@ -54,7 +58,7 @@ export interface CanvasActionContext {
  */
 export function buildCanvasActionElementsMap(
   elementsMap: ReadonlyMap<string, CanvasActionElement>,
-): Map<string, Element> {
+): CanvasActionElementsMap {
   return new Map(
     Array.from(elementsMap.entries()).map(([id, element]) => {
       const {
@@ -75,7 +79,7 @@ export function buildCanvasActionElementsMap(
           ...(element.componentName != null
             ? { componentName: element.componentName }
             : {}),
-        } as Element,
+        } as CanvasActionStoreElement,
       ];
     }),
   );
@@ -98,7 +102,9 @@ async function readClipboardText(): Promise<string | null> {
   }
 }
 
-function getActionElements(context: CanvasActionContext): Map<string, Element> {
+function getActionElements(
+  context: CanvasActionContext,
+): CanvasActionElementsMap {
   return buildCanvasActionElementsMap(context.elementsMap);
 }
 
@@ -257,7 +263,9 @@ export async function groupSelection(
   const elementsMap = getActionElements(context);
   const previousChildren = selectedElementIds
     .map((id) => elementsMap.get(id))
-    .filter((element): element is Element => element !== undefined);
+    .filter(
+      (element): element is CanvasActionStoreElement => element !== undefined,
+    );
   const { groupElement, updatedChildren } = createGroupFromSelection(
     selectedElementIds,
     elementsMap,

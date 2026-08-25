@@ -220,7 +220,7 @@ export function installLayoutExplain(
   const explain = createLayoutExplain(trees);
   const logged = (elementId: string): string => {
     const out = explain(elementId);
-    // eslint-disable-next-line no-console -- dev 전용 판독 채널의 출력면
+
     console.log(out);
     return out;
   };

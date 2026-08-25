@@ -1,5 +1,4 @@
 import React from "react";
-import { TokenValue } from "../theme";
 
 type AriaRole =
   | "button"

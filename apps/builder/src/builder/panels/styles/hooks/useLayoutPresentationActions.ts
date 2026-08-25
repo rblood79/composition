@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
 import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
 import {
@@ -41,10 +41,7 @@ export interface LayoutPresentationActions {
  */
 export function useLayoutPresentationActions(): LayoutPresentationActions {
   const stateRef = useRef<LayoutPresentationState | null>(null);
-  const ownerIdRef = useRef<string | null>(null);
-  const ownerId =
-    ownerIdRef.current ?? `style-layout-owner-${nextLayoutOwnerId++}`;
-  ownerIdRef.current = ownerId;
+  const [ownerId] = useState(() => `style-layout-owner-${nextLayoutOwnerId++}`);
 
   useEffect(() => {
     const unsubscribeSelection = useStore.subscribe(() => {
@@ -137,7 +134,6 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
       );
       if (!pilot) {
         active.handle.cancel("superseded");
-        active.phase = "cancelled";
         stateRef.current = null;
         return false;
       }
@@ -146,7 +142,9 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
         target: pilot.target,
         type: "style.patch",
       };
-      if (!active.handle.publish(descriptor)) active.phase = "cancelled";
+      if (!active.handle.publish(descriptor)) {
+        stateRef.current = { ...active, phase: "cancelled" };
+      }
       return true;
     },
     [ownerId],

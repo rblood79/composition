@@ -20,7 +20,6 @@ import { Monitor, Tablet, Smartphone, X } from "lucide-react";
 import type { BreakpointName, ResponsiveVisibility } from "@composition/shared";
 import { PropertySection } from "../../../components";
 import {
-  useStore,
   useUpdateResponsiveVisibility,
   useSetResponsiveStyleOverrideEnabled,
 } from "../../../stores";

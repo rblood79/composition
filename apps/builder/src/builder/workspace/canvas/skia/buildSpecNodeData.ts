@@ -28,7 +28,6 @@ import {
   racStateAttrs,
   type BorderStyleValue,
   type ComponentState,
-  type ComponentSpec,
   type PropagationRule,
   type Shape,
   type SizeSpec,
@@ -1628,9 +1627,8 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //     skiaPrimitive 가 이 신호일 때만 chevron 을 그린다(leaf TreeItem 은 chevron 없음).
   //     일반 `_hasChildren`(shell-only 신호)과 분리한다 — 자식 TreeItem 은 독립 행으로
   //     렌더되므로 부모 TreeItem 은 자식 유무와 무관하게 자기 행(chevron+label)을 그려야 한다.
-  let treeItemHasChildren = false;
   if (element.type === "TreeItem") {
-    treeItemHasChildren = !!(childElements && childElements.length > 0);
+    const treeItemHasChildren = !!(childElements && childElements.length > 0);
     specProps = {
       ...specProps,
       _treeLevel: resolveTreeItemLevel(element, elementsMap),

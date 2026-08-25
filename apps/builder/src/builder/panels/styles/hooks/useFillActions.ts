@@ -10,9 +10,8 @@
  * @updated 2026-02-10 Gradient Phase 2
  */
 
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
-import type { Element } from "../../../../types/builder/unified.types";
 import type {
   FillItem,
   ColorFillItem,
@@ -93,9 +92,8 @@ function getCurrentFills(): FillItem[] {
 
   const doc = getActiveCanonicalDocument();
   if (doc) {
-    const found = getCanonicalDocumentElementsView(doc).byId.get(
-      selectedElementId,
-    ) as Element | undefined;
+    const found =
+      getCanonicalDocumentElementsView(doc).byId.get(selectedElementId);
     return resolveElementFills(found);
   }
   return resolveElementFills(elementsMap.get(selectedElementId));
@@ -121,9 +119,7 @@ export function useFillActions(): FillActions {
     selectedElementId: string;
     target: EditorPresentationTargetRef;
   } | null>(null);
-  const ownerIdRef = useRef<string | null>(null);
-  const ownerId = ownerIdRef.current ?? `fill-color-owner-${nextFillOwnerId++}`;
-  ownerIdRef.current = ownerId;
+  const [ownerId] = useState(() => `fill-color-owner-${nextFillOwnerId++}`);
 
   // cleanup on unmount
   useEffect(() => {
@@ -229,7 +225,7 @@ export function useFillActions(): FillActions {
         type: "fills.replace",
       };
       if (!presentation.handle.publish(descriptor)) {
-        presentation.phase = "cancelled";
+        presentationRef.current = { ...presentation, phase: "cancelled" };
       }
       return true;
     },
@@ -345,7 +341,7 @@ export function useFillActions(): FillActions {
         type: "fills.replace",
       };
       if (!presentation.handle.publish(descriptor)) {
-        presentation.phase = "cancelled";
+        presentationRef.current = { ...presentation, phase: "cancelled" };
       }
       return true;
     },

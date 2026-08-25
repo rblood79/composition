@@ -24,12 +24,17 @@ import {
   filterSlotCandidates,
   isSlotCandidateAllowed,
 } from "../../components/slotHostPolicy";
-import type { Element } from "../../../types/core/store.types";
 import type { PanelNode } from "../panelNode";
 import { ACTION_ICONS } from "../../config/actionIcons";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
+type ComponentMirrorElement = Parameters<
+  typeof getComponentDescendantsMirror
+>[0];
+type UpdateElementPatch = Parameters<
+  ReturnType<typeof useStore.getState>["updateElement"]
+>[1];
 
 type SlotHostElement = PanelNode & {
   metadata?: { slot?: unknown };
@@ -51,8 +56,8 @@ function getElementLabel(element: PanelNode): string {
   return element.componentName ?? element.customId ?? element.type;
 }
 
-function asElementLike(node: PanelNode): Element {
-  return node as unknown as Element;
+function asElementLike(node: PanelNode): ComponentMirrorElement {
+  return node as unknown as ComponentMirrorElement;
 }
 
 function asCanonicalRefNode(
@@ -306,7 +311,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
           children: nextChildren,
         },
       },
-    } as Partial<Element>);
+    } as UpdateElementPatch);
   };
 
   const handleClearSlot = () => {
@@ -318,7 +323,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
 
     void updateElement(element.id, {
       [COMPONENT_DESCENDANTS_MIRROR_FIELD]: nextLegacyDescendantMap,
-    } as Partial<Element>);
+    } as UpdateElementPatch);
   };
 
   return (

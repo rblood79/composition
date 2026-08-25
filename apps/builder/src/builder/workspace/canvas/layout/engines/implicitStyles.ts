@@ -1397,7 +1397,6 @@ export function applyImplicitStyles(
     // 2026-07-29: prop 부재 fallback 도 grid (catalog `GridList.binding.ts` layout.default 정합).
     //   여기만 `?? "grid"` 를 빼면 prop 없는 GridList 가 캔버스에서만 stack 으로 배치된다.
     const layout = (containerProps?.layout as string | undefined) ?? "grid";
-    const columns = (containerProps?.columns as number) || 2;
     const gap = 12;
 
     // OWNER 는 단일 자식(projected rows-group)만 보유 — 2열 배치는 rows-group 이 담당한다

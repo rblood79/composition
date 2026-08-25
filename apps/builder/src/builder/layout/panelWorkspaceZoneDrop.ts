@@ -14,7 +14,6 @@ import {
   normalizePanelWorkspaceLayoutV3,
   PANEL_WORKSPACE_PLACEMENT_ZONES,
   solvePanelWorkspaceLayoutV3,
-  type PanelWorkspaceClusterV3,
   type PanelWorkspaceLayoutV3,
   type PanelWorkspacePlacementZone,
   type PanelWorkspaceSolvedFrameGeometryV3,

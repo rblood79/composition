@@ -20,7 +20,7 @@ import { ComponentDefinition, ComponentCreationContext } from "../types";
 export function createDataTableDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -58,7 +58,7 @@ export function createDataTableDefinition(
 export function createSlotDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements, layoutId } = context;
+  const { parentElement, layoutId } = context;
   const parentId = parentElement?.id || null;
 
   // Slot은 reusable frame 편집 컨텍스트에서만 사용 가능

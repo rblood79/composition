@@ -290,6 +290,7 @@ export function resolvePageWithFrame(
     let safety = 0;
 
     while (frameElementIds.has(currentParentId) && safety < 64) {
+      safety += 1;
       const currentParent = frameElementById.get(currentParentId);
       if (!currentParent) {
         return currentParentId;

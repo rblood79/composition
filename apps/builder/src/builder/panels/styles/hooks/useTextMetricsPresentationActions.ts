@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
 import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
 import {
@@ -42,10 +42,9 @@ export interface TextMetricsPresentationActions {
 /** G8 scoped owner for the fixed-box Text font-size slice. */
 export function useTextMetricsPresentationActions(): TextMetricsPresentationActions {
   const stateRef = useRef<TextMetricPresentationState | null>(null);
-  const ownerIdRef = useRef<string | null>(null);
-  const ownerId =
-    ownerIdRef.current ?? `style-text-metric-owner-${nextTextMetricOwnerId++}`;
-  ownerIdRef.current = ownerId;
+  const [ownerId] = useState(
+    () => `style-text-metric-owner-${nextTextMetricOwnerId++}`,
+  );
   const parsePropertyValue = useCallback(
     (
       property: TextMetricPresentationProperty,
@@ -151,7 +150,6 @@ export function useTextMetricsPresentationActions(): TextMetricsPresentationActi
       );
       if (!pilot) {
         active.handle.cancel("superseded");
-        active.phase = "cancelled";
         stateRef.current = null;
         return false;
       }
@@ -160,7 +158,9 @@ export function useTextMetricsPresentationActions(): TextMetricsPresentationActi
         target: pilot.target,
         type: "style.patch",
       };
-      if (!active.handle.publish(descriptor)) active.phase = "cancelled";
+      if (!active.handle.publish(descriptor)) {
+        stateRef.current = { ...active, phase: "cancelled" };
+      }
       return true;
     },
     [ownerId, parsePropertyValue],

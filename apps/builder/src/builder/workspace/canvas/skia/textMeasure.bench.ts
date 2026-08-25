@@ -111,7 +111,7 @@ const _segCache = new Map<string, Map<string, number>>();
 function measureStub(
   token: string,
   fontKey: string,
-  fontString: string,
+  _fontString: string,
 ): number {
   let cache = _segCache.get(fontKey);
   if (!cache) {

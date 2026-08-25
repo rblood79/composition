@@ -17,7 +17,11 @@ import {
   buttonIconPx,
   buttonTextMetrics,
 } from "../../utils/propagationRegistry";
-import type { Element } from "../../../types/builder/unified.types";
+
+type AddElementInput = Parameters<
+  ReturnType<typeof useStore.getState>["addElement"]
+>[0];
+type CustomIdElements = Parameters<typeof generateCustomId>[1];
 
 /**
  * Icon 셀렉트 host 태그 (leaf 버튼만). ToggleButtonGroup 은 자식이 ToggleButton
@@ -59,9 +63,9 @@ export function buildButtonChild(
   type: "Icon" | "Text",
   parentId: string,
   pageId: string,
-  pageElements: Element[],
+  pageElements: CustomIdElements,
   propsOverride: Record<string, unknown>,
-): Element {
+): AddElementInput {
   return withFrameElementMirrorId(
     {
       id: crypto.randomUUID(),
@@ -72,7 +76,7 @@ export function buildButtonChild(
       parent_id: parentId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    } as Element,
+    } as AddElementInput,
     null,
   );
 }
@@ -149,7 +153,7 @@ export const ButtonChildSection = memo(function ButtonChildSection({
       const doc = getActiveCanonicalDocument();
       if (!doc || !currentPageId) return;
 
-      const pageElements: Element[] = [];
+      const pageElements: CustomIdElements = [];
       visitCanonicalDocumentElements(doc, (el) => {
         pageElements.push(el);
       });
@@ -179,7 +183,7 @@ export const ButtonChildSection = memo(function ButtonChildSection({
 
       // string children(label) → Text 자식 element 이관. 이미 Text 자식이 있으면 중복
       //   생성하지 않는다(외부 경로로 만들어진 경우 보존).
-      let textElement: Element | null = null;
+      let textElement: AddElementInput | null = null;
       if (buttonChildrenText !== undefined && !existingText) {
         // label <Text> 의 시각 척도(fontSize/lineHeight)는 Button 텍스트 척도(md=text-sm 14/20)를
         //   inline 으로 받는다 — Text 컴포넌트 독립 타이포 척도(text-base 16/24)가 아니라 Button

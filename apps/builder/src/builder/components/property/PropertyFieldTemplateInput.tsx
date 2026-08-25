@@ -5,7 +5,7 @@
  * 컬럼 목록에서 선택하면 **커서 위치에 `{key}` 를 삽입**하고 즉시 commit 한다.
  * 텍스트 자체의 저장 규약은 PropertyInput 과 동일 (blur/Enter commit).
  */
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import {
   Button,
   Menu,
@@ -38,18 +38,22 @@ export function PropertyFieldTemplateInput({
   disabled,
 }: PropertyFieldTemplateInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState<string>(value ?? "");
+  const normalizedValue = value ?? "";
+  const [draft, setDraft] = useState(() => ({
+    sourceValue: normalizedValue,
+    inputValue: normalizedValue,
+  }));
+  const inputValue =
+    draft.sourceValue === normalizedValue ? draft.inputValue : normalizedValue;
+  const updateInputValue = (next: string): void => {
+    setDraft({ sourceValue: normalizedValue, inputValue: next });
+  };
 
   // 필드 삽입 팝오버를 패널 표준 규약(PropertySelect / PropertyUnitInput 과 동일)에
   // 맞춰 control 외곽 박스(`.react-aria-Group`) 폭·좌측에 정렬한다. controlRef 는
   // input+trigger 컨테이너에 붙이고, anchor(group)는 PropertyFieldset 이 렌더하므로
   // closest 자동 해석에 맡긴다.
-  const pickerPopover = useControlPopoverMetrics();
-
-  // 외부 값 변경(선택 요소 전환 등) 시 로컬 상태 동기화.
-  useEffect(() => {
-    setInputValue(value ?? "");
-  }, [value]);
+  const { controlRef, popoverStyle } = useControlPopoverMetrics();
 
   const commit = (next: string) => {
     if (next !== value) onChange(next);
@@ -61,7 +65,7 @@ export function PropertyFieldTemplateInput({
     const start = input?.selectionStart ?? inputValue.length;
     const end = input?.selectionEnd ?? inputValue.length;
     const next = inputValue.slice(0, start) + token + inputValue.slice(end);
-    setInputValue(next);
+    updateInputValue(next);
     // 피커 선택은 즉시 commit — 캔버스 행 보간이 바로 반영되도록.
     commit(next);
     // 커서를 삽입 토큰 뒤로 복원.
@@ -80,7 +84,7 @@ export function PropertyFieldTemplateInput({
           className="react-aria-Input"
           type="text"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={(e) => updateInputValue(e.target.value)}
           onBlur={() => commit(inputValue)}
           onKeyDown={(e) => {
             if (e.key === "Enter") commit(inputValue);
@@ -96,7 +100,7 @@ export function PropertyFieldTemplateInput({
             // 팝오버를 필드 박스(부모 react-aria-Group) 좌측·폭에 정렬하려면 offset 을
             // 트리거 버튼 기준으로 계산해야 한다 — controlRef 를 우측 버튼에 붙이면
             // margin-left = group.left − button.left 로 팝오버가 부모 시작점에 맞춰진다.
-            ref={pickerPopover.controlRef}
+            ref={controlRef}
           >
             <span aria-hidden="true" className="field-picker-icon">
               <Braces size={iconEditProps.size} />
@@ -104,7 +108,7 @@ export function PropertyFieldTemplateInput({
           </Button>
           <Popover
             className="react-aria-Popover property-select-popover"
-            style={pickerPopover.popoverStyle}
+            style={popoverStyle}
           >
             <Menu
               className="react-aria-Menu field-picker-menu"

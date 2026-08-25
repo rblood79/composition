@@ -181,7 +181,6 @@ describe("canonical mutation wrappers", () => {
   });
 
   it("setElementsCanonicalPrimary preserves page shell order metadata", () => {
-    const setElements = vi.fn();
     const pages = [
       { ...makePage("page-home"), title: "Home", slug: "/", order_num: 0 },
       { ...makePage("page-two"), title: "Page 2", order_num: 1 },
@@ -263,7 +262,9 @@ describe("canonical mutation wrappers", () => {
           type: "ref",
           ref: "layout-1",
           metadata: { type: "legacy-page", pageId: "page-1" },
-          children: [makeCanonicalElementNode(makeElement("existing-1", "Nav"))],
+          children: [
+            makeCanonicalElementNode(makeElement("existing-1", "Nav")),
+          ],
         },
       ]),
     );
@@ -281,8 +282,11 @@ describe("canonical mutation wrappers", () => {
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     const pageNode = doc?.children.find((node) => node.id === "page-1");
     const descendants =
-      (pageNode as { descendants?: Record<string, { children?: { id: string }[] }> })
-        .descendants ?? {};
+      (
+        pageNode as {
+          descendants?: Record<string, { children?: { id: string }[] }>;
+        }
+      ).descendants ?? {};
     return {
       children: (pageNode?.children ?? []).map((child) => child.id),
       descendantChildren: Object.values(descendants).flatMap((override) =>
@@ -902,7 +906,6 @@ describe("canonical mutation wrappers", () => {
   });
 
   it("mergeElementsCanonicalPrimary does not reorder siblings for props-only batches", () => {
-    const setElements = vi.fn();
     const page = makePage("page-1");
     const body = makeElement("body", "body", {
       page_id: "page-1",
@@ -964,7 +967,6 @@ describe("canonical mutation wrappers", () => {
   });
 
   it("mergeElementsCanonicalPrimary preserves canonical order when props-only updates carry refreshed mirror order", () => {
-    const setElements = vi.fn();
     const page = makePage("page-1");
     const body = makeElement("body", "body", {
       page_id: "page-1",
@@ -1042,7 +1044,6 @@ describe("canonical mutation wrappers", () => {
   });
 
   it("mergeElementsCanonicalPrimary can nest children inside page ref descendants", () => {
-    const setElements = vi.fn();
     const page = makePage("page-1");
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument(
@@ -1965,7 +1966,6 @@ describe("canonical mutation wrappers", () => {
   });
 
   it("mergeElementsCanonicalPrimary stores origin-shaped ref mirrors as RefNode overrides", () => {
-    const setElements = vi.fn();
     const page = makePage("page-1");
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument(

@@ -100,9 +100,9 @@ const GenericField = memo(function GenericField({
   };
 
   switch (field.kind) {
+    // fillStyle 은 고정 옵션(fill/outline 등) visual-enum → select. 출력은 data-fill-style.
     case "variant":
     case "enum":
-    // fillStyle 은 고정 옵션(fill/outline 등) visual-enum → select. 출력은 data-fill-style.
     case "fillStyle":
       return (
         <PropertySelect

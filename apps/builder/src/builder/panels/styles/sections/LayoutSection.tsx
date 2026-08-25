@@ -221,18 +221,21 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     direction: "Top" | "Right" | "Bottom" | "Left",
     value: string,
   ) => {
-    commitLayoutPresentation(`padding${direction}`, value) ||
+    if (!commitLayoutPresentation(`padding${direction}`, value)) {
       updateStyleImmediate(`padding${direction}`, value);
+    }
   };
 
   const handleSpacingCommit = (property: "gap" | "padding", value: string) => {
-    commitLayoutPresentation(property, value) ||
+    if (!commitLayoutPresentation(property, value)) {
       updateStyleImmediate(property, value);
+    }
   };
 
   const handleSpacingPreview = (property: "gap" | "padding", value: string) => {
-    previewLayoutPresentation(property, value) ||
+    if (!previewLayoutPresentation(property, value)) {
       updateStylePreview(property, value);
+    }
   };
 
   const handleMarginChange = (

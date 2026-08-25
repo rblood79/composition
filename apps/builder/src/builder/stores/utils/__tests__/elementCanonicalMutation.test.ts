@@ -162,13 +162,6 @@ function makeState(elements: Element[]): MockState {
   };
 }
 
-function replaceStateElements(state: MockState, elements: Element[]): void {
-  const next = makeState(elements);
-  state.elements = next.elements;
-  state.elementsMap = next.elementsMap;
-  state.childrenMap = next.childrenMap;
-}
-
 function createSetMock(state: MockState) {
   return vi.fn(
     (
@@ -542,11 +535,9 @@ describe("element mutations keep canonical document primary", () => {
 
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     const page = doc?.children.find((node) => node.id === "page-1") as
-      | FrameNode
-      | undefined;
+      FrameNode | undefined;
     const bodyNode = page?.children?.find((node) => node.id === "body") as
-      | FrameNode
-      | undefined;
+      FrameNode | undefined;
 
     expect(bodyNode?.children?.map((node) => node.id)).toEqual([
       "button-two",
@@ -640,11 +631,9 @@ describe("element mutations keep canonical document primary", () => {
 
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     const page = doc?.children.find((node) => node.id === "page-1") as
-      | FrameNode
-      | undefined;
+      FrameNode | undefined;
     const bodyNode = page?.children?.find((node) => node.id === "body") as
-      | FrameNode
-      | undefined;
+      FrameNode | undefined;
 
     expect(bodyNode?.children?.map((node) => node.id)).toEqual([
       "button-one",

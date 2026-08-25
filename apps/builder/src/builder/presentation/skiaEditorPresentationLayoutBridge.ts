@@ -334,7 +334,7 @@ export class SkiaEditorPresentationLayoutBridge {
 
     const rootLayout = layoutMap.get(publicationRootId);
     if (!rootLayout) return;
-    let layoutDelta = new Map<string, ComputedLayout>();
+    const layoutDelta = new Map<string, ComputedLayout>();
     const computeTargetedLayout = this.#options.computeTargetedLayout;
     const canComputeTargetedLayout =
       hasTargetedLayoutPatch &&

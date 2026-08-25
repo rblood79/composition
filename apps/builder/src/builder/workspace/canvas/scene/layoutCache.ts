@@ -206,7 +206,6 @@ interface GetCachedPageLayoutInput {
 
 export function getCachedPageLayout({
   bodyElement,
-  childrenIdMap,
   elementById,
   pageChildrenMap,
   pageElementsSignature,

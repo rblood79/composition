@@ -13,7 +13,7 @@ import { ComponentDefinition, ComponentCreationContext } from "../types";
 export function createTextFieldDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -89,7 +89,7 @@ export function createTextFieldDefinition(
 export function createTextAreaDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -164,7 +164,7 @@ export function createTextAreaDefinition(
 export function createToastDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System
@@ -247,7 +247,7 @@ export function createToastDefinition(
 export function createNumberFieldDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -368,7 +368,7 @@ export function createNumberFieldDefinition(
 export function createSearchFieldDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -465,7 +465,7 @@ export function createSliderDefinition(
   context: ComponentCreationContext,
   options?: { isRange?: boolean },
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
   const isRange = options?.isRange ?? false;
 

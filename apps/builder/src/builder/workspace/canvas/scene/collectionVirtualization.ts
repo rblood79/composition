@@ -329,9 +329,9 @@ export function resolveVirtualizedCollectionWindows(
         const rawScrollTop = input.scrollTops.get(node.id) ?? 0;
 
         // family 별 총 행 수 + stride(시각 행 높이) + 열 수 + scrollTop 보정.
-        let totalRows = 0;
-        let rowHeight = 0;
-        let columns = 1;
+        let totalRows: number;
+        let rowHeight: number;
+        let columns: number;
         let scrollTop = rawScrollTop;
 
         if (family === "table") {
@@ -413,8 +413,8 @@ export function resolveVirtualizedCollectionWindows(
         const dataBinding = getElementDataBinding(node);
         const props = node.props as Record<string, unknown> | undefined;
 
-        let totalRows = 0;
-        let rowHeight = 0;
+        let totalRows: number;
+        let rowHeight: number;
         let columns = 1;
         if (family === "table") {
           const { totalDataRows } = getTableProjectionRows(

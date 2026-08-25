@@ -38,7 +38,7 @@ describe("요소 소실 사건 대응 — store-level unload 금지 계약 (2026
 
     // unloadPage 함수 블록 추출
     const match = source.match(
-      /const unloadPage = \(pageId: string\): void => \{[\s\S]*?\n  \};/,
+      /const unloadPage = \(pageId: string\): void => \{[\s\S]*?\n {2}\};/,
     );
     expect(match).not.toBeNull();
     const block = match![0];

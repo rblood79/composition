@@ -8,7 +8,7 @@ import { ComponentDefinition, ComponentCreationContext } from "../types";
 export function createTabsDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ADR-066: items SSOT — Tab element 소멸, TabPanel만 유지 (itemId 페어링)
@@ -75,7 +75,7 @@ export function createTabsDefinition(
 export function createTreeDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   // ⭐ Layout/Slot System

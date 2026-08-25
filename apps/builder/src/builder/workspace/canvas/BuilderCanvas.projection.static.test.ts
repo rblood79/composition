@@ -95,7 +95,7 @@ describe("BuilderCanvas canonical projection contract", () => {
       "utf-8",
     );
     const slotGuardBlock = source.match(
-      /if \(interactionTarget\.kind === "slot-guard"\) \{[\s\S]*?return;\n      \}/,
+      /if \(interactionTarget\.kind === "slot-guard"\) \{[\s\S]*?return;\n {6}\}/,
     )?.[0];
 
     expect(slotGuardBlock).toBeTruthy();

@@ -161,25 +161,6 @@ export function resolveDragReadModel(
   };
 }
 
-function buildDragReadModelFromElements(
-  elements: CanvasInteractionNode[],
-): DragReadModel {
-  const elementsById = new Map(
-    elements.map((element) => [element.id, element]),
-  );
-  const childrenByParent = new Map<string, CanvasInteractionNode[]>();
-  for (const element of elements) {
-    if (element.deleted || !element.parent_id) continue;
-    const siblings = childrenByParent.get(element.parent_id);
-    if (siblings) {
-      siblings.push(element);
-    } else {
-      childrenByParent.set(element.parent_id, [element]);
-    }
-  }
-  return { elementsById, childrenByParent };
-}
-
 async function persistActiveCanonicalDocument(
   db: Awaited<ReturnType<typeof getDB>>,
 ): Promise<void> {

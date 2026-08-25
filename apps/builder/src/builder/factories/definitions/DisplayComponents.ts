@@ -10,7 +10,7 @@ import { ComponentDefinition, ComponentCreationContext } from "../types";
 export function createAvatarDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -47,7 +47,7 @@ export function createAvatarDefinition(
 export function createAvatarGroupDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -111,7 +111,7 @@ export function createAvatarGroupDefinition(
 export function createStatusLightDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -153,7 +153,7 @@ export function createStatusLightDefinition(
 export function createButtonGroupDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -209,7 +209,7 @@ export function createButtonGroupDefinition(
 export function createProgressBarDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -297,7 +297,7 @@ export function createProgressBarDefinition(
 export function createMeterDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -381,7 +381,7 @@ export function createMeterDefinition(
 export function createProgressCircleDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -411,7 +411,7 @@ export function createProgressCircleDefinition(
 export function createImageDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -448,7 +448,7 @@ export function createImageDefinition(
 export function createRangeCalendarDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   const now = new Date();
@@ -510,7 +510,7 @@ export function createRangeCalendarDefinition(
 export function createIllustratedMessageDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -552,7 +552,7 @@ export function createIllustratedMessageDefinition(
 export function createCardViewDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {
@@ -625,7 +625,7 @@ export function createCardViewDefinition(
 export function createTableViewDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
-  const { parentElement, elements } = context;
+  const { parentElement } = context;
   const parentId = parentElement?.id || null;
 
   return {

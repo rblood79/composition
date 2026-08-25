@@ -5,7 +5,7 @@
  * 별도 모듈로 추출한다. 동작 변경 없이 orchestration 책임만 이동한다.
  */
 
-import type { CanvasKit, FontMgr, Canvas } from "canvaskit-wasm";
+import type { CanvasKit, FontMgr } from "canvaskit-wasm";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { BoundingBox } from "../selection/types";
 import type { RendererInvalidationPacket } from "../renderers";

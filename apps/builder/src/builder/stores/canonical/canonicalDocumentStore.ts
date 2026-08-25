@@ -27,8 +27,6 @@ import type {
   DescendantOverride,
   PageGuideLine,
   RefNode,
-  SerializedAction,
-  SerializedEvent,
 } from "@composition/shared";
 import {
   appendDescendantChild as appendDescendantChildToDocument,

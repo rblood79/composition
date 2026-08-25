@@ -8,7 +8,7 @@ import {
 import { historyManager, type HistoryEntry } from "../history";
 import { applySnapshotRestoreHistoryEntry } from "./snapshotRestore";
 import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
-import { getElementById, createCompleteProps } from "../utils/elementHelpers";
+import { createCompleteProps } from "../utils/elementHelpers";
 import {
   applyBatchDiffRedo,
   applyBatchDiffUndo,
@@ -581,29 +581,6 @@ function getHistoryDiffElementIds(entry: HistoryEntry): string[] {
   return [...ids];
 }
 
-async function upsertHistoryCompatibilityElements(
-  elementIds: Iterable<string>,
-  get: GetState,
-): Promise<void> {
-  const elementsMap = getHistoryCompatibilityElementsMap(get);
-  const elementsToUpsert: Element[] = [];
-  for (const id of elementIds) {
-    const element = getElementById(elementsMap, id);
-    if (element) elementsToUpsert.push(element);
-  }
-  // ADR-128: cloud upsert dead — IndexedDB persistence only.
-  void elementsToUpsert;
-  void get;
-}
-
-async function syncCloudCompatibilityForCanonicalEvents(
-  _entry: HistoryEntry,
-  _direction: "undo" | "redo",
-  _get: GetState,
-): Promise<void> {
-  // ADR-128: cloud sync dead — IndexedDB persistence only.
-}
-
 /**
  * Undo 액션 생성 팩토리
  *
@@ -838,9 +815,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
 
         case "remove": {
           // 삭제된 요소와 자식 요소들 복원
-
-          elementsToRestore.forEach((el, index) => {});
-
           updatedElements = [...currentState.elements, ...elementsToRestore];
           break;
         }

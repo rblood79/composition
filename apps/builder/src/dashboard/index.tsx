@@ -167,30 +167,47 @@ function Dashboard() {
 
   void projectCreation; // (ADR-128) cloud option 제거됨. settings 자체는 보존.
 
+  const fetchProjects = useCallback(async (): Promise<ProjectListItem[]> => {
+    const db = await getDB();
+    const localProjectsRaw = await db.projects.getAll();
+    return localProjectsRaw.map((p) => ({
+      id: p.id,
+      name: p.name,
+      storage: { local: true, cloud: false },
+      sync: { status: "local-only" },
+      createdAt: new Date(p.created_at ?? Date.now()),
+      lastModified: new Date(p.updated_at ?? Date.now()),
+    }));
+  }, []);
+
   const loadProjects = useCallback(async () => {
-    setIsLoadingProjects(true);
     try {
-      const db = await getDB();
-      const localProjectsRaw = await db.projects.getAll();
-      const merged: ProjectListItem[] = localProjectsRaw.map((p) => ({
-        id: p.id,
-        name: p.name,
-        storage: { local: true, cloud: false },
-        sync: { status: "local-only" },
-        createdAt: new Date(p.created_at ?? Date.now()),
-        lastModified: new Date(p.updated_at ?? Date.now()),
-      }));
-      setProjects(merged);
+      setProjects(await fetchProjects());
     } catch (error) {
       console.error("[Dashboard] 프로젝트 로드 실패:", error);
     } finally {
       setIsLoadingProjects(false);
     }
-  }, []);
+  }, [fetchProjects]);
 
   useEffect(() => {
-    void loadProjects();
-  }, [loadProjects]);
+    let cancelled = false;
+    void fetchProjects()
+      .then((loadedProjects) => {
+        if (!cancelled) setProjects(loadedProjects);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          console.error("[Dashboard] 프로젝트 로드 실패:", error);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingProjects(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchProjects]);
 
   const createProjectMutation = useAsyncMutation<
     LocalProject,
@@ -242,6 +259,7 @@ function Dashboard() {
     {
       onSuccess: (newProject) => {
         setNewProjectName("");
+        setIsLoadingProjects(true);
         void loadProjects();
         navigate(`/builder/${newProject.id}`);
       },
@@ -280,6 +298,7 @@ function Dashboard() {
     },
     {
       onSuccess: () => {
+        setIsLoadingProjects(true);
         void loadProjects();
       },
     },

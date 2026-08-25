@@ -1078,16 +1078,11 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     // 🚀 Phase 1: Immer → 함수형 업데이트 (Low Risk)
     loadPageElements: (elements, pageId) => {
       // 레거시 태그(section)를 canonical 태그(Section)로 정규화
-      const {
-        elements: normalizedElements,
-        updatedElements: normalizedTagElements,
-      } = normalizeElementTags(elements);
+      const { elements: normalizedElements } = normalizeElementTags(elements);
 
       // orphan 요소들을 body로 마이그레이션
-      const {
-        elements: migratedElements,
-        updatedElements: orphanMigratedElements,
-      } = ElementUtils.migrateOrphanElementsToBody(normalizedElements, pageId);
+      const { elements: migratedElements } =
+        ElementUtils.migrateOrphanElementsToBody(normalizedElements, pageId);
 
       // 페이지 변경 시 히스토리 초기화
       historyManager.setCurrentPage(pageId);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
 import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
 import {
@@ -102,23 +102,18 @@ export function useStylePresentationActions(): StylePresentationActions {
     selectedElementId: string;
     target: EditorPresentationTargetRef;
   } | null>(null);
-  const ownerIdRef = useRef<string | null>(null);
-  const shadowOwnerIdRef = useRef<string | null>(null);
-  const textColorOwnerIdRef = useRef<string | null>(null);
-  const opacityOwnerIdRef = useRef<string | null>(null);
-  const ownerId =
-    ownerIdRef.current ?? `style-border-color-owner-${nextStyleOwnerId++}`;
-  ownerIdRef.current = ownerId;
-  const shadowOwnerId =
-    shadowOwnerIdRef.current ?? `style-box-shadow-owner-${nextStyleOwnerId++}`;
-  shadowOwnerIdRef.current = shadowOwnerId;
-  const textColorOwnerId =
-    textColorOwnerIdRef.current ??
-    `style-text-color-owner-${nextStyleOwnerId++}`;
-  textColorOwnerIdRef.current = textColorOwnerId;
-  const opacityOwnerId =
-    opacityOwnerIdRef.current ?? `style-opacity-owner-${nextStyleOwnerId++}`;
-  opacityOwnerIdRef.current = opacityOwnerId;
+  const [ownerId] = useState(
+    () => `style-border-color-owner-${nextStyleOwnerId++}`,
+  );
+  const [shadowOwnerId] = useState(
+    () => `style-box-shadow-owner-${nextStyleOwnerId++}`,
+  );
+  const [textColorOwnerId] = useState(
+    () => `style-text-color-owner-${nextStyleOwnerId++}`,
+  );
+  const [opacityOwnerId] = useState(
+    () => `style-opacity-owner-${nextStyleOwnerId++}`,
+  );
 
   useEffect(() => {
     const unsubscribeSelection = useStore.subscribe(() => {
@@ -248,7 +243,7 @@ export function useStylePresentationActions(): StylePresentationActions {
         type: "style.patch",
       };
       if (!presentation.handle.publish(descriptor)) {
-        presentation.phase = "cancelled";
+        presentationRef.current = { ...presentation, phase: "cancelled" };
       }
       return true;
     },
@@ -369,7 +364,10 @@ export function useStylePresentationActions(): StylePresentationActions {
         type: "style.patch",
       };
       if (!presentation.handle.publish(descriptor)) {
-        presentation.phase = "cancelled";
+        shadowPresentationRef.current = {
+          ...presentation,
+          phase: "cancelled",
+        };
       }
       return true;
     },
@@ -442,7 +440,10 @@ export function useStylePresentationActions(): StylePresentationActions {
         type: "style.patch",
       };
       if (!presentation.handle.publish(descriptor)) {
-        presentation.phase = "cancelled";
+        shadowPresentationRef.current = {
+          ...presentation,
+          phase: "cancelled",
+        };
       }
       return true;
     },
@@ -592,7 +593,10 @@ export function useStylePresentationActions(): StylePresentationActions {
         type: "style.patch",
       };
       if (!presentation.handle.publish(descriptor)) {
-        presentation.phase = "cancelled";
+        textColorPresentationRef.current = {
+          ...presentation,
+          phase: "cancelled",
+        };
       }
       return true;
     },
@@ -695,7 +699,10 @@ export function useStylePresentationActions(): StylePresentationActions {
         type: "style.patch",
       };
       if (!presentation.handle.publish(descriptor)) {
-        presentation.phase = "cancelled";
+        opacityPresentationRef.current = {
+          ...presentation,
+          phase: "cancelled",
+        };
       }
       return true;
     },

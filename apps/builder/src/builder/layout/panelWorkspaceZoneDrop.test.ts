@@ -6,7 +6,6 @@ import {
   createPanelWorkspaceLayoutV2,
 } from "./panelWorkspaceLayoutV2.testFixtures";
 import {
-  PANEL_WORKSPACE_PLACEMENT_ZONES,
   PANEL_WORKSPACE_SNAP_ZONES,
   solvePanelWorkspaceLayoutV3,
   type PanelWorkspaceLayoutV3,

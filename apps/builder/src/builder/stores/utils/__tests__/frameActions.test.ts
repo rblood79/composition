@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
-import type { Layout } from "@/types/builder/layout.types";
 import type { Element } from "@/types/core/store.types";
 
 const mockDb = vi.hoisted(() => ({

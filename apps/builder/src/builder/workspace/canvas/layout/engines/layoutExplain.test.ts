@@ -184,7 +184,7 @@ describe("createLayoutExplain — 게이트 흐름", () => {
         enabled = e;
         return true;
       },
-      getLayoutTraceForElement: (id) =>
+      getLayoutTraceForElement: (_id) =>
         enabled ? traceNode({ enabled: true }) : traceNode({ enabled: false }),
     });
     const explain = createLayoutExplain(() => [tree]);

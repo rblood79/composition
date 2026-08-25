@@ -153,7 +153,9 @@ function CanvasContent() {
   // 그러지 않으면 renderContext memo 가 매 렌더 무효화되어 전 요소가 다시 그려진다.
   const { addToast } = useToast();
   const toastRef = useRef<(message: string) => void>(() => {});
-  toastRef.current = (message: string) => addToast({ title: message });
+  useEffect(() => {
+    toastRef.current = (message: string) => addToast({ title: message });
+  }, [addToast]);
 
   // ⭐ 순환 의존성 해결을 위한 render 함수 refs
   const renderElementInternalRef = useRef<

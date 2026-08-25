@@ -72,16 +72,11 @@ function isPlainCloneData(
   if (typeof value !== "object") return false;
   if (seen.has(value)) return false;
   seen.add(value);
-  let valid = true;
-  if (Array.isArray(value)) {
-    valid = value.every((entry) => isPlainCloneData(entry, seen));
-  } else if (!isRecord(value)) {
-    valid = false;
-  } else {
-    valid = Object.values(value).every((entry) =>
-      isPlainCloneData(entry, seen),
-    );
-  }
+  const valid = Array.isArray(value)
+    ? value.every((entry) => isPlainCloneData(entry, seen))
+    : isRecord(value)
+      ? Object.values(value).every((entry) => isPlainCloneData(entry, seen))
+      : false;
   // `seen` is an ancestor set, not a global visited set. Structured-clone data
   // may legally share an object reference in two sibling fields; only a cycle
   // must be rejected at this protocol boundary.

@@ -2,7 +2,10 @@ import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElem
 import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
 import { generateCustomId } from "../../utils/idGeneration";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
-import type { Element } from "../../../types/builder/unified.types";
+import type { ElementsState } from "../../stores/elements";
+
+type AddElementInput = Parameters<ElementsState["addElement"]>[0];
+type CustomIdElements = Parameters<typeof generateCustomId>[1];
 
 export type ListBoxItemSlotRole = "icon" | "label" | "description";
 
@@ -22,11 +25,11 @@ export function createListBoxItemSlotChildElement(opts: {
   role: ListBoxItemSlotRole;
   parentId: string;
   pageId: string;
-}): Element {
+}): AddElementInput {
   const { role, parentId, pageId } = opts;
 
   const doc = getActiveCanonicalDocument();
-  const pageElements: Element[] = [];
+  const pageElements: CustomIdElements = [];
   if (doc) {
     visitCanonicalDocumentElements(doc, (el) => {
       pageElements.push(el);
@@ -47,7 +50,7 @@ export function createListBoxItemSlotChildElement(opts: {
       parent_id: parentId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    } as Element,
+    } as AddElementInput,
     null,
   );
 }
