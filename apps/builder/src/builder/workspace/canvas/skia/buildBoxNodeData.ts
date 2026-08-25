@@ -178,28 +178,37 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
       fillV2Style.type === "angular-gradient")
       ? fillV2Style
       : undefined;
+  // mesh 는 stop(colors/positions) 이 없어 gradientFill(= stop drag 채널) 에 넣을 수 없지만,
+  //   box.fill 에는 실려야 한다 — fills.ts 의 SkSL bilinear 셰이더가 이 채널만 소비한다.
+  //   누락 시 Preview DOM(fillAdapter 의 SVG mesh)과 Canvas(첫 point 색 단색)가 어긋난다.
+  const meshFill =
+    fillV2Style && fillV2Style.type === "mesh-gradient"
+      ? fillV2Style
+      : undefined;
   const topEnabledFill =
     fills && fills.length > 0 ? getTopEnabledFill(fills as FillItem[]) : null;
 
   // CSS background-image: url(...)
-  const cssBgImageFill = gradientFill
-    ? undefined
-    : (() => {
-        const bgImg = style.backgroundImage as string | undefined;
-        if (!bgImg || !bgImg.startsWith("url(")) return undefined;
-        const urlMatch = bgImg.match(/url\(\s*["']?([^"')]+)["']?\s*\)/);
-        if (!urlMatch) return undefined;
-        return (
-          cssBgImageToSkia(
-            urlMatch[1],
-            w,
-            h,
-            style.backgroundSize as string | undefined,
-            style.backgroundPosition as string | undefined,
-            style.backgroundRepeat as string | undefined,
-          ) ?? undefined
-        );
-      })();
+  //   fills 가 shader 를 만들면(gradient/mesh) 그쪽이 이긴다 — 두 채널이 같은 box.fill 을 쓴다.
+  const cssBgImageFill =
+    (gradientFill ?? meshFill)
+      ? undefined
+      : (() => {
+          const bgImg = style.backgroundImage as string | undefined;
+          if (!bgImg || !bgImg.startsWith("url(")) return undefined;
+          const urlMatch = bgImg.match(/url\(\s*["']?([^"')]+)["']?\s*\)/);
+          if (!urlMatch) return undefined;
+          return (
+            cssBgImageToSkia(
+              urlMatch[1],
+              w,
+              h,
+              style.backgroundSize as string | undefined,
+              style.backgroundPosition as string | undefined,
+              style.backgroundRepeat as string | undefined,
+            ) ?? undefined
+          );
+        })();
 
   // data-bound collection projection 컨테이너(scene 이 collectionShellTag 마커)는 box 경로라
   //   catalog "shell variant" 배경(ListBox `structure.containerStyles.background = {color.raised}`)을
@@ -301,7 +310,9 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
       ? { fill: cssBgImageFill }
       : gradientFill
         ? { fill: gradientFill }
-        : {}),
+        : meshFill
+          ? { fill: meshFill }
+          : {}),
     borderRadius: br,
     strokeColor,
     strokeWidth: suppressBorder ? undefined : stroke?.width,

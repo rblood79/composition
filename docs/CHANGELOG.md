@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canvas mesh-gradient fill 배선] - 2026-08-25
+
+### Bug Fixes
+
+- Style Panel 에서 고른 Mesh fill 이 Canvas 에 그라디언트가 아니라 단색으로 나오던 결함을
+  수정했다. `fillToSkia` 는 mesh FillStyle 을 만들고 `fills.ts` 는 SkSL bilinear 셰이더까지
+  갖췄지만, box(`buildBoxNodeData`)와 catalog/spec(`buildSpecNodeData`) 두 node builder 가
+  `linear|radial|angular` 만 화이트리스트해 mesh 가 `box.fill` 에 실리지 않았다. 그래서
+  Preview/Publish DOM 은 `fillAdapter` 의 SVG mesh 를 그리고 Canvas 는 첫 point 색으로
+  떨어지는 D3 비대칭이 있었다. 두 경로 모두 mesh 를 `box.fill` 에 접붙인다.
+- fills 가 셰이더를 만드는 경우 CSS `background-image: url(...)` 보다 우선하는 기존 규칙을
+  mesh 에도 동일 적용했다. 두 채널이 같은 `box.fill` 을 쓰므로 gradient 와 같은 우선순위다.
+
+### Architecture
+
+- mesh 는 stop `colors/positions` 가 없어 gradient drag 의 presentation target 대상이 아니다.
+  접붙임만 하고 `presentationFillTargets` 의 stop 채널은 늘리지 않는다(commit-only,
+  `FillSection` 의 기존 계약과 동일). 모든 box 가 갖는 fallback `fillColor` 채널은 유지된다.
+
+### Verification
+
+- box 경로 신규 4건 + 기존 catalog 경로 RED 1건이 GREEN. builder 전체 4,357건 실패 0,
+  `pnpm type-check` 신규 위반 0.
+- `multiroot-live-gate` 에서 page body 에 Mesh fill 을 적용해 Canvas 가 4코너 bilinear
+  (red/yellow/blue/green) 를 그리는 것을 확인했고, Compare Mode 에서 Preview DOM 의
+  SVG mesh 와 시각 결과가 일치했다. 적용 요소의 preview computed `backgroundImage` 가
+  mesh SVG data URI 임을 확인했다. 시험 후 Undo 로 원상복구했다.
+
 ## [ADR-912 후속 Phase 6 — 종결 후 전수 감사와 테스트 회귀 정정] - 2026-08-25
 
 ### Bug Fixes

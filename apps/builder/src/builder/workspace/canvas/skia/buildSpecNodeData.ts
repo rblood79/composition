@@ -1851,6 +1851,12 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
           },
         ];
       }
+    } else if (fillStyle && fillStyle.type === "mesh-gradient") {
+      // mesh 는 stop(colors/positions) 이 없어 gradient drag 채널을 못 만들지만 box.fill 은
+      //   실어야 한다 — fills.ts 의 SkSL bilinear 셰이더가 이 채널만 소비한다. 누락 시
+      //   Preview DOM(fillAdapter 의 SVG mesh)과 Canvas(첫 point 색 단색)가 어긋난다.
+      //   presentationFillTargets 는 늘리지 않는다(commit-only, FillSection:340 과 동일 계약).
+      specNode.box.fill = fillStyle;
     }
   }
 
