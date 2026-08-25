@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import {
   ToggleButton as RACToggleButton,
   ToggleButtonGroup as RACToggleButtonGroup,
-  ToggleButtonGroupProps,
   composeRenderProps,
 } from "react-aria-components";
+import type { ToggleButtonGroupProps } from "react-aria-components";
 import type {
   DataBinding,
   ColumnMapping,

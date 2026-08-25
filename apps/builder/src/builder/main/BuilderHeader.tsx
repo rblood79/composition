@@ -3,7 +3,6 @@ import {
   Eye,
   Undo,
   Redo,
-  Play,
   Monitor,
   Tablet,
   Smartphone,
@@ -17,7 +16,6 @@ import {
   Columns,
 } from "lucide-react";
 import {
-  Key,
   MenuTrigger,
   Menu,
   MenuItem,
@@ -26,6 +24,7 @@ import {
   Keyboard,
   Button,
 } from "react-aria-components";
+import type { Key } from "react-aria-components";
 import {
   ToggleButtonGroup,
   ToggleButton,
@@ -86,7 +85,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   onUndo,
   onRedo,
   onPreview,
-  onPlay,
   onPublish,
   showWorkflowOverlay,
   onWorkflowOverlayToggle,
@@ -115,7 +113,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           >
             <Menu
               className="header-menu"
-              onAction={(key) => {
+              onAction={(key: Key) => {
                 if (key === "reset-panel-layout") resetWorkspaceLayout();
               }}
             >
@@ -180,9 +178,9 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
         <ToggleButtonGroup
           selectionMode="single"
           selectedKeys={breakpoint}
-          onSelectionChange={(keys) => {
+          onSelectionChange={(keys: Set<Key>) => {
             const selected = Array.from(keys)[0];
-            if (selected) onBreakpointChange(selected);
+            if (selected != null) onBreakpointChange(selected);
           }}
           indicator={true}
         >
@@ -256,7 +254,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             ])
           }
           indicator={true}
-          onSelectionChange={(keys) => {
+          onSelectionChange={(keys: Set<Key>) => {
             const selectedKeys = new Set(keys);
             const wasCompareMode = isCompareMode;
             const isCompareNowSelected = selectedKeys.has("compare");
@@ -334,13 +332,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             />
           </ToggleButton>
         </ToggleButtonGroup>
-        <button aria-label="Play" onClick={onPlay}>
-          <Play
-            color={iconProps.color}
-            strokeWidth={iconProps.strokeWidth}
-            size={iconProps.size}
-          />
-        </button>
         <button aria-label="Publish" className="publish" onClick={onPublish}>
           Publish
         </button>
