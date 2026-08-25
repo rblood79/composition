@@ -546,7 +546,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
 /**
  * TypographySection - 외부 래퍼 (PropertySection 관리)
  */
-const TYPOGRAPHY_PROPS = [
+export const TYPOGRAPHY_PROPS = [
   "fontFamily",
   "fontSize",
   "fontWeight",

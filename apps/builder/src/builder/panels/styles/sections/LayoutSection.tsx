@@ -517,7 +517,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
  * LayoutSection - 외부 래퍼 (PropertySection 관리)
  */
 // store 가 shorthand 를 longhand 로 분배하므로 dirty 판정도 longhand 를 포함.
-const LAYOUT_PROPS = [
+export const LAYOUT_PROPS = [
   "display",
   "flexDirection",
   "flexWrap",

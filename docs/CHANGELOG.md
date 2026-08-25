@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Style 패널 그룹 탭 — 선택된 탭에만 라벨] - 2026-08-25
+
+### Changed
+
+- Style 패널이 섹션 5개(Responsive / Transform / Layout / Appearance / Typography)를 한 줄로
+  늘어놓던 것을 **4개 그룹 탭**으로 묶었다. 섹션은 하나도 지우지 않았다 — Layout(Transform +
+  Layout) / Style(Appearance) / Text(Typography) / Screen(Responsive + Visibility) 로 그룹만
+  나눴다. 실측 근거: 패널 폭 233px 에 컨트롤 91개, 전부 펼치면 콘텐츠 1,454px 가 보이는 높이
+  641px 안에 들어가 2.3 화면이었다.
+- 탭 어법은 **선택된 탭에만 라벨**이다. 233px 최소 폭에서 라벨 4개를 다 달면 탭 줄이 폭을 다
+  먹어 복사/붙여넣기를 타이틀 줄로 밀어내야 하고, 전부 아이콘만 두면 Layout·Style 이 읽히지
+  않는다. 선택 탭만 이름을 달고 남는 폭을 가져가므로 패널을 넓히면 라벨 자리도 같이 넓어지고,
+  좁히면 라벨만 말줄임으로 줄고 아이콘은 남는다.
+- 패널 헤더가 두 줄이 됐다 — 타이틀 줄(요소 타입 + `modify N` 배지)과 탭 줄(그룹 탭 4개 +
+  스타일 복사/붙여넣기). 구 "전체 스타일"(Palette) 토글은 탭이 대신하므로 제거했고, Palette 는
+  패널 아이콘으로 옮겼다. `modify N` 배지는 그대로 "수정된 속성만" 보기 토글이다.
+- 지금 선택되지 않은 그룹에 기본값과 다른 값이 있으면 탭 아이콘에 dot 을 띄운다. 판정은 섹션
+  reset 버튼과 같은 dirty 소스(`{TRANSFORM,LAYOUT,APPEARANCE,TYPOGRAPHY}_PROPS`)를 재사용해
+  "탭엔 점이 없는데 들어가 보면 reset 이 활성" 인 비대칭이 안 생기게 했다.
+
+### Verification
+
+- 라이브 빌더(localhost:5173) 실측: 233px 폭에서 4개 탭 라벨(Layout/Style/Text/Screen)이
+  잘리지 않고, 탭 전환이 해당 그룹 섹션만 마운트하며, Gap 편집이 탭을 떠났다 돌아와도 유지된다
+  (store 반영 확인). `modify 1` ↔ Style 탭 dot 일치, 배지로 Modified 뷰 진입 시 탭 줄 유지.
+- `StylesPanel.test.tsx` 에 그룹 탭 4개 렌더 + 선택 그룹만 표시 케이스를 추가했다.
+
 ## [테스트 baseline 정리 — overlay fixture / obsolete snapshot / §9 매트릭스 커버리지] - 2026-08-25
 
 ### Verification
@@ -75,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   잔여 25건은 ADR-912와 무관한 기존 baseline이다 — arrow expected shape의 `presentationRole`
   누락 24건과 catalog 경로의 mesh-gradient attachment 미지원 1건이며, Phase 2 전후로 해당
   emit/분기가 동일함을 확인했다.
-- `pnpm type-check` 신규 위반 0(baseline 43). Phase 0~5의 종료 조건(D1~D5 GREEN, paint owner
+- `pnpm type-check` 신규 위반 0(baseline 43). Phase 0~~5의 종료 조건(D1~~D5 GREEN, paint owner
   1곳, `resolveCatalogColorPreset` 참조 0, Badge manual/generated selector 중복 0,
   8,244-case shadow parity)은 재실행에서 모두 유지됐다.
 

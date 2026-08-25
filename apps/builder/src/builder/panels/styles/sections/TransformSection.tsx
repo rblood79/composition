@@ -724,7 +724,8 @@ const TransformSectionContent = memo(function TransformSectionContent() {
 /**
  * TransformSection - 외부 래퍼 (PropertySection 관리)
  */
-const TRANSFORM_PROPS = [
+/** 그룹 탭 dirty 표시(styleGroups.ts)가 재사용 — 섹션 reset 범위와 단일 소스. */
+export const TRANSFORM_PROPS = [
   "width",
   "height",
   "position",

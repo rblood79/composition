@@ -12,6 +12,92 @@
 }
 
 /* ============================================
+   그룹 탭 — 선택된 탭에만 라벨
+   ============================================ */
+
+/* RAC <Tabs> 래퍼가 .panel 과 .panel-contents 사이에 한 겹 들어간다.
+   스크롤 영역이 남는 높이를 그대로 먹도록 flex 를 이어 준다 (인스턴스 한정 override). */
+.panel > .styles-panel-groups {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 탭 줄 — 타이틀 줄과 같은 .panel-header 골격에 가로 여백만 얹는다. */
+.styles-panel-tabrow {
+  gap: var(--spacing-xs);
+  padding: 0 var(--spacing-xs) 0 var(--spacing-xs);
+}
+
+/* 회색 트랙 위의 세그먼트 — 4개 탭이 트랙 하나를 나눠 쓴다. */
+.styles-panel-tablist {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+  box-shadow: var(--inset-shadow-sm);
+}
+
+/* 비선택 탭은 아이콘 폭만 쓴다(flex 고정). 선택 탭만 남는 폭을 가져간다. */
+.styles-panel-tab {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  height: 22px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  cursor: pointer;
+  outline: none;
+}
+
+.styles-panel-tab[data-hovered] {
+  color: var(--fg);
+}
+
+.styles-panel-tab[data-focus-visible] {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.styles-panel-tab[data-selected] {
+  flex: 1 1 auto;
+  padding: 0 var(--spacing-xs);
+  background: var(--bg-overlay);
+  color: var(--fg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 패널을 좁히면 라벨만 말줄임으로 줄고 아이콘은 남는다. */
+.styles-panel-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* 지금 안 보이는 그룹에 수정된 값이 있다는 표시. */
+.styles-panel-tab-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--fg-muted);
+}
+
+/* ============================================
    ADR-154: 반응형 override 섹션
    ============================================ */
 

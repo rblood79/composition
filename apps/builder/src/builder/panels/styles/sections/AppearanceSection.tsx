@@ -336,7 +336,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
 /**
  * AppearanceSection - 외부 래퍼 (PropertySection 관리)
  */
-const APPEARANCE_PROPS = [
+export const APPEARANCE_PROPS = [
   "backgroundColor",
   "opacity",
   "borderColor",

@@ -1,8 +1,17 @@
 /**
  * StylesPanel - 스타일 편집 패널
+ *
+ * 섹션 5개(Responsive / Transform / Layout / Appearance / Typography)를 **4개 그룹 탭**으로 묶어
+ * 한 번에 한 그룹만 보여준다 (섹션 삭제 없음 — 그룹화만). 탭 정의·그룹별 dirty 판정은
+ * `constants/styleGroups.ts`, 탭 UI 어법(선택된 탭만 라벨)은 `components/StylesPanelTabs.tsx`.
+ *
+ * 헤더는 두 줄이다:
+ * - 타이틀 줄: 요소 타입 + "modify N" 배지(수정된 속성만 보기 토글)
+ * - 탭 줄: 그룹 탭 4개 + 스타일 복사/붙여넣기
  */
 
-import { useState, useMemo, useCallback, memo } from "react";
+import { useState, useMemo, useCallback, memo, type ReactElement } from "react";
+import { Tabs, TabPanel } from "react-aria-components";
 import { useStore, useDebouncedSelectedElementData } from "../../stores";
 import { ActionIconButton, ActionIconToggleButton } from "../../components/ui";
 import { PencilRuler, Palette } from "lucide-react";
@@ -11,7 +20,7 @@ import { ACTION_ICONS } from "../../config/actionIcons";
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 복사/붙여넣기 정본. */
 const { copy: CopyIcon, paste: PasteIcon } = ACTION_ICONS;
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { EmptyState } from "../../components";
+import { EmptyState, PanelHeader } from "../../components";
 import {
   TransformSection,
   LayoutSection,
@@ -20,6 +29,12 @@ import {
   ModifiedStylesSection,
   ResponsiveSection,
 } from "./sections";
+import { StylesPanelTabs } from "./components/StylesPanelTabs";
+import {
+  STYLE_GROUP_IDS,
+  toDirtyGroups,
+  type StyleGroupId,
+} from "./constants/styleGroups";
 import { useSectionCollapse } from "./hooks/useSectionCollapse";
 import { useStyleActions } from "./hooks/useStyleActions";
 import { useDirtyStyleProps } from "./hooks/useResetStyles";
@@ -37,17 +52,40 @@ const ModifiedSectionsWrapper = memo(function ModifiedSectionsWrapper() {
   return <ModifiedStylesSection selectedElement={selectedElement} />;
 });
 
-const AllSections = memo(function AllSections() {
+const LayoutGroupSections = memo(function LayoutGroupSections() {
   return (
     <>
-      <ResponsiveSection />
       <TransformSection />
       <LayoutSection />
-      <AppearanceSection />
-      <TypographySection />
     </>
   );
 });
+
+const StyleGroupSections = memo(function StyleGroupSections() {
+  return <AppearanceSection />;
+});
+
+const TextGroupSections = memo(function TextGroupSections() {
+  return <TypographySection />;
+});
+
+const ScreenGroupSections = memo(function ScreenGroupSections() {
+  return <ResponsiveSection />;
+});
+
+function GroupSections({ group }: { group: StyleGroupId }): ReactElement {
+  switch (group) {
+    case "style":
+      return <StyleGroupSections />;
+    case "text":
+      return <TextGroupSections />;
+    case "screen":
+      return <ScreenGroupSections />;
+    case "layout":
+    default:
+      return <LayoutGroupSections />;
+  }
+}
 
 function StylesPanelContent() {
   const hasSelectedElement = useStore((s) => s.selectedElementId != null);
@@ -56,7 +94,10 @@ function StylesPanelContent() {
     (selectedElement?.style as Record<string, unknown> | undefined) ?? null;
   // "modify N" 뱃지는 baseline(factory default / spec preset / subpart)과 실제로 다른 prop 수만 센다.
   //   reset 버튼(useHasDirtyStyles)과 동일 baseline 공유 — factory 가 주입한 layout default 는 제외.
-  const modifiedCount = useDirtyStyleProps().length;
+  const dirtyProps = useDirtyStyleProps();
+  const modifiedCount = dirtyProps.length;
+  // 탭 dot 은 "지금 안 보이는 그룹에 수정이 있다" 는 신호 — 배지와 같은 dirty 목록에서 파생.
+  const dirtyGroups = useMemo(() => toDirtyGroups(dirtyProps), [dirtyProps]);
   // copy 활성화는 baseline 무관 — 복사 대상은 "현재 inline style 전체"라 키 존재 여부가 기준.
   const hasInlineStyle = useMemo(() => {
     if (!selectedStyle) return false;
@@ -67,6 +108,7 @@ function StylesPanelContent() {
   const isCopyDisabled = !hasInlineStyle;
 
   const [filter, setFilter] = useState<"all" | "modified">("all");
+  const [group, setGroup] = useState<StyleGroupId>("layout");
   const {
     expandAll,
     collapseAll,
@@ -75,6 +117,12 @@ function StylesPanelContent() {
     toggleFocusMode,
   } = useSectionCollapse();
   const { copyStyles, pasteStyles } = useStyleActions();
+
+  // 탭을 누르면 "수정된 속성만" 보기에서 빠져나온다 — 배지 재클릭으로만 다시 들어간다.
+  const handleGroupChange = useCallback((key: React.Key) => {
+    setGroup(key as StyleGroupId);
+    setFilter("all");
+  }, []);
 
   const handleCopyStyles = useCallback(async () => {
     if (!selectedStyle) return;
@@ -125,67 +173,81 @@ function StylesPanelContent() {
 
   return (
     <div className="panel">
-      <div className="panel-header">
-        <div className="panel-actions">
-          <ActionIconToggleButton
-            isSelected={filter === "all"}
-            onChange={() => setFilter("all")}
-            aria-label="Style"
-            tooltip="전체 스타일"
-          >
-            <Palette
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </ActionIconToggleButton>
-          <ActionIconToggleButton
-            className="panel-title"
-            isSelected={filter === "modified"}
-            onChange={() => setFilter("modified")}
-            aria-label="Modify"
-            tooltip="수정된 스타일"
-          >
-            <PencilRuler
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-            {modifiedCount > 0 && `modify ${modifiedCount}`}
-          </ActionIconToggleButton>
-        </div>
-        <div className="panel-actions">
-          <ActionIconButton
-            onPress={handleCopyStyles}
-            aria-label="Copy styles"
-            isDisabled={isCopyDisabled}
-            tooltip="스타일 복사"
-          >
-            <CopyIcon
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </ActionIconButton>
-          <ActionIconButton
-            onPress={handlePasteStyles}
-            aria-label="Paste styles"
-            tooltip="스타일 붙여넣기"
-          >
-            <PasteIcon
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </ActionIconButton>
+      <PanelHeader
+        icon={
+          <Palette
+            color={iconProps.color}
+            size={iconProps.size}
+            strokeWidth={iconProps.strokeWidth}
+          />
+        }
+        title={selectedElement?.type ?? "Styles"}
+        actions={
+          <>
+            {focusMode && <span className="focus-mode-indicator">Focus</span>}
+            <ActionIconToggleButton
+              isSelected={filter === "modified"}
+              onChange={() =>
+                setFilter((prev) => (prev === "modified" ? "all" : "modified"))
+              }
+              aria-label="Modify"
+              tooltip="수정된 스타일"
+            >
+              <PencilRuler
+                color={iconProps.color}
+                size={iconProps.size}
+                strokeWidth={iconProps.strokeWidth}
+              />
+              {modifiedCount > 0 && `modify ${modifiedCount}`}
+            </ActionIconToggleButton>
+          </>
+        }
+      />
+
+      <Tabs
+        className="styles-panel-groups"
+        selectedKey={group}
+        onSelectionChange={handleGroupChange}
+      >
+        <div className="panel-header styles-panel-tabrow">
+          <StylesPanelTabs dirtyGroups={dirtyGroups} />
+          <div className="panel-actions">
+            <ActionIconButton
+              onPress={handleCopyStyles}
+              aria-label="Copy styles"
+              isDisabled={isCopyDisabled}
+              tooltip="스타일 복사"
+            >
+              <CopyIcon
+                color={iconProps.color}
+                size={iconProps.size}
+                strokeWidth={iconProps.strokeWidth}
+              />
+            </ActionIconButton>
+            <ActionIconButton
+              onPress={handlePasteStyles}
+              aria-label="Paste styles"
+              tooltip="스타일 붙여넣기"
+            >
+              <PasteIcon
+                color={iconProps.color}
+                size={iconProps.size}
+                strokeWidth={iconProps.strokeWidth}
+              />
+            </ActionIconButton>
+          </div>
         </div>
 
-        {focusMode && <div className="focus-mode-indicator">Focus Mode</div>}
-      </div>
-
-      <div className="panel-contents">
-        {filter === "all" ? <AllSections /> : <ModifiedSectionsWrapper />}
-      </div>
+        {STYLE_GROUP_IDS.map((id) => (
+          <TabPanel key={id} id={id} className="panel-contents">
+            {filter === "modified" ? (
+              <ModifiedSectionsWrapper />
+            ) : (
+              <GroupSections group={id} />
+            )}
+          </TabPanel>
+        ))}
+      </Tabs>
     </div>
   );
 }
