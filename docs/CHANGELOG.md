@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canvas 전체 화면 overlay workspace] - 2026-08-25
+
+### Changed
+
+- Builder의 `Workspace` canvas가 상단 header row와 패널 점유 inset에 의해 줄어들지 않고
+  viewport 전체를 사용하도록 바꿨다.
+- 기존 `BuilderHeader`를 `PanelWorkspace`의 `chrome` slot으로 이동하고, host 내부에서
+  canvas main과 panel overlay가 같은 `workspace` grid area를 공유하도록 재구성했다.
+- `panel-dock`는 4px margin의 flow grid로 바꾸고 `panel-dock-chrome`와
+  `panel-dock-stage`를 행으로 분리했다. header 높이를 제외한 stage만 panel registry/runtime과
+  DataTable activation의 측정 기준으로 사용하며, frame은 `panel-dock-surface`를 단일
+  containing block으로 유지한다.
+
+### Verification
+
+- 라이브 Builder(localhost:5173): `.app`, `.panel-workspace-host`, `.panel-workspace-main`,
+  `.workspace`가 모두 viewport 전체 크기로 측정되고 header 메뉴 open/close 정상, 브라우저
+  error/warn 0건.
+- `pnpm run codex:typecheck` PASS(신규 위반 0, 기존 baseline 43건), focused 5개 파일
+  27/27 테스트 PASS.
+
 ## [단축키·설정 진입점을 헤더 좌측 메뉴로 — 상시 노출 토글 2개 제거] - 2026-08-25
 
 ### Changed

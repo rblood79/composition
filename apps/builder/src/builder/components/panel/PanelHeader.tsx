@@ -6,7 +6,11 @@
  */
 
 import type { ReactNode } from "react";
-import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 
 export interface PanelHeaderProps {
   /** 헤더 제목 */
@@ -58,7 +62,9 @@ export function PanelHeader({
     <div className={`panel-header ${className}`.trim()}>
       <h3 className="panel-title">
         {icon && <span className="panel-icon">{icon}</span>}
-        {i18n ? translateDisplayLabel(i18n.t, title) : title}
+        {i18n
+          ? translateKey(i18n.t, semanticLabelKeys[title] ?? title, title)
+          : title}
       </h3>
       {actions && <div className="panel-actions">{actions}</div>}
     </div>

@@ -14,6 +14,17 @@ describe("i18n Builder wiring", () => {
     expect(source).toContain("</I18nProvider>");
   });
 
+  it("uses React Aria's localized string formatter inside the provider", () => {
+    const provider = readBuilderFile("i18n/I18nProvider.tsx");
+
+    expect(provider).toContain("useLocalizedStringFormatter,");
+    expect(provider).toContain('from "@react-aria/i18n"');
+    expect(provider).toContain("useLocalizedStringFormatter(localizedStrings)");
+    expect(provider).not.toContain("getTranslation(locale, key)");
+    expect(provider).not.toContain("replacePlaceholders");
+    expect(provider).not.toContain("labels.");
+  });
+
   it("keeps language selection and primary chrome on the translation path", () => {
     const settings = readBuilderFile(
       "builder/panels/settings/SettingsPanel.tsx",
@@ -61,7 +72,7 @@ describe("i18n Builder wiring", () => {
     expect(frames).toContain('t("nodes.addFrame")');
     expect(stylesTabs).toContain('t("styles.layout")');
     expect(switcher).toContain('t("settings.language")');
-    expect(propertyFieldset).toContain("translateDisplayLabel");
+    expect(propertyFieldset).toContain("semanticLabelKeys");
     expect(dataTable).toContain("datatable.${key}");
     expect(debuggerSource).toContain("debugger.${key}");
   });

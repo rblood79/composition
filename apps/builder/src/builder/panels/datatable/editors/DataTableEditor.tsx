@@ -22,8 +22,8 @@ import "./DataTableEditor.css";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import {
+  semanticLabelKeys,
   translateKey,
-  translateDisplayLabel,
   useOptionalI18n,
 } from "../../../../i18n";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
@@ -281,7 +281,13 @@ function SchemaFieldRow({
         >
           {FIELD_TYPES.map((ft) => (
             <option key={ft.value} value={ft.value}>
-              {ft.label}
+              {i18n
+                ? translateKey(
+                    i18n.t,
+                    semanticLabelKeys[ft.label] ?? ft.label,
+                    ft.label,
+                  )
+                : ft.label}
             </option>
           ))}
         </select>
@@ -293,7 +299,15 @@ function SchemaFieldRow({
           value={localLabel}
           onChange={(e) => setLocalLabel(e.target.value)}
           onBlur={() => onUpdateField(field.key, { label: localLabel })}
-          placeholder={i18n ? translateDisplayLabel(i18n.t, "Label") : "Label"}
+          placeholder={
+            i18n
+              ? translateKey(
+                  i18n.t,
+                  semanticLabelKeys.Label ?? "Label",
+                  "Label",
+                )
+              : "Label"
+          }
         />
       </td>
       <td className="cell-center">
@@ -328,7 +342,9 @@ function SchemaEditor({
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   const label = (value: string) =>
-    i18n ? translateDisplayLabel(i18n.t, value) : value;
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[value] ?? value, value)
+      : value;
   return (
     <div className="section">
       <div className="section-content">

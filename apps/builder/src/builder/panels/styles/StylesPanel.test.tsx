@@ -6,6 +6,15 @@ import { useStore } from "../../stores";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { useSectionCollapse } from "./hooks/useSectionCollapse";
 import { StylesPanel } from "./StylesPanel";
+import { I18nProvider } from "../../../i18n";
+
+function renderStylesPanel() {
+  return render(
+    <I18nProvider initialLocale="en-US">
+      <StylesPanel />
+    </I18nProvider>,
+  );
+}
 
 function setTestElements(elements: Element[]): void {
   useStore.setState({
@@ -51,7 +60,7 @@ describe("StylesPanel breakpoint context", () => {
   });
 
   it("shows the active breakpoint only once in the Responsive visibility controls", () => {
-    render(<StylesPanel />);
+    renderStylesPanel();
 
     // Responsive 섹션은 Screen 그룹 탭에 속한다 (기본 탭은 Layout).
     fireEvent.click(screen.getByRole("tab", { name: "Screen" }));
@@ -95,7 +104,7 @@ describe("StylesPanel view tabs", () => {
   });
 
   it("renders 5 view tabs and shows only the selected view", () => {
-    render(<StylesPanel />);
+    renderStylesPanel();
 
     // 그룹 4개 + Modified. "수정된 속성만" 도 같은 영역을 차지하는 뷰라 탭 줄에 함께 있다.
     expect(screen.getAllByRole("tab")).toHaveLength(5);
@@ -111,7 +120,7 @@ describe("StylesPanel view tabs", () => {
   });
 
   it("switches to the modified-only view from the tab strip", () => {
-    render(<StylesPanel />);
+    renderStylesPanel();
 
     // 수정이 있으면 접근 이름에 개수가 붙는다 ("Modified (2)").
     fireEvent.click(screen.getByRole("tab", { name: /^Modified/ }));

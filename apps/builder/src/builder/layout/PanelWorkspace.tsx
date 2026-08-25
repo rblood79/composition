@@ -815,24 +815,26 @@ function createRuntime(
 
 interface HydratedPanelWorkspaceProps {
   children: ReactNode;
+  chrome?: ReactNode;
   workspaceLayout: PanelWorkspaceLayoutV3;
   configs: readonly PanelConfig[];
   registry: readonly PanelWorkspaceRegistryEntry[];
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   togglePanel: (panelId: PanelId) => void;
   focusPanel: (panelId: PanelId) => void;
-  dockRect: PanelWorkspaceRect;
-  dockRef: RefObject<HTMLDivElement | null>;
+  stageRect: PanelWorkspaceRect;
+  stageRef: RefObject<HTMLDivElement | null>;
 }
 
 interface PanelWorkspaceOverlayProps {
+  chrome?: ReactNode;
   configs: readonly PanelConfig[];
   focusPanel: (panelId: PanelId) => void;
   runtime: PanelWorkspaceRuntime;
   setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
   togglePanel: (panelId: PanelId) => void;
   workspaceLayout: PanelWorkspaceLayoutV3;
-  dockRef: RefObject<HTMLDivElement | null>;
+  stageRef: RefObject<HTMLDivElement | null>;
 }
 
 interface PanelDockOrigin {
@@ -1035,19 +1037,20 @@ function PanelSnapGuide({
 
 interface PanelDockRenderProps {
   origin: PanelDockOrigin;
-  surfaceStyle: CSSProperties;
 }
 
 interface PanelDockProps {
   children: (props: PanelDockRenderProps) => ReactNode;
-  dockRef: RefObject<HTMLDivElement | null>;
+  chrome?: ReactNode;
+  stageRef: RefObject<HTMLDivElement | null>;
   surfaceWidth: number;
   version: number;
 }
 
 function PanelDock({
   children,
-  dockRef,
+  chrome,
+  stageRef,
   surfaceWidth,
   version,
 }: PanelDockProps) {
@@ -1059,31 +1062,31 @@ function PanelDock({
     };
     return origin;
   }, [surfaceWidth]);
-  const surfaceStyle: CSSProperties = {
-    inset: 0,
-  };
 
   return (
     <div
-      ref={dockRef}
       className="panel-dock"
       data-column-limit="2"
       data-layout-type="floating"
       data-layout-version={version}
     >
-      {children({ origin, surfaceStyle })}
+      {chrome ? <div className="panel-dock-chrome">{chrome}</div> : null}
+      <div ref={stageRef} className="panel-dock-stage">
+        {children({ origin })}
+      </div>
     </div>
   );
 }
 
 const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
+  chrome,
   configs,
   focusPanel,
   runtime,
   setWorkspaceLayout,
   togglePanel,
   workspaceLayout,
-  dockRef,
+  stageRef,
 }: PanelWorkspaceOverlayProps) {
   const { t } = useI18n();
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
@@ -1152,11 +1155,12 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   return (
     <div className="panel-workspace" aria-label={t("workspace.workArea")}>
       <PanelDock
-        dockRef={dockRef}
+        chrome={chrome}
+        stageRef={stageRef}
         surfaceWidth={surfaceWidth}
         version={snapshot.version}
       >
-        {({ origin, surfaceStyle }) => (
+        {({ origin }) => (
           <>
             {(["left", "right"] as const).map((side) => {
               const panelIds = workspaceLayout.railOrder[side];
@@ -1172,11 +1176,7 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
               );
             })}
 
-            <div
-              ref={surfaceRef}
-              className="panel-dock-surface"
-              style={surfaceStyle}
-            >
+            <div ref={surfaceRef} className="panel-dock-surface">
               <PanelWorkspaceZoneOverlay />
               {dropCandidate?.kind === "panel-edge" && (
                 <PanelSnapGuide
@@ -1216,24 +1216,20 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
 
 function HydratedPanelWorkspace({
   children,
+  chrome,
   workspaceLayout,
   configs,
   registry,
   setWorkspaceLayout,
   togglePanel,
   focusPanel,
-  dockRect,
-  dockRef,
+  stageRect,
+  stageRef,
 }: HydratedPanelWorkspaceProps) {
   const [runtime] = useState(() =>
-    createRuntime(workspaceLayout, registry, dockRect),
+    createRuntime(workspaceLayout, registry, stageRect),
   );
   const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const hostStyle = {
-    "--panel-workspace-inset-left": `${snapshot.occupiedInsets.left}px`,
-    "--panel-workspace-inset-right": `${snapshot.occupiedInsets.right}px`,
-    "--panel-workspace-inset-bottom": `${snapshot.occupiedInsets.bottom}px`,
-  } as CSSProperties;
 
   useEffect(() => {
     if (runtime && workspaceLayout) {
@@ -1266,26 +1262,23 @@ function HydratedPanelWorkspace({
     <div
       className="panel-workspace-host"
       data-layout-version={snapshot.version}
-      style={hostStyle}
     >
       <div
         className="panel-workspace-main"
         data-layout-version={snapshot.version}
-        data-main-x={snapshot.mainContentRect.x}
-        data-main-width={snapshot.mainContentRect.width}
-        data-main-height={snapshot.mainContentRect.height}
       >
         {children}
       </div>
 
       <PanelWorkspaceOverlay
+        chrome={chrome}
         configs={configs}
         focusPanel={focusPanel}
         runtime={runtime}
         setWorkspaceLayout={setWorkspaceLayout}
         togglePanel={togglePanel}
         workspaceLayout={workspaceLayout}
-        dockRef={dockRef}
+        stageRef={stageRef}
       />
     </div>
   );
@@ -1293,9 +1286,13 @@ function HydratedPanelWorkspace({
 
 interface PanelWorkspaceContentProps {
   children: ReactNode;
+  chrome?: ReactNode;
 }
 
-function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
+function PanelWorkspaceContent({
+  children,
+  chrome,
+}: PanelWorkspaceContentProps) {
   const { t } = useI18n();
   const {
     workspaceLayout,
@@ -1305,29 +1302,29 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
     focusPanel,
   } = usePanelLayout();
   const configs = useMemo(() => PanelRegistry.getAllPanels(), []);
-  const dockRef = useRef<HTMLDivElement>(null);
-  const [dockRect, setDockRect] = useState<PanelWorkspaceRect | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageRect, setStageRect] = useState<PanelWorkspaceRect | null>(null);
   const registry = useMemo(
     () =>
-      dockRect
+      stageRect
         ? configs.map((config) =>
-            createPanelWorkspaceRegistryEntry(config, dockRect),
+            createPanelWorkspaceRegistryEntry(config, stageRect),
           )
         : [],
-    [configs, dockRect],
+    [configs, stageRect],
   );
   const isHydrated = workspaceLayout !== null;
 
   useLayoutEffect(() => {
-    const dock = dockRef.current;
-    if (!dock) return;
+    const stage = stageRef.current;
+    if (!stage) return;
     const updateRect = (): void => {
       const next = {
-        width: dock.clientWidth,
-        height: dock.clientHeight,
+        width: stage.clientWidth,
+        height: stage.clientHeight,
       };
       if (next.width <= 0 || next.height <= 0) return;
-      setDockRect((current) =>
+      setStageRect((current) =>
         current?.width === next.width && current.height === next.height
           ? current
           : next,
@@ -1335,22 +1332,29 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
     };
     updateRect();
     const observer = new ResizeObserver(updateRect);
-    observer.observe(dock);
+    observer.observe(stage);
     return () => observer.disconnect();
   }, [isHydrated]);
 
   useLayoutEffect(() => {
-    if (!workspaceLayout && dockRect) {
-      initializeWorkspaceLayout(registry, dockRect);
+    if (!workspaceLayout && stageRect) {
+      initializeWorkspaceLayout(registry, stageRect);
     }
-  }, [initializeWorkspaceLayout, dockRect, registry, workspaceLayout]);
+  }, [initializeWorkspaceLayout, registry, stageRect, workspaceLayout]);
 
-  if (!workspaceLayout || !dockRect) {
+  if (!workspaceLayout || !stageRect) {
     return (
       <div className="panel-workspace-host">
         <div className="panel-workspace-main">{children}</div>
         <div className="panel-workspace" aria-label={t("workspace.workArea")}>
-          <div ref={dockRef} className="panel-dock" />
+          <PanelDock
+            chrome={chrome}
+            stageRef={stageRef}
+            surfaceWidth={0}
+            version={0}
+          >
+            {() => null}
+          </PanelDock>
         </div>
       </div>
     );
@@ -1359,26 +1363,28 @@ function PanelWorkspaceContent({ children }: PanelWorkspaceContentProps) {
   return (
     <HydratedPanelWorkspace
       children={children}
+      chrome={chrome}
       workspaceLayout={workspaceLayout}
       configs={configs}
       registry={registry}
       setWorkspaceLayout={setWorkspaceLayout}
       togglePanel={togglePanel}
       focusPanel={focusPanel}
-      dockRect={dockRect}
-      dockRef={dockRef}
+      stageRect={stageRect}
+      stageRef={stageRef}
     />
   );
 }
 
 interface PanelWorkspaceProps {
   children: ReactNode;
+  chrome?: ReactNode;
 }
 
-export function PanelWorkspace({ children }: PanelWorkspaceProps) {
+export function PanelWorkspace({ children, chrome }: PanelWorkspaceProps) {
   return (
     <PanelSnapInteractionProvider>
-      <PanelWorkspaceContent>{children}</PanelWorkspaceContent>
+      <PanelWorkspaceContent chrome={chrome}>{children}</PanelWorkspaceContent>
     </PanelSnapInteractionProvider>
   );
 }

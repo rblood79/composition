@@ -28,20 +28,20 @@ function deactivateEditorPanel() {
   setEditorPanelVisibility(false);
 }
 
-function currentPlacementSurfaceRect(): PanelWorkspaceRect | null {
-  const surface = document.querySelector<HTMLElement>(".panel-dock");
-  if (!surface || surface.clientWidth <= 0 || surface.clientHeight <= 0) {
+function currentPanelStageRect(): PanelWorkspaceRect | null {
+  const stage = document.querySelector<HTMLElement>(".panel-dock-stage");
+  if (!stage || stage.clientWidth <= 0 || stage.clientHeight <= 0) {
     return null;
   }
-  return { width: surface.clientWidth, height: surface.clientHeight };
+  return { width: stage.clientWidth, height: stage.clientHeight };
 }
 
 function setEditorPanelVisibility(visible: boolean) {
-  const surfaceRect = currentPlacementSurfaceRect();
+  const stageRect = currentPanelStageRect();
   const registry = PanelRegistry.getAllPanels().map((config) =>
     createPanelWorkspaceRegistryEntry(
       config,
-      surfaceRect ?? {
+      stageRect ?? {
         width: window.innerWidth,
         height: Math.max(1, window.innerHeight - 48),
       },
@@ -50,8 +50,8 @@ function setEditorPanelVisibility(visible: boolean) {
   if (registry.length === 0) return;
   let state = useStore.getState();
   if (!state.panelWorkspaceLayout) {
-    if (!surfaceRect) return;
-    state.initializePanelWorkspaceLayout(registry, surfaceRect);
+    if (!stageRect) return;
+    state.initializePanelWorkspaceLayout(registry, stageRect);
     state = useStore.getState();
   }
   const { panelWorkspaceLayout, setPanelWorkspaceLayout } = state;

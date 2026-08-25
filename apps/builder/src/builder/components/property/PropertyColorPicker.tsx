@@ -8,7 +8,11 @@ import { parseColor, type Color } from "react-aria-components";
 import { MyColorSwatches } from "@composition/shared/components/TailSwatch";
 import { Paintbrush } from "lucide-react";
 import { iconEditProps } from "../../../utils/ui/uiConstants";
-import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 
 export interface PropertyColorPickerProps {
   label: string;
@@ -54,7 +58,11 @@ export function PropertyColorPicker({
     <div className="property-field">
       <label className="property-label">
         <Icon size={iconEditProps.size} className="property-icon" />
-        <span>{i18n ? translateDisplayLabel(i18n.t, label) : label}</span>
+        <span>
+          {i18n
+            ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+            : label}
+        </span>
       </label>
 
       <div className="property-color-picker">

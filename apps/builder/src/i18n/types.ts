@@ -190,7 +190,6 @@ export interface TranslationKeys {
     focus: string;
     selectElement: string;
   };
-  labels: Record<string, string>;
   datatable: Record<string, string>;
   monitor: Record<string, string>;
   debugger: Record<string, string>;
@@ -300,6 +299,7 @@ export interface TranslationKeys {
     noResults: string;
     loadingData: string;
     errorLoadingData: string;
+    itemCount: string;
   };
 }
 
@@ -312,7 +312,10 @@ export interface I18nContextValue {
   /** Set locale */
   setLocale: (locale: SupportedLocale) => void;
   /** Translate function */
-  t: (key: string, params?: Record<string, string | number>) => string;
+  t: (
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ) => string;
   /** Current direction */
   direction: Direction;
   /** Current locale config */

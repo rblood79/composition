@@ -2,7 +2,11 @@ import React, { memo } from "react";
 
 import { Switch as AriaSwitch } from "react-aria-components";
 import { PropertyFieldset } from "./PropertyFieldset";
-import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 
 interface PropertySwitchProps {
   label: string;
@@ -34,7 +38,9 @@ export const PropertySwitch = memo(
           onChange={(val) => onChange(val)}
         >
           <div className="indicator" />
-          {i18n ? translateDisplayLabel(i18n.t, label) : label}
+          {i18n
+            ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+            : label}
         </AriaSwitch>
       </PropertyFieldset>
     );

@@ -1,6 +1,10 @@
 import React from "react";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 
 interface PropertyFieldsetProps {
   legend?: string;
@@ -23,7 +27,9 @@ export function PropertyFieldset({
 }: PropertyFieldsetProps) {
   const i18n = useOptionalI18n();
   const displayLegend =
-    legend && i18n ? translateDisplayLabel(i18n.t, legend) : legend;
+    legend && i18n
+      ? translateKey(i18n.t, semanticLabelKeys[legend] ?? legend, legend)
+      : legend;
   return (
     <fieldset className={`properties-aria ${className}`}>
       {displayLegend && (

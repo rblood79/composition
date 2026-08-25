@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -52,14 +54,14 @@ describe("DataTableEditorStore panel activation", () => {
     useDataTableEditorStore.setState({ mode: null });
   });
 
-  it("uses the measured panel-dock rect before activating the editor panel", () => {
-    const dock = document.createElement("div");
-    dock.className = "panel-dock";
-    Object.defineProperties(dock, {
+  it("uses the measured panel-dock-stage rect before activating the editor panel", () => {
+    const stage = document.createElement("div");
+    stage.className = "panel-dock-stage";
+    Object.defineProperties(stage, {
       clientWidth: { configurable: true, value: 1234 },
       clientHeight: { configurable: true, value: 567 },
     });
-    document.body.appendChild(dock);
+    document.body.appendChild(stage);
 
     useDataTableEditorStore.getState().openTableCreator("project-1");
 

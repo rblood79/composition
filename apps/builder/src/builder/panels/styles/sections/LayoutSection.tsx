@@ -33,7 +33,11 @@ import {
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutValues } from "../hooks/useLayoutValues";
-import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../../i18n";
 import {
   useFlexDirectionKeys,
   useFlexAlignmentKeys,
@@ -176,7 +180,9 @@ const FOUR_WAY_DIRECTIONS = [
 const LayoutSectionContent = memo(function LayoutSectionContent() {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
-    i18n ? translateDisplayLabel(i18n.t, label) : label;
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
   const [isSpacingExpanded, setIsSpacingExpanded] = useState(false);
 
   const {

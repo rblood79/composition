@@ -12,9 +12,12 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { I18nProvider as AriaI18nProvider } from "@react-aria/i18n";
-import type { I18nContextValue, SupportedLocale } from "./types";
-import { getTranslation, replacePlaceholders } from "./translations";
+import {
+  I18nProvider as AriaI18nProvider,
+  useLocalizedStringFormatter,
+} from "@react-aria/i18n";
+import type { I18nContextValue, LocaleConfig, SupportedLocale } from "./types";
+import { localizedStrings } from "./translations";
 import { getLocaleConfig, getStoredLocale, setStoredLocale } from "./locales";
 import { formatNumber, formatCurrency } from "@composition/shared/utils";
 
@@ -59,15 +62,43 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
     document.documentElement.lang = newLocale;
   }, []);
 
-  /**
-   * Translate function
-   */
+  return (
+    <AriaI18nProvider locale={locale}>
+      <I18nRuntime locale={locale} config={config} setLocale={setLocale}>
+        {children}
+      </I18nRuntime>
+    </AriaI18nProvider>
+  );
+}
+
+interface I18nRuntimeProps {
+  children: React.ReactNode;
+  locale: SupportedLocale;
+  config: LocaleConfig;
+  setLocale: (locale: SupportedLocale) => void;
+}
+
+function I18nRuntime({
+  children,
+  locale,
+  config,
+  setLocale,
+}: I18nRuntimeProps): React.ReactElement {
+  const stringFormatter = useLocalizedStringFormatter(localizedStrings);
+
+  /** Translate function backed by React Aria's localized string formatter. */
   const t = useCallback(
-    (key: string, params?: Record<string, string | number>): string => {
-      const translation = getTranslation(locale, key);
-      return params ? replacePlaceholders(translation, params) : translation;
+    (
+      key: string,
+      params?: Record<string, string | number | boolean>,
+    ): string => {
+      try {
+        return stringFormatter.format(key, params);
+      } catch {
+        return key;
+      }
     },
-    [locale],
+    [stringFormatter],
   );
 
   /**
@@ -156,8 +187,6 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
   }, [config.direction, locale]);
 
   return (
-    <I18nContext.Provider value={contextValue}>
-      <AriaI18nProvider locale={locale}>{children}</AriaI18nProvider>
-    </I18nContext.Provider>
+    <I18nContext.Provider value={contextValue}>{children}</I18nContext.Provider>
   );
 }

@@ -6,7 +6,11 @@ import {
   SliderOutput,
 } from "react-aria-components";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 
 interface PropertySliderProps {
   label: string;
@@ -34,7 +38,9 @@ export function PropertySlider({
   className,
 }: PropertySliderProps) {
   const i18n = useOptionalI18n();
-  const displayLabel = i18n ? translateDisplayLabel(i18n.t, label) : label;
+  const displayLabel = i18n
+    ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+    : label;
   const handleChange = (newValue: number | number[]) => {
     const singleValue = Array.isArray(newValue) ? newValue[0] : newValue;
     onChange(singleValue);

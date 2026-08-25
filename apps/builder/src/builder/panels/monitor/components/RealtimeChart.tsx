@@ -28,8 +28,12 @@ export function RealtimeChart({
   showThresholds = true,
 }: RealtimeChartProps) {
   const i18n = useOptionalI18n();
-  const localize = (key: string, fallback: string) =>
-    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
+  const localize = (
+    key: string,
+    fallback: string,
+    params?: Record<string, string | number | boolean>,
+  ) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback, params) : fallback;
   const { chartRef, chartWidth: responsiveWidth } =
     useResponsiveChartWidth(width);
   const padding = { top: 10, right: 10, bottom: 20, left: 40 };
@@ -106,9 +110,8 @@ export function RealtimeChart({
       aria-label={localize(
         "realtimeChart",
         `Real-time ${metric} chart showing last ${data.length} seconds`,
-      )
-        .replace("{metric}", metric)
-        .replace("{count}", String(data.length))}
+        { metric, count: data.length },
+      )}
       role="img"
     >
       {/* 배경 그리드 */}

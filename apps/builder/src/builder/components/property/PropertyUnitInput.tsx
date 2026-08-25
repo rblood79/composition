@@ -11,7 +11,11 @@ import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
-import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 
 interface PropertyUnitInputProps {
   label?: string;
@@ -108,7 +112,9 @@ export const PropertyUnitInput = memo(
   }: PropertyUnitInputProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
-      label && i18n ? translateDisplayLabel(i18n.t, label) : label;
+      label && i18n
+        ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+        : label;
     const selectedElementId = useStore((state) => state.selectedElementId);
     const isPreservedEmptyValue =
       preserveEmptyValueOnUnitChange && value.trim() === "";
@@ -432,7 +438,11 @@ export const PropertyUnitInput = memo(
                   ? "—"
                   : unit)
             }
-            aria-label={i18n ? translateDisplayLabel(i18n.t, "Unit") : "Unit"}
+            aria-label={
+              i18n
+                ? translateKey(i18n.t, semanticLabelKeys.Unit ?? "Unit", "Unit")
+                : "Unit"
+            }
           >
             <div className="combobox-container" ref={comboBoxContainerRef}>
               <Input
@@ -446,7 +456,13 @@ export const PropertyUnitInput = memo(
                 onKeyDown={handleKeyDown}
                 aria-label={
                   displayLabel ||
-                  (i18n ? translateDisplayLabel(i18n.t, "Value") : "Value")
+                  (i18n
+                    ? translateKey(
+                        i18n.t,
+                        semanticLabelKeys.Value ?? "Value",
+                        "Value",
+                      )
+                    : "Value")
                 }
                 placeholder={placeholder}
               />

@@ -48,7 +48,11 @@ import { useStore as useComposedStore } from "../../../stores";
 
 import "./FillSection.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../../i18n";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -96,7 +100,9 @@ function SortableFillRow({
 const FillSectionContent = memo(function FillSectionContent() {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
-    i18n ? translateDisplayLabel(i18n.t, label) : label;
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
   const { fills } = useFillValues();
   const { removeFill, reorderFill, toggleFill, updateFill, changeFillType } =
     useFillActions();
@@ -163,7 +169,9 @@ const FillSectionContent = memo(function FillSectionContent() {
 export const FillSectionInline = memo(function FillSectionInline() {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
-    i18n ? translateDisplayLabel(i18n.t, label) : label;
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
   const { fills } = useFillValues();
   const { addFill } = useFillActions();
 
@@ -208,7 +216,9 @@ export const FillSectionInline = memo(function FillSectionInline() {
 export const FillBackgroundInline = memo(function FillBackgroundInline() {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
-    i18n ? translateDisplayLabel(i18n.t, label) : label;
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
   const { fills } = useFillValues();
   const selectedId = useComposedStore((s) => s.selectedElementId);
   const styleValues = useAppearanceValues(selectedId);

@@ -27,7 +27,7 @@ import {
 import "./VariableEditor.css";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
 import {
-  translateDisplayLabel,
+  semanticLabelKeys,
   translateKey,
   useOptionalI18n,
 } from "../../../../i18n";
@@ -167,7 +167,11 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
 
       <h4 className="section-title">
         {i18n
-          ? translateDisplayLabel(i18n.t, "Default Value")
+          ? translateKey(
+              i18n.t,
+              semanticLabelKeys["Default Value"] ?? "Default Value",
+              "Default Value",
+            )
           : "Default Value"}
       </h4>
 
@@ -253,7 +257,11 @@ function ValidationEditor({
         )}
         <span className="variable-editor-section-title">
           {i18n
-            ? translateDisplayLabel(i18n.t, "Validation Rules")
+            ? translateKey(
+                i18n.t,
+                semanticLabelKeys["Validation Rules"] ?? "Validation Rules",
+                "Validation Rules",
+              )
             : "Validation Rules"}
         </span>
       </div>
@@ -336,8 +344,10 @@ function ValidationEditor({
               }
               placeholder={
                 i18n
-                  ? translateDisplayLabel(
+                  ? translateKey(
                       i18n.t,
+                      semanticLabelKeys["JSON Schema URL or inline schema"] ??
+                        "JSON Schema URL or inline schema",
                       "JSON Schema URL or inline schema",
                     )
                   : "JSON Schema URL or inline schema"
@@ -391,7 +401,13 @@ function TransformEditor({ variable, onUpdate }: TransformEditorProps) {
 
       <div className="transform-examples">
         <h5 className="examples-title">
-          {i18n ? translateDisplayLabel(i18n.t, "Examples") : "Examples"}
+          {i18n
+            ? translateKey(
+                i18n.t,
+                semanticLabelKeys.Examples ?? "Examples",
+                "Examples",
+              )
+            : "Examples"}
         </h5>
         <div className="example-list">
           <div className="example-item">

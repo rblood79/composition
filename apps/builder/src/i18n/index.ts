@@ -7,12 +7,8 @@
 export { I18nProvider } from "./I18nProvider";
 export { LanguageSwitcher } from "./LanguageSwitcher";
 export { useI18n, useOptionalI18n } from "./useI18n";
-export { translateDisplayLabel, translateKey } from "./labels";
-export {
-  translations,
-  getTranslation,
-  replacePlaceholders,
-} from "./translations";
+export { semanticLabelKeys, translateKey } from "./labels";
+export { translations, localizedStrings } from "./translations";
 export {
   localeConfigs,
   DEFAULT_LOCALE,

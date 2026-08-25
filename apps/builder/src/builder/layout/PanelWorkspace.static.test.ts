@@ -46,7 +46,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(canvasStyles).toContain(
       ".app :where(aside, .panel-workspace) .panel-header",
     );
-    expect(styles).toContain(".panel-dock > .panel-nav");
+    expect(styles).toContain(".panel-dock-stage > .panel-nav");
   });
 
   it("모든 활성 패널을 React Aria move로 직접 이동하고 panel-relative snap target을 제공한다", async () => {
@@ -176,24 +176,37 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).not.toContain("localStorage");
   });
 
-  it("occupiedInsets를 공통 main track에 한 번 적용하고 legacy rail measure를 만들지 않는다", async () => {
+  it("Canvas는 viewport 전체를 유지하고 panel chrome만 overlay로 추가한다", async () => {
     const [source, styles] = await Promise.all([readWorkspace(), readStyles()]);
 
     expect(source).toContain("usePanelWorkspaceLayoutSnapshot(");
     expect(source).toContain('className="panel-workspace-host"');
     expect(source).toContain('className="panel-workspace-main"');
-    expect(source).toContain('"--panel-workspace-inset-left"');
-    expect(source).toContain('"--panel-workspace-inset-right"');
-    expect(source).toContain('"--panel-workspace-inset-bottom"');
+    expect(source).toContain("chrome?: ReactNode");
+    expect(source).toContain('className="panel-dock-chrome"');
+    expect(source).toContain('className="panel-dock-stage"');
+    expect(source).not.toContain('"--panel-workspace-inset-left"');
+    expect(source).not.toContain('"--panel-workspace-inset-right"');
+    expect(source).not.toContain('"--panel-workspace-inset-bottom"');
     expect(source).not.toContain("registerPanelElement");
     expect(source).not.toContain("panel-rail-measure");
-    expect(styles).toContain(".panel-workspace-host");
-    expect(styles).toContain("grid-template-columns:");
-    expect(styles).toContain("var(--panel-workspace-inset-left, 0px)");
-    expect(styles).toContain("var(--panel-workspace-inset-bottom, 0px)");
+    expect(styles).toMatch(
+      /\.panel-workspace-host\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-areas: "workspace";/,
+    );
+    expect(styles).toMatch(
+      /\.panel-workspace-main,[\s\S]*?\.panel-workspace\s*\{[\s\S]*?grid-area: workspace;/,
+    );
+    expect(styles).toContain(".panel-dock-chrome");
+    expect(styles).toContain(".panel-dock-stage");
+    expect(styles).not.toMatch(
+      /\.panel-dock-chrome\s*\{[^}]*position: absolute;/,
+    );
+    expect(styles).not.toMatch(
+      /\.panel-dock-stage\s*\{[^}]*position: absolute;/,
+    );
   });
 
-  it("공통 placement surface가 4px inset과 모든 frame의 단일 containing block을 소유한다", async () => {
+  it("공통 placement surface가 4px margin과 모든 frame의 단일 containing block을 소유한다", async () => {
     const [source, styles] = await Promise.all([readWorkspace(), readStyles()]);
 
     expect(source).not.toContain(
@@ -202,21 +215,22 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toMatch(
       /const origin = \{[\s\S]*?x: 0,[\s\S]*?y: 0,[\s\S]*?workspaceWidth:/,
     );
-    expect(source).toContain("inset: 0");
     expect(styles).toContain("--panel-workspace-gap: 4px");
     expect(styles).toMatch(
-      /\.panel-dock\s*\{[\s\S]*?inset: var\(--panel-workspace-gap\);/,
+      /\.panel-dock\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-rows: auto minmax\(0, 1fr\);[\s\S]*?margin: var\(--panel-workspace-gap\);/,
     );
-    expect(styles).toMatch(/\.panel-workspace\s*\{[\s\S]*?inset: 0;/);
     expect(styles).toMatch(
-      /\.panel-dock\s*\{[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;/,
+      /\.panel-dock-stage\s*\{[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;/,
     );
     expect(styles).toMatch(/\.panel-dock\s*\{[\s\S]*?overflow: hidden;/);
     expect(styles).toMatch(
-      /\.panel-dock > \.panel-nav\s*\{[\s\S]*?z-index: 2100;/,
+      /\.panel-dock-stage > \.panel-nav\s*\{[\s\S]*?z-index: 2100;/,
     );
     expect(styles).toMatch(
       /\.panel-dock-surface\s*\{[\s\S]*?position: relative;[\s\S]*?flex: 1;/,
+    );
+    expect(styles).toMatch(
+      /\.panel-dock-surface\s*\{[\s\S]*?min-width: 0;[\s\S]*?min-height: 0;/,
     );
     expect(styles).not.toContain(".panel-activity-rail");
     expect(styles).not.toContain(".panel-dock-dropper");
@@ -247,7 +261,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(activeScope).not.toContain("state.panelLayout");
     expect(dataTableEditor).toContain("setPanelWorkspaceLayout({");
     expect(dataTableEditor).not.toContain("activeLeftPanels");
-    expect(dataTableEditor).toContain('".panel-dock"');
+    expect(dataTableEditor).toContain('".panel-dock-stage"');
     expect(dataTableEditor).not.toContain("panel-workspace-placement-surface");
   });
 });

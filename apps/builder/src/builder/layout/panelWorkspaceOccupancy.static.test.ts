@@ -49,7 +49,15 @@ describe("ADR-922 G3 workspace occupancy cutover", () => {
     expect(panelStyles).toContain(".panel-workspace-host");
     expect(panelStyles).toContain(".panel-workspace-main");
     expect(panelStyles).toContain("grid-area: main");
-    expect(panelStyles).toContain("inset: 0");
+    expect(panelStyles).toMatch(
+      /\.panel-workspace-host\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-areas: "workspace";/,
+    );
+    expect(panelStyles).toMatch(
+      /\.panel-workspace-main,[\s\S]*?\.panel-workspace\s*\{[\s\S]*?grid-area: workspace;/,
+    );
+    expect(panelStyles).not.toMatch(
+      /\.panel-workspace\s*\{[^}]*position: absolute;/,
+    );
     expect(workspaceStyles).not.toContain("position: fixed");
     expect(workspaceStyles).toMatch(
       /\.workspace \{[\s\S]*?position: relative;/,

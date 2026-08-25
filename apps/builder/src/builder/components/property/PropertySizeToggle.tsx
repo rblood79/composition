@@ -4,7 +4,11 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@composition/shared/components";
-import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 
 interface PropertySizeToggleProps {
   label: string;
@@ -38,7 +42,9 @@ export const PropertySizeToggle = memo(function PropertySizeToggle({
   options,
 }: PropertySizeToggleProps) {
   const i18n = useOptionalI18n();
-  const displayLabel = i18n ? translateDisplayLabel(i18n.t, label) : label;
+  const displayLabel = i18n
+    ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+    : label;
   const items = options ?? (scale === "5" ? SIZE_5 : SIZE_3);
 
   const handleChange = useCallback(
@@ -61,7 +67,13 @@ export const PropertySizeToggle = memo(function PropertySizeToggle({
       >
         {items.map((item) => (
           <ToggleButton key={item.id} id={item.id}>
-            {i18n ? translateDisplayLabel(i18n.t, item.label) : item.label}
+            {i18n
+              ? translateKey(
+                  i18n.t,
+                  semanticLabelKeys[item.label] ?? item.label,
+                  item.label,
+                )
+              : item.label}
           </ToggleButton>
         ))}
       </ToggleButtonGroup>

@@ -45,12 +45,18 @@ import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { getFontWeightOptions } from "../../../fonts/customFonts";
 import { FontFamilyPicker } from "../../fonts/FontFamilyPicker";
 import { useFontRegistry } from "../../fonts/useFontRegistry";
-import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../../i18n";
 
 const TypographySectionContent = memo(function TypographySectionContent() {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
-    i18n ? translateDisplayLabel(i18n.t, label) : label;
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
   const { updateStyle, updateStyles } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();

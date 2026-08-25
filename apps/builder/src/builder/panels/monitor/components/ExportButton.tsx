@@ -19,8 +19,12 @@ interface ExportButtonProps {
 
 export function ExportButton({ stats, format = "json" }: ExportButtonProps) {
   const i18n = useOptionalI18n();
-  const localize = (key: string, fallback: string) =>
-    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
+  const localize = (
+    key: string,
+    fallback: string,
+    params?: Record<string, string | number | boolean>,
+  ) =>
+    i18n ? translateKey(i18n.t, `monitor.${key}`, fallback, params) : fallback;
   const handleExport = () => {
     if (!stats) return;
 
@@ -73,7 +77,8 @@ export function ExportButton({ stats, format = "json" }: ExportButtonProps) {
       aria-label={localize(
         "exportStats",
         `Export stats as ${format.toUpperCase()}`,
-      ).replace("{format}", format.toUpperCase())}
+        { format: format.toUpperCase() },
+      )}
     >
       <Download size={iconEditProps.size} aria-hidden="true" />
       <span>

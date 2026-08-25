@@ -3,6 +3,8 @@
 import { fireEvent, render } from "@testing-library/react";
 import { PanelLeft } from "lucide-react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ReactElement } from "react";
+import { I18nProvider } from "../../i18n";
 import type { PanelConfig } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import { useStore } from "../stores";
@@ -80,7 +82,11 @@ function RepresentativePanel() {
   );
 }
 
-describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
+function renderPanelWorkspace(ui: ReactElement) {
+  return render(<I18nProvider initialLocale="en-US">{ui}</I18nProvider>);
+}
+
+describe("PanelWorkspace full-screen canvas shell", () => {
   beforeEach(() => {
     vi.spyOn(PanelRegistry, "getAllPanels").mockReturnValue([
       ...TEST_CONFIGS,
@@ -127,14 +133,15 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
   });
 
   it("v3 zone cluster를 overlay로 배치해 Canvas 전체 track을 유지한다", () => {
-    const { container } = render(
-      <PanelWorkspace>
+    const { container } = renderPanelWorkspace(
+      <PanelWorkspace chrome={<div data-testid="workspace-chrome" />}>
         <div data-testid="canvas-content" />
       </PanelWorkspace>,
     );
     const host = container.querySelector<HTMLElement>(".panel-workspace-host");
     const main = container.querySelector<HTMLElement>(".panel-workspace-main");
     const dock = container.querySelector<HTMLElement>(".panel-dock");
+    const stage = container.querySelector<HTMLElement>(".panel-dock-stage");
     const dockSurface = container.querySelector<HTMLElement>(
       ".panel-dock-surface",
     );
@@ -145,26 +152,23 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
       '.workspace-panel-frame[data-panel="properties"]',
     );
 
-    expect(host?.style.getPropertyValue("--panel-workspace-inset-left")).toBe(
-      "0px",
-    );
-    expect(host?.style.getPropertyValue("--panel-workspace-inset-right")).toBe(
-      "0px",
-    );
-    expect(host?.style.getPropertyValue("--panel-workspace-inset-bottom")).toBe(
-      "0px",
-    );
-    expect(main?.getAttribute("data-main-x")).toBe("0");
-    expect(main?.getAttribute("data-main-width")).toBe("1600");
-    expect(main?.getAttribute("data-main-height")).toBe("852");
+    expect(host?.getAttribute("style")).toBeNull();
+    expect(
+      dock?.querySelector(
+        ".panel-dock-chrome [data-testid='workspace-chrome']",
+      ),
+    ).not.toBeNull();
     expect(main?.getAttribute("data-layout-version")).toBe(
       host?.getAttribute("data-layout-version"),
     );
     expect(dock?.getAttribute("data-layout-type")).toBe("floating");
     expect(dock?.getAttribute("data-column-limit")).toBe("2");
-    expect(dockSurface?.style.inset).toBe("0px");
-    expect(dockSurface?.parentElement).toBe(dock);
-    expect(dock?.querySelectorAll(":scope > .panel-nav")).toHaveLength(2);
+    expect(stage?.parentElement).toBe(dock);
+    expect(dockSurface?.style.cssText).toBe("");
+    expect(dockSurface?.parentElement).toBe(stage);
+    expect(
+      dock?.querySelectorAll(":scope > .panel-dock-stage > .panel-nav"),
+    ).toHaveLength(2);
     expect(
       dock?.querySelectorAll(":scope > .panel-activity-rail"),
     ).toHaveLength(0);
@@ -206,7 +210,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
       ),
     );
 
-    const { container } = render(
+    const { container } = renderPanelWorkspace(
       <PanelWorkspace>
         <div />
       </PanelWorkspace>,
@@ -234,7 +238,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     layout.railOrder.right.push("monitor");
     useStore.setState({ panelWorkspaceLayout: layout });
 
-    const { container } = render(
+    const { container } = renderPanelWorkspace(
       <PanelWorkspace>
         <div />
       </PanelWorkspace>,
@@ -245,7 +249,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     ).toBeNull();
     expect(
       container.querySelector(
-        '.panel-nav[data-side="right"] button[aria-label="monitor"]',
+        '.panel-nav[data-side="right"] button[aria-label="Monitor"]',
       ),
     ).not.toBeNull();
     expect(
@@ -279,15 +283,21 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     };
     useStore.setState({ panelWorkspaceLayout: migrateFixture(layout) });
 
-    const { container } = render(
+    const { container } = renderPanelWorkspace(
       <PanelWorkspace>
         <div />
       </PanelWorkspace>,
     );
 
     const clickRailButton = (side: "left" | "right", panelId: string) => {
+      const panelLabels: Record<string, string> = {
+        datatableEditor: "DataTable Editor",
+        history: "History",
+        settings: "Settings",
+        styles: "Styles",
+      };
       const button = container.querySelector<HTMLButtonElement>(
-        `.panel-nav[data-side="${side}"] button[aria-label="${panelId}"]`,
+        `.panel-nav[data-side="${side}"] button[aria-label="${panelLabels[panelId] ?? panelId}"]`,
       );
       if (!button) throw new Error(`${panelId} rail button is required`);
       fireEvent.click(button);
@@ -359,7 +369,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     if (!committed.ok) return;
     useStore.setState({ panelWorkspaceLayout: committed.value.layout });
 
-    const { container } = render(
+    const { container } = renderPanelWorkspace(
       <PanelWorkspace>
         <div />
       </PanelWorkspace>,
@@ -409,7 +419,7 @@ describe("ADR-922 PanelWorkspace occupiedInsets shell", () => {
     leftColumn.rows.push(propertiesRow);
 
     useStore.setState({ panelWorkspaceLayout: layout });
-    const { container } = render(
+    const { container } = renderPanelWorkspace(
       <PanelWorkspace>
         <div />
       </PanelWorkspace>,

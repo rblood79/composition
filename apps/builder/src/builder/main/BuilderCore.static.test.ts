@@ -10,7 +10,8 @@ describe("BuilderCore canonical document direct cutover contract", () => {
     );
 
     expect(source).toContain('import { PanelWorkspace } from "../layout"');
-    expect(source).toContain("<PanelWorkspace>");
+    expect(source).toContain("<PanelWorkspace");
+    expect(source).toContain("chrome={");
     expect(source).not.toContain("<PanelArea");
     expect(source).not.toContain("<BottomPanelArea");
     expect(source).not.toContain("<ModalPanelContainer");
@@ -23,7 +24,7 @@ describe("BuilderCore canonical document direct cutover contract", () => {
     );
 
     expect(source).toMatch(
-      /<PanelWorkspace>[\s\S]*?<Workspace[\s\S]*?<\/PanelWorkspace>/,
+      /<PanelWorkspace[\s\S]*?<Workspace[\s\S]*?<\/PanelWorkspace>/,
     );
     expect(source.match(/<Workspace\b/g)).toHaveLength(1);
     expect(source).not.toContain("{useWebGL ? (");

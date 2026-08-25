@@ -26,7 +26,11 @@ import {
 } from "../../../stores";
 import { ResponsiveVisibilityEditor } from "../../properties/editors/ResponsiveVisibilityEditor";
 import { useResponsiveOverrides } from "../hooks/useResponsiveOverrides";
-import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../../i18n";
 
 const BP_ICON: Record<BreakpointName, typeof Monitor> = {
   desktop: Monitor,
@@ -89,7 +93,9 @@ function formatPropLabel(prop: string): string {
 export const ResponsiveSection = memo(function ResponsiveSection() {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
-    i18n ? translateDisplayLabel(i18n.t, label) : label;
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
   const {
     activeBreakpoint,
     isBase,

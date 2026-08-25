@@ -34,7 +34,11 @@ import {
   FLEX_WRAP_OPTIONS,
 } from "../constants/styleOptions";
 import { isFillDerivedStyleProp } from "../utils/fillDerivedStyleProps";
-import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../../i18n";
 
 import "./ModifiedStylesSection.css";
 interface ModifiedStylesSectionProps {
@@ -46,7 +50,9 @@ export function ModifiedStylesSection({
 }: ModifiedStylesSectionProps) {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
-    i18n ? translateDisplayLabel(i18n.t, label) : label;
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
   // baseline(factory default / spec preset / subpart)과 실제로 다른 prop 만 modified 로 표시.
   //   getModifiedProperties(키 존재만 판정)는 factory 가 주입한 layout default 까지 modified 로 잡아
   //   reset 버튼과 비대칭이었음(2026-06-24). useDirtyStyleProps 가 reset 판정과 동일 baseline 공유.

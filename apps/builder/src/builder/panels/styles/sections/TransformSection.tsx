@@ -49,7 +49,11 @@ import { LayoutFreeform } from "../../../components/icons";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { useTransformValues } from "../hooks/useTransformValues";
-import { translateDisplayLabel, useOptionalI18n } from "../../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../../i18n";
 import {
   useWidthSizeMode,
   useHeightSizeMode,
@@ -169,7 +173,9 @@ const SizeModeToggle = memo(function SizeModeToggle({
 }) {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
-    i18n ? translateDisplayLabel(i18n.t, label) : label;
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
   const handleSelectionChange = useCallback(
     (keys: Set<Key>) => {
       const selected = Array.from(keys)[0] as SizeMode | undefined;
@@ -304,7 +310,9 @@ const PagePositionRow = memo(function PagePositionRow({
 const TransformSectionContent = memo(function TransformSectionContent() {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
-    i18n ? translateDisplayLabel(i18n.t, label) : label;
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
   const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();
   const { commitLayoutPresentation, previewLayoutPresentation } =

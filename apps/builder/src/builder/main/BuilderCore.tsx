@@ -1206,29 +1206,31 @@ export const BuilderCore: React.FC = () => {
         </div>
       )}
 
-      <BuilderHeader
-        projectId={projectId}
-        projectName={projectInfo?.name}
-        breakpoint={breakpoint}
-        breakpoints={breakpoints}
-        onBreakpointChange={handleBreakpointChange}
-        historyInfo={{
-          current: historyInfo.currentIndex + 1,
-          total: historyInfo.totalEntries,
-        }}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onPreview={handlePreview}
-        onPlay={handlePlay}
-        onPublish={handlePublish}
-        showWorkflowOverlay={showWorkflowOverlay}
-        onWorkflowOverlayToggle={toggleWorkflowOverlay}
-      />
-
       {/* ADR-922 Phase 4: renderer mode는 공통 Workspace 내부 content만 선택한다. */}
-      <PanelWorkspace>
+      <PanelWorkspace
+        chrome={
+          <BuilderHeader
+            projectId={projectId}
+            projectName={projectInfo?.name}
+            breakpoint={breakpoint}
+            breakpoints={breakpoints}
+            onBreakpointChange={handleBreakpointChange}
+            historyInfo={{
+              current: historyInfo.currentIndex + 1,
+              total: historyInfo.totalEntries,
+            }}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onPreview={handlePreview}
+            onPlay={handlePlay}
+            onPublish={handlePublish}
+            showWorkflowOverlay={showWorkflowOverlay}
+            onWorkflowOverlayToggle={toggleWorkflowOverlay}
+          />
+        }
+      >
         <Workspace
           breakpoint={breakpoint}
           breakpoints={breakpoints}

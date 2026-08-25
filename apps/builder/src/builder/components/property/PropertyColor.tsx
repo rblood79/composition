@@ -9,7 +9,11 @@ import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
 import { ColorPickerPanel } from "../../panels/styles/components/ColorPickerPanel";
 import { useStore } from "../../stores";
-import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 
 interface PropertyColorProps {
   label?: string;
@@ -77,7 +81,9 @@ export const PropertyColor = memo(
   }: PropertyColorProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
-      label && i18n ? translateDisplayLabel(i18n.t, label) : label;
+      label && i18n
+        ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+        : label;
     const selectedElementId = useStore((state) => state.selectedElementId);
 
     const handlePreview = useCallback(
@@ -106,7 +112,13 @@ export const PropertyColor = memo(
             className="react-aria-Group color-swatch-button"
             aria-label={
               displayLabel ||
-              (i18n ? translateDisplayLabel(i18n.t, "Color") : "Color")
+              (i18n
+                ? translateKey(
+                    i18n.t,
+                    semanticLabelKeys.Color ?? "Color",
+                    "Color",
+                  )
+                : "Color")
             }
           >
             <ColorSwatch color={safeSwatchColor(value)} />

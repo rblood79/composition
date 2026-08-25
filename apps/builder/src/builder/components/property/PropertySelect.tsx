@@ -14,7 +14,11 @@ import {
   useControlPopoverMetrics,
   type PopoverWidthMode,
 } from "./useControlPopoverMetrics";
-import { translateDisplayLabel, useOptionalI18n } from "../../../i18n";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 
 interface PropertySelectProps {
   label: string;
@@ -43,7 +47,9 @@ export const PropertySelect = memo(
     popoverWidthMode = "fit-content",
   }: PropertySelectProps) {
     const i18n = useOptionalI18n();
-    const displayLabel = i18n ? translateDisplayLabel(i18n.t, label) : label;
+    const displayLabel = i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
     // 🚀 Fix: 명시적 isOpen 관리로 "reset" 선택 시 팝업 닫힘 보장
     // React Aria의 controlled Select에서 onSelectionChange 내 onChange("") 호출이
     // 상태 변경을 유발하여 팝업 자동 닫힘을 방해하는 문제 해결
@@ -121,12 +127,20 @@ export const PropertySelect = memo(
                     className="react-aria-ListBoxItem"
                     textValue={
                       i18n
-                        ? translateDisplayLabel(i18n.t, option.label)
+                        ? translateKey(
+                            i18n.t,
+                            semanticLabelKeys[option.label] ?? option.label,
+                            option.label,
+                          )
                         : option.label
                     }
                   >
                     {i18n
-                      ? translateDisplayLabel(i18n.t, option.label)
+                      ? translateKey(
+                          i18n.t,
+                          semanticLabelKeys[option.label] ?? option.label,
+                          option.label,
+                        )
                       : option.label}
                   </ListBoxItem>
                 ))}
