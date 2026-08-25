@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { buildCatalogShapes, resolveTreeIndent } from "../buildCatalogShapes";
+import { buildCatalogShapes, resolveTreeIndent } from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { SizeSpec } from "../../types";
 

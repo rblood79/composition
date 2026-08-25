@@ -87,6 +87,13 @@ describe("specShapesToSkia presentation fill materialization", () => {
       size: { dotSize: 10, gap: 8, height: 24 } as never,
       style: { backgroundColor: "#123456" },
       visual: undefined,
+      paint: {
+        backgroundColor: "#123456",
+        backgroundAlpha: 1,
+        staticTrackWash: false,
+        hasVisibleBoxPaint: true,
+        hasOpaqueCatalogBackground: false,
+      },
     });
     expect(shapes).not.toBeNull();
 

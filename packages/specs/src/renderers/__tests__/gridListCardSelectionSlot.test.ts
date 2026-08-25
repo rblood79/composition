@@ -5,7 +5,7 @@ import {
   resolveCardSelectionExtra,
   resolveCollectionRowMetric,
 } from "../utils/collectionItemMetrics";
-import { getSkiaPrimitive } from "../skiaPrimitives";
+import { getSkiaPrimitive } from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { Shape, SizeSpec } from "../../types";
 

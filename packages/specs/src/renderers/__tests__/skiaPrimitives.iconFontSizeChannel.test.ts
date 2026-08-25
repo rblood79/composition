@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getSkiaPrimitive } from "../skiaPrimitives";
+import { getSkiaPrimitive } from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { IconFontShape, SizeSpec } from "../../types";
 

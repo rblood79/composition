@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildCatalogShapes,
   resolveSelectionSlot,
-} from "../buildCatalogShapes";
-import { getSkiaPrimitive, getSkiaPrimitiveMode } from "../skiaPrimitives";
+} from "./catalogPaintFixture";
+import { getSkiaPrimitive, getSkiaPrimitiveMode } from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { Shape, SizeSpec } from "../../types";
 

@@ -13,7 +13,7 @@ import {
   buildDatePlaceholder,
   DATE_PICKER_SIZES,
 } from "../datePickerShapes";
-import { getSkiaPrimitive, getSkiaPrimitiveMode } from "../skiaPrimitives";
+import { getSkiaPrimitive, getSkiaPrimitiveMode } from "./catalogPaintFixture";
 import type {
   ComponentVisualRule,
   SizeSpec,

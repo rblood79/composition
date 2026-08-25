@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canMaterializeSkiaPresentationFill } from "../skiaPrimitives";
+import { canMaterializeSkiaPresentationFill } from "./catalogPaintFixture";
 
 describe("Skia presentation fill capability", () => {
   it("allows generic and composited primitives that retain the base box", () => {

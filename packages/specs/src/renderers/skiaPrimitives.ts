@@ -38,6 +38,7 @@ import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { resolveIllustratedMessageMetric } from "./utils/illustratedMessageMetrics";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
+import type { CatalogResolvedPaint } from "./catalogPaint";
 import {
   resolveLeadingIconName,
   resolveLeadingSlot,
@@ -48,21 +49,21 @@ import { measureSpecTextWidth } from "./utils/measureText";
 import { breadcrumbSeparatorAfterPaddingXPx } from "../primitives/spacing";
 
 /**
- * skiaPrimitive draw module 1개의 시그니처 — props/size/visual 에서 Shape[] 생성.
+ * skiaPrimitive draw module 1개의 시그니처 — props/size/visual/resolved paint에서 Shape[] 생성.
  * **null 반환** = "이 props 에는 내 primitive 가 적용되지 않음" → caller 가 보편 box+text
  * (buildCatalogShapes)로 fallback. 예: `dot` 은 `props.isDot` 일 때만 circle, 아니면 null
  * (text Badge 는 일반 frame box+text). 이는 컴포넌트 식별이 아니라 primitive 자체의 적용
  * 조건이다 — "dot primitive 는 isDot 일 때 그린다"(Badge 라는 컴포넌트를 식별하지 않음).
  *
- * **ADR-142 B2 (spec-free)**: 더 이상 spec VariantSpec / selected 상수(CHECKBOX_CHECKED_COLORS
- * 등)를 읽지 않는다. caller(builder)가 rule 테이블에서 해소한 `ComponentVisualRule` 을 주입한다.
- * selected/checked 시각은 보편 상태축 `visual.fill.default.selected` / `visual.selectedBorder` /
- * `visual.border` 에서 읽는다(컴포넌트-특화 상수 맵 제거 — N++ 복제 방지).
+ * **ADR-912 후속 Phase 2**: caller가 shared resolver로 root paint를 해소해 `paint`로 주입한다.
+ * primitive는 root fill/text/border 상태를 다시 선택하지 않고 shape 필드로만 투영한다.
+ * `visual`에는 fillBar/slot/typography처럼 root 3채널로 환원되지 않는 메타만 남는다.
  */
 export type SkiaPrimitiveDrawFn = (ctx: {
   props: Record<string, unknown>;
   size: SizeSpec;
   visual: ComponentVisualRule | undefined;
+  paint: CatalogResolvedPaint;
   style: Record<string, unknown> | undefined;
 }) => Shape[] | null;
 
@@ -83,7 +84,7 @@ export type SkiaPrimitiveDrawFn = (ctx: {
  * 따라서 크기 채널은 `iconSize`(merged → rule 순)로 읽고, `fontSize` 는 **사용자가 props.style
  * 에 직접 넣었을 때만** override 로 받는다(merged base 의 fontSize 는 무시).
  */
-const iconFont: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const iconFont: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   // 크기 채널 = iconSize (merged map 우선 — size 별 rule 값이 이미 해소돼 들어온다).
   const iconSize = resolveSpecFontSize(
     (style?.iconSize as string | number | undefined) ?? size.iconSize ?? 24,
@@ -103,7 +104,7 @@ const iconFont: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       x: effectiveSize / 2,
       y: effectiveSize / 2,
       fontSize: effectiveSize,
-      fill: (style?.color as string | undefined) ?? visual?.text,
+      fill: paint.color,
       strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
     },
   ];
@@ -113,11 +114,8 @@ const iconFont: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  * `dot` — 채워진 원(텍스트 없는 점). size.height 기준 지름. fill 은 variant.fill base.
  * `props.isDot` 일 때만 적용 — 아니면 null(text 는 보편 box+text 로 fallback).
  */
-const dot: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const dot: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   if (!props.isDot) return null;
-  const bgColor =
-    (style?.backgroundColor as string | undefined) ??
-    visual?.fill?.default.base;
   const dotSize = size.height === 20 ? 8 : size.height === 24 ? 10 : 12;
   return [
     {
@@ -126,7 +124,7 @@ const dot: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       x: dotSize / 2,
       y: dotSize / 2,
       radius: dotSize / 2,
-      fill: bgColor,
+      fill: paint.backgroundColor,
     },
   ];
 };
@@ -135,9 +133,7 @@ const dot: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  * `divider` — 선색으로 채운 얇은 rect(1px 박스의 테두리가 아니라 선 자체). orientation 으로
  * 두께/길이 축 전환. 선색은 style.borderColor → variant.border. (Separator)
  */
-const divider: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
-  const lineColor =
-    (style?.borderColor as string | undefined) ?? visual?.border;
+const divider: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const isVertical = (props.orientation as string | undefined) === "vertical";
   const thickness = size.height;
   return [
@@ -147,7 +143,7 @@ const divider: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       y: 0,
       width: isVertical ? thickness : ("auto" as unknown as number),
       height: isVertical ? ("auto" as unknown as number) : thickness,
-      fill: lineColor,
+      fill: paint.borderColor,
     },
   ];
 };
@@ -166,13 +162,10 @@ const divider: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 const tableRowDivider: SkiaPrimitiveDrawFn = ({
   props,
   size,
-  visual,
+  paint,
   style,
 }) => {
-  const lineColor =
-    (style?.borderColor as string | undefined) ??
-    visual?.border ??
-    ("{color.border}" as TokenRef);
+  const lineColor = paint.borderColor ?? ("{color.border}" as TokenRef);
   const rowHeight =
     typeof style?.height === "number" && style.height > 0
       ? style.height
@@ -205,16 +198,8 @@ const tableRowDivider: SkiaPrimitiveDrawFn = ({
  *   주입한 `_containerWidth`/`_containerHeight`(전체 탭 폭/높이) — 미주입 시 layout width fallback.
  *   선색 = style.borderColor → visual.border → `{color.border}`. orientation 데이터 분기만(ADR-142 §3).
  */
-const tablistDivider: SkiaPrimitiveDrawFn = ({
-  props,
-  size,
-  visual,
-  style,
-}) => {
-  const lineColor =
-    (style?.borderColor as string | undefined) ??
-    visual?.border ??
-    ("{color.border}" as TokenRef);
+const tablistDivider: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
+  const lineColor = paint.borderColor ?? ("{color.border}" as TokenRef);
   const isVertical = (props.orientation as string | undefined) === "vertical";
   const h =
     typeof size.height === "number" && size.height > 0 ? size.height : 29;
@@ -285,7 +270,7 @@ const tabIndicator: SkiaPrimitiveDrawFn = ({ props, size }) => {
 const breadcrumbCrumb: SkiaPrimitiveDrawFn = ({
   props,
   size,
-  visual,
+  paint,
   style,
 }) => {
   const ff = (style?.fontFamily as string) || fontFamily.sans;
@@ -310,7 +295,7 @@ const breadcrumbCrumb: SkiaPrimitiveDrawFn = ({
   const labelFw = isLast ? 600 : 400;
   const labelFill: TokenRef | string = isLast
     ? ("{color.accent}" as TokenRef)
-    : (visual?.text ?? ("{color.neutral-subdued}" as TokenRef));
+    : (paint.color ?? ("{color.neutral-subdued}" as TokenRef));
 
   if (text) {
     const estW = measureSpecTextWidth(text, fontSize, ff, labelFw);
@@ -383,7 +368,13 @@ function readCardText(value: unknown): string | null {
  *   label/description = projection 이 주입한 props.children/description(보편 데이터, ADR-142 §3 —
  *   컴포넌트 식별 분기 0). template placeholder(`{label}`) → "Label"/"Description" sample.
  */
-const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const gridListCard: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  paint,
+  style,
+}) => {
   // ADR-148 후속 (2026-07-17) — reusable origin 은 slot 자식이 실 scene 노드로 서므로
   //   (canvasSceneNode unfold), 자식 실재(`_hasChildren` — buildSpecNodeData 주입) 시
   //   내용(text)은 자식이 담당하고 본 escape 는 card shell(bg+border)만 그린다.
@@ -434,24 +425,14 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
         )
       : COLLECTION_TEXT_DEFAULT_FONT_SIZE;
   const ff = (style?.fontFamily as string) || fontFamily.sans;
-  const textColor =
-    (style?.color as string | undefined) ??
-    visual?.text ??
-    ("{color.neutral}" as TokenRef);
-  const bgColor =
-    (style?.backgroundColor as string | undefined) ??
-    visual?.fill?.default.base ??
-    ("{color.layer-1}" as TokenRef);
+  const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
+  const bgColor = paint.backgroundColor ?? ("{color.layer-1}" as TokenRef);
   // ADR-913 slice 4 (2026-06-19): selected 카드 테두리 — DOM(builder GridList.css
   //   `[data-selected]{border-color:var(--accent);border-width:2px}`)과 대칭. listbox_item
   //   형제가 isSelected → accent-subtle row-bg 를 honor 하는 것과 동형(buildCatalogShapes
   //   selected→selectedBorder 정본 패턴). style.borderColor 사용자 편집 우선.
   const isSelected = props.isSelected === true;
-  const borderColor =
-    (style?.borderColor as string | undefined) ??
-    (isSelected
-      ? (visual?.selectedBorder ?? ("{color.accent}" as TokenRef))
-      : (visual?.border ?? ("{color.border}" as TokenRef)));
+  const borderColor = paint.borderColor ?? ("{color.border}" as TokenRef);
 
   // template placeholder(`{label}`) → sample 미리보기 (빈 화면 방지, Item spec 패턴).
   const labelRaw = props.children ?? props.textValue ?? props.value;
@@ -695,7 +676,13 @@ function readInjectedSlotComposition(
  *   props.style 의 fontSize/fontWeight/color), **스택 순서**(label/description 등장 순서)로
  *   소비한다. `_slots` 부재 = legacy 문서/비-projection 경로 → 기존 flat-props 동작(BC).
  */
-const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const listBoxItem: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  paint,
+  style,
+}) => {
   // ADR-148 후속 (2026-07-17) — reusable origin 은 slot 자식이 실 scene 노드로 서므로
   //   (canvasSceneNode unfold), 자식 실재(`_hasChildren`) 시 내용(icon/label/description)은
   //   자식이 담당하고 본 escape 는 shell(selection row-bg + check)만 그린다.
@@ -792,9 +779,7 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     typeof style?.width === "number" && style.width > 0 ? style.width : 200;
   const textColor = props.isDisabled
     ? ("{color.neutral-subdued}" as TokenRef)
-    : ((style?.color as string | undefined) ??
-      visual?.text ??
-      ("{color.neutral}" as TokenRef));
+    : (paint.color ?? ("{color.neutral}" as TokenRef));
   // icon/check slot (spec ListBoxItem.spec.ts:180-195 좌표 공식) — 구성 gating + style overlay.
   const iconName = slotEnabled("icon") ? readCardText(props.icon) : null;
   const iconSize = parsePxValue(
@@ -871,22 +856,22 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     style?.borderRadius,
     typeof size.borderRadius === "number" ? size.borderRadius : 4,
   );
-  const rowBgFill =
-    (style?.backgroundColor as string | undefined) ??
-    (props.isSelected
-      ? (visual?.fill?.default.selected ??
-        ("{color.accent-subtle}" as TokenRef))
-      : undefined);
+  const rowBgFill = paint.backgroundColor;
   const rowBorderWidth = parseBorderWidth(style?.borderWidth, 0);
-  const rowBorderColor = style?.borderColor as string | undefined;
+  const rowBorderColor = paint.borderColor;
   const rowBoxShadows =
     typeof style?.boxShadow === "string" && style.boxShadow !== "none"
       ? parseShadow(style.boxShadow)
       : [];
   // border/box-shadow 는 row-bg 를 target 으로 참조하므로, 배경 fill 이 없어도 target 노드가
   //   존재해야 한다 — 이 경우 transparent fill 로 노드만 보장(시각 무변).
+  const hasResolvedRowBackground =
+    style?.backgroundColor != null ||
+    (rowBgFill != null &&
+      rowBgFill !== "{color.transparent}" &&
+      paint.backgroundAlpha !== 0);
   const needsRowRect =
-    Boolean(rowBgFill) || rowBorderWidth > 0 || rowBoxShadows.length > 0;
+    hasResolvedRowBackground || rowBorderWidth > 0 || rowBoxShadows.length > 0;
   if (needsRowRect) {
     shapes.push({
       id: "row-bg",
@@ -1060,7 +1045,7 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  * Element 가 담당하므로 여기서 안 그린다(정본 — indicator 만). isChecked 시 bg/border
  * variant별 CHECKBOX_CHECKED_COLORS 로 전환. (Checkbox primitive)
  */
-const checkbox: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const checkbox: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const boxSize = size.indicator?.boxSize ?? 20;
   const isChecked = props.isSelected === true;
 
@@ -1073,15 +1058,8 @@ const checkbox: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   // checked 시각 = 보편 상태축: bg=fill.default.selected, border=selectedBorder.
   // 미선택: bg=fill.default.base, border=visual.border (이전 CHECKBOX_*_COLORS 상수 흡수).
   // fallback("{color.border}")은 variant 누락 방어 — 정상 spec 에선 도달 안 함(타입 만족).
-  const bgColor =
-    (style?.backgroundColor as string | undefined) ??
-    (isChecked ? visual?.fill?.default.selected : visual?.fill?.default.base) ??
-    ("{color.base}" as TokenRef);
-
-  const borderColor =
-    (style?.borderColor as string | undefined) ??
-    (isChecked ? visual?.selectedBorder : visual?.border) ??
-    ("{color.border}" as TokenRef);
+  const bgColor = paint.backgroundColor ?? ("{color.base}" as TokenRef);
+  const borderColor = paint.borderColor ?? ("{color.border}" as TokenRef);
 
   const shapes: Shape[] = [
     {
@@ -1147,7 +1125,7 @@ const checkbox: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  * isSelected 시). label 은 자식 Label Element 담당. isSelected 시 ring/dot 색은 보편 상태축
  * (visual.selectedBorder = ring, visual.fill.default.selected = dot). (Radio primitive)
  */
-const radio: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const radio: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const outer = size.indicator?.boxSize ?? 20;
   const inner = size.indicator?.dotSize ?? 8;
   const outerRadius = outer / 2;
@@ -1156,13 +1134,10 @@ const radio: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const borderWidth = parseBorderWidth(style?.borderWidth, 2);
   // ring border: selected=selectedBorder, 미선택=visual.border (이전 RADIO_*_COLORS 흡수).
   // fallback 은 variant 누락 방어 — 정상 spec 에선 도달 안 함(타입 만족).
-  const borderColor =
-    (style?.borderColor as string | undefined) ??
-    (isSelected ? visual?.selectedBorder : visual?.border) ??
-    ("{color.border-hover}" as TokenRef);
+  const borderColor = paint.borderColor ?? ("{color.border-hover}" as TokenRef);
 
   // ring 배경은 투명(fillAlpha 0) — 색은 시각상 무의미하나 legacy parity 위해 fill base 사용.
-  const ringFill = visual?.fill?.default.base ?? ("{color.base}" as TokenRef);
+  const ringFill = paint.backgroundColor ?? ("{color.base}" as TokenRef);
 
   const shapes: Shape[] = [
     {
@@ -1189,7 +1164,7 @@ const radio: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       x: outerRadius,
       y: outerRadius,
       radius: inner / 2,
-      fill: visual?.fill?.default.selected ?? ("{color.accent}" as TokenRef),
+      fill: paint.backgroundColor ?? ("{color.accent}" as TokenRef),
     });
   }
 
@@ -1201,7 +1176,7 @@ const radio: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  * thumbX=isChecked? 우:좌). label 은 자식 Label Element 담당. track 색은 isChecked 시
  * 보편 상태축(visual.fill.default.selected), 비선택 시 accent-subtle(전 variant 공통). (Switch primitive)
  */
-const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
+const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const trackWidth = size.indicator?.trackWidth ?? 36;
   const trackHeight = size.indicator?.trackHeight ?? 20;
   const thumbSize = size.indicator?.thumbSize ?? 16;
@@ -1210,10 +1185,14 @@ const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
   const isChecked = props.isSelected === true;
   // selected track = visual.fill.default.selected (이전 SWITCH_SELECTED_TRACK_COLORS 흡수).
   // 미선택 track 색(accent-subtle)은 모든 variant 공통이라 잔존(variant 차이 없음).
+  // root resolver가 선택 상태를 해소한 뒤 주입한다. Switch의 미선택 catalog root는
+  // transparent지만 indicator track은 고정 accent-subtle이므로, 상태를 다시 읽지 않고
+  // 주입 paint 값만 indicator 표현으로 변환한다.
   const trackColor =
-    isChecked && visual?.fill?.default.selected
-      ? visual.fill.default.selected
-      : ("{color.accent-subtle}" as TokenRef);
+    paint.backgroundColor == null ||
+    paint.backgroundColor === "{color.transparent}"
+      ? ("{color.accent-subtle}" as TokenRef)
+      : paint.backgroundColor;
 
   const thumbX = isChecked ? trackWidth - thumbSize - thumbOffset : thumbOffset;
   const trackRadius = trackHeight / 2;
@@ -1236,7 +1215,7 @@ const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
       type: "border",
       target: "track",
       borderWidth: 2,
-      color: "{color.border-hover}" as TokenRef,
+      color: paint.borderColor ?? ("{color.border-hover}" as TokenRef),
       radius: trackRadius,
     });
   }
@@ -1326,7 +1305,7 @@ function markPresentationBackground(shapes: Shape[]): Shape[] {
  * `tooltip_arrow` — Tooltip V-arrow(placement 기반 2-line). showArrow===true 일 때만 적용.
  * 좌표식은 (구) TooltipSpec.render.shapes 1:1 이식(회귀 0). 색 = bg fill(style/visual).
  */
-const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
+const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, paint }) => {
   if (props.showArrow !== true) return null;
   const arrowSize = 6;
   const placement = (props.placement as string | undefined) ?? "top";
@@ -1336,8 +1315,7 @@ const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
   const centerX = maxWidth / 2;
   // bg 색: style.backgroundColor → variant fill base (= legacy bgColor). dispatch 에서 visual
   // 항상 주입되므로 transparent fallback 은 타입 만족용(도달 안 함).
-  const stroke: TokenRef = ((style?.backgroundColor as string | undefined) ??
-    visual?.fill?.default.base ??
+  const stroke: TokenRef = (paint.backgroundColor ??
     "{color.transparent}") as TokenRef;
 
   if (placement === "top") {
@@ -1435,14 +1413,13 @@ const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
  * `popover_arrow` — Popover V-arrow(placement 기반 2-line). !showArrow 일 때(기본 표시).
  * 좌표식은 PopoverSpec.render.shapes(L267-365) 1:1 이식(cx=cy=80 고정, arrowSize=8). 색 = bg fill.
  */
-const popoverArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
+const popoverArrow: SkiaPrimitiveDrawFn = ({ props, paint }) => {
   if (props.showArrow) return null;
   const arrowSize = 8;
   const placement = (props.placement as string | undefined) ?? "bottom";
   const cx = 80;
   const cy = 80;
-  const stroke: TokenRef = ((style?.backgroundColor as string | undefined) ??
-    visual?.fill?.default.base ??
+  const stroke: TokenRef = (paint.backgroundColor ??
     "{color.transparent}") as TokenRef;
 
   if (placement === "bottom") {
@@ -1590,7 +1567,7 @@ const overlayBackdrop: SkiaPrimitiveDrawFn = () => [
  */
 const CALENDAR_CHEVRON_DOM_PX = 16;
 
-const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const borderRadius = parsePxValue(
     style?.borderRadius,
     size.borderRadius as unknown as number,
@@ -1603,15 +1580,9 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const calendarWidth = cellSize * 7 + gap * 6 + paddingX * 2;
   const ff = (style?.fontFamily as string) || fontFamily.sans;
 
-  const textColor =
-    (style?.color as string | undefined) ??
-    visual?.text ??
-    ("{color.neutral}" as TokenRef);
-  const borderColor = visual?.border ?? ("{color.border}" as TokenRef);
-  const bgColor =
-    (style?.backgroundColor as string | undefined) ??
-    visual?.fill?.default.base ??
-    ("{color.base}" as TokenRef);
+  const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
+  const borderColor = paint.borderColor ?? ("{color.border}" as TokenRef);
+  const bgColor = paint.backgroundColor ?? ("{color.base}" as TokenRef);
 
   const headerHeight = cellSize;
   const navRowY = paddingY;
@@ -1787,7 +1758,7 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *   `<div className="calendar-grids"><CalendarGrid offset>{(date)=><CalendarCell/>}</CalendarGrid>`
  *   가 RAC self-compose → canonical CalendarGrid 자식은 DOM drop. 발효 가치 = Skia 대칭 한정.
  */
-const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
+const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const iconSize = (size.iconSize as unknown as number) ?? 26;
   const cellSize = iconSize + 4;
   // ADR-151 B1/B2 (2026-07-16): DOM 셀 박스 모델 정렬 — table `td { padding: 2px }`
@@ -1800,11 +1771,7 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
     ((props.style as Record<string, unknown> | undefined)
       ?.fontFamily as string) || fontFamily.sans;
 
-  const textColor =
-    ((props.style as Record<string, unknown> | undefined)?.color as
-      string | undefined) ??
-    visual?.text ??
-    ("{color.neutral}" as TokenRef);
+  const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
 
   // 요일 헤더 행 바로 아래에서 날짜 그리드 시작 (nav 없음 — CalendarGrid.spec.ts:147-148 동형).
   const weekdayY = cellSize / 2;
@@ -1966,7 +1933,7 @@ const datefieldTrigger: SkiaPrimitiveDrawFn = ({ props, size }) => {
  * (variant text/border/fill) 만 읽음 — spec VariantSpec 미참조. controller(RAC DateFieldState) 비의존
  * (static placeholder text, CalendarGrid 동형).
  */
-const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
+const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const p = props as Record<string, unknown>;
   const style = (p.style as Record<string, unknown> | undefined) ?? undefined;
 
@@ -2013,18 +1980,9 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
     (typeof style?.width === "number" && (style.width as number)) ||
     200;
 
-  const borderColor =
-    (style?.borderColor as string | undefined) ??
-    visual?.border ??
-    ("{color.border}" as TokenRef);
-  const bgColor =
-    (style?.backgroundColor as string | undefined) ??
-    visual?.fill?.default?.base ??
-    ("{color.layer-2}" as TokenRef);
-  const textColor =
-    (style?.color as string | undefined) ??
-    visual?.text ??
-    ("{color.neutral}" as TokenRef);
+  const borderColor = paint.borderColor ?? ("{color.border}" as TokenRef);
+  const bgColor = paint.backgroundColor ?? ("{color.layer-2}" as TokenRef);
+  const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
   const ff = (style?.fontFamily as string | undefined) || fontFamily.sans;
 
   // segment text 세로 정렬: element.props.style.verticalAlign(Style 패널 Typography Vertical
@@ -2142,6 +2100,8 @@ const valueFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   // staticColor(over background, §2-F 2026-08-21): fill 은 solid static — 사용자 style.color
   //   가 항상 우선, 그 다음 static, 마지막 variant(fillBar). track wash(0.25)는
   //   buildCatalogShapes(box)가 담당 — DOM ProgressBar.css [data-static-color] 대칭.
+  // value fill은 root 3채널로 환원되지 않는 subpart다(Phase 0 inventory §2-2).
+  // root track wash 메타와 별개로 propagated staticColor를 직접 유지한다.
   const staticFill =
     props.staticColor === "white"
       ? "#ffffff"
@@ -2240,7 +2200,13 @@ const valueFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *     fill = `style.color` → `visual.fillBar` → `{color.accent}`. thumb = fill 과 동색(handle=accent).
  *     thumb border = `{color.base}` 2px(spec 정합).
  */
-const sliderFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const sliderFillBar: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  paint,
+  style,
+}) => {
   const width =
     typeof props._containerWidth === "number" &&
     (props._containerWidth as number) > 0
@@ -2255,9 +2221,7 @@ const sliderFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const trackRadius = trackHeight / 2;
 
   const trackBgColor =
-    (style?.backgroundColor as string | undefined) ??
-    visual?.fill?.default.base ??
-    ("{color.neutral-subtle}" as TokenRef);
+    paint.backgroundColor ?? ("{color.neutral-subtle}" as TokenRef);
   const fillColor =
     (style?.color as string | undefined) ??
     visual?.fillBar ??
@@ -2383,7 +2347,13 @@ const sliderFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  * 색: track = `visual.fill.default.base`(neutral-subtle) / indicator = `style.color` →
  * `visual.fillBar` → `{color.accent}`.
  */
-const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const valueFillArc: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  paint,
+  style,
+}) => {
   if ((props as Record<string, unknown>)._hasChildren) return [];
 
   const diameter =
@@ -2406,10 +2376,7 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
         ? "#000000"
         : undefined;
   const trackColor =
-    (style?.backgroundColor as string | undefined) ??
-    staticArc ??
-    visual?.fill?.default.base ??
-    ("{color.neutral-subtle}" as TokenRef);
+    paint.backgroundColor ?? ("{color.neutral-subtle}" as TokenRef);
   const trackAlpha =
     staticArc != null && style?.backgroundColor == null ? 0.25 : undefined;
   const indicatorColor =
@@ -2488,7 +2455,13 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  * - y = size.height/2(box 수직 중앙 — base text baseline:"middle" 과 정렬). height 0 이면 fontSize 기반.
  * - color = visual.leadingIcon.color → visual.text fallback.
  */
-const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const leadingIcon: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  paint,
+  style,
+}) => {
   const li = visual?.leadingIcon;
   if (!li) return [];
 
@@ -2526,7 +2499,7 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const iconColor =
     (style?.color as string | undefined) ??
     li.color ??
-    visual?.text ??
+    paint.color ??
     ("{color.neutral-subdued}" as TokenRef);
 
   // ADR-912 Disclosure 버그 수정 (2026-06-10): chevron 류 leadingIcon 은 isExpanded
@@ -2688,7 +2661,13 @@ const selectionCheckbox: SkiaPrimitiveDrawFn = ({
  * `avatar` primitive(내부 leaf, replace)와 달리 이니셜 텍스트는 두지 않는다(chip 안 원은
  * 16px 라 2글자가 들어가지 않는다).
  */
-const leadingAvatar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const leadingAvatar: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  paint,
+  style,
+}) => {
   if (!visual?.leadingAvatar) return [];
   const fontSize = resolveSpecFontSize(
     (style?.fontSize as string | number | undefined) ?? size.fontSize,
@@ -2719,7 +2698,7 @@ const leadingAvatar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
       radius,
       fill:
         slot.fallbackFill ??
-        visual.border ??
+        paint.borderColor ??
         ("{color.neutral-subtle}" as TokenRef),
     },
     {
@@ -2755,6 +2734,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
   props,
   size,
   visual,
+  paint,
   style,
 }) => {
   const li = visual?.leadingIcon;
@@ -2848,8 +2828,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
     (style?.verticalAlign as "top" | "middle" | "bottom" | undefined) ??
     "middle";
 
-  const textColor =
-    (style?.color as string | undefined) ?? visual?.text ?? undefined;
+  const textColor = paint.color;
   const iconColor = li.color ?? ti.color ?? textColor;
   const textAlign = visual?.textAlign ?? "center";
   const text =
@@ -2998,7 +2977,7 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
 const illustratedMessage: SkiaPrimitiveDrawFn = ({
   props,
   size,
-  visual,
+  paint,
   style,
 }) => {
   // 자식 보유 시(미래 확장) escape skip — props 기반 단독 leaf 만 그린다.
@@ -3049,10 +3028,7 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
         : ("center" as const);
 
   const ff = (style?.fontFamily as string) || fontFamily.sans;
-  const textColor =
-    (style?.color as string | undefined) ??
-    visual?.text ??
-    ("{color.neutral}" as TokenRef);
+  const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
 
   const heading = (props.heading as string) ?? "No content";
   const description =
@@ -3133,7 +3109,7 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
  *   dot 색 = visual.fill.default.base(variant status 색), text 색 = visual.text. dotSize/gap/height
  *   는 ctx.size(rule sizes). DOM(StatusLight.tsx) 인라인 style 과 시각 대칭.
  */
-const statusLight: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const statusLight: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const dotSize = typeof size.dotSize === "number" ? size.dotSize : 10;
   const dotRadius = dotSize / 2;
   const gap = typeof size.gap === "number" ? size.gap : 8;
@@ -3141,13 +3117,8 @@ const statusLight: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const centerY = h / 2;
 
   const dotColor =
-    (style?.backgroundColor as string | undefined) ??
-    visual?.fill?.default.base ??
-    ("{color.neutral-subdued}" as TokenRef);
-  const textColor =
-    (style?.color as string | undefined) ??
-    visual?.text ??
-    ("{color.neutral}" as TokenRef);
+    paint.backgroundColor ?? ("{color.neutral-subdued}" as TokenRef);
+  const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
 
   const shapes: Shape[] = [
     // 상태 표시 dot (수직 중앙 정렬)
@@ -3209,14 +3180,12 @@ const statusLight: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *   style.color → visual.text. 지름 = size.height(rule sizes). image shape 는 specShapeConverter.ts:1006
  *   가 렌더(fit "cover"). DOM(Avatar.tsx) 인라인 style 과 시각 대칭.
  */
-const avatar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+const avatar: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const diameter = typeof size.height === "number" ? size.height : 32;
   const radius = diameter / 2;
 
   const bgColor =
-    (style?.backgroundColor as string | undefined) ??
-    visual?.fill?.default.base ??
-    ("{color.neutral-subtle}" as TokenRef);
+    paint.backgroundColor ?? ("{color.neutral-subtle}" as TokenRef);
 
   const shapes: Shape[] = [
     // 원형 배경 (circle 전체가 아바타 외형)
@@ -3265,10 +3234,7 @@ const avatar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
         : parseInt(String(fwRaw), 10) || 500
       : 500;
   const ff = (style?.fontFamily as string) || fontFamily.sans;
-  const textColor =
-    (style?.color as string | undefined) ??
-    visual?.text ??
-    ("{color.neutral}" as TokenRef);
+  const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
 
   // x=0/y=0 + align:center/baseline:middle → 컨테이너(=원 지름) 전체 기준 정중앙.
   // specShapeConverter 의 text x 계약은 "중심 좌표"가 아니라 "좌측 오프셋 padding" 이다:

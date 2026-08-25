@@ -244,6 +244,7 @@ export type {
 } from "./renderers";
 export type { SkiaPrimitiveDrawFn } from "./renderers";
 export type { ComponentVisualRule } from "./renderers";
+export type { CatalogResolvedPaint } from "./renderers";
 
 // ADR-912 Δ7: layout token table 단일 source (shared resolver 가 import)
 export { LAYOUT_TOKEN_STYLES, layoutTokenToCssLines } from "./renderers";

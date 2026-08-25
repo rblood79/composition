@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ComponentSpec, SizeSpec, TokenRef } from "../../types";
-import { buildCatalogShapes } from "../buildCatalogShapes";
+import { buildCatalogShapes } from "./catalogPaintFixture";
 import { resolveComponentVisual } from "../utils/resolveComponentVisual";
 
 // ADR-912 box+text leaf 군 (2026-06-11): Button.spec 삭제 → render.shapes parity oracle 소멸.

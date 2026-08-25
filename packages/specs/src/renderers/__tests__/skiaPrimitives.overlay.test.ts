@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 // ADR-912 단계5 step4 Popover 단건 (2026-06-16): PopoverSpec import 제거 — spec 삭제. popover_arrow
 //   parity 는 rule-mirror visual + 결정론적 절대값 단언으로 전환(Tooltip 전환 패턴).
 // ADR-166 Phase 4 (2026-07-25): shadow primitive 2건 은퇴 → 절대값 단언이 부재 단언으로 바뀜(:370).
-import { getSkiaPrimitive, getSkiaPrimitiveMode } from "../skiaPrimitives";
+import { getSkiaPrimitive, getSkiaPrimitiveMode } from "./catalogPaintFixture";
 import type { ComponentVisualRule, SizeSpec } from "../../types";
 import type { Shape, TokenRef } from "../../types";
 

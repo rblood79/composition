@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCatalogShapes } from "../buildCatalogShapes";
+import { buildCatalogShapes } from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { Shape, SizeSpec, TokenRef } from "../../types";
 
@@ -64,8 +64,7 @@ const sizeMd: SizeSpec = {
 
 const findIcon = (shapes: Shape[]) =>
   shapes.find((s) => s.type === "icon_font" && s.iconName === "x") as
-    | Shape
-    | undefined;
+    Shape | undefined;
 
 describe("buildCatalogShapes — Tag remove X trailing icon 크기(size.iconSize)", () => {
   it("allowsRemoving=true 이면 remove X glyph fontSize = size.iconSize (14, CSS 14 대칭)", () => {

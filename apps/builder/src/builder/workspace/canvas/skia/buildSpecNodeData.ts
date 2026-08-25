@@ -48,6 +48,7 @@ import {
   getTopEnabledFill,
 } from "../../../panels/styles/utils/fillToSkia";
 import {
+  resolveSkiaCatalogRenderInput,
   resolveSkiaVisualRule,
   resolveSkiaRule,
   ruleSizeToSizeSpec,
@@ -1189,14 +1190,13 @@ function buildCatalogShapesOrPrimitive(
   componentState: ComponentState,
   theme: "light" | "dark",
 ): Shape[] {
-  // ADR-142 G2(b) B: variant 색상은 rule 테이블(resolveSkiaVisualRule)에서 해소해 주입한다
-  // (buildCatalogShapes / skiaPrimitive 모두 spec 미참조). variant 이름은 props 우선, 없으면
-  // rule.defaultVariant. skiaPrimitive(checkbox/radio/switch)의 selected 시각도 보편 상태축
-  // (visual.fill.default.selected / selectedBorder)에서 읽는다(이전 *_COLORS 상수 흡수).
-  const rule = resolveSkiaRule(type);
-  const variantName =
-    (specProps.variant as string | undefined) ?? rule?.defaultVariant;
-  const visual = resolveSkiaVisualRule(type, variantName);
+  // ADR-912 후속 Phase 2: rule/visual과 authored-state root paint를 같은 Builder 경계에서
+  // 한 번 해소한다. buildCatalogShapes/skiaPrimitive는 paint 상태를 다시 선택하지 않는다.
+  const { rule, visual, paint } = resolveSkiaCatalogRenderInput(
+    type,
+    specProps,
+    componentState,
+  );
   const textDecoration = rule?.textDecoration;
 
   // binding.skiaPrimitive 는 단일 키 또는 키 배열(overlays 는 shadow/arrow 등 복수 패턴 합성).
@@ -1216,10 +1216,8 @@ function buildCatalogShapesOrPrimitive(
   //     resolveSkiaRule(visual) 도 동일 table → size base 일관.
   //   - **token 이중 해소 0**: merged map 은 이미 구체값(숫자). 하류 parsePxValue/resolveSpecFontSize
   //     는 숫자 idempotent passthrough(`isFiniteNumber→return value`) → specShapesToSkia 재해소 무영향.
-  //   - **색상 채널 미수렴(사용자 결정 2026-06-03)**: backgroundColor/color/borderColor 의 base 는
-  //     state/selected/outline 조건 로직(stateBg/visual) — toSkiaStyle merged map 미포함(1A scope:
-  //     색상 same-source 는 1A-(a) visual 경로가 이미 담당). 색상 override 만 merged map 에 들어오고,
-  //     없으면 buildCatalogShapes 의 visual 조건 로직이 그대로 base 제공.
+  //   - **색상 채널**: backgroundColor/color/borderColor 상태 선택은 위 shared paint resolver가
+  //     담당한다. merged map은 geometry/typography와 primitive subpart override를 계속 공급한다.
   // toSkiaStyle 은 node.type(string 으로 resolveComponentRule/getCatalogEntry 소비) + node.props
   //   만 읽는다 → CanvasSceneNode 의 type/props 를 그대로 minimal proxy 로 넘긴다. type 은
   //   CanonicalNode.type(ComponentTag literal union)과 런타임 동형 → narrow 캐스팅
@@ -1233,6 +1231,7 @@ function buildCatalogShapesOrPrimitive(
     props: specProps,
     size: sizeSpec,
     visual,
+    paint,
     style: mergedStyle,
   };
 
@@ -1242,7 +1241,11 @@ function buildCatalogShapesOrPrimitive(
     if (getSkiaPrimitiveMode(key) !== "replace") continue;
     const replaceShapes = getSkiaPrimitive(key)?.(ctx);
     if (replaceShapes) {
-      return applyPresentationFillAlpha(replaceShapes, specProps);
+      return applyPresentationFillAlpha(
+        replaceShapes,
+        specProps,
+        paint.backgroundAlpha,
+      );
     }
   }
 
@@ -1279,9 +1282,9 @@ function buildCatalogShapesOrPrimitive(
   // base box+text + prepend/append 패턴(backdrop/shadow/arrow) 합성 (ADR-142 Inc3 overlays).
   const base = buildCatalogShapes(
     visual,
+    paint,
     shellOnlyProps,
     sizeSpec,
-    componentState,
     textDecoration,
   );
   const prepend: Shape[] = [];
@@ -1291,7 +1294,11 @@ function buildCatalogShapesOrPrimitive(
     if (mode === "replace") continue;
     const primitiveShapes = getSkiaPrimitive(key)?.(ctx);
     const shapes = primitiveShapes
-      ? applyPresentationFillAlpha(primitiveShapes, specProps)
+      ? applyPresentationFillAlpha(
+          primitiveShapes,
+          specProps,
+          paint.backgroundAlpha,
+        )
       : null;
     if (!shapes) continue;
     if (mode === "prepend") prepend.push(...shapes);
@@ -1308,6 +1315,7 @@ function buildCatalogShapesOrPrimitive(
 function applyPresentationFillAlpha(
   shapes: Shape[],
   props: Readonly<Record<string, unknown>>,
+  catalogAlpha = 1,
 ): Shape[] {
   const alpha = typeof props._fillBgAlpha === "number" ? props._fillBgAlpha : 1;
 
@@ -1318,17 +1326,21 @@ function applyPresentationFillAlpha(
       shape.type === "roundRect" ||
       shape.type === "circle"
     ) {
+      const presentationOpacityMultiplier =
+        (shape.fillAlpha ?? 1) * catalogAlpha;
       return {
         ...shape,
-        fillAlpha: (shape.fillAlpha ?? 1) * alpha,
-        presentationOpacityMultiplier: shape.fillAlpha ?? 1,
+        fillAlpha: presentationOpacityMultiplier * alpha,
+        presentationOpacityMultiplier,
       };
     }
     if (shape.type === "arc" || shape.type === "line") {
+      const presentationOpacityMultiplier =
+        (shape.strokeAlpha ?? 1) * catalogAlpha;
       return {
         ...shape,
-        presentationOpacityMultiplier: shape.strokeAlpha ?? 1,
-        strokeAlpha: (shape.strokeAlpha ?? 1) * alpha,
+        presentationOpacityMultiplier,
+        strokeAlpha: presentationOpacityMultiplier * alpha,
       };
     }
     return shape;

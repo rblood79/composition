@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildCatalogShapes,
   resolveLeadingIconName,
-} from "../buildCatalogShapes";
-import { getSkiaPrimitive } from "../skiaPrimitives";
+} from "./catalogPaintFixture";
+import { getSkiaPrimitive } from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { Shape, SizeSpec } from "../../types";
 

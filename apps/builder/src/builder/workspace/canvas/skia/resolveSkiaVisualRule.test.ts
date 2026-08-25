@@ -1,8 +1,11 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { isCatalogCutover } from "@composition/shared";
 import { getSpecForTag } from "../styleConversion/tagSpecMap";
 import {
+  resolveSkiaCatalogRenderInput,
   resolveSkiaVisualRule,
   resolveSkiaRule,
   ruleSizeToSizeSpec,
@@ -65,8 +68,7 @@ describe("resolveSkiaRule — Button size source = theme rule table (ADR-912 1C 
     for (const size of ["xs", "sm", "md", "lg", "xl"]) {
       const t = rule?.sizes[size];
       const s = spec.sizes[size] as unknown as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       if (!t || !s) continue;
       // 정본(table) 기준 — spec 이 따라오는지. fontSize/borderRadius/paddingX 핵심 시각값.
       expect(t.fontSize).toBe(s.fontSize);
@@ -84,5 +86,88 @@ describe("resolveSkiaVisualRule — TokenRef 문자열 보존 (dark mode 반전 
     expect(typeof base).toBe("string");
     // `{color.X}` 형태 보존 (resolveToken 이 light/dark 분기) — 미리 hex 로 변환되면 안 됨.
     if (base) expect(base.startsWith("{")).toBe(true);
+  });
+});
+
+describe("resolveSkiaCatalogRenderInput — ADR-912 후속 Phase 2 paint adapter", () => {
+  it("adapter production body의 resolveCatalogPaint 호출은 element당 1회다", () => {
+    const source = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/builder/workspace/canvas/skia/resolveSkiaVisualRule.ts",
+      ),
+      "utf8",
+    );
+    const body = source.slice(
+      source.indexOf("export function resolveSkiaCatalogRenderInput"),
+      source.indexOf(
+        "/** ComponentRuleSize",
+        source.indexOf("export function resolveSkiaCatalogRenderInput"),
+      ),
+    );
+
+    expect(body.match(/resolveCatalogPaint\(/g)).toHaveLength(1);
+  });
+
+  it("selected/emphasized authored state를 visual과 같은 rule에서 paint로 한 번 해소한다", () => {
+    const resolved = resolveSkiaCatalogRenderInput(
+      "ToggleButton",
+      {
+        variant: "default",
+        size: "md",
+        isSelected: true,
+        isEmphasized: true,
+      },
+      "default",
+    );
+
+    expect(resolved.rule).toBe(resolveSkiaRule("ToggleButton"));
+    expect(resolved.visual).toBeDefined();
+    expect(resolved.paint).toMatchObject({
+      backgroundColor:
+        resolved.rule?.variants.default?.fill.default.emphasizedSelected ??
+        resolved.rule?.variants.default?.fill.default.selected,
+      color:
+        resolved.rule?.variants.default?.colors?.emphasizedSelectedText ??
+        resolved.rule?.variants.default?.colors?.selectedText,
+      borderColor:
+        resolved.rule?.variants.default?.colors?.emphasizedSelectedBorder ??
+        resolved.rule?.variants.default?.colors?.selectedBorder,
+    });
+  });
+
+  it("focused/disabled는 transient paint 축을 만들지 않고 default interaction으로 투영한다", () => {
+    const props = { variant: "primary", size: "md" };
+    const defaultPaint = resolveSkiaCatalogRenderInput(
+      "Button",
+      props,
+      "default",
+    ).paint;
+
+    expect(
+      resolveSkiaCatalogRenderInput("Button", props, "focused").paint,
+    ).toEqual(defaultPaint);
+    expect(
+      resolveSkiaCatalogRenderInput("Button", props, "disabled").paint,
+    ).toEqual(defaultPaint);
+  });
+
+  it("inline style과 staticColor를 shared resolver precedence로 보존한다", () => {
+    expect(
+      resolveSkiaCatalogRenderInput(
+        "Button",
+        {
+          variant: "accent",
+          size: "md",
+          staticColor: "black",
+          style: { color: "#123456" },
+        },
+        "pressed",
+      ).paint,
+    ).toMatchObject({
+      backgroundColor: "#000000",
+      color: "#123456",
+      borderColor: "#000000",
+    });
   });
 });

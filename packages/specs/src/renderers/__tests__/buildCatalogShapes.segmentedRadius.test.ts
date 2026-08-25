@@ -17,7 +17,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildCatalogShapes,
   resolveSegmentedRadius,
-} from "../buildCatalogShapes";
+} from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { SizeSpec } from "../../types";
 
@@ -216,9 +216,9 @@ describe("resolveSegmentedRadius — density 게이트", () => {
     expect(resolveSegmentedRadius(withDensity("regular", false, true), R)).toBe(
       null,
     );
-    expect(resolveSegmentedRadius(withDensity("regular", false, false), R)).toBe(
-      null,
-    );
+    expect(
+      resolveSegmentedRadius(withDensity("regular", false, false), R),
+    ).toBe(null);
   });
 
   it("compact → 종전 segmented 공식 그대로", () => {

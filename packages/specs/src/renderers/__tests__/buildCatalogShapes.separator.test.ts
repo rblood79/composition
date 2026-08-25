@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { SizeSpec, TokenRef } from "../../types";
-import { getSkiaPrimitive } from "../skiaPrimitives";
+import { getSkiaPrimitive } from "./catalogPaintFixture";
 
 /**
  * ADR-142 family ① — Separator(divider) catalog-only 검증 (ADR-912 box+text leaf 군, 2026-06-11).

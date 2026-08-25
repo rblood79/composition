@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach } from "vitest";
 
-import { getSkiaPrimitive } from "../skiaPrimitives";
+import { getSkiaPrimitive } from "./catalogPaintFixture";
 import {
   setSpecWrappedTextHeightMeasurer,
   measureSpecWrappedTextHeight,

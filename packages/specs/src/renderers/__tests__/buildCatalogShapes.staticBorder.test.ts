@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCatalogShapes } from "../buildCatalogShapes";
+import { buildCatalogShapes } from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { Shape, SizeSpec } from "../../types";
 

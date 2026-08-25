@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-912 후속 Phase 2 — Skia Paint Owner Collapse] - 2026-08-25
+
+### Architecture
+
+- Builder가 catalog element의 resolved symbolic paint를 한 번 계산해 generic shape와
+  Skia primitive에 함께 주입한다. renderer는 더 이상 fillStyle/quiet/selected/staticColor
+  우선순위를 다시 해석하지 않고 background/text/border shape로만 투영한다.
+- root 색상 상태 선택 production owner를 `@composition/shared/resolveCatalogPaint` 한 곳으로
+  축소했다. Progress/Meter/Circle value fill과 selection/leading slot처럼 root 3채널로
+  환원되지 않는 subpart 메타는 기존 계약을 유지한다.
+
+### Performance
+
+- element당 `resolveCatalogPaint` 호출을 1회로 구조 고정했다. resolver는 pure O(1)이며
+  store/DOM read, 반복 순회, RAF scheduling을 추가하지 않는다.
+
+### Verification
+
+- 8,244-case legacy semantic parity, renderer/primitive focused 회귀, Builder assembly/measurement,
+  type-check와 owner-collapse 구조 gate를 통과했다.
+- populated Builder의 Compare Mode에서 Button/ToggleButton Preview↔Skia paint parity를 확인했고,
+  Button variant/staticColor 변경이 Canvas에 즉시 반영되는 것을 확인한 뒤 원복했다.
+
 ## [ADR-912 후속 Phase 1 — Symbolic Paint Resolver] - 2026-08-25
 
 ### Architecture

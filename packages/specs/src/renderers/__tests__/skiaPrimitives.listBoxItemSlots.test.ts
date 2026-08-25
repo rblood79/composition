@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getSkiaPrimitive } from "../skiaPrimitives";
+import { getSkiaPrimitive } from "./catalogPaintFixture";
 import type { Shape, SizeSpec } from "../../types";
 
 /**
@@ -489,8 +489,9 @@ describe("listbox_item — wrap 블록 높이 기반 스택 offset", () => {
         label: { backgroundColor: "#ff0000" },
       }),
     });
-    const band = ((shapes ?? []) as Array<{ id?: string; height?: number }>)
-      .find((s) => s.id === "label-bg");
+    const band = (
+      (shapes ?? []) as Array<{ id?: string; height?: number }>
+    ).find((s) => s.id === "label-bg");
     expect(band?.height).toBe(72);
   });
 

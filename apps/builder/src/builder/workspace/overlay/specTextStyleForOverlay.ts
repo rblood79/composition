@@ -22,7 +22,7 @@ import {
 } from "@composition/specs";
 import { isCatalogCutover } from "@composition/shared";
 import {
-  resolveSkiaVisualRule,
+  resolveSkiaCatalogRenderInput,
   resolveSkiaRule,
   ruleSizeToSizeSpec,
 } from "../canvas/skia/resolveSkiaVisualRule";
@@ -106,21 +106,19 @@ export function extractFullSpecTextStyle(
   const propsForShapes = props ?? {};
   let shapes: Shape[];
   if (useCatalog) {
-    const variantName =
-      (propsForShapes.variant as string | undefined) ??
-      catalogRule?.defaultVariant ??
-      spec?.defaultVariant;
-    // ADR-912 단계5: useCatalog 경로 spec 은 항상 undefined → 구 resolveComponentVisual
-    //   fallback 은 dead 였음. rule 기반 visual 단독 (variant 없는 shell 은 undefined 허용).
-    const visual = resolveSkiaVisualRule(entry.catalogType!, variantName);
+    const { visual, paint } = resolveSkiaCatalogRenderInput(
+      entry.catalogType!,
+      propsForShapes,
+      "default",
+    );
     const textDecoration =
       catalogRule?.textDecoration ??
       spec?.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
     shapes = buildCatalogShapes(
       visual,
+      paint,
       propsForShapes,
       size,
-      "default",
       textDecoration && textDecoration !== "none" ? textDecoration : undefined,
     );
   } else if (spec) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { getSkiaPrimitive } from "../skiaPrimitives";
-import { buildCatalogShapes } from "../buildCatalogShapes";
+import { getSkiaPrimitive } from "./catalogPaintFixture";
+import { buildCatalogShapes } from "./catalogPaintFixture";
 import type { Shape, SizeSpec, ComponentVisual } from "../../types";
 
 /**

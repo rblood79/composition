@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 // ADR-912 단계5 step4 (2026-06-17): SliderSpec + callCatalogShapes import 제거 — Slider.spec.ts 물리 삭제로
 //   Slider 빈 shell parity suite 삭제. callCatalogShapes 는 해당 suite 단독 사용처였음.
-import { getSkiaPrimitive } from "../skiaPrimitives";
+import { getSkiaPrimitive } from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { Shape, SizeSpec, TokenRef } from "../../types";
 

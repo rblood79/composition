@@ -11,7 +11,7 @@ import {
 } from "@composition/specs";
 import { extractSpecTextStyle } from "../specTextStyle";
 import {
-  resolveSkiaVisualRule,
+  resolveSkiaCatalogRenderInput,
   resolveSkiaRule,
   ruleSizeToSizeSpec,
 } from "../../skia/resolveSkiaVisualRule";
@@ -109,11 +109,12 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
       rule.sizes[sizeName] ?? rule.sizes[rule.defaultSize ?? "md"];
     if (!ruleSize) return null;
     const size = ruleSizeToSizeSpec(ruleSize) as SizeSpec;
-    const visual = resolveSkiaVisualRule(
+    const { visual, paint } = resolveSkiaCatalogRenderInput(
       catalogType,
-      typeof props.variant === "string" ? props.variant : rule.defaultVariant,
+      props,
+      "default",
     );
-    const shapes = buildCatalogShapes(visual, props, size, "default");
+    const shapes = buildCatalogShapes(visual, paint, props, size);
     const t = shapes.find(
       (s): s is TextShape & { type: "text" } => s.type === "text",
     );
@@ -244,13 +245,13 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
       rule.sizes[sizeName] ?? rule.sizes[rule.defaultSize ?? "md"];
     if (!ruleSize) return null;
     const size = ruleSizeToSizeSpec(ruleSize) as SizeSpec;
-    const visual = resolveSkiaVisualRule(catalogType, rule.defaultVariant);
-    const shapes = buildCatalogShapes(
-      visual,
-      { size: sizeName, children: "Sample" },
-      size,
+    const props = { size: sizeName, children: "Sample" };
+    const { visual, paint } = resolveSkiaCatalogRenderInput(
+      catalogType,
+      props,
       "default",
     );
+    const shapes = buildCatalogShapes(visual, paint, props, size);
     const t = shapes.find(
       (s): s is TextShape & { type: "text" } => s.type === "text",
     );
@@ -358,17 +359,17 @@ describe("buildCatalogShapes — Label catalog 렌더 drift 0 (ADR-912 선행-6)
     fontSize: number;
     align: string | undefined;
   } | null {
-    const visual = resolveSkiaVisualRule("Label", undefined);
     const rule = resolveSkiaRule("Label");
     const ruleSize = rule?.sizes[sizeName];
     if (!ruleSize) return null;
     const sizeSpec = ruleSizeToSizeSpec(ruleSize) as SizeSpec;
-    const shapes = buildCatalogShapes(
-      visual,
-      { size: sizeName, children: "Sample" },
-      sizeSpec,
+    const props = { size: sizeName, children: "Sample" };
+    const { visual, paint } = resolveSkiaCatalogRenderInput(
+      "Label",
+      props,
       "default",
     );
+    const shapes = buildCatalogShapes(visual, paint, props, sizeSpec);
     const t = shapes.find(
       (s): s is TextShape & { type: "text" } => s.type === "text",
     );
@@ -431,17 +432,17 @@ describe("buildCatalogShapes — TEXT_LEAF/box align·baseline drift 0 (ADR-912 
     align: string | undefined;
     baseline: string | undefined;
   } | null {
-    const visual = resolveSkiaVisualRule(type, undefined);
     const rule = resolveSkiaRule(type);
     const ruleSize = rule?.sizes.md;
     if (!ruleSize) return null;
     const sizeSpec = ruleSizeToSizeSpec(ruleSize) as SizeSpec;
-    const shapes = buildCatalogShapes(
-      visual,
-      { size: "md", children: "Sample" },
-      sizeSpec,
+    const props = { size: "md", children: "Sample" };
+    const { visual, paint } = resolveSkiaCatalogRenderInput(
+      type,
+      props,
       "default",
     );
+    const shapes = buildCatalogShapes(visual, paint, props, sizeSpec);
     const t = shapes.find(
       (s): s is TextShape & { type: "text" } => s.type === "text",
     );

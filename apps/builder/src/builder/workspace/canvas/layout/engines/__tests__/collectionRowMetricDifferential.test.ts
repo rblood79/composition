@@ -14,7 +14,7 @@ import {
   getSkiaPrimitive,
   setSpecWrappedTextHeightMeasurer,
 } from "@composition/specs";
-import type { SizeSpec } from "@composition/specs";
+import type { CatalogResolvedPaint, SizeSpec } from "@composition/specs";
 
 import {
   resolveListBoxItemRowHeightFromStyle,
@@ -44,6 +44,12 @@ const gridSize: SizeSpec = {
 
 const listBoxDraw = getSkiaPrimitive("listbox_item")!;
 const gridDraw = getSkiaPrimitive("gridlist_card")!;
+const TEST_PAINT: CatalogResolvedPaint = {
+  backgroundAlpha: 1,
+  staticTrackWash: false,
+  hasVisibleBoxPaint: false,
+  hasOpaqueCatalogBackground: false,
+};
 
 type AnyShape = {
   type?: string;
@@ -88,6 +94,7 @@ describe("ADR-160 differential — M1 layout 높이 == escape paint 높이", () 
       },
       size: listBoxSize,
       visual: undefined,
+      paint: TEST_PAINT,
       style: { width: 400 },
     } as Parameters<typeof listBoxDraw>[0]);
     // pad 8 + label 24 + gap 2 + desc 16 = 50
@@ -118,6 +125,7 @@ describe("ADR-160 differential — M1 layout 높이 == escape paint 높이", () 
       },
       size: listBoxSize,
       visual: undefined,
+      paint: TEST_PAINT,
       style: { width: 400 },
     } as Parameters<typeof listBoxDraw>[0]);
     // pad 8 + label 72 + gap 2 + desc 16 = 98
@@ -139,6 +147,7 @@ describe("ADR-160 differential — M1 layout 높이 == escape paint 높이", () 
       props: { children: "Card label", description: "Card desc" },
       size: gridSize,
       visual: undefined,
+      paint: TEST_PAINT,
       style: { width: 200 },
     } as Parameters<typeof gridDraw>[0]);
     expect(mContent).toBe(66);
@@ -190,6 +199,7 @@ describe("ADR-160 후속 — icon/check inset + descGap SSOT parity", () => {
       },
       size: listBoxSize,
       visual: undefined,
+      paint: TEST_PAINT,
       style: { width: W },
     } as Parameters<typeof listBoxDraw>[0]);
     const escapeH = escapeListBoxRowHeight(shapes);
@@ -235,6 +245,7 @@ describe("ADR-160 후속 — icon/check inset + descGap SSOT parity", () => {
       props: { children: "Card label", description: "Card desc" },
       size: gridSize,
       visual: undefined,
+      paint: TEST_PAINT,
       style: { width: 200, gap: 20 },
     } as Parameters<typeof gridDraw>[0]);
     expect(mContent).toBe(66);

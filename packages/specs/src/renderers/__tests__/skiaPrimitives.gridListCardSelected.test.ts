@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getSkiaPrimitive } from "../skiaPrimitives";
+import { getSkiaPrimitive } from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { Shape, SizeSpec } from "../../types";
 
@@ -51,8 +51,7 @@ describe("gridlist_card selected accent border (ADR-913 slice 4 — DOM 대칭)"
       style: {},
     } as Parameters<typeof draw>[0]);
     const border = borderShape(shapes) as
-      | { color?: string; borderWidth?: number }
-      | undefined;
+      { color?: string; borderWidth?: number } | undefined;
     expect(border?.color).toBe("{color.border}");
     expect(border?.borderWidth).toBe(1);
   });
@@ -65,8 +64,7 @@ describe("gridlist_card selected accent border (ADR-913 slice 4 — DOM 대칭)"
       style: {},
     } as Parameters<typeof draw>[0]);
     const border = borderShape(shapes) as
-      | { color?: string; borderWidth?: number }
-      | undefined;
+      { color?: string; borderWidth?: number } | undefined;
     expect(border?.color).toBe("{color.accent}");
     expect(border?.borderWidth).toBe(2);
   });
@@ -91,8 +89,7 @@ describe("gridlist_card selected accent border (ADR-913 slice 4 — DOM 대칭)"
       style: { borderColor: "#ff0000", borderWidth: "3px" },
     } as Parameters<typeof draw>[0]);
     const border = borderShape(shapes) as
-      | { color?: string; borderWidth?: number }
-      | undefined;
+      { color?: string; borderWidth?: number } | undefined;
     expect(border?.color).toBe("#ff0000");
     expect(border?.borderWidth).toBe(3);
   });

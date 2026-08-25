@@ -6,7 +6,7 @@
  * builder 의 resolveSkiaVisualRule(rule 기반)과 동일한 ComponentVisualRule 형태를 produce.
  */
 
-import { buildCatalogShapes } from "../buildCatalogShapes";
+import { buildCatalogShapes } from "./catalogPaintFixture";
 import { resolveComponentVisual } from "../utils/resolveComponentVisual";
 import type {
   ComponentSpec,

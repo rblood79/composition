@@ -20,13 +20,8 @@
 
 import { parseBorderWidth, parsePxValue } from "../primitives";
 import { fontFamily } from "../primitives/typography";
-import type {
-  BorderStyleValue,
-  ComponentState,
-  Shape,
-  SizeSpec,
-  TokenRef,
-} from "../types";
+import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
+import type { CatalogResolvedPaint } from "./catalogPaint";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { measureSpecTextWidth } from "./utils/measureText";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
@@ -275,14 +270,12 @@ export function resolveLeadingSlot(
  */
 export function buildCatalogShapes(
   visual: ComponentVisualRule | undefined,
+  paint: CatalogResolvedPaint,
   props: Record<string, unknown>,
   size: SizeSpec,
-  state: ComponentState = "default",
   textDecoration?: string,
 ): Shape[] {
   const style = props.style as Record<string, unknown> | undefined;
-
-  const fill = visual?.fill;
 
   const scalarRadius = parsePxValue<string>(
     style?.borderRadius,
@@ -306,139 +299,16 @@ export function buildCatalogShapes(
     size.borderWidth ?? 1,
   );
 
-  // fillStyle 별 fill state subset — outline/subtle 은 Partial(미정의 시 fallback).
-  const fillStyleProp = (props.fillStyle as string | undefined) ?? "fill";
-  const isOutline = fillStyleProp === "outline";
-  const isSubtle = fillStyleProp === "subtle";
-  // quiet preset (2026-08-21) — boolean prop `isQuiet` 이 고르는 fill 축. **정의된 경우에만**
-  //   분기해 quiet 미정의 컴포넌트의 기존 동작을 보존한다(정의 없이 켜면 배경이 통째 사라짐).
-  //   fillStyle 과 동시 지정 시 quiet 우선 — 다만 현재 두 축을 함께 노출하는 컴포넌트는 없다
-  //   (quiet 보유 = ToggleButton/TextArea/field 계열, fillStyle 보유 = Button/Badge 계열).
-  const isQuiet = props.isQuiet === true && fill?.quiet != null;
-  const fillStates = isQuiet
-    ? fill?.quiet
-    : isOutline
-      ? fill?.outline
-      : isSubtle
-        ? fill?.subtle
-        : fill?.default;
-
-  // selected 축 (ToggleButton 류) — props.isSelected + isEmphasized.
-  // state(default/hover/pressed)와 직교하는 selection 차원. spec.variant.fill.default.
-  // selected/emphasizedSelected + variant.selectedText/selectedBorder 데이터에서 읽는다.
-  const isSelected = props.isSelected === true;
-  const isEmphasized = props.isEmphasized === true;
-  // TagGroup maxRows "Show all" chip — 투명 배경 + accent 텍스트(테두리 없음). RSP/삭제된
-  //   TagList.spec 시각 사양(fill:transparent, text:{color.accent}). 데이터 분기(ADR-142 §3).
-  const isShowAllChip = props._isShowAll === true;
-
-  const stateBg = isSelected
-    ? isEmphasized
-      ? (fill?.default.emphasizedSelected ?? fill?.default.selected)
-      : fill?.default.selected
-    : state === "hover"
-      ? (fillStates?.hover ?? fillStates?.base)
-      : state === "pressed"
-        ? (fillStates?.pressed ?? fillStates?.base)
-        : fillStates?.base;
-
-  // staticColor (RSP S2 D2 prop — Link/Button/ToggleButton 공유): theme 무관 고정 흑백 스킴.
-  //   black/white 외(auto·undefined)는 미적용(variant 색 경로 유지). 2026-08-20 Button 채택으로
-  //   텍스트 단독 → 스킴 확장:
-  //   - opaque bg 채널 보유 + fill: bg=static, text=역상(흑↔백), border=static — CSS Button.css
-  //     `[data-static-color]:not([data-fill-style="outline"])` 와 대칭.
-  //   - outline/subtle 또는 bg 시각 부재(Link 형 transparent base/alpha 0): text·border=static,
-  //     역상 미적용 (기존 Link text-only 동작 보존).
-  //   우선순위는 사용자 명시가 항상 위: style.backgroundColor/color/borderColor > static > variant.
-  //   컴포넌트 식별 분기 아님 — staticColor prop + bg 채널 데이터 유무로만 분기 (ADR-142 §3).
-  const staticColorProp = props.staticColor as string | undefined;
-  const staticHex =
-    staticColorProp === "black"
-      ? "#000000"
-      : staticColorProp === "white"
-        ? "#ffffff"
-        : undefined;
-  const staticOnOpaqueBg =
-    staticHex != null &&
-    !isOutline &&
-    !isSubtle &&
-    stateBg != null &&
-    stateBg !== "{color.transparent}" &&
-    (fill?.alpha ?? 1) !== 0;
-  // value-fill track(over background, §2-F 2026-08-21): rule 이 fillBar 채널을 보유한
-  //   컴포넌트(ProgressBarTrack 류)의 static bg 는 Button 형 solid 반전이 아니라 **25% wash**
-  //   — fill 막대(value_fill_bar solid static)와의 대비가 스킴의 본질. 데이터 분기
-  //   (visual.fillBar 유무 — 컴포넌트 식별 아님, ADR-142 §3). DOM 수동 ProgressBar.css
-  //   `--track-color: rgb(.../0.25)` 와 동일 상수.
-  const staticTrackWash = staticOnOpaqueBg && visual?.fillBar != null;
-  const staticTextColor =
-    staticHex == null
-      ? undefined
-      : staticOnOpaqueBg && !staticTrackWash
-        ? staticHex === "#000000"
-          ? "#ffffff"
-          : "#000000"
-        : staticHex;
-
-  // 상태별 배경색 (사용자 스타일 우선). outline 은 base 미정의 시 transparent.
-  //   Show all chip 은 투명 배경(테두리도 없음 — 아래 borderColor override).
-  const bgColor = isShowAllChip
-    ? ("{color.transparent}" as unknown as string)
-    : ((style?.backgroundColor as string | undefined) ??
-      (staticOnOpaqueBg ? staticHex : undefined) ??
-      stateBg ??
-      (isOutline ? ("{color.transparent}" as unknown as string) : undefined));
-
-  // 텍스트색: selected→selectedText/emphasizedSelectedText, outline→outlineText,
-  // subtle→subtleText, 그 외 hover textHover / text. (visual = resolveComponentVisual 어댑터)
-  const textColor = isShowAllChip
-    ? ("{color.accent}" as unknown as string)
-    : ((style?.color as string | undefined) ??
-      staticTextColor ??
-      (isSelected
-        ? isEmphasized
-          ? (visual?.emphasizedSelectedText ?? visual?.selectedText)
-          : visual?.selectedText
-        : isOutline
-          ? (visual?.outlineText ?? visual?.text)
-          : isSubtle
-            ? (visual?.subtleText ?? visual?.text)
-            : state === "hover" && visual?.textHover
-              ? visual.textHover
-              : visual?.text));
-
-  // 테두리색: selected→selectedBorder/emphasizedSelectedBorder, outline→outlineBorder,
-  // 그 외 hover borderHover / border. static 은 variant border 채널이 있을 때만 대체
-  // (채널 없는 컴포넌트에 테두리를 새로 만들지 않음 — Link 보존).
-  const variantBorderColor = isSelected
-    ? isEmphasized
-      ? (visual?.emphasizedSelectedBorder ?? visual?.selectedBorder)
-      : visual?.selectedBorder
-    : isOutline
-      ? (visual?.outlineBorder ?? visual?.border)
-      : state === "hover" && visual?.borderHover
-        ? visual.borderHover
-        : visual?.border;
-  // static 이 테두리를 **대체**하는 조건 = 그 컴포넌트가 실제로 테두리를 그리는가.
-  //   border 채널이 `{color.transparent}` 인 컴포넌트는 두 부류로 갈린다:
-  //   - ToggleButton: transparent + `sizes[size].borderWidth: 1` → DOM 도 border-width 1px
-  //     위에 `--button-border` 를 칠하므로 static 흑백 테두리가 보인다 (대칭 유지 필요).
-  //   - ToggleButtonGroup 류 컨테이너: transparent + borderWidth 채널 자체가 없음 → DOM 은
-  //     border-width 0 이라 border-color 를 무엇으로 줘도 안 보인다. 여기서 static 을 실으면
-  //     Skia 만 `borderWidth ?? 1` fallback 으로 검은 사각형을 그려 **새 비대칭**이 생긴다
-  //     (그룹 staticColor 는 자식 상속 채널 — 2026-08-21 §축③).
-  //   따라서 "border-width 채널 보유" 를 데이터 기준으로 쓴다 (컴포넌트 식별 아님, ADR-142 §3).
-  const hasBorderWidthChannel =
-    size.borderWidth != null || style?.borderWidth != null;
-  const staticBorderEligible =
-    variantBorderColor != null &&
-    (variantBorderColor !== "{color.transparent}" || hasBorderWidthChannel);
-  const borderColor = isShowAllChip
-    ? undefined
-    : ((style?.borderColor as string | undefined) ??
-      (staticHex != null && staticBorderEligible
-        ? staticHex
-        : variantBorderColor));
+  // ADR-912 후속 Phase 2: root paint의 상태/우선순위는 shared `resolveCatalogPaint`
+  // 단일 owner가 계산한다. Specs renderer는 주입된 symbolic paint를 shape 필드로만 투영한다.
+  const {
+    backgroundColor: bgColor,
+    color: textColor,
+    borderColor,
+    backgroundAlpha,
+    hasVisibleBoxPaint,
+    hasOpaqueCatalogBackground,
+  } = paint;
 
   const text =
     (props.label as string | undefined) ||
@@ -461,22 +331,16 @@ export function buildCatalogShapes(
   //   - field/Slider 등 variant 없는 컨테이너: variant 없음 → fill/bgColor undefined →
   //     `_hasChildren` 자식이 배경 담당, 부모는 빈 shell(legacy render.shapes 빈 배열 parity).
   //   backgroundColor 가 명시되면 사용자 의도이므로 box 를 그린다.
-  const hasVisibleBg =
-    style?.backgroundColor != null ||
-    (bgColor != null && (fill?.alpha ?? 1) !== 0) ||
-    !!borderColor;
-
   // Background(fills) 합성 alpha (hex alpha × fill.opacity) — builder
   // (buildSpecNodeData)가 hex6 backgroundColor + `_fillBgAlpha` 로 분해 주입.
   // 색 문자열 채널은 hex6 전용(hex8 은 hexStringToNumber 채널 시프트가 어긋남)
   // 이라 alpha 는 본 데이터 키로만 운반된다 (ADR-142 §3 데이터 분기).
   const fillBgAlpha =
     typeof props._fillBgAlpha === "number" ? props._fillBgAlpha : 1;
-  const presentationOpacityMultiplier =
-    (fill?.alpha ?? 1) * (staticTrackWash ? 0.25 : 1);
+  const presentationOpacityMultiplier = backgroundAlpha;
 
   const shapes: Shape[] = [];
-  if (hasVisibleBg) {
+  if (hasVisibleBoxPaint) {
     shapes.push({
       id: "bg",
       presentationRole: "background-fill",
@@ -561,25 +425,19 @@ export function buildCatalogShapes(
 
     // inline text leaf (size.height===0, 예: Link/TEXT_LEAF/Label) 는 top/left, box 는 middle/center.
     // ADR-912 선행-6(2026-06-04): align/baseline 판정은 **보이는(opaque) 배경** 기준이어야 한다.
-    //   `hasVisibleBg`(box 그리기 게이트)는 `{color.transparent}` fill 도 true(레이아웃 box 보존)
+    //   `hasVisibleBoxPaint`(box 그리기 게이트)는 `{color.transparent}` fill 도 true(레이아웃 box 보존)
     //   라서, 그대로 쓰면 transparent-fill inline text leaf(TEXT_LEAF/Label)가 box 로 오판되어
     //   align center/baseline middle drift(spec render.shapes 는 left/top|middle). bgColor 가
     //   transparent 토큰이거나 fill.alpha===0 이면 시각상 배경 없음 → inline 으로 간주.
-    //   box 그리기 자체(L141 hasVisibleBg)는 미변경 → transparent 레이아웃 box(컨테이너) 회귀 0.
-    // box archetype 판정은 **rule 기반** 배경(stateBg)/테두리로만 한다 — 사용자가 inline text
+    //   box 그리기 자체는 미변경 → transparent 레이아웃 box(컨테이너) 회귀 0.
+    // box archetype 판정은 resolver의 **rule 기반** opaque capability로 한다 — 사용자가 inline text
     //   leaf(Text/Heading/Label 등, size.height===0)에 추가한 배경(fills → style.backgroundColor)은
     //   box archetype 신호가 아니다. DOM `<span>` 에 background 를 줘도 inline flow 라 text-align
     //   left / vertical top 을 유지하므로 Skia 도 동일해야 parity(2026-07-21 사용자 보고: Text 에
     //   배경색 추가 시 텍스트가 center/middle 로 오정렬). box archetype(Button/Badge 등)은 rule
-    //   변형 fill 이 opaque(stateBg ≠ transparent)이거나 border 를 가져 그대로 center/middle 로
-    //   가고, height>0 box 는 아래 size.height 조건이 이미 center 로 보낸다. 이전 `bgColor` 기반
-    //   판정은 bgColor 가 style.backgroundColor(user)를 흡수(L182)해 text leaf 를 box 로 오판했다.
-    const hasOpaqueBg =
-      (stateBg != null &&
-        stateBg !== "{color.transparent}" &&
-        (fill?.alpha ?? 1) !== 0) ||
-      !!borderColor;
-    const isInlineText = size.height === 0 && !hasOpaqueBg;
+    //   변형 fill 이 opaque이거나 border를 가져 그대로 center/middle로 가고, height>0 box는
+    //   아래 size.height 조건이 이미 center로 보낸다.
+    const isInlineText = size.height === 0 && !hasOpaqueCatalogBackground;
     // 정렬 우선순위: 사용자 명시 style.textAlign > rule 명시 visual.textAlign > leadingIcon left >
     //   input field placeholder left > inline/box 기본.
     // - leading icon (ADR-912 (B+icon)): icon 옆 text 는 항상 left-align(box 기본 center 가 아님).

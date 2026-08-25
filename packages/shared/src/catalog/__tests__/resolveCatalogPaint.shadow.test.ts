@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildCatalogShapes,
-  type ComponentVisualRule,
-  type SizeSpec,
-} from "@composition/specs";
+import type { ComponentVisualRule } from "@composition/specs";
 import type {
   ComponentRuleSize,
   ComponentRuleVariant,
@@ -82,14 +78,122 @@ function toLegacyVisual(variant: ComponentRuleVariant): ComponentVisualRule {
   };
 }
 
-function toShadowSize(size: ComponentRuleSize | undefined): SizeSpec {
+function resolveLegacySemantic(
+  visual: ComponentVisualRule,
+  props: Readonly<Record<string, unknown>>,
+  size: ComponentRuleSize | undefined,
+  interactionState: CatalogInteractionState,
+) {
+  const style = props.style as Readonly<Record<string, unknown>> | undefined;
+  const fill = visual.fill;
+  const fillStyle = (props.fillStyle as string | undefined) ?? "fill";
+  const isOutline = fillStyle === "outline";
+  const isSubtle = fillStyle === "subtle";
+  const fillStates =
+    props.isQuiet === true && fill?.quiet != null
+      ? fill.quiet
+      : isOutline
+        ? fill?.outline
+        : isSubtle
+          ? fill?.subtle
+          : fill?.default;
+  const isSelected = props.isSelected === true;
+  const isEmphasized = props.isEmphasized === true;
+  const stateBackground = isSelected
+    ? isEmphasized
+      ? (fill?.default.emphasizedSelected ?? fill?.default.selected)
+      : fill?.default.selected
+    : interactionState === "hover"
+      ? (fillStates?.hover ?? fillStates?.base)
+      : interactionState === "pressed"
+        ? (fillStates?.pressed ?? fillStates?.base)
+        : fillStates?.base;
+  const staticHex =
+    props.staticColor === "black"
+      ? "#000000"
+      : props.staticColor === "white"
+        ? "#ffffff"
+        : undefined;
+  const catalogAlpha = fill?.alpha ?? 1;
+  const staticOnOpaqueBackground =
+    staticHex != null &&
+    !isOutline &&
+    !isSubtle &&
+    stateBackground != null &&
+    stateBackground !== "{color.transparent}" &&
+    catalogAlpha !== 0;
+  const staticTrackWash = staticOnOpaqueBackground && visual.fillBar != null;
+  const staticTextColor =
+    staticHex == null
+      ? undefined
+      : staticOnOpaqueBackground && !staticTrackWash
+        ? staticHex === "#000000"
+          ? "#ffffff"
+          : "#000000"
+        : staticHex;
+  const isShowAll = props._isShowAll === true;
+  const backgroundColor = isShowAll
+    ? "{color.transparent}"
+    : ((style?.backgroundColor as string | undefined) ??
+      (staticOnOpaqueBackground ? staticHex : undefined) ??
+      stateBackground ??
+      (isOutline ? "{color.transparent}" : undefined));
+  const color = isShowAll
+    ? "{color.accent}"
+    : ((style?.color as string | undefined) ??
+      staticTextColor ??
+      (isSelected
+        ? isEmphasized
+          ? (visual.emphasizedSelectedText ?? visual.selectedText)
+          : visual.selectedText
+        : isOutline
+          ? (visual.outlineText ?? visual.text)
+          : isSubtle
+            ? (visual.subtleText ?? visual.text)
+            : interactionState === "hover" && visual.textHover
+              ? visual.textHover
+              : visual.text));
+  const variantBorderColor = isSelected
+    ? isEmphasized
+      ? (visual.emphasizedSelectedBorder ?? visual.selectedBorder)
+      : visual.selectedBorder
+    : isOutline
+      ? (visual.outlineBorder ?? visual.border)
+      : interactionState === "hover" && visual.borderHover
+        ? visual.borderHover
+        : visual.border;
+  const staticBorderEligible =
+    variantBorderColor != null &&
+    (variantBorderColor !== "{color.transparent}" ||
+      size?.borderWidth != null ||
+      style?.borderWidth != null);
+  const borderColor = isShowAll
+    ? undefined
+    : ((style?.borderColor as string | undefined) ??
+      (staticHex != null && staticBorderEligible
+        ? staticHex
+        : variantBorderColor));
+  const hasVisibleBoxPaint =
+    style?.backgroundColor != null ||
+    (backgroundColor != null && catalogAlpha !== 0) ||
+    !!borderColor;
+  const hasOpaqueCatalogBackground =
+    (stateBackground != null &&
+      stateBackground !== "{color.transparent}" &&
+      catalogAlpha !== 0) ||
+    !!borderColor;
+
   return {
-    borderRadius: 0,
-    fontSize: 14,
-    paddingX: 0,
-    ...size,
-    height: 0,
-  } as unknown as SizeSpec;
+    backgroundColor: hasVisibleBoxPaint ? backgroundColor : undefined,
+    color,
+    borderColor,
+    backgroundAlpha: hasVisibleBoxPaint
+      ? catalogAlpha * (staticTrackWash ? 0.25 : 1)
+      : undefined,
+    staticTrackWash,
+    hasVisibleBoxPaint,
+    hasOpaqueCatalogBackground,
+  };
 }
 
 describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
@@ -100,8 +204,6 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     for (const [type, rule] of Object.entries(COMPONENT_RULES_TABLE)) {
       const ruleSize =
         rule.sizes[rule.defaultSize ?? ""] ?? Object.values(rule.sizes)[0];
-      const shadowSize = toShadowSize(ruleSize);
-
       for (const [variantName, variant] of Object.entries(rule.variants)) {
         const legacyVisual = toLegacyVisual(variant);
 
@@ -111,28 +213,6 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
 
           for (const interactionState of INTERACTION_STATES) {
             const props = { ...caseProps, label: "shadow" };
-            const legacyShapes = buildCatalogShapes(
-              legacyVisual,
-              props,
-              shadowSize,
-              interactionState,
-            );
-            const legacyBackground = legacyShapes.find(
-              (
-                shape,
-              ): shape is Extract<
-                (typeof legacyShapes)[number],
-                { type: "roundRect" }
-              > =>
-                shape.type === "roundRect" &&
-                shape.presentationRole === "background-fill",
-            );
-            const legacyBorder = legacyShapes.find(
-              (shape) => shape.type === "border" && shape.target === "bg",
-            );
-            const legacyText = legacyShapes.find(
-              (shape) => shape.type === "text",
-            );
             const resolved = resolveCatalogPaint({
               variant,
               size: ruleSize,
@@ -140,24 +220,12 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
               style,
               interactionState,
             });
-            const rawCatalogAlpha = variant.fill.alpha ?? 1;
-            const legacyStaticTrackWash =
-              rawCatalogAlpha !== 0 &&
-              legacyBackground?.presentationOpacityMultiplier ===
-                rawCatalogAlpha * 0.25;
-
-            const legacySemantic = {
-              backgroundColor: legacyBackground?.fill,
-              color: legacyText?.fill,
-              borderColor:
-                legacyBorder?.type === "border"
-                  ? legacyBorder.color
-                  : undefined,
-              backgroundAlpha: legacyBackground?.presentationOpacityMultiplier,
-              staticTrackWash: legacyStaticTrackWash,
-              hasVisibleBoxPaint: legacyBackground != null,
-              hasOpaqueCatalogBackground: legacyText?.baseline === "middle",
-            };
+            const legacySemantic = resolveLegacySemantic(
+              legacyVisual,
+              props,
+              ruleSize,
+              interactionState,
+            );
             const resolvedSemantic = {
               backgroundColor: resolved.hasVisibleBoxPaint
                 ? resolved.backgroundColor

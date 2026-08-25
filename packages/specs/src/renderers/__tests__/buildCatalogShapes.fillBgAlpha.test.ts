@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCatalogShapes } from "../buildCatalogShapes";
+import { buildCatalogShapes } from "./catalogPaintFixture";
 import type { SizeSpec } from "../../types";
 
 /**

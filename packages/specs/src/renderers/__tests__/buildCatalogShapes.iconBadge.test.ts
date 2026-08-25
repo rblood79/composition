@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { SizeSpec, TokenRef } from "../../types";
-import { getSkiaPrimitive } from "../skiaPrimitives";
-import { buildCatalogShapes } from "../buildCatalogShapes";
+import { getSkiaPrimitive } from "./catalogPaintFixture";
+import { buildCatalogShapes } from "./catalogPaintFixture";
 
 /**
  * ADR-142 family ① — Icon / Badge catalog-only 검증 (ADR-912 box+text leaf 군, 2026-06-11).

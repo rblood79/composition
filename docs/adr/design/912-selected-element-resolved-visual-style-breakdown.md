@@ -2,7 +2,7 @@
 
 ## 문서 상태와 상위 결정
 
-- 상태: In Progress — Phase 0~1 완료 (2026-08-25)
+- 상태: In Progress — Phase 0~2 완료 (2026-08-25)
 - 상위 결정: [ADR-912](../completed/912-rac-pencil-rebuild-cutover.md)
 - 관련 결정:
   - [ADR-142](../completed/142-starter-spec-component-system-cutover.md) — catalog + theme/tokens D3 SSOT
@@ -347,6 +347,29 @@ Gate P2:
 - 기존 Skia snapshot/shape tests byte 또는 semantic parity PASS.
 - 색상 상태 선택 로직 production owner는 shared resolver 1곳이어야 한다.
 - element당 resolver 호출이 1회를 초과하지 않아야 한다.
+
+> **Phase 2 완료 (2026-08-25)**
+>
+> - Builder adapter가 catalog element의 rule/variant/size/authored state를 읽어
+>   `resolveCatalogPaint`를 **1회** 호출하고, 같은 `CatalogResolvedPaint`를 generic shape와
+>   primitive에 주입한다.
+> - `buildCatalogShapes`의 fillStyle/quiet/selected/emphasized/staticColor/interaction paint
+>   선택 분기를 제거했다. primitive의 root `visual.fill/text/border` 직접 read도 0건이며,
+>   value-fill/arc의 `fillBar`·`staticColor`와 slot 메타는 Phase 0에서 동결한 subpart 계약으로
+>   남겼다.
+> - 기존 resolver와 독립된 8,244-case legacy semantic oracle, Phase 2 renderer focused
+>   432건, Builder adapter/assembly/measurement focused 155건이 통과했다. 구조 회귀 test가
+>   production owner 1곳과 element당 호출 1회를 고정한다.
+>   전체 directory 실행에서 남은 기존 baseline은 arrow expected shape의
+>   `presentationRole` 누락 24건과 미지원 mesh-gradient attachment 1건이며, Phase 2 diff가
+>   해당 shape role/mesh 분기를 변경하지 않았음을 확인하고 focused gate에서 분리했다.
+> - populated Builder 문서에서 Button/ToggleButton Preview↔Skia 초기 paint parity와
+>   Button `Primary → Accent → staticColor Black`의 즉시 Canvas 반영을 확인하고 원복했다.
+>   지정 project `97517aae-…`는 로컬 documents row가 없어 fallback 문서로 열렸으므로 그
+>   ID의 Preview parity는 판정하지 않았고, populated project에서는 console warn/error 0건이었다.
+> - production hot path에 추가된 resolver는 pure O(1)이며 store/DOM read, loop, RAF scheduling이
+>   없다. 기존 rule 조회와 renderer 내부 상태 선택을 한 adapter 호출로 합쳐 element당
+>   resolver 호출을 1회로 제한했다.
 
 ### Phase 3 — 선택 요소 Style Panel read model 전환
 

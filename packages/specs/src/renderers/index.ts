@@ -40,6 +40,7 @@ export { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 
 // ADR-142 #5 — generic shape-descriptor 생성기 (render.shapes 대체)
 export { buildCatalogShapes } from "./buildCatalogShapes";
+export type { CatalogResolvedPaint } from "./catalogPaint";
 
 // ADR-912 단계5: ComponentVisualRule 타입만 production 정본으로 re-export.
 //   resolveComponentVisual / variantToVisual 함수는 test-only(production 호출 0) → barrel

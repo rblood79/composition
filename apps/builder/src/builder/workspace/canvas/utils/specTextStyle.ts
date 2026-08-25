@@ -31,7 +31,7 @@ import {
 } from "@composition/specs";
 import { isCatalogCutover } from "@composition/shared";
 import {
-  resolveSkiaVisualRule,
+  resolveSkiaCatalogRenderInput,
   resolveSkiaRule,
   ruleSizeToSizeSpec,
 } from "../skia/resolveSkiaVisualRule";
@@ -248,23 +248,20 @@ export function extractSpecTextStyle(
   //   spec.render.shapes 측정 유지 (catalog 미등록 전용 임시 경로, 단계 5 후속 inventory).
   let shapes: Shape[];
   if (useCatalog) {
-    const variantName =
-      (propsForShapes.variant as string | undefined) ??
-      catalogRule?.defaultVariant ??
-      spec?.defaultVariant;
-    // rule 기반 visual (spec 미참조). ADR-912 단계5: useCatalog 경로의 spec 은 항상
-    //   undefined(catalogType 보유 항목 전부 spec 생략)라 구 resolveComponentVisual fallback
-    //   은 dead 였음 — 제거. variant 없는 컨테이너 shell 은 undefined(buildCatalogShapes 허용).
-    const visual = resolveSkiaVisualRule(entry.catalogType!, variantName);
+    const { visual, paint } = resolveSkiaCatalogRenderInput(
+      entry.catalogType!,
+      propsForShapes,
+      "default",
+    );
     // text-decoration: catalog rule(ComponentRule.textDecoration) 우선, spec.composition fallback.
     const textDecoration =
       catalogRule?.textDecoration ??
       spec?.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
     shapes = buildCatalogShapes(
       visual,
+      paint,
       propsForShapes,
       size,
-      "default",
       textDecoration && textDecoration !== "none" ? textDecoration : undefined,
     );
   } else if (spec) {
