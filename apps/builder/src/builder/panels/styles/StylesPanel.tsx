@@ -2,19 +2,21 @@
  * StylesPanel - 스타일 편집 패널
  *
  * 섹션 5개(Responsive / Transform / Layout / Appearance / Typography)를 **4개 그룹 탭**으로 묶어
- * 한 번에 한 그룹만 보여준다 (섹션 삭제 없음 — 그룹화만). 탭 정의·그룹별 dirty 판정은
- * `constants/styleGroups.ts`, 탭 UI 어법(선택된 탭만 라벨)은 `components/StylesPanelTabs.tsx`.
+ * 한 번에 한 그룹만 보여준다 (섹션 삭제 없음 — 그룹화만). "수정된 속성만" 뷰도 같은 탭 줄의
+ * 5번째 탭이다 — 콘텐츠 영역을 배타적으로 차지하는 뷰를 두 컨트롤이 나눠 쥐지 않게 한다.
+ * 뷰 정의·그룹별 dirty 판정은 `constants/styleGroups.ts`, 탭 UI 어법(선택된 탭에만 라벨)은
+ * `components/StylesPanelTabs.tsx`.
  *
  * 헤더는 두 줄이다:
- * - 타이틀 줄: 요소 타입 + "modify N" 배지(수정된 속성만 보기 토글)
- * - 탭 줄: 그룹 탭 4개 + 스타일 복사/붙여넣기
+ * - 타이틀 줄: 요소 타입 + 스타일 복사/붙여넣기
+ * - 탭 줄: 뷰 탭 5개(Layout / Style / Text / Screen / Modified)
  */
 
 import { useState, useMemo, useCallback, memo, type ReactElement } from "react";
 import { Tabs, TabPanel } from "react-aria-components";
 import { useStore, useDebouncedSelectedElementData } from "../../stores";
-import { ActionIconButton, ActionIconToggleButton } from "../../components/ui";
-import { PencilRuler, Palette } from "lucide-react";
+import { ActionIconButton } from "../../components/ui";
+import { Palette } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 복사/붙여넣기 정본. */
@@ -31,9 +33,11 @@ import {
 } from "./sections";
 import { StylesPanelTabs } from "./components/StylesPanelTabs";
 import {
-  STYLE_GROUP_IDS,
+  isStyleGroupId,
+  STYLE_VIEW_IDS,
   toDirtyGroups,
   type StyleGroupId,
+  type StyleViewId,
 } from "./constants/styleGroups";
 import { useSectionCollapse } from "./hooks/useSectionCollapse";
 import { useStyleActions } from "./hooks/useStyleActions";
@@ -92,11 +96,11 @@ function StylesPanelContent() {
   const selectedElement = useDebouncedSelectedElementData();
   const selectedStyle =
     (selectedElement?.style as Record<string, unknown> | undefined) ?? null;
-  // "modify N" 뱃지는 baseline(factory default / spec preset / subpart)과 실제로 다른 prop 수만 센다.
+  // 수정 개수는 baseline(factory default / spec preset / subpart)과 실제로 다른 prop 수만 센다.
   //   reset 버튼(useHasDirtyStyles)과 동일 baseline 공유 — factory 가 주입한 layout default 는 제외.
   const dirtyProps = useDirtyStyleProps();
   const modifiedCount = dirtyProps.length;
-  // 탭 dot 은 "지금 안 보이는 그룹에 수정이 있다" 는 신호 — 배지와 같은 dirty 목록에서 파생.
+  // 탭 dot 은 "지금 안 보이는 그룹에 수정이 있다" 는 신호 — 같은 dirty 목록에서 파생.
   const dirtyGroups = useMemo(() => toDirtyGroups(dirtyProps), [dirtyProps]);
   // copy 활성화는 baseline 무관 — 복사 대상은 "현재 inline style 전체"라 키 존재 여부가 기준.
   const hasInlineStyle = useMemo(() => {
@@ -107,8 +111,7 @@ function StylesPanelContent() {
   }, [selectedStyle]);
   const isCopyDisabled = !hasInlineStyle;
 
-  const [filter, setFilter] = useState<"all" | "modified">("all");
-  const [group, setGroup] = useState<StyleGroupId>("layout");
+  const [view, setView] = useState<StyleViewId>("layout");
   const {
     expandAll,
     collapseAll,
@@ -118,10 +121,8 @@ function StylesPanelContent() {
   } = useSectionCollapse();
   const { copyStyles, pasteStyles } = useStyleActions();
 
-  // 탭을 누르면 "수정된 속성만" 보기에서 빠져나온다 — 배지 재클릭으로만 다시 들어간다.
-  const handleGroupChange = useCallback((key: React.Key) => {
-    setGroup(key as StyleGroupId);
-    setFilter("all");
+  const handleViewChange = useCallback((key: React.Key) => {
+    setView(key as StyleViewId);
   }, []);
 
   const handleCopyStyles = useCallback(async () => {
@@ -185,28 +186,6 @@ function StylesPanelContent() {
         actions={
           <>
             {focusMode && <span className="focus-mode-indicator">Focus</span>}
-            {/* 수정 개수는 아이콘 옆 텍스트 대신 tooltip 으로 — 헤더가 요소 이름과 자리를 다투지 않는다.
-                "어느 그룹이 수정됐나" 는 탭 dot 이 답한다. */}
-            <ActionIconToggleButton
-              isSelected={filter === "modified"}
-              onChange={() =>
-                setFilter((prev) => (prev === "modified" ? "all" : "modified"))
-              }
-              aria-label={
-                modifiedCount > 0 ? `Modify (${modifiedCount})` : "Modify"
-              }
-              tooltip={
-                modifiedCount > 0
-                  ? `수정된 스타일 ${modifiedCount}개`
-                  : "수정된 스타일"
-              }
-            >
-              <PencilRuler
-                color={iconProps.color}
-                size={iconProps.size}
-                strokeWidth={iconProps.strokeWidth}
-              />
-            </ActionIconToggleButton>
             <ActionIconButton
               onPress={handleCopyStyles}
               aria-label="Copy styles"
@@ -236,19 +215,22 @@ function StylesPanelContent() {
 
       <Tabs
         className="styles-panel-groups"
-        selectedKey={group}
-        onSelectionChange={handleGroupChange}
+        selectedKey={view}
+        onSelectionChange={handleViewChange}
       >
         <div className="panel-header styles-panel-tabrow">
-          <StylesPanelTabs dirtyGroups={dirtyGroups} />
+          <StylesPanelTabs
+            dirtyGroups={dirtyGroups}
+            modifiedCount={modifiedCount}
+          />
         </div>
 
-        {STYLE_GROUP_IDS.map((id) => (
+        {STYLE_VIEW_IDS.map((id) => (
           <TabPanel key={id} id={id} className="panel-contents">
-            {filter === "modified" ? (
-              <ModifiedSectionsWrapper />
-            ) : (
+            {isStyleGroupId(id) ? (
               <GroupSections group={id} />
+            ) : (
+              <ModifiedSectionsWrapper />
             )}
           </TabPanel>
         ))}

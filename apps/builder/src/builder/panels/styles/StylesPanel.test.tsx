@@ -60,7 +60,7 @@ describe("StylesPanel breakpoint context", () => {
   });
 });
 
-describe("StylesPanel group tabs", () => {
+describe("StylesPanel view tabs", () => {
   beforeEach(() => {
     vi.stubGlobal("CSS", { escape: (value: string) => value });
     useCanonicalDocumentStore.setState({
@@ -94,11 +94,12 @@ describe("StylesPanel group tabs", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders 4 group tabs and shows only the selected group's sections", () => {
+  it("renders 5 view tabs and shows only the selected view", () => {
     render(<StylesPanel />);
 
-    expect(screen.getAllByRole("tab")).toHaveLength(4);
-    // 기본 탭 = Layout(Transform + Layout). 다른 그룹 섹션은 렌더되지 않는다.
+    // 그룹 4개 + Modified. "수정된 속성만" 도 같은 영역을 차지하는 뷰라 탭 줄에 함께 있다.
+    expect(screen.getAllByRole("tab")).toHaveLength(5);
+    // 기본 탭 = Layout(Transform + Layout). 다른 뷰의 섹션은 렌더되지 않는다.
     expect(screen.getByText("Transform")).toBeTruthy();
     expect(screen.queryByText("Typography")).toBeNull();
     expect(screen.queryByText("Appearance")).toBeNull();
@@ -106,6 +107,16 @@ describe("StylesPanel group tabs", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Text" }));
 
     expect(screen.getByText("Typography")).toBeTruthy();
+    expect(screen.queryByText("Transform")).toBeNull();
+  });
+
+  it("switches to the modified-only view from the tab strip", () => {
+    render(<StylesPanel />);
+
+    // 수정이 있으면 접근 이름에 개수가 붙는다 ("Modified (2)").
+    fireEvent.click(screen.getByRole("tab", { name: /^Modified/ }));
+
+    expect(screen.getByText(/Modified Styles/)).toBeTruthy();
     expect(screen.queryByText("Transform")).toBeNull();
   });
 });

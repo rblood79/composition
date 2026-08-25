@@ -32,6 +32,25 @@ export const STYLE_GROUP_IDS: readonly StyleGroupId[] = [
   "screen",
 ];
 
+/**
+ * 콘텐츠 영역이 보여줄 수 있는 뷰 전체 = 그룹 4개 + "수정된 속성만".
+ *
+ * Modified 는 그룹을 가로지르는 필터지 5번째 그룹이 아니다. 그래도 **같은 영역을 배타적으로
+ * 차지하는 뷰**라 탭 줄에 함께 둔다 — 별도 토글로 두면 "탭을 누르면 modify 가 풀린다" 는
+ * 숨은 결합이 생기고, 한 영역을 두 컨트롤이 나눠 쥐게 된다.
+ */
+export type StyleViewId = StyleGroupId | "modified";
+
+export const STYLE_VIEW_IDS: readonly StyleViewId[] = [
+  ...STYLE_GROUP_IDS,
+  "modified",
+];
+
+/** 뷰 id 가 실제 그룹(=섹션을 가진 뷰)인지. */
+export function isStyleGroupId(view: StyleViewId): view is StyleGroupId {
+  return view !== "modified";
+}
+
 export const STYLE_GROUP_PROPS: Record<StyleGroupId, readonly string[]> = {
   layout: [...TRANSFORM_PROPS, ...LAYOUT_PROPS],
   style: APPEARANCE_PROPS,

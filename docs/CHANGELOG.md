@@ -7,32 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Style 패널 그룹 탭 — 선택된 탭에만 라벨] - 2026-08-25
+## [Style 패널 뷰 탭 — 선택된 탭에만 라벨] - 2026-08-25
 
 ### Changed
 
 - Style 패널이 섹션 5개(Responsive / Transform / Layout / Appearance / Typography)를 한 줄로
-  늘어놓던 것을 **4개 그룹 탭**으로 묶었다. 섹션은 하나도 지우지 않았다 — Layout(Transform +
+  늘어놓던 것을 **그룹 탭**으로 묶었다. 섹션은 하나도 지우지 않았다 — Layout(Transform +
   Layout) / Style(Appearance) / Text(Typography) / Screen(Responsive + Visibility) 로 그룹만
   나눴다. 실측 근거: 패널 폭 233px 에 컨트롤 91개, 전부 펼치면 콘텐츠 1,454px 가 보이는 높이
   641px 안에 들어가 2.3 화면이었다.
-- 탭 어법은 **선택된 탭에만 라벨**이다. 233px 최소 폭에서 라벨 4개를 다 달면 탭 줄이 폭을 다
-  먹어 복사/붙여넣기를 타이틀 줄로 밀어내야 하고, 전부 아이콘만 두면 Layout·Style 이 읽히지
-  않는다. 선택 탭만 이름을 달고 남는 폭을 가져가므로 패널을 넓히면 라벨 자리도 같이 넓어지고,
-  좁히면 라벨만 말줄임으로 줄고 아이콘은 남는다.
-- 패널 헤더가 두 줄이 됐다 — 타이틀 줄(요소 타입 + `modify N` 배지)과 탭 줄(그룹 탭 4개 +
-  스타일 복사/붙여넣기). 구 "전체 스타일"(Palette) 토글은 탭이 대신하므로 제거했고, Palette 는
-  패널 아이콘으로 옮겼다. `modify N` 배지는 그대로 "수정된 속성만" 보기 토글이다.
+- **"수정된 속성만"(Modified) 도 같은 탭 줄의 5번째 탭**이다. 처음엔 타이틀 줄의 별도 토글로
+  뒀는데, 그러면 콘텐츠 영역 하나를 두 컨트롤이 나눠 쥐고 "탭을 누르면 modify 가 조용히 풀리는"
+  숨은 결합이 생긴다. 배타적으로 같은 영역을 차지하는 뷰는 컨트롤도 하나여야 한다.
+- 탭 어법은 **선택된 탭에만 라벨**이다. 233px 최소 폭에서 라벨을 다 달면 탭 줄이 폭을 다 먹고,
+  전부 아이콘만 두면 Layout·Style 이 읽히지 않는다. 선택 탭만 이름을 달고 남는 폭을 가져가므로
+  패널을 넓히면 라벨 자리도 같이 넓어지고, 좁히면 라벨만 말줄임으로 줄고 아이콘은 남는다.
+- 탭 트랙 치수는 이 패널의 `ToggleButtonGroup`(세그먼트 컨트롤) 실측값과 동일하다 — 28px 높이 /
+  4px 안쪽 여백 / 8px 간격 / `--radius-md` / muted 트랙 + inset shadow, 버튼 20px 정사각, 선택
+  pill = `--bg-overlay` + `--shadow-sm`, 라벨 12px regular. 같은 패널에서 같은 역할(배타 선택)을
+  하는 컨트롤이 서로 다른 치수를 쓰면 탭만 이물질로 읽힌다.
+- 패널 헤더가 두 줄이 됐다 — 타이틀 줄(요소 타입 + 스타일 복사/붙여넣기)과 탭 줄(뷰 탭 5개).
+  구 "전체 스타일"(Palette) 토글은 탭이 대신하므로 제거했고 Palette 는 패널 아이콘으로 옮겼다.
+  구 `modify N` 배지 텍스트는 사라졌고 개수는 Modified 탭의 tooltip/접근 이름에 남는다.
 - 지금 선택되지 않은 그룹에 기본값과 다른 값이 있으면 탭 아이콘에 dot 을 띄운다. 판정은 섹션
   reset 버튼과 같은 dirty 소스(`{TRANSFORM,LAYOUT,APPEARANCE,TYPOGRAPHY}_PROPS`)를 재사용해
-  "탭엔 점이 없는데 들어가 보면 reset 이 활성" 인 비대칭이 안 생기게 했다.
+  "탭엔 점이 없는데 들어가 보면 reset 이 활성" 인 비대칭이 안 생기게 했다. Modified 탭에는
+  dot 을 찍지 않는다 — 그 값은 그룹 dot 들의 OR 라 정의상 중복이다.
 
 ### Verification
 
-- 라이브 빌더(localhost:5173) 실측: 233px 폭에서 4개 탭 라벨(Layout/Style/Text/Screen)이
-  잘리지 않고, 탭 전환이 해당 그룹 섹션만 마운트하며, Gap 편집이 탭을 떠났다 돌아와도 유지된다
-  (store 반영 확인). `modify 1` ↔ Style 탭 dot 일치, 배지로 Modified 뷰 진입 시 탭 줄 유지.
-- `StylesPanel.test.tsx` 에 그룹 탭 4개 렌더 + 선택 그룹만 표시 케이스를 추가했다.
+- 라이브 빌더(localhost:5173) 233px 실측: 5개 탭 라벨이 전부 미절단(라벨 box == 텍스트 natural
+  폭). 비선택 탭이 24px 로 새면서 `Modified` 가 0.09px 모자라 말줄임되던 것을 20px 고정으로
+  잡았다. tablist ↔ 세그먼트 그룹의 height·padding·gap·radius·background·box-shadow 6개 값
+  일치 확인.
+- 탭 전환이 해당 뷰의 섹션만 마운트하고, Gap 20→24 편집이 다른 탭을 다녀와도 유지된다(store
+  반영 확인 후 20 복원). `modify 1` ↔ Style 탭 dot 일치.
+- `StylesPanel.test.tsx`: 뷰 탭 5개 렌더 + 선택 뷰만 표시 + Modified 탭 전환 케이스를 추가했고,
+  기존 Responsive 케이스는 Screen 탭 선택 후 단언으로 갱신했다.
 
 ## [테스트 baseline 정리 — overlay fixture / obsolete snapshot / §9 매트릭스 커버리지] - 2026-08-25
 
