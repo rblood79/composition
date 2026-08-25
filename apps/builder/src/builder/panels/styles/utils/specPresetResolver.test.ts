@@ -343,11 +343,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
   describe("ADR-082 P3 fix — sizes 경로 TokenRef 해석 (pickNumeric → resolveToNumber)", () => {
     it("Badge.sizes.md.borderRadius = '{radius.full}' → 9999 로 resolve", () => {
       // Badge 는 sizes 전체가 `"{radius.full}"` TokenRef 사용 → 기존 typeof number 필터로
-      //   전부 skip 되던 버그 수정. borderWidth 는 ADR-151 B12 에서 1→0 으로 전환됨
-      //   (전 variant border 색 부재 = DOM border:none 인데 Skia layout 만 +2px 소비하던 dead 값 제거).
+      //   전부 skip 되던 버그 수정. ADR-912 후속 Phase 4에서 bold/subtle/outline 전환 시
+      //   DOM box footprint를 고정하기 위해 transparent border 1px을 catalog 계약으로 복원했다.
       const preset = resolveAppearanceSpecPreset("Badge", "md");
       expect(preset.borderRadius).toBe(9999);
-      expect(preset.borderWidth).toBe(0);
+      expect(preset.borderWidth).toBe(1);
     });
 
     it("InlineAlert.sizes.md.borderRadius = '{radius.lg}' → 8 로 resolve", () => {

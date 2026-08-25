@@ -477,6 +477,35 @@ Gate P5:
 - ADR-187 raw/terminal 계약과 scheduling 지표 회귀 0.
 - console error/warning 0/0.
 
+> **Phase 5 진행 중 (2026-08-25) — 기준 fixture 복구 대기**
+>
+> - 자동 gate: shared resolver 10건, Builder panel/Skia/metrics 119건, specs
+>   shape/CSS 8건(총 137건) PASS. `pnpm run codex:typecheck`는 신규 위반 0
+>   (Builder known baseline 43)으로 PASS했다.
+> - 문서의 기준 URL `97517aae-a9e5-4b7c-9d21-7c0ea0029908`은 현재 Builder가
+>   `[BuilderCore] 프로젝트를 찾을 수 없음`을 반환하며 Home에 `body`만
+>   생성된다. 따라서 해당 fixture의 Button/Badge/ToggleButton/Card 전수
+>   매트릭스와 console 0/0은 아직 PASS 판정하지 않았다.
+> - 대체 유효 Builder fixture(`multiroot-live-gate`)에서 Canvas element 선택 →
+>   Properties → Style Panel 계약을 실행했다. Button `primary/fill/auto`는
+>   background/text/border `#171717/#FFFFFF/#171717`, instance inline override는
+>   `#D61818/#FFFFFF/#171717`로 Style Panel과 Preview computed style이 일치했다.
+>   ToggleButton `selected+emphasized`는 `#2563EB/#FFFFFF/#2563EB`로 동일하게
+>   전환됐고 시험 후 원상복구했다. Card origin 기본 3채널도
+>   `#FAFAFA/#171717/#000000`으로 Panel에 도달했다.
+> - Compare Mode에서 Preview `.react-aria-Button`/ToggleButton computed style과 Style Panel
+>   3채널이 일치했고 unified Skia Canvas 1개가 동시 렌더되었다.
+>   대체 fixture console error/warning은 0/0이었다.
+> - foreground ColorArea 실측: click raw input 1, drag raw input 5, drag 중
+>   canonical/legacy write 0/0, terminal event 1, terminal canonical commit 1,
+>   action/control RAF 0/0, stale callback 0. drag frame apply p95는 `0.4ms`, terminal
+>   projection signature는 `0.5ms`였고 Panel/Preview는 최종 `#B82828`로 일치했다.
+>   실측 후 Button background는 catalog 기본 `#171717`로 원상복구했다.
+> - 재개 조건: 기준 project ID를 복구하거나 §9 대표 fixture가 있는
+>   유효한 대체 URL을 고정한 뒤, Badge 포함 전 매트릭스와 기준 URL
+>   console 0/0을 재실행한다. 그전까지 Phase 5와 본 follow-up 문서 상태는
+>   `In Progress`를 유지한다.
+
 ## 7. 위험
 
 | ID  | 위험                                                                                       | 심각도 | 대응                                                                                             |
