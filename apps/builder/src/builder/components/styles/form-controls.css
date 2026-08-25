@@ -286,8 +286,12 @@
       }
     }
 
-    /* IconPicker: input-style trigger + clear button */
-    .icon-picker-input-trigger {
+    /* IconPicker / FontFamilyPicker: input-style trigger + clear button.
+       둘 다 Select 가 아니라 팝오버 trigger 버튼이라 `.react-aria-Select
+       .react-aria-Button` 규칙이 닿지 않는다. 생김새는 select trigger 와 같아야
+       하므로 정의를 하나만 두고 선택자를 나눠 쓴다. */
+    .icon-picker-input-trigger,
+    .font-picker-trigger {
       display: flex;
       align-items: center;
       gap: var(--spacing-xs);
@@ -307,7 +311,8 @@
         flex-shrink: 0;
       }
 
-      .icon-picker-value {
+      .icon-picker-value,
+      .font-picker-value {
         flex: 1;
         text-align: left;
         overflow: hidden;
@@ -316,7 +321,8 @@
         color: var(--fg);
       }
 
-      &:not(:has(.control-label)) .icon-picker-value {
+      &:not(:has(.control-label)) .icon-picker-value,
+      &:not(:has(.control-label)) .font-picker-value {
         padding-inline-start: var(--spacing);
         color: var(--fg-muted);
       }

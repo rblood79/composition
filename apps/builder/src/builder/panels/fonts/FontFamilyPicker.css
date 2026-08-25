@@ -1,0 +1,90 @@
+@layer builder-system {
+  /* 팝오버 껍데기는 다른 패널 드롭다운과 같은 `.react-aria-Popover` 를 쓰고,
+     내용 배치(검색 / 목록 높이 / 관리 진입 줄)만 여기서 정한다. */
+  .font-picker-popover {
+    max-width: 320px;
+  }
+
+  .font-picker-dialog {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    outline: none;
+  }
+
+  .font-picker-search {
+    padding: var(--spacing-xs) var(--spacing-xs) 0;
+  }
+
+  .font-picker-search-input {
+    width: 100%;
+    height: var(--inspector-control-size);
+    padding: 0 var(--spacing-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-inset);
+    color: var(--fg);
+    font-size: var(--text-xs);
+    outline: none;
+
+    &:focus {
+      border-color: var(--focus-ring);
+    }
+
+    &::placeholder {
+      color: var(--fg-muted);
+    }
+  }
+
+  /* 폰트가 쌓여도 팝오버가 패널 밖으로 자라지 않게 목록만 스크롤한다. */
+  .font-picker-list {
+    max-height: 240px;
+    overflow-y: auto;
+    border: none;
+    padding: var(--spacing-xs);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* 그룹 헤더는 항목이 아니라 구분선 역할 — 기본 ListBox Header(14px/700)보다 작게. */
+  .font-picker-section-header {
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    color: var(--fg-muted);
+  }
+
+  .font-picker-item {
+    font-size: var(--text-xs);
+  }
+
+  .font-picker-footer {
+    padding: var(--spacing-xs);
+    border-top: 1px solid var(--border);
+  }
+
+  .font-picker-manage {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    width: 100%;
+    height: var(--inspector-control-size);
+    padding: 0 var(--spacing-sm);
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+    cursor: pointer;
+
+    &[data-hovered] {
+      background: var(--bg-muted);
+      color: var(--fg);
+    }
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: -2px;
+    }
+  }
+}

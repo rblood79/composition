@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [폰트 관리 진입점을 Font Family 피커 안으로 — 도킹 패널에서 모달로] - 2026-08-25
+
+### Changed
+
+- Typography 섹션의 **Font Family 가 팝오버 피커**가 됐다(`FontFamilyPicker`). 목록은
+  "기본"(기본값 / Pretendard / Inter)과 "내 폰트"(등록된 커스텀 패밀리) 두 그룹으로 나뉘고,
+  각 이름은 그 폰트로 그려진다. 패밀리가 7개 이상이면 검색창이 함께 뜬다.
+- **폰트 관리 진입점이 피커 안으로 들어왔다** — 목록 아래 `폰트 추가`(등록 0개) / `폰트 관리`
+  줄이 `FontManagerDialog` 모달을 연다. 업로드 존·패밀리 목록·face 삭제는 도킹 패널과 같은
+  본문(`FontManagerBody`)이라 어느 쪽에서 올려도 즉시 서로 반영된다.
+- Typography 속성 그리드의 **`폰트 관리` 아이콘 버튼(Line Height 옆 칸)을 제거**했다. 빈
+  칸으로 자동 배치가 밀리지 않도록 `Wrap` 에 `grid-area: wrap` 을 고정해 종전 위치(Text
+  Transform 옆)를 유지한다.
+- **Why**: Figma 는 파일 우측 패널에 피커만 두고 업로드를 Admin → Resources → Fonts 로 보내고,
+  Pen 은 피커 안 `Add`/`Manage` 가 문서 스코프 "Custom Fonts" 모달을 연다. 두 앱 다
+  선택(고빈도)은 피커 안, 관리(저빈도)는 다른 표면이고 **관리 표면이 인스펙터 레일을 상주로
+  차지하는 도킹 패널인 경우는 없다.** composition 은 두 축 다 어긋나 있어서 "고르다 없으면
+  패널 열고 → 올리고 → 스타일 패널로 돌아오는" 왕복이 생겼다. Pen 의 "전체 / 내 폰트" 필터는
+  빌트인이 2개뿐인 여기선 토글이 될 값이 없어 그룹 헤더로 대신했다.
+- 레지스트리 구독·CRUD 가 소비처마다 복제돼 있던 것을 `useFontRegistry` 훅 하나로 모았다
+  (패널 / 모달 / Typography 의 Font Weight 옵션 3곳).
+- 기존 `fonts` 도킹 패널은 그대로 남는다 — 등록 해제는 별도 판단.
+
+### Verification
+
+- 라이브 빌더(localhost:5173): Text 탭 → Font Family 가 새 피커로 렌더되고 구
+  `.actions-font` 아이콘 칸은 DOM 에서 사라졌다. 피커 열기 → `Inter` 선택 시 트리거 라벨·미리보기
+  글꼴이 바뀌고 Modified 탭 개수가 1 → 2 로 올라가 store 반영을 확인, `기본값` 선택으로 2 → 1
+  복원까지 확인했다.
+- 같은 세션에서 `폰트 추가` → 모달이 열리고 업로드 존 + 빈 상태가 모달 안에 정렬되는 것까지
+  확인했다(EmptyState 의 시각 규칙이 패널 스코프라 모달까지 닿지 않던 것을 인스턴스 한정
+  규칙으로 보강). 콘솔 에러 0건.
+- `pnpm type-check` PASS(신규 위반 0). RAC `Tab` 이 `title` 을 받지 않아 남아 있던 뷰 탭
+  타입 위반 1건을 안쪽 요소로 옮겨 함께 해소했다. `vitest run src/builder/panels
+src/builder/components/styles` 92 파일 / 852 케이스 PASS.
+
 ## [Style 패널 뷰 탭 — 선택된 탭에만 라벨] - 2026-08-25
 
 ### Changed

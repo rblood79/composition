@@ -72,10 +72,11 @@ export function StylesPanelTabs({
                 ? label
                 : `${label} (${modifiedCount})`
             }
-            title={title}
           >
             {({ isSelected }) => (
-              <>
+              /* 아이콘만 보이는 탭이 무엇을 담는지는 hover 로 읽는다. RAC `Tab` 은
+                 DOM 이벤트만 통과시키고 `title` 은 받지 않으므로 안쪽 요소가 진다. */
+              <span className="styles-panel-tab-inner" title={title}>
                 {/* 선택 상태에 따라 색이 바뀌어야 하므로 아이콘 색은 CSS(currentColor)가 준다. */}
                 <Icon
                   color="currentColor"
@@ -90,7 +91,7 @@ export function StylesPanelTabs({
                     <span className="styles-panel-tab-dot" aria-hidden="true" />
                   )
                 )}
-              </>
+              </span>
             )}
           </Tab>
         );

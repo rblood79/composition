@@ -5,7 +5,7 @@
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useMemo } from "react";
 import {
   PropertySection,
   PropertyUnitInput,
@@ -16,7 +16,6 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@composition/shared/components";
-import { SwatchIconButton } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   Type,
@@ -43,17 +42,12 @@ import { useStylePresentationActions } from "../hooks/useStylePresentationAction
 import { useTextMetricsPresentationActions } from "../hooks/useTextMetricsPresentationActions";
 import { useTypographyValues } from "../hooks/useTypographyValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
-import {
-  DEFAULT_FONT_OPTIONS,
-  FONT_REGISTRY_STORAGE_KEY,
-  getFontWeightOptions,
-  loadFontRegistry,
-} from "../../../fonts/customFonts";
-import { usePanelLayout } from "../../../hooks/usePanelLayout";
+import { getFontWeightOptions } from "../../../fonts/customFonts";
+import { FontFamilyPicker } from "../../fonts/FontFamilyPicker";
+import { useFontRegistry } from "../../fonts/useFontRegistry";
 
 const TypographySectionContent = memo(function TypographySectionContent() {
   const { updateStyle, updateStyles } = useStyleActions();
-  const { togglePanel } = usePanelLayout();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
   const {
@@ -69,9 +63,8 @@ const TypographySectionContent = memo(function TypographySectionContent() {
   } = useTextMetricsPresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const styleValues = useTypographyValues(selectedId);
-  const [registryFaces, setRegistryFaces] = useState(() =>
-    loadFontRegistry().faces.map(({ family, weight }) => ({ family, weight })),
-  );
+  // 등록된 face 는 Font Weight 옵션 산출에만 쓴다 — 패밀리 목록은 FontFamilyPicker 가 직접 읽는다.
+  const { registry } = useFontRegistry();
 
   // ADR-008: Text Behavior 프리셋 변경 핸들러
   // updateStyles (batch)로 5개 속성을 단일 set()에 적용 → 히스토리 1건 + 레이아웃 1회
@@ -135,49 +128,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     [updateStyles],
   );
 
-  useEffect(() => {
-    const syncFonts = () =>
-      setRegistryFaces(
-        loadFontRegistry().faces.map(({ family, weight }) => ({
-          family,
-          weight,
-        })),
-      );
-
-    // ADR-155: Activity 재표시로 effect 재장착 시 숨김 중 놓친 갱신 catch-up
-    syncFonts();
-
-    window.addEventListener("composition:custom-fonts-updated", syncFonts);
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== FONT_REGISTRY_STORAGE_KEY) return;
-      syncFonts();
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("composition:custom-fonts-updated", syncFonts);
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, []);
-
-  const fontOptions = useMemo(() => {
-    const seenFamilies = new Set<string>();
-    const dynamicOptions: Array<{ value: string; label: string }> = [];
-    for (const face of registryFaces) {
-      if (!seenFamilies.has(face.family)) {
-        seenFamilies.add(face.family);
-        dynamicOptions.push({
-          value: face.family,
-          label: `${face.family} (Custom)`,
-        });
-      }
-    }
-
-    return [...DEFAULT_FONT_OPTIONS, ...dynamicOptions];
-  }, [registryFaces]);
-
   const fontWeightOptions = useMemo(
-    () => getFontWeightOptions(styleValues?.fontFamily || "", registryFaces),
-    [styleValues?.fontFamily, registryFaces],
+    () => getFontWeightOptions(styleValues?.fontFamily || "", registry.faces),
+    [styleValues?.fontFamily, registry.faces],
   );
 
   const presentationOwnsTextColor = isTextColorPresentationOwned();
@@ -245,12 +198,8 @@ const TypographySectionContent = memo(function TypographySectionContent() {
 
   return (
     <>
-      <PropertySelect
-        icon={Type}
-        label="Font Family"
-        className="font-family"
+      <FontFamilyPicker
         value={styleValues.fontFamily}
-        options={fontOptions}
         onChange={(value) => updateStyle("fontFamily", value)}
       />
 
@@ -265,19 +214,6 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         onPresentationCancel={cancelTextColorPresentation}
         placeholder="#000000"
       />
-
-      <div className="fieldset-actions actions-font">
-        <SwatchIconButton
-          aria-label="폰트 관리"
-          onPress={() => togglePanel("fonts")}
-        >
-          <Type
-            color={iconProps.color}
-            size={iconProps.size}
-            strokeWidth={iconProps.strokeWidth}
-          />
-        </SwatchIconButton>
-      </div>
 
       <PropertyUnitInput
         icon={Type}

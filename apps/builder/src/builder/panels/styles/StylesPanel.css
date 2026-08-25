@@ -58,7 +58,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
   /* 트랙은 radius-md(6px), 그 안의 pill 은 radius-sm(4px) — 세그먼트 컨트롤의
      SelectionIndicator 가 쓰는 `--btn-border-radius: var(--radius-sm)` 와 같은 관계다.
      안쪽 모서리를 바깥과 같은 6px 로 두면 pill 이 트랙 곡률을 덮어 뭉툭해진다. */
@@ -86,6 +85,17 @@
   background: var(--bg-overlay);
   color: var(--fg);
   box-shadow: var(--shadow-sm);
+}
+
+/* 아이콘·라벨을 담는 안쪽 줄. 탭 박스와 같은 크기를 채우고 정렬은 탭에서 물려받는다
+   (기본 center / 선택 시 start) — `title` 을 걸 실제 박스가 필요해서 한 겹 있다. */
+.styles-panel-tab-inner {
+  display: flex;
+  align-items: center;
+  justify-content: inherit;
+  gap: var(--spacing-xs);
+  width: 100%;
+  min-width: 0;
 }
 
 /* 패널을 좁히면 라벨만 말줄임으로 줄고 아이콘은 남는다.
