@@ -71,7 +71,7 @@ const model = applyActionBarPolicy(menuItems, context); // allowlist by item.id 
 - 기본 위치: overlay 하단 중앙, `bottom: 16px; left: 50%; translateX(-50%)`. 사용자 드래그 시 `offset {dx, dy}` 를 기본 위치 기준 상대값으로 저장 → 뷰포트 리사이즈에도 중앙 기준이 유지된다. 마운트/리사이즈 시 overlay rect 로 clamp.
 - 구조: `<Toolbar aria-label="선택 액션">` (shared RAC 래퍼, HistoryPanel 선례) → `[핸들] [Button×≤5] [⋯] [옵션 ▾]`. 옵션 = RAC `MenuTrigger` (Pin bar position 토글 / Reset bar position / Hide bar) — Photoshop ⋯ 메뉴 동형.
 - 버튼: shared `Button variant="ghost" size="sm"` + `ShortcutTooltip shortcutId` (단축키 학습 UI). 아이콘 `ACTION_ICONS` (182 와 동일 키).
-- **포커스 정책**: 바 루트에 `data-scope="canvas"` — `useActiveScope.ts:100-106` 의 `isCanvasFocused` 가 이 속성을 먼저 보므로 포커스가 바 안에 있어도 `canvas-focused` scope 가 유지된다 (단축키 27개 계속 동작). 보조로 RAC `Button` `preventFocusOnPress`. 키보드로 바에 진입한 경우 (Tab) 에만 Toolbar 화살표 탐색, `Escape` 로 캔버스 복귀.
+- **포커스 정책**: 바 루트에 `data-scope="canvas"` — `useActiveScope.ts:100-106` 의 `isCanvasFocused` 가 이 속성을 먼저 보므로 포커스가 바 안에 있어도 `canvas-focused` scope 가 유지된다 (단축키 27개 계속 동작). 보조로 RAC `Button` `preventFocusOnPress` (`@react-types/shared` 3.36.1 타입에 미발견 — Phase 2 실측, 미지원 시 생략). 키보드로 바에 진입한 경우 (Tab) 에만 Toolbar 화살표 탐색, `Escape` 로 캔버스 복귀.
 - 갱신 트리거: `selectedElementIds` / elementsMap 의 선택 요소 변화 / 모드 플래그 — Zustand selector 구독. **프레임 루프·bounds 구독 없음.**
 
 ### 3-4. 상태 (canvasSettings additive)
