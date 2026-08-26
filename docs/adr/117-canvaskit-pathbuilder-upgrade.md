@@ -1,171 +1,225 @@
-# ADR-117: CanvasKit PathBuilder 전환 및 0.41.1 업그레이드
+# ADR-117: CanvasKit PathBuilder 전환 및 0.42.0 업그레이드
 
 ## Status
 
-Proposed — 2026-05-02
+Proposed — 2026-05-02 작성, **2026-08-27 재설계** (대상 버전 0.41.1 → 0.42.0,
+Phase 0 API spike + path inventory 실측 반영, 대안 B 위험 재평가)
 
 ## Context
 
-`apps/builder`는 `canvaskit-wasm` `^0.40.0`을 사용하며, lockfile 기준 현재 설치
-버전은 `0.40.0`이다. npm registry 조회 기준 최신 버전은 `0.41.1`이고,
-CanvasKit upstream changelog는 `0.41.0`에서 `Path` 객체를 immutable로 바꾸고
-`PathBuilder`를 노출했으며, `0.41.1`에서 `PathBuilder` 성능 문제와 `libpng`
-업데이트를 반영했다고 기록한다.
+### 버전 현황 (2026-08-27 registry 실측)
 
-현재 Skia 렌더러는 `new ck.Path()` 후 `moveTo`, `lineTo`, `arcToTangent`,
-`addRect`, `addArc` 등으로 path를 직접 구성하는 패턴을 여러 렌더링 경로에서
-사용한다. 따라서 `canvaskit-wasm`만 단순 bump하면 성능 개선보다 먼저 path
-호환성 문제가 발생할 가능성이 높다.
+`apps/builder`는 `canvaskit-wasm` `^0.40.0`을 사용하며 lockfile/installed 버전은
+`0.40.0`(2025-03-31)이다. 2026-05-02 설계 시점의 최신은 `0.41.1`이었으나 그 후
+`0.42.0`(2026-08-18)이 공개됐다. 세 릴리스 모두 미반영 상태다.
 
-공식 변경 근거:
+| 버전   | 일자       | 변경 (upstream CHANGELOG)                                                                                                                                                                                                         | composition 영향                                                                                                   |
+| ------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 0.41.0 | 2026-03-18 | **Breaking**: `Path` immutable, `PathBuilder` 노출. `FontMetrics`에 underline/strikeout 추가. emsdk 컴파일 설정 수정                                                                                                              | Skia renderer의 mutable `Path` 사용 20곳 전부 런타임 TypeError (아래 실측)                                         |
+| 0.41.1 | 2026-04-07 | `PathBuilder` 성능 문제 수정, libpng 1.6.56                                                                                                                                                                                       | `imageCache.ts:338` `MakeImageFromEncoded` 디코드 경로                                                             |
+| 0.42.0 | 2026-08-18 | `PathBuilder.setFillType`이 복사본 대신 JS 객체 참조를 반환하도록 수정. `MakeImageFromCanvasImageSource` VideoFrame 치수 수정. `Canvas.drawImageCubic`/`drawImageOptions` 기본 `Fast_SrcRectConstraint` (filter/mipmap 옵션 보존) | `nodeRendererBorders.ts:434` EvenOdd fill (0.41.x 결함 대상). `SkiaRenderer.ts:817` snapshot blit `drawImageCubic` |
 
-- CanvasKit changelog:
-  <https://github.com/google/skia/blob/main/modules/canvaskit/CHANGELOG.md>
-- `0.41.1` release commit:
-  <https://chromium.googlesource.com/skia/+/3c68f3ffd7c9bc781494cdb85e718ff1e6f49d84>
-- `PathBuilder` type declaration:
-  <https://skia.googlesource.com/skia/+/a31411879251/modules/canvaskit/npm_build/types/index.d.ts>
+패키지 entry(`bin/canvaskit.js`, `exports`, `types`)와 `@webgpu/types@0.1.21` 의존성은
+0.40.0과 동일하다. `bin/canvaskit.wasm`은 7,094,511 → 7,317,345 bytes (+223KB, +3.1%).
 
-**Hard Constraints**:
+### API 변경 실측 (0.42.0 타입 선언 + Node 런타임 spike)
 
-1. `canvaskit-wasm` bump 전에 Skia path 생성 경로의 직접 mutable `Path` 사용을
-   제거하거나 명시적 compatibility wrapper 안으로 격리해야 한다.
-2. `Path.MakeFromSVGString()` 기반 icon path 경로는 동작 보존 대상이며, SVG path
-   문자열 파싱 자체를 재작성하지 않는다.
-3. 업그레이드 후 Builder Canvas smoke에서 path-heavy 표면(clip, border, icon,
-   workflow edge)이 비어 있거나 누락되면 Gate 실패로 본다.
-4. 성능 개선은 부가 효과로만 취급한다. 공개 benchmark 수치가 없으므로, 업데이트
-   성공 조건은 "프레임 성능 무회귀"와 "path 호환성 확보"로 둔다.
-5. package bump는 `apps/builder/package.json`, `pnpm-lock.yaml`, 배포되는
-   `canvaskit.wasm` artifact 경로의 실제 로드 성공까지 함께 검증해야 한다.
+- **`Path`(0.42.0)에 남은 메서드**: `computeTightBounds / contains / copy / countPoints /
+equals / getBounds / getFillType / getPoint / isEmpty / makeAsWinding / makeCombined /
+makeDashed / makeSimplified / makeStroked / makeTrimmed / setFillType / toCmds /
+toSVGString`. 구 `op / dash / simplify / stroke / trim`은 `make*` 계열로 개명(현행
+  코드 사용 0건). `Path.MakeFromSVGString / MakeFromCmds / MakeFromOp` factory는 유지.
+- **`PathBuilder`(0.42.0)**: `moveTo / lineTo / quadTo / cubicTo / conicTo / arcToTangent /
+arcToOval / arcToRotated / addRect / addRRect / addCircle / addOval / addArc / addPath /
+addPolygon / close / setFillType / transform / offset` + 종료 API `detach()` (Path 반환
+  후 builder 비움) / `detachAndDelete()` (Path 반환 후 builder delete) / `snapshot()`
+  (Path 반환, builder 유지). 런타임에는 타입 미선언 `reset()` / `arc()`도 존재.
+- **런타임 spike 결과** (`canvaskit-wasm@0.42.0`, Node):
+  - `new ck.Path()`는 생성되지만 `moveTo === undefined` → 현행 mutable 사용 전부
+    `TypeError`로 **조기·명시적** 실패 (조용한 시각 결함 아님). 단 `Path.setFillType`은
+    남아 있어 `nodeRendererBorders.ts:434`만 단독으로는 통과.
+  - `PathBuilder.close()`는 **런타임에서 builder 자신을 반환** — 타입 선언(`close(): Path`)과
+    불일치. `close()` 반환값을 ownership 이전으로 쓰면 안 된다.
+  - 모든 mutator가 같은 builder 참조를 반환(체이닝 안전). `setFillType` 도 동일 (0.42.0
+    수정 확인).
+  - `detachAndDelete()` 후 builder 재사용은 `BindingError`. EvenOdd donut(`addRect` +
+    `addRRect` + `setFillType`)이 builder 경유로 동일하게 동작.
 
-**Soft Constraints**:
+### 현행 코드 inventory (2026-08-27 grep 실측)
 
-- Canvas/Skia 렌더링 경로 외의 scene invalidation, text metrics, image cache
-  개선은 이 ADR 범위에 포함하지 않는다.
-- path API 변경 대응을 이유로 renderer 전체 구조를 재작성하지 않는다.
-- 0.40.0 환경과 0.41.1 환경을 동시에 장기간 지원하는 복잡한 abstraction은 피한다.
+| 파일 (`apps/builder/src/builder/workspace/canvas/skia/`) | `new ck.Path()` | mutator 호출 | lifecycle                                     | 비고                                                                                                                       |
+| -------------------------------------------------------- | :-------------: | :----------: | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `nodeRendererClip.ts`                                    |        5        |      19      | caller 반환 → `renderCommands.ts:2185` delete | round-rect/inset/circle/ellipse/polygon clip. 반환 타입이 `ReturnType<CanvasKit["Path"]["prototype"]["constructor"]>` 별칭 |
+| `nodeRendererShapes.ts`                                  |        5        |      25      | 즉시 `delete()`                               | arc(1) + partial border 4변. SVG icon은 `Path.MakeFromSVGString` (유지 대상)                                               |
+| `nodeRendererBorders.ts`                                 |        4        |      16      | 즉시 `delete()`                               | inset/outset 3D clip 2 + inner-shadow EvenOdd donut 1 + arc 1                                                              |
+| `workflowRenderer.ts`                                    |        3        |      18      | `scope.track()`                               | orthogonal(arcToTangent) + bezier(`cubicTo` 유일 사용) + arrow + indicator line                                            |
+| `nodeRendererImage.ts`                                   |        1        |      5       | `scope.track()`                               | placeholder mountain                                                                                                       |
+| `hoverRenderer.ts`                                       |        1        |      2       | `scope.track()`                               | hover outline                                                                                                              |
+| `slotMarkerRenderer.ts`                                  |        1        |      2       | `scope.track()`                               | marker line                                                                                                                |
+| **합계 (7 파일)**                                        |     **20**      |    **87**    | track 6 / 즉시 delete 9 / 반환 5              | `close()` 6, `setFillType` 1, `cubicTo` 1. `op/stroke/dash/trim/transform/offset` 0                                        |
+
+이 외 `disposable.ts:25`는 주석, `components/particle/canvasUtils.ts`·
+`selection/resizeCursors.ts`는 HTML Canvas 2D (대상 아님). 테스트 mock은
+`nodeRendererImage.test.ts`의 `MockPath` 1건. 7개 파일은 2026-07-27 ~ 08-27 사이 모두
+수정 이력이 있어(`workflowRenderer.ts`는 당일) Phase 2 착수 시 재grep이 필요하다.
+
+### Hard Constraints
+
+1. `canvaskit-wasm` bump 전에 Skia renderer의 직접 mutable `Path` 사용 20곳을 helper 경계로
+   수렴시킨다. bump 후 `pnpm type-check` 0 error — 0.42.0 타입에서 `Path` mutator가 전부
+   제거되므로 type-check가 이관 누락을 정적으로 드러낸다 (`ReturnType<...>` 별칭과 테스트
+   mock만 예외이므로 함께 정리).
+2. `Path.MakeFromSVGString()` 기반 icon 경로는 동작 보존 대상이며 SVG 파싱을 재작성하지 않는다.
+3. 업그레이드 후 Builder Canvas smoke에서 path-heavy 표면(clip, partial border, inset/outset,
+   inner shadow, icon, image placeholder, workflow edge/arrow, hover/slot marker)이 비어
+   있거나 누락되면 Gate 실패.
+4. 성능은 "무회귀"가 성공 조건이다 — path-heavy scene p95 frame time이 0.40.0 baseline 대비
+   +10% 이내, blank frame 0.
+5. bump는 `apps/builder/package.json` + `pnpm-lock.yaml` + `scripts/prepare-wasm.mjs`가
+   복사하는 `apps/builder/public/wasm/canvaskit.wasm`(gitignore, 7,317,345 bytes)의 실제
+   로드 성공까지 검증한다.
+6. **최소 버전 0.42.0** — 0.41.x는 `PathBuilder.setFillType` 복사 반환 결함으로 EvenOdd
+   donut(inner shadow) 경로가 helper 체이닝 계약과 어긋난다. `^0.42.0` 고정.
+7. `SkiaRenderer.ts:817` snapshot blit(`drawImageCubic`, zoom mismatch 시)의 시각 결과가
+   0.42.0 기본 constraint 변경 후에도 동일해야 한다.
+
+### Soft Constraints
+
+- scene invalidation, text metrics, image cache 개선은 범위 밖. `FontMetrics` underline/
+  strikeout 추가는 additive라 대응 불요.
+- path API 변경 대응을 이유로 renderer 구조를 재작성하지 않는다.
+- 0.40.0/0.42.0 동시 지원 창은 **Phase 1~2 한 구간**으로 제한하고 bump phase에서 0.40.0
+  분기를 제거한다.
 
 ## Alternatives Considered
 
 ### 대안 A: 0.40.0 유지, 업그레이드 보류
 
 - 설명: `canvaskit-wasm`을 현재 버전에 고정하고 path API 전환을 미룬다.
-- 근거: 현재 렌더러가 mutable `Path` 패턴에 맞춰 작성되어 있어 즉시 변경 비용이
-  없다.
+- 근거: 즉시 변경 비용이 없다.
 - 위험:
-  - 기술: M — upstream API 방향과 코드 패턴이 계속 벌어진다.
-  - 성능: L — 현재 성능을 유지하지만 `PathBuilder` 관련 개선도 받지 못한다.
-  - 유지보수: H — 다음 CanvasKit 업데이트에서 누적 마이그레이션 비용이 커진다.
-  - 마이그레이션: H — 언젠가 한 번에 처리해야 하는 path call site가 증가한다.
+  - 기술: M — upstream과 3 릴리스 차이가 계속 벌어진다.
+  - 성능: L — 현재 성능 유지, `PathBuilder` 성능 수정·libpng 갱신도 받지 못한다.
+  - 유지보수: H — 다음 CanvasKit 갱신 때 누적 마이그레이션 비용이 커진다.
+  - 마이그레이션: H — 언젠가 한 번에 처리해야 하는 call site가 증가한다 (5월 이후에도 7개
+    파일 전부 수정됨).
 
-### 대안 B: `canvaskit-wasm`만 0.41.1로 bump 후 실패 지점 패치
+### 대안 B: `canvaskit-wasm`만 0.42.0으로 bump 후 실패 지점 직접 패치
 
-- 설명: package 버전을 먼저 올리고 런타임/타입 오류가 드러나는 파일만 수정한다.
-- 근거: 변경량을 즉시 확인할 수 있고, 실제 실패 표면만 건드릴 수 있다.
+- 설명: 버전을 먼저 올리고 type-check/런타임 오류가 드러나는 파일만 `PathBuilder`로 직접
+  고친다. helper 없음.
+- 근거 (2026-08-27 재평가): 실패는 조용하지 않다 — mutator 87곳 전부 type-check에서
+  드러나고 런타임은 `TypeError`. 2026-05 설계의 "시각 결함으로 숨어 든다"는 전제는
+  실측으로 기각된다.
 - 위험:
-  - 기술: H — path 생성 누락이 런타임 시각 결함으로 숨어 들어갈 수 있다.
-  - 성능: M — `PathBuilder` 전환 없이 fallback 패치가 섞이면 성능 판단이 불명확하다.
-  - 유지보수: H — renderer마다 다른 임시 패치가 생겨 path 생성 규칙이 분산된다.
-  - 마이그레이션: H — 시각 회귀를 발견한 뒤 사후 수정하는 흐름이 된다.
+  - 기술: M — `close()` 타입/런타임 불일치 같은 함정을 7개 파일이 각자 처리한다.
+  - 성능: L — 동일 API 전환이라 helper 여부와 무관.
+  - 유지보수: M — path 생성 규칙·mock이 파일별로 분산 (`MockPath` → 파일별 `MockPathBuilder`).
+  - 마이그레이션: M — bump + 7 파일 수정이 한 commit 묶음이어야 해서 phase 분할 commit이
+    불가능하고 rollback 단위가 크다 (CLAUDE.md §대규모 작업 phase 분할 원칙과 충돌).
 
-### 대안 C: PathBuilder compatibility wrapper 도입 후 0.41.1 bump
+### 대안 C: PathBuilder helper 도입 후 0.42.0 bump (채택)
 
-- 설명: path 생성 helper를 먼저 만들고 mutable `Path` call site를 wrapper로
-  수렴시킨 뒤 `canvaskit-wasm`을 `0.41.1`로 올린다.
-- 근거: CanvasKit의 새 API 방향을 반영하면서도 renderer별 변경을 작은 단위로
-  검증할 수 있다. 0.40.0 단계에서는 wrapper가 기존 `Path` 생성 방식을 감싸고,
-  bump 이후에는 `PathBuilder` 기반 생성으로 전환한다.
+- 설명: `buildPath(ck, (b) => …): Path` 한 개의 생성 seam을 먼저 만들고 20곳을 순차
+  수렴시킨 뒤 bump한다. helper는 0.40.0에서는 `new ck.Path()`를, 0.42.0에서는
+  `ck.PathBuilder` + `detachAndDelete()`를 감싼다(`typeof ck.PathBuilder` 분기 1개). bump
+  phase에서 0.40.0 분기를 삭제한다.
+- 근거: 각 파일 이관이 0.40.0 위에서 **동작 변화 0으로 commit 가능**하고, 타입/런타임 함정
+  (`close()` 반환, ownership)을 한 곳에서만 처리한다. 테스트 mock도 helper 1개.
 - 위험:
-  - 기술: M — `PathBuilder` API 세부 이름과 ownership lifecycle은 Phase 0에서
-    실제 타입으로 확정해야 한다.
-  - 성능: L — wrapper 비용은 path construction 비용에 비해 작게 유지할 수 있다.
+  - 기술: L — API는 spike로 확정됨 (G0 통과).
+  - 성능: L — helper 비용은 closure 1개. builder 할당 비용은 G5로 측정, 실패 시 `detach()`
+    기반 재사용 builder로 전환 가능.
   - 유지보수: L — path 생성 규칙이 한 곳으로 모인다.
-  - 마이그레이션: M — 여러 렌더러 파일을 순차 변경해야 한다.
+  - 마이그레이션: L — 파일 단위 commit, rollback = 해당 commit revert.
 
 ### 대안 D: Skia renderer path command layer 재설계
 
-- 설명: path construction을 renderer command IR로 끌어올리고 모든 도형/edge
-  path를 data command로 직렬화한다.
+- 설명: path construction을 renderer command IR로 끌어올리고 data command로 직렬화한다.
 - 근거: 장기적으로 testable command pipeline이 될 수 있다.
 - 위험:
-  - 기술: H — CanvasKit upgrade보다 큰 렌더러 재설계가 된다.
-  - 성능: M — command allocation이 늘어날 수 있다.
-  - 유지보수: H — 현행 renderer 구조와 괴리가 커진다.
-  - 마이그레이션: H — 이번 dependency update의 범위를 초과한다.
+  - 기술: H — dependency update보다 큰 renderer 재설계.
+  - 성능: M — command allocation 증가.
+  - 유지보수: H — 현행 구조와 괴리.
+  - 마이그레이션: H — 이 ADR 범위를 초과.
 
 ### Risk Threshold Check
 
 | 대안 | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
 | ---- | ---- | ---- | -------- | ------------ | :--------: |
 | A    | M    | L    | H        | H            |     2      |
-| B    | H    | M    | H        | H            |     3      |
-| C    | M    | L    | L        | M            |     0      |
+| B    | M    | L    | M        | M            |     0      |
+| C    | L    | L    | L        | L            |     0      |
 | D    | H    | M    | H        | H            |     3      |
 
-루프 판정: 대안 A/B/D는 HIGH가 1개 이상이므로 primary path로 채택하지 않는다.
-대안 C는 HIGH 이상 위험이 없고, `PathBuilder` 전환과 dependency bump를 분리해
-검증할 수 있으므로 이 ADR의 채택안으로 충분하다.
+루프 판정: A/D는 HIGH가 있어 제외. B는 재평가 결과 HIGH 0으로 채택 가능 범위에
+들어왔으나, C가 4축 모두 B 이하이고 phase 분할 commit·단일 mock seam을 추가로 확보하므로
+C를 채택한다. B는 C의 fallback (helper 도입 중 문제가 생기면 남은 사이트를 직접 전환).
 
 ## Decision
 
-**대안 C: PathBuilder compatibility wrapper 도입 후 0.41.1 bump**를 선택한다.
+**대안 C: PathBuilder helper 도입 후 `canvaskit-wasm` `^0.42.0` bump**를 선택한다.
 
 선택 근거:
 
-1. `Path` immutable 전환을 먼저 코드 구조로 흡수해 단순 package bump의 런타임
-   실패 위험을 낮춘다.
-2. path 생성 규칙을 wrapper/helper로 모으면 이후 CanvasKit API 변경도 렌더러
-   전역 수정 없이 대응할 수 있다.
-3. `0.41.1`의 `PathBuilder` 성능 수정은 wrapper 전환 이후에만 의미 있게
-   평가할 수 있다.
+1. `Path` immutable 전환을 helper 한 곳에 흡수해 20곳/87 호출을 파일 단위로 commit하면서
+   0.40.0 위에서 동작 변화 0을 유지한다.
+2. `close()` 타입/런타임 불일치, `detachAndDelete()` 후 재사용 금지, 반환 `Path` delete
+   책임 같은 lifecycle 규칙을 helper 계약으로 고정한다.
+3. 최소 버전을 0.42.0으로 두어 `setFillType` 복사 반환 결함(0.41.x)을 회피하고 libpng·
+   `PathBuilder` 성능 수정을 함께 받는다.
+4. 잔존 위험이 전부 MEDIUM 이하라 위험 수용 가능 — 각 위험은 아래 Gate로 관리한다.
 
 기각 사유:
 
-- **대안 A 기각**: upgrade debt를 쌓아 두는 방식이며, upstream API 방향과 현행
-  코드 패턴의 차이를 더 키운다.
-- **대안 B 기각**: 시각 회귀가 런타임에서 뒤늦게 발견될 수 있고, renderer별
-  임시 패치를 만들 가능성이 높다.
+- **대안 A 기각**: 3 릴리스 부채를 더 쌓는다. 7개 파일이 계속 수정되고 있어 미룰수록 이관
+  대상이 늘어난다.
+- **대안 B 기각**: HIGH는 없으나 phase 분할 commit이 불가능하고 함정 처리·mock이 7곳으로
+  분산된다. C의 fallback으로만 둔다.
 - **대안 D 기각**: dependency update를 renderer architecture rewrite로 확대한다.
 
 > 구현 상세: [117-canvaskit-pathbuilder-upgrade-breakdown.md](design/117-canvaskit-pathbuilder-upgrade-breakdown.md)
 
-## Residual Risks
+## Risks
 
-- `PathBuilder`의 TypeScript 선언과 JS runtime API가 기존 `Path` mutator와 1:1로
-  대응하지 않을 수 있다. Phase 0 spike에서 `detach()`, `detachAndDelete()`,
-  `snapshot()` lifecycle과 `close()` 반환값을 실제 package 타입 기준으로 확정한다.
-- `Path.MakeFromSVGString()` 반환 객체의 immutable 동작은 보존되더라도, icon stroke
-  렌더링의 antialiasing 또는 bounds가 미세하게 달라질 수 있다.
-- `libpng` 업데이트는 이미지 디코딩 경로에 영향을 줄 수 있으나, 이 ADR은 path
-  migration을 primary scope로 두고 image decode 회귀는 smoke gate로만 확인한다.
+| ID  | 위험                                                                                                               | 심각도 | 대응                                                                                                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------ | :----: | ----------------------------------------------------------------------------------------------------------------------- |
+| R1  | `PathBuilder.close()` 타입 선언(`Path`) ≠ 런타임(builder) — 반환값을 Path로 쓰면 다음 CanvasKit 갱신 때 깨진다     |   M    | helper가 `close()` 반환값을 버리고 `void`로 노출. helper 단위 테스트에 계약 고정                                        |
+| R2  | 0.42.0 `drawImageCubic` 기본 `Fast_SrcRectConstraint` — zoom mismatch snapshot blit의 경계 샘플링이 달라질 수 있다 |   M    | G4에 zoom 1.0 ≠ snapshot zoom 상태 시각 항목 추가. 차이 발견 시 `drawImageOptions`/paint로 명시 지정                    |
+| R3  | `PathBuilder` WASM 객체 할당이 per-path 비용을 늘려 path-heavy scene 회귀                                          |   M    | G5 p95 +10% 게이트. 실패 시 helper 내부를 module-level builder + `detach()` 재사용으로 교체 (호출부 무변경)             |
+| R4  | inventory drift — 7개 파일이 최근 30일 내 모두 수정됨, Phase 2 착수 시점에 사이트 수가 달라질 수 있다              |   M    | Phase 2 착수 직전 G1 grep 재실행, breakdown 표 갱신 commit 후 이관 시작 (M3 원칙: gap은 inventory 보강, fork 사유 아님) |
+| R5  | libpng 1.6.56 디코드 차이 (`MakeImageFromEncoded`)                                                                 |   L    | G4 image smoke (PNG/JPEG/WebP 각 1)                                                                                     |
+| R6  | wasm +223KB 초기 로드                                                                                              |   L    | G3에서 초기 로드 <3초 기준 재측정 (JS 번들 500KB 기준과 별도 artifact)                                                  |
+| R7  | 테스트 mock drift — `MockPath`가 mutable API를 흉내내 helper 도입 후 dead                                          |   L    | helper mock 1개로 교체, `MockPath` 제거                                                                                 |
+
+잔존 HIGH 위험 없음. Gate는 MEDIUM 위험 R1~R4의 통과 조건을 명시하기 위해 유지한다.
 
 ## Gates
 
-| Gate                | 시점           | 통과 조건                                                                                                  | 실패 시 대안                        |
-| ------------------- | -------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| G0: API 확인        | Phase 0 종료   | `canvaskit-wasm@0.41.1`의 `PathBuilder` 생성, `detach()`/`detachAndDelete()`/`snapshot()` lifecycle, `close()` 반환값을 실제 타입 또는 runtime spike로 확정 | 0.40.0 유지, ADR 보류               |
-| G1: path inventory  | Phase 0 종료   | `new ck.Path()` 및 path mutator call site 목록을 파일별로 기록하고 허용 예외를 분류                        | inventory 완료 전 구현 금지         |
-| G2: wrapper 수렴    | Phase 1-2 종료 | Skia renderer의 직접 mutable `Path` 생성이 helper 또는 명시 허용 경로로만 남음                             | 해당 renderer slice rollback        |
-| G3: dependency bump | Phase 3 종료   | `canvaskit-wasm` `0.41.1` lockfile 반영, Builder에서 `canvaskit.wasm` 로드 성공                            | package bump rollback               |
-| G4: 시각 smoke      | Phase 4 종료   | clip, partial border, inset/outset border, icon, workflow edge가 desktop/mobile smoke에서 누락 없이 렌더링 | 해당 path builder mapping 수정      |
-| G5: 성능 무회귀     | Phase 4 종료   | path-heavy scene p95 frame time이 0.40.0 baseline 대비 +10% 이내, blank frame 0                            | 0.40.0 rollback 또는 wrapper 최적화 |
+| Gate                | 시점                             | 통과 조건                                                                                                                                                                                                                | 실패 시 대안                                                                         |
+| ------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| G0: API 확인        | Phase 0 종료                     | ✅ **2026-08-27 통과** — 0.42.0 타입 + Node 런타임 spike로 `PathBuilder` 생성, `detach/detachAndDelete/snapshot`, `close()` 반환(builder), `setFillType` 참조 반환 확정                                                  | —                                                                                    |
+| G1: path inventory  | Phase 0 종료 + Phase 2 착수 직전 | ✅ 2026-08-27 20곳/87호출/7파일 기록. Phase 2 착수 시 재grep 결과가 표와 다르면 표 갱신 commit 후 진행                                                                                                                   | inventory 갱신 전 이관 금지                                                          |
+| G2: helper 수렴     | Phase 2 종료                     | skia 디렉터리에서 `new ck.Path(`는 helper 파일 1곳, mutator 정규식 매치는 helper 내부뿐. `Path.MakeFromSVGString` 1곳 허용. 0.40.0 위에서 unit test + live smoke 동작 변화 0                                             | 해당 파일 commit revert                                                              |
+| G3: dependency bump | Phase 3 종료                     | lockfile `canvaskit-wasm@0.42.0`, `public/wasm/canvaskit.wasm` 7,317,345 bytes, Builder 로드 성공·console error 0, `pnpm type-check` 0 error, 0.40.0 분기·`ReturnType<…>` 별칭·`MockPath` 제거                           | package bump revert (helper는 유지)                                                  |
+| G4: 시각 smoke      | Phase 4 종료                     | clip / partial border(dash+radius) / inset·outset / inner shadow / icon / image placeholder(+PNG·JPEG·WebP) / workflow edge 3종+arrow / hover·slot marker / **zoom mismatch snapshot blit** 누락·차이 0 (desktop+mobile) | 해당 helper mapping 수정 또는 `drawImageOptions` 명시                                |
+| G5: 성능 무회귀     | Phase 4 종료                     | `path-heavy-117` scenario p95 frame time 0.40.0 baseline 대비 +10% 이내, blank frame 0                                                                                                                                   | helper 내부 builder 재사용(`detach()`) 전환 → 재측정, 그래도 실패 시 0.40.0 rollback |
 
 ## Consequences
 
 ### Positive
 
-- CanvasKit `0.41.x`의 path API 방향에 맞춰 Skia renderer compatibility debt를
-  선제적으로 줄인다.
-- path construction이 helper 경계로 모여 이후 renderer별 path 생성 규칙을 테스트하기
-  쉬워진다.
-- `PathBuilder` 관련 upstream 성능 수정과 `libpng` 업데이트를 받을 수 있다.
+- CanvasKit 0.41.0 breaking change를 helper 한 곳에 흡수해 20곳/87 호출의 compatibility
+  debt를 청산하고 upstream 최신(0.42.0)에 맞춘다.
+- path construction이 `buildPath` seam으로 모여 renderer별 path 규칙을 단위 테스트할 수
+  있고, 테스트 mock도 1개로 줄어든다.
+- `PathBuilder` 성능 수정(0.41.1), `setFillType` 수정(0.42.0), libpng 1.6.56을 받는다.
 
 ### Negative
 
-- 단순 dependency bump보다 구현 범위가 크며, 여러 Skia renderer 파일을 순차
-  검증해야 한다.
-- 공개 benchmark가 없으므로 "성능 향상"은 보장할 수 없고, 자체 smoke/benchmark로
-  무회귀를 입증해야 한다.
-- wrapper 도입 중에는 0.40.0 fallback과 0.41.1 `PathBuilder` path가 일시적으로
-  함께 고려된다.
+- 단순 bump보다 구현 범위가 크다 — helper 1 + 7 파일 순차 commit + bump commit.
+- 공개 benchmark가 없어 "성능 향상"은 보장할 수 없고 자체 `path-heavy-117` scenario로
+  무회귀만 입증한다.
+- Phase 1~2 동안 helper에 0.40.0/0.42.0 분기가 공존한다 (Phase 3에서 제거).
+- `drawImageCubic` 기본 constraint 변경은 이 ADR의 primary scope 밖 표면이지만 bump에
+  딸려 오므로 G4로 확인해야 한다.

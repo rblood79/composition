@@ -361,5 +361,5 @@ Phase R/N/SDK는 조건부 확장이라 ADR-921의 Implemented 승격 필수 조
 - Preview/Publish를 CanvasKit/native renderer로 교체
 - Builder 전체 React UI를 Rust widget으로 교체
 - layout 알고리즘 변경 또는 ADR-916에서 제외한 `implicitStyles`의 Rust 복제
-- CanvasKit 0.41.x/PathBuilder 업그레이드 ([ADR-117](../117-canvaskit-pathbuilder-upgrade.md))
+- CanvasKit 0.42.x/PathBuilder 업그레이드 ([ADR-117](../117-canvaskit-pathbuilder-upgrade.md))
 - WebGPU, binary protocol, native app, public SDK를 evidence 없이 선구현
