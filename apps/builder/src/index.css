@@ -6,12 +6,13 @@
  * 3. All CSS rules are in imported files (no rules in this file)
  *
  * Layer Priority (later = higher):
- * dashboard < base < preview-system < components < shared-tokens < builder-system < utilities
+ * theme < dashboard < base < preview-system < components < shared-tokens < builder-system < utilities
+ *   (theme = Tailwind 자동 emit 레이어. ADR-191: 선두에 명시해 unlayered/후순위 우연 승리를 제거)
  *
  * SOLUTION: All CSS rules moved to separate files that are @imported.
  * This allows proper @import ordering without the "must precede all other statements" error.
  */
-@layer dashboard, base, preview-system, components, shared-tokens, builder-system, utilities;
+@layer theme, dashboard, base, preview-system, components, shared-tokens, builder-system, utilities;
 
 /* External dependencies */
 @import "pretendard/dist/web/static/pretendard.css";
@@ -26,6 +27,12 @@
 
 /* composition Builder Styles */
 @import "./builder/styles/index.css";
+
+/* ADR-191: 폰트 override 는 Tailwind theme 원천에서 — 과거 App.css unlayered :root 복사본이 담당하던 유일한 실질 override */
+@theme {
+  --font-sans: "Pretendard", system-ui;
+  --font-mono: "Pretendard", monospace;
+}
 
 /* React Query Devtools - 버튼 위치 조정 (우측 세로 중앙) */
 .tsqd-open-btn-container {

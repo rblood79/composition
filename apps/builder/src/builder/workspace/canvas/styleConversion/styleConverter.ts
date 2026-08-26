@@ -289,6 +289,9 @@ function parseColorFuncArgs(
       const scale = percentScales[i] ?? 1;
       return (parseFloat(token) / 100) * scale;
     }
+    // CSS Color 4 `none` = 결측 성분 → 산술상 0. Tailwind v4 theme.css 의 무채색이
+    // `oklch(37.1% 0 none)` 형식이라 (ADR-191 로 Builder DOM 에 도달) parseFloat 만으로는 NaN → fallback.
+    if (token === "none") return 0;
     return parseFloat(token);
   });
 
