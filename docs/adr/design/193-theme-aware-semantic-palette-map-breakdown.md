@@ -39,6 +39,8 @@ FIXED 24 중 white/black/on-negative 3 은 Skia 도 테마 불변 → **dark 비
 - publish dark 신호 부재 (R6).
 - `-hover/-pressed` CSS `color-mix` 파생 — Skia 미소비.
 - 생성기가 컴포넌트별 `[data-theme]` selector 를 emit 하는 기능 — 본 ADR 은 semantic var 층 1곳에서만 분기하므로 불요.
+- **publish `App.tsx:165` neutral 자기 참조 (Phase 2 실측 2026-08-27)**: themeConfig.neutral === "neutral" 이면 `--color-neutral-N: var(--color-neutral-N)` 순환 → publish 문서에서 `--color-neutral-*` 전부 무효 → `{color.gray}`(Badge gray) 등 neutral 소비 CSS 가 transparent. Builder → Preview 는 hex 직접 전송 (`BuilderCore.tsx:607`) 이라 무관. publish 는 작업 대상 아님 (memory `project-publish-link-only-defer-until-builder-stable`) — 기록만.
+- **catalog `{color.{hue}-hover/-pressed}` (purple 외)**: tokenResolver 에 항목이 없어 `var(--chartreuse-hover)` 류 미정의 var 로 emit (generated Badge.css) — review l2 와 같은 부류 (Skia 미소비, deferred).
 
 ## 1. Phase 분할
 
@@ -46,7 +48,7 @@ FIXED 24 중 white/black/on-negative 3 은 Skia 도 테마 불변 → **dark 비
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ---------------------------------------- |
 | 0 ✅  | inventory freeze (본 문서 §0)                                                                                                                                                                                                                                                                                                                                                                                                                           | G0    | 본 문서                                  |
 | 1 ✅  | 매핑 표 `semanticPaletteMap.ts` (status 4 + named 18 + subtle 22 + gray/green-named, light/dark, `hook`) + `colors.ts` 해당 항목을 표에서 파생 + `lightColors` 스냅샷 테스트 (light 값 불변) + `darkColors` 는 표 값으로 정렬                                                                                                                                                                                                                           | G1·G3 | 표 1, colors.ts, 스냅샷 테스트           |
-| 2     | 생성기 확장: `generate-palette.ts` 가 `theme/generated/semantic-palette.css` emit (`@layer shared-tokens` `:root` + `[data-theme="dark"]`, `var(--color-*)` 참조만, `hook` 은 `var(--hook, var(--color-*))`), `theme.css` import, preview-system 손 `--negative` 이관 (`--negative-pressed` 는 잔류 — Skia 미소비, colors.ts 값 custom `#b33333`), `colorTokenToCss.ts`/`tokenResolver.ts` 매핑 → semantic var, generated CSS 재생성, drift 테스트 확장 | G1·G3 | 생성 CSS 1, 매핑 2 파일, generated/*.css |
+| 2 ✅  | 생성기 확장: `generate-palette.ts` 가 `theme/generated/semantic-palette.css` emit (`@layer shared-tokens` `:root` + `[data-theme="dark"]`, `var(--color-*)` 참조만, `hook` 은 `var(--hook, var(--color-*))`), `theme.css` import, preview-system 손 `--negative` 이관 (`--negative-pressed` 는 잔류 — Skia 미소비, colors.ts 값 custom `#b33333`), `colorTokenToCss.ts`/`tokenResolver.ts` 매핑 → semantic var, generated CSS 재생성, drift 테스트 확장 | G1·G3 | 생성 CSS 1, 매핑 2 파일, generated/*.css |
 | 3     | `semanticAlias.symmetry.test` dark 확장 (전 토큰) + live G2/G4 (darkMode=dark 3자 대칭, chrome 불변, ThemeStudio 훅 생존) + CHANGELOG + Implemented 승격                                                                                                                                                                                                                                                                                                | G2·G4 | 테스트, CHANGELOG                        |
 
 각 Phase 는 commit 가능한 상태로 종료. Phase 1 은 CSS 무변경 (Skia 만 정렬 — light 불변이므로 캔버스도 light 에서 불변), Phase 2 가 CSS 전환.
@@ -105,11 +107,11 @@ FIXED 24 중 white/black/on-negative 3 은 Skia 도 테마 불변 → **dark 비
 
 ### Phase 2
 
-- [ ] 생성 CSS: `#` 0, `var(--color-` 참조만, `[data-theme="dark"]` 블록 1개, 크기 ≤ 5KB
-- [ ] `theme.css` import 순서: tailwind-palette → semantic-palette → builder-system
-- [ ] preview-system 손 `--negative` 제거 (`--negative-pressed`·forced-colors 잔류) 후 computed `--negative` light/dark 값 불변
-- [ ] 매핑 2 파일 전환 + generated/*.css 재생성 + `validate:sync` 0 errors
-- [ ] live light: Badge positive/negative/indigo/gray, StatusLight notice, Meter positive computed 색 변경 전후 동일 (G1)
+- [x] 생성 CSS: `#` 0, `var(--color-` 참조만, `[data-theme="dark"]` 블록 1개, 크기 4,666B ≤ 5KB — `renderSemanticCss()` + `SEMANTIC_CSS_OUT` (`--check` 포함), drift 테스트 3 추가
+- [x] `theme.css` import 순서: tailwind-palette → semantic-palette → builder-system
+- [x] preview-system 손 `--negative` 제거 (`--negative-pressed`·forced-colors 잔류) 후 computed `--negative` light 값 불변 (`oklch(0.637 0.237 25.331)` = red-500 전후 동일; dark 는 Phase 3 G2)
+- [x] 매핑 2 파일 전환 (catalog 21 → `--positive`/`--hue-*`, tokenResolver 21 + subtle 22 + purple hover/pressed color-mix base → `--hue-purple`) + generated 8 파일 재생성 (Badge/Button/InlineAlert/Radio/Section/StatusLight/Toast/Tooltip) + `validate:sync` 1 ok / 0 errors. `css-tokens.md` 매핑 표 갱신, 구 var 기대 테스트 2 파일 (StatusLight.test / CSSGenerator.fillStyle.test) semantic var 로
+- [x] live light (Chrome MCP, ZZZF preview iframe, `data-theme=light`): 변경 전후 computed 17 probe (Badge positive/negative/informative/notice/indigo/gray/seafoam rule + semantic var 10) **diff 0** — 예: positive `oklch(0.627 0.194 149.214)` (green-600), gray `rgb(115,115,115)`, live Badge gray 동일 (G1). `semanticAlias.symmetry.test` 는 이 phase 에서 이미 light+dark 전 46 토큰으로 재작성 (Phase 3 항목 선반영)
 
 ### Phase 3
 

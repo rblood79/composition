@@ -1,9 +1,11 @@
 /**
  * Palette Generation Script (ADR-191)
  *
- * 설치된 `tailwindcss/theme.css` 에서 팔레트를 추출해 두 산출물을 쓴다:
+ * 설치된 `tailwindcss/theme.css` 에서 팔레트를 추출해 두 산출물을 쓰고 (ADR-191),
+ * `semanticPaletteMap.ts` 표에서 테마별 semantic var 정의 CSS 를 쓴다 (ADR-193):
  *   - packages/shared/src/components/styles/theme/generated/tailwind-palette.css
  *   - packages/specs/src/primitives/generated/tailwindPalette.ts
+ *   - packages/shared/src/components/styles/theme/generated/semantic-palette.css
  *
  * Usage:
  *   pnpm generate:palette          # 산출물 갱신
@@ -20,6 +22,7 @@ import {
   parseThemeCss,
   renderPaletteCss,
   renderPaletteTs,
+  renderSemanticCss,
   type PaletteSource,
 } from "./paletteGenerator";
 
@@ -35,6 +38,11 @@ export const PALETTE_TS_OUT = resolve(
   repoRoot,
   "packages/specs/src/primitives/generated/tailwindPalette.ts",
 );
+/** ADR-193 — semantic·named hue 테마별 var 정의 (원천: semanticPaletteMap.ts) */
+export const SEMANTIC_CSS_OUT = resolve(
+  repoRoot,
+  "packages/shared/src/components/styles/theme/generated/semantic-palette.css",
+);
 
 /** Builder 가 로드하는 tailwindcss 의 theme.css + version */
 export function loadPaletteSource(): PaletteSource {
@@ -48,8 +56,13 @@ export function loadPaletteSource(): PaletteSource {
 export function renderOutputs(source: PaletteSource): {
   css: string;
   ts: string;
+  semanticCss: string;
 } {
-  return { css: renderPaletteCss(source), ts: renderPaletteTs(source) };
+  return {
+    css: renderPaletteCss(source),
+    ts: renderPaletteTs(source),
+    semanticCss: renderSemanticCss(),
+  };
 }
 
 function readOrEmpty(path: string): string {
@@ -59,11 +72,12 @@ function readOrEmpty(path: string): string {
 function main(): void {
   const check = process.argv.includes("--check");
   const source = loadPaletteSource();
-  const { css, ts } = renderOutputs(source);
+  const { css, ts, semanticCss } = renderOutputs(source);
 
   const targets: Array<[string, string]> = [
     [PALETTE_CSS_OUT, css],
     [PALETTE_TS_OUT, ts],
+    [SEMANTIC_CSS_OUT, semanticCss],
   ];
 
   if (check) {

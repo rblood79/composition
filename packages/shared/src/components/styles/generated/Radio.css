@@ -5,143 +5,141 @@
  * ============================================================ */
 
 @layer components {
-
-.react-aria-Radio {
-  /* Base styles — archetype: toggle-indicator */
+  .react-aria-Radio {
+    /* Base styles — archetype: toggle-indicator */
     display: inline-flex;
     align-items: center;
     cursor: pointer;
     box-sizing: border-box;
     user-select: none;
 
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
-  align-items: center;
+    /* Container styles (ADR-071 + ADR-083 Phase 1) */
+    display: inline-flex;
+    align-items: center;
 
-  /* Default variant */
-  background: var(--bg);
-  color: var(--fg);
-  border: none;
+    /* Default variant */
+    background: var(--bg);
+    color: var(--fg);
+    border: none;
 
-  /* Default size */
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
-
-.react-aria-Radio[data-variant="default"] {
-  background: var(--bg);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-inset);
+    /* Default size */
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-none);
+    gap: 8px;
   }
 
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
-}
+  .react-aria-Radio[data-variant="default"] {
+    background: var(--bg);
+    color: var(--fg);
 
-.react-aria-Radio[data-variant="accent"] {
-  background: var(--bg);
-  color: var(--fg);
+    &[data-hovered] {
+      background: var(--bg-inset);
+    }
 
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
-}
-
-.react-aria-Radio[data-variant="neutral"] {
-  background: var(--bg);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-inset);
+    &[data-pressed] {
+      background: var(--bg-overlay);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--bg-overlay);
+  .react-aria-Radio[data-variant="accent"] {
+    background: var(--bg);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--bg-inset);
+    }
+
+    &[data-pressed] {
+      background: var(--bg-overlay);
+    }
   }
-}
 
-.react-aria-Radio[data-variant="negative"] {
-  background: var(--bg);
-  color: var(--fg);
+  .react-aria-Radio[data-variant="neutral"] {
+    background: var(--bg);
+    color: var(--fg);
 
-  &[data-hovered] {
-    background: var(--color-error-100);
+    &[data-hovered] {
+      background: var(--bg-inset);
+    }
+
+    &[data-pressed] {
+      background: var(--bg-overlay);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-error-100);
+  .react-aria-Radio[data-variant="negative"] {
+    background: var(--bg);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--negative-subtle);
+    }
+
+    &[data-pressed] {
+      background: var(--negative-subtle);
+    }
   }
-}
 
-.react-aria-Radio[data-size="sm"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-  gap: 6px;
-}
-
-.react-aria-Radio[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
-
-.react-aria-Radio[data-size="lg"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
-  gap: 10px;
-}
-
-.react-aria-Radio[data-size="xl"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-xl);
-  border-radius: var(--radius-none);
-  gap: 12px;
-}
-
-.react-aria-Radio[data-hovered] {
-}
-
-.react-aria-Radio[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Radio[data-pressed] {
-}
-
-.react-aria-Radio[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Radio {
-    forced-color-adjust: auto;
+  .react-aria-Radio[data-size="sm"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-none);
+    gap: 6px;
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .react-aria-Radio {
-    transition-duration: 0s !important;
+  .react-aria-Radio[data-size="md"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-none);
+    gap: 8px;
   }
-}
 
+  .react-aria-Radio[data-size="lg"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-lg);
+    border-radius: var(--radius-none);
+    gap: 10px;
+  }
+
+  .react-aria-Radio[data-size="xl"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-xl);
+    border-radius: var(--radius-none);
+    gap: 12px;
+  }
+
+  .react-aria-Radio[data-hovered] {
+  }
+
+  .react-aria-Radio[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-Radio[data-pressed] {
+  }
+
+  .react-aria-Radio[data-disabled] {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    .react-aria-Radio {
+      forced-color-adjust: auto;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .react-aria-Radio {
+      transition-duration: 0s !important;
+    }
+  }
 } /* @layer components */

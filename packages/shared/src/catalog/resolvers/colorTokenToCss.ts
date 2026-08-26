@@ -24,11 +24,12 @@ const COLOR_TOKEN_CSS: Record<string, string> = {
   neutral: "var(--fg)",
   "neutral-subdued": "var(--fg-muted)",
   "neutral-subtle": "var(--bg-muted)",
+  // status — generated/semantic-palette.css 가 light/dark 단계를 정의 (ADR-193, semanticPaletteMap 파생)
   negative: "var(--negative)",
   "on-negative": "var(--color-white)",
-  informative: "var(--color-info-600)",
-  positive: "var(--color-green-600)",
-  notice: "var(--color-warning-600)",
+  informative: "var(--informative)",
+  positive: "var(--positive)",
+  notice: "var(--notice)",
   // --- Surface / Border / Special ---
   base: "var(--bg)",
   raised: "var(--bg-raised)",
@@ -38,32 +39,32 @@ const COLOR_TOKEN_CSS: Record<string, string> = {
   transparent: "transparent",
   white: "var(--color-white)",
   black: "var(--color-black)",
-  // --- Named color (S2 global semantic 없음 — generated CSS 정답지 기준) ---
-  purple: "var(--color-purple-600)",
-  gray: "var(--color-neutral-500)",
-  red: "var(--color-red-600)",
-  orange: "var(--color-orange-600)",
-  yellow: "var(--color-yellow-500)",
-  blue: "var(--color-blue-600)",
-  indigo: "var(--color-indigo-700)",
-  cyan: "var(--color-cyan-600)",
-  pink: "var(--color-pink-600)",
-  turquoise: "var(--color-teal-500)",
-  fuchsia: "var(--color-fuchsia-600)",
-  magenta: "var(--color-pink-700)",
-  celery: "var(--color-lime-600)",
-  chartreuse: "var(--color-lime-500)",
-  // Spectrum 전용 hue — Tailwind 에 같은 이름이 없어 가장 가까운 family 로 고정. Skia colors.ts 와 같은 단계
-  // (semanticAlias.symmetry.test 가 대조). 예전 var(--seafoam) 등은 어디에도 정의가 없던 undefined 참조.
-  seafoam: "var(--color-teal-700)",
-  cinnamon: "var(--color-amber-800)",
-  brown: "var(--color-yellow-900)",
-  silver: "var(--color-gray-400)",
+  // --- Named hue — `--hue-{token}` 은 generated/semantic-palette.css 가 테마별 팔레트 단계로 정의 (ADR-193).
+  //     `--indigo` 류 접두 없는 이름은 preview-system tint preset 이 점유하므로 접두 필수.
+  //     단계 정본은 packages/specs semanticPaletteMap.ts (Skia colors.ts 와 같은 표 — semanticAlias.symmetry.test 가 대조).
+  purple: "var(--hue-purple)",
+  gray: "var(--hue-gray)",
+  red: "var(--hue-red)",
+  orange: "var(--hue-orange)",
+  yellow: "var(--hue-yellow)",
+  blue: "var(--hue-blue)",
+  indigo: "var(--hue-indigo)",
+  cyan: "var(--hue-cyan)",
+  pink: "var(--hue-pink)",
+  turquoise: "var(--hue-turquoise)",
+  fuchsia: "var(--hue-fuchsia)",
+  magenta: "var(--hue-magenta)",
+  celery: "var(--hue-celery)",
+  chartreuse: "var(--hue-chartreuse)",
+  seafoam: "var(--hue-seafoam)",
+  cinnamon: "var(--hue-cinnamon)",
+  brown: "var(--hue-brown)",
+  silver: "var(--hue-silver)",
 };
 
 /**
  * `{color.X}` TokenRef 또는 직접 CSS 값을 CSS 색 문자열로 변환.
- * - `{color.yellow}` → `var(--color-yellow-500)`
+ * - `{color.yellow}` → `var(--hue-yellow)` (light yellow-500 / dark yellow-400 — semantic-palette.css)
  * - 이미 CSS 값(`var(...)`, `#fff`, `rgb(...)`, `oklch(...)`)이면 그대로 passthrough.
  * - 미매핑 토큰은 fallback(기본 `var(--fg-muted)`).
  */

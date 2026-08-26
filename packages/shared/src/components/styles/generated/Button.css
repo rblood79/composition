@@ -5,9 +5,8 @@
  * ============================================================ */
 
 @layer components {
-
-.react-aria-Button {
-  /* Base styles — archetype: button */
+  .react-aria-Button {
+    /* Base styles — archetype: button */
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -15,209 +14,205 @@
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
     font-family: var(--font-sans);
 
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  width: fit-content;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+    /* Container styles (ADR-071 + ADR-083 Phase 1) */
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
-  /* Default variant */
-  --button-color: var(--fg);
-  --button-text: var(--bg);
-  --button-border: var(--fg);
+    /* Default variant */
+    --button-color: var(--fg);
+    --button-text: var(--bg);
+    --button-border: var(--fg);
 
-  /* Default size */
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  line-height: var(--text-sm--line-height);
-  border-width: 1px;
-  min-width: 68px;
-  gap: 8px;
-  --icon-size: 18px;
-  --icon-gap: 8px;
-}
-
-.react-aria-Button[data-variant="accent"] {
-  --button-color: var(--accent);
-  --button-text: var(--fg-on-accent);
-  --button-border: var(--accent);
-
-}
-
-.react-aria-Button[data-variant="accent"][data-fill-style="outline"] {
-  --button-color: transparent;
-  --button-text: var(--accent);
-  --button-border: var(--border-hover);
-}
-
-.react-aria-Button[data-variant="primary"] {
-  --button-color: var(--fg);
-  --button-text: var(--bg);
-  --button-border: var(--fg);
-
-}
-
-.react-aria-Button[data-variant="primary"][data-fill-style="outline"] {
-  --button-color: transparent;
-  --button-text: var(--fg);
-  --button-border: var(--border-hover);
-}
-
-.react-aria-Button[data-variant="secondary"] {
-  --button-color: var(--bg-overlay);
-  --button-text: var(--fg);
-  --button-border: var(--border);
-
-}
-
-.react-aria-Button[data-variant="secondary"][data-fill-style="outline"] {
-  --button-color: transparent;
-  --button-text: var(--fg);
-  --button-border: var(--border-hover);
-}
-
-.react-aria-Button[data-variant="negative"] {
-  --button-color: var(--negative);
-  --button-text: var(--color-white);
-  --button-border: var(--negative);
-
-}
-
-.react-aria-Button[data-variant="negative"][data-fill-style="outline"] {
-  --button-color: transparent;
-  --button-text: var(--negative);
-  --button-border: var(--border-hover);
-}
-
-.react-aria-Button[data-variant="premium"] {
-  --button-color: var(--color-purple-600);
-  --button-text: var(--color-white);
-  --button-border: var(--color-purple-600);
-
-}
-
-.react-aria-Button[data-variant="premium"][data-fill-style="outline"] {
-  --button-color: transparent;
-  --button-text: var(--color-purple-600);
-  --button-border: var(--border-hover);
-}
-
-.react-aria-Button[data-variant="genai"] {
-  --button-color: var(--color-purple-600);
-  --button-text: var(--color-white);
-  --button-border: var(--color-purple-600);
-
-}
-
-.react-aria-Button[data-variant="genai"][data-fill-style="outline"] {
-  --button-color: transparent;
-  --button-text: var(--color-purple-600);
-  --button-border: var(--border-hover);
-}
-
-.react-aria-Button[data-icon-only] {
-  padding: 0;
-  aspect-ratio: 1;
-}
-
-.react-aria-Button[data-size="xs"] {
-  height: auto;
-  padding: 1px 4px;
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-sm);
-  line-height: var(--text-2xs--line-height);
-  border-width: 1px;
-  min-width: 45px;
-  gap: 4px;
-  --icon-size: 14px;
-  --icon-gap: 4px;
-}
-
-.react-aria-Button[data-size="sm"] {
-  height: auto;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  line-height: var(--text-xs--line-height);
-  border-width: 1px;
-  min-width: 50px;
-  gap: 6px;
-  --icon-size: 16px;
-  --icon-gap: 6px;
-}
-
-.react-aria-Button[data-size="md"] {
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  line-height: var(--text-sm--line-height);
-  border-width: 1px;
-  min-width: 68px;
-  gap: 8px;
-  --icon-size: 18px;
-  --icon-gap: 8px;
-}
-
-.react-aria-Button[data-size="lg"] {
-  height: auto;
-  padding: 8px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
-  line-height: var(--text-base--line-height);
-  border-width: 1px;
-  min-width: 95px;
-  gap: 10px;
-  --icon-size: 24px;
-  --icon-gap: 10px;
-}
-
-.react-aria-Button[data-size="xl"] {
-  height: auto;
-  padding: 12px 24px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
-  line-height: var(--text-lg--line-height);
-  border-width: 1px;
-  min-width: 122px;
-  gap: 12px;
-  --icon-size: 28px;
-  --icon-gap: 12px;
-}
-
-.react-aria-Button[data-hovered] {
-}
-
-.react-aria-Button[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Button[data-pressed] {
-  transform: scale(0.95);
-}
-
-.react-aria-Button[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Button {
-    forced-color-adjust: auto;
+    /* Default size */
+    height: auto;
+    padding: 4px 12px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-md);
+    line-height: var(--text-sm--line-height);
+    border-width: 1px;
+    min-width: 68px;
+    gap: 8px;
+    --icon-size: 18px;
+    --icon-gap: 8px;
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .react-aria-Button {
-    transition-duration: 0s !important;
+  .react-aria-Button[data-variant="accent"] {
+    --button-color: var(--accent);
+    --button-text: var(--fg-on-accent);
+    --button-border: var(--accent);
   }
-}
 
+  .react-aria-Button[data-variant="accent"][data-fill-style="outline"] {
+    --button-color: transparent;
+    --button-text: var(--accent);
+    --button-border: var(--border-hover);
+  }
+
+  .react-aria-Button[data-variant="primary"] {
+    --button-color: var(--fg);
+    --button-text: var(--bg);
+    --button-border: var(--fg);
+  }
+
+  .react-aria-Button[data-variant="primary"][data-fill-style="outline"] {
+    --button-color: transparent;
+    --button-text: var(--fg);
+    --button-border: var(--border-hover);
+  }
+
+  .react-aria-Button[data-variant="secondary"] {
+    --button-color: var(--bg-overlay);
+    --button-text: var(--fg);
+    --button-border: var(--border);
+  }
+
+  .react-aria-Button[data-variant="secondary"][data-fill-style="outline"] {
+    --button-color: transparent;
+    --button-text: var(--fg);
+    --button-border: var(--border-hover);
+  }
+
+  .react-aria-Button[data-variant="negative"] {
+    --button-color: var(--negative);
+    --button-text: var(--color-white);
+    --button-border: var(--negative);
+  }
+
+  .react-aria-Button[data-variant="negative"][data-fill-style="outline"] {
+    --button-color: transparent;
+    --button-text: var(--negative);
+    --button-border: var(--border-hover);
+  }
+
+  .react-aria-Button[data-variant="premium"] {
+    --button-color: var(--hue-purple);
+    --button-text: var(--color-white);
+    --button-border: var(--hue-purple);
+  }
+
+  .react-aria-Button[data-variant="premium"][data-fill-style="outline"] {
+    --button-color: transparent;
+    --button-text: var(--hue-purple);
+    --button-border: var(--border-hover);
+  }
+
+  .react-aria-Button[data-variant="genai"] {
+    --button-color: var(--hue-purple);
+    --button-text: var(--color-white);
+    --button-border: var(--hue-purple);
+  }
+
+  .react-aria-Button[data-variant="genai"][data-fill-style="outline"] {
+    --button-color: transparent;
+    --button-text: var(--hue-purple);
+    --button-border: var(--border-hover);
+  }
+
+  .react-aria-Button[data-icon-only] {
+    padding: 0;
+    aspect-ratio: 1;
+  }
+
+  .react-aria-Button[data-size="xs"] {
+    height: auto;
+    padding: 1px 4px;
+    font-size: var(--text-2xs);
+    border-radius: var(--radius-sm);
+    line-height: var(--text-2xs--line-height);
+    border-width: 1px;
+    min-width: 45px;
+    gap: 4px;
+    --icon-size: 14px;
+    --icon-gap: 4px;
+  }
+
+  .react-aria-Button[data-size="sm"] {
+    height: auto;
+    padding: 2px 8px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-sm);
+    line-height: var(--text-xs--line-height);
+    border-width: 1px;
+    min-width: 50px;
+    gap: 6px;
+    --icon-size: 16px;
+    --icon-gap: 6px;
+  }
+
+  .react-aria-Button[data-size="md"] {
+    height: auto;
+    padding: 4px 12px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-md);
+    line-height: var(--text-sm--line-height);
+    border-width: 1px;
+    min-width: 68px;
+    gap: 8px;
+    --icon-size: 18px;
+    --icon-gap: 8px;
+  }
+
+  .react-aria-Button[data-size="lg"] {
+    height: auto;
+    padding: 8px 16px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-lg);
+    line-height: var(--text-base--line-height);
+    border-width: 1px;
+    min-width: 95px;
+    gap: 10px;
+    --icon-size: 24px;
+    --icon-gap: 10px;
+  }
+
+  .react-aria-Button[data-size="xl"] {
+    height: auto;
+    padding: 12px 24px;
+    font-size: var(--text-lg);
+    border-radius: var(--radius-xl);
+    line-height: var(--text-lg--line-height);
+    border-width: 1px;
+    min-width: 122px;
+    gap: 12px;
+    --icon-size: 28px;
+    --icon-gap: 12px;
+  }
+
+  .react-aria-Button[data-hovered] {
+  }
+
+  .react-aria-Button[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-Button[data-pressed] {
+    transform: scale(0.95);
+  }
+
+  .react-aria-Button[data-disabled] {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    .react-aria-Button {
+      forced-color-adjust: auto;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .react-aria-Button {
+      transition-duration: 0s !important;
+    }
+  }
 } /* @layer components */

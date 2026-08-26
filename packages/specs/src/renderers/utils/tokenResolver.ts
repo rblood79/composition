@@ -103,15 +103,15 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   "negative-hover": "color-mix(in srgb, var(--negative) 85%, black)",
   "negative-pressed": "color-mix(in srgb, var(--negative) 75%, black)",
   "on-negative": "var(--color-white)",
-  "negative-subtle": "var(--color-error-100)",
+  "negative-subtle": "var(--negative-subtle)",
 
-  // --- Informative / Positive / Notice ---
-  informative: "var(--color-info-600)",
-  "informative-subtle": "var(--color-info-100)",
-  positive: "var(--color-green-600)",
-  "positive-subtle": "var(--color-green-100)",
-  notice: "var(--color-warning-600)",
-  "notice-subtle": "var(--color-warning-100)",
+  // --- Informative / Positive / Notice — generated/semantic-palette.css 가 light/dark 단계 정의 (ADR-193) ---
+  informative: "var(--informative)",
+  "informative-subtle": "var(--informative-subtle)",
+  positive: "var(--positive)",
+  "positive-subtle": "var(--positive-subtle)",
+  notice: "var(--notice)",
+  "notice-subtle": "var(--notice-subtle)",
 
   // --- Surface / Layer ---
   base: "var(--bg)",
@@ -137,62 +137,48 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
  * S2에 글로벌 시맨틱이 없는 named color 처리 (기존 tertiary 등)
  */
 const NAMED_COLOR_TO_CSS: Record<string, string> = {
-  // Purple
-  purple: "var(--color-purple-600)",
-  "purple-hover": "color-mix(in srgb, var(--color-purple-600) 85%, black)",
-  "purple-pressed": "color-mix(in srgb, var(--color-purple-600) 75%, black)",
-  "purple-subtle": "var(--color-purple-100)",
-  // Gray
-  gray: "var(--color-neutral-500)",
-  "gray-subtle": "var(--color-neutral-200)",
-  // Red
-  red: "var(--color-red-600)",
-  "red-subtle": "var(--color-red-100)",
-  // Orange
-  orange: "var(--color-orange-600)",
-  "orange-subtle": "var(--color-orange-100)",
-  // Yellow
-  yellow: "var(--color-yellow-500)",
-  "yellow-subtle": "var(--color-yellow-100)",
-  // Green (named, not semantic positive)
-  "green-named": "var(--color-green-600)",
-  "green-named-subtle": "var(--color-green-100)",
-  // Blue
-  blue: "var(--color-blue-600)",
-  "blue-subtle": "var(--color-blue-100)",
-  // Indigo
-  indigo: "var(--color-indigo-700)",
-  "indigo-subtle": "var(--color-indigo-100)",
-  // Cyan
-  cyan: "var(--color-cyan-600)",
-  "cyan-subtle": "var(--color-cyan-100)",
-  // Pink
-  pink: "var(--color-pink-600)",
-  "pink-subtle": "var(--color-pink-100)",
-  // Turquoise
-  turquoise: "var(--color-teal-500)",
-  "turquoise-subtle": "var(--color-teal-100)",
-  // Fuchsia
-  fuchsia: "var(--color-fuchsia-600)",
-  "fuchsia-subtle": "var(--color-fuchsia-100)",
-  // Magenta
-  magenta: "var(--color-pink-700)",
-  "magenta-subtle": "var(--color-pink-100)",
-  // Celery
-  celery: "var(--color-lime-600)",
-  "celery-subtle": "var(--color-lime-100)",
-  // Chartreuse
-  chartreuse: "var(--color-lime-500)",
-  "chartreuse-subtle": "var(--color-lime-100)",
-  // Spectrum 전용 hue — colors.ts 와 같은 family/단계 (Tailwind 에 같은 이름 없음)
-  seafoam: "var(--color-teal-700)",
-  "seafoam-subtle": "var(--color-teal-100)",
-  cinnamon: "var(--color-amber-800)",
-  "cinnamon-subtle": "var(--color-amber-100)",
-  brown: "var(--color-yellow-900)",
-  "brown-subtle": "var(--color-yellow-100)",
-  silver: "var(--color-gray-400)",
-  "silver-subtle": "var(--color-gray-100)",
+  // `--hue-{token}` / `--hue-{token}-subtle` 은 generated/semantic-palette.css 가 테마별 팔레트 단계로 정의 (ADR-193).
+  // 단계 정본은 primitives/semanticPaletteMap.ts (Skia colors.ts 와 같은 표). hover/pressed 는 CSS color-mix 파생 (Skia 미소비).
+  purple: "var(--hue-purple)",
+  "purple-hover": "color-mix(in srgb, var(--hue-purple) 85%, black)",
+  "purple-pressed": "color-mix(in srgb, var(--hue-purple) 75%, black)",
+  "purple-subtle": "var(--hue-purple-subtle)",
+  gray: "var(--hue-gray)",
+  "gray-subtle": "var(--hue-gray-subtle)",
+  red: "var(--hue-red)",
+  "red-subtle": "var(--hue-red-subtle)",
+  orange: "var(--hue-orange)",
+  "orange-subtle": "var(--hue-orange-subtle)",
+  yellow: "var(--hue-yellow)",
+  "yellow-subtle": "var(--hue-yellow-subtle)",
+  "green-named": "var(--hue-green)",
+  "green-named-subtle": "var(--hue-green-subtle)",
+  blue: "var(--hue-blue)",
+  "blue-subtle": "var(--hue-blue-subtle)",
+  indigo: "var(--hue-indigo)",
+  "indigo-subtle": "var(--hue-indigo-subtle)",
+  cyan: "var(--hue-cyan)",
+  "cyan-subtle": "var(--hue-cyan-subtle)",
+  pink: "var(--hue-pink)",
+  "pink-subtle": "var(--hue-pink-subtle)",
+  turquoise: "var(--hue-turquoise)",
+  "turquoise-subtle": "var(--hue-turquoise-subtle)",
+  fuchsia: "var(--hue-fuchsia)",
+  "fuchsia-subtle": "var(--hue-fuchsia-subtle)",
+  magenta: "var(--hue-magenta)",
+  "magenta-subtle": "var(--hue-magenta-subtle)",
+  celery: "var(--hue-celery)",
+  "celery-subtle": "var(--hue-celery-subtle)",
+  chartreuse: "var(--hue-chartreuse)",
+  "chartreuse-subtle": "var(--hue-chartreuse-subtle)",
+  seafoam: "var(--hue-seafoam)",
+  "seafoam-subtle": "var(--hue-seafoam-subtle)",
+  cinnamon: "var(--hue-cinnamon)",
+  "cinnamon-subtle": "var(--hue-cinnamon-subtle)",
+  brown: "var(--hue-brown)",
+  "brown-subtle": "var(--hue-brown-subtle)",
+  silver: "var(--hue-silver)",
+  "silver-subtle": "var(--hue-silver-subtle)",
 };
 
 /**

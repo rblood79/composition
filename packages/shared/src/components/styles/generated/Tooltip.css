@@ -5,123 +5,120 @@
  * ============================================================ */
 
 @layer components {
-
-.react-aria-Tooltip {
-  /* Base styles — archetype: simple */
+  .react-aria-Tooltip {
+    /* Base styles — archetype: simple */
     display: inline-flex;
     align-items: center;
     box-sizing: border-box;
 
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  box-shadow: var(--shadow-sm);
-  display: inline-flex;
-  align-items: center;
+    /* Container styles (ADR-071 + ADR-083 Phase 1) */
+    box-shadow: var(--shadow-sm);
+    display: inline-flex;
+    align-items: center;
 
-  /* Default variant */
-  background: var(--bg-muted);
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  height: auto;
-  padding: 6px 10px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  max-width: 160px;
-}
-
-.react-aria-Tooltip[data-variant="neutral"] {
-  background: var(--bg-muted);
-  color: var(--fg);
-
-  &[data-hovered] {
+    /* Default variant */
     background: var(--bg-muted);
+    color: var(--fg);
+    border: none;
+
+    /* Default size */
+    height: auto;
+    padding: 6px 10px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-sm);
+    max-width: 160px;
   }
 
-  &[data-pressed] {
+  .react-aria-Tooltip[data-variant="neutral"] {
     background: var(--bg-muted);
-  }
-}
+    color: var(--fg);
 
-.react-aria-Tooltip[data-variant="info"] {
-  background: var(--color-info-100);
-  color: var(--fg);
+    &[data-hovered] {
+      background: var(--bg-muted);
+    }
 
-  &[data-hovered] {
-    background: var(--color-info-100);
-  }
-
-  &[data-pressed] {
-    background: var(--color-info-100);
-  }
-}
-
-.react-aria-Tooltip[data-variant="positive"] {
-  background: var(--color-green-100);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--color-green-100);
+    &[data-pressed] {
+      background: var(--bg-muted);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-green-100);
+  .react-aria-Tooltip[data-variant="info"] {
+    background: var(--informative-subtle);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--informative-subtle);
+    }
+
+    &[data-pressed] {
+      background: var(--informative-subtle);
+    }
   }
-}
 
-.react-aria-Tooltip[data-variant="negative"] {
-  background: var(--color-error-100);
-  color: var(--fg);
+  .react-aria-Tooltip[data-variant="positive"] {
+    background: var(--positive-subtle);
+    color: var(--fg);
 
-  &[data-hovered] {
-    background: var(--color-error-100);
+    &[data-hovered] {
+      background: var(--positive-subtle);
+    }
+
+    &[data-pressed] {
+      background: var(--positive-subtle);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-error-100);
+  .react-aria-Tooltip[data-variant="negative"] {
+    background: var(--negative-subtle);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--negative-subtle);
+    }
+
+    &[data-pressed] {
+      background: var(--negative-subtle);
+    }
   }
-}
 
-.react-aria-Tooltip[data-size="sm"] {
-  height: auto;
-  padding: 4px 8px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  max-width: 160px;
-}
-
-.react-aria-Tooltip[data-size="md"] {
-  height: auto;
-  padding: 6px 10px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  max-width: 160px;
-}
-
-.react-aria-Tooltip[data-size="lg"] {
-  height: auto;
-  padding: 8px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  max-width: 160px;
-}
-
-.react-aria-Tooltip[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Tooltip[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Tooltip {
-    forced-color-adjust: auto;
+  .react-aria-Tooltip[data-size="sm"] {
+    height: auto;
+    padding: 4px 8px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-sm);
+    max-width: 160px;
   }
-}
 
+  .react-aria-Tooltip[data-size="md"] {
+    height: auto;
+    padding: 6px 10px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-sm);
+    max-width: 160px;
+  }
 
+  .react-aria-Tooltip[data-size="lg"] {
+    height: auto;
+    padding: 8px 12px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-md);
+    max-width: 160px;
+  }
+
+  .react-aria-Tooltip[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-Tooltip[data-disabled] {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    .react-aria-Tooltip {
+      forced-color-adjust: auto;
+    }
+  }
 } /* @layer components */

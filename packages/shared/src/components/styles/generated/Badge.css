@@ -60,28 +60,28 @@
   }
 
   .react-aria-Badge[data-variant="informative"] {
-    background: var(--color-info-600);
+    background: var(--informative);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-info-600);
+      background: var(--informative);
     }
 
     &[data-pressed] {
-      background: var(--color-info-600);
+      background: var(--informative);
     }
   }
 
   .react-aria-Badge[data-variant="informative"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-info-600);
-    border-color: var(--color-info-600);
+    color: var(--informative);
+    border-color: var(--informative);
   }
 
   .react-aria-Badge[data-variant="informative"][data-fill-style="subtle"] {
-    background: var(--color-info-100);
-    color: var(--color-info-600);
+    background: var(--informative-subtle);
+    color: var(--informative);
     border-color: transparent;
   }
 
@@ -112,54 +112,54 @@
   }
 
   .react-aria-Badge[data-variant="positive"] {
-    background: var(--color-green-600);
+    background: var(--positive);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-green-600);
+      background: var(--positive);
     }
 
     &[data-pressed] {
-      background: var(--color-green-600);
+      background: var(--positive);
     }
   }
 
   .react-aria-Badge[data-variant="positive"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-green-600);
-    border-color: var(--color-green-600);
+    color: var(--positive);
+    border-color: var(--positive);
   }
 
   .react-aria-Badge[data-variant="positive"][data-fill-style="subtle"] {
-    background: var(--color-green-100);
-    color: var(--color-green-600);
+    background: var(--positive-subtle);
+    color: var(--positive);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="notice"] {
-    background: var(--color-warning-600);
+    background: var(--notice);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-warning-600);
+      background: var(--notice);
     }
 
     &[data-pressed] {
-      background: var(--color-warning-600);
+      background: var(--notice);
     }
   }
 
   .react-aria-Badge[data-variant="notice"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-warning-600);
-    border-color: var(--color-warning-600);
+    color: var(--notice);
+    border-color: var(--notice);
   }
 
   .react-aria-Badge[data-variant="notice"][data-fill-style="subtle"] {
-    background: var(--color-warning-100);
-    color: var(--color-warning-600);
+    background: var(--notice-subtle);
+    color: var(--notice);
     border-color: transparent;
   }
 
@@ -184,351 +184,351 @@
   }
 
   .react-aria-Badge[data-variant="negative"][data-fill-style="subtle"] {
-    background: var(--color-error-100);
+    background: var(--negative-subtle);
     color: var(--negative);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="gray"] {
-    background: var(--color-neutral-500);
+    background: var(--hue-gray);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-neutral-500);
+      background: var(--hue-gray);
     }
 
     &[data-pressed] {
-      background: var(--color-neutral-500);
+      background: var(--hue-gray);
     }
   }
 
   .react-aria-Badge[data-variant="gray"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-neutral-500);
-    border-color: var(--color-neutral-500);
+    color: var(--hue-gray);
+    border-color: var(--hue-gray);
   }
 
   .react-aria-Badge[data-variant="gray"][data-fill-style="subtle"] {
     background: var(--bg-muted);
-    color: var(--color-neutral-500);
+    color: var(--hue-gray);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="red"] {
-    background: var(--color-red-600);
+    background: var(--hue-red);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-red-600);
+      background: var(--hue-red);
     }
 
     &[data-pressed] {
-      background: var(--color-red-600);
+      background: var(--hue-red);
     }
   }
 
   .react-aria-Badge[data-variant="red"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-red-600);
-    border-color: var(--color-red-600);
+    color: var(--hue-red);
+    border-color: var(--hue-red);
   }
 
   .react-aria-Badge[data-variant="red"][data-fill-style="subtle"] {
-    background: var(--color-red-100);
-    color: var(--color-red-600);
+    background: var(--hue-red-subtle);
+    color: var(--hue-red);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="orange"] {
-    background: var(--color-orange-600);
+    background: var(--hue-orange);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-orange-600);
+      background: var(--hue-orange);
     }
 
     &[data-pressed] {
-      background: var(--color-orange-600);
+      background: var(--hue-orange);
     }
   }
 
   .react-aria-Badge[data-variant="orange"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-orange-600);
-    border-color: var(--color-orange-600);
+    color: var(--hue-orange);
+    border-color: var(--hue-orange);
   }
 
   .react-aria-Badge[data-variant="orange"][data-fill-style="subtle"] {
-    background: var(--color-orange-100);
-    color: var(--color-orange-600);
+    background: var(--hue-orange-subtle);
+    color: var(--hue-orange);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="yellow"] {
-    background: var(--color-yellow-500);
+    background: var(--hue-yellow);
     color: var(--color-black);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-yellow-500);
+      background: var(--hue-yellow);
     }
 
     &[data-pressed] {
-      background: var(--color-yellow-500);
+      background: var(--hue-yellow);
     }
   }
 
   .react-aria-Badge[data-variant="yellow"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-yellow-500);
-    border-color: var(--color-yellow-500);
+    color: var(--hue-yellow);
+    border-color: var(--hue-yellow);
   }
 
   .react-aria-Badge[data-variant="yellow"][data-fill-style="subtle"] {
-    background: var(--color-yellow-100);
-    color: var(--color-yellow-500);
+    background: var(--hue-yellow-subtle);
+    color: var(--hue-yellow);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="green"] {
-    background: var(--color-green-600);
+    background: var(--hue-green);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-green-600);
+      background: var(--hue-green);
     }
 
     &[data-pressed] {
-      background: var(--color-green-600);
+      background: var(--hue-green);
     }
   }
 
   .react-aria-Badge[data-variant="green"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-green-600);
-    border-color: var(--color-green-600);
+    color: var(--hue-green);
+    border-color: var(--hue-green);
   }
 
   .react-aria-Badge[data-variant="green"][data-fill-style="subtle"] {
-    background: var(--color-green-100);
-    color: var(--color-green-600);
+    background: var(--hue-green-subtle);
+    color: var(--hue-green);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="blue"] {
-    background: var(--color-blue-600);
+    background: var(--hue-blue);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-blue-600);
+      background: var(--hue-blue);
     }
 
     &[data-pressed] {
-      background: var(--color-blue-600);
+      background: var(--hue-blue);
     }
   }
 
   .react-aria-Badge[data-variant="blue"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-blue-600);
-    border-color: var(--color-blue-600);
+    color: var(--hue-blue);
+    border-color: var(--hue-blue);
   }
 
   .react-aria-Badge[data-variant="blue"][data-fill-style="subtle"] {
-    background: var(--color-blue-100);
-    color: var(--color-blue-600);
+    background: var(--hue-blue-subtle);
+    color: var(--hue-blue);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="purple"] {
-    background: var(--color-purple-600);
+    background: var(--hue-purple);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-purple-600);
+      background: var(--hue-purple);
     }
 
     &[data-pressed] {
-      background: var(--color-purple-600);
+      background: var(--hue-purple);
     }
   }
 
   .react-aria-Badge[data-variant="purple"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-purple-600);
-    border-color: var(--color-purple-600);
+    color: var(--hue-purple);
+    border-color: var(--hue-purple);
   }
 
   .react-aria-Badge[data-variant="purple"][data-fill-style="subtle"] {
-    background: var(--color-purple-100);
-    color: var(--color-purple-600);
+    background: var(--hue-purple-subtle);
+    color: var(--hue-purple);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="indigo"] {
-    background: var(--color-indigo-700);
+    background: var(--hue-indigo);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-indigo-700);
+      background: var(--hue-indigo);
     }
 
     &[data-pressed] {
-      background: var(--color-indigo-700);
+      background: var(--hue-indigo);
     }
   }
 
   .react-aria-Badge[data-variant="indigo"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-indigo-700);
-    border-color: var(--color-indigo-700);
+    color: var(--hue-indigo);
+    border-color: var(--hue-indigo);
   }
 
   .react-aria-Badge[data-variant="indigo"][data-fill-style="subtle"] {
-    background: var(--color-indigo-100);
-    color: var(--color-indigo-700);
+    background: var(--hue-indigo-subtle);
+    color: var(--hue-indigo);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="cyan"] {
-    background: var(--color-cyan-600);
+    background: var(--hue-cyan);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-cyan-600);
+      background: var(--hue-cyan);
     }
 
     &[data-pressed] {
-      background: var(--color-cyan-600);
+      background: var(--hue-cyan);
     }
   }
 
   .react-aria-Badge[data-variant="cyan"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-cyan-600);
-    border-color: var(--color-cyan-600);
+    color: var(--hue-cyan);
+    border-color: var(--hue-cyan);
   }
 
   .react-aria-Badge[data-variant="cyan"][data-fill-style="subtle"] {
-    background: var(--color-cyan-100);
-    color: var(--color-cyan-600);
+    background: var(--hue-cyan-subtle);
+    color: var(--hue-cyan);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="pink"] {
-    background: var(--color-pink-600);
+    background: var(--hue-pink);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-pink-600);
+      background: var(--hue-pink);
     }
 
     &[data-pressed] {
-      background: var(--color-pink-600);
+      background: var(--hue-pink);
     }
   }
 
   .react-aria-Badge[data-variant="pink"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-pink-600);
-    border-color: var(--color-pink-600);
+    color: var(--hue-pink);
+    border-color: var(--hue-pink);
   }
 
   .react-aria-Badge[data-variant="pink"][data-fill-style="subtle"] {
-    background: var(--color-pink-100);
-    color: var(--color-pink-600);
+    background: var(--hue-pink-subtle);
+    color: var(--hue-pink);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="turquoise"] {
-    background: var(--color-teal-500);
+    background: var(--hue-turquoise);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-teal-500);
+      background: var(--hue-turquoise);
     }
 
     &[data-pressed] {
-      background: var(--color-teal-500);
+      background: var(--hue-turquoise);
     }
   }
 
   .react-aria-Badge[data-variant="turquoise"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-teal-500);
-    border-color: var(--color-teal-500);
+    color: var(--hue-turquoise);
+    border-color: var(--hue-turquoise);
   }
 
   .react-aria-Badge[data-variant="turquoise"][data-fill-style="subtle"] {
-    background: var(--color-teal-100);
-    color: var(--color-teal-500);
+    background: var(--hue-turquoise-subtle);
+    color: var(--hue-turquoise);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="fuchsia"] {
-    background: var(--color-fuchsia-600);
+    background: var(--hue-fuchsia);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-fuchsia-600);
+      background: var(--hue-fuchsia);
     }
 
     &[data-pressed] {
-      background: var(--color-fuchsia-600);
+      background: var(--hue-fuchsia);
     }
   }
 
   .react-aria-Badge[data-variant="fuchsia"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-fuchsia-600);
-    border-color: var(--color-fuchsia-600);
+    color: var(--hue-fuchsia);
+    border-color: var(--hue-fuchsia);
   }
 
   .react-aria-Badge[data-variant="fuchsia"][data-fill-style="subtle"] {
-    background: var(--color-fuchsia-100);
-    color: var(--color-fuchsia-600);
+    background: var(--hue-fuchsia-subtle);
+    color: var(--hue-fuchsia);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="magenta"] {
-    background: var(--color-pink-700);
+    background: var(--hue-magenta);
     color: var(--color-white);
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--color-pink-700);
+      background: var(--hue-magenta);
     }
 
     &[data-pressed] {
-      background: var(--color-pink-700);
+      background: var(--hue-magenta);
     }
   }
 
   .react-aria-Badge[data-variant="magenta"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-pink-700);
-    border-color: var(--color-pink-700);
+    color: var(--hue-magenta);
+    border-color: var(--hue-magenta);
   }
 
   .react-aria-Badge[data-variant="magenta"][data-fill-style="subtle"] {
-    background: var(--color-pink-100);
-    color: var(--color-pink-700);
+    background: var(--hue-magenta-subtle);
+    color: var(--hue-magenta);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="chartreuse"] {
-    background: var(--color-lime-500);
+    background: var(--hue-chartreuse);
     color: var(--color-black);
     border-color: transparent;
 
@@ -543,18 +543,18 @@
 
   .react-aria-Badge[data-variant="chartreuse"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-lime-500);
-    border-color: var(--color-lime-500);
+    color: var(--hue-chartreuse);
+    border-color: var(--hue-chartreuse);
   }
 
   .react-aria-Badge[data-variant="chartreuse"][data-fill-style="subtle"] {
-    background: var(--color-lime-100);
-    color: var(--color-lime-500);
+    background: var(--hue-chartreuse-subtle);
+    color: var(--hue-chartreuse);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="celery"] {
-    background: var(--color-lime-600);
+    background: var(--hue-celery);
     color: var(--color-white);
     border-color: transparent;
 
@@ -569,18 +569,18 @@
 
   .react-aria-Badge[data-variant="celery"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-lime-600);
-    border-color: var(--color-lime-600);
+    color: var(--hue-celery);
+    border-color: var(--hue-celery);
   }
 
   .react-aria-Badge[data-variant="celery"][data-fill-style="subtle"] {
-    background: var(--color-lime-100);
-    color: var(--color-lime-600);
+    background: var(--hue-celery-subtle);
+    color: var(--hue-celery);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="seafoam"] {
-    background: var(--color-teal-700);
+    background: var(--hue-seafoam);
     color: var(--color-white);
     border-color: transparent;
 
@@ -595,18 +595,18 @@
 
   .react-aria-Badge[data-variant="seafoam"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-teal-700);
-    border-color: var(--color-teal-700);
+    color: var(--hue-seafoam);
+    border-color: var(--hue-seafoam);
   }
 
   .react-aria-Badge[data-variant="seafoam"][data-fill-style="subtle"] {
     background: var(--bg-muted);
-    color: var(--color-teal-700);
+    color: var(--hue-seafoam);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="brown"] {
-    background: var(--color-yellow-900);
+    background: var(--hue-brown);
     color: var(--color-white);
     border-color: transparent;
 
@@ -621,18 +621,18 @@
 
   .react-aria-Badge[data-variant="brown"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-yellow-900);
-    border-color: var(--color-yellow-900);
+    color: var(--hue-brown);
+    border-color: var(--hue-brown);
   }
 
   .react-aria-Badge[data-variant="brown"][data-fill-style="subtle"] {
-    background: var(--color-orange-100);
-    color: var(--color-yellow-900);
+    background: var(--hue-orange-subtle);
+    color: var(--hue-brown);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="cinnamon"] {
-    background: var(--color-amber-800);
+    background: var(--hue-cinnamon);
     color: var(--color-white);
     border-color: transparent;
 
@@ -647,18 +647,18 @@
 
   .react-aria-Badge[data-variant="cinnamon"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-amber-800);
-    border-color: var(--color-amber-800);
+    color: var(--hue-cinnamon);
+    border-color: var(--hue-cinnamon);
   }
 
   .react-aria-Badge[data-variant="cinnamon"][data-fill-style="subtle"] {
-    background: var(--color-orange-100);
-    color: var(--color-amber-800);
+    background: var(--hue-orange-subtle);
+    color: var(--hue-cinnamon);
     border-color: transparent;
   }
 
   .react-aria-Badge[data-variant="silver"] {
-    background: var(--color-gray-400);
+    background: var(--hue-silver);
     color: var(--color-black);
     border-color: transparent;
 
@@ -673,13 +673,13 @@
 
   .react-aria-Badge[data-variant="silver"][data-fill-style="outline"] {
     background: transparent;
-    color: var(--color-gray-400);
-    border-color: var(--color-gray-400);
+    color: var(--hue-silver);
+    border-color: var(--hue-silver);
   }
 
   .react-aria-Badge[data-variant="silver"][data-fill-style="subtle"] {
     background: var(--bg-muted);
-    color: var(--color-gray-400);
+    color: var(--hue-silver);
     border-color: transparent;
   }
 

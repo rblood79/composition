@@ -20,14 +20,17 @@
 /* Import modular theme files
  * IMPORTANT: Import order matters for CSS variables!
  * Later imports override earlier ones (regardless of layer order)
- * Order: preview-system (base) → shared-tokens → generated/tailwind-palette → builder-system (overrides)
+ * Order: preview-system (base) → shared-tokens → generated/tailwind-palette → generated/semantic-palette → builder-system (overrides)
  *
  * ADR-191: 팔레트(--color-{family}-{step})는 손으로 쓰지 않는다 — generated/tailwind-palette.css 가
  * 설치된 tailwindcss/theme.css 에서 파생된 유일한 정의다 (재생성: pnpm generate:palette).
+ * ADR-193: semantic·named hue(--positive / --hue-indigo …)의 light/dark 단계도 손으로 쓰지 않는다 —
+ * generated/semantic-palette.css 가 packages/specs semanticPaletteMap.ts(Skia colors.ts 와 같은 표)에서 파생.
  */
 @import "./styles/theme/preview-system.css";
 @import "./styles/theme/shared-tokens.css";
 @import "./styles/theme/generated/tailwind-palette.css";
+@import "./styles/theme/generated/semantic-palette.css";
 @import "./styles/theme/builder-system.css";
 
 /* Note: color themes for dark and light modes are generated with Leonardo.

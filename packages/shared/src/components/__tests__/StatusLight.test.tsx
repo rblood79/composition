@@ -31,18 +31,18 @@ function dotBackgroundColor(html: string): string | null {
 }
 
 describe("StatusLight — DOM dot 색 = rule fill base (20 variant 대칭)", () => {
-  it("named color variant(yellow) → dot background-color = var(--color-yellow-500)", () => {
+  it("named color variant(yellow) → dot background-color = var(--hue-yellow)", () => {
     const html = renderToStaticMarkup(
       <StatusLight variant="yellow">Online</StatusLight>,
     );
-    expect(dotBackgroundColor(html)).toBe("var(--color-yellow-500)");
+    expect(dotBackgroundColor(html)).toBe("var(--hue-yellow)");
   });
 
-  it("표준 semantic variant(positive) → dot background-color = var(--color-green-600)", () => {
+  it("표준 semantic variant(positive) → dot background-color = var(--positive) (ADR-193 semantic var)", () => {
     const html = renderToStaticMarkup(
       <StatusLight variant="positive">Available</StatusLight>,
     );
-    expect(dotBackgroundColor(html)).toBe("var(--color-green-600)");
+    expect(dotBackgroundColor(html)).toBe("var(--positive)");
   });
 
   it("default(neutral) variant → dot background-color = var(--fg-muted)", () => {
@@ -54,7 +54,7 @@ describe("StatusLight — DOM dot 색 = rule fill base (20 variant 대칭)", () 
     const html = renderToStaticMarkup(<StatusLight variant="yellow" />);
     const spanCount = (html.match(/<span/g) ?? []).length;
     expect(spanCount).toBe(1); // dot 만, label span 없음
-    expect(dotBackgroundColor(html)).toBe("var(--color-yellow-500)");
+    expect(dotBackgroundColor(html)).toBe("var(--hue-yellow)");
   });
 });
 
@@ -118,16 +118,12 @@ describe("StatusLight — cutover DOM 경로 (toRacProps propPassthrough)", () =
     expect(racProps["data-variant"]).toBe("yellow"); // ← data-* 도 보존
   });
 
-  it("cutover 경로에서 variant 변경이 dot 색에 반영 (yellow → var(--color-yellow-500))", () => {
-    expect(dotBackgroundColor(cutoverHtml("yellow"))).toBe(
-      "var(--color-yellow-500)",
-    );
+  it("cutover 경로에서 variant 변경이 dot 색에 반영 (yellow → var(--hue-yellow))", () => {
+    expect(dotBackgroundColor(cutoverHtml("yellow"))).toBe("var(--hue-yellow)");
   });
 
-  it("cutover 경로에서 positive → var(--color-green-600) (회색 고정 아님)", () => {
-    expect(dotBackgroundColor(cutoverHtml("positive"))).toBe(
-      "var(--color-green-600)",
-    );
+  it("cutover 경로에서 positive → var(--positive) (회색 고정 아님)", () => {
+    expect(dotBackgroundColor(cutoverHtml("positive"))).toBe("var(--positive)");
     // neutral 회색과 다름을 명시 — 버그였다면 둘 다 var(--fg-muted) 였음
     expect(dotBackgroundColor(cutoverHtml("positive"))).not.toBe(
       "var(--fg-muted)",

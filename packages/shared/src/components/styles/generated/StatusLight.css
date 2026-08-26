@@ -42,41 +42,41 @@
   }
 
   .react-aria-StatusLight[data-variant="informative"] {
-    background: var(--color-info-600);
+    background: var(--informative);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-info-600);
+      background: var(--informative);
     }
 
     &[data-pressed] {
-      background: var(--color-info-600);
+      background: var(--informative);
     }
   }
 
   .react-aria-StatusLight[data-variant="positive"] {
-    background: var(--color-green-600);
+    background: var(--positive);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-green-600);
+      background: var(--positive);
     }
 
     &[data-pressed] {
-      background: var(--color-green-600);
+      background: var(--positive);
     }
   }
 
   .react-aria-StatusLight[data-variant="notice"] {
-    background: var(--color-warning-600);
+    background: var(--notice);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-warning-600);
+      background: var(--notice);
     }
 
     &[data-pressed] {
-      background: var(--color-warning-600);
+      background: var(--notice);
     }
   }
 
@@ -94,184 +94,184 @@
   }
 
   .react-aria-StatusLight[data-variant="celery"] {
-    background: var(--color-lime-600);
+    background: var(--hue-celery);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-lime-600);
+      background: var(--hue-celery);
     }
 
     &[data-pressed] {
-      background: var(--color-lime-600);
+      background: var(--hue-celery);
     }
   }
 
   .react-aria-StatusLight[data-variant="chartreuse"] {
-    background: var(--color-lime-500);
+    background: var(--hue-chartreuse);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-lime-500);
+      background: var(--hue-chartreuse);
     }
 
     &[data-pressed] {
-      background: var(--color-lime-500);
+      background: var(--hue-chartreuse);
     }
   }
 
   .react-aria-StatusLight[data-variant="cyan"] {
-    background: var(--color-cyan-600);
+    background: var(--hue-cyan);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-cyan-600);
+      background: var(--hue-cyan);
     }
 
     &[data-pressed] {
-      background: var(--color-cyan-600);
+      background: var(--hue-cyan);
     }
   }
 
   .react-aria-StatusLight[data-variant="fuchsia"] {
-    background: var(--color-fuchsia-600);
+    background: var(--hue-fuchsia);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-fuchsia-600);
+      background: var(--hue-fuchsia);
     }
 
     &[data-pressed] {
-      background: var(--color-fuchsia-600);
+      background: var(--hue-fuchsia);
     }
   }
 
   .react-aria-StatusLight[data-variant="indigo"] {
-    background: var(--color-indigo-700);
+    background: var(--hue-indigo);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-indigo-700);
+      background: var(--hue-indigo);
     }
 
     &[data-pressed] {
-      background: var(--color-indigo-700);
+      background: var(--hue-indigo);
     }
   }
 
   .react-aria-StatusLight[data-variant="magenta"] {
-    background: var(--color-pink-700);
+    background: var(--hue-magenta);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-pink-700);
+      background: var(--hue-magenta);
     }
 
     &[data-pressed] {
-      background: var(--color-pink-700);
+      background: var(--hue-magenta);
     }
   }
 
   .react-aria-StatusLight[data-variant="purple"] {
-    background: var(--color-purple-600);
+    background: var(--hue-purple);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-purple-600);
+      background: var(--hue-purple);
     }
 
     &[data-pressed] {
-      background: var(--color-purple-600);
+      background: var(--hue-purple);
     }
   }
 
   .react-aria-StatusLight[data-variant="yellow"] {
-    background: var(--color-yellow-500);
+    background: var(--hue-yellow);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-yellow-500);
+      background: var(--hue-yellow);
     }
 
     &[data-pressed] {
-      background: var(--color-yellow-500);
+      background: var(--hue-yellow);
     }
   }
 
   .react-aria-StatusLight[data-variant="seafoam"] {
-    background: var(--color-teal-700);
+    background: var(--hue-seafoam);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-teal-700);
+      background: var(--hue-seafoam);
     }
 
     &[data-pressed] {
-      background: var(--color-teal-700);
+      background: var(--hue-seafoam);
     }
   }
 
   .react-aria-StatusLight[data-variant="pink"] {
-    background: var(--color-pink-600);
+    background: var(--hue-pink);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-pink-600);
+      background: var(--hue-pink);
     }
 
     &[data-pressed] {
-      background: var(--color-pink-600);
+      background: var(--hue-pink);
     }
   }
 
   .react-aria-StatusLight[data-variant="turquoise"] {
-    background: var(--color-teal-500);
+    background: var(--hue-turquoise);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-teal-500);
+      background: var(--hue-turquoise);
     }
 
     &[data-pressed] {
-      background: var(--color-teal-500);
+      background: var(--hue-turquoise);
     }
   }
 
   .react-aria-StatusLight[data-variant="cinnamon"] {
-    background: var(--color-amber-800);
+    background: var(--hue-cinnamon);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-amber-800);
+      background: var(--hue-cinnamon);
     }
 
     &[data-pressed] {
-      background: var(--color-amber-800);
+      background: var(--hue-cinnamon);
     }
   }
 
   .react-aria-StatusLight[data-variant="brown"] {
-    background: var(--color-yellow-900);
+    background: var(--hue-brown);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-yellow-900);
+      background: var(--hue-brown);
     }
 
     &[data-pressed] {
-      background: var(--color-yellow-900);
+      background: var(--hue-brown);
     }
   }
 
   .react-aria-StatusLight[data-variant="silver"] {
-    background: var(--color-gray-400);
+    background: var(--hue-silver);
     color: var(--fg);
 
     &[data-hovered] {
-      background: var(--color-gray-400);
+      background: var(--hue-silver);
     }
 
     &[data-pressed] {
-      background: var(--color-gray-400);
+      background: var(--hue-silver);
     }
   }
 

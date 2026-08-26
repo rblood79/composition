@@ -221,9 +221,8 @@
     --focus-ring-offset: 2px;
     --focus-ring-inset-offset: -2px;
 
-    /* Status — 단계는 Skia colors.ts(lightColors.negative = red-500)와 동일 (ADR-191 후속).
-     * --color-error-* 는 shared-tokens 에서 --color-red-* alias 라 두 소비자가 같은 팔레트 값을 본다. */
-    --negative: var(--color-invalid, var(--color-error-500));
+    /* Status — --negative 는 generated/semantic-palette.css (ADR-193, semanticPaletteMap 파생) 가 정의한다.
+     * --negative-pressed 는 Skia 미소비(colors.ts custom #b33333)라 여기 잔류. */
     --negative-pressed: var(--color-invalid-pressed, var(--color-error-600));
 
     /* Shadow System — Adobe Spectrum 2 역할 토큰 기반 3단계 (ADR-166 Phase 1)
@@ -344,8 +343,7 @@
       var(--color-error-500)
     );
 
-    /* Status (Dark) — Skia darkColors.negative = red-400 과 동일 */
-    --negative: var(--color-invalid, var(--color-error-400));
+    /* Status (Dark) — --negative 는 generated/semantic-palette.css [data-theme="dark"] 가 정의 (ADR-193) */
     --negative-pressed: var(--color-invalid-pressed, var(--color-error-500));
     --accent-subtle: var(
       --color-highlight-overlay,

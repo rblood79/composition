@@ -1,0 +1,105 @@
+/* GENERATED — 편집 금지. 원천: packages/specs/src/primitives/semanticPaletteMap.ts
+ * 재생성: pnpm generate:palette  (검증: pnpm validate:palette)
+ * ADR-193: semantic·named hue → 팔레트 단계 매핑 (light / dark). Skia colors.ts 와 같은 표에서 파생 —
+ * 이 파일은 파생물이며 SSOT 가 아니다. 팔레트 var 참조만 (hex 금지 — ThemeStudio override 훅 보존).
+ */
+
+@layer shared-tokens {
+  :root {
+    --negative: var(--color-invalid, var(--color-red-500));
+    --negative-subtle: var(--color-red-100);
+    --informative: var(--color-blue-600);
+    --informative-subtle: var(--color-blue-100);
+    --positive: var(--color-green-600);
+    --positive-subtle: var(--color-green-100);
+    --notice: var(--color-orange-600);
+    --notice-subtle: var(--color-orange-100);
+    --hue-purple: var(--color-purple-600);
+    --hue-purple-subtle: var(--color-purple-100);
+    --hue-yellow: var(--color-yellow-500);
+    --hue-yellow-subtle: var(--color-yellow-100);
+    --hue-red: var(--color-red-600);
+    --hue-red-subtle: var(--color-red-100);
+    --hue-orange: var(--color-orange-600);
+    --hue-orange-subtle: var(--color-orange-100);
+    --hue-blue: var(--color-blue-600);
+    --hue-blue-subtle: var(--color-blue-100);
+    --hue-indigo: var(--color-indigo-700);
+    --hue-indigo-subtle: var(--color-indigo-100);
+    --hue-cyan: var(--color-cyan-600);
+    --hue-cyan-subtle: var(--color-cyan-100);
+    --hue-pink: var(--color-pink-600);
+    --hue-pink-subtle: var(--color-pink-100);
+    --hue-fuchsia: var(--color-fuchsia-600);
+    --hue-fuchsia-subtle: var(--color-fuchsia-100);
+    --hue-magenta: var(--color-pink-700);
+    --hue-magenta-subtle: var(--color-pink-100);
+    --hue-celery: var(--color-lime-600);
+    --hue-celery-subtle: var(--color-lime-100);
+    --hue-chartreuse: var(--color-lime-500);
+    --hue-chartreuse-subtle: var(--color-lime-100);
+    --hue-turquoise: var(--color-teal-500);
+    --hue-turquoise-subtle: var(--color-teal-100);
+    --hue-seafoam: var(--color-teal-700);
+    --hue-seafoam-subtle: var(--color-teal-100);
+    --hue-cinnamon: var(--color-amber-800);
+    --hue-cinnamon-subtle: var(--color-amber-100);
+    --hue-brown: var(--color-yellow-900);
+    --hue-brown-subtle: var(--color-yellow-100);
+    --hue-silver: var(--color-gray-400);
+    --hue-silver-subtle: var(--color-gray-100);
+    --hue-gray: var(--color-neutral-500);
+    --hue-gray-subtle: var(--color-neutral-200);
+    --hue-green: var(--color-green-600);
+    --hue-green-subtle: var(--color-green-100);
+  }
+
+  [data-theme="dark"] {
+    --negative: var(--color-invalid, var(--color-red-400));
+    --negative-subtle: var(--color-red-900);
+    --informative: var(--color-blue-500);
+    --informative-subtle: var(--color-blue-900);
+    --positive: var(--color-green-500);
+    --positive-subtle: var(--color-green-900);
+    --notice: var(--color-orange-500);
+    --notice-subtle: var(--color-orange-900);
+    --hue-purple: var(--color-purple-500);
+    --hue-purple-subtle: var(--color-purple-900);
+    --hue-yellow: var(--color-yellow-400);
+    --hue-yellow-subtle: var(--color-yellow-900);
+    --hue-red: var(--color-red-400);
+    --hue-red-subtle: var(--color-red-900);
+    --hue-orange: var(--color-orange-500);
+    --hue-orange-subtle: var(--color-orange-900);
+    --hue-blue: var(--color-blue-500);
+    --hue-blue-subtle: var(--color-blue-900);
+    --hue-indigo: var(--color-indigo-500);
+    --hue-indigo-subtle: var(--color-indigo-900);
+    --hue-cyan: var(--color-cyan-500);
+    --hue-cyan-subtle: var(--color-cyan-900);
+    --hue-pink: var(--color-pink-500);
+    --hue-pink-subtle: var(--color-pink-900);
+    --hue-fuchsia: var(--color-fuchsia-500);
+    --hue-fuchsia-subtle: var(--color-fuchsia-900);
+    --hue-magenta: var(--color-rose-600);
+    --hue-magenta-subtle: var(--color-rose-900);
+    --hue-celery: var(--color-lime-500);
+    --hue-celery-subtle: var(--color-lime-900);
+    --hue-chartreuse: var(--color-lime-400);
+    --hue-chartreuse-subtle: var(--color-lime-900);
+    --hue-turquoise: var(--color-teal-400);
+    --hue-turquoise-subtle: var(--color-teal-900);
+    --hue-seafoam: var(--color-teal-500);
+    --hue-seafoam-subtle: var(--color-teal-900);
+    --hue-cinnamon: var(--color-amber-600);
+    --hue-cinnamon-subtle: var(--color-amber-900);
+    --hue-brown: var(--color-yellow-700);
+    --hue-brown-subtle: var(--color-yellow-900);
+    --hue-silver: var(--color-gray-500);
+    --hue-silver-subtle: var(--color-gray-800);
+    --hue-gray: var(--color-neutral-400);
+    --hue-gray-subtle: var(--color-neutral-700);
+    --hue-green: var(--color-green-500);
+    --hue-green-subtle: var(--color-green-900);
+  }
+}

@@ -15,6 +15,11 @@
  * CLI 는 `generate-palette.ts`, drift 검증은 `tailwindPalette.drift.test.ts`.
  */
 
+import {
+  SEMANTIC_PALETTE_MAP,
+  type SemanticPaletteEntry,
+} from "../src/primitives/semanticPaletteMap";
+
 export interface PaletteEntry {
   family: string;
   step: number;
@@ -184,6 +189,54 @@ export function renderPaletteTs(source: PaletteSource): string {
     "",
     "export type TailwindPaletteStep =",
     "  keyof (typeof TAILWIND_PALETTE)[TailwindPaletteFamily];",
+    "",
+  ].join("\n");
+}
+
+// ============================================================================
+// ADR-193 — semantic·named hue 단계 매핑 CSS (테마별 var 정의 층, 참조만)
+// ============================================================================
+
+function semanticRef(
+  entry: SemanticPaletteEntry,
+  theme: "light" | "dark",
+): string {
+  const [family, step] = entry[theme];
+  const ref = `var(--color-${family}-${step})`;
+  return entry.hook ? `var(${entry.hook}, ${ref})` : ref;
+}
+
+/**
+ * `@layer shared-tokens { :root { --positive: var(--color-green-600); … } [data-theme="dark"] { … } }`
+ *
+ * - 원천은 `semanticPaletteMap.ts` 표 (Skia `colors.ts` 와 같은 표) — 여기서 hex 를 쓰지 않는다:
+ *   팔레트 var 참조만 emit 해야 ThemeStudio runtime `<style>` 의 `--color-neutral-N` override 가 흘러간다 (R2).
+ * - 테마 분기는 이 층 한 곳에서만 일어난다 — 컴포넌트 CSS 는 `var(--positive)` 만 쓴다.
+ * - `shared-tokens` 층: preview-system 의 손 정의보다 위, unlayered runtime `<style>` 보다 아래.
+ */
+export function renderSemanticCss(
+  map: Record<string, SemanticPaletteEntry> = SEMANTIC_PALETTE_MAP,
+): string {
+  const block = (theme: "light" | "dark") =>
+    Object.values(map).map(
+      (entry) => `    ${entry.cssVar}: ${semanticRef(entry, theme)};`,
+    );
+  return [
+    "/* GENERATED — 편집 금지. 원천: packages/specs/src/primitives/semanticPaletteMap.ts",
+    " * 재생성: pnpm generate:palette  (검증: pnpm validate:palette)",
+    " * ADR-193: semantic·named hue → 팔레트 단계 매핑 (light / dark). Skia colors.ts 와 같은 표에서 파생 —",
+    " * 이 파일은 파생물이며 SSOT 가 아니다. 팔레트 var 참조만 (hex 금지 — ThemeStudio override 훅 보존).",
+    " */",
+    "",
+    "@layer shared-tokens {",
+    "  :root {",
+    ...block("light"),
+    "  }",
+    "",
+    '  [data-theme="dark"] {',
+    ...block("dark"),
+    "  }",
+    "}",
     "",
   ].join("\n");
 }

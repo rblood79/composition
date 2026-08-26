@@ -12,13 +12,15 @@ import {
   renderOutputs,
   PALETTE_CSS_OUT,
   PALETTE_TS_OUT,
+  SEMANTIC_CSS_OUT,
 } from "../../../scripts/generate-palette";
+import { SEMANTIC_PALETTE_MAP } from "../semanticPaletteMap";
 import { cssColorToSrgbHex } from "../../../scripts/paletteGenerator";
 import { TAILWIND_PALETTE } from "../generated/tailwindPalette";
 
 describe("ADR-191 tailwind palette drift", () => {
   const source = loadPaletteSource();
-  const { css, ts } = renderOutputs(source);
+  const { css, ts, semanticCss } = renderOutputs(source);
 
   it("생성 CSS 가 커밋된 산출물과 byte 단위로 같다 (재생성 필요 시 pnpm generate:palette)", () => {
     expect(readFileSync(PALETTE_CSS_OUT, "utf-8")).toBe(css);
@@ -65,5 +67,44 @@ describe("ADR-191 tailwind palette drift", () => {
     expect(css).not.toMatch(/@theme|@apply|@utility/);
     expect(css).toMatch(/^@layer shared-tokens \{/m);
     expect(css).toContain("--color-gray-500: oklch(55.1% 0.027 264.364);");
+  });
+});
+
+describe("ADR-193 semantic palette CSS drift", () => {
+  const source = loadPaletteSource();
+  const { semanticCss } = renderOutputs(source);
+
+  it("생성 semantic CSS 가 커밋된 산출물과 byte 단위로 같다 (재생성 필요 시 pnpm generate:palette)", () => {
+    expect(readFileSync(SEMANTIC_CSS_OUT, "utf-8")).toBe(semanticCss);
+  });
+
+  it("팔레트 var 참조만 emit — hex 0 (ThemeStudio --color-neutral-N override 훅 보존, R2), 크기 ≤ 5KB (G4)", () => {
+    expect(semanticCss).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(semanticCss).not.toMatch(/@theme|@apply|@utility/);
+    expect(Buffer.byteLength(semanticCss, "utf-8")).toBeLessThanOrEqual(
+      5 * 1024,
+    );
+    for (const line of semanticCss.split("\n")) {
+      if (!/^\s+--/.test(line)) continue;
+      expect(line, line).toMatch(
+        /^\s+--[a-z-]+: var\((--color-invalid, var\()?--color-[a-z]+-\d+\)\)?;$/,
+      );
+    }
+  });
+
+  it('`:root` 와 `[data-theme="dark"]` 블록 각 1개 — 표의 모든 cssVar 가 양쪽에 있다', () => {
+    expect(semanticCss.match(/^\s+:root \{/gm)).toHaveLength(1);
+    expect(semanticCss.match(/^\s+\[data-theme="dark"\] \{/gm)).toHaveLength(1);
+    const [light, dark] = semanticCss.split('[data-theme="dark"]');
+    for (const entry of Object.values(SEMANTIC_PALETTE_MAP)) {
+      const [lf, ls] = entry.light;
+      const [df, ds] = entry.dark;
+      expect(light).toContain(
+        `${entry.cssVar}: ${entry.hook ? `var(${entry.hook}, var(--color-${lf}-${ls}))` : `var(--color-${lf}-${ls})`};`,
+      );
+      expect(dark).toContain(
+        `${entry.cssVar}: ${entry.hook ? `var(${entry.hook}, var(--color-${df}-${ds}))` : `var(--color-${df}-${ds})`};`,
+      );
+    }
   });
 });
