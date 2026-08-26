@@ -7,6 +7,7 @@ Accepted — 2026-08-27 (review-adr round 1 승인 — MED 1·LOW 3 전부 fixed
 진행 로그:
 
 - 2026-08-27 Phase 0 인벤토리 freeze · Phase 1 순수 계층 (vitest 18 + 182 회귀 31) · Phase 2 UI 마운트 + live 검증 (C0~C4 항목·컴포넌트 토글·다중 그룹·⋯ 메뉴·포커스 유지·`⌫`/`⌘Z`) — 결과 표와 범위 밖 관찰 2건은 [breakdown §4](design/192-contextual-action-bar-breakdown.md). 잔여: Phase 3 (드래그·Pin·Reset·Hide·영속·Settings 토글) · Phase 4 (G3 성능 측정 + M1 live 재확인 + 종결)
+- 2026-08-27 Phase 3 배치 — 핸들 드래그·Pin·Reset·Hide·localStorage 영속·Settings 재표시 토글, live 전항 ✅ + G3 (zoom 왕복 DOM 변이 0) ✅ ([breakdown §4 Phase 3 결과](design/192-contextual-action-bar-breakdown.md)). 같은 날 ADR-182 후속으로 `duplicateSelection` multiSelectMode 게이트 제거 (`af7303a0f`). 잔여: Phase 4 — M1 텍스트 편집 게이팅 live 재확인 (실제 마우스) · codex:preflight · Implemented 승격 + README/CHANGELOG
 
 > 출처: [ADR-016](completed/016-photoshop-ui-ux.md) Superseded (2026-08-26) 의 유일한 미반영 기능. 016 §5.1~5.2 설계안 (신규 `builder/actions/` 계층 + 선택 bounds 부착 바) 은 **승계하지 않고** 리서치 ([ACTION_BAR_BENCHMARK.md](../explanation/research/ACTION_BAR_BENCHMARK.md), 2026-08-26) 부터 다시 시작했다. fork lock-in 4 질문 + 사용자 confirm 기록: [breakdown §1](design/192-contextual-action-bar-breakdown.md).
 

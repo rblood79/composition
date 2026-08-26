@@ -18,6 +18,12 @@
 import { StateCreator } from "zustand";
 import type { BreakpointName } from "@composition/shared";
 import { clearGuideSelection } from "../workspace/canvas/interaction/guideEmphasis";
+import {
+  readActionBarSettings,
+  writeActionBarSettings,
+  type ActionBarOffset,
+  type ActionBarSettings,
+} from "./utils/actionBarStorage";
 
 /** 페이지 배치 방향 */
 export type PageLayoutDirection = "horizontal" | "vertical" | "zigzag";
@@ -53,6 +59,16 @@ export interface SettingsState {
    * pointer 체인에 진입하지 않아 기존 경로가 무변경으로 남는다).
    */
   showRulers: boolean;
+
+  /**
+   * ADR-192 Contextual Action Bar 배치 상태 (뷰포트 chrome — 문서 데이터 아님).
+   * 이 slice 는 비영속이라 `utils/actionBarStorage` 로 따로 저장한다 (Phase 0 ③).
+   */
+  actionBar: ActionBarSettings;
+  setActionBarHidden: (hidden: boolean) => void;
+  setActionBarPinned: (pinned: boolean) => void;
+  /** null = 기본 위치 (Reset bar position) */
+  setActionBarOffset: (offset: ActionBarOffset | null) => void;
 
   /** History 정보 (Monitor에서 사용) */
   historyInfo: HistoryInfo;
@@ -150,6 +166,31 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
     canRedo: false,
     totalEntries: 0,
     currentIndex: -1,
+  },
+  actionBar: readActionBarSettings(),
+
+  setActionBarHidden: (hidden) => {
+    set((state) => {
+      const next = { ...state.actionBar, hidden };
+      writeActionBarSettings(next);
+      return { actionBar: next };
+    });
+  },
+
+  setActionBarPinned: (pinned) => {
+    set((state) => {
+      const next = { ...state.actionBar, pinned };
+      writeActionBarSettings(next);
+      return { actionBar: next };
+    });
+  },
+
+  setActionBarOffset: (offset) => {
+    set((state) => {
+      const next = { ...state.actionBar, offset };
+      writeActionBarSettings(next);
+      return { actionBar: next };
+    });
   },
 
   /**

@@ -10,7 +10,7 @@
     position: absolute;
     left: 50%;
     bottom: 16px;
-    transform: translateX(-50%);
+    /* transform 은 useActionBarPlacement 가 inline 으로 (기본 translateX(-50%)) */
     display: flex;
     align-items: center;
     gap: 2px;
@@ -24,6 +24,72 @@
     contain: layout style;
     /* Toolbar 루트(tabIndex=-1)가 포커스를 받아도 껍데기라 링 대상이 아니다 */
     outline: none;
+  }
+
+  .contextual-action-bar[data-dragging] {
+    /* 드래그 중 transform 만 바뀐다 — 그림자 전환 애니메이션 없음 */
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  /* 좌측 드래그 핸들 (Photoshop: 좌측 끝 핸들). Pin 시 비활성 */
+  .contextual-action-bar-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 28px;
+    color: var(--fg-muted);
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .contextual-action-bar[data-dragging] .contextual-action-bar-handle {
+    cursor: grabbing;
+  }
+
+  .contextual-action-bar[data-pinned] .contextual-action-bar-handle {
+    cursor: default;
+    color: var(--fg-disabled);
+  }
+
+  /* 옵션 메뉴 (Pin / Reset / Hide) — 컨텍스트 메뉴와 같은 팝오버 어법 */
+  .contextual-action-bar-options-popover {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    outline: none;
+    overflow: hidden;
+  }
+
+  .contextual-action-bar-options {
+    padding: 4px;
+    outline: none;
+    min-width: 160px;
+  }
+
+  .contextual-action-bar-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: var(--radius-md);
+    color: var(--fg);
+    font-size: 12px;
+    cursor: default;
+    outline: none;
+  }
+
+  .contextual-action-bar-option[data-focused],
+  .contextual-action-bar-option[data-hovered] {
+    background: var(--bg-muted);
+  }
+
+  .contextual-action-bar-option svg {
+    color: var(--fg-muted);
+    flex-shrink: 0;
   }
 
   .contextual-action-bar-toolbar,

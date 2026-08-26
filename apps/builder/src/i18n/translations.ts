@@ -54,6 +54,7 @@ const koKR: TranslationKeys = {
   actionBar: {
     ariaLabel: "선택 액션",
     more: "더 보기",
+    options: "액션 바 옵션",
     dragHandle: "액션 바 이동",
     pin: "위치 고정",
     unpin: "위치 고정 해제",
@@ -490,6 +491,7 @@ const enUS: TranslationKeys = {
   actionBar: {
     ariaLabel: "Selection actions",
     more: "More actions",
+    options: "Action bar options",
     dragHandle: "Move action bar",
     pin: "Pin bar position",
     unpin: "Unpin bar position",

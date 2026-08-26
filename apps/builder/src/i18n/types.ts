@@ -80,6 +80,7 @@ export interface TranslationKeys {
   actionBar: {
     ariaLabel: string;
     more: string;
+    options: string;
     dragHandle: string;
     pin: string;
     unpin: string;

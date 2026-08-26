@@ -3,14 +3,25 @@
  *
  * - 항목: ADR-182 provider 정본의 부분집합 (`buildActionBarItems`) — 액션 신규 0
  * - ⋯ : 182 컨텍스트 메뉴를 버튼 위치에서 그대로 연다
- * - 적격 항목 0 / 텍스트 편집 중 → 미마운트 (Photoshop 자동 숨김)
+ * - 적격 항목 0 / 텍스트 편집 중 / Hide → 미마운트 (Photoshop 자동 숨김)
  * - 재렌더 트리거는 선택 집합 + store `elements` 교체뿐 — 드래그 중 좌표는
  *   Skia 프리뷰가 들고 드롭 시 1회 commit 되므로 프레임 루프와 무관 (HC2)
  * - 포커스: 루트 `data-scope="canvas"` + `preventFocusOnPress` 로
  *   `canvas-focused` 단축키 scope 유지 (HC3)
+ * - 배치: 좌측 핸들 드래그 · 옵션 메뉴 (Pin / Reset / Hide) — Photoshop
+ *   Contextual Task Bar 의 ⋯ 메뉴 동형 (Phase 3, `useActionBarPlacement`)
  */
-import { useCallback, useEffect, useState } from "react";
-import { ChevronDown, MoreHorizontal } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ChevronDown,
+  EllipsisVertical,
+  EyeOff,
+  GripVertical,
+  MoreHorizontal,
+  Pin,
+  PinOff,
+  RotateCcw,
+} from "lucide-react";
 import { Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { Button, Toolbar } from "@composition/shared/components";
 import { useI18n } from "@/i18n";
@@ -21,9 +32,11 @@ import type { ContextMenuItem } from "../contextMenu/types";
 import { ShortcutTooltip } from "../ShortcutTooltip";
 import type { ActionBarModel } from "./actionBarPolicy";
 import { buildActionBarItems } from "./buildActionBarItems";
+import { useActionBarPlacement } from "./useActionBarPlacement";
 import "./actionBar.css";
 
 const ICON_SIZE = 16;
+const MENU_ICON_SIZE = 14;
 
 function ItemIcon({ item }: { item: ContextMenuItem }) {
   if (item.kind === "separator") return null;
@@ -113,8 +126,60 @@ function AlignPopover({
   );
 }
 
+type OptionKey = "pin" | "reset" | "hide";
+
+function OptionsMenu({
+  pinned,
+  onAction,
+}: {
+  pinned: boolean;
+  onAction: (key: OptionKey) => void;
+}) {
+  const { t } = useI18n();
+  const PinIcon = pinned ? PinOff : Pin;
+  return (
+    <MenuTrigger>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="contextual-action-bar-item"
+        aria-label={t("actionBar.options")}
+        preventFocusOnPress
+        data-scope="canvas"
+      >
+        <EllipsisVertical size={ICON_SIZE} aria-hidden="true" />
+      </Button>
+      <Popover
+        placement="top end"
+        offset={6}
+        className="contextual-action-bar-options-popover"
+      >
+        <Menu
+          aria-label={t("actionBar.options")}
+          className="contextual-action-bar-options"
+          onAction={(key) => onAction(String(key) as OptionKey)}
+        >
+          <MenuItem id="pin" className="contextual-action-bar-option">
+            <PinIcon size={MENU_ICON_SIZE} aria-hidden="true" />
+            <span>{pinned ? t("actionBar.unpin") : t("actionBar.pin")}</span>
+          </MenuItem>
+          <MenuItem id="reset" className="contextual-action-bar-option">
+            <RotateCcw size={MENU_ICON_SIZE} aria-hidden="true" />
+            <span>{t("actionBar.reset")}</span>
+          </MenuItem>
+          <MenuItem id="hide" className="contextual-action-bar-option">
+            <EyeOff size={MENU_ICON_SIZE} aria-hidden="true" />
+            <span>{t("actionBar.hide")}</span>
+          </MenuItem>
+        </Menu>
+      </Popover>
+    </MenuTrigger>
+  );
+}
+
 export function ContextualActionBar() {
   const { t } = useI18n();
+  const barRef = useRef<HTMLDivElement>(null);
   const isEditing = useCanvasStore((state) => state.isEditing);
   const selectedElementIds = useStore((state) => state.selectedElementIds);
   // `elements` 배열은 요소 변경(컴포넌트 토글·재부모화·삭제)마다 교체된다 —
@@ -127,6 +192,7 @@ export function ContextualActionBar() {
     state.selectedElementIds.every((id) => state.elementsMap.has(id)),
   );
   const contextMenu = useContextMenu();
+  const placement = useActionBarPlacement(barRef);
 
   // 182 provider 는 BuilderCanvas 의 interactive map 을 읽는데, 그 ref 는
   // BuilderCanvas 의 useEffect(BuilderCanvas.tsx:756) 에서 갱신된다. 같은 store
@@ -155,10 +221,34 @@ export function ContextualActionBar() {
     [contextMenu, selectedElementIds],
   );
 
-  if (isEditing || !model) return null;
+  const onOption = useCallback(
+    (key: OptionKey) => {
+      if (key === "pin") placement.togglePinned();
+      else if (key === "reset") placement.resetPosition();
+      else placement.hide();
+    },
+    [placement],
+  );
+
+  if (placement.hidden || isEditing || !model) return null;
 
   return (
-    <div className="contextual-action-bar" data-scope="canvas">
+    <div
+      ref={barRef}
+      className="contextual-action-bar"
+      data-scope="canvas"
+      data-dragging={placement.dragging || undefined}
+      data-pinned={placement.pinned || undefined}
+      style={{ transform: placement.transform }}
+    >
+      <span
+        className="contextual-action-bar-handle"
+        title={t("actionBar.dragHandle")}
+        aria-hidden="true"
+        {...placement.handleProps}
+      >
+        <GripVertical size={MENU_ICON_SIZE} />
+      </span>
       <Toolbar
         aria-label={t("actionBar.ariaLabel")}
         className="contextual-action-bar-toolbar"
@@ -182,6 +272,7 @@ export function ContextualActionBar() {
         >
           <MoreHorizontal size={ICON_SIZE} aria-hidden="true" />
         </Button>
+        <OptionsMenu pinned={placement.pinned} onAction={onOption} />
       </Toolbar>
     </div>
   );

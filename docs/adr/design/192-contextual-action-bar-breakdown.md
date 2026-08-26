@@ -135,6 +135,20 @@ Phase 2 결과 (2026-08-27, live Chrome MCP `ZZZF` 프로젝트):
 - `duplicateSelection` (`canvasActions.ts:196`) 과 `groupSelection` (`:259`) 은 `multiSelectMode` 가 false 면 조용히 반환한다. 단일 선택에서는 컨텍스트 메뉴의 "복제" 도, 바의 "복제" 도, `⌘D` 단축키 (`CanvasSelectionShortcuts.tsx:147`) 도 **no-op** 이다 (live: history·선택 불변, store 구독 0회). 바는 이 결함을 상시 노출 버튼으로 드러낸다. 그룹은 2+ 전용이라 C1 allowlist 에서 뺐지만, 복제는 단일에서도 의미가 있어 allowlist 에 남겼다 — 해법은 `duplicateSelection` 의 `multiSelectMode` 게이트 제거 (canvasActions 소관, HC1 밖).
 - 그룹 만들기 → `⌘Z` 후 `selectedElementIds` 가 사라진 frame id 를 유지한다 (store 소관). 바는 `selectionResolved` 게이트로 미마운트하지만 Properties 패널은 빈 상태.
 
+Phase 3 결과 (2026-08-27, live Chrome MCP `ZZZF`):
+
+| 검증 항목              | 결과                                                                                                                                                                                                                                                        |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 핸들 드래그            | `{dx:-164, dy:-219}` 로 이동, transform `translate(calc(-50% - 164px), -219px)` ✅ — 드롭 시 store 1회 commit + localStorage write-through                                                                                                                  |
+| 리로드 영속            | 새로고침 후 `actionBar.offset` 동일, 바가 같은 위치에 마운트 ✅ (`composition.actionBar.v1`)                                                                                                                                                                |
+| Pin                    | `pinned:true` 후 핸들 드래그 → offset 불변 ✅ · Unpin ✅                                                                                                                                                                                                    |
+| Reset                  | offset null · transform `translateX(-50%)` · 저장값 갱신 ✅                                                                                                                                                                                                 |
+| Hide → 리로드 → 재표시 | Hide 후 바 미마운트, 리로드 후에도 숨김 유지 ✅. SettingsPanel "선택 액션 바 표시" 스위치 (`PropertySwitch`) 토글 → `hidden:false` + 바 복귀 ✅ (패널이 rail 에서 열리지 않아 DOM 의 스위치 input 을 직접 click — 시각 확인은 Settings 패널 활성 시 재확인) |
+| G3 성능                | 선택 고정 상태에서 zoom 91→50→130→91 (Skia 재래스터 프레임) 동안 바 `MutationObserver` 카운트 **0** ✅. 휠 pan 은 MCP 스크롤이 캔버스에 전달되지 않아 zoom 으로 대체                                                                                        |
+| 옵션 메뉴 후 포커스    | RAC Menu 닫힘 후 `document.activeElement` = body — 옵션 3종은 저빈도라 v1 허용, 필요 시 캔버스 컨테이너 `focus()` 복귀 1줄 (LOW)                                                                                                                            |
+
+**Phase 3 설계 편차**: `actionBarStorage` 는 breakdown §3-1 의 `components/overlay/actionBar/` 가 아니라 `stores/utils/actionBarStorage.ts` — store slice 가 UI 디렉터리를 import 하는 역방향 의존을 피하기 위해. 옵션 버튼 aria-label 은 `actionBar.options` 키 추가 (⋯ `more` 와 중복 해소).
+
 ### 파일 변경표 (추정 — Phase 0 후 재freeze)
 
 | 파일                                                         | 변경                                               |
@@ -149,15 +163,15 @@ Phase 2 결과 (2026-08-27, live Chrome MCP `ZZZF` 프로젝트):
 
 ## §5. 검증 체크리스트
 
-- [ ] Phase 0 실측 5건 기록 (추정 vs 실측 gap 은 여기서 흡수 — fork 사유 아님)
-- [ ] 182 기존 테스트 전부 PASS (항목 id 상수화 후에도)
+- [x] Phase 0 실측 5건 기록 (추정 vs 실측 gap 은 여기서 흡수 — fork 사유 아님)
+- [x] 182 기존 테스트 전부 PASS (항목 id 상수화 불필요)
 - [ ] 컨텍스트 C0~~C4 / M1~~M2 단위 테스트
-- [ ] live: 단일/frame/인스턴스/다중 4종 선택에서 바 항목이 §2 표와 일치 (스크린샷)
-- [ ] live: 바 버튼 클릭 직후 ⌘D · ⌫ · ⌘G 가 캔버스에 적용 (포커스 미탈취)
-- [ ] live: 드래그 중·텍스트 편집 중 바 비표시, 종료 후 복귀
-- [ ] live: 드래그 이동 → 새로고침 후 위치 유지 / Reset → 하단 중앙 / Pin → 핸들 비활성 / Hide → Settings 토글로 재표시
-- [ ] 성능: 선택 불변 상태에서 pan/zoom 60프레임 동안 바 DOM 변이 0 (MutationObserver 카운트)
-- [ ] type-check 0 / codex:preflight PASS
+- [x] live: 단일/frame/인스턴스/다중 4종 선택에서 바 항목이 §2 표와 일치 (Phase 2)
+- [x] live: 바 버튼 클릭 직후 activeElement 유지 + ⌫/⌘Z 적용 (⌘D·⌘G 는 Chrome 단축키 충돌로 MCP 판정 불가)
+- [ ] live: 텍스트 편집 중 바 비표시, 종료 후 복귀 — **미검증** (MCP 더블클릭 한계, Phase 4 실제 마우스)
+- [x] live: 드래그 이동 → 새로고침 후 위치 유지 / Reset → 하단 중앙 / Pin → 핸들 비활성 / Hide → Settings 토글로 재표시 (Phase 3)
+- [x] 성능: 선택 불변 상태에서 zoom 왕복 동안 바 DOM 변이 0 (MutationObserver, Phase 3)
+- [x] type-check 0 (Phase 0~3 매 커밋) / codex:preflight — Phase 4
 
 ## §6. 비스코프 (후속)
 

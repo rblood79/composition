@@ -35,6 +35,8 @@ function SettingsContent() {
   const setSnapToObjects = useStore((state) => state.setSnapToObjects);
 
   const showRulers = useStore((state) => state.showRulers);
+  const actionBarHidden = useStore((state) => state.actionBar.hidden);
+  const setActionBarHidden = useStore((state) => state.setActionBarHidden);
   const setShowRulers = useStore((state) => state.setShowRulers);
 
   // Page Layout 설정
@@ -115,6 +117,15 @@ function SettingsContent() {
 
           {/* ADR-179 — 페이지 간 가장자리·중앙 흡착 + 정렬선. 수동 가이드도
               흡착 후보로 참여한다 (`usePageDrag` 의 `guideLines`). */}
+          {/* ADR-192 — 선택 액션 바. Hide 는 바의 옵션 메뉴에서, 재표시는
+              여기서만 (Photoshop `Window > Contextual Task Bar` 대응). */}
+          <PropertySwitch
+            label={t("settings.showActionBar")}
+            isSelected={!actionBarHidden}
+            onChange={(selected: boolean) => setActionBarHidden(!selected)}
+            icon={ACTION_ICONS.toggleRulers}
+          />
+
           <PropertySwitch
             label={t("settings.snapToObjects")}
             isSelected={snapToObjects}
