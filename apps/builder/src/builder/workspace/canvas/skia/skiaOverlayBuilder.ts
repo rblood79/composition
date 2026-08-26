@@ -10,6 +10,7 @@
  */
 
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
+import { TAILWIND_PALETTE } from "@composition/specs";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { BoundingBox } from "../selection/types";
 import type { RendererInvalidationPacket } from "../renderers";
@@ -78,12 +79,14 @@ import {
   collectHighlightedWorkflowPageIds,
   filterRenderableWorkflowEdges,
 } from "./skiaWorkflowSelection";
-import {
-  FALLBACK_COLORS,
-  cssColorToHex,
-  getCSSVariable,
-} from "../utils/cssVariableReader";
+import { cssColorToHex, getCSSVariable } from "../utils/cssVariableReader";
 import { hexToColor4fChannels } from "./themeWatcher";
+
+/** `--border` 미정의 시 fallback — preview-system 기본값(neutral-300)과 같은 팔레트 값. (구 M3 FALLBACK_COLORS.outlineVariant 대체) */
+const CANVAS_BORDER_FALLBACK = parseInt(
+  TAILWIND_PALETTE.neutral[300].slice(1),
+  16,
+);
 import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
@@ -254,7 +257,7 @@ function resolveSelectedFrameIdForTitle(
 
 function resolveCanvasBorderColor(): readonly [number, number, number] {
   return hexToColor4fChannels(
-    cssColorToHex(getCSSVariable("--border"), FALLBACK_COLORS.outlineVariant),
+    cssColorToHex(getCSSVariable("--border"), CANVAS_BORDER_FALLBACK),
   );
 }
 

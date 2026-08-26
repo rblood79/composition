@@ -139,27 +139,6 @@ export function mixWithWhite(color: number, percent: number): number {
   return (r << 16) | (g << 8) | b;
 }
 
-// ============================================
-// Fallback Colors (M3 Light Mode)
-// ============================================
-
-export const FALLBACK_COLORS = {
-  primary: 0x6750a4,
-  onPrimary: 0xffffff,
-  secondary: 0x625b71,
-  onSecondary: 0xffffff,
-  tertiary: 0x7d5260,
-  onTertiary: 0xffffff,
-  error: 0xb3261e,
-  onError: 0xffffff,
-  surfaceContainer: 0xf3edf7,
-  surfaceContainerHigh: 0xece6f0,
-  surfaceContainerHighest: 0xe6e0e9,
-  onSurface: 0x1d1b20,
-  outline: 0x79747e,
-  outlineVariant: 0xcac4d0,
-};
-
 /**
  * CSS 변수에서 px 값 파싱
  * rem → px 변환 (1rem = 16px 기준)

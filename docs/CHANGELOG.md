@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-191 잔여 정리 — named hue 17종 Skia↔CSS 동일 단계, M3 dead 경로 삭제] - 2026-08-27
+
+### Bug Fixes
+
+- **Badge/StatusLight 의 indigo·cyan·pink·fuchsia·magenta·celery·chartreuse 색이 Builder 캔버스와 Preview 에서
+  달랐고, seafoam·cinnamon·brown·silver 는 양쪽 다 정의가 없던 결함** (`58f5b1f08`):
+  - Skia `colors.ts` 는 v3 hex 리터럴, CSS 매핑(`colorTokenToCss.ts`/`tokenResolver.ts`)은 손으로 적은 oklch,
+    Spectrum 전용 4종은 CSS `var(--seafoam)` 처럼 어디에도 정의 없는 var 참조 + Skia 항목 부재.
+  - **Why**: named hue 층이 팔레트 SSOT 밖에서 소비자별로 따로 적혀 있었다.
+  - 수정: 양쪽을 같은 `(family, step)` 팔레트 참조로 — v3 표와 6자리 정확 일치로 이름 확정 (indigo-700, cyan-600,
+    pink-600/700, fuchsia-600, lime-600/500 …), Spectrum 전용 hue 는 최근접 family 로 고정 (turquoise teal-500,
+    seafoam teal-700, cinnamon amber-800, brown yellow-900, silver gray-400). **사용자-가시**: 해당 variant 색이
+    Builder 캔버스 = Preview 로 일치하며 v4 팔레트 값으로 이동, seafoam/cinnamon/brown/silver 가 처음으로 렌더된다.
+  - 게이트: `semanticAlias.symmetry.test.ts` 43건 (named 17 + subtle 16 + status/primary/tertiary alias).
+- **빌더 chrome 의 `--color-danger-*` 5 / `--color-secondary-*` 4 undefined 참조** → `--color-error-*` /
+  `--color-tertiary-*` (AddPageDialog 오류 표시, SelectionMemory clear 버튼, DataTable page/PATCH 배지).
+
+### Architecture
+
+- `shared-tokens.css` `--color-primary-*`(v3 blue hex 11)·`--color-tertiary-*`(v3 purple hex 10) → blue/purple
+  팔레트 alias. 이제 `--color-*` 손 hex 는 custom `--color-zinc-850` 하나뿐.
+- M3 dead 경로 삭제 (사용자 승인): `canvas/utils/cssComponentColors.ts`(`--primary`·`--on-surface` 등 어디에도 정의
+  없는 M3 var 를 읽어 항상 fallback 반환)·`canvas/hooks/useThemeColors.ts`(소비자 0)·`cssVariableCore.FALLBACK_COLORS`.
+  `skiaOverlayBuilder` 의 `--border` fallback 은 팔레트 neutral-300 으로.
+- `PanelWorkspace.static.test` 를 `ef3871266`(rail 폭 내용 결정) 의도에 맞게 갱신 — 기존 실패 1건 해소.
+
 ## [ADR-191 후속 — semantic alias 층 Skia↔CSS 대칭, 토큰 중복·v3 hex 리터럴 정리] - 2026-08-27
 
 ### Bug Fixes
