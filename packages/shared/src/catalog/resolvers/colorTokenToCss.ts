@@ -15,6 +15,8 @@
  * 토큰/매핑 추가 시 generated CSS 와 대조.
  */
 
+import { SEMANTIC_PALETTE_MAP } from "@composition/specs";
+
 /** S2 시맨틱 + named color 토큰 → CSS 값 (tokenResolver 매핑 shared 대응, css-tokens.md SSOT). */
 const COLOR_TOKEN_CSS: Record<string, string> = {
   // --- 시맨틱 (S2) ---
@@ -61,6 +63,19 @@ const COLOR_TOKEN_CSS: Record<string, string> = {
   brown: "var(--hue-brown)",
   silver: "var(--hue-silver)",
 };
+
+// hover/pressed 파생 — tokenResolver 와 동일 규칙 (ADR-193 후속). 이전엔 키가 없어 fallback `--fg-muted` 로 떨어졌다 (review l2).
+for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
+  if (token.endsWith("-subtle")) continue;
+  COLOR_TOKEN_CSS[`${token}-hover`] ??=
+    `color-mix(in srgb, var(${entry.cssVar}) 85%, black)`;
+  COLOR_TOKEN_CSS[`${token}-pressed`] ??=
+    `color-mix(in srgb, var(${entry.cssVar}) 75%, black)`;
+}
+COLOR_TOKEN_CSS["accent-hover"] ??= "color-mix(in srgb, var(--accent) 85%, black)";
+COLOR_TOKEN_CSS["accent-pressed"] ??= "color-mix(in srgb, var(--accent) 75%, black)";
+COLOR_TOKEN_CSS["neutral-hover"] ??= "color-mix(in srgb, var(--bg-muted) 85%, black)";
+COLOR_TOKEN_CSS["neutral-pressed"] ??= "color-mix(in srgb, var(--bg-muted) 75%, black)";
 
 /**
  * `{color.X}` TokenRef 또는 직접 CSS 값을 CSS 색 문자열로 변환.

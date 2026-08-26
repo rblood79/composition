@@ -150,6 +150,9 @@ export {
   // Colors
   lightColors,
   TAILWIND_PALETTE,
+  SEMANTIC_PALETTE_MAP,
+  resolveSemanticHex,
+  resolveSemanticColors,
   darkColors,
   getColorToken,
   getColorTokens,
@@ -199,6 +202,11 @@ export {
 
 export type { ParsedShadow, ShadowPresetKey } from "./primitives";
 export type { TailwindPaletteFamily, TailwindPaletteStep } from "./primitives";
+export type {
+  SemanticPaletteToken,
+  SemanticPaletteEntry,
+  PaletteRef,
+} from "./primitives";
 export type {
   ContainerSpacing,
   ContainerSpacingDefaults,

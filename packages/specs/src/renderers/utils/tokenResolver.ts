@@ -10,6 +10,7 @@ import type { TokenRef } from "../../types/token.types";
 import type { ColorValue } from "../../types/shape.types";
 import type { ShadowTokenRef } from "../../types/token.types";
 import { lightColors, darkColors } from "../../primitives/colors";
+import { SEMANTIC_PALETTE_MAP } from "../../primitives/semanticPaletteMap";
 import { spacing } from "../../primitives/spacing";
 import { typography } from "../../primitives/typography";
 import { radius } from "../../primitives/radius";
@@ -140,8 +141,6 @@ const NAMED_COLOR_TO_CSS: Record<string, string> = {
   // `--hue-{token}` / `--hue-{token}-subtle` 은 generated/semantic-palette.css 가 테마별 팔레트 단계로 정의 (ADR-193).
   // 단계 정본은 primitives/semanticPaletteMap.ts (Skia colors.ts 와 같은 표). hover/pressed 는 CSS color-mix 파생 (Skia 미소비).
   purple: "var(--hue-purple)",
-  "purple-hover": "color-mix(in srgb, var(--hue-purple) 85%, black)",
-  "purple-pressed": "color-mix(in srgb, var(--hue-purple) 75%, black)",
   "purple-subtle": "var(--hue-purple-subtle)",
   gray: "var(--hue-gray)",
   "gray-subtle": "var(--hue-gray-subtle)",
@@ -180,6 +179,19 @@ const NAMED_COLOR_TO_CSS: Record<string, string> = {
   silver: "var(--hue-silver)",
   "silver-subtle": "var(--hue-silver-subtle)",
 };
+
+/**
+ * hover/pressed 파생 (ADR-193 후속, 2026-08-27): status·named hue 전 토큰에 `{color.X-hover}` / `{color.X-pressed}` 를
+ * semantic var 기준 color-mix 로 제공한다. 이전에는 purple 만 손으로 있었고 나머지(chartreuse/celery/seafoam/brown/
+ * cinnamon/silver …)는 `var(--chartreuse-hover)` 같은 미정의 var 로 emit 됐다. Skia 는 hover 를 소비하지 않으므로
+ * (Preview D1) 표에는 넣지 않고 여기서만 파생. accent/neutral/negative 의 기존 손 항목이 우선.
+ */
+for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
+  if (token.endsWith("-subtle")) continue;
+  const target = token in COLOR_TOKEN_TO_CSS ? COLOR_TOKEN_TO_CSS : NAMED_COLOR_TO_CSS;
+  target[`${token}-hover`] ??= `color-mix(in srgb, var(${entry.cssVar}) 85%, black)`;
+  target[`${token}-pressed`] ??= `color-mix(in srgb, var(${entry.cssVar}) 75%, black)`;
+}
 
 /**
  * CSS 변수명으로 변환

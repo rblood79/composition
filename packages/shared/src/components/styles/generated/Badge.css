@@ -533,11 +533,11 @@
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--chartreuse-hover);
+      background: color-mix(in srgb, var(--hue-chartreuse) 85%, black);
     }
 
     &[data-pressed] {
-      background: var(--chartreuse-pressed);
+      background: color-mix(in srgb, var(--hue-chartreuse) 75%, black);
     }
   }
 
@@ -559,11 +559,11 @@
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--celery-hover);
+      background: color-mix(in srgb, var(--hue-celery) 85%, black);
     }
 
     &[data-pressed] {
-      background: var(--celery-pressed);
+      background: color-mix(in srgb, var(--hue-celery) 75%, black);
     }
   }
 
@@ -585,11 +585,11 @@
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--seafoam-hover);
+      background: color-mix(in srgb, var(--hue-seafoam) 85%, black);
     }
 
     &[data-pressed] {
-      background: var(--seafoam-pressed);
+      background: color-mix(in srgb, var(--hue-seafoam) 75%, black);
     }
   }
 
@@ -611,11 +611,11 @@
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--brown-hover);
+      background: color-mix(in srgb, var(--hue-brown) 85%, black);
     }
 
     &[data-pressed] {
-      background: var(--brown-pressed);
+      background: color-mix(in srgb, var(--hue-brown) 75%, black);
     }
   }
 
@@ -637,11 +637,11 @@
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--cinnamon-hover);
+      background: color-mix(in srgb, var(--hue-cinnamon) 85%, black);
     }
 
     &[data-pressed] {
-      background: var(--cinnamon-pressed);
+      background: color-mix(in srgb, var(--hue-cinnamon) 75%, black);
     }
   }
 
@@ -663,11 +663,11 @@
     border-color: transparent;
 
     &[data-hovered] {
-      background: var(--silver-hover);
+      background: color-mix(in srgb, var(--hue-silver) 85%, black);
     }
 
     &[data-pressed] {
-      background: var(--silver-pressed);
+      background: color-mix(in srgb, var(--hue-silver) 75%, black);
     }
   }
 

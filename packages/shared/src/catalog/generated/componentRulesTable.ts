@@ -7025,7 +7025,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: "var(--fg)",
           "font-size": "var(--text-sm)",
           "--label-font-size": "var(--text-sm)",
-          "--fill-color": "var(--color-info-600)",
+          "--fill-color": "var(--informative)",
         },
         staticSelectors: {
           ".react-aria-Label": {
@@ -7074,17 +7074,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           variant: {
             informative: {
               styles: {
-                "--fill-color": "var(--color-info-600)",
+                "--fill-color": "var(--informative)",
               },
             },
             positive: {
               styles: {
-                "--fill-color": "var(--color-green-600)",
+                "--fill-color": "var(--positive)",
               },
             },
             warning: {
               styles: {
-                "--fill-color": "var(--color-warning-600)",
+                "--fill-color": "var(--notice)",
               },
             },
             critical: {
