@@ -4,6 +4,8 @@
 
 Proposed — 2026-08-17
 
+> **기준선 갱신 필요 (2026-08-26, scope 무변경)**: 본 ADR 의 코드 기준선(2026-08-17)은 이후 [ADR-187](completed/187-editor-presentation-transaction-and-typed-invalidation.md)(에디터 프레젠테이션 트랜잭션·typed invalidation·targeted Skia patch) · [ADR-188](completed/188-targeted-layout-and-skia-subtree-patching.md)(타깃 레이아웃 입력 + Skia 서브트리 패치) · [ADR-189](completed/189-commit-lane-incremental-record.md)(커밋 레인 sparse damage playback) · [ADR-190](completed/190-commit-descriptor-emitter-expansion.md)(commit descriptor emitter) 로 낡았다 — §6-2 예상 변경 파일 중 `renderCommands.ts` 9 commit / `SkiaCanvas.tsx` 8 / `rendererInput.ts` 4 / `skiaFramePipeline.ts` 2 / `buildSceneSnapshot.ts` 1 이 08-17 이후 바뀌었고, ADR-189 는 "command stream 계약이 교차하므로 어느 쪽이든 착수 시 상호 조정" 을 명시한다. 대안·Decision·Phase 구성은 유지하되, **Phase 0 inventory freeze 는 187~190 반영 코드로 재실측**하고 semantic command trace / `RenderSceneSnapshot` 계약이 189 의 sparse commit lane·damage clip 과 190 의 descriptor emitter 를 입력으로 흡수하는지 breakdown §1-2 에 고정한다.
+
 ## Context
 
 composition의 현재 렌더링은 역할별로 강점이 분명하다.

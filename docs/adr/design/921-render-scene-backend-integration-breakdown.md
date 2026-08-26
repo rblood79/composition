@@ -24,6 +24,8 @@
 
 ### 1-2. 선행 결정과의 관계
 
+> **2026-08-26 갱신**: 아래 표에 ADR-187/188/189/190 을 추가했다. §1-1 의 2026-08-17 기준선은 이 네 ADR 로 낡았다 — §6-2 파일 중 `renderCommands.ts` 9 / `SkiaCanvas.tsx` 8 / `rendererInput.ts` 4 / `skiaFramePipeline.ts` 2 / `buildSceneSnapshot.ts` 1 commit 이 이후 변경. **Phase 0 착수 시 기준선을 재freeze** 하고 G0 의 oracle baseline 도 그 시점 코드로 다시 잡는다.
+
 | 선행 ADR                                                                                                                                          | 유지하는 결정                                                                                      | ADR-921이 추가하는 경계                                                                          |
 | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | [ADR-116](../completed/116-canonical-document-ssot-transition.md), [ADR-122](../completed/122-canonical-only-runtime-legacy-mirror-removal.md)    | `CompositionDocument`가 저장·편집·runtime의 단일 SSOT                                              | `RenderSceneSnapshot`은 저장 금지된 파생 read model로만 존재                                     |
@@ -32,6 +34,10 @@
 | [ADR-135](../completed/135-page-frame-projection-interaction-boundary.md), [ADR-136](../completed/136-scene-projection-version-ssot-hardening.md) | render-space interaction, canonical mutation resolver, `sceneVersion`, scene fallback 금지         | snapshot에 render/canonical identity를 함께 운반하되 mutation authority는 부여하지 않음          |
 | [ADR-153](../completed/153-render-optimization-measurement-first-adoption.md), [ADR-174](../completed/174-paragraph-retained-lifetime.md)         | command/Picture cache, dual surface, ping-pong snapshot, WASM 지연 폐기·retained 수명              | backend가 자원 lifetime을 소유하고 scene은 native 객체를 보유하지 않는 규칙                      |
 | [ADR-117](../117-canvaskit-pathbuilder-upgrade.md)                                                                                                | CanvasKit 버전/API 전환은 별도 Proposed 결정                                                       | backend 계약과 dependency upgrade를 결합하지 않음                                                |
+| [ADR-187](../completed/187-editor-presentation-transaction-and-typed-invalidation.md) (2026-08-24) | continuous editor 를 canonical 과 분리된 transaction overlay 로 두고 typed invalidation + targeted Skia patch 로 연결 | snapshot compile 은 transaction overlay 를 입력으로 받는다 — presentation phase 와 renderer contract 를 재결합하지 않음 |
+| [ADR-188](../completed/188-targeted-layout-and-skia-subtree-patching.md) (2026-08-22) | Rust subtree-dirty O(1) summary, affected-delta publication, clip-aware Skia subtree draw/hit | `RenderSceneSnapshot` 의 변경 단위는 188 의 affected-delta 와 동일 granularity — 전체 재컴파일 금지 |
+| [ADR-189](../completed/189-commit-lane-incremental-record.md) (2026-08-24) | canonical commit 의 whole-tree 재기록을 dirty-root 서브트리 + region-synchronized sparse damage playback 으로 제한 | semantic command trace 는 189 sparse commit lane 의 출력을 받는다 — 189 본문이 명시한 "command stream 계약 교차 → 착수 시 상호 조정" 이 Phase 0 항목 |
+| [ADR-190](../completed/190-commit-descriptor-emitter-expansion.md) (2026-08-24) | presentation 터미널 descriptor 하강 → sparse commit lane 진입점 확장 | descriptor emitter 가 compiler 입력 어댑터의 상류 — 별도 emitter 신설 금지 |
 
 ### 1-3. 전제·관점 lock-in
 
@@ -288,6 +294,8 @@ font/image packaging, accessibility, file security, SDK versioning/API/size budg
 | `apps/builder/src/builder/workspace/canvas/skia/renderSceneOracle.ts`   | legacy↔snapshot semantic/pixel/hit 비교  |
 
 ### 6-2. 예상 변경 파일
+
+> 2026-08-17 기준 추정 — 187~190 이후 대량 변경됐으므로 Phase 0 재실측 대상 (§1-2 갱신 참조).
 
 | 경로                                                         | 변경 방향                                                         |
 | ------------------------------------------------------------ | ----------------------------------------------------------------- |

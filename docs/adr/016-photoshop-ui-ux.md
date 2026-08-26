@@ -1,9 +1,28 @@
 # ADR-016: Photoshop 벤치마크 기반 UI/UX 적용 계획
 
-- 상태: **Proposed**
+- 상태: **Proposed** — 2026-08-26 전제 재정렬 (§0): P0 Context Menu·P1 Floating Panel 은 타 ADR 로 반영 완료, Comments/Presence/PixiJS 항목은 전제 소멸. 잔여 = Action Bar · History UI 재실측 · WCAG 감사 (AI Variations 는 ADR-134 후속 판정)
 - 작성일: 2026-02-15 (v2: 2026-03-03 — 현행 아키텍처 기준 재설계)
 - 대상 코드: `apps/builder/src/builder/`
 - 참고 자료: `docs/explanation/research/PHOTOSHOP_BENCHMARK.md`
+
+## 0. 전제 재정렬 (2026-08-26)
+
+본 문서는 2026-03-03 코드 기준으로 쓰였고, 이후 5개월간 타 ADR 이 같은 표면을 구현하거나 전제를 없앴다. 항목별 현재 사실과 처리를 아래에 고정한다 — 체크리스트(§8)도 이에 맞춰 갱신했다.
+
+| 항목 | 원 계획 (§) | 현재 사실 (2026-08-26) | 처리 |
+| --- | --- | --- | --- |
+| Context Menu | §5.3 `components/ContextMenu/` RAC Menu | **ADR-182 Implemented (2026-08-16)** — `components/overlay/contextMenu/{useContextMenu,ContextMenuOverlay,buildContextMenuItems}` + `canvas/contextMenu/` provider, 표면 4종(캔버스 요소/빈 영역/레이어 행/셸) | **반영 완료 — 범위 제외** |
+| 공용 액션 시스템 | §5.1 `builder/actions/{types,elementActions,handlers}` | ADR-182 가 `canvas/actions/canvasActions.ts` 공유 계층(copy/paste/duplicate/delete/group/ungroup/align/distribute 8종)을 추출 | **절반 반영** — 잔여는 Action Bar 가 요구하는 태그별 액션 매핑만 |
+| Contextual Action Bar | §5.2 `workspace/overlay/ContextualActionBar.tsx` | 코드 0건 | **잔여 (P0 의 유일한 실질 항목)** |
+| History Panel UI | §5.4 "258줄 기본 UI" 개선 | **ADR-180 Implemented (2026-08-13)** — `HistoryPanel.tsx` 551줄, 아이콘·스냅샷 적용 | **재실측 후 잔여 판정** — 원 기술은 stale |
+| AI Variations | §6.1 `GroqAgentService` + 7 도구 위에 Variations | **ADR-134** Phase 2 가 Groq 완전 제거 → 전제 충돌. 134 breakdown scope-out 목록에도 없어 소관 미정 | **보류** — 134 후속 응용으로 이관 여부는 134 착수 시 판정 |
+| Comments Panel | §6.2 Supabase Realtime | **ADR-128** Supabase backend decommission (Implemented 2026-05-12) | **폐기 — 전제 소멸** |
+| Floating Panel | §6.3 `PanelDisplayMode` 확장 + `ModalPanelContainer` 수정 | **ADR-922 (2026-08-18)** `PanelDisplayMode = "panel" \| "modal" \| "floating"` + **ADR-186 (2026-08-19)** 9-zone placement. `ModalPanelContainer.tsx` 는 현존하지 않음 | **반영 완료 — 범위 제외** |
+| PixiJS 우클릭 연동 | §4.2/§5.3/§8 | **ADR-900** Phase 8-9 로 PixiJS 제거 | **폐기** |
+| Presence/커서 공유 | §7.2 Supabase Realtime presence | ADR-128 로 전제 소멸 | **폐기** |
+| 디자인 시스템 WCAG 감사 | §7.1 | 독립 항목 | **잔여** |
+
+> 착수 시 §4(아키텍처 개요)·§5~7 의 파일 경로는 ADR-182/922/186/180 이후 코드로 재실측한다. §5.3/§6.2/§6.3/§7.2 본문은 역사적 기록으로 보존.
 
 ## 1. 목적
 
@@ -422,28 +441,27 @@ export interface ModalPanelState {
 
 ### Phase 0
 
-- [ ] `apps/builder/src/builder/actions/` 생성
-  - [ ] `types.ts` — ContextualAction + ElementActionMap
-  - [ ] `elementActions.ts` — 요소 태그별 액션 매핑
-  - [ ] `handlers.ts` — inspectorActions 재사용
+- [ ] 공용 액션 시스템 — **절반 반영 (ADR-182 `canvas/actions/canvasActions.ts` 8종)**. 잔여 = Action Bar 용 태그별 액션 매핑
+  - [x] 공유 액션 계층 (ADR-182, 2026-08-16)
+  - [ ] 요소 태그별 액션 매핑 (Action Bar 착수 시)
 - [ ] `workspace/overlay/ContextualActionBar.tsx` — React Aria Toolbar
-- [ ] `components/ContextMenu/` — React Aria Menu
-- [ ] `Workspace.tsx` 통합 (Action Bar + Context Menu 마운트)
-- [ ] PixiJS 우클릭 이벤트 → Context Menu 연동
-- [ ] History Panel 아이콘 + redo opacity 스타일
+- [x] Context Menu — **ADR-182 Implemented 2026-08-16** (`components/overlay/contextMenu/*`)
+- [ ] `Workspace.tsx` 통합 — Context Menu 는 182 로 마운트 완료, Action Bar 만 잔여
+- ~~PixiJS 우클릭 이벤트 → Context Menu 연동~~ — 폐기 (ADR-900 PixiJS 제거, 182 는 Skia hit-test `resolveClickTarget` 공유)
+- [ ] History Panel 아이콘 + redo opacity 스타일 — **ADR-180 (2026-08-13) 이후 재실측 필요** (`HistoryPanel.tsx` 551줄)
 - [ ] 기존 85+ 단축키와 충돌 검증
 - [ ] 테스트 통과
 
 ### Phase 1
 
-- [ ] AI Variations (`useVariations`, `VariationsGrid`, `VariationPreview`)
-- [ ] Comments Panel + PanelId 등록 + Supabase Realtime
-- [ ] Floating Panel (`PanelDisplayMode` 확장 + ModalPanelContainer 수정)
+- [ ] AI Variations — **보류** (Groq 전제가 ADR-134 Phase 2 와 충돌, 134 후속 판정)
+- ~~Comments Panel + PanelId 등록 + Supabase Realtime~~ — 폐기 (ADR-128 Supabase decommission)
+- [x] Floating Panel — **ADR-922 (2026-08-18) + ADR-186 (2026-08-19)** 로 반영 (`PanelDisplayMode "floating"`)
 
 ### Phase 2
 
 - [ ] 색상 대비 WCAG AA 감사
-- [ ] Presence 프로토타입 (Supabase Realtime presence)
+- ~~Presence 프로토타입 (Supabase Realtime presence)~~ — 폐기 (ADR-128)
 
 ---
 
