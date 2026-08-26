@@ -159,7 +159,10 @@ function applyThemeConfig(themeConfig?: {
     lines.push(`--tint: var(--${themeConfig.tint});`);
   }
 
-  if (themeConfig.neutral) {
+  // neutral 프리셋 — 팔레트 var alias. 프리셋이 팔레트 기본값 `neutral` 자체면 emit 하지 않는다:
+  // `--color-neutral-N: var(--color-neutral-N)` 은 자기 참조 순환이라 CSS 가 변수 전체를 무효화해
+  // neutral 을 소비하는 모든 CSS (Badge gray 등) 가 transparent 로 떨어졌다 (2026-08-27 ADR-193 Phase 2 실측).
+  if (themeConfig.neutral && themeConfig.neutral !== "neutral") {
     for (const step of NEUTRAL_STEPS) {
       lines.push(
         `--color-neutral-${step}: var(--color-${themeConfig.neutral}-${step});`,
