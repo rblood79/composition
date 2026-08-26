@@ -8,12 +8,14 @@
  */
 
 import type { CanvasKit, Canvas, Font, FontMgr } from "canvaskit-wasm";
+import { TAILWIND_PALETTE } from "@composition/specs";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import { acquireOverlayFont } from "./selectionRenderer";
 import {
   OVERLAY_BLUE_RGB,
   EVENT_NAV_PURPLE_RGB,
+  hexToRgb01,
 } from "./semanticOverlayColors";
 import type {
   WorkflowEdge,
@@ -100,10 +102,10 @@ const LAYOUT_STROKE_WIDTH = 1.5; // screen px
 const LAYOUT_LABEL_FONT_SIZE = 10; // screen px
 const ORTHO_BORDER_RADIUS = 8; // screen px — smoothstep 꺾임 둥글기
 
-/** blue-500 (#3b82f6) */
+/** blue-500 (semanticOverlayColors 정본, 팔레트 파생) */
 const NAVIGATION_COLOR = OVERLAY_BLUE_RGB;
 
-/** purple-500 (#a855f7) — 미니맵과 공용 (semanticOverlayColors 정본) */
+/** purple-500 — 미니맵과 공용 (semanticOverlayColors 정본, 팔레트 파생) */
 const EVENT_NAV_COLOR = EVENT_NAV_PURPLE_RGB;
 
 // ============================================
@@ -509,36 +511,26 @@ export function renderWorkflowEdges(
 // Data Source Colors
 // ============================================
 
-/** green-500 (#22c55e) */
+/** green-500 — 팔레트 파생 (ADR-191 R8) */
 const DS_COLOR_DATA_TABLE: [number, number, number] = [
-  0x22 / 255,
-  0xc5 / 255,
-  0x5e / 255,
+  ...hexToRgb01(TAILWIND_PALETTE.green[500]),
 ];
-/** amber-500 (#f59e0b) */
+/** amber-500 — 팔레트 파생 (ADR-191 R8) */
 const DS_COLOR_API: [number, number, number] = [
-  0xf5 / 255,
-  0x9e / 255,
-  0x0b / 255,
+  ...hexToRgb01(TAILWIND_PALETTE.amber[500]),
 ];
-/** emerald-500 (#10b981) */
+/** emerald-500 — 팔레트 파생 (ADR-191 R8) */
 const DS_COLOR_SUPABASE: [number, number, number] = [
-  0x10 / 255,
-  0xb9 / 255,
-  0x81 / 255,
+  ...hexToRgb01(TAILWIND_PALETTE.emerald[500]),
 ];
-/** gray-400 (#9ca3af) */
+/** gray-400 — 팔레트 파생 (ADR-191 R8) */
 const DS_COLOR_MOCK: [number, number, number] = [
-  0x9c / 255,
-  0xa3 / 255,
-  0xaf / 255,
+  ...hexToRgb01(TAILWIND_PALETTE.gray[400]),
 ];
 
-/** secondary-400 (#a78bfa) violet-400 */
+/** violet-400 — 팔레트 파생 (ADR-191 R8) */
 const LAYOUT_GROUP_COLOR: [number, number, number] = [
-  0xa7 / 255,
-  0x8b / 255,
-  0xfa / 255,
+  ...hexToRgb01(TAILWIND_PALETTE.violet[400]),
 ];
 
 function getDataSourceColor(

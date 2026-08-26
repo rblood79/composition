@@ -97,11 +97,11 @@ export function IllustratedMessage({
           width: m.box,
           height: m.box,
           borderRadius: 12,
-          backgroundColor: "var(--bg-muted, #f3f4f6)",
+          backgroundColor: "var(--bg-muted)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "var(--fg-muted, #9ca3af)",
+          color: "var(--fg-muted)",
           fontSize: 48,
         }}
       >
@@ -112,7 +112,7 @@ export function IllustratedMessage({
           fontSize: m.headingFs,
           lineHeight: 1.5,
           fontWeight: 600,
-          color: "var(--fg, #1f2937)",
+          color: "var(--fg)",
         }}
       >
         {headingText}
@@ -121,7 +121,7 @@ export function IllustratedMessage({
         style={{
           fontSize: m.descFs,
           lineHeight: 1.5,
-          color: "var(--fg-muted, #6b7280)",
+          color: "var(--fg-muted)",
         }}
       >
         {descriptionText}

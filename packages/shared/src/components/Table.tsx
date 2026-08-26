@@ -481,7 +481,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                 style={{
                   fontWeight: "500",
                   fontSize: "13px",
-                  color: "#374151",
+                  color: "var(--color-gray-700)",
                 }}
               >
                 {c.label}
@@ -556,13 +556,16 @@ export default React.memo(function Table<T extends { id: string | number }>(
           header: () => (
             <span
               style={{
-                color: group.variant === "primary" ? "#ffffff" : "#374151",
+                color:
+                  group.variant === "primary"
+                    ? "var(--color-white)"
+                    : "var(--color-gray-700)",
                 backgroundColor:
                   group.variant === "primary"
-                    ? "#3b82f6"
+                    ? "var(--color-blue-500)"
                     : group.variant === "secondary"
-                      ? "#6b7280"
-                      : "#f8fafc",
+                      ? "var(--color-gray-500)"
+                      : "var(--color-slate-50)",
 
                 textAlign: group.align || "center",
               }}
@@ -600,7 +603,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                   style={{
                     fontWeight: "500",
                     fontSize: "13px",
-                    color: "#374151",
+                    color: "var(--color-gray-700)",
                   }}
                 >
                   {c.label}
@@ -1378,21 +1381,19 @@ export default React.memo(function Table<T extends { id: string | number }>(
                                       ? "flex-end"
                                       : "flex-start",
                                 textAlign: groupAlign as
-                                  | "left"
-                                  | "center"
-                                  | "right",
+                                  "left" | "center" | "right",
                                 width: header.getSize(),
                                 minWidth: header.getSize(),
                                 backgroundColor:
                                   groupVariant === "primary"
-                                    ? "#3b82f6"
+                                    ? "var(--color-blue-500)"
                                     : groupVariant === "secondary"
-                                      ? "#6b7280"
-                                      : "#f8fafc",
+                                      ? "var(--color-gray-500)"
+                                      : "var(--color-slate-50)",
                                 color:
                                   groupVariant !== "default"
-                                    ? "#ffffff"
-                                    : "#374151",
+                                    ? "var(--color-white)"
+                                    : "var(--color-gray-700)",
                               }}
                             >
                               {flexRender(
@@ -1484,12 +1485,12 @@ export default React.memo(function Table<T extends { id: string | number }>(
                                 {header.column.getIsSorted() === "asc" ? (
                                   <ChevronUp
                                     size={16}
-                                    style={{ color: "#3b82f6" }}
+                                    style={{ color: "var(--color-blue-500)" }}
                                   />
                                 ) : header.column.getIsSorted() === "desc" ? (
                                   <ChevronDown
                                     size={16}
-                                    style={{ color: "#3b82f6" }}
+                                    style={{ color: "var(--color-blue-500)" }}
                                   />
                                 ) : null}
                               </div>

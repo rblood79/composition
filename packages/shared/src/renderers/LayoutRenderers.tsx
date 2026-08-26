@@ -29,7 +29,10 @@ import {
 } from "../components/ColorSwatchPicker";
 import { parseColor } from "react-aria-components";
 import { Slot } from "../components/Slot";
-import { getIconData } from "@composition/specs";
+import { getIconData, TAILWIND_PALETTE } from "@composition/specs";
+
+/** ColorSwatch/ColorPicker 기본값 — 팔레트 단일 원천 (ADR-191 R8). */
+const DEFAULT_SWATCH_HEX = TAILWIND_PALETTE.blue[500];
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
 import {
   allowsMultipleExpanded,
@@ -1419,10 +1422,10 @@ export const renderStatusLight = (
 
   const variantColorMap: Record<string, string> = {
     neutral: "var(--fg-muted)",
-    informative: "var(--color-info-600, #2563eb)",
-    positive: "var(--color-green-600, #16a34a)",
-    notice: "var(--color-warning-600, #d97706)",
-    negative: "var(--negative, #dc2626)",
+    informative: "var(--color-info-600)",
+    positive: "var(--color-green-600)",
+    notice: "var(--color-warning-600)",
+    negative: "var(--negative)",
   };
   const color =
     variantColorMap[(element.props.variant as string) || "neutral"] ||
@@ -1794,13 +1797,13 @@ export const renderColorSwatch = (
   _context: RenderContext,
 ): React.ReactNode => {
   const colorStr = String(
-    element.props.color || element.props.value || "#3b82f6",
+    element.props.color || element.props.value || DEFAULT_SWATCH_HEX,
   );
   let color;
   try {
     color = parseColor(colorStr);
   } catch {
-    color = parseColor("#3b82f6");
+    color = parseColor(DEFAULT_SWATCH_HEX);
   }
 
   return (
@@ -1837,13 +1840,13 @@ export const renderColorSwatchPicker = (
         const colorStr = String(
           (child.props as Record<string, unknown>).color ||
             (child.props as Record<string, unknown>).value ||
-            "#3b82f6",
+            DEFAULT_SWATCH_HEX,
         );
         let color;
         try {
           color = parseColor(colorStr);
         } catch {
-          color = parseColor("#3b82f6");
+          color = parseColor(DEFAULT_SWATCH_HEX);
         }
         return <ColorSwatchPickerItem key={child.id} color={color} />;
       })}
@@ -1892,7 +1895,7 @@ export const renderProgressCircle = (
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="var(--bg-muted, #e5e7eb)"
+          stroke="var(--bg-muted)"
           strokeWidth={strokeWidth}
         />
         {!isIndeterminate && (
@@ -1901,7 +1904,7 @@ export const renderProgressCircle = (
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="var(--accent, #3b82f6)"
+            stroke="var(--accent)"
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={offset}
@@ -1959,8 +1962,8 @@ export const renderImage = (
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "var(--bg-muted, #f3f4f6)",
-        color: "var(--fg-muted, #9ca3af)",
+        backgroundColor: "var(--bg-muted)",
+        color: "var(--fg-muted)",
         fontSize: "14px",
         ...element.props.style,
       }}
@@ -2078,22 +2081,20 @@ export const renderIllustratedMessage = (
           width: 120,
           height: 120,
           borderRadius: 12,
-          backgroundColor: "var(--bg-muted, #f3f4f6)",
+          backgroundColor: "var(--bg-muted)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "var(--fg-muted, #9ca3af)",
+          color: "var(--fg-muted)",
           fontSize: 48,
         }}
       >
         &#9675;
       </div>
-      <div
-        style={{ fontSize: 18, fontWeight: 600, color: "var(--fg, #1f2937)" }}
-      >
+      <div style={{ fontSize: 18, fontWeight: 600, color: "var(--fg)" }}>
         {heading}
       </div>
-      <div style={{ fontSize: 14, color: "var(--fg-muted, #6b7280)" }}>
+      <div style={{ fontSize: 14, color: "var(--fg-muted)" }}>
         {description}
       </div>
     </div>

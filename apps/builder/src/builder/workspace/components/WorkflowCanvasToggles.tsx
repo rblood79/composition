@@ -1,4 +1,5 @@
 import { Checkbox } from "@composition/shared/components";
+import { TAILWIND_PALETTE } from "@composition/specs";
 import { useStore } from "../../stores";
 
 const EdgeStyleIcon: React.FC<{
@@ -71,7 +72,7 @@ export function WorkflowCanvasToggles() {
         isTreeItemChild
       >
         <span className="workflow-toggle-label">
-          <EdgeStyleIcon style="solid" color="#3b82f6" />
+          <EdgeStyleIcon style="solid" color={TAILWIND_PALETTE.blue[500]} />
           Navigation
         </span>
       </Checkbox>
@@ -82,7 +83,7 @@ export function WorkflowCanvasToggles() {
         isTreeItemChild
       >
         <span className="workflow-toggle-label">
-          <EdgeStyleIcon style="dashed" color="#a855f7" />
+          <EdgeStyleIcon style="dashed" color={TAILWIND_PALETTE.purple[500]} />
           Events
         </span>
       </Checkbox>
@@ -93,7 +94,7 @@ export function WorkflowCanvasToggles() {
         isTreeItemChild
       >
         <span className="workflow-toggle-label">
-          <EdgeStyleIcon style="dotted" color="#22c55e" />
+          <EdgeStyleIcon style="dotted" color={TAILWIND_PALETTE.green[500]} />
           Data Sources
         </span>
       </Checkbox>
@@ -104,7 +105,7 @@ export function WorkflowCanvasToggles() {
         isTreeItemChild
       >
         <span className="workflow-toggle-label">
-          <EdgeStyleIcon style="group" color="#a78bfa" />
+          <EdgeStyleIcon style="group" color={TAILWIND_PALETTE.violet[400]} />
           Layout Groups
         </span>
       </Checkbox>

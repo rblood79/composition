@@ -1,9 +1,18 @@
 import type { CanvasKit } from "canvaskit-wasm";
+import { TAILWIND_PALETTE } from "@composition/specs";
 import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
 
-export const OVERLAY_BLUE_R = 0x3b / 255;
-export const OVERLAY_BLUE_G = 0x82 / 255;
-export const OVERLAY_BLUE_B = 0xf6 / 255;
+/** `#rrggbb` → CanvasKit Color4f 채널 (0~1). 팔레트 hex 를 오버레이 상수로 내릴 때 공용 (ADR-191 R8). */
+export function hexToRgb01(hex: string): readonly [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [((n >> 16) & 0xff) / 255, ((n >> 8) & 0xff) / 255, (n & 0xff) / 255];
+}
+
+/** blue-500 — tailwindcss/theme.css 파생 팔레트 (손 복사 v3 #3b82f6 제거) */
+const OVERLAY_BLUE = hexToRgb01(TAILWIND_PALETTE.blue[500]);
+export const OVERLAY_BLUE_R = OVERLAY_BLUE[0];
+export const OVERLAY_BLUE_G = OVERLAY_BLUE[1];
+export const OVERLAY_BLUE_B = OVERLAY_BLUE[2];
 export const OVERLAY_BLUE_RGB: readonly [number, number, number] = [
   OVERLAY_BLUE_R,
   OVERLAY_BLUE_G,
@@ -17,12 +26,9 @@ export const OVERLAY_BLUE_RGB: readonly [number, number, number] = [
  */
 export const OVERLAY_WARM_RED_HEX = 0xf24822;
 
-/** event-navigation 엣지 보라 (purple-500 #a855f7) — workflow 렌더러·미니맵 공용 */
-export const EVENT_NAV_PURPLE_RGB: readonly [number, number, number] = [
-  0xa8 / 255,
-  0x55 / 255,
-  0xf7 / 255,
-];
+/** event-navigation 엣지 보라 (purple-500) — workflow 렌더러·미니맵 공용, 팔레트 파생 */
+export const EVENT_NAV_PURPLE_RGB: readonly [number, number, number] =
+  hexToRgb01(TAILWIND_PALETTE.purple[500]);
 
 const ORIGIN_R = 0xd4 / 255;
 const ORIGIN_G = 0x80 / 255;

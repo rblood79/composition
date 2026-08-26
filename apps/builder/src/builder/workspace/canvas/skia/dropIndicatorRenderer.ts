@@ -8,23 +8,25 @@
  */
 
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
+import { TAILWIND_PALETTE } from "@composition/specs";
 import type { BoundingBox } from "../selection/types";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import {
   OVERLAY_BLUE_R,
   OVERLAY_BLUE_G,
   OVERLAY_BLUE_B,
+  hexToRgb01,
 } from "./semanticOverlayColors";
 
-// blue-500 (#3b82f6) — same-parent reorder
+// blue-500 — same-parent reorder (semanticOverlayColors 정본)
 const DROP_R = OVERLAY_BLUE_R;
 const DROP_G = OVERLAY_BLUE_G;
 const DROP_B = OVERLAY_BLUE_B;
 
-// green-500 (#22c55e) — cross-container reparent
-const REPARENT_R = 0x22 / 255;
-const REPARENT_G = 0xc5 / 255;
-const REPARENT_B = 0x5e / 255;
+// green-500 — cross-container reparent (팔레트 파생, ADR-191 R8)
+const [REPARENT_R, REPARENT_G, REPARENT_B] = hexToRgb01(
+  TAILWIND_PALETTE.green[500],
+);
 
 export interface DropIndicatorState {
   targetBounds: BoundingBox;

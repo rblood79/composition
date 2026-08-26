@@ -1,4 +1,5 @@
 import React from "react";
+import { TAILWIND_PALETTE } from "@composition/specs";
 import {
   Form,
   TextField,
@@ -1122,12 +1123,12 @@ export const renderTailSwatch = (
   const { updateElementProps } = context;
 
   // Parse color value or use default
-  const colorValue = element.props.value || "#3b82f6";
+  const colorValue = element.props.value || TAILWIND_PALETTE.blue[500];
   let color;
   try {
     color = parseColor(colorValue as string);
   } catch {
-    color = parseColor("#3b82f6");
+    color = parseColor(TAILWIND_PALETTE.blue[500]);
   }
 
   const handleColorChange = (newColor: Color) => {

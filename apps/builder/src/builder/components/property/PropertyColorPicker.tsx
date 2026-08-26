@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { TAILWIND_PALETTE } from "@composition/specs";
 import { parseColor, type Color } from "react-aria-components";
 import { MyColorSwatches } from "@composition/shared/components/TailSwatch";
 import { Paintbrush } from "lucide-react";
@@ -13,6 +14,9 @@ import {
   translateKey,
   useOptionalI18n,
 } from "../../../i18n";
+
+/** 기본 색 — blue-500, tailwindcss/theme.css 파생 팔레트 (손 복사 v3 리터럴 제거, ADR-191 R8) */
+const DEFAULT_COLOR_HEX = TAILWIND_PALETTE.blue[500];
 
 export interface PropertyColorPickerProps {
   label: string;
@@ -27,14 +31,14 @@ export interface PropertyColorPickerProps {
  * @example
  * <PropertyColorPicker
  *   label="Background Color"
- *   value="#3b82f6"
+ *   value="#2b7fff"
  *   onChange={(color) => updateProp('backgroundColor', color)}
  *   icon={Paintbrush}
  * />
  */
 export function PropertyColorPicker({
   label,
-  value = "#3b82f6",
+  value = DEFAULT_COLOR_HEX,
   onChange,
   icon: Icon = Paintbrush,
 }: PropertyColorPickerProps) {
@@ -43,7 +47,7 @@ export function PropertyColorPicker({
     try {
       return parseColor(value);
     } catch {
-      return parseColor("#3b82f6"); // Default blue
+      return parseColor(DEFAULT_COLOR_HEX); // Default blue (blue-500, 팔레트 파생)
     }
   });
 
