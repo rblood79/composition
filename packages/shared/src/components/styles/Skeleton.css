@@ -138,27 +138,27 @@
 
   .react-aria-Skeleton.xs {
     --skeleton-height: 24px;
-    --skeleton-font-size: 12px;
+    --skeleton-font-size: var(--text-xs);
   }
 
   .react-aria-Skeleton.sm {
     --skeleton-height: 32px;
-    --skeleton-font-size: 14px;
+    --skeleton-font-size: var(--text-sm);
   }
 
   .react-aria-Skeleton.md {
     --skeleton-height: 40px;
-    --skeleton-font-size: 14px;
+    --skeleton-font-size: var(--text-sm);
   }
 
   .react-aria-Skeleton.lg {
     --skeleton-height: 48px;
-    --skeleton-font-size: 16px;
+    --skeleton-font-size: var(--text-base);
   }
 
   .react-aria-Skeleton.xl {
     --skeleton-height: 56px;
-    --skeleton-font-size: 18px;
+    --skeleton-font-size: var(--text-lg);
   }
 
   /* ========================================================================

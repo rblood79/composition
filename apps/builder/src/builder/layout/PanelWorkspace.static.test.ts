@@ -215,7 +215,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toMatch(
       /const origin = \{[\s\S]*?x: 0,[\s\S]*?y: 0,[\s\S]*?workspaceWidth:/,
     );
-    expect(styles).toContain("--panel-workspace-gap: 4px");
+    expect(styles).toContain("--panel-workspace-gap: var(--spacing-xs)");
     expect(styles).toMatch(
       /\.panel-dock\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-rows: auto minmax\(0, 1fr\);[\s\S]*?margin: var\(--panel-workspace-gap\);/,
     );

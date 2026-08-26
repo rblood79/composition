@@ -42,7 +42,7 @@
     &[data-size="md"] {
       --cb-font-size: var(--text-base);
       --cb-box-size: var(--text-xl);
-      --cb-gap: 8px;
+      --cb-gap: var(--spacing-sm);
       --label-font-size: var(--text-sm);
       font-size: var(--text-base);
       line-height: var(--text-base--line-height);
@@ -62,7 +62,7 @@
     &[data-size="xl"] {
       --cb-font-size: var(--text-xl);
       --cb-box-size: var(--text-3xl);
-      --cb-gap: 12px;
+      --cb-gap: var(--spacing-md);
       --label-font-size: var(--text-lg);
       font-size: var(--text-xl);
       line-height: var(--text-xl--line-height);
@@ -201,7 +201,7 @@
   .react-aria-CheckboxGroup[data-checkbox-size="md"] .react-aria-Checkbox {
     --cb-font-size: var(--text-base);
     --cb-box-size: var(--text-xl);
-    --cb-gap: 8px;
+    --cb-gap: var(--spacing-sm);
     --label-font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
   }
@@ -217,7 +217,7 @@
   .react-aria-CheckboxGroup[data-checkbox-size="xl"] .react-aria-Checkbox {
     --cb-font-size: var(--text-xl);
     --cb-box-size: var(--text-3xl);
-    --cb-gap: 12px;
+    --cb-gap: var(--spacing-md);
     --label-font-size: var(--text-lg);
     line-height: var(--text-lg--line-height);
   }

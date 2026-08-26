@@ -65,11 +65,11 @@
     }
 
     &[data-static-color="black"] {
-      --link-color: #000;
+      --link-color: var(--color-black);
     }
 
     &[data-static-color="white"] {
-      --link-color: #fff;
+      --link-color: var(--color-white);
     }
 
     &[data-quiet="true"] {

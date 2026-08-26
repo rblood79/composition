@@ -131,7 +131,7 @@
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
     --label-font-size: var(--text-sm);
-    --radio-gap: 8px;
+    --radio-gap: var(--spacing-sm);
 
     &:before {
       width: var(--text-xl);
@@ -168,7 +168,7 @@
     font-size: var(--text-xl);
     line-height: var(--text-xl--line-height);
     --label-font-size: var(--text-lg);
-    --radio-gap: 12px;
+    --radio-gap: var(--spacing-md);
 
     &:before {
       width: var(--text-3xl);

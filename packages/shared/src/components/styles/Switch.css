@@ -99,7 +99,7 @@
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
     --label-font-size: var(--text-xs);
-    --switch-gap: 8px;
+    --switch-gap: var(--spacing-sm);
 
     .indicator {
       width: calc(var(--text-3xl) + 2px);
@@ -139,7 +139,7 @@
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
     --label-font-size: var(--text-base);
-    --switch-gap: 12px;
+    --switch-gap: var(--spacing-md);
 
     .indicator {
       width: calc(var(--text-5xl) - 4px);

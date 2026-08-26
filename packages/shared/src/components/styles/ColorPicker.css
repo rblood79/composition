@@ -49,7 +49,7 @@
       --cp-gap: 6px;
       --cp-btn-width: 24px;
       --cp-btn-height: 24px;
-      --cp-dialog-padding: 12px;
+      --cp-dialog-padding: var(--spacing-md);
       --cp-dialog-gap: 6px;
       --cp-dialog-min-width: 160px;
     }

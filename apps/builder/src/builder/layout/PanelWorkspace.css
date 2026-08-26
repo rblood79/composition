@@ -29,7 +29,7 @@
   }
 
   .panel-workspace {
-    --panel-workspace-gap: 4px;
+    --panel-workspace-gap: var(--spacing-xs);
     --panel-interaction-line-color: var(--focus-ring);
     --panel-interaction-line-size: 2px;
 

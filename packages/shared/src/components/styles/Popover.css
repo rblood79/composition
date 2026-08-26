@@ -72,7 +72,7 @@
     /* ===== Placement Variants with Origin-Aware Animation ===== */
     &[data-placement="top"] {
       --origin: translateY(8px);
-      --popover-offset-y: 8px;
+      --popover-offset-y: var(--spacing-sm);
       --popover-origin-x: 50%;
       --popover-origin-y: 100%;
 
