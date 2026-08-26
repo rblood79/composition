@@ -171,14 +171,14 @@ Spec TokenRef: {color.primary}, {color.secondary}, {color.tertiary},
 
 **ADR-193 (2026-08-27)**: status(`--negative/--informative/--positive/--notice` +`-subtle`) 와 named hue(`--hue-{token}` +`-subtle`) 의 light/dark 팔레트 단계는 `packages/specs/src/primitives/semanticPaletteMap.ts` 표 하나가 정본이다 — Skia `colors.ts` 와 `theme/generated/semantic-palette.css` (`:root` / `[data-theme="dark"]`, `pnpm generate:palette`) 가 같은 표에서 파생. 매핑 파일 (`colorTokenToCss.ts` / `tokenResolver.ts`) 은 semantic var 이름만 고른다. `--indigo` 류 접두 없는 이름은 tint preset 이 점유하므로 named hue 는 `--hue-` 접두 필수. 게이트: `semanticAlias.symmetry.test.ts` (light+dark 전 토큰), `tailwindPalette.drift.test.ts` (생성 byte-diff 0 · hex 0 · ≤5KB).
 
-| TokenRef                 | CSS 변수 매핑                        | 용도                                        |
-| ------------------------ | ------------------------------------ | ------------------------------------------- |
-| `{color.purple}`         | `--hue-purple`                       | 보라 테마 (light purple-600 / dark 500)     |
-| `{color.purple-hover}`   | `color-mix(--hue-purple 85%, black)` | purple hover                                |
-| `{color.purple-pressed}` | `color-mix(--hue-purple 75%, black)` | purple pressed                              |
-| `{color.purple-subtle}`  | `--hue-purple-subtle`                | 연한 보라 (light 100 / dark 900)            |
-| `{color.gray}`           | `--hue-gray`                         | neutral-500 / dark neutral-400 (Badge gray) |
-| `{color.indigo}` 등 17종 | `--hue-{token}`                      | semanticPaletteMap 표 참조                  |
+| TokenRef                 | CSS 변수 매핑                        | 용도                                                                                                                                              |
+| ------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{color.purple}`         | `--hue-purple`                       | 보라 테마 (light purple-600 / dark 500)                                                                                                           |
+| `{color.purple-hover}`   | `color-mix(--hue-purple 85%, black)` | purple hover — status·named hue 전 토큰의 `-hover`(85%)/`-pressed`(75%) 가 같은 규칙으로 루프 파생 (tokenResolver + colorTokenToCss, `7a0cef175`) |
+| `{color.purple-pressed}` | `color-mix(--hue-purple 75%, black)` | purple pressed                                                                                                                                    |
+| `{color.purple-subtle}`  | `--hue-purple-subtle`                | 연한 보라 (light 100 / dark 900)                                                                                                                  |
+| `{color.gray}`           | `--hue-gray`                         | neutral-500 / dark neutral-400 (Badge gray)                                                                                                       |
+| `{color.indigo}` 등 17종 | `--hue-{token}`                      | semanticPaletteMap 표 참조                                                                                                                        |
 
 ## Tint Color System (preview-system.css)
 
