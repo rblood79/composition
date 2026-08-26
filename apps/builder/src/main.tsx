@@ -11,9 +11,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { isReactQueryDevtoolsEnabled } from "./utils/featureFlags";
 import { initPerformanceDiagnostics } from "./utils/performance/diagnostics";
+import { cleanupLegacyStorage } from "./lib/legacyStorageCleanup";
 
 // Phase 9: Performance monitors are opt-in diagnostics in dev mode.
 initPerformanceDiagnostics();
+
+// 제거된 기능이 사용자 브라우저에 남긴 localStorage 키 정리 (idempotent).
+cleanupLegacyStorage();
 import "./fonts/initBuiltinFonts";
 import "./builder/fonts/initCustomFonts";
 

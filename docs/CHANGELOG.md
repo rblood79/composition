@@ -58,6 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   저장된다고 말하고 있었다.
 - 동명 파일 주의: `builder/panels/settings/SettingsPanel.tsx` 는 별개이며
   `panelConfigs.ts` 에 등록된 정상 동작 패널이다 (눈금자/가이드 소유). 손대지 않았다.
+- 사용자 브라우저에 남은 `composition-settings` localStorage 키는 앱 시작 시 1회
+  정리한다 (`lib/legacyStorageCleanup.ts`, `main.tsx` 에서 호출). 코드를 지워도
+  저장소는 남고, 되살아난 키를 나중에 "쓰이는 설정" 으로 잘못 읽게 된다. 목록 방식이라
+  이후 죽은 키도 같은 자리에 근거와 함께 추가한다. 저장소 접근이 throw 하는 환경
+  (사생활 보호 모드·저장소 차단) 에서는 조용히 넘어가 앱 시작을 막지 않는다.
 - 위치: `apps/builder/src/{dashboard/SettingsPanel.tsx,dashboard/SettingsPanel.css,
 stores/settingsStore.ts,types/settings.types.ts,stores/index.ts}`
 
@@ -72,6 +77,9 @@ stores/settingsStore.ts,types/settings.types.ts,stores/index.ts}`
 ### Verification
 
 - `tsc -p tsconfig.app.json --noEmit` 0 error, `eslint src/dashboard/` 0 error 0 warning.
+- localStorage 정리: 유닛 5건(지움/idempotent/무관 키 보존/throw 내성/제거 목록에
+  살아 있는 키 없음) 통과. 라이브 빌더에서 `composition-settings` 를 심고 새로고침해
+  사라지는 것과, 실측한 나머지 11개 키가 그대로 남는 것을 확인.
 - 제거 후: 잔존 참조 전수 grep 0건(`settingsStore` / `settings.types` /
   `DEFAULT_SETTINGS` / `UserSettings` / `ProjectCreationMode` / `getSettings` /
   localStorage 키 `composition-settings`), `tsc --noEmit` 0 error,
