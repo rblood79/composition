@@ -168,17 +168,17 @@
     --color-black: #000;
 
     /* Primary Colors - Tailwind Blue (테마 기본 액센트) */
-    --color-primary-50: #eff6ff;
-    --color-primary-100: #dbeafe;
-    --color-primary-200: #bfdbfe;
-    --color-primary-300: #93c5fd;
-    --color-primary-400: #60a5fa;
-    --color-primary-500: #3b82f6;
-    --color-primary-600: #2563eb;
-    --color-primary-700: #1d4ed8;
-    --color-primary-800: #1e40af;
-    --color-primary-900: #1e3a8a;
-    --color-primary-950: #172554;
+    --color-primary-50: var(--color-blue-50);
+    --color-primary-100: var(--color-blue-100);
+    --color-primary-200: var(--color-blue-200);
+    --color-primary-300: var(--color-blue-300);
+    --color-primary-400: var(--color-blue-400);
+    --color-primary-500: var(--color-blue-500);
+    --color-primary-600: var(--color-blue-600);
+    --color-primary-700: var(--color-blue-700);
+    --color-primary-800: var(--color-blue-800);
+    --color-primary-900: var(--color-blue-900);
+    --color-primary-950: var(--color-blue-950);
 
     /* Tailwind 팔레트 (--color-{family}-{step}) 는 여기 없다 — ADR-191:
      * generated/tailwind-palette.css 가 설치된 tailwindcss/theme.css 에서 파생한 유일한 정의.
@@ -242,16 +242,17 @@
     --color-info-950: var(--color-blue-950);
 
     /* Tertiary Colors - Tailwind Purple */
-    --color-tertiary-50: #faf5ff;
-    --color-tertiary-100: #f3e8ff;
-    --color-tertiary-200: #e9d5ff;
-    --color-tertiary-300: #d8b4fe;
-    --color-tertiary-400: #c084fc;
-    --color-tertiary-500: #a855f7;
-    --color-tertiary-600: #9333ea;
-    --color-tertiary-700: #7e22ce;
-    --color-tertiary-800: #6b21a8;
-    --color-tertiary-900: #581c87;
+    --color-tertiary-50: var(--color-purple-50);
+    --color-tertiary-100: var(--color-purple-100);
+    --color-tertiary-200: var(--color-purple-200);
+    --color-tertiary-300: var(--color-purple-300);
+    --color-tertiary-400: var(--color-purple-400);
+    --color-tertiary-500: var(--color-purple-500);
+    --color-tertiary-600: var(--color-purple-600);
+    --color-tertiary-700: var(--color-purple-700);
+    --color-tertiary-800: var(--color-purple-800);
+    --color-tertiary-900: var(--color-purple-900);
+    --color-tertiary-950: var(--color-purple-950);
 
     /* custom 확장 — Tailwind 에 없는 단계. builder-system.css --bg-raised (dark) 가 소비. ADR-191 R7 */
     --color-zinc-850: #202023;

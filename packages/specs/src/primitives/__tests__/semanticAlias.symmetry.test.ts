@@ -133,6 +133,56 @@ describe("semantic alias 층 — Skia colors.ts ↔ CSS 체인 대칭", () => {
     );
   });
 
+  const NAMED = [
+    "purple",
+    "red",
+    "orange",
+    "yellow",
+    "blue",
+    "indigo",
+    "cyan",
+    "pink",
+    "fuchsia",
+    "magenta",
+    "celery",
+    "chartreuse",
+    "turquoise",
+    "seafoam",
+    "cinnamon",
+    "brown",
+    "silver",
+  ] as const;
+
+  it.each(NAMED)(
+    "named hue {color.%s} — catalog 매핑 var 의 팔레트 hex == lightColors (손 oklch 리터럴 0)",
+    (token) => {
+      const cssVar = tokenVar(catalogMap, token);
+      expect(cssVar, `${token} 은 var(--color-*) 여야 함`).toMatch(/^--color-/);
+      expect(resolveCssVar(cssVar, aliases, "light")).toBe(lightColors[token]);
+    },
+  );
+
+  it.each(NAMED.filter((t) => t !== "gray"))(
+    "named hue {color.%s-subtle} — 잔존 spec 매핑(tokenResolver) 의 팔레트 hex == lightColors",
+    (token) => {
+      const key = `${token}-subtle` as keyof typeof lightColors;
+      const cssVar = tokenVar(specMap, `${token}-subtle`);
+      expect(resolveCssVar(cssVar, aliases, "light")).toBe(lightColors[key]);
+    },
+  );
+
+  it("shared-tokens primary/tertiary 도 팔레트 alias (blue/purple) — 손 hex 0", () => {
+    expect(sharedTokens).not.toMatch(/--color-(primary|tertiary)-\d+:\s*#/);
+    for (const step of [50, 100, 500, 700, 900]) {
+      expect(sharedTokens).toContain(
+        `--color-primary-${step}: var(--color-blue-${step});`,
+      );
+      expect(sharedTokens).toContain(
+        `--color-tertiary-${step}: var(--color-purple-${step});`,
+      );
+    }
+  });
+
   it("실측 앵커 — negative 는 red-500 #fb2c36, notice 는 orange-600 #f54900 (amber 아님)", () => {
     expect(lightColors.negative).toBe(TAILWIND_PALETTE.red[500]);
     expect(lightColors.notice).toBe(TAILWIND_PALETTE.orange[600]);

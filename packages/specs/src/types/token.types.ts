@@ -140,6 +140,17 @@ export interface ColorTokens {
   "celery-subtle": string;
   chartreuse: string;
   "chartreuse-subtle": string;
+  // Spectrum 전용 hue (ADR-191 후속) — Tailwind 최근접 family 로 고정
+  turquoise: string;
+  "turquoise-subtle": string;
+  seafoam: string;
+  "seafoam-subtle": string;
+  cinnamon: string;
+  "cinnamon-subtle": string;
+  brown: string;
+  "brown-subtle": string;
+  silver: string;
+  "silver-subtle": string;
 }
 
 /**

@@ -223,12 +223,14 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
       /\.panel-dock-stage\s*\{[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;/,
     );
     expect(styles).toMatch(/\.panel-dock\s*\{[\s\S]*?overflow: hidden;/);
+    // ef3871266: rail 폭은 내용(toggle group)이 정하고 --panel-toggle-rail-width 는 제거됨 — width 선언 자체가 없어야 한다
     expect(styles).toMatch(
-      /\.panel-dock-stage > \.panel-toggle-rail\s*\{[\s\S]*?z-index: 2100;[\s\S]*?width: var\(--panel-toggle-rail-width\);/,
+      /\.panel-dock-stage > \.panel-toggle-rail\s*\{[\s\S]*?z-index: 2100;[\s\S]*?height: 100%;/,
     );
     expect(styles).not.toMatch(
-      /\.panel-dock-stage > \.panel-toggle-rail\s*\{[\s\S]*?width: fit-content;/,
+      /\.panel-dock-stage > \.panel-toggle-rail\s*\{[^}]*?width:/,
     );
+    expect(styles).not.toContain("--panel-toggle-rail-width");
     expect(styles).toMatch(
       /\.panel-dock-surface\s*\{[\s\S]*?position: relative;[\s\S]*?flex: 1;/,
     );

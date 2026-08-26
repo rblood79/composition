@@ -45,19 +45,20 @@ const COLOR_TOKEN_CSS: Record<string, string> = {
   orange: "var(--color-orange-600)",
   yellow: "var(--color-yellow-500)",
   blue: "var(--color-blue-600)",
-  indigo: "oklch(0.45 0.2 284)",
-  cyan: "oklch(0.5 0.14 220)",
-  pink: "oklch(0.6 0.18 348)",
-  turquoise: "oklch(0.55 0.1 195)",
-  fuchsia: "oklch(0.55 0.22 320)",
-  magenta: "oklch(0.55 0.2 335)",
-  celery: "oklch(0.62 0.16 130)",
-  chartreuse: "oklch(0.65 0.18 115)",
-  // theme 직접 CSS var (tokenResolver 미보유 — generated CSS 가 var(--X) 직접 emit)
-  seafoam: "var(--seafoam)",
-  cinnamon: "var(--cinnamon)",
-  brown: "var(--brown)",
-  silver: "var(--silver)",
+  indigo: "var(--color-indigo-700)",
+  cyan: "var(--color-cyan-600)",
+  pink: "var(--color-pink-600)",
+  turquoise: "var(--color-teal-500)",
+  fuchsia: "var(--color-fuchsia-600)",
+  magenta: "var(--color-pink-700)",
+  celery: "var(--color-lime-600)",
+  chartreuse: "var(--color-lime-500)",
+  // Spectrum 전용 hue — Tailwind 에 같은 이름이 없어 가장 가까운 family 로 고정. Skia colors.ts 와 같은 단계
+  // (semanticAlias.symmetry.test 가 대조). 예전 var(--seafoam) 등은 어디에도 정의가 없던 undefined 참조.
+  seafoam: "var(--color-teal-700)",
+  cinnamon: "var(--color-amber-800)",
+  brown: "var(--color-yellow-900)",
+  silver: "var(--color-gray-400)",
 };
 
 /**

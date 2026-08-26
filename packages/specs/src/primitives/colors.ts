@@ -78,20 +78,31 @@ export const lightColors: ColorTokens = {
   "orange-subtle": TAILWIND_PALETTE.orange[100],
   blue: TAILWIND_PALETTE.blue[600],
   "blue-subtle": TAILWIND_PALETTE.blue[100],
-  indigo: "#4338ca",
+  indigo: TAILWIND_PALETTE.indigo[700], // v3 indigo-700 #4338ca
   "indigo-subtle": TAILWIND_PALETTE.indigo[100],
-  cyan: "#0891b2",
+  cyan: TAILWIND_PALETTE.cyan[600], // v3 cyan-600 #0891b2
   "cyan-subtle": TAILWIND_PALETTE.cyan[100],
-  pink: "#db2777",
+  pink: TAILWIND_PALETTE.pink[600], // v3 pink-600 #db2777
   "pink-subtle": TAILWIND_PALETTE.pink[100],
-  fuchsia: "#c026d3",
+  fuchsia: TAILWIND_PALETTE.fuchsia[600], // v3 fuchsia-600 #c026d3
   "fuchsia-subtle": TAILWIND_PALETTE.fuchsia[100],
-  magenta: "#be185d",
+  magenta: TAILWIND_PALETTE.pink[700], // v3 pink-700 #be185d
   "magenta-subtle": TAILWIND_PALETTE.pink[100],
-  celery: "#65a30d",
+  celery: TAILWIND_PALETTE.lime[600], // v3 lime-600 #65a30d
   "celery-subtle": TAILWIND_PALETTE.lime[100],
-  chartreuse: "#84cc16",
+  chartreuse: TAILWIND_PALETTE.lime[500], // v3 lime-500 #84cc16
   "chartreuse-subtle": TAILWIND_PALETTE.lime[100],
+  // Spectrum 전용 hue — Tailwind 에 같은 이름이 없어 가장 가까운 family 로 고정 (CSS 매핑과 동일 단계, semanticAlias.symmetry.test)
+  turquoise: TAILWIND_PALETTE.teal[500],
+  "turquoise-subtle": TAILWIND_PALETTE.teal[100],
+  seafoam: TAILWIND_PALETTE.teal[700],
+  "seafoam-subtle": TAILWIND_PALETTE.teal[100],
+  cinnamon: TAILWIND_PALETTE.amber[800],
+  "cinnamon-subtle": TAILWIND_PALETTE.amber[100],
+  brown: TAILWIND_PALETTE.yellow[900],
+  "brown-subtle": TAILWIND_PALETTE.yellow[100],
+  silver: TAILWIND_PALETTE.gray[400],
+  "silver-subtle": TAILWIND_PALETTE.gray[100],
 };
 
 /**
@@ -103,7 +114,7 @@ export const darkColors: ColorTokens = {
   accent: TAILWIND_PALETTE.blue[500], // blue-500
   "accent-hover": "#3270d1",
   "accent-pressed": TAILWIND_PALETTE.blue[400],
-  "on-accent": "#171717",
+  "on-accent": TAILWIND_PALETTE.neutral[900], // v3 neutral-900 #171717
   "accent-subtle": TAILWIND_PALETTE.blue[900], // blue-900
 
   // --- Neutral ---
@@ -159,20 +170,31 @@ export const darkColors: ColorTokens = {
   "orange-subtle": TAILWIND_PALETTE.orange[900],
   blue: TAILWIND_PALETTE.blue[500],
   "blue-subtle": TAILWIND_PALETTE.blue[900],
-  indigo: "#6366f1",
-  "indigo-subtle": "#312e81",
-  cyan: "#06b6d4",
-  "cyan-subtle": "#164e63",
-  pink: "#ec4899",
-  "pink-subtle": "#831843",
-  fuchsia: "#d946ef",
-  "fuchsia-subtle": "#701a75",
-  magenta: "#e11d48",
-  "magenta-subtle": "#881337",
-  celery: "#84cc16",
-  "celery-subtle": "#365314",
-  chartreuse: "#a3e635",
-  "chartreuse-subtle": "#365314",
+  indigo: TAILWIND_PALETTE.indigo[500], // v3 indigo-500 #6366f1
+  "indigo-subtle": TAILWIND_PALETTE.indigo[900], // v3 indigo-900 #312e81
+  cyan: TAILWIND_PALETTE.cyan[500], // v3 cyan-500 #06b6d4
+  "cyan-subtle": TAILWIND_PALETTE.cyan[900], // v3 cyan-900 #164e63
+  pink: TAILWIND_PALETTE.pink[500], // v3 pink-500 #ec4899
+  "pink-subtle": TAILWIND_PALETTE.pink[900], // v3 pink-900 #831843
+  fuchsia: TAILWIND_PALETTE.fuchsia[500], // v3 fuchsia-500 #d946ef
+  "fuchsia-subtle": TAILWIND_PALETTE.fuchsia[900], // v3 fuchsia-900 #701a75
+  magenta: TAILWIND_PALETTE.rose[600], // v3 rose-600 #e11d48
+  "magenta-subtle": TAILWIND_PALETTE.rose[900], // v3 rose-900 #881337
+  celery: TAILWIND_PALETTE.lime[500], // v3 lime-500 #84cc16
+  "celery-subtle": TAILWIND_PALETTE.lime[900], // v3 lime-900 #365314
+  chartreuse: TAILWIND_PALETTE.lime[400], // v3 lime-400 #a3e635
+  "chartreuse-subtle": TAILWIND_PALETTE.lime[900], // v3 lime-900 #365314
+  // Spectrum 전용 hue (dark) — light 와 같은 family, 다른 named hue 와 같은 규칙 (본색 한 단계 밝게 / subtle 900)
+  turquoise: TAILWIND_PALETTE.teal[400],
+  "turquoise-subtle": TAILWIND_PALETTE.teal[900],
+  seafoam: TAILWIND_PALETTE.teal[500],
+  "seafoam-subtle": TAILWIND_PALETTE.teal[900],
+  cinnamon: TAILWIND_PALETTE.amber[600],
+  "cinnamon-subtle": TAILWIND_PALETTE.amber[900],
+  brown: TAILWIND_PALETTE.yellow[700],
+  "brown-subtle": TAILWIND_PALETTE.yellow[900],
+  silver: TAILWIND_PALETTE.gray[500],
+  "silver-subtle": TAILWIND_PALETTE.gray[800],
 };
 
 /**

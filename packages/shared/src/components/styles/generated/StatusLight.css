@@ -5,325 +5,322 @@
  * ============================================================ */
 
 @layer components {
-
-.react-aria-StatusLight {
-  /* Base styles — archetype: simple */
+  .react-aria-StatusLight {
+    /* Base styles — archetype: simple */
     display: inline-flex;
     align-items: center;
     box-sizing: border-box;
 
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
-  align-items: center;
+    /* Container styles (ADR-071 + ADR-083 Phase 1) */
+    display: inline-flex;
+    align-items: center;
 
-  /* Default variant */
-  background: var(--fg-muted);
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  height: 24px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
-
-.react-aria-StatusLight[data-variant="neutral"] {
-  background: var(--fg-muted);
-  color: var(--fg);
-
-  &[data-hovered] {
+    /* Default variant */
     background: var(--fg-muted);
+    color: var(--fg);
+    border: none;
+
+    /* Default size */
+    height: 24px;
+    padding: 0px 0px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-none);
+    gap: 8px;
   }
 
-  &[data-pressed] {
+  .react-aria-StatusLight[data-variant="neutral"] {
     background: var(--fg-muted);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--fg-muted);
+    }
+
+    &[data-pressed] {
+      background: var(--fg-muted);
+    }
   }
-}
 
-.react-aria-StatusLight[data-variant="informative"] {
-  background: var(--color-info-600);
-  color: var(--fg);
-
-  &[data-hovered] {
+  .react-aria-StatusLight[data-variant="informative"] {
     background: var(--color-info-600);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--color-info-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-info-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-info-600);
-  }
-}
-
-.react-aria-StatusLight[data-variant="positive"] {
-  background: var(--color-green-600);
-  color: var(--fg);
-
-  &[data-hovered] {
+  .react-aria-StatusLight[data-variant="positive"] {
     background: var(--color-green-600);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--color-green-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-green-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-green-600);
-  }
-}
-
-.react-aria-StatusLight[data-variant="notice"] {
-  background: var(--color-warning-600);
-  color: var(--fg);
-
-  &[data-hovered] {
+  .react-aria-StatusLight[data-variant="notice"] {
     background: var(--color-warning-600);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--color-warning-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-warning-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-warning-600);
-  }
-}
-
-.react-aria-StatusLight[data-variant="negative"] {
-  background: var(--negative);
-  color: var(--fg);
-
-  &[data-hovered] {
+  .react-aria-StatusLight[data-variant="negative"] {
     background: var(--negative);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--negative);
+    }
+
+    &[data-pressed] {
+      background: var(--negative);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--negative);
-  }
-}
+  .react-aria-StatusLight[data-variant="celery"] {
+    background: var(--color-lime-600);
+    color: var(--fg);
 
-.react-aria-StatusLight[data-variant="celery"] {
-  background: oklch(0.62 0.16 130);
-  color: var(--fg);
+    &[data-hovered] {
+      background: var(--color-lime-600);
+    }
 
-  &[data-hovered] {
-    background: oklch(0.62 0.16 130);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.62 0.16 130);
-  }
-}
-
-.react-aria-StatusLight[data-variant="chartreuse"] {
-  background: oklch(0.65 0.18 115);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.65 0.18 115);
+    &[data-pressed] {
+      background: var(--color-lime-600);
+    }
   }
 
-  &[data-pressed] {
-    background: oklch(0.65 0.18 115);
-  }
-}
+  .react-aria-StatusLight[data-variant="chartreuse"] {
+    background: var(--color-lime-500);
+    color: var(--fg);
 
-.react-aria-StatusLight[data-variant="cyan"] {
-  background: oklch(0.5 0.14 220);
-  color: var(--fg);
+    &[data-hovered] {
+      background: var(--color-lime-500);
+    }
 
-  &[data-hovered] {
-    background: oklch(0.5 0.14 220);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.5 0.14 220);
-  }
-}
-
-.react-aria-StatusLight[data-variant="fuchsia"] {
-  background: oklch(0.55 0.22 320);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.55 0.22 320);
+    &[data-pressed] {
+      background: var(--color-lime-500);
+    }
   }
 
-  &[data-pressed] {
-    background: oklch(0.55 0.22 320);
-  }
-}
+  .react-aria-StatusLight[data-variant="cyan"] {
+    background: var(--color-cyan-600);
+    color: var(--fg);
 
-.react-aria-StatusLight[data-variant="indigo"] {
-  background: oklch(0.45 0.2 284);
-  color: var(--fg);
+    &[data-hovered] {
+      background: var(--color-cyan-600);
+    }
 
-  &[data-hovered] {
-    background: oklch(0.45 0.2 284);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.45 0.2 284);
-  }
-}
-
-.react-aria-StatusLight[data-variant="magenta"] {
-  background: oklch(0.55 0.2 335);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.55 0.2 335);
+    &[data-pressed] {
+      background: var(--color-cyan-600);
+    }
   }
 
-  &[data-pressed] {
-    background: oklch(0.55 0.2 335);
+  .react-aria-StatusLight[data-variant="fuchsia"] {
+    background: var(--color-fuchsia-600);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--color-fuchsia-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-fuchsia-600);
+    }
   }
-}
 
-.react-aria-StatusLight[data-variant="purple"] {
-  background: var(--color-purple-600);
-  color: var(--fg);
+  .react-aria-StatusLight[data-variant="indigo"] {
+    background: var(--color-indigo-700);
+    color: var(--fg);
 
-  &[data-hovered] {
+    &[data-hovered] {
+      background: var(--color-indigo-700);
+    }
+
+    &[data-pressed] {
+      background: var(--color-indigo-700);
+    }
+  }
+
+  .react-aria-StatusLight[data-variant="magenta"] {
+    background: var(--color-pink-700);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--color-pink-700);
+    }
+
+    &[data-pressed] {
+      background: var(--color-pink-700);
+    }
+  }
+
+  .react-aria-StatusLight[data-variant="purple"] {
     background: var(--color-purple-600);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--color-purple-600);
+    }
+
+    &[data-pressed] {
+      background: var(--color-purple-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-purple-600);
-  }
-}
-
-.react-aria-StatusLight[data-variant="yellow"] {
-  background: var(--color-yellow-500);
-  color: var(--fg);
-
-  &[data-hovered] {
+  .react-aria-StatusLight[data-variant="yellow"] {
     background: var(--color-yellow-500);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--color-yellow-500);
+    }
+
+    &[data-pressed] {
+      background: var(--color-yellow-500);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--color-yellow-500);
-  }
-}
+  .react-aria-StatusLight[data-variant="seafoam"] {
+    background: var(--color-teal-700);
+    color: var(--fg);
 
-.react-aria-StatusLight[data-variant="seafoam"] {
-  background: var(--seafoam);
-  color: var(--fg);
+    &[data-hovered] {
+      background: var(--color-teal-700);
+    }
 
-  &[data-hovered] {
-    background: var(--seafoam);
-  }
-
-  &[data-pressed] {
-    background: var(--seafoam);
-  }
-}
-
-.react-aria-StatusLight[data-variant="pink"] {
-  background: oklch(0.6 0.18 348);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.6 0.18 348);
+    &[data-pressed] {
+      background: var(--color-teal-700);
+    }
   }
 
-  &[data-pressed] {
-    background: oklch(0.6 0.18 348);
-  }
-}
+  .react-aria-StatusLight[data-variant="pink"] {
+    background: var(--color-pink-600);
+    color: var(--fg);
 
-.react-aria-StatusLight[data-variant="turquoise"] {
-  background: oklch(0.55 0.1 195);
-  color: var(--fg);
+    &[data-hovered] {
+      background: var(--color-pink-600);
+    }
 
-  &[data-hovered] {
-    background: oklch(0.55 0.1 195);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.55 0.1 195);
-  }
-}
-
-.react-aria-StatusLight[data-variant="cinnamon"] {
-  background: var(--cinnamon);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--cinnamon);
+    &[data-pressed] {
+      background: var(--color-pink-600);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--cinnamon);
-  }
-}
+  .react-aria-StatusLight[data-variant="turquoise"] {
+    background: var(--color-teal-500);
+    color: var(--fg);
 
-.react-aria-StatusLight[data-variant="brown"] {
-  background: var(--brown);
-  color: var(--fg);
+    &[data-hovered] {
+      background: var(--color-teal-500);
+    }
 
-  &[data-hovered] {
-    background: var(--brown);
-  }
-
-  &[data-pressed] {
-    background: var(--brown);
-  }
-}
-
-.react-aria-StatusLight[data-variant="silver"] {
-  background: var(--silver);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--silver);
+    &[data-pressed] {
+      background: var(--color-teal-500);
+    }
   }
 
-  &[data-pressed] {
-    background: var(--silver);
+  .react-aria-StatusLight[data-variant="cinnamon"] {
+    background: var(--color-amber-800);
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: var(--color-amber-800);
+    }
+
+    &[data-pressed] {
+      background: var(--color-amber-800);
+    }
   }
-}
 
-.react-aria-StatusLight[data-size="sm"] {
-  height: 20px;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
+  .react-aria-StatusLight[data-variant="brown"] {
+    background: var(--color-yellow-900);
+    color: var(--fg);
 
-.react-aria-StatusLight[data-size="md"] {
-  height: 24px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
+    &[data-hovered] {
+      background: var(--color-yellow-900);
+    }
 
-.react-aria-StatusLight[data-size="lg"] {
-  height: 28px;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
-
-.react-aria-StatusLight[data-size="xl"] {
-  height: 32px;
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
-
-.react-aria-StatusLight[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-StatusLight[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-StatusLight {
-    forced-color-adjust: auto;
+    &[data-pressed] {
+      background: var(--color-yellow-900);
+    }
   }
-}
 
+  .react-aria-StatusLight[data-variant="silver"] {
+    background: var(--color-gray-400);
+    color: var(--fg);
 
+    &[data-hovered] {
+      background: var(--color-gray-400);
+    }
+
+    &[data-pressed] {
+      background: var(--color-gray-400);
+    }
+  }
+
+  .react-aria-StatusLight[data-size="sm"] {
+    height: 20px;
+    padding: 0px 0px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-none);
+    gap: 8px;
+  }
+
+  .react-aria-StatusLight[data-size="md"] {
+    height: 24px;
+    padding: 0px 0px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-none);
+    gap: 8px;
+  }
+
+  .react-aria-StatusLight[data-size="lg"] {
+    height: 28px;
+    padding: 0px 0px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-none);
+    gap: 8px;
+  }
+
+  .react-aria-StatusLight[data-size="xl"] {
+    height: 32px;
+    padding: 0px 0px;
+    font-size: var(--text-lg);
+    border-radius: var(--radius-none);
+    gap: 8px;
+  }
+
+  .react-aria-StatusLight[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-StatusLight[data-disabled] {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    .react-aria-StatusLight {
+      forced-color-adjust: auto;
+    }
+  }
 } /* @layer components */

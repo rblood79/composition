@@ -75,7 +75,7 @@
   }
 
   .add-page-field[data-invalid] input {
-    border-color: var(--color-danger-500);
+    border-color: var(--color-error-500);
   }
 
   .add-page-select {
@@ -98,9 +98,9 @@
     align-items: center;
     gap: var(--spacing-xs);
     padding: var(--spacing-xs) var(--spacing-sm);
-    background: var(--color-danger-50);
+    background: var(--color-error-50);
     border-radius: var(--radius-sm);
-    color: var(--color-danger-600);
+    color: var(--color-error-600);
     font-size: var(--text-xs);
   }
 

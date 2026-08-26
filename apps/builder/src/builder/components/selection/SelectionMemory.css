@@ -51,7 +51,7 @@
 
   .memory-header .clear-all-btn {
     padding: var(--spacing-2xs);
-    color: var(--color-danger-600);
+    color: var(--color-error-600);
   }
 
   .history-list {
@@ -113,7 +113,7 @@
 
   .history-item .delete-btn {
     padding: var(--spacing-sm);
-    color: var(--color-danger-600);
+    color: var(--color-error-600);
     opacity: 0;
     transition: opacity 150ms;
   }

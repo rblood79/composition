@@ -161,29 +161,38 @@ const NAMED_COLOR_TO_CSS: Record<string, string> = {
   blue: "var(--color-blue-600)",
   "blue-subtle": "var(--color-blue-100)",
   // Indigo
-  indigo: "oklch(0.45 0.2 284)",
-  "indigo-subtle": "oklch(0.93 0.04 284)",
+  indigo: "var(--color-indigo-700)",
+  "indigo-subtle": "var(--color-indigo-100)",
   // Cyan
-  cyan: "oklch(0.5 0.14 220)",
-  "cyan-subtle": "oklch(0.93 0.03 220)",
+  cyan: "var(--color-cyan-600)",
+  "cyan-subtle": "var(--color-cyan-100)",
   // Pink
-  pink: "oklch(0.6 0.18 348)",
-  "pink-subtle": "oklch(0.93 0.04 348)",
+  pink: "var(--color-pink-600)",
+  "pink-subtle": "var(--color-pink-100)",
   // Turquoise
-  turquoise: "oklch(0.55 0.1 195)",
-  "turquoise-subtle": "oklch(0.93 0.02 195)",
+  turquoise: "var(--color-teal-500)",
+  "turquoise-subtle": "var(--color-teal-100)",
   // Fuchsia
-  fuchsia: "oklch(0.55 0.22 320)",
-  "fuchsia-subtle": "oklch(0.93 0.04 320)",
+  fuchsia: "var(--color-fuchsia-600)",
+  "fuchsia-subtle": "var(--color-fuchsia-100)",
   // Magenta
-  magenta: "oklch(0.55 0.2 335)",
-  "magenta-subtle": "oklch(0.93 0.04 335)",
+  magenta: "var(--color-pink-700)",
+  "magenta-subtle": "var(--color-pink-100)",
   // Celery
-  celery: "oklch(0.62 0.16 130)",
-  "celery-subtle": "oklch(0.93 0.04 130)",
+  celery: "var(--color-lime-600)",
+  "celery-subtle": "var(--color-lime-100)",
   // Chartreuse
-  chartreuse: "oklch(0.65 0.18 115)",
-  "chartreuse-subtle": "oklch(0.93 0.04 115)",
+  chartreuse: "var(--color-lime-500)",
+  "chartreuse-subtle": "var(--color-lime-100)",
+  // Spectrum 전용 hue — colors.ts 와 같은 family/단계 (Tailwind 에 같은 이름 없음)
+  seafoam: "var(--color-teal-700)",
+  "seafoam-subtle": "var(--color-teal-100)",
+  cinnamon: "var(--color-amber-800)",
+  "cinnamon-subtle": "var(--color-amber-100)",
+  brown: "var(--color-yellow-900)",
+  "brown-subtle": "var(--color-yellow-100)",
+  silver: "var(--color-gray-400)",
+  "silver-subtle": "var(--color-gray-100)",
 };
 
 /**
