@@ -63,6 +63,13 @@ Skia 가 DOM 에서 읽는 semantic 토큰(`--border`, `--fg-muted`, `--accent`,
 - `--color-danger-*` / `--color-secondary-*` 참조 9곳은 어떤 원천에도 정의가 없는 기존 undefined (fallback 없이 `var()` 만) — 별도 정리.
 - 축 일치 리터럴 중복 58건 (`--panel-workspace-gap: 4px` → `var(--spacing-xs)` 류, 수기 29 + generated 29) — 본 ADR 과 무관한 일반 sweep, 후속 작업.
 
+**후속 처리 (2026-08-27, ADR Implemented 이후)**:
+
+- semantic alias 층 대칭 — `b785315e8`: status family 4종 팔레트 alias + `--negative` 단계 정렬 + `semanticAlias.symmetry.test.ts` 8건.
+- 축 일치 리터럴 58 → 수기 18 교체 (`18f317b9f`); generated 29 는 catalog 숫자값 파생이라 제외, 값 0 5건·의미 불일치 6건 제외.
+- R8 v3 hex 리터럴 45 → `e685d93d0`: fallback 제거·`TAILWIND_PALETTE`/`var(--color-*)` 파생. 잔존은 팔레트 값이 아닌 것뿐 (`#000000` fallback, 로그 색, Figma 실측 warm red, pencil 마커).
+- 여전히 범위 밖: M3 dead 토큰(`--primary` …), `colors.ts` 리터럴 41 (v3 원천 부재), `--color-danger-*`/`--color-secondary-*` undefined 9 참조, dark 모드에서 generated CSS 가 `--color-green-600` 고정인 반면 Skia darkColors 는 500 단계인 비대칭 (semantic var 가 dark 에서 flip 하도록 생성기 매핑을 바꾸는 별도 설계).
+
 ## 1. Phase 분할
 
 | Phase                       | 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Gate  | 산출물                                                           |

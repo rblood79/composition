@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-191 후속 — semantic alias 층 Skia↔CSS 대칭, 토큰 중복·v3 hex 리터럴 정리] - 2026-08-27
+
+### Bug Fixes
+
+- **status 색이 Builder 캔버스와 Preview 에서 달랐던 결함** (ADR-191 후속 A, `b785315e8`):
+  - `shared-tokens.css` 의 `--color-{success,warning,error,info}-N` 40개가 손으로 적은 hsl ramp 라
+    Skia(`colors.ts`)가 보는 팔레트와 값이 달랐다 — warning 은 amber 계열, negative 는 error-400 vs red-500.
+  - **Why**: ADR-191 이 팔레트 정의는 단일화했지만 그 위 semantic 층은 두 소비자가 따로 정의하고 있었다.
+  - 수정: success→green / warning→orange / error→red / info→blue 팔레트 alias (50~950), `preview-system.css`
+    `--negative` 를 light red-500 / dark red-400 으로 `colors.ts` 와 정렬. **사용자-가시**: Preview/Publish 의
+    Badge/StatusLight/Meter `negative`·`notice`·`informative` 와 warning/error/info 계열 200+ 참조 색이 Builder
+    캔버스와 같은 값으로 바뀐다 (notice 는 amber → orange).
+  - 게이트: `packages/specs/src/primitives/__tests__/semanticAlias.symmetry.test.ts` — catalog 매핑 → alias →
+    fallback 체인을 따라가 최종 팔레트 hex 가 `lightColors/darkColors` 와 같은지 확인 (한쪽만 고치면 RED).
+
+### Architecture
+
+- **축 일치 리터럴 중복 18곳 → 기존 토큰 참조** (ADR-191 후속 B, `18f317b9f`): `--cb-gap`/`--radio-gap`/
+  `--switch-gap` 8·12px → `--spacing-sm/md`, `--skeleton-font-size` → `--text-*`, `--link-color` #000/#fff →
+  `--color-black/white`, `--panel-workspace-gap` 4px → `--spacing-xs`. computed 값 동일. generated CSS 29건은
+  catalog 숫자값의 파생이라 제외, 값 0·의미 불일치 매칭 11건도 제외 (commit 본문에 사유).
+- **팔레트 정의 파일 밖 v3 hex 리터럴 45곳 정리** (ADR-191 R8, 후속 C, `e685d93d0`): Preview 렌더러의
+  `var(--x, #v3hex)` fallback 제거(LayoutRenderers·IllustratedMessage), ColorPicker/Swatch 기본값·TailSwatch 500 단계
+  표·Table 인라인 hex·Skia 오버레이 상수(workflow 엣지·드롭 인디케이터·토글 아이콘)·tokenToCss 기본 border 를
+  `TAILWIND_PALETTE` / `var(--color-*)` 파생으로. **사용자-가시**: 빌더 드롭 인디케이터·workflow 엣지 파랑이 v3
+  `#3b82f6` → v4 `#2b7fff` 등 v4 값으로 이동.
+  - 위치: `packages/shared/src/components/styles/theme/{shared-tokens,preview-system}.css`,
+    `packages/shared/src/{renderers,components}/*`, `apps/builder/src/builder/workspace/canvas/skia/semanticOverlayColors.ts`
+
 ## [ADR-191 Implemented — Tailwind v4 theme.css 단일 원천 팔레트 파생, 손 복사 팔레트 3개 제거] - 2026-08-26
 
 ### Bug Fixes
