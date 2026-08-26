@@ -31,12 +31,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/types/index.ts src/renderers/index.ts src/primitives/index.ts --format esm,cjs --dts && pnpm generate:css",
+    "build": "tsup src/index.ts src/types/index.ts src/renderers/index.ts src/primitives/index.ts --format esm,cjs --dts && pnpm generate:palette && pnpm generate:css",
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "test:visual": "playwright test",
     "generate:css": "tsx scripts/generate-css.ts",
+    "generate:palette": "tsx scripts/generate-palette.ts",
+    "validate:palette": "tsx scripts/generate-palette.ts --check",
     "validate": "tsx scripts/validate-specs.ts",
     "validate:tokens": "tsx scripts/validate-tokens.ts",
     "validate:phase0": "tsx scripts/validate-phase0.ts",

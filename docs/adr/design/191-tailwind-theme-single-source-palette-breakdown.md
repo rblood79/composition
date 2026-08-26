@@ -64,13 +64,13 @@ Skia 가 DOM 에서 읽는 semantic 토큰(`--border`, `--fg-muted`, `--accent`,
 
 ## 1. Phase 분할
 
-| Phase | 내용                                                                                                                                                                                              | Gate  | 산출물                                                           |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ---------------------------------------------------------------- |
-| 0     | inventory freeze (본 문서 §0) + 참조 19 ⊂ theme 재확인 스크립트                                                                                                                                   | G0    | 본 문서, `scripts/audit-palette-refs.mjs` (일회성, scratch 가능) |
-| 1     | 생성기 `generate-palette.ts` + 산출물 2 + drift 테스트 + `build:specs` 연동                                                                                                                       | G1·G3 | 아래 §2 신규 파일 4                                              |
-| 2     | CSS 소비 전환: shared `theme.css` 가 생성 CSS import, shared-tokens 팔레트 93 삭제 + 헤더 정정, `index.css` `@layer theme` 선두 선언, `App.css :root` 삭제 + `@theme { --font-sans/--font-mono }` | G2·G4 | 수정 4 파일                                                      |
-| 3     | Skia 파생: `colors.ts` 46 항목 → `tailwindPalette` 참조, `neutralToSkiaColors.ts` 57 → 참조; 영향 fixture/snapshot 갱신                                                                           | G1·G2 | 수정 2 파일 + 테스트                                             |
-| 4     | live 3자 대칭 검증 (Chrome MCP) + CHANGELOG + README Implemented 승격                                                                                                                             | G2    | CHANGELOG 엔트리                                                 |
+| Phase                       | 내용                                                                                                                                                                                              | Gate  | 산출물                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ---------------------------------------------------------------- |
+| 0 ✅ 2026-08-26 (ab5234e92) | inventory freeze (본 문서 §0) + 참조 19 분류 재확인 (15 theme / 3 preview-system / 1 미소비)                                                                                                      | G0    | 본 문서, `scripts/audit-palette-refs.mjs` (일회성, scratch 가능) |
+| 1                           | 생성기 `generate-palette.ts` + 산출물 2 + drift 테스트 + `build:specs` 연동                                                                                                                       | G1·G3 | 아래 §2 신규 파일 4                                              |
+| 2                           | CSS 소비 전환: shared `theme.css` 가 생성 CSS import, shared-tokens 팔레트 93 삭제 + 헤더 정정, `index.css` `@layer theme` 선두 선언, `App.css :root` 삭제 + `@theme { --font-sans/--font-mono }` | G2·G4 | 수정 4 파일                                                      |
+| 3                           | Skia 파생: `colors.ts` 46 항목 → `tailwindPalette` 참조, `neutralToSkiaColors.ts` 57 → 참조; 영향 fixture/snapshot 갱신                                                                           | G1·G2 | 수정 2 파일 + 테스트                                             |
+| 4                           | live 3자 대칭 검증 (Chrome MCP) + CHANGELOG + README Implemented 승격                                                                                                                             | G2    | CHANGELOG 엔트리                                                 |
 
 각 Phase 는 commit 가능한 상태로 종료 (CLAUDE.md §대규모 작업 phase 분할). Phase 2 와 3 은 독립이라 순서 교체 가능하나, **Phase 2 먼저** 가 안전하다 — 생성 CSS 가 shared-tokens 자리에 들어간 뒤 Skia 가 따라가야 G2 실측이 한 번에 끝난다.
 
@@ -78,12 +78,12 @@ Skia 가 DOM 에서 읽는 semantic 토큰(`--border`, `--fg-muted`, `--accent`,
 
 ### 신규
 
-| 파일                                                                         | 역할                                                                                                                                                                                                      |
-| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/specs/scripts/generate-palette.ts`                                 | `node_modules/tailwindcss/theme.css` 의 `@theme default { … }` 블록 파싱 → `--color-*` (+ 필요 시 spacing/text/radius 는 **본 ADR 범위 밖**, color 만) 추출 → 2 산출물 emit. 결정적 출력 (정렬·포맷 고정) |
-| `packages/shared/src/components/styles/theme/generated/tailwind-palette.css` | `@layer shared-tokens { :root { --color-red-50: oklch(…); … } }` — 원문 oklch 그대로 (브라우저 네이티브, Tailwind 파이프라인 불요)                                                                        |
-| `packages/specs/src/primitives/generated/tailwindPalette.ts`                 | `export const TAILWIND_PALETTE = { red: { 50: "#fef2f2", … }, … } as const` — oklch→sRGB hex 변환 (수식은 §3)                                                                                             |
-| `packages/specs/src/primitives/__tests__/tailwindPalette.drift.test.ts`      | (a) 생성기 재실행 결과 == 커밋된 산출물 byte-diff 0, (b) 변환 정확도 — 고정 샘플 (gray-500 `#6a7282`, blue-500 `#2b7fff`) 일치                                                                            |
+| 파일                                                                         | 역할                                                                                                                                                                                                                         |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/specs/scripts/generate-palette.ts`                                 | `node_modules/tailwindcss/theme.css` 의 `@theme default { … }` 블록 파싱 → `--color-{family}-{step}` 286 (26 family × 11 step; spacing/text/radius 는 **본 ADR 범위 밖**) 추출 → 2 산출물 emit. 결정적 출력 (정렬·포맷 고정) |
+| `packages/shared/src/components/styles/theme/generated/tailwind-palette.css` | `@layer shared-tokens { :root { --color-red-50: oklch(…); … } }` — 원문 oklch 그대로 (브라우저 네이티브, Tailwind 파이프라인 불요)                                                                                           |
+| `packages/specs/src/primitives/generated/tailwindPalette.ts`                 | `export const TAILWIND_PALETTE = { red: { 50: "#fef2f2", … }, … } as const` — oklch→sRGB hex 변환 (수식은 §3)                                                                                                                |
+| `packages/specs/src/primitives/__tests__/tailwindPalette.drift.test.ts`      | (a) 생성기 재실행 결과 == 커밋된 산출물 byte-diff 0, (b) 변환 정확도 — 고정 샘플 (gray-500 `#6a7282`, blue-500 `#2b7fff`) 일치                                                                                               |
 
 ### 수정
 
@@ -131,10 +131,10 @@ gamma: x ≤ 0.0031308 ? 12.92x : 1.055x^(1/2.4) − 0.055, clamp [0,1], round(�
 
 ### Phase 1
 
-- [ ] `generate-palette.ts` — `@theme default` 블록 파싱, 다중행 값(`--font-sans:\n …`) 건너뜀, `--color-*` 만 추출
-- [ ] 산출물 2 생성 + 커밋
-- [ ] drift 테스트 GREEN (byte-diff 0 + 샘플 hex 일치)
-- [ ] `pnpm build:specs` 가 생성기 실행 (Stop hook `.spec-rebuild-pending` 경로 포함)
+- [x] `generate-palette.ts` — `@theme default` 블록 파싱, 다중행 값 건너뜀, `--color-{family}-{step}` 만 추출 (순수 로직 `paletteGenerator.ts` 분리)
+- [x] 산출물 2 생성 + 커밋 (CSS 14,457B / TS 14,867B, prettier --check 통과)
+- [x] drift 테스트 GREEN 5/5 (byte-diff 0 + 샘플 hex + 26×11 구조 + plain CSS) · G1 live: builder 탭 canvas 286/286 maxΔ1
+- [x] `pnpm build:specs` 가 생성기 실행 (`build` = tsup && generate:palette && generate:css) + `validate:palette` (`--check`) 추가
 
 ### Phase 2
 
