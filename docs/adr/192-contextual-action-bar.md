@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-26
+Accepted — 2026-08-27 (review-adr round 1 승인 — MED 1·LOW 3 전부 fixed, `docs/adr/reviews/192.md`; 직전 Proposed 2026-08-26)
 
 > 출처: [ADR-016](completed/016-photoshop-ui-ux.md) Superseded (2026-08-26) 의 유일한 미반영 기능. 016 §5.1~5.2 설계안 (신규 `builder/actions/` 계층 + 선택 bounds 부착 바) 은 **승계하지 않고** 리서치 ([ACTION_BAR_BENCHMARK.md](../explanation/research/ACTION_BAR_BENCHMARK.md), 2026-08-26) 부터 다시 시작했다. fork lock-in 4 질문 + 사용자 confirm 기록: [breakdown §1](design/192-contextual-action-bar-breakdown.md).
 
