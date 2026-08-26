@@ -14,7 +14,7 @@
 
 - **base 영역** (ADR-054 흡수 + 2026-08-18 재규정): `LLMProvider` 추상화 / **2-way 어댑터 (Anthropic Messages + OpenAI-compatible Chat Completions)** / **에이전트 프로파일 레지스트리** (프로파일별 provider·모델·effort 구성 — planner/executor/verifier/fast + vision 예약) / secret isolation (키 보관·경유 경계) / 폐쇄망 = 로컬 OpenAI-compatible endpoint BYOK / 외부 에이전트·MCP 준비 (도구 표면 호환)
 - **응용 영역** (ADR-011 흡수): 7개 AI 도구 canonical 정합 / 컴포넌트 카탈로그 (RAC/RSP) / 에이전트 오케스트레이션 (Plan→Execute→Verify 서브에이전트 분해) / AIPanel UX 1년차 신입 baseline / bounded repair / 에이전트 프로파일 설정 UX
-- **4 격차 영역 동시 정합**: canonical document (ADR-116/122) / data_tables (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX (ADR-133)
+- **4 격차 영역 동시 정합** (2026-08-26 재측정 반영): canonical document 어휘 (ADR-116/122 — store 전환은 이미 완료, 도구 schema 어휘 확장만 잔존) / `collections` (ADR-132) / interaction rule root collection (ADR-131 → **ADR-158** `InteractionRule`) / frame canonical (ADR-130) / AIPanel UX (HC12 — ADR-133 Deprecated 후 ADR-149 P1 선례)
 
 ### 노선 개정으로 scope 에서 빠진 것 (2026-08-18)
 
@@ -51,11 +51,12 @@
 - `~/.claude/plans/adr-134-baseline-inventory.md` (작업 시 신규 작성)
 - ADR-011 Phase A1~A4 반영 산출물 인벤토리 (7개 도구 / AIPanel / AbortController / G.3 / IntentParser fallback / aiVisualFeedback)
 - **Groq 표면 실측**: `groq-sdk` import 지점 / `dangerouslyAllowBrowser` / `llama-3.3-70b-versatile` 하드코딩 / API 키 취득 경로 (env/localStorage) 전수 grep
-- 4 격차 영역 measure:
-  - 격차 1 — canonical document: `useCanonicalDocumentStore` mutation API + boundary helper allowlist 분석
-  - 격차 2 — data_tables: `useCollectionData` 진입점 + `data_tables.runtimeData` sink 분석
-  - 격차 3 — events/actions: `SerializedEvent / SerializedAction` schema + canonical mutation API 분석
-  - 격차 4 — frame: `FrameNode` schema + `isLegacyGroupForFrameMigration()` hydration migration 분석
+- 4 격차 영역 measure (2026-08-26 리뷰 round 1 이 1차 실측 — Phase 0 은 이를 baseline 으로 확정·보강):
+  - 격차 1 — canonical document: read 는 `services/ai/tools/canonicalToolReadModel.ts` (canonical 순회, 6개 도구 import), write 는 facade `addElement / updateElement / removeElement` → `stores/utils/elementCreation.ts` / `elementUpdate.ts` / `elementRemoval.ts` → `adapters/canonical/canonicalMutations.ts` canonical-primary. 잔존 = 도구 schema 에 frame / slot / componentSemantics 1차 필드 어휘 부재. store action 실존 표면: `insertNode / updateNode / updateNodeProps / updateNodeExtension / moveNode / removeNode / updateDescendant` (`canonicalDocumentStore.ts`)
+  - 격차 2 — collections: `useCollectionData({ datatableId | dataBinding })` (`packages/shared/src/hooks/useCollectionData.tsx`) 진입점 + `collections.runtimeData` sink (`DataTable.runtimeData?`, `types/builder/data.types.ts`) + `useDataTableStore` (`builder/stores/datatable.ts`) CRUD. canonical document 에 `collections` / `data` root 없음 (ADR-131 P8 revert)
+  - 격차 3 — interaction rule: `InteractionRule` schema (`packages/shared/src/interactions/interactionRule.types.ts`) + `capabilityRegistry.ts` + store action `addEvent / updateEvent / removeEvent / setEvents` + read `useDocumentEvents()`. `SerializedEvent` / root `actions` 는 dormant (`composition-document.types.ts` 주석) — AI 도구 참조 금지
+  - 격차 4 — frame: `FrameNode` schema + `isLegacyGroupForFrameMigration()` (`adapters/canonical/tagRename.ts`) hydration migration 분석
+  - 회귀 gate baseline: AI 도구 안 `Transform` / `props.events` / `Group + group_N` / `SerializedEvent` 어휘 **0건** (2026-08-26 grep) — G3/G4 의 grep gate 는 "도입 금지" 회귀 조건
 - **프록시 경계 사전 조사** (D10): Supabase Edge Function 호출 가능 범위 / streaming 지원 / 키 보관 위치 후보 비교 — Phase 2 확정의 입력
 - baseline freeze metric: 추정 file count + LOC + grep alias 종류 (실측 vs 추정 1.5x gap 차단)
 
@@ -105,50 +106,50 @@
 - AbortController 동작 검증 + G.3 시각 피드백 회귀 없음
 - type-check + vitest PASS
 
-## 5. Phase 3 — AI 도구 canonical 정합 (D2, G3)
+## 5. Phase 3 — AI 도구 canonical 어휘 확장 (D2, G3)
 
-**목적**: 7개 도구 시그니처를 canonical mutation API 경유로 전환. legacy `elementsMap` / `childrenMap` direct write 0건.
+**목적** (2026-08-26 재규정): store 전환은 이미 완료돼 있다 (read `canonicalToolReadModel.ts`, write facade canonical-primary — Phase 0 격차 1 실측). Phase 3 의 일은 **도구 schema 에 canonical 1차 필드 어휘를 추가**하고, 필요한 곳만 store action 을 직접 경유하는 것. legacy `elementsMap` / `childrenMap` direct write 0건은 **회귀 조건** (현 baseline 0).
 
 ### Phase 3 산출물
 
-- `apps/builder/src/services/ai/tools/createElement.ts` → `useCanonicalDocumentStore.getState().{setFrames, setSlots, ...}` 또는 `nodeOpsActions` boundary helper 경유
-- `apps/builder/src/services/ai/tools/updateElement.ts` → canonical mutation API 경유
-- `apps/builder/src/services/ai/tools/deleteElement.ts` → canonical mutation API 경유 + body 보호 + boundary 검증
-- `apps/builder/src/services/ai/tools/getEditorState.ts` → `useCanonicalDocumentStore` read selector + `useDocumentEvents` / `useDocumentActions` 통합 데이터
-- `apps/builder/src/services/ai/tools/getSelection.ts` → `useCanonicalDocumentStore` selectedNodeIds selector
-- `apps/builder/src/services/ai/tools/searchElements.ts` → canonical `CompositionDocument.nodes` 순회 + tag/propName/propValue/styleProp 필터
-- `apps/builder/src/services/ai/tools/batchDesign.ts` → canonical mutations batch + transactional 패턴 + 실패 시 rollback
-- `apps/builder/src/services/ai/tools/definitions.ts` → 7개 도구 JSON Schema 갱신 (canonical schema 정합). **MCP tool schema 호환 형태 유지 (D11) — 파라미터 JSON Schema 와 도구 명세를 실행 코드에서 분리해 Phase 9 에서 MCP server 로 노출 가능하게**
+- `apps/builder/src/services/ai/tools/createElement.ts` → 파라미터에 `type: "frame"` + `FrameNode` 1차 필드 (`clip` / `placeholder`) / slot / componentSemantics 표현 추가. write 는 facade `addElement` 유지; 1차 필드는 생성 직후 `useCanonicalDocumentStore.getState().updateNode` / `updateNodeExtension` patch
+- `apps/builder/src/services/ai/tools/updateElement.ts` → facade `updateElement` 유지 + 1차 필드 patch 경로 추가
+- `apps/builder/src/services/ai/tools/deleteElement.ts` → facade `removeElement` 유지 + body 보호 + boundary 검증 (변경 최소)
+- `apps/builder/src/services/ai/tools/getEditorState.ts` → `canonicalToolReadModel` 유지 + `useDocumentEvents()` (`InteractionRule[]`) 통합 데이터 (root `actions` 는 dormant — 미포함)
+- `apps/builder/src/services/ai/tools/getSelection.ts` → `canonicalToolReadModel` 유지 (변경 최소)
+- `apps/builder/src/services/ai/tools/searchElements.ts` → `canonicalToolReadModel` 순회 + tag/propName/propValue/styleProp 필터에 1차 필드 (frame / slot / componentSemantics) 필터 추가
+- `apps/builder/src/services/ai/tools/batchDesign.ts` → `runCanonicalMutation` (`adapters/canonical/canonicalMutationRunner.ts`) 으로 다단계 mutation 을 history 1건으로 묶고 실패 시 rollback
+- `apps/builder/src/services/ai/tools/definitions.ts` → 7개 도구 JSON Schema 갱신 (1차 필드 어휘 반영). **MCP tool schema 호환 형태 유지 (D11) — 파라미터 JSON Schema 와 도구 명세를 실행 코드에서 분리해 Phase 9 에서 MCP server 로 노출 가능하게**
 
 ### Phase 3 Gate G3
 
-- 7개 도구 canonical mutation API 경유 (boundary helper allowlist 외 direct access 0 grep gate)
-- legacy `elementsMap.get / set` AI 도구 안 사용 0 grep gate
-- canonical mutation 경유 후 회귀 검증 (Tool Calling 정확도 ≥ Phase 2 baseline 유지)
+- 도구 schema 에 frame / slot / componentSemantics 어휘 반영 + **AI 가 `type: "frame"` 요소 1건 생성 live 실측** (Chrome MCP 또는 사용자 confirm)
+- facade / store action 외 `elementsMap` / `childrenMap` 직접 접근 0 grep gate (회귀 — baseline 0)
+- `batchDesign` 이 history 1건으로 묶이는지 undo 1회로 확인
+- Tool Calling 정확도 ≥ Phase 2 baseline 유지
 - type-check + vitest PASS
 
-## 6. Phase 4 — data_tables + events/actions + frame canonical 정합 (D3/D4/D5, G4)
+## 6. Phase 4 — collections + interaction rule + frame canonical 정합 (D3/D4/D5, G4)
 
-**목적**: 4 격차 영역 동시 정합:
+**목적** (2026-08-26 ADR-158 정합으로 재작성): 3 격차 영역 동시 정합:
 
-- **D3 data_tables SSOT** (ADR-132): AI 데이터 바인딩 도구가 `data_tables.runtimeData` sink + `useCollectionData({ datatableId | dataBinding })` read 진입점만 사용
-- **D4 events/actions root collection** (ADR-131): AI 가 이벤트 핸들러 생성 시 `SerializedEvent / SerializedAction` schema + `useCanonicalDocumentStore.getState().{setEvents, setActions, ...}` 사용
+- **D3 `collections` SSOT** (ADR-132): AI 데이터 바인딩 도구가 `Element.dataBinding` 참조를 설정 (`updateNodeProps` / facade `updateElement`) + `collections.runtimeData` sink + `useCollectionData({ datatableId | dataBinding })` read 진입점만 사용. collections CRUD 는 `useDataTableStore` 경유 (canonical document 에 `collections` root 없음)
+- **D4 interaction rule root collection** (ADR-158): AI 가 이벤트를 만들 때 `InteractionRule` schema + `useCanonicalDocumentStore.getState().addEvent / updateEvent / removeEvent`. action 은 `navigate | toast | capability` 인라인 — `capability` 는 `capabilityRegistry.ts` 등록 항목만. 별도 action 도구 없음 (root `actions` dormant)
 - **D5 frame canonical vocabulary** (ADR-130): AI 가 layout container 생성 시 `type: "frame"` (Group 응용 흡수 금지)
 
 ### Phase 4 산출물
 
-- `apps/builder/src/services/ai/tools/bindDataTable.ts` 신규 — `useCanonicalDocumentStore.getState().{addCollection, ...}` 경유. legacy `Transform 3단계` 도구 제거 (ADR-132 정합)
-- `apps/builder/src/services/ai/tools/createEvent.ts` 신규 — `SerializedEvent` schema + `useCanonicalDocumentStore.getState().setEvents` 경유
-- `apps/builder/src/services/ai/tools/createAction.ts` 신규 — `SerializedAction` schema + `useCanonicalDocumentStore.getState().setActions` 경유
-- `apps/builder/src/services/ai/tools/createElement.ts` — `tag: "frame"` 처리 + legacy `Group + customId="group_N"` 도구 제거
-- `apps/builder/src/services/ai/systemPrompt.ts` — `data_tables` / `SerializedEvent` / `SerializedAction` / `frame` schema 가이드 추가
+- `apps/builder/src/services/ai/tools/bindCollection.ts` 신규 — 대상 element 의 `dataBinding` 을 `updateNodeProps` 로 설정 (`{ datatableId }` 또는 `{ dataBinding }` 형태, `useCollectionData` 계약 정합). collections 가 없으면 `useDataTableStore` 로 생성 안내 (생성 자체는 사용자 승인 게이트)
+- `apps/builder/src/services/ai/tools/createInteractionRule.ts` 신규 — `InteractionRule` schema (`isInteractionRule` 가드 통과) + `addEvent` 경유. `capability` action 은 `capabilityRegistry` 로 대상 컴포넌트가 해당 capability 를 노출하는지 검증 후 write
+- `apps/builder/src/services/ai/tools/createElement.ts` — `type: "frame"` 처리 (Phase 3 어휘 확장과 연속). legacy `Group + customId="group_N"` 어휘 미도입
+- `apps/builder/src/services/ai/tools/definitions.ts` — 신규 도구 2종 JSON Schema (MCP 호환 형태)
+- `apps/builder/src/services/ai/systemPrompt.ts` — `collections` / `InteractionRule` (trigger·action 3종·capability 목록) / `frame` schema 가이드 추가
 
 ### Phase 4 Gate G4
 
-- AI 도구 안 `Transform 3단계` 0 grep gate (ADR-132 정합)
-- AI 도구 안 `element.props.events` 0 grep gate (ADR-131 정합)
-- AI 도구 안 `type: "Group" + customId="group_N"` 0 grep gate (ADR-130 정합)
-- `data_tables.runtimeData` sink + `useCollectionData` read 진입점 사용 검증
+- **AI 가 `InteractionRule` 1건 생성 → Preview 에서 발화 live 실측** (예: Button click → toast; ADR-158 G2 와 같은 dispatcher 경로)
+- **AI 가 `Element.dataBinding` 설정 → `useCollectionData` 로 데이터 렌더 live 실측** (ListBox/GridList 등 collection 1종)
+- 회귀 gate (baseline 0건, 2026-08-26): 신규·기존 AI 도구 안 `SerializedEvent` / root `actions` / `Transform` / `element.props.events` / `type: "Group" + customId="group_N"` 어휘 0 grep
 - type-check + vitest PASS
 
 ## 7. Phase 5 — 컴포넌트 카탈로그 (D6, G5)
@@ -208,7 +209,7 @@
 
 ## 10. Phase 8 — AIPanel UX 1년차 신입 baseline (D9)
 
-**목적**: ADR-133 Q4 확정 "1년차 신입 개발자라도 사용할 수준" 정합. depth 4→2 축소.
+**목적**: HC12 "1년차 신입 개발자라도 사용할 수준" 정합 (출처 ADR-133 Q4 사용자 확정 2026-05-13; ADR-133 Deprecated 후 ADR-149 P1 "default 표면 2 depth, overlay 0" 이 선례). depth 4→2 축소.
 
 ### Phase 8 산출물
 
@@ -245,34 +246,34 @@
 
 ## 12. baseline freeze 표 (Phase 0 작업 시 채움 — 2026-08-18 재편 반영)
 
-| 영역                      | 추정 file count | 실측 file count | gap (실측/추정) | 1.5x 초과 여부 |
-| ------------------------- | --------------- | --------------- | --------------- | -------------- |
-| Phase 1 Provider+프로파일 | ~6 file         | TBD             | TBD             | TBD            |
-| Phase 2 Groq 제거+secret  | ~7 file         | TBD             | TBD             | TBD            |
-| Phase 3 도구 canonical    | ~10 file        | TBD             | TBD             | TBD            |
-| Phase 4 격차 정합         | ~12 file        | TBD             | TBD             | TBD            |
-| Phase 5 카탈로그          | ~8 file         | TBD             | TBD             | TBD            |
-| Phase 6 Plan→E→V+역할     | ~15 file        | TBD             | TBD             | TBD            |
-| Phase 7 라우팅+폐쇄망     | ~6 file         | TBD             | TBD             | TBD            |
-| Phase 8 AIPanel UX        | ~10 file        | TBD             | TBD             | TBD            |
-| Phase 9 외부 에이전트     | ~10 file        | TBD             | TBD             | TBD            |
+| 영역                      | 추정 file count                                                                                           | 실측 file count | gap (실측/추정) | 1.5x 초과 여부 |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- | --------------- | --------------- | -------------- |
+| Phase 1 Provider+프로파일 | ~6 file                                                                                                   | TBD             | TBD             | TBD            |
+| Phase 2 Groq 제거+secret  | ~7 file                                                                                                   | TBD             | TBD             | TBD            |
+| Phase 3 도구 어휘 확장    | ~8 file (7 도구 + definitions; store 전환 없음 — 2026-08-26 재산정)                                       | TBD             | TBD             | TBD            |
+| Phase 4 격차 정합         | ~5 file (신규 도구 2 + createElement + definitions + systemPrompt — createAction 삭제, 2026-08-26 재산정) | TBD             | TBD             | TBD            |
+| Phase 5 카탈로그          | ~8 file                                                                                                   | TBD             | TBD             | TBD            |
+| Phase 6 Plan→E→V+역할     | ~15 file                                                                                                  | TBD             | TBD             | TBD            |
+| Phase 7 라우팅+폐쇄망     | ~6 file                                                                                                   | TBD             | TBD             | TBD            |
+| Phase 8 AIPanel UX        | ~10 file                                                                                                  | TBD             | TBD             | TBD            |
+| Phase 9 외부 에이전트     | ~10 file                                                                                                  | TBD             | TBD             | TBD            |
 
 1.5x 초과 시 [adr-writing.md M4](../../../.claude/rules/adr-writing.md) sub-group N≥3 분할 / scope inflation 사용자 confirm 의무 적용.
 
 ## 13. ADR-011 Phase A1~A4 반영 산출물 보존 영역 (Phase 2 전환 대상)
 
-| 산출물                                  | Phase 2 처리                                                              |
-| --------------------------------------- | ------------------------------------------------------------------------- |
-| `GroqAgentService.ts`                   | `AgentService.ts` rename + AgentProfileRegistry→LLMProvider 경유          |
-| 7개 도구 (createElement 등)             | Phase 3 canonical mutation API 정합 + Phase 4 4 격차 정합 + MCP 호환 유지 |
-| `AIPanel.tsx` + ChatMessage 등 컴포넌트 | Phase 8 depth 4→2 축소 + 1년차 신입 baseline 적용                         |
-| `useAgentLoop.ts`                       | Provider 추상화 경유 정합 갱신                                            |
-| `AbortController` + AgentControls       | 보존 (Phase 2 회귀 검증 필수)                                             |
-| G.3 시각 피드백 (`aiVisualFeedback`)    | 보존 (Phase 2 회귀 검증 필수)                                             |
-| `IntentParser.ts`                       | 보존 검토 (최후 fallback) — Phase 6 에서 fast 프로파일 대체 재검토        |
-| `systemPrompt.ts`                       | provider 중립 갱신 (특정 모델 전제 제거) + 카탈로그 hook                  |
-| `styleAdapter.ts`                       | 보존 (CSS-like → 내부 스키마 변환, AI-A5a 단위 정규화)                    |
-| `definitions.ts`                        | Phase 3 도구 JSON Schema canonical 정합 + MCP 호환 형태 갱신              |
+| 산출물                                                                    | Phase 2 처리                                                                                          |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `GroqAgentService.ts`                                                     | `AgentService.ts` rename + AgentProfileRegistry→LLMProvider 경유                                      |
+| 7개 도구 (createElement 등)                                               | Phase 3 canonical 어휘 확장 (store 경로는 이미 canonical-primary) + Phase 4 격차 정합 + MCP 호환 유지 |
+| `AIPanel.tsx` + `AgentControls` / `ToolCallMessage` / `ToolResultMessage` | Phase 8 depth 4→2 축소 + 1년차 신입 baseline 적용                                                     |
+| `useAgentLoop.ts`                                                         | Provider 추상화 경유 정합 갱신                                                                        |
+| `AbortController` + AgentControls                                         | 보존 (Phase 2 회귀 검증 필수)                                                                         |
+| G.3 시각 피드백 (`aiVisualFeedback`)                                      | 보존 (Phase 2 회귀 검증 필수)                                                                         |
+| `IntentParser.ts`                                                         | 보존 검토 (최후 fallback) — Phase 6 에서 fast 프로파일 대체 재검토                                    |
+| `systemPrompt.ts`                                                         | provider 중립 갱신 (특정 모델 전제 제거) + 카탈로그 hook                                              |
+| `styleAdapter.ts`                                                         | 보존 (CSS-like → 내부 스키마 변환, AI-A5a 단위 정규화)                                                |
+| `definitions.ts`                                                          | Phase 3 도구 JSON Schema canonical 정합 + MCP 호환 형태 갱신                                          |
 
 ## 14. ADR-054 Proposed 영역 흡수 매핑 (2026-08-18 개정)
 

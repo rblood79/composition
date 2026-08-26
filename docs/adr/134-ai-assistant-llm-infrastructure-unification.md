@@ -5,7 +5,9 @@
 Proposed — 2026-05-13
 **노선 개정 — 2026-08-18**: 자체 로컬 LLM 내장 노선 (Ollama 1st + node-llama-cpp Electron 내장 + Qwen 고정) 을 폐기하고, reference 수렴 노선 (**에이전트 중심 멀티 프로바이더 BYOK + 외부 코딩 에이전트/MCP 준비**) 으로 교체. **Groq 완전 제거 방침은 유지**. 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (2026-08-17 갱신) + [HOLAOS_ANALYSIS.md](../explanation/research/HOLAOS_ANALYSIS.md) (2026-08-18) + [XAI_ORG_ANALYSIS.md](../explanation/research/XAI_ORG_ANALYSIS.md) (2026-08-18 — grok-build 를 5번째 수렴 사례로 추가). 본 개정은 전제 확정 종결 계약의 재개 조건 (a) 사용자 재제기에 따른 것 — 통합 형태 (단일 ADR, 대안 A) 결정은 유지하고 **인프라 노선만 재결정** (§인프라 노선 재결정 2026-08-18).
 
-> **설계 문서 단계**: 본문 + design breakdown + 기존 ADR Deprecated 이동까지만 반영 (구현은 이후 단계). Phase 0-9 실행 작업 + 코드 변경은 사용자 plan review 후 별도 단계 ([[adr133-events-panel-simplification-plan]] 동일 패턴).
+> **설계 문서 단계**: 본문 + design breakdown + 기존 ADR Deprecated 이동까지만 반영 (구현은 이후 단계). Phase 0-9 실행 작업 + 코드 변경은 사용자 plan review 후 별도 단계 (ADR-133 이 2026-05-13 에 쓴 "설계 문서 먼저 → plan review 후 실행" 패턴 동일).
+>
+> **응용 영역 코드 사실 재측정 — 2026-08-26 (리뷰 round 1 반영)**: 2026-08-18 개정은 인프라 노선만 재결정하고 응용 영역 (격차 1~4) 을 2026-05-13 코드 스냅샷 그대로 두었다. 그 사이 반영된 ADR-149 (Implemented 2026-07-19) / ADR-158 (Implemented 2026-08-16) / AI-services canonical 정리 (`b994285ef`, 2026-06-18) 를 [reviews/134.md](reviews/134.md) round 1 이 실측해 다음을 정정했다 — ① 격차 1 은 "legacy 기반" 이 아니라 **facade 경유 canonical-primary + 도구 schema 어휘 부재** ② events 는 `SerializedEvent` 가 아니라 **`InteractionRule`** (ADR-158), root `actions` 는 dormant ③ mutation API 는 실존 store action (`insertNode / updateNode / updateNodeProps / updateNodeExtension / moveNode / removeNode / addEvent / updateEvent / removeEvent`) 으로 교체 ④ ADR-133 은 Deprecated (2026-07-08) — "1년차 신입 baseline" 은 ADR-149 P1 이 승계했고 본 ADR 은 HC12 로 독립 선언 ⑤ 데이터 SSOT 명칭은 `collections` (구 `data_tables`) 로 통일. 노선 β 결정·대안 평가·Gate G1/G2/G6/G7 은 무변경.
 
 ## Context
 
@@ -13,32 +15,37 @@ composition AI 어시스턴트의 두 선행 ADR — [ADR-011](completed/011-ai-
 
 ### 격차 1 — canonical document SSOT 미반영 (ADR-011 응용 영역)
 
-ADR-011 의 7개 도구 (createElement / updateElement / deleteElement / getEditorState / getSelection / searchElements / batchDesign) 는 작성 시점 (2026-01-31) 의 legacy elementsMap/childrenMap mutable subscription 기반. 본 ADR 작성 시점 기준 반영 완료된 정합 영역 미반영:
+ADR-011 의 7개 도구 (createElement / updateElement / deleteElement / getEditorState / getSelection / searchElements / batchDesign — 도구 name 은 `create_element` 등 snake_case, `services/ai/tools/definitions.ts`) 는 작성 시점 (2026-01-31) 에 legacy elementsMap/childrenMap mutable subscription 기반이었다. **2026-08-26 재측정**: 이 서술은 더 이상 사실이 아니다 —
+
+- **read 경로는 이미 canonical**: 6개 도구가 `services/ai/tools/canonicalToolReadModel.ts` 를 import 하고, 이 모듈은 `useCanonicalDocumentStore` + `visitCanonicalDocumentElements` 로 활성 문서를 순회한다 (`canonicalToolReadModel.static.test.ts` 가 `elementsMap` / `childrenMap` 부재를 단언)
+- **write 경로는 facade 경유 canonical-primary**: `createElement.ts` → `addElement`, `deleteElement.ts` → `removeElement`, `updateElement.ts` → `updateElement` (모두 `builder/stores` facade). facade 구현 (`stores/utils/elementCreation.ts` / `elementUpdate.ts` / `elementRemoval.ts`) 은 `adapters/canonical/canonicalMutations.ts` (`mergeElementsCanonicalPrimary` 등) + `canonicalHistoryEvents` 를 경유하므로 legacy direct write 가 아니다
+
+따라서 **잔존 격차는 "canonical 전환" 이 아니라 "도구 schema 어휘 부재"** 다. 본 ADR 작성 시점 기준 반영 완료된 정합 영역 중 도구가 표현하지 못하는 것:
 
 - **ADR-116 canonical document SSOT** (Implemented 2026-05-02) — `CompositionDocument` schema + Frame/Slot/ComponentSemantics 1차 필드 + boundary helper (frameMirror / slotMirror / componentSemanticsMirror) allowlist
 - **ADR-122 canonical-only runtime** (Implemented 2026-05-09) — Builder hot path 의 mutable `elementsMap`/`childrenMap` subscription 0건, canonical store + read-only derived snapshot 갈음
-- **ADR-131 events/actions root collection** (Implemented 2026-05-13) — `SerializedEvent / SerializedAction` + `useEventsForTarget` / `useDocumentActions` / `useCanonicalDocumentStore` mutation API
+- **ADR-131 events/actions root collection** (Implemented 2026-05-13) → **ADR-158 로 entry 형태 교체** (Implemented 2026-08-16) — root `events` 는 `InteractionRule[]` (`packages/shared/src/interactions/interactionRule.types.ts`: `{ id, type: "interaction", elementId, trigger, action }`, action 은 `navigate | toast | capability` 3종 인라인, capability 는 `capabilityRegistry.ts` 의 RAC controlled prop 1:1). store action 은 `addEvent / updateEvent / removeEvent / setEvents`, read 는 `useDocumentEvents(): InteractionRule[]`. 구 `SerializedEvent` 와 root `actions` (`SerializedAction[]`) 는 **dormant** — ADR-158 write 경로가 항상 `undefined` 로 두므로 AI 도구는 참조하지 않는다
 - **ADR-130 Frame canonical vocabulary** (Implemented 2026-05-13) — `frame` type + `FrameNode` 1차 필드 (Group 응용에서 분리)
 
-ADR-011 의 도구 시그니처 (`createElement(tag, props, parentId)`) 는 legacy element-level mutation 만 다루며, canonical `CompositionDocument` 의 frame / slot / componentSemantics / events / actions 영역 mutation 미지원. AI 가 frame layout container 또는 component instance/slot 을 만들 수 없음.
+ADR-011 의 도구 시그니처 (`createElement(tag, props, parentId)`) 는 element-level 생성만 다루며, canonical `CompositionDocument` 의 frame / slot / componentSemantics 1차 필드와 interaction rule 을 **도구 파라미터로 표현하지 못한다**. AI 가 frame layout container / component instance·slot / interaction rule 을 만들 수 없음. facade 가 canonical-primary 라 store 정합은 이미 확보돼 있으므로, Phase 3 의 일은 store 전환이 아니라 schema 확장 + 필요 시 store action 직접 경유 (`insertNode` 등) 다.
 
-### 격차 2 — data_tables SSOT 미반영 (ADR-011 데이터 바인딩 격차)
+### 격차 2 — `collections` (구 data_tables) SSOT 미반영 (ADR-011 데이터 바인딩 격차)
 
 ADR-011 Section 1.3.3 의 "데이터 바인딩 격차" (Mock 엔드포인트 30+ 누락 / DataBinding 3단계 타입 / DataTable 프리셋 18종 / Transform 3단계) 는 본 ADR 작성 시점 기준 SSOT 정합 미반영:
 
-- **`data_tables` 가 데이터 SSOT** ([[project-data-tables-ssot-framing]] 사용자 확정 2026-05-13) — `useCollectionData({ datatableId | dataBinding })` 통합 read 진입점
-- **ADR-132 useCollectionData useAsyncList 정합** (Implemented 2026-05-13) — collections rename + Transformer 제거 + `data_tables → collections` schema 정정. ADR-011 의 "Transform 3단계" 가 해당 ADR Phase 7 에서 전수 제거됨
-- **API endpoint sink** — `endpoint.targetDataTable` → `data_tables.runtimeData` (사용자 확정 영역)
+- **`collections` (구 `data_tables`) 가 데이터 SSOT** ([[project-data-tables-ssot-framing]] 사용자 확정 2026-05-13; 명칭은 ADR-132 Phase 5 rename 이후 `collections` — 본 ADR 은 이 명칭으로 통일, 2026-08-26) — `useCollectionData({ datatableId | dataBinding })` (`packages/shared/src/hooks/useCollectionData.tsx`) 통합 read 진입점. 데이터는 canonical document 밖 IndexedDB store (`collections` / `api_endpoints` / `variables`, `builder/stores/datatable.ts` `useDataTableStore`) 에 있고, element 는 `Element.dataBinding` 참조만 가진다 (ADR-131 Phase 8 에서 document `data` root 제거 — `composition-document.types.ts` 주석)
+- **ADR-132 useCollectionData useAsyncList 정합** (Implemented 2026-05-13) — collections rename + Transformer 제거. ADR-011 의 "Transform 3단계" 가 해당 ADR Phase 7 에서 전수 제거됨
+- **API endpoint sink** — `endpoint.targetDataTable` → `collections.runtimeData` (`DataTable.runtimeData?` 메모리 전용 필드, `types/builder/data.types.ts`; 사용자 확정 영역)
 
-ADR-011 의 `bindings` 도구 디자인은 legacy `{ type: "dataTable", field: "name" }` 필드 매핑만 다루며, ADR-132 반영 완료된 `data_tables → collections` 정합 + `useAsyncList` patch/move/remove 표준 callback 미지원.
+ADR-011 의 `bindings` 도구 디자인은 legacy `{ type: "dataTable", field: "name" }` 필드 매핑만 다루며, ADR-132 반영 완료된 `collections` 정합 + `useAsyncList` patch/move/remove 표준 callback 미지원.
 
 ### 격차 3 — Provider 추상화 + Electron 시점 미확정 (ADR-054 base 영역)
 
 ADR-054 Proposed (2026-04-05) 의 대안 A (Ollama → node-llama-cpp + 온라인 모델 선택) 는 본 ADR 작성 시점 기준 반영 0건 (Proposed 상태 유지). Electron 마이그레이션 시점 미확정 (ADR-054 Soft Constraint 1) 이 해소되지 않은 상태에서 로컬 LLM 내장 단계 차단 위험. 또한 ADR-054 의 Hard Constraint (`groq-sdk` 완전 제거 + Provider 추상화 + 폐쇄망 + 컴포넌트 카탈로그 Tier 2 주입) 와 ADR-011 의 Phase A1~A4 반영 산출물 (도구 7개 + AIPanel + AbortController + G.3) 의 정합 합의 부재.
 
-### 격차 4 — AIPanel UX (ADR-133 정합 미반영)
+### 격차 4 — AIPanel UX ("1년차 신입 baseline" 미반영)
 
-ADR-011 의 AIPanel (ChatMessage / ChatInput / ChatContainer / ToolCallMessage / AgentControls) 은 [[adr133-events-panel-simplification-plan]] (Proposed 2026-05-13) 의 "1년차 신입 개발자 baseline" mental model 미반영. ADR-133 Q4 사용자 확정 "1년차 신입 개발자라도 사용할 수준이어야한다" 가 AI 도구 UX 에도 적용되어야 함.
+ADR-011 의 AIPanel (`panels/ai/AIPanel.tsx` + `components/AgentControls.tsx` / `ToolCallMessage.tsx` / `ToolResultMessage.tsx` + `hooks/useAgentLoop.ts` — 2026-08-26 실측 파일 기준) 은 "1년차 신입 개발자 baseline" mental model 미반영. 이 baseline 은 ADR-133 Q4 사용자 확정 (2026-05-13, "1년차 신입 개발자라도 사용할 수준이어야한다") 에서 출발했고, **ADR-133 은 2026-07-08 Deprecated** 됐으나 원칙은 [ADR-149](completed/149-events-panel-canonical-simplification.md) P1 (Implemented 2026-07-19 — "default 표면 2 depth, overlay 0") 이 승계·실현했다. 본 ADR 은 이 원칙을 **HC12 로 독립 선언**하며 (ADR-133 참조에 의존하지 않음), depth 축소의 구체 기준은 ADR-149 P1 을 선례로 삼는다.
 
 ### 격차 5 — reference 수렴 방향과의 발산 (2026-08-18 추가)
 
@@ -77,13 +84,13 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 6. RAC / RSP 문서 기반 정확한 props 설정 — 잘못된 prop 조합 생성 금지
 7. **폐쇄망 지원** — 인터넷 불가 환경에서도 기본 AI 기능 동작. **2026-08-18 달성 방식 재규정**: 자체 모델 내장이 아니라 **로컬 OpenAI-compatible endpoint (Ollama / vLLM / LM Studio 등) 를 에이전트 프로파일에 BYOK 바인딩**하는 방식으로 달성
 
-본 ADR 추가 Hard Constraints (canonical / data_tables / events 정합 + 2026-08-18 추가):
+본 ADR 추가 Hard Constraints (canonical / collections / interaction rule 정합 + 2026-08-18 추가 + 2026-08-26 실존 표면 정정):
 
-8. **canonical document mutation API 만 사용** — legacy `elementsMap` / `childrenMap` direct write 금지. AI 도구는 `useCanonicalDocumentStore.getState().{setFrames, setSlots, setEvents, setActions, ...}` 또는 boundary helper allowlist 경유
-9. **`data_tables` 데이터 SSOT 정합** — AI 가 데이터 바인딩 도구 호출 시 `data_tables.runtimeData` sink + `useCollectionData({ datatableId | dataBinding })` read 진입점만 사용
-10. **events/actions root collection 정합** — AI 가 이벤트 핸들러 생성 시 `SerializedEvent / SerializedAction` schema + canonical mutation API 사용
+8. **canonical document mutation API 만 사용** (2026-08-26 실존 표면으로 정정) — legacy `elementsMap` / `childrenMap` direct write 금지. AI 도구가 쓸 수 있는 write 표면은 두 가지뿐: (a) `builder/stores` facade (`addElement / updateElement / updateElementProps / removeElement` — 구현이 `adapters/canonical/canonicalMutations.ts` 경유 canonical-primary), (b) `useCanonicalDocumentStore.getState()` store action 직접 (`insertNode / updateNode / updateNodeProps / updateNodeExtension / moveNode / removeNode / updateDescendant`, events 는 `addEvent / updateEvent / removeEvent / setEvents`). Frame / Slot / ComponentSemantics 는 root 컬렉션이 아니라 **node 1차 필드**이므로 `updateNode` / `updateNodeExtension` patch 로 다룬다 (root setter 없음). 다단계 mutation 은 `runCanonicalMutation` (`canonicalMutationRunner.ts`) 으로 history 1건 묶음
+9. **`collections` 데이터 SSOT 정합** — AI 가 데이터 바인딩 도구 호출 시 element 쪽은 `Element.dataBinding` 참조를 `updateNodeProps` / facade `updateElement` 로 설정하고, 데이터 쪽은 `collections.runtimeData` sink + `useCollectionData({ datatableId | dataBinding })` read 진입점만 사용. collections 자체의 CRUD 는 `useDataTableStore` (`builder/stores/datatable.ts`) 경유 — canonical document 에 `collections` root 는 없다
+10. **interaction rule root collection 정합** (ADR-158) — AI 가 이벤트를 만들 때 `InteractionRule` schema (`{ id, type: "interaction", elementId, trigger, action: navigate | toast | capability }`) + `addEvent / updateEvent / removeEvent` 사용. `capability` action 은 `capabilityRegistry.ts` 에 등록된 대상 컴포넌트 capability 만 허용. 구 `SerializedEvent` / root `actions` (`SerializedAction[]`, ADR-158 이후 dormant) 참조 금지
 11. **frame canonical vocabulary 정합** — layout container 생성 시 `type: "frame"` (Group 응용 흡수 금지)
-12. **AIPanel UX 1년차 신입 baseline** — ADR-133 Q4 확정 정합
+12. **AIPanel UX 1년차 신입 baseline** — 본 ADR 독립 원칙 (출처: ADR-133 Q4 사용자 확정 2026-05-13, ADR-133 Deprecated 후 ADR-149 P1 이 승계). 구체 기준 = ADR-149 P1 선례 (default 표면 2 depth, overlay 0)
 13. **API 키 브라우저 비노출** (2026-08-18 추가) — browser 번들에서 외부 provider 직접 호출 금지. `dangerouslyAllowBrowser` 류 0건. BYOK 키는 브라우저 JS 에 상수/env 로 실리지 않는 보관·경유 경계 필수 (로컬 endpoint 는 사용자 머신 내 통신이라 예외)
 
 ### 3-domain 분할 (SSOT 체인 정본)
@@ -216,17 +223,18 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 ### sub-decision D1-D11 (2026-08-18 개정 반영)
 
 - **D1** (개정, 2026-08-18 2차 정정): LLM Provider 추상화 + **에이전트 프로파일** — `LLMProvider.completeWithTools(tools, messages, options)` 통합 시그니처 + **2-way 어댑터** (Anthropic Messages / OpenAI-compatible Chat Completions). Ollama·vLLM·LM Studio 등 로컬 모델은 OpenAI-compatible endpoint 로 포섭 (전용 어댑터 없음). 모델 구성 단위 = **에이전트 프로파일** (ZSeven-W multi-model/provider profile·grok-build 서브에이전트별 모델 설정 정합): 프로파일마다 provider / endpoint / 자격증명 / 모델 / reasoning effort 개별 설정. 기본 프로파일 = 메인 에이전트 + 오케스트레이션 서브에이전트 (planner / executor / verifier / fast 보조) — open-pencil 의 역할 고정 슬롯 4종 명명은 비채택 (§패턴 채택 주). vision 용 프로파일은 예약만 (멀티모달 scope 밖 유지). ~~node-llama-cpp 어댑터~~ 제거
-- **D2**: AI 도구 canonical 정합 (ADR-011 응용 + ADR-116/122 정합) — 7개 도구 시그니처를 canonical mutation API 경유로 전환:
-  - `createElement / updateElement / deleteElement` → `useCanonicalDocumentStore.getState().{setFrames, ...}` 또는 `nodeOpsActions` boundary helper
-  - `getEditorState / getSelection / searchElements` → `useCanonicalDocumentStore` read selector
-  - `batchDesign` → canonical mutations batch + transactional 패턴
-- **D3**: data_tables SSOT 정합 (ADR-132 정합) — AI 데이터 바인딩 도구는 `data_tables.runtimeData` sink + `useCollectionData({ datatableId | dataBinding })` read 진입점만 사용. legacy `Transform 3단계` 도구 제거
-- **D4**: events/actions root collection 정합 (ADR-131 정합) — `SerializedEvent / SerializedAction` schema + canonical mutation API. legacy `element.props.events` 도구 제거
+- **D2** (2026-08-26 재규정 — 격차 1 재측정): AI 도구 **canonical 어휘 확장** (ADR-011 응용 + ADR-116/122/130 정합). store 전환은 이미 완료 (read `canonicalToolReadModel.ts`, write facade canonical-primary) 이므로 Phase 3 의 일은 schema 와 write 표면 확장:
+  - `createElement` → 파라미터에 `type: "frame"` + `FrameNode` 1차 필드 (`clip` / `placeholder`) / slot / componentSemantics 표현 추가. write 는 facade `addElement` 유지, node 1차 필드는 `updateNode` / `updateNodeExtension` patch
+  - `updateElement / deleteElement` → facade `updateElement` / `removeElement` 유지 (canonical-primary 확인됨). body 보호 + boundary 검증은 도구 측 유지
+  - `getEditorState / getSelection / searchElements` → `canonicalToolReadModel` 유지 + `useDocumentEvents()` (InteractionRule) 통합
+  - `batchDesign` → `runCanonicalMutation` 으로 다단계 mutation 을 history 1건으로 묶고 실패 시 rollback
+- **D3**: `collections` SSOT 정합 (ADR-132 정합) — AI 데이터 바인딩 도구는 `Element.dataBinding` 참조 설정 (`updateNodeProps` / facade `updateElement`) + `collections.runtimeData` sink + `useCollectionData({ datatableId | dataBinding })` read 진입점만 사용. collections CRUD 는 `useDataTableStore` 경유. legacy `Transform 3단계` 어휘 도입 금지 (현 AI 도구 안 0건 — 회귀 gate)
+- **D4** (2026-08-26 ADR-158 정합으로 재작성): interaction rule root collection 정합 — AI 이벤트 도구는 `InteractionRule` schema + `addEvent / updateEvent / removeEvent`. action 3종 (`navigate` / `toast` / `capability`) 중 `capability` 는 `capabilityRegistry.ts` 등록 항목만 허용 (RAC controlled prop 1:1). 구 `SerializedEvent` / root `actions` / `element.props.events` 어휘 도입 금지 (현 AI 도구 안 0건 — 회귀 gate). 별도 `createAction` 도구는 만들지 않는다 (action 이 rule 안에 인라인)
 - **D5**: frame canonical vocabulary 정합 (ADR-130 정합) — layout container 생성 시 `type: "frame"`. legacy `Group + customId="group_N"` 도구 제거
 - **D6** (목적 재규정): 컴포넌트 카탈로그 (RAC / RSP 문서 기반) — 원 목적 (로컬 모델 정확도 보정) 에서 **provider 무관 도메인 지식 주입**으로 재규정. 어느 모델이든 composition 의 컴포넌트 vocabulary / props / catalog 규칙은 컨텍스트 주입 없이는 알 수 없음. Tier 2 동적 주입 (작업 컨텍스트 기반 선택적 로딩) 유지
 - **D7** (개정, 2026-08-18 2차 정정): **에이전트 오케스트레이션** (Plan→Execute→Verify) — 멀티스텝 대시보드 디자인을 **서브에이전트 분해로 실행** (ZSeven-W/openpencil Concurrent Agent Teams / layered workflow 패턴 — PENCIL 분석 §8 차용 후보 4): planner / executor / verifier 서브에이전트가 각자 에이전트 프로파일 (D1) 을 참조, 단순 분류·응답은 fast 보조 프로파일. `create_composite` 도구 + 레이아웃 템플릿 + bounded repair (자기 수정 max 2회) + 에이전트별 진행 표시 (per-agent indicator — ZSeven-W 정합)
 - **D8** (개정): 모델 라우팅 — ~~난이도 기반 로컬/온라인 전환~~ → **에이전트 프로파일 라우팅** (작업 유형 → 오케스트레이션의 실행 에이전트 선택, D7 분해가 정본). 폐쇄망 = 전 프로파일을 로컬 OpenAI-compatible endpoint 에 바인딩 (Hard Constraint 7 재규정 정합). 난이도 추정·자동 전환 제안·복합 작업 자동 분할은 제거 — 프로파일 구성이 사용자 통제 지점
-- **D9**: AIPanel UX 1년차 신입 baseline (ADR-133 정합) — depth 4→2 축소. default 표면 = 자연어 입력 + 도구 실행 결과 시각 피드백 (G.3 보존). 고급 모드 = Plan 단계 시각화 + 자기 수정 표시 + 에이전트별 진행 표시 + **에이전트 프로파일 설정** (L4 power user 격리)
+- **D9**: AIPanel UX 1년차 신입 baseline (HC12 — ADR-149 P1 선례) — depth 4→2 축소. default 표면 = 자연어 입력 + 도구 실행 결과 시각 피드백 (G.3 보존). 고급 모드 = Plan 단계 시각화 + 자기 수정 표시 + 에이전트별 진행 표시 + **에이전트 프로파일 설정** (L4 power user 격리)
 - **D10** (신규 2026-08-18): **secret isolation** — `dangerouslyAllowBrowser` 제거 + browser 번들에서 외부 provider 직접 호출 0건 (Hard Constraint 13). BYOK 키 보관·경유 경계: 원격 provider 는 프록시 경유 (Supabase Edge Function 등 — Phase 2 에서 확정), 로컬 endpoint (localhost) 는 직접 호출 허용. 키의 브라우저 저장은 사용자 명시 opt-in (localStorage 평문 금지)
 - **D11** (신규 2026-08-18): **외부 에이전트/MCP 준비** — 7+ 도구 정의를 MCP tool schema 와 호환되는 형태 (JSON Schema 파라미터 + 명세 분리) 로 유지. ACP/에이전트 SDK embed (Claude Code / Codex — Pencil.app dual embed·holaOS 하니스·grok-build ACP 패턴) 는 Electron 반영 후 Phase 9 에서 재평가. 도구 표면이 커질 때의 지연 로딩은 grok-build `search_tool`+`use_tool` 패턴 (manifest 안정 = KV cache 보존 — 3중 독립 수렴 확인, XAI_ORG_ANALYSIS §5-1 #1) 을 정본 reference 로 한다
 
@@ -237,8 +245,8 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 - Phase 0 — inventory baseline freeze (ADR-011 반영 영역 인벤토리 + 4 격차 측정 + Groq 표면 실측)
 - Phase 1 — LLM Provider 추상화 + 에이전트 프로파일 (D1) — **G1**
 - Phase 2 — Groq 완전 제거 + secret isolation (D10) — **G2**
-- Phase 3 — AI 도구 canonical 정합 (D2) — **G3**
-- Phase 4 — data_tables + events/actions + frame canonical 정합 (D3/D4/D5) — **G4**
+- Phase 3 — AI 도구 canonical 어휘 확장 (D2) — **G3**
+- Phase 4 — collections + interaction rule + frame canonical 정합 (D3/D4/D5) — **G4**
 - Phase 5 — 컴포넌트 카탈로그 (D6) — **G5**
 - Phase 6 — 에이전트 오케스트레이션 Plan→Execute→Verify (D7)
 - Phase 7 — 에이전트 프로파일 라우팅 + 폐쇄망 BYOK 검증 (D8) — **G6**
@@ -247,34 +255,34 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 
 ## Risks
 
-| ID  | 위험                                                                                          | 심각도 | 대응                                                                                                                                                   |
-| --- | --------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| R1  | Electron 마이그레이션 시점 미확정 → Phase 9 (외부 에이전트 embed) 차단                        |  HIGH  | Phase 1-8 은 Vite 웹앱 환경에서 자립 완결 (BYOK provider 는 웹에서 동작). Phase 9 만 Electron 의존 — Gate G7 으로 분리. 노선 γ 재평가도 이 시점        |
-| R2  | (재규정) BYOK 전제 — 키 미설정 사용자는 AI 기능 0 (기본 제공 모델 부재 온보딩 공백)           |  MED   | 최초 실행 설정 UX + 에이전트 프로파일 프리셋 (Anthropic / OpenAI / 로컬 endpoint 템플릿). 제품 부담 기본 모델 (proxy 운영) 도입은 별도 판정 (scope 밖) |
-| R3  | 컴포넌트 카탈로그 ~311K tok > context 예산                                                    |  MED   | 동적 주입 (작업 컨텍스트 기반 선택적 로딩) + RAG (long-term). Phase 5 G5 통과 조건                                                                     |
-| R4  | canonical document mutation API 가 AI 도구 시그니처와 정합 안 됨 (ADR-122 mirror 격하 영역)   |  MED   | Phase 3 G3 — 7개 도구 전수 canonical mutation API 경유 검증 + boundary helper allowlist 외 direct access 0 grep gate                                   |
-| R5  | data_tables SSOT 와 dataBinding 도구 시그니처 정합 (ADR-132 Transformer 제거 영역)            |  MED   | Phase 4 G4 — `useCollectionData({ datatableId \| dataBinding })` 통합 진입점 + legacy `Transform 3단계` 도구 제거 검증                                 |
-| R6  | events/actions root collection 과 AI 이벤트 핸들러 도구 정합 (ADR-131 영역)                   |  MED   | Phase 4 G4 — `SerializedEvent / SerializedAction` schema + canonical mutation API 사용 검증 + legacy `element.props.events` 0                          |
-| R7  | AIPanel UX 1년차 신입 baseline 검증 (ADR-133 Q4 확정)                                         |  MED   | Phase 8 evaluator agent screenshot 검증 + depth 4→2 축소 measure                                                                                       |
-| R8  | Provider 별 Tool Calling format 차이 (Anthropic tool use / OpenAI function calling)           |  MED   | `LLMProvider.completeWithTools` 통합 시그니처 + 2-way 어댑터 표준화 (4-way → 2-way 축소로 원 위험 대비 완화)                                           |
-| R9  | groq-sdk 완전 제거 시 기존 Phase A1~A4 산출물 회귀                                            |  MED   | Phase 2 G2 — 대체 provider (에이전트 프로파일 경유) 로 기존 7개 도구 전수 통과 + AbortController + G.3 시각 피드백 보존                                |
-| R10 | (재규정) 폐쇄망 = 로컬 endpoint BYOK — endpoint 품질·모델 선택이 사용자 소관이 되어 결과 편차 |  MED   | Phase 7 G6 — Ollama OpenAI-compatible endpoint 로 7 도구 전수 통과 1회 실측 + 로컬 endpoint 설정 가이드 문서화. 모델별 품질 보증은 제품 책임 아님      |
-| R11 | Phase scope inflation (단일 ADR 9 Phase + 4 격차 영역 → 1.5x gap 가능성)                      |  MED   | [adr-writing.md M4](rules) — Phase scope inflation 1.5x 시 사용자 confirm 의무. Phase 별 design breakdown freeze                                       |
-| R12 | (신규) 원격 provider 프록시 경계 부재 시 BYOK 키 브라우저 노출 재발 (Groq 사례 반복)          |  MED   | Phase 2 G2 — `dangerouslyAllowBrowser` 0 + browser 번들 내 원격 provider 직접 호출 0 grep gate. 프록시 방식 (Supabase Edge Function 등) Phase 2 확정   |
+| ID  | 위험                                                                                                                                                           | 심각도 | 대응                                                                                                                                                                            |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Electron 마이그레이션 시점 미확정 → Phase 9 (외부 에이전트 embed) 차단                                                                                         |  HIGH  | Phase 1-8 은 Vite 웹앱 환경에서 자립 완결 (BYOK provider 는 웹에서 동작). Phase 9 만 Electron 의존 — Gate G7 으로 분리. 노선 γ 재평가도 이 시점                                 |
+| R2  | (재규정) BYOK 전제 — 키 미설정 사용자는 AI 기능 0 (기본 제공 모델 부재 온보딩 공백)                                                                            |  MED   | 최초 실행 설정 UX + 에이전트 프로파일 프리셋 (Anthropic / OpenAI / 로컬 endpoint 템플릿). 제품 부담 기본 모델 (proxy 운영) 도입은 별도 판정 (scope 밖)                          |
+| R3  | 컴포넌트 카탈로그 ~311K tok > context 예산                                                                                                                     |  MED   | 동적 주입 (작업 컨텍스트 기반 선택적 로딩) + RAG (long-term). Phase 5 G5 통과 조건                                                                                              |
+| R4  | (재규정 2026-08-26) 도구 schema 가 frame / slot / componentSemantics 1차 필드를 표현하지 못하거나, 확장 시 facade 를 우회해 `elementsMap` 직접 접근이 재도입됨 |  MED   | Phase 3 G3 — 도구 schema 에 1차 필드 어휘 반영 + facade / store action 외 direct access 0 grep gate (현 baseline 0 — 회귀 gate) + `runCanonicalMutation` 으로 batch history 1건 |
+| R5  | `collections` SSOT 와 dataBinding 도구 시그니처 정합 (ADR-132 Transformer 제거 영역)                                                                           |  MED   | Phase 4 G4 — `Element.dataBinding` 설정 + `useCollectionData({ datatableId \| dataBinding })` 진입점 + `Transform 3단계` 어휘 미도입 회귀 gate                                  |
+| R6  | (재작성 2026-08-26) AI 이벤트 도구가 ADR-158 `InteractionRule` 이 아니라 dormant `SerializedEvent` / root `actions` 를 목표로 구현됨 (round 1 HIGH)            |  MED   | Phase 4 G4 — `InteractionRule` + `addEvent` 경유 + `capabilityRegistry` 검증 + `SerializedEvent` / `actions` root / `element.props.events` 어휘 0 grep gate                     |
+| R7  | AIPanel UX 1년차 신입 baseline 검증 (HC12 — ADR-149 P1 선례)                                                                                                   |  MED   | Phase 8 evaluator agent screenshot 검증 + depth 4→2 축소 measure                                                                                                                |
+| R8  | Provider 별 Tool Calling format 차이 (Anthropic tool use / OpenAI function calling)                                                                            |  MED   | `LLMProvider.completeWithTools` 통합 시그니처 + 2-way 어댑터 표준화 (4-way → 2-way 축소로 원 위험 대비 완화)                                                                    |
+| R9  | groq-sdk 완전 제거 시 기존 Phase A1~A4 산출물 회귀                                                                                                             |  MED   | Phase 2 G2 — 대체 provider (에이전트 프로파일 경유) 로 기존 7개 도구 전수 통과 + AbortController + G.3 시각 피드백 보존                                                         |
+| R10 | (재규정) 폐쇄망 = 로컬 endpoint BYOK — endpoint 품질·모델 선택이 사용자 소관이 되어 결과 편차                                                                  |  MED   | Phase 7 G6 — Ollama OpenAI-compatible endpoint 로 7 도구 전수 통과 1회 실측 + 로컬 endpoint 설정 가이드 문서화. 모델별 품질 보증은 제품 책임 아님                               |
+| R11 | Phase scope inflation (단일 ADR 9 Phase + 4 격차 영역 → 1.5x gap 가능성)                                                                                       |  MED   | [adr-writing.md M4](rules) — Phase scope inflation 1.5x 시 사용자 confirm 의무. Phase 별 design breakdown freeze                                                                |
+| R12 | (신규) 원격 provider 프록시 경계 부재 시 BYOK 키 브라우저 노출 재발 (Groq 사례 반복)                                                                           |  MED   | Phase 2 G2 — `dangerouslyAllowBrowser` 0 + browser 번들 내 원격 provider 직접 호출 0 grep gate. 프록시 방식 (Supabase Edge Function 등) Phase 2 확정                            |
 
-잔존 HIGH 위험 1개 (R1) → Gate G7 로 관리.
+잔존 HIGH 위험 1개 (R1) → Gate G7 로 관리. R1 은 외부 인프라 (Electron 도입 시점) 위험이라 adr-writing.md 선차단 체크 "HIGH+ 위험 코드 경로 3곳 인용" 은 N/A — 코드 경로가 아직 없다 (`package.json` 에 electron / 에이전트 SDK 의존 0건, 2026-08-26 실측).
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                                                    | 실패 시 대안                                                    |
-| ---- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| G1   | Phase 1 완료 | `LLMProvider` 추상화 + 2-way 어댑터 (Anthropic / OpenAI-compatible) + 에이전트 프로파일 설정 모델 반영 (Ollama 는 OpenAI-compatible 로 통과) | Provider 인터페이스 재설계                                      |
-| G2   | Phase 2 완료 | `groq-sdk` 0 grep + `dangerouslyAllowBrowser` 0 grep + browser 번들 원격 provider 직접 호출 0 + 대체 provider 로 7개 도구 전수 통과          | 키 경유 방식 재설계 (프록시 ↔ 로컬 gateway), fallback 단계 추가 |
-| G3   | Phase 3 완료 | 7개 도구 canonical mutation API 경유 + boundary helper allowlist 외 direct access 0 grep gate                                                | mutation API 확장 (frame/slot/componentSemantics 추가 등)       |
-| G4   | Phase 4 완료 | data_tables + events/actions + frame canonical 정합 검증 + legacy 도구 제거 + grep gate                                                      | 도구 시그니처 재설계, legacy 잔존물 cleanup phase 추가          |
-| G5   | Phase 5 완료 | 컴포넌트 카탈로그 Props 정확도 ≥ 90% (RAC / RSP 문서 기반 검증, executor 프로파일 기준 모델)                                                 | 카탈로그 형식 재설계, 동적 주입 전략 변경 (RAG 도입)            |
-| G6   | Phase 7 완료 | 에이전트 프로파일 라우팅 (D7 분해) 동작 + 폐쇄망 시나리오 — 전 프로파일 로컬 endpoint 바인딩으로 7 도구 통과 1회 실측                        | 프로파일 구성 UX 보강, 로컬 endpoint 가이드 확충                |
-| G7   | Phase 9 완료 | 외부 에이전트 (ACP/SDK) embed 1종 이상 + MCP 도구 표면으로 composition 조작 실측 + Canvas 60fps 유지 (R1 HIGH 위험 통과)                     | Phase 9 보류, Phase 1-8 자립 운영 유지 (BYOK provider 기본)     |
+| Gate | 시점         | 통과 조건                                                                                                                                                                                                                                                                         | 실패 시 대안                                                    |
+| ---- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| G1   | Phase 1 완료 | `LLMProvider` 추상화 + 2-way 어댑터 (Anthropic / OpenAI-compatible) + 에이전트 프로파일 설정 모델 반영 (Ollama 는 OpenAI-compatible 로 통과)                                                                                                                                      | Provider 인터페이스 재설계                                      |
+| G2   | Phase 2 완료 | `groq-sdk` 0 grep + `dangerouslyAllowBrowser` 0 grep + browser 번들 원격 provider 직접 호출 0 + 대체 provider 로 7개 도구 전수 통과                                                                                                                                               | 키 경유 방식 재설계 (프록시 ↔ 로컬 gateway), fallback 단계 추가 |
+| G3   | Phase 3 완료 | 도구 schema 에 frame / slot / componentSemantics 어휘 반영 + AI 가 `type: "frame"` 요소 1건 생성 live 실측 + facade / store action 외 `elementsMap` / `childrenMap` 직접 접근 0 grep gate (회귀) + `batchDesign` 이 history 1건으로 묶임                                          | store action 추가 (`insertNode` 인자 확장 등)                   |
+| G4   | Phase 4 완료 | AI 가 `InteractionRule` 1건 생성 → Preview 발화 live 실측 + `Element.dataBinding` 설정 → `useCollectionData` 로 데이터 렌더 live 실측 + 신규 도구가 `SerializedEvent` / root `actions` / `Transform` / `Group + group_N` 어휘 미도입 (회귀 gate, 착수 전 baseline 0건 2026-08-26) | 도구 시그니처 재설계, capability 노출 범위 조정                 |
+| G5   | Phase 5 완료 | 컴포넌트 카탈로그 Props 정확도 ≥ 90% (RAC / RSP 문서 기반 검증, executor 프로파일 기준 모델)                                                                                                                                                                                      | 카탈로그 형식 재설계, 동적 주입 전략 변경 (RAG 도입)            |
+| G6   | Phase 7 완료 | 에이전트 프로파일 라우팅 (D7 분해) 동작 + 폐쇄망 시나리오 — 전 프로파일 로컬 endpoint 바인딩으로 7 도구 통과 1회 실측                                                                                                                                                             | 프로파일 구성 UX 보강, 로컬 endpoint 가이드 확충                |
+| G7   | Phase 9 완료 | 외부 에이전트 (ACP/SDK) embed 1종 이상 + MCP 도구 표면으로 composition 조작 실측 + Canvas 60fps 유지 (R1 HIGH 위험 통과)                                                                                                                                                          | Phase 9 보류, Phase 1-8 자립 운영 유지 (BYOK provider 기본)     |
 
 ## Consequences
 
@@ -282,14 +290,14 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 
 - **reference 수렴 노선**: Pencil.app / openpencil / open-pencil / holaOS / grok-build 5개 reference 와 같은 방향 — 교차 검증 가능한 패턴 (에이전트 프로파일별 모델 / BYOK / 에이전트 오케스트레이션 / ACP·MCP / 도구 지연 로딩), 고립 노선의 모델 수명주기 부담 소멸. 조직 원리 정본 = Pencil.app embed + ZSeven-W/openpencil 오케스트레이션 (§패턴 채택 주)
 - **단일 진입점**: `LLMProvider` 통합 인터페이스 + 에이전트 프로파일로 원격/로컬 모델 자유 전환 — 폐쇄망은 로컬 endpoint 바인딩으로 동등 달성
-- **canonical document 정합**: AI 가 `CompositionDocument` 의 frame / slot / componentSemantics / events / actions 영역 mutation 가능 — ADR-116/122/130/131 반영 영역 활용
-- **data_tables SSOT 정합**: `useCollectionData({ datatableId | dataBinding })` 통합 read 진입점 + `data_tables.runtimeData` sink — ADR-132 정합
-- **events/actions root collection 정합**: `SerializedEvent / SerializedAction` schema — ADR-131 정합
+- **canonical document 정합**: AI 가 `CompositionDocument` 의 frame / slot / componentSemantics 1차 필드와 interaction rule 을 도구 어휘로 다룰 수 있음 — ADR-116/122/130/158 반영 영역 활용 (store 정합은 facade canonical-primary 로 이미 확보)
+- **`collections` SSOT 정합**: `Element.dataBinding` + `useCollectionData({ datatableId | dataBinding })` 통합 read 진입점 + `collections.runtimeData` sink — ADR-132 정합
+- **interaction rule root collection 정합**: `InteractionRule` schema + `capabilityRegistry` — ADR-158 정합
 - **groq-sdk 완전 제거 + secret isolation**: 벤더 종속 해소 + `dangerouslyAllowBrowser: true` 제거가 1급 결정 (Hard Constraint 13) 으로 승격 — API 키 브라우저 노출 구조 재발 차단
 - **컴포넌트 카탈로그**: provider 무관 도메인 지식 주입 — 어느 모델이든 composition vocabulary 정확도 확보
 - **에이전트 오케스트레이션**: Plan→Execute→Verify 를 planner/executor/verifier 서브에이전트 분해로 실행 (ZSeven-W 패턴) + bounded repair (max 2회) + 에이전트별 진행 표시
 - **외부 에이전트 확장로**: MCP 호환 도구 표면이 Phase 9 (Claude Code / Codex embed) 와 노선 γ 재평가의 전제를 준비
-- **AIPanel UX 1년차 신입 baseline**: depth 4→2 축소 (ADR-133 정합)
+- **AIPanel UX 1년차 신입 baseline**: depth 4→2 축소 (HC12 — ADR-149 P1 선례)
 
 ### Negative
 
@@ -302,22 +310,24 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 
 ## supersede / 폐기 관계
 
-- **ADR-011 → Deprecated** (Replaced by ADR-134) — Phase A1~A4 산출물 (도구 7개 + AIPanel + AbortController + G.3) 은 본 ADR Phase 2 에서 보존 + canonical 정합 Phase 3-4 에서 점진 mutation API 교체
+- **ADR-011 → Deprecated** (Replaced by ADR-134) — Phase A1~A4 산출물 (도구 7개 + AIPanel + AbortController + G.3) 은 본 ADR Phase 2 에서 보존 + Phase 3-4 에서 canonical 어휘 확장 (store 경로는 이미 canonical-primary — 교체 아님, 2026-08-26 정정)
 - **ADR-054 → Deprecated** (Replaced by ADR-134) — Proposed 영역 중 Provider 추상화 / 폐쇄망은 본 ADR Phase 1/7 에 흡수 (2026-08-18 노선 개정으로 재규정), **Ollama 전용 어댑터 / node-llama-cpp 내장 / Qwen 모델 고정 / 난이도 라우팅은 노선 α 기각과 함께 승계 종료**
 
 ## 개정 이력
 
-| 날짜       | 내용                                                                                                                                                                                                                                                                      |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-05-13 | 최초 작성 — ADR-011 + ADR-054 단일 통합, 노선 α (자체 로컬 LLM 내장), 설계 문서만 반영                                                                                                                                                                                    |
-| 2026-08-18 | 노선 재결정 (사용자 재제기) — 노선 α 기각 → 노선 β (역할별 BYOK + 외부 에이전트/MCP 준비). 격차 5 추가, Hard Constraint 4 삭제·7 재규정·13 추가, D1/D8 개정, D10/D11 신규                                                                                                 |
-| 2026-08-18 | 수렴 근거 보강 — xai-org 9개 저장소 분석 (XAI_ORG_ANALYSIS.md) 반영: grok-build 를 격차 5 의 5번째 수렴 사례로 추가 (reference 4→5개), D11 에 도구 지연 로딩 (`search_tool`+`use_tool`, 3중 독립 수렴) 정본 reference 명시                                                |
-| 2026-08-18 | 2차 정정 (사용자) — 조직 원리 교정: open-pencil 역할 고정 슬롯 4종 비채택 → **Pencil.app (외부 에이전트 embed) + ZSeven-W/openpencil (에이전트 팀 오케스트레이션)** 패턴 채택. 모델 구성 단위 = 에이전트 프로파일. D1/D7/D8/D9 재규정, Phase 1/6/7 재명명 (§패턴 채택 주) |
+| 날짜       | 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-13 | 최초 작성 — ADR-011 + ADR-054 단일 통합, 노선 α (자체 로컬 LLM 내장), 설계 문서만 반영                                                                                                                                                                                                                                                                                                                                                               |
+| 2026-08-18 | 노선 재결정 (사용자 재제기) — 노선 α 기각 → 노선 β (역할별 BYOK + 외부 에이전트/MCP 준비). 격차 5 추가, Hard Constraint 4 삭제·7 재규정·13 추가, D1/D8 개정, D10/D11 신규                                                                                                                                                                                                                                                                            |
+| 2026-08-18 | 수렴 근거 보강 — xai-org 9개 저장소 분석 (XAI_ORG_ANALYSIS.md) 반영: grok-build 를 격차 5 의 5번째 수렴 사례로 추가 (reference 4→5개), D11 에 도구 지연 로딩 (`search_tool`+`use_tool`, 3중 독립 수렴) 정본 reference 명시                                                                                                                                                                                                                           |
+| 2026-08-18 | 2차 정정 (사용자) — 조직 원리 교정: open-pencil 역할 고정 슬롯 4종 비채택 → **Pencil.app (외부 에이전트 embed) + ZSeven-W/openpencil (에이전트 팀 오케스트레이션)** 패턴 채택. 모델 구성 단위 = 에이전트 프로파일. D1/D7/D8/D9 재규정, Phase 1/6/7 재명명 (§패턴 채택 주)                                                                                                                                                                            |
+| 2026-08-26 | 리뷰 round 1 반영 (reviews/134.md) — 응용 영역 코드 사실 재측정: 격차 1 재규정 (facade canonical-primary + 어휘 부재), `SerializedEvent` → `InteractionRule` (ADR-158), mutation API 실존 표면으로 교체 (`setFrames/setSlots/nodeOpsActions` 폐기), ADR-133 → HC12 독립 선언 + ADR-149 P1 선례, `data_tables` → `collections` 통일, G3/G4 live 실측 + 회귀 gate 로 재표현, R1 seed N/A 명시. HC8/9/10/12, D2/D3/D4/D9, R4~R7, G3/G4, 격차 1/2/4 갱신 |
 
 ## 관련
 
 - 본문 design: [design/134-ai-assistant-llm-infrastructure-unification-breakdown.md](design/134-ai-assistant-llm-infrastructure-unification-breakdown.md)
 - 노선 재결정 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) (§5 비교 매트릭스 / §8 차용 후보 4·7·12·17 / §9-5 AI productization / §10 acceptance criteria) + [OPENPENCIL_DETAIL.md](../explanation/research/OPENPENCIL_DETAIL.md) + [HOLAOS_ANALYSIS.md](../explanation/research/HOLAOS_ANALYSIS.md) (§3 하니스 추상화·BYOK·deferred tool gateway / §4 노선 β 정합 표 / §5 차용 후보) + [XAI_ORG_ANALYSIS.md](../explanation/research/XAI_ORG_ANALYSIS.md) (§2 grok-build 하니스 실측 / §5-1 ADR-134 매핑 8건 — 도구 지연 로딩·capability 술어·retry 스펙·프롬프트 템플릿·compaction·권한 파이프라인 / §5-2 marketplace 배포 계약)
 - 폐기 대상: [completed/011-ai-assistant-design.md](completed/011-ai-assistant-design.md) / [completed/054-local-llm-architecture.md](completed/054-local-llm-architecture.md)
-- 정합 ADR: ADR-116 / ADR-122 (canonical document) / ADR-130 (frame) / ADR-131 (events/actions root) / ADR-132 (useCollectionData) / ADR-133 (AIPanel UX 1년차 신입 baseline)
-- 동일 패턴: ADR-133 (3 ADR Deprecated + 통합 신규 ADR + 설계 문서 먼저 + Phase 실행 사용자 review 후)
+- 정합 ADR: ADR-116 / ADR-122 (canonical document) / ADR-130 (frame) / ADR-131 → [ADR-158](completed/158-interactions-rules-capability-registry.md) (interaction rule root collection + capability registry) / ADR-132 (useCollectionData) / [ADR-149](completed/149-events-panel-canonical-simplification.md) P1 (1년차 신입 baseline 선례 — ADR-133 Deprecated 2026-07-08 후 승계)
+- 리뷰 기록: [reviews/134.md](reviews/134.md) — round 1 (2026-08-26) 응용 영역 코드 사실 재측정 이슈 8건 반영
+- 동일 패턴: ADR-133 (3 ADR Deprecated + 통합 신규 ADR + 설계 문서 먼저 + Phase 실행 사용자 review 후 — ADR-133 자체는 이후 Deprecated, 절차 패턴만 참조)
