@@ -151,6 +151,11 @@ export interface ColorTokens {
   "brown-subtle": string;
   silver: string;
   "silver-subtle": string;
+  // Skia 결손 보완 (ADR-193) — catalog `{color.gray}` / tokenResolver `green-named` 는 있었으나 colors.ts 에 없었다
+  gray: string;
+  "gray-subtle": string;
+  "green-named": string;
+  "green-named-subtle": string;
 }
 
 /**

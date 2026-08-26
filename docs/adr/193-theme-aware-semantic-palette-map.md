@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-27
+Accepted — 2026-08-27 (review round 1 승인 가능 — MED 1 fixed / LOW 1 deferred; Proposed 2026-08-27)
 
 ## Context
 
@@ -119,6 +119,13 @@ D3 (시각 스타일). 팔레트 정의는 [ADR-191](completed/191-tailwind-them
 | G2   | Phase 3      | **dark 대칭**: `semanticAlias.symmetry.test` dark 확장 GREEN (전 토큰) + live: `darkMode=dark` 에서 preview iframe computed vs Skia `darkColors` — Badge positive/negative/indigo/gray, StatusLight notice, Meter positive 6 요소 sRGB Δ≤1 | 캐스케이드 층·selector 점검, 표 재조정                    |
 | G3   | Phase 1~3    | 생성 산출물 재실행 byte-diff 0 (`validate:palette` 확장), `build:specs` 연동, hex 리터럴 0                                                                                                                                                 | 생성기 결정성 수정                                        |
 | G4   | Phase 3      | CSS 증가 ≤ 5KB, Preview undefined var 0, builder chrome Toast/header 색 불변 (R1), ThemeStudio runtime var 로 `--color-green-600` 을 덮으면 Badge positive 가 따라 바뀜 (R2 훅 생존)                                                       | R1: var 이름에 접두 (`--semantic-*`) 로 분리, R2: 훅 복원 |
+
+## 진행 로그
+
+| 일자       | Phase | commit    | 내용                                                                                                                                                                                                                                                       |
+| ---------- | :---: | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-27 |   0   | 4105e21e8 | inventory freeze (breakdown §0) — 테마 신호 2 소비자 / 토큰 FLIP 12·FIXED 24·subtle 25 / Skia 결손 2 / chrome 소비 16 (G0) + review round 1                                                                                                                 |
+| 2026-08-27 |   1   | (Phase 1 commit) | `semanticPaletteMap.ts` 46 행 (status 8 + named 19×2) + `colors.ts` status/named 항목 표 파생 + `gray`/`green-named`(+subtle) 4 키 + 스냅샷 테스트 5 (light 67 키 byte 불변 · dark 무변경 — G1·G3). live: ZZZF Badge `gray` 캔버스 neutral gray pill 렌더 (Phase 0 빈 박스 → 해소) |
 
 ## Consequences
 

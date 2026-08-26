@@ -10,12 +10,15 @@
 
 import type { ColorTokens } from "../types/token.types";
 import { TAILWIND_PALETTE } from "./generated/tailwindPalette";
+import { resolveSemanticColors } from "./semanticPaletteMap";
 
 /**
  * Light 모드 색상 토큰
  * 시맨틱 토큰 CSS 변수의 fallback 값 기준.
  * ADR-191: Tailwind 팔레트 복사 항목은 `TAILWIND_PALETTE` (tailwindcss/theme.css 파생) 참조 —
  * 손 복사 hex 를 다시 적지 말 것. 리터럴로 남은 값은 S2/Leonardo custom (팔레트 이름 없음).
+ * ADR-193: status(negative/informative/positive/notice) 와 named hue (+subtle) 는
+ * `semanticPaletteMap.ts` 표에서 파생 — 단계 조정은 표에서만 한다 (CSS 생성 산출물과 같은 원천).
  */
 export const lightColors: ColorTokens = {
   // --- Accent (기존 primary → --highlight-background) ---
@@ -32,22 +35,13 @@ export const lightColors: ColorTokens = {
   "neutral-hover": "#c3c3c3",
   "neutral-pressed": "#a8a8a8",
 
-  // --- Negative (기존 error → --invalid-color) ---
-  negative: TAILWIND_PALETTE.red[500], // error-400
+  // --- Negative hover/pressed (custom — Skia 미소비, 표 밖) ---
   "negative-hover": "#cb3a3a",
   "negative-pressed": "#b33333",
   "on-negative": "#ffffff",
-  "negative-subtle": TAILWIND_PALETTE.red[100], // error-100
 
-  // --- Informative ---
-  informative: TAILWIND_PALETTE.blue[600], // info-600 (= blue-600)
-  "informative-subtle": TAILWIND_PALETTE.blue[100],
-  // --- Positive ---
-  positive: TAILWIND_PALETTE.green[600], // green-600
-  "positive-subtle": TAILWIND_PALETTE.green[100],
-  // --- Notice ---
-  notice: TAILWIND_PALETTE.orange[600], // warning-600 (= orange-600)
-  "notice-subtle": TAILWIND_PALETTE.orange[100],
+  // --- Status + Named hue (+subtle) — semanticPaletteMap 파생 ---
+  ...resolveSemanticColors("light"),
 
   // --- Surface / Layer ---
   base: "#ffffff",
@@ -66,43 +60,6 @@ export const lightColors: ColorTokens = {
   transparent: "transparent",
   white: "#ffffff",
   black: "#000000",
-
-  // --- Named Colors ---
-  purple: TAILWIND_PALETTE.purple[600],
-  "purple-subtle": TAILWIND_PALETTE.purple[100],
-  yellow: TAILWIND_PALETTE.yellow[500],
-  "yellow-subtle": TAILWIND_PALETTE.yellow[100],
-  red: TAILWIND_PALETTE.red[600],
-  "red-subtle": TAILWIND_PALETTE.red[100],
-  orange: TAILWIND_PALETTE.orange[600],
-  "orange-subtle": TAILWIND_PALETTE.orange[100],
-  blue: TAILWIND_PALETTE.blue[600],
-  "blue-subtle": TAILWIND_PALETTE.blue[100],
-  indigo: TAILWIND_PALETTE.indigo[700], // v3 indigo-700 #4338ca
-  "indigo-subtle": TAILWIND_PALETTE.indigo[100],
-  cyan: TAILWIND_PALETTE.cyan[600], // v3 cyan-600 #0891b2
-  "cyan-subtle": TAILWIND_PALETTE.cyan[100],
-  pink: TAILWIND_PALETTE.pink[600], // v3 pink-600 #db2777
-  "pink-subtle": TAILWIND_PALETTE.pink[100],
-  fuchsia: TAILWIND_PALETTE.fuchsia[600], // v3 fuchsia-600 #c026d3
-  "fuchsia-subtle": TAILWIND_PALETTE.fuchsia[100],
-  magenta: TAILWIND_PALETTE.pink[700], // v3 pink-700 #be185d
-  "magenta-subtle": TAILWIND_PALETTE.pink[100],
-  celery: TAILWIND_PALETTE.lime[600], // v3 lime-600 #65a30d
-  "celery-subtle": TAILWIND_PALETTE.lime[100],
-  chartreuse: TAILWIND_PALETTE.lime[500], // v3 lime-500 #84cc16
-  "chartreuse-subtle": TAILWIND_PALETTE.lime[100],
-  // Spectrum 전용 hue — Tailwind 에 같은 이름이 없어 가장 가까운 family 로 고정 (CSS 매핑과 동일 단계, semanticAlias.symmetry.test)
-  turquoise: TAILWIND_PALETTE.teal[500],
-  "turquoise-subtle": TAILWIND_PALETTE.teal[100],
-  seafoam: TAILWIND_PALETTE.teal[700],
-  "seafoam-subtle": TAILWIND_PALETTE.teal[100],
-  cinnamon: TAILWIND_PALETTE.amber[800],
-  "cinnamon-subtle": TAILWIND_PALETTE.amber[100],
-  brown: TAILWIND_PALETTE.yellow[900],
-  "brown-subtle": TAILWIND_PALETTE.yellow[100],
-  silver: TAILWIND_PALETTE.gray[400],
-  "silver-subtle": TAILWIND_PALETTE.gray[100],
 };
 
 /**
@@ -124,22 +81,13 @@ export const darkColors: ColorTokens = {
   "neutral-hover": "#363636",
   "neutral-pressed": "#2e2e2e",
 
-  // --- Negative ---
-  negative: TAILWIND_PALETTE.red[400], // error-400 dark
+  // --- Negative hover/pressed (custom — Skia 미소비, 표 밖) ---
   "negative-hover": "#d36060",
   "negative-pressed": "#ba5555",
   "on-negative": "#ffffff",
-  "negative-subtle": TAILWIND_PALETTE.red[900], // error-900
 
-  // --- Informative ---
-  informative: TAILWIND_PALETTE.blue[500],
-  "informative-subtle": TAILWIND_PALETTE.blue[900],
-  // --- Positive ---
-  positive: TAILWIND_PALETTE.green[500], // green-500
-  "positive-subtle": TAILWIND_PALETTE.green[900],
-  // --- Notice ---
-  notice: TAILWIND_PALETTE.orange[500], // orange-500
-  "notice-subtle": TAILWIND_PALETTE.orange[900],
+  // --- Status + Named hue (+subtle) — semanticPaletteMap 파생 (본색 한 단계 밝게 / subtle 900) ---
+  ...resolveSemanticColors("dark"),
 
   // --- Surface / Layer ---
   base: TAILWIND_PALETTE.neutral[900], // neutral-900
@@ -158,43 +106,6 @@ export const darkColors: ColorTokens = {
   transparent: "transparent",
   white: "#ffffff",
   black: "#000000",
-
-  // --- Named Colors ---
-  purple: TAILWIND_PALETTE.purple[500],
-  "purple-subtle": TAILWIND_PALETTE.purple[900],
-  yellow: TAILWIND_PALETTE.yellow[400],
-  "yellow-subtle": TAILWIND_PALETTE.yellow[900],
-  red: TAILWIND_PALETTE.red[400],
-  "red-subtle": TAILWIND_PALETTE.red[900],
-  orange: TAILWIND_PALETTE.orange[500],
-  "orange-subtle": TAILWIND_PALETTE.orange[900],
-  blue: TAILWIND_PALETTE.blue[500],
-  "blue-subtle": TAILWIND_PALETTE.blue[900],
-  indigo: TAILWIND_PALETTE.indigo[500], // v3 indigo-500 #6366f1
-  "indigo-subtle": TAILWIND_PALETTE.indigo[900], // v3 indigo-900 #312e81
-  cyan: TAILWIND_PALETTE.cyan[500], // v3 cyan-500 #06b6d4
-  "cyan-subtle": TAILWIND_PALETTE.cyan[900], // v3 cyan-900 #164e63
-  pink: TAILWIND_PALETTE.pink[500], // v3 pink-500 #ec4899
-  "pink-subtle": TAILWIND_PALETTE.pink[900], // v3 pink-900 #831843
-  fuchsia: TAILWIND_PALETTE.fuchsia[500], // v3 fuchsia-500 #d946ef
-  "fuchsia-subtle": TAILWIND_PALETTE.fuchsia[900], // v3 fuchsia-900 #701a75
-  magenta: TAILWIND_PALETTE.rose[600], // v3 rose-600 #e11d48
-  "magenta-subtle": TAILWIND_PALETTE.rose[900], // v3 rose-900 #881337
-  celery: TAILWIND_PALETTE.lime[500], // v3 lime-500 #84cc16
-  "celery-subtle": TAILWIND_PALETTE.lime[900], // v3 lime-900 #365314
-  chartreuse: TAILWIND_PALETTE.lime[400], // v3 lime-400 #a3e635
-  "chartreuse-subtle": TAILWIND_PALETTE.lime[900], // v3 lime-900 #365314
-  // Spectrum 전용 hue (dark) — light 와 같은 family, 다른 named hue 와 같은 규칙 (본색 한 단계 밝게 / subtle 900)
-  turquoise: TAILWIND_PALETTE.teal[400],
-  "turquoise-subtle": TAILWIND_PALETTE.teal[900],
-  seafoam: TAILWIND_PALETTE.teal[500],
-  "seafoam-subtle": TAILWIND_PALETTE.teal[900],
-  cinnamon: TAILWIND_PALETTE.amber[600],
-  "cinnamon-subtle": TAILWIND_PALETTE.amber[900],
-  brown: TAILWIND_PALETTE.yellow[700],
-  "brown-subtle": TAILWIND_PALETTE.yellow[900],
-  silver: TAILWIND_PALETTE.gray[500],
-  "silver-subtle": TAILWIND_PALETTE.gray[800],
 };
 
 /**

@@ -14,6 +14,17 @@ export {
   getColorTokens,
 } from "./colors";
 export { TAILWIND_PALETTE } from "./generated/tailwindPalette";
+// Semantic·named hue → 팔레트 단계 매핑 정본 (ADR-193)
+export {
+  SEMANTIC_PALETTE_MAP,
+  resolveSemanticHex,
+  resolveSemanticColors,
+} from "./semanticPaletteMap";
+export type {
+  SemanticPaletteToken,
+  SemanticPaletteEntry,
+  PaletteRef,
+} from "./semanticPaletteMap";
 export type {
   TailwindPaletteFamily,
   TailwindPaletteStep,

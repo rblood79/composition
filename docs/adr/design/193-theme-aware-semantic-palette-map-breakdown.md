@@ -44,8 +44,8 @@ FIXED 24 중 white/black/on-negative 3 은 Skia 도 테마 불변 → **dark 비
 
 | Phase | 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Gate  | 산출물                                   |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ---------------------------------------- |
-| 0     | inventory freeze (본 문서 §0)                                                                                                                                                                                                                                                                                                                                                                                                                           | G0    | 본 문서                                  |
-| 1     | 매핑 표 `semanticPaletteMap.ts` (status 4 + named 18 + subtle 22 + gray/green-named, light/dark, `hook`) + `colors.ts` 해당 항목을 표에서 파생 + `lightColors` 스냅샷 테스트 (light 값 불변) + `darkColors` 는 표 값으로 정렬                                                                                                                                                                                                                           | G1·G3 | 표 1, colors.ts, 스냅샷 테스트           |
+| 0 ✅  | inventory freeze (본 문서 §0)                                                                                                                                                                                                                                                                                                                                                                                                                           | G0    | 본 문서                                  |
+| 1 ✅  | 매핑 표 `semanticPaletteMap.ts` (status 4 + named 18 + subtle 22 + gray/green-named, light/dark, `hook`) + `colors.ts` 해당 항목을 표에서 파생 + `lightColors` 스냅샷 테스트 (light 값 불변) + `darkColors` 는 표 값으로 정렬                                                                                                                                                                                                                           | G1·G3 | 표 1, colors.ts, 스냅샷 테스트           |
 | 2     | 생성기 확장: `generate-palette.ts` 가 `theme/generated/semantic-palette.css` emit (`@layer shared-tokens` `:root` + `[data-theme="dark"]`, `var(--color-*)` 참조만, `hook` 은 `var(--hook, var(--color-*))`), `theme.css` import, preview-system 손 `--negative` 이관 (`--negative-pressed` 는 잔류 — Skia 미소비, colors.ts 값 custom `#b33333`), `colorTokenToCss.ts`/`tokenResolver.ts` 매핑 → semantic var, generated CSS 재생성, drift 테스트 확장 | G1·G3 | 생성 CSS 1, 매핑 2 파일, generated/*.css |
 | 3     | `semanticAlias.symmetry.test` dark 확장 (전 토큰) + live G2/G4 (darkMode=dark 3자 대칭, chrome 불변, ThemeStudio 훅 생존) + CHANGELOG + Implemented 승격                                                                                                                                                                                                                                                                                                | G2·G4 | 테스트, CHANGELOG                        |
 
@@ -98,10 +98,10 @@ FIXED 24 중 white/black/on-negative 3 은 Skia 도 테마 불변 → **dark 비
 
 ### Phase 1
 
-- [ ] `semanticPaletteMap.ts` — light 열은 현행 `lightColors` 와 동일, dark 열은 현행 `darkColors` 와 동일 (변경 0) + `gray`(neutral 500/400), `green-named`(green 600/500), subtle 행
-- [ ] `lightColors` 스냅샷 테스트 GREEN (light 불변)
-- [ ] `colors.ts` 파생 후 `darkColors` 도 스냅샷 diff 0 (표가 현행 값을 그대로 옮겼는지)
-- [ ] type-check / specs vitest / build:specs
+- [x] `semanticPaletteMap.ts` — light 열은 현행 `lightColors` 와 동일, dark 열은 현행 `darkColors` 와 동일 (변경 0) + `gray`(neutral 500/400, subtle neutral 200/700), `green-named`(green 600/500, subtle 100/900) — 46 행. `negative-subtle` 도 표에 포함 (tokenResolver 는 `--color-error-100` 고정이라 §0-2 의 'FLIP var 경유 3' 은 실제 2 — accent/neutral 만)
+- [x] `lightColors` 스냅샷 테스트 GREEN (light 불변) — `semanticPaletteMap.snapshot.test.ts` 67+4 키
+- [x] `colors.ts` 파생 후 `darkColors` 도 스냅샷 diff 0 (표가 현행 값을 그대로 옮겼는지)
+- [x] type-check PASS / specs vitest 126 (8 파일) / build:specs — generated CSS 내용 diff 0 (Prettier 포맷만). live: ZZZF Badge `gray` 캔버스 렌더 (Phase 0 빈 81×42 → neutral gray pill)
 
 ### Phase 2
 
