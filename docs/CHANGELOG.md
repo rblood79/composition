@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-191 Implemented — Tailwind v4 theme.css 단일 원천 팔레트 파생, 손 복사 팔레트 3개 제거] - 2026-08-26
+
+### Bug Fixes
+
+- **Skia 가 DOM 에서 읽는 oklch 토큰이 항상 fallback 색으로 떨어지던 결함** (ADR-191 Phase 2·3):
+  - `cssVariableCore.cssColorToHex` 는 colord 단독이라 `--border: oklch(87% 0 none)` 류를 파싱하지 못해
+    `App.css` 시절부터 fallback 을 그렸고, `styleConverter.parseColorFuncArgs` 는 CSS Color 4 의 `none`
+    성분을 `NaN` 으로 만들었다.
+  - **Why**: Tailwind v4 팔레트는 무채색을 `oklch(L% 0 none)` 로 표기 — 파서가 v3 hex 시대 가정이었다.
+  - 수정: oklch → sRGB 직접 변환 + `none` → 0. 회귀 테스트 7건.
+  - 위치: `apps/builder/src/builder/workspace/canvas/utils/cssVariableCore.ts`, `…/styleConversion/styleConverter.ts`
+
+### Architecture
+
+- **ADR-191 Implemented** (Phase 0~~4 / G0~~G4 당일 종결): 팔레트 **정의 원천** 을 설치된
+  `tailwindcss/theme.css` 하나로 고정하고, 손 복사본 3개를 제거했다 — `App.css :root` 387 변수 (unlayered
+  v4 oklch 복사), `shared-tokens.css` Tailwind 이름 93 (v3 hex), `colors.ts` 71 + `neutralToSkiaColors.ts` 55
+  (v3 hex). 생성기 `packages/specs/scripts/generate-palette.ts` 가 plain CSS (`@layer shared-tokens`, 286
+  oklch) 와 TS hex (`TAILWIND_PALETTE`) 를 만들고, drift 테스트 + `validate:palette` 가 byte-diff 0 을 지킨다.
+  - **사용자-가시**: Preview/Publish 팔레트가 Tailwind **v3 hex → v4 oklch** 로 이동한다 — 기존 프로젝트의
+    Badge / StatusLight / Meter / TagGroup 등 팔레트 소비 27 토큰 (purple-600 Δ35, green-400 Δ69 등) 색이
+    Builder 캔버스와 같은 값으로 바뀐다. Builder 는 이미 v4 를 보고 있었으므로 빌더 화면 색은 변하지 않는다.
+  - 캐스케이드: `index.css` `@layer theme, dashboard, base, preview-system, components, shared-tokens,
+builder-system, utilities` 로 `theme` 선두 확정 — unlayered 블록 의존 제거.
+  - G2 live 실측 (Chrome MCP): Builder DOM computed = `preview.html` DOM computed = Skia hex, 토큰 6종 Δ≤1;
+    요소 단위 Badge `red` (red-600) / StatusLight `purple` (purple-600) 가 Skia 캔버스 ↔ preview iframe 동일.
+  - 범위 밖 잔존: semantic alias 층 (`--negative` = error-400 hsl vs Skia red-500, `--color-info-600` hsl vs
+    Skia blue-600) Skia↔CSS 비대칭은 본 ADR 이전부터 존재 — 별도 정리 대상. 컴포넌트 fallback hex 리터럴
+    ~45곳, 축 일치 리터럴 중복 58건도 후속.
+  - 위치: `packages/specs/scripts/{paletteGenerator,generate-palette}.ts`,
+    `packages/shared/src/components/styles/theme/generated/tailwind-palette.css`,
+    `packages/specs/src/primitives/generated/tailwindPalette.ts`, `packages/specs/src/primitives/colors.ts`,
+    `apps/builder/src/{index.css,App.css}`, `docs/adr/completed/191-tailwind-theme-single-source-palette.md`
+
 ## [ListBox ref 인스턴스가 origin 행을 이중으로 그리던 결함 수정] - 2026-08-26
 
 ### Fixed
@@ -15,10 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   뒤에 origin 의 items 3행(Inbox/Starred/Archive)을 한 번 더 그리던 결함을 고쳤다 (Skia owner
   320 → 164, Preview DOM 164 와 일치). 원인은 `resolveCanonicalRefTree` 가 master 의 scene 자식을
   인스턴스로 복제할 때 master 의 **render projection**(`projection:listbox-rows:component-listbox`
-  + 행)까지 `{instance}/projection:…` 로 실어 보낸 것 — projection 은 owner 파생 산출물이라 ref 로
-  상속되면 안 되며, 인스턴스는 자기 resolved props 로 projection 을 따로 만든다. 복제 단계에서
-  `isRenderProjectionId` 자식을 건너뛰도록 해 collection 전 family(ListBox/GridList/Table/
-  TagGroup/Tabs/Breadcrumbs)에 같은 규칙을 적용했다. Components 페이지 origin 자신의 행은 그대로.
+  - 행)까지 `{instance}/projection:…` 로 실어 보낸 것 — projection 은 owner 파생 산출물이라 ref 로
+    상속되면 안 되며, 인스턴스는 자기 resolved props 로 projection 을 따로 만든다. 복제 단계에서
+    `isRenderProjectionId` 자식을 건너뛰도록 해 collection 전 family(ListBox/GridList/Table/
+    TagGroup/Tabs/Breadcrumbs)에 같은 규칙을 적용했다. Components 페이지 origin 자신의 행은 그대로.
 
 ## [ADR-157 / ADR-171 Implemented — collection 샘플+hatch 표시 정책 종결, catalog 레이아웃 전달 일원화 종결] - 2026-08-26
 

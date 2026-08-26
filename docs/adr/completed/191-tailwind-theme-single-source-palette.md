@@ -2,17 +2,17 @@
 
 ## Status
 
-Accepted — 2026-08-26 (review-adr round 1 승인 — MED 1·LOW 1 fixed, LOW 1 deferred → Phase 3 실측)
+Implemented — 2026-08-26 (Phase 0~~4 / G0~~G4 종결; Accepted 2026-08-26 review-adr round 1 승인 — MED 1·LOW 1 fixed, LOW 1 deferred 는 Phase 3 실측으로 흡수)
 
 ## Context
 
-### Domain (SSOT 체인 — [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### Domain (SSOT 체인 — [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
 **D3 시각 스타일** — theme/tokens root collection 의 팔레트 층. D1(DOM/ARIA)·D2(Props) 무관. 변수명 `--color-{family}-{step}` 은 불변이므로 catalog `COMPONENT_RULES_TABLE` 과 컴포넌트 CSS 는 무수정.
 
 ### 문제 — 팔레트 정의 원천이 3개이고, Builder 와 Preview 가 서로 다른 세대를 본다
 
-2026-08-26 라이브 빌더 + `preview.html` 실측 ([breakdown §0](design/191-tailwind-theme-single-source-palette-breakdown.md)):
+2026-08-26 라이브 빌더 + `preview.html` 실측 ([breakdown §0](../design/191-tailwind-theme-single-source-palette-breakdown.md)):
 
 | 원천                                                      | 레이어                 | 세대       | Builder DOM    | Preview / Publish DOM |
 | --------------------------------------------------------- | ---------------------- | ---------- | -------------- | --------------------- |
@@ -100,7 +100,7 @@ Accepted — 2026-08-26 (review-adr round 1 승인 — MED 1·LOW 1 fixed, LOW 1
 - **대안 A 기각**: 표준 선언(v4) 을 stale 복사본(v3) 에 맞춰 후퇴시키는 방향. ssot-hierarchy §6 위반 상태를 공식화하고 헤더 모순을 남긴다. 수정 범위가 작다는 것은 SSOT 근거가 아니다.
 - **대안 B 기각**: `packages/specs` 의 DOM 없는 소비자 때문에 fallback 복사본(`colors.ts`) 이 남는다 — "복사본 3개 제거" 라는 목표 미달. Publish 빌드 설정 변경은 현 방침(빌더 안정화 전 Publish 미착수) 과 충돌. Skia 파서의 oklch 미지원으로 런타임 변환 계층이 추가된다.
 
-> 구현 상세: [191-tailwind-theme-single-source-palette-breakdown.md](design/191-tailwind-theme-single-source-palette-breakdown.md)
+> 구현 상세: [191-tailwind-theme-single-source-palette-breakdown.md](../design/191-tailwind-theme-single-source-palette-breakdown.md)
 
 ## Risks
 
@@ -126,6 +126,24 @@ Accepted — 2026-08-26 (review-adr round 1 승인 — MED 1·LOW 1 fixed, LOW 1
 | G2   | Phase 2·3·4  | live 3자 대칭: Builder DOM / preview.html / Skia 캔버스에서 `--color-purple-600`·`green-600`·`red-600` 등 상위 소비 6 토큰 sRGB Δ≤2 + Badge·StatusLight `/cross-check` PASS | 레이어 순서·import 순서 점검, Skia 참조 경로 재확인 |
 | G3   | Phase 1~4    | `pnpm generate:palette` 재실행 byte-diff 0, `build:specs` 연동, Stop hook rebuild 경로 포함                                                                                 | 생성기 결정성(정렬/포맷) 수정                       |
 | G4   | Phase 2 종료 | 팔레트 CSS 증가 ≤ 20KB, 초기 번들 < 500KB 유지, Preview/Publish undefined 팔레트 변수 0                                                                                     | 미참조 family 제외 emit (allowlist) 로 축소         |
+
+## 진행 로그
+
+| 일자       | Phase | commit                | 내용                                                                                                                                                                                  |
+| ---------- | :---: | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-26 |   0   | ab5234e92             | inventory freeze + G0 재확인 — App.css 고유 19 = theme 레이어 15 / preview-system 3 / 미소비 1                                                                                        |
+| 2026-08-26 |   1   | b56fb4031             | 생성기 `generate-palette.ts` + 산출물 2 (plain CSS 286 oklch / TS hex) + drift 테스트 5 + `build:specs` 연동 (G1·G3)                                                                  |
+| 2026-08-26 |   2   | 34e284a77 · 32521d15e | CSS 소비 전환 — `App.css :root` 387 / shared-tokens Tailwind 이름 93 삭제, `@layer theme` 선두, `styleConverter` oklch `none` 회귀 수정 (G4: 팔레트 CSS 14,457B, preview undefined 0) |
+| 2026-08-26 |   3   | d697c83c4             | Skia 파생 — `colors.ts` 71 / `neutralToSkiaColors.ts` 55 를 생성 팔레트 참조로, `cssVariableCore` DOM 토큰 파서 oklch 지원                                                            |
+| 2026-08-26 |   4   | (종결 commit)         | G2 live 3자 대칭 실측 + cross-check Badge·StatusLight·Meter + CHANGELOG + Implemented 종결                                                                                            |
+
+**Phase 4 G2 실측 (2026-08-26, Chrome MCP, 프로젝트 ZZZF)**:
+
+- 토큰 6종 (`--color-{purple,green,red,blue,orange,gray}-600`): Builder DOM computed (oklch → 2D canvas sRGB) = `preview.html` DOM computed = Skia `TAILWIND_PALETTE[*][600]` hex — Δ0 (orange-600 만 Δ1: 245,74,0 vs `#f54900` 245,73,0 반올림). preview 는 `@layer shared-tokens` 생성 블록 적중, undefined 0.
+- 요소 단위: Badge `variant=red` → preview iframe `.react-aria-Badge` background `oklch(0.577 0.245 27.325)` (= red-600) ↔ Skia 캔버스 red pill (`lightColors.red` `#e7000b`); StatusLight `variant=purple` → preview dot `oklch(0.558 0.288 302.321)` (= purple-600) ↔ Skia dot (`lightColors.purple` `#9810fa`). positive (green-600) 는 StatusLight 기본 variant 캔버스 초록 dot + 수치 Δ0.
+- Skia 픽셀 readback 은 CanvasKit `preserveDrawingBuffer=false` 라 `toDataURL` 이 빈 버퍼 — Skia 축은 페인트 상수 (`lightColors` = 생성 hex) + zoom 스크린샷으로 확인.
+- `/cross-check` Badge · StatusLight · Meter: 3종 모두 catalog 경로 (`COMPONENT_RULES_TABLE` 키). 팔레트 토큰 `{color.purple / positive / red}` → Skia purple[600] / green[600] / red[600] ↔ generated CSS `--color-purple-600 / green-600 / red-600` 이 같은 원천 값 (Δ≤1); Meter `positive` `--fill-color: var(--color-green-600)` ↔ `{color.positive}` green[600]. CRITICAL/HIGH 0.
+- 잔존 (범위 밖, 본 ADR 이전부터 존재 — R5 semantic alias 층): Badge/StatusLight `negative` 는 CSS `var(--negative)` (preview-system `--color-error-400` hsl → `#f15b5b`) vs Skia `{color.negative}` = red[500] `#fb2c36`; Badge `informative` 는 CSS `--color-info-600: hsl(217, 91%, 55%)` vs Skia blue[600] `#155dfc`; Meter `critical` 도 `--negative`. 팔레트 정의가 아닌 semantic alias 의 문제라 별도 정리 대상.
 
 ## Consequences
 
