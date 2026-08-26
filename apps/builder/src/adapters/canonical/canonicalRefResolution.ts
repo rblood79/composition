@@ -8,6 +8,7 @@ import {
 import { mergePropsWithStyleDeep } from "./instanceResolver";
 import { resolveReference } from "../../utils/component/referenceResolution";
 import type { LegacyElementMirrorFields } from "./legacyElementFields";
+import { isRenderProjectionId } from "../../builder/projection/renderProjectionIds";
 
 export type CanonicalRefResolvableNode = {
   id: string;
@@ -599,6 +600,13 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
   const syntheticChildren: T[] = [];
 
   sourceChildren.forEach((sourceChild) => {
+    // render projection(`projection:` prefix — collection rows/cells/spacer/remainder, page-frame)은
+    //   owner 노드에서 파생되는 scene 산출물이지 master 의 저작 자식이 아니다. master 의 projection
+    //   을 인스턴스로 복제하면 인스턴스가 자기 props 로 만든 projection 과 **이중**으로 그려진다
+    //   (2026-08-26 실측: palette ListBox ref 인스턴스가 origin items 3행을 추가 렌더 — Skia owner
+    //   320 = 164 + 156, DOM 164). 인스턴스의 projection 은 scene builder 가 resolved props 로
+    //   별도 산출하므로 여기서는 건너뛴다.
+    if (isRenderProjectionId(sourceChild.id)) return;
     const segment = getCanonicalRefPathSegment(sourceChild);
     const path = pathPrefix ? `${pathPrefix}/${segment}` : segment;
     const patch = getDescendantPatch(refElement, path);

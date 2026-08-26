@@ -435,4 +435,85 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
       },
     });
   });
+  it("does not clone the origin's own row projection into a ListBox ref instance (origin items ≠ instance items)", () => {
+    // 재현 (2026-08-26 live): Components 페이지 origin `component-listbox` 가 자기 items(Inbox/Starred/Archive)를
+    // 가지면 origin 에 rows projection 이 생기고, ref 해석기가 master 의 scene 자식을 복제하면서 그 projection 까지
+    // `{instance}/projection:listbox-rows:component-listbox/...` 로 인스턴스 아래에 실어 Skia owner 가 320(=164+156)
+    // 이 됐다. DOM 은 인스턴스 items 3행만 렌더 → 비대칭. projection 은 owner 파생이라 ref 로 상속되면 안 된다.
+    const document: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "component-listbox-item-default",
+          type: "ListBoxItem",
+          reusable: true,
+          props: { children: "{label}", description: "{description}" },
+        },
+        {
+          id: "component-listbox",
+          type: "ListBox",
+          reusable: true,
+          props: {
+            orientation: "vertical",
+            selectionMode: "single",
+            items: [
+              { id: "inbox", label: "Inbox" },
+              { id: "starred", label: "Starred" },
+              { id: "archive", label: "Archive" },
+            ],
+          },
+          slot: ["component-listbox-item-default"],
+        },
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ref",
+                  ref: "component-listbox",
+                  name: "ListBox",
+                  props: {
+                    items: [
+                      { id: "aardvark", label: "Aardvark" },
+                      { id: "cat", label: "Cat" },
+                      { id: "kangaroo", label: "Kangaroo" },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const model = buildCanonicalSceneModel(document);
+    const instanceChildren = model.sceneChildrenByParent.get("listbox-1") ?? [];
+
+    // 인스턴스 직계 = 자기 rows group 하나뿐 — origin projection 복제본(`listbox-1/projection:...`) 없음
+    expect(instanceChildren.map((node) => node.id)).toEqual([
+      "projection:listbox-rows:listbox-1",
+    ]);
+    expect(
+      model.sceneNodes.filter((node) => node.id.startsWith("listbox-1/")),
+    ).toEqual([]);
+    // origin 자신의 projection 은 그대로 유지 (Components 페이지 렌더)
+    expect(
+      model.sceneNodesMap.get(toListBoxRowProjectionId("component-listbox", "inbox")),
+    ).toMatchObject({ type: "ListBoxItem", props: { children: "Inbox" } });
+    // 인스턴스 행은 인스턴스 items 3개만
+    expect(
+      (model.sceneChildrenByParent.get("projection:listbox-rows:listbox-1") ?? []).map(
+        (node) => node.props?.children,
+      ),
+    ).toEqual(["Aardvark", "Cat", "Kangaroo"]);
+  });
 });
+

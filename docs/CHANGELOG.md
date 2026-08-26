@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBox ref 인스턴스가 origin 행을 이중으로 그리던 결함 수정] - 2026-08-26
+
+### Fixed
+
+- 팔레트에서 추가한 ListBox(`ref → component-listbox`) 인스턴스가 빌더 캔버스에서 자기 items 3행
+  뒤에 origin 의 items 3행(Inbox/Starred/Archive)을 한 번 더 그리던 결함을 고쳤다 (Skia owner
+  320 → 164, Preview DOM 164 와 일치). 원인은 `resolveCanonicalRefTree` 가 master 의 scene 자식을
+  인스턴스로 복제할 때 master 의 **render projection**(`projection:listbox-rows:component-listbox`
+  + 행)까지 `{instance}/projection:…` 로 실어 보낸 것 — projection 은 owner 파생 산출물이라 ref 로
+  상속되면 안 되며, 인스턴스는 자기 resolved props 로 projection 을 따로 만든다. 복제 단계에서
+  `isRenderProjectionId` 자식을 건너뛰도록 해 collection 전 family(ListBox/GridList/Table/
+  TagGroup/Tabs/Breadcrumbs)에 같은 규칙을 적용했다. Components 페이지 origin 자신의 행은 그대로.
+
 ## [ADR-157 / ADR-171 Implemented — collection 샘플+hatch 표시 정책 종결, catalog 레이아웃 전달 일원화 종결] - 2026-08-26
 
 ### Changed
@@ -24,11 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR 대시보드 정리: Implemented 상태로 루트에 남아 있던 176/182/189 를 `completed/` 로 이동,
   README "미구현" 표의 Implemented 행 14건을 "완료" 표로 이관, stale 라벨(150 A1 철회 반영·
   910/911 비착수 표기·025 부분 완료 등재) 정정.
-
-### Known
-
-- ListBox ref 인스턴스가 origin(`component-listbox`)의 items 3행을 인스턴스 투영 뒤에 추가로
-  그린다(Skia owner 320 = 164 + 156, Preview DOM 은 3행). 인스턴스 확장 결함으로 별도 수정 예정.
 
 ## [Dashboard를 빌더 chrome 어법으로 재설계] - 2026-08-26
 
