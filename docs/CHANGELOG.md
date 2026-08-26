@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - header root를 semantic `<header>`로 바꾸고 전역 배경과 하단 border를 투명하게 했다.
   Compare / Workflow / Monitor는 실제 toggle 상태만 포함하며, Preview는 같은 chrome
   어법의 순간 action으로 분리했다. Monitor 선택 상태는 workspace visibility와 동기화한다.
+- 좌측 상단 전체 메뉴 버튼의 CSS가 번역된 `aria-label`과 불일치해 generic RAC 버튼으로
+  보이던 문제를 stable `header-menu-button` class로 수정했다. 이동 전의 `--bg-muted`,
+  border 없음, `--spacing-sm` padding과 6px radius 외형을 복원한다.
 - breakpoint ToggleButtonGroup과 ZoomControls를 RAC `Group` 기반의 단일 viewport
   control surface로 묶었다. 외부 surface가 `--bg-raised`와 `--radius-lg`를 소유하고,
   Zoom trigger는 기존 `--bg-muted` 배경과 toggle button과 같은 `--radius-md`를 사용한다.
@@ -38,6 +41,9 @@ styles/modules/builder-control-group.css}`
   semantic/transparent CSS, i18n, reserved-prefix focused test 6파일 26케이스 PASS.
 - viewport `Group` DOM/CSS, 접근성 label, i18n, page layout focused test 3파일
   9케이스 PASS.
+- 전체 메뉴 버튼 stable class와 i18n wiring focused test 2파일 5케이스 PASS. 라이브
+  Builder에서 `--bg-muted`, border 없음, 8px padding, 6px radius, 32×32 크기를 확인했고
+  메뉴 open/close 정상, console warning/error 0건이었다.
 - `pnpm run codex:typecheck`, `pnpm run codex:preflight` PASS(등록 contract 14케이스 포함).
 - 라이브 Builder(localhost:5173): header가 `<header>`이고 computed background가
   transparent, border가 없음. 상단·좌·우 4개 group의 track style이 일치하며 rail의

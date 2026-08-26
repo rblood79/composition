@@ -67,23 +67,8 @@
     flex: 1;
   }
 
-  .header_contents:first-child [aria-label="menu"] {
-    position: relative;
-    border: none;
-    background: var(--bg-muted);
-    padding: var(--spacing-sm);
-    cursor: pointer;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    stroke: var(--fg-muted);
-    border-radius: 6px;
-  }
-
   /* Header Menu Button (React Aria) */
-  .header_contents:first-child .react-aria-Button[aria-label="menu"] {
+  .header_contents:first-child .react-aria-Button.header-menu-button {
     position: relative;
     border: none;
     background: var(--bg-muted);
@@ -99,17 +84,17 @@
   }
 
   .header_contents:first-child
-    .react-aria-Button[aria-label="menu"][data-hovered] {
+    .react-aria-Button.header-menu-button[data-hovered] {
     background: var(--accent-subtle);
   }
 
   .header_contents:first-child
-    .react-aria-Button[aria-label="menu"][data-pressed] {
+    .react-aria-Button.header-menu-button[data-pressed] {
     background: color-mix(in srgb, var(--bg-muted) 75%, black);
   }
 
   .header_contents:first-child
-    .react-aria-Button[aria-label="menu"][data-focus-visible] {
+    .react-aria-Button.header-menu-button[data-focus-visible] {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }

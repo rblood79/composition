@@ -86,7 +86,10 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
     <header className="header">
       <div className="header_contents header_left">
         <MenuTrigger>
-          <Button aria-label={t("header.menu")}>
+          <Button
+            className="react-aria-Button header-menu-button"
+            aria-label={t("header.menu")}
+          >
             <MenuIcon
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}

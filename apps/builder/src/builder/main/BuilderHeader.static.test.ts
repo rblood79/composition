@@ -17,6 +17,9 @@ describe("BuilderHeader chrome control groups", () => {
     );
     expect(source).toContain('aria-label={t("header.viewportControls")}');
     expect(source).toContain('aria-label={t("header.viewportSize")}');
+    expect(source).toContain(
+      'className="react-aria-Button header-menu-button"',
+    );
     expect(source).toContain("<ActionIconButton");
     expect(source).toContain("workspaceLayout?.visibility.monitor === true");
   });
@@ -60,5 +63,9 @@ describe("BuilderHeader chrome control groups", () => {
     expect(headerStyles).toMatch(
       /\.zoom-trigger-button\s*\{[\s\S]*?background: var\(--bg-muted\);[\s\S]*?box-shadow: none;[\s\S]*?border-radius: var\(--radius-md\);/,
     );
+    expect(headerStyles).toMatch(
+      /\.react-aria-Button\.header-menu-button\s*\{[\s\S]*?border: none;[\s\S]*?background: var\(--bg-muted\);[\s\S]*?padding: var\(--spacing-sm\);[\s\S]*?border-radius: 6px;/,
+    );
+    expect(headerStyles).not.toContain('[aria-label="menu"]');
   });
 });
