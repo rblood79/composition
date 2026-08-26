@@ -27,7 +27,7 @@
 | Skia primitive | `packages/specs/src/renderers/skiaPrimitives.ts:62-68` `(ctx:{props,size,visual,paint,style}) => Shape[] \| null`; 등록 `SKIA_PRIMITIVES` `:3261`, 모드 `SKIA_PRIMITIVE_MODES` `:3329`; dispatch `buildSpecNodeData.ts:1185-1306`                                               |
 | DOM 3rd-party  | `PrimitiveSource.kind:"internal"` + `renderer` (`catalog/types.ts:47-61`) → `renderers/index.ts:19` `rendererMap` → `renderFacetDeclaration.ts` delegating-internal. 선례 TableView(@tanstack/react-table)                                                                      |
 | 등록 지점      | catalog entry `componentCatalog.ts:33` `primitiveEntry` · binding `bindings/*.binding.ts` · rule `generated/componentRulesTable.ts:17` · `paletteItems.ts:170` `PALETTE_ORDER` (+`paletteOracle.ts`) · factory · defaults · rendererMap · publish `ComponentRegistry.tsx:14-60` |
-| CI ratchet     | `factories/__tests__/componentRegistrationContract.test.ts:146` `BASELINE_RATCHET = {rendererMap:0, TAG_SPEC_MAP:0, getDefaultProps:0}`                                                                                                                                         |
+| CI ratchet     | `factories/__tests__/componentRegistrationContract.test.ts:131` `BASELINE_RATCHET = {rendererMap:0, TAG_SPEC_MAP:0, getDefaultProps:0}`                                                                                                                                         |
 | 데이터 계약    | `DataBinding {type, source, config}` (`shared/src/types/element.types.ts:36`) · dataTable 행 읽기 `readDataBindingRows` / `resolveCollectionItems` (ADR-152 Decision) · 샘플 N행 정책 ADR-157                                                                                   |
 | 색 토큰        | `COMPONENT_RULES_TABLE` 소비 named hue: blue/purple/green-named/orange/red/magenta/cyan/indigo/yellow/pink/fuchsia/turquoise/seafoam/celery/chartreuse (+`-subtle`). Spectrum design-data 에 chart 토큰 0건                                                                     |
 | 폰트/문단      | `skia/fontManager.ts:231` 공유 FontCollection · `nodeRendererText.ts:602` `MakeFromFontCollection` (per-call `ParagraphBuilder.Make` 금지 — 5.78MB/paragraph 복제)                                                                                                              |
@@ -57,11 +57,27 @@ rows (dataBinding → readDataBindingRows | props.data sample)
        └─ Skia : SKIA_PRIMITIVES.chart_scene (replace) → PathShape / RectShape / TextShape / LineShape
 ```
 
-- `Mark` = `{kind:"path", d, fillToken?, strokeToken?, strokeWidth} | {kind:"rect", x,y,w,h, fillToken} | {kind:"text", x,y,text,align,baseline,role:"tick"|"title"|"legend"} | {kind:"line", x1,y1,x2,y2, role:"grid"|"axis"}`.
+- **rows 주입 (review round 1 정정)**: `SkiaPrimitiveDrawFn` ctx 는 `{props,size,visual,paint,style}` 뿐이라
+  (`skiaPrimitives.ts:62-68`) 데이터 행을 받을 채널이 없다. 컬렉션 projection 은 scene-node 층
+  (`canvasSceneNode.ts:1329/2080/2535` `getFlatProjectionRows`) 에서 행을 해석하므로, Chart 도
+  `buildSpecNodeData` 의 `_containerWidth`(`:149-167`)·width/height injection(`:1698-1712`) 과 같은
+  자리에서 `readDataBindingRows` 결과를 `specProps._chartRows` 로 주입한다 (dataBinding 없으면
+  `props.data` 샘플). primitive 는 `props._chartRows ?? props.data` 만 읽는다 — 행 해석 로직은
+  primitive 밖 (Skia projection + DOM 공통 경로 재사용).
+- **마크 bbox**: 모든 `Mark` 는 `bbox {x,y,w,h}` 를 함께 싣는다 — Skia 노드는 `width/height` 가 필수이고
+  컬링이 절대좌표 bounds 로 판정한다 (`renderCommands.ts:2039-2048`, `:2119` `cmd.width > 0 ||
+cmd.height > 0` 분기). path `d` 만 있는 노드는 0 크기로 취급될 수 있으므로 `PathShape` 에 bbox
+  를 명시 필드로 둔다 (`d` 재파싱 금지 — 기하 모듈이 이미 좌표를 안다).
+- `Mark` = `{kind:"path", d, bbox, fillToken?, strokeToken?, strokeWidth} | {kind:"rect", x,y,w,h, fillToken} | {kind:"text", x,y,text,align,baseline,role:"tick"|"title"|"legend"} | {kind:"line", x1,y1,x2,y2, role:"grid"|"axis"}`.
 - 색은 **토큰 인덱스** (`seriesIndex`) 로 실어 두 consumer 가 각자 rule 에서 해소 — scene 에 hex 를 넣지 않는다 (theme 전환·dark 모드 대칭, ADR-193 정합).
-- 기하는 순수 함수 · 결정적 · DOM/CanvasKit 무의존 (`packages/shared/src/chart/`). 숫자 포맷은 `Intl.NumberFormat` 만 사용.
+- 기하는 순수 함수 · 결정적 · DOM/CanvasKit 무의존 (`packages/specs/src/chart/`). 숫자 포맷은 `Intl.NumberFormat` 만 사용.
 
-### 3-2. 기하 모듈 (`packages/shared/src/chart/`) — 외부 의존 0
+### 3-2. 기하 모듈 (`packages/specs/src/chart/`) — 외부 의존 0
+
+> review round 1 정정: 초안은 `packages/specs/src/chart/` 였으나 workspace 의존이 shared→specs
+> 단방향 (`packages/shared/package.json:59`, specs 는 shared 미의존) 이라 `skiaPrimitives.ts`(specs)
+> 가 shared 를 import 하면 순환이 된다. 기하 모듈은 specs 에 두고 shared 의 DOM renderer 가 specs 에서
+> import 한다 (publish 는 shared→specs transitive).
 
 | 파일                   | 내용                                                                                                                                           |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -86,6 +102,9 @@ export interface PathShape {
   d: string;
   x?: number;
   y?: number; // 오프셋 (기본 0)
+  /** bbox (노드 width/height·컬링·Picture 캐시 키) — 기하 모듈이 계산해 싣는다. 필수. */
+  width: number;
+  height: number;
   fill?: ColorValue;
   fillAlpha?: number;
   stroke?: ColorValue;
@@ -152,15 +171,15 @@ export interface PathShape {
 
 ## 4. Phase
 
-| Phase | 내용                                                                                                                                                                                                                   | 산출/검증                                                                                                                |
-| :---: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-|   0   | inventory freeze — §2 재grep · `ComponentVisualRule`/generate-css 채널 확장 지점 · `readDataBindingRows` 시그니처 · 등록 8지점 line · publish registry 가 registration contract test 에 포함되는지 · ADR-117 진행 상태 | §2 표 갱신 commit. **G0**                                                                                                |
-|   1   | `PathShape` + Skia `path` 노드 + `renderPath` + converter case + 단위 테스트 (fill/stroke/evenodd/offset) · 임시 dev primitive 로 live 1회 (삼각형+arc)                                                                | type-check 0 · `renderPath` 테스트 · live 스크린샷. **G1**                                                               |
-|   2   | 기하 모듈 `packages/shared/src/chart/*` — scales/ticks/series/marks 4종/axes/legend/computeChartScene + 결정적 스냅샷 테스트 (고정 rows → scene JSON) · niceTicks 경계 (음수/0/단일값/NaN 행)                          | 단위 테스트 PASS. **G2**                                                                                                 |
-|   3   | 카탈로그 등록 — binding · entry · rule(+chart 채널 타입) · generate-css emit · PALETTE_ORDER/oracle · factory · defaults · rendererMap/facet · publish registry · Properties 패널 accepts 노출 확인                    | `componentRegistrationContract.test` PASS · `pnpm generate:css` diff 에 `--chart-series-*` · 팔레트에서 드롭 가능 (live) |
-|   4   | 두 consumer — `ChartRenderer.tsx`(SVG) + `chart_scene` primitive. **parity 테스트**: 동일 scene → DOM `d`/rect 좌표 == Skia PathShape `d`/RectShape 좌표 byte-identical · `/cross-check` live 4종                      | **G3**                                                                                                                   |
-|   5   | dataBinding 연결 (`readDataBindingRows`) + 샘플 fallback + 행 상한 · dark 모드 토큰 해소 대칭 (ADR-193 결과에 따라 CSS var ↔ Skia 동일 단계)                                                                           | live: dataTable 바인딩 → builder/preview 동일 갱신. **G5**                                                               |
-|   6   | 번들 측정 (`vite build` builder 초기 chunk · publish) · CHANGELOG · README · 메모리 · Implemented 승격                                                                                                                 | **G4** · 완료 보고에 live exercise 항목 명시                                                                             |
+| Phase | 내용                                                                                                                                                                                                                                                     | 산출/검증                                                                                                                |
+| :---: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+|   0   | inventory freeze — §2 재grep · `ComponentVisualRule`/generate-css 채널 확장 지점 · `readDataBindingRows` 시그니처 · 등록 8지점 line · publish registry 가 registration contract test 에 포함되는지 · ADR-117 진행 상태 · `size`→layout 무효화 등재 (R10) | §2 표 갱신 commit. **G0**                                                                                                |
+|   1   | `PathShape` + Skia `path` 노드 + `renderPath` + converter case + 단위 테스트 (fill/stroke/evenodd/offset) · 임시 dev primitive 로 live 1회 (삼각형+arc)                                                                                                  | type-check 0 · `renderPath` 테스트 · live 스크린샷. **G1**                                                               |
+|   2   | 기하 모듈 `packages/specs/src/chart/*` — scales/ticks/series/marks 4종/axes/legend/computeChartScene + 결정적 스냅샷 테스트 (고정 rows → scene JSON) · niceTicks 경계 (음수/0/단일값/NaN 행)                                                             | 단위 테스트 PASS. **G2**                                                                                                 |
+|   3   | 카탈로그 등록 — binding · entry · rule(+chart 채널 타입) · generate-css emit · PALETTE_ORDER/oracle · factory · defaults · rendererMap/facet · publish registry · Properties 패널 accepts 노출 확인                                                      | `componentRegistrationContract.test` PASS · `pnpm generate:css` diff 에 `--chart-series-*` · 팔레트에서 드롭 가능 (live) |
+|   4   | 두 consumer — `ChartRenderer.tsx`(SVG) + `chart_scene` primitive. **parity 테스트**: 동일 scene → DOM `d`/rect 좌표 == Skia PathShape `d`/RectShape 좌표 byte-identical · `/cross-check` live 4종                                                        | **G3**                                                                                                                   |
+|   5   | dataBinding 연결 (`readDataBindingRows`) + 샘플 fallback + 행 상한 · dark 모드 토큰 해소 대칭 (ADR-193 결과에 따라 CSS var ↔ Skia 동일 단계)                                                                                                             | live: dataTable 바인딩 → builder/preview 동일 갱신. **G5**                                                               |
+|   6   | 번들 측정 (`vite build` builder 초기 chunk · publish) · CHANGELOG · README · 메모리 · Implemented 승격                                                                                                                                                   | **G4** · 완료 보고에 live exercise 항목 명시                                                                             |
 
 각 Phase 는 commit 가능 상태로 종료 (phase 당 1 commit + main push). sub-group 3+ 분할·scope
 1.5x 초과 시 M4 질문 의무 (리뷰 승인 전) / 사후 보고 (승인 후).
@@ -176,14 +195,17 @@ export interface PathShape {
 
 ## 6. 위험 대응 매핑 (ADR §Risks ↔ Phase)
 
-| Risk | Phase | 확인 방법                                                                           |
-| ---- | :---: | ----------------------------------------------------------------------------------- |
-| R1   |  0/3  | generate-css 가 `visual.chart` 채널을 emit 하는지 — 미지원 시 emit 확장 commit 선행 |
-| R2   |   1   | converter/renderCommands 분기 누락 → 단위 테스트 + live 삼각형                      |
-| R3   |  2/4  | 레이블 every-nth 생략 규칙 스냅샷                                                   |
-| R4   |   5   | 행 상한 상수 + 200행 frame 측정                                                     |
-| R5   |   3   | binding 주석에 RSC 마크→enum 평탄화 근거 기록                                       |
-| R6   |  0/3  | publish registry 누락 검출 테스트 존재 여부 실측 → 없으면 oracle 추가               |
+| Risk | Phase | 확인 방법                                                                                                               |
+| ---- | :---: | ----------------------------------------------------------------------------------------------------------------------- |
+| R1   |  0/3  | generate-css 가 `visual.chart` 채널을 emit 하는지 — 미지원 시 emit 확장 commit 선행                                     |
+| R2   |   1   | converter/renderCommands 분기 누락 → 단위 테스트 + live 삼각형                                                          |
+| R3   |  2/4  | 레이블 every-nth 생략 규칙 스냅샷                                                                                       |
+| R4   |   5   | 행 상한 상수 + 200행 frame 측정                                                                                         |
+| R5   |   3   | binding 주석에 RSC 마크→enum 평탄화 근거 기록                                                                           |
+| R6   |  0/3  | publish registry 누락 검출 테스트 존재 여부 실측 → 없으면 oracle 추가                                                   |
+| R8   |  3/5  | `_chartRows` 주입 지점 (`buildSpecNodeData` injection 블록) + primitive 가 rows 를 ctx 밖에서 받지 않음을 테스트로 고정 |
+| R9   |   1   | `PathShape` bbox 필수 — 0 크기 노드 컬링 회귀 테스트                                                                    |
+| R10  |   0   | `size` 변경 재레이아웃 경로 실측 (5-심볼 2계층)                                                                         |
 
 ## 7. 비스코프 (후속 판정)
 
