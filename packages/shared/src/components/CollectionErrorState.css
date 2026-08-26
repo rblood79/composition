@@ -80,7 +80,7 @@
 }
 
 .collection-error-message {
-  color: color-mix(in srgb, var(--negative) 70%, var(--fg));
+  color: var(--negative-strong);
   font-size: var(--text-sm);
   text-align: center;
   max-width: 200px;

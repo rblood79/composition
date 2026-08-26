@@ -96,6 +96,12 @@ export interface ColorTokens {
   notice: string;
   "notice-subtle": string;
 
+  // --- Status strong (subtle 배경 위 텍스트 — ADR-193 후속, light 900 / dark 200) ---
+  "negative-strong": string;
+  "positive-strong": string;
+  "informative-strong": string;
+  "notice-strong": string;
+
   // --- Surface / Layer ---
   base: string;
   /** raised surface (popover/dropdown/collection 컨테이너, ADR-071) → CSS --bg-raised. */

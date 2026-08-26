@@ -154,6 +154,10 @@ Spec TokenRef: {color.primary}, {color.secondary}, {color.tertiary},
 | `{color.positive-subtle}`    | `--positive-subtle`                | 연한 성공 배경                                                     |
 | `{color.notice}`             | `--notice`                         | 경고 상태 (light orange-600 / dark orange-500)                     |
 | `{color.notice-subtle}`      | `--notice-subtle`                  | 연한 경고 배경                                                     |
+| `{color.negative-strong}`    | `--negative-strong`                | subtle 배경 위 텍스트 (light red-900 / dark red-200)               |
+| `{color.positive-strong}`    | `--positive-strong`                | light green-900 / dark green-200                                   |
+| `{color.informative-strong}` | `--informative-strong`             | light blue-900 / dark blue-200                                     |
+| `{color.notice-strong}`      | `--notice-strong`                  | light orange-900 / dark orange-200                                 |
 | `{color.base}`               | `--bg`                             | 앱 배경                                                            |
 | `{color.raised}`             | `--bg-raised`                      | popover/dropdown 컨테이너 (ADR-071)                                |
 | `{color.layer-1}`            | `--bg-overlay`                     | 오버레이/모달                                                      |

@@ -89,6 +89,10 @@ const LIGHT_SNAPSHOT = {
   "gray-subtle": "#e5e5e5",
   "green-named": "#00a63e",
   "green-named-subtle": "#dcfce7",
+  "negative-strong": "#82181a",
+  "positive-strong": "#0d542b",
+  "informative-strong": "#1c398e",
+  "notice-strong": "#7e2a0c",
 } as const;
 
 const DARK_SNAPSHOT = {
@@ -163,6 +167,10 @@ const DARK_SNAPSHOT = {
   "gray-subtle": "#404040",
   "green-named": "#00c950",
   "green-named-subtle": "#0d542b",
+  "negative-strong": "#ffc9c9",
+  "positive-strong": "#b9f8cf",
+  "informative-strong": "#bedbff",
+  "notice-strong": "#ffd6a7",
 } as const;
 
 describe("ADR-193 semanticPaletteMap — colors.ts 스냅샷", () => {
@@ -175,7 +183,9 @@ describe("ADR-193 semanticPaletteMap — colors.ts 스냅샷", () => {
   });
 
   it("표의 모든 토큰이 colors.ts 양 테마에서 표 값으로 파생된다", () => {
-    for (const token of Object.keys(SEMANTIC_PALETTE_MAP) as SemanticPaletteToken[]) {
+    for (const token of Object.keys(
+      SEMANTIC_PALETTE_MAP,
+    ) as SemanticPaletteToken[]) {
       expect(lightColors[token], `light ${token}`).toBe(
         resolveSemanticHex(token, "light"),
       );
@@ -188,12 +198,12 @@ describe("ADR-193 semanticPaletteMap — colors.ts 스냅샷", () => {
     }
   });
 
-  it("cssVar 는 전부 유일하고 named hue 는 --hue- 접두 (tint preset --indigo 류와 충돌 금지), hook 은 negative 만", () => {
+  it("cssVar 는 전부 유일하고 status(-subtle/-strong 포함) 는 --{token}, named hue 는 --hue- 접두 (tint preset --indigo 류와 충돌 금지), hook 은 negative 만", () => {
     const vars = Object.values(SEMANTIC_PALETTE_MAP).map((e) => e.cssVar);
     expect(new Set(vars).size).toBe(vars.length);
     const STATUS = ["negative", "informative", "positive", "notice"];
     for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
-      const base = token.replace(/-subtle$/, "");
+      const base = token.replace(/-(subtle|strong)$/, "");
       if (STATUS.includes(base)) {
         expect(entry.cssVar, token).toBe(`--${token}`);
       } else {
@@ -208,7 +218,12 @@ describe("ADR-193 semanticPaletteMap — colors.ts 스냅샷", () => {
   });
 
   it("Skia 결손 행 (Badge gray 캔버스 비가시) 이 닫혔다 — gray / green-named 가 undefined 가 아니다", () => {
-    for (const k of ["gray", "gray-subtle", "green-named", "green-named-subtle"] as const) {
+    for (const k of [
+      "gray",
+      "gray-subtle",
+      "green-named",
+      "green-named-subtle",
+    ] as const) {
       expect(lightColors[k]).toMatch(/^#/);
       expect(darkColors[k]).toMatch(/^#/);
     }

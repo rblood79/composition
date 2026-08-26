@@ -452,27 +452,29 @@
     --tbl-cb-checkmark-on: var(--bg-inset);
   }
 
+  /* tertiary — named hue semantic var (ADR-193 후속): --hue-purple(-subtle) 은 light 600/100, dark 500/900.
+   * subtle 위 텍스트는 named hue 에 -strong 행이 없어 base hue (Badge/InlineAlert subtle 텍스트와 같은 규약). */
   .react-aria-Table[data-variant="tertiary"] {
-    --tbl-accent: var(--color-purple-600);
-    --tbl-selected-bg: var(--color-tertiary-100);
-    --tbl-selected-color: var(--color-tertiary-900);
-    --tbl-cb-selected: var(--color-purple-600);
+    --tbl-accent: var(--hue-purple);
+    --tbl-selected-bg: var(--hue-purple-subtle);
+    --tbl-selected-color: var(--hue-purple);
+    --tbl-cb-selected: var(--hue-purple);
     --tbl-cb-checkmark: var(--color-white);
-    --tbl-cb-bg: var(--color-tertiary-100);
-    --tbl-cb-selected-on: var(--color-tertiary-900);
-    --tbl-cb-checkmark-on: var(--color-tertiary-100);
+    --tbl-cb-bg: var(--hue-purple-subtle);
+    --tbl-cb-selected-on: var(--hue-purple);
+    --tbl-cb-checkmark-on: var(--hue-purple-subtle);
   }
 
-  /* error — semantic var 파생 (ADR-193 후속): --negative-subtle 은 light red-100 / dark red-900 으로 뒤집히고,
-   * 그 위 텍스트는 --negative 를 --fg 쪽으로 섞어 light 진한 빨강(≈red-900) / dark 밝은 빨강이 된다. */
+  /* error — status semantic var (ADR-193 후속): --negative-subtle light red-100 / dark red-900,
+   * --negative-strong (subtle 위 텍스트) light red-900 / dark red-200. */
   .react-aria-Table[data-variant="error"] {
     --tbl-accent: var(--negative);
     --tbl-selected-bg: var(--negative-subtle);
-    --tbl-selected-color: color-mix(in srgb, var(--negative) 55%, var(--fg));
+    --tbl-selected-color: var(--negative-strong);
     --tbl-cb-selected: var(--negative);
     --tbl-cb-checkmark: var(--color-white);
     --tbl-cb-bg: var(--negative-subtle);
-    --tbl-cb-selected-on: color-mix(in srgb, var(--negative) 55%, var(--fg));
+    --tbl-cb-selected-on: var(--negative-strong);
     --tbl-cb-checkmark-on: var(--negative-subtle);
   }
 

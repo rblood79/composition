@@ -32,6 +32,11 @@ const COLOR_TOKEN_CSS: Record<string, string> = {
   informative: "var(--informative)",
   positive: "var(--positive)",
   notice: "var(--notice)",
+  // subtle 배경 위 텍스트 (light 900 / dark 200)
+  "negative-strong": "var(--negative-strong)",
+  "positive-strong": "var(--positive-strong)",
+  "informative-strong": "var(--informative-strong)",
+  "notice-strong": "var(--notice-strong)",
   // --- Surface / Border / Special ---
   base: "var(--bg)",
   raised: "var(--bg-raised)",

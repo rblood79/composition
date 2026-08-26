@@ -35,7 +35,7 @@ export interface SemanticPaletteEntry {
 }
 
 /**
- * status 4 (+subtle 4) / named hue 19 (+subtle 19).
+ * status 4 (+subtle 4 +strong 4) / named hue 19 (+subtle 19).
  *
  * 변수명 규약 (breakdown §3): status 는 `--{token}`, named hue 는 `--hue-{token}` —
  * `--indigo`·`--red` 류는 preview-system 의 tint preset 이 이미 점유하므로 접두 필수.
@@ -83,6 +83,28 @@ export const SEMANTIC_PALETTE_MAP = {
     light: ["orange", 100],
     dark: ["orange", 900],
     cssVar: "--notice-subtle",
+  },
+  // `-strong` — subtle 배경 위 텍스트 (Tailwind `bg-red-100 text-red-900` / Radix step 3↔11 관행). light 900 / dark 200.
+  // 소비: Table error 선택 텍스트, CollectionErrorState 메시지. named hue 는 소비자 없음 (필요 시 같은 규칙으로 행 추가).
+  "negative-strong": {
+    light: ["red", 900],
+    dark: ["red", 200],
+    cssVar: "--negative-strong",
+  },
+  "positive-strong": {
+    light: ["green", 900],
+    dark: ["green", 200],
+    cssVar: "--positive-strong",
+  },
+  "informative-strong": {
+    light: ["blue", 900],
+    dark: ["blue", 200],
+    cssVar: "--informative-strong",
+  },
+  "notice-strong": {
+    light: ["orange", 900],
+    dark: ["orange", 200],
+    cssVar: "--notice-strong",
   },
 
   // --- Named hue (StatusLight / Badge / Meter …) ---

@@ -113,6 +113,11 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   "positive-subtle": "var(--positive-subtle)",
   notice: "var(--notice)",
   "notice-subtle": "var(--notice-subtle)",
+  // subtle 배경 위 텍스트 — semantic-palette.css light 900 / dark 200 (ADR-193 후속)
+  "negative-strong": "var(--negative-strong)",
+  "positive-strong": "var(--positive-strong)",
+  "informative-strong": "var(--informative-strong)",
+  "notice-strong": "var(--notice-strong)",
 
   // --- Surface / Layer ---
   base: "var(--bg)",

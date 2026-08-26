@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-193 후속 — status `-strong` 토큰 4종] - 2026-08-27
+
+### Added
+
+- **`{color.negative|positive|informative|notice-strong}`** — subtle 배경 위 텍스트 역할 (light 900 / dark 200, Tailwind `bg-red-100 text-red-900` 관행). `semanticPaletteMap.ts` 표 4행 → Skia `colors.ts` + 생성 `semantic-palette.css` + 매핑 2 파일. Table `error` 선택/체크박스 텍스트와 컬렉션 에러 메시지가 color-mix 근사 대신 팔레트 단계 (light red-900 = 이전 값 그대로) 를 쓴다. Table `tertiary` 는 `--color-tertiary-100/900` → `--hue-purple-subtle` / `--hue-purple` (named hue 에는 `-strong` 행이 없어 텍스트는 base hue — light purple-900 → purple-600).
+
 ## [ADR-193 후속 — 범위 밖 발견 3건 수정] - 2026-08-27
 
 ### Bug Fixes
