@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-192 — Contextual Action Bar] - 2026-08-27
+
+### Added
+
+- **선택 액션 바** (ADR-192 Implemented, Photoshop Contextual Task Bar 모델): 요소를 선택하면 캔버스 하단 중앙에
+  플로팅 바가 뜨고 선택 컨텍스트별 액션을 아이콘으로 노출한다 — 단일: 복제·컴포넌트 만들기↔해제 / frame: 그룹 해제·복제·
+  컴포넌트 토글 / 인스턴스: 원본으로 이동·인스턴스 분리·복제 / 다중: 정렬(8종 popover)·그룹 만들기·복제·인스턴스 분리.
+  항목은 ADR-182 우클릭 메뉴 provider 의 부분집합이라 액션 논리 신규 0, `⋯` 는 같은 메뉴를 버튼 위치에서 연다.
+  body 만 선택·빈 선택·텍스트 편집 중에는 사라진다 (Photoshop 자동 숨김). 좌측 핸들 드래그 이동, `⋮` 옵션 메뉴로
+  위치 고정(Pin)·초기화(Reset)·숨기기(Hide), 숨긴 뒤에는 Settings 패널 "선택 액션 바 표시" 로 되돌린다. 위치·고정·숨김은
+  localStorage 에 유지된다. 바 버튼 클릭 후에도 캔버스 단축키 scope 가 유지된다.
+
 ## [ADR-182 후속 — 단일 선택 복제 no-op 수정] - 2026-08-27
 
 ### Bug Fixes

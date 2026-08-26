@@ -1,6 +1,6 @@
 # ADR-192 Design Breakdown — Contextual Action Bar
 
-> 본문: [192-contextual-action-bar.md](../192-contextual-action-bar.md) · 리서치 정본: [ACTION_BAR_BENCHMARK.md](../../explanation/research/ACTION_BAR_BENCHMARK.md) · 선행 base: [ADR-182](../completed/182-builder-context-menu.md) + [breakdown](182-builder-context-menu-breakdown.md)
+> 본문: [192-contextual-action-bar.md](../completed/192-contextual-action-bar.md) · 리서치 정본: [ACTION_BAR_BENCHMARK.md](../../explanation/research/ACTION_BAR_BENCHMARK.md) · 선행 base: [ADR-182](../completed/182-builder-context-menu.md) + [breakdown](182-builder-context-menu-breakdown.md)
 
 ## §1. Fork lock-in (ADR-016 → ADR-192) — 4 질문
 
@@ -149,6 +149,13 @@ Phase 3 결과 (2026-08-27, live Chrome MCP `ZZZF`):
 
 **Phase 3 설계 편차**: `actionBarStorage` 는 breakdown §3-1 의 `components/overlay/actionBar/` 가 아니라 `stores/utils/actionBarStorage.ts` — store slice 가 UI 디렉터리를 import 하는 역방향 의존을 피하기 위해. 옵션 버튼 aria-label 은 `actionBar.options` 키 추가 (⋯ `more` 와 중복 해소).
 
+Phase 4 결과 (2026-08-27):
+
+- **M1 live ✅** — Components 페이지 InlineAlert origin 의 Heading(`{title}`) 을 더블클릭 2회(1회 = 컨테이너 진입, 2회 = 텍스트 편집) → `textarea` 마운트 + 바 미마운트, Escape → 바 복귀. `useTextEdit` → `useCanvasStore.setEditing` 배선 확인.
+- 옵션 메뉴 (Pin/Reset/Hide) 실행 후 `.canvas-container` 로 포커스 복귀 — RAC Menu 닫힘 시 FocusScope 복원(body)이 동기 `focus()` 를 덮어 150ms 지연으로 해결 (live: `activeElement` = `.canvas-container` ✅). Phase 3 LOW 관찰 해소.
+- `codex:preflight` (guard·format·typecheck·registration) PASS.
+- Implemented 승격 + `completed/` 이동 + README/CHANGELOG.
+
 ### 파일 변경표 (추정 — Phase 0 후 재freeze)
 
 | 파일                                                         | 변경                                               |
@@ -168,10 +175,10 @@ Phase 3 결과 (2026-08-27, live Chrome MCP `ZZZF`):
 - [ ] 컨텍스트 C0~~C4 / M1~~M2 단위 테스트
 - [x] live: 단일/frame/인스턴스/다중 4종 선택에서 바 항목이 §2 표와 일치 (Phase 2)
 - [x] live: 바 버튼 클릭 직후 activeElement 유지 + ⌫/⌘Z 적용 (⌘D·⌘G 는 Chrome 단축키 충돌로 MCP 판정 불가)
-- [ ] live: 텍스트 편집 중 바 비표시, 종료 후 복귀 — **미검증** (MCP 더블클릭 한계, Phase 4 실제 마우스)
+- [x] live: 텍스트 편집 중 바 비표시, 종료 후 복귀 (Phase 4 — origin Heading 더블클릭 2회)
 - [x] live: 드래그 이동 → 새로고침 후 위치 유지 / Reset → 하단 중앙 / Pin → 핸들 비활성 / Hide → Settings 토글로 재표시 (Phase 3)
 - [x] 성능: 선택 불변 상태에서 zoom 왕복 동안 바 DOM 변이 0 (MutationObserver, Phase 3)
-- [x] type-check 0 (Phase 0~3 매 커밋) / codex:preflight — Phase 4
+- [x] type-check 0 (Phase 0~4 매 커밋) / codex:preflight PASS (Phase 4)
 
 ## §6. 비스코프 (후속)
 

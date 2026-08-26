@@ -226,6 +226,13 @@ export function ContextualActionBar() {
       if (key === "pin") placement.togglePinned();
       else if (key === "reset") placement.resetPosition();
       else placement.hide();
+      // RAC Menu 는 닫힘(exit 애니메이션 ~80ms) 뒤 FocusScope 가 포커스를
+      // 복원하는데 그 결과가 body 라 `canvas-focused` scope 가 풀린다 (Phase 3
+      // live). 동기 focus() 는 그 복원에 덮이므로 (Phase 4 live) 복원 이후로
+      // 미뤄 캔버스 컨테이너(BuilderCanvas.tsx:1374 와 같은 대상)로 되돌린다.
+      window.setTimeout(() => {
+        document.querySelector<HTMLElement>(".canvas-container")?.focus();
+      }, 150);
     },
     [placement],
   );

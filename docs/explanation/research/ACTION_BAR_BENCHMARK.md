@@ -1,7 +1,7 @@
 # Contextual Action Bar 벤치마크 — Photoshop (Desktop/Web/Elements/Illustrator) · Figma (Design/FigJam)
 
 > 조사일: 2026-08-26
-> 목적: ADR-016 §5.2 "Contextual Action Bar" 설계안을 승계하지 않고, 두 레퍼런스의 **현행 동작**을 다시 실측해 [ADR-192](../../adr/192-contextual-action-bar.md) 의 대안·위험 평가 근거로 고정한다.
+> 목적: ADR-016 §5.2 "Contextual Action Bar" 설계안을 승계하지 않고, 두 레퍼런스의 **현행 동작**을 다시 실측해 [ADR-192](../../adr/completed/192-contextual-action-bar.md) 의 대안·위험 평가 근거로 고정한다.
 > 선행 문서: [PHOTOSHOP_BENCHMARK.md](PHOTOSHOP_BENCHMARK.md) (2024-12-24, §2.1) — 본 문서가 갱신·대체. Figma 컨텍스트 메뉴 리서치는 [ADR-182 breakdown §0-1](../../adr/design/182-builder-context-menu-breakdown.md) 이 정본.
 > 출처 접근 방법: Adobe helpx 는 2026-04-28 이후 데스크톱 페이지가 개요 1장으로 축약돼 컨텍스트별 액션 목록이 사라졌다. 액션 목록은 Elements 2026 페이지(2025-10-01, 동일 컴포넌트) + Illustrator 2025 커뮤니티 공지 + 서드파티 튜토리얼 3종으로 교차 확인했다. 웹 검색으로 도달 불가한 부분은 "미확인" 으로 남긴다.
 
