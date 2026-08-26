@@ -62,8 +62,8 @@ docs/
 > - **진행 중/미구현**: [`adr/*.md`](./adr/) (21개)
 > - **Breakdown 문서**: [`adr/design/`](./adr/design/) (상세 구현 설계)
 
-| ADR                                                     | 제목                                    | 상태                |
-| ------------------------------------------------------- | --------------------------------------- | ------------------- |
+| ADR                                                             | 제목                                    | 상태                |
+| --------------------------------------------------------------- | --------------------------------------- | ------------------- |
 | [001](adr/completed/001-state-management.md)                    | 상태 관리 (Zustand)                     | Accepted            |
 | [002](adr/completed/002-styling-approach.md)                    | 스타일링 (ITCSS + Tailwind)             | Accepted            |
 | [003](adr/completed/003-canvas-rendering.md)                    | Canvas 렌더링 (CanvasKit/Skia + PixiJS) | Superseded          |
@@ -76,10 +76,10 @@ docs/
 | [010](adr/completed/010-events-panel.md)                        | Events Panel                            | Partial (P0~P1)     |
 | [011](adr/completed/011-ai-assistant-design.md)                 | AI Assistant 설계 (Groq Tool Calling)   | Partial (A1~A4)     |
 | [012](adr/completed/012-rendering-layout-pipeline-hardening.md) | 렌더링/레이아웃 파이프라인 강화         | Proposed            |
-| [013](./adr/013-quick-connect-data-binding.md)          | Quick Connect 데이터 바인딩             | Proposed            |
+| [013](./adr/013-quick-connect-data-binding.md)                  | Quick Connect 데이터 바인딩             | Proposed            |
 | [014](adr/completed/014-fonts.md)                               | 폰트 시스템                             | Proposed            |
-| [015](./adr/015-sitemap-layout.md)                      | Sitemap 레이아웃                        | Proposed            |
-| [016](./adr/016-photoshop-ui-ux.md)                     | Photoshop UI/UX 적용 계획               | Proposed            |
+| [015](./adr/015-sitemap-layout.md)                              | Sitemap 레이아웃                        | Proposed            |
+| [016](adr/completed/016-photoshop-ui-ux.md)                     | Photoshop UI/UX 적용 계획               | Superseded          |
 
 ---
 

@@ -182,5 +182,5 @@ DesignKit 의 **고유 가치** 라 할만한 것은 ADR-020 §2.6 (시각적 �
 - [ADR-111](111-layout-frameset-pencil-redesign.md) — pencil 호환 frame 재설계 (line 249 reference 정리 대상)
 - [ADR-112](112-editing-semantics-ui-5elements.md) — Editing Semantics UI 5요소 (G4-A 시각 마커에서 DesignKit 제거)
 - [ADR-114](114-imports-resolver-designkit-integration.md) — pencil imports resolver + DesignKit 통합 (Superseded 2026-04-30; DesignKit scope 는 본 ADR 로 무효화, imports resolver/cache 잔여는 ADR-116 으로 흡수)
-- [ADR-016](../016-photoshop-ui-ux.md) — Photoshop UI/UX (line 43 다이어그램 DesignKitPanel 박스 제거)
+- [ADR-016](016-photoshop-ui-ux.md) — Photoshop UI/UX (line 43 다이어그램 DesignKitPanel 박스 제거)
 - [ADR-011](011-ai-assistant-design.md) — AI Assistant Design (line 1079 `appliedKitIds` 표 footnote — ADR-054 Superseded + 본 ADR-115 제거)

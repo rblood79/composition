@@ -1,6 +1,8 @@
 # ADR-016: Photoshop 벤치마크 기반 UI/UX 적용 계획
 
-- 상태: **Proposed** — 2026-08-26 전제 재정렬 (§0): P0 Context Menu·P1 Floating Panel 은 타 ADR 로 반영 완료, Comments/Presence/PixiJS 항목은 전제 소멸. 잔여 = Action Bar · History UI 재실측 · WCAG 감사 (AI Variations 는 ADR-134 후속 판정)
+> **Superseded — 2026-08-26**. 본 ADR 의 실질 항목은 전부 타 ADR 로 반영됐거나 전제가 소멸했다: Context Menu → [ADR-182](182-builder-context-menu.md), Floating Panel → [ADR-922](922-photoshop-style-panel-layout-coordinator.md) + [ADR-186](186-photoshop-default-zone-panel-placement.md), History UI → [ADR-180](180-history-snapshots.md), Comments/Presence → [ADR-128](128-supabase-backend-decommission.md) (전제 소멸), PixiJS 연동 → [ADR-900](900-unified-skia-rendering-engine.md) (전제 소멸). 유일한 미반영 기능 **Contextual Action Bar** 는 Photoshop Web·Figma 액션바 리서치를 거쳐 [ADR-192](../192-contextual-action-bar.md) 로 재설계한다 (본 ADR §5.1~5.2 의 파일 경로·타입안은 승계하지 않음). WCAG AA 대비 감사는 [ADR-191](../191-tailwind-theme-single-source-palette.md) 팔레트 단일 원천 이후 후속 항목. 사용자 결정 (2026-08-26 "016 을 Superseded 로 닫고, Action Bar 는 리서치부터 한 후 ADR 설계").
+
+- 상태: **Superseded** — 2026-08-26 (직전: Proposed, 2026-08-26 전제 재정렬 §0)
 - 작성일: 2026-02-15 (v2: 2026-03-03 — 현행 아키텍처 기준 재설계)
 - 대상 코드: `apps/builder/src/builder/`
 - 참고 자료: `docs/explanation/research/PHOTOSHOP_BENCHMARK.md`
@@ -9,20 +11,20 @@
 
 본 문서는 2026-03-03 코드 기준으로 쓰였고, 이후 5개월간 타 ADR 이 같은 표면을 구현하거나 전제를 없앴다. 항목별 현재 사실과 처리를 아래에 고정한다 — 체크리스트(§8)도 이에 맞춰 갱신했다.
 
-| 항목 | 원 계획 (§) | 현재 사실 (2026-08-26) | 처리 |
-| --- | --- | --- | --- |
-| Context Menu | §5.3 `components/ContextMenu/` RAC Menu | **ADR-182 Implemented (2026-08-16)** — `components/overlay/contextMenu/{useContextMenu,ContextMenuOverlay,buildContextMenuItems}` + `canvas/contextMenu/` provider, 표면 4종(캔버스 요소/빈 영역/레이어 행/셸) | **반영 완료 — 범위 제외** |
-| 공용 액션 시스템 | §5.1 `builder/actions/{types,elementActions,handlers}` | ADR-182 가 `canvas/actions/canvasActions.ts` 공유 계층(copy/paste/duplicate/delete/group/ungroup/align/distribute 8종)을 추출 | **절반 반영** — 잔여는 Action Bar 가 요구하는 태그별 액션 매핑만 |
-| Contextual Action Bar | §5.2 `workspace/overlay/ContextualActionBar.tsx` | 코드 0건 | **잔여 (P0 의 유일한 실질 항목)** |
-| History Panel UI | §5.4 "258줄 기본 UI" 개선 | **ADR-180 Implemented (2026-08-13)** — `HistoryPanel.tsx` 551줄, 아이콘·스냅샷 적용 | **재실측 후 잔여 판정** — 원 기술은 stale |
-| AI Variations | §6.1 `GroqAgentService` + 7 도구 위에 Variations | **ADR-134** Phase 2 가 Groq 완전 제거 → 전제 충돌. 134 breakdown scope-out 목록에도 없어 소관 미정 | **보류** — 134 후속 응용으로 이관 여부는 134 착수 시 판정 |
-| Comments Panel | §6.2 Supabase Realtime | **ADR-128** Supabase backend decommission (Implemented 2026-05-12) | **폐기 — 전제 소멸** |
-| Floating Panel | §6.3 `PanelDisplayMode` 확장 + `ModalPanelContainer` 수정 | **ADR-922 (2026-08-18)** `PanelDisplayMode = "panel" \| "modal" \| "floating"` + **ADR-186 (2026-08-19)** 9-zone placement. `ModalPanelContainer.tsx` 는 현존하지 않음 | **반영 완료 — 범위 제외** |
-| PixiJS 우클릭 연동 | §4.2/§5.3/§8 | **ADR-900** Phase 8-9 로 PixiJS 제거 | **폐기** |
-| Presence/커서 공유 | §7.2 Supabase Realtime presence | ADR-128 로 전제 소멸 | **폐기** |
-| 디자인 시스템 WCAG 감사 | §7.1 | 독립 항목 | **잔여** |
+| 항목                    | 원 계획 (§)                                               | 현재 사실 (2026-08-26)                                                                                                                                                                                                                                                | 처리                                                      |
+| ----------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Context Menu            | §5.3 `components/ContextMenu/` RAC Menu                   | **ADR-182 Implemented (2026-08-16)** — `components/overlay/contextMenu/{useContextMenu,ContextMenuOverlay,buildContextMenuItems}` + `canvas/contextMenu/` provider, 표면 4종(캔버스 요소/빈 영역/레이어 행/셸)                                                        | **반영 완료 — 범위 제외**                                 |
+| 공용 액션 시스템        | §5.1 `builder/actions/{types,elementActions,handlers}`    | ADR-182 가 `canvas/actions/canvasActions.ts` 공유 계층(copy/cut/paste/duplicate/delete/group/ungroup/align/distribute 9종)을 추출                                                                                                                                     | **절반 반영** — 태그별 액션 매핑은 ADR-192 소관           |
+| Contextual Action Bar   | §5.2 `workspace/overlay/ContextualActionBar.tsx`          | 코드 0건, 타 ADR 계획 0건                                                                                                                                                                                                                                             | **ADR-192 로 재설계** — §5.2 설계안 미승계                |
+| History Panel UI        | §5.4 "258줄 기본 UI" 개선                                 | **ADR-180 Implemented (2026-08-13)** — `HistoryPanel.tsx` 551줄. 재실측(08-26): 아이콘 `ENTRY_TYPE_ICONS` 12종(원 계획 7종 초과) ✅ · redo 구간 `data-future` opacity 0.45 ✅ · 점프 ✅ · Skeleton 은 `historyOperationInProgress`/`restoring` disabled 패턴으로 대체 | **반영 완료 — 범위 제외**                                 |
+| AI Variations           | §6.1 `GroqAgentService` + 7 도구 위에 Variations          | **ADR-134** Phase 2 가 Groq 완전 제거 → 전제 충돌. 134 breakdown scope-out 목록에도 없어 소관 미정                                                                                                                                                                    | **보류** — 134 후속 응용으로 이관 여부는 134 착수 시 판정 |
+| Comments Panel          | §6.2 Supabase Realtime                                    | **ADR-128** Supabase backend decommission (Implemented 2026-05-12)                                                                                                                                                                                                    | **폐기 — 전제 소멸**                                      |
+| Floating Panel          | §6.3 `PanelDisplayMode` 확장 + `ModalPanelContainer` 수정 | **ADR-922 (2026-08-18)** `PanelDisplayMode = "panel" \| "modal" \| "floating"` + **ADR-186 (2026-08-19)** 9-zone placement. `ModalPanelContainer.tsx` 는 현존하지 않음                                                                                                | **반영 완료 — 범위 제외**                                 |
+| PixiJS 우클릭 연동      | §4.2/§5.3/§8                                              | **ADR-900** Phase 8-9 로 PixiJS 제거                                                                                                                                                                                                                                  | **폐기**                                                  |
+| Presence/커서 공유      | §7.2 Supabase Realtime presence                           | ADR-128 로 전제 소멸                                                                                                                                                                                                                                                  | **폐기**                                                  |
+| 디자인 시스템 WCAG 감사 | §7.1                                                      | §7.1 의 `--color-text-*` 토큰은 코드에 없음. ADR-191 이 팔레트 원천을 단일화하기 전엔 Builder DOM(oklch)·Preview(v3 hex) 가 다른 색을 봐 감사 대상이 이동 중                                                                                                          | **ADR-191 후속** — 191 Phase 4 이후 착수                  |
 
-> 착수 시 §4(아키텍처 개요)·§5~7 의 파일 경로는 ADR-182/922/186/180 이후 코드로 재실측한다. §5.3/§6.2/§6.3/§7.2 본문은 역사적 기록으로 보존.
+> §4~§9 본문은 2026-03-03 코드 기준 역사적 기록으로 보존 — `SHORTCUT_DEFINITIONS` 는 "85+" 가 아니라 69개(08-26 실측), `ModalPanelContainer.tsx`·PixiJS·Taffy 는 현존하지 않는다. ADR-192 는 이 본문을 승계하지 않고 리서치부터 다시 시작한다.
 
 ## 1. 목적
 
@@ -162,13 +164,14 @@ export type ElementActionMap = Record<string, ContextualAction[]>;
 ```
 
 **요소별 액션 매핑**:
-| 요소 | 액션 |
-|------|------|
-| `_common` | 복사, 삭제, 복제, 그룹 |
-| `Button` | 텍스트 편집, 스타일 변경, 이벤트 추가 |
-| `TextField` | 플레이스홀더, 유효성 검사 |
-| `Image` | 이미지 변경, 대체 텍스트, 크기 조정 |
-| `Flex` | 방향 전환, 정렬, 간격 조정 |
+
+| 요소        | 액션                                  |
+| ----------- | ------------------------------------- |
+| `_common`   | 복사, 삭제, 복제, 그룹                |
+| `Button`    | 텍스트 편집, 스타일 변경, 이벤트 추가 |
+| `TextField` | 플레이스홀더, 유효성 검사             |
+| `Image`     | 이미지 변경, 대체 텍스트, 크기 조정   |
+| `Flex`      | 방향 전환, 정렬, 간격 조정            |
 
 **기존 시스템 연동**:
 
@@ -278,14 +281,15 @@ apps/builder/src/builder/components/ContextMenu/   # 🆕 신규
 | 로딩      | 없음                           | `historyOperationInProgress` 시 Skeleton |
 
 **entry.type → 아이콘 매핑** (lucide-react):
-| type | 아이콘 | 라벨 |
-|------|--------|------|
-| `add` | `Plus` | 추가 |
-| `remove` | `Trash2` | 삭제 |
-| `update` | `Pencil` | 수정 |
-| `move` | `Move` | 이동 |
-| `batch` | `Layers` | 일괄 수정 |
-| `group` | `Group` | 그룹 |
+
+| type      | 아이콘    | 라벨      |
+| --------- | --------- | --------- |
+| `add`     | `Plus`    | 추가      |
+| `remove`  | `Trash2`  | 삭제      |
+| `update`  | `Pencil`  | 수정      |
+| `move`    | `Move`    | 이동      |
+| `batch`   | `Layers`  | 일괄 수정 |
+| `group`   | `Group`   | 그룹      |
 | `ungroup` | `Ungroup` | 그룹 해제 |
 
 **수정 파일**:
