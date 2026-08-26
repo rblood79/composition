@@ -62,14 +62,14 @@
   color: var(--fg-muted);
 }
 
-/* 에러 상태 */
+/* 에러 상태 — semantic var 파생 (ADR-193 후속, dark 에서 --negative/--negative-subtle 이 단계를 뒤집는다) */
 .collection-error {
-  background: var(--color-red-50);
-  border-color: var(--color-red-200);
+  background: var(--negative-subtle);
+  border-color: color-mix(in srgb, var(--negative) 35%, transparent);
 }
 
 .collection-error-icon {
-  color: var(--color-red-500);
+  color: var(--negative);
 }
 
 .collection-error-content {
@@ -80,7 +80,7 @@
 }
 
 .collection-error-message {
-  color: var(--color-red-700);
+  color: color-mix(in srgb, var(--negative) 70%, var(--fg));
   font-size: var(--text-sm);
   text-align: center;
   max-width: 200px;

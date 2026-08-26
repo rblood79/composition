@@ -149,7 +149,7 @@
   }
 
   .action-delete-button:hover {
-    background: var(--color-error-100);
+    background: var(--negative-subtle);
     border-color: var(--negative);
   }
 

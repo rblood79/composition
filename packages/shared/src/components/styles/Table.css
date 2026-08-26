@@ -463,15 +463,17 @@
     --tbl-cb-checkmark-on: var(--color-tertiary-100);
   }
 
+  /* error — semantic var 파생 (ADR-193 후속): --negative-subtle 은 light red-100 / dark red-900 으로 뒤집히고,
+   * 그 위 텍스트는 --negative 를 --fg 쪽으로 섞어 light 진한 빨강(≈red-900) / dark 밝은 빨강이 된다. */
   .react-aria-Table[data-variant="error"] {
     --tbl-accent: var(--negative);
-    --tbl-selected-bg: var(--color-error-100);
-    --tbl-selected-color: var(--color-error-900);
+    --tbl-selected-bg: var(--negative-subtle);
+    --tbl-selected-color: color-mix(in srgb, var(--negative) 55%, var(--fg));
     --tbl-cb-selected: var(--negative);
     --tbl-cb-checkmark: var(--color-white);
-    --tbl-cb-bg: var(--color-error-100);
-    --tbl-cb-selected-on: var(--color-error-900);
-    --tbl-cb-checkmark-on: var(--color-error-100);
+    --tbl-cb-bg: var(--negative-subtle);
+    --tbl-cb-selected-on: color-mix(in srgb, var(--negative) 55%, var(--fg));
+    --tbl-cb-checkmark-on: var(--negative-subtle);
   }
 
   .react-aria-Table[data-variant="primary"],

@@ -367,7 +367,7 @@
 
   .react-aria-ListBox[data-variant="error"] {
     --lb-accent: var(--negative);
-    --lb-accent-container: var(--color-error-100);
+    --lb-accent-container: var(--negative-subtle);
     --lb-on-accent-container: var(--fg);
   }
 
