@@ -21,7 +21,7 @@
     /* ==================== Builder-Specific Sizes ==================== */
     --sizes-inspectorWidth: 320px;
     --sidebar-width: 240px;
-    --panel-nav-width: 48px;
+    --panel-toggle-rail-width: 48px;
 
     /* Inspector control sizes */
     --header-height: 32px;

@@ -27,9 +27,11 @@ import type { Key } from "react-aria-components";
 import {
   ToggleButtonGroup,
   ToggleButton,
+  Group,
 } from "@composition/shared/components";
 import { iconProps } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
+import { ActionIconButton } from "../components/ui/ActionIconButton";
 import { ZoomControls } from "../workspace/ZoomControls";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import { ACTION_ICONS } from "../config/actionIcons";
@@ -73,14 +75,15 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   onWorkflowOverlayToggle,
 }) => {
   const { t } = useI18n();
-  const { togglePanel, resetWorkspaceLayout } = usePanelLayout();
+  const { workspaceLayout, togglePanel, resetWorkspaceLayout } =
+    usePanelLayout();
   const isCompareMode = useCompareModeStore((state) => state.isCompareMode);
   const toggleCompareMode = useCompareModeStore(
     (state) => state.toggleCompareMode,
   );
 
   return (
-    <nav className="header">
+    <header className="header">
       <div className="header_contents header_left">
         <MenuTrigger>
           <Button aria-label={t("header.menu")}>
@@ -158,9 +161,15 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
         </div>
       </div>
 
-      <div className="header_contents screen">
+      <Group
+        className="header_contents screen builder-viewport-controls"
+        aria-label={t("header.viewportControls")}
+      >
         <ToggleButtonGroup
+          className="builder-control-group"
+          aria-label={t("header.viewportSize")}
           selectionMode="single"
+          disallowEmptySelection
           selectedKeys={breakpoint}
           onSelectionChange={(keys: Set<Key>) => {
             const selected = Array.from(keys)[0];
@@ -184,21 +193,18 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             >
               {bp.id === "desktop" && (
                 <Monitor
-                  color={iconProps.color}
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
                 />
               )}
               {bp.id === "tablet" && (
                 <Tablet
-                  color={iconProps.color}
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
                 />
               )}
               {bp.id === "mobile" && (
                 <Smartphone
-                  color={iconProps.color}
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
                 />
@@ -209,15 +215,19 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
 
         {/* Zoom Controls */}
         <ZoomControls />
-      </div>
+      </Group>
 
       <div className="header_contents header_right">
         <ToggleButtonGroup
+          className="builder-control-group"
           selectionMode="multiple"
           selectedKeys={
             new Set([
               ...(isCompareMode ? ["compare"] : []),
               ...(showWorkflowOverlay ? ["workflow"] : []),
+              ...(workspaceLayout?.visibility.monitor === true
+                ? ["monitor"]
+                : []),
             ])
           }
           indicator={true}
@@ -227,6 +237,8 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             const isCompareNowSelected = selectedKeys.has("compare");
             const wasWorkflow = showWorkflowOverlay;
             const isWorkflowNowSelected = selectedKeys.has("workflow");
+            const wasMonitor = workspaceLayout?.visibility.monitor === true;
+            const isMonitorNowSelected = selectedKeys.has("monitor");
 
             // Compare mode 토글
             if (wasCompareMode !== isCompareNowSelected) {
@@ -235,6 +247,9 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             // Workflow 오버레이 토글
             if (wasWorkflow !== isWorkflowNowSelected) {
               onWorkflowOverlayToggle();
+            }
+            if (wasMonitor !== isMonitorNowSelected) {
+              togglePanel("monitor");
             }
           }}
           aria-label={t("header.viewOptions")}
@@ -246,7 +261,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             }
           >
             <Columns
-              color={isCompareMode ? "var(--color-white)" : iconProps.color}
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}
             />
@@ -260,36 +274,26 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             }
           >
             <GitBranch
-              color={
-                showWorkflowOverlay ? "var(--color-white)" : iconProps.color
-              }
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}
             />
           </ToggleButton>
-          <ToggleButton
-            id="preview"
-            aria-label={t("header.preview")}
-            onPress={onPreview}
-          >
-            <Eye
-              color={iconProps.color}
-              strokeWidth={iconProps.strokeWidth}
-              size={iconProps.size}
-            />
-          </ToggleButton>
-          <ToggleButton
-            id="monitor"
-            aria-label={t("header.monitor")}
-            onPress={() => togglePanel("monitor")}
-          >
+          <ToggleButton id="monitor" aria-label={t("header.monitor")}>
             <Monitor
-              color={iconProps.color}
               strokeWidth={iconProps.strokeWidth}
               size={iconProps.size}
             />
           </ToggleButton>
         </ToggleButtonGroup>
+        <div className="builder-action-group">
+          <ActionIconButton
+            aria-label={t("header.preview")}
+            tooltip={t("header.preview")}
+            onPress={onPreview}
+          >
+            <Eye strokeWidth={iconProps.strokeWidth} size={iconProps.size} />
+          </ActionIconButton>
+        </div>
         <button
           aria-label={t("header.publish")}
           className="publish"
@@ -298,6 +302,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           {t("header.publish")}
         </button>
       </div>
-    </nav>
+    </header>
   );
 };

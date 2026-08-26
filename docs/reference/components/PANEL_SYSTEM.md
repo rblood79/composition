@@ -56,10 +56,11 @@ src/builder/
 │   ├── styles/StylesPanel.tsx
 │   └── events/EventsPanel.tsx
 ├── layout/                    # 레이아웃 시스템
-│   ├── PanelNav.tsx          # 48px 네비게이션 바
-│   ├── PanelContainer.tsx    # 패널 렌더링 컨테이너
-│   ├── PanelSlot.tsx         # Nav + Container 통합
-│   └── usePanelLayout.ts     # 레이아웃 상태 훅
+│   ├── PanelToggleGroup.tsx  # 48px vertical 패널 토글 그룹
+│   ├── PanelWorkspace.tsx    # rail과 panel frame 통합
+│   └── panelWorkspaceLayoutV3.ts # placement/visibility SSOT
+├── hooks/
+│   └── usePanelLayout.ts     # workspace 명령 훅
 └── stores/
     └── panelLayout.ts        # Zustand 레이아웃 스토어
 ```
@@ -67,15 +68,15 @@ src/builder/
 ### 데이터 흐름
 
 ```
-PanelSlot (left/right)
+PanelWorkspace
   ↓
-  ├─ PanelNav (아이콘 네비게이션)
-  │   ├─ usePanelLayout() → layout state
-  │   └─ onClick → setActivePanel()
+  ├─ workspaceLayout.railOrder → left/right PanelToggleGroup
+  │   ├─ workspaceLayout.visibility → selectedKeys
+  │   └─ onSelectionChange → togglePanel(panelId)
   │
-  └─ PanelContainer (활성 패널 렌더링)
+  └─ workspace panel frame (표시 중인 패널 렌더링)
       ├─ PanelRegistry.getPanel()
-      └─ <PanelComponent isActive={true} />
+      └─ workspaceLayout.clusters/visibility 소비
 ```
 
 ### 상태 관리
@@ -83,26 +84,23 @@ PanelSlot (left/right)
 **Zustand Store** (`src/builder/stores/panelLayout.ts`):
 
 ```typescript
-interface PanelLayoutState {
-  leftPanels: PanelId[]; // 왼쪽에 배치된 패널 ID 목록
-  rightPanels: PanelId[]; // 오른쪽에 배치된 패널 ID 목록
-  activeLeftPanel: PanelId | null; // 현재 활성 왼쪽 패널
-  activeRightPanel: PanelId | null; // 현재 활성 오른쪽 패널
-  showLeft: boolean; // 왼쪽 사이드 표시 여부
-  showRight: boolean; // 오른쪽 사이드 표시 여부
+interface PanelWorkspaceLayoutV3 {
+  version: 3;
+  visibility: Partial<Record<PanelId, boolean>>;
+  railOrder: Record<PanelWorkspaceRailSide, PanelId[]>;
+  clusters: PanelWorkspaceClusterV3[];
+  clusterFocusOrder: string[];
 }
 ```
 
-**기본 레이아웃**:
-
-- Left: `nodes`, `components`, `dataset`, `theme`, `ai`, `settings`
-- Right: `properties`, `styles`, `events`
-- Active: `nodes` (left), `properties` (right)
+- 기본 rail 순서와 placement는 `PanelRegistry`의 panel config에서 파생한다.
+- `hiddenFromRail`은 rail 버튼만 숨기며 registry와 저장된 placement는 유지한다.
+- `usePanelLayout().togglePanel()`이 visibility와 activation policy를 함께 갱신한다.
 
 **localStorage 연동**:
 
 - 키: `composition-panel-layout`
-- 자동 저장/복원
+- V3 layout 자동 저장/복원 및 구 버전 migration
 - 세션 간 레이아웃 유지
 
 ## 타입 시스템
@@ -245,7 +243,7 @@ export function MyPanel({ isActive }: PanelProps) {
 
 ### 메모이제이션
 
-- PanelNav: 패널 목록 메모이제이션
+- PanelToggleGroup: 패널 목록 메모이제이션
 - PanelContainer: 활성 패널만 렌더링
 - usePanelLayout: useCallback으로 핸들러 최적화
 
@@ -277,14 +275,16 @@ export function MyPanel({ isActive }: PanelProps) {
 - `.section-header` - 섹션 헤더 (SectionHeader 컴포넌트)
 - `.section-content` - 섹션 콘텐츠
 
-### 기존 클래스 재사용
+### Builder chrome panel rail
 
-**sidebar-nav** (48px 네비게이션):
+- `.panel-toggle-rail` - 48px rail placement/overflow shell
+- `.builder-control-group` - header와 rail이 공유하는 control track
+- `.react-aria-ToggleButton` - RAC toggle button
+- `.react-aria-ToggleButton[data-selected]` - workspace visibility가 투영된 선택 상태
 
-- `.sidebar-nav` - 네비게이션 컨테이너
-- `.nav-list` - 아이콘 버튼 리스트
-- `.nav-button` - 개별 아이콘 버튼
-- `.nav-button.active` - 활성 상태
+rail은 navigation이 아니므로 `nav > ul > li`나 `.nav-button.active`를 사용하지 않는다.
+
+### 기존 panel content 클래스
 
 **sidebar-content** (패널 콘텐츠):
 
@@ -299,7 +299,7 @@ export function MyPanel({ isActive }: PanelProps) {
 
 ## 마이그레이션 가이드
 
-### 기존 Sidebar/Inspector → PanelSlot
+### 기존 Sidebar/Inspector → PanelWorkspace
 
 **Before:**
 
@@ -311,13 +311,9 @@ export function MyPanel({ isActive }: PanelProps) {
 **After:**
 
 ```tsx
-<aside className="sidebar">
-  <PanelSlot side="left" />
-</aside>
-
-<aside className="inspector">
-  <PanelSlot side="right" />
-</aside>
+<PanelWorkspace chrome={<BuilderHeader {...headerProps} />}>
+  <BuilderCanvas {...canvasProps} />
+</PanelWorkspace>
 ```
 
 ### 기존 Section → Panel Wrapper

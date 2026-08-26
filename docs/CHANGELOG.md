@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Builder chrome 토글 그룹 일원화 — Header / PanelDock RAC pattern] - 2026-08-26
+
+### Changed
+
+- 좌·우 PanelDock의 구 `PanelNav`를 `PanelToggleGroup`으로 전환했다. sidebar 시절의
+  `nav > ul > li` 구조와 수동 `aria-pressed`를 제거하고, header와 동일한 RAC
+  `ToggleButtonGroup` + `ToggleButton` 구조에서 vertical multiple selection을 사용한다.
+- header와 좌·우 rail은 `builder-control-group`의 track, padding, gap, radius, hover,
+  selected indicator 스타일을 공유한다. PanelDock의 48px rail shell, 좌우 order,
+  overflow와 `hiddenFromRail` registry/placement 계약은 유지한다. 공통 toggle button은
+  `--spacing-sm` padding을 사용하고, group surface는 기존 rail의 흰색톤
+  `--bg-raised`를 사용한다. 선택된 toggle은 기존 rail과 같은 `--accent` 배경과
+  `--fg-on-accent` 아이콘 대비를 사용한다.
+- header root를 semantic `<header>`로 바꾸고 전역 배경과 하단 border를 투명하게 했다.
+  Compare / Workflow / Monitor는 실제 toggle 상태만 포함하며, Preview는 같은 chrome
+  어법의 순간 action으로 분리했다. Monitor 선택 상태는 workspace visibility와 동기화한다.
+- breakpoint ToggleButtonGroup과 ZoomControls를 RAC `Group` 기반의 단일 viewport
+  control surface로 묶었다. 외부 surface가 `--bg-raised`와 `--radius-lg`를 소유하고,
+  Zoom trigger는 기존 `--bg-muted` 배경과 toggle button과 같은 `--radius-md`를 사용한다.
+- **Why**: PanelDock rail이 더 이상 페이지 이동 navigation이 아니라 패널 표시 상태를
+  제어하는 toggle surface인데도 과거 sidebar DOM과 별도 CSS를 유지해 header와 같은
+  기능이 서로 다른 접근성·시각 계약으로 표현되고 있었다.
+- 위치: `apps/builder/src/builder/{main/BuilderHeader.tsx,layout/PanelToggleGroup.tsx,
+styles/modules/builder-control-group.css}`
+
+### Verification
+
+- PanelToggleGroup DOM/선택 adapter, PanelWorkspace occupancy/static, BuilderHeader
+  semantic/transparent CSS, i18n, reserved-prefix focused test 6파일 26케이스 PASS.
+- viewport `Group` DOM/CSS, 접근성 label, i18n, page layout focused test 3파일
+  9케이스 PASS.
+- `pnpm run codex:typecheck`, `pnpm run codex:preflight` PASS(등록 contract 14케이스 포함).
+- 라이브 Builder(localhost:5173): header가 `<header>`이고 computed background가
+  transparent, border가 없음. 상단·좌·우 4개 group의 track style이 일치하며 rail의
+  computed width가 좌·우 모두 48px이고 `nav/ul/li`가 0개임을 확인했다.
+  Nodes / Properties / Monitor 클릭 시
+  `aria-pressed`와 실제 패널 visibility가 함께 전환되고, 깨끗한 새 탭 초기 로드의
+  console warning/error는 0건이었다. Mobile / Monitor / Nodes / Properties 활성 상태의
+  computed indicator는 `--accent`, icon stroke는 white로 확인했다.
+- 라이브 viewport surface는 `group` 안에 이름 있는 `radiogroup`, Zoom level textbox,
+  Zoom menu button이 sibling으로 유지된다. 외부 surface는 `--bg-raised`, 8px radius,
+  4px padding이고 내부 track은 transparent이다. Zoom trigger는 기존 `--bg-muted`로
+  계산되며 breakpoint toggle과 Zoom trigger가 모두 6px radius와 32px 높이로
+  일치했다. 키보드 포커스는 breakpoint → Zoom level → Zoom menu 순서였고,
+  breakpoint 변경·복원과 zoom menu 열기·닫기가 정상이며 console warning/error는
+  0건이었다.
+
 ## [Undo/Redo를 History 패널 액션으로 이동] - 2026-08-26
 
 ### Changed

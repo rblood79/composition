@@ -46,7 +46,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(canvasStyles).toContain(
       ".app :where(aside, .panel-workspace) .panel-header",
     );
-    expect(styles).toContain(".panel-dock-stage > .panel-nav");
+    expect(styles).toContain(".panel-dock-stage > .panel-toggle-rail");
   });
 
   it("모든 활성 패널을 React Aria move로 직접 이동하고 panel-relative snap target을 제공한다", async () => {
@@ -224,7 +224,10 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     );
     expect(styles).toMatch(/\.panel-dock\s*\{[\s\S]*?overflow: hidden;/);
     expect(styles).toMatch(
-      /\.panel-dock-stage > \.panel-nav\s*\{[\s\S]*?z-index: 2100;/,
+      /\.panel-dock-stage > \.panel-toggle-rail\s*\{[\s\S]*?z-index: 2100;[\s\S]*?width: var\(--panel-toggle-rail-width\);/,
+    );
+    expect(styles).not.toMatch(
+      /\.panel-dock-stage > \.panel-toggle-rail\s*\{[\s\S]*?width: fit-content;/,
     );
     expect(styles).toMatch(
       /\.panel-dock-surface\s*\{[\s\S]*?position: relative;[\s\S]*?flex: 1;/,

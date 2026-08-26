@@ -88,6 +88,10 @@ function renderPanelWorkspace(ui: ReactElement) {
 
 describe("PanelWorkspace full-screen canvas shell", () => {
   beforeEach(() => {
+    Object.defineProperty(Element.prototype, "getAnimations", {
+      configurable: true,
+      value: () => [],
+    });
     vi.spyOn(PanelRegistry, "getAllPanels").mockReturnValue([
       ...TEST_CONFIGS,
       STYLES_TEST_CONFIG,
@@ -167,7 +171,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     expect(dockSurface?.style.cssText).toBe("");
     expect(dockSurface?.parentElement).toBe(stage);
     expect(
-      dock?.querySelectorAll(":scope > .panel-dock-stage > .panel-nav"),
+      dock?.querySelectorAll(":scope > .panel-dock-stage > .panel-toggle-rail"),
     ).toHaveLength(2);
     expect(
       dock?.querySelectorAll(":scope > .panel-activity-rail"),
@@ -187,7 +191,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     );
 
     expect(
-      container.querySelector('.panel-nav[data-side="bottom"]'),
+      container.querySelector('.panel-toggle-rail[data-side="bottom"]'),
     ).toBeNull();
     expect(
       container
@@ -245,11 +249,11 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     );
 
     expect(
-      container.querySelector('.panel-nav[data-side="bottom"]'),
+      container.querySelector('.panel-toggle-rail[data-side="bottom"]'),
     ).toBeNull();
     expect(
       container.querySelector(
-        '.panel-nav[data-side="right"] button[aria-label="Monitor"]',
+        '.panel-toggle-rail[data-side="right"] button[aria-label="Monitor"]',
       ),
     ).not.toBeNull();
     expect(
@@ -297,7 +301,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
         styles: "Styles",
       };
       const button = container.querySelector<HTMLButtonElement>(
-        `.panel-nav[data-side="${side}"] button[aria-label="${panelLabels[panelId] ?? panelId}"]`,
+        `.panel-toggle-rail[data-side="${side}"] button[aria-label="${panelLabels[panelId] ?? panelId}"]`,
       );
       if (!button) throw new Error(`${panelId} rail button is required`);
       fireEvent.click(button);

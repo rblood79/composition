@@ -3,6 +3,18 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("StylesPanel canonical selected data contract", () => {
+  it("scopes ToggleButtonGroup overrides to the Styles panel subtree", async () => {
+    const styles = await readFile(
+      resolve(__dirname, "StylesPanel.css"),
+      "utf-8",
+    );
+
+    expect(styles).toContain(
+      ".styles-panel-groups .react-aria-ToggleButtonGroup",
+    );
+    expect(styles).not.toMatch(/^\.react-aria-ToggleButtonGroup\s*\{/m);
+  });
+
   it("uses selected element data instead of direct element-map reads for panel type/style", async () => {
     const source = await readFile(
       resolve(__dirname, "StylesPanel.tsx"),

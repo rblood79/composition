@@ -35,7 +35,7 @@ const INFRA_ALLOWLIST = [
   "components/styles/form-controls.css",
   "components/styles/list-group.css",
   "layout/PanelWorkspace.css",
-  "styles/modules/panel-nav.css",
+  "styles/modules/builder-control-group.css",
   "styles/layout/canvas.css",
 ] as const;
 

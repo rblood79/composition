@@ -30,7 +30,9 @@ describe("i18n Builder wiring", () => {
       "builder/panels/settings/SettingsPanel.tsx",
     );
     const header = readBuilderFile("builder/main/BuilderHeader.tsx");
-    const panelNav = readBuilderFile("builder/layout/PanelNav.tsx");
+    const panelToggleGroup = readBuilderFile(
+      "builder/layout/PanelToggleGroup.tsx",
+    );
     const panelWorkspace = readBuilderFile("builder/layout/PanelWorkspace.tsx");
     const zoom = readBuilderFile("builder/workspace/ZoomControls.tsx");
     const nodesTabs = readBuilderFile(
@@ -59,8 +61,7 @@ describe("i18n Builder wiring", () => {
     expect(header).toContain('import { useI18n } from "../../i18n";');
     expect(header).toContain('t("header.publish")');
     expect(header).toContain('t("header.logo")');
-    expect(header).toContain('t("header.emptyHistory")');
-    expect(panelNav).toContain(
+    expect(panelToggleGroup).toContain(
       'import { getPanelLabel } from "./panelLabels";',
     );
     expect(panelWorkspace).toContain('t("workspace.workArea")');

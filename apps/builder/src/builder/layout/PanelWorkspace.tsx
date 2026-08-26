@@ -21,7 +21,7 @@ import type {
   PanelResizeEdge,
   PanelSide,
 } from "../panels/core/types";
-import { PanelNav } from "./PanelNav";
+import { PanelToggleGroup } from "./PanelToggleGroup";
 import { getPanelLabel } from "./panelLabels";
 import { registerPanelWorkspaceActivationDispatcher } from "./panelWorkspaceActivationDispatcher";
 import {
@@ -1166,12 +1166,12 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
               const panelIds = workspaceLayout.railOrder[side];
               if (panelIds.length === 0) return null;
               return (
-                <PanelNav
+                <PanelToggleGroup
                   key={side}
                   side={side}
                   panelIds={panelIds}
                   activePanels={activePanelsBySide[side]}
-                  onPanelClick={togglePanel}
+                  onPanelToggle={togglePanel}
                 />
               );
             })}

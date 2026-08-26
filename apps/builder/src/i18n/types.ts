@@ -113,6 +113,8 @@ export interface TranslationKeys {
     emptyHistory: string;
     undo: string;
     redo: string;
+    viewportControls: string;
+    viewportSize: string;
     viewOptions: string;
     compareMode: string;
     skiaOnlyMode: string;
@@ -131,6 +133,9 @@ export interface TranslationKeys {
     resizePanel: string;
     resizeRow: string;
     resizeColumn: string;
+    leftPanelControls: string;
+    rightPanelControls: string;
+    bottomPanelControls: string;
     left: string;
     right: string;
     top: string;

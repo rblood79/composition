@@ -1,0 +1,87 @@
+@layer builder-system {
+  /* Header와 PanelDock이 공유하는 Builder chrome control island. */
+  .builder-control-group.react-aria-ToggleButtonGroup,
+  .builder-action-group,
+  .builder-viewport-controls {
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    padding: var(--spacing-xs);
+    gap: var(--spacing-xs);
+    color: var(--fg-muted);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--inset-shadow-sm);
+  }
+
+  .builder-control-group.react-aria-ToggleButtonGroup {
+    /* `.button-base`의 utilities layer가 그리는 track 색도 같은 토큰을 소비한다. */
+    --button-color: var(--bg-raised);
+    background: var(--button-color);
+  }
+
+  .builder-action-group {
+    background: var(--bg-muted);
+  }
+
+  .builder-viewport-controls {
+    background: var(--bg-raised);
+  }
+
+  /* Viewport Group이 단일 surface를 소유하고 내부 RAC selection semantics는 유지한다. */
+  .builder-viewport-controls
+    > .builder-control-group.react-aria-ToggleButtonGroup {
+    --button-color: transparent;
+    padding: 0;
+    background: var(--button-color);
+    box-shadow: none;
+  }
+
+  .builder-control-group.react-aria-ToggleButtonGroup[data-orientation="vertical"] {
+    flex-direction: column;
+  }
+
+  .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]
+    .react-aria-ToggleButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm);
+    color: var(--fg-muted);
+    background: transparent;
+    border-width: 0;
+    border-radius: var(--radius-md);
+  }
+
+  .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]
+    .react-aria-ToggleButton
+    svg,
+  .builder-action-group .action-icon-button svg {
+    stroke: currentColor;
+  }
+
+  .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]
+    .react-aria-ToggleButton[data-hovered]:not([data-selected]) {
+    color: var(--fg);
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+  }
+
+  .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]
+    .react-aria-ToggleButton[data-selected] {
+    --button-text: var(--fg-on-accent);
+    color: var(--button-text);
+  }
+
+  .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]
+    .react-aria-ToggleButton
+    .react-aria-SelectionIndicator {
+    /* indicator도 `.button-base`이므로 utilities layer와 같은 local token을 사용한다. */
+    --button-color: var(--accent);
+    background: var(--button-color);
+    border-radius: var(--radius-md);
+  }
+
+  .builder-action-group .action-icon-button {
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-md);
+  }
+}

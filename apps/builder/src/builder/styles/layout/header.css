@@ -23,18 +23,16 @@
    * Header
    * ======================================== */
 
-  .app nav.header {
+  .app .header {
     grid-area: header;
-    background-color: var(--bg-raised);
-    border-bottom: 1px solid var(--border);
+    background: transparent;
+    border-bottom: 0;
     color: var(--fg);
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
     position: relative;
-    height: var(--spacing-4xl);
-    padding: 0;
   }
 
   /* Header Contents */
@@ -45,7 +43,6 @@
     gap: var(--spacing-sm);
     position: relative;
     flex: 0;
-    padding: var(--spacing-sm);
   }
 
   .header_contents .logo-container {
@@ -68,7 +65,6 @@
   .header_contents:first-child {
     justify-content: flex-start;
     flex: 1;
-    padding: var(--spacing-sm);
   }
 
   .header_contents:first-child [aria-label="menu"] {
@@ -219,49 +215,7 @@
 
   /* Header Screen Section */
   .header_contents.screen {
-    gap: var(--spacing-sm);
-
-    .react-aria-ToggleButtonGroup[data-indicator="true"] {
-      background-color: var(--bg-muted);
-      box-shadow: var(--inset-shadow-sm);
-      border-radius: var(--radius-lg);
-      gap: var(--spacing-xs);
-      padding: var(--spacing-xs);
-
-      &::before {
-        top: 0px;
-        left: 0px;
-        width: var(--indicator-width);
-        height: var(--indicator-height);
-        border-radius: var(--radius-md);
-        background: var(--bg-overlay);
-      }
-
-      .react-aria-ToggleButton {
-        background-color: transparent;
-        border-width: 0px;
-        padding: var(--spacing-xs);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        &[data-pressed] {
-          background: transparent;
-          color: var(--fg);
-        }
-
-        &[data-selected] {
-          box-shadow: var(--shadow-sm);
-          background: transparent;
-          color: var(--color-white);
-
-          &[data-pressed] {
-            background: transparent;
-            color: var(--color-white);
-          }
-        }
-      }
-    }
+    gap: var(--spacing-xs);
   }
 
   /* Theme Selector */
@@ -391,28 +345,6 @@
     flex: 1;
   }
 
-  .header_contents:last-child button:not(.publish) {
-    border-radius: var(--radius-md);
-    background-color: var(--bg-overlay);
-    padding: var(--spacing-xs);
-  }
-
-  .header_contents:last-child
-    .react-aria-ToggleButtonGroup[data-indicator="true"] {
-    background-color: var(--bg-muted);
-    box-shadow: var(--inset-shadow-sm);
-    border-radius: var(--radius-lg);
-    gap: var(--spacing-xs);
-    padding: var(--spacing-xs);
-  }
-
-  .header_contents:last-child
-    .react-aria-ToggleButtonGroup[data-indicator="true"]
-    .react-aria-ToggleButton[data-selected]
-    svg {
-    stroke: var(--fg);
-  }
-
   .header_contents:last-child button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -432,9 +364,9 @@
     display: flex;
     align-items: center;
     background: var(--bg-muted);
-    box-shadow: var(--inset-shadow-sm);
+    box-shadow: none;
     border: none;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     cursor: pointer;
     overflow: hidden;
   }

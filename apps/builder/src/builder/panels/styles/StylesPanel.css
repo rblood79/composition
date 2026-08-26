@@ -1,4 +1,4 @@
-.react-aria-ToggleButtonGroup {
+.styles-panel-groups .react-aria-ToggleButtonGroup {
   &[data-indicator="true"] {
     /* React Aria 1.13.0: SelectionIndicator 스타일 (ToggleButton 내부에 위치) */
 

@@ -10,7 +10,7 @@
 @import "./layout/canvas.css";
 
 /* Modules */
-@import "./modules/panel-nav.css";
+@import "./modules/builder-control-group.css";
 @import "./modules/element-tree.css";
 @import "./modules/error-loading.css";
 
