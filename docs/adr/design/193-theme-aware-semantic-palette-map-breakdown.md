@@ -39,8 +39,8 @@ FIXED 24 중 white/black/on-negative 3 은 Skia 도 테마 불변 → **dark 비
 - publish dark 신호 부재 (R6).
 - `-hover/-pressed` CSS `color-mix` 파생 — Skia 미소비.
 - 생성기가 컴포넌트별 `[data-theme]` selector 를 emit 하는 기능 — 본 ADR 은 semantic var 층 1곳에서만 분기하므로 불요.
-- **publish `App.tsx:165` neutral 자기 참조 (Phase 2 실측 2026-08-27)**: themeConfig.neutral === "neutral" 이면 `--color-neutral-N: var(--color-neutral-N)` 순환 → publish 문서에서 `--color-neutral-*` 전부 무효 → `{color.gray}`(Badge gray) 등 neutral 소비 CSS 가 transparent. Builder → Preview 는 hex 직접 전송 (`BuilderCore.tsx:607`) 이라 무관. publish 는 작업 대상 아님 (memory `project-publish-link-only-defer-until-builder-stable`) — 기록만.
-- **catalog `{color.{hue}-hover/-pressed}` (purple 외)**: tokenResolver 에 항목이 없어 `var(--chartreuse-hover)` 류 미정의 var 로 emit (generated Badge.css) — review l2 와 같은 부류 (Skia 미소비, deferred).
+- **publish `App.tsx:165` neutral 자기 참조 (Phase 2 실측 2026-08-27)**: themeConfig.neutral === "neutral" 이면 `--color-neutral-N: var(--color-neutral-N)` 순환 → publish 문서에서 `--color-neutral-*` 전부 무효 → `{color.gray}`(Badge gray) 등 neutral 소비 CSS 가 transparent. Builder → Preview 는 hex 직접 전송 (`BuilderCore.tsx:607`) 이라 무관. publish 는 작업 대상 아님 (memory `project-publish-link-only-defer-until-builder-stable`) — 기록만. **→ 사용자 요청으로 해소 (`3e1db3357`, 프리셋이 기본값이면 alias 미emit).**
+- **catalog `{color.{hue}-hover/-pressed}` (purple 외)**: tokenResolver 에 항목이 없어 `var(--chartreuse-hover)` 류 미정의 var 로 emit (generated Badge.css) — review l2 와 같은 부류 (Skia 미소비, deferred). **→ 해소 (`7a0cef175`): status·named hue 전 토큰 hover/pressed 를 semantic var color-mix 로 루프 파생; Meter `--fill-color` 도 catalog 표에서 semantic var 로 — Meter.css 는 hand 파일이 아니라 componentRulesTable 에서 생성됨 (Phase 3 판단 정정). hand CSS error 팔레트 직접 참조 12건도 `1bed1623a` 로 semantic var 전환.**
 
 ## 1. Phase 분할
 

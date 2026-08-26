@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-193 후속 — 범위 밖 발견 3건 수정] - 2026-08-27
+
+### Bug Fixes
+
+- **publish 에서 neutral 계열 색이 전부 투명하던 결함** (`3e1db3357`): neutral 프리셋이 팔레트 기본값 `neutral` 일 때 publish 가 `--color-neutral-N: var(--color-neutral-N)` 자기 참조를 emit → CSS 순환으로 변수 11개 무효 → Badge gray 등 neutral 소비 CSS 가 transparent. 프리셋이 기본값이면 alias 를 emit 하지 않는다.
+- **Badge chartreuse/celery/seafoam/brown/cinnamon/silver 의 hover/pressed 색이 없던 결함** (`7a0cef175`): 매핑에 purple hover/pressed 만 있어 나머지가 `var(--chartreuse-hover)` 같은 미정의 var 로 나갔다. status·named hue 전 토큰의 `-hover/-pressed` 를 semantic var 기준 `color-mix` 로 파생 (tokenResolver + catalog inline 경로 동일). Meter `--fill-color` 도 catalog 표에서 `--informative/--positive/--notice` 로 (dark 추종).
+- **dark 모드에서 error 상태 UI 가 light 색으로 남던 결함** (`1bed1623a`): Table `error` variant 선택/체크박스, ListBox error container, ActionList·EventSection 삭제 hover, 컬렉션 에러 상태 박스가 `--color-error-100/900`·`--color-red-*` 직접 참조 → `--negative-subtle`/`--negative`/`color-mix(var(--negative), var(--fg))` 파생으로 전환. light 는 근사 유지 (선택 텍스트 red-900 → 148,34,40, 에러 박스 bg red-50 → red-100).
+
 ## [ADR-193 — 테마별 semantic·named hue 팔레트 단계 매핑 단일 원천화] - 2026-08-27
 
 ### Changed
