@@ -184,54 +184,62 @@
      * generated/tailwind-palette.css 가 설치된 tailwindcss/theme.css 에서 파생한 유일한 정의.
      * 손으로 다시 적지 말 것 (재생성: pnpm generate:palette / 검증: pnpm validate:palette). */
 
-    /* Status Colors - 고정값 (AI 생성 불필요, 접근성 기준 준수) */
+    /* Status Colors — Tailwind 팔레트 alias (ADR-191 후속, 2026-08-27).
+     * 예전엔 손으로 적은 hsl ramp 라 Skia(colors.ts: negative=red-500 / informative=blue-600 /
+     * notice=orange-600 / positive=green-600)와 값이 달랐다. 이제 success→green / warning→orange /
+     * error→red / info→blue 로 팔레트에 위임해 Builder Skia ↔ Preview DOM 이 같은 원천을 본다.
+     * 단계 매핑 정본 검증: packages/specs/src/primitives/__tests__/semanticAlias.symmetry.test.ts */
     /* Success (Green) */
-    --color-success-50: hsl(142, 71%, 95%);
-    --color-success-100: hsl(142, 71%, 90%);
-    --color-success-200: hsl(142, 71%, 80%);
-    --color-success-300: hsl(142, 71%, 70%);
-    --color-success-400: hsl(142, 71%, 60%);
-    --color-success-500: hsl(142, 71%, 50%);
-    --color-success-600: hsl(142, 71%, 45%);
-    --color-success-700: hsl(142, 71%, 35%);
-    --color-success-800: hsl(142, 71%, 25%);
-    --color-success-900: hsl(142, 71%, 15%);
+    --color-success-50: var(--color-green-50);
+    --color-success-100: var(--color-green-100);
+    --color-success-200: var(--color-green-200);
+    --color-success-300: var(--color-green-300);
+    --color-success-400: var(--color-green-400);
+    --color-success-500: var(--color-green-500);
+    --color-success-600: var(--color-green-600);
+    --color-success-700: var(--color-green-700);
+    --color-success-800: var(--color-green-800);
+    --color-success-900: var(--color-green-900);
+    --color-success-950: var(--color-green-950);
 
     /* Warning (Orange) */
-    --color-warning-50: hsl(38, 92%, 95%);
-    --color-warning-100: hsl(38, 92%, 90%);
-    --color-warning-200: hsl(38, 92%, 80%);
-    --color-warning-300: hsl(38, 92%, 70%);
-    --color-warning-400: hsl(38, 92%, 60%);
-    --color-warning-500: hsl(38, 92%, 50%);
-    --color-warning-600: hsl(38, 92%, 45%);
-    --color-warning-700: hsl(38, 92%, 35%);
-    --color-warning-800: hsl(38, 92%, 25%);
-    --color-warning-900: hsl(38, 92%, 15%);
+    --color-warning-50: var(--color-orange-50);
+    --color-warning-100: var(--color-orange-100);
+    --color-warning-200: var(--color-orange-200);
+    --color-warning-300: var(--color-orange-300);
+    --color-warning-400: var(--color-orange-400);
+    --color-warning-500: var(--color-orange-500);
+    --color-warning-600: var(--color-orange-600);
+    --color-warning-700: var(--color-orange-700);
+    --color-warning-800: var(--color-orange-800);
+    --color-warning-900: var(--color-orange-900);
+    --color-warning-950: var(--color-orange-950);
 
     /* Error (Red) */
-    --color-error-50: hsl(0, 84%, 95%);
-    --color-error-100: hsl(0, 84%, 90%);
-    --color-error-200: hsl(0, 84%, 80%);
-    --color-error-300: hsl(0, 84%, 70%);
-    --color-error-400: hsl(0, 84%, 65%);
-    --color-error-500: hsl(0, 84%, 60%);
-    --color-error-600: hsl(0, 84%, 55%);
-    --color-error-700: hsl(0, 84%, 45%);
-    --color-error-800: hsl(0, 84%, 35%);
-    --color-error-900: hsl(0, 84%, 25%);
+    --color-error-50: var(--color-red-50);
+    --color-error-100: var(--color-red-100);
+    --color-error-200: var(--color-red-200);
+    --color-error-300: var(--color-red-300);
+    --color-error-400: var(--color-red-400);
+    --color-error-500: var(--color-red-500);
+    --color-error-600: var(--color-red-600);
+    --color-error-700: var(--color-red-700);
+    --color-error-800: var(--color-red-800);
+    --color-error-900: var(--color-red-900);
+    --color-error-950: var(--color-red-950);
 
     /* Info (Blue) */
-    --color-info-50: hsl(217, 91%, 95%);
-    --color-info-100: hsl(217, 91%, 90%);
-    --color-info-200: hsl(217, 91%, 80%);
-    --color-info-300: hsl(217, 91%, 70%);
-    --color-info-400: hsl(217, 91%, 65%);
-    --color-info-500: hsl(217, 91%, 60%);
-    --color-info-600: hsl(217, 91%, 55%);
-    --color-info-700: hsl(217, 91%, 45%);
-    --color-info-800: hsl(217, 91%, 35%);
-    --color-info-900: hsl(217, 91%, 25%);
+    --color-info-50: var(--color-blue-50);
+    --color-info-100: var(--color-blue-100);
+    --color-info-200: var(--color-blue-200);
+    --color-info-300: var(--color-blue-300);
+    --color-info-400: var(--color-blue-400);
+    --color-info-500: var(--color-blue-500);
+    --color-info-600: var(--color-blue-600);
+    --color-info-700: var(--color-blue-700);
+    --color-info-800: var(--color-blue-800);
+    --color-info-900: var(--color-blue-900);
+    --color-info-950: var(--color-blue-950);
 
     /* Tertiary Colors - Tailwind Purple */
     --color-tertiary-50: #faf5ff;
