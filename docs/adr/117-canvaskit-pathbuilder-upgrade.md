@@ -3,7 +3,8 @@
 ## Status
 
 Proposed — 2026-05-02 작성, **2026-08-27 재설계** (대상 버전 0.41.1 → 0.42.0,
-Phase 0 API spike + path inventory 실측 반영, 대안 B 위험 재평가)
+Phase 0 API spike + path inventory 실측 반영, 대안 B 위험 재평가), 2026-08-27 착수 전 보강
+(미기재 위험 R8~R10 추가, G3 production 번들 로드 포함)
 
 ## Context
 
@@ -79,7 +80,7 @@ addPolygon / close / setFillType / transform / offset` + 종료 API `detach()` (
    +10% 이내, blank frame 0.
 5. bump는 `apps/builder/package.json` + `pnpm-lock.yaml` + `scripts/prepare-wasm.mjs`가
    복사하는 `apps/builder/public/wasm/canvaskit.wasm`(gitignore, 7,317,345 bytes)의 실제
-   로드 성공까지 검증한다.
+   로드 성공까지 검증한다 — dev 서버와 production 번들(`vite build` + `vite preview`) 양쪽.
 6. **최소 버전 0.42.0** — 0.41.x는 `PathBuilder.setFillType` 복사 반환 결함으로 EvenOdd
    donut(inner shadow) 경로가 helper 체이닝 계약과 어긋난다. `^0.42.0` 고정.
 7. `SkiaRenderer.ts:817` snapshot blit(`drawImageCubic`, zoom mismatch 시)의 시각 결과가
@@ -184,28 +185,31 @@ C를 채택한다. B는 C의 fallback (helper 도입 중 문제가 생기면 남
 
 ## Risks
 
-| ID  | 위험                                                                                                               | 심각도 | 대응                                                                                                                    |
-| --- | ------------------------------------------------------------------------------------------------------------------ | :----: | ----------------------------------------------------------------------------------------------------------------------- |
-| R1  | `PathBuilder.close()` 타입 선언(`Path`) ≠ 런타임(builder) — 반환값을 Path로 쓰면 다음 CanvasKit 갱신 때 깨진다     |   M    | helper가 `close()` 반환값을 버리고 `void`로 노출. helper 단위 테스트에 계약 고정                                        |
-| R2  | 0.42.0 `drawImageCubic` 기본 `Fast_SrcRectConstraint` — zoom mismatch snapshot blit의 경계 샘플링이 달라질 수 있다 |   M    | G4에 zoom 1.0 ≠ snapshot zoom 상태 시각 항목 추가. 차이 발견 시 `drawImageOptions`/paint로 명시 지정                    |
-| R3  | `PathBuilder` WASM 객체 할당이 per-path 비용을 늘려 path-heavy scene 회귀                                          |   M    | G5 p95 +10% 게이트. 실패 시 helper 내부를 module-level builder + `detach()` 재사용으로 교체 (호출부 무변경)             |
-| R4  | inventory drift — 7개 파일이 최근 30일 내 모두 수정됨, Phase 2 착수 시점에 사이트 수가 달라질 수 있다              |   M    | Phase 2 착수 직전 G1 grep 재실행, breakdown 표 갱신 commit 후 이관 시작 (M3 원칙: gap은 inventory 보강, fork 사유 아님) |
-| R5  | libpng 1.6.56 디코드 차이 (`MakeImageFromEncoded`)                                                                 |   L    | G4 image smoke (PNG/JPEG/WebP 각 1)                                                                                     |
-| R6  | wasm +223KB 초기 로드                                                                                              |   L    | G3에서 초기 로드 <3초 기준 재측정 (JS 번들 500KB 기준과 별도 artifact)                                                  |
-| R7  | 테스트 mock drift — `MockPath`가 mutable API를 흉내내 helper 도입 후 dead                                          |   L    | helper mock 1개로 교체, `MockPath` 제거                                                                                 |
+| ID  | 위험                                                                                                                         | 심각도 | 대응                                                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | `PathBuilder.close()` 타입 선언(`Path`) ≠ 런타임(builder) — 반환값을 Path로 쓰면 다음 CanvasKit 갱신 때 깨진다               |   M    | helper가 `close()` 반환값을 버리고 `void`로 노출. helper 단위 테스트에 계약 고정                                                           |
+| R2  | 0.42.0 `drawImageCubic` 기본 `Fast_SrcRectConstraint` — zoom mismatch snapshot blit의 경계 샘플링이 달라질 수 있다           |   M    | G4에 zoom 1.0 ≠ snapshot zoom 상태 시각 항목 추가. 차이 발견 시 `drawImageOptions`/paint로 명시 지정                                       |
+| R3  | `PathBuilder` WASM 객체 할당이 per-path 비용을 늘려 path-heavy scene 회귀                                                    |   M    | G5 p95 +10% 게이트. 실패 시 helper 내부를 module-level builder + `detach()` 재사용으로 교체 (호출부 무변경)                                |
+| R4  | inventory drift — 7개 파일이 최근 30일 내 모두 수정됨, Phase 2 착수 시점에 사이트 수가 달라질 수 있다                        |   M    | Phase 2 착수 직전 G1 grep 재실행, breakdown 표 갱신 commit 후 이관 시작 (M3 원칙: gap은 inventory 보강, fork 사유 아님)                    |
+| R5  | libpng 1.6.56 디코드 차이 (`MakeImageFromEncoded`)                                                                           |   L    | G4 image smoke (PNG/JPEG/WebP 각 1)                                                                                                        |
+| R6  | wasm +223KB 초기 로드                                                                                                        |   L    | G3에서 초기 로드 <3초 기준 재측정 (JS 번들 500KB 기준과 별도 artifact)                                                                     |
+| R7  | 테스트 mock drift — `MockPath`가 mutable API를 흉내내 helper 도입 후 dead                                                    |   L    | helper mock 1개로 교체, `MockPath` 제거                                                                                                    |
+| R8  | Phase 1~2 동안 설치된 0.40.0 타입 선언에 `PathBuilder` 가 없어 helper 의 0.42.0 분기가 type-check 를 못 통과한다             |   M    | helper 파일 내부 한정 구조적 로컬 타입(`PathBuilderLike`)으로 접근, export 금지. Phase 3 에서 `canvaskit-wasm` 타입으로 교체·삭제          |
+| R9  | helper 의 0.42.0 분기는 Phase 3 bump 전까지 dead code — mock 테스트만 통과하고 실제 wasm 검증이 bump 시점이 처음             |   M    | Phase 1 에 실 wasm 통합 테스트(`@vitest-environment node`, scratchpad 0.42.0 tgz 경로 env 주입) 1회, Phase 3 후 설치 패키지 기준 상시 가드 |
+| R10 | glue JS `bin/canvaskit.js` 가 emsdk 갱신으로 재컴파일 — dev 서버 통과가 production 번들(`vite build`) 통과를 보장하지 않는다 |   L    | G3 에 `vite build` + `vite preview` 로드 1회 포함. 로드 구조(fetch/instantiateStreaming/require 호출 수)는 0.40.0 과 동일 실측             |
 
 잔존 HIGH 위험 없음. Gate는 MEDIUM 위험 R1~R4의 통과 조건을 명시하기 위해 유지한다.
 
 ## Gates
 
-| Gate                | 시점                             | 통과 조건                                                                                                                                                                                                                                                                              | 실패 시 대안                                                                         |
-| ------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| G0: API 확인        | Phase 0 종료                     | ✅ **2026-08-27 통과** — 0.42.0 타입 + Node 런타임 spike로 `PathBuilder` 생성, `detach/detachAndDelete/snapshot`, `close()` 반환(builder), `setFillType` 참조 반환 확정                                                                                                                | —                                                                                    |
-| G1: path inventory  | Phase 0 종료 + Phase 2 착수 직전 | ✅ 2026-08-27 20곳/94호출(path 명령 87 + close 6 + setFillType 1)/7파일 기록. Phase 2 착수 시 재grep 결과가 표와 다르면 표 갱신 commit 후 진행                                                                                                                                         | inventory 갱신 전 이관 금지                                                          |
-| G2: helper 수렴     | Phase 2 종료                     | skia 디렉터리에서 `new ck.Path(`는 helper 파일 1곳, breakdown Phase 2 Migration Gate 정규식(`transform/offset` 제외 — `buildSpecNodeData.ts:439 rule.transform`은 Path 아님) 매치는 helper 내부뿐. `Path.MakeFromSVGString` 1곳 허용. 0.40.0 위에서 unit test + live smoke 동작 변화 0 | 해당 파일 commit revert                                                              |
-| G3: dependency bump | Phase 3 종료                     | lockfile `canvaskit-wasm@0.42.0`, `public/wasm/canvaskit.wasm` 7,317,345 bytes, Builder 로드 성공·console error 0, `pnpm type-check` baseline 대비 신규 위반 0, 0.40.0 분기·`ReturnType<…>` 별칭·`MockPath` 제거                                                                       | package bump revert (helper는 유지)                                                  |
-| G4: 시각 smoke      | Phase 4 종료                     | clip / partial border(dash+radius) / inset·outset / inner shadow / icon / image placeholder(+PNG·JPEG·WebP) / workflow edge 3종+arrow / hover·slot marker / **zoom mismatch snapshot blit** 누락·차이 0 (desktop+mobile)                                                               | 해당 helper mapping 수정 또는 `drawImageOptions` 명시                                |
-| G5: 성능 무회귀     | Phase 4 종료                     | `path-heavy-117` 시드 문서를 live builder에 로드하고 `window.__composition_PROFILER`(`benchmarks/devProfiler.ts`)로 frame time p95 측정 — 0.40.0 baseline 대비 +10% 이내, blank frame 0 (`scenarios.ts` 항목 추가만으로는 fixture가 생성되지 않음)                                     | helper 내부 builder 재사용(`detach()`) 전환 → 재측정, 그래도 실패 시 0.40.0 rollback |
+| Gate                | 시점                             | 통과 조건                                                                                                                                                                                                                                                                                                                                                           | 실패 시 대안                                                                         |
+| ------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| G0: API 확인        | Phase 0 종료                     | ✅ **2026-08-27 통과** — 0.42.0 타입 + Node 런타임 spike로 `PathBuilder` 생성, `detach/detachAndDelete/snapshot`, `close()` 반환(builder), `setFillType` 참조 반환 확정                                                                                                                                                                                             | —                                                                                    |
+| G1: path inventory  | Phase 0 종료 + Phase 2 착수 직전 | ✅ 2026-08-27 20곳/94호출(path 명령 87 + close 6 + setFillType 1)/7파일 기록. Phase 2 착수 시 재grep 결과가 표와 다르면 표 갱신 commit 후 진행                                                                                                                                                                                                                      | inventory 갱신 전 이관 금지                                                          |
+| G2: helper 수렴     | Phase 2 종료                     | skia 디렉터리에서 `new ck.Path(`는 helper 파일 1곳, breakdown Phase 2 Migration Gate 정규식(`transform/offset` 제외 — `buildSpecNodeData.ts:439 rule.transform`은 Path 아님) 매치는 helper 내부뿐. `Path.MakeFromSVGString` 1곳 허용. 0.40.0 위에서 unit test + live smoke 동작 변화 0                                                                              | 해당 파일 commit revert                                                              |
+| G3: dependency bump | Phase 3 종료                     | lockfile `canvaskit-wasm@0.42.0`, `public/wasm/canvaskit.wasm` 7,317,345 bytes, Builder 로드 성공·console error 0 — **dev 서버 + production 번들(`vite build` + `vite preview`) 양쪽**, `pnpm type-check` baseline 대비 신규 위반 0, 0.40.0 분기·`PathBuilderLike` shim·`ReturnType<…>` 별칭·`MockPath` 제거, `buildPath.integration.test.ts` 설치 패키지 기준 PASS | package bump revert (helper는 유지)                                                  |
+| G4: 시각 smoke      | Phase 4 종료                     | clip / partial border(dash+radius) / inset·outset / inner shadow / icon / image placeholder(+PNG·JPEG·WebP) / workflow edge 3종+arrow / hover·slot marker / **zoom mismatch snapshot blit** 누락·차이 0 (desktop+mobile)                                                                                                                                            | 해당 helper mapping 수정 또는 `drawImageOptions` 명시                                |
+| G5: 성능 무회귀     | Phase 4 종료                     | `path-heavy-117` 시드 문서를 live builder에 로드하고 `window.__composition_PROFILER`(`benchmarks/devProfiler.ts`)로 frame time p95 측정 — 0.40.0 baseline 대비 +10% 이내, blank frame 0 (`scenarios.ts` 항목 추가만으로는 fixture가 생성되지 않음)                                                                                                                  | helper 내부 builder 재사용(`detach()`) 전환 → 재측정, 그래도 실패 시 0.40.0 rollback |
 
 ## Consequences
 
@@ -223,6 +227,7 @@ C를 채택한다. B는 C의 fallback (helper 도입 중 문제가 생기면 남
 - 공개 benchmark가 없어 "성능 향상"은 보장할 수 없고 자체 `path-heavy-117` 시드 문서 +
   `__composition_PROFILER` p95로 무회귀만 입증한다 (`scenarios.ts` 하네스는 duration/name만
   소비해 fixture를 만들지 못함).
-- Phase 1~2 동안 helper에 0.40.0/0.42.0 분기가 공존한다 (Phase 3에서 제거).
+- Phase 1~2 동안 helper에 0.40.0/0.42.0 분기가 공존한다 (Phase 3에서 제거). 0.42.0 분기는 그
+  구간에 dead code 이고 로컬 타입 shim 에 의존한다 — 실 wasm 통합 테스트(R9)가 유일한 실행 검증.
 - `drawImageCubic` 기본 constraint 변경은 이 ADR의 primary scope 밖 표면이지만 bump에
   딸려 오므로 G4로 확인해야 한다.

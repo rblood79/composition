@@ -2,6 +2,11 @@
 
 > 2026-08-27 재설계 — 대상 0.41.1 → 0.42.0. Phase 0(API spike + inventory)은 이 재설계에서
 > 실측 완료(G0/G1 통과). Phase 1부터가 구현 착수 범위.
+>
+> 2026-08-27 착수 전 보강 — 미기재 위험 4건(ADR R8~R10 + Phase 2 commit 규칙) 반영: 0.40.0 타입
+> `PathBuilder` 부재 shim, 0.42.0 분기 dead code 실 wasm 통합 테스트, production 번들 로드 검증,
+> 선택 add. 재grep 결과 inventory 표와 일치(20 사이트 / 87 / close 6 / setFillType 1, skia 디렉터리
+> 변경 commit 0).
 
 ## Scope
 
@@ -139,6 +144,12 @@ export function buildPath(ck: CanvasKit, build: (b: PathSink) => void): Path;
 - 분기 1개: `typeof ck.PathBuilder === "function"` → 0.42.0 경로 (`new ck.PathBuilder()` →
   build → `detachAndDelete()`), 아니면 0.40.0 경로 (`new ck.Path()` 에 동일 mutator 위임).
   분기는 Phase 3에서 삭제.
+- **0.40.0 타입 선언에는 `PathBuilder` 가 없다** (ADR R8) — Phase 1~2 의 0.42.0 분기는 helper
+  파일 내부에만 구조적 로컬 타입을 두고 접근한다:
+  `interface PathBuilderLike { moveTo(...): unknown; …; close(): unknown; setFillType(f: FillType): unknown; detachAndDelete(): Path; delete(): void }`
+  를 선언하고 `(ck as CanvasKit & { PathBuilder?: new () => PathBuilderLike }).PathBuilder` 로
+  꺼낸다. 이 shim 은 export 하지 않으며 Phase 3 에서 `canvaskit-wasm` 의 `PathBuilder` 타입으로
+  교체 후 삭제한다. 0.40.0 경로의 `Path` mutator 는 0.40.0 타입 그대로 사용 (shim 불요).
 - `close()`는 sink 내부에서 builder `close()`를 호출하고 반환값을 버린다 (R1).
 - `setFillType`은 builder 경로에서 `PathBuilder.setFillType`, 0.40.0 경로에서
   `Path.setFillType` — 두 경로 모두 sink `this` 반환.
@@ -153,11 +164,30 @@ export function buildPath(ck: CanvasKit, build: (b: PathSink) => void): Path;
   delete, (5) 0.40.0 경로에서 `new ck.Path()` 1회.
 - `nodeRendererImage.test.ts`의 `MockPath` → `PathBuilder` 포함 mock으로 교체 (또는
   `buildPath`를 vi.mock).
+- `buildPath.integration.test.ts` — **실제 wasm 로드** (ADR R9): 0.42.0 분기는 Phase 3 전까지
+  설치된 0.40.0 위에서 실행되지 않는 dead code 라 mock 테스트만으로는 검증되지 않는다.
+  파일 상단 `// @vitest-environment node` (builder vitest 기본은 jsdom — emscripten 환경 감지가
+  web 분기로 빠지지 않게) 로 `canvaskit-wasm` 을 실제 초기화(`locateFile` 로 `bin/` 경로 지정)해
+  `buildPath` 로 EvenOdd donut(`addRect` + `addRRect` + `setFillType`)을 만들고
+  `contains(center)=false / contains(ring)=true`, `close()` 호출 후 builder 재사용 가능,
+  `detachAndDelete` 후 반환 Path `isEmpty()=false` 를 확인한다. Phase 1 시점에는 env
+  (`CANVASKIT_BIN_DIR`) 로 scratchpad 의 `canvaskit-wasm@0.42.0` `bin/` 경로를 주입해 1회 실행
+  (repo 무변경, env 미설정 시 설치 패키지 = 0.40.0 경로 검증), Phase 3 bump 후 env 없이 설치
+  패키지 기준 상시 회귀 가드로 승격.
 
 ## Phase 2: Renderer Migration (파일 단위 commit)
 
 순서는 위험 오름차순 — 각 commit 후 0.40.0 위에서 type-check + 해당 unit test + live
 smoke 1회.
+
+### Commit 규칙
+
+- **선택 add 만** — `git add <이관 파일> <테스트 파일>`, `git add -A` 금지. 7 파일 전부
+  07-27~08-27 사이 수정 이력이 있고 `workflowRenderer.ts` 는 08-27 당일 수정이라 병렬 세션
+  WIP 를 삼킬 위험이 있다 (메모리 `feedback-git-add-all-swallows-parallel-session-wip`).
+  commit 전 `git status --short` 로 staged 가 해당 파일만인지 확인.
+- 마지막 순서인 `workflowRenderer.ts` 착수 직전 해당 파일만 재grep (3 사이트 / mutator 18 /
+  close 1 기준). 달라졌으면 inventory 표 갱신 commit 후 이관 (R4).
 
 | 순서 | 대상                     | 사이트 | 검증 포인트                                                             |
 | :--: | ------------------------ | :----: | ----------------------------------------------------------------------- |
@@ -187,6 +217,14 @@ rg -n "\.(moveTo|lineTo|quadTo|cubicTo|arcToTangent|addArc|addRect|addRRect|addC
 5. `MockPath` 잔존 0, `disposable.ts:25` 주석 갱신.
 6. `pnpm type-check` baseline 대비 신규 위반 0 (builder는 `scripts/type-check-baseline.sh`, 현재 baseline 0줄) — 0.42.0 타입은 `Path` mutator를 노출하지 않으므로 helper 밖
    잔존 사용이 있으면 여기서 드러난다.
+7. **production 번들 로드** (ADR R10): `pnpm -F @composition/builder build` → `vite preview` 로
+   Builder 를 열어 canvaskit 로드·console error 0 확인. glue JS `bin/canvaskit.js` 가 emsdk
+   갱신(0.41.0)으로 재컴파일됐고(129,433 → 120,877 bytes) `canvaskit-wasm` 은
+   `optimizeDeps.include` 밖 dynamic import 라 dev 서버 통과가 production 번들 통과를 보장하지
+   않는다. 로드 구조(fetch 2 / instantiateStreaming 2 / require 2 / import.meta 0)는 0.40.0 과
+   동일 확인됨(2026-08-27 실측) — 위험은 L 이나 확인 비용이 build 1회라 G3 에 포함.
+8. `buildPath.integration.test.ts` 를 env 없이 설치 패키지(0.42.0) 기준으로 실행 → 상시 회귀
+   가드 전환.
 
 확인 명령:
 
@@ -196,6 +234,8 @@ pnpm run prepare:wasm && ls -l apps/builder/public/wasm/canvaskit.wasm   # 73173
 grep -n "canvaskit-wasm@" pnpm-lock.yaml
 pnpm type-check
 rg -n "typeof ck\.PathBuilder|new ck\.Path\(" apps/builder/src   # 0건
+pnpm -F @composition/builder build && pnpm -F @composition/builder preview   # production 번들 로드 1회 (Chrome MCP console error 0)
+pnpm -F @composition/builder test -- buildPath.integration   # 설치 0.42.0 실 wasm
 ```
 
 ## Phase 4: Verification
@@ -252,10 +292,10 @@ builder에 로드한 뒤 `__composition_PROFILER.start()` 5초 수집 → `repor
 
 - [x] G0: `PathBuilder` API 타입 + 런타임 확인 (2026-08-27).
 - [x] G1: inventory 20 사이트 / 87 호출 / 허용 예외 기록 (2026-08-27) — Phase 2 착수 시 재grep.
-- [ ] Phase 1: `buildPath.ts` + 테스트, `MockPath` 교체.
-- [ ] G2: 7 파일 이관 commit, helper 밖 mutable `Path` 0건.
+- [ ] Phase 1: `buildPath.ts`(0.40.0 타입 shim 내부 한정) + unit 테스트 + **실 wasm 통합 테스트**(scratchpad 0.42.0 tgz 로 1회), `MockPath` 교체.
+- [ ] G2: 7 파일 이관 commit (선택 add), helper 밖 mutable `Path` 0건.
 - [ ] G5 baseline: `path-heavy-117` 시드 문서 작성 + `__composition_PROFILER` 0.40.0 p95 기록.
-- [ ] G3: `^0.42.0` lockfile, wasm 7,317,345 bytes 로드, 0.40.0 분기·별칭·mock 제거, type-check 0.
+- [ ] G3: `^0.42.0` lockfile, wasm 7,317,345 bytes 로드(dev + **production 번들**), 0.40.0 분기·별칭·mock·shim 제거, type-check 0, 통합 테스트 설치 패키지 기준 PASS.
 - [ ] G4: smoke 표 9항목 (zoom mismatch blit 포함) desktop/mobile PASS.
 - [ ] G5: p95 +10% 이내.
 - [ ] `docs/CHANGELOG.md` CanvasKit 0.42.0 runtime update 기록 + README Implemented 갱신.
