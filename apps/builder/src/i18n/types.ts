@@ -77,12 +77,22 @@ export interface TranslationKeys {
     publish: string;
     settings: string;
   };
+  actionBar: {
+    ariaLabel: string;
+    more: string;
+    dragHandle: string;
+    pin: string;
+    unpin: string;
+    reset: string;
+    hide: string;
+  };
   settings: {
     title: string;
     language: string;
     rulersAndGuides: string;
     showRulers: string;
     snapToObjects: string;
+    showActionBar: string;
     pageLayout: string;
     pageLayoutHorizontal: string;
     pageLayoutVertical: string;

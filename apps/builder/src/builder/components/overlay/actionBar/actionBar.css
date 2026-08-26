@@ -1,0 +1,108 @@
+@layer builder-system {
+  /* ========================================
+   * ADR-192 Contextual Action Bar
+   * 캔버스 하단 중앙 플로팅 (Photoshop Contextual Task Bar 모델).
+   * chrome 은 `.context-menu-popover` 와 같은 토큰 — 팝오버 계열 시각 어법 공유.
+   * 부모 `.workspace-overlay` 는 pointer-events:none — 바 루트만 다시 켠다.
+   * ======================================== */
+
+  .contextual-action-bar {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+    z-index: 20;
+    contain: layout style;
+    /* Toolbar 루트(tabIndex=-1)가 포커스를 받아도 껍데기라 링 대상이 아니다 */
+    outline: none;
+  }
+
+  .contextual-action-bar-toolbar,
+  .contextual-action-bar .shortcut-tooltip-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .contextual-action-bar .contextual-action-bar-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    /* 공유 Button 에 ghost variant 부재 → button-base 기본 --button-color(--fg)
+       가 배경을 어둡게 칠한다 (HistoryPanel.css 와 같은 중화). 바 항목은
+       컨텍스트 메뉴 항목과 같은 line-art 어법: 투명 배경 + hover 회색 wash. */
+    --button-color: transparent;
+    --button-text: var(--fg);
+    --button-border: transparent;
+    border-radius: var(--radius-md);
+  }
+
+  .contextual-action-bar .contextual-action-bar-item[data-hovered],
+  .contextual-action-bar .contextual-action-bar-item[data-focus-visible] {
+    --button-color: var(--bg-muted);
+  }
+
+  .contextual-action-bar .contextual-action-bar-item[data-pressed] {
+    --button-color: var(--accent-subtle);
+  }
+
+  .contextual-action-bar .contextual-action-bar-item[data-context="multi"] {
+    /* 다중 컨텍스트의 정렬 popover 트리거 — 아이콘 + 캐럿 */
+    width: auto;
+    padding: 0 6px;
+    gap: 2px;
+  }
+
+  .contextual-action-bar-separator {
+    width: 1px;
+    height: 18px;
+    margin: 0 2px;
+    background: var(--border);
+  }
+
+  /* 정렬 popover — 8 아이콘 4×2 그리드 */
+  .contextual-action-bar-align-popover {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 4px;
+    z-index: 1000;
+    outline: none;
+  }
+
+  .contextual-action-bar-align-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 28px);
+    gap: 2px;
+    outline: none;
+  }
+
+  .contextual-action-bar-align-grid .react-aria-MenuItem {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-md);
+    cursor: default;
+    outline: none;
+  }
+
+  .contextual-action-bar-align-grid .react-aria-MenuItem[data-focused],
+  .contextual-action-bar-align-grid .react-aria-MenuItem[data-hovered] {
+    background: var(--accent-subtle);
+  }
+}

@@ -43,7 +43,7 @@ describe("buildActionBarItems — 182 레지스트리 재사용", () => {
       {},
     );
     expect(model?.context).toBe("single");
-    expect(model?.items.map((item) => item.id)).toEqual(["duplicate", "group"]);
+    expect(model?.items.map((item) => item.id)).toEqual(["duplicate"]);
   });
 
   it("provider 미등록 (캔버스 없음) → null", () => {
@@ -55,7 +55,7 @@ describe("buildActionBarItems — 182 레지스트리 재사용", () => {
       registerContextMenuProvider("canvas-element", () => [action("group")]),
     );
     const model = buildActionBarItems(["a"], {
-      modeOverride: () => [action("duplicate")],
+      modeOverride: () => [action("duplicate"), action("group")],
     });
     expect(model?.items.map((item) => item.id)).toEqual(["duplicate"]);
   });

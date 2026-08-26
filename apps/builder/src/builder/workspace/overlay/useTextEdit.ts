@@ -20,6 +20,7 @@ import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocum
 import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
 import type { TextStyleConfig } from "./TextEditOverlay";
 import { setEditingElementId } from "../canvas/skia/nodeRenderers";
+import { useCanvasStore } from "../../stores/canvasStore";
 import { getSkiaNode, notifyLayoutChange } from "../canvas/skia/useSkiaNode";
 import { extractFullSpecTextStyle } from "./specTextStyleForOverlay";
 
@@ -316,8 +317,7 @@ export function useTextEdit(): UseTextEditReturn {
       const props = element.props as Record<string, unknown> | undefined;
       const text = extractText(props);
       const elStyle = element.props?.style as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
 
       // Pencil: 원본 스냅샷 저장 (undo용)
       originalValueRef.current = text;
@@ -342,6 +342,8 @@ export function useTextEdit(): UseTextEditReturn {
         size,
         style: extractTextStyle(element.type, elementId, props, elStyle),
       });
+      // ADR-192 — 바/셸이 텍스트 편집 중임을 읽는 유일한 반응형 플래그
+      useCanvasStore.getState().setEditing(true, elementId);
     },
     [],
   );
@@ -396,6 +398,7 @@ export function useTextEdit(): UseTextEditReturn {
       }
     }
 
+    useCanvasStore.getState().setEditing(false);
     setEditState(null);
   }, []);
 
@@ -415,6 +418,7 @@ export function useTextEdit(): UseTextEditReturn {
       silentUpdateTextProp(elementId, originalValue);
     }
 
+    useCanvasStore.getState().setEditing(false);
     setEditState(null);
   }, []);
 

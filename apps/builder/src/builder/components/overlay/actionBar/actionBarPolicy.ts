@@ -39,7 +39,9 @@ export const ACTION_BAR_MAX_ITEMS = 5;
 export const ACTION_BAR_ALLOWLIST: Readonly<
   Record<ActionBarContext, readonly string[]>
 > = {
-  single: ["duplicate", "group", "toggle-component-origin"],
+  // group 은 182 가 단일 선택에도 만들지만 `groupSelection` 은 2+ 에서만 실행
+  // (canvasActions.ts:259) — 단일 컨텍스트에서는 결정적 no-op 이라 뺀다.
+  single: ["duplicate", "toggle-component-origin"],
   frame: ["ungroup", "duplicate", "toggle-component-origin"],
   instance: ["go-to-origin", "detach-instance", "duplicate"],
   multi: ["align", "group", "duplicate", "detach-instance"],
@@ -59,6 +61,9 @@ export function resolveActionBarContext(
 ): ActionBarContext | null {
   const ids = collectIds(items);
   if (ids.size === 0) return null;
+  // body 만 선택: 182 는 copy/paste/duplicate 만 만든다 (group·컴포넌트 토글은
+  // "body 제외"). group 이 없으면 적격 요소가 없는 것 — C0 미마운트.
+  if (!ids.has("group")) return null;
   if (ids.has("align")) return "multi";
   if (ids.has("ungroup")) return "frame";
   if (ids.has("go-to-origin")) return "instance";

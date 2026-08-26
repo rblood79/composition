@@ -10,3 +10,4 @@ export {
   buildActionBarItems,
   buildActionBarRequest,
 } from "./buildActionBarItems";
+export { ContextualActionBar } from "./ContextualActionBar";

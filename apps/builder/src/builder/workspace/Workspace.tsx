@@ -22,6 +22,7 @@ import { BuilderCanvas } from "./canvas/BuilderCanvas";
 import { useCanvasLifecycleStore, useCompareModeStore } from "./canvas/stores";
 import { isWebGLCanvas } from "../../utils/featureFlags";
 import { CanvasScrollbar } from "./scrollbar";
+import { ContextualActionBar } from "../components/overlay/actionBar";
 import { WorkflowCanvasToggles } from "./components/WorkflowCanvasToggles";
 import { WorkspaceCompareMode } from "./components/WorkspaceCompareMode";
 import { WorkspaceStatusIndicator } from "./components/WorkspaceStatusIndicator";
@@ -86,7 +87,8 @@ export function Workspace({
 
           {/* DOM Overlay Layer (B1.5에서 구현) */}
           <div className="workspace-overlay">
-            {/* TextEditOverlay will be added in B1.5 */}
+            {/* ADR-192 — 선택 컨텍스트 액션 바 (Photoshop 모델, 하단 중앙) */}
+            <ContextualActionBar />
           </div>
 
           {/* Workflow Sub-Toggles + Legend (캔버스 상단 통합) */}

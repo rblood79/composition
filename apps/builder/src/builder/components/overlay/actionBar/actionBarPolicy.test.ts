@@ -78,6 +78,16 @@ describe("resolveActionBarContext — 182 항목 존재로만 판정", () => {
     expect(resolveActionBarContext([separator("only")])).toBeNull();
   });
 
+  it("body 만 선택 (copy/paste/duplicate 뿐, group 없음) → null", () => {
+    expect(
+      resolveActionBarContext([
+        action("copy"),
+        action("paste"),
+        action("duplicate"),
+      ]),
+    ).toBeNull();
+  });
+
   it("align 존재 → multi, ungroup → frame, go-to-origin → instance, 그 외 single", () => {
     expect(resolveActionBarContext(T1_MULTI)).toBe("multi");
     expect(resolveActionBarContext(T1_FRAME)).toBe("frame");
@@ -93,14 +103,10 @@ describe("resolveActionBarContext — 182 항목 존재로만 판정", () => {
 });
 
 describe("applyActionBarPolicy — 컨텍스트별 allowlist·순서·상한", () => {
-  it("C1 단일: 복제 · 그룹 · 컴포넌트 토글 순", () => {
+  it("C1 단일: 복제 · 컴포넌트 토글 순 (group 은 2+ 전용이라 제외)", () => {
     const model = applyActionBarPolicy(T1_SINGLE);
     expect(model?.context).toBe("single");
-    expect(ids(model!.items)).toEqual([
-      "duplicate",
-      "group",
-      "toggle-component-origin",
-    ]);
+    expect(ids(model!.items)).toEqual(["duplicate", "toggle-component-origin"]);
   });
 
   it("C2 frame: 그룹 해제 · 복제 · 컴포넌트 토글 순", () => {
