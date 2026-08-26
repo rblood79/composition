@@ -2,11 +2,13 @@
 
 ## Status
 
-Accepted — 2026-07-29 (Proposed 2026-07-28 · 리뷰 [round 1](reviews/171.md) 승인 — 이슈 4건 전부 `fixed`, CRITICAL/HIGH 0)
+Implemented — 2026-08-26 (Phase 0~6 / G1~G5 완결. Accepted 2026-07-29 — Proposed 2026-07-28 · 리뷰 [round 1](../reviews/171.md) 승인 — 이슈 4건 전부 `fixed`, CRITICAL/HIGH 0)
+
+> **Phase 6 종결 (2026-08-26)**: 3단계 — Heading/Description 의 `display:block` 은 07-29 인벤토리의 UNIQUE 가 아니라 **DUP** 였다: catalog `Heading`/`Description` 이 `structure.display:"block"` 을 갖고 생성 CSS(`Heading.css`/`Description.css`)도 같은 값을 내보내 두 채널이 모두 공급한다. 라이브 A/B(origin 노드에서 키 제거 → Skia origin title/description/header/content/footer + Home Card 인스턴스 + Preview DOM title 전부 byte-identical) 로 확증해 `cardTemplateOrigins.ts` 인라인 2키를 제거했다(Form 쪽 2키는 2단계 FormField 제거로 이미 소멸). 4단계 G5 — TTR Components 페이지 라이브 시각 정상 + Card 인스턴스 Skia 350×322 ↔ DOM 350×322·title 24 일치. 잔여 인라인은 존치 확정 2키(CardPreview `height:fit-content` / CardFooter `paddingTop`) + factory 자식 미러(FieldError `display:none`, ButtonGroup) + 사이즈 축(width/height)뿐.
 
 ## Context
 
-[ADR-142](completed/142-starter-spec-component-system-cutover.md) 로 D3(시각 스타일) SSOT 는 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens 가 됐다. [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) 는 그 SSOT 의 두 소비자(Builder/Skia · Preview/Publish DOM)를 **대등(symmetric)** 으로 규정한다 — 대칭의 정의는 "시각 결과의 동일성" 이다.
+[ADR-142](142-starter-spec-component-system-cutover.md) 로 D3(시각 스타일) SSOT 는 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens 가 됐다. [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) 는 그 SSOT 의 두 소비자(Builder/Skia · Preview/Publish DOM)를 **대등(symmetric)** 으로 규정한다 — 대칭의 정의는 "시각 결과의 동일성" 이다.
 
 **본 ADR 의 domain 은 D3 단일**이다. D1(RAC DOM/ARIA) · D2(props/API) 는 건드리지 않는다 — catalog 값이 이미 정해져 있고, 그 값이 두 소비자에게 **도달하는 경로**만 다룬다.
 
@@ -51,7 +53,7 @@ Accepted — 2026-07-29 (Proposed 2026-07-28 · 리뷰 [round 1](reviews/171.md)
 ### 대안 B: 실효값 정합화 → 전달 경로 일원화 → 인라인 제거 (오라클 선행)
 
 - 설명: ① 9종 catalog 를 실효 computed 값으로 정정 ② 미import 30종 판정 ③ resolver 를 단일 판정으로 통합 ④ catalog 컴포넌트 end-to-end parity fixture 신설 ⑤ factory 인라인 제거 ⑥ origin 재저작. fixture 를 인라인 제거 **앞**에 둔다.
-- 근거: Chrome 을 차등 오라클로 쓴 [ADR-170](completed/170-engine-basic-axis-conformance-sweep.md) 과 같은 형태 — "무엇이 정답인가" 를 사람 판단이 아니라 실행 가능한 대조로 고정한다. Figma/Pencil 류 에디터도 스타일 해석기를 렌더 타깃마다 따로 두지 않고 단일 resolver 로 모은다.
+- 근거: Chrome 을 차등 오라클로 쓴 [ADR-170](170-engine-basic-axis-conformance-sweep.md) 과 같은 형태 — "무엇이 정답인가" 를 사람 판단이 아니라 실행 가능한 대조로 고정한다. Figma/Pencil 류 에디터도 스타일 해석기를 렌더 타깃마다 따로 두지 않고 단일 resolver 로 모은다.
 - 위험:
   - 기술: MEDIUM — 9종 값 정정이 DOM 시각을 바꾸지 않는지 재측정으로 확인해야 한다(수동 CSS override 가 여전히 이기면 정정이 무의미).
   - 성능: LOW — resolver 1회 호출 유지, 인라인 제거는 오히려 store payload 감소.
@@ -108,7 +110,7 @@ Accepted — 2026-07-29 (Proposed 2026-07-28 · 리뷰 [round 1](reviews/171.md)
 - **대안 C 기각**: SSOT 사본을 40종 규모로 늘린다. ADR-142 가 컴포넌트당 spec 파일을 없앤 이유와 같은 결함을 `implicitStyles` 분기 형태로 재생산한다.
 - **대안 D 기각**: 엔진에 CSS 캐스케이드를 재구현하는 것은 실측된 문제(전달 배선)에 비해 표면이 과대하고, D3 SSOT 를 catalog 에서 CSS 문자열로 뒤집는다.
 
-> 구현 상세: [171-catalog-layout-delivery-unification-breakdown.md](design/171-catalog-layout-delivery-unification-breakdown.md)
+> 구현 상세: [171-catalog-layout-delivery-unification-breakdown.md](../design/171-catalog-layout-delivery-unification-breakdown.md)
 
 ## Risks
 

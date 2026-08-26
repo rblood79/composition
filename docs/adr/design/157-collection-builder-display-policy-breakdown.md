@@ -1,6 +1,6 @@
 # ADR-157 Design Breakdown: Data-bound Collection 빌더 표시 정책
 
-> 본문: [157-collection-builder-display-policy.md](../157-collection-builder-display-policy.md)
+> 본문: [157-collection-builder-display-policy.md](../completed/157-collection-builder-display-policy.md)
 
 ## 1. 결정 요약 + 경계 판정 lock-in
 
@@ -93,6 +93,18 @@ Phase 0 완료 조건: 위 6개 경로의 라인/심볼 재확정 + auto-height 
 - `/cross-check`: 샘플 행 스타일(catalog + Selected origin override, ADR-146~148 배선) 대칭 확인 — hatch 는 대칭 비대상 명시.
 - live(Chrome MCP, visible 탭): 100+ 행 collection 에서 샘플 10행 + hatch + 라벨, auto-height 소유자의 아래 형제 위치가 Preview 와 일치.
 - 성능: 동일 문서에서 scene 노드 수 before/after 실측 기록 (기대: 행 100 소유자당 ~90 노드 감소).
+
+#### Phase 5 결과 — 2026-08-26 (live, TTR/Home)
+
+| 항목 | 결과 |
+|---|---|
+| 샘플+hatch scene | ListBox ref 인스턴스 + `Users` 12행: `projection:listbox-row:{owner}:1..10` 32px/stride 34, `projection:listbox-remainder:{owner}` y=340 h=66(2행+gap), `projection:listbox-rows:{owner}` 406 — owner 안에 clip 없음 |
+| 행 스타일 대칭 (items 기반) | Skia rowsGroup 154(3×50+2×2) ↔ DOM ListBoxItem 340×50·stride 52·ListBox 164 — 일치 |
+| G3 노드 수 | 07-21 결정론 측정 유지 (ListBox −89 / GridList −89 / Table −269) |
+| G1 "아래 형제 y ↔ Preview" | **미실행 (residual)** — preview 가 dataTable 바인딩 미소비(ADR-152 격차 7, `CollectionDataProvider` 미마운트)로 3행 fallback 렌더 → 비교 불성립. 152 선행 수리 후 재확인 |
+| 범위 밖 관찰 | ref 인스턴스가 origin items 3행을 투영 뒤에 추가 렌더(Skia 320 vs DOM 164). 인스턴스 확장 결함 — 후속 /fix |
+
+검증 방법: `window.__composition_SKIA_DEBUG__.getSkiaNode(id)` projection id 직접 조회 + `#previewFrame` DOM `getBoundingClientRect`. 데이터 시드는 `useDataStore.createDataTable`(IndexedDB `collections`) + 팔레트 add + `updateElementProps(dataBinding)`, 검증 후 전량 제거.
 
 ## 4. 테스트
 

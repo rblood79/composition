@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-157 / ADR-171 Implemented — collection 샘플+hatch 표시 정책 종결, catalog 레이아웃 전달 일원화 종결] - 2026-08-26
+
+### Changed
+
+- **ADR-157 Implemented** (Phase 5 live 종결): data-bound collection(ListBox/GridList/Table)
+  auto-height 소유자는 빌더에서 샘플 10행 + 계산 높이 hatch(`+N more`)로 표시된다. 라이브에서
+  `Users` 12행 바인딩 ListBox 가 샘플 10행(32px·gap 2) + hatch 66px 로 owner 안에 clip 없이
+  배치되고, items 기반 행 스타일이 Skia↔Preview DOM 에서 일치(340×50·stride 52)함을 확인했다.
+  G1 의 Preview 대조 절은 preview 가 dataTable 바인딩을 소비하지 않는 ADR-152 격차 7 이 선행이라
+  residual 로 남긴다.
+- **ADR-171 Implemented** (Phase 6 종결): Card origin(`cardTemplateOrigins.ts`)의 Heading/
+  Description `display:block` 인라인 2키를 제거했다 — catalog `structure.display` 와 생성 CSS 가
+  두 채널에 같은 값을 공급하는 중복이었고, 라이브 A/B 에서 Skia·DOM 박스가 byte-identical 이었다.
+  Components 페이지 잔여 인라인은 존치 확정 2키 + factory 자식 미러 + 사이즈 축뿐이다.
+- ADR 대시보드 정리: Implemented 상태로 루트에 남아 있던 176/182/189 를 `completed/` 로 이동,
+  README "미구현" 표의 Implemented 행 14건을 "완료" 표로 이관, stale 라벨(150 A1 철회 반영·
+  910/911 비착수 표기·025 부분 완료 등재) 정정.
+
+### Known
+
+- ListBox ref 인스턴스가 origin(`component-listbox`)의 items 3행을 인스턴스 투영 뒤에 추가로
+  그린다(Skia owner 320 = 164 + 156, Preview DOM 은 3행). 인스턴스 확장 결함으로 별도 수정 예정.
+
 ## [Dashboard를 빌더 chrome 어법으로 재설계] - 2026-08-26
 
 ### Changed

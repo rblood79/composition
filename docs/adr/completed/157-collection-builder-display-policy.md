@@ -2,7 +2,13 @@
 
 ## Status
 
-Accepted — 2026-07-20 (리뷰 승인 round 1, reviews/157.md — 이슈 전부 fixed)
+Implemented — 2026-08-26 (Phase 0~5 완결. Accepted 2026-07-20 — 리뷰 승인 round 1, [reviews/157.md](../reviews/157.md) 이슈 전부 fixed)
+
+> **Phase 5 종결 (2026-08-26, live)**: TTR 프로젝트 Home 에 palette ListBox(ref 인스턴스)를 놓고 `Users` dataTable(12행)에 바인딩 — 샘플 10행(32px, gap 2) + `+2 more` hatch(66px) 가 rowsGroup 406 으로 owner 안에 clip 없이 배치됨(Skia projection id 직접 조회). items 기반 행 스타일 대칭: Skia rowsGroup 154(=3×50+2×2) ↔ Preview DOM ListBoxItem 340×50·stride 52·ListBox 164 일치. G3 노드 수(ListBox −89 / GridList −89 / Table −269)는 07-21 결정론 측정.
+>
+> **Residual — G1 의 "아래 형제 y 가 Preview 와 일치" 절은 미실행**: preview DOM 이 dataTable 바인딩을 소비하지 않아(ADR-152 격차 7 — `CollectionDataProvider` 미마운트, `props.items` 3행 fallback 렌더) 비교 자체가 성립하지 않는다. ADR-152 provider 배선 후 재확인. hatch 는 본 ADR 정의대로 대칭 비대상.
+>
+> **범위 밖 관찰 (후속 /fix 대상)**: ListBox ref 인스턴스가 origin(`component-listbox`)의 items 3행(Inbox/Starred/Archive)을 인스턴스 투영 **뒤에 추가로** 그린다 — Skia owner 320 = 164(인스턴스 3행) + 156(origin 3행), DOM 은 3행만. 바인딩 전후 모두 재현. 157 표시 정책과 무관한 인스턴스 확장 결함.
 
 ## Context
 
@@ -104,7 +110,7 @@ data-bound collection(ListBox/GridList/Table)의 **빌더(Skia) 표시 범위** 
 - **대안 B 기각**: 행 템플릿 스타일 편집(ADR-146~148 로 방금 배선한 기능)의 캔버스 피드백을 0 으로 만드는 자기모순. Pencil 도 사용 단계에서는 샘플 행을 그린다.
 - **대안 D 기각**: auto-height 소유자에서 배치 진실성 파괴 — 빌더의 존재 목적(배치 저작) 훼손. Hard Constraint 2 위반.
 
-> 구현 상세: [157-collection-builder-display-policy-breakdown.md](design/157-collection-builder-display-policy-breakdown.md)
+> 구현 상세: [157-collection-builder-display-policy-breakdown.md](../design/157-collection-builder-display-policy-breakdown.md)
 
 ## Risks
 

@@ -1,7 +1,7 @@
 # ADR-160 구현 상세 — collection projection 행 텍스트 측정 SSOT 단일화
 
 > 본문: [160-collection-projection-metric-ssot.md](../completed/160-collection-projection-metric-ssot.md)
-> 원칙 계승: [ADR-907](../completed/907-collection-container-style-pipeline.md) Layer D(동일 resolver 심볼 공유) · 경계: [ADR-157](../157-collection-builder-display-policy.md)(표시 정책 불변)
+> 원칙 계승: [ADR-907](../completed/907-collection-container-style-pipeline.md) Layer D(동일 resolver 심볼 공유) · 경계: [ADR-157](../completed/157-collection-builder-display-policy.md)(표시 정책 불변)
 
 ## §1. 전제·관점 lock-in (fork checkpoint — 완전 신규 주제라 해당 없음 확인)
 

@@ -131,8 +131,9 @@ function cardOriginChildren(): CanonicalNode[] {
             level: 3,
             className: "card-title",
             size: "md",
+            // ADR-171 Phase 6 3단계: display:block 은 catalog Heading `structure.display`
+            //   + 생성 CSS 가 두 채널 모두 공급 (라이브 A/B byte-identical) → 인라인 제거.
             style: {
-              display: "block",
               fontWeight: "600",
               margin: "0",
               flex: 1,
@@ -169,8 +170,8 @@ function cardOriginChildren(): CanonicalNode[] {
           props: {
             children: "{description}",
             size: "lg",
+            // ADR-171 Phase 6 3단계: display:block 은 catalog Description 이 두 채널에 공급 → 인라인 제거.
             style: {
-              display: "block",
               width: "100%",
               color: "#49454f",
             },
