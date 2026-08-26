@@ -7,6 +7,8 @@ Phase 0 API spike + path inventory 실측 반영, 대안 B 위험 재평가)
 
 ## Context
 
+**Domain (3-domain 분할)**: D3 시각 스타일의 direct consumer인 Builder Skia의 **구현 의존성 갱신**이다. SSOT(catalog/theme)·D1/D2 경계 변경 없음, CSS/DOM consumer 무영향 — 대칭 검증 대상은 "업그레이드 전후 Skia 결과 동일"뿐이다.
+
 ### 버전 현황 (2026-08-27 registry 실측)
 
 `apps/builder`는 `canvaskit-wasm` `^0.40.0`을 사용하며 lockfile/installed 버전은
@@ -47,16 +49,16 @@ addPolygon / close / setFillType / transform / offset` + 종료 API `detach()` (
 
 ### 현행 코드 inventory (2026-08-27 grep 실측)
 
-| 파일 (`apps/builder/src/builder/workspace/canvas/skia/`) | `new ck.Path()` | mutator 호출 | lifecycle                                     | 비고                                                                                                                       |
-| -------------------------------------------------------- | :-------------: | :----------: | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `nodeRendererClip.ts`                                    |        5        |      19      | caller 반환 → `renderCommands.ts:2185` delete | round-rect/inset/circle/ellipse/polygon clip. 반환 타입이 `ReturnType<CanvasKit["Path"]["prototype"]["constructor"]>` 별칭 |
-| `nodeRendererShapes.ts`                                  |        5        |      25      | 즉시 `delete()`                               | arc(1) + partial border 4변. SVG icon은 `Path.MakeFromSVGString` (유지 대상)                                               |
-| `nodeRendererBorders.ts`                                 |        4        |      16      | 즉시 `delete()`                               | inset/outset 3D clip 2 + inner-shadow EvenOdd donut 1 + arc 1                                                              |
-| `workflowRenderer.ts`                                    |        3        |      18      | `scope.track()`                               | orthogonal(arcToTangent) + bezier(`cubicTo` 유일 사용) + arrow + indicator line                                            |
-| `nodeRendererImage.ts`                                   |        1        |      5       | `scope.track()`                               | placeholder mountain                                                                                                       |
-| `hoverRenderer.ts`                                       |        1        |      2       | `scope.track()`                               | hover outline                                                                                                              |
-| `slotMarkerRenderer.ts`                                  |        1        |      2       | `scope.track()`                               | marker line                                                                                                                |
-| **합계 (7 파일)**                                        |     **20**      |    **87**    | track 6 / 즉시 delete 9 / 반환 5              | `close()` 6, `setFillType` 1, `cubicTo` 1. `op/stroke/dash/trim/transform/offset` 0                                        |
+| 파일 (`apps/builder/src/builder/workspace/canvas/skia/`) | `new ck.Path()` | mutator 호출 (close·setFillType 포함) | lifecycle                                                 | 비고                                                                                                                       |
+| -------------------------------------------------------- | :-------------: | :-----------------------------------: | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `nodeRendererClip.ts`                                    |        5        |                  21                   | caller 반환 → `renderCommands.ts:2188` delete (호출 2185) | round-rect/inset/circle/ellipse/polygon clip. 반환 타입이 `ReturnType<CanvasKit["Path"]["prototype"]["constructor"]>` 별칭 |
+| `nodeRendererShapes.ts`                                  |        5        |                  25                   | 즉시 `delete()`                                           | arc(1) + partial border 4변. SVG icon은 `Path.MakeFromSVGString` (유지 대상)                                               |
+| `nodeRendererBorders.ts`                                 |        4        |                  19                   | 즉시 `delete()`                                           | inset/outset 3D clip 2 + inner-shadow EvenOdd donut 1 + arc 1                                                              |
+| `workflowRenderer.ts`                                    |        3        |                  19                   | `scope.track()`                                           | orthogonal(arcToTangent) + bezier(`cubicTo` 유일 사용) + arrow + indicator line                                            |
+| `nodeRendererImage.ts`                                   |        1        |                   6                   | `scope.track()`                                           | placeholder mountain                                                                                                       |
+| `hoverRenderer.ts`                                       |        1        |                   2                   | `scope.track()`                                           | hover outline                                                                                                              |
+| `slotMarkerRenderer.ts`                                  |        1        |                   2                   | `scope.track()`                                           | marker line                                                                                                                |
+| **합계 (7 파일)**                                        |     **20**      |                **94**                 | track 6 / 즉시 delete 9 / 반환 5                          | = path 명령 87 + `close()` 6 + `setFillType` 1. `cubicTo` 1. `op/stroke/dash/trim/transform/offset` 0                      |
 
 이 외 `disposable.ts:25`는 주석, `components/particle/canvasUtils.ts`·
 `selection/resizeCursors.ts`는 HTML Canvas 2D (대상 아님). 테스트 mock은
@@ -66,7 +68,7 @@ addPolygon / close / setFillType / transform / offset` + 종료 API `detach()` (
 ### Hard Constraints
 
 1. `canvaskit-wasm` bump 전에 Skia renderer의 직접 mutable `Path` 사용 20곳을 helper 경계로
-   수렴시킨다. bump 후 `pnpm type-check` 0 error — 0.42.0 타입에서 `Path` mutator가 전부
+   수렴시킨다. bump 후 `pnpm type-check` baseline 대비 신규 위반 0 (builder는 `scripts/type-check-baseline.sh`, 현재 baseline 0줄) — 0.42.0 타입에서 `Path` mutator가 전부
    제거되므로 type-check가 이관 누락을 정적으로 드러낸다 (`ReturnType<...>` 별칭과 테스트
    mock만 예외이므로 함께 정리).
 2. `Path.MakeFromSVGString()` 기반 icon 경로는 동작 보존 대상이며 SVG 파싱을 재작성하지 않는다.
@@ -196,14 +198,14 @@ C를 채택한다. B는 C의 fallback (helper 도입 중 문제가 생기면 남
 
 ## Gates
 
-| Gate                | 시점                             | 통과 조건                                                                                                                                                                                                                | 실패 시 대안                                                                         |
-| ------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| G0: API 확인        | Phase 0 종료                     | ✅ **2026-08-27 통과** — 0.42.0 타입 + Node 런타임 spike로 `PathBuilder` 생성, `detach/detachAndDelete/snapshot`, `close()` 반환(builder), `setFillType` 참조 반환 확정                                                  | —                                                                                    |
-| G1: path inventory  | Phase 0 종료 + Phase 2 착수 직전 | ✅ 2026-08-27 20곳/87호출/7파일 기록. Phase 2 착수 시 재grep 결과가 표와 다르면 표 갱신 commit 후 진행                                                                                                                   | inventory 갱신 전 이관 금지                                                          |
-| G2: helper 수렴     | Phase 2 종료                     | skia 디렉터리에서 `new ck.Path(`는 helper 파일 1곳, mutator 정규식 매치는 helper 내부뿐. `Path.MakeFromSVGString` 1곳 허용. 0.40.0 위에서 unit test + live smoke 동작 변화 0                                             | 해당 파일 commit revert                                                              |
-| G3: dependency bump | Phase 3 종료                     | lockfile `canvaskit-wasm@0.42.0`, `public/wasm/canvaskit.wasm` 7,317,345 bytes, Builder 로드 성공·console error 0, `pnpm type-check` 0 error, 0.40.0 분기·`ReturnType<…>` 별칭·`MockPath` 제거                           | package bump revert (helper는 유지)                                                  |
-| G4: 시각 smoke      | Phase 4 종료                     | clip / partial border(dash+radius) / inset·outset / inner shadow / icon / image placeholder(+PNG·JPEG·WebP) / workflow edge 3종+arrow / hover·slot marker / **zoom mismatch snapshot blit** 누락·차이 0 (desktop+mobile) | 해당 helper mapping 수정 또는 `drawImageOptions` 명시                                |
-| G5: 성능 무회귀     | Phase 4 종료                     | `path-heavy-117` scenario p95 frame time 0.40.0 baseline 대비 +10% 이내, blank frame 0                                                                                                                                   | helper 내부 builder 재사용(`detach()`) 전환 → 재측정, 그래도 실패 시 0.40.0 rollback |
+| Gate                | 시점                             | 통과 조건                                                                                                                                                                                                                                                                              | 실패 시 대안                                                                         |
+| ------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| G0: API 확인        | Phase 0 종료                     | ✅ **2026-08-27 통과** — 0.42.0 타입 + Node 런타임 spike로 `PathBuilder` 생성, `detach/detachAndDelete/snapshot`, `close()` 반환(builder), `setFillType` 참조 반환 확정                                                                                                                | —                                                                                    |
+| G1: path inventory  | Phase 0 종료 + Phase 2 착수 직전 | ✅ 2026-08-27 20곳/94호출(path 명령 87 + close 6 + setFillType 1)/7파일 기록. Phase 2 착수 시 재grep 결과가 표와 다르면 표 갱신 commit 후 진행                                                                                                                                         | inventory 갱신 전 이관 금지                                                          |
+| G2: helper 수렴     | Phase 2 종료                     | skia 디렉터리에서 `new ck.Path(`는 helper 파일 1곳, breakdown Phase 2 Migration Gate 정규식(`transform/offset` 제외 — `buildSpecNodeData.ts:439 rule.transform`은 Path 아님) 매치는 helper 내부뿐. `Path.MakeFromSVGString` 1곳 허용. 0.40.0 위에서 unit test + live smoke 동작 변화 0 | 해당 파일 commit revert                                                              |
+| G3: dependency bump | Phase 3 종료                     | lockfile `canvaskit-wasm@0.42.0`, `public/wasm/canvaskit.wasm` 7,317,345 bytes, Builder 로드 성공·console error 0, `pnpm type-check` baseline 대비 신규 위반 0, 0.40.0 분기·`ReturnType<…>` 별칭·`MockPath` 제거                                                                       | package bump revert (helper는 유지)                                                  |
+| G4: 시각 smoke      | Phase 4 종료                     | clip / partial border(dash+radius) / inset·outset / inner shadow / icon / image placeholder(+PNG·JPEG·WebP) / workflow edge 3종+arrow / hover·slot marker / **zoom mismatch snapshot blit** 누락·차이 0 (desktop+mobile)                                                               | 해당 helper mapping 수정 또는 `drawImageOptions` 명시                                |
+| G5: 성능 무회귀     | Phase 4 종료                     | `path-heavy-117` 시드 문서를 live builder에 로드하고 `window.__composition_PROFILER`(`benchmarks/devProfiler.ts`)로 frame time p95 측정 — 0.40.0 baseline 대비 +10% 이내, blank frame 0 (`scenarios.ts` 항목 추가만으로는 fixture가 생성되지 않음)                                     | helper 내부 builder 재사용(`detach()`) 전환 → 재측정, 그래도 실패 시 0.40.0 rollback |
 
 ## Consequences
 
@@ -218,8 +220,9 @@ C를 채택한다. B는 C의 fallback (helper 도입 중 문제가 생기면 남
 ### Negative
 
 - 단순 bump보다 구현 범위가 크다 — helper 1 + 7 파일 순차 commit + bump commit.
-- 공개 benchmark가 없어 "성능 향상"은 보장할 수 없고 자체 `path-heavy-117` scenario로
-  무회귀만 입증한다.
+- 공개 benchmark가 없어 "성능 향상"은 보장할 수 없고 자체 `path-heavy-117` 시드 문서 +
+  `__composition_PROFILER` p95로 무회귀만 입증한다 (`scenarios.ts` 하네스는 duration/name만
+  소비해 fixture를 만들지 못함).
 - Phase 1~2 동안 helper에 0.40.0/0.42.0 분기가 공존한다 (Phase 3에서 제거).
 - `drawImageCubic` 기본 constraint 변경은 이 ADR의 primary scope 밖 표면이지만 bump에
   딸려 오므로 G4로 확인해야 한다.

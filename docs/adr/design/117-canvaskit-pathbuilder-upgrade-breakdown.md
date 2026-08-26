@@ -52,17 +52,17 @@ node -e "require('./package/bin/canvaskit.js')({locateFile:(f)=>require('path').
 `apps/builder/src/builder/workspace/canvas/skia/` 기준. 줄 번호는 2026-08-27 HEAD
 (`e319a95af`).
 
-| 파일                     | 사이트 (줄)                       | mutator 종류                                                           | lifecycle                              | 전환 방향                                                                                                    |
-| ------------------------ | --------------------------------- | ---------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `nodeRendererClip.ts`    | 42, 94, 106, 112, 119             | moveTo/lineTo/arcToTangent/close, addRRect/addRect, addCircle, addOval | 반환 → `renderCommands.ts:2185` delete | `buildRoundRectPath`/`buildClipPath`가 `buildPath` 반환. 반환 타입 `ReturnType<CanvasKit["Path"]…>` → `Path` |
-| `nodeRendererShapes.ts`  | 80, 119, 137, 155, 173 (+220 SVG) | addArc, moveTo/lineTo/arcToTangent ×4변                                | 즉시 `delete()`                        | 5곳 `buildPath`. 220 `MakeFromSVGString` **유지**                                                            |
-| `nodeRendererBorders.ts` | 263, 291, 421, 647                | moveTo/lineTo/close ×2, addRect/addRRect/setFillType, addArc           | 즉시 `delete()`                        | 4곳 `buildPath`. 421은 `b.setFillType(EvenOdd)`로 이전                                                       |
-| `workflowRenderer.ts`    | 397, 494, 642                     | moveTo/lineTo/arcToTangent/cubicTo, moveTo/lineTo/close, moveTo/lineTo | `scope.track()`                        | `scope.track(buildPath(…))`                                                                                  |
-| `nodeRendererImage.ts`   | 74                                | moveTo/lineTo/close                                                    | `scope.track()`                        | 동일                                                                                                         |
-| `hoverRenderer.ts`       | 242                               | moveTo/lineTo                                                          | `scope.track()`                        | 동일                                                                                                         |
-| `slotMarkerRenderer.ts`  | 53                                | moveTo/lineTo                                                          | `scope.track()`                        | 동일                                                                                                         |
+| 파일                     | 사이트 (줄)                       | mutator 종류                                                           | lifecycle                                          | 전환 방향                                                                                                    |
+| ------------------------ | --------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `nodeRendererClip.ts`    | 42, 94, 106, 112, 119             | moveTo/lineTo/arcToTangent/close, addRRect/addRect, addCircle, addOval | 반환 → `renderCommands.ts:2188` delete (호출 2185) | `buildRoundRectPath`/`buildClipPath`가 `buildPath` 반환. 반환 타입 `ReturnType<CanvasKit["Path"]…>` → `Path` |
+| `nodeRendererShapes.ts`  | 80, 119, 137, 155, 173 (+220 SVG) | addArc, moveTo/lineTo/arcToTangent ×4변                                | 즉시 `delete()`                                    | 5곳 `buildPath`. 220 `MakeFromSVGString` **유지**                                                            |
+| `nodeRendererBorders.ts` | 263, 291, 421, 647                | moveTo/lineTo/close ×2, addRect/addRRect/setFillType, addArc           | 즉시 `delete()`                                    | 4곳 `buildPath`. 421은 `b.setFillType(EvenOdd)`로 이전                                                       |
+| `workflowRenderer.ts`    | 397, 494, 642                     | moveTo/lineTo/arcToTangent/cubicTo, moveTo/lineTo/close, moveTo/lineTo | `scope.track()`                                    | `scope.track(buildPath(…))`                                                                                  |
+| `nodeRendererImage.ts`   | 74                                | moveTo/lineTo/close                                                    | `scope.track()`                                    | 동일                                                                                                         |
+| `hoverRenderer.ts`       | 242                               | moveTo/lineTo                                                          | `scope.track()`                                    | 동일                                                                                                         |
+| `slotMarkerRenderer.ts`  | 53                                | moveTo/lineTo                                                          | `scope.track()`                                    | 동일                                                                                                         |
 
-합계 20 사이트 / 87 mutator 호출 / `close()` 6 / `setFillType` 1 / `cubicTo` 1.
+합계 20 사이트 / mutator 94 호출 (path 명령 87 + `close()` 6 + `setFillType` 1) / `cubicTo` 1.
 `op/stroke/dash/trim/transform/offset/simplify` 0건 → `make*` 개명 대응 불요.
 
 허용 예외:
@@ -185,7 +185,7 @@ rg -n "\.(moveTo|lineTo|quadTo|cubicTo|arcToTangent|addArc|addRect|addRRect|addC
 4. `nodeRendererClip.ts` 반환 타입 `ReturnType<CanvasKit["Path"]["prototype"]["constructor"]>`
    → `import type { Path }`.
 5. `MockPath` 잔존 0, `disposable.ts:25` 주석 갱신.
-6. `pnpm type-check` 0 error — 0.42.0 타입은 `Path` mutator를 노출하지 않으므로 helper 밖
+6. `pnpm type-check` baseline 대비 신규 위반 0 (builder는 `scripts/type-check-baseline.sh`, 현재 baseline 0줄) — 0.42.0 타입은 `Path` mutator를 노출하지 않으므로 helper 밖
    잔존 사용이 있으면 여기서 드러난다.
 
 확인 명령:
@@ -225,9 +225,15 @@ pnpm -F @composition/builder test -- skia
 
 ### Performance (G5)
 
-`apps/builder/src/builder/workspace/canvas/benchmarks/scenarios.ts`에 `path-heavy-117`
-scenario 추가 (위 smoke 표면을 모두 포함하는 fixture). 기존 `static-*/mutate-*/drag-*/
-zoom-*/multipage-*`만으로는 G5 판정 불가.
+측정 수단은 `benchmarks/devProfiler.ts`의 `window.__composition_PROFILER.start()/report()`
+(frameTime p95)다. `benchmarks/scenarios.ts`의 `BenchmarkScenario` 필드(elements/
+mutationsPerFrame 등)는 현행 하네스가 소비하지 않는다 — `canvasBenchmark.ts:30,37`은
+`duration`/`name`만 읽고 `SCENARIOS`/`runFullBaseline`은 benchmarks 밖 import 0건. 따라서
+scenario 항목 추가만으로는 fixture가 만들어지지 않는다.
+
+`path-heavy-117` = 위 smoke 표면을 모두 포함하는 **시드 문서**(builder 프로젝트). live
+builder에 로드한 뒤 `__composition_PROFILER.start()` 5초 수집 → `report().frameTime.p95`를
+기록한다. 기존 `static-*/mutate-*/drag-*/zoom-*/multipage-*`만으로는 G5 판정 불가.
 
 - baseline: 0.40.0 + `buildPath`(0.40.0 분기) p95 frame time — Phase 2 종료 시 기록.
 - 대상: 0.42.0 + `PathBuilder` p95.
@@ -248,7 +254,7 @@ zoom-*/multipage-*`만으로는 G5 판정 불가.
 - [x] G1: inventory 20 사이트 / 87 호출 / 허용 예외 기록 (2026-08-27) — Phase 2 착수 시 재grep.
 - [ ] Phase 1: `buildPath.ts` + 테스트, `MockPath` 교체.
 - [ ] G2: 7 파일 이관 commit, helper 밖 mutable `Path` 0건.
-- [ ] G5 baseline: `path-heavy-117` scenario 추가 + 0.40.0 p95 기록.
+- [ ] G5 baseline: `path-heavy-117` 시드 문서 작성 + `__composition_PROFILER` 0.40.0 p95 기록.
 - [ ] G3: `^0.42.0` lockfile, wasm 7,317,345 bytes 로드, 0.40.0 분기·별칭·mock 제거, type-check 0.
 - [ ] G4: smoke 표 9항목 (zoom mismatch blit 포함) desktop/mobile PASS.
 - [ ] G5: p95 +10% 이내.
