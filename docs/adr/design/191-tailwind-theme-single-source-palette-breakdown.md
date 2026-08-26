@@ -16,7 +16,8 @@
 
 - 레이어 순서 실측: `dashboard < base < preview-system < components < shared-tokens < builder-system < utilities < theme` — `apps/builder/src/index.css:14` `@layer` 선언에 `theme` 이 없어 Tailwind 레이어가 맨 뒤(최상위)에 붙음.
 - `App.css :root` 387 중 theme 레이어와 값 동일 120, 표기만 다름 20 (neutral `0 none`↔`0 0`, shadow `rgb()`↔`#hex`, `150ms`↔`0.15s`), **실질 override 는 `--font-sans`/`--font-mono` (Pretendard) 2개**. 나머지 245 는 어디서도 미참조.
-- 코드가 참조하는 App.css 고유 변수 19개 (`--color-cyan-100/700`, `--color-indigo-100/700`, `--text-6xl`, `--shadow-*` 5, `--inset-shadow-*` 2, `--drop-shadow-*` 2, `--default-*` 3, `--font-sans/mono`) 는 **전부 theme 레이어에도 존재** → App.css :root 제거 시 소실 변수 0.
+- 코드가 참조하는 App.css 고유 변수 19개 (`--color-cyan-100/700`, `--color-indigo-100/700`, `--text-6xl`, `--shadow-*` 5, `--inset-shadow-sm`, `--default-transition-*` 2, `--font-sans/mono` = 15) 는 **live `@layer theme` 에 존재** (G0 재확인 2026-08-26, 142 변수 순회). 나머지 4 중 `--drop-shadow-sm/md`·`--inset-shadow-xs` 는 `preview-system.css:255-266` 이 자체 fallback 포함으로 정의 (App.css unlayered 가 우연히 덮고 있던 것 — 제거 시 의도된 preview-system 값으로 복귀, `--inset-shadow-xs` 값 동일), `--default-font-feature-settings` 는 소비처 0. → App.css :root 제거 시 소실 변수 0 (정정: 초기 "19 전부 theme" 은 과대 — G0 가 잡음).
+- **G0 allowlist diff**: shared-tokens `--color-*` 중 theme.css 에 같은 이름이 있는 것 = 93 (hex 82 + neutral hsl 11) — 삭제 set. 이름 없는 것 = semantic 61 (`error/info/primary/success/tertiary/warning` 계열) + `--color-zinc-850` — **유지**. 참조 이름 134 중 theme.css·shared-tokens 어디에도 없는 `--color-danger-*`·`--color-secondary-*` 9곳 (`DataTablePanel.css` 4, `AddPageDialog.css` 3, `SelectionMemory.css` 2) 은 **기존 undefined** — 본 ADR 무관 (§0-5).
 
 ### 0-2. Builder(v4 oklch) ↔ Preview(v3 hex) 색 차이
 
@@ -58,6 +59,7 @@ Skia 가 DOM 에서 읽는 semantic 토큰(`--border`, `--fg-muted`, `--accent`,
 - `cssComponentColors.ts` / `useThemeColors.ts` 가 읽는 M3 토큰 (`--primary`, `--on-surface` …) 은 어디에도 정의 없음 → 상시 fallback (dead path). 별도 정리.
 - `colors.ts` custom 66 값 (S2/Leonardo) — Tailwind 복사본이 아니므로 유지.
 - **v3 hex 리터럴 잔존 (팔레트 정의 파일 밖)**: 비-test 12 파일 ~45곳 — `packages/shared/src/renderers/LayoutRenderers.tsx` 14 (`var(--color-info-600, #2563eb)` 류 fallback), `Table.tsx` 6, `TailSwatch.tsx` 3, `IllustratedMessage.tsx` 3, `skia/workflowRenderer.ts` 3, `PropertyColorPicker.tsx` 3, `FormRenderers.tsx` 2, `tokenToCss.ts` 2, `WorkflowCanvasToggles.tsx` 2, `styleConverter.ts` 2, `skia/dropIndicatorRenderer.ts` 2, `devProfiler.ts` 4 (로그 색). fallback 은 var 미정의 시에만 발현 — G4 가 undefined 0 을 보장하므로 본 ADR 에서는 목록만 고정, 후속 sweep (ADR R8).
+- `--color-danger-*` / `--color-secondary-*` 참조 9곳은 어떤 원천에도 정의가 없는 기존 undefined (fallback 없이 `var()` 만) — 별도 정리.
 - 축 일치 리터럴 중복 58건 (`--panel-workspace-gap: 4px` → `var(--spacing-xs)` 류, 수기 29 + generated 29) — 본 ADR 과 무관한 일반 sweep, 후속 작업.
 
 ## 1. Phase 분할
