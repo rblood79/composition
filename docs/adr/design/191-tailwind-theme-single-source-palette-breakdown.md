@@ -59,6 +59,7 @@ Skia 가 DOM 에서 읽는 semantic 토큰(`--border`, `--fg-muted`, `--accent`,
 - `cssComponentColors.ts` / `useThemeColors.ts` 가 읽는 M3 토큰 (`--primary`, `--on-surface` …) 은 어디에도 정의 없음 → 상시 fallback (dead path). 별도 정리.
 - `colors.ts` custom 66 값 (S2/Leonardo) — Tailwind 복사본이 아니므로 유지.
 - **v3 hex 리터럴 잔존 (팔레트 정의 파일 밖)**: 비-test 12 파일 ~45곳 — `packages/shared/src/renderers/LayoutRenderers.tsx` 14 (`var(--color-info-600, #2563eb)` 류 fallback), `Table.tsx` 6, `TailSwatch.tsx` 3, `IllustratedMessage.tsx` 3, `skia/workflowRenderer.ts` 3, `PropertyColorPicker.tsx` 3, `FormRenderers.tsx` 2, `tokenToCss.ts` 2, `WorkflowCanvasToggles.tsx` 2, `styleConverter.ts` 2, `skia/dropIndicatorRenderer.ts` 2, `devProfiler.ts` 4 (로그 색). fallback 은 var 미정의 시에만 발현 — G4 가 undefined 0 을 보장하므로 본 ADR 에서는 목록만 고정, 후속 sweep (ADR R8).
+- `colors.ts` 리터럴 41 중 indigo/cyan/pink/fuchsia/lime 계열 ~24 는 Tailwind v3 hex 로 추정되나 **in-repo v3 원천이 없어** 이름 매핑을 grep 근거로 확정 못 함 (nearest-Δ 는 v3→v4 이동 때문에 오배정 위험: `#db2777` 은 v3 pink-600 인데 v4 최근접은 pink-500). v3 원천 확보 시 별도 정리 — 본 ADR 은 근거 있는 71 만 파생.
 - `--color-danger-*` / `--color-secondary-*` 참조 9곳은 어떤 원천에도 정의가 없는 기존 undefined (fallback 없이 `var()` 만) — 별도 정리.
 - 축 일치 리터럴 중복 58건 (`--panel-workspace-gap: 4px` → `var(--spacing-xs)` 류, 수기 29 + generated 29) — 본 ADR 과 무관한 일반 sweep, 후속 작업.
 
@@ -69,7 +70,7 @@ Skia 가 DOM 에서 읽는 semantic 토큰(`--border`, `--fg-muted`, `--accent`,
 | 0 ✅ 2026-08-26 (ab5234e92) | inventory freeze (본 문서 §0) + 참조 19 분류 재확인 (15 theme / 3 preview-system / 1 미소비)                                                                                                                                                                                                                                                                                                                                                                                            | G0    | 본 문서, `scripts/audit-palette-refs.mjs` (일회성, scratch 가능) |
 | 1                           | 생성기 `generate-palette.ts` + 산출물 2 + drift 테스트 + `build:specs` 연동                                                                                                                                                                                                                                                                                                                                                                                                             | G1·G3 | 아래 §2 신규 파일 4                                              |
 | 2 ✅ 2026-08-26 (34e284a77) | CSS 소비 전환: shared `theme.css` 가 생성 CSS import, shared-tokens 팔레트 93 삭제 + 헤더 정정, `index.css` `@layer theme` 선두 선언, `App.css :root` 삭제 + `@theme { --font-sans/--font-mono }`                                                                                                                                                                                                                                                                                       | G2·G4 | 수정 4 파일                                                      |
-| 3                           | Skia 파생: `colors.ts` 46 항목 → `tailwindPalette` 참조, `neutralToSkiaColors.ts` 57 → 참조; 영향 fixture/snapshot 갱신. **추가 (Phase 2 발견)**: `utils/cssVariableCore.ts::cssColorToHex` 는 colord(oklch 미지원) 경유라 DOM 에서 읽는 `--border`/`--fg-muted` 등 oklch 토큰이 **상시 fallback** (App.css 시절부터 기존 결함 — `skiaOverlayBuilder.ts:257` 등 8 파일). `styleConversion/styleConverter.ts::cssColorToHex` (oklch 지원) 로 위임해 Skia 가 SSOT 형식을 실제로 읽게 한다 | G1·G2 | 수정 2 파일 + 테스트                                             |
+| 3 ✅ 2026-08-26             | Skia 파생: `colors.ts` 46 항목 → `tailwindPalette` 참조, `neutralToSkiaColors.ts` 57 → 참조; 영향 fixture/snapshot 갱신. **추가 (Phase 2 발견)**: `utils/cssVariableCore.ts::cssColorToHex` 는 colord(oklch 미지원) 경유라 DOM 에서 읽는 `--border`/`--fg-muted` 등 oklch 토큰이 **상시 fallback** (App.css 시절부터 기존 결함 — `skiaOverlayBuilder.ts:257` 등 8 파일). `styleConversion/styleConverter.ts::cssColorToHex` (oklch 지원) 로 위임해 Skia 가 SSOT 형식을 실제로 읽게 한다 | G1·G2 | 수정 2 파일 + 테스트                                             |
 | 4                           | live 3자 대칭 검증 (Chrome MCP) + CHANGELOG + README Implemented 승격                                                                                                                                                                                                                                                                                                                                                                                                                   | G2    | CHANGELOG 엔트리                                                 |
 
 각 Phase 는 commit 가능한 상태로 종료 (CLAUDE.md §대규모 작업 phase 분할). Phase 2 와 3 은 독립이라 순서 교체 가능하나, **Phase 2 먼저** 가 안전하다 — 생성 CSS 가 shared-tokens 자리에 들어간 뒤 Skia 가 따라가야 G2 실측이 한 번에 끝난다.
@@ -147,9 +148,12 @@ gamma: x ≤ 0.0031308 ? 12.92x : 1.055x^(1/2.4) − 0.055, clamp [0,1], round(�
 
 ### Phase 3
 
-- [ ] `colors.ts` 46 항목 참조 전환 — 값 변화 목록 (v3→v4) 을 commit 본문에 기록
-- [ ] `neutralToSkiaColors.ts` 57 참조 전환
-- [ ] 영향 테스트/스냅샷 갱신 (Skia fixture 에 hex 리터럴이 박힌 곳 grep)
+- [x] `colors.ts` **71** 항목 → `TAILWIND_PALETTE` 참조 (v3 정확 일치 46 + 주석 명명 neutral 17 + Δ≤2 unambiguous 8) — 값 v3→v4 이동 (accent `#2563eb`→`#155dfc`, positive `#16a34a`→`#00a63e` 등). 리터럴 잔존 41 = S2/Leonardo custom + `#202023` zinc-850 + indigo/cyan/pink/fuchsia/lime 계열 (in-repo v3 원천 없음 — §0-5)
+- [x] `neutralToSkiaColors.ts` `NEUTRAL_PALETTES` 5 팔레트 55 hex → `{ ...TAILWIND_PALETTE.{slate|gray|zinc|neutral|stone} }` (LIGHT/DARK_MAP 의 `#ffffff` 2 는 고정 base 유지)
+- [x] 영향 테스트: builder 관련 7 파일 42/42, specs 2 파일 24/24 — hex 리터럴 fixture 갱신 0건 (Phase 0 grep 0 과 일치, ADR:75 서술은 과대였음)
+- [x] **Skia DOM 토큰 파서 oklch 지원** (`utils/cssVariableCore.ts::cssColorToHex` — `utils/theme/oklchToHex` 순수 util 사용, styleConverter 위임은 `layout/engines/{cssValueParser,utils}.ts → cssVariableCore` 역참조로 cycle 이라 회피) + 회귀 테스트 `cssVariableCore.oklch.test.ts` 4/4. `--border: oklch(87% 0 none)` → `#d4d4d4` (기존엔 상시 fallback)
+- [x] `@composition/specs` root/primitives 에서 `TAILWIND_PALETTE` + 타입 export, `pnpm build:specs` 로 dist 재생성 (builder 는 dist 를 본다)
+- [x] live: builder 탭에서 `/@fs` 로 `specs/dist/index.js` import → `lightColors.accent=#155dfc`, `positive=#00a63e`, `darkColors.raised=#202023`, `TAILWIND_PALETTE` 26 family; 캔버스 렌더 스크린샷 회귀 없음
 
 ### Phase 4
 

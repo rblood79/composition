@@ -9,55 +9,58 @@
  */
 
 import type { ColorTokens } from "../types/token.types";
+import { TAILWIND_PALETTE } from "./generated/tailwindPalette";
 
 /**
  * Light 모드 색상 토큰
- * 시맨틱 토큰 CSS 변수의 fallback 값 기준 (Tailwind hex)
+ * 시맨틱 토큰 CSS 변수의 fallback 값 기준.
+ * ADR-191: Tailwind 팔레트 복사 항목은 `TAILWIND_PALETTE` (tailwindcss/theme.css 파생) 참조 —
+ * 손 복사 hex 를 다시 적지 말 것. 리터럴로 남은 값은 S2/Leonardo custom (팔레트 이름 없음).
  */
 export const lightColors: ColorTokens = {
   // --- Accent (기존 primary → --highlight-background) ---
-  accent: "#2563eb", // blue-600
+  accent: TAILWIND_PALETTE.blue[600], // blue-600
   "accent-hover": "#1f54c8",
-  "accent-pressed": "#1d4ed8",
+  "accent-pressed": TAILWIND_PALETTE.blue[700],
   "on-accent": "#ffffff",
-  "accent-subtle": "#dbeafe", // blue-100
+  "accent-subtle": TAILWIND_PALETTE.blue[100], // blue-100
 
   // --- Neutral ---
-  neutral: "#171717", // neutral-900 (기존 on-surface)
-  "neutral-subdued": "#404040", // neutral-700 (기존 on-surface-variant)
-  "neutral-subtle": "#e5e5e5", // neutral-200 (기존 surface-container-highest)
+  neutral: TAILWIND_PALETTE.neutral[900], // neutral-900 (기존 on-surface)
+  "neutral-subdued": TAILWIND_PALETTE.neutral[700], // neutral-700 (기존 on-surface-variant)
+  "neutral-subtle": TAILWIND_PALETTE.neutral[200], // neutral-200 (기존 surface-container-highest)
   "neutral-hover": "#c3c3c3",
   "neutral-pressed": "#a8a8a8",
 
   // --- Negative (기존 error → --invalid-color) ---
-  negative: "#ef4444", // error-400
+  negative: TAILWIND_PALETTE.red[500], // error-400
   "negative-hover": "#cb3a3a",
   "negative-pressed": "#b33333",
   "on-negative": "#ffffff",
-  "negative-subtle": "#fee2e2", // error-100
+  "negative-subtle": TAILWIND_PALETTE.red[100], // error-100
 
   // --- Informative ---
-  informative: "#2563eb", // info-600 (= blue-600)
-  "informative-subtle": "#dbeafe",
+  informative: TAILWIND_PALETTE.blue[600], // info-600 (= blue-600)
+  "informative-subtle": TAILWIND_PALETTE.blue[100],
   // --- Positive ---
-  positive: "#16a34a", // green-600
-  "positive-subtle": "#dcfce7",
+  positive: TAILWIND_PALETTE.green[600], // green-600
+  "positive-subtle": TAILWIND_PALETTE.green[100],
   // --- Notice ---
-  notice: "#ea580c", // warning-600 (= orange-600)
-  "notice-subtle": "#ffedd5",
+  notice: TAILWIND_PALETTE.orange[600], // warning-600 (= orange-600)
+  "notice-subtle": TAILWIND_PALETTE.orange[100],
 
   // --- Surface / Layer ---
   base: "#ffffff",
-  raised: "#f9fafb", // --bg-raised = --color-gray-50 (popover/dropdown/collection 컨테이너)
-  "layer-1": "#fafafa", // neutral-50
-  "layer-2": "#fafafa", // neutral-50
+  raised: TAILWIND_PALETTE.gray[50], // --bg-raised = --color-gray-50 (popover/dropdown/collection 컨테이너)
+  "layer-1": TAILWIND_PALETTE.zinc[50], // neutral-50
+  "layer-2": TAILWIND_PALETTE.zinc[50], // neutral-50
   elevated: "#ffffff",
-  disabled: "#e5e5e5", // neutral-200
+  disabled: TAILWIND_PALETTE.neutral[200], // neutral-200
 
   // --- Border ---
-  border: "#d4d4d4", // neutral-300
-  "border-hover": "#a3a3a3", // neutral-400
-  "border-disabled": "#f5f5f5", // neutral-100
+  border: TAILWIND_PALETTE.neutral[300], // neutral-300
+  "border-hover": TAILWIND_PALETTE.neutral[400], // neutral-400
+  "border-disabled": TAILWIND_PALETTE.neutral[100], // neutral-100
 
   // --- Special ---
   transparent: "transparent",
@@ -65,30 +68,30 @@ export const lightColors: ColorTokens = {
   black: "#000000",
 
   // --- Named Colors ---
-  purple: "#9333ea",
-  "purple-subtle": "#f3e8ff",
-  yellow: "#eab308",
-  "yellow-subtle": "#fef9c3",
-  red: "#dc2626",
-  "red-subtle": "#fee2e2",
-  orange: "#ea580c",
-  "orange-subtle": "#ffedd5",
-  blue: "#2563eb",
-  "blue-subtle": "#dbeafe",
+  purple: TAILWIND_PALETTE.purple[600],
+  "purple-subtle": TAILWIND_PALETTE.purple[100],
+  yellow: TAILWIND_PALETTE.yellow[500],
+  "yellow-subtle": TAILWIND_PALETTE.yellow[100],
+  red: TAILWIND_PALETTE.red[600],
+  "red-subtle": TAILWIND_PALETTE.red[100],
+  orange: TAILWIND_PALETTE.orange[600],
+  "orange-subtle": TAILWIND_PALETTE.orange[100],
+  blue: TAILWIND_PALETTE.blue[600],
+  "blue-subtle": TAILWIND_PALETTE.blue[100],
   indigo: "#4338ca",
-  "indigo-subtle": "#e0e7ff",
+  "indigo-subtle": TAILWIND_PALETTE.indigo[100],
   cyan: "#0891b2",
-  "cyan-subtle": "#cffafe",
+  "cyan-subtle": TAILWIND_PALETTE.cyan[100],
   pink: "#db2777",
-  "pink-subtle": "#fce7f3",
+  "pink-subtle": TAILWIND_PALETTE.pink[100],
   fuchsia: "#c026d3",
-  "fuchsia-subtle": "#fae8ff",
+  "fuchsia-subtle": TAILWIND_PALETTE.fuchsia[100],
   magenta: "#be185d",
-  "magenta-subtle": "#fce7f3",
+  "magenta-subtle": TAILWIND_PALETTE.pink[100],
   celery: "#65a30d",
-  "celery-subtle": "#ecfccb",
+  "celery-subtle": TAILWIND_PALETTE.lime[100],
   chartreuse: "#84cc16",
-  "chartreuse-subtle": "#ecfccb",
+  "chartreuse-subtle": TAILWIND_PALETTE.lime[100],
 };
 
 /**
@@ -97,48 +100,48 @@ export const lightColors: ColorTokens = {
  */
 export const darkColors: ColorTokens = {
   // --- Accent ---
-  accent: "#3b82f6", // blue-500
+  accent: TAILWIND_PALETTE.blue[500], // blue-500
   "accent-hover": "#3270d1",
-  "accent-pressed": "#60a5fa",
+  "accent-pressed": TAILWIND_PALETTE.blue[400],
   "on-accent": "#171717",
-  "accent-subtle": "#1e3a8a", // blue-900
+  "accent-subtle": TAILWIND_PALETTE.blue[900], // blue-900
 
   // --- Neutral ---
-  neutral: "#f5f5f5", // neutral-100 (dark mode에서 밝은 텍스트)
-  "neutral-subdued": "#a3a3a3", // neutral-400
-  "neutral-subtle": "#404040", // neutral-700
+  neutral: TAILWIND_PALETTE.neutral[100], // neutral-100 (dark mode에서 밝은 텍스트)
+  "neutral-subdued": TAILWIND_PALETTE.neutral[400], // neutral-400
+  "neutral-subtle": TAILWIND_PALETTE.neutral[700], // neutral-700
   "neutral-hover": "#363636",
   "neutral-pressed": "#2e2e2e",
 
   // --- Negative ---
-  negative: "#f87171", // error-400 dark
+  negative: TAILWIND_PALETTE.red[400], // error-400 dark
   "negative-hover": "#d36060",
   "negative-pressed": "#ba5555",
   "on-negative": "#ffffff",
-  "negative-subtle": "#7f1d1d", // error-900
+  "negative-subtle": TAILWIND_PALETTE.red[900], // error-900
 
   // --- Informative ---
-  informative: "#3b82f6",
-  "informative-subtle": "#1e3a8a",
+  informative: TAILWIND_PALETTE.blue[500],
+  "informative-subtle": TAILWIND_PALETTE.blue[900],
   // --- Positive ---
-  positive: "#22c55e", // green-500
-  "positive-subtle": "#14532d",
+  positive: TAILWIND_PALETTE.green[500], // green-500
+  "positive-subtle": TAILWIND_PALETTE.green[900],
   // --- Notice ---
-  notice: "#f97316", // orange-500
-  "notice-subtle": "#7c2d12",
+  notice: TAILWIND_PALETTE.orange[500], // orange-500
+  "notice-subtle": TAILWIND_PALETTE.orange[900],
 
   // --- Surface / Layer ---
-  base: "#171717", // neutral-900
-  raised: "#202023", // --bg-raised = --color-zinc-850 (popover/dropdown/collection 컨테이너)
-  "layer-1": "#262626", // neutral-800
-  "layer-2": "#262626", // neutral-800
-  elevated: "#262626",
-  disabled: "#404040", // neutral-700
+  base: TAILWIND_PALETTE.neutral[900], // neutral-900
+  raised: "#202023", // custom zinc-850 (Tailwind 에 없는 단계 — shared-tokens.css 유지) // --bg-raised = --color-zinc-850 (popover/dropdown/collection 컨테이너)
+  "layer-1": TAILWIND_PALETTE.neutral[800], // neutral-800
+  "layer-2": TAILWIND_PALETTE.neutral[800], // neutral-800
+  elevated: TAILWIND_PALETTE.neutral[800],
+  disabled: TAILWIND_PALETTE.neutral[700], // neutral-700
 
   // --- Border ---
-  border: "#404040", // neutral-700
-  "border-hover": "#737373", // neutral-500
-  "border-disabled": "#262626", // neutral-800
+  border: TAILWIND_PALETTE.neutral[700], // neutral-700
+  "border-hover": TAILWIND_PALETTE.neutral[500], // neutral-500
+  "border-disabled": TAILWIND_PALETTE.neutral[800], // neutral-800
 
   // --- Special ---
   transparent: "transparent",
@@ -146,16 +149,16 @@ export const darkColors: ColorTokens = {
   black: "#000000",
 
   // --- Named Colors ---
-  purple: "#a855f7",
-  "purple-subtle": "#581c87",
-  yellow: "#facc15",
-  "yellow-subtle": "#713f12",
-  red: "#f87171",
-  "red-subtle": "#7f1d1d",
-  orange: "#f97316",
-  "orange-subtle": "#7c2d12",
-  blue: "#3b82f6",
-  "blue-subtle": "#1e3a8a",
+  purple: TAILWIND_PALETTE.purple[500],
+  "purple-subtle": TAILWIND_PALETTE.purple[900],
+  yellow: TAILWIND_PALETTE.yellow[400],
+  "yellow-subtle": TAILWIND_PALETTE.yellow[900],
+  red: TAILWIND_PALETTE.red[400],
+  "red-subtle": TAILWIND_PALETTE.red[900],
+  orange: TAILWIND_PALETTE.orange[500],
+  "orange-subtle": TAILWIND_PALETTE.orange[900],
+  blue: TAILWIND_PALETTE.blue[500],
+  "blue-subtle": TAILWIND_PALETTE.blue[900],
   indigo: "#6366f1",
   "indigo-subtle": "#312e81",
   cyan: "#06b6d4",

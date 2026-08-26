@@ -13,6 +13,11 @@ export {
   getColorToken,
   getColorTokens,
 } from "./colors";
+export { TAILWIND_PALETTE } from "./generated/tailwindPalette";
+export type {
+  TailwindPaletteFamily,
+  TailwindPaletteStep,
+} from "./generated/tailwindPalette";
 
 // Spacing
 export {

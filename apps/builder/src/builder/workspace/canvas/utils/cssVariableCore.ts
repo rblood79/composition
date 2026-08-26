@@ -6,6 +6,7 @@
  */
 
 import { cssColorToRgbNumber } from "../../../../utils/color";
+import { oklchToHex } from "../../../../utils/theme/oklchToHex";
 
 // ============================================
 // CSS Variable Reading + Cache
@@ -65,7 +66,31 @@ export function cssColorToHex(color: string, fallback: number): number {
     return resolveColorMix(color, fallback);
   }
 
+  // ADR-191: DOM 에서 읽는 토큰(--border / --fg-muted / --bg …)이 tailwindcss/theme.css 파생 oklch 로 온다.
+  // colord 는 oklch 를 모르므로 (App.css 시절부터 상시 fallback 이던 기존 결함) 여기서 직접 sRGB 로 내린다.
+  const oklch = parseOklchColor(color);
+  if (oklch) {
+    return cssColorToRgbNumber(oklchToHex(...oklch), fallback);
+  }
+
   return cssColorToRgbNumber(color, fallback);
+}
+
+const OKLCH_PATTERN =
+  /^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)(%?)\s+([\d.]+|none)(?:\s*\/\s*[^)]+)?\s*\)$/i;
+
+/**
+ * `oklch(L C H [/ alpha])` → [l(0~1), c, h]. CSS Color 4 의 `none` 성분은 0.
+ * 알파는 채널 변환에 무관하므로 버린다 (`cssColorToAlpha` 별도 경로).
+ */
+function parseOklchColor(color: string): [number, number, number] | null {
+  const m = OKLCH_PATTERN.exec(color.trim());
+  if (!m) return null;
+  const l = m[2] === "%" ? Number(m[1]) / 100 : Number(m[1]);
+  const c = m[4] === "%" ? (Number(m[3]) / 100) * 0.4 : Number(m[3]);
+  const h = m[5].toLowerCase() === "none" ? 0 : Number(m[5]);
+  if ([l, c, h].some(Number.isNaN)) return null;
+  return [l, c, h];
 }
 
 /**

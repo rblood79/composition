@@ -149,6 +149,7 @@ export {
 export {
   // Colors
   lightColors,
+  TAILWIND_PALETTE,
   darkColors,
   getColorToken,
   getColorTokens,
@@ -197,6 +198,7 @@ export {
 } from "./primitives";
 
 export type { ParsedShadow, ShadowPresetKey } from "./primitives";
+export type { TailwindPaletteFamily, TailwindPaletteStep } from "./primitives";
 export type {
   ContainerSpacing,
   ContainerSpacingDefaults,
