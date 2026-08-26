@@ -1,139 +1,342 @@
-/* Dashboard styles */
-@layer dashboard {
-  body {
+/* Dashboard styles
+ *
+ * 빌더 chrome 어법을 그대로 따른다 (2026-08-26 실측 기준):
+ *   투명 헤더 · 떠 있는 control island · 고정 사이드바/구분선 없음.
+ * island 시각은 `styles/modules/builder-control-group.css` 가 소유하고 (전역 import),
+ * 여기서는 배치와 대시보드 고유 요소만 정의한다.
+ *
+ * layer: `builder-system` — 구 `dashboard` 레이어는 선언 순서상 최하위라
+ * `components` 레이어의 RAC 기본값(Card 의 flex-direction: column 등)에 져서
+ * 규칙이 조용히 무시됐다. 토큰과 같은 레이어에 두어야 의도대로 적용된다.
+ */
+@layer builder-system {
+  body:has(.dashboard) {
     min-height: 100vh;
     min-height: 100dvh;
+  }
 
-    #root {
-      height: 100dvh;
-    }
+  body:has(.dashboard) #root {
+    height: 100dvh;
   }
 
   .dashboard {
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: var(--bg);
+    background: var(--bg-overlay);
     color: var(--fg);
+    overflow: hidden;
   }
 
-  /* ── Header ── */
+  /* ── Header — 투명, 테두리 없음. 48px 행 안에 32px 컨트롤 ── */
   .dashboard-header {
+    height: var(--spacing-4xl);
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--spacing-sm) var(--spacing-lg);
-    background: var(--bg-raised);
+    gap: var(--spacing-sm);
+    padding: 0 var(--spacing);
+    background: transparent;
+  }
+
+  .dashboard-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dashboard-menu-button.react-aria-Button,
+  .dashboard-icon-button.react-aria-Button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    min-width: 0;
+    padding: var(--spacing-sm);
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--bg-muted);
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .dashboard-menu-button.react-aria-Button[data-hovered],
+  .dashboard-icon-button.react-aria-Button[data-hovered] {
+    background: var(--accent-subtle);
+    color: var(--fg);
+  }
+
+  .dashboard-menu-button.react-aria-Button[data-focus-visible],
+  .dashboard-icon-button.react-aria-Button[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .dashboard-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+
+  .dashboard-logo img {
+    width: 32px;
+    height: 32px;
+    display: block;
+  }
+
+  .dashboard-title {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--fg);
+    white-space: nowrap;
+  }
+
+  /* ── Search — island 안에 얹히는 2차 surface (zoom 컨트롤과 같은 어법) ── */
+  .dashboard-search {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    height: 32px;
+    padding: 0 10px;
+    background: var(--bg-muted);
+    border-radius: var(--radius-md);
+    color: var(--fg-muted);
+  }
+
+  .dashboard-search:focus-within {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+  }
+
+  .dashboard-search svg {
     flex-shrink: 0;
   }
 
-  .dashboard-header-left {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-
-    h1 {
-      font-size: var(--text-sm);
-      font-weight: var(--font-weight-bold);
-      margin: 0;
-    }
+  .dashboard-search input {
+    width: 300px;
+    border: none;
+    background: transparent;
+    outline: none;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
   }
 
-  .dashboard-header-right {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-
-    .react-aria-Separator[data-orientation="vertical"] {
-      height: 20px;
-    }
+  .dashboard-search input::placeholder {
+    color: var(--fg-muted);
   }
 
-  /* ── Error ── */
-  .dashboard-error {
-    padding: var(--spacing-sm) var(--spacing-lg);
+  .dashboard-kbd {
+    display: flex;
+    align-items: center;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-overlay);
+    color: var(--fg-muted);
+    font-family: inherit;
+    font-size: var(--text-2xs);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .dashboard-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    flex: 1;
+  }
+
+  .dashboard-create-button.react-aria-Button {
+    height: 32px;
+    padding: 0 var(--spacing-lg);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+  }
+
+  /* ── Body — 레일 island + main ── */
+  .dashboard-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+  }
+
+  .dashboard-rail {
+    width: var(--panel-nav-width);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: var(--spacing-sm);
+    box-sizing: border-box;
   }
 
   /* ── Main ── */
   .dashboard-main {
     flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-lg);
-    padding: var(--spacing-xl) var(--spacing-lg);
-  }
-
-  /* ── New Project Form ── */
-  .new-project-form {
-    display: flex;
-    align-items: flex-end;
-    gap: var(--spacing-sm);
-    width: 100%;
-    max-width: 400px;
-
-    .react-aria-TextField {
-      flex: 1;
-    }
-  }
-
-  /* ── Projects Grid ── */
-  .projects-grid {
-    width: 100%;
-    max-width: 800px;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  /* ── Project Card ── */
-  .project-card.react-aria-Card {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
-    transition:
-      border-color 0.15s,
-      box-shadow 0.15s;
-
-    &:hover {
-      border-color: var(--border-hover);
-      box-shadow: var(--shadow-sm);
-    }
-  }
-
-  .project-card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: var(--radius-md);
-    background: var(--accent-subtle);
-    color: var(--accent);
-  }
-
-  .project-card-content {
-    flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    padding: var(--spacing-xl);
+    overflow-y: auto;
   }
 
-  .project-card-header {
+  .dashboard-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+    min-height: var(--spacing-4xl);
+    margin-bottom: var(--spacing-lg);
+    flex-shrink: 0;
+  }
+
+  .dashboard-scope {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .dashboard-scope-title {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--fg);
+  }
+
+  .dashboard-scope-meta {
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+
+  .dashboard-toolbar-controls {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
+    flex-shrink: 0;
+  }
+
+  .dashboard-sort-trigger.react-aria-Button {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    height: 32px;
+    min-width: 0;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--bg-muted);
+    color: var(--fg);
+    font-size: var(--text-xs);
+    cursor: pointer;
+  }
+
+  .dashboard-sort-trigger.react-aria-Button[data-hovered] {
+    background: var(--accent-subtle);
+  }
+
+  .dashboard-sort-label {
+    color: var(--fg-muted);
+  }
+
+  .dashboard-sort-value {
+    font-weight: var(--font-weight-medium);
+  }
+
+  /* ── Error ── */
+  .dashboard-error {
+    margin-bottom: var(--spacing-lg);
+  }
+}
+
+@layer builder-system {
+  /* ── Project grid ── */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+    align-content: start;
+  }
+
+  .project-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    overflow: hidden;
+    transition: box-shadow 0.15s ease;
+  }
+
+  .project-card:hover {
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* 카드 전체가 열기 액션. 오버플로 메뉴는 버튼 밖 형제로 둔다 (중첩 금지). */
+  .project-card-open.react-aria-Button {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .project-card-open.react-aria-Button[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-inset-offset);
+  }
+
+  .project-card-open.react-aria-Button[data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  /* 실제 캔버스 썸네일은 아직 없다 — 중립 플레이스홀더 (가짜 미리보기 금지). */
+  .project-card-thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--bg-muted);
+    color: var(--fg-disabled);
+  }
+
+  .project-card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    min-width: 0;
+    height: 56px;
+    padding: 0 var(--spacing-md);
+    box-sizing: border-box;
   }
 
   .project-card-title {
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
     font-weight: var(--font-weight-medium);
+    color: var(--fg);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -145,51 +348,307 @@
     color: var(--fg-muted);
   }
 
-  .project-card-actions {
+  .project-card-menu.react-aria-Button {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
     display: flex;
     align-items: center;
-    gap: var(--spacing-2xs);
-    flex-shrink: 0;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--bg-raised);
+    color: var(--fg);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease;
   }
 
-  /* ── Skeleton ── */
-  .project-card-skeleton {
-    width: 100%;
-    max-width: 800px;
+  .project-card:hover .project-card-menu.react-aria-Button,
+  .project-card-menu.react-aria-Button[data-focus-visible],
+  .project-card-menu.react-aria-Button[data-pressed] {
+    opacity: 1;
+  }
+
+  .project-card-menu.react-aria-Button[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .project-menu-item-delete {
+    color: var(--negative);
+  }
+
+  .project-menu-item-delete svg {
+    color: var(--negative);
+  }
+
+  /* ── Create tile — 그리드 첫 칸 생성 진입점 ── */
+  .project-create-tile.react-aria-Button {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: var(--spacing-sm);
+    width: 100%;
+    min-width: 0;
+    min-height: 180px;
+    padding: var(--spacing-lg);
+    border: none;
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    box-shadow: var(--inset-shadow-sm);
+    color: var(--fg-muted);
+    cursor: pointer;
   }
 
-  /* ── Empty State ── */
+  .project-create-tile.react-aria-Button[data-hovered] {
+    background: var(--bg-muted);
+  }
+
+  .project-create-tile.react-aria-Button[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .project-create-tile-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background: var(--bg-muted);
+    color: var(--fg);
+  }
+
+  .project-create-tile-label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--fg);
+  }
+
+  .project-create-tile-hint {
+    font-size: var(--text-xs);
+  }
+
+  /* ── List view — 같은 데이터의 두 번째 뷰 ── */
+  .projects-table {
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    overflow: hidden;
+  }
+
+  .projects-table-head,
+  .projects-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 132px 132px 32px;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: 0 var(--spacing-md);
+  }
+
+  .projects-table-head {
+    height: 32px;
+    background: var(--bg-muted);
+    font-size: var(--text-2xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-wider);
+    text-transform: uppercase;
+    color: var(--fg-muted);
+  }
+
+  .projects-row {
+    position: relative;
+    height: 36px;
+  }
+
+  .projects-row:hover {
+    background: var(--bg-muted);
+  }
+
+  .projects-row-open.react-aria-Button {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / 4;
+    align-items: center;
+    gap: var(--spacing-md);
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .projects-row-open.react-aria-Button[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-inset-offset);
+  }
+
+  .projects-row-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--fg);
+  }
+
+  .projects-row-name span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .projects-row-glyph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    background: var(--bg-muted);
+    color: var(--fg-disabled);
+  }
+
+  .projects-row-cell {
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+  }
+
+  .projects-row .project-card-menu.react-aria-Button {
+    position: static;
+    opacity: 0;
+    box-shadow: none;
+    background: transparent;
+    color: var(--fg-muted);
+  }
+
+  .projects-row:hover .project-card-menu.react-aria-Button,
+  .projects-row .project-card-menu.react-aria-Button[data-focus-visible] {
+    opacity: 1;
+  }
+
+  /* ── Empty / loading ── */
   .dashboard-empty {
     display: flex;
+    flex: 1;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-3xl) var(--spacing-lg);
     color: var(--fg-muted);
   }
 
   .dashboard-empty-title {
+    margin: 0;
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
-    margin: 0;
     color: var(--fg);
   }
 
   .dashboard-empty-description {
-    font-size: var(--text-sm);
     margin: 0;
+    font-size: var(--text-sm);
   }
 
-  /* ── Footer ── */
-  .dashboard-footer {
-    flex-shrink: 0;
-    text-align: center;
-    padding: var(--spacing-sm) var(--spacing-lg);
-    border-top: 1px solid var(--border);
+  .project-card-skeleton {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    overflow: hidden;
+  }
+
+  .project-card-skeleton-thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--bg-muted);
+  }
+
+  .project-card-skeleton-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    height: 56px;
+    padding: 0 var(--spacing-md);
+  }
+
+  .project-card-skeleton-line {
+    height: 10px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-muted);
+  }
+
+  .project-card-skeleton-line.is-short {
+    width: 40%;
+    height: 8px;
+  }
+}
+
+@layer builder-system {
+  /* ── Create tile — 편집 상태 (그 자리에서 이름 입력) ── */
+  .project-create-tile.is-editing {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    min-height: 180px;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    box-shadow: var(--inset-shadow-sm);
+    box-sizing: border-box;
+  }
+
+  .project-create-tile.is-editing .project-create-tile-label {
+    font-size: var(--text-2xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-wider);
+    text-transform: uppercase;
     color: var(--fg-muted);
-    font-size: var(--text-xs);
+  }
+
+  .project-create-input {
+    height: 30px;
+    padding: 0 var(--spacing-md);
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--bg-overlay);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: var(--text-sm);
+    outline: none;
+  }
+
+  .project-create-input:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+  }
+
+  .project-create-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+  }
+
+  .projects-create-strip {
+    max-width: 360px;
+    margin-bottom: var(--spacing-lg);
   }
 }

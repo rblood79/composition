@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Dashboard를 빌더 chrome 어법으로 재설계] - 2026-08-26
+
+### Changed
+
+- 대시보드 루트에 `data-context="builder"`를 부여했다. 종전에는 이 스코프 밖이라
+  builder-system 토큰이 걸리지 않고 preview-system의 tint 팔레트로 렌더돼, 빌더와
+  같은 앱인데 다른 색 체계로 보였다.
+- 대시보드 CSS를 `@layer dashboard`에서 `@layer builder-system`으로 옮겼다. 구
+  레이어는 선언 순서상 최하위(`dashboard < base < preview-system < components < ...`)라
+  `.project-card`의 `flex-direction: row`가 `components` 레이어 Card 기본값
+  `column`에 져서 카드가 세로로 무너지고 푸터가 화면 중간에 뜨고 있었다.
+- 화면 구조를 현행 빌더 chrome에 맞췄다. 단단한 헤더 바(배경 + 하단 border)와 테두리
+  있는 좌측 패널·하단 상태바를 걷어내고, 투명 헤더 + 떠 있는 control island로 바꿨다.
+  island 시각은 `builder-control-group.css`를 그대로 소비하므로 header/PanelDock과
+  같은 track·padding·gap·radius·selected indicator를 공유한다.
+- 좌측은 240px 스코프 패널 대신 40px 세로 island rail(Recents / All projects)이고,
+  선택 상태는 rail·header와 같은 `--accent` pill + `--fg-on-accent` 아이콘이다.
+- 프로젝트 목록에 검색(⌘K로 포커스), 정렬(Last edited / Created / Name), 그리드↔리스트
+  전환을 붙였다. 전부 이미 있는 `ProjectListItem` 필드만 쓰며 새 파생 데이터는 없다.
+- 상시 노출되던 파괴적 Delete 버튼을 카드/행 호버 시 열리는 오버플로 메뉴(Open /
+  Delete)로 옮겼다. 카드 전체가 열기 액션이고 메뉴 버튼은 그 버튼 밖 형제다.
+- 생성 진입점을 그리드 첫 칸 타일과 헤더 버튼으로 통일했다. 누르면 타일이 그 자리에서
+  이름 입력으로 바뀐다 — rename 기능이 없어 이름 없는 생성은 되돌릴 수 없으므로 입력
+  단계를 유지했다.
+- 테마 토글(Light / Dark / Auto)을 헤더에 추가하고 빌더와 같은 `stores/uiStore`의
+  `themeMode`에 연결했다. `data-builder-theme`는 대시보드 mount 중에만 세우고 unmount
+  시 지운다 (BuilderCore와 동형) — auth 라우트는 종전대로 빌더 팔레트를 받지 않는다.
+- **Why**: "빌더 스타일 패턴 유지"가 실측상 성립하지 않고 있었다. 스코프 누락으로 색
+  체계가 갈렸고, 레이어 순위 때문에 대시보드 CSS 규칙 자체가 조용히 무시됐다. 두 결함을
+  고치지 않으면 어떤 시안도 화면에 재현되지 않는다.
+- 위치: `apps/builder/src/dashboard/{index.tsx,index.css}`
+
+### Known gaps
+
+- 카드 썸네일은 중립 플레이스홀더다. 실제 캔버스 렌더 썸네일에는 Skia 오프스크린 캡처
+  경로가 별도로 필요해, 그럴듯한 가짜 미리보기 대신 플레이스홀더로 뒀다.
+- rail은 Recents / All projects 2개다. 시안의 Templates / Trash는 backing 기능이 없어
+  넣지 않았다 (동작하지 않는 컨트롤 금지).
+- ⌘K는 검색 입력 포커스까지만이다. 전체 커맨드 팔레트는 별도 작업.
+
+### Verification
+
+- `tsc -p tsconfig.app.json --noEmit` 0 error, `eslint src/dashboard/` 0 error 0 warning.
+- 라이브 빌더(localhost:5173/dashboard)에서 Chrome MCP로 직접 실행: 빌더 팔레트 적용,
+  rail 스코프 전환(Recents ↔ All projects), ⌘K 검색 포커스 + 이름 필터, 정렬 메뉴
+  선택(Name 반영), 그리드↔리스트 전환, Light/Dark 전환, 생성(인라인 폼 → 프로젝트
+  생성 → 빌더 이동), 오버플로 메뉴 → 삭제(실제 IndexedDB 삭제 + 목록 갱신), 검색
+  무결과 빈 상태까지 각 1회 이상 확인.
+
 ## [Builder chrome 토글 그룹 일원화 — Header / PanelDock RAC pattern] - 2026-08-26
 
 ### Changed
