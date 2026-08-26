@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-193 — 테마별 semantic·named hue 팔레트 단계 매핑 단일 원천화] - 2026-08-27
+
+### Changed
+
+- **dark 모드 Preview/Publish 의 상태·named hue 색이 Builder 캔버스와 같은 단계로 이동** (ADR-193 Implemented): 지금까지 CSS 는 `{color.positive}` 류 catalog 토큰 24 종 (+subtle 22) 을 `var(--color-green-600)` 처럼 팔레트 var 에 고정해 dark 에서도 light 색을 그대로 썼고, Skia 캔버스만 한 단계 밝은 dark 값 (green-600 → 500, red-500 → 400, subtle 100 → 900) 을 그렸다. 이제 `packages/specs/src/primitives/semanticPaletteMap.ts` 표 1개 (status 4 + named hue 19, 각 +subtle, light/dark `(family, step)`) 에서 Skia `colors.ts` 와 생성 CSS `theme/generated/semantic-palette.css` (`:root` / `[data-theme="dark"]`, `pnpm generate:palette`) 가 함께 파생된다. dark 프로젝트에서 Badge/StatusLight/Meter/InlineAlert/Toast 등의 positive·informative·notice·negative 와 purple/indigo/… 17종 + subtle 배경이 캔버스와 동일 (live 11 probe Δ0). **light 는 변경 0** (변경 전후 computed 17 probe diff 0).
+- catalog/tokenResolver 매핑은 semantic var 이름만 고른다 — `{color.positive}` → `var(--positive)`, named hue 는 `var(--hue-indigo)` (`--indigo` 는 tint preset 이 점유해 접두 필수). preview-system 의 손 `--negative` 정의는 생성 파일로 이관 (`--negative-pressed`·forced-colors 잔류). ThemeStudio 의 팔레트 var override 는 그대로 흘러간다 (생성 CSS 는 hex 0, 참조만).
+
+### Bug Fixes
+
+- **Badge `gray` variant 가 Builder 캔버스에서 보이지 않던 결함**: Skia `colors.ts` 에 `gray`/`green-named` 항목이 없어 `resolveColor("{color.gray}")` 가 undefined → 빈 선택 박스만 렌더. 표에 행을 추가해 light neutral-500 / dark neutral-400 으로 그린다 (CSS 와 동일).
+
+### 범위 밖 발견 (기록만)
+
+- publish 앱 `App.tsx:165` 가 neutral 프리셋이 `neutral` 일 때 `--color-neutral-N: var(--color-neutral-N)` 자기 참조를 emit → publish 문서에서 `--color-neutral-*` 전부 무효 (Badge gray 등 neutral 소비 CSS transparent). Builder → Preview 는 hex 직접 전송이라 무관. publish 는 별도 안정화 대상.
+- catalog `{color.{hue}-hover/-pressed}` (purple 외) 는 tokenResolver 항목이 없어 `var(--chartreuse-hover)` 류 미정의 var 로 emit — Skia 미소비 (hover 는 Preview D1 소관), review l2 와 함께 후속.
+
 ## [ADR-192 — Contextual Action Bar] - 2026-08-27
 
 ### Added

@@ -1,6 +1,6 @@
 # ADR-193 구현 상세 — 테마별 semantic·named hue 팔레트 단계 매핑 단일 원천화
 
-> 본 문서는 [ADR-193](../193-theme-aware-semantic-palette-map.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문이 정본이고, 여기에는 Phase 분할·파일 변경표·체크리스트만 둔다.
+> 본 문서는 [ADR-193](../completed/193-theme-aware-semantic-palette-map.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문이 정본이고, 여기에는 Phase 분할·파일 변경표·체크리스트만 둔다.
 
 ## 0. Phase 0 inventory (2026-08-27 실측 freeze)
 
@@ -49,7 +49,7 @@ FIXED 24 중 white/black/on-negative 3 은 Skia 도 테마 불변 → **dark 비
 | 0 ✅  | inventory freeze (본 문서 §0)                                                                                                                                                                                                                                                                                                                                                                                                                           | G0    | 본 문서                                  |
 | 1 ✅  | 매핑 표 `semanticPaletteMap.ts` (status 4 + named 18 + subtle 22 + gray/green-named, light/dark, `hook`) + `colors.ts` 해당 항목을 표에서 파생 + `lightColors` 스냅샷 테스트 (light 값 불변) + `darkColors` 는 표 값으로 정렬                                                                                                                                                                                                                           | G1·G3 | 표 1, colors.ts, 스냅샷 테스트           |
 | 2 ✅  | 생성기 확장: `generate-palette.ts` 가 `theme/generated/semantic-palette.css` emit (`@layer shared-tokens` `:root` + `[data-theme="dark"]`, `var(--color-*)` 참조만, `hook` 은 `var(--hook, var(--color-*))`), `theme.css` import, preview-system 손 `--negative` 이관 (`--negative-pressed` 는 잔류 — Skia 미소비, colors.ts 값 custom `#b33333`), `colorTokenToCss.ts`/`tokenResolver.ts` 매핑 → semantic var, generated CSS 재생성, drift 테스트 확장 | G1·G3 | 생성 CSS 1, 매핑 2 파일, generated/*.css |
-| 3     | `semanticAlias.symmetry.test` dark 확장 (전 토큰) + live G2/G4 (darkMode=dark 3자 대칭, chrome 불변, ThemeStudio 훅 생존) + CHANGELOG + Implemented 승격                                                                                                                                                                                                                                                                                                | G2·G4 | 테스트, CHANGELOG                        |
+| 3 ✅  | `semanticAlias.symmetry.test` dark 확장 (전 토큰) + live G2/G4 (darkMode=dark 3자 대칭, chrome 불변, ThemeStudio 훅 생존) + CHANGELOG + Implemented 승격                                                                                                                                                                                                                                                                                                | G2·G4 | 테스트, CHANGELOG                        |
 
 각 Phase 는 commit 가능한 상태로 종료. Phase 1 은 CSS 무변경 (Skia 만 정렬 — light 불변이므로 캔버스도 light 에서 불변), Phase 2 가 CSS 전환.
 
@@ -115,7 +115,7 @@ FIXED 24 중 white/black/on-negative 3 은 Skia 도 테마 불변 → **dark 비
 
 ### Phase 3
 
-- [ ] `semanticAlias.symmetry.test` dark 확장 GREEN
-- [ ] live dark (`darkMode=dark`): preview computed vs `darkColors` 6 요소 Δ≤1, Skia zoom 스크린샷 (G2)
-- [ ] chrome Toast/header 색 불변, ThemeStudio runtime var 로 `--color-green-600` 덮어쓰기 → Badge positive 추종 (G4)
-- [ ] CHANGELOG + README Implemented + closure 5단계
+- [x] `semanticAlias.symmetry.test` dark 확장 GREEN (Phase 2 에서 46 토큰 × light/dark 로 재작성 — dark 46/46 단계 이동 확인)
+- [x] live dark (Theme 패널 토글 → preview `data-theme=dark`): computed vs `darkColors` 11 probe Δ0 (Badge positive/negative/indigo/gray, StatusLight notice, Meter positive, seafoam, subtle 3, magenta), Skia 캔버스 zoom — dark 페이지 위 밝은 회색 Badge (G2). `Meter.css` 는 generate-css 대상이 아닌 잔존 hand 파일이라 `--fill-color` 4 를 `--informative/--positive/--notice` 로 직접 전환
+- [x] chrome `.app` `--positive` = green-500 (builder-system 스코프) 불변 (R1); unlayered `[data-theme=dark]{--color-green-500:#ff0000}` 주입 → Badge positive 255,0,0 → 복원 (R2 훅 생존) (G4)
+- [x] CHANGELOG + README Implemented + closure 5단계 (본문 `completed/` 이관, 경로 정합)

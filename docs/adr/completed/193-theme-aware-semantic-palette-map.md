@@ -2,13 +2,13 @@
 
 ## Status
 
-Accepted — 2026-08-27 (review round 1 승인 가능 — MED 1 fixed / LOW 1 deferred; Proposed 2026-08-27)
+Implemented — 2026-08-27 (Phase 0~~3 / G0~~G4 당일 종결; Accepted 2026-08-27 review round 1 — MED 1 fixed / LOW 1 deferred; Proposed 2026-08-27)
 
 ## Context
 
-### Domain (SSOT 체인 — [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
+### Domain (SSOT 체인 — [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))
 
-D3 (시각 스타일). 팔레트 정의는 [ADR-191](completed/191-tailwind-theme-single-source-palette.md) 로 `tailwindcss/theme.css` 단일 원천이 됐고, 그 위의 semantic alias 층도 2026-08-27 후속 (`b785315e8` / `58f5b1f08`) 으로 **light 모드에 한해** Builder(Skia) ↔ Preview/Publish(DOM) 가 같은 (family, step) 을 본다. 남은 결함은 **dark 모드에서 두 소비자가 다른 단계를 고르는 것**이다. D1/D2 무관 — DOM 구조·props 변경 없음.
+D3 (시각 스타일). 팔레트 정의는 [ADR-191](191-tailwind-theme-single-source-palette.md) 로 `tailwindcss/theme.css` 단일 원천이 됐고, 그 위의 semantic alias 층도 2026-08-27 후속 (`b785315e8` / `58f5b1f08`) 으로 **light 모드에 한해** Builder(Skia) ↔ Preview/Publish(DOM) 가 같은 (family, step) 을 본다. 남은 결함은 **dark 모드에서 두 소비자가 다른 단계를 고르는 것**이다. D1/D2 무관 — DOM 구조·props 변경 없음.
 
 ### 문제 — dark 에서 Skia 는 단계를 바꾸고 CSS 는 안 바꾼다
 
@@ -95,7 +95,7 @@ D3 (시각 스타일). 팔레트 정의는 [ADR-191](completed/191-tailwind-them
 - **대안 A 기각**: dark 단계 차이는 결함이 아니라 설계다 (Spectrum/Tailwind/Radix 관행). 지우면 대칭은 얻지만 dark 가독성을 잃고, `gray` 결손은 남는다.
 - **대안 B 기각**: 동작은 같지만 매핑이 두 벌이다. ADR-191 이 팔레트 층에서 없앤 손 복사본을 semantic 층에서 다시 만드는 셈이고, 테스트가 RED 를 내도 "어느 쪽을 고칠지" 를 사람이 매번 정해야 한다.
 
-> 구현 상세: [193-theme-aware-semantic-palette-map-breakdown.md](design/193-theme-aware-semantic-palette-map-breakdown.md)
+> 구현 상세: [193-theme-aware-semantic-palette-map-breakdown.md](../design/193-theme-aware-semantic-palette-map-breakdown.md)
 
 ## Risks
 
@@ -122,11 +122,19 @@ D3 (시각 스타일). 팔레트 정의는 [ADR-191](completed/191-tailwind-them
 
 ## 진행 로그
 
-| 일자       | Phase | commit           | 내용                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ---------- | :---: | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-08-27 |   0   | 4105e21e8        | inventory freeze (breakdown §0) — 테마 신호 2 소비자 / 토큰 FLIP 12·FIXED 24·subtle 25 / Skia 결손 2 / chrome 소비 16 (G0) + review round 1                                                                                                                                                                                                                                                                       |
-| 2026-08-27 |   1   | 1eedde7a6        | `semanticPaletteMap.ts` 46 행 (status 8 + named 19×2) + `colors.ts` status/named 항목 표 파생 + `gray`/`green-named`(+subtle) 4 키 + 스냅샷 테스트 5 (light 67 키 byte 불변 · dark 무변경 — G1·G3). live: ZZZF Badge `gray` 캔버스 neutral gray pill 렌더 (Phase 0 빈 박스 → 해소)                                                                                                                                |
-| 2026-08-27 |   2   | (Phase 2 commit) | 생성기 `renderSemanticCss` → `generated/semantic-palette.css` (4,666B, hex 0, `:root`+`[data-theme="dark"]`) + `theme.css` import + preview-system 손 `--negative` 이관 + 매핑 2 파일 semantic var (`--positive`/`--hue-*`) 전환 + generated 8 파일 재생성 + drift 3·symmetry 46×2 테스트 (G1·G3). live G1: preview light computed 17 probe 전후 diff 0. 범위 밖 발견: publish neutral 자기 참조 (breakdown §0-5) |
+| 일자       | Phase | commit        | 내용                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------- | :---: | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-27 |   0   | 4105e21e8     | inventory freeze (breakdown §0) — 테마 신호 2 소비자 / 토큰 FLIP 12·FIXED 24·subtle 25 / Skia 결손 2 / chrome 소비 16 (G0) + review round 1                                                                                                                                                                                                                                                                       |
+| 2026-08-27 |   1   | 1eedde7a6     | `semanticPaletteMap.ts` 46 행 (status 8 + named 19×2) + `colors.ts` status/named 항목 표 파생 + `gray`/`green-named`(+subtle) 4 키 + 스냅샷 테스트 5 (light 67 키 byte 불변 · dark 무변경 — G1·G3). live: ZZZF Badge `gray` 캔버스 neutral gray pill 렌더 (Phase 0 빈 박스 → 해소)                                                                                                                                |
+| 2026-08-27 |   2   | e7a3b7f10     | 생성기 `renderSemanticCss` → `generated/semantic-palette.css` (4,666B, hex 0, `:root`+`[data-theme="dark"]`) + `theme.css` import + preview-system 손 `--negative` 이관 + 매핑 2 파일 semantic var (`--positive`/`--hue-*`) 전환 + generated 8 파일 재생성 + drift 3·symmetry 46×2 테스트 (G1·G3). live G1: preview light computed 17 probe 전후 diff 0. 범위 밖 발견: publish neutral 자기 참조 (breakdown §0-5) |
+| 2026-08-27 |   3   | (종결 commit) | live dark G2 (preview `data-theme=dark` computed vs `darkColors` 11 probe Δ0) + G4 (chrome scoped var 불변, 팔레트 var override 훅 생존) + `Meter.css` fill var semantic 전환 + CHANGELOG + Implemented 종결                                                                                                                                                                                                      |
+
+**Phase 3 G2/G4 실측 (2026-08-27, Chrome MCP, 프로젝트 ZZZF, compare 모드 preview iframe)**:
+
+- **G2 dark** — Theme 패널 dark 토글 (실제 UI 경로: `setDarkMode` → BuilderCore `SET_DARK_MODE` → preview `data-theme="dark"`) 후 preview computed (2D canvas sRGB 환산) vs Skia `darkColors` hex: Badge positive `0,201,80` = `#00c950` · negative `255,100,103` = `#ff6467` · indigo `97,95,255` = `#615fff` · gray `161,161,161` = `#a1a1a1` · StatusLight notice (`--notice`) `255,105,0` = `#ff6900` · Meter positive (`--positive`) `#00c950` · seafoam `#00bba7` · positive-subtle `#0d542b` · purple-subtle `#59168b` · negative-subtle `#82181a` · magenta `#ec003f` — **11 probe Δ0**. live Badge gray 요소도 `161,161,161`. Skia 캔버스: 같은 Badge 가 dark 페이지 위에 밝은 회색 pill (zoom 스크린샷; 픽셀 readback 은 `preserveDrawingBuffer=false` 라 상수 + 스크린샷).
+- **G1 light** (Phase 2): 변경 전후 computed 17 probe diff 0.
+- **G4** — (R1) builder chrome `.app` 의 `--positive` computed = `oklch(72.3% …)` = green-500 (builder-system 스코프 정의) — `:root` green-600 정의가 chrome 을 덮지 않음. (R2) preview 에 unlayered `<style>` 로 `[data-theme="dark"]{--color-green-500:#ff0000}` 주입 → Badge positive `0,201,80 → 255,0,0` → 제거 후 복원 — semantic var 가 팔레트 var 참조만 들고 있어 ThemeStudio override 가 흘러간다. 생성 CSS 4,666B ≤ 5KB, preview undefined var 0.
+- **스토어 접근 함정**: 페이지 컨텍스트 `import('/src/stores/themeConfigStore.ts')` 는 앱과 다른 모듈 인스턴스라 `setDarkMode` 가 무효 — 실제 UI 토글로 exercise (memory `reference-vite-dynamic-import-separate-store-instance`).
 
 ## Consequences
 
