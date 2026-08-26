@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-182 후속 — 단일 선택 복제 no-op 수정] - 2026-08-27
+
+### Bug Fixes
+
+- **요소 1개를 선택하고 복제 (우클릭 메뉴 "복제" / `⌘D` / ADR-192 액션 바) 하면 아무 일도 일어나지 않던 결함**:
+  `canvasActions.duplicateSelection` 이 다중 선택 모드(`multiSelectMode`) 밖에서는 조용히 반환했다 — ADR-182 가
+  단축키 핸들러의 다중 선택 전용 게이트를 공유 액션 계층으로 그대로 옮긴 것이 원인. 게이트를 제거해 단일 선택에서도
+  +10/+10 오프셋 복제 + 새 요소 선택이 동작한다. 그룹/정렬/분배의 2+ 게이트는 그대로. (ADR-192 Phase 2 live 검증 중 발견)
+
 ## [ADR-191 잔여 정리 — named hue 17종 Skia↔CSS 동일 단계, M3 dead 경로 삭제] - 2026-08-27
 
 ### Bug Fixes

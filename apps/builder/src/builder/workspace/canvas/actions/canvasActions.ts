@@ -186,14 +186,12 @@ export async function paste(context: CanvasActionContext): Promise<void> {
 export async function duplicateSelection(
   context: CanvasActionContext,
 ): Promise<void> {
-  const {
-    multiSelectMode,
-    selectedElementIds,
-    currentPageId,
-    addElement,
-    setSelectedElements,
-  } = useStore.getState();
-  if (!multiSelectMode || selectedElementIds.length === 0 || !currentPageId) {
+  const { selectedElementIds, currentPageId, addElement, setSelectedElements } =
+    useStore.getState();
+  // ADR-182 후속 (2026-08-27, ADR-192 Phase 2 live 실측): 복제는 단일 선택에서도
+  // 의미가 있는데 `multiSelectMode` 게이트 탓에 메뉴·⌘D·액션 바 모두 조용한
+  // no-op 이었다. 다중 선택 전용 게이트는 group/align/distribute 에만 남긴다.
+  if (selectedElementIds.length === 0 || !currentPageId) {
     return;
   }
 

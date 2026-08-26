@@ -176,3 +176,31 @@ describe("canvasActions", () => {
     expect(batchUpdateElementProps).not.toHaveBeenCalled();
   });
 });
+
+describe("duplicateSelection — ADR-182 후속 (2026-08-27)", () => {
+  it("단일 선택 · multiSelectMode=false 에서도 복제하고 새 요소를 선택한다", async () => {
+    useStore.setState({
+      currentPageId: "page-1",
+      multiSelectMode: false,
+      selectedElementId: "a",
+      selectedElementIds: ["a"],
+    } as never);
+    const state = useStore.getState();
+    const addElement = vi
+      .spyOn(state, "addElement")
+      .mockResolvedValue(undefined as never);
+    const setSelectedElements = vi.spyOn(state, "setSelectedElements");
+    const context = {
+      elementsMap: new Map<string, CanvasActionElement>([
+        ["a", makeElement("a")],
+      ]),
+    };
+
+    await duplicateSelection(context);
+
+    expect(addElement).toHaveBeenCalledTimes(1);
+    const created = addElement.mock.calls[0][0] as { id: string };
+    expect(created.id).not.toBe("a");
+    expect(setSelectedElements).toHaveBeenCalledWith([created.id]);
+  });
+});
