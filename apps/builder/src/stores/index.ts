@@ -17,9 +17,6 @@ export {
   type UiScale,
 } from "./uiStore";
 
-// 앱 환경 설정
-export { useSettingsStore, getSettings } from "./settingsStore";
-
 // 테마 설정 (Tint, Dark Mode, Neutral, Radius — ADR-021)
 export {
   useThemeConfigStore,

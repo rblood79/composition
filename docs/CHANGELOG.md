@@ -39,6 +39,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   고치지 않으면 어떤 시안도 화면에 재현되지 않는다.
 - 위치: `apps/builder/src/dashboard/{index.tsx,index.css}`
 
+### Removed
+
+- 대시보드 상단 설정 버튼과 설정 모달(`dashboard/SettingsPanel`)을 제거했다. 노출하던
+  컨트롤 2개가 모두 소비처 0건이었다 — `projectCreation` 은 `dashboard/index.tsx` 가
+  `void` 로 버렸고(생성 흐름은 분기 없이 IndexedDB 에만 쓴다), `syncMode` 는 패널
+  자신 외에 읽는 곳이 없었다. `BuilderCore.tsx` 의 동명 `syncMode` 는 데이터 바인딩
+  payload 의 지역 변수로 타입도 의미도 다르다.
+- 함께 제거: `stores/settingsStore.ts`, `types/settings.types.ts`,
+  `stores/index.ts` 의 `useSettingsStore` / `getSettings` export.
+  `autoSyncInterval` / `autoDownloadOnOpen` 는 선언만 있고 소비처가 0건이었고,
+  `getSettings()` 는 호출처가 0건이었다.
+- **Why**: 단순 dead 가 아니라 오해를 부르는 상태였다. Project Storage 셀렉트가
+  `Cloud Only (Supabase)` / `Local + Cloud` 를 계속 제시하고 Sync Mode 설명이
+  "How local changes sync to cloud" 라고 쓰여 있었지만, ADR-128 Phase 2 가
+  `ProjectsApiService` / `DocumentsApiService` / `projectSync` / `projectMerger` 를
+  삭제해 그 경로 자체가 없다. 아무 일도 안 하는 게 아니라 사용자에게 클라우드에
+  저장된다고 말하고 있었다.
+- 동명 파일 주의: `builder/panels/settings/SettingsPanel.tsx` 는 별개이며
+  `panelConfigs.ts` 에 등록된 정상 동작 패널이다 (눈금자/가이드 소유). 손대지 않았다.
+- 위치: `apps/builder/src/{dashboard/SettingsPanel.tsx,dashboard/SettingsPanel.css,
+stores/settingsStore.ts,types/settings.types.ts,stores/index.ts}`
+
 ### Known gaps
 
 - 카드 썸네일은 중립 플레이스홀더다. 실제 캔버스 렌더 썸네일에는 Skia 오프스크린 캡처
@@ -50,6 +72,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Verification
 
 - `tsc -p tsconfig.app.json --noEmit` 0 error, `eslint src/dashboard/` 0 error 0 warning.
+- 제거 후: 잔존 참조 전수 grep 0건(`settingsStore` / `settings.types` /
+  `DEFAULT_SETTINGS` / `UserSettings` / `ProjectCreationMode` / `getSettings` /
+  localStorage 키 `composition-settings`), `tsc --noEmit` 0 error,
+  `eslint src/dashboard src/stores` 0 error 0 warning, `vitest run src/dashboard
+src/stores` 2 files 2 tests 통과, 라이브 대시보드 재로드 시 콘솔 에러 0건.
 - 라이브 빌더(localhost:5173/dashboard)에서 Chrome MCP로 직접 실행: 빌더 팔레트 적용,
   rail 스코프 전환(Recents ↔ All projects), ⌘K 검색 포커스 + 이름 필터, 정렬 메뉴
   선택(Name 반영), 그리드↔리스트 전환, Light/Dark 전환, 생성(인라인 폼 → 프로젝트

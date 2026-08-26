@@ -33,13 +33,10 @@ import {
   MoreHorizontal,
   Monitor,
   Search,
-  Settings,
   Sun,
 } from "lucide-react";
 import { historyIndexedDB } from "../builder/stores/history/historyIndexedDB";
-import { useSettingsStore } from "../stores/settingsStore";
 import { useUiStore, type ThemeMode } from "../stores/uiStore";
-import { SettingsPanel } from "./SettingsPanel";
 import { createInitialProjectDocument } from "./createInitialProjectDocument";
 import type { ProjectListItem } from "../types/dashboard.types";
 import { deriveProjectRenderModelFromDocument } from "@composition/shared";
@@ -372,7 +369,6 @@ function Dashboard() {
   // 경계가 흔들려 순수성 규칙을 깬다 — 로드 시점에 한 번 고정한다.
   const [listedAt, setListedAt] = useState(0);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
 
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<ScopeKey>("recents");
@@ -381,9 +377,6 @@ function Dashboard() {
 
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
-
-  const projectCreation = useSettingsStore((state) => state.projectCreation);
-  void projectCreation; // (ADR-128) cloud option 제거됨. settings 자체는 보존.
 
   // 빌더와 같은 테마 설정을 쓴다 (`stores/uiStore` — localStorage 영속).
   const themeMode = useUiStore((state) => state.themeMode);
@@ -691,14 +684,6 @@ function Dashboard() {
             </ToggleButtonGroup>
           </div>
 
-          <AriaButton
-            className="react-aria-Button dashboard-icon-button"
-            aria-label="Settings"
-            onPress={() => setShowSettings(true)}
-          >
-            <Settings size={16} aria-hidden />
-          </AriaButton>
-
           <Button
             className="dashboard-create-button"
             variant="accent"
@@ -890,11 +875,6 @@ function Dashboard() {
           )}
         </main>
       </div>
-
-      <SettingsPanel
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-      />
     </div>
   );
 }
