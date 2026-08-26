@@ -6,7 +6,7 @@
 ## §1. 문제 정의 확인 (fork checkpoint — 신규 주제, fork 아님)
 
 - 완전 신규 주제 ADR — 기존 ADR 분리/fork 아님 (adr-writing.md Phase 0 게이트 해당 없음).
-- 선행 계약 승계: [ADR-176](../176-canvas-authoring-gesture-and-page-position-optimization.md) (transient presentation + finish-only commit), [ADR-177](../completed/177-page-position-document-data.md) (canonical additive 필드 + 비-element 히스토리 entry 5계층), [ADR-179](../completed/179-snap-alignment-guides.md) (`resolveSnappedPosition` 순수 함수 + 후보 수집 드래그당 1회).
+- 선행 계약 승계: [ADR-176](../completed/176-canvas-authoring-gesture-and-page-position-optimization.md) (transient presentation + finish-only commit), [ADR-177](../completed/177-page-position-document-data.md) (canonical additive 필드 + 비-element 히스토리 entry 5계층), [ADR-179](../completed/179-snap-alignment-guides.md) (`resolveSnappedPosition` 순수 함수 + 후보 수집 드래그당 1회).
 - 두 산출물의 성격이 갈린다:
   - **Ruler** = 뷰포트 chrome (문서 데이터 없음 — 토글 상태만 빌더 UI 설정)
   - **수동 가이드** = 페이지 귀속 문서 데이터 (persist + undo 대상 — ADR-177 동형 5계층)

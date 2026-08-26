@@ -14,11 +14,11 @@ Implemented — 2026-08-24 (Phase 0~~5 / G0~~G5 complete; proposal origin 2026-0
 > 기록). 당시 유일한 생산자였던 presentation lane 이 항상 원소 1개 배열만 보내
 > 도달 불가였고, ADR-190 emitter 가 다중 root commit 을 만들 수 있게 되면서
 > 발현했다. 수정은 splice 마다 revision 을 전진시키는 것 — presentation lane 이
-> 이미 쓰던 규약과 같다. 상세·실측: [ADR-190 Phase 3 §1](design/190-phase-3-g3-path-classification.md).
+> 이미 쓰던 규약과 같다. 상세·실측: [ADR-190 Phase 3 §1](../design/190-phase-3-g3-path-classification.md).
 
-Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](completed/188-targeted-layout-and-skia-subtree-patching.md),
-[ADR-153 렌더 최적화 measurement-first 도입](completed/153-render-optimization-measurement-first-adoption.md),
-[ADR-921 RenderScene·Backend 통합](921-render-scene-backend-integration.md)
+Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](188-targeted-layout-and-skia-subtree-patching.md),
+[ADR-153 렌더 최적화 measurement-first 도입](153-render-optimization-measurement-first-adoption.md),
+[ADR-921 RenderScene·Backend 통합](../921-render-scene-backend-integration.md)
 (Proposed — command stream 계약이 교차하므로 어느 쪽이든 착수 시 상호 조정)
 
 ## Context
@@ -184,7 +184,7 @@ Phase 2·3 미착수 종결)로 제한해 수용한다 — ADR-153 이 같은 �
 - **대안 D 기각(부분 보존)**: 단독으로는 HC1 미충족. 단 그 내용물(damage
   flush)은 대안 B 의 Phase 3 에 포함된다.
 
-> 구현 상세: [189-commit-lane-incremental-record-breakdown.md](design/189-commit-lane-incremental-record-breakdown.md)
+> 구현 상세: [189-commit-lane-incremental-record-breakdown.md](../design/189-commit-lane-incremental-record-breakdown.md)
 
 ## Risks
 

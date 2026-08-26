@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — 2026-08-16 (Phase 0~~5 완결, G1~~G3 PASS. Accepted 2026-08-15 — 리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED 4 / LOW 2) + round 2 이슈 3건(MED 3) 전건 fixed, 잔존 pending 0, HIGH/CRITICAL 잔존 0 — [reviews/182.md](reviews/182.md))
+Implemented — 2026-08-16 (Phase 0~~5 완결, G1~~G3 PASS. Accepted 2026-08-15 — 리뷰 승인 round 2: round 1 이슈 7건(HIGH 1 / MED 4 / LOW 2) + round 2 이슈 3건(MED 3) 전건 fixed, 잔존 pending 0, HIGH/CRITICAL 잔존 0 — [reviews/182.md](../reviews/182.md))
 
 ## Implementation Progress
 
@@ -111,7 +111,7 @@ Implemented — 2026-08-16 (Phase 0~~5 완결, G1~~G3 PASS. Accepted 2026-08-15 
 - **대안 A 기각**: 3중 파편(코드 경로 `BuilderCanvas.tsx:810-883` / `LayerTreeItemContent.tsx:120-272` / CSS 2벌)이 항목 수 증가에 비례해 발산 — 유지보수 HIGH. 액션 추출 없이 표면마다 오케스트레이션을 재구현하므로 발산이 동작 층까지 확대. 레퍼런스 실증 구조와도 역행
 - **대안 C 기각**: WAI-ARIA menu 패턴 수동 유지가 영구 부채 (유지보수 HIGH). 빌더 시스템 UI 의 기존 RAC 스택 관례와 불일치. 단, 그 포지셔닝 계층만은 B 의 G1 폴백으로 조건부 차용
 
-> 구현 상세: [182-builder-context-menu-breakdown.md](design/182-builder-context-menu-breakdown.md) — 대상별 메뉴 항목 정본(§2), 시스템 설계(§3), 액션 공유 계층(§3-7), Phase 0~5(§4), 검증 체크리스트(§5), 비스코프(§6)
+> 구현 상세: [182-builder-context-menu-breakdown.md](../design/182-builder-context-menu-breakdown.md) — 대상별 메뉴 항목 정본(§2), 시스템 설계(§3), 액션 공유 계층(§3-7), Phase 0~5(§4), 검증 체크리스트(§5), 비스코프(§6)
 
 ## Risks
 

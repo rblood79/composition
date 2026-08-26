@@ -1,6 +1,6 @@
 # ADR-189 Phase 2 / G2 evidence — variable command span splice
 
-> 대상: [ADR-189](../189-commit-lane-incremental-record.md) Phase 2.
+> 대상: [ADR-189](../completed/189-commit-lane-incremental-record.md) Phase 2.
 > 상태: G2 closure 완료 — 구현·로컬 계약·populated canonical command live gate·pixel
 > 대조가 모두 통과했다 (2026-08-23).
 

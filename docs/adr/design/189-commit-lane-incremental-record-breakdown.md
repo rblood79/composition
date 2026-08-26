@@ -1,6 +1,6 @@
 # ADR-189 구현 상세 — 커밋 레인 record 증분화
 
-> 본 문서는 [ADR-189](../189-commit-lane-incremental-record.md) 의 구현 상세다. 결정
+> 본 문서는 [ADR-189](../completed/189-commit-lane-incremental-record.md) 의 구현 상세다. 결정
 > 근거·대안·위험은 ADR 본문이 정본이고, 여기는 Phase 분해·파일 경계·검증 절차만 둔다.
 > 아래의 ‘착수 조건’·‘다음 진입점’ 표현은 각 Phase를 실행하던 당시의 순서를
 > 보존한 기록이다. 현재 ADR-189는 Phase 0~~5 / G0~~G5를 모두 종결한 Implemented 상태다.

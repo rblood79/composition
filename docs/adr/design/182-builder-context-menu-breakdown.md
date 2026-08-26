@@ -1,6 +1,6 @@
 # ADR-182 Design Breakdown: 빌더 우클릭 컨텍스트 메뉴
 
-> 본문: [../182-builder-context-menu.md](../182-builder-context-menu.md)
+> 본문: [../completed/182-builder-context-menu.md](../completed/182-builder-context-menu.md)
 > 작성: 2026-08-14. 리서치 3종 (Figma 공식 문서 / Pen v1.2.4 번들 실측 / composition 코드 인벤토리) 기반.
 > 개정: 2026-08-15 — 리뷰 round 1 반영 (액션 도달 가능성 실측 §1, 액션 공유 계층 §3-7, 계승 가드 §3-4·§3-5, 토큰 정정 §3-6, snap-to-grid 제거 반영, Phase 1.5 신설).
 

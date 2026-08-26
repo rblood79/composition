@@ -21,7 +21,7 @@ Implemented — 2026-08-12 (리뷰 round 1 승인 `docs/adr/reviews/177.md` → 
 - 저장/복원 경로 미발견 — 로드 시 `initializePagePositions` (`elements.ts:1938`) 가 배치를 **재계산**한다. 같은 날 라이브 세션에서 새로고침 후 사용자 배치가 초기 정렬로 소실되는 것을 실측 확인.
 - Figma/Pencil 은 프레임(페이지) 위치가 문서 데이터다 — 이동은 undo 대상이고 재로드 후 유지된다.
 
-[ADR-176](../176-canvas-authoring-gesture-and-page-position-optimization.md) (Implemented 2026-08-01) 은 페이지 드래그의 gesture/presentation 축을 결정하면서 "document schema migration 이나 새 저장 필드를 만들지 않는다" 를 명시적 경계로 뒀다. 본 ADR 은 그 의도적 이연분인 **데이터 모델 축**의 결정이다.
+[ADR-176](176-canvas-authoring-gesture-and-page-position-optimization.md) (Implemented 2026-08-01) 은 페이지 드래그의 gesture/presentation 축을 결정하면서 "document schema migration 이나 새 저장 필드를 만들지 않는다" 를 명시적 경계로 뒀다. 본 ADR 은 그 의도적 이연분인 **데이터 모델 축**의 결정이다.
 
 **3-domain**: D1/D2/D3 무관 — canonical document 의 authoring 데이터 + builder-system 상태 축. 페이지 캔버스 배치는 Preview/Publish 출력에 영향이 없다 (Figma 와 동일 — 문서 데이터지만 산출물 무관).
 

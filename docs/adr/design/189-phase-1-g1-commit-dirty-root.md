@@ -1,6 +1,6 @@
 # ADR-189 Phase 1 / G1 evidence — commit dirty-root 도출
 
-> 대상: [ADR-189](../189-commit-lane-incremental-record.md) Phase 1.
+> 대상: [ADR-189](../completed/189-commit-lane-incremental-record.md) Phase 1.
 > 산출: `apps/builder/src/builder/presentation/commitPatchPlan.ts` (+ 동명 테스트 14건).
 
 ## 1. 무엇을 만들었나
