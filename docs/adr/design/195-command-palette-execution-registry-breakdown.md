@@ -1,6 +1,6 @@
 # ADR-195 Breakdown: 명령 팔레트 실행 경로 — command registry 승격
 
-> 2026-08-27 초안. ADR 본문: [195-command-palette-execution-registry.md](../195-command-palette-execution-registry.md).
+> 2026-08-27 초안. ADR 본문: [195-command-palette-execution-registry.md](../completed/195-command-palette-execution-registry.md).
 > Phase 0 inventory 는 본 문서의 표를 갱신하는 commit 으로 freeze 한다 (M3 — 추정/실측 gap 은
 > inventory 보강이지 fork 사유가 아님).
 
@@ -24,14 +24,14 @@
 | 정의                     | `config/keyboardShortcuts.ts` `SHORTCUT_DEFINITIONS` **71개** (`ShortcutId = keyof typeof`, 리터럴 union). 카테고리: system 3 · navigation 7 · panels 13 · canvas 34 · properties 6 · nodes 8                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | 핸들러 소재 (정의 경유)  | `bindHandlersToDefinitions` 호출 **7곳** — `hooks/useGlobalKeyboardShortcuts.ts:622-673` (42 id, `BuilderCore.tsx:377` 에서 마운트) · `panels/properties/CanvasSelectionShortcuts.tsx:269-300` (16 id, `BuilderCore.tsx:1155` host — ADR-155 Activity gating 중에도 등록 유지) · `workspace/canvas/BuilderCanvas.tsx:1032-1041` (zoomToSelection — frameAreas 컨텍스트 필요) · `panels/styles/StylesPanel.tsx:150-165` (toggleFocusMode·toggleSections — `collapsedSections` 로컬 state) · `panels/properties/PropertiesPanel.tsx:684` (copy/pasteProperties) · `components/overlay/CommandPalette.tsx:140-149` (commandPalette) · `main/BuilderHeader.tsx:101-108` (openProject). **등록 현황: unique 63 / 등록 65** — `treeNav*` 6·`treeSelect`·`treeSelectSpace` 8개는 어느 등록에도 없다 (RAC `TreeBase` 네이티브 키보드, `panels/nodes/tree/LayerTree/LayerTree.tsx:226` — D1). "Step C 미연결 11 → 0" 은 tree 8 을 뺀 집계였다 (2026-08-27 리뷰 정정) |
 | 손수 선언 등록 (id 없음) | 5건 — `workspace/canvas/viewport/useViewportControl.ts:476-511` Space keydown/keyup (pan cursor) · `workspace/canvas/hooks/useCentralCanvasPointerHandlers.ts:145` Escape 드래그 취소 · `dashboard/index.tsx:431` ⌘K (다른 화면) · `CanvasSelectionShortcuts.tsx:255-268` ⌘C/⌘V `panel:properties` (canvas 쪽 `copy`/`paste` 와 동작이 달라 정의 공유 불가 — 2026-08-27 주석). 전부 **키보드 전용으로 남긴다**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| 중복 id 등록             | **2건** — `escape` (global `handleEscape` / CanvasSelectionShortcuts `handleEscapeClearSelection`) · `detachInstance` (global `handleDetachInstance` `:238-263` / csel `handleDetachSelectedInstance` `:126-142`, 둘 다 `requestEditingSemanticsDetachConfirmation` 경유). 키보드는 리스너 2개가 각자 발화 (capture:document vs bubble:window, stopPropagation 없음) — `detachInstance` 는 확인 다이얼로그가 두 번 뜰 수 있는 기존 결함 (§7 후속). 나머지 61개는 1곳, tree 8 은 0곳                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 중복 id 등록             | **2건** — `escape` (global `handleEscape` / CanvasSelectionShortcuts `handleEscapeClearSelection`) · `detachInstance` (global `handleDetachInstance` `:238-263` / csel `handleDetachSelectedInstance` `:126-142`, 둘 다 `requestEditingSemanticsDetachConfirmation` 경유). 키보드는 리스너 2개가 각자 실행 (capture:document vs bubble:window, stopPropagation 없음) — `detachInstance` 는 확인 다이얼로그가 두 번 뜰 수 있는 기존 결함 (§7 후속). 나머지 61개는 1곳, tree 8 은 0곳                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | registry 내부            | `hooks/useKeyboardShortcutsRegistry.ts:293-352` — `useEffect` 안에서 `handleKeyEvent` 클로저가 `shortcuts` 배열을 잡고 `addEventListener`. **핸들러를 밖으로 노출하는 경로 없음**. `KeyboardShortcut` 에 `id` 필드 없음 (`:63-99`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | scope 판정               | `hooks/useActiveScope.ts` `determineScope` — modal(`[role=dialog][aria-modal]`) → text-editing → 선언 scope(`data-shortcut-scope`) → canvas → 포커스 패널 → 활성 패널(우측 우선) → global. `focusin`/DOM 변화로 갱신. **팔레트가 열리면 scope 는 `modal`** 이라 열린 뒤에는 원래 컨텍스트를 알 수 없다. 헤더 메뉴 popover 는 `modal` 이 **아니다** — RAC Popover 1.20 은 `role=dialog` 만 두고 `aria-modal` 없음 (`dist/private/Popover.mjs:118,180`; shared 래퍼 `packages/shared/src/components/Popover.tsx:93-98` 도 Dialog 미포함). **Phase 0 live 실측 (2026-08-27)**: 캔버스 클릭 후 `canvas-focused` → 헤더 ☰ 열면 `activeElement` 가 `div.header-menu[role=menu] < div.header-menu-popover[role=dialog]`(aria-modal 없음, `data-overlay-container` 없음) 로 옮겨가 `isModalOpen()` false · `isCanvasFocused()` false · `data-panel-id` 없음 → **canvas 가 6단계(활성 패널 우측 우선)/7단계(global) 로 밀린다**. `scopeAtOpen` fallback 경로 필요 확정 (§3-3) |
 | 팔레트                   | `CommandPalette.tsx` — 목록 = 정의 71 전부 (`:109-116`). `executeCommand` switch **12 case** (`:168-216`): 패널 토글 11 + openProject. `default` 는 주석만. RAC `ModalOverlay` 가 닫힐 때 트리거로 포커스 복원                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 팔레트 실행 가능         | **12 / 71** (17%). 미실행 59 = 연속·포커스 전용 19 (escape·Tab·방향키 8·트리 8) + 실행돼야 하는 40 (undo/redo·줌 7·복사 3·z-order 4·복제·그룹 2·모두 선택·삭제 2·정렬 6·분배 2·속성/스타일 복사 4·포커스 모드·섹션 토글·눈금자·팔레트 자신)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | 액션 층 공유             | `workspace/canvas/actions/canvasActions.ts` — `alignSelection`/`distributeSelection`/`groupSelection`/`ungroupSelection` 을 컨텍스트 메뉴 provider (`workspace/canvas/contextMenu/canvasContextMenuProviders.ts:196-208`) 와 CanvasSelectionShortcuts (`:206-211`) 가 **같이 부른다**. 중복은 액션이 아니라 **바인딩**(컨텍스트 조립 + 로컬 state) 이다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | 정적 게이트              | `config/shortcutDisplay.static.test.ts` 4조항 — glyph 격리 / 패널 정의→`shortcutId` / ⌥ 조합 `code` / **패널 정의→팔레트 case** (조항 4 는 본 ADR 로 switch 가 사라지면 재정의 대상)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| 키보드 회귀 oracle       | 2026-08-27 재점검 스크립트 — 실물 macOS 형태(⌥ 문자 변환 포함) 26 조합 발화 26/26, 입력창 포커스 7 조합, 툴팁 16/16 (§6 에 재현 스니펫)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 키보드 회귀 oracle       | 2026-08-27 재점검 스크립트 — 실물 macOS 형태(⌥ 문자 변환 포함) 26 조합 동작 26/26, 입력창 포커스 7 조합, 툴팁 16/16 (§6 에 재현 스니펫)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 ### Phase 0 재grep (착수 직전 필수)
 
@@ -97,7 +97,7 @@ CommandPalette
 ```
 
 - **키보드 경로는 한 줄도 바뀌지 않는다.** 등록 hook 이 effect 안에서 store 에 **추가로** 게시할 뿐이고,
-  `handleKeyEvent` 는 종전 클로저 그대로다. 26/26 발화 oracle 이 회귀 판정이다.
+  `handleKeyEvent` 는 종전 클로저 그대로다. 26/26 동작 oracle 이 회귀 판정이다.
 - 핸들러는 **컴포넌트 클로저를 그대로 담는다** — StylesPanel 의 `collapsedSections`, BuilderCanvas 의
   `computeSelectionBoundsForHitTest` 를 store 로 끌어올리지 않는다. 그래서 컴포넌트가 언마운트되면
   (StylesPanel 은 선택 없으면 `EmptyState` 로 갈아끼움) 등록이 사라지고 팔레트에서도 실행 불가로 표시된다 —
@@ -203,12 +203,12 @@ priority: number; allowInInput: boolean; disabled: boolean; seq: number }` — `
 - [x] Phase 0: 재grep 6종 결과가 §2 와 일치 — 6/6 일치, baseline 갱신 불요 (§2 하단 표)
 - [x] Phase 0: 헤더 메뉴 popover 열린 상태 실측 — canvas 가 6/7단계로 밀림 확인, `scopeAtOpen` fallback 규칙 §3-3 에 확정
 - [x] Phase 0: 연속 명령 12개 전부 1회 실행 성립 → `palette:false` 는 §3-4 표 9개로 확정
-- [ ] Phase 1: 키보드 oracle 26/26 · 입력창 7 · 툴팁 16 전부 동일
-- [ ] Phase 1: 정적 게이트 4조항 PASS (변경 전과 동일)
-- [ ] Phase 2: 팔레트 switch 0 case · `usePanelLayout` import 0
-- [ ] Phase 2: 정적 게이트 민감도 — `bindHandlersToDefinitions` 배열에서 id 하나 제거 → RED · tree 8 은 allowlist 로 GREEN
-- [ ] Phase 3: 팔레트 실행 ≥ 20 · scope 불일치 5 · 미등록 1 · 키보드 oracle 재실행
-- [ ] Phase 3: 실행 불가 항목 수 = `palette:false` 9 뿐 (그 외 0) — 팔레트 footer 카운트로 확인
+- [x] Phase 1: 키보드 oracle 26/26 · 입력창 7/7 동일 (툴팁은 표기 SSOT 정적 게이트로 대체 확인)
+- [x] Phase 1: 정적 게이트 4조항 PASS (변경 전과 동일) → Phase 2 에서 5조항으로 재정의
+- [x] Phase 2: 팔레트 switch 0 case · `usePanelLayout` import 0
+- [x] Phase 2: 정적 게이트 민감도 — `zoomToFit` 등록 제거 시 `["zoomToFit"]` 로 RED (확인 후 원복) · tree 8 은 allowlist 로 GREEN
+- [x] Phase 3: 팔레트 실행 **23건** · scope 불일치 4(캔버스)/37(패널) · 미등록 2 · 키보드 oracle 26/26 + 입력창 7/7 (§6-2)
+- [x] Phase 3: 목록 62 = 71 − `palette:false` 9, footer `실행 가능 56 / 62` (캔버스 기준) — 실행 불가 6건은 전부 scope/언마운트 사유이고 registry 누락 0
 - [ ] Phase 4: CHANGELOG (팔레트 실행 12 → N / 흐림 표시 신규) · README Implemented
 
 ## 6. 재현 스니펫
@@ -313,6 +313,41 @@ JSON.stringify({
 기대 `caught: "26/26"`. ⌘O 는 페이지를 떠나므로 마지막에 따로 1회. 파괴적 명령(delete/cut/ungroup)은
 사용자 프로젝트에서 실행하지 않는다.
 
+## 6-2. Phase 3 live 게이트 결과 (2026-08-27 — HEAD `515d53b4f`)
+
+라이브 빌더(`localhost:5173`, 프로젝트 KEY) Chrome 조작 + store 관측.
+
+### G3 — 팔레트 실행
+
+팔레트에서 골라 **실제로 동작한 명령 23건** (파괴적 명령 delete/cut/ungroup 은 제외):
+
+| 카테고리 | 명령                                                                           | 관측된 변화                                    |
+| -------- | ------------------------------------------------------------------------------ | ---------------------------------------------- |
+| 탐색     | 화면에 맞추기 · 100%로 확대 · 200%로 확대                                      | 헤더 줌 표시 200% → 100%, 캔버스 배율 변화     |
+| 시스템   | 다시 실행 ×3 · 실행 취소 ×2                                                    | `historyInfo.currentIndex` 1→4, 9→8→7          |
+| 패널     | 노드 · 컴포넌트 · 데이터테이블 · 테마 · 인터랙션 · 히스토리 · 모니터 ×2 · AI · 설정 | 해당 패널 등장/사라짐 (스크린샷)               |
+| 캔버스   | 눈금자 토글 ×2                                                                 | 좌·상단 눈금자 표시/해제                       |
+| 캔버스   | 모두 선택                                                                      | `selectedElementIds` 1 → 50                    |
+| 캔버스   | 선택 해제                                                                      | 50 → 0                                         |
+| 캔버스   | 맨 앞으로                                                                      | `childrenMap` index 8 → 10 (실행 취소로 원복)  |
+| 캔버스   | 복제                                                                           | `elementsMap` 53 → 54 (실행 취소로 원복)       |
+
+- **표시 3상태 실측**: 캔버스에서 열면 `실행 가능 56 / 62` — scope 불일치 4(속성 복사/붙여넣기 · 스타일 복사/붙여넣기, "속성 패널에서 실행할 수 있습니다" 힌트), 미등록 2(포커스 모드 토글 · 모든 섹션 펼침/접힘 — 선택이 없어 StylesPanel 이 `EmptyState` 로 언마운트된 상태). 패널 포커스에서 열면 `실행 가능 25 / 62` 로 캔버스 명령 37건이 흐려진다.
+- **실행 불가 항목을 골라도 아무 것도 돌지 않는다** — 팔레트도 닫히지 않는다 (`onAction` 에서 거름).
+- **목록 62 = 71 − `palette:false` 9**. 등록 실측 unique 63 / entry 65, 중복 2건(`escape`·`detachInstance`), tree 8 미등록 — breakdown §2 와 일치.
+- 키보드 oracle 재실행: canvas 13 + global 13 = **26/26 동작**, 입력창 포커스 **7/7**.
+
+### G4 — 비용
+
+| 항목                  | 기준        | 실측                                                                    |
+| --------------------- | ----------- | ------------------------------------------------------------------------- |
+| 번들 (JS gz 총합)     | ≤ +2KB gz   | **+764 B** — baseline `a7a32cc9f` 1,517,072 → Phase 1 1,517,351(+279) → Phase 2 1,517,836 |
+| 번들 (CSS gz)         | —           | +39 B                                                                    |
+| 목록 판정 62항목      | 열기 p95 +1ms 이내 | **0.88 µs/회** (중앙값, 5×5000회 블록 측정) — 기준의 1/1000 이하        |
+| keydown 경로          | diff 0      | `handleKeyEvent`/`matchesShortcut`/`matchesScope`/`addEventListener` 변경 0 (git diff) |
+
+**측정 함정 (기록)**: 처음엔 +14,535 B gz 로 나왔는데, baseline 을 git worktree 에서, 비교 대상을 메인 트리에서 빌드한 조건 차이였다. 같은 형태의 worktree 두 개로 다시 재니 +764 B. 번들 비교는 **빌드 위치까지 동일 조건**이어야 한다 (같은 커밋 재빌드는 해시까지 동일 — 빌드 자체는 결정적).
+
 ## 7. 비스코프 / 후속
 
 - **컨텍스트 메뉴(ADR-182)·액션 바(ADR-192) 의 바인딩을 registry 로 통합** — 지금은 세 표면이 같은
@@ -323,7 +358,7 @@ JSON.stringify({
 - **`when` 조건**(VS Code 식 — "선택 2개 이상일 때만") 은 scope 보다 세밀한 게이트다. Entry 에
   `enabled?: () => boolean` 자리를 비워 두되 본 ADR 은 scope 만 쓴다 — 정렬은 `alignSelection` 이 스스로
   `multiSelectMode` 를 검사하므로 지금은 필요 없다.
-- **`detachInstance` 키보드 이중 발화** — global(capture:document) 과 csel(bubble:window) 이 같은 정의로 각자
+- **`detachInstance` 키보드 이중 실행** — global(capture:document) 과 csel(bubble:window) 이 같은 정의로 각자
   확인 다이얼로그를 띄운다 (§2 중복 id). HC1 상 본 ADR 은 손대지 않는다 — 한쪽 등록 제거는 별도 수정.
 - **키보드 dispatcher 단일화** (리스너 N개 → registry 를 읽는 1개) 는 capture/document vs bubble/window
   순서 의미를 바꾸므로 본 ADR 밖 (§Alternatives D 기각 사유).

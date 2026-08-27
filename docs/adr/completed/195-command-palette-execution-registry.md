@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted — 2026-08-27 (리뷰 round 1 승인 — HIGH 1 / MED 2 / LOW 3 fixed, LOW 1 deferred, pending 0)
+Implemented — 2026-08-27 (Phase 0~4 종결. 리뷰 round 1 승인 — HIGH 1 / MED 2 / LOW 3 fixed, LOW 1 deferred, pending 0)
 
-> 출처: 2026-08-27 단축키 재배치 세션 — 정의(`SHORTCUT_DEFINITIONS`)·표기(`formatShortcut`) 를 SSOT 로 세운 뒤 팔레트를 재점검하니 **71개를 나열하고 12개만 실행**된다. 사용자 판정 "버그" 후 ADR 착수 지시. 완전 신규 주제 (fork 아님) — 전제 기록은 [breakdown §1](design/195-command-palette-execution-registry-breakdown.md).
+> 출처: 2026-08-27 단축키 재배치 세션 — 정의(`SHORTCUT_DEFINITIONS`)·표기(`formatShortcut`) 를 SSOT 로 세운 뒤 팔레트를 재점검하니 **71개를 나열하고 12개만 실행**된다. 사용자 판정 "버그" 후 ADR 착수 지시. 완전 신규 주제 (fork 아님) — 전제 기록은 [breakdown §1](../design/195-command-palette-execution-registry-breakdown.md).
 
 ## Context
 
@@ -14,7 +14,7 @@ Accepted — 2026-08-27 (리뷰 round 1 승인 — HIGH 1 / MED 2 / LOW 3 fixed,
 
 2026-08-27 실측 (breakdown §2):
 
-- 팔레트(`CommandPalette.tsx`) 는 정의 71개를 전부 나열하고 footer 에 `↵ 실행` 을 표시하며 `ListBox onAction` 을 건다. 그러나 `executeCommand` 의 switch (`CommandPalette.tsx:168-216`) 는 **12 case** (패널 토글 11 + 프로젝트 열기) 뿐이고 `default` 는 _"키보드 이벤트로 시뮬레이션 — 향후 command registry 통합 시 개선"_ 주석만 있다. 나머지 **59개는 골라도 팔레트만 닫힌다.** 키보드 경로는 전부 정상(26/26 발화) — 팔레트라는 두 번째 진입점만 핸들러에 닿지 못한다.
+- 팔레트(`CommandPalette.tsx`) 는 정의 71개를 전부 나열하고 footer 에 `↵ 실행` 을 표시하며 `ListBox onAction` 을 건다. 그러나 `executeCommand` 의 switch (`CommandPalette.tsx:168-216`) 는 **12 case** (패널 토글 11 + 프로젝트 열기) 뿐이고 `default` 는 _"키보드 이벤트로 시뮬레이션 — 향후 command registry 통합 시 개선"_ 주석만 있다. 나머지 **59개는 골라도 팔레트만 닫힌다.** 키보드 경로는 전부 정상(26/26 동작) — 팔레트라는 두 번째 진입점만 핸들러에 닿지 못한다.
 - 근본 원인은 **핸들러가 registry 의 `useEffect` 클로저 안에 갇혀 있다**는 것이다 (`useKeyboardShortcutsRegistry.ts:293-352`). `KeyboardShortcut` 에는 `id` 조차 없어(`:63-99`) 등록된 뒤에는 어느 정의의 핸들러인지 알 수 없다. 핸들러는 7곳에 흩어져 각 컴포넌트의 로컬 컨텍스트를 잡고 있다 — StylesPanel 의 `collapsedSections`, BuilderCanvas 의 `computeSelectionBoundsForHitTest`, CanvasSelectionShortcuts 의 `getLegacyElementsMap`. 팔레트가 12개만 구현한 이유도 그것만 `usePanelLayout` 으로 팔레트가 직접 부를 수 있었기 때문이다.
 - 팔레트가 열리면 `useActiveScope` 가 `modal` 을 돌려주므로(`useActiveScope.ts:212-218` `determineScope` 1순위) 열린 뒤에는 **원래 컨텍스트(캔버스인지 어느 패널인지)를 알 수 없다** — 실행 가능 여부를 판정하려면 열기 전 scope 를 잡아 둬야 한다.
 - 액션 층은 이미 공유돼 있다: 정렬·분배·그룹은 `canvasActions.ts` 를 컨텍스트 메뉴(ADR-182, `canvasContextMenuProviders.ts:196-208`)와 단축키(`CanvasSelectionShortcuts.tsx:206-211`)가 같이 부른다. 중복된 것은 액션이 아니라 **바인딩**(컨텍스트 조립 + 로컬 state) 이다. 따라서 필요한 것은 핸들러 재구현이 아니라 **등록된 바인딩을 두 번째 소비자가 조회할 수 있게 하는 것**이다.
@@ -22,7 +22,7 @@ Accepted — 2026-08-27 (리뷰 round 1 승인 — HIGH 1 / MED 2 / LOW 3 fixed,
 
 **Hard Constraints**:
 
-1. **키보드 경로 무변경** — 등록 hook 의 `handleKeyEvent`·listener 부착(capture/target)·우선순위 판정은 한 줄도 바뀌지 않는다. 회귀 oracle = 2026-08-27 재점검 스크립트 (실물 macOS 형태 26 조합 발화 **26/26** · 입력창 포커스 7 조합 · 툴팁 16/16, breakdown §6) 동일 결과 + 정적 게이트 기존 3조항 PASS.
+1. **키보드 경로 무변경** — 등록 hook 의 `handleKeyEvent`·listener 부착(capture/target)·우선순위 판정은 한 줄도 바뀌지 않는다. 회귀 oracle = 2026-08-27 재점검 스크립트 (실물 macOS 형태 26 조합 동작 **26/26** · 입력창 포커스 7 조합 · 툴팁 16/16, breakdown §6) 동일 결과 + 정적 게이트 기존 3조항 PASS.
 2. **팔레트 실행 가능 = 등록된 전부** — 팔레트에서 골라 아무 일도 안 나는 항목은 `palette: false` 로 명시한 것(breakdown §3-4, 9개 상한) 외 **0**. 등록이 있고 scope 가 맞는데 실행되지 않는 항목 0. 현재 12/71 → 목표 62/71 — 등록 실측 unique 63 (71 − tree 8; tree 8 은 RAC `TreeBase` 네이티브 키보드라 registry 밖, breakdown §2) 에서 `commandPalette` 자신을 뺀 수. Phase 0 inventory 가 확정.
 3. **팔레트 자체 핸들러 0** — `executeCommand` 의 switch case 12 → 0. 팔레트는 registry 조회만 한다.
 4. **per-keydown 비용 증가 0** — registry 게시는 effect 본문(마운트/deps 변경)에서만, keydown 경로에 코드 추가 없음. 팔레트 열기 p95 는 종전과 같다 (목록은 71 항목 memo).
@@ -53,7 +53,7 @@ Accepted — 2026-08-27 (리뷰 round 1 승인 — HIGH 1 / MED 2 / LOW 3 fixed,
 - 설명: `executeCommand(id)` → close → 포커스 복원 대기 → `document.dispatchEvent(new KeyboardEvent("keydown", {key, code, metaKey…}))`. 기존 listener 가 받아 처리.
 - 근거: Electron 앱이 `webContents.sendInputEvent` 로 쓰는 패턴. 코드 변경이 팔레트 한 곳.
 - 위험:
-  - 기술: **H** — 이번 세션이 실측한 함정 그대로다: ⌥ 조합은 `key` 가 문자 변환된 값이어야 실물과 같고(`code` 매칭 정의만 통과), 발화 여부가 **닫힌 뒤 포커스가 어디로 갔는가**에 달려 `useActiveScope` 재판정 타이밍(`focusin` → setState) 과 경합한다. `allowInInput` 없는 명령은 복원 포커스가 입력창이면 무시된다. 실패가 조용하다 (`defaultPrevented` 로만 판정).
+  - 기술: **H** — 이번 세션이 실측한 함정 그대로다: ⌥ 조합은 `key` 가 문자 변환된 값이어야 실물과 같고(`code` 매칭 정의만 통과), 동작 여부가 **닫힌 뒤 포커스가 어디로 갔는가**에 달려 `useActiveScope` 재판정 타이밍(`focusin` → setState) 과 경합한다. `allowInInput` 없는 명령은 복원 포커스가 입력창이면 무시된다. 실패가 조용하다 (`defaultPrevented` 로만 판정).
   - 성능: L.
   - 유지보수: **H** — 팔레트가 registry 의 매칭 규칙(modifier 판정·capture 순서·우선순위) 을 역으로 재현해야 하고, registry 가 바뀌면 같이 깨진다. 실행 가능 여부 표시가 불가능 (dispatch 해 보기 전엔 모른다).
   - 마이그레이션: L.
@@ -71,9 +71,9 @@ Accepted — 2026-08-27 (리뷰 round 1 승인 — HIGH 1 / MED 2 / LOW 3 fixed,
 ### 대안 D: dispatcher 단일화 — listener N개를 없애고 registry 를 읽는 keydown listener 1개로 통합
 
 - 설명: A 의 store 를 두되 keydown 처리도 store 에서 한다. 각 `useKeyboardShortcutsRegistry` 는 등록만 하고 listener 를 붙이지 않는다.
-- 근거: 구조적으로 가장 깔끔 — 우선순위가 전역 하나로 정해지고 `escape` 2중 발화 같은 것이 사라진다.
+- 근거: 구조적으로 가장 깔끔 — 우선순위가 전역 하나로 정해지고 `escape` 이중 실행 같은 것이 사라진다.
 - 위험:
-  - 기술: **H** — 현재 listener 들의 phase/target 이 다르다 (`useGlobalKeyboardShortcuts.ts:683-687` capture+document, 나머지 bubble+window). `escape` 는 두 리스너가 각자 발화해 모달 닫기와 선택 해제를 나눠 맡고, 액션 바(ADR-192) 는 `data-shortcut-scope` 로 캔버스 리스너를 막는다. 단일화하면 이 순서 의미가 전부 재설계 대상이고 HC1 (키보드 경로 무변경) 을 정면으로 어긴다.
+  - 기술: **H** — 현재 listener 들의 phase/target 이 다르다 (`useGlobalKeyboardShortcuts.ts:683-687` capture+document, 나머지 bubble+window). `escape` 는 두 리스너가 각자 실행돼 모달 닫기와 선택 해제를 나눠 맡고, 액션 바(ADR-192) 는 `data-shortcut-scope` 로 캔버스 리스너를 막는다. 단일화하면 이 순서 의미가 전부 재설계 대상이고 HC1 (키보드 경로 무변경) 을 정면으로 어긴다.
   - 성능: L.
   - 유지보수: M.
   - 마이그레이션: **H** — 회귀 oracle 26 조합으로는 순서 의미 변화를 다 못 잡는다.
@@ -105,15 +105,15 @@ Accepted — 2026-08-27 (리뷰 round 1 승인 — HIGH 1 / MED 2 / LOW 3 fixed,
 
 - **대안 B 기각**: 이번 세션에서 실측한 함정(⌥ 문자 변환 · 포커스 복원 타이밍 · `allowInInput`) 을 팔레트 안에 그대로 옮겨 심는다. 실행 가능 여부를 미리 알 수 없어 "골라도 아무 일 없음" 이 구조적으로 남는다. 기존 주석의 계획이지만 채택하지 않는다.
 - **대안 C 기각**: 결함이 아닌 것(컴포넌트 로컬 컨텍스트) 까지 옮긴다. 캔버스 컨텍스트의 store 미러링은 selection fan-out 을 키우는 방향이고, 규모가 5배 이상이며 되돌리기 어렵다. A 로 팔레트가 해결된 뒤에도 필요해지지 않는다.
-- **대안 D 기각**: HC1 위반. listener phase/target 순서 의미(escape 2중 발화 · 액션 바 scope 선언) 재설계는 본 문제와 무관한 별도 결정이고, 회귀 oracle 이 순서 변화를 다 잡지 못한다. breakdown §7 에 후속 판단으로 남긴다.
+- **대안 D 기각**: HC1 위반. listener phase/target 순서 의미(escape 이중 실행 · 액션 바 scope 선언) 재설계는 본 문제와 무관한 별도 결정이고, 회귀 oracle 이 순서 변화를 다 잡지 못한다. breakdown §7 에 후속 판단으로 남긴다.
 
-> 구현 상세: [195-command-palette-execution-registry-breakdown.md](design/195-command-palette-execution-registry-breakdown.md)
+> 구현 상세: [195-command-palette-execution-registry-breakdown.md](../design/195-command-palette-execution-registry-breakdown.md)
 
 ## Risks
 
 | ID  | 위험                                                                                                                                                                                                                                                       | 심각도 | 대응                                                                                                                                                                                                                                                                                                               |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| R1  | 중복 id **2건** — `escape`(global `handleEscape` / csel `handleEscapeClearSelection`) 와 `detachInstance`(global `handleDetachInstance` / csel `handleDetachSelectedInstance`, 둘 다 확인 다이얼로그) — 키보드는 둘 다 발화하지만 팔레트는 하나만 부른다   |  MED   | 규칙 명문화: priority 내림차순 → 등록 순번 내림차순 (`resolve`). 단위 테스트가 두 id 모두 잠금. `escape` 는 둘 다 무해하고 Phase 0 에서 `palette:false` 후보이기도 하다. `detachInstance` 는 어느 쪽이든 같은 확인 흐름이라 팔레트 결과 동일 — 키보드 경로의 이중 발화 자체는 HC1 상 본 ADR 밖 (breakdown §7 후속) |
+| R1  | 중복 id **2건** — `escape`(global `handleEscape` / csel `handleEscapeClearSelection`) 와 `detachInstance`(global `handleDetachInstance` / csel `handleDetachSelectedInstance`, 둘 다 확인 다이얼로그) — 키보드는 둘 다 동작하지만 팔레트는 하나만 부른다   |  MED   | 규칙 명문화: priority 내림차순 → 등록 순번 내림차순 (`resolve`). 단위 테스트가 두 id 모두 잠금. `escape` 는 둘 다 무해하고 Phase 0 에서 `palette:false` 후보이기도 하다. `detachInstance` 는 어느 쪽이든 같은 확인 흐름이라 팔레트 결과 동일 — 키보드 경로의 이중 실행 자체는 HC1 상 본 ADR 밖 (breakdown §7 후속) |
 | R2  | `scopeAtOpen` 을 잘못 잡음 — 헤더 메뉴 경유 열기에서 메뉴 포커스로 scope 가 이미 global/활성 패널로 밀려 있거나, 입력창 포커스 상태에서 ⌘/ 로 열면 `text-editing` 이 잡혀 캔버스 명령이 전부 흐림                                                          |  MED   | Phase 0 실측 항목 (breakdown 체크리스트 — 메뉴 열린 동안의 `useActiveScope` 값). `text-editing`/overlay 경유면 직전 non-overlay scope 로 fallback 하는 규칙을 둘지 실측 후 결정. jsdom 테스트가 scope 별 executable 집합을 잠근다                                                                                  |
 | R3  | 닫힘 뒤 실행 순서 — RAC 포커스 복원 전에 핸들러가 돌아 DOM 포커스를 읽는 핸들러가 어긋남                                                                                                                                                                   |  MED   | `requestAnimationFrame` 1회 뒤 실행 + 테스트. scope 판정은 `scopeAtOpen` 으로 이미 끝났으므로 복원 위치는 실행 여부에 영향 없음                                                                                                                                                                                    |
 | R4  | deps 변경으로 effect 재실행 시 해제→재등록 사이 팔레트가 열려 있으면 순간적으로 "미등록" 표시. global 등록부는 deps 에 `activeScope` 가 있어(`useGlobalKeyboardShortcuts.ts:683`) focusin 마다 42건 재게시 → 상시 구독이면 팔레트가 포커스 이동마다 재렌더 |  LOW   | 팔레트 목록은 `getSnapshot` 구독이라 다음 렌더에 복구. 실행 시점에 `resolve` 를 다시 부르므로 stale 실행 없음. **구독은 열린 동안만** (`isOpen` 조건) — 닫힌 팔레트는 store 를 읽지 않는다                                                                                                                         |
@@ -137,6 +137,10 @@ Accepted — 2026-08-27 (리뷰 round 1 승인 — HIGH 1 / MED 2 / LOW 3 fixed,
 | Phase | 상태                | 근거                                                                                                                                                                                                                                    |
 | ----- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | Implemented (08-27) | G0 통과 — 재grep 6/6 일치 (baseline 갱신 불요) · 헤더 메뉴 popover 실측 (canvas 가 활성 패널/global 로 밀림 → `scopeAtOpen` fallback 규칙 확정) · 연속 명령 12개 전부 1회 실행 성립 → `palette:false` 9개 확정. breakdown §2·§3-3·§3-4 갱신 |
+| 1     | Implemented (08-27) | `0a8272f69` — G1 통과. `stores/commandRegistry.ts` 신설 + `KeyboardShortcut.id` + effect 게시/해제. vitest 17 PASS · type-check PASS · 정적 게이트 4조항 PASS · 키보드 oracle 26/26 · 입력창 7/7 · live 게시 unique 63 / entry 65 (중복 2, tree 8 미등록) |
+| 2     | Implemented (08-27) | `515d53b4f` — G2 통과. 팔레트 switch 12 → 0, `scopeAtOpen` 렌더 중 확정, 3상태 목록, `palette:false` 9건, 정적 게이트 조항 4 교체 + allowlist 조항 신설. vitest 27 PASS · type-check PASS · 게이트 민감도 RED 확인 · keydown diff 0 |
+| 3     | Implemented (08-27) | G3·G4 통과 (코드 변경 0). 팔레트 실행 23건 · scope 불일치/미등록 표시 실측 · 키보드 oracle 재실행 동일 · 번들 +764 B gz · 목록 판정 0.88 µs. 결과는 breakdown §6-2 |
+| 4     | Implemented (08-27) | CHANGELOG · README · 본 문서 종결 |
 
 ## Consequences
 
@@ -150,6 +154,6 @@ Accepted — 2026-08-27 (리뷰 round 1 승인 — HIGH 1 / MED 2 / LOW 3 fixed,
 ### Negative
 
 - `KeyboardShortcut` 에 `id` 필드가 생기고 `useKeyboardShortcutsRegistry` effect 가 store 를 만진다 — hook 이 순수 listener 에서 "listener + 게시" 로 책임이 하나 늘어난다.
-- 중복 id 우선순위 규칙이 새로 생긴다 (R1 — 현재 `escape`·`detachInstance` 2건). 키보드는 리스너별로 각자 발화하지만 팔레트는 하나만 부르므로, 같은 id 를 두 곳에 등록하는 것이 앞으로는 "팔레트에서 어느 쪽이 도나" 를 고려해야 하는 결정이 된다.
+- 중복 id 우선순위 규칙이 새로 생긴다 (R1 — 현재 `escape`·`detachInstance` 2건). 키보드는 리스너별로 각자 동작하지만 팔레트는 하나만 부르므로, 같은 id 를 두 곳에 등록하는 것이 앞으로는 "팔레트에서 어느 쪽이 도나" 를 고려해야 하는 결정이 된다.
 - 팔레트 목록이 71 → 62 로 줄고 일부가 흐리게 보인다 — 사용자-가시 변경 (CHANGELOG 필수).
 - 컨텍스트 메뉴·액션 바는 여전히 registry 밖 (R6) — 세 표면 통합은 후속 판단으로 남는다.
