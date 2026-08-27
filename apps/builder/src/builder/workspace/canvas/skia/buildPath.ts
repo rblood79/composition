@@ -69,58 +69,82 @@ interface PathBuilderLike extends MutablePathLike {
   delete(): void;
 }
 
-function createPathSink(target: MutablePathLike): PathSink {
-  return {
-    moveTo(x, y) {
-      target.moveTo(x, y);
-      return this;
-    },
-    lineTo(x, y) {
-      target.lineTo(x, y);
-      return this;
-    },
-    quadTo(x1, y1, x2, y2) {
-      target.quadTo(x1, y1, x2, y2);
-      return this;
-    },
-    cubicTo(x1, y1, x2, y2, x, y) {
-      target.cubicTo(x1, y1, x2, y2, x, y);
-      return this;
-    },
-    arcToTangent(x1, y1, x2, y2, radius) {
-      target.arcToTangent(x1, y1, x2, y2, radius);
-      return this;
-    },
-    addRect(rect) {
-      target.addRect(rect);
-      return this;
-    },
-    addRRect(rrect) {
-      target.addRRect(rrect);
-      return this;
-    },
-    addCircle(cx, cy, radius) {
-      target.addCircle(cx, cy, radius);
-      return this;
-    },
-    addOval(oval) {
-      target.addOval(oval);
-      return this;
-    },
-    addArc(oval, startDeg, sweepDeg) {
-      target.addArc(oval, startDeg, sweepDeg);
-      return this;
-    },
-    setFillType(fill) {
-      target.setFillType(fill);
-      return this;
-    },
-    close() {
-      // 0.42.0 런타임은 선언과 달리 builder를 반환한다. ownership 신호로 쓰지 않는다.
-      target.close();
-      return this;
-    },
-  };
+class PathSinkAdapter implements PathSink {
+  constructor(private readonly target: MutablePathLike) {}
+
+  moveTo(x: number, y: number): this {
+    this.target.moveTo(x, y);
+    return this;
+  }
+
+  lineTo(x: number, y: number): this {
+    this.target.lineTo(x, y);
+    return this;
+  }
+
+  quadTo(x1: number, y1: number, x2: number, y2: number): this {
+    this.target.quadTo(x1, y1, x2, y2);
+    return this;
+  }
+
+  cubicTo(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    x: number,
+    y: number,
+  ): this {
+    this.target.cubicTo(x1, y1, x2, y2, x, y);
+    return this;
+  }
+
+  arcToTangent(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    radius: number,
+  ): this {
+    this.target.arcToTangent(x1, y1, x2, y2, radius);
+    return this;
+  }
+
+  addRect(rect: InputRect): this {
+    this.target.addRect(rect);
+    return this;
+  }
+
+  addRRect(rrect: InputRRect): this {
+    this.target.addRRect(rrect);
+    return this;
+  }
+
+  addCircle(cx: number, cy: number, radius: number): this {
+    this.target.addCircle(cx, cy, radius);
+    return this;
+  }
+
+  addOval(oval: InputRect): this {
+    this.target.addOval(oval);
+    return this;
+  }
+
+  addArc(oval: InputRect, startDeg: number, sweepDeg: number): this {
+    this.target.addArc(oval, startDeg, sweepDeg);
+    return this;
+  }
+
+  setFillType(fill: FillType): this {
+    this.target.setFillType(fill);
+    return this;
+  }
+
+  close(): this {
+    // 0.42.0 런타임은 선언과 달리 builder를 반환한다. ownership 신호로 쓰지 않는다.
+    this.target.close();
+    return this;
+  }
 }
 
 /** 완성된 immutable Path를 반환한다. delete 책임은 caller 또는 scope.track에 있다. */
@@ -137,7 +161,7 @@ export function buildPath(
   if (typeof PathBuilder === "function") {
     const builder = new PathBuilder();
     try {
-      build(createPathSink(builder));
+      build(new PathSinkAdapter(builder));
     } catch (error) {
       builder.delete();
       throw error;
@@ -147,7 +171,7 @@ export function buildPath(
 
   const path = new ck.Path();
   try {
-    build(createPathSink(path));
+    build(new PathSinkAdapter(path));
     return path;
   } catch (error) {
     path.delete();
