@@ -101,6 +101,28 @@
   outline-offset: -2px;
 }
 
+/**
+ * 실행 불가 항목 — 숨기지 않고 흐리게 둔다 (ADR-195).
+ *
+ * 팔레트는 명령을 고르는 자리이면서 단축키를 배우는 자리다. 지금 실행할 수
+ * 없는 명령도 "어디서 실행되는가" 를 힌트로 보여 주면 다음에 그 자리에서 키를
+ * 쓰게 된다 (Figma quick actions 가 불가 항목을 비활성으로 두는 방식).
+ */
+.command-palette-item[data-executable="false"] {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.command-palette-item[data-executable="false"]:hover,
+.command-palette-item[data-executable="false"][data-focused="true"] {
+  background: transparent;
+}
+
+.command-palette-item[data-executable="false"][data-focus-visible="true"] {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
 /* Item Content */
 .command-palette-item-content {
   display: flex;

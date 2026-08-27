@@ -117,7 +117,7 @@ export type ShortcutHandlers = Partial<Record<ShortcutId, () => void>>;
  *
  * 등록이 key/modifier/scope 를 손으로 다시 적으면 정의는 치트시트 표기용으로만
  * 남고 실동작은 등록이 결정한다 — scope 를 생략한 등록은 registry 가 global 로
- * 간주해 모달 위에서도 발화했다 (2026-08-27 code-review #13). 핸들러가 있는
+ * 간주해 모달 위에서도 동작했다 (2026-08-27 code-review #13). 핸들러가 있는
  * id 만 등록하고 나머지 필드는 전부 `SHORTCUT_DEFINITIONS` 에서 읽는다.
  */
 export function bindHandlersToDefinitions(

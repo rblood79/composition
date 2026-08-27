@@ -255,7 +255,7 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   // ⌃ 는 ⌥ 의 문자 변환을 억제하지 않는다 (억제하는 것은 ⌘ 뿐) — 실물 macOS 에서
-  // ⌃⌥M 의 `event.key` 는 "µ" 라 `key` 로만 맞추면 영영 발화하지 않는다.
+  // ⌃⌥M 의 `event.key` 는 "µ" 라 `key` 로만 맞추면 영영 동작하지 않는다.
   // ⌥ 계열에 code 를 부여할 때 `alt`/`altShift` 만 훑고 `ctrlAlt` 를 빠뜨렸던
   // 자리다 (2026-08-27 실측 — key "µ" 무시 / key "m" 잡힘).
   toggleMonitor: {
@@ -334,6 +334,7 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
+    palette: false,
     description: "Open Command Palette",
     i18n: { ko: "명령 팔레트 열기" },
   },
@@ -534,7 +535,7 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   // ⌥ 계열은 macOS 에서 문자를 바꾼다 (⌥A→å, ⌥S→ß, ⌥⇧V→◊). `key` 로 맞추면
-  // 실물 키보드에서 영영 발화하지 않으므로 이 그룹은 `code` 로 맞춘다 —
+  // 실물 키보드에서 영영 동작하지 않으므로 이 그룹은 `code` 로 맞춘다 —
   // 종전 `distributeV`(⌥⇧V, code 없음)가 그 상태였다.
   alignLeft: {
     key: "a",
@@ -650,8 +651,6 @@ export const SHORTCUT_DEFINITIONS = {
     description: "Paste Properties",
     i18n: { ko: "속성 붙여넣기" },
   },
-
-
 
   // ==========================================
   // Styles Panel (priority: 50)
@@ -806,10 +805,12 @@ export const SHORTCUT_DEFINITIONS = {
   // 를 캔버스 재배치와 분리하면서 표기만 이관).
   // ==========================================
 
-
-
   // ==========================================
   // Nodes Panel / Tree Navigation (priority: 50)
+  //
+  // 아래 8종은 RAC `TreeBase` 네이티브 키보드가 처리한다 — 어느
+  // `bindHandlersToDefinitions` 에도 등록이 없고(D1), 포커스된 행에 작용하므로
+  // 팔레트에서 고를 수 있어도 실행할 대상이 없다. `palette: false` (ADR-195).
   // ==========================================
 
   treeNavDown: {
@@ -818,6 +819,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "nodes",
     scope: "panel:nodes",
     priority: SHORTCUT_PRIORITY.NODES,
+    palette: false,
     description: "Next Item",
     i18n: { ko: "다음 항목" },
   },
@@ -828,6 +830,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "nodes",
     scope: "panel:nodes",
     priority: SHORTCUT_PRIORITY.NODES,
+    palette: false,
     description: "Previous Item",
     i18n: { ko: "이전 항목" },
   },
@@ -838,6 +841,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "nodes",
     scope: "panel:nodes",
     priority: SHORTCUT_PRIORITY.NODES,
+    palette: false,
     description: "Expand",
     i18n: { ko: "펼치기" },
   },
@@ -848,6 +852,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "nodes",
     scope: "panel:nodes",
     priority: SHORTCUT_PRIORITY.NODES,
+    palette: false,
     description: "Collapse",
     i18n: { ko: "접기" },
   },
@@ -858,6 +863,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "nodes",
     scope: "panel:nodes",
     priority: SHORTCUT_PRIORITY.NODES,
+    palette: false,
     description: "First Item",
     i18n: { ko: "첫 번째 항목" },
   },
@@ -868,6 +874,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "nodes",
     scope: "panel:nodes",
     priority: SHORTCUT_PRIORITY.NODES,
+    palette: false,
     description: "Last Item",
     i18n: { ko: "마지막 항목" },
   },
@@ -878,6 +885,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "nodes",
     scope: "panel:nodes",
     priority: SHORTCUT_PRIORITY.NODES,
+    palette: false,
     description: "Select Item",
     i18n: { ko: "항목 선택" },
   },
@@ -889,6 +897,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "nodes",
     scope: "panel:nodes",
     priority: SHORTCUT_PRIORITY.NODES,
+    palette: false,
     description: "Select Item",
     i18n: { ko: "항목 선택" },
   },

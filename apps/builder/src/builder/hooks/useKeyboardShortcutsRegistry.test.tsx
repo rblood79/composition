@@ -127,7 +127,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
     expect(stale).not.toHaveBeenCalled();
   });
 
-  it("keydown 경로는 종전대로 발화한다 (HC1)", () => {
+  it("keydown 경로는 종전대로 동작한다 (HC1)", () => {
     const duplicate = vi.fn();
     const shortcuts = bindHandlersToDefinitions(["duplicate"], { duplicate });
     renderHook(() =>

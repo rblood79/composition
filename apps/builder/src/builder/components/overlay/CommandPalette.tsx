@@ -1,19 +1,26 @@
 /**
  * CommandPalette - 커맨드 팔레트 컴포넌트
  *
- * Cmd+K로 열리는 검색 가능한 명령어 팔레트
- * 모든 단축키를 검색하고 실행할 수 있음
+ * ⌘/ 로 열리는 검색 가능한 명령어 팔레트. 정의(`SHORTCUT_DEFINITIONS`)를 나열하고
+ * **실행은 `commandRegistry` 조회로** 한다 (ADR-195) — 팔레트 자체 핸들러 0.
+ *
+ * 종전에는 `executeCommand` 의 switch 12 case (패널 토글 11 + 프로젝트 열기) 만
+ * 실행되고 나머지 59개는 골라도 팔레트만 닫혔다. 핸들러가 등록 hook 의 effect
+ * 클로저에 갇혀 조회할 길이 없었기 때문이다. 이제 등록 hook 이 `(id → handler,
+ * scope)` 를 게시하므로 팔레트는 그것을 읽어 실행 가능 여부까지 표시한다.
  *
  * @since Phase 7 구현 (2025-12-29)
- *
- * @example
- * ```tsx
- * // BuilderCore에서 사용
- * <CommandPalette />
- * ```
+ * @updated ADR-195 — command registry 소비 (2026-08-27)
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+  useSyncExternalStore,
+} from "react";
 import {
   Modal,
   Dialog,
@@ -22,7 +29,6 @@ import {
   ModalOverlay,
 } from "react-aria-components";
 import { Command, X } from "lucide-react";
-import { useNavigate } from "react-router";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
@@ -30,10 +36,17 @@ import {
 import {
   bindHandlersToDefinitions,
   formatShortcut,
+  useActiveScope,
   useKeyboardShortcutsRegistry,
-  usePanelLayout,
   type ShortcutCategory,
 } from "@/builder/hooks";
+import { matchesScope } from "../../hooks/useActiveScope";
+import {
+  getCommandRegistrySnapshot,
+  resolveCommand,
+  subscribeCommandRegistry,
+} from "../../stores/commandRegistry";
+import type { ShortcutDefinition, ShortcutScope } from "../../types/keyboard";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { PanelHeader } from "../panel/PanelHeader";
 import { ActionIconButton } from "../ui/ActionIconButton";
@@ -44,11 +57,17 @@ import "./CommandPalette.css";
 // Types
 // ============================================
 
+/** 실행 불가 사유 3종 — 흐림 표시의 힌트가 여기서 나온다. */
+type CommandAvailability = "executable" | "scope-mismatch" | "unregistered";
+
 interface CommandItem {
   id: ShortcutId;
   label: string;
   category: ShortcutCategory;
   shortcut: string;
+  scope: ShortcutScope | readonly ShortcutScope[];
+  availability: CommandAvailability;
+  hint: string | null;
 }
 
 export interface CommandPaletteProps {
@@ -73,6 +92,49 @@ const CATEGORY_LABELS: Record<ShortcutCategory, string> = {
   nodes: "노드",
 };
 
+/** scope 불일치 힌트 — "무엇을 해야 실행되는가" 를 말한다. */
+const SCOPE_HINTS: Record<ShortcutScope, string> = {
+  global: "지금은 실행할 수 없습니다",
+  "canvas-focused": "캔버스에서 실행할 수 있습니다",
+  "panel:properties": "속성 패널에서 실행할 수 있습니다",
+  "panel:styles": "스타일 패널에서 실행할 수 있습니다",
+  "panel:events": "인터랙션 패널에서 실행할 수 있습니다",
+  "panel:nodes": "노드 패널에서 실행할 수 있습니다",
+  modal: "지금은 실행할 수 없습니다",
+  "text-editing": "지금은 실행할 수 없습니다",
+};
+
+function scopeHint(
+  scope: ShortcutScope | readonly ShortcutScope[],
+): string | null {
+  // 배열이면 첫 scope 를 대표로 삼는다 — 정의의 첫 항목이 주 컨텍스트다
+  // (`copy` = ["canvas-focused", "panel:events"] → "캔버스에서").
+  const first: ShortcutScope = Array.isArray(scope)
+    ? (scope as readonly ShortcutScope[])[0]
+    : (scope as ShortcutScope);
+  return SCOPE_HINTS[first] ?? null;
+}
+
+/**
+ * `scopeAtOpen` 갱신을 건너뛸 상태인지 — 팔레트가 열려 있는 동안(modal)과,
+ * 포커스가 오버레이 안이거나 입력창일 때.
+ *
+ * 헤더 메뉴 "Shortcuts" 경유 열기가 이것을 필요로 한다 (2026-08-27 실측):
+ * 메뉴를 열면 포커스가 `div.header-menu[role=menu] < div.header-menu-popover
+ * [role=dialog]` 로 옮겨 가는데, popover 는 `aria-modal` 이 없어 modal 로 잡히지
+ * 않으면서 캔버스 판정도 빗나가 scope 가 활성 패널/global 로 밀린다. 그 값을
+ * 잡으면 캔버스 명령이 전부 흐려진다. `text-editing` 도 같은 이유로 뺀다 —
+ * 어느 정의도 그 scope 를 갖지 않아 캔버스 명령이 전부 실행 불가가 된다.
+ */
+function isTransientScope(scope: ShortcutScope): boolean {
+  if (scope === "modal" || scope === "text-editing") return true;
+  return Boolean(
+    document.activeElement?.closest(
+      '[role="dialog"],[role="menu"],[role="alertdialog"]',
+    ),
+  );
+}
+
 // ============================================
 // Component
 // ============================================
@@ -89,6 +151,27 @@ export function CommandPalette({
   // Controlled vs Uncontrolled
   const isOpen = controlledOpen ?? internalOpen;
 
+  // 열기 전 컨텍스트 — 팔레트가 열리면 scope 는 `modal` 이라 원래 컨텍스트를
+  // 알 수 없다. 마지막 "안정" scope 를 따라가다가 열리는 렌더에서 그 값을 굳힌다.
+  //
+  // effect 가 아니라 **렌더 중** 굳히는 이유: `isOpen` 을 prop 으로 받는 controlled
+  // 사용에서는 `handleOpenChange` 를 거치지 않고 열린 채로 마운트될 수 있고,
+  // effect 로 미루면 첫 렌더가 잘못된 scope(초기값 global)로 목록을 만든다.
+  // 두 ref 쓰기 모두 같은 입력에 같은 결과를 내고 밖에 영향이 없다.
+  const activeScope = useActiveScope();
+  const stableScopeRef = useRef<ShortcutScope>("global");
+  const scopeAtOpenRef = useRef<ShortcutScope>("global");
+  const wasOpenRef = useRef(false);
+
+  if (!isTransientScope(activeScope)) {
+    stableScopeRef.current = activeScope;
+  }
+  if (isOpen && !wasOpenRef.current) {
+    scopeAtOpenRef.current = stableScopeRef.current;
+  }
+  wasOpenRef.current = isOpen;
+  const scopeAtOpen = scopeAtOpenRef.current;
+
   // 열림 상태 변경 핸들러 (검색어 초기화 포함)
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -104,15 +187,53 @@ export function CommandPalette({
     [controlledOnOpenChange],
   );
 
-  // 모든 명령어 목록 생성
+  // registry 구독은 **열린 동안만** — global 등록부는 deps 에 `activeScope` 가
+  // 있어 focusin 마다 42건을 재게시한다. 닫힌 팔레트가 포커스 이동마다
+  // 재렌더되지 않게 한다 (ADR-195 R4).
+  const registrySnapshot = useSyncExternalStore(
+    useCallback(
+      (onStoreChange: () => void) =>
+        isOpen ? subscribeCommandRegistry(onStoreChange) : () => {},
+      [isOpen],
+    ),
+    getCommandRegistrySnapshot,
+    getCommandRegistrySnapshot,
+  );
+
+  // 모든 명령어 목록 — `palette: false` 는 뺀다 (팔레트 자신 + 레이어 트리 8종)
   const allCommands: CommandItem[] = useMemo(() => {
-    return Object.entries(SHORTCUT_DEFINITIONS).map(([id, def]) => ({
-      id: id as ShortcutId,
-      label: def.i18n?.ko || def.description,
-      category: def.category,
-      shortcut: formatShortcut({ key: def.key, modifier: def.modifier }),
-    }));
-  }, []);
+    // `SHORTCUT_DEFINITIONS` 는 `as const satisfies` 라 인덱싱 결과가 71개 리터럴
+    // 객체의 union 이다 — `palette` 처럼 일부 항목에만 있는 optional 필드는 union
+    // 상태로 읽을 수 없다. 공통 형태로 한 번 넓혀서 읽는다 (`satisfies` 가 대입
+    // 가능성을 보증) — `bindHandlersToDefinitions` 와 같은 어법.
+    return (
+      Object.entries(SHORTCUT_DEFINITIONS) as [ShortcutId, ShortcutDefinition][]
+    )
+      .filter(([, def]) => def.palette !== false)
+      .map(([id, def]) => {
+        const entry = registrySnapshot.get(id);
+        const availability: CommandAvailability = !entry
+          ? "unregistered"
+          : matchesScope(def.scope, scopeAtOpen)
+            ? "executable"
+            : "scope-mismatch";
+
+        return {
+          id,
+          label: def.i18n?.ko || def.description,
+          category: def.category,
+          shortcut: formatShortcut({ key: def.key, modifier: def.modifier }),
+          scope: def.scope,
+          availability,
+          hint:
+            availability === "executable"
+              ? null
+              : availability === "scope-mismatch"
+                ? scopeHint(def.scope)
+                : "지금은 실행할 수 없습니다",
+        };
+      });
+  }, [registrySnapshot, scopeAtOpen]);
 
   // 검색 결과 필터링
   const filteredCommands = useMemo(() => {
@@ -127,6 +248,13 @@ export function CommandPalette({
         cmd.shortcut.toLowerCase().includes(query),
     );
   }, [allCommands, search]);
+
+  const executableCount = useMemo(
+    () =>
+      filteredCommands.filter((cmd) => cmd.availability === "executable")
+        .length,
+    [filteredCommands],
+  );
 
   // 커스텀 이벤트로 외부에서 열기
   useEffect(() => {
@@ -160,70 +288,39 @@ export function CommandPalette({
     }
   }, [isOpen]);
 
-  // 패널 토글 액션을 위한 훅
-  const { togglePanel } = usePanelLayout();
-  const navigate = useNavigate();
-
-  // 명령 실행
+  /**
+   * 명령 실행 — 팔레트는 registry 를 조회할 뿐 자체 핸들러를 갖지 않는다.
+   *
+   * 닫고 나서 RAC `ModalOverlay` 가 트리거로 포커스를 복원한 **뒤** 부른다.
+   * 핸들러 대부분은 store 를 읽지만 `handleEscape` 류는 DOM 포커스를 읽는다.
+   * scope 판정은 `scopeAtOpen` 으로 이미 끝났으므로 복원 위치는 실행 여부에
+   * 영향을 주지 않는다.
+   */
   const executeCommand = useCallback(
     (commandId: ShortcutId) => {
-      // 팔레트 닫기
+      const entry = resolveCommand(commandId);
       handleOpenChange(false);
+      if (!entry || entry.disabled) return;
+      if (!matchesScope(entry.scope ?? "global", scopeAtOpenRef.current))
+        return;
 
-      // 패널 토글 명령 처리
-      //
-      // 종전에 여기 `openSettingsModal` / `openHistoryModal` / `openAIModal`
-      // 세 case 가 legacy modal helper를 불렀는데, 그 id 들은
-      // `SHORTCUT_DEFINITIONS` 에 **존재하지 않아** 한 번도 실행되지 않는
-      // 죽은 분기였다 (실제 정의는 `openSettings` 하나이고 아래에서 패널
-      // 토글로 처리된다). `ShortcutId` 가 `string` 으로 무너져 있어서
-      // 컴파일러가 잡지 못했다 — 2026-08-17 리터럴 union 복원으로 드러남.
-      // 팔레트에서 모달로 여는 동선이 필요하면 단축키 정의부터 추가할 것
-      // (Settings floating 진입은 BuilderHeader가 `floatPanel`을 직접 사용한다).
-      switch (commandId) {
-        case "toggleNodes":
-          togglePanel("nodes");
-          return;
-        case "toggleComponents":
-          togglePanel("components");
-          return;
-        case "toggleProperties":
-          togglePanel("properties");
-          return;
-        case "toggleStyles":
-          togglePanel("styles");
-          return;
-        case "toggleEvents":
-          togglePanel("events");
-          return;
-        case "toggleHistory":
-          togglePanel("history");
-          return;
-        case "toggleMonitor":
-          togglePanel("monitor");
-          return;
-        case "toggleDatatable":
-          togglePanel("datatable");
-          return;
-        case "toggleTheme":
-          togglePanel("theme");
-          return;
-        case "toggleAI":
-          togglePanel("ai");
-          return;
-        case "openSettings":
-          togglePanel("settings");
-          return;
-        case "openProject":
-          navigate("/dashboard");
-          return;
-        default:
-          // 다른 명령은 키보드 이벤트로 시뮬레이션
-          // (향후 command registry 통합 시 개선 가능)
-          break;
-      }
+      requestAnimationFrame(() => {
+        entry.handler();
+      });
     },
-    [handleOpenChange, togglePanel, navigate],
+    [handleOpenChange],
+  );
+
+  const handleAction = useCallback(
+    (key: React.Key) => {
+      const id = key as ShortcutId;
+      const target = allCommands.find((cmd) => cmd.id === id);
+      // 실행 불가 항목은 목록에 남기되(단축키를 배우는 자리다) 실행하지 않는다.
+      // `disabledKeys` 대신 여기서 거르는 이유는 ↑↓ 가 건너뛰지 않게 하기 위함.
+      if (!target || target.availability !== "executable") return;
+      executeCommand(id);
+    },
+    [allCommands, executeCommand],
   );
 
   // 키보드 내비게이션
@@ -280,7 +377,7 @@ export function CommandPalette({
                 aria-label="명령어 목록"
                 className="command-palette-list"
                 selectionMode="single"
-                onAction={(key) => executeCommand(key as ShortcutId)}
+                onAction={handleAction}
               >
                 {filteredCommands.map((cmd) => (
                   <ListBoxItem
@@ -288,13 +385,18 @@ export function CommandPalette({
                     id={cmd.id}
                     textValue={cmd.label}
                     className="command-palette-item"
+                    data-executable={cmd.availability === "executable"}
+                    data-availability={cmd.availability}
+                    aria-disabled={
+                      cmd.availability === "executable" ? undefined : true
+                    }
                   >
                     <div className="command-palette-item-content">
                       <span className="command-palette-item-label">
                         {cmd.label}
                       </span>
                       <span className="command-palette-item-category">
-                        {CATEGORY_LABELS[cmd.category]}
+                        {cmd.hint ?? CATEGORY_LABELS[cmd.category]}
                       </span>
                     </div>
                     <kbd className="command-palette-kbd">{cmd.shortcut}</kbd>
@@ -320,7 +422,7 @@ export function CommandPalette({
                   <kbd>esc</kbd> 닫기
                 </span>
               </div>
-              <span>{filteredCommands.length}개 명령어</span>
+              <span>{`실행 가능 ${executableCount} / ${filteredCommands.length}`}</span>
             </div>
           </div>
         </Dialog>

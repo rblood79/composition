@@ -2,7 +2,7 @@
 /**
  * ADR-195 Phase 1 — command registry 게시/해제/우선순위 계약.
  *
- * 키보드는 리스너마다 각자 발화하므로 중복 id(`escape`·`detachInstance`)가 둘 다
+ * 키보드는 리스너마다 각자 동작하므로 중복 id(`escape`·`detachInstance`)가 둘 다
  * 돌지만, 팔레트는 하나만 부를 수 있다. 그 하나를 고르는 규칙(priority 내림차순
  * → seq 내림차순)을 여기서 잠근다.
  */

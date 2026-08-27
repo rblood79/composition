@@ -68,6 +68,16 @@ export interface ShortcutDefinition {
   /** 설명 */
   description: string;
 
+  /**
+   * 명령 팔레트 노출 여부 (ADR-195). 생략 = 노출.
+   *
+   * `false` 는 **팔레트로는 실행할 수 없는 것이 맞는** 항목에만 붙인다 — 팔레트
+   * 자신과, RAC `TreeBase` 네이티브 키보드가 처리해 registry 등록 자체가 없는
+   * 레이어 트리 8종(포커스된 행에 작용하므로 팔레트가 닫히며 복원되는 포커스가
+   * 그 행이라는 보장이 없다). 정적 게이트가 allowlist 로 고정한다.
+   */
+  palette?: false;
+
   /** 다국어 설명 */
   i18n?: {
     ko?: string;
