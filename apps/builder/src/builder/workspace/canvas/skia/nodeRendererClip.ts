@@ -1,5 +1,6 @@
 import type { CanvasKit } from "canvaskit-wasm";
 import type { ClipPathShape } from "../styleConversion/styleConverter";
+import { buildPath } from "./buildPath";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 
 export function sortByStackingOrder(children: SkiaNodeData[]): SkiaNodeData[] {
@@ -39,42 +40,48 @@ export function createRoundRectPath(
 ): ReturnType<CanvasKit["Path"]["prototype"]["constructor"]> {
   const [rTL, rTR, rBR, rBL] = clampCornerRadii(radii, width, height);
 
-  const path = new ck.Path();
-  path.moveTo(x + rTL, y);
-  path.lineTo(x + width - rTR, y);
+  return buildPath(ck, (path) => {
+    path.moveTo(x + rTL, y);
+    path.lineTo(x + width - rTR, y);
 
-  if (rTR > 0) {
-    path.arcToTangent(x + width, y, x + width, y + rTR, rTR);
-  } else {
-    path.lineTo(x + width, y);
-  }
+    if (rTR > 0) {
+      path.arcToTangent(x + width, y, x + width, y + rTR, rTR);
+    } else {
+      path.lineTo(x + width, y);
+    }
 
-  path.lineTo(x + width, y + height - rBR);
+    path.lineTo(x + width, y + height - rBR);
 
-  if (rBR > 0) {
-    path.arcToTangent(x + width, y + height, x + width - rBR, y + height, rBR);
-  } else {
-    path.lineTo(x + width, y + height);
-  }
+    if (rBR > 0) {
+      path.arcToTangent(
+        x + width,
+        y + height,
+        x + width - rBR,
+        y + height,
+        rBR,
+      );
+    } else {
+      path.lineTo(x + width, y + height);
+    }
 
-  path.lineTo(x + rBL, y + height);
+    path.lineTo(x + rBL, y + height);
 
-  if (rBL > 0) {
-    path.arcToTangent(x, y + height, x, y + height - rBL, rBL);
-  } else {
-    path.lineTo(x, y + height);
-  }
+    if (rBL > 0) {
+      path.arcToTangent(x, y + height, x, y + height - rBL, rBL);
+    } else {
+      path.lineTo(x, y + height);
+    }
 
-  path.lineTo(x, y + rTL);
+    path.lineTo(x, y + rTL);
 
-  if (rTL > 0) {
-    path.arcToTangent(x, y, x + rTL, y, rTL);
-  } else {
-    path.lineTo(x, y);
-  }
+    if (rTL > 0) {
+      path.arcToTangent(x, y, x + rTL, y, rTL);
+    } else {
+      path.lineTo(x, y);
+    }
 
-  path.close();
-  return path;
+    path.close();
+  });
 }
 
 export function buildClipPath(
@@ -91,38 +98,38 @@ export function buildClipPath(
       const w = width - left - right;
       const h = height - top - bottom;
       if (w <= 0 || h <= 0) return null;
-      const path = new ck.Path();
-      if (borderRadius > 0) {
-        const r = Math.min(borderRadius, Math.min(w, h) / 2);
-        const rrect = ck.RRectXY(ck.LTRBRect(x, y, x + w, y + h), r, r);
-        path.addRRect(rrect);
-      } else {
-        path.addRect(ck.LTRBRect(x, y, x + w, y + h));
-      }
-      return path;
+      return buildPath(ck, (path) => {
+        if (borderRadius > 0) {
+          const r = Math.min(borderRadius, Math.min(w, h) / 2);
+          const rrect = ck.RRectXY(ck.LTRBRect(x, y, x + w, y + h), r, r);
+          path.addRRect(rrect);
+        } else {
+          path.addRect(ck.LTRBRect(x, y, x + w, y + h));
+        }
+      });
     }
     case "circle": {
       const { radius, cx, cy } = shape;
-      const path = new ck.Path();
-      path.addCircle(cx, cy, radius);
-      return path;
+      return buildPath(ck, (path) => {
+        path.addCircle(cx, cy, radius);
+      });
     }
     case "ellipse": {
       const { rx, ry, cx, cy } = shape;
-      const path = new ck.Path();
-      path.addOval(ck.LTRBRect(cx - rx, cy - ry, cx + rx, cy + ry));
-      return path;
+      return buildPath(ck, (path) => {
+        path.addOval(ck.LTRBRect(cx - rx, cy - ry, cx + rx, cy + ry));
+      });
     }
     case "polygon": {
       const { points } = shape;
       if (points.length < 3) return null;
-      const path = new ck.Path();
-      path.moveTo(points[0].x, points[0].y);
-      for (let i = 1; i < points.length; i++) {
-        path.lineTo(points[i].x, points[i].y);
-      }
-      path.close();
-      return path;
+      return buildPath(ck, (path) => {
+        path.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+          path.lineTo(points[i].x, points[i].y);
+        }
+        path.close();
+      });
     }
     default:
       return null;
