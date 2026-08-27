@@ -331,6 +331,39 @@ query fixture가 canonical 문서를 주입하므로 측정 surface에는 영향
   검증했다. app entry는 Sign In까지 console error 0, `initCanvasKit` dynamic chunk +
   7,317,345-byte WASM cold origin 93 ms, `PathBuilder` export·WebGL surface 생성·delete PASS.
 
+#### Phase 4 G4/G5 evidence (2026-08-28)
+
+G4 첫 fresh run에서 PNG/JPEG/WebP가 실제 raster 대신 mountain placeholder로 남는 실패를
+발견했다. decode warning은 0건이었고 원인은 CanvasKit 초기화와 store 첫 sync의 경합이었다.
+`loadSkImage()`가 초기화 전 `null`을 반환한 뒤 `StoreRenderBridge.loadedImageSrcs`가 같은 src를
+이미 시도한 것으로 기록해 재시도를 막았다. 이미지 캐시가 `initCanvasKit()`의 HMR-safe 공유
+Promise를 기다린 뒤 최초 fetch/decode를 계속하도록 수정하고, 초기화 전 요청 회귀 테스트를
+추가했다. 최종 리뷰에서 init rejection의 `null` 계약과 init 대기 중 cache generation
+무효화 누락도 발견해 함께 고정했다(집중 6/6 PASS).
+
+수정 후 fresh `--force` dev server에서 다음을 확인했다.
+
+- desktop `1280×720`과 실제 browser mobile viewport `390×844`에서 9개 smoke 표면 누락 0.
+  Builder Mobile device mode도 canvas/page/workflow가 blank 없이 전환됐다.
+- PNG=파랑, JPEG=주황, WebP=보라 raster가 각각 decode됐고 placeholder와 구분됐다.
+- Orthogonal/Bezier edge, arrow와 indicator line이 source→target page 방향을 보존했다.
+- `61→60%` zoom 직후 두 snapshot frame에서 blank·경계 artifact 0.
+- CanvasKit/page error 0. supplied UUID의 project metadata 부재 warning 1종만 fixture 주입 전에
+  반복됐으며 canonical benchmark surface와 무관하다.
+- static: `codex:typecheck` 신규 위반 0, Skia directory 49파일 375 tests PASS(4 skip).
+
+0.42.0 G5는 baseline과 같은 canonical 67 elements, `1280×720`, 120 Hz, source fit 60%,
+workflow overlay ON, 각 5초 run 중 `60→61→60%` pulse 조건으로 측정했다.
+
+| edge mode  | 0.42.0 5초 p95 samples (ms) | median p95 | p99 max | FPS avg         | long task |
+| ---------- | --------------------------- | ---------- | ------- | --------------- | --------- |
+| Orthogonal | 9.3 / 9.3 / 9.3             | 9.3 ms     | 10.0 ms | 120 / 120 / 121 | 0 / 0 / 0 |
+| Bezier     | 9.3 / 9.3 / 9.3             | 9.3 ms     | 10.1 ms | 120 / 120 / 120 | 0 / 0 / 0 |
+
+두 mode의 채택 median은 `9.3 ms`로 0.40.0 baseline `9.3 ms` 대비 `+0.0%`다.
+통과 상한 `10.23 ms` 이내이며 6회 blank frame 0, long task 0이다. 따라서 builder 재사용
+fallback(`detach()`)은 필요하지 않다.
+
 ## Rollback
 
 1. `canvaskit-wasm` specifier·lockfile을 `0.40.0`으로 되돌리고 `prepare:wasm` 재실행.
@@ -346,6 +379,6 @@ query fixture가 canonical 문서를 주입하므로 측정 surface에는 영향
 - [x] G2: 7 파일 이관 완료, helper 밖 mutable `Path` 0건 (`097647105`까지).
 - [x] G5 baseline: canonical `path-heavy-117` seed + 0.40.0 p95 `9.3 ms`, 상한 `10.23 ms` (2026-08-28).
 - [x] G3: `^0.42.0` lockfile, wasm 7,317,345 bytes 로드(dev + **production 번들**), 0.40.0 분기·별칭·mock·shim 제거, type-check 0, 통합 테스트 설치 패키지 기준 PASS (2026-08-28).
-- [ ] G4: smoke 표 9항목 (zoom mismatch blit 포함) desktop/mobile PASS.
-- [ ] G5: p95 +10% 이내.
-- [ ] `docs/CHANGELOG.md` CanvasKit 0.42.0 runtime update 기록 + README Implemented 갱신.
+- [x] G4: smoke 표 9항목 (zoom mismatch blit 포함) desktop/mobile PASS (2026-08-28).
+- [x] G5: 0.42.0 p95 median `9.3 ms`, baseline 대비 `+0.0%`, 상한 `10.23 ms` 이내 (2026-08-28).
+- [x] `docs/CHANGELOG.md` CanvasKit 0.42.0 runtime update 기록 + README Implemented 갱신.

@@ -22,6 +22,11 @@ interface MockImage {
 }
 
 const createdImages: MockImage[] = [];
+let canvasKitInitialized = true;
+let initCanvasKitBehavior = async (): Promise<void> => {
+  canvasKitInitialized = true;
+};
+const initCanvasKitMock = vi.fn(() => initCanvasKitBehavior());
 
 function makeImage(): MockImage {
   const deleteFn = vi.fn();
@@ -36,7 +41,8 @@ function makeImage(): MockImage {
 }
 
 vi.mock("./initCanvasKit", () => ({
-  isCanvasKitInitialized: () => true,
+  isCanvasKitInitialized: () => canvasKitInitialized,
+  initCanvasKit: initCanvasKitMock,
   getCanvasKit: () => ({
     MakeImageFromEncoded: () => makeImage(),
   }),
@@ -68,6 +74,11 @@ async function loadUrls(count: number, offset = 0): Promise<void> {
 describe("imageCache LRU 퇴거", () => {
   beforeEach(() => {
     createdImages.length = 0;
+    canvasKitInitialized = true;
+    initCanvasKitBehavior = async () => {
+      canvasKitInitialized = true;
+    };
+    initCanvasKitMock.mockClear();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
@@ -92,6 +103,51 @@ describe("imageCache LRU 퇴거", () => {
     );
     expect(getImageCacheSize()).toBe(MAX_CACHE_SIZE + 1);
     expect(getSkImage("https://example.test/0.png")).not.toBeNull();
+  });
+
+  it("CanvasKit 초기화 전 요청도 준비 완료 후 최초 decode를 이어간다", async () => {
+    canvasKitInitialized = false;
+
+    await loadSkImage("https://example.test/early.png");
+
+    expect(initCanvasKitMock).toHaveBeenCalledTimes(1);
+    expect(getSkImage("https://example.test/early.png")).not.toBeNull();
+  });
+
+  it("CanvasKit 초기화 실패는 rejection 대신 null 계약을 유지한다", async () => {
+    canvasKitInitialized = false;
+    initCanvasKitBehavior = async () => {
+      throw new Error("init failed");
+    };
+
+    await expect(
+      loadSkImage("https://example.test/init-failure.png"),
+    ).resolves.toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("초기화 대기 중 cache clear가 발생하면 stale 요청을 폐기한다", async () => {
+    canvasKitInitialized = false;
+    let resolveInit: () => void = () => {
+      throw new Error("init resolver was not installed");
+    };
+    initCanvasKitBehavior = () =>
+      new Promise<void>((resolve) => {
+        resolveInit = () => {
+          canvasKitInitialized = true;
+          resolve();
+        };
+      });
+
+    const loading = loadSkImage("https://example.test/stale-init.png");
+    expect(initCanvasKitMock).toHaveBeenCalledTimes(1);
+
+    clearImageCache();
+    resolveInit();
+
+    await expect(loading).resolves.toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(getImageCacheSize()).toBe(0);
   });
 
   it("release 한 엔트리는 캐시에 남되 퇴거 후보가 된다", async () => {

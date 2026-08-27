@@ -2,12 +2,27 @@
 
 ## Status
 
-**Accepted — 2026-08-27 승격** (review round 1 이슈 6건 전부 fixed / pending 0 → 전제 확정,
-Phase 0 G0(API 확정)·G1(inventory 20 사이트/94 호출/7 파일) 통과. 잔여 Phase 1~4 실행 대상).
+**Implemented — 2026-08-28** (Phase 0~~4 / G0~~G5 완료. CanvasKit `0.42.0`,
+`PathBuilder` 단일 생성 경로, desktop/mobile live smoke와 p95 무회귀 검증 통과).
 
 이력: 2026-05-02 Proposed 작성 → **2026-08-27 재설계** (대상 버전 0.41.1 → 0.42.0,
 Phase 0 API spike + path inventory 실측 반영, 대안 B 위험 재평가) → 2026-08-27 착수 전 보강
-(미기재 위험 R8~R10 추가, G3 production 번들 로드 포함) → 2026-08-27 Accepted 승격
+(미기재 위험 R8~~R10 추가, G3 production 번들 로드 포함) → 2026-08-27 Accepted 승격 →
+2026-08-28 Phase 1~~4 / G0~G5 완료, Implemented 승격
+
+### 구현 결과
+
+- 20개 mutable `Path` construction site를 `buildPath` seam으로 수렴시키고,
+  `canvaskit-wasm`을 `^0.42.0`으로 올려 `PathBuilder` + `detachAndDelete()` 단일 lifecycle로
+  전환했다. 직접 mutable `Path`, 0.40.0 fallback, 로컬 shim과 mock 잔존은 0건이다.
+- fresh dev와 production chunk에서 7,317,345-byte WASM 로드, WebGL surface 생성과
+  Skia 49파일 375 tests를 통과했다.
+- G4에서 발견한 초기 이미지 placeholder 고착은 `loadSkImage()`가 CanvasKit의 공유 init
+  Promise를 기다리도록 근본 원인을 수정했다. PNG/JPEG/WebP decode, 9개 path-heavy 표면,
+  Orthogonal/Bezier edge·arrow·indicator, zoom snapshot blit을 1280×720과 390×844에서 확인했다.
+- G5 0.42.0 p95는 Orthogonal/Bezier 각 `9.3/9.3/9.3 ms`, 양쪽 median `9.3 ms`로
+  0.40.0 baseline 대비 `+0.0%`였다. 6회 long task 0, blank frame 0이며 +10% 상한
+  `10.23 ms`를 통과했다.
 
 ## Context
 
@@ -185,7 +200,7 @@ C를 채택한다. B는 C의 fallback (helper 도입 중 문제가 생기면 남
   분산된다. C의 fallback으로만 둔다.
 - **대안 D 기각**: dependency update를 renderer architecture rewrite로 확대한다.
 
-> 구현 상세: [117-canvaskit-pathbuilder-upgrade-breakdown.md](design/117-canvaskit-pathbuilder-upgrade-breakdown.md)
+> 구현 상세: [117-canvaskit-pathbuilder-upgrade-breakdown.md](../design/117-canvaskit-pathbuilder-upgrade-breakdown.md)
 
 ## Risks
 
@@ -210,10 +225,10 @@ C를 채택한다. B는 C의 fallback (helper 도입 중 문제가 생기면 남
 | ------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | G0: API 확인        | Phase 0 종료                     | ✅ **2026-08-27 통과** — 0.42.0 타입 + Node 런타임 spike로 `PathBuilder` 생성, `detach/detachAndDelete/snapshot`, `close()` 반환(builder), `setFillType` 참조 반환 확정                                                                                                                                                                                                                        | —                                                                                    |
 | G1: path inventory  | Phase 0 종료 + Phase 2 착수 직전 | ✅ 2026-08-27 20곳/94호출(path 명령 87 + close 6 + setFillType 1)/7파일 기록. Phase 2 착수 시 재grep 결과가 표와 다르면 표 갱신 commit 후 진행                                                                                                                                                                                                                                                 | inventory 갱신 전 이관 금지                                                          |
-| G2: helper 수렴     | Phase 2 종료                     | skia 디렉터리에서 `new ck.Path(`는 helper 파일 1곳, breakdown Phase 2 Migration Gate 정규식(`transform/offset` 제외 — `buildSpecNodeData.ts:439 rule.transform`은 Path 아님) 매치는 helper 내부뿐. `Path.MakeFromSVGString` 1곳 허용. 0.40.0 위에서 unit test + live smoke 동작 변화 0                                                                                                         | 해당 파일 commit revert                                                              |
+| G2: helper 수렴     | Phase 2 종료                     | ✅ **2026-08-27 통과** — skia 디렉터리에서 `new ck.Path(`는 helper 파일 1곳, breakdown Phase 2 Migration Gate 정규식(`transform/offset` 제외 — `buildSpecNodeData.ts:439 rule.transform`은 Path 아님) 매치는 helper 내부뿐. `Path.MakeFromSVGString` 1곳 허용. 0.40.0 위에서 unit test + live smoke 동작 변화 0                                                                                | 해당 파일 commit revert                                                              |
 | G3: dependency bump | Phase 3 종료                     | ✅ **2026-08-28 통과** — lockfile `canvaskit-wasm@0.42.0`, `public/wasm/canvaskit.wasm` 7,317,345 bytes. `PathBuilder` 단일 경로, 0.40.0 분기·`PathBuilderLike`·constructor `ReturnType`·`MockPath` 0건. type-check 신규 위반 0, 실 WASM + Skia 49파일/372테스트 PASS. fresh dev Builder 67-element seed 렌더, production chunk cold-load 93 ms + PathBuilder/WebGL surface + console error 0. | package bump revert (helper는 유지)                                                  |
-| G4: 시각 smoke      | Phase 4 종료                     | clip / partial border(dash+radius) / inset·outset / inner shadow / icon / image placeholder(+PNG·JPEG·WebP) / workflow edge 3종+arrow / overflow hatching / hover·slot marker / **zoom mismatch snapshot blit** 누락·차이 0 (desktop+mobile)                                                                                                                                                   | 해당 helper mapping 수정 또는 `drawImageOptions` 명시                                |
-| G5: 성능 무회귀     | Phase 4 종료                     | ✅ baseline 고정(2026-08-28): canonical `path-heavy-117` 67 elements, viewport 1280×720, source fit 60%, 60→61→60% pulse, Orthogonal/Bezier 각 3회 median 모두 `9.3 ms`, long task 0. 0.42.0은 p95 `10.23 ms` 이하 + blank frame 0 (`scenarios.ts` 항목 추가만으로는 fixture가 생성되지 않음)                                                                                                  | helper 내부 builder 재사용(`detach()`) 전환 → 재측정, 그래도 실패 시 0.40.0 rollback |
+| G4: 시각 smoke      | Phase 4 종료                     | ✅ **2026-08-28 통과** — 9개 표면, PNG/JPEG/WebP decode, Orthogonal/Bezier+arrow/indicator, 61→60% snapshot blit을 desktop 1280×720 + mobile 390×844에서 확인. blank·artifact·CanvasKit/page error 0. 초기 raster placeholder 고착은 `loadSkImage()`의 CanvasKit init 대기로 수정하고 회귀 테스트 고정                                                                                         | 해당 helper mapping 수정 또는 `drawImageOptions` 명시                                |
+| G5: 성능 무회귀     | Phase 4 종료                     | ✅ **2026-08-28 통과** — canonical 67 elements, 1280×720, fit 60%, 60→61→60% pulse. 0.42.0 Orthogonal/Bezier 각 p95 `9.3/9.3/9.3 ms`, median `9.3 ms`, baseline 대비 `+0.0%` ≤ `10.23 ms`. 6회 long task 0, blank frame 0, FPS 120~121                                                                                                                                                         | helper 내부 builder 재사용(`detach()`) 전환 → 재측정, 그래도 실패 시 0.40.0 rollback |
 
 ## Consequences
 

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [ADR-117 PathBuilder 전환 — 0.40.0 기준선 + CanvasKit 0.42.0] - 2026-08-28
 
+### Bug Fixes
+
+- **CanvasKit 준비 전 이미지가 영구 placeholder로 남던 초기화 경합** (ADR-117 Phase 4 / G4):
+  - `loadSkImage()`가 CanvasKit 초기화 전에 `null`을 반환하면 `StoreRenderBridge`가 해당 src를 이미 시도한 것으로 기록해 PNG/JPEG/WebP를 다시 로드하지 않았다.
+  - **Why**: 문서 store와 WASM 초기화가 병렬로 시작되는데, image cache만 준비 완료를 기다리지 않아 정상 이미지도 mountain placeholder로 고착됐다.
+  - 이미지 캐시가 `initCanvasKit()`의 공유 Promise를 기다린 뒤 최초 fetch/decode를 계속하도록 바꾸고, init 실패의 `null` 계약과 teardown generation 무효화를 회귀 테스트로 고정했다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/imageCache.ts`
+
 ### Architecture
 
 - **ADR-117 G5 — 재현 가능한 path-heavy canonical 문서**:
@@ -19,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `canvaskit-wasm` 최소 버전을 `^0.42.0`으로 올리고, 20개 path construction site를 `buildPath` 내부의 `PathBuilder` 단일 경로로 구축한다.
   - 0.40.0 fallback·`PathBuilderLike` shim·Path constructor 별칭·`MockPath`를 제거해 설치된 CanvasKit 타입과 런타임이 같은 계약을 사용한다.
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/buildPath.ts`
+- **ADR-117 Implemented**:
+  - Phase 0~~4 / G0~~G5를 완료했다. desktop 1280×720·mobile 390×844에서 9개 path-heavy 표면, PNG/JPEG/WebP, Orthogonal/Bezier edge·arrow·indicator와 zoom snapshot blit 누락 0을 확인했다.
+  - ADR 본문을 `docs/adr/completed/117-canvaskit-pathbuilder-upgrade.md`로 아카이브했다.
 
 ### Performance
 
@@ -26,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 1280×720 / 120 Hz / source page fit 60% / 60→61→60% zoom pulse 조건에서 Orthogonal·Bezier 각 3회 median이 모두 9.3 ms였다.
   - 6회 long task 0, blank frame 0, console error 0. 0.42.0 통과 상한은 +10%인 10.23 ms다.
   - 위치: `docs/adr/design/117-canvaskit-pathbuilder-upgrade-breakdown.md`
+- **CanvasKit 0.42.0 p95 `9.3 ms` — baseline 대비 `+0.0%`** (ADR-117 G5):
+  - 동일 조건에서 Orthogonal과 Bezier가 각각 `9.3/9.3/9.3 ms`, median `9.3 ms`로 +10% 상한을 통과했다.
+  - 6회 long task 0, blank frame 0, FPS 120~121이었다. builder 재사용 fallback은 필요하지 않았다.
 
 ### Infrastructure
 
@@ -34,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/workspace/canvas/benchmarks/devProfiler.ts`
 - **CanvasKit 0.42.0 배포 artifact 고정**:
   - lockfile을 `0.42.0`으로 고정하고 `prepare:wasm`이 7,317,345-byte WASM을 배포한다.
-  - fresh dev Builder, production dynamic chunk + WebGL surface, type-check, 실 WASM 통합 및 Skia 372 tests를 통과했다.
+  - fresh dev Builder, production dynamic chunk + WebGL surface, type-check, 실 WASM 통합 및 Skia 375 tests를 통과했다.
 
 ## [명령 팔레트가 실제로 실행된다 — command registry (ADR-195)] - 2026-08-27
 

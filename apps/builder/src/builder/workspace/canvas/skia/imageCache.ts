@@ -13,7 +13,11 @@
  */
 
 import type { CanvasKit, Image as SkImage } from "canvaskit-wasm";
-import { isCanvasKitInitialized, getCanvasKit } from "./initCanvasKit";
+import {
+  getCanvasKit,
+  initCanvasKit,
+  isCanvasKitInitialized,
+} from "./initCanvasKit";
 import { registerSkiaCacheDestroy } from "./disposable";
 import {
   drainPendingWasmDisposals,
@@ -156,7 +160,30 @@ let cacheGeneration = 0;
  * @returns CanvasKit Image 또는 null (로딩 실패)
  */
 export async function loadSkImage(url: string): Promise<SkImage | null> {
-  if (!url || !isCanvasKitInitialized()) return null;
+  if (!url) return null;
+
+  const requestGeneration = cacheGeneration;
+
+  // 문서/fixture는 CanvasKit WASM 초기화와 병렬로 store에 들어올 수 있다.
+  // 여기서 null로 조기 반환하면 StoreRenderBridge가 src를 이미 본 것으로
+  // 기록해 같은 문서 수명 동안 재시도하지 않으므로 raster가 영구 placeholder로
+  // 남는다. initCanvasKit의 전역 Promise가 중복 초기화를 막으므로 준비 완료를
+  // 기다린 뒤 최초 fetch/decode를 계속한다.
+  if (!isCanvasKitInitialized()) {
+    try {
+      await initCanvasKit();
+    } catch {
+      // 호출부는 fire-and-forget이며 반환 계약은 실패 시 null이다. 초기화 자체의
+      // 진단은 initAllWasm 소유이므로 여기서 rejection을 다시 전파하지 않는다.
+      return null;
+    }
+  }
+
+  // 초기화 대기 중 canvas teardown/clear가 발생한 요청은 이후 fetch/decode로
+  // 살아나면 안 된다. cache generation을 준비 대기 전부터 고정한다.
+  if (cacheGeneration !== requestGeneration) {
+    return null;
+  }
 
   // 캐시 히트
   const entry = cache.get(url);
