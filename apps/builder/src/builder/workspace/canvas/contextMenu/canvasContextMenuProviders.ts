@@ -35,6 +35,9 @@ import type {
 } from "../../../components/overlay/contextMenu";
 import type { ShortcutId } from "../../../config/keyboardShortcuts";
 import {
+  ALIGN_MIN_SELECTION,
+  DISTRIBUTE_MIN_SELECTION,
+  GROUP_MIN_SELECTION,
   alignSelection,
   copySelection,
   deleteSelection,
@@ -42,6 +45,7 @@ import {
   distributeSelection,
   groupSelection,
   paste,
+  selectableWithoutBody,
   ungroupSelection,
 } from "../actions/canvasActions";
 import { isFrameOrLegacyGroup } from "../../../stores/utils/elementGrouping";
@@ -158,58 +162,56 @@ function buildZOrderItems(element: CanvasActionElement): ContextMenuItem[] {
   ];
 }
 
-/** `distributeSelection` 은 3개 미만에서 즉시 return 한다 (canvasActions.ts) */
-const DISTRIBUTE_MIN_SELECTION = 3;
-/** `alignSelection` 은 2개 미만에서 즉시 return 한다 (canvasActions.ts) */
-const ALIGN_MIN_SELECTION = 2;
+const ALIGNMENT_TYPES: readonly AlignmentType[] = [
+  "left",
+  "center",
+  "right",
+  "top",
+  "middle",
+  "bottom",
+];
+const DISTRIBUTION_TYPES: readonly DistributionType[] = [
+  "horizontal",
+  "vertical",
+];
 
 function buildAlignmentItems(
   options: CanvasContextMenuProviderOptions,
-  /** body 를 뺀 개수 — 두 action 이 body 를 거르고 나서 최소 개수를 본다 */
-  alignableCount: number,
+  /**
+   * 분배 섹션 노출 여부 — 2 개 선택에서는 분배가 무반응 no-op 이라 만들지
+   * 않는다. 조건 미충족 항목은 숨긴다는 182 노출 정책 그대로
+   * (2026-08-27 code-review #10).
+   */
+  canDistribute: boolean,
 ): ContextMenuItem[] {
   // 다중 선택 툴바(MultiSelectStatusIndicator)와 **같은 정본**을 읽는다 —
   // 두 진입점이 다른 그림을 쓰면 같은 동작으로 안 읽힌다.
-  const alignmentIcons = ALIGNMENT_ICONS;
-  const distributionIcons = DISTRIBUTION_ICONS;
-  const alignmentTypes: AlignmentType[] = [
-    "left",
-    "center",
-    "right",
-    "top",
-    "middle",
-    "bottom",
-  ];
-  // 2 개 선택에서는 분배가 무반응 no-op 이라 만들지 않는다 — 조건 미충족
-  // 항목은 숨긴다는 182 노출 정책 그대로 (2026-08-27 code-review #10).
-  const distributionTypes: DistributionType[] =
-    alignableCount >= DISTRIBUTE_MIN_SELECTION
-      ? ["horizontal", "vertical"]
-      : [];
   const context = () => actionContext(options);
 
   return [
-    ...alignmentTypes.map((type) =>
+    ...ALIGNMENT_TYPES.map((type) =>
       actionItem(
         `align-${type}`,
         getAlignmentDescription(type),
         () => alignSelection(context(), type),
         undefined,
-        { icon: alignmentIcons[type] },
+        { icon: ALIGNMENT_ICONS[type] },
       ),
     ),
-    ...(distributionTypes.length > 0
-      ? [{ kind: "separator" as const, id: "align-distribute-separator" }]
+    ...(canDistribute
+      ? [
+          { kind: "separator" as const, id: "align-distribute-separator" },
+          ...DISTRIBUTION_TYPES.map((type) =>
+            actionItem(
+              `distribute-${type}`,
+              getDistributionDescription(type),
+              () => distributeSelection(context(), type),
+              undefined,
+              { icon: DISTRIBUTION_ICONS[type] },
+            ),
+          ),
+        ]
       : []),
-    ...distributionTypes.map((type) =>
-      actionItem(
-        `distribute-${type}`,
-        getDistributionDescription(type),
-        () => distributeSelection(context(), type),
-        undefined,
-        { icon: distributionIcons[type] },
-      ),
-    ),
   ];
 }
 
@@ -222,14 +224,17 @@ function buildElementMenuItems(
   const selectedElements = targetElementIds
     .map((id) => elementsMap.get(id))
     .filter((element): element is CanvasActionElement => element !== undefined);
-  const nonBodyElements = selectedElements.filter(
-    (element) => element.type.toLowerCase() !== "body",
-  );
-  // `groupSelection` 은 `multiSelectMode && length >= 2` 에서만 실행한다
-  // (canvasActions.ts) — 단일 선택 group 은 결정적 no-op 이었다 (code-review #10).
+  // action 층과 같은 관문(`selectableWithoutBody`)으로 body 를 거른 개수 —
+  // 노출 판정과 실행 판정이 같은 함수에서 나온다.
+  const nonBodyCount = selectableWithoutBody(
+    targetElementIds,
+    elementsMap,
+  ).length;
+  // `groupSelection` 은 body 를 거른 뒤 `GROUP_MIN_SELECTION` 이상에서만
+  // 실행한다 — 단일 선택 group 은 결정적 no-op 이었다 (code-review #10).
   const canGroupSelection =
-    selectedElements.length >= 2 &&
-    nonBodyElements.length === selectedElements.length;
+    selectedElements.length >= GROUP_MIN_SELECTION &&
+    nonBodyCount === selectedElements.length;
   const primaryElement = selectedElements[0];
   const isSingleSelection = selectedElements.length === 1;
   const isGroupSelection =
@@ -313,21 +318,20 @@ function buildElementMenuItems(
   // body 는 정렬·분배 대상이 아니다 (canvasActions 가 거른다) — ⌘A 처럼 body 가
   // 섞인 선택에서 남는 개수로 판정해야 조건 미충족 항목이 노출되지 않는다
   // (2026-08-27 관찰: dead 항목 계열).
-  if (nonBodyElements.length >= ALIGN_MIN_SELECTION) {
+  if (nonBodyCount >= ALIGN_MIN_SELECTION) {
     items.push({
       kind: "submenu",
       id: "align",
       label: "정렬 / Align",
       icon: ACTION_ICONS.align,
-      items: buildAlignmentItems(options, nonBodyElements.length),
+      items: buildAlignmentItems(
+        options,
+        nonBodyCount >= DISTRIBUTE_MIN_SELECTION,
+      ),
     });
   }
 
-  if (
-    isSingleSelection &&
-    primaryElement &&
-    primaryElement.type.toLowerCase() !== "body"
-  ) {
+  if (isSingleSelection && nonBodyCount === 1) {
     items.push({ kind: "separator", id: "component-separator" });
     items.push(
       actionItem(
@@ -386,7 +390,7 @@ function buildElementMenuItems(
     );
   }
 
-  if (nonBodyElements.length > 0) {
+  if (nonBodyCount > 0) {
     items.push({ kind: "separator", id: "delete-separator" });
     items.push(
       actionItem(

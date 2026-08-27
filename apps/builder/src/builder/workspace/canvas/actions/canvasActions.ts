@@ -117,15 +117,24 @@ function getActionElements(
  * 정렬/분배는 페이지 루트에 left/top 을 쓰고, 그룹은 body 를 새 frame 의
  * 자식으로 reparent 한다).
  */
-function selectableWithoutBody(
+export function selectableWithoutBody(
   ids: readonly string[],
-  elementsMap: CanvasActionElementsMap,
+  elementsMap: ReadonlyMap<string, { type: string }>,
 ): string[] {
   return ids.filter((id) => {
     const element = elementsMap.get(id);
     return element !== undefined && element.type.toLowerCase() !== "body";
   });
 }
+
+/**
+ * 구조 변경 행동의 최소 선택 개수 — body 를 뺀 뒤의 개수 기준.
+ * 컨텍스트 메뉴·액션 바의 노출 판정도 같은 상수를 읽는다 (한쪽만 바뀌면
+ * 조건 미충족 dead 항목이 다시 생긴다 — 2026-08-27 code-review #10 계열).
+ */
+export const GROUP_MIN_SELECTION = 2;
+export const ALIGN_MIN_SELECTION = 2;
+export const DISTRIBUTE_MIN_SELECTION = 3;
 
 /**
  * @returns 클립보드 쓰기까지 성공했으면 true. `cutSelection` 이 이 값으로
@@ -210,9 +219,7 @@ export async function duplicateSelection(
   // ADR-182 후속 (2026-08-27, ADR-192 Phase 2 live 실측): 복제는 단일 선택에서도
   // 의미가 있는데 `multiSelectMode` 게이트 탓에 메뉴·⌘D·액션 바 모두 조용한
   // no-op 이었다. 다중 선택 전용 게이트는 group/align/distribute 에만 남긴다.
-  if (selectedElementIds.length === 0 || !currentPageId) {
-    return;
-  }
+  if (!currentPageId) return;
 
   const elementsMap = getActionElements(context);
   // body 는 페이지당 1개다 — 복제하면 씬(splitPageBody first-wins)이 두 번째
@@ -251,13 +258,8 @@ export async function deleteSelection(
   const selectedIdsForDelete = [...selectedElementIds];
 
   if (selectedElementId && !selectedIdsForDelete.includes(selectedElementId)) {
-    const primaryElement = elementsMap.get(selectedElementId);
-    if (primaryElement?.type.toLowerCase() !== "body") {
-      selectedIdsForDelete.unshift(selectedElementId);
-    }
+    selectedIdsForDelete.unshift(selectedElementId);
   }
-
-  if (selectedIdsForDelete.length === 0) return;
 
   const deletableIds = selectableWithoutBody(selectedIdsForDelete, elementsMap);
   if (deletableIds.length === 0) return;
@@ -277,22 +279,19 @@ export async function groupSelection(
     updateElement,
     setSelectedElement,
   } = useStore.getState();
-  if (!multiSelectMode || selectedElementIds.length < 2 || !currentPageId) {
-    return;
-  }
+  if (!multiSelectMode || !currentPageId) return;
 
   const elementsMap = getActionElements(context);
   // 컨텍스트 메뉴는 body 가 섞인 선택에 group 항목을 만들지 않지만 ⌘G 는 그
   // 관문을 거치지 않는다 — 필터가 없으면 `createGroupFromSelection` 이 페이지
   // 루트를 새 frame 의 자식으로 reparent 한다 (2026-08-27 관찰의 같은 계열).
   const groupableIds = selectableWithoutBody(selectedElementIds, elementsMap);
-  if (groupableIds.length < 2) return;
+  if (groupableIds.length < GROUP_MIN_SELECTION) return;
 
-  const previousChildren = groupableIds
-    .map((id) => elementsMap.get(id))
-    .filter(
-      (element): element is CanvasActionStoreElement => element !== undefined,
-    );
+  // 필터를 통과한 id 는 map 에 있다
+  const previousChildren = groupableIds.map(
+    (id) => elementsMap.get(id) as CanvasActionStoreElement,
+  );
   const { groupElement, updatedChildren } = createGroupFromSelection(
     groupableIds,
     elementsMap,
@@ -364,14 +363,14 @@ export async function alignSelection(
 ): Promise<void> {
   const { multiSelectMode, selectedElementIds, batchUpdateElementProps } =
     useStore.getState();
-  if (!multiSelectMode || selectedElementIds.length < 2) return;
+  if (!multiSelectMode) return;
 
   const elementsMap = getActionElements(context);
   // ⌘A 선택에는 body 가 섞인다 — 정렬 대상에 들어가면 페이지 루트에 left/top 을
   // 쓰고, body 의 bounding box 가 전체를 덮어 나머지 요소의 정렬 기준까지
   // 무너뜨린다 (2026-08-27 관찰).
   const alignableIds = selectableWithoutBody(selectedElementIds, elementsMap);
-  if (alignableIds.length < 2) return;
+  if (alignableIds.length < ALIGN_MIN_SELECTION) return;
 
   const updates = alignElements(alignableIds, elementsMap, type);
   if (updates.length === 0) return;
@@ -401,7 +400,7 @@ export async function distributeSelection(
 ): Promise<void> {
   const { multiSelectMode, selectedElementIds, batchUpdateElementProps } =
     useStore.getState();
-  if (!multiSelectMode || selectedElementIds.length < 3) return;
+  if (!multiSelectMode) return;
 
   const elementsMap = getActionElements(context);
   // 정렬과 같은 이유 — 분배는 양 끝 요소를 고정점으로 잡는데 body 가 섞이면
@@ -410,7 +409,7 @@ export async function distributeSelection(
     selectedElementIds,
     elementsMap,
   );
-  if (distributableIds.length < 3) return;
+  if (distributableIds.length < DISTRIBUTE_MIN_SELECTION) return;
 
   const updates = distributeElements(distributableIds, elementsMap, type);
   if (updates.length === 0) return;

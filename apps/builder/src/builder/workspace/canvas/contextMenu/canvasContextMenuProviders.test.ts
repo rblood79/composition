@@ -22,6 +22,28 @@ function options(elements: CanvasActionElement[]) {
   return { getInteractiveElementsMap: () => elementsMap };
 }
 
+/** 좌표 없는 canvas-element 요청으로 메뉴를 조립한다 */
+function menuItems(targets: string[], pool: CanvasActionElement[]) {
+  return buildCanvasContextMenuItems(
+    {
+      clientX: 0,
+      clientY: 0,
+      surface: "canvas-element",
+      targetElementIds: targets,
+    },
+    options(pool),
+  );
+}
+
+/** 정렬 서브메뉴의 항목 id — 서브메뉴가 없으면 null */
+function alignSubmenuIds(
+  targets: string[],
+  pool: CanvasActionElement[],
+): string[] | null {
+  const align = menuItems(targets, pool).find((item) => item.id === "align");
+  return align?.kind === "submenu" ? align.items.map((i) => i.id) : null;
+}
+
 describe("canvas context-menu providers", () => {
   it("builds T1 selection actions and hides single-selection-only items for multi-select", () => {
     const items = buildCanvasContextMenuItems(
@@ -107,19 +129,11 @@ describe("canvas context-menu providers", () => {
   // 2026-08-27 code-review #10 — `distributeSelection` 은 3개 미만에서 즉시
   // return 이라 2개 선택의 분배 버튼은 피드백 0 인 dead 버튼이었다.
   it("2개 선택에서는 분배 항목을 만들지 않는다 (3개부터)", () => {
-    const alignSubmenu = (ids: string[]) => {
-      const items = buildCanvasContextMenuItems(
-        {
-          clientX: 0,
-          clientY: 0,
-          surface: "canvas-element",
-          targetElementIds: ids,
-        },
-        options(ids.map((id) => element(id))),
-      );
-      const align = items.find((item) => item.id === "align");
-      return align?.kind === "submenu" ? align.items.map((i) => i.id) : [];
-    };
+    const alignSubmenu = (ids: string[]) =>
+      alignSubmenuIds(
+        ids,
+        ids.map((id) => element(id)),
+      ) ?? [];
 
     const two = alignSubmenu(["a", "b"]);
     expect(two).toEqual([
@@ -142,14 +156,9 @@ describe("canvas context-menu providers", () => {
   // length >= 2` 에서만 실행한다. 단일 선택 group 은 결정적 no-op 이었다.
   it("단일 선택에는 group 을 만들지 않는다 (2개부터)", () => {
     const ids = (targets: string[], pool: string[]) =>
-      buildCanvasContextMenuItems(
-        {
-          clientX: 0,
-          clientY: 0,
-          surface: "canvas-element",
-          targetElementIds: targets,
-        },
-        options(pool.map((id) => element(id))),
+      menuItems(
+        targets,
+        pool.map((id) => element(id)),
       ).map((item) => item.id);
 
     expect(ids(["first"], ["first", "second"])).not.toContain("group");
@@ -166,20 +175,7 @@ describe("canvas context-menu providers", () => {
       element("b"),
       element("c"),
     ];
-    const build = (targets: string[]) =>
-      buildCanvasContextMenuItems(
-        {
-          clientX: 0,
-          clientY: 0,
-          surface: "canvas-element",
-          targetElementIds: targets,
-        },
-        options(pool),
-      );
-    const alignItems = (targets: string[]) => {
-      const align = build(targets).find((item) => item.id === "align");
-      return align?.kind === "submenu" ? align.items.map((i) => i.id) : null;
-    };
+    const alignItems = (targets: string[]) => alignSubmenuIds(targets, pool);
 
     // body + 요소 1개 → 정렬 대상이 1개뿐이라 서브메뉴 자체가 없다
     expect(alignItems(["body-1", "a"])).toBeNull();

@@ -45,13 +45,8 @@ export function dropEmptySeparators(
     if (result[result.length - 1].kind === "separator") continue;
     result.push(item);
   }
-  // 맨 뒤 구분선 제거
-  while (
-    result.length > 0 &&
-    result[result.length - 1].kind === "separator"
-  ) {
-    result.pop();
-  }
+  // 맨 뒤 구분선 제거 — 위 루프가 연속 구분선을 접었으므로 최대 1개다
+  if (result.at(-1)?.kind === "separator") result.pop();
   return result;
 }
 
@@ -59,12 +54,9 @@ export function buildContextMenuItems(
   request: ContextMenuRequest,
   deps: ContextMenuDeps = {},
 ) {
-  const overriddenItems = deps.modeOverride?.(request);
-  if (overriddenItems !== null && overriddenItems !== undefined) {
-    return dropEmptySeparators(overriddenItems);
-  }
-
-  return dropEmptySeparators(
-    contextMenuProviders.get(request.surface)?.(request, deps) ?? [],
-  );
+  const items =
+    deps.modeOverride?.(request) ??
+    contextMenuProviders.get(request.surface)?.(request, deps) ??
+    [];
+  return dropEmptySeparators(items);
 }

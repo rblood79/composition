@@ -153,15 +153,12 @@ function createRefOverrideProps(
   offset: { x: number; y: number },
 ): Record<string, unknown> {
   const currentStyle = (origin.props.style || {}) as Record<string, unknown>;
-  const left = parsePixels(currentStyle.left);
-  const top = parsePixels(currentStyle.top);
-
   if (!hasPositionStyle(currentStyle)) return {};
 
   return {
     style: {
-      left: `${left + offset.x}px`,
-      top: `${top + offset.y}px`,
+      left: `${parsePixels(currentStyle.left) + offset.x}px`,
+      top: `${parsePixels(currentStyle.top) + offset.y}px`,
     },
   };
 }
@@ -407,29 +404,22 @@ export function pasteMultipleElements(
       newParentId = targetParentId;
     }
 
-    // Apply offset to position/style if element is a root element
+    // 루트 요소 중 좌표를 가진 원본에만 offset 을 얹는다 (ref 경로와 동일 판정)
     let updatedProps = { ...element.props };
+    const currentStyle = (element.props.style || {}) as Record<string, unknown>;
 
-    if (copiedData.rootIds.includes(element.id)) {
-      // Apply offset to root elements — 좌표를 가진 원본에만 (ref 경로와 동일 판정)
-      const currentStyle = (element.props.style || {}) as Record<
-        string,
-        unknown
-      >;
-
-      if (hasPositionStyle(currentStyle)) {
-        const left = parsePixels(currentStyle.left);
-        const top = parsePixels(currentStyle.top);
-
-        updatedProps = {
-          ...updatedProps,
-          style: {
-            ...currentStyle,
-            left: `${left + offset.x}px`,
-            top: `${top + offset.y}px`,
-          },
-        };
-      }
+    if (
+      copiedData.rootIds.includes(element.id) &&
+      hasPositionStyle(currentStyle)
+    ) {
+      updatedProps = {
+        ...updatedProps,
+        style: {
+          ...currentStyle,
+          left: `${parsePixels(currentStyle.left) + offset.x}px`,
+          top: `${parsePixels(currentStyle.top) + offset.y}px`,
+        },
+      };
     }
 
     const newElement = normalizeExternalFillIngress(
