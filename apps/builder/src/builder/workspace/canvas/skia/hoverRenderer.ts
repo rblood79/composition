@@ -15,6 +15,7 @@ import type {
   OverflowContentInfo,
   ChildOverflowContext,
 } from "./skiaFrameHelpers";
+import { buildPath } from "./buildPath";
 import {
   getSemanticOverlayColor,
   OVERLAY_BLUE_R,
@@ -239,16 +240,19 @@ export function renderOverflowHatching(
         ? totalSpan / MAX_HATCHING_LINES
         : spacing;
 
-    const path = scope.track(new ck.Path());
-    for (let d = -(bottom - top); d < right - left; d += effectiveSpacing) {
-      // 우하향(\) 45도 대각선
-      const x0 = left + d;
-      const y0 = top;
-      const x1 = left + d + (bottom - top);
-      const y1 = bottom;
-      path.moveTo(x0, y0);
-      path.lineTo(x1, y1);
-    }
+    const path = scope.track(
+      buildPath(ck, (pathSink) => {
+        for (let d = -(bottom - top); d < right - left; d += effectiveSpacing) {
+          // 우하향(\) 45도 대각선
+          const x0 = left + d;
+          const y0 = top;
+          const x1 = left + d + (bottom - top);
+          const y1 = bottom;
+          pathSink.moveTo(x0, y0);
+          pathSink.lineTo(x1, y1);
+        }
+      }),
+    );
     canvas.drawPath(path, paint);
 
     canvas.restore();

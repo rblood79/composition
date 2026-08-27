@@ -4,6 +4,7 @@
 > 대상: [LilMGenius/paperthin](https://github.com/LilMGenius/paperthin), [LilMGenius/polysona](https://github.com/LilMGenius/polysona)  
 > 목적: 두 저장소의 agentic pattern을 분석하고 composition 개발 자동화에 적용할 수 있는 구조와 도입 순서를 제안한다.  
 > 문서 성격: 구현 전 조사·설계 제안. 이 문서 자체는 신규 ADR이나 구현 착수를 승인하지 않는다.
+> 짝 문서: [Claude Code 측 분석·대조·병합 순서](./2026-08-27-paperthin-polysona-claude-analysis.md) — 두 분석의 상충 판정과 최종 실행 순서는 그 문서 §5·§6 이 기준이고, 이 문서는 상세 근거 문서로 유지한다 (2026-08-27 Codex 확인).
 
 ## 1. 결론
 

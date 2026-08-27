@@ -2,7 +2,9 @@
 
 > 분석일: 2026-08-27
 > 작성: Claude Code (Fable 5) 세션. 짝 문서: [Codex 분석](./2026-08-27-paperthin-polysona-agent-automation-analysis.md)
-> 목적: 두 저장소를 독립 분석한 결과, composition 적용안, Codex 문서와의 항목별 대조와 병합 초안을 기록한다. 이 문서는 ADR 착수나 구현을 승인하지 않는다.
+> 목적: 두 저장소를 독립 분석한 결과, composition 적용안, Codex 문서와의 항목별 대조와 병합 순서를 기록한다. 이 문서는 ADR 착수나 구현을 승인하지 않는다.
+>
+> **역할 구분 (2026-08-27 Codex 확인)**: Codex 문서 = 두 저장소의 상세 구조·근거·composition 적용 원칙. 이 문서 = 독립 분석 대조·상충 판정·**최종 병합 순서 (§6)**. 향후 구현 기준은 §6 이며, §5 상충 3건은 Codex 가 독립 판정으로 동의했다 (polysona hook 미동작 / evidence 최소형 후 runner 보류 / 호스트별 invocation·subagent 정책 분리).
 
 ## 1. 실측 근거
 
