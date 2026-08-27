@@ -161,7 +161,7 @@ mcp__claude-in-chrome__computer(action: "screenshot", tabId: {tabId})
 
 ### Negative (발동하면 안 되는 경우)
 
-- "Button 색상 버그 수정" → ❌ 버그 수정 → systematic-debugging
+- "Button 색상 버그 수정" → ❌ 버그 수정 → `/fix` (root-cause 4단계)
 - "CSS만 변경해줘" → ❌ 스타일 수정, 컴포넌트 구조 변경 아님
 - "Store 리팩토링" → ❌ 상태 관리 작업
 - "기존 컴포넌트 삭제해줘" → ❌ 삭제 작업, 설계 워크플로 불필요

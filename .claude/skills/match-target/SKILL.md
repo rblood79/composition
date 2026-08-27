@@ -122,7 +122,7 @@ default `switch-layer`. 사용자가 명시 시 override.
 - ❌ **D2 침범 금지**: RSP 미규정 prop 신규 도입 금지
 - ❌ **수동 CSS skipCSSGeneration 부활 금지** (ADR-059 위반): mutation scope `manual-css` 는 이미 generated 가 아닌 manual CSS 파일에 한정
 - ❌ **자동 commit / push 금지**: 수렴 후에도 사용자 승인 받기 전 git 작업 금지
-- ❌ **budget 60 초과 금지**: 60 회 수렴 못 하면 본질 의문 → systematic-debugging 으로 escalate
+- ❌ **budget 60 초과 금지**: 60 회 수렴 못 하면 본질 의문 → `/fix` root-cause 4단계로 escalate
 
 ## 적용 사례 (예상 시나리오)
 
@@ -145,7 +145,7 @@ default `switch-layer`. 사용자가 명시 시 override.
 ### Negative (발동 안 함)
 
 - "Button 색상 #abc 로 바꿔줘" → ❌ 단발성 변경 (Edit 도구 직접)
-- "왜 다르게 보이는지 분석해줘" → ❌ 분석 작업 → systematic-debugging
+- "왜 다르게 보이는지 분석해줘" → ❌ 분석 작업 → `/fix` (root-cause 4단계)
 - 참조 이미지 미제공 → ❌ Phase 0 사전 조건 미충족
 - "디자인 검토만 해줘" → ❌ mutation 없음
 

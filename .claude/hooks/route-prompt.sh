@@ -57,7 +57,7 @@ if echo "$prompt" | grep -qiE "새 컴포넌트|컴포넌트 (구현|만들|추�
   hints="${hints}
 - 새 컴포넌트 워크플로:
   1. 요구사항/대안 탐색 — 대안 2개 이상 비교 (아키텍처 판단이면 \`architect\` agent)
-  2. \`component-design\` skill — React Aria/Spectrum 문서 참조
+  2. \`component-design\` skill + \`composition-patterns\` 규칙 — React Aria/Spectrum 문서 참조
   3. 다단계면 ADR design breakdown 으로 phase 분할
   4. \`implementer\` agent → \`reviewer\` agent → \`evaluator\` agent"
 fi

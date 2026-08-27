@@ -24,6 +24,8 @@
     "codex:harness": "bash scripts/codex/harness.sh",
     "codex:route": "bash scripts/codex/route-prompt.sh",
     "codex:snapshot": "bash scripts/codex/context-snapshot.sh",
+    "codex:agent-catalog": "bash scripts/codex/agent-catalog-gate.sh",
+    "hooks:selftest": "bash .claude/hooks/selftest.sh",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:coverage": "pnpm -F @composition/specs test:coverage",

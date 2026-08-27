@@ -49,7 +49,7 @@ find . -name "*.jsonl" -mtime -"$days" -print0 | xargs -0 grep -h '"name":"Agent
 echo ""
 echo "--- 미사용 핵심 Skills 경고 ---"
 used=$(find . -name "*.jsonl" -mtime -"$days" -maxdepth 2 -print0 | xargs -0 grep -hE '"skill":"[^"]+"' 2>/dev/null | grep -oE '"skill":"[^"]+"' | sort -u)
-for s in "brainstorming" "writing-plans" "verification-before-completion" "systematic-debugging" "test-driven-development"; do
+for s in "composition-patterns" "cross-check" "create-adr" "review-adr" "execute-adr"; do
   if ! echo "$used" | grep -q "$s"; then
     echo "  ⚠️  $s — 최근 ${days}일간 0회"
   fi

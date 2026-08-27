@@ -46,6 +46,7 @@ echo "1) pnpm run codex:guard        # protected-file check"
 echo "2) pnpm run codex:format       # changed-file prettier"
 echo "3) pnpm run codex:typecheck    # only when TS changed"
 echo "4) pnpm run codex:preflight    # completion gate"
+echo "5) pnpm run codex:agent-catalog # .claude <-> .agents catalog drift gate"
 
 print_section "Harness Commands"
 echo "- pnpm run codex:harness -- start"

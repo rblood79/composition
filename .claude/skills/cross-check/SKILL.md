@@ -111,7 +111,7 @@ while (이슈 테이블에 미해결 CRITICAL/HIGH 존재):
 - [ ] `pnpm type-check` 성공
 - [ ] 마지막 Fix가 새 이슈를 유발하지 않음 (회귀 재검증 완료)
 
-3회 초과 루프 시 근본 원인 의심 → systematic-debugging 스킬 전환.
+3회 초과 루프 시 근본 원인 의심 → `/fix` root-cause 4단계로 전환.
 
 ## Phase 5: 시각 파리티 검증 — Chrome MCP (dev 서버 실행 시)
 

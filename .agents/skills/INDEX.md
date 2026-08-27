@@ -5,16 +5,18 @@ skill만 여세요.
 
 ## Core Skills
 
-| Skill                  | 경로                                                           | Trigger                                     | 같이 볼 항목                           |
-| ---------------------- | -------------------------------------------------------------- | ------------------------------------------- | -------------------------------------- |
-| `composition-patterns` | [composition-patterns/SKILL.md](composition-patterns/SKILL.md) | 코드 규칙, 상태, 렌더링, 아키텍처 패턴      | `.agents/rules/*`                      |
-| `component-design`     | [component-design/SKILL.md](component-design/SKILL.md)         | 새 컴포넌트 설계/구현, 구조적 컴포넌트 변경 | `react-aria`, `react-spectrum`         |
-| `cross-check`          | [cross-check/SKILL.md](cross-check/SKILL.md)                   | CSS/WebGL/Canvas/Preview 정합성             | `canvas-rendering.md`, `css-tokens.md` |
-| `parallel-verify`      | [parallel-verify/SKILL.md](parallel-verify/SKILL.md)           | 사용자가 병렬/서브에이전트 검증을 명시      | component family별 범위                |
-| `create-adr`           | [create-adr/SKILL.md](create-adr/SKILL.md)                     | 새 ADR 생성                                 | `adr-writing.md`                       |
-| `review-adr`           | [review-adr/SKILL.md](review-adr/SKILL.md)                     | ADR/설계 문서 리뷰                          | 대상 ADR, README, changelog            |
-| `react-aria`           | [react-aria/SKILL.md](react-aria/SKILL.md)                     | React Aria API/접근성 reference             | 해당 component reference               |
-| `react-spectrum`       | [react-spectrum/SKILL.md](react-spectrum/SKILL.md)             | Spectrum Props/API reference                | 해당 component reference               |
+| Skill                  | 경로                                                           | Trigger                                            | 같이 볼 항목                           |
+| ---------------------- | -------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------- |
+| `composition-patterns` | [composition-patterns/SKILL.md](composition-patterns/SKILL.md) | 코드 규칙, 상태, 렌더링, 아키텍처 패턴             | `.agents/rules/*`                      |
+| `component-design`     | [component-design/SKILL.md](component-design/SKILL.md)         | 새 컴포넌트 설계/구현, 구조적 컴포넌트 변경        | `react-aria`, `react-spectrum`         |
+| `cross-check`          | [cross-check/SKILL.md](cross-check/SKILL.md)                   | CSS/WebGL/Canvas/Preview 정합성                    | `canvas-rendering.md`, `css-tokens.md` |
+| `parallel-verify`      | [parallel-verify/SKILL.md](parallel-verify/SKILL.md)           | 사용자가 병렬/서브에이전트 검증을 명시             | component family별 범위                |
+| `create-adr`           | [create-adr/SKILL.md](create-adr/SKILL.md)                     | 새 ADR 생성                                        | `adr-writing.md`                       |
+| `review-adr`           | [review-adr/SKILL.md](review-adr/SKILL.md)                     | ADR/설계 문서 리뷰                                 | 대상 ADR, README, changelog            |
+| `react-aria`           | [react-aria/SKILL.md](react-aria/SKILL.md)                     | React Aria API/접근성 reference                    | 해당 component reference               |
+| `react-spectrum`       | [react-spectrum/SKILL.md](react-spectrum/SKILL.md)             | Spectrum Props/API reference                       | 해당 component reference               |
+| `match-target`         | [match-target/SKILL.md](match-target/SKILL.md)                 | 참조 이미지에 맞춘 시각 수렴 루프 (사용자 명시 시) | `cross-check`                          |
+| `execute-adr`          | [execute-adr/SKILL.md](execute-adr/SKILL.md)                   | Accepted ADR 의 미반영 phase 실행 (사용자 명시 시) | design breakdown, `adr-writing.md`     |
 
 ## Selection Consumer Contract
 

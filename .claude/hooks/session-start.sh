@@ -107,12 +107,12 @@ cat <<EOF
 프롬프트에 아래 키워드 포함 시 관련 skill/agent 힌트 자동 주입:
 - "렌더링/Canvas/Skia" → cross-check + debugger
 - "ADR/아키텍처 결정" → create-adr / review-adr
-- "새 컴포넌트/S2 전환" → brainstorming → component-design → implementer
-- "버그/에러/실패" → systematic-debugging → debugger
+- "새 컴포넌트/S2 전환" → 대안 비교 → component-design → implementer
+- "버그/에러/실패" → root-cause 4단계 → debugger
 - "리팩토링" → refactorer + worktree
 - "테스트" → tester + TDD
-- "완료/머지/PR" → verification-before-completion → reviewer
-- "정정/아니야/그게 아니라" → same-session memory 적재 권고
+- "완료/머지/PR" → 실행 근거 확인 → reviewer
+- "정정/아니야/그게 아니라" → same-session memory 기록 권고
 
 ## Slash Commands (표준 워크플로)
 - \`/cross-check\` — 렌더링 정합성 검증

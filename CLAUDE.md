@@ -124,8 +124,8 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 | `/cross-check`   | CSS↔Skia 정합성 검증                                      |
 | `/new-adr`       | ADR 생성 (번호 자동 + Risk-First)                         |
 | `/impl`          | brainstorm → plan → implement → review → evaluate         |
-| `/fix`           | systematic-debugging → debugger → cross-check             |
-| `/review`        | verification-before-completion → reviewer agent           |
+| `/fix`           | root-cause 4단계 → debugger → cross-check                 |
+| `/review`        | 실행 근거 확인 → reviewer agent                           |
 | `/sweep`         | parallel-verify (패밀리 일괄)                             |
 | `/execute-adr`   | ADR 미완료 phase 자율 실행 (type-check + cross-check + main 직접 push) |
 | `/match-target`  | 참조 이미지 vision-based 수렴 루프 (visual tuning)        |

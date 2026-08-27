@@ -34,6 +34,10 @@ if echo "$PROMPT" | grep -qiE "렌더링|Skia|Canvas|WebGL|정합성|cross[- ]?c
   add_hint "rendering: use cross-check; inspect spec/CSS/Canvas paths together; finish with codex:preflight"
 fi
 
+if echo "$PROMPT" | grep -qiE "ADR[- ]?[0-9]+.{0,30}(실행|진행|next)|execute[- ]?adr|다음 ?Phase|phase ?(자동|진행|실행)"; then
+  add_hint "adr-execute: use execute-adr; Phase 0 preconditions (Status, design breakdown, clean main, type-check baseline); HIGH phases surface to user; push main directly"
+fi
+
 if echo "$PROMPT" | grep -qiE "ADR|아키텍처 결정|설계 문서|architecture decision|재검토|리뷰"; then
   add_hint "adr/review: use review-adr or create-adr; cite current file:line evidence; avoid edits for read-only review"
 fi

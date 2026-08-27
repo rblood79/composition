@@ -68,7 +68,7 @@ phase 안에서 다음 사이클 실행:
 
 ```
 1. PLAN — design breakdown 의 phase 본문에서 작업 항목 추출 (3-7 단계)
-2. RED  — TDD 적용 가능하면 vitest 실패 테스트 먼저 작성 (test-driven-development skill)
+2. RED  — TDD 적용 가능하면 vitest 실패 테스트 먼저 작성 (`tester` agent TDD)
 3. GREEN — 구현
    - 단일 영역 / LOW risk → 직접 Edit/Write
    - 다중 파일 / MEDIUM+ risk → implementer agent dispatch (worktree 격리 권장)
@@ -100,7 +100,7 @@ phase 종료 marking 전 모두 통과:
 검증 실패 시:
 
 - type-check 실패 → 즉시 fix 시도 (1회) → 재실패 시 사용자 surface
-- cross-check 실패 → `debugger` agent 위임 (systematic-debugging 4단계)
+- cross-check 실패 → `debugger` agent 위임 (root-cause 4단계)
 - Gate 조건 미충족 → 사용자 surface (Gate 강제 통과 금지)
 
 ## Phase 4: 종결 + commit + push

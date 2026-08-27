@@ -19,16 +19,18 @@
 
 ## Harness 명령
 
-| 명령                               | 용도                                          |
-| ---------------------------------- | --------------------------------------------- |
-| `pnpm run codex:session-start`     | 우선 context, changelog header, git 상태 확인 |
-| `pnpm run codex:route -- "<요청>"` | 요청을 skill/rule/gate 후보로 분류            |
-| `pnpm run codex:snapshot`          | 변경 파일 기반 handoff/precompact snapshot    |
-| `pnpm run codex:guard`             | 보호 파일 변경 차단                           |
-| `pnpm run codex:format`            | 변경 파일 Prettier                            |
-| `pnpm run codex:typecheck`         | TS 변경이 있을 때만 root type-check           |
-| `pnpm run codex:preflight`         | guard → format → typecheck                    |
-| `pnpm run codex:harness -- help`   | 단일 harness entrypoint                       |
+| 명령                               | 용도                                                                             |
+| ---------------------------------- | -------------------------------------------------------------------------------- |
+| `pnpm run codex:session-start`     | 우선 context, changelog header, git 상태 확인                                    |
+| `pnpm run codex:route -- "<요청>"` | 요청을 skill/rule/gate 후보로 분류                                               |
+| `pnpm run codex:snapshot`          | 변경 파일 기반 handoff/precompact snapshot                                       |
+| `pnpm run codex:guard`             | 보호 파일 변경 차단                                                              |
+| `pnpm run codex:format`            | 변경 파일 Prettier                                                               |
+| `pnpm run codex:agent-catalog`     | `.claude` ↔ `.agents` 카탈로그 drift 게이트 (INDEX·roster·router·hook 집합 일치) |
+| `pnpm run hooks:selftest`          | Claude hook 샘플 입력 → 기대 판정 self-test                                      |
+| `pnpm run codex:typecheck`         | TS 변경이 있을 때만 root type-check                                              |
+| `pnpm run codex:preflight`         | guard → format → typecheck                                                       |
+| `pnpm run codex:harness -- help`   | 단일 harness entrypoint                                                          |
 
 운영 원칙:
 
@@ -70,7 +72,7 @@
 
 | Legacy Claude 자산                     | Codex 대응                                |
 | -------------------------------------- | ----------------------------------------- |
-| `.claude/commands/cross-check.md`      | `.agents/skills/cross-check/SKILL.md`     |
+| `/cross-check` (skill 직접 호출)       | `.agents/skills/cross-check/SKILL.md`     |
 | `.claude/commands/new-adr.md`          | `.agents/skills/create-adr/SKILL.md`      |
 | `.claude/commands/sweep.md`            | `.agents/skills/parallel-verify/SKILL.md` |
 | `.claude/hooks/protect-files.sh`       | `pnpm run codex:guard`                    |
