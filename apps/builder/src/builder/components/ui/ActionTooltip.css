@@ -1,0 +1,82 @@
+/*
+ * Action tooltip — 라벨 + 단축키 표기 툴팁의 단일 스타일.
+ *
+ * 마크업 정본은 `ActionTooltip.tsx` 의 `withActionTooltip` 이고, 단축키 문자열은
+ * `SHORTCUT_DEFINITIONS` → `formatShortcut` 로만 파생된다. 종전에는 이 블록이
+ * `ActionIconButton.css` 안에 있어 아이콘 버튼 전용처럼 보였고, 패널 레일은
+ * 같은 클래스를 자기 JSX 에 다시 적어 마크업이 두 벌이었다.
+ */
+
+.action-tooltip {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--color-white, #fff);
+  forced-color-adjust: none;
+  outline: none;
+  padding: 4px 8px;
+  max-width: 200px;
+  font-size: 12px;
+  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  /* fixes FF gap */
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 200ms,
+    opacity 200ms;
+
+  &[data-entering],
+  &[data-exiting] {
+    transform: var(--origin);
+    opacity: 0;
+  }
+
+  &[data-placement="top"] {
+    margin-bottom: 6px;
+    --origin: translateY(4px);
+  }
+
+  &[data-placement="bottom"] {
+    margin-top: 6px;
+    --origin: translateY(-4px);
+
+    & .react-aria-OverlayArrow svg {
+      transform: rotate(180deg);
+    }
+  }
+
+  &[data-placement="right"] {
+    margin-left: 6px;
+    --origin: translateX(-4px);
+
+    & .react-aria-OverlayArrow svg {
+      transform: rotate(90deg);
+    }
+  }
+
+  &[data-placement="left"] {
+    margin-right: 6px;
+    --origin: translateX(4px);
+
+    & .react-aria-OverlayArrow svg {
+      transform: rotate(-90deg);
+    }
+  }
+
+  & .react-aria-OverlayArrow svg {
+    display: block;
+    fill: var(--accent);
+  }
+}
+
+.action-tooltip-kbd {
+  font-family: inherit;
+  font-size: 11px;
+  opacity: 0.7;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}

@@ -60,7 +60,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 320,
     description: "페이지 계층 구조 탐색",
-    shortcut: "⌥1",
+    shortcutId: "toggleNodes",
   },
   {
     id: "components",
@@ -74,7 +74,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 520,
     description: "컴포넌트 라이브러리",
-    shortcut: "⌥2",
+    shortcutId: "toggleComponents",
   },
   {
     id: "datatable",
@@ -88,7 +88,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: "100%",
     defaultHeight: 520,
     description: "DataTables, APIs, Variables 관리",
-    shortcut: "⌥3",
+    shortcutId: "toggleDatatable",
   },
   {
     id: "datatableEditor",
@@ -117,7 +117,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 520,
     description: "Tint 프리셋 및 테마 설정",
-    shortcut: "⌥4",
+    shortcutId: "toggleTheme",
   },
   // System panels
   {
@@ -133,7 +133,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultWidth: 400,
     defaultHeight: 500,
     description: "앱 설정 및 환경설정",
-    shortcut: "Ctrl+,",
+    shortcutId: "openSettings",
     displayModes: ["panel", "floating"],
     // 진입점은 2026-08-25 에 헤더 좌측 메뉴로 옮겼다 — 저빈도 작업이라 좌측
     // 레일 한 칸을 상주로 차지할 이유가 없다. 패널 배치·토글 경로는 그대로다.
@@ -153,6 +153,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultWidth: 360,
     defaultHeight: 500,
     description: "AI 도구 및 제안",
+    shortcutId: "toggleAI",
     displayModes: ["panel", "floating"],
   },
 
@@ -169,7 +170,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 520,
     description: "요소 속성 편집",
-    shortcut: "⌥5",
+    shortcutId: "toggleProperties",
   },
   {
     id: "styles",
@@ -183,7 +184,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 520,
     description: "CSS 스타일 편집",
-    shortcut: "⌥6",
+    shortcutId: "toggleStyles",
   },
   {
     // ADR-158 Phase 2 — EventsPanel → InteractionsPanel 교체.
@@ -199,7 +200,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 800,
     defaultHeight: 520,
     description: "한 줄 규칙으로 요소 동작 정의",
-    shortcut: "⌥7",
+    shortcutId: "toggleEvents",
   },
   // ADR-149 Phase 2c (2026-07-19): actions 패널 제거 (HC4) — ADR-131 Phase 5 G3
   // raw skeleton panel 이었음. cross-event reuse 는 EventsPanel L2 고급 토글로 흡수 (Phase 3).
@@ -216,7 +217,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultWidth: 320,
     defaultHeight: 450,
     description: "변경 내역 확인 및 복원",
-    shortcut: "⌥8",
+    shortcutId: "toggleHistory",
     displayModes: ["panel", "floating"],
   },
   // 구 "폰트" 도킹 패널은 2026-08-25 에 등록 해제했다 — 폰트 관리는 Typography 의
@@ -239,7 +240,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxHeight: 600,
     defaultHeight: 240,
     description: "메모리 사용량 모니터링 및 최적화",
-    shortcut: "Ctrl+Alt+M",
+    shortcutId: "toggleMonitor",
   },
 ];
 

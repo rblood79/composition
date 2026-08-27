@@ -3,57 +3,10 @@ import {
   type ButtonProps as RACButtonProps,
   ToggleButton as RACToggleButton,
   type ToggleButtonProps as RACToggleButtonProps,
-  Tooltip,
-  TooltipTrigger,
-  OverlayArrow,
 } from "react-aria-components";
-import {
-  SHORTCUT_DEFINITIONS,
-  type ShortcutId,
-} from "../../config/keyboardShortcuts";
-import { formatShortcut } from "@/builder/hooks";
-import type { ReactElement } from "react";
+import type { ShortcutId } from "../../config/keyboardShortcuts";
+import { withActionTooltip } from "./ActionTooltip";
 import "./ActionIconButton.css";
-
-interface TooltipOptions {
-  tooltip?: string;
-  shortcutId?: ShortcutId;
-  tooltipPlacement?: "top" | "bottom" | "left" | "right";
-}
-
-/** Shared tooltip wrapper for action icon buttons */
-function withActionTooltip(
-  button: ReactElement,
-  { tooltip, shortcutId, tooltipPlacement = "bottom" }: TooltipOptions,
-) {
-  const shortcutDef = shortcutId ? SHORTCUT_DEFINITIONS[shortcutId] : undefined;
-  const tooltipLabel =
-    tooltip || shortcutDef?.i18n?.ko || shortcutDef?.description;
-  const shortcutDisplay = shortcutDef
-    ? formatShortcut({ key: shortcutDef.key, modifier: shortcutDef.modifier })
-    : undefined;
-
-  if (!tooltipLabel) {
-    return button;
-  }
-
-  return (
-    <TooltipTrigger delay={700}>
-      {button}
-      <Tooltip placement={tooltipPlacement} className="action-tooltip">
-        <OverlayArrow>
-          <svg width={8} height={8} viewBox="0 0 8 8">
-            <path d="M0 0 L4 4 L8 0" />
-          </svg>
-        </OverlayArrow>
-        <span className="action-tooltip-label">{tooltipLabel}</span>
-        {shortcutDisplay && (
-          <kbd className="action-tooltip-kbd">{shortcutDisplay}</kbd>
-        )}
-      </Tooltip>
-    </TooltipTrigger>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // ActionIconButton (press action)

@@ -1,10 +1,10 @@
 import { memo } from "react";
 import type { Key } from "react-aria-components";
-import { Tooltip, TooltipTrigger } from "react-aria-components";
 import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@composition/shared/components";
+import { ActionTooltipTrigger } from "../components/ui/ActionTooltip";
 import { iconProps } from "../../utils/ui/uiConstants";
 import { useI18n } from "../../i18n";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
@@ -81,20 +81,19 @@ export const PanelToggleGroup = memo(function PanelToggleGroup({
           const panelName = getPanelLabel(config, t);
 
           return (
-            <TooltipTrigger key={panelId} delay={700}>
+            <ActionTooltipTrigger
+              key={panelId}
+              tooltip={panelName}
+              shortcutId={config.shortcutId}
+              tooltipPlacement={tooltipPlacement}
+            >
               <ToggleButton id={panelId} aria-label={panelName}>
                 <Icon
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
                 />
               </ToggleButton>
-              <Tooltip placement={tooltipPlacement} className="action-tooltip">
-                <span className="action-tooltip-label">{panelName}</span>
-                {config.shortcut && (
-                  <kbd className="action-tooltip-kbd">{config.shortcut}</kbd>
-                )}
-              </Tooltip>
-            </TooltipTrigger>
+            </ActionTooltipTrigger>
           );
         })}
       </ToggleButtonGroup>

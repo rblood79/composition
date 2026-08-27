@@ -7,6 +7,7 @@
 
 import type { ComponentType } from "react";
 import type { LucideIcon } from "lucide-react";
+import type { ShortcutId } from "../../config/keyboardShortcuts";
 
 /**
  * 패널 카테고리
@@ -129,8 +130,15 @@ export interface PanelConfig {
   /** 설명 (옵션) */
   description?: string;
 
-  /** 키보드 단축키 (옵션) */
-  shortcut?: string;
+  /**
+   * 이 패널을 여는 단축키 id (옵션).
+   *
+   * 표기 문자열이 아니라 **id** 다 — 레일 툴팁은 `SHORTCUT_DEFINITIONS` 에서
+   * 파생한다. 종전에는 `shortcut: "⌥1"` 처럼 문자열을 적어 두어 정의를 옮길 때
+   * 표기가 남았고, settings/monitor 는 Mac 이 아닌 `"Ctrl+,"` / `"Ctrl+Alt+M"`
+   * 로 굳어 있었다.
+   */
+  shortcutId?: ShortcutId;
 
   /** 지원하는 표시 모드 목록 (기본: ['panel']) */
   displayModes?: PanelDisplayMode[];
