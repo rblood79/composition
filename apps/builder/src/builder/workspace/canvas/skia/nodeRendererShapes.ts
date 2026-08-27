@@ -1,4 +1,5 @@
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
+import { buildPath } from "./buildPath";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { clampCornerRadii } from "./nodeRendererClip";
@@ -77,9 +78,10 @@ export function renderArc(
     paint.setStrokeCap(ck.StrokeCap.Butt);
   }
 
-  const path = new ck.Path();
   const oval = ck.LTRBRect(cx - radius, cy - radius, cx + radius, cy + radius);
-  path.addArc(oval, startAngle, sweepAngle);
+  const path = buildPath(ck, (path) => {
+    path.addArc(oval, startAngle, sweepAngle);
+  });
 
   canvas.drawPath(path, paint);
 
@@ -116,73 +118,89 @@ export function renderPartialBorder(
   const inset = strokeWidth / 2;
 
   if (sides.top) {
-    const path = new ck.Path();
-    if (rTL > 0) {
-      path.moveTo(inset, rTL + inset);
-      path.arcToTangent(inset, inset, rTL + inset, inset, rTL);
-    } else {
-      path.moveTo(inset, inset);
-    }
-    if (rTR > 0) {
-      path.lineTo(w - rTR - inset, inset);
-      path.arcToTangent(w - inset, inset, w - inset, rTR + inset, rTR);
-    } else {
-      path.lineTo(w - inset, inset);
-    }
+    const path = buildPath(ck, (path) => {
+      if (rTL > 0) {
+        path.moveTo(inset, rTL + inset);
+        path.arcToTangent(inset, inset, rTL + inset, inset, rTL);
+      } else {
+        path.moveTo(inset, inset);
+      }
+      if (rTR > 0) {
+        path.lineTo(w - rTR - inset, inset);
+        path.arcToTangent(w - inset, inset, w - inset, rTR + inset, rTR);
+      } else {
+        path.lineTo(w - inset, inset);
+      }
+    });
     canvas.drawPath(path, paint);
     path.delete();
   }
 
   if (sides.right) {
-    const path = new ck.Path();
-    if (rTR > 0) {
-      path.moveTo(w - rTR - inset, inset);
-      path.arcToTangent(w - inset, inset, w - inset, rTR + inset, rTR);
-    } else {
-      path.moveTo(w - inset, inset);
-    }
-    if (rBR > 0) {
-      path.lineTo(w - inset, h - rBR - inset);
-      path.arcToTangent(w - inset, h - inset, w - rBR - inset, h - inset, rBR);
-    } else {
-      path.lineTo(w - inset, h - inset);
-    }
+    const path = buildPath(ck, (path) => {
+      if (rTR > 0) {
+        path.moveTo(w - rTR - inset, inset);
+        path.arcToTangent(w - inset, inset, w - inset, rTR + inset, rTR);
+      } else {
+        path.moveTo(w - inset, inset);
+      }
+      if (rBR > 0) {
+        path.lineTo(w - inset, h - rBR - inset);
+        path.arcToTangent(
+          w - inset,
+          h - inset,
+          w - rBR - inset,
+          h - inset,
+          rBR,
+        );
+      } else {
+        path.lineTo(w - inset, h - inset);
+      }
+    });
     canvas.drawPath(path, paint);
     path.delete();
   }
 
   if (sides.bottom) {
-    const path = new ck.Path();
-    if (rBR > 0) {
-      path.moveTo(w - inset, h - rBR - inset);
-      path.arcToTangent(w - inset, h - inset, w - rBR - inset, h - inset, rBR);
-    } else {
-      path.moveTo(w - inset, h - inset);
-    }
-    if (rBL > 0) {
-      path.lineTo(rBL + inset, h - inset);
-      path.arcToTangent(inset, h - inset, inset, h - rBL - inset, rBL);
-    } else {
-      path.lineTo(inset, h - inset);
-    }
+    const path = buildPath(ck, (path) => {
+      if (rBR > 0) {
+        path.moveTo(w - inset, h - rBR - inset);
+        path.arcToTangent(
+          w - inset,
+          h - inset,
+          w - rBR - inset,
+          h - inset,
+          rBR,
+        );
+      } else {
+        path.moveTo(w - inset, h - inset);
+      }
+      if (rBL > 0) {
+        path.lineTo(rBL + inset, h - inset);
+        path.arcToTangent(inset, h - inset, inset, h - rBL - inset, rBL);
+      } else {
+        path.lineTo(inset, h - inset);
+      }
+    });
     canvas.drawPath(path, paint);
     path.delete();
   }
 
   if (sides.left) {
-    const path = new ck.Path();
-    if (rBL > 0) {
-      path.moveTo(rBL + inset, h - inset);
-      path.arcToTangent(inset, h - inset, inset, h - rBL - inset, rBL);
-    } else {
-      path.moveTo(inset, h - inset);
-    }
-    if (rTL > 0) {
-      path.lineTo(inset, rTL + inset);
-      path.arcToTangent(inset, inset, rTL + inset, inset, rTL);
-    } else {
-      path.lineTo(inset, inset);
-    }
+    const path = buildPath(ck, (path) => {
+      if (rBL > 0) {
+        path.moveTo(rBL + inset, h - inset);
+        path.arcToTangent(inset, h - inset, inset, h - rBL - inset, rBL);
+      } else {
+        path.moveTo(inset, h - inset);
+      }
+      if (rTL > 0) {
+        path.lineTo(inset, rTL + inset);
+        path.arcToTangent(inset, inset, rTL + inset, inset, rTL);
+      } else {
+        path.lineTo(inset, inset);
+      }
+    });
     canvas.drawPath(path, paint);
     path.delete();
   }
