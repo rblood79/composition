@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { useNavigate } from "react-router";
 import { getDB } from "../lib/db";
 import { getDefaultProps } from "../types/builder/unified.types";
@@ -569,9 +575,11 @@ function Dashboard() {
 
   const handleCreateProject = () => {
     if (!newProjectName.trim()) return;
-    void createProjectMutation.execute({ name: newProjectName }).catch((err) => {
-      console.error("프로젝트 생성 에러:", err);
-    });
+    void createProjectMutation
+      .execute({ name: newProjectName })
+      .catch((err) => {
+        console.error("프로젝트 생성 에러:", err);
+      });
   };
 
   const startCreating = () => {
@@ -629,6 +637,12 @@ function Dashboard() {
       }}
     />
   );
+  const createEditorSurface =
+    view === "grid" ? (
+      <div className="projects-grid">{createTile}</div>
+    ) : (
+      <div className="projects-create-strip">{createTile}</div>
+    );
 
   return (
     // `data-context="builder"` — 대시보드는 빌더 chrome 이다. 이 속성이 없으면
@@ -809,6 +823,8 @@ function Dashboard() {
                 <ProjectCardSkeleton key={i} />
               ))}
             </div>
+          ) : isCreating && visibleProjects.length === 0 ? (
+            createEditorSurface
           ) : hasNoProjectsAtAll ? (
             <div className="dashboard-empty">
               <FolderOpen size={48} strokeWidth={1} aria-hidden />

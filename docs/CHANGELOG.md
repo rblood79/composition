@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Dashboard 프로젝트 생성 진입점 복구 — Empty-state action priority] - 2026-08-27
+
+### Bug Fixes
+
+- **프로젝트가 0개일 때 상단과 빈 상태의 `New project` 버튼이 모두 무반응이던 결함**:
+  - **Why**: 두 버튼은 `isCreating`을 활성화했지만 이름 입력 `CreateProjectTile`이 프로젝트 목록 분기 안에만 있어, 그보다 먼저 선택되는 `No projects yet` 분기가 입력을 계속 숨겼다.
+  - 수정: 생성 action state를 empty-result보다 우선 렌더해 프로젝트가 없거나 현재 필터 결과가 비어 있어도 동일한 inline 이름 입력으로 진입한다.
+  - 검증: 프로젝트 0개 fixture에서 상단·empty-state 버튼 각각의 입력 노출을 UI 테스트로 고정하고, 실제 Dashboard에서 두 경로의 입력 표시와 자동 focus를 확인했다.
+  - 위치: `apps/builder/src/dashboard/{index.tsx,__tests__/Dashboard.projectCreation.test.tsx}`
+
 ## [ADR-193 후속 — status `-strong` 토큰 4종] - 2026-08-27
 
 ### Added
