@@ -105,6 +105,10 @@ import {
   applyEditingSemanticsFixture,
   shouldApplyEditingSemanticsFixture,
 } from "../dev/editingSemanticsFixture";
+import {
+  applyPathHeavy117Fixture,
+  shouldApplyPathHeavy117Fixture,
+} from "../dev/pathHeavy117Fixture";
 
 function getActiveCanonicalBuilderElements(): Element[] | null {
   const doc = getActiveCanonicalDocument();
@@ -558,6 +562,10 @@ export const BuilderCore: React.FC = () => {
 
       if (import.meta.env.DEV && shouldApplyEditingSemanticsFixture()) {
         applyEditingSemanticsFixture(useStore.getState());
+      }
+
+      if (import.meta.env.DEV && shouldApplyPathHeavy117Fixture()) {
+        applyPathHeavy117Fixture(projectId, useStore.getState());
       }
 
       initializedProjectId.current = projectId;

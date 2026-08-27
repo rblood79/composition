@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-117 0.40.0 성능 기준선 — path-heavy-117 canonical seed] - 2026-08-28
+
+### Architecture
+
+- **ADR-117 G5 — 재현 가능한 path-heavy canonical 문서**:
+  - rounded clip, partial dash/radius border, inset/outset, inner shadow, Icon, placeholder+PNG/JPEG/WebP, slot/overflow marker, 2-page workflow edge를 67 elements dev fixture로 고정했다.
+  - `?benchmark=path-heavy-117&edge=orthogonal|bezier`가 동일 canonical 문서를 로드해 0.40.0 baseline과 0.42.0 target이 같은 surface를 사용한다.
+  - 위치: `apps/builder/src/builder/dev/pathHeavy117Fixture.ts`
+
+### Performance
+
+- **CanvasKit 0.40.0 p95 baseline `9.3 ms`** (ADR-117 G5):
+  - 1280×720 / 120 Hz / source page fit 60% / 60→61→60% zoom pulse 조건에서 Orthogonal·Bezier 각 3회 median이 모두 9.3 ms였다.
+  - 6회 long task 0, blank frame 0, console error 0. 0.42.0 통과 상한은 +10%인 10.23 ms다.
+  - 위치: `docs/adr/design/117-canvaskit-pathbuilder-upgrade-breakdown.md`
+
+### Infrastructure
+
+- **완료 run report 보존 + long-task window 계측**:
+  - profiler가 콘솔에만 출력하고 버리던 p95/p99를 `report()`와 DOM evidence에 보존하고, 같은 5초 구간의 long-task count/total/max를 함께 기록한다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/benchmarks/devProfiler.ts`
+
 ## [명령 팔레트가 실제로 실행된다 — command registry (ADR-195)] - 2026-08-27
 
 팔레트는 단축키 정의 71개를 전부 나열하면서 그 중 12개만 실행하고 있었다. 나머지 59개는 골라도 팔레트만 닫혔다 — 핸들러가 등록 훅의 `useEffect` 클로저 안에 갇혀 있어 팔레트가 조회할 길이 없었기 때문이다. 등록 훅이 `(id → handler, scope)` 를 store 에 함께 게시하게 만들고, 팔레트는 그것을 읽어 실행한다. 키보드 경로는 한 줄도 바뀌지 않았다.

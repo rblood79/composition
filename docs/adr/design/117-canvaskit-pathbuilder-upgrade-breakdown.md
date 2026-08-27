@@ -287,6 +287,30 @@ builder에 로드한 뒤 `__composition_PROFILER.start()` 5초 수집 → `repor
 - 실패 시 1차: helper 내부를 module-level builder + `detach()` 재사용으로 교체 (호출부
   무변경) → 재측정. 2차: 0.40.0 rollback.
 
+#### 0.40.0 baseline evidence (2026-08-28)
+
+- render revision: `144811178` (`origin/main` 일치), 설치본 `canvaskit-wasm@0.40.0`.
+- seed: `?benchmark=path-heavy-117&edge=<orthogonal|bezier>` dev-only canonical 문서.
+  2 page / 실측 67 elements이며 rounded clip, partial dash/radius border,
+  inset/outset, inner shadow, Icon 8, placeholder+PNG/JPEG/WebP Image 12,
+  overflow/slot/component marker, navigation workflow edge+arrow를 포함한다.
+- 환경: Codex in-app Browser, 명시 viewport `1280×720`, 120 Hz, Builder Desktop.
+  source page `Fit to screen` 결과 60%에서 각 5초 run 중 `60→61→60%` zoom pulse를
+  1회 실행해 snapshot blit 경로를 포함했다. workflow overlay는 각 run 전에 켰다.
+- profiler 계약 보정: `start()`가 완료 p95/p99를 보존하고 `report()`가 마지막 완료
+  run을 반환한다. `PerformanceObserver("longtask")`의 5초-window count/total/max와
+  `documentElement.dataset` evidence도 같은 report에 기록한다.
+
+| edge mode  | 5초 p95 samples (ms) | median p95 | p99 max | long task |
+| ---------- | -------------------- | ---------- | ------- | --------- |
+| Orthogonal | 9.3 / 9.3 / 9.4      | 9.3 ms     | 10.1 ms | 0 / 0 / 0 |
+| Bezier     | 9.3 / 9.3 / 9.6      | 9.3 ms     | 12.1 ms | 0 / 0 / 0 |
+
+**채택 baseline = 두 edge mode median 중 큰 값 `9.3 ms`.** 따라서 0.42.0 G5
+통과 상한은 `10.23 ms`(baseline +10%)다. 6회 모두 FPS avg 120, canvas blank 0,
+console error 0. 경고는 supplied project UUID의 metadata record 부재 1종만 반복됐고,
+query fixture가 canonical 문서를 주입하므로 측정 surface에는 영향이 없다.
+
 ## Rollback
 
 1. `canvaskit-wasm` specifier·lockfile을 `0.40.0`으로 되돌리고 `prepare:wasm` 재실행.
@@ -298,9 +322,9 @@ builder에 로드한 뒤 `__composition_PROFILER.start()` 5초 수집 → `repor
 
 - [x] G0: `PathBuilder` API 타입 + 런타임 확인 (2026-08-27).
 - [x] G1: inventory 20 사이트 / 87 호출 / 허용 예외 기록 (2026-08-27) — Phase 2 착수 시 재grep.
-- [ ] Phase 1: `buildPath.ts`(0.40.0 타입 shim 내부 한정) + unit 테스트 + **실 wasm 통합 테스트**(scratchpad 0.42.0 tgz 로 1회), `MockPath` 교체.
-- [ ] G2: 7 파일 이관 commit (선택 add), helper 밖 mutable `Path` 0건.
-- [ ] G5 baseline: `path-heavy-117` 시드 문서 작성 + `__composition_PROFILER` 0.40.0 p95 기록.
+- [x] Phase 1: `buildPath.ts`(0.40.0 타입 shim 내부 한정) + unit 테스트 + **실 wasm 통합 테스트**(scratchpad 0.42.0 tgz 로 1회), `MockPath` 교체 (`52adb4255`, `bab053f25`).
+- [x] G2: 7 파일 이관 완료, helper 밖 mutable `Path` 0건 (`097647105`까지).
+- [x] G5 baseline: canonical `path-heavy-117` seed + 0.40.0 p95 `9.3 ms`, 상한 `10.23 ms` (2026-08-28).
 - [ ] G3: `^0.42.0` lockfile, wasm 7,317,345 bytes 로드(dev + **production 번들**), 0.40.0 분기·별칭·mock·shim 제거, type-check 0, 통합 테스트 설치 패키지 기준 PASS.
 - [ ] G4: smoke 표 9항목 (zoom mismatch blit 포함) desktop/mobile PASS.
 - [ ] G5: p95 +10% 이내.

@@ -2,9 +2,12 @@
  * 개발용 실시간 성능 프로파일러.
  *
  * 브라우저 콘솔에서 실행:
- *   window.__composition_PROFILER.start()   — 5초간 메트릭 수집
- *   window.__composition_PROFILER.report()  — 현재 메트릭 스냅샷
- *   window.__composition_PROFILER.stress(n) — n개 요소 생성 후 프로파일링
+ *   await window.__composition_PROFILER.start() — 5초간 메트릭 수집
+ *   window.__composition_PROFILER.report()      — 마지막 완료 run 스냅샷
+ *
+ * `?benchmark=path-heavy-117` 로 Builder 를 열면 3초 warm-up 뒤 동일한 5초
+ * 수집을 자동 실행하고 결과를 documentElement dataset 에 기록한다. 브라우저
+ * 자동화가 page global 을 직접 읽지 못하는 환경에서도 같은 측정 계약을 쓴다.
  */
 
 import { useCanvasMetricsStore } from "../stores";
@@ -23,8 +26,15 @@ interface ProfileSnapshot {
   idleFrameRatio: number;
   contentRendersPerSec: number;
   registryChangesPerSec: number;
+  longTasks: { count: number; maxMs: number; totalMs: number };
   memory: { jsHeapMB: number };
 }
+
+const AUTO_PROFILE_SCENARIO = "path-heavy-117";
+const AUTO_PROFILE_DURATION_SEC = 5;
+const AUTO_PROFILE_WARMUP_MS = 3000;
+
+let lastCompletedProfile: ProfileSnapshot | null = null;
 
 function takeSnapshot(): ProfileSnapshot {
   const m = useCanvasMetricsStore.getState().gpuMetrics;
@@ -53,6 +63,7 @@ function takeSnapshot(): ProfileSnapshot {
     idleFrameRatio: Math.round(m.idleFrameRatio * 100) / 100,
     contentRendersPerSec: Math.round(m.contentRendersPerSec * 10) / 10,
     registryChangesPerSec: Math.round(m.registryChangesPerSec * 10) / 10,
+    longTasks: { count: 0, maxMs: 0, totalMs: 0 },
     memory: {
       jsHeapMB: mem ? Math.round(mem.usedJSHeapSize / 1024 / 1024) : -1,
     },
@@ -61,11 +72,23 @@ function takeSnapshot(): ProfileSnapshot {
 
 function collectFrameTimes(durationMs: number): Promise<{
   frameTimes: number[];
+  longTaskDurations: number[];
   snapshots: ProfileSnapshot[];
 }> {
   return new Promise((resolve) => {
     const frameTimes: number[] = [];
+    const longTaskDurations: number[] = [];
     const snapshots: ProfileSnapshot[] = [];
+    const longTaskObserver =
+      typeof PerformanceObserver !== "undefined" &&
+      PerformanceObserver.supportedEntryTypes.includes("longtask")
+        ? new PerformanceObserver((entryList) => {
+            for (const entry of entryList.getEntries()) {
+              longTaskDurations.push(entry.duration);
+            }
+          })
+        : null;
+    longTaskObserver?.observe({ type: "longtask" });
     let lastTime = performance.now();
     let elapsed = 0;
     const interval = 1000; // 1초마다 스냅샷
@@ -87,7 +110,13 @@ function collectFrameTimes(durationMs: number): Promise<{
         requestAnimationFrame(tick);
       } else {
         snapshots.push(takeSnapshot());
-        resolve({ frameTimes, snapshots });
+        if (longTaskObserver) {
+          for (const entry of longTaskObserver.takeRecords()) {
+            longTaskDurations.push(entry.duration);
+          }
+          longTaskObserver.disconnect();
+        }
+        resolve({ frameTimes, longTaskDurations, snapshots });
       }
     }
 
@@ -95,18 +124,38 @@ function collectFrameTimes(durationMs: number): Promise<{
   });
 }
 
-async function start(durationSec = 5): Promise<void> {
+async function start(durationSec = 5): Promise<ProfileSnapshot> {
   console.log(
     `%c[composition Profiler] ${durationSec}초간 메트릭 수집 시작...`,
     "color: #3b82f6; font-weight: bold",
   );
 
-  const { frameTimes, snapshots } = await collectFrameTimes(durationSec * 1000);
+  const { frameTimes, longTaskDurations, snapshots } = await collectFrameTimes(
+    durationSec * 1000,
+  );
 
   const p50 = percentile(frameTimes, 50);
   const p95 = percentile(frameTimes, 95);
   const p99 = percentile(frameTimes, 99);
   const last = snapshots[snapshots.length - 1];
+  const completed: ProfileSnapshot = {
+    ...last,
+    frameTime: {
+      ...last.frameTime,
+      p95: Math.round(p95 * 100) / 100,
+      p99: Math.round(p99 * 100) / 100,
+    },
+    longTasks: {
+      count: longTaskDurations.length,
+      maxMs: Math.round(Math.max(0, ...longTaskDurations) * 100) / 100,
+      totalMs:
+        Math.round(
+          longTaskDurations.reduce((total, duration) => total + duration, 0) *
+            100,
+        ) / 100,
+    },
+  };
+  lastCompletedProfile = completed;
 
   console.log(
     `%c[composition Profiler] 수집 완료`,
@@ -124,6 +173,9 @@ async function start(durationSec = 5): Promise<void> {
     "Idle Frame %": `${Math.round(last.idleFrameRatio * 100)}%`,
     "Content Renders/s": last.contentRendersPerSec,
     "Registry Changes/s": last.registryChangesPerSec,
+    "Long Tasks": completed.longTasks.count,
+    "Long Task Total": `${completed.longTasks.totalMs}ms`,
+    "Long Task Max": `${completed.longTasks.maxMs}ms`,
     "JS Heap": `${last.memory.jsHeapMB}MB`,
   });
 
@@ -139,10 +191,12 @@ async function start(durationSec = 5): Promise<void> {
     `%c판정: ${verdict}`,
     p95 <= compatibilityFloorMs ? "color: #22c55e" : "color: #ef4444",
   );
+
+  return completed;
 }
 
 function report(): ProfileSnapshot {
-  const s = takeSnapshot();
+  const s = lastCompletedProfile ?? takeSnapshot();
   console.table(s);
   return s;
 }
@@ -203,6 +257,31 @@ function hotpath(): void {
 // window에 노출
 const profiler = { start, report, hotpath, takeSnapshot };
 
+function scheduleAutoProfile(): void {
+  const scenario = new URLSearchParams(window.location.search).get("benchmark");
+  if (scenario !== AUTO_PROFILE_SCENARIO) return;
+
+  const root = document.documentElement;
+  if (root.dataset.compositionProfilerStatus) return;
+
+  root.dataset.compositionProfilerScenario = scenario;
+  root.dataset.compositionProfilerStatus = "warming-up";
+
+  window.setTimeout(() => {
+    root.dataset.compositionProfilerStatus = "running";
+    void start(AUTO_PROFILE_DURATION_SEC)
+      .then((result) => {
+        root.dataset.compositionProfilerReport = JSON.stringify(result);
+        root.dataset.compositionProfilerStatus = "complete";
+      })
+      .catch((error: unknown) => {
+        root.dataset.compositionProfilerStatus = "error";
+        root.dataset.compositionProfilerError =
+          error instanceof Error ? error.message : String(error);
+      });
+  }, AUTO_PROFILE_WARMUP_MS);
+}
+
 declare global {
   interface Window {
     __composition_PROFILER: typeof profiler;
@@ -211,6 +290,11 @@ declare global {
 
 if (import.meta.env.DEV) {
   window.__composition_PROFILER = profiler;
+  if (document.readyState === "complete") {
+    scheduleAutoProfile();
+  } else {
+    window.addEventListener("load", scheduleAutoProfile, { once: true });
+  }
 }
 
 export { profiler };
