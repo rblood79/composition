@@ -35,6 +35,15 @@ import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocum
 import { useContextMenu } from "../../components/overlay/contextMenu/useContextMenu";
 import { resolveContextMenuDisposition } from "../../components/overlay/contextMenu/contextMenuPolicy";
 import { useCanvasLifecycleStore, useViewportSyncStore } from "./stores";
+import {
+  applyViewportState,
+  clampViewportZoom,
+} from "./viewport/viewportActions";
+import {
+  bindHandlersToDefinitions,
+  useActiveScope,
+  useKeyboardShortcutsRegistry,
+} from "@/builder/hooks";
 import { isWebGLCanvas } from "../../../utils/featureFlags";
 import { isUnifiedFlag } from "./wasm-bindings/featureFlags";
 import type { BoundingBox } from "./selection/types";
@@ -118,6 +127,9 @@ import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 
 import { useGPUProfiler } from "./utils/gpuProfilerCore";
 import { hitTestPoint } from "./wasm-bindings/spatialIndex";
+
+/** 선택에 맞출 때 남길 여백 — zoomToFit 의 fitPaddingRatio 와 같은 값 */
+const SELECTION_FIT_PADDING_RATIO = 0.9;
 
 // ============================================
 // Types
@@ -986,6 +998,47 @@ export function BuilderCanvas({
       setSelectedElements,
     ],
   );
+
+  const canvasActiveScope = useActiveScope();
+
+  /**
+   * 선택에 맞추기 — ⇧2 (Figma·Pencil 이 같은 자리에 둔 액션).
+   *
+   * 여기서 등록하는 이유는 선택 bounds 계산에 frameAreas·pagePositions 같은
+   * 캔버스 컨텍스트가 필요해서다 — 전역 훅에서는 닿지 않는다. bounds 는
+   * pointerdown 캐시(`selectionBoundsRef`)가 아니라 호출 시점에 새로 계산한다.
+   */
+  const handleZoomToSelection = useCallback(() => {
+    const bounds = computeSelectionBoundsForHitTest();
+    if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
+
+    const { containerSize: viewportSize } = useViewportSyncStore.getState();
+    if (viewportSize.width === 0 || viewportSize.height === 0) return;
+
+    const nextZoom = clampViewportZoom(
+      Math.min(
+        viewportSize.width / bounds.width,
+        viewportSize.height / bounds.height,
+      ) * SELECTION_FIT_PADDING_RATIO,
+    );
+
+    applyViewportState({
+      scale: nextZoom,
+      x: viewportSize.width / 2 - (bounds.x + bounds.width / 2) * nextZoom,
+      y: viewportSize.height / 2 - (bounds.y + bounds.height / 2) * nextZoom,
+    });
+  }, [computeSelectionBoundsForHitTest]);
+
+  const zoomShortcuts = useMemo(
+    () =>
+      bindHandlersToDefinitions(["zoomToSelection"], {
+        zoomToSelection: handleZoomToSelection,
+      }),
+    [handleZoomToSelection],
+  );
+  useKeyboardShortcutsRegistry(zoomShortcuts, [zoomShortcuts], {
+    activeScope: canvasActiveScope,
+  });
 
   // selectionBounds를 프레임마다 갱신하지 않고, pointerdown 시점에 계산
   // (RAF 지연 없이 즉시)
