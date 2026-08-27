@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+- **Builder Canvas의 Page title·선택 크기 label 굵기 회귀**:
+  - CanvasKit 0.42 direct `Font` 경로가 Pretendard Variable의 requested weight를 glyph 굵기에 반영하지 않아, Page title과 선택 대상 하단의 `width × height`가 이전보다 가늘게 보였다.
+  - 두 Skia editor overlay에만 `embolden` font entry를 분리해 적용했다. 또한 Font 크기를 `12/zoom`으로 바꾸던 size label을 Page title과 동일한 `12px Font + canvas 역스케일` 경로로 통일해, 100% 이외 zoom에서도 glyph와 label geometry를 유지한다.
+  - 기존 색상·위치는 유지하며 다른 overlay font cache에는 영향을 주지 않는다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/selectionRenderer.ts`
 - **CanvasKit 준비 전 이미지가 영구 placeholder로 남던 초기화 경합** (ADR-117 Phase 4 / G4):
   - `loadSkImage()`가 CanvasKit 초기화 전에 `null`을 반환하면 `StoreRenderBridge`가 해당 src를 이미 시도한 것으로 기록해 PNG/JPEG/WebP를 다시 로드하지 않았다.
   - **Why**: 문서 store와 WASM 초기화가 병렬로 시작되는데, image cache만 준비 완료를 기다리지 않아 정상 이미지도 mountain placeholder로 고착됐다.

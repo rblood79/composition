@@ -76,8 +76,10 @@ export function resolveOverlayTypeface(
 // 호출마다 matchFamilyStyle(1–6회 WASM) + `new ck.Font()` 생성 → 프레임 끝 delete 를
 // 반복했다 — 팬 1초(60Hz reference, 타이틀 5개 + 선택 1개) 기준 Font 생성/삭제 ≈ 360회/초.
 // weight 축은 Normal/Medium 2종뿐이고 zoom 종속 크기는 `font.setSize` 로 갈아끼울 수
-// 있으므로 (fontMgr 참조, weight.value) 당 Font 1개를 유지한다. 렌더는 단일 스레드
-// 순차라 acquire → 사용 사이에 다른 acquire 가 끼어들 수 없어 크기 mutate 가 안전.
+// 있으므로 (fontMgr 참조, weight.value, embolden) 당 Font 1개를 유지한다. 렌더는 단일
+// 스레드 순차라 acquire → 사용 사이에 다른 acquire 가 끼어들 수 없어 크기 mutate 가
+// 안전. CanvasKit 0.42 direct Font 경로는 variable font 의 weight 요청을 실제 glyph
+// 굵기에 반영하지 않으므로, 12px 가독성이 필요한 레이블만 별도 embolden entry를 쓴다.
 // fontMgr 교체(폰트 로드 완료 등 — nodePictureCache 의 font generation 과 같은 신호)는
 // 참조 비교로 감지해 전체 재구축한다. 반환 Font 는 캐시 소유 — 호출부 delete/track 금지.
 
@@ -87,20 +89,26 @@ interface OverlayFontEntry {
 }
 
 let _overlayFontMgr: FontMgr | null = null;
-const _overlayFontByWeight = new Map<number, OverlayFontEntry>();
+const _overlayFontByStyle = new Map<string, OverlayFontEntry>();
+
+export interface AcquireOverlayFontOptions {
+  embolden?: boolean;
+}
 
 export function acquireOverlayFont(
   ck: CanvasKit,
   fontMgr: FontMgr,
   weight: NonNullable<FontStyle["weight"]>,
   fontSize: number,
+  options: AcquireOverlayFontOptions = {},
 ): Font | null {
   if (_overlayFontMgr !== fontMgr) {
     clearOverlayFontCache();
     _overlayFontMgr = fontMgr;
   }
-  const key = weight.value;
-  const cached = _overlayFontByWeight.get(key);
+  const embolden = options.embolden === true;
+  const key = `${weight.value}:${embolden ? 1 : 0}`;
+  const cached = _overlayFontByStyle.get(key);
   if (cached) {
     cached.font.setSize(fontSize);
     return cached.font;
@@ -115,17 +123,18 @@ export function acquireOverlayFont(
   if (!typeface) return null;
   const font = new ck.Font(typeface, fontSize);
   font.setSubpixel(true);
-  _overlayFontByWeight.set(key, { typeface, font });
+  font.setEmbolden(embolden);
+  _overlayFontByStyle.set(key, { typeface, font });
   return font;
 }
 
 /** overlay font 캐시 해제 (fontMgr 교체 시 내부 호출 / 테스트·teardown 용). */
 export function clearOverlayFontCache(): void {
-  for (const entry of _overlayFontByWeight.values()) {
+  for (const entry of _overlayFontByStyle.values()) {
     entry.font.delete();
     entry.typeface.delete();
   }
-  _overlayFontByWeight.clear();
+  _overlayFontByStyle.clear();
   _overlayFontMgr = null;
 }
 
@@ -166,6 +175,29 @@ function setDimensionLabelBackgroundColor(
       1,
     ),
   );
+}
+
+/**
+ * 씬 anchor는 카메라 변환을 따르되 내부 chrome은 화면 px 크기로 고정한다.
+ * Font size 자체를 zoom마다 바꾸면 variable font glyph metrics/rasterization이 달라지므로,
+ * font와 local geometry는 고정하고 canvas transform만 camera zoom의 역수로 보정한다.
+ */
+function withFixedScreenScale<T>(
+  canvas: Canvas,
+  zoom: number,
+  anchorX: number,
+  anchorY: number,
+  draw: () => T,
+): T {
+  const invZoom = 1 / (zoom === 0 ? 1 : zoom);
+  canvas.save();
+  try {
+    canvas.translate(anchorX, anchorY);
+    canvas.scale(invZoom, invZoom);
+    return draw();
+  } finally {
+    canvas.restore();
+  }
 }
 
 // ============================================
@@ -276,8 +308,8 @@ export function renderTransformHandles(
  * 선택된 요소의 크기(width × height)를 선택 박스 하단에 표시한다.
  *
  * Figma 스타일: 파란 배경의 둥근 레이블에 흰색 텍스트.
- * 씬-로컬 좌표계에서 호출되며, fontSize/padding은 1/zoom으로 스케일하여
- * 화면상 일정한 크기를 유지한다.
+ * 씬-로컬 좌표계에서 호출되며, Font/local geometry는 12px 기준으로 고정하고
+ * canvas를 1/zoom으로 스케일하여 화면상 일정한 크기를 유지한다.
  */
 export function renderDimensionLabels(
   ck: CanvasKit,
@@ -292,36 +324,42 @@ export function renderDimensionLabels(
     // 폰트 매니저 없이 배경 박스만 렌더링
     const scope = new SkiaDisposable();
     try {
-      const invZoom = 1 / zoom;
-      const paddingX = DIMENSION_LABEL_PADDING_X * invZoom;
-      const paddingY = DIMENSION_LABEL_PADDING_Y * invZoom;
-      const offsetY = DIMENSION_LABEL_OFFSET_Y * invZoom;
-      const borderRadius = DIMENSION_LABEL_BORDER_RADIUS * invZoom;
-
       // 대략적인 텍스트 크기 추정 (폰트 없이)
       const width = Math.round(bounds.width);
       const height = Math.round(bounds.height);
       const charCount = `${width} × ${height}`.length;
-      const estimatedTextWidth =
-        charCount * DIMENSION_LABEL_FONT_SIZE * 0.6 * invZoom;
-      const estimatedTextHeight = DIMENSION_LABEL_FONT_SIZE * invZoom;
+      const estimatedTextWidth = charCount * DIMENSION_LABEL_FONT_SIZE * 0.6;
+      const estimatedTextHeight = DIMENSION_LABEL_FONT_SIZE;
 
-      const labelWidth = estimatedTextWidth + paddingX * 2;
-      const labelHeight = estimatedTextHeight + paddingY * 2;
-      const labelX = bounds.x + bounds.width / 2 - labelWidth / 2;
-      const labelY = bounds.y + bounds.height + offsetY;
+      const labelWidth = estimatedTextWidth + DIMENSION_LABEL_PADDING_X * 2;
+      const labelHeight = estimatedTextHeight + DIMENSION_LABEL_PADDING_Y * 2;
+      const labelX = -labelWidth / 2;
+      const labelY = DIMENSION_LABEL_OFFSET_Y;
 
       const bgPaint = acquireScopedPaint(scope, ck);
       bgPaint.setAntiAlias(true);
       bgPaint.setStyle(ck.PaintStyle.Fill);
       setDimensionLabelBackgroundColor(ck, bgPaint, semanticRole);
 
-      const rrect = ck.RRectXY(
-        ck.LTRBRect(labelX, labelY, labelX + labelWidth, labelY + labelHeight),
-        borderRadius,
-        borderRadius,
+      withFixedScreenScale(
+        canvas,
+        zoom,
+        bounds.x + bounds.width / 2,
+        bounds.y + bounds.height,
+        () => {
+          const rrect = ck.RRectXY(
+            ck.LTRBRect(
+              labelX,
+              labelY,
+              labelX + labelWidth,
+              labelY + labelHeight,
+            ),
+            DIMENSION_LABEL_BORDER_RADIUS,
+            DIMENSION_LABEL_BORDER_RADIUS,
+          );
+          canvas.drawRRect(rrect, bgPaint);
+        },
       );
-      canvas.drawRRect(rrect, bgPaint);
     } finally {
       scope.dispose();
     }
@@ -330,15 +368,6 @@ export function renderDimensionLabels(
 
   const scope = new SkiaDisposable();
   try {
-    const invZoom = 1 / zoom;
-
-    // 화면상 고정 크기를 위한 스케일 적용
-    const fontSize = DIMENSION_LABEL_FONT_SIZE * invZoom;
-    const paddingX = DIMENSION_LABEL_PADDING_X * invZoom;
-    const paddingY = DIMENSION_LABEL_PADDING_Y * invZoom;
-    const offsetY = DIMENSION_LABEL_OFFSET_Y * invZoom;
-    const borderRadius = DIMENSION_LABEL_BORDER_RADIUS * invZoom;
-
     // 치수 텍스트 생성 (소수점 없이 정수로 표시)
     const width = Math.round(bounds.width);
     const height = Math.round(bounds.height);
@@ -349,18 +378,19 @@ export function renderDimensionLabels(
       ck,
       fontMgr,
       ck.FontWeight.Medium,
-      fontSize,
+      DIMENSION_LABEL_FONT_SIZE,
+      { embolden: true },
     );
     if (!font) return;
 
     const textWidth = measureGlyphRunWidth(font, dimensionText);
-    const textHeight = DIMENSION_LABEL_LINE_HEIGHT * invZoom;
+    const textHeight = DIMENSION_LABEL_LINE_HEIGHT;
 
     // 레이블 배경 크기 및 위치 계산
-    const labelWidth = textWidth + paddingX * 2;
-    const labelHeight = textHeight + paddingY * 2;
-    const labelX = bounds.x + bounds.width / 2 - labelWidth / 2;
-    const labelY = bounds.y + bounds.height + offsetY;
+    const labelWidth = textWidth + DIMENSION_LABEL_PADDING_X * 2;
+    const labelHeight = textHeight + DIMENSION_LABEL_PADDING_Y * 2;
+    const labelX = -labelWidth / 2;
+    const labelY = DIMENSION_LABEL_OFFSET_Y;
 
     // 배경 RRect (둥근 모서리 사각형)
     const bgPaint = acquireScopedPaint(scope, ck);
@@ -368,29 +398,47 @@ export function renderDimensionLabels(
     bgPaint.setStyle(ck.PaintStyle.Fill);
     setDimensionLabelBackgroundColor(ck, bgPaint, semanticRole);
 
-    const rrect = ck.RRectXY(
-      ck.LTRBRect(labelX, labelY, labelX + labelWidth, labelY + labelHeight),
-      borderRadius,
-      borderRadius,
-    );
-    canvas.drawRRect(rrect, bgPaint);
-
     // 텍스트 Paint (흰색)
     const textPaint = acquireScopedPaint(scope, ck);
     textPaint.setAntiAlias(true);
     textPaint.setStyle(ck.PaintStyle.Fill);
     textPaint.setColor(ck.Color4f(1, 1, 1, 1));
 
-    // 텍스트 렌더링 (baseline 기준이므로 Y 위치 조정)
-    const textX = labelX + paddingX;
-    // baseline: line-height 중앙 + ascent 보정
-    const fontMetrics = font.getMetrics();
-    const ascent = fontMetrics ? Math.abs(fontMetrics.ascent) : fontSize * 0.8;
-    const descent = fontMetrics
-      ? Math.abs(fontMetrics.descent)
-      : fontSize * 0.2;
-    const textY = labelY + paddingY + (textHeight + ascent - descent) / 2;
-    canvas.drawText(dimensionText, textX, textY, textPaint, font);
+    withFixedScreenScale(
+      canvas,
+      zoom,
+      bounds.x + bounds.width / 2,
+      bounds.y + bounds.height,
+      () => {
+        const rrect = ck.RRectXY(
+          ck.LTRBRect(
+            labelX,
+            labelY,
+            labelX + labelWidth,
+            labelY + labelHeight,
+          ),
+          DIMENSION_LABEL_BORDER_RADIUS,
+          DIMENSION_LABEL_BORDER_RADIUS,
+        );
+        canvas.drawRRect(rrect, bgPaint);
+
+        // 텍스트 렌더링 (baseline 기준이므로 Y 위치 조정)
+        const textX = labelX + DIMENSION_LABEL_PADDING_X;
+        // baseline: line-height 중앙 + ascent 보정
+        const fontMetrics = font.getMetrics();
+        const ascent = fontMetrics
+          ? Math.abs(fontMetrics.ascent)
+          : DIMENSION_LABEL_FONT_SIZE * 0.8;
+        const descent = fontMetrics
+          ? Math.abs(fontMetrics.descent)
+          : DIMENSION_LABEL_FONT_SIZE * 0.2;
+        const textY =
+          labelY +
+          DIMENSION_LABEL_PADDING_Y +
+          (textHeight + ascent - descent) / 2;
+        canvas.drawText(dimensionText, textX, textY, textPaint, font);
+      },
+    );
   } finally {
     scope.dispose();
   }
@@ -453,8 +501,8 @@ export function renderLasso(
  * 페이지 타이틀을 페이지 경계 좌상단 위에 표시한다.
  *
  * Pencil 앱의 Frame title과 동일한 방식.
- * 씬-로컬 좌표계에서 호출되며, fontSize는 1/zoom으로 스케일하여
- * 화면상 일정한 크기를 유지한다.
+ * 씬-로컬 좌표계에서 호출되며, Font/local geometry는 12px 기준으로 고정하고
+ * canvas를 1/zoom으로 스케일하여 화면상 일정한 크기를 유지한다.
  */
 export function renderPageTitle(
   ck: CanvasKit,
@@ -473,8 +521,6 @@ export function renderPageTitle(
 
   const scope = new SkiaDisposable();
   try {
-    const invZoom = 1 / zoom;
-
     // 고정 폰트 사이즈로 렌더링하여 줌 시 글리프 간격 흔들림 방지.
     // 캐시 소유 Font — scope.track 금지 (acquireOverlayFont 주석 참조).
     const font = acquireOverlayFont(
@@ -482,6 +528,7 @@ export function renderPageTitle(
       fontMgr,
       isActive ? ck.FontWeight.Medium : ck.FontWeight.Normal,
       PAGE_TITLE_FONT_SIZE,
+      { embolden: true },
     );
     if (!font) return null;
 
@@ -504,27 +551,24 @@ export function renderPageTitle(
       );
     }
 
-    // canvas.scale로 줌 보정 → 폰트 사이즈가 항상 고정되어 글리프 메트릭 안정
-    canvas.save();
-    canvas.scale(invZoom, invZoom);
+    return withFixedScreenScale(canvas, zoom, 0, 0, () => {
+      // 화면 픽셀 좌표에서 위치 계산 후 pixel snap
+      const textX = 0;
+      const textTop = -PAGE_TITLE_OFFSET_Y;
+      const textY = Math.round(textTop + PAGE_TITLE_FONT_SIZE * 0.85);
 
-    // 화면 픽셀 좌표에서 위치 계산 후 pixel snap
-    const textX = 0;
-    const textTop = -PAGE_TITLE_OFFSET_Y;
-    const textY = Math.round(textTop + PAGE_TITLE_FONT_SIZE * 0.85);
+      canvas.drawText(title, textX, textY, textPaint, font);
 
-    canvas.drawText(title, textX, textY, textPaint, font);
+      // 타이틀 폭은 drag hit-test 에서도 재사용되므로 항상 계산하여 반환한다.
+      const titleWidth = measureGlyphRunWidth(font, title);
 
-    // 타이틀 폭은 drag hit-test 에서도 재사용되므로 항상 계산하여 반환한다.
-    const titleWidth = measureGlyphRunWidth(font, title);
-
-    canvas.restore();
-    return {
-      titleWidth,
-      textX,
-      textTop,
-      textHeight: PAGE_TITLE_FONT_SIZE,
-    };
+      return {
+        titleWidth,
+        textX,
+        textTop,
+        textHeight: PAGE_TITLE_FONT_SIZE,
+      };
+    });
   } finally {
     scope.dispose();
   }
