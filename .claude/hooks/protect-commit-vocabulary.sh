@@ -4,7 +4,7 @@
 # 2026-06-11 신설 — "발효" 반복 지적에도 안 고쳐진 근본 원인 = 텍스트 규칙은 모델이
 # 무시 가능 + 커밋 메시지가 git log 로 매 세션 재유입하는 최대 source.
 #
-# Why: CLAUDE.md §"응답·문서 어휘 규칙" 의 어휘 표는 system prompt 자료일 뿐 행동을
+# Why: ~/.claude/CLAUDE.md (글로벌) §"응답·문서 어휘 규칙" 의 어휘 표는 system prompt 자료일 뿐 행동을
 # 보장하지 못함 (GitHub Issue #45569 — model-level memory/규칙 ignored 사례 동일).
 # git-workflow.md 의 PR 차단이 protect-branch-pr.sh hook 으로 결정적 집행되는 것과
 # 동일하게, 어휘도 hook 으로만 결정적 차단된다. 과거 박힌 어휘 (메모리/docs/history)
@@ -56,7 +56,7 @@ if echo "$COMMAND" | grep -qE "$FORBIDDEN"; then
 명령: $COMMAND
 
 "발효(發效)" 는 법령·조약이 효력을 발생시킨다는 어감이라 catalog/spec 전환 같은
-코드 작업에 과잉·부정합입니다. 반복 지적된 어휘이며 CLAUDE.md 어휘 표에 등록됨.
+코드 작업에 과잉·부정합입니다. 반복 지적된 어휘이며 ~/.claude/CLAUDE.md (글로벌) 어휘 표에 등록됨.
 
 [대체어 — 문맥별]
   - "catalog 발효" / "X 발효"   → "catalog 전환" / "X 전환"
