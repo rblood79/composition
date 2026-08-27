@@ -30,7 +30,7 @@ git pull
 pnpm install  # specs 자동 빌드됨
 
 # WASM 바인딩이 변경된 경우 (선택사항)
-pnpm wasm:build
+pnpm wasm:build:engine
 ```
 
 ## Project Structure
