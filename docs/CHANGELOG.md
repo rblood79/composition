@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [단축키 표기 SSOT 통일 · 헤더 툴팁] - 2026-08-27
+
+단축키 자체는 정의 하나로 모여 있었는데 **화면에 찍히는 문자열**은 그렇지 않았다. 패널 설정이 표기를 따로 들고 있었고 헤더 메뉴는 JSX 에 직접 적어, 정의를 옮겨도 표기가 안 따라오는 구조였다. 표기를 전부 정의에서 파생시키고 정적 게이트를 걸었다.
+
+### Fixed
+
+- **top header 토글 그룹에 툴팁이 없던 문제**: 좌우 레일 토글은 hover 시 툴팁이 뜨는데 헤더의 뷰포트 3종(Desktop/Tablet/Mobile) + 보기 옵션 3종(Compare/Workflow/Monitor)은 `TooltipTrigger` 자체가 없었다. 여섯 개 모두 부착했고, Monitor 는 등록돼 있던 `⌃⌥M` 이 함께 나온다 — bottom 레일이 없어 이 단축키는 화면 어디에도 표기가 없었다.
+- **정의와 어긋나 있던 패널 표기 2건**: 설정 `Ctrl+,`(정의는 `⌘,`)·모니터 `Ctrl+Alt+M`(정의는 `⌃⌥M`) — Mac 표기조차 아니었다.
+- **표기가 빠져 있던 5건**: AI 패널 레일 툴팁(`⌘K` 등록됨), Styles·Properties 패널의 복사·붙여넣기 4개 버튼(`⌘⌥C`/`⌘⌥V` 등록됨). 전부 라벨만 나오고 있었다.
+- **`logShortcuts` 의 두 번째 심볼 표**: `ctrl` 계열이 Mac 에서도 `Ctrl` 로 굳어 `formatShortcut`(`⌃`)과 달랐다. 표기 함수 하나로 합쳤다.
+- **대시보드 검색 힌트 `⌘K` 고정 표기**: 비-Mac 에서도 `⌘K` 가 나왔다. `formatShortcut` 파생으로 바꿔 `Ctrl+K` 가 된다.
+
+### Changed
+
+- **`PanelConfig.shortcut?: string` → `shortcutId?: ShortcutId`**: 패널 레일 툴팁의 표기가 정의에서 파생된다. 오타는 `ShortcutId` union 이 컴파일 시점에 잡는다.
+- **툴팁 마크업 단일화**: 같은 마크업이 `ActionIconButton` 과 `PanelToggleGroup` 에 두 벌 있던 것을 `ActionTooltip` 하나로 모았다 (CSS 도 `ActionTooltip.css` 로 분리). 레일 툴팁에 화살표가 붙는 것이 시각 변화.
+
+### Removed
+
+- **헤더 메뉴의 `⌘O`**: 정의도 등록도 핸들러도 없는 표기였다 (메뉴 `onAction` 이 `open` 키를 처리하지 않는다). 같은 메뉴의 Settings 에는 실제로 등록된 `⌘,` 를 추가했다.
+
+### Added
+
+- **정적 게이트 `shortcutDisplay.static.test.ts`** 2조항 — ① `⌘`/`⌥`/`⇧`/`⌃` 리터럴은 `formatShortcut` 안에만 (주석·테스트 제외) ② `panels` 카테고리 정의는 전부 `PanelConfig.shortcutId` 로 이어진다. 표기가 다시 갈라지면 위반 파일·줄을 지목하고 실패한다.
+
 ## [단축키 재배치 — Figma·Pencil 규약 정합] - 2026-08-27
 
 정의 70개를 Figma·Photoshop·Pencil 과 액션 단위로 대조해 재배치했다. 기준은 "이미 아는 손을 다시 가르치지 않는 자리" 이고, 브라우저가 먼저 가져가는 조합을 피했다. 눌러도 반응하지 않던 11개가 0개가 됐다.
