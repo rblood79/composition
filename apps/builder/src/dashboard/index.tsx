@@ -708,17 +708,6 @@ function Dashboard() {
               </ToggleButton>
             </ToggleButtonGroup>
           </div>
-
-          <Button
-            className="dashboard-create-button"
-            variant="accent"
-            size="md"
-            isDisabled={loading}
-            onPress={startCreating}
-          >
-            <AddIcon size={16} aria-hidden />
-            New project
-          </Button>
         </div>
       </header>
 
@@ -817,6 +806,17 @@ function Dashboard() {
                   </ToggleButton>
                 </ToggleButtonGroup>
               </div>
+
+              <Button
+                className="dashboard-create-button"
+                variant="accent"
+                size="md"
+                isDisabled={loading}
+                onPress={startCreating}
+              >
+                <AddIcon size={16} aria-hidden />
+                New project
+              </Button>
             </div>
           </div>
 
