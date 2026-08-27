@@ -1,5 +1,6 @@
 import type { CanvasKit, Canvas, Paint } from "canvaskit-wasm";
 import { colord } from "colord";
+import { buildPath } from "./buildPath";
 import { applyFill } from "./fills";
 import { SkiaDisposable } from "./disposable";
 import {
@@ -260,14 +261,15 @@ function renderInsetOutsetBorder(
   const inset = sw / 2;
 
   canvas.save();
-  const tlClipPath = new ck.Path();
-  tlClipPath.moveTo(0, 0);
-  tlClipPath.lineTo(node.width, 0);
-  tlClipPath.lineTo(node.width - sw, sw);
-  tlClipPath.lineTo(sw, sw);
-  tlClipPath.lineTo(sw, node.height - sw);
-  tlClipPath.lineTo(0, node.height);
-  tlClipPath.close();
+  const tlClipPath = buildPath(ck, (path) => {
+    path.moveTo(0, 0);
+    path.lineTo(node.width, 0);
+    path.lineTo(node.width - sw, sw);
+    path.lineTo(sw, sw);
+    path.lineTo(sw, node.height - sw);
+    path.lineTo(0, node.height);
+    path.close();
+  });
   canvas.clipPath(tlClipPath, ck.ClipOp.Intersect, true);
   tlClipPath.delete();
 
@@ -288,14 +290,15 @@ function renderInsetOutsetBorder(
   canvas.restore();
 
   canvas.save();
-  const brClipPath = new ck.Path();
-  brClipPath.moveTo(node.width, node.height);
-  brClipPath.lineTo(0, node.height);
-  brClipPath.lineTo(sw, node.height - sw);
-  brClipPath.lineTo(node.width - sw, node.height - sw);
-  brClipPath.lineTo(node.width - sw, sw);
-  brClipPath.lineTo(node.width, 0);
-  brClipPath.close();
+  const brClipPath = buildPath(ck, (path) => {
+    path.moveTo(node.width, node.height);
+    path.lineTo(0, node.height);
+    path.lineTo(sw, node.height - sw);
+    path.lineTo(node.width - sw, node.height - sw);
+    path.lineTo(node.width - sw, sw);
+    path.lineTo(node.width, 0);
+    path.close();
+  });
   canvas.clipPath(brClipPath, ck.ClipOp.Intersect, true);
   brClipPath.delete();
 
@@ -418,20 +421,21 @@ function renderInnerBoxShadows(
       Math.max(shadow.sigmaX, shadow.sigmaY) * 3 +
       2;
 
-    const path = new ck.Path();
-    path.addRect(ck.LTRBRect(-pad, -pad, w + pad, h + pad));
-    if (holeRadius > 0) {
-      path.addRRect(
-        ck.RRectXY(
-          ck.LTRBRect(holeLeft, holeTop, holeRight, holeBottom),
-          holeRadius,
-          holeRadius,
-        ),
-      );
-    } else {
-      path.addRect(ck.LTRBRect(holeLeft, holeTop, holeRight, holeBottom));
-    }
-    path.setFillType(ck.FillType.EvenOdd);
+    const path = buildPath(ck, (path) => {
+      path.addRect(ck.LTRBRect(-pad, -pad, w + pad, h + pad));
+      if (holeRadius > 0) {
+        path.addRRect(
+          ck.RRectXY(
+            ck.LTRBRect(holeLeft, holeTop, holeRight, holeBottom),
+            holeRadius,
+            holeRadius,
+          ),
+        );
+      } else {
+        path.addRect(ck.LTRBRect(holeLeft, holeTop, holeRight, holeBottom));
+      }
+      path.setFillType(ck.FillType.EvenOdd);
+    });
 
     const paint = acquirePooledPaint(ck);
     paint.setAntiAlias(true);
@@ -644,14 +648,15 @@ export function renderBox(
       }
 
       const { cx, cy, radius, startAngle, sweepAngle } = node.arc;
-      const arcPath = new ck.Path();
       const oval = ck.LTRBRect(
         cx - radius,
         cy - radius,
         cx + radius,
         cy + radius,
       );
-      arcPath.addArc(oval, startAngle, sweepAngle);
+      const arcPath = buildPath(ck, (path) => {
+        path.addArc(oval, startAngle, sweepAngle);
+      });
       canvas.drawPath(arcPath, arcPaint);
 
       arcPath.delete();
