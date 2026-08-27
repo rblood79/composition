@@ -28,6 +28,7 @@ Read docs/adr/README.md                       → 전체 ADR 현황 파악
 Read {대상 ADR 본문}                            → 100% 전체 읽기 (절삭 금지)
 Read {대상 ADR breakdown} (있으면)              → 구현 상세 확인
 Read .claude/rules/adr-writing.md              → 템플릿 체크리스트 (동적 seed 포함)
+Read .claude/rules/measurement-validity.md     → Gate 수치의 leakage 8-패턴 + 착수 전 5-질문 (Phase 3-H 판정 기준)
 ```
 
 **증거 캐시 시작**: 이 시점부터 `file:line` 또는 `ADR:line_range` 형태로 인용할 것만을 판정 근거로 사용. 기억/추측은 근거 아님.
@@ -132,6 +133,36 @@ ADR에 명시되지 않은 잠재 위험을 능동적으로 조사:
 
 ---
 
+## Phase 3-H: 근본 반론 (hate) — root 1개 + first nail (2026-08-28, 병합 순서 ④)
+
+Phase 3 이 "나열된 위험이 실재하는가" 를 보는 것과 달리, 3-H 는 **계획 전체를 무너뜨리고 싶은 사람이 먼저 공격할 자리** 를 찾는다. 체크리스트가 아니라 **root 하나 + first nail 하나** 를 돌려준다 (paperthin `hate` 의 composition 재구현).
+
+1. **load-bearing 가정** 을 적는다 — Decision 이 서 있으려면 반드시 참이어야 하는 것 (보통 1~3개). ADR 이 명시하지 않은 암묵 가정을 우선한다.
+2. 공격 축 (해당하는 것만):
+   - **load-bearing 사실이 거짓** — Context 의 "현재 X 다" 서술이 코드와 다름 (Phase 2 UNVERIFIED 와 연결)
+   - **confabulation** — 사후 설명을 근거로 취급 (리뷰 round 1 의 결론을 그대로 승계한 문장 포함)
+   - **analogy ≠ isomorphism** — 외부 참조 (OpenPencil / RSP / Figma 관례) 의 구조가 composition 에도 성립한다고 가정 — 참조 쪽에 있고 이쪽에 없는 전제 (두 번째 host, 다른 SSOT) 를 찾는다
+   - **측정 leakage** — Gate 통과 수치의 oracle 이 `measurement-validity.md` §2 8-패턴에 해당 → 그 Gate 는 통과 불가능하거나 vacuous
+   - **소비 경로 부재** — "기구현 인프라 활성화" 를 근거로 쓰는데 3-grep (import/caller · flag 실배선 · factory 경유) 미통과
+   - **조건부 편익** — 편익이 ADR 스스로 선택적이라 선언한 후속 (별도 ADR / 조건부 Gate) 에만 실현되는데 비용은 지금 전부 지불
+3. 발견을 **root 하나** 로 접는다 — 그것이 무너지면 나머지 반론이 무의미해지는 것. 목록 반환 금지.
+4. **first nail** — root 가정을 가장 싸게 반증할 검사 (시간/비용/표본). 반드시 그 가정 위에 세워진 프로그램보다 싸야 한다. 이미 Gate 에 같은 검사가 있으면 "G{n} 이 커버" 로 종결.
+5. 판정 매핑: first nail 이 어느 Gate 에도 없고 root 가 Decision 을 무너뜨리는 성질이면 이슈 (심각도 = root 가 죽이는 것의 크기; 카테고리 `evidence-missing` / `alternative-strawman` / `other`). Gate 가 이미 커버하면 이슈 아님 — 보고에 "hate: G{n} 커버" 1줄.
+
+**규칙**: 공격만 한다 — 개선안은 다른 reflex. root 는 진짜 load-bearing 이어야 한다 (그것 없이도 계획이 서면 root 가 아니다). first nail 이 프로그램보다 비싸면 nail 이 아니다. **전제 확정 종결 계약** (CLAUDE.md §전제·관점) 과의 관계: 이미 승인된 round 가 있는 ADR 에서 3-H 가 전제 수준 root 를 찾으면 **기록하되 재질문하지 않는다** — 이슈는 다음 착수 조건 (Phase 0 / 기준선 갱신) 으로 `deferred` 하고, 재개는 사용자 재제기·scope 변경·의존 반전 증거 3경로뿐.
+
+## Phase 3-P: 렌즈 대조 (prism) — 조건부 (2026-08-28)
+
+**실행 조건**: HIGH 위험 ≥ 1 또는 breakdown phase ≥ 3 인 ADR 만 (복수 렌즈는 opt-in 비용 — 수렴이 자동 증명으로 둔갑하면 안 된다). 조건 미달이면 "prism: 해당 없음" 1줄.
+
+1. ADR 을 끝까지 읽은 뒤 **서로 다른 failure mode 하나당 렌즈 하나** 를 이 ADR 에 맞춰 새로 고른다 (2~5개) — 예: 정합성/SSOT · 비용/성능 · 측정 무결성 · 되돌림/rollout · 사용자 적대 시나리오. 같은 failure mode 를 공유하는 두 렌즈는 하나다 ("보안 리뷰어" 와 "시니어 보안 리뷰어" 는 렌즈 하나).
+2. 렌즈마다 **한 줄 판정** (pass / fail / unclear) + **load-bearing 이유 하나**. 목록을 내는 렌즈는 hedging 이다.
+3. 판정을 묶는다: 전원 일치 / 다른 이유로 일치 / 불일치.
+4. 불일치가 있으면 **그것을 일치 또는 owner 가 있는 깔끔한 분기로 바꿀 질문 하나** 를 낸다 — 이 질문이 산출물이다. 평균 내지 않는다.
+5. 전원 일치면 공유 판정 + 2개 이상 렌즈에서 load-bearing 이었던 이유만 보고. **불일치를 만들어내지 않는다** — 없으면 없다고 쓰고 끝.
+
+---
+
 ## Phase 3.5: Pre-Report Evidence Freeze (CRITICAL)
 
 **Phase 4 보고 직전 필수 단계.** 지금까지 수집한 판정 중 `file:line` 인용이 있는 것만 최종 보고에 포함시킨다. 인용 없는 판정은 Phase 4 에서 제외하거나 `UNVERIFIED` 로 다운그레이드.
@@ -144,7 +175,7 @@ ADR에 명시되지 않은 잠재 위험을 능동적으로 조사:
 4. Phase 2 에서 UNVERIFIED 분류된 항목을 Phase 4 에서 FAIL 로 승격하지 않았는가?
 ```
 
-**증거 부족 시 대응**: 해당 판정을 삭제하거나 `UNVERIFIED - evidence missing` 으로 표기. 무증거 단정 금지.
+**증거 부족 시 대응**: 해당 판정을 삭제하거나 `UNVERIFIED - evidence missing` 으로 표기. 무증거 단정 금지. Phase 3-H 의 root / 3-P 의 렌즈 이유도 같은 규칙 — ADR:line 또는 file:line 인용 없는 root 는 보고에서 제외.
 
 ---
 
@@ -181,6 +212,23 @@ ADR에 명시되지 않은 잠재 위험을 능동적으로 조사:
 | {탐색 발견 위험} | `grep 결과` | HIGH/MED/LOW | **누락** |
 
 **또는** `누락 위험 없음` — 탐색 결과 추가 위험 미발견.
+
+### 근본 반론 (hate)
+
+- **load-bearing 가정**: {Decision 이 서기 위해 참이어야 하는 것} (`ADR:line`)
+- **root**: {그것이 무너지면 나머지가 무의미해지는 반론 1개} — 공격 축: {사실 거짓 / confabulation / analogy≠isomorphism / 측정 leakage #n / 소비 경로 / 조건부 편익}
+- **first nail**: {가장 싼 반증 검사} — 비용 {시간/표본} vs 프로그램 {Phase 수/Gate 수}
+- **판정**: G{n} 커버 / 이슈 #{id} ({severity}, deferred → {착수 조건})
+
+### 렌즈 대조 (prism) — 조건부
+
+| 렌즈 (failure mode) | 판정              | load-bearing 이유 |
+| ------------------- | ----------------- | ----------------- |
+| {정합성/SSOT}       | pass/fail/unclear | {이유 1개}        |
+| {비용/성능}         | pass/fail/unclear | {이유 1개}        |
+
+- **수렴**: {전원 일치 / 다른 이유로 일치 / 불일치 — 어느 렌즈끼리}
+- **해결 질문 1**: {불일치를 가르는 질문} 또는 `불일치 없음`
 
 ### 종합 판정
 
@@ -236,12 +284,14 @@ cat <<'EOF' | node .claude/scripts/adr-review/writer.mjs
       "outcome": "<기록 시점 실제 상태: pending | fixed | deferred | rejected>"
     }
   ],
-  "bodyMd": "<Phase 4 마크다운 본문>"
+  "bodyMd": "<Phase 4 마크다운 본문>",
+  "hate": { "assumption": "<load-bearing 가정>", "root": "<반론 1개>", "axis": "<공격 축>", "first_nail": "<가장 싼 반증>", "verdict": "<G{n} 커버 | issue:{id}>" },
+  "prism": { "lenses": [ { "lens": "<failure mode>", "verdict": "pass|fail|unclear", "reason": "<이유 1개>" } ], "convergence": "<일치|다른 이유로 일치|불일치>", "question": "<해결 질문 1 | 없음>" }
 }
 EOF
 ```
 
-`issues` 가 빈 배열(`[]`)이어도 정상 — Layer 0 에 "이슈 없음 승인" 기록으로 저장.
+`issues` 가 빈 배열(`[]`)이어도 정상 — Layer 0 에 "이슈 없음 승인" 기록으로 저장. `hate` / `prism` 은 선택 필드 (3-P 미실행이면 `prism` 생략) — writer 가 round frontmatter 에 그대로 보존한다.
 
 ### Outcome 종결 의무 (2026-07-11 — 종결 계약 연계, CRITICAL)
 

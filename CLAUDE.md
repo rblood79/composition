@@ -184,6 +184,7 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 | Agent 가이드         | [.claude/agents/](.claude/agents/)                                                                       | architect, implementer, evaluator, reviewer, debugger, documenter, refactorer, tester |
 | ADR 현황             | [docs/adr/README.md](docs/adr/README.md)                                                                 | 전체 ADR 현황 대시보드                                                                |
 | ADR 규칙             | [.claude/rules/adr-writing.md](.claude/rules/adr-writing.md)                                             | Risk-First 템플릿, 위험 평가, 금지 패턴, 반복 패턴 선차단 체크리스트 (`docs/adr/**` 자동 로드) |
+| 측정·검증 무결성     | [.claude/rules/measurement-validity.md](.claude/rules/measurement-validity.md) | Gate 수치의 leakage 8-패턴 + 착수 전 5-질문 + 실패 record 7필드 (`docs/adr/**`·performance 편집 시 자동 로드) |
 | CHANGELOG 규칙       | [.claude/rules/changelog.md](.claude/rules/changelog.md)                                                 | 트리거 기반 자동 갱신, Drift 감시, 14일/100 커밋 catch-up, Keep a Changelog 포맷 (`docs/CHANGELOG*` 자동 로드) |
 | CHANGELOG 본문       | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                                                   | 현재 엔트리 — 연도별 아카이브 (`CHANGELOG-YYYY-archived.md`) 로 이관                  |
 | ADR 리뷰 저장소      | [docs/adr/reviews/](docs/adr/reviews/)                                                                   | Layer 0 Observation — `review-adr` Phase 4.5 자동 영속화, 9-taxonomy 구조화 (`writer.mjs`/`validate.mjs`) |

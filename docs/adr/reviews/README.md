@@ -31,6 +31,17 @@ reviews: # (required) array, accumulates per round
         root_cause: "..." # (optional) why
         outcome: fixed # (optional) fixed|deferred|rejected|pending, default "pending"
         addressed_in: "commit sha or ADR-NNN" # (optional) resolution reference
+    hate: # (optional, 2026-08-28) review-adr Phase 3-H — root 1 + first nail
+      assumption: "..." # load-bearing 가정
+      root: "..." # 반론 1개
+      axis: "..." # 공격 축
+      first_nail: "..." # 가장 싼 반증 검사
+      verdict: "G0 커버 | issue:m1"
+    prism: # (optional) Phase 3-P — HIGH ≥1 또는 phase ≥3 인 ADR 만
+      lenses:
+        - { lens: "cost", verdict: "unclear", reason: "..." } # verdict: pass|fail|unclear
+      convergence: "일치 | 다른 이유로 일치 | 불일치"
+      question: "해결 질문 1 | 없음"
 ---
 ```
 
