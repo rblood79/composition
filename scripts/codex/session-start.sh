@@ -53,6 +53,7 @@ echo "- pnpm run codex:harness -- start"
 echo "- pnpm run codex:route -- \"<prompt>\""
 echo "- pnpm run codex:snapshot"
 echo "- pnpm run codex:preflight"
+echo "- pnpm run agent:run -- start --understood-as \"<request restated>\"   # evidence ledger (local)"
 
 print_section "Git Working Tree"
 git status --short

@@ -156,7 +156,7 @@ confirm 받지 못하면 분할/inflation 차단, 단일 phase 안 진행 또는
 
 ```
 Proposed → Accepted    : Decision 섹션이 Gate를 모두 통과, 또는 Gate 없이 합의 완료
-Accepted → Implemented : 코드가 main에 머지, 검증 통과
+Accepted → Implemented : 코드가 main에 머지, 검증 통과, 본문에 `### Live Exercise` 절 (실제 builder 에서 무엇을 exercise 했는지 — Stop hook 이 승격 시 요구)
 Any      → Deprecated  : 더 이상 유효하지 않으나 후속 ADR 없음
 Any      → Superseded  : 후속 ADR이 이 결정을 대체. 본문 상단에 "Superseded by ADR-NNN" 필수
 ```
@@ -211,6 +211,10 @@ Proposed — YYYY-MM-DD
 
 [Gate 테이블 또는 "잔존 HIGH 위험 없음"]
 
+### Live Exercise
+
+(Implemented 승격 시 기재 — 실제 builder 에서 exercise 한 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분. 미기재 시 Stop hook 이 승격을 block)
+
 ## Consequences
 
 ### Positive
@@ -229,6 +233,7 @@ ADR 작성 후 아래를 자가 검증한다. 하나라도 실패하면 해당 �
 - [ ] 구현 상세가 ADR 본문이 아닌 design 문서에 있는가? (또는 구현 상세가 불필요한 수준인가?)
 - [ ] **Risks 섹션이 Decision 뒤 / Gates 앞에 있고, ID 표 형식으로 잔존 운영 위험을 집약했는가?** (또는 "잔존 HIGH 위험 없음" 명시)
 - [ ] Gate가 있거나, "잔존 HIGH 위험 없음"이 명시되어 있는가?
+- [ ] (Implemented 승격 시) `### Live Exercise` 절에 시나리오 · 결과 · 날짜 · Chrome MCP/사용자 confirm 구분이 있는가? — 대안: `docs/adr/evidence/NNN-*live*.md` 또는 run ledger `live-exercise pass` 기록. 없으면 `adr-status-sync-check.sh` 가 block (2026-08-28)
 
 ### 반복 패턴 선차단 (experimental seed — introduced: 2026-04-20, review: 2026-10-20)
 

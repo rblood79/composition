@@ -176,7 +176,7 @@ run_hook type-check-gate.sh '{"hook_event_name":"Stop"}' STOP_HOOK_ACTIVE=true; 
 
 # ---------- adr-status-sync-check.sh (Stop) — 임시 git repo ----------
 printf '\n== adr-status-sync-check.sh ==\n'
-REPO="$TMP/repo"; mkdir -p "$REPO/docs/adr" "$REPO/.claude"
+REPO="$TMP/repo"; RUNS="$TMP/runs"; mkdir -p "$REPO/docs/adr" "$REPO/.claude" "$RUNS"
 (
   cd "$REPO" && git init -q && git -c user.name=t -c user.email=t@t config commit.gpgsign false
   printf '# ADR-100\n\n## Status\n\nAccepted\n' > docs/adr/100-x.md
@@ -186,22 +186,67 @@ REPO="$TMP/repo"; mkdir -p "$REPO/docs/adr" "$REPO/.claude"
 ) >/dev/null 2>&1
 run_in_repo() {  # run_in_repo <stdin> [ENV=VAL...]
   local json="$1"; shift
-  OUT=$(cd "$REPO" && printf '%s' "$json" | env CLAUDE_PROJECT_DIR="$REPO" "$@" bash "$HOOKS/adr-status-sync-check.sh" 2>/dev/null); RC=$?
+  OUT=$(cd "$REPO" && printf '%s' "$json" | env CLAUDE_PROJECT_DIR="$REPO" AGENT_RUNS_DIR="$RUNS" "$@" bash "$HOOKS/adr-status-sync-check.sh" 2>/dev/null); RC=$?
 }
-case_start "Implemented 승격 + README/CHANGELOG 미갱신 → block"
-printf '# ADR-100\n\n## Status\n\nImplemented\n' > "$REPO/docs/adr/100-x.md"
-run_in_repo '{"hook_event_name":"Stop"}'; assert_block
+adr_body() { printf '# ADR-100\n\n## Status\n\n%s\n' "$1" > "$REPO/docs/adr/100-x.md"; }
+LIVE_SEC=$'Implemented\n\n### Live Exercise\n\n- 2026-08-28 builder 5173 팔레트 실행 12건 확인 (Chrome MCP)'
+sync_docs() { printf '# README\n- 100\n' > "$REPO/docs/adr/README.md"; printf '# CHANGELOG\n- 100\n' > "$REPO/docs/CHANGELOG.md"; }
+reset_docs() { printf '# README\n' > "$REPO/docs/adr/README.md"; printf '# CHANGELOG\n' > "$REPO/docs/CHANGELOG.md"; }
+LEDGER="$ROOT_DIR/scripts/agent/run-ledger.sh"
+
+case_start "승격 + README/CHANGELOG 미갱신 + Live 없음 → block"
+adr_body Implemented; run_in_repo '{"hook_event_name":"Stop"}'; assert_block
 case_start "  (block 시) stats/hook-blocks.jsonl 기록"
 if [ -s "$REPO/.claude/stats/hook-blocks.jsonl" ]; then pass; else fail "기록 없음"; fi
-case_start "Implemented 승격 + README/CHANGELOG 동시 갱신 → 통과"
-printf '# README\n- 100\n' > "$REPO/docs/adr/README.md"; printf '# CHANGELOG\n- 100\n' > "$REPO/docs/CHANGELOG.md"
+case_start "승격 + 동시 갱신 + Live Exercise 없음 → block (live 근거 필수)"
+sync_docs; run_in_repo '{"hook_event_name":"Stop"}'; assert_block
+case_start "  block 사유에 'Live Exercise' 안내"
+if printf '%s' "$OUT" | jq -r '.reason' 2>/dev/null | grep -q 'Live Exercise'; then pass; else fail "사유에 Live Exercise 없음"; fi
+case_start "승격 + 동시 갱신 + ### Live Exercise 절 → 통과"
+adr_body "$LIVE_SEC"; run_in_repo '{"hook_event_name":"Stop"}'; assert_allow
+case_start "승격 + 동시 갱신 + docs/adr/evidence/100-live-*.md → 통과"
+adr_body Implemented; mkdir -p "$REPO/docs/adr/evidence"; : > "$REPO/docs/adr/evidence/100-live-exercise.md"
+run_in_repo '{"hook_event_name":"Stop"}'; assert_allow; rm -rf "$REPO/docs/adr/evidence"
+case_start "승격 + 동시 갱신 + run ledger live-exercise pass → 통과"
+AGENT_RUNS_DIR="$RUNS" bash "$LEDGER" start --understood-as "selftest run" >/dev/null 2>&1
+AGENT_RUNS_DIR="$RUNS" bash "$LEDGER" evidence live-exercise pass --detail "selftest" >/dev/null 2>&1
 run_in_repo '{"hook_event_name":"Stop"}'; assert_allow
-case_start "escape hatch ADR_SPLIT_COMMIT=1 → 통과"
-printf '# README\n' > "$REPO/docs/adr/README.md"; printf '# CHANGELOG\n' > "$REPO/docs/CHANGELOG.md"
-run_in_repo '{"hook_event_name":"Stop"}' ADR_SPLIT_COMMIT=1; assert_allow
+case_start "  (통과 시) ledger 에 adr-sync pass 기록"
+if grep -q '"kind":"adr-sync","status":"pass"' "$RUNS/$(cat "$RUNS/current")/evidence.jsonl"; then pass; else fail "adr-sync pass 미기록"; fi
+AGENT_RUNS_DIR="$RUNS" bash "$LEDGER" close >/dev/null 2>&1
+case_start "escape ADR_SPLIT_COMMIT=1 + Live 절 → 통과 (README/CHANGELOG 미갱신)"
+reset_docs; adr_body "$LIVE_SEC"; run_in_repo '{"hook_event_name":"Stop"}' ADR_SPLIT_COMMIT=1; assert_allow
+case_start "escape ADR_SPLIT_COMMIT=1 + Live 없음 → block (live 는 우회 불가)"
+adr_body Implemented; run_in_repo '{"hook_event_name":"Stop"}' ADR_SPLIT_COMMIT=1; assert_block
 case_start "ADR 변경 없음 → 통과"
 (cd "$REPO" && git checkout -q -- docs/adr/100-x.md)
 run_in_repo '{"hook_event_name":"Stop"}'; assert_allow
+
+# ---------- run-ledger.sh (scripts/agent) — manifest + evidence ----------
+printf '\n== run-ledger.sh (pnpm agent:run) ==\n'
+RUNS2="$TMP/runs2"; mkdir -p "$RUNS2"
+led() { OUT=$(AGENT_RUNS_DIR="$RUNS2" bash "$LEDGER" "$@" 2>&1); RC=$?; }
+case_start "run 없이 evidence → 조용한 no-op (exit 0)"
+led evidence typecheck pass; assert_allow
+case_start "start 에 --understood-as 없음 → exit 2"
+led start; if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
+case_start "start → run.json + 'understood as:' 출력"
+led start --understood-as "ADR-999 P1 을 auto 로 실행" --adr 999 --live "builder 에서 X 확인"; assert_contains "understood as: ADR-999 P1 을 auto 로 실행"
+case_start "  run.json 에 understoodAs·contractRef"
+RID=$(cat "$RUNS2/current")
+if jq -e '.understoodAs == "ADR-999 P1 을 auto 로 실행" and .adr == "999" and .contractRef.path == ".agent/task-state.json"' "$RUNS2/$RID/run.json" >/dev/null 2>&1; then pass; else fail "run.json 필드 불일치"; fi
+case_start "has-live (기록 없음) → exit 1"
+led has-live; if [ "$RC" -ne 0 ]; then pass; else fail "rc=0"; fi
+case_start "evidence live-exercise pass → has-live exit 0"
+led evidence live-exercise pass --detail "팔레트 12건" --artifact "artifacts/x.png"; led has-live; if [ "$RC" -eq 0 ]; then pass; else fail "rc=$RC"; fi
+case_start "evidence 잘못된 status → exit 2"
+led evidence typecheck maybe; if [ "$RC" -eq 2 ]; then pass; else fail "rc=$RC"; fi
+case_start "status 에 evidence 집계"
+led status; assert_contains "live-exercise"
+case_start "report 에 live-exercise pass 1건"
+led report; assert_contains "live-exercise pass: 1건"
+case_start "close → current 제거 + endedAt"
+led close "done"; if [ ! -f "$RUNS2/current" ] && jq -e '.endedAt != null and .result == "done"' "$RUNS2/$RID/run.json" >/dev/null 2>&1; then pass; else fail "close 미반영"; fi
 
 # ---------- auto-format.sh (PostToolUse) ----------
 printf '\n== auto-format.sh ==\n'
@@ -217,6 +262,7 @@ if bash "$HOOKS/fix-visibility.test.sh" >/dev/null 2>&1; then pass; else fail "f
 
 # ---------- summary ----------
 printf '\n== 결과 == PASS %d · FAIL %d\n' "$PASS" "$FAIL"
+[ -x "$LEDGER" ] && AGENT_EVIDENCE_SOURCE=selftest.sh bash "$LEDGER" evidence hook-selftest "$([ "$FAIL" -gt 0 ] && echo fail || echo pass)" --detail "PASS $PASS FAIL $FAIL" --cmd "pnpm hooks:selftest" >/dev/null 2>&1 || true
 if [ "$FAIL" -gt 0 ]; then
   echo "[hooks:selftest] 실패 — hook 이 등록은 됐지만 기대 판정을 내지 않습니다."
   exit 1

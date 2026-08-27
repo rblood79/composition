@@ -39,6 +39,12 @@ case "$COMMAND" in
   preflight | verify)
     codex_pnpm run codex:preflight
     ;;
+  run | ledger)
+    bash scripts/agent/run-ledger.sh "$@"
+    ;;
+  catalog)
+    bash scripts/codex/agent-catalog-gate.sh "$@"
+    ;;
   help | -h | --help)
     cat <<'EOF'
 Codex harness commands:
@@ -50,6 +56,8 @@ Codex harness commands:
   pnpm run codex:harness -- format
   pnpm run codex:harness -- typecheck
   pnpm run codex:harness -- preflight
+  pnpm run codex:harness -- catalog
+  pnpm run codex:harness -- run start --understood-as "<요청 재진술>" | evidence <kind> <status> | status | report | close
 
 Shortcuts:
 

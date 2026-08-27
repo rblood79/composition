@@ -28,6 +28,7 @@ ADR + design breakdown 파일을 읽어 미반영 phase 를 순차 자율 실행
 
 Phase 1 진입 전 모두 통과:
 
+- [ ] **understood as (readchk — 첫 출력 1줄)**: 요청을 한 줄로 재진술한다 — `understood as: ADR-{NNN} 의 P{X} 를 {mode} 로 실행, scope = {포함/제외}`. 잘못 이해했으면 여기서 드러난다 (paperthin readchk). 같은 문장으로 run manifest 를 연다: `pnpm agent:run -- start --adr {NNN} --understood-as "..." --live "<live 시나리오>"` — 이후 type-check/preflight/adr-sync hook 이 `.agent/runs/<id>/evidence.jsonl` 에 실행 사실을 자동 append 한다 (local-only, 병합 순서 ③)
 - [ ] `docs/adr/{NNN}-*.md` 또는 `docs/adr/completed/{NNN}-*.md` 존재 + Status 가 `Accepted` 또는 `In Progress` (Implemented / Superseded → 진입 거부. `completed/` 매치 = 이미 Implemented → 진입 거부 — completed/ 탐색은 이 거부 사유를 확정하기 위한 것). **`Proposed` + 아래 전제 확정 조건 충족 시 → 되묻지 않고 `Accepted` 승격을 착수 절차에 포함** (Status 변경 + README.md 테이블 동시 갱신 후 진행 — adr-writing.md §Status 전이 "합의 완료" 가 리뷰 승인 기록으로 성립. 리뷰 승인 기록 없는 `Proposed` 만 진입 거부. Why: 리뷰 승인 ↔ Status 승격을 잇는 자동 절차 부재가 착수 시점 재질문의 1차 원인 — 2026-07-11 진단, ADR-148/149 실측)
 - [ ] design breakdown (`docs/adr/design/{NNN}-*-breakdown.md`) 존재 — 없으면 즉시 종료 + "design breakdown 없는 ADR 자율 실행 금지 (adr-writing.md 위반)" 보고
 - [ ] git working tree clean — 단 **auto-dirty 파일 allowlist 는 dirty 판정에서 제외**: `.claude/stats/*` (SessionStart hook 자동 갱신) 는 잔여 커밋으로 선행 정리 후 통과 (사용자에게 되묻지 않음). 그 외 파일의 uncommitted 변경 있으면 사용자에게 commit / stash 요청 (Why: stats hook 이 매 세션 tree 를 dirty 로 만들어 세션 첫 착수마다 불필요 재질문 발생 — 2026-07-11 진단)
@@ -94,7 +95,7 @@ phase 종료 marking 전 모두 통과:
   - Phase 5.0 dist 신선도 게이트 통과
   - 5-레이어 정합성 0 CRITICAL/HIGH
   - **Why (ADR-144 사례)**: "렌더링 영향 phase 만 필수" 로 좁히면 Inspector/registration/wiring 변경이 게이트를 빠져나간다. ADR-144 Wave C 가 test/type-check PASS 로 Implemented 승격됐으나 live builder 에서 composite registration 이 동작 안 함 → closure rollback → 34 commit revert. **비-렌더 wiring 변경도 live 검증 대상.**
-- [ ] **live behavior 확인 (CRITICAL — test/type-check PASS 단독으로 phase 종료 금지)**: 사용자-가시 동작이 실제 builder 에서 작동하는지 확인. registration / resolved-tree wiring / schema 변경은 unit-test 가 통과해도 live 에서 깨질 수 있음. Chrome MCP (builder 탭 조작) 또는 사용자 confirm 으로 실동작 1회 exercise. **무엇을 실제로 exercise 했는지 commit 검증 블록에 명시.**
+- [ ] **live behavior 확인 (CRITICAL — test/type-check PASS 단독으로 phase 종료 금지)**: 사용자-가시 동작이 실제 builder 에서 작동하는지 확인. registration / resolved-tree wiring / schema 변경은 unit-test 가 통과해도 live 에서 깨질 수 있음. Chrome MCP (builder 탭 조작) 또는 사용자 confirm 으로 실동작 1회 exercise. **무엇을 실제로 exercise 했는지 commit 검증 블록에 명시** + ledger 기록 `pnpm agent:run -- evidence live-exercise pass --detail "<시나리오·결과>"` + ADR 본문 `### Live Exercise` 절 기재 (Implemented 승격 시 `adr-status-sync-check.sh` 가 이 절 / `docs/adr/evidence/NNN-*live*.md` / ledger 기록 중 하나를 요구 — 없으면 block)
 - [ ] design breakdown 의 phase Gate 조건 충족 (Gate 표가 있으면)
 - [ ] ADR Risks 섹션의 해당 phase 관련 위험 R{ID} 잔존 평가 — 새 위험 발견 시 ADR 본문 update
 
@@ -136,7 +137,9 @@ if [ $PUSH_EXIT -ne 0 ]; then
 fi
 
 # 5) ADR 본문 진행 로그 update — Phase {X} → "Implemented {YYYY-MM-DD}"
-#    (별도 commit 또는 같은 commit 에 포함)
+#    (별도 commit 또는 같은 commit 에 포함). Implemented 승격 commit 에는 `### Live Exercise` 절 필수
+# 6) run 종결 — 완료 보고는 ledger 에서 생성 (산문 주장 금지)
+#    pnpm agent:run -- report && pnpm agent:run -- close "P{X} 반영"
 ```
 
 ## Phase 5: 다음 phase 결정
@@ -192,11 +195,13 @@ fi
 ```markdown
 ## execute-adr 결과
 
+- understood as: {Phase 0 재진술 그대로}
 - ADR: NNN ({title})
 - 실행 phase: P{X1}, P{X2}, ...
 - 결과: 모두 반영 ✅ / 부분 반영 (남은: P{Y}) / 종료 (이유)
 - commit hash: {hash1}, {hash2}
-- 검증: type-check ✅ / vitest ✅ / cross-check ✅
+- 검증: type-check ✅ / vitest ✅ / cross-check ✅ (ledger `pnpm agent:run -- report` 표 첨부)
+- live exercise: {무엇을 실제 builder 에서 exercise 했는지 — Chrome MCP / 사용자 confirm}
 - ADR Status 변동: Accepted → Implemented (있는 경우)
 - 다음 세션 진입점: P{Y} 또는 ADR closure 5단계 잔여
 ```

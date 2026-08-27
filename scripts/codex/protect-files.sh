@@ -48,7 +48,9 @@ if [ "${#BLOCKED_FILES[@]}" -gt 0 ]; then
   echo "[codex:guard] 보호 파일 변경이 감지되어 중단합니다:"
   printf ' - %s\n' "${BLOCKED_FILES[@]}"
   echo "필요 시 사용자 승인 후 진행하세요."
+  CODEX_GATE_NAME=codex:guard codex_evidence guard block --detail "${BLOCKED_FILES[*]}"
   exit 2
 fi
 
+CODEX_GATE_NAME=codex:guard codex_evidence guard pass
 echo "[codex:guard] 통과"

@@ -31,6 +31,13 @@ codex_pnpm() {
   return 127
 }
 
+# run ledger append (병합 순서 ③) — run 미시작이면 조용히 no-op
+codex_evidence() {
+  local kind="$1" status="$2"; shift 2
+  local ledger; ledger="$(codex_repo_root)/scripts/agent/run-ledger.sh"
+  [ -x "$ledger" ] && AGENT_EVIDENCE_SOURCE="${CODEX_GATE_NAME:-codex}" bash "$ledger" evidence "$kind" "$status" "$@" >/dev/null 2>&1 || true
+}
+
 codex_changed_files() {
   {
     git diff --name-only --diff-filter=ACMR 2>/dev/null || true

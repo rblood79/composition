@@ -276,14 +276,14 @@ for h in .claude/hooks/*.sh; do
 done
 while IFS= read -r sc; do
   [ -z "$sc" ] && continue
-  case "$sc" in codex:*|hooks:*) ;; *) continue ;; esac
+  case "$sc" in codex:*|hooks:*|agent:*) ;; *) continue ;; esac
   cmd=$(node -e 'console.log(require("./package.json").scripts[process.argv[1]])' "$sc")
   for tok in $cmd; do
     case "$tok" in scripts/*|.claude/*) [ -f "$tok" ] || fail "package.json $sc — 파일 없음: $tok" ;; esac
   done
 done <<<"$PKG_SCRIPTS"
 # 문서가 언급하는 pnpm run codex:* 가 package.json 에 실존
-DOC_PNPM=$(grep -ohE 'pnpm (run )?(codex|hooks):[a-z-]+' AGENTS.md .agents/README.md scripts/codex/*.sh .claude/hooks/*.sh 2>/dev/null | sed -E 's/pnpm (run )?//' | sort -u || true)
+DOC_PNPM=$(grep -ohE 'pnpm (run )?(codex|hooks|agent):[a-z-]+' AGENTS.md .agents/README.md scripts/codex/*.sh .claude/hooks/*.sh 2>/dev/null | sed -E 's/pnpm (run )?//' | sort -u || true)
 unknown=$(set_minus "$DOC_PNPM" "$PKG_SCRIPTS")
 if [ -n "$unknown" ]; then fail "문서/스크립트가 언급하는 pnpm 스크립트가 package.json 에 없음: $(printf '%s' "$unknown" | tr '\n' ' ')"; else ok "pnpm codex:*/hooks:* 언급 전부 실존"; fi
 
@@ -338,6 +338,10 @@ done <<<"$(git ls-files -s | awk '$1 == "120000" { print $4 }')"
 
 # ---------- summary ----------
 printf '\n== 결과 == FAIL %d · WARN %d\n' "$FAIL" "$WARN"
+LEDGER="$ROOT_DIR/scripts/agent/run-ledger.sh"
+if [ -x "$LEDGER" ]; then
+  AGENT_EVIDENCE_SOURCE=agent-catalog-gate.sh bash "$LEDGER" evidence catalog-gate "$([ "$FAIL" -gt 0 ] && echo fail || echo pass)" --detail "FAIL $FAIL WARN $WARN" --cmd "pnpm codex:agent-catalog" >/dev/null 2>&1 || true
+fi
 if [ "$FAIL" -gt 0 ]; then
   echo "[codex:agent-catalog] drift 감지 — 위 ✗ 항목을 정본(.claude/) 기준으로 정렬하세요."
   exit 1

@@ -20,8 +20,15 @@ CHANGED_TS="$(codex_changed_files | grep -E '\.(ts|tsx)$' || true)"
 
 if [ -z "$CHANGED_TS" ]; then
   echo "[codex:registration] TS 변경 없음 - 스킵"
+  CODEX_GATE_NAME=codex:registration codex_evidence registration skip --skip-reason "no TS changes"
   exit 0
 fi
 
 echo "[codex:registration] TS 변경 감지 - 컴포넌트 등록 contract 실행 (ADR-139)"
-codex_pnpm run test:registration-contract
+if codex_pnpm run test:registration-contract; then
+  CODEX_GATE_NAME=codex:registration codex_evidence registration pass --target test:registration-contract
+else
+  rc=$?
+  CODEX_GATE_NAME=codex:registration codex_evidence registration fail --target test:registration-contract --exit "$rc"
+  exit "$rc"
+fi

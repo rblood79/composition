@@ -19,18 +19,21 @@
 
 ## Harness 명령
 
-| 명령                               | 용도                                                                             |
-| ---------------------------------- | -------------------------------------------------------------------------------- |
-| `pnpm run codex:session-start`     | 우선 context, changelog header, git 상태 확인                                    |
-| `pnpm run codex:route -- "<요청>"` | 요청을 skill/rule/gate 후보로 분류                                               |
-| `pnpm run codex:snapshot`          | 변경 파일 기반 handoff/precompact snapshot                                       |
-| `pnpm run codex:guard`             | 보호 파일 변경 차단                                                              |
-| `pnpm run codex:format`            | 변경 파일 Prettier                                                               |
-| `pnpm run codex:agent-catalog`     | `.claude` ↔ `.agents` 카탈로그 drift 게이트 (INDEX·roster·router·hook 집합 일치) |
-| `pnpm run hooks:selftest`          | Claude hook 샘플 입력 → 기대 판정 self-test                                      |
-| `pnpm run codex:typecheck`         | TS 변경이 있을 때만 root type-check                                              |
-| `pnpm run codex:preflight`         | guard → format → typecheck                                                       |
-| `pnpm run codex:harness -- help`   | 단일 harness entrypoint                                                          |
+| 명령                                                                    | 용도                                                                                                        |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `pnpm run codex:session-start`                                          | 우선 context, changelog header, git 상태 확인                                                               |
+| `pnpm run codex:route -- "<요청>"`                                      | 요청을 skill/rule/gate 후보로 분류                                                                          |
+| `pnpm run codex:snapshot`                                               | 변경 파일 기반 handoff/precompact snapshot                                                                  |
+| `pnpm run codex:guard`                                                  | 보호 파일 변경 차단                                                                                         |
+| `pnpm run codex:format`                                                 | 변경 파일 Prettier                                                                                          |
+| `pnpm run codex:agent-catalog`                                          | `.claude` ↔ `.agents` 카탈로그 drift 게이트 (INDEX·roster·router·hook 집합 일치)                            |
+| `pnpm run hooks:selftest`                                               | Claude hook 샘플 입력 → 기대 판정 self-test                                                                 |
+| `pnpm run agent:run -- start --understood-as "<재진술>"`                | run manifest 시작 (`.agent/runs/<id>/run.json`, local-only) — 이후 게이트가 `evidence.jsonl` 에 자동 append |
+| `pnpm run agent:run -- evidence live-exercise pass --detail "<무엇을>"` | live behavior 근거 기록 — Implemented 승격 시 Stop hook 이 요구                                             |
+| `pnpm run agent:run -- report` / `close`                                | 완료 보고를 ledger 에서 생성 · run 종결                                                                     |
+| `pnpm run codex:typecheck`                                              | TS 변경이 있을 때만 root type-check                                                                         |
+| `pnpm run codex:preflight`                                              | guard → format → typecheck                                                                                  |
+| `pnpm run codex:harness -- help`                                        | 단일 harness entrypoint                                                                                     |
 
 운영 원칙:
 

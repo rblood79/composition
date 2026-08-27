@@ -106,6 +106,8 @@ packages/shared/src/**/*.d.ts.map
 .claude/.spec-rebuild-pending
 .claude/.css-regen-pending
 .claude/.adr-split-commit-allowed
+# run manifest + evidence ledger (local-only — pnpm agent:run)
+.agent/runs/
 .claude/stats/audits/
 .claude/settings.local.json
 

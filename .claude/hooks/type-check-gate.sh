@@ -18,6 +18,10 @@ fi
 
 cd "${CLAUDE_PROJECT_DIR:-.}"
 
+# run ledger (병합 순서 ③) — run 미시작이면 조용히 no-op
+LEDGER="${CLAUDE_PROJECT_DIR:-.}/scripts/agent/run-ledger.sh"
+ledger() { [ -x "$LEDGER" ] && AGENT_EVIDENCE_SOURCE=type-check-gate.sh bash "$LEDGER" evidence "$@" >/dev/null 2>&1 || true; }
+
 # Spec rebuild gate: flag 존재 시 build:specs 1회 실행
 SPEC_FLAG="${CLAUDE_PROJECT_DIR:-.}/.claude/.spec-rebuild-pending"
 if [ -f "$SPEC_FLAG" ]; then
@@ -87,7 +91,9 @@ if ! TYPE_CHECK_OUTPUT=$(pnpm type-check 2>&1); then
   echo "type-check 실패. 아래 에러를 수정하세요:
 
 $(echo "$TYPE_CHECK_OUTPUT" | tail -30)"
+  ledger typecheck fail --cmd "pnpm type-check" --exit 2
   exit 2
 fi
 
+ledger typecheck pass --cmd "pnpm type-check"
 exit 0

@@ -86,6 +86,7 @@ unit-test / type-check / codex:preflight 통과는 **"코드가 자기 자신과
 
 - 사용자-가시 동작 (registration / resolved-tree wiring / schema / 렌더) 이 **실제 builder 에서 작동하는지** Chrome MCP 또는 사용자 confirm 으로 1회 exercise.
 - commit 검증 블록 / 완료 보고에 **무엇을 실제로 exercise 했는지** 명시 (test 개수만 나열 금지).
+- Implemented 승격 시 ADR 본문 `### Live Exercise` 절 (대안: `docs/adr/evidence/NNN-*live*.md` 또는 run ledger `live-exercise pass`) 필수 — `adr-status-sync-check.sh` 가 없으면 block. 실행 근거는 `pnpm agent:run` ledger (`.agent/runs/`, local-only) 에서 생성 (2026-08-28, 병합 순서 ③).
 - **Why (ADR-144 사례, 2026-05-22)**: Wave C 가 `9 test / 50 cases PASS + type-check 0 violation + codex:preflight 통과` 로 Implemented 승격됐으나, live builder 에서 composite registration 이 "changed nothing" → closure rollback → 34 commit revert. test 검증 블록에 live behavior 항목이 0개였던 것이 근본 원인. 자동 종결은 `execute-adr` skill Phase 3 (live behavior 게이트) 경유 — 수동 종결 시 동일 게이트 자가 적용.
 
 ### 대규모 작업 phase 분할 — 단일 거대 출력 금지 (2026-07-11)
