@@ -143,6 +143,13 @@ export const SHORTCUT_DEFINITIONS = {
     i18n: { ko: "200%로 확대" },
   },
 
+  // 아래 패널·진입점 계열은 `allowInInput: true` 다. 입력창에 포커스가 있으면
+  // registry 가 `allowInInput` 없는 단축키를 통째로 건너뛰는데(`isInputElement`
+  // 는 input/textarea/contentEditable), 패널을 여는 명령까지 막히면 값을 하나
+  // 입력하다가 다른 패널로 못 넘어간다 (2026-08-27 실측 — 헤더 줌 입력에
+  // 포커스가 있을 때 ⌥1·⌘/·⌘,·⌘K·⌘O 가 전부 무시). ⌥+숫자는 macOS 입력창에서
+  // ¡™£¢ 를 만들지만 빌더 입력창에 쓸 일이 없고, Figma 도 같은 조합을 입력 중에
+  // 가로챈다. ⌘ 조합은 애초에 문자를 만들지 않는다.
   // ==========================================
   // Panels (priority: 80)
   // ==========================================
@@ -158,6 +165,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Toggle Nodes Panel",
     i18n: { ko: "노드 패널 토글" },
   },
@@ -169,6 +177,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Toggle Components Panel",
     i18n: { ko: "컴포넌트 패널 토글" },
   },
@@ -180,6 +189,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Toggle DataTable Panel",
     i18n: { ko: "데이터테이블 패널 토글" },
   },
@@ -191,6 +201,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Toggle Theme Panel",
     i18n: { ko: "테마 패널 토글" },
   },
@@ -202,6 +213,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Toggle Properties Panel",
     i18n: { ko: "속성 패널 토글" },
   },
@@ -213,6 +225,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Toggle Styles Panel",
     i18n: { ko: "스타일 패널 토글" },
   },
@@ -224,6 +237,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Toggle Interactions Panel",
     i18n: { ko: "인터랙션 패널 토글" },
   },
@@ -235,6 +249,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Toggle History Panel",
     i18n: { ko: "히스토리 패널 토글" },
   },
@@ -250,6 +265,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Toggle Monitor Panel",
     i18n: { ko: "모니터 패널 토글" },
   },
@@ -274,6 +290,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Open Settings",
     i18n: { ko: "설정 열기" },
   },
@@ -288,6 +305,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "system",
     scope: "global",
     priority: SHORTCUT_PRIORITY.SYSTEM,
+    allowInInput: true,
     capture: true,
     description: "Open Project",
     i18n: { ko: "프로젝트 열기" },
@@ -303,6 +321,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Toggle AI Panel",
     i18n: { ko: "AI 패널 토글" },
   },
@@ -314,6 +333,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
+    allowInInput: true,
     description: "Open Command Palette",
     i18n: { ko: "명령 팔레트 열기" },
   },
