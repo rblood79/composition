@@ -239,8 +239,13 @@ export const SHORTCUT_DEFINITIONS = {
     i18n: { ko: "히스토리 패널 토글" },
   },
 
+  // ⌃ 는 ⌥ 의 문자 변환을 억제하지 않는다 (억제하는 것은 ⌘ 뿐) — 실물 macOS 에서
+  // ⌃⌥M 의 `event.key` 는 "µ" 라 `key` 로만 맞추면 영영 발화하지 않는다.
+  // ⌥ 계열에 code 를 부여할 때 `alt`/`altShift` 만 훑고 `ctrlAlt` 를 빠뜨렸던
+  // 자리다 (2026-08-27 실측 — key "µ" 무시 / key "m" 잡힘).
   toggleMonitor: {
     key: "m",
+    code: "KeyM",
     modifier: "ctrlAlt",
     category: "panels",
     scope: "global",

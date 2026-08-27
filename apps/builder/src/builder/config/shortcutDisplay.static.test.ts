@@ -20,7 +20,12 @@
  * 2. **패널 토글 정의는 전부 라벨 경로를 갖는다** — 새 `toggle*` 정의를 더하고
  *    `PanelConfig.shortcutId` 를 빠뜨리면 툴팁에 표기가 안 붙는다 (`ai` 가
  *    실제로 그 상태였다).
- * 3. **패널 토글 정의는 전부 팔레트에서 실행된다** — 팔레트는 정의 표를 통째로
+ * 3. **⌥ 조합은 `code` 를 갖는다** — macOS 는 ⌥ 가 눌리면 `event.key` 를 다른
+ *    문자로 바꾼다 (⌥A→å, ⌥M→µ). `key` 로만 맞추면 실물 키보드에서 영영
+ *    발화하지 않는데, synthetic 입력은 그 변환을 거치지 않아 검사에서
+ *    "등록됨" 으로 보인다. 억제하는 것은 ⌘ 뿐이라 `cmdAlt` 는 대상이 아니다 —
+ *    `ctrlAlt` 가 그 예외에 딸려 빠졌던 자리다 (`toggleMonitor`, 2026-08-27).
+ * 4. **패널 토글 정의는 전부 팔레트에서 실행된다** — 팔레트는 정의 표를 통째로
  *    나열하므로, `executeCommand` 에 case 가 없으면 목록에는 뜨는데 골라도
  *    팔레트만 닫힌다. `toggleDatatable`/`toggleTheme`/`toggleAI` 셋이 그
  *    상태였다 (2026-08-27 — 이번 재배치로 정의만 늘고 팔레트가 안 따라왔다).
@@ -118,6 +123,21 @@ describe("단축키 표기 SSOT", () => {
 
     const unwired = panelOpeningIds.filter((id) => !wiredIds.has(id));
     expect(unwired).toEqual([]);
+  });
+
+  it("⌥ 조합은 code 로 맞춘다 (⌘ 동반 제외)", () => {
+    // ⌘ 가 함께 눌리면 macOS 가 문자 변환을 억제하므로 `key` 가 원래 문자다.
+    const optionShifted = Object.entries(SHORTCUT_DEFINITIONS).filter(
+      ([, def]) =>
+        def.modifier.toLowerCase().includes("alt") &&
+        !def.modifier.startsWith("cmd"),
+    );
+    expect(optionShifted.length).toBeGreaterThan(0);
+
+    const missingCode = optionShifted
+      .filter(([, def]) => !("code" in def) || !def.code)
+      .map(([id]) => id);
+    expect(missingCode).toEqual([]);
   });
 
   it("패널 토글 정의는 전부 팔레트에서 실행된다", () => {
