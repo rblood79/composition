@@ -99,10 +99,10 @@ fi
 # 2026-07-11 오탐 방지 (derived-adr-block.sh 2026-06-01 fix 를 이 hook 에도 반영):
 #   jq 필터가 system 주입 메시지(<task-notification> / slash command / local-command
 #   stdout / 자율 loop tick / bash-input 등)도 userType=external + content=string 으로
-#   통과시켜, 이것들이 tail 윈도우를 잠식 → 진짜 사용자 발화("PR 만들어줘")가 윈도우 밖으로
+#   통과시켜, 이것들이 tail 윈도우를 잠식 → 진짜 사용자 입력("PR 만들어줘")가 윈도우 밖으로
 #   밀려남 → deny 오탐. 본 hook 은 derived-adr-block 과 달리 deny(강한 차단)를 쓰므로
 #   오염 시 사용자의 정당한 발의조차 막는 손실이 더 크다.
-#   → system 주입 패턴을 사용자 발화에서 제외한 뒤 tail -8 (마진 확대) 로 진짜 발화만 검사.
+#   → system 주입 패턴을 사용자 입력에서 제외한 뒤 tail -8 (마진 확대) 로 진짜 입력만 검사.
 RECENT_USER_MSG=$(jq -r '
   select(.type == "user"
     and (.userType // "") == "external"

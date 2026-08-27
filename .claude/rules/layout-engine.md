@@ -499,7 +499,7 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 
 ## flex item 재-solve 는 **자기가 푼 available** 을 기준으로 한다 — `%` 의 세 번째 누수 경로 (2026-07-28)
 
-`solve_flex` 3.5 는 item 의 used main 이 1차 solve 때 쓴 available 과 다르면 그 item 을 다시 푼다. 이 재-solve 는 `used_main` 을 **상속 available 로 내려주므로**, 발화 조건이나 override 범위가 틀리면 위 §백분율 규칙의 두 게이트를 **우회한다** — 게이트가 있어도 `%` 가 컨테이너의 content 크기에 풀린다.
+`solve_flex` 3.5 는 item 의 used main 이 1차 solve 때 쓴 available 과 다르면 그 item 을 다시 푼다. 이 재-solve 는 `used_main` 을 **상속 available 로 내려주므로**, 발생 조건이나 override 범위가 틀리면 위 §백분율 규칙의 두 게이트를 **우회한다** — 게이트가 있어도 `%` 가 컨테이너의 content 크기에 풀린다.
 
 | 결함                            | 형태                                  | Chrome | 구 엔진 |
 | ------------------------------- | ------------------------------------- | -----: | ------: |
@@ -507,14 +507,14 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 | override 가 "해소된 값" 만      | `h=50% + maxH40`                      |     40 |  **20** |
 | 커널 `cross_definite` 가 명시만 | `column(w:auto)` 안 auto-cross 스칼라 |    300 |  **90** |
 
-- **fallback = 자식이 실제로 solve 된 main available**, 그것이 미결정이었으면 **content 크기**. 종전엔 음수 센티넬을 기준으로 잡아 auto 컨테이너에서 **항상** 재-solve 가 발화했고, 그 재-solve 가 위 누수를 열었다. 고치면 `used == content` 라 불필요 재-solve 자체가 사라진다 — 게이트 우회 경로가 소멸하는 형태다.
+- **fallback = 자식이 실제로 solve 된 main available**, 그것이 미결정이었으면 **content 크기**. 종전엔 음수 센티넬을 기준으로 잡아 auto 컨테이너에서 **항상** 재-solve 가 발생했고, 그 재-solve 가 위 누수를 열었다. 고치면 `used == content` 라 불필요 재-solve 자체가 사라진다 — 게이트 우회 경로가 소멸하는 형태다.
 - **override 는 auto 가 아닌 모든 main 스타일**에 건다. "해소된 값" 만 override 하면 `main_ctx` 에서 못 푼 `%` 가 style 에 남아 재-solve 의 상속 available(=clamp 된 used 40)에 다시 풀린다 (`h=50%+maxH40` → 20. CSS 는 `%` → auto → content 50 → clamp 40).
 - **커널 `cross_definite` 는 `cross_definite_self` 와 같아야 한다.** column 컨테이너의 cross(=width)는 명시가 없어도 block-level stretch 로 확정이다(§백분율 (b) 인라인 축). 커널 플래그만 `explicit_w` 를 보면 라인 cross 가 content 로 떨어지고, §9.4 step 11 stretch 가 auto-cross leaf 를 거기까지만 늘린다. **row cross(=height)는 블록 축이라 명시만 확정** — 축 비대칭은 유지된다.
 - fixture: `basicAxisContainerSize.browser.test.ts` (ADR-170 격자 1). 민감도 — fallback 되돌리면 198키 / override 축소 12키 / `cross_definite` 되돌리면 12키 재발산.
 
 ### 금지 패턴
 
-- ❌ 재-solve 발화 판정을 자식이 **받은** available 이 아니라 부모가 계산한 센티넬로 → auto 컨테이너에서 상시 발화
+- ❌ 재-solve 발생 판정을 자식이 **받은** available 이 아니라 부모가 계산한 센티넬로 → auto 컨테이너에서 상시 발생
 - ❌ 재-solve override 를 "해소된 값" 으로 한정 → 미해소 `%` 가 상속 available 에 다시 풀린다
 - ❌ 커널 cross definite 판정을 `explicit_w` 단독으로 → column 의 stretch 확정 폭을 놓친다
 - ❌ 이 누수를 §백분율 게이트 결함으로 진단 → 게이트는 정상이고 우회 경로가 문제다

@@ -27,7 +27,7 @@ import { pipelineLeg, type CaseNode, type StyleRecord } from "./harness";
  * ## leg 구성
  * - **Chrome 오라클**: `viewport(확정) > body(min-height:100%) > 자식` 을 실 DOM 으로
  *   세워 측정. 캔버스 파이프라인의 자식 배치가 이것과 같아야 한다.
- * - **파이프라인**: `calculateFullTreeLayout` 을 root `type:"body"` 로 호출(= 주입 발화).
+ * - **파이프라인**: `calculateFullTreeLayout` 을 root `type:"body"` 로 호출(= 주입 실행).
  *
  * 자식 좌표는 **Chrome 대조**, body 상자 높이는 **빌더 계약**(뷰포트 상자)이라 오라클
  * 대응물이 없다 — 두 축을 따로 단언한다.
@@ -102,7 +102,7 @@ function domViewportBodyLeg(
   return out;
 }
 
-/** 파이프라인 leg — root `type:"body"` 로 Step 1.5 주입을 발화시킨다. */
+/** 파이프라인 leg — root `type:"body"` 로 Step 1.5 주입을 실행시킨다. */
 function pipelineBodyLeg(
   bodyStyle: StyleRecord,
   childStyles: StyleRecord[],

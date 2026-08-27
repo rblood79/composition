@@ -159,7 +159,7 @@ fn used_size_clamp_records_binding_bound() {
 
 // ── 4. §4.5 automatic minimum floor (이벤트 #3) ──────────────────────────
 
-/// 주축 크기 auto + min 미명시 + overflow visible → floor 발화.
+/// 주축 크기 auto + min 미명시 + overflow visible → floor 적용.
 /// `contentMinWidth` 스칼라(off 19)가 공급되면 출처가 `ContentMinScalar` 다.
 const AUTO_MIN: &str = r#"[
   {"style":{"height":"20px","contentMinWidth":60.0,"contentMaxWidth":300.0},"children":[]},

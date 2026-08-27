@@ -289,7 +289,7 @@ impl FlexItem {
 
 /// §4.5 automatic minimum size 해석 — **단일 정의**.
 ///
-/// 반환 `(used min_main, 발화했다면 floor 기준값 출처)`. `parse_item` 과 ADR-183
+/// 반환 `(used min_main, 적용됐다면 floor 기준값 출처)`. `parse_item` 과 ADR-183
 /// 트레이스가 같은 함수를 쓴다: 조건을 호출부에 복제하면 floor 를 고칠 때 explain
 /// 만 옛 조건을 보고해 **거짓 안심**을 준다 (ADR-183 R2 / breakdown §4-4a).
 ///
@@ -375,7 +375,7 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     // absent(0)면 `content_main`(단일줄 상한 근사, ADR-164 동작) fallback.
     //
     // 해석은 `auto_min_main_from_parts` 단일 함수가 소유한다 — ADR-183 트레이스가
-    // 같은 함수를 재사용해 "floor 가 발화했나 / 기준값 출처가 무엇인가" 를 보고한다.
+    // 같은 함수를 재사용해 "floor 가 적용됐나 / 기준값 출처가 무엇인가" 를 보고한다.
     let (min_main, _floor_source) = auto_min_main_from_parts(
         width,
         raw_min_main,

@@ -70,9 +70,9 @@ fi
 # 2026-06-01 버그 수정 (사용자 ADR-910 생성 차단 사례):
 #   jq 필터가 system 주입 메시지(<task-notification> / slash command / local-command
 #   stdout / 자율 loop tick / bash-input 등)도 userType=external + content=string 으로
-#   통과시켜, 이것들이 tail 윈도우를 잠식 → 진짜 사용자 발화가 밀려남 → 사용자 명시 발의
+#   통과시켜, 이것들이 tail 윈도우를 잠식 → 진짜 사용자 입력이 밀려남 → 사용자 명시 발의
 #   ("adr-910 생성해")가 윈도우 밖으로 사라져 deny. 동시 세션/자율 loop 환경에서 악화.
-#   → system 주입 패턴을 사용자 발화에서 제외한 뒤 tail -8 (마진 확대) 로 진짜 발화만 검사.
+#   → system 주입 패턴을 사용자 입력에서 제외한 뒤 tail -8 (마진 확대) 로 진짜 입력만 검사.
 RECENT_USER_MSG=$(jq -r '
   select(.type == "user"
     and (.userType // "") == "external"
@@ -116,7 +116,7 @@ fi
 REASON_TEXT=$(cat <<INNER_EOF
 ADR 신규 파일 생성 확인: $FILE_PATH
 
-직전 사용자 발화에서 ADR 발의 키워드를 못 찾았습니다.
+직전 사용자 입력에서 ADR 발의 키워드를 못 찾았습니다.
 (키워드: 새/신규 ADR, ADR 생성/작성/발의/분리, create-adr 등)
 
 판단 기준:

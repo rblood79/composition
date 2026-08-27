@@ -70,7 +70,7 @@ pub enum ClampBound {
 /// §4.5 automatic minimum size 의 floor 기준값 출처 (ADR-165).
 ///
 /// 배제하는 오진: "auto-main item 이 찌그러지는 것을 이 변경 탓으로 진단"
-/// (layout-engine.md §used size clamp 금지 패턴). floor 가 발화했는지, 그리고
+/// (layout-engine.md §used size clamp 금지 패턴). floor 가 적용됐는지, 그리고
 /// 그 값이 정확 min-content 인지 근사인지가 갈림점이다.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum FloorSource {

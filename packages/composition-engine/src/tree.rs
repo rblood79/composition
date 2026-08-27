@@ -1894,7 +1894,7 @@ impl LayoutTree {
 
         for (i, &c) in children.iter().enumerate() {
             if deferred_to_resolve[i] {
-                // 주축은 2-b 가, cross 는 3.5 가 채운다 (3.5 는 아래에서 강제 발화).
+                // 주축은 2-b 가, cross 는 3.5 가 채운다 (3.5 는 아래에서 강제 적용).
                 child_sizes.push((0.0, 0.0));
                 continue;
             }
@@ -2084,7 +2084,7 @@ impl LayoutTree {
                 // auto-main fallback 은 **자식이 실제로 solve 된 main available** 이다
                 // (ADR-170 군집 C). 그 available 이 indefinite 였으면 자식은 content
                 // 크기로 배치된 것 — 기준을 `child_avail_h`(음수 센티넬) 로 잡으면
-                // used(=content) 와 항상 달라 불필요한 재-solve 가 발화하고, 그 재-solve
+                // used(=content) 와 항상 달라 불필요한 재-solve 가 발생하고, 그 재-solve
                 // 가 used_main 을 **상속 available 로** 내려 자식의 `%` main 이 컨테이너
                 // content 크기에 풀린다 (CSS §10.5 위반 — 실측 `column height:auto` 안
                 // `h=50%` 상자가 content 50 의 절반 25 로 붕괴, 내부까지 25 기준 재배치).
@@ -2106,7 +2106,7 @@ impl LayoutTree {
                     continue; // 분배로 안 바뀜 — 재배치 불필요
                 }
 
-                // ADR-183 #6 — 3.5 재-solve 발화. 이 재-solve 는 `used_main` 을 상속
+                // ADR-183 #6 — 3.5 재-solve 발생. 이 재-solve 는 `used_main` 을 상속
                 // available 로 내려주므로, 자식의 미해소 `%` 가 여기서 다시 풀린다
                 // (§flex item 재-solve — `%` 의 세 번째 누수 경로). 백분율 발산을 볼 때
                 // 게이트가 아니라 이 줄이 원인인지 먼저 갈라야 한다.
