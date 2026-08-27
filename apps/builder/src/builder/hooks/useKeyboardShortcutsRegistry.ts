@@ -29,6 +29,7 @@ import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../config/keyboardShortcuts";
+import { registerCommand } from "../stores/commandRegistry";
 
 /**
  * 지원되는 modifier 조합
@@ -62,6 +63,16 @@ export type ShortcutCategory =
  * 키보드 단축키 정의
  */
 export interface KeyboardShortcut {
+  /**
+   * 정의 id — `bindHandlersToDefinitions` 가 채운다 (ADR-195).
+   *
+   * 이것이 있어야 등록된 뒤에도 "어느 정의의 핸들러인가" 를 알 수 있고, 팔레트가
+   * `commandRegistry` 에서 조회할 수 있다. 손수 선언 등록(정의 없는 Space·Escape·
+   * 대시보드 ⌘K·`panel:properties` ⌘C/⌘V)은 id 가 없어 게시되지 않는다 — 키보드
+   * 전용이 맞는 항목들이다.
+   */
+  id?: ShortcutId;
+
   /** 키 (예: 'c', 'v', 's', 'Enter') */
   key: string;
 
@@ -122,6 +133,7 @@ export function bindHandlersToDefinitions(
       // 공통 형태로 한 번 넓혀서 읽는다 (`satisfies` 가 대입 가능성을 보증).
       const def: ShortcutDefinition = SHORTCUT_DEFINITIONS[id];
       return {
+        id,
         key: def.key,
         code: def.code,
         modifier: def.modifier,
@@ -341,12 +353,36 @@ export function useKeyboardShortcutsRegistry(
       capture,
     });
 
+    // ADR-195 — 같은 effect 에서 command registry 에도 게시한다. keydown 경로는
+    // 위 클로저 그대로이고 (HC1), 여기서 늘어나는 것은 마운트/deps 변경 시점의
+    // Map 조작뿐이다. `keyup` 등록(Space pan cursor)은 팔레트가 실행할 수 있는
+    // 성격이 아니므로 게시 대상에서 뺀다.
+    const unregisters =
+      eventType === "keydown"
+        ? shortcuts
+            .filter(
+              (shortcut): shortcut is KeyboardShortcut & { id: ShortcutId } =>
+                shortcut.id !== undefined,
+            )
+            .map((shortcut) =>
+              registerCommand({
+                id: shortcut.id,
+                handler: shortcut.handler,
+                scope: shortcut.scope,
+                priority: shortcut.priority ?? 0,
+                allowInInput: shortcut.allowInInput ?? false,
+                disabled: shortcut.disabled ?? false,
+              }),
+            )
+        : [];
+
     return () => {
       eventTarget.removeEventListener(
         eventType,
         handleKeyEvent as EventListener,
         { capture },
       );
+      for (const unregister of unregisters) unregister();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capture, target, eventType, activeScope, ...deps]);
