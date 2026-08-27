@@ -32,6 +32,10 @@ import {
 import { iconProps } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
 import { ActionIconButton } from "../components/ui/ActionIconButton";
+import {
+  ActionTooltipTrigger,
+  shortcutDisplayFor,
+} from "../components/ui/ActionTooltip";
 import { ZoomControls } from "../workspace/ZoomControls";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import { ACTION_ICONS } from "../config/actionIcons";
@@ -82,6 +86,14 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
     (state) => state.toggleCompareMode,
   );
 
+  // aria-label 과 툴팁이 같은 문자열이어야 해서 한 번만 만든다.
+  const compareLabel = isCompareMode
+    ? t("header.skiaOnlyMode")
+    : t("header.compareMode");
+  const workflowLabel = showWorkflowOverlay
+    ? t("header.hideWorkflowOverlay")
+    : t("header.showWorkflowOverlay");
+
   return (
     <header className="header">
       <div className="header_contents header_left">
@@ -113,7 +125,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               <MenuItem id="open" className="header-menu-item">
                 <FolderOpen size={14} />
                 <span>{t("header.openProject")}</span>
-                <Keyboard>⌘O</Keyboard>
               </MenuItem>
               <MenuItem id="import" className="header-menu-item">
                 <Download size={14} />
@@ -136,12 +147,13 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               <MenuItem id="settings" className="header-menu-item">
                 <Settings size={14} />
                 <span>{t("header.settings")}</span>
+                <Keyboard>{shortcutDisplayFor("openSettings")}</Keyboard>
               </MenuItem>
               <Separator className="header-menu-separator" />
               <MenuItem id="shortcuts" className="header-menu-item">
                 <Command size={14} />
                 <span>{t("header.shortcuts")}</span>
-                <Keyboard>⌘/</Keyboard>
+                <Keyboard>{shortcutDisplayFor("commandPalette")}</Keyboard>
               </MenuItem>
               <MenuItem id="help" className="header-menu-item">
                 <CircleHelp size={14} />
@@ -180,40 +192,41 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           }}
           indicator={true}
         >
-          {breakpoints.map((bp) => (
-            <ToggleButton
-              id={bp.id}
-              key={bp.id}
-              aria-label={
-                bp.id === "desktop"
-                  ? t("header.desktop")
-                  : bp.id === "tablet"
-                    ? t("header.tablet")
-                    : bp.id === "mobile"
-                      ? t("header.mobile")
-                      : bp.label
-              }
-            >
-              {bp.id === "desktop" && (
-                <Monitor
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                />
-              )}
-              {bp.id === "tablet" && (
-                <Tablet
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                />
-              )}
-              {bp.id === "mobile" && (
-                <Smartphone
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                />
-              )}
-            </ToggleButton>
-          ))}
+          {breakpoints.map((bp) => {
+            const bpLabel =
+              bp.id === "desktop"
+                ? t("header.desktop")
+                : bp.id === "tablet"
+                  ? t("header.tablet")
+                  : bp.id === "mobile"
+                    ? t("header.mobile")
+                    : bp.label;
+
+            return (
+              <ActionTooltipTrigger key={bp.id} tooltip={bpLabel}>
+                <ToggleButton id={bp.id} aria-label={bpLabel}>
+                  {bp.id === "desktop" && (
+                    <Monitor
+                      strokeWidth={iconProps.strokeWidth}
+                      size={iconProps.size}
+                    />
+                  )}
+                  {bp.id === "tablet" && (
+                    <Tablet
+                      strokeWidth={iconProps.strokeWidth}
+                      size={iconProps.size}
+                    />
+                  )}
+                  {bp.id === "mobile" && (
+                    <Smartphone
+                      strokeWidth={iconProps.strokeWidth}
+                      size={iconProps.size}
+                    />
+                  )}
+                </ToggleButton>
+              </ActionTooltipTrigger>
+            );
+          })}
         </ToggleButtonGroup>
 
         {/* Zoom Controls */}
@@ -257,36 +270,33 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           }}
           aria-label={t("header.viewOptions")}
         >
-          <ToggleButton
-            id="compare"
-            aria-label={
-              isCompareMode ? t("header.skiaOnlyMode") : t("header.compareMode")
-            }
+          <ActionTooltipTrigger tooltip={compareLabel}>
+            <ToggleButton id="compare" aria-label={compareLabel}>
+              <Columns
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+              />
+            </ToggleButton>
+          </ActionTooltipTrigger>
+          <ActionTooltipTrigger tooltip={workflowLabel}>
+            <ToggleButton id="workflow" aria-label={workflowLabel}>
+              <GitBranch
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+              />
+            </ToggleButton>
+          </ActionTooltipTrigger>
+          <ActionTooltipTrigger
+            tooltip={t("header.monitor")}
+            shortcutId="toggleMonitor"
           >
-            <Columns
-              strokeWidth={iconProps.strokeWidth}
-              size={iconProps.size}
-            />
-          </ToggleButton>
-          <ToggleButton
-            id="workflow"
-            aria-label={
-              showWorkflowOverlay
-                ? t("header.hideWorkflowOverlay")
-                : t("header.showWorkflowOverlay")
-            }
-          >
-            <GitBranch
-              strokeWidth={iconProps.strokeWidth}
-              size={iconProps.size}
-            />
-          </ToggleButton>
-          <ToggleButton id="monitor" aria-label={t("header.monitor")}>
-            <Monitor
-              strokeWidth={iconProps.strokeWidth}
-              size={iconProps.size}
-            />
-          </ToggleButton>
+            <ToggleButton id="monitor" aria-label={t("header.monitor")}>
+              <Monitor
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+              />
+            </ToggleButton>
+          </ActionTooltipTrigger>
         </ToggleButtonGroup>
         <div className="builder-action-group">
           <ActionIconButton
