@@ -27,16 +27,16 @@ describe("useElementCreator add-then-delete contract", () => {
     const selectIndex = source.indexOf(
       "useStore.getState().setSelectedElement(createdTopLevelId);",
     );
-    const focusQueryIndex = source.indexOf(
-      'document.querySelector<HTMLElement>(".canvas-container")',
+    // 캔버스 포커스는 `useActiveScope` 의 helper 를 경유한다 — scope 판정과 같은
+    // 셀렉터 정본(`CANVAS_CONTAINER_SELECTOR`)을 읽는다
+    const focusCallIndex = source.indexOf(
+      "focusCanvasContainer({ preventScroll: true });",
     );
-    const focusCallIndex = source.indexOf("?.focus({ preventScroll: true });");
 
     // auto-select 호출 존재
     expect(selectIndex).toBeGreaterThanOrEqual(0);
     // 캔버스 포커스가 auto-select 뒤에 온다 (선택 후 포커스)
-    expect(focusQueryIndex).toBeGreaterThan(selectIndex);
-    expect(focusCallIndex).toBeGreaterThan(focusQueryIndex);
+    expect(focusCallIndex).toBeGreaterThan(selectIndex);
   });
 
   it("each operation branch returns the created top-level id for auto-select", async () => {

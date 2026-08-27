@@ -31,6 +31,7 @@ import { Button, Toolbar } from "@composition/shared/components";
 import { useI18n } from "@/i18n";
 import { useStore } from "../../../stores";
 import { useCanvasStore } from "../../../stores/canvasStore";
+import { focusCanvasContainer } from "../../../hooks/useActiveScope";
 import { useContextMenu } from "../contextMenu";
 import type { ContextMenuItem } from "../contextMenu/types";
 import { ShortcutTooltip } from "../ShortcutTooltip";
@@ -42,9 +43,26 @@ import "./actionBar.css";
 const ICON_SIZE = 16;
 const MENU_ICON_SIZE = 14;
 
-/** BuilderCanvas.tsx:1374 와 같은 포커스 대상 — `canvas-focused` scope 복귀점 */
-function focusCanvasContainer(): void {
-  document.querySelector<HTMLElement>(".canvas-container")?.focus();
+// ADR-192 R2 — 키보드로 진입한 툴바에서 Escape 는 "캔버스로 복귀"다.
+// 루트가 `data-shortcut-scope="global"` 을 선언해 전역 escape(선택 해제)가
+// 이 상황에서 발화하지 않으므로 여기서 포커스만 되돌린다. 선택은 유지된다
+// — 선택이 풀리면 바 자체가 언마운트돼 툴바를 떠날 방법이 사라진다
+// (2026-08-27 code-review #8).
+function returnFocusOnEscape(event: React.KeyboardEvent): void {
+  if (event.key !== "Escape") return;
+  event.preventDefault();
+  event.stopPropagation();
+  focusCanvasContainer();
+}
+
+// 바 chrome(루트 padding · 툴바 gap · separator · 툴팁 wrapper) 은 포커스를
+// 받을 수 없어서, 여기를 클릭하면 캔버스가 포커스를 잃고 body 로 떨어진다 —
+// 그 순간 `canvas-focused` 단축키(⌫ · 화살표 · ⌘G …) 가 통째로 침묵한다
+// (2026-08-27 code-review #7). 버튼은 이미 `preventFocusOnPress` 라 마우스로
+// 포커스를 옮기지 않으므로, 바 전체가 같은 규약을 따르게 한다.
+// (click 은 그대로 발화한다 — mousedown 의 기본 포커스 이동만 막는다.)
+function keepCanvasFocus(event: React.MouseEvent): void {
+  event.preventDefault();
 }
 
 function ItemIcon({ item }: { item: ContextMenuItem }) {
@@ -235,28 +253,6 @@ export function ContextualActionBar() {
     [contextMenu, selectedElementIds],
   );
 
-  // ADR-192 R2 — 키보드로 진입한 툴바에서 Escape 는 "캔버스로 복귀"다.
-  // 루트가 `data-shortcut-scope="global"` 을 선언해 전역 escape(선택 해제)가
-  // 이 상황에서 발화하지 않으므로 여기서 포커스만 되돌린다. 선택은 유지된다
-  // — 선택이 풀리면 바 자체가 언마운트돼 툴바를 떠날 방법이 사라진다
-  // (2026-08-27 code-review #8).
-  const onKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (event.key !== "Escape") return;
-    event.preventDefault();
-    event.stopPropagation();
-    focusCanvasContainer();
-  }, []);
-
-  // 바 chrome(루트 padding · 툴바 gap · separator · 툴팁 wrapper) 은 포커스를
-  // 받을 수 없어서, 여기를 클릭하면 캔버스가 포커스를 잃고 body 로 떨어진다 —
-  // 그 순간 `canvas-focused` 단축키(⌫ · 화살표 · ⌘G …) 가 통째로 침묵한다
-  // (2026-08-27 code-review #7). 버튼은 이미 `preventFocusOnPress` 라 마우스로
-  // 포커스를 옮기지 않으므로, 바 전체가 같은 규약을 따르게 한다.
-  // (click 은 그대로 발화한다 — mousedown 의 기본 포커스 이동만 막는다.)
-  const onChromeMouseDown = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-  }, []);
-
   const onOption = useCallback(
     (key: OptionKey) => {
       if (key === "pin") placement.togglePinned();
@@ -265,7 +261,7 @@ export function ContextualActionBar() {
       // RAC Menu 는 닫힘(exit 애니메이션 ~80ms) 뒤 FocusScope 가 포커스를
       // 복원하는데 그 결과가 body 라 `canvas-focused` scope 가 풀린다 (Phase 3
       // live). 동기 focus() 는 그 복원에 덮이므로 (Phase 4 live) 복원 이후로
-      // 미뤄 캔버스 컨테이너(BuilderCanvas.tsx:1374 와 같은 대상)로 되돌린다.
+      // 미뤄 캔버스 컨테이너로 되돌린다.
       window.setTimeout(focusCanvasContainer, 150);
     },
     [placement],
@@ -277,9 +273,9 @@ export function ContextualActionBar() {
     <div
       ref={placement.barRef}
       className="contextual-action-bar"
-      onMouseDown={onChromeMouseDown}
+      onMouseDown={keepCanvasFocus}
       data-shortcut-scope="global"
-      onKeyDown={onKeyDown}
+      onKeyDown={returnFocusOnEscape}
       data-dragging={placement.dragging || undefined}
       data-pinned={placement.pinned || undefined}
       style={{ transform: placement.transform }}

@@ -1368,6 +1368,7 @@ export function BuilderCanvas({
     <div
       ref={setContainerNode}
       className="canvas-container"
+      data-canvas-container="true"
       tabIndex={-1}
       onContextMenu={handleCanvasContextMenu}
       onPointerDown={(e) => {

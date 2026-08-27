@@ -126,6 +126,22 @@ function getDeclaredScope(activeElement: Element | null): ShortcutScope | null {
 }
 
 /**
+ * 캔버스 컨테이너 셀렉터 정본 — `BuilderCanvas` 루트가 이 속성을 emit 한다.
+ * scope 판정과 "캔버스로 포커스 복귀" 가 같은 계약을 읽는다.
+ */
+export const CANVAS_CONTAINER_SELECTOR = '[data-canvas-container="true"]';
+
+/**
+ * 캔버스 컨테이너로 포커스를 되돌린다 — `canvas-focused` scope 복귀점.
+ * hook 밖(액션 바 Escape · 옵션 메뉴 닫힘 · 요소 추가 직후)에서 쓴다.
+ */
+export function focusCanvasContainer(options?: FocusOptions): void {
+  document
+    .querySelector<HTMLElement>(CANVAS_CONTAINER_SELECTOR)
+    ?.focus(options);
+}
+
+/**
  * 캔버스가 포커스 상태인지 확인
  */
 function isCanvasFocused(activeElement: Element | null): boolean {
@@ -135,10 +151,7 @@ function isCanvasFocused(activeElement: Element | null): boolean {
   if (activeElement.getAttribute("data-scope") === "canvas") return true;
 
   // 캔버스 컨테이너 내부인지 확인
-  const canvasContainer = activeElement.closest(
-    '[data-canvas-container="true"]',
-  );
-  if (canvasContainer) return true;
+  if (activeElement.closest(CANVAS_CONTAINER_SELECTOR)) return true;
 
   // 캔버스 영역 클래스 확인 (fallback)
   if (activeElement.closest(".builder-canvas, .canvas-container")) return true;

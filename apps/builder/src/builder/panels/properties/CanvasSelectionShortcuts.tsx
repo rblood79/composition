@@ -23,6 +23,7 @@ import { canDetachInstance } from "../../utils/editingSemantics";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import { panelNodeMapToElementMap } from "./panelNodeElementMap";
 import { useStyleActions } from "../styles/hooks/useStyleActions";
+import { SHORTCUT_DEFINITIONS } from "../../config/keyboardShortcuts";
 import {
   alignSelection,
   copySelection,
@@ -258,9 +259,8 @@ export const CanvasSelectionShortcutsHost = memo(
           description: "Duplicate Selection",
           // scope 를 주지 않으면 registry 가 global 로 간주해 열린 모달의 버튼에
           // 포커스가 있어도 뒤의 캔버스 선택을 복제한다 (2026-08-27
-          // code-review #13). Figma/Pen 과 같이 캔버스와 레이어 트리에서만 —
-          // 두 곳 다 "선택을 만든 자리" 라 복제가 의미를 갖는 표면이다.
-          scope: ["canvas-focused", "panel:nodes"] as const,
+          // code-review #13). 선언 계약을 그대로 읽어 두 곳이 갈리지 않게 한다.
+          scope: SHORTCUT_DEFINITIONS.duplicate.scope,
         },
         // ⭐ Phase 3: Advanced Selection shortcuts
         {

@@ -35,7 +35,9 @@ import { ContextualActionBar } from "./ContextualActionBar";
 
 function renderBar() {
   const canvas = document.createElement("div");
+  // BuilderCanvas 루트와 같은 계약 — `focusCanvasContainer` 가 이 속성으로 찾는다
   canvas.className = "canvas-container";
+  canvas.setAttribute("data-canvas-container", "true");
   canvas.tabIndex = -1;
   document.body.appendChild(canvas);
 

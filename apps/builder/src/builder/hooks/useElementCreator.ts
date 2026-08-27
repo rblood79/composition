@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect } from "react";
+import { focusCanvasContainer } from "./useActiveScope";
 import type { CompositionDocument } from "@composition/shared";
 import {
   Element,
@@ -282,9 +283,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
             // 필터에서 탈락해 동작하지 않는다 (사용자가 캔버스를 다시 클릭해야만
             // 삭제 가능하던 증상). BuilderCanvas onPointerDown 의 containerRef.focus()
             // 와 동일 패턴 — 여기선 hook 밖이라 DOM selector 로 접근.
-            const canvasContainer =
-              document.querySelector<HTMLElement>(".canvas-container");
-            canvasContainer?.focus({ preventScroll: true });
+            focusCanvasContainer({ preventScroll: true });
           }
         }
       } catch (error) {
