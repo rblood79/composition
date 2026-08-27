@@ -202,9 +202,15 @@ smoke 1회.
 ### Migration Gate (G2)
 
 ```bash
-rg -n "new ck\.Path\(" apps/builder/src/builder/workspace/canvas/skia --glob '!buildPath.ts'   # 0건
-rg -n "\.(moveTo|lineTo|quadTo|cubicTo|arcToTangent|addArc|addRect|addRRect|addCircle|addOval|close)\(" apps/builder/src/builder/workspace/canvas/skia --glob '!buildPath.ts' --glob '!*.test.ts'   # 0건 (Canvas 2D 파일은 디렉터리 밖)
+rg -n "new ck\.Path\(" apps/builder/src/builder/workspace/canvas/skia --glob '!buildPath.ts' --glob '!disposable.ts' --glob '!*.test.ts'   # production 0건 (disposable.ts 주석 예시는 Phase 3 갱신)
+rg -o "buildPath\(ck" apps/builder/src/builder/workspace/canvas/skia --glob '!buildPath.ts' --glob '!*.test.ts' | wc -l   # 20곳
+rg -o "\.(moveTo|lineTo|quadTo|cubicTo|arcToTangent|addArc|addRect|addRRect|addCircle|addOval|close|setFillType)\(" apps/builder/src/builder/workspace/canvas/skia --glob '!buildPath.ts' --glob '!*.test.ts' | wc -l   # PathSink 명령 94회
 ```
+
+두 번째/세 번째 grep은 각각 renderer의 `buildPath` 호출 수와 그 콜백 안의 `PathSink`
+명령 inventory를 고정한다. sink 명령은 helper 밖 renderer 콜백에 남는 것이 정상이라 mutator
+grep 0건을 요구하지 않는다. 직접 mutable `Path` 사용은 첫 번째 grep과 Phase 3의 0.42.0
+immutable `Path` type-check가 차단한다.
 
 ## Phase 3: `canvaskit-wasm` ^0.42.0 bump + 0.40.0 분기 제거
 

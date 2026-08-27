@@ -9,6 +9,7 @@
 
 import type { CanvasKit, Canvas, Font, FontMgr } from "canvaskit-wasm";
 import { TAILWIND_PALETTE } from "@composition/specs";
+import { buildPath } from "./buildPath";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import { acquireOverlayFont } from "./selectionRenderer";
@@ -394,93 +395,95 @@ export function renderWorkflowEdges(
       const { sx, sy, ex, ey } = endpoints;
 
       // 경로 그리기
-      const path = scope.track(new ck.Path());
-      let angle: number;
-
-      if (straightEdges) {
-        // 직각(orthogonal/smoothstep): 타겟 직전 페이지와의 갭 중앙에서 꺾어 진입
-        const pageDx = Math.abs(
-          targetFrame.x +
-            targetFrame.width / 2 -
-            sourceFrame.x -
-            sourceFrame.width / 2,
-        );
-        const pageDy = Math.abs(
-          targetFrame.y +
-            targetFrame.height / 2 -
-            sourceFrame.y -
-            sourceFrame.height / 2,
-        );
-        const isHorizontal = pageDx >= pageDy;
-        path.moveTo(sx, sy);
-        if (isHorizontal) {
-          const turnX = computeOrthogonalTurnPoint(
-            targetFrame,
-            sourceFrame,
-            pageFrameMap,
-            true,
-            ex > sx,
-          );
-          // smoothstep: 꺾임점에 둥근 모서리 (arcToTangent)
-          const r = Math.min(
-            ORTHO_BORDER_RADIUS / zoom,
-            Math.abs(turnX - sx) / 2,
-            Math.abs(ey - sy) / 2,
-          );
-          const dirX = Math.sign(turnX - sx); // 수평 진행 방향
-          const dirY = Math.sign(ey - sy); // 수직 진행 방향
-          // 1st turn: 수평 → 수직
-          path.lineTo(turnX - r * dirX, sy);
-          path.arcToTangent(turnX, sy, turnX, sy + r * dirY, r);
-          // 2nd turn: 수직 → 수평
-          path.lineTo(turnX, ey - r * dirY);
-          path.arcToTangent(
-            turnX,
-            ey,
-            turnX + r * Math.sign(ex - turnX),
-            ey,
-            r,
-          );
-          path.lineTo(ex, ey);
-          angle = Math.atan2(0, ex - turnX);
-        } else {
-          const turnY = computeOrthogonalTurnPoint(
-            targetFrame,
-            sourceFrame,
-            pageFrameMap,
-            false,
-            ey > sy,
-          );
-          // smoothstep: 꺾임점에 둥근 모서리 (arcToTangent)
-          const r = Math.min(
-            ORTHO_BORDER_RADIUS / zoom,
-            Math.abs(turnY - sy) / 2,
-            Math.abs(ex - sx) / 2,
-          );
-          const dirX = Math.sign(ex - sx); // 수평 진행 방향
-          const dirY = Math.sign(turnY - sy); // 수직 진행 방향
-          // 1st turn: 수직 → 수평
-          path.lineTo(sx, turnY - r * dirY);
-          path.arcToTangent(sx, turnY, sx + r * dirX, turnY, r);
-          // 2nd turn: 수평 → 수직
-          path.lineTo(ex - r * dirX, turnY);
-          path.arcToTangent(
-            ex,
-            turnY,
-            ex,
-            turnY + r * Math.sign(ey - turnY),
-            r,
-          );
-          path.lineTo(ex, ey);
-          angle = Math.atan2(ey - turnY, 0);
-        }
-      } else {
-        // Bezier 곡선 모드
-        const { cpx1, cpy1, cpx2, cpy2 } = computeControlPoints(endpoints);
-        path.moveTo(sx, sy);
-        path.cubicTo(cpx1, cpy1, cpx2, cpy2, ex, ey);
-        angle = Math.atan2(ey - cpy2, ex - cpx2);
-      }
+      let angle = 0;
+      const path = scope.track(
+        buildPath(ck, (path) => {
+          if (straightEdges) {
+            // 직각(orthogonal/smoothstep): 타겟 직전 페이지와의 갭 중앙에서 꺾어 진입
+            const pageDx = Math.abs(
+              targetFrame.x +
+                targetFrame.width / 2 -
+                sourceFrame.x -
+                sourceFrame.width / 2,
+            );
+            const pageDy = Math.abs(
+              targetFrame.y +
+                targetFrame.height / 2 -
+                sourceFrame.y -
+                sourceFrame.height / 2,
+            );
+            const isHorizontal = pageDx >= pageDy;
+            path.moveTo(sx, sy);
+            if (isHorizontal) {
+              const turnX = computeOrthogonalTurnPoint(
+                targetFrame,
+                sourceFrame,
+                pageFrameMap,
+                true,
+                ex > sx,
+              );
+              // smoothstep: 꺾임점에 둥근 모서리 (arcToTangent)
+              const r = Math.min(
+                ORTHO_BORDER_RADIUS / zoom,
+                Math.abs(turnX - sx) / 2,
+                Math.abs(ey - sy) / 2,
+              );
+              const dirX = Math.sign(turnX - sx); // 수평 진행 방향
+              const dirY = Math.sign(ey - sy); // 수직 진행 방향
+              // 1st turn: 수평 → 수직
+              path.lineTo(turnX - r * dirX, sy);
+              path.arcToTangent(turnX, sy, turnX, sy + r * dirY, r);
+              // 2nd turn: 수직 → 수평
+              path.lineTo(turnX, ey - r * dirY);
+              path.arcToTangent(
+                turnX,
+                ey,
+                turnX + r * Math.sign(ex - turnX),
+                ey,
+                r,
+              );
+              path.lineTo(ex, ey);
+              angle = Math.atan2(0, ex - turnX);
+            } else {
+              const turnY = computeOrthogonalTurnPoint(
+                targetFrame,
+                sourceFrame,
+                pageFrameMap,
+                false,
+                ey > sy,
+              );
+              // smoothstep: 꺾임점에 둥근 모서리 (arcToTangent)
+              const r = Math.min(
+                ORTHO_BORDER_RADIUS / zoom,
+                Math.abs(turnY - sy) / 2,
+                Math.abs(ex - sx) / 2,
+              );
+              const dirX = Math.sign(ex - sx); // 수평 진행 방향
+              const dirY = Math.sign(turnY - sy); // 수직 진행 방향
+              // 1st turn: 수직 → 수평
+              path.lineTo(sx, turnY - r * dirY);
+              path.arcToTangent(sx, turnY, sx + r * dirX, turnY, r);
+              // 2nd turn: 수평 → 수직
+              path.lineTo(ex - r * dirX, turnY);
+              path.arcToTangent(
+                ex,
+                turnY,
+                ex,
+                turnY + r * Math.sign(ey - turnY),
+                r,
+              );
+              path.lineTo(ex, ey);
+              angle = Math.atan2(ey - turnY, 0);
+            }
+          } else {
+            // Bezier 곡선 모드
+            const { cpx1, cpy1, cpx2, cpy2 } = computeControlPoints(endpoints);
+            path.moveTo(sx, sy);
+            path.cubicTo(cpx1, cpy1, cpx2, cpy2, ex, ey);
+            angle = Math.atan2(ey - cpy2, ex - cpx2);
+          }
+        }),
+      );
       canvas.drawPath(path, strokePaint);
 
       // 화살표 그리기
@@ -491,11 +494,14 @@ export function renderWorkflowEdges(
       const ax2 = ex + arrowSize * Math.cos(angle - arrowAngle);
       const ay2 = ey + arrowSize * Math.sin(angle - arrowAngle);
 
-      const arrowPath = scope.track(new ck.Path());
-      arrowPath.moveTo(ex, ey);
-      arrowPath.lineTo(ax1, ay1);
-      arrowPath.lineTo(ax2, ay2);
-      arrowPath.close();
+      const arrowPath = scope.track(
+        buildPath(ck, (path) => {
+          path.moveTo(ex, ey);
+          path.lineTo(ax1, ay1);
+          path.lineTo(ax2, ay2);
+          path.close();
+        }),
+      );
       canvas.drawPath(arrowPath, arrowPaint);
 
       // 소스 도트 (시작점 표시) — 지름 6px, white fill + edge color stroke
@@ -639,9 +645,12 @@ export function renderDataSourceEdges(
         const elCx = elBounds.x + elBounds.width / 2;
         const elCy = elBounds.y;
 
-        const linePath = scope.track(new ck.Path());
-        linePath.moveTo(elCx, elCy);
-        linePath.lineTo(indicatorX, indicatorY + radius);
+        const linePath = scope.track(
+          buildPath(ck, (path) => {
+            path.moveTo(elCx, elCy);
+            path.lineTo(indicatorX, indicatorY + radius);
+          }),
+        );
         canvas.drawPath(linePath, linePaint);
       }
 
