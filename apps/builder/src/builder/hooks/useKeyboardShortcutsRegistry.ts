@@ -400,5 +400,41 @@ export function formatShortcut(
     none: "",
   };
 
-  return `${modifierSymbols[shortcut.modifier]}${shortcut.key.toUpperCase()}`;
+  return `${modifierSymbols[shortcut.modifier]}${formatShortcutKey(shortcut.key, isMac)}`;
+}
+
+/**
+ * 이름이 있는 키의 표시 문자열.
+ *
+ * `key.toUpperCase()` 만 쓰면 `ArrowUp` 이 `ARROWUP`, `Backspace` 가
+ * `BACKSPACE` 로 나온다 — 커맨드 팔레트에서 21개 항목이 그 상태였다
+ * (2026-08-27 실측). 한 글자 키는 종전대로 대문자로 올린다.
+ *
+ * 화살표는 양쪽 플랫폼 공통으로 기호를 쓴다 (키캡 각인이 같다). 나머지는
+ * Mac 만 기호이고 그 밖에서는 단어다 — ⌫/⌦/⇥ 는 Mac 키캡 관례라 Windows
+ * 사용자가 읽을 근거가 없다.
+ */
+function formatShortcutKey(key: string, isMac: boolean): string {
+  const arrows: Record<string, string> = {
+    ArrowUp: "↑",
+    ArrowDown: "↓",
+    ArrowLeft: "←",
+    ArrowRight: "→",
+  };
+  if (arrows[key]) return arrows[key];
+
+  const named: Record<string, { mac: string; other: string }> = {
+    Backspace: { mac: "⌫", other: "Backspace" },
+    Delete: { mac: "⌦", other: "Del" },
+    Escape: { mac: "esc", other: "Esc" },
+    Tab: { mac: "⇥", other: "Tab" },
+    Enter: { mac: "↵", other: "Enter" },
+    Home: { mac: "Home", other: "Home" },
+    End: { mac: "End", other: "End" },
+    " ": { mac: "Space", other: "Space" },
+  };
+  const label = named[key];
+  if (label) return isMac ? label.mac : label.other;
+
+  return key.toUpperCase();
 }
