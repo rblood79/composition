@@ -22,7 +22,7 @@
     pointer-events: auto;
     z-index: 20;
     contain: layout style;
-    /* Toolbar 루트(tabIndex=-1)가 포커스를 받아도 껍데기라 링 대상이 아니다 */
+    /* 루트는 포커스 대상이 아니다 (mousedown preventDefault + 버튼 preventFocusOnPress) */
     outline: none;
   }
 

@@ -6,7 +6,8 @@
  * - 적격 항목 0 / 텍스트 편집 중 / Hide → 미마운트 (Photoshop 자동 숨김)
  * - 재렌더 트리거는 선택 집합 + store `elements` 교체뿐 — 드래그 중 좌표는
  *   Skia 프리뷰가 들고 드롭 시 1회 commit 되므로 프레임 루프와 무관 (HC2)
- * - 포커스: `preventFocusOnPress` 라 마우스 조작은 포커스를 옮기지 않아
+ * - 포커스: 루트 mousedown `preventDefault` + `preventFocusOnPress` 라 마우스
+ *   조작은 (버튼이든 여백이든) 포커스를 옮기지 않아
  *   캔버스가 `canvas-focused` scope 를 유지한다 (HC3). 키보드로 진입한 동안은
  *   루트가 선언한 `data-shortcut-scope="global"` 이 우선이라 캔버스 단축키
  *   (←/→ 형제 재배치 · Escape 선택 해제) 가 툴바 탐색을 덮지 않고, Escape 는
@@ -14,7 +15,7 @@
  * - 배치: 좌측 핸들 드래그 · 옵션 메뉴 (Pin / Reset / Hide) — Photoshop
  *   Contextual Task Bar 의 ⋯ 메뉴 동형 (Phase 3, `useActionBarPlacement`)
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ChevronDown,
   EllipsisVertical,
@@ -184,7 +185,6 @@ function OptionsMenu({
 
 export function ContextualActionBar() {
   const { t } = useI18n();
-  const barRef = useRef<HTMLDivElement>(null);
   const isEditing = useCanvasStore((state) => state.isEditing);
   const selectedElementIds = useStore((state) => state.selectedElementIds);
   // `elements` 배열은 요소 변경(컴포넌트 토글·재부모화·삭제)마다 교체된다 —
@@ -197,7 +197,7 @@ export function ContextualActionBar() {
     state.selectedElementIds.every((id) => state.elementsMap.has(id)),
   );
   const contextMenu = useContextMenu();
-  const placement = useActionBarPlacement(barRef);
+  const placement = useActionBarPlacement();
 
   // 182 provider 는 BuilderCanvas 의 interactive map 을 읽는데, 그 ref 는
   // BuilderCanvas 의 useEffect(BuilderCanvas.tsx:756) 에서 갱신된다. 같은 store
@@ -238,6 +238,16 @@ export function ContextualActionBar() {
     focusCanvasContainer();
   }, []);
 
+  // 바 chrome(루트 padding · 툴바 gap · separator · 툴팁 wrapper) 은 포커스를
+  // 받을 수 없어서, 여기를 클릭하면 캔버스가 포커스를 잃고 body 로 떨어진다 —
+  // 그 순간 `canvas-focused` 단축키(⌫ · 화살표 · ⌘G …) 가 통째로 침묵한다
+  // (2026-08-27 code-review #7). 버튼은 이미 `preventFocusOnPress` 라 마우스로
+  // 포커스를 옮기지 않으므로, 바 전체가 같은 규약을 따르게 한다.
+  // (click 은 그대로 발화한다 — mousedown 의 기본 포커스 이동만 막는다.)
+  const onChromeMouseDown = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+  }, []);
+
   const onOption = useCallback(
     (key: OptionKey) => {
       if (key === "pin") placement.togglePinned();
@@ -256,8 +266,9 @@ export function ContextualActionBar() {
 
   return (
     <div
-      ref={barRef}
+      ref={placement.barRef}
       className="contextual-action-bar"
+      onMouseDown={onChromeMouseDown}
       data-shortcut-scope="global"
       onKeyDown={onKeyDown}
       data-dragging={placement.dragging || undefined}

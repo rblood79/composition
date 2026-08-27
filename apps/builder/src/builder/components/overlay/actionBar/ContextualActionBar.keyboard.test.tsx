@@ -52,6 +52,16 @@ function renderBar() {
 }
 
 beforeEach(() => {
+  // jsdom 에는 ResizeObserver 가 없다 (PanelWorkspace.occupancy.test.tsx 와 같은
+  // 패턴) — 바 배치 훅이 저장 offset clamp 에 쓴다
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
   useStore.setState({
     selectedElementIds: ["a"],
     selectedElementId: "a",
@@ -61,6 +71,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   document.body.innerHTML = "";
   useStore.setState({
     selectedElementIds: [],
@@ -79,6 +90,26 @@ describe("ContextualActionBar — 키보드 규약 (ADR-192 R2)", () => {
     expect(bar).not.toBeNull();
     expect(bar!.getAttribute("data-shortcut-scope")).toBe("global");
     expect(bar!.querySelectorAll('[data-scope="canvas"]')).toHaveLength(0);
+  });
+
+  // 2026-08-27 code-review #7 — 바 여백·gap·separator 는 포커스를 받을 수 없어
+  // 클릭 시 캔버스가 포커스를 잃고 body 로 떨어졌다. 그 순간 canvas-focused
+  // 단축키(⌫ · 화살표 · ⌘G …) 가 통째로 침묵한다.
+  it("바 chrome 을 클릭해도 캔버스 포커스가 유지된다", () => {
+    const { canvas } = renderBar();
+    canvas.focus();
+    expect(document.activeElement).toBe(canvas);
+
+    const bar = document.querySelector(".contextual-action-bar")!;
+    const event = new MouseEvent("mousedown", {
+      bubbles: true,
+      cancelable: true,
+    });
+    bar.dispatchEvent(event);
+
+    // 기본 포커스 이동이 막혀야 한다 (click 자체는 그대로 발화)
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(canvas);
   });
 
   // 2026-08-27 code-review #8 — Escape 가 전역 핸들러로 흘러 선택이 풀리면 바

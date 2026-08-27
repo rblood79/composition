@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-192 액션 바 코드리뷰 수정 2묶음 — 배치·포커스] - 2026-08-27
+
+### Bug Fixes
+
+- **저장된 바 위치가 화면 밖이면 복구할 방법이 없던 결함**: 마운트 시 clamp 가 실행된 적이 없었다 — 훅이 마운트되는 시점에는 바 DOM 이 아직 없어(선택 0 / 편집 중 / Hide → 미마운트) 측정이 null 로 끝났고, 바가 나타나도 effect 의존이 그대로라 재실행되지 않았다. 큰 창에서 우측 끝으로 옮긴 뒤 작은 창에서 열면 바가 잘려 ⋯ 옵션 메뉴(Reset 유일 경로)에도 닿을 수 없었다. 바 노드를 state 로 들어 **나타나는 시점에 clamp** 하고, 이후 크기 변화(컨텍스트 전환으로 항목 수가 바뀌거나 패널 도크 리사이즈로 overlay 가 변할 때)는 ResizeObserver 로 잡는다.
+- **바를 드래그해 놓을 때마다 React DEV 오류가 나던 결함**: 드롭 commit 이 `setDragOffset` updater 안에서 store 를 써서, 그 updater 가 render phase 에 실행되는 보통의 드롭에서 "Cannot update a component while rendering a different component" 가 났다. 확정 값을 ref 에 두고 commit 은 이벤트 핸들러 본문에서 한다.
+- **바의 여백을 클릭하면 캔버스 단축키가 침묵하던 결함**: 루트 padding · 툴바 gap · separator · 툴팁 wrapper 는 포커스를 받을 수 없어 클릭 시 포커스가 body 로 빠지고, `canvas-focused` 단축키(⌫ · 화살표 · ⌘G · ⌘D …) 가 캔버스를 다시 클릭할 때까지 전부 무반응이었다. 버튼이 이미 쓰던 규약(`preventFocusOnPress`) 을 바 전체로 넓혀 mousedown 의 기본 포커스 이동을 막는다 (click 은 그대로 발화).
+
 ## [ADR-192 액션 바 코드리뷰 수정 1묶음 — 문서 손상·키보드·바 소실] - 2026-08-27
 
 ### Bug Fixes
