@@ -265,3 +265,116 @@ describe("duplicateSelection — ADR-182 후속 (2026-08-27)", () => {
     expect(createdTypes).not.toContain("body");
   });
 });
+
+/**
+ * 2026-08-27 관찰 — `alignSelection` / `distributeSelection` / `groupSelection`
+ * 은 `selectedElementIds` 를 그대로 썼다. ⌘A 는 body 까지 선택하므로 페이지
+ * 루트가 정렬 대상(좌표 기록)·분배 고정점·그룹 자식이 됐다. 복제/삭제와 같은
+ * body 필터를 세 경로에도 적용한다.
+ */
+describe("선택 행동의 body 필터 (2026-08-27 관찰)", () => {
+  const boxed = (id: string, left: number, top: number) =>
+    makeElement(id, {
+      parent_id: "body-1",
+      props: {
+        style: {
+          left: `${left}px`,
+          top: `${top}px`,
+          width: "10px",
+          height: "10px",
+        },
+      },
+    });
+
+  function seed(ids: string[]) {
+    useStore.setState({
+      currentPageId: "page-1",
+      multiSelectMode: true,
+      selectedElementId: ids[0],
+      selectedElementIds: ids,
+    } as never);
+    return {
+      elementsMap: new Map<string, CanvasActionElement>([
+        [
+          "body-1",
+          makeElement("body-1", {
+            type: "body",
+            props: {
+              style: {
+                left: "0px",
+                top: "0px",
+                width: "500px",
+                height: "500px",
+              },
+            },
+          }),
+        ],
+        ["a", boxed("a", 40, 10)],
+        ["b", boxed("b", 90, 30)],
+        ["c", boxed("c", 200, 60)],
+      ]),
+    };
+  }
+
+  it("alignSelection 은 body 를 제외하고 나머지만 정렬한다", async () => {
+    const context = seed(["body-1", "a", "b"]);
+    const batchUpdateElementProps = vi
+      .spyOn(useStore.getState(), "batchUpdateElementProps")
+      .mockResolvedValue(undefined as never);
+
+    await alignSelection(context, "left");
+
+    expect(batchUpdateElementProps).toHaveBeenCalledTimes(1);
+    const updates = batchUpdateElementProps.mock.calls[0][0] as Array<{
+      elementId: string;
+      props: { style: Record<string, unknown> };
+    }>;
+    expect(updates.map((u) => u.elementId).sort()).toEqual(["a", "b"]);
+    // body 를 함께 넘겼다면 가장 왼쪽(0px)인 body 가 기준이 됐을 것이다
+    expect(updates.every((u) => u.props.style.left === "40px")).toBe(true);
+  });
+
+  it("body + 요소 1개 선택은 정렬하지 않는다 (남는 대상이 1개)", async () => {
+    const context = seed(["body-1", "a"]);
+    const batchUpdateElementProps = vi
+      .spyOn(useStore.getState(), "batchUpdateElementProps")
+      .mockResolvedValue(undefined as never);
+
+    await alignSelection(context, "left");
+
+    expect(batchUpdateElementProps).not.toHaveBeenCalled();
+  });
+
+  it("distributeSelection 은 body 를 뺀 개수로 최소 3개를 판정한다", async () => {
+    const twoLeft = seed(["body-1", "a", "b"]);
+    const batchUpdateElementProps = vi
+      .spyOn(useStore.getState(), "batchUpdateElementProps")
+      .mockResolvedValue(undefined as never);
+
+    await distributeSelection(twoLeft, "horizontal");
+    expect(batchUpdateElementProps).not.toHaveBeenCalled();
+
+    const threeLeft = seed(["body-1", "a", "b", "c"]);
+    await distributeSelection(threeLeft, "horizontal");
+    expect(batchUpdateElementProps).toHaveBeenCalledTimes(1);
+    const updates = batchUpdateElementProps.mock.calls[0][0] as Array<{
+      elementId: string;
+    }>;
+    expect(updates.map((u) => u.elementId)).not.toContain("body-1");
+  });
+
+  it("groupSelection 은 body 를 새 frame 의 자식으로 넣지 않는다", async () => {
+    const context = seed(["body-1", "a", "b"]);
+    const state = useStore.getState();
+    vi.spyOn(state, "addElement").mockResolvedValue(undefined as never);
+    const updateElement = vi
+      .spyOn(state, "updateElement")
+      .mockResolvedValue(undefined as never);
+    vi.spyOn(state, "setSelectedElement").mockReturnValue(undefined as never);
+
+    await groupSelection(context);
+
+    const reparented = updateElement.mock.calls.map((call) => call[0]);
+    expect(reparented.sort()).toEqual(["a", "b"]);
+  });
+});

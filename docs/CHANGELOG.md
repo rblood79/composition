@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [선택 행동의 body 필터 — 정렬·분배·그룹] - 2026-08-27
+
+### Bug Fixes
+
+- **⌘A 선택에서 정렬·분배가 페이지 body 까지 대상으로 삼던 결함**: `alignSelection`/`distributeSelection` 이 `selectedElementIds` 를 그대로 넘겨, 페이지 루트에 `left`/`top` 이 기록되고 body 의 bounding box(페이지 전체)가 기준이 돼 나머지 요소의 정렬 결과까지 어긋났다. 복제·삭제가 쓰던 body 판정을 공용 헬퍼로 뽑아 세 경로에 적용한다.
+- **⌘G 가 body 를 새 frame 의 자식으로 넣던 결함**: 컨텍스트 메뉴는 body 가 섞인 선택에 "그룹 만들기" 를 만들지 않지만 단축키는 그 관문을 거치지 않아, `createGroupFromSelection` 이 페이지 루트를 reparent 했다. 같은 필터를 `groupSelection` 에도 적용한다.
+- **정렬·분배 노출 판정을 body 를 뺀 개수로**: body + 요소 1개 선택에서는 정렬 서브메뉴 자체가, body + 요소 2개에서는 분배 항목이 조건 미충족이라 노출되지 않는다 (조건 미충족 항목은 숨긴다는 ADR-182 노출 정책). body + 요소 1개 선택은 정렬·분배·그룹이 모두 빠져 액션 바도 뜨지 않는다 — 이전에는 떴지만 그때 노출되던 정렬이 페이지 루트에 좌표를 쓰는 쪽이었다.
+
 ## [코드리뷰 잔여 3건 — dark 팔레트 · 패널 gutter] - 2026-08-27
 
 ### Bug Fixes

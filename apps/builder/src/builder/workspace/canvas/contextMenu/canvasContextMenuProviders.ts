@@ -160,10 +160,13 @@ function buildZOrderItems(element: CanvasActionElement): ContextMenuItem[] {
 
 /** `distributeSelection` 은 3개 미만에서 즉시 return 한다 (canvasActions.ts) */
 const DISTRIBUTE_MIN_SELECTION = 3;
+/** `alignSelection` 은 2개 미만에서 즉시 return 한다 (canvasActions.ts) */
+const ALIGN_MIN_SELECTION = 2;
 
 function buildAlignmentItems(
   options: CanvasContextMenuProviderOptions,
-  selectionCount: number,
+  /** body 를 뺀 개수 — 두 action 이 body 를 거르고 나서 최소 개수를 본다 */
+  alignableCount: number,
 ): ContextMenuItem[] {
   // 다중 선택 툴바(MultiSelectStatusIndicator)와 **같은 정본**을 읽는다 —
   // 두 진입점이 다른 그림을 쓰면 같은 동작으로 안 읽힌다.
@@ -180,7 +183,7 @@ function buildAlignmentItems(
   // 2 개 선택에서는 분배가 무반응 no-op 이라 만들지 않는다 — 조건 미충족
   // 항목은 숨긴다는 182 노출 정책 그대로 (2026-08-27 code-review #10).
   const distributionTypes: DistributionType[] =
-    selectionCount >= DISTRIBUTE_MIN_SELECTION
+    alignableCount >= DISTRIBUTE_MIN_SELECTION
       ? ["horizontal", "vertical"]
       : [];
   const context = () => actionContext(options);
@@ -307,13 +310,16 @@ function buildElementMenuItems(
     );
   }
 
-  if (selectedElements.length >= 2) {
+  // body 는 정렬·분배 대상이 아니다 (canvasActions 가 거른다) — ⌘A 처럼 body 가
+  // 섞인 선택에서 남는 개수로 판정해야 조건 미충족 항목이 노출되지 않는다
+  // (2026-08-27 관찰: dead 항목 계열).
+  if (nonBodyElements.length >= ALIGN_MIN_SELECTION) {
     items.push({
       kind: "submenu",
       id: "align",
       label: "정렬 / Align",
       icon: ACTION_ICONS.align,
-      items: buildAlignmentItems(options, selectedElements.length),
+      items: buildAlignmentItems(options, nonBodyElements.length),
     });
   }
 

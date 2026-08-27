@@ -10,7 +10,7 @@
  * 해석해 조건 미충족 항목을 숨기므로 (182 노출 정책), 바가 요소 타입을 다시
  * 읽으면 두 표면의 판정이 갈릴 수 있다.
  *
- * - C4 다중: `align` 존재 (182 는 2+ 선택에만 정렬 서브메뉴를 만든다)
+ * - C4 다중: `align` 존재 (182 는 body 를 뺀 2+ 선택에만 정렬 서브메뉴를 만든다)
  * - C2 frame/group: `ungroup` 존재
  * - C3 인스턴스: `go-to-origin` 존재
  * - C1 단일 일반: `toggle-component-origin` 존재 (182 는 "단일 && non-body"
@@ -40,8 +40,8 @@ export const ACTION_BAR_MAX_ITEMS = 5;
 export const ACTION_BAR_ALLOWLIST: Readonly<
   Record<ActionBarContext, readonly string[]>
 > = {
-  // group 은 182 가 단일 선택에도 만들지만 `groupSelection` 은 2+ 에서만 실행
-  // (canvasActions.ts:259) — 단일 컨텍스트에서는 결정적 no-op 이라 뺀다.
+  // 단일 컨텍스트에 group 을 두지 않는다 — 182 도 더 이상 단일 선택에 group 을
+  // 만들지 않으므로(2026-08-27 code-review #10) 여기 실릴 일 자체가 없다.
   single: ["duplicate", "toggle-component-origin"],
   frame: ["ungroup", "duplicate", "toggle-component-origin"],
   instance: ["go-to-origin", "detach-instance", "duplicate"],
@@ -62,8 +62,10 @@ export function resolveActionBarContext(
 ): ActionBarContext | null {
   const ids = collectIds(items);
   if (ids.size === 0) return null;
-  // 2+ 선택 — 182 는 이때만 정렬 서브메뉴를 만든다. 페이지당 body 는 1개라
-  // body 가 섞여 있어도(⌘A) 적격 non-body 요소가 반드시 함께 있다.
+  // 182 는 body 를 뺀 2+ 선택에만 정렬 서브메뉴를 만든다. ⌘A 처럼 body 가
+  // 섞여도 non-body 가 2개 이상이면 그대로 multi 다. body + 요소 1개만 고른
+  // 선택은 정렬·분배·그룹이 전부 조건 미충족이라 바가 뜨지 않는다 — 이전에는
+  // 떴지만 그때 노출되던 정렬이 페이지 루트에 좌표를 쓰는 쪽이었다.
   if (ids.has("align")) return "multi";
   if (ids.has("ungroup")) return "frame";
   if (ids.has("go-to-origin")) return "instance";

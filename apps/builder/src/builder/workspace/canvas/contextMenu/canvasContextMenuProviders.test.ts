@@ -156,6 +156,45 @@ describe("canvas context-menu providers", () => {
     expect(ids(["first", "second"], ["first", "second"])).toContain("group");
   });
 
+  // 2026-08-27 관찰 — `alignSelection`/`distributeSelection` 이 body 를 거르게
+  // 되면서 노출 판정도 body 를 뺀 개수로 옮긴다. ⌘A 처럼 body 가 섞인 선택에서
+  // 남는 대상이 최소 개수에 못 미치면 dead 항목이 된다.
+  it("정렬·분배 노출은 body 를 뺀 개수로 판정한다", () => {
+    const pool = [
+      element("body-1", "body", { parent_id: null }),
+      element("a"),
+      element("b"),
+      element("c"),
+    ];
+    const build = (targets: string[]) =>
+      buildCanvasContextMenuItems(
+        {
+          clientX: 0,
+          clientY: 0,
+          surface: "canvas-element",
+          targetElementIds: targets,
+        },
+        options(pool),
+      );
+    const alignItems = (targets: string[]) => {
+      const align = build(targets).find((item) => item.id === "align");
+      return align?.kind === "submenu" ? align.items.map((i) => i.id) : null;
+    };
+
+    // body + 요소 1개 → 정렬 대상이 1개뿐이라 서브메뉴 자체가 없다
+    expect(alignItems(["body-1", "a"])).toBeNull();
+
+    // body + 요소 2개 → 정렬은 있고 분배는 없다 (남는 대상 2개)
+    const withTwo = alignItems(["body-1", "a", "b"]);
+    expect(withTwo).toContain("align-left");
+    expect(withTwo).not.toContain("distribute-horizontal");
+
+    // body + 요소 3개 → 분배까지
+    expect(alignItems(["body-1", "a", "b", "c"])).toContain(
+      "distribute-horizontal",
+    );
+  });
+
   it("hides the z-order cluster when the target has no sibling", () => {
     const items = buildCanvasContextMenuItems(
       {

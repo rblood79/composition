@@ -109,6 +109,25 @@ function getActionElements(
 }
 
 /**
+ * body 를 제외한 선택 id — 선택을 문서 구조로 바꾸는 모든 행동의 공통 관문.
+ *
+ * body 는 페이지 루트라 복제·삭제·그룹·정렬·분배 어느 쪽도 대상이 될 수 없다.
+ * ⌘A 는 body 까지 선택하므로 필터가 없으면 body 가 조용히 대상에 섞인다
+ * (2026-08-27: 복제는 두 번째 body 를 만들었고 — code-review #1 —,
+ * 정렬/분배는 페이지 루트에 left/top 을 쓰고, 그룹은 body 를 새 frame 의
+ * 자식으로 reparent 한다).
+ */
+function selectableWithoutBody(
+  ids: readonly string[],
+  elementsMap: CanvasActionElementsMap,
+): string[] {
+  return ids.filter((id) => {
+    const element = elementsMap.get(id);
+    return element !== undefined && element.type.toLowerCase() !== "body";
+  });
+}
+
+/**
  * @returns 클립보드 쓰기까지 성공했으면 true. `cutSelection` 이 이 값으로
  *   삭제 여부를 정한다 — 복사가 실패했는데 지우면 내용이 사라진다.
  */
@@ -200,10 +219,7 @@ export async function duplicateSelection(
   // body 를 버려 자손이 고아가 되는데도 문서·IndexedDB 에는 남고,
   // deleteSelection 이 body 를 거부해 undo 외엔 지울 수 없다. 삭제 경로와 같은
   // 필터를 복제에도 적용한다 (2026-08-27 code-review #1).
-  const duplicableIds = selectedElementIds.filter((id) => {
-    const element = elementsMap.get(id);
-    return element !== undefined && element.type.toLowerCase() !== "body";
-  });
+  const duplicableIds = selectableWithoutBody(selectedElementIds, elementsMap);
   if (duplicableIds.length === 0) return;
 
   const copiedData = copyMultipleElements(duplicableIds, elementsMap);
@@ -243,10 +259,7 @@ export async function deleteSelection(
 
   if (selectedIdsForDelete.length === 0) return;
 
-  const deletableIds = selectedIdsForDelete.filter((id) => {
-    const element = elementsMap.get(id);
-    return element && element.type.toLowerCase() !== "body";
-  });
+  const deletableIds = selectableWithoutBody(selectedIdsForDelete, elementsMap);
   if (deletableIds.length === 0) return;
 
   setSelectedElement(null);
@@ -269,13 +282,19 @@ export async function groupSelection(
   }
 
   const elementsMap = getActionElements(context);
-  const previousChildren = selectedElementIds
+  // 컨텍스트 메뉴는 body 가 섞인 선택에 group 항목을 만들지 않지만 ⌘G 는 그
+  // 관문을 거치지 않는다 — 필터가 없으면 `createGroupFromSelection` 이 페이지
+  // 루트를 새 frame 의 자식으로 reparent 한다 (2026-08-27 관찰의 같은 계열).
+  const groupableIds = selectableWithoutBody(selectedElementIds, elementsMap);
+  if (groupableIds.length < 2) return;
+
+  const previousChildren = groupableIds
     .map((id) => elementsMap.get(id))
     .filter(
       (element): element is CanvasActionStoreElement => element !== undefined,
     );
   const { groupElement, updatedChildren } = createGroupFromSelection(
-    selectedElementIds,
+    groupableIds,
     elementsMap,
     currentPageId,
   );
@@ -348,7 +367,13 @@ export async function alignSelection(
   if (!multiSelectMode || selectedElementIds.length < 2) return;
 
   const elementsMap = getActionElements(context);
-  const updates = alignElements(selectedElementIds, elementsMap, type);
+  // ⌘A 선택에는 body 가 섞인다 — 정렬 대상에 들어가면 페이지 루트에 left/top 을
+  // 쓰고, body 의 bounding box 가 전체를 덮어 나머지 요소의 정렬 기준까지
+  // 무너뜨린다 (2026-08-27 관찰).
+  const alignableIds = selectableWithoutBody(selectedElementIds, elementsMap);
+  if (alignableIds.length < 2) return;
+
+  const updates = alignElements(alignableIds, elementsMap, type);
   if (updates.length === 0) return;
 
   await batchUpdateElementProps(
@@ -379,7 +404,15 @@ export async function distributeSelection(
   if (!multiSelectMode || selectedElementIds.length < 3) return;
 
   const elementsMap = getActionElements(context);
-  const updates = distributeElements(selectedElementIds, elementsMap, type);
+  // 정렬과 같은 이유 — 분배는 양 끝 요소를 고정점으로 잡는데 body 가 섞이면
+  // 페이지 루트가 고정점이 된다.
+  const distributableIds = selectableWithoutBody(
+    selectedElementIds,
+    elementsMap,
+  );
+  if (distributableIds.length < 3) return;
+
+  const updates = distributeElements(distributableIds, elementsMap, type);
   if (updates.length === 0) return;
 
   await batchUpdateElementProps(
