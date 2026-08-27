@@ -76,7 +76,7 @@ export interface ComponentCapability {
  *
  * RAC controlled prop 이 아니라 CSS 표시 제어라 `racRef` 는 CSS 근거를 적는다.
  * (G1 의 취지는 "근거 없는 등재 금지" — 공통 3종은 렌더 경로가 D3 style 을 그대로
- * 소비하므로 컴포넌트 종류와 무관하게 발화가 보장된다.)
+ * 소비하므로 컴포넌트 종류와 무관하게 동작이 보장된다.)
  */
 export const COMMON_CAPABILITIES: Readonly<Record<string, CapabilityDef>> = {
   show: {

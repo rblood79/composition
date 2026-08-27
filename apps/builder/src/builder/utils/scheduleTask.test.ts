@@ -2,12 +2,12 @@
  * scheduleFrameOrTimeout — hidden/background 탭 preview 동기화 회귀 가드
  *
  * ADR-151 잔여 ② (preview prop 편집 stale, 2026-07-17 관측):
- * `requestAnimationFrame` 은 background(hidden) 탭에서 발화하지 않는다. preview 로의
+ * `requestAnimationFrame` 은 background(hidden) 탭에서 동작하지 않는다. preview 로의
  * canonical 재송신이 rAF 로 예약돼 있어, hidden 탭(= Chrome MCP parity 자동화 컨텍스트)
  * 에서 prop 편집이 reload 전까지 preview 에 반영되지 않았다. 라이브 실측:
- * hidden 탭에서 rAF 미발화 / setTimeout·microtask 즉시 발화.
+ * hidden 탭에서 rAF 미동작 / setTimeout·microtask 즉시 동작.
  *
- * 계약: document.hidden 이면 setTimeout 으로 예약(hidden 탭 발화 보장), visible 이면
+ * 계약: document.hidden 이면 setTimeout 으로 예약(hidden 탭 동작 보장), visible 이면
  * requestAnimationFrame(프레임 배칭 유지 — focused 탭 hot path 무변경). 반환값은
  * 스케줄러 종류와 무관하게 취소하는 함수.
  */
@@ -40,7 +40,7 @@ describe("scheduleFrameOrTimeout — visibility-resilient scheduler", () => {
     expect(st).not.toHaveBeenCalled();
   });
 
-  it("hidden 이면 setTimeout 으로 예약한다 (rAF 는 background 탭에서 미발화)", () => {
+  it("hidden 이면 setTimeout 으로 예약한다 (rAF 는 background 탭에서 미동작)", () => {
     setHidden(true);
     const raf = vi.spyOn(window, "requestAnimationFrame");
     const st = vi
@@ -53,7 +53,7 @@ describe("scheduleFrameOrTimeout — visibility-resilient scheduler", () => {
     expect(raf).not.toHaveBeenCalled();
   });
 
-  it("hidden 탭에서 예약된 콜백이 실제로 발화한다 (핵심 회귀 가드)", async () => {
+  it("hidden 탭에서 예약된 콜백이 실제로 실행된다 (핵심 회귀 가드)", async () => {
     setHidden(true);
     const cb = vi.fn();
 

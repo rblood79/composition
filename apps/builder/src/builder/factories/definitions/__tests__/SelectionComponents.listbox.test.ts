@@ -42,7 +42,7 @@ describe("createListBoxDefinition (Option B anchor-less)", () => {
     expect(definition.children).toEqual([]);
   });
 
-  // 2026-07-22 사용자 보고 회귀 방지: 스크롤 발화/휠/scrollbar 4 소비자가 raw props.style 를
+  // 2026-07-22 사용자 보고 회귀 방지: 스크롤 동작/휠/scrollbar 4 소비자가 raw props.style 를
   //   읽으므로(catalog fallback 미도달), instance 가 real props.style 로 overflow 를 가져야
   //   사용자가 높이를 저작한 순간 스크롤바가 나온다.
   // 2026-07-29 사용자 보고 회귀 방지: `maxHeight:"300px"` 는 **심지 않는다**. catalog 에서만

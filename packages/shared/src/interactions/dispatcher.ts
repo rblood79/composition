@@ -1,8 +1,8 @@
 /**
- * @fileoverview ADR-158 Phase 3 — InteractionRule 발화 dispatcher.
+ * @fileoverview ADR-158 Phase 3 — InteractionRule 실행 dispatcher.
  *
  * 규칙 하나를 실제 동작으로 바꾸는 **순수 함수**다. React·store·router 를 직접
- * 참조하지 않고 전부 `DispatchDeps` 로 받는다 — 그래야 발화 규칙 자체를 DOM 없이
+ * 참조하지 않고 전부 `DispatchDeps` 로 받는다 — 그래야 실행 규칙 자체를 DOM 없이
  * 단위 테스트할 수 있고, preview 와 publish 가 같은 dispatcher 를 소비한다.
  *
  * 2026-08-17 — breakdown §7 의 후속 이관 실행: `apps/builder/src/preview/interactions/`
@@ -41,7 +41,7 @@ export interface DispatchDeps {
   showToast: (message: string) => void;
 }
 
-/** 발화 결과 — 실패를 삼키지 않고 호출부(및 테스트)가 볼 수 있게 돌려준다. */
+/** 실행 결과 — 실패를 삼키지 않고 호출부(및 테스트)가 볼 수 있게 돌려준다. */
 export type DispatchOutcome =
   | { ok: true; kind: "navigate" | "toast" | "capability" }
   | { ok: false; reason: string };
@@ -130,7 +130,7 @@ function readCurrent(
   return style?.[propPath.slice("style.".length)];
 }
 
-/** 규칙 하나를 발화한다. */
+/** 규칙 하나를 실행한다. */
 export function executeInteractionRule(
   rule: InteractionRule,
   deps: DispatchDeps,

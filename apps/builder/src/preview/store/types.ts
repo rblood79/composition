@@ -186,11 +186,11 @@ export interface RuntimeStoreState extends StateHierarchy {
   cancelEditorPresentation: (message: EditorPresentationCancelMessage) => void;
 
   /**
-   * ADR-158 Phase 3 — 인터랙션 발화가 쌓는 **임시** prop override (elementId → patch).
+   * ADR-158 Phase 3 — 인터랙션 실행이 쌓는 **임시** prop override (elementId → patch).
    *
    * canonical 렌더 경로는 문서 노드 props 를 읽으므로 `updateElementProps`
    * (=`elements` 배열) 로는 화면이 바뀌지 않는다. 문서를 고치는 대신 이 층에
-   * 얹고 렌더 시점에 병합한다 — 발화는 문서 편집이 아니라서 undo/persist
+   * 얹고 렌더 시점에 병합한다 — 실행은 문서 편집이 아니라서 undo/persist
    * 대상이 아니고, 문서 재수신 시 리셋되는 것이 옳은 수명이다.
    */
   interactionOverrides: Record<string, Record<string, unknown>>;

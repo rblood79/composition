@@ -42,7 +42,7 @@ import { renderMenuItemSlotParts } from "../components/Menu";
  * Stored → Runtime 변환.
  *
  * ADR-158 Phase 4 후속 (2026-08-17): `onActionId → onAction` 파생은 제거 —
- * event-id 채널이 발화 경로 없는 dead seam 이었다 (`resolveActionId` 상시
+ * event-id 채널이 실행 경로 없는 dead seam 이었다 (`resolveActionId` 상시
  * undefined). 항목 링크는 `href` 가 정식 경로.
  */
 function toRuntimeMenuItem(item: StoredMenuItem): RuntimeMenuItem {

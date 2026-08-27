@@ -105,7 +105,7 @@ function isExternalOrAnchor(href: string): boolean {
  * **규칙 출처 (ADR-158 Phase 4 이후)**: canonical `events` root collection 의
  * `InteractionRule[]`. 종전에는 요소의 legacy `props.events` / `element.events`
  * 를 읽었는데, ADR-158 Phase 1 에서 그 mirror 파생이 끊겨 **신규 규칙이 캔버스에
- * 한 건도 나타나지 않았다**. 반대로 구 문서에 남은 entry 는 발화 경로가 없어
+ * 한 건도 나타나지 않았다**. 반대로 구 문서에 남은 entry 는 실행 경로가 없어
  * (패널 삭제 + `isInteractionRule` 필터) 그리면 **일어나지 않을 이동을 그리는
  * 셈**이라, legacy 갈래는 되살리지 않고 걷어냈다.
  */
@@ -158,7 +158,6 @@ export function computeWorkflowEdges(
         }
       }
     }
-
   }
 
   // 2) 인터랙션 규칙 기반 navigation 엣지.
@@ -170,7 +169,7 @@ export function computeWorkflowEdges(
   for (const rule of rules) {
     // 타입은 `InteractionRule[]` 이지만 구 문서에는 `SerializedEvent` entry 가
     // 남아 있을 수 있다 — 그쪽은 `action` 필드 자체가 없어(`actionRef` 참조 방식)
-    // 가드 없이 읽으면 캔버스가 통째로 죽는다. 발화 쪽(`bindings.ts`)과 같은
+    // 가드 없이 읽으면 캔버스가 통째로 죽는다. 실행 쪽(`bindings.ts`)과 같은
     // 판정으로 걸러낸다.
     if (!isInteractionRule(rule)) continue;
     if (rule.action.kind !== "navigate") continue;

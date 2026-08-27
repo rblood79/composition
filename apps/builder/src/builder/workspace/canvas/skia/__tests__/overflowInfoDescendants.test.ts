@@ -13,7 +13,7 @@ import {
  *
  * Why: 넘침은 `overflow: visible` 중간 노드를 통과해 올라온다 (CSS-OVERFLOW-3 §3). 프레임을
  * 적용한 페이지가 그 형태 — `body(auto) > Slot(visible) > 콘텐츠`. 직계만 세면 슬롯이 페이지
- * 높이에 딱 맞아 "넘침 없음" 이 되어 chrome 이 통째로 안 나왔다. 같은 전제로 스크롤 발화가
+ * 높이에 딱 맞아 "넘침 없음" 이 되어 chrome 이 통째로 안 나왔다. 같은 전제로 스크롤 동작이
  * 죽어 있던 것이 `computeScrollExtent` (fullTreeLayout GAP 4, 2026-07-27 수정).
  */
 

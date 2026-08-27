@@ -17,7 +17,7 @@
  * Store 직렬화 모델 — JSON 직렬화 가능.
  *
  * ADR-158 Phase 4 후속 (2026-08-17): `onActionId` (EVENT_REGISTRY 참조 id) 는
- * 제거됐다 — event-id 채널이 발화 경로 없는 dead seam (preview `resolveActionId`
+ * 제거됐다 — event-id 채널이 실행 경로 없는 dead seam (preview `resolveActionId`
  * 상시 undefined). 항목 → 페이지 이동은 `href` 가 정식 경로 (RAC MenuItem href).
  * 항목 단위 커맨드가 필요해지면 인터랙션 규칙에 itemKey 매칭을 확장한다
  * (dispatcher 가 callback 인자를 전달하도록 여는 것이 전제 — bindings.ts 참조).
@@ -80,9 +80,7 @@ export interface StoredMenuSeparator {
  * 기존 저장 프로젝트 items 엔트리는 `type` 미지정 → `StoredMenuItem` 로 해석.
  */
 export type StoredMenuEntry =
-  | StoredMenuItem
-  | StoredMenuSection
-  | StoredMenuSeparator;
+  StoredMenuItem | StoredMenuSection | StoredMenuSeparator;
 
 /** Runtime 모델 — RAC `<Menu items>{...}` 호출 직전 CollectionRenderers에서 변환 */
 export interface RuntimeMenuItem extends Omit<

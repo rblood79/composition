@@ -1932,7 +1932,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // 미설정이라 overflow:hidden 컨테이너의 자식이 캔버스에서 넘쳐 보였다).
   {
     // overflow 를 catalog containerStyles 에만 둔 컨테이너(Card/DisclosureGroup/Meter/
-    //   ProgressBar 의 hidden · ListBox/Menu/Select/Tree 의 auto)도 clip/scrollbar 가 발화하도록
+    //   ProgressBar 의 hidden · ListBox/Menu/Select/Tree 의 auto)도 clip/scrollbar 가 동작하도록
     //   catalog fallback 포괄. raw props.style 우선. type 은 이미 resolved scene tag.
     const overflow = resolveEffectiveOverflow(type, style);
     if (

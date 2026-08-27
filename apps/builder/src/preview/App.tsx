@@ -114,7 +114,7 @@ const CSS_UNITLESS = new Set([
 // ============================================
 
 /**
- * 발화 실패를 콘솔에 남긴다 (ADR-158 Phase 3).
+ * 실행 실패를 콘솔에 남긴다 (ADR-158 Phase 3).
  *
  * dispatcher 는 실패를 예외로 던지지 않고 사유를 돌려준다 — 버튼 하나가 preview
  * 전체를 무너뜨리면 안 되기 때문이다. 대신 **조용히 no-op 하지도 않는다**:
@@ -126,7 +126,7 @@ function reportInteractionOutcome(
 ): void {
   if (outcome.ok) return;
   console.warn(
-    `[interactions] 규칙 ${rule.id} (${rule.trigger}) 발화 실패 — ${outcome.reason}`,
+    `[interactions] 규칙 ${rule.id} (${rule.trigger}) 실행 실패 — ${outcome.reason}`,
   );
 }
 
@@ -172,7 +172,7 @@ function CanvasContent() {
     (el: PreviewElement, allPageElements: PreviewElement[]) => React.ReactNode
   >(() => null);
 
-  // navigate 함수를 전역으로 설정 (비컴포넌트 컨텍스트의 발화 경로용)
+  // navigate 함수를 전역으로 설정 (비컴포넌트 컨텍스트의 실행 경로용)
   useEffect(() => {
     setGlobalNavigate(navigate);
   }, [navigate]);
@@ -693,7 +693,7 @@ function CanvasContent() {
     [updateElementProps],
   );
 
-  // ── ADR-158 Phase 3 — 인터랙션 발화 ──────────────────────────────
+  // ── ADR-158 Phase 3 — 인터랙션 실행 ──────────────────────────────
   //
   // 규칙 수신 경로는 신설하지 않았다: 이미 `UPDATE_CANONICAL_DOCUMENT` 로 문서가
   // 통째로 오고, 규칙은 그 안의 `events` root collection (ADR-131) 이다.
@@ -703,7 +703,7 @@ function CanvasContent() {
   );
 
   /**
-   * 발화 대상 조회용 canonical 노드 색인.
+   * 실행 대상 조회용 canonical 노드 색인.
    *
    * legacy `elementsById` 로는 못 찾는다 — canonical-only 런타임에서 화면을 그리는
    * 것은 `resolvedCanonicalNodes` 이고 `elements` 배열에는 그 노드가 없다
@@ -738,7 +738,7 @@ function CanvasContent() {
 
   const interactionDeps: DispatchDeps = useMemo(
     () => ({
-      // 현재값은 store 에서 **그때그때** 읽는다 — deps 에 override 를 넣으면 발화
+      // 현재값은 store 에서 **그때그때** 읽는다 — deps 에 override 를 넣으면 실행
       // 한 번마다 renderContext memo 가 깨져 트리 전체가 다시 그려진다.
       getElement: (id) => {
         const el = interactionTargets.get(id);
@@ -755,10 +755,10 @@ function CanvasContent() {
         }
         return { type: el.type, props: merged };
       },
-      // 문서가 아니라 **발화 override 층**에 쌓는다. 두 가지 이유다 —
+      // 문서가 아니라 **실행 override 층**에 쌓는다. 두 가지 이유다 —
       // ① canonical 렌더 경로는 `elements` 가 아니라 문서 노드 props 를 읽어서
       //    `updateElementProps` 로는 화면이 안 바뀐다 (2026-08-16 실측).
-      // ② 발화는 런타임 동작이지 문서 편집이 아니다. `updateElementPropsWithBuilderSync`
+      // ② 실행은 런타임 동작이지 문서 편집이 아니다. `updateElementPropsWithBuilderSync`
       //    로 올려보내면 버튼 한 번에 undo 히스토리와 DB write 가 쌓인다 —
       //    `Disclosure.expand` 가 patch 하는 `isExpanded` 는 실제로 역전파
       //    allowlist 안에 있어 이 구분이 실효다.

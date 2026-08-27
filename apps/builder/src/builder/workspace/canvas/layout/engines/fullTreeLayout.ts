@@ -3240,7 +3240,7 @@ export function calculateFullTreeLayout(
       const el = elementsMap.get(elementId);
       const elStyle = (el?.props?.style ?? {}) as Record<string, unknown>;
       // overflow 가 catalog containerStyles 에만 있는 컨테이너(ListBox/Tree/body 등)도 스크롤이
-      //   발화하도록 catalog fallback 포괄. ref instance 는 resolved type(componentName). raw 우선.
+      //   동작하도록 catalog fallback 포괄. ref instance 는 resolved type(componentName). raw 우선.
       const elWithNameForOverflow = el as
         { componentName?: unknown } | undefined;
       const overflowType =

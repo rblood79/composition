@@ -1,5 +1,5 @@
 /**
- * ADR-158 Phase 3 — 발화 override 가 catalog generic 경로의 렌더까지 도달하는가.
+ * ADR-158 Phase 3 — 실행 override 가 catalog generic 경로의 렌더까지 도달하는가.
  *
  * **Why (2026-08-16 라이브 실측, 같은 형태로 두 번)**: dispatcher 는 `ok` 를
  * 돌려주는데 화면이 그대로였다. 이 경로의 소비자들이 병합 결과가 아니라 **원본
@@ -31,7 +31,7 @@ function patch(id: string, props: Record<string, unknown>) {
   getRuntimeStore().getState().patchInteractionOverride(id, props);
 }
 
-describe("발화 override → catalog generic 렌더", () => {
+describe("실행 override → catalog generic 렌더", () => {
   it("style.display override 가 인라인 style 로 반영된다 (hide)", () => {
     patch("badge-1", { style: { display: "none" } });
 

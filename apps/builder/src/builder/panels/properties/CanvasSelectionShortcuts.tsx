@@ -239,7 +239,7 @@ export const CanvasSelectionShortcutsHost = memo(
     //
     // key/modifier/scope/priority 는 `SHORTCUT_DEFINITIONS` 가 정본이다 — 등록이
     // 손으로 다시 적으면 정의는 치트시트 표기용으로만 남고, scope 를 생략한
-    // 항목은 registry 가 global 로 간주해 모달 위에서도 발화한다 (2026-08-27
+    // 항목은 registry 가 global 로 간주해 모달 위에서도 동작한다 (2026-08-27
     // code-review #13: ⌘D 가 그 사례였고 나머지 15건도 같은 상태였다).
     const shortcuts = useMemo(
       () => [
@@ -251,7 +251,7 @@ export const CanvasSelectionShortcutsHost = memo(
         // 읽지 않는 유령이라 2026-08-27 에 삭제했다. 여기를 `copy`/`paste` 정의로
         // 합치지 않은 이유는 동작이 다르기 때문이다 — canvas 쪽은
         // `writeClipboardText` 로 클립보드 텍스트도 쓰고 `requireCurrentPageForCopy`
-        // 로 현재 페이지를 요구한다. scope 를 넓히면 두 핸들러가 함께 발화한다.
+        // 로 현재 페이지를 요구한다. scope 를 넓히면 두 핸들러가 함께 동작한다.
         {
           key: "c",
           modifier: "cmd" as const,

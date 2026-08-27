@@ -84,7 +84,7 @@ afterEach(() => {
 
 describe("ContextualActionBar — 키보드 규약 (ADR-192 R2)", () => {
   // 2026-08-27 code-review #2 — 버튼의 `data-scope="canvas"` 탓에 툴바 안에서
-  // ←/→ 를 누를 때마다 `canvas-focused` 형제 재배치가 함께 발화했다.
+  // ←/→ 를 누를 때마다 `canvas-focused` 형제 재배치가 함께 동작했다.
   it("버튼은 canvas scope 를 선언하지 않고 루트가 global 을 선언한다", () => {
     renderBar();
 
@@ -109,7 +109,7 @@ describe("ContextualActionBar — 키보드 규약 (ADR-192 R2)", () => {
     });
     bar.dispatchEvent(event);
 
-    // 기본 포커스 이동이 막혀야 한다 (click 자체는 그대로 발화)
+    // 기본 포커스 이동이 막혀야 한다 (click 자체는 그대로 동작)
     expect(event.defaultPrevented).toBe(true);
     expect(document.activeElement).toBe(canvas);
   });

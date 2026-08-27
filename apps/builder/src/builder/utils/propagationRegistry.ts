@@ -991,7 +991,7 @@ const selectPropagationRules: PropagationRule[] = [
   //   state 에서 라벨을 그리므로 두 consumer 가 같은 문서를 다르게 그리는 D3 비대칭이었다.
   //   `transform` 이 owner props 전체를 받으므로 selectedKey/items 까지 보고 최종 표시값을
   //   낸다(판정은 shared `resolveSelectDisplayValue` 단일 소스). parentProp 은 그대로
-  //   placeholder — rule 발화 게이트이자 미선택 시의 값이다.
+  //   placeholder — rule 동작 게이트이자 미선택 시의 값이다.
   {
     parentProp: "placeholder",
     childPath: ["SelectTrigger", "SelectValue"],

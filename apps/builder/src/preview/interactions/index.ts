@@ -1,5 +1,5 @@
 /**
- * ADR-158 Phase 3 — Preview 인터랙션 발화.
+ * ADR-158 Phase 3 — Preview 인터랙션 실행.
  *
  * 구성은 둘뿐이다: 규칙을 동작으로 바꾸는 `dispatcher` (순수 함수) 와, 요소별
  * callback props 를 만드는 `bindings` (색인). 수신은 신설하지 않았다 — 규칙은

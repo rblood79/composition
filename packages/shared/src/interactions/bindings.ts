@@ -9,7 +9,7 @@
  * 여기서 하는 일은 색인 하나뿐이다 — `elementId` 로 규칙을 모아 `trigger` 이름을
  * 키로 하는 callback map 을 만든다. 실제 동작은 `dispatcher` 가 갖는다.
  *
- * 한 요소·한 trigger 에 규칙이 여럿이면 **선언 순서대로 전부** 발화한다. 조건부
+ * 한 요소·한 trigger 에 규칙이 여럿이면 **선언 순서대로 전부** 실행한다. 조건부
  * 실행·우선순위는 스키마에서 원천 제거됐으므로(§2) 여기서 고를 근거가 없다.
  *
  * @see docs/adr/design/158-interactions-rules-capability-registry-breakdown.md §4

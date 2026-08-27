@@ -67,7 +67,7 @@ function isPageListBoxInstance(node: CanonicalNode): boolean {
  * 페이지 ListBox instance 의 raw `overflow` 보강 (2026-07-22 사용자 보고).
  *
  * factory 이전 seed 의 instance 는 `props.style = { width: "100%" }` 만 가져 overflow 가
- * real props.style 에 없다. catalog containerStyles 는 layout+패널만 소비하고, 스크롤 발화
+ * real props.style 에 없다. catalog containerStyles 는 layout+패널만 소비하고, 스크롤 동작
  * (collectionVirtualization 가상화 window) / 휠(useScrollWheelInteraction) / scrollbar·clip
  * (buildSpecNodeData)는 raw props.style 를 읽는다. factory 신규 경로
  * (createListBoxDefinition)와 정합하도록 real props.style 로 보강한다.

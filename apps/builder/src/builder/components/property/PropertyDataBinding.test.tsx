@@ -26,7 +26,7 @@ describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07
     );
 
     // 갱신 모드: RAC/RSP 미규정 + 유일 소비처(useCollectionData auto-refresh effect)가
-    //   `if (!isApiBinding) return` 이라 dataTable 바인딩에서 발화 0.
+    //   `if (!isApiBinding) return` 이라 dataTable 바인딩에서 실행 0.
     expect(container.querySelector(".binding-refresh-select")).toBeNull();
     expect(container.querySelector(".binding-refresh-row")).toBeNull();
     expect(container.querySelector(".binding-interval-row")).toBeNull();

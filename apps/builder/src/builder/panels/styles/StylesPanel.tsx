@@ -144,7 +144,7 @@ function StylesPanelContent() {
   // 이전 (패널 Activity gating 중에도 동작 유지). 핸들러는 툴바 버튼용으로 잔류.
   // key/modifier/scope 는 `SHORTCUT_DEFINITIONS` 가 정본이다. 종전에는 여기서
   // 손으로 적으면서 scope 를 빠뜨려, registry 가 global 로 간주해 모달 위에서도
-  // 발화했다 — 게다가 ⌥S 가 정렬(⌥S, canvas-focused)과 같은 조합이 된다.
+  // 동작했다 — 게다가 ⌥S 가 정렬(⌥S, canvas-focused)과 같은 조합이 된다.
   const activeScope = useActiveScope();
   const shortcuts = useMemo(
     () =>

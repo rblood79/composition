@@ -1078,7 +1078,7 @@ export function BuilderCanvas({
   const editingElementIdRef = useRef<string | null>(null);
 
   // Page title drag hit-test (capture phase).
-  // Capture 단계에서 먼저 발화하므로 useCentralCanvasPointerHandlers 보다 우선.
+  // Capture 단계에서 먼저 동작하므로 useCentralCanvasPointerHandlers 보다 우선.
   // hit 이면 event.__handled = true 로 중앙 핸들러가 early-return 하도록 막는다.
   useLayoutEffect(() => {
     const element = containerRef.current;

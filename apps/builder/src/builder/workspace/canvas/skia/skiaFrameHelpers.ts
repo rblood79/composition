@@ -89,7 +89,7 @@ function resolveNodeOverflow(
  * (CSS-OVERFLOW-3 §3). 프레임을 적용한 페이지가 정확히 그 형태다 —
  * `body(overflow:auto) > Slot(visible) > 실제 콘텐츠`. 슬롯은 페이지 높이에 딱 맞으므로
  * 직계만 보면 "넘치는 게 없다" 가 되어 hover 오버레이·해칭 chrome 이 아예 안 나왔다.
- * 같은 전제로 스크롤 발화가 죽어 있던 것이 `computeScrollExtent` (fullTreeLayout GAP 4).
+ * 같은 전제로 스크롤 동작이 죽어 있던 것이 `computeScrollExtent` (fullTreeLayout GAP 4).
  *
  * 하강은 두 지점에서 멈춘다:
  * - **자기 클립을 가진 자손** — 그쪽이 자기 경계로 흡수하므로 더 안쪽은 이 컨테이너를 못 넘는다.

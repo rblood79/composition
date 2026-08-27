@@ -330,7 +330,7 @@ function buildNodeByIdMap(root: ResolvedNode): Map<string, ResolvedNode> {
  * 4. rendererMap 미등록 시 generic div 렌더링 + children 재귀
  * 5. DOM 마커: `data-canonical-id` + `data-element-id`
  */
-/** 발화 override 병합 — `style` 만 얕게 합치고 나머지는 덮어쓴다. */
+/** 실행 override 병합 — `style` 만 얕게 합치고 나머지는 덮어쓴다. */
 function mergeInteractionOverride(
   base: Record<string, unknown>,
   override: Record<string, unknown> | undefined,
@@ -578,7 +578,7 @@ export function CanonicalNodeRenderer({
 
   // ── canonical props 추출 ──────────────────────────────────────────────────
   //
-  // ADR-158 Phase 3 — 인터랙션 발화 override 를 여기서 병합한다. 이 경로는 문서
+  // ADR-158 Phase 3 — 인터랙션 실행 override 를 여기서 병합한다. 이 경로는 문서
   // 노드 props 를 읽으므로 `elements` 배열 patch 로는 화면이 바뀌지 않는다
   // (실측: dispatch 는 성공하는데 display 그대로). `style` 은 통째로 갈아치우면
   // 요소가 갖고 있던 나머지 스타일이 사라지므로 얕게 병합한다.
@@ -602,7 +602,7 @@ export function CanonicalNodeRenderer({
   );
 
   // **node 로부터 props 를 읽는 모든 소비자는 이것을 쓴다.** `node` 를 직접 넘기면
-  // 발화 override 가 통째로 무시되는데, 그 실수를 소비처마다 따로 저지르기 쉽다 —
+  // 실행 override 가 통째로 무시되는데, 그 실수를 소비처마다 따로 저지르기 쉽다 —
   // 실제로 `toRacProps`(Modal.isOpen 무반응)와 `toReactStyle`(hide/show 무반응)에서
   // 차례로 같은 형태로 드러났다. 병합 결과가 원본과 같으면 참조를 유지해 하위
   // 비교(===)가 종전대로 동작한다.

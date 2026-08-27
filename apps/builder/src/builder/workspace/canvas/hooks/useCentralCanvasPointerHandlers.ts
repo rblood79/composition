@@ -723,7 +723,7 @@ export function useCentralCanvasPointerHandlers({
     };
 
     // pointermove 는 window 리스너 하나만 둔다 — element 에 같은 리스너를 걸면
-    // 버블링으로 두 번 발화해 hit-test/커서 계산이 이벤트마다 2회 돈다.
+    // 버블링으로 두 번 동작해 hit-test/커서 계산이 이벤트마다 2회 돈다.
     element.addEventListener("pointerdown", handlePointerDown);
     window.addEventListener("pointermove", handleWindowPointerMove);
     window.addEventListener("pointerup", handleWindowPointerUp);

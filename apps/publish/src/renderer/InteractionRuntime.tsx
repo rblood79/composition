@@ -2,20 +2,20 @@
  * Interaction Runtime — publish 축 (ADR-158 후속, 2026-08-17)
  *
  * 빌더에서 저장한 인터랙션 규칙(canonical `document.events` 의 `InteractionRule[]`)을
- * 게시된 사이트에서 발화시킨다. 규칙 색인(`buildInteractionIndex`)과 발화
- * (`executeInteractionRule`)는 preview 와 **같은 shared 모듈**을 소비한다 —
+ * 게시된 사이트에서 실행한다. 규칙 색인(`buildInteractionIndex`)과 실행
+ * (`executeInteractionRule`)은 preview 와 **같은 shared 모듈**을 소비한다 —
  * 정책이 두 벌이 되면 그 순간 preview↔publish 동작 발산이 시작된다.
  *
  * 구 경로와의 관계: 종전 `ElementRenderer` 는 legacy `element.events` 를
- * `ActionExecutor` 로 발화했는데, ADR-158 Phase 1 에서 그 mirror 파생이 끊겨
+ * `ActionExecutor` 로 실행했는데, ADR-158 Phase 1 에서 그 mirror 파생이 끊겨
  * **입력이 영구 empty** — 게시본 인터랙션이 완전 무동작이었다. export 페이로드는
  * `CompositionDocument` 전체를 직렬화하므로 규칙은 이미 게시본에 도착해 있었고,
  * 없던 것은 소비뿐이다.
  *
- * 발화 결과(capability prop patch)는 **override 층**에 쌓는다 (preview 와 동일
- * 설계) — 게시본의 render model 은 읽기 전용 스냅샷이고, 발화는 런타임 동작이지
+ * 실행 결과(capability prop patch)는 **override 층**에 쌓는다 (preview 와 동일
+ * 설계) — 게시본의 render model 은 읽기 전용 스냅샷이고, 실행은 런타임 동작이지
  * 문서 편집이 아니다. 병합 의미도 preview `patchInteractionOverride` 미러:
- * 요소별 shallow merge (dispatcher 의 `buildPatch` 가 style 을 발화 시점 현재값
+ * 요소별 shallow merge (dispatcher 의 `buildPatch` 가 style 을 실행 시점 현재값
  * 기준으로 이미 병합해 보내므로 여기선 shallow 가 정확하다).
  */
 import {
@@ -74,8 +74,9 @@ export function InteractionRuntimeProvider({
   children,
 }: InteractionRuntimeProviderProps) {
   const { addToast } = useToast();
-  const [interactionOverrides, setInteractionOverrides] =
-    useState<Record<string, PropsBag>>({});
+  const [interactionOverrides, setInteractionOverrides] = useState<
+    Record<string, PropsBag>
+  >({});
 
   const index = useMemo(
     () =>
@@ -92,7 +93,7 @@ export function InteractionRuntimeProvider({
     [pages],
   );
 
-  // deps 는 참조 안정이어야 한다 — 발화마다 바뀌면 소비자 memo 가 전부 깨진다.
+  // deps 는 참조 안정이어야 한다 — 실행마다 바뀌면 소비자 memo 가 전부 깨진다.
   // 최신 상태는 ref 로 그때그때 읽는다 (preview 의 store-경유 읽기와 동형).
   const overridesRef = useRef(interactionOverrides);
   overridesRef.current = interactionOverrides;
@@ -171,7 +172,7 @@ export function useElementInteractionHandlers(
   }, [runtime, elementId]);
 }
 
-/** 요소의 발화 override — 렌더 직전 props 에 병합할 patch. */
+/** 요소의 실행 override — 렌더 직전 props 에 병합할 patch. */
 export function useElementInteractionOverride(
   elementId: string,
 ): PropsBag | undefined {

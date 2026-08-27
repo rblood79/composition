@@ -38,7 +38,7 @@ describe("Menu 선택 표시 — 데이터 게이팅 + 실제 로드", () => {
     );
     // selectionMode:"none" 은 두 값 어디에도 안 걸린다 — 선택 미사용 메뉴의 배치 보존.
     expect(menuCss).not.toMatch(/data-selection-mode="none"/);
-    // 글리프는 장식 — 대체 텍스트를 비워 RAC 의 aria 상태와 이중 발화하지 않게 한다.
+    // 글리프는 장식 — 대체 텍스트를 비워 RAC 의 aria 상태와 이중 동작하지 않게 한다.
     expect(menuCss).toMatch(/content: "✓" \/ ""/);
   });
 

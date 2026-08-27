@@ -267,7 +267,7 @@ function applyPageGuideHistoryEntry(
  * 치환쌍 + breakpoint 위치 + 활성 페이지를 함께 되돌린다.
  *
  * canonical element 정렬은 여기서 직접 하지 않는다 — `set()` 의 pages
- * 토폴로지 변경이 page shell bridge (BuilderCore 구독) 를 동기 발화시켜
+ * 토폴로지 변경이 page shell bridge (BuilderCore 구독) 를 동기 실행시켜
  * live 경로 (appendPageShell / removePageLocal) 와 같은 기제로 정렬된다.
  * positions 는 canonical `pagePositions` 직접 갱신 (ADR-177 적용기 동형).
  *

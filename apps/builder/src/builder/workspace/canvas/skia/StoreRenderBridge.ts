@@ -1171,7 +1171,7 @@ export class StoreRenderBridge {
 
     // ADR-153 Phase 3: 렌더 입력 무변경 no-op 가드.
     // rendererInput effect / store 구독은 카메라 이동(줌/팬)·선택 변경 같은
-    // 프레임 노이즈에도 발화하지만, node 빌드가 읽는 입력(요소/레이아웃/테마
+    // 프레임 노이즈에도 동작하지만, node 빌드가 읽는 입력(요소/레이아웃/테마
     // 토큰/브레이크포인트/스크롤/synthetic)이 전부 동일하면 rebuild 는 내용
     // 동일한 새 객체만 만든다 — 노드 identity 를 흔들어 노드 Picture 캐시를
     // 전량 무효화하는 순수 낭비이므로 건너뛴다. (레이아웃/synthetic 맵은

@@ -202,7 +202,7 @@ export interface AsyncListLoadOptions {
  * (RAC 비동기 표면은 `useAsyncList` 의 load/loadMore/reload/sort + loadingState/
  * onLoadMore 뿐) → D2 기준 RSP 미규정 prop. (2) 유일한 소비처인 `useCollectionData`
  * auto-refresh effect 가 `if (!isApiBinding) return` 로 시작하는데, ADR-159 P4b 로
- * 오소링이 `source:"dataTable"` 고정이라 신규 바인딩은 항상 발화 0. (3) `"onMount"`
+ * 오소링이 `source:"dataTable"` 고정이라 신규 바인딩은 항상 실행 0. (3) `"onMount"`
  * 는 api 바인딩에서조차 소비처 0건 (effect 가 `"interval"` 만 분기).
  *
  * 기존 저장 문서의 값은 편집 시에도 보존한다 (builder `PropertyDataBinding` 의

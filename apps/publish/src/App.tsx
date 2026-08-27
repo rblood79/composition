@@ -525,7 +525,7 @@ export function App() {
     return <EmptyState message="페이지를 찾을 수 없습니다" />;
   }
 
-  // 프로젝트 렌더링 — 인터랙션 규칙은 preview 와 같은 shared dispatcher 로 발화
+  // 프로젝트 렌더링 — 인터랙션 규칙은 preview 와 같은 shared dispatcher 로 실행
   // (toast capability 를 위해 ToastProvider 가 바깥).
   return (
     <ToastProvider>
@@ -535,40 +535,40 @@ export function App() {
         pages={projectData.pages}
         onNavigatePage={setCurrentPageId}
       >
-    <div className="publish-app">
-      {/* 경고 표시 */}
-      {warnings && warnings.length > 0 && (
-        <div className="publish-warnings" role="status">
-          {warnings.map((w, i) => (
-            <div key={i} className="warning-item">
-              ⚠️ {w.message}
+        <div className="publish-app">
+          {/* 경고 표시 */}
+          {warnings && warnings.length > 0 && (
+            <div className="publish-warnings" role="status">
+              {warnings.map((w, i) => (
+                <div key={i} className="warning-item">
+                  ⚠️ {w.message}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-
-      <div className="publish-layout">
-        {/* 페이지 네비게이션 */}
-        <PageNav
-          pages={projectData.pages}
-          currentPageId={currentPageId}
-          onPageChange={setCurrentPageId}
-        />
-
-        {/* 메인 콘텐츠 */}
-        <main className="publish-content">
-          {currentElements.length === 0 ? (
-            <EmptyState message="이 페이지에 요소가 없습니다" />
-          ) : (
-            <PageRenderer
-              page={currentPage}
-              elements={projectData.elements}
-              className="publish-page"
-            />
           )}
-        </main>
-      </div>
-    </div>
+
+          <div className="publish-layout">
+            {/* 페이지 네비게이션 */}
+            <PageNav
+              pages={projectData.pages}
+              currentPageId={currentPageId}
+              onPageChange={setCurrentPageId}
+            />
+
+            {/* 메인 콘텐츠 */}
+            <main className="publish-content">
+              {currentElements.length === 0 ? (
+                <EmptyState message="이 페이지에 요소가 없습니다" />
+              ) : (
+                <PageRenderer
+                  page={currentPage}
+                  elements={projectData.elements}
+                  className="publish-page"
+                />
+              )}
+            </main>
+          </div>
+        </div>
       </InteractionRuntimeProvider>
     </ToastProvider>
   );

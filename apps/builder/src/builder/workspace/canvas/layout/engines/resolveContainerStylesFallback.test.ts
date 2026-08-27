@@ -551,7 +551,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
 });
 
 // 2026-07-22: overflow 가 catalog containerStyles 에만 있고 raw props.style 에 없는 컨테이너의
-//   스크롤/클립이 Skia 4 소비자(GAP4 maxScroll / 가상화 / 휠 / clip·scrollbar)에서 발화하도록
+//   스크롤/클립이 Skia 4 소비자(GAP4 maxScroll / 가상화 / 휠 / clip·scrollbar)에서 동작하도록
 //   catalog fallback 을 포괄하는 공용 resolver. (구조적 근본 원인 — 사용자 보고)
 describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄", () => {
   it("raw props.style.overflow 가 있으면 그대로(catalog 조회 skip)", () => {

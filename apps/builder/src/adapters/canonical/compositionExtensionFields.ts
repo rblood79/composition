@@ -61,7 +61,7 @@ interface LegacyElementWithExtension {
 // `element.events` 는 **읽는 쪽도 쓰는 쪽도 없는** legacy 저장 데이터로만
 // 남았고, roundtrip 보존은 `legacyElementSanitizer` 가 담당한다.
 //
-// ADR-149 가 "이벤트 발화 bridge 는 별도 ADR" 로 이연했던 그 bridge 가 곧
+// ADR-149 가 "이벤트 실행 bridge 는 별도 ADR" 로 이연했던 그 bridge 가 곧
 // ADR-158 이며, **다른 위치를 읽는다** — 이 reader 를 그 자리 표시로 남겨 둘
 // 근거가 없다. events 를 요소별로 다시 읽어야 하는 상황이 오면 그때의 저장
 // 위치부터 새로 정해야 한다.

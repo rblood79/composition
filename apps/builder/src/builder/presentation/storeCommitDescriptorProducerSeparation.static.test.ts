@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
  *
  * presentation adapter 는 `runCanonicalMutation` 의 `store` 스테이지에서
  * `useStore.setState` 를 직접 호출하므로 `updateElementProps` 를 타지 않는다.
- * 그래서 store emitter (ADR-190 Phase 1) 는 presentation commit 에서 발화하지
+ * 그래서 store emitter (ADR-190 Phase 1) 는 presentation commit 에서 동작하지
  * 않고, `pendingCommit` 단일 슬롯이 한 commit 에 두 번 덮어써지는 일이 없다.
  *
  * 누군가 adapter 의 store 스테이지를 `updateElementProps` 로 바꾸면 그 순간

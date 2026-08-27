@@ -9,7 +9,7 @@ import {
 /**
  * 회귀 방지 — 시스템 페이지(Components / fallback Home) body 의 overflow 기본값 (2026-07-21 사용자 보고).
  *
- * 근본 원인: 스크롤 발화(fullTreeLayout GAP4 maxScroll) / 렌더(buildSpecNodeData·buildBoxNodeData
+ * 근본 원인: 스크롤 동작(fullTreeLayout GAP4 maxScroll) / 렌더(buildSpecNodeData·buildBoxNodeData
  * scrollbar) / 휠(useScrollWheelInteraction) 4 소비자가 전부 raw `element.props.style.overflow`
  * 를 읽는다. catalog containerStyles.overflow fallback 은 buildNodeStyle(layout) + 패널만 소비 →
  * 시스템 페이지 body 가 props:{} 로 생성되면 콘텐츠가 pageHeight(기본 1080)를 넘어도 maxScrollTop 이

@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * ADR-158 Phase 3 — dispatcher 발화 계약.
+ * ADR-158 Phase 3 — dispatcher 실행 계약.
  *
  * G2 게이트의 4종(navigate / toast / hide·show / modal open)을 **DOM 없이** 먼저
  * 고정한다. 라이브 확증은 Chrome MCP 로 따로 하지만, 여기서 실패하면 라이브에서도
@@ -214,7 +214,7 @@ describe("bindings — 색인과 callback", () => {
     expect(index.size).toBe(1);
   });
 
-  it("한 trigger 의 규칙을 선언 순서대로 전부 발화한다", () => {
+  it("한 trigger 의 규칙을 선언 순서대로 전부 실행한다", () => {
     const deps = makeDeps({});
     const index = buildInteractionIndex([
       rule({ kind: "toast", params: { message: "first" } }),
@@ -233,7 +233,7 @@ describe("bindings — 색인과 callback", () => {
     );
   });
 
-  it("발화 결과를 관찰자에게 알린다 (조용한 실패 방지)", () => {
+  it("실행 결과를 관찰자에게 알린다 (조용한 실패 방지)", () => {
     const deps = makeDeps({});
     const onOutcome = vi.fn();
     const index = buildInteractionIndex([

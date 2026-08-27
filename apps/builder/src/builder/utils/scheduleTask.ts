@@ -100,10 +100,10 @@ export function scheduleNextFrame(callback: () => void): number {
 }
 
 /**
- * 프레임 정렬 스케줄이되 hidden/background 탭에서도 발화하도록 보강한 스케줄러.
+ * 프레임 정렬 스케줄이되 hidden/background 탭에서도 동작하도록 보강한 스케줄러.
  *
  * - 문서가 visible: `requestAnimationFrame` (프레임 배칭 유지 — focused 탭 hot path 무변경)
- * - 문서가 hidden: `setTimeout` (rAF 는 background 탭에서 발화하지 않아 여기에 예약된 작업이
+ * - 문서가 hidden: `setTimeout` (rAF 는 background 탭에서 동작하지 않아 여기에 예약된 작업이
  *   탭 refocus/reload 전까지 정체됨 — hidden 탭에서 preview 를 읽는 parity 자동화가 그
  *   정체로 stale 을 관측)
  *

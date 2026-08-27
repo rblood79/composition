@@ -6,7 +6,7 @@
  *
  * ADR-158 Phase 4 후속 (2026-08-17): `onActionId` 필드와 Stored/Runtime 분리
  * (`RuntimeComboBoxItem` / `toRuntimeComboBoxItem`) 은 제거됐다 — event-id
- * 채널이 발화 경로 없는 dead seam 이었고, RAC 에서 ComboBox item action 은
+ * 채널이 실행 경로 없는 dead seam 이었고, RAC 에서 ComboBox item action 은
  * 특수 케이스("Create" 류)뿐 정규 어휘가 아니다 (선택 = `onSelectionChange`).
  * 렌더러(SelectionRenderers)는 Stored 모델을 직접 소비한다.
  *

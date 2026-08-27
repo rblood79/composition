@@ -84,10 +84,10 @@ describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)",
     });
 
     // ADR-151 잔여 ② — hidden 탭 preview 정체 회귀 가드.
-    // canonical 재송신은 hidden 탭에서 미발화하는 requestAnimationFrame(scheduleNextFrame)
+    // canonical 재송신은 hidden 탭에서 동작하지 않는 requestAnimationFrame(scheduleNextFrame)
     // 이 아니라 scheduleFrameOrTimeout 로 예약해야 한다 (background 탭 parity 자동화가
     // reload 없이 preview 를 읽을 수 있도록).
-    it("canonical 재송신은 hidden 탭에서도 발화하는 scheduleFrameOrTimeout 로 예약한다", async () => {
+    it("canonical 재송신은 hidden 탭에서도 동작하는 scheduleFrameOrTimeout 로 예약한다", async () => {
       const fs = await import("node:fs/promises");
       const path = await import("node:path");
       const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");

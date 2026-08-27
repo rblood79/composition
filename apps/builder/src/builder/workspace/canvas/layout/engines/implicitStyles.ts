@@ -416,7 +416,7 @@ export function resolveContainerStylesFallback(
  * useScrollWheelInteraction / buildSpecNodeData·buildBoxNodeData clip·scrollbar)이 그동안 raw
  * `props.style.overflow` 만 읽어, overflow 를 catalog `containerStyles` 에만 둔 컴포넌트
  * (ListBox/Menu/Select/Tree/ComboBox 의 auto · Card/DisclosureGroup/Meter/ProgressBar/NumberField/
- * FileTrigger 의 hidden)는 Skia 에서 스크롤/클립이 발화하지 않았다(사용자 보고 2026-07-22).
+ * FileTrigger 의 hidden)는 Skia 에서 스크롤/클립이 동작하지 않았다(사용자 보고 2026-07-22).
  * raw 우선(사용자/factory 편집), 없으면 catalog 기본값. ref instance 는 resolved type(componentName).
  *
  * hot path(GAP4/wheel 은 요소별 호출)를 위해 raw overflow 가 있으면 catalog 조회를 skip 하고,

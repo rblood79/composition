@@ -89,7 +89,7 @@ function fmtEvent(e: EngineTraceEvent): string {
     case "IntrinsicMeasure":
       return `${tag}IntrinsicMeasure: ${e.hit ? "HIT (캐시)" : "MISS (재측정)"} gen=${e.generation} min=${e.min} max=${e.max}`;
     case "FlexItemResolve":
-      return `${tag}FlexItemResolve: item#${e.item} used_main=${e.used_main} ≠ solve 시 avail=${e.prev_avail} — 재-solve 발화 (3.5)`;
+      return `${tag}FlexItemResolve: item#${e.item} used_main=${e.used_main} ≠ solve 시 avail=${e.prev_avail} — 재-solve 발생 (3.5)`;
     case "GridTrackResolve":
       return `${tag}GridTrackResolve: ${e.axis === "Inline" ? "cols" : "rows"} [${e.tracks
         .map((t) => (t === null ? "미해소" : t))

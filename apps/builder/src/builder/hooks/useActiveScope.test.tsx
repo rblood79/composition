@@ -7,7 +7,7 @@ import { useActiveScope } from "./useActiveScope";
 /**
  * 2026-08-27 code-review #2 — ADR-192 액션 바 버튼이 `data-scope="canvas"` 를
  * 달고 있어, 키보드로 툴바에 진입한 뒤 ←/→ 로 버튼을 옮기면 `canvas-focused`
- * 의 형제 재배치가 함께 발화해 문서 순서가 바뀌었다. 오버레이가 자기 스코프를
+ * 의 형제 재배치가 함께 동작해 문서 순서가 바뀌었다. 오버레이가 자기 스코프를
  * 선언하면 캔버스 추론보다 우선한다.
  */
 function mount(html: string, focusSelector: string) {

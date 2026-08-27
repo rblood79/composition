@@ -261,7 +261,7 @@ export function createListBoxDefinition(
         //   factory 는 사용자 커스터마이징 기본값 (width) 만 보유.
         //
         //   overflow 는 예외로 real props.style 에 둔다: catalog containerStyles 는
-        //   layout(resolveContainerStylesFallback) + 패널만 소비하고, 스크롤 발화
+        //   layout(resolveContainerStylesFallback) + 패널만 소비하고, 스크롤 동작
         //   (collectionVirtualization 가상화 window resolver) / 휠(useScrollWheelInteraction) /
         //   scrollbar·clip shape(buildSpecNodeData)는 전부 raw props.style 를 읽는다. real
         //   style 1곳이 그 4 소비자를 동시 충족한다(시스템 페이지 body 선례 20ac5e60d).

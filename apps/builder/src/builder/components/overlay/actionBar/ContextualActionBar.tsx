@@ -45,7 +45,7 @@ const MENU_ICON_SIZE = 14;
 
 // ADR-192 R2 — 키보드로 진입한 툴바에서 Escape 는 "캔버스로 복귀"다.
 // 루트가 `data-shortcut-scope="global"` 을 선언해 전역 escape(선택 해제)가
-// 이 상황에서 발화하지 않으므로 여기서 포커스만 되돌린다. 선택은 유지된다
+// 이 상황에서 동작하지 않으므로 여기서 포커스만 되돌린다. 선택은 유지된다
 // — 선택이 풀리면 바 자체가 언마운트돼 툴바를 떠날 방법이 사라진다
 // (2026-08-27 code-review #8).
 function returnFocusOnEscape(event: React.KeyboardEvent): void {
@@ -60,7 +60,7 @@ function returnFocusOnEscape(event: React.KeyboardEvent): void {
 // 그 순간 `canvas-focused` 단축키(⌫ · 화살표 · ⌘G …) 가 통째로 침묵한다
 // (2026-08-27 code-review #7). 버튼은 이미 `preventFocusOnPress` 라 마우스로
 // 포커스를 옮기지 않으므로, 바 전체가 같은 규약을 따르게 한다.
-// (click 은 그대로 발화한다 — mousedown 의 기본 포커스 이동만 막는다.)
+// (click 은 그대로 동작한다 — mousedown 의 기본 포커스 이동만 막는다.)
 function keepCanvasFocus(event: React.MouseEvent): void {
   event.preventDefault();
 }

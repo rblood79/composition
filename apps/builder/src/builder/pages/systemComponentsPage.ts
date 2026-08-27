@@ -25,7 +25,7 @@ function normalizeSlug(slug: string | null | undefined): string {
 }
 
 // 시스템 페이지 body 기본 style — overflow:auto 를 **실제 props.style 로** 부여.
-//   Why: 스크롤 발화/렌더/휠 4 소비자(fullTreeLayout GAP4 maxScroll / buildSpecNodeData
+//   Why: 스크롤 동작/렌더/휠 4 소비자(fullTreeLayout GAP4 maxScroll / buildSpecNodeData
 //   scrollbar shape / buildBoxNodeData / useScrollWheelInteraction)가 전부 raw
 //   element.props.style.overflow 를 읽는다 — catalog containerStyles fallback 은
 //   buildNodeStyle(layout) + 패널만 소비하므로, catalog 기본값만으로는 콘텐츠가 페이지 높이

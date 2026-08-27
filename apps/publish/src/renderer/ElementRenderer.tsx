@@ -5,12 +5,12 @@
  *
  * @since 2025-12-11 Phase 10 B2.3
  * @since 2026-01-02 Phase 3 Event Handling (legacy)
- * @since 2026-08-17 ADR-158 후속 — 인터랙션 규칙 발화로 교체
+ * @since 2026-08-17 ADR-158 후속 — 인터랙션 규칙 실행로 교체
  *
  * 이벤트 축: 종전 legacy `element.events` + `ActionExecutor` 경로는 ADR-158
  * Phase 1 에서 mirror 파생이 끊겨 입력이 영구 empty(무동작)였다. 지금은
  * canonical `document.events` 의 인터랙션 규칙을 preview 와 같은 shared
- * dispatcher 로 발화한다 (`InteractionRuntime.tsx`).
+ * dispatcher 로 실행한다 (`InteractionRuntime.tsx`).
  */
 
 import { memo, useMemo } from "react";
@@ -46,7 +46,7 @@ export const ElementRenderer = memo(function ElementRenderer({
 }: ElementRendererProps) {
   // 인터랙션 규칙 트리거 (onPress 등) — 규칙 없는 요소는 공유 빈 객체.
   const eventHandlers = useElementInteractionHandlers(element.id);
-  // capability 발화 결과 (show/hide/toggle, prop patch) — 런타임 override 층.
+  // capability 실행 결과 (show/hide/toggle, prop patch) — 런타임 override 층.
   const interactionOverride = useElementInteractionOverride(element.id);
 
   const adaptedElement = useMemo(() => {

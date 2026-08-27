@@ -7,8 +7,8 @@
  * 건도 나타나지 않았다**. 조용한 결함이라 — 엣지가 안 보이는 것과 규칙이 없는
  * 것이 화면상 같다 — 테스트로 고정한다.
  *
- * 반대 방향도 함께 잠근다: 구 문서에 남은 `SerializedEvent` entry 는 발화 경로가
- * 없으므로(패널 삭제 + 발화 쪽 `isInteractionRule` 필터) 그리면 **일어나지 않을
+ * 반대 방향도 함께 잠근다: 구 문서에 남은 `SerializedEvent` entry 는 실행 경로가
+ * 없으므로(패널 삭제 + 실행 쪽 `isInteractionRule` 필터) 그리면 **일어나지 않을
  * 이동을 그리는 셈**이고, 게다가 `action` 필드가 없어 가드 없이 읽으면 캔버스가
  * 통째로 죽는다.
  */
@@ -130,7 +130,7 @@ describe("computeWorkflowEdges — canonical 인터랙션 규칙", () => {
     expect(() =>
       computeWorkflowEdges(PAGES, [BUTTON], [legacy, navRule()]),
     ).not.toThrow();
-    // 구 entry 는 발화되지 않으므로 그것으로 인한 엣지도 없다 — 신규 규칙 1개만.
+    // 구 entry 는 실행되지 않으므로 그것으로 인한 엣지도 없다 — 신규 규칙 1개만.
     expect(
       computeWorkflowEdges(PAGES, [BUTTON], [legacy, navRule()]),
     ).toHaveLength(1);

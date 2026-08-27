@@ -265,7 +265,7 @@ describe("Option B — ListBox anchor-less migration", () => {
 
 // 2026-07-22 사용자 보고: ListBox overflow:auto 인데 아이템을 늘려도 스크롤 안 되고 넘쳐 보임.
 //   근본 원인 — factory 이전 seed instance 의 props.style 이 { width:"100%" } 뿐이라 스크롤
-//   발화(collectionVirtualization) / 휠 / scrollbar 소비자가 raw props.style 에서 maxHeight/
+//   동작(collectionVirtualization) / 휠 / scrollbar 소비자가 raw props.style 에서 maxHeight/
 //   overflow 를 못 읽어 unbounded 판정. migration 이 순수 default instance 에 bounded scroll
 //   기본값을 real props.style 로 보강한다(커스텀은 보존).
 describe("bounded-scroll style repair — ensureListBoxScrollStyle", () => {

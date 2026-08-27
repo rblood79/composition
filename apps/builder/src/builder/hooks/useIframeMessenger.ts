@@ -1200,7 +1200,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     sendPageInfoToIframe,
   ]);
 
-  // hidden 탭에서도 발화하는 스케줄러 사용 (rAF 는 background 탭 미발화 → preview 정체).
+  // hidden 탭에서도 동작하는 스케줄러 사용 (rAF 는 background 탭 미동작 → preview 정체).
   // 취소는 스케줄러 종류 무관 cancel 함수로 수행하므로 numeric frame id 대신 cancel 을 보관.
   const pendingCanonicalDocumentCancelRef = useRef<(() => void) | null>(null);
 

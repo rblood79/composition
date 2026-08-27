@@ -403,7 +403,7 @@ export const createUpdateElementPropsAction =
 
     // ADR-190: canonical 갱신 직후 ~ set() 직전이 commit lane 의 유일한 진입
     // 시점이다. canonical 이 갱신됐으므로 documentVersion 이 post-commit
-    // revision 이고, set() 이 store 구독(StoreRenderBridge resync)을 발화시키기
+    // revision 이고, set() 이 store 구독(StoreRenderBridge resync)을 실행시키기
     // 전이라 그 sync 가 pending commit 을 본다. set() 뒤로 밀리면 sync 는
     // pendingCommit 없이 changedIds 를 소비해 뒤늦은 patch 가 stale 이 된다.
     // 서술 불가한 patch 는 descriptor 가 null 이라 기존 full rebuild 유지.

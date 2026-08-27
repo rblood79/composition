@@ -12,7 +12,7 @@
  *
  * ADR-158 Phase 4 후속 (2026-08-17): `onActionId` 필드와 Stored/Runtime 분리
  * (`RuntimeSelectItem` / `toRuntimeSelectItem`) 은 제거됐다 — event-id 채널이
- * 발화 경로 없는 dead seam 이었고 (preview `resolveActionId` 상시 undefined),
+ * 실행 경로 없는 dead seam 이었고 (preview `resolveActionId` 상시 undefined),
  * RAC/RSP 어휘상 Select 는 per-item action 이 없다 (선택 = `onSelectionChange`).
  * 렌더러(SelectionRenderers)는 Stored 모델을 직접 소비한다.
  *

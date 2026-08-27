@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * ADR-158 Phase 3 — 발화 override 층 계약.
+ * ADR-158 Phase 3 — 실행 override 층 계약.
  *
  * **Why (2026-08-16 라이브 실측)**: dispatcher 는 성공을 돌려주는데 화면이 안
  * 바뀌었다. canonical 렌더 경로(`CanonicalNodeRenderer`)가 `elements` 배열이
@@ -16,7 +16,7 @@
 import { describe, expect, it } from "vitest";
 import { createRuntimeStore } from "../../store/runtimeStore";
 
-describe("interactionOverrides — 발화 patch 보관", () => {
+describe("interactionOverrides — 실행 patch 보관", () => {
   it("patch 를 elementId 별로 누적한다", () => {
     const store = createRuntimeStore();
     store.getState().patchInteractionOverride("a", { isOpen: true });
@@ -42,7 +42,7 @@ describe("interactionOverrides — 발화 patch 보관", () => {
     store.getState().patchInteractionOverride("a", { isOpen: true });
     store.getState().setCanonicalDocument({ version: "x" } as never);
 
-    // 편집 결과를 발화 잔재가 덮은 채로 남으면 사용자가 방금 바꾼 값이
+    // 편집 결과를 실행 잔재가 덮은 채로 남으면 사용자가 방금 바꾼 값이
     // preview 에서 무시되는 것처럼 보인다.
     expect(store.getState().interactionOverrides).toEqual({});
   });
