@@ -64,7 +64,7 @@ node -e "require('./package/bin/canvaskit.js')({locateFile:(f)=>require('path').
 | `nodeRendererBorders.ts` | 263, 291, 421, 647                | moveTo/lineTo/close ×2, addRect/addRRect/setFillType, addArc           | 즉시 `delete()`                                    | 4곳 `buildPath`. 421은 `b.setFillType(EvenOdd)`로 이전                                                       |
 | `workflowRenderer.ts`    | 397, 494, 642                     | moveTo/lineTo/arcToTangent/cubicTo, moveTo/lineTo/close, moveTo/lineTo | `scope.track()`                                    | `scope.track(buildPath(…))`                                                                                  |
 | `nodeRendererImage.ts`   | 74                                | moveTo/lineTo/close                                                    | `scope.track()`                                    | 동일                                                                                                         |
-| `hoverRenderer.ts`       | 242                               | moveTo/lineTo                                                          | `scope.track()`                                    | 동일                                                                                                         |
+| `hoverRenderer.ts`       | 242                               | moveTo/lineTo                                                          | `scope.track()`                                    | overflow hatching (`renderOverflowHatching`). hover outline은 `drawRect`라 이관 대상 아님                    |
 | `slotMarkerRenderer.ts`  | 53                                | moveTo/lineTo                                                          | `scope.track()`                                    | 동일                                                                                                         |
 
 합계 20 사이트 / mutator 94 호출 (path 명령 87 + `close()` 6 + `setFillType` 1) / `cubicTo` 1.
@@ -192,7 +192,7 @@ smoke 1회.
 | 순서 | 대상                     | 사이트 | 검증 포인트                                                             |
 | :--: | ------------------------ | :----: | ----------------------------------------------------------------------- |
 |  1   | `slotMarkerRenderer.ts`  |   1    | slot/component marker 라인                                              |
-|  2   | `hoverRenderer.ts`       |   1    | hover outline                                                           |
+|  2   | `hoverRenderer.ts`       |   1    | overflow hatching 사선, Difference + child bounds clip 보존             |
 |  3   | `nodeRendererImage.ts`   |   1    | image placeholder mountain (+ mock 교체)                                |
 |  4   | `nodeRendererClip.ts`    |   5    | 5 shape clip 누락 0, rounded clip 보존, `renderCommands.ts` delete 유지 |
 |  5   | `nodeRendererBorders.ts` |   4    | inset/outset 양쪽 색상, inner shadow donut(EvenOdd), arc                |
@@ -249,17 +249,17 @@ pnpm -F @composition/builder test -- skia
 
 ### Live smoke (Chrome MCP, desktop + mobile viewport)
 
-| 표면                                              | 확인                                                         |
-| ------------------------------------------------- | ------------------------------------------------------------ |
-| rounded clip frame                                | 자식 overflow가 둥근 모서리로 잘림                           |
-| partial border + dash + radius                    | 4변 각각 dash·radius 보존                                    |
-| inset / outset border                             | 대각 분할 양쪽 색상                                          |
-| inner shadow (spread/offset)                      | donut EvenOdd — 안쪽 구멍 투명                               |
-| icon component                                    | SVG icon stroke 동일                                         |
-| image placeholder + PNG/JPEG/WebP                 | mountain path + libpng 디코드                                |
-| workflow edge orthogonal/bezier/arrow + indicator | 방향·화살표 보존                                             |
-| hover / slot / component marker                   | overlay 라인                                                 |
-| **zoom mismatch snapshot blit**                   | zoom 변경 직후 프레임(`drawImageCubic` 경로) 경계 artifact 0 |
+| 표면                                                | 확인                                                         |
+| --------------------------------------------------- | ------------------------------------------------------------ |
+| rounded clip frame                                  | 자식 overflow가 둥근 모서리로 잘림                           |
+| partial border + dash + radius                      | 4변 각각 dash·radius 보존                                    |
+| inset / outset border                               | 대각 분할 양쪽 색상                                          |
+| inner shadow (spread/offset)                        | donut EvenOdd — 안쪽 구멍 투명                               |
+| icon component                                      | SVG icon stroke 동일                                         |
+| image placeholder + PNG/JPEG/WebP                   | mountain path + libpng 디코드                                |
+| workflow edge orthogonal/bezier/arrow + indicator   | 방향·화살표 보존                                             |
+| overflow hatching / hover / slot / component marker | overflow 사선 + overlay 라인                                 |
+| **zoom mismatch snapshot blit**                     | zoom 변경 직후 프레임(`drawImageCubic` 경로) 경계 artifact 0 |
 
 기준: canvas blank 아님, console error/pageerror 0, 위 표 누락·차이 0.
 
