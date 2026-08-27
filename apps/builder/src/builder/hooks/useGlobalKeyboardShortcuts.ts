@@ -284,6 +284,48 @@ export function useGlobalKeyboardShortcuts() {
   }, []);
 
   /**
+   * 형제 선택 이동 — Tab / ⇧Tab (Figma 와 같은 용도).
+   *
+   * 방향키가 형제 "순서 재배치" 를 맡으므로 Tab 은 "선택 이동" 만 한다 —
+   * 두 축이 겹치지 않는다. 정의는 진작 있었지만 등록이 없어 죽어 있었다.
+   * 끝에서 반대쪽으로 감싸 돈다 (형제 목록 안에서만 돌고 부모로 올라가지 않는다).
+   */
+  const handleSelectSibling = useCallback((direction: -1 | 1) => {
+    const {
+      selectedElementId,
+      selectedElementIds,
+      elementsMap,
+      childrenMap,
+      setSelectedElement,
+    } = useStore.getState();
+
+    const targetId = selectedElementId ?? selectedElementIds[0] ?? null;
+    if (!targetId) return;
+
+    const target = elementsMap.get(targetId);
+    if (!target) return;
+
+    const siblings = childrenMap.get(target.parent_id || "root") ?? [];
+    if (siblings.length < 2) return;
+
+    const index = siblings.findIndex((sibling) => sibling.id === targetId);
+    if (index === -1) return;
+
+    const next =
+      siblings[(index + direction + siblings.length) % siblings.length];
+    if (next && next.id !== targetId) setSelectedElement(next.id);
+  }, []);
+
+  const handleSelectNextSibling = useCallback(
+    () => handleSelectSibling(1),
+    [handleSelectSibling],
+  );
+  const handleSelectPrevSibling = useCallback(
+    () => handleSelectSibling(-1),
+    [handleSelectSibling],
+  );
+
+  /**
    * z-order 끝 이동 — `[` / `]` (ADR-182 T1 #4·#7).
    *
    * 대상 판정은 위 한 칸 이동과 같은 규칙 (단일 선택 한정) — 여러 요소를
@@ -506,6 +548,8 @@ export function useGlobalKeyboardShortcuts() {
       toggleComponentOrigin: handleToggleComponentOrigin,
       detachInstance: handleDetachInstance,
       escape: handleEscape,
+      nextElement: handleSelectNextSibling,
+      prevElement: handleSelectPrevSibling,
       // 화살표 — 페이지 선택 시 nudge(ADR-177), element 선택 시 형제 순서
       arrowUp: handleArrowUp,
       arrowLeft: handleArrowLeft,
@@ -553,6 +597,8 @@ export function useGlobalKeyboardShortcuts() {
       handleEventsPaste,
       handleEventsDelete,
       handleEscape,
+      handleSelectNextSibling,
+      handleSelectPrevSibling,
       handleArrowUp,
       handleArrowDown,
       handleArrowLeft,
@@ -606,6 +652,8 @@ export function useGlobalKeyboardShortcuts() {
       "delete",
       "deleteAlt",
       "escape",
+      "nextElement",
+      "prevElement",
       // 화살표 — 형제 순서 재배치 + 페이지 nudge (canvas-focused)
       "arrowUp",
       "arrowDown",
