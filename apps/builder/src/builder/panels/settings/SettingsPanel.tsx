@@ -10,7 +10,7 @@
  * @updated 2026-03-05 - ADR-021 Phase D: Supabase 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
-import { LayoutGrid, ZoomIn, Moon, Sun, Settings } from "lucide-react";
+import { LayoutGrid, ZoomIn, Moon, Sun, Settings, X } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
@@ -21,14 +21,16 @@ import {
   PropertySelect,
   PropertySection,
   PanelHeader,
+  ActionIconButton,
 } from "../../components";
-import { useThemeMessenger } from "@/builder/hooks";
+import { usePanelLayout, useThemeMessenger } from "@/builder/hooks";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
 
 function SettingsContent() {
   const { sendDarkMode } = useThemeMessenger();
   const { t } = useI18n();
+  const { togglePanel } = usePanelLayout();
 
   // Grid & Guides 설정
   const snapToObjects = useStore((state) => state.snapToObjects);
@@ -101,6 +103,15 @@ function SettingsContent() {
       <PanelHeader
         icon={<Settings size={iconProps.size} />}
         title={t("settings.title")}
+        actions={
+          <ActionIconButton
+            onPress={() => togglePanel("settings")}
+            aria-label={t("common.close")}
+            tooltip={t("common.close")}
+          >
+            <X size={iconProps.size} />
+          </ActionIconButton>
+        }
       />
 
       <div className="panel-settings">

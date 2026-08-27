@@ -19,7 +19,11 @@ describe("CommandPalette panel shell contract", () => {
       /<Dialog\s+aria-label="명령어 팔레트"\s+className="panel command-palette-panel"\s*>/,
     );
     expect(source).toMatch(
-      /<PanelHeader\s+icon=\{<Command size=\{iconProps\.size\} \/>\}\s+title="명령어"\s*\/>/,
+      /<PanelHeader\s+icon=\{<Command size=\{iconProps\.size\} \/>\}\s+title="명령어"/,
+    );
+    // 헤더 우측 close 는 다른 패널과 같은 PanelHeader actions(.panel-actions) 경로
+    expect(source).toMatch(
+      /actions=\{\s*<ActionIconButton\s+onPress=\{\(\) => handleOpenChange\(false\)\}/,
     );
     expect(source).toContain(
       'className="panel-contents command-palette-contents"',

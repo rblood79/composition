@@ -21,7 +21,7 @@ import {
   ListBoxItem,
   ModalOverlay,
 } from "react-aria-components";
-import { Command } from "lucide-react";
+import { Command, X } from "lucide-react";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
@@ -34,6 +34,7 @@ import {
 } from "@/builder/hooks";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { PanelHeader } from "../panel/PanelHeader";
+import { ActionIconButton } from "../ui/ActionIconButton";
 import { SearchField as BuilderSearchField } from "../ui/SearchField";
 import "./CommandPalette.css";
 
@@ -240,6 +241,15 @@ export function CommandPalette({
           <PanelHeader
             icon={<Command size={iconProps.size} />}
             title="명령어"
+            actions={
+              <ActionIconButton
+                onPress={() => handleOpenChange(false)}
+                aria-label="닫기"
+                tooltip="닫기"
+              >
+                <X size={iconProps.size} />
+              </ActionIconButton>
+            }
           />
           <div
             className="panel-contents command-palette-contents"
