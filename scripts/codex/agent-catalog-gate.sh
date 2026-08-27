@@ -308,6 +308,34 @@ else
   ok "잔존 없음"
 fi
 
+# ---------- 12. invocation 정책 — frontmatter ↔ INDEX×2 ↔ roster ----------
+section "12. invocation 정책 — disable-model-invocation ↔ INDEX×2 정책 열 ↔ roster 표기 일치"
+while IFS= read -r s; do
+  [ -z "$s" ] && continue
+  dmi=$(fm_value ".claude/skills/$s/SKILL.md" disable-model-invocation)
+  c_row=$(grep -F "[$s]($s/SKILL.md)" .claude/skills/INDEX.md || true)
+  x_row=$(grep -F "($s/SKILL.md)" .agents/skills/INDEX.md || true)
+  r_line=$(sh_section "$SS" "핵심 Skills" | grep -E "\`$s\\\\?\`" || true)
+  c_has=0; x_has=0; r_has=0
+  grep -q "사용자 전용" <<<"$c_row" && c_has=1
+  grep -q "user-only" <<<"$x_row" && x_has=1
+  grep -q "사용자 전용" <<<"$r_line" && r_has=1
+  if [ "$dmi" = "true" ]; then
+    [ "$c_has" = 1 ] && [ "$x_has" = 1 ] && [ "$r_has" = 1 ] && ok "$s — 사용자 전용 (3표면 일치)" || fail "$s — disable-model-invocation:true 인데 표기 누락: claude INDEX=$c_has codex INDEX=$x_has roster=$r_has"
+  else
+    [ "$c_has" = 0 ] && [ "$x_has" = 0 ] && [ "$r_has" = 0 ] && ok "$s — 모델·사용자" || fail "$s — frontmatter 는 모델 호출 허용인데 사용자 전용 표기: claude INDEX=$c_has codex INDEX=$x_has roster=$r_has"
+  fi
+done <<<"$SKILLS"
+
+# ---------- 13. tracked symlink dangling ----------
+section "13. tracked symlink — 대상 실존"
+DANGLING=0
+while IFS= read -r p; do
+  [ -z "$p" ] && continue
+  if [ ! -e "$p" ]; then fail "dangling symlink (tracked): $p -> $(readlink "$p")"; DANGLING=1; fi
+done <<<"$(git ls-files -s | awk '$1 == "120000" { print $4 }')"
+[ "$DANGLING" = 0 ] && ok "tracked symlink $(git ls-files -s | awk '$1 == "120000"' | wc -l | tr -d ' ')개 전부 해석됨"
+
 # ---------- summary ----------
 printf '\n== 결과 == FAIL %d · WARN %d\n' "$FAIL" "$WARN"
 if [ "$FAIL" -gt 0 ]; then

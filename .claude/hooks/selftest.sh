@@ -160,6 +160,8 @@ case_start "'ADR-195 리뷰' → review-adr, execute-adr 아님"
 run_hook route-prompt.sh "$(prompt_json 'ADR-195 리뷰해줘')"; assert_contains 'review-adr'
 case_start "  (동일 입력) execute-adr 미주입"
 assert_not_contains 'execute-adr'
+case_start "'ADR 생성해줘' → create-adr 사용자 전용 안내"
+run_hook route-prompt.sh "$(prompt_json '명령 팔레트 ADR 생성해줘')"; assert_contains '사용자 전용'
 case_start "인사말 → 힌트 없음"
 run_hook route-prompt.sh "$(prompt_json '안녕하세요')"; assert_allow
 

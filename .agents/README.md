@@ -7,15 +7,15 @@
 
 ## 읽기 순서
 
-| 상황           | 먼저 볼 파일                                   | 추가로 볼 파일                                              |
-| -------------- | ---------------------------------------------- | ----------------------------------------------------------- |
-| 일반 작업      | `AGENTS.md`                                    | 필요 시 이 파일                                             |
-| 코드 구현/수정 | `.agents/skills/composition-patterns/SKILL.md` | 관련 `.agents/rules/*` 1~3개                                |
-| 새 컴포넌트    | `.agents/skills/component-design/SKILL.md`     | `react-aria` / `react-spectrum` 해당 component reference    |
-| 렌더링 정합성  | `.agents/skills/cross-check/SKILL.md`          | `canvas-rendering.md`, `css-tokens.md`, `ssot-hierarchy.md` |
-| ADR 생성/리뷰  | `create-adr` 또는 `review-adr` skill           | `adr-writing.md`, 대상 ADR, `docs/adr/README.md`            |
-| Git/Changelog  | `.agents/rules/git-workflow.md`                | `.agents/rules/changelog.md`                                |
-| Goal 완료 처리 | `.agents/rules/goal-lifecycle.md`              | 실제 `get_goal` 결과와 objective 일치 여부                  |
+| 상황           | 먼저 볼 파일                                                             | 추가로 볼 파일                                              |
+| -------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| 일반 작업      | `AGENTS.md`                                                              | 필요 시 이 파일                                             |
+| 코드 구현/수정 | `.agents/skills/composition-patterns/SKILL.md`                           | 관련 `.agents/rules/*` 1~3개                                |
+| 새 컴포넌트    | `.agents/skills/component-design/SKILL.md`                               | `react-aria` / `react-spectrum` 해당 component reference    |
+| 렌더링 정합성  | `.agents/skills/cross-check/SKILL.md`                                    | `canvas-rendering.md`, `css-tokens.md`, `ssot-hierarchy.md` |
+| ADR 생성/리뷰  | `review-adr` skill / `create-adr` 은 사용자 명시 요청 시에만 (user-only) | `adr-writing.md`, 대상 ADR, `docs/adr/README.md`            |
+| Git/Changelog  | `.agents/rules/git-workflow.md`                                          | `.agents/rules/changelog.md`                                |
+| Goal 완료 처리 | `.agents/rules/goal-lifecycle.md`                                        | 실제 `get_goal` 결과와 objective 일치 여부                  |
 
 ## Harness 명령
 

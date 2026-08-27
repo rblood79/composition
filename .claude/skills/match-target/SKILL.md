@@ -2,6 +2,7 @@
 name: match-target
 description: 참조 이미지/디자인과 화면을 반복 조정으로 시각 수렴시켜야 할 때 사용 — "이 이미지처럼 만들어줘", "이 디자인에 맞춰줘", "참조와 똑같이", "픽셀 맞춰", "visual tuning", "match target", "이 화면처럼" 요청 또는 reference image + target selector 조합 제공 시 발동.
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # Match-Target: Vision-based Visual Tuning Loop

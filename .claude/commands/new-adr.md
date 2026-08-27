@@ -1,9 +1,10 @@
 ---
 description: 새 ADR 생성 — 번호 자동 할당 + Risk-First 템플릿 + README.md 동시 갱신
 argument-hint: [ADR 제목]
+disable-model-invocation: true
 ---
 
-`create-adr` skill을 호출하여 "$ARGUMENTS" 제목의 ADR을 생성한다.
+`.claude/skills/create-adr/SKILL.md` 절차를 읽고 그대로 따라 "$ARGUMENTS" 제목의 ADR을 생성한다 (create-adr 은 사용자 전용 skill — 모델 자동 호출 비활성, 이 명령이 사용자 진입점).
 
 필수 사항:
 

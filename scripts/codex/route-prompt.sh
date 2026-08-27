@@ -35,11 +35,11 @@ if echo "$PROMPT" | grep -qiE "렌더링|Skia|Canvas|WebGL|정합성|cross[- ]?c
 fi
 
 if echo "$PROMPT" | grep -qiE "ADR[- ]?[0-9]+.{0,30}(실행|진행|next)|execute[- ]?adr|다음 ?Phase|phase ?(자동|진행|실행)"; then
-  add_hint "adr-execute: use execute-adr; Phase 0 preconditions (Status, design breakdown, clean main, type-check baseline); HIGH phases surface to user; push main directly"
+  add_hint "adr-execute: execute-adr is user-only — run it only on the user's explicit request; Phase 0 preconditions (Status, design breakdown, clean main, type-check baseline); HIGH phases surface to user; push main directly"
 fi
 
 if echo "$PROMPT" | grep -qiE "ADR|아키텍처 결정|설계 문서|architecture decision|재검토|리뷰"; then
-  add_hint "adr/review: use review-adr or create-adr; cite current file:line evidence; avoid edits for read-only review"
+  add_hint "adr/review: use review-adr; create-adr is user-only (explicit user request); cite current file:line evidence; avoid edits for read-only review"
 fi
 
 if echo "$PROMPT" | grep -qiE "새 컴포넌트|컴포넌트 (구현|만들|추가|설계)|new component|implement component|React Aria|Spectrum|S2"; then

@@ -2,6 +2,7 @@
 name: create-adr
 description: 아키텍처 결정을 docs/adr/ 에 새 ADR 문서로 기록해야 할 때 발동 — "ADR 생성", "ADR 작성", "새 ADR", "ADR 만들어", "ADR 추가", "create ADR", "new ADR", "아키텍처 결정 문서 작성", "설계 문서 생성" 요청 시. 기존 ADR 리뷰/수정에는 사용하지 않는다.
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # Create ADR: 아키텍처 결정 문서 생성

@@ -32,7 +32,7 @@ fi
 # 키워드: ADR-NNN + 실행/진행/land/Phase 류 결합
 if echo "$prompt" | grep -qiE "ADR[- ]?[0-9]+.{0,30}(실행|진행|land|next)|execute[- ]?adr|Phase[- ]?[0-9α-ωA-Z\-]*.{0,15}(실행|진행|land|next)|다음 ?Phase|미[- ]?land|phase ?(자동|진행|실행|land)|adr ?phase ?(실행|진행)|P[- ]?[0-9α-ωA-Z]+.{0,15}(실행|land|진행)"; then
   hints="${hints}
-- ADR phase 실행 감지 → \`execute-adr\` skill (또는 \`/execute-adr {NNN}\`)
+- ADR phase 실행 감지 → \`execute-adr\` 는 사용자 전용 skill (모델 자동 호출 비활성): 사용자가 \`/execute-adr {NNN}\` 을 직접 입력해야 실행. 자연어 요청만 있으면 그 안내 후 대기 — 자율 phase 실행 금지
   - Phase 0 사전 조건 전체 통과 필수 (ADR 존재+Status / design breakdown / git clean / main / type-check baseline / dist 신선도 / 전제·관점 자가 점검)
   - HIGH+ phase 는 mode=auto 라도 무조건 사용자 surface
   - main 직접 push (rules/git-workflow.md 절대 정책 — PR 금지)
@@ -48,7 +48,7 @@ elif echo "$prompt" | grep -qiE "ADR|아키텍처 결정|설계 문서|architect
   fi
   if echo "$prompt" | grep -qiE "생성|작성|만들|초안|new ADR|create|draft|propose"; then
     hints="${hints}
-- ADR 생성 감지 → \`create-adr\` skill (번호 자동 할당 + Risk-First 템플릿)"
+- ADR 생성 감지 → \`create-adr\` 는 사용자 전용 skill (모델 자동 호출 비활성): 사용자가 \`/new-adr <제목>\` 을 직접 입력해야 생성 (번호 자동 할당 + Risk-First 템플릿). 자연어 요청만 있으면 안내 후 대기"
   fi
 fi
 

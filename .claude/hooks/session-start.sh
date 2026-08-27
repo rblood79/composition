@@ -74,15 +74,16 @@ cat <<EOF
 <composition-workflow-roster>
 # composition 전용 워크플로 (자동 주입 — SessionStart)
 
-## 핵심 Skills (자연어 발동 + \`/\` 호출 모두 가능)
+## 핵심 Skills (표시 없으면 자연어 발동 + \`/\` 호출 모두 가능 — "사용자 전용" 은 \`/\` 직접 입력만, 모델 자동 호출 비활성)
 - \`composition-patterns\` — 코드 규칙/패턴 (코드 작업 전 확인)
 - \`cross-check\` — CSS↔Skia 렌더링 정합성 (렌더링 수정 후 필수)
 - \`parallel-verify\` — 컴포넌트 패밀리 일괄 검증
 - \`component-design\` — 새 컴포넌트 설계 (React Aria/Spectrum 참조)
-- \`create-adr\` / \`review-adr\` — 아키텍처 결정 문서
+- \`create-adr\` — 새 ADR 작성 — 사용자 전용 (\`/new-adr <제목>\` 직접 입력)
+- \`review-adr\` — ADR 검증
 - \`react-aria\` / \`react-spectrum\` — 공식 API 레퍼런스
-- \`match-target\` — Vision-based visual tuning 루프 (참조 이미지 + budget)
-- \`execute-adr\` — ADR design breakdown 의 미반영 phase 자율 실행 (type-check + cross-check + main 직접 push)
+- \`match-target\` — Vision-based visual tuning 루프 (참조 이미지 + budget) — 사용자 전용 (\`/match-target\` 직접 입력)
+- \`execute-adr\` — ADR design breakdown 의 미반영 phase 자율 실행 (type-check + cross-check + main 직접 push) — 사용자 전용 (\`/execute-adr NNN\` 직접 입력)
 
 ## 프로세스 규율 (프로젝트 정본 — 외부 플러그인 아님)
 - 다단계 구현 → ADR design breakdown 으로 phase 분할 (CLAUDE.md §대규모 작업 phase 분할)
