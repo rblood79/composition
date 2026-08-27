@@ -273,6 +273,21 @@ export const SHORTCUT_DEFINITIONS = {
     i18n: { ko: "설정 열기" },
   },
 
+  // 프로젝트 목록(대시보드)으로 나간다. Figma·Sketch 가 같은 ⌘O 에 둔 자리이고,
+  // Chrome 의 "파일 열기" 는 페이지가 preventDefault 로 막을 수 있다 (⌘N/⌘T/⌘W
+  // 와 달리 — 라이브 확인). 종전에는 헤더 메뉴에 ⌘O 표기만 있고 정의·등록·
+  // 핸들러가 셋 다 없었다.
+  openProject: {
+    key: "o",
+    modifier: "cmd",
+    category: "system",
+    scope: "global",
+    priority: SHORTCUT_PRIORITY.SYSTEM,
+    capture: true,
+    description: "Open Project",
+    i18n: { ko: "프로젝트 열기" },
+  },
+
   // Pencil 이 ⌘K 를 AI 채팅에 쓴다 — 같은 자리에 두면 두 도구를 오가는 손이
   // 헷갈리지 않는다. 밀려난 명령 팔레트는 Figma 가 같은 성격의 actions menu 를
   // 둔 ⌘/ 로 간다. 팔레트는 종전에 정의 없이 CommandPalette 안에서만 등록돼

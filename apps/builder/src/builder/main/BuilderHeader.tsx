@@ -29,6 +29,8 @@ import {
   ToggleButton,
   Group,
 } from "@composition/shared/components";
+import { useCallback, useMemo } from "react";
+import { useNavigate } from "react-router";
 import { iconProps } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
 import { ActionIconButton } from "../components/ui/ActionIconButton";
@@ -36,6 +38,10 @@ import {
   ActionTooltipTrigger,
   shortcutDisplayFor,
 } from "../components/ui/ActionTooltip";
+import {
+  bindHandlersToDefinitions,
+  useKeyboardShortcutsRegistry,
+} from "../hooks";
 import { ZoomControls } from "../workspace/ZoomControls";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import { ACTION_ICONS } from "../config/actionIcons";
@@ -81,10 +87,25 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   const { t } = useI18n();
   const { workspaceLayout, togglePanel, resetWorkspaceLayout } =
     usePanelLayout();
+  const navigate = useNavigate();
   const isCompareMode = useCompareModeStore((state) => state.isCompareMode);
   const toggleCompareMode = useCompareModeStore(
     (state) => state.toggleCompareMode,
   );
+
+  // 프로젝트 목록으로 나간다 — 헤더 메뉴 항목과 ⌘O 가 같은 동작을 부른다.
+  const handleOpenProject = useCallback(() => {
+    navigate("/dashboard");
+  }, [navigate]);
+
+  const headerShortcuts = useMemo(
+    () =>
+      bindHandlersToDefinitions(["openProject"], {
+        openProject: handleOpenProject,
+      }),
+    [handleOpenProject],
+  );
+  useKeyboardShortcutsRegistry(headerShortcuts, [headerShortcuts]);
 
   // aria-label 과 툴팁이 같은 문자열이어야 해서 한 번만 만든다.
   const compareLabel = isCompareMode
@@ -116,6 +137,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             <Menu
               className="header-menu"
               onAction={(key: Key) => {
+                if (key === "open") handleOpenProject();
                 if (key === "reset-panel-layout") resetWorkspaceLayout();
                 if (key === "settings") togglePanel("settings");
                 if (key === "shortcuts")
@@ -125,6 +147,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               <MenuItem id="open" className="header-menu-item">
                 <FolderOpen size={14} />
                 <span>{t("header.openProject")}</span>
+                <Keyboard>{shortcutDisplayFor("openProject")}</Keyboard>
               </MenuItem>
               <MenuItem id="import" className="header-menu-item">
                 <Download size={14} />

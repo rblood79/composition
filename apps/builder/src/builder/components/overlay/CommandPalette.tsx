@@ -22,6 +22,7 @@ import {
   ModalOverlay,
 } from "react-aria-components";
 import { Command, X } from "lucide-react";
+import { useNavigate } from "react-router";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
@@ -161,6 +162,7 @@ export function CommandPalette({
 
   // 패널 토글 액션을 위한 훅
   const { togglePanel } = usePanelLayout();
+  const navigate = useNavigate();
 
   // 명령 실행
   const executeCommand = useCallback(
@@ -200,8 +202,20 @@ export function CommandPalette({
         case "toggleMonitor":
           togglePanel("monitor");
           return;
+        case "toggleDatatable":
+          togglePanel("datatable");
+          return;
+        case "toggleTheme":
+          togglePanel("theme");
+          return;
+        case "toggleAI":
+          togglePanel("ai");
+          return;
         case "openSettings":
           togglePanel("settings");
+          return;
+        case "openProject":
+          navigate("/dashboard");
           return;
         default:
           // 다른 명령은 키보드 이벤트로 시뮬레이션
@@ -209,7 +223,7 @@ export function CommandPalette({
           break;
       }
     },
-    [handleOpenChange, togglePanel],
+    [handleOpenChange, togglePanel, navigate],
   );
 
   // 키보드 내비게이션

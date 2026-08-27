@@ -20,6 +20,10 @@
  * 2. **패널 토글 정의는 전부 라벨 경로를 갖는다** — 새 `toggle*` 정의를 더하고
  *    `PanelConfig.shortcutId` 를 빠뜨리면 툴팁에 표기가 안 붙는다 (`ai` 가
  *    실제로 그 상태였다).
+ * 3. **패널 토글 정의는 전부 팔레트에서 실행된다** — 팔레트는 정의 표를 통째로
+ *    나열하므로, `executeCommand` 에 case 가 없으면 목록에는 뜨는데 골라도
+ *    팔레트만 닫힌다. `toggleDatatable`/`toggleTheme`/`toggleAI` 셋이 그
+ *    상태였다 (2026-08-27 — 이번 재배치로 정의만 늘고 팔레트가 안 따라왔다).
  *
  * 주석·테스트는 판정에서 뺀다. 이 파일의 위 설명처럼 무엇이 어긋났는지 적으려면
  * glyph 를 써야 하고, 주석은 화면에 안 나온다.
@@ -42,6 +46,22 @@ const SHORTCUT_GLYPHS = /[⌘⌥⇧⌃]/;
  * 것은 `shortcutId` 값 목록뿐이라 소스에서 읽는다.
  */
 const PANEL_CONFIG_REL = "builder/panels/core/panelConfigs.ts";
+
+/** 팔레트에서 명령을 실제로 실행하는 자리 (`executeCommand` 의 switch). */
+const PALETTE_REL = "builder/components/overlay/CommandPalette.tsx";
+
+/**
+ * `panels` 카테고리인데 패널이 아닌 둘 — 눈금자는 캔버스 오버레이, 커맨드
+ * 팔레트는 모달이라 레일에 자리가 없다. 각자 다른 자리에서 표기를 갖는다
+ * (컨텍스트 메뉴 / 헤더 메뉴).
+ */
+const NOT_PANELS = new Set(["toggleRulers", "commandPalette"]);
+
+function panelOpeningShortcutIds(): string[] {
+  return Object.entries(SHORTCUT_DEFINITIONS)
+    .filter(([id, def]) => def.category === "panels" && !NOT_PANELS.has(id))
+    .map(([id]) => id);
+}
 
 function collectSourceFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -93,16 +113,23 @@ describe("단축키 표기 SSOT", () => {
     );
     expect(wiredIds.size).toBeGreaterThan(0);
 
-    // `panels` 카테고리에는 패널이 아닌 것도 둘 있다 — 눈금자는 캔버스 오버레이,
-    // 커맨드 팔레트는 모달이라 레일에 자리가 없다. 둘 다 자기 자리에서 표기를
-    // 따로 갖는다 (컨텍스트 메뉴 / 헤더 메뉴).
-    const NOT_PANELS = new Set(["toggleRulers", "commandPalette"]);
-    const panelOpeningIds = Object.entries(SHORTCUT_DEFINITIONS)
-      .filter(([id, def]) => def.category === "panels" && !NOT_PANELS.has(id))
-      .map(([id]) => id);
+    const panelOpeningIds = panelOpeningShortcutIds();
     expect(panelOpeningIds.length).toBeGreaterThan(0);
 
     const unwired = panelOpeningIds.filter((id) => !wiredIds.has(id));
     expect(unwired).toEqual([]);
+  });
+
+  it("패널 토글 정의는 전부 팔레트에서 실행된다", () => {
+    const paletteSource = readFileSync(join(SRC_ROOT, PALETTE_REL), "utf8");
+    const executable = new Set(
+      [...paletteSource.matchAll(/case "([^"]+)":/g)].map((match) => match[1]),
+    );
+
+    const panelOpeningIds = panelOpeningShortcutIds();
+    expect(panelOpeningIds.length).toBeGreaterThan(0);
+
+    const unreachable = panelOpeningIds.filter((id) => !executable.has(id));
+    expect(unreachable).toEqual([]);
   });
 });
