@@ -637,11 +637,12 @@ function Dashboard() {
       }}
     />
   );
+  const createStrip = <div className="projects-create-strip">{createTile}</div>;
   const createEditorSurface =
     view === "grid" ? (
       <div className="projects-grid">{createTile}</div>
     ) : (
-      <div className="projects-create-strip">{createTile}</div>
+      createStrip
     );
 
   return (
@@ -867,9 +868,7 @@ function Dashboard() {
             </div>
           ) : (
             <>
-              {isCreating && (
-                <div className="projects-create-strip">{createTile}</div>
-              )}
+              {isCreating && createStrip}
               <div className="projects-table">
                 <div className="projects-table-head">
                   <span>Name</span>
