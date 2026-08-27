@@ -1,4 +1,5 @@
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
+import { buildPath } from "./buildPath";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import { createRoundRectPath } from "./nodeRendererClip";
@@ -71,13 +72,16 @@ export function renderImage(
         iconPaint.setColor(ck.Color(156, 163, 175, 1)); // gray-400
 
         // 산 모양
-        const mountainPath = scope.track(new ck.Path());
-        mountainPath.moveTo(iconX, iconY + iconSize);
-        mountainPath.lineTo(iconX + iconSize * 0.3, iconY + iconSize * 0.5);
-        mountainPath.lineTo(iconX + iconSize * 0.5, iconY + iconSize * 0.7);
-        mountainPath.lineTo(iconX + iconSize * 0.7, iconY + iconSize * 0.3);
-        mountainPath.lineTo(iconX + iconSize, iconY + iconSize);
-        mountainPath.close();
+        const mountainPath = scope.track(
+          buildPath(ck, (path) => {
+            path.moveTo(iconX, iconY + iconSize);
+            path.lineTo(iconX + iconSize * 0.3, iconY + iconSize * 0.5);
+            path.lineTo(iconX + iconSize * 0.5, iconY + iconSize * 0.7);
+            path.lineTo(iconX + iconSize * 0.7, iconY + iconSize * 0.3);
+            path.lineTo(iconX + iconSize, iconY + iconSize);
+            path.close();
+          }),
+        );
         canvas.drawPath(mountainPath, iconPaint);
       }
       const altText = node.image?.altText;
