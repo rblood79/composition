@@ -28,10 +28,13 @@ describe("buildActionBarItems — 182 레지스트리 재사용", () => {
   });
 
   it("surface canvas-element 로 선택 집합을 넘기고 정책을 적용한다", () => {
+    // 단일 non-body 요소에 대한 182 산출 (toggle-component-origin 포함 —
+    // 바의 단일 컨텍스트 판정 키다)
     const provider = vi.fn(() => [
       action("copy"),
       action("duplicate"),
       action("group"),
+      action("toggle-component-origin"),
       action("delete"),
     ]);
     unregisters.push(registerContextMenuProvider("canvas-element", provider));
@@ -43,7 +46,10 @@ describe("buildActionBarItems — 182 레지스트리 재사용", () => {
       {},
     );
     expect(model?.context).toBe("single");
-    expect(model?.items.map((item) => item.id)).toEqual(["duplicate"]);
+    expect(model?.items.map((item) => item.id)).toEqual([
+      "duplicate",
+      "toggle-component-origin",
+    ]);
   });
 
   it("provider 미등록 (캔버스 없음) → null", () => {
@@ -55,9 +61,15 @@ describe("buildActionBarItems — 182 레지스트리 재사용", () => {
       registerContextMenuProvider("canvas-element", () => [action("group")]),
     );
     const model = buildActionBarItems(["a"], {
-      modeOverride: () => [action("duplicate"), action("group")],
+      modeOverride: () => [
+        action("duplicate"),
+        action("toggle-component-origin"),
+      ],
     });
-    expect(model?.items.map((item) => item.id)).toEqual(["duplicate"]);
+    expect(model?.items.map((item) => item.id)).toEqual([
+      "duplicate",
+      "toggle-component-origin",
+    ]);
   });
 
   it("request 는 호출자 배열을 복사한다 (provider 가 변형해도 선택 불변)", () => {

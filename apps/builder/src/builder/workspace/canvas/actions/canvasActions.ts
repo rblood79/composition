@@ -196,7 +196,17 @@ export async function duplicateSelection(
   }
 
   const elementsMap = getActionElements(context);
-  const copiedData = copyMultipleElements(selectedElementIds, elementsMap);
+  // body 는 페이지당 1개다 — 복제하면 씬(splitPageBody first-wins)이 두 번째
+  // body 를 버려 자손이 고아가 되는데도 문서·IndexedDB 에는 남고,
+  // deleteSelection 이 body 를 거부해 undo 외엔 지울 수 없다. 삭제 경로와 같은
+  // 필터를 복제에도 적용한다 (2026-08-27 code-review #1).
+  const duplicableIds = selectedElementIds.filter((id) => {
+    const element = elementsMap.get(id);
+    return element !== undefined && element.type.toLowerCase() !== "body";
+  });
+  if (duplicableIds.length === 0) return;
+
+  const copiedData = copyMultipleElements(duplicableIds, elementsMap);
   const newElements = pasteMultipleElements(
     copiedData,
     currentPageId,

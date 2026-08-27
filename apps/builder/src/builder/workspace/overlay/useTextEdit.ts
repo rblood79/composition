@@ -10,7 +10,7 @@
  * @updated 2026-03-07 Pencil 패턴 적용 (히스토리, Skia 연동)
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useStore } from "../../stores";
 import {
   areCanonicalMutationStoreActionsRegistered,
@@ -420,6 +420,22 @@ export function useTextEdit(): UseTextEditReturn {
 
     useCanvasStore.getState().setEditing(false);
     setEditState(null);
+  }, []);
+
+  // 언마운트 시 편집 플래그 회수 (2026-08-27 code-review #6).
+  // `isEditing` 은 `useCanvasStore` 싱글턴이고 내려가는 경로가
+  // completeEdit/cancelEdit 뿐이다. 마우스 클릭은 TextEditOverlay 의 document
+  // mousedown 이 먼저 완료를 부르지만, 비-마우스 경로(브라우저 Back, compare
+  // 모드 토글)로 BuilderCanvas 가 사라지면 true 가 남아 액션 바가 다시는
+  // 마운트되지 않는다. 문서 내용은 건드리지 않는다 — 언마운트는 사용자의
+  // 취소 제스처가 아니라서 실시간 반영된 텍스트를 되돌리면 편집 손실이 된다.
+  useEffect(() => {
+    return () => {
+      if (editingIdRef.current === null) return;
+      editingIdRef.current = null;
+      setEditingElementId(null);
+      useCanvasStore.getState().setEditing(false);
+    };
   }, []);
 
   const isEditing = editState !== null;

@@ -44,6 +44,13 @@ vi.mock("./components/WorkspaceStatusIndicator", () => ({
   WorkspaceStatusIndicator: () => null,
 }));
 
+// ADR-192 액션 바는 I18nProvider · ContextMenuProvider 를 요구한다 (프로덕션은
+// BuilderViewport 가 둘 다 감싼다). 이 테스트의 관심사는 main.workspace DOM
+// 동일성이라 다른 자식들과 같은 방식으로 대체한다.
+vi.mock("../components/overlay/actionBar", () => ({
+  ContextualActionBar: () => null,
+}));
+
 import { useCompareModeStore } from "./canvas/stores";
 import { Workspace } from "./Workspace";
 

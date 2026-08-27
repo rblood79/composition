@@ -68,6 +68,27 @@ const T1_MULTI: ContextMenuItem[] = [
   action("delete"),
 ];
 
+/**
+ * ⌘A / 페이지 타이틀 shift 클릭 — 선택에 body 가 섞이면 182 는 group 을 만들지
+ * 않는다 (canGroupSelection = "선택 전원 non-body"). 페이지당 body 는 1개라
+ * 이 집합에는 적격 non-body 요소가 반드시 함께 있다.
+ */
+const T1_MULTI_WITH_BODY: ContextMenuItem[] = [
+  action("copy"),
+  action("paste"),
+  action("duplicate"),
+  submenu("align", [action("align-left"), action("align-right")]),
+  action("delete"),
+];
+
+/** body 단독 선택 — 182 는 copy/paste/duplicate/delete 만 만든다 */
+const T1_BODY_ONLY: ContextMenuItem[] = [
+  action("copy"),
+  action("paste"),
+  action("duplicate"),
+  action("delete"),
+];
+
 function ids(items: readonly ContextMenuItem[]): string[] {
   return items.map((item) => item.id);
 }
@@ -78,14 +99,28 @@ describe("resolveActionBarContext — 182 항목 존재로만 판정", () => {
     expect(resolveActionBarContext([separator("only")])).toBeNull();
   });
 
-  it("body 만 선택 (copy/paste/duplicate 뿐, group 없음) → null", () => {
-    expect(
-      resolveActionBarContext([
-        action("copy"),
-        action("paste"),
-        action("duplicate"),
-      ]),
-    ).toBeNull();
+  it("body 단독 선택 (toggle-component-origin 없음) → null", () => {
+    expect(resolveActionBarContext(T1_BODY_ONLY)).toBeNull();
+  });
+
+  // 2026-08-27 code-review #5 — 구 센티널 `!ids.has("group")` 은 body 가 섞인
+  // 다중 선택에서도 null 을 돌려줘 ⌘A 선택에 바가 한 번도 뜨지 않았다.
+  it("body 가 섞인 다중 선택(⌘A, group 없음) → multi (바 노출)", () => {
+    expect(resolveActionBarContext(T1_MULTI_WITH_BODY)).toBe("multi");
+    expect(ids(applyActionBarPolicy(T1_MULTI_WITH_BODY)!.items)).toEqual([
+      "align",
+      "duplicate",
+    ]);
+  });
+
+  // 단일 선택 group 은 `groupSelection` 이 2+ 에서만 실행하는 결정적 no-op 이라
+  // 182 가 언제든 뺄 수 있다. 그때도 C1/C2/C3 판정이 살아 있어야 한다.
+  it("provider 가 단일 선택 group emit 을 멈춰도 판정이 유지된다", () => {
+    const withoutGroup = (items: ContextMenuItem[]) =>
+      items.filter((item) => item.id !== "group");
+    expect(resolveActionBarContext(withoutGroup(T1_SINGLE))).toBe("single");
+    expect(resolveActionBarContext(withoutGroup(T1_FRAME))).toBe("frame");
+    expect(resolveActionBarContext(withoutGroup(T1_INSTANCE))).toBe("instance");
   });
 
   it("align 존재 → multi, ungroup → frame, go-to-origin → instance, 그 외 single", () => {

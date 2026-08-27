@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-192 액션 바 코드리뷰 수정 1묶음 — 문서 손상·키보드·바 소실] - 2026-08-27
+
+### Bug Fixes
+
+- **body 단독 선택에서 ⌘D 가 지울 수 없는 두 번째 body 를 만들던 결함**: `duplicateSelection` 의 `multiSelectMode` 게이트가 제거되면서 body 선택이 복제 경로에 처음 도달했다. 씬은 두 번째 body 를 버려 자손이 고아가 되지만 문서·IndexedDB 에는 남고, `deleteSelection` 이 body 를 거부해 undo 외엔 제거할 수 없었다. 삭제 경로와 같은 body 필터를 복제에도 적용한다 (body 가 섞인 ⌘A 선택은 나머지만 복제).
+- **⌘A 선택에서 액션 바가 한 번도 뜨지 않던 결함**: 바의 "body 만 선택" 판정이 `group` 항목 부재였는데, 182 provider 는 선택에 body 가 하나라도 섞이면 `group` 을 만들지 않는다. 판정 키를 `toggle-component-origin` (단일 && non-body 에만 생성) 으로 바꿔, ⌘A·페이지 타이틀 shift 클릭에서도 정렬·복제가 노출된다. 단일 선택에서 결정적 no-op 인 `group` 항목에 컨텍스트 판정 전체가 매달려 있던 의존도 함께 해소.
+- **키보드로 액션 바에 들어가면 ←/→ 가 요소 순서를 바꾸던 결함**: 바 버튼의 `data-scope="canvas"` 때문에 `canvas-focused` 형제 재배치가 툴바 탐색과 함께 발화했다. 오버레이가 자기 스코프를 선언하는 `data-shortcut-scope` 를 도입해 (`useActiveScope`), 바는 포커스가 안에 있는 동안 `global` 로 판정된다.
+- **액션 바에서 Escape 가 선택을 지워 툴바를 떠날 수 없던 결함**: ADR-192 R2 의 "Tab 진입 → Escape 로 캔버스 복귀" 가 구현에 없어 전역 escape 가 선택을 해제하고 바를 언마운트시켰다. 바가 Escape 를 받아 선택을 유지한 채 캔버스 컨테이너로 포커스를 되돌린다 (캔버스에서 다시 Escape 하면 기존대로 선택 해제).
+- **텍스트 편집 중 캔버스가 사라지면 액션 바가 영구히 안 뜨던 결함**: 싱글턴 `isEditing` 이 completeEdit/cancelEdit 로만 내려가 브라우저 Back·compare 모드 토글 같은 비-마우스 경로에서 true 로 남았다. `useTextEdit` 언마운트 시 플래그를 회수한다 (실시간 반영된 텍스트는 되돌리지 않는다 — 언마운트는 취소 제스처가 아니다).
+
+### Tests
+
+- `Workspace.mode.test.tsx` 가 액션 바의 provider 요구로 HEAD 에서 실패하던 회귀 수정 (다른 자식과 같은 방식으로 대체). `canvasActions.test.ts` 의 spy 누수 (복원 대상에 `addElement`/`setSelectedElements` 누락) 도 함께 수정 — 다음 테스트가 앞 테스트의 호출 기록을 물려받고 있었다.
+
 ## [Dashboard 프로젝트 생성 진입점 복구 — Empty-state action priority] - 2026-08-27
 
 ### Bug Fixes

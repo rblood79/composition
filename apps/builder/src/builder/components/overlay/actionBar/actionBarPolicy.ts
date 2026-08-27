@@ -10,11 +10,12 @@
  * 해석해 조건 미충족 항목을 숨기므로 (182 노출 정책), 바가 요소 타입을 다시
  * 읽으면 두 표면의 판정이 갈릴 수 있다.
  *
+ * - C4 다중: `align` 존재 (182 는 2+ 선택에만 정렬 서브메뉴를 만든다)
  * - C2 frame/group: `ungroup` 존재
  * - C3 인스턴스: `go-to-origin` 존재
- * - C4 다중: `align` 존재 (182 는 2+ 선택에만 정렬 서브메뉴를 만든다)
- * - C1 단일 일반: 그 외
- * - C0: 항목 없음 → null (바 미마운트)
+ * - C1 단일 일반: `toggle-component-origin` 존재 (182 는 "단일 && non-body"
+ *   에만 만든다 — 단일 body 판정의 정확한 대응물)
+ * - C0: 위 어느 것도 없음 → null (바 미마운트)
  */
 import type { ContextMenuItem } from "../contextMenu/types";
 
@@ -61,12 +62,16 @@ export function resolveActionBarContext(
 ): ActionBarContext | null {
   const ids = collectIds(items);
   if (ids.size === 0) return null;
-  // body 만 선택: 182 는 copy/paste/duplicate 만 만든다 (group·컴포넌트 토글은
-  // "body 제외"). group 이 없으면 적격 요소가 없는 것 — C0 미마운트.
-  if (!ids.has("group")) return null;
+  // 2+ 선택 — 182 는 이때만 정렬 서브메뉴를 만든다. 페이지당 body 는 1개라
+  // body 가 섞여 있어도(⌘A) 적격 non-body 요소가 반드시 함께 있다.
   if (ids.has("align")) return "multi";
   if (ids.has("ungroup")) return "frame";
   if (ids.has("go-to-origin")) return "instance";
+  // 단일 선택의 body 판정. 구 센티널 `!ids.has("group")` 은 provider 의 group
+  // 조건("선택 전원 non-body")과 달라 body 가 섞인 다중 선택(⌘A)에서 바를
+  // 통째로 내렸고, 단일 선택에서 결정적 no-op 인 group 항목의 존재에 C1/C2/C3
+  // 판정 전체가 매달려 있었다 (2026-08-27 code-review #5).
+  if (!ids.has("toggle-component-origin")) return null;
   return "single";
 }
 

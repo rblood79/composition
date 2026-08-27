@@ -34,6 +34,11 @@ function makeElement(
 // 잡아 두고 afterEach 에서 명시적으로 되돌린다.
 const originalStoreActions = {
   removeElements: useStore.getState().removeElements,
+  // addElement/setSelectedElements 도 같은 이유로 되돌린다 — 되돌리지 않으면
+  // 다음 테스트의 `vi.spyOn` 이 앞 테스트의 mock 을 그대로 감싸 호출 기록까지
+  // 물려받는다 (2026-08-27: body 복제 회귀 테스트가 이 누수로 처음 실패).
+  addElement: useStore.getState().addElement,
+  setSelectedElements: useStore.getState().setSelectedElements,
 } as const;
 
 afterEach(() => {
@@ -202,5 +207,61 @@ describe("duplicateSelection — ADR-182 후속 (2026-08-27)", () => {
     const created = addElement.mock.calls[0][0] as { id: string };
     expect(created.id).not.toBe("a");
     expect(setSelectedElements).toHaveBeenCalledWith([created.id]);
+  });
+
+  // 2026-08-27 code-review #1 — multiSelectMode 게이트 제거로 body 단독 선택이
+  // 복제 경로에 처음 도달했다. 씬은 두 번째 body 를 버리지만 문서에는 남고
+  // deleteSelection 이 body 를 거부해 undo 외엔 지울 수 없다.
+  it("body 단독 선택은 복제하지 않는다 (deleteSelection 과 같은 필터)", async () => {
+    useStore.setState({
+      currentPageId: "page-1",
+      multiSelectMode: false,
+      selectedElementId: "body-1",
+      selectedElementIds: ["body-1"],
+    } as never);
+    const state = useStore.getState();
+    const addElement = vi
+      .spyOn(state, "addElement")
+      .mockResolvedValue(undefined as never);
+    const setSelectedElements = vi.spyOn(state, "setSelectedElements");
+    const context = {
+      elementsMap: new Map<string, CanvasActionElement>([
+        ["body-1", makeElement("body-1", { type: "body" })],
+        ["a", makeElement("a", { parent_id: "body-1" })],
+      ]),
+    };
+
+    await duplicateSelection(context);
+
+    expect(addElement).not.toHaveBeenCalled();
+    expect(setSelectedElements).not.toHaveBeenCalled();
+  });
+
+  it("body 가 섞인 다중 선택(⌘A)은 body 를 빼고 나머지만 복제한다", async () => {
+    useStore.setState({
+      currentPageId: "page-1",
+      multiSelectMode: true,
+      selectedElementId: "body-1",
+      selectedElementIds: ["body-1", "a", "b"],
+    } as never);
+    const state = useStore.getState();
+    const addElement = vi
+      .spyOn(state, "addElement")
+      .mockResolvedValue(undefined as never);
+    const context = {
+      elementsMap: new Map<string, CanvasActionElement>([
+        ["body-1", makeElement("body-1", { type: "body" })],
+        ["a", makeElement("a", { parent_id: "body-1" })],
+        ["b", makeElement("b", { parent_id: "body-1" })],
+      ]),
+    };
+
+    await duplicateSelection(context);
+
+    const createdTypes = addElement.mock.calls.map(
+      (call) => (call[0] as { type: string }).type,
+    );
+    expect(createdTypes).toHaveLength(2);
+    expect(createdTypes).not.toContain("body");
   });
 });

@@ -6,8 +6,11 @@
  * - 적격 항목 0 / 텍스트 편집 중 / Hide → 미마운트 (Photoshop 자동 숨김)
  * - 재렌더 트리거는 선택 집합 + store `elements` 교체뿐 — 드래그 중 좌표는
  *   Skia 프리뷰가 들고 드롭 시 1회 commit 되므로 프레임 루프와 무관 (HC2)
- * - 포커스: 루트 `data-scope="canvas"` + `preventFocusOnPress` 로
- *   `canvas-focused` 단축키 scope 유지 (HC3)
+ * - 포커스: `preventFocusOnPress` 라 마우스 조작은 포커스를 옮기지 않아
+ *   캔버스가 `canvas-focused` scope 를 유지한다 (HC3). 키보드로 진입한 동안은
+ *   루트가 선언한 `data-shortcut-scope="global"` 이 우선이라 캔버스 단축키
+ *   (←/→ 형제 재배치 · Escape 선택 해제) 가 툴바 탐색을 덮지 않고, Escape 는
+ *   선택을 유지한 채 캔버스로 되돌린다 (R2)
  * - 배치: 좌측 핸들 드래그 · 옵션 메뉴 (Pin / Reset / Hide) — Photoshop
  *   Contextual Task Bar 의 ⋯ 메뉴 동형 (Phase 3, `useActionBarPlacement`)
  */
@@ -38,6 +41,11 @@ import "./actionBar.css";
 const ICON_SIZE = 16;
 const MENU_ICON_SIZE = 14;
 
+/** BuilderCanvas.tsx:1374 와 같은 포커스 대상 — `canvas-focused` scope 복귀점 */
+function focusCanvasContainer(): void {
+  document.querySelector<HTMLElement>(".canvas-container")?.focus();
+}
+
 function ItemIcon({ item }: { item: ContextMenuItem }) {
   if (item.kind === "separator") return null;
   const Icon = item.icon;
@@ -54,7 +62,6 @@ function ActionButton({ item }: { item: ContextMenuItem }) {
       className="contextual-action-bar-item"
       aria-label={item.label}
       preventFocusOnPress
-      data-scope="canvas"
       onPress={() => {
         void item.run();
       }}
@@ -100,7 +107,6 @@ function AlignPopover({
         data-context="multi"
         aria-label={item.label}
         preventFocusOnPress
-        data-scope="canvas"
       >
         <ItemIcon item={item} />
         <ChevronDown size={12} aria-hidden="true" />
@@ -145,7 +151,6 @@ function OptionsMenu({
         className="contextual-action-bar-item"
         aria-label={t("actionBar.options")}
         preventFocusOnPress
-        data-scope="canvas"
       >
         <EllipsisVertical size={ICON_SIZE} aria-hidden="true" />
       </Button>
@@ -221,6 +226,18 @@ export function ContextualActionBar() {
     [contextMenu, selectedElementIds],
   );
 
+  // ADR-192 R2 — 키보드로 진입한 툴바에서 Escape 는 "캔버스로 복귀"다.
+  // 루트가 `data-shortcut-scope="global"` 을 선언해 전역 escape(선택 해제)가
+  // 이 상황에서 발화하지 않으므로 여기서 포커스만 되돌린다. 선택은 유지된다
+  // — 선택이 풀리면 바 자체가 언마운트돼 툴바를 떠날 방법이 사라진다
+  // (2026-08-27 code-review #8).
+  const onKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    event.stopPropagation();
+    focusCanvasContainer();
+  }, []);
+
   const onOption = useCallback(
     (key: OptionKey) => {
       if (key === "pin") placement.togglePinned();
@@ -230,9 +247,7 @@ export function ContextualActionBar() {
       // 복원하는데 그 결과가 body 라 `canvas-focused` scope 가 풀린다 (Phase 3
       // live). 동기 focus() 는 그 복원에 덮이므로 (Phase 4 live) 복원 이후로
       // 미뤄 캔버스 컨테이너(BuilderCanvas.tsx:1374 와 같은 대상)로 되돌린다.
-      window.setTimeout(() => {
-        document.querySelector<HTMLElement>(".canvas-container")?.focus();
-      }, 150);
+      window.setTimeout(focusCanvasContainer, 150);
     },
     [placement],
   );
@@ -243,7 +258,8 @@ export function ContextualActionBar() {
     <div
       ref={barRef}
       className="contextual-action-bar"
-      data-scope="canvas"
+      data-shortcut-scope="global"
+      onKeyDown={onKeyDown}
       data-dragging={placement.dragging || undefined}
       data-pinned={placement.pinned || undefined}
       style={{ transform: placement.transform }}
@@ -274,7 +290,6 @@ export function ContextualActionBar() {
           className="contextual-action-bar-item"
           aria-label={t("actionBar.more")}
           preventFocusOnPress
-          data-scope="canvas"
           onPress={(event) => openOverflow(event.target)}
         >
           <MoreHorizontal size={ICON_SIZE} aria-hidden="true" />

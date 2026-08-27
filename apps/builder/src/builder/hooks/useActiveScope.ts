@@ -43,6 +43,19 @@ interface ActiveScopeState {
 /** 텍스트 입력 요소 태그 */
 const TEXT_INPUT_TAGS = new Set(["INPUT", "TEXTAREA"]);
 
+/**
+ * `data-shortcut-scope` 로 선언할 수 있는 스코프.
+ * modal / text-editing 은 DOM 상태에서 파생돼야 하므로 선언 대상이 아니다.
+ */
+const DECLARABLE_SCOPES = new Set<ShortcutScope>([
+  "global",
+  "canvas-focused",
+  "panel:properties",
+  "panel:styles",
+  "panel:events",
+  "panel:nodes",
+]);
+
 /** 패널 ID → 스코프 매핑 */
 const PANEL_SCOPE_MAP: Partial<Record<PanelId, ShortcutScope>> = {
   properties: "panel:properties",
@@ -92,6 +105,24 @@ function isModalOpen(): boolean {
   if (overlay && overlay.childElementCount > 0) return true;
 
   return false;
+}
+
+/**
+ * 조상이 명시한 스코프 (`data-shortcut-scope`) 를 읽는다.
+ *
+ * 캔버스 위에 떠 있지만 자체 키보드 규약을 갖는 오버레이 (ADR-192 액션 바 등)
+ * 는 포커스가 그 안에 있는 동안 캔버스 단축키를 받으면 안 된다 — 예를 들어
+ * `canvas-focused` 의 ←/→ 는 형제 재배치라, 툴바 안에서 버튼을 옮기는 화살표
+ * 입력이 문서를 바꾼다 (2026-08-27 code-review #2). 오버레이가 자기 스코프를
+ * 선언하면 그 값이 캔버스·패널 추론보다 우선한다.
+ */
+function getDeclaredScope(activeElement: Element | null): ShortcutScope | null {
+  const declared = activeElement
+    ?.closest("[data-shortcut-scope]")
+    ?.getAttribute("data-shortcut-scope");
+  return declared && DECLARABLE_SCOPES.has(declared as ShortcutScope)
+    ? (declared as ShortcutScope)
+    : null;
 }
 
 /**
@@ -192,7 +223,19 @@ export function useActiveScopeState(): ActiveScopeState {
       };
     }
 
-    // 3. 캔버스 포커스 확인
+    // 3. 오버레이가 선언한 스코프 (캔버스·패널 추론보다 우선)
+    const declaredScope = getDeclaredScope(activeElement);
+    if (declaredScope) {
+      return {
+        scope: declaredScope,
+        isTextEditing: false,
+        isModalOpen: false,
+        isCanvasFocused: declaredScope === "canvas-focused",
+        activePanel: null,
+      };
+    }
+
+    // 4. 캔버스 포커스 확인
     const canvasFocused = isCanvasFocused(activeElement);
     if (canvasFocused) {
       return {
@@ -204,7 +247,7 @@ export function useActiveScopeState(): ActiveScopeState {
       };
     }
 
-    // 4. 포커스된 패널 확인
+    // 5. 포커스된 패널 확인
     const focusedPanel = getActivePanelFromFocus(activeElement);
     if (focusedPanel && PANEL_SCOPE_MAP[focusedPanel]) {
       return {
@@ -216,7 +259,7 @@ export function useActiveScopeState(): ActiveScopeState {
       };
     }
 
-    // 5. 활성 패널 (우측 우선) 확인
+    // 6. 활성 패널 (우측 우선) 확인
     const activeRightPanels =
       panelWorkspaceLayout?.railOrder.right.filter(
         (panelId) => panelWorkspaceLayout.visibility[panelId] === true,
@@ -252,7 +295,7 @@ export function useActiveScopeState(): ActiveScopeState {
       }
     }
 
-    // 6. 기본값: global
+    // 7. 기본값: global
     return {
       scope: "global",
       isTextEditing: false,
