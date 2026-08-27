@@ -17,7 +17,7 @@
 - SSOT 경계: 빌더 시스템 UI (builder-system layer). D1/D2/D3 3-domain 과 무관 — catalog/spec/Generator
   확장 없음 (ADR-163/192 와 같은 위상).
 
-## 2. Current Baseline (2026-08-27 실측 — HEAD `8b6672189`)
+## 2. Current Baseline (2026-08-27 실측 — HEAD `8b6672189` / Phase 0 freeze 재확인 HEAD `a7a32cc9f`)
 
 | 항목                     | 실측                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -26,7 +26,7 @@
 | 손수 선언 등록 (id 없음) | 5건 — `workspace/canvas/viewport/useViewportControl.ts:476-511` Space keydown/keyup (pan cursor) · `workspace/canvas/hooks/useCentralCanvasPointerHandlers.ts:145` Escape 드래그 취소 · `dashboard/index.tsx:431` ⌘K (다른 화면) · `CanvasSelectionShortcuts.tsx:255-268` ⌘C/⌘V `panel:properties` (canvas 쪽 `copy`/`paste` 와 동작이 달라 정의 공유 불가 — 2026-08-27 주석). 전부 **키보드 전용으로 남긴다**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 중복 id 등록             | **2건** — `escape` (global `handleEscape` / CanvasSelectionShortcuts `handleEscapeClearSelection`) · `detachInstance` (global `handleDetachInstance` `:238-263` / csel `handleDetachSelectedInstance` `:126-142`, 둘 다 `requestEditingSemanticsDetachConfirmation` 경유). 키보드는 리스너 2개가 각자 발화 (capture:document vs bubble:window, stopPropagation 없음) — `detachInstance` 는 확인 다이얼로그가 두 번 뜰 수 있는 기존 결함 (§7 후속). 나머지 61개는 1곳, tree 8 은 0곳                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | registry 내부            | `hooks/useKeyboardShortcutsRegistry.ts:293-352` — `useEffect` 안에서 `handleKeyEvent` 클로저가 `shortcuts` 배열을 잡고 `addEventListener`. **핸들러를 밖으로 노출하는 경로 없음**. `KeyboardShortcut` 에 `id` 필드 없음 (`:63-99`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| scope 판정               | `hooks/useActiveScope.ts` `determineScope` — modal(`[role=dialog][aria-modal]`) → text-editing → 선언 scope(`data-shortcut-scope`) → canvas → 포커스 패널 → 활성 패널(우측 우선) → global. `focusin`/DOM 변화로 갱신. **팔레트가 열리면 scope 는 `modal`** 이라 열린 뒤에는 원래 컨텍스트를 알 수 없다. 헤더 메뉴 popover 는 `modal` 이 **아니다** — RAC Popover 1.20 은 `role=dialog` 만 두고 `aria-modal` 없음 (`dist/private/Popover.mjs:118,180`; shared 래퍼 `packages/shared/src/components/Popover.tsx:93-98` 도 Dialog 미포함). 대신 메뉴 포커스가 canvas 판정을 global/활성 패널로 밀어낸다                                                                                                                                                                                                                                                                                                                                                        |
+| scope 판정               | `hooks/useActiveScope.ts` `determineScope` — modal(`[role=dialog][aria-modal]`) → text-editing → 선언 scope(`data-shortcut-scope`) → canvas → 포커스 패널 → 활성 패널(우측 우선) → global. `focusin`/DOM 변화로 갱신. **팔레트가 열리면 scope 는 `modal`** 이라 열린 뒤에는 원래 컨텍스트를 알 수 없다. 헤더 메뉴 popover 는 `modal` 이 **아니다** — RAC Popover 1.20 은 `role=dialog` 만 두고 `aria-modal` 없음 (`dist/private/Popover.mjs:118,180`; shared 래퍼 `packages/shared/src/components/Popover.tsx:93-98` 도 Dialog 미포함). **Phase 0 live 실측 (2026-08-27)**: 캔버스 클릭 후 `canvas-focused` → 헤더 ☰ 열면 `activeElement` 가 `div.header-menu[role=menu] < div.header-menu-popover[role=dialog]`(aria-modal 없음, `data-overlay-container` 없음) 로 옮겨가 `isModalOpen()` false · `isCanvasFocused()` false · `data-panel-id` 없음 → **canvas 가 6단계(활성 패널 우측 우선)/7단계(global) 로 밀린다**. `scopeAtOpen` fallback 경로 필요 확정 (§3-3) |
 | 팔레트                   | `CommandPalette.tsx` — 목록 = 정의 71 전부 (`:109-116`). `executeCommand` switch **12 case** (`:168-216`): 패널 토글 11 + openProject. `default` 는 주석만. RAC `ModalOverlay` 가 닫힐 때 트리거로 포커스 복원                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 팔레트 실행 가능         | **12 / 71** (17%). 미실행 59 = 연속·포커스 전용 19 (escape·Tab·방향키 8·트리 8) + 실행돼야 하는 40 (undo/redo·줌 7·복사 3·z-order 4·복제·그룹 2·모두 선택·삭제 2·정렬 6·분배 2·속성/스타일 복사 4·포커스 모드·섹션 토글·눈금자·팔레트 자신)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | 액션 층 공유             | `workspace/canvas/actions/canvasActions.ts` — `alignSelection`/`distributeSelection`/`groupSelection`/`ungroupSelection` 을 컨텍스트 메뉴 provider (`workspace/canvas/contextMenu/canvasContextMenuProviders.ts:196-208`) 와 CanvasSelectionShortcuts (`:206-211`) 가 **같이 부른다**. 중복은 액션이 아니라 **바인딩**(컨텍스트 조립 + 로컬 state) 이다                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -44,6 +44,39 @@ rg -n "treeNav|treeSelect" apps/builder/src --glob '!*.test.*' --glob '!**/confi
 # 등록 리터럴 파서 주의: z-order 주석(`[` / `]`) 이 배열 종료로 오인되면 global 이 38 로 센다 — 배열은 `];` 까지 읽을 것
 node -e "$(sed -n '/^\/\/ palette-count-begin/,/^\/\/ palette-count-end/p' docs/adr/design/195-command-palette-execution-registry-breakdown.md)"  # §6 스크립트
 ```
+
+### Phase 0 실측 결과 (2026-08-27 — HEAD `a7a32cc9f`)
+
+| 항목                          | 기대  | 실측                                                                                  |
+| ----------------------------- | :---: | ------------------------------------------------------------------------------------- |
+| `bindHandlersToDefinitions(`  |   7   | **7** (정의 자체 `useKeyboardShortcutsRegistry.ts:112` 제외)                          |
+| `useKeyboardShortcutsRegistry(` |  11  | **11** (손수 선언 4 호출 포함 — `useViewportControl` 2 · pointer handlers 1 · 대시보드 1) |
+| 팔레트 switch case            |  12   | **12**                                                                                |
+| `restoreFocus` 명시           |   —   | **0건** — RAC `ModalOverlay` 기본 복원에 맡긴 상태 (§3-3 실행 지연 근거)               |
+| `treeNav`/`treeSelect` 소비   |   0   | **0건** — tree 8 은 registry 밖이 확정 (RAC `TreeBase` 네이티브)                       |
+| §6 스크립트                   | 12/71 | **12/71**                                                                             |
+
+6종 전부 §2 표와 일치 — baseline 갱신 불요.
+
+**헤더 메뉴 경유 scope 실측** (Chrome, 라이브 빌더): 캔버스 클릭 → `canvas-focused`. 헤더 ☰ 를
+열면 포커스가 `div.header-menu[role=menu] < div.header-menu-popover[role=dialog]` 로 옮겨간다 —
+`aria-modal` 없음 · `data-overlay-container` 없음 · `data-panel-id` 없음 · `data-canvas-container`
+밖. 따라서 `determineScope` 의 1·2·3·4·5 단계가 모두 빗나가 **canvas 가 6단계(활성 패널 우측
+우선) 또는 7단계(global) 로 밀린다**. 메뉴의 "Shortcuts" 로 팔레트를 열면 `scopeAtOpen` 이
+canvas 를 잃는다 → §3-3 fallback 규칙 확정.
+
+**연속 명령 12개 1회 실행 판정** (라이브 store 관측, `canvas-focused` + 단일 선택):
+
+| 명령                                | 실측 결과                                                                       | 판정        |
+| ----------------------------------- | ------------------------------------------------------------------------------- | ----------- |
+| `nextElement` / `prevElement` (Tab) | 선택이 다음/이전 형제로 1회 이동 (`listbox-item-selected` → `listbox` → 복귀)   | 팔레트 유지 |
+| `escape`                            | 선택 해제 1회 (`selectedElementIds` → 0)                                        | 팔레트 유지 |
+| `arrowUp`/`Down`/`Left`/`Right`     | 형제 index 1↔2 재배치 1회 (`childrenMap` 순서 관측)                             | 팔레트 유지 |
+| `arrow*Shift` ×4                    | 페이지 body 선택 시 `pagePositions` 10px 이동 1회, element 선택 시 no-op (설계) | 팔레트 유지 |
+
+12개 전부 **1회 실행이 성립**한다 — `palette: false` 추가 대상 0. 최종 목록은 §3-4 표 그대로
+**9개**(`commandPalette` + tree 8), 상한 9 준수. 팔레트 목록 62 = 71 − 9, 등록 unique 63 −
+`commandPalette` 와 일치.
 
 ## 3. 시스템 설계
 
@@ -92,11 +125,14 @@ priority: number; allowInInput: boolean; disabled: boolean; seq: number }` — `
 
 ### 3-3. 팔레트 소비 (`CommandPalette.tsx`)
 
-- `scopeAtOpen`: `handleOpenChange(true)` 에서 `activeScope` 현재값을 ref 에 저장. ⌘/ 핸들러가 도는 시점에는
-  모달이 아직 DOM 에 없어 `useActiveScope` 값이 원래 컨텍스트다 (`determineScope` 는 `focusin`/DOM 변화 뒤에
-  갱신). 헤더 메뉴 "Shortcuts" 경유(`open-command-palette` 이벤트) 는 다르다 — popover 는 `modal` 이 아니지만
-  (§2 scope 판정) 메뉴에 포커스가 있던 동안 scope 가 global/활성 패널로 밀려 있다. Phase 0 에서 그 값을 실측하고,
-  canvas 가 밀려 있으면 `scopeAtOpen` 을 "직전 non-overlay scope" 로 잡는다 (overlay 열림 전 마지막 값을 ref 로 유지).
+- `scopeAtOpen`: **마지막 안정 scope** 를 ref 로 계속 추적하다가 열릴 때 그 값을 쓴다 (Phase 0 실측으로 확정).
+  `useActiveScope()` 값이 바뀔 때마다 ref 를 갱신하되 다음 세 경우는 **갱신하지 않는다** — (1) `modal`,
+  (2) `text-editing` (어느 정의도 이 scope 를 갖지 않아 캔버스 명령이 전부 흐려진다), (3) `document.activeElement`
+  가 `[role="dialog"], [role="menu"], [role="alertdialog"]` 안 (portal 오버레이 — 헤더 메뉴가 정확히 이 형태다:
+  `div.header-menu[role=menu] < div.header-menu-popover[role=dialog]`, aria-modal 없음). ⌘/ 직접 열기는 모달이
+  아직 DOM 에 없어 종전 값이 그대로 원래 컨텍스트이고, 헤더 메뉴 "Shortcuts" 경유는 메뉴 진입 시점의 갱신이
+  skip 되어 **메뉴 열기 전 canvas 값이 남는다**. 이것이 §2 실측(메뉴 포커스가 canvas 를 global/활성 패널로
+  밀어냄)에 대한 처방이다.
 - 목록 항목 상태 3종: **executable** (entry 있음 + scope 일치 + !disabled) / **scope 불일치** (entry 있음,
   scope 불일치 — 흐리게 + `def.scope` 에서 만든 힌트 "캔버스 선택 필요"·"스타일 패널 필요") / **미등록**
   (entry 없음 — 흐리게 + "지금은 실행할 수 없음"). 숨기지 않는다 — 사용자가 단축키의 존재를 배우는 자리다
@@ -118,9 +154,10 @@ priority: number; allowInInput: boolean; disabled: boolean; seq: number }` — `
 | `commandPalette`                              | 자기 자신                                                                                                                                                                           |
 | `treeNav*` 6 · `treeSelect`·`treeSelectSpace` | `panel:nodes` 트리의 **포커스된 행**에 작용 — 팔레트가 닫히며 복원되는 포커스가 그 행이라는 보장이 없다. 게다가 registry 등록 자체가 없다 (RAC `TreeBase` 네이티브 키보드, D1 — §2) |
 
-- `escape`·`Tab`/`⇧Tab`·방향키 8 은 **뺀다고 미리 정하지 않는다** — `arrowUp` 은 "이전 형제로 이동"(순서 재배치)
-  이라 1회 실행이 성립하고, `nextElement` 도 선택 이동 1회다. scope 필터가 `canvas-focused` 로 자연히
-  가른다. Phase 0 에서 실제로 실행해 보고 어긋나는 것만 `palette: false` 로 옮긴다 (§5 체크리스트).
+- `escape`·`Tab`/`⇧Tab`·방향키 8 은 **Phase 0 실측 결과 전부 유지**한다 — 라이브 store 관측에서 12개 모두
+  1회 실행이 성립했다 (Tab/⇧Tab = 다음·이전 형제 선택, `escape` = 선택 해제, 방향키 4 = 형제 index 재배치,
+  `arrow*Shift` 4 = 페이지 10px nudge). scope 필터가 `canvas-focused` 로 자연히 가른다. 따라서
+  `palette: false` 는 위 표의 **9개로 확정**(상한 9 준수)이고 목록은 62 = 71 − 9 다.
 - `ShortcutDefinition` 타입에 `palette?: false` 추가 (`types/keyboard.ts:54` 부근). `satisfies` 로 검사.
 
 ### 3-5. 정적 게이트 재정의 (`shortcutDisplay.static.test.ts`)
@@ -163,9 +200,9 @@ priority: number; allowInInput: boolean; disabled: boolean; seq: number }` — `
 
 ### 체크리스트
 
-- [ ] Phase 0: 재grep 6종 결과가 §2 와 일치 (불일치 시 표 갱신 commit — fork 사유 아님)
-- [ ] Phase 0: 헤더 메뉴 popover 열린 상태의 `useActiveScope` 실측값 기록 — canvas 에서 열었는데 global/활성 패널로 밀려 있으면 `scopeAtOpen` 을 직전 non-overlay scope 로 잡는 경로 추가
-- [ ] Phase 0: 연속 명령 12개 1회 실행 판정 → `palette:false` 최종 목록
+- [x] Phase 0: 재grep 6종 결과가 §2 와 일치 — 6/6 일치, baseline 갱신 불요 (§2 하단 표)
+- [x] Phase 0: 헤더 메뉴 popover 열린 상태 실측 — canvas 가 6/7단계로 밀림 확인, `scopeAtOpen` fallback 규칙 §3-3 에 확정
+- [x] Phase 0: 연속 명령 12개 전부 1회 실행 성립 → `palette:false` 는 §3-4 표 9개로 확정
 - [ ] Phase 1: 키보드 oracle 26/26 · 입력창 7 · 툴팁 16 전부 동일
 - [ ] Phase 1: 정적 게이트 4조항 PASS (변경 전과 동일)
 - [ ] Phase 2: 팔레트 switch 0 case · `usePanelLayout` import 0

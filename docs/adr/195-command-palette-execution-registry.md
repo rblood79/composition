@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-27
+Accepted — 2026-08-27 (리뷰 round 1 승인 — HIGH 1 / MED 2 / LOW 3 fixed, LOW 1 deferred, pending 0)
 
 > 출처: 2026-08-27 단축키 재배치 세션 — 정의(`SHORTCUT_DEFINITIONS`)·표기(`formatShortcut`) 를 SSOT 로 세운 뒤 팔레트를 재점검하니 **71개를 나열하고 12개만 실행**된다. 사용자 판정 "버그" 후 ADR 착수 지시. 완전 신규 주제 (fork 아님) — 전제 기록은 [breakdown §1](design/195-command-palette-execution-registry-breakdown.md).
 
@@ -131,6 +131,12 @@ Proposed — 2026-08-27
 | G2   | Phase 2 | switch case 0 · jsdom: scope 별 executable 집합 정확 (canvas/panel:styles/global 3 케이스) · 실행이 handler 를 정확히 1회 부름 · 정적 게이트 신조항 민감도 (`palette !== false` 정의의 등록 하나 제거 → RED, `palette:false` allowlist 밖 추가 → RED, tree 8 은 allowlist 로 통과) | 실패 조항만 수정. `disabledKeys` vs `onAction` 필터는 실측으로 확정                                                                                   |
 | G3   | Phase 3 | live: 팔레트 실행 ≥ 20 건 (카테고리별 대표) · scope 불일치 흐림 5 · 미등록 흐림 1 · 실행 불가 항목 = `palette:false` 뿐 (그 외 0) · 키보드 oracle 재실행 동일                                                                                                                      | 실행 안 되는 항목은 R1/R2/R3 중 어느 것인지 jsdom 재현 후 수정. 3건 이상이면 Phase 2 재검토                                                           |
 | G4   | Phase 3 | 팔레트 열기 p95 종전 대비 +1ms 이내 · 번들 Δ ≤ +2KB gz · keydown 경로 diff 0 (git diff 로 `handleKeyEvent` 무변경 확인)                                                                                                                                                            | 목록 memo 재검토. keydown 경로에 diff 가 있으면 HC1 위반 — 되돌린다                                                                                   |
+
+## 진행 로그
+
+| Phase | 상태                | 근거                                                                                                                                                                                                                                    |
+| ----- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Implemented (08-27) | G0 통과 — 재grep 6/6 일치 (baseline 갱신 불요) · 헤더 메뉴 popover 실측 (canvas 가 활성 패널/global 로 밀림 → `scopeAtOpen` fallback 규칙 확정) · 연속 명령 12개 전부 1회 실행 성립 → `palette:false` 9개 확정. breakdown §2·§3-3·§3-4 갱신 |
 
 ## Consequences
 
