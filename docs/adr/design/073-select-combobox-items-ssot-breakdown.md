@@ -102,7 +102,7 @@ Scope α: Select + ComboBox 한정. ListBox 는 `[data-orientation]`/`--lb-*` �
   }}
   ```
 
-  이 방식이 **RAC `onSelectionChange` / `onInputChange` 이벤트 순서에 무관하게 일관성 보장** — RAC 가 어떤 순서로 둘을 발화하든 최종 state 는 inputValue 와 items 의 label 일치 여부로 결정됨.
+  이 방식이 **RAC `onSelectionChange` / `onInputChange` 이벤트 순서에 무관하게 일관성 보장** — RAC 가 어떤 순서로 둘을 동작하든 최종 state 는 inputValue 와 items 의 label 일치 여부로 결정됨.
 
   **통합 저장 계약**:
 

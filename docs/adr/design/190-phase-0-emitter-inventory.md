@@ -40,7 +40,7 @@ node apps/builder/scripts/adr189-commit-baseline.mjs --repeats 5 \
 | ②    | history entry 기록                                      | :364-370 |
 | ③    | `updatedElement` 조립 (단일 element)                    | :373-380 |
 | ④    | **`syncUpdatedElementToCanonical(updatedElement)`**     | **:398** |
-| ⑤    | `set({ elements, elementsMap, ... })` — store 구독 발화 | :415+    |
+| ⑤    | `set({ elements, elementsMap, ... })` — store 구독 동작 | :415+    |
 
 **emitter 는 ④ 와 ⑤ 사이**에 위치해야 한다:
 
@@ -49,7 +49,7 @@ node apps/builder/scripts/adr189-commit-baseline.mjs --repeats 5 \
   `useCanonicalDocumentStore.getState().documentVersion` 이 **post-commit
   revision** 이다 — presentation adapter 가 쓰는 것과 동일 계약
   (`editorPresentationCommitAdapter.ts:410-411`).
-- ⑤ 가 store subscriber (`StoreRenderBridge` resync) 를 발화시키므로, 그 전에
+- ⑤ 가 store subscriber (`StoreRenderBridge` resync) 를 실행하므로, 그 전에
   queue 해야 sync 가 `pendingCommit` 을 본다. ⑤ 이후에 queue 하면 sync 는
   `pendingCommit === null` 분기로 `changedIds` 를 소비하고
   (`StoreRenderBridge.ts:1242-1246`), 뒤늦은 patch 는 stale revision 이 된다.
@@ -76,7 +76,7 @@ commitEditorPresentationFills (commitAdapter.ts:385-406)
 ```
 
 `commitEditorPresentationStyle` 도 같은 형태다. 따라서 `updateElementProps`
-안의 emitter 는 presentation commit 에서 **발화하지 않으며**, 두 생산자는 코드
+안의 emitter 는 presentation commit 에서 **동작하지 않으며**, 두 생산자는 코드
 경로상 disjoint 다.
 
 ADR-190 R2 의 "commit origin 표식" 대응은 이 사실을 근거로 **Phase 1 에서

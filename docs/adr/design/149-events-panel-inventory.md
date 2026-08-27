@@ -24,11 +24,11 @@ Phase 3 프로젝션 제거 후에도 유지. HC2/HC3 grep 게이트의 **허용
 
 > **⚠️ Phase 3 정정 (2026-07-19) — 본 표의 "live" 분류 부정확 (freeze 오류)**: Phase 3 recon(Explore + 직접 grep 검증)에서 아래 "live" 항목 다수가 실제로 **dead/inert** 로 판명. Phase 0 freeze 가 코드 참조를 확증 않고 파일 존재만으로 live 분류한 절차 결함 (M3 — inventory 보강 대상). 정정:
 >
-> - `utils/events/eventHandlers.ts` (표기 "HC3 핵심 전환 대상") = **완전 dead**. `EventHandlerFactory`/`createEventHandlers` import 소비처 0건, 유일 `EventEngine.executeEvent` 호출자로서 실행 안 됨. → Phase 3-b 에서 **삭제**. "Preview 런타임 primary" 서술은 오류 — Preview 는 이벤트 미발화(`createEventHandlerMap` seam provider 0).
-> - `workflowEdges.ts` / `canvasDeltaMessenger.ts` = **builder-side 파생**(Skia navigation 오버레이 / Preview delta 페이로드)이며 **런타임 발화 아님**. canvasDeltaMessenger 가 preview 로 보내는 events 도 preview 가 미부착. → canonical 전환은 undo-정합성 이유로 이관(canonical root 에 undo 통합 부재, 3-c 이관).
-> - **유일 실제 런타임 이벤트 발화 = publish `ElementRenderer.tsx:78`** — `element.events`(props.events 아님) + `{trigger, payload}` read. 패널 저작 `props.events{event, config}` 와 위치+shape 이중 mismatch = **이미 broken**. → 올바른 canonical 런타임 소비(발화 bridge) 신설은 **별도 ADR**(사용자 Option A 결정 2026-07-19).
+> - `utils/events/eventHandlers.ts` (표기 "HC3 핵심 전환 대상") = **완전 dead**. `EventHandlerFactory`/`createEventHandlers` import 소비처 0건, 유일 `EventEngine.executeEvent` 호출자로서 실행 안 됨. → Phase 3-b 에서 **삭제**. "Preview 런타임 primary" 서술은 오류 — Preview 는 이벤트 미동작(`createEventHandlerMap` seam provider 0).
+> - `workflowEdges.ts` / `canvasDeltaMessenger.ts` = **builder-side 파생**(Skia navigation 오버레이 / Preview delta 페이로드)이며 **런타임 동작 아님**. canvasDeltaMessenger 가 preview 로 보내는 events 도 preview 가 미부착. → canonical 전환은 undo-정합성 이유로 이관(canonical root 에 undo 통합 부재, 3-c 이관).
+> - **유일 실제 런타임 이벤트 동작 = publish `ElementRenderer.tsx:78`** — `element.events`(props.events 아님) + `{trigger, payload}` read. 패널 저작 `props.events{event, config}` 와 위치+shape 이중 mismatch = **이미 broken**. → 올바른 canonical 런타임 소비(동작 bridge) 신설은 **별도 ADR**(사용자 Option A 결정 2026-07-19).
 >
-> 결론: props.events 를 **올바로 소비하는 런타임은 현재 0개**. HC3("런타임 canonical 소비")의 실제 대상이 dead/미배선이라, ADR-149 Phase 3 는 **retire dead + 역방향 adapter(HC5)** 로 재정의(Option A). 런타임 발화 bridge + true 방향 역전 + Wave 2 convention = 별도 ADR.
+> 결론: props.events 를 **올바로 소비하는 런타임은 현재 0개**. HC3("런타임 canonical 소비")의 실제 대상이 dead/미배선이라, ADR-149 Phase 3 는 **retire dead + 역방향 adapter(HC5)** 로 재정의(Option A). 런타임 동작 bridge + true 방향 역전 + Wave 2 convention = 별도 ADR.
 
 | site                                              | 라인                                                         | 소비 형태                                                                            | 비고                                                                                                                                      |
 | ------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |

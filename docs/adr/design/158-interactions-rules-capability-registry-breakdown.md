@@ -1,4 +1,4 @@
-# ADR-158 구현 상세 — Interactions 재설계 (한 줄 규칙 + capability registry + Preview 발화)
+# ADR-158 구현 상세 — Interactions 재설계 (한 줄 규칙 + capability registry + Preview 실행)
 
 > 본문: [ADR-158](../completed/158-interactions-rules-capability-registry.md). 본 문서는 구현 상세 전용 (Phase / 파일 목록 / 스키마 / capability 표).
 
@@ -56,7 +56,7 @@ Phase 0 완료 기준의 표 3개. 이후 phase 의 판정 근거이자 Phase 4 
 
 **IMPLEMENTED_ACTION_TYPES 47종** — camelCase 28 + snake_case 별칭 19 (`CAMEL_ACTION_LABELS` 28키 / `SNAKE_TO_CAMEL` 19키로 확증). 본문 수치와 일치. 전량 은퇴 → capability + 앱 액션 2종(navigate/toast)으로 대체.
 
-**When 축 발화 경로 — provider 0건 (dead seam)**:
+**When 축 실행 경로 — provider 0건 (dead seam)**:
 
 | 심볼                                           |  소비 |  공급 | 판정                                                                              |
 | ---------------------------------------------- | ----: | ----: | --------------------------------------------------------------------------------- |
@@ -64,13 +64,13 @@ Phase 0 완료 기준의 표 3개. 이후 phase 의 판정 근거이자 Phase 4 
 | `EventEngine.executeEvent`                     | **0** |     1 | 인스턴스는 preview 싱글톤으로 존재·context 주입(App.tsx:653,673)하나 **호출 0건** |
 | preview 의 `element.events` read               | **0** |     — | 0건                                                                               |
 
-→ 본문 "이벤트를 올바로 소비하는 런타임 0개" **재확인**. 정밀화: _인스턴스 0_ 이 아니라 **인스턴스는 있으나 발화 호출 0** (`syncVariables` 만 호출됨 — 변수 동기화 용도, 이벤트와 무관).
+→ 본문 "이벤트를 올바로 소비하는 런타임 0개" **재확인**. 정밀화: _인스턴스 0_ 이 아니라 **인스턴스는 있으나 동작 호출 0** (`syncVariables` 만 호출됨 — 변수 동기화 용도, 이벤트와 무관).
 
 ### 표 ③ — Preview controlled/uncontrolled 실태 (R1 근거 · G1 입력)
 
-**2분류가 아니라 3분류**다. uncontrolled 라도 `key` 에 해당 상태가 포함되면 prop patch 가 remount 로 반영되므로, generic prop patch dispatcher 관점에서는 발화 가능하다.
+**2분류가 아니라 3분류**다. uncontrolled 라도 `key` 에 해당 상태가 포함되면 prop patch 가 remount 로 반영되므로, generic prop patch dispatcher 관점에서는 동작 가능하다.
 
-| 분류    | 정의                                         | capability 발화                     |
+| 분류    | 정의                                         | capability 동작                     |
 | ------- | -------------------------------------------- | ----------------------------------- |
 | **(a)** | controlled — 상태 prop 직접 소비             | ✅ 즉시                             |
 | **(b)** | uncontrolled + `key` 에 상태 포함 → remount  | ✅ 단 내부 상태(포커스·스크롤) 소실 |
@@ -108,7 +108,7 @@ Phase 0 완료 기준의 표 3개. 이후 phase 의 판정 근거이자 Phase 4 
 - **Popover / Tooltip / Menu 의 `open`/`close` 는 G1 미충족** — 렌더러가 `isOpen`/`onOpenChange` 를 아예 전달하지 않는다. controlled 전환 전 등재 금지.
 - **Table 의 `selectItem`/`clearSelection` 은 G1 미충족** — selection prop 자체가 0건 (본문 R1 이 지목한 그 항목).
 - (c) 분류 전량이 G1 게이트에 걸린다: Select · ComboBox · TextField · NumberField · SearchField · Switch · DisclosureGroup · DatePicker · Calendar.
-- **(b) 분류의 G1 판정은 Phase 1 결정 사항** — R1 문언대로 "uncontrolled = 등재 금지" 를 엄격 적용하면 등재 가능 capability 가 (a) 3종으로 축소되어 G2 의 4종 발화 시연조차 불가능해진다. 권고: **(b) 는 등재 허용** (prop patch 가 remount 로 실제 반영됨 — 발화 검증 가능), 단 registry 에 `remount: true` 를 표기해 내부 상태 소실을 명시. (c) 만 보류.
+- **(b) 분류의 G1 판정은 Phase 1 결정 사항** — R1 문언대로 "uncontrolled = 등재 금지" 를 엄격 적용하면 등재 가능 capability 가 (a) 3종으로 축소되어 G2 의 4종 동작 시연조차 불가능해진다. 권고: **(b) 는 등재 허용** (prop patch 가 remount 로 실제 반영됨 — 동작 검증 가능), 단 registry 에 `remount: true` 를 표기해 내부 상태 소실을 명시. (c) 만 보류.
 
 ### Phase 1 진입 시 확정된 등재 가능 범위 (권고안 기준)
 
@@ -129,7 +129,7 @@ Phase 0 완료 기준의 표 3개. 이후 phase 의 판정 근거이자 Phase 4 
 
 ## §1. Fork checkpoint lock-in (adr-writing.md 4 질문)
 
-1. **base/응용 분류**: 본 ADR 은 단일 수직 슬라이스 (어휘 SSOT + UI + 런타임 1경로) — base/응용 분리 없음. publish 발화·cross-event reuse 는 후속 ADR (응용) 로 명시 이관.
+1. **base/응용 분류**: 본 ADR 은 단일 수직 슬라이스 (어휘 SSOT + UI + 런타임 1경로) — base/응용 분리 없음. publish 동작·cross-event reuse 는 후속 ADR (응용) 로 명시 이관.
 2. **schema 직교성**: `InteractionRule` 스키마는 ADR-131 root collection 의 entry 형태 교체 — 직교 (root collection 메커니즘 자체는 무변경).
 3. **선행 ADR 전제 reverse 검증**: ADR-149 의 전제 "기존 EventHandler 스키마 유지 + 편집 계층 우선" 을 승계하지 않음 — 사용자 재제기 (2026-07-20 "여전히 너무 복잡, 달라진 것 없음") 로 전제 재개 조건 (a) 성립. 소비 런타임 0개 실측 (ADR-149 recon) 이 스키마 drop 의 근거.
 4. **codex 1차 진입 전 통과**: 위 1-3 은 brainstorm 세션에서 사용자 confirm 완료 (복잡성 4축 → 한 줄 규칙형 → 컴포넌트 고유 기능 위주 → RAC 검증 반영 승인 + ADR 생성 발의).
@@ -222,7 +222,7 @@ export const CAPABILITY_REGISTRY: Record<string, ComponentCapability>;
 - `EVENT_REGISTRY` 의 DOM 별칭: `onClick` / `onDoubleClick` / `onMouseEnter` / `onMouseLeave` / `onMouseDown` / `onMouseUp` / `onKeyDown` / `onKeyUp` / `onKeyPress` / `onInput` — RAC 레퍼런스 비실존 또는 RAC 대응 이름 존재 (`onPress`, `onHoverStart/End`).
 - `IMPLEMENTED_ACTION_TYPES` 28종 + snake_case 별칭 19종 전체 — capability + 앱 액션 2종으로 대체.
 
-## §4. Preview 발화 dispatcher
+## §4. Preview 실행 dispatcher
 
 위치: `apps/builder/src/preview/interactions/` (신규)
 
@@ -236,7 +236,7 @@ useInteractionBindings.ts — 요소 렌더 시 trigger callback 주입
 ```
 
 - **수신 경로**: canonical events root collection → 기존 preview messaging seam (`messageHandler.ts` / `builderPropSync.ts`) 으로 rules 전달 → `runtimeStore` 보관.
-- **발화**: Preview 렌더러가 요소별 `useInteractionBindings(elementId)` 로 callback props 를 받아 RAC 컴포넌트에 스프레드. Preview 는 runtime store 전용 (builder store 직접 참조 금지 — 기존 원칙 유지).
+- **실행**: Preview 렌더러가 요소별 `useInteractionBindings(elementId)` 로 callback props 를 받아 RAC 컴포넌트에 스프레드. Preview 는 runtime store 전용 (builder store 직접 참조 금지 — 기존 원칙 유지).
 - **controlled 배선 게이트 (R1)**: capability 대상 컴포넌트가 Preview 에서 uncontrolled 렌더 중이면 (기존 확인: Table selection uncontrolled 패턴) 해당 컴포넌트 capability 는 controlled 전환 완료 전 registry 등재 금지. Phase 0 inventory 에서 컴포넌트별 controlled/uncontrolled 실태 표 작성.
 - **성능**: dispatch 는 이벤트 발생 시 1회 store patch — 렌더 hot path (rAF/layout) 침범 없음.
 
@@ -262,12 +262,12 @@ useInteractionBindings.ts — 요소 렌더 시 trigger callback 주입
 
 ## §6. Phase 분해
 
-| Phase    | 내용                                                                                                            | 완료 기준                                                                                                                                     |
-| -------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0** ✅ | Inventory freeze — panels/events 92파일 목록 / registry 어휘 대조표 / Preview controlled·uncontrolled 실태 표   | **완료 2026-07-25** — §0 에 표 3개 기록. 정정 2건(LOC·은퇴 scope) + capability 표 정정 5건 도출                                               |
-| **1** ✅ | `CAPABILITY_REGISTRY` + `InteractionRule` 스키마 + `updateEventsRootCollection` 시그니처 갱신                   | **완료 2026-07-25** (`89ab4154b`) — G1 정적 가드 18 케이스 + racRef 전건 RAC 문서 실측 대조. 구 패널은 deprecated node-projection 경로로 분리 |
-| **2** ✅ | InteractionsPanel UI 10파일 + PanelContainer 교체                                                               | **완료 2026-07-25** (`616950cca`) — 11파일. live CRUD 확증 + getSnapshot 무한루프 회귀 수정·테스트 동반                                       |
-| **3** ✅ | Preview dispatcher + bindings + messaging 연결                                                                  | **완료 2026-08-16** — G2 4종 live 확증 (cutover 트리거 Button×3/Link×1). 배선 결손 3건 동반 수리: 대상 축 `Modal.binding.accepts.isOpen` 누락 / 트리거 축 catalog generic 경로의 `createEventHandlerMap` 미호출(116 타입) / 발화 override 미판독(`toRacProps`·`toReactStyle`) |
+| Phase    | 내용                                                                                                            | 완료 기준                                                                                                                                                                                                                                                                                                                      |
+| -------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **0** ✅ | Inventory freeze — panels/events 92파일 목록 / registry 어휘 대조표 / Preview controlled·uncontrolled 실태 표   | **완료 2026-07-25** — §0 에 표 3개 기록. 정정 2건(LOC·은퇴 scope) + capability 표 정정 5건 도출                                                                                                                                                                                                                                |
+| **1** ✅ | `CAPABILITY_REGISTRY` + `InteractionRule` 스키마 + `updateEventsRootCollection` 시그니처 갱신                   | **완료 2026-07-25** (`89ab4154b`) — G1 정적 가드 18 케이스 + racRef 전건 RAC 문서 실측 대조. 구 패널은 deprecated node-projection 경로로 분리                                                                                                                                                                                  |
+| **2** ✅ | InteractionsPanel UI 10파일 + PanelContainer 교체                                                               | **완료 2026-07-25** (`616950cca`) — 11파일. live CRUD 확증 + getSnapshot 무한루프 회귀 수정·테스트 동반                                                                                                                                                                                                                        |
+| **3** ✅ | Preview dispatcher + bindings + messaging 연결                                                                  | **완료 2026-08-16** — G2 4종 live 확증 (cutover 트리거 Button×3/Link×1). 배선 결손 3건 동반 수리: 대상 축 `Modal.binding.accepts.isOpen` 누락 / 트리거 축 catalog generic 경로의 `createEventHandlerMap` 미호출(116 타입) / 실행 override 미판독(`toRacProps`·`toReactStyle`)                                                  |
 | **4** ✅ | 구 시스템 은퇴 — panels/events 92파일 + **utils/events 3파일** + registry 구 어휘 + ADR-149 legacy adapter 삭제 | **완료 2026-08-16** — 사용자 명시 삭제 승인 후 96파일 / 19,513 LOC 제거. type-check PASS(baseline 43 불변) + grep 잔존 0(묘비 주석만) + live 빌더 부팅·Interactions CRUD 왕복. `EVENT_REGISTRY` 는 RAC 실존 11종으로 축소 존치 — `ItemsManager` 의 `event-id` 드롭다운이 live consumer 였다(§0 표 ① 파손 지점 6곳에 없던 항목) |
 
 - Phase 간 커밋 분리 (phase 당 1+ 커밋, main 직접 push).
@@ -277,11 +277,11 @@ useInteractionBindings.ts — 요소 렌더 시 trigger callback 주입
 ### Phase 3 진입 시 선행 확인 (Phase 0~2 에서 확보한 사실)
 
 - **트리거 배선 현황**: `RenderContext.services.createEventHandlerMap` 은 소비 15곳 / **공급 0곳** 인 dead seam 이다. 소비 지점은 Card · Button · Modal · Breadcrumbs · Link · Toast · Pagination (LayoutRenderers) / ListBox · GridList · Select · ComboBox (SelectionRenderers) / DropZone (FormRenderers) **12종뿐** — Tree · TagGroup · Checkbox · ToggleButton · RadioGroup · Slider · Tabs · Disclosure · Form 은 spread 지점 자체가 없다. `useInteractionBindings` (§4) 는 provider 를 채우는 것만으로는 부족하고 **미배선 렌더러에 spread 를 추가**해야 한다.
-- **capability 발화 3분류**: (a) controlled 는 prop patch 즉시 반영, (b) remount 는 patch 후 `key` 변경으로 반영, (c) 는 registry 미노출이라 dispatcher 가 만날 일이 없다. dispatcher 는 (a)/(b) 를 구분할 필요가 없다 — 둘 다 "prop 을 patch" 로 동일하다.
+- **capability 동작 3분류**: (a) controlled 는 prop patch 즉시 반영, (b) remount 는 patch 후 `key` 변경으로 반영, (c) 는 registry 미노출이라 dispatcher 가 만날 일이 없다. dispatcher 는 (a)/(b) 를 구분할 필요가 없다 — 둘 다 "prop 을 patch" 로 동일하다.
 - **G2 4종 달성 경로**: navigate·toast 는 앱 액션 (dispatcher 직접), hide·show 는 공통 `style.display` patch, modal open 은 `Modal.isOpen` patch → `renderModal` 이 `display:none` 을 해제. 넷 다 보류(c) 분류와 무관하다.
 
 ## §7. 후속 ADR 이관 목록 (본 ADR 범위 밖)
 
-- publish 앱 발화 (Preview 와 동일 dispatcher 재사용 전제 — 스키마는 이미 소비 가능 형태)
+- publish 앱 동작 (Preview 와 동일 dispatcher 재사용 전제 — 스키마는 이미 소비 가능 형태)
 - cross-event reuse / 조건부 실행 (필요 실증 후)
 - builder(Skia) 쪽 인터랙션 미리보기 (Skia=빌더≠프론트엔드 원칙상 비대상 — 재제기 시에만)

@@ -23,7 +23,7 @@ commit lane 에 진입한다. N=5,000 문서에서 한 요소 style commit 의
 
 emitter 는 canonical sync **뒤**, `set()` **앞**에 있다 (Phase 0 §2). 그 지점의
 `documentVersion` 이 post-commit revision 이고, `set()` 이 store 구독을
-발화시키기 전이라 그 sync 가 pending commit 을 본다.
+실행하기 전이라 그 sync 가 pending commit 을 본다.
 
 ### fail-closed 판정 (R1)
 

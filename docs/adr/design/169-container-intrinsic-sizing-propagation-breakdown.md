@@ -51,13 +51,13 @@
 
 ## 3. Phase 분해
 
-| Phase | 내용                                                               | 산출물                                     | Gate                  |
-| ----- | ------------------------------------------------------------------ | ------------------------------------------ | --------------------- |
-| **0** | ✅ **Implemented 2026-07-27** — fixture 고정 (§3-0)                | `containerIntrinsic.browser.test.ts`       | red 재현 + R8 판정    |
-| **1** | ✅ **Implemented 2026-07-27** — 센티넬 + 측정 캐시 (§Phase 1 결과) | `tree.rs` 센티넬 2종 + `mutation_gen` 캐시 | G1 ✅, G4 baseline ✅ |
-| **2** | ✅ **Implemented 2026-07-27** — flex 소비 배선 (§Phase 2 결과)     | `tree.rs::solve_flex` + `utils.ts` R8 축소 | G2 ✅, G3 ✅          |
-| **3** | ✅ **Implemented 2026-07-27** — grid 이연 + Phase 2 회귀 차단 (§Phase 3 결과) | `tree.rs` grid 가드 + I/J/K fixture + `layout-engine.md` | G5 ✅ |
-| **4** | ✅ **Implemented 2026-07-27** — G6 경계 갱신 + G4 (측정 경로 재구조로 통과, §Phase 4 결과) | `tree.rs` 측정 캐시 소비 + step 1 중복 제거 · `layout-engine.md` | G4 ✅, G6 ✅ |
+| Phase | 내용                                                                                       | 산출물                                                           | Gate                  |
+| ----- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | --------------------- |
+| **0** | ✅ **Implemented 2026-07-27** — fixture 고정 (§3-0)                                        | `containerIntrinsic.browser.test.ts`                             | red 재현 + R8 판정    |
+| **1** | ✅ **Implemented 2026-07-27** — 센티넬 + 측정 캐시 (§Phase 1 결과)                         | `tree.rs` 센티넬 2종 + `mutation_gen` 캐시                       | G1 ✅, G4 baseline ✅ |
+| **2** | ✅ **Implemented 2026-07-27** — flex 소비 배선 (§Phase 2 결과)                             | `tree.rs::solve_flex` + `utils.ts` R8 축소                       | G2 ✅, G3 ✅          |
+| **3** | ✅ **Implemented 2026-07-27** — grid 이연 + Phase 2 회귀 차단 (§Phase 3 결과)              | `tree.rs` grid 가드 + I/J/K fixture + `layout-engine.md`         | G5 ✅                 |
+| **4** | ✅ **Implemented 2026-07-27** — G6 경계 갱신 + G4 (측정 경로 재구조로 통과, §Phase 4 결과) | `tree.rs` 측정 캐시 소비 + step 1 중복 제거 · `layout-engine.md` | G4 ✅, G6 ✅          |
 
 ### Phase 0 결과 (2026-07-27) — fixture 확정
 
@@ -173,22 +173,22 @@
 
 - 측정 캐시는 **정상 작동** — 2회차 pass 의 `miss = 0` (depth 8: hit 2,101 / miss 0). G4 §실패 시 대안 ①("캐시 적중률 개선")은 이미 100% 라 여지가 없었다.
 - step 2-b 를 끄면 `solve_node` 호출이 **정확히 노드 수**(depth 8 → 28회)이고 depth 12 가 47 µs 로 baseline 과 일치. 켜면 4,913회.
-- 진짜 원인은 **3.5 재-solve**(`tree.rs:1325~`). Phase 2 이전에는 base size = `available` 이라 `used_main ≈ laid_out_main` → 분기가 아예 안 걸렸다. 정확한 max-content 를 넣자 둘이 갈라져 **매 레벨 발화**하고, 레벨마다 서브트리를 한 번 더 solve 하므로 2^d (depth 8 에서 r35 = 4,209회).
+- 진짜 원인은 **3.5 재-solve**(`tree.rs:1325~`). Phase 2 이전에는 base size = `available` 이라 `used_main ≈ laid_out_main` → 분기가 아예 안 걸렸다. 정확한 max-content 를 넣자 둘이 갈라져 **매 레벨 발생**하고, 레벨마다 서브트리를 한 번 더 solve 하므로 2^d (depth 8 에서 r35 = 4,209회).
 
 **수정 (사용자 판정 ① — 측정 경로 재구조)**. 두 갈래를 함께 고쳤다:
 
 1. **측정 모드에서 자식 컨테이너를 재귀 solve 하지 않는다** — `solve_child_intrinsic_aware` 가 캐시된 intrinsic 을 소비한다. 값은 `solve_node(c, 센티넬, ...)` 와 **동일**하고(캐시가 바로 그 호출 결과다) 달라지는 건 횟수뿐이다. Taffy `compute_intrinsic` / Blink `ComputeMinMaxSizes` 와 같은 형태. wrap 컨테이너는 라인 분할이 cross 에 걸려 제외, grid 자식은 `None` 이라 자동으로 기존 경로.
-2. **step 1 의 중복 solve 제거** — 2-b 가 intrinsic 으로 덮어쓸 item 은 step 1 solve 의 주축 결과가 어차피 버려진다. 그 item 을 건너뛰고 **3.5 의 단일 solve** 에 맡긴다(그 item 에 한해 3.5 를 무조건 발화). 판정식은 2-b 와 동일해야 하므로 `resolve_dimension_opt(width, ctx).is_none()`(= `data[off+1] == AUTO`)로 맞췄다.
+2. **step 1 의 중복 solve 제거** — 2-b 가 intrinsic 으로 덮어쓸 item 은 step 1 solve 의 주축 결과가 어차피 버려진다. 그 item 을 건너뛰고 **3.5 의 단일 solve** 에 맡긴다(그 item 에 한해 3.5 를 무조건 동작). 판정식은 2-b 와 동일해야 하므로 `resolve_dimension_opt(width, ctx).is_none()`(= `data[off+1] == AUTO`)로 맞췄다.
 
 ①만으로는 거의 안 줄었다(35.5 ms) — 지배항이 ②였다. **두 갈래를 다 고쳐야 선형이 된다.**
 
-| 시나리오        | Phase 1 baseline | 회귀 상한 | 수정 전       | **수정 후** |  판정 |
-| --------------- | ---------------- | --------- | ------------- | ----------- | ----: |
-| depth=1  full   | 24.3 µs          | ≤ 60.8 µs | 16.9 µs       | **9.1 µs**  |    ✅ |
-| depth=4  full   | 31.4 µs          | ≤ 78.4 µs | 113 µs        | **20.0 µs** |    ✅ |
-| depth=8  full   | 41.0 µs          | ≤ 102 µs  | 2,084 µs      | **33.7 µs** |    ✅ |
-| depth=12 full   | 47.0 µs          | ≤ 118 µs  | 36,462 µs     | **46.0 µs** |    ✅ |
-| depth=8  증분   | 0.46 µs          | ≤ 0.69 µs | 0.21 µs       | **0.29 µs** |    ✅ |
+| 시나리오      | Phase 1 baseline | 회귀 상한 | 수정 전   | **수정 후** | 판정 |
+| ------------- | ---------------- | --------- | --------- | ----------- | ---: |
+| depth=1 full  | 24.3 µs          | ≤ 60.8 µs | 16.9 µs   | **9.1 µs**  |   ✅ |
+| depth=4 full  | 31.4 µs          | ≤ 78.4 µs | 113 µs    | **20.0 µs** |   ✅ |
+| depth=8 full  | 41.0 µs          | ≤ 102 µs  | 2,084 µs  | **33.7 µs** |   ✅ |
+| depth=12 full | 47.0 µs          | ≤ 118 µs  | 36,462 µs | **46.0 µs** |   ✅ |
+| depth=8 증분  | 0.46 µs          | ≤ 0.69 µs | 0.21 µs   | **0.29 µs** |   ✅ |
 
 절대 상한은 전부 통과하고, 깊이당 증가분이 ≈3.1 µs 로 **선형**이다(9.1 → 20.0 → 33.7 → 46.0).
 
@@ -198,18 +198,17 @@
 
 **검증**: Rust 334 · parity 14 files / 127 · builder 2925 passed / 0 failed · type-check 0 new violation.
 
-
 ## 4. 파일 변경 예상
 
-| 파일                                                           | 변경                                          |
-| -------------------------------------------------------------- | --------------------------------------------- |
-| `packages/composition-engine/src/tree.rs`                      | 센티넬 2종, 측정 캐시, `solve_*` 모드 분기    |
-| `packages/composition-engine/src/flex.rs`                      | (필요 시) floor 주석 갱신 — 로직 무변경 예상  |
-| `packages/composition-engine/src/grid.rs` | **무변경** — Phase 3 판정 = 이연 (가드는 `tree.rs`) |
-| `packages/composition-engine/tests/`                           | 단위 + golden 계약 가드                       |
-| `apps/builder/tests/parity/containerIntrinsic.browser.test.ts` | 신규 fixture (§2-2 7형태)                     |
-| `apps/builder/tests/parity/slotPercentChild.browser.test.ts`   | 헤더 §범위 밖 발산 항목 해소 반영             |
-| `.claude/rules/layout-engine.md`                               | §TS 잔존 계약 1행 정밀화 + §automatic minimum |
+| 파일                                                           | 변경                                                |
+| -------------------------------------------------------------- | --------------------------------------------------- |
+| `packages/composition-engine/src/tree.rs`                      | 센티넬 2종, 측정 캐시, `solve_*` 모드 분기          |
+| `packages/composition-engine/src/flex.rs`                      | (필요 시) floor 주석 갱신 — 로직 무변경 예상        |
+| `packages/composition-engine/src/grid.rs`                      | **무변경** — Phase 3 판정 = 이연 (가드는 `tree.rs`) |
+| `packages/composition-engine/tests/`                           | 단위 + golden 계약 가드                             |
+| `apps/builder/tests/parity/containerIntrinsic.browser.test.ts` | 신규 fixture (§2-2 7형태)                           |
+| `apps/builder/tests/parity/slotPercentChild.browser.test.ts`   | 헤더 §범위 밖 발산 항목 해소 반영                   |
+| `.claude/rules/layout-engine.md`                               | §TS 잔존 계약 1행 정밀화 + §automatic minimum       |
 
 ## 5. 검증 체크리스트
 

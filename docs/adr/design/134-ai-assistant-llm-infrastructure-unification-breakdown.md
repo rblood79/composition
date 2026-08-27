@@ -147,7 +147,7 @@
 
 ### Phase 4 Gate G4
 
-- **AI 가 `InteractionRule` 1건 생성 → Preview 에서 발화 live 실측** (예: Button click → toast; ADR-158 G2 와 같은 dispatcher 경로)
+- **AI 가 `InteractionRule` 1건 생성 → Preview 에서 동작 live 실측** (예: Button click → toast; ADR-158 G2 와 같은 dispatcher 경로)
 - **AI 가 `Element.dataBinding` 설정 → `useCollectionData` 로 데이터 렌더 live 실측** (ListBox/GridList 등 collection 1종)
 - 회귀 gate (baseline 0건, 2026-08-26): 신규·기존 AI 도구 안 `SerializedEvent` / root `actions` / `Transform` / `element.props.events` / `type: "Group" + customId="group_N"` 어휘 0 grep
 - type-check + vitest PASS

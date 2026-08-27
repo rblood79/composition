@@ -195,7 +195,7 @@ buildContextMenuItems(request, deps): ContextMenuItem[] // = 모드 override 판
 
 - `ContextMenuOverlay` 1개: RAC `Popover`(`triggerRef` = 클릭 좌표에 놓인 0×0 앵커 span — ZoomControls `triggerRef` 분리 패턴 확장) + `Menu`/`MenuItem`/`SubmenuTrigger` + `Separator`
 - RAC 가 제공: roving focus·타이핑 검색·Esc·outside dismiss·뷰포트 플립. **G1 spike 로 가상 앵커 동작 선검증** — 실패 시 폴백: 자체 포지셔닝 래퍼(fixed + flip 계산) 안에 RAC `Menu` 만 사용
-- **dismiss 클릭 격리 (G1 조건)**: 기존 raw 메뉴는 `BuilderCanvas.tsx:1433-1434` 에서 `onPointerDown`/`onClick` 을 stopPropagation 하고 `:787-807` window pointerdown 으로 닫는다. RAC 는 underlay 기반이라 모델이 다르므로, **메뉴를 닫는 좌클릭이 캔버스 선택/마퀴를 발화하지 않는지**를 spike 에서 함께 확인한다 (발화 시 underlay 에 pointer 이벤트 차단 계층 추가)
+- **dismiss 클릭 격리 (G1 조건)**: 기존 raw 메뉴는 `BuilderCanvas.tsx:1433-1434` 에서 `onPointerDown`/`onClick` 을 stopPropagation 하고 `:787-807` window pointerdown 으로 닫는다. RAC 는 underlay 기반이라 모델이 다르므로, **메뉴를 닫는 좌클릭이 캔버스 선택/마퀴를 동작하지 않는지**를 spike 에서 함께 확인한다 (동작 시 underlay 에 pointer 이벤트 차단 계층 추가)
 - 상태 훅 `useContextMenu()`: `{ open(request), close, state }` — BuilderCanvas / LayerTree 공용
 - destructive 항목: `data-destructive` + `--negative` 토큰 (css-tokens.md 카테고리 준수)
 

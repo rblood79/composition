@@ -7,7 +7,7 @@
 
 | 지표                                     | 실측값                                                                                                  | 도구                                                    |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| 캔버스 선택 클릭당 longtask              | ~110ms (86~205ms)                                                                                       | LoAF + `longtask.input` 하니스                          |
+| 캔버스 선택 클릭당 longtask              | ~~110ms (86~~205ms)                                                                                     | LoAF + `longtask.input` 하니스                          |
 | 포인터 핸들러 본체 (`input.pointerdown`) | 0.8~1.6ms                                                                                               | `observe()` 하니스                                      |
 | React render 단계 (root actualDuration)  | ~0.3ms                                                                                                  | DevTools hook 커밋 카운터                               |
 | React commit effect 순회 비중            | busy 샘플 ~74% (`recursivelyTraverseMutationEffects` + `recursivelyTraversePassiveUnmountEffects` 반반) | JS Self-Profiling (`new Profiler`, 커밋 8cf55ba3b 헤더) |
@@ -62,13 +62,13 @@
    - `panelNodeToElement`/`panelNodeMapToElementMap` 을 `panelNodeElementMap.ts` 로 분리 (host 공유 + react-refresh 경고 회피). ADR-126 Element allowlist 에 등재 (동일 계약 이동, 신규 도입 아님).
 2. left/right 전 패널 Activity 래핑 확대 완료 — `PanelWrapper` 무조건부 래핑 (파일럿 allowlist 제거). fonts/TypographySection font sync effect 에 재장착 catch-up 1줄 추가 (HC2).
 3. 정적 가드 테스트 완료: `PanelContainer.static.test.ts` 3건 — Activity 래핑 존재 / `isActive={true}` 하드코딩 유지 (실값 전달 재도입 차단) / data-active CSS 채널 유지. left/right 12패널 dead 가드 제거는 후속 정리 커밋 `b563085fe` 로 완료 (MonitorPanel 은 bottom 경로 live 가드라 제외, DataTablePanel 은 param 잔존 — query enabled 소비).
-4. **라이브 검증 (2026-07-17, 리로드 후)**: 비활성 10패널 전부 Activity hidden / 선택 클릭 4회 mutation: styles·nodes·theme 0 vs active properties 330 / **Escape 가 host 에서 발화 (properties 패널 hidden 상태 포함)** — 콘솔 로그 소스 `CanvasSelectionShortcuts.tsx` 확인 / nodes·datatable hidden 부트에서 프로젝트·데이터 정상 로드 / popover 열린 채 실클릭 전환 시 interactOutside 로 먼저 닫힘 (portal 잔존 없음 — 단 **키보드 단축키 패널 전환은 pointerdown 없이 전환되므로 G4 에서 확인**) / 콘솔 error 0 / LoAF (>50ms 프레임) 관찰자에 클릭 3회 동안 **0건** (baseline 86~205ms 상시 — 소형 문서 참고치, G3 판정은 대형 문서로).
+4. **라이브 검증 (2026-07-17, 리로드 후)**: 비활성 10패널 전부 Activity hidden / 선택 클릭 4회 mutation: styles·nodes·theme 0 vs active properties 330 / **Escape 가 host 에서 동작 (properties 패널 hidden 상태 포함)** — 콘솔 로그 소스 `CanvasSelectionShortcuts.tsx` 확인 / nodes·datatable hidden 부트에서 프로젝트·데이터 정상 로드 / popover 열린 채 실클릭 전환 시 interactOutside 로 먼저 닫힘 (portal 잔존 없음 — 단 **키보드 단축키 패널 전환은 pointerdown 없이 전환되므로 G4 에서 확인**) / 콘솔 error 0 / LoAF (>50ms 프레임) 관찰자에 클릭 3회 동안 **0건** (baseline 86~205ms 상시 — 소형 문서 참고치, G3 판정은 대형 문서로).
 
 ### Phase 3 — Gate 총괄 실측 + 종결 — **완료 2026-07-17**
 
 1. **G3/G4 실측 완료** (대형 문서 `adr155-g3-perf` 550 요소 — §5.6 실측값). G4 에서 스크롤 offset 소실 회귀 발견 → `PanelWrapper` scroll 기록→rAF 복원 메커니즘으로 보완 (`92b62469b`).
 2. CHANGELOG Performance 엔트리 + ADR Implemented 승격 + README 갱신 완료.
-3. live behavior 게이트: Chrome MCP 로 선택 클릭→패널 갱신·6패널 토글·스크롤/입력 상태 보존·Escape host 발화 exercise 기록 (§5.6).
+3. live behavior 게이트: Chrome MCP 로 선택 클릭→패널 갱신·6패널 토글·스크롤/입력 상태 보존·Escape host 동작 exercise 기록 (§5.6).
 
 ### Fallback (G2/G3 실패 시) — 대안 A 경로
 
@@ -127,14 +127,14 @@
 
 측정 환경: Home 페이지에 frame 25 × Text 20 = 525 요소 주입 (addComplexElement 배치, IndexedDB persist·리로드 hydrate 확인) + Components 페이지 초기 25 요소. 좌측 패널 전부 hidden (nodes 는 500 노드 트리 보유 상태로 hidden), 우측 properties 활성. 선택 클릭은 Components 페이지 (Canvas 모드) 요소 대상 — Home 은 preview(CSS) 모드 페이지라 캔버스 선택 경로가 아님.
 
-| Gate | 항목                          | baseline (§1, 43 요소)                  | 실측 (550 요소)                                                                | 판정 |
-| ---- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------ | ---- |
-| G3   | 선택 클릭 longtask (≥50ms)    | ~110ms (86~205ms) 상시                   | **0건** (선택 클릭 6회 + 연속 8회; Event Timing pointerdown duration 24ms)      | ✅   |
-| G3   | commit effect busy 샘플 비율  | ~74% (Mutation+PassiveUnmount 반반)      | **12%** (MutationEffects 0% / Passive 4%; busy 자체 클릭당 ~110ms → ~14ms 상당) | ✅   |
-| G4   | 패널 로컬 상태 — 스크롤       | 보존 (content-visibility:auto box 유지)  | 소실 실측 (420→0) → **복원 메커니즘 추가 후 1600px 보존** (`92b62469b`)         | ✅   |
-| G4   | 패널 로컬 상태 — 입력 세션    | 보존                                     | 검색어·필터 결과 보존 (React state — Activity 비-unmount)                       | ✅   |
-| G4   | popover 잔존                  | —                                        | 실클릭 전환 시 interactOutside 선닫힘; 직접 keydown 패널 토글은 미배선 (CommandPalette 경유뿐) 이라 잔존 경로 없음 | ✅   |
-| G4   | 토글 애니메이션               | 300ms 슬라이드                           | 회귀 신호 0 (다수 토글 관측 + data-active CSS 채널 정적 가드 + 콘솔 error 0)    | ✅   |
+| Gate | 항목                         | baseline (§1, 43 요소)                  | 실측 (550 요소)                                                                                                    | 판정 |
+| ---- | ---------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ---- |
+| G3   | 선택 클릭 longtask (≥50ms)   | ~~110ms (86~~205ms) 상시                | **0건** (선택 클릭 6회 + 연속 8회; Event Timing pointerdown duration 24ms)                                         | ✅   |
+| G3   | commit effect busy 샘플 비율 | ~74% (Mutation+PassiveUnmount 반반)     | **12%** (MutationEffects 0% / Passive 4%; busy 자체 클릭당 ~110ms → ~14ms 상당)                                    | ✅   |
+| G4   | 패널 로컬 상태 — 스크롤      | 보존 (content-visibility:auto box 유지) | 소실 실측 (420→0) → **복원 메커니즘 추가 후 1600px 보존** (`92b62469b`)                                            | ✅   |
+| G4   | 패널 로컬 상태 — 입력 세션   | 보존                                    | 검색어·필터 결과 보존 (React state — Activity 비-unmount)                                                          | ✅   |
+| G4   | popover 잔존                 | —                                       | 실클릭 전환 시 interactOutside 선닫힘; 직접 keydown 패널 토글은 미배선 (CommandPalette 경유뿐) 이라 잔존 경로 없음 | ✅   |
+| G4   | 토글 애니메이션              | 300ms 슬라이드                          | 회귀 신호 0 (다수 토글 관측 + data-active CSS 채널 정적 가드 + 콘솔 error 0)                                       | ✅   |
 
 측정 한계 (기록 의무): baseline 74% 는 43 요소 프로젝트/실창 측정치로 이번 550 요소 문서와 동일 환경이 아니다. 다만 MutationEffects 0% + longtask 0건은 fan-out 기제 자체의 소거를 직접 보여주는 값이라 환경 차와 무관하게 유효. JS Self-Profiling 은 연속 8클릭 구간 1958 샘플 (sampleInterval 1ms) 기준.
 

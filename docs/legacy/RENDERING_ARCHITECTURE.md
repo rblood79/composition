@@ -2695,7 +2695,7 @@ app.ticker.autoStart = true;
 // - eventMode="static" 요소의 히트테스트가 정상 동작하는지
 // - 드래그 인터랙션(useDragInteraction.ts)이 정상 동작하는지
 // - 캔버스 밖으로 포인터가 나갔다가 돌아올 때 EventBoundary 상태 동기화
-// - pointerover/pointerout 이벤트가 PixiJS 측에서 정상 발화하는지
+// - pointerover/pointerout 이벤트가 PixiJS 측에서 정상 동작하는지
 // - updateTransform() 없이 render()만 스킵 시 vs 둘 다 호출하되 hidden 캔버스 시
 //   성능/정합성 비교 테스트 (Phase 5 프로토타입에서 수행)
 ```

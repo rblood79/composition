@@ -14,7 +14,7 @@ Machine-readable 요약:
 
 최초 RED는 제품 layout hot path를 측정한 결과가 아니었다.
 
-1. 기존 `adr187-presentation-baseline.mjs`는 ColorArea의 paint interaction을 발화해
+1. 기존 `adr187-presentation-baseline.mjs`는 ColorArea의 paint interaction을 동작해
    layout runtime apply가 0인 상태였다. 0ms를 layout 성능 근거로 사용할 수 없었다.
 2. dense fixture는 N=5,000 노드를 모두 가시 영역에 배치했다. 따라서 문서 크기 `N`이
    아니라 가시 draw workload `V=N`의 CanvasKit 비용을 측정했고, 46~57ms
@@ -37,7 +37,7 @@ singleton을 읽는다.
   `Compare Mode (Preview + Skia)` split을 켰다.
 - 기존 live 확인의 Style 패널 `Left` geometry commit을 유지하고, 같은 production
   singleton runtime에 숫자형 `style.patch {left, top}`을 120Hz 목표 cadence로 1초간
-  발화했다.
+  동작했다.
 - N=50/500/5,000에서 tier당 5회, 총 15회 실행했다. 총 문서 N은 증가시키되 가시
   workload는 target 1개로 고정했다.
 - target을 body 우측 clip 경계까지 이동해 원본 120px 중 40~42px만 보이는 상태를

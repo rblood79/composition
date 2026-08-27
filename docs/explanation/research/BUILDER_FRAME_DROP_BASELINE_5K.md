@@ -10,14 +10,14 @@
 
 ## 1. 경로별 실측 결과
 
-| 경로                                    | frame gap                             | 스트림 캐시                                  | 분해                                                                     |
-| --------------------------------------- | ------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------ |
-| 유휴 (360f)                             | p50 8.3ms · 드롭 0                    | 히트 100%                                    | `render.frame` 0.7ms · `content.build` **0.6ms/f 상시**                  |
-| **팬 — 가시 집합 불변** (무선택, 60f)   | **p50 16.6ms** · 16.7 초과 21/60      | 미스 0                                       | 렌더 본문 0.1ms — 나머지 전부 **React 축 상수 비용**                     |
-| **팬 — 가시 집합 변경** (무선택)        | p50 26~66ms · **스파이크 115~183ms**  | `forced` 미스 (집합 변경 이벤트마다)         | 재기록 `record.content` 21.8~72ms                                        |
-| **스크롤** (스크롤 요소 선택 + 세로 휠) | p50 24.9ms · **매 프레임** 재기록     | `registry` 미스 60/60                        | scrollBy 1회 → `notifyLayoutChange()` → 전역 재구축                      |
-| **줌 오실레이션** (±30, 96f)            | **p50 132.9ms (~7.5fps) · max 550ms** | `forced` 60 + contentSurface `invalidate` 60 | `record.content` **p50 109.5ms** · nodePicture **히트 8 / cold 287,116** |
-| style 편집 1회                          | sync 17~24ms + 비동기 persist         | —                                            | 합계 **205ms / garbage 35MB** (전문서 재작성 ×2 — 병렬 세션 5회 실측)    |
+| 경로                                    | frame gap                              | 스트림 캐시                                  | 분해                                                                     |
+| --------------------------------------- | -------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------ |
+| 유휴 (360f)                             | p50 8.3ms · 드롭 0                     | 히트 100%                                    | `render.frame` 0.7ms · `content.build` **0.6ms/f 상시**                  |
+| **팬 — 가시 집합 불변** (무선택, 60f)   | **p50 16.6ms** · 16.7 초과 21/60       | 미스 0                                       | 렌더 본문 0.1ms — 나머지 전부 **React 축 상수 비용**                     |
+| **팬 — 가시 집합 변경** (무선택)        | p50 26~~66ms · **스파이크 115~~183ms** | `forced` 미스 (집합 변경 이벤트마다)         | 재기록 `record.content` 21.8~72ms                                        |
+| **스크롤** (스크롤 요소 선택 + 세로 휠) | p50 24.9ms · **매 프레임** 재기록      | `registry` 미스 60/60                        | scrollBy 1회 → `notifyLayoutChange()` → 전역 재구축                      |
+| **줌 오실레이션** (±30, 96f)            | **p50 132.9ms (~7.5fps) · max 550ms**  | `forced` 60 + contentSurface `invalidate` 60 | `record.content` **p50 109.5ms** · nodePicture **히트 8 / cold 287,116** |
+| style 편집 1회                          | sync 17~24ms + 비동기 persist          | —                                            | 합계 **205ms / garbage 35MB** (전문서 재작성 ×2 — 병렬 세션 5회 실측)    |
 
 프로파일 귀속 (팬 중 busy 샘플 105개): `layoutCache`(시그니처 해싱) **~40%** + `useLayoutPublisher` **~18%** + `renderCommands`/`skiaFramePipeline`(재구축·재기록) **~13%**.
 
@@ -55,7 +55,7 @@
 ## 5. 측정 함정 3종 (재측정 시 필수 회피)
 
 1. **Phase E 휠 삼킴**: 스크롤 가능 요소 선택 상태에서 휠 dispatch 는 스크롤 여유가 없으면 **완전 no-op** — "팬이 완벽히 부드럽다"는 무동작 측정일 수 있다. 팬 측정 전 `clearSelection()` + 카메라 실이동을 스크린샷으로 확증할 것.
-2. **at-target dispatch 이중 라우팅**: containerEl 에 직접 dispatch 하면 capture(viewport)+bubble(scroll hook) 이 둘 다 발화한다 (`stopPropagation` 은 같은 노드의 이후 방문만 차단). 실전파 재현은 **target=canvas** 로.
+2. **at-target dispatch 이중 라우팅**: containerEl 에 직접 dispatch 하면 capture(viewport)+bubble(scroll hook) 이 둘 다 실행한다 (`stopPropagation` 은 같은 노드의 이후 방문만 차단). 실전파 재현은 **target=canvas** 로.
 3. **상태 누적**: 프로브가 카메라/스크롤/줌을 누적시켜 다음 프로브의 가시 집합·재기록 비용을 바꾼다. 프로브 간 정착 대기 + 상태 명시.
 
 ## 6. 개선 레버 (측정 근거 우선순위)

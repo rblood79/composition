@@ -453,7 +453,7 @@ ADR-187 paint lane은 이미 stale 거부 계약을 운용한다 — `SessionPro
 ### Phase 5 / G6 — Implemented (2026-08-22)
 
 - evidence: [188-phase-5-g6-live-parity.md](188-phase-5-g6-live-parity.md)
-- 초기 RED는 paint ColorArea를 발화한 layout apply 0 하니스, N개 노드를 모두 가시화한
+- 초기 RED는 paint ColorArea를 동작한 layout apply 0 하니스, N개 노드를 모두 가시화한
   `V=N` dense fixture, canonical synthetic `Box`와 동적 import의 별도 Vite module
   instance를 측정한 결과였다. 제품 layout hot path 판정에서 제외했다.
 - 실제 `EditorPresentationTransactionRuntime`/Skia command singleton을 query-opt-in

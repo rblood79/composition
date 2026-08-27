@@ -60,7 +60,7 @@ interface HistorySnapshot {
 
 ## §5 Phase 3 — 패널 UI (Photoshop 웹 동형) — Implemented 2026-08-13
 
-> **구현 확정 사항**: ① 복원 클릭은 250ms 지연 후 발화 — 더블클릭 rename 이 타이머를 취소해 복원 오발 (문서 전체 교체 2회) 차단. ② 삭제 버튼은 행 Button 과 **형제** 배치 (button-in-button invalid HTML 회피) + hover/focus-within 노출. ③ data-active 판정 = 현재 히스토리 위치 entry 의 `snapshotRestoreEvent.afterSnapshotId` (복원 직후 상태에서만 점등, undo 로 지나가면 소등). ④ 빈 히스토리에서도 스냅샷 섹션 유지 (EmptyState 는 편집 리스트 자리만). ⑤ R4 clear 는 복원 전/후 페이지 합집합 전달 (`a0e213653` — §4 시퀀스 5 보강).
+> **구현 확정 사항**: ① 복원 클릭은 250ms 지연 후 동작 — 더블클릭 rename 이 타이머를 취소해 복원 오발 (문서 전체 교체 2회) 차단. ② 삭제 버튼은 행 Button 과 **형제** 배치 (button-in-button invalid HTML 회피) + hover/focus-within 노출. ③ data-active 판정 = 현재 히스토리 위치 entry 의 `snapshotRestoreEvent.afterSnapshotId` (복원 직후 상태에서만 점등, undo 로 지나가면 소등). ④ 빈 히스토리에서도 스냅샷 섹션 유지 (EmptyState 는 편집 리스트 자리만). ⑤ R4 clear 는 복원 전/후 페이지 합집합 전달 (`a0e213653` — §4 시퀀스 5 보강).
 
 - `HistoryPanel.tsx`: "편집" 리스트 위에 스냅샷 섹션
   - 헤더 액션: 스냅샷 생성 버튼 (Camera 아이콘) — 이름 대화상자 없이 즉시 "스냅숏 N" 생성 (Photoshop 웹 실측 동형)

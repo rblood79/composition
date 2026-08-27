@@ -26,13 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 라이브 빌더에서 팔레트로 23개 명령을 실제로 실행(줌 3 · 실행 취소/다시 실행 5 · 패널 10 · 눈금자 2 · 모두 선택/선택 해제 · 맨 앞으로 · 복제)했고, 문서를 바꾸는 것은 실행 취소로 원복했다. 키보드 경로 회귀 검사 26/26 · 입력창 포커스 7/7 동일. 번들 +764 B(gzip), 팔레트 목록 판정 0.88 µs.
 
-## [단축키 발화 결함 2건 — ⌥ 문자 변환 · 입력창 차단] - 2026-08-27
+## [단축키 동작 결함 2건 — ⌥ 문자 변환 · 입력창 차단] - 2026-08-27
 
 깨끗한 서버·캐시로 전수 재점검하며 나온 두 건이다. 둘 다 "표기는 맞는데 눌러도 안 되는" 형태라 화면만 봐서는 드러나지 않는다.
 
 ### Fixed
 
-- **⌃⌥M(모니터 패널)이 실물 키보드에서 발화하지 않던 결함**: macOS 는 ⌥ 가 눌리면 `event.key` 를 다른 문자로 바꾸고, 그걸 억제하는 것은 **⌘ 뿐이다 — ⌃ 는 억제하지 않는다**. 실제 key 는 `µ` 인데 정의는 `m` 으로만 맞추고 있었다. ⌥ 계열에 `code` 를 부여할 때 `alt`/`altShift` 만 훑고 `ctrlAlt` 를 빠뜨린 자리다. `cmdAlt` 6건(⌘⌥C/V/K/X)은 ⌘ 가 억제하므로 대상이 아니다.
+- **⌃⌥M(모니터 패널)이 실물 키보드에서 동작하지 않던 결함**: macOS 는 ⌥ 가 눌리면 `event.key` 를 다른 문자로 바꾸고, 그걸 억제하는 것은 **⌘ 뿐이다 — ⌃ 는 억제하지 않는다**. 실제 key 는 `µ` 인데 정의는 `m` 으로만 맞추고 있었다. ⌥ 계열에 `code` 를 부여할 때 `alt`/`altShift` 만 훑고 `ctrlAlt` 를 빠뜨린 자리다. `cmdAlt` 6건(⌘⌥C/V/K/X)은 ⌘ 가 억제하므로 대상이 아니다.
 - **입력창에 포커스가 있으면 전역 진입점이 통째로 막히던 결함**: registry 는 `input`/`textarea`/`contentEditable` 에 포커스가 있으면 `allowInInput` 없는 단축키를 전부 건너뛴다. 값 하나 입력하다가 패널을 못 옮기고 팔레트도 못 여는 상태였다 — 실측(헤더 줌 입력 포커스)에서 `⌥1`·`⌥6`·`⌘/`·`⌘,`·`⌘K`·`⌘O`·`⌃⌥M` 이 전부 무시되고 `allowInInput` 이 붙은 `undo` 만 잡혔다. 패널 토글 8 + 모니터 + 설정 + AI + 팔레트 + 프로젝트 열기 13개에 `allowInInput` 을 부여했다. `⌥`+숫자가 입력창에서 `¡™£¢` 를 만드는 것은 빌더 입력창에 쓸 일이 없고 Figma 도 같은 조합을 가로챈다. 캔버스 scope 명령(정렬 등)은 그대로 — 입력창에서 scope 가 갈리는 것이 맞다.
 
 ### Added
@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 확인
 
 - `⌘O` 는 실물 키보드에서 Chrome 「파일 열기」를 띄우지 않고 프로젝트 목록으로 이동한다 (사용자 확인).
-- 재점검 전수 결과 — 툴팁 16/16(레일 10 + 헤더 6), 헤더 메뉴 표기 3/3, 팔레트 71개 표기 이상 0, 팔레트 패널 명령 실행 3/3, 단축키 발화 26/26.
+- 재점검 전수 결과 — 툴팁 16/16(레일 10 + 헤더 6), 헤더 메뉴 표기 3/3, 팔레트 71개 표기 이상 0, 팔레트 패널 명령 실행 3/3, 단축키 동작 26/26.
 
 ## [팔레트 키 표기 · Open Project 연결] - 2026-08-27
 
@@ -105,8 +105,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **⌥ 조합이 실물 키보드에서 발화하지 않던 결함**: macOS 에서 `⌥A`→å, `⌥S`→ß, `⌥⇧V`→◊ 로 `event.key` 가 바뀌는데 `key` 로만 맞추고 있었다. 세로 분배(`⌥⇧V`)가 그 상태였고, synthetic 입력은 이 변환을 거치지 않아 검사에서 "등록됨" 으로 보였다. ⌥ 계열 전체를 `code` 매칭으로 바꿨다. `⌘`/`⌃` 가 붙은 조합은 문자 변환이 억제돼 영향이 없다.
-- **StylesPanel 단축키가 모달 위에서도 발화하던 결함**: 등록부가 조합을 손으로 적으면서 scope 를 빠뜨려 registry 가 global 로 간주하고 있었다. 정의 경유로 통일했다.
+- **⌥ 조합이 실물 키보드에서 동작하지 않던 결함**: macOS 에서 `⌥A`→å, `⌥S`→ß, `⌥⇧V`→◊ 로 `event.key` 가 바뀌는데 `key` 로만 맞추고 있었다. 세로 분배(`⌥⇧V`)가 그 상태였고, synthetic 입력은 이 변환을 거치지 않아 검사에서 "등록됨" 으로 보였다. ⌥ 계열 전체를 `code` 매칭으로 바꿨다. `⌘`/`⌃` 가 붙은 조합은 문자 변환이 억제돼 영향이 없다.
+- **StylesPanel 단축키가 모달 위에서도 동작하던 결함**: 등록부가 조합을 손으로 적으면서 scope 를 빠뜨려 registry 가 global 로 간주하고 있었다. 정의 경유로 통일했다.
 - **정의와 실제가 어긋나 있던 5건**: 포커스 모드는 정의 `⌘F` ↔ 실제 `⌥⇧S`, 섹션 접기는 정의 2개(`⌘E`/`⌘W`) ↔ 실제 토글 1개였다. 정의를 실제에 맞추고 둘을 `toggleSections`(`⌥⇧E`) 하나로 합쳤다.
 
 ### Removed
@@ -158,7 +158,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **저장된 바 위치가 화면 밖이면 복구할 방법이 없던 결함**: 마운트 시 clamp 가 실행된 적이 없었다 — 훅이 마운트되는 시점에는 바 DOM 이 아직 없어(선택 0 / 편집 중 / Hide → 미마운트) 측정이 null 로 끝났고, 바가 나타나도 effect 의존이 그대로라 재실행되지 않았다. 큰 창에서 우측 끝으로 옮긴 뒤 작은 창에서 열면 바가 잘려 ⋯ 옵션 메뉴(Reset 유일 경로)에도 닿을 수 없었다. 바 노드를 state 로 들어 **나타나는 시점에 clamp** 하고, 이후 크기 변화(컨텍스트 전환으로 항목 수가 바뀌거나 패널 도크 리사이즈로 overlay 가 변할 때)는 ResizeObserver 로 잡는다.
 - **바를 드래그해 놓을 때마다 React DEV 오류가 나던 결함**: 드롭 commit 이 `setDragOffset` updater 안에서 store 를 써서, 그 updater 가 render phase 에 실행되는 보통의 드롭에서 "Cannot update a component while rendering a different component" 가 났다. 확정 값을 ref 에 두고 commit 은 이벤트 핸들러 본문에서 한다.
-- **바의 여백을 클릭하면 캔버스 단축키가 침묵하던 결함**: 루트 padding · 툴바 gap · separator · 툴팁 wrapper 는 포커스를 받을 수 없어 클릭 시 포커스가 body 로 빠지고, `canvas-focused` 단축키(⌫ · 화살표 · ⌘G · ⌘D …) 가 캔버스를 다시 클릭할 때까지 전부 무반응이었다. 버튼이 이미 쓰던 규약(`preventFocusOnPress`) 을 바 전체로 넓혀 mousedown 의 기본 포커스 이동을 막는다 (click 은 그대로 발화).
+- **바의 여백을 클릭하면 캔버스 단축키가 침묵하던 결함**: 루트 padding · 툴바 gap · separator · 툴팁 wrapper 는 포커스를 받을 수 없어 클릭 시 포커스가 body 로 빠지고, `canvas-focused` 단축키(⌫ · 화살표 · ⌘G · ⌘D …) 가 캔버스를 다시 클릭할 때까지 전부 무반응이었다. 버튼이 이미 쓰던 규약(`preventFocusOnPress`) 을 바 전체로 넓혀 mousedown 의 기본 포커스 이동을 막는다 (click 은 그대로 동작).
 
 ## [ADR-192 액션 바 코드리뷰 수정 1묶음 — 문서 손상·키보드·바 소실] - 2026-08-27
 
@@ -166,7 +166,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **body 단독 선택에서 ⌘D 가 지울 수 없는 두 번째 body 를 만들던 결함**: `duplicateSelection` 의 `multiSelectMode` 게이트가 제거되면서 body 선택이 복제 경로에 처음 도달했다. 씬은 두 번째 body 를 버려 자손이 고아가 되지만 문서·IndexedDB 에는 남고, `deleteSelection` 이 body 를 거부해 undo 외엔 제거할 수 없었다. 삭제 경로와 같은 body 필터를 복제에도 적용한다 (body 가 섞인 ⌘A 선택은 나머지만 복제).
 - **⌘A 선택에서 액션 바가 한 번도 뜨지 않던 결함**: 바의 "body 만 선택" 판정이 `group` 항목 부재였는데, 182 provider 는 선택에 body 가 하나라도 섞이면 `group` 을 만들지 않는다. 판정 키를 `toggle-component-origin` (단일 && non-body 에만 생성) 으로 바꿔, ⌘A·페이지 타이틀 shift 클릭에서도 정렬·복제가 노출된다. 단일 선택에서 결정적 no-op 인 `group` 항목에 컨텍스트 판정 전체가 매달려 있던 의존도 함께 해소.
-- **키보드로 액션 바에 들어가면 ←/→ 가 요소 순서를 바꾸던 결함**: 바 버튼의 `data-scope="canvas"` 때문에 `canvas-focused` 형제 재배치가 툴바 탐색과 함께 발화했다. 오버레이가 자기 스코프를 선언하는 `data-shortcut-scope` 를 도입해 (`useActiveScope`), 바는 포커스가 안에 있는 동안 `global` 로 판정된다.
+- **키보드로 액션 바에 들어가면 ←/→ 가 요소 순서를 바꾸던 결함**: 바 버튼의 `data-scope="canvas"` 때문에 `canvas-focused` 형제 재배치가 툴바 탐색과 함께 동작했다. 오버레이가 자기 스코프를 선언하는 `data-shortcut-scope` 를 도입해 (`useActiveScope`), 바는 포커스가 안에 있는 동안 `global` 로 판정된다.
 - **액션 바에서 Escape 가 선택을 지워 툴바를 떠날 수 없던 결함**: ADR-192 R2 의 "Tab 진입 → Escape 로 캔버스 복귀" 가 구현에 없어 전역 escape 가 선택을 해제하고 바를 언마운트시켰다. 바가 Escape 를 받아 선택을 유지한 채 캔버스 컨테이너로 포커스를 되돌린다 (캔버스에서 다시 Escape 하면 기존대로 선택 해제).
 - **텍스트 편집 중 캔버스가 사라지면 액션 바가 영구히 안 뜨던 결함**: 싱글턴 `isEditing` 이 completeEdit/cancelEdit 로만 내려가 브라우저 Back·compare 모드 토글 같은 비-마우스 경로에서 true 로 남았다. `useTextEdit` 언마운트 시 플래그를 회수한다 (실시간 반영된 텍스트는 되돌리지 않는다 — 언마운트는 취소 제스처가 아니다).
 
@@ -2582,17 +2582,17 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 수정: 타입 주석 제거 + `as const satisfies ShortcutDefinitions` — `keyof` 가 71키 union 을 유지한 채 항목별 형태 검사도 받는다. 복원 확인: 오타 대입이 `"copy" | "cut" | … | "treeSelectSpace"` union 위반으로 정확히 실패
   - **복원이 드러낸 실제 결함**: `CommandPalette` 의 `openSettingsModal` / `openHistoryModal` / `openAIModal` 3개 case 가 정의에 없는 id 라 **한 번도 실행되지 않는 죽은 분기**였다 (실제 정의는 `openSettings` 하나이고 같은 switch 아래에서 패널 토글로 처리 중). 제거 — 실행된 적이 없어 동작 변화 0
   - 동반: `as const` 로 `scope` 가 readonly 가 되어 소비 3곳(`KeyboardShortcut.scope` / `matchesScope` / `scopesOverlap`)이 `readonly` 배열을 수용
-  - live: 빌더 로드 후 ⌘K 발화 → 팔레트 실제 표시 + 목록 정상(⌘Z/⌘⇧Z i18n), 런타임 정의 71개 불변, 죽은 id 3종 부재 확인
+  - live: 빌더 로드 후 ⌘K 동작 → 팔레트 실제 표시 + 목록 정상(⌘Z/⌘⇧Z i18n), 런타임 정의 71개 불변, 죽은 id 3종 부재 확인
   - 위치: `apps/builder/src/builder/{config/keyboardShortcuts.ts,types/keyboard.ts,components/overlay/CommandPalette.tsx,hooks/useGlobalKeyboardShortcuts.ts,hooks/useKeyboardShortcutsRegistry.ts,utils/detectShortcutConflicts.ts}`
 
 ## [게시본에서 인터랙션 규칙이 동작한다 — publish 재배선] - 2026-08-17
 
 ### Features
 
-- **빌더에서 저장한 인터랙션 규칙이 게시된 사이트에서 그대로 발화한다** (ADR-158 후속):
-  - 종전 publish 는 legacy `element.events` + `ActionExecutor` 로 발화했는데 ADR-158 Phase 1 에서 그 mirror 파생이 끊겨 **입력이 영구 empty — 게시본 인터랙션이 완전 무동작**이었다. export 페이로드는 `CompositionDocument` 전체를 직렬화하므로 규칙(`document.events`)은 이미 게시본에 도착해 있었고, 없던 것은 소비뿐
+- **빌더에서 저장한 인터랙션 규칙이 게시된 사이트에서 그대로 실행된다** (ADR-158 후속):
+  - 종전 publish 는 legacy `element.events` + `ActionExecutor` 로 실행했는데 ADR-158 Phase 1 에서 그 mirror 파생이 끊겨 **입력이 영구 empty — 게시본 인터랙션이 완전 무동작**이었다. export 페이로드는 `CompositionDocument` 전체를 직렬화하므로 규칙(`document.events`)은 이미 게시본에 도착해 있었고, 없던 것은 소비뿐
   - dispatcher(`executeInteractionRule`)와 규칙 색인(`buildInteractionIndex`/`createElementHandlers`)을 preview 에서 `packages/shared/src/interactions/` 로 승격 — preview 와 publish 가 **같은 모듈**을 소비한다 (Framer/Webflow 모델: 빌더의 인터랙션 = 게시본의 인터랙션. 정책 한 곳 원칙 — preview 쪽 구 경로는 re-export 포워더로 존치)
-  - publish 신규 `InteractionRuntime`: 규칙 색인 + 발화 deps (navigate = 슬러그 → 페이지 전환, 외부 URL/앵커는 브라우저 기본 의미 / toast = shared `ToastProvider` / capability patch = 런타임 override 층 — preview `patchInteractionOverride` 와 동일 병합 의미). legacy 이벤트 분기와 `ActionExecutor` 소비는 제거
+  - publish 신규 `InteractionRuntime`: 규칙 색인 + 동작 deps (navigate = 슬러그 → 페이지 전환, 외부 URL/앵커는 브라우저 기본 의미 / toast = shared `ToastProvider` / capability patch = 런타임 override 층 — preview `patchInteractionOverride` 와 동일 병합 의미). legacy 이벤트 분기와 `ActionExecutor` 소비는 제거
   - 위치: `packages/shared/src/interactions/{dispatcher,bindings}.ts` · `apps/publish/src/renderer/{InteractionRuntime,ElementRenderer}.tsx` · `apps/publish/src/App.tsx`
 
 ## [event-id 죽은 채널 제거 — Items 패널 "On Action" 은퇴] - 2026-08-17
@@ -2600,7 +2600,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 ### Breaking Changes
 
 - **Menu/Select/ComboBox 항목의 "On Action" 드롭다운(`onActionId`)이 사라졌다** (ADR-158 Phase 4 후속):
-  - 이 채널은 **골라 저장해도 아무 일도 일어나지 않는 dead seam** 이었다 — 발화 쪽 `resolveActionId` 가 상시 `undefined`(noop) 였고, 드롭다운이 저장하는 값조차 "액션 id" 가 아니라 이벤트 타입 이름(`onPress` 등)인 어휘 혼선의 산물
+  - 이 채널은 **골라 저장해도 아무 일도 일어나지 않는 dead seam** 이었다 — 실행 쪽 `resolveActionId` 가 상시 `undefined`(noop) 였고, 드롭다운이 저장하는 값조차 "액션 id" 가 아니라 이벤트 타입 이름(`onPress` 등)인 어휘 혼선의 산물
   - RAC/RSP 대조: Select 는 per-item action 이 어휘에 없고(선택 = `onSelectionChange`), ComboBox 는 특수 케이스뿐. per-item action 이 정규인 Menu 도 항목 → 이동은 `MenuItem href` 가 정식 경로 — `StoredMenuItem.href` 로 이미 지원
   - 제거 범위: ItemsManager `event-id` case + binding 3곳 itemSchema + `Stored*.onActionId` + `RuntimeMenuItem.onAction` + `resolveActionId` seam(shared/preview) + dead 변환기 `toRuntimeSelectItem`/`toRuntimeComboBoxItem`(소비 0). 구 문서의 저장된 `onActionId` 키는 읽는 곳이 없어 무해
   - **재개 조건**: 항목 단위 커맨드 요구가 실제로 생기면 인터랙션 규칙에 itemKey 매칭을 확장 (dispatcher 가 callback 인자를 버리는 현 구조를 여는 것이 전제 — Figma 의 per-node Reaction 모델과 동형)
@@ -2632,10 +2632,10 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - `computeWorkflowEdges` 가 요소의 legacy `props.events` / `element.events` 를 읽는데, ADR-158 Phase 1 에서 그 mirror 파생이 끊겨 **신규 인터랙션 규칙이 캔버스에 전혀 반영되지 않았다**
   - **Why**: 조용한 결함이다 — 엣지가 안 보이는 것과 규칙이 없는 것이 화면상 구분되지 않는다. ADR-158 Phase 4 은퇴 조사에서 드러났다
   - 수정: canonical `events` root collection 의 `InteractionRule[]` 을 읽는다. `action.kind === "navigate"` → `params.path` 를 슬러그 매칭, 소스 페이지는 `elementId` 로 요소를 조회해 얻는다 (규칙이 가리키는 요소가 삭제됐을 수 있다)
-  - **legacy 갈래는 되살리지 않고 걷어냈다** — 구 문서에 남은 entry 는 발화 경로가 없어(패널 삭제 + `isInteractionRule` 필터) 그리면 *일어나지 않을 이동*을 그리는 셈이다. 그 디코더가 해석하던 어휘 자체도 같은 커밋에서 은퇴한 47종 액션이다
+  - **legacy 갈래는 되살리지 않고 걷어냈다** — 구 문서에 남은 entry 는 실행 경로가 없어(패널 삭제 + `isInteractionRule` 필터) 그리면 *일어나지 않을 이동*을 그리는 셈이다. 그 디코더가 해석하던 어휘 자체도 같은 커밋에서 은퇴한 47종 액션이다
   - 라벨을 패널과 같은 어휘(`TRIGGER_LABELS`)로 맞췄다 — 캔버스에 `onPress`, 패널에 "누를 때" 가 뜨면 같은 것을 두 이름으로 부르는 셈이다
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/workflowEdges.ts` · `BuilderCanvas.tsx`
-- **구 `SerializedEvent` entry 가 섞이면 캔버스가 죽을 수 있었다**: `events` 는 타입상 `InteractionRule[]` 이지만 구 문서에는 `action` 필드가 없는 entry 가 남아 있을 수 있다 — 가드 없이 `rule.action.kind` 를 읽으면 `TypeError`. 발화 쪽과 같은 `isInteractionRule` 판정으로 걸러낸다
+- **구 `SerializedEvent` entry 가 섞이면 캔버스가 죽을 수 있었다**: `events` 는 타입상 `InteractionRule[]` 이지만 구 문서에는 `action` 필드가 없는 entry 가 남아 있을 수 있다 — 가드 없이 `rule.action.kind` 를 읽으면 `TypeError`. 실행 쪽과 같은 `isInteractionRule` 판정으로 걸러낸다
 - 회귀 감시: `workflowEdges.interactionRules.test.ts` 11건 (이 모듈은 종전에 테스트가 0건이었다). live A/B — 규칙 추가 시 Page 2 로 들어가는 마젠타 점선 화살표 표시, 규칙 제거 시 소멸
 
 ## [ADR-158 Implemented — 구 이벤트 시스템 은퇴 96파일 / 19,513 LOC] - 2026-08-16
@@ -2651,7 +2651,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 
 ### Features
 
-- **인터랙션 규칙이 실제로 발화한다** (ADR-158 Phase 3): 트리거 요소를 누르면 navigate / toast / 대상 요소 capability(show·hide·toggle, Modal open 등)가 동작한다. 종전에는 규칙을 저장해도 소비하는 런타임이 0개였다
+- **인터랙션 규칙이 실제로 실행된다** (ADR-158 Phase 3): 트리거 요소를 누르면 navigate / toast / 대상 요소 capability(show·hide·toggle, Modal open 등)가 동작한다. 종전에는 규칙을 저장해도 소비하는 런타임이 0개였다
 
 ### Bug Fixes
 
@@ -2663,7 +2663,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 - Phase 3 에서 **배선 결손 3건**을 발견·수리했다 (전부 "등재는 됐는데 전달 경로가 없다" 는 같은 형태):
   - 대상 축 — `Modal.binding.accepts` 에 `isOpen` 누락
   - 트리거 축 — catalog generic 경로가 `createEventHandlerMap` 을 아예 호출하지 않아 **cutover 116 타입 전체**가 무반응
-  - 발화 override 미판독 — `toRacProps` / `toReactStyle` 두 소비자가 원본 `node` 를 읽음
+  - 실행 override 미판독 — `toRacProps` / `toReactStyle` 두 소비자가 원본 `node` 를 읽음
 - **G2 4종 live 확증** (Chrome MCP, cutover 트리거 Button×3 / Link×1): toast · hide/show(toggle 4연타 교대) · modal open(자식 없는 Modal — 같은 세션의 FocusScope 수리 동반) · navigate(Home → Page 2)
 - 회귀 감시: `eventRegistryVocabulary.test.ts` (은퇴 13종 재도입 차단) · `capabilityBindingReach.test.ts` · `CanonicalNodeRenderer.interactionTrigger/interactionOverride.test.tsx`
 
@@ -2671,11 +2671,11 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 
 - **breakdown 이 몰랐던 파손 지점 1건**: `ItemsManager` 의 `event-id` 드롭다운(Menu/ComboBox/Select 의 `onActionId`)이 `EVENT_REGISTRY` 의 live consumer 였다 — §0 표 ① 의 6곳에 없었다. 그래서 registry 를 지우지 않고 11종으로 좁혀 존치
 - **남은 dead seam 3건** (이번 범위 밖, 후속 판단용):
-  - `event-id` 채널 자체가 죽어 있다 — preview `resolveActionId` 가 항상 `undefined` 라 골라 저장해도 발화 경로가 없다
+  - `event-id` 채널 자체가 죽어 있다 — preview `resolveActionId` 가 항상 `undefined` 라 골라 저장해도 실행 경로가 없다
   - `workflowEdges`(캔버스 navigation 엣지)가 legacy `element.events` 를 읽는데 Phase 1 에서 mirror 파생이 끊겨 신규 규칙이 보이지 않는다
   - `packages/shared` 의 `PublishEventRuntime` 은 barrel 재export 외 소비처 0건
 
-## [발화 override 를 안 읽던 소비자 둘째 — G2 4종 cutover 트리거 재확증] - 2026-08-16
+## [실행 override 를 안 읽던 소비자 둘째 — G2 4종 cutover 트리거 재확증] - 2026-08-16
 
 ### Bug Fixes
 
@@ -2692,7 +2692,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - modal open — **자식 없는** Modal(기본 autoFocus/trapFocus)이 0→1, 프레임 유지 (같은 세션의 FocusScope 수리도 실경로에서 함께 통과)
   - navigate — Home → Page 2, 404 아님
 - **측정 함정 2건** (같은 트리거의 규칙을 바꿔 가며 재느라 결과가 섞였다):
-  - 규칙을 다시 쓰면 문서가 재전송되고 **발화 override 가 비워진다**(의도된 설계). 그래서 "show 가 요소를 숨긴다" 같은 반대 결론이 나온다 — 실제로는 override 가 비워진 상태에서 직전 규칙의 핸들러가 발화한 것
+  - 규칙을 다시 쓰면 문서가 재전송되고 **실행 override 가 비워진다**(의도된 설계). 그래서 "show 가 요소를 숨긴다" 같은 반대 결론이 나온다 — 실제로는 override 가 비워진 상태에서 직전 규칙의 핸들러가 동작한 것
   - override 는 즉시 비워지는데 **핸들러 교체는 한 렌더 뒤에 반영된다**. 규칙을 바꿔 가며 재지 말고 **트리거를 규칙 수만큼 따로 두고** 각각 한 번씩 누를 것
 
 ## [인터랙션 트리거가 catalog 116 타입에 배선돼 있지 않았다] - 2026-08-16
@@ -3076,7 +3076,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 위치: `apps/builder/src/builder/workspace/canvas/{scene/layoutCache.ts,hooks/useLayoutPublisher.ts}`
 - **projection content signature 가 layout 변경마다 헛돌던 문제 수정**:
   - **Why**: 시그니처 memo 의 dep 에 `layoutVersion` 이 있었으나 memo 본문은 이를 읽지 않는다. 시그니처는 구조만 직렬화하고 기하는 담지 않으므로(canvas-rendering.md §9), 요소 없이 layoutVersion 만 오르는 경우(테마 토글 · 폰트 로드 · 컨테이너 리사이즈) **같은 문자열**을 다시 만들었다 — 전 elements `stableSerialize` 는 이 memo 를 분리한 이유 자체다
-  - 수정: dep 에서 제거. scene 재빌드는 `sceneStructureSnapshot` 이 여전히 `layoutVersion` 을 dep + 인자로 들고 있어 그대로 발화한다
+  - 수정: dep 에서 제거. scene 재빌드는 `sceneStructureSnapshot` 이 여전히 `layoutVersion` 을 dep + 인자로 들고 있어 그대로 실행한다
   - 위치: `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx`
 
 ## [드롭 타깃 — catalog containerStyles fallback 복구] - 2026-08-15
@@ -3243,7 +3243,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - store 필드 `showGrid` / `snapToGrid` / `gridSize` 와 setter 3종 삭제. 남는 캔버스 설정은 **Show Rulers + Snap to Objects** 둘
   - 섹션명 `Grid & Guides` → `Rulers & Guides`
   - **Why — 맞출 대상이 없었다**: 격자는 scene 원점 기준 **월드 격자**인데, 페이지 안 요소 좌표는 레이아웃 엔진 소유라 격자와 무관하다. 격자가 기준이 될 수 있는 유일한 대상은 페이지(아트보드) 위치인데, 자동 배치 간격이 **470px**(페이지 390 + 여백 80)이라 8/16/24 어느 쪽과도 안 떨어진다 — 라이브 실측 8개 페이지 중 8px 격자 위에 놓인 것은 **3개**, 16px 은 1개, 24px 은 1개. 켜도 아트보드가 격자에 얹히지 않았다
-  - **Snap to Grid 는 페이지 드래그 한 곳에만 걸려 있었다** (`usePageDrag`) — 요소에는 적용되지 않고 될 수도 없다(자유 배치가 아님). 페이지에 걸면 위 470 간격을 8의 배수로 반올림해 자동 배치를 깨뜨렸고, 우선순위상 객체 스냅이 먼저 잡아 실제 발화도 드물었다
+  - **Snap to Grid 는 페이지 드래그 한 곳에만 걸려 있었다** (`usePageDrag`) — 요소에는 적용되지 않고 될 수도 없다(자유 배치가 아님). 페이지에 걸면 위 470 간격을 8의 배수로 반올림해 자동 배치를 깨뜨렸고, 우선순위상 객체 스냅이 먼저 잡아 실제 동작도 드물었다
   - **배경 격자는 이미 따로 있었다** — `DotBackground` 가 16 scene px 점 배경을 상시 그린다. Show Grid 는 그 위에 얹는 **두 번째 격자**였고, gridSize 8/24 에서는 간격이 다른 두 격자가 겹쳐 보였다
   - 대체 수단: 정렬은 `Snap to Objects`(ADR-179, 페이지 간 6축 흡착 + 정렬선) + 수동 가이드(ADR-181), 배경 텍스처는 `DotBackground`
   - 위치: `apps/builder/src/builder/{panels/settings/SettingsPanel.tsx,stores/canvasSettings.ts,workspace/canvas/hooks/usePageDrag.ts}`
@@ -3302,7 +3302,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 - **선택한 가이드를 Delete 로 지운다** (ADR-181 후속, 2026-08-14 사용자 요청):
   - 가이드를 선택하고 Delete/Backspace 를 누르면 지워진다. 종전에는 눈금자로 되돌리는 드래그가 유일한 삭제 경로였다
   - 드래그 삭제와 **같은 커밋 경로**(`deletePageGuide` → `commitPageGuideChanges`)라 히스토리 1 entry + persist + 재렌더가 한 묶음이고, 어느 쪽으로 지웠든 Cmd+Z 가 같게 동작한다
-  - 우선순위는 Escape 와 같은 어법이다 — 가이드 선택과 요소 선택은 배타라 둘 중 하나만 서 있고, 가이드가 선택돼 있으면 Delete 는 그쪽을 향한다. 입력 필드 포커스 중에는 종전대로 단축키가 발화하지 않는다
+  - 우선순위는 Escape 와 같은 어법이다 — 가이드 선택과 요소 선택은 배타라 둘 중 하나만 서 있고, 가이드가 선택돼 있으면 Delete 는 그쪽을 향한다. 입력 필드 포커스 중에는 종전대로 단축키가 동작하지 않는다
   - 위치: `apps/builder/src/builder/{workspace/canvas/viewport/pageGuideActions.ts,hooks/useGlobalKeyboardShortcuts.ts}`
 
 - **가이드 위 hover 커서 복구** (ADR-181 후속, 2026-08-14 사용자 요청):
@@ -3839,7 +3839,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: 전송 입력은 **used size** 다 (CSS-SIZING-4 §5) — clamp 뒤 값이어야 하고, block-level stretch 로 정해진 폭도 입력이 된다. w→h 전송은 §5.2.2 자동 최소(content 하한)의 대상이라 전송값을 굳히면 내용이 넘친다
 - **flex item 재-solve 가 `%` 높이를 컨테이너 content 크기에 풀던 문제** (군집 C, 108건):
   - `flex-col(height:auto)` 안의 `h=50%` 상자가 content 50 의 절반인 **25** 로 붕괴하고 내부 자식까지 25 기준으로 축소됐다
-  - **Why**: `solve_flex` 3.5 의 auto-main fallback 이 음수 센티넬 기준이라 auto 컨테이너에서 **항상** 재-solve 가 발화했고, 그 재-solve 가 `used_main` 을 상속 available 로 내려 §10.5 게이트를 우회했다. fallback 을 "자식이 실제로 solve 된 available" 로 정정하니 불필요 재-solve 자체가 사라졌다
+  - **Why**: `solve_flex` 3.5 의 auto-main fallback 이 음수 센티넬 기준이라 auto 컨테이너에서 **항상** 재-solve 가 발생했고, 그 재-solve 가 `used_main` 을 상속 available 로 내려 §10.5 게이트를 우회했다. fallback 을 "자식이 실제로 solve 된 available" 로 정정하니 불필요 재-solve 자체가 사라졌다
 - **column flex 의 라인 cross 가 content 로 떨어지던 문제** (군집 E, 16건): 커널 `cross_definite` 가 `explicit_w` 만 봐서, 명시 폭이 없어도 block-level stretch 로 확정인 column cross 를 놓쳤다 (§9.4 step 8 → step 11 stretch 가 auto-cross leaf 를 content 까지만 늘림 — Chrome 300 / 엔진 90)
 - **단독 `fr` 트랙이 자식 내용보다 작아지던 문제** (군집 D, 29건): `1fr` = `minmax(auto, 1fr)` (CSS-GRID-1 §7.2.4) 이 파서에 없어 base 를 채울 자리가 없었다. 2단계 분배도 §12.7.1 freeze-restart 가 아닌 근사였다 (`1fr 1fr`/120, 기여 90·30 → CSS 90·30 / 엔진 60·60)
 - **grid 트랙 기여가 margin 을 빼먹던 문제** (군집 H, 45건): §12.5 기여는 **margin-box** 인데 content-box 로 산출해, 누락된 margin 이 §12.8 균등 분배로 갈라져 정확히 절반씩 어긋났다 (실측 165 / 160). `%` margin 은 순환이라 0 으로 본다
@@ -4135,7 +4135,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: 상호작용 프레임마다 그리기 항목 수만큼 WASM malloc/free 반복 (open-pencil `paints.ts` singleton 등가 — R2 누수 위험 + heap churn). 실측: 줌 구동 중 재사용 9,742회 / 신규 생성 2회 (풀 크기 2 로 안정)
   - 재발 방지: `paintPool.static.test.ts` — skia/ 소스의 직접 `new ck.Paint()` 0건 정적 강제
 - **Skia 캐시 해제 경로 단일화** (`disposable.ts` — open-pencil lifecycle 패턴):
-  - `registerSkiaCacheDestroy`/`destroyAllSkiaCaches` 레지스트리 — paintPool + imageCache self-register, SkiaCanvas unmount 한정 발화. 호출자 0건이던 `clearImageCache` 실배선 (캔버스 teardown 시 SkImage 잔존 해소)
+  - `registerSkiaCacheDestroy`/`destroyAllSkiaCaches` 레지스트리 — paintPool + imageCache self-register, SkiaCanvas unmount 한정 동작. 호출자 0건이던 `clearImageCache` 실배선 (캔버스 teardown 시 SkImage 잔존 해소)
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/{paints,disposable,imageCache,SkiaCanvas}` + 렌더러 14파일
 
 ## [렌더 계측 보강 — ADR-153 Phase 1] - 2026-07-27
@@ -4328,7 +4328,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 
 ### Performance
 
-- **깊게 중첩된 레이아웃의 계산 시간 회귀 차단** — 위 수정이 처음에는 중첩 깊이에 지수적이었다 (깊이 12 기준 47 µs → **36.5 ms**). 원인은 측정 캐시가 아니라(적중률 100%), 정확한 고유 폭이 들어가면서 "분배 후 재배치" 단계가 **매 레벨 발화**해 레벨마다 서브트리를 한 번 더 풀던 것이다.
+- **깊게 중첩된 레이아웃의 계산 시간 회귀 차단** — 위 수정이 처음에는 중첩 깊이에 지수적이었다 (깊이 12 기준 47 µs → **36.5 ms**). 원인은 측정 캐시가 아니라(적중률 100%), 정확한 고유 폭이 들어가면서 "분배 후 재배치" 단계가 **매 레벨 발생**해 레벨마다 서브트리를 한 번 더 풀던 것이다.
   - 측정 모드가 자식 컨테이너를 재귀적으로 다시 푸는 대신 **캐시된 값을 소비**하도록 바꾸고, 어차피 결과가 버려지던 **선행 solve 를 제거**해 재배치 단계 하나로 일원화했다.
   - 깊이 1/4/8/12 = **9.1 / 20.0 / 33.7 / 46.0 µs** (전부 도입 전 수치 이하, 깊이당 ≈3.1 µs 선형). 실제 빌더 진입점 기준 깊이 12 가 **26.4 ms → 0.4 ms**.
   - 위치: `packages/composition-engine/src/tree.rs`, 벤치 `packages/composition-engine/benches/tree_solve.rs`
@@ -4583,7 +4583,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: composition 은 flow 자식의 x/y 를 레이아웃 엔진이 소유하므로 자식에게 "이동" 이 뜻할 수 있는 것은 canonical `children[]` 순서뿐이다 (순서 SSOT, ADR-118). 그런데 화살표 키에는 핸들러가 없어 사용자가 가장 먼저 시도할 키가 죽은 affordance 로 남아 있었고, 순서 변경 수단은 마우스(캔버스 드래그 / 노드 트리 드래그)뿐이었다.
   - 이동은 기존 canonical 진입점 재사용 — `moveElementCanonicalPrimary` + `trackCanonicalMove`(undo) + `layoutVersion` 증가 + IndexedDB persist. 드래그 재배치와 같은 경로라 히스토리 표현도 동일한 move event.
   - 경계·제외: 첫 형제의 이전 / 마지막 형제의 다음은 no-op, projected render id 와 ref override(`descendants`) 내부 노드도 제외 (후자는 move event 재적용이 불안전 — undo 훼손 방지). 다중 선택은 1차 범위 제외.
-  - 텍스트 편집 중에는 발화하지 않는다 — `useActiveScope` 가 `text-editing` 을 `canvas-focused` 보다 먼저 판정한다.
+  - 텍스트 편집 중에는 동작하지 않는다 — `useActiveScope` 가 `text-editing` 을 `canvas-focused` 보다 먼저 판정한다.
   - **live 검증** (실제 builder, 형제 11개 컨테이너): 4개 키를 개별로 눌러 store 순서와 **Skia 노드 좌표 양쪽** 변화 확인 (GridList y 400→324 / GridListItem 324→664), `layoutVersion` 이동마다 증가, 선택 유지, 마지막 요소의 "다음" 은 no-op, 왕복 후 원본 순서·좌표 정확 복원.
   - 위치: `apps/builder/src/builder/stores/utils/siblingReorder.ts` (신규 순수 로직) · `stores/elements.ts` (`reorderElementWithinParent`) · `config/keyboardShortcuts.ts` · `hooks/useGlobalKeyboardShortcuts.ts`
 
@@ -4964,7 +4964,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 
 - **Data 바인딩의 "갱신 모드 / 갱신 간격" 오소링 UI 제거**:
   - Content > Data 에서 갱신 모드(수동/마운트 시/주기적) Select 와 갱신 간격 입력이 사라진다. 기존 저장 문서의 `refreshMode` / `refreshInterval` **값 자체는 보존** (컬렉션 선택·경로 편집 시 재기록) — 편집 표면만 제거.
-  - **Why (3중 근거)**: (1) RAC/RSP 어느 collection 레퍼런스에도 "갱신 주기" 개념이 없다 — RAC 의 비동기 표면은 `useAsyncList` 의 `load`/`loadMore`/`reload`/`sort` + `loadingState`/`onLoadMore` 뿐이라 D2(Props/API — RSP 참조) 기준 미규정 prop([ssot-hierarchy.md](../.claude/rules/ssot-hierarchy.md) §6). (2) 유일한 소비처인 `useCollectionData` auto-refresh effect 가 `if (!isApiBinding) return` 으로 시작하는데, ADR-159 P4b 로 오소링이 `source:"dataTable"` 고정이라 **신규 바인딩은 발화 0** — 설정해도 동작하지 않는 UI 였다. (3) `"onMount"` 는 effect 가 `"interval"` 만 분기해 api 바인딩에서조차 소비처 0건.
+  - **Why (3중 근거)**: (1) RAC/RSP 어느 collection 레퍼런스에도 "갱신 주기" 개념이 없다 — RAC 의 비동기 표면은 `useAsyncList` 의 `load`/`loadMore`/`reload`/`sort` + `loadingState`/`onLoadMore` 뿐이라 D2(Props/API — RSP 참조) 기준 미규정 prop([ssot-hierarchy.md](../.claude/rules/ssot-hierarchy.md) §6). (2) 유일한 소비처인 `useCollectionData` auto-refresh effect 가 `if (!isApiBinding) return` 으로 시작하는데, ADR-159 P4b 로 오소링이 `source:"dataTable"` 고정이라 **신규 바인딩은 실행 0** — 설정해도 동작하지 않는 UI 였다. (3) `"onMount"` 는 effect 가 `"interval"` 만 분기해 api 바인딩에서조차 소비처 0건.
   - 타입(`RefreshMode`) / `DataBinding` 필드 / auto-refresh effect 물리 제거는 api 바인딩 잔존 저장 문서 실측이 필요하므로 **ADR-159 P4c 의 G4 게이트와 함께** 처리 (지금 지우면 기존 api+interval 바인딩 회귀).
   - 검증: 신규 `PropertyDataBinding.test.tsx` 3 케이스(오소링 UI 부재 / 경로 편집 시 값 보존 / 컬렉션 변경 시 값 보존) + live — Data 섹션이 2행(컬렉션 Select, 경로 입력)으로 축소, field 높이 105.7 → 56px.
   - 위치: `apps/builder/src/builder/components/property/PropertyDataBinding.{tsx,css,test.tsx}`
@@ -5219,13 +5219,13 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 수정: `toRacProps` 에 `DATA_ATTR_ENUM_KEYS`(키 이름 기반 data-\* 라우팅 집합 — `labelPosition`/`labelAlign`/`necessityIndicator`) 추가. visual-enum kind 와 동일 분기로 `data-{kebab}` 만 emit(raw prop 차단). 18개 field/collection binding 이 동일 hint 를 선언하므로 단일 choke point 에서 일괄 교정 — delegating renderer(Slider/ProgressBar/Meter/field 렌더러)는 `toRacProps` 미경유라 무영향
   - 위치: `packages/shared/src/catalog/outputs/toRacProps.ts`
 
-## [catalog-only overflow 컨테이너의 Skia 스크롤/클립 미발화 — systematic consumer-side 해소] - 2026-07-22
+## [catalog-only overflow 컨테이너의 Skia 스크롤/클립 미동작 — systematic consumer-side 해소] - 2026-07-22
 
 ### Bug Fixes
 
-- **overflow 를 catalog `containerStyles` 에만 둔 컨테이너가 Skia 빌더에서 스크롤/클립이 발화하지 않던 구조적 문제** (사용자 지적: "overflow 가능한 모든 Skia 부분에서 동일 문제"):
-  - **Why**: Skia 스크롤/클립 4 소비자 — 일반 컨테이너 maxScroll(`fullTreeLayout` GAP4) / 휠(`useScrollWheelInteraction`) / clip·scrollbar shape(`buildSpecNodeData`·`buildBoxNodeData`) — 가 전부 raw `element.props.style.overflow` 만 읽었다. overflow 를 catalog rule 에만 둔 컨테이너(ListBox/Tree/body 의 `auto` · Card/DisclosureGroup 의 `hidden`)는 factory 가 real props.style 에 overflow 를 안 materialize 하면 4 소비자에 도달하지 못해 스크롤 미발화·자식 미클립(캔버스에서 넘쳐 보임). 시스템 페이지 body(20ac5e60d)·ListBox(66d653642) 를 개별 materialize 로 우회해 왔으나 근본은 소비자가 catalog fallback 을 안 읽는 것.
-  - 수정: 공용 resolver `resolveEffectiveOverflow(type, rawStyle)` 도입 — raw overflow 우선(사용자/factory 편집), 없으면 catalog root overflow 를 3 위치(top-level `containerStyles` · `structure.containerStyles`(Card) · `structure.composition.containerStyles`(DisclosureGroup))에서 조회(type→overflow 메모이즈, hot path short-circuit). 4 소비자를 이 resolver 경유로 전환 → catalog-only overflow 컨테이너도 스크롤/클립 발화.
+- **overflow 를 catalog `containerStyles` 에만 둔 컨테이너가 Skia 빌더에서 스크롤/클립이 동작하지 않던 구조적 문제** (사용자 지적: "overflow 가능한 모든 Skia 부분에서 동일 문제"):
+  - **Why**: Skia 스크롤/클립 4 소비자 — 일반 컨테이너 maxScroll(`fullTreeLayout` GAP4) / 휠(`useScrollWheelInteraction`) / clip·scrollbar shape(`buildSpecNodeData`·`buildBoxNodeData`) — 가 전부 raw `element.props.style.overflow` 만 읽었다. overflow 를 catalog rule 에만 둔 컨테이너(ListBox/Tree/body 의 `auto` · Card/DisclosureGroup 의 `hidden`)는 factory 가 real props.style 에 overflow 를 안 materialize 하면 4 소비자에 도달하지 못해 스크롤 미동작·자식 미클립(캔버스에서 넘쳐 보임). 시스템 페이지 body(20ac5e60d)·ListBox(66d653642) 를 개별 materialize 로 우회해 왔으나 근본은 소비자가 catalog fallback 을 안 읽는 것.
+  - 수정: 공용 resolver `resolveEffectiveOverflow(type, rawStyle)` 도입 — raw overflow 우선(사용자/factory 편집), 없으면 catalog root overflow 를 3 위치(top-level `containerStyles` · `structure.containerStyles`(Card) · `structure.composition.containerStyles`(DisclosureGroup))에서 조회(type→overflow 메모이즈, hot path short-circuit). 4 소비자를 이 resolver 경유로 전환 → catalog-only overflow 컨테이너도 스크롤/클립 동작.
   - **범위 경계**: `.bar` 등 staticSelectors 의 sub-part overflow(ProgressBar/Meter)는 root clip 이 아니므로 제외(spec shapes 렌더 담당). ComboBox/Select 의 popover 내부 listbox overflow 는 builder 에 trigger 만 렌더되어 무관. **collection 가상화(collectionVirtualization)는 raw 유지** — catalog maxHeight fallback 병합 시 bare ListBox 가 ADR-157 auto-height sample/hatch 대신 bounded 로 바뀌어 정책 변경이 되므로, ListBox bounded-scroll 은 factory/hydration materialize(instance 실 style)가 계속 담당.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`(resolver) · `fullTreeLayout.ts`(GAP4) · `hooks/useScrollWheelInteraction.ts` · `skia/buildSpecNodeData.ts` · `skia/buildBoxNodeData.ts`
   - 검증: type-check PASS(baseline 61 무동) · 회귀 테스트 +7(resolveEffectiveOverflow 3 위치 포괄/sub-part 제외/raw 우선 + Card clip catalog 기본값 갱신) · layout engines 277 유닛 PASS. **라이브 검증**: Card `getSkiaNode().clipChildren=true`(catalog structure.containerStyles), ListBox origin(catalog-only overflow:auto) `clipChildren=true`, ListBox 인스턴스 scrollbar/scrollOffset + 300 clamp, DOM iframe scrollable — Components 페이지 전체 무회귀.
@@ -5235,7 +5235,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 ### Bug Fixes
 
 - **ListBox 에 아이템을 늘려도 overflow:auto 가 scroll 처럼 안 되고 visible 처럼 컨테이너가 계속 늘어나던 문제** (사용자 보고 2026-07-22):
-  - **Why**: 스크롤 발화(collectionVirtualization 가상화 window resolver — `readBoundedHeightPx` + `isScrollOverflow`) / 휠(useScrollWheelInteraction) / scrollbar·clip shape(buildSpecNodeData / buildBoxNodeData) **4 소비자가 전부 raw `element.props.style` 의 overflow·maxHeight 를 읽는다.** 그러나 ListBox 의 `maxHeight:300px`+`overflow:auto` 는 catalog `containerStyles` 에만 있고(layout `resolveContainerStylesFallback` + Style 패널만 소비), factory 는 instance props.style 에 `{ width:"100%" }` 만 둔다. 4 소비자가 maxHeight/overflow 를 못 읽어 가상화가 **unbounded(auto-height)** 로 판정 → 행이 300px 를 넘어도 clamp/스크롤 없이 컨테이너가 계속 성장. 시스템 페이지 body 스크롤 미표시(2026-07-21, commit 20ac5e60d)와 **동일한 catalog↔raw-consumer 비대칭**.
+  - **Why**: 스크롤 동작(collectionVirtualization 가상화 window resolver — `readBoundedHeightPx` + `isScrollOverflow`) / 휠(useScrollWheelInteraction) / scrollbar·clip shape(buildSpecNodeData / buildBoxNodeData) **4 소비자가 전부 raw `element.props.style` 의 overflow·maxHeight 를 읽는다.** 그러나 ListBox 의 `maxHeight:300px`+`overflow:auto` 는 catalog `containerStyles` 에만 있고(layout `resolveContainerStylesFallback` + Style 패널만 소비), factory 는 instance props.style 에 `{ width:"100%" }` 만 둔다. 4 소비자가 maxHeight/overflow 를 못 읽어 가상화가 **unbounded(auto-height)** 로 판정 → 행이 300px 를 넘어도 clamp/스크롤 없이 컨테이너가 계속 성장. 시스템 페이지 body 스크롤 미표시(2026-07-21, commit 20ac5e60d)와 **동일한 catalog↔raw-consumer 비대칭**.
   - 수정: bounded-scroll 기본값(`maxHeight:"300px"`, `overflow:"auto"`)을 ListBox instance 의 **real props.style** 로 materialize — factory 신규 경로(`createListBoxDefinition`) + 기존 instance hydration repair(`ensureListBoxScrollStyle`). real style 1곳이 4 raw 소비자를 동시 충족(catalog fallback 일반화 대비 blast radius 최소, 20ac5e60d 선례와 동일 판단). repair 는 height/overflow 를 **하나도** 명시 안 한 순수 default instance 만 대상 — 커스텀 높이·auto-height(overflow 명시)는 보존, 멱등.
   - 위치: `apps/builder/src/builder/factories/definitions/SelectionComponents.ts`(factory) · `apps/builder/src/adapters/canonical/legacyListBoxTemplateMigration.ts`(hydration repair)
   - 검증: type-check PASS(baseline 61 무동) · 회귀 테스트 +6(factory style 1 + migration 보강/보존/멱등/origin 무영향 5). **라이브 검증(사용자 프로젝트 9-item ListBox)**: reload 시 migration 이 instance style 을 `{width:100%, maxHeight:300px, overflow:auto}` 로 보강 → DOM(iframe) `clientHeight 298 < scrollHeight 366` **scrollable true**(scrollTop 0→60 실이동) + Skia `getSharedLayoutMap` 컨테이너 높이 358 성장 → **300 clamp**. 이전엔 양 렌더러 모두 unbounded 성장.
@@ -5296,7 +5296,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 ### Bug Fixes
 
 - **Components 페이지 콘텐츠가 페이지 높이를 넘어도 스크롤바가 안 나오던 문제**:
-  - **Why**: 스크롤 발화(fullTreeLayout GAP4 maxScroll) / 렌더(buildSpecNodeData·buildBoxNodeData scrollbar) / 휠(useScrollWheelInteraction) 4 소비자가 모두 raw `element.props.style.overflow` 를 읽는데, 시스템 페이지 body 가 `props:{}` 로 생성돼 overflow 미설정 → maxScrollTop 이 0 에 머물러 스크롤바 미표시. 일반 페이지는 factory `createDefaultBodyProps` 로 이미 real overflow:auto 를 갖는 비대칭.
+  - **Why**: 스크롤 동작(fullTreeLayout GAP4 maxScroll) / 렌더(buildSpecNodeData·buildBoxNodeData scrollbar) / 휠(useScrollWheelInteraction) 4 소비자가 모두 raw `element.props.style.overflow` 를 읽는데, 시스템 페이지 body 가 `props:{}` 로 생성돼 overflow 미설정 → maxScrollTop 이 0 에 머물러 스크롤바 미표시. 일반 페이지는 factory `createDefaultBodyProps` 로 이미 real overflow:auto 를 갖는 비대칭.
   - 수정: catalog body `containerStyles.overflow:auto`(패널 기본값) + 시스템 페이지 body 에 실제 `props.style.overflow:auto` 부여(신규 생성 + 기존 프로젝트 `repairComponentsPageNode` 1회 보강, 명시값 보존).
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` · `apps/builder/src/builder/pages/systemComponentsPage.ts`
 - **요소의 값/스타일을 편집하면 canonical `children[]` 에서 형제 중 맨 아래로 재배열되던 버그 (Components 페이지 1·2차 요소)**:
@@ -5574,7 +5574,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 위치: `apps/builder/src/adapters/canonical/rootCollectionMigration.ts`
 - **ActionsPanel 제거 + dead EventHandlerFactory 은퇴** (ADR-149 Phase 2c/3-b):
   - ADR-131 Phase 5 G3 raw skeleton ActionsPanel + PanelId `"actions"` 제거(HC4). dead `EventHandlerFactory`(`utils/events/eventHandlers.ts`) 삭제 — import 소비처 0
-  - **Why (Option A 재정의)**: Phase 3 recon 에서 원 전제(런타임이 canonical 소비하도록 EventHandlerFactory 전환)가 거짓 판명 — 패널 이벤트를 올바로 소비하는 런타임 0개(Preview 미발화 + publish `element.events` mismatch). 실제 런타임 발화 bridge + Wave 2 convention + true 방향 역전 + cross-event reuse 는 **별도 ADR 이관**(사용자 confirm)
+  - **Why (Option A 재정의)**: Phase 3 recon 에서 원 전제(런타임이 canonical 소비하도록 EventHandlerFactory 전환)가 거짓 판명 — 패널 이벤트를 올바로 소비하는 런타임 0개(Preview 미동작 + publish `element.events` mismatch). 실제 런타임 동작 bridge + Wave 2 convention + true 방향 역전 + cross-event reuse 는 **별도 ADR 이관**(사용자 confirm)
 
 ## [Builder Skia 상호작용 상태 시각(hover/pressed/focus) — ADR-150 Phase A1] - 2026-07-19
 
@@ -5626,8 +5626,8 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 ### Bug Fixes
 
 - **background(hidden) 탭에서 요소 편집이 Preview 에 reload 전까지 미반영되던 결함** (ADR-151 잔여 ②):
-  - Preview 로의 canonical 문서 재송신(`UPDATE_CANONICAL_DOCUMENT`)이 `requestAnimationFrame`(`scheduleNextFrame`)으로 예약돼 있었는데, rAF 는 background 탭에서 발화하지 않아 재송신이 정체 → 편집이 reload(PREVIEW_READY 초기 송신) 전까지 Preview DOM 에 반영되지 않았다
-  - **Why**: focused 실사용자는 무영향(rAF 정상 발화)이나, Preview 를 hidden 탭에서 읽는 CSS↔Skia parity 자동화(ADR-151/156 sweep)가 이 정체로 "prop 편집 stale" 을 관측 — 매 편집마다 reload 강제. layouts/pages 송신은 동기인데 canonical 송신만 rAF 였던 비대칭이 근본 원인
+  - Preview 로의 canonical 문서 재송신(`UPDATE_CANONICAL_DOCUMENT`)이 `requestAnimationFrame`(`scheduleNextFrame`)으로 예약돼 있었는데, rAF 는 background 탭에서 동작하지 않아 재송신이 정체 → 편집이 reload(PREVIEW_READY 초기 송신) 전까지 Preview DOM 에 반영되지 않았다
+  - **Why**: focused 실사용자는 무영향(rAF 정상 동작)이나, Preview 를 hidden 탭에서 읽는 CSS↔Skia parity 자동화(ADR-151/156 sweep)가 이 정체로 "prop 편집 stale" 을 관측 — 매 편집마다 reload 강제. layouts/pages 송신은 동기인데 canonical 송신만 rAF 였던 비대칭이 근본 원인
   - 수정: visible→`requestAnimationFrame` / hidden→`setTimeout` 하이브리드 스케줄러 `scheduleFrameOrTimeout` 도입 + canonical 재송신 effect 배선 (focused 탭 hot path 무변경)
   - 라이브 확증: hidden 탭에서 prop 편집 → `UPDATE_CANONICAL_DOCUMENT` 송신 + Preview DOM 반영 (reload 불필요). 회귀 가드: `scheduleTask.test.ts`(5) + canonical effect source-guard
   - 위치: `apps/builder/src/builder/utils/scheduleTask.ts`, `apps/builder/src/builder/hooks/useIframeMessenger.ts`
@@ -6579,7 +6579,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 - **프로젝트 요소 대량 소실 (사건 3회 재현) — 손실 아키텍처 3층 절단**:
   - **Why**: 3층 결합 — ① freeze 시 AutoRecovery `clearAllPages()` / LRU eviction 이 legacy store 를 부분 상태로 만듦 (canonical-first 인덱스 재구축과 어긋나는 split-brain, 메모리 절감 실효 없음) ② page-shell bridge 가 raw `state.elements` 로 canonical 을 전체 교체 → 부분 집합으로 잘림 ③ persist 구독이 canonical 변경마다 IndexedDB 단일 row 를 무검증 덮어쓰기 → 영구 확정. 별도 주 용의: hydration 의 `documents.get` null read 시 빈 fallback 이 migration 체인을 통과해 skeleton (fallback Home + 시스템 Components + template origins, 27 nodes) 이 되고 persist-back 이 실제 row 를 덮어씀 — 소실 후 row 가 skeleton 형상과 정확히 일치.
   - 수정 (3 커밋): 급감 가드 (`documents.put` 단일 관문 — 기존 대비 30% 미만 급감 write 기본 거부, 요소/페이지 삭제만 `allowShrink` 통과) + `documents_backup` ring (DB v20, 프로젝트당 5세대/60s 버킷) + null read 시 persist-back 금지 + AutoRecovery store-level unload 제거 + bridge canonical-first 재구성 전환.
-  - 검증: 단위/static 계약 17건 + live exercise — 급감 write (24→2) 차단 실측, 페이지 추가/삭제 roundtrip 보존, **부분 store (3요소) 강제 후 bridge 발화에도 canonical 무손실** (구 코드라면 붕괴).
+  - 검증: 단위/static 계약 17건 + live exercise — 급감 write (24→2) 차단 실측, 페이지 추가/삭제 roundtrip 보존, **부분 store (3요소) 강제 후 bridge 동작에도 canonical 무손실** (구 코드라면 붕괴).
   - 위치: `apps/builder/src/lib/db/indexedDB/{adapter,documentPersistGuard}.ts`, `apps/builder/src/builder/hooks/{usePageManager,useAutoRecovery}.ts`, `apps/builder/src/builder/stores/elementLoader.ts`, `apps/builder/src/builder/main/BuilderCore.tsx`
 
 ## [CSS↔Skia 정합 수정 2차 — parity 잔여 백로그 sweep] - 2026-07-14

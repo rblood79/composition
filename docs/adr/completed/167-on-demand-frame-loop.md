@@ -57,7 +57,7 @@ Pen v1.2.1 실측 ([PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md](../../explanation/res
 
 composition 의 wake 배선 구조 (2026-07-26 실코드 확인 — **리뷰 round 1 에서 초판 서술을 정정**):
 
-1. **카메라 축은 단일 허브로 완결** — `viewportState` (프레임이 읽는 뮤터블 카메라) 쓰기가 `ViewportController.notifyUpdateListeners()` **안에서만** 일어나고 (`viewport/ViewportController.ts:276-284`) 같은 함수가 listener 를 발화한다. 호출자 3곳 (`updatePan:149` / `zoomAtPoint:214` / `setPosition:235`) 이 wheel·drag·프로그램적 이동 (`panToPage` → `viewportActions.ts:119`) 전부를 덮으므로, `addUpdateListener` 구독 1곳이 카메라 wake 를 100% 커버한다. (현재 구독자 0건 — 정의만 존재하는 API)
+1. **카메라 축은 단일 허브로 완결** — `viewportState` (프레임이 읽는 뮤터블 카메라) 쓰기가 `ViewportController.notifyUpdateListeners()` **안에서만** 일어나고 (`viewport/ViewportController.ts:276-284`) 같은 함수가 listener 를 실행한다. 호출자 3곳 (`updatePan:149` / `zoomAtPoint:214` / `setPosition:235`) 이 wheel·drag·프로그램적 이동 (`panToPage` → `viewportActions.ts:119`) 전부를 덮으므로, `addUpdateListener` 구독 1곳이 카메라 wake 를 100% 커버한다. (현재 구독자 0건 — 정의만 존재하는 API)
 2. **콘텐츠·오버레이 축은 허브가 아니라 폴링이다** — `recordInvalidation` (`skia/renderInvalidation.ts:85`) 호출 25곳 중 **16곳이 `renderFrameCore` 내부** (`SkiaCanvas.tsx:449-750`) 의 **변경 감지기**다. 프레임이 signature/version 을 ref 와 비교해 차이를 발견한 *결과*로 기록하는 것이라, 루프가 멈춘 상태에서는 실행 자체가 안 된다 — **`recordInvalidation` 후킹은 이 16곳에 대해 순환 (wake 불가)**. 프레임 밖 9곳 (`useSkiaNode.ts:67,83` / `SkiaCanvas.tsx:276,436,773,800,811,843,863`) 만 유효 wake 지점.
 3. 따라서 **wake 는 폴링이 감지하던 상류 mutation 지점에 새로 심어야 한다** — 주요 2 경로가 현재 무기록: ① 콘텐츠 편집은 `StoreRenderBridge` 자체 구독 → `resync` → `registerSkiaNode` (`useSkiaNode.ts:40,46`) 로 `registryVersion` 만 올리고 `recordInvalidation` 을 호출하지 않는다 ② 선택/편집 컨텍스트·AI 는 `invalidationPacket` useMemo (`SkiaCanvas.tsx:173`) → `useEffect [invalidationPacket]` (`:279-281`) 가 ref 만 갱신한다. 이 두 지점이 Phase 1 의 실제 1차 배선 대상 (breakdown §3 갱신).
 

@@ -35,7 +35,7 @@
 - **MCP 도구는 모델의 도구 manifest 에 절대 실리지 않는다** (`tool_definitions_builtins_only()` 가 `server__tool` 형태 이름을 전부 필터). 대신 두 도구가 표면을 대신한다:
   - `search_tool` — MCP 도구 전체에 대한 **BM25 키워드 검색** (`bm25` crate, 검색마다 재빌드 — 수백 도구에 sub-ms). 검색 결과에 **full `input_schema`** 를 실어 모델이 바로 호출을 구성할 수 있게 함. `normalize_query()` 가 `__`/camelCase 복합 식별자를 분해해 BM25 매칭성 확보.
   - `use_tool` — 메타 디스패처 `{tool_name, tool_input}`. 존재 이유가 코드 주석에 명시: _"도구 집합을 턴 간 안정적으로 유지 — 새 MCP 도구 발견이 KV cache 를 깨지 않게"_. native 도구 이름을 넣으면 "직접 호출하라" 는 교정 에러 반환 (오프라인 eval 오염 방지용 off 스위치 포함).
-- 서버 인벤토리 변경 감지는 FNV-1a fingerprint (`(tool_count, description_hash, tool_names_hash)`) 를 영속화해 **실제 변경 시에만** system-reminder 재발화.
+- 서버 인벤토리 변경 감지는 FNV-1a fingerprint (`(tool_count, description_hash, tool_names_hash)`) 를 영속화해 **실제 변경 시에만** system-reminder 재실행.
 - 도구 trait (`xai-tool-runtime/src/tool.rs`): 파라미터 스키마는 **typed `Args` 의 `schemars::JsonSchema` derive** — 수기 JSON Schema 없음. `ToolFamily`/`ToolVariant` 로 같은 `ToolId` 아래 복수 구현 공존 (`grok_build`/`grok_build_concise`/`grok_build_hashline`/`codex` port/`opencode` port). 도구별 `behavior_version` 계약 버전으로 구 세션은 구 도구 의미론 유지.
 - 도구 설명은 MiniJinja 템플릿 (`${{ }}` 커스텀 딜리미터) — `tools.by_kind.read` 로 **다른 도구의 실제 client-facing 이름을 interpolate** 하므로 rename/비활성화 시 설명이 자동 추종. `system_reminders_enabled` 조건으로 "완료가 통지된다" 는 약속을 host 가 실제로 지킬 때만 렌더.
 - MCP 결과 상한 20,000 bytes — 초과분은 세션 폴더로 spill.

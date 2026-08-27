@@ -6,7 +6,7 @@ Implemented — 2026-08-15 (Phase 0~3 당일 종결: 이벤트 freeze → 엔진
 
 ## Context
 
-레이아웃/렌더 결함의 진단 지배 비용은 **"엔진이 무엇을 했나" 역추적**이다. 최근 30일 fix 집계가 engine 34 · skia 33건이고, 공통 진단 경로는 `증상 → Chrome 실측 fixture → 엔진 값 대조 → 코드 역추적(어느 clamp/floor/stretch/캐시가 발화했나 추측 + printf + 재빌드 반복) → root cause`. 엔진은 판정 정보(used-size clamp 발화, §4.5 automatic minimum floor, stretch↔shrink-to-fit 갈래, 증분 skip HIT/MISS, 측정 캐시 세대)를 solve 시점에 전부 갖고 있으나 **기록 없이 소멸**시킨다. 그 결과 같은 오진이 반복되어 `.claude/rules/layout-engine.md` 에 "~로 진단 금지" 패턴이 문서 층으로만 축적됐다 (예: "새로고침하면 정상 = store 문제로 진단 금지" / "자라는 형제를 컴포넌트 결함으로 진단 금지" — 코드-사이트 주석 3곳은 `f5ec7bd0a` 로 선반영).
+레이아웃/렌더 결함의 진단 지배 비용은 **"엔진이 무엇을 했나" 역추적**이다. 최근 30일 fix 집계가 engine 34 · skia 33건이고, 공통 진단 경로는 `증상 → Chrome 실측 fixture → 엔진 값 대조 → 코드 역추적(어느 clamp/floor/stretch/캐시가 적용됐나 추측 + printf + 재빌드 반복) → root cause`. 엔진은 판정 정보(used-size clamp 동작, §4.5 automatic minimum floor, stretch↔shrink-to-fit 갈래, 증분 skip HIT/MISS, 측정 캐시 세대)를 solve 시점에 전부 갖고 있으나 **기록 없이 소멸**시킨다. 그 결과 같은 오진이 반복되어 `.claude/rules/layout-engine.md` 에 "~로 진단 금지" 패턴이 문서 층으로만 축적됐다 (예: "새로고침하면 정상 = store 문제로 진단 금지" / "자라는 형제를 컴포넌트 결함으로 진단 금지" — 코드-사이트 주석 3곳은 `f5ec7bd0a` 로 선반영).
 
 **외부 선례**: 브라우저 벤더가 정확히 이 채널을 제품화했다 — Chrome DevTools Layout 패널 / Firefox Flexbox·Grid Inspector 는 레이아웃 판정 근거를 노드 단위로 노출한다. x-algorithm(2026-08 공개) 의 Under the Hood 도 같은 구조 — 시스템 판정의 근거를 판정 대상 단위로 노출하는 투명성 계층.
 

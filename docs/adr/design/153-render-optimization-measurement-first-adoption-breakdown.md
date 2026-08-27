@@ -57,8 +57,8 @@
 
 ### Phase 1 — 측정 보강 (open-pencil profiler 패턴 차용) — **Implemented 2026-07-27**
 
-> 1-a~1-e 전 항목 반영. G1 통과 기록은 아래 체크리스트 각주 참조. GPU timer (1-c) 는
-> live 실측에서 `EXT_disjoint_timer_query_webgl2` 지원 확인 — 축소 종결 불필요 (HUD GPU 1.7~2.0ms 표시).
+> 1-a~~1-e 전 항목 반영. G1 통과 기록은 아래 체크리스트 각주 참조. GPU timer (1-c) 는
+> live 실측에서 `EXT_disjoint_timer_query_webgl2` 지원 확인 — 축소 종결 불필요 (HUD GPU 1.7~~2.0ms 표시).
 > 계측 모듈 (cacheMetrics 확장 / drawStats / gpuTimer / speedscopeExport / HUD 확장) 은
 > production 번들에서 전부 tree-shake 확인 — 잔여 diff 는 `classifyFrame` 사유 문자열
 > (분류 로직 자체는 core 상주, 기록만 dev 게이트) 뿐.
@@ -95,7 +95,7 @@
 - 기존 캐시들 (`imageCache.ts` / `gpuTextureCache.ts` / paragraph 측정 LRU / 신설 paint 풀) 의 해제 경로를 단일 destroy 심볼로 정합 (open-pencil `lifecycle.ts` 9-캐시 통합 해제 패턴, 기존 `disposable.ts` 확장)
 - 체크리스트:
   - [x] frame-hot 분류 paint 의 per-frame 생성 0건 (grep + dev 카운터) ✅ 2026-07-27: 정적 — `paintPool.static.test.ts` 가 skia/ 직접 생성 0건 강제. live — 줌 오실레이션 150틱 후 paintPool hits 9,742 / 생성(grow) 2 / 풀 크기 2 (종전엔 9,742회 전부 WASM malloc+free)
-  - [x] destroy 경로 단일화 — 페이지 전환/캔버스 재생성 반복 시 WASM heap 증가 없음 실측 ✅ 2026-07-27: `registerSkiaCacheDestroy`/`destroyAllSkiaCaches` (disposable.ts) 에 paintPool + imageCache 등록, SkiaCanvas unmount 한정 발화. live — dashboard 이탈(unmount) 후 재진입 시 grow 2→4 (파괴→재구축 증명) + size 2 재안정 + 미반환 경고 0 + 시각 무결. `clearImageCache` 는 종전 호출자 0건이던 휴면 함수를 실배선
+  - [x] destroy 경로 단일화 — 페이지 전환/캔버스 재생성 반복 시 WASM heap 증가 없음 실측 ✅ 2026-07-27: `registerSkiaCacheDestroy`/`destroyAllSkiaCaches` (disposable.ts) 에 paintPool + imageCache 등록, SkiaCanvas unmount 한정 동작. live — dashboard 이탈(unmount) 후 재진입 시 grow 2→4 (파괴→재구축 증명) + size 2 재안정 + 미반환 경고 0 + 시각 무결. `clearImageCache` 는 종전 호출자 0건이던 휴면 함수를 실배선
 
 ### Phase 3 — node/subtree Picture 캐시 (open-pencil T3 + textPicture 등가) — **Implemented 2026-07-28**
 

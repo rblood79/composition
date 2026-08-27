@@ -24,11 +24,11 @@ window.__layoutExplain("component-listbox")
 
 - `layout-engine.md` 의 "진단 금지" / 금지 패턴 항목에서 **역산**: 각 오진을 1줄로 배제하려면 어떤 판정이 기록돼야 하는가 → 이벤트 목록 freeze. 초기 후보 (오진 이력 빈도순):
   1. 증분 skip 판정 (HIT/MISS + 사유: dirty / `last_avail` 불일치) — tree.rs:968
-  2. used-size clamp 발화 (min/max 어느 쪽이 바인딩했나 + 재분배 재진입 여부)
+  2. used-size clamp 동작 (min/max 어느 쪽이 바인딩했나 + 재분배 재진입 여부)
   3. §4.5 automatic minimum floor (스칼라 공급 vs absent fallback — `flex.rs::parse_item`)
   4. stretch ↔ shrink-to-fit 갈래 (`inline_intrinsic` 판정 + 재진입)
   5. intrinsic 측정 캐시 (HIT/MISS + `mutation_gen`)
-  6. flex item 재-solve 발화 (3.5 — used ≠ solved_avail)
+  6. flex item 재-solve 발생 (3.5 — used ≠ solved_avail)
   7. grid 트랙 해소 결과 (§12.5 기여 / §12.7.1 freeze-restart / §12.8 stretch)
 - off-cost baseline: `benches/flex_shrink.rs` 전 케이스(5종) + `benches/tree_solve.rs` 현행 median_ns 채록 (동일 머신 — G1 의 A/B 기준값)
 - 산출물: 이벤트 enum 초안 + baseline 표 (본 문서 §4 에 기록)

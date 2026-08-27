@@ -1,4 +1,4 @@
-# ADR-158: Interactions 재설계 — EventsPanel 대체 (한 줄 규칙 + RAC capability registry + Preview 발화 수직 슬라이스)
+# ADR-158: Interactions 재설계 — EventsPanel 대체 (한 줄 규칙 + RAC capability registry + Preview 실행 수직 슬라이스)
 
 ## Status
 
@@ -21,7 +21,7 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 - `apps/builder/src/builder/panels/events/` **92파일 / 14,317 LOC** — 액션 에디터만 26파일
 - `apps/builder/src/types/events/events.registry.ts` — DOM 별칭 이벤트 (`onClick`/`onMouseEnter`/`onKeyDown`) 와 RAC 이벤트 (`onPress`/`onSelectionChange`) **혼재**
 - 동 파일 `IMPLEMENTED_ACTION_TYPES` — camelCase 28종 + snake_case 별칭 19종 이중 등록
-- **이벤트를 올바로 소비하는 런타임 0개** (ADR-149 recon 확정: EventHandlerFactory dead / Preview 미발화 / publish `element.events` mismatch) — 14K LOC 편집기가 작동하지 않는 데이터를 생산 중
+- **이벤트를 올바로 소비하는 런타임 0개** (ADR-149 recon 확정: EventHandlerFactory dead / Preview 미동작 / publish `element.events` mismatch) — 14K LOC 편집기가 작동하지 않는 데이터를 생산 중
 
 > **Phase 0 재실측 정정 (2026-07-25 — breakdown §0)**: 92파일은 일치하나 LOC 는 ts·tsx 14,327 + CSS 2,876 = **17,203**. 추가로 `apps/builder/src/utils/events/` 3파일 1,419 LOC (`EventEngine` 포함) 이 본 실측에서 누락돼 있었다 — 은퇴 총량은 **95파일 / 18,622 LOC**. "소비 런타임 0" 은 재확인되되 정밀화: EventEngine 인스턴스는 preview 싱글톤으로 존재하나 `executeEvent` 호출 0건.
 
@@ -29,8 +29,8 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 
 - **어휘 정합**: When 축 = RAC/RSP 레퍼런스 (`.claude/skills/react-aria/references/components/*.md`) 실존 callback 만. Do 축 capability = RAC controlled prop 1:1 근거 필수 (레퍼런스 전수 검증 완료 — breakdown §3 표)
 - **canonical 자산 유지**: `CompositionDocument.events` root collection (ADR-131) + 단일 write 진입점 (ADR-149 `updateEventsRootCollection`) 계승 — entry 스키마만 교체
-- **live behavior 게이트**: Preview 실제 발화를 Chrome MCP 로 exercise 하기 전 종결 금지 (CLAUDE.md 완료 기준)
-- **성능**: 발화 dispatch 는 이벤트 시 1회 store patch — 60fps hot path 침범 금지
+- **live behavior 게이트**: Preview 실제 동작을 Chrome MCP 로 exercise 하기 전 종결 금지 (CLAUDE.md 완료 기준)
+- **성능**: 동작 dispatch 는 이벤트 시 1회 store patch — 60fps hot path 침범 금지
 - **Generator 관여 없음**: 본 ADR 은 spec/CSS Generator 확장 아님 (D3 비대상) — Generator 지원 질문 해당 없음
 
 ### Soft constraints
@@ -40,14 +40,14 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 
 ## Alternatives Considered
 
-### 대안 A: 수직 슬라이스 전면 재작성 (한 줄 규칙 + capability registry + Preview 발화)
+### 대안 A: 수직 슬라이스 전면 재작성 (한 줄 규칙 + capability registry + Preview 실행)
 
-- 설명: 새 `panels/interactions/` 모듈 (10파일). 규칙 = `When(RAC callback) → Do(앱 액션 2종 | 대상 capability)` 한 줄. capability 는 RAC controlled prop 선언으로 registry 화 → 런타임 dispatcher 가 generic prop patch 1개 + 특례 2건 (Toast queue / Form requestSubmit) 로 수렴. Preview 발화 1경로를 같은 scope 에 포함. 기존 92파일·구 registry 은퇴.
+- 설명: 새 `panels/interactions/` 모듈 (10파일). 규칙 = `When(RAC callback) → Do(앱 액션 2종 | 대상 capability)` 한 줄. capability 는 RAC controlled prop 선언으로 registry 화 → 런타임 dispatcher 가 generic prop patch 1개 + 특례 2건 (Toast queue / Form requestSubmit) 로 수렴. Preview 동작 1경로를 같은 scope 에 포함. 기존 92파일·구 registry 은퇴.
 - 위험: 기술(M — Preview controlled 배선 선행 조건) / 성능(L — 이벤트 시 1회 patch) / 유지보수(L — 14K→~2K LOC, 어휘 SSOT 단일 파일) / 마이그레이션(M — 기존 데이터 drop, 단 소비 런타임 0)
 
 ### 대안 B: 패널만 재작성, 런타임은 후속 ADR 유지
 
-- 설명: UI 만 한 줄 규칙형으로 새로 만들고 발화 bridge 는 기존 backlog (ADR-149 이관분) 대로 별도 진행.
+- 설명: UI 만 한 줄 규칙형으로 새로 만들고 동작 bridge 는 기존 backlog (ADR-149 이관분) 대로 별도 진행.
 - 위험: 기술(L) / 성능(L) / 유지보수(**H** — "편집만 되는 패널" 3번째 반복. ADR-149 와 동일 함정: 작동 검증 불가능한 UI 를 또 생산) / 마이그레이션(L)
 
 ### 대안 C: 기존 구조 유지 + UI 축소 (trim)
@@ -87,11 +87,11 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 
 | ID  | 위험                                                                                                      | 심각도 | 대응                                                                                                      |
 | --- | --------------------------------------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------------------------------- |
-| R1  | Preview uncontrolled 렌더 컴포넌트 (기존 확인: Table selection uncontrolled 패턴) 에 capability 발화 불가 |  MED   | G1 — controlled 배선 완료 전 registry 등재 금지. Phase 0 inventory 에 controlled/uncontrolled 실태 표     |
+| R1  | Preview uncontrolled 렌더 컴포넌트 (기존 확인: Table selection uncontrolled 패턴) 에 capability 동작 불가 |  MED   | G1 — controlled 배선 완료 전 registry 등재 금지. Phase 0 inventory 에 controlled/uncontrolled 실태 표     |
 | R2  | RAC `ToastQueue` 가 `UNSTABLE_` 접두 API — 업스트림 변경 가능                                             |  LOW   | 앱 액션 `toast` 1곳에 격리 — 변경 시 단일 파일 수정                                                       |
 | R3  | 기존 저장 이벤트 데이터 drop — 잠재적 사용자 데이터 손실 인식                                             |  LOW   | 소비 런타임 0 실측 (영향 0%). CHANGELOG Breaking Changes 명기                                             |
-| R4  | 구 92파일 삭제 시점 오판 — 신규 검증 전 삭제 시 회귀 불가                                                 |  MED   | G3 — G2 (live 발화) PASS + 사용자 명시 삭제 승인 전 삭제 금지                                             |
-| R5  | publish 발화 미포함 (Preview 만) — Preview·publish 동작 격차 잔존                                         |  MED   | 스키마를 publish 가 그대로 소비 가능한 형태로 설계 (dispatcher 재사용 전제). 후속 ADR 이관 (breakdown §7) |
+| R4  | 구 92파일 삭제 시점 오판 — 신규 검증 전 삭제 시 회귀 불가                                                 |  MED   | G3 — G2 (live 동작) PASS + 사용자 명시 삭제 승인 전 삭제 금지                                             |
+| R5  | publish 동작 미포함 (Preview 만) — Preview·publish 동작 격차 잔존                                         |  MED   | 스키마를 publish 가 그대로 소비 가능한 형태로 설계 (dispatcher 재사용 전제). 후속 ADR 이관 (breakdown §7) |
 
 잔존 HIGH 위험 없음.
 
@@ -102,7 +102,7 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 | Gate | 시점       | 통과 조건                                                                                                      | 실패 시 대안                                       |
 | ---- | ---------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | G1   | Phase 1    | capability registry 전 항목에 RAC controlled prop 근거 (`racRef`) 명시 + 정적 테스트로 근거 누락 차단          | 근거 없는 capability 등재 보류 (공통 show/hide 만) |
-| G2   | Phase 3    | 실제 builder 에서 규칙 생성 → Preview 발화 4종 (navigate / toast / hide·show / modal open) Chrome MCP exercise | 발화 실패 원인 수정 전 Phase 4 진입 금지           |
+| G2   | Phase 3    | 실제 builder 에서 규칙 생성 → Preview 동작 4종 (navigate / toast / hide·show / modal open) Chrome MCP exercise | 실행 실패 원인 수정 전 Phase 4 진입 금지           |
 | G3   | Phase 4    | G2 PASS + 구 panels/events 92파일 삭제에 대한 **사용자 별도 명시 승인**                                        | 삭제 보류 — 신규 패널만 활성 상태 유지             |
 | G4   | Phase 2, 4 | 신규 모듈 ≤ 15파일 + type-check PASS + 구 registry 심볼 참조 grep 0건 (Phase 4)                                | 초과 시 파일 통합 재설계                           |
 
@@ -112,7 +112,7 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 
 - 사용자 개념 3개 (When / Do / 대상) — 조건·타이밍·템플릿·추천 제거로 1규칙 = 1행
 - 코드 92파일/14.3K LOC → 목표 10파일 (~2K LOC 이내). 액션 핸들러 25종 → generic dispatcher 1 + 특례 2 + 앱 액션 2
-- **빌더 최초의 실작동 이벤트 체인** — 규칙이 Preview 에서 실제 발화 (기존: 소비 런타임 0)
+- **빌더 최초의 실작동 이벤트 체인** — 규칙이 Preview 에서 실제 동작 (기존: 소비 런타임 0)
 - 어휘가 RAC/RSP 레퍼런스와 1:1 — D2 정합, ADR-149 가 이관한 "Wave 2 RAC convention" 을 흡수 완결
 - capability = controlled prop 선언이라 신규 컴포넌트 확장 시 registry 1항목 추가로 끝
 
@@ -120,5 +120,5 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 
 - 조건부 실행 / debounce·throttle / 다중 액션 체인 기능 소실 (의도적 — 필요 실증 시 후속 ADR)
 - 기존 저장 이벤트 데이터 drop (영향 0% — 상기 수식화)
-- publish 발화는 본 ADR 범위 밖 — Preview·publish 격차가 후속 ADR 까지 잔존 (R5)
+- publish 동작은 본 ADR 범위 밖 — Preview·publish 격차가 후속 ADR 까지 잔존 (R5)
 - `panels/events/` 에 있던 ExecutionDebugger 등 부속 도구 동반 은퇴
