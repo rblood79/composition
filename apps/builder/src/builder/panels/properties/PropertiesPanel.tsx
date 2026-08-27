@@ -707,6 +707,7 @@ function PropertiesPanelContent() {
                 Object.keys(selectedElement.properties).length === 0
               }
               tooltip="속성 복사"
+              shortcutId="copyProperties"
             >
               <CopyIcon
                 color={iconProps.color}
@@ -718,6 +719,7 @@ function PropertiesPanelContent() {
               onPress={handlePasteProperties}
               aria-label="Paste properties"
               tooltip="속성 붙여넣기"
+              shortcutId="pasteProperties"
             >
               <PasteIcon
                 color={iconProps.color}

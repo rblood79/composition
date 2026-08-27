@@ -189,6 +189,7 @@ function StylesPanelContent() {
               aria-label={t("styles.copyStyles")}
               isDisabled={isCopyDisabled}
               tooltip={t("styles.copyStyles")}
+              shortcutId="copyStyles"
             >
               <CopyIcon
                 color={iconProps.color}
@@ -200,6 +201,7 @@ function StylesPanelContent() {
               onPress={handlePasteStyles}
               aria-label={t("styles.pasteStyles")}
               tooltip={t("styles.pasteStyles")}
+              shortcutId="pasteStyles"
             >
               <PasteIcon
                 color={iconProps.color}

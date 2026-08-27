@@ -26,7 +26,10 @@ import {
 } from "react-aria-components";
 import type { Key } from "react-aria-components";
 import { useAsyncMutation } from "../builder/hooks/useAsyncMutation";
-import { useKeyboardShortcutsRegistry } from "../builder/hooks/useKeyboardShortcutsRegistry";
+import {
+  formatShortcut,
+  useKeyboardShortcutsRegistry,
+} from "../builder/hooks/useKeyboardShortcutsRegistry";
 import {
   ChevronDown,
   Clock,
@@ -420,6 +423,11 @@ function Dashboard() {
   }, [themeMode]);
 
   // ⌘K / Ctrl+K — 검색으로 이동. (전체 커맨드 팔레트는 별도 작업)
+  //
+  // 대시보드는 빌더와 다른 화면이라 `SHORTCUT_DEFINITIONS` 에 넣지 않는다 —
+  // 그 표는 빌더 커맨드 팔레트가 통째로 나열하므로, 여기 항목을 더하면 빌더에
+  // 실행할 수 없는 명령이 뜬다. 표기만 `formatShortcut` 으로 파생해 비-Mac 에서
+  // "Ctrl+K" 가 나오게 한다 (종전 `⌘K` 리터럴은 플랫폼 무관하게 고정이었다).
   useKeyboardShortcutsRegistry([
     {
       key: "k",
@@ -669,7 +677,9 @@ function Dashboard() {
               autoComplete="off"
               onChange={(e) => setQuery(e.target.value)}
             />
-            <kbd className="dashboard-kbd">⌘K</kbd>
+            <kbd className="dashboard-kbd">
+              {formatShortcut({ key: "k", modifier: "cmd" })}
+            </kbd>
           </div>
         </div>
 

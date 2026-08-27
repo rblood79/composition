@@ -356,28 +356,13 @@ export function useKeyboardShortcutsRegistry(
  * 디버깅용: 등록된 단축키 목록 출력
  */
 export function logShortcuts(shortcuts: KeyboardShortcut[]): void {
-  const isMac =
-    typeof navigator !== "undefined" && navigator.platform.includes("Mac");
-
   console.group("🎹 Registered Keyboard Shortcuts");
   shortcuts
     .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
     .forEach((shortcut) => {
-      const modifierLabel: Record<KeyboardModifier, string> = {
-        cmd: isMac ? "⌘" : "Ctrl",
-        cmdShift: isMac ? "⌘⇧" : "Ctrl+Shift",
-        cmdAlt: isMac ? "⌘⌥" : "Ctrl+Alt",
-        ctrl: "Ctrl",
-        ctrlShift: "Ctrl+Shift",
-        ctrlAlt: "Ctrl+Alt",
-        alt: isMac ? "⌥" : "Alt",
-        altShift: isMac ? "⌥⇧" : "Alt+Shift",
-        shift: isMac ? "⇧" : "Shift",
-        none: "",
-      };
-
-      const prefix = modifierLabel[shortcut.modifier];
-      const keyLabel = `${prefix}${prefix ? "+" : ""}${shortcut.key.toUpperCase()}`;
+      // 표기는 `formatShortcut` 하나에서 나온다. 종전엔 여기에 두 번째 심볼 표가
+      // 있었고 ctrl 계열이 Mac 에서도 "Ctrl" 로 굳어 있었다.
+      const keyLabel = formatShortcut(shortcut);
       const priorityLabel = shortcut.priority ? `[P:${shortcut.priority}]` : "";
       const flags = [
         shortcut.disabled ? "❌disabled" : "",
