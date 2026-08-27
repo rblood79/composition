@@ -120,7 +120,7 @@ function exerciseAllMutators(sink: PathSink): void {
 }
 
 describe("buildPath", () => {
-  it("PathBuilder가 있으면 모든 mutator를 순서대로 위임하고 완성 Path를 반환한다", () => {
+  it("PathBuilder 단일 경로가 모든 mutator를 순서대로 위임하고 완성 Path를 반환한다", () => {
     const completedPath = { kind: "immutable-path" } as unknown as Path;
     let builder: RecordingPathBuilder | undefined;
     const captureBuilder = (created: RecordingPathBuilder): void => {
@@ -134,9 +134,7 @@ describe("buildPath", () => {
         captureBuilder(this);
       }
     }
-    const PathConstructor = vi.fn();
     const ck = {
-      Path: PathConstructor,
       PathBuilder,
     } as unknown as CanvasKit;
 
@@ -144,7 +142,6 @@ describe("buildPath", () => {
 
     expect(result).toBe(completedPath);
     expect(pathBuilderConstructCount).toBe(1);
-    expect(PathConstructor).not.toHaveBeenCalled();
     expect(builder?.calls).toEqual([
       "moveTo:1,2",
       "lineTo:3,4",
@@ -185,32 +182,5 @@ describe("buildPath", () => {
     ).toThrow(error);
     expect(builder?.delete).toHaveBeenCalledTimes(1);
     expect(builder?.detachAndDelete).not.toHaveBeenCalled();
-  });
-
-  it("PathBuilder가 없으면 0.40 Path를 한 번 생성해 동일 sink 계약으로 반환한다", () => {
-    let path: RecordingPathTarget | undefined;
-    const capturePath = (created: RecordingPathTarget): void => {
-      path = created;
-    };
-    let pathConstructCount = 0;
-    class PathConstructor extends RecordingPathTarget {
-      constructor() {
-        super();
-        pathConstructCount += 1;
-        capturePath(this);
-      }
-    }
-    const ck = { Path: PathConstructor } as unknown as CanvasKit;
-
-    const result = buildPath(ck, (sink) => {
-      expect(sink.moveTo(1, 2)).toBe(sink);
-      expect(sink.close()).toBe(sink);
-      expect(sink.setFillType(FILL)).toBe(sink);
-    });
-
-    expect(pathConstructCount).toBe(1);
-    expect(result).toBe(path);
-    expect(path?.calls).toEqual(["moveTo:1,2", "close", "setFillType"]);
-    expect(path?.delete).not.toHaveBeenCalled();
   });
 });

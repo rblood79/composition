@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [ADR-117 0.40.0 성능 기준선 — path-heavy-117 canonical seed] - 2026-08-28
+## [ADR-117 PathBuilder 전환 — 0.40.0 기준선 + CanvasKit 0.42.0] - 2026-08-28
 
 ### Architecture
 
@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - rounded clip, partial dash/radius border, inset/outset, inner shadow, Icon, placeholder+PNG/JPEG/WebP, slot/overflow marker, 2-page workflow edge를 67 elements dev fixture로 고정했다.
   - `?benchmark=path-heavy-117&edge=orthogonal|bezier`가 동일 canonical 문서를 로드해 0.40.0 baseline과 0.42.0 target이 같은 surface를 사용한다.
   - 위치: `apps/builder/src/builder/dev/pathHeavy117Fixture.ts`
+- **CanvasKit immutable Path 전환 완료**:
+  - `canvaskit-wasm` 최소 버전을 `^0.42.0`으로 올리고, 20개 path construction site를 `buildPath` 내부의 `PathBuilder` 단일 경로로 구축한다.
+  - 0.40.0 fallback·`PathBuilderLike` shim·Path constructor 별칭·`MockPath`를 제거해 설치된 CanvasKit 타입과 런타임이 같은 계약을 사용한다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/buildPath.ts`
 
 ### Performance
 
@@ -28,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **완료 run report 보존 + long-task window 계측**:
   - profiler가 콘솔에만 출력하고 버리던 p95/p99를 `report()`와 DOM evidence에 보존하고, 같은 5초 구간의 long-task count/total/max를 함께 기록한다.
   - 위치: `apps/builder/src/builder/workspace/canvas/benchmarks/devProfiler.ts`
+- **CanvasKit 0.42.0 배포 artifact 고정**:
+  - lockfile을 `0.42.0`으로 고정하고 `prepare:wasm`이 7,317,345-byte WASM을 배포한다.
+  - fresh dev Builder, production dynamic chunk + WebGL surface, type-check, 실 WASM 통합 및 Skia 372 tests를 통과했다.
 
 ## [명령 팔레트가 실제로 실행된다 — command registry (ADR-195)] - 2026-08-27
 

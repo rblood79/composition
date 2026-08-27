@@ -13,10 +13,6 @@ interface CanvasKitInitializer {
 const require = createRequire(import.meta.url);
 
 function resolveBinDirectory(): string {
-  const injectedDirectory = process.env.CANVASKIT_BIN_DIR;
-  if (injectedDirectory) {
-    return injectedDirectory;
-  }
   return dirname(require.resolve("canvaskit-wasm/bin/canvaskit.js"));
 }
 

@@ -250,7 +250,7 @@ pnpm -F @composition/builder test -- buildPath.integration   # 설치 0.42.0 실
 
 ```bash
 pnpm type-check
-pnpm -F @composition/builder test -- skia
+pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/skia
 ```
 
 ### Live smoke (Chrome MCP, desktop + mobile viewport)
@@ -311,6 +311,26 @@ builder에 로드한 뒤 `__composition_PROFILER.start()` 5초 수집 → `repor
 console error 0. 경고는 supplied project UUID의 metadata record 부재 1종만 반복됐고,
 query fixture가 canonical 문서를 주입하므로 측정 surface에는 영향이 없다.
 
+#### Phase 3 G3 evidence (2026-08-28)
+
+- dependency: `apps/builder/package.json` specifier `^0.42.0`, lockfile package/snapshot
+  둘 다 `0.42.0`. `prepare:wasm` 산출물은 정확히 `7,317,345 bytes`.
+- code gate: `buildPath.ts`는 `new ck.PathBuilder()` 단일 경로를 사용하고
+  callback throw 시 builder delete, 성공 시 `detachAndDelete()` ownership을 유지한다.
+  `typeof ck.PathBuilder` / `new ck.Path()` / `PathBuilderLike` / `MockPath` /
+  Path constructor `ReturnType` 잔존은 모두 0건.
+- static/runtime: type-check baseline 신규 위반 0. helper·renderer 집중 7파일
+  15 tests, Skia directory 49파일 372 tests PASS(4 skip).
+- dev Builder: 기존 5173 프로세스의 0.40 glue cache와 신규 0.42 WASM이
+  섞인 오류를 발견해 기각. `vite --force` fresh 5174에서 canonical 67-element
+  seed가 시각 누락 없이 렌더됐고 CanvasKit export error 0, FPS 120, smoke p95
+  9.3 ms, long task 0.
+- production: 정식 `vite build` PASS. local `vite preview`는 build base
+  `/composition/`을 mount하지 않아 `/composition/assets/*`에 HTML fallback을 반환하는
+  기존 preview 제약이 있어, 동일 production chunk을 root-base로 서빙해 분리
+  검증했다. app entry는 Sign In까지 console error 0, `initCanvasKit` dynamic chunk +
+  7,317,345-byte WASM cold origin 93 ms, `PathBuilder` export·WebGL surface 생성·delete PASS.
+
 ## Rollback
 
 1. `canvaskit-wasm` specifier·lockfile을 `0.40.0`으로 되돌리고 `prepare:wasm` 재실행.
@@ -325,7 +345,7 @@ query fixture가 canonical 문서를 주입하므로 측정 surface에는 영향
 - [x] Phase 1: `buildPath.ts`(0.40.0 타입 shim 내부 한정) + unit 테스트 + **실 wasm 통합 테스트**(scratchpad 0.42.0 tgz 로 1회), `MockPath` 교체 (`52adb4255`, `bab053f25`).
 - [x] G2: 7 파일 이관 완료, helper 밖 mutable `Path` 0건 (`097647105`까지).
 - [x] G5 baseline: canonical `path-heavy-117` seed + 0.40.0 p95 `9.3 ms`, 상한 `10.23 ms` (2026-08-28).
-- [ ] G3: `^0.42.0` lockfile, wasm 7,317,345 bytes 로드(dev + **production 번들**), 0.40.0 분기·별칭·mock·shim 제거, type-check 0, 통합 테스트 설치 패키지 기준 PASS.
+- [x] G3: `^0.42.0` lockfile, wasm 7,317,345 bytes 로드(dev + **production 번들**), 0.40.0 분기·별칭·mock·shim 제거, type-check 0, 통합 테스트 설치 패키지 기준 PASS (2026-08-28).
 - [ ] G4: smoke 표 9항목 (zoom mismatch blit 포함) desktop/mobile PASS.
 - [ ] G5: p95 +10% 이내.
 - [ ] `docs/CHANGELOG.md` CanvasKit 0.42.0 runtime update 기록 + README Implemented 갱신.

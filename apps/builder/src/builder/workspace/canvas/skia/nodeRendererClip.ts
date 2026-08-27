@@ -1,4 +1,4 @@
-import type { CanvasKit } from "canvaskit-wasm";
+import type { CanvasKit, Path } from "canvaskit-wasm";
 import type { ClipPathShape } from "../styleConversion/styleConverter";
 import { buildPath } from "./buildPath";
 import type { SkiaNodeData } from "./nodeRendererTypes";
@@ -37,7 +37,7 @@ export function createRoundRectPath(
   width: number,
   height: number,
   radii: [number, number, number, number],
-): ReturnType<CanvasKit["Path"]["prototype"]["constructor"]> {
+): Path {
   const [rTL, rTR, rBR, rBL] = clampCornerRadii(radii, width, height);
 
   return buildPath(ck, (path) => {
@@ -89,7 +89,7 @@ export function buildClipPath(
   shape: ClipPathShape,
   width: number,
   height: number,
-): ReturnType<CanvasKit["Path"]["prototype"]["constructor"]> | null {
+): Path | null {
   switch (shape.type) {
     case "inset": {
       const { top, right, bottom, left, borderRadius } = shape;

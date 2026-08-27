@@ -35,7 +35,7 @@
     "@tanstack/react-virtual": "^3.14.10",
     "@types/three": "^0.185.4",
     "autoprefixer": "^10.5.4",
-    "canvaskit-wasm": "^0.40.0",
+    "canvaskit-wasm": "^0.42.0",
     "clsx": "^2.1.1",
     "colord": "^2.10.0",
     "fuse.js": "^7.5.0",

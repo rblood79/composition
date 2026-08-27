@@ -4,6 +4,7 @@ import type {
   InputRect,
   InputRRect,
   Path,
+  PathBuilder,
 } from "canvaskit-wasm";
 
 export interface PathSink {
@@ -34,43 +35,8 @@ export interface PathSink {
   close(): this;
 }
 
-interface MutablePathLike {
-  moveTo(x: number, y: number): unknown;
-  lineTo(x: number, y: number): unknown;
-  quadTo(x1: number, y1: number, x2: number, y2: number): unknown;
-  cubicTo(
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    x: number,
-    y: number,
-  ): unknown;
-  arcToTangent(
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    radius: number,
-  ): unknown;
-  addRect(rect: InputRect): unknown;
-  addRRect(rrect: InputRRect): unknown;
-  addCircle(cx: number, cy: number, radius: number): unknown;
-  addOval(oval: InputRect): unknown;
-  addArc(oval: InputRect, startDeg: number, sweepDeg: number): unknown;
-  setFillType(fill: FillType): unknown;
-  close(): unknown;
-}
-
-// canvaskit-wasm 0.40.0에는 PathBuilder 타입이 없으므로 Phase 3 version bump 전까지
-// 이 파일 안에서만 0.42.0의 필요한 표면을 구조적으로 표현한다.
-interface PathBuilderLike extends MutablePathLike {
-  detachAndDelete(): Path;
-  delete(): void;
-}
-
 class PathSinkAdapter implements PathSink {
-  constructor(private readonly target: MutablePathLike) {}
+  constructor(private readonly target: PathBuilder) {}
 
   moveTo(x: number, y: number): this {
     this.target.moveTo(x, y);
@@ -152,29 +118,12 @@ export function buildPath(
   ck: CanvasKit,
   build: (sink: PathSink) => void,
 ): Path {
-  const PathBuilder = (
-    ck as CanvasKit & {
-      PathBuilder?: new () => PathBuilderLike;
-    }
-  ).PathBuilder;
-
-  if (typeof PathBuilder === "function") {
-    const builder = new PathBuilder();
-    try {
-      build(new PathSinkAdapter(builder));
-    } catch (error) {
-      builder.delete();
-      throw error;
-    }
-    return builder.detachAndDelete();
-  }
-
-  const path = new ck.Path();
+  const builder = new ck.PathBuilder();
   try {
-    build(new PathSinkAdapter(path));
-    return path;
+    build(new PathSinkAdapter(builder));
   } catch (error) {
-    path.delete();
+    builder.delete();
     throw error;
   }
+  return builder.detachAndDelete();
 }

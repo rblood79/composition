@@ -22,7 +22,7 @@ interface Deletable {
  * ```ts
  * const scope = new SkiaDisposable();
  * try {
- *   const path = scope.track(new ck.Path());
+ *   const path = scope.track(buildPath(ck, (sink) => sink.addRect(rect)));
  *   // ... path 사용. Paint 는 직접 생성하지 말고
  *   // paints.ts 의 acquireScopedPaint(scope, ck) 사용 (ADR-153 Phase 2)
  * } finally {

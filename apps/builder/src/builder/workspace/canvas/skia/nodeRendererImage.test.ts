@@ -38,17 +38,30 @@ interface DrawOp {
   color?: Float32Array;
 }
 
-class MockPath {
-  moveTo(): void {}
-  lineTo(): void {}
-  close(): void {}
+class StubCompletedPath {
+  delete(): void {}
+}
+
+class StubPathBuilder {
+  moveTo(): this {
+    return this;
+  }
+  lineTo(): this {
+    return this;
+  }
+  close(): this {
+    return this;
+  }
+  detachAndDelete(): StubCompletedPath {
+    return new StubCompletedPath();
+  }
   delete(): void {}
 }
 
 function makeMockCk(): CanvasKit {
   return {
     Paint: MockPaint,
-    Path: MockPath,
+    PathBuilder: StubPathBuilder,
     PaintStyle: { Fill: 0, Stroke: 1 },
     StrokeCap: { Butt: 0 },
     StrokeJoin: { Miter: 0 },
