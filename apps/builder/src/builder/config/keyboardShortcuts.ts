@@ -109,6 +109,18 @@ export const SHORTCUT_DEFINITIONS = {
     i18n: { ko: "화면에 맞추기" },
   },
 
+  // Figma·Pencil 이 같은 ⇧2 에 둔 액션. ⇧2 는 "@" 를 만들므로 `code` 로 맞춘다.
+  zoomToSelection: {
+    key: "2",
+    code: "Digit2",
+    modifier: "shift",
+    category: "navigation",
+    scope: "canvas-focused",
+    priority: SHORTCUT_PRIORITY.NAVIGATION,
+    description: "Zoom to Selection",
+    i18n: { ko: "선택에 맞추기" },
+  },
+
   zoom100: {
     key: "1",
     modifier: "cmd",
@@ -135,9 +147,14 @@ export const SHORTCUT_DEFINITIONS = {
   // Panels (priority: 80)
   // ==========================================
 
+  // 레일 순서 그대로 ⌥1–⌥8 (좌측 Nodes·Components·DataTable·Theme →
+  // 우측 Properties·Styles·Interactions·History). Figma 가 사이드바를 ⌥1–⌥3 으로
+  // 돌리는 규약의 확장이고, ⌥ 계열은 브라우저가 예약하지 않는다 (Chrome 이
+  // 쓰는 것은 ⌘1–⌘9 탭 전환). ⌥+숫자도 macOS 에서 문자가 바뀌므로 `code` 로 맞춘다.
   toggleNodes: {
-    key: "n",
-    modifier: "ctrlShift",
+    key: "1",
+    code: "Digit1",
+    modifier: "alt",
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
@@ -146,8 +163,9 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   toggleComponents: {
-    key: "c",
-    modifier: "ctrlShift",
+    key: "2",
+    code: "Digit2",
+    modifier: "alt",
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
@@ -155,9 +173,32 @@ export const SHORTCUT_DEFINITIONS = {
     i18n: { ko: "컴포넌트 패널 토글" },
   },
 
+  toggleDatatable: {
+    key: "3",
+    code: "Digit3",
+    modifier: "alt",
+    category: "panels",
+    scope: "global",
+    priority: SHORTCUT_PRIORITY.PANELS,
+    description: "Toggle DataTable Panel",
+    i18n: { ko: "데이터테이블 패널 토글" },
+  },
+
+  toggleTheme: {
+    key: "4",
+    code: "Digit4",
+    modifier: "alt",
+    category: "panels",
+    scope: "global",
+    priority: SHORTCUT_PRIORITY.PANELS,
+    description: "Toggle Theme Panel",
+    i18n: { ko: "테마 패널 토글" },
+  },
+
   toggleProperties: {
-    key: "p",
-    modifier: "ctrlShift",
+    key: "5",
+    code: "Digit5",
+    modifier: "alt",
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
@@ -166,8 +207,9 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   toggleStyles: {
-    key: "s",
-    modifier: "ctrlShift",
+    key: "6",
+    code: "Digit6",
+    modifier: "alt",
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
@@ -176,18 +218,20 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   toggleEvents: {
-    key: "e",
-    modifier: "ctrlShift",
+    key: "7",
+    code: "Digit7",
+    modifier: "alt",
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
-    description: "Toggle Events Panel",
-    i18n: { ko: "이벤트 패널 토글" },
+    description: "Toggle Interactions Panel",
+    i18n: { ko: "인터랙션 패널 토글" },
   },
 
   toggleHistory: {
-    key: "h",
-    modifier: "ctrlShift",
+    key: "8",
+    code: "Digit8",
+    modifier: "alt",
     category: "panels",
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
@@ -229,6 +273,31 @@ export const SHORTCUT_DEFINITIONS = {
     i18n: { ko: "설정 열기" },
   },
 
+  // Pencil 이 ⌘K 를 AI 채팅에 쓴다 — 같은 자리에 두면 두 도구를 오가는 손이
+  // 헷갈리지 않는다. 밀려난 명령 팔레트는 Figma 가 같은 성격의 actions menu 를
+  // 둔 ⌘/ 로 간다. 팔레트는 종전에 정의 없이 CommandPalette 안에서만 등록돼
+  // 있어 팔레트 자기 목록에도 나오지 않았다.
+  toggleAI: {
+    key: "k",
+    modifier: "cmd",
+    category: "panels",
+    scope: "global",
+    priority: SHORTCUT_PRIORITY.PANELS,
+    description: "Toggle AI Panel",
+    i18n: { ko: "AI 패널 토글" },
+  },
+
+  commandPalette: {
+    key: "/",
+    code: "Slash",
+    modifier: "cmd",
+    category: "panels",
+    scope: "global",
+    priority: SHORTCUT_PRIORITY.PANELS,
+    description: "Open Command Palette",
+    i18n: { ko: "명령 팔레트 열기" },
+  },
+
   // ==========================================
   // Canvas (priority: 70)
   // ==========================================
@@ -237,7 +306,10 @@ export const SHORTCUT_DEFINITIONS = {
     key: "c",
     modifier: "cmd",
     category: "canvas",
-    scope: ["canvas-focused", "panel:events"],
+    // properties 패널 포커스에서도 같은 "요소 복사" 다 — 종전에는
+    // `copyAllProperties` 라는 별도 정의가 있었지만 아무도 그 정의를 읽지
+    // 않았고(등록은 손으로 ⌘C 를 적고 있었다), 동작도 이것과 같았다.
+    scope: ["canvas-focused", "panel:events", "panel:properties"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Copy",
     i18n: { ko: "복사" },
@@ -247,7 +319,7 @@ export const SHORTCUT_DEFINITIONS = {
     key: "v",
     modifier: "cmd",
     category: "canvas",
-    scope: ["canvas-focused", "panel:events"],
+    scope: ["canvas-focused", "panel:events", "panel:properties"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Paste",
     i18n: { ko: "붙여넣기" },
@@ -424,9 +496,13 @@ export const SHORTCUT_DEFINITIONS = {
     i18n: { ko: "프레임 해제" },
   },
 
+  // ⌥ 계열은 macOS 에서 문자를 바꾼다 (⌥A→å, ⌥S→ß, ⌥⇧V→◊). `key` 로 맞추면
+  // 실물 키보드에서 영영 발화하지 않으므로 이 그룹은 `code` 로 맞춘다 —
+  // 종전 `distributeV`(⌥⇧V, code 없음)가 그 상태였다.
   alignLeft: {
-    key: "l",
-    modifier: "cmdShift",
+    key: "a",
+    code: "KeyA",
+    modifier: "alt",
     category: "canvas",
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
@@ -436,17 +512,19 @@ export const SHORTCUT_DEFINITIONS = {
 
   alignHCenter: {
     key: "h",
-    modifier: "cmdShift",
+    code: "KeyH",
+    modifier: "alt",
     category: "canvas",
     scope: "canvas-focused",
-    priority: SHORTCUT_PRIORITY.CANVAS - 1, // toggleHistory보다 낮음
+    priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Align Horizontal Center",
     i18n: { ko: "가로 중앙 정렬" },
   },
 
   alignRight: {
-    key: "r",
-    modifier: "cmdShift",
+    key: "d",
+    code: "KeyD",
+    modifier: "alt",
     category: "canvas",
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
@@ -455,8 +533,9 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   alignTop: {
-    key: "t",
-    modifier: "cmdShift",
+    key: "w",
+    code: "KeyW",
+    modifier: "alt",
     category: "canvas",
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
@@ -465,8 +544,9 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   alignVCenter: {
-    key: "m",
-    modifier: "cmdShift",
+    key: "v",
+    code: "KeyV",
+    modifier: "alt",
     category: "canvas",
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
@@ -475,8 +555,9 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   alignBottom: {
-    key: "b",
-    modifier: "cmdShift",
+    key: "s",
+    code: "KeyS",
+    modifier: "alt",
     category: "canvas",
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
@@ -485,8 +566,9 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   distributeH: {
-    key: "d",
-    modifier: "cmdShift",
+    key: "h",
+    code: "KeyH",
+    modifier: "altShift",
     category: "canvas",
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
@@ -496,6 +578,7 @@ export const SHORTCUT_DEFINITIONS = {
 
   distributeV: {
     key: "v",
+    code: "KeyV",
     modifier: "altShift",
     category: "canvas",
     scope: "canvas-focused",
@@ -508,9 +591,12 @@ export const SHORTCUT_DEFINITIONS = {
   // Properties Panel (priority: 50)
   // ==========================================
 
+  // ⌘⌥C / ⌘⌥V — Figma 의 「속성 복사·붙여넣기」와 같은 자리. 어느 패널에
+  // 포커스가 있느냐로 대상이 갈린다 (properties=D2 props / styles=D3 시각 스타일).
+  // 종전 ⌘⇧C 는 Chrome DevTools 요소 검사라 페이지가 막을 수 없는 자리였다.
   copyProperties: {
     key: "c",
-    modifier: "cmdShift",
+    modifier: "cmdAlt",
     category: "properties",
     scope: "panel:properties",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
@@ -520,7 +606,7 @@ export const SHORTCUT_DEFINITIONS = {
 
   pasteProperties: {
     key: "v",
-    modifier: "cmdShift",
+    modifier: "cmdAlt",
     category: "properties",
     scope: "panel:properties",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
@@ -528,25 +614,7 @@ export const SHORTCUT_DEFINITIONS = {
     i18n: { ko: "속성 붙여넣기" },
   },
 
-  copyAllProperties: {
-    key: "c",
-    modifier: "cmdAlt",
-    category: "properties",
-    scope: "panel:properties",
-    priority: SHORTCUT_PRIORITY.PROPERTIES,
-    description: "Copy All Properties",
-    i18n: { ko: "모든 속성 복사" },
-  },
 
-  pasteAllProperties: {
-    key: "v",
-    modifier: "cmdAlt",
-    category: "properties",
-    scope: "panel:properties",
-    priority: SHORTCUT_PRIORITY.PROPERTIES,
-    description: "Paste All Properties",
-    i18n: { ko: "모든 속성 붙여넣기" },
-  },
 
   // ==========================================
   // Styles Panel (priority: 50)
@@ -554,7 +622,7 @@ export const SHORTCUT_DEFINITIONS = {
 
   copyStyles: {
     key: "c",
-    modifier: "cmdShift",
+    modifier: "cmdAlt",
     category: "properties",
     scope: "panel:styles",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
@@ -564,7 +632,7 @@ export const SHORTCUT_DEFINITIONS = {
 
   pasteStyles: {
     key: "v",
-    modifier: "cmdShift",
+    modifier: "cmdAlt",
     category: "properties",
     scope: "panel:styles",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
@@ -573,8 +641,9 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   toggleFocusMode: {
-    key: "f",
-    modifier: "cmd",
+    key: "s",
+    code: "KeyS",
+    modifier: "altShift",
     category: "properties",
     scope: "panel:styles",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
@@ -582,24 +651,17 @@ export const SHORTCUT_DEFINITIONS = {
     i18n: { ko: "포커스 모드 토글" },
   },
 
-  expandAllSections: {
+  // 종전에 정의가 「전부 펼침」·「전부 접힘」 둘이었지만 구현은 접힘 개수를 보고
+  // 번갈아 도는 토글 하나였다. 정의를 실제에 맞춰 하나로 합친다.
+  toggleSections: {
     key: "e",
-    modifier: "cmd",
+    code: "KeyE",
+    modifier: "altShift",
     category: "properties",
     scope: "panel:styles",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
-    description: "Expand All Sections",
-    i18n: { ko: "모든 섹션 펼치기" },
-  },
-
-  collapseAllSections: {
-    key: "w",
-    modifier: "cmd",
-    category: "properties",
-    scope: "panel:styles",
-    priority: SHORTCUT_PRIORITY.PROPERTIES,
-    description: "Collapse All Sections",
-    i18n: { ko: "모든 섹션 접기" },
+    description: "Toggle All Sections",
+    i18n: { ko: "모든 섹션 펼침/접힘" },
   },
 
   // ==========================================
@@ -707,25 +769,7 @@ export const SHORTCUT_DEFINITIONS = {
   // 를 캔버스 재배치와 분리하면서 표기만 이관).
   // ==========================================
 
-  eventsNavUp: {
-    key: "ArrowUp",
-    modifier: "none",
-    category: "events",
-    scope: "panel:events",
-    priority: SHORTCUT_PRIORITY.EVENTS,
-    description: "Navigate Up",
-    i18n: { ko: "위로 이동" },
-  },
 
-  eventsNavDown: {
-    key: "ArrowDown",
-    modifier: "none",
-    category: "events",
-    scope: "panel:events",
-    priority: SHORTCUT_PRIORITY.EVENTS,
-    description: "Navigate Down",
-    i18n: { ko: "아래로 이동" },
-  },
 
   // ==========================================
   // Nodes Panel / Tree Navigation (priority: 50)
