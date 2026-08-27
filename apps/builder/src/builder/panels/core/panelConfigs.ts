@@ -60,7 +60,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 320,
     description: "페이지 계층 구조 탐색",
-    shortcut: "Ctrl+Shift+N",
+    shortcut: "⌥1",
   },
   {
     id: "components",
@@ -74,7 +74,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 520,
     description: "컴포넌트 라이브러리",
-    shortcut: "Ctrl+Shift+C",
+    shortcut: "⌥2",
   },
   {
     id: "datatable",
@@ -88,7 +88,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: "100%",
     defaultHeight: 520,
     description: "DataTables, APIs, Variables 관리",
-    shortcut: "Ctrl+Shift+T",
+    shortcut: "⌥3",
   },
   {
     id: "datatableEditor",
@@ -117,6 +117,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 520,
     description: "Tint 프리셋 및 테마 설정",
+    shortcut: "⌥4",
   },
   // System panels
   {
@@ -168,7 +169,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 520,
     description: "요소 속성 편집",
-    shortcut: "Ctrl+Shift+P",
+    shortcut: "⌥5",
   },
   {
     id: "styles",
@@ -182,7 +183,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 520,
     description: "CSS 스타일 편집",
-    shortcut: "Ctrl+Shift+S",
+    shortcut: "⌥6",
   },
   {
     // ADR-158 Phase 2 — EventsPanel → InteractionsPanel 교체.
@@ -198,7 +199,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 800,
     defaultHeight: 520,
     description: "한 줄 규칙으로 요소 동작 정의",
-    shortcut: "Ctrl+Shift+E",
+    shortcut: "⌥7",
   },
   // ADR-149 Phase 2c (2026-07-19): actions 패널 제거 (HC4) — ADR-131 Phase 5 G3
   // raw skeleton panel 이었음. cross-event reuse 는 EventsPanel L2 고급 토글로 흡수 (Phase 3).
@@ -215,7 +216,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultWidth: 320,
     defaultHeight: 450,
     description: "변경 내역 확인 및 복원",
-    shortcut: "Ctrl+Shift+H",
+    shortcut: "⌥8",
     displayModes: ["panel", "floating"],
   },
   // 구 "폰트" 도킹 패널은 2026-08-25 에 등록 해제했다 — 폰트 관리는 Typography 의

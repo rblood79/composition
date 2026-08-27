@@ -119,6 +119,40 @@ export function useGlobalKeyboardShortcuts() {
     togglePanel("monitor");
   }, [togglePanel]);
 
+  // 레일 순서 그대로 ⌥1–⌥8. 정의는 있었지만 등록이 없어 여섯 개가 눌러도
+  // 반응하지 않았다 (2026-08-27 인벤토리). `events` 는 패널 배치 persist 키라
+  // InteractionsPanel 로 교체된 뒤에도 id 를 유지한다 (ADR-158).
+  const handleToggleNodes = useCallback(() => {
+    togglePanel("nodes");
+  }, [togglePanel]);
+  const handleToggleComponents = useCallback(() => {
+    togglePanel("components");
+  }, [togglePanel]);
+  const handleToggleDatatable = useCallback(() => {
+    togglePanel("datatable");
+  }, [togglePanel]);
+  const handleToggleTheme = useCallback(() => {
+    togglePanel("theme");
+  }, [togglePanel]);
+  const handleToggleProperties = useCallback(() => {
+    togglePanel("properties");
+  }, [togglePanel]);
+  const handleToggleStyles = useCallback(() => {
+    togglePanel("styles");
+  }, [togglePanel]);
+  const handleToggleEvents = useCallback(() => {
+    togglePanel("events");
+  }, [togglePanel]);
+  const handleToggleHistory = useCallback(() => {
+    togglePanel("history");
+  }, [togglePanel]);
+  const handleToggleAI = useCallback(() => {
+    togglePanel("ai");
+  }, [togglePanel]);
+  const handleOpenSettings = useCallback(() => {
+    togglePanel("settings");
+  }, [togglePanel]);
+
   /** ADR-181 — 눈금자 토글 (설정 패널 스위치와 같은 상태) */
   const handleToggleRulers = useCallback(() => {
     const { showRulers, setShowRulers } = useStore.getState();
@@ -451,6 +485,16 @@ export function useGlobalKeyboardShortcuts() {
       zoom100: handleZoom100,
       zoom200: handleZoom200,
       toggleMonitor: handleToggleMonitor,
+      toggleNodes: handleToggleNodes,
+      toggleComponents: handleToggleComponents,
+      toggleDatatable: handleToggleDatatable,
+      toggleTheme: handleToggleTheme,
+      toggleProperties: handleToggleProperties,
+      toggleStyles: handleToggleStyles,
+      toggleEvents: handleToggleEvents,
+      toggleHistory: handleToggleHistory,
+      toggleAI: handleToggleAI,
+      openSettings: handleOpenSettings,
       toggleRulers: handleToggleRulers,
 
       // Canvas (Phase 6: 스코프 기반)
@@ -486,6 +530,16 @@ export function useGlobalKeyboardShortcuts() {
       handleZoom100,
       handleZoom200,
       handleToggleMonitor,
+      handleToggleNodes,
+      handleToggleComponents,
+      handleToggleDatatable,
+      handleToggleTheme,
+      handleToggleProperties,
+      handleToggleStyles,
+      handleToggleEvents,
+      handleToggleHistory,
+      handleToggleAI,
+      handleOpenSettings,
       handleToggleRulers,
       // Phase 6
       getScopedHandler,
@@ -533,6 +587,16 @@ export function useGlobalKeyboardShortcuts() {
       // Panels
       "toggleMonitor",
       "toggleRulers",
+      "toggleNodes",
+      "toggleComponents",
+      "toggleDatatable",
+      "toggleTheme",
+      "toggleProperties",
+      "toggleStyles",
+      "toggleEvents",
+      "toggleHistory",
+      "toggleAI",
+      "openSettings",
       // Canvas (Phase 6)
       "copy",
       "cut",

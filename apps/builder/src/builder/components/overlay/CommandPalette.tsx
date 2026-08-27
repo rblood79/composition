@@ -27,6 +27,7 @@ import {
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
 import {
+  bindHandlersToDefinitions,
   formatShortcut,
   useKeyboardShortcutsRegistry,
   usePanelLayout,
@@ -133,24 +134,19 @@ export function CommandPalette({
     return () => window.removeEventListener("open-command-palette", handler);
   }, [handleOpenChange]);
 
-  // Cmd+K로 열기
-  useKeyboardShortcutsRegistry(
-    [
-      {
-        key: "k",
-        modifier: "cmd",
-        handler: () => {
-          handleOpenChange(true);
-        },
-        preventDefault: true,
-        priority: 95,
-        category: "system",
-        description: "Open command palette",
-      },
-    ],
+  // ⌘/ 로 열기 — ⌘K 는 AI 패널에 내줬다 (Pencil 이 ⌘K 를 AI 채팅에 쓴다).
+  // 조합은 `commandPalette` 정의가 정본이다. 종전에는 여기서 손으로 적어
+  // 정의가 아예 없었고, 그래서 팔레트 자기 목록에도 나오지 않았다.
+  const paletteShortcuts = useMemo(
+    () =>
+      bindHandlersToDefinitions(["commandPalette"], {
+        commandPalette: () => handleOpenChange(true),
+      }),
     [handleOpenChange],
-    { capture: true },
   );
+  useKeyboardShortcutsRegistry(paletteShortcuts, [paletteShortcuts], {
+    capture: true,
+  });
 
   // 열릴 때 입력창에 포커스
   useEffect(() => {

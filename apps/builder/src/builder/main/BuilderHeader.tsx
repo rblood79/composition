@@ -141,7 +141,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               <MenuItem id="shortcuts" className="header-menu-item">
                 <Command size={14} />
                 <span>{t("header.shortcuts")}</span>
-                <Keyboard>⌘K</Keyboard>
+                <Keyboard>⌘/</Keyboard>
               </MenuItem>
               <MenuItem id="help" className="header-menu-item">
                 <CircleHelp size={14} />
