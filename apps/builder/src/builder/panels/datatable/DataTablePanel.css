@@ -134,8 +134,8 @@
 }
 
 .datatable-panel .list-item-badge.page {
-  background: var(--color-tertiary-100);
-  color: var(--color-tertiary-700);
+  background: var(--hue-purple-subtle);
+  color: var(--hue-purple);
 }
 
 /* Method Badge */
@@ -165,8 +165,8 @@
 }
 
 .datatable-panel .list-item-badge.PATCH {
-  background: var(--color-tertiary-100);
-  color: var(--color-tertiary-700);
+  background: var(--hue-purple-subtle);
+  color: var(--hue-purple);
 }
 
 /* DataTable Source Badge */

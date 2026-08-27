@@ -29,7 +29,14 @@
   }
 
   .panel-workspace {
-    --panel-workspace-gap: var(--spacing-xs);
+    /* panelWorkspaceLayoutV2.ts 의 `PANEL_WORKSPACE_GAP = 4` 와 같은 값이어야
+     * 한다 — 그쪽은 surface 안쪽 패널 여백·패널 사이 간격을 px 로 계산하고,
+     * 여기는 chrome↔stage · rail↔surface 간격을 그린다. 같은 리듬으로 읽혀야
+     * 하는 두 gutter 다. `var(--spacing-xs)` 는 0.25rem 이라 기본 16px 루트에서만
+     * 4px 이고, 브라우저 기본 글꼴 크기를 키우면 CSS gutter 만 커져 어긋난다
+     * (`.app` 의 zoom 은 px·rem 을 함께 늘려 이 축에 관여하지 않는다).
+     * 게이트: PanelWorkspace.static.test.ts */
+    --panel-workspace-gap: 4px;
     --panel-interaction-line-color: var(--focus-ring);
     --panel-interaction-line-size: 2px;
 

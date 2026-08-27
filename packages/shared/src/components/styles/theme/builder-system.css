@@ -90,6 +90,13 @@
 
     /* ===== Status (Light) ===== */
     --negative: var(--color-red-500);
+    /* subtle negative 배경 위 텍스트 — `--fg-on-notice` 와 같은 규약.
+     * 빌더 라우트는 `data-builder-theme` 만 세우므로 semantic-palette.css 의
+     * `--negative-strong`([data-theme] 게이트) 이 dark 에서 뒤집히지 않는다.
+     * 그 이름을 여기서 덮으면 같은 토큰을 읽는 shared 컴포넌트(Table/ListBox/
+     * ActionList/EventSection/CollectionErrorState)까지 함께 바뀌므로,
+     * 빌더 chrome 전용 이름으로 둔다. */
+    --fg-on-negative: var(--color-red-600);
     --informative: var(--color-blue-500);
     --notice: var(--color-orange-500);
     --notice-subtle: var(--color-orange-50);
@@ -160,6 +167,7 @@
 
     /* ===== Status (Dark) ===== */
     --negative: var(--color-red-400);
+    --fg-on-negative: var(--color-red-200);
     --informative: var(--color-blue-400);
     --notice: var(--color-orange-400);
     --notice-subtle: rgba(251, 106, 34, 0.15);

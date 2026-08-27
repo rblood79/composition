@@ -189,7 +189,16 @@ export function ContextualActionBar() {
   const selectedElementIds = useStore((state) => state.selectedElementIds);
   // `elements` 배열은 요소 변경(컴포넌트 토글·재부모화·삭제)마다 교체된다 —
   // 항목 라벨/조건이 갈리는 모든 경우를 덮는 가장 단순한 재산출 트리거.
-  // 드래그 중에는 store 가 갱신되지 않아(드롭 시 1회 commit) 프레임 루프와 무관.
+  //
+  // 2026-08-27 code-review #15 는 이 트리거가 과하다고 봤으나, 실측에서 비용이
+  // 성립하지 않아 그대로 둔다 (live, 55 요소 프로젝트):
+  //   - 캔버스 텍스트 편집 중 타이핑 10자 → `elements` identity 변경 0회
+  //     (초안이 로컬이라 store 를 건드리지 않는다 — 키 입력당 재산출 없음)
+  //   - 요소 드래그 → 0회 (드롭 시 1회 commit, 위 서술대로)
+  //   - 속성 1건 확정(Gap) → 2회. 재산출 1회의 O(N) 부분은 provider 의
+  //     `hasReorderableSiblings` 형제 탐색뿐이고 같은 형태를 재면 55개 0.0015ms /
+  //     5,000개 0.049ms — 5,000 요소 문서의 편집 1회 비용 205ms 대비 무시 가능.
+  // 트리거를 좁히면 라벨이 낡을 위험만 커진다.
   const elements = useStore((state) => state.elements);
   // undo 로 선택 대상이 사라진 경우(그룹 해제 등) — 선택 id 가 문서에 없으면
   // 182 provider 가 interactive map 잔상으로 항목을 만들 수 있어 바를 내린다.

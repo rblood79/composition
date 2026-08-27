@@ -215,7 +215,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toMatch(
       /const origin = \{[\s\S]*?x: 0,[\s\S]*?y: 0,[\s\S]*?workspaceWidth:/,
     );
-    expect(styles).toContain("--panel-workspace-gap: var(--spacing-xs)");
+    expect(styles).toContain("--panel-workspace-gap: 4px");
     expect(styles).toMatch(
       /\.panel-dock\s*\{[\s\S]*?display: grid;[\s\S]*?grid-template-rows: auto minmax\(0, 1fr\);[\s\S]*?margin: var\(--panel-workspace-gap\);/,
     );
@@ -268,5 +268,24 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(dataTableEditor).not.toContain("activeLeftPanels");
     expect(dataTableEditor).toContain('".panel-dock-stage"');
     expect(dataTableEditor).not.toContain("panel-workspace-placement-surface");
+  });
+
+  // 2026-08-27 code-review #14 — CSS gutter 는 rem(`--spacing-xs`), JS geometry 는
+  // px(`PANEL_WORKSPACE_GAP`) 이라 루트 글꼴 크기가 16px 이 아닌 환경에서 패널
+  // 사이 간격과 rail/chrome 간격이 서로 다른 폭으로 벌어졌다. 두 값을 한 곳에서
+  // 고정한다.
+  it("패널 gutter 는 CSS 와 layout 상수가 같은 px 값을 쓴다", async () => {
+    const [styles, layout] = await Promise.all([
+      readStyles(),
+      readFile(resolve(__dirname, "panelWorkspaceLayoutV2.ts"), "utf-8"),
+    ]);
+
+    const cssGap = styles.match(/--panel-workspace-gap:\s*([^;]+);/)?.[1];
+    const jsGap = layout.match(
+      /export const PANEL_WORKSPACE_GAP = (\d+);/,
+    )?.[1];
+
+    expect(jsGap).toBeDefined();
+    expect(cssGap).toBe(`${jsGap}px`);
   });
 });

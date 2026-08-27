@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [코드리뷰 잔여 3건 — dark 팔레트 · 패널 gutter] - 2026-08-27
+
+### Bug Fixes
+
+- **dark 모드 빌더 chrome 에서 rename 이 되살린 raw 팔레트 9곳**: `58f5b1f08` 의 `danger→error` / `secondary→tertiary` 리네임이 어디에도 정의된 적 없던(=선언이 죽어 있던) 변수를 dark 대응이 없는 raw 팔레트의 live 참조로 바꿨다. 빌더 라우트는 `data-builder-theme` 만 세우므로 `semantic-palette.css` 의 `[data-theme="dark"]` 단계 반전이 닿지 않아, dark 에서 light 단계가 그대로 남았다 (SelectionMemory 의 삭제 아이콘은 어두운 표면 위 red-600 이라 특히 읽기 어려웠다).
+  - 삭제 아이콘·invalid 테두리 → `--negative` (빌더 chrome 이 이미 파괴적 동작에 쓰는 토큰: dashboard · Interactions · AI · History · Toast).
+  - 오류 칩 → `--negative` 12% color-mix 배경 + 신규 `--fg-on-negative` (light red-600 / dark red-200). `--negative-subtle` 을 빌더 범위에서 덮으면 같은 이름을 읽는 shared 컴포넌트(Table/ListBox/ActionList/EventSection/CollectionErrorState)까지 함께 바뀌므로 `--fg-on-notice` 와 같은 규약의 chrome 전용 이름을 새로 둔다.
+  - DataTable 배지 `page`·`PATCH` → `--hue-purple-subtle` / `--hue-purple` (`a39220836` 의 Table tertiary 전환과 같은 경로).
+- **패널 gutter 가 두 단위로 갈려 있던 결함**: CSS 는 `--panel-workspace-gap: var(--spacing-xs)`(0.25rem), 레이아웃 계산은 `PANEL_WORKSPACE_GAP = 4`(px) 였다. 기본 16px 루트에서만 값이 같고, 브라우저 기본 글꼴 크기를 키우면 chrome↔stage·rail↔surface 간격만 커져 패널 사이 간격과 어긋난다. CSS 를 `4px` 로 고정하고 두 값을 정적 테스트로 묶었다.
+
 ## [ADR-192/182 코드리뷰 수정 3묶음 — 액션 정합] - 2026-08-27
 
 ### Bug Fixes
