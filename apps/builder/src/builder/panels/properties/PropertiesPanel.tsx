@@ -52,7 +52,9 @@ import { getPropagationRules } from "../../utils/propagationRegistry";
 import { buildPropagationUpdates } from "../../utils/propagationEngine";
 import type { BatchPropsUpdate } from "../../stores/utils/elementUpdate";
 import {
+  alignSelection,
   copySelection,
+  distributeSelection,
   groupSelection,
   paste,
 } from "../../workspace/canvas/actions/canvasActions";
@@ -61,9 +63,7 @@ import {
   panelNodeToElement,
   panelNodeMapToElementMap,
 } from "./panelNodeElementMap";
-import { alignElements } from "../../stores/utils/elementAlignment";
 import type { AlignmentType } from "../../stores/utils/elementAlignment";
-import { distributeElements } from "../../stores/utils/elementDistribution";
 import type { DistributionType } from "../../stores/utils/elementDistribution";
 import {
   isCanonicalRefElement,
@@ -557,78 +557,16 @@ const MultiSelectContent = memo(function MultiSelectContent({
     await groupSelection({ elementsMap: getLegacyElementsMap() });
   };
 
+  // 정렬·분배도 같은 공유 계층 — 자체 구현은 body 를 거르지 않아 ⌘A 선택의
+  // 툴바 버튼이 페이지 루트에 left/top 을 썼다 (컨텍스트 메뉴·단축키는
+  // `selectableWithoutBody` 를 지나는데 이 경로만 남아 있었다). 최소 개수 판정도
+  // `ALIGN/DISTRIBUTE_MIN_SELECTION` 한 곳에서 나온다.
   const handleAlign = async (type: AlignmentType) => {
-    if (selectedElementIds.length < 2) return;
-    try {
-      const elementsMap = getLegacyElementsMap();
-      const updates = alignElements(selectedElementIds, elementsMap, type);
-      if (updates.length === 0) return;
-      // trackBatchUpdate 호출 제거: batchUpdateElementProps 가 요소별 merged props 로
-      //   batch entry 1개를 스스로 기록한다. 게다가 여기서 넘기던 인자는 형태부터
-      //   틀렸다 — trackBatchUpdate 의 2번째 인자는 "모든 요소에 적용할 props 패치"
-      //   인데 `{elementId: style}` 맵을 넘겨, 요소 id 가 prop 이름으로 기록됐다.
-      const batchUpdateElementProps =
-        useStore.getState().batchUpdateElementProps;
-      const batch = updates.flatMap((update) => {
-        const element = elementsMap.get(update.id);
-        if (!element) return [];
-        const updatedStyle = {
-          ...((element.props.style as Record<string, unknown>) || {}),
-          ...update.style,
-        };
-        return [
-          {
-            elementId: update.id,
-            props: {
-              style: updatedStyle,
-            } as import("../../../types/core/store.types").ComponentElementProps,
-          },
-        ];
-      });
-      await batchUpdateElementProps(batch);
-      console.log(
-        `✅ [Alignment] Aligned ${updates.length} elements to ${type}`,
-      );
-    } catch (error) {
-      console.error("❌ [Alignment] Failed:", error);
-    }
+    await alignSelection({ elementsMap: getLegacyElementsMap() }, type);
   };
 
   const handleDistribute = async (type: DistributionType) => {
-    if (selectedElementIds.length < 3) return;
-    try {
-      const elementsMap = getLegacyElementsMap();
-      const updates = distributeElements(selectedElementIds, elementsMap, type);
-      if (updates.length === 0) return;
-      // trackBatchUpdate 호출 제거: batchUpdateElementProps 가 요소별 merged props 로
-      //   batch entry 1개를 스스로 기록한다. 게다가 여기서 넘기던 인자는 형태부터
-      //   틀렸다 — trackBatchUpdate 의 2번째 인자는 "모든 요소에 적용할 props 패치"
-      //   인데 `{elementId: style}` 맵을 넘겨, 요소 id 가 prop 이름으로 기록됐다.
-      const batchUpdateElementProps =
-        useStore.getState().batchUpdateElementProps;
-      const batch = updates.flatMap((update) => {
-        const element = elementsMap.get(update.id);
-        if (!element) return [];
-        const updatedStyle = {
-          ...((element.props.style as Record<string, unknown>) || {}),
-          ...update.style,
-        };
-        return [
-          {
-            elementId: update.id,
-            props: {
-              style: updatedStyle,
-            } as import("../../../types/core/store.types").ComponentElementProps,
-          },
-        ];
-      });
-      await batchUpdateElementProps(batch);
-      console.log(
-        `✅ [Distribution] Distributed ${updates.length} elements ${type}ly`,
-      );
-    } catch (error) {
-      console.error("❌ [Distribution] Failed:", error);
-    }
+    await distributeSelection({ elementsMap: getLegacyElementsMap() }, type);
   };
 
   // Get actual Element from store for SmartSelection

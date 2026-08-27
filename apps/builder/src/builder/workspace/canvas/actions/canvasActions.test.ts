@@ -316,6 +316,34 @@ describe("선택 행동의 body 필터 (2026-08-27 관찰)", () => {
     };
   }
 
+  it("copySelection 은 body 를 빼고 복사한다 — ⌘A→⌘C→⌘V 가 두 번째 body 를 만들지 않는다", async () => {
+    const context = seed(["body-1", "a", "b"]);
+    const writeClipboardText = vi.fn<(text: string) => Promise<boolean>>(
+      async () => true,
+    );
+
+    await copySelection({ ...context, writeClipboardText });
+
+    expect(writeClipboardText).toHaveBeenCalledTimes(1);
+    const copied = JSON.parse(writeClipboardText.mock.calls[0][0]);
+    expect(copied.rootIds).toEqual(["a", "b"]);
+    expect(
+      copied.elements.map((element: { id: string }) => element.id),
+    ).not.toContain("body-1");
+  });
+
+  it("body 단독 선택은 복사하지 않는다 (클립보드 쓰기 0회)", async () => {
+    const context = seed(["body-1"]);
+    const writeClipboardText = vi.fn<(text: string) => Promise<boolean>>(
+      async () => true,
+    );
+
+    const copied = await copySelection({ ...context, writeClipboardText });
+
+    expect(copied).toBe(false);
+    expect(writeClipboardText).not.toHaveBeenCalled();
+  });
+
   it("alignSelection 은 body 를 제외하고 나머지만 정렬한다", async () => {
     const context = seed(["body-1", "a", "b"]);
     const batchUpdateElementProps = vi

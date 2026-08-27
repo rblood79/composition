@@ -62,8 +62,10 @@ describe("기록하는 store action 과 track 헬퍼를 겹쳐 부르지 않는�
     expect(actions.match(/await batchUpdateElementProps\(/g)).toHaveLength(2); // align + distribute
 
     const panel = await readSource("./PropertiesPanel.tsx");
-    // batch 편집 / 정렬 / 분배 3곳
-    expect(panel.match(/await batchUpdateElementProps\(/g)).toHaveLength(3);
+    // batch 편집 1곳 — 정렬·분배는 공유 계층(body 필터 포함)을 소비한다
+    expect(panel.match(/await batchUpdateElementProps\(/g)).toHaveLength(1);
+    expect(panel).toContain("await alignSelection(");
+    expect(panel).toContain("await distributeSelection(");
   });
 
   it("다중 삭제는 배치 removeElements 1회 (요소별 병렬 삭제 금지)", async () => {

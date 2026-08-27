@@ -144,15 +144,16 @@ export async function copySelection(
   context: CanvasActionContext,
 ): Promise<boolean> {
   const { selectedElementIds, currentPageId } = useStore.getState();
-  if (
-    selectedElementIds.length === 0 ||
-    (context.requireCurrentPageForCopy && !currentPageId)
-  ) {
-    return false;
-  }
+  if (context.requireCurrentPageForCopy && !currentPageId) return false;
 
   const elementsMap = getActionElements(context);
-  const copiedData = copyMultipleElements(selectedElementIds, elementsMap);
+  // ⌘A→⌘C→⌘V 는 복제와 같은 경로로 두 번째 body 를 문서에 넣는다 — 복제·삭제와
+  // 같은 관문을 지난다. body 만 선택된 경우는 복사할 것이 없다 (cut 은 이 false
+  // 로 삭제도 건너뛴다).
+  const copyableIds = selectableWithoutBody(selectedElementIds, elementsMap);
+  if (copyableIds.length === 0) return false;
+
+  const copiedData = copyMultipleElements(copyableIds, elementsMap);
   const serialized = serializeCopiedElements(copiedData);
   return await (context.writeClipboardText ?? writeClipboardText)(serialized);
 }
