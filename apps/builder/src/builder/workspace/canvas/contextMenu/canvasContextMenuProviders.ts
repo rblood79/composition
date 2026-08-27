@@ -158,8 +158,12 @@ function buildZOrderItems(element: CanvasActionElement): ContextMenuItem[] {
   ];
 }
 
+/** `distributeSelection` 은 3개 미만에서 즉시 return 한다 (canvasActions.ts) */
+const DISTRIBUTE_MIN_SELECTION = 3;
+
 function buildAlignmentItems(
   options: CanvasContextMenuProviderOptions,
+  selectionCount: number,
 ): ContextMenuItem[] {
   // 다중 선택 툴바(MultiSelectStatusIndicator)와 **같은 정본**을 읽는다 —
   // 두 진입점이 다른 그림을 쓰면 같은 동작으로 안 읽힌다.
@@ -173,7 +177,12 @@ function buildAlignmentItems(
     "middle",
     "bottom",
   ];
-  const distributionTypes: DistributionType[] = ["horizontal", "vertical"];
+  // 2 개 선택에서는 분배가 무반응 no-op 이라 만들지 않는다 — 조건 미충족
+  // 항목은 숨긴다는 182 노출 정책 그대로 (2026-08-27 code-review #10).
+  const distributionTypes: DistributionType[] =
+    selectionCount >= DISTRIBUTE_MIN_SELECTION
+      ? ["horizontal", "vertical"]
+      : [];
   const context = () => actionContext(options);
 
   return [
@@ -186,7 +195,9 @@ function buildAlignmentItems(
         { icon: alignmentIcons[type] },
       ),
     ),
-    { kind: "separator", id: "align-distribute-separator" },
+    ...(distributionTypes.length > 0
+      ? [{ kind: "separator" as const, id: "align-distribute-separator" }]
+      : []),
     ...distributionTypes.map((type) =>
       actionItem(
         `distribute-${type}`,
@@ -211,8 +222,10 @@ function buildElementMenuItems(
   const nonBodyElements = selectedElements.filter(
     (element) => element.type.toLowerCase() !== "body",
   );
+  // `groupSelection` 은 `multiSelectMode && length >= 2` 에서만 실행한다
+  // (canvasActions.ts) — 단일 선택 group 은 결정적 no-op 이었다 (code-review #10).
   const canGroupSelection =
-    selectedElements.length > 0 &&
+    selectedElements.length >= 2 &&
     nonBodyElements.length === selectedElements.length;
   const primaryElement = selectedElements[0];
   const isSingleSelection = selectedElements.length === 1;
@@ -265,6 +278,8 @@ function buildElementMenuItems(
     hasReorderableSiblings(primaryElement, elementsMap)
   ) {
     items.push(...buildZOrderItems(primaryElement));
+    // 뒤 섹션이 비어 이 구분선이 붕 뜨는 경우는 조립 지점의
+    // `dropEmptySeparators` 가 정리한다
     items.push({ kind: "separator", id: "structure-separator" });
   }
 
@@ -298,7 +313,7 @@ function buildElementMenuItems(
       id: "align",
       label: "정렬 / Align",
       icon: ACTION_ICONS.align,
-      items: buildAlignmentItems(options),
+      items: buildAlignmentItems(options, selectedElements.length),
     });
   }
 

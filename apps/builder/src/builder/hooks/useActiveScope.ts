@@ -358,7 +358,8 @@ export function useActiveScopeState(): ActiveScopeState {
  * @returns 매칭 여부
  */
 export function matchesScope(
-  targetScope: ShortcutScope | ShortcutScope[],
+  // `ShortcutDefinition.scope` 는 `readonly ShortcutScope[]` 라 여기서도 받는다
+  targetScope: ShortcutScope | readonly ShortcutScope[],
   currentScope: ShortcutScope,
 ): boolean {
   // global은 항상 매칭

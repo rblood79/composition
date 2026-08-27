@@ -93,13 +93,67 @@ describe("canvas context-menu providers", () => {
       "bring-forward",
       "send-backward",
       "send-to-back",
+      // 단일 선택 group 은 결정적 no-op 이라 만들지 않는다 (code-review #10).
+      // 여기는 provider 원본이라 붕 뜬 structure-separator 가 남아 있고,
+      // 실제 메뉴에서는 조립 지점의 `dropEmptySeparators` 가 걷어낸다.
       "structure-separator",
-      "group",
       "component-separator",
       "toggle-component-origin",
       "delete-separator",
       "delete",
     ]);
+  });
+
+  // 2026-08-27 code-review #10 — `distributeSelection` 은 3개 미만에서 즉시
+  // return 이라 2개 선택의 분배 버튼은 피드백 0 인 dead 버튼이었다.
+  it("2개 선택에서는 분배 항목을 만들지 않는다 (3개부터)", () => {
+    const alignSubmenu = (ids: string[]) => {
+      const items = buildCanvasContextMenuItems(
+        {
+          clientX: 0,
+          clientY: 0,
+          surface: "canvas-element",
+          targetElementIds: ids,
+        },
+        options(ids.map((id) => element(id))),
+      );
+      const align = items.find((item) => item.id === "align");
+      return align?.kind === "submenu" ? align.items.map((i) => i.id) : [];
+    };
+
+    const two = alignSubmenu(["a", "b"]);
+    expect(two).toEqual([
+      "align-left",
+      "align-center",
+      "align-right",
+      "align-top",
+      "align-middle",
+      "align-bottom",
+    ]);
+    expect(two).not.toContain("align-distribute-separator");
+
+    const three = alignSubmenu(["a", "b", "c"]);
+    expect(three).toContain("distribute-horizontal");
+    expect(three).toContain("distribute-vertical");
+    expect(three).toContain("align-distribute-separator");
+  });
+
+  // 2026-08-27 code-review #10 — `groupSelection` 은 `multiSelectMode &&
+  // length >= 2` 에서만 실행한다. 단일 선택 group 은 결정적 no-op 이었다.
+  it("단일 선택에는 group 을 만들지 않는다 (2개부터)", () => {
+    const ids = (targets: string[], pool: string[]) =>
+      buildCanvasContextMenuItems(
+        {
+          clientX: 0,
+          clientY: 0,
+          surface: "canvas-element",
+          targetElementIds: targets,
+        },
+        options(pool.map((id) => element(id))),
+      ).map((item) => item.id);
+
+    expect(ids(["first"], ["first", "second"])).not.toContain("group");
+    expect(ids(["first", "second"], ["first", "second"])).toContain("group");
   });
 
   it("hides the z-order cluster when the target has no sibling", () => {

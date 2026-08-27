@@ -35,6 +35,66 @@ function makeElement(id: string, overrides: LegacyOverrides = {}): Element {
 }
 
 describe("multiElementCopy", () => {
+  // 2026-08-27 code-review #12 — 좌표 없는 flow/flex 자식에 offset 을 주입하면
+  // 렌더는 그대로인데 Style 패널이 "사용자 편집" 으로 표시하고 ⌘D 반복 시
+  // 10px 씩 누적된다. ref 경로는 이미 같은 가드를 갖고 있었다.
+  it("좌표가 없는 원본에는 offset(left/top)을 주입하지 않는다", () => {
+    const flowChild = makeElement("child", {
+      parent_id: "frame",
+      props: { label: "Flow" },
+    });
+    const copied = copyMultipleElements(
+      ["child"],
+      new Map([["child", flowChild]]),
+    );
+
+    const pasted = pasteMultipleElements(copied, "page-1", { x: 10, y: 10 }, [
+      flowChild,
+    ]);
+
+    expect(pasted).toHaveLength(1);
+    expect(pasted[0].props).toEqual({ label: "Flow" });
+    expect(pasted[0].props.style).toBeUndefined();
+  });
+
+  it("좌표가 있는 원본에는 기존대로 offset 을 더한다", () => {
+    const positioned = makeElement("positioned", {
+      props: { style: { left: "20px", top: "30px" } },
+    });
+    const copied = copyMultipleElements(
+      ["positioned"],
+      new Map([["positioned", positioned]]),
+    );
+
+    const pasted = pasteMultipleElements(copied, "page-1", { x: 10, y: 10 }, [
+      positioned,
+    ]);
+
+    expect(pasted[0].props.style).toMatchObject({
+      left: "30px",
+      top: "40px",
+    });
+  });
+
+  it("left 만 있어도 좌표 있는 원본으로 본다 (ref 경로와 동일 판정)", () => {
+    const leftOnly = makeElement("left-only", {
+      props: { style: { left: "20px" } },
+    });
+    const copied = copyMultipleElements(
+      ["left-only"],
+      new Map([["left-only", leftOnly]]),
+    );
+
+    const pasted = pasteMultipleElements(copied, "page-1", { x: 10, y: 10 }, [
+      leftOnly,
+    ]);
+
+    expect(pasted[0].props.style).toMatchObject({
+      left: "30px",
+      top: "10px",
+    });
+  });
+
   it("pastes a copied reusable origin as a canonical ref instance", () => {
     const origin = makeElement("origin", {
       reusable: true,

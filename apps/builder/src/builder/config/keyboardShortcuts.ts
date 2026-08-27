@@ -320,7 +320,10 @@ export const SHORTCUT_DEFINITIONS = {
     key: "d",
     modifier: "cmd",
     category: "canvas",
-    scope: "canvas-focused",
+    // 레이어 트리 선택에서도 복제한다 (Figma/Pen 동형) — 실제 핸들러 등록
+    // (`CanvasSelectionShortcuts`) 과 같은 값을 유지해야 치트시트·툴팁 표기가
+    // 실동작과 갈리지 않는다
+    scope: ["canvas-focused", "panel:nodes"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Duplicate",
     i18n: { ko: "복제" },

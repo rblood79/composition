@@ -55,6 +55,17 @@ describe("useActiveScope — data-shortcut-scope 선언", () => {
     expect(hook.result.current).toBe("global");
   });
 
+  // 2026-08-27 code-review #13 — `data-panel-id` emitter 가 없어 이 단계가 늘
+  // 건너뛰어졌고, 좌측 레이어 트리에 포커스를 둬도 "보이는 첫 우측 패널"
+  // 폴백(panel:styles 등)이 잡혔다.
+  it("포커스가 있는 패널이 폴백보다 우선한다", () => {
+    const { hook } = mount(
+      `<div data-panel-id="nodes"><div role="treeitem" tabindex="0" id="t">x</div></div>`,
+      "#t",
+    );
+    expect(hook.result.current).toBe("panel:nodes");
+  });
+
   it("알 수 없는 값은 무시하고 기존 추론으로 돌아간다", () => {
     const { hook } = mount(
       `<div class="canvas-container" tabindex="-1">

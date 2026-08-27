@@ -376,7 +376,15 @@ const PanelFrameContent = memo(function PanelFrameContent({
 }: PanelFrameContentProps) {
   const PanelComponent = config.component;
   return (
-    <div id={contentId} className="workspace-panel-content">
+    // `data-panel-id` 는 `useActiveScope` 가 "지금 어느 패널에 포커스가 있는가"
+    // 를 읽는 유일한 표식이다. emitter 가 없어 판정이 늘 "보이는 첫 우측 패널"
+    // 폴백으로 떨어졌고, 그래서 좌측 레이어 트리에 포커스를 둬도 scope 가
+    // panel:styles 로 잡혔다 (2026-08-27 code-review #13 실측).
+    <div
+      id={contentId}
+      data-panel-id={config.id}
+      className="workspace-panel-content"
+    >
       <Activity mode={mode === "hidden" ? "hidden" : "visible"}>
         <PanelComponent
           isActive={true}

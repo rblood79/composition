@@ -136,6 +136,18 @@ function parsePixels(value: unknown): number {
   return 0;
 }
 
+/**
+ * 원본이 좌표를 갖고 있는가 — 붙여넣기 offset 을 얹어도 되는지의 판정.
+ *
+ * flow/flex 자식은 left/top 이 없고 `position: static` 이라 좌표를 주입해도
+ * 렌더 결과가 바뀌지 않는다. 대신 Style 패널이 그 인라인 값을 **사용자 편집**
+ * 으로 표시하고 ⌘D 반복 시 10px 씩 누적되며, 나중에 absolute 로 바꾸는 순간
+ * 요소가 튄다 (2026-08-27 code-review #12).
+ */
+function hasPositionStyle(style: Record<string, unknown>): boolean {
+  return "left" in style || "top" in style;
+}
+
 function createRefOverrideProps(
   origin: Element,
   offset: { x: number; y: number },
@@ -143,9 +155,8 @@ function createRefOverrideProps(
   const currentStyle = (origin.props.style || {}) as Record<string, unknown>;
   const left = parsePixels(currentStyle.left);
   const top = parsePixels(currentStyle.top);
-  const hasPosition = "left" in currentStyle || "top" in currentStyle;
 
-  if (!hasPosition) return {};
+  if (!hasPositionStyle(currentStyle)) return {};
 
   return {
     style: {
@@ -400,23 +411,25 @@ export function pasteMultipleElements(
     let updatedProps = { ...element.props };
 
     if (copiedData.rootIds.includes(element.id)) {
-      // Apply offset to root elements
+      // Apply offset to root elements — 좌표를 가진 원본에만 (ref 경로와 동일 판정)
       const currentStyle = (element.props.style || {}) as Record<
         string,
         unknown
       >;
 
-      const left = parsePixels(currentStyle.left);
-      const top = parsePixels(currentStyle.top);
+      if (hasPositionStyle(currentStyle)) {
+        const left = parsePixels(currentStyle.left);
+        const top = parsePixels(currentStyle.top);
 
-      updatedProps = {
-        ...updatedProps,
-        style: {
-          ...currentStyle,
-          left: `${left + offset.x}px`,
-          top: `${top + offset.y}px`,
-        },
-      };
+        updatedProps = {
+          ...updatedProps,
+          style: {
+            ...currentStyle,
+            left: `${left + offset.x}px`,
+            top: `${top + offset.y}px`,
+          },
+        };
+      }
     }
 
     const newElement = normalizeExternalFillIngress(
