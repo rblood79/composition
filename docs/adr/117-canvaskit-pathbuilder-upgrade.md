@@ -2,9 +2,12 @@
 
 ## Status
 
-Proposed — 2026-05-02 작성, **2026-08-27 재설계** (대상 버전 0.41.1 → 0.42.0,
-Phase 0 API spike + path inventory 실측 반영, 대안 B 위험 재평가), 2026-08-27 착수 전 보강
-(미기재 위험 R8~R10 추가, G3 production 번들 로드 포함)
+**Accepted — 2026-08-27 승격** (review round 1 이슈 6건 전부 fixed / pending 0 → 전제 확정,
+Phase 0 G0(API 확정)·G1(inventory 20 사이트/94 호출/7 파일) 통과. 잔여 Phase 1~4 실행 대상).
+
+이력: 2026-05-02 Proposed 작성 → **2026-08-27 재설계** (대상 버전 0.41.1 → 0.42.0,
+Phase 0 API spike + path inventory 실측 반영, 대안 B 위험 재평가) → 2026-08-27 착수 전 보강
+(미기재 위험 R8~R10 추가, G3 production 번들 로드 포함) → 2026-08-27 Accepted 승격
 
 ## Context
 
