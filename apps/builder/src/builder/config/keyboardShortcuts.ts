@@ -306,10 +306,7 @@ export const SHORTCUT_DEFINITIONS = {
     key: "c",
     modifier: "cmd",
     category: "canvas",
-    // properties 패널 포커스에서도 같은 "요소 복사" 다 — 종전에는
-    // `copyAllProperties` 라는 별도 정의가 있었지만 아무도 그 정의를 읽지
-    // 않았고(등록은 손으로 ⌘C 를 적고 있었다), 동작도 이것과 같았다.
-    scope: ["canvas-focused", "panel:events", "panel:properties"],
+    scope: ["canvas-focused", "panel:events"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Copy",
     i18n: { ko: "복사" },
@@ -319,7 +316,7 @@ export const SHORTCUT_DEFINITIONS = {
     key: "v",
     modifier: "cmd",
     category: "canvas",
-    scope: ["canvas-focused", "panel:events", "panel:properties"],
+    scope: ["canvas-focused", "panel:events"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Paste",
     i18n: { ko: "붙여넣기" },

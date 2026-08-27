@@ -38,6 +38,7 @@ const { copy: CopyIcon, paste: PasteIcon } = ACTION_ICONS;
 import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   useKeyboardShortcutsRegistry,
+  bindHandlersToDefinitions,
   useCopyPaste,
   useActiveScope,
 } from "@/builder/hooks";
@@ -670,20 +671,12 @@ function PropertiesPanelContent() {
   // Activity gating 으로 숨겨져도 동작 유지. 여기에는 패널 UI 단축키만 잔류.
   const shortcuts = useMemo(
     () => [
-      {
-        key: "c",
-        modifier: "cmdShift" as const,
-        handler: handleCopyProperties,
-        description: "Copy Properties",
-        scope: "panel:properties" as const,
-      },
-      {
-        key: "v",
-        modifier: "cmdShift" as const,
-        handler: handlePasteProperties,
-        description: "Paste Properties",
-        scope: "panel:properties" as const,
-      },
+      // key/modifier/scope 는 정의가 정본 — 손으로 다시 적으면 정의는 표기용으로만
+      // 남는다 (⌘⇧C 에서 ⌘⌥C 로 옮긴 것도 정의에서만 바뀐다).
+      ...bindHandlersToDefinitions(["copyProperties", "pasteProperties"], {
+        copyProperties: handleCopyProperties,
+        pasteProperties: handlePasteProperties,
+      }),
     ],
     [handleCopyProperties, handlePasteProperties],
   );

@@ -42,7 +42,11 @@ import {
 import { useSectionCollapse } from "./hooks/useSectionCollapse";
 import { useStyleActions } from "./hooks/useStyleActions";
 import { useDirtyStyleProps } from "./hooks/useResetStyles";
-import { useKeyboardShortcutsRegistry } from "@/builder/hooks";
+import {
+  useKeyboardShortcutsRegistry,
+  bindHandlersToDefinitions,
+  useActiveScope,
+} from "@/builder/hooks";
 import { useI18n } from "../../../i18n";
 import "./StylesPanel.css";
 
@@ -138,18 +142,15 @@ function StylesPanelContent() {
 
   // ADR-155 Phase 2: Copy/Paste Styles 단축키는 CanvasSelectionShortcuts host 로
   // 이전 (패널 Activity gating 중에도 동작 유지). 핸들러는 툴바 버튼용으로 잔류.
+  // key/modifier/scope 는 `SHORTCUT_DEFINITIONS` 가 정본이다. 종전에는 여기서
+  // 손으로 적으면서 scope 를 빠뜨려, registry 가 global 로 간주해 모달 위에서도
+  // 발화했다 — 게다가 ⌥S 가 정렬(⌥S, canvas-focused)과 같은 조합이 된다.
+  const activeScope = useActiveScope();
   const shortcuts = useMemo(
-    () => [
-      {
-        key: "s",
-        modifier: "altShift" as const,
-        handler: toggleFocusMode,
-        description: "Toggle Focus Mode",
-      },
-      {
-        key: "s",
-        modifier: "alt" as const,
-        handler: () => {
+    () =>
+      bindHandlersToDefinitions(["toggleFocusMode", "toggleSections"], {
+        toggleFocusMode,
+        toggleSections: () => {
           const allCollapsed = collapsedSections.size === 4;
           if (allCollapsed) {
             expandAll();
@@ -157,18 +158,11 @@ function StylesPanelContent() {
             collapseAll();
           }
         },
-        description: "Expand/Collapse All Sections",
-      },
-    ],
+      }),
     [toggleFocusMode, collapsedSections, expandAll, collapseAll],
   );
 
-  useKeyboardShortcutsRegistry(shortcuts, [
-    toggleFocusMode,
-    collapsedSections,
-    expandAll,
-    collapseAll,
-  ]);
+  useKeyboardShortcutsRegistry(shortcuts, [shortcuts], { activeScope });
 
   if (!hasSelectedElement) {
     return <EmptyState message={t("styles.selectElement")} />;

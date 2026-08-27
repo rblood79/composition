@@ -246,6 +246,12 @@ export const CanvasSelectionShortcutsHost = memo(
         // ⭐ Multi-element copy/paste — 정의 없음: 포커스가 properties 패널 안일
         // 때만 발동 (canvas 쪽 ⌘C/⌘V 는 useGlobalKeyboardShortcuts 의 `copy`/
         // `paste` 정의가 담당). 두 표면이 같은 키를 다른 scope 로 나눠 갖는다.
+        //
+        // 종전 정의 `copyAllProperties`/`pasteAllProperties`(⌘⌥C/V)는 이 등록이
+        // 읽지 않는 유령이라 2026-08-27 에 삭제했다. 여기를 `copy`/`paste` 정의로
+        // 합치지 않은 이유는 동작이 다르기 때문이다 — canvas 쪽은
+        // `writeClipboardText` 로 클립보드 텍스트도 쓰고 `requireCurrentPageForCopy`
+        // 로 현재 페이지를 요구한다. scope 를 넓히면 두 핸들러가 함께 발화한다.
         {
           key: "c",
           modifier: "cmd" as const,
