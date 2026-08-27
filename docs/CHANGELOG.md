@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [단축키 재배치 — Figma·Pencil 규약 정합] - 2026-08-27
+
+정의 70개를 Figma·Photoshop·Pencil 과 액션 단위로 대조해 재배치했다. 기준은 "이미 아는 손을 다시 가르치지 않는 자리" 이고, 브라우저가 먼저 가져가는 조합을 피했다. 눌러도 반응하지 않던 11개가 0개가 됐다.
+
+### Changed
+
+- **정렬 6종을 ⌥ 계열로**: `⌘⇧L/H/R/T/M/B` → `⌥A/H/D/W/V/S`. Figma 와 Pencil 이 완전히 같은 규약을 쓰는 자리다. 종전 조합 중 `⌘⇧R`(Chrome 강력 새로고침)·`⌘⇧T`(닫은 탭 복원)는 브라우저가 먼저 가져가던 자리였다.
+- **분배 두 축을 같은 계열로**: 가로 `⌘⇧D`(모든 탭 북마크) → `⌥⇧H`. 세로 `⌥⇧V` 와 축이 맞아 "정렬 키에 ⇧ 하나 더" 규칙이 된다.
+- **속성·스타일 복사를 `⌘⌥C`/`⌘⌥V` 로**: Figma 의 「속성 복사·붙여넣기」자리이고 composition 정의에도 원래 이 조합이 있었다(등록만 어긋나 있었다). 종전 `⌘⇧C` 는 Chrome DevTools 요소 검사라 페이지가 막을 수 없는 자리였다. 어느 패널에 포커스가 있느냐로 대상이 갈리는 구조(properties=D2 props / styles=D3 시각 스타일)는 그대로다.
+- **패널 토글을 `⌥1`–`⌥8` 로**: 레일 순서 그대로 (좌측 Nodes·Components·DataTable·Theme → 우측 Properties·Styles·Interactions·History). Figma 가 사이드바를 `⌥1`–`⌥3` 으로 돌리는 규약의 확장이고, ⌥ 계열은 브라우저가 예약하지 않는다.
+- **`⌘K` 를 AI 패널로, 명령 팔레트를 `⌘/` 로**: Pencil 이 `⌘K` 를 AI 채팅에 쓴다. 팔레트는 Figma 가 같은 성격의 actions menu 를 둔 자리로 옮겼고, 종전에는 정의 없이 등록만 있어 팔레트 자기 목록에도 나오지 않던 것을 정의로 올렸다.
+
+### Added
+
+- **미연결 단축키 11개 연결**: 패널 토글 6개 + 설정(`⌘,`) + `Tab`/`⇧Tab` 형제 이동. 전부 정의는 있는데 등록이 없어 눌러도 아무 일도 일어나지 않던 것들이다. `Tab` 은 방향키가 맡은 형제 "순서 재배치" 와 겹치지 않는 "선택 이동" 이다 (Figma 와 같은 용도).
+- **DataTable(`⌥3`) · Theme(`⌥4`) 패널 토글** 신규.
+- **선택에 맞추기 `⇧2`**: Figma·Pencil 이 같은 자리에 둔 액션. 선택 bounds 를 호출 시점에 계산해 화면 중앙에 맞춘다.
+
+### Fixed
+
+- **⌥ 조합이 실물 키보드에서 발화하지 않던 결함**: macOS 에서 `⌥A`→å, `⌥S`→ß, `⌥⇧V`→◊ 로 `event.key` 가 바뀌는데 `key` 로만 맞추고 있었다. 세로 분배(`⌥⇧V`)가 그 상태였고, synthetic 입력은 이 변환을 거치지 않아 검사에서 "등록됨" 으로 보였다. ⌥ 계열 전체를 `code` 매칭으로 바꿨다. `⌘`/`⌃` 가 붙은 조합은 문자 변환이 억제돼 영향이 없다.
+- **StylesPanel 단축키가 모달 위에서도 발화하던 결함**: 등록부가 조합을 손으로 적으면서 scope 를 빠뜨려 registry 가 global 로 간주하고 있었다. 정의 경유로 통일했다.
+- **정의와 실제가 어긋나 있던 5건**: 포커스 모드는 정의 `⌘F` ↔ 실제 `⌥⇧S`, 섹션 접기는 정의 2개(`⌘E`/`⌘W`) ↔ 실제 토글 1개였다. 정의를 실제에 맞추고 둘을 `toggleSections`(`⌥⇧E`) 하나로 합쳤다.
+
+### Removed
+
+- **유령 정의 4개**: `copyAllProperties`/`pasteAllProperties`(동작이 `copy`/`paste` 와 같은데 아무도 그 정의를 읽지 않았다), `eventsNavUp`/`eventsNavDown`(ADR-158 로 InteractionsPanel 이 들어오며 소비처 소멸).
+
 ## [패널 헤더 close · 단축키 도움말 정리] - 2026-08-27
 
 ### Added
