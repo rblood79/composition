@@ -20,7 +20,6 @@ import {
   MultiSelectStatusIndicator,
   BatchPropertyEditor,
   SelectionFilter,
-  KeyboardShortcutsHelp,
   SmartSelection,
   SelectionMemory,
 } from "../../components";
@@ -644,7 +643,6 @@ function PropertiesPanelContent() {
   const updateElement = useStore.getState().updateElement;
   const setSelectedElements = useStore.getState().setSelectedElements;
 
-  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const activeScope = useActiveScope();
 
   // 🔥 최적화: useCopyPaste hook 사용
@@ -685,13 +683,6 @@ function PropertiesPanelContent() {
         handler: handlePasteProperties,
         description: "Paste Properties",
         scope: "panel:properties" as const,
-      },
-      // ⭐ Sprint 3: Keyboard Shortcuts Help
-      {
-        key: "?",
-        modifier: "cmd" as const,
-        handler: () => setShowKeyboardHelp((prev) => !prev),
-        description: "Toggle Keyboard Shortcuts Help",
       },
     ],
     [handleCopyProperties, handlePasteProperties],
@@ -787,12 +778,6 @@ function PropertiesPanelContent() {
               slotName;
             void updateElement(selectedElement.id, patch);
           }}
-        />
-
-        {/* ⭐ Sprint 3: Keyboard Shortcuts Help Panel */}
-        <KeyboardShortcutsHelp
-          isOpen={showKeyboardHelp}
-          onClose={() => setShowKeyboardHelp(false)}
         />
       </div>
     </div>

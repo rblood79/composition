@@ -57,7 +57,6 @@ export { AddPageDialog } from "./dialog";
 export { DataTable, DataTableMetadata } from "./data";
 
 // Help 컴포넌트
-export { KeyboardShortcutsHelp } from "./help";
 
 // Overlay 컴포넌트
 export {

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [패널 헤더 close · 단축키 도움말 정리] - 2026-08-27
+
+### Added
+
+- **Settings · 명령어 팔레트 헤더 우측 close 버튼**: 두 패널만 `PanelHeader` 의 `actions` 가 비어 있어, 다른 패널(History/AI/Theme/DataTable Editor)과 같은 `.panel-actions` 경로로 맞췄다. Settings 는 `hiddenFromRail: true` 라 레일 토글로 닫을 수 없어 패널 안에 닫기 수단이 없었고, 팔레트는 esc·오버레이 클릭만 있었다.
+
+### Removed
+
+- **`KeyboardShortcutsHelp` 치트시트 삭제 — 단축키 조회를 ⌘K 팔레트로 일원화**: 열 수 있었던 적이 없는 화면이다. 트리거 정의 `toggleHelp` 이 `key:"?" + modifier:"cmd"` 였는데 `cmd` 분기는 `!event.shiftKey` 를 요구하고 `?` 는 Shift 없이 만들어지지 않아 어떤 입력으로도 매칭되지 않았고, 그 위에 `.keyboard-shortcuts-help` 계열 클래스 25종의 CSS 가 코드베이스 어디에도 정의된 적이 없어 강제로 열어도 Properties 패널 안에 스타일 없는 2199px 블록으로 흘러 화면 밖에 그려졌다. 같은 `SHORTCUT_DEFINITIONS` 를 읽어 검색·실행까지 제공하는 ⌘K 팔레트가 이미 상위 호환이라 복구 대신 제거했다 (`components/help/` 디렉터리, `PropertiesPanel` 의 state·단축키 등록·렌더, `toggleHelp` 정의). 팔레트 명령어는 71 → 70 개.
+
 ## [선택 행동의 body 필터 — 정렬·분배·그룹] - 2026-08-27
 
 ### Bug Fixes

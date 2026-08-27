@@ -229,16 +229,6 @@ export const SHORTCUT_DEFINITIONS = {
     i18n: { ko: "설정 열기" },
   },
 
-  toggleHelp: {
-    key: "?",
-    modifier: "cmd",
-    category: "panels",
-    scope: "global",
-    priority: SHORTCUT_PRIORITY.PANELS,
-    description: "Toggle Keyboard Shortcuts Help",
-    i18n: { ko: "키보드 단축키 도움말 토글" },
-  },
-
   // ==========================================
   // Canvas (priority: 70)
   // ==========================================
