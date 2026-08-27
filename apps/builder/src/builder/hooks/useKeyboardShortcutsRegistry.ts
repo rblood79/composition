@@ -24,7 +24,11 @@
  */
 
 import { useEffect } from "react";
-import type { ShortcutScope } from "../types/keyboard";
+import type { ShortcutDefinition, ShortcutScope } from "../types/keyboard";
+import {
+  SHORTCUT_DEFINITIONS,
+  type ShortcutId,
+} from "../config/keyboardShortcuts";
 
 /**
  * 지원되는 modifier 조합
@@ -93,6 +97,44 @@ export interface KeyboardShortcut {
 
   /** 활성화 스코프 (선택사항, 기본: 'global') */
   scope?: ShortcutScope | readonly ShortcutScope[];
+}
+
+export type ShortcutHandlers = Partial<Record<ShortcutId, () => void>>;
+
+/**
+ * 설정 파일의 정의와 핸들러를 결합하여 KeyboardShortcut 배열 생성.
+ *
+ * 등록이 key/modifier/scope 를 손으로 다시 적으면 정의는 치트시트 표기용으로만
+ * 남고 실동작은 등록이 결정한다 — scope 를 생략한 등록은 registry 가 global 로
+ * 간주해 모달 위에서도 발화했다 (2026-08-27 code-review #13). 핸들러가 있는
+ * id 만 등록하고 나머지 필드는 전부 `SHORTCUT_DEFINITIONS` 에서 읽는다.
+ */
+export function bindHandlersToDefinitions(
+  ids: readonly ShortcutId[],
+  handlers: ShortcutHandlers,
+): KeyboardShortcut[] {
+  return ids
+    .filter((id) => handlers[id] !== undefined)
+    .map((id) => {
+      // `SHORTCUT_DEFINITIONS` 가 `as const satisfies` 라 인덱싱 결과가 71개
+      // 리터럴 객체의 union 이다 — `code`/`capture`/`allowInInput` 처럼 일부
+      // 항목에만 있는 optional 필드는 union 상태로는 읽을 수 없다.
+      // 공통 형태로 한 번 넓혀서 읽는다 (`satisfies` 가 대입 가능성을 보증).
+      const def: ShortcutDefinition = SHORTCUT_DEFINITIONS[id];
+      return {
+        key: def.key,
+        code: def.code,
+        modifier: def.modifier,
+        handler: handlers[id]!,
+        preventDefault: true,
+        stopPropagation: def.capture,
+        allowInInput: def.allowInInput,
+        priority: def.priority,
+        category: def.category,
+        description: def.description,
+        scope: def.scope,
+      };
+    });
 }
 
 /**

@@ -19,14 +19,12 @@ import { useCallback, useMemo } from "react";
 import { useStore } from "../stores";
 import { useViewportSyncStore } from "../workspace/canvas/stores";
 import {
+  bindHandlersToDefinitions,
   useKeyboardShortcutsRegistry,
   type KeyboardShortcut,
+  type ShortcutHandlers,
 } from "./useKeyboardShortcutsRegistry";
-import {
-  SHORTCUT_DEFINITIONS,
-  type ShortcutId,
-} from "../config/keyboardShortcuts";
-import type { ShortcutDefinition } from "../types/keyboard";
+import type { ShortcutId } from "../config/keyboardShortcuts";
 import { usePanelLayout } from "./usePanelLayout";
 import { useActiveScope } from "./useActiveScope";
 import {
@@ -55,47 +53,6 @@ import type { SiblingEdge } from "../stores/utils/siblingReorder";
 // ============================================
 
 const ZOOM_STEP = 0.1;
-
-// ============================================
-// Types
-// ============================================
-
-type ShortcutHandlers = Partial<Record<ShortcutId, () => void>>;
-
-// ============================================
-// Helper Functions
-// ============================================
-
-/**
- * 설정 파일의 정의와 핸들러를 결합하여 KeyboardShortcut 배열 생성
- */
-function bindHandlersToDefinitions(
-  ids: ShortcutId[],
-  handlers: ShortcutHandlers,
-): KeyboardShortcut[] {
-  return ids
-    .filter((id) => handlers[id] !== undefined)
-    .map((id) => {
-      // `SHORTCUT_DEFINITIONS` 가 `as const satisfies` 라 인덱싱 결과가 71개
-      // 리터럴 객체의 union 이다 — `code`/`capture`/`allowInInput` 처럼 일부
-      // 항목에만 있는 optional 필드는 union 상태로는 읽을 수 없다.
-      // 공통 형태로 한 번 넓혀서 읽는다 (`satisfies` 가 대입 가능성을 보증).
-      const def: ShortcutDefinition = SHORTCUT_DEFINITIONS[id];
-      return {
-        key: def.key,
-        code: def.code,
-        modifier: def.modifier,
-        handler: handlers[id]!,
-        preventDefault: true,
-        stopPropagation: def.capture,
-        allowInInput: def.allowInInput,
-        priority: def.priority,
-        category: def.category,
-        description: def.description,
-        scope: def.scope, // Phase 4: 스코프 추가
-      };
-    });
-}
 
 // ============================================
 // Hook

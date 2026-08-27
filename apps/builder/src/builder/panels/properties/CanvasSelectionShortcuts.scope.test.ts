@@ -7,7 +7,8 @@ import { matchesScope } from "../../hooks/useActiveScope";
  * 간주했다 (`if (!shortcutScope) return true`). 열린 모달의 버튼에 포커스가
  * 있어도 뒤의 캔버스 선택이 복제됐다. Figma/Pen 처럼 "선택을 만든 자리"
  * (캔버스 · 레이어 트리) 에서만 발동한다. 실제 등록(`CanvasSelectionShortcuts`)
- * 은 이 정의의 `scope` 를 그대로 읽으므로 두 곳이 갈릴 수 없다.
+ * 은 `bindHandlersToDefinitions` 로 정의를 통째로 읽으므로 두 곳이 갈릴 수 없다
+ * (매핑 자체는 `hooks/bindHandlersToDefinitions.test.ts`).
  */
 describe("⌘D duplicate scope (code-review #13)", () => {
   it("모달·텍스트 편집에서는 매칭되지 않고 캔버스·레이어 트리에서만 매칭된다", () => {

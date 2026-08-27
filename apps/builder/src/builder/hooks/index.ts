@@ -46,6 +46,7 @@ export { useActiveScope, useActiveScopeState } from "./useActiveScope";
 export { useGlobalKeyboardShortcuts } from "./useGlobalKeyboardShortcuts";
 export {
   useKeyboardShortcutsRegistry,
+  bindHandlersToDefinitions,
   formatShortcut,
 } from "./useKeyboardShortcutsRegistry";
 export type {

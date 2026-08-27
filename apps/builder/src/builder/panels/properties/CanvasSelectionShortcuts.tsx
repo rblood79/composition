@@ -15,7 +15,11 @@
 
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { useStore, useDebouncedSelectedElementData } from "../../stores";
-import { useKeyboardShortcutsRegistry, useActiveScope } from "@/builder/hooks";
+import {
+  bindHandlersToDefinitions,
+  useKeyboardShortcutsRegistry,
+  useActiveScope,
+} from "@/builder/hooks";
 import { useCanonicalPropertyElementsMap } from "./hooks/useCanonicalPropertyRead";
 import type { AlignmentType } from "../../stores/utils/elementAlignment";
 import type { DistributionType } from "../../stores/utils/elementDistribution";
@@ -23,7 +27,6 @@ import { canDetachInstance } from "../../utils/editingSemantics";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import { panelNodeMapToElementMap } from "./panelNodeElementMap";
 import { useStyleActions } from "../styles/hooks/useStyleActions";
-import { SHORTCUT_DEFINITIONS } from "../../config/keyboardShortcuts";
 import {
   alignSelection,
   copySelection,
@@ -233,11 +236,16 @@ export const CanvasSelectionShortcutsHost = memo(
     }, [pasteStyles]);
 
     // 🔥 캔버스 전역 단축키 (PropertiesPanel 에서 이전 — ADR-155 Phase 2)
+    //
+    // key/modifier/scope/priority 는 `SHORTCUT_DEFINITIONS` 가 정본이다 — 등록이
+    // 손으로 다시 적으면 정의는 치트시트 표기용으로만 남고, scope 를 생략한
+    // 항목은 registry 가 global 로 간주해 모달 위에서도 발화한다 (2026-08-27
+    // code-review #13: ⌘D 가 그 사례였고 나머지 15건도 같은 상태였다).
     const shortcuts = useMemo(
       () => [
-        // ⭐ Multi-element shortcuts
-        // scope 유지: 원본 (PropertiesPanel) 과 동일 — 포커스가 properties 패널
-        // 안일 때만 발동 (canvas 쪽 copy/paste 는 BuilderCanvas 자체 등록 담당)
+        // ⭐ Multi-element copy/paste — 정의 없음: 포커스가 properties 패널 안일
+        // 때만 발동 (canvas 쪽 ⌘C/⌘V 는 useGlobalKeyboardShortcuts 의 `copy`/
+        // `paste` 정의가 담당). 두 표면이 같은 키를 다른 scope 로 나눠 갖는다.
         {
           key: "c",
           modifier: "cmd" as const,
@@ -252,111 +260,46 @@ export const CanvasSelectionShortcutsHost = memo(
           description: "Paste Elements",
           scope: "panel:properties" as const,
         },
-        {
-          key: "d",
-          modifier: "cmd" as const,
-          handler: handleDuplicate,
-          description: "Duplicate Selection",
-          // scope 를 주지 않으면 registry 가 global 로 간주해 열린 모달의 버튼에
-          // 포커스가 있어도 뒤의 캔버스 선택을 복제한다 (2026-08-27
-          // code-review #13). 선언 계약을 그대로 읽어 두 곳이 갈리지 않게 한다.
-          scope: SHORTCUT_DEFINITIONS.duplicate.scope,
-        },
-        // ⭐ Phase 3: Advanced Selection shortcuts
-        {
-          key: "a",
-          modifier: "cmd" as const,
-          handler: handleSelectAll,
-          description: "Select All",
-        },
-        {
-          key: "Escape",
-          modifier: "none" as const,
-          handler: handleEscapeClearSelection,
-          description: "Clear Selection",
-        },
-        {
-          key: "x",
-          modifier: "cmdAlt" as const,
-          handler: handleDetachSelectedInstance,
-          description: "Detach Instance",
-        },
-        // ⭐ Phase 4: Grouping shortcuts
-        {
-          key: "g",
-          modifier: "cmd" as const,
-          handler: handleGroupSelection,
-          description: "Group Selection",
-        },
-        {
-          key: "g",
-          modifier: "cmdShift" as const,
-          handler: handleUngroupSelection,
-          description: "Ungroup Selection",
-        },
-        // ⭐ Phase 5.1: Alignment shortcuts
-        {
-          key: "l",
-          modifier: "cmdShift" as const,
-          handler: () => handleAlign("left"),
-          description: "Align Left",
-        },
-        {
-          key: "h",
-          modifier: "cmdShift" as const,
-          handler: () => handleAlign("center"),
-          description: "Align Horizontal Center",
-        },
-        {
-          key: "r",
-          modifier: "cmdShift" as const,
-          handler: () => handleAlign("right"),
-          description: "Align Right",
-        },
-        {
-          key: "t",
-          modifier: "cmdShift" as const,
-          handler: () => handleAlign("top"),
-          description: "Align Top",
-        },
-        {
-          key: "m",
-          modifier: "cmdShift" as const,
-          handler: () => handleAlign("middle"),
-          description: "Align Vertical Middle",
-        },
-        {
-          key: "b",
-          modifier: "cmdShift" as const,
-          handler: () => handleAlign("bottom"),
-          description: "Align Bottom",
-        },
-        // ⭐ Phase 5.2: Distribution shortcuts
-        {
-          key: "d",
-          modifier: "cmdShift" as const,
-          handler: () => handleDistribute("horizontal"),
-          description: "Distribute Horizontally",
-        },
-        {
-          key: "v",
-          modifier: "altShift" as const,
-          handler: () => handleDistribute("vertical"),
-          description: "Distribute Vertically",
-        },
-        // ⭐ Copy/Paste Styles (StylesPanel 에서 이전)
-        {
-          key: "c",
-          modifier: "cmdShift" as const,
-          handler: handleCopyStyles,
-          description: "Copy Styles",
-        },
-        {
-          key: "v",
-          modifier: "cmdShift" as const,
-          handler: handlePasteStyles,
-          description: "Paste Styles",
-        },
+        ...bindHandlersToDefinitions(
+          [
+            "duplicate",
+            "selectAll",
+            "escape",
+            "detachInstance",
+            "group",
+            "ungroup",
+            "alignLeft",
+            "alignHCenter",
+            "alignRight",
+            "alignTop",
+            "alignVCenter",
+            "alignBottom",
+            "distributeH",
+            "distributeV",
+            // StylesPanel 에서 이전 — 패널 Activity gating 중에도 등록이 남도록
+            // host 가 갖되, scope 는 정의(`panel:styles`)를 따른다
+            "copyStyles",
+            "pasteStyles",
+          ],
+          {
+            duplicate: handleDuplicate,
+            selectAll: handleSelectAll,
+            escape: handleEscapeClearSelection,
+            detachInstance: handleDetachSelectedInstance,
+            group: handleGroupSelection,
+            ungroup: handleUngroupSelection,
+            alignLeft: () => handleAlign("left"),
+            alignHCenter: () => handleAlign("center"),
+            alignRight: () => handleAlign("right"),
+            alignTop: () => handleAlign("top"),
+            alignVCenter: () => handleAlign("middle"),
+            alignBottom: () => handleAlign("bottom"),
+            distributeH: () => handleDistribute("horizontal"),
+            distributeV: () => handleDistribute("vertical"),
+            copyStyles: handleCopyStyles,
+            pasteStyles: handlePasteStyles,
+          },
+        ),
       ],
       [
         handleCopyAll,
@@ -374,24 +317,7 @@ export const CanvasSelectionShortcutsHost = memo(
       ],
     );
 
-    useKeyboardShortcutsRegistry(
-      shortcuts,
-      [
-        handleCopyAll,
-        handlePasteAll,
-        handleDuplicate,
-        handleSelectAll,
-        handleEscapeClearSelection,
-        handleDetachSelectedInstance,
-        handleGroupSelection,
-        handleUngroupSelection,
-        handleAlign,
-        handleDistribute,
-        handleCopyStyles,
-        handlePasteStyles,
-      ],
-      { activeScope },
-    );
+    useKeyboardShortcutsRegistry(shortcuts, [shortcuts], { activeScope });
 
     // ⭐ Phase 3: Tab navigation (requires special handling)
     // Note: Tab navigation requires special handling (Shift+Tab, preventDefault) that useKeyboardShortcutsRegistry doesn't support
