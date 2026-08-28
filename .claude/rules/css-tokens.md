@@ -4,7 +4,8 @@ paths:
   - "**/*.css"
   - "**/theme/**"
   - "**/*theme*.ts"
-  - "**/*theme*.tsx"
+  - "**/*Theme*.ts"
+  - "**/*Theme*.tsx"
   - "**/*token*"
   - "**/*Token*"
 ---
