@@ -301,6 +301,74 @@ export const toolDefinitions: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "bind_collection",
+      description:
+        "요소에 collection 데이터 바인딩을 겁니다 (ListBox/GridList/Table 등). 데이터 소스(collection) 자체를 만들지는 않고, 이미 있는 데이터에 요소를 잇습니다.",
+      parameters: {
+        type: "object",
+        properties: {
+          elementId: {
+            type: "string",
+            description: '대상 요소 ID. "selected" 이면 현재 선택된 요소.',
+          },
+          source: {
+            type: "string",
+            enum: ["static", "api", "supabase"],
+            description:
+              "데이터 출처. static = config.data 배열 그대로, api = config.baseUrl+endpoint, supabase = config.table.",
+          },
+          config: {
+            type: "object",
+            description:
+              "source 별 설정. static: { data: [...] } · api: { baseUrl, endpoint, dataMapping } · supabase: { table }.",
+          },
+        },
+        required: ["elementId", "source", "config"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_interaction_rule",
+      description:
+        "요소에 이벤트 규칙을 추가합니다 (예: 버튼 누르면 toast 표시, 다른 요소의 기능 구동). trigger 와 capability 는 컴포넌트가 실제로 노출하는 것만 쓸 수 있고, 틀리면 사용 가능한 목록을 돌려줍니다.",
+      parameters: {
+        type: "object",
+        properties: {
+          elementId: {
+            type: "string",
+            description: '트리거 요소 ID. "selected" 이면 현재 선택된 요소.',
+          },
+          trigger: {
+            type: "string",
+            description:
+              "컴포넌트가 노출하는 callback 이름 (예: onPress). onClick 같은 DOM 별칭은 쓰지 않습니다.",
+          },
+          action: {
+            type: "object",
+            description:
+              "수행할 동작. kind: navigate(path) | toast(message) | capability(targetId, capability, value?).",
+            properties: {
+              kind: {
+                type: "string",
+                enum: ["navigate", "toast", "capability"],
+              },
+              path: { type: "string" },
+              message: { type: "string" },
+              targetId: { type: "string" },
+              capability: { type: "string" },
+              value: {},
+            },
+          },
+        },
+        required: ["elementId", "trigger", "action"],
+      },
+    },
+  },
 ];
 
 /**

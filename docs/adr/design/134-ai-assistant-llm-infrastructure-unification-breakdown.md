@@ -172,6 +172,9 @@
 
 ### Phase 4 Gate G4
 
+- **부분 반영 2026-08-28 — G4 미충족 (사용자 판정 대기)**. 반영: `tools/bindCollection.ts` · `tools/createInteractionRule.ts` 신규 (둘 다 러너 경유 — ADR-184) · `definitions.ts` 도구 2종 · `systemPrompt.ts` 가이드 · `phase4Tools.test.ts` 12건.
+  - **실측으로 정정된 계약**: `dataBinding` 은 `props` 금지 필드이고 `x-composition` **extension** 이다 (`canonicalDocumentStore` 의 `PROPS_FORBIDDEN_KEYS` / `EXTENSION_KEYS`) — §6 산출물의 "`updateNodeProps` / facade `updateElement`" 서술은 틀렸다. 이벤트 규칙은 legacy `element.events` mirror 가 ADR-158 에서 중단돼 canonical-only 다 (패널도 같은 경로 + persist).
+  - **막힌 지점**: extension 을 쓰면 legacy `elements` mirror 가 stale 로 남아 빌더 캔버스가 갱신되지 않는다. mirror 재파생은 store 내부 (`getCanonicalOrStoreElements` + `set`) 이고 서비스에서 부를 액션이 없다 → **store 층 액션 1개 추가** 가 필요하며, 그 경계 변경은 사용자 판정 대상.
 - **AI 가 `InteractionRule` 1건 생성 → Preview 에서 동작 live 실측** (예: Button click → toast; ADR-158 G2 와 같은 dispatcher 경로)
 - **AI 가 `Element.dataBinding` 설정 → `useCollectionData` 로 데이터 렌더 live 실측** (ListBox/GridList 등 collection 1종)
 - 회귀 gate (baseline 0건, 2026-08-26): 신규·기존 AI 도구 안 `SerializedEvent` / root `actions` / `Transform` / `element.props.events` / `type: "Group" + customId="group_N"` 어휘 0 grep

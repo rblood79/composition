@@ -314,11 +314,11 @@ describe("Anthropic 어댑터", () => {
 });
 
 describe("기존 도구 시그니처 보존 (G1)", () => {
-  it("도구 8종이 이름·스키마 그대로 두 어댑터의 요청 본문에 실린다", async () => {
+  it("도구 10종이 이름·스키마 그대로 두 어댑터의 요청 본문에 실린다", async () => {
     const definitions = await getToolDefinitions();
     // Phase 2 부터 `getToolDefinitions()` 자체가 provider 중립 형태다
     const neutral: LLMToolDefinition[] = definitions.map((d) => ({ ...d }));
-    expect(neutral).toHaveLength(8);
+    expect(neutral).toHaveLength(10);
 
     const openai = captureFetch(() => sseResponse([]));
     await collect(

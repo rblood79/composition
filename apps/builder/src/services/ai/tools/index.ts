@@ -15,7 +15,8 @@ import { updateElementTool } from "./updateElement";
 import { deleteElementTool } from "./deleteElement";
 import { searchElementsTool } from "./searchElements";
 import { batchDesignTool } from "./batchDesign";
-import { runCommandTool } from "./runCommand";
+import { bindCollectionTool } from "./bindCollection";
+import { createInteractionRuleTool } from "./createInteractionRule";
 
 export { toolDefinitions, getToolDefinitions } from "./definitions";
 
@@ -45,6 +46,8 @@ export function createToolRegistry(): Map<string, ToolExecutor> {
     deleteElementTool,
     searchElementsTool,
     batchDesignTool,
+    bindCollectionTool,
+    createInteractionRuleTool,
     runCommandLazyTool,
   ];
 
