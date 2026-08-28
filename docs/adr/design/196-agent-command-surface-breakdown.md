@@ -150,7 +150,7 @@ export type MutationScope =
 export interface CommandMeta {
   agentCallable: boolean; // 기본 false — allowlist 만 true
   mutation: MutationScope;
-  undo: "history" | "none" | "irreversible";
+  undo: "history" | "none" | "inverse" | "irreversible"; // inverse = 반대 명령으로 되돌림 (undo ↔ redo, entry 0)
   confirm: boolean; // true 면 사용자 승인 없이는 실행 0 (destructive · external 은 필수)
   precondition?: (
     s: AgentReadModel,
@@ -163,7 +163,7 @@ export const COMMAND_META: Record<ShortcutId, CommandMeta>; // 71 전부 명시 
 정적 게이트 (`commandMeta.static.test.ts`):
 
 1. `agentCallable: true` ⇒ `AGENT_COMMANDS[id]` 존재 (adapter 없는 노출 0)
-2. `mutation ∈ {document, project}` ∧ `undo !== "history"` ⇒ `confirm: true` (되돌릴 수 없는 변경은 승인 필수)
+2. `mutation ∈ {document, project}` ∧ `undo ∉ {history, inverse}` ⇒ `confirm: true` (되돌릴 수 없는 변경은 승인 필수 — Phase 1: undo/redo 는 `inverse`)
 3. `mutation === "external"` ⇒ `agentCallable: false` (본 ADR 범위 밖 — DB/publish/navigation)
 4. `palette: false` 인 연속·포커스 전용 정의 (escape · 방향키 8 · tree 8 · Tab 2) ⇒ `agentCallable: false`
 5. `confirm: true` 인 id 의 adapter 는 executor 의 confirm 게이트를 우회하는 경로가 없다 (adapter 가 직접 store 를 부르는 것은 허용하되 executor 밖에서 export 되지 않음)
@@ -217,7 +217,7 @@ executeAgentCommand(id, args, ctx: { host: "ai-panel" | "chrome-mcp" | "mcp", re
 | Phase | 내용                                                                                                                                                                                                                                                                                                             | Gate | 규모                  |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | --------------------- |
 | 0     | **Implemented 2026-08-28 (G0 통과)** — inventory freeze — §2 재grep · 71 id 분류 (§3-3 표 확정, allowlist 상한 40) · allowlist 각 id "handler → 호출 심볼 + 부가 동작" 표 · **액션별 history entry 수 실측** (`getCurrentPageEntries` 전후 diff, async 액션은 transaction 불가) · AI 도구 7종 승인/기록 0 재확인 | G0   | 문서만                |
-| 1     | `COMMAND_META` 71 + 정적 게이트 5조항 + `AGENT_COMMANDS` adapter (allowlist) + 정적 심볼 대조 (adapter import = Phase 0 표의 handler 호출 심볼) + jsdom spy (심볼 1회 호출) — 결과 parity 는 G3 (handler 경로 oracle) — **키보드·팔레트 무변경**                                                                 | G1   | 3 파일 신규           |
+| 1     | **Implemented 2026-08-28 (G1 통과)** — `COMMAND_META` 71 + 정적 게이트 5조항 + `AGENT_COMMANDS` adapter (allowlist) + 정적 심볼 대조 (adapter import = Phase 0 표의 handler 호출 심볼) + jsdom spy (심볼 1회 호출) — 결과 parity 는 G3 (handler 경로 oracle) — **키보드·팔레트 무변경**                          | G1   | 3 파일 신규           |
 | 2     | executor + confirm 게이트 + history group + `agentCommandLog` 슬라이스 + jsdom (denied / precondition / declined / ok / 배치 confirm 원소별)                                                                                                                                                                     | G2   | 3 파일 신규 + store 1 |
 | 3     | consumer — `run_command` Groq tool + `window.__compositionAgent` (DEV) + AIPanel 로그 표시 → **live** (Chrome MCP): agent 호출 ≥ 15 · confirm 실측 (delete) · undo 1회 복원 · 195 oracle 재실행 · 번들 Δ                                                                                                         | G3   | 2 파일 + UI 1         |
 | 4     | CHANGELOG · README · `### Live Exercise` · 134 D11 에 "descriptor 소비" 1줄 정합 메모                                                                                                                                                                                                                            | —    | 문서                  |
@@ -244,7 +244,7 @@ executeAgentCommand(id, args, ctx: { host: "ai-panel" | "chrome-mcp" | "mcp", re
 ### 체크리스트
 
 - [x] Phase 0 (2026-08-28, HEAD `52b268a42`): §2 재grep 일치 (정규식 1건 정정) · §3-3 표 확정 (allowlist **40**) · handler→심볼 표 · 액션별 entry 수 실측 (전부 1, paste 는 batch 옵션) — §2 Phase 0 실측 결과
-- [ ] Phase 1: 정적 게이트 5조항 PASS + 민감도 (allowlist id 의 adapter 제거 → RED · external id 를 agentCallable true → RED) · 심볼 대조 전부 PASS · spy 1회 · 195 oracle 26/26 · type-check
+- [x] Phase 1 (2026-08-28): 정적 게이트 5조항 PASS + 민감도 4건 RED 확인 (조항 1 양방향 · 2 · 3 · 4) · 심볼 대조 20 import + store 호출 9 + 금지 7 PASS · spy 40 adapter 1회 호출 · HC1 diff 0 (키보드·팔레트·registry 파일 무변경) · type-check 0 · `usePanelLayout` 회귀 12 파일 63 PASS. 195 키보드 oracle 26/26 은 HC1 diff 0 으로 불변 — live 재실행은 Phase 3 G3 와 함께
 - [ ] Phase 2: denied/precondition/declined/ok/배치 jsdom PASS · 기록 1:1 · history 1 entry
 - [ ] Phase 3: live ≥ 15 (키보드 경로 store 상태와 대조) · confirm 실측 · undo 복원 · 195 oracle 재실행 · 팔레트 G3 23건 재실행 동일 · 번들 Δ ≤ +3KB gz · `pnpm agent:work -- verify` 통과 (live-exercise 기록 포함)
 - [ ] Phase 4: CHANGELOG (신규 public 표면) · README · `### Live Exercise`

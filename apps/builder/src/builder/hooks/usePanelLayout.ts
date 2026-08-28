@@ -31,6 +31,26 @@ function fallbackSurfaceRect(): PanelWorkspaceRect {
   };
 }
 
+/**
+ * 패널 토글 — hook 의 `togglePanel` 과 agent adapter (ADR-196 `AGENT_COMMANDS`) 가
+ * 같은 함수를 부른다. 이미 열린 패널이면 activation dispatcher 가 처리하고(단락),
+ * 아니면 정책 V3 로 레이아웃을 갱신한다. 순수 함수 형태로 둔 이유: helper 3개가
+ * 모듈 private 이라 hook 밖에서는 같은 동작을 재현할 수 없었다 (196 Phase 0 판정).
+ */
+export function togglePanelWorkspace(panelId: PanelId): void {
+  const current = currentWorkspaceLayout();
+  if (!current) return;
+  if (dispatchPanelWorkspaceActivation(panelId)) return;
+  const activated = activatePanelWorkspacePanelV3(
+    current,
+    registryEntries(),
+    panelId,
+    fallbackSurfaceRect(),
+  );
+  if (activated.ok)
+    useStore.getState().setPanelWorkspaceLayout(activated.value.layout);
+}
+
 export function usePanelLayout(): UsePanelLayoutReturn {
   const workspaceLayout = useStore((state) => state.panelWorkspaceLayout);
   const initializePanelWorkspaceLayout = useStore(
@@ -57,19 +77,8 @@ export function usePanelLayout(): UsePanelLayoutReturn {
   );
 
   const togglePanel = useCallback(
-    (panelId: PanelId) => {
-      const current = currentWorkspaceLayout();
-      if (!current) return;
-      if (dispatchPanelWorkspaceActivation(panelId)) return;
-      const activated = activatePanelWorkspacePanelV3(
-        current,
-        registryEntries(),
-        panelId,
-        fallbackSurfaceRect(),
-      );
-      if (activated.ok) setPanelWorkspaceLayout(activated.value.layout);
-    },
-    [setPanelWorkspaceLayout],
+    (panelId: PanelId) => togglePanelWorkspace(panelId),
+    [],
   );
 
   const focusPanel = useCallback(
