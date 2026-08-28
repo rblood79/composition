@@ -3,7 +3,7 @@
 composition 의 AI 어시스턴트는 **모델을 내장하지 않는다**. 어느 모델을 쓸지는 사용자가
 정하고, 키는 사용자가 가진다 (BYOK). 그리고 지금 브라우저에서 쓸 수 있는 경로는
 **로컬·사설망 endpoint 하나뿐이다** — 원격 상용 provider 직접 호출은 차단돼 있다
-([ADR-134](../../adr/134-ai-assistant-llm-infrastructure-unification.md) HC13/R12).
+([ADR-134](../../adr/completed/134-ai-assistant-llm-infrastructure-unification.md) HC13/R12).
 
 > **왜 차단인가**: 브라우저에서 원격 provider 를 직접 부르면 API 키가 클라이언트 번들과
 > 네트워크 요청에 노출된다. 정식 경로는 프록시이고, 프록시는 아직 없다. 그때까지 원격

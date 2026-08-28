@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-134 종결 — AI 어시스턴트가 어떤 모델로도 돌아간다] - 2026-08-29
+
+ADR-134 를 **Phase 0–8 delivered scope** 로 종결했습니다. 사용자가 고른 모델·endpoint 로 빌더를 조작하는 경로가 웹에서 자립 완결됩니다.
+
+### Changed
+
+- **모델을 직접 고른다**: Groq 고정이 사라지고 Anthropic · OpenAI 호환 endpoint (Ollama / vLLM / LM Studio / 사내 gateway) 를 주소만으로 연결합니다. 역할별(기본 / 계획 / 실행 / 검증 / 분류)로 다른 모델을 쓸 수 있습니다.
+- **키는 설정과 함께 저장되지 않습니다**: 기본은 현재 세션에서만 기억하고, 브라우저에 남기려면 명시로 켜야 합니다. 원격 상용 provider 는 프록시가 준비되기 전까지 브라우저에서 직접 호출되지 않습니다 — 로컬·사설망 endpoint 는 그대로 동작합니다.
+
+### Known limitations
+
+- 로컬 endpoint 실물(Ollama) 대조는 아직 1회도 돌리지 못했습니다 — 개발 환경에 Ollama 가 없습니다. [연결 가이드](how-to/development/ai-local-endpoint.md) 대로 띄우면 함께 확인되는 항목이 셋 있습니다: 실물 wire 정합, 컴포넌트 속성 정확도, 다단계 대시보드 시나리오 품질.
+- 외부 코딩 에이전트(Claude Code / Codex) 를 빌더 안에 얹는 작업은 데스크톱 앱 전환이 전제라 별도 결정으로 넘겼습니다.
+
 ## [ADR-134 Phase 8 — AI 패널이 한 화면으로 정리됐다] - 2026-08-28
 
 ### Changed

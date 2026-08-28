@@ -1,6 +1,6 @@
 # ADR-134 Design Breakdown — AI Assistant 차세대 아키텍처
 
-> 본문: [134-ai-assistant-llm-infrastructure-unification.md](../134-ai-assistant-llm-infrastructure-unification.md). 설계 문서 단계 — Phase 0-9 실행 작업 + 코드 변경은 사용자 plan review 후 별도 단계.
+> 본문: [134-ai-assistant-llm-infrastructure-unification.md](../completed/134-ai-assistant-llm-infrastructure-unification.md). **Implemented (delivered scope = Phase 0-8) 2026-08-29** — Phase 9 는 Electron 반영 시점의 별도 ADR 로 이관 (§11).
 >
 > **2026-08-18 노선 개정 반영**: 본문 §인프라 노선 재결정 — 노선 α (자체 로컬 LLM 내장) 기각 → 노선 β (**에이전트 중심** 멀티 프로바이더 BYOK + 외부 에이전트/MCP 준비). Phase 1/2/5/7/9 산출물이 재편됐다. **2차 정정 (같은 날, 사용자)**: 조직 원리 = Pencil.app (외부 에이전트 embed) + ZSeven-W/openpencil (에이전트 팀 오케스트레이션) — open-pencil 역할 고정 슬롯 4종 비채택, 모델 구성 단위 = 에이전트 프로파일 (본문 §패턴 채택 주). 근거: [PENCIL_ECOSYSTEM_ANALYSIS.md](../../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md) + [HOLAOS_ANALYSIS.md](../../explanation/research/HOLAOS_ANALYSIS.md) + [XAI_ORG_ANALYSIS.md](../../explanation/research/XAI_ORG_ANALYSIS.md) (grok-build — 5번째 수렴 사례, §5-1 에 Phase 1/2/9 구현 세부 reference 8건).
 
@@ -338,7 +338,9 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 
 **결함 수정 1건 (사용자-가시)**: 도구 실행 뒤 assistant 텍스트가 화면에서 사라졌다. 원인은 `appendToLastMessage` 의 `role === "assistant"` 가드 — 마지막 메시지가 도구 결과면 delta 를 **버린다**. RED (`useAgentLoop.test.ts`) → 도구 결과 뒤 말풍선 새로 열기 → live 확인.
 
-## 11. Phase 9 — 외부 코딩 에이전트 통합 (D11, G7)
+## 11. Phase 9 — 외부 코딩 에이전트 통합 (D11, G7) — **별도 ADR 이관 (2026-08-29)**
+
+> **이관 (사용자 confirm 2026-08-29)**: 본 phase 는 ADR-134 의 delivered scope 밖이다. 전제인 Electron 은 문서상 "시점 미확정" 이 아니라 **코드에 실재하지 않는다** — electron 의존성 0건 · `apps/desktop`/`electron` 디렉터리 부재 · 전용 ADR 부재 (2026-08-29 실측). 아래 산출물 4개 중 3개 (embed · 병존 계약 · 권한 경계) 가 Electron subprocess 에 직접 의존하고, G7 은 "embed 1종 이상 + 문서 조작 실측" 이라 embed 없이는 측정이 성립하지 않는다. 웹 단계에서 가능한 유일 항목이던 **MCP 호환 도구 표면은 Phase 3 이 이미 흡수**했다 (`toLLMToolDefinitions()` 의 `{name, description, parameters}` = MCP tool schema 형태). 아래 내용은 Electron 반영 시점의 후속 ADR 이 그대로 승계하도록 보존한다.
 
 **목적**: ACP/에이전트 SDK embed (Claude Code / Codex) + MCP 도구 표면 노출. **2026-08-18 2차 정정으로 위상 확정: 외부 에이전트 embed 는 이연된 부가 기능이 아니라 노선 β 의 최종 형태다 (Pencil.app dual embed 패턴 정본)** — Phase 1-8 의 자체 오케스트레이션은 웹 단계의 자립 경로이자 embed 의 전제 (MCP 호환 도구 표면) 를 준비한다. **Electron 마이그레이션 시점 의존 (R1 HIGH 위험)**. Reference: Pencil.app dual embed (Codex SDK + Claude Agent SDK) / open-pencil ACP (Claude Code / Codex / Gemini CLI) / holaOS harness-host (pi / claude-code / codex 3-way + deferred tool gateway — [HOLAOS_ANALYSIS.md](../../explanation/research/HOLAOS_ANALYSIS.md) §3-1/§5) / grok-build (ACP + `search_tool`+`use_tool` 도구 지연 로딩 정본 + embed 권한 5단 파이프라인 — [XAI_ORG_ANALYSIS.md](../../explanation/research/XAI_ORG_ANALYSIS.md) §2-1/§2-3/§5-1).
 

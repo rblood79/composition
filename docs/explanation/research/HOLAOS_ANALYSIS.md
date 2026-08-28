@@ -3,7 +3,7 @@
 **작성일**: 2026-08-18
 **분석 대상**: [holaboss-ai/holaOS](https://github.com/holaboss-ai/holaOS) — shallow clone `HEAD fcdb405fc` (2026-08-18, PR #481 머지 직후. 당일 커밋이 있는 활성 저장소)
 **분석 방법**: 저장소 shallow clone 후 README / 전 workspace `package.json` / 디렉터리 구조 / 핵심 모듈 파일 목록 / LICENSE 직접 read + 대상 grep. **소스 정독은 하지 않음** — 아래 서술은 의존성·모듈 경계·문서 수준의 실측이며, 내부 알고리즘 주장은 포함하지 않는다.
-**관련 ADR**: [ADR-134](../../adr/134-ai-assistant-llm-infrastructure-unification.md) (2026-08-18 노선 개정의 수렴 근거 4번째 reference)
+**관련 ADR**: [ADR-134](../../adr/completed/134-ai-assistant-llm-infrastructure-unification.md) (2026-08-18 노선 개정의 수렴 근거 4번째 reference)
 **관련 문서**: [PENCIL_ECOSYSTEM_ANALYSIS.md](PENCIL_ECOSYSTEM_ANALYSIS.md) §격차 5 대응 축 — Pencil 생태계 3제품과 동일 방향 수렴의 독립 사례
 
 ---

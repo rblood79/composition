@@ -3,7 +3,7 @@
 **작성일**: 2026-08-18
 **분석 대상**: [github.com/orgs/xai-org](https://github.com/orgs/xai-org) 전체 9개 저장소 (shallow clone 실측, HEAD 고정)
 **분석 방법**: 9개 저장소 전부 shallow clone 후 Explore agent 3개 병렬 실측 (grok-build 축 / x-algorithm 축 / SDK·프롬프트 축) + 직접 구조 확인. 대형 2개(grok-build 1.6M LOC Rust, x-algorithm 138K LOC Rust + 101K Python)는 소스 정독 수준이나 **빌드는 하지 않음** — x-algorithm 의 요청 경로 crate 들은 내부 의존 crate (`xai_feature_switches`, `component_library` 등 ~20개) 미포함이라 애초에 빌드 불가한 열람용 export 다.
-**관련 ADR**: [ADR-134](../../adr/134-ai-assistant-llm-infrastructure-unification.md) (노선 β — 본 분석의 §5-1/5-2 가 직접 대응)
+**관련 ADR**: [ADR-134](../../adr/completed/134-ai-assistant-llm-infrastructure-unification.md) (노선 β — 본 분석의 §5-1/5-2 가 직접 대응)
 **관련 문서**: [PENCIL_ECOSYSTEM_ANALYSIS.md](PENCIL_ECOSYSTEM_ANALYSIS.md) · [HOLAOS_ANALYSIS.md](HOLAOS_ANALYSIS.md)
 
 ---
