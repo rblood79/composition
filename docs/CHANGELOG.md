@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-196 — agent 가 빌더 명령을 이름으로 부른다] - 2026-08-28
+
+### Added
+
+- **AI 어시스턴트가 빌더 명령을 직접 실행한다** (`run_command` 도구): 정렬 6 · 분배 2 · 그룹/해제 · 복제 · 잘라내기/복사/붙여넣기 · z-order 4 · 삭제 · 되돌리기/다시 실행 · 줌 4 · 패널 토글 등 **40개**를 이름으로 부른다. 이전에는 요소 좌표를 스스로 계산해 `update_element` 를 여러 번 부르는 우회뿐이라, 같은 "왼쪽 정렬"이 사람 경로(`canvasActions.alignSelection`)와 다른 의미로 실행됐다.
+- **파괴적 명령은 승인 다이얼로그 뒤에만 실행된다**: `삭제` · `잘라내기` · `인스턴스 분리` 등은 사용자가 승인하기 전까지 문서를 만지지 않는다. 거부하면 문서가 그대로다. 승인 UI 가 없는 호스트에서는 실행되지 않고 거부된다 (브라우저 기본 confirm 을 쓰지 않는다).
+- **AI 패널에 실행 기록이 보인다**: 호출 1건 = 기록 1건 (실행 · 거부 · 조건 미충족 · 사용자 거절 · 오류 5종), 최근 8건 표시.
+- 되돌리기 단위 보장: agent 호출 1건은 history **1 entry** — 사용자 ⌘Z 한 번으로 복원된다 (붙여넣기 포함).
+
+### Architecture
+
+- **명령의 정적 사실을 UI handler 에서 분리** (`builder/config/commandMeta.ts`): 정의 71개 전부에 `agentCallable` / `mutation`(none·view·selection·document·project·external) / `undo`(history·inverse·none·irreversible) / `confirm` / `precondition` 을 명시한다. 새 명령이 이 표를 빠뜨리면 type error.
+- **기본 거부 + allowlist**: agent 에게 열린 것은 40개뿐이고, DB/publish/navigation(`external`)·연속키·패널 로컬 state 명령은 닫힌 채 남는다. 정적 게이트 5조항이 "노출됐는데 adapter 없음", "되돌릴 수 없는데 승인 없음", "external 인데 노출", "팔레트 밖인데 노출", "adapter 우회 export" 를 테스트로 막는다.
+- **adapter 는 handler 가 부르는 store 심볼을 그대로 부른다** (`services/agent/agentCommands.ts`) — 실행 진입점은 `executeAgentCommand` 하나로, AI 패널 도구 · Chrome MCP DEV 진입점(`window.__compositionAgent`, DEV 빌드 한정) · 향후 MCP 가 같은 경로를 쓴다.
+- 키보드 · 명령 팔레트 · `commandRegistry`(ADR-195) 는 **무변경** — 팔레트 62 항목과 단축키 동작이 그대로다. 명령 표면 · 승인 UI · 기록 UI 는 지연 로딩이라 초기 번들 증가는 +1,255B gz.
+
+### Tests
+
+- 정적 게이트 5조항 + 민감도 4건(위반을 넣으면 RED) · adapter 심볼 대조 20 + 금지 심볼 7 · jsdom spy 40 · executor 분기 14 · **history 1 entry 계약 12** (canonical mutation 경로를 재현해 실측 — 등록 없이 재면 z-order·붙여넣기가 조용히 0으로 잡힌다) · descriptor 4.
+- live(Chrome MCP) 45 호출: 키보드 경로와 **12쌍 대조 차이 0**, 승인 거부/승인 실측, agent 복제 후 사용자 ⌘Z 1회 복원.
+
 ## [Paperthin·Polysona 병합안 — Codex lifecycle adapter 완결] - 2026-08-28
 
 ### Infrastructure

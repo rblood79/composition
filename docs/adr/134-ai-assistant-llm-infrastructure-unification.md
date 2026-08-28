@@ -237,6 +237,7 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 - **D9**: AIPanel UX 1년차 신입 baseline (HC12 — ADR-149 P1 선례) — depth 4→2 축소. default 표면 = 자연어 입력 + 도구 실행 결과 시각 피드백 (G.3 보존). 고급 모드 = Plan 단계 시각화 + 자기 수정 표시 + 에이전트별 진행 표시 + **에이전트 프로파일 설정** (L4 power user 격리)
 - **D10** (신규 2026-08-18): **secret isolation** — `dangerouslyAllowBrowser` 제거 + browser 번들에서 외부 provider 직접 호출 0건 (Hard Constraint 13). BYOK 키 보관·경유 경계: 원격 provider 는 프록시 경유 (Supabase Edge Function 등 — Phase 2 에서 확정), 로컬 endpoint (localhost) 는 직접 호출 허용. 키의 브라우저 저장은 사용자 명시 opt-in (localStorage 평문 금지)
 - **D11** (신규 2026-08-18): **외부 에이전트/MCP 준비** — 7+ 도구 정의를 MCP tool schema 와 호환되는 형태 (JSON Schema 파라미터 + 명세 분리) 로 유지. ACP/에이전트 SDK embed (Claude Code / Codex — Pencil.app dual embed·holaOS 하니스·grok-build ACP 패턴) 는 Electron 반영 후 Phase 9 에서 재평가. 도구 표면이 커질 때의 지연 로딩은 grok-build `search_tool`+`use_tool` 패턴 (manifest 안정 = KV cache 보존 — 3중 독립 수렴 확인, XAI_ORG_ANALYSIS §5-1 #1) 을 정본 reference 로 한다
+  - **정합 (2026-08-28, ADR-196 Phase 4)**: 명령 실행 도구는 D11 이 새로 정의하지 않고 [ADR-196](completed/196-agent-command-surface.md) 의 descriptor (`listAgentCommands()` — `COMMAND_META` allowlist 파생 JSON Schema) 를 **그대로 소비**한다. 현재 Groq tool `run_command` 로 배선돼 있고, D11 이 MCP/새 provider 로 옮길 때 정의 재작성 없이 배선만 이동한다 (196 R6). 실측 (2026-08-28): 현행 `GroqAgentService` 의 모델 id `llama-3.3-70b-versatile` 이 만료돼 (`404 model_not_found`) AI 패널 도구 8종 전부 도달 불가 — Phase 0 baseline 항목.
 
 ### Phase 0-9 분해 + Gate G1-G7 (2026-08-18 개정)
 
