@@ -31,6 +31,7 @@
 | `pnpm run agent:run -- start --understood-as "<재진술>"`                | run manifest 시작 (`.agent/runs/<id>/run.json`, local-only) — 이후 게이트가 `evidence.jsonl` 에 자동 append |
 | `pnpm run agent:run -- evidence live-exercise pass --detail "<무엇을>"` | live behavior 근거 기록 — Implemented 승격 시 Stop hook 이 요구                                             |
 | `pnpm run agent:run -- report` / `close`                                | 완료 보고를 ledger 에서 생성 · run 종결                                                                     |
+| `pnpm run agent:work -- verify` | 변경 scope 로 고른 검증만 실행 → ledger 기록 (guard · vitest related · package typecheck · registration · cargo); render 경로는 cross-check, 사용자-가시/wiring/schema 는 live-exercise 가 ledger 에 없으면 block (exit 3). `close` 는 fail·block 남으면 거부 |
 | `pnpm run codex:typecheck`                                              | TS 변경이 있을 때만 root type-check                                                                         |
 | `pnpm run codex:preflight`                                              | guard → format → typecheck                                                                                  |
 | `pnpm run codex:harness -- help`                                        | 단일 harness entrypoint                                                                                     |

@@ -45,6 +45,9 @@ case "$COMMAND" in
   catalog)
     bash scripts/codex/agent-catalog-gate.sh "$@"
     ;;
+  work)
+    bash scripts/agent/work.sh "$@"
+    ;;
   help | -h | --help)
     cat <<'EOF'
 Codex harness commands:
@@ -58,6 +61,7 @@ Codex harness commands:
   pnpm run codex:harness -- preflight
   pnpm run codex:harness -- catalog
   pnpm run codex:harness -- run start --understood-as "<요청 재진술>" | evidence <kind> <status> | status | report | close
+  pnpm run codex:harness -- work start --understood-as "..." | status | verify [--dry-run|--full] | resume <id> | close
 
 Shortcuts:
 

@@ -139,7 +139,7 @@ fi
 # 5) ADR 본문 진행 로그 update — Phase {X} → "Implemented {YYYY-MM-DD}"
 #    (별도 commit 또는 같은 commit 에 포함). Implemented 승격 commit 에는 `### Live Exercise` 절 필수
 # 6) run 종결 — 완료 보고는 ledger 에서 생성 (산문 주장 금지)
-#    pnpm agent:run -- report && pnpm agent:run -- close "P{X} 반영"
+#    pnpm agent:work -- verify && pnpm agent:work -- close "P{X} 반영"   # verify = scope 로 고른 게이트 → ledger; close 는 fail·block(cross-check/live 미기록) 남으면 거부
 ```
 
 ## Phase 5: 다음 phase 결정
