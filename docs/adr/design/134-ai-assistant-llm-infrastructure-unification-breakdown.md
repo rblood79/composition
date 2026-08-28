@@ -54,15 +54,27 @@
 - 4 격차 영역 measure (2026-08-26 리뷰 round 1 이 1차 실측 — Phase 0 은 이를 baseline 으로 확정·보강):
   - 격차 1 — canonical document: read 는 `services/ai/tools/canonicalToolReadModel.ts` (canonical 순회, 6개 도구 import), write 는 facade `addElement / updateElement / removeElement` → `stores/utils/elementCreation.ts` / `elementUpdate.ts` / `elementRemoval.ts` → `adapters/canonical/canonicalMutations.ts` canonical-primary. 잔존 = 도구 schema 에 frame / slot / componentSemantics 1차 필드 어휘 부재. store action 실존 표면: `insertNode / updateNode / updateNodeProps / updateNodeExtension / moveNode / removeNode / updateDescendant` (`canonicalDocumentStore.ts`)
   - 격차 2 — collections: `useCollectionData({ datatableId | dataBinding })` (`packages/shared/src/hooks/useCollectionData.tsx`) 진입점 + `collections.runtimeData` sink (`DataTable.runtimeData?`, `types/builder/data.types.ts`) + `useDataTableStore` (`builder/stores/datatable.ts`) CRUD. canonical document 에 `collections` / `data` root 없음 (ADR-131 P8 revert)
-  - 격차 3 — interaction rule: `InteractionRule` schema (`packages/shared/src/interactions/interactionRule.types.ts`) + `capabilityRegistry.ts` + store action `addEvent / updateEvent / removeEvent / setEvents` + read `useDocumentEvents()`. `SerializedEvent` / root `actions` 는 dormant (`composition-document.types.ts` 주석) — AI 도구 참조 금지
+  - 격차 3 — interaction rule: `InteractionRule` schema (`packages/shared/src/interactions/interactionRule.types.ts`) + `capabilityRegistry` (`packages/shared/src/interactions/capabilityRegistry.ts` — Phase 0 확정) + store action `addEvent / updateEvent / removeEvent / setEvents` + read `useDocumentEvents()`. `SerializedEvent` / root `actions` 는 dormant (`composition-document.types.ts` 주석) — AI 도구 참조 금지
   - 격차 4 — frame: `FrameNode` schema + `isLegacyGroupForFrameMigration()` (`adapters/canonical/tagRename.ts`) hydration migration 분석
   - 회귀 gate baseline: AI 도구 안 `Transform` / `props.events` / `Group + group_N` / `SerializedEvent` 어휘 **0건** (2026-08-26 grep) — G3/G4 의 grep gate 는 "도입 금지" 회귀 조건
 - **프록시 경계 사전 조사** (D10): Supabase Edge Function 호출 가능 범위 / streaming 지원 / 키 보관 위치 후보 비교 — Phase 2 확정의 입력
 - baseline freeze metric: 추정 file count + LOC + grep alias 종류 (실측 vs 추정 1.5x gap 차단)
 
+### Phase 0 실측 결과 (2026-08-28 — HEAD `a5be9a3e7`)
+
+정본 산출물: `~/.claude/plans/adr-134-baseline-inventory.md` (local-only). 아래는 후속 Phase 판정을 바꾸는 사실만 옮긴 요약이다.
+
+1. **Groq 결합은 파일 1개에 국소화** — `groq-sdk` 참조 3건 중 값 import 는 `GroqAgentService.ts:8` 하나뿐이고 `definitions.ts:8` · `runCommand.ts:11` 은 `ChatCompletionTool` **type-only**. `dangerouslyAllowBrowser`(`:35`) · 모델 id `llama-3.3-70b-versatile`(`:225`) · `VITE_GROQ_API_KEY`(`:322`) 전부 같은 파일. 서비스 소비자는 `useAgentLoop.ts` 1곳. → Phase 2 "완전 제거" 의 코드 표면은 추정 7 file 보다 작다.
+2. **`AIAgentProvider` 인터페이스는 이미 존재하지만 소비자 0** — `types/integrations/ai.types.ts:59` (`runAgentLoop` + `stop`). `GroqAgentService` 는 `implements` 선언이 없고 `useAgentLoop.ts:36` 은 구현체 팩토리 `createGroqAgentService()` 를 직접 부른다 (3-grep 미통과 = dormant). → **Phase 1 은 추상화 신설이 아니라 기존 인터페이스에 구현을 붙이고 소비 경로를 인터페이스로 돌리는 작업**이다 (메모리 `feedback-infra-exists-vs-wired-consumption-path`).
+3. **Supabase Edge Function 인프라 미존재** — 저장소에 `supabase/` · `functions/` 디렉터리 없음. Supabase 는 클라이언트 SDK 만 사용 (`src/env/supabase.client.ts`). → D10 "원격 provider 프록시 경유" 를 Edge Function 으로 실현하려면 **Phase 2 에 배포 인프라 스캐폴딩 자체가 포함**된다 (추정 7 file 에 없던 항목 — Phase 2 착수 시 사용자 confirm 대상). 대안 축: (a) Edge Function 프록시 (streaming SSE 전달 확인 필요) / (b) 폐쇄망 OpenAI-compatible endpoint 직결 / (c) Electron main process 경유 (Phase 9 의존 — 지금 채택 불가).
+4. **`systemPrompt.ts` 는 이미 provider 중립** — 모델명 · Groq 문자열 0건. §13 의 "provider 중립 갱신" 은 카탈로그 hook 만 남는다.
+5. **회귀 gate baseline 확정** — `services/ai` 전수에서 `Transform` 0 · `props.events` 0 · `group_N` 0 · `SerializedEvent` 0. G3/G4 grep gate 의 기준선은 전부 **0** (도입 금지 조건).
+6. **live 결함 (Phase 0 실측)** — 현행 모델 id 가 Groq 에서 만료돼 `404 model_not_found`, AI 패널 도구 8종 전부 도달 불가. 사용자 결정 (2026-08-28) "Groq 는 더 이상 사용하지 않는다" 와 합쳐, **Phase 1+2 가 곧 AI 패널 복구 경로**다. 임시 모델 id 교체는 하지 않는다.
+7. **보존 산출물 실재 확인** — 도구 7종 · `definitions.ts`/`index.ts` · `useAgentLoop.ts`(217) · AIPanel 4 파일 · `AbortController` · G.3 `aiVisualFeedback` 소비 4곳 (`SkiaCanvas.tsx:73` · `useAgentLoop.ts:13` · `tools/updateElement.ts:12` · `tools/createElement.ts:14`) · `IntentParser.ts`(363) · `styleAdapter.ts`. AI 서비스+패널 합계 27 파일 / 3,115 LOC.
+
 ### Phase 0 Gate
 
-- Phase 0 inventory baseline freeze + 사용자 confirm 후 Phase 1 진입
+- **Implemented 2026-08-28 (G0 통과)** — inventory baseline freeze 완료 (위 실측 결과 7항 + `~/.claude/plans/adr-134-baseline-inventory.md`). Phase 1 진입은 사용자 confirm 후
 - Phase scope inflation 1.5x 시 사용자 confirm (M4) 의무
 
 ## 3. Phase 1 — LLM Provider 추상화 + 에이전트 프로파일 (D1, G1)
@@ -246,17 +258,17 @@
 
 ## 12. baseline freeze 표 (Phase 0 작업 시 채움 — 2026-08-18 재편 반영)
 
-| 영역                      | 추정 file count                                                                                           | 실측 file count | gap (실측/추정) | 1.5x 초과 여부 |
-| ------------------------- | --------------------------------------------------------------------------------------------------------- | --------------- | --------------- | -------------- |
-| Phase 1 Provider+프로파일 | ~6 file                                                                                                   | TBD             | TBD             | TBD            |
-| Phase 2 Groq 제거+secret  | ~7 file                                                                                                   | TBD             | TBD             | TBD            |
-| Phase 3 도구 어휘 확장    | ~8 file (7 도구 + definitions; store 전환 없음 — 2026-08-26 재산정)                                       | TBD             | TBD             | TBD            |
-| Phase 4 격차 정합         | ~5 file (신규 도구 2 + createElement + definitions + systemPrompt — createAction 삭제, 2026-08-26 재산정) | TBD             | TBD             | TBD            |
-| Phase 5 카탈로그          | ~8 file                                                                                                   | TBD             | TBD             | TBD            |
-| Phase 6 Plan→E→V+역할     | ~15 file                                                                                                  | TBD             | TBD             | TBD            |
-| Phase 7 라우팅+폐쇄망     | ~6 file                                                                                                   | TBD             | TBD             | TBD            |
-| Phase 8 AIPanel UX        | ~10 file                                                                                                  | TBD             | TBD             | TBD            |
-| Phase 9 외부 에이전트     | ~10 file                                                                                                  | TBD             | TBD             | TBD            |
+| 영역                      | 추정 file count                                                                                           | 실측 file count                                                                                                                                                | gap (실측/추정) | 1.5x 초과 여부                                            |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------------- |
+| Phase 1 Provider+프로파일 | ~6 file                                                                                                   | **5 기존** (`GroqAgentService.ts` · `useAgentLoop.ts` · `ai.types.ts` · `definitions.ts` · `runCommand.ts`) + 신규 3~4 (provider 구현 2 + 프로파일 registry 1) | 0.83            | 아니오                                                    |
+| Phase 2 Groq 제거+secret  | ~7 file                                                                                                   | **4 기존** (`GroqAgentService.ts` · `definitions.ts` · `runCommand.ts` · `apps/builder/package.json`) + **Edge Function 스캐폴딩 신규** (추정에 없던 항목)     | 0.57            | 아니오 — 단 신규 배포 인프라 1건은 착수 시 사용자 confirm |
+| Phase 3 도구 어휘 확장    | ~8 file (7 도구 + definitions; store 전환 없음 — 2026-08-26 재산정)                                       | **9** (도구 7 + `definitions.ts` + `index.ts`)                                                                                                                 | 1.13            | 아니오                                                    |
+| Phase 4 격차 정합         | ~5 file (신규 도구 2 + createElement + definitions + systemPrompt — createAction 삭제, 2026-08-26 재산정) | **3 기존** (`createElement.ts` · `definitions.ts` · `systemPrompt.ts`) + 신규 도구 2                                                                           | 1.00            | 아니오                                                    |
+| Phase 5 카탈로그          | ~8 file                                                                                                   | TBD (Phase 5 착수 시)                                                                                                                                          | —               | —                                                         |
+| Phase 6 Plan→E→V+역할     | ~15 file                                                                                                  | TBD                                                                                                                                                            | —               | —                                                         |
+| Phase 7 라우팅+폐쇄망     | ~6 file                                                                                                   | TBD                                                                                                                                                            | —               | —                                                         |
+| Phase 8 AIPanel UX        | ~10 file                                                                                                  | **8** (`builder/panels/ai/**` 전체)                                                                                                                            | 0.80            | 아니오                                                    |
+| Phase 9 외부 에이전트     | ~10 file                                                                                                  | TBD (Electron 의존)                                                                                                                                            | —               | —                                                         |
 
 1.5x 초과 시 [adr-writing.md M4](../../../.claude/rules/adr-writing.md) sub-group N≥3 분할 / scope inflation 사용자 confirm 의무 적용.
 
@@ -293,7 +305,7 @@
 
 1. **사용자 plan review** — 본 design breakdown 정독 + 정정 사항 명시
 2. **차단 / 정당화 메모리 평가** — Phase 0 진입 전 (`feedback-execute-adr-surface-minimization` / `feedback-no-derived-adr-mid-execution` 평가)
-3. **Phase 0 inventory baseline freeze 진입** — `~/.claude/plans/adr-134-baseline-inventory.md` 작성
+3. **Phase 0 inventory baseline freeze 진입** — `~/.claude/plans/adr-134-baseline-inventory.md` 작성 — **완료 2026-08-28 (§2 Phase 0 실측 결과)**
 4. **Phase 1 진입** — Phase 0 baseline freeze 사용자 confirm 후
 5. **각 Phase 별 완료 절차** — type-check + vitest + grep gate 통과 + main 직접 push (PR 금지 정합) + CHANGELOG entry
 
