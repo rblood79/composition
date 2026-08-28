@@ -13,7 +13,7 @@
 #   차단" 으로 명문화한다 (paperthin check-catalog-sync 의 재구현, 복사 아님).
 #
 # 판정: ✗ FAIL (exit 1) / ⚠ WARN (exit 0, 정책 위반이지만 다음 단계에서 FAIL 승격 예정)
-#       / · INFO. 안정화 후 codex:preflight 에 포함.
+#       / · INFO. codex:preflight 마지막 단계로 포함 (2026-08-28 — ①~⑤ 동안 실행 6회+ FAIL 0 으로 안정화 확인).
 #
 # macOS bash 3.2 호환 — declare -A / mapfile 사용 금지.
 

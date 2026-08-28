@@ -20,7 +20,7 @@
     "codex:format": "bash scripts/codex/format-changed.sh",
     "codex:typecheck": "bash scripts/codex/type-check-gate.sh",
     "codex:registration": "bash scripts/codex/registration-gate.sh",
-    "codex:preflight": "pnpm run codex:guard && pnpm run codex:format && pnpm run codex:typecheck && pnpm run codex:registration",
+    "codex:preflight": "pnpm run codex:guard && pnpm run codex:format && pnpm run codex:typecheck && pnpm run codex:registration && pnpm run codex:agent-catalog",
     "codex:harness": "bash scripts/codex/harness.sh",
     "codex:route": "bash scripts/codex/route-prompt.sh",
     "codex:snapshot": "bash scripts/codex/context-snapshot.sh",
