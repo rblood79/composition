@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [로컬 모델(Ollama)로 실제 검증 — 컨텍스트 설정 경고 추가] - 2026-08-29
+
+### Fixed
+
+- [로컬 endpoint 연결 가이드](how-to/development/ai-local-endpoint.md) 에 **컨텍스트 길이 경고** 추가. Ollama 기본값 `n_ctx=4096` 은 composition 이 보내는 시스템 프롬프트(약 6,500 토큰)보다 작아, 컴포넌트 목록이 잘린 채 모델에 들어간다. 그러면 어시스턴트가 오류 없이 **존재하지 않는 속성을 지어낸다** — 알아채기 어려운 실패다. `OLLAMA_CONTEXT_LENGTH=32768` 로 띄우도록 안내.
+
+### Known limitations
+
+- 여러 단계 요청에서 **AI 가 방금 만든 요소의 실제 ID 대신 자리표시자(`created-element-id` 등)를 다음 작업에 넘기는** 경우가 있다. 도구가 "요소를 찾을 수 없습니다" 로 안전하게 막고 AI 가 화면 상태를 다시 읽어 복구하므로 결과가 깨지지는 않지만, 그만큼 느려진다.
+
 ## [ADR-134 종결 — AI 어시스턴트가 어떤 모델로도 돌아간다] - 2026-08-29
 
 ADR-134 를 **Phase 0–8 delivered scope** 로 종결했습니다. 사용자가 고른 모델·endpoint 로 빌더를 조작하는 경로가 웹에서 자립 완결됩니다.

@@ -338,6 +338,19 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 
 **결함 수정 1건 (사용자-가시)**: 도구 실행 뒤 assistant 텍스트가 화면에서 사라졌다. 원인은 `appendToLastMessage` 의 `role === "assistant"` 가드 — 마지막 메시지가 도구 결과면 delta 를 **버린다**. RED (`useAgentLoop.test.ts`) → 도구 결과 뒤 말풍선 새로 열기 → live 확인.
 
+### Phase 6 시나리오 품질 실측 (2026-08-29, Ollama qwen3:14b)
+
+사전 등록한 4기준 (계획 2단계 이상 / 도구 오류 0 / 핵심 컴포넌트 포함 / 검증 판정 산출) 중 **3 충족**.
+
+| 시나리오 | 계획 | 도구 | 오류 | 검증 흐름 | 생성 | 판정 |
+| --- | --- | --- | --- | --- | --- | --- |
+| A 사용자 관리 대시보드 | 6단계 | 28 | **2** | 5건 지적 → 수리1 → 3건 지적 → 수리2 → **이상 없음** | 32 요소 (Heading·Table·TableHeader/Body·Pagination·ProgressBar×3·Metric·Button×9) | 3/4 |
+| B 이커머스 상품 카탈로그 | 6단계 | 38 | **7** | 4건 지적 → 수리1 → 1건 지적 → 수리2 → **6건 지적 잔존** (상한 도달, 사람에게 넘김 = 설계대로) | 41 요소 (Heading×2·Table×2·ref×5(Card/GridList)·Pagination×3·Image×2·Metric×2·Button×17) | 3/4 |
+
+**미충족 기준은 하나이고, 원인도 하나다 (재현 3/3)**: 모델이 `create_element` 결과의 `data.elementId` 대신 자리표시자 id 를 다음 도구에 넘긴다 — `created-element-id` / `gridListId` / `paginationId` / `cardId` / `created_table_id` / `Table-123` / `Pagination-789`. 도구가 "요소를 찾을 수 없습니다" 로 안전하게 실패하고 모델이 `get_editor_state` / `search_elements` 로 복구하므로 문서는 깨지지 않지만, 턴·시간이 크게 낭비된다.
+
+원인은 프롬프트 공백이다 — `systemPrompt.ts:74` 는 `elementId: "selected"` 만 안내하고, **생성 결과의 id 를 이어서 쓰라는 규칙이 없다**. 수정 후보는 ① 시스템 프롬프트에 규칙 1줄 ② 도구 결과 요약에서 id 를 더 눈에 띄게 ③ `elementId: "last-created"` 별칭 수용. 어느 쪽이든 본 ADR 밖 별도 작업.
+
 ## 11. Phase 9 — 외부 코딩 에이전트 통합 (D11, G7) — **별도 ADR 이관 (2026-08-29)**
 
 > **이관 (사용자 confirm 2026-08-29)**: 본 phase 는 ADR-134 의 delivered scope 밖이다. 전제인 Electron 은 문서상 "시점 미확정" 이 아니라 **코드에 실재하지 않는다** — electron 의존성 0건 · `apps/desktop`/`electron` 디렉터리 부재 · 전용 ADR 부재 (2026-08-29 실측). 아래 산출물 4개 중 3개 (embed · 병존 계약 · 권한 경계) 가 Electron subprocess 에 직접 의존하고, G7 은 "embed 1종 이상 + 문서 조작 실측" 이라 embed 없이는 측정이 성립하지 않는다. 웹 단계에서 가능한 유일 항목이던 **MCP 호환 도구 표면은 Phase 3 이 이미 흡수**했다 (`toLLMToolDefinitions()` 의 `{name, description, parameters}` = MCP tool schema 형태). 아래 내용은 Electron 반영 시점의 후속 ADR 이 그대로 승계하도록 보존한다.

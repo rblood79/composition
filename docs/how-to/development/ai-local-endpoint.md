@@ -15,12 +15,20 @@ Ollama 기준 (vLLM · LM Studio · 사내 gateway 도 **OpenAI 호환 endpoint 
 전용 어댑터가 없다):
 
 ```bash
-# 설치 후
-ollama serve                 # http://localhost:11434
+# 설치 후 — 컨텍스트를 반드시 올려서 띄운다 (아래 경고)
+OLLAMA_CONTEXT_LENGTH=32768 OLLAMA_KV_CACHE_TYPE=q8_0 ollama serve   # http://localhost:11434
 ollama pull qwen3:14b        # 도구 호출을 지원하는 모델을 고른다
 ```
 
 OpenAI 호환 경로는 `http://localhost:11434/v1` 이다. `/v1` 을 빠뜨리면 404 가 난다.
+
+> **컨텍스트 4096 으로 두면 조용히 망가진다 (2026-08-29 실측)**: Ollama 기본 `n_ctx` 는
+> **4096** 인데, composition 이 보내는 시스템 프롬프트는 컴포넌트 카탈로그를 포함해
+> **약 6,500 토큰**이다. 그대로 두면 카탈로그가 잘린 채 모델에 들어가고, 어시스턴트는
+> 존재하지 않는 속성(`text` / `label` 같은 것)을 지어내기 시작한다 — 오류가 아니라
+> **그럴듯하게 틀린 결과**라 알아채기 어렵다. `OLLAMA_CONTEXT_LENGTH` 를 최소 16384,
+> 권장 32768 로 올린다. 서버 로그의 `llama_context: n_ctx = …` 줄로 실제 적용값을 확인할 수 있다.
+> KV 캐시가 커지므로 `OLLAMA_KV_CACHE_TYPE=q8_0` 을 함께 주면 메모리가 절반이 된다.
 
 ### 모델 고르기
 
