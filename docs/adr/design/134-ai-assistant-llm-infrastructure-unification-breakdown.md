@@ -91,6 +91,9 @@
 
 ### Phase 1 Gate G1
 
+- **Implemented 2026-08-28 (G1 통과)** — `services/ai/providers/{LLMProvider,AnthropicProvider,OpenAICompatibleProvider,AgentProfileRegistry}.ts` + `providers.test.ts` 14건. 검증 oracle 은 **wire 포맷** (중립 메시지·도구가 각 provider 요구 형태로 나가고 각자의 스트리밍 조각이 같은 `LLMStreamEvent` 로 돌아오는지) — `fetchImpl` 주입으로 네트워크·키 0. 기존 도구 8종을 `getToolDefinitions()` 산출물 그대로 실어 이름·스키마 보존 확인. AI 영역 회귀 36 + type-check 0.
+  - 결정 반영: 프록시 축 = **폐쇄망/로컬 endpoint 직결 우선** (사용자 2026-08-28) → SDK 대신 `fetch` 기반, Anthropic 브라우저 우회 헤더는 어댑터가 스스로 붙이지 않고 `config.headers` 로만 (Phase 2 D10 결정 대상).
+  - **프리셋의 빈 `model` 은 미구성** — `isProfileConfigured()` 가 false 를 돌려 provider 를 만들지 않는다. Phase 0 이 찾은 "만료된 모델 id 하드코딩 → 404 로 조용히 정지" 의 재발 차단.
 - 2-way 어댑터 + 에이전트 프로파일 설정 모델 반영 (Ollama 는 OpenAI-compatible base URL 로 통과 확인)
 - 기존 7개 도구 시그니처 보존 + 통합 인터페이스 통과
 - type-check + vitest PASS
