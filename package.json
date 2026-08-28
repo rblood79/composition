@@ -28,6 +28,7 @@
     "hooks:selftest": "bash .claude/hooks/selftest.sh",
     "agent:run": "bash scripts/agent/run-ledger.sh",
     "agent:work": "bash scripts/agent/work.sh",
+    "agent:dashboard": "bash scripts/agent/dashboard.sh",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:coverage": "pnpm -F @composition/specs test:coverage",

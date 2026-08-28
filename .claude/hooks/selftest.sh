@@ -282,6 +282,24 @@ case_start "close --force (fail 기록 있어도) → close-override 기록"
 AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence typecheck fail --exit 1 >/dev/null 2>&1
 wk close "forced" --force; if [ "$RC" -eq 0 ] && grep -q '"kind":"close-override"' "$RUNS3/$WID/evidence.jsonl"; then pass; else fail "rc=$RC"; fi
 
+# ---------- dashboard.sh (scripts/agent) — evidence 소비 전용 ----------
+printf '\n== dashboard.sh (pnpm agent:dashboard) ==\n'
+DASH="$ROOT_DIR/scripts/agent/dashboard.sh"; RUNS4="$TMP/runs4"; STATS4="$TMP/stats4"; mkdir -p "$RUNS4" "$STATS4"
+dsh() { OUT=$(AGENT_RUNS_DIR="$RUNS4" AGENT_STATS_DIR="$STATS4" bash "$DASH" "$@" 2>&1); RC=$?; }
+case_start "기록 0 → 모든 섹션 '없음', exit 0"
+dsh; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'run 없음' && printf '%s' "$OUT" | grep -q 'adr-drift: (기록 없음)'; then pass; else fail "rc=$RC"; fi
+case_start "run + catalog-gate 기록 → 현재 run · gate 표 · drift FAIL/WARN 파싱"
+AGENT_RUNS_DIR="$RUNS4" bash "$LEDGER" start --understood-as "dashboard selftest" --live "builder X" >/dev/null 2>&1
+AGENT_RUNS_DIR="$RUNS4" bash "$LEDGER" evidence catalog-gate pass --detail "FAIL 0 WARN 2" >/dev/null 2>&1
+AGENT_RUNS_DIR="$RUNS4" bash "$LEDGER" evidence live-exercise block --detail "x" >/dev/null 2>&1
+printf '{"ts":"2026-08-28T00:00:00Z","hook":"adr-status-sync-check","action":"block"}\n{"ts":"2026-08-28T00:00:01Z","hook":"adr-status-sync-check","action":"escape"}\n' > "$STATS4/hook-blocks.jsonl"
+dsh; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'understood as: dashboard selftest' && printf '%s' "$OUT" | grep -q 'FAIL 0 · WARN 2' && printf '%s' "$OUT" | grep -q 'escape 비율 50%'; then pass; else fail "rc=$RC"; fi
+case_start "  미해결 block 이 run 행에 표시"
+if printf '%s' "$OUT" | grep -q 'live-exercise$'; then pass; else fail "open block 미표시"; fi
+case_start "--json → 7 키 객체"
+dsh --json; if [ "$RC" -eq 0 ] && [ "$(printf '%s' "$OUT" | jq 'keys | length' 2>/dev/null)" = 7 ] && [ "$(printf '%s' "$OUT" | jq '.catalogDrift.warn')" = 2 ]; then pass; else fail "rc=$RC"; fi
+AGENT_RUNS_DIR="$RUNS4" bash "$LEDGER" close >/dev/null 2>&1
+
 # ---------- auto-format.sh (PostToolUse) ----------
 printf '\n== auto-format.sh ==\n'
 case_start "포맷 대상 아닌 확장자 → 통과 (prettier 미호출)"
