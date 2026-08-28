@@ -29,7 +29,6 @@ import {
   setByokKey,
   setPersistOptIn,
 } from "../../../../services/ai/providers/byokKeyStore";
-import { ConnectionStatus } from "./ConnectionStatus";
 
 const PROFILE_LABEL: Readonly<Record<AgentProfileId, string>> = {
   main: "기본",
@@ -98,7 +97,6 @@ export function AgentProfileSettings() {
         </p>
       </fieldset>
 
-      <ConnectionStatus />
 
       {editable.map((id) => {
         const config = registry.get(id) ?? EMPTY;

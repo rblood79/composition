@@ -20,6 +20,7 @@ import {
   ImagePlus,
   Send,
   Settings2,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -29,7 +30,8 @@ import { useAgentLoop } from "./hooks/useAgentLoop";
 import { ToolResultMessage } from "./components/ToolResultMessage";
 import { AgentControls } from "./components/AgentControls";
 import { AgentCommandLogList } from "./components/AgentCommandLogList";
-import { AgentProfileSettings } from "./components/AgentProfileSettings";
+import { AdvancedMode } from "./components/AdvancedMode";
+import { ToolCallMessage } from "./components/ToolCallMessage";
 import type {
   BuilderContext,
   ChatMessage as ChatMessageType,
@@ -173,6 +175,11 @@ interface ChatContainerProps {
   onSendMessage: (message: string) => void;
   isDisabled: boolean;
   selectedElementType?: string;
+  /** 실행 중인 도구 이름 — 결과가 나오기 전까지 한 줄로 보인다. */
+  runningTool?: string | null;
+  /** 에이전트 프로파일이 구성돼 있는가 (R2 온보딩 분기). */
+  hasAgent: boolean;
+  onOpenAdvanced: () => void;
 }
 
 function ChatContainer({
@@ -180,6 +187,9 @@ function ChatContainer({
   onSendMessage,
   isDisabled,
   selectedElementType,
+  runningTool,
+  hasAgent,
+  onOpenAdvanced,
 }: ChatContainerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -200,7 +210,28 @@ function ChatContainer({
   return (
     <div className="panel-contents ai-contents">
       <div className="ai-transcript" aria-live="polite">
-        {messages.length === 0 ? (
+        {messages.length === 0 && !hasAgent ? (
+          <div className="ai-welcome" role="group" aria-label="시작하기">
+            <p className="ai-intro">
+              먼저 어떤 모델을 쓸지 알려 주세요. 로컬 endpoint (Ollama 등) 나
+              사용하는 API 키를 고르면 바로 시작할 수 있습니다.
+            </p>
+            <p className="ai-context-label">
+              키는 기본적으로 이 세션에만 남고 저장하지 않습니다.
+            </p>
+            <div className="ai-suggestions">
+              <Button
+                className="ai-suggestion"
+                variant="secondary"
+                size="sm"
+                onPress={onOpenAdvanced}
+              >
+                <Sparkles size={iconProps.size} aria-hidden="true" />
+                <span>에이전트 설정 열기</span>
+              </Button>
+            </div>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="ai-welcome">
             <p className="ai-intro">
               AI와 composition의 강력한 기능을 사용하여 디자인을 개선하세요.
@@ -229,6 +260,9 @@ function ChatContainer({
             {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}
+            {runningTool ? (
+              <ToolCallMessage name={runningTool} status="running" />
+            ) : null}
             <div ref={messagesEndRef} />
           </>
         )}
@@ -248,13 +282,19 @@ function ChatContainer({
  * AIPanelContent - AI 패널 메인 로직
  */
 function AIPanelContent() {
-  // 프로파일 설정 열림 여부 (ADR-134 Phase 7) — 대화와 같은 자리를 쓴다.
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  /**
+   * 고급 모드 (ADR-134 Phase 8, D9) — 기본 표면은 입력과 결과만 남기고, 모델 구성·라우팅·
+   * 계획 분해는 한 번의 명시적 전환 뒤로 격리한다.
+   */
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const {
     messages,
+    progress,
+    runningTool,
     isStreaming,
     isAgentRunning,
     currentTurn,
+    hasAgent,
     runAgent,
     stopAgent,
   } = useAgentLoop();
@@ -306,11 +346,11 @@ function AIPanelContent() {
               <AgentControls currentTurn={currentTurn} onStop={stopAgent} />
             )}
             <ActionIconButton
-              onPress={() => setSettingsOpen((open) => !open)}
+              onPress={() => setAdvancedOpen((open) => !open)}
               type="button"
-              aria-label="에이전트 프로파일 설정"
-              aria-pressed={settingsOpen}
-              tooltip="에이전트 프로파일"
+              aria-label="고급 모드"
+              aria-pressed={advancedOpen}
+              tooltip="고급 모드 (모델 구성 · 진행 상세)"
             >
               <Settings2
                 color={iconProps.color}
@@ -335,9 +375,9 @@ function AIPanelContent() {
           </>
         }
       />
-      {settingsOpen ? (
+      {advancedOpen ? (
         <div className="panel-contents ai-contents">
-          <AgentProfileSettings />
+          <AdvancedMode progress={progress} />
         </div>
       ) : (
         <>
@@ -347,6 +387,9 @@ function AIPanelContent() {
             onSendMessage={runAgent}
             isDisabled={isDisabled}
             selectedElementType={selectedElementType}
+            runningTool={runningTool}
+            hasAgent={hasAgent}
+            onOpenAdvanced={() => setAdvancedOpen(true)}
           />
         </>
       )}

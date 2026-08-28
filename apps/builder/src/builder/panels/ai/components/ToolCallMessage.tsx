@@ -1,52 +1,31 @@
 /**
- * ToolCallMessage - 도구 호출 상태 표시
+ * 실행 중인 도구 한 줄 (ADR-134 Phase 8, D9).
+ *
+ * 결과만 보여주면 도구가 도는 동안 화면이 멈춘 것처럼 보인다. 어휘는 `toolLabels` 정본을
+ * 쓴다 — 도구가 늘어도 여기서 다시 이름을 적지 않는다.
  */
-
-import type { ReactNode } from "react";
-import type { ToolCallInfo } from "../../../../types/integrations/chat.types";
-import { Wrench, Check, X, LoaderCircle } from "lucide-react";
+import { LoaderCircle, Wrench, X } from "lucide-react";
+import { describeToolCall } from "./toolLabels";
 
 interface ToolCallMessageProps {
-  toolCall: ToolCallInfo;
+  name: string;
+  status: "running" | "error";
+  error?: string;
 }
 
-const TOOL_LABELS: Record<string, string> = {
-  create_element: "요소 생성",
-  update_element: "요소 수정",
-  delete_element: "요소 삭제",
-  get_editor_state: "에디터 상태 조회",
-  get_selection: "선택 요소 조회",
-  search_elements: "요소 검색",
-  batch_design: "일괄 변경",
-};
-
-export function ToolCallMessage({ toolCall }: ToolCallMessageProps) {
-  const label = TOOL_LABELS[toolCall.name] || toolCall.name;
-
-  let statusIcon: ReactNode;
-  switch (toolCall.status) {
-    case "pending":
-    case "running":
-      statusIcon = <LoaderCircle size={14} className="tool-call-spinner" />;
-      break;
-    case "success":
-      statusIcon = <Check size={14} />;
-      break;
-    case "error":
-      statusIcon = <X size={14} />;
-      break;
-  }
-
+export function ToolCallMessage({ name, status, error }: ToolCallMessageProps) {
   return (
-    <div className="tool-call-message" data-status={toolCall.status}>
+    <div className="tool-call-message" data-status={status}>
       <div className="tool-call-header">
-        <Wrench size={14} />
-        <span className="tool-call-label">{label}</span>
-        {statusIcon}
+        <Wrench size={13} />
+        <span className="tool-call-label">{describeToolCall(name)}</span>
+        {status === "running" ? (
+          <LoaderCircle className="tool-call-spinner" size={13} />
+        ) : (
+          <X size={13} />
+        )}
       </div>
-      {toolCall.error && (
-        <div className="tool-call-error">{toolCall.error}</div>
-      )}
+      {error && <div className="tool-call-error">{error}</div>}
     </div>
   );
 }

@@ -314,6 +314,30 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 - 1년차 신입 baseline 시나리오 5개 통과 (evaluator agent screenshot 검증)
 - BYOK 미설정 상태 최초 진입 시나리오 통과 (온보딩 공백 R2 완화 확인)
 
+#### Phase 8 결과 (2026-08-28)
+
+**depth 측정 정의** (ADR-149 P1 과 같은 규칙): *기본 표면*에서 어떤 기능에 닿기까지 여는 중첩 표면 수. 패널 자체 = 1, overlay 는 0 이어야 한다. 고급 모드는 명시적 opt-in 이라 이 계산 밖 (D9 의 "L4 격리").
+
+| 기능             | 이전 (기본 표면)                                          | 이후                  |
+| ---------------- | --------------------------------------------------------- | --------------------- |
+| 요청 보내기      | 1                                                         | 1                     |
+| 결과 확인        | 1 (단 도구 3종은 "도구 실행 완료" 로 뭉뚱그려짐)          | 1                     |
+| 실행 중단        | 1                                                         | 1                     |
+| 프로파일 설정    | **4** (톱니 → 설정 화면 → 프로파일 fieldset → 프리셋/필드) | 고급 모드 (기본 밖)  |
+| 계획·수리 진행   | 표시 없음                                                 | 고급 모드 (기본 밖)  |
+
+기본 표면 최대 depth **4 → 2**. "4" 는 톱니가 기본 표면 헤더에 상시 노출돼 프로파일 경로 전체가 기본 표면에 매달려 있던 상태.
+
+| 시나리오 (1년차 신입)          | 결과                                                                    |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| ① 무엇을 할 수 있는지 안다     | PASS — 첫 진입 추천 3                                                   |
+| ② 요청을 보낸다                | PASS                                                                    |
+| ③ 무엇이 바뀌었는지 안다       | PASS — `frame 생성함` / `Heading 생성함` (도구 10종 전수 어휘 + 게이트) |
+| ④ 실행을 멈춘다                | 미실측 — `AgentControls` 무변경, 이번 실행이 즉시 종료                  |
+| ⑤ 설정이 필요할 때 길이 보인다 | PASS — 미구성 온보딩 → 고급 모드 (R2)                                   |
+
+**결함 수정 1건 (사용자-가시)**: 도구 실행 뒤 assistant 텍스트가 화면에서 사라졌다. 원인은 `appendToLastMessage` 의 `role === "assistant"` 가드 — 마지막 메시지가 도구 결과면 delta 를 **버린다**. RED (`useAgentLoop.test.ts`) → 도구 결과 뒤 말풍선 새로 열기 → live 확인.
+
 ## 11. Phase 9 — 외부 코딩 에이전트 통합 (D11, G7)
 
 **목적**: ACP/에이전트 SDK embed (Claude Code / Codex) + MCP 도구 표면 노출. **2026-08-18 2차 정정으로 위상 확정: 외부 에이전트 embed 는 이연된 부가 기능이 아니라 노선 β 의 최종 형태다 (Pencil.app dual embed 패턴 정본)** — Phase 1-8 의 자체 오케스트레이션은 웹 단계의 자립 경로이자 embed 의 전제 (MCP 호환 도구 표면) 를 준비한다. **Electron 마이그레이션 시점 의존 (R1 HIGH 위험)**. Reference: Pencil.app dual embed (Codex SDK + Claude Agent SDK) / open-pencil ACP (Claude Code / Codex / Gemini CLI) / holaOS harness-host (pi / claude-code / codex 3-way + deferred tool gateway — [HOLAOS_ANALYSIS.md](../../explanation/research/HOLAOS_ANALYSIS.md) §3-1/§5) / grok-build (ACP + `search_tool`+`use_tool` 도구 지연 로딩 정본 + embed 권한 5단 파이프라인 — [XAI_ORG_ANALYSIS.md](../../explanation/research/XAI_ORG_ANALYSIS.md) §2-1/§2-3/§5-1).

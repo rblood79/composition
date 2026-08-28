@@ -478,3 +478,83 @@
   font-size: var(--text-2xs);
   line-height: var(--text-2xs--line-height);
 }
+
+/* 고급 모드 (ADR-134 Phase 8) — 기본 표면에서 걷어낸 L4 표면이 여기 모인다. */
+.ai-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.ai-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+}
+
+.ai-progress-agents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-progress-agent {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2xs);
+  color: var(--fg-muted);
+}
+
+.ai-progress-agent[data-status="done"] {
+  color: var(--fg);
+}
+
+.ai-progress-agent-summary {
+  color: var(--fg-muted);
+}
+
+.ai-progress-plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs);
+  padding-top: var(--spacing-2xs);
+  border-top: 1px solid var(--border);
+}
+
+.ai-progress-goal {
+  margin: 0;
+  color: var(--fg);
+}
+
+.ai-progress-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs);
+  margin: 0;
+  /* 순서가 계획의 내용이다 — 리셋이 지운 마커를 되살린다. */
+  padding-left: var(--spacing-lg);
+  list-style: decimal;
+  color: var(--fg-muted);
+}
+
+.ai-progress-step-done {
+  padding-left: var(--spacing-2xs);
+  color: var(--fg-disabled);
+}
+
+.ai-progress-repair {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2xs);
+  color: var(--fg-muted);
+}

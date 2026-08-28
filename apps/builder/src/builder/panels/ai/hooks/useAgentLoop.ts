@@ -6,7 +6,7 @@
  * conversation store + G.3 시각 피드백 연동
  */
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { createAgentRunner } from "../../../../services/ai/createAgentRunner";
 import { intentParser } from "../../../../services/ai/IntentParser";
 import { useConversationStore } from "../../../stores/conversation";
@@ -14,6 +14,19 @@ import { useStore } from "../../../stores";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
 import type { BuilderContext } from "../../../../types/integrations/chat.types";
 import type { ToolExecutionResult } from "../../../../types/integrations/ai.types";
+import {
+  initialProgress,
+  reduceProgress,
+  type AgentProgress,
+} from "./agentProgress";
+
+/** 고급 모드가 읽는 진행 이벤트 — 나머지는 상태를 건드리지 않는다. */
+const PROGRESS_EVENTS = new Set([
+  "agent-start",
+  "agent-end",
+  "plan-ready",
+  "repair-attempt",
+]);
 
 export function useAgentLoop() {
   const {
@@ -35,6 +48,11 @@ export function useAgentLoop() {
 
   // Agent 실행기 (한 번만 생성) — planner 프로파일이 있으면 Plan→Execute→Verify 분해 실행
   const agent = useMemo(() => createAgentRunner(), []);
+
+  // 계획·역할·수리 진행 (ADR-134 Phase 8) — 기본 표면은 안 읽는다, 고급 모드만 읽는다.
+  const [progress, setProgress] = useState<AgentProgress>(initialProgress);
+  // 지금 도는 도구 — 결과만 보여주면 그동안 화면이 멈춘 것처럼 보인다.
+  const [runningTool, setRunningTool] = useState<string | null>(null);
 
   /**
    * IntentParser fallback
@@ -78,6 +96,8 @@ export function useAgentLoop() {
         try {
           setAgentRunning(true);
           setStreamingStatus(true);
+          setProgress(initialProgress());
+          setRunningTool(null);
 
           // G.3: 선택된 요소에 generating 이펙트
           const currentSelectedId = useStore.getState().selectedElementId;
@@ -87,20 +107,38 @@ export function useAgentLoop() {
               .startGenerating([currentSelectedId]);
           }
 
-          // 빈 assistant 메시지 추가 (스트리밍용)
-          addAssistantMessage("");
-
           const allMessages = useConversationStore.getState().messages;
           const allAffectedIds: string[] = [];
 
+          /**
+           * 지금 열려 있는 assistant 말풍선이 있는가.
+           *
+           * 도구 결과 메시지가 들어가면 마지막 메시지가 tool 이 되고,
+           * `appendToLastMessage` 는 assistant 가 아니면 delta 를 **버린다**
+           * (`stores/conversation.ts`). 그래서 도구 실행 뒤에 온 설명이 통째로
+           * 사라졌다 (ADR-134 Phase 2 관찰 → Phase 8 소관). 도구 결과 뒤에는
+           * 말풍선을 새로 연다.
+           */
+          let assistantOpen = false;
+
           for await (const event of agent.runAgentLoop(allMessages, context)) {
+            if (PROGRESS_EVENTS.has(event.type)) {
+              setProgress((prev) => reduceProgress(prev, event));
+            }
+
             switch (event.type) {
               case "text-delta":
-                appendToLastMessage(event.content);
+                if (assistantOpen) {
+                  appendToLastMessage(event.content);
+                } else {
+                  addAssistantMessage(event.content);
+                  assistantOpen = true;
+                }
                 break;
 
               case "tool-use-start":
                 updateToolCallStatus(event.toolCallId, "running");
+                setRunningTool(event.toolName);
                 incrementTurn();
                 break;
 
@@ -108,6 +146,8 @@ export function useAgentLoop() {
                 const result = event.result as ToolExecutionResult;
                 updateToolCallStatus(event.toolCallId, "success", result);
                 addToolMessage(event.toolCallId, event.toolName, result);
+                assistantOpen = false;
+                setRunningTool(null);
 
                 // G.3: 영향 받은 요소에 flash
                 if (result?.affectedElementIds) {
@@ -129,6 +169,7 @@ export function useAgentLoop() {
                   undefined,
                   event.error,
                 );
+                setRunningTool(null);
                 break;
 
               case "final":
@@ -162,6 +203,7 @@ export function useAgentLoop() {
 
           setStreamingStatus(false);
           setAgentRunning(false);
+          setRunningTool(null);
         } catch (error) {
           if (import.meta.env.DEV) {
             console.error("[useAgentLoop] Agent error:", error);
@@ -171,6 +213,7 @@ export function useAgentLoop() {
           useAIVisualFeedbackStore.getState().cancelGenerating();
           setStreamingStatus(false);
           setAgentRunning(false);
+          setRunningTool(null);
 
           // IntentParser fallback
           runFallback(message, context);
@@ -202,10 +245,13 @@ export function useAgentLoop() {
     useAIVisualFeedbackStore.getState().cancelGenerating();
     setAgentRunning(false);
     setStreamingStatus(false);
+    setRunningTool(null);
   }, [agent, setAgentRunning, setStreamingStatus]);
 
   return {
     messages,
+    progress,
+    runningTool,
     isStreaming,
     isAgentRunning,
     currentTurn,

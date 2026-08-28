@@ -1,0 +1,80 @@
+// @vitest-environment jsdom
+import React from "react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AgentProgress } from "../hooks/agentProgress";
+
+vi.mock("./AgentProfileSettings", () => ({
+  AgentProfileSettings: () => <div>프로파일 설정 자리</div>,
+}));
+
+vi.mock("./ConnectionStatus", () => ({
+  ConnectionStatus: () => <div>연결 상태 자리</div>,
+}));
+
+import { AdvancedMode, trimLabelEcho } from "./AdvancedMode";
+
+const empty: AgentProgress = { plan: null, agents: [], repairs: [] };
+
+afterEach(cleanup);
+
+describe("고급 모드", () => {
+  it("프로파일 설정과 연결 상태를 함께 담는다 — 여기가 L4 표면", () => {
+    render(<AdvancedMode progress={empty} />);
+    expect(screen.getByText("프로파일 설정 자리")).toBeTruthy();
+    expect(screen.getByText("연결 상태 자리")).toBeTruthy();
+  });
+
+  it("계획 단계를 보여준다", () => {
+    render(
+      <AdvancedMode
+        progress={{
+          plan: {
+            goal: "제목이 있는 프레임",
+            steps: [
+              { index: 1, instruction: "frame 생성" },
+              { index: 2, instruction: "Heading 추가" },
+            ],
+          },
+          agents: [],
+          repairs: [],
+        }}
+      />,
+    );
+    expect(screen.getByText("제목이 있는 프레임")).toBeTruthy();
+    expect(screen.getByText(/frame 생성/)).toBeTruthy();
+    expect(screen.getByText(/Heading 추가/)).toBeTruthy();
+  });
+
+  it("역할별 진행과 수리 시도를 보여준다", () => {
+    render(
+      <AdvancedMode
+        progress={{
+          plan: null,
+          agents: [
+            { agent: "planner", label: "계획", status: "done", ok: true },
+            { agent: "executor", label: "실행", status: "running" },
+          ],
+          repairs: [{ attempt: 1, max: 2, issues: ["Heading 이 비었다"] }],
+        }}
+      />,
+    );
+    expect(screen.getByText("계획")).toBeTruthy();
+    expect(screen.getByText("실행")).toBeTruthy();
+    expect(screen.getByText(/Heading 이 비었다/)).toBeTruthy();
+  });
+
+  it("진행이 없으면 진행 영역을 만들지 않는다", () => {
+    render(<AdvancedMode progress={empty} />);
+    expect(screen.queryByRole("group", { name: "에이전트 진행" })).toBeNull();
+  });
+});
+
+describe("요약이 역할 이름을 되풀이하지 않는다", () => {
+  it("앞뒤 어느 쪽에 붙어도 지운다", () => {
+    expect(trimLabelEcho("실행", "2건 실행")).toBe("2건");
+    expect(trimLabelEcho("수리", "수리 1회")).toBe("1회");
+    expect(trimLabelEcho("계획", "2단계")).toBe("2단계");
+    expect(trimLabelEcho("검증", "이상 없음")).toBe("이상 없음");
+  });
+});

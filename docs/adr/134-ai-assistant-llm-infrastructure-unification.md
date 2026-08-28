@@ -21,7 +21,8 @@ Accepted — 2026-08-28 (리뷰 round 2 승인 — round 1 이슈 8건 HIGH 1 / 
 | 5     | Implemented (08-28) | G5 통과 — `services/ai/catalog/` 신설: **손으로 적지 않고 catalog SSOT 에서 파생**한다 (`componentCatalog` + `COMPONENT_RULES_TABLE` + `resolveEditContract`). 118 type / prop 집합·enum·variant·size 값 전수 대조 불일치 0. Tier 1 (전체 type 목록, 391 tok) 은 항상 · Tier 2 (요청 관련 상세) 는 골라서 주입 — 프롬프트 1,389 tok vs 전체 6,454 tok. 15 시나리오 recall **45/45**, RSP 표본 대조 **40/41**. 구 systemPrompt 의 하드코딩 24종 목록 제거 (그 목록의 `Div` 는 catalog 에 없는 type 이었다). vitest 44 신규 + AI·dispatcher 150 · type-check 0 (§Live Exercise) |
 | 6     | Implemented (08-28) | Plan → Execute → Verify 분해 — `agents/` 신설 (Planner/Executor/Verifier + Orchestrator). 역할마다 **자기 프로파일 provider** 로 호출되고, 검증 실패 시 **최대 2회** 수리 후 사람에게 넘긴다. 계획이 1단계면 분해·검증을 건너뛴다 (단순 요청에 호출 3배를 붙이지 않는다). `createAgentRunner` 가 planner 구성 여부로 분해/단일 경로를 고른다 — **패널 배선까지 완료**. **live 결함 1건 수정**: `create_element` 가 팩토리를 안 거쳐 AI 가 만든 `Select` 는 자식 0개 껍데기였다 (팔레트와 불일치) → 팔레트와 같은 분기로 71→76 트리 생성. 레이아웃 템플릿 4종 (catalog 대조 gate). vitest 38 신규 + AI·패널 188 · type-check 0 (§Live Exercise) |
 | 7     | 구현 완료 · **G6 부분** (08-28) | `routing/AgentProfileRouter` (작업 유형 → 프로파일, 내림을 **기록으로 남긴다** — Phase 6 의 조용한 내림이 실제 문제였다) + 패널 UI 2종 (`AgentProfileSettings` / `ConnectionStatus`, AI 패널 헤더 톱니로 진입) + 로컬 endpoint 가이드 문서. **G6 측정**: 라우팅 분기 PASS (프로파일별 상이 모델이 역할별로 그대로 호출됨) · 로컬 endpoint 로 **도구 10종 전수 통과, 오류 0** · **Ollama 실물 대조만 미실시** (미설치 — 사용자 환경). vitest 27 신규 + 215 · type-check 0 (§Live Exercise) |
-| 8~9   | 미착수              | Phase 8 (AIPanel UX baseline) 부터. **G6 종결에 남은 것**: ① Ollama 실물 1회 실행 ② 카탈로그 주입 후 모델-루프 props 정확도 (G5) ③ Phase 6 의 2개 대시보드 시나리오 품질 — 셋 다 사용자가 로컬 endpoint 를 띄우면 한 번에 끝난다. 원격 상용 provider 는 프록시가 생기기 전까지 차단 상태 — 프록시 도입은 별도 결정                                                                                                                                                                                                                                                                                                                                                                                        |
+| 8     | Implemented (08-28) | Gate 없음 (evaluator screenshot) — **기본 표면 depth 4 → 2**: 모델 구성·라우팅·계획 분해를 `AdvancedMode` 로 격리 (헤더 톱니 1회 전환), 기본 표면은 입력 + 결과만. **도구 어휘 SSOT** `toolLabels` 신설 + 도구 정의 전수 drift 게이트 — 이전 표는 7종만 알아 Phase 3/4·ADR-196 이 더한 3종이 "도구 실행 완료" 로 뭉뚱그려졌다. **진행 표시** `agentProgress` reducer (Phase 6 이 이미 내보내던 `plan-ready`/`agent-*`/`repair-attempt` 를 패널이 전부 버리고 있었다). **BYOK 온보딩 (R2)** — 미구성 시 빈 채팅 대신 설정 안내. **결함 수정**: 도구 실행 뒤 assistant 텍스트 유실 (RED→GREEN). vitest 28 (신규 14) + 240 · type-check 0 (§Live Exercise)
+| 9     | 미착수              | 외부 코딩 에이전트 embed (G7) — **Electron 마이그레이션 시점 의존 (R1 HIGH)**. 웹앱 현 단계에서 착수 불가. **G6 종결에 남은 것**: ① Ollama 실물 1회 실행 ② 카탈로그 주입 후 모델-루프 props 정확도 (G5) ③ Phase 6 의 2개 대시보드 시나리오 품질 — 셋 다 사용자가 로컬 endpoint 를 띄우면 한 번에 끝난다. 원격 상용 provider 는 프록시가 생기기 전까지 차단 상태 — 프록시 도입은 별도 결정
 
 ### Live Exercise
 
@@ -31,7 +32,7 @@ Accepted — 2026-08-28 (리뷰 round 2 승인 — round 1 이슈 8건 HIGH 1 / 
 - **원격 직접 호출 차단 (HC13/R12)** — 같은 자리에서 `api.openai.com` 프로파일로 바꿔 실행: `fetch` 가 **0회**, `remote-provider-requires-proxy` 로 차단. 프로덕션 번들에서 DEV opt-in 분기가 접혀 우회 경로가 없음도 확인 (`e.allowRemoteDirect,` 뒤에 곧바로 throw).
 - **번들 grep** — 프로덕션 산출물에 `groq-sdk` · `dangerouslyAllowBrowser` · `api.groq.com` · `VITE_GROQ_API_KEY` **전부 0건**.
 - **정리** — 프로파일 설정 제거 (미구성 기본으로 복귀), zoom 원복, mock endpoint 종료.
-- 관찰 (스코프 밖 — Phase 8 AIPanel UX): 도구 실행 **뒤** 턴의 assistant 텍스트가 화면에 보이지 않는다. `useAgentLoop` 의 `text-delta` 가 `appendToLastMessage` 로 가는데 그 시점의 마지막 메시지가 도구 결과 메시지라, 고정 라벨("도구 실행 완료") 뒤에 붙어 사라진다. provider 교체와 무관한 기존 동작 (이벤트 순서 동일) 이라 Phase 2 에서 고치지 않는다.
+- 관찰 (스코프 밖 — Phase 8 AIPanel UX): 도구 실행 **뒤** 턴의 assistant 텍스트가 화면에 보이지 않는다. `useAgentLoop` 의 `text-delta` 가 `appendToLastMessage` 로 가는데 그 시점의 마지막 메시지가 도구 결과 메시지라 사라진다. provider 교체와 무관한 기존 동작 (이벤트 순서 동일) 이라 Phase 2 에서 고치지 않는다. → **Phase 8 에서 수정 (2026-08-28)**. 기전 정정: 도구 메시지 뒤에 붙어 보이지 않은 것이 아니라, `appendToLastMessage` 의 `role === "assistant"` 가드가 delta 를 **통째로 버리고 있었다** (`stores/conversation.ts`). 도구 결과 뒤에는 말풍선을 새로 연다.
 
 **2026-08-28 (2차) · Chrome MCP** — Phase 3 G3.
 
@@ -75,6 +76,17 @@ Accepted — 2026-08-28 (리뷰 round 2 승인 — round 1 이슈 8건 HIGH 1 / 
 - **G6 를 통과로 적지 않은 이유** — 게이트는 "Ollama OpenAI-compatible endpoint" 를 지정한다. 경로는 로컬 OpenAI 호환 endpoint 로 전부 통과했지만 **Ollama 가 이 환경에 없어** 실물 서버 wire 대조를 못 했다. 사용자가 로컬 endpoint 를 띄우면 1회 실행으로 종결된다.
 - **정리** — 만든 요소 0 잔존, orphan `InteractionRule` 1건 수동 제거, 프로파일 제거, mock 종료, zoom 복원 (67% → 69%, 배율 사다리상 근사).
 - 스코프 밖 관찰: **요소를 지워도 그 요소의 이벤트 규칙이 `events` 에 남는다** (G6 실측에서 orphan 1건). ADR-158 영역.
+
+**2026-08-28 (7차) · Chrome MCP** — Phase 8 (D9).
+
+- **미설정 최초 진입 (R2)** — 프로파일을 지우고 새로고침. 빈 채팅이 아니라 "먼저 어떤 모델을 쓸지 알려 주세요" + `에이전트 설정 열기` 가 뜬다. 버튼 → 고급 모드가 그 자리에서 열린다 (경로가 끊기지 않는다).
+- **기본 표면 depth 2** — 구성된 상태의 기본 표면에는 프로파일 필드가 **하나도 없다** (추천 3 + 입력 + 결과). 이전에는 헤더 톱니가 곧 프로파일 화면이라 프리셋·필드까지 4단계가 기본 표면에 매달려 있었다.
+- **도구 결과가 한국어 한 줄로 보인다** — 로컬 mock 에 planner/executor/verifier 각각 다른 모델 id 를 물리고 "제목이 있는 프레임 만들어줘" 실행. 대화에 `frame 생성함` · `Heading 생성함` 이 뜬다 (이전 표시는 `생성됨 frame (a1b2c3d4...)`).
+- **도구 실행 뒤 텍스트가 남는다 (결함 수정 live 확인)** — 같은 실행에서 도구 결과 3건 각각 뒤에 `완료했습니다.` 가 표시됐다. 수정 전에는 `appendToLastMessage` 가드가 이 delta 를 버려 화면에 아무것도 남지 않았다. 캔버스에는 `P6 제목` 2건이 실제로 생성됐다.
+- **고급 모드 진행 표시** — 계획 2단계 / 실행 2건 / 검증 1건 지적 / 수리 1회 / 검증 이상 없음 + 계획 목표·단계 + `수리 1/2 · Heading 의 children 이 비었습니다`. 연결 상태는 역할별 모델과 `분류 프로파일이 없어 기본 프로파일로 실행합니다` 내림을 함께 보여준다.
+- **UI 결함 3건 발견 → 수정** — ① `AgentProfileSettings` 가 이미 `ConnectionStatus` 를 품고 있어 고급 모드에서 연결 상태가 **두 번** 그려졌다 ② 역할 요약이 라벨을 되풀이해 `실행 2건 실행` / `수리 수리 1회` 로 읽혔다 ③ 계획 단계의 순서 번호가 리셋에 지워져 안 보였다. 셋 다 수정 후 재확인.
+- **중단 버튼**: `AgentControls` 는 Phase 8 에서 변경하지 않았고 (보존), 이번 실행이 즉시 끝나 live 로는 exercise 하지 않았다.
+- **정리** — 사용자 프로파일 설정 원복, mock 종료. 캔버스에 생성된 `frame`/`Heading` 은 로컬 검증 프로젝트 데이터라 그대로 둠.
 
 ## Context
 
@@ -331,7 +343,7 @@ ADR-054 Hard Constraints 승계 + 2026-08-18 노선 개정 반영:
 | R4  | (재규정 2026-08-26) 도구 schema 가 frame / slot / componentSemantics 1차 필드를 표현하지 못하거나, 확장 시 facade 를 우회해 `elementsMap` 직접 접근이 재도입됨 |  MED   | Phase 3 G3 — 도구 schema 에 1차 필드 어휘 반영 + facade / store action 외 direct access 0 grep gate (현 baseline 0 — 회귀 gate) + `runCanonicalMutation` 으로 batch history 1건 |
 | R5  | `collections` SSOT 와 dataBinding 도구 시그니처 정합 (ADR-132 Transformer 제거 영역)                                                                           |  MED   | Phase 4 G4 — `Element.dataBinding` 설정 + `useCollectionData({ datatableId \| dataBinding })` 진입점 + `Transform 3단계` 어휘 미도입 회귀 gate                                  |
 | R6  | (재작성 2026-08-26) AI 이벤트 도구가 ADR-158 `InteractionRule` 이 아니라 dormant `SerializedEvent` / root `actions` 를 목표로 구현됨 (round 1 HIGH)            |  MED   | Phase 4 G4 — `InteractionRule` + `addEvent` 경유 + `capabilityRegistry` 검증 + `SerializedEvent` / `actions` root / `element.props.events` 어휘 0 grep gate                     |
-| R7  | AIPanel UX 1년차 신입 baseline 검증 (HC12 — ADR-149 P1 선례)                                                                                                   |  MED   | Phase 8 evaluator agent screenshot 검증 + depth 4→2 축소 measure                                                                                                                |
+| R7  | ~~AIPanel UX 1년차 신입 baseline 검증 (HC12 — ADR-149 P1 선례)~~ → **해소 (2026-08-28)**: 기본 표면 depth 4→2, 시나리오 5 중 4 PASS·1 미실측(중단 버튼 — 무변경) |  LOW   | Phase 8 반영 완료 (§Live Exercise 7차 · breakdown §Phase 8 결과)                                                                                                                |
 | R8  | Provider 별 Tool Calling format 차이 (Anthropic tool use / OpenAI function calling)                                                                            |  MED   | `LLMProvider.completeWithTools` 통합 시그니처 + 2-way 어댑터 표준화 (4-way → 2-way 축소로 원 위험 대비 완화)                                                                    |
 | R9  | groq-sdk 완전 제거 시 기존 Phase A1~A4 산출물 회귀                                                                                                             |  MED   | Phase 2 G2 — 대체 provider (에이전트 프로파일 경유) 로 기존 7개 도구 전수 통과 + AbortController + G.3 시각 피드백 보존                                                         |
 | R10 | (재규정) 폐쇄망 = 로컬 endpoint BYOK — endpoint 품질·모델 선택이 사용자 소관이 되어 결과 편차                                                                  |  MED   | Phase 7 G6 — Ollama OpenAI-compatible endpoint 로 7 도구 전수 통과 1회 실측 + 로컬 endpoint 설정 가이드 문서화. 모델별 품질 보증은 제품 책임 아님                               |
