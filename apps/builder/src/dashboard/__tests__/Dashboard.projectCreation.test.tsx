@@ -67,8 +67,9 @@ describe("Dashboard project creation entry points", () => {
     document.documentElement.removeAttribute("data-builder-theme");
   });
 
+  // "New project" 헤더 버튼은 f94723db1 (2026-08-28) 로 <header> 에서 <main> 의 toolbar 로 옮겨졌다 — 진입점 2곳 유지
   it.each([
-    ["header", "banner"],
+    ["toolbar", "toolbar"],
     ["empty state", "empty"],
   ] as const)(
     "shows the project name editor from the %s button when no projects exist",
@@ -77,8 +78,8 @@ describe("Dashboard project creation entry points", () => {
 
       const emptyTitle = await screen.findByText("No projects yet");
       const actionSurface =
-        surface === "banner"
-          ? screen.getByRole("banner")
+        surface === "toolbar"
+          ? screen.getByRole("main").querySelector(".dashboard-toolbar")
           : emptyTitle.parentElement;
       if (!actionSurface)
         throw new Error("Project creation surface is required");

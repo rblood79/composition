@@ -5,10 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cleanup,
   fireEvent,
-  render,
+  render as rtlRender,
   screen,
   waitFor,
 } from "@testing-library/react";
+import { I18nProvider } from "@/i18n";
 import type { Page } from "../../../types/builder/unified.types";
 import type { Element } from "../../../types/core/store.types";
 
@@ -137,6 +138,11 @@ vi.mock("../../../utils/longTaskMonitor", () => ({
 }));
 
 import { PagesSection } from "./PagesSection";
+
+// PagesSection 은 useI18n() (provider 필수) 을 쓴다 — 앱 root (main.tsx) 와 같은 provider 로 감싼다.
+function render(ui: React.ReactElement) {
+  return rtlRender(<I18nProvider initialLocale="en-US">{ui}</I18nProvider>);
+}
 
 function makePage(id: string, title: string, orderNum = 0): Page {
   return {
