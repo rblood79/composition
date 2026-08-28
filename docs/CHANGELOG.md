@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-134 Phase 5 — AI 가 컴포넌트를 실제로 안다] - 2026-08-28
+
+### Added
+
+- **AI 가 composition 의 컴포넌트 118종을 안다**: 어떤 컴포넌트가 있고, 각각 어떤 props 를 받고, variant / size 에 어떤 값을 쓸 수 있는지가 대화마다 전달된다. 이 지식은 손으로 적은 목록이 아니라 컴포넌트 카탈로그에서 그대로 파생되므로, 컴포넌트가 바뀌면 AI 가 아는 것도 같이 바뀐다.
+- 요청과 관련된 컴포넌트만 상세를 펼친다 — 전체 목록은 항상 보내고, "버튼 색 바꿔줘" 같은 요청에는 Button 상세만 붙인다.
+
+### Fixed
+
+- **AI 가 존재하지 않는 컴포넌트를 제안하던 문제**: 이전 프롬프트는 24종을 손으로 적어 두고 있었고 그중 `Div` 는 실제로 만들 수 없는 type 이었다. 목록이 카탈로그 파생으로 바뀌면서 사라졌다.
+- **AI 가 값을 지어내던 문제**: variant / size 의 허용 값을 알려 주지 않아 모델이 그럴듯한 값을 만들어 냈다. 이제 실제 값 집합을 받는다.
+- 사용자가 "progress bar" 처럼 띄어 써도 해당 컴포넌트를 알아본다.
+
+### Tests
+
+- 컴포넌트 118종 전수 대조 (props 집합 · enum · variant · size 값이 카탈로그와 정확히 일치), 15 시나리오 주입 정확도, 카탈로그 drift 감시 — 신규 44건, AI 영역 합계 150건.
+
 ## [ADR-134 Phase 3~4 — AI 가 frame·데이터·이벤트를 다룬다] - 2026-08-28
 
 ### Added

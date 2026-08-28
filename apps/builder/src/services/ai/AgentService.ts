@@ -46,8 +46,13 @@ export class AgentService {
   ): AsyncGenerator<AgentEvent> {
     this.abortController = new AbortController();
 
+    // 카탈로그 Tier 2 선택 (ADR-134 Phase 5) 은 이번 턴 요청문을 근거로 삼는다.
+    const latestRequest = [...messages]
+      .reverse()
+      .find((m) => m.role === "user")?.content;
+
     const conversation: LLMMessage[] = [
-      { role: "system", content: buildSystemPrompt(context) },
+      { role: "system", content: buildSystemPrompt(context, latestRequest) },
       ...this.convertMessages(messages),
     ];
 

@@ -192,12 +192,33 @@
 - `apps/builder/src/services/ai/catalog/specSync.ts` — catalog(`COMPONENT_RULES_TABLE`) → AI 카탈로그 자동 동기화 (Phase 6+)
 - `apps/builder/src/services/ai/systemPrompt.ts` — 카탈로그 진입점 + 동적 주입 hook
 
-### Phase 5 Gate G5
+### Phase 5 Gate G5 — Implemented (2026-08-28)
 
 - 카탈로그 65+ 컴포넌트 메타데이터 반영 + RAC / RSP 문서 매핑 검증
 - 동적 주입 후 Props 정확도 ≥ 90% (Phase 5 검증 데이터셋 — 15 시나리오, **executor 프로파일 기준 모델로 측정**)
 - (구 Qwen3 14B/35B 정확도 조건은 노선 α 기각과 함께 삭제 — 로컬 endpoint 사용 시 정확도는 사용자 trade-off, R10)
 - type-check + vitest PASS
+
+**측정 결과 (2026-08-28)**
+
+| 조건                  | 측정                                                                                                                                     | 결과                     |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| 65+ 컴포넌트          | catalog SSOT 파생 — `componentCatalog` 122 entry → type 118 (동명 4 fold)                                                                | **118** ≥ 65 ✅          |
+| SSOT 매핑             | 118 컴포넌트 전수 대조: variant/size 값 = `COMPONENT_RULES_TABLE` keys, enum 값 = `accepts.options`, prop 집합 = `accepts` 정확히 일치   | 불일치 **0** ✅          |
+| RAC / RSP 문서 대조   | 표본 4종 41 props (Button 9 · ProgressBar 11 · Checkbox 12 · Slider 9) 를 Spectrum design-data + RAC API 로 대조                        | **40/41 = 97.6%** ✅     |
+| 동적 주입 정확도      | 15 시나리오 45 항목 (type 상세 · prop 이름 · enum 값) recall. 기대값은 `resolveEditContract` 로 실재 검증 후 사용 (순환 차단)            | **45/45 = 100%** ✅      |
+| context 예산 (R3)     | 전체 카탈로그 상세 6,454 tok vs 주입 프롬프트 1,389 tok (Tier 1 인덱스 391)                                                              | **4.6x 축소** ✅         |
+| type-check / vitest   | type-check 0 · AI+dispatcher 150 passed (18 file, 신규 44)                                                                              | PASS ✅                  |
+
+**측정이 잡아낸 결함 3건** (모두 수정 반영):
+
+1. `ProgressBar` 를 "progress bar" (띄어쓰기) 로 부르면 Tier 2 선택이 실패 → CamelCase 단어 사이 구분자 허용 + 긴 이름 우선 매칭으로 수정 (recall 44/45 → 45/45).
+2. 별칭 사전의 `이미지 → Image` 가 죽은 참조 — `Image` 는 catalog 에 없는 **아이콘 이름**이었다 → 제거.
+3. 컨테이너 목록의 `Div` 가 catalog 에 없음 — **구 systemPrompt 가 모델에게 광고하던 존재하지 않는 type** → 제거.
+
+**RSP 대조 세부** (분모 41): `fillStyle`↔RSP `style` · `variant`(Checkbox)↔RSP `isEmphasized` 는 이름/형태만 다르고 의미 동일. `Button.variant` 의 `premium`/`genai`, `staticColor` 의 `auto` 는 composition 확장. `ProgressBar.variant` 는 값 집합이 RSP(`default`/`over background`) 와 다름 (composition `default`/`accent`/`neutral`). 유일한 미대응은 `Slider.size` — RSP·RAC 모두 미규정이고 composition D3 시각 축이라 정당. **이 대조는 Phase 5 파생이 아니라 선행 D2 catalog (ADR-142/912) 를 감사한 것** — Phase 5 자체 충실도는 118 전수 대조가 담당한다.
+
+**전제 정정 — R3 심각도 과대**: R3 은 카탈로그를 "~311K tok" 으로 잡았으나, catalog 파생 형태의 전체 상세는 **6,454 tok** 이라 예산을 넘지 않는다. 311K 는 RAC/RSP **원문 문서** 기준 추정이지 메타데이터 기준이 아니었다. 동적 주입은 여전히 4.6x 를 절약하지만 **필수가 아니라 최적화**다 — RAG 도입 (G5 실패 시 대안) 은 근거가 사라졌다.
 
 ## 8. Phase 6 — 에이전트 오케스트레이션 Plan→Execute→Verify (D7)
 
@@ -281,7 +302,7 @@
 | Phase 2 Groq 제거+secret  | ~7 file                                                                                                   | **4 기존** (`GroqAgentService.ts` · `definitions.ts` · `runCommand.ts` · `apps/builder/package.json`) + **Edge Function 스캐폴딩 신규** (추정에 없던 항목)     | 0.57            | 아니오 — 단 신규 배포 인프라 1건은 착수 시 사용자 confirm |
 | Phase 3 도구 어휘 확장    | ~8 file (7 도구 + definitions; store 전환 없음 — 2026-08-26 재산정)                                       | **9** (도구 7 + `definitions.ts` + `index.ts`)                                                                                                                 | 1.13            | 아니오                                                    |
 | Phase 4 격차 정합         | ~5 file (신규 도구 2 + createElement + definitions + systemPrompt — createAction 삭제, 2026-08-26 재산정) | **3 기존** (`createElement.ts` · `definitions.ts` · `systemPrompt.ts`) + 신규 도구 2                                                                           | 1.00            | 아니오                                                    |
-| Phase 5 카탈로그          | ~8 file                                                                                                   | TBD (Phase 5 착수 시)                                                                                                                                          | —               | —                                                         |
+| Phase 5 카탈로그          | ~8 file                                                                                                   | **2 기존** (`systemPrompt.ts` · `AgentService.ts`) + 신규 4 (`catalog/` 3 + barrel)                                                                            | 0.75            | 아니오                                                    |
 | Phase 6 Plan→E→V+역할     | ~15 file                                                                                                  | TBD                                                                                                                                                            | —               | —                                                         |
 | Phase 7 라우팅+폐쇄망     | ~6 file                                                                                                   | TBD                                                                                                                                                            | —               | —                                                         |
 | Phase 8 AIPanel UX        | ~10 file                                                                                                  | **8** (`builder/panels/ai/**` 전체)                                                                                                                            | 0.80            | 아니오                                                    |
