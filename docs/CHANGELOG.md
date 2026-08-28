@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-134 Phase 1~2 — AI 어시스턴트가 provider 를 고른다 + Groq 제거] - 2026-08-28
+
+### Changed
+
+- **AI 어시스턴트의 모델·endpoint 를 사용자가 정한다** (Breaking): Groq 고정 연결을 걷어내고 에이전트 프로파일 (`main`/`planner`/`executor`/`verifier`/`fast` + `vision` 예약) 이 provider·endpoint·모델을 정한다. 프리셋 3종 (Anthropic / OpenAI 호환 / 로컬 Ollama) 제공.
+  - **모델이 정해지기 전에는 AI 패널이 동작하지 않는다** — 이전에는 만료된 모델 id 가 코드에 박혀 있어 요청이 `404 model_not_found` 로 조용히 실패했다. 이제 미구성 상태를 분명히 드러낸다.
+  - 로컬/사내 endpoint (Ollama · vLLM · LM Studio · 사설망 gateway) 는 전용 어댑터 없이 base URL 만으로 연결된다 — 폐쇄망에서 그대로 쓸 수 있다.
+- **API 키가 브라우저 번들에 실리지 않는다**: `VITE_GROQ_API_KEY` 환경변수 경로와 `dangerouslyAllowBrowser` 를 제거했다. 키는 기본적으로 **세션 메모리** 에만 있고, 브라우저 저장은 사용자가 명시적으로 켠 뒤에만 열리며 끄면 함께 지워진다.
+- **원격 provider 직접 호출 차단**: 프록시 경로가 준비되기 전까지 브라우저는 로컬·사설망 endpoint 만 직접 부른다. 원격 주소는 요청 자체가 나가지 않는다.
+
+### Added
+
+- provider 어댑터 2종 — Anthropic Messages (system 최상위 · tool_result 블록 · `input_json_delta` 조립 · thinking budget) / OpenAI Chat Completions (function calling). 외부 SDK 의존 없이 `fetch` + SSE 로 구현해 초기 번들에 SDK 가 들어가지 않는다.
+
+### Tests
+
+- 신규 40건: wire 포맷 대조 (두 어댑터가 같은 스트림 이벤트를 돌려주는지) · 원격 차단 시 `fetch` 미호출 · 키 저장 정책 3분기 · 기존 도구 8종이 이름·스키마 그대로 실리는지 · Agent Loop 도구 전수 통과 + 중단(AbortController) 계약.
+- live: 로컬 mock endpoint 를 물려 AI 패널에서 "화면 확대해줘" → `run_command(zoomIn)` 실행 → 화면 zoom 74%→84% 변경 확인.
+
 ## [ADR-196 — agent 가 빌더 명령을 이름으로 부른다] - 2026-08-28
 
 ### Added

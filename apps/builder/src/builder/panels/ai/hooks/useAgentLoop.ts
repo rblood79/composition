@@ -2,11 +2,11 @@
  * useAgentLoop Hook
  *
  * Agent Loop를 제어하는 React Hook
- * GroqAgentService + conversation store + G.3 시각 피드백 연동
+ * AgentService(LLMProvider 경유) + conversation store + G.3 시각 피드백 연동
  */
 
 import { useMemo, useCallback } from "react";
-import { createGroqAgentService } from "../../../../services/ai/GroqAgentService";
+import { createAgentService } from "../../../../services/ai/AgentService";
 import { intentParser } from "../../../../services/ai/IntentParser";
 import { useConversationStore } from "../../../stores/conversation";
 import { useStore } from "../../../stores";
@@ -33,7 +33,7 @@ export function useAgentLoop() {
   } = useConversationStore();
 
   // Agent 인스턴스 (한 번만 생성)
-  const agent = useMemo(() => createGroqAgentService(), []);
+  const agent = useMemo(() => createAgentService(), []);
 
   /**
    * IntentParser fallback

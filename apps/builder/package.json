@@ -39,7 +39,6 @@
     "clsx": "^2.1.1",
     "colord": "^2.10.0",
     "fuse.js": "^7.5.0",
-    "groq-sdk": "^0.37.0",
     "hellpeq": "^1.0.1",
     "immer": "catalog:",
     "intervaq": "^2.1.2",

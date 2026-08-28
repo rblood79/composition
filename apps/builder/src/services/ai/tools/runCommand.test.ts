@@ -40,7 +40,7 @@ describe("run_command 도구 정의", () => {
   it("enum 은 allowlist 와 정확히 같다 (external·연속키 없음)", () => {
     const definition = buildRunCommandToolDefinition();
     const ids = listAgentCommands().map((c) => c.id);
-    const parameters = definition.function?.parameters as {
+    const parameters = definition.parameters as {
       properties: {
         id: { enum: string[] };
         ids: { items: { enum: string[] } };
@@ -54,8 +54,7 @@ describe("run_command 도구 정의", () => {
   });
 
   it("설명에 승인 필요 명령이 표시된다", () => {
-    const description =
-      buildRunCommandToolDefinition().function?.description ?? "";
+    const description = buildRunCommandToolDefinition().description;
     expect(description).toContain("delete:");
     expect(description).toContain("사용자 승인 필요");
   });
@@ -64,7 +63,7 @@ describe("run_command 도구 정의", () => {
     const registry = createToolRegistry();
     expect(registry.has("run_command")).toBe(true);
     expect(registry.size).toBe(8);
-    const names = (await getToolDefinitions()).map((d) => d.function?.name);
+    const names = (await getToolDefinitions()).map((d) => d.name);
     expect(names).toContain("run_command");
     expect(names).toHaveLength(8);
   });

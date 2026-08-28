@@ -185,7 +185,7 @@ describe("OpenAI 호환 어댑터", () => {
       async () => new Response("rate limit", { status: 429 }),
     ) as unknown as typeof fetch;
     const provider = new OpenAICompatibleProvider({
-      baseUrl: "http://x/v1",
+      baseUrl: "http://localhost:9/v1",
       model: "m",
       fetchImpl: impl,
     });
@@ -257,6 +257,7 @@ describe("Anthropic 어댑터", () => {
     const provider = new AnthropicProvider({
       baseUrl: "https://api.anthropic.com",
       model: "claude-sonnet-5",
+      allowRemoteDirect: true,
       apiKey: "sk-ant-test",
       fetchImpl: capture.impl,
     });
@@ -299,6 +300,7 @@ describe("Anthropic 어댑터", () => {
     const provider = new AnthropicProvider({
       baseUrl: "https://api.anthropic.com",
       model: "claude-sonnet-5",
+      allowRemoteDirect: true,
       fetchImpl: capture.impl,
     });
 
@@ -314,11 +316,8 @@ describe("Anthropic 어댑터", () => {
 describe("기존 도구 시그니처 보존 (G1)", () => {
   it("도구 8종이 이름·스키마 그대로 두 어댑터의 요청 본문에 실린다", async () => {
     const definitions = await getToolDefinitions();
-    const neutral: LLMToolDefinition[] = definitions.map((d) => ({
-      name: d.function?.name ?? "",
-      description: d.function?.description ?? "",
-      parameters: (d.function?.parameters ?? {}) as Record<string, unknown>,
-    }));
+    // Phase 2 부터 `getToolDefinitions()` 자체가 provider 중립 형태다
+    const neutral: LLMToolDefinition[] = definitions.map((d) => ({ ...d }));
     expect(neutral).toHaveLength(8);
 
     const openai = captureFetch(() => sseResponse([]));
@@ -335,6 +334,7 @@ describe("기존 도구 시그니처 보존 (G1)", () => {
       new AnthropicProvider({
         baseUrl: "https://api.anthropic.com",
         model: "claude-sonnet-5",
+        allowRemoteDirect: true,
         fetchImpl: anthropic.impl,
       }).completeWithTools(MESSAGES, { tools: neutral }),
     );

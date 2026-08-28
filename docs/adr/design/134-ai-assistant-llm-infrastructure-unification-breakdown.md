@@ -115,6 +115,11 @@
 
 ### Phase 2 Gate G2
 
+- **Implemented 2026-08-28 (G2 통과)** — `AgentService.ts` (rename) · `providers/byokKeyStore.ts` · `providers/agentProfiles.ts` 신규 · `LLMProvider` 에 `assertBrowserCallAllowed` 게이트 · `definitions.ts`/`runCommand.ts` 의 Groq 타입 제거 (정의는 provider 중립 `LLMToolDefinition` 으로 평탄화) · `useAgentLoop` 배선 · `groq-sdk` 의존 제거.
+  - **프록시 축 결정 반영 (사용자 2026-08-28)**: Supabase Edge Function 은 **보류**, 1차 축은 폐쇄망/로컬 endpoint 직결. 그래서 D10 은 "원격은 프록시 경유" 를 **코드 게이트**로 구현했다 — 로컬·사설망(10./172.16-31./192.168./*.local)만 허용하고 원격은 fetch 이전에 차단한다. 개발 빌드 opt-in(`allowRemoteDirect`)은 프로덕션 번들에서 접힌다 (실측 확인). Edge Function 스캐폴딩은 이번 Phase 에 포함하지 않았다 → **Phase 0 이 예고한 "신규 배포 인프라" 는 발생하지 않음**.
+  - 키 정책: 기본 세션 메모리, 브라우저 저장은 명시 opt-in 후에만, opt-in 해제 시 저장분 삭제. env 키 읽기 0 (정적 게이트).
+  - 검증: vitest 신규 26 + 회귀 포함 59 · type-check 0 · 프로덕션 빌드 grep 4항 0 · live (§ADR 본문 Live Exercise) — 로컬 endpoint 로 도구 8종 전달 → `run_command(zoomIn)` → zoom 74%→84%.
+  - 관찰 (Phase 8 이월): 도구 실행 뒤 턴의 assistant 텍스트가 `appendToLastMessage` 대상이 도구 메시지라 화면에 안 보인다 — provider 교체와 무관한 기존 동작.
 - `groq-sdk` 0 grep gate (production runtime)
 - `dangerouslyAllowBrowser` 0 grep gate + browser 번들 내 원격 provider 직접 호출 0 (R12)
 - 대체 provider (에이전트 프로파일 경유) 로 기존 7개 도구 전수 통과 (createElement / updateElement / deleteElement / getEditorState / getSelection / searchElements / batchDesign)

@@ -75,6 +75,13 @@ export interface LLMProviderConfig {
   headers?: Record<string, string>;
   /** 테스트·프록시 주입용. 기본값은 전역 `fetch`. */
   fetchImpl?: typeof fetch;
+  /**
+   * 원격 endpoint 직접 호출 허용 (개발 빌드 한정 — HC13/R12).
+   *
+   * 프로덕션에서는 무시된다. 원격 provider 의 정식 경로는 프록시이고 (D10), 프록시는
+   * 아직 없다 — 2026-08-28 사용자 결정으로 1차 축은 폐쇄망/로컬 endpoint 직결이다.
+   */
+  allowRemoteDirect?: boolean;
 }
 
 export interface LLMProvider {
@@ -101,6 +108,57 @@ export class LLMProviderError extends Error {
 
 export function isRateLimitError(error: unknown): boolean {
   return error instanceof LLMProviderError && error.status === 429;
+}
+
+/** 프록시 없이 원격 provider 를 부르려 할 때 (HC13/R12). */
+export const REMOTE_DIRECT_BLOCKED = "remote-provider-requires-proxy";
+
+/**
+ * 사용자 머신 안에서 끝나는 endpoint 인가 — 로컬/사설망은 HC13 의 명시 예외다.
+ *
+ * 판정은 host 만 본다 (scheme·port 무관). 사내 gateway 를 쓰는 배포는 사설 대역
+ * (10./172.16-31./192.168./*.local) 안에 있으므로 여기서 함께 허용된다.
+ */
+export function isLocalEndpoint(baseUrl: string): boolean {
+  let host: string;
+  try {
+    host = new URL(baseUrl).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  if (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1" ||
+    host === "[::1]"
+  ) {
+    return true;
+  }
+  if (host.endsWith(".local") || host.endsWith(".localhost")) return true;
+  if (host.startsWith("10.") || host.startsWith("192.168.")) return true;
+  const match = /^172\.(\d{1,2})\./.exec(host);
+  return Boolean(match && Number(match[1]) >= 16 && Number(match[1]) <= 31);
+}
+
+/**
+ * 브라우저에서 이 endpoint 를 직접 불러도 되는지 (HC13 / D10 / R12).
+ *
+ * 로컬·사설망은 허용, 원격은 프록시가 생기기 전까지 **차단**한다. 개발 빌드에서만
+ * `allowRemoteDirect` 로 뚫을 수 있다 — 프로덕션 번들에는 우회 경로가 없다.
+ * Groq 시절 `dangerouslyAllowBrowser: true` 로 키가 번들에 실리던 구조의 재발 차단이다.
+ */
+export function assertBrowserCallAllowed(
+  config: LLMProviderConfig,
+  providerId: LLMProviderId,
+): void {
+  if (isLocalEndpoint(config.baseUrl)) return;
+  if (config.allowRemoteDirect && import.meta.env.DEV) return;
+  throw new LLMProviderError(
+    `${REMOTE_DIRECT_BLOCKED}: ${config.baseUrl} 는 원격 endpoint 라 브라우저에서 직접 부를 수 없습니다 (HC13). ` +
+      `로컬/사내 endpoint 를 쓰거나 프록시 경로를 기다려 주세요.`,
+    undefined,
+    providerId,
+  );
 }
 
 /** 두 어댑터가 공유하는 기본값 — 기존 `GroqAgentService` 값을 그대로 승계한다. */
@@ -160,6 +218,8 @@ export async function requestStream(
   body: unknown,
   signal?: AbortSignal,
 ): Promise<Response> {
+  assertBrowserCallAllowed(config, providerId);
+
   const doFetch = config.fetchImpl ?? fetch;
   const response = await doFetch(url, {
     method: "POST",
