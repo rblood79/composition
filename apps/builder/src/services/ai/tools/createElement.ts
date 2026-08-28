@@ -17,6 +17,7 @@ import {
   applyCanonicalFields,
   parseCanonicalFields,
 } from "./canonicalNodeFields";
+import { createCompositeElement } from "./compositeCreation";
 
 export const createElementTool: ToolExecutor = {
   name: "create_element",
@@ -66,6 +67,41 @@ export const createElementTool: ToolExecutor = {
             parentId = bodyElement.id;
           }
         }
+      }
+
+      // ADR-134 Phase 6: 합성 컴포넌트는 팔레트와 같은 분기로 만든다 — Select/ListBox 등
+      //   COMPLEX 는 팩토리가 자식까지, Card/Form 등 reusable 은 origin ref 인스턴스로.
+      //   leaf 면 null 이 와서 아래 단일 element 경로가 그대로 돈다.
+      const composite = await createCompositeElement({
+        type,
+        elements,
+        currentPageId: currentPageId || null,
+        selectedElementId: selectedElementId ?? null,
+        parentIdOverride: parentIdArg ?? null,
+        addElement,
+      });
+
+      if (composite) {
+        const compositeApplied = applyCanonicalFields(
+          composite.elementId,
+          canonicalPatch,
+        );
+        useAIVisualFeedbackStore
+          .getState()
+          .addFlashForNode(composite.elementId, { scanLine: true });
+
+        return {
+          success: true,
+          data: {
+            elementId: composite.elementId,
+            type,
+            parentId,
+            composite: { mode: composite.mode, childCount: composite.childCount },
+            ...(compositeApplied ? { canonical: canonicalPatch } : {}),
+            ...(canonicalRejected.length > 0 ? { canonicalRejected } : {}),
+          },
+          affectedElementIds: [composite.elementId],
+        };
       }
 
       // Element 생성

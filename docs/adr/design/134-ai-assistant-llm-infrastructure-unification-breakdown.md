@@ -234,11 +234,29 @@
 - `apps/builder/src/services/ai/tools/createComposite.ts` — 팩토리 기반 합성 컴포넌트 생성 (Card → CardHeader + CardContent / Tabs → TabList + TabPanel 등)
 - `apps/builder/src/services/ai/templates/layoutTemplates.ts` — 레이아웃 템플릿 (대시보드 / 폼 / 리스트 / 카드 그리드 등)
 
-### Phase 6 검증 (Gate 없음, Phase 7 G6 통합 검증)
+### Phase 6 검증 (Gate 없음, Phase 7 G6 통합 검증) — Implemented (2026-08-28)
 
 - "사용자 관리 대시보드 만들어줘" 시나리오 1회 통과 + 자기 수정 ≤ 1회
 - "이커머스 상품 카탈로그 만들어줘" 시나리오 1회 통과 + 자기 수정 ≤ 1회
 - planner/executor/verifier 가 각자 프로파일로 호출되는지 검증 (프로파일별 모델을 달리 설정하고 호출 로그 확인) + 에이전트별 진행 이벤트 방출 확인
+
+**반영 결과 (2026-08-28)**
+
+| 항목                | 상태                                                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 역할별 프로파일 호출 | **live 확인** — 한 요청에서 planner 1 → executor 2 (단계별) → verifier → 수리 executor 1 → verifier 1. 역할마다 다른 system prompt 가 갔다 (mock 로그)      |
+| 자기 수정 ≤ 1회      | live 시나리오에서 **1회**. 상한은 2회이고 test 가 상한 정지를 고정 (`repair-attempt` 2건 후 `final`)                                                        |
+| 진행 이벤트          | `agent-start` / `agent-end` / `plan-ready` / `repair-attempt` — 기존 `AgentEvent` 와 합집합. 패널 표시는 Phase 8                                            |
+| 2개 시나리오 통과    | **미측정** — "대시보드/상품 카탈로그를 잘 만드는가" 는 모델 품질 판정이라 구성된 executor 프로파일이 필요하다. G5 의 모델-루프 측정과 함께 **G6 로 이월**   |
+| type-check / vitest  | type-check 0 · AI·dispatcher·패널 **188 passed** (23 file, 신규 38)                                                                                          |
+
+**산출물 이름 변경 — `createComposite` 도구 → `create_element` 내부 분기**
+
+breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tools/compositeCreation.ts` (모듈) 로 만들고 `create_element` 가 경유하게 했다. 이유: 별도 도구는 모델이 "어떤 type 이 합성인가" 를 알아야 하고 그 지식이 또 갈라진다. 팔레트는 `type` 하나로 판정하므로 (`isReusableCompositeType` > `COMPLEX_COMPONENT_TAGS`) AI 도 같은 판정을 쓰면 알 필요가 없다. 도구 수는 10 그대로.
+
+**이 변경이 고친 live 결함**: `create_element` 는 지금까지 type 과 무관하게 element 1개만 만들었다. 2026-08-28 실측 — AI 가 만든 `Select` 는 **자식 0개** 껍데기였고 (팔레트로 만들면 `Label` + `SelectTrigger`(`SelectValue`/`SelectIcon`)), `Card` 는 origin ref 인스턴스조차 아니었다. 수정 후 같은 요청이 71 → 76 (5 요소) 로 팔레트와 같은 트리를 만든다. 판정 일치는 catalog 전 type 대조 test 가 고정한다.
+
+**fast 프로파일 분류 호출 → planner 단계 수 판정**: breakdown 은 단순/복합 판정을 fast 프로파일 분류로 적었으나, planner 가 낸 단계 수(`steps.length <= 1`)로 같은 판정을 해 모델 호출 1회를 아낀다. 단순 요청은 계획·검증을 붙이지 않는다.
 
 ## 9. Phase 7 — 에이전트 프로파일 라우팅 + 폐쇄망 BYOK 검증 (D8, G6)
 
@@ -303,7 +321,7 @@
 | Phase 3 도구 어휘 확장    | ~8 file (7 도구 + definitions; store 전환 없음 — 2026-08-26 재산정)                                       | **9** (도구 7 + `definitions.ts` + `index.ts`)                                                                                                                 | 1.13            | 아니오                                                    |
 | Phase 4 격차 정합         | ~5 file (신규 도구 2 + createElement + definitions + systemPrompt — createAction 삭제, 2026-08-26 재산정) | **3 기존** (`createElement.ts` · `definitions.ts` · `systemPrompt.ts`) + 신규 도구 2                                                                           | 1.00            | 아니오                                                    |
 | Phase 5 카탈로그          | ~8 file                                                                                                   | **2 기존** (`systemPrompt.ts` · `AgentService.ts`) + 신규 4 (`catalog/` 3 + barrel)                                                                            | 0.75            | 아니오                                                    |
-| Phase 6 Plan→E→V+역할     | ~15 file                                                                                                  | TBD                                                                                                                                                            | —               | —                                                         |
+| Phase 6 Plan→E→V+역할     | ~15 file                                                                                                  | **3 기존** (`createElement.ts` · `useAgentLoop.ts` · `PlannerAgent` 경유 systemPrompt) + 신규 9 (`agents/` 6 + `templates/` 1 + `compositeCreation` + runner)   | 0.80            | 아니오                                                    |
 | Phase 7 라우팅+폐쇄망     | ~6 file                                                                                                   | TBD                                                                                                                                                            | —               | —                                                         |
 | Phase 8 AIPanel UX        | ~10 file                                                                                                  | **8** (`builder/panels/ai/**` 전체)                                                                                                                            | 0.80            | 아니오                                                    |
 | Phase 9 외부 에이전트     | ~10 file                                                                                                  | TBD (Electron 의존)                                                                                                                                            | —               | —                                                         |

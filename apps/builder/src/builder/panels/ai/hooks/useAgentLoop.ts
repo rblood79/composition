@@ -2,11 +2,12 @@
  * useAgentLoop Hook
  *
  * Agent Loop를 제어하는 React Hook
- * AgentService(LLMProvider 경유) + conversation store + G.3 시각 피드백 연동
+ * AgentRunner(단일 실행 또는 Plan→Execute→Verify 분해, ADR-134 Phase 6) +
+ * conversation store + G.3 시각 피드백 연동
  */
 
 import { useMemo, useCallback } from "react";
-import { createAgentService } from "../../../../services/ai/AgentService";
+import { createAgentRunner } from "../../../../services/ai/createAgentRunner";
 import { intentParser } from "../../../../services/ai/IntentParser";
 import { useConversationStore } from "../../../stores/conversation";
 import { useStore } from "../../../stores";
@@ -32,8 +33,8 @@ export function useAgentLoop() {
     incrementTurn,
   } = useConversationStore();
 
-  // Agent 인스턴스 (한 번만 생성)
-  const agent = useMemo(() => createAgentService(), []);
+  // Agent 실행기 (한 번만 생성) — planner 프로파일이 있으면 Plan→Execute→Verify 분해 실행
+  const agent = useMemo(() => createAgentRunner(), []);
 
   /**
    * IntentParser fallback
