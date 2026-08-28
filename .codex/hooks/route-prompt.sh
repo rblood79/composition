@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# UserPromptSubmit hook — 프롬프트 분류 후 관련 skill/agent 힌트를 system-reminder로 주입
-# Codex hooks: https://developers.openai.com/codex/hooks
+# Codex UserPromptSubmit adapter.
 #
-# stdin으로 JSON을 받고, stdout으로 출력한 텍스트가 additionalContext로 주입된다.
+# Prompt 분류의 정본은 scripts/codex/route-prompt.sh 이다. lifecycle hook은
+# Codex stdin JSON에서 prompt만 꺼내 정본 router로 전달한다. 이렇게 해야
+# user-only invocation 정책과 skill coverage가 manual route와 drift하지 않는다.
 
 set -euo pipefail
 
@@ -10,148 +11,14 @@ payload=$(cat)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=/dev/null
 . "$SCRIPT_DIR/codex-hook-utils.sh"
-PROJECT_DIR=$(codex_hook_project_dir "$payload")
 
-# prompt 추출 (jq 없을 수도 있으니 fallback)
+PROJECT_DIR=$(codex_hook_project_dir "$payload")
 if command -v jq >/dev/null 2>&1; then
-  prompt=$(echo "$payload" | jq -r '.prompt // empty' 2>/dev/null || echo "")
+  prompt=$(printf '%s' "$payload" | jq -r '.prompt // empty' 2>/dev/null || true)
 else
-  prompt=$(echo "$payload" | sed -n 's/.*"prompt":"\([^"]*\)".*/\1/p')
+  prompt=$(printf '%s' "$payload" | sed -n 's/.*"prompt":"\([^"]*\)".*/\1/p')
 fi
 
 [ -z "$prompt" ] && exit 0
 
-hints=""
-
-# 렌더링 / Canvas / Skia / CSS 정합성
-if echo "$prompt" | grep -qiE "렌더링|Skia|Canvas|WebGL|정합성|cross[- ]?check|CSS.*(WebGL|Canvas|Skia)"; then
-  hints="${hints}
-- 렌더링 작업 감지 → \`/cross-check\` skill 필수 실행
-- 디버깅 필요 시 \`debugger\` agent 위임 (Read/Grep/Bash 허용)
-- 2개 렌더링 타겟 × 5개 레이어 모두 검증 (spec/factory/CSS renderer/Skia renderer/editor)"
-fi
-
-# ADR 실행 / phase 진행 (먼저 매칭 — 더 구체적)
-# 키워드: ADR-NNN + 실행/진행/land/Phase 류 결합
-if echo "$prompt" | grep -qiE "ADR[- ]?[0-9]+.{0,30}(실행|진행|land|next)|execute[- ]?adr|Phase[- ]?[0-9α-ωA-Z\-]*.{0,15}(실행|진행|land|next)|다음 ?Phase|미[- ]?land|phase ?(자동|진행|실행|land)|adr ?phase ?(실행|진행)|P[- ]?[0-9α-ωA-Z]+.{0,15}(실행|land|진행)"; then
-  hints="${hints}
-- ADR phase 실행 감지 → \`execute-adr\` skill (또는 \`/execute-adr {NNN}\`)
-  - Phase 0 사전 조건 6 항목 통과 필수 (design breakdown 존재 / Status / git clean / main / type-check baseline / dist 신선도 / framing 4 질문)
-  - HIGH+ phase 는 mode=auto 라도 무조건 사용자 surface
-  - main 직접 push (rules/git-workflow.md 절대 정책 — PR 금지)
-  - max_phases=3 default (HIGH 비용 누적 차단)"
-# ADR 작성 / 리뷰 (실행 키워드 미매칭 시)
-elif echo "$prompt" | grep -qiE "ADR|아키텍처 결정|설계 문서|architecture decision"; then
-  hints="${hints}
-- ADR 작업 감지:
-  - 생성 → \`create-adr\` skill (번호 자동 할당 + Risk-First 템플릿)
-  - 리뷰 → \`review-adr\` skill
-  - 실행/phase land → \`execute-adr\` skill
-  - rules/adr-writing.md 자동 로드 (docs/adr/** 글롭)"
-fi
-
-# 새 컴포넌트 / S2 전환
-if echo "$prompt" | grep -qiE "새 컴포넌트|컴포넌트 (구현|만들|추가|설계)|new component|implement component|S2 전환"; then
-  hints="${hints}
-- 새 컴포넌트 워크플로:
-  1. 요구사항과 설계 제약 확인
-  2. \`component-design\` skill — React Aria/Spectrum 문서 참조
-  3. 구현 전 단계별 계획 수립
-  4. \`implementer\` agent → \`reviewer\` agent → \`evaluator\` agent"
-fi
-
-# 버그 / 에러
-if echo "$prompt" | grep -qiE "버그|bug|에러|error|실패|fail|crash|broken|안 ?(됨|되|나와)|망가"; then
-  hints="${hints}
-- 버그 수정 워크플로:
-  1. 4단계 root-cause 분석
-  2. \`debugger\` agent 위임 고려
-  3. 수정 후 \`/cross-check\` (렌더링 관련인 경우)
-  - ❌ 금지: 증상만 덮는 workaround, eslint-disable"
-fi
-
-# 리팩토링
-if echo "$prompt" | grep -qiE "리팩토링|refactor|재구조|이동|migration|마이그레이션"; then
-  hints="${hints}
-- 리팩토링 워크플로:
-  - 대규모 → \`refactorer\` agent + 격리 worktree
-  - 2+ 독립 작업 → 병렬 작업 분리 검토
-  - 완료 후 \`reviewer\` agent 검증"
-fi
-
-# 테스트
-if echo "$prompt" | grep -qiE "테스트|test|E2E|storybook|playwright|vitest"; then
-  hints="${hints}
-- 테스트 작업 → \`tester\` agent (Vitest/RTL/Storybook/Playwright)
-- 구현 중 → RED-GREEN-REFACTOR"
-fi
-
-# 레이아웃 / Taffy
-if echo "$prompt" | grep -qiE "레이아웃|layout|Taffy|flex|grid|align|정렬"; then
-  hints="${hints}
-- 레이아웃 작업 → rules/layout-engine.md 자동 로드 (packages/layout-flow/**)
-- layoutVersion 3-심볼 체인: LAYOUT_PROP_KEYS (캐시) + NON_LAYOUT_PROPS_UPDATE (블랙리스트) + INHERITED_LAYOUT_PROPS_UPDATE (상속) 동시 점검"
-fi
-
-# 상태관리 / Zustand
-if echo "$prompt" | grep -qiE "상태|store|zustand|slice|elementsMap|childrenMap"; then
-  hints="${hints}
-- 상태관리 작업 → rules/state-management.md 자동 로드
-- 파이프라인 순서 필수: Memory → Index → History → DB → Preview → Rebalance
-- ADR-137 Selection Consumer Contract: page-bound mutation 은 deferred selection/display 값을 쓰지 말고 commit 시점 `readImmediateSelectionSnapshot()` + `apply*FromSelection(snapshot, ...)` 또는 명시 context 의 `apply*Explicit({ pageId, contextReason, ... })` 로 분류"
-fi
-
-# Page-bound selection/frame race
-if echo "$prompt" | grep -qiE "Page.*Frame|Frame.*Page|page-bound|selectedElement|deferred.*selection|선택.*Frame|프러퍼티.*Frame|다른 Page|currentPageId"; then
-  hints="${hints}
-- Page-bound selection/frame 경로 감지 → ADR-137 Selection Consumer Contract 확인
-  - deferred inspector data 는 display-only
-  - selection write 는 commit 시점 \`readImmediateSelectionSnapshot()\`
-  - projection/editing context 만 explicit \`pageId\` + \`contextReason\` 허용
-  - stale mismatch 상태에서는 page-bound controls hide/disable"
-fi
-
-# 병렬 검증
-if echo "$prompt" | grep -qiE "전체 검증|일괄|패밀리|컴포넌트 전체|parallel|sweep"; then
-  hints="${hints}
-- 패밀리 단위 일괄 → \`parallel-verify\` skill
-- 반복 검증 루틴 → \`/loop\` 활용"
-fi
-
-# 사용자 정정 / framing 재지정 — auto-memory 적재 권고
-if echo "$prompt" | grep -qiE "아니야|아니라|그게 아니|잘못|틀렸|틀렸어|정정|다시 봐|다시 보니|본질은|그런 게 아니|반대|거꾸로|^아니|correct(ion)?|actually|wrong|misunderstood|reverse"; then
-  hints="${hints}
-- 사용자 정정 감지 → 정정 내용이 framing / process / SSOT / 정책 / 의존 방향 류면 **same-session memory 적재 권고**:
-  1. 정정 내용 요약 (1-2 문장 + Why + How to apply)
-  2. 필요한 경우 사용자에게 memory update 요청 여부 확인
-  3. Codex memory는 사용자 명시 요청이 있을 때만 ad-hoc note로 갱신
-  - 단발성 사실 정정 (typo / 변수명 / 숫자 오타) 이면 skip
-  - 회피 패턴: \"다음에 기억하겠음\" 약속만 (메모리 미적재) — 다음 세션에서 동일 정정 재발 위험
-  - 우선 적재 카테고리: SSOT 경계, ADR 의존 방향, framing raise 의무, git/PR 정책, 재발 패턴"
-fi
-
-# 완료 / 머지 — git working tree에 변경 있을 때만 의미 있음 (단순 질문 false-positive 차단)
-if echo "$prompt" | grep -qiE "완료|끝났|마무리|머지|merge|PR|커밋|commit"; then
-  if ! git -C "$PROJECT_DIR" diff --quiet HEAD 2>/dev/null \
-     || [ -n "$(git -C "$PROJECT_DIR" ls-files --others --exclude-standard 2>/dev/null)" ]; then
-    hints="${hints}
-- 완료 직전 체크:
-  - evidence before assertions
-  - \`reviewer\` agent
-  - pnpm type-check 통과 확인"
-  fi
-fi
-
-# 힌트가 있으면 출력
-if [ -n "$hints" ]; then
-  cat <<EOF
-<workflow-hints>
-프롬프트 분석 기반 권장 워크플로 (route-prompt.sh):
-$hints
-
-위 힌트는 자동 분석 결과입니다. 필요 시 무시 가능하나, 권장 skill/agent는 ROI가 검증된 루트입니다.
-</workflow-hints>
-EOF
-fi
-
-exit 0
+bash "$PROJECT_DIR/scripts/codex/route-prompt.sh" -- "$prompt"

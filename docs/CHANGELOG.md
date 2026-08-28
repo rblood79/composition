@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Paperthin·Polysona 병합안 — Codex lifecycle adapter 완결] - 2026-08-28
+
+### Infrastructure
+
+- **공용 prompt router를 Codex UserPromptSubmit에 연결**: `.codex/hooks/route-prompt.sh`를 JSON adapter로 축소하고 `scripts/codex/route-prompt.sh`를 단일 분류 정본으로 사용한다. `create-adr`·`execute-adr`·`match-target`의 user-only 경계가 수동 route와 live hook에서 동일해졌다.
+- **Codex Stop gate도 공용 evidence ledger에 기록**: spec rebuild와 type-check의 pass/fail/skip, 실패 exit code를 `.agent/runs/<id>/evidence.jsonl`에 append한다. staged·unstaged·untracked TS 파일을 동일하게 감지한다.
+- **worktree·nested-cwd-safe hook 경로**: `.codex/hooks.json`의 사용자 절대 경로를 git root 기반 명령으로 바꾸고 JSON의 `cwd`를 canonical repository root로 해석해 checkout/worktree/subdirectory 위치에 종속되지 않게 했다.
+- **사용 통계도 현재 catalog에서 파생**: 주간 리포트의 미사용 경고 대상이 제거된 외부 workflow 고정 목록을 읽지 않고 `.claude/skills/*/SKILL.md` 정본에서 자동 파생된다.
+
+### Tests
+
+- **양쪽 host hook self-test**: `pnpm hooks:selftest`가 Claude와 Codex를 모두 검사한다. Codex 쪽은 hooks.json event/type/git-root 경로/실행권한과 그 등록 command 자체, router invocation 경계, SessionStart user-only/subagent 정책, protected-file deny, spec rebuild flag, Stop type-check block과 ledger append를 임시 git workspace에서 exercise한다.
+- **catalog gate 확장**: `codex:agent-catalog`가 `.codex/hooks.json`의 핵심 event·등록 스크립트·실행권한, Codex live SessionStart roster와 invocation 정책, 양쪽 host self-test 집계를 함께 검증한다.
+
 ## [ADR-117 PathBuilder 전환 — 0.40.0 기준선 + CanvasKit 0.42.0] - 2026-08-28
 
 ### Bug Fixes

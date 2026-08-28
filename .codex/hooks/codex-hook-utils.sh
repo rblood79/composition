@@ -3,19 +3,28 @@
 codex_hook_project_dir() {
   local input="${1:-}"
   local cwd=""
+  local candidate=""
+  local git_root=""
 
   if command -v jq >/dev/null 2>&1 && [ -n "$input" ]; then
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null || true)
   fi
 
   if [ -n "$cwd" ]; then
-    printf '%s\n' "$cwd"
+    candidate="$cwd"
   elif [ -n "${CODEX_PROJECT_DIR:-}" ]; then
-    printf '%s\n' "$CODEX_PROJECT_DIR"
+    candidate="$CODEX_PROJECT_DIR"
   elif [ -n "${CLAUDE_PROJECT_DIR:-}" ]; then
-    printf '%s\n' "$CLAUDE_PROJECT_DIR"
+    candidate="$CLAUDE_PROJECT_DIR"
   else
-    pwd
+    candidate=$(pwd)
+  fi
+
+  git_root=$(git -C "$candidate" rev-parse --show-toplevel 2>/dev/null || true)
+  if [ -n "$git_root" ]; then
+    printf '%s\n' "$git_root"
+  else
+    printf '%s\n' "$candidate"
   fi
 }
 

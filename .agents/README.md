@@ -27,7 +27,8 @@
 | `pnpm run codex:guard`                                                  | 보호 파일 변경 차단                                                                                                                                                                                                                                           |
 | `pnpm run codex:format`                                                 | 변경 파일 Prettier                                                                                                                                                                                                                                            |
 | `pnpm run codex:agent-catalog`                                          | `.claude` ↔ `.agents` 카탈로그 drift 게이트 (INDEX·roster·router·hook 집합 일치)                                                                                                                                                                              |
-| `pnpm run hooks:selftest`                                               | Claude hook 샘플 입력 → 기대 판정 self-test                                                                                                                                                                                                                   |
+| `pnpm run hooks:selftest`                                               | Claude + Codex lifecycle hook에 host별 샘플 stdin JSON을 넣어 기대 판정·ledger append를 검증                                                                                                                                                                  |
+| `pnpm run codex:hooks:selftest`                                         | Codex 전용 hook config·router user-only 경계·보호 파일·spec flag·Stop type-check evidence self-test                                                                                                                                                           |
 | `pnpm run agent:run -- start --understood-as "<재진술>"`                | run manifest 시작 (`.agent/runs/<id>/run.json`, local-only) — 이후 게이트가 `evidence.jsonl` 에 자동 append                                                                                                                                                   |
 | `pnpm run agent:run -- evidence live-exercise pass --detail "<무엇을>"` | live behavior 근거 기록 — Implemented 승격 시 Stop hook 이 요구                                                                                                                                                                                               |
 | `pnpm run agent:run -- report` / `close`                                | 완료 보고를 ledger 에서 생성 · run 종결                                                                                                                                                                                                                       |
@@ -40,8 +41,9 @@
 운영 원칙:
 
 - harness는 `scripts/codex/env.sh`를 통해 `mise hook-env`를 먼저 시도합니다.
-- Codex에는 Claude식 자동 hook/statusline이 없습니다. 필요한 확인은 harness로
-  직접 실행합니다.
+- Codex lifecycle hook은 `.codex/hooks.json`에서 로드하며, Claude hook과 stdin·matcher·출력 계약을 공유하지 않습니다. 공용 workflow는 `scripts/codex/*`에 두고 `.codex/hooks/*`는 host adapter로 유지합니다.
+- statusline처럼 Codex가 지원하지 않는 표면과 명시 실행이 필요한 검증은 harness로
+  실행합니다.
 - 신뢰도 낮은 statusline/usage graph wrapper는 만들지 않습니다. 지원 표면이
   없으면 한계를 보고합니다.
 - goal 완료 처리는 `.agents/rules/goal-lifecycle.md`를 따릅니다. developer
@@ -75,12 +77,12 @@
 
 ## Legacy 매핑
 
-| Legacy Claude 자산                     | Codex 대응                                |
-| -------------------------------------- | ----------------------------------------- |
-| `/cross-check` (skill 직접 호출)       | `.agents/skills/cross-check/SKILL.md`     |
-| `.claude/commands/new-adr.md`          | `.agents/skills/create-adr/SKILL.md`      |
-| `.claude/commands/sweep.md`            | `.agents/skills/parallel-verify/SKILL.md` |
-| `.claude/hooks/protect-files.sh`       | `pnpm run codex:guard`                    |
-| `.claude/hooks/auto-format.sh`         | `pnpm run codex:format`                   |
-| `.claude/hooks/type-check-gate.sh`     | `pnpm run codex:typecheck`                |
-| `.claude/hooks/precompact-snapshot.sh` | `pnpm run codex:snapshot`                 |
+| Legacy Claude 자산                     | Codex 대응                                                     |
+| -------------------------------------- | -------------------------------------------------------------- |
+| `/cross-check` (skill 직접 호출)       | `.agents/skills/cross-check/SKILL.md`                          |
+| `.claude/commands/new-adr.md`          | `.agents/skills/create-adr/SKILL.md`                           |
+| `.claude/commands/sweep.md`            | `.agents/skills/parallel-verify/SKILL.md`                      |
+| `.claude/hooks/protect-files.sh`       | `.codex/hooks/protect-files.sh` + `pnpm run codex:guard`       |
+| `.claude/hooks/auto-format.sh`         | `.codex/hooks/auto-format.sh` + `pnpm run codex:format`        |
+| `.claude/hooks/type-check-gate.sh`     | `.codex/hooks/type-check-gate.sh` + `pnpm run codex:typecheck` |
+| `.claude/hooks/precompact-snapshot.sh` | `pnpm run codex:snapshot`                                      |

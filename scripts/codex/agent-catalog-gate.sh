@@ -2,7 +2,8 @@
 # Agent catalog drift gate — `pnpm run codex:agent-catalog`
 #
 # 정본(.claude/) ↔ Codex 미러(.agents/) ↔ 등록 표면(INDEX×2 / CLAUDE.md 라우팅표 /
-# SessionStart roster×2 / prompt router×2 / settings.json hook / package.json codex:*)
+# SessionStart roster×3 / prompt router×2 / Claude settings + Codex hooks.json /
+# package.json codex:*)
 # 의 집합 일치를 검사한다. Claude Code 와 Codex 양쪽에서 같은 명령으로 실행.
 #
 # Why (2026-08-27 paperthin·polysona 분석 병합 순서 ①):
@@ -218,8 +219,8 @@ unknown=$(set_minus "$CLAUDE_SLASH" "$KNOWN_SKILLISH")
 unreg=$(set_minus "$COMMANDS" "$CLAUDE_SLASH")
 if [ -n "$unreg" ]; then fail "§Slash Commands 에 없는 .claude/commands: $(printf '%s' "$unreg" | tr '\n' ' ')"; else ok "§Slash Commands — .claude/commands 전원 등록"; fi
 
-# ---------- 7. SessionStart roster ×2 ----------
-section "7. SessionStart roster — .claude/hooks/session-start.sh · scripts/codex/session-start.sh"
+# ---------- 7. SessionStart roster ×3 ----------
+section "7. SessionStart roster — Claude live · Codex live · Codex manual"
 SS=".claude/hooks/session-start.sh"
 ROSTER_SKILLS=$(sh_section "$SS" "핵심 Skills" | grep -oE '`[a-z][a-z0-9-]+\\?`' | tr -d '`\\' | sort -u || true)
 report_set_eq "roster §핵심 Skills" "roster" "$ROSTER_SKILLS" ".claude/skills" "$SKILLS"
@@ -237,6 +238,10 @@ while IFS= read -r p; do
   if [ -e "$p" ]; then ok "codex roster 경로 $p"; else fail "codex roster 가 없는 경로 참조: $p"; fi
 done <<<"$(grep -oE '^[[:space:]]+"[^"]+"[[:space:]]*\\?$' "$CSS" | tr -d '" \\' || true)"
 
+XSS=".codex/hooks/session-start.sh"
+CODEX_ROSTER_SKILLS=$(sh_section "$XSS" "핵심 Skills" | grep -oE '`[a-z][a-z0-9-]+\\?`' | tr -d '`\\' | sort -u || true)
+report_set_eq "Codex live roster §핵심 Skills" "Codex roster" "$CODEX_ROSTER_SKILLS" ".claude/skills" "$SKILLS"
+
 # ---------- 8. prompt router ×2 — skill 커버리지 대칭 ----------
 section "8. prompt router — .claude/hooks/route-prompt.sh ↔ scripts/codex/route-prompt.sh (skill 커버리지 대칭)"
 CR=".claude/hooks/route-prompt.sh"; XR="scripts/codex/route-prompt.sh"
@@ -250,8 +255,8 @@ unreg=$(set_minus "$AGENTS" "$CR_AGENTS")
 [ -n "$unreg" ] && info "claude router 가 힌트하지 않는 agent: $(printf '%s' "$unreg" | tr '\n' ' ')"
 info "라우팅되지 않는 skill (양쪽 공통): $(set_minus "$SKILLS" "$CR_SKILLS" | tr '\n' ' ')"
 
-# ---------- 9. hooks — settings.json 등록 ↔ 파일, orphan hook, package.json codex:* ----------
-section "9. hooks — settings.json 등록 파일 실존·실행권한, orphan hook, package.json codex:*"
+# ---------- 9. hooks — host별 등록 ↔ 파일, self-test, package.json codex:* ----------
+section "9. hooks — Claude settings + Codex hooks.json 등록·실행권한·self-test"
 HOOK_CMDS=$(node -e '
 const s = require("./.claude/settings.json").hooks || {};
 const out = [];
@@ -265,7 +270,22 @@ while IFS= read -r cmd; do
   elif [ ! -x "$p" ]; then fail "settings.json hook 실행권한 없음: $cmd"
   else ok "hook $(basename "$p")"; fi
 done <<<"$HOOK_CMDS"
-REF_CORPUS=$(cat .claude/settings.json CLAUDE.md AGENTS.md .agents/README.md package.json .claude/hooks/*.sh 2>/dev/null; [ -f CLAUDE.local.md ] && cat CLAUDE.local.md)
+
+CODEX_HOOK_AUDIT=$(node scripts/codex/hook-config-audit.mjs "$ROOT_DIR")
+if grep -q '^ERROR' <<<"$CODEX_HOOK_AUDIT"; then
+  while IFS=$'\t' read -r kind detail; do [ "$kind" = ERROR ] && fail "Codex hooks.json — $detail"; done <<<"$CODEX_HOOK_AUDIT"
+else
+  ok "Codex hooks.json — event·type·경로·실행권한 ($(awk -F'\t' '$1 == "COUNT" {print $2}' <<<"$CODEX_HOOK_AUDIT") handlers)"
+fi
+
+HOOK_SELFTEST_SCRIPT=$(node -e 'console.log(require("./package.json").scripts["hooks:selftest"] || "")')
+if grep -q 'claude:hooks:selftest' <<<"$HOOK_SELFTEST_SCRIPT" && grep -q 'codex:hooks:selftest' <<<"$HOOK_SELFTEST_SCRIPT"; then
+  ok "hooks:selftest — Claude + Codex host self-test 집계"
+else
+  fail "hooks:selftest — claude:hooks:selftest와 codex:hooks:selftest를 모두 실행해야 함"
+fi
+
+REF_CORPUS=$(cat .claude/settings.json .codex/hooks.json CLAUDE.md AGENTS.md .agents/README.md package.json .claude/hooks/*.sh .codex/hooks/*.sh 2>/dev/null; [ -f CLAUDE.local.md ] && cat CLAUDE.local.md)
 for h in .claude/hooks/*.sh; do
   b=$(basename "$h")
   case "$b" in *.test.sh) continue ;; esac
@@ -283,7 +303,7 @@ while IFS= read -r sc; do
   done
 done <<<"$PKG_SCRIPTS"
 # 문서가 언급하는 pnpm run codex:* 가 package.json 에 실존
-DOC_PNPM=$(grep -ohE 'pnpm (run )?(codex|hooks|agent):[a-z-]+' AGENTS.md .agents/README.md scripts/codex/*.sh .claude/hooks/*.sh 2>/dev/null | sed -E 's/pnpm (run )?//' | sort -u || true)
+DOC_PNPM=$(grep -ohE 'pnpm (run )?(codex|hooks|agent):[a-z-]+(:[a-z-]+)*' AGENTS.md .agents/README.md scripts/codex/*.sh .claude/hooks/*.sh 2>/dev/null | sed -E 's/pnpm (run )?//' | sort -u || true)
 unknown=$(set_minus "$DOC_PNPM" "$PKG_SCRIPTS")
 if [ -n "$unknown" ]; then fail "문서/스크립트가 언급하는 pnpm 스크립트가 package.json 에 없음: $(printf '%s' "$unknown" | tr '\n' ' ')"; else ok "pnpm codex:*/hooks:* 언급 전부 실존"; fi
 
@@ -300,7 +320,7 @@ ok "경로 참조 검사 완료"
 # ---------- 11. 제거된 플러그인 이름 잔존 (superpowers, 2026-07-31 비활성화) ----------
 section "11. stale 참조 — 제거된 외부 플러그인 skill 이름"
 STALE_NAMES='brainstorming|systematic-debugging|verification-before-completion|writing-plans|executing-plans|dispatching-parallel-agents|subagent-driven-development|test-driven-development|requesting-code-review|using-git-worktrees|superpowers:'
-STALE_HITS=$( { find .claude .agents scripts/codex -maxdepth 3 \( -name '*.md' -o -name '*.sh' -o -name '*.json' \) -not -path '*/references/*' -not -path '*/stats/*' -not -path '*/agent-memory/*'; echo CLAUDE.md; echo AGENTS.md; } \
+STALE_HITS=$( { find .claude .agents .codex/hooks scripts/codex -maxdepth 3 \( -name '*.md' -o -name '*.sh' -o -name '*.json' \) -not -name '*selftest*' -not -path '*/references/*' -not -path '*/stats/*' -not -path '*/agent-memory/*'; echo CLAUDE.md; echo AGENTS.md; } \
   | grep -v "^$SELF$" | xargs grep -lE "$STALE_NAMES" 2>/dev/null || true)
 if [ -n "$STALE_HITS" ]; then
   while IFS= read -r f; do [ -n "$f" ] && fail "제거된 플러그인 skill 이름 잔존: $f ($(grep -oE "$STALE_NAMES" "$f" | sort -u | tr '\n' ' '))"; done <<<"$STALE_HITS"
@@ -308,22 +328,24 @@ else
   ok "잔존 없음"
 fi
 
-# ---------- 12. invocation 정책 — frontmatter ↔ INDEX×2 ↔ roster ----------
-section "12. invocation 정책 — disable-model-invocation ↔ INDEX×2 정책 열 ↔ roster 표기 일치"
+# ---------- 12. invocation 정책 — frontmatter ↔ INDEX×2 ↔ Claude/Codex live roster ----------
+section "12. invocation 정책 — disable-model-invocation ↔ INDEX×2 ↔ Claude/Codex live roster"
 while IFS= read -r s; do
   [ -z "$s" ] && continue
   dmi=$(fm_value ".claude/skills/$s/SKILL.md" disable-model-invocation)
   c_row=$(grep -F "[$s]($s/SKILL.md)" .claude/skills/INDEX.md || true)
   x_row=$(grep -F "($s/SKILL.md)" .agents/skills/INDEX.md || true)
   r_line=$(sh_section "$SS" "핵심 Skills" | grep -E "\`$s\\\\?\`" || true)
-  c_has=0; x_has=0; r_has=0
+  live_line=$(sh_section "$XSS" "핵심 Skills" | tr -d '\\' | grep -F "\`$s\`" || true)
+  c_has=0; x_has=0; r_has=0; live_has=0
   grep -q "사용자 전용" <<<"$c_row" && c_has=1
   grep -q "user-only" <<<"$x_row" && x_has=1
   grep -q "사용자 전용" <<<"$r_line" && r_has=1
+  grep -q "user-only" <<<"$live_line" && live_has=1
   if [ "$dmi" = "true" ]; then
-    [ "$c_has" = 1 ] && [ "$x_has" = 1 ] && [ "$r_has" = 1 ] && ok "$s — 사용자 전용 (3표면 일치)" || fail "$s — disable-model-invocation:true 인데 표기 누락: claude INDEX=$c_has codex INDEX=$x_has roster=$r_has"
+    [ "$c_has" = 1 ] && [ "$x_has" = 1 ] && [ "$r_has" = 1 ] && [ "$live_has" = 1 ] && ok "$s — 사용자 전용 (4표면 일치)" || fail "$s — disable-model-invocation:true 인데 표기 누락: claude INDEX=$c_has codex INDEX=$x_has claude roster=$r_has codex roster=$live_has"
   else
-    [ "$c_has" = 0 ] && [ "$x_has" = 0 ] && [ "$r_has" = 0 ] && ok "$s — 모델·사용자" || fail "$s — frontmatter 는 모델 호출 허용인데 사용자 전용 표기: claude INDEX=$c_has codex INDEX=$x_has roster=$r_has"
+    [ "$c_has" = 0 ] && [ "$x_has" = 0 ] && [ "$r_has" = 0 ] && [ "$live_has" = 0 ] && ok "$s — 모델·사용자" || fail "$s — frontmatter 는 모델 호출 허용인데 사용자 전용 표기: claude INDEX=$c_has codex INDEX=$x_has claude roster=$r_has codex roster=$live_has"
   fi
 done <<<"$SKILLS"
 

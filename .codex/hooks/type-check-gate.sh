@@ -12,6 +12,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=/dev/null
 . "$SCRIPT_DIR/codex-hook-utils.sh"
 PROJECT_DIR=$(codex_hook_project_dir "$INPUT")
+# shellcheck source=/dev/null
+. "$PROJECT_DIR/scripts/codex/env.sh"
+
+hook_evidence() {
+  CODEX_GATE_NAME=codex:stop-hook codex_evidence "$@"
+}
 
 # 재진입 방지
 STOP_HOOK_ACTIVE="${STOP_HOOK_ACTIVE:-false}"
@@ -24,7 +30,12 @@ cd "$PROJECT_DIR"
 # Spec rebuild gate: flag 존재 시 build:specs 1회 실행
 SPEC_FLAG="$PROJECT_DIR/.codex/.spec-rebuild-pending"
 if [ -f "$SPEC_FLAG" ]; then
-  if ! BUILD_OUTPUT=$(pnpm build:specs 2>&1); then
+  if BUILD_OUTPUT=$(codex_pnpm run build:specs 2>&1); then
+    hook_evidence spec-build pass --cmd "pnpm run build:specs"
+    rm -f "$SPEC_FLAG"
+  else
+    rc=$?
+    hook_evidence spec-build fail --cmd "pnpm run build:specs" --exit "$rc"
     REASON_TEXT="build:specs 실패. spec 빌드 에러를 수정하세요:
 
 $(echo "$BUILD_OUTPUT" | tail -30)"
@@ -36,18 +47,22 @@ $(echo "$BUILD_OUTPUT" | tail -30)"
     fi
     exit 0
   fi
-  rm -f "$SPEC_FLAG"
 fi
 
 # .ts/.tsx 변경 감지
-CHANGED_TS=$(git diff --name-only HEAD 2>/dev/null | grep -E '\.(ts|tsx)$' || true)
+CHANGED_TS=$(codex_changed_files | grep -E '\.(ts|tsx)$' || true)
 if [ -z "$CHANGED_TS" ]; then
+  hook_evidence typecheck skip --skip-reason "no TS changes"
   exit 0
 fi
 
 # type-check 실행
 export STOP_HOOK_ACTIVE=true
-if ! TYPE_CHECK_OUTPUT=$(pnpm type-check 2>&1); then
+if TYPE_CHECK_OUTPUT=$(codex_pnpm type-check 2>&1); then
+  hook_evidence typecheck pass --cmd "pnpm type-check"
+else
+  rc=$?
+  hook_evidence typecheck fail --cmd "pnpm type-check" --exit "$rc"
   REASON_TEXT="type-check 실패. 아래 에러를 수정하세요:
 
 $(echo "$TYPE_CHECK_OUTPUT" | tail -30)"

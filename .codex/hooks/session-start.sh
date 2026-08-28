@@ -44,17 +44,18 @@ cat <<EOF
 <composition-workflow-roster>
 # composition 전용 워크플로 (자동 주입 — SessionStart)
 
-## 핵심 Skills (자연어 발동 + \`/\` 호출 모두 가능)
+## 핵심 Skills (Codex host invocation 정책 반영)
 - \`composition-patterns\` — 코드 규칙/패턴 (코드 작업 전 확인)
 - \`cross-check\` — CSS↔Skia 렌더링 정합성 (렌더링 수정 후 필수)
 - \`parallel-verify\` — 컴포넌트 패밀리 일괄 검증
 - \`component-design\` — 새 컴포넌트 설계 (React Aria/Spectrum 참조)
-- \`create-adr\` / \`review-adr\` — 아키텍처 결정 문서
+- \`review-adr\` — ADR 검토
+- \`create-adr\` — 사용자 명시 요청 시에만 ADR 생성 (user-only)
 - \`react-aria\` / \`react-spectrum\` — 공식 API 레퍼런스
-- \`match-target\` — Vision-based visual tuning 루프 (참조 이미지 + budget)
-- \`execute-adr\` — ADR design breakdown 의 미-land phase 자율 실행 (type-check + cross-check + main 직접 push)
+- \`match-target\` — 사용자 명시 요청 시에만 실행하는 visual tuning 루프 (user-only)
+- \`execute-adr\` — 사용자 명시 요청 시에만 ADR phase 실행 (user-only, HIGH 위험은 사용자 surface)
 
-## Agents (작업 유형별 라우팅)
+## Agents (사용자가 위임·병렬 작업을 명시한 경우에만)
 | 상황 | 1차 agent | 2차 검증 |
 |---|---|---|
 | 새 기능 구현 | implementer | reviewer → evaluator |
@@ -66,25 +67,23 @@ cat <<EOF
 | 문서 작성 | documenter | — |
 
 ## 자동 규칙 (UserPromptSubmit hook)
-프롬프트에 아래 키워드 포함 시 관련 skill/agent 힌트 자동 주입:
-- "렌더링/Canvas/Skia" → cross-check + debugger
-- "ADR/아키텍처 결정" → create-adr / review-adr
-- "새 컴포넌트/S2 전환" → brainstorming → component-design → implementer
-- "버그/에러/실패" → systematic-debugging → debugger
-- "리팩토링" → refactorer + worktree
-- "테스트" → tester + TDD
-- "완료/머지/PR" → verification-before-completion → reviewer
+프롬프트에 아래 키워드 포함 시 관련 skill/gate 힌트 자동 주입:
+- "렌더링/Canvas/Skia" → cross-check
+- "ADR/아키텍처 결정" → review-adr. create-adr/execute-adr 은 사용자 명시 요청일 때만
+- "새 컴포넌트/S2 전환" → component-design
+- "버그/에러/실패" → composition-patterns 기반 root-cause 추적
+- "리팩토링" → composition-patterns + scoped gate
+- "테스트" → 변경 모듈 인접 focused test
+- "완료/머지/PR" → evidence 확인 + codex:preflight
 - "정정/아니야/그게 아니라" → same-session memory 적재 권고
 
-## Slash Commands (표준 워크플로)
-- \`/cross-check\` — 렌더링 정합성 검증
-- \`/new-adr\` — ADR 생성
-- \`/impl\` — brainstorm → plan → implement 파이프라인
-- \`/fix\` — debug → cross-check 파이프라인
-- \`/review\` — 완료 전 품질 검증
-- \`/sweep\` — 패밀리 일괄 검증 + audit JSON report
-- \`/match-target\` — 참조 이미지 시각 수렴 루프
-- \`/execute-adr\` — ADR 자율 phase 실행 (HIGH 위험은 사용자 surface)
+## Codex Entry Points
+- \`\$cross-check\` — 렌더링 정합성 검증
+- \`\$parallel-verify\` — 사용자 명시 병렬 검증에만 사용
+- \`\$create-adr\` — ADR 생성 (user-only)
+- \`\$match-target\` — 참조 이미지 시각 수렴 루프 (user-only)
+- \`\$execute-adr\` — ADR phase 실행 (user-only, HIGH 위험은 사용자 surface)
+- \`pnpm run agent:work -- verify\` — scope 기반 gate + evidence ledger
 
 ## 자동 게이트 (Hook)
 - PostToolUse: spec/* 편집 시 \`.codex/.spec-rebuild-pending\` flag → Stop hook 시점 \`pnpm build:specs\` 1회 실행

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Manual Codex prompt router. Codex has no automatic UserPromptSubmit hook, so this
-# gives a cheap, repeatable way to map a request to local skills/rules/gates.
+# Codex prompt router SSOT. 수동 `codex:route`와 `.codex/hooks/route-prompt.sh`
+# UserPromptSubmit adapter가 같은 분류·invocation 정책을 공유한다.
 
 set -euo pipefail
 
