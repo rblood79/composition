@@ -17,8 +17,6 @@ import type {
   ToolExecutor,
   ToolExecutionResult,
 } from "../../../types/integrations/ai.types";
-import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
-import { runCanonicalMutation } from "../../../adapters/canonical/canonicalMutationRunner";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
 
 const SUPPORTED_SOURCES = ["static", "api", "supabase"] as const;
@@ -79,7 +77,7 @@ export const bindCollectionTool: ToolExecutor = {
     try {
       const {
         elementsById,
-        state: { selectedElementId },
+        state: { selectedElementId, applyCanonicalExtensionPatch },
       } = getAiToolReadModel();
 
       const targetId =
@@ -102,28 +100,17 @@ export const bindCollectionTool: ToolExecutor = {
         config,
       };
 
-      // ADR-184 — 신규 mutation 은 러너가 유일 경로다 (canonical → store → rebuild →
-      // history → persist). 직접 store 를 부르면 persist 와 인덱스 재빌드가 빠져
-      // 새로고침에 사라지고 캔버스가 옛 값을 그린다.
-      runCanonicalMutation({
-        canonical: () => {
-          useCanonicalDocumentStore
-            .getState()
-            .updateNodeExtension(targetId, { dataBinding });
-          const store = useCanonicalDocumentStore.getState();
-          return {
-            changed: true,
-            document: store.currentProjectId
-              ? (store.documents.get(store.currentProjectId) ?? null)
-              : null,
-          };
-        },
-        history: {
-          skip:
-            "데이터 바인딩은 Data 패널과 같은 canonical-only 경로 — 되돌리기 단위는 " +
-            "요소 편집이 아니라 바인딩 설정이라 별도 기록하지 않는다",
-        },
-      });
+      // store 액션 경유 — canonical patch + legacy mirror 재파생 + persist 를 러너가
+      // 한 묶음으로 한다 (ADR-184). 서비스가 canonical store 를 직접 만지면 mirror 가
+      // stale 로 남아 캔버스가 옛 값을 그린다 (Phase 4 실측).
+      const applied = applyCanonicalExtensionPatch(targetId, { dataBinding });
+      if (!applied) {
+        return {
+          success: false,
+          error:
+            "데이터 바인딩을 적용하지 못했습니다 (활성 문서 없음 또는 대상 노드 없음).",
+        };
+      }
 
       return {
         success: true,

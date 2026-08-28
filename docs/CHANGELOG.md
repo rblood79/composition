@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-134 Phase 3~4 — AI 가 frame·데이터·이벤트를 다룬다] - 2026-08-28
+
+### Added
+
+- **AI 가 canonical 1차 필드를 다룬다**: `type: "frame"` 컨테이너를 만들고 `clip` / `placeholder` / `slot` / `reusable` 을 지정할 수 있다. 잘못된 조합(예: frame 이 아닌 요소에 `clip`)은 조용히 무시되지 않고 사유와 함께 되돌아온다.
+- **`bind_collection`**: ListBox / GridList / Table 같은 collection 요소에 데이터를 연결한다 (static 배열 / API / Supabase). 데이터 소스 자체를 만들지는 않는다.
+- **`create_interaction_rule`**: 요소에 이벤트 규칙을 붙인다 (버튼 누르면 알림, 페이지 이동, 다른 요소 기능 구동). 컴포넌트가 실제로 노출하는 trigger·capability 만 허용하고, 틀리면 사용 가능한 목록을 돌려준다.
+- `search_elements` 에 `hasSlot` / `reusable` / `clip` 필터, `get_editor_state` 에 요소별 canonical 필드와 이벤트 규칙 요약.
+
+### Changed
+
+- **AI 가 여러 작업을 한 번에 하면 되돌리기도 한 번**: `batch_design` 이 history 1 entry 로 묶인다 (이전에는 작업 수만큼 쌓여 ⌘Z 를 여러 번 눌러야 했다).
+- AI 도구 목록이 8종 → 10종.
+
+### Architecture
+
+- `applyCanonicalExtensionPatch` store 액션 신설 — `dataBinding` 처럼 props 가 아닌 확장 필드를 바꿀 때 canonical 갱신 · 요소 목록 재파생 · 저장을 한 묶음으로 처리한다. 이것 없이 canonical 만 고치면 캔버스가 이전 값을 계속 그린다.
+- AI 도구가 요소 저장소를 직접 만지지 않는다는 규칙을 테스트로 고정 (`elementsMap` / `childrenMap` 직접 접근 0, 은퇴 어휘 5종 0).
+
+### Tests
+
+- 신규 26건: canonical 필드 검증·스키마 어휘·patch 반영 · batch 1 entry + undo 복원 · 바인딩/규칙 도구 12 · **소비자 경로 4** (ListBox 가 바인딩으로 항목을 그리는지, Preview dispatcher 가 규칙으로 알림을 띄우는지).
+- live: AI 패널에서 frame 생성 · 규칙 · 바인딩을 실행하고 저장까지 확인한 뒤 원복.
+
 ## [ADR-134 Phase 1~2 — AI 어시스턴트가 provider 를 고른다 + Groq 제거] - 2026-08-28
 
 ### Changed

@@ -272,6 +272,22 @@ export interface ElementsState {
    *   ref override 내부 노드는 false (no-op)
    */
   moveElementToSiblingEdge: (elementId: string, edge: SiblingEdge) => boolean;
+  /**
+   * canonical `x-composition` extension 필드를 patch 하고 legacy mirror 를 다시 파생한다
+   * (ADR-134 Phase 4).
+   *
+   * `dataBinding` / `events` / `actions` / `editor` 는 props 가 아니라 extension 이라
+   * (`canonicalDocumentStore` 의 `PROPS_FORBIDDEN_KEYS`) props 갱신 경로로 쓸 수 없다.
+   * 그런데 canonical 만 고치면 `elements` 배열이 stale 로 남아 캔버스·트리가 옛 값을
+   * 그린다 — `_rebuildIndexes()` 는 인덱스만 다시 만들고 배열은 두기 때문이다.
+   * 이 액션이 러너(ADR-184) 를 지나며 canonical → mirror 재파생 → persist 를 함께 한다.
+   *
+   * @returns 적용됐으면 true. 활성 문서·노드가 없거나 러너 미등록이면 false (no-op)
+   */
+  applyCanonicalExtensionPatch: (
+    elementId: string,
+    patch: Record<string, unknown>,
+  ) => boolean;
 
   // 다중 선택 관련 액션
   toggleElementInSelection: (elementId: string) => void;
@@ -2005,6 +2021,51 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         history: (mutationResult) => {
           if (!mutationResult.changed) return;
           trackCanonicalMove(elementId, fromLocations.get(elementId));
+        },
+      });
+
+      return result.changed;
+    },
+
+    applyCanonicalExtensionPatch: (elementId, patch) => {
+      if (isRenderProjectionId(elementId)) return false;
+      if (!areCanonicalMutationStoreActionsRegistered()) return false;
+      if (!isCanonicalMutationRunnerBridgeRegistered()) return false;
+      if (Object.keys(patch).length === 0) return false;
+
+      const canonicalStore = useCanonicalDocumentStore.getState();
+      const projectId = canonicalStore.currentProjectId;
+      if (!projectId) return false;
+      if (!canonicalStore.documents.get(projectId)) return false;
+
+      const result = runCanonicalMutation({
+        canonical: () => {
+          useCanonicalDocumentStore
+            .getState()
+            .updateNodeExtension(elementId, patch);
+          const next = useCanonicalDocumentStore.getState();
+          const nextProjectId = next.currentProjectId;
+          return {
+            changed: true,
+            document: nextProjectId
+              ? (next.documents.get(nextProjectId) ?? null)
+              : null,
+          };
+        },
+        // mirror 재파생 — 인덱스만 다시 만들면 `elements` 배열이 옛 extension 을 들고
+        // 있어 캔버스가 갱신되지 않는다 (`moveElementToSiblingEdge` 와 같은 함정).
+        store: () => {
+          const nextElements = getCanonicalOrStoreElements(get());
+          set((state) => ({
+            elements: nextElements,
+            ...buildIndexes(nextElements),
+            layoutVersion: state.layoutVersion + 1,
+          }));
+        },
+        history: {
+          skip:
+            "extension patch (dataBinding 등) 는 Data/Events 패널과 같은 canonical-only " +
+            "경로 — 패널도 되돌리기 항목을 남기지 않는다",
         },
       });
 

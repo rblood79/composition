@@ -179,6 +179,15 @@ describe("bind_collection (D3)", () => {
       config: { data: [{ id: 1, name: "A" }] },
     });
 
+    // legacy mirror 도 함께 재파생된다 — 캔버스가 옛 값을 그리지 않도록 (G4)
+    const mirrored = useStore
+      .getState()
+      .elements.find((e) => e.id === "list-1");
+    expect(mirrored?.dataBinding).toMatchObject({
+      type: "collection",
+      source: "static",
+    });
+
     // props 에는 들어가지 않는다 (저장 계약)
     const doc = activeDoc();
     const list = (
