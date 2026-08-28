@@ -1,0 +1,89 @@
+/* ADR-196 Phase 3 — agent 명령 승인 다이얼로그 (편집 영향 다이얼로그와 같은 형태) */
+
+.agent-confirm-overlay {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.38);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 10000;
+}
+
+.agent-confirm-modal {
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28);
+  color: var(--fg);
+  max-width: 420px;
+  width: min(100%, 420px);
+}
+
+.agent-confirm-header {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  padding: 16px 18px 14px;
+}
+
+.agent-confirm-header svg {
+  color: #f59e0b;
+  flex: 0 0 auto;
+}
+
+.agent-confirm-title {
+  color: var(--fg);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  margin: 0;
+}
+
+.agent-confirm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 18px;
+  padding: 16px 18px;
+}
+
+.agent-confirm-body p {
+  margin: 0;
+}
+
+.agent-confirm-meta {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.agent-confirm-actions {
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 18px 14px;
+}
+
+.agent-confirm-button {
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 18px;
+  padding: 6px 14px;
+}
+
+.agent-confirm-button--secondary {
+  background: transparent;
+  color: var(--fg);
+}
+
+.agent-confirm-button--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg, #fff);
+}

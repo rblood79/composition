@@ -51,6 +51,7 @@ import { PanelWorkspace } from "../layout";
 import {
   ToastContainer,
   CommandPalette,
+  AgentCommandConfirmDialogHost,
   EditingSemanticsImpactDialogHost,
 } from "../components";
 
@@ -230,6 +231,24 @@ export const BuilderCore: React.FC = () => {
       rebuildIndexes: () => useStore.getState()._rebuildIndexes(),
     });
   }, [projectId]);
+
+  // ADR-196 Phase 3 — `window.__compositionAgent` (DEV 전용). Chrome MCP 로 빌더를
+  // 조작하는 외부 agent 와 live 게이트가 쓰는 진입점이고, AI 패널 도구와 같은 executor 를
+  // 지난다. 프로덕션 번들에는 들어가지 않는다 (HC6).
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let uninstall: (() => void) | null = null;
+    let cancelled = false;
+    // 동적 import — 프로덕션 번들에 executor 체인이 실리지 않는다 (HC6).
+    void import("../../services/agent/devAgentEntry").then((m) => {
+      if (cancelled) return;
+      uninstall = m.installDevAgentEntry();
+    });
+    return () => {
+      cancelled = true;
+      uninstall?.();
+    };
+  }, []);
 
   // ADR-116 direct cutover — canonical document write-through sync.
   useEffect(() => {
@@ -1237,6 +1256,9 @@ export const BuilderCore: React.FC = () => {
 
       {/* ADR-112 Phase E: origin 편집 영향 미리보기 */}
       <EditingSemanticsImpactDialogHost />
+
+      {/* ADR-196 Phase 3: agent 명령 승인 (파괴적 명령은 이 host 없이는 실행되지 않는다) */}
+      <AgentCommandConfirmDialogHost />
     </BuilderViewport>
   );
 };

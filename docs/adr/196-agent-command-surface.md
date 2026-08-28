@@ -8,11 +8,12 @@ Accepted — 2026-08-28 (리뷰 round 1 승인 — MED 3 / LOW 3 fixed, pending 
 
 ## 진행 로그
 
-| Phase | 상태                | 근거                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ----- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0     | Implemented (08-28) | G0 통과 — 재grep 6/6 일치 (정규식 1건 정정, baseline 정정 2건: `useSectionCollapse` 전역 store · 패널 토글 `dispatchPanelWorkspaceActivation` 선행) · 71 id 분류 확정 allowlist **40** (상한 40) · handler→심볼+부가 동작 표 · **액션별 history entry 실측 전부 1** (canonical 경로 재현 jsdom — paste 는 global ⌘V 가 N entry 라 adapter 는 batch 옵션; `detachInstance` 는 `irreversible`→`history` 정정) · AI 도구 승인 0·기록 0. breakdown §2·§3-3·§4·§5 갱신                                          |
-| 1     | Implemented (08-28) | G1 통과 — `COMMAND_META` 71 (누락 type error) · 정적 게이트 5조항 + 민감도 4건 RED · `AGENT_COMMANDS` 40 adapter (값 export 1개) · 정적 심볼 대조 20 import + 금지 7 · jsdom spy 40 · HC1 diff 0 · type-check 0. `usePanelLayout.togglePanelWorkspace` 순수 함수 export (hook 은 1줄 위임) · undo/redo 되돌림 종류 `inverse` 추가 (entry 0, 조항 2 예외). 195 키보드 oracle live 재실행은 Phase 3                                                                                                          |
-| 2     | Implemented (08-28) | G2 통과 — executor (`executeAgentCommand` / 배치 `executeAgentCommands` / descriptor `listAgentCommands` / `buildAgentReadModel`) · jsdom 14: denied 3종 · precondition-failed · declined (adapter 0, 승인 전 store 변경 0) · ok (undoable + historyIndex) · error · 배치 원소별 승인 + 첫 non-ok 중단 · 기록 1:1 5 status · history 계약 12: `undo: history` 명령 전부 entry 1 (canonical 경로 재현, executor 경유), undo/redo 0 + 복원 · type-check 0. `agentCommandLog` 는 독립 store (root 편입 안 함) |
+| Phase | 상태                                      | 근거                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Implemented (08-28)                       | G0 통과 — 재grep 6/6 일치 (정규식 1건 정정, baseline 정정 2건: `useSectionCollapse` 전역 store · 패널 토글 `dispatchPanelWorkspaceActivation` 선행) · 71 id 분류 확정 allowlist **40** (상한 40) · handler→심볼+부가 동작 표 · **액션별 history entry 실측 전부 1** (canonical 경로 재현 jsdom — paste 는 global ⌘V 가 N entry 라 adapter 는 batch 옵션; `detachInstance` 는 `irreversible`→`history` 정정) · AI 도구 승인 0·기록 0. breakdown §2·§3-3·§4·§5 갱신                                          |
+| 1     | Implemented (08-28)                       | G1 통과 — `COMMAND_META` 71 (누락 type error) · 정적 게이트 5조항 + 민감도 4건 RED · `AGENT_COMMANDS` 40 adapter (값 export 1개) · 정적 심볼 대조 20 import + 금지 7 · jsdom spy 40 · HC1 diff 0 · type-check 0. `usePanelLayout.togglePanelWorkspace` 순수 함수 export (hook 은 1줄 위임) · undo/redo 되돌림 종류 `inverse` 추가 (entry 0, 조항 2 예외). 195 키보드 oracle live 재실행은 Phase 3                                                                                                          |
+| 2     | Implemented (08-28)                       | G2 통과 — executor (`executeAgentCommand` / 배치 `executeAgentCommands` / descriptor `listAgentCommands` / `buildAgentReadModel`) · jsdom 14: denied 3종 · precondition-failed · declined (adapter 0, 승인 전 store 변경 0) · ok (undoable + historyIndex) · error · 배치 원소별 승인 + 첫 non-ok 중단 · 기록 1:1 5 status · history 계약 12: `undo: history` 명령 전부 entry 1 (canonical 경로 재현, executor 경유), undo/redo 0 + 복원 · type-check 0. `agentCommandLog` 는 독립 store (root 편입 안 함) |
+| 3     | Implemented (08-28) — G3 번들 조항 미충족 | consumer 반영: Groq `run_command` (지연 로딩) · `window.__compositionAgent` (DEV) · `AgentCommandConfirmDialogHost` 승인 UI · AI 패널 실행 기록 목록. live 45 호출 · 키보드 대조 12쌍 일치 · delete 승인/거부 실측 · undo 복원 · 팔레트 62항목 정상. **번들 Δ 합계 +4.15KB gz (HC6 상한 3KB 초과)** — 초기 번들(main) 기준은 +1.23KB. 판정 대기 (§Live Exercise)                                                                                                                                           |
 
 ## Context
 
@@ -144,7 +145,18 @@ Accepted — 2026-08-28 (리뷰 round 1 승인 — MED 3 / LOW 3 fixed, pending 
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G3/G4 의 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분. 미기재 시 Stop hook 이 승격을 block.)
+**2026-08-28 · Chrome MCP (dev 서버 `localhost:5173`, 프로젝트 SSD)** — Phase 3 G3.
+
+- **agent 호출 45건** (`window.__compositionAgent.run`, host `chrome-mcp`) — 정렬 3 · 분배 1 · 복제 2 · z-order 3 · 그룹 · 모두 선택 · 클립보드 2 · 삭제 3 · undo/redo · 줌 4 · 패널 토글 3 · 거부 경로 5.
+- **parity oracle = handler(키보드) 경로** — 같은 문서·같은 선택으로 키보드 조합을 먼저 실행해 store 상태를 얻고, 되돌린 뒤 agent 호출과 대조: `alignLeft`(20/20/20) · `alignTop` · `alignBottom` · `distributeH`(불균등 100px→80px) · `duplicate`(74→75) · `bringToFront`(T0→끝) · `sendToBack` · `bringForward` · `group`(frame 생성) · `selectAll`(23) · 패널 토글 · `delete`(73:110) — **12쌍 전부 동일**, 차이 0.
+- **승인 게이트 실측** — `delete` 호출 시 승인 다이얼로그가 뜨고 대기 중 store 무변경(74 유지, 대상 생존). **거부** 클릭 → `declined` / 문서 무변경. **승인** 클릭 → `ok` + 삭제, 키보드 삭제 결과와 동일. 정리 단계에서 3개 요소 일괄 삭제도 승인 1회로 실행(원소별 승인 규칙은 배치 API 한정).
+- **되돌림** — agent `duplicate` 후 사용자 ⌘Z 1회로 복원(75→74), ⌘⇧Z 재실행, agent `undo` 로도 복원. `copy`+`paste` 는 74→76, ⌘Z 1회로 74 (batch 1 entry).
+- **기본 거부** — `openProject` → `denied/external`, `escape` → `denied/not-agent-callable`, 미등록 id → `denied/unknown-command`, 선택 없는 `alignLeft` → `precondition-failed`, 다중 선택 `bringToFront` → `precondition-failed`.
+- **195 경로 무변경** — ⌘/ 팔레트 **62 항목**(71 − palette:false 9) 그대로, 팔레트에서 "확대" 실행 시 zoom 105%→115% 정상. 키보드 단축키 12+ 조합 정상 실행.
+- **가시성** — AI 패널에 "AGENT 실행 명령 (4)" 목록이 실행/거부/조건 미충족을 각각 표시.
+- **정리** — 실측용 요소 3개를 만들고 agent `delete`(승인)로 제거, 문서 요소 수 71 로 복귀.
+- **번들** — 프로덕션 빌드에 `__compositionAgent` 0건(DEV 전용 확인). gz Δ: 초기 번들 **+1,255B**, 전체 자산 합계 **+4,252B** → HC6(≤ +3KB) 합계 기준 **미충족**.
+- 관찰(스코프 밖): dev HMR 중에는 `agentCommandLog` 모듈이 중복 평가돼 패널 목록이 비어 보일 수 있다 — 새로고침 후 정상. 프로덕션 빌드에는 해당 없음.
 
 ## Consequences
 

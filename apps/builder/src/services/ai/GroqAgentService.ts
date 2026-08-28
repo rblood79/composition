@@ -5,11 +5,18 @@
  * GroqService.ts의 JSON 텍스트 파싱 방식을 대체
  */
 
-import Groq from 'groq-sdk';
-import type { AgentEvent, ToolCall, ToolExecutor } from '../../types/integrations/ai.types';
-import type { ChatMessage, BuilderContext } from '../../types/integrations/chat.types';
-import { createToolRegistry, toolDefinitions } from './tools';
-import { buildSystemPrompt } from './systemPrompt';
+import Groq from "groq-sdk";
+import type {
+  AgentEvent,
+  ToolCall,
+  ToolExecutor,
+} from "../../types/integrations/ai.types";
+import type {
+  ChatMessage,
+  BuilderContext,
+} from "../../types/integrations/chat.types";
+import { createToolRegistry, getToolDefinitions } from "./tools";
+import { buildSystemPrompt } from "./systemPrompt";
 
 const MAX_TURNS = 10;
 const MAX_RETRIES = 3;
@@ -41,7 +48,7 @@ export class GroqAgentService {
 
     // ChatMessage → Groq message 형식 변환
     const conversationMessages: GroqMessage[] = [
-      { role: 'system', content: buildSystemPrompt(context) },
+      { role: "system", content: buildSystemPrompt(context) },
       ...this.convertMessages(messages),
     ];
 
@@ -49,7 +56,7 @@ export class GroqAgentService {
 
     while (turn < MAX_TURNS) {
       if (this.abortController.signal.aborted) {
-        yield { type: 'aborted' };
+        yield { type: "aborted" };
         return;
       }
 
@@ -59,13 +66,13 @@ export class GroqAgentService {
         // Groq API 호출 (streaming) + 429 지수 백오프
         const stream = await this.createStreamWithRetry(conversationMessages);
 
-        let assistantContent = '';
+        let assistantContent = "";
         const toolCalls: ToolCall[] = [];
 
         // 스트리밍 처리
         for await (const chunk of stream) {
           if (this.abortController.signal.aborted) {
-            yield { type: 'aborted' };
+            yield { type: "aborted" };
             return;
           }
 
@@ -75,7 +82,7 @@ export class GroqAgentService {
           // 텍스트 스트리밍
           if (delta.content) {
             assistantContent += delta.content;
-            yield { type: 'text-delta', content: delta.content };
+            yield { type: "text-delta", content: delta.content };
           }
 
           // Tool call 스트리밍 조립
@@ -86,8 +93,8 @@ export class GroqAgentService {
               if (!toolCalls[tc.index]) {
                 toolCalls[tc.index] = {
                   id: tc.id || `call_${tc.index}`,
-                  name: '',
-                  arguments: '',
+                  name: "",
+                  arguments: "",
                 };
               }
 
@@ -103,17 +110,17 @@ export class GroqAgentService {
 
         // Tool calls 없으면 → 최종 응답
         if (toolCalls.length === 0) {
-          yield { type: 'final', content: assistantContent };
+          yield { type: "final", content: assistantContent };
           return;
         }
 
         // Assistant message를 대화에 추가
         conversationMessages.push({
-          role: 'assistant',
+          role: "assistant",
           content: assistantContent || null,
           tool_calls: toolCalls.map((tc) => ({
             id: tc.id,
-            type: 'function' as const,
+            type: "function" as const,
             function: { name: tc.name, arguments: tc.arguments },
           })),
         });
@@ -121,11 +128,15 @@ export class GroqAgentService {
         // 각 Tool 실행
         for (const tc of toolCalls) {
           if (this.abortController.signal.aborted) {
-            yield { type: 'aborted' };
+            yield { type: "aborted" };
             return;
           }
 
-          yield { type: 'tool-use-start', toolName: tc.name, toolCallId: tc.id };
+          yield {
+            type: "tool-use-start",
+            toolName: tc.name,
+            toolCallId: tc.id,
+          };
 
           try {
             const args = JSON.parse(tc.arguments);
@@ -133,10 +144,15 @@ export class GroqAgentService {
 
             if (!executor) {
               const errorMsg = `알 수 없는 도구: ${tc.name}`;
-              yield { type: 'tool-error', toolName: tc.name, toolCallId: tc.id, error: errorMsg };
+              yield {
+                type: "tool-error",
+                toolName: tc.name,
+                toolCallId: tc.id,
+                error: errorMsg,
+              };
 
               conversationMessages.push({
-                role: 'tool',
+                role: "tool",
                 tool_call_id: tc.id,
                 content: JSON.stringify({ error: errorMsg }),
               });
@@ -146,23 +162,29 @@ export class GroqAgentService {
             const result = await executor.execute(args);
 
             yield {
-              type: 'tool-result',
+              type: "tool-result",
               toolName: tc.name,
               toolCallId: tc.id,
               result,
             };
 
             conversationMessages.push({
-              role: 'tool',
+              role: "tool",
               tool_call_id: tc.id,
               content: JSON.stringify(result),
             });
           } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            yield { type: 'tool-error', toolName: tc.name, toolCallId: tc.id, error: errorMsg };
+            const errorMsg =
+              error instanceof Error ? error.message : "Unknown error";
+            yield {
+              type: "tool-error",
+              toolName: tc.name,
+              toolCallId: tc.id,
+              error: errorMsg,
+            };
 
             conversationMessages.push({
-              role: 'tool',
+              role: "tool",
               tool_call_id: tc.id,
               content: JSON.stringify({ error: errorMsg }),
             });
@@ -172,17 +194,23 @@ export class GroqAgentService {
         // 다음 턴 계속
       } catch (error) {
         if (this.abortController.signal.aborted) {
-          yield { type: 'aborted' };
+          yield { type: "aborted" };
           return;
         }
 
-        const errorMsg = error instanceof Error ? error.message : 'Groq API 오류';
-        yield { type: 'tool-error', toolName: 'groq_api', toolCallId: '', error: errorMsg };
+        const errorMsg =
+          error instanceof Error ? error.message : "Groq API 오류";
+        yield {
+          type: "tool-error",
+          toolName: "groq_api",
+          toolCallId: "",
+          error: errorMsg,
+        };
         return;
       }
     }
 
-    yield { type: 'max-turns-reached' };
+    yield { type: "max-turns-reached" };
   }
 
   /**
@@ -194,10 +222,10 @@ export class GroqAgentService {
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         return await this.client.chat.completions.create({
-          model: 'llama-3.3-70b-versatile',
+          model: "llama-3.3-70b-versatile",
           messages,
-          tools: toolDefinitions,
-          tool_choice: 'auto',
+          tools: await getToolDefinitions(),
+          tool_choice: "auto",
           stream: true,
           temperature: 0.7,
           max_tokens: 2048,
@@ -215,7 +243,9 @@ export class GroqAgentService {
         }
 
         const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
-        console.warn(`[GroqAgent] 429 Rate limit, ${delay}ms 후 재시도 (${attempt + 1}/${MAX_RETRIES})`);
+        console.warn(
+          `[GroqAgent] 429 Rate limit, ${delay}ms 후 재시도 (${attempt + 1}/${MAX_RETRIES})`,
+        );
         await this.sleep(delay);
       }
     }
@@ -224,13 +254,14 @@ export class GroqAgentService {
   }
 
   private isRateLimitError(error: unknown): boolean {
-    if (error && typeof error === 'object') {
-      const statusCode = (error as { status?: number }).status
-        ?? (error as { statusCode?: number }).statusCode;
+    if (error && typeof error === "object") {
+      const statusCode =
+        (error as { status?: number }).status ??
+        (error as { statusCode?: number }).statusCode;
       if (statusCode === 429) return true;
 
       const message = (error as { message?: string }).message;
-      if (message && message.toLowerCase().includes('rate limit')) return true;
+      if (message && message.toLowerCase().includes("rate limit")) return true;
     }
     return false;
   }
@@ -251,23 +282,23 @@ export class GroqAgentService {
    */
   private convertMessages(messages: ChatMessage[]): GroqMessage[] {
     return messages
-      .filter((msg) => msg.role !== 'system') // system prompt는 별도 처리
+      .filter((msg) => msg.role !== "system") // system prompt는 별도 처리
       .map((msg): GroqMessage => {
-        if (msg.role === 'tool' && msg.metadata?.toolCallId) {
+        if (msg.role === "tool" && msg.metadata?.toolCallId) {
           return {
-            role: 'tool',
+            role: "tool",
             tool_call_id: msg.metadata.toolCallId,
             content: msg.content,
           };
         }
 
-        if (msg.role === 'assistant' && msg.metadata?.toolCalls?.length) {
+        if (msg.role === "assistant" && msg.metadata?.toolCalls?.length) {
           return {
-            role: 'assistant',
+            role: "assistant",
             content: msg.content || null,
             tool_calls: msg.metadata.toolCalls.map((tc) => ({
               id: tc.id,
-              type: 'function' as const,
+              type: "function" as const,
               function: {
                 name: tc.name,
                 arguments: JSON.stringify(tc.arguments),
@@ -277,7 +308,7 @@ export class GroqAgentService {
         }
 
         return {
-          role: msg.role as 'user' | 'assistant',
+          role: msg.role as "user" | "assistant",
           content: msg.content,
         };
       });
@@ -290,9 +321,9 @@ export class GroqAgentService {
 export function createGroqAgentService(): GroqAgentService | null {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY;
 
-  if (!apiKey || apiKey === 'your_groq_api_key_here') {
+  if (!apiKey || apiKey === "your_groq_api_key_here") {
     if (import.meta.env.DEV) {
-      console.warn('[GroqAgentService] API 키가 설정되지 않았습니다.');
+      console.warn("[GroqAgentService] API 키가 설정되지 않았습니다.");
     }
     return null;
   }

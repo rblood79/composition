@@ -21,6 +21,7 @@ import { useStore } from "../../stores";
 import { useAgentLoop } from "./hooks/useAgentLoop";
 import { ToolResultMessage } from "./components/ToolResultMessage";
 import { AgentControls } from "./components/AgentControls";
+import { AgentCommandLogList } from "./components/AgentCommandLogList";
 import type {
   BuilderContext,
   ChatMessage as ChatMessageType,
@@ -311,6 +312,7 @@ function AIPanelContent() {
           </>
         }
       />
+      <AgentCommandLogList />
       <ChatContainer
         messages={messages}
         onSendMessage={runAgent}

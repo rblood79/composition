@@ -64,6 +64,7 @@ export {
   type ShortcutTooltipProps,
   CommandPalette,
   type CommandPaletteProps,
+  AgentCommandConfirmDialogHost,
   EditingSemanticsImpactDialogHost,
   ContextMenuProvider,
   useContextMenu,

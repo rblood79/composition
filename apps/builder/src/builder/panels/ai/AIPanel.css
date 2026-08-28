@@ -247,3 +247,58 @@
     }
   }
 }
+
+/* ADR-196 Phase 3 — agent 가 실행한 명령 목록 (세션 기록) */
+.ai-command-log {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 auto;
+  max-height: 132px;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.ai-command-log-title {
+  color: var(--fg-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.ai-command-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ai-command-log-item {
+  align-items: baseline;
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  line-height: 16px;
+}
+
+.ai-command-log-id {
+  color: var(--fg);
+  font-family: var(--font-mono, monospace);
+}
+
+.ai-command-log-status {
+  color: var(--fg-muted);
+}
+
+.ai-command-log-item[data-status="ok"] .ai-command-log-status {
+  color: var(--fg-muted);
+}
+
+.ai-command-log-item:not([data-status="ok"]) .ai-command-log-status {
+  color: #f59e0b;
+}

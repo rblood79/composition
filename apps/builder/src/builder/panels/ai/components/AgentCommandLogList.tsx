@@ -1,0 +1,49 @@
+/**
+ * agent 가 실행한 명령 목록 (ADR-196 Phase 3, §3-5).
+ *
+ * 사용자가 "무엇이 바뀌었는지" 를 안다 — 호출 1건 = 한 줄, 5 status 전부 보인다
+ * (거부·전제 미충족·승인 거부도 보여야 무엇이 일어나지 **않았는지** 알 수 있다).
+ * 세션 메모리라 새로고침하면 비는 것이 정상 (R5).
+ */
+import { useAgentCommandLogStore } from "../../../stores/agentCommandLog";
+
+const STATUS_LABEL: Record<string, string> = {
+  ok: "실행",
+  denied: "거부",
+  "precondition-failed": "조건 미충족",
+  declined: "승인 거부",
+  error: "오류",
+};
+
+const RECENT_LIMIT = 8;
+
+export function AgentCommandLogList() {
+  const entries = useAgentCommandLogStore((state) => state.entries);
+  if (entries.length === 0) return null;
+
+  const recent = entries.slice(-RECENT_LIMIT).reverse();
+
+  return (
+    <section aria-label="agent 가 실행한 명령" className="ai-command-log">
+      <h3 className="ai-command-log-title">
+        agent 실행 명령 ({entries.length})
+      </h3>
+      <ul className="ai-command-log-list">
+        {recent.map((entry) => (
+          <li
+            className="ai-command-log-item"
+            data-status={entry.status}
+            key={entry.seq}
+          >
+            <span className="ai-command-log-id">{entry.id}</span>
+            <span className="ai-command-log-status">
+              {STATUS_LABEL[entry.status] ?? entry.status}
+              {entry.reason ? ` · ${entry.reason}` : ""}
+              {entry.undoable ? " · ⌘Z 로 복원" : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}

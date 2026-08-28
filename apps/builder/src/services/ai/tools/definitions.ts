@@ -237,3 +237,15 @@ export const toolDefinitions: ChatCompletionTool[] = [
     },
   },
 ];
+
+/**
+ * ADR-196 — 빌더 명령 실행 도구. 정의(enum·설명)를 `COMMAND_META` allowlist 에서 생성하므로
+ * 표가 바뀌면 도구 목록도 함께 바뀐다 (목록이 따로 낡지 않는다).
+ *
+ * 동적 import 인 이유: agent 명령 표면 (`COMMAND_META` + adapter + executor) 은 agent 가
+ * 실제로 명령을 부를 때만 필요하다. 정적으로 매달면 초기 번들에 3KB+ 가 상주한다 (HC6).
+ */
+export async function getToolDefinitions(): Promise<ChatCompletionTool[]> {
+  const { buildRunCommandToolDefinition } = await import("./runCommand");
+  return [...toolDefinitions, buildRunCommandToolDefinition()];
+}
