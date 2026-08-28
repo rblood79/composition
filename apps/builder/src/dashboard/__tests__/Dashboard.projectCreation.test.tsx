@@ -79,7 +79,7 @@ describe("Dashboard project creation entry points", () => {
       const emptyTitle = await screen.findByText("No projects yet");
       const actionSurface =
         surface === "toolbar"
-          ? screen.getByRole("main").querySelector(".dashboard-toolbar")
+          ? screen.getByRole("main").querySelector<HTMLElement>(".dashboard-toolbar")
           : emptyTitle.parentElement;
       if (!actionSurface)
         throw new Error("Project creation surface is required");
