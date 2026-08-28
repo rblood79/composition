@@ -54,6 +54,9 @@ const COMPONENT_TAGS = [
   "Div",
   "Section",
   "Nav",
+  // ADR-130 canonical layout container — ARIA Group 이 아니라 frame 이 layout 진입점.
+  // ADR-134 Phase 3 에서 도구 어휘로 노출.
+  "frame",
 ] as const;
 
 export const toolDefinitions: ChatCompletionTool[] = [
@@ -93,6 +96,31 @@ export const toolDefinitions: ChatCompletionTool[] = [
               type: "object",
             },
           },
+          canonical: {
+            type: "object",
+            description:
+              'canonical schema 1차 필드. clip/placeholder 는 type: "frame" 에서만 유효하고, slot/reusable 은 모든 노드에 쓸 수 있다.',
+            properties: {
+              clip: {
+                type: "boolean",
+                description:
+                  "children 이 frame 경계를 넘으면 잘라낸다 (frame 전용).",
+              },
+              placeholder: {
+                type: "boolean",
+                description: "빈 frame placeholder UI 표시 (frame 전용).",
+              },
+              slot: {
+                description:
+                  "slot 선언. false = 비활성, 문자열 배열 = 삽입 가능한 reusable component id 목록.",
+              },
+              reusable: {
+                type: "boolean",
+                description:
+                  "이 노드를 재사용 가능한 원본으로 표시. frame 에 켜면 페이지 요소 목록에서 빠지고 layout 정의가 된다 — 페이지에 보이는 컨테이너를 만들 때는 켜지 말 것.",
+              },
+            },
+          },
         },
         required: ["type"],
       },
@@ -124,6 +152,17 @@ export const toolDefinitions: ChatCompletionTool[] = [
             description: "교체할 배경 Fill 레이어 배열.",
             items: {
               type: "object",
+            },
+          },
+          canonical: {
+            type: "object",
+            description:
+              'canonical schema 1차 필드 patch. clip/placeholder 는 type: "frame" 에서만, slot/reusable 은 모든 노드.',
+            properties: {
+              clip: { type: "boolean" },
+              placeholder: { type: "boolean" },
+              slot: {},
+              reusable: { type: "boolean" },
             },
           },
         },
@@ -211,6 +250,18 @@ export const toolDefinitions: ChatCompletionTool[] = [
             type: "number",
             description: "최대 반환 개수. 기본 20.",
           },
+          hasSlot: {
+            type: "boolean",
+            description: "slot 이 선언된(비어 있지 않은) 노드만 / 아닌 노드만.",
+          },
+          reusable: {
+            type: "boolean",
+            description: "재사용 원본 노드만 / 아닌 노드만.",
+          },
+          clip: {
+            type: "boolean",
+            description: "clip 이 켜진 frame 만 / 아닌 노드만.",
+          },
         },
       },
     },
@@ -261,7 +312,10 @@ export const toolDefinitions: ChatCompletionTool[] = [
  */
 export async function getToolDefinitions(): Promise<LLMToolDefinition[]> {
   const { buildRunCommandToolDefinition } = await import("./runCommand");
-  return [...toLLMToolDefinitions(toolDefinitions), buildRunCommandToolDefinition()];
+  return [
+    ...toLLMToolDefinitions(toolDefinitions),
+    buildRunCommandToolDefinition(),
+  ];
 }
 
 /** 중첩 정의 → provider 중립 정의 (JSON Schema 는 그대로 통과). */
@@ -271,6 +325,9 @@ export function toLLMToolDefinitions(
   return definitions.map((definition) => ({
     name: definition.function.name,
     description: definition.function.description ?? "",
-    parameters: definition.function.parameters ?? { type: "object", properties: {} },
+    parameters: definition.function.parameters ?? {
+      type: "object",
+      properties: {},
+    },
   }));
 }

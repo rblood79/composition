@@ -143,6 +143,11 @@
 
 ### Phase 3 Gate G3
 
+- **Implemented 2026-08-28 (G3 통과)** — `tools/canonicalNodeFields.ts` 신규 (검증 + `updateNode` patch + 읽기) · `createElement`/`updateElement` 에 `canonical` 인자 · `searchElements`/`getEditorState` 에 canonical 노출 + 필터 · `definitions.ts` 어휘 + `COMPONENT_TAGS` 에 `frame` · `batchDesign` 을 history 1 entry 로 묶음 · `canonicalVocabulary.test.ts` 12건.
+  - **history 실측**: 묶기 전 3-op 배치 = **3 entry**. 트랜잭션 창으로 1 entry + undo 1회 복원. 창이 비동기라 배치 도중 사용자가 만든 변경이 같은 entry 에 섞일 수 있다 (`updateElementProps` 에 skipHistory 표면이 없어 대안 불가 — 비동기 병합 표면은 ADR-180 소관).
+  - **`componentSemantics` 는 어휘에서 제외** — 그 이름의 1차 필드가 schema 에 없다 (mirror metadata 의 adapter quarantine 뿐). 컴포넌트 의미 1차 필드 = `reusable`/`ref`/`descendants` 중 `reusable` 만 열었다.
+  - **`reusable: true` 의 구조적 부작용** — frame 에 켜면 page scope 를 벗어나 layout 정의가 된다 (요소 목록에서 사라짐). 도구 설명에 경고 + 회귀 테스트로 고정.
+  - **테스트 harness 교훈**: seed 문서는 실제와 같은 page frame 래퍼가 있어야 하고, `documentVersion` 을 되돌릴 때 순회 캐시를 함께 비워야 한다 (안 그러면 이전 테스트의 노드 맵이 살아남는다).
 - 도구 schema 에 frame / slot / componentSemantics 어휘 반영 + **AI 가 `type: "frame"` 요소 1건 생성 live 실측** (Chrome MCP 또는 사용자 confirm)
 - facade / store action 외 `elementsMap` / `childrenMap` 직접 접근 0 grep gate (회귀 — baseline 0)
 - `batchDesign` 이 history 1건으로 묶이는지 undo 1회로 확인

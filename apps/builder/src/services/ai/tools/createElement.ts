@@ -13,6 +13,10 @@ import { getDefaultProps } from "../../../types/builder/unified.types";
 import { adaptPropsForElement } from "../styleAdapter";
 import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
+import {
+  applyCanonicalFields,
+  parseCanonicalFields,
+} from "./canonicalNodeFields";
 
 export const createElementTool: ToolExecutor = {
   name: "create_element",
@@ -28,8 +32,10 @@ export const createElementTool: ToolExecutor = {
     const aiFills = Array.isArray(args.fills) ? args.fills : undefined;
     const parentIdArg = args.parentId as string | undefined;
     const dataBindingArg = args.dataBinding as
-      | { endpoint?: string }
-      | undefined;
+      { endpoint?: string } | undefined;
+    // ADR-134 Phase 3: canonical 1차 필드 (clip / placeholder / slot / reusable)
+    const { patch: canonicalPatch, rejected: canonicalRejected } =
+      parseCanonicalFields(args.canonical, type);
 
     try {
       const {
@@ -82,6 +88,13 @@ export const createElementTool: ToolExecutor = {
 
       await addElement(newElement);
 
+      // 1차 필드는 생성 직후 canonical patch — facade 가 legacy props 를 다루므로
+      // schema 필드는 store action 을 직접 경유한다 (breakdown §5 Phase 3 산출물).
+      const canonicalApplied = applyCanonicalFields(
+        newElement.id,
+        canonicalPatch,
+      );
+
       // ADR-131 Phase 8 (2026-05-13): root collection data sync 제거.
       // data SSOT 는 `collections` / `api_endpoints` / `variables`.
       // Element.dataBinding 은 element 별 binding reference 로 유지.
@@ -97,6 +110,8 @@ export const createElementTool: ToolExecutor = {
           elementId: newElement.id,
           type,
           parentId,
+          ...(canonicalApplied ? { canonical: canonicalPatch } : {}),
+          ...(canonicalRejected.length > 0 ? { canonicalRejected } : {}),
         },
         affectedElementIds: [newElement.id],
       };

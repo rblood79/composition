@@ -9,6 +9,8 @@ import type {
   ToolExecutionResult,
 } from "../../../types/integrations/ai.types";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { readCanonicalFields } from "./canonicalNodeFields";
+import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 
 export const getEditorStateTool: ToolExecutor = {
   name: "get_editor_state",
@@ -62,6 +64,12 @@ export const getEditorStateTool: ToolExecutor = {
             }
           }
 
+          // ADR-134 Phase 3 — canonical 1차 필드를 트리에 노출 (frame/slot/reusable)
+          const canonical = readCanonicalFields(child.id);
+          if (canonical) {
+            node.canonical = canonical;
+          }
+
           const childNodes = buildTree(child.id, depth + 1);
           if (childNodes.length > 0) {
             node.children = childNodes;
@@ -73,6 +81,19 @@ export const getEditorStateTool: ToolExecutor = {
 
       const tree = buildTree(null, 0);
 
+      // ADR-158 `InteractionRule` root collection — dormant `SerializedEvent` /
+      // root `actions` 는 싣지 않는다 (ADR-134 R6).
+      const canonicalStore = useCanonicalDocumentStore.getState();
+      const activeDoc = canonicalStore.currentProjectId
+        ? canonicalStore.documents.get(canonicalStore.currentProjectId)
+        : undefined;
+      const interactionRules = (activeDoc?.events ?? []).map((rule) => ({
+        id: rule.id,
+        elementId: rule.elementId,
+        trigger: rule.trigger,
+        actionKind: rule.action?.kind,
+      }));
+
       return {
         success: true,
         data: {
@@ -81,6 +102,7 @@ export const getEditorStateTool: ToolExecutor = {
           totalElements: pageElements.length,
           pages: pages?.map((p) => ({ id: p.id, title: p.title })) || [],
           tree,
+          interactionRules,
         },
       };
     } catch (error) {
