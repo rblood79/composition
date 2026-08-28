@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-28
+Accepted — 2026-08-28 (리뷰 round 1 승인 — MED 3 / LOW 3 fixed, pending 0; 사용자 승격 지시 2026-08-28. Proposed 2026-08-28)
 
 > 출처: 2026-08-27 paperthin·polysona 분석 (Codex P4 — "ADR-195 runtime registry 를 agent 가 직접 호출하게 만드는 것은 아직 이르다 … 별도 architecture decision 이 필요한 범위") → 병합 순서 보류 항목 → 2026-08-28 사용자 `/new-adr` 지시. 완전 신규 주제 — 별도 ADR 로 두는 결정은 사용자 confirm (2026-08-28, [breakdown §1](design/196-agent-command-surface-breakdown.md)). **ADR-195 (Implemented) 가 base**, ADR-134 (Proposed) 는 consumer.
 
