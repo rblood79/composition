@@ -6,6 +6,12 @@ Accepted — 2026-08-28 (리뷰 round 1 승인 — MED 3 / LOW 3 fixed, pending 
 
 > 출처: 2026-08-27 paperthin·polysona 분석 (Codex P4 — "ADR-195 runtime registry 를 agent 가 직접 호출하게 만드는 것은 아직 이르다 … 별도 architecture decision 이 필요한 범위") → 병합 순서 보류 항목 → 2026-08-28 사용자 `/new-adr` 지시. 완전 신규 주제 — 별도 ADR 로 두는 결정은 사용자 confirm (2026-08-28, [breakdown §1](design/196-agent-command-surface-breakdown.md)). **ADR-195 (Implemented) 가 base**, ADR-134 (Proposed) 는 consumer.
 
+## 진행 로그
+
+| Phase | 상태                | 근거                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ----- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Implemented (08-28) | G0 통과 — 재grep 6/6 일치 (정규식 1건 정정, baseline 정정 2건: `useSectionCollapse` 전역 store · 패널 토글 `dispatchPanelWorkspaceActivation` 선행) · 71 id 분류 확정 allowlist **40** (상한 40) · handler→심볼+부가 동작 표 · **액션별 history entry 실측 전부 1** (canonical 경로 재현 jsdom — paste 는 global ⌘V 가 N entry 라 adapter 는 batch 옵션; `detachInstance` 는 `irreversible`→`history` 정정) · AI 도구 승인 0·기록 0. breakdown §2·§3-3·§4·§5 갱신 |
+
 ## Context
 
 **SSOT 3-domain 위치**: 빌더 시스템 UI (builder-system layer) — ADR-163/192/195 와 같은 위상. D1/D2/D3 어느 domain 에도 속하지 않는다 (catalog/spec/Generator 확장 0, 캔버스 컴포넌트 시각·DOM·props 무관). Generator 지원 여부 선언 대상 아님. `capabilityRegistry` (ADR-158, preview 인터랙션의 컴포넌트 런타임 capability) 는 이름만 비슷한 다른 축이다.
