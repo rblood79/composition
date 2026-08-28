@@ -14,7 +14,33 @@
 import type { BuilderContext, ChatMessage } from "../../types/integrations/chat.types";
 import { AgentService } from "./AgentService";
 import { Orchestrator, type OrchestratedEvent } from "./agents/orchestrator";
-import { resolveProvider } from "./providers/agentProfiles";
+import type { AgentRole } from "./agents/types";
+import { getAgentProfileRegistry, resolveProvider } from "./providers/agentProfiles";
+import {
+  isProfileConfigured,
+  type AgentProfileId,
+} from "./providers/AgentProfileRegistry";
+import {
+  describeRouting,
+  routeTask,
+  type AgentTask,
+  type RoutingReport,
+} from "./routing/AgentProfileRouter";
+
+/** 역할 → 작업 유형. 라우터는 작업 단위로 판정한다 (D8). */
+const ROLE_TASK: Readonly<Record<AgentRole, AgentTask>> = {
+  planner: "plan",
+  executor: "execute",
+  verifier: "verify",
+};
+
+const lookupProfile = (id: AgentProfileId) =>
+  getAgentProfileRegistry().get(id);
+
+/** 네 작업이 각각 어느 프로파일로 가는지 — 연결 상태 표시가 읽는다. */
+export function getRoutingReport(): RoutingReport {
+  return describeRouting(lookupProfile);
+}
 
 export interface AgentRunner {
   /** 분해 실행 중인지 — 패널이 안내 문구를 고를 때 쓴다. */
@@ -41,7 +67,13 @@ class OrchestratedRunner implements AgentRunner {
 
   constructor() {
     this.orchestrator = new Orchestrator({
-      resolve: (role) => resolveProvider(role),
+      // 역할별 provider 는 라우터가 정한다 — 미구성 역할의 내림이 기록으로 남는다 (D8).
+      resolve: (role) => {
+        const decision = routeTask(ROLE_TASK[role], lookupProfile);
+        return decision.profileId
+          ? resolveProvider(decision.profileId)
+          : undefined;
+      },
       fallback: resolveProvider("main"),
     });
   }
@@ -75,7 +107,11 @@ export function createAgentRunner(): AgentRunner | null {
     }
     return null;
   }
-  if (resolveProvider("planner")) return new OrchestratedRunner();
+  // 분해 여부는 planner **프로파일 자체**의 구성으로 판정한다 — 라우터의 내림 결과로 보면
+  // planner 미구성인데도 main 으로 내려와 늘 분해하게 된다.
+  if (isProfileConfigured(getAgentProfileRegistry().get("planner"))) {
+    return new OrchestratedRunner();
+  }
 
   const service = new AgentService(main);
   return {

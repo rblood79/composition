@@ -20,7 +20,8 @@ Accepted — 2026-08-28 (리뷰 round 2 승인 — round 1 이슈 8건 HIGH 1 / 
 | 4     | Implemented (08-28) | G4 통과 — 도구 2종: `bind_collection` (dataBinding 은 props 가 아니라 **extension**, source 별 config 검증) · `create_interaction_rule` (ADR-158 `InteractionRule` + `capabilityRegistry` trigger/capability 검증, 실패 시 사용 가능 목록 반환). **store 액션 `applyCanonicalExtensionPatch` 신설** — canonical patch + legacy mirror 재파생 + persist 를 러너(ADR-184) 한 묶음으로. `systemPrompt` 가이드 · 은퇴 어휘 5종 0 grep gate. 소비자 경로 검증: ListBox 가 도구 산출 바인딩으로 항목 3건 렌더, Preview dispatcher 가 도구 산출 규칙으로 toast 실행. vitest 16 신규 + AI·dispatcher 106 · type-check 0 (§Live Exercise)                                                                                          |
 | 5     | Implemented (08-28) | G5 통과 — `services/ai/catalog/` 신설: **손으로 적지 않고 catalog SSOT 에서 파생**한다 (`componentCatalog` + `COMPONENT_RULES_TABLE` + `resolveEditContract`). 118 type / prop 집합·enum·variant·size 값 전수 대조 불일치 0. Tier 1 (전체 type 목록, 391 tok) 은 항상 · Tier 2 (요청 관련 상세) 는 골라서 주입 — 프롬프트 1,389 tok vs 전체 6,454 tok. 15 시나리오 recall **45/45**, RSP 표본 대조 **40/41**. 구 systemPrompt 의 하드코딩 24종 목록 제거 (그 목록의 `Div` 는 catalog 에 없는 type 이었다). vitest 44 신규 + AI·dispatcher 150 · type-check 0 (§Live Exercise) |
 | 6     | Implemented (08-28) | Plan → Execute → Verify 분해 — `agents/` 신설 (Planner/Executor/Verifier + Orchestrator). 역할마다 **자기 프로파일 provider** 로 호출되고, 검증 실패 시 **최대 2회** 수리 후 사람에게 넘긴다. 계획이 1단계면 분해·검증을 건너뛴다 (단순 요청에 호출 3배를 붙이지 않는다). `createAgentRunner` 가 planner 구성 여부로 분해/단일 경로를 고른다 — **패널 배선까지 완료**. **live 결함 1건 수정**: `create_element` 가 팩토리를 안 거쳐 AI 가 만든 `Select` 는 자식 0개 껍데기였다 (팔레트와 불일치) → 팔레트와 같은 분기로 71→76 트리 생성. 레이아웃 템플릿 4종 (catalog 대조 gate). vitest 38 신규 + AI·패널 188 · type-check 0 (§Live Exercise) |
-| 7~9   | 미착수              | Phase 7 (프로파일 라우팅 + 폐쇄망 G6) 부터. **G6 에 이월된 측정 2건**: ① 카탈로그 주입 후 모델-루프 props 정확도 (G5) ② Phase 6 의 2개 대시보드 시나리오 품질 — 둘 다 구성된 executor 프로파일(BYOK)이 필요하다. 원격 상용 provider 는 프록시가 생기기 전까지 차단 상태 — 프록시 도입은 별도 결정                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 7     | 구현 완료 · **G6 부분** (08-28) | `routing/AgentProfileRouter` (작업 유형 → 프로파일, 내림을 **기록으로 남긴다** — Phase 6 의 조용한 내림이 실제 문제였다) + 패널 UI 2종 (`AgentProfileSettings` / `ConnectionStatus`, AI 패널 헤더 톱니로 진입) + 로컬 endpoint 가이드 문서. **G6 측정**: 라우팅 분기 PASS (프로파일별 상이 모델이 역할별로 그대로 호출됨) · 로컬 endpoint 로 **도구 10종 전수 통과, 오류 0** · **Ollama 실물 대조만 미실시** (미설치 — 사용자 환경). vitest 27 신규 + 215 · type-check 0 (§Live Exercise) |
+| 8~9   | 미착수              | Phase 8 (AIPanel UX baseline) 부터. **G6 종결에 남은 것**: ① Ollama 실물 1회 실행 ② 카탈로그 주입 후 모델-루프 props 정확도 (G5) ③ Phase 6 의 2개 대시보드 시나리오 품질 — 셋 다 사용자가 로컬 endpoint 를 띄우면 한 번에 끝난다. 원격 상용 provider 는 프록시가 생기기 전까지 차단 상태 — 프록시 도입은 별도 결정                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ### Live Exercise
 
@@ -64,6 +65,16 @@ Accepted — 2026-08-28 (리뷰 round 2 승인 — round 1 이슈 8건 HIGH 1 / 
 - **`create_element` 가 합성 컴포넌트를 껍데기로 만들던 결함 (RED→GREEN)** — 수정 전: "셀렉트 만들어줘" → `Select` 1개, **자식 0개**. 팔레트로 만든 같은 컴포넌트는 `Label` + `SelectTrigger`(`SelectValue`/`SelectIcon`) 를 갖는다. 원인은 `create_element` 가 `ComponentFactory.createComplexComponent` / reusable ref 분기를 타지 않고 element 하나만 만든 것. 수정 후 같은 요청이 71 → 76 으로 팔레트와 같은 트리를 만든다.
 - **정리** — undo 로 71 복귀, 프로파일 제거, mock 종료.
 - 관찰: 로그 첫 줄의 정체불명 호출은 mock 가동을 확인한 `curl` (system·user 없음) 이었다 — 앱의 자동 호출이 아니다.
+
+**2026-08-28 (6차) · Chrome MCP** — Phase 7 / G6.
+
+- **프로파일마다 다른 모델이 역할별로 정확히 호출된다** — 5개 프로파일에 서로 다른 모델 id (`g6-planner` / `g6-executor` / `g6-verifier` …) 를 넣고 한 요청을 실행했다. 로컬 endpoint 로그: `[planner] model=g6-planner` → `[executor] model=g6-executor` × 8턴 (도구 정의 10종 전달) → `[verifier] model=g6-verifier`. 라우팅 분기가 실제로 갈린다.
+- **로컬 endpoint 로 도구 10종 전수 통과** — 같은 요청 안에서 `get_editor_state` / `get_selection` / `search_elements` / `run_command` / `create_element` ×2 / `update_element` / `create_interaction_rule` / `bind_collection` / `batch_design` / `delete_element` ×2 = **12 tool result, 오류 0**. 문서는 71 → 71 로 복귀했다 (만든 것을 도구가 스스로 지웠다).
+- **설정 UI 가 실제로 열리고 그린다** — AI 패널 헤더 톱니 → 프리셋 3 · 연결 상태 · 프로파일 5행. 미구성 상태에서 "계획 → 기본" 같은 내림이 문장으로 표시된다.
+- **UI 결함 2건 발견 → 수정** — 프리셋 버튼이 `fillStyle="outline"` 에서 거의 안 보였고 (`variant="secondary"` 로 교체), `fieldset` 기본 `min-width:min-content` 때문에 긴 select 옵션이 입력 필드를 패널 밖으로 밀어냈다 (`min-width:0`). 둘 다 수정 후 재확인.
+- **G6 를 통과로 적지 않은 이유** — 게이트는 "Ollama OpenAI-compatible endpoint" 를 지정한다. 경로는 로컬 OpenAI 호환 endpoint 로 전부 통과했지만 **Ollama 가 이 환경에 없어** 실물 서버 wire 대조를 못 했다. 사용자가 로컬 endpoint 를 띄우면 1회 실행으로 종결된다.
+- **정리** — 만든 요소 0 잔존, orphan `InteractionRule` 1건 수동 제거, 프로파일 제거, mock 종료, zoom 복원 (67% → 69%, 배율 사다리상 근사).
+- 스코프 밖 관찰: **요소를 지워도 그 요소의 이벤트 규칙이 `events` 에 남는다** (G6 실측에서 orphan 1건). ADR-158 영역.
 
 ## Context
 

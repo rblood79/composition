@@ -14,7 +14,14 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { ActionIconButton, PanelHeader } from "../../components";
 import { Button } from "@composition/shared/components";
-import { ArrowRight, Bot, ImagePlus, Send, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  Bot,
+  ImagePlus,
+  Send,
+  Settings2,
+  UserRound,
+} from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useConversationStore } from "../../stores/conversation";
 import { useStore } from "../../stores";
@@ -22,6 +29,7 @@ import { useAgentLoop } from "./hooks/useAgentLoop";
 import { ToolResultMessage } from "./components/ToolResultMessage";
 import { AgentControls } from "./components/AgentControls";
 import { AgentCommandLogList } from "./components/AgentCommandLogList";
+import { AgentProfileSettings } from "./components/AgentProfileSettings";
 import type {
   BuilderContext,
   ChatMessage as ChatMessageType,
@@ -240,6 +248,8 @@ function ChatContainer({
  * AIPanelContent - AI 패널 메인 로직
  */
 function AIPanelContent() {
+  // 프로파일 설정 열림 여부 (ADR-134 Phase 7) — 대화와 같은 자리를 쓴다.
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     messages,
     isStreaming,
@@ -295,6 +305,19 @@ function AIPanelContent() {
             {isAgentRunning && (
               <AgentControls currentTurn={currentTurn} onStop={stopAgent} />
             )}
+            <ActionIconButton
+              onPress={() => setSettingsOpen((open) => !open)}
+              type="button"
+              aria-label="에이전트 프로파일 설정"
+              aria-pressed={settingsOpen}
+              tooltip="에이전트 프로파일"
+            >
+              <Settings2
+                color={iconProps.color}
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+              />
+            </ActionIconButton>
             {messages.length > 0 && !isAgentRunning && (
               <ActionIconButton
                 onPress={clearConversation}
@@ -312,13 +335,21 @@ function AIPanelContent() {
           </>
         }
       />
-      <AgentCommandLogList />
-      <ChatContainer
-        messages={messages}
-        onSendMessage={runAgent}
-        isDisabled={isDisabled}
-        selectedElementType={selectedElementType}
-      />
+      {settingsOpen ? (
+        <div className="panel-contents ai-contents">
+          <AgentProfileSettings />
+        </div>
+      ) : (
+        <>
+          <AgentCommandLogList />
+          <ChatContainer
+            messages={messages}
+            onSendMessage={runAgent}
+            isDisabled={isDisabled}
+            selectedElementType={selectedElementType}
+          />
+        </>
+      )}
     </div>
   );
 }

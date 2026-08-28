@@ -269,11 +269,32 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 - `apps/builder/src/builder/panels/ai/components/ConnectionStatus.tsx` — 프로파일별 연결 상태 표시 (원격 도달 불가 시 로컬 endpoint 안내 — 구 OfflineIndicator 대체)
 - 로컬 endpoint 설정 가이드 문서 (`docs/` — Ollama OpenAI-compatible 모드 기준)
 
-### Phase 7 Gate G6
+### Phase 7 Gate G6 — 부분 통과 (2026-08-28)
 
 - 에이전트 프로파일 라우팅 동작 검증 (프로파일별 상이 모델 구성 → 호출 분기 실측)
 - **폐쇄망 시나리오**: 전 프로파일을 로컬 OpenAI-compatible endpoint (Ollama) 로 바인딩 → 7개 도구 전수 통과 1회 실측 (R10 — 모델 품질 보증이 아니라 경로 검증)
 - type-check + vitest PASS
+
+**측정 결과**
+
+| 조건                | 측정                                                                                                                                                        | 결과                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
+| 라우팅 분기         | 프로파일마다 **다른 모델 id** (`g6-planner` / `g6-executor` / `g6-verifier`) 를 넣고 한 요청 실행 → endpoint 로그에 역할별로 그 모델이 그대로 찍혔다        | **PASS** ✅             |
+| 도구 전수 통과      | 같은 로컬 endpoint 로 **도구 10종** (7종 + Phase 4 신규 2 + `run_command`) 실행 — 12 tool result, **오류 0**. 문서는 71 → 71 로 복귀 (생성분 자체 삭제)     | **PASS** ✅ (7 → 10 확대) |
+| 로컬 endpoint 바인딩 | 전 프로파일을 `127.0.0.1` OpenAI 호환 endpoint 로 바인딩. 원격 차단(HC13) 경로를 타지 않고 정상 실행                                                        | **PASS** ✅             |
+| **Ollama 실물 대조** | 이 환경에 Ollama 미설치 (`which ollama` → not found). 실제 서버의 wire 동작 (chunk 모양 · keep-alive · 오류 body) 은 **미검증**                            | **미실시** ⚠️           |
+| type-check / vitest | type-check 0 · AI·라우팅·패널 **215 passed** (25 file, 신규 27)                                                                                             | **PASS** ✅             |
+
+**G6 를 통과로 선언하지 않는 이유**: 게이트가 지정한 것은 "Ollama OpenAI-compatible endpoint" 다. 로컬 OpenAI 호환 endpoint 로 경로는 전부 통과했지만, 실물 서버와의 wire 대조가 빠진 것은 이 자리에서 메울 수 없다 (설치는 사용자 환경 결정). **Phase 7 구현은 완료**, G6 는 사용자가 로컬 endpoint 를 띄운 뒤 1회 실행으로 종결한다 — 가이드: [ai-local-endpoint.md](../../how-to/development/ai-local-endpoint.md).
+
+**G6 에 함께 이월된 모델-루프 측정 2건** (둘 다 구성된 executor 프로파일 필요):
+
+1. G5 — 카탈로그 주입 후 모델이 실제로 올바른 props 를 내는가 (주입 문맥 recall 은 45/45 로 측정 완료, 모델 출력은 미측정)
+2. Phase 6 — "사용자 관리 대시보드" / "이커머스 상품 카탈로그" 2개 시나리오 품질
+
+**UI 결함 2건 (측정 중 발견 → 수정)**: 프리셋 버튼이 `fillStyle="outline"` 에서 거의 안 보였다 (패널 idiom 인 `variant="secondary"` 로 교체) · `fieldset` 기본 `min-width:min-content` 때문에 긴 select 옵션이 패널 밖으로 필드를 밀어냈다 (`min-width:0`).
+
+**스코프 밖 관찰**: 요소를 지워도 그 요소의 `InteractionRule` 이 `events` 에 남는다 (G6 실측에서 orphan 1건 발생 → 수동 제거). ADR-158 영역이라 여기서 고치지 않는다.
 
 ## 10. Phase 8 — AIPanel UX 1년차 신입 baseline (D9)
 
@@ -322,7 +343,7 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 | Phase 4 격차 정합         | ~5 file (신규 도구 2 + createElement + definitions + systemPrompt — createAction 삭제, 2026-08-26 재산정) | **3 기존** (`createElement.ts` · `definitions.ts` · `systemPrompt.ts`) + 신규 도구 2                                                                           | 1.00            | 아니오                                                    |
 | Phase 5 카탈로그          | ~8 file                                                                                                   | **2 기존** (`systemPrompt.ts` · `AgentService.ts`) + 신규 4 (`catalog/` 3 + barrel)                                                                            | 0.75            | 아니오                                                    |
 | Phase 6 Plan→E→V+역할     | ~15 file                                                                                                  | **3 기존** (`createElement.ts` · `useAgentLoop.ts` · `PlannerAgent` 경유 systemPrompt) + 신규 9 (`agents/` 6 + `templates/` 1 + `compositeCreation` + runner)   | 0.80            | 아니오                                                    |
-| Phase 7 라우팅+폐쇄망     | ~6 file                                                                                                   | TBD                                                                                                                                                            | —               | —                                                         |
+| Phase 7 라우팅+폐쇄망     | ~6 file                                                                                                   | **2 기존** (`createAgentRunner.ts` · `AIPanel.tsx`+css) + 신규 4 (`routing/` 1 + 패널 컴포넌트 2 + 가이드 문서 1)                                              | 1.00            | 아니오                                                    |
 | Phase 8 AIPanel UX        | ~10 file                                                                                                  | **8** (`builder/panels/ai/**` 전체)                                                                                                                            | 0.80            | 아니오                                                    |
 | Phase 9 외부 에이전트     | ~10 file                                                                                                  | TBD (Electron 의존)                                                                                                                                            | —               | —                                                         |
 

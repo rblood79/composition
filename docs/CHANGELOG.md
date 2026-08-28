@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-134 Phase 7 — AI 설정 화면과 로컬 endpoint 안내] - 2026-08-28
+
+### Added
+
+- **AI 패널에서 직접 모델을 설정한다**: 헤더 톱니 아이콘 → 프리셋(로컬 Ollama / Anthropic / OpenAI 호환) 선택, endpoint·모델 입력, 역할별(기본/계획/실행/검증/분류) 구성.
+- **어느 작업이 어느 프로파일로 가는지 보여 준다**: 계획 프로파일을 비워 두면 "계획 → 기본 프로파일로 실행합니다" 처럼 내려간 사실이 그대로 표시된다. 로컬·사설망 endpoint 에는 폐쇄망 표시가 붙는다.
+- [로컬 endpoint 연결 가이드](how-to/development/ai-local-endpoint.md) — Ollama 기준 설정 순서, 역할별 모델 고르는 기준, 안 될 때 원인표.
+
+### Changed
+
+- 키 값은 설정과 함께 저장되지 않는다. 기본은 현재 세션에서만 기억하고, 브라우저에 남기려면 명시로 켜야 하며 끄면 즉시 삭제된다.
+
+### Fixed
+
+- 설정 화면의 긴 선택지가 패널 밖으로 입력 칸을 밀어내던 문제, 프리셋 버튼 글자가 거의 보이지 않던 문제.
+
+### Tests
+
+- 작업 유형 → 프로파일 라우팅과 내림 순서, 폐쇄망 판정, 연결 상태 표시 — 신규 27건, AI 영역 합계 215건.
+
 ## [ADR-134 Phase 6 — AI 가 계획하고, 실행하고, 스스로 검토한다] - 2026-08-28
 
 ### Added

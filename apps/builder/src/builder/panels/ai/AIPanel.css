@@ -302,3 +302,179 @@
 .ai-command-log-item:not([data-status="ok"]) .ai-command-log-status {
   color: #f59e0b;
 }
+
+/* ── 에이전트 프로파일 설정 (ADR-134 Phase 7) ───────────────────────── */
+
+.ai-profile-settings {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+}
+
+.ai-profile-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.ai-profile-hint {
+  margin: var(--spacing-xs) 0 0;
+  color: var(--fg-muted);
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+}
+
+/* fieldset 은 기본 min-width:min-content 라 긴 select 옵션이 패널을 밀어낸다 */
+.ai-profile-settings fieldset {
+  min-width: 0;
+}
+
+.ai-profile-field {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  padding-block: var(--spacing-2xs);
+}
+
+.ai-profile-field > span {
+  flex: 0 0 4.5rem;
+  color: var(--fg-muted);
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+}
+
+.ai-profile-field input,
+.ai-profile-field select {
+  flex: 1;
+  min-width: 0;
+  padding: var(--spacing-2xs) var(--spacing-xs);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-inset);
+  color: var(--fg);
+  font-size: var(--text-2xs);
+}
+
+.ai-profile-field input:hover,
+.ai-profile-field select:hover {
+  border-color: var(--border-hover);
+}
+
+.ai-profile-field input:focus-visible,
+.ai-profile-field select:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.ai-profile-check {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--fg);
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+}
+
+/* ── 연결 상태 ─────────────────────────────────────────────────────── */
+
+.ai-connection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+}
+
+.ai-connection-empty {
+  flex-direction: row;
+  gap: var(--spacing-sm);
+  align-items: flex-start;
+  color: var(--fg-muted);
+}
+
+.ai-connection-title {
+  margin: 0;
+  color: var(--fg);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--text-2xs--line-height);
+}
+
+.ai-connection-hint {
+  margin: var(--spacing-2xs) 0 0;
+  color: var(--fg-muted);
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+}
+
+/* code 는 기본 크기를 그대로 써서 주변 글자보다 커진다 */
+.ai-connection-hint code {
+  font-size: inherit;
+  word-break: break-all;
+}
+
+.ai-profile-preset {
+  --btn-padding: var(--spacing-2xs) var(--spacing-sm);
+}
+
+.ai-connection-list,
+.ai-connection-notices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-connection-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+}
+
+.ai-connection-task {
+  flex: 0 0 2.5rem;
+  color: var(--fg-muted);
+}
+
+.ai-connection-profile {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-connection-row-downgraded .ai-connection-profile {
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.ai-connection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2xs);
+  padding: 0 var(--spacing-2xs);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  color: var(--fg-muted);
+}
+
+.ai-connection-notices {
+  padding-top: var(--spacing-2xs);
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+}
