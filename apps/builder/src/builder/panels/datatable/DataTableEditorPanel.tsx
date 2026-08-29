@@ -23,7 +23,6 @@ import {
   FileEdit,
   Play,
   Shield,
-  X,
 } from "lucide-react";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
 import { useDataStore } from "../../stores/data";
@@ -335,16 +334,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
       <PanelHeader
         icon={<FileEdit {...iconProps} />}
         title={getHeaderTitle()}
-        actions={
-          <button
-            type="button"
-            className="iconButton"
-            onClick={close}
-            title={localize("close", "닫기")}
-          >
-            <X {...iconProps} />
-          </button>
-        }
+        onClose={close}
       />
       {renderTabs()}
       <div className="panel-contents">{renderEditorContent()}</div>
@@ -395,6 +385,7 @@ export function DataTableEditorPanel() {
         <PanelHeader
           icon={<FileEdit size={iconProps.size} />}
           title={localize("editor", "Editor")}
+          onClose={close}
         />
         <div className="panel-contents">
           <EmptyState

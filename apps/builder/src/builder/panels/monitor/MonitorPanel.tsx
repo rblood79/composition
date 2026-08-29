@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Tabs, TabList, Tab, TabPanel } from "react-aria-components";
-import { Activity, Database, Cpu, Zap, BarChart3, X } from "lucide-react";
+import { Activity, Database, Cpu, Zap, BarChart3 } from "lucide-react";
 import {
   iconProps,
   iconEditProps,
@@ -33,23 +33,16 @@ import {
   loadThresholdConfig,
   type ThresholdConfig,
 } from "./utils/thresholdConfig";
-import { usePanelLayout, useToast } from "@/builder/hooks";
-import {
-  ActionIconButton,
-  PanelHeader,
-  Section,
-  ToastContainer,
-} from "../../components";
+import { useToast } from "@/builder/hooks";
+import { PanelHeader, Section, ToastContainer } from "../../components";
 import { translateKey, useOptionalI18n } from "../../../i18n";
 
 const MAX_HISTORY_POINTS = 60; // 최대 60개 데이터 포인트 (10분)
 
 export function MonitorPanel() {
   const i18n = useOptionalI18n();
-  const { togglePanel } = usePanelLayout();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
-  const closeLabel = i18n ? i18n.t("common.close") : "Close";
   const [activeTab, setActiveTab] = useState<string>("memory");
   const [memoryHistory, setMemoryHistory] = useState<number[]>([]);
   const [thresholdConfig, setThresholdConfig] =
@@ -155,15 +148,7 @@ export function MonitorPanel() {
       <PanelHeader
         title={i18n ? i18n.t("panels.monitor") : "Monitor"}
         icon={<Activity size={iconProps.size} aria-hidden="true" />}
-        actions={
-          <ActionIconButton
-            onPress={() => togglePanel("monitor")}
-            aria-label={closeLabel}
-            tooltip={closeLabel}
-          >
-            <X size={iconProps.size} />
-          </ActionIconButton>
-        }
+        panelId="monitor"
       />
 
       <div className="panel-contents monitor-panel-contents">

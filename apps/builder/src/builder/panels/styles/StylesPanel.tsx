@@ -165,7 +165,24 @@ function StylesPanelContent() {
   useKeyboardShortcutsRegistry(shortcuts, [shortcuts], { activeScope });
 
   if (!hasSelectedElement) {
-    return <EmptyState message={t("styles.selectElement")} />;
+    return (
+      <div className="panel">
+        <PanelHeader
+          icon={
+            <Palette
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          }
+          title={t("panels.styles")}
+          panelId="styles"
+        />
+        <div className="panel-contents">
+          <EmptyState message={t("styles.selectElement")} />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -179,6 +196,7 @@ function StylesPanelContent() {
           />
         }
         title={selectedElement?.type ?? t("panels.styles")}
+        panelId="styles"
         actions={
           <>
             {focusMode && (

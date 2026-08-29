@@ -124,6 +124,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
         <PanelHeader
           icon={<Database size={iconProps.size} />}
           title={i18n ? i18n.t("panels.dataTable") : "DataTable"}
+          panelId="datatable"
         />
         <EmptyState message={localize("noProject", "프로젝트를 선택하세요")} />
       </div>
@@ -156,6 +157,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
       <PanelHeader
         icon={<Database size={iconProps.size} />}
         title={i18n ? i18n.t("panels.dataTable") : "DataTable"}
+        panelId="datatable"
         actions={
           <button
             className="iconButton"

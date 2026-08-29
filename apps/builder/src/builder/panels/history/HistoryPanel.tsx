@@ -323,6 +323,7 @@ function HistoryPanelContent() {
       <PanelHeader
         icon={<History size={iconProps.size} />}
         title="작업 내역"
+        panelId="history"
         actions={
           <Toolbar className="history-actions" aria-label="작업 내역 도구">
             <ActionIconButton

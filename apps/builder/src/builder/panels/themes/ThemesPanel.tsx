@@ -303,6 +303,7 @@ function ThemesContent() {
       <PanelHeader
         icon={<SwatchBook size={iconProps.size} />}
         title="Theme"
+        panelId="theme"
         actions={
           <RAToggleButton
             className="iconButton"

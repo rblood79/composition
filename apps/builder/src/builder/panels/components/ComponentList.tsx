@@ -292,6 +292,7 @@ const ComponentList = memo(
         <PanelHeader
           icon={<Box size={16} />}
           title="Components"
+          panelId="components"
           actions={
             <>
               <ActionIconButton

@@ -27,7 +27,7 @@
 /* 탭 줄 — 타이틀 줄과 같은 .panel-header 골격 안에 세그먼트 하나를 통째로 얹는다.
    복사/붙여넣기는 타이틀 줄 우측에 그대로 두므로 이 줄은 탭이 전부 차지한다. */
 .styles-panel-tabrow {
-  padding: 0 var(--spacing-sm);
+  padding: 0 var(--spacing-2xs);
 }
 
 /* 트랙 치수는 이 패널의 ToggleButtonGroup(세그먼트 컨트롤)과 동일하다 —
@@ -42,8 +42,7 @@
   gap: var(--spacing-sm);
   padding: var(--spacing-xs);
   border-radius: var(--radius-md);
-  background-color: var(--bg-muted);
-  box-shadow: var(--inset-shadow-sm);
+  background-color: transparent;
 }
 
 /* 비선택 탭은 세그먼트 버튼과 같은 20px 정사각(아이콘만) — 폭을 고정하지 않으면

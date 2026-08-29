@@ -314,6 +314,7 @@ function AIPanelContent() {
       <PanelHeader
         icon={<Bot size={iconProps.size} />}
         title="AI Assistant"
+        panelId="ai"
         actions={
           <>
             {isAgentRunning && (

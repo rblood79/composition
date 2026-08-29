@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Header의 Publish 버튼을 제거했습니다**: 편집 화면 상단의 게시 진입점을 없애고 Preview와 보기 도구만 남겼습니다.
 - **Workflow와 Monitor를 전체 메뉴로 옮겼습니다**: Header 우측 보기 토글 그룹에서는 두 버튼을 제거하고, 좌측 전체 메뉴의 Settings 위에서 동일한 메뉴 액션 패턴으로 실행할 수 있습니다. Workflow 메뉴명은 상태와 무관하게 고정되며 `⌃⌥W`로 오버레이를 토글할 수 있습니다.
 - **패널 메뉴와 헤더 동작을 정리했습니다**: `Reset Panel Layout` 메뉴는 `LayoutDashboard` 아이콘을 사용하며, Monitor 패널 헤더에는 Settings 패널과 같은 닫기 버튼을 제공합니다.
+- **모든 등록 패널을 헤더에서 닫을 수 있습니다**: 기존 header actions 뒤에 공통 닫기 버튼을 항상 우측 끝으로 배치했습니다. 자체 탭 헤더를 쓰는 Nodes와 전용 종료 절차가 있는 DataTable Editor도 같은 위치·접근성 패턴을 따릅니다.
 
 ### Added
 

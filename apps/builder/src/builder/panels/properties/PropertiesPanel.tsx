@@ -9,7 +9,7 @@
  * 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
  */
 
-import { useState, useCallback, useMemo, memo } from "react";
+import { useCallback, useMemo, memo } from "react";
 import { useDebouncedSelectedElementData } from "../../stores";
 import type { SelectedElement } from "../../inspector/types";
 import { useEditContract } from "./hooks/useEditContract";
@@ -42,6 +42,7 @@ import {
   useCopyPaste,
   useActiveScope,
 } from "@/builder/hooks";
+import { useI18n } from "../../../i18n";
 import { useStore } from "../../stores";
 import {
   getSlotMirrorName,
@@ -628,6 +629,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
  * 이 컴포넌트는 selectedElement만 구독하여 단일 선택 시 불필요한 리렌더 방지
  */
 function PropertiesPanelContent() {
+  const { t } = useI18n();
   // ⭐ CRITICAL: Only subscribe to selectedElement (like StylesPanel)
   // multiSelectMode, selectedElementIds 구독은 MultiSelectContent에서 수행
   // 🚀 Phase 3: 디바운스된 선택 데이터 사용 (100ms 지연)
@@ -689,7 +691,18 @@ function PropertiesPanelContent() {
 
   // 선택된 요소가 없으면 빈 상태 표시
   if (!selectedElement) {
-    return <EmptyState message="요소를 선택하세요" />;
+    return (
+      <div className="panel">
+        <PanelHeader
+          icon={<Settings2 size={iconProps.size} />}
+          title={t("panels.properties")}
+          panelId="properties"
+        />
+        <div className="panel-contents">
+          <EmptyState message="요소를 선택하세요" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -697,6 +710,7 @@ function PropertiesPanelContent() {
       <PanelHeader
         icon={<Settings2 size={iconProps.size} />}
         title={selectedElement.type}
+        panelId="properties"
         actions={
           <>
             <ActionIconButton

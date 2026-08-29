@@ -34,6 +34,7 @@ export function InteractionsPanel() {
         <PanelHeader
           title="Interactions"
           icon={<SquareMousePointer size={14} />}
+          panelId="events"
         />
         <div className="panel-contents">
           <EmptyState message="요소를 선택하세요" />
@@ -79,6 +80,7 @@ function InteractionsPanelContent({
       <PanelHeader
         title="Interactions"
         icon={<SquareMousePointer size={14} />}
+        panelId="events"
       />
       <div className="panel-contents">
         <Section

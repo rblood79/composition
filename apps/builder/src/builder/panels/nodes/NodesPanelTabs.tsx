@@ -6,9 +6,11 @@
  */
 
 import React from "react";
-import { FileText, Layout } from "lucide-react";
+import { FileText, Layout, X } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useI18n } from "../../../i18n";
+import { ActionIconButton } from "../../components";
+import { togglePanelWorkspace } from "../../hooks/usePanelLayout";
 
 export type NodesPanelTabType = "pages" | "layouts";
 
@@ -54,24 +56,35 @@ export function NodesPanelTabs({
   ];
 
   return (
-    <div
-      className="panel-header nodes-panel-tabs"
-      role="tablist"
-      aria-label={t("nodes.panelTabs")}
-    >
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          role="tab"
-          aria-selected={activeTab === tab.id}
-          aria-controls={`tabpanel-${tab.id}`}
-          className={`nodes-panel-tab ${activeTab === tab.id ? "active" : ""}`}
-          onClick={() => onTabChange(tab.id)}
+    <div className="panel-header nodes-panel-tabs">
+      <div
+        className="nodes-panel-tablist"
+        role="tablist"
+        aria-label={t("nodes.panelTabs")}
+      >
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={`tabpanel-${tab.id}`}
+            className={`nodes-panel-tab ${activeTab === tab.id ? "active" : ""}`}
+            onClick={() => onTabChange(tab.id)}
+          >
+            {tab.icon}
+            <span className="nodes-panel-tab-label">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+      <div className="panel-actions">
+        <ActionIconButton
+          onPress={() => togglePanelWorkspace("nodes")}
+          aria-label={t("common.close")}
+          tooltip={t("common.close")}
         >
-          {tab.icon}
-          <span className="nodes-panel-tab-label">{tab.label}</span>
-        </button>
-      ))}
+          <X size={iconProps.size} />
+        </ActionIconButton>
+      </div>
     </div>
   );
 }
