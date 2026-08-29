@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-30
+Accepted — 2026-08-30 (review-adr round 1 승인 — MED 1·LOW 3 전부 fixed, `docs/adr/reviews/197.md`; 직전 Proposed 2026-08-30)
 
 > 출처: 2026-08-29 사용자 요청 — "빌더 내 아이콘을 더 동적으로 표현. lock-keyhole-open → lock-keyhole 식 on/off 개념을 더하면 단순한 아이콘에 시각 효과로 가독성·시인성을 줄 수 있다" + "재사용 가능한 패턴으로". 적용 대상은 **Builder chrome 한정, canvas 미적용** (사용자 결정). 완전 신규 주제 (fork 아님) — 전제 기록은 [breakdown §1](design/197-builder-chrome-state-icon-morph-breakdown.md).
 
@@ -15,20 +15,20 @@ Proposed — 2026-08-30
 2026-08-29 실측 (breakdown §2):
 
 - chrome 은 100 파일이 lucide-react 를 import 하고, 상태가 바뀌는 아이콘은 삼항으로 컴포넌트를 갈아끼운다 — 11곳 (`RuleRow.tsx:130`, `ItemsManager.tsx:72,216`, `ContextualActionBar.tsx:165`, `TransformSection.tsx:673`, `ResponsiveVisibilityEditor.tsx:142` 등). 회전·crossfade·`transition` CSS 는 0건.
-- 상태를 가지지만 아이콘이 고정된 컨트롤이 12곳 더 있다 (`AppearanceSection.tsx:312` inset, `AgentControls.tsx:24`, `ConnectionStatus.tsx:70`, `PanelToggleGroup.tsx:91` 등). 이들은 RAC `ToggleButton[data-selected]` 의 회색 wash (`--accent-subtle`, `ActionIconButton.css:29`) 만으로 상태를 말하는데, wash 는 "켜짐" 과 "눌림" 을 구분하지 못한다.
+- 상태를 가지지만 아이콘이 고정된 컨트롤이 12곳 더 있다 (`AppearanceSection.tsx:312` inset, `AgentControls.tsx:24`, `ConnectionStatus.tsx:70`, `PanelToggleGroup.tsx:91` 등). 이들은 RAC `ToggleButton[data-selected]` 의 회색 wash (`ActionIconButton.css:29` `color-mix(var(--fg) 10%)`, `SwatchIconButton.css:31` `--accent-subtle`) 만으로 상태를 말하는데, wash 는 "켜짐" 과 "눌림" 을 구분하지 못한다.
 - lucide 는 base ↔ `-off` / `-open` / `-check` / `-x` 짝을 다수 제공한다 (composition 데이터 기준 `-off` 74 · `-check` 32 · `-x` 34 · `-open` 10). 짝이 있는 곳에 형태 자체가 상태를 말하게 하고, 두 형태 사이를 연속으로 이으면 전환도 읽힌다.
 - morphicons (MIT, 런타임 의존 0, core 6.6 KB gz) 는 stroke 아이콘 둘 사이의 similarity (회전·크기) 를 closed-form Procrustes 로 구해 polar 보간한다 — 회전 그룹을 손으로 선언하지 않아도 chevron-right → chevron-down 이 θ 90° 로 나온다 (breakdown §2-4 실계산). 입력 계약 (`IconNode = [tag, attrs][]`) 이 composition 의 `LucideIconData` (`paths[]` + `circles[]`) 와 무손실 호환이다.
 - lucide-react 는 아이콘 데이터 (`__iconNode`) 를 메인 index 에서 노출하지 않는다 → 데이터 원천은 이미 있는 `getIconData` 여야 한다.
 
 **Hard Constraints**:
 
-1. **번들·의존** — 초기 번들 <500KB (`CLAUDE.md`), 외부 라이브러리 추가 금지 (`.claude/skills/component-design/SKILL.md:81`). 본 ADR 의 신규 npm 의존 = **0**. builder 초기 chunk Δ ≤ +10KB gz (G1; upstream core+dom 7.1 KB gz 상한).
+1. **번들·의존** — 초기 번들 <500KB (`CLAUDE.md`), 외부 라이브러리 추가 금지 (`.claude/skills/component-design/SKILL.md:75`). 본 ADR 의 신규 npm 의존 = **0**. builder 초기 chunk Δ ≤ +10KB gz (G1; upstream core+dom 7.1 KB gz 상한). 아이콘 데이터 (`lucideIconData.generated.ts`) 는 이미 초기 chunk 에 있다 — `specShapeConverter.ts:9` · `SearchField.tsx:19` 가 eager import — 따라서 Δ 는 core 만 센다.
 2. **접근성** — OS `prefers-reduced-motion: reduce` 에서 전환 프레임 0 (WCAG 2.3.3). RAC `ToggleButton` / `Button` / `MenuItem` 의 DOM 구조·ARIA 무변경 — 교체는 `<svg>` 내부 `<path d>` 뿐 (D1 침범 없음).
-3. **정지 fidelity** — 정지 상태의 `d` 는 lucide canonical (곡선, 4자리 양자화) 과 동일. polyline 은 비행 중에만.
+3. **정지 fidelity** — 정지 상태의 `d` 는 morphicons canonical (원본 곡선을 cubic 으로 내린 4자리 양자화 — lucide 원본 바이트와는 다르고 arc→cubic 왕복 오차 5e-5 이내, upstream `normalize.test.ts` 고정). polyline 은 비행 중에만. DOM 은 lucide-react 의 다중 `<path>/<circle>` 대신 단일 `<path>` (chrome CSS 가 svg 자식 구조를 참조하지 않음 — Phase 0 재grep).
 4. **데이터 원천** — `getIconData(name)` 단일. `lucide-react/dist/esm/icons/*` deep import 금지.
-5. **성능** — 비행 중 rAF 는 morph 전체 singleton 1개, 정지 시 timer 0. Skia 프레임 루프 (`SkiaCanvas.tsx:626`) 와 무관 (canvas 미적용).
+5. **성능** — 비행 중 rAF 는 morph 전체 singleton 1개, 정지 시 timer 0. Skia 프레임 루프 (`SkiaCanvas.tsx:627`) 와 무관 (canvas 미적용).
 6. **레지스트리 무결성** — 등록된 모든 쌍의 양끝이 `getIconData` 에 존재하고 plan 이 유한 (θ/σ NaN 0) — 테스트 게이트 (G2).
-7. **prop 계약 호환** — `size` / `strokeWidth` / `color` 는 lucide-react 와 동일 (`uiConstants.ts` `iconProps` 스프레드 그대로). 정적 아이콘 정본 `actionIcons.ts` `ActionIcon` 타입은 존속.
+7. **prop 계약 호환** — `size` / `strokeWidth` / `color` 는 lucide-react 와 동일 (`uiConstants.ts` `iconProps` 스프레드 그대로). 정적 아이콘 정본 `actionIcons.ts:34` `ActionIcon` 타입은 존속.
 
 **Soft Constraints**:
 
@@ -112,15 +112,15 @@ Proposed — 2026-08-30
 
 ## Risks
 
-| ID  | 위험                                                                                                                         | 심각도 | 대응                                                                                                                                              |
-| --- | ---------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | vendoring drift — upstream 버그 수정·계약 변경이 반영되지 않거나, 로컬 patch 가 upstream 과 갈라짐                           |  MED   | `core/UPSTREAM.md` 에 1.7.1 / `38d2a72` 기록. 갱신 = 디렉토리 통째 교체 + 이식 테스트 (불변식 11 + driver) 통과. 부분 patch 금지 (breakdown §3-5) |
-| R2  | IconNode 참조 불안정 — 매 render 변환 시 plan `WeakMap` 캐시가 무효화돼 전환마다 `buildPlan` 재계산 (sub-ms 이나 GC 압력)    |  MED   | 이름 → IconNode 모듈 `Map` 캐시. 테스트: 같은 이름 두 번 조회 시 `Object.is` 동일 (G1)                                                            |
-| R3  | 정지 시 canonical 복귀 누락 — polyline `d` 가 남아 곡선 fidelity 손실 (12-16px 에서 미세하지만 hover 확대·DPR 2 에서 드러남) |  MED   | driver settle 경로 보존 + 테스트 `settle 후 d === canonicalD(target)` (G0 dom.test)                                                               |
-| R4  | reduced-motion 무시 — 기본값이 `never` 로 새거나 호출부가 override                                                           |  MED   | `StateIcon` / `MorphIcon` 기본 `"user"` 를 테스트로 고정 (G1). `never` 는 prop 명시만                                                             |
-| R5  | 짝 없는 토글에 억지 등록 — 의미가 어긋난 쌍 (예: 토글이 아닌 `zap`) 이 레지스트리에 들어감                                   |  LOW   | 확인 필요 3건 (monitor / save / view) 은 Phase 3 개별 판정, 미달 시 미등록. 레지스트리 변경은 리뷰 대상 (breakdown §2-3 표 갱신 동반)             |
-| R6  | lucide-react 갱신 (`lucideIconData.generated.ts` 재생성) 시 아이콘 rename 으로 쌍 양끝 소실                                  |  LOW   | G2 레지스트리 테스트가 CI 에서 즉시 실패 — 재생성 commit 에 동반 수정                                                                             |
-| R7  | ADR-192 진행 중 `ContextualActionBar.tsx` 동시 편집 충돌                                                                     |  LOW   | Pin 교체는 Phase 2 마지막, ADR-192 종결 후                                                                                                        |
+| ID  | 위험                                                                                                                                                     | 심각도 | 대응                                                                                                                                              |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | vendoring drift — upstream 버그 수정·계약 변경이 반영되지 않거나, 로컬 patch 가 upstream 과 갈라짐                                                       |  MED   | `core/UPSTREAM.md` 에 1.7.1 / `38d2a72` 기록. 갱신 = 디렉토리 통째 교체 + 이식 테스트 (불변식 11 + driver) 통과. 부분 patch 금지 (breakdown §3-5) |
+| R2  | IconNode 참조 불안정 — 매 render 변환 시 plan `WeakMap` 캐시가 무효화돼 전환마다 `buildPlan` 재계산 (sub-ms 이나 GC 압력)                                |  MED   | 이름 → IconNode 모듈 `Map` 캐시. 테스트: 같은 이름 두 번 조회 시 `Object.is` 동일 (G1)                                                            |
+| R3  | 정지 시 canonical 복귀 누락 — polyline `d` 가 남아 곡선 fidelity 손실 (12-16px 에서 미세하지만 hover 확대·DPR 2 에서 드러남)                             |  MED   | driver settle 경로 보존 + 테스트 `settle 후 d === canonicalD(target)` (G0 dom.test)                                                               |
+| R4  | reduced-motion 무시 — upstream driver 기본값이 `"never"` (`dom/index.ts:166`) 라 wrapper 가 override 하지 않으면 그대로 새거나, 호출부가 `never` 를 명시 |  MED   | `StateIcon` / `MorphIcon` 기본 `"user"` 를 테스트로 고정 (G1). `never` 는 prop 명시만                                                             |
+| R5  | 짝 없는 토글에 억지 등록 — 의미가 어긋난 쌍 (예: 토글이 아닌 `zap`) 이 레지스트리에 들어감                                                               |  LOW   | 확인 필요 3건 (monitor / save / view) 은 Phase 3 개별 판정, 미달 시 미등록. 레지스트리 변경은 리뷰 대상 (breakdown §2-3 표 갱신 동반)             |
+| R6  | lucide-react 갱신 (`lucideIconData.generated.ts` 재생성) 시 아이콘 rename 으로 쌍 양끝 소실                                                              |  LOW   | G2 레지스트리 테스트가 CI 에서 즉시 실패 — 재생성 commit 에 동반 수정                                                                             |
+| R7  | ADR-192 진행 중 `ContextualActionBar.tsx` 동시 편집 충돌                                                                                                 |  LOW   | Pin 교체는 Phase 2 마지막, ADR-192 종결 후                                                                                                        |
 
 잔존 HIGH 위험 없음.
 
@@ -128,12 +128,12 @@ Proposed — 2026-08-30
 
 잔존 HIGH 위험 없음 — 아래 Gate 는 MED 위험 (R1~R4) 의 통과 조건이다.
 
-| Gate | 시점           | 통과 조건                                                                                                                                                              | 실패 시 대안                                                                          |
-| ---- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| G0   | Phase 0 완료   | 이식 테스트 (invariants 11 + closed + dom) 전부 PASS · `pnpm type-check` 0 · core 가 `lib: DOM` 없이 컴파일                                                            | 실패 케이스 원인이 vitest 환경 (rAF fake) 이면 fake 보강, core 차이면 upstream 재복사 |
-| G1   | Phase 1 완료   | builder 초기 chunk Δ ≤ +10KB gz · 같은 이름 IconNode `Object.is` 동일 · `reducedMotion` 기본 `"user"` 테스트 PASS                                                      | Δ 초과 시 core 를 lazy chunk 로 분리 (첫 토글 시 로드, 초기 렌더는 canonical d 정적)  |
-| G2   | Phase 2 완료   | `statePairs.test.ts` PASS (양끝 존재 · θ/σ 유한 · off≠on) · 교체 파일 기존 테스트 PASS · **Live Exercise** (breakdown §6: lock / pin / theme + reduced-motion + rAF 0) | 특정 쌍이 시각 미달이면 해당 쌍만 레지스트리 제외 (삼항 유지), 나머지 진행            |
-| G3   | Phase 3 항목별 | 추가 쌍마다 G2 테스트 + live 1회. 확인 필요 3건은 실측 근거 (토글 여부 · 배치 · 시각) 를 breakdown §2-3 에 기록                                                        | 근거 미달 항목은 미등록 — 억지 짝 금지                                                |
+| Gate | 시점           | 통과 조건                                                                                                                                                                                                                                                                                                                                        | 실패 시 대안                                                                          |
+| ---- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| G0   | Phase 0 완료   | 이식 테스트 (invariants 11 + closed + dom) 전부 PASS · `pnpm type-check` 0 (리뷰 시 probe: upstream core+dom 9 파일을 `apps/builder/tsconfig.app.json` 으로 tsc → 오류 0, 2026-08-30) · eslint 오류 0 · Prettier 재포맷 후에도 테스트 동일                                                                                                       | 실패 케이스 원인이 vitest 환경 (rAF fake) 이면 fake 보강, core 차이면 upstream 재복사 |
+| G1   | Phase 1 완료   | builder 초기 chunk Δ ≤ +10KB gz — 측정: 같은 HEAD 에서 Phase 1 commit 전/후 `vite build` 2회 (대조군), `dist/assets/index-*.js` gzip 크기 차 (ADR-196 방법), 아이콘 데이터는 양쪽 다 포함이므로 Δ = core+binding 만 · 같은 이름 IconNode `Object.is` 동일 · `reducedMotion` 기본 `"user"` 테스트 PASS · StrictMode 이중 mount 후 live driver 1개 | Δ 초과 시 core 를 lazy chunk 로 분리 (첫 토글 시 로드, 초기 렌더는 canonical d 정적)  |
+| G2   | Phase 2 완료   | `statePairs.test.ts` PASS (양끝 존재 · θ/σ 유한 · off≠on) · 교체 파일 기존 테스트 PASS · **Live Exercise** (breakdown §6: lock / pin / theme + reduced-motion + rAF 0 — 조건: 보이는 탭 (`visibilityState: visible`, hidden 탭은 rAF 정지로 오판), DPR 2, dark 테마, reduced-motion 은 OS 설정으로 켜고 끔)                                      | 특정 쌍이 시각 미달이면 해당 쌍만 레지스트리 제외 (삼항 유지), 나머지 진행            |
+| G3   | Phase 3 항목별 | 추가 쌍마다 G2 테스트 + live 1회. 확인 필요 3건은 실측 근거 (토글 여부 · 배치 · 시각) 를 breakdown §2-3 에 기록                                                                                                                                                                                                                                  | 근거 미달 항목은 미등록 — 억지 짝 금지                                                |
 
 ### Live Exercise
 

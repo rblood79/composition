@@ -8,7 +8,7 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
-import { Button } from "react-aria-components";
+import { Button, Tab, TabList, Tabs } from "react-aria-components";
 import {
   User,
   Key,
@@ -208,22 +208,29 @@ export function DataTableCreator({
           /* Preset Selection */
           <>
             {/* Category Tabs */}
-            <div className="datatable-creator-tabs">
-              {PRESET_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  className={`datatable-creator-tab ${
-                    selectedCategory === cat.id ? "active" : ""
-                  }`}
-                  onClick={() => handleCategoryChange(cat.id)}
-                  title={cat.description}
-                >
-                  {renderCategoryIcon(cat.id)}
-                  <span>{cat.name}</span>
-                </button>
-              ))}
-            </div>
+            <Tabs
+              className="panel-tabs"
+              selectedKey={selectedCategory}
+              onSelectionChange={(key) =>
+                handleCategoryChange(key as PresetCategory)
+              }
+            >
+              <div className="panel-header panel-tabrow">
+                <TabList className="panel-tablist" aria-label="Preset category">
+                  {PRESET_CATEGORIES.map((cat) => (
+                    <Tab
+                      key={cat.id}
+                      id={cat.id}
+                      className="panel-tab"
+                      aria-label={`${cat.name} — ${cat.description}`}
+                    >
+                      {renderCategoryIcon(cat.id)}
+                      <span className="panel-tab-label">{cat.name}</span>
+                    </Tab>
+                  ))}
+                </TabList>
+              </div>
+            </Tabs>
 
             {/* Preset Grid */}
             <div className="section-content">

@@ -46,6 +46,11 @@ paths:
   - **왜 "빼는" 통일인가 (실측 2026-08-30)**: 아이콘 사용 섹션은 54개 중 9개(17%)뿐이었고, 나머지 45개의 큰 몫이 catalog 파생 섹션(`GenericFieldRenderer`/`CatalogInspectorFields` 가 `field.section` 문자열로 생성)이라 **아이콘을 넘길 채널이 없다** — 채우는 통일은 catalog 계약에 icon 축 신설(D2/D3 확장)이 전제다. 같은 Properties 패널 한 화면에 아이콘 섹션(Component/Attributes)과 무아이콘 섹션(Content/Appearance/State)이 함께 뜨던 것이 제거 동기.
 - 라벨 있는 필드 그룹은 `fieldset.properties-aria.{고유클래스}` + `legend.fieldset-legend` (memory: feedback-panel-field-group-fieldset-legend-pattern).
 - 컨트롤 묶음 시각(inset 배경)은 `.react-aria-Group` 조합.
+- **패널 탭은 단일 패턴** — 마크업·클래스 조합이 하나다:
+  `Tabs.panel-tabs` > `div.panel-header.panel-tabrow` > `TabList.panel-tablist` > `Tab.panel-tab` > `span.panel-tab-label`, 구현은 RAC `Tabs`/`TabList`/`Tab`.
+  바 크롬(32px·`--bg-raised`·하단 구분선)은 **`.panel-header` 가 이미 준다** — `.panel-tabrow` 는 헤더 패딩만 0 으로 되돌리는 modifier다. 래퍼를 빼고 같은 값을 tablist 에 다시 쓰면 크롬 정의가 두 곳이 되고 패널 골격도 갈린다.
+- **구조 클래스에 패널별 twin 을 만들지 않는다** — `{도메인}-panel-tabs/tabrow/tablist` 처럼 CSS 규칙 0건인 이름은 중복만 늘린다 (2026-08-30 실측: 20개 companion 중 11개가 규칙 0건). 오버라이드가 필요하면 조상 스코프로 건다 (`.monitor-panel .panel-tablist { display: grid; … }`). 실제 규칙이 붙는 companion(`styles-panel-tab`, `navigator-panel-tab` 등)만 병기한다. 집행: `panelTabs.static.test.ts`.
+  - **Why (2026-08-30 통일)**: DataTable 4개 바가 `<div>`+`<button>`+`.active` 수동 구현이라 `role="tab"`·`aria-selected`·화살표 키·focus 링이 전부 없었고, 선택 상태를 `--accent` 채움으로 그려 뷰 전환 탭이 패널에서 가장 강한 요소가 됐다. hover 배경(`--bg-raised`)이 바 배경과 같아 보이지도 않았다. Monitor 는 마크업만 RAC 이고 CSS 가 자체 계열이었다. 셋 다 공용으로 흡수 — 선택은 표면(`--bg-overlay` + `--shadow-sm`), accent 채움은 primary 액션·값 선택 축에 남긴다.
 
 ## 2. 클래스 네이밍 규칙
 
@@ -113,6 +118,7 @@ paths:
 - ❌ `.section { … .panel-wrapper[…] … }` 중첩 (dead 블록 — `panel-system.static.test.ts` FAIL)
 - ❌ 패널별 root 클래스 신설 (`.themes-panel` 류를 단독 root 로 — `.panel` 병기가 기본)
 - ❌ `.section` 직접 마크업 (Section 컴포넌트 경유)
+- ❌ 탭 바를 `<div>`+`<button>`+`.active` 로 수동 구현 (`panelTabs.static.test.ts` FAIL) · `.panel-tablist` 를 `.panel-header.panel-tabrow` 래퍼 없이 두기 · CSS 규칙 없는 `{도메인}-panel-tabs/tabrow/tablist` twin 신설
 - ❌ section header 에 아이콘 (`<Section icon={…}>` / `.section-title` 안 아이콘 — `sectionHeaderIcon.static.test.ts` FAIL). 아이콘은 `.panel-icon` 층 전용
 - ❌ `.section-content` 자체를 grid 로 (가로 배치는 `.fieldset-row` 한 겹)
 - ❌ `properties-aria` 를 `<div>`+`<legend>` 로 (invalid HTML). `<fieldset>` 전환 시 `min-inline-size: min-content` 기본값을 고유 클래스 `min-width: 0` 으로 해제하지 않으면 폭 거동이 달라진다

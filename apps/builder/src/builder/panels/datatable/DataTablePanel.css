@@ -16,39 +16,11 @@
   min-width: var(--panel-width);
 }
 
-/* Tab Bar */
-.datatable-tabs {
-  display: flex;
-  gap: 0;
-  padding: var(--spacing-2xs) var(--spacing-sm);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-raised);
-  height: var(--header-height);
-}
-
-.datatable-tab {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--text-xs);
-  color: var(--fg-muted);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all 150ms ease;
-}
-
-.datatable-tab:hover {
-  background: var(--bg-raised);
-  color: var(--fg);
-}
-
-.datatable-tab.active {
-  background: var(--accent);
-  color: var(--fg-on-accent);
-}
+/* Tab Bar — datatable 전용 탭 CSS 는 없다.
+   구조는 Navigator/Styles 와 같은 공용 조합이다:
+   `.panel-header.panel-tabrow` (바 크롬 — 32px + 배경 + 하단 구분선) > `.panel-tablist` >
+   `.panel-tab`. 종전 `.datatable-tab*` (accent 채움 / `.active` bare modifier / 바 배경과
+   같은 색이라 보이지 않던 hover / transition: all) 은 제거됐다. */
 
 /* DataTable-specific list count */
 .datatable-list-count {

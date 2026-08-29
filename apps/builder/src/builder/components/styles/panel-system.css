@@ -67,7 +67,7 @@
     justify-content: start;
     min-width: 0;
     gap: var(--spacing-xs);
-    padding: var(--spacing-2xs) var(--spacing-xs);
+    padding: var(--spacing-xs);
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--fg-muted);

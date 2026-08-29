@@ -1,0 +1,25 @@
+{
+  "artboards": [
+    { "file": "Before.dc.html", "x": 0, "y": 0, "w": 520, "h": 760 },
+    { "file": "Main.dc.html", "x": 620, "y": 0, "w": 520, "h": 760 },
+    { "file": "States.dc.html", "x": 0, "y": 900, "w": 520, "h": 640 },
+    { "file": "Scope.dc.html", "x": 620, "y": 900, "w": 700, "h": 860 }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -180,
+      "w": 460,
+      "text": "빌더 탭 패턴 통일\n왼쪽 = 현재 3계열, 오른쪽 = DataTable 통일안.\n아래 줄은 상태 대조와 마이그레이션 범위."
+    },
+    {
+      "id": "keep",
+      "x": 1180,
+      "y": 300,
+      "w": 260,
+      "text": "살리는 것: 바 배경 + border-bottom + 32px 높이.\n패널 헤더의 연장으로 읽히는 경계라 유지."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

@@ -236,7 +236,7 @@ function StylesPanelContent() {
         selectedKey={view}
         onSelectionChange={handleViewChange}
       >
-        <div className="panel-header panel-tabrow styles-panel-tabrow">
+        <div className="panel-header panel-tabrow">
           <StylesPanelTabs
             dirtyGroups={dirtyGroups}
             modifiedCount={modifiedCount}

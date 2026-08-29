@@ -1,3 +1,15 @@
+/* 카테고리 탭 — 공용 탭 패턴(`.panel-header.panel-tabrow > .panel-tablist > .panel-tab`)을
+   쓰되, 카테고리 5개 라벨은 387px 패널 폭에 들어가지 않는다. 종전 `.datatable-creator-tabs`
+   와 같은 해법(가로 스크롤 + 탭 폭 고정)을 조상 스코프 override 로 남긴다 — 라벨을 ellipsis
+   로 자르면 "Users & Auth"/"Manufacturing" 이 3~4글자만 남아 구분이 안 된다. */
+.datatable-editor-panel .section .panel-tablist {
+  overflow-x: auto;
+}
+
+.datatable-editor-panel .section .panel-tab {
+  flex-shrink: 0;
+}
+
 /**
  * DataTableCreator Styles
  *
@@ -71,44 +83,6 @@
   font-size: var(--text-xs);
   color: var(--fg-muted);
   line-height: 1.5;
-}
-
-/* ============================================
-   Category Tabs
-   ============================================ */
-
-.datatable-creator-tabs {
-  display: flex;
-  gap: 0;
-  padding: var(--spacing-2xs) var(--spacing-sm);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-raised);
-  overflow-x: auto;
-}
-
-.datatable-creator-tab {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  color: var(--fg-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 150ms, color 150ms;
-}
-
-.datatable-creator-tab:hover {
-  background: var(--bg-inset);
-  color: var(--fg);
-}
-
-.datatable-creator-tab.active {
-  background: var(--accent);
-  color: var(--fg-on-accent);
 }
 
 /* ============================================

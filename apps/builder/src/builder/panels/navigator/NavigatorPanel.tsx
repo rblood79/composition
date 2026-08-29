@@ -93,11 +93,11 @@ export function NavigatorPanel() {
       />
 
       <Tabs
-        className="panel-tabs navigator-panel-tabs"
+        className="panel-tabs"
         selectedKey={activeTab}
         onSelectionChange={handleTabChange}
       >
-        <div className="panel-header panel-tabrow navigator-panel-tabrow">
+        <div className="panel-header panel-tabrow">
           <NavigatorPanelTabs />
         </div>
 

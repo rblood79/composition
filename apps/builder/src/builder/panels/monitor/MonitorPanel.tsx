@@ -12,7 +12,6 @@ import { Tabs, TabList, Tab, TabPanel } from "react-aria-components";
 import { Activity, Database, Cpu, Zap, BarChart3 } from "lucide-react";
 import {
   iconProps,
-  iconEditProps,
   iconLarge,
 } from "../../../utils/ui/uiConstants";
 import { performanceMonitor } from "../../utils/performanceMonitor";
@@ -159,35 +158,52 @@ export function MonitorPanel() {
         )}
 
         <Tabs
-          className="monitor-tabs"
+          className="panel-tabs"
           selectedKey={activeTab}
           onSelectionChange={(key) => setActiveTab(key as string)}
         >
-          <TabList
-            className="monitor-tab-list"
-            aria-label={localize("tabs", "Monitor tabs")}
-          >
-            <Tab id="memory" className="monitor-tab">
-              <Activity size={iconEditProps.size} aria-hidden="true" />
-              <span>{localize("memory", "Memory")}</span>
-            </Tab>
-            <Tab id="realtime" className="monitor-tab">
-              <Zap size={iconEditProps.size} aria-hidden="true" />
-              <span>{localize("realtime", "Realtime")}</span>
-            </Tab>
-            <Tab id="stats" className="monitor-tab">
-              <Database size={iconEditProps.size} aria-hidden="true" />
-              <span>{localize("stats", "Stats")}</span>
-            </Tab>
-            <Tab id="browser" className="monitor-tab">
-              <Cpu size={iconEditProps.size} aria-hidden="true" />
-              <span>{localize("browser", "Browser")}</span>
-            </Tab>
-            <Tab id="analysis" className="monitor-tab">
-              <BarChart3 size={iconEditProps.size} aria-hidden="true" />
-              <span>{localize("analysis", "Analysis")}</span>
-            </Tab>
-          </TabList>
+          <div className="panel-header panel-tabrow">
+            <TabList
+              className="panel-tablist"
+              aria-label={localize("tabs", "Monitor tabs")}
+            >
+              <Tab id="memory" className="panel-tab">
+                <Activity color="currentColor"
+                  strokeWidth={iconProps.strokeWidth}
+                  size={iconProps.size}
+                  aria-hidden="true" />
+                <span className="panel-tab-label">{localize("memory", "Memory")}</span>
+              </Tab>
+              <Tab id="realtime" className="panel-tab">
+                <Zap color="currentColor"
+                  strokeWidth={iconProps.strokeWidth}
+                  size={iconProps.size}
+                  aria-hidden="true" />
+                <span className="panel-tab-label">{localize("realtime", "Realtime")}</span>
+              </Tab>
+              <Tab id="stats" className="panel-tab">
+                <Database color="currentColor"
+                  strokeWidth={iconProps.strokeWidth}
+                  size={iconProps.size}
+                  aria-hidden="true" />
+                <span className="panel-tab-label">{localize("stats", "Stats")}</span>
+              </Tab>
+              <Tab id="browser" className="panel-tab">
+                <Cpu color="currentColor"
+                  strokeWidth={iconProps.strokeWidth}
+                  size={iconProps.size}
+                  aria-hidden="true" />
+                <span className="panel-tab-label">{localize("browser", "Browser")}</span>
+              </Tab>
+              <Tab id="analysis" className="panel-tab">
+                <BarChart3 color="currentColor"
+                  strokeWidth={iconProps.strokeWidth}
+                  size={iconProps.size}
+                  aria-hidden="true" />
+                <span className="panel-tab-label">{localize("analysis", "Analysis")}</span>
+              </Tab>
+            </TabList>
+          </div>
 
           <TabPanel id="memory" className="monitor-tab-panel">
             <Section

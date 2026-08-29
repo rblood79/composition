@@ -28,15 +28,11 @@ describe("NavigatorPanel shared panel style contract", () => {
     );
     expect(panelSource).toContain("<PanelHeader");
     expect(panelSource).toContain('panelId="navigator"');
-    expect(panelSource).toContain(
-      'className="panel-tabs navigator-panel-tabs"',
-    );
-    expect(panelSource).toContain(
-      'className="panel-header panel-tabrow navigator-panel-tabrow"',
-    );
-    expect(tabsSource).toContain(
-      'className="panel-tablist navigator-panel-tablist"',
-    );
+    // 구조 클래스는 공용 단일 이름만 쓴다 — CSS 규칙이 없는 `navigator-panel-tabs/tabrow/tablist`
+    // twin 은 2026-08-30 탭 통일에서 제거됐다 (panelTabs.static.test.ts 가 재도입을 막는다).
+    expect(panelSource).toContain('className="panel-tabs"');
+    expect(panelSource).toContain('className="panel-header panel-tabrow"');
+    expect(tabsSource).toContain('className="panel-tablist"');
     expect(tabsSource).toContain('className="panel-tab navigator-panel-tab"');
     expect(panelSource).toContain("selectedKey={activeTab}");
     expect(panelSource).toContain("onSelectionChange={handleTabChange}");

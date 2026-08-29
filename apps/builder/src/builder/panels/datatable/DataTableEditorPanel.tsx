@@ -14,6 +14,7 @@
  */
 
 import { useState, useMemo } from "react";
+import { Tab, TabList, Tabs } from "react-aria-components";
 import {
   Database,
   Table2,
@@ -40,7 +41,7 @@ import type {
   DataTableEditorMode,
 } from "./types/editorTypes";
 import "./DataTableEditorPanel.css";
-import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
+import { iconProps } from "../../../utils/ui/uiConstants";
 import { translateKey, useOptionalI18n } from "../../../i18n";
 
 // 탭 설정 타입
@@ -150,57 +151,89 @@ function EditorContent({ mode, close }: EditorContentProps) {
     switch (mode.type) {
       case "table-edit":
         return (
-          <div className="datatable-tabs">
-            {TABLE_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                className={`datatable-tab ${tableTab === tab.id ? "active" : ""}`}
-                onClick={() => setTableTab(tab.id)}
+          <Tabs
+            className="panel-tabs"
+            selectedKey={tableTab}
+            onSelectionChange={(key) => setTableTab(key as TableEditorTab)}
+          >
+            <div className="panel-header panel-tabrow">
+              <TabList
+                className="panel-tablist"
+                aria-label={localize("tableTabs", "tableTabs")}
               >
-                <tab.icon {...iconEditProps} />
-                <span>
-                  {localize(tab.id === "data" ? "table" : tab.id, tab.label)}
-                </span>
-              </button>
-            ))}
-          </div>
+                {TABLE_TABS.map((tab) => (
+                  <Tab key={tab.id} id={tab.id} className="panel-tab">
+                    <tab.icon
+                      color="currentColor"
+                      strokeWidth={iconProps.strokeWidth}
+                      size={iconProps.size}
+                    />
+                    <span className="panel-tab-label">
+                      {localize(tab.id === "data" ? "table" : tab.id, tab.label)}
+                    </span>
+                  </Tab>
+                ))}
+              </TabList>
+            </div>
+          </Tabs>
         );
 
       case "api-edit":
         return (
-          <div className="datatable-tabs">
-            {API_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                className={`datatable-tab ${apiTab === tab.id ? "active" : ""}`}
-                onClick={() => setApiTab(tab.id)}
+          <Tabs
+            className="panel-tabs"
+            selectedKey={apiTab}
+            onSelectionChange={(key) => setApiTab(key as ApiEditorTab)}
+          >
+            <div className="panel-header panel-tabrow">
+              <TabList
+                className="panel-tablist"
+                aria-label={localize("apiTabs", "apiTabs")}
               >
-                <tab.icon {...iconEditProps} />
-                <span>{localize(tab.id, tab.label)}</span>
-              </button>
-            ))}
-          </div>
+                {API_TABS.map((tab) => (
+                  <Tab key={tab.id} id={tab.id} className="panel-tab">
+                    <tab.icon
+                      color="currentColor"
+                      strokeWidth={iconProps.strokeWidth}
+                      size={iconProps.size}
+                    />
+                    <span className="panel-tab-label">
+                      {localize(tab.id, tab.label)}
+                    </span>
+                  </Tab>
+                ))}
+              </TabList>
+            </div>
+          </Tabs>
         );
 
       case "variable-edit":
         return (
-          <div className="datatable-tabs">
-            {VARIABLE_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                className={`datatable-tab ${
-                  variableTab === tab.id ? "active" : ""
-                }`}
-                onClick={() => setVariableTab(tab.id)}
+          <Tabs
+            className="panel-tabs"
+            selectedKey={variableTab}
+            onSelectionChange={(key) => setVariableTab(key as VariableEditorTab)}
+          >
+            <div className="panel-header panel-tabrow">
+              <TabList
+                className="panel-tablist"
+                aria-label={localize("variableTabs", "variableTabs")}
               >
-                <tab.icon {...iconEditProps} />
-                <span>{localize(tab.id, tab.label)}</span>
-              </button>
-            ))}
-          </div>
+                {VARIABLE_TABS.map((tab) => (
+                  <Tab key={tab.id} id={tab.id} className="panel-tab">
+                    <tab.icon
+                      color="currentColor"
+                      strokeWidth={iconProps.strokeWidth}
+                      size={iconProps.size}
+                    />
+                    <span className="panel-tab-label">
+                      {localize(tab.id, tab.label)}
+                    </span>
+                  </Tab>
+                ))}
+              </TabList>
+            </div>
+          </Tabs>
         );
 
       case "table-create":

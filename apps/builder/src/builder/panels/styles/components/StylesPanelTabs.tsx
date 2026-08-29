@@ -69,7 +69,7 @@ export function StylesPanelTabs({
 
   return (
     <TabList
-      className="panel-tablist styles-panel-tablist"
+      className="panel-tablist"
       aria-label={t("styles.view")}
     >
       {STYLE_VIEW_IDS.map((id) => {

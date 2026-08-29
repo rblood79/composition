@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "system-ui", Roboto, "Segoe UI", sans-serif; background: #ffffff; }
+    a { color: #334155; } a:hover { color: #1e293b; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; background: #f1f5f9; padding: 1px 4px; border-radius: 3px; }
+  </style>
+</helmet>
+<div style="display: flex; flex-direction: column; gap: 18px; padding: 28px; background: #ffffff; color: #1e293b;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <span style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">상태 표현 대조</span>
+    <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #64748b;">같은 탭, 네 가지 상태. 현행은 두 상태가 비어 있다.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 84px minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: center;">
+
+    <span style="font-size: 11px; color: #94a3b8;"></span>
+    <span style="font-size: 11px; font-weight: 600; color: #64748b;">현행 <code>.datatable-tab</code></span>
+    <span style="font-size: 11px; font-weight: 600; color: #1e293b;">통일안 <code>.panel-tab</code></span>
+
+    <!-- idle -->
+    <span style="font-size: 11px; color: #64748b;">idle</span>
+    <div style="display: flex; padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; color: #64748b;">
+        <span style="font-size: 12px;">APIs</span>
+      </div>
+    </div>
+    <div style="display: flex; padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 4px; color: #64748b;">
+        <span style="font-size: 12px;">APIs</span>
+      </div>
+    </div>
+
+    <!-- hover -->
+    <span style="font-size: 11px; color: #64748b;">hover</span>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; background: #f8fafc; color: #1e293b;">
+        <span style="font-size: 12px;">APIs</span>
+      </div>
+      <span style="font-size: 10px; color: #dc2626;">배경 = 바 배경 → 무변화</span>
+    </div>
+    <div style="display: flex; padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 4px; color: #1e293b;">
+        <span style="font-size: 12px;">APIs</span>
+      </div>
+    </div>
+
+    <!-- focus -->
+    <span style="font-size: 11px; color: #64748b;">focus</span>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; color: #64748b;">
+        <span style="font-size: 12px;">APIs</span>
+      </div>
+      <span style="font-size: 10px; color: #dc2626;">링 없음</span>
+    </div>
+    <div style="display: flex; padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 4px; color: #1e293b; outline: 2px solid #2f5cf6; outline-offset: -1px;">
+        <span style="font-size: 12px;">APIs</span>
+      </div>
+    </div>
+
+    <!-- selected -->
+    <span style="font-size: 11px; color: #64748b;">selected</span>
+    <div style="display: flex; padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; background: #334155; color: #ffffff;">
+        <span style="font-size: 12px;">APIs</span>
+      </div>
+    </div>
+    <div style="display: flex; padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 4px; background: #ffffff; color: #1e293b; box-shadow: 0 2px 8px rgb(0 0 0 / 0.08), 0 1px 4px rgb(0 0 0 / 0.04), 0 0 1px rgb(0 0 0 / 0.08);">
+        <span style="font-size: 12px;">APIs</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fbfcfd;">
+    <span style="font-size: 11px; font-weight: 600;">accent 채움을 쓰지 않는 이유</span>
+    <p style="margin: 0; font-size: 11px; line-height: 1.7; color: #475569;">빌더 크롬에서 <code>--accent</code> 채움은 primary 액션(생성 버튼)과 값 선택(색 모드, 아이콘 선택)에 배정돼 있다. 탭은 값도 액션도 아닌 뷰 전환인데 패널에서 가장 강한 채움을 가져가면 정작 아래 콘텐츠보다 먼저 읽힌다.</p>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

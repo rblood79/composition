@@ -3,7 +3,7 @@
  *
  * 표준 구조:
  * .variable-editor
- *   .datatable-tabs (DataTablePanel.css에서 스타일 제공)
+ *   .panel-tablist / .panel-tab (panel-system.css 공용 — 바 크롬만 DataTablePanel.css override)
  *   .section-content
  *
  * 헤더는 부모 DataTableEditorPanel의 PanelHeader에서 처리

@@ -35,7 +35,7 @@ export function NavigatorPanelTabs() {
 
   return (
     <TabList
-      className="panel-tablist navigator-panel-tablist"
+      className="panel-tablist"
       aria-label={t("navigator.panelTabs")}
     >
       {tabs.map(({ id, label, Icon }) => (

@@ -15,6 +15,9 @@ import {
   ModalOverlay,
   Heading,
   Button,
+  Tab,
+  TabList,
+  Tabs,
 } from "react-aria-components";
 import {
   X,
@@ -237,21 +240,34 @@ export function DataTablePresetSelector({
                 {mode === "preset" && (
                   <div className="preset-content">
                     {/* Category Tabs */}
-                    <div className="preset-category-tabs">
-                      {PRESET_CATEGORIES.map((cat) => (
-                        <button
-                          key={cat.id}
-                          className={`preset-category-tab ${
-                            selectedCategory === cat.id ? "active" : ""
-                          }`}
-                          onClick={() => handleCategoryChange(cat.id)}
-                          title={cat.description}
+                    <Tabs
+                      className="panel-tabs"
+                      selectedKey={selectedCategory}
+                      onSelectionChange={(key) =>
+                        handleCategoryChange(key as PresetCategory)
+                      }
+                    >
+                      <div className="panel-header panel-tabrow">
+                        <TabList
+                          className="panel-tablist"
+                          aria-label="Preset category"
                         >
-                          {renderCategoryIcon(cat.id, iconProps.size)}
-                          <span>{cat.name}</span>
-                        </button>
-                      ))}
-                    </div>
+                          {PRESET_CATEGORIES.map((cat) => (
+                            <Tab
+                              key={cat.id}
+                              id={cat.id}
+                              className="panel-tab"
+                              aria-label={`${cat.name} — ${cat.description}`}
+                            >
+                              {renderCategoryIcon(cat.id, iconProps.size)}
+                              <span className="panel-tab-label">
+                                {cat.name}
+                              </span>
+                            </Tab>
+                          ))}
+                        </TabList>
+                      </div>
+                    </Tabs>
 
                     {/* Preset Grid */}
                     <div className="list-group" role="list">

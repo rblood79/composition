@@ -20,7 +20,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router";
 import { Table2, Globe, Variable, RefreshCw, Database } from "lucide-react";
-import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
+import { Tab, TabList, TabPanel, Tabs } from "react-aria-components";
+import { iconProps } from "../../../utils/ui/uiConstants";
 import type { PanelProps } from "../core/types";
 import { useDataStore } from "../../stores/data";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
@@ -170,61 +171,72 @@ export function DataTablePanel({ isActive }: PanelProps) {
         }
       />
 
-      {/* Tab Bar */}
-      <div className="datatable-tabs">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            className={`datatable-tab ${activeTab === tab.id ? "active" : ""}`}
-            onClick={() => {
-              if (activeTab !== tab.id) {
-                // 탭이 변경되면 에디터 닫기
-                if (editorMode) {
-                  closeEditor();
-                }
-                setActiveTab(tab.id);
-              }
-            }}
-            type="button"
+      {/* 탭 = 공용 패턴 — `.panel-header.panel-tabrow` 래퍼(바 크롬: 32px + 배경 + 하단
+          구분선) + `.panel-tablist`/`.panel-tab` (RAC Tabs). Navigator/Styles 와 동일 구조. */}
+      <Tabs
+        className="panel-tabs"
+        selectedKey={activeTab}
+        onSelectionChange={(key) => {
+          const next = key as DataTableTab;
+          if (next === activeTab) return;
+          // 탭이 변경되면 에디터 닫기 (종전 onClick 동작 보존)
+          if (editorMode) closeEditor();
+          setActiveTab(next);
+        }}
+      >
+        <div className="panel-header panel-tabrow">
+          <TabList
+            className="panel-tablist"
+            aria-label={localize("tabs", "DataTable tabs")}
           >
-            <tab.icon size={iconEditProps.size} />
-            <span>
-              {localize(
-                tab.id === "tables"
-                  ? "tables"
-                  : tab.id === "endpoints"
-                    ? "apis"
-                    : "variables",
-                tab.label,
-              )}
-            </span>
-          </button>
-        ))}
-      </div>
+            {TABS.map((tab) => (
+              <Tab
+                key={tab.id}
+                id={tab.id}
+                className="panel-tab"
+              >
+                <tab.icon
+                  color="currentColor"
+                  strokeWidth={iconProps.strokeWidth}
+                  size={iconProps.size}
+                />
+                <span className="panel-tab-label">
+                  {localize(
+                    tab.id === "tables"
+                      ? "tables"
+                      : tab.id === "endpoints"
+                        ? "apis"
+                        : "variables",
+                    tab.label,
+                  )}
+                </span>
+              </Tab>
+            ))}
+          </TabList>
+        </div>
 
-      {/* Panel Contents */}
-      <div className="panel-contents">
+        {/* Panel Contents */}
         {/* 로딩 중에도 리스트 유지 (에디터가 닫히는 것 방지) */}
         {isLoading && (
           <div className="datatable-loading-overlay">
             <LoadingSpinner />
           </div>
         )}
-        {activeTab === "tables" && (
+        <TabPanel id="tables" className="panel-contents">
           <DataTableList
             projectId={currentProjectId}
             editingId={editingTableId}
             onEditingChange={handleEditingChange}
             onCreateClick={handleCreateClick}
           />
-        )}
-        {activeTab === "endpoints" && (
+        </TabPanel>
+        <TabPanel id="endpoints" className="panel-contents">
           <ApiEndpointList projectId={currentProjectId} />
-        )}
-        {activeTab === "variables" && (
+        </TabPanel>
+        <TabPanel id="variables" className="panel-contents">
           <VariableList projectId={currentProjectId} />
-        )}
-      </div>
+        </TabPanel>
+      </Tabs>
     </div>
   );
 }

@@ -15,18 +15,18 @@
 
 ### 2-1. chrome 아이콘 현황
 
-| 항목                    | 실측                                                                                                                                                                                                                                                                                                                                                  |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| lucide-react import     | `apps/builder/src` 100 파일 (`actionIcons.ts` 주석 기준 106 파일 / 220 심볼). 아이콘은 `ComponentType` (`ActionIcon` 타입, `actionIcons.ts:37`) 로 전달                                                                                                                                                                                               |
-| 상태 전환 = 삼항 교체   | 11곳 (§2-2). 회전·crossfade·`transition` CSS **0건** (`rg "rotate\(" --type css` 아이콘 관련 0)                                                                                                                                                                                                                                                       |
-| 상태 있음 · 아이콘 고정 | 12곳 (§2-3) — RAC `ToggleButton[data-selected]` 배경 wash 만으로 상태 표시 (`ActionIconButton.css:29`, `SwatchIconButton.css:31`; wash 는 `--accent-subtle` gray — 메모리 `project-builder-accent-subtle-is-gray-wash`)                                                                                                                               |
-| 아이콘 크기 계약        | `utils/ui/uiConstants.ts` `iconProps` 16 / `iconEditProps` 14 / `iconSmall` 12 / `iconLarge` 24, `strokeWidth 2`, `color: var(--color-gray-400)` 등 — 모두 lucide-react prop 명 (`size` / `strokeWidth` / `color`)                                                                                                                                    |
-| 아이콘 데이터 원천      | `packages/specs/src/icons/lucideIconData.generated.ts` (432KB, lucide-react 1.33.0, 1,627 아이콘 + 257 alias, `{paths: string[], circles?}`) — `getIconData(name)` (`lucideIcons.ts:37`). **lucide-react 는 `__iconNode` 를 각 `icons/*.mjs` 에서만 export, 메인 index·컴포넌트 미노출** (`createLucideIcon.mjs` 확인) → deep import 는 취약          |
-| 기존 애니메이션 인프라  | chrome: `hooks/useFrameCallback.ts` (rAF/idle throttle), `builder/hooks/useRAFThrottle.ts` — 값 throttle 용, spring/보간 없음. canvas 측 `skia/animationEngine.ts` (CSS keyframes pull 모델) · `transitionEngine.ts` · `dragAnimator.ts` (lerp) 는 canvas 전용 — 본 ADR 미사용                                                                        |
-| 자체 아이콘 디렉토리    | `builder/components/icons/` — `index.ts` · `LayoutFreeform.tsx` · `SquareOff.tsx` (custom). Phase 0 에서 `AppearanceSection.tsx:318 SquareOff` 가 lucide 인지 custom 인지 확정 (custom 이면 후보 `inset` 쌍의 off 끝점은 lucide `square-off` 로 교체 판정)                                                                                            |
-| morphicons upstream     | `guillermolg00/morphicons` 1.7.1, commit `38d2a7221633a453eeafebd872ee3649b9274b22` (2026-08-28), MIT, 런타임 의존 0. core 8 파일 1,470 LOC (주석 포함), gzip 6.60 KB (upstream size gate 7 KB) · dom driver +0.5 KB. 테스트 bun:test 123 케이스 (invariants 9 · closed 12 · dom 16 · parse 13 · normalize 14 · resample 5 · viewbox 9 · adapters 45) |
-| 입력 계약 호환          | `IconInput = IconNode \| string`, `IconNode = [tag, attrs][]` (path/line/circle/ellipse/rect/polyline/polygon). composition `LucideIconData` → `[...paths.map(d => ["path",{d}]), ...circles.map(c => ["circle", c])]` 무손실                                                                                                                         |
-| 번들 규칙               | `CLAUDE.md` 초기 번들 <500KB · `.claude/skills/component-design/SKILL.md:81` 외부 라이브러리 추가 금지. 직전 선례 ADR-196 초기 번들 +1.23KB gz                                                                                                                                                                                                        |
+| 항목                    | 실측                                                                                                                                                                                                                                                                                                                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| lucide-react import     | `apps/builder/src` 100 파일 (`actionIcons.ts` 주석 기준 106 파일 / 220 심볼). 아이콘은 `ComponentType` (`ActionIcon` 타입, `actionIcons.ts:34`) 로 전달                                                                                                                                                                                                                          |
+| 상태 전환 = 삼항 교체   | 11곳 (§2-2). 회전·crossfade·`transition` CSS **0건** (`rg "rotate\(" --type css` 아이콘 관련 0)                                                                                                                                                                                                                                                                                  |
+| 상태 있음 · 아이콘 고정 | 12곳 (§2-3) — RAC `ToggleButton[data-selected]` 배경 wash 만으로 상태 표시 (`ActionIconButton.css:29` `color-mix(var(--fg) 10%)` · `SwatchIconButton.css:31` pressed `--accent-subtle`; 둘 다 gray wash — 메모리 `project-builder-accent-subtle-is-gray-wash`)                                                                                                                   |
+| 아이콘 크기 계약        | `utils/ui/uiConstants.ts` `iconProps` 16 / `iconEditProps` 14 / `iconSmall` 12 / `iconLarge` 24, `strokeWidth 2`, `color: var(--color-gray-400)` 등 — 모두 lucide-react prop 명 (`size` / `strokeWidth` / `color`)                                                                                                                                                               |
+| 아이콘 데이터 원천      | `packages/specs/src/icons/lucideIconData.generated.ts` (432KB, lucide-react 1.33.0, 1,627 아이콘 + 257 alias, `{paths: string[], circles?}`) — `getIconData(name)` (`lucideIcons.ts:41`). **lucide-react 는 `__iconNode` 를 각 `icons/*.mjs` 에서만 export, 메인 index·컴포넌트 미노출** (`createLucideIcon.mjs` 확인) → deep import 는 취약                                     |
+| 기존 애니메이션 인프라  | chrome: `hooks/useFrameCallback.ts` (rAF/idle throttle), `builder/hooks/useRAFThrottle.ts` — 값 throttle 용, spring/보간 없음. canvas 측 `skia/animationEngine.ts` (CSS keyframes pull 모델) · `transitionEngine.ts` · `dragAnimator.ts` (lerp) 는 canvas 전용 — 본 ADR 미사용                                                                                                   |
+| 자체 아이콘 디렉토리    | `builder/components/icons/` — `index.ts` · `LayoutFreeform.tsx` · `SquareOff.tsx` (custom). `AppearanceSection.tsx:30` 은 **custom** `SquareOff` (`components/icons/SquareOff.tsx`) 를 import 한다 (리뷰 실측 2026-08-30) — 후보 `inset` 쌍의 off 끝점은 lucide `square-off` (존재 확인) 로 교체, custom 파일은 다른 소비자가 없으면 Phase 3 에서 삭제 판정 (삭제는 사용자 승인) |
+| morphicons upstream     | `guillermolg00/morphicons` 1.7.1, commit `38d2a7221633a453eeafebd872ee3649b9274b22` (2026-08-28), MIT, 런타임 의존 0. core 8 파일 1,470 LOC (주석 포함), gzip 6.60 KB (upstream size gate 7 KB) · dom driver +0.5 KB. 테스트 bun:test 123 케이스 (invariants 9 · closed 12 · dom 16 · parse 13 · normalize 14 · resample 5 · viewbox 9 · adapters 45)                            |
+| 입력 계약 호환          | `IconInput = IconNode \| string`, `IconNode = [tag, attrs][]` (path/line/circle/ellipse/rect/polyline/polygon). composition `LucideIconData` → `[...paths.map(d => ["path",{d}]), ...circles.map(c => ["circle", c])]` 무손실                                                                                                                                                    |
+| 번들 규칙               | `CLAUDE.md` 초기 번들 <500KB · `.claude/skills/component-design/SKILL.md:75` 외부 라이브러리 추가 금지. 직전 선례 ADR-196 초기 번들 +1.23KB gz. 아이콘 데이터는 이미 초기 chunk (`skia/specShapeConverter.ts:9` · `components/ui/SearchField.tsx:19` eager `getIconData`)                                                                                                        |
 
 ### 2-2. 교체 대상 — 삼항 즉시 교체 11곳 (`apps/builder/src/builder/` 기준)
 
@@ -51,7 +51,7 @@
 
 | pair 이름 | off → on                   | 위치                                                                                        | 확인 필요                                          |
 | --------- | -------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| inset     | square-off → square        | `panels/styles/sections/AppearanceSection.tsx:312` (`SwatchIconToggleButton`)               | `SquareOff` custom 여부 (§2-1)                     |
+| inset     | square-off → square        | `panels/styles/sections/AppearanceSection.tsx:312` (`SwatchIconToggleButton`)               | custom → lucide `square-off` 교체 (§2-1 확정)      |
 | agent     | play → square              | `panels/ai/components/AgentControls.tsx:24`                                                 |                                                    |
 | run       | play → pause               | `panels/datatable/editors/ApiEndpointEditor.tsx:821` · `components/ApiEndpointList.tsx:147` | 실행 중 상태가 prop 으로 존재하는지                |
 | online    | wifi-off → wifi            | `panels/ai/components/ConnectionStatus.tsx:70`                                              |                                                    |
@@ -157,16 +157,16 @@ DOM 산출: `<svg width height viewBox="0 0 24 24" fill="none" stroke stroke-wid
 
 ### 3-5. 규칙
 
-| 규칙                    | 내용                                                                                                                 |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| index 1 = on            | 호출부가 "어느 쪽이 켜짐" 을 해석하지 않는다                                                                         |
-| 짝 없으면 등록 금지     | `StateIcon` 은 레지스트리 키만 받는다. 짝 없는 토글은 기존 정적 아이콘 + `data-selected` 유지                        |
-| reducedMotion 기본 user | OS `prefers-reduced-motion` 시 `morphTo ≡ set` (프레임 0). `never` 는 명시 opt-in 만                                 |
-| spring 기본 smooth      | ζ=1 임계 감쇠 (overshoot 0). `snappy` 허용, `bouncy` 는 chrome 금지                                                  |
-| 참조 고정               | 같은 이름 → 같은 IconNode 참조 (모듈 Map). 매 render 변환 금지 — plan WeakMap 캐시가 쌍당 1회가 되는 전제            |
-| 정지 시 canonical       | settle 후 `d === canonicalD(target)` (테스트 고정)                                                                   |
-| rAF                     | morph 전체 singleton 1개, 정지 시 0 timer. Skia 루프 (`SkiaCanvas.tsx:626`) 와 무관 — canvas 미적용                  |
-| upstream 갱신           | `core/` 디렉토리 통째 교체 → invariants/dom 테스트 통과 → `UPSTREAM.md` hash 갱신. 부분 patch 금지 (drift 누적 방지) |
+| 규칙                    | 내용                                                                                                                                                                                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| index 1 = on            | 호출부가 "어느 쪽이 켜짐" 을 해석하지 않는다                                                                                                                                                                                                                   |
+| 짝 없으면 등록 금지     | `StateIcon` 은 레지스트리 키만 받는다. 짝 없는 토글은 기존 정적 아이콘 + `data-selected` 유지                                                                                                                                                                  |
+| reducedMotion 기본 user | OS `prefers-reduced-motion` 시 `morphTo ≡ set` (프레임 0). `never` 는 명시 opt-in 만                                                                                                                                                                           |
+| spring 기본 smooth      | ζ=1 임계 감쇠 (overshoot 0). `snappy` 허용, `bouncy` 는 chrome 금지                                                                                                                                                                                            |
+| 참조 고정               | 같은 이름 → 같은 IconNode 참조 (모듈 Map). 매 render 변환 금지 — plan WeakMap 캐시가 쌍당 1회가 되는 전제                                                                                                                                                      |
+| 정지 시 canonical       | settle 후 `d === canonicalD(target)` (테스트 고정)                                                                                                                                                                                                             |
+| rAF                     | morph 전체 singleton 1개, 정지 시 0 timer. Skia 루프 (`SkiaCanvas.tsx:626`) 와 무관 — canvas 미적용                                                                                                                                                            |
+| upstream 갱신           | `core/` 디렉토리 통째 교체 → Prettier 재포맷 (PostToolUse hook 이 어차피 적용 — upstream 은 biome 포맷이라 바이트 hash 비교는 무의미, 비교는 테스트로) → invariants/dom 테스트 통과 → `UPSTREAM.md` 에 upstream commit 기록. 부분 patch 금지 (drift 누적 방지) |
 
 ## 4. Phase 계획
 
@@ -179,15 +179,15 @@ DOM 산출: `<svg width height viewBox="0 0 24 24" fill="none" stroke stroke-wid
 | `__tests__/invariants.test.ts` · `dom.test.ts` | bun:test → vitest 치환 (`describe/test/expect` 동일, rAF fake 는 upstream `test/client-dom.ts` 이식) |
 | 본 문서 §2                                     | 재grep 결과로 표 갱신 (freeze commit)                                                                |
 
-Gate G0: vitest 이식 케이스 전부 PASS · `pnpm type-check` 0 · core 가 `lib: DOM` 없이 컴파일 (ambient declare 유지).
+Gate G0: vitest 이식 케이스 전부 PASS · `pnpm type-check` 0 (리뷰 probe 2026-08-30: upstream core 8 + dom 1 을 `tsconfig.app.json` 으로 tsc → 오류 0 — ambient `declare` 가 module scope 라 `lib: DOM` 과 충돌 없음) · eslint 오류 0 · Prettier 재포맷 후 테스트 동일.
 
 ### Phase 1 — `MorphIcon` + 이름 캐시
 
-| 파일                           | 변경                                                                                                                                                                                        |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `iconNodes.ts`                 | `getIconData` → IconNode, `Map<string, IconNode>`; 미존재 이름은 `null` (렌더 0, dev 경고)                                                                                                  |
-| `MorphIcon.tsx`                | `useState(() => canonicalD(initial))` 1회 · `useLayoutEffect` mount `createMorph` · `icon` 변경 effect `morphTo` · unmount `destroy`. controlled(`from/to/progress`)·imperative handle 제거 |
-| `__tests__/MorphIcon.test.tsx` | reducedMotion 기본 `user` · 같은 이름 재렌더 시 `morphTo` 0회 · unmount 후 rAF 0                                                                                                            |
+| 파일                           | 변경                                                                                                                                                                                                            |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `iconNodes.ts`                 | `getIconData` → IconNode, `Map<string, IconNode>`; 미존재 이름은 `null` (렌더 0, dev 경고)                                                                                                                      |
+| `MorphIcon.tsx`                | `useState(() => canonicalD(initial))` 1회 · `useLayoutEffect` mount `createMorph` · `icon` 변경 effect `morphTo` · unmount `destroy`. controlled(`from/to/progress`)·imperative handle 제거                     |
+| `__tests__/MorphIcon.test.tsx` | reducedMotion 기본 `user` (upstream driver 기본은 `never`, `dom/index.ts:166`) · 같은 이름 재렌더 시 `morphTo` 0회 · unmount 후 rAF 0 · React StrictMode 이중 mount 후 live driver 1개 (cleanup `destroy` 보존) |
 
 Gate G1: 초기 chunk Δ ≤ +10KB gz (`vite build` 산출 비교, ADR-196 방법) · 같은 이름 참조 동일성 테스트.
 

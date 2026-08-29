@@ -1,3 +1,13 @@
+/* 카테고리 탭 — 공용 탭 패턴. 모달 폭에서도 카테고리 5개가 넘칠 수 있어 가로 스크롤 허용
+   (DataTableCreator.css 와 같은 이유). */
+.datatable-preset-modal .panel-tablist {
+  overflow-x: auto;
+}
+
+.datatable-preset-modal .panel-tab {
+  flex-shrink: 0;
+}
+
 /**
  * DataTable Preset Selector Styles
  *
@@ -100,44 +110,6 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-/* ============================================
-   Category Tabs
-   ============================================ */
-
-.preset-category-tabs {
-  display: flex;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-raised);
-  overflow-x: auto;
-}
-
-.preset-category-tab {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  color: var(--fg-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 150ms, color 150ms;
-}
-
-.preset-category-tab:hover {
-  background: var(--bg-inset);
-  color: var(--fg);
-}
-
-.preset-category-tab.active {
-  background: var(--color-primary-100);
-  color: var(--color-primary-700);
 }
 
 /* ============================================

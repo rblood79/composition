@@ -32,7 +32,7 @@
     text-align: center;
   }
 
-  .monitor-panel .monitor-tabs {
+  .monitor-panel .panel-tabs {
     display: flex;
     flex: 1;
     flex-direction: column;
@@ -40,60 +40,22 @@
     min-height: 0;
   }
 
-  .monitor-panel .monitor-tab-list {
+  /* 5열 균등 grid 배치만 monitor 인스턴스 override.
+     바 크롬은 `.panel-header.panel-tabrow` 래퍼가, 탭 자체(패딩/색/hover/selected/focus)는
+     공용 `.panel-tab` (panel-system.css) 이 담당한다. */
+  .monitor-panel .panel-tablist {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    flex-shrink: 0;
     gap: var(--spacing-3xs);
-    min-width: 0;
-    padding: var(--spacing-xs);
-    background: var(--bg-raised);
-    border-bottom: 1px solid var(--border);
   }
 
-  .monitor-panel .monitor-tab {
-    display: flex;
-    align-items: center;
+  .monitor-panel .panel-tab {
     justify-content: center;
-    gap: var(--spacing-3xs);
-    min-width: 0;
-    padding: var(--spacing-xs) var(--spacing-3xs);
     overflow: hidden;
-    border: 0;
-    border-radius: var(--radius-md);
-    background: transparent;
-    color: var(--fg-muted);
-    font-size: var(--text-2xs);
-    line-height: var(--text-2xs--line-height);
-    cursor: pointer;
   }
 
-  .monitor-panel .monitor-tab > svg {
+  .monitor-panel .panel-tab > svg {
     flex-shrink: 0;
-  }
-
-  .monitor-panel .monitor-tab > span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .monitor-panel .monitor-tab[data-hovered] {
-    background: color-mix(in srgb, var(--fg) 8%, transparent);
-    color: var(--fg);
-  }
-
-  .monitor-panel .monitor-tab[data-selected] {
-    background: var(--bg-overlay);
-    border-radius: var(--radius-md);
-    box-shadow: var(--inset-shadow-sm);
-    color: var(--fg);
-  }
-
-  .monitor-panel .monitor-tab[data-focus-visible] {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: -2px;
   }
 
   .monitor-panel .monitor-tab-panel {
@@ -667,7 +629,7 @@
   }
 
   @container (max-width: 300px) {
-    .monitor-panel .monitor-tab > span {
+    .monitor-panel .panel-tab > .panel-tab-label {
       position: absolute;
       width: 1px;
       height: 1px;
