@@ -11,13 +11,18 @@ import {
   useDeferredValue,
   useEffect,
   useState,
+  type Key,
 } from "react";
+import { File } from "lucide-react";
+import { TabPanel, Tabs } from "react-aria-components";
 import { useParams } from "react-router";
 import "./NodesPanel.css";
 import { useStore } from "../../stores";
 import { useEditModeStore } from "../../stores/editMode";
 import { usePageManager, useIframeMessenger } from "@/builder/hooks";
 import { useI18n } from "../../../i18n";
+import { iconProps } from "../../../utils/ui/uiConstants";
+import { PanelHeader } from "../../components";
 import { NodesPanelTabs, type NodesPanelTabType } from "./NodesPanelTabs";
 import { FramesTab } from "./FramesTab/FramesTab";
 // 🚀 Performance: 분리된 섹션 컴포넌트
@@ -30,6 +35,8 @@ import {
 
 // 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
 export function NodesPanel() {
+  const { t } = useI18n();
+
   // URL params
   const { projectId } = useParams<{ projectId: string }>();
 
@@ -55,11 +62,12 @@ export function NodesPanel() {
 
   // 탭 변경 핸들러
   const handleTabChange = useCallback(
-    (tab: NodesPanelTabType) => {
+    (key: Key) => {
+      const tab = key as NodesPanelTabType;
       if (tab === "pages") {
         setEditMode("page");
         setEditModeCurrentLayoutId(null);
-      } else {
+      } else if (tab === "layouts") {
         setEditMode("layout");
         setEditModeCurrentPageId(null);
       }
@@ -69,18 +77,37 @@ export function NodesPanel() {
 
   return (
     <div className="panel nodes-panel nodes-panel--new-tree">
-      <NodesPanelTabs activeTab={activeTab} onTabChange={handleTabChange} />
+      <PanelHeader
+        icon={
+          <File
+            color={iconProps.color}
+            size={iconProps.size}
+            strokeWidth={iconProps.strokeWidth}
+          />
+        }
+        title={t("panels.nodes")}
+        panelId="nodes"
+      />
 
-      <div className="panel-contents nodes-panel-content">
-        {activeTab === "pages" ? (
+      <Tabs
+        className="panel-tabs nodes-panel-tabs"
+        selectedKey={activeTab}
+        onSelectionChange={handleTabChange}
+      >
+        <div className="panel-header panel-tabrow nodes-panel-tabrow">
+          <NodesPanelTabs />
+        </div>
+
+        <TabPanel id="pages" className="panel-contents nodes-panel-content">
           <PagesTabContent projectId={projectId} />
-        ) : (
+        </TabPanel>
+        <TabPanel id="layouts" className="panel-contents nodes-panel-content">
           <FramesTabContent
             projectId={projectId}
             requestAutoSelectAfterUpdate={requestAutoSelectAfterUpdate}
           />
-        )}
-      </div>
+        </TabPanel>
+      </Tabs>
     </div>
   );
 }

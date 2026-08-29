@@ -294,55 +294,12 @@
 }
 
 /* NodesPanelTabs */
-.nodes-panel-tabs {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  gap: 0;
-  background-color: var(--bg-raised);
-}
-
-.nodes-panel-tablist {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-}
-
 .nodes-panel-tab {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: none;
-  background: var(--bg-muted);
-  cursor: pointer;
-  font-size: var(--text-xs);
-  line-height: var(--text-xs--line-height);
-  color: var(--fg-muted);
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
+  flex: 1 1 0;
 }
 
 .nodes-panel-tab-label {
   font-weight: var(--font-weight-medium);
-  color: var(--fg-muted);
-}
-
-.nodes-panel-tab:hover {
-  background-color: var(--bg-overlay);
-  color: var(--fg);
-}
-
-.nodes-panel-tab.active {
-  color: var(--fg);
-  background-color: var(--bg-raised);
-}
-
-.nodes-panel-tab.active .nodes-panel-tab-label {
-  color: var(--fg);
 }
 
 /* Slot Element 특별 표시 */

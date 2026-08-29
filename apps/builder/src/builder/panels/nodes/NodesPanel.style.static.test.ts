@@ -26,7 +26,20 @@ describe("NodesPanel shared panel style contract", () => {
     expect(panelSource).toContain(
       'className="panel-contents nodes-panel-content"',
     );
-    expect(tabsSource).toContain('className="panel-header nodes-panel-tabs"');
+    expect(panelSource).toContain("<PanelHeader");
+    expect(panelSource).toContain('panelId="nodes"');
+    expect(panelSource).toContain('className="panel-tabs nodes-panel-tabs"');
+    expect(panelSource).toContain(
+      'className="panel-header panel-tabrow nodes-panel-tabrow"',
+    );
+    expect(tabsSource).toContain(
+      'className="panel-tablist nodes-panel-tablist"',
+    );
+    expect(tabsSource).toContain('className="panel-tab nodes-panel-tab"');
+    expect(panelSource).toContain("selectedKey={activeTab}");
+    expect(panelSource).toContain("onSelectionChange={handleTabChange}");
+    expect(panelSource).toContain('id="pages"');
+    expect(panelSource).toContain('id="layouts"');
   });
 
   it.each(NODE_SECTION_FILES)(

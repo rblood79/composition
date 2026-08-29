@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const STANDARD_PANEL_SOURCES = [
+  { component: "NodesPanel", source: "../nodes/NodesPanel.tsx" },
   { component: "ComponentsPanel", source: "../components/ComponentList.tsx" },
   { component: "DataTablePanel", source: "../datatable/DataTablePanel.tsx" },
   {
@@ -53,19 +54,4 @@ describe("registered panel close action coverage", () => {
       }
     },
   );
-
-  it("Nodes 예외 헤더도 tablist 밖 우측 actions에 닫기 버튼을 둔다", async () => {
-    const source = await readFile(
-      resolve(__dirname, "../nodes/NodesPanelTabs.tsx"),
-      "utf-8",
-    );
-    const tablistIndex = source.indexOf('className="nodes-panel-tablist"');
-    const actionsIndex = source.indexOf('className="panel-actions"');
-
-    expect(tablistIndex).toBeGreaterThan(-1);
-    expect(actionsIndex).toBeGreaterThan(tablistIndex);
-    expect(source).toContain("<ActionIconButton");
-    expect(source).toContain('togglePanelWorkspace("nodes")');
-    expect(source).toContain('aria-label={t("common.close")}');
-  });
 });

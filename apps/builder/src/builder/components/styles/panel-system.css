@@ -36,6 +36,71 @@
     overflow-y: auto;
   }
 
+  /* Panel Tabs — 패널 타이틀 아래의 배타적 뷰 전환 공통 골격.
+     패널별 탭 수에 따른 폭 배분만 도메인 CSS가 정한다. */
+  .panel-tabs {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .panel-tabrow {
+    padding: 0 var(--spacing-2xs);
+  }
+
+  .panel-tablist {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: var(--inspector-control-size, 28px);
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-md);
+    background-color: transparent;
+  }
+
+  .panel-tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    height: 20px;
+    gap: var(--spacing-xs);
+    padding: 0 var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--fg-muted);
+    cursor: pointer;
+    outline: none;
+  }
+
+  .panel-tab[data-hovered] {
+    color: var(--fg);
+  }
+
+  .panel-tab[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -1px;
+  }
+
+  .panel-tab[data-selected] {
+    background: var(--bg-overlay);
+    color: var(--fg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .panel-tab-label {
+    min-width: 0;
+    overflow: hidden;
+    color: inherit;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   /* Section Divider — 폼 하위 그룹 구분선 (§1-2 예약 section-* 계열).
      ADR-163 Phase 4-a 로 datatable/editors/ApiEndpointEditor.css 에서 정본 회수. */
   .section-divider {

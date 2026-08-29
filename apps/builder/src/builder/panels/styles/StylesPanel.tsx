@@ -232,11 +232,11 @@ function StylesPanelContent() {
       />
 
       <Tabs
-        className="styles-panel-groups"
+        className="panel-tabs styles-panel-groups"
         selectedKey={view}
         onSelectionChange={handleViewChange}
       >
-        <div className="panel-header styles-panel-tabrow">
+        <div className="panel-header panel-tabrow styles-panel-tabrow">
           <StylesPanelTabs
             dirtyGroups={dirtyGroups}
             modifiedCount={modifiedCount}

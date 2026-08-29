@@ -5,87 +5,50 @@
  * React Aria TabList 패턴을 따름.
  */
 
-import React from "react";
-import { FileText, Layout, X } from "lucide-react";
+import { FileText, Layout } from "lucide-react";
+import { Tab, TabList } from "react-aria-components";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useI18n } from "../../../i18n";
-import { ActionIconButton } from "../../components";
-import { togglePanelWorkspace } from "../../hooks/usePanelLayout";
 
 export type NodesPanelTabType = "pages" | "layouts";
 
-interface NodesPanelTabsProps {
-  activeTab: NodesPanelTabType;
-  onTabChange: (tab: NodesPanelTabType) => void;
-}
-
-export function NodesPanelTabs({
-  activeTab,
-  onTabChange,
-}: NodesPanelTabsProps) {
+export function NodesPanelTabs() {
   const { t } = useI18n();
   const tabs: {
     id: NodesPanelTabType;
     label: string;
-    icon: React.ReactNode;
+    Icon: typeof FileText;
   }[] = [
     {
       id: "pages",
       label: t("nodes.pages"),
-      icon: (
-        <FileText
-          color={iconProps.color}
-          strokeWidth={iconProps.strokeWidth}
-          size={iconProps.size}
-        />
-      ),
+      Icon: FileText,
     },
     {
       // ADR-111 P2 followup: UI 라벨만 "Frames" — 탭 id "layouts" / EditMode "layout"
       // 은 데이터 호환성 유지를 위해 그대로. 후속 PR 에서 정합화 가능.
       id: "layouts",
       label: t("nodes.frames"),
-      icon: (
-        <Layout
-          color={iconProps.color}
-          strokeWidth={iconProps.strokeWidth}
-          size={iconProps.size}
-        />
-      ),
+      Icon: Layout,
     },
   ];
 
   return (
-    <div className="panel-header nodes-panel-tabs">
-      <div
-        className="nodes-panel-tablist"
-        role="tablist"
-        aria-label={t("nodes.panelTabs")}
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            aria-controls={`tabpanel-${tab.id}`}
-            className={`nodes-panel-tab ${activeTab === tab.id ? "active" : ""}`}
-            onClick={() => onTabChange(tab.id)}
-          >
-            {tab.icon}
-            <span className="nodes-panel-tab-label">{tab.label}</span>
-          </button>
-        ))}
-      </div>
-      <div className="panel-actions">
-        <ActionIconButton
-          onPress={() => togglePanelWorkspace("nodes")}
-          aria-label={t("common.close")}
-          tooltip={t("common.close")}
-        >
-          <X size={iconProps.size} />
-        </ActionIconButton>
-      </div>
-    </div>
+    <TabList
+      className="panel-tablist nodes-panel-tablist"
+      aria-label={t("nodes.panelTabs")}
+    >
+      {tabs.map(({ id, label, Icon }) => (
+        <Tab key={id} id={id} className="panel-tab nodes-panel-tab">
+          <Icon
+            color="currentColor"
+            strokeWidth={iconProps.strokeWidth}
+            size={iconProps.size}
+          />
+          <span className="panel-tab-label nodes-panel-tab-label">{label}</span>
+        </Tab>
+      ))}
+    </TabList>
   );
 }
 

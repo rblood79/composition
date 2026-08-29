@@ -68,7 +68,10 @@ export function StylesPanelTabs({
   };
 
   return (
-    <TabList className="styles-panel-tablist" aria-label={t("styles.view")}>
+    <TabList
+      className="panel-tablist styles-panel-tablist"
+      aria-label={t("styles.view")}
+    >
       {STYLE_VIEW_IDS.map((id) => {
         const { label, hint, Icon } = viewMeta[id];
         const isGroup = isStyleGroupId(id);
@@ -82,7 +85,7 @@ export function StylesPanelTabs({
           <Tab
             key={id}
             id={id}
-            className="styles-panel-tab"
+            className="panel-tab styles-panel-tab"
             aria-label={
               isGroup || modifiedCount === 0
                 ? label
@@ -100,7 +103,9 @@ export function StylesPanelTabs({
                   strokeWidth={iconProps.strokeWidth}
                 />
                 {isSelected ? (
-                  <span className="styles-panel-tab-label">{label}</span>
+                  <span className="panel-tab-label styles-panel-tab-label">
+                    {label}
+                  </span>
                 ) : (
                   isGroup &&
                   dirtyGroups.has(id) && (
