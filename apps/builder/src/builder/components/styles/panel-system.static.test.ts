@@ -63,4 +63,10 @@ describe("panel-system.css 표준 정본 가드 (ADR-163)", () => {
       /\.panel-wrapper\[data-panel="properties"\]\s+\.section\s+\.section-content/,
     );
   });
+
+  it("패널 탭의 start 정렬을 구조 정본에서 소유한다", async () => {
+    const css = await readSource();
+
+    expect(css).toMatch(/\.panel-tab \{[^}]*justify-content: start;/s);
+  });
 });

@@ -55,10 +55,11 @@ describe("NodesPanel shared panel style contract", () => {
     },
   );
 
-  it("left-aligns both panel tabs like the Styles selected tab", async () => {
+  it("keeps only equal-width distribution as the local tab override", async () => {
     const css = await readFile(resolve(__dirname, "NodesPanel.css"), "utf-8");
 
-    expect(css).toMatch(/\.nodes-panel-tab \{[^}]*justify-content: start;/s);
+    expect(css).toMatch(/\.nodes-panel-tab \{[^}]*flex: 1 1 0;/s);
+    expect(css).not.toMatch(/\.nodes-panel-tab \{[^}]*justify-content:/s);
   });
 
   it("keeps shared section padding while preserving the tree guide and icons", async () => {

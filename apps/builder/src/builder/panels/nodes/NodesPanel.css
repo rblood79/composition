@@ -296,7 +296,6 @@
 /* NodesPanelTabs */
 .nodes-panel-tab {
   flex: 1 1 0;
-  justify-content: start;
 }
 
 .nodes-panel-tab-label {

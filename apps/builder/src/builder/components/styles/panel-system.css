@@ -64,7 +64,7 @@
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: start;
     min-width: 0;
     gap: var(--spacing-xs);
     padding: var(--spacing-2xs) var(--spacing-xs);
