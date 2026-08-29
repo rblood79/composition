@@ -218,7 +218,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
           type="button"
         >
           <Minus aria-hidden="true" size={14} />
-          <span>[-] Disable slot</span>
+          <span>Disable slot</span>
         </button>
       ) : (
         <button
@@ -228,7 +228,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
           type="button"
         >
           <AddIcon aria-hidden="true" size={14} />
-          <span>[+] Enable slot</span>
+          <span>Enable slot</span>
         </button>
       )}
 

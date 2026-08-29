@@ -13,7 +13,7 @@ import {
   useState,
   type Key,
 } from "react";
-import { File } from "lucide-react";
+import { ListTree } from "lucide-react";
 import { TabPanel, Tabs } from "react-aria-components";
 import { useParams } from "react-router";
 import "./NavigatorPanel.css";
@@ -82,7 +82,7 @@ export function NavigatorPanel() {
     <div className="panel navigator-panel navigator-panel--new-tree">
       <PanelHeader
         icon={
-          <File
+          <ListTree
             color={iconProps.color}
             size={iconProps.size}
             strokeWidth={iconProps.strokeWidth}

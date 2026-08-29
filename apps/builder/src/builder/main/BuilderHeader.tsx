@@ -1,4 +1,5 @@
 import {
+  Activity,
   Menu as MenuIcon,
   Eye,
   Monitor,
@@ -186,7 +187,9 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 </Keyboard>
               </MenuItem>
               <MenuItem id="monitor" className="header-menu-item">
-                <Monitor size={14} />
+                {/* Monitor 패널 정체 아이콘 = rail/패널 헤더와 같은 `Activity`.
+                    `Monitor`(디스플레이)는 같은 헤더의 desktop breakpoint 가 쓴다. */}
+                <Activity size={14} />
                 <span>{t("header.monitor")}</span>
                 <Keyboard>{shortcutDisplayFor("toggleMonitor")}</Keyboard>
               </MenuItem>

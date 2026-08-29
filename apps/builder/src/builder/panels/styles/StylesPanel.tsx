@@ -16,7 +16,7 @@ import { useState, useMemo, useCallback, memo, type ReactElement } from "react";
 import { Tabs, TabPanel } from "react-aria-components";
 import { useStore, useDebouncedSelectedElementData } from "../../stores";
 import { ActionIconButton } from "../../components/ui";
-import { Palette } from "lucide-react";
+import { PaintRoller } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 복사/붙여넣기 정본. */
@@ -169,7 +169,7 @@ function StylesPanelContent() {
       <div className="panel">
         <PanelHeader
           icon={
-            <Palette
+            <PaintRoller
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
@@ -189,7 +189,7 @@ function StylesPanelContent() {
     <div className="panel">
       <PanelHeader
         icon={
-          <Palette
+          <PaintRoller
             color={iconProps.color}
             size={iconProps.size}
             strokeWidth={iconProps.strokeWidth}

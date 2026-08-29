@@ -1,5 +1,11 @@
 import { memo, useCallback, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, FolderPlus, Minus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  FolderPlus,
+  Minus,
+  SeparatorHorizontal,
+} from "lucide-react";
 import type {
   ItemsManagerField,
   ItemsManagerFieldItemSchema,
@@ -308,7 +314,7 @@ const SectionRow = memo(function SectionRow({
           <div className="editor-actions items-manager-section-actions">
             <button
               className="control-button"
-          data-variant="add"
+              data-variant="add"
               onClick={onAddItem}
             >
               <AddIcon size={12} />
@@ -493,7 +499,7 @@ export const ItemsManager = memo(function ItemsManager({
         {allowSections && (
           <button
             className="control-button"
-          data-variant="add"
+            data-variant="add"
             onClick={handleAddSection}
           >
             <FolderPlus size={14} />
@@ -503,10 +509,10 @@ export const ItemsManager = memo(function ItemsManager({
         {allowSeparators && (
           <button
             className="control-button"
-          data-variant="add"
+            data-variant="add"
             onClick={handleAddSeparator}
           >
-            <Minus size={14} />
+            <SeparatorHorizontal size={14} />
             Add Separator
           </button>
         )}

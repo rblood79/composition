@@ -16,16 +16,17 @@
 import { useState, useMemo } from "react";
 import { Tab, TabList, Tabs } from "react-aria-components";
 import {
-  Database,
-  Table2,
-  Settings,
   Code,
-  FileJson,
+  Database,
   FileEdit,
+  FileJson,
+  FileOutput,
   FilePlus2,
   LayoutTemplate,
   Play,
+  Settings,
   Shield,
+  Table2,
 } from "lucide-react";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
 import { useDataStore } from "../../stores/data";
@@ -64,7 +65,7 @@ const API_TABS: TabConfig<ApiEditorTab>[] = [
   { id: "basic", label: "Basic", icon: Settings },
   { id: "headers", label: "Headers", icon: Code },
   { id: "body", label: "Body", icon: FileJson },
-  { id: "response", label: "Response", icon: FileJson },
+  { id: "response", label: "Response", icon: FileOutput },
   { id: "run", label: "Run", icon: Play },
 ];
 
@@ -85,7 +86,12 @@ const CREATOR_TABS: {
   labelKey: string;
   icon: typeof Database;
 }[] = [
-  { id: "preset", label: "Preset", labelKey: "presetTab", icon: LayoutTemplate },
+  {
+    id: "preset",
+    label: "Preset",
+    labelKey: "presetTab",
+    icon: LayoutTemplate,
+  },
   { id: "empty", label: "Empty", labelKey: "emptyTab", icon: FilePlus2 },
 ];
 
@@ -183,7 +189,10 @@ function EditorContent({ mode, close }: EditorContentProps) {
                       size={iconProps.size}
                     />
                     <span className="panel-tab-label">
-                      {localize(tab.id === "data" ? "table" : tab.id, tab.label)}
+                      {localize(
+                        tab.id === "data" ? "table" : tab.id,
+                        tab.label,
+                      )}
                     </span>
                   </Tab>
                 ))}
@@ -226,7 +235,9 @@ function EditorContent({ mode, close }: EditorContentProps) {
           <Tabs
             className="panel-tabs"
             selectedKey={variableTab}
-            onSelectionChange={(key) => setVariableTab(key as VariableEditorTab)}
+            onSelectionChange={(key) =>
+              setVariableTab(key as VariableEditorTab)
+            }
           >
             <div className="panel-header panel-tabrow">
               <TabList

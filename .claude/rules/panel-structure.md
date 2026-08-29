@@ -116,6 +116,9 @@ paths:
 - **치수·색은 정본이 소유하지 않는다**: 같은 삭제라도 컨텍스트 메뉴 14px / 툴바 16px 이고 그게 맞다 (surface 밀도). registry 는 "무엇을" 만, 호출부가 "얼마나 크게 / 무슨 색".
 - **"추가" 어포던스는 `Plus` 하나** — 아이콘 단독 버튼이든 텍스트 동반 버튼이든 같다. 예외는 **같은 화면에서 두 종류를 더할 때의 구분 변종**뿐 (`ItemsManager` 의 `FolderPlus` "Add Section" ↔ `Plus` "Add Item"). 구분할 상대가 없으면 변종을 쓰지 않는다.
   - **Why (기각한 대안)**: 실측상 "아이콘 단독 = `CirclePlus` / 텍스트 동반 = `Plus`" 라는 잠재 규칙이 있었고 `CirclePlus` 6/6 이 일치했다. 채택하지 않은 이유 — ① 이미 새고 있었다(FillSection 2건은 아이콘 단독인데 `Plus`) ② **기계 집행이 불가능하다** (JSX 형제에 텍스트 노드가 있는지로 판정해야 해 정적 스캔이 취약) ③ `PanelHeader actions` 자리의 다른 아이콘(gear/trash)이 전부 선화 단독이라 거기서 원형 변종만 튄다.
+- **같은 화면 그룹 안에서 두 항목이 같은 그림이면 그 열은 정보가 0이다** — 한 토글 그룹 / 한 탭 줄 / 한 섹션의 필드들은 서로 다른 그림이어야 한다. 뜻이 맞아도 변별이 없으면 부적합이다 (2026-08-30 전수조사 실측: Typography 4필드 전부 `Type`, justify 3옵션 중 2개가 `AlignHorizontalSpaceAround`, API 탭 body/response 둘 다 `FileJson`, radial gradient 4필드가 `MoveHorizontal`/`MoveVertical` 2개). 반대로 **상호 배타적인 분기**(linear/radial gradient, 접힘/펼침 모드)나 **같은 뜻의 반복**(메모리 지표 4장)은 같은 그림이 맞다.
+- **패널 정체 아이콘은 rail ↔ 패널 헤더가 같아야 하고, 그 패널 안의 행 아이콘과 달라야 한다** — 옆 패널의 모든 행에 깔린 그림을 rail 에 쓰면 식별 장치가 아니다 (같은 실측: Navigator rail `File` = LayerTree 잎 노드, Components rail `Box` = LayerTree 요소 노드). 다른 패널의 정체 아이콘을 빌려 쓰는 것도 같은 이유로 금지 — 헤더 메뉴의 Monitor 항목이 `Monitor`(같은 헤더의 desktop breakpoint), Monitor 패널의 History 카드가 `Activity`(패널 자신) 였다.
+
 - 판정 기준은 **"같은 그림" 이 아니라 "같은 액션"**. 심볼만 겹치는 것은 `INTENTIONAL_DIVERGENCE` 에 사유와 함께 등재한다 — TypographySection 의 정렬 6종은 `textAlign` **스타일 값**, `PropertyNumberInput` 의 `Plus` 는 `Minus` 와 짝인 **스테퍼 증가**, 랜딩(`App.tsx`)의 아이콘은 액션 없는 장식.
 
 집행: `actionIcons.static.test.ts` 3조항 — ① 등재 심볼의 registry 밖 직접 import 0건 ② 등재 항목별 소비처 ≥1 ③ **금지 변종 0건** (`Trash`/`Ruler`/`CirclePlus`/`PlusCircle` — 정본이 다른 그림을 쓰는 액션의 대체 심볼. ①은 registry 가 import 하는 심볼만 보므로 고쳐 놓은 발산의 **재도입**은 ③이 맡는다).

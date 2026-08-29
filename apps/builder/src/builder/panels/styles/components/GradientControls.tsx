@@ -19,16 +19,20 @@ import type {
   AngularGradientFillItem,
 } from "../../../../types/builder/fill.types";
 import { FillType } from "../../../../types/builder/fill.types";
-import { RotateCw, MoveHorizontal, MoveVertical } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ArrowUpDown,
+  MoveHorizontal,
+  MoveVertical,
+  RotateCw,
+} from "lucide-react";
 import { PropertyUnitInput } from "../../../components";
 
 import "./GradientControls.css";
 
 interface GradientControlsProps {
   fill:
-    | LinearGradientFillItem
-    | RadialGradientFillItem
-    | AngularGradientFillItem;
+    LinearGradientFillItem | RadialGradientFillItem | AngularGradientFillItem;
   onChange: (updates: Partial<FillItem>) => void;
 }
 
@@ -147,7 +151,7 @@ const RadialControls = memo(function RadialControls({
         max={100}
       />
       <PropertyUnitInput
-        icon={MoveHorizontal}
+        icon={ArrowLeftRight}
         label="Radius Width"
         className="gradient-radius-w"
         value={`${Math.round(fill.radius.width * 100)}%`}
@@ -159,7 +163,7 @@ const RadialControls = memo(function RadialControls({
         max={100}
       />
       <PropertyUnitInput
-        icon={MoveVertical}
+        icon={ArrowUpDown}
         label="Radius Height"
         className="gradient-radius-h"
         value={`${Math.round(fill.radius.height * 100)}%`}

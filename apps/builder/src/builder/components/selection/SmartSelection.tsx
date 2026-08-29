@@ -8,9 +8,20 @@
 import { useMemo } from "react";
 import type { Element } from "../../../types/core/store.types";
 import { Button } from "@composition/shared/components";
-import { Sparkles, Users, GitBranch, Box, Tag, Palette, Type } from "lucide-react";
+import {
+  Sparkles,
+  Rows3,
+  GitBranch,
+  Box,
+  Tag,
+  Palette,
+  Braces,
+} from "lucide-react";
 import { iconProps, iconLarge } from "../../../utils/ui/uiConstants";
-import { getAllSuggestions, type SuggestionResult } from "../../utils/smartSelection";
+import {
+  getAllSuggestions,
+  type SuggestionResult,
+} from "../../utils/smartSelection";
 
 import "./SmartSelection.css";
 export interface SmartSelectionProps {
@@ -29,12 +40,12 @@ export interface SmartSelectionProps {
  */
 const SUGGESTION_ICONS = {
   similar: Sparkles,
-  siblings: Users,
+  siblings: Rows3,
   children: GitBranch,
   parent: Box,
   sameType: Tag,
-  sameClass: Palette,
-  sameStyle: Type,
+  sameClass: Braces,
+  sameStyle: Palette,
 };
 
 /**
@@ -62,7 +73,9 @@ export function SmartSelection({
 
   // Handle suggestion click
   const handleSuggestionClick = (suggestion: SuggestionResult) => {
-    console.log(`[SmartSelection] Applying suggestion: ${suggestion.type}, count: ${suggestion.count}`);
+    console.log(
+      `[SmartSelection] Applying suggestion: ${suggestion.type}, count: ${suggestion.count}`,
+    );
     onSelect(suggestion.elementIds);
   };
 
@@ -73,7 +86,8 @@ export function SmartSelection({
           <Sparkles size={iconLarge.size} color="var(--fg-disabled)" />
           <p className="empty-text">No smart selection suggestions available</p>
           <p className="empty-hint">
-            Select an element with siblings, children, or similar elements to see suggestions
+            Select an element with siblings, children, or similar elements to
+            see suggestions
           </p>
         </div>
       </div>
@@ -89,7 +103,9 @@ export function SmartSelection({
           strokeWidth={iconProps.strokeWidth}
         />
         <h3>Smart Select</h3>
-        <span className="suggestion-count">{suggestions.length} suggestions</span>
+        <span className="suggestion-count">
+          {suggestions.length} suggestions
+        </span>
       </div>
 
       <div className="suggestions-list">
@@ -110,8 +126,12 @@ export function SmartSelection({
                 strokeWidth={iconProps.strokeWidth}
               />
               <div className="suggestion-info">
-                <span className="suggestion-description">{suggestion.description}</span>
-                <span className="suggestion-count-badge">{suggestion.count} found</span>
+                <span className="suggestion-description">
+                  {suggestion.description}
+                </span>
+                <span className="suggestion-count-badge">
+                  {suggestion.count} found
+                </span>
               </div>
             </Button>
           );

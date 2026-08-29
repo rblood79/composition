@@ -5,18 +5,18 @@
  */
 
 import {
-  File,
-  Box,
-  PaintRoller,
+  Activity,
+  Blocks,
   Bot,
+  Database,
+  FileEdit,
+  History,
+  ListTree,
+  PaintRoller,
   Settings,
   Settings2,
-  SwatchBook,
-  Database,
   SquareMousePointer,
-  FileEdit,
-  Activity,
-  History,
+  SwatchBook,
 } from "lucide-react";
 import type { PanelConfig } from "./types";
 import { PanelRegistry } from "./PanelRegistry";
@@ -52,7 +52,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     id: "navigator",
     name: "탐색기",
     nameEn: "Navigator",
-    icon: File,
+    icon: ListTree,
     component: NavigatorPanel,
     category: "navigation",
     defaultPosition: "left",
@@ -66,7 +66,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     id: "components",
     name: "컴포넌트",
     nameEn: "Components",
-    icon: Box,
+    icon: Blocks,
     component: ComponentsPanel,
     category: "navigation",
     defaultPosition: "left",

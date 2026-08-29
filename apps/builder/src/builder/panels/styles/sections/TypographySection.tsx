@@ -18,22 +18,26 @@ import {
 } from "@composition/shared/components";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
-  Type,
-  AlignLeft,
+  ALargeSmall,
   AlignCenter,
+  AlignHorizontalSpaceAround,
+  AlignLeft,
   AlignRight,
-  AlignVerticalJustifyStart,
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
-  Underline,
-  Strikethrough,
-  RemoveFormatting,
-  Italic,
-  CaseSensitive,
-  CaseLower,
-  CaseUpper,
+  AlignVerticalJustifyStart,
+  AlignVerticalSpaceAround,
   Baseline,
+  Bold,
+  CaseLower,
+  CaseSensitive,
+  CaseUpper,
+  Italic,
+  RemoveFormatting,
+  Strikethrough,
   TextWrap,
+  Type,
+  Underline,
 } from "lucide-react";
 import { useStore } from "../../../stores";
 import { useStyleActions } from "../hooks/useStyleActions";
@@ -225,7 +229,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       />
 
       <PropertyUnitInput
-        icon={Type}
+        icon={ALargeSmall}
         label="Font Size"
         className="font-size"
         value={styleValues.fontSize}
@@ -237,7 +241,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         max={200}
       />
       <PropertyUnitInput
-        icon={Type}
+        icon={AlignVerticalSpaceAround}
         label="Line Height"
         className="line-height"
         value={styleValues.lineHeight}
@@ -250,7 +254,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       />
 
       <PropertySelect
-        icon={Type}
+        icon={Bold}
         label="Font Weight"
         className="font-weight"
         value={styleValues.fontWeight}
@@ -266,7 +270,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         }}
       />
       <PropertyUnitInput
-        icon={Type}
+        icon={AlignHorizontalSpaceAround}
         label="Letter Spacing"
         className="letter-spacing"
         value={styleValues.letterSpacing}

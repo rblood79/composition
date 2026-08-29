@@ -2,7 +2,7 @@ import { useMemo, useCallback, memo, useState, useEffect } from "react";
 import { translations } from "../../../i18n";
 // ADR-912 collapse: palette icon 은 getPaletteItems() 가 catalog entry.panel.icon → lucide 매핑.
 // 아래 lucide import 는 ComponentList 자체 UI(검색/휴지통/접기 등) 전용으로만 잔존.
-import { Search, Box, ChevronsDownUp } from "lucide-react";
+import { Search, Blocks, ChevronsDownUp } from "lucide-react";
 import { getPaletteItems, type PaletteItem } from "./paletteItems";
 import { PanelHeader, Section } from "../../components";
 import { ActionIconButton } from "../../components/ui/ActionIconButton";
@@ -290,7 +290,7 @@ const ComponentList = memo(
     return (
       <div className="panel">
         <PanelHeader
-          icon={<Box size={16} />}
+          icon={<Blocks size={16} />}
           title="Components"
           panelId="components"
           actions={

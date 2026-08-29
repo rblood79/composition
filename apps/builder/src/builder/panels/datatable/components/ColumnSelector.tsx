@@ -9,7 +9,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { Check, Square, CheckSquare, Download, Table2 } from "lucide-react";
+import { Check, Square, CheckSquare, Table2, Upload } from "lucide-react";
 import { Button } from "react-aria-components";
 import type { DetectedColumn } from "../utils/columnDetector";
 import "./ColumnSelector.css";
@@ -187,7 +187,7 @@ export function ColumnSelector({
           onPress={handleImport}
           isDisabled={noneSelected || !tableName.trim() || isImporting}
         >
-          <Download {...iconEditProps} />
+          <Upload {...iconEditProps} />
           {isImporting
             ? localize("importing", "Importing...")
             : `${localize("import", "Import")} ${selectedCount} ${localize("columns", "Columns")}`}

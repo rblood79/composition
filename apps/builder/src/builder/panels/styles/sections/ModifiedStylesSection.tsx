@@ -22,7 +22,17 @@ import {
   useResolvedSkiaTheme,
   useThemeConfigVersion,
 } from "../../../../stores/themeConfigStore";
-import { Type, Square, RulerDimensionLine } from "lucide-react";
+import {
+  AlignCenterVertical,
+  AlignHorizontalSpaceAround,
+  Bold,
+  LayoutGrid,
+  RulerDimensionLine,
+  SquareDashedBottom,
+  StretchVertical,
+  TextWrap,
+  Type,
+} from "lucide-react";
 import {
   FONT_FAMILIES,
   FONT_WEIGHTS,
@@ -289,7 +299,7 @@ export function ModifiedStylesSection({
       return (
         <PropertySelect
           key={property}
-          icon={Type}
+          icon={Bold}
           label={formatLabel(property)}
           value={String(value)}
           options={FONT_WEIGHTS}
@@ -303,7 +313,7 @@ export function ModifiedStylesSection({
       return (
         <PropertySelect
           key={property}
-          icon={Square}
+          icon={SquareDashedBottom}
           label={formatLabel(property)}
           value={String(value)}
           options={BORDER_STYLES}
@@ -317,7 +327,7 @@ export function ModifiedStylesSection({
       return (
         <PropertySelect
           key={property}
-          icon={Square}
+          icon={LayoutGrid}
           label={formatLabel(property)}
           value={String(value)}
           options={DISPLAY_OPTIONS}
@@ -330,7 +340,7 @@ export function ModifiedStylesSection({
       return (
         <PropertySelect
           key={property}
-          icon={Square}
+          icon={StretchVertical}
           label={formatLabel(property)}
           value={String(value)}
           options={FLEX_DIRECTION_OPTIONS}
@@ -343,7 +353,7 @@ export function ModifiedStylesSection({
       return (
         <PropertySelect
           key={property}
-          icon={Square}
+          icon={AlignCenterVertical}
           label={formatLabel(property)}
           value={String(value)}
           options={ALIGN_ITEMS_OPTIONS}
@@ -356,7 +366,7 @@ export function ModifiedStylesSection({
       return (
         <PropertySelect
           key={property}
-          icon={Square}
+          icon={AlignHorizontalSpaceAround}
           label={formatLabel(property)}
           value={String(value)}
           options={JUSTIFY_CONTENT_OPTIONS}
@@ -369,7 +379,7 @@ export function ModifiedStylesSection({
       return (
         <PropertySelect
           key={property}
-          icon={Square}
+          icon={TextWrap}
           label={formatLabel(property)}
           value={String(value)}
           options={FLEX_WRAP_OPTIONS}

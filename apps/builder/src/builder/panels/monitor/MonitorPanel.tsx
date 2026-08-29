@@ -9,11 +9,18 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Tabs, TabList, Tab, TabPanel } from "react-aria-components";
-import { Activity, Database, Cpu, Zap, BarChart3 } from "lucide-react";
 import {
-  iconProps,
-  iconLarge,
-} from "../../../utils/ui/uiConstants";
+  Activity,
+  AppWindow,
+  BarChart3,
+  Database,
+  Files,
+  History,
+  MemoryStick,
+  Percent,
+  Zap,
+} from "lucide-react";
+import { iconProps, iconLarge } from "../../../utils/ui/uiConstants";
 import { performanceMonitor } from "../../utils/performanceMonitor";
 import { useMemoryStats, formatBytes } from "./hooks/useMemoryStats";
 import { useTimeSeriesData } from "./hooks/useTimeSeriesData";
@@ -168,39 +175,59 @@ export function MonitorPanel() {
               aria-label={localize("tabs", "Monitor tabs")}
             >
               <Tab id="memory" className="panel-tab">
-                <Activity color="currentColor"
+                <MemoryStick
+                  color="currentColor"
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
-                  aria-hidden="true" />
-                <span className="panel-tab-label">{localize("memory", "Memory")}</span>
+                  aria-hidden="true"
+                />
+                <span className="panel-tab-label">
+                  {localize("memory", "Memory")}
+                </span>
               </Tab>
               <Tab id="realtime" className="panel-tab">
-                <Zap color="currentColor"
+                <Zap
+                  color="currentColor"
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
-                  aria-hidden="true" />
-                <span className="panel-tab-label">{localize("realtime", "Realtime")}</span>
+                  aria-hidden="true"
+                />
+                <span className="panel-tab-label">
+                  {localize("realtime", "Realtime")}
+                </span>
               </Tab>
               <Tab id="stats" className="panel-tab">
-                <Database color="currentColor"
+                <Database
+                  color="currentColor"
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
-                  aria-hidden="true" />
-                <span className="panel-tab-label">{localize("stats", "Stats")}</span>
+                  aria-hidden="true"
+                />
+                <span className="panel-tab-label">
+                  {localize("stats", "Stats")}
+                </span>
               </Tab>
               <Tab id="browser" className="panel-tab">
-                <Cpu color="currentColor"
+                <AppWindow
+                  color="currentColor"
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
-                  aria-hidden="true" />
-                <span className="panel-tab-label">{localize("browser", "Browser")}</span>
+                  aria-hidden="true"
+                />
+                <span className="panel-tab-label">
+                  {localize("browser", "Browser")}
+                </span>
               </Tab>
               <Tab id="analysis" className="panel-tab">
-                <BarChart3 color="currentColor"
+                <BarChart3
+                  color="currentColor"
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
-                  aria-hidden="true" />
-                <span className="panel-tab-label">{localize("analysis", "Analysis")}</span>
+                  aria-hidden="true"
+                />
+                <span className="panel-tab-label">
+                  {localize("analysis", "Analysis")}
+                </span>
               </Tab>
             </TabList>
           </div>
@@ -272,17 +299,17 @@ export function MonitorPanel() {
                     <StatCard
                       label={localize("pages", "Pages")}
                       value={stats.pageCount.toString()}
-                      icon={<Database size={iconProps.size} />}
+                      icon={<Files size={iconProps.size} />}
                     />
                     <StatCard
                       label={localize("historyEntries", "History Entries")}
                       value={stats.totalEntries.toString()}
-                      icon={<Activity size={iconProps.size} />}
+                      icon={<History size={iconProps.size} />}
                     />
                     <StatCard
                       label={localize("memoryUsage", "Memory Usage")}
                       value={formatBytes(stats.estimatedMemoryUsage)}
-                      icon={<Cpu size={iconProps.size} />}
+                      icon={<MemoryStick size={iconProps.size} />}
                       highlight={stats.estimatedMemoryUsage > 50 * 1024 * 1024}
                     />
                   </>
@@ -301,28 +328,28 @@ export function MonitorPanel() {
                   <StatCard
                     label={localize("usedHeap", "Used Heap")}
                     value={formatBytes(stats.browserMemory.usedJSHeapSize)}
-                    icon={<Cpu size={iconProps.size} />}
+                    icon={<MemoryStick size={iconProps.size} />}
                   />
                   <StatCard
                     label={localize("totalHeap", "Total Heap")}
                     value={formatBytes(stats.browserMemory.totalJSHeapSize)}
-                    icon={<Cpu size={iconProps.size} />}
+                    icon={<MemoryStick size={iconProps.size} />}
                   />
                   <StatCard
                     label={localize("heapLimit", "Heap Limit")}
                     value={formatBytes(stats.browserMemory.jsHeapSizeLimit)}
-                    icon={<Cpu size={iconProps.size} />}
+                    icon={<MemoryStick size={iconProps.size} />}
                   />
                   <StatCard
                     label={localize("usage", "Usage")}
                     value={`${stats.browserMemory.usagePercent.toFixed(1)}%`}
-                    icon={<Activity size={iconProps.size} />}
+                    icon={<Percent size={iconProps.size} />}
                     highlight={stats.browserMemory.usagePercent > 75}
                   />
                 </div>
               ) : (
                 <div className="browser-memory-fallback">
-                  <Cpu size={iconLarge.size} />
+                  <AppWindow size={iconLarge.size} />
                   <p>
                     {localize(
                       "browserFallback",

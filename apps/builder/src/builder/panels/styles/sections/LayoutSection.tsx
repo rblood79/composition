@@ -16,19 +16,21 @@ import { Input } from "react-aria-components";
 import { SwatchIconButton } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
-  Square,
+  AlignHorizontalSpaceAround,
+  AlignHorizontalSpaceBetween,
+  ArrowRightToLine,
+  CornerDownLeft,
+  Frame,
+  GalleryHorizontal,
+  LayoutGrid,
   Maximize2,
   Minimize2,
-  Frame,
-  LayoutGrid,
+  Square,
   SquareSquare,
   StretchHorizontal,
   StretchVertical,
-  AlignHorizontalSpaceAround,
-  GalleryHorizontal,
-  WrapText,
-  CornerDownLeft,
-  ArrowRightToLine,
+  TextWrap,
+  UnfoldHorizontal,
 } from "lucide-react";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
@@ -379,14 +381,14 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               />
             </ToggleButton>
             <ToggleButton id="space-between">
-              <GalleryHorizontal
+              <AlignHorizontalSpaceBetween
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
               />
             </ToggleButton>
             <ToggleButton id="space-evenly">
-              <AlignHorizontalSpaceAround
+              <GalleryHorizontal
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
@@ -412,7 +414,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             }}
           >
             <ToggleButton id="wrap">
-              <WrapText
+              <TextWrap
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
@@ -435,7 +437,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           </ToggleButtonGroup>
         </div>
         <PropertyUnitInput
-          icon={LayoutGrid}
+          icon={UnfoldHorizontal}
           label="Gap"
           className="displayGap"
           value={styleValues.gap}
