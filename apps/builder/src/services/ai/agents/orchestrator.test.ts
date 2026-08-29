@@ -27,7 +27,7 @@ vi.mock("../../../lib/db", async (importOriginal) => {
 
 const CONTEXT: BuilderContext = {
   currentPageId: "page-1",
-  elements: [{ id: "b1", type: "Button", props: {}, parent_id: "body" }],
+  elements: [{ id: "b1", type: "Button" }],
 } as BuilderContext;
 
 /** 대본대로 응답하는 가짜 provider. 호출 횟수를 센다. */

@@ -13,8 +13,8 @@ import type { BuilderContext } from "../../types/integrations/chat.types";
 const CONTEXT: BuilderContext = {
   currentPageId: "page-1",
   elements: [
-    { id: "b1", type: "Button", props: {}, parent_id: "body" },
-    { id: "t1", type: "Text", props: {}, parent_id: "body" },
+    { id: "b1", type: "Button" },
+    { id: "t1", type: "Text" },
   ],
 } as BuilderContext;
 
@@ -49,10 +49,40 @@ describe("시스템 프롬프트 카탈로그 주입", () => {
 
   it("선택된 요소가 있으면 그 type 상세가 들어간다", () => {
     const prompt = buildSystemPrompt(
-      { ...CONTEXT, selectedElementId: "t1" },
+      {
+        ...CONTEXT,
+        selectedElementId: "t1",
+        selectedElement: {
+          id: "t1",
+          type: "Text",
+          props: {},
+          parent_id: "body",
+        },
+      },
       "이거 고쳐줘",
     );
     expect(prompt).toContain("### Text");
+  });
+
+  /**
+   * 선택 요소의 props 는 프롬프트에 그대로 실린다. 출처가 `elements` 목록이면
+   * 구조 전용 캐시라 props 가 낡은 채 모델에 들어간다 — `selectedElement` 만 본다.
+   */
+  it("선택 요소 props 는 selectedElement 에서만 읽는다", () => {
+    const prompt = buildSystemPrompt(
+      {
+        ...CONTEXT,
+        selectedElementId: "t1",
+        selectedElement: {
+          id: "t1",
+          type: "Text",
+          props: { children: "최신값" },
+          parent_id: "body",
+        },
+      },
+      "이거 고쳐줘",
+    );
+    expect(prompt).toContain("최신값");
   });
 
   it("전체 카탈로그 상세를 다 싣지 않는다 (R3 — context 예산)", () => {

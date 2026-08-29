@@ -28,9 +28,9 @@ export function buildSystemPrompt(
 ): string {
   const { currentPageId, selectedElementId, elements } = context;
 
-  const selectedElement = selectedElementId
-    ? elements.find((el) => el.id === selectedElementId)
-    : null;
+  // 상세(props)는 context 가 최신 소스에서 채워 준다 — `elements` 목록에서 뽑지 않는다
+  // (구조 전용 캐시라 props 가 낡는다. chat.types.ts `selectedElement` 주석 참조).
+  const selectedElement = context.selectedElement ?? null;
 
   const catalogSection = buildCatalogSection({
     request,

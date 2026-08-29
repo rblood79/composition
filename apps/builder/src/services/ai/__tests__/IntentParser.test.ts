@@ -10,7 +10,6 @@ describe("IntentParser fill fallback", () => {
       currentPageId: "page-1",
       selectedElementId: "el-1",
       elements: [],
-      recentChanges: [],
     });
 
     expect(intent?.action).toBe("style");
@@ -23,7 +22,6 @@ describe("IntentParser fill fallback", () => {
       currentPageId: "page-1",
       selectedElementId: undefined,
       elements: [],
-      recentChanges: [],
     });
 
     expect(intent?.action).toBe("create");

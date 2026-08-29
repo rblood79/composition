@@ -14,6 +14,13 @@ const mockLoopState = vi.hoisted(() => ({ hasAgent: true }));
 const mockBuilderState = vi.hoisted(() => ({
   currentPageId: "page-1",
   selectedElementId: "button-1",
+  // 선택 요소 상세는 `elementsMap` 에서 온다 — props-only 변경에 갱신되는 최신 소스.
+  elementsMap: new Map([
+    [
+      "button-1",
+      { id: "button-1", type: "Button", parent_id: null, props: {} },
+    ],
+  ]),
   pageElementsSnapshot: {
     "page-1": [
       {
@@ -226,5 +233,28 @@ describe("BYOK 미설정 최초 진입 (R2)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "에이전트 설정 열기" }));
     expect(screen.getByText("고급 모드 자리")).toBeTruthy();
+  });
+});
+
+describe("AI 에 전달하는 문서 요약", () => {
+  beforeEach(() => {
+    mockUpdateContext.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  /**
+   * 이 목록은 `pageElementsSnapshot`(레이어 트리용 **구조 전용** 캐시)에서 온다 —
+   * props-only 변경에는 갱신되지 않는다. props 를 실어 두면 낡은 값이 조용히 읽힌다.
+   * 소비처(`buildSystemPrompt` · `Orchestrator`)가 읽는 것은 id · type · 개수뿐이다.
+   */
+  it("요소는 식별 정보만 싣는다 — 낡은 props 가 흘러가지 않도록", () => {
+    render(<AIPanel />);
+
+    const context = mockUpdateContext.mock.calls.at(-1)?.[0];
+    expect(context.elements).toEqual([{ id: "button-1", type: "Button" }]);
+    expect(context).not.toHaveProperty("recentChanges");
   });
 });

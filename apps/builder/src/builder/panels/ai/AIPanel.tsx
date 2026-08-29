@@ -308,9 +308,17 @@ function AIPanelContent() {
         : undefined,
     ) ?? EMPTY_ELEMENTS;
   const selectedElementId = useStore((state) => state.selectedElementId);
-  const selectedElementType = selectedElementId
-    ? pageElements.find((element) => element.id === selectedElementId)?.type
-    : undefined;
+  /**
+   * 선택 요소만 props 가 필요하다 (프롬프트의 "선택된 요소 정보" 블록). `pageElements`
+   * 는 구조 전용 캐시라 props 가 낡으므로 여기서 뽑지 않는다 — `elementsMap` 은
+   * props-only 변경에 갱신되고 조회가 O(1) 이다 (2026-08-29 live 실측).
+   */
+  const selectedElement = useStore((state) =>
+    state.selectedElementId
+      ? (state.elementsMap?.get(state.selectedElementId) ?? null)
+      : null,
+  );
+  const selectedElementType = selectedElement?.type;
 
   const { updateContext, clearConversation } = useConversationStore();
 
@@ -321,17 +329,25 @@ function AIPanelContent() {
     const context: BuilderContext = {
       currentPageId: currentPageId || "default",
       selectedElementId: selectedElementId || undefined,
-      elements: pageElements.map((el) => ({
-        id: el.id,
-        type: el.type,
-        props: el.props as Record<string, unknown>,
-        parent_id: el.parent_id ?? null,
-      })),
-      recentChanges: [],
+      elements: pageElements.map((el) => ({ id: el.id, type: el.type })),
+      selectedElement: selectedElement
+        ? {
+            id: selectedElement.id,
+            type: selectedElement.type,
+            props: selectedElement.props as Record<string, unknown>,
+            parent_id: selectedElement.parent_id ?? null,
+          }
+        : undefined,
     };
 
     updateContext(context);
-  }, [pageElements, selectedElementId, currentPageId, updateContext]);
+  }, [
+    pageElements,
+    selectedElement,
+    selectedElementId,
+    currentPageId,
+    updateContext,
+  ]);
 
   const isDisabled = isStreaming || isAgentRunning;
 

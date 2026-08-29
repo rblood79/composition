@@ -40,7 +40,7 @@ function builderSummary(context: BuilderContext): string {
     `요소 ${context.elements.length}개`,
     `사용 중인 컴포넌트: ${[...types].join(", ") || "없음"}`,
     context.selectedElementId
-      ? `선택된 요소: ${context.elements.find((e) => e.id === context.selectedElementId)?.type ?? "?"}`
+      ? `선택된 요소: ${context.selectedElement?.type ?? "?"}`
       : "선택된 요소 없음",
   ].join("\n");
 }

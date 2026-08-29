@@ -54,13 +54,27 @@ export interface ComponentIntent {
 export interface BuilderContext {
   currentPageId: string;
   selectedElementId?: string;
-  elements: Array<{
+  /**
+   * 요소의 **식별 정보만** 담는다 — 소비처(`buildSystemPrompt` · `Orchestrator`)가 읽는
+   * 것은 id · type · 개수뿐이다.
+   *
+   * props 를 싣지 않는 이유는 출처 때문이다: 이 목록은 `pageElementsSnapshot`
+   * (레이어 트리용 **구조 전용** 캐시)에서 오고, props-only 변경(`updateElementProps`)
+   * 에는 갱신되지 않는다. 실어 두면 낡은 props 가 조용히 읽힌다. 요소 props 가 필요한
+   * 쪽은 canonical 을 읽는다 (`services/ai/tools/canonicalToolReadModel.ts`).
+   */
+  elements: Array<{ id: string; type: string }>;
+  /**
+   * 선택된 요소의 상세. **props 를 담으므로 최신 소스에서 와야 한다** — 빌더 스토어의
+   * `elementsMap` 은 props-only 변경에 갱신된다 (2026-08-29 live 실측). 위 `elements`
+   * 목록에서 뽑으면 안 된다: 그쪽은 구조 전용 캐시라 props 가 낡은 채로 프롬프트에 실린다.
+   */
+  selectedElement?: {
     id: string;
     type: string;
     props: Record<string, unknown>;
     parent_id: string | null;
-  }>;
-  recentChanges: string[];
+  };
 }
 
 export interface ConversationState {
