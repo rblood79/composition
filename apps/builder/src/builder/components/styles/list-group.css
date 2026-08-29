@@ -212,9 +212,9 @@
   color: var(--accent);
 }
 
-.list-item.selected .list-item-name {
-  color: var(--fg-on-accent);
-}
+/* `.selected` 의 표면은 `--color-primary-50`(밝음) 이므로 이름에 `--fg-on-accent`(흰색)
+   를 걸면 글자가 사라진다. 흰 글자가 맞는 것은 accent 로 채우는 `.applied` 쪽뿐이라
+   여기서는 이름 색을 base 그대로 둔다 (2026-08-30). */
 
 .list-item.applied .list-item-name {
   color: var(--fg-on-accent);

@@ -22,6 +22,8 @@ import {
   Code,
   FileJson,
   FileEdit,
+  FilePlus2,
+  LayoutTemplate,
   Play,
   Shield,
 } from "lucide-react";
@@ -74,6 +76,18 @@ const VARIABLE_TABS: TabConfig<VariableEditorTab>[] = [
 
 // Creator 모드 타입
 type CreatorMode = "empty" | "preset";
+
+// 생성 방식은 다른 에디터의 뷰 탭과 같은 축이라 같은 탭 패턴으로 둔다
+// (구 radio 바 `.datatable-creator-modes` 는 panel-header 크롬을 재정의하던 별도 계열).
+const CREATOR_TABS: {
+  id: CreatorMode;
+  label: string;
+  labelKey: string;
+  icon: typeof Database;
+}[] = [
+  { id: "preset", label: "Preset", labelKey: "presetTab", icon: LayoutTemplate },
+  { id: "empty", label: "Empty", labelKey: "emptyTab", icon: FilePlus2 },
+];
 
 /**
  * EditorContent - 모드별 상태를 관리하는 내부 컴포넌트
@@ -238,26 +252,31 @@ function EditorContent({ mode, close }: EditorContentProps) {
 
       case "table-create":
         return (
-          <div className="datatable-creator-modes">
-            <label className="datatable-creator-mode">
-              <input
-                type="radio"
-                name="creatorMode"
-                checked={creatorMode === "empty"}
-                onChange={() => setCreatorMode("empty")}
-              />
-              {localize("emptyStart", "빈 테이블로 시작")}
-            </label>
-            <label className="datatable-creator-mode">
-              <input
-                type="radio"
-                name="creatorMode"
-                checked={creatorMode === "preset"}
-                onChange={() => setCreatorMode("preset")}
-              />
-              {localize("preset", "Preset에서 선택")}
-            </label>
-          </div>
+          <Tabs
+            className="panel-tabs"
+            selectedKey={creatorMode}
+            onSelectionChange={(key) => setCreatorMode(key as CreatorMode)}
+          >
+            <div className="panel-header panel-tabrow">
+              <TabList
+                className="panel-tablist"
+                aria-label={localize("creatorTabs", "Creation mode")}
+              >
+                {CREATOR_TABS.map((tab) => (
+                  <Tab key={tab.id} id={tab.id} className="panel-tab">
+                    <tab.icon
+                      color="currentColor"
+                      strokeWidth={iconProps.strokeWidth}
+                      size={iconProps.size}
+                    />
+                    <span className="panel-tab-label">
+                      {localize(tab.labelKey, tab.label)}
+                    </span>
+                  </Tab>
+                ))}
+              </TabList>
+            </div>
+          </Tabs>
         );
 
       // 다른 create 모드들은 TODO 상태이므로 탭 없음

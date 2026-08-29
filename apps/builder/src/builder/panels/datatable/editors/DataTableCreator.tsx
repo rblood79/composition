@@ -4,11 +4,18 @@
  * Preset 선택 또는 빈 테이블로 DataTable 생성
  * DataTablePresetSelector의 패널 버전
  *
+ * 생성 방식(Preset/Empty) 전환은 패널 탭이 담당한다 (DataTableEditorPanel).
+ * 여기는 그 아래 본문 — 스크롤 영역 + 고정 푸터 2단으로만 나뉜다.
+ *
+ * Preset 카테고리는 탭이 아니라 **카테고리당 Section** 이다. 패널 폭(387px)에 5개 라벨이
+ * 들어가지 않아 탭 줄이 가로 스크롤되면서 2개가 상시 숨는 문제가 있었고, 같은 일을 하는
+ * ComponentList(카테고리별 컴포넌트 팔레트)가 이미 Section 계열이다.
+ *
  * @see docs/features/DATATABLE_PRESET_SYSTEM.md
  */
 
-import { useState, useMemo, useCallback } from "react";
-import { Button, Tab, TabList, Tabs } from "react-aria-components";
+import { useState, useCallback } from "react";
+import { Button } from "react-aria-components";
 import {
   User,
   Key,
@@ -29,8 +36,8 @@ import {
   Factory,
 } from "lucide-react";
 import { useDataStore } from "../../../stores/data";
-import { Section } from "../../../components";
-import type { DataTablePreset, PresetCategory } from "../presets/types";
+import { PropertyFieldset, Section } from "../../../components";
+import type { DataTablePreset } from "../presets/types";
 import { PRESET_CATEGORIES } from "../presets/types";
 import { getPresetsByCategory } from "../presets/dataTablePresets";
 import "./DataTableCreator.css";
@@ -60,17 +67,6 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   Factory,
 };
 
-const categoryIconMap: Record<
-  string,
-  React.ComponentType<{ size?: number }>
-> = {
-  "users-auth": Users,
-  organization: Building2,
-  ecommerce: ShoppingCart,
-  manufacturing: Factory,
-  system: Settings,
-};
-
 // ============================================
 // Types
 // ============================================
@@ -98,25 +94,11 @@ export function DataTableCreator({
   const createDataTable = useDataStore((state) => state.createDataTable);
 
   // 선택 상태
-  const [selectedCategory, setSelectedCategory] =
-    useState<PresetCategory>("users-auth");
   const [selectedPreset, setSelectedPreset] = useState<DataTablePreset | null>(
     null,
   );
   const [sampleCount, setSampleCount] = useState(10);
   const [tableName, setTableName] = useState("");
-
-  // 카테고리별 Preset 목록
-  const presetsInCategory = useMemo(
-    () => getPresetsByCategory(selectedCategory),
-    [selectedCategory],
-  );
-
-  // 카테고리 변경 핸들러
-  const handleCategoryChange = useCallback((category: PresetCategory) => {
-    setSelectedCategory(category);
-    setSelectedPreset(null);
-  }, []);
 
   // Preset 선택 핸들러
   const handlePresetSelect = useCallback((preset: DataTablePreset) => {
@@ -170,98 +152,72 @@ export function DataTableCreator({
     );
   };
 
-  const renderCategoryIcon = (category: PresetCategory, size = 16) => {
-    const IconComponent = categoryIconMap[category];
-    return IconComponent ? (
-      <IconComponent size={size} />
-    ) : (
-      <Database size={size} />
-    );
-  };
-
-  // mode-selection은 DataTableEditorPanel에서 렌더링됨
+  // mode 전환 탭은 DataTableEditorPanel에서 렌더링됨
   return (
-    <>
-      {/* Content */}
-      <div className="section" data-section-id="table-creator">
+    <div className="datatable-creator">
+      <div className="datatable-creator-body">
         {mode === "empty" ? (
-          /* Empty Table Form */
-          <div className="creator-empty-form">
-            <label className="creator-form-label">
-              {localize("tableName", "Table Name")}
+          <Section
+            id="table-creator"
+            title={localize("table", "Table")}
+            collapsible={false}
+          >
+            <PropertyFieldset legend={localize("tableName", "Table Name")}>
               <input
+                className="react-aria-Input"
                 type="text"
-                className="creator-form-input"
                 value={tableName}
                 onChange={(e) => setTableName(e.target.value)}
                 placeholder={localize("newTable", "New Table")}
               />
-            </label>
+            </PropertyFieldset>
             <p className="creator-form-hint">
               {localize(
                 "emptyTableHint",
                 "After creating an empty table, add fields in the Schema tab.",
               )}
             </p>
-          </div>
+          </Section>
         ) : (
-          /* Preset Selection */
-          <>
-            {/* Category Tabs */}
-            <Tabs
-              className="panel-tabs"
-              selectedKey={selectedCategory}
-              onSelectionChange={(key) =>
-                handleCategoryChange(key as PresetCategory)
-              }
-            >
-              <div className="panel-header panel-tabrow">
-                <TabList className="panel-tablist" aria-label="Preset category">
-                  {PRESET_CATEGORIES.map((cat) => (
-                    <Tab
-                      key={cat.id}
-                      id={cat.id}
-                      className="panel-tab"
-                      aria-label={`${cat.name} — ${cat.description}`}
+          PRESET_CATEGORIES.map((cat) => {
+            const presets = getPresetsByCategory(cat.id);
+            if (presets.length === 0) return null;
+            return (
+              <Section
+                key={cat.id}
+                id={`preset-${cat.id}`}
+                title={cat.name}
+                className="creator-preset-section"
+              >
+                <div className="list-group" role="list">
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      role="listitem"
+                      className={`list-item preset-card ${
+                        selectedPreset?.id === preset.id ? "selected" : ""
+                      }`}
+                      onClick={() => handlePresetSelect(preset)}
                     >
-                      {renderCategoryIcon(cat.id)}
-                      <span className="panel-tab-label">{cat.name}</span>
-                    </Tab>
+                      <div className="list-item-icon">
+                        {renderIcon(preset.icon, 16)}
+                      </div>
+                      <div className="list-item-name">{preset.name}</div>
+                      <div className="list-item-desc">{preset.description}</div>
+                      <div className="list-item-meta">
+                        {preset.schema.length} fields
+                      </div>
+                    </button>
                   ))}
-                </TabList>
-              </div>
-            </Tabs>
-
-            {/* Preset Grid */}
-            <div className="section-content">
-              <div className="list-group" role="list">
-                {presetsInCategory.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    role="listitem"
-                    className={`list-item preset-card ${
-                      selectedPreset?.id === preset.id ? "selected" : ""
-                    }`}
-                    onClick={() => handlePresetSelect(preset)}
-                  >
-                    <div className="list-item-icon">
-                      {renderIcon(preset.icon, 16)}
-                    </div>
-                    <div className="list-item-name">{preset.name}</div>
-                    <div className="list-item-desc">{preset.description}</div>
-                    <div className="list-item-meta">
-                      {preset.schema.length} fields
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
+                </div>
+              </Section>
+            );
+          })
         )}
       </div>
 
-      {/* Schema Preview - table-creator의 형제로 위치 */}
+      {/* Schema Preview — 선택 결과 확인이라 스크롤 밖에 고정 */}
       {mode === "preset" && selectedPreset && (
         <Section
           id="schema-preview"
@@ -307,11 +263,16 @@ export function DataTableCreator({
 
       {/* Footer */}
       <div className="creator-footer">
-        <Button className="react-aria-Button secondary" onPress={onClose}>
+        <Button
+          className="creator-action"
+          data-variant="secondary"
+          onPress={onClose}
+        >
           {i18n ? i18n.t("common.cancel") : "Cancel"}
         </Button>
         <Button
-          className="react-aria-Button primary"
+          className="creator-action"
+          data-variant="primary"
           onPress={handleCreate}
           isDisabled={mode === "preset" && !selectedPreset}
         >
@@ -320,7 +281,7 @@ export function DataTableCreator({
             : localize("create", "Create")}
         </Button>
       </div>
-    </>
+    </div>
   );
 }
 

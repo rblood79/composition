@@ -33,3 +33,11 @@
   display: flex;
   flex-direction: column;
 }
+
+/* 이 패널의 `Tabs` 는 탭 줄만 감싸고 본문은 형제 `.panel-contents` 에 둔다 (다른 패널은
+   `Tabs` 안에 `TabPanel` 까지 넣는다). 그래서 공용 `.panel-tabs { flex: 1 }` 을 그대로
+   받으면 내용이 없는 `Tabs` 가 `.panel-contents` 와 남는 높이를 반씩 나눠 가져, 탭 줄
+   아래로 패널 절반이 빈 채로 남는다. */
+.datatable-editor-panel .panel-tabs {
+  flex: none;
+}

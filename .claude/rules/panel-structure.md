@@ -51,6 +51,8 @@ paths:
   바 크롬(32px·`--bg-raised`·하단 구분선)은 **`.panel-header` 가 이미 준다** — `.panel-tabrow` 는 헤더 패딩만 0 으로 되돌리는 modifier다. 래퍼를 빼고 같은 값을 tablist 에 다시 쓰면 크롬 정의가 두 곳이 되고 패널 골격도 갈린다.
 - **구조 클래스에 패널별 twin 을 만들지 않는다** — `{도메인}-panel-tabs/tabrow/tablist` 처럼 CSS 규칙 0건인 이름은 중복만 늘린다 (2026-08-30 실측: 20개 companion 중 11개가 규칙 0건). 오버라이드가 필요하면 조상 스코프로 건다 (`.monitor-panel .panel-tablist { display: grid; … }`). 실제 규칙이 붙는 companion(`styles-panel-tab`, `navigator-panel-tab` 등)만 병기한다. 집행: `panelTabs.static.test.ts`.
   - **Why (2026-08-30 통일)**: DataTable 4개 바가 `<div>`+`<button>`+`.active` 수동 구현이라 `role="tab"`·`aria-selected`·화살표 키·focus 링이 전부 없었고, 선택 상태를 `--accent` 채움으로 그려 뷰 전환 탭이 패널에서 가장 강한 요소가 됐다. hover 배경(`--bg-raised`)이 바 배경과 같아 보이지도 않았다. Monitor 는 마크업만 RAC 이고 CSS 가 자체 계열이었다. 셋 다 공용으로 흡수 — 선택은 표면(`--bg-overlay` + `--shadow-sm`), accent 채움은 primary 액션·값 선택 축에 남긴다.
+- **분류된 팔레트는 탭이 아니라 카테고리당 `Section`** — 고르는 대상이 카테고리로 묶여 있으면 `Section` 을 카테고리 수만큼 쌓는다 (ComponentList 가 정본, DataTableCreator preset 이 추종). 탭 줄로 만들면 패널 기본 폭(387px)에 라벨 5개가 안 들어가 가로 스크롤이 생기고 뒤쪽 카테고리가 상시 숨는다. 패널 탭 슬롯은 **패널 전체 뷰를 가르는 축 하나**만 차지한다 — 그 아래 필터·분류를 같은 모양의 두 번째 바로 쌓으면 두 축이 같은 무게로 읽힌다.
+
 
 ## 2. 클래스 네이밍 규칙
 

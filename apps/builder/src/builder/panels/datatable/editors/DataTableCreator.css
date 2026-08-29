@@ -1,15 +1,3 @@
-/* 카테고리 탭 — 공용 탭 패턴(`.panel-header.panel-tabrow > .panel-tablist > .panel-tab`)을
-   쓰되, 카테고리 5개 라벨은 387px 패널 폭에 들어가지 않는다. 종전 `.datatable-creator-tabs`
-   와 같은 해법(가로 스크롤 + 탭 폭 고정)을 조상 스코프 override 로 남긴다 — 라벨을 ellipsis
-   로 자르면 "Users & Auth"/"Manufacturing" 이 3~4글자만 남아 구분이 안 된다. */
-.datatable-editor-panel .section .panel-tablist {
-  overflow-x: auto;
-}
-
-.datatable-editor-panel .section .panel-tab {
-  flex-shrink: 0;
-}
-
 /**
  * DataTableCreator Styles
  *
@@ -20,66 +8,31 @@
 @import "../../../components/styles/list-group.css";
 
 /* ============================================
-   Panel Selection
+   Layout — 스크롤 본문 + 고정 푸터
    ============================================ */
 
-.datatable-creator-modes {
+/* `.panel-contents` 는 스크롤을 자식에게 넘긴다(DataTableEditorPanel.css). 생성기는
+   본문만 스크롤하고 푸터는 패널 하단에 붙어 있어야 하므로 여기서 2단으로 나눈다.
+   래퍼가 없으면 푸터가 `.panel-contents > *` 의 flex-column 을 그대로 받아 버튼이
+   세로로 쌓이고, 어느 자식도 남는 높이를 먹지 않아 푸터 아래에 빈 공간이 남았다. */
+.datatable-creator {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-raised);
-  height: var(--header-height);
+  flex-direction: column;
 }
 
-.datatable-creator-mode {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  cursor: pointer;
-  font-size: var(--text-xs);
-  color: var(--fg);
-}
-
-.datatable-creator-mode input[type="radio"] {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--color-primary-500);
+.datatable-creator-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* ============================================
    Empty Table Form
    ============================================ */
-.creator-empty-form {
-  padding: var(--spacing-md);
-}
-
-.creator-form-label {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--fg);
-}
-
-.creator-form-input {
-  padding: var(--spacing-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  background: var(--bg-overlay);
-  color: var(--fg);
-}
-
-.creator-form-input:focus {
-  outline: none;
-  border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 2px var(--color-primary-100);
-}
 
 .creator-form-hint {
-  margin-top: var(--spacing-sm);
   font-size: var(--text-xs);
   color: var(--fg-muted);
   line-height: 1.5;
@@ -89,37 +42,32 @@
    Preset Grid - extends common list-group
    ============================================ */
 
-.section[data-section-id="table-creator"] .section-content {
-  padding: var(--spacing-sm);
-  overflow-y: auto;
-}
-
-.section[data-section-id="table-creator"] .list-group {
+.creator-preset-section .list-group {
+  display: grid;
   grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
 }
 
-/* Preset Card selected state extension */
-.section[data-section-id="table-creator"] .list-item.selected {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--fg-on-accent);
-  box-shadow: var(--shadow-sm);
-}
-
-.section[data-section-id="table-creator"] .list-item.selected .list-item-name {
-  color: var(--fg-on-accent);
+.creator-preset-section .list-item {
+  flex-direction: column;
 }
 
 /* ============================================
-   Schema Preview Section
+   Schema Preview Section — 선택 결과 확인이라 스크롤 밖에 고정
    ============================================ */
 
 .section[data-section-id="schema-preview"] {
-  border-top: 1px solid var(--border);
-  background: var(--bg-inset);
-  max-height: 180px;
+  flex: 0 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  max-height: 40%;
+  border-top: 1px solid var(--border);
+  background: var(--bg-inset);
+
+  /* 공용 `.section` 의 `content-visibility: auto` 는 스크롤 영역 안에서 화면 밖 섹션의
+     렌더를 건너뛰라는 뜻이다. 이 섹션은 스크롤 밖에 고정된 flex item 이라 그 규칙이 걸리면
+     레이아웃 단계에서 높이 0 으로 접혀 헤더까지 사라진다. */
+  content-visibility: visible;
 }
 
 .creator-sample-count {
@@ -149,11 +97,9 @@
 
 .section[data-section-id="schema-preview"] .section-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: var(--spacing-xs) var(--spacing-md);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: 0;
 }
 
 .creator-schema-field {
@@ -199,10 +145,47 @@
    ============================================ */
 
 .creator-footer {
+  flex: none;
   display: flex;
   justify-content: flex-end;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   border-top: 1px solid var(--border);
   background: var(--bg-raised);
+}
+
+/* 확정 액션과 취소가 같은 무게로 보이던 문제 — 구 `.primary`/`.secondary` 는 빌더
+   어디에도 규칙이 없는 죽은 클래스였다. 채움은 빌더의 기존 활성 표현과 같은 축
+   (`--accent` + `--fg-on-accent`). */
+.creator-footer .creator-action {
+  min-width: 72px;
+  justify-content: center;
+}
+
+.creator-footer .creator-action[data-variant="primary"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--fg-on-accent);
+}
+
+.creator-footer .creator-action[data-variant="primary"][data-hovered] {
+  background: color-mix(in srgb, var(--accent) 85%, black);
+  border-color: color-mix(in srgb, var(--accent) 85%, black);
+}
+
+.creator-footer .creator-action[data-variant="primary"][data-disabled] {
+  background: var(--bg-inset);
+  border-color: var(--border);
+  color: var(--fg-disabled);
+}
+
+.creator-footer .creator-action[data-variant="secondary"] {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--fg-muted);
+}
+
+.creator-footer .creator-action[data-variant="secondary"][data-hovered] {
+  background: var(--bg-inset);
+  color: var(--fg);
 }
