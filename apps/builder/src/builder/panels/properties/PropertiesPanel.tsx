@@ -9,7 +9,7 @@
  * 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
  */
 
-import { useCallback, useMemo, memo } from "react";
+import { useCallback, useMemo, memo, type ReactNode } from "react";
 import { useDebouncedSelectedElementData } from "../../stores";
 import type { SelectedElement } from "../../inspector/types";
 import { useEditContract } from "./hooks/useEditContract";
@@ -27,7 +27,11 @@ import { ElementSlotSelector } from "./editors/ElementSlotSelector";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
 import { ComponentSlotFillSection } from "./ComponentSlotFillSection";
 import { FrameSlotSection } from "./FrameSlotSection";
-import { ButtonChildSection } from "./ButtonChildSection";
+import {
+  BUTTON_CHILD_HOST_TAGS,
+  ButtonChildFields,
+} from "./ButtonChildSection";
+import { ElementAttributesSection } from "./ElementAttributesSection";
 import { PageBodySection, DEDICATED_SECTION_TYPES } from "./PageBodySection";
 import { ActionIconButton } from "../../components/ui";
 import { Settings2 } from "lucide-react";
@@ -114,8 +118,11 @@ function panelNodeToCanonicalRefNode(node: PanelNode): PanelCanonicalRefNode {
 const CatalogEditContractEditor = memo(
   function CatalogEditContractEditor({
     selectedElement,
+    contentExtras,
   }: {
     selectedElement: SelectedElement;
+    /** catalog "Content" 그룹에 주입할 비-catalog 컨트롤 (Button 자식 Icon/Text 편집). */
+    contentExtras?: ReactNode;
   }) {
     const selectedCanonicalElement = useCanonicalPropertyElement(
       selectedElement.id,
@@ -255,6 +262,17 @@ const CatalogEditContractEditor = memo(
       // 않는다 — 계약이 빈 게 결함이 아니라 축이 다른 것이고, 실제 컨트롤은
       // PageBodySection 이 공급하므로 함께 뜨면 모순된 안내가 된다.
       if (DEDICATED_SECTION_TYPES.has(selectedElement.type)) return null;
+      if (contentExtras != null) {
+        return (
+          <GenericFieldRenderer
+            fields={semanticFields}
+            onSemanticUpdate={handleSemanticUpdate}
+            onStyleUpdate={handleStyleUpdate}
+            elementId={selectedElement.id}
+            contentExtras={contentExtras}
+          />
+        );
+      }
       return (
         <EmptyState
           message="편집 가능한 속성이 없습니다"
@@ -269,6 +287,7 @@ const CatalogEditContractEditor = memo(
         onSemanticUpdate={handleSemanticUpdate}
         onStyleUpdate={handleStyleUpdate}
         elementId={selectedElement.id}
+        contentExtras={contentExtras}
       />
     );
   },
@@ -755,16 +774,27 @@ function PropertiesPanelContent() {
 
         <ComponentSemanticsSection elementId={selectedElement.id} />
 
+        {/* 모든 element 공통의 DOM/CSS 식별 축 (id · class) — 퍼블리싱 문서와 인터랙션
+            대상 지목이 그대로 쓰는 구조라 컴포넌트별 편집 계약과 분리한다. */}
+        <ElementAttributesSection elementId={selectedElement.id} />
+
         {/* body 의 페이지·프레임 오소링 축 (catalog accepts 로 표현 불가 — PageBodySection 주석) */}
         <PageBodySection elementId={selectedElement.id} />
 
         <FrameSlotSection elementId={selectedElement.id} />
 
-        <ButtonChildSection elementId={selectedElement.id} />
-
         <ComponentSlotFillSection elementId={selectedElement.id} />
 
-        <CatalogEditContractEditor selectedElement={selectedElement} />
+        <CatalogEditContractEditor
+          selectedElement={selectedElement}
+          contentExtras={
+            /* Button/ToggleButton 의 Icon·Text 자식 편집 — catalog 계약 밖 축이지만
+               사용자에겐 같은 Content 라 별도 섹션을 만들지 않고 주입한다. */
+            BUTTON_CHILD_HOST_TAGS.has(selectedElement.type) ? (
+              <ButtonChildFields elementId={selectedElement.id} />
+            ) : undefined
+          }
+        />
 
         {/* ⭐ Layout/Slot System: Element가 들어갈 Slot 선택 */}
         <ElementSlotSelector

@@ -16,7 +16,7 @@
  * size/boolean/string/string-array/number/icon). 단계 2 는 Properties view(semantic) 우선이라
  * style-origin number(unit 입력)는 후속(`PropertyUnitInput` 통합) — 현재는 number control 공용.
  */
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 
 import type { ResolvedField } from "@composition/shared";
 import type { ItemsManagerField } from "@composition/specs";
@@ -74,6 +74,12 @@ export interface GenericFieldRouting {
 interface GenericFieldRendererProps extends GenericFieldRouting {
   /** caller 가 origin 으로 필터한 필드 (Properties view = semantic / Style view = style). */
   fields: ResolvedField[];
+  /**
+   * "content" 그룹 선두에 끼워 넣을 비-catalog 컨트롤 (Button 의 Icon/Text 자식 편집 등).
+   * catalog 계약으로 표현 불가한 **자식 element 축**이라 별도 컴포넌트가 공급하지만, 사용자에겐
+   * 같은 Content 축이므로 섹션을 따로 만들지 않는다 (같은 제목 섹션 2개 방지).
+   */
+  contentExtras?: ReactNode;
 }
 
 function capitalize(s: string): string {
@@ -247,11 +253,17 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   onSemanticUpdate,
   onStyleUpdate,
   elementId,
+  contentExtras,
 }: GenericFieldRendererProps) {
   // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
   const ownerColumns = useOwnerCollectionColumns(elementId);
 
-  if (fields.length === 0) return null;
+  if (fields.length === 0) {
+    // 계약 필드가 0 이어도 주입 컨트롤이 있으면 그것만 Content 로 렌더한다.
+    return contentExtras != null ? (
+      <PropertySection title="Content">{contentExtras}</PropertySection>
+    ) : null;
+  }
 
   // section 순서 보존 그룹핑 (Map 삽입 순서 = 계약 순서).
   const groups = new Map<string, ResolvedField[]>();
@@ -262,10 +274,17 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
     else groups.set(section, [field]);
   }
 
+  // 주입 컨트롤은 content 그룹 선두. content 그룹이 없으면 Content 섹션을 앞에 만든다.
+  const hasContentGroup = groups.has("content");
+
   return (
     <>
+      {contentExtras != null && !hasContentGroup && (
+        <PropertySection title="Content">{contentExtras}</PropertySection>
+      )}
       {Array.from(groups.entries()).map(([section, sectionFields]) => (
         <PropertySection key={section} title={capitalize(section)}>
+          {section === "content" && contentExtras}
           {sectionFields.map((field) => (
             <GenericField
               key={`${field.origin}:${field.key}`}

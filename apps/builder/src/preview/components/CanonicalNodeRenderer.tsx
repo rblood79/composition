@@ -23,6 +23,7 @@ import { useRuntimeStore } from "../store";
 import {
   adaptElementStyle,
   getPrimitiveBinding,
+  resolveAuthoredDomId,
   resolveBodyArtboardStyle,
   toRacProps,
   toReactStyle,
@@ -73,6 +74,7 @@ import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
 } from "../../adapters/canonical/frameMirror";
+import { readLegacyMetadataCustomId } from "../../adapters/canonical/legacyMetadata";
 import type { FillItem } from "../../types/builder/fill.types";
 import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
 import type { BoxShadowPresentationValue } from "../../builder/presentation/boxShadowPresentation";
@@ -656,6 +658,11 @@ export function CanonicalNodeRenderer({
     "data-element-id": elementId,
   };
 
+  // 사용자가 지정한 id (Properties > Attributes) — publish `ElementRenderer` 와 같은 규칙으로
+  // DOM 에 싣는다. canonical 노드에서 customId 는 legacy metadata 에 격리돼 있고(props 아님),
+  // 같은 파일이 이미 metadata.originalTag 를 읽는 것과 동일 층위의 식별자 읽기다.
+  const authoredCustomId = readLegacyMetadataCustomId(node.metadata);
+
   // ── ADR-142: catalog generic 렌더 경로 (cutover 된 primitive 한정) ────────
   // per-component rendererMap 대신 generic toRacProps → primitive 로 렌더.
   // cutoverPrimitives 에 포함된 type 만 해당 — 미지정 시 아래 legacy 경로 보존(회귀 0).
@@ -762,6 +769,27 @@ export function CanonicalNodeRenderer({
       const buttonBaseClassName = usesButtonBaseUtility(type)
         ? `react-aria-${type} button-base`
         : undefined;
+      // 사용자가 지정한 class (Properties > Attributes) 를 실는다. `toRacProps` 는 accepts 계약만
+      //   투영하므로 className 이 여기서 유실됐다 — publish 는 props 를 그대로 spread 해 실리는데
+      //   Preview 만 빠져 두 consumer 가 비대칭이었다 (2026-08-29 실측: publish
+      //   `react-aria-Button button-base hero-cta` ↔ preview `react-aria-Button button-base`).
+      //   RAC className prop 은 default 를 대체하므로 base 클래스를 함께 명시한다. internal source
+      //   (self-compose 렌더러)는 자체 root 클래스 규약이 있어 대상에서 제외 — 종전 동작 유지.
+      const authoredClassName = adaptedEl.props?.className as
+        | string
+        | undefined;
+      // rac source 는 RAC 가 default className 을 **대체**하므로 base 를 함께 명시하고,
+      //   internal source(composition wrapper)는 자기 root 에서 base 를 합성하므로
+      //   (`react-aria-X ${className}` — Badge/Icon/ListBox/Table/Dialog… 전수 확인)
+      //   사용자 class 만 그대로 넘긴다. base 를 여기서 덧붙이면 wrapper 가 중복 부여한다.
+      const cutoverClassName = authoredClassName
+        ? binding.source.kind === "rac"
+          ? [
+              buttonBaseClassName ?? `react-aria-${binding.source.component}`,
+              authoredClassName,
+            ].join(" ")
+          : authoredClassName
+        : buttonBaseClassName;
       // ADR-158 Phase 3 — 인터랙션 **트리거** 배선.
       //
       // `createEventHandlerMap` 을 부르는 곳이 `rendererMap` 계열 renderer 14곳뿐이라,
@@ -785,8 +813,16 @@ export function CanonicalNodeRenderer({
           key={node.id}
           {...markerProps}
           {...racRest}
+          {...(() => {
+            const domId = resolveAuthoredDomId(
+              type,
+              authoredCustomId,
+              racRest.id,
+            );
+            return domId ? { id: domId } : {};
+          })()}
           {...eventHandlers}
-          {...(buttonBaseClassName ? { className: buttonBaseClassName } : {})}
+          {...(cutoverClassName ? { className: cutoverClassName } : {})}
           style={overrideStyle}
         >
           {childNodes.length > 0
@@ -872,6 +908,7 @@ export function CanonicalNodeRenderer({
     {
       key: node.id,
       ...markerProps,
+      id: resolveAuthoredDomId(type, authoredCustomId),
       style: resolvedStyle,
       className: mergedClassName,
       ...specDataAttrs,

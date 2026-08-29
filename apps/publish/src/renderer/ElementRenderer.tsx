@@ -16,6 +16,7 @@
 import { memo, useMemo } from "react";
 import {
   adaptElementStyle,
+  resolveAuthoredDomId,
   resolveBodyArtboardStyle,
   type Element,
 } from "@composition/shared";
@@ -97,6 +98,7 @@ export const ElementRenderer = memo(function ElementRenderer({
             ?.children as React.ReactNode);
     return (
       <div
+        id={resolveAuthoredDomId(adaptedElement.type, adaptedElement.customId)}
         data-element-id={adaptedElement.id}
         data-element-type={adaptedElement.type}
         style={adaptedElement.props?.style as React.CSSProperties}
@@ -162,9 +164,18 @@ export const ElementRenderer = memo(function ElementRenderer({
         ))
       : propsChildren;
 
+  // 사용자가 지정한 id 를 DOM 에 싣는다 (CSS `#id`/앵커/외부 스크립트). catalog prop 으로 이미
+  // id 가 투영된 경우와 RAC collection key 타입은 resolveAuthoredDomId 가 걸러 낸다.
+  const authoredDomId = resolveAuthoredDomId(
+    adaptedElement.type,
+    adaptedElement.customId,
+    (restProps as Record<string, unknown>).id,
+  );
+
   return (
     <Component
       {...restProps}
+      {...(authoredDomId ? { id: authoredDomId } : {})}
       {...eventHandlers}
       data-element-id={adaptedElement.id}
       data-accent={accentColor ? String(accentColor) : undefined}

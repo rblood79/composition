@@ -1,5 +1,4 @@
 import { memo, useCallback } from "react";
-import { PropertySection } from "../../components";
 import { PropertyIconPicker } from "../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { useStore } from "../../stores";
@@ -102,7 +101,12 @@ export function buildButtonChild(
  *   (state-management.md HC #2).
  *   ADR-142 정합: Button.binding 무수정, iconName prop 복원 0.
  */
-export const ButtonChildSection = memo(function ButtonChildSection({
+/**
+ * 섹션 wrapper 없이 **필드만** 반환한다 — `GenericFieldRenderer` 의 catalog "Content"
+ * 그룹 안으로 주입되기 때문(`contentExtras`). 자체 `PropertySection title="Content"` 을
+ * 두면 catalog Content 와 같은 제목 섹션이 2개 뜬다 (2026-08-29 사용자 지적).
+ */
+export const ButtonChildFields = memo(function ButtonChildFields({
   elementId,
 }: {
   elementId: string;
@@ -290,7 +294,7 @@ export const ButtonChildSection = memo(function ButtonChildSection({
   if (!element || !BUTTON_CHILD_HOST_TAGS.has(element.type)) return null;
 
   return (
-    <PropertySection title="Content" id="button-icon">
+    <>
       <PropertyIconPicker
         label="Icon"
         value={currentIconName}
@@ -304,6 +308,6 @@ export const ButtonChildSection = memo(function ButtonChildSection({
           onChange={handleTextChange}
         />
       ) : null}
-    </PropertySection>
+    </>
   );
 });

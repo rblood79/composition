@@ -7,6 +7,7 @@ export * from "./types";
 export * from "./cutover";
 export * from "./componentCatalog";
 export * from "./outputs/toRacProps";
+export * from "./outputs/domIdentity";
 export * from "./outputs/inspectorFields";
 // ADR-912 1A-(b) — DOM 시각 override 어댑터 (override 전용)
 export * from "./outputs/toReactStyle";
