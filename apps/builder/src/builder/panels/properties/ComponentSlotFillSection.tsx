@@ -354,7 +354,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
           />
           <button
             aria-label="Fill slot"
-            className="component-semantics-action frame-slot-action"
+            className="control-button"
             disabled={!selectedCandidateId}
             onClick={handleFillSlot}
             type="button"
@@ -373,7 +373,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
       {filledChildren.length > 0 && (
         <button
           aria-label="Clear slot"
-          className="component-semantics-action frame-slot-action"
+          className="control-button"
           onClick={handleClearSlot}
           type="button"
         >

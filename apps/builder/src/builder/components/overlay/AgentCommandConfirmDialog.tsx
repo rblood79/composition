@@ -67,14 +67,15 @@ export function AgentCommandConfirmDialogHost() {
           </div>
           <div className="agent-confirm-actions">
             <Button
-              className="agent-confirm-button agent-confirm-button--secondary"
+              className="control-button"
               onPress={() => resolveAgentCommandConfirmation(false)}
             >
               거부
             </Button>
             <Button
               autoFocus
-              className="agent-confirm-button agent-confirm-button--primary"
+              className="control-button"
+              data-variant="primary"
               onPress={() => resolveAgentCommandConfirmation(true)}
             >
               실행

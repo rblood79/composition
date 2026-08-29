@@ -36,7 +36,7 @@ export function MemoryActions({
         <span className="recommendation-text">{recommendation}</span>
       </div>
       <Button
-        className="optimize-button"
+        className="control-button optimize-button"
         size="sm"
         onPress={onOptimize}
         isDisabled={isOptimizing}

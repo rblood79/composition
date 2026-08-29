@@ -295,13 +295,14 @@ export function AddPageDialog({
           {/* Actions */}
           <div className="add-page-actions">
             <Button
-              className="add-page-cancel"
+              className="control-button"
               onPress={() => setIsOpen(false)}
             >
               Cancel
             </Button>
             <Button
-              className="add-page-submit"
+              className="control-button"
+              data-variant="primary"
               onPress={handleSubmit}
               isDisabled={isSubmitting || !title.trim() || !!slugError}
             >

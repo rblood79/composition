@@ -139,39 +139,4 @@
     border-top: 1px solid var(--border);
   }
 
-  .add-page-cancel {
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid var(--border-hover);
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--fg);
-    font-size: var(--text-sm);
-    cursor: pointer;
-    transition: background 150ms;
-  }
-
-  .add-page-cancel:hover {
-    background: var(--bg-raised);
-  }
-
-  .add-page-submit {
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: none;
-    border-radius: var(--radius-sm);
-    background: var(--accent);
-    color: var(--fg-on-accent);
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-medium);
-    cursor: pointer;
-    transition: background 150ms;
-  }
-
-  .add-page-submit:hover:not([data-disabled]) {
-    background: var(--color-primary-100);
-  }
-
-  .add-page-submit[data-disabled] {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }

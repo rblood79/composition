@@ -420,10 +420,6 @@
   word-break: break-all;
 }
 
-.ai-profile-preset {
-  --btn-padding: var(--spacing-2xs) var(--spacing-sm);
-}
-
 .ai-connection-list,
 .ai-connection-notices {
   display: flex;

@@ -213,7 +213,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       {isActive ? (
         <button
           aria-label="Disable slot"
-          className="component-semantics-action frame-slot-action"
+          className="control-button"
           onClick={handleDisable}
           type="button"
         >
@@ -223,7 +223,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       ) : (
         <button
           aria-label="Enable slot"
-          className="component-semantics-action frame-slot-action"
+          className="control-button"
           onClick={handleEnable}
           type="button"
         >
@@ -246,7 +246,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
               />
               <button
                 aria-label="Add recommended component"
-                className="component-semantics-action frame-slot-action"
+                className="control-button"
                 disabled={!selectedCandidateId}
                 onClick={handleAddRecommendation}
                 type="button"

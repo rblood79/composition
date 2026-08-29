@@ -438,7 +438,7 @@ function QueryParamsEditor({ endpoint, onUpdate }: QueryParamsEditorProps) {
         </div>
       ))}
 
-      <button type="button" className="add-kv-btn" onClick={handleAdd}>
+      <button type="button" className="control-button" data-variant="add" onClick={handleAdd}>
         <AddIcon {...iconEditProps} />
         {localize("addParameter", "Add Parameter")}
       </button>
@@ -503,7 +503,7 @@ function HeadersEditor({
         ))}
       </div>
 
-      <button type="button" className="add-kv-btn" onClick={onAdd}>
+      <button type="button" className="control-button" data-variant="add" onClick={onAdd}>
         <AddIcon {...iconEditProps} />
         Add Header
       </button>
@@ -627,7 +627,7 @@ function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
         />
         <button
           type="button"
-          className="auto-detect-btn"
+          className="control-button"
           onClick={handleAutoDetect}
           disabled={isDetecting}
           title={localize(
@@ -767,7 +767,7 @@ function FieldMappingEditor({ endpoint, onUpdate }: FieldMappingEditorProps) {
         ))}
       </div>
 
-      <button type="button" className="add-kv-btn" onClick={handleAdd}>
+      <button type="button" className="control-button" data-variant="add" onClick={handleAdd}>
         <AddIcon {...iconEditProps} />
         {localize("addMapping", "Add Mapping")}
       </button>
@@ -814,7 +814,7 @@ function TestEditor({
 
       <button
         type="button"
-        className="test-btn"
+        className="control-button" data-variant="primary"
         onClick={onTest}
         disabled={isExecuting}
       >

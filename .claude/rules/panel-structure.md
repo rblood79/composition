@@ -53,6 +53,9 @@ paths:
   - **Why (2026-08-30 통일)**: DataTable 4개 바가 `<div>`+`<button>`+`.active` 수동 구현이라 `role="tab"`·`aria-selected`·화살표 키·focus 링이 전부 없었고, 선택 상태를 `--accent` 채움으로 그려 뷰 전환 탭이 패널에서 가장 강한 요소가 됐다. hover 배경(`--bg-raised`)이 바 배경과 같아 보이지도 않았다. Monitor 는 마크업만 RAC 이고 CSS 가 자체 계열이었다. 셋 다 공용으로 흡수 — 선택은 표면(`--bg-overlay` + `--shadow-sm`), accent 채움은 primary 액션·값 선택 축에 남긴다.
 - **분류된 팔레트는 탭이 아니라 카테고리당 `Section`** — 고르는 대상이 카테고리로 묶여 있으면 `Section` 을 카테고리 수만큼 쌓는다 (ComponentList 가 정본, DataTableCreator preset 이 추종). 탭 줄로 만들면 패널 기본 폭(387px)에 라벨 5개가 안 들어가 가로 스크롤이 생기고 뒤쪽 카테고리가 상시 숨는다. 패널 탭 슬롯은 **패널 전체 뷰를 가르는 축 하나**만 차지한다 — 그 아래 필터·분류를 같은 모양의 두 번째 바로 쌓으면 두 축이 같은 무게로 읽힌다.
 
+- **라벨 액션 버튼은 `.control-button` 하나** — add / create / cancel / generate 처럼 **라벨을 가진 액션**은 전부 이 클래스이고 무게는 `data-variant` 로만 가른다: 무지정(중립 — 취소·보조 포함) / `primary`(accent 채움, 확정) / `add`(전폭 점선, 목록 끝 어포던스). 정의처는 panel-system.css 하나이며 높이는 `--inspector-control-size`(28px) — 패널의 필드·탭 줄과 같은 격자다. 축이 다른 것은 대상이 아니다: 아이콘 전용은 `.iconButton` / `ActionIconButton`, 패널 헤더 슬롯은 `.panel-actions`, 캔버스 오버레이는 `contextual-action-bar-*`, 여러 줄로 감기는 제안 카드(`.ai-suggestion`)와 테마 미리보기 안의 표본(`.mini-preview__button`)은 빌더 chrome 이 아니다. 집행: `controlButton.static.test.ts`.
+  - **Why (2026-08-30 통일)**: 라벨 액션 버튼이 25개 클래스 / 47개 호출부에서 각자 chrome 을 정의해 높이가 22·26·28·32·34·36·38px 로 갈렸다. 같은 "추가" 액션 6종의 배경 4·radius 2·글자 2·글자색 3이 전부 달랐고, `focus-visible` 은 29개 중 24개(83%)에 아예 없어 키보드로는 위치가 보이지 않았다. 어법(표면+테두리 / 점선 추가 / accent 확정) 자체는 이미 공유하고 있었으므로 새 언어를 만들지 않고, 유일하게 상태 4종을 갖췄던 `.control-button` 을 승격했다. 리터럴 이탈(`6px`/`13px`/`7px 12px`/`11px`/`white`)과 **정의된 적 없는 `--accent-fg`** 도 이때 정리했다 — `EditingSemanticsImpactDialog` 는 fallback 이 없어 `color` 선언 자체가 무효였다.
+
 
 ## 2. 클래스 네이밍 규칙
 

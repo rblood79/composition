@@ -88,28 +88,7 @@
   box-shadow: 0 0 0 2px var(--color-primary-100);
 }
 
-.add-field-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-primary-50);
-  border: 1px dashed var(--color-primary-300);
-  border-radius: var(--radius-md);
-  color: var(--color-primary-600);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: all 150ms ease;
-}
-
-.add-field-btn:hover {
-  background: var(--color-primary-100);
-  border-color: var(--color-primary-400);
-}
-
 /* Data Editor */
-
 
 .data-empty {
   display: flex;
@@ -203,31 +182,6 @@
   gap: var(--spacing-xs);
 }
 
-.toolbar-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--bg-overlay);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  color: var(--fg-muted);
-  cursor: pointer;
-  transition: all 150ms ease;
-}
-
-.toolbar-btn:hover:not(:disabled) {
-  background: var(--bg-inset);
-  border-color: var(--border-disabled);
-  color: var(--fg);
-}
-
-.toolbar-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .data-table-wrapper {
   overflow: auto;
   background: var(--bg-overlay);
@@ -315,27 +269,6 @@
 .delete-row-btn:hover {
   background: var(--color-error-100);
   color: var(--color-error-600);
-}
-
-.add-row-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--bg-overlay);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
-  color: var(--fg-muted);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: all 150ms ease;
-}
-
-.add-row-btn:hover {
-  background: var(--bg-inset);
-  border-color: var(--border-disabled);
-  color: var(--fg);
 }
 
 /* Settings Editor */

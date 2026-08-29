@@ -264,14 +264,13 @@ export function DataTableCreator({
       {/* Footer */}
       <div className="creator-footer">
         <Button
-          className="creator-action"
-          data-variant="secondary"
+          className="control-button"
           onPress={onClose}
         >
           {i18n ? i18n.t("common.cancel") : "Cancel"}
         </Button>
         <Button
-          className="creator-action"
+          className="control-button"
           data-variant="primary"
           onPress={handleCreate}
           isDisabled={mode === "preset" && !selectedPreset}

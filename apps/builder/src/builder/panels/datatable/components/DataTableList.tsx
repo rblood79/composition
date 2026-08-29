@@ -156,7 +156,7 @@ export function DataTableList({
         </div>
       )}
 
-      <Button className="datatable-add-btn" onPress={onCreateClick}>
+      <Button className="control-button" data-variant="add" onPress={onCreateClick}>
         <AddIcon {...iconProps} />
         <span>{localize("addTable", "Add Table")}</span>
       </Button>

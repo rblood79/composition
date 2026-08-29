@@ -120,23 +120,4 @@
 }
 
 /* ADR-154 개정 1 — override opt-in picker */
-.responsive-add-override {
-  width: 100%;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px dashed var(--border);
-  background: var(--bg-inset);
-  color: var(--fg-muted);
-  font-size: var(--text-2xs);
-  cursor: pointer;
-}
 
-.responsive-add-override:hover {
-  border-color: var(--accent);
-  color: var(--fg);
-}
-
-.responsive-add-override:focus {
-  outline: none;
-  border-color: var(--focus-ring);
-}

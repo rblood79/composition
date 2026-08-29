@@ -12,14 +12,9 @@
  */
 
 @layer components {
-  /* ==========================================================================
-     editor 액션 버튼 (`.control-button` 정의 부재 해소)
-     `.control-button` 은 owner·modifier 모두 CSS 정의가 0건이라 live 소비자가
-     순수 `<button>` 과 계산값이 동일했다(배경·패딩·커서 없음, 16px). 시각 기준은
-     코드베이스의 기존 add 버튼 house style(`.add-kv-btn` / `.add-action-button`
-     / `.add-field-btn`) — dashed 어포던스 + 시맨틱 토큰.
-     modifier 는 panel-structure.md §2 규칙대로 `--{state}` 접미.
-     ========================================================================== */
+  /* editor 액션 버튼 컨테이너.
+     버튼 자체(`.control-button`)의 정본은 components/styles/panel-system.css 로 승격했다
+     (2026-08-30) — variant 는 `data-variant="add|primary|quiet"`. */
 
   .editor-actions {
     display: flex;
@@ -27,45 +22,4 @@
     gap: var(--spacing-xs);
   }
 
-  .control-button {
-    align-items: center;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--fg);
-    cursor: pointer;
-    display: inline-flex;
-    font-size: var(--text-xs);
-    gap: var(--spacing-xs);
-    justify-content: center;
-    line-height: var(--text-xs--line-height);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    transition: all 150ms ease;
-  }
-
-  .control-button:hover:not(:disabled) {
-    background: var(--bg-inset);
-    border-color: var(--border-hover);
-  }
-
-  .control-button:disabled {
-    color: var(--fg-disabled);
-    cursor: not-allowed;
-  }
-
-  .control-button:focus-visible {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
-  }
-
-  /* 항목 추가 — 전폭 dashed 어포던스 (house style) */
-  .control-button--add {
-    border-style: dashed;
-    color: var(--fg-muted);
-    width: 100%;
-  }
-
-  .control-button--add:hover:not(:disabled) {
-    color: var(--fg);
-  }
 }

@@ -253,7 +253,7 @@ export const PageParentSelector = memo(function PageParentSelector({
         )}
         <button
           type="button"
-          className="page-slug-generate"
+          className="control-button"
           onClick={handleGenerateSlug}
           title="Generate slug from title"
         >

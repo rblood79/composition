@@ -292,7 +292,8 @@ const SectionRow = memo(function SectionRow({
 
           <div className="editor-actions items-manager-section-actions">
             <button
-              className="control-button control-button--add"
+              className="control-button"
+          data-variant="add"
               onClick={onAddItem}
             >
               <AddIcon size={12} />
@@ -467,7 +468,8 @@ export const ItemsManager = memo(function ItemsManager({
 
       <div className="editor-actions">
         <button
-          className="control-button control-button--add"
+          className="control-button"
+          data-variant="add"
           onClick={handleAdd}
         >
           <AddIcon size={14} />
@@ -475,7 +477,8 @@ export const ItemsManager = memo(function ItemsManager({
         </button>
         {allowSections && (
           <button
-            className="control-button control-button--add"
+            className="control-button"
+          data-variant="add"
             onClick={handleAddSection}
           >
             <FolderPlus size={14} />
@@ -484,7 +487,8 @@ export const ItemsManager = memo(function ItemsManager({
         )}
         {allowSeparators && (
           <button
-            className="control-button control-button--add"
+            className="control-button"
+          data-variant="add"
             onClick={handleAddSeparator}
           >
             <Minus size={14} />

@@ -68,22 +68,3 @@
   padding: 12px 18px 14px;
 }
 
-.agent-confirm-button {
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 18px;
-  padding: 6px 14px;
-}
-
-.agent-confirm-button--secondary {
-  background: transparent;
-  color: var(--fg);
-}
-
-.agent-confirm-button--primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-fg, #fff);
-}

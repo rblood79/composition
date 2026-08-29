@@ -226,7 +226,8 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
 
             {availableToAdd.length > 0 && (
               <select
-                className="responsive-add-override"
+                className="control-button"
+                data-variant="add"
                 value=""
                 onChange={handleAddOverride}
                 aria-label={`Add ${BP_LABEL[activeBreakpoint]} override`}

@@ -94,26 +94,3 @@
   padding: 12px 18px;
 }
 
-.editing-impact-button {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 18px;
-  padding: 7px 12px;
-}
-
-.editing-impact-button--secondary {
-  background: var(--bg-raised);
-  color: var(--fg);
-}
-
-.editing-impact-button--primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-fg);
-}
-
-.editing-impact-button:hover {
-  filter: brightness(1.04);
-}

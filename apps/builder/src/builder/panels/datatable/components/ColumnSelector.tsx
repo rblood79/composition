@@ -121,7 +121,7 @@ export function ColumnSelector({
 
       {/* 전체 선택 체크박스 */}
       <div className="column-selector-actions">
-        <Button className="toggle-all-btn" onPress={handleToggleAll}>
+        <Button className="control-button" onPress={handleToggleAll}>
           {allSelected ? (
             <CheckSquare {...iconProps} />
           ) : (
@@ -182,7 +182,8 @@ export function ColumnSelector({
         </div>
 
         <Button
-          className="import-btn"
+          className="control-button"
+          data-variant="primary"
           onPress={handleImport}
           isDisabled={noneSelected || !tableName.trim() || isImporting}
         >

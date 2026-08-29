@@ -373,7 +373,7 @@ function SchemaEditor({
         </div>
       </div>
 
-      <button type="button" className="add-field-btn" onClick={onAddField}>
+      <button type="button" className="control-button" data-variant="add" onClick={onAddField}>
         <AddIcon {...iconEditProps} />
         {localize("addColumn", "Add Column")}
       </button>
@@ -531,7 +531,7 @@ function MockDataEditor({
             />
             <button
               type="button"
-              className="toolbar-btn"
+              className="control-button"
               onClick={() => fileInputRef.current?.click()}
               title={localize("importCsv", "Import CSV")}
             >
@@ -540,7 +540,7 @@ function MockDataEditor({
             </button>
             <button
               type="button"
-              className="toolbar-btn"
+              className="control-button"
               onClick={handleExportCSV}
               disabled={mockData.length === 0}
               title={localize("exportCsv", "Export CSV")}
@@ -603,7 +603,7 @@ function MockDataEditor({
           </table>
         </div>
       </div>
-      <button type="button" className="add-row-btn" onClick={onAddRow}>
+      <button type="button" className="control-button" data-variant="add" onClick={onAddRow}>
         <AddIcon {...iconEditProps} />
         Add Row
       </button>

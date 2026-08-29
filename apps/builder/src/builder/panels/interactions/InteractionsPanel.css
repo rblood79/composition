@@ -91,22 +91,3 @@
   margin: 0;
 }
 
-.interactions-add {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  width: 100%;
-  min-height: 28px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--fg-muted);
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-
-.interactions-add:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}

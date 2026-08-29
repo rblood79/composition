@@ -120,7 +120,8 @@ function InteractionsPanelContent({
 
               <button
                 type="button"
-                className="interactions-add"
+                className="control-button"
+                data-variant="add"
                 onClick={handleAdd}
               >
                 <AddIcon size={14} />

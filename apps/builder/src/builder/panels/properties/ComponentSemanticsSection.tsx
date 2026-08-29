@@ -177,7 +177,7 @@ export const ComponentSemanticsSection = memo(
         )}
         {!role && (
           <button
-            className="component-semantics-action"
+            className="control-button"
             onClick={handleCreateComponent}
             type="button"
           >
@@ -187,7 +187,7 @@ export const ComponentSemanticsSection = memo(
         {role === "origin" && (
           <button
             aria-label="Remove component"
-            className="component-semantics-action"
+            className="control-button"
             onClick={handleRemoveComponent}
             type="button"
           >
@@ -197,7 +197,7 @@ export const ComponentSemanticsSection = memo(
         {role === "instance" && (
           <>
             <button
-              className="component-semantics-action"
+              className="control-button"
               disabled={!originElement}
               onClick={handleGoToOrigin}
               type="button"
@@ -206,7 +206,7 @@ export const ComponentSemanticsSection = memo(
             </button>
             {isDetachableInstance && (
               <button
-                className="component-semantics-action"
+                className="control-button"
                 onClick={handleDetachInstance}
                 type="button"
               >
@@ -261,7 +261,7 @@ export const ComponentSemanticsSection = memo(
         )}
         {role === "origin" && instanceIds.length > 0 && (
           <button
-            className="component-semantics-action"
+            className="control-button"
             onClick={handleSelectInstances}
             type="button"
           >

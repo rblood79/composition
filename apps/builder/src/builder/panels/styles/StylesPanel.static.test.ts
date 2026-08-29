@@ -59,6 +59,8 @@ describe("StylesPanel canonical selected data contract", () => {
     expect(source).toContain("useSetResponsiveStyleOverrideEnabled");
     expect(source).toContain("setOverrideEnabled(key, true)");
     expect(source).toContain("setOverrideEnabled(key, false)");
-    expect(source).toContain("responsive-add-override");
+    // 2026-08-30: override 추가 버튼은 전용 클래스 대신 공용 라벨 액션 정본
+    // `.control-button[data-variant="add"]` (panel-system.css) 을 쓴다.
+    expect(source).toContain('data-variant="add"');
   });
 });

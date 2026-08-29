@@ -60,22 +60,6 @@
     font-size: var(--text-xs);
   }
 
-  .page-slug-generate {
-    padding: var(--spacing-xs);
-    background: var(--bg-raised);
-    border: 1px solid var(--border-hover);
-    border-radius: var(--radius-sm);
-    color: var(--fg);
-    font-size: var(--text-xs);
-    cursor: pointer;
-    transition: all 150ms;
-
-    &:hover {
-      background: var(--bg-overlay);
-      border-color: var(--accent);
-    }
-  }
-
   .page-resolved-url {
     display: flex;
     flex-direction: column;

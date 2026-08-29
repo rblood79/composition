@@ -170,7 +170,8 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
 
       <button
         type="button"
-        className="datatable-add-btn"
+        className="control-button"
+        data-variant="add"
         onClick={handleCreate}
       >
         <AddIcon {...iconProps} />

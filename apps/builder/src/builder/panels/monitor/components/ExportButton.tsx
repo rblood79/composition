@@ -69,7 +69,7 @@ export function ExportButton({ stats, format = "json" }: ExportButtonProps) {
 
   return (
     <Button
-      className="export-button"
+      className="control-button export-button"
       variant="secondary"
       size="sm"
       onPress={handleExport}

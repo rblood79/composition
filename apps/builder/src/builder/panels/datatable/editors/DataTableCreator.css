@@ -154,38 +154,6 @@
   background: var(--bg-raised);
 }
 
-/* 확정 액션과 취소가 같은 무게로 보이던 문제 — 구 `.primary`/`.secondary` 는 빌더
-   어디에도 규칙이 없는 죽은 클래스였다. 채움은 빌더의 기존 활성 표현과 같은 축
-   (`--accent` + `--fg-on-accent`). */
-.creator-footer .creator-action {
-  min-width: 72px;
-  justify-content: center;
-}
+/* 푸터 버튼은 공용 라벨 액션 정본 `.control-button` (panel-system.css) —
+   확정은 `data-variant="primary"`, 취소는 기본(중립) 이다. */
 
-.creator-footer .creator-action[data-variant="primary"] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--fg-on-accent);
-}
-
-.creator-footer .creator-action[data-variant="primary"][data-hovered] {
-  background: color-mix(in srgb, var(--accent) 85%, black);
-  border-color: color-mix(in srgb, var(--accent) 85%, black);
-}
-
-.creator-footer .creator-action[data-variant="primary"][data-disabled] {
-  background: var(--bg-inset);
-  border-color: var(--border);
-  color: var(--fg-disabled);
-}
-
-.creator-footer .creator-action[data-variant="secondary"] {
-  background: transparent;
-  border-color: var(--border);
-  color: var(--fg-muted);
-}
-
-.creator-footer .creator-action[data-variant="secondary"][data-hovered] {
-  background: var(--bg-inset);
-  color: var(--fg);
-}

@@ -82,7 +82,7 @@ export function AgentProfileSettings() {
           {PRESETS.map((preset) => (
             <Button
               key={preset.id}
-              className="ai-profile-preset"
+              className="control-button"
               variant="secondary"
               size="sm"
               onPress={() => applyPreset(preset.id)}

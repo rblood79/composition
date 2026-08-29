@@ -102,14 +102,15 @@ export function EditingSemanticsImpactDialogHost() {
           </div>
           <div className="editing-impact-actions">
             <Button
-              className="editing-impact-button editing-impact-button--secondary"
+              className="control-button"
               onPress={handleCancel}
             >
               Cancel
             </Button>
             <Button
               autoFocus
-              className="editing-impact-button editing-impact-button--primary"
+              className="control-button"
+              data-variant="primary"
               onPress={handleContinue}
             >
               Continue

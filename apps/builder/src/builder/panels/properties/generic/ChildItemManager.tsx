@@ -129,7 +129,8 @@ export const ChildItemManager = memo(function ChildItemManager({
 
       <div className="editor-actions">
         <button
-          className="control-button control-button--add"
+          className="control-button"
+          data-variant="add"
           onClick={handleAdd}
         >
           <AddIcon size={14} />
