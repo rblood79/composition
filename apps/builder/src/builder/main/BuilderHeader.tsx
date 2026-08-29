@@ -29,7 +29,7 @@ import {
   ToggleButton,
   Group,
 } from "@composition/shared/components";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
 import { iconProps } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
@@ -68,7 +68,8 @@ export interface BuilderHeaderProps {
   onBreakpointChange: (value: Key) => void;
   onPreview: () => void;
   onPlay: () => void;
-  onPublish: () => void;
+  onImportProject: (file: File) => void | Promise<void>;
+  onExportProject: () => void | Promise<void>;
   showWorkflowOverlay: boolean;
   onWorkflowOverlayToggle: () => void;
 }
@@ -80,7 +81,8 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   breakpoints,
   onBreakpointChange,
   onPreview,
-  onPublish,
+  onImportProject,
+  onExportProject,
   showWorkflowOverlay,
   onWorkflowOverlayToggle,
 }) => {
@@ -92,6 +94,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   const toggleCompareMode = useCompareModeStore(
     (state) => state.toggleCompareMode,
   );
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   // 프로젝트 목록으로 나간다 — 헤더 메뉴 항목과 ⌘O 가 같은 동작을 부른다.
   const handleOpenProject = useCallback(() => {
@@ -106,6 +109,16 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
     [handleOpenProject],
   );
   useKeyboardShortcutsRegistry(headerShortcuts, [headerShortcuts]);
+
+  const handleImportFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.currentTarget.files?.[0];
+      // 같은 파일도 다시 선택할 수 있도록 즉시 초기화한다.
+      event.currentTarget.value = "";
+      if (file) void onImportProject(file);
+    },
+    [onImportProject],
+  );
 
   // aria-label 과 툴팁이 같은 문자열이어야 해서 한 번만 만든다.
   const compareLabel = isCompareMode
@@ -138,6 +151,8 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               className="header-menu"
               onAction={(key: Key) => {
                 if (key === "open") handleOpenProject();
+                if (key === "import") importInputRef.current?.click();
+                if (key === "export") void onExportProject();
                 if (key === "reset-panel-layout") resetWorkspaceLayout();
                 if (key === "settings") togglePanel("settings");
                 if (key === "shortcuts")
@@ -150,11 +165,11 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 <Keyboard>{shortcutDisplayFor("openProject")}</Keyboard>
               </MenuItem>
               <MenuItem id="import" className="header-menu-item">
-                <Download size={14} />
+                <Upload size={14} />
                 <span>{t("header.importProject")}</span>
               </MenuItem>
               <MenuItem id="export" className="header-menu-item">
-                <Upload size={14} />
+                <Download size={14} />
                 <span>{t("header.exportProject")}</span>
               </MenuItem>
               <Separator className="header-menu-separator" />
@@ -189,6 +204,13 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             </Menu>
           </Popover>
         </MenuTrigger>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={handleImportFileChange}
+        />
         <div className="logo-container">
           <img src="/appIcon.svg" alt={t("header.logo")} />
         </div>
@@ -330,13 +352,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             <Eye strokeWidth={iconProps.strokeWidth} size={iconProps.size} />
           </ActionIconButton>
         </div>
-        <button
-          aria-label={t("header.publish")}
-          className="publish"
-          onClick={onPublish}
-        >
-          {t("header.publish")}
-        </button>
       </div>
     </header>
   );

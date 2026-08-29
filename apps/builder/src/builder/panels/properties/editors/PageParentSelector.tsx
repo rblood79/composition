@@ -261,10 +261,12 @@ export const PageParentSelector = memo(function PageParentSelector({
         </button>
       </div>
 
-      <div className="page-url-preview">
-        <span className="page-url-label">Preview URL:</span>
-        <code className="page-url-value">{previewUrl}</code>
-      </div>
+      {previewUrl !== currentSlug && (
+        <div className="page-resolved-url">
+          <span className="page-resolved-url-label">Resolved URL:</span>
+          <code className="page-resolved-url-value">{previewUrl}</code>
+        </div>
+      )}
     </PropertySection>
   );
 });

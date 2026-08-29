@@ -59,7 +59,9 @@ describe("i18n Builder wiring", () => {
     expect(settings).toContain("<LanguageSwitcher />");
     expect(settings).toContain('t("settings.title")');
     expect(header).toContain('import { useI18n } from "../../i18n";');
-    expect(header).toContain('t("header.publish")');
+    expect(header).toContain('t("header.importProject")');
+    expect(header).toContain('t("header.exportProject")');
+    expect(header).not.toContain('t("header.publish")');
     expect(header).toContain('t("header.logo")');
     expect(panelToggleGroup).toContain(
       'import { getPanelLabel } from "./panelLabels";',

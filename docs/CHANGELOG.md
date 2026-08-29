@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프로젝트 로컬 파일 Import/Export] - 2026-08-29
+
+### Changed
+
+- **Header의 Publish 버튼을 제거했습니다**: 편집 화면 상단의 게시 진입점을 없애고 Preview와 보기 도구만 남겼습니다.
+
+### Added
+
+- **전체 메뉴에서 프로젝트를 로컬 파일로 저장하고 다시 불러올 수 있습니다**: `내보내기`는 현재 canonical document와 활성 페이지, custom font registry를 편집 가능한 JSON으로 내려받습니다. `가져오기`는 JSON을 검증한 뒤 현재 프로젝트의 로컬 ID를 유지한 채 문서·페이지·요소 파생 상태와 IndexedDB 저장본을 함께 교체합니다.
+
 ## [Page URL 표시 중복 정리] - 2026-08-29
 
 ### Changed

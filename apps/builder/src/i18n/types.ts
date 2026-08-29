@@ -112,7 +112,12 @@ export interface TranslationKeys {
     menu: string;
     openProject: string;
     importProject: string;
+    importProjectSuccess: string;
+    importProjectFailed: string;
     exportProject: string;
+    exportProjectSuccess: string;
+    exportProjectFailed: string;
+    projectFileUnavailable: string;
     deleteProject: string;
     resetPanelLayout: string;
     settings: string;
@@ -133,7 +138,6 @@ export interface TranslationKeys {
     hideWorkflowOverlay: string;
     preview: string;
     monitor: string;
-    publish: string;
     desktop: string;
     tablet: string;
     mobile: string;

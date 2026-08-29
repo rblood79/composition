@@ -4,6 +4,7 @@ import { Key } from "react-aria-components";
 
 import { useStore } from "../stores";
 import { historyManager } from "../stores/history";
+import { applySnapshotDocument } from "../stores/history/snapshotRestore";
 import { applyCanonicalThemes } from "@/adapters/canonical";
 import type { BreakpointName } from "@composition/shared";
 
@@ -95,9 +96,12 @@ import {
   mergeData,
   safeJsonParse,
 } from "../../utils/dataHelpers";
-import { exportProject } from "@composition/shared/utils";
-import { loadFontRegistry } from "../fonts/customFonts";
-import { generateThemeCSS } from "../../utils/theme/generateThemeCSS";
+import {
+  downloadProjectAsJson,
+  loadProjectFromFile,
+} from "@composition/shared/utils";
+import { loadFontRegistry, saveRegistryAndNotify } from "../fonts/customFonts";
+import { useI18n } from "../../i18n";
 import {
   NEUTRAL_PALETTES,
   type NeutralPreset,
@@ -185,6 +189,7 @@ function hasPageShellTopologyChanged(
 
 export const BuilderCore: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
+  const { t } = useI18n();
   const [projectInfo, setProjectInfo] = useState<Project | null>(null);
 
   // Store 상태
@@ -1105,38 +1110,99 @@ export const BuilderCore: React.FC = () => {
 
   const handlePlay = useCallback(() => {}, []);
 
-  const handlePublish = useCallback(async () => {
-    // Store에서 현재 상태 가져오기
-    const state = useStore.getState();
-    const { currentPageId: storeCurrentPageId } = state;
+  const handleExportProject = useCallback(() => {
     const document = getActiveCanonicalDocument();
-    if (!document) {
-      console.error("[BuilderCore] canonical document is not ready");
+    if (!projectId || !document) {
+      showToast("error", t("header.projectFileUnavailable"));
       return;
     }
 
-    // 프로젝트 ID와 이름
-    const id = projectId || "unknown-project";
-    const name = projectInfo?.name || "Untitled Project";
+    try {
+      downloadProjectAsJson(
+        projectId,
+        projectInfo?.name || "Untitled Project",
+        document,
+        useStore.getState().currentPageId,
+        loadFontRegistry(),
+      );
+      showToast("success", t("header.exportProjectSuccess"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showToast("error", t("header.exportProjectFailed", { message }), 8000);
+    }
+  }, [projectId, projectInfo, showToast, t]);
 
-    // ADR-021 Phase C: ThemeConfig → CSS 변수 문자열
-    const themeState = useThemeConfigStore.getState();
-    const themeCSS = generateThemeCSS({
-      tint: themeState.tint,
-      neutral: themeState.neutral,
-      radiusScale: themeState.radiusScale,
-    });
+  const handleImportProject = useCallback(
+    async (file: File): Promise<void> => {
+      if (!projectId) {
+        showToast("error", t("header.projectFileUnavailable"));
+        return;
+      }
 
-    // ADR-014 Phase E: 멀티파일 export (폰트 포함)
-    await exportProject({
-      projectId: id,
-      projectName: name,
-      document,
-      currentPageId: storeCurrentPageId,
-      fontRegistry: loadFontRegistry(),
-      themeCSS,
-    });
-  }, [projectId, projectInfo]);
+      try {
+        const result = await loadProjectFromFile(file);
+        if (!result.success) {
+          showToast(
+            "error",
+            t("header.importProjectFailed", {
+              message: result.error.message,
+            }),
+            8000,
+          );
+          return;
+        }
+
+        const previousPageIds = useStore
+          .getState()
+          .pages.map((page) => page.id);
+        pageShellBridgeSuspendedRef.current = true;
+        try {
+          // 현재 프로젝트의 로컬 identity 는 유지하고 파일의 canonical document 만
+          // 전체 교체한다. 복원 SSOT 경로가 page/element 파생과 IndexedDB 저장까지
+          // 같은 순서로 수행한다.
+          await applySnapshotDocument(
+            useStore.getState,
+            projectId,
+            result.data.document,
+          );
+
+          if (result.data.fontRegistry) {
+            saveRegistryAndNotify(result.data.fontRegistry);
+          }
+
+          const importedState = useStore.getState();
+          const importedPageIds = new Set(
+            importedState.pages.map((page) => page.id),
+          );
+          const importedCurrentPageId = result.data.currentPageId;
+          if (
+            importedCurrentPageId &&
+            importedPageIds.has(importedCurrentPageId)
+          ) {
+            importedState.activatePage(importedCurrentPageId);
+          }
+
+          // 전체 문서 교체 후 과거 element diff 를 적용하면 다른 문서를 손상시킬 수
+          // 있으므로, 이 프로젝트가 가졌던 페이지와 새 페이지의 history 만 비운다.
+          const historyPageIds = new Set([
+            ...previousPageIds,
+            ...importedPageIds,
+          ]);
+          historyPageIds.forEach((pageId) => {
+            historyManager.clearPageHistory(pageId);
+          });
+        } finally {
+          pageShellBridgeSuspendedRef.current = false;
+        }
+
+        showToast("success", t("header.importProjectSuccess"));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        showToast("error", t("header.importProjectFailed", { message }), 8000);
+      }
+    },
+    [projectId, showToast, t],
+  );
 
   // 클릭 외부 감지
   useEffect(() => {
@@ -1227,7 +1293,8 @@ export const BuilderCore: React.FC = () => {
             onBreakpointChange={handleBreakpointChange}
             onPreview={handlePreview}
             onPlay={handlePlay}
-            onPublish={handlePublish}
+            onImportProject={handleImportProject}
+            onExportProject={handleExportProject}
             showWorkflowOverlay={showWorkflowOverlay}
             onWorkflowOverlayToggle={toggleWorkflowOverlay}
           />

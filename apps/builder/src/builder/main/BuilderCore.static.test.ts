@@ -134,6 +134,23 @@ describe("BuilderCore canonical document direct cutover contract", () => {
       /pageShellBridgeSuspendedRef\.current = true;[\s\S]+const result = await initializeProject\(projectId\)\.finally\(\(\) => \{[\s\S]+pageShellBridgeSuspendedRef\.current = false;/,
     );
   });
+
+  it("imports and exports editable project JSON through the canonical replacement path", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCore.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("downloadProjectAsJson");
+    expect(source).toContain("loadProjectFromFile");
+    expect(source).toContain("applySnapshotDocument(");
+    expect(source).toContain("saveRegistryAndNotify(result.data.fontRegistry)");
+    expect(source).toContain("historyManager.clearPageHistory(pageId)");
+    expect(source).toContain("pageShellBridgeSuspendedRef.current = true");
+    expect(source).toContain("onImportProject={handleImportProject}");
+    expect(source).toContain("onExportProject={handleExportProject}");
+    expect(source).not.toContain("onPublish={handlePublish}");
+  });
 });
 
 describe("BuilderHeader history action ownership", () => {

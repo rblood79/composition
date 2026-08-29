@@ -24,6 +24,20 @@ describe("BuilderHeader chrome control groups", () => {
     expect(source).toContain("workspaceLayout?.visibility.monitor === true");
   });
 
+  it("상단 Publish를 제거하고 전체 메뉴에서 프로젝트 JSON import/export를 연결한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderHeader.tsx"),
+      "utf-8",
+    );
+
+    expect(source).not.toContain("onPublish");
+    expect(source).not.toContain('className="publish"');
+    expect(source).toContain('if (key === "import")');
+    expect(source).toContain('if (key === "export") void onExportProject()');
+    expect(source).toContain('accept="application/json,.json"');
+    expect(source).toContain("void onImportProject(file)");
+  });
+
   it("header shell은 transparent이고 group surface는 공통 stylesheet가 소유한다", async () => {
     const [headerStyles, groupStyles] = await Promise.all([
       readFile(resolve(__dirname, "../styles/layout/header.css"), "utf-8"),
@@ -67,5 +81,6 @@ describe("BuilderHeader chrome control groups", () => {
       /\.react-aria-Button\.header-menu-button\s*\{[\s\S]*?border: none;[\s\S]*?background: var\(--bg-muted\);[\s\S]*?padding: var\(--spacing-sm\);[\s\S]*?border-radius: 6px;/,
     );
     expect(headerStyles).not.toContain('[aria-label="menu"]');
+    expect(headerStyles).not.toContain(".header_contents .publish");
   });
 });

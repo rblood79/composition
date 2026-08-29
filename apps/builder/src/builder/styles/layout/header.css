@@ -538,24 +538,4 @@
   .workflow-sub-toggles .react-aria-Checkbox[data-selected="false"] {
     opacity: 0.5;
   }
-
-  /* Publish Button */
-  .header_contents .publish {
-    background:
-      linear-gradient(var(--bg-raised), var(--border)) padding-box,
-      linear-gradient(
-          82.77deg,
-          var(--informative) 11.87%,
-          var(--informative) 38.42%,
-          var(--fg-muted) 64.19%,
-          var(--negative) 89.96%
-        )
-        border-box;
-    border: 2px solid transparent;
-    border-radius: var(--radius-md);
-    color: var(--fg);
-    line-height: var(--text-sm--line-height);
-    font-size: var(--text-sm);
-    padding: var(--spacing-xs) var(--spacing-lg);
-  }
 }
