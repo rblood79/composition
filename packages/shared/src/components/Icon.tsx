@@ -48,10 +48,13 @@ export const Icon = memo(function Icon({
   const data = getIconData(iconName);
   if (!data) return null;
 
-  // data-* 속성만 전달
+  // data-* 속성 + 사용자가 지정한 DOM id 만 전달.
+  //   id 를 통과시키는 이유: 렌더러(preview `CanonicalNodeRenderer` / publish `ElementRenderer`)가
+  //   `resolveAuthoredDomId` 로 customId → `id` 를 실어 보내는데, 여기서 걸러지면 Icon 만
+  //   `#id` 선택자·앵커 대상이 못 된다 (다른 internal leaf 는 `{...rest}` 로 이미 통과).
   const dataProps: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(rest)) {
-    if (key.startsWith("data-")) {
+    if (key.startsWith("data-") || key === "id") {
       dataProps[key] = value;
     }
   }
