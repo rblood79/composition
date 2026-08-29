@@ -20,7 +20,6 @@
 .styles-panel-tab {
   width: auto;
   justify-content: start;
-  padding: 0 var(--spacing-xs);
 }
 
 /* 선택 탭만 남는 폭을 가져가 라벨 자리를 만든다. */
