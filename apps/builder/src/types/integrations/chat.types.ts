@@ -83,14 +83,12 @@ export interface ConversationState {
   isAgentRunning: boolean;
   currentTurn: number;
   activeToolCalls: ToolCallInfo[];
-  currentContext: BuilderContext | null;
 
   // 기존 액션
   addUserMessage: (content: string) => void;
   addAssistantMessage: (content: string, intent?: ComponentIntent) => void;
   updateLastMessage: (content: string) => void;
   setStreamingStatus: (isStreaming: boolean) => void;
-  updateContext: (context: BuilderContext) => void;
   clearConversation: () => void;
 
   // Agent Loop 액션

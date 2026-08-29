@@ -13,6 +13,7 @@ import { useConversationStore } from "../../../stores/conversation";
 import { useStore } from "../../../stores";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
 import type { BuilderContext } from "../../../../types/integrations/chat.types";
+import { buildBuilderContext } from "../../../../services/ai/builderContext";
 import type { ToolExecutionResult } from "../../../../types/integrations/ai.types";
 import {
   initialProgress,
@@ -35,7 +36,6 @@ export function useAgentLoop() {
     isAgentRunning,
     currentTurn,
     activeToolCalls,
-    currentContext,
     addUserMessage,
     addAssistantMessage,
     appendToLastMessage,
@@ -80,13 +80,9 @@ export function useAgentLoop() {
    */
   const runAgent = useCallback(
     async (message: string) => {
-      const context = useConversationStore.getState().currentContext;
-      if (!context) {
-        if (import.meta.env.DEV) {
-          console.warn("[useAgentLoop] No context available");
-        }
-        return;
-      }
+      // 턴 시작 시점에 스토어에서 조립한다 — 패널 effect 의 실행 여부에 걸리지 않는다
+      // (`services/ai/builderContext.ts` 주석: 감춰진 패널에서 제출이 조용히 무시되던 원인).
+      const context = buildBuilderContext();
 
       // 유저 메시지 추가
       addUserMessage(message);
@@ -256,7 +252,6 @@ export function useAgentLoop() {
     isAgentRunning,
     currentTurn,
     activeToolCalls,
-    currentContext,
     runAgent,
     stopAgent,
     hasAgent: !!agent,

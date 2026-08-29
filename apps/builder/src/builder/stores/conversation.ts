@@ -5,8 +5,13 @@
  * Agent Loop 상태, tool call 추적 포함
  */
 
-import { create } from 'zustand';
-import type { ConversationState, ChatMessage, ComponentIntent, BuilderContext, ToolCallInfo } from '../../types/integrations/chat.types';
+import { create } from "zustand";
+import type {
+  ConversationState,
+  ChatMessage,
+  ComponentIntent,
+  ToolCallInfo,
+} from "../../types/integrations/chat.types";
 
 export const useConversationStore = create<ConversationState>((set) => ({
   messages: [],
@@ -14,7 +19,6 @@ export const useConversationStore = create<ConversationState>((set) => ({
   isAgentRunning: false,
   currentTurn: 0,
   activeToolCalls: [],
-  currentContext: null,
 
   /**
    * Add a user message to the conversation
@@ -22,9 +26,9 @@ export const useConversationStore = create<ConversationState>((set) => ({
   addUserMessage: (content: string) => {
     const message: ChatMessage = {
       id: crypto.randomUUID(),
-      role: 'user',
+      role: "user",
       content,
-      status: 'complete',
+      status: "complete",
       timestamp: Date.now(),
     };
 
@@ -39,9 +43,9 @@ export const useConversationStore = create<ConversationState>((set) => ({
   addAssistantMessage: (content: string, intent?: ComponentIntent) => {
     const message: ChatMessage = {
       id: crypto.randomUUID(),
-      role: 'assistant',
+      role: "assistant",
       content,
-      status: 'complete',
+      status: "complete",
       timestamp: Date.now(),
       metadata: intent ? { componentIntent: intent } : undefined,
     };
@@ -60,9 +64,9 @@ export const useConversationStore = create<ConversationState>((set) => ({
       const messages = [...state.messages];
       const lastMessage = messages[messages.length - 1];
 
-      if (lastMessage && lastMessage.role === 'assistant') {
+      if (lastMessage && lastMessage.role === "assistant") {
         lastMessage.content = content;
-        lastMessage.status = 'streaming';
+        lastMessage.status = "streaming";
       }
 
       return { messages };
@@ -77,9 +81,9 @@ export const useConversationStore = create<ConversationState>((set) => ({
       const messages = [...state.messages];
       const lastMessage = messages[messages.length - 1];
 
-      if (lastMessage && lastMessage.role === 'assistant') {
+      if (lastMessage && lastMessage.role === "assistant") {
         lastMessage.content += delta;
-        lastMessage.status = 'streaming';
+        lastMessage.status = "streaming";
       }
 
       return { messages };
@@ -97,8 +101,8 @@ export const useConversationStore = create<ConversationState>((set) => ({
         const messages = [...state.messages];
         const lastMessage = messages[messages.length - 1];
 
-        if (lastMessage && lastMessage.role === 'assistant') {
-          lastMessage.status = 'complete';
+        if (lastMessage && lastMessage.role === "assistant") {
+          lastMessage.status = "complete";
         }
 
         return { messages };
@@ -129,9 +133,9 @@ export const useConversationStore = create<ConversationState>((set) => ({
   addToolMessage: (toolCallId: string, toolName: string, result: unknown) => {
     const message: ChatMessage = {
       id: crypto.randomUUID(),
-      role: 'tool',
+      role: "tool",
       content: JSON.stringify(result),
-      status: 'complete',
+      status: "complete",
       timestamp: Date.now(),
       metadata: {
         toolCallId,
@@ -150,7 +154,7 @@ export const useConversationStore = create<ConversationState>((set) => ({
    */
   updateToolCallStatus: (
     toolCallId: string,
-    status: ToolCallInfo['status'],
+    status: ToolCallInfo["status"],
     result?: unknown,
     error?: string,
   ) => {
@@ -169,7 +173,7 @@ export const useConversationStore = create<ConversationState>((set) => ({
         // 새 tool call 추가
         activeToolCalls.push({
           id: toolCallId,
-          name: '',
+          name: "",
           arguments: {},
           status,
           ...(result !== undefined ? { result } : {}),
@@ -179,13 +183,6 @@ export const useConversationStore = create<ConversationState>((set) => ({
 
       return { activeToolCalls };
     });
-  },
-
-  /**
-   * Update current builder context
-   */
-  updateContext: (context: BuilderContext) => {
-    set({ currentContext: context });
   },
 
   /**

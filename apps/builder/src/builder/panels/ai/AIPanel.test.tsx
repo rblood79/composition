@@ -235,26 +235,3 @@ describe("BYOK 미설정 최초 진입 (R2)", () => {
     expect(screen.getByText("고급 모드 자리")).toBeTruthy();
   });
 });
-
-describe("AI 에 전달하는 문서 요약", () => {
-  beforeEach(() => {
-    mockUpdateContext.mockReset();
-  });
-
-  afterEach(() => {
-    cleanup();
-  });
-
-  /**
-   * 이 목록은 `pageElementsSnapshot`(레이어 트리용 **구조 전용** 캐시)에서 온다 —
-   * props-only 변경에는 갱신되지 않는다. props 를 실어 두면 낡은 값이 조용히 읽힌다.
-   * 소비처(`buildSystemPrompt` · `Orchestrator`)가 읽는 것은 id · type · 개수뿐이다.
-   */
-  it("요소는 식별 정보만 싣는다 — 낡은 props 가 흘러가지 않도록", () => {
-    render(<AIPanel />);
-
-    const context = mockUpdateContext.mock.calls.at(-1)?.[0];
-    expect(context.elements).toEqual([{ id: "button-1", type: "Button" }]);
-    expect(context).not.toHaveProperty("recentChanges");
-  });
-});

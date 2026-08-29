@@ -32,17 +32,12 @@ import { AgentControls } from "./components/AgentControls";
 import { AgentCommandLogList } from "./components/AgentCommandLogList";
 import { AdvancedMode } from "./components/AdvancedMode";
 import { ToolCallMessage } from "./components/ToolCallMessage";
-import type {
-  BuilderContext,
-  ChatMessage as ChatMessageType,
-} from "../../../types/integrations/chat.types";
+import type { ChatMessage as ChatMessageType } from "../../../types/integrations/chat.types";
 import "./AIPanel.css";
 import { ACTION_ICONS } from "../../config/actionIcons";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
-
-const EMPTY_ELEMENTS: BuilderContext["elements"] = [];
 
 function formatElementType(type: string): string {
   return `${type.charAt(0).toUpperCase()}${type.slice(1)}`;
@@ -299,55 +294,18 @@ function AIPanelContent() {
     stopAgent,
   } = useAgentLoop();
 
-  // ADR-040: 현재 페이지 요소만 구독 (전체 elements 배열 구독 제거)
-  const currentPageId = useStore((state) => state.currentPageId);
-  const pageElements =
-    useStore((state) =>
-      state.currentPageId
-        ? state.pageElementsSnapshot[state.currentPageId]
-        : undefined,
-    ) ?? EMPTY_ELEMENTS;
-  const selectedElementId = useStore((state) => state.selectedElementId);
   /**
-   * 선택 요소만 props 가 필요하다 (프롬프트의 "선택된 요소 정보" 블록). `pageElements`
-   * 는 구조 전용 캐시라 props 가 낡으므로 여기서 뽑지 않는다 — `elementsMap` 은
-   * props-only 변경에 갱신되고 조회가 O(1) 이다 (2026-08-29 live 실측).
+   * 추천 문구용 타입만 읽는다. AI 에 넘길 컨텍스트는 **턴 시점에** `useAgentLoop` 가
+   * 스토어에서 만든다 (`services/ai/builderContext.ts`) — 패널이 감춰져 effect 가
+   * 멈춘 동안 제출이 조용히 무시되던 원인이 이 렌더 부수효과였다.
    */
-  const selectedElement = useStore((state) =>
+  const selectedElementType = useStore((state) =>
     state.selectedElementId
-      ? (state.elementsMap?.get(state.selectedElementId) ?? null)
-      : null,
+      ? state.elementsMap?.get(state.selectedElementId)?.type
+      : undefined,
   );
-  const selectedElementType = selectedElement?.type;
 
-  const { updateContext, clearConversation } = useConversationStore();
-
-  /**
-   * Update context whenever builder state changes
-   */
-  useEffect(() => {
-    const context: BuilderContext = {
-      currentPageId: currentPageId || "default",
-      selectedElementId: selectedElementId || undefined,
-      elements: pageElements.map((el) => ({ id: el.id, type: el.type })),
-      selectedElement: selectedElement
-        ? {
-            id: selectedElement.id,
-            type: selectedElement.type,
-            props: selectedElement.props as Record<string, unknown>,
-            parent_id: selectedElement.parent_id ?? null,
-          }
-        : undefined,
-    };
-
-    updateContext(context);
-  }, [
-    pageElements,
-    selectedElement,
-    selectedElementId,
-    currentPageId,
-    updateContext,
-  ]);
+  const { clearConversation } = useConversationStore();
 
   const isDisabled = isStreaming || isAgentRunning;
 
