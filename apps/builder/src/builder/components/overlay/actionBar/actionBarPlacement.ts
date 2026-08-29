@@ -102,3 +102,8 @@ export function actionBarTransform(offset: ActionBarOffset | null): string {
   if (!offset) return "translateX(-50%)";
   return `translate(calc(-50% + ${offset.dx}px), ${offset.dy}px)`;
 }
+
+/** page 자동 배치는 좌표 속성을 바꾸지 않고 compositor transform만 갱신한다. */
+export function actionBarPageTransform(anchor: Point): string {
+  return `translate3d(${anchor.x}px, ${anchor.y}px, 0) translateX(-50%)`;
+}

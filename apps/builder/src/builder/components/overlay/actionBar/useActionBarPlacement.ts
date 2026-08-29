@@ -7,36 +7,32 @@
  *   바가 없는 동안(선택 0 / 텍스트 편집 / Hide)에는 잴 것이 없다.
  * - 부모(`.workspace-overlay`, inset:0) 가 배치 기준면.
  */
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useStore } from "../../../stores";
 import type { ActionBarOffset } from "../../../stores/utils/actionBarStorage";
 import {
   getPagePositionPresentationSnapshot,
   readPagePositionForInteraction,
-  subscribePagePositionPresentation,
+  type PagePositionPresentationSnapshot,
 } from "../../../workspace/canvas/interaction/pagePositionPresentation";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
+import { getViewportPresentationSnapshot } from "../../../workspace/canvas/viewport/viewportPresentation";
 import {
-  getViewportPresentationSnapshot,
-  subscribeViewportPresentation,
-} from "../../../workspace/canvas/viewport/viewportPresentation";
+  getCanvasFramePresentationSnapshot,
+  subscribeCanvasFramePresentation,
+  type CanvasFramePresentationSnapshot,
+} from "../../../workspace/canvas/canvasFramePresentation";
 import {
   ACTION_BAR_BOTTOM_GAP,
+  actionBarPageTransform,
   actionBarTransform,
   clampActionBarOffset,
   offsetsEqual,
   pageActionBarAnchor,
   pageAnchorToManualOffset,
+  type Point,
   type Size,
 } from "./actionBarPlacement";
-
-const subscribeNoop = (): (() => void) => () => {};
 
 function rectSize(element: Element | null | undefined): Size | null {
   if (!element) return null;
@@ -65,49 +61,55 @@ function clampStoredOffset(bar: HTMLElement): void {
   if (!offsetsEqual(clamped, offset)) setActionBarOffset(clamped);
 }
 
+function resolveAutomaticPageAnchor(
+  pageId: string,
+  frame: CanvasFramePresentationSnapshot | null,
+): Point {
+  const viewportPresentation = getViewportPresentationSnapshot();
+  const pagePositionPresentation: PagePositionPresentationSnapshot =
+    frame?.pagePositionSnapshot ?? getPagePositionPresentationSnapshot();
+  const pagePosition = readPagePositionForInteraction(
+    pageId,
+    useStore.getState().pagePositions,
+    pagePositionPresentation,
+  ) ?? { x: 0, y: 0 };
+  const cameraState = frame?.cameraState;
+
+  return pageActionBarAnchor({
+    pagePosition,
+    pageSize: useViewportSyncStore.getState().canvasSize,
+    panOffset: {
+      x: cameraState?.panX ?? viewportPresentation.x,
+      y: cameraState?.panY ?? viewportPresentation.y,
+    },
+    zoom: cameraState?.zoom ?? viewportPresentation.scale,
+  });
+}
+
+function applyAutomaticPageAnchor(
+  bar: HTMLElement,
+  pageId: string,
+  frame: CanvasFramePresentationSnapshot | null,
+): Point {
+  const anchor = resolveAutomaticPageAnchor(pageId, frame);
+  const transform = actionBarPageTransform(anchor);
+  if (bar.style.transform !== transform) {
+    bar.style.transform = transform;
+  }
+  return anchor;
+}
+
 export function useActionBarPlacement(pageId: string | null = null) {
   const settings = useStore((state) => state.actionBar);
-  const pagePositions = useStore((state) => state.pagePositions);
   const setActionBarOffset = useStore((state) => state.setActionBarOffset);
   const setActionBarPinned = useStore((state) => state.setActionBarPinned);
   const setActionBarHidden = useStore((state) => state.setActionBarHidden);
-  const pageSize = useViewportSyncStore((state) => state.canvasSize);
   const tracksAutomaticPagePosition =
     pageId !== null && settings.offset === null;
-  const pagePositionPresentation = useSyncExternalStore(
-    tracksAutomaticPagePosition
-      ? subscribePagePositionPresentation
-      : subscribeNoop,
-    getPagePositionPresentationSnapshot,
-    getPagePositionPresentationSnapshot,
-  );
-  const viewportPresentation = useSyncExternalStore(
-    tracksAutomaticPagePosition ? subscribeViewportPresentation : subscribeNoop,
-    getViewportPresentationSnapshot,
-    getViewportPresentationSnapshot,
-  );
-
-  const pagePosition = pageId
-    ? (readPagePositionForInteraction(
-        pageId,
-        pagePositions,
-        pagePositionPresentation,
-      ) ?? { x: 0, y: 0 })
-    : undefined;
-  const pageAnchor = pagePosition
-    ? pageActionBarAnchor({
-        pagePosition,
-        pageSize,
-        panOffset: {
-          x: viewportPresentation.x,
-          y: viewportPresentation.y,
-        },
-        zoom: viewportPresentation.scale,
-      })
-    : null;
 
   const barRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
+  const latestAutomaticAnchorRef = useRef<Point | null>(null);
 
   const [dragOffset, setDragOffset] = useState<ActionBarOffset | null>(null);
   // `latest` 는 드롭 시 commit 할 값. `setDragOffset` updater 안에서 store 를
@@ -130,25 +132,56 @@ export function useActionBarPlacement(pageId: string | null = null) {
   // 항목 수가 바뀜), (c) overlay 크기 변화(창 리사이즈 · 패널 도크 리사이즈).
   // window resize 리스너로는 (b) 와 "창 크기는 그대로인데 패널이 접혀 overlay 가
   // 넓어진" 경우를 못 잡는다.
-  const attachBar = useCallback((node: HTMLDivElement | null) => {
-    observerRef.current?.disconnect();
-    observerRef.current = null;
-    barRef.current = node;
-    if (!node) return;
+  const attachBar = useCallback(
+    (node: HTMLDivElement | null) => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+      barRef.current = node;
+      if (!node) return;
 
-    // 바가 나타난 그 시점 1회 — ResizeObserver 의 최초 전달에 맡기지 않는다.
-    // RO 콜백은 렌더링 단계에 실려 오므로 탭이 보이지 않는 동안에는 지연된다
-    // (실측: hidden 탭에서 rAF·RO 모두 정지). 이 clamp 는 "바가 화면 밖에
-    // 고착됐는가" 를 막는 경로라 마운트 시점에 결정적으로 돌아야 한다.
-    clampStoredOffset(node);
+      // 바가 나타난 그 시점 1회 — ResizeObserver 의 최초 전달에 맡기지 않는다.
+      // RO 콜백은 렌더링 단계에 실려 오므로 탭이 보이지 않는 동안에는 지연된다
+      // (실측: hidden 탭에서 rAF·RO 모두 정지). 이 clamp 는 "바가 화면 밖에
+      // 고착됐는가" 를 막는 경로라 마운트 시점에 결정적으로 돌아야 한다.
+      clampStoredOffset(node);
 
-    const observer = new ResizeObserver(() => clampStoredOffset(node));
-    observer.observe(node);
-    if (node.parentElement) observer.observe(node.parentElement);
-    observerRef.current = observer;
-  }, []);
+      if (tracksAutomaticPagePosition && pageId) {
+        latestAutomaticAnchorRef.current = applyAutomaticPageAnchor(
+          node,
+          pageId,
+          getCanvasFramePresentationSnapshot(),
+        );
+      }
+
+      const observer = new ResizeObserver(() => clampStoredOffset(node));
+      observer.observe(node);
+      if (node.parentElement) observer.observe(node.parentElement);
+      observerRef.current = observer;
+    },
+    [pageId, tracksAutomaticPagePosition],
+  );
 
   useEffect(() => () => observerRef.current?.disconnect(), []);
+
+  useEffect(() => {
+    if (!tracksAutomaticPagePosition || !pageId) return;
+
+    const apply = (
+      cameraState: CanvasFramePresentationSnapshot["cameraState"],
+      pagePositionSnapshot: PagePositionPresentationSnapshot,
+    ): void => {
+      const bar = barRef.current;
+      if (!bar || dragRef.current) return;
+      latestAutomaticAnchorRef.current = applyAutomaticPageAnchor(bar, pageId, {
+        cameraState,
+        pagePositionSnapshot,
+      });
+    };
+
+    const latest = getCanvasFramePresentationSnapshot();
+    if (latest) apply(latest.cameraState, latest.pagePositionSnapshot);
+    return subscribeCanvasFramePresentation(apply);
+  }, [pageId, tracksAutomaticPagePosition]);
 
   const onHandlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLElement>) => {
@@ -156,6 +189,14 @@ export function useActionBarPlacement(pageId: string | null = null) {
       event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
       const sizes = barRef.current ? measureBar(barRef.current) : null;
+      const pageAnchor =
+        tracksAutomaticPagePosition && pageId
+          ? (latestAutomaticAnchorRef.current ??
+            resolveAutomaticPageAnchor(
+              pageId,
+              getCanvasFramePresentationSnapshot(),
+            ))
+          : null;
       const base =
         settings.offset ??
         (pageAnchor && sizes
@@ -175,7 +216,7 @@ export function useActionBarPlacement(pageId: string | null = null) {
       // 자동 page anchor를 기존 수동 좌표계로 바꾸되 같은 screen 위치를 유지한다.
       setDragOffset(base);
     },
-    [pageAnchor, settings.offset, settings.pinned],
+    [pageId, settings.offset, settings.pinned, tracksAutomaticPagePosition],
   );
 
   const onHandlePointerMove = useCallback(
@@ -218,7 +259,7 @@ export function useActionBarPlacement(pageId: string | null = null) {
     pinned: settings.pinned,
     dragging: dragOffset !== null,
     style:
-      dragOffset !== null || settings.offset !== null || pageAnchor === null
+      dragOffset !== null || settings.offset !== null || pageId === null
         ? {
             bottom: `${ACTION_BAR_BOTTOM_GAP}px`,
             left: "50%",
@@ -227,9 +268,8 @@ export function useActionBarPlacement(pageId: string | null = null) {
           }
         : {
             bottom: "auto",
-            left: `${pageAnchor.x}px`,
-            top: `${pageAnchor.y}px`,
-            transform: actionBarTransform(null),
+            left: "0px",
+            top: "0px",
           },
     /** 바 루트에 그대로 붙인다 — 노드가 생기고 사라지는 시점을 훅이 알아야 한다 */
     attachBar,

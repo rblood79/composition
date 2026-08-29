@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Action Bar가 선택 대상이 속한 page의 하단 중앙에 나타납니다**: page의 하위 요소를 선택하면 page width 중앙, 전체 page height 아래에 배치되며, page를 직접 선택했을 때도 같은 위치에서 표시됩니다. 선택 크기 정보(size info)가 차지하는 높이 아래로 추가 간격을 두어 두 overlay가 겹치지 않습니다.
 - **이동하지 않은 Action Bar는 page와 함께 움직입니다**: page drag와 canvas pan/zoom의 live 좌표를 따라가며, 사용자가 핸들로 직접 옮긴 뒤에는 기존 수동 위치를 유지합니다. 위치 초기화를 실행하면 현재 선택 page 하단으로 다시 붙습니다.
 
+### Fixed
+
+- **Canvas 이동 중 Action Bar가 떨리거나 한 프레임 먼저 움직이지 않습니다**: Action Bar가 React의 별도 viewport 구독으로 위치를 갱신하던 경로를 제거하고, Skia가 실제로 그리는 프레임의 camera/page snapshot을 함께 소비하도록 동기화했습니다. 자동 위치는 `translate3d`만 직접 갱신해 pan/zoom과 page drag 중 React 재렌더와 layout 이동을 만들지 않습니다.
+
 ## [탐색기 패널 명칭 및 탭 구조 표준화] - 2026-08-29
 
 ### Changed

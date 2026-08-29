@@ -47,6 +47,25 @@ describe("SkiaCanvas render invalidation contract", () => {
     );
   });
 
+  it("publishes the exact camera/page snapshot from the Skia render frame", async () => {
+    const source = await readFile(
+      resolve(__dirname, "SkiaCanvas.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain('from "../canvasFramePresentation"');
+    expect(source).toContain(
+      "publishCanvasFramePresentation(cameraState, pagePositionSnapshot);",
+    );
+
+    const presentationIndex = source.indexOf(
+      "publishCanvasFramePresentation(cameraState, pagePositionSnapshot);",
+    );
+    const renderIndex = source.indexOf("renderer.render(", presentationIndex);
+    expect(presentationIndex).toBeGreaterThan(-1);
+    expect(renderIndex).toBeGreaterThan(presentationIndex);
+  });
+
   it("feeds StoreRenderBridge from page-resolved rendererInput maps", async () => {
     const source = await readFile(
       resolve(__dirname, "SkiaCanvas.tsx"),

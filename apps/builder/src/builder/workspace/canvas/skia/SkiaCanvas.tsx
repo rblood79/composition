@@ -81,6 +81,7 @@ import {
   getPagePositionPresentationSnapshot,
   subscribePagePositionPresentation,
 } from "../interaction/pagePositionPresentation";
+import { publishCanvasFramePresentation } from "../canvasFramePresentation";
 import {
   getPageGuideRevision,
   subscribePageGuideRevision,
@@ -914,6 +915,10 @@ export function SkiaCanvas({
         edgeGeometryCacheRef.current = [];
         edgeGeometryCacheKeyRef.current = "";
       }
+
+      // DOM overlay는 별도 RAF를 만들지 않고, 이 frame이 실제로 그릴 정확한
+      // camera/page snapshot을 소비한다. callback은 transform-only여야 한다.
+      publishCanvasFramePresentation(cameraState, pagePositionSnapshot);
 
       observe(PERF_LABEL.RENDER_SKIA_DRAW, () => {
         renderer.render(

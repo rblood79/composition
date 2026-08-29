@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, render } from "@testing-library/react";
+import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../../stores";
 import {
   beginPagePositionPresentation,
+  getPagePositionPresentationSnapshot,
   publishPagePositionPresentation,
   resetPagePositionPresentation,
 } from "../../../workspace/canvas/interaction/pagePositionPresentation";
@@ -13,6 +15,10 @@ import {
   publishViewportPresentation,
   resetViewportPresentation,
 } from "../../../workspace/canvas/viewport/viewportPresentation";
+import {
+  publishCanvasFramePresentation,
+  resetCanvasFramePresentation,
+} from "../../../workspace/canvas/canvasFramePresentation";
 import { useActionBarPlacement } from "./useActionBarPlacement";
 
 /**
@@ -93,6 +99,7 @@ beforeEach(() => {
   useViewportSyncStore.getState().setCanvasSize({ width: 400, height: 300 });
   resetPagePositionPresentation();
   resetViewportPresentation();
+  resetCanvasFramePresentation();
 });
 
 afterEach(() => {
@@ -102,20 +109,37 @@ afterEach(() => {
   vi.restoreAllMocks();
   resetPagePositionPresentation();
   resetViewportPresentation();
+  resetCanvasFramePresentation();
 });
+
+function presentCanvasFrame(
+  viewport: { x: number; y: number; scale: number } = {
+    x: 0,
+    y: 0,
+    scale: 1,
+  },
+): void {
+  publishCanvasFramePresentation(
+    { panX: viewport.x, panY: viewport.y, zoom: viewport.scale },
+    getPagePositionPresentationSnapshot(),
+  );
+}
 
 /** 실제 바처럼 "모델이 있을 때만" 루트를 그리는 소비자 */
 /* eslint-disable react-hooks/refs --
  * 훅 반환 객체에는 callback ref가 함께 있지만, Harness가 render에서 읽는 나머지
  * 값은 현재 render의 plain style/event snapshot이다. */
 function Harness({
+  onCommittedRender,
   pageId = null,
   visible,
 }: {
+  onCommittedRender?: () => void;
   pageId?: string | null;
   visible: boolean;
 }) {
   const placement = useActionBarPlacement(pageId);
+  useEffect(() => onCommittedRender?.());
   if (!visible) return null;
   return (
     <div data-testid="overlay">
@@ -276,10 +300,12 @@ describe("useActionBarPlacement — page 자동 고정", () => {
     const view = render(<Harness visible pageId="page-1" />);
     const bar = view.getByTestId("bar");
 
-    expect(bar.style.left).toBe("300px");
-    expect(bar.style.top).toBe("390px");
+    expect(bar.style.left).toBe("0px");
+    expect(bar.style.top).toBe("0px");
     expect(bar.style.bottom).toBe("auto");
-    expect(bar.style.transform).toBe("translateX(-50%)");
+    expect(bar.style.transform).toBe(
+      "translate3d(300px, 390px, 0) translateX(-50%)",
+    );
   });
 
   it("저장된 page position이 없으면 Skia page frame과 같이 (0, 0)을 쓴다", () => {
@@ -287,14 +313,17 @@ describe("useActionBarPlacement — page 자동 고정", () => {
     const view = render(<Harness visible pageId="page-1" />);
     const bar = view.getByTestId("bar");
 
-    expect(bar.style.left).toBe("200px");
-    expect(bar.style.top).toBe("340px");
+    expect(bar.style.transform).toBe(
+      "translate3d(200px, 340px, 0) translateX(-50%)",
+    );
   });
 
   it("page drag의 transient 위치를 frame 단위로 따라간다", () => {
     const view = render(<Harness visible pageId="page-1" />);
     const bar = view.getByTestId("bar");
-    expect(bar.style.left).toBe("300px");
+    expect(bar.style.transform).toBe(
+      "translate3d(300px, 390px, 0) translateX(-50%)",
+    );
 
     act(() => {
       beginPagePositionPresentation(
@@ -307,8 +336,15 @@ describe("useActionBarPlacement — page 자동 고정", () => {
       ]);
     });
 
-    expect(bar.style.left).toBe("380px");
-    expect(bar.style.top).toBe("430px");
+    expect(bar.style.transform).toBe(
+      "translate3d(300px, 390px, 0) translateX(-50%)",
+    );
+
+    act(() => presentCanvasFrame());
+
+    expect(bar.style.transform).toBe(
+      "translate3d(380px, 430px, 0) translateX(-50%)",
+    );
   });
 
   it("pan/zoom의 transient viewport를 따라간다", () => {
@@ -319,8 +355,33 @@ describe("useActionBarPlacement — page 자동 고정", () => {
       publishViewportPresentation({ x: 20, y: 30, scale: 0.5 });
     });
 
-    expect(bar.style.left).toBe("170px");
-    expect(bar.style.top).toBe("245px");
+    expect(bar.style.transform).toBe(
+      "translate3d(300px, 390px, 0) translateX(-50%)",
+    );
+
+    act(() => presentCanvasFrame({ x: 20, y: 30, scale: 0.5 }));
+
+    expect(bar.style.transform).toBe(
+      "translate3d(170px, 245px, 0) translateX(-50%)",
+    );
+  });
+
+  it("Skia frame publish는 React rerender 없이 DOM transform만 갱신한다", () => {
+    const onCommittedRender = vi.fn();
+    const view = render(
+      <Harness visible pageId="page-1" onCommittedRender={onCommittedRender} />,
+    );
+    const bar = view.getByTestId("bar");
+    const rendersBeforeFrame = onCommittedRender.mock.calls.length;
+
+    act(() => presentCanvasFrame({ x: 40, y: 50, scale: 0.75 }));
+
+    expect(onCommittedRender).toHaveBeenCalledTimes(rendersBeforeFrame);
+    expect(bar.style.left).toBe("0px");
+    expect(bar.style.top).toBe("0px");
+    expect(bar.style.transform).toBe(
+      "translate3d(265px, 352.5px, 0) translateX(-50%)",
+    );
   });
 
   it("수동 offset이 있으면 기존 overlay 하단 중앙 위치를 유지한다", () => {

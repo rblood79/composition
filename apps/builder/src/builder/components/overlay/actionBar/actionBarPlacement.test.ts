@@ -3,6 +3,7 @@ import {
   ACTION_BAR_BOTTOM_GAP,
   ACTION_BAR_PAGE_CLEARANCE,
   ACTION_BAR_PAGE_GAP,
+  actionBarPageTransform,
   actionBarTransform,
   clampActionBarOffset,
   defaultActionBarOrigin,
@@ -68,6 +69,12 @@ describe("actionBarPlacement — ADR-192 Phase 3", () => {
     expect(actionBarTransform(null)).toBe("translateX(-50%)");
     expect(actionBarTransform({ dx: -30, dy: -8 })).toBe(
       "translate(calc(-50% + -30px), -8px)",
+    );
+  });
+
+  it("page anchor는 compositor-only translate3d로 합성한다", () => {
+    expect(actionBarPageTransform({ x: 300, y: 390 })).toBe(
+      "translate3d(300px, 390px, 0) translateX(-50%)",
     );
   });
 
