@@ -23,6 +23,7 @@ import type {
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { runCanonicalMutation } from "../../../adapters/canonical/canonicalMutationRunner";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { resolveElementRef } from "./elementRef";
 
 type ActionArgs = {
   kind?: string;
@@ -105,19 +106,15 @@ export const createInteractionRuleTool: ToolExecutor = {
         state: { selectedElementId },
       } = getAiToolReadModel();
 
-      const targetId =
-        elementIdArg === "selected" ? selectedElementId : elementIdArg;
-      if (!targetId) {
-        return { success: false, error: "선택된 요소가 없습니다." };
-      }
-
-      const element = elementsById.get(targetId);
-      if (!element) {
-        return {
-          success: false,
-          error: `요소를 찾을 수 없습니다: ${targetId}`,
-        };
-      }
+      // 별칭·실제 id 를 한 곳에서 해석한다 (`elementRef.ts`) — 실패 시 다음 시도가
+      // 맞도록 복구 경로를 담은 오류를 돌려준다.
+      const ref = resolveElementRef(elementIdArg, {
+        selectedElementId,
+        elementsById,
+      });
+      if ("error" in ref) return { success: false, error: ref.error };
+      const targetId = ref.id;
+      const element = elementsById.get(targetId)!;
 
       const triggers = resolveTriggers(element.type);
       if (!triggers.includes(trigger)) {

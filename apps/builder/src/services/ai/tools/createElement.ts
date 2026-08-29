@@ -18,6 +18,7 @@ import {
   parseCanonicalFields,
 } from "./canonicalNodeFields";
 import { createCompositeElement } from "./compositeCreation";
+import { rememberCreatedElement } from "./elementRef";
 
 export const createElementTool: ToolExecutor = {
   name: "create_element",
@@ -90,13 +91,18 @@ export const createElementTool: ToolExecutor = {
           .getState()
           .addFlashForNode(composite.elementId, { scanLine: true });
 
+        rememberCreatedElement(composite.elementId);
+
         return {
           success: true,
           data: {
             elementId: composite.elementId,
             type,
             parentId,
-            composite: { mode: composite.mode, childCount: composite.childCount },
+            composite: {
+              mode: composite.mode,
+              childCount: composite.childCount,
+            },
             ...(compositeApplied ? { canonical: canonicalPatch } : {}),
             ...(canonicalRejected.length > 0 ? { canonicalRejected } : {}),
           },
@@ -139,6 +145,9 @@ export const createElementTool: ToolExecutor = {
       useAIVisualFeedbackStore.getState().addFlashForNode(newElement.id, {
         scanLine: true,
       });
+
+      // 다음 도구가 UUID 를 이어 나르지 않고 "last-created" 로 집을 수 있게 한다.
+      rememberCreatedElement(newElement.id);
 
       return {
         success: true,

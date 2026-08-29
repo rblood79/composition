@@ -15,6 +15,7 @@ import {
   applyCanonicalFields,
   parseCanonicalFields,
 } from "./canonicalNodeFields";
+import { resolveElementRef } from "./elementRef";
 
 export const updateElementTool: ToolExecutor = {
   name: "update_element",
@@ -49,21 +50,15 @@ export const updateElementTool: ToolExecutor = {
         state: { selectedElementId, updateElementProps },
       } = getAiToolReadModel();
 
-      // "selected" → 실제 ID 해석
-      const targetId =
-        elementIdArg === "selected" ? selectedElementId : elementIdArg;
-      if (!targetId) {
-        return { success: false, error: "선택된 요소가 없습니다." };
-      }
-
-      // 요소 존재 확인
-      const element = elementsById.get(targetId);
-      if (!element) {
-        return {
-          success: false,
-          error: `요소를 찾을 수 없습니다: ${targetId}`,
-        };
-      }
+      // 별칭·실제 id 를 한 곳에서 해석한다 (`elementRef.ts`) — 실패 시 다음 시도가
+      // 맞도록 복구 경로를 담은 오류를 돌려준다.
+      const ref = resolveElementRef(elementIdArg, {
+        selectedElementId,
+        elementsById,
+      });
+      if ("error" in ref) return { success: false, error: ref.error };
+      const targetId = ref.id;
+      const element = elementsById.get(targetId)!;
 
       // 업데이트 객체 구성
       const updates: Record<string, unknown> = { ...newProps };

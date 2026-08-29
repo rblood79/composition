@@ -136,7 +136,8 @@ export const toolDefinitions: ChatCompletionTool[] = [
         properties: {
           elementId: {
             type: "string",
-            description: '수정할 요소 ID. "selected"이면 현재 선택된 요소.',
+            description:
+              '수정할 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
           },
           props: {
             type: "object",
@@ -180,7 +181,8 @@ export const toolDefinitions: ChatCompletionTool[] = [
         properties: {
           elementId: {
             type: "string",
-            description: '삭제할 요소 ID. "selected"이면 현재 선택된 요소.',
+            description:
+              '삭제할 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
           },
         },
         required: ["elementId"],
@@ -312,7 +314,8 @@ export const toolDefinitions: ChatCompletionTool[] = [
         properties: {
           elementId: {
             type: "string",
-            description: '대상 요소 ID. "selected" 이면 현재 선택된 요소.',
+            description:
+              '대상 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
           },
           source: {
             type: "string",
@@ -341,7 +344,8 @@ export const toolDefinitions: ChatCompletionTool[] = [
         properties: {
           elementId: {
             type: "string",
-            description: '트리거 요소 ID. "selected" 이면 현재 선택된 요소.',
+            description:
+              '트리거 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
           },
           trigger: {
             type: "string",
