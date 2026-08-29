@@ -119,6 +119,10 @@ export function useGlobalKeyboardShortcuts() {
     togglePanel("monitor");
   }, [togglePanel]);
 
+  const handleToggleWorkflowOverlay = useCallback(() => {
+    useStore.getState().toggleWorkflowOverlay();
+  }, []);
+
   // 레일 순서 그대로 ⌥1–⌥8. 정의는 있었지만 등록이 없어 여섯 개가 눌러도
   // 반응하지 않았다 (2026-08-27 인벤토리). `events` 는 패널 배치 persist 키라
   // InteractionsPanel 로 교체된 뒤에도 id 를 유지한다 (ADR-158).
@@ -526,6 +530,7 @@ export function useGlobalKeyboardShortcuts() {
       zoomToFit: handleZoomToFit,
       zoom100: handleZoom100,
       zoom200: handleZoom200,
+      toggleWorkflowOverlay: handleToggleWorkflowOverlay,
       toggleMonitor: handleToggleMonitor,
       toggleNodes: handleToggleNodes,
       toggleComponents: handleToggleComponents,
@@ -573,6 +578,7 @@ export function useGlobalKeyboardShortcuts() {
       handleZoomToFit,
       handleZoom100,
       handleZoom200,
+      handleToggleWorkflowOverlay,
       handleToggleMonitor,
       handleToggleNodes,
       handleToggleComponents,
@@ -631,6 +637,7 @@ export function useGlobalKeyboardShortcuts() {
       "zoom100",
       "zoom200",
       // Panels
+      "toggleWorkflowOverlay",
       "toggleMonitor",
       "toggleRulers",
       "toggleNodes",

@@ -15,4 +15,14 @@ describe("keyboardShortcuts ADR-112 editing semantics", () => {
       capture: true,
     });
   });
+
+  it("registers the global Workflow overlay shortcut without conflicting with Alt+W", () => {
+    expect(SHORTCUT_DEFINITIONS.toggleWorkflowOverlay).toMatchObject({
+      key: "w",
+      code: "KeyW",
+      modifier: "ctrlAlt",
+      scope: "global",
+      allowInInput: true,
+    });
+  });
 });

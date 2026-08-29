@@ -178,6 +178,7 @@ export const COMMAND_META: Readonly<Record<ShortcutId, CommandMeta>> = {
   toggleStyles: view(),
   toggleEvents: view(),
   toggleHistory: view(),
+  toggleWorkflowOverlay: view(false),
   toggleMonitor: view(false), // 개발 계측 패널
   toggleRulers: view(),
   openSettings: view(),

@@ -73,7 +73,7 @@ function cloneMeta(): Record<ShortcutId, CommandMeta> {
 }
 
 describe("COMMAND_META 정적 게이트 (ADR-196 §3-2)", () => {
-  it("71 정의 전부 metadata 가 있고 정의 밖 id 는 없다", () => {
+  it("72 정의 전부 metadata 가 있고 정의 밖 id 는 없다", () => {
     expect(Object.keys(COMMAND_META).sort()).toEqual([...IDS].sort());
   });
 

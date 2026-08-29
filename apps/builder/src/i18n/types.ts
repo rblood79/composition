@@ -134,6 +134,7 @@ export interface TranslationKeys {
     viewOptions: string;
     compareMode: string;
     skiaOnlyMode: string;
+    workflow: string;
     showWorkflowOverlay: string;
     hideWorkflowOverlay: string;
     preview: string;

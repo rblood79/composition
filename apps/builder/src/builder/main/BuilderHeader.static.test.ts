@@ -21,7 +21,7 @@ describe("BuilderHeader chrome control groups", () => {
       'className="react-aria-Button header-menu-button"',
     );
     expect(source).toContain("<ActionIconButton");
-    expect(source).toContain("workspaceLayout?.visibility.monitor === true");
+    expect(source).not.toContain("workspaceLayout");
   });
 
   it("상단 Publish를 제거하고 전체 메뉴에서 프로젝트 JSON import/export를 연결한다", async () => {
@@ -36,6 +36,46 @@ describe("BuilderHeader chrome control groups", () => {
     expect(source).toContain('if (key === "export") void onExportProject()');
     expect(source).toContain('accept="application/json,.json"');
     expect(source).toContain("void onImportProject(file)");
+  });
+
+  it("Workflow와 Monitor를 우측 토글 그룹에서 제거하고 Settings 패턴의 메뉴 액션으로 이동한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderHeader.tsx"),
+      "utf-8",
+    );
+    const workflowItemIndex = source.indexOf('<MenuItem id="workflow"');
+    const monitorItemIndex = source.indexOf('<MenuItem id="monitor"');
+    const settingsItemIndex = source.indexOf('<MenuItem id="settings"');
+
+    expect(source).not.toContain('<ToggleButton id="workflow"');
+    expect(source).not.toContain('<ToggleButton id="monitor"');
+    expect(source).not.toContain("<MenuSection");
+    expect(source).toContain(
+      'if (key === "workflow") onWorkflowOverlayToggle();',
+    );
+    expect(source).toContain('<span>{t("header.workflow")}</span>');
+    expect(source).toContain('shortcutDisplayFor("toggleWorkflowOverlay")');
+    expect(source).not.toContain("workflowLabel");
+    expect(source).toContain('if (key === "monitor") togglePanel("monitor");');
+    expect(workflowItemIndex).toBeGreaterThan(-1);
+    expect(workflowItemIndex).toBeLessThan(monitorItemIndex);
+    expect(source).toContain('togglePanel("monitor")');
+    expect(monitorItemIndex).toBeGreaterThan(-1);
+    expect(monitorItemIndex).toBeLessThan(settingsItemIndex);
+  });
+
+  it("Reset Panel Layout 메뉴는 LayoutDashboard 아이콘을 사용한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderHeader.tsx"),
+      "utf-8",
+    );
+    const resetItem = source.match(
+      /<MenuItem id="reset-panel-layout"[\s\S]*?<\/MenuItem>/,
+    )?.[0];
+
+    expect(resetItem).toBeDefined();
+    expect(resetItem).toContain("<LayoutDashboard size={14} />");
+    expect(resetItem).not.toContain("<Columns");
   });
 
   it("header shell은 transparent이고 group surface는 공통 stylesheet가 소유한다", async () => {
@@ -82,5 +122,6 @@ describe("BuilderHeader chrome control groups", () => {
     );
     expect(headerStyles).not.toContain('[aria-label="menu"]');
     expect(headerStyles).not.toContain(".header_contents .publish");
+    expect(headerStyles).not.toContain(".header-menu-item[data-selected]");
   });
 });

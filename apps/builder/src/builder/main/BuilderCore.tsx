@@ -205,7 +205,6 @@ export const BuilderCore: React.FC = () => {
   // UI 설정 (글로벌 uiStore에서 가져옴 - Phase 1)
   const themeMode = useUiStore((state) => state.themeMode);
   const setHistoryInfo = useStore((state) => state.setHistoryInfo);
-  const showWorkflowOverlay = useStore((state) => state.showWorkflowOverlay);
   const toggleWorkflowOverlay = useStore(
     (state) => state.toggleWorkflowOverlay,
   );
@@ -1295,7 +1294,6 @@ export const BuilderCore: React.FC = () => {
             onPlay={handlePlay}
             onImportProject={handleImportProject}
             onExportProject={handleExportProject}
-            showWorkflowOverlay={showWorkflowOverlay}
             onWorkflowOverlayToggle={toggleWorkflowOverlay}
           />
         }

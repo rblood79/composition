@@ -12,6 +12,7 @@ import {
   CircleHelp,
   Info,
   Columns,
+  LayoutDashboard,
   Settings,
 } from "lucide-react";
 import {
@@ -70,7 +71,6 @@ export interface BuilderHeaderProps {
   onPlay: () => void;
   onImportProject: (file: File) => void | Promise<void>;
   onExportProject: () => void | Promise<void>;
-  showWorkflowOverlay: boolean;
   onWorkflowOverlayToggle: () => void;
 }
 
@@ -83,12 +83,10 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   onPreview,
   onImportProject,
   onExportProject,
-  showWorkflowOverlay,
   onWorkflowOverlayToggle,
 }) => {
   const { t } = useI18n();
-  const { workspaceLayout, togglePanel, resetWorkspaceLayout } =
-    usePanelLayout();
+  const { togglePanel, resetWorkspaceLayout } = usePanelLayout();
   const navigate = useNavigate();
   const isCompareMode = useCompareModeStore((state) => state.isCompareMode);
   const toggleCompareMode = useCompareModeStore(
@@ -124,10 +122,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   const compareLabel = isCompareMode
     ? t("header.skiaOnlyMode")
     : t("header.compareMode");
-  const workflowLabel = showWorkflowOverlay
-    ? t("header.hideWorkflowOverlay")
-    : t("header.showWorkflowOverlay");
-
   return (
     <header className="header">
       <div className="header_contents header_left">
@@ -154,6 +148,8 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 if (key === "import") importInputRef.current?.click();
                 if (key === "export") void onExportProject();
                 if (key === "reset-panel-layout") resetWorkspaceLayout();
+                if (key === "workflow") onWorkflowOverlayToggle();
+                if (key === "monitor") togglePanel("monitor");
                 if (key === "settings") togglePanel("settings");
                 if (key === "shortcuts")
                   window.dispatchEvent(new CustomEvent("open-command-palette"));
@@ -179,8 +175,20 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               </MenuItem>
               <Separator className="header-menu-separator" />
               <MenuItem id="reset-panel-layout" className="header-menu-item">
-                <Columns size={14} />
+                <LayoutDashboard size={14} />
                 <span>{t("header.resetPanelLayout")}</span>
+              </MenuItem>
+              <MenuItem id="workflow" className="header-menu-item">
+                <GitBranch size={14} />
+                <span>{t("header.workflow")}</span>
+                <Keyboard>
+                  {shortcutDisplayFor("toggleWorkflowOverlay")}
+                </Keyboard>
+              </MenuItem>
+              <MenuItem id="monitor" className="header-menu-item">
+                <Monitor size={14} />
+                <span>{t("header.monitor")}</span>
+                <Keyboard>{shortcutDisplayFor("toggleMonitor")}</Keyboard>
               </MenuItem>
               <MenuItem id="settings" className="header-menu-item">
                 <Settings size={14} />
@@ -282,35 +290,16 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
         <ToggleButtonGroup
           className="builder-control-group"
           selectionMode="multiple"
-          selectedKeys={
-            new Set([
-              ...(isCompareMode ? ["compare"] : []),
-              ...(showWorkflowOverlay ? ["workflow"] : []),
-              ...(workspaceLayout?.visibility.monitor === true
-                ? ["monitor"]
-                : []),
-            ])
-          }
+          selectedKeys={new Set([...(isCompareMode ? ["compare"] : [])])}
           indicator={true}
           onSelectionChange={(keys: Set<Key>) => {
             const selectedKeys = new Set(keys);
             const wasCompareMode = isCompareMode;
             const isCompareNowSelected = selectedKeys.has("compare");
-            const wasWorkflow = showWorkflowOverlay;
-            const isWorkflowNowSelected = selectedKeys.has("workflow");
-            const wasMonitor = workspaceLayout?.visibility.monitor === true;
-            const isMonitorNowSelected = selectedKeys.has("monitor");
 
             // Compare mode 토글
             if (wasCompareMode !== isCompareNowSelected) {
               toggleCompareMode();
-            }
-            // Workflow 오버레이 토글
-            if (wasWorkflow !== isWorkflowNowSelected) {
-              onWorkflowOverlayToggle();
-            }
-            if (wasMonitor !== isMonitorNowSelected) {
-              togglePanel("monitor");
             }
           }}
           aria-label={t("header.viewOptions")}
@@ -318,25 +307,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           <ActionTooltipTrigger tooltip={compareLabel}>
             <ToggleButton id="compare" aria-label={compareLabel}>
               <Columns
-                strokeWidth={iconProps.strokeWidth}
-                size={iconProps.size}
-              />
-            </ToggleButton>
-          </ActionTooltipTrigger>
-          <ActionTooltipTrigger tooltip={workflowLabel}>
-            <ToggleButton id="workflow" aria-label={workflowLabel}>
-              <GitBranch
-                strokeWidth={iconProps.strokeWidth}
-                size={iconProps.size}
-              />
-            </ToggleButton>
-          </ActionTooltipTrigger>
-          <ActionTooltipTrigger
-            tooltip={t("header.monitor")}
-            shortcutId="toggleMonitor"
-          >
-            <ToggleButton id="monitor" aria-label={t("header.monitor")}>
-              <Monitor
                 strokeWidth={iconProps.strokeWidth}
                 size={iconProps.size}
               />

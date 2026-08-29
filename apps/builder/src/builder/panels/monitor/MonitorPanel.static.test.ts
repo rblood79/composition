@@ -13,6 +13,13 @@ describe("MonitorPanel common panel contract", () => {
     expect(source).toContain('className="panel monitor-panel"');
     expect(source).toContain("<PanelHeader");
     expect(source).toContain('i18n.t("panels.monitor")');
+    expect(source).toContain("const { togglePanel } = usePanelLayout();");
+    expect(source).toContain("<ActionIconButton");
+    expect(source).toContain('onPress={() => togglePanel("monitor")}');
+    expect(source).toContain('i18n.t("common.close")');
+    expect(source).toContain("aria-label={closeLabel}");
+    expect(source).toContain("tooltip={closeLabel}");
+    expect(source).toContain("<X size={iconProps.size} />");
     expect(source).toContain(
       'className="panel-contents monitor-panel-contents"',
     );

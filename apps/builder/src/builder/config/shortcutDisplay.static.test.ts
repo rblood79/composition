@@ -92,11 +92,15 @@ function registeredShortcutIds(): Set<string> {
 }
 
 /**
- * `panels` 카테고리인데 패널이 아닌 둘 — 눈금자는 캔버스 오버레이, 커맨드
- * 팔레트는 모달이라 레일에 자리가 없다. 각자 다른 자리에서 표기를 갖는다
- * (컨텍스트 메뉴 / 헤더 메뉴).
+ * `panels` 카테고리인데 패널이 아닌 항목 — Workflow·눈금자는 캔버스 오버레이,
+ * 커맨드 팔레트는 모달이라 레일에 자리가 없다. 각자 다른 자리에서 표기를
+ * 갖는다 (헤더 메뉴 / 컨텍스트 메뉴).
  */
-const NOT_PANELS = new Set(["toggleRulers", "commandPalette"]);
+const NOT_PANELS = new Set([
+  "toggleWorkflowOverlay",
+  "toggleRulers",
+  "commandPalette",
+]);
 
 function panelOpeningShortcutIds(): string[] {
   return Object.entries(SHORTCUT_DEFINITIONS)
@@ -183,7 +187,7 @@ describe("단축키 표기 SSOT", () => {
     const exposedIds = Object.entries(SHORTCUT_DEFINITIONS)
       .filter(([, def]) => (def as { palette?: false }).palette !== false)
       .map(([id]) => id);
-    expect(exposedIds).toHaveLength(62);
+    expect(exposedIds).toHaveLength(63);
 
     const unregistered = exposedIds.filter((id) => !registered.has(id));
     expect(unregistered).toEqual([]);
