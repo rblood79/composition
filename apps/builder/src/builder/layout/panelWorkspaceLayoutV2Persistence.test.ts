@@ -20,9 +20,9 @@ const PRIMARY_KEY = "composition-panel-layout";
 function createV1Layout(): PanelLayoutState {
   return {
     ...DEFAULT_PANEL_LAYOUT,
-    leftPanels: ["nodes", "datatableEditor", "settings"],
+    leftPanels: ["navigator", "datatableEditor", "settings"],
     rightPanels: ["properties", "history"],
-    activeLeftPanels: ["nodes"],
+    activeLeftPanels: ["navigator"],
     activeRightPanels: ["properties"],
     bottomPanels: ["monitor"],
     activeBottomPanels: [],

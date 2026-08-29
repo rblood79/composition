@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import type { PanelFrameGeometry } from "../panels/core/types";
 import { PANEL_WORKSPACE_TEST_REGISTRY } from "./panelWorkspaceLayoutV2.testFixtures";
 import {
-  solvePanelWorkspaceLayoutV3,
-  type PanelWorkspaceLayoutV3,
-} from "./panelWorkspaceLayoutV3";
-import { createPanelWorkspaceLayoutV3Fixture } from "./panelWorkspaceLayoutV3.testFixtures";
+  solvePanelWorkspaceLayoutV4,
+  type PanelWorkspaceLayoutV4,
+} from "./panelWorkspaceLayoutV4";
+import { createPanelWorkspaceLayoutV4Fixture } from "./panelWorkspaceLayoutV4.testFixtures";
 import { createPanelWorkspaceRuntime } from "./panelWorkspaceRuntime";
 
 function rowHeight(
-  layout: ReturnType<typeof createPanelWorkspaceLayoutV3Fixture>,
+  layout: ReturnType<typeof createPanelWorkspaceLayoutV4Fixture>,
   panelId: string,
 ): number | undefined {
   return layout.clusters
@@ -19,11 +19,11 @@ function rowHeight(
 }
 
 function solvedFrame(
-  layout: PanelWorkspaceLayoutV3,
+  layout: PanelWorkspaceLayoutV4,
   panelId: "properties",
   surfaceRect: { width: number; height: number },
 ): PanelFrameGeometry {
-  const solved = solvePanelWorkspaceLayoutV3(
+  const solved = solvePanelWorkspaceLayoutV4(
     layout,
     PANEL_WORKSPACE_TEST_REGISTRY,
     surfaceRect,
@@ -38,7 +38,7 @@ function solvedFrame(
 
 describe("ADR-922 PanelWorkspace production runtime", () => {
   it("interaction cancel은 시작 시 committed v3 snapshot을 byte-equivalent로 복원한다", () => {
-    const layout = createPanelWorkspaceLayoutV3Fixture({
+    const layout = createPanelWorkspaceLayoutV4Fixture({
       width: 1440,
       height: 1200,
     });
@@ -65,7 +65,7 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
   it("resize hot path는 storage를 쓰지 않고 end에서 동일 layout을 반환한다", () => {
     const setItem = vi.spyOn(Storage.prototype, "setItem");
     const runtime = createPanelWorkspaceRuntime(
-      createPanelWorkspaceLayoutV3Fixture(),
+      createPanelWorkspaceLayoutV4Fixture(),
       PANEL_WORKSPACE_TEST_REGISTRY,
       { width: 1440, height: 852 },
     );
@@ -84,7 +84,7 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
 
   it("Phase 5 drag move는 v3 committed graph를 변경하지 않고 invalid drop은 commit 0으로 끝난다", () => {
     const runtime = createPanelWorkspaceRuntime(
-      createPanelWorkspaceLayoutV3Fixture({ width: 1200, height: 800 }),
+      createPanelWorkspaceLayoutV4Fixture({ width: 1200, height: 800 }),
       PANEL_WORKSPACE_TEST_REGISTRY,
       { width: 1200, height: 800 },
     );
@@ -113,7 +113,7 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
 
   it("Phase 5 valid zone drop만 v3 graph를 commit한다", () => {
     const runtime = createPanelWorkspaceRuntime(
-      createPanelWorkspaceLayoutV3Fixture({ width: 1200, height: 800 }),
+      createPanelWorkspaceLayoutV4Fixture({ width: 1200, height: 800 }),
       PANEL_WORKSPACE_TEST_REGISTRY,
       { width: 1200, height: 800 },
     );
@@ -149,13 +149,13 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
         column.rows.some((row) => row.panelId === "properties"),
       ),
     ).toBe(true);
-    expect(ended.value.layout.version).toBe(3);
+    expect(ended.value.layout.version).toBe(4);
     runtime.value.destroy();
   });
 
   it("Phase 3 Escape/pointer cancel은 drag session과 preview만 폐기하고 base layout을 유지한다", () => {
     const runtime = createPanelWorkspaceRuntime(
-      createPanelWorkspaceLayoutV3Fixture({ width: 1200, height: 800 }),
+      createPanelWorkspaceLayoutV4Fixture({ width: 1200, height: 800 }),
       PANEL_WORKSPACE_TEST_REGISTRY,
       { width: 1200, height: 800 },
     );
@@ -181,7 +181,7 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
   });
 
   it("reference row resize는 paired min 이후 남은 workspace를 사용하고 clamp에서 복귀한다", () => {
-    const layout = createPanelWorkspaceLayoutV3Fixture({
+    const layout = createPanelWorkspaceLayoutV4Fixture({
       width: 1440,
       height: 1200,
     });
@@ -224,7 +224,7 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
 
   it("center-top reference resize는 clamp 복귀 뒤에도 center와 pointer edge를 유지한다", () => {
     const surfaceRect = { width: 1200, height: 800 } as const;
-    const layout = createPanelWorkspaceLayoutV3Fixture(surfaceRect);
+    const layout = createPanelWorkspaceLayoutV4Fixture(surfaceRect);
     const cluster = layout.clusters.find((candidate) =>
       candidate.columns.some((column) =>
         column.rows.some((row) => row.panelId === "properties"),
@@ -265,7 +265,7 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
 
   it("Phase 4 activation은 right stack overflow를 top-right의 왼쪽 column에 만든다", () => {
     const runtime = createPanelWorkspaceRuntime(
-      createPanelWorkspaceLayoutV3Fixture({ width: 1200, height: 800 }),
+      createPanelWorkspaceLayoutV4Fixture({ width: 1200, height: 800 }),
       PANEL_WORKSPACE_TEST_REGISTRY,
       { width: 1200, height: 800 },
     );
@@ -295,7 +295,7 @@ describe("ADR-922 PanelWorkspace production runtime", () => {
 
   it("Phase 5 explicit reset은 default rail과 zone placement를 v3 layout에 복원한다", () => {
     const runtime = createPanelWorkspaceRuntime(
-      createPanelWorkspaceLayoutV3Fixture({ width: 1200, height: 800 }),
+      createPanelWorkspaceLayoutV4Fixture({ width: 1200, height: 800 }),
       PANEL_WORKSPACE_TEST_REGISTRY,
       { width: 1200, height: 800 },
     );

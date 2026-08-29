@@ -4,32 +4,35 @@ composition의 유연한 패널 시스템 문서입니다.
 
 ## 개요
 
-패널 시스템은 9개의 독립적인 패널을 좌우 양쪽에 자유롭게 배치할 수 있는 아키텍처입니다. 모든 패널은 동등하게 취급되며, 사용자가 원하는 위치에 배치할 수 있습니다.
+패널 시스템은 12개의 독립적인 패널을 workspace zone에 자유롭게 배치할 수 있는 아키텍처입니다. 모든 패널은 동등하게 취급되며, 사용자가 원하는 위치에 배치할 수 있습니다.
 
-## 패널 목록 (9개)
+## 패널 목록 (12개)
 
-### Navigation 패널 (3개)
+### Navigation 패널 (4개)
 
-- **Nodes** - 페이지 계층 구조 탐색 (`Ctrl+Shift+N`)
-- **Components** - 컴포넌트 라이브러리 (`Ctrl+Shift+C`)
-- **Dataset** - DataTables, APIs, Variables 관리 (`Ctrl+Shift+T`)
+- **Navigator** - 페이지·프레임·레이어 구조 탐색 (`⌥1`)
+- **Components** - 컴포넌트 라이브러리 (`⌥2`)
+- **DataTable** - 데이터 테이블 관리 (`⌥3`)
+- **DataTable Editor** - 선택한 DataTable 편집
 
 ### Tool 패널 (2개)
 
-- **Theme** - 디자인 토큰 및 테마
+- **Theme** - 디자인 토큰 및 테마 (`⌥4`)
 - **AI** - AI 도구 및 제안
 
-### System 패널 (1개)
+### System 패널 (2개)
 
-- **Settings** - 앱 설정 및 환경설정 (`Ctrl+,`)
+- **Settings** - 앱 설정 및 환경설정 (`⌘,`)
+- **Monitor** - 개발 계측 및 runtime 상태
 
-### Editor 패널 (3개)
+### Editor 패널 (4개)
 
-- **Properties** - 요소 속성 편집 (`Ctrl+Shift+P`)
-- **Styles** - CSS 스타일 편집 (`Ctrl+Shift+S`)
-- **Events** - 이벤트 핸들러 관리 (`Ctrl+Shift+E`)
+- **Properties** - 요소 속성 편집 (`⌥5`)
+- **Styles** - CSS 스타일 편집 (`⌥6`)
+- **Interactions** - 인터랙션 규칙 관리 (`⌥7`, stable ID `events`)
+- **History** - 편집 이력 (`⌥8`)
 
-> **Note:** Data 패널은 제거되었습니다. 데이터 바인딩은 Dataset 패널과 컴포넌트 Property Editor를 통해 관리합니다.
+> **Note:** 구 Data 패널은 제거되었습니다. 데이터 바인딩은 DataTable 패널과 컴포넌트 Property Editor를 통해 관리합니다.
 
 ## 아키텍처
 
@@ -44,21 +47,19 @@ src/builder/
 │   │   └── panelConfigs.ts   # 9개 패널 설정
 │   ├── navigator/NavigatorPanel.tsx
 │   ├── components/ComponentsPanel.tsx
-│   ├── dataset/
-│   │   ├── DatasetPanel.tsx  # DataTables, APIs, Variables (ADR-132 Phase 7: Transformers 제거)
-│   │   ├── components/       # List 컴포넌트들
-│   │   ├── editors/          # Editor 컴포넌트들
-│   │   └── presets/          # DataTable Preset System
+│   ├── datatable/               # DataTable panel/editor
 │   ├── themes/ThemesPanel.tsx
 │   ├── ai/AIPanel.tsx
 │   ├── settings/SettingsPanel.tsx
 │   ├── properties/PropertiesPanel.tsx
 │   ├── styles/StylesPanel.tsx
-│   └── events/EventsPanel.tsx
+│   ├── interactions/InteractionsPanel.tsx
+│   ├── history/HistoryPanel.tsx
+│   └── monitor/MonitorPanel.tsx
 ├── layout/                    # 레이아웃 시스템
 │   ├── PanelToggleGroup.tsx  # 48px vertical 패널 토글 그룹
 │   ├── PanelWorkspace.tsx    # rail과 panel frame 통합
-│   └── panelWorkspaceLayoutV3.ts # placement/visibility SSOT
+│   └── panelWorkspaceLayoutV4.ts # placement/visibility SSOT
 ├── hooks/
 │   └── usePanelLayout.ts     # workspace 명령 훅
 └── stores/
@@ -84,11 +85,11 @@ PanelWorkspace
 **Zustand Store** (`src/builder/stores/panelLayout.ts`):
 
 ```typescript
-interface PanelWorkspaceLayoutV3 {
-  version: 3;
+interface PanelWorkspaceLayoutV4 {
+  version: 4;
   visibility: Partial<Record<PanelId, boolean>>;
   railOrder: Record<PanelWorkspaceRailSide, PanelId[]>;
-  clusters: PanelWorkspaceClusterV3[];
+  clusters: PanelWorkspaceClusterV4[];
   clusterFocusOrder: string[];
 }
 ```
@@ -100,7 +101,7 @@ interface PanelWorkspaceLayoutV3 {
 **localStorage 연동**:
 
 - 키: `composition-panel-layout`
-- V3 layout 자동 저장/복원 및 구 버전 migration
+- V4 layout 자동 저장/복원 및 v1→v2→v3→v4 migration
 - 세션 간 레이아웃 유지
 
 ## 타입 시스템
@@ -191,18 +192,20 @@ export { ExamplePanel } from "./example/ExamplePanel";
 ```typescript
 // src/builder/panels/core/types.ts
 export type PanelId =
-  | "nodes"
+  | "navigator"
   | "components"
   | "library"
-  | "dataset"
+  | "datatable"
+  | "datatableEditor"
   | "theme"
   | "ai"
   | "user"
   | "settings"
   | "properties"
   | "styles"
-  | "data"
   | "events"
+  | "history"
+  | "monitor"
   | "example"; // 추가
 ```
 

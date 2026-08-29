@@ -61,7 +61,7 @@ const PANEL_SCOPE_MAP: Partial<Record<PanelId, ShortcutScope>> = {
   properties: "panel:properties",
   styles: "panel:styles",
   events: "panel:events",
-  nodes: "panel:navigator",
+  navigator: "panel:navigator",
 };
 
 // ============================================

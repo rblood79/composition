@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Nodes 패널의 표시명을 탐색기(Navigator)로 변경했습니다**: Pages, Frames와 내부 Layers 구조를 함께 다루는 탐색 도구라는 역할을 드러냅니다. 저장된 패널 배치와 단축키 호환성을 위해 내부 `nodes` 식별자는 유지합니다.
-- **탐색기 표현 계층의 내부 명칭도 통일했습니다**: 소스 디렉터리와 React 컴포넌트, DOM/CSS, i18n 및 단축키 scope를 `navigator`로 전환했습니다. 저장 레이아웃의 패널 ID와 외부 agent 명령 `toggleNodes`는 기존 프로젝트 호환성을 위해 유지합니다.
+- **Nodes 패널의 표시명을 탐색기(Navigator)로 변경했습니다**: Pages, Frames와 내부 Layers 구조를 함께 다루는 탐색 도구라는 역할을 드러냅니다.
+- **탐색기의 내부 식별자를 `navigator`로 완전히 통일했습니다**: 소스 디렉터리와 React 컴포넌트, DOM/CSS, i18n, shortcut scope에 이어 `PanelId`와 저장 레이아웃을 `navigator`로 전환했습니다. 기존 v3 `nodes` 배치는 exact backup을 남기고 geometry·visibility·focus order를 보존한 v4로 자동 migration합니다. 단축키와 신규 agent descriptor는 `toggleNavigator`를 사용하며, 기존 agent의 `toggleNodes` 호출은 executor 경계의 legacy alias로 계속 동작합니다.
 - **탐색기 패널을 제목 헤더와 탭 행의 2단 구조로 통일했습니다**: 공통 `PanelHeader`가 탐색기 제목과 우측 끝 닫기 버튼을 담당하고, Pages/Frames는 Styles 패널과 같은 별도 tabrow에서 전환됩니다.
 - **Pages/Frames 탭을 React Aria Tabs로 전환했습니다**: 수동 `role="tab"` 버튼을 제거하고 포커스 표시, 방향키 이동, 선택 상태와 `TabPanel` 연결을 표준 컴포넌트가 담당합니다. 두 탭의 라벨은 좁은 패널에서도 항상 표시되며 Styles 탭과 같이 왼쪽 정렬됩니다.
 

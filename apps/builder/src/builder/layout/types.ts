@@ -9,21 +9,21 @@ import type {
   PanelWorkspaceRect,
   PanelWorkspaceRegistryEntry,
 } from "./panelWorkspaceLayoutV2";
-import type { PanelWorkspaceLayoutV3 } from "./panelWorkspaceLayoutV3";
+import type { PanelWorkspaceLayoutV4 } from "./panelWorkspaceLayoutV4";
 
 /**
  * usePanelLayout 반환 타입
  */
 export interface UsePanelLayoutReturn {
   /** ADR-922 production placement/visibility SSOT. */
-  workspaceLayout: PanelWorkspaceLayoutV3 | null;
+  workspaceLayout: PanelWorkspaceLayoutV4 | null;
 
   initializeWorkspaceLayout: (
     registry: readonly PanelWorkspaceRegistryEntry[],
     surfaceRect: PanelWorkspaceRect,
   ) => boolean;
 
-  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
 
   /** rail/placement와 무관하게 visibility를 전환한다. */
   togglePanel: (panelId: PanelId) => void;

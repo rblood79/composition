@@ -89,7 +89,7 @@ export function NavigatorPanel() {
           />
         }
         title={t("panels.navigator")}
-        panelId="nodes"
+        panelId="navigator"
       />
 
       <Tabs

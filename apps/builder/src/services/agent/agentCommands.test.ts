@@ -306,7 +306,7 @@ describe("AGENT_COMMANDS jsdom spy — 심볼 1회 호출, handler 와 같은 �
   });
 
   it.each([
-    ["toggleNodes", "nodes"],
+    ["toggleNavigator", "navigator"],
     ["toggleComponents", "components"],
     ["toggleDatatable", "datatable"],
     ["toggleTheme", "theme"],

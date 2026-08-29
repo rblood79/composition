@@ -170,7 +170,7 @@ export const COMMAND_META: Readonly<Record<ShortcutId, CommandMeta>> = {
   zoom200: view(),
 
   // ---- panels ----
-  toggleNodes: view(),
+  toggleNavigator: view(),
   toggleComponents: view(),
   toggleDatatable: view(),
   toggleTheme: view(),
@@ -258,7 +258,7 @@ export const COMMAND_META: Readonly<Record<ShortcutId, CommandMeta>> = {
   toggleFocusMode: view(), // useSectionCollapse 전역 store
   toggleSections: view(false), // 패널 UI 전용
 
-  // ---- nodes (RAC TreeBase 네이티브 — registry 밖, palette:false) ----
+  // ---- navigator (RAC TreeBase 네이티브 — registry 밖, palette:false) ----
   treeNavDown: off("selection", "none"),
   treeNavUp: off("selection", "none"),
   treeNavRight: off("selection", "none"),

@@ -19,8 +19,8 @@ import {
 } from "../panels/core/types";
 import { createPanelWorkspaceRegistryEntry } from "../layout/panelWorkspaceLayoutV2";
 import { migratePanelLayoutV1ToV2 } from "../layout/panelWorkspaceLayoutV2Migration";
-import type { PanelWorkspaceLayoutV3 } from "../layout/panelWorkspaceLayoutV3";
-import { migratePanelWorkspaceLayoutV2ToV3 } from "../layout/panelWorkspaceLayoutV3Migration";
+import type { PanelWorkspaceLayoutV4 } from "../layout/panelWorkspaceLayoutV4";
+import { migratePanelWorkspaceLayoutV2ToV4 } from "../layout/panelWorkspaceLayoutV4Migration";
 import { useStore } from "../stores";
 
 const TEST_PANELS: PanelConfig[] = [
@@ -80,13 +80,13 @@ function registry() {
   return TEST_PANELS.map((config) => createPanelWorkspaceRegistryEntry(config));
 }
 
-function createWorkspaceLayout(): PanelWorkspaceLayoutV3 {
+function createWorkspaceLayout(): PanelWorkspaceLayoutV4 {
   const v2 = migratePanelLayoutV1ToV2(
     createV1Layout(),
     registry(),
     "hook-test",
   );
-  const result = migratePanelWorkspaceLayoutV2ToV3(v2, registry(), {
+  const result = migratePanelWorkspaceLayoutV2ToV4(v2, registry(), {
     surfaceRect: { width: 1200, height: 800 },
     migrationId: "hook-test-v3",
   });
@@ -94,7 +94,7 @@ function createWorkspaceLayout(): PanelWorkspaceLayoutV3 {
   return result.value;
 }
 
-function findPlacement(layout: PanelWorkspaceLayoutV3, panelId: PanelId) {
+function findPlacement(layout: PanelWorkspaceLayoutV4, panelId: PanelId) {
   for (const cluster of layout.clusters) {
     for (const column of cluster.columns) {
       const row = column.rows.find(
@@ -106,7 +106,7 @@ function findPlacement(layout: PanelWorkspaceLayoutV3, panelId: PanelId) {
   return null;
 }
 
-describe("usePanelLayout Photoshop식 v3 panel commands", () => {
+describe("usePanelLayout Photoshop식 v4 panel commands", () => {
   beforeAll(() => {
     for (const config of TEST_PANELS) {
       if (!PanelRegistry.hasPanel(config.id)) PanelRegistry.register(config);

@@ -7,9 +7,9 @@ import {
   PANEL_WORKSPACE_TEST_REGISTRY,
   createPanelWorkspaceLayoutV2,
 } from "./panelWorkspaceLayoutV2.testFixtures";
-import { solvePanelWorkspaceLayoutV3 } from "./panelWorkspaceLayoutV3";
-import { createPanelWorkspaceLayoutV3Fixture } from "./panelWorkspaceLayoutV3.testFixtures";
-import { migratePanelWorkspaceLayoutV2ToV3 } from "./panelWorkspaceLayoutV3Migration";
+import { solvePanelWorkspaceLayoutV4 } from "./panelWorkspaceLayoutV4";
+import { createPanelWorkspaceLayoutV4Fixture } from "./panelWorkspaceLayoutV4.testFixtures";
+import { migratePanelWorkspaceLayoutV2ToV4 } from "./panelWorkspaceLayoutV4Migration";
 import {
   createPanelWorkspaceLayoutCoordinator,
   type PanelWorkspaceLayoutCoordinatorInput,
@@ -50,7 +50,7 @@ function createInput(
   overrides: Partial<PanelWorkspaceLayoutCoordinatorInput> = {},
 ): PanelWorkspaceLayoutCoordinatorInput {
   return {
-    layout: createPanelWorkspaceLayoutV3Fixture(),
+    layout: createPanelWorkspaceLayoutV4Fixture(),
     registry: PANEL_WORKSPACE_TEST_REGISTRY,
     workspaceRect: { width: 1400, height: 900 },
     ...overrides,
@@ -60,7 +60,7 @@ function createInput(
 function requireCoordinator(
   input: PanelWorkspaceLayoutCoordinatorInput,
   scheduler: PanelWorkspaceLayoutFrameScheduler,
-  solve = solvePanelWorkspaceLayoutV3,
+  solve = solvePanelWorkspaceLayoutV4,
 ) {
   const result = createPanelWorkspaceLayoutCoordinator(input, {
     scheduler,
@@ -92,7 +92,7 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
         rows: [{ panelId: "properties", height: 520 }],
       },
     ];
-    const migrated = migratePanelWorkspaceLayoutV2ToV3(
+    const migrated = migratePanelWorkspaceLayoutV2ToV4(
       source,
       PANEL_WORKSPACE_TEST_REGISTRY,
       {
@@ -134,7 +134,7 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
 
   it("같은 column의 visible row 사이에서 horizontal splitter를 파생한다", () => {
     const scheduler = new TestFrameScheduler();
-    const layout = createPanelWorkspaceLayoutV3Fixture();
+    const layout = createPanelWorkspaceLayoutV4Fixture();
     layout.visibility.history = true;
     const coordinator = requireCoordinator(createInput({ layout }), scheduler);
 
@@ -170,7 +170,7 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
         rows: [{ panelId: "properties", height: 520 }],
       },
     ];
-    const migrated = migratePanelWorkspaceLayoutV2ToV3(
+    const migrated = migratePanelWorkspaceLayoutV2ToV4(
       source,
       PANEL_WORKSPACE_TEST_REGISTRY,
       {
@@ -196,7 +196,7 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
 
   it("같은 display frame의 여러 input을 최신 값으로 합쳐 solve/publish를 한 번만 수행한다", () => {
     const scheduler = new TestFrameScheduler();
-    const solve = vi.fn(solvePanelWorkspaceLayoutV3);
+    const solve = vi.fn(solvePanelWorkspaceLayoutV4);
     const coordinator = requireCoordinator(createInput(), scheduler, solve);
     solve.mockClear();
     const listenerA = vi.fn();
@@ -234,25 +234,27 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
 
   it("drag preview는 committed graph solve 없이 RAF당 최신 geometry 한 번만 publish하고 clear 시 base frame을 복원한다", () => {
     const scheduler = new TestFrameScheduler();
-    const solve = vi.fn(solvePanelWorkspaceLayoutV3);
+    const solve = vi.fn(solvePanelWorkspaceLayoutV4);
     const coordinator = requireCoordinator(createInput(), scheduler, solve);
     solve.mockClear();
     const listener = vi.fn();
     coordinator.subscribe(listener);
-    const baseFrame = coordinator.getSnapshot().frameGeometries.get("nodes");
+    const baseFrame = coordinator
+      .getSnapshot()
+      .frameGeometries.get("navigator");
     const basePropertiesFrame = coordinator
       .getSnapshot()
       .frameGeometries.get("properties");
-    if (!baseFrame) throw new Error("nodes frame is required");
+    if (!baseFrame) throw new Error("navigator frame is required");
     if (!basePropertiesFrame) throw new Error("properties frame is required");
 
-    coordinator.queuePreview("nodes", {
+    coordinator.queuePreview("navigator", {
       x: 240,
       y: 120,
       width: baseFrame.width,
       height: baseFrame.height,
     });
-    coordinator.queuePreview("nodes", {
+    coordinator.queuePreview("navigator", {
       x: 360,
       y: 180,
       width: baseFrame.width,
@@ -265,9 +267,9 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
     expect(listener).toHaveBeenCalledTimes(1);
     expect(coordinator.getSnapshot().version).toBe(1);
     expect(
-      coordinator.getSnapshot().frameGeometries.get("nodes"),
+      coordinator.getSnapshot().frameGeometries.get("navigator"),
     ).toMatchObject({ x: 360, y: 180 });
-    expect(coordinator.getSnapshot().frameGeometries.get("nodes")).not.toBe(
+    expect(coordinator.getSnapshot().frameGeometries.get("navigator")).not.toBe(
       baseFrame,
     );
     expect(coordinator.getSnapshot().frameGeometries.get("properties")).toBe(
@@ -281,9 +283,9 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
     expect(listener).toHaveBeenCalledTimes(2);
     expect(coordinator.getSnapshot().version).toBe(2);
     expect(
-      coordinator.getSnapshot().frameGeometries.get("nodes"),
+      coordinator.getSnapshot().frameGeometries.get("navigator"),
     ).toMatchObject({ x: baseFrame.x, y: baseFrame.y });
-    expect(coordinator.getSnapshot().frameGeometries.get("nodes")).toBe(
+    expect(coordinator.getSnapshot().frameGeometries.get("navigator")).toBe(
       baseFrame,
     );
     expect(coordinator.getSnapshot().frameGeometries.get("properties")).toBe(
@@ -335,7 +337,7 @@ describe("ADR-922 useSyncExternalStore snapshot selectors", () => {
   it("root와 panel selector가 같은 published version을 소비한다", () => {
     const scheduler = new TestFrameScheduler();
     const coordinator = requireCoordinator(createInput(), scheduler);
-    const panelId: PanelId = "nodes";
+    const panelId: PanelId = "navigator";
     const root = renderHook(() => usePanelWorkspaceLayoutSnapshot(coordinator));
     const frame = renderHook(() =>
       usePanelWorkspaceFrameSnapshot(coordinator, panelId),
@@ -344,8 +346,8 @@ describe("ADR-922 useSyncExternalStore snapshot selectors", () => {
     expect(root.result.current.version).toBe(0);
     expect(frame.result.current?.layoutVersion).toBe(0);
 
-    const layout = createPanelWorkspaceLayoutV3Fixture();
-    layout.visibility.nodes = false;
+    const layout = createPanelWorkspaceLayoutV4Fixture();
+    layout.visibility.navigator = false;
     act(() => {
       coordinator.queueInput(createInput({ layout }));
       scheduler.flush(8.3);

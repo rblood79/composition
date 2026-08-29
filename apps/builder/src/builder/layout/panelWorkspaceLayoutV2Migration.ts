@@ -17,6 +17,7 @@ import {
   type PanelWorkspaceRegistryEntry,
   type PanelWorkspaceResult,
 } from "./panelWorkspaceLayoutV2";
+import { canonicalizePersistedPanelIds } from "./panelWorkspacePanelIdMigration";
 
 export interface PanelWorkspaceLegacyProjectionMetadata {
   railOrder: Record<PanelWorkspaceRailSide, PanelId[]>;
@@ -227,6 +228,7 @@ export function parsePanelLayoutV1(
   registry: readonly PanelWorkspaceRegistryEntry[],
   defaults: PanelLayoutState,
 ): PanelWorkspaceResult<PanelLayoutState> {
+  input = canonicalizePersistedPanelIds(input);
   if (!isRecord(input) || input.version === PANEL_WORKSPACE_LAYOUT_VERSION) {
     return { ok: false, error: "Panel layout is not a v1 record" };
   }

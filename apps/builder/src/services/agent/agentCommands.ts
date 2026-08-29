@@ -114,7 +114,7 @@ export const AGENT_COMMANDS: Readonly<
   zoom200: zoomTo(2),
 
   // panels
-  toggleNodes: panel("nodes"),
+  toggleNavigator: panel("navigator"),
   toggleComponents: panel("components"),
   toggleDatatable: panel("datatable"),
   toggleTheme: panel("theme"),

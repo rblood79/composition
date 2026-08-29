@@ -49,7 +49,7 @@ import { MonitorPanel } from "../monitor/MonitorPanel";
 export const PANEL_CONFIGS: PanelConfig[] = [
   // Navigation panels
   {
-    id: "nodes",
+    id: "navigator",
     name: "탐색기",
     nameEn: "Navigator",
     icon: File,
@@ -60,7 +60,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 640,
     defaultHeight: 320,
     description: "페이지, 프레임 및 레이어 구조 탐색",
-    shortcutId: "toggleNodes",
+    shortcutId: "toggleNavigator",
   },
   {
     id: "components",

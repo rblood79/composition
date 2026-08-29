@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
-  createDefaultPanelWorkspaceLayoutV3,
+  createDefaultPanelWorkspaceLayoutV4,
   PANEL_WORKSPACE_DEFAULT_ZONE_BY_RAIL,
   PANEL_WORKSPACE_PLACEMENT_ZONES,
   panelWorkspaceZoneOrigin,
-  parsePanelWorkspaceLayoutV3,
-  solvePanelWorkspaceLayoutV3,
-  type PanelWorkspaceLayoutV3,
-} from "./panelWorkspaceLayoutV3";
+  parsePanelWorkspaceLayoutV4,
+  solvePanelWorkspaceLayoutV4,
+  type PanelWorkspaceLayoutV4,
+} from "./panelWorkspaceLayoutV4";
 import { PANEL_WORKSPACE_TEST_REGISTRY } from "./panelWorkspaceLayoutV2.testFixtures";
 
 const SURFACE_RECT = { width: 1200, height: 800 } as const;
 
-function panelIdsInLayout(layout: PanelWorkspaceLayoutV3): string[] {
+function panelIdsInLayout(layout: PanelWorkspaceLayoutV4): string[] {
   return layout.clusters.flatMap((cluster) =>
     cluster.columns.flatMap((column) => column.rows.map((row) => row.panelId)),
   );
 }
 
-describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
+describe("ADR-186 PanelWorkspaceLayoutV4 model", () => {
   it("9-zone origin을 fit 후 surface local 좌표로 순수 계산한다", () => {
     const clusterSize = { width: 240, height: 160 };
     const expected = [
@@ -48,13 +48,13 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
   it("right/top/bottom zone은 크기 변경 뒤에도 해당 surface edge를 보존한다", () => {
     const registry = [PANEL_WORKSPACE_TEST_REGISTRY[0]!];
     const createLayout = (
-      placementZone: PanelWorkspaceLayoutV3["clusters"][number]["placementZone"],
+      placementZone: PanelWorkspaceLayoutV4["clusters"][number]["placementZone"],
       width: number,
       height: number,
-    ): PanelWorkspaceLayoutV3 => ({
-      version: 3,
-      visibility: { nodes: true },
-      railOrder: { left: ["nodes"], right: [], bottom: [] },
+    ): PanelWorkspaceLayoutV4 => ({
+      version: 4,
+      visibility: { navigator: true },
+      railOrder: { left: ["navigator"], right: [], bottom: [] },
       clusters: [
         {
           id: `zone:${placementZone}`,
@@ -63,7 +63,7 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
             {
               id: `zone:${placementZone}:column:0`,
               width,
-              rows: [{ panelId: "nodes", height }],
+              rows: [{ panelId: "navigator", height }],
             },
           ],
         },
@@ -72,7 +72,7 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
     });
 
     for (const width of [233, 500]) {
-      const right = solvePanelWorkspaceLayoutV3(
+      const right = solvePanelWorkspaceLayoutV4(
         createLayout("top-right", width, 160),
         registry,
         SURFACE_RECT,
@@ -85,7 +85,7 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
     }
 
     for (const height of [160, 500]) {
-      const bottom = solvePanelWorkspaceLayoutV3(
+      const bottom = solvePanelWorkspaceLayoutV4(
         createLayout("bottom-right", 233, height),
         registry,
         SURFACE_RECT,
@@ -99,7 +99,7 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
   });
 
   it("320x180 surface에서 visible frame을 surface 밖으로 내보내지 않는다", () => {
-    const layout = createDefaultPanelWorkspaceLayoutV3(
+    const layout = createDefaultPanelWorkspaceLayoutV4(
       PANEL_WORKSPACE_TEST_REGISTRY,
       { width: 320, height: 180 },
       Object.fromEntries(
@@ -108,7 +108,7 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
     );
     expect(layout.ok).toBe(true);
     if (!layout.ok) return;
-    const solved = solvePanelWorkspaceLayoutV3(
+    const solved = solvePanelWorkspaceLayoutV4(
       layout.value,
       PANEL_WORKSPACE_TEST_REGISTRY,
       { width: 320, height: 180 },
@@ -123,7 +123,7 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
     }
   });
 
-  it("9-zone vocabulary와 Photoshop default mapping으로 v3-born layout을 만든다", () => {
+  it("9-zone vocabulary와 Photoshop default mapping으로 v4-born layout을 만든다", () => {
     expect(PANEL_WORKSPACE_PLACEMENT_ZONES).toEqual([
       "top-left",
       "top",
@@ -141,15 +141,15 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
       bottom: "bottom",
     });
 
-    const result = createDefaultPanelWorkspaceLayoutV3(
+    const result = createDefaultPanelWorkspaceLayoutV4(
       PANEL_WORKSPACE_TEST_REGISTRY,
       SURFACE_RECT,
-      { nodes: true, properties: true },
+      { navigator: true, properties: true },
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    expect(result.value.version).toBe(3);
+    expect(result.value.version).toBe(4);
     expect(
       result.value.clusters.map((cluster) => cluster.placementZone),
     ).toEqual(["top-left", "top-right", "bottom"]);
@@ -163,15 +163,15 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
 
   it("duplicate zone/row/rail과 3번째 column을 deterministic하게 normalize한다", () => {
     const input = {
-      version: 3,
+      version: 4,
       visibility: {
-        nodes: true,
+        navigator: true,
         properties: true,
         history: true,
         unknown: true,
       },
       railOrder: {
-        left: ["nodes", "nodes", "unknown"],
+        left: ["navigator", "navigator", "unknown"],
         right: ["properties", "history", "properties"],
         bottom: [],
       },
@@ -219,7 +219,7 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
             {
               id: "center:0",
               width: 233,
-              rows: [{ panelId: "nodes", height: 520 }],
+              rows: [{ panelId: "navigator", height: 520 }],
             },
           ],
         },
@@ -231,12 +231,12 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
       ],
     };
 
-    const first = parsePanelWorkspaceLayoutV3(
+    const first = parsePanelWorkspaceLayoutV4(
       input,
       PANEL_WORKSPACE_TEST_REGISTRY,
       SURFACE_RECT,
     );
-    const second = parsePanelWorkspaceLayoutV3(
+    const second = parsePanelWorkspaceLayoutV4(
       input,
       PANEL_WORKSPACE_TEST_REGISTRY,
       SURFACE_RECT,
@@ -286,22 +286,22 @@ describe("ADR-186 PanelWorkspaceLayoutV3 model", () => {
     }
   });
 
-  it("malformed v3, zero surface와 duplicate registry ID를 거부한다", () => {
+  it("malformed v4, zero surface와 duplicate registry ID를 거부한다", () => {
     expect(
-      parsePanelWorkspaceLayoutV3(
+      parsePanelWorkspaceLayoutV4(
         { version: 3 },
         PANEL_WORKSPACE_TEST_REGISTRY,
         SURFACE_RECT,
       ),
     ).toMatchObject({ ok: false });
     expect(
-      createDefaultPanelWorkspaceLayoutV3(PANEL_WORKSPACE_TEST_REGISTRY, {
+      createDefaultPanelWorkspaceLayoutV4(PANEL_WORKSPACE_TEST_REGISTRY, {
         width: 0,
         height: 800,
       }),
     ).toMatchObject({ ok: false });
     expect(
-      createDefaultPanelWorkspaceLayoutV3(
+      createDefaultPanelWorkspaceLayoutV4(
         [PANEL_WORKSPACE_TEST_REGISTRY[0]!, PANEL_WORKSPACE_TEST_REGISTRY[0]!],
         SURFACE_RECT,
       ),

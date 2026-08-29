@@ -11,7 +11,7 @@ paths:
 
 > **위상**: 빌더 시스템 UI (builder-system layer) 규칙. 사용자 캔버스 컴포넌트의 SSOT 3-domain (D1/D2/D3) 체인과 무관 — catalog/spec/Generator 확장 없음.
 >
-> **레퍼런스**: Properties/Styles 패널이 표준 정본. Components/DataTable/DataTableEditor 는 추종, **Nodes/Events 는 예외**(§예외), 나머지 미완 패널은 레퍼런스를 따라간다.
+> **레퍼런스**: Properties/Styles 패널이 표준 정본. Components/DataTable/DataTableEditor 는 추종, **Navigator/Events 는 예외**(§예외), 나머지 미완 패널은 레퍼런스를 따라간다.
 >
 > **공식 결정**: [ADR-163](../../docs/adr/completed/163-builder-panel-structure-standardization.md) · 구현 상세: [design breakdown](../../docs/adr/design/163-builder-panel-structure-standardization-breakdown.md)
 
@@ -58,7 +58,7 @@ paths:
 | `react-aria-*`                                                           | RAC 네임스페이스 — 자작 클래스 신규 부여 금지 (기존 관례만 유지) | —                                  |
 | `iconButton`, `empty-state`, `tab(s)-*`                                  | 공용 위젯 — 단일 정의로 통합 (Phase 4-a)                         | panel-system.css                   |
 
-**base 정의 vs 인스턴스 override** — 예약 prefix 금지는 **base 정의**(조상 스코프 없이 예약 클래스 단독 선언)에만 걸린다. 같은 compound 에 고유 클래스·속성이 덧붙은 형태(`.section.block-view`, `.section[data-section-id="x"]`)나 조상 스코프 안의 규칙(`.nodes-panel-content .section .section-content`)은 **인스턴스 한정 override** 라 허용 — 구조 정본을 대체하는 두 번째 소스가 아니라 특정 인스턴스만 조정하기 때문. 판정은 `reservedPrefix.static.test.ts` 가 기계 집행한다.
+**base 정의 vs 인스턴스 override** — 예약 prefix 금지는 **base 정의**(조상 스코프 없이 예약 클래스 단독 선언)에만 걸린다. 같은 compound 에 고유 클래스·속성이 덧붙은 형태(`.section.block-view`, `.section[data-section-id="x"]`)나 조상 스코프 안의 규칙(`.navigator-panel-content .section .section-content`)은 **인스턴스 한정 override** 라 허용 — 구조 정본을 대체하는 두 번째 소스가 아니라 특정 인스턴스만 조정하기 때문. 판정은 `reservedPrefix.static.test.ts` 가 기계 집행한다.
 
 - 패널 고유 클래스는 `{도메인}-{역할}` kebab-case (`component-semantics-row`, `datatable-creator-tabs` 형태). camelCase 금지 (기존 `.iconButton`/`elementItem*` 는 rename 기각 — 참조 churn 대비 이득 없음, 예약어로 의미 고정).
 - **state 표현은 data-attribute 우선** (`data-active`/`data-status`/`data-drag-over` — RAC 관례 정합). 접두 없는 bare modifier 클래스 (`.add`/`.warning`/`.sm`) 신규 금지 — modifier 필요 시 `{고유클래스}--{state}` 또는 data-attr. **기존 compound**(`.list-item.selected` 등 20종, base 정의 0건)는 owner 종속 state 패턴이라 존치 — 소급 전환 안 함(ADR-163 Phase 4-c 판정).
@@ -88,7 +88,7 @@ paths:
 
 ## 예외
 
-- **nodes**: 확정 예외 (사용자 지정 2026-07-24). 탭+가상화 트리가 Section 모델과 불일치. 단 시맨틱 토큰(`--editing-semantics-*`)은 공유, "구조 클래스 재정의 금지" 는 적용 (`elementItem*` camelCase 존치 허용).
+- **navigator**: 확정 예외 (사용자 지정 2026-07-24). 탭+가상화 트리가 Section 모델과 불일치. 단 시맨틱 토큰(`--editing-semantics-*`)은 공유, "구조 클래스 재정의 금지" 는 적용 (`elementItem*` camelCase 존치 허용).
 - **events**: 보류 (전면 재구성 대기). field 시스템(`.field/.field-label/…`) 포함 내부 구조 전체가 대상 외. 재구성 시 본 표준 적용이 전제.
 - 예외/보류 패널도 §2 예약표 (구조 클래스 재정의 금지) 는 적용.
 

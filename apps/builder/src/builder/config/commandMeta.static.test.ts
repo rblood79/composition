@@ -31,7 +31,7 @@ const ALLOWLIST: ShortcutId[] = [
   "zoomToFit",
   "zoom100",
   "zoom200",
-  "toggleNodes",
+  "toggleNavigator",
   "toggleComponents",
   "toggleDatatable",
   "toggleTheme",

@@ -60,7 +60,7 @@ describe("useActiveScope — data-shortcut-scope 선언", () => {
   // 폴백(panel:styles 등)이 잡혔다.
   it("포커스가 있는 패널이 폴백보다 우선한다", () => {
     const { hook } = mount(
-      `<div data-panel-id="nodes"><div role="treeitem" tabindex="0" id="t">x</div></div>`,
+      `<div data-panel-id="navigator"><div role="treeitem" tabindex="0" id="t">x</div></div>`,
       "#t",
     );
     expect(hook.result.current).toBe("panel:navigator");

@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { PanelId } from "../panels/core/types";
 import {
-  createDefaultPanelWorkspaceLayoutV3,
-  solvePanelWorkspaceLayoutV3,
-  type PanelWorkspaceLayoutV3,
+  createDefaultPanelWorkspaceLayoutV4,
+  solvePanelWorkspaceLayoutV4,
+  type PanelWorkspaceLayoutV4,
   type PanelWorkspacePlacementZone,
-} from "./panelWorkspaceLayoutV3";
+} from "./panelWorkspaceLayoutV4";
 import {
-  activatePanelWorkspacePanelV3,
-  resetPanelWorkspaceLayoutV3,
-  resizePanelWorkspaceBoundaryV3,
-} from "./panelWorkspacePolicyV3";
+  activatePanelWorkspacePanelV4,
+  resetPanelWorkspaceLayoutV4,
+  resizePanelWorkspaceBoundaryV4,
+} from "./panelWorkspacePolicyV4";
 import {
   beginPanelWorkspaceDragSession,
   commitPanelWorkspaceDragSession,
@@ -38,7 +38,7 @@ const OUTER_RESIZE_CASES = [
 ] as const;
 
 const REGISTRY: PanelWorkspaceRegistryEntry[] = [
-  registryEntry("nodes", "left"),
+  registryEntry("navigator", "left"),
   registryEntry("components", "left"),
   registryEntry("settings", "left"),
   registryEntry("properties", "right"),
@@ -64,18 +64,18 @@ function registryEntry(
 }
 
 function requireLayout(
-  result: ReturnType<typeof createDefaultPanelWorkspaceLayoutV3>,
-): PanelWorkspaceLayoutV3 {
+  result: ReturnType<typeof createDefaultPanelWorkspaceLayoutV4>,
+): PanelWorkspaceLayoutV4 {
   expect(result.ok).toBe(true);
   if (!result.ok) throw new Error(result.error);
   return result.value;
 }
 
 function activate(
-  layout: PanelWorkspaceLayoutV3,
+  layout: PanelWorkspaceLayoutV4,
   panelId: PanelId,
-): PanelWorkspaceLayoutV3 {
-  const result = activatePanelWorkspacePanelV3(
+): PanelWorkspaceLayoutV4 {
+  const result = activatePanelWorkspacePanelV4(
     layout,
     REGISTRY,
     panelId,
@@ -87,7 +87,7 @@ function activate(
 }
 
 function rowsByColumn(
-  layout: PanelWorkspaceLayoutV3,
+  layout: PanelWorkspaceLayoutV4,
   zone: PanelWorkspacePlacementZone,
 ): PanelId[][] {
   const cluster = layout.clusters.find(
@@ -123,12 +123,12 @@ function anchorPoint(
 
 function singleZoneLayout(
   zone: PanelWorkspacePlacementZone,
-): PanelWorkspaceLayoutV3 {
+): PanelWorkspaceLayoutV4 {
   return {
-    version: 3,
+    version: 4,
     visibility: { properties: true },
     railOrder: {
-      left: ["nodes", "components", "settings"],
+      left: ["navigator", "components", "settings"],
       right: ["properties", "styles", "history"],
       bottom: ["monitor"],
     },
@@ -149,10 +149,10 @@ function singleZoneLayout(
   };
 }
 
-describe("ADR-186 G4 v3 panel policy", () => {
+describe("ADR-186 G4 v4 panel policy", () => {
   it("right는 아래로 stack한 뒤 왼쪽 column으로 overflow한다", () => {
     let layout = requireLayout(
-      createDefaultPanelWorkspaceLayoutV3(REGISTRY, SURFACE_RECT),
+      createDefaultPanelWorkspaceLayoutV4(REGISTRY, SURFACE_RECT),
     );
     layout = activate(layout, "properties");
     layout = activate(layout, "styles");
@@ -175,9 +175,9 @@ describe("ADR-186 G4 v3 panel policy", () => {
             : entry,
     );
     const initial = requireLayout(
-      createDefaultPanelWorkspaceLayoutV3(registry, SURFACE_RECT),
+      createDefaultPanelWorkspaceLayoutV4(registry, SURFACE_RECT),
     );
-    const activated = activatePanelWorkspacePanelV3(
+    const activated = activatePanelWorkspacePanelV4(
       initial,
       registry,
       "properties",
@@ -185,7 +185,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
     );
     expect(activated.ok).toBe(true);
     if (!activated.ok) throw new Error(activated.error);
-    const solved = solvePanelWorkspaceLayoutV3(
+    const solved = solvePanelWorkspaceLayoutV4(
       activated.value.layout,
       registry,
       SURFACE_RECT,
@@ -197,14 +197,14 @@ describe("ADR-186 G4 v3 panel policy", () => {
 
   it("left는 아래로 stack한 뒤 오른쪽 column으로 overflow한다", () => {
     let layout = requireLayout(
-      createDefaultPanelWorkspaceLayoutV3(REGISTRY, SURFACE_RECT),
+      createDefaultPanelWorkspaceLayoutV4(REGISTRY, SURFACE_RECT),
     );
-    layout = activate(layout, "nodes");
+    layout = activate(layout, "navigator");
     layout = activate(layout, "components");
     layout = activate(layout, "settings");
 
     expect(rowsByColumn(layout, "top-left")).toEqual([
-      ["nodes", "components"],
+      ["navigator", "components"],
       ["settings"],
     ]);
   });
@@ -231,11 +231,11 @@ describe("ADR-186 G4 v3 panel policy", () => {
 
   it("cross-rail relative snap은 target zone만 승계하고 railOrder는 바꾸지 않는다", () => {
     const layout = requireLayout(
-      createDefaultPanelWorkspaceLayoutV3(
+      createDefaultPanelWorkspaceLayoutV4(
         REGISTRY,
         { width: 1200, height: 800 },
         {
-          nodes: true,
+          navigator: true,
           properties: true,
         },
       ),
@@ -249,7 +249,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
     );
     expect(started.ok).toBe(true);
     if (!started.ok) return;
-    const target = started.value.snapTargetFrameGeometries.get("nodes");
+    const target = started.value.snapTargetFrameGeometries.get("navigator");
     expect(target).toBeDefined();
     if (!target) return;
     const updated = updatePanelWorkspaceDragSession(
@@ -268,7 +268,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
     if (!updated.ok) return;
     expect(updated.value.candidate).toEqual({
       kind: "panel-edge",
-      panelId: "nodes",
+      panelId: "navigator",
       edge: "bottom",
     });
     const committed = commitPanelWorkspaceDragSession(updated.value, REGISTRY, {
@@ -294,12 +294,12 @@ describe("ADR-186 G4 v3 panel policy", () => {
     const moved = singleZoneLayout("center");
     moved.railOrder = {
       left: ["properties"],
-      right: ["nodes", "components", "settings", "styles", "history"],
+      right: ["navigator", "components", "settings", "styles", "history"],
       bottom: ["monitor"],
     };
     moved.clusters[0]!.columns[0]!.width = 333;
     moved.clusters[0]!.columns[0]!.rows[0]!.height = 177;
-    const reset = resetPanelWorkspaceLayoutV3(moved, REGISTRY, {
+    const reset = resetPanelWorkspaceLayoutV4(moved, REGISTRY, {
       width: 1200,
       height: 800,
     });
@@ -330,8 +330,8 @@ describe("ADR-186 G4 v3 panel policy", () => {
     ({ zone, edge, deltaX, deltaY, width, height }) => {
       const surfaceRect = { width: 1200, height: 800 } as const;
       const base = singleZoneLayout(zone);
-      const before = solvePanelWorkspaceLayoutV3(base, REGISTRY, surfaceRect);
-      const resized = resizePanelWorkspaceBoundaryV3(
+      const before = solvePanelWorkspaceLayoutV4(base, REGISTRY, surfaceRect);
+      const resized = resizePanelWorkspaceBoundaryV4(
         base,
         REGISTRY,
         "properties",
@@ -343,7 +343,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
       expect(before.ok).toBe(true);
       expect(resized.ok).toBe(true);
       if (!before.ok || !resized.ok) return;
-      const after = solvePanelWorkspaceLayoutV3(
+      const after = solvePanelWorkspaceLayoutV4(
         resized.value.layout,
         REGISTRY,
         surfaceRect,
@@ -405,7 +405,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
     (zone) => {
       const surfaceRect = { width: 1200, height: 800 } as const;
       const base = singleZoneLayout(zone);
-      const beforeResult = solvePanelWorkspaceLayoutV3(
+      const beforeResult = solvePanelWorkspaceLayoutV4(
         base,
         REGISTRY,
         surfaceRect,
@@ -416,7 +416,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
       expect(before).toBeDefined();
       if (!before) return;
 
-      const resized = resizePanelWorkspaceBoundaryV3(
+      const resized = resizePanelWorkspaceBoundaryV4(
         base,
         REGISTRY,
         "properties",
@@ -427,7 +427,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
       );
       expect(resized.ok).toBe(true);
       if (!resized.ok) return;
-      const afterResult = solvePanelWorkspaceLayoutV3(
+      const afterResult = solvePanelWorkspaceLayoutV4(
         resized.value.layout,
         REGISTRY,
         surfaceRect,
@@ -454,12 +454,12 @@ describe("ADR-186 G4 v3 panel policy", () => {
     ({ edge, overDelta, returnDelta }) => {
       const surfaceRect = { width: 1200, height: 800 } as const;
       const base = singleZoneLayout("top");
-      const beforeResult = solvePanelWorkspaceLayoutV3(
+      const beforeResult = solvePanelWorkspaceLayoutV4(
         base,
         REGISTRY,
         surfaceRect,
       );
-      const over = resizePanelWorkspaceBoundaryV3(
+      const over = resizePanelWorkspaceBoundaryV4(
         base,
         REGISTRY,
         "properties",
@@ -468,7 +468,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
         0,
         surfaceRect,
       );
-      const returned = resizePanelWorkspaceBoundaryV3(
+      const returned = resizePanelWorkspaceBoundaryV4(
         base,
         REGISTRY,
         "properties",
@@ -481,7 +481,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
       expect(over.ok).toBe(true);
       expect(returned.ok).toBe(true);
       if (!beforeResult.ok || !over.ok || !returned.ok) return;
-      const returnedResult = solvePanelWorkspaceLayoutV3(
+      const returnedResult = solvePanelWorkspaceLayoutV4(
         returned.value.layout,
         REGISTRY,
         surfaceRect,
@@ -516,8 +516,8 @@ describe("ADR-186 G4 v3 panel policy", () => {
         panelId: "styles",
         height: 100,
       });
-      const before = solvePanelWorkspaceLayoutV3(base, REGISTRY, surfaceRect);
-      const resized = resizePanelWorkspaceBoundaryV3(
+      const before = solvePanelWorkspaceLayoutV4(base, REGISTRY, surfaceRect);
+      const resized = resizePanelWorkspaceBoundaryV4(
         base,
         REGISTRY,
         "properties",
@@ -537,7 +537,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
         { panelId: "styles", height: 70 },
       ]);
       expect(rows.reduce((sum, row) => sum + row.height, 0)).toBe(200);
-      const after = solvePanelWorkspaceLayoutV3(
+      const after = solvePanelWorkspaceLayoutV4(
         resized.value.layout,
         REGISTRY,
         surfaceRect,
@@ -566,7 +566,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
         height: 100,
       });
 
-      const resized = resizePanelWorkspaceBoundaryV3(
+      const resized = resizePanelWorkspaceBoundaryV4(
         base,
         REGISTRY,
         "properties",
@@ -575,7 +575,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
         700,
         surfaceRect,
       );
-      const returned = resizePanelWorkspaceBoundaryV3(
+      const returned = resizePanelWorkspaceBoundaryV4(
         base,
         REGISTRY,
         "properties",
@@ -596,7 +596,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
         { panelId: "properties", height: 736 },
         { panelId: "styles", height: 60 },
       ]);
-      const solved = solvePanelWorkspaceLayoutV3(
+      const solved = solvePanelWorkspaceLayoutV4(
         resized.value.layout,
         REGISTRY,
         surfaceRect,
@@ -630,8 +630,8 @@ describe("ADR-186 G4 v3 panel policy", () => {
         width: 200,
         rows: [{ panelId: "styles", height: 100 }],
       });
-      const before = solvePanelWorkspaceLayoutV3(base, REGISTRY, surfaceRect);
-      const resized = resizePanelWorkspaceBoundaryV3(
+      const before = solvePanelWorkspaceLayoutV4(base, REGISTRY, surfaceRect);
+      const resized = resizePanelWorkspaceBoundaryV4(
         base,
         REGISTRY,
         "properties",
@@ -650,7 +650,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
       expect(
         columns.slice(0, 2).reduce((sum, column) => sum + column.width, 0),
       ).toBe(400);
-      const after = solvePanelWorkspaceLayoutV3(
+      const after = solvePanelWorkspaceLayoutV4(
         resized.value.layout,
         REGISTRY,
         surfaceRect,
@@ -676,7 +676,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
       panelId: "styles",
       height: 100,
     });
-    const over = resizePanelWorkspaceBoundaryV3(
+    const over = resizePanelWorkspaceBoundaryV4(
       base,
       REGISTRY,
       "properties",
@@ -685,7 +685,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
       1000,
       surfaceRect,
     );
-    const returned = resizePanelWorkspaceBoundaryV3(
+    const returned = resizePanelWorkspaceBoundaryV4(
       base,
       REGISTRY,
       "properties",
@@ -694,7 +694,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
       20,
       surfaceRect,
     );
-    const zero = resizePanelWorkspaceBoundaryV3(
+    const zero = resizePanelWorkspaceBoundaryV4(
       base,
       REGISTRY,
       "properties",
@@ -731,7 +731,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
       entry.id === "properties" ? { ...entry, maxHeight: 100 } : entry,
     );
     const base = singleZoneLayout("top-right");
-    const resized = resizePanelWorkspaceBoundaryV3(
+    const resized = resizePanelWorkspaceBoundaryV4(
       base,
       registry,
       "properties",
@@ -743,7 +743,7 @@ describe("ADR-186 G4 v3 panel policy", () => {
 
     expect(resized.ok).toBe(true);
     if (!resized.ok) return;
-    const solved = solvePanelWorkspaceLayoutV3(
+    const solved = solvePanelWorkspaceLayoutV4(
       resized.value.layout,
       registry,
       surfaceRect,

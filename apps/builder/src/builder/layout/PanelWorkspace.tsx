@@ -46,9 +46,9 @@ import {
 import {
   PANEL_WORKSPACE_PLACEMENT_ZONES,
   PANEL_WORKSPACE_SNAP_ZONES,
-  type PanelWorkspaceClusterV3,
-  type PanelWorkspaceLayoutV3,
-} from "./panelWorkspaceLayoutV3";
+  type PanelWorkspaceClusterV4,
+  type PanelWorkspaceLayoutV4,
+} from "./panelWorkspaceLayoutV4";
 import {
   createPanelWorkspaceRuntime,
   type PanelWorkspaceRuntime,
@@ -63,7 +63,7 @@ import "./PanelWorkspace.css";
 type PanelFrameMode = "hidden" | "placed";
 
 function isRightAnchoredPlacementZone(
-  placementZone: PanelWorkspaceClusterV3["placementZone"] | undefined,
+  placementZone: PanelWorkspaceClusterV4["placementZone"] | undefined,
 ): boolean {
   return Boolean(
     placementZone &&
@@ -79,7 +79,7 @@ const RESIZE_EDGE_TRANSLATION_KEYS: Record<PanelResizeEdge, string> = {
 };
 
 function railSideForPanel(
-  layout: PanelWorkspaceLayoutV3,
+  layout: PanelWorkspaceLayoutV4,
   config: PanelConfig,
 ): PanelSide {
   for (const side of ["left", "right", "bottom"] as const) {
@@ -121,7 +121,7 @@ function panelBelongsToMultiPanelCluster(
 
 const multiPanelClusterMembershipCache = new WeakMap<
   PanelWorkspaceRuntime,
-  { layout: PanelWorkspaceLayoutV3; panelIds: ReadonlySet<PanelId> }
+  { layout: PanelWorkspaceLayoutV4; panelIds: ReadonlySet<PanelId> }
 >();
 
 function frameZIndex(
@@ -288,7 +288,7 @@ function sharedSplitterStyle(
 
 interface PanelWorkspaceRuntimeProps {
   runtime: PanelWorkspaceRuntime;
-  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
 }
 
 interface PanelWorkspaceSharedSplittersProps extends PanelWorkspaceRuntimeProps {
@@ -403,7 +403,7 @@ interface PanelFrameProps {
   runtime: PanelWorkspaceRuntime;
   snapshotFrame: PanelWorkspaceFrameSnapshot | null;
   side: PanelSide;
-  onCommitLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
+  onCommitLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
   onFocusPanel: (panelId: PanelId) => void;
 }
 
@@ -794,7 +794,7 @@ interface SnapshotPanelFrameProps {
   dockOrigin: PanelDockOrigin;
   runtime: PanelWorkspaceRuntime;
   side: PanelSide;
-  onCommitLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
+  onCommitLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
   onFocusPanel: (panelId: PanelId) => void;
 }
 
@@ -808,7 +808,7 @@ function SnapshotPanelFrame(props: SnapshotPanelFrameProps) {
 }
 
 function createRuntime(
-  layout: PanelWorkspaceLayoutV3,
+  layout: PanelWorkspaceLayoutV4,
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
 ): PanelWorkspaceRuntime {
@@ -824,10 +824,10 @@ function createRuntime(
 interface HydratedPanelWorkspaceProps {
   children: ReactNode;
   chrome?: ReactNode;
-  workspaceLayout: PanelWorkspaceLayoutV3;
+  workspaceLayout: PanelWorkspaceLayoutV4;
   configs: readonly PanelConfig[];
   registry: readonly PanelWorkspaceRegistryEntry[];
-  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
   togglePanel: (panelId: PanelId) => void;
   focusPanel: (panelId: PanelId) => void;
   stageRect: PanelWorkspaceRect;
@@ -839,9 +839,9 @@ interface PanelWorkspaceOverlayProps {
   configs: readonly PanelConfig[];
   focusPanel: (panelId: PanelId) => void;
   runtime: PanelWorkspaceRuntime;
-  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
   togglePanel: (panelId: PanelId) => void;
-  workspaceLayout: PanelWorkspaceLayoutV3;
+  workspaceLayout: PanelWorkspaceLayoutV4;
   stageRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -861,7 +861,7 @@ interface PanelDockColumnPresentation {
 }
 
 function panelDockColumns(
-  clusters: readonly PanelWorkspaceClusterV3[],
+  clusters: readonly PanelWorkspaceClusterV4[],
   snapshot: PanelWorkspaceLayoutSnapshot,
 ): PanelDockColumnPresentation[] {
   const columns: PanelDockColumnPresentation[] = [];
@@ -902,9 +902,9 @@ function panelDockColumns(
 }
 
 function panelClusterMap(
-  layout: PanelWorkspaceLayoutV3,
+  layout: PanelWorkspaceLayoutV4,
   invalidationRevision: number,
-): ReadonlyMap<string, PanelWorkspaceClusterV3> {
+): ReadonlyMap<string, PanelWorkspaceClusterV4> {
   // Runtime layout is mutable; the revision invalidates the memoized map.
   void invalidationRevision;
   return new Map(

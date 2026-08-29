@@ -10,21 +10,21 @@ import type {
   PanelWorkspaceResult,
 } from "./panelWorkspaceLayoutV2";
 import {
-  solvePanelWorkspaceLayoutV3,
-  type PanelWorkspaceClusterV3,
-  type PanelWorkspaceLayoutSolutionV3,
-  type PanelWorkspaceLayoutV3,
+  solvePanelWorkspaceLayoutV4,
+  type PanelWorkspaceClusterV4,
+  type PanelWorkspaceLayoutSolutionV4,
+  type PanelWorkspaceLayoutV4,
   type PanelWorkspacePlacementZone,
-  type PanelWorkspaceSolvedFrameGeometryV3,
-} from "./panelWorkspaceLayoutV3";
+  type PanelWorkspaceSolvedFrameGeometryV4,
+} from "./panelWorkspaceLayoutV4";
 
 export interface PanelWorkspaceLayoutCoordinatorInput {
-  layout: PanelWorkspaceLayoutV3;
+  layout: PanelWorkspaceLayoutV4;
   registry: readonly PanelWorkspaceRegistryEntry[];
   workspaceRect: PanelWorkspaceRect;
 }
 
-export interface PanelWorkspaceFrameSnapshot extends PanelWorkspaceSolvedFrameGeometryV3 {
+export interface PanelWorkspaceFrameSnapshot extends PanelWorkspaceSolvedFrameGeometryV4 {
   layoutVersion: number;
   resizeEdges: readonly PanelResizeEdge[];
 }
@@ -61,10 +61,10 @@ export interface PanelWorkspaceLayoutFrameScheduler {
 }
 
 export type PanelWorkspaceLayoutSolver = (
-  layout: PanelWorkspaceLayoutV3,
+  layout: PanelWorkspaceLayoutV4,
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
-) => PanelWorkspaceResult<PanelWorkspaceLayoutSolutionV3>;
+) => PanelWorkspaceResult<PanelWorkspaceLayoutSolutionV4>;
 
 export interface PanelWorkspaceLayoutCoordinatorOptions {
   scheduler?: PanelWorkspaceLayoutFrameScheduler;
@@ -131,9 +131,9 @@ function readonlySetView<T>(source: ReadonlySet<T>): ReadonlySet<T> {
 }
 
 function visiblePanelIdsForColumn(
-  cluster: PanelWorkspaceClusterV3,
+  cluster: PanelWorkspaceClusterV4,
   columnIndex: number,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometryV3>,
+  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometryV4>,
 ): PanelId[] {
   const column = cluster.columns[columnIndex];
   if (!column) return [];
@@ -143,9 +143,9 @@ function visiblePanelIdsForColumn(
 }
 
 function createRowSplitters(
-  cluster: PanelWorkspaceClusterV3,
+  cluster: PanelWorkspaceClusterV4,
   columnIndex: number,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometryV3>,
+  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometryV4>,
   layoutVersion: number,
 ): PanelWorkspaceSplitterGeometry[] {
   const column = cluster.columns[columnIndex];
@@ -182,8 +182,8 @@ function createRowSplitters(
 }
 
 function createColumnSplitters(
-  cluster: PanelWorkspaceClusterV3,
-  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometryV3>,
+  cluster: PanelWorkspaceClusterV4,
+  frames: ReadonlyMap<PanelId, PanelWorkspaceSolvedFrameGeometryV4>,
   layoutVersion: number,
 ): PanelWorkspaceSplitterGeometry[] {
   const visibleColumns = cluster.columns.flatMap((column, columnIndex) => {
@@ -238,7 +238,7 @@ function createColumnSplitters(
 }
 
 function createSplitters(
-  solution: PanelWorkspaceLayoutSolutionV3,
+  solution: PanelWorkspaceLayoutSolutionV4,
   layoutVersion: number,
 ): readonly PanelWorkspaceSplitterGeometry[] {
   const splitters: PanelWorkspaceSplitterGeometry[] = [];
@@ -309,7 +309,7 @@ function createFrameResizeEdges(
 }
 
 function createSnapshot(
-  solution: PanelWorkspaceLayoutSolutionV3,
+  solution: PanelWorkspaceLayoutSolutionV4,
   registry: readonly PanelWorkspaceRegistryEntry[],
   version: number,
 ): PanelWorkspaceLayoutSnapshot {
@@ -507,7 +507,7 @@ export function createPanelWorkspaceLayoutCoordinator(
   input: PanelWorkspaceLayoutCoordinatorInput,
   options: PanelWorkspaceLayoutCoordinatorOptions = {},
 ): PanelWorkspaceResult<PanelWorkspaceLayoutCoordinator> {
-  const solve = options.solve ?? solvePanelWorkspaceLayoutV3;
+  const solve = options.solve ?? solvePanelWorkspaceLayoutV4;
   const initial = solve(input.layout, input.registry, input.workspaceRect);
   if (!initial.ok) return initial;
   return {

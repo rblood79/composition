@@ -5,7 +5,7 @@ import {
   PANEL_WORKSPACE_TEST_REGISTRY,
   createPanelWorkspaceLayoutV2,
 } from "../layout/panelWorkspaceLayoutV2.testFixtures";
-import { createPanelWorkspaceLayoutV3Fixture } from "../layout/panelWorkspaceLayoutV3.testFixtures";
+import { createPanelWorkspaceLayoutV4Fixture } from "../layout/panelWorkspaceLayoutV4.testFixtures";
 import {
   PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY,
   PANEL_WORKSPACE_LAYOUT_V1_BACKUP_KEY,
@@ -15,6 +15,10 @@ import {
   PANEL_WORKSPACE_LAYOUT_V2_BACKUP_KEY,
   parsePanelLayoutV2BackupEnvelope,
 } from "../layout/panelWorkspaceLayoutV3Persistence";
+import {
+  PANEL_WORKSPACE_LAYOUT_V3_BACKUP_KEY,
+  parsePanelLayoutV3BackupEnvelope,
+} from "../layout/panelWorkspaceLayoutV4Persistence";
 import { createPanelLayoutSlice, type PanelLayoutSlice } from "./panelLayout";
 
 const SURFACE_RECT = { width: 1200, height: 800 } as const;
@@ -51,7 +55,7 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
     vi.restoreAllMocks();
   });
 
-  it("v1 primary를 exact v1/v2 backup 뒤 v3 primary로 전환한다", () => {
+  it("v1 primary를 exact v1/v2 backup 뒤 v4 primary로 전환한다", () => {
     const raw = JSON.stringify({
       ...DEFAULT_PANEL_LAYOUT,
       leftPanels: ["nodes"],
@@ -65,10 +69,10 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
     const store = createPanelLayoutStore();
 
     expect(initialize(store)).toBe(true);
-    expect(store.getState().panelWorkspaceLayout?.version).toBe(3);
+    expect(store.getState().panelWorkspaceLayout?.version).toBe(4);
     expect(
       JSON.parse(localStorage.getItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY)!),
-    ).toMatchObject({ version: 3 });
+    ).toMatchObject({ version: 4 });
     expect(
       parsePanelLayoutV1BackupEnvelope(
         localStorage.getItem(PANEL_WORKSPACE_LAYOUT_V1_BACKUP_KEY),
@@ -79,17 +83,22 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
         localStorage.getItem(PANEL_WORKSPACE_LAYOUT_V2_BACKUP_KEY),
       ),
     ).toMatchObject({ ok: true, value: { state: "committed" } });
+    expect(
+      parsePanelLayoutV3BackupEnvelope(
+        localStorage.getItem(PANEL_WORKSPACE_LAYOUT_V3_BACKUP_KEY),
+      ),
+    ).toMatchObject({ ok: true, value: { state: "committed" } });
   });
 
-  it("v2-born primary를 v3로 migrate하고 exact v2 rollback backup을 보존한다", () => {
+  it("v2-born primary를 v4로 migrate하고 exact v2/v3 backup을 보존한다", () => {
     const raw = JSON.stringify(createPanelWorkspaceLayoutV2());
     localStorage.setItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY, raw);
     const store = createPanelLayoutStore();
 
     expect(initialize(store)).toBe(true);
     expect(store.getState().panelWorkspaceLayout).toMatchObject({
-      version: 3,
-      migrationSource: { version: 2 },
+      version: 4,
+      migrationSource: { version: 3 },
     });
     expect(
       parsePanelLayoutV2BackupEnvelope(
@@ -99,12 +108,62 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
       ok: true,
       value: { raw, state: "committed" },
     });
+    expect(
+      parsePanelLayoutV3BackupEnvelope(
+        localStorage.getItem(PANEL_WORKSPACE_LAYOUT_V3_BACKUP_KEY),
+      ),
+    ).toMatchObject({ ok: true, value: { state: "committed" } });
   });
 
-  it("valid v3 primary는 byte를 다시 쓰지 않고 그대로 hydrate한다", () => {
-    const { migrationSource: _migrationSource, ...v3Born } =
-      createPanelWorkspaceLayoutV3Fixture(SURFACE_RECT);
-    const raw = JSON.stringify(v3Born);
+  it("v3 nodes ID를 geometry 손실 없이 navigator v4로 atomic migrate한다", () => {
+    const current = createPanelWorkspaceLayoutV4Fixture(SURFACE_RECT);
+    const legacyRaw = JSON.stringify({ ...current, version: 3 }).replaceAll(
+      '"navigator"',
+      '"nodes"',
+    );
+    const legacy = JSON.parse(legacyRaw) as {
+      clusters: Array<{
+        columns: Array<{ rows: Array<{ panelId: string; height: number }> }>;
+      }>;
+    };
+    const legacyHeight = legacy.clusters
+      .flatMap((cluster) => cluster.columns)
+      .flatMap((column) => column.rows)
+      .find((row) => row.panelId === "nodes")?.height;
+    localStorage.setItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY, legacyRaw);
+    const store = createPanelLayoutStore();
+
+    expect(initialize(store)).toBe(true);
+    const layout = store.getState().panelWorkspaceLayout!;
+    const navigatorHeight = layout.clusters
+      .flatMap((cluster) => cluster.columns)
+      .flatMap((column) => column.rows)
+      .find((row) => row.panelId === "navigator")?.height;
+    expect(layout).toMatchObject({
+      version: 4,
+      migrationSource: { version: 3 },
+      visibility: { navigator: true },
+    });
+    expect(navigatorHeight).toBe(legacyHeight);
+    expect(layout.railOrder.left).toContain("navigator");
+    expect(layout.railOrder.left).not.toContain("nodes");
+    expect(
+      localStorage.getItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY),
+    ).not.toContain('"nodes"');
+    expect(
+      parsePanelLayoutV3BackupEnvelope(
+        localStorage.getItem(PANEL_WORKSPACE_LAYOUT_V3_BACKUP_KEY),
+      ),
+    ).toMatchObject({
+      ok: true,
+      value: { sourceVersion: 3, raw: legacyRaw, state: "committed" },
+    });
+  });
+
+  it("valid v4 primary는 byte를 다시 쓰지 않고 그대로 hydrate한다", () => {
+    const { migrationSource: _migrationSource, ...v4Born } =
+      createPanelWorkspaceLayoutV4Fixture(SURFACE_RECT);
+    const raw = JSON.stringify(v4Born);
     localStorage.setItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY, raw);
     const setItem = vi.spyOn(Storage.prototype, "setItem");
     setItem.mockClear();
@@ -116,7 +175,7 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
     expect(setItem).not.toHaveBeenCalled();
   });
 
-  it("interaction end는 migrationSource와 persisted XY 없이 v3를 debounce 1회 저장한다", () => {
+  it("interaction end는 migrationSource와 persisted XY 없이 v4를 debounce 1회 저장한다", () => {
     const raw = JSON.stringify(createPanelWorkspaceLayoutV2());
     localStorage.setItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY, raw);
     const store = createPanelLayoutStore();
@@ -134,13 +193,13 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
     const persisted = JSON.parse(
       localStorage.getItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY)!,
     ) as unknown;
-    expect(persisted).toMatchObject({ version: 3 });
+    expect(persisted).toMatchObject({ version: 4 });
     expect(persisted).not.toHaveProperty("migrationSource");
     expect(hasPersistedPosition(persisted)).toBe(false);
   });
 
-  it("visibility, zone, size, cluster focus order를 v3 refresh에서 그대로 복원한다", () => {
-    const initial = createPanelWorkspaceLayoutV3Fixture(SURFACE_RECT);
+  it("visibility, zone, size, cluster focus order를 v4 refresh에서 그대로 복원한다", () => {
+    const initial = createPanelWorkspaceLayoutV4Fixture(SURFACE_RECT);
     localStorage.setItem(
       PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY,
       JSON.stringify(initial),
@@ -172,7 +231,7 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
     );
   });
 
-  it("explicit reset은 measured surface의 v3 default를 즉시 저장한다", () => {
+  it("explicit reset은 measured surface의 v4 default를 즉시 저장한다", () => {
     const store = createPanelLayoutStore();
     expect(initialize(store)).toBe(true);
     const moved = structuredClone(store.getState().panelWorkspaceLayout!);
@@ -199,7 +258,7 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
     expect(hasPersistedPosition(reset)).toBe(false);
   });
 
-  it("storage read 실패는 renderer를 중단하지 않고 v3 memory fallback으로 전환한다", () => {
+  it("storage read 실패는 renderer를 중단하지 않고 v4 memory fallback으로 전환한다", () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new DOMException("denied", "SecurityError");
     });
@@ -208,7 +267,7 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
     expect(initialize(store)).toBe(false);
     expect(store.getState()).toMatchObject({
       panelWorkspaceHydrationStatus: "memory-fallback",
-      panelWorkspaceLayout: { version: 3 },
+      panelWorkspaceLayout: { version: 4 },
     });
   });
 

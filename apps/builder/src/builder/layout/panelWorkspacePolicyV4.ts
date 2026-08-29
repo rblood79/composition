@@ -7,20 +7,20 @@ import {
   type PanelWorkspaceResult,
 } from "./panelWorkspaceLayoutV2";
 import {
-  createDefaultPanelWorkspaceLayoutV3,
-  normalizePanelWorkspaceLayoutV3,
+  createDefaultPanelWorkspaceLayoutV4,
+  normalizePanelWorkspaceLayoutV4,
   PANEL_WORKSPACE_DEFAULT_ZONE_BY_RAIL,
-  type PanelWorkspaceClusterV3,
-  type PanelWorkspaceColumnV3,
-  type PanelWorkspaceLayoutV3,
-  type PanelWorkspaceRowV3,
-} from "./panelWorkspaceLayoutV3";
+  type PanelWorkspaceClusterV4,
+  type PanelWorkspaceColumnV4,
+  type PanelWorkspaceLayoutV4,
+  type PanelWorkspaceRowV4,
+} from "./panelWorkspaceLayoutV4";
 
-export interface PanelWorkspacePolicyResultV3 {
-  layout: PanelWorkspaceLayoutV3;
+export interface PanelWorkspacePolicyResultV4 {
+  layout: PanelWorkspaceLayoutV4;
 }
 
-interface PanelPlacementV3 {
+interface PanelPlacementV4 {
   clusterIndex: number;
   columnIndex: number;
   rowIndex: number;
@@ -34,9 +34,9 @@ function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(value, maximum));
 }
 
-function cloneLayout(layout: PanelWorkspaceLayoutV3): PanelWorkspaceLayoutV3 {
+function cloneLayout(layout: PanelWorkspaceLayoutV4): PanelWorkspaceLayoutV4 {
   return {
-    version: 3,
+    version: 4,
     ...(layout.migrationSource
       ? { migrationSource: { ...layout.migrationSource } }
       : {}),
@@ -63,9 +63,9 @@ function cloneLayout(layout: PanelWorkspaceLayoutV3): PanelWorkspaceLayoutV3 {
 }
 
 function findPlacement(
-  layout: PanelWorkspaceLayoutV3,
+  layout: PanelWorkspaceLayoutV4,
   panelId: PanelId,
-): PanelPlacementV3 | null {
+): PanelPlacementV4 | null {
   for (
     let clusterIndex = 0;
     clusterIndex < layout.clusters.length;
@@ -89,7 +89,7 @@ function findPlacement(
 }
 
 function railSideForPanel(
-  layout: PanelWorkspaceLayoutV3,
+  layout: PanelWorkspaceLayoutV4,
   panelId: PanelId,
 ): "left" | "right" | "bottom" | null {
   for (const side of ["left", "right", "bottom"] as const) {
@@ -106,8 +106,8 @@ function registryEntry(
 }
 
 function visibleColumnHeight(
-  layout: PanelWorkspaceLayoutV3,
-  column: PanelWorkspaceColumnV3,
+  layout: PanelWorkspaceLayoutV4,
+  column: PanelWorkspaceColumnV4,
 ): number {
   const rows = column.rows.filter(
     (row) => layout.visibility[row.panelId] === true,
@@ -119,9 +119,9 @@ function visibleColumnHeight(
 }
 
 function columnCanFit(
-  layout: PanelWorkspaceLayoutV3,
-  column: PanelWorkspaceColumnV3,
-  row: PanelWorkspaceRowV3,
+  layout: PanelWorkspaceLayoutV4,
+  column: PanelWorkspaceColumnV4,
+  row: PanelWorkspaceRowV4,
   surfaceRect: PanelWorkspaceRect,
 ): boolean {
   const visibleRows = column.rows.filter(
@@ -136,11 +136,11 @@ function columnCanFit(
 }
 
 function normalizeResult(
-  layout: PanelWorkspaceLayoutV3,
+  layout: PanelWorkspaceLayoutV4,
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
-): PanelWorkspaceResult<PanelWorkspacePolicyResultV3> {
-  const normalized = normalizePanelWorkspaceLayoutV3(
+): PanelWorkspaceResult<PanelWorkspacePolicyResultV4> {
+  const normalized = normalizePanelWorkspaceLayoutV4(
     layout,
     registry,
     surfaceRect,
@@ -153,7 +153,7 @@ function normalizeResult(
 }
 
 function isHorizontallyCenteredZone(
-  placementZone: PanelWorkspaceClusterV3["placementZone"],
+  placementZone: PanelWorkspaceClusterV4["placementZone"],
 ): boolean {
   return (
     placementZone === "top" ||
@@ -163,7 +163,7 @@ function isHorizontallyCenteredZone(
 }
 
 function isVerticallyCenteredZone(
-  placementZone: PanelWorkspaceClusterV3["placementZone"],
+  placementZone: PanelWorkspaceClusterV4["placementZone"],
 ): boolean {
   return (
     placementZone === "left" ||
@@ -173,15 +173,15 @@ function isVerticallyCenteredZone(
 }
 
 function isTopAnchoredZone(
-  placementZone: PanelWorkspaceClusterV3["placementZone"],
+  placementZone: PanelWorkspaceClusterV4["placementZone"],
 ): boolean {
   return placementZone === "top" || placementZone.startsWith("top-");
 }
 
 function placeOverflowRow(
-  layout: PanelWorkspaceLayoutV3,
-  cluster: PanelWorkspaceClusterV3,
-  placement: PanelPlacementV3,
+  layout: PanelWorkspaceLayoutV4,
+  cluster: PanelWorkspaceClusterV4,
+  placement: PanelPlacementV4,
   side: "left" | "right",
   surfaceRect: PanelWorkspaceRect,
 ): void {
@@ -205,7 +205,7 @@ function placeOverflowRow(
   }
 
   if (cluster.columns.length < MAX_PANEL_WORKSPACE_COLUMNS) {
-    const column: PanelWorkspaceColumnV3 = {
+    const column: PanelWorkspaceColumnV4 = {
       id: `${cluster.id}:column:${row.panelId}`,
       width: sourceWidth,
       rows: [row],
@@ -218,16 +218,16 @@ function placeOverflowRow(
   sourceColumn.rows.splice(placement.rowIndex, 0, row);
 }
 
-export function activatePanelWorkspacePanelV3(
-  layout: PanelWorkspaceLayoutV3,
+export function activatePanelWorkspacePanelV4(
+  layout: PanelWorkspaceLayoutV4,
   registry: readonly PanelWorkspaceRegistryEntry[],
   panelId: PanelId,
   surfaceRect: PanelWorkspaceRect,
-): PanelWorkspaceResult<PanelWorkspacePolicyResultV3> {
+): PanelWorkspaceResult<PanelWorkspacePolicyResultV4> {
   if (!registryEntry(registry, panelId)) {
     return failure(`Unknown panel "${panelId}"`);
   }
-  const normalized = normalizePanelWorkspaceLayoutV3(
+  const normalized = normalizePanelWorkspaceLayoutV4(
     layout,
     registry,
     surfaceRect,
@@ -267,12 +267,12 @@ export function activatePanelWorkspacePanelV3(
   return normalizeResult(next, registry, surfaceRect);
 }
 
-export function resetPanelWorkspaceLayoutV3(
-  layout: PanelWorkspaceLayoutV3,
+export function resetPanelWorkspaceLayoutV4(
+  layout: PanelWorkspaceLayoutV4,
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
-): PanelWorkspaceResult<PanelWorkspacePolicyResultV3> {
-  const reset = createDefaultPanelWorkspaceLayoutV3(
+): PanelWorkspaceResult<PanelWorkspacePolicyResultV4> {
+  const reset = createDefaultPanelWorkspaceLayoutV4(
     registry,
     surfaceRect,
     layout.visibility,
@@ -285,11 +285,11 @@ export function resetPanelWorkspaceLayoutV3(
 }
 
 function visibleRowNeighbor(
-  column: PanelWorkspaceColumnV3,
+  column: PanelWorkspaceColumnV4,
   rowIndex: number,
   direction: -1 | 1,
   visibility: Partial<Record<PanelId, boolean>>,
-): PanelWorkspaceRowV3 | undefined {
+): PanelWorkspaceRowV4 | undefined {
   for (
     let index = rowIndex + direction;
     index >= 0 && index < column.rows.length;
@@ -302,11 +302,11 @@ function visibleRowNeighbor(
 }
 
 function visibleColumnNeighbor(
-  cluster: PanelWorkspaceClusterV3,
+  cluster: PanelWorkspaceClusterV4,
   columnIndex: number,
   direction: -1 | 1,
   visibility: Partial<Record<PanelId, boolean>>,
-): PanelWorkspaceColumnV3 | undefined {
+): PanelWorkspaceColumnV4 | undefined {
   for (
     let index = columnIndex + direction;
     index >= 0 && index < cluster.columns.length;
@@ -338,7 +338,7 @@ function rowBounds(
 
 function columnBounds(
   registry: readonly PanelWorkspaceRegistryEntry[],
-  column: PanelWorkspaceColumnV3,
+  column: PanelWorkspaceColumnV4,
   visibility: Partial<Record<PanelId, boolean>>,
   surfaceRect: PanelWorkspaceRect,
 ): { min: number; max: number } | null {
@@ -382,16 +382,16 @@ function pairedDelta(
   return clamp(requested, minimum, maximum);
 }
 
-export function resizePanelWorkspaceBoundaryV3(
-  layout: PanelWorkspaceLayoutV3,
+export function resizePanelWorkspaceBoundaryV4(
+  layout: PanelWorkspaceLayoutV4,
   registry: readonly PanelWorkspaceRegistryEntry[],
   panelId: PanelId,
   edge: PanelResizeEdge,
   deltaX: number,
   deltaY: number,
   surfaceRect: PanelWorkspaceRect,
-): PanelWorkspaceResult<PanelWorkspacePolicyResultV3> {
-  const normalized = normalizePanelWorkspaceLayoutV3(
+): PanelWorkspaceResult<PanelWorkspacePolicyResultV4> {
+  const normalized = normalizePanelWorkspaceLayoutV4(
     layout,
     registry,
     surfaceRect,

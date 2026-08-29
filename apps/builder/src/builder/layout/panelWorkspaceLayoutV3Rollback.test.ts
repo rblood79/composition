@@ -78,7 +78,7 @@ function v3BornRaw(): string {
   const result = createDefaultPanelWorkspaceLayoutV3(
     PANEL_WORKSPACE_TEST_REGISTRY,
     SURFACE_RECT,
-    { nodes: true, properties: true, monitor: true },
+    { navigator: true, properties: true, monitor: true },
   );
   if (!result.ok) throw new Error(result.error);
   return JSON.stringify(result.value);

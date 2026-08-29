@@ -56,7 +56,7 @@ export const ADR_186_ZONE_ORIGIN_FIXTURES: ReadonlyArray<{
 ];
 
 const FLOATING_PANEL_IDS = [
-  "nodes",
+  "navigator",
   "properties",
   "monitor",
   "components",
@@ -74,7 +74,7 @@ const RAIL_BY_PANEL: Record<
   (typeof FLOATING_PANEL_IDS)[number],
   PanelWorkspaceRailSide
 > = {
-  nodes: "left",
+  navigator: "left",
   properties: "right",
   monitor: "bottom",
   components: "left",
@@ -144,7 +144,7 @@ export function createAdr186TenPlusFloatingFixture(): Adr186TenPlusFloatingFixtu
       ),
       railOrder: {
         left: [
-          "nodes",
+          "navigator",
           "components",
           "library",
           "datatable",
@@ -164,7 +164,7 @@ export function createAdr186TenPlusFloatingFixture(): Adr186TenPlusFloatingFixtu
               id: `${mixedRailClusterId}:column:0`,
               width: 200,
               rows: [
-                { panelId: "nodes", height: 100 },
+                { panelId: "navigator", height: 100 },
                 { panelId: "properties", height: 100 },
               ],
             },

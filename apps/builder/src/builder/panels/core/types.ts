@@ -63,7 +63,7 @@ export interface PanelFrameGeometry extends PanelSize {
  */
 export type PanelId =
   // Navigation panels
-  | "nodes"
+  | "navigator"
   | "components"
   | "library"
   | "datatable"
@@ -265,7 +265,7 @@ export interface PanelLayoutState {
  */
 export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   leftPanels: [
-    "nodes",
+    "navigator",
     "components",
     "datatable",
     "datatableEditor", // DataTable 에디터 (datatable과 함께 사용)
@@ -273,7 +273,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
     "settings",
   ],
   rightPanels: ["properties", "styles", "events", "ai", "history"],
-  activeLeftPanels: ["nodes"], // Multi toggle 지원: 배열
+  activeLeftPanels: ["navigator"], // Multi toggle 지원: 배열
   activeRightPanels: ["properties"], // Multi toggle 지원: 배열
   showLeft: true,
   showRight: true,

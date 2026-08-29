@@ -14,8 +14,8 @@ import {
 } from "./panelWorkspaceLayoutV2.testFixtures";
 import { createPanelWorkspaceRegistryEntry } from "./panelWorkspaceLayoutV2";
 import type { PanelWorkspaceLayoutV2 } from "./panelWorkspaceLayoutV2";
-import type { PanelWorkspaceLayoutV3 } from "./panelWorkspaceLayoutV3";
-import { migratePanelWorkspaceLayoutV2ToV3 } from "./panelWorkspaceLayoutV3Migration";
+import type { PanelWorkspaceLayoutV4 } from "./panelWorkspaceLayoutV4";
+import { migratePanelWorkspaceLayoutV2ToV4 } from "./panelWorkspaceLayoutV4Migration";
 import {
   beginPanelWorkspaceDragSession,
   commitPanelWorkspaceDragSession,
@@ -61,8 +61,8 @@ const TEST_REGISTRY = [...TEST_CONFIGS, STYLES_TEST_CONFIG].map((config) =>
 
 function migrateFixture(
   source: PanelWorkspaceLayoutV2 = createPanelWorkspaceLayoutV2(),
-): PanelWorkspaceLayoutV3 {
-  const migrated = migratePanelWorkspaceLayoutV2ToV3(source, TEST_REGISTRY, {
+): PanelWorkspaceLayoutV4 {
+  const migrated = migratePanelWorkspaceLayoutV2ToV4(source, TEST_REGISTRY, {
     surfaceRect: { width: 1600, height: 852 },
     migrationId: "panel-workspace-occupancy-fixture",
   });
@@ -74,7 +74,7 @@ function RepresentativePanel() {
   return (
     <div className="panel representative-panel">
       <div className="panel-header">
-        <span className="panel-title">Nodes</span>
+        <span className="panel-title">Navigator</span>
         <div className="panel-actions" />
       </div>
       <div className="panel-contents" />
@@ -150,7 +150,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
       ".panel-dock-surface",
     );
     const nodesFrame = container.querySelector<HTMLElement>(
-      '.workspace-panel-frame[data-panel="nodes"]',
+      '.workspace-panel-frame[data-panel="navigator"]',
     );
     const propertiesFrame = container.querySelector<HTMLElement>(
       '.workspace-panel-frame[data-panel="properties"]',
@@ -195,7 +195,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     ).toBeNull();
     expect(
       container
-        .querySelector('.workspace-panel-frame[data-panel="nodes"]')
+        .querySelector('.workspace-panel-frame[data-panel="navigator"]')
         ?.getAttribute("data-zone"),
     ).toBe("top-left");
     expect(
@@ -208,7 +208,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
   it("shell이 기존 panel header/action/content DOM을 복제하지 않는다", () => {
     vi.mocked(PanelRegistry.getAllPanels).mockReturnValue(
       TEST_CONFIGS.map((config) =>
-        config.id === "nodes"
+        config.id === "navigator"
           ? { ...config, component: RepresentativePanel }
           : config,
       ),
@@ -220,7 +220,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
       </PanelWorkspace>,
     );
     const frame = container.querySelector(
-      '.workspace-panel-frame[data-panel="nodes"]',
+      '.workspace-panel-frame[data-panel="navigator"]',
     );
 
     expect(frame?.querySelectorAll(".workspace-panel-content")).toHaveLength(1);
@@ -232,7 +232,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     const splitter = frame?.querySelector('[role="separator"]');
     const controlledPaneId = splitter?.getAttribute("aria-controls");
     const controlledPane = frame?.querySelector(".workspace-panel-content");
-    expect(controlledPaneId).toBe("panel-nodes-content");
+    expect(controlledPaneId).toBe("panel-navigator-content");
     expect(controlledPane?.id).toBe(controlledPaneId);
   });
 
@@ -268,7 +268,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     if (!left || !right) throw new Error("anchored clusters are required");
 
     left.columns[0]!.rows = [
-      { panelId: "nodes", height: 350 },
+      { panelId: "navigator", height: 350 },
       { panelId: "datatableEditor", height: 300 },
       { panelId: "settings", height: 300 },
     ];
@@ -319,7 +319,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     const updatedLeft = updated.clusters.find(
       (cluster) => cluster.placementZone === "top-left",
     );
-    expect(updated.version).toBe(3);
+    expect(updated.version).toBe(4);
     expect(
       updatedRight?.columns.map((column) =>
         column.rows.map((row) => row.panelId),
@@ -329,7 +329,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
       updatedLeft?.columns.map((column) =>
         column.rows.map((row) => row.panelId),
       ),
-    ).toEqual([["nodes", "datatableEditor"], ["settings"]]);
+    ).toEqual([["navigator", "datatableEditor"], ["settings"]]);
   });
 
   it("cross-rail snap은 anchor 기준 outer edge와 shared column splitter 하나를 렌더링한다", () => {

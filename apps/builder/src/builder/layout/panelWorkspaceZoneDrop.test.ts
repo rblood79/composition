@@ -7,11 +7,11 @@ import {
 } from "./panelWorkspaceLayoutV2.testFixtures";
 import {
   PANEL_WORKSPACE_SNAP_ZONES,
-  solvePanelWorkspaceLayoutV3,
-  type PanelWorkspaceLayoutV3,
+  solvePanelWorkspaceLayoutV4,
+  type PanelWorkspaceLayoutV4,
   type PanelWorkspacePlacementZone,
-} from "./panelWorkspaceLayoutV3";
-import { migratePanelWorkspaceLayoutV2ToV3 } from "./panelWorkspaceLayoutV3Migration";
+} from "./panelWorkspaceLayoutV4";
+import { migratePanelWorkspaceLayoutV2ToV4 } from "./panelWorkspaceLayoutV4Migration";
 import {
   beginPanelWorkspaceDragSession,
   commitPanelWorkspaceDragSession,
@@ -20,8 +20,8 @@ import {
 
 const SURFACE = { width: 1200, height: 800 } as const;
 
-function createV3Layout(): PanelWorkspaceLayoutV3 {
-  const migrated = migratePanelWorkspaceLayoutV2ToV3(
+function createV4Layout(): PanelWorkspaceLayoutV4 {
+  const migrated = migratePanelWorkspaceLayoutV2ToV4(
     createPanelWorkspaceLayoutV2(),
     PANEL_WORKSPACE_TEST_REGISTRY,
     { surfaceRect: SURFACE, migrationId: "phase-3-test" },
@@ -31,10 +31,10 @@ function createV3Layout(): PanelWorkspaceLayoutV3 {
 }
 
 function frameFor(
-  layout: PanelWorkspaceLayoutV3,
-  panelId: "nodes" | "properties" | "settings",
+  layout: PanelWorkspaceLayoutV4,
+  panelId: "navigator" | "properties" | "settings",
 ): PanelFrameGeometry {
-  const solved = solvePanelWorkspaceLayoutV3(
+  const solved = solvePanelWorkspaceLayoutV4(
     layout,
     PANEL_WORKSPACE_TEST_REGISTRY,
     SURFACE,
@@ -71,7 +71,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
   it.each(PANEL_WORKSPACE_SNAP_ZONES)(
     "%s hit region은 panel edge가 없을 때 단일 zone candidate를 만든다",
     (zone) => {
-      const layout = createV3Layout();
+      const layout = createV4Layout();
       for (const panelId of Object.keys(layout.visibility)) {
         layout.visibility[panelId as keyof typeof layout.visibility] =
           panelId === "properties";
@@ -101,8 +101,8 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
   );
 
   it("panel adjacency를 zone보다 우선하고 가능한 outer face 하나만 반환한다", () => {
-    const layout = createV3Layout();
-    const target = frameFor(layout, "nodes");
+    const layout = createV4Layout();
+    const target = frameFor(layout, "navigator");
     const source = frameFor(layout, "properties");
     const session = beginPanelWorkspaceDragSession(
       layout,
@@ -130,14 +130,14 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
     if (!updated.ok) return;
     expect(updated.value.candidate).toEqual({
       kind: "panel-edge",
-      panelId: "nodes",
+      panelId: "navigator",
       edge: "bottom",
     });
   });
 
   it("스냅 edge는 드래그 패널 프레임이 아니라 포인터가 가까운 대상면을 선택한다", () => {
-    const layout = createV3Layout();
-    const target = frameFor(layout, "nodes");
+    const layout = createV4Layout();
+    const target = frameFor(layout, "navigator");
     const source = frameFor(layout, "properties");
     const session = beginPanelWorkspaceDragSession(
       layout,
@@ -160,7 +160,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
     if (!updated.ok) return;
     expect(updated.value.candidate).toEqual({
       kind: "panel-edge",
-      panelId: "nodes",
+      panelId: "navigator",
       edge: "bottom",
     });
   });
@@ -168,8 +168,8 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
   it.each(["left", "right"] as const)(
     "마우스가 target edge에서 멀면 이동 panel의 %s edge가 닿아도 snap하지 않는다",
     (edge) => {
-      const layout = createV3Layout();
-      const target = frameFor(layout, "nodes");
+      const layout = createV4Layout();
+      const target = frameFor(layout, "navigator");
       const source = frameFor(layout, "properties");
       const session = beginPanelWorkspaceDragSession(
         layout,
@@ -208,7 +208,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
   it.each(["left", "right"] as const)(
     "hidden-only second column이 있어도 보이는 left-top column의 %s snap을 허용한다",
     (edge) => {
-      const layout = createV3Layout();
+      const layout = createV4Layout();
       const targetCluster = layout.clusters.find(
         (cluster) => cluster.placementZone === "top-left",
       );
@@ -230,7 +230,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
       });
       layout.visibility.settings = false;
 
-      const target = frameFor(layout, "nodes");
+      const target = frameFor(layout, "navigator");
       const source = frameFor(layout, "properties");
       const session = beginPanelWorkspaceDragSession(
         layout,
@@ -262,7 +262,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
       if (!updated.ok) return;
       expect(updated.value.candidate).toEqual({
         kind: "panel-edge",
-        panelId: "nodes",
+        panelId: "navigator",
         edge,
       });
 
@@ -277,7 +277,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
       const committedTargetCluster = committed.value.layout.clusters.find(
         (cluster) =>
           cluster.columns.some((column) =>
-            column.rows.some((row) => row.panelId === "nodes"),
+            column.rows.some((row) => row.panelId === "navigator"),
           ),
       );
       expect(committedTargetCluster?.columns).toHaveLength(2);
@@ -285,20 +285,20 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
   );
 
   it("같은 column에서 source를 숨겨도 보이는 committed target edge를 판정한다", () => {
-    const layout = createV3Layout();
+    const layout = createV4Layout();
     layout.visibility.settings = true;
     const committedTarget = frameFor(layout, "settings");
-    const source = frameFor(layout, "nodes");
+    const source = frameFor(layout, "navigator");
     const session = beginPanelWorkspaceDragSession(
       layout,
       PANEL_WORKSPACE_TEST_REGISTRY,
       SURFACE,
-      "nodes",
+      "navigator",
     );
     expect(session.ok).toBe(true);
     if (!session.ok) return;
 
-    const candidateSolved = solvePanelWorkspaceLayoutV3(
+    const candidateSolved = solvePanelWorkspaceLayoutV4(
       session.value.candidateLayout,
       PANEL_WORKSPACE_TEST_REGISTRY,
       SURFACE,
@@ -330,9 +330,9 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
   });
 
   it("같은 column의 내부 row 경계도 panel-edge 후보로 노출한다", () => {
-    const layout = createV3Layout();
+    const layout = createV4Layout();
     layout.visibility.settings = true;
-    const target = frameFor(layout, "nodes");
+    const target = frameFor(layout, "navigator");
     const source = frameFor(layout, "properties");
     const session = beginPanelWorkspaceDragSession(
       layout,
@@ -366,8 +366,8 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
   });
 
   it("valid panel-edge drop은 target cluster에 한 번 commit하고 rail identity를 유지한다", () => {
-    const layout = createV3Layout();
-    const target = frameFor(layout, "nodes");
+    const layout = createV4Layout();
+    const target = frameFor(layout, "navigator");
     const source = frameFor(layout, "properties");
     const session = beginPanelWorkspaceDragSession(
       layout,
@@ -406,7 +406,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
     });
     const targetCluster = committed.value.layout.clusters.find((cluster) =>
       cluster.columns.some((column) =>
-        column.rows.some((row) => row.panelId === "nodes"),
+        column.rows.some((row) => row.panelId === "navigator"),
       ),
     );
     expect(targetCluster?.placementZone).toBe("top-left");
@@ -414,12 +414,12 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
       targetCluster?.columns.flatMap((column) =>
         column.rows.map((row) => row.panelId),
       ),
-    ).toEqual(["nodes", "properties", "datatableEditor", "settings"]);
+    ).toEqual(["navigator", "properties", "datatableEditor", "settings"]);
     expect(committed.value.layout.railOrder).toEqual(layout.railOrder);
   });
 
   it("valid zone drop은 target zone graph만 한 번 commit하고 persisted XY를 만들지 않는다", () => {
-    const layout = createV3Layout();
+    const layout = createV4Layout();
     for (const panelId of Object.keys(layout.visibility)) {
       layout.visibility[panelId as keyof typeof layout.visibility] =
         panelId === "properties";
@@ -469,7 +469,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
   });
 
   it("null candidate는 byte-equivalent base graph로 rollback하고 commit 0을 반환한다", () => {
-    const layout = createV3Layout();
+    const layout = createV4Layout();
     const baseRaw = JSON.stringify(layout);
     const session = beginPanelWorkspaceDragSession(
       layout,
@@ -496,7 +496,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
   });
 
   it("candidate hot path는 DOM geometry query 없이 반복 평가된다", () => {
-    const layout = createV3Layout();
+    const layout = createV4Layout();
     const frame = frameFor(layout, "properties");
     const session = beginPanelWorkspaceDragSession(
       layout,

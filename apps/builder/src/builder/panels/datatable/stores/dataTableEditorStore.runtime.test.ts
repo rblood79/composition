@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  configs: [{ id: "datatableEditor" }, { id: "nodes" }],
+  configs: [{ id: "datatableEditor" }, { id: "navigator" }],
   createRegistryEntry: vi.fn((config: { id: string }, rect: unknown) => ({
     config,
     rect,

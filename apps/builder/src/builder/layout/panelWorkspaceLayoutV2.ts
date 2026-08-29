@@ -6,6 +6,7 @@ import type {
   PanelSide,
   PanelSize,
 } from "../panels/core/types";
+import { canonicalizePersistedPanelIds } from "./panelWorkspacePanelIdMigration";
 
 export const PANEL_WORKSPACE_LAYOUT_VERSION = 2 as const;
 export const PANEL_WORKSPACE_GAP = 4;
@@ -16,13 +17,9 @@ export const MAX_PANEL_WORKSPACE_COLUMNS = 2;
 export type PanelWorkspaceRailSide = PanelSide;
 export type PanelWorkspaceAnchor = PanelWorkspaceRailSide | "floating";
 export type PanelWorkspacePresentation =
-  | "anchored"
-  | "floating"
-  | "constrained-overlay";
+  "anchored" | "floating" | "constrained-overlay";
 export type PanelWorkspaceAnchorPresentation =
-  | "anchored"
-  | "constrained-overlay"
-  | "hidden";
+  "anchored" | "constrained-overlay" | "hidden";
 
 export interface PanelWorkspaceRegistryEntry {
   id: PanelId;
@@ -65,8 +62,7 @@ export interface PanelWorkspaceFloatingClusterV2 {
 }
 
 export type PanelWorkspaceClusterV2 =
-  | PanelWorkspaceAnchoredClusterV2
-  | PanelWorkspaceFloatingClusterV2;
+  PanelWorkspaceAnchoredClusterV2 | PanelWorkspaceFloatingClusterV2;
 
 export interface PanelWorkspaceLayoutV2 {
   version: typeof PANEL_WORKSPACE_LAYOUT_VERSION;
@@ -88,8 +84,7 @@ export function panelWorkspaceFloatingOriginY(
 }
 
 export type PanelWorkspaceResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: string };
+  { ok: true; value: T } | { ok: false; error: string };
 
 export interface PanelWorkspaceRect {
   width: number;
@@ -732,7 +727,7 @@ export function parsePanelWorkspaceLayoutV2(
   input: unknown,
   registry: readonly PanelWorkspaceRegistryEntry[],
 ): PanelWorkspaceResult<PanelWorkspaceLayoutV2> {
-  const raw = parseRawLayout(input);
+  const raw = parseRawLayout(canonicalizePersistedPanelIds(input));
   if (!raw.ok) return raw;
   return normalizePanelWorkspaceLayoutV2(rawToTypedLayout(raw.value), registry);
 }

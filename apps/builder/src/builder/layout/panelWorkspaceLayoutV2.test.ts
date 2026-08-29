@@ -80,7 +80,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
       visibility: Record<string, boolean>;
     };
     input.visibility.removed = true;
-    input.railOrder.left.push("nodes", "removed" as PanelId);
+    input.railOrder.left.push("navigator", "removed" as PanelId);
     input.clusters[0]!.columns[0]!.rows =
       input.clusters[0]!.columns[0]!.rows.filter(
         (row) => row.panelId !== "settings",
@@ -90,7 +90,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
         id: "extra:1",
         width: 10,
         rows: [
-          { panelId: "nodes", height: 10 },
+          { panelId: "navigator", height: 10 },
           { panelId: "removed" as PanelId, height: 10 },
         ],
       },
@@ -111,7 +111,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
     expect(result.value.clusters[0]?.columns).toHaveLength(2);
     expect(Object.keys(result.value.visibility)).not.toContain("removed");
     expect(result.value.railOrder.left).toEqual([
-      "nodes",
+      "navigator",
       "datatableEditor",
       "settings",
     ]);
@@ -195,7 +195,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
 
     expect(result).toEqual({
       ok: false,
-      error: 'Duplicate panel registry id "nodes"',
+      error: 'Duplicate panel registry id "navigator"',
     });
   });
 });
@@ -296,7 +296,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
 
   it("800px viewport에서는 right를 유지하고 left를 overlay한 뒤 확장 시 원 anchor로 복귀한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
-    layout.visibility.nodes = false;
+    layout.visibility.navigator = false;
     layout.visibility.datatableEditor = true;
     const persistedBefore = structuredClone(layout);
 

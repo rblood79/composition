@@ -5,7 +5,7 @@ import type {
 
 export const PANEL_WORKSPACE_TEST_REGISTRY: PanelWorkspaceRegistryEntry[] = [
   {
-    id: "nodes",
+    id: "navigator",
     defaultPosition: "left",
     minWidth: 233,
     maxWidth: 640,
@@ -70,7 +70,7 @@ export function createPanelWorkspaceLayoutV2(): PanelWorkspaceLayoutV2 {
   return {
     version: 2,
     visibility: {
-      nodes: true,
+      navigator: true,
       datatableEditor: false,
       settings: false,
       properties: true,
@@ -78,7 +78,7 @@ export function createPanelWorkspaceLayoutV2(): PanelWorkspaceLayoutV2 {
       monitor: false,
     },
     railOrder: {
-      left: ["nodes", "datatableEditor", "settings"],
+      left: ["navigator", "datatableEditor", "settings"],
       right: ["properties", "history"],
       bottom: ["monitor"],
     },
@@ -91,7 +91,7 @@ export function createPanelWorkspaceLayoutV2(): PanelWorkspaceLayoutV2 {
             id: "anchor:left:column:0",
             width: 490,
             rows: [
-              { panelId: "nodes", height: 520 },
+              { panelId: "navigator", height: 520 },
               { panelId: "datatableEditor", height: 600 },
               { panelId: "settings", height: 500 },
             ],

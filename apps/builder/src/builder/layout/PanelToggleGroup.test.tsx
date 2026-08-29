@@ -18,7 +18,7 @@ function panelConfig(
     icon: PanelLeft,
     component: () => null,
     category: "editor",
-    defaultPosition: id === "nodes" ? "left" : "right",
+    defaultPosition: id === "navigator" ? "left" : "right",
     defaultWidth: 320,
     minWidth: 233,
     maxWidth: 640,
@@ -34,7 +34,7 @@ function renderGroup(
   onPanelToggle = vi.fn<(panelId: PanelId) => void>(),
 ) {
   const configs = [
-    panelConfig("nodes"),
+    panelConfig("navigator"),
     panelConfig("properties"),
     panelConfig("settings", { hiddenFromRail: true }),
   ];
@@ -47,7 +47,7 @@ function renderGroup(
       <I18nProvider initialLocale="en-US">
         <PanelToggleGroup
           side="left"
-          panelIds={["nodes", "properties", "settings"]}
+          panelIds={["navigator", "properties", "settings"]}
           activePanels={activePanels}
           onPanelToggle={onPanelToggle}
         />
@@ -69,7 +69,7 @@ describe("PanelToggleGroup", () => {
   });
 
   it("nav/list 흔적 없이 vertical multiple ToggleButtonGroup을 렌더한다", () => {
-    const { container, getByRole, queryByRole } = renderGroup(["nodes"]);
+    const { container, getByRole, queryByRole } = renderGroup(["navigator"]);
     const group = getByRole("toolbar", { name: "Left panel controls" });
 
     expect(group.getAttribute("data-orientation")).toBe("vertical");
@@ -80,7 +80,7 @@ describe("PanelToggleGroup", () => {
   });
 
   it("workspace visibility를 aria-pressed로 투영한다", () => {
-    const { getByRole } = renderGroup(["nodes"]);
+    const { getByRole } = renderGroup(["navigator"]);
 
     expect(
       getByRole("button", { name: "Navigator" }).getAttribute("aria-pressed"),
@@ -91,7 +91,7 @@ describe("PanelToggleGroup", () => {
   });
 
   it("RAC의 다음 Set에서 달라진 panelId 하나만 workspace 명령으로 전달한다", () => {
-    const { getByRole, onPanelToggle } = renderGroup(["nodes"]);
+    const { getByRole, onPanelToggle } = renderGroup(["navigator"]);
 
     fireEvent.click(getByRole("button", { name: "Properties" }));
 

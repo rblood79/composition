@@ -115,6 +115,22 @@ function isShortcutId(id: string): id is ShortcutId {
   return Object.prototype.hasOwnProperty.call(SHORTCUT_DEFINITIONS, id);
 }
 
+/**
+ * Phase 1에서 외부 agent에 노출된 구 명령 ID. 신규 descriptor에는
+ * canonical ID만 노출하고, 기존 호출만 executor 경계에서 정규화한다.
+ */
+const LEGACY_AGENT_COMMAND_ALIASES = {
+  toggleNodes: "toggleNavigator",
+} as const satisfies Readonly<Record<string, ShortcutId>>;
+
+function canonicalAgentCommandId(id: string): string {
+  return (
+    LEGACY_AGENT_COMMAND_ALIASES[
+      id as keyof typeof LEGACY_AGENT_COMMAND_ALIASES
+    ] ?? id
+  );
+}
+
 const now = () =>
   typeof performance !== "undefined" ? performance.now() : Date.now();
 
@@ -152,9 +168,10 @@ export async function executeAgentCommand(
   };
 
   // 1. allowlist
-  if (!isShortcutId(id))
+  const canonicalId = canonicalAgentCommandId(id);
+  if (!isShortcutId(canonicalId))
     return finishDenied("denied", "unknown-command", "unknown");
-  const meta = COMMAND_META[id];
+  const meta = COMMAND_META[canonicalId];
   if (!meta.agentCallable) {
     return finishDenied(
       "denied",
@@ -162,7 +179,7 @@ export async function executeAgentCommand(
       meta.mutation,
     );
   }
-  const adapter = AGENT_COMMANDS[id];
+  const adapter = AGENT_COMMANDS[canonicalId];
   if (!adapter) return finishDenied("denied", "adapter-missing", meta.mutation);
 
   // 2. precondition
@@ -175,8 +192,8 @@ export async function executeAgentCommand(
   // 3. confirm 게이트 — 승인 전 store 변경 0
   if (meta.confirm) {
     const approved = await ctx.requestConfirm({
-      id,
-      summary: SHORTCUT_DEFINITIONS[id].description,
+      id: canonicalId,
+      summary: SHORTCUT_DEFINITIONS[canonicalId].description,
       meta,
       args,
     });
@@ -206,7 +223,7 @@ export async function executeAgentCommand(
     : undefined;
   record({
     host: ctx.host,
-    id,
+    id: canonicalId,
     args,
     status: "ok",
     mutation: meta.mutation,
@@ -216,7 +233,7 @@ export async function executeAgentCommand(
   });
   return {
     status: "ok",
-    id,
+    id: canonicalId,
     undoable,
     ...(historyIndex !== undefined ? { historyIndex } : {}),
     durationMs,

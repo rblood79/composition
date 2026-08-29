@@ -68,13 +68,13 @@ describe("ADR-186 v2 -> v3 measured-surface migration", () => {
   it("같은 위치 collision은 tail-topmost cluster가 nearest zone을 선점한다", () => {
     const collisionSurface = { width: 1000, height: 1000 } as const;
     const registry = PANEL_WORKSPACE_TEST_REGISTRY.filter(
-      (entry) => entry.id === "nodes" || entry.id === "properties",
+      (entry) => entry.id === "navigator" || entry.id === "properties",
     );
     const layout: PanelWorkspaceLayoutV2 = {
       version: 2,
-      visibility: { nodes: true, properties: true },
+      visibility: { navigator: true, properties: true },
       railOrder: {
-        left: ["nodes"],
+        left: ["navigator"],
         right: ["properties"],
         bottom: [],
       },
@@ -87,7 +87,7 @@ describe("ADR-186 v2 -> v3 measured-surface migration", () => {
             {
               id: "bottommost:0",
               width: 233,
-              rows: [{ panelId: "nodes", height: 233 }],
+              rows: [{ panelId: "navigator", height: 233 }],
             },
           ],
         },
@@ -151,7 +151,7 @@ describe("ADR-186 v2 -> v3 measured-surface migration", () => {
     ).toBe(false);
     expect(panelIdsAtZone(first.value, "top-left")).toEqual([
       "components",
-      "nodes",
+      "navigator",
     ]);
     expect(panelIdsAtZone(first.value, "top-right")).toEqual([
       "datatable",

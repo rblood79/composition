@@ -49,7 +49,7 @@ describe("ADR-922 G6 legacy panel removal", () => {
 
     expect(store).not.toMatch(/\bpanelLayout:\s/);
     expect(store).toContain(
-      "panelWorkspaceLayout: PanelWorkspaceLayoutV3 | null",
+      "panelWorkspaceLayout: PanelWorkspaceLayoutV4 | null",
     );
     expect(hook).toContain("(panelId: PanelId) =>");
     expect(hook).not.toContain("_side: PanelSide");

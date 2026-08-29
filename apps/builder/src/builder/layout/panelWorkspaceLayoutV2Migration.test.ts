@@ -17,9 +17,9 @@ import {
 function createV1Layout(): PanelLayoutState {
   return {
     ...DEFAULT_PANEL_LAYOUT,
-    leftPanels: ["nodes", "datatableEditor", "settings"],
+    leftPanels: ["navigator", "datatableEditor", "settings"],
     rightPanels: ["properties", "history"],
-    activeLeftPanels: ["nodes"],
+    activeLeftPanels: ["navigator"],
     activeRightPanels: ["properties"],
     bottomPanels: ["monitor"],
     activeBottomPanels: [],
@@ -63,7 +63,7 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
       version: 1,
       migrationId: "migration-1",
     });
-    expect(result.visibility.nodes).toBe(true);
+    expect(result.visibility.navigator).toBe(true);
     expect(result.visibility.properties).toBe(true);
     expect(result.visibility.monitor).toBe(false);
     expect(new Set(placementIds(result)).size).toBe(
@@ -73,13 +73,13 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
 
   it("left/right multi-active", () => {
     const input = createV1Layout();
-    input.activeLeftPanels = ["nodes", "settings"];
+    input.activeLeftPanels = ["navigator", "settings"];
     input.activeRightPanels = ["properties", "history"];
 
     const result = migrate(input);
 
     expect(result.visibility).toMatchObject({
-      nodes: true,
+      navigator: true,
       settings: true,
       properties: true,
       history: true,
@@ -88,7 +88,7 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
 
   it("multi-active side geometry 순서와 폭을 hidden panel min-width 영향 없이 보존한다", () => {
     const input = createV1Layout();
-    input.activeLeftPanels = ["nodes", "settings"];
+    input.activeLeftPanels = ["navigator", "settings"];
     input.activeRightPanels = ["properties", "history"];
 
     const result = migrate(input);
@@ -97,7 +97,7 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
 
     expect(left?.columns.map((column) => column.width)).toEqual([233, 400]);
     expect(left?.columns.map((column) => column.rows[0]?.panelId)).toEqual([
-      "nodes",
+      "navigator",
       "settings",
     ]);
     expect(right?.columns.map((column) => column.width)).toEqual([320, 233]);
@@ -106,7 +106,7 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
       "properties",
     ]);
 
-    input.activeLeftPanels = ["settings", "nodes"];
+    input.activeLeftPanels = ["settings", "navigator"];
     input.activeRightPanels = ["history", "properties"];
     const reordered = migrate(input);
     const reorderedLeft = reordered.clusters.find(
@@ -117,7 +117,7 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
     );
     expect(
       reorderedLeft?.columns.map((column) => column.rows[0]?.panelId),
-    ).toEqual(["settings", "nodes"]);
+    ).toEqual(["settings", "navigator"]);
     expect(
       reorderedRight?.columns.map((column) => column.rows[0]?.panelId),
     ).toEqual(["properties", "history"]);
@@ -163,7 +163,7 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
         zIndex: 1010,
       },
     ];
-    input.activeLeftPanels = ["nodes", "settings"];
+    input.activeLeftPanels = ["navigator", "settings"];
 
     const result = migrate(input);
     const floating = result.clusters.find(
@@ -227,19 +227,21 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
   it("invalid/removed/duplicate panel ID", () => {
     const input: Record<string, unknown> = {
       ...createV1Layout(),
-      leftPanels: ["nodes", "removed", "nodes", "settings"],
-      activeLeftPanels: ["nodes", "removed"],
+      leftPanels: ["navigator", "removed", "navigator", "settings"],
+      activeLeftPanels: ["navigator", "removed"],
     };
 
     const result = migrate(input);
 
     expect(result.railOrder.left).toEqual([
-      "nodes",
+      "navigator",
       "settings",
       "datatableEditor",
     ]);
     expect(placementIds(result)).not.toContain("removed");
-    expect(placementIds(result).filter((id) => id === "nodes")).toHaveLength(1);
+    expect(
+      placementIds(result).filter((id) => id === "navigator"),
+    ).toHaveLength(1);
   });
 
   it("legacy singular active panel fields도 current v1 visibility로 승격한다", () => {

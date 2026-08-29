@@ -27,7 +27,7 @@ describe("NavigatorPanel shared panel style contract", () => {
       'className="panel-contents navigator-panel-content"',
     );
     expect(panelSource).toContain("<PanelHeader");
-    expect(panelSource).toContain('panelId="nodes"');
+    expect(panelSource).toContain('panelId="navigator"');
     expect(panelSource).toContain(
       'className="panel-tabs navigator-panel-tabs"',
     );

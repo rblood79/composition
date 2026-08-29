@@ -26,8 +26,8 @@ describe("keyboardShortcuts ADR-112 editing semantics", () => {
     });
   });
 
-  it("keeps the nodes command id while presenting the panel as Navigator", () => {
-    expect(SHORTCUT_DEFINITIONS.toggleNodes).toMatchObject({
+  it("uses the canonical Navigator command id and label", () => {
+    expect(SHORTCUT_DEFINITIONS.toggleNavigator).toMatchObject({
       description: "Toggle Navigator Panel",
       i18n: { ko: "탐색기 패널 토글" },
     });

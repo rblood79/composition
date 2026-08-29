@@ -12,7 +12,7 @@ import {
   createPanelWorkspaceLayoutV2,
 } from "./panelWorkspaceLayoutV2.testFixtures";
 import { migratePanelLayoutV1ToV2 } from "./panelWorkspaceLayoutV2Migration";
-import { migratePanelWorkspaceLayoutV2ToV3 } from "./panelWorkspaceLayoutV3Migration";
+import { migratePanelWorkspaceLayoutV2ToV4 } from "./panelWorkspaceLayoutV4Migration";
 import { resolvePanelSnap } from "./panelSnap";
 import { createPanelWorkspaceLayoutCoordinator } from "./panelWorkspaceLayoutCoordinator";
 import {
@@ -23,9 +23,9 @@ import {
 function createRepresentativeV1Layout(): PanelLayoutState {
   return {
     ...DEFAULT_PANEL_LAYOUT,
-    leftPanels: ["nodes", "datatableEditor", "settings"],
+    leftPanels: ["navigator", "datatableEditor", "settings"],
     rightPanels: ["properties", "history"],
-    activeLeftPanels: ["nodes", "settings"],
+    activeLeftPanels: ["navigator", "settings"],
     activeRightPanels: ["properties", "history"],
     bottomPanels: ["monitor"],
     activeBottomPanels: ["monitor"],
@@ -54,7 +54,7 @@ function createRepresentativeSnapshot() {
     PANEL_WORKSPACE_TEST_REGISTRY,
     "g2a-shadow",
   );
-  const migrated = migratePanelWorkspaceLayoutV2ToV3(
+  const migrated = migratePanelWorkspaceLayoutV2ToV4(
     layoutV2,
     PANEL_WORKSPACE_TEST_REGISTRY,
     {
@@ -73,7 +73,7 @@ function createRepresentativeSnapshot() {
   return result.value.getSnapshot();
 }
 
-function createObservedV3Frames(): ReadonlyMap<PanelId, PanelFrameGeometry> {
+function createObservedV4Frames(): ReadonlyMap<PanelId, PanelFrameGeometry> {
   const snapshot = createRepresentativeSnapshot();
   return new Map(
     [...snapshot.frameGeometries].map(([panelId, frame]) => [
@@ -88,13 +88,13 @@ describe("ADR-922 G2a shadow geometry", () => {
     const snapshot = createRepresentativeSnapshot();
 
     expect(
-      comparePanelWorkspaceShadowFrames(snapshot, createObservedV3Frames()),
+      comparePanelWorkspaceShadowFrames(snapshot, createObservedV4Frames()),
     ).toEqual([]);
   });
 
   it("geometry 차이를 allowlist 없이 panel/field 단위로 보고한다", () => {
     const snapshot = createRepresentativeSnapshot();
-    const observed = new Map(createObservedV3Frames());
+    const observed = new Map(createObservedV4Frames());
     observed.set("history", {
       ...observed.get("history")!,
       width: observed.get("history")!.width + 1,
@@ -115,7 +115,7 @@ describe("ADR-922 snapshot candidate adapter", () => {
     const snapshot = createRepresentativeSnapshot();
     const source = snapshot.frameGeometries.get("settings");
     if (!source) throw new Error("settings frame is required");
-    const targets = [...createObservedV3Frames()]
+    const targets = [...createObservedV4Frames()]
       .filter(([panelId]) => panelId !== "settings")
       .map(([panelId, geometry]) => ({ panelId, geometry }));
 

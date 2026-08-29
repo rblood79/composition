@@ -21,6 +21,7 @@ import {
 vi.mock("./agentCommands", () => ({
   AGENT_COMMANDS: {
     zoomIn: vi.fn(),
+    toggleNavigator: vi.fn(),
     undo: vi.fn(async () => undefined),
     alignLeft: vi.fn(async () => undefined),
     delete: vi.fn(async () => undefined),
@@ -169,6 +170,18 @@ describe("executeAgentCommand — 게이트 분기", () => {
     expect(r).not.toHaveProperty("historyIndex");
   });
 
+  it("legacy toggleNodes는 canonical toggleNavigator adapter와 log ID로 정규화한다", async () => {
+    const r = await executeAgentCommand("toggleNodes", undefined, ctx());
+
+    expect(spies.toggleNavigator).toHaveBeenCalledTimes(1);
+    expect(r).toMatchObject({
+      status: "ok",
+      id: "toggleNavigator",
+      undoable: false,
+    });
+    expect(log()[0]).toMatchObject({ status: "ok", id: "toggleNavigator" });
+  });
+
   it("precondition — undo 는 canUndo 가 false 면 nothing-to-undo", async () => {
     const r = await executeAgentCommand("undo", undefined, ctx());
     expect(r).toMatchObject({
@@ -249,6 +262,8 @@ describe("listAgentCommands — descriptor", () => {
       undo: "history",
       mutation: "document",
     });
+    expect(list.some((d) => d.id === "toggleNavigator")).toBe(true);
+    expect(list.some((d) => d.id === ("toggleNodes" as never))).toBe(false);
     expect(list.every((d) => d.description.length > 0)).toBe(true);
   });
 });

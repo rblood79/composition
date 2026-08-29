@@ -154,11 +154,11 @@ export const SHORTCUT_DEFINITIONS = {
   // Panels (priority: 80)
   // ==========================================
 
-  // 레일 순서 그대로 ⌥1–⌥8 (좌측 Nodes·Components·DataTable·Theme →
+  // 레일 순서 그대로 ⌥1–⌥8 (좌측 Navigator·Components·DataTable·Theme →
   // 우측 Properties·Styles·Interactions·History). Figma 가 사이드바를 ⌥1–⌥3 으로
   // 돌리는 규약의 확장이고, ⌥ 계열은 브라우저가 예약하지 않는다 (Chrome 이
   // 쓰는 것은 ⌘1–⌘9 탭 전환). ⌥+숫자도 macOS 에서 문자가 바뀌므로 `code` 로 맞춘다.
-  toggleNodes: {
+  toggleNavigator: {
     key: "1",
     code: "Digit1",
     modifier: "alt",

@@ -9,21 +9,20 @@ import type {
   PanelWorkspaceRegistryEntry,
 } from "../layout/panelWorkspaceLayoutV2";
 import {
-  createDefaultPanelWorkspaceLayoutV3,
-  normalizePanelWorkspaceLayoutV3,
-  type PanelWorkspaceLayoutV3,
-} from "../layout/panelWorkspaceLayoutV3";
+  createDefaultPanelWorkspaceLayoutV4,
+  normalizePanelWorkspaceLayoutV4,
+  type PanelWorkspaceLayoutV4,
+} from "../layout/panelWorkspaceLayoutV4";
 import { migratePanelWorkspaceStorageToV3 } from "../layout/panelWorkspaceLayoutV3Persistence";
-import { resetPanelWorkspaceLayoutV3 } from "../layout/panelWorkspacePolicyV3";
+import { migratePanelWorkspaceStorageToV4 } from "../layout/panelWorkspaceLayoutV4Persistence";
+import { resetPanelWorkspaceLayoutV4 } from "../layout/panelWorkspacePolicyV4";
 
 export type PanelWorkspaceHydrationStatus =
-  | "pending"
-  | "ready"
-  | "memory-fallback";
+  "pending" | "ready" | "memory-fallback";
 
 export interface PanelLayoutSliceState {
   /** ADR-186 production panel placement/visibility SSOT. */
-  panelWorkspaceLayout: PanelWorkspaceLayoutV3 | null;
+  panelWorkspaceLayout: PanelWorkspaceLayoutV4 | null;
   panelWorkspaceHydrationStatus: PanelWorkspaceHydrationStatus;
   panelWorkspaceHydrationError: string | null;
 }
@@ -33,7 +32,7 @@ export interface PanelLayoutSliceActions {
     registry: readonly PanelWorkspaceRegistryEntry[],
     surfaceRect: PanelWorkspaceRect,
   ) => boolean;
-  setPanelWorkspaceLayout: (layout: PanelWorkspaceLayoutV3) => boolean;
+  setPanelWorkspaceLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
   resetPanelWorkspaceLayout: () => boolean;
 }
 
@@ -47,18 +46,18 @@ function migrationId(): string {
   return crypto.randomUUID();
 }
 
-function createDefaultV3(
+function createDefaultV4(
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
-): PanelWorkspaceLayoutV3 {
-  const created = createDefaultPanelWorkspaceLayoutV3(registry, surfaceRect);
+): PanelWorkspaceLayoutV4 {
+  const created = createDefaultPanelWorkspaceLayoutV4(registry, surfaceRect);
   if (!created.ok) {
     throw new Error(created.error);
   }
   return created.value;
 }
 
-function scheduleV3Write(layout: PanelWorkspaceLayoutV3): void {
+function scheduleV4Write(layout: PanelWorkspaceLayoutV4): void {
   if (saveTimer !== null) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveTimer = null;
@@ -68,12 +67,12 @@ function scheduleV3Write(layout: PanelWorkspaceLayoutV3): void {
         JSON.stringify(layout),
       );
     } catch (error) {
-      console.error("[PanelWorkspace] Failed to persist v3 layout:", error);
+      console.error("[PanelWorkspace] Failed to persist v4 layout:", error);
     }
   }, 300);
 }
 
-function writeV3Now(layout: PanelWorkspaceLayoutV3): boolean {
+function writeV4Now(layout: PanelWorkspaceLayoutV4): boolean {
   if (saveTimer !== null) {
     clearTimeout(saveTimer);
     saveTimer = null;
@@ -85,7 +84,7 @@ function writeV3Now(layout: PanelWorkspaceLayoutV3): boolean {
     );
     return true;
   } catch (error) {
-    console.error("[PanelWorkspace] Failed to persist v3 layout:", error);
+    console.error("[PanelWorkspace] Failed to persist v4 layout:", error);
     return false;
   }
 }
@@ -94,9 +93,9 @@ function fallbackLayout(
   registry: readonly PanelWorkspaceRegistryEntry[],
   surfaceRect: PanelWorkspaceRect,
   error: unknown,
-): { layout: PanelWorkspaceLayoutV3; error: string } {
+): { layout: PanelWorkspaceLayoutV4; error: string } {
   return {
-    layout: createDefaultV3(registry, surfaceRect),
+    layout: createDefaultV4(registry, surfaceRect),
     error: error instanceof Error ? error.message : String(error),
   };
 }
@@ -129,6 +128,32 @@ function migratePrimaryToV3(
   return migratePanelWorkspaceStorageToV3(options);
 }
 
+function migratePrimaryToV4(
+  registry: readonly PanelWorkspaceRegistryEntry[],
+  surfaceRect: PanelWorkspaceRect,
+): ReturnType<typeof migratePanelWorkspaceStorageToV4> {
+  const options = {
+    storage: localStorage,
+    registry,
+    surfaceRect,
+    createMigrationId: migrationId,
+    now: () => new Date().toISOString(),
+  };
+  let migration = migratePanelWorkspaceStorageToV4(options);
+  if (migration.status === "recovered-v3") {
+    migration = migratePanelWorkspaceStorageToV4(options);
+  }
+  if (migration.status !== "failed") return migration;
+
+  const v3Recovery = migratePrimaryToV3(registry, surfaceRect);
+  if (v3Recovery.status === "failed") return migration;
+  migration = migratePanelWorkspaceStorageToV4(options);
+  if (migration.status === "recovered-v3") {
+    migration = migratePanelWorkspaceStorageToV4(options);
+  }
+  return migration;
+}
+
 export const createPanelLayoutSlice: StateCreator<
   PanelLayoutSlice,
   [],
@@ -144,7 +169,7 @@ export const createPanelLayoutSlice: StateCreator<
     activeSurfaceRect = { ...surfaceRect };
     const current = get().panelWorkspaceLayout;
     if (current) {
-      const normalized = normalizePanelWorkspaceLayoutV3(
+      const normalized = normalizePanelWorkspaceLayoutV4(
         current,
         registry,
         surfaceRect,
@@ -168,20 +193,20 @@ export const createPanelLayoutSlice: StateCreator<
     }
 
     if (primaryRaw === null) {
-      const layout = createDefaultV3(registry, surfaceRect);
-      const persisted = writeV3Now(layout);
+      const layout = createDefaultV4(registry, surfaceRect);
+      const persisted = writeV4Now(layout);
       set({
         panelWorkspaceLayout: layout,
         panelWorkspaceHydrationStatus: persisted ? "ready" : "memory-fallback",
         panelWorkspaceHydrationError: persisted
           ? null
-          : "Failed to write the v3-born default layout",
+          : "Failed to write the v4-born default layout",
       });
       return persisted;
     }
 
-    const migration = migratePrimaryToV3(registry, surfaceRect);
-    if (migration.status !== "failed" && migration.status !== "recovered-v2") {
+    const migration = migratePrimaryToV4(registry, surfaceRect);
+    if (migration.status !== "failed" && migration.status !== "recovered-v3") {
       set({
         panelWorkspaceLayout: migration.layout,
         panelWorkspaceHydrationStatus: "ready",
@@ -193,7 +218,7 @@ export const createPanelLayoutSlice: StateCreator<
     const error =
       migration.status === "failed"
         ? `${migration.stage}: ${migration.error}`
-        : "V2 recovery did not reach a v3 primary";
+        : "V3 recovery did not reach a v4 primary";
     const fallback = fallbackLayout(registry, surfaceRect, error);
     set({
       panelWorkspaceLayout: fallback.layout,
@@ -205,16 +230,16 @@ export const createPanelLayoutSlice: StateCreator<
 
   setPanelWorkspaceLayout: (layout) => {
     if (!activeRegistry || !activeSurfaceRect) return false;
-    const normalized = normalizePanelWorkspaceLayoutV3(
+    const normalized = normalizePanelWorkspaceLayoutV4(
       layout,
       activeRegistry,
       activeSurfaceRect,
     );
     if (!normalized.ok) return false;
-    const { migrationSource: _migrationSource, ...v3Born } = normalized.value;
-    set({ panelWorkspaceLayout: v3Born });
+    const { migrationSource: _migrationSource, ...v4Born } = normalized.value;
+    set({ panelWorkspaceLayout: v4Born });
     if (get().panelWorkspaceHydrationStatus === "ready") {
-      scheduleV3Write(v3Born);
+      scheduleV4Write(v4Born);
     }
     return true;
   },
@@ -223,7 +248,7 @@ export const createPanelLayoutSlice: StateCreator<
     if (!activeRegistry || !activeSurfaceRect) return false;
     const current = get().panelWorkspaceLayout;
     if (!current) return false;
-    const reset = resetPanelWorkspaceLayoutV3(
+    const reset = resetPanelWorkspaceLayoutV4(
       current,
       activeRegistry,
       activeSurfaceRect,
@@ -232,6 +257,6 @@ export const createPanelLayoutSlice: StateCreator<
     const layout = reset.value.layout;
     set({ panelWorkspaceLayout: layout });
     if (get().panelWorkspaceHydrationStatus !== "ready") return true;
-    return writeV3Now(layout);
+    return writeV4Now(layout);
   },
 });

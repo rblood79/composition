@@ -1,7 +1,7 @@
 import type { PanelConfig, PanelId } from "../panels/core/types";
 
 export const PANEL_TRANSLATION_KEYS: Partial<Record<PanelId, string>> = {
-  nodes: "panels.navigator",
+  navigator: "panels.navigator",
   components: "panels.components",
   datatable: "panels.dataTable",
   datatableEditor: "panels.dataTableEditor",

@@ -13,15 +13,15 @@ import type {
   PanelWorkspaceResult,
 } from "./panelWorkspaceLayoutV2";
 import {
-  normalizePanelWorkspaceLayoutV3,
-  type PanelWorkspaceLayoutV3,
-} from "./panelWorkspaceLayoutV3";
+  normalizePanelWorkspaceLayoutV4,
+  type PanelWorkspaceLayoutV4,
+} from "./panelWorkspaceLayoutV4";
 import {
-  activatePanelWorkspacePanelV3,
-  resetPanelWorkspaceLayoutV3,
-  resizePanelWorkspaceBoundaryV3,
-  type PanelWorkspacePolicyResultV3,
-} from "./panelWorkspacePolicyV3";
+  activatePanelWorkspacePanelV4,
+  resetPanelWorkspaceLayoutV4,
+  resizePanelWorkspaceBoundaryV4,
+  type PanelWorkspacePolicyResultV4,
+} from "./panelWorkspacePolicyV4";
 import {
   beginPanelWorkspaceDragSession,
   commitPanelWorkspaceDragSession,
@@ -36,17 +36,17 @@ export interface PanelWorkspaceRuntimeDragMutation {
 }
 
 export interface PanelWorkspaceRuntimeDragEnd {
-  layout: PanelWorkspaceLayoutV3;
+  layout: PanelWorkspaceLayoutV4;
   committed: boolean;
   candidate: PanelDropCandidate;
 }
 
 export interface PanelWorkspaceRuntime {
   coordinator: PanelWorkspaceLayoutCoordinator;
-  getLayout(): PanelWorkspaceLayoutV3;
+  getLayout(): PanelWorkspaceLayoutV4;
   getRegistry(): readonly PanelWorkspaceRegistryEntry[];
   getDragSession(): PanelWorkspaceDragSession | null;
-  replaceCommittedLayout(layout: PanelWorkspaceLayoutV3): void;
+  replaceCommittedLayout(layout: PanelWorkspaceLayoutV4): void;
   beginDrag(panelId: PanelId): PanelWorkspaceResult<PanelWorkspaceDragSession>;
   updateDrag(
     panelId: PanelId,
@@ -57,8 +57,8 @@ export interface PanelWorkspaceRuntime {
   endDrag(panelId: PanelId): PanelWorkspaceResult<PanelWorkspaceRuntimeDragEnd>;
   cancelDrag(): PanelWorkspaceRuntimeDragEnd;
   beginInteraction(): void;
-  endInteraction(): PanelWorkspaceLayoutV3;
-  cancelInteraction(): PanelWorkspaceLayoutV3;
+  endInteraction(): PanelWorkspaceLayoutV4;
+  cancelInteraction(): PanelWorkspaceLayoutV4;
   updateWorkspaceRect(workspaceRect: PanelWorkspaceRect): void;
   updateRegistry(registry: readonly PanelWorkspaceRegistryEntry[]): void;
   activatePanel(panelId: PanelId): PanelWorkspaceResult<void>;
@@ -79,13 +79,13 @@ export interface PanelWorkspaceRuntime {
 }
 
 export function createPanelWorkspaceRuntime(
-  initialLayout: PanelWorkspaceLayoutV3,
+  initialLayout: PanelWorkspaceLayoutV4,
   registry: readonly PanelWorkspaceRegistryEntry[],
   workspaceRect: PanelWorkspaceRect,
 ): PanelWorkspaceResult<PanelWorkspaceRuntime> {
   let currentRegistry = [...registry];
   let currentWorkspaceRect = { ...workspaceRect };
-  const initial = normalizePanelWorkspaceLayoutV3(
+  const initial = normalizePanelWorkspaceLayoutV4(
     initialLayout,
     currentRegistry,
     currentWorkspaceRect,
@@ -93,7 +93,7 @@ export function createPanelWorkspaceRuntime(
   if (!initial.ok) return initial;
   let layout = initial.value;
   let committedLayout = initial.value;
-  let interactionBaseLayout: PanelWorkspaceLayoutV3 | null = null;
+  let interactionBaseLayout: PanelWorkspaceLayoutV4 | null = null;
   let dragSession: PanelWorkspaceDragSession | null = null;
   const coordinatorResult = createPanelWorkspaceLayoutCoordinator({
     layout,
@@ -112,7 +112,7 @@ export function createPanelWorkspaceRuntime(
   };
 
   const applyPolicyInteraction = (
-    result: PanelWorkspaceResult<PanelWorkspacePolicyResultV3>,
+    result: PanelWorkspaceResult<PanelWorkspacePolicyResultV4>,
   ): PanelWorkspaceResult<void> => {
     if (!result.ok) return result;
     layout = result.value.layout;
@@ -128,7 +128,7 @@ export function createPanelWorkspaceRuntime(
       getRegistry: () => currentRegistry,
       getDragSession: () => dragSession,
       replaceCommittedLayout(nextLayout): void {
-        const normalized = normalizePanelWorkspaceLayoutV3(
+        const normalized = normalizePanelWorkspaceLayoutV4(
           nextLayout,
           currentRegistry,
           currentWorkspaceRect,
@@ -233,12 +233,12 @@ export function createPanelWorkspaceRuntime(
           interactionBaseLayout = committedLayout;
         }
       },
-      endInteraction(): PanelWorkspaceLayoutV3 {
+      endInteraction(): PanelWorkspaceLayoutV4 {
         committedLayout = layout;
         interactionBaseLayout = null;
         return layout;
       },
-      cancelInteraction(): PanelWorkspaceLayoutV3 {
+      cancelInteraction(): PanelWorkspaceLayoutV4 {
         if (interactionBaseLayout !== null) {
           layout = interactionBaseLayout;
           committedLayout = interactionBaseLayout;
@@ -255,7 +255,7 @@ export function createPanelWorkspaceRuntime(
           return;
         }
         currentWorkspaceRect = { ...nextWorkspaceRect };
-        const normalized = normalizePanelWorkspaceLayoutV3(
+        const normalized = normalizePanelWorkspaceLayoutV4(
           layout,
           currentRegistry,
           currentWorkspaceRect,
@@ -271,7 +271,7 @@ export function createPanelWorkspaceRuntime(
       updateRegistry(nextRegistry): void {
         if (currentRegistry === nextRegistry) return;
         currentRegistry = [...nextRegistry];
-        const normalized = normalizePanelWorkspaceLayoutV3(
+        const normalized = normalizePanelWorkspaceLayoutV4(
           layout,
           currentRegistry,
           currentWorkspaceRect,
@@ -286,7 +286,7 @@ export function createPanelWorkspaceRuntime(
       },
       activatePanel(panelId) {
         return applyPolicyInteraction(
-          activatePanelWorkspacePanelV3(
+          activatePanelWorkspacePanelV4(
             layout,
             currentRegistry,
             panelId,
@@ -296,7 +296,7 @@ export function createPanelWorkspaceRuntime(
       },
       resetLayout() {
         return applyPolicyInteraction(
-          resetPanelWorkspaceLayoutV3(
+          resetPanelWorkspaceLayoutV4(
             layout,
             currentRegistry,
             currentWorkspaceRect,
@@ -305,7 +305,7 @@ export function createPanelWorkspaceRuntime(
       },
       resizePanel(panelId, edge, deltaX, deltaY) {
         return applyPolicyInteraction(
-          resizePanelWorkspaceBoundaryV3(
+          resizePanelWorkspaceBoundaryV4(
             layout,
             currentRegistry,
             panelId,
@@ -318,7 +318,7 @@ export function createPanelWorkspaceRuntime(
       },
       resizePanelFromReference(panelId, edge, deltaX, deltaY) {
         return applyPolicyInteraction(
-          resizePanelWorkspaceBoundaryV3(
+          resizePanelWorkspaceBoundaryV4(
             interactionBaseLayout ?? layout,
             currentRegistry,
             panelId,
