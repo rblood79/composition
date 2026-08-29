@@ -48,7 +48,7 @@
 - **Panels**
   - **Styles**: `src/builder/panels/styles/hooks/*`
   - **Monitor**: `src/builder/panels/monitor/hooks/*`
-  - **Nodes Tree**: `src/builder/panels/nodes/tree/hooks/*`
+  - **Navigator Tree**: `src/builder/panels/navigator/tree/hooks/*`
 - **Workspace Canvas**: `apps/builder/src/builder/workspace/canvas/hooks/*` (WebGL/viewport 특화)
   - `useThemeColors.ts`
   - `useViewportCulling.ts`

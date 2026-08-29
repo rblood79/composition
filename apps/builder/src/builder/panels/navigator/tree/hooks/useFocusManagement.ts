@@ -53,7 +53,7 @@ export function useFocusManagement({
         scheduleFocus(firstKey);
       }
     },
-    [scheduleFocus]
+    [scheduleFocus],
   );
 
   // 삭제 후 포커스 처리
@@ -61,7 +61,7 @@ export function useFocusManagement({
     (deletedKey: Key, siblingKeys: Key[]) => {
       const deletedKeyStr = String(deletedKey);
       const deletedIndex = siblingKeys.findIndex(
-        (k) => String(k) === deletedKeyStr
+        (k) => String(k) === deletedKeyStr,
       );
 
       let nextFocusKey: Key | null = null;
@@ -91,7 +91,7 @@ export function useFocusManagement({
         onSelectionChange?.(new Set([nextFocusKey]));
       }
     },
-    [nodeMap, onSelectionChange, scheduleFocus]
+    [nodeMap, onSelectionChange, scheduleFocus],
   );
 
   // 추가 후 포커스 처리
@@ -101,7 +101,7 @@ export function useFocusManagement({
       // 선택도 함께 변경
       onSelectionChange?.(new Set([addedKey]));
     },
-    [onSelectionChange, scheduleFocus]
+    [onSelectionChange, scheduleFocus],
   );
 
   return {

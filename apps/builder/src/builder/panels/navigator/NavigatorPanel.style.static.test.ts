@@ -9,33 +9,35 @@ const NODE_SECTION_FILES = [
   "FramesTab/FrameElementTree.tsx",
 ];
 
-describe("NodesPanel shared panel style contract", () => {
+describe("NavigatorPanel shared panel style contract", () => {
   it("uses the common panel shell and content classes", async () => {
     const panelSource = await readFile(
-      resolve(__dirname, "NodesPanel.tsx"),
+      resolve(__dirname, "NavigatorPanel.tsx"),
       "utf-8",
     );
     const tabsSource = await readFile(
-      resolve(__dirname, "NodesPanelTabs.tsx"),
+      resolve(__dirname, "NavigatorPanelTabs.tsx"),
       "utf-8",
     );
 
     expect(panelSource).toContain(
-      'className="panel nodes-panel nodes-panel--new-tree"',
+      'className="panel navigator-panel navigator-panel--new-tree"',
     );
     expect(panelSource).toContain(
-      'className="panel-contents nodes-panel-content"',
+      'className="panel-contents navigator-panel-content"',
     );
     expect(panelSource).toContain("<PanelHeader");
     expect(panelSource).toContain('panelId="nodes"');
-    expect(panelSource).toContain('className="panel-tabs nodes-panel-tabs"');
     expect(panelSource).toContain(
-      'className="panel-header panel-tabrow nodes-panel-tabrow"',
+      'className="panel-tabs navigator-panel-tabs"',
+    );
+    expect(panelSource).toContain(
+      'className="panel-header panel-tabrow navigator-panel-tabrow"',
     );
     expect(tabsSource).toContain(
-      'className="panel-tablist nodes-panel-tablist"',
+      'className="panel-tablist navigator-panel-tablist"',
     );
-    expect(tabsSource).toContain('className="panel-tab nodes-panel-tab"');
+    expect(tabsSource).toContain('className="panel-tab navigator-panel-tab"');
     expect(panelSource).toContain("selectedKey={activeTab}");
     expect(panelSource).toContain("onSelectionChange={handleTabChange}");
     expect(panelSource).toContain('id="pages"');
@@ -56,14 +58,20 @@ describe("NodesPanel shared panel style contract", () => {
   );
 
   it("keeps only equal-width distribution as the local tab override", async () => {
-    const css = await readFile(resolve(__dirname, "NodesPanel.css"), "utf-8");
+    const css = await readFile(
+      resolve(__dirname, "NavigatorPanel.css"),
+      "utf-8",
+    );
 
-    expect(css).toMatch(/\.nodes-panel-tab \{[^}]*flex: 1 1 0;/s);
-    expect(css).not.toMatch(/\.nodes-panel-tab \{[^}]*justify-content:/s);
+    expect(css).toMatch(/\.navigator-panel-tab \{[^}]*flex: 1 1 0;/s);
+    expect(css).not.toMatch(/\.navigator-panel-tab \{[^}]*justify-content:/s);
   });
 
   it("keeps shared section padding while preserving the tree guide and icons", async () => {
-    const css = await readFile(resolve(__dirname, "NodesPanel.css"), "utf-8");
+    const css = await readFile(
+      resolve(__dirname, "NavigatorPanel.css"),
+      "utf-8",
+    );
     const itemSources = await Promise.all(
       [
         "tree/PageTree/PageTreeItemContent.tsx",
@@ -87,7 +95,10 @@ describe("NodesPanel shared panel style contract", () => {
   });
 
   it("matches the inspector control height and radius for tree rows", async () => {
-    const css = await readFile(resolve(__dirname, "NodesPanel.css"), "utf-8");
+    const css = await readFile(
+      resolve(__dirname, "NavigatorPanel.css"),
+      "utf-8",
+    );
     const layerTreeSource = await readFile(
       resolve(__dirname, "tree/LayerTree/LayerTree.tsx"),
       "utf-8",
@@ -98,7 +109,7 @@ describe("NodesPanel shared panel style contract", () => {
     );
 
     expect(css).toMatch(
-      /\.nodes-panel-content \.react-aria-TreeItem \{[^}]*min-height: var\(--inspector-control-size\);[^}]*border-radius: var\(--radius-md\);/s,
+      /\.navigator-panel-content \.react-aria-TreeItem \{[^}]*min-height: var\(--inspector-control-size\);[^}]*border-radius: var\(--radius-md\);/s,
     );
     expect(css).toMatch(
       /\.elementItem \{[^}]*min-height: var\(--inspector-control-size\);[^}]*padding-inline: var\(--spacing\);[^}]*border-radius: var\(--radius-md\);/s,
@@ -114,7 +125,10 @@ describe("NodesPanel shared panel style contract", () => {
   });
 
   it("uses the shared Builder interaction states for tree rows", async () => {
-    const css = await readFile(resolve(__dirname, "NodesPanel.css"), "utf-8");
+    const css = await readFile(
+      resolve(__dirname, "NavigatorPanel.css"),
+      "utf-8",
+    );
 
     expect(css).toMatch(
       /\.elementItem:hover \{[^}]*background-color: color-mix\(in srgb, var\(--fg\) 8%, transparent\);/s,

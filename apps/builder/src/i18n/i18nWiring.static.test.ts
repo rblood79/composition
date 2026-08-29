@@ -35,11 +35,11 @@ describe("i18n Builder wiring", () => {
     );
     const panelWorkspace = readBuilderFile("builder/layout/PanelWorkspace.tsx");
     const zoom = readBuilderFile("builder/workspace/ZoomControls.tsx");
-    const nodesTabs = readBuilderFile(
-      "builder/panels/nodes/NodesPanelTabs.tsx",
+    const navigatorTabs = readBuilderFile(
+      "builder/panels/navigator/NavigatorPanelTabs.tsx",
     );
     const frames = readBuilderFile(
-      "builder/panels/nodes/FramesTab/FrameList.tsx",
+      "builder/panels/navigator/FramesTab/FrameList.tsx",
     );
     const stylesTabs = readBuilderFile(
       "builder/panels/styles/components/StylesPanelTabs.tsx",
@@ -70,9 +70,9 @@ describe("i18n Builder wiring", () => {
     expect(panelWorkspace).toContain('t("workspace.movePanel",');
     expect(zoom).toContain('t("zoom.level")');
     expect(zoom).toContain('t("zoom.align")');
-    expect(nodesTabs).toContain('t("nodes.pages")');
-    expect(frames).toContain('t("nodes.frames")');
-    expect(frames).toContain('t("nodes.addFrame")');
+    expect(navigatorTabs).toContain('t("navigator.pages")');
+    expect(frames).toContain('t("navigator.frames")');
+    expect(frames).toContain('t("navigator.addFrame")');
     expect(stylesTabs).toContain('t("styles.layout")');
     expect(switcher).toContain('t("settings.language")');
     expect(propertyFieldset).toContain("semanticLabelKeys");

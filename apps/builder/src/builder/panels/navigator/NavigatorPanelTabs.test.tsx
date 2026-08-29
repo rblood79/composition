@@ -5,19 +5,23 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { TabPanel, Tabs } from "react-aria-components";
 import { afterEach, describe, expect, it } from "vitest";
 import { I18nProvider } from "../../../i18n";
-import { NodesPanelTabs, type NodesPanelTabType } from "./NodesPanelTabs";
+import {
+  NavigatorPanelTabs,
+  type NavigatorPanelTabType,
+} from "./NavigatorPanelTabs";
 
 function NodesTabsFixture() {
-  const [selectedKey, setSelectedKey] = useState<NodesPanelTabType>("pages");
+  const [selectedKey, setSelectedKey] =
+    useState<NavigatorPanelTabType>("pages");
 
   const handleSelectionChange = (key: Key): void => {
-    setSelectedKey(key as NodesPanelTabType);
+    setSelectedKey(key as NavigatorPanelTabType);
   };
 
   return (
     <I18nProvider initialLocale="en-US">
       <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
-        <NodesPanelTabs />
+        <NavigatorPanelTabs />
         <TabPanel id="pages">Pages content</TabPanel>
         <TabPanel id="layouts">Frames content</TabPanel>
       </Tabs>
@@ -25,7 +29,7 @@ function NodesTabsFixture() {
   );
 }
 
-describe("NodesPanelTabs", () => {
+describe("NavigatorPanelTabs", () => {
   afterEach(() => {
     cleanup();
   });

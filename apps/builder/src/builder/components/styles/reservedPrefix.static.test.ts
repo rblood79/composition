@@ -14,7 +14,7 @@ import { resolve, relative } from "node:path";
  * - 대상: 조상 스코프 없이 예약 클래스 **단독**으로 선언한 규칙
  *   (`.panel-tabs {`, `.panel-tab:hover {`). `@layer` 는 스코프로 세지 않는다.
  * - 비대상 1 — 조상 스코프 안의 contextual override
- *   (NodesPanel `.nodes-panel-content` 안의 `.section { .section-content { … } }`,
+ *   (NavigatorPanel `.navigator-panel-content` 안의 `.section { .section-content { … } }`,
  *   `.section[data-section-id] .section-content`).
  * - 비대상 2 — 인스턴스 한정 override: 같은 compound 에 고유 클래스나 속성이
  *   덧붙은 형태 (`.section.block-view`, `.section[data-section-id="schema-preview"]`).

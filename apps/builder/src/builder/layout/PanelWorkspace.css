@@ -253,7 +253,7 @@
   }
 
   .workspace-panel-content > .panel,
-  .workspace-panel-content > .nodes-panel {
+  .workspace-panel-content > .navigator-panel {
     width: 100%;
     height: 100%;
   }

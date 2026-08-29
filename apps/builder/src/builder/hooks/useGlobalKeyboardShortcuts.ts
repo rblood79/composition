@@ -126,7 +126,7 @@ export function useGlobalKeyboardShortcuts() {
   // 레일 순서 그대로 ⌥1–⌥8. 정의는 있었지만 등록이 없어 여섯 개가 눌러도
   // 반응하지 않았다 (2026-08-27 인벤토리). `events` 는 패널 배치 persist 키라
   // InteractionsPanel 로 교체된 뒤에도 id 를 유지한다 (ADR-158).
-  const handleToggleNodes = useCallback(() => {
+  const handleToggleNavigator = useCallback(() => {
     togglePanel("nodes");
   }, [togglePanel]);
   const handleToggleComponents = useCallback(() => {
@@ -532,7 +532,7 @@ export function useGlobalKeyboardShortcuts() {
       zoom200: handleZoom200,
       toggleWorkflowOverlay: handleToggleWorkflowOverlay,
       toggleMonitor: handleToggleMonitor,
-      toggleNodes: handleToggleNodes,
+      toggleNodes: handleToggleNavigator,
       toggleComponents: handleToggleComponents,
       toggleDatatable: handleToggleDatatable,
       toggleTheme: handleToggleTheme,
@@ -580,7 +580,7 @@ export function useGlobalKeyboardShortcuts() {
       handleZoom200,
       handleToggleWorkflowOverlay,
       handleToggleMonitor,
-      handleToggleNodes,
+      handleToggleNavigator,
       handleToggleComponents,
       handleToggleDatatable,
       handleToggleTheme,

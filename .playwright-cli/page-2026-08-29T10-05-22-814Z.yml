@@ -1,0 +1,57 @@
+- generic [ref=e138]:
+  - main [ref=e140]
+  - generic "Panel workspace":
+    - generic:
+      - banner [ref=e143]:
+        - generic [ref=e144]:
+          - button "Menu" [ref=e145] [cursor=pointer]
+          - img "composition logo" [ref=e148]
+          - generic [ref=e149]: Navigator rename QA
+        - group "Viewport controls" [ref=e151]:
+          - radiogroup "Viewport size" [ref=e152]:
+            - radio "Desktop" [checked] [ref=e153] [cursor=pointer]
+            - radio "Tablet" [ref=e157] [cursor=pointer]
+            - radio "Mobile" [ref=e161] [cursor=pointer]
+          - generic [ref=e166] [cursor=pointer]:
+            - textbox "Zoom level" [ref=e167]: 100%
+            - button "Zoom menu" [ref=e168]
+        - generic [ref=e171]:
+          - toolbar "View options" [ref=e172]:
+            - button "Compare Mode (Preview + Skia)" [ref=e173] [cursor=pointer]
+          - button "Preview" [ref=e178] [cursor=pointer]
+      - generic:
+        - toolbar "Left panel controls" [ref=e183]:
+          - button "Navigator" [pressed] [ref=e184] [cursor=pointer]
+          - button "Components" [ref=e189] [cursor=pointer]
+          - button "DataTable" [ref=e194] [cursor=pointer]
+          - button "DataTable Editor" [ref=e200] [cursor=pointer]
+          - button "Theme" [ref=e206] [cursor=pointer]
+        - toolbar "Right panel controls" [ref=e213]:
+          - button "AI" [ref=e214] [cursor=pointer]
+          - button "Properties" [ref=e219] [cursor=pointer]
+          - button "Styles" [ref=e224] [cursor=pointer]
+          - button "Interactions" [ref=e230] [cursor=pointer]
+          - button "History" [ref=e235] [cursor=pointer]
+        - generic [ref=e241]:
+          - button "Move Navigator panel" [ref=e242]
+          - generic [ref=e245]:
+            - generic [ref=e246]:
+              - heading [level=3] [ref=e247]
+              - button "Close" [ref=e253] [cursor=pointer]
+            - generic [ref=e257]:
+              - tablist "Navigator tabs" [ref=e259]:
+                - tab "Pages" [ref=e260] [cursor=pointer]
+                - tab "Frames" [active] [selected] [ref=e265] [cursor=pointer]
+              - tabpanel "Frames" [ref=e327]:
+                - generic [ref=e328]:
+                  - generic [ref=e329]:
+                    - generic [ref=e330]: Frames
+                    - button "Add Frame" [ref=e332] [cursor=pointer]
+                  - paragraph [ref=e335]: No frames available
+                - generic [ref=e336]:
+                  - generic [ref=e337]:
+                    - generic [ref=e338]: Layers
+                    - button "Collapse All" [ref=e340] [cursor=pointer]
+                  - paragraph [ref=e347]: Select a frame to view elements
+          - separator "Resize Navigator panel right" [ref=e325]
+          - separator "Resize Navigator panel bottom" [ref=e326]

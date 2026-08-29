@@ -60,7 +60,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
 
     const entry = resolveCommand("duplicate");
     expect(entry).toBeDefined();
-    expect(entry?.scope).toEqual(["canvas-focused", "panel:nodes"]);
+    expect(entry?.scope).toEqual(["canvas-focused", "panel:navigator"]);
     expect(resolveCommand("selectAll")).toBeDefined();
 
     view.unmount();

@@ -49,7 +49,7 @@ useEffect(() => {
 
 ### 3. Multiple Initialization Points
 
-Both `BuilderCore.tsx` and `NodesPanel.tsx` were calling `initializeProject` independently, causing duplicate requests.
+Both `BuilderCore.tsx` and `NavigatorPanel.tsx` were calling `initializeProject` independently, causing duplicate requests.
 
 ## Update (2025-11-17 - Infinite Loading Fix)
 
@@ -164,7 +164,7 @@ To verify the fix:
    - No rate limit errors
 
 3. **Check initialization flow**:
-   - NodesPanel initializes once
+   - NavigatorPanel initializes once
    - BuilderCore initializes once
    - No duplicate calls to `getPagesByProjectId`
 

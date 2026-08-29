@@ -1,7 +1,7 @@
 /**
  * PagesSection - Pages 섹션 (메모이제이션 적용)
  *
- * NodesPanel에서 분리하여 pages 변경 시에만 리렌더링되도록 최적화
+ * NavigatorPanel에서 분리하여 pages 변경 시에만 리렌더링되도록 최적화
  */
 
 import React, {
@@ -347,12 +347,12 @@ export const PagesSection = memo(function PagesSection({
   return (
     <Section
       className="node-tree-section"
-      title={t("nodes.pages")}
+      title={t("navigator.pages")}
       collapsible={false}
       actions={
         <ActionIconButton
-          aria-label={t("nodes.addPage")}
-          tooltip={t("nodes.addPage")}
+          aria-label={t("navigator.addPage")}
+          tooltip={t("navigator.addPage")}
           isDisabled={isCreatingPage}
           onPress={handleAddPage}
         >

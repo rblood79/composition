@@ -1,5 +1,5 @@
 /**
- * NodesPanel - 페이지 노드 트리 패널
+ * NavigatorPanel - 페이지와 요소 탐색 패널
  *
  * PanelProps 인터페이스를 구현하여 패널 시스템과 통합
  * 🚀 Performance: PagesSection/LayersSection 분리로 리렌더링 범위 최소화
@@ -16,14 +16,17 @@ import {
 import { File } from "lucide-react";
 import { TabPanel, Tabs } from "react-aria-components";
 import { useParams } from "react-router";
-import "./NodesPanel.css";
+import "./NavigatorPanel.css";
 import { useStore } from "../../stores";
 import { useEditModeStore } from "../../stores/editMode";
 import { usePageManager, useIframeMessenger } from "@/builder/hooks";
 import { useI18n } from "../../../i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { PanelHeader } from "../../components";
-import { NodesPanelTabs, type NodesPanelTabType } from "./NodesPanelTabs";
+import {
+  NavigatorPanelTabs,
+  type NavigatorPanelTabType,
+} from "./NavigatorPanelTabs";
 import { FramesTab } from "./FramesTab/FramesTab";
 // 🚀 Performance: 분리된 섹션 컴포넌트
 import { PagesSection } from "./PagesSection";
@@ -34,7 +37,7 @@ import {
 } from "../../utils/scheduleTask";
 
 // 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
-export function NodesPanel() {
+export function NavigatorPanel() {
   const { t } = useI18n();
 
   // URL params
@@ -57,13 +60,13 @@ export function NodesPanel() {
   );
 
   // 현재 활성 탭 (Edit Mode에서 파생)
-  const activeTab: NodesPanelTabType =
+  const activeTab: NavigatorPanelTabType =
     editMode === "layout" ? "layouts" : "pages";
 
   // 탭 변경 핸들러
   const handleTabChange = useCallback(
     (key: Key) => {
-      const tab = key as NodesPanelTabType;
+      const tab = key as NavigatorPanelTabType;
       if (tab === "pages") {
         setEditMode("page");
         setEditModeCurrentLayoutId(null);
@@ -76,7 +79,7 @@ export function NodesPanel() {
   );
 
   return (
-    <div className="panel nodes-panel nodes-panel--new-tree">
+    <div className="panel navigator-panel navigator-panel--new-tree">
       <PanelHeader
         icon={
           <File
@@ -85,23 +88,26 @@ export function NodesPanel() {
             strokeWidth={iconProps.strokeWidth}
           />
         }
-        title={t("panels.nodes")}
+        title={t("panels.navigator")}
         panelId="nodes"
       />
 
       <Tabs
-        className="panel-tabs nodes-panel-tabs"
+        className="panel-tabs navigator-panel-tabs"
         selectedKey={activeTab}
         onSelectionChange={handleTabChange}
       >
-        <div className="panel-header panel-tabrow nodes-panel-tabrow">
-          <NodesPanelTabs />
+        <div className="panel-header panel-tabrow navigator-panel-tabrow">
+          <NavigatorPanelTabs />
         </div>
 
-        <TabPanel id="pages" className="panel-contents nodes-panel-content">
+        <TabPanel id="pages" className="panel-contents navigator-panel-content">
           <PagesTabContent projectId={projectId} />
         </TabPanel>
-        <TabPanel id="layouts" className="panel-contents nodes-panel-content">
+        <TabPanel
+          id="layouts"
+          className="panel-contents navigator-panel-content"
+        >
           <FramesTabContent
             projectId={projectId}
             requestAutoSelectAfterUpdate={requestAutoSelectAfterUpdate}
@@ -175,7 +181,7 @@ const PagesTabContent = memo(function PagesTabContent({
   if (!currentPageId && pageCount === 0) {
     return (
       <div className="panel-empty-state">
-        <p className="empty-message">{t("nodes.selectPage")}</p>
+        <p className="empty-message">{t("navigator.selectPage")}</p>
       </div>
     );
   }

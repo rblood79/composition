@@ -15,7 +15,7 @@ export { PANEL_CONFIGS, registerAllPanels } from "./core/panelConfigs";
 
 // Panel components
 // Navigation panels
-export { NodesPanel } from "./nodes/NodesPanel";
+export { NavigatorPanel } from "./navigator/NavigatorPanel";
 export { ComponentsPanel } from "./components/ComponentsPanel";
 
 // Tool panels

@@ -73,7 +73,7 @@ function buildCompositionExtensionField(element: Element): {
  * Slot Element 변환:
  *  - SlotProps.name → slotName (canonical descendants path 키)
  *  - 추천 reusable IDs는 legacy 시스템에 없으므로 빈 배열
- *    (P3 NodesPanel UI에서 사용자 입력 가능해질 예정)
+ *    (P3 NavigatorPanel UI에서 사용자 입력 가능해질 예정)
  */
 export const convertSlotElement: ConvertSlotElementFn = (slotElement) => {
   const props = slotElement.props as Partial<{ name: string }>;

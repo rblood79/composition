@@ -237,13 +237,13 @@ export interface EditModeStoreActions {
 export type EditModeStore = EditModeStoreState & EditModeStoreActions;
 
 // ============================================
-// Nodes Panel Types
+// Navigator Panel Types
 // ============================================
 
 /**
- * Nodes Panel 탭 타입
+ * Navigator Panel 탭 타입
  */
-export type NodesPanelTab = "pages" | "layouts";
+export type NavigatorPanelTab = "pages" | "layouts";
 
 /**
  * Pages 탭의 Item

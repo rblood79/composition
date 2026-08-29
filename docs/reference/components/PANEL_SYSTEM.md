@@ -42,7 +42,7 @@ src/builder/
 │   │   ├── types.ts          # PanelConfig, PanelProps 타입
 │   │   ├── PanelRegistry.ts  # 패널 등록 싱글톤
 │   │   └── panelConfigs.ts   # 9개 패널 설정
-│   ├── nodes/NodesPanel.tsx
+│   ├── navigator/NavigatorPanel.tsx
 │   ├── components/ComponentsPanel.tsx
 │   ├── dataset/
 │   │   ├── DatasetPanel.tsx  # DataTables, APIs, Variables (ADR-132 Phase 7: Transformers 제거)

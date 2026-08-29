@@ -1,0 +1,20 @@
+- main [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]: ICONIC FUTURE
+    - generic [ref=e9]:
+      - heading "COMPOSE" [level=1] [ref=e10]
+      - paragraph [ref=e11]: Bespoke by design, cutting-edge platform.
+    - button "Start App" [ref=e13]
+    - generic [ref=e14]:
+      - button [ref=e15] [cursor=pointer]
+      - button [ref=e18] [cursor=pointer]
+      - button [ref=e22] [cursor=pointer]
+      - button [ref=e26] [cursor=pointer]
+      - button [ref=e31] [cursor=pointer]
+      - button [ref=e35] [cursor=pointer]
+      - button [ref=e39] [cursor=pointer]
+      - button [ref=e43] [cursor=pointer]
+      - button [ref=e48] [cursor=pointer]
+  - generic [ref=e51]:
+    - button "SAND" [ref=e52] [cursor=pointer]
+    - button "LIGHT" [ref=e53] [cursor=pointer]

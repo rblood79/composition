@@ -145,12 +145,12 @@ export function FrameElementTree({
   return (
     <Section
       className="node-tree-section"
-      title={t("nodes.layers")}
+      title={t("navigator.layers")}
       collapsible={false}
       actions={
         <ActionIconButton
-          aria-label={t("nodes.collapseAll")}
-          tooltip={t("nodes.collapseAll")}
+          aria-label={t("navigator.collapseAll")}
+          tooltip={t("navigator.collapseAll")}
           onPress={onCollapseAll}
         >
           <Minimize
@@ -162,12 +162,12 @@ export function FrameElementTree({
       }
     >
       {!frameId ? (
-        <p className="no_element">{t("nodes.selectFrame")}</p>
+        <p className="no_element">{t("navigator.selectFrame")}</p>
       ) : tree.length === 0 ? (
-        <p className="no_element">{t("nodes.noElements")}</p>
+        <p className="no_element">{t("navigator.noElements")}</p>
       ) : treeNodes.length >= 12 ? (
         <VirtualizedTree<FrameElementTreeNode>
-          aria-label={t("nodes.layers")}
+          aria-label={t("navigator.layers")}
           items={treeNodes}
           getKey={(node) => node.id}
           getTextValue={getFrameElementDisplayName}
@@ -182,7 +182,7 @@ export function FrameElementTree({
         />
       ) : (
         <TreeBase<FrameElementTreeNode>
-          aria-label={t("nodes.layers")}
+          aria-label={t("navigator.layers")}
           items={treeNodes}
           getKey={(node) => node.id}
           getTextValue={getFrameElementDisplayName}

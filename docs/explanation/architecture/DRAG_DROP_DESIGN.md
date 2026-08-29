@@ -1160,7 +1160,7 @@ function redoMove(entry: HistoryEntry) {
 | `sidebar/LayerTree/` | **신규** | 새 디렉토리 |
 | `sidebar/VirtualizedLayerTree.tsx` | **삭제** | 마이그레이션 후 |
 | `nodes/Layers.tsx` | 수정 | LayerTree import 변경 |
-| `nodes/NodesPanel.tsx` | 수정 | LayerTree 연결 |
+| `navigator/NavigatorPanel.tsx` | 수정 | LayerTree 연결 |
 | `stores/utils/elementReorder.ts` | 유지 | 기존 로직 재사용 |
 | `utils/treeUtils.ts` | 유지 | sortTabsChildren 재사용 |
 | `stores/history/` | 수정 | DragHistoryEntry 추가 |

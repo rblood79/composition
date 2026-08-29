@@ -30,7 +30,7 @@ describe("bindHandlersToDefinitions", () => {
     ]);
 
     const [duplicate, selectAll, detach, copyStyles] = bound;
-    expect(duplicate.scope).toEqual(["canvas-focused", "panel:nodes"]);
+    expect(duplicate.scope).toEqual(["canvas-focused", "panel:navigator"]);
     expect(selectAll.scope).toBe("canvas-focused");
     expect(copyStyles.scope).toBe("panel:styles");
     expect(detach.stopPropagation).toBe(true); // capture: true

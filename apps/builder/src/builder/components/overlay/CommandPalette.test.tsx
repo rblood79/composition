@@ -150,7 +150,7 @@ describe("CommandPalette — registry 소비", () => {
     registerCommand({
       id: "duplicate",
       handler: vi.fn(),
-      scope: ["canvas-focused", "panel:nodes"],
+      scope: ["canvas-focused", "panel:navigator"],
       priority: 70,
       allowInInput: false,
       disabled: false,
@@ -178,7 +178,7 @@ describe("CommandPalette — registry 소비", () => {
     registerCommand({
       id: "duplicate",
       handler: vi.fn(),
-      scope: ["canvas-focused", "panel:nodes"],
+      scope: ["canvas-focused", "panel:navigator"],
       priority: 70,
       allowInInput: false,
       disabled: false,
@@ -205,7 +205,7 @@ describe("CommandPalette — registry 소비", () => {
     registerCommand({
       id: "duplicate",
       handler: vi.fn(),
-      scope: ["canvas-focused", "panel:nodes"],
+      scope: ["canvas-focused", "panel:navigator"],
       priority: 70,
       allowInInput: false,
       disabled: false,
@@ -275,7 +275,7 @@ describe("CommandPalette — registry 소비", () => {
     registerCommand({
       id: "duplicate",
       handler,
-      scope: ["canvas-focused", "panel:nodes"],
+      scope: ["canvas-focused", "panel:navigator"],
       priority: 70,
       allowInInput: false,
       disabled: false,
@@ -345,7 +345,7 @@ describe("CommandPalette — registry 소비", () => {
     registerCommand({
       id: "duplicate",
       handler: vi.fn(),
-      scope: ["canvas-focused", "panel:nodes"],
+      scope: ["canvas-focused", "panel:navigator"],
       priority: 70,
       allowInInput: false,
       disabled: false,

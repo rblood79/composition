@@ -31,7 +31,7 @@
 | -------------------- | ----------- | --------------------------------------------------------------------- | -------- |
 | **MonitorPanel**     | 🔴 Critical | RAF 기반 모니터링, 비활성 시 계속 실행                                | **P0**   |
 | **DataTablePanel**   | 🟠 Medium   | 4개 API 호출 (캐시 없음, but useEffect 내 isActive 체크)              | **P2**   |
-| **NodesPanel**       | ✅ OK       | Virtual Scrolling 이미 적용됨 (VirtualizedLayerTree, VirtualizedTree) | -        |
+| **NavigatorPanel**       | ✅ OK       | Virtual Scrolling 이미 적용됨 (VirtualizedLayerTree, VirtualizedTree) | -        |
 | **PropertiesPanel**  | 🟠 High     | 5개 selector 구독, Inspector 연동                                     | **P1**   |
 | **StylesPanel**      | 🟠 Medium   | 4개 훅 구독, localStorage 접근                                        | **P2**   |
 | **EventsPanel**      | ✅ OK       | Early return 패턴 적용됨 (Line 126-129)                               | -        |
@@ -204,9 +204,9 @@ export function DataTablePanel({ isActive }: PanelProps) {
 
 ---
 
-### 2.3 NodesPanel (🟠 High)
+### 2.3 NavigatorPanel (🟠 High)
 
-**파일 위치**: `src/builder/panels/nodes/NodesPanel.tsx`
+**파일 위치**: `src/builder/panels/navigator/NavigatorPanel.tsx`
 
 #### 문제점
 
@@ -219,7 +219,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
 #### 현재 코드
 
 ```tsx
-export function NodesPanel({ isActive }: PanelProps) {
+export function NavigatorPanel({ isActive }: PanelProps) {
   const { projectId } = useParams<{ projectId: string }>();
 
   // ⚠️ 문제: 8개 훅/selector가 isActive 체크 전에 실행됨
@@ -781,8 +781,8 @@ export const getStoreActions = () => {
 // Combined Selectors (shallow 비교 필수)
 // ============================================================================
 
-/** NodesPanel용 selector */
-export const useNodesPanelState = () =>
+/** NavigatorPanel용 selector */
+export const useNavigatorPanelState = () =>
   useStore(
     (state) => ({
       currentPageId: state.currentPageId,
@@ -1337,11 +1337,11 @@ class PerformanceMonitor {
 export const performanceMonitor = new PerformanceMonitor();
 ```
 
-#### 3.4 Virtual Scrolling (NodesPanel) - ✅ 이미 적용됨
+#### 3.4 Virtual Scrolling (NavigatorPanel) - ✅ 이미 적용됨
 
 > **상태**: 구현 완료 (추가 작업 불필요)
 
-NodesPanel의 Virtual Scrolling은 **이미 Sidebar 컴포넌트에 구현**되어 있습니다:
+NavigatorPanel의 Virtual Scrolling은 **이미 Sidebar 컴포넌트에 구현**되어 있습니다:
 
 **기존 구현 파일**:
 
@@ -1476,7 +1476,7 @@ export const idleScheduler = new IdleScheduler();
 | `src/builder/utils/CircularBuffer.ts`                        | 순환 버퍼                 | Phase 3 |
 | `src/builder/utils/performanceMonitor.ts`                    | 성능 모니터링             | Phase 4 |
 | `src/builder/utils/idleScheduler.ts`                         | Idle 작업 스케줄러        | Phase 4 |
-| `src/builder/panels/nodes/components/VirtualElementList.tsx` | 가상 스크롤 목록          | Phase 3 |
+| `src/builder/panels/navigator/components/VirtualElementList.tsx` | 가상 스크롤 목록          | Phase 3 |
 
 ### 6.2 수정 파일
 
@@ -1486,7 +1486,7 @@ export const idleScheduler = new IdleScheduler();
 | `src/builder/panels/monitor/hooks/useMemoryStats.ts` | enabled 추가, CircularBuffer                         | Phase 3    |
 | `src/builder/panels/monitor/hooks/useWebVitals.ts`   | enabled 파라미터 추가                                | Phase 3    |
 | `src/builder/panels/datatable/DataTablePanel.tsx`    | Gateway 패턴, React Query                            | Phase 1, 2 |
-| `src/builder/panels/nodes/NodesPanel.tsx`            | ✅ Virtual Scrolling 이미 적용 (Gateway 패턴만 검토) | Phase 1    |
+| `src/builder/panels/navigator/NavigatorPanel.tsx`            | ✅ Virtual Scrolling 이미 적용 (Gateway 패턴만 검토) | Phase 1    |
 | `src/builder/panels/properties/PropertiesPanel.tsx`  | Gateway 패턴, selector 최적화                        | Phase 1, 2 |
 | `src/builder/panels/styles/StylesPanel.tsx`          | Gateway 패턴                                         | Phase 1    |
 | `src/builder/panels/events/EventsPanel.tsx`          | Gateway 패턴                                         | Phase 1    |
@@ -1554,7 +1554,7 @@ npm install -D @tanstack/react-query-devtools
 
 | 라이브러리                | 현재 사용 | 최적화 활용              |
 | ------------------------- | --------- | ------------------------ |
-| `@tanstack/react-virtual` | ✅ 설치됨 | NodesPanel 가상 스크롤링 |
+| `@tanstack/react-virtual` | ✅ 설치됨 | NavigatorPanel 가상 스크롤링 |
 | `immer`                   | ✅ 설치됨 | Zustand 불변 업데이트    |
 | `lodash`                  | ✅ 설치됨 | debounce, throttle       |
 | `zustand`                 | ✅ 설치됨 | shallow 비교 활용        |

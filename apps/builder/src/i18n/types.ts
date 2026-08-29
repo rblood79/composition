@@ -167,7 +167,7 @@ export interface TranslationKeys {
     align: string;
   };
   panels: {
-    nodes: string;
+    navigator: string;
     components: string;
     dataTable: string;
     dataTableEditor: string;
@@ -180,7 +180,7 @@ export interface TranslationKeys {
     history: string;
     monitor: string;
   };
-  nodes: {
+  navigator: {
     pages: string;
     frames: string;
     panelTabs: string;

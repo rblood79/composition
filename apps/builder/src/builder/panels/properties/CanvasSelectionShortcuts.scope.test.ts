@@ -13,10 +13,10 @@ import { matchesScope } from "../../hooks/useActiveScope";
 describe("⌘D duplicate scope (code-review #13)", () => {
   it("모달·텍스트 편집에서는 매칭되지 않고 캔버스·레이어 트리에서만 매칭된다", () => {
     const scope = SHORTCUT_DEFINITIONS.duplicate.scope;
-    expect(scope).toEqual(["canvas-focused", "panel:nodes"]);
+    expect(scope).toEqual(["canvas-focused", "panel:navigator"]);
 
     expect(matchesScope(scope, "canvas-focused")).toBe(true);
-    expect(matchesScope(scope, "panel:nodes")).toBe(true);
+    expect(matchesScope(scope, "panel:navigator")).toBe(true);
 
     expect(matchesScope(scope, "modal")).toBe(false);
     expect(matchesScope(scope, "text-editing")).toBe(false);

@@ -452,7 +452,7 @@ hierarchy 엣지 추가 위치:
 | #   | 파일                                                                                                             | 변경 내용                            |
 | --- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | 1   | `apps/builder/src/builder/stores/elements.ts`                                                                    | `autoArrangeByHierarchy()` 액션 추가 |
-| 2   | `apps/builder/src/builder/workspace/Workspace.tsx` 또는 `apps/builder/src/builder/panels/nodes/PagesSection.tsx` | "Auto-arrange" 버튼 추가             |
+| 2   | `apps/builder/src/builder/workspace/Workspace.tsx` 또는 `apps/builder/src/builder/panels/navigator/PagesSection.tsx` | "Auto-arrange" 버튼 추가             |
 
 **이 Phase는 hierarchy 엣지 구현 후 별도로 진행 가능.**
 
@@ -604,7 +604,7 @@ if (direction === "vertical") {
 - **그래프 유틸**: `apps/builder/src/builder/workspace/canvas/skia/workflowGraphUtils.ts` — 연결 분석
 - **캔버스 설정**: `apps/builder/src/builder/stores/canvasSettings.ts` — 토글 상태 관리
 - **설정 UI(워크플로우 토글)**: `apps/builder/src/builder/workspace/Workspace.tsx` — 워크플로우 토글 UI
-- **페이지 트리**: `apps/builder/src/builder/panels/nodes/tree/PageTree/usePageTreeData.ts` — parent_id 기반 트리
+- **페이지 트리**: `apps/builder/src/builder/panels/navigator/tree/PageTree/usePageTreeData.ts` — parent_id 기반 트리
 - **Page 타입**: `apps/builder/src/types/builder/unified.types.ts` — parent_id 필드 존재
 - **레이아웃 알고리즘**: `apps/builder/src/builder/stores/elements.ts` — initializePagePositions
 - **페이지 관리**: `apps/builder/src/builder/hooks/usePageManager.ts` — addPage, 위치 계산
@@ -726,7 +726,7 @@ useStore.getState().updatePagePosition(newPage.id, maxX, 0); // 항상 y=0
 ### parent_id 필드 확인
 
 - `apps/builder/src/builder/hooks/usePageManager.ts` — `parent_id` 필드 포함 (신규 페이지 생성 시 `parent_id: null` 설정)
-- `apps/builder/src/builder/panels/nodes/tree/PageTree/usePageTreeData.ts` — ✅ 존재
+- `apps/builder/src/builder/panels/navigator/tree/PageTree/usePageTreeData.ts` — ✅ 존재
 - `apps/builder/src/builder/stores/elements.ts` — `initializePagePositions` 함수 존재 (✅)
 
 ### Phase별 전제 조건 현황

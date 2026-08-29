@@ -1,0 +1,32 @@
+- generic [ref=e54]:
+  - banner [ref=e55]:
+    - heading "composition" [level=1] [ref=e59]
+    - generic [ref=e61]:
+      - searchbox "Search projects" [ref=e65]
+      - generic [ref=e66]: ⌘K
+    - radiogroup "Builder theme" [ref=e69]:
+      - radio "Light theme" [ref=e70] [cursor=pointer]
+      - radio "Dark theme" [ref=e78] [cursor=pointer]
+      - radio "Match system theme" [checked] [ref=e82] [cursor=pointer]
+  - generic [ref=e86]:
+    - navigation [ref=e87]:
+      - radiogroup "Project scope" [ref=e88]:
+        - radio "Recents" [checked] [ref=e89] [cursor=pointer]
+        - radio "All projects" [ref=e94] [cursor=pointer]
+    - main [ref=e98]:
+      - generic [ref=e99]:
+        - generic [ref=e100]:
+          - heading "Recents" [level=2] [ref=e101]
+          - generic [ref=e102]: 0 projects edited in the last 30 days
+        - generic [ref=e103]:
+          - button "Sort projects" [ref=e105] [cursor=pointer]:
+            - generic [ref=e106]: Sort
+            - generic [ref=e107]: Last edited
+          - radiogroup "View" [ref=e111]:
+            - radio "Grid view" [checked] [ref=e112] [cursor=pointer]
+            - radio "List view" [ref=e119] [cursor=pointer]
+          - button "New project" [ref=e122]
+      - generic [ref=e124]:
+        - paragraph [ref=e127]: No projects yet
+        - paragraph [ref=e128]: Create your first project to get started
+        - button "New project" [ref=e129]

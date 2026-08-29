@@ -27,7 +27,7 @@ export type ShortcutScope =
   | "panel:properties"
   | "panel:styles"
   | "panel:events"
-  | "panel:nodes"
+  | "panel:navigator"
   | "modal"
   | "text-editing";
 

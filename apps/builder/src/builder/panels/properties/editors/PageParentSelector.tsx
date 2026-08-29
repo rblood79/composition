@@ -30,7 +30,7 @@ import {
   withPageFrameBinding,
 } from "../../../../adapters/canonical/frameMirror";
 import type { Page } from "../../../../types/builder/unified.types";
-import { syncActiveCanonicalPageTreeMetadata } from "../../nodes/tree/PageTree/usePageTreeData";
+import { syncActiveCanonicalPageTreeMetadata } from "../../navigator/tree/PageTree/usePageTreeData";
 
 import "./styles/pageSelectors.css";
 interface PageParentSelectorProps {

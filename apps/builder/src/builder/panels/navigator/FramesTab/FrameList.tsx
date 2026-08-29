@@ -101,12 +101,12 @@ export function FrameList({
   return (
     <Section
       className="node-tree-section"
-      title={t("nodes.frames")}
+      title={t("navigator.frames")}
       collapsible={false}
       actions={
         <ActionIconButton
-          aria-label={t("nodes.addFrame")}
-          tooltip={t("nodes.addFrame")}
+          aria-label={t("navigator.addFrame")}
+          tooltip={t("navigator.addFrame")}
           onPress={onAdd}
         >
           <AddIcon
@@ -118,10 +118,10 @@ export function FrameList({
       }
     >
       {frames.length === 0 ? (
-        <p className="no_element">{t("nodes.noFrames")}</p>
+        <p className="no_element">{t("navigator.noFrames")}</p>
       ) : (
         <TreeBase<FrameListNode>
-          aria-label={t("nodes.frames")}
+          aria-label={t("navigator.frames")}
           items={treeNodes}
           getKey={(node) => node.id}
           getTextValue={(node) => node.name}

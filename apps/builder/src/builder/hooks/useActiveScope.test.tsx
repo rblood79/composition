@@ -63,7 +63,7 @@ describe("useActiveScope — data-shortcut-scope 선언", () => {
       `<div data-panel-id="nodes"><div role="treeitem" tabindex="0" id="t">x</div></div>`,
       "#t",
     );
-    expect(hook.result.current).toBe("panel:nodes");
+    expect(hook.result.current).toBe("panel:navigator");
   });
 
   it("알 수 없는 값은 무시하고 기존 추론으로 돌아간다", () => {

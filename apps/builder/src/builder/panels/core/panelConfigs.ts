@@ -22,7 +22,7 @@ import type { PanelConfig } from "./types";
 import { PanelRegistry } from "./PanelRegistry";
 
 // Navigation panels
-import { NodesPanel } from "../nodes/NodesPanel";
+import { NavigatorPanel } from "../navigator/NavigatorPanel";
 import { ComponentsPanel } from "../components/ComponentsPanel";
 import { ThemesPanel } from "../themes/ThemesPanel";
 import { AIPanel } from "../ai/AIPanel";
@@ -53,7 +53,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "탐색기",
     nameEn: "Navigator",
     icon: File,
-    component: NodesPanel,
+    component: NavigatorPanel,
     category: "navigation",
     defaultPosition: "left",
     minWidth: 233,

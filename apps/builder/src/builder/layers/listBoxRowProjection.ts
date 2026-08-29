@@ -9,7 +9,7 @@ import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
 } from "../projection/renderProjectionIds";
-import type { LayerTreeNode } from "../panels/nodes/tree/LayerTree/types";
+import type { LayerTreeNode } from "../panels/navigator/tree/LayerTree/types";
 import type { PanelNode } from "../panels/panelNode";
 
 export { LISTBOX_ROW_PROJECTION_WINDOW_LIMIT };

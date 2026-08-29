@@ -85,7 +85,7 @@ import { isComponentOriginMirrorElement } from "./componentSemanticsMirror";
  * Slot 메타 정보 — FrameNode.slot 속성에서 추출.
  *
  * `@composition/shared` 에 미수록 → P3-A 단계에서 본 파일에 정의.
- * 추후 shared 패키지로 이동 예정 (ADR-903 P3-C NodesPanel UI 연동 시).
+ * 추후 shared 패키지로 이동 예정 (ADR-903 P3-C NavigatorPanel UI 연동 시).
  */
 export interface SlotMeta {
   name: string;
@@ -442,12 +442,12 @@ export function createReusableFrameNode(
 
 /**
  * FrameNode 의 slot schema 속성 추출 + 메타 정규화.
- * P3-C UI 재설계 시 NodesPanel slot 표시에 사용.
+ * P3-C UI 재설계 시 NavigatorPanel slot 표시에 사용.
  *
  * - `frame.slot === false` 또는 미정의 → 빈 배열 반환
  * - `frame.slot: string[]` → 각 슬롯 이름을 `SlotMeta` 로 변환
  *
- * `required` 필드는 P3-C NodesPanel UI 에서 ADR-903 §3.8 추천 component ID 목록
+ * `required` 필드는 P3-C NavigatorPanel UI 에서 ADR-903 §3.8 추천 component ID 목록
  * 흡수 시점에 확장 예정. 현재는 모두 `false` (non-required).
  *
  * @param frame - canonical FrameNode

@@ -1,7 +1,7 @@
 /**
  * LayersSection - Layers 섹션 (메모이제이션 적용)
  *
- * NodesPanel에서 분리하여 elements 변경 시에만 리렌더링되도록 최적화
+ * NavigatorPanel에서 분리하여 elements 변경 시에만 리렌더링되도록 최적화
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -267,12 +267,12 @@ export const LayersSection = memo(function LayersSection({
   return (
     <Section
       className="node-tree-section"
-      title={t("nodes.layers")}
+      title={t("navigator.layers")}
       collapsible={false}
       actions={
         <ActionIconButton
-          aria-label={t("nodes.collapseAll")}
-          tooltip={t("nodes.collapseAll")}
+          aria-label={t("navigator.collapseAll")}
+          tooltip={t("navigator.collapseAll")}
           onPress={handleCollapseAll}
         >
           <Minimize

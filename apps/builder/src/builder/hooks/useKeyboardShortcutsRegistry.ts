@@ -57,7 +57,7 @@ export type ShortcutCategory =
   | "tools" // Tool selection (priority: 60)
   | "properties" // Property editing (priority: 50)
   | "events" // Events panel (priority: 50)
-  | "nodes"; // Nodes panel (priority: 50)
+  | "navigator"; // Navigator panel (priority: 50)
 
 /**
  * 키보드 단축키 정의

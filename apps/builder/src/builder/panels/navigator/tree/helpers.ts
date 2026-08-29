@@ -48,9 +48,11 @@ export const ICON_EDIT_PROPS = {
 /**
  * 아이템이 자식을 가지고 있는지 확인
  */
-export const hasChildren = <T extends { id: string; parent_id?: string | null }>(
+export const hasChildren = <
+  T extends { id: string; parent_id?: string | null },
+>(
   items: T[],
-  itemId: string
+  itemId: string,
 ): boolean => {
   return items.some((item) => item.parent_id === itemId);
 };
@@ -76,5 +78,5 @@ export const hasProps = (x: unknown): x is WithProps => {
 /**
  * unknown 값을 타입 안전하게 배열로 변환
  */
-export const childrenAs = <C,>(v: unknown): C[] =>
+export const childrenAs = <C>(v: unknown): C[] =>
   Array.isArray(v) ? (v as C[]) : [];

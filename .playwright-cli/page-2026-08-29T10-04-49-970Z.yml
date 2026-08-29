@@ -1,0 +1,69 @@
+- generic [ref=e138]:
+  - main [ref=e140]
+  - generic "Panel workspace":
+    - generic:
+      - banner [ref=e143]:
+        - generic [ref=e144]:
+          - button "Menu" [ref=e145] [cursor=pointer]
+          - img "composition logo" [ref=e148]
+          - generic [ref=e149]: Navigator rename QA
+        - group "Viewport controls" [ref=e151]:
+          - radiogroup "Viewport size" [ref=e152]:
+            - radio "Desktop" [checked] [ref=e153] [cursor=pointer]
+            - radio "Tablet" [ref=e157] [cursor=pointer]
+            - radio "Mobile" [ref=e161] [cursor=pointer]
+          - generic [ref=e166] [cursor=pointer]:
+            - textbox "Zoom level" [ref=e167]: 100%
+            - button "Zoom menu" [ref=e168]
+        - generic [ref=e171]:
+          - toolbar "View options" [ref=e172]:
+            - button "Compare Mode (Preview + Skia)" [ref=e173] [cursor=pointer]
+          - button "Preview" [ref=e178] [cursor=pointer]
+      - generic:
+        - toolbar "Left panel controls" [ref=e183]:
+          - button "Navigator" [active] [pressed] [ref=e184] [cursor=pointer]
+          - button "Components" [ref=e189] [cursor=pointer]
+          - button "DataTable" [ref=e194] [cursor=pointer]
+          - button "DataTable Editor" [ref=e200] [cursor=pointer]
+          - button "Theme" [ref=e206] [cursor=pointer]
+        - toolbar "Right panel controls" [ref=e213]:
+          - button "AI" [ref=e214] [cursor=pointer]
+          - button "Properties" [ref=e219] [cursor=pointer]
+          - button "Styles" [ref=e224] [cursor=pointer]
+          - button "Interactions" [ref=e230] [cursor=pointer]
+          - button "History" [ref=e235] [cursor=pointer]
+        - generic [ref=e241]:
+          - button "Move Navigator panel" [ref=e242]
+          - generic [ref=e245]:
+            - generic [ref=e246]:
+              - heading [level=3] [ref=e247]
+              - button "Close" [ref=e253] [cursor=pointer]
+            - generic [ref=e257]:
+              - tablist "Navigator tabs" [ref=e259]:
+                - tab "Pages" [selected] [ref=e260] [cursor=pointer]
+                - tab "Frames" [ref=e265] [cursor=pointer]
+              - tabpanel "Pages" [ref=e269]:
+                - generic [ref=e270]:
+                  - generic [ref=e271]:
+                    - generic [ref=e272]: Pages
+                    - button "Add Page" [ref=e274] [cursor=pointer]
+                  - treegrid "Pages" [ref=e277]:
+                    - row "Components" [level=1] [ref=e278]:
+                      - gridcell "Components" [ref=e279]
+                    - row "Home" [level=1] [selected] [ref=e286]:
+                      - gridcell "Home Settings for Home" [ref=e287]:
+                        - generic [ref=e288]:
+                          - generic [ref=e293]: Home
+                          - button "Settings for Home" [ref=e295]
+                - generic [ref=e299]:
+                  - generic [ref=e300]:
+                    - generic [ref=e301]: Layers
+                    - button "Collapse All" [ref=e303] [cursor=pointer]
+                  - treegrid "Layers" [ref=e310]:
+                    - row "body" [level=1] [selected] [ref=e311]:
+                      - gridcell "body Settings" [ref=e312]:
+                        - generic [ref=e313]:
+                          - generic [ref=e318]: body
+                          - button "Settings" [ref=e321]
+          - separator "Resize Navigator panel right" [ref=e325]
+          - separator "Resize Navigator panel bottom" [ref=e326]

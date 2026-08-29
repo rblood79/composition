@@ -39,7 +39,7 @@ describe("ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion contract", (
       readFile(
         resolve(
           __dirname,
-          "../../../builder/panels/nodes/FramesTab/FramesTab.tsx",
+          "../../../builder/panels/navigator/FramesTab/FramesTab.tsx",
         ),
         "utf-8",
       ),
@@ -57,7 +57,7 @@ describe("ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion contract", (
     expect(exportSource).toContain("descendants");
     expect(resolverSource).toContain("type: master.type");
     expect(resolverSource).toContain("_resolvedFrom: master.id");
-    expect(componentSectionSource).toContain("resolveReference(originId");
+    expect(componentSectionSource).toMatch(/resolveReference\(\s*originId,/);
     expect(componentSectionSource).toContain(
       "getEditingSemanticsImpactInstanceIds",
     );

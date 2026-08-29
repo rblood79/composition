@@ -301,9 +301,9 @@ export function Pages({ pages, onDelete }: PagesProps) {
 
 ---
 
-### Example 3: NodesPanel (Type Wrapper)
+### Example 3: NavigatorPanel (Type Wrapper)
 
-**파일**: `src/builder/panels/nodes/NodesPanel.tsx`
+**파일**: `src/builder/panels/navigator/NavigatorPanel.tsx`
 
 Sidebar 컴포넌트가 `UnifiedPage` (title 필드)를 기대하는 경우:
 
@@ -311,11 +311,11 @@ Sidebar 컴포넌트가 `UnifiedPage` (title 필드)를 기대하는 경우:
 import type { Page } from '../../types/builder/unified.types';
 import type { UnifiedPage } from '../../types/builder/page.types';
 
-interface NodesPanelProps {
+interface NavigatorPanelProps {
   pages: Page[];  // Store Page (name 필드)
 }
 
-export function NodesPanel({ pages }: NodesPanelProps) {
+export function NavigatorPanel({ pages }: NavigatorPanelProps) {
   // 🔑 Store Page → UnifiedPage 변환 (래퍼)
   const unifiedPages: UnifiedPage[] = useMemo(() =>
     pages.map(p => ({
@@ -497,7 +497,7 @@ function isStorePage(page: unknown): page is Page {
 
 - `src/builder/hooks/usePageManager.ts` - API → Store 변환
 - `src/builder/nodes/Pages.tsx` - 삭제 시 Store → API 변환
-- `src/builder/panels/nodes/NodesPanel.tsx` - Store → UnifiedPage 래퍼
+- `src/builder/panels/navigator/NavigatorPanel.tsx` - Store → UnifiedPage 래퍼
 
 ### Tests (추가 권장)
 

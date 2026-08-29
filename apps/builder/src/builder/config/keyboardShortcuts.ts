@@ -25,7 +25,7 @@ export const SHORTCUT_PRIORITY = {
   TOOLS: 60, // Tool selection
   PROPERTIES: 50, // Property editing
   EVENTS: 50, // Events panel
-  NODES: 50, // Nodes panel
+  NAVIGATOR: 50, // Navigator panel
 } as const;
 
 // ============================================
@@ -435,7 +435,7 @@ export const SHORTCUT_DEFINITIONS = {
     // 레이어 트리 선택에서도 복제한다 (Figma/Pen 동형) — 실제 핸들러 등록
     // (`CanvasSelectionShortcuts`) 과 같은 값을 유지해야 치트시트·툴팁 표기가
     // 실동작과 갈리지 않는다
-    scope: ["canvas-focused", "panel:nodes"],
+    scope: ["canvas-focused", "panel:navigator"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Duplicate",
     i18n: { ko: "복제" },
@@ -818,7 +818,7 @@ export const SHORTCUT_DEFINITIONS = {
   // ==========================================
 
   // ==========================================
-  // Nodes Panel / Tree Navigation (priority: 50)
+  // Navigator Panel / Tree Navigation (priority: 50)
   //
   // 아래 8종은 RAC `TreeBase` 네이티브 키보드가 처리한다 — 어느
   // `bindHandlersToDefinitions` 에도 등록이 없고(D1), 포커스된 행에 작용하므로
@@ -828,9 +828,9 @@ export const SHORTCUT_DEFINITIONS = {
   treeNavDown: {
     key: "ArrowDown",
     modifier: "none",
-    category: "nodes",
-    scope: "panel:nodes",
-    priority: SHORTCUT_PRIORITY.NODES,
+    category: "navigator",
+    scope: "panel:navigator",
+    priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Next Item",
     i18n: { ko: "다음 항목" },
@@ -839,9 +839,9 @@ export const SHORTCUT_DEFINITIONS = {
   treeNavUp: {
     key: "ArrowUp",
     modifier: "none",
-    category: "nodes",
-    scope: "panel:nodes",
-    priority: SHORTCUT_PRIORITY.NODES,
+    category: "navigator",
+    scope: "panel:navigator",
+    priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Previous Item",
     i18n: { ko: "이전 항목" },
@@ -850,9 +850,9 @@ export const SHORTCUT_DEFINITIONS = {
   treeNavRight: {
     key: "ArrowRight",
     modifier: "none",
-    category: "nodes",
-    scope: "panel:nodes",
-    priority: SHORTCUT_PRIORITY.NODES,
+    category: "navigator",
+    scope: "panel:navigator",
+    priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Expand",
     i18n: { ko: "펼치기" },
@@ -861,9 +861,9 @@ export const SHORTCUT_DEFINITIONS = {
   treeNavLeft: {
     key: "ArrowLeft",
     modifier: "none",
-    category: "nodes",
-    scope: "panel:nodes",
-    priority: SHORTCUT_PRIORITY.NODES,
+    category: "navigator",
+    scope: "panel:navigator",
+    priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Collapse",
     i18n: { ko: "접기" },
@@ -872,9 +872,9 @@ export const SHORTCUT_DEFINITIONS = {
   treeNavHome: {
     key: "Home",
     modifier: "none",
-    category: "nodes",
-    scope: "panel:nodes",
-    priority: SHORTCUT_PRIORITY.NODES,
+    category: "navigator",
+    scope: "panel:navigator",
+    priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "First Item",
     i18n: { ko: "첫 번째 항목" },
@@ -883,9 +883,9 @@ export const SHORTCUT_DEFINITIONS = {
   treeNavEnd: {
     key: "End",
     modifier: "none",
-    category: "nodes",
-    scope: "panel:nodes",
-    priority: SHORTCUT_PRIORITY.NODES,
+    category: "navigator",
+    scope: "panel:navigator",
+    priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Last Item",
     i18n: { ko: "마지막 항목" },
@@ -894,9 +894,9 @@ export const SHORTCUT_DEFINITIONS = {
   treeSelect: {
     key: "Enter",
     modifier: "none",
-    category: "nodes",
-    scope: "panel:nodes",
-    priority: SHORTCUT_PRIORITY.NODES,
+    category: "navigator",
+    scope: "panel:navigator",
+    priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Select Item",
     i18n: { ko: "항목 선택" },
@@ -906,9 +906,9 @@ export const SHORTCUT_DEFINITIONS = {
     key: " ",
     code: "Space",
     modifier: "none",
-    category: "nodes",
-    scope: "panel:nodes",
-    priority: SHORTCUT_PRIORITY.NODES,
+    category: "navigator",
+    scope: "panel:navigator",
+    priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Select Item",
     i18n: { ko: "항목 선택" },

@@ -139,7 +139,7 @@ export function PageTree({
 
   return (
     <TreeBase<PageTreeNode>
-      aria-label={t("nodes.pages")}
+      aria-label={t("navigator.pages")}
       items={treeNodes}
       getKey={(node) => node.id}
       getTextValue={(node) => node.name}

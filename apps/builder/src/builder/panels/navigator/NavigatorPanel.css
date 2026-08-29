@@ -235,8 +235,8 @@
   line-height: var(--text-xs--line-height);
 }
 
-/* NodesPanel */
-.nodes-panel {
+/* NavigatorPanel */
+.navigator-panel {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -245,16 +245,16 @@
   overflow: hidden;
 }
 
-.nodes-panel-content {
+.navigator-panel-content {
   min-width: 0;
   overflow-x: hidden;
 }
 
-.nodes-panel-content .node-tree-section .section-content {
+.navigator-panel-content .node-tree-section .section-content {
   min-width: 0;
 }
 
-.nodes-panel-content :is(.react-aria-Tree, .page-tree, .frame-tree) {
+.navigator-panel-content :is(.react-aria-Tree, .page-tree, .frame-tree) {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -270,21 +270,21 @@
   box-sizing: border-box;
 }
 
-.nodes-panel-content .react-aria-TreeItem {
+.navigator-panel-content .react-aria-TreeItem {
   min-height: var(--inspector-control-size);
   padding: 0;
   border-radius: var(--radius-md);
 }
 
-.nodes-panel-content .elementItem {
+.navigator-panel-content .elementItem {
   width: 100%;
 }
 
-.nodes-panel-content .elementItemActions .layer-drag-handle {
+.navigator-panel-content .elementItemActions .layer-drag-handle {
   cursor: grab;
 }
 
-.nodes-panel .panel-empty-state {
+.navigator-panel .panel-empty-state {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -293,12 +293,12 @@
   font-size: var(--text-sm);
 }
 
-/* NodesPanelTabs */
-.nodes-panel-tab {
+/* NavigatorPanelTabs */
+.navigator-panel-tab {
   flex: 1 1 0;
 }
 
-.nodes-panel-tab-label {
+.navigator-panel-tab-label {
   font-weight: var(--font-weight-medium);
 }
 
