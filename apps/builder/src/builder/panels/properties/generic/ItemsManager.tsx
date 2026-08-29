@@ -15,6 +15,7 @@ import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 
 import "../editors/styles/propertyEditors.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { resolvePropertyFieldIcon } from "../../../config/propertyFieldIcons";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -91,6 +92,10 @@ const ItemRow = memo(function ItemRow({
                 return (
                   <PropertyInput
                     key={schemaField.key}
+                    icon={resolvePropertyFieldIcon(
+                      schemaField.key,
+                      schemaField.type,
+                    )}
                     label={schemaField.label}
                     value={String(currentValue ?? "")}
                     onChange={(value) =>
@@ -106,6 +111,10 @@ const ItemRow = memo(function ItemRow({
                 return (
                   <PropertySwitch
                     key={schemaField.key}
+                    icon={resolvePropertyFieldIcon(
+                      schemaField.key,
+                      schemaField.type,
+                    )}
                     label={schemaField.label}
                     isSelected={Boolean(currentValue)}
                     onChange={(checked) =>
@@ -232,6 +241,7 @@ const SectionRow = memo(function SectionRow({
           {/* Section header 편집 */}
           <div className="items-manager-row-fields">
             <PropertyInput
+              icon={resolvePropertyFieldIcon("header", "string")}
               label="Header"
               value={header}
               onChange={(value) =>
@@ -241,6 +251,7 @@ const SectionRow = memo(function SectionRow({
             {hasSelection && (
               <>
                 <PropertySelect
+                  icon={resolvePropertyFieldIcon("selectionMode", "enum")}
                   label="Selection Mode"
                   value={String(section.selectionMode ?? "")}
                   onChange={(value) =>
@@ -251,6 +262,10 @@ const SectionRow = memo(function SectionRow({
                   options={SELECTION_MODE_OPTIONS}
                 />
                 <PropertyInput
+                  icon={resolvePropertyFieldIcon(
+                    "defaultSelectedKeys",
+                    "string-array",
+                  )}
                   label="Default Selected Keys"
                   value={
                     Array.isArray(section.defaultSelectedKeys)

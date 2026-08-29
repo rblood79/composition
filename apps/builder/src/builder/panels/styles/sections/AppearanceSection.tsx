@@ -202,7 +202,6 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
       {/* Border */}
       <div className="style-border">
         <PropertyColor
-          icon={Square}
           label="Color"
           className="border-color"
           value={styleValues.borderColor}

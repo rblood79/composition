@@ -1,3 +1,4 @@
+import { Type } from "lucide-react";
 import { memo, useCallback } from "react";
 import { PropertyIconPicker } from "../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../components/property/PropertyInput";
@@ -303,6 +304,7 @@ export const ButtonChildFields = memo(function ButtonChildFields({
       />
       {existingText ? (
         <PropertyInput
+          icon={Type}
           label="Text"
           value={textChildValue}
           onChange={handleTextChange}

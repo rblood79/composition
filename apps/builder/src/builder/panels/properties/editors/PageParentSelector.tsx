@@ -5,7 +5,7 @@
  */
 
 import { memo, useMemo, useCallback, useState } from "react";
-import { FolderTree, CircleAlert } from "lucide-react";
+import { FolderTree, CircleAlert, Link } from "lucide-react";
 import {
   PropertySelect,
   PropertySection,
@@ -239,6 +239,7 @@ export const PageParentSelector = memo(function PageParentSelector({
 
       <div className="page-slug-input">
         <PropertyInput
+          icon={Link}
           label="Slug"
           value={currentSlug}
           onChange={handleSlugChange}

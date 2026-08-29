@@ -214,7 +214,6 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       />
 
       <PropertyColor
-        icon={Type}
         label="Color"
         className="color"
         value={styleValues.color}

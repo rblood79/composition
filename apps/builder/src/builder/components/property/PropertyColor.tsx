@@ -27,11 +27,6 @@ interface PropertyColorProps {
   /** ADR-187: migrated owner가 frame scheduling을 직접 소유하는지 여부. */
   presentationOwnsFrameScheduling?: boolean;
   onPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
-  icon?: React.ComponentType<{
-    color?: string;
-    size?: number;
-    strokeWidth?: number;
-  }>;
   placeholder?: string;
   className?: string;
 }
@@ -147,7 +142,6 @@ export const PropertyColor = memo(
       prevProps.label === nextProps.label &&
       prevProps.value === nextProps.value &&
       prevProps.className === nextProps.className &&
-      prevProps.icon === nextProps.icon &&
       prevProps.placeholder === nextProps.placeholder &&
       prevProps.presentationOwnsFrameScheduling ===
         nextProps.presentationOwnsFrameScheduling

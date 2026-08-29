@@ -33,6 +33,7 @@ import {
   PropertySwitch,
 } from "../../../components";
 import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
+import { resolvePropertyFieldIcon } from "../../../config/propertyFieldIcons";
 import { ItemsManager } from "./ItemsManager";
 import {
   TEMPLATE_TEXT_KEYS,
@@ -105,6 +106,11 @@ const GenericField = memo(function GenericField({
     else onSemanticUpdate(field.key, v);
   };
 
+  // 아이콘은 필드의 정체(key → kind)에서 파생한다 — catalog 계약에 icon 축이 없고,
+  // key 73개가 contract 92% 를 덮으므로 binding 파일에 값을 복제할 이유가 없다.
+  // 정본·근거: config/propertyFieldIcons.ts
+  const icon = resolvePropertyFieldIcon(field.key, field.kind);
+
   switch (field.kind) {
     // fillStyle 은 고정 옵션(fill/outline 등) visual-enum → select. 출력은 data-fill-style.
     case "variant":
@@ -112,6 +118,7 @@ const GenericField = memo(function GenericField({
     case "fillStyle":
       return (
         <PropertySelect
+          icon={icon}
           label={field.label}
           value={String(value ?? field.baseValue ?? "")}
           onChange={(v) => update(v)}
@@ -135,6 +142,7 @@ const GenericField = memo(function GenericField({
     case "boolean":
       return (
         <PropertySwitch
+          icon={icon}
           label={field.label}
           isSelected={Boolean(value ?? field.baseValue)}
           onChange={(checked) => update(checked)}
@@ -152,6 +160,7 @@ const GenericField = memo(function GenericField({
       ) {
         return (
           <PropertyFieldTemplateInput
+            icon={icon}
             label={field.label}
             value={String(value ?? "")}
             onChange={(v) => update(v === "" ? undefined : v)}
@@ -161,6 +170,7 @@ const GenericField = memo(function GenericField({
       }
       return (
         <PropertyInput
+          icon={icon}
           label={field.label}
           value={String(value ?? "")}
           onChange={(v) => update(v === "" ? undefined : v)}
@@ -171,6 +181,7 @@ const GenericField = memo(function GenericField({
       const display = Array.isArray(value) ? value.join(", ") : "";
       return (
         <PropertyInput
+          icon={icon}
           label={field.label}
           value={display}
           onChange={(v) => {
@@ -187,6 +198,7 @@ const GenericField = memo(function GenericField({
     case "number":
       return (
         <PropertyNumberInput
+          icon={icon}
           label={field.label}
           value={
             value != null
@@ -221,6 +233,7 @@ const GenericField = memo(function GenericField({
       if (field.key === "dataBinding") {
         return (
           <PropertyDataBinding
+            icon={icon}
             label={field.label}
             value={(value as DataBindingValue | null | undefined) ?? null}
             onChange={(v) => update(v)}

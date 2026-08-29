@@ -189,7 +189,6 @@ export function ModifiedStylesSection({
       return (
         <PropertyColor
           key={property}
-          icon={Square}
           label={formatLabel(property)}
           value={resolveStylePanelColor(String(value), theme, accentColor)}
           onChange={(newValue) => {

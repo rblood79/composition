@@ -6,6 +6,7 @@
  */
 
 import { memo, useCallback, useRef, useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import { Dialog, DialogTrigger, Popover, Input } from "react-aria-components";
 import { IconPreview } from "./components/IconPreview";
 import { useIconSearch } from "./hooks/useIconSearch";
@@ -21,12 +22,22 @@ interface IconPickerPopoverProps {
   onSelect: (iconName: string) => void;
   /** 트리거 요소 */
   children: React.ReactNode;
+  /**
+   * 팝오버 폭·좌측 정렬 override.
+   *
+   * RAC `Popover` 는 **트리거 버튼** 기준(`--trigger-width`)으로 뜨는데, 패널 field 의
+   * 트리거는 선택된 아이콘 미리보기·clear 버튼 유무로 폭이 바뀐다. 그래서 field 박스
+   * (`.react-aria-Group`) 기준 값을 호출부(`useControlPopoverMetrics`)가 계산해 넘긴다 —
+   * 패널 Select/UnitInput/DataBinding 과 같은 규약.
+   */
+  popoverStyle?: CSSProperties;
 }
 
 export const IconPickerPopover = memo(function IconPickerPopover({
   value,
   onSelect,
   children,
+  popoverStyle,
 }: IconPickerPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -41,7 +52,11 @@ export const IconPickerPopover = memo(function IconPickerPopover({
   return (
     <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
       {children}
-      <Popover placement="bottom start" className="icon-picker-popover">
+      <Popover
+        placement="bottom start"
+        className="icon-picker-popover"
+        style={popoverStyle}
+      >
         <Dialog className="icon-picker-dialog">
           <IconPickerContent value={value} onSelect={handleSelect} />
         </Dialog>

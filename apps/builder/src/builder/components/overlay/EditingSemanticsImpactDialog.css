@@ -11,7 +11,6 @@
 
 .editing-impact-modal {
   background: var(--bg-overlay);
-  border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28);
   color: var(--fg);
@@ -93,4 +92,3 @@
   justify-content: flex-end;
   padding: 12px 18px;
 }
-

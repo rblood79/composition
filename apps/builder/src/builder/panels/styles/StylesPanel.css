@@ -43,10 +43,10 @@
   position: absolute;
   top: 2px;
   right: 2px;
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
-  background: var(--fg-muted);
+  background: var(--negative);
 }
 
 /* ============================================

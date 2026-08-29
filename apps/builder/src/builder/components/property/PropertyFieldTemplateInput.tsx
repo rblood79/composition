@@ -27,10 +27,17 @@ interface PropertyFieldTemplateInputProps {
   columns: string[];
   placeholder?: string;
   disabled?: boolean;
+  icon?: React.ComponentType<{
+    color?: string;
+    size?: number;
+    strokeWidth?: number;
+  }>;
 }
 
 export function PropertyFieldTemplateInput({
   label,
+
+  icon,
   value,
   onChange,
   columns,
@@ -77,7 +84,7 @@ export function PropertyFieldTemplateInput({
   };
 
   return (
-    <PropertyFieldset legend={label}>
+    <PropertyFieldset legend={label} icon={icon}>
       <div className="property-field-template-input">
         <input
           ref={inputRef}

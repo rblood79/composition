@@ -16,6 +16,7 @@
  * 경로와 동일.
  */
 
+import { Braces } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
 import {
   PropertyCustomId,
@@ -55,6 +56,7 @@ export const ElementAttributesSection = memo(function ElementAttributesSection({
         placeholder={`${element.type.toLowerCase()}_1`}
       />
       <PropertyInput
+        icon={Braces}
         label="Class Name"
         value={className}
         onChange={handleClassNameChange}

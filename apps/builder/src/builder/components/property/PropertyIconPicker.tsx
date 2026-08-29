@@ -13,6 +13,7 @@ import { X } from "lucide-react";
 import { IconPreview } from "../../panels/icons/components/IconPreview";
 import { IconPickerPopover } from "../../panels/icons/IconPickerPopover";
 import { iconProps } from "../../../utils/ui/uiConstants";
+import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import "../../panels/icons/IconPickerPopover.css";
 
 export interface PropertyIconPickerProps {
@@ -29,6 +30,11 @@ export const PropertyIconPicker = memo(function PropertyIconPicker({
   onClear,
 }: PropertyIconPickerProps) {
   const hasIcon = !!value;
+  // 팝오버는 아이콘 선택 여부와 무관하게 **입력 폼 박스**와 같은 좌측·폭으로 떠야 한다.
+  // 트리거 버튼은 미리보기/clear 유무로 폭이 바뀌므로 group 기준으로 실측한다.
+  const { anchorRef, controlRef, popoverStyle } = useControlPopoverMetrics({
+    widthMode: "width",
+  });
 
   const handleClear = useCallback(() => {
     if (onClear) {
@@ -41,9 +47,16 @@ export const PropertyIconPicker = memo(function PropertyIconPicker({
   return (
     <fieldset className="properties-aria">
       <legend className="fieldset-legend">{label}</legend>
-      <div className="react-aria-control react-aria-Group">
-        <IconPickerPopover value={value || "circle"} onSelect={onChange}>
-          <Button className="react-aria-Button icon-picker-input-trigger">
+      <div className="react-aria-control react-aria-Group" ref={anchorRef}>
+        <IconPickerPopover
+          value={value || "circle"}
+          onSelect={onChange}
+          popoverStyle={popoverStyle}
+        >
+          <Button
+            className="react-aria-Button icon-picker-input-trigger"
+            ref={controlRef}
+          >
             {hasIcon && (
               <label className="control-label">
                 <IconPreview name={value} size={iconProps.size} />
