@@ -43,6 +43,15 @@ export const deleteElementTool: ToolExecutor = {
 
       await removeElement(targetId);
 
+      // 반영 확인 — `removeElement` 도 반환값이 없다 (`mutationVerification.ts` 주석).
+      const remaining = getAiToolReadModel().elementsById.get(targetId);
+      if (remaining && !remaining.deleted) {
+        return {
+          success: false,
+          error: `삭제되지 않았습니다: ${targetId}. 보호된 요소이거나 편집이 차단된 상태일 수 있습니다. get_editor_state 로 현재 상태를 확인하세요.`,
+        };
+      }
+
       return {
         success: true,
         data: {

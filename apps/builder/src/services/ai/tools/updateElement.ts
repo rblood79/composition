@@ -16,6 +16,7 @@ import {
   parseCanonicalFields,
 } from "./canonicalNodeFields";
 import { resolveElementRef } from "./elementRef";
+import { findUnappliedProps } from "./mutationVerification";
 
 export const updateElementTool: ToolExecutor = {
   name: "update_element",
@@ -89,6 +90,39 @@ export const updateElementTool: ToolExecutor = {
         await updateElementProps(targetId, updates);
       }
       const canonicalApplied = applyCanonicalFields(targetId, canonicalPatch);
+
+      // 반영 확인 — 스토어 액션은 반환값이 없고 조용히 return 하는 경로가 여럿이다
+      // (`mutationVerification.ts` 주석). 확인 없이 성공을 보고하면 모델이 반영됐다는
+      // 전제로 다음 단계를 쌓는다.
+      const verified = getAiToolReadModel().elementsById.get(targetId);
+      if (!verified) {
+        return {
+          success: false,
+          error: `수정 후 요소를 찾을 수 없습니다: ${targetId}. get_editor_state 로 현재 상태를 다시 확인하세요.`,
+        };
+      }
+
+      const unapplied = findUnappliedProps(
+        verified.props as Record<string, unknown> | undefined,
+        { ...newProps, ...(newFills ? { fills: newFills } : {}) },
+      );
+      if (unapplied.length > 0) {
+        return {
+          success: false,
+          error:
+            `요청한 값이 반영되지 않았습니다: ${unapplied.join(", ")}. ` +
+            `원본(origin) 요소라 영향 확인이 필요했거나 편집이 차단됐을 수 있습니다. ` +
+            `get_editor_state 로 현재 값을 확인한 뒤 다시 시도하세요.`,
+        };
+      }
+
+      const canonicalKeys = Object.keys(canonicalPatch);
+      if (canonicalKeys.length > 0 && !canonicalApplied) {
+        return {
+          success: false,
+          error: `canonical 필드가 반영되지 않았습니다: ${canonicalKeys.join(", ")}. ${element.type} 이 지원하지 않는 필드일 수 있습니다.`,
+        };
+      }
 
       // G.3 시각 피드백: 수정 완료 flash
       useAIVisualFeedbackStore.getState().addFlashForNode(targetId, {
