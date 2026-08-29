@@ -10,7 +10,7 @@ import {
   type NavigatorPanelTabType,
 } from "./NavigatorPanelTabs";
 
-function NodesTabsFixture() {
+function NavigatorTabsFixture() {
   const [selectedKey, setSelectedKey] =
     useState<NavigatorPanelTabType>("pages");
 
@@ -35,7 +35,7 @@ describe("NavigatorPanelTabs", () => {
   });
 
   it("keeps both labels visible and switches the selected panel on press", () => {
-    render(<NodesTabsFixture />);
+    render(<NavigatorTabsFixture />);
 
     const pagesTab = screen.getByRole("tab", { name: "Pages" });
     const framesTab = screen.getByRole("tab", { name: "Frames" });
@@ -56,7 +56,7 @@ describe("NavigatorPanelTabs", () => {
   });
 
   it("moves focus and selection with horizontal arrow keys", () => {
-    render(<NodesTabsFixture />);
+    render(<NavigatorTabsFixture />);
 
     const pagesTab = screen.getByRole("tab", { name: "Pages" });
     const framesTab = screen.getByRole("tab", { name: "Frames" });
