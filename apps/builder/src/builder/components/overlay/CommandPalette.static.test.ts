@@ -38,7 +38,8 @@ describe("CommandPalette panel shell contract", () => {
     expect(source).not.toContain('className="command-palette-input"');
     expect(source).toContain("<ListBox");
     expect(source).toContain("<ListBoxItem");
-    expect(source).toContain("onAction={(key) => executeCommand");
+    expect(source).toContain("onAction={handleAction}");
+    expect(source).toContain("executeCommand(id)");
   });
 
   it("panel shell과 modal 표면은 공통 token을 사용한다", async () => {

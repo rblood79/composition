@@ -135,6 +135,49 @@ function isTransientScope(scope: ShortcutScope): boolean {
   );
 }
 
+interface ScopeCaptureState {
+  observedScope: ShortcutScope;
+  observedOpen: boolean;
+  stableScope: ShortcutScope;
+  scopeAtOpen: ShortcutScope;
+}
+
+function createScopeCaptureState(
+  activeScope: ShortcutScope,
+  isOpen: boolean,
+): ScopeCaptureState {
+  const stableScope = isTransientScope(activeScope) ? "global" : activeScope;
+  return {
+    observedScope: activeScope,
+    observedOpen: isOpen,
+    stableScope,
+    scopeAtOpen: stableScope,
+  };
+}
+
+function deriveScopeCaptureState(
+  previous: ScopeCaptureState,
+  activeScope: ShortcutScope,
+  isOpen: boolean,
+): ScopeCaptureState {
+  const stableScope = isTransientScope(activeScope)
+    ? previous.stableScope
+    : activeScope;
+  const justOpened = isOpen && !previous.observedOpen;
+  const scopeAtOpen = justOpened
+    ? stableScope
+    : isOpen
+      ? previous.scopeAtOpen
+      : stableScope;
+
+  return {
+    observedScope: activeScope,
+    observedOpen: isOpen,
+    stableScope,
+    scopeAtOpen,
+  };
+}
+
 // ============================================
 // Component
 // ============================================
@@ -152,25 +195,19 @@ export function CommandPalette({
   const isOpen = controlledOpen ?? internalOpen;
 
   // 열기 전 컨텍스트 — 팔레트가 열리면 scope 는 `modal` 이라 원래 컨텍스트를
-  // 알 수 없다. 마지막 "안정" scope 를 따라가다가 열리는 렌더에서 그 값을 굳힌다.
-  //
-  // effect 가 아니라 **렌더 중** 굳히는 이유: `isOpen` 을 prop 으로 받는 controlled
-  // 사용에서는 `handleOpenChange` 를 거치지 않고 열린 채로 마운트될 수 있고,
-  // effect 로 미루면 첫 렌더가 잘못된 scope(초기값 global)로 목록을 만든다.
-  // 두 ref 쓰기 모두 같은 입력에 같은 결과를 내고 밖에 영향이 없다.
+  // 알 수 없다. 닫힌 동안 마지막 "안정" scope 를 따라가고, 열리는 전이에서
+  // `scopeAtOpen` 으로 굳힌다. controlled open 첫 렌더도 같은 상태 전이를 거친다.
   const activeScope = useActiveScope();
-  const stableScopeRef = useRef<ShortcutScope>("global");
-  const scopeAtOpenRef = useRef<ShortcutScope>("global");
-  const wasOpenRef = useRef(false);
-
-  if (!isTransientScope(activeScope)) {
-    stableScopeRef.current = activeScope;
+  const [scopeCapture, setScopeCapture] = useState<ScopeCaptureState>(() =>
+    createScopeCaptureState(activeScope, isOpen),
+  );
+  if (
+    scopeCapture.observedScope !== activeScope ||
+    scopeCapture.observedOpen !== isOpen
+  ) {
+    setScopeCapture(deriveScopeCaptureState(scopeCapture, activeScope, isOpen));
   }
-  if (isOpen && !wasOpenRef.current) {
-    scopeAtOpenRef.current = stableScopeRef.current;
-  }
-  wasOpenRef.current = isOpen;
-  const scopeAtOpen = scopeAtOpenRef.current;
+  const scopeAtOpen = scopeCapture.scopeAtOpen;
 
   // 열림 상태 변경 핸들러 (검색어 초기화 포함)
   const handleOpenChange = useCallback(
@@ -301,14 +338,13 @@ export function CommandPalette({
       const entry = resolveCommand(commandId);
       handleOpenChange(false);
       if (!entry || entry.disabled) return;
-      if (!matchesScope(entry.scope ?? "global", scopeAtOpenRef.current))
-        return;
+      if (!matchesScope(entry.scope ?? "global", scopeAtOpen)) return;
 
       requestAnimationFrame(() => {
         entry.handler();
       });
     },
-    [handleOpenChange],
+    [handleOpenChange, scopeAtOpen],
   );
 
   const handleAction = useCallback(

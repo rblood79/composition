@@ -201,6 +201,50 @@ describe("CommandPalette — registry 소비", () => {
     expect(itemFor("스타일 복사").dataset.executable).toBe("true");
   });
 
+  it("메뉴 focus가 scope를 바꿔도 열기 직전의 안정 scope를 고정한다", () => {
+    registerCommand({
+      id: "duplicate",
+      handler: vi.fn(),
+      scope: ["canvas-focused", "panel:nodes"],
+      priority: 70,
+      allowInInput: false,
+      disabled: false,
+    });
+    registerCommand({
+      id: "copyStyles",
+      handler: vi.fn(),
+      scope: "panel:styles",
+      priority: 50,
+      allowInInput: false,
+      disabled: false,
+    });
+
+    const fixture = (isOpen: boolean) => (
+      <>
+        <div role="menu">
+          <button type="button" role="menuitem">
+            Menu trigger
+          </button>
+        </div>
+        <CommandPalette isOpen={isOpen} onOpenChange={() => {}} />
+      </>
+    );
+    const { rerender } = render(fixture(false));
+
+    mockScope.current = "global";
+    screen.getByRole("menuitem", { name: "Menu trigger" }).focus();
+    rerender(fixture(true));
+
+    expect(itemFor("복제").dataset.executable).toBe("true");
+    expect(itemFor("스타일 복사").dataset.executable).toBe("false");
+
+    mockScope.current = "panel:styles";
+    rerender(fixture(true));
+
+    expect(itemFor("복제").dataset.executable).toBe("true");
+    expect(itemFor("스타일 복사").dataset.executable).toBe("false");
+  });
+
   it("global 명령은 어느 scope 에서 열어도 executable", () => {
     mockScope.current = "panel:styles";
     registerCommand({

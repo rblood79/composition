@@ -46,7 +46,7 @@
   }
 
   .panel-tabrow {
-    padding: 0 var(--spacing-2xs);
+    padding: 0;
   }
 
   .panel-tablist {
