@@ -27,9 +27,10 @@ describe("I18nProvider", () => {
     expect(result.current.t("header.logo")).toBe("composition logo");
     expect(result.current.t("header.emptyHistory")).toBe("0/0");
     expect(result.current.t("zoom.level")).toBe("Zoom level");
-    expect(result.current.t("workspace.movePanel", { panel: "Nodes" })).toBe(
-      "Move Nodes panel",
-    );
+    expect(result.current.t("panels.nodes")).toBe("Navigator");
+    expect(
+      result.current.t("workspace.movePanel", { panel: "Navigator" }),
+    ).toBe("Move Navigator panel");
     expect(result.current.t("styles.modifiedCount", { count: 2 })).toBe(
       "2 modified",
     );
@@ -53,8 +54,9 @@ describe("I18nProvider", () => {
     expect(result.current.locale).toBe("ko-KR");
     expect(result.current.t("settings.title")).toBe("설정");
     expect(result.current.t("styles.layout.width")).toBe("너비");
-    expect(result.current.t("workspace.movePanel", { panel: "노드" })).toBe(
-      "노드 패널 이동",
+    expect(result.current.t("panels.nodes")).toBe("탐색기");
+    expect(result.current.t("workspace.movePanel", { panel: "탐색기" })).toBe(
+      "탐색기 패널 이동",
     );
     expect(result.current.t("styles.modifiedCount", { count: 2 })).toBe("2개");
     expect(result.current.t("validation.minLength", { min: 3 })).toBe(

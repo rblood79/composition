@@ -55,6 +55,12 @@ describe("NodesPanel shared panel style contract", () => {
     },
   );
 
+  it("left-aligns both panel tabs like the Styles selected tab", async () => {
+    const css = await readFile(resolve(__dirname, "NodesPanel.css"), "utf-8");
+
+    expect(css).toMatch(/\.nodes-panel-tab \{[^}]*justify-content: start;/s);
+  });
+
   it("keeps shared section padding while preserving the tree guide and icons", async () => {
     const css = await readFile(resolve(__dirname, "NodesPanel.css"), "utf-8");
     const itemSources = await Promise.all(

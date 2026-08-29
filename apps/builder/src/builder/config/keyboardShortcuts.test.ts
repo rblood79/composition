@@ -25,4 +25,11 @@ describe("keyboardShortcuts ADR-112 editing semantics", () => {
       allowInInput: true,
     });
   });
+
+  it("keeps the nodes command id while presenting the panel as Navigator", () => {
+    expect(SHORTCUT_DEFINITIONS.toggleNodes).toMatchObject({
+      description: "Toggle Navigator Panel",
+      i18n: { ko: "탐색기 패널 토글" },
+    });
+  });
 });

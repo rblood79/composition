@@ -50,8 +50,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   // Navigation panels
   {
     id: "nodes",
-    name: "노드",
-    nameEn: "Nodes",
+    name: "탐색기",
+    nameEn: "Navigator",
     icon: File,
     component: NodesPanel,
     category: "navigation",
@@ -59,7 +59,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     minWidth: 233,
     maxWidth: 640,
     defaultHeight: 320,
-    description: "페이지 계층 구조 탐색",
+    description: "페이지, 프레임 및 레이어 구조 탐색",
     shortcutId: "toggleNodes",
   },
   {

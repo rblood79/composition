@@ -89,7 +89,7 @@ const CATEGORY_LABELS: Record<ShortcutCategory, string> = {
   tools: "도구",
   properties: "속성",
   events: "이벤트",
-  nodes: "노드",
+  nodes: "탐색기",
 };
 
 /** scope 불일치 힌트 — "무엇을 해야 실행되는가" 를 말한다. */
@@ -99,7 +99,7 @@ const SCOPE_HINTS: Record<ShortcutScope, string> = {
   "panel:properties": "속성 패널에서 실행할 수 있습니다",
   "panel:styles": "스타일 패널에서 실행할 수 있습니다",
   "panel:events": "인터랙션 패널에서 실행할 수 있습니다",
-  "panel:nodes": "노드 패널에서 실행할 수 있습니다",
+  "panel:nodes": "탐색기 패널에서 실행할 수 있습니다",
   modal: "지금은 실행할 수 없습니다",
   "text-editing": "지금은 실행할 수 없습니다",
 };

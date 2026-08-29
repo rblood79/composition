@@ -166,8 +166,8 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
-    description: "Toggle Nodes Panel",
-    i18n: { ko: "노드 패널 토글" },
+    description: "Toggle Navigator Panel",
+    i18n: { ko: "탐색기 패널 토글" },
   },
 
   toggleComponents: {

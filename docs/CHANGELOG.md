@@ -7,12 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Nodes 패널 탭 구조 표준화] - 2026-08-29
+## [탐색기 패널 명칭 및 탭 구조 표준화] - 2026-08-29
 
 ### Changed
 
-- **Nodes 패널을 제목 헤더와 탭 행의 2단 구조로 통일했습니다**: 공통 `PanelHeader`가 Nodes 제목과 우측 끝 닫기 버튼을 담당하고, Pages/Frames는 Styles 패널과 같은 별도 tabrow에서 전환됩니다.
-- **Pages/Frames 탭을 React Aria Tabs로 전환했습니다**: 수동 `role="tab"` 버튼을 제거하고 포커스 표시, 방향키 이동, 선택 상태와 `TabPanel` 연결을 표준 컴포넌트가 담당합니다. 두 탭의 라벨은 좁은 패널에서도 항상 표시됩니다.
+- **Nodes 패널의 표시명을 탐색기(Navigator)로 변경했습니다**: Pages, Frames와 내부 Layers 구조를 함께 다루는 탐색 도구라는 역할을 드러냅니다. 저장된 패널 배치와 단축키 호환성을 위해 내부 `nodes` 식별자는 유지합니다.
+- **탐색기 패널을 제목 헤더와 탭 행의 2단 구조로 통일했습니다**: 공통 `PanelHeader`가 탐색기 제목과 우측 끝 닫기 버튼을 담당하고, Pages/Frames는 Styles 패널과 같은 별도 tabrow에서 전환됩니다.
+- **Pages/Frames 탭을 React Aria Tabs로 전환했습니다**: 수동 `role="tab"` 버튼을 제거하고 포커스 표시, 방향키 이동, 선택 상태와 `TabPanel` 연결을 표준 컴포넌트가 담당합니다. 두 탭의 라벨은 좁은 패널에서도 항상 표시되며 Styles 탭과 같이 왼쪽 정렬됩니다.
 
 ## [프로젝트 로컬 파일 Import/Export] - 2026-08-29
 

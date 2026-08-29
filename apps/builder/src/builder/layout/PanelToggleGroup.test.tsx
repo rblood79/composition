@@ -83,7 +83,7 @@ describe("PanelToggleGroup", () => {
     const { getByRole } = renderGroup(["nodes"]);
 
     expect(
-      getByRole("button", { name: "Nodes" }).getAttribute("aria-pressed"),
+      getByRole("button", { name: "Navigator" }).getAttribute("aria-pressed"),
     ).toBe("true");
     expect(
       getByRole("button", { name: "Properties" }).getAttribute("aria-pressed"),

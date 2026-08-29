@@ -37,7 +37,7 @@ describe("NodesPanelTabs", () => {
     const framesTab = screen.getByRole("tab", { name: "Frames" });
 
     expect(
-      screen.getByRole("tablist", { name: "Nodes Panel Tabs" }),
+      screen.getByRole("tablist", { name: "Navigator tabs" }),
     ).toBeTruthy();
     expect(pagesTab.getAttribute("aria-selected")).toBe("true");
     expect(framesTab.getAttribute("aria-selected")).toBe("false");

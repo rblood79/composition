@@ -141,7 +141,7 @@ const koKR: TranslationKeys = {
     align: "화면 정렬",
   },
   panels: {
-    nodes: "노드",
+    nodes: "탐색기",
     components: "컴포넌트",
     dataTable: "데이터테이블",
     dataTableEditor: "데이터테이블 에디터",
@@ -157,7 +157,7 @@ const koKR: TranslationKeys = {
   nodes: {
     pages: "페이지",
     frames: "프레임",
-    panelTabs: "노드 패널 탭",
+    panelTabs: "탐색기 탭",
     addPage: "페이지 추가",
     selectPage: "페이지를 선택하세요",
     addFrame: "프레임 추가",
@@ -583,7 +583,7 @@ const enUS: TranslationKeys = {
     align: "Align pages",
   },
   panels: {
-    nodes: "Nodes",
+    nodes: "Navigator",
     components: "Components",
     dataTable: "DataTable",
     dataTableEditor: "DataTable Editor",
@@ -599,7 +599,7 @@ const enUS: TranslationKeys = {
   nodes: {
     pages: "Pages",
     frames: "Frames",
-    panelTabs: "Nodes Panel Tabs",
+    panelTabs: "Navigator tabs",
     addPage: "Add Page",
     selectPage: "Select a page",
     addFrame: "Add Frame",

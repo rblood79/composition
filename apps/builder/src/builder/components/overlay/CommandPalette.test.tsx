@@ -138,10 +138,10 @@ afterEach(() => {
 });
 
 describe("CommandPalette — registry 소비", () => {
-  it("palette:false 정의는 목록에서 빠진다 (62개)", () => {
+  it("palette:false 정의는 목록에서 빠진다 (63개)", () => {
     render(<CommandPalette isOpen onOpenChange={() => {}} />);
 
-    expect(document.querySelectorAll(".command-palette-item")).toHaveLength(62);
+    expect(document.querySelectorAll(".command-palette-item")).toHaveLength(63);
     expect(screen.queryByText("명령 팔레트 열기")).toBeNull();
     expect(screen.queryByText("다음 항목")).toBeNull();
   });
@@ -308,6 +308,6 @@ describe("CommandPalette — registry 소비", () => {
     });
 
     render(<CommandPalette isOpen onOpenChange={() => {}} />);
-    expect(screen.getByText("실행 가능 1 / 62")).toBeTruthy();
+    expect(screen.getByText("실행 가능 1 / 63")).toBeTruthy();
   });
 });
