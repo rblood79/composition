@@ -162,13 +162,6 @@
       color: var(--fg);
     }
 
-    .section-header .section-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--fg-muted);
-    }
-
     .section-header .section-actions {
       display: flex;
     }

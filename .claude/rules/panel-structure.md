@@ -34,6 +34,7 @@ paths:
 ```
 
 - `.panel-wrapper` 는 패널 root(= `.section` 의 **조상**). 실제 DOM 은 `.panel-wrapper > .panel > .panel-contents > .section > .section-content` 순서다.
+- **아이콘은 패널 헤더 전용**: `.panel-icon` 만 아이콘을 갖고 `.section-title` 은 타이틀(+`.section-actions`)뿐이다 (§1 참조).
 
 ## 1. DOM 계층 규칙
 
@@ -41,6 +42,8 @@ paths:
 - 스크롤 영역은 `.panel-contents` 단일. 변형(`*-content` 단수, `*-contents` 병기)은 보조 클래스로만 (`.panel-contents.history-contents` 형태).
 - 섹션은 `Section` 컴포넌트 경유만 (`.section` 직접 마크업 금지). collapse/reset/lazy/badge/actions 는 Section 이 담당 (memory: domain-section-component).
 - `.section-content` 는 **항상 1열 세로 스택** (flex column + gap). 가로 배치는 `.fieldset-row` 한 겹 아래에서만 — `.section-content` 자체를 grid 로 잡는 패턴은 신규 금지.
+- **section header 에 아이콘 금지** — 아이콘은 패널 식별 장치(`.panel-icon`, 좌측 rail 아이콘과 짝)이고, 섹션 타이틀은 한 패널 안에서 이미 유일해 변별력이 없다. 두 층에 다 달면 계층 신호가 무너진다. `Section` 은 `icon` prop 자체를 갖지 않으며 `sectionHeaderIcon.static.test.ts` 가 집행한다.
+  - **왜 "빼는" 통일인가 (실측 2026-08-30)**: 아이콘 사용 섹션은 54개 중 9개(17%)뿐이었고, 나머지 45개의 큰 몫이 catalog 파생 섹션(`GenericFieldRenderer`/`CatalogInspectorFields` 가 `field.section` 문자열로 생성)이라 **아이콘을 넘길 채널이 없다** — 채우는 통일은 catalog 계약에 icon 축 신설(D2/D3 확장)이 전제다. 같은 Properties 패널 한 화면에 아이콘 섹션(Component/Attributes)과 무아이콘 섹션(Content/Appearance/State)이 함께 뜨던 것이 제거 동기.
 - 라벨 있는 필드 그룹은 `fieldset.properties-aria.{고유클래스}` + `legend.fieldset-legend` (memory: feedback-panel-field-group-fieldset-legend-pattern).
 - 컨트롤 묶음 시각(inset 배경)은 `.react-aria-Group` 조합.
 
@@ -110,6 +113,7 @@ paths:
 - ❌ `.section { … .panel-wrapper[…] … }` 중첩 (dead 블록 — `panel-system.static.test.ts` FAIL)
 - ❌ 패널별 root 클래스 신설 (`.themes-panel` 류를 단독 root 로 — `.panel` 병기가 기본)
 - ❌ `.section` 직접 마크업 (Section 컴포넌트 경유)
+- ❌ section header 에 아이콘 (`<Section icon={…}>` / `.section-title` 안 아이콘 — `sectionHeaderIcon.static.test.ts` FAIL). 아이콘은 `.panel-icon` 층 전용
 - ❌ `.section-content` 자체를 grid 로 (가로 배치는 `.fieldset-row` 한 겹)
 - ❌ `properties-aria` 를 `<div>`+`<legend>` 로 (invalid HTML). `<fieldset>` 전환 시 `min-inline-size: min-content` 기본값을 고유 클래스 `min-width: 0` 으로 해제하지 않으면 폭 거동이 달라진다
 - ❌ 구조 예약 prefix (`panel-*`/`section-*`/`fieldset-*`/`tab-*`) 를 패널 로컬 CSS 에서 **base 정의** (`reservedPrefix.static.test.ts` FAIL). 인스턴스 한정 override 는 허용

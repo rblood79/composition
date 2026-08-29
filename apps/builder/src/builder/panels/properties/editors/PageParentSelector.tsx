@@ -223,7 +223,7 @@ export const PageParentSelector = memo(function PageParentSelector({
   if (!page) return null;
 
   return (
-    <PropertySection title="Nested Routes" icon={FolderTree}>
+    <PropertySection title="Nested Routes">
       <PropertySelect
         label="Parent Page"
         value={currentParentId}

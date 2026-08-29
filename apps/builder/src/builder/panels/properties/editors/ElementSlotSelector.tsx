@@ -94,7 +94,7 @@ export const ElementSlotSelector = memo(function ElementSlotSelector({
   }));
 
   return (
-    <PropertySection title="Slot Assignment" icon={Layers}>
+    <PropertySection title="Slot Assignment">
       <PropertySelect
         label="Target Slot"
         value={currentSlotName || defaultSlot?.name || "content"}

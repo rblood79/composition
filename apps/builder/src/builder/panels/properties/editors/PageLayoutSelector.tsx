@@ -94,7 +94,7 @@ export const PageLayoutSelector = memo(function PageLayoutSelector({
   if (reusableFrames.length === 0) return null;
 
   return (
-    <PropertySection title="Frame" icon={Layout}>
+    <PropertySection title="Frame">
       <PropertySelect
         label="Apply Frame"
         value={selectedFrameId}

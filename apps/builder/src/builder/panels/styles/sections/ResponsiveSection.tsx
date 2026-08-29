@@ -16,7 +16,7 @@
  */
 
 import { memo, useCallback, useMemo } from "react";
-import { Monitor, Tablet, Smartphone, X } from "lucide-react";
+import { X } from "lucide-react";
 import type { BreakpointName, ResponsiveVisibility } from "@composition/shared";
 import { PropertySection } from "../../../components";
 import {
@@ -30,12 +30,6 @@ import {
   translateKey,
   useOptionalI18n,
 } from "../../../../i18n";
-
-const BP_ICON: Record<BreakpointName, typeof Monitor> = {
-  desktop: Monitor,
-  tablet: Tablet,
-  mobile: Smartphone,
-};
 
 const BP_LABEL: Record<BreakpointName, string> = {
   desktop: "Desktop",
@@ -105,8 +99,6 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
 
   const setOverrideEnabled = useSetResponsiveStyleOverrideEnabled();
   const updateResponsiveVisibility = useUpdateResponsiveVisibility();
-
-  const BadgeIcon = BP_ICON[activeBreakpoint];
 
   const overriddenSet = useMemo(
     () => new Set(activeOverriddenProps),
@@ -178,7 +170,7 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
   };
 
   return (
-    <PropertySection title="Responsive" icon={BadgeIcon}>
+    <PropertySection title="Responsive">
       <div className="responsive-section">
         {isBase ? (
           <p className="responsive-hint">

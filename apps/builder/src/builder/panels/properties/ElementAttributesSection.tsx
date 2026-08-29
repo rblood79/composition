@@ -17,8 +17,6 @@
  */
 
 import { memo, useCallback, useMemo } from "react";
-import { Braces } from "lucide-react";
-
 import {
   PropertyCustomId,
   PropertyInput,
@@ -49,7 +47,7 @@ export const ElementAttributesSection = memo(function ElementAttributesSection({
   if (!element) return null;
 
   return (
-    <PropertySection title="Attributes" icon={Braces}>
+    <PropertySection title="Attributes">
       <PropertyCustomId
         label="ID"
         value={customId}

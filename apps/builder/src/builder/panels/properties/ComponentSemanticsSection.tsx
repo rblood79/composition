@@ -1,8 +1,5 @@
 import { memo, useMemo } from "react";
-import { ACTION_ICONS } from "../../config/actionIcons";
 
-/** 컨텍스트 메뉴의 컴포넌트 항목과 같은 정본. */
-const ComponentIcon = ACTION_ICONS.component;
 import { PropertySection } from "../../components";
 import { useStore } from "../../stores";
 import { globalToast } from "../../stores/toast";
@@ -157,7 +154,7 @@ export const ComponentSemanticsSection = memo(
     };
 
     return (
-      <PropertySection title="Component" icon={ComponentIcon}>
+      <PropertySection title="Component">
         <div className="component-semantics-row">
           <span className="component-semantics-name">Name</span>
           <span className="component-semantics-value">{componentName}</span>

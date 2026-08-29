@@ -202,7 +202,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   };
 
   return (
-    <PropertySection title="Slot" icon={Layers}>
+    <PropertySection title="Slot">
       <div className="frame-slot-row">
         <span className="frame-slot-name">State</span>
         <span className="frame-slot-value">

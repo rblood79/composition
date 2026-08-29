@@ -15,7 +15,6 @@
 
 import React, { memo } from "react";
 import { ChevronUp, RotateCcw } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useSectionCollapse } from "../../panels/styles/hooks/useSectionCollapse";
 import {
@@ -45,8 +44,6 @@ export interface SectionProps {
   collapsible?: boolean;
   /** 추가 CSS 클래스 */
   className?: string;
-  /** 섹션 제목 앞 아이콘 (Lucide 아이콘 컴포넌트) */
-  icon?: LucideIcon;
 }
 
 export const Section = memo(
@@ -60,7 +57,6 @@ export const Section = memo(
     badge,
     collapsible = true,
     className,
-    icon: Icon,
   }: SectionProps) {
     const i18n = useOptionalI18n();
     const displayTitle = i18n
@@ -119,13 +115,6 @@ export const Section = memo(
       >
         <div className="section-header">
           <div className="section-title">
-            {Icon && (
-              <Icon
-                size={iconProps.size}
-                color={iconProps.color}
-                strokeWidth={iconProps.strokeWidth}
-              />
-            )}
             {displayTitle}
             {badge}
           </div>
@@ -190,7 +179,6 @@ export const Section = memo(
       prevProps.badge === nextProps.badge &&
       prevProps.actions === nextProps.actions &&
       prevProps.className === nextProps.className &&
-      prevProps.icon === nextProps.icon &&
       !!prevProps.onReset === !!nextProps.onReset
     );
   },

@@ -105,7 +105,7 @@ export const ResponsiveVisibilityEditor = memo(
     }, [visibility, onChange, lockedBreakpoints]);
 
     return (
-      <PropertySection title={title} icon={Eye}>
+      <PropertySection title={title}>
         <div className="responsive-visibility-editor">
           {/* Breakpoint 토글 버튼들 */}
           <div className="responsive-visibility-buttons">

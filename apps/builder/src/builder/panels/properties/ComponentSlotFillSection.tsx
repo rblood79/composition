@@ -327,7 +327,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
   };
 
   return (
-    <PropertySection title="Slot Fill" icon={Layers}>
+    <PropertySection title="Slot Fill">
       <div className="frame-slot-picker">
         <PropertySelect
           label="Target slot"
