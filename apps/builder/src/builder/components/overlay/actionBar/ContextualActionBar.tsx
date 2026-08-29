@@ -1,9 +1,10 @@
 /**
- * ADR-192 Contextual Action Bar — 캔버스 하단 중앙 플로팅 (Photoshop 모델).
+ * ADR-192 Contextual Action Bar — 선택 page 하단 중앙 플로팅.
  *
  * - 항목: ADR-182 provider 정본의 부분집합 (`buildActionBarItems`) — 액션 신규 0
  * - ⋯ : 182 컨텍스트 메뉴를 버튼 위치에서 그대로 연다
- * - 적격 항목 0 / 텍스트 편집 중 / Hide → 미마운트 (Photoshop 자동 숨김)
+ * - 빈 선택 / 텍스트 편집 중 / Hide → 미마운트. page 단독 선택은 page chrome을
+ *   표시하고 요소 액션은 노출하지 않는다.
  * - 재렌더 트리거는 선택 집합 + store `elements` 교체뿐 — 드래그 중 좌표는
  *   Skia 프리뷰가 들고 드롭 시 1회 commit 되므로 프레임 루프와 무관 (HC2)
  * - 포커스: 루트 mousedown `preventDefault` + `preventFocusOnPress` 라 마우스
@@ -205,6 +206,28 @@ export function ContextualActionBar() {
   const { t } = useI18n();
   const isEditing = useCanvasStore((state) => state.isEditing);
   const selectedElementIds = useStore((state) => state.selectedElementIds);
+  const pageSelection = useStore((state) => {
+    if (state.selectedElementIds.length !== 1) return false;
+    const selected = state.elementsMap.get(state.selectedElementIds[0]);
+    const type = selected?.type.toLowerCase();
+    return type === "body" || type === "page";
+  });
+  const selectedPageId = useStore((state) => {
+    let firstPageId: string | null = null;
+    for (const id of state.selectedElementIds) {
+      const selected = state.elementsMap.get(id) as
+        | { page_id?: string | null; pageId?: string | null; type: string }
+        | undefined;
+      const pageId = selected?.page_id ?? selected?.pageId ?? null;
+      if (pageId === state.currentPageId) return pageId;
+      firstPageId ??= pageId;
+    }
+    if (firstPageId) return firstPageId;
+    if (state.selectedElementIds.length !== 1) return null;
+    const selected = state.elementsMap.get(state.selectedElementIds[0]);
+    const type = selected?.type.toLowerCase();
+    return type === "body" || type === "page" ? state.currentPageId : null;
+  });
   // `elements` 배열은 요소 변경(컴포넌트 토글·재부모화·삭제)마다 교체된다 —
   // 항목 라벨/조건이 갈리는 모든 경우를 덮는 가장 단순한 재산출 트리거.
   //
@@ -224,7 +247,7 @@ export function ContextualActionBar() {
     state.selectedElementIds.every((id) => state.elementsMap.has(id)),
   );
   const contextMenu = useContextMenu();
-  const placement = useActionBarPlacement();
+  const placement = useActionBarPlacement(selectedPageId);
 
   // 182 provider 는 BuilderCanvas 의 interactive map 을 읽는데, 그 ref 는
   // BuilderCanvas 의 useEffect(BuilderCanvas.tsx:756) 에서 갱신된다. 같은 store
@@ -234,11 +257,15 @@ export function ContextualActionBar() {
   const [model, setModel] = useState<ActionBarModel | null>(null);
   useEffect(() => {
     setModel(
-      selectionResolved ? buildActionBarItems(selectedElementIds) : null,
+      selectionResolved && !pageSelection
+        ? buildActionBarItems(selectedElementIds)
+        : null,
     );
     // elements 는 재산출 트리거로만 쓴다 (항목 산출은 182 provider 가 담당)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedElementIds, selectionResolved, elements]);
+  }, [selectedElementIds, selectionResolved, pageSelection, elements]);
+  // 요소→page 전환 직후 effect가 이전 요소 model을 비우기 전에도 stale 액션을
+  // 한 commit 노출하지 않는다. page context는 More + 위치 옵션만 사용한다.
+  const visibleModel = pageSelection ? null : model;
 
   const openOverflow = useCallback(
     (target: Element | null) => {
@@ -267,18 +294,25 @@ export function ContextualActionBar() {
     [placement],
   );
 
-  if (placement.hidden || isEditing || !model) return null;
+  if (
+    placement.hidden ||
+    isEditing ||
+    !selectionResolved ||
+    (!visibleModel && !pageSelection)
+  )
+    return null;
 
   return (
     <div
-      ref={placement.barRef}
+      ref={placement.attachBar}
       className="contextual-action-bar"
       onMouseDown={keepCanvasFocus}
       data-shortcut-scope="global"
       onKeyDown={returnFocusOnEscape}
       data-dragging={placement.dragging || undefined}
       data-pinned={placement.pinned || undefined}
-      style={{ transform: placement.transform }}
+      data-context={visibleModel?.context ?? "page"}
+      style={placement.style}
     >
       <span
         className="contextual-action-bar-handle"
@@ -292,14 +326,19 @@ export function ContextualActionBar() {
         aria-label={t("actionBar.ariaLabel")}
         className="contextual-action-bar-toolbar"
       >
-        {model.items.map((item) =>
+        {visibleModel?.items.map((item) =>
           item.kind === "submenu" ? (
             <AlignPopover key={item.id} item={item} />
           ) : (
             <ActionButton key={item.id} item={item} />
           ),
         )}
-        <span className="contextual-action-bar-separator" aria-hidden="true" />
+        {visibleModel && (
+          <span
+            className="contextual-action-bar-separator"
+            aria-hidden="true"
+          />
+        )}
         <Button
           variant="ghost"
           size="sm"

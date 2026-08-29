@@ -7,15 +7,36 @@
  *   바가 없는 동안(선택 0 / 텍스트 편집 / Hide)에는 잴 것이 없다.
  * - 부모(`.workspace-overlay`, inset:0) 가 배치 기준면.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useStore } from "../../../stores";
 import type { ActionBarOffset } from "../../../stores/utils/actionBarStorage";
 import {
+  getPagePositionPresentationSnapshot,
+  readPagePositionForInteraction,
+  subscribePagePositionPresentation,
+} from "../../../workspace/canvas/interaction/pagePositionPresentation";
+import { useViewportSyncStore } from "../../../workspace/canvas/stores";
+import {
+  getViewportPresentationSnapshot,
+  subscribeViewportPresentation,
+} from "../../../workspace/canvas/viewport/viewportPresentation";
+import {
+  ACTION_BAR_BOTTOM_GAP,
   actionBarTransform,
   clampActionBarOffset,
   offsetsEqual,
+  pageActionBarAnchor,
+  pageAnchorToManualOffset,
   type Size,
 } from "./actionBarPlacement";
+
+const subscribeNoop = (): (() => void) => () => {};
 
 function rectSize(element: Element | null | undefined): Size | null {
   if (!element) return null;
@@ -44,11 +65,46 @@ function clampStoredOffset(bar: HTMLElement): void {
   if (!offsetsEqual(clamped, offset)) setActionBarOffset(clamped);
 }
 
-export function useActionBarPlacement() {
+export function useActionBarPlacement(pageId: string | null = null) {
   const settings = useStore((state) => state.actionBar);
+  const pagePositions = useStore((state) => state.pagePositions);
   const setActionBarOffset = useStore((state) => state.setActionBarOffset);
   const setActionBarPinned = useStore((state) => state.setActionBarPinned);
   const setActionBarHidden = useStore((state) => state.setActionBarHidden);
+  const pageSize = useViewportSyncStore((state) => state.canvasSize);
+  const tracksAutomaticPagePosition =
+    pageId !== null && settings.offset === null;
+  const pagePositionPresentation = useSyncExternalStore(
+    tracksAutomaticPagePosition
+      ? subscribePagePositionPresentation
+      : subscribeNoop,
+    getPagePositionPresentationSnapshot,
+    getPagePositionPresentationSnapshot,
+  );
+  const viewportPresentation = useSyncExternalStore(
+    tracksAutomaticPagePosition ? subscribeViewportPresentation : subscribeNoop,
+    getViewportPresentationSnapshot,
+    getViewportPresentationSnapshot,
+  );
+
+  const pagePosition = pageId
+    ? (readPagePositionForInteraction(
+        pageId,
+        pagePositions,
+        pagePositionPresentation,
+      ) ?? { x: 0, y: 0 })
+    : undefined;
+  const pageAnchor = pagePosition
+    ? pageActionBarAnchor({
+        pagePosition,
+        pageSize,
+        panOffset: {
+          x: viewportPresentation.x,
+          y: viewportPresentation.y,
+        },
+        zoom: viewportPresentation.scale,
+      })
+    : null;
 
   const barRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -99,15 +155,27 @@ export function useActionBarPlacement() {
       if (settings.pinned || event.button !== 0) return;
       event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
+      const sizes = barRef.current ? measureBar(barRef.current) : null;
+      const base =
+        settings.offset ??
+        (pageAnchor && sizes
+          ? clampActionBarOffset(
+              pageAnchorToManualOffset(pageAnchor, sizes.overlay, sizes.bar),
+              sizes.overlay,
+              sizes.bar,
+            )
+          : { dx: 0, dy: 0 });
       dragRef.current = {
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
-        base: settings.offset ?? { dx: 0, dy: 0 },
+        base,
         latest: null,
       };
+      // 자동 page anchor를 기존 수동 좌표계로 바꾸되 같은 screen 위치를 유지한다.
+      setDragOffset(base);
     },
-    [settings.offset, settings.pinned],
+    [pageAnchor, settings.offset, settings.pinned],
   );
 
   const onHandlePointerMove = useCallback(
@@ -149,9 +217,22 @@ export function useActionBarPlacement() {
     hidden: settings.hidden,
     pinned: settings.pinned,
     dragging: dragOffset !== null,
-    transform: actionBarTransform(dragOffset ?? settings.offset),
+    style:
+      dragOffset !== null || settings.offset !== null || pageAnchor === null
+        ? {
+            bottom: `${ACTION_BAR_BOTTOM_GAP}px`,
+            left: "50%",
+            top: "auto",
+            transform: actionBarTransform(dragOffset ?? settings.offset),
+          }
+        : {
+            bottom: "auto",
+            left: `${pageAnchor.x}px`,
+            top: `${pageAnchor.y}px`,
+            transform: actionBarTransform(null),
+          },
     /** 바 루트에 그대로 붙인다 — 노드가 생기고 사라지는 시점을 훅이 알아야 한다 */
-    barRef: attachBar,
+    attachBar,
     handleProps: {
       onPointerDown: onHandlePointerDown,
       onPointerMove: onHandlePointerMove,

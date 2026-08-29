@@ -29,6 +29,11 @@ import {
   OVERLAY_BLUE_G,
   OVERLAY_BLUE_B,
 } from "./semanticOverlayColors";
+import {
+  SELECTION_DIMENSION_LABEL_LINE_HEIGHT,
+  SELECTION_DIMENSION_LABEL_OFFSET_Y,
+  SELECTION_DIMENSION_LABEL_PADDING_Y,
+} from "../selectionOverlayGeometry";
 
 function setSemanticStrokeColor(
   ck: CanvasKit,
@@ -149,12 +154,9 @@ const PAGE_TITLE_OPACITY = 0.8;
 /** Dimension 레이블 설정 */
 const DIMENSION_LABEL_FONT_SIZE = 12; // 화면상 폰트 크기 (px)
 const DIMENSION_LABEL_PADDING_X = 6; // 레이블 수평 패딩
-const DIMENSION_LABEL_PADDING_Y = 3; // 레이블 수직 패딩
-const DIMENSION_LABEL_OFFSET_Y = 8; // 선택 박스 하단으로부터의 오프셋
 const DIMENSION_LABEL_BG_R = 0x51 / 255; // 배경색 (#51a2ff)
 const DIMENSION_LABEL_BG_G = 0xa2 / 255;
 const DIMENSION_LABEL_BG_B = 0xff / 255;
-const DIMENSION_LABEL_LINE_HEIGHT = 16; // 레이블 줄 높이
 const DIMENSION_LABEL_BORDER_RADIUS = 4; // 배경 둥근 모서리
 
 function setDimensionLabelBackgroundColor(
@@ -332,9 +334,10 @@ export function renderDimensionLabels(
       const estimatedTextHeight = DIMENSION_LABEL_FONT_SIZE;
 
       const labelWidth = estimatedTextWidth + DIMENSION_LABEL_PADDING_X * 2;
-      const labelHeight = estimatedTextHeight + DIMENSION_LABEL_PADDING_Y * 2;
+      const labelHeight =
+        estimatedTextHeight + SELECTION_DIMENSION_LABEL_PADDING_Y * 2;
       const labelX = -labelWidth / 2;
-      const labelY = DIMENSION_LABEL_OFFSET_Y;
+      const labelY = SELECTION_DIMENSION_LABEL_OFFSET_Y;
 
       const bgPaint = acquireScopedPaint(scope, ck);
       bgPaint.setAntiAlias(true);
@@ -384,13 +387,13 @@ export function renderDimensionLabels(
     if (!font) return;
 
     const textWidth = measureGlyphRunWidth(font, dimensionText);
-    const textHeight = DIMENSION_LABEL_LINE_HEIGHT;
+    const textHeight = SELECTION_DIMENSION_LABEL_LINE_HEIGHT;
 
     // 레이블 배경 크기 및 위치 계산
     const labelWidth = textWidth + DIMENSION_LABEL_PADDING_X * 2;
-    const labelHeight = textHeight + DIMENSION_LABEL_PADDING_Y * 2;
+    const labelHeight = textHeight + SELECTION_DIMENSION_LABEL_PADDING_Y * 2;
     const labelX = -labelWidth / 2;
-    const labelY = DIMENSION_LABEL_OFFSET_Y;
+    const labelY = SELECTION_DIMENSION_LABEL_OFFSET_Y;
 
     // 배경 RRect (둥근 모서리 사각형)
     const bgPaint = acquireScopedPaint(scope, ck);
@@ -434,7 +437,7 @@ export function renderDimensionLabels(
           : DIMENSION_LABEL_FONT_SIZE * 0.2;
         const textY =
           labelY +
-          DIMENSION_LABEL_PADDING_Y +
+          SELECTION_DIMENSION_LABEL_PADDING_Y +
           (textHeight + ascent - descent) / 2;
         canvas.drawText(dimensionText, textX, textY, textPaint, font);
       },

@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   ACTION_BAR_BOTTOM_GAP,
+  ACTION_BAR_PAGE_CLEARANCE,
+  ACTION_BAR_PAGE_GAP,
   actionBarTransform,
   clampActionBarOffset,
   defaultActionBarOrigin,
   offsetsEqual,
+  pageActionBarAnchor,
+  pageAnchorToManualOffset,
 } from "./actionBarPlacement";
+import { SELECTION_DIMENSION_LABEL_BOTTOM_EXTENT } from "../../../workspace/canvas/selectionOverlayGeometry";
 
 const overlay = { width: 1000, height: 600 };
 const bar = { width: 200, height: 40 };
@@ -71,5 +76,33 @@ describe("actionBarPlacement — ADR-192 Phase 3", () => {
     expect(offsetsEqual({ dx: 1, dy: 2 }, { dx: 1, dy: 2 })).toBe(true);
     expect(offsetsEqual({ dx: 1, dy: 2 }, null)).toBe(false);
     expect(offsetsEqual({ dx: 1, dy: 2 }, { dx: 1, dy: 3 })).toBe(false);
+  });
+
+  it("page 하단 중앙을 viewport screen 좌표로 변환한다", () => {
+    expect(
+      pageActionBarAnchor({
+        pagePosition: { x: 100, y: 80 },
+        pageSize: { width: 400, height: 300 },
+        panOffset: { x: 20, y: 30 },
+        zoom: 0.5,
+      }),
+    ).toEqual({
+      x: 170,
+      y: 220 + ACTION_BAR_PAGE_GAP,
+    });
+  });
+
+  it("page gap은 size info 전체 높이 아래에 별도 여백을 남긴다", () => {
+    expect(ACTION_BAR_PAGE_GAP).toBe(
+      SELECTION_DIMENSION_LABEL_BOTTOM_EXTENT + ACTION_BAR_PAGE_CLEARANCE,
+    );
+    expect(ACTION_BAR_PAGE_GAP).toBe(40);
+  });
+
+  it("page anchor를 기존 overlay 하단 중앙 수동 offset으로 변환한다", () => {
+    expect(pageAnchorToManualOffset({ x: 300, y: 390 }, overlay, bar)).toEqual({
+      dx: -200,
+      dy: 390 - (600 - ACTION_BAR_BOTTOM_GAP - 40),
+    });
   });
 });

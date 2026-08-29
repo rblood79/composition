@@ -1,17 +1,49 @@
 /**
  * ADR-192 Phase 3 — 바 위치 계산 (순수).
  *
- * 기본 위치 = overlay 하단 중앙 (`left:50%; bottom:16px; translateX(-50%)`).
- * 사용자 이동은 그 기준의 상대 offset `{dx, dy}` 로만 저장해 뷰포트 크기가
- * 바뀌어도 "중앙 기준" 이 유지된다. clamp 는 바 전체가 overlay 안에 남도록.
+ * 자동 위치 = 선택 대상이 속한 page 하단 중앙. 사용자 이동 뒤에는 기존 overlay
+ * 하단 중앙 기준 offset `{dx, dy}` 를 유지해 저장 포맷과 수동 위치 계약을 보존한다.
+ * clamp 는 수동 위치에서 바 전체가 overlay 안에 남도록 한다.
  */
 import type { ActionBarOffset } from "../../../stores/utils/actionBarStorage";
+import { SELECTION_DIMENSION_LABEL_BOTTOM_EXTENT } from "../../../workspace/canvas/selectionOverlayGeometry";
 
 export const ACTION_BAR_BOTTOM_GAP = 16;
+export const ACTION_BAR_PAGE_CLEARANCE = 10;
+export const ACTION_BAR_PAGE_GAP =
+  SELECTION_DIMENSION_LABEL_BOTTOM_EXTENT + ACTION_BAR_PAGE_CLEARANCE;
 
 export interface Size {
   width: number;
   height: number;
+}
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface PageActionBarAnchorInput {
+  pagePosition: Point;
+  pageSize: Size;
+  panOffset: Point;
+  zoom: number;
+}
+
+/** page 전체 높이 아래, page width 중앙의 overlay-local screen 좌표 */
+export function pageActionBarAnchor({
+  pagePosition,
+  pageSize,
+  panOffset,
+  zoom,
+}: PageActionBarAnchorInput): Point {
+  return {
+    x: (pagePosition.x + pageSize.width / 2) * zoom + panOffset.x,
+    y:
+      (pagePosition.y + pageSize.height) * zoom +
+      panOffset.y +
+      ACTION_BAR_PAGE_GAP,
+  };
 }
 
 /** 기본 위치의 바 좌상단 (overlay 로컬 좌표) */
@@ -19,6 +51,19 @@ export function defaultActionBarOrigin(overlay: Size, bar: Size) {
   return {
     x: (overlay.width - bar.width) / 2,
     y: overlay.height - ACTION_BAR_BOTTOM_GAP - bar.height,
+  };
+}
+
+/** 자동 page anchor에서 수동 drag 좌표계로 점프 없이 전환할 base offset */
+export function pageAnchorToManualOffset(
+  anchor: Point,
+  overlay: Size,
+  bar: Size,
+): ActionBarOffset {
+  const manualOrigin = defaultActionBarOrigin(overlay, bar);
+  return {
+    dx: anchor.x - overlay.width / 2,
+    dy: anchor.y - manualOrigin.y,
   };
 }
 

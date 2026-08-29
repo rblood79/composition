@@ -18,8 +18,10 @@ const model: ActionBarModel = {
   ] satisfies ContextMenuItem[],
 };
 
+let actionBarModel: ActionBarModel | null = model;
+
 vi.mock("./buildActionBarItems", () => ({
-  buildActionBarItems: () => model,
+  buildActionBarItems: () => actionBarModel,
   buildActionBarRequest: (ids: readonly string[]) => ({
     surface: "canvas-element",
     clientX: 0,
@@ -54,6 +56,7 @@ function renderBar() {
 }
 
 beforeEach(() => {
+  actionBarModel = model;
   // jsdom 에는 ResizeObserver 가 없다 (PanelWorkspace.occupancy.test.tsx 와 같은
   // 패턴) — 바 배치 훅이 저장 offset clamp 에 쓴다
   vi.stubGlobal(
@@ -69,6 +72,8 @@ beforeEach(() => {
     selectedElementId: "a",
     elements: [],
     elementsMap: new Map([["a", { id: "a", type: "Button" }]]),
+    currentPageId: "page-1",
+    pagePositions: { "page-1": { x: 100, y: 50 } },
   } as never);
 });
 
@@ -79,10 +84,29 @@ afterEach(() => {
     selectedElementIds: [],
     selectedElementId: null,
     elementsMap: new Map(),
+    currentPageId: null,
   } as never);
 });
 
 describe("ContextualActionBar — 키보드 규약 (ADR-192 R2)", () => {
+  it("page body 단독 선택에서도 page 컨텍스트 bar를 표시한다", () => {
+    actionBarModel = null;
+    useStore.setState({
+      selectedElementIds: ["body-1"],
+      selectedElementId: "body-1",
+      elementsMap: new Map([
+        ["body-1", { id: "body-1", type: "body", page_id: "page-1" }],
+      ]),
+    } as never);
+
+    renderBar();
+
+    const bar = document.querySelector(".contextual-action-bar");
+    expect(bar).not.toBeNull();
+    expect(bar!.getAttribute("data-context")).toBe("page");
+    expect(screen.getByRole("button", { name: "More actions" })).toBeDefined();
+  });
+
   // 2026-08-27 code-review #2 — 버튼의 `data-scope="canvas"` 탓에 툴바 안에서
   // ←/→ 를 누를 때마다 `canvas-focused` 형제 재배치가 함께 동작했다.
   it("버튼은 canvas scope 를 선언하지 않고 루트가 global 을 선언한다", () => {

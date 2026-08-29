@@ -9,7 +9,7 @@
  */
 
 export interface ActionBarOffset {
-  /** 기본 위치(하단 중앙) 기준 상대 이동량 (CSS px) */
+  /** 수동 위치의 overlay 하단 중앙 기준 상대 이동량 (CSS px) */
   dx: number;
   dy: number;
 }
@@ -19,7 +19,7 @@ export interface ActionBarSettings {
   hidden: boolean;
   /** Pin bar position — 드래그 핸들 비활성 */
   pinned: boolean;
-  /** null = 기본 위치 (Reset) */
+  /** null = 선택 page 하단 중앙 자동 위치 (Reset) */
   offset: ActionBarOffset | null;
 }
 

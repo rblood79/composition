@@ -8,9 +8,7 @@
 
   .contextual-action-bar {
     position: absolute;
-    left: 50%;
-    bottom: 16px;
-    /* transform 은 useActionBarPlacement 가 inline 으로 (기본 translateX(-50%)) */
+    /* page anchor 또는 수동 overlay 좌표는 useActionBarPlacement가 inline으로 소유 */
     display: flex;
     align-items: center;
     gap: 2px;
@@ -18,7 +16,7 @@
     background: var(--bg-raised);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-sm);
     pointer-events: auto;
     z-index: 20;
     contain: layout style;

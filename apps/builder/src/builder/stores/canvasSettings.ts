@@ -67,7 +67,7 @@ export interface SettingsState {
   actionBar: ActionBarSettings;
   setActionBarHidden: (hidden: boolean) => void;
   setActionBarPinned: (pinned: boolean) => void;
-  /** null = 기본 위치 (Reset bar position) */
+  /** null = 선택 page 하단 중앙 자동 위치 (Reset bar position) */
   setActionBarOffset: (offset: ActionBarOffset | null) => void;
 
   /** History 정보 (Monitor에서 사용) */
