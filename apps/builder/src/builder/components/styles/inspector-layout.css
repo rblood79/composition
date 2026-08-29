@@ -562,10 +562,18 @@
           color: var(--fg);
         }
 
+        /* 선택 표시는 흰 pill(`--bg-overlay`) + 그림자다 — 버튼 자신은
+           `background: transparent` 이고 채움은 `.react-aria-SelectionIndicator`
+           가 그린다. 그래서 전경은 역상(흰 글자)이 아니라 `--fg` 다. 종전
+           `--color-white` 는 흰 pill 위 흰 글자라 라벨(Size 토글의 S/M/L 등)이
+           사라졌고, 같은 블록의 `svg { stroke: var(--fg) }` 만 어두워 한 버튼
+           안에서 아이콘과 글자가 갈렸다.
+           svg 규칙은 남긴다 — 이 그룹의 아이콘 일부가 `stroke="var(--color-gray-400)"`
+           표시 속성을 갖고 있어 currentColor 상속만으로는 선택 상태가 흐려진다. */
         &[data-selected] {
           box-shadow: var(--shadow-sm);
           background: transparent;
-          color: var(--color-white);
+          color: var(--fg);
 
           svg {
             stroke: var(--fg);
@@ -573,7 +581,7 @@
 
           &[data-pressed] {
             background: transparent;
-            color: var(--color-white);
+            color: var(--fg);
           }
         }
       }
