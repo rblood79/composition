@@ -1,6 +1,8 @@
 import { memo, useMemo } from "react";
+import { Boxes } from "lucide-react";
 
 import { PropertySection } from "../../components";
+import { ACTION_ICONS } from "../../config/actionIcons";
 import { useStore } from "../../stores";
 import { globalToast } from "../../stores/toast";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
@@ -23,6 +25,32 @@ import {
   useCanonicalPropertyElementsMap,
 } from "./hooks/useCanonicalPropertyRead";
 import type { PanelNode } from "../panelNode";
+
+/**
+ * Component 섹션 레이아웃 — pencil app 어법 (2026-08-30).
+ *
+ * pencil 의 properties 패널은 컴포넌트 정체를 **한 줄 칩**(다이아몬드 아이콘 +
+ * 이름, 역할 색 테두리)으로 보이고 그 **아래 한 줄**에 액션을 모은다. 종전
+ * composition 은 Name / Role / Impacts 를 각각 key-value 행으로 쌓고 그 아래
+ * 액션 버튼을 다시 세로로 쌓아, 폭 222px 패널에서 standard 3줄 / origin 5줄을
+ * 썼다 — 값이 3개뿐인데 라벨 열이 절반을 먹는 구조였다.
+ *
+ * 옮겨 온 것은 **배치**뿐이고 크롬은 composition 정본을 쓴다:
+ * - 역할 색은 `--editing-semantics-*` — 캔버스 오버레이(semanticOverlayColors.ts)
+ *   와 Navigator 점이 이미 쓰는 토큰. 패널만 다른 색을 쓰면 같은 요소가 화면마다
+ *   다르게 읽힌다. pencil 의 solid/dashed 선 구분은 채택하지 않는다 — composition
+ *   캔버스는 역할을 **색으로만** 구분하므로(ADR-112) 패널에만 선 축을 새로 만들면
+ *   두 화면의 마커 언어가 갈린다.
+ * - 라벨 액션은 `.control-button` 정본. 좁은 폭에 두 액션이 함께 서는 origin /
+ *   instance 는 pencil 처럼 보조 액션을 아이콘 전용으로 줄이되, chrome 은 같은
+ *   `.control-button` 을 폭만 정사각으로 좁혀 쓴다 (두 번째 버튼 정의 안 만듦).
+ * - 액션 아이콘 3종은 `ACTION_ICONS` — 캔버스 컨텍스트 메뉴의 같은 액션과 같은
+ *   그림이어야 한다 (registry 주석이 이미 "Properties 패널 Component 섹션" 을
+ *   소비처로 적어 두고 있었는데 실제로는 아이콘이 없었다).
+ */
+const ComponentIcon = ACTION_ICONS.component;
+const GoToOriginIcon = ACTION_ICONS.goToOrigin;
+const DetachIcon = ACTION_ICONS.detach;
 
 function resolveOriginElement(
   originId: string | null,
@@ -155,118 +183,122 @@ export const ComponentSemanticsSection = memo(
 
     return (
       <PropertySection title="Component">
-        <div className="component-semantics-row">
-          <span className="component-semantics-name">Name</span>
-          <span className="component-semantics-value">{componentName}</span>
-        </div>
-        <div className="component-semantics-row">
-          <span className="component-semantics-name">Role</span>
+        <div className="component-semantics-identity" data-role={roleClass}>
+          <ComponentIcon aria-hidden="true" size={14} />
           <span
-            className={`component-semantics-badge component-semantics-badge--${roleClass}`}
+            className="component-semantics-identity-name"
+            title={componentName}
           >
-            {roleLabel}
+            {componentName}
           </span>
+          <span className="component-semantics-identity-role">{roleLabel}</span>
         </div>
-        {role === "origin" && (
-          <div className="component-semantics-row">
-            <span className="component-semantics-name">Impacts</span>
-            <span className="component-semantics-count">
-              {instanceIds.length} instances
-            </span>
-          </div>
-        )}
-        {!role && (
-          <button
-            className="control-button"
-            onClick={handleCreateComponent}
-            type="button"
-          >
-            Create component
-          </button>
-        )}
-        {role === "origin" && (
-          <button
-            aria-label="Remove component"
-            className="control-button"
-            onClick={handleRemoveComponent}
-            type="button"
-          >
-            [-] Remove component
-          </button>
-        )}
-        {role === "instance" && (
-          <>
+
+        <div className="component-semantics-toolbar">
+          {!role && (
             <button
               className="control-button"
-              disabled={!originElement}
-              onClick={handleGoToOrigin}
+              onClick={handleCreateComponent}
               type="button"
             >
-              Go to component
+              <ComponentIcon aria-hidden="true" size={14} />
+              Create component
             </button>
-            {isDetachableInstance && (
+          )}
+          {role === "origin" && (
+            <>
+              {/* 종전의 "Impacts N instances" 행은 이 라벨이 흡수한다 — 같은 수를
+                  읽는 자리가 둘일 이유가 없다. 0건이면 비활성으로 남겨 "인스턴스가
+                  아직 없다" 를 계속 보인다. */}
               <button
                 className="control-button"
-                onClick={handleDetachInstance}
+                disabled={instanceIds.length === 0}
+                onClick={handleSelectInstances}
                 type="button"
               >
-                Detach instance
+                <Boxes aria-hidden="true" size={14} />
+                Select instances ({instanceIds.length})
               </button>
-            )}
-            {overrideItems.length > 0 && (
-              <fieldset className="properties-aria component-semantics-overrides">
-                <legend className="fieldset-legend">Overrides</legend>
-                <div className="react-aria-Group component-semantics-field-list">
-                  {overrideItems.map((item) => {
-                    // ADR-138 A-3: instance 가 props.items 를 override 하면
-                    // origin 과 shallow fork — origin items 변경이 더 이상
-                    // 반영되지 않는다. 일반 override 와 구분해 fork 임을 명시.
-                    const isItemsFork =
-                      item.fieldKey === "items" && !item.descendantPath;
-                    return (
-                      <button
-                        aria-label={
-                          isItemsFork
-                            ? "Reset forked items to origin"
-                            : `Reset ${item.label} override`
-                        }
-                        className={
-                          isItemsFork
-                            ? "component-semantics-field component-semantics-field--fork"
-                            : "component-semantics-field"
-                        }
-                        key={item.id}
-                        onClick={() => handleResetOverrideField(item)}
-                        title={
-                          isItemsFork
-                            ? "이 인스턴스의 items 가 origin 과 분리(fork)되었습니다 — origin items 변경이 반영되지 않습니다. Reset 시 origin 에 다시 연결됩니다."
-                            : undefined
-                        }
-                        type="button"
-                      >
-                        <span className="component-semantics-field-dot" />
-                        <span className="component-semantics-field-name">
-                          {isItemsFork ? "items (forked)" : item.label}
-                        </span>
-                        <span className="component-semantics-field-reset">
-                          {isItemsFork ? "Reset to origin" : "Reset"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            )}
-          </>
-        )}
-        {role === "origin" && instanceIds.length > 0 && (
-          <button
-            className="control-button"
-            onClick={handleSelectInstances}
-            type="button"
-          >
-            Select instances ({instanceIds.length})
-          </button>
+              <button
+                aria-label="Remove component"
+                className="control-button component-semantics-icon-action"
+                onClick={handleRemoveComponent}
+                title="Remove component"
+                type="button"
+              >
+                <ComponentIcon aria-hidden="true" size={14} />
+              </button>
+            </>
+          )}
+          {role === "instance" && (
+            <>
+              <button
+                className="control-button"
+                disabled={!originElement}
+                onClick={handleGoToOrigin}
+                type="button"
+              >
+                <GoToOriginIcon aria-hidden="true" size={14} />
+                Go to component
+              </button>
+              {isDetachableInstance && (
+                <button
+                  aria-label="Detach instance"
+                  className="control-button component-semantics-icon-action"
+                  onClick={handleDetachInstance}
+                  title="Detach instance"
+                  type="button"
+                >
+                  <DetachIcon aria-hidden="true" size={14} />
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {role === "instance" && overrideItems.length > 0 && (
+          <fieldset className="properties-aria component-semantics-overrides">
+            <legend className="fieldset-legend">Overrides</legend>
+            <div className="react-aria-Group component-semantics-field-list">
+              {overrideItems.map((item) => {
+                // ADR-138 A-3: instance 가 props.items 를 override 하면
+                // origin 과 shallow fork — origin items 변경이 더 이상
+                // 반영되지 않는다. 일반 override 와 구분해 fork 임을 명시.
+                const isItemsFork =
+                  item.fieldKey === "items" && !item.descendantPath;
+                return (
+                  <button
+                    aria-label={
+                      isItemsFork
+                        ? "Reset forked items to origin"
+                        : `Reset ${item.label} override`
+                    }
+                    className={
+                      isItemsFork
+                        ? "component-semantics-field component-semantics-field--fork"
+                        : "component-semantics-field"
+                    }
+                    key={item.id}
+                    onClick={() => handleResetOverrideField(item)}
+                    title={
+                      isItemsFork
+                        ? "이 인스턴스의 items 가 origin 과 분리(fork)되었습니다 — origin items 변경이 반영되지 않습니다. Reset 시 origin 에 다시 연결됩니다."
+                        : undefined
+                    }
+                    type="button"
+                  >
+                    <span className="component-semantics-field-dot" />
+                    <span className="component-semantics-field-name">
+                      {isItemsFork ? "items (forked)" : item.label}
+                    </span>
+                    <span className="component-semantics-field-reset">
+                      {isItemsFork ? "Reset to origin" : "Reset"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
         )}
       </PropertySection>
     );

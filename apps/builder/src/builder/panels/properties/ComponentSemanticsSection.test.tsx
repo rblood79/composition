@@ -85,9 +85,8 @@ describe("ComponentSemanticsSection", () => {
     render(<ComponentSemanticsSection elementId="origin" />);
 
     expect(screen.getByText("Component")).toBeTruthy();
-    expect(screen.getByText("Name")).toBeTruthy();
+    // 이름과 역할은 key-value 2행이 아니라 정체 칩 한 줄이 함께 보인다.
     expect(screen.getByText("ArticleFrame")).toBeTruthy();
-    expect(screen.getByText("Role")).toBeTruthy();
     expect(screen.getByText("Origin")).toBeTruthy();
   });
 
@@ -121,7 +120,6 @@ describe("ComponentSemanticsSection", () => {
     render(<ComponentSemanticsSection elementId="plain" />);
 
     expect(screen.getByText("Component")).toBeTruthy();
-    expect(screen.getByText("Role")).toBeTruthy();
     expect(screen.getByText("Standard")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Create component" }),
@@ -311,7 +309,10 @@ describe("ComponentSemanticsSection", () => {
     });
 
     render(<ComponentSemanticsSection elementId="origin" />);
-    expect(screen.getByText("2 instances")).toBeTruthy();
+    // 영향 수는 별도 행이 아니라 "Select instances (N)" 라벨이 보인다.
+    expect(
+      screen.getByRole("button", { name: "Select instances (2)" }),
+    ).toBeTruthy();
     expect(
       (
         screen.getByRole("button", {
