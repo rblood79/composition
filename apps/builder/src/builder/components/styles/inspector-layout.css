@@ -90,7 +90,7 @@
                 width: var(--spacing);
                 height: var(--spacing);
                 background-color: var(--fg-disabled);
-                border-radius: 50%;
+                border-radius: var(--spacing);
               }
 
               /*&[data-selected] {
