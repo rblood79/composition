@@ -96,7 +96,7 @@ export const COMPONENT_SEMANTICS_ACTIONS: readonly ActionSurfaceDescriptor[] = [
 
 ## 6. Phase 4 — 투영 불변식
 
-1. `adapters/canonical/editingSemantics.ts` 의 모든 술어가 `type` 을 읽지 않음을 확인 (2026-08-30 `canDetachInstance` 수정으로 현재 0건).
+1. **잔존 `type` 참조 제거 (착수 시점 1건)** — `isEditingSemanticsInstance` 의 `candidate.type === "ref"` disjunct (`adapters/canonical/editingSemantics.ts:47`). 2026-08-30 수리는 `canDetachInstance` 만 사영 불변 필드로 바꿨고 instance 축 술어는 그대로였다. 제거 순서: ⓐ `RefNode.ref: string` required 확인 완료 (`composition-document.types.ts:885`) → canonical 공간에서 잉여 ⓑ legacy `elementsMap` / mirror 경로에 `type:"ref"` + `ref` 부재 노드가 없음을 grep + `editingSemantics.test.ts` fixture 로 확인 ⓒ 확인 후 제거, 미확인이면 제거 대신 사유를 allowlist 에 등재.
 2. 정적 게이트 `editingSemanticsProjection.static.test.ts`:
    - `editingSemantics.ts` 소스에서 `candidate.type` / `.type ===` 참조 0건 (allowlist 주석 필요 시 사유 명시).
    - 술어 4종(`isEditingSemanticsInstance` / `isEditingSemanticsOrigin` / `canDetachInstance` / `getEditingSemanticsOriginId`) 에 대해 **사영 3종 fixture** (canonical node · 캔버스 interactionNodesMap 파생 · legacy elementsMap) 로 같은 결과를 반환하는 표 테스트.
@@ -110,7 +110,7 @@ export const COMPONENT_SEMANTICS_ACTIONS: readonly ActionSurfaceDescriptor[] = [
 
 - 패널 · 메뉴 소스에 컴포넌트 액션 라벨 리터럴 0건 (레지스트리 경유만).
 - `ACTION_BAR_ALLOWLIST.instance` 의 컴포넌트 축 항목 순서 == 레지스트리 순서.
-- 레지스트리의 모든 id 가 ADR-182 item id 계약 집합에 존재.
+- 레지스트리 id 중 **메뉴·바에 노출되는 것** (`surfaces` 에 `context-menu` 또는 `action-bar` 포함) 이 ADR-182 item id 계약 집합에 존재. 패널 전용 id (`select-instances` — 현행 182 집합에 없음, `actionBarPolicy.test.ts:229` 계약 7종에도 없음) 는 대상 밖 — 계약 집합에 넣으면 메뉴에 항목을 추가해야 해 HC5 (항목 집합 이관 전후 동일) 와 충돌한다.
 
 ---
 
@@ -154,7 +154,7 @@ export const COMPONENT_SEMANTICS_ACTIONS: readonly ActionSurfaceDescriptor[] = [
 - [ ] 메뉴 이관 + live 확인 (우클릭 4상태)
 - [ ] 바 순서 파생 + `actionBarPolicy.test.ts` 갱신
 - [ ] 실행/확인 경로 통합 + 라벨 fallback 통일
-- [ ] 투영 불변식 게이트 2종
+- [ ] 잔존 `type` 참조 1건 제거 (안전성 ⓐⓑ 확인 후) + 투영 불변식 게이트 2종
 - [ ] 표면 파생 동일성 게이트
 - [ ] CHANGELOG (사용자-가시 변화 있을 때만 — 항목 집합이 동일하면 면제)
 - [ ] `### Live Exercise` 절 작성 후 Implemented 승격

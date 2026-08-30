@@ -10,7 +10,7 @@
     gap: var(--spacing-xs);
     color: var(--fg-muted);
     border-radius: var(--radius-lg);
-    box-shadow: var(--inset-shadow-sm);
+    box-shadow: var(--shadow-sm);
   }
 
   .builder-control-group.react-aria-ToggleButtonGroup {
