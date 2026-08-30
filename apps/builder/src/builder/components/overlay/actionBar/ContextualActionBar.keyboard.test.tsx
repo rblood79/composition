@@ -8,11 +8,11 @@ import type { ActionBarModel } from "./actionBarPolicy";
 const model: ActionBarModel = {
   context: "single",
   items: [
-    { kind: "action", id: "duplicate", label: "복제", run: () => undefined },
+    { kind: "action", id: "duplicate", labelKey: "contextMenu.duplicate", run: () => undefined },
     {
       kind: "action",
       id: "toggle-component-origin",
-      label: "컴포넌트 만들기",
+      labelKey: "componentAction.createComponent",
       run: () => undefined,
     },
   ] satisfies ContextMenuItem[],
@@ -143,7 +143,7 @@ describe("ContextualActionBar — 키보드 규약 (ADR-192 R2)", () => {
   it("Escape 는 선택을 유지한 채 캔버스로 포커스를 되돌린다", () => {
     const { canvas } = renderBar();
 
-    const button = screen.getByRole("button", { name: "복제" });
+    const button = screen.getByRole("button", { name: "Duplicate" });
     button.focus();
     expect(document.activeElement).toBe(button);
 

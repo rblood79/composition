@@ -114,6 +114,13 @@ export interface TranslationKeys {
     distributeHorizontal: string;
     distributeVertical: string;
   };
+  componentAction: {
+    goToOrigin: string;
+    detachInstance: string;
+    selectInstances: string;
+    createComponent: string;
+    detachComponent: string;
+  };
   settings: {
     title: string;
     language: string;

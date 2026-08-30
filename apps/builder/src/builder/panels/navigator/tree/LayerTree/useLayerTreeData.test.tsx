@@ -1,3 +1,5 @@
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { act, render, renderHook } from "@testing-library/react";
@@ -12,6 +14,15 @@ import { LISTBOX_ITEM_DEFAULT_ORIGIN_ID } from "../../../../components/listbox/l
 import { ContextMenuProvider } from "../../../../components/overlay/contextMenu";
 import { LayerTree } from "./LayerTree";
 import { useLayerTreeData } from "./useLayerTreeData";
+
+/**
+ * ADR-200 Phase 2 — 이 트리/섹션이 마운트하는 표시 계층이 `t()` 로 라벨을
+ * 만든다. 기준은 `label` 참조가 아니라 **컴포넌트 마운트** 다 (Phase 0
+ * 인벤토리가 참조 기준이라 이 파일들을 놓쳤다 — evidence §4 정정).
+ */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
+
 
 function makeElement(
   id: string,
@@ -296,7 +307,7 @@ describe("useLayerTreeData", () => {
     // LayerTree 행은 ADR-182 Phase 3 부터 공유 컨텍스트 메뉴를 소비하므로
     // provider 안에서 렌더해야 한다 (앱은 BuilderCore 가 감싼다).
     expect(() =>
-      render(
+      renderWithI18n(
         <ContextMenuProvider>
           <LayerTree
             elements={elements}

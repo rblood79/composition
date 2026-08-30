@@ -10,7 +10,6 @@ import { describe, expect, it } from "vitest";
 import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
 import {
   COMPONENT_SEMANTICS_ACTIONS,
-  formatBilingualLabel,
   resolveComponentSemanticsActions,
   type ActionAvailabilityContext,
   type EditingSemanticsTarget,
@@ -47,7 +46,7 @@ const labelOf = (
 ) => {
   const action = COMPONENT_SEMANTICS_ACTIONS.find((a) => a.id === id);
   if (!action) throw new Error(`no descriptor: ${id}`);
-  return action.label(target, context);
+  return action.labelKey(target, context);
 };
 
 describe("COMPONENT_SEMANTICS_ACTIONS — 정의 축", () => {
@@ -87,8 +86,8 @@ describe("4상태 × 3표면 (Phase 0 freeze §4)", () => {
     expect(ids("properties-panel", STANDARD)).toEqual([
       "toggle-component-origin",
     ]);
-    expect(labelOf(STANDARD, "toggle-component-origin").en).toBe(
-      "Create component",
+    expect(labelOf(STANDARD, "toggle-component-origin").key).toBe(
+      "componentAction.createComponent",
     );
   });
 
@@ -96,8 +95,8 @@ describe("4상태 × 3표면 (Phase 0 freeze §4)", () => {
     expect(ids("properties-panel", ORIGIN)).toEqual([
       "toggle-component-origin",
     ]);
-    expect(labelOf(ORIGIN, "toggle-component-origin").en).toBe(
-      "Detach component",
+    expect(labelOf(ORIGIN, "toggle-component-origin").key).toBe(
+      "componentAction.detachComponent",
     );
   });
 
@@ -108,8 +107,8 @@ describe("4상태 × 3표면 (Phase 0 freeze §4)", () => {
       "toggle-component-origin",
     ]);
     expect(labelOf(ORIGIN, "select-instances", context)).toEqual({
-      en: "Select instances (3)",
-      ko: "인스턴스 선택 (3)",
+      key: "componentAction.selectInstances",
+      params: { count: 3 },
     });
   });
 
@@ -120,8 +119,8 @@ describe("4상태 × 3표면 (Phase 0 freeze §4)", () => {
       "detach-instance",
       "toggle-component-origin",
     ]);
-    expect(labelOf(INSTANCE, "toggle-component-origin").en).toBe(
-      "Create component",
+    expect(labelOf(INSTANCE, "toggle-component-origin").key).toBe(
+      "componentAction.createComponent",
     );
   });
 
@@ -133,8 +132,8 @@ describe("4상태 × 3표면 (Phase 0 freeze §4)", () => {
       "select-instances",
       "toggle-component-origin",
     ]);
-    expect(labelOf(INSTANCE_ORIGIN, "toggle-component-origin").en).toBe(
-      "Detach component",
+    expect(labelOf(INSTANCE_ORIGIN, "toggle-component-origin").key).toBe(
+      "componentAction.detachComponent",
     );
   });
 
@@ -185,12 +184,13 @@ describe("사영 불변식 (HC3)", () => {
 });
 
 describe("라벨 어법", () => {
-  it("메뉴 병기는 ko / en 조립 한 곳에서", () => {
-    expect(formatBilingualLabel(labelOf(ORIGIN, "toggle-component-origin"))).toBe(
-      "컴포넌트 분리 / Detach component",
+  // ADR-200 — 레지스트리는 키만 들고, 문자열은 표시 계층이 만든다. 표면마다
+  // 언어를 따로 고르던 병기·`.en` 고정이 여기서 사라졌다.
+  it("모든 액션이 componentAction 네임스페이스 키를 돌려준다", () => {
+    const keys = COMPONENT_SEMANTICS_ACTIONS.map(
+      (action) => action.labelKey(ORIGIN, ctx({ instanceCount: 1 })).key,
     );
-    expect(
-      formatBilingualLabel(labelOf(STANDARD, "toggle-component-origin")),
-    ).toBe("컴포넌트 만들기 / Create component");
+    expect(keys.every((key) => key.startsWith("componentAction."))).toBe(true);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });

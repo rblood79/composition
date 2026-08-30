@@ -37,7 +37,7 @@ describe("ContextMenuOverlay", () => {
           {
             kind: "action",
             id: "copy",
-            label: "Copy",
+            labelKey: "contextMenu.copy",
             run,
           },
         ]}
@@ -75,12 +75,12 @@ describe("ContextMenuOverlay", () => {
           {
             kind: "action",
             id: "copy",
-            label: "Copy",
+            labelKey: "contextMenu.copy",
             icon: Icon,
             run: vi.fn(),
           },
           // 아이콘 없는 이웃도 자리를 받아야 라벨이 어긋나지 않는다
-          { kind: "action", id: "paste", label: "Paste", run: vi.fn() },
+          { kind: "action", id: "paste", labelKey: "contextMenu.paste", run: vi.fn() },
         ]}
       />,
     );
@@ -103,7 +103,7 @@ describe("ContextMenuOverlay", () => {
           clientY: 0,
           targetElementIds: ["card"],
         }}
-        items={[{ kind: "action", id: "copy", label: "Copy", run: vi.fn() }]}
+        items={[{ kind: "action", id: "copy", labelKey: "contextMenu.copy", run: vi.fn() }]}
       />,
     );
 

@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 import {
   cleanup,
   fireEvent,
@@ -22,6 +24,15 @@ import type { CanvasActionElement } from "../../../../workspace/canvas/actions/c
 import { LayerTreeItemContent } from "./LayerTreeItemContent";
 import type { LayerTreeNode } from "./types";
 import type { TreeItemState } from "../TreeBase/types";
+
+/**
+ * ADR-200 Phase 2 — 이 트리/섹션이 마운트하는 표시 계층이 `t()` 로 라벨을
+ * 만든다. 기준은 `label` 참조가 아니라 **컴포넌트 마운트** 다 (Phase 0
+ * 인벤토리가 참조 기준이라 이 파일들을 놓쳤다 — evidence §4 정정).
+ */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
+
 
 function makeNode(overrides: Partial<LayerTreeNode> = {}): LayerTreeNode {
   return {
@@ -58,7 +69,7 @@ function renderItem(
   state = makeState(),
   onDelete = vi.fn(),
 ) {
-  return render(
+  return renderWithI18n(
     <ContextMenuProvider>
       <LayerTreeItemContent node={node} state={state} onDelete={onDelete} />
     </ContextMenuProvider>,
@@ -177,7 +188,7 @@ describe("LayerTreeItemContent editing semantics marker", () => {
     });
 
     expect(useStore.getState().selectedElementId).toBe("plain");
-    expect(screen.getByRole("menuitem", { name: /복사/ })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /Copy/ })).toBeTruthy();
   });
 
   it("legacy instance node exposes detach through row context menu", async () => {

@@ -7,7 +7,18 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 import { ContextMenuProvider, useContextMenu } from "./useContextMenu";
+
+/**
+ * ADR-200 Phase 2 — 오버레이가 `t()` 로 라벨을 만들므로 provider 하위에서
+ * 렌더한다. 이 파일은 라벨 문자열을 읽지 않아 Phase 0 인벤토리에서 빠졌는데,
+ * 표시 계층을 **마운트**하는 것만으로 훅 요구가 생긴다 (기준은 `label` 참조가
+ * 아니라 컴포넌트 마운트).
+ */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
 
 const request = {
   surface: "canvas-empty" as const,
@@ -47,7 +58,7 @@ describe("ContextMenuProvider", () => {
   });
 
   it("suppresses the builder-native menu through one capture listener", () => {
-    render(
+    renderWithI18n(
       <ContextMenuProvider>
         <div data-testid="surface" />
       </ContextMenuProvider>,
@@ -63,7 +74,7 @@ describe("ContextMenuProvider", () => {
   });
 
   it("keeps editable native menus available", () => {
-    render(
+    renderWithI18n(
       <ContextMenuProvider>
         <input data-testid="input" />
       </ContextMenuProvider>,
@@ -79,7 +90,7 @@ describe("ContextMenuProvider", () => {
   });
 
   it("closes on outside pointerdown while allowing the next contextmenu through", () => {
-    render(
+    renderWithI18n(
       <ContextMenuProvider>
         <ContextMenuHarness />
       </ContextMenuProvider>,
@@ -97,7 +108,7 @@ describe("ContextMenuProvider", () => {
   });
 
   it("keeps Escape dismissal when the Popover is non-modal", async () => {
-    render(
+    renderWithI18n(
       <ContextMenuProvider>
         <ContextMenuHarness />
       </ContextMenuProvider>,

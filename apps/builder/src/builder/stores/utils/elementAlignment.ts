@@ -242,15 +242,19 @@ export function alignElements(
  * @param type - Alignment type
  * @returns Human-readable description
  */
-export function getAlignmentDescription(type: AlignmentType): string {
-  const descriptions: Record<AlignmentType, string> = {
-    left: "왼쪽 정렬",
-    center: "수평 중앙 정렬",
-    right: "오른쪽 정렬",
-    top: "상단 정렬",
-    middle: "수직 중앙 정렬",
-    bottom: "하단 정렬",
+/**
+ * 라벨 **키** — 문자열은 표시 계층이 `t()` 로 만든다 (ADR-200). 종전에는 이
+ * 함수가 한국어 문자열을 돌려줘 정렬 서브메뉴만 언어 설정을 무시했다.
+ */
+export function getAlignmentLabelKey(type: AlignmentType): string {
+  const keys: Record<AlignmentType, string> = {
+    left: "contextMenu.alignLeft",
+    center: "contextMenu.alignCenter",
+    right: "contextMenu.alignRight",
+    top: "contextMenu.alignTop",
+    middle: "contextMenu.alignMiddle",
+    bottom: "contextMenu.alignBottom",
   };
 
-  return descriptions[type];
+  return keys[type];
 }

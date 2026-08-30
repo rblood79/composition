@@ -26,11 +26,22 @@ export interface ContextMenuRequest {
   targetElementIds: string[];
 }
 
+/**
+ * 라벨 보간 인자 — `t(key, params)` 로 그대로 넘어간다.
+ */
+export type LabelParams = Record<string, string | number | boolean>;
+
+/**
+ * 항목은 **키만** 싣는다 — 완성된 문자열은 표시 계층이 `t()` 로 만든다
+ * (ADR-200). provider 가 문자열을 들면 그 자리에서 언어를 골라야 하고,
+ * 그래서 `한국어 / English` 병기가 굳었다.
+ */
 export type ContextMenuItem =
   | {
       kind: "action";
       id: string;
-      label: string;
+      labelKey: string;
+      labelParams?: LabelParams;
       icon?: ContextMenuIcon;
       shortcutId?: ShortcutId;
       destructive?: boolean;
@@ -39,7 +50,8 @@ export type ContextMenuItem =
   | {
       kind: "toggle";
       id: string;
-      label: string;
+      labelKey: string;
+      labelParams?: LabelParams;
       icon?: ContextMenuIcon;
       checked: boolean;
       shortcutId?: ShortcutId;
@@ -48,7 +60,8 @@ export type ContextMenuItem =
   | {
       kind: "submenu";
       id: string;
-      label: string;
+      labelKey: string;
+      labelParams?: LabelParams;
       icon?: ContextMenuIcon;
       items: ContextMenuItem[];
     }

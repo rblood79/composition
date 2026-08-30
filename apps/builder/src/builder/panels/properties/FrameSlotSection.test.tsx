@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 import {
   cleanup,
   fireEvent,
@@ -12,6 +14,15 @@ import { historyManager } from "../../stores/history";
 import { useStore } from "../../stores";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
 import { FrameSlotSection } from "./FrameSlotSection";
+
+/**
+ * ADR-200 Phase 2 — 이 트리/섹션이 마운트하는 표시 계층이 `t()` 로 라벨을
+ * 만든다. 기준은 `label` 참조가 아니라 **컴포넌트 마운트** 다 (Phase 0
+ * 인벤토리가 참조 기준이라 이 파일들을 놓쳤다 — evidence §4 정정).
+ */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
+
 
 const defaultAddElement = useStore.getState().addElement;
 
@@ -64,7 +75,7 @@ describe("FrameSlotSection", () => {
       elementsMap: new Map([["text", text]]),
     });
 
-    const { container } = render(<FrameSlotSection elementId="text" />);
+    const { container } = renderWithI18n(<FrameSlotSection elementId="text" />);
 
     expect(container.firstChild).toBeNull();
   });
@@ -81,7 +92,7 @@ describe("FrameSlotSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<FrameSlotSection elementId="card-content" />);
+    renderWithI18n(<FrameSlotSection elementId="card-content" />);
 
     expect(screen.getByText("Slot")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Enable slot" }));
@@ -105,7 +116,7 @@ describe("FrameSlotSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<FrameSlotSection elementId="frame" />);
+    renderWithI18n(<FrameSlotSection elementId="frame" />);
 
     expect(screen.getByText("Slot")).toBeTruthy();
     expect(screen.getByText("Inactive")).toBeTruthy();
@@ -146,7 +157,7 @@ describe("FrameSlotSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<FrameSlotSection elementId="frame" />);
+    renderWithI18n(<FrameSlotSection elementId="frame" />);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Add recommended component" }),
@@ -191,7 +202,7 @@ describe("FrameSlotSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(
+    renderWithI18n(
       <>
         <ComponentSemanticsSection elementId="frame" />
         <FrameSlotSection elementId="frame" />
@@ -222,7 +233,7 @@ describe("FrameSlotSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<FrameSlotSection elementId="frame" />);
+    renderWithI18n(<FrameSlotSection elementId="frame" />);
 
     expect(screen.getByText("NumberField")).toBeTruthy();
     expect(
@@ -269,7 +280,7 @@ describe("FrameSlotSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<FrameSlotSection elementId="footer" />);
+    renderWithI18n(<FrameSlotSection elementId="footer" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Insert BodyText" }));
 
@@ -315,7 +326,7 @@ describe("FrameSlotSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<FrameSlotSection elementId="footer" />);
+    renderWithI18n(<FrameSlotSection elementId="footer" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Insert Button" }));
     fireEvent.click(screen.getByRole("button", { name: "Insert Button" }));

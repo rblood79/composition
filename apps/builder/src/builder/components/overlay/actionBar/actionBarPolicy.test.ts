@@ -10,7 +10,7 @@ import {
 const noop = () => undefined;
 
 function action(id: string): ContextMenuItem {
-  return { kind: "action", id, label: id, run: noop };
+  return { kind: "action", id, labelKey: id, run: noop };
 }
 
 function separator(id: string): ContextMenuItem {
@@ -18,7 +18,7 @@ function separator(id: string): ContextMenuItem {
 }
 
 function submenu(id: string, children: ContextMenuItem[]): ContextMenuItem {
-  return { kind: "submenu", id, label: id, items: children };
+  return { kind: "submenu", id, labelKey: id, items: children };
 }
 
 /** ADR-182 breakdown §2 T1 — 단일 일반 요소 (형제 2+, 컴포넌트 아님) */

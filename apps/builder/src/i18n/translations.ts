@@ -88,6 +88,13 @@ const koKR: TranslationKeys = {
     distributeHorizontal: "수평 균등 분산",
     distributeVertical: "수직 균등 분산",
   },
+  componentAction: {
+    goToOrigin: "원본으로 이동",
+    detachInstance: "인스턴스 분리",
+    selectInstances: "인스턴스 선택 ({count})",
+    createComponent: "컴포넌트 만들기",
+    detachComponent: "컴포넌트 분리",
+  },
   settings: {
     title: "설정",
     language: "언어",
@@ -558,6 +565,13 @@ const enUS: TranslationKeys = {
     alignBottom: "Align bottom",
     distributeHorizontal: "Distribute horizontally",
     distributeVertical: "Distribute vertically",
+  },
+  componentAction: {
+    goToOrigin: "Go to component",
+    detachInstance: "Detach instance",
+    selectInstances: "Select instances ({count})",
+    createComponent: "Create component",
+    detachComponent: "Detach component",
   },
   settings: {
     title: "Settings",
@@ -1341,6 +1355,8 @@ const formattedMessages: Record<
     "workspace.resizeColumn": (args) =>
       `${String(args?.before ?? "")} / ${String(args?.after ?? "")} 패널 열 크기 조절`,
     "styles.modifiedCount": (args) => `${String(args?.count ?? 0)}개`,
+    "componentAction.selectInstances": (args) =>
+      `인스턴스 선택 (${String(args?.count ?? 0)})`,
     "monitor.realtimeChart": (args) =>
       `최근 ${String(args?.count ?? 0)}초의 실시간 ${String(args?.metric ?? "")} 차트`,
     "monitor.exportStats": (args) =>
@@ -1362,6 +1378,8 @@ const formattedMessages: Record<
     "workspace.resizeColumn": (args) =>
       `Resize the column between ${String(args?.before ?? "")} / ${String(args?.after ?? "")} panels`,
     "styles.modifiedCount": (args) => `${String(args?.count ?? 0)} modified`,
+    "componentAction.selectInstances": (args) =>
+      `Select instances (${String(args?.count ?? 0)})`,
     "monitor.realtimeChart": (args) =>
       `Real-time ${String(args?.metric ?? "")} chart showing last ${String(args?.count ?? 0)} seconds`,
     "monitor.exportStats": (args) =>

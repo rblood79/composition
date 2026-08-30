@@ -12,16 +12,15 @@ import {
   DISTRIBUTION_ICONS,
 } from "../../../config/actionIcons";
 import {
-  getAlignmentDescription,
+  getAlignmentLabelKey,
   type AlignmentType,
 } from "../../../stores/utils/elementAlignment";
 import {
-  getDistributionDescription,
+  getDistributionLabelKey,
   type DistributionType,
 } from "../../../stores/utils/elementDistribution";
 import {
   COMPONENT_SEMANTICS_ACTIONS,
-  formatBilingualLabel,
   toEditingSemanticsTarget,
   type ComponentSemanticsActionId,
 } from "../../../config/componentSemanticsActions";
@@ -35,6 +34,7 @@ import { registerContextMenuProvider } from "../../../components/overlay/context
 import type {
   ContextMenuIcon,
   ContextMenuItem,
+  LabelParams,
   ContextMenuProviderFn,
   ContextMenuRequest,
 } from "../../../components/overlay/contextMenu";
@@ -75,15 +75,20 @@ function actionContext(options: CanvasContextMenuProviderOptions): {
 
 function actionItem(
   id: string,
-  label: string,
+  labelKey: string,
   run: () => void | Promise<void>,
   shortcutId?: ShortcutId,
-  options?: { icon?: ContextMenuIcon; destructive?: boolean },
+  options?: {
+    icon?: ContextMenuIcon;
+    destructive?: boolean;
+    labelParams?: LabelParams;
+  },
 ): ContextMenuItem {
   return {
     kind: "action",
     id,
-    label,
+    labelKey,
+    ...(options?.labelParams ? { labelParams: options.labelParams } : {}),
     ...(options?.icon ? { icon: options.icon } : {}),
     ...(shortcutId ? { shortcutId } : {}),
     ...(options?.destructive ? { destructive: true } : {}),
@@ -138,28 +143,28 @@ function buildZOrderItems(element: CanvasActionElement): ContextMenuItem[] {
     // 네 항목이 한 가족으로 읽히게 둔다.
     actionItem(
       "bring-to-front",
-      "맨 앞으로 / Bring to Front",
+      "contextMenu.bringToFront",
       moveToEdge("front"),
       "bringToFront",
       { icon: ArrowUpToLine },
     ),
     actionItem(
       "bring-forward",
-      "앞으로 / Bring Forward",
+      "contextMenu.bringForward",
       reorder(1),
       "bringForward",
       { icon: ArrowUp },
     ),
     actionItem(
       "send-backward",
-      "뒤로 / Send Backward",
+      "contextMenu.sendBackward",
       reorder(-1),
       "sendBackward",
       { icon: ArrowDown },
     ),
     actionItem(
       "send-to-back",
-      "맨 뒤로 / Send to Back",
+      "contextMenu.sendToBack",
       moveToEdge("back"),
       "sendToBack",
       { icon: ArrowDownToLine },
@@ -197,7 +202,7 @@ function buildAlignmentItems(
     ...ALIGNMENT_TYPES.map((type) =>
       actionItem(
         `align-${type}`,
-        getAlignmentDescription(type),
+        getAlignmentLabelKey(type),
         () => alignSelection(context(), type),
         undefined,
         { icon: ALIGNMENT_ICONS[type] },
@@ -209,7 +214,7 @@ function buildAlignmentItems(
           ...DISTRIBUTION_TYPES.map((type) =>
             actionItem(
               `distribute-${type}`,
-              getDistributionDescription(type),
+              getDistributionLabelKey(type),
               () => distributeSelection(context(), type),
               undefined,
               { icon: DISTRIBUTION_ICONS[type] },
@@ -256,7 +261,7 @@ function buildElementMenuItems(
   const items: ContextMenuItem[] = [
     actionItem(
       "copy",
-      "복사 / Copy",
+      "contextMenu.copy",
       // `copySelection` 은 `Promise<boolean>` 이라 `run` 계약(`void | Promise<void>`)에
       // 그대로 맞지 않는다. 호출부(`ContextMenuOverlay`)가 이미 `void item.run()` 으로
       // 버리므로 결과를 여기서 흘려보내도 동작은 같다.
@@ -268,14 +273,14 @@ function buildElementMenuItems(
     ),
     actionItem(
       "paste",
-      request.scenePoint ? "여기에 붙여넣기 / Paste here" : "붙여넣기 / Paste",
+      request.scenePoint ? "contextMenu.pasteHere" : "contextMenu.paste",
       () => paste({ ...context(), scenePoint: request.scenePoint }),
       "paste",
       { icon: ACTION_ICONS.paste },
     ),
     actionItem(
       "duplicate",
-      "복제 / Duplicate",
+      "contextMenu.duplicate",
       () => duplicateSelection(context()),
       "duplicate",
       { icon: ACTION_ICONS.duplicate },
@@ -299,7 +304,7 @@ function buildElementMenuItems(
     items.push(
       actionItem(
         "group",
-        "그룹 만들기 / Group selection",
+        "contextMenu.group",
         () => groupSelection(context()),
         "group",
         { icon: ACTION_ICONS.group },
@@ -311,7 +316,7 @@ function buildElementMenuItems(
     items.push(
       actionItem(
         "ungroup",
-        "그룹 해제 / Ungroup",
+        "contextMenu.ungroup",
         () => ungroupSelection(context()),
         "ungroup",
         { icon: ACTION_ICONS.ungroup },
@@ -326,7 +331,7 @@ function buildElementMenuItems(
     items.push({
       kind: "submenu",
       id: "align",
-      label: "정렬 / Align",
+      labelKey: "contextMenu.align",
       icon: ACTION_ICONS.align,
       items: buildAlignmentItems(
         options,
@@ -340,7 +345,7 @@ function buildElementMenuItems(
   // 골라 넘기고 이 표면의 어법으로 그린다.
   //
   // 표면 고유 규칙 3개:
-  // 1. 라벨은 `한국어 / English` 병기 (`formatBilingualLabel`)
+  // 1. 라벨은 키만 싣는다 — 문자열은 오버레이가 `t()` 로 만든다 (ADR-200)
   // 2. 지금 누를 수 없는 항목은 **만들지 않는다** — 패널은 같은 상황에서 비활성
   //    버튼으로 자리를 지키지만 메뉴는 항목을 뺀다 (Figma/Pen 공통 관례)
   // 3. `detach-instance` 만 다중 선택을 받는다 — 선택 중 첫 detachable 을 집는
@@ -385,13 +390,17 @@ function buildElementMenuItems(
     if (!target) continue;
     if (!action.isAvailable(target, semanticsContext)) continue;
     if (action.isEnabled?.(target, semanticsContext) === false) continue;
+    const label = action.labelKey(target, semanticsContext);
     componentItems.push(
       actionItem(
         action.id,
-        formatBilingualLabel(action.label(target, semanticsContext)),
+        label.key,
         runComponentAction(action.id, target.id),
         action.commandId,
-        { icon: action.icon(target) },
+        {
+          icon: action.icon(target),
+          ...(label.params ? { labelParams: label.params } : {}),
+        },
       ),
     );
   }
@@ -408,7 +417,7 @@ function buildElementMenuItems(
     items.push(
       actionItem(
         "delete",
-        "삭제 / Delete",
+        "contextMenu.delete",
         () => deleteSelection(context()),
         "delete",
         // Pen 모델 — destructive 스타일 + 최하단 격리로 오클릭 완화 (ADR-182 §2)
@@ -430,7 +439,7 @@ function buildEmptyCanvasMenuItems(
   return [
     actionItem(
       "paste",
-      "여기에 붙여넣기 / Paste here",
+      "contextMenu.pasteHere",
       () => paste({ ...context(), scenePoint: request.scenePoint }),
       "paste",
       { icon: ACTION_ICONS.paste },
@@ -438,7 +447,7 @@ function buildEmptyCanvasMenuItems(
     { kind: "separator", id: "viewport-separator" },
     actionItem(
       "zoom-to-fit",
-      "화면에 맞추기 / Zoom to fit",
+      "contextMenu.zoomToFit",
       () => {
         const viewport = useViewportSyncStore.getState();
         if (
@@ -468,9 +477,9 @@ function buildEmptyCanvasMenuItems(
     {
       kind: "toggle",
       id: "show-rulers",
-      label: state.showRulers
-        ? "눈금자 숨기기 / Hide rulers"
-        : "눈금자 표시 / Show rulers",
+      labelKey: state.showRulers
+        ? "contextMenu.hideRulers"
+        : "contextMenu.showRulers",
       icon: ACTION_ICONS.toggleRulers,
       checked: state.showRulers,
       shortcutId: "toggleRulers",
@@ -480,7 +489,7 @@ function buildEmptyCanvasMenuItems(
     {
       kind: "toggle",
       id: "snap-to-objects",
-      label: "객체 스냅 / Snap to objects",
+      labelKey: "contextMenu.snapToObjects",
       icon: ACTION_ICONS.toggleSnap,
       checked: state.snapToObjects,
       run: () =>

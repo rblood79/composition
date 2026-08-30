@@ -30,13 +30,28 @@ provider 는 3 표면 (`canvas-element` / `canvas-empty` / `layer-item`) 에 같
 
 ## 4. provider 래핑 선행 전환 (R7)
 
-| 파일                                 | `render(` | `rerender(` | 전환 후                                            |
-| ------------------------------------ | --------: | ----------: | -------------------------------------------------- |
-| `ContextMenuOverlay.test.tsx`        |         4 |           0 | `renderWithI18n`                                   |
-| `ComponentSemanticsSection.test.tsx` |        20 |           0 | `renderWithI18n`                                   |
-| `CommandPalette.test.tsx`            |        10 |           2 | `renderWithI18n` (wrapper 는 `rerender` 에도 유지) |
+### 4-1. Phase 0 이 잡은 3파일 (기준: `label` 참조)
 
-합 **34 렌더**. 전환 후 3파일 34 tests PASS. `ContextualActionBar` 는 이미 `useI18n` (`:164`, `:206`) 을 쓰고 그 테스트가 `I18nProvider` 로 감싸져 있어 대상 밖.
+| 파일                                 | `render(` | `rerender(` |
+| ------------------------------------ | --------: | ----------: |
+| `ContextMenuOverlay.test.tsx`        |         4 |           0 |
+| `ComponentSemanticsSection.test.tsx` |        20 |           0 |
+| `CommandPalette.test.tsx`            |        10 |           2 |
+
+### 4-2. Phase 2 에서 드러난 4파일 — 기준 정정
+
+**기준은 `label` 참조가 아니라 표시 계층 _마운트_ 다.** 아래 4파일은 라벨 문자열을 전혀 읽지 않지만 오버레이·패널을 마운트해서 훅 요구가 생겼고, Phase 2 에서 `useI18n must be used within an I18nProvider` 로 9건이 깨진 뒤에야 드러났다.
+
+| 파일                                      | `render(` | 무엇을 마운트하나                            |
+| ----------------------------------------- | --------: | -------------------------------------------- |
+| `contextMenu/useContextMenu.test.tsx`     |         4 | `ContextMenuProvider` → `ContextMenuOverlay` |
+| `LayerTree/LayerTreeItemContent.test.tsx` |         1 | 행 → 공유 T1 메뉴                            |
+| `LayerTree/useLayerTreeData.test.tsx`     |         1 | 트리 렌더 1건                                |
+| `properties/FrameSlotSection.test.tsx`    |         8 | Component 섹션 공존 케이스                   |
+
+합 **7파일 47 렌더**. 전환 후 전수 PASS. `ContextualActionBar` 는 이미 `useI18n` (`:164`, `:206`) 을 쓰고 그 테스트가 감싸져 있어 처음부터 대상 밖이었다.
+
+**교훈**: 훅 도입의 영향 범위는 "그 값을 읽는 파일" 이 아니라 "그 컴포넌트를 마운트하는 파일" 로 센다. 전자는 grep 한 번이라 싸고 후자는 import 체인을 타야 해서, 싼 쪽 기준이 그대로 인벤토리가 됐다.
 
 ## 5. 진행 중 판단 (in-flight judgment)
 

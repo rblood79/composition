@@ -9,6 +9,7 @@ import {
   SubmenuTrigger,
   Text,
 } from "react-aria-components";
+import { useI18n } from "@/i18n";
 import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
 import { formatShortcut } from "../../../hooks";
 import type {
@@ -34,6 +35,7 @@ export function ContextMenuOverlay({
   items,
   onClose,
 }: ContextMenuOverlayProps) {
+  const { t } = useI18n();
   const anchorRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -78,12 +80,12 @@ export function ContextMenuOverlay({
         triggerRef={anchorRef}
       >
         <Menu
-          aria-label="Context menu"
+          aria-label={t("contextMenu.ariaLabel")}
           className="context-menu"
           onAction={() => undefined}
           ref={menuRef}
         >
-          {renderContextMenuItems(items, onClose)}
+          {renderContextMenuItems(items, onClose, t)}
         </Menu>
       </Popover>
     </>
@@ -98,6 +100,11 @@ export function ContextMenuOverlay({
 function renderContextMenuItems(
   items: readonly ContextMenuItem[],
   onClose: () => void,
+  /**
+   * 라벨은 여기서 만든다 — 항목은 키만 싣는다 (ADR-200). 이 함수는 컴포넌트가
+   * 아니라 훅을 못 쓰므로 오버레이가 받은 `t` 를 내려 준다.
+   */
+  t: (key: string, params?: Record<string, string | number | boolean>) => string,
 ) {
   const reservesIconColumn = items.some(
     (item) => item.kind !== "separator" && item.icon !== undefined,
@@ -111,6 +118,7 @@ function renderContextMenuItems(
     const icon = reservesIconColumn ? (
       <ContextMenuItemIcon icon={item.icon} />
     ) : null;
+    const label = t(item.labelKey, item.labelParams);
 
     if (item.kind === "submenu") {
       return (
@@ -118,7 +126,7 @@ function renderContextMenuItems(
           <MenuItem id={item.id} className="context-menu-item">
             {icon}
             <Text className="context-menu-item-label" slot="label">
-              {item.label}
+              {label}
             </Text>
             <ChevronRight
               aria-hidden="true"
@@ -131,8 +139,8 @@ function renderContextMenuItems(
             isNonModal
             placement="right top"
           >
-            <Menu aria-label={item.label} className="context-menu">
-              {renderContextMenuItems(item.items, onClose)}
+            <Menu aria-label={label} className="context-menu">
+              {renderContextMenuItems(item.items, onClose, t)}
             </Menu>
           </Popover>
         </SubmenuTrigger>
@@ -161,7 +169,7 @@ function renderContextMenuItems(
       >
         {icon}
         <Text className="context-menu-item-label" slot="label">
-          {item.label}
+          {label}
         </Text>
         {item.kind === "toggle" && item.checked && (
           <Check

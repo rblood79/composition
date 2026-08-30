@@ -16,7 +16,7 @@ const request: ContextMenuRequest = {
 describe("dropEmptySeparators — 빈 구간 구분선 정리 (code-review #10)", () => {
   const sep = (id: string) => ({ kind: "separator", id }) as const;
   const act = (id: string) =>
-    ({ kind: "action", id, label: id, run: () => undefined }) as const;
+    ({ kind: "action", id, labelKey: id, run: () => undefined }) as const;
 
   it("연속 구분선을 하나로 줄인다 (섹션이 통째로 빈 경우)", () => {
     const items = dropEmptySeparators([
@@ -71,7 +71,7 @@ describe("buildContextMenuItems", () => {
       {
         kind: "action" as const,
         id: "copy",
-        label: "Copy",
+        labelKey: "Copy",
         run: () => undefined,
       },
     ];
@@ -89,7 +89,7 @@ describe("buildContextMenuItems", () => {
       {
         kind: "action" as const,
         id: "provider",
-        label: "Provider",
+        labelKey: "Provider",
         run: () => undefined,
       },
     ];
@@ -97,7 +97,7 @@ describe("buildContextMenuItems", () => {
       {
         kind: "action" as const,
         id: "override",
-        label: "Override",
+        labelKey: "Override",
         run: () => undefined,
       },
     ];

@@ -10,7 +10,7 @@ const noop = () => undefined;
 const action = (id: string): ContextMenuItem => ({
   kind: "action",
   id,
-  label: id,
+  labelKey: id,
   run: noop,
 });
 

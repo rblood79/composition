@@ -66,21 +66,29 @@ function keepCanvasFocus(event: React.MouseEvent): void {
   event.preventDefault();
 }
 
+/** 항목은 키만 싣는다 — 바가 그리는 문자열은 여기서 만든다 (ADR-200). */
+function useItemLabel(item: ContextMenuItem): string {
+  const { t } = useI18n();
+  return item.kind === "separator" ? "" : t(item.labelKey, item.labelParams);
+}
+
 function ItemIcon({ item }: { item: ContextMenuItem }) {
+  const label = useItemLabel(item);
+  const Icon = item.kind === "separator" ? undefined : item.icon;
   if (item.kind === "separator") return null;
-  const Icon = item.icon;
-  if (!Icon) return <span>{item.label}</span>;
+  if (!Icon) return <span>{label}</span>;
   return <Icon size={ICON_SIZE} aria-hidden="true" />;
 }
 
 function ActionButton({ item }: { item: ContextMenuItem }) {
+  const label = useItemLabel(item);
   if (item.kind !== "action" && item.kind !== "toggle") return null;
   const button = (
     <Button
       variant="ghost"
       size="sm"
       className="contextual-action-bar-item"
-      aria-label={item.label}
+      aria-label={label}
       preventFocusOnPress
       onPress={() => {
         void item.run();
@@ -93,7 +101,7 @@ function ActionButton({ item }: { item: ContextMenuItem }) {
   return (
     <ShortcutTooltip
       shortcutId={item.shortcutId}
-      label={item.label}
+      label={label}
       placement="top"
     >
       {button}
@@ -107,6 +115,8 @@ function AlignPopover({
 }: {
   item: Extract<ContextMenuItem, { kind: "submenu" }>;
 }) {
+  const { t } = useI18n();
+  const label = useItemLabel(item);
   const runnable = item.items.filter(
     (child): child is Extract<ContextMenuItem, { kind: "action" }> =>
       child.kind === "action",
@@ -125,7 +135,7 @@ function AlignPopover({
         size="sm"
         className="contextual-action-bar-item"
         data-context="multi"
-        aria-label={item.label}
+        aria-label={label}
         preventFocusOnPress
       >
         <ItemIcon item={item} />
@@ -137,12 +147,16 @@ function AlignPopover({
         className="contextual-action-bar-align-popover"
       >
         <Menu
-          aria-label={item.label}
+          aria-label={label}
           className="contextual-action-bar-align-grid"
           onAction={onAction}
         >
           {runnable.map((child) => (
-            <MenuItem key={child.id} id={child.id} aria-label={child.label}>
+            <MenuItem
+              key={child.id}
+              id={child.id}
+              aria-label={t(child.labelKey, child.labelParams)}
+            >
               <ItemIcon item={child} />
             </MenuItem>
           ))}

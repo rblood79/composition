@@ -25,14 +25,14 @@
 
 `contextMenu` 라는 문자열은 `translations.ts` / `types.ts` 에 **0회** 등장 — 메뉴용 키가 애초에 없다.
 
-### 2-2. 신설 키 (총 117)
+### 2-2. 신설 키 (총 118)
 
 | 키 묶음             |  수 | 내역                                                                               |
 | ------------------- | --: | ---------------------------------------------------------------------------------- |
 | `contextMenu.*`     |  25 | 항목 라벨 16 + 정렬 6 + 분배 2 + 메뉴 `aria-label` 1 (`ContextMenuOverlay.tsx:81`) |
 | `command.*`         |  72 | `SHORTCUT_DEFINITIONS` 전 항목 (`description` → en, `i18n.ko` → ko)                |
 | `commandPalette.*`  |  16 | 카테고리 8 (`CommandPalette.tsx:85-92`) + scope 힌트 8 (`:97-104`)                 |
-| `componentAction.*` |   4 | ADR-199 레지스트리 4액션                                                           |
+| `componentAction.*` |   5 | ADR-199 레지스트리 4액션 (`toggle-component-origin` 은 만들기/분리 2키)            |
 
 ### 2-3. 표면 4개 (같은 라벨을 그리는 곳)
 
@@ -40,16 +40,18 @@
 
 ## 3. Phase 분해
 
-| Phase | 내용                                                                                                                                                                          |  risk   | Gate                        |
-| ----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-----: | --------------------------- |
-|     0 | ✅ **Implemented 2026-08-30** — 인벤토리 freeze (`evidence/200-label-channel-inventory.md`) + Gate RED 기준선 실측 + 표시 계층 테스트 provider 래핑 선행 전환 (§5-2, 34 렌더) |   LOW   | G4 ✅ (3파일 34 tests PASS) |
-|     1 | 카탈로그: `TranslationKeys` 확장 + ko/en `contextMenu.*` 25 추가                                                                                                              |   LOW   | G1                          |
-|     2 | 메뉴 스키마 + 표시 계층: `label` → `labelKey`, provider 25 전환, Overlay/ActionBar 가 `t()` 로 해소                                                                           | **MED** | G1·G2·G4                    |
-|     3 | 명령 라벨: `command.*` 72 + `commandPalette.*` 16, `ShortcutDefinition.i18n` 제거, 소비 3곳 전환                                                                              | **MED** | G3·G4                       |
-|     4 | ADR-199 레지스트리: `label(): {en,ko}` → `labelKey`, 3 표면 어법 재적용, 199 게이트 재정렬                                                                                    |   MED   | G4                          |
-|     5 | 게이트 전수 GREEN + Live Exercise + closure 5단계                                                                                                                             |   LOW   | G1~G5                       |
+| Phase | 내용                                                                                                                                                                           |  risk   | Gate            |
+| ----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :-----: | --------------- |
+|     0 | ✅ **Implemented 2026-08-30** — 인벤토리 freeze (`evidence/200-label-channel-inventory.md`) + Gate RED 기준선 실측 + 표시 계층 테스트 provider 래핑 선행 전환 (§5-2)           |   LOW   | G4 ✅           |
+|     1 | ✅ **Implemented 2026-08-30** — `TranslationKeys.contextMenu` + ko/en 25 키, G1 게이트 (`i18n/labelKeyCatalog.static.test.ts`) 신설                                            |   LOW   | G1 ✅ (3 tests) |
+|     2 | ✅ **Implemented 2026-08-30** — `label` → `labelKey`(+`labelParams`), provider 25 전환, Overlay/ActionBar/패널이 `t()` 로 해소, G2 게이트 신설. **Phase 4 흡수** (아래 판단 2) | **MED** | G1·G2·G4 ✅     |
+|     3 | 명령 라벨: `command.*` 72 + `commandPalette.*` 16, `ShortcutDefinition.i18n` 제거, 소비 3곳 전환                                                                               | **MED** | G3·G4           |
+|     4 | ✅ **Phase 2 에 흡수 2026-08-30** — 레지스트리 `label(): {en,ko}` → `labelKey(): {key, params?}`, 199 테스트 재정렬                                                            |   MED   | G4 ✅           |
+|     5 | 게이트 전수 GREEN + Live Exercise + closure 5단계                                                                                                                              |   LOW   | G1~G5           |
 
 Phase 2 는 타입 변경과 표시 계층 전환이 같은 커밋이어야 type-check 가 성립하므로 분리하지 않는다.
+
+**진행 중 판단 2 (2026-08-30)**: **Phase 4 (ADR-199 레지스트리 라벨) 를 Phase 2 에 흡수**했다. 항목이 `labelKey` 만 싣게 되는 순간 provider 는 레지스트리가 돌려주는 완성 문자열(`{en, ko}`)을 실을 자리가 없어진다 — 두 변경은 같은 커밋이 아니면 type-check 가 서지 않는다 (Phase 2 를 쪼개지 않는 것과 같은 이유). 총량은 그대로이고 커밋 경계만 바뀌었다. Phase 3 (명령 라벨) 은 그대로 분리 유지.
 
 **진행 중 판단 (2026-08-30)**: 정적 게이트 3종의 **커밋 시점**을 Phase 0 에서 각 게이트가 GREEN 되는 phase 로 옮겼다 (G1 → Phase 1, G2 → Phase 2, G3 → Phase 3). RED 테스트를 main 에 커밋하면 남은 phase 내내 스위트가 빨간 채로 남는다 — RED 사실은 evidence 문서 §3 의 실측 기준선 (G1 0 · G2 16 · G3 3 + 1/72) 으로 대체 기록했다. 사유·근거: `evidence/200-label-channel-inventory.md` §5.
 

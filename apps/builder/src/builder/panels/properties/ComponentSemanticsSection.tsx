@@ -30,6 +30,7 @@ import {
   useCanonicalPropertyElement,
   useCanonicalPropertyElementsMap,
 } from "./hooks/useCanonicalPropertyRead";
+import { useI18n } from "@/i18n";
 import type { PanelNode } from "../panelNode";
 
 /**
@@ -106,6 +107,7 @@ function isFrameBodyElement(element: PanelNode): boolean {
 
 export const ComponentSemanticsSection = memo(
   function ComponentSemanticsSection({ elementId }: { elementId: string }) {
+    const { t } = useI18n();
     const element = useCanonicalPropertyElement(elementId);
     const elementsById = useCanonicalPropertyElementsMap();
     const lookupElements = useMemo(
@@ -236,7 +238,8 @@ export const ComponentSemanticsSection = memo(
         <div className="component-semantics-toolbar">
           {semanticsActions.map((action) => {
             if (!semanticsTarget) return null;
-            const label = action.label(semanticsTarget, availability).en;
+            const actionLabel = action.labelKey(semanticsTarget, availability);
+            const label = t(actionLabel.key, actionLabel.params);
             const Icon = action.icon(semanticsTarget);
             // 컴포넌트 축만 라벨을 달고 나머지는 아이콘 전용이다. 앞에 아이콘이
             // 3개 서는 조합 (인스턴스이면서 원본 + 인스턴스 보유) 만 라벨까지

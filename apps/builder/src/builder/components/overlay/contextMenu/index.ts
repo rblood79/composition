@@ -28,4 +28,5 @@ export type {
   ContextMenuRequest,
   ContextMenuState,
   ContextMenuSurface,
+  LabelParams,
 } from "./types";

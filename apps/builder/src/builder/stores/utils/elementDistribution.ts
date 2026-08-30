@@ -281,11 +281,15 @@ export function distributeElements(
  * @param type - Distribution type
  * @returns Human-readable description
  */
-export function getDistributionDescription(type: DistributionType): string {
-  const descriptions: Record<DistributionType, string> = {
-    horizontal: "수평 균등 분산",
-    vertical: "수직 균등 분산",
+/**
+ * 라벨 **키** — 문자열은 표시 계층이 `t()` 로 만든다 (ADR-200). 종전에는 이
+ * 함수가 한국어 문자열을 돌려줘 정렬 서브메뉴만 언어 설정을 무시했다.
+ */
+export function getDistributionLabelKey(type: DistributionType): string {
+  const keys: Record<DistributionType, string> = {
+    horizontal: "contextMenu.distributeHorizontal",
+    vertical: "contextMenu.distributeVertical",
   };
 
-  return descriptions[type];
+  return keys[type];
 }

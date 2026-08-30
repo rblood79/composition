@@ -74,9 +74,14 @@ export interface ActionAvailabilityContext {
   selectionSize: number;
 }
 
-export interface ActionLabel {
-  en: string;
-  ko: string;
+/**
+ * 라벨은 **키**로만 정의한다 — 문자열은 표시 계층이 `t()` 로 만든다 (ADR-200).
+ * 레지스트리가 완성된 문자열을 들면 표면마다 언어를 따로 고르게 되고, 그게
+ * 병기·`.en` 고정으로 갈렸던 원인이다.
+ */
+export interface ActionLabelKey {
+  key: string;
+  params?: Record<string, string | number | boolean>;
 }
 
 export interface ComponentSemanticsActionDescriptor {
@@ -85,11 +90,11 @@ export interface ComponentSemanticsActionDescriptor {
   commandId?: ShortcutId;
   /** 노출 표면. 순서는 이 배열이 아니라 `COMPONENT_SEMANTICS_ACTIONS` 순서다. */
   surfaces: readonly ActionSurface[];
-  /** 라벨 원본은 여기 한 곳 — 메뉴는 `ko / en` 병기, 패널은 `en` 을 고른다. */
-  label(
+  /** 라벨 원본은 여기 한 곳 — 표면은 키를 받아 자기 locale 로 그린다. */
+  labelKey(
     target: EditingSemanticsTarget,
     context: ActionAvailabilityContext,
-  ): ActionLabel;
+  ): ActionLabelKey;
   icon(target: EditingSemanticsTarget): ActionIcon;
   isAvailable(
     target: EditingSemanticsTarget,
@@ -120,7 +125,7 @@ export const COMPONENT_SEMANTICS_ACTIONS: readonly ComponentSemanticsActionDescr
     {
       id: "go-to-origin",
       surfaces: ALL_SURFACES,
-      label: () => ({ en: "Go to component", ko: "원본으로 이동" }),
+      labelKey: () => ({ key: "componentAction.goToOrigin" }),
       icon: () => ACTION_ICONS.goToOrigin,
       isAvailable: (target) => isEditingSemanticsInstance(target),
       isEnabled: (_target, context) => context.hasResolvedOrigin,
@@ -129,7 +134,7 @@ export const COMPONENT_SEMANTICS_ACTIONS: readonly ComponentSemanticsActionDescr
       id: "detach-instance",
       commandId: "detachInstance",
       surfaces: ALL_SURFACES,
-      label: () => ({ en: "Detach instance", ko: "인스턴스 분리" }),
+      labelKey: () => ({ key: "componentAction.detachInstance" }),
       icon: () => ACTION_ICONS.detach,
       isAvailable: (target) => canDetachInstance(target),
     },
@@ -139,9 +144,9 @@ export const COMPONENT_SEMANTICS_ACTIONS: readonly ComponentSemanticsActionDescr
       // 메뉴/바에 실으려면 그 계약부터 넓혀야 하므로 여기서 조용히 늘리지
       // 않는다 (Phase 0 freeze §5).
       surfaces: ["properties-panel"],
-      label: (_target, context) => ({
-        en: `Select instances (${context.instanceCount})`,
-        ko: `인스턴스 선택 (${context.instanceCount})`,
+      labelKey: (_target, context) => ({
+        key: "componentAction.selectInstances",
+        params: { count: context.instanceCount },
       }),
       icon: () => Diamond,
       isAvailable: (target, context) =>
@@ -153,10 +158,11 @@ export const COMPONENT_SEMANTICS_ACTIONS: readonly ComponentSemanticsActionDescr
       surfaces: ALL_SURFACES,
       // 생성/해제 양방향 토글이라 그림도 함께 뒤집는다 — 라벨만 바뀌고 그림이
       // 고정이면 어느 방향인지 아이콘이 말해 주지 않는다.
-      label: (target) =>
-        isEditingSemanticsOrigin(target)
-          ? { en: "Detach component", ko: "컴포넌트 분리" }
-          : { en: "Create component", ko: "컴포넌트 만들기" },
+      labelKey: (target) => ({
+        key: isEditingSemanticsOrigin(target)
+          ? "componentAction.detachComponent"
+          : "componentAction.createComponent",
+      }),
       icon: (target) =>
         isEditingSemanticsOrigin(target)
           ? ACTION_ICONS.detach
@@ -188,7 +194,3 @@ export function resolveComponentSemanticsActions(
   );
 }
 
-/** 메뉴 어법 (`한국어 / English`). 문자열 조립도 한 곳에 둔다. */
-export function formatBilingualLabel(label: ActionLabel): string {
-  return `${label.ko} / ${label.en}`;
-}
