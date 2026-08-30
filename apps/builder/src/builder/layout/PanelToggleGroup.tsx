@@ -89,21 +89,19 @@ export const PanelToggleGroup = memo(function PanelToggleGroup({
               tooltipPlacement={tooltipPlacement}
             >
               <ToggleButton id={panelId} aria-label={panelName}>
-                {({ isSelected }) =>
-                  config.statePair ? (
-                    <StateIcon
-                      pair={config.statePair}
-                      on={isSelected}
-                      strokeWidth={iconProps.strokeWidth}
-                      size={iconProps.size}
-                    />
-                  ) : (
-                    <Icon
-                      strokeWidth={iconProps.strokeWidth}
-                      size={iconProps.size}
-                    />
-                  )
-                }
+                {config.statePair ? (
+                  <StateIcon
+                    pair={config.statePair}
+                    on={activePanelIds.has(panelId)}
+                    strokeWidth={iconProps.strokeWidth}
+                    size={iconProps.size}
+                  />
+                ) : (
+                  <Icon
+                    strokeWidth={iconProps.strokeWidth}
+                    size={iconProps.size}
+                  />
+                )}
               </ToggleButton>
             </ActionTooltipTrigger>
           );

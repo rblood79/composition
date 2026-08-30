@@ -142,7 +142,15 @@ Accepted — 2026-08-30 (계약 확장 2026-08-30: `MorphIcon` 의 `icon` prop =
 
 **2026-08-30 (Chrome MCP, dev 5173, 보이는 탭)** — Phase 2 부분 통과. 확인: Action Bar 옵션 메뉴의 Pin 이 `MorphIcon` 으로 렌더 (단일 `<path>` · canonical cubic, 같은 메뉴의 lucide 항목은 path 2·4개) · pin 토글 후 형태 교체 · 보이는 컨트롤에서 driver 부착. 미확인 (테스트로 고정): 비행 프레임과 정지 canonical 복귀 · reduced-motion — `MorphIcon.settle.test.tsx` 가 실제 driver 로 검증.
 
-**2026-08-30 Phase 3** — 레지스트리 10쌍 (`inset`/`step`/`ai`/`compare` 추가) 이 테스트로 고정. 전환 프레임의 눈 확인은 **잔여**: Chrome MCP 가 모는 창이 백그라운드라 `visibilityState: "hidden"` 이고 rAF 가 0 프레임 실행된다 (40 요청 → 0 실행 실측). 이 상태에서는 어떤 morph 도 움직이지 않으므로 라이브 판정 자체가 성립하지 않는다.
+**2026-08-30 Phase 3 (포그라운드 탭 실측)** — 전환 전 과정을 라이브로 확인했다.
+
+| 시나리오         | 결과                                                                                                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Theme 토글       | sun canonical (C 12 / len 405) → **비행 10 프레임 전부 polyline** (L 567, 프레임마다 길이 상이) → moon canonical 복귀 (C 7 / len 318) — R3 확인                          |
+| AI rail 토글     | bot canonical (C 14 / 372) → polyline (L 441 × 8 프레임) → bot-off canonical (C 15 / 446). `aria-pressed` 와 형태 일치 — `statePair` 채널 확인                           |
+| rail 아이콘 회귀 | Phase 3 초판이 `ToggleButton` render prop 을 써 rail 10개 아이콘이 전부 사라졌다 (shared `ToggleButton` 은 element children 만 받는다). 즉시 수정 + 회귀 테스트 2개 추가 |
+
+전환 프레임 측정은 **탭이 포그라운드일 때만** 성립한다 — 백그라운드에서는 rAF 가 0 프레임 실행돼 (40 요청 → 0 실행 실측) 어떤 morph 도 움직이지 않는다.
 
 **측정 조건 (필수)**: ① 창이 **포그라운드** 일 것 (`document.visibilityState === "visible"`) — 아니면 rAF 정지로 "동작 안 함" 오독. ② 패널은 `<Activity>` 안이라 (`layout/PanelWorkspace.tsx:388`) 닫힌 패널은 DOM 이 남은 채 effect 가 해제된다 — 컨트롤이 실제로 보일 때만 판정 (breakdown §6-2).
 

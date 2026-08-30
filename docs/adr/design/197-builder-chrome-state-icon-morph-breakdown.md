@@ -195,8 +195,12 @@ const SQUARE_OFF_NODE: IconNode = [["path", { d: "M20.4 20.4a2 2 0 0 1-1.4.6H5�
 // StateIcon — boolean 전용. 레지스트리 키만 받는다 (짝 없는 토글은 쓰지 않음 = fallback).
 <StateIcon pair="lock" on={locked} size={16} />
 
-// RAC ToggleButton render prop
-<ToggleButton id="ai" aria-label={name}>{({ isSelected }) => <StateIcon pair="ai" on={isSelected} />}</ToggleButton>
+// RAC ToggleButton — **render prop 금지**. shared/ToggleButton 은 children 을
+// string/element 로만 받는다 (ToggleButton.tsx:94). 열림 여부는 호출부가 이미 아는
+// 상태에서 가져온다 (PanelToggleGroup 은 activePanelIds).
+<ToggleButton id="ai" aria-label={name}>
+  <StateIcon pair="ai" on={activePanelIds.has(panelId)} />
+</ToggleButton>
 
 // 삼항 교체 예 (ContextualActionBar)
 - const PinIcon = pinned ? PinOff : Pin;  <PinIcon size={MENU_ICON_SIZE} aria-hidden="true" />
@@ -309,13 +313,15 @@ Gate G3: 추가 pair 마다 statePairs 테스트 + live 1회 + §2-3 정본 경�
 
 ### 6-1. 2026-08-30 실행 결과 (Chrome MCP, dev 5173, 보이는 탭)
 
-| 확인                     | 결과                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Action Bar 옵션 메뉴 Pin | ✅ `MorphIcon` 이 렌더 — **단일 `<path>`**, canonical cubic 4자리 (`M12 17C12 18.6667…`). 같은 메뉴의 lucide 항목은 path 2·4개로 대조됨                                                                                                                                                                                                                         |
-| 상태 매핑                | ✅ pin 토글 후 재개봉 시 canonical 이 다른 형태로 교체 (C 7 → C 14)                                                                                                                                                                                                                                                                                             |
-| driver 부착              | ✅ 보이는 컨트롤에서 `createMorph` 실행 확인 (임시 DOM 마커로 측정 후 제거)                                                                                                                                                                                                                                                                                     |
-| 비행 프레임 · 정지 복귀  | ⚠️ **이 환경에서는 측정 불가** — Chrome MCP 가 모는 창이 백그라운드라 `document.visibilityState === "hidden"` 이고 rAF 가 한 프레임도 실행되지 않는다 (실측 2026-08-30: 40 프레임 요청 → 0 실행, 페이지 world 에 심은 순수 driver probe 도 동일). **실제 driver 를 쓰는 테스트** 로 고정 (`MorphIcon.settle.test.tsx`) — 창을 앞으로 꺼낸 상태의 눈 확인은 잔여 |
-| reduced-motion           | ⚠️ 라이브 미확인 (OS 설정 전환 불가) — 같은 테스트의 `matchMedia` 케이스로 고정                                                                                                                                                                                                                                                                                 |
+| 확인                     | 결과                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Action Bar 옵션 메뉴 Pin | ✅ `MorphIcon` 이 렌더 — **단일 `<path>`**, canonical cubic 4자리 (`M12 17C12 18.6667…`). 같은 메뉴의 lucide 항목은 path 2·4개로 대조됨                                                                                                                                                                                                                               |
+| 상태 매핑                | ✅ pin 토글 후 재개봉 시 canonical 이 다른 형태로 교체 (C 7 → C 14)                                                                                                                                                                                                                                                                                                   |
+| driver 부착              | ✅ 보이는 컨트롤에서 `createMorph` 실행 확인 (임시 DOM 마커로 측정 후 제거)                                                                                                                                                                                                                                                                                           |
+| **전환 전 과정 (Theme)** | ✅ 2026-08-30 포그라운드 탭 실측 — sun canonical (C 12 / 405) → 비행 10 프레임 전부 polyline (L 567, 프레임마다 길이 상이) → moon canonical 복귀 (C 7 / 318). R3 (정지 fidelity) 라이브 확인                                                                                                                                                                          |
+| **AI rail 토글**         | ✅ bot canonical (C 14 / 372) → polyline (L 441 × 8 프레임) → bot-off canonical (C 15 / 446), `aria-pressed` 와 형태 일치                                                                                                                                                                                                                                             |
+| 비행 프레임 (초기 시도)  | ⚠️ **백그라운드 탭에서는 측정 불가** — Chrome MCP 가 모는 창이 백그라운드라 `document.visibilityState === "hidden"` 이고 rAF 가 한 프레임도 실행되지 않는다 (실측 2026-08-30: 40 프레임 요청 → 0 실행, 페이지 world 에 심은 순수 driver probe 도 동일). **실제 driver 를 쓰는 테스트** 로 고정 (`MorphIcon.settle.test.tsx`) — 창을 앞으로 꺼낸 상태의 눈 확인은 잔여 |
+| reduced-motion           | ⚠️ 라이브 미확인 (OS 설정 전환 불가) — 같은 테스트의 `matchMedia` 케이스로 고정                                                                                                                                                                                                                                                                                       |
 
 ### 6-2. 측정 조건 함정 (실측 발견 — 재현 시 필수)
 
