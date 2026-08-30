@@ -158,10 +158,12 @@ describe("ADR-198 Phase 0 — Preview leg (task 4)", () => {
     expect(previewReady).toBe(true);
     // page 노드는 통합 fixture 에서도 도달한다.
     expect(rendered.page).toBeTruthy();
-    // outer/inner 는 **현재 도달하지 않는다** — 통합 fixture 가 page frame 아래
-    // `Body` 를 두고 `metadata.type: "legacy-page"` 를 붙인 형태로 바뀐 뒤부터다.
-    // 더 단순한 형태(page frame > frame > frame)에서는 3/3 이 칠해졌다.
-    // 두 leg 을 동시에 만족하는 문서 형태를 찾는 것이 Phase 1 의 산출물이므로,
+    // outer/inner 는 **현재 도달하지 않는다**. 원인은 `shapeProbe.browser.test.ts`
+    // 가 단일 축으로 확정했다 — **`Body` 래퍼** 다 (S1/S2 는 3/3, S3/S4 는 page 만).
+    // `legacy-page` metadata 도 색 표기(hex6/hex8)도 이 축이 아니다.
+    // 그런데 Skia 체인은 `Body` 를 **요구** 한다 (`buildPageLayoutPublisherInput`
+    // 이 `pageSnapshot.bodyElement` 없으면 null). 두 consumer 가 파일럿 fixture
+    // 에서 정면 충돌하고, 그게 G0 를 막는 지점이다 — Phase 1 이 받는다.
     // 여기서는 통과시키려 형태를 되돌리지 않고 **현재 사실을 고정**한다.
     expect(rendered.outer).toBeNull();
     expect(rendered.inner).toBeNull();
