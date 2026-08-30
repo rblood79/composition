@@ -130,6 +130,96 @@ Seven verification disciplines extracted from the 2026-08-30 vgpu.sh review
 | 6   | Doctor probe renders and verifies a known frame before the suite     | Phase 0 task 3, Phase 5 task 2                   |
 | 7   | Stable failure codes as a self-correction map                        | §3.7 `code` field, Phase 4 task 5                |
 
+### 2.4 Phase 0 measured evidence (2026-08-31)
+
+Host: pinned `@vitest/browser` Chromium (`chromium-headless-shell` v1237,
+Chrome Headless Shell 152.0.7977.8), `canvaskit-wasm@0.42.0`,
+`apps/builder/public/wasm/canvaskit.wasm`. Harness:
+`apps/builder/tests/visual-parity/`, config
+`apps/builder/vitest.visual-parity.config.ts` (inherits
+`vitest.browser.config.ts` pins; `include` is replaced, not merged).
+
+**Host decision (frozen)**: browser host, not Node.
+`initCanvasKit.ts:31-68` reads `window[CK_GLOBAL_KEY]` and
+`import.meta.env.BASE_URL`; a Node loader would have to reproduce production
+initialization, which HC3 forbids. The already-pinned ADR-156 browser runner
+resolves every `@/` alias and serves `public/wasm/`, so it hosts the Skia leg
+with no second pin source. Full suite runtime: **2.6s cold, 0.7s warm** for 8
+cases — far inside the HC10 90s smoke ceiling.
+
+**Doctor fixture (HC11)**: `MakeSurface(64,64)` → round-rect + stroke →
+`readPixels`. Centre pixel equals the requested RGBA exactly, background equals
+the requested RGBA, variance 5875. A blank or black frame is therefore
+detectable before any comparison.
+
+**Determinism (HC5/G2)**: SW leg, 10 consecutive runs — 1 distinct hash
+(`b642b059`), worst `maxByte` between runs **0**.
+
+**R13 — SW (`MakeSurface`) versus production GL (`MakeWebGLCanvasSurface`)**,
+same CanvasKit, same Chromium, 64×64, `RGBA_8888`/`Unpremul`/`SRGB`. "inner" is
+a 16×16 crop well inside the shape, past the edge band:
+
+| Paint family       | Fixture                  | full `maxByte` | full `changedFraction` | inner `maxByte` | inner `changedFraction` |
+| ------------------ | ------------------------ | -------------: | ---------------------: | --------------: | ----------------------: |
+| solid fill         | hard rect, AA off        |          **0** |           **0.000000** |               0 |                0.000000 |
+| gradient dithering | linear gradient, full    |          **0** |           **0.000000** |               0 |                0.000000 |
+| antialiasing       | round rect, AA on        |             59 |               0.012451 |           **0** |            **0.000000** |
+| clip edges         | AA clipRRect + flat fill |             25 |               0.013611 |           **0** |            **0.000000** |
+| blur/shadow        | MaskFilter blur σ4       |          **3** |               0.195557 |               2 |                0.441406 |
+
+Three conclusions, each load-bearing for the rest of the ADR:
+
+1. **SW is a valid stand-in for GL on colour.** Solid fill and gradients are
+   byte-identical, so there is no colour-space, gamma, or premultiply
+   divergence between the two backends. The gate does **not** have to narrow
+   its claim to "software-rasterized Skia".
+2. **The divergence is edge-localised.** Antialiased and clipped shapes differ
+   only in the edge band; interiors are byte-identical. Edge bands need to be
+   an explicit region kind rather than being averaged into a whole-region
+   budget.
+3. **A ratio-only budget mis-ranks severity.** Blur differs across 19.6% of the
+   frame at `maxByte 3` (invisible), while AA edges differ across 1.2% at
+   `maxByte 59` (a visible hairline). The L3 rule as originally written would
+   block the first and pass the second. HC6 now requires both a ratio and an
+   amplitude ceiling, and this is the measurement that forced it.
+
+**Wall-clock inventory (HC5, frozen)**: `transitionManager.ts:40,77`,
+`animationEngine.ts:42`, `types.ts:247,273`. No injection seam exists; grep for
+an injected `now`/`clock`/`timeSource` in `skia/` returns 0. Decision:
+**volatile-set-0 fixtures**, no clock seam — `nodePictureCache.ts::setVolatileNodeIds`
+already isolates in-place mutation, so a fixture with no transition or
+animation reads no wall clock on the capture path.
+
+**`exportToImage` lifecycle (task 2, frozen)**: `grep -rn exportToImage apps/builder/src packages`
+returns the definition only — **0 production callers**. It is an available seam,
+not an exercised path. It calls `rootNode.renderSkia(canvas, cullingBounds)`
+(`export.ts:82`), the same entry `SkiaRenderer.ts:716,844,1126,1128` uses on the
+production content node built at `skiaFramePipeline.ts:285`, so routing the leg
+through it satisfies HC3 — but it carries no production coverage of its own and
+must be asserted, not assumed.
+
+**Dependency ownership (task 5, R9)**: `pixelmatch@7.2.0` / `pngjs@7.0.0` are
+declared in `packages/specs/package.json:60,61`; the harness lives in
+`apps/builder`, so Phase 4 must declare them in the Builder workspace rather
+than rely on hoisting. **Environment drift found**: the root declares
+`playwright@1.62.1` (browser build v1234) while `@vitest/browser-playwright@4.1.11`
+resolves `playwright@1.63.0-alpha-2026-08-05` (browser build v1237). `npx playwright install`
+therefore installs the wrong binary and the browser runner fails with
+"Executable doesn't exist … chromium_headless_shell-1237". The pinned
+environment manifest must record the **vitest-resolved** Playwright version, and
+CI must install through that resolution.
+
+**Blocker found for the production pilot (task 3, second half)**:
+`buildSkiaFrameContent` returns `null` unless `getSharedLayoutMap()`
+(`fullTreeLayout.ts:485`) has been published, and it consumes a full
+`SkiaRendererInput` — scene snapshot, page snapshots, page/frame positions,
+projection index (`rendererInput.ts:461-500`). Reaching a production content
+node therefore needs a layout publish plus renderer-input construction, which is
+Phase 2's scope, not an inventory task. The seam is clean and callable
+(`calculateFullTreeLayout` / `publishLayoutMap` are exported and already used by
+`tests/parity/harness.ts`), so no architectural change is required — only the
+work itself.
+
 ## 3. Target Test Architecture
 
 ### 3.1 Data flow
@@ -204,8 +294,10 @@ interface VisualParityCase {
 interface VisualParityRegion {
   id: string;
   nodeIds: string[];
-  kind: "geometry" | "non-text" | "text" | "raster";
+  kind: "geometry" | "non-text" | "edge" | "text" | "raster";
   maxDiffRatio?: number;
+  /** 진폭 상한 (0-255). ratio 와 AND 로 판정 — §2.4 실측 근거. */
+  maxByte?: number;
   mask?: Rect[];
   reason?: string;
   owner?: string;
@@ -286,14 +378,15 @@ Normalization is deliberately narrow:
 
 Comparison layers execute in order:
 
-| Layer              | Comparison                                               | Initial blocking rule                                                         |
-| ------------------ | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| L-live liveness    | per leg: painted node count, per-region pixel variance   | count ≥1; variance ≥ fixture floor; else `PARITY-LIVE`                        |
-| L0 identity        | document/environment/resource checksum and node order    | exact equality                                                                |
-| L1 geometry        | per-node `x/y/width/height`, clip/artboard bounds        | each delta ≤1 CSS px                                                          |
-| L2 resolved style  | region-relevant color, border, radius, typography inputs | exact normalized values unless ledgered                                       |
-| L3 non-text pixels | `pixelmatch` on finite regions + byte metrics            | threshold 0.1, diff ratio ≤0.001; `maxByte/meanByte/changedFraction` recorded |
-| L4 text/raster     | geometry/style plus ratcheted pixel metric               | explicit per-region budget; no inherited global mask                          |
+| Layer              | Comparison                                               | Initial blocking rule                                                                         |
+| ------------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| L-live liveness    | per leg: painted node count, per-region pixel variance   | count ≥1; variance ≥ fixture floor; else `PARITY-LIVE`                                        |
+| L0 identity        | document/environment/resource checksum and node order    | exact equality                                                                                |
+| L1 geometry        | per-node `x/y/width/height`, clip/artboard bounds        | each delta ≤1 CSS px                                                                          |
+| L2 resolved style  | region-relevant color, border, radius, typography inputs | exact normalized values unless ledgered                                                       |
+| L3 non-text pixels | `pixelmatch` on finite regions + byte metrics            | threshold 0.1; fails only when diff ratio >0.001 **and** `maxByte` exceeds the region ceiling |
+| L3e edge bands     | AA / clip edge band of each region                       | own ratio + `maxByte` ceiling; may not be averaged into L3                                    |
+| L4 text/raster     | geometry/style plus ratcheted pixel metric               | explicit per-region budget; no inherited global mask                                          |
 
 L3's `0.001` ceiling begins from the existing constitutional constant but must
 be proven by Phase 0/4 pilots. It may only be changed by revising the ADR before
@@ -301,7 +394,13 @@ Accepted; implementation cannot quietly raise it.
 
 Same-rasterizer comparisons — the 10-run determinism check in G2 and any
 Skia-versus-Skia oracle reused from ADR-189/190 — use `maxByte = 0` exact
-equality, never the perceptual `pixelmatch` threshold. The byte metrics exist so
+equality, never the perceptual `pixelmatch` threshold.
+
+§2.4 measured why ratio alone cannot block: blur differs across 19.6% of a frame
+at `maxByte 3` while an AA hairline differs across 1.2% at `maxByte 59`. Region
+budgets therefore carry both numbers, and `VisualParityRegion` gains a
+`maxByte` field alongside `maxDiffRatio` plus an `"edge"` kind for AA and clip
+bands. The byte metrics exist so
 that a one-token color change in a low-contrast region cannot be absorbed by the
 YIQ distance alone; the Phase 4 token-color probe must fail on `maxByte` as well
 as on ratio.
