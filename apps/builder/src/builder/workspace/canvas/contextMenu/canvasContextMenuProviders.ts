@@ -19,11 +19,16 @@ import {
   getDistributionDescription,
   type DistributionType,
 } from "../../../stores/utils/elementDistribution";
+import {
+  COMPONENT_SEMANTICS_ACTIONS,
+  formatBilingualLabel,
+  toEditingSemanticsTarget,
+  type ComponentSemanticsActionId,
+} from "../../../config/componentSemanticsActions";
 import { useStore } from "../../../stores";
 import {
   canDetachInstance,
   getEditingSemanticsOriginId,
-  isEditingSemanticsOrigin,
 } from "../../../utils/editingSemantics";
 import { requestEditingSemanticsDetachConfirmation } from "../../../utils/editingSemanticsImpactConfirmation";
 import { registerContextMenuProvider } from "../../../components/overlay/contextMenu";
@@ -243,10 +248,6 @@ function buildElementMenuItems(
     ? getEditingSemanticsOriginId(primaryElement)
     : null;
   const originElement = originId ? elementsMap.get(originId) : undefined;
-  // 판정은 `reusable` 축 하나 — 인스턴스이면서 원본인 노드에서 role 로 갈랐다가
-  // "컴포넌트 만들기" 가 떠서, 이미 원본인 노드를 다시 원본으로 만드는 no-op
-  // 항목이 됐다 (Properties 패널 Component 섹션과 같은 축을 쓴다).
-  const isComponentOrigin = isEditingSemanticsOrigin(primaryElement);
   const detachableElement = selectedElements.find((element) =>
     canDetachInstance(element),
   );
@@ -334,71 +335,89 @@ function buildElementMenuItems(
     });
   }
 
-  if (isSingleSelection && nonBodyCount === 1) {
-    items.push({ kind: "separator", id: "component-separator" });
-    items.push(
-      actionItem(
-        "toggle-component-origin",
-        isComponentOrigin
-          ? "컴포넌트 분리 / Detach component"
-          : "컴포넌트 만들기 / Create component",
-        async () => {
-          await useStore.getState().toggleComponentOrigin(primaryElement.id);
-        },
-        "toggleComponentOrigin",
-        // 생성/해제 양방향 토글이라 그림도 함께 뒤집는다 (pencil 과 같은
-        // `diamond-plus` / `diamond-minus`) — 라벨만 바뀌고 그림이 고정이면
-        // 어느 방향인지 아이콘이 말해 주지 않는다.
-        {
-          icon: isComponentOrigin
-            ? ACTION_ICONS.detach
-            : ACTION_ICONS.createComponent,
-        },
-      ),
-    );
+  // 컴포넌트 시맨틱 4액션의 항목·순서·라벨·아이콘·가용성은 이 파일에 없다 —
+  // `COMPONENT_SEMANTICS_ACTIONS` 가 정본이고 (ADR-199) 여기서는 대상 노드를
+  // 골라 넘기고 이 표면의 어법으로 그린다.
+  //
+  // 표면 고유 규칙 3개:
+  // 1. 라벨은 `한국어 / English` 병기 (`formatBilingualLabel`)
+  // 2. 지금 누를 수 없는 항목은 **만들지 않는다** — 패널은 같은 상황에서 비활성
+  //    버튼으로 자리를 지키지만 메뉴는 항목을 뺀다 (Figma/Pen 공통 관례)
+  // 3. `detach-instance` 만 다중 선택을 받는다 — 선택 중 첫 detachable 을 집는
+  //    종전 동작 보존. 나머지는 단일 && non-body 에서만 선다
+  const componentAxisTarget =
+    isSingleSelection && nonBodyCount === 1
+      ? toEditingSemanticsTarget(primaryElement)
+      : null;
+  const detachTarget = toEditingSemanticsTarget(detachableElement);
+  const semanticsContext = {
+    hasResolvedOrigin: Boolean(originElement),
+    // 메뉴에는 `select-instances` 가 실리지 않아 이 수를 읽는 항목이 없다.
+    instanceCount: 0,
+    selectionSize: selectedElements.length,
+  };
 
-    if (originElement) {
-      items.push(
-        actionItem(
-          "go-to-origin",
-          "원본으로 이동 / Go to component",
-          () => {
-            useStore
-              .getState()
-              .selectElementWithPageTransition(
-                originElement.id,
-                originElement.page_id ?? originElement.pageId ?? null,
-              );
-          },
-          undefined,
-          { icon: ACTION_ICONS.goToOrigin },
-        ),
-      );
-    }
-  }
-
-  if (detachableElement) {
-    items.push(
-      actionItem(
-        "detach-instance",
-        "인스턴스 분리 / Detach instance",
-        async () => {
+  const runComponentAction = (
+    id: ComponentSemanticsActionId,
+    targetId: string,
+  ): (() => void | Promise<void>) => {
+    switch (id) {
+      case "go-to-origin":
+        return () => {
+          if (!originElement) return;
+          useStore
+            .getState()
+            .selectElementWithPageTransition(
+              originElement.id,
+              originElement.page_id ?? originElement.pageId ?? null,
+            );
+        };
+      case "detach-instance":
+        return async () => {
           const confirmed = await requestEditingSemanticsDetachConfirmation({
-            instanceId: detachableElement.id,
+            instanceId: targetId,
             instanceLabel:
-              detachableElement.componentName ??
-              detachableElement.customId ??
-              detachableElement.type ??
-              detachableElement.id,
+              detachableElement?.componentName ??
+              detachableElement?.customId ??
+              detachableElement?.type ??
+              targetId,
           });
-          if (confirmed)
-            useStore.getState().detachInstance(detachableElement.id);
-        },
-        "detachInstance",
-        { icon: ACTION_ICONS.detach },
+          if (confirmed) useStore.getState().detachInstance(targetId);
+        };
+      case "toggle-component-origin":
+        return async () => {
+          await useStore.getState().toggleComponentOrigin(targetId);
+        };
+      default:
+        return () => {};
+    }
+  };
+
+  const componentItems: ContextMenuItem[] = [];
+  for (const action of COMPONENT_SEMANTICS_ACTIONS) {
+    if (!action.surfaces.includes("context-menu")) continue;
+    const target =
+      action.id === "detach-instance" ? detachTarget : componentAxisTarget;
+    if (!target) continue;
+    if (!action.isAvailable(target, semanticsContext)) continue;
+    if (action.isEnabled?.(target, semanticsContext) === false) continue;
+    componentItems.push(
+      actionItem(
+        action.id,
+        formatBilingualLabel(action.label(target, semanticsContext)),
+        runComponentAction(action.id, target.id),
+        action.commandId,
+        { icon: action.icon(target) },
       ),
     );
   }
+
+  // 다중 선택에서 `detach-instance` 하나만 남는 경우에는 구분선을 세우지
+  // 않는다 — 종전에도 그 항목은 컴포넌트 구분선 밖에 있었다.
+  if (componentItems.some((item) => item.id !== "detach-instance")) {
+    items.push({ kind: "separator", id: "component-separator" });
+  }
+  items.push(...componentItems);
 
   if (nonBodyCount > 0) {
     items.push({ kind: "separator", id: "delete-separator" });

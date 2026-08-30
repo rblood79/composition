@@ -17,7 +17,17 @@
  *   에만 만든다 — 단일 body 판정의 정확한 대응물)
  * - C0: 위 어느 것도 없음 → null (바 미마운트)
  */
+import { COMPONENT_SEMANTICS_ACTIONS } from "../../../config/componentSemanticsActions";
 import type { ContextMenuItem } from "../contextMenu/types";
+
+/**
+ * 컴포넌트 축 항목의 좌→우 순서는 레지스트리 배열이 정본이다 (ADR-199) —
+ * 패널·메뉴와 같은 순서가 여기서도 파생된다. 손으로 맞추던 종전에는 바에만
+ * `toggle-component-origin` 이 빠져 있었다 (2026-08-30 회귀).
+ */
+const COMPONENT_AXIS_IDS: readonly string[] = COMPONENT_SEMANTICS_ACTIONS.filter(
+  (action) => action.surfaces.includes("action-bar"),
+).map((action) => action.id);
 
 export type ActionBarContext = "single" | "frame" | "instance" | "multi";
 
@@ -44,15 +54,7 @@ export const ACTION_BAR_ALLOWLIST: Readonly<
   // 만들지 않으므로(2026-08-27 code-review #10) 여기 실릴 일 자체가 없다.
   single: ["duplicate", "toggle-component-origin"],
   frame: ["ungroup", "duplicate", "toggle-component-origin"],
-  // 컴포넌트 축 항목의 좌→우 순서는 Properties 패널 Component 섹션과 같다
-  // (원본으로 이동 → 인스턴스 분리 → 컴포넌트 만들기/분리). 같은 액션 묶음이
-  // 두 표면에서 다른 순서로 서면 위치를 매번 다시 찾는다.
-  instance: [
-    "go-to-origin",
-    "detach-instance",
-    "toggle-component-origin",
-    "duplicate",
-  ],
+  instance: [...COMPONENT_AXIS_IDS, "duplicate"],
   multi: ["align", "group", "duplicate", "detach-instance"],
 };
 
