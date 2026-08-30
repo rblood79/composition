@@ -1,13 +1,12 @@
 import { memo, useMemo } from "react";
-// 인스턴스 노드를 가리키는 그림 — pencil 도 인스턴스 레이어 아이콘에 `diamond`
-// 를 쓴다 (Pen.app 번들 `$de`: `n.prototype` → `diamond`). "Select instances" 는
-// pencil 에 없는 composition 전용 액션이라 베낄 그림이 없어, 같은 줄의 다른
-// 액션(diamond-plus/minus)과 한 가족인 이 심볼로 맞춘다. 한 surface 에만
-// 나오므로 ACTION_ICONS 등재 기준(2개 이상)에는 미달 — 직접 import 로 둔다.
-import { Diamond } from "lucide-react";
 
 import { PropertySection } from "../../components";
 import { ACTION_ICONS } from "../../config/actionIcons";
+import {
+  resolveComponentSemanticsActions,
+  toEditingSemanticsTarget,
+  type ComponentSemanticsActionId,
+} from "../../config/componentSemanticsActions";
 import { useStore } from "../../stores";
 import { globalToast } from "../../stores/toast";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
@@ -67,10 +66,9 @@ import type { PanelNode } from "../panelNode";
  * 원본으로 승격한 노드는 해제 진입점이 아예 없어 되돌릴 수 없었다).
  * 용어도 pencil 을 따른다 — 원본 해제는 "Detach component" 하나로 부른다.
  */
+// 정체 칩 아이콘만 여기서 고른다 — 액션 4종의 아이콘·라벨·순서는
+// `COMPONENT_SEMANTICS_ACTIONS` 가 정본이다 (ADR-199).
 const ComponentIcon = ACTION_ICONS.component;
-const GoToOriginIcon = ACTION_ICONS.goToOrigin;
-const CreateComponentIcon = ACTION_ICONS.createComponent;
-const DetachIcon = ACTION_ICONS.detach;
 
 function resolveOriginElement(
   originId: string | null,
@@ -141,9 +139,6 @@ export const ComponentSemanticsSection = memo(
     // 라벨이 두 정체를 다 읽어 준다 — 라벨이 역할의 1차 채널이다.
     const roleLabel =
       isInstance && isOrigin ? "Instance · Origin" : (label ?? "Standard");
-    const componentAxisLabel = isOrigin
-      ? "Detach component"
-      : "Create component";
     const iconOnlyComponentAxis =
       isInstance && isOrigin && instanceIds.length > 0;
     const roleClass = role ?? "standard";
@@ -193,6 +188,30 @@ export const ComponentSemanticsSection = memo(
       setSelectedElements(instanceIds);
     };
 
+    // 노출 축의 정본은 `COMPONENT_SEMANTICS_ACTIONS` 다 (ADR-199) — 이 표면은
+    // 항목·순서·라벨·아이콘·가용성을 다시 정의하지 않고 읽어서 그린다. 남는
+    // 표면 고유 규칙은 두 개뿐: (1) 라벨을 영문으로 쓴다, (2) 폭 215px 를
+    // 넘기는 조합에서만 컴포넌트 축을 아이콘 전용으로 좁힌다.
+    const semanticsTarget = toEditingSemanticsTarget(element);
+    const availability = {
+      hasResolvedOrigin: Boolean(originElement),
+      instanceCount: instanceIds.length,
+      selectionSize: 1,
+    };
+    const semanticsActions = semanticsTarget
+      ? resolveComponentSemanticsActions(
+          "properties-panel",
+          semanticsTarget,
+          availability,
+        )
+      : [];
+    const actionHandlers: Record<ComponentSemanticsActionId, () => void> = {
+      "go-to-origin": handleGoToOrigin,
+      "detach-instance": () => void handleDetachInstance(),
+      "select-instances": handleSelectInstances,
+      "toggle-component-origin": () => void handleToggleComponentOrigin(),
+    };
+
     const handleResetOverrideField = (item: EditingSemanticsOverrideItem) => {
       resetInstanceOverrideField(elementId, item.fieldKey, item.descendantPath);
       // (b) 확인 다이얼로그 없이 즉시 실행 — 흐름을 끊지 않되, 실수로 무거운
@@ -221,72 +240,41 @@ export const ComponentSemanticsSection = memo(
         </div>
 
         <div className="component-semantics-toolbar">
-          {isInstance && (
-            <>
+          {semanticsActions.map((action) => {
+            if (!semanticsTarget) return null;
+            const label = action.label(semanticsTarget, availability).en;
+            const Icon = action.icon(semanticsTarget);
+            // 컴포넌트 축만 라벨을 달고 나머지는 아이콘 전용이다. 앞에 아이콘이
+            // 3개 서는 조합 (인스턴스이면서 원본 + 인스턴스 보유) 만 라벨까지
+            // 235px 로 폭 215px 를 넘기므로 그때는 컴포넌트 축도 좁힌다 —
+            // 라벨은 툴팁/접근 이름이 계속 나른다. 이 경우에만 분리 액션 둘이
+            // 같은 그림으로 나란히 서는데, pencil 도 두 액션에 같은
+            // `diamond-minus` 를 쓴다.
+            const iconOnly =
+              action.id !== "toggle-component-origin" || iconOnlyComponentAxis;
+            // 원본을 못 찾은 인스턴스에서 "원본으로 이동" 은 사라지지 않고
+            // 비활성으로 선다 — 자리가 유지돼야 줄의 다른 액션 위치가 흔들리지
+            // 않는다 (컨텍스트 메뉴는 같은 상황에서 항목을 뺀다).
+            const enabled = action.isEnabled?.(semanticsTarget, availability) ?? true;
+            return (
               <button
-                aria-label="Go to component"
-                className="control-button component-semantics-icon-action"
-                disabled={!originElement}
-                onClick={handleGoToOrigin}
-                title="Go to component"
+                aria-label={label}
+                className={
+                  iconOnly
+                    ? "control-button component-semantics-icon-action"
+                    : "control-button"
+                }
+                disabled={!enabled}
+                key={action.id}
+                onClick={actionHandlers[action.id]}
+                title={label}
                 type="button"
               >
-                <GoToOriginIcon aria-hidden="true" size={14} />
+                <Icon aria-hidden="true" size={14} />
+                {iconOnly ? null : label}
               </button>
-              {isDetachableInstance && (
-                <button
-                  aria-label="Detach instance"
-                  className="control-button component-semantics-icon-action"
-                  onClick={handleDetachInstance}
-                  title="Detach instance"
-                  type="button"
-                >
-                  <DetachIcon aria-hidden="true" size={14} />
-                </button>
-              )}
-            </>
-          )}
-          {isOrigin && instanceIds.length > 0 && (
-            /* 종전의 "Impacts N instances" 행은 이 액션이 흡수한다 — 같은 수를
-               읽는 자리가 둘일 이유가 없다. 아이콘 전용이라 수는 툴팁/접근 이름이
-               나른다. 0건이면 누를 것이 없는 dead 버튼이라 세우지 않는다 —
-               "인스턴스가 아직 없다" 는 정체 칩의 Origin 라벨이 이미 말하고,
-               자리를 비워야 인스턴스이면서 원본인 노드의 줄이 라벨을 유지한다
-               (아이콘 3개 + 라벨 = 235px > 폭 215px). */
-            <button
-              aria-label={`Select instances (${instanceIds.length})`}
-              className="control-button component-semantics-icon-action"
-              onClick={handleSelectInstances}
-              title={`Select instances (${instanceIds.length})`}
-              type="button"
-            >
-              <Diamond aria-hidden="true" size={14} />
-            </button>
-          )}
-          {/* 컴포넌트 축은 인스턴스 축과 독립이라 인스턴스에도 함께 선다.
-              앞에 아이콘이 3개 서는 조합 (인스턴스이면서 원본 + 인스턴스 보유)
-              만 라벨까지 235px 로 폭 215px 를 넘기므로 그때만 아이콘 전용으로
-              좁힌다 (라벨은 툴팁/접근 이름이 계속 나른다). 이 경우에만 분리
-              액션 둘이 같은 그림으로 나란히 서는데, pencil 도 두 액션에 같은
-              `diamond-minus` 를 쓴다. */}
-          <button
-            aria-label={componentAxisLabel}
-            className={
-              iconOnlyComponentAxis
-                ? "control-button component-semantics-icon-action"
-                : "control-button"
-            }
-            onClick={handleToggleComponentOrigin}
-            title={componentAxisLabel}
-            type="button"
-          >
-            {isOrigin ? (
-              <DetachIcon aria-hidden="true" size={14} />
-            ) : (
-              <CreateComponentIcon aria-hidden="true" size={14} />
-            )}
-            {iconOnlyComponentAxis ? null : componentAxisLabel}
-          </button>
+            );
+          })}
         </div>
 
         {role === "instance" && overrideItems.length > 0 && (

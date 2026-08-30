@@ -171,6 +171,32 @@ export const COMPONENT_SEMANTICS_ACTIONS: readonly ComponentSemanticsActionDescr
     },
   ];
 
+/**
+ * 표면의 element 를 사영 불변 필드만 남긴 target 으로 좁힌다.
+ *
+ * 표면마다 element 모양이 다르다 — canonical 노드 · 캔버스 interactionNodesMap
+ * 파생 · legacy elementsMap mirror. 좁히는 규칙을 한 곳에 두어야 표면별로 다른
+ * 필드를 넘기는 일이 생기지 않는다.
+ */
+export function toEditingSemanticsTarget(
+  element: unknown,
+): EditingSemanticsTarget | null {
+  if (!element || typeof element !== "object") return null;
+  const candidate = element as Record<string, unknown>;
+  if (typeof candidate.id !== "string") return null;
+  return {
+    id: candidate.id,
+    ...(typeof candidate.componentRole === "string"
+      ? { componentRole: candidate.componentRole }
+      : {}),
+    ...(typeof candidate.ref === "string" ? { ref: candidate.ref } : {}),
+    ...(typeof candidate.masterId === "string"
+      ? { masterId: candidate.masterId }
+      : {}),
+    ...(candidate.reusable === true ? { reusable: true } : {}),
+  };
+}
+
 export const DEFAULT_AVAILABILITY_CONTEXT: ActionAvailabilityContext = {
   hasResolvedOrigin: false,
   instanceCount: 0,
