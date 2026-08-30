@@ -8,6 +8,7 @@
 
 import { useCallback, useRef, type KeyboardEvent } from "react";
 import type { Page } from "@composition/shared";
+import { usePublishStrings } from "../i18n";
 import "./PageNav.css";
 
 interface PageNavProps {
@@ -71,6 +72,7 @@ function flattenTree(nodes: PageTreeNode[]): PageTreeNode[] {
  * 페이지 네비게이션 컴포넌트
  */
 export function PageNav({ pages, currentPageId, onPageChange }: PageNavProps) {
+  const t = usePublishStrings();
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   // 페이지 트리 구축
@@ -164,7 +166,7 @@ export function PageNav({ pages, currentPageId, onPageChange }: PageNavProps) {
   };
 
   return (
-    <nav className="page-nav" aria-label="페이지 목록">
+    <nav className="page-nav" aria-label={t("pageList")}>
       <ul role="tablist" aria-orientation="vertical">
         {flatPages.map((node, index) => renderPageButton(node, index))}
       </ul>

@@ -30,6 +30,12 @@ import { InteractionRuntimeProvider } from "./renderer/InteractionRuntime";
 import { ToastProvider } from "@composition/shared/components";
 import { PageNav } from "./components/PageNav";
 import { usePageRouting } from "./hooks/usePageRouting";
+import {
+  PUBLISH_STRINGS,
+  usePublishDocumentLanguage,
+  usePublishStrings,
+} from "./i18n";
+import type { PublishStringKey } from "./i18n";
 import "./styles/index.css";
 
 // ============================================
@@ -52,27 +58,37 @@ type LoadingState = "idle" | "loading" | "loaded" | "error";
 // Error Display Component
 // ============================================
 
+/**
+ * publish 자신이 만든 오류는 문구 대신 **키**를 싣는다 — 오류 객체는 상태에 남아 있다가
+ * 나중에 그려지므로, 만들 때 문구로 굳히면 그 사이 언어가 바뀌어도 예전 언어가 남는다
+ * (브라우저 `languagechange` 로 실제 일어난다). 로더가 만든 오류는 문구가 그대로 온다.
+ */
+type PublishLoadError = ExportError & { messageKey?: PublishStringKey };
+
 interface ErrorDisplayProps {
-  error: ExportError;
+  error: PublishLoadError;
   errors?: ExportError[];
   onRetry: () => void;
 }
 
 function ErrorDisplay({ error, errors, onRetry }: ErrorDisplayProps) {
+  const t = usePublishStrings();
   return (
     <div className="publish-error" role="alert" aria-live="assertive">
       <div className="error-icon">⚠️</div>
-      <h1>프로젝트를 불러올 수 없습니다</h1>
+      <h1>{t("loadTitle")}</h1>
       <div className="error-details">
-        <p className="error-message">{error.message}</p>
+        <p className="error-message">
+            {error.messageKey ? t(error.messageKey) : error.message}
+          </p>
         {error.field && (
           <p className="error-field">
-            <strong>필드:</strong> {error.field}
+            <strong>{t("loadFieldLabel")}</strong> {error.field}
           </p>
         )}
         {error.detail && (
           <p className="error-detail">
-            <strong>상세:</strong> {error.detail}
+            <strong>{t("loadDetailLabel")}</strong> {error.detail}
           </p>
         )}
         <p className="error-code">
@@ -82,7 +98,7 @@ function ErrorDisplay({ error, errors, onRetry }: ErrorDisplayProps) {
 
       {errors && errors.length > 1 && (
         <details className="error-list">
-          <summary>모든 오류 보기 ({errors.length}개)</summary>
+          <summary>{t("showAllErrors", { count: errors.length })}</summary>
           <ul>
             {errors.map((err, i) => (
               <li key={i}>
@@ -97,7 +113,7 @@ function ErrorDisplay({ error, errors, onRetry }: ErrorDisplayProps) {
       )}
 
       <button className="retry-button" onClick={onRetry}>
-        다시 시도
+        {t("retry")}
       </button>
     </div>
   );
@@ -108,10 +124,11 @@ function ErrorDisplay({ error, errors, onRetry }: ErrorDisplayProps) {
 // ============================================
 
 function LoadingScreen() {
+  const t = usePublishStrings();
   return (
     <div className="publish-loading" aria-busy="true" aria-live="polite">
       <div className="loading-spinner" />
-      <p>프로젝트를 불러오는 중...</p>
+      <p>{t("loadingProject")}</p>
     </div>
   );
 }
@@ -233,9 +250,11 @@ function injectFontRegistryFromData(fontRegistry?: FontRegistryV2) {
 // ============================================
 
 export function App() {
+  const t = usePublishStrings();
+  usePublishDocumentLanguage();
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
-  const [error, setError] = useState<ExportError | null>(null);
+  const [error, setError] = useState<PublishLoadError | null>(null);
   const [errors, setErrors] = useState<ExportError[] | undefined>(undefined);
   const [warnings, setWarnings] = useState<ExportError[] | undefined>(
     undefined,
@@ -307,7 +326,7 @@ export function App() {
 
   // 에러 설정
   const setLoadError = useCallback(
-    (err: ExportError, allErrors?: ExportError[]) => {
+    (err: PublishLoadError, allErrors?: ExportError[]) => {
       setError(err);
       setErrors(allErrors);
       setLoadingState("error");
@@ -416,7 +435,8 @@ export function App() {
       if (!file || !file.name.endsWith(".json")) {
         setLoadError({
           code: ExportErrorCode.VALIDATION_ERROR,
-          message: "JSON 파일만 업로드할 수 있습니다",
+          message: PUBLISH_STRINGS["en-US"].jsonOnly,
+          messageKey: "jsonOnly",
           severity: "error",
         });
         return;
@@ -490,18 +510,16 @@ export function App() {
         onDragLeave={handleDragLeave}
         role="button"
         tabIndex={0}
-        aria-label="프로젝트 파일 업로드"
+        aria-label={t("uploadLabel")}
         aria-describedby="dropzone-instructions"
         onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
       >
         <div className="dropzone-content">
           <h1>composition Publish</h1>
-          <p id="dropzone-instructions">
-            JSON 파일을 드래그하거나 Enter 키를 눌러 파일을 선택하세요
-          </p>
-          <p className="or">또는</p>
+          <p id="dropzone-instructions">{t("dropInstructions")}</p>
+          <p className="or">{t("or")}</p>
           <button onClick={() => fileInputRef.current?.click()}>
-            파일 선택
+            {t("chooseFile")}
           </button>
           <input
             ref={fileInputRef}
@@ -517,12 +535,12 @@ export function App() {
 
   // 페이지 없음
   if (projectData.pages.length === 0) {
-    return <EmptyState message="페이지가 없습니다" />;
+    return <EmptyState message={t("noPages")} />;
   }
 
   // 현재 페이지가 없음
   if (!currentPage) {
-    return <EmptyState message="페이지를 찾을 수 없습니다" />;
+    return <EmptyState message={t("pageNotFound")} />;
   }
 
   // 프로젝트 렌더링 — 인터랙션 규칙은 preview 와 같은 shared dispatcher 로 실행
@@ -558,7 +576,7 @@ export function App() {
             {/* 메인 콘텐츠 */}
             <main className="publish-content">
               {currentElements.length === 0 ? (
-                <EmptyState message="이 페이지에 요소가 없습니다" />
+                <EmptyState message={t("emptyPage")} />
               ) : (
                 <PageRenderer
                   page={currentPage}
