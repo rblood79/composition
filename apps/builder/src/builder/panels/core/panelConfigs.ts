@@ -145,6 +145,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "AI",
     nameEn: "AI",
     icon: Bot,
+    statePair: "ai",
     component: AIPanel,
     category: "tool",
     defaultPosition: "right",

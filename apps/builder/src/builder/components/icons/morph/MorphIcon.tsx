@@ -18,7 +18,7 @@
  * 뒤집는다). `"never"` 는 호출부가 명시할 때만.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Morph, MorphOptions, ReducedMotionMode } from "./dom/index";
 import { createMorph } from "./dom/index";
 import type { SpringPreset } from "./core/spring";
@@ -63,24 +63,26 @@ export function MorphIcon({
   }));
   const morphRef = useRef<Morph | null>(null);
   const targetRef = useRef(mount.node);
+  const pathRef = useRef<SVGPathElement | null>(null);
 
-  // 콜백 ref + cleanup (React 19) — StrictMode 이중 mount 에서도 살아 있는
-  // driver 는 항상 1개다 (detach 시 destroy).
-  const attach = useCallback(
-    (el: SVGPathElement) => {
-      const first = targetRef.current;
-      if (!first) return;
-      const morph = createMorph(el, first, {
-        reducedMotion: mount.reducedMotion,
-      });
-      morphRef.current = morph;
-      return () => {
-        morph.destroy();
-        morphRef.current = null;
-      };
-    },
-    [mount],
-  );
+  // driver 는 **effect** 로 붙인다 (콜백 ref 아님). 빌더 패널은 `<Activity>` 안에
+  // 살아서 (layout/PanelWorkspace.tsx) 닫힌 동안 effect 가 해제되고 다시 열릴 때
+  // 재실행된다 — 콜백 ref 로 붙이면 숨은 채 마운트된 패널에서 driver 가 영영
+  // 생기지 않아 아이콘이 마운트 형태에 고정된다 (2026-08-30 라이브 실측).
+  // 아래 세 effect 는 선언 순서가 계약이다: 생성 → 정책 → 목표.
+  useEffect(() => {
+    const el = pathRef.current;
+    const first = targetRef.current;
+    if (!el || !first) return;
+    const morph = createMorph(el, first, {
+      reducedMotion: mount.reducedMotion,
+    });
+    morphRef.current = morph;
+    return () => {
+      morph.destroy();
+      morphRef.current = null;
+    };
+  }, [mount]);
 
   useEffect(() => {
     if (morphRef.current) morphRef.current.reducedMotion = reducedMotion;
@@ -113,7 +115,7 @@ export function MorphIcon({
       aria-hidden={ariaHidden}
       aria-label={ariaLabel}
     >
-      <path ref={attach} d={mount.d} />
+      <path ref={pathRef} d={mount.d} />
     </svg>
   );
 }

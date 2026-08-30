@@ -36,6 +36,18 @@ export const ICON_STATE_PAIRS = {
   theme: ["sun", "moon"],
   /** 여백 컨트롤 펼침 (화살촉만 반전). */
   spacing: ["maximize-2", "minimize-2"],
+  /**
+   * inset 그림자. index 1 이 `square-off` 인 것은 **기존 표시를 지킨 것**이다 —
+   * 이 자리는 지금까지 `square-off` 를 상태와 무관하게 그려 왔고, 그것이 "inset"
+   * 을 가리키는 그림으로 쓰여 왔다. 꺼짐을 평범한 `square` 로 두면 둘이 갈린다.
+   */
+  inset: ["square", "square-off"],
+  /** 에이전트 단계 진행 (점 → 체크). */
+  step: ["circle-dot", "circle-check"],
+  /** AI 패널 토글 — 패널 토글 12개 중 짝이 있는 유일 항목. */
+  ai: ["bot-off", "bot"],
+  /** 비교 보기 (한 칸 → 두 칸). */
+  compare: ["square", "columns-2"],
 } as const satisfies Record<string, readonly [off: string, on: string]>;
 
 export type IconStatePair = keyof typeof ICON_STATE_PAIRS;

@@ -35,7 +35,7 @@ Accepted — 2026-08-30 (계약 확장 2026-08-30: `MorphIcon` 의 `icon` prop =
 
 - upstream morphicons 는 활발히 갱신 중 (1.7.1, 2026-08-28 commit). vendoring 이므로 drift 관리 절차가 필요하다 (breakdown §3-5).
 - lucide-react 갱신으로 `lucideIconData.generated.ts` 를 재생성하면 아이콘 rename 이 레지스트리를 깨뜨릴 수 있다 — G2 테스트가 잡는다.
-- 확장 후보는 재판정 후 6곳 (inset / step / ai / compare / view / save). `view` 는 시각 (σ≈0 subpath 3개), `save` 는 배치가 미확인 — Phase 3 개별 판정, 미달 시 미등록. 제외 5건 (monitor / run / agent / online / filter) 은 토글이 아님이 실측으로 확정 (breakdown §2-3).
+- 확장 후보 6곳 중 Phase 3 에서 4곳 등재 (inset / step / ai / compare). `view` 는 grid/list 두 버튼 동시 표시라, `save` 는 아이콘·배치 미정이라 **미등록** (breakdown §4 Phase 3). 제외 5건 (monitor / run / agent / online / filter) 은 토글이 아님이 실측으로 확정 (breakdown §2-3).
 - ADR-192 (Action Bar) 는 completed (`docs/adr/completed/192-contextual-action-bar.md`, 2026-08-30 확인) — `ContextualActionBar.tsx` 순서 제약 해제.
 
 ## Alternatives Considered
@@ -142,7 +142,9 @@ Accepted — 2026-08-30 (계약 확장 2026-08-30: `MorphIcon` 의 `icon` prop =
 
 **2026-08-30 (Chrome MCP, dev 5173, 보이는 탭)** — Phase 2 부분 통과. 확인: Action Bar 옵션 메뉴의 Pin 이 `MorphIcon` 으로 렌더 (단일 `<path>` · canonical cubic, 같은 메뉴의 lucide 항목은 path 2·4개) · pin 토글 후 형태 교체 · 보이는 컨트롤에서 driver 부착. 미확인 (테스트로 고정): 비행 프레임과 정지 canonical 복귀 · reduced-motion — `MorphIcon.settle.test.tsx` 가 실제 driver 로 검증.
 
-**측정 조건 (필수)**: 패널은 `<Activity>` 안에 있어 (`layout/PanelWorkspace.tsx:388`) 닫힌 패널은 DOM 이 남은 채 ref·effect 가 멈춘다 — 아이콘이 마운트 형태에 고정돼 "안 바뀐다" 로 보인다. 라이브 판정은 컨트롤이 **실제로 보일 때만** 유효하다 (breakdown §6-2).
+**2026-08-30 Phase 3** — 레지스트리 10쌍 (`inset`/`step`/`ai`/`compare` 추가) 이 테스트로 고정. 전환 프레임의 눈 확인은 **잔여**: Chrome MCP 가 모는 창이 백그라운드라 `visibilityState: "hidden"` 이고 rAF 가 0 프레임 실행된다 (40 요청 → 0 실행 실측). 이 상태에서는 어떤 morph 도 움직이지 않으므로 라이브 판정 자체가 성립하지 않는다.
+
+**측정 조건 (필수)**: ① 창이 **포그라운드** 일 것 (`document.visibilityState === "visible"`) — 아니면 rAF 정지로 "동작 안 함" 오독. ② 패널은 `<Activity>` 안이라 (`layout/PanelWorkspace.tsx:388`) 닫힌 패널은 DOM 이 남은 채 effect 가 해제된다 — 컨트롤이 실제로 보일 때만 판정 (breakdown §6-2).
 
 (Implemented 승격 시 breakdown §6-3 잔여 시나리오 결과를 여기에 추가.)
 
@@ -150,7 +152,7 @@ Accepted — 2026-08-30 (계약 확장 2026-08-30: `MorphIcon` 의 `icon` prop =
 
 ### Positive
 
-- chrome 의 상태 전환 8곳이 형태 연속 전환을 얻고, 상태 있는 고정 아이콘 6곳 (Phase 3) 에 on/off 형태가 생긴다 — `data-selected` wash 에 의존하던 시인성이 형태로 옮겨간다.
+- chrome 의 상태 전환 8곳이 형태 연속 전환을 얻고, 상태 있는 고정 아이콘 4곳 (Phase 3) 에 on/off 형태가 생긴다 — `data-selected` wash 에 의존하던 시인성이 형태로 옮겨간다.
 - 새 토글은 `statePairs.ts` 한 줄 + `<StateIcon pair on />` — 지점별 삼항·CSS 가 사라지고, 쌍 교체 (lock/unlock → lock-keyhole) 가 한 곳 수정으로 전 지점에 반영된다.
 - 접근성 기본값 (`reducedMotion: "user"`) 이 컴포넌트에 고정돼 지점별로 잊을 수 없다.
 - `MorphIcon` 이 아이콘 종류에 무관하다 — 24 그리드 stroke 이면 lucide 레지스트리 밖 custom 아이콘도 `IconNode` 로 같은 경로를 탄다 (`StateIcon` 은 그 위의 boolean 전용 편의 층).
