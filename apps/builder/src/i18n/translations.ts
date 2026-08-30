@@ -105,7 +105,7 @@ const koKR: TranslationKeys = {
     toggleProperties: "속성 패널 토글",
     toggleStyles: "스타일 패널 토글",
     toggleEvents: "인터랙션 패널 토글",
-    toggleHistory: "히스토리 패널 토글",
+    toggleHistory: "작업 내역 패널 토글",
     toggleWorkflowOverlay: "Workflow 오버레이 토글",
     toggleMonitor: "모니터 패널 토글",
     toggleRulers: "눈금자 토글",
@@ -169,7 +169,7 @@ const koKR: TranslationKeys = {
     categoryCanvas: "캔버스",
     categoryTools: "도구",
     categoryProperties: "속성",
-    categoryEvents: "이벤트",
+    categoryEvents: "인터랙션",
     categoryNavigator: "탐색기",
     scopeGlobal: "지금은 실행할 수 없습니다",
     scopeCanvasFocused: "캔버스에서 실행할 수 있습니다",
@@ -213,7 +213,7 @@ const koKR: TranslationKeys = {
     emptyMessage: "작업 내역이 없습니다",
     emptyDescription: "요소를 추가하거나 수정하면 기록이 표시됩니다",
     confirmDeleteSnapshot: '스냅샷 "{name}"을(를) 삭제할까요?',
-    confirmClearPage: "현재 페이지 히스토리를 모두 삭제할까요?",
+    confirmClearPage: "현재 페이지의 작업 내역을 모두 삭제할까요?",
     entryOrdinal: "{index}번째 기록",
     entryAdd: "추가{suffix}",
     entryRemove: "삭제{suffix}",
@@ -682,7 +682,7 @@ const koKR: TranslationKeys = {
     bindingHeading: "## 데이터 바인딩 (bind_collection)",
     bindingBody:
       "ListBox / GridList / Table 같은 collection 컴포넌트에 데이터를 연결합니다.\nsource 는 static (config.data 배열) / api (config.baseUrl + endpoint) / supabase (config.table).\n데이터 소스 자체를 만들지는 않습니다 — 이미 있는 데이터에 요소를 잇습니다.",
-    eventsHeading: "## 이벤트 규칙 (create_interaction_rule)",
+    eventsHeading: "## 인터랙션 규칙 (create_interaction_rule)",
     eventsBody:
       'trigger 는 컴포넌트가 실제로 노출하는 callback 이름입니다 (예: Button 은 onPress).\nonClick 같은 DOM 이름은 쓰지 않습니다. action 은 3종:\n- navigate: { kind: "navigate", path: "/about" }\n- toast: { kind: "toast", message: "저장했습니다" }\n- capability: { kind: "capability", targetId, capability, value? } — 대상이 노출하는 capability 만.\n틀린 trigger/capability 를 보내면 도구가 사용 가능한 목록을 돌려주니 그것으로 고쳐 부르세요.',
   },
@@ -837,7 +837,7 @@ const koKR: TranslationKeys = {
     bindConfig:
       "source 별 설정. static: { data: [...] } · api: { baseUrl, endpoint, dataMapping } · supabase: { table }.",
     createRule:
-      "요소에 이벤트 규칙을 추가합니다 (예: 버튼 누르면 toast 표시, 다른 요소의 기능 구동). trigger 와 capability 는 컴포넌트가 실제로 노출하는 것만 쓸 수 있고, 틀리면 사용 가능한 목록을 돌려줍니다.",
+      "요소에 인터랙션 규칙을 추가합니다 (예: 버튼 누르면 toast 표시, 다른 요소의 기능 구동). trigger 와 capability 는 컴포넌트가 실제로 노출하는 것만 쓸 수 있고, 틀리면 사용 가능한 목록을 돌려줍니다.",
     ruleTrigger:
       "컴포넌트가 노출하는 callback 이름 (예: onPress). onClick 같은 DOM 별칭은 쓰지 않습니다.",
     ruleAction:
@@ -1034,7 +1034,7 @@ const koKR: TranslationKeys = {
     properties: "속성",
     styles: "스타일",
     interactions: "인터랙션",
-    history: "히스토리",
+    history: "작업 내역",
     monitor: "모니터",
   },
   navigator: {
@@ -1244,7 +1244,7 @@ const koKR: TranslationKeys = {
     adviceBrowserHigh:
       "브라우저 메모리 사용량이 높습니다. 일부 탭을 닫거나 페이지를 새로고침하세요.",
     adviceHeapHigh: "메모리 사용량이 50MB를 초과했습니다. 최적화를 실행하세요.",
-    adviceHistoryLarge: "히스토리 항목이 많습니다. 불필요한 작업을 정리하세요.",
+    adviceHistoryLarge: "작업 내역 항목이 많습니다. 불필요한 작업을 정리하세요.",
     adviceModerate: "메모리 사용량이 적정 수준입니다.",
     adviceHealthy: "메모리 상태가 양호합니다.",
     warningThresholdHint: "노란색 경고가 표시되는 메모리 사용률",
@@ -1262,7 +1262,7 @@ const koKR: TranslationKeys = {
     browserMemory: "브라우저 메모리",
     componentMemory: "컴포넌트 메모리",
     pages: "페이지",
-    historyEntries: "히스토리 항목",
+    historyEntries: "작업 내역 항목",
     usedHeap: "사용 중인 Heap",
     totalHeap: "전체 Heap",
     heapLimit: "Heap 제한",

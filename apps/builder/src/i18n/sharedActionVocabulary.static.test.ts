@@ -26,11 +26,12 @@ const HOMONYMS = new Set([
 /**
  * 같은 개념인데 표기가 갈린 자리 — **고쳐야 할 것**이지만 어느 쪽으로 통일할지는
  * 별도 판단이 필요해 남겨 둔다. 목록이 늘어나면 안 된다.
+ *
+ * `Interactions`("이벤트"↔"인터랙션") 와 `History`("히스토리"↔"작업 내역") 는
+ * 2026-08-31 에 각각 "인터랙션" / "작업 내역" 으로 통일해 목록에서 뺐다.
  */
 const KNOWN_DRIFT = new Set([
-  "Interactions", // 팔레트 분류 "이벤트" ↔ 패널 이름 "인터랙션"
-  "History", // 패널 제목 "작업 내역" ↔ 레일 이름 "히스토리"
-  "Default", // "기본값" ↔ "기본"
+  "Default", // "기본값"(fonts.defaultValue) ↔ "기본"(fonts.sectionDefault, settings.uiScaleDefault)
 ]);
 
 describe("표면이 달라도 같은 동작은 같은 이름", () => {
