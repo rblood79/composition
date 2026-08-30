@@ -1,5 +1,7 @@
 # ADR-197 Breakdown: Builder chrome 상태 아이콘 morph — morphicons core vendoring + StateIcon 레지스트리
 
+> **진행 로그** — Phase 0 Implemented 2026-08-30 (vendoring 9 파일 + 이식 테스트 40 PASS · G0 통과, 아래 §4 Phase 0).
+>
 > 2026-08-30 초안. ADR 본문: [197-builder-chrome-state-icon-morph.md](../197-builder-chrome-state-icon-morph.md).
 > Phase 0 inventory 는 본 문서의 표를 갱신하는 commit 으로 freeze 한다 (M3 — 추정/실측 gap 은
 > inventory 보강이지 fork 사유가 아님).
@@ -11,7 +13,7 @@
 - SSOT 경계: **해당 없음** — Builder chrome (에디터 자체 UI, DOM React) 전용. 사용자 문서를 그리는 canvas (Skia) · Preview · Publish 미적용 (사용자 결정 2026-08-29: "적용 대상은 builder 에 제한, canvas 화면에는 적용하지 않는다"). D1/D2/D3 경계 변경 없음, `/cross-check` 대상 아님.
 - 사용자 의도 (2026-08-29): "빌더 내 아이콘을 더 동적으로 — lock-keyhole-open → lock-keyhole 식 on/off 개념을 더해 가독성·시인성" + "재사용 가능한 패턴으로".
 
-## 2. Current Baseline (2026-08-29 실측 · **2026-08-30 재검토 갱신**, HEAD `cb42ead69`)
+## 2. Current Baseline (2026-08-29 실측 · **2026-08-30 재검토 갱신 + Phase 0 freeze**, HEAD `5658c0707`)
 
 > 재검토 사유 (2026-08-30): 초안 이후 아이콘 전수조사 (`9f8b3089b`, 17건 교체) · Monitor 패널 재구성 (`cb42ead69`) · 속성 필드 아이콘 정본 신설 (`60a4dab37`) · 버튼 통일 (`1227dd303`) 이 반영되어 기준선이 이동했다. 아래 표·목록은 재측정 결과다.
 
@@ -91,7 +93,19 @@ lucide 짝 재고 (composition 데이터 기준): `-off` 74 · `-check` 32 · `-
 | eye → eye-off                    | 2 → 4   | 1 / 3 / −1 / −42    | 1.16 / 0.64 / 1.75 / 0.47 |                                           |
 | layout-grid → list               | 4 → 6   | −2                  | **0 × 3**, 0.54           | 사각형 3개가 점으로 수축 — 시각 확인 필요 |
 
-### Phase 0 재grep (착수 직전 필수)
+### Phase 0 재grep — **2026-08-30 실행 결과 (freeze)**
+
+| 확인                                  | 결과                                                                                 |
+| ------------------------------------- | ------------------------------------------------------------------------------------ |
+| 삼항 JSX 아이콘 교체                  | 4건 (RuleRow · ItemsManager ×2 · AIPanel — AIPanel 은 §2-2 제외 대상)                |
+| `const Icon = cond ? A : B`           | 1건 (`ContextualActionBar.tsx:165`)                                                  |
+| toggle 컨트롤 보유 파일               | 20 파일                                                                              |
+| **CSS 가 svg 자식 구조 참조**         | **0건** (`.lucide` / `svg path` / `svg circle` 셀렉터 없음) — HC3 단일 `<path>` 안전 |
+| `__iconNode` 메인 index               | 0건 (deep import 불가 전제 유지)                                                     |
+| 정본 겹침 (`propertyFieldIcons.ts`)   | `Lock:153` · `EyeOff:158` · `Eye:161` — R8 대상 확인                                 |
+| `ACTION_ICONS` 에 lock/eye/pin/sun 등 | 0건 — 교체 대상과 키 충돌 없음                                                       |
+
+착수 직전 재실행 명령:
 
 ```bash
 rg -n "\? <[A-Z][A-Za-z0-9]+ [^>]*/> ?: <[A-Z]" apps/builder/src --glob '*.tsx' --glob '!**/workspace/canvas/**' --glob '!*.test.*'
@@ -111,16 +125,18 @@ pnpm --filter @composition/builder test -- propertyFieldIcons.static actionIcons
 
 ```
 apps/builder/src/builder/components/icons/morph/
-  core/               ← upstream src/core/* 8 파일 그대로 (index 없음 — MIT 헤더 + UPSTREAM.md: 1.7.1 / 38d2a72 / 갱신 절차)
+  core/               ← upstream src/core/* 8 파일 그대로 (index 없음)
     parse.ts normalize.ts resample.ts plan.ts interpolate.ts serialize.ts spring.ts types.ts
-  dom.ts              ← upstream src/dom/index.ts (createMorph · singleton rAF · WeakMap 캐시 · canonicalD)
+    LICENSE UPSTREAM.md ← MIT 원문 + 1.7.1 / 38d2a72 / 갱신 절차 (파일별 헤더 없음 — 통째 교체 보존)
+  dom/index.ts        ← upstream src/dom/index.ts 그대로 (createMorph · singleton rAF · WeakMap 캐시 · canonicalD).
+                        `dom.ts` 가 아니라 디렉토리인 이유: upstream 의 `../core/*` import 가 그대로 맞아 경로 수정 0
   iconNodes.ts        ← resolveIconInput(IconInput): string 이면 getIconData 조회 + 모듈 Map 캐시, IconNode 면 지원 태그 검증 후 통과 (참조 고정은 호출부 책임)
   MorphIcon.tsx       ← React binding (upstream src/react/index.tsx 축소판: icon prop = IconInput (이름 | IconNode), controlled 모드·imperative handle 제거)
   statePairs.ts       ← ICON_STATE_PAIRS 레지스트리 (SSOT)
   StateIcon.tsx       ← boolean 전용 얇은 껍질
   __tests__/
-    invariants.test.ts  ← upstream test/invariants.test.ts + closed.test.ts (bun:test → vitest)
-    dom.test.ts         ← upstream test/dom.test.ts (settle → canonical d, seek 결정성, singleton rAF)
+    invariants.test.ts · closed.test.ts · dom.test.ts · helpers.ts
+                        ← upstream test/* 그대로 (bun:test → vitest, `../src/index` 배럴 → `../core/<module>`)
     statePairs.test.ts  ← 레지스트리 무결성
     MorphIcon.test.tsx  ← reducedMotion 기본값, 이름 변경 시 morphTo 1회, unmount destroy
 ```
@@ -195,16 +211,24 @@ DOM 산출: `<svg width height viewBox="0 0 24 24" fill="none" stroke stroke-wid
 
 ## 4. Phase 계획
 
-### Phase 0 — inventory freeze + core vendoring (소비자 0)
+### Phase 0 — inventory freeze + core vendoring (소비자 0) — ✅ Implemented 2026-08-30
 
-| 파일                                           | 변경                                                                                                 |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `components/icons/morph/core/*` (8)            | upstream 복사 + MIT 헤더 + `UPSTREAM.md`                                                             |
-| `components/icons/morph/dom.ts`                | upstream `src/dom/index.ts` 복사                                                                     |
-| `__tests__/invariants.test.ts` · `dom.test.ts` | bun:test → vitest 치환 (`describe/test/expect` 동일, rAF fake 는 upstream `test/client-dom.ts` 이식) |
-| 본 문서 §2                                     | 재grep 결과로 표 갱신 (freeze commit)                                                                |
+| 파일                                                        | 변경                                                                                                           |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `components/icons/morph/core/*` (8 + LICENSE + UPSTREAM.md) | upstream 복사 (본문 무수정) + 라이선스·갱신 절차 문서                                                          |
+| `components/icons/morph/dom/index.ts`                       | upstream `src/dom/index.ts` 복사 (import 경로 수정 0)                                                          |
+| `__tests__/{invariants,closed,dom}.test.ts` · `helpers.ts`  | bun:test → vitest + 배럴 import 치환. **40 케이스 PASS** (dom.test 는 jsdom 불요 — fake element + 손 pump rAF) |
+| 본 문서 §2                                                  | 재grep 결과 표 갱신 (freeze) — CSS 의 svg 자식 셀렉터 0건 확인                                                 |
 
-Gate G0: vitest 이식 케이스 전부 PASS · `pnpm type-check` 0 (리뷰 probe 2026-08-30: upstream core 8 + dom 1 을 `tsconfig.app.json` 으로 tsc → 오류 0 — ambient `declare` 가 module scope 라 `lib: DOM` 과 충돌 없음) · eslint 오류 0 · Prettier 재포맷 후 테스트 동일.
+Gate G0 **통과 (2026-08-30)**:
+
+| 조건                    | 결과                                                                                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 이식 테스트             | 3 파일 40 케이스 PASS (`vitest run src/builder/components/icons/morph`)                                                                                             |
+| `pnpm type-check`       | PASS — 신규 위반 0                                                                                                                                                  |
+| eslint                  | 오류 0 (vendoring 디렉토리 무수정)                                                                                                                                  |
+| Prettier 재포맷 후 동일 | 재포맷 (`core/*.ts` 일부 · `dom/index.ts`) 후 40 PASS 동일                                                                                                          |
+| 기존 스위트 회귀        | 없음 — 전체 실행의 실패 4건은 morph 디렉토리를 치운 상태에서도 동일 (pre-existing: `shortcutDisplay.static` 1 · `exportSsotGrepGate` 2 · `g5LegacyFieldGrepGate` 1) |
 
 ### Phase 1 — `MorphIcon` + 이름 캐시
 
