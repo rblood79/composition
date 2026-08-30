@@ -209,46 +209,75 @@ therefore installs the wrong binary and the browser runner fails with
 environment manifest must record the **vitest-resolved** Playwright version, and
 CI must install through that resolution.
 
-**Preview leg (task 4) — reached**. The real `preview.html` bundle runs inside
-the same pinned Chromium as an iframe; the fixture enters through the production
-`UPDATE_CANONICAL_DOCUMENT` → `messageHandler` → runtime store →
-`CanonicalNodeRenderer` path, with no hand-built DOM. Measured:
+**Both legs reach PNG through production paths — and neither yet renders the
+same document.** This is the honest state of G0 and the reason it is not met.
 
-| Check                    | Result                                                                                                   |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- |
-| fixture nodes rendered   | 3/3 (`data-canonical-id` present, `react-aria-frame` class, `props.style` inline)                        |
-| geometry (artboard-rel.) | page `0,0,320,240` · outer `24,24,272,192` · inner `56,56,208,128` — equals the declared fixture exactly |
-| capture                  | `page.screenshot({ element, base64 })` → 1563 bytes, PNG magic verified                                  |
-| settle                   | converged in 2 iterations                                                                                |
-| determinism              | 10 re-sends → 1 distinct DOM signature                                                                   |
-| console/page errors      | 0                                                                                                        |
+_Preview leg (task 4)_: the real `preview.html` bundle runs as an iframe in the
+same pinned Chromium; the fixture enters through the production
+`UPDATE_CANONICAL_DOCUMENT` → `messageHandler` → runtime store →
+`CanonicalNodeRenderer` path, with no hand-built DOM. On a **simple** shape
+(page `frame` > `frame` > `frame`, no `Body`) it rendered 3/3 nodes with
+`react-aria-frame` classes and `props.style` inline, geometry exactly equal to
+the declared fixture (`page 0,0,320,240` · `outer 24,24,272,192` ·
+`inner 56,56,208,128`), captured 1563 PNG bytes, converged in 2 iterations, 10
+re-sends → 1 signature, 0 console errors.
+
+_Skia leg (task 3)_: `buildCanonicalSceneModel` → `buildSceneSnapshot` →
+`buildPageLayoutPublisherInput` → `useLayoutPublisher` (the real hook, via
+`renderHook`) → `StoreRenderBridge.sync` → `createSkiaRendererInput` →
+`buildSkiaFrameContent` → `exportToImage`. It reaches a 635-byte PNG with 3
+published layout nodes and is fully deterministic (10 runs, 1 hash `7ff2c4c5`,
+`maxByte 0`). But the Skia chain **requires** a shape the simple fixture lacks:
+`buildPageLayoutPublisherInput` returns `null` without `pageSnapshot.bodyElement`,
+so the page needs `metadata.type: "legacy-page"` and a `Body` child.
+
+_The gap_: with that Skia-required shape unified into
+`harness/fixture.ts`, **the Skia leg renders a uniform white frame**
+(`variance 0`, `outer(30,30) = 255,255,255,255`) **and the Preview leg renders
+the page div only** (`outer=false`, `inner=false`, page height 0). Each leg
+renders content for a document shape the other does not. **No single document
+yet paints on both legs**, so "two PNGs from one checksum" is satisfied only in
+the degenerate sense — two PNGs, one checksum, both blank. Finding a document
+shape both production consumers accept is Phase 1's deliverable (fixture and
+result contracts), not an inventory task.
+
+_Cause of the Skia blank: not attributed._ Two candidates both produce white —
+(a) `frame` is a layout container that generates no background shape, (b) the
+catalog background channel is hex6-only so a hex8 value shifts alpha to 0. A
+short-cut probe written to separate them returned `none` for all four
+type × notation combinations, meaning **the instrument was invalid**; it was
+deleted rather than kept as evidence. No cause is claimed here. Attribution and
+any fix are separate work under §7.
+
+_Why the failing expectations were pinned rather than made to pass_: switching
+the fixture to a container type and colour notation that happen to paint
+(`Card` + hex6) would make the suite green by choosing favourable input —
+`measurement-validity.md` §1 Q2. Instead the current behaviour is pinned with
+`it.fails` and exact-value expectations, which act as ratchets: the moment
+either leg starts painting, those expectations break and force the record to be
+updated.
+
+_R11 confirmed twice, in the harness itself._ First, the Preview draft posted the
+canonical message right after the iframe `load` event — before the module script
+mounted React and attached the listener. The body stayed empty,
+`settleByConvergence` converged on the first check because nothing was changing,
+and a `nodeCount > 1` liveness assertion passed on the 9 nodes of the bare HTML
+scaffold. Fixes: wait for the Preview's own `PREVIEW_READY`
+(`messageHandler.ts::messageSender.sendReady`), and judge liveness by **fixture
+node identity**, never by node count. Second, the Skia leg's 10-run determinism
+check passes on the blank white frame — a leg that renders nothing is perfectly
+deterministic. Without HC11's variance floor this leg reads as healthy. Both are
+the exact failure HC11 was written for, and both appeared in the first
+implementation attempt.
 
 **Both legs share one host.** `@vitest/browser`'s `page.screenshot({ element })`
-captures the Preview iframe from inside the same process that renders the Skia
-leg, so the ADR's assumed split (Node CanvasKit + a separate Playwright Preview
-driver) is unnecessary. One host means one environment manifest, one Chromium
-pin, and no cross-process fixture handoff — a strictly better answer to HC2 than
-the architecture sketched in §3.2.
+captures the Preview iframe from inside the same process that bakes the Skia
+surface, so the ADR's assumed split (Node CanvasKit + a separate Playwright
+Preview driver) is unnecessary: one environment manifest, one Chromium pin, no
+cross-process fixture handoff.
 
-**R11 reproduced inside the harness itself.** The first Preview draft posted the
-canonical message immediately after the iframe's `load` event. `load` fires when
-the HTML arrives, before the module script mounts React and attaches the message
-listener, so the message reached a window with no listener. The body stayed
-empty, `settleByConvergence` converged on the first check (nothing was
-changing), and a `nodeCount > 1` liveness assertion passed on the 9 nodes of the
-bare HTML scaffold. The harness reported a green run for a frame that rendered
-nothing. Two fixes, both now load-bearing:
-
-1. Wait for the Preview's own `PREVIEW_READY` message
-   (`messageHandler.ts::messageSender.sendReady`) before sending the fixture.
-   A readiness handshake is not optional politeness; without it the capture
-   races the mount.
-2. Liveness is judged by **fixture node identity**, never by node count —
-   `querySelector('[data-element-id="…"]')` for each expected node. Node counts
-   are satisfied by scaffolding.
-
-This is the concrete case HC11 was written for, and it appeared in the first
-implementation attempt rather than in some distant future regression.
+**Suite cost**: 4 files / 15 cases in **2.51s**, far inside the HC10 90s smoke
+ceiling.
 
 **Blocker found for the production pilot (task 3, second half)**:
 `buildSkiaFrameContent` returns `null` unless `getSharedLayoutMap()`
