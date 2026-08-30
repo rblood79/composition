@@ -10,22 +10,24 @@
 import type { LLMMessage, LLMProvider } from "../providers/LLMProvider";
 import { formatTemplateHints } from "../templates/layoutTemplates";
 import type { AgentPlan, PlanStep } from "./types";
+import type { PromptTranslate } from "../promptTranslate";
 
-const PLANNER_SYSTEM = `당신은 composition 웹 빌더의 설계 담당입니다.
-사용자 요청을 실행 가능한 단계로 쪼개고, **JSON 만** 출력합니다.
+const plannerSystem = (
+  t: PromptTranslate,
+): string => `${t("aiAgent.plannerRole")}
 
-형식:
-{"goal": "요청 재진술", "steps": [{"index": 1, "instruction": "...", "done": "..."}]}
+${t("aiAgent.plannerFormat")}
+${t("aiAgent.plannerShape")}
 
-규칙:
-- 각 단계는 한 번의 작업 묶음입니다 (요소 몇 개 생성 / 스타일 조정 / 데이터 연결).
-- instruction 은 실행 담당이 그대로 읽고 도구를 부를 수 있을 만큼 구체적으로 씁니다.
-- done 은 그 단계가 끝났는지 눈으로 확인할 수 있는 조건을 씁니다.
-- 단순한 요청 (요소 하나 만들기 / prop 하나 바꾸기) 이면 steps 는 1개입니다.
-- 단계는 최대 6개입니다. 설명이나 코드 블록 없이 JSON 만 출력하세요.
+${t("aiAgent.plannerRulesHeading")}
+${t("aiAgent.plannerRule1")}
+${t("aiAgent.plannerRule2")}
+${t("aiAgent.plannerRule3")}
+${t("aiAgent.plannerRule4")}
+${t("aiAgent.plannerRule5")}
 
-자주 쓰는 골격 (요청이 맞으면 출발점으로 쓰세요):
-${formatTemplateHints()}`;
+${t("aiAgent.plannerTemplates")}
+${formatTemplateHints(t)}`;
 
 /** 모델 출력에서 JSON 을 건져 낸다 — 코드 펜스·앞뒤 산문에 견딘다. */
 export function parsePlan(raw: string): AgentPlan | null {
@@ -70,7 +72,11 @@ export function parsePlan(raw: string): AgentPlan | null {
 }
 
 export class PlannerAgent {
-  constructor(private readonly provider: LLMProvider) {}
+  constructor(
+    private readonly provider: LLMProvider,
+    /** 프롬프트 문장 해소기 (ADR-200 후속). */
+    private readonly t: PromptTranslate,
+  ) {}
 
   /** 계획을 세운다. 모델이 JSON 을 못 내면 `null` — 호출자가 단일 실행으로 내린다. */
   async plan(
@@ -84,13 +90,15 @@ export class PlannerAgent {
     signal?: AbortSignal,
   ): Promise<AgentPlan | null> {
     const messages: LLMMessage[] = [
-      { role: "system", content: PLANNER_SYSTEM },
+      { role: "system", content: plannerSystem(this.t) },
       {
         role: "user",
         content: [
-          `현재 빌더 상태:\n${builderSummary}`,
-          history.length ? `\n직전 대화:\n${history.join("\n")}` : "",
-          `\n요청:\n${request}`,
+          `${this.t("aiTurn.stateHeading")}\n${builderSummary}`,
+          history.length
+            ? `\n${this.t("aiTurn.historyHeading")}\n${history.join("\n")}`
+            : "",
+          `\n${this.t("aiTurn.requestHeading")}\n${request}`,
         ]
           .filter(Boolean)
           .join("\n"),

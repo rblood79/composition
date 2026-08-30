@@ -20,6 +20,7 @@ import {
   getCatalogByCategory,
   type AiCatalogEntry,
 } from "./componentCatalog";
+import type { PromptTranslate } from "../promptTranslate";
 
 /** 한 번에 상세를 펼치는 최대 컴포넌트 수 — context 예산 상한. */
 export const DEFAULT_DETAIL_BUDGET = 12;
@@ -135,10 +136,7 @@ function typePattern(type: string): RegExp {
     .toLowerCase()
     .split(" ")
     .filter(Boolean);
-  return new RegExp(
-    `(^|[^a-z0-9])${words.join("[\\s_-]*")}([^a-z0-9]|$)`,
-    "i",
-  );
+  return new RegExp(`(^|[^a-z0-9])${words.join("[\\s_-]*")}([^a-z0-9]|$)`, "i");
 }
 
 /** 요청문에서 type 을 뽑는다 — 영문 type 명 (경계 일치) + 한국어 별칭. */
@@ -180,7 +178,8 @@ function categoriesFromRequest(request: string): string[] {
     }
   }
   for (const [alias, category] of Object.entries(KO_CATEGORY_ALIASES)) {
-    if (request.includes(alias) && !hits.includes(category)) hits.push(category);
+    if (request.includes(alias) && !hits.includes(category))
+      hits.push(category);
   }
   return hits;
 }
@@ -209,7 +208,8 @@ export function selectCatalogEntries(
   const request = context.request ?? "";
 
   // 1. 요청문이 직접 부른 type
-  if (request) for (const type of typesFromRequest(request)) take(type, "request");
+  if (request)
+    for (const type of typesFromRequest(request)) take(type, "request");
 
   // 2. 요청문이 부른 카테고리
   if (request) {
@@ -237,17 +237,20 @@ export function selectCatalogEntries(
  * 시스템 프롬프트에 넣을 카탈로그 절 전체 (Tier 1 + Tier 2).
  * `styles` 로 가는 보편 시각 키는 컴포넌트마다 같으므로 여기 한 번만 적는다.
  */
-export function buildCatalogSection(context: InjectionContext = {}): string {
+export function buildCatalogSection(
+  context: InjectionContext = {},
+  t: PromptTranslate = (key) => key,
+): string {
   const { text } = selectCatalogEntries(context);
   return [
-    "## 컴포넌트 카탈로그",
-    "아래 목록에 있는 type 만 만들 수 있습니다. 상세가 없는 컴포넌트를 쓰려면",
-    "`get_editor_state` 로 기존 요소를 보고 props 를 유추하거나, 목록의 이름을 그대로 쓰세요.",
+    t("aiCatalog.heading"),
+    t("aiCatalog.intro1"),
+    t("aiCatalog.intro2"),
     "",
-    "### 전체 목록 (카테고리: type)",
+    t("aiCatalog.allHeading"),
     formatCatalogIndex(),
     "",
-    "### 이번 요청에 관련된 컴포넌트 상세",
+    t("aiCatalog.detailHeading"),
     text,
   ].join("\n");
 }

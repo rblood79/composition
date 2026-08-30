@@ -626,6 +626,92 @@ export interface TranslationKeys {
     eventsHeading: string;
     eventsBody: string;
   };
+  aiIntent: {
+    done: string;
+    createButton: string;
+    createTable: string;
+    createForm: string;
+    createSelect: string;
+    changeStyle: string;
+    changeAlign: string;
+    changeFill: string;
+    deleteElement: string;
+    defaultButtonText: string;
+  };
+  aiCatalog: {
+    heading: string;
+    intro1: string;
+    intro2: string;
+    allHeading: string;
+    detailHeading: string;
+  };
+  aiTemplate: {
+    dashboardWhen: string;
+    dashboard1: string;
+    dashboard2: string;
+    dashboard3: string;
+    dashboard4: string;
+    dashboard5: string;
+    formWhen: string;
+    form1: string;
+    form2: string;
+    form3: string;
+    listWhen: string;
+    list1: string;
+    list2: string;
+    list3: string;
+    gridWhen: string;
+    grid1: string;
+    grid2: string;
+    grid3: string;
+  };
+  aiAgent: {
+    plannerRole: string;
+    plannerFormat: string;
+    plannerShape: string;
+    plannerRulesHeading: string;
+    plannerRule1: string;
+    plannerRule2: string;
+    plannerRule3: string;
+    plannerRule4: string;
+    plannerRule5: string;
+    plannerTemplates: string;
+  };
+  aiTurn: {
+    stateHeading: string;
+    historyHeading: string;
+    requestHeading: string;
+  };
+  aiVerify: {
+    role: string;
+    shape: string;
+    rulesHeading: string;
+    rule1: string;
+    rule2: string;
+    rule3: string;
+    rule4: string;
+    goal: string;
+    planHeading: string;
+    stepDone: string;
+    logHeading: string;
+  };
+  aiOrchestrator: {
+    pageId: string;
+    elementCount: string;
+    typesInUse: string;
+    none: string;
+    selected: string;
+    noSelection: string;
+    noProfile: string;
+    stepCount: string;
+    noPlan: string;
+    ranCount: string;
+    verifyOk: string;
+    verifyIssues: string;
+    repairExhausted: string;
+    repairInstruction: string;
+    repairAttempt: string;
+  };
   settings: {
     title: string;
     language: string;

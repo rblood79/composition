@@ -631,6 +631,105 @@ const koKR: TranslationKeys = {
     eventsBody:
       'trigger 는 컴포넌트가 실제로 노출하는 callback 이름입니다 (예: Button 은 onPress).\nonClick 같은 DOM 이름은 쓰지 않습니다. action 은 3종:\n- navigate: { kind: "navigate", path: "/about" }\n- toast: { kind: "toast", message: "저장했습니다" }\n- capability: { kind: "capability", targetId, capability, value? } — 대상이 노출하는 capability 만.\n틀린 trigger/capability 를 보내면 도구가 사용 가능한 목록을 돌려주니 그것으로 고쳐 부르세요.',
   },
+  aiIntent: {
+    done: "요청을 처리했습니다.",
+    createButton: "버튼 컴포넌트를 생성합니다.",
+    createTable: "테이블 컴포넌트를 생성합니다.",
+    createForm: "폼 컴포넌트를 생성합니다.",
+    createSelect: "Select 컴포넌트를 생성합니다.",
+    changeStyle: "선택된 요소의 스타일을 변경합니다.",
+    changeAlign: "선택된 요소의 정렬을 변경합니다.",
+    changeFill: "배경 fill을 {color}로 변경합니다.",
+    deleteElement: "선택된 요소를 삭제합니다.",
+    defaultButtonText: "버튼",
+  },
+  aiCatalog: {
+    heading: "## 컴포넌트 카탈로그",
+    intro1:
+      "아래 목록에 있는 type 만 만들 수 있습니다. 상세가 없는 컴포넌트를 쓰려면",
+    intro2:
+      "`get_editor_state` 로 기존 요소를 보고 props 를 유추하거나, 목록의 이름을 그대로 쓰세요.",
+    allHeading: "### 전체 목록 (카테고리: type)",
+    detailHeading: "### 이번 요청에 관련된 컴포넌트 상세",
+  },
+  aiTemplate: {
+    dashboardWhen: "대시보드 / 관리 화면 / 현황판",
+    dashboard1: "frame 을 만들어 화면 골격을 잡는다",
+    dashboard2: "상단에 Heading 으로 제목을 넣는다",
+    dashboard3: "본문에 Table 을 놓고 목록을 보여 준다",
+    dashboard4: "요약이 필요하면 ProgressBar 로 지표를 표시한다",
+    dashboard5: "주요 동작을 Button 으로 배치한다",
+    formWhen: "입력 폼 / 등록 / 설정 화면",
+    form1: "frame 안에 Heading 으로 폼 제목을 넣는다",
+    form2:
+      "필드를 TextField / Select / Checkbox 로 만든다 (label 을 반드시 채운다)",
+    form3: "제출 Button 을 마지막에 놓는다",
+    listWhen: "목록 / 리스트 화면",
+    list1: "frame 안에 Heading 으로 목록 제목을 넣는다",
+    list2: "ListBox 를 만들고 bind_collection 으로 데이터를 연결한다",
+    list3: "분류가 필요하면 TagGroup 을 위에 놓는다",
+    gridWhen: "카드 그리드 / 갤러리 / 상품 목록",
+    grid1: "frame 을 만들고 Heading 으로 제목을 넣는다",
+    grid2: "GridList 를 놓고 bind_collection 으로 데이터를 연결한다",
+    grid3: "개별 항목 표현이 필요하면 Card 를 쓴다",
+  },
+  aiAgent: {
+    plannerRole:
+      "당신은 composition 웹 빌더의 설계 담당입니다.\n사용자 요청을 실행 가능한 단계로 쪼개고, **JSON 만** 출력합니다.",
+    plannerFormat: "형식:",
+    plannerShape:
+      '{"goal": "요청 재진술", "steps": [{"index": 1, "instruction": "...", "done": "..."}]}',
+    plannerRulesHeading: "규칙:",
+    plannerRule1:
+      "- 각 단계는 한 번의 작업 묶음입니다 (요소 몇 개 생성 / 스타일 조정 / 데이터 연결).",
+    plannerRule2:
+      "- instruction 은 실행 담당이 그대로 읽고 도구를 부를 수 있을 만큼 구체적으로 씁니다.",
+    plannerRule3:
+      "- done 은 그 단계가 끝났는지 눈으로 확인할 수 있는 조건을 씁니다.",
+    plannerRule4:
+      "- 단순한 요청 (요소 하나 만들기 / prop 하나 바꾸기) 이면 steps 는 1개입니다.",
+    plannerRule5:
+      "- 단계는 최대 6개입니다. 설명이나 코드 블록 없이 JSON 만 출력하세요.",
+    plannerTemplates: "자주 쓰는 골격 (요청이 맞으면 출발점으로 쓰세요):",
+  },
+  aiTurn: {
+    stateHeading: "현재 빌더 상태:",
+    historyHeading: "직전 대화:",
+    requestHeading: "요청:",
+  },
+  aiVerify: {
+    role: "당신은 composition 웹 빌더의 검증 담당입니다.\n계획과 실행 기록을 보고 요청이 실제로 이행됐는지 판정하고 **JSON 만** 출력합니다.",
+    shape:
+      '형식: {"ok": true} 또는 {"ok": false, "issues": ["무엇이 어긋났는지", "..."]}',
+    rulesHeading: "규칙:",
+    rule1: "- 계획의 done 조건을 기준으로 봅니다.",
+    rule2:
+      "- issues 는 실행 담당이 바로 고칠 수 있게 구체적으로 씁니다 (무엇을 어떻게).",
+    rule3:
+      "- 확신이 없으면 ok: true 로 둡니다 — 불필요한 재시도가 사용자 작업을 되돌릴 수 있습니다.",
+    rule4: "- 설명이나 코드 블록 없이 JSON 만 출력하세요.",
+    goal: "목표: {goal}",
+    planHeading: "계획:",
+    stepDone: " (완료 조건: {done})",
+    logHeading: "실행 기록:",
+  },
+  aiOrchestrator: {
+    pageId: "페이지 ID: {id}",
+    elementCount: "요소 {count}개",
+    typesInUse: "사용 중인 컴포넌트: {types}",
+    none: "없음",
+    selected: "선택된 요소: {type}",
+    noSelection: "선택된 요소 없음",
+    noProfile: "실행할 에이전트 프로파일이 없습니다.",
+    stepCount: "{count}단계",
+    noPlan: "계획 없음",
+    ranCount: "{count}건 실행",
+    verifyOk: "이상 없음",
+    verifyIssues: "{count}건 지적",
+    repairExhausted: "{max}회 고쳐 봤지만 다음이 남았습니다:",
+    repairInstruction: "지적된 부분을 고치세요. 목표: {goal}",
+    repairAttempt: "수리 {n}회",
+  },
   settings: {
     title: "설정",
     language: "언어",
@@ -1652,6 +1751,106 @@ const enUS: TranslationKeys = {
     eventsBody:
       'trigger is a callback name the component actually exposes (Button uses onPress, for example).\nDo not use DOM names like onClick. There are three action kinds:\n- navigate: { kind: "navigate", path: "/about" }\n- toast: { kind: "toast", message: "Saved" }\n- capability: { kind: "capability", targetId, capability, value? } — only capabilities the target exposes.\nIf you send a wrong trigger or capability the tool returns the available list; call again with that.',
   },
+  aiIntent: {
+    done: "Done.",
+    createButton: "Creating a Button component.",
+    createTable: "Creating a Table component.",
+    createForm: "Creating a Form component.",
+    createSelect: "Creating a Select component.",
+    changeStyle: "Changing the style of the selected element.",
+    changeAlign: "Changing the alignment of the selected element.",
+    changeFill: "Changing the background fill to {color}.",
+    deleteElement: "Deleting the selected element.",
+    defaultButtonText: "Button",
+  },
+  aiCatalog: {
+    heading: "## Component catalog",
+    intro1:
+      "You may only create types from the list below. For a component with no detail,",
+    intro2:
+      "read an existing element with `get_editor_state` to infer its props, or use the listed name as-is.",
+    allHeading: "### Full list (category: type)",
+    detailHeading: "### Detail for components relevant to this request",
+  },
+  aiTemplate: {
+    dashboardWhen: "Dashboard / admin screen / status board",
+    dashboard1: "Create a frame for the screen skeleton",
+    dashboard2: "Put a Heading at the top for the title",
+    dashboard3: "Place a Table in the body to show the list",
+    dashboard4: "If a summary is needed, show metrics with a ProgressBar",
+    dashboard5: "Lay out the primary actions as Buttons",
+    formWhen: "Input form / sign-up / settings screen",
+    form1: "Put a Heading inside a frame for the form title",
+    form2:
+      "Build the fields as TextField / Select / Checkbox (always fill in label)",
+    form3: "Put the submit Button last",
+    listWhen: "List screen",
+    list1: "Put a Heading inside a frame for the list title",
+    list2: "Create a ListBox and wire data with bind_collection",
+    list3: "If grouping is needed, put a TagGroup above it",
+    gridWhen: "Card grid / gallery / product list",
+    grid1: "Create a frame and put a Heading for the title",
+    grid2: "Place a GridList and wire data with bind_collection",
+    grid3: "Use a Card when individual items need their own presentation",
+  },
+  aiAgent: {
+    plannerRole:
+      "You are the planner for the composition web builder.\nBreak the user's request into executable steps and output **JSON only**.",
+    plannerFormat: "Format:",
+    plannerShape:
+      '{"goal": "restate the request", "steps": [{"index": 1, "instruction": "...", "done": "..."}]}',
+    plannerRulesHeading: "Rules:",
+    plannerRule1:
+      "- Each step is one batch of work (create a few elements / adjust styles / wire data).",
+    plannerRule2:
+      "- Write instruction concretely enough that the executor can call tools straight from it.",
+    plannerRule3:
+      "- Write done as a condition you can check by eye to see the step finished.",
+    plannerRule4:
+      "- For a simple request (create one element / change one prop) use a single step.",
+    plannerRule5:
+      "- At most six steps. Output JSON only — no prose, no code fences.",
+    plannerTemplates:
+      "Common skeletons (use one as a starting point when it fits the request):",
+  },
+  aiTurn: {
+    stateHeading: "Current builder state:",
+    historyHeading: "Recent conversation:",
+    requestHeading: "Request:",
+  },
+  aiVerify: {
+    role: "You are the verifier for the composition web builder.\nRead the plan and the execution log, judge whether the request was actually carried out, and output **JSON only**.",
+    shape:
+      'Format: {"ok": true} or {"ok": false, "issues": ["what went wrong", "..."]}',
+    rulesHeading: "Rules:",
+    rule1: "- Judge against the plan's done conditions.",
+    rule2:
+      "- Write issues concretely enough for the executor to fix straight away (what, and how).",
+    rule3:
+      "- When unsure, answer ok: true — a needless retry can undo the user's work.",
+    rule4: "- Output JSON only — no prose, no code fences.",
+    goal: "Goal: {goal}",
+    planHeading: "Plan:",
+    stepDone: " (done when: {done})",
+    logHeading: "Execution log:",
+  },
+  aiOrchestrator: {
+    pageId: "Page ID: {id}",
+    elementCount: "{count} elements",
+    typesInUse: "Components in use: {types}",
+    none: "none",
+    selected: "Selected element: {type}",
+    noSelection: "No selection",
+    noProfile: "No agent profile is available to run.",
+    stepCount: "{count} steps",
+    noPlan: "No plan",
+    ranCount: "{count} calls",
+    verifyOk: "All good",
+    verifyIssues: "{count} issues",
+    repairExhausted: "Tried {max} repairs; these remain:",
+    repairInstruction: "Fix what was flagged. Goal: {goal}",
+    repairAttempt: "Repair {n}",
+  },
   settings: {
     title: "Settings",
     language: "Language",
@@ -2558,6 +2757,26 @@ const formattedMessages: Record<
     "aiPrompt.selectedProps": (args) => `- Props: ${String(args?.props ?? "")}`,
     "aiPrompt.selectedParent": (args) =>
       `- 부모 ID: ${String(args?.parent ?? "")}`,
+    "aiIntent.changeFill": (args) =>
+      `배경 fill을 ${String(args?.color ?? "")}로 변경합니다.`,
+    "aiVerify.goal": (args) => `목표: ${String(args?.goal ?? "")}`,
+    "aiVerify.stepDone": (args) => ` (완료 조건: ${String(args?.done ?? "")})`,
+    "aiOrchestrator.pageId": (args) => `페이지 ID: ${String(args?.id ?? "")}`,
+    "aiOrchestrator.elementCount": (args) =>
+      `요소 ${String(args?.count ?? 0)}개`,
+    "aiOrchestrator.typesInUse": (args) =>
+      `사용 중인 컴포넌트: ${String(args?.types ?? "")}`,
+    "aiOrchestrator.selected": (args) =>
+      `선택된 요소: ${String(args?.type ?? "")}`,
+    "aiOrchestrator.stepCount": (args) => `${String(args?.count ?? 0)}단계`,
+    "aiOrchestrator.ranCount": (args) => `${String(args?.count ?? 0)}건 실행`,
+    "aiOrchestrator.verifyIssues": (args) =>
+      `${String(args?.count ?? 0)}건 지적`,
+    "aiOrchestrator.repairExhausted": (args) =>
+      `${String(args?.max ?? 0)}회 고쳐 봤지만 다음이 남았습니다:`,
+    "aiOrchestrator.repairInstruction": (args) =>
+      `지적된 부분을 고치세요. 목표: ${String(args?.goal ?? "")}`,
+    "aiOrchestrator.repairAttempt": (args) => `수리 ${String(args?.n ?? 0)}회`,
     "componentAction.selectInstances": (args) =>
       `인스턴스 선택 (${String(args?.count ?? 0)})`,
     "monitor.realtimeChart": (args) =>
@@ -2702,6 +2921,26 @@ const formattedMessages: Record<
     "aiPrompt.selectedProps": (args) => `- Props: ${String(args?.props ?? "")}`,
     "aiPrompt.selectedParent": (args) =>
       `- Parent ID: ${String(args?.parent ?? "")}`,
+    "aiIntent.changeFill": (args) =>
+      `Changing the background fill to ${String(args?.color ?? "")}.`,
+    "aiVerify.goal": (args) => `Goal: ${String(args?.goal ?? "")}`,
+    "aiVerify.stepDone": (args) => ` (done when: ${String(args?.done ?? "")})`,
+    "aiOrchestrator.pageId": (args) => `Page ID: ${String(args?.id ?? "")}`,
+    "aiOrchestrator.elementCount": (args) =>
+      `${String(args?.count ?? 0)} elements`,
+    "aiOrchestrator.typesInUse": (args) =>
+      `Components in use: ${String(args?.types ?? "")}`,
+    "aiOrchestrator.selected": (args) =>
+      `Selected element: ${String(args?.type ?? "")}`,
+    "aiOrchestrator.stepCount": (args) => `${String(args?.count ?? 0)} steps`,
+    "aiOrchestrator.ranCount": (args) => `${String(args?.count ?? 0)} calls`,
+    "aiOrchestrator.verifyIssues": (args) =>
+      `${String(args?.count ?? 0)} issues`,
+    "aiOrchestrator.repairExhausted": (args) =>
+      `Tried ${String(args?.max ?? 0)} repairs; these remain:`,
+    "aiOrchestrator.repairInstruction": (args) =>
+      `Fix what was flagged. Goal: ${String(args?.goal ?? "")}`,
+    "aiOrchestrator.repairAttempt": (args) => `Repair ${String(args?.n ?? 0)}`,
     "componentAction.selectInstances": (args) =>
       `Select instances (${String(args?.count ?? 0)})`,
     "monitor.realtimeChart": (args) =>

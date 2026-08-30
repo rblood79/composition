@@ -61,13 +61,10 @@ export function useAgentLoop() {
    */
   const runFallback = useCallback(
     (message: string, context: BuilderContext) => {
-      const intent = intentParser.parse(message, context);
+      const intent = intentParser.parse(message, t, context);
 
       if (intent) {
-        addAssistantMessage(
-          intent.description || "요청을 처리했습니다.",
-          intent,
-        );
+        addAssistantMessage(intent.description || t("aiIntent.done"), intent);
       } else {
         addAssistantMessage(
           "죄송합니다. 요청을 이해하지 못했습니다. 다시 시도해주세요.",

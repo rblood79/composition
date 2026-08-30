@@ -7,17 +7,17 @@
  */
 import type { LLMMessage, LLMProvider } from "../providers/LLMProvider";
 import type { AgentPlan, VerifyOutcome } from "./types";
+import type { PromptTranslate } from "../promptTranslate";
 
-const VERIFIER_SYSTEM = `당신은 composition 웹 빌더의 검증 담당입니다.
-계획과 실행 기록을 보고 요청이 실제로 이행됐는지 판정하고 **JSON 만** 출력합니다.
+const verifierSystem = (t: PromptTranslate): string => `${t("aiVerify.role")}
 
-형식: {"ok": true} 또는 {"ok": false, "issues": ["무엇이 어긋났는지", "..."]}
+${t("aiVerify.shape")}
 
-규칙:
-- 계획의 done 조건을 기준으로 봅니다.
-- issues 는 실행 담당이 바로 고칠 수 있게 구체적으로 씁니다 (무엇을 어떻게).
-- 확신이 없으면 ok: true 로 둡니다 — 불필요한 재시도가 사용자 작업을 되돌릴 수 있습니다.
-- 설명이나 코드 블록 없이 JSON 만 출력하세요.`;
+${t("aiVerify.rulesHeading")}
+${t("aiVerify.rule1")}
+${t("aiVerify.rule2")}
+${t("aiVerify.rule3")}
+${t("aiVerify.rule4")}`;
 
 export function parseVerdict(raw: string): VerifyOutcome {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -45,7 +45,11 @@ export function parseVerdict(raw: string): VerifyOutcome {
 }
 
 export class VerifierAgent {
-  constructor(private readonly provider: LLMProvider) {}
+  constructor(
+    private readonly provider: LLMProvider,
+    /** 프롬프트 문장 해소기 (ADR-200 후속). */
+    private readonly t: PromptTranslate,
+  ) {}
 
   async verify(
     plan: AgentPlan,
@@ -53,19 +57,19 @@ export class VerifierAgent {
     signal?: AbortSignal,
   ): Promise<VerifyOutcome> {
     const messages: LLMMessage[] = [
-      { role: "system", content: VERIFIER_SYSTEM },
+      { role: "system", content: verifierSystem(this.t) },
       {
         role: "user",
         content: [
-          `목표: ${plan.goal}`,
+          this.t("aiVerify.goal", { goal: plan.goal }),
           "",
-          "계획:",
+          this.t("aiVerify.planHeading"),
           ...plan.steps.map(
             (s) =>
-              `${s.index}. ${s.instruction}${s.done ? ` (완료 조건: ${s.done})` : ""}`,
+              `${s.index}. ${s.instruction}${s.done ? this.t("aiVerify.stepDone", { done: s.done }) : ""}`,
           ),
           "",
-          "실행 기록:",
+          this.t("aiVerify.logHeading"),
           ...executionLog,
         ].join("\n"),
       },

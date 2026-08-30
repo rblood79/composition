@@ -32,15 +32,19 @@ export interface OrchestratorOptions {
   fallback: ReturnType<ProviderResolver>;
 }
 
-function builderSummary(context: BuilderContext): string {
+function builderSummary(context: BuilderContext, t: PromptTranslate): string {
   const types = new Set(context.elements.map((el) => el.type));
   return [
-    `페이지 ID: ${context.currentPageId}`,
-    `요소 ${context.elements.length}개`,
-    `사용 중인 컴포넌트: ${[...types].join(", ") || "없음"}`,
+    t("aiOrchestrator.pageId", { id: String(context.currentPageId) }),
+    t("aiOrchestrator.elementCount", { count: context.elements.length }),
+    t("aiOrchestrator.typesInUse", {
+      types: [...types].join(", ") || t("aiOrchestrator.none"),
+    }),
     context.selectedElementId
-      ? `선택된 요소: ${context.selectedElement?.type ?? "?"}`
-      : "선택된 요소 없음",
+      ? t("aiOrchestrator.selected", {
+          type: context.selectedElement?.type ?? "?",
+        })
+      : t("aiOrchestrator.noSelection"),
   ].join("\n");
 }
 
@@ -69,7 +73,10 @@ export class Orchestrator {
     const plannerProvider = this.provider("planner");
     const executorProvider = this.provider("executor");
     if (!executorProvider) {
-      yield { type: "final", content: "실행할 에이전트 프로파일이 없습니다." };
+      yield {
+        type: "final",
+        content: this.options.t("aiOrchestrator.noProfile"),
+      };
       return;
     }
 
@@ -81,16 +88,20 @@ export class Orchestrator {
         agent: "planner",
         labelKey: "ai.rolePlanner",
       };
-      plan = await new PlannerAgent(plannerProvider).plan(
+      plan = await new PlannerAgent(plannerProvider, this.options.t).plan(
         request,
-        builderSummary(context),
+        builderSummary(context, this.options.t),
         history,
       );
       yield {
         type: "agent-end",
         agent: "planner",
         ok: Boolean(plan),
-        summary: plan ? `${plan.steps.length}단계` : "계획 없음",
+        summary: plan
+          ? this.options.t("aiOrchestrator.stepCount", {
+              count: plan.steps.length,
+            })
+          : this.options.t("aiOrchestrator.noPlan"),
       };
     }
 
@@ -122,7 +133,9 @@ export class Orchestrator {
       type: "agent-end",
       agent: "executor",
       ok: !record.hadError,
-      summary: `${record.log.length}건 실행`,
+      summary: this.options.t("aiOrchestrator.ranCount", {
+        count: record.log.length,
+      }),
     };
 
     // 분해하지 않은 단순 요청은 검증하지 않는다.
@@ -131,7 +144,7 @@ export class Orchestrator {
     // ── Verify (+ bounded repair) ───────────────────────────────────
     const verifierProvider = this.provider("verifier");
     if (!verifierProvider) return;
-    const verifier = new VerifierAgent(verifierProvider);
+    const verifier = new VerifierAgent(verifierProvider, this.options.t);
 
     for (let attempt = 0; attempt <= MAX_REPAIR_ATTEMPTS; attempt++) {
       yield {
@@ -144,7 +157,11 @@ export class Orchestrator {
         type: "agent-end",
         agent: "verifier",
         ok: outcome.ok,
-        summary: outcome.ok ? "이상 없음" : `${outcome.issues.length}건 지적`,
+        summary: outcome.ok
+          ? this.options.t("aiOrchestrator.verifyOk")
+          : this.options.t("aiOrchestrator.verifyIssues", {
+              count: outcome.issues.length,
+            }),
       };
 
       if (outcome.ok) return;
@@ -152,7 +169,9 @@ export class Orchestrator {
         yield {
           type: "final",
           content: [
-            `${MAX_REPAIR_ATTEMPTS}회 고쳐 봤지만 다음이 남았습니다:`,
+            this.options.t("aiOrchestrator.repairExhausted", {
+              max: MAX_REPAIR_ATTEMPTS,
+            }),
             ...outcome.issues.map((i) => `- ${i}`),
           ].join("\n"),
         };
@@ -173,7 +192,12 @@ export class Orchestrator {
         labelKey: "ai.roleRepair",
       };
       yield* this.executor.runStep(
-        { index: 0, instruction: `지적된 부분을 고치세요. 목표: ${plan.goal}` },
+        {
+          index: 0,
+          instruction: this.options.t("aiOrchestrator.repairInstruction", {
+            goal: plan.goal,
+          }),
+        },
         context,
         record,
         outcome.issues,
@@ -182,7 +206,9 @@ export class Orchestrator {
         type: "agent-end",
         agent: "executor",
         ok: !record.hadError,
-        summary: `수리 ${attempt + 1}회`,
+        summary: this.options.t("aiOrchestrator.repairAttempt", {
+          n: attempt + 1,
+        }),
       };
     }
   }

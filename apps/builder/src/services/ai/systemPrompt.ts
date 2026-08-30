@@ -34,11 +34,14 @@ export function buildSystemPrompt(
   // (구조 전용 캐시라 props 가 낡는다. chat.types.ts `selectedElement` 주석 참조).
   const selectedElement = context.selectedElement ?? null;
 
-  const catalogSection = buildCatalogSection({
-    request,
-    selectedType: selectedElement?.type,
-    presentTypes: [...new Set(elements.map((el) => el.type))],
-  });
+  const catalogSection = buildCatalogSection(
+    {
+      request,
+      selectedType: selectedElement?.type,
+      presentTypes: [...new Set(elements.map((el) => el.type))],
+    },
+    t,
+  );
 
   // 문장은 카탈로그가 고른다 (ADR-200 후속) — 특히 "응답 언어" 규칙이 여기에 있어서,
   // 빌더가 en-US 인데 프롬프트만 한국어를 지시하던 어긋남이 사라진다.

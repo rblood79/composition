@@ -10,12 +10,21 @@ import type {
   BuilderContext,
 } from "../../types/integrations/chat.types";
 import { createDefaultColorFill } from "../../types/builder/fill.types";
+import type { PromptTranslate } from "./promptTranslate";
 
 export class IntentParser {
+  /** 문구 해소기 — 화면에 남는 문장과 새 요소의 기본 텍스트가 여기서 나온다. */
+  private t: PromptTranslate = (key) => key;
+
   /**
    * Parse user message into component intent using rule-based patterns
    */
-  parse(message: string, context?: BuilderContext): ComponentIntent | null {
+  parse(
+    message: string,
+    t: PromptTranslate,
+    context?: BuilderContext,
+  ): ComponentIntent | null {
+    this.t = t;
     const lowercased = message.toLowerCase();
 
     // Try each pattern in order
@@ -56,11 +65,13 @@ export class IntentParser {
         action: "create",
         componentType: "Button",
         props: {
-          children: this.extractText(original, ["버튼", "button"]) || "버튼",
+          children:
+            this.extractText(original, ["버튼", "button"]) ||
+            this.t("aiIntent.defaultButtonText"),
         },
         styles: this.extractStyles(lowercased),
         fills: this.extractFills(lowercased),
-        description: "버튼 컴포넌트를 생성합니다.",
+        description: this.t("aiIntent.createButton"),
       };
     }
 
@@ -81,7 +92,7 @@ export class IntentParser {
         action: "create",
         componentType: "Table",
         dataBinding: endpoint ? { endpoint } : undefined,
-        description: "테이블 컴포넌트를 생성합니다.",
+        description: this.t("aiIntent.createTable"),
       };
     }
 
@@ -99,7 +110,7 @@ export class IntentParser {
       return {
         action: "create",
         componentType: "Form",
-        description: "폼 컴포넌트를 생성합니다.",
+        description: this.t("aiIntent.createForm"),
       };
     }
 
@@ -122,7 +133,7 @@ export class IntentParser {
         action: "create",
         componentType: "Select",
         dataBinding: endpoint ? { endpoint } : undefined,
-        description: "Select 컴포넌트를 생성합니다.",
+        description: this.t("aiIntent.createSelect"),
       };
     }
 
@@ -149,7 +160,7 @@ export class IntentParser {
         targetElementId: context.selectedElementId,
         styles: this.extractStyles(lowercased),
         fills: this.extractFills(lowercased),
-        description: "선택된 요소의 스타일을 변경합니다.",
+        description: this.t("aiIntent.changeStyle"),
       };
     }
 
@@ -193,7 +204,7 @@ export class IntentParser {
           action: "style",
           targetElementId: context.selectedElementId,
           styles,
-          description: "선택된 요소의 정렬을 변경합니다.",
+          description: this.t("aiIntent.changeAlign"),
         };
       }
     }
@@ -216,7 +227,7 @@ export class IntentParser {
         action: "style",
         targetElementId: context.selectedElementId,
         fills: [createDefaultColorFill(color)],
-        description: `배경 fill을 ${color}로 변경합니다.`,
+        description: this.t("aiIntent.changeFill", { color }),
       };
     }
 
@@ -238,7 +249,7 @@ export class IntentParser {
       return {
         action: "delete",
         targetElementId: context.selectedElementId,
-        description: "선택된 요소를 삭제합니다.",
+        description: this.t("aiIntent.deleteElement"),
       };
     }
 
