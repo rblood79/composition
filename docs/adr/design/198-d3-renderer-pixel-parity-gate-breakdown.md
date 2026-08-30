@@ -167,20 +167,24 @@ reporting misleading pixel drift.
 
 The exact inventory is frozen in Phase 0. The default target is:
 
-| Target                                            | Responsibility                                                                      |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `apps/builder/tests/visual-parity/cases/`         | Immutable canonical fixtures and explicit region/budget metadata                    |
-| `apps/builder/tests/visual-parity/harness/`       | Environment manifest, normalization, geometry/style/pixel comparison, artifacts     |
-| `apps/builder/tests/visual-parity/skia/`          | Test-only CanvasKit loader and adapter into the production Skia scene/render path   |
-| `apps/builder/tests/visual-parity/preview/`       | Playwright driver for the real Preview app and canonical message/readiness contract |
-| `apps/builder/playwright.visual-parity.config.ts` | Pinned viewport/DPR/locale/color/reduced-motion/test output configuration           |
-| `apps/builder/package.json`                       | `test:visual-parity` and optional smoke/full scripts                                |
-| `.github/workflows/visual-parity.yml`             | Required path-scoped smoke check and full main/scheduled matrix                     |
-| `.agents/skills/cross-check/SKILL.md`             | Route stable fixtures to the command; retain Chrome MCP live coverage guidance      |
+| Target                                                   | Responsibility                                                                                                            |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `apps/builder/tests/visual-parity/cases/`                | Immutable canonical fixtures and explicit region/budget metadata                                                          |
+| `apps/builder/tests/visual-parity/harness/`              | Environment manifest, normalization, geometry/style/pixel comparison, artifacts                                           |
+| `apps/builder/tests/visual-parity/skia/`                 | Test-only CanvasKit loader and adapter into the production Skia scene/render path                                         |
+| `apps/builder/tests/visual-parity/preview/`              | Playwright driver for the real Preview app and canonical message/readiness contract                                       |
+| `apps/builder/playwright.visual-parity.config.ts`        | Pinned viewport/DPR/locale/color/reduced-motion/test output configuration                                                 |
+| `apps/builder/package.json`                              | `test:visual-parity` and optional smoke/full scripts                                                                      |
+| `.github/workflows/visual-parity.yml`                    | `push: main` path-scoped smoke job that `deploy.yml` gates on via `needs:`, plus full post-push/scheduled matrix          |
+| local pre-push gate (git hook or scoped `codex:` script) | Runs the same smoke matrix before `git push origin main`; the repository forbids PRs, so this is the first blocking point |
+| `.agents/skills/cross-check/SKILL.md`                    | Route stable fixtures to the command; retain Chrome MCP live coverage guidance                                            |
 
 If a new workflow is inconsistent with the repository's CI topology at
-implementation time, Phase 5 may attach the same required check to an existing
-workflow. The check name and pass/fail contract must remain stable.
+implementation time, Phase 5 may attach the same smoke job to `deploy.yml`
+directly. The job name and pass/fail contract must remain stable. Because
+`.claude/rules/git-workflow.md` forbids web PRs and `main` is pushed directly,
+"required check" throughout this breakdown means **pre-push gate + `push: main`
+job that deployment depends on**, never a PR status check.
 
 ### 3.3 Fixture contract
 
@@ -446,10 +450,13 @@ Tasks:
 
 1. Register `test:visual-parity`, `test:visual-parity:smoke`, and optionally
    `test:visual-parity:full` under the Builder workspace.
-2. Add a required PR smoke check for D3-relevant paths: catalog/spec/generated
-   CSS, Canvas/Skia/layout, Preview/shared renderer, fonts/images, and harness.
-   The check runs the doctor fixture first; a doctor failure fails the check
-   (`PARITY-ENV`) and skips nothing.
+2. Add the smoke gate for D3-relevant paths (catalog/spec/generated CSS,
+   Canvas/Skia/layout, Preview/shared renderer, fonts/images, harness) at two
+   points: a local pre-push gate before `git push origin main`, and a
+   `push: main` job that `deploy.yml` depends on via `needs:`. The gate runs
+   the doctor fixture first; a doctor failure fails the gate (`PARITY-ENV`)
+   and skips nothing. Do not introduce a PR-based check — the repository
+   forbids web PRs.
 3. Run the full matrix on `main` and/or a schedule.
 4. Upload failure artifacts with bounded retention.
 5. Update `/cross-check` so stable fixtures run the command before live review;
@@ -528,7 +535,7 @@ The implementation record must include:
 - 10-run determinism result with `maxByte`;
 - doctor fixture result and surface backend per leg;
 - positive and negative probe results (six probes) with failure codes;
-- PR smoke and full-matrix wall time;
+- pre-push smoke, `push: main` smoke, and full-matrix wall time;
 - artifact links from at least one deliberate failure;
 - explicit residual families/states.
 

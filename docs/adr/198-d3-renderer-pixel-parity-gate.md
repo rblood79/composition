@@ -160,9 +160,17 @@ never a new SSOT.
    `PARITY-L2-STYLE`, `PARITY-L3-PIXEL`, `PARITY-L4-TEXT`, `PARITY-RESOURCE`).
    Codes key the exception ledger and `/fix` routing. CI setup/determinism
    failures are failures, not skips.
-10. **Bounded CI cost** — the required PR smoke matrix completes in **≤90s** and
-    the full matrix in **≤5min** on the pinned CI runner. If either limit is
-    exceeded, scope is reduced before the check becomes required.
+10. **Bounded CI cost** — the required push smoke matrix completes in **≤90s**
+    and the full matrix in **≤5min** on the pinned CI runner. If either limit
+    is exceeded, scope is reduced before the check becomes required.
+    "Required" is defined by this repository's git policy
+    (`.claude/rules/git-workflow.md`: web PRs are forbidden, `main` is pushed
+    directly, and `.github/workflows/deploy.yml` deploys on `push: main`): the
+    smoke matrix must (a) run as a local pre-push gate before
+    `git push origin main` and (b) run in a `push: main` workflow that the
+    deploy job depends on (`needs:`), so a failing smoke blocks deployment and
+    is reported on the commit. A PR status check is not the enforcement
+    mechanism here and must not be the only one.
 11. **Frame liveness precedes parity** — before identity or pixel comparison,
     each leg must prove a non-degenerate frame: expected painted node count
     **≥1**, and every non-masked region's pixel variance above the fixture's
@@ -182,8 +190,8 @@ never a new SSOT.
 - Reuse the existing Playwright, `pixelmatch`, and `pngjs` versions. If package
   ownership changes, declare them in the harness owner without adding a second
   version to the lockfile.
-- Keep the PR smoke matrix small; run the broader component/state matrix on
-  `main` or a scheduled workflow.
+- Keep the push smoke matrix small; run the broader component/state matrix
+  post-push on `main` or a scheduled workflow, never as a pre-push blocker.
 - Settle each leg by convergence — capture when two consecutive normalized
   hashes are identical after readiness barriers — with a bounded ceiling that
   fails as `PARITY-RESOURCE`; do not encode a fixed frame count as the
@@ -315,7 +323,7 @@ Rejection rationale:
 | R4  | Chromium, CanvasKit, font, image, DPR, time, or color-profile drift makes CI nondeterministic. Current boundaries include `initCanvasKit.ts::initCanvasKit`, Preview `index.tsx::injectCustomFonts`, and `vitest.browser.config.ts::browser`.                       | **HIGH** | Environment manifest + hashes, no network resources, readiness barriers, and G2 repeatability gate.                                                                                    |
 | R5  | Masks or generous fixture budgets hide real regressions. Current comparison inputs include `cross-check/SKILL.md::Phase 5.4`, `constitutional.ts::INVARIANTS`, and `adr190-pixel-oracle.mjs::diff`.                                                                 | **HIGH** | Typed exception ledger, bounded regions, no wildcard masks, four mandatory negative probes, and review/expiry ratchet in G3.                                                           |
 | R6  | Fonts/images are captured before load/decode or CanvasKit resources leak between cases.                                                                                                                                                                             |  MEDIUM  | Explicit font/image readiness, surface/image disposal assertions, isolated case lifecycle, and G4.                                                                                     |
-| R7  | Two real render legs make PR checks too slow or artifact-heavy.                                                                                                                                                                                                     |  MEDIUM  | Smoke/full split, path-scoped CI, ≤90s/≤5min budgets, artifacts only on failure, and G5.                                                                                               |
+| R7  | Two real render legs make the pre-push gate or `push: main` workflow too slow or artifact-heavy, so developers bypass the local gate or deploy waits on it.                                                                                                         |  MEDIUM  | Smoke/full split, path-scoped CI, ≤90s/≤5min budgets, artifacts only on failure, and G5.                                                                                               |
 | R8  | Both renderers can share the same wrong canonical value, so parity passes despite a product regression.                                                                                                                                                             |  MEDIUM  | Keep catalog/spec semantic tests and CSS/layout contract tests; ADR-198 asserts consumer symmetry, not design correctness.                                                             |
 | R9  | `pixelmatch`/`pngjs` are imported from the wrong workspace and pass only through hoisting.                                                                                                                                                                          |   LOW    | Declare test dependencies in the owning package or centralize the harness; lockfile version count must not increase.                                                                   |
 | R10 | ADR-921 later introduces a renderer-neutral snapshot and leaves this harness coupled to stale current inputs.                                                                                                                                                       |  MEDIUM  | Fixtures remain canonical; renderer adapters are replaceable. ADR-921 must reuse the same output/metrics contract rather than create a second parity oracle.                           |
@@ -334,7 +342,7 @@ blocking Gate below; none may be accepted as a permanent flaky baseline.
 | G2   | Determinism                        | Each pilot leg passes frame liveness, reports `surfaceBackend: "sw"` for Skia, and produces one normalized RGBA hash (`maxByte = 0` across runs) across 10 consecutive runs in the pinned environment; external requests 0; fonts/images ready by convergence settle; volatile set 0 or injected clock; wall-clock reads 0. (R2/R4/R11/R12)                                | Gate remains non-blocking; fix environment/resource lifecycle, do not raise tolerances.            |
 | G3   | Sensitivity and budget calibration | Geometry delta ≤1 CSS px; non-text diff ratio ≤0.001 at threshold 0.1 with `maxByte/meanByte/changedFraction` recorded; text/raster regions have explicit metrics/budgets; 1px geometry, token color, border/radius, font metric, and blank-both-legs negative probes all fail with the intended failure code. No wildcard mask or automatic budget increase. (R2/R5/R11)  | Split comparison layers or reduce fixture scope; do not accept a flaky/global threshold.           |
 | G4   | Resource lifecycle                 | Repeated cases wait for font/image readiness, leave CanvasKit surface/image ownership balanced, produce no monotonic WASM/JS heap growth beyond measurement noise, and have console/page errors 0. (R6)                                                                                                                                                                    | Isolate resource setup/teardown before adding fixtures.                                            |
-| G5   | CI integration                     | `test:visual-parity` is a required path-scoped PR check, smoke ≤90s, full ≤5min, doctor/setup failures cannot skip, and failure artifacts contain both PNGs/diff/metrics/checksums plus one closed-set failure code. (R4/R7)                                                                                                                                               | Keep the command advisory while reducing matrix/startup cost; do not claim build-time enforcement. |
+| G5   | CI integration                     | `test:visual-parity:smoke` runs path-scoped as a local pre-push gate and in a `push: main` workflow that `deploy.yml` depends on (`needs:`); no PR check is assumed. Smoke ≤90s, full ≤5min post-push/scheduled, doctor/setup failures cannot skip, and failure artifacts contain both PNGs/diff/metrics/checksums plus one closed-set failure code. (R4/R7)               | Keep the command advisory while reducing matrix/startup cost; do not claim build-time enforcement. |
 | G6   | D3 coverage and handoff            | Representative geometry, token paint, clip/mask/effect, text, raster, state, and nested layout cases pass; `/cross-check` documents when to run the automated command and when live review remains required; ADR-921 references this oracle instead of duplicating it. (R5/R8/R10)                                                                                         | Leave missing families in an explicit residual ledger and keep status below Implemented.           |
 
 ## Consequences
