@@ -15,6 +15,7 @@
  *   (Phase 0 실측 N entry) agent 호출 1건은 history 1 entry 여야 한다 (HC5).
  */
 import { useStore } from "../../builder/stores";
+import { runComponentSemanticsAction } from "../../builder/utils/componentSemanticsRunner";
 import { useViewportSyncStore } from "../../builder/workspace/canvas/stores";
 import {
   applyViewportState,
@@ -171,17 +172,25 @@ export const AGENT_COMMANDS: Readonly<
 
   // instance
   toggleComponentOrigin: async () => {
-    const { selectedElementId, toggleComponentOrigin } = useStore.getState();
+    const { selectedElementId } = useStore.getState();
     if (!selectedElementId) return;
-    await toggleComponentOrigin(selectedElementId);
+    await runComponentSemanticsAction("toggle-component-origin", {
+      targetId: selectedElementId,
+    });
   },
-  // 승인 다이얼로그는 executor 의 confirm 게이트가 담당 (`requestEditingSemanticsDetachConfirmation`)
-  detachInstance: () => {
-    const { elementsMap, detachInstance } = useStore.getState();
+  detachInstance: async () => {
+    const { elementsMap } = useStore.getState();
     const targetId = singleSelectionTarget();
     if (!targetId) return;
-    if (!canDetachInstance(elementsMap.get(targetId))) return;
-    detachInstance(targetId);
+    const element = elementsMap.get(targetId);
+    if (!canDetachInstance(element)) return;
+    // 승인은 executor 의 confirm 게이트가 이미 물었다 (ADR-196) — 여기서 또
+    // 물으면 같은 명령에 다이얼로그가 두 번 뜬다.
+    await runComponentSemanticsAction("detach-instance", {
+      targetId,
+      element,
+      confirm: "skip",
+    });
   },
 
   // z-order — `[` `]` ⌘[ ⌘] (ADR-182)

@@ -123,14 +123,15 @@ const EXPECTED_IMPORTS: Array<[symbol: string, moduleFragment: string]> = [
   ["useSectionCollapse", "panels/styles/hooks/useSectionCollapse"],
   ["canDetachInstance", "utils/editingSemantics"],
   ["useStore", "builder/stores"],
+  // ADR-199 Phase 3 — 컴포넌트 시맨틱 2 명령은 store 액션을 직접 부르지 않고
+  // 공통 실행 경로를 거친다 (확인 문구·payload 조립이 4 표면 한 벌).
+  ["runComponentSemanticsAction", "builder/utils/componentSemanticsRunner"],
 ];
 /** root store 액션 — `useStore.getState()` 경유 호출 (Phase 0 표) */
 const EXPECTED_STORE_CALLS = [
   ".undo()",
   ".redo()",
   "setShowRulers(",
-  "toggleComponentOrigin(",
-  "detachInstance(",
   "moveElementToSiblingEdge(",
   "reorderElementWithinParent(",
   "getPageElements(",
@@ -179,6 +180,20 @@ describe("AGENT_COMMANDS 정적 대조 — Phase 0 표의 handler 호출 심볼"
 
   it.each(EXPECTED_STORE_CALLS)("root store 액션 %s 를 부른다", (call) => {
     expect(source).toContain(call);
+  });
+
+  // toggleComponentOrigin / detachInstance 는 ADR-199 Phase 3 에서 공통 실행
+  // 경로로 옮겼다. 게이트의 뜻은 그대로다 — agent handler 가 그 액션의 실행
+  // 경로를 실제로 부르는가. 부르는 대상만 store 직접 호출에서 러너로 바뀐다.
+  it.each([
+    ["toggle-component-origin"],
+    ["detach-instance"],
+  ])("컴포넌트 시맨틱 %s 를 공통 실행 경로로 부른다", (actionId) => {
+    expect(source).toContain(`runComponentSemanticsAction("${actionId}"`);
+  });
+
+  it("agent detach 는 확인을 건너뛴다 (executor confirm 게이트가 이미 묻는다)", () => {
+    expect(source).toContain('confirm: "skip"');
   });
 
   it.each(FORBIDDEN)("금지 심볼 %s 를 참조하지 않는다 (주석 제외)", (name) => {

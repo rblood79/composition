@@ -39,7 +39,7 @@ import {
   paste,
 } from "../workspace/canvas/actions/canvasActions";
 import { canDetachInstance } from "../utils/editingSemantics";
-import { requestEditingSemanticsDetachConfirmation } from "../utils/editingSemanticsImpactConfirmation";
+import { runComponentSemanticsAction } from "../utils/componentSemanticsRunner";
 import { useCopyPaste } from "./useCopyPaste";
 import {
   clearGuideSelection,
@@ -231,17 +231,18 @@ export function useGlobalKeyboardShortcuts() {
   }, []);
 
   const handleToggleComponentOrigin = useCallback(async () => {
-    const { selectedElementId, toggleComponentOrigin } = useStore.getState();
+    const { selectedElementId } = useStore.getState();
     if (!selectedElementId) {
       console.log("[Keyboard] Toggle component: No element selected");
       return;
     }
-    await toggleComponentOrigin(selectedElementId);
+    await runComponentSemanticsAction("toggle-component-origin", {
+      targetId: selectedElementId,
+    });
   }, []);
 
   const handleDetachInstance = useCallback(async () => {
-    const { selectedElementId, elementsMap, detachInstance } =
-      useStore.getState();
+    const { selectedElementId, elementsMap } = useStore.getState();
     if (!selectedElementId) {
       console.log("[Keyboard] Detach instance: No element selected");
       return;
@@ -253,17 +254,11 @@ export function useGlobalKeyboardShortcuts() {
       return;
     }
 
-    const confirmed = await requestEditingSemanticsDetachConfirmation({
-      instanceId: selectedElementId,
-      instanceLabel:
-        element?.componentName ??
-        element?.customId ??
-        element?.type ??
-        selectedElementId,
+    // 확인 문구·store 호출은 ADR-199 Phase 3 의 공통 실행 경로가 소유한다.
+    await runComponentSemanticsAction("detach-instance", {
+      targetId: selectedElementId,
+      element,
     });
-    if (!confirmed) return;
-
-    detachInstance(selectedElementId);
   }, []);
 
   /**

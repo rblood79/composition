@@ -79,12 +79,24 @@ freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199
 
 ---
 
-## 5. Phase 3 — 실행/확인 경로 통합
+## 5. Phase 3 — 실행/확인 경로 통합 ✅ Implemented 2026-08-30
 
-- `runComponentSemanticsAction(id, target)` 하나가 확인 다이얼로그 payload 조립 + store 액션 호출을 소유.
-- 이관 대상 호출부 4곳: `ComponentSemanticsSection.tsx` · `canvasContextMenuProviders.ts` · `CanvasSelectionShortcuts.tsx` · `useGlobalKeyboardShortcuts.ts`.
-- agent 경로(`services/agent/agentCommands.ts`) 는 **executor confirm 게이트 유지** (ADR-196 계약) — 이 함수의 confirm 을 중복 실행하지 않도록 `{ confirm: "skip" }` 옵션.
-- 라벨 fallback 은 패널 규칙(`componentName ?? customId ?? origin 이름 ?? type`)으로 통일 — 메뉴 쪽이 origin 이름을 되짚지 않던 차이를 흡수한다 (R2).
+`apps/builder/src/builder/utils/componentSemanticsRunner.ts` 신규 (파일 표 §8 대비 신규 1 증가 — 아래 §5-1).
+
+- `runComponentSemanticsAction(id, input)` 하나가 확인 다이얼로그 payload 조립 + store 액션 호출을 소유. 반환값은 **store 를 실제로 건드렸는가** (확인 취소·조건 미충족 = `false`).
+- 이관한 호출부 5곳: `ComponentSemanticsSection.tsx` · `canvasContextMenuProviders.ts` · `CanvasSelectionShortcuts.tsx` · `useGlobalKeyboardShortcuts.ts` · `services/agent/agentCommands.ts`.
+- agent 경로는 **executor confirm 게이트 유지** (ADR-196 계약) — 중복 다이얼로그를 막는 `{ confirm: "skip" }` 로 부른다.
+- 라벨 fallback 은 패널 규칙(`componentName ?? customId ?? origin 이름 ?? type`)으로 통일 — 메뉴·단축키 3곳이 origin 을 되짚지 않던 차이를 흡수 (R2). `componentSemanticsRunner.test.ts` 11건이 규칙과 4 경로 동일성을 고정한다.
+- **통일 확인**: `requestEditingSemanticsDetachConfirmation` 호출 1곳 (러너), `detachInstance(` / `toggleComponentOrigin(` store 호출 1곳 (러너) — 그 외 표면 소스에 0건.
+
+### 5-1. 착수 중 판단 2건 (사후 보고)
+
+1. **파일 1개 추가** — 러너를 레지스트리(`builder/config/`)에 두면 config 계층이 store 에 의존하게 되어 `builder/utils/` 로 분리했다. 파일 표 신규 3 → 4.
+2. **ADR-196 정적 게이트 갱신** — `agentCommands.test.ts` 의 `EXPECTED_STORE_CALLS` 가 `toggleComponentOrigin(` / `detachInstance(` 문자열을 소스에서 직접 찾고 있었다. 게이트의 뜻("agent handler 가 그 액션의 실행 경로를 실제로 부르는가")은 유지하되 대상을 러너 호출로 바꿨다 — `runComponentSemanticsAction("<id>"` 2건 + `confirm: "skip"` 1건 단언으로 대체.
+
+3. **`EditingSemanticsTarget` / `toEditingSemanticsTarget` 을 어댑터로 이관** — Phase 2 에서 레지스트리(`builder/config/`)에 뒀더니 ADR-116 G5 (legacy mirror 필드 `componentRole` / `masterId` 의 이름은 `adapters/canonical/**` 안에서만) 를 어겼다. 전수 게이트가 잡아 `adapters/canonical/editingSemantics.ts` 로 옮기고 레지스트리는 re-export 만 한다. 러너의 element 타입도 표시 이름 필드만 적고 판정은 `unknown` 을 받는 어댑터 술어에 넘긴다.
+
+**G2 live (Chrome MCP)**: 캔버스 메뉴 · ⌘⌥X 두 경로에서 같은 분리 다이얼로그가 열리고 (`Detaching button_1 will turn it into a standalone element…`), 취소 시 인스턴스가 그대로 남는다 (`type:"ref"` + `reusable` 보존). 다이얼로그 중복 노출 0.
 
 ---
 
@@ -118,12 +130,16 @@ freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199
 | `builder/panels/properties/ComponentSemanticsSection.tsx`                | 수정             |
 | `builder/workspace/canvas/contextMenu/canvasContextMenuProviders.ts`     | 수정             |
 | `builder/components/overlay/actionBar/actionBarPolicy.ts`                | 수정             |
+| `builder/utils/componentSemanticsRunner.ts`                              | 신규             |
+| `builder/utils/componentSemanticsRunner.test.ts`                         | 신규             |
 | `builder/panels/properties/CanvasSelectionShortcuts.tsx`                 | 수정             |
+| `services/agent/agentCommands.ts`                                        | 수정             |
+| `services/agent/agentCommands.test.ts`                                   | 수정 (게이트)    |
 | `builder/hooks/useGlobalKeyboardShortcuts.ts`                            | 수정             |
 | `builder/workspace/canvas/actions/canvasActions.ts`                      | 수정 (타입)      |
 | `adapters/canonical/editingSemantics.ts`                                 | 수정 (주석/타입) |
 
-신규 3 · 수정 7. 사용자 문서/프로젝트 파일 스키마 변경 0.
+신규 5 · 수정 10 (Phase 3 종료 시점 실측). 사용자 문서/프로젝트 파일 스키마 변경 0.
 
 ---
 
@@ -147,7 +163,7 @@ freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199
 - [ ] 패널 이관 + live 4상태 확인
 - [ ] 메뉴 이관 + live 확인 (우클릭 4상태)
 - [ ] 바 순서 파생 + `actionBarPolicy.test.ts` 갱신
-- [ ] 실행/확인 경로 통합 + 라벨 fallback 통일
+- [x] 실행/확인 경로 통합 + 라벨 fallback 통일
 - [ ] 잔존 `type` 참조 1건 제거 (안전성 ⓐⓑ 확인 후) + 투영 불변식 게이트 2종
 - [ ] 표면 파생 동일성 게이트
 - [ ] CHANGELOG (사용자-가시 변화 있을 때만 — 항목 집합이 동일하면 면제)

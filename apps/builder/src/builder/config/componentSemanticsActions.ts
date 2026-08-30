@@ -30,7 +30,15 @@ import {
   canDetachInstance,
   isEditingSemanticsInstance,
   isEditingSemanticsOrigin,
+  toEditingSemanticsTarget,
+  type EditingSemanticsTarget,
 } from "../../adapters/canonical/editingSemantics";
+
+// 좁히기와 타입은 어댑터가 소유한다 — legacy mirror 필드(`componentRole` /
+// `masterId`)를 이름으로 다루는 자리는 `adapters/canonical/**` 뿐이다
+// (ADR-116 G5). 표면은 레지스트리에서 함께 가져다 쓴다.
+export { toEditingSemanticsTarget };
+export type { EditingSemanticsTarget };
 import { ACTION_ICONS, type ActionIcon } from "./actionIcons";
 import type { ShortcutId } from "./keyboardShortcuts";
 
@@ -46,18 +54,6 @@ export type ActionSurface =
   | "properties-panel"
   | "context-menu"
   | "action-bar";
-
-/**
- * 술어 입력 — **사영 불변 필드만**. 표면이 자기 element 를 이 모양으로 좁혀
- * 넘긴다. `type` 은 의도적으로 없다 (위 주석).
- */
-export interface EditingSemanticsTarget {
-  id: string;
-  componentRole?: string;
-  ref?: string;
-  masterId?: string;
-  reusable?: boolean;
-}
 
 /**
  * 노드 하나로는 알 수 없는 맥락. 전부 표면이 계산해 넘긴다.
@@ -170,32 +166,6 @@ export const COMPONENT_SEMANTICS_ACTIONS: readonly ComponentSemanticsActionDescr
       isAvailable: () => true,
     },
   ];
-
-/**
- * 표면의 element 를 사영 불변 필드만 남긴 target 으로 좁힌다.
- *
- * 표면마다 element 모양이 다르다 — canonical 노드 · 캔버스 interactionNodesMap
- * 파생 · legacy elementsMap mirror. 좁히는 규칙을 한 곳에 두어야 표면별로 다른
- * 필드를 넘기는 일이 생기지 않는다.
- */
-export function toEditingSemanticsTarget(
-  element: unknown,
-): EditingSemanticsTarget | null {
-  if (!element || typeof element !== "object") return null;
-  const candidate = element as Record<string, unknown>;
-  if (typeof candidate.id !== "string") return null;
-  return {
-    id: candidate.id,
-    ...(typeof candidate.componentRole === "string"
-      ? { componentRole: candidate.componentRole }
-      : {}),
-    ...(typeof candidate.ref === "string" ? { ref: candidate.ref } : {}),
-    ...(typeof candidate.masterId === "string"
-      ? { masterId: candidate.masterId }
-      : {}),
-    ...(candidate.reusable === true ? { reusable: true } : {}),
-  };
-}
 
 export const DEFAULT_AVAILABILITY_CONTEXT: ActionAvailabilityContext = {
   hasResolvedOrigin: false,

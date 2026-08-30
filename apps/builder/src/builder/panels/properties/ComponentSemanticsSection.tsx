@@ -9,7 +9,7 @@ import {
 } from "../../config/componentSemanticsActions";
 import { useStore } from "../../stores";
 import { globalToast } from "../../stores/toast";
-import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
+import { runComponentSemanticsAction } from "../../utils/componentSemanticsRunner";
 import {
   resolveReference,
   type ReferenceResolvable,
@@ -116,10 +116,6 @@ export const ComponentSemanticsSection = memo(
       (state) => state.selectElementWithPageTransition,
     );
     const setSelectedElements = useStore((state) => state.setSelectedElements);
-    const detachInstance = useStore((state) => state.detachInstance);
-    const toggleComponentOrigin = useStore(
-      (state) => state.toggleComponentOrigin,
-    );
     const resetInstanceOverrideField = useStore(
       (state) => state.resetInstanceOverrideField,
     );
@@ -147,31 +143,29 @@ export const ComponentSemanticsSection = memo(
     if (isFrameBodyElement(element)) return null;
     const componentName = getComponentDisplayName(element, originElement);
 
+    // 실행·확인은 `runComponentSemanticsAction` 한 벌이 소유한다 (ADR-199
+    // Phase 3) — 이 표면은 자기 element 해석 결과 (canonical property element)
+    // 만 넘긴다. 분리 다이얼로그의 표시 이름 규칙이 여기 있던 것이 원본을
+    // 되짚는 유일한 자리였고, 이제 그 규칙이 4 표면 공통이다.
+    const runInput = () => ({
+      targetId: elementId,
+      element,
+      originElement,
+      originId,
+    });
+
     const handleGoToOrigin = () => {
-      if (!originElement) return;
-      selectElementWithPageTransition(
-        originElement.id,
-        originElement.page_id ?? null,
-      );
+      void runComponentSemanticsAction("go-to-origin", runInput());
     };
 
     const handleDetachInstance = async () => {
       if (!isDetachableInstance) return;
-      const confirmed = await requestEditingSemanticsDetachConfirmation({
-        instanceId: elementId,
-        instanceLabel: componentName,
-        originId,
-        originLabel: originElement
-          ? getComponentDisplayName(originElement, null)
-          : originId,
-      });
-      if (!confirmed) return;
-      detachInstance(elementId);
+      await runComponentSemanticsAction("detach-instance", runInput());
     };
 
     // 생성/해제 양방향 1개 액션 (pencil `Cmd+Opt+K` 와 같은 토글).
     const handleToggleComponentOrigin = async () => {
-      await toggleComponentOrigin(elementId);
+      await runComponentSemanticsAction("toggle-component-origin", runInput());
     };
 
     const handleSelectInstances = () => {

@@ -172,6 +172,46 @@ export function canDetachLegacyInstance(element: unknown): boolean {
  * 정상이었다 — 2026-08-30 실측). 같은 map 을 읽는
  * `getEditingSemanticsOriginId` 도 이미 `type` 을 보지 않는다.
  */
+/**
+ * 표면 액션 술어의 입력 — **사영 불변 필드만** (ADR-199 HC3).
+ *
+ * `type` 이 없는 것이 계약이다. 캔버스 상호작용 map 은 Skia
+ * `interactionNodesMap` 파생이라 `type` 이 렌더 컴포넌트(`"Button"`)로
+ * 해소되고, 술어가 그것을 읽으면 같은 함수가 표면마다 다르게 답한다.
+ */
+export interface EditingSemanticsTarget {
+  id: string;
+  componentRole?: string;
+  ref?: string;
+  masterId?: string;
+  reusable?: boolean;
+}
+
+/**
+ * 표면의 element 를 target 으로 좁힌다.
+ *
+ * 표면마다 element 모양이 다르다 — canonical 노드 · 캔버스 사영 · legacy
+ * elementsMap mirror. 좁히는 규칙을 한 곳에 두어야 표면별로 다른 필드를
+ * 넘기는 일이 생기지 않는다.
+ */
+export function toEditingSemanticsTarget(
+  element: unknown,
+): EditingSemanticsTarget | null {
+  const candidate = asElementLike(element);
+  if (!candidate || typeof candidate.id !== "string") return null;
+  return {
+    id: candidate.id,
+    ...(typeof candidate.componentRole === "string"
+      ? { componentRole: candidate.componentRole }
+      : {}),
+    ...(typeof candidate.ref === "string" ? { ref: candidate.ref } : {}),
+    ...(typeof candidate.masterId === "string"
+      ? { masterId: candidate.masterId }
+      : {}),
+    ...(candidate.reusable === true ? { reusable: true } : {}),
+  };
+}
+
 export function canDetachInstance(element: unknown): boolean {
   const candidate = asElementLike(element);
   return (

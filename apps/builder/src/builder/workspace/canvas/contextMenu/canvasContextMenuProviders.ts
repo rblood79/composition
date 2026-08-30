@@ -30,7 +30,7 @@ import {
   canDetachInstance,
   getEditingSemanticsOriginId,
 } from "../../../utils/editingSemantics";
-import { requestEditingSemanticsDetachConfirmation } from "../../../utils/editingSemanticsImpactConfirmation";
+import { runComponentSemanticsAction } from "../../../utils/componentSemanticsRunner";
 import { registerContextMenuProvider } from "../../../components/overlay/contextMenu";
 import type {
   ContextMenuIcon,
@@ -357,40 +357,24 @@ function buildElementMenuItems(
     selectionSize: selectedElements.length,
   };
 
+  // 실행·확인 payload 는 `runComponentSemanticsAction` 한 벌이 소유한다
+  // (ADR-199 Phase 3). 이 표면은 자기 element 해석 결과만 넘긴다 — 분리
+  // 대상은 선택 중 첫 detachable, 나머지는 우클릭 대상이다.
   const runComponentAction = (
     id: ComponentSemanticsActionId,
     targetId: string,
-  ): (() => void | Promise<void>) => {
-    switch (id) {
-      case "go-to-origin":
-        return () => {
-          if (!originElement) return;
-          useStore
-            .getState()
-            .selectElementWithPageTransition(
-              originElement.id,
-              originElement.page_id ?? originElement.pageId ?? null,
-            );
-        };
-      case "detach-instance":
-        return async () => {
-          const confirmed = await requestEditingSemanticsDetachConfirmation({
-            instanceId: targetId,
-            instanceLabel:
-              detachableElement?.componentName ??
-              detachableElement?.customId ??
-              detachableElement?.type ??
-              targetId,
-          });
-          if (confirmed) useStore.getState().detachInstance(targetId);
-        };
-      case "toggle-component-origin":
-        return async () => {
-          await useStore.getState().toggleComponentOrigin(targetId);
-        };
-      default:
-        return () => {};
-    }
+  ): (() => Promise<void>) => {
+    const element =
+      id === "detach-instance" ? detachableElement : primaryElement;
+    return async () => {
+      await runComponentSemanticsAction(id, {
+        targetId,
+        element,
+        ...(originElement
+          ? { originElement, originId: originElement.id }
+          : {}),
+      });
+    };
   };
 
   const componentItems: ContextMenuItem[] = [];

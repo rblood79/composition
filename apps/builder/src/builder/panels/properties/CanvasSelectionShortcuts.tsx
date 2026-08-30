@@ -24,7 +24,7 @@ import { useCanonicalPropertyElementsMap } from "./hooks/useCanonicalPropertyRea
 import type { AlignmentType } from "../../stores/utils/elementAlignment";
 import type { DistributionType } from "../../stores/utils/elementDistribution";
 import { canDetachInstance } from "../../utils/editingSemantics";
-import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
+import { runComponentSemanticsAction } from "../../utils/componentSemanticsRunner";
 import { panelNodeMapToElementMap } from "./panelNodeElementMap";
 import { useStyleActions } from "../styles/hooks/useStyleActions";
 import {
@@ -124,22 +124,15 @@ export const CanvasSelectionShortcutsHost = memo(
     }, [setSelectedElement]);
 
     const handleDetachSelectedInstance = useCallback(async () => {
-      const state = useStore.getState();
       const selectedId = getSelectedElementId() ?? selectedElement?.id;
       const element = selectedId ? elementsById.get(selectedId) : null;
       if (!selectedId || !canDetachInstance(element)) return;
-
-      const confirmed = await requestEditingSemanticsDetachConfirmation({
-        instanceId: selectedId,
-        instanceLabel:
-          element?.componentName ??
-          element?.customId ??
-          element?.type ??
-          selectedId,
+      // 확인 문구 조립은 `runComponentSemanticsAction` 이 소유한다 (ADR-199
+      // Phase 3) — 종전에는 여기서 원본을 안 되짚어 패널과 문구가 갈렸다 (R2).
+      await runComponentSemanticsAction("detach-instance", {
+        targetId: selectedId,
+        element,
       });
-      if (!confirmed) return;
-
-      state.detachInstance(selectedId);
     }, [elementsById, getSelectedElementId, selectedElement?.id]);
 
     // ⭐ Phase 3: Advanced Selection - Tab Navigation

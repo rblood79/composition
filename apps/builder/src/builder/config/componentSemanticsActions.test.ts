@@ -7,6 +7,7 @@
  * 순서가 뒤집혀도 live 까지 가야 알던 것을 여기서 잡는다 (R1).
  */
 import { describe, expect, it } from "vitest";
+import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
 import {
   COMPONENT_SEMANTICS_ACTIONS,
   formatBilingualLabel,
@@ -171,7 +172,8 @@ describe("사영 불변식 (HC3)", () => {
     const canonical = { id: "e5", ref: "e2" };
     // 캔버스 상호작용 map 은 type 을 "Button" 으로 해소하고 ref 만 보존한다.
     const projected = { id: "e5", ref: "e2" };
-    const legacyMirror = { id: "e5", componentRole: "instance", masterId: "e2" };
+    // ADR-116 G5: legacy mirror fixture 는 어댑터 헬퍼로 만든다 (필드명 직접 기입 금지)
+    const legacyMirror = withComponentInstanceMirror({ id: "e5" }, "e2");
     for (const target of [canonical, projected, legacyMirror]) {
       expect(ids("properties-panel", target, context)).toEqual([
         "go-to-origin",
