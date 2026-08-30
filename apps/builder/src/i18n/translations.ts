@@ -674,7 +674,7 @@ const koKR: TranslationKeys = {
     rule4: "4. 항상 한국어로 응답하세요.",
     rule5: "5. 작업 완료 후 사용자에게 무엇을 했는지 간략히 설명하세요.",
     rule6:
-      "6. 여러 작업을 한 번에 할 때는 batch_design 을 쓰세요 — 사용자가 되돌리기 한 번으로 전부 되돌릴 수 있습니다.",
+      "6. 여러 작업을 한 번에 할 때는 batch_design 을 쓰세요 — 사용자가 실행 취소 한 번으로 전부 되돌릴 수 있습니다.",
     canonicalHeading:
       "## canonical 1차 필드 (create_element / update_element 의 canonical 인자)",
     canonicalBody:
@@ -860,7 +860,7 @@ const koKR: TranslationKeys = {
   aiRunCommand: {
     needsApproval: ", 사용자 승인 필요",
     description:
-      "빌더 명령을 이름으로 실행합니다 (정렬·분배·그룹·복제·z-order·되돌리기·줌·패널 토글 등). 요소 좌표를 직접 계산하지 말고 이 도구를 쓰세요. 파괴적 명령은 사용자 승인 뒤에만 실행됩니다.",
+      "빌더 명령을 이름으로 실행합니다 (정렬·분배·그룹·복제·z-order·실행 취소·줌·패널 토글 등). 요소 좌표를 직접 계산하지 말고 이 도구를 쓰세요. 파괴적 명령은 사용자 승인 뒤에만 실행됩니다.",
     availableHeading: "사용 가능한 명령:",
     idParam: "실행할 명령 id",
     idsParam:
@@ -1076,8 +1076,8 @@ const koKR: TranslationKeys = {
   agentConfirm: {
     title: "명령 실행 승인",
     body: "{host} 가 {summary} 를 실행하려 합니다.",
-    undoable: "실행 후 되돌리기({shortcut}) 1회로 복원",
-    notUndoable: "되돌릴 수 없음",
+    undoable: "실행 취소({shortcut}) 1회로 복원",
+    notUndoable: "실행 취소할 수 없음",
     reject: "거부",
     approve: "실행",
     hostAiPanel: "AI 패널",
@@ -1112,7 +1112,7 @@ const koKR: TranslationKeys = {
     pageCreateInProgress: "페이지 생성이 이미 진행 중입니다",
     fontFileUnreadable: "폰트 파일을 읽을 수 없습니다.",
     saveFailed: "저장에 실패했습니다.",
-    undo: "되돌리기",
+    undo: "실행 취소",
   },
   datatable: {
     tabs: "DataTable 탭",
@@ -3266,7 +3266,7 @@ const formattedMessages: Record<
     "agentConfirm.body": (args) =>
       `${String(args?.host ?? "")} 가 ${String(args?.summary ?? "")} 를 실행하려 합니다.`,
     "agentConfirm.undoable": (args) =>
-      `실행 후 되돌리기(${String(args?.shortcut ?? "")}) 1회로 복원`,
+      `실행 취소(${String(args?.shortcut ?? "")}) 1회로 복원`,
     "styles.responsiveNoOverrides": (args) =>
       `아직 override 가 없습니다. 편집은 전역입니다 — 아래에서 속성을 추가하면 ${String(args?.breakpoint ?? "")} 전용으로 분리됩니다.`,
     "workspace.movePanel": (args) => `${String(args?.panel ?? "")} 패널 이동`,
