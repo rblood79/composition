@@ -383,10 +383,13 @@
     }
 
     /* 라벨 액션이 남는 폭을 먹는다. `min-width` 를 라벨 폭으로 잠가 두므로
-       라벨은 잘리지 않는다. */
+       라벨은 잘리지 않는다. 남는 폭을 먹는 만큼 글자는 왼쪽에 고정한다 —
+       가운데로 두면 같은 자리의 버튼이 상태(인스턴스 수·역할)에 따라 라벨
+       시작점이 움직인다. 아이콘 전용은 아래에서 다시 가운데로 돌린다. */
     .component-semantics-toolbar .control-button {
       flex: 1 1 auto;
       min-width: fit-content;
+      justify-content: flex-start;
     }
 
     /* 아이콘 전용 보조 액션 — chrome 은 같은 `.control-button` 정본을 쓰고 폭만
@@ -395,6 +398,7 @@
     .component-semantics-toolbar
       .control-button.component-semantics-icon-action {
       flex: 0 0 auto;
+      justify-content: center;
       width: var(--inspector-control-size);
       padding: 0;
     }
