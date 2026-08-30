@@ -303,12 +303,22 @@ The exact inventory is frozen in Phase 0. The default target is:
 | `apps/builder/tests/visual-parity/cases/`                | Immutable canonical fixtures and explicit region/budget metadata                                                          |
 | `apps/builder/tests/visual-parity/harness/`              | Environment manifest, normalization, geometry/style/pixel comparison, artifacts                                           |
 | `apps/builder/tests/visual-parity/skia/`                 | Test-only CanvasKit loader and adapter into the production Skia scene/render path                                         |
-| `apps/builder/tests/visual-parity/preview/`              | Playwright driver for the real Preview app and canonical message/readiness contract                                       |
-| `apps/builder/playwright.visual-parity.config.ts`        | Pinned viewport/DPR/locale/color/reduced-motion/test output configuration                                                 |
+| `apps/builder/tests/visual-parity/preview/`              | Driver for the real Preview app and canonical message/readiness contract                                                  |
+| `apps/builder/vitest.visual-parity.config.ts`            | Inherits the ADR-156 browser pins; replaces `include` (merging would pull in 34 layout-parity cases)                      |
 | `apps/builder/package.json`                              | `test:visual-parity` and optional smoke/full scripts                                                                      |
 | `.github/workflows/visual-parity.yml`                    | `push: main` path-scoped smoke job that `deploy.yml` gates on via `needs:`, plus full post-push/scheduled matrix          |
 | local pre-push gate (git hook or scoped `codex:` script) | Runs the same smoke matrix before `git push origin main`; the repository forbids PRs, so this is the first blocking point |
 | `.agents/skills/cross-check/SKILL.md`                    | Route stable fixtures to the command; retain Chrome MCP live coverage guidance                                            |
+
+**Phase 0 correction (2026-08-31)**: the Preview row previously named
+`apps/builder/playwright.visual-parity.config.ts` and described a separate
+Playwright process. §2.4 measured that both legs run in one `@vitest/browser`
+Chromium — `page.screenshot({ element })` captures the Preview iframe from the
+same process that bakes the Skia surface — so the harness owns one config that
+inherits ADR-156's pins rather than a second pinned browser stack. The ADR's
+Soft Constraint ("a pinned Playwright host with offscreen `MakeSurface`") is
+satisfied by this host; `@vitest/browser-playwright` drives Playwright
+underneath.
 
 If a new workflow is inconsistent with the repository's CI topology at
 implementation time, Phase 5 may attach the same smoke job to `deploy.yml`
