@@ -42,36 +42,26 @@ freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199
 
 ---
 
-## 3. Phase 1 — descriptor 축 추가 (정의만, 소비 0)
+## 3. Phase 1 — descriptor 축 추가 (정의만, 소비 0) ✅ Implemented 2026-08-30
 
-`apps/builder/src/builder/config/componentSemanticsActions.ts` 신규.
+`apps/builder/src/builder/config/componentSemanticsActions.ts` (신규 198줄) + `componentSemanticsActions.test.ts` (12건).
 
-```ts
-// 스케치 — 최종 시그니처는 Phase 1 에서 확정
-export interface ActionSurfaceDescriptor {
-  /** ADR-182 item id · ADR-192 allowlist 계약과 동일 문자열 (HC2) */
-  id: ComponentSemanticsActionId;
-  /** 명령 축 연결 — 있으면 단축키/agent 가 같은 id 로 실행 */
-  commandId?: ShortcutId;
-  label: { en: string; ko: string };
-  icon: ActionIcon;
-  /** 사영 불변 필드만 읽는다 (HC3) */
-  isAvailable(target: EditingSemanticsTarget): boolean;
-  /** 표면별 노출 — 순서는 배열 순서가 정본 */
-  surfaces: readonly ActionSurface[];
-}
+**확정 시그니처** (스케치 대비 2곳 확장 — Phase 0 freeze 가 드러낸 발산 D3·D4 를 흡수):
 
-export const COMPONENT_SEMANTICS_ACTIONS: readonly ActionSurfaceDescriptor[] = [
-  /* go-to-origin → detach-instance → select-instances → toggle-component-origin */
-];
-```
+| 필드                                | 확정 형태                                                              | 이유                                                                                                  |
+| ----------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `label(target, ctx)`                | 함수 (고정 문자열 아님)                                                | `toggle-component-origin` 은 `reusable` 로 뒤집히고 `select-instances` 는 수를 단다                   |
+| `icon(target)`                      | 함수                                                                   | 같은 이유 — 만들기/분리로 그림도 뒤집힌다                                                             |
+| `isAvailable(target, ctx)`          | 노출 여부                                                              | —                                                                                                       |
+| **`isEnabled?(target, ctx)`** (추가) | 노출됐지만 지금 누를 수 없음                                          | 발산 D3 보존 — 원본 못 찾은 인스턴스에서 패널은 비활성, 메뉴는 미노출. 표면이 어느 쪽으로 표현할지 정함 |
+| **`ActionAvailabilityContext`** (추가) | `{ hasResolvedOrigin, instanceCount, selectionSize }`               | 노드 하나로 알 수 없는 맥락. `selectionSize` 는 발산 D4 (메뉴 다중 detach) 대비 — descriptor 는 단일 노드 계약 유지 |
+| `surfaces`                          | `properties-panel` / `context-menu` / `action-bar` 3종                | 단축키·agent 는 노출 표면이 아니라 명령 축 → `commandId` 로 연결                                      |
 
-- `EditingSemanticsTarget` = 사영 불변 필드만 갖는 좁은 타입 (`{ id, componentRole?, ref?, masterId?, reusable? }`). 표면이 자기 element 를 이 타입으로 좁혀 넘긴다.
-- 라벨은 한/영 두 필드를 모두 갖고, 표면이 자기 어법으로 고른다 (메뉴는 `ko / en` 병기, 패널은 `en`). **문자열 원본은 한 곳.**
+`EditingSemanticsTarget` = `{ id, componentRole?, ref?, masterId?, reusable? }` — **`type` 없음** (HC3). 술어 3종(`isEditingSemanticsInstance` / `isEditingSemanticsOrigin` / `canDetachInstance`)은 재정의하지 않고 `adapters/canonical/editingSemantics` 에서 그대로 가져다 쓴다 — 축 판정은 이미 일치했고 (freeze 발산 D5) 이관 대상은 호출 지점이다.
 
-산출: 신규 파일 1 + 타입. 소비처 0 (이 Phase 는 회귀 표면적 0).
+진입점 `resolveComponentSemanticsActions(surface, target, ctx)` 가 배열 순서 · 표면 필터 · 가용성을 한 번에 적용한다. 메뉴 병기 조립도 `formatBilingualLabel` 로 같이 둔다.
 
----
+**G1 결과**: `pnpm type-check` 0 · 신규 12건 PASS · 관련 스위트 137 PASS (`config` / `actionBar` / `contextMenu` / `editingSemantics`) · `commandMeta.static.test.ts` 단언 무변경 · 소비처 0. 잔여 실패 1건 `shortcutDisplay.static.test.ts` 는 ADR-196 표면 2곳의 `⌘Z` 리터럴로 **선행 실패** (본 phase 무관, 신규 파일 glyph 리터럴 0).
 
 ## 4. Phase 2 — 표면 이관 (소비처 3개, 순서 고정)
 
