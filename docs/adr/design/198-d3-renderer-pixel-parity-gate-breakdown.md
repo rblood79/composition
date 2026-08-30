@@ -72,21 +72,21 @@ build-time enforcement.
 
 ### 2.1 Gap and reusable assets
 
-| Area                      | Current evidence                                                                                          | Reusable asset                                                                 | Missing contract                                                                                                      |
-| ------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| D3 policy                 | `.claude/rules/ssot-hierarchy.md:112-116`                                                                 | Explicit Skia↔Preview parity requirement                                       | Build-time automation is recorded as incomplete                                                                       |
-| Manual/live verification  | `.agents/skills/cross-check/SKILL.md:116-149,266-285`                                                     | Real Builder/Preview/Style Panel setup and visual inspection                   | No blocking machine pixel verdict; live step is skippable                                                             |
-| CanvasKit software output | `apps/builder/src/builder/workspace/canvas/skia/export.ts:40-114`                                         | `MakeSurface` → `SkiaRenderable.renderSkia` → PNG                              | No deterministic test host, resource manifest, or Preview pairing                                                     |
-| CanvasKit initialization  | `apps/builder/src/builder/workspace/canvas/skia/initCanvasKit.ts:31-68`                                   | Pinned npm CanvasKit/WASM                                                      | Current initializer assumes `window` and Vite `BASE_URL`; Node test loading is not yet a supported seam               |
-| Browser parity            | `apps/builder/vitest.browser.config.ts:6-65`; `apps/builder/tests/parity/harness.ts`                      | Pinned headless Chromium and real DOM geometry                                 | Compares DOM with layout engine, not final Skia/Preview paint                                                         |
-| Existing pixel oracle     | `apps/builder/scripts/adr190-pixel-oracle.mjs:1-64`                                                       | Settle/capture/metrics/artifact operating pattern                              | Compares Skia patch with Skia rebuild and is ADR-specific                                                             |
-| Diff dependencies         | `packages/specs/package.json:52-61`                                                                       | `pixelmatch@7.2.0`, `pngjs@7.0.0`                                              | No declared owner for a Builder visual parity harness; no imports found                                               |
-| Declared budget           | `apps/builder/src/builder/workspace/canvas/benchmarks/constitutional.ts:8-14`                             | `screenshotDiff_max: 0.001`                                                    | Not connected to a real two-consumer check                                                                            |
-| Preview consumer          | `apps/builder/src/preview/App.tsx`; `messaging/messageHandler.ts`; `components/CanonicalNodeRenderer.tsx` | Isolated Preview app, canonical postMessage ingestion, production DOM renderer | No deterministic fixture injection/readiness protocol for screenshots                                                 |
-| Surface backend selection | `apps/builder/src/builder/workspace/canvas/skia/createSurface.ts:29-33`                                   | `MakeSurface` CPU path exists in `export.ts`                                   | Production `createGPUSurface` falls back WebGL→SW with only `console.warn`; no manifest records which backend painted |
-| Wall-clock time sources   | `skia/transitionManager.ts:40,77`; `skia/animationEngine.ts:42`; `skia/types.ts:247,273`                  | `nodePictureCache.ts::setVolatileNodeIds` already isolates in-place mutation   | No injectable `now()`; a leg can read scheduling-dependent time during capture                                        |
-| Degenerate-frame guard    | `adr190-pixel-oracle.mjs::captureCanvas` (`toDataURL` under `--disable-gpu`); `cross-check/SKILL.md` §5   | —                                                                              | No blank/black/single-color frame check; two failed legs compare equal                                                |
-| Diff metric shape         | `benchmarks/constitutional.ts::screenshotDiff_max`                                                        | ratio constant                                                                 | No `maxByte/meanByte/changedFraction`; no exact-byte rule for same-rasterizer runs                                    |
+| Area                      | Current evidence                                                                                          | Reusable asset                                                                 | Missing contract                                                                                                                                                                                                             |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D3 policy                 | `.claude/rules/ssot-hierarchy.md:112-116`                                                                 | Explicit Skia↔Preview parity requirement                                       | Build-time automation is recorded as incomplete                                                                                                                                                                              |
+| Manual/live verification  | `.agents/skills/cross-check/SKILL.md:116-149,266-285`                                                     | Real Builder/Preview/Style Panel setup and visual inspection                   | No blocking machine pixel verdict; live step is skippable                                                                                                                                                                    |
+| CanvasKit software output | `apps/builder/src/builder/workspace/canvas/skia/export.ts:40-114`                                         | `MakeSurface` → `SkiaRenderable.renderSkia` → PNG                              | No deterministic test host, resource manifest, or Preview pairing                                                                                                                                                            |
+| CanvasKit initialization  | `apps/builder/src/builder/workspace/canvas/skia/initCanvasKit.ts:31-68`                                   | Pinned npm CanvasKit/WASM                                                      | Current initializer assumes `window` and Vite `BASE_URL`; Node test loading is not yet a supported seam                                                                                                                      |
+| Browser parity            | `apps/builder/vitest.browser.config.ts:6-65`; `apps/builder/tests/parity/harness.ts`                      | Pinned headless Chromium and real DOM geometry                                 | Compares DOM with layout engine, not final Skia/Preview paint                                                                                                                                                                |
+| Existing pixel oracle     | `apps/builder/scripts/adr190-pixel-oracle.mjs:1-64`                                                       | Settle/capture/metrics/artifact operating pattern                              | Compares Skia patch with Skia rebuild and is ADR-specific                                                                                                                                                                    |
+| Diff dependencies         | `packages/specs/package.json:52-61`                                                                       | `pixelmatch@7.2.0`, `pngjs@7.0.0`                                              | No declared owner for a Builder visual parity harness; no imports found                                                                                                                                                      |
+| Declared budget           | `apps/builder/src/builder/workspace/canvas/benchmarks/constitutional.ts:8-14`                             | `screenshotDiff_max: 0.001`                                                    | Not connected to a real two-consumer check                                                                                                                                                                                   |
+| Preview consumer          | `apps/builder/src/preview/App.tsx`; `messaging/messageHandler.ts`; `components/CanonicalNodeRenderer.tsx` | Isolated Preview app, canonical postMessage ingestion, production DOM renderer | No deterministic fixture injection/readiness protocol for screenshots                                                                                                                                                        |
+| Surface backend selection | `apps/builder/src/builder/workspace/canvas/skia/createSurface.ts:29-33`                                   | `MakeSurface` CPU path exists in `export.ts`                                   | Production `createGPUSurface` falls back WebGL→SW with only `console.warn`; no manifest records which backend painted; production rasterizes GL (`SkiaRenderer.ts:1126`) while the leg pins SW, and that delta is unmeasured |
+| Wall-clock time sources   | `skia/transitionManager.ts:40,77`; `skia/animationEngine.ts:42`; `skia/types.ts:247,273`                  | `nodePictureCache.ts::setVolatileNodeIds` already isolates in-place mutation   | No injectable `now()`; a leg can read scheduling-dependent time during capture                                                                                                                                               |
+| Degenerate-frame guard    | `adr190-pixel-oracle.mjs::captureCanvas` (`toDataURL` under `--disable-gpu`); `cross-check/SKILL.md` §5   | —                                                                              | No blank/black/single-color frame check; two failed legs compare equal                                                                                                                                                       |
+| Diff metric shape         | `benchmarks/constitutional.ts::screenshotDiff_max`                                                        | ratio constant                                                                 | No `maxByte/meanByte/changedFraction`; no exact-byte rule for same-rasterizer runs                                                                                                                                           |
 
 ### 2.2 Existing gates that must not be misrepresented
 
@@ -230,7 +230,10 @@ The implementation may refine names, but the following invariants are fixed:
    controlled test host. Record `surfaceBackend: "sw"` in the environment
    manifest; the leg fails (`PARITY-ENV`) if any path other than
    `ck.MakeSurface` painted, including the production WebGL→SW fallback in
-   `createSurface.ts`.
+   `createSurface.ts`. Because production Builder rasterizes GL
+   (`SkiaRenderer.ts:1126` draws `contentNode.renderSkia` into the
+   `MakeWebGLCanvasSurface` main surface), the SW↔GL delta measured in Phase 0
+   is carried in the manifest and bounds what this gate may claim (R13).
 2. Load repository fonts/images from bytes and wait for registration/decode.
 3. Resolve the canonical fixture through the same layout/scene path used by
    Builder. Assert the transition/animation volatile set is empty for the case
@@ -355,10 +358,19 @@ Tasks:
    `animationEngine.ts:42`, `types.ts:247,273`) and decide between
    volatile-set-0 fixtures and one injected `now()` seam; record the surface
    backend actually used by each pilot.
+8. Render one pilot fixture through both `ck.MakeSurface` (SW) and
+   `ck.MakeWebGLCanvasSurface` on an offscreen canvas in the same pinned
+   Chromium, and record `maxByte`/`meanByte`/`changedFraction` between them
+   (R13). This is the cheapest reversal of the premise that a
+   software-rasterized leg speaks for what users see; run it before any fixture
+   matrix work. If the delta exceeds the L3 budget, narrow the ADR's claim to
+   software rasterization and record which paint families (antialiasing,
+   gradient dithering, blur/shadow, clip edges) carry the difference.
 
 **Gate G0**: doctor fixture matches its expected pixel on both legs, two PNGs
 from one checksum, production path evidence, backend and clock decisions
-recorded, and a frozen host decision. Failure keeps the ADR Proposed and blocks
+recorded, the SW↔GL delta measured and inside the L3 budget (or the claim
+narrowed), and a frozen host decision. Failure keeps the ADR Proposed and blocks
 later phases.
 
 ### Phase 1 — Fixture and result contracts
@@ -504,25 +516,26 @@ run and live handoff evidence.
 
 ## 5. Verification Matrix
 
-| Verification                  | Source of truth                               | Expected result                                             | Gate  |
-| ----------------------------- | --------------------------------------------- | ----------------------------------------------------------- | ----- |
-| Frame liveness                | per-leg painted count + region variance       | count ≥1, variance ≥ floor; doctor pixel matches            | G0/G2 |
-| Surface backend               | environment manifest                          | Skia leg `surfaceBackend = "sw"`; fallback = fail           | G0/G2 |
-| Time source                   | volatile set / injected clock                 | wall-clock reads on capture path 0                          | G2    |
-| Document/environment identity | Canonical fixture + manifest                  | exact checksum equality between legs                        | G1    |
-| Node identity/order           | Canonical resolved tree                       | exact ID/order equality                                     | G1    |
-| Geometry                      | Skia bounds + DOM `getBoundingClientRect`     | each `x/y/w/h` delta ≤1 CSS px                              | G3    |
-| Resolved visual inputs        | catalog/spec/theme + normalized leg manifests | exact value equality outside ledger                         | G3    |
-| Non-text pixels               | normalized RGBA regions                       | threshold 0.1, differing ratio ≤0.001                       | G3    |
-| Text/raster pixels            | explicit region policy                        | structural match + ratcheted bounded metric                 | G3    |
-| Sensitivity                   | four negative probes                          | all fail the intended layer                                 | G3    |
-| Determinism                   | pinned environment                            | 10-run normalized hash equality per leg (`maxByte = 0`)     | G2    |
-| Settle                        | convergence counter                           | two identical consecutive captures under bounded ceiling    | G2    |
-| Failure code                  | `metrics.json.code`                           | one closed-set code per failure; unknown code = fail        | G5    |
-| Resource lifecycle            | readiness/disposal counters                   | early capture 0, unbalanced resources 0, monotonic growth 0 | G4    |
-| CI behavior                   | required workflow                             | setup failure = fail, smoke ≤90s, full ≤5min                | G5    |
-| Failure evidence              | artifact schema                               | both inputs + diff + metrics + checksums                    | G5    |
-| Product behavior              | existing test suites and `/cross-check`       | no production/schema behavior change                        | G6    |
+| Verification                  | Source of truth                               | Expected result                                               | Gate  |
+| ----------------------------- | --------------------------------------------- | ------------------------------------------------------------- | ----- |
+| Frame liveness                | per-leg painted count + region variance       | count ≥1, variance ≥ floor; doctor pixel matches              | G0/G2 |
+| Surface backend               | environment manifest                          | Skia leg `surfaceBackend = "sw"`; fallback = fail             | G0/G2 |
+| SW↔GL raster delta            | dual-backend pilot capture                    | inside L3 budget, or claim narrowed to software rasterization | G0    |
+| Time source                   | volatile set / injected clock                 | wall-clock reads on capture path 0                            | G2    |
+| Document/environment identity | Canonical fixture + manifest                  | exact checksum equality between legs                          | G1    |
+| Node identity/order           | Canonical resolved tree                       | exact ID/order equality                                       | G1    |
+| Geometry                      | Skia bounds + DOM `getBoundingClientRect`     | each `x/y/w/h` delta ≤1 CSS px                                | G3    |
+| Resolved visual inputs        | catalog/spec/theme + normalized leg manifests | exact value equality outside ledger                           | G3    |
+| Non-text pixels               | normalized RGBA regions                       | threshold 0.1, differing ratio ≤0.001                         | G3    |
+| Text/raster pixels            | explicit region policy                        | structural match + ratcheted bounded metric                   | G3    |
+| Sensitivity                   | four negative probes                          | all fail the intended layer                                   | G3    |
+| Determinism                   | pinned environment                            | 10-run normalized hash equality per leg (`maxByte = 0`)       | G2    |
+| Settle                        | convergence counter                           | two identical consecutive captures under bounded ceiling      | G2    |
+| Failure code                  | `metrics.json.code`                           | one closed-set code per failure; unknown code = fail          | G5    |
+| Resource lifecycle            | readiness/disposal counters                   | early capture 0, unbalanced resources 0, monotonic growth 0   | G4    |
+| CI behavior                   | required workflow                             | setup failure = fail, smoke ≤90s, full ≤5min                  | G5    |
+| Failure evidence              | artifact schema                               | both inputs + diff + metrics + checksums                      | G5    |
+| Product behavior              | existing test suites and `/cross-check`       | no production/schema behavior change                          | G6    |
 
 ### 5.1 Acceptance evidence format
 
@@ -533,7 +546,7 @@ The implementation record must include:
 - font/image checksums;
 - fixture count by region/family;
 - 10-run determinism result with `maxByte`;
-- doctor fixture result and surface backend per leg;
+- doctor fixture result, surface backend per leg, and the SW↔GL raster delta;
 - positive and negative probe results (six probes) with failure codes;
 - pre-push smoke, `push: main` smoke, and full-matrix wall time;
 - artifact links from at least one deliberate failure;
@@ -543,22 +556,23 @@ Passing unit tests without a pinned real-render CI run cannot satisfy G5/G6.
 
 ## 6. Risk-to-Gate Mapping
 
-| Risk                              | Blocking gate(s) | Proof                                                                          |
-| --------------------------------- | ---------------- | ------------------------------------------------------------------------------ |
-| R1 fixture split                  | G1               | identical fixture/environment checksum and node order                          |
-| R2 cross-engine false failures    | G2, G3           | 10-run determinism + layered calibrated budgets                                |
-| R3 test-only renderer drift       | G1               | production entry assertions and negative direct-path test                      |
-| R4 environment drift              | G2, G5           | pinned manifest, zero network, setup failure cannot skip                       |
-| R5 masks/budgets hide regressions | G3, G6           | ledger ratchet and four sensitivity probes across representative matrix        |
-| R6 async resources/leaks          | G4               | readiness barriers and balanced lifecycle counters                             |
-| R7 CI cost                        | G5               | measured smoke/full ceilings and path scoping                                  |
-| R8 shared wrong value             | G6               | explicit division from catalog/spec semantic and layout tests                  |
-| R9 workspace dependency ownership | G0, G4           | direct dependency declaration and one lockfile version                         |
-| R10 ADR-921 stale coupling        | G6               | canonical fixture/output contract remains adapter-neutral; no duplicate oracle |
-| R11 degenerate-frame false pass   | G0, G2, G3       | doctor fixture, L-live layer, backend assertion, blank-both-legs probe         |
-| R12 wall-clock / fixed settle     | G0, G2           | time-source inventory, volatile-0 or clock seam, convergence settle            |
+| Risk                               | Blocking gate(s) | Proof                                                                                 |
+| ---------------------------------- | ---------------- | ------------------------------------------------------------------------------------- |
+| R1 fixture split                   | G1               | identical fixture/environment checksum and node order                                 |
+| R2 cross-engine false failures     | G2, G3           | 10-run determinism + layered calibrated budgets                                       |
+| R3 test-only renderer drift        | G1               | production entry assertions and negative direct-path test                             |
+| R4 environment drift               | G2, G5           | pinned manifest, zero network, setup failure cannot skip                              |
+| R5 masks/budgets hide regressions  | G3, G6           | ledger ratchet and four sensitivity probes across representative matrix               |
+| R6 async resources/leaks           | G4               | readiness barriers and balanced lifecycle counters                                    |
+| R7 CI cost                         | G5               | measured smoke/full ceilings and path scoping                                         |
+| R8 shared wrong value              | G6               | explicit division from catalog/spec semantic and layout tests                         |
+| R9 workspace dependency ownership  | G0, G4           | direct dependency declaration and one lockfile version                                |
+| R10 ADR-921 stale coupling         | G6               | canonical fixture/output contract remains adapter-neutral; no duplicate oracle        |
+| R11 degenerate-frame false pass    | G0, G2, G3       | doctor fixture, L-live layer, backend assertion, blank-both-legs probe                |
+| R12 wall-clock / fixed settle      | G0, G2           | time-source inventory, volatile-0 or clock seam, convergence settle                   |
+| R13 SW leg vs GL production raster | G0               | Phase 0 dual-backend delta measured, manifest-recorded, claim narrowed if over budget |
 
-All HIGH risks R1-R5 and R11 have at least one blocking gate. No HIGH risk may be moved
+All HIGH risks R1-R5, R11, and R13 have at least one blocking gate. No HIGH risk may be moved
 to a residual ledger merely to promote the ADR status.
 
 ## 7. Out of Scope
