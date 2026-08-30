@@ -1,6 +1,6 @@
 # ADR-200 구현 상세 — 명령·메뉴 라벨 locale 해소
 
-> 본 문서는 [ADR-200](../200-command-label-locale-resolution.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문이 정본이며 여기에는 phase / 파일 / 게이트만 둔다.
+> 본 문서는 [ADR-200](../completed/200-command-label-locale-resolution.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문이 정본이며 여기에는 phase / 파일 / 게이트만 둔다.
 
 ## 1. 분류 lock-in (fork 4 질문)
 

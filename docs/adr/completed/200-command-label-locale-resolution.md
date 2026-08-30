@@ -2,7 +2,18 @@
 
 ## Status
 
-Accepted — 2026-08-30 (review round 1: MEDIUM 4 · LOW 1 전부 fixed → round 2 이슈 0건 승인. 기록: [reviews/200.md](reviews/200.md))
+Implemented — 2026-08-30 (Phase 0~5 당일 완결)
+
+| Phase | 상태              | commit      | 내용                                                                               |
+| ----: | ----------------- | ----------- | ---------------------------------------------------------------------------------- |
+|     0 | Implemented 08-30 | `a9f4903a4` | 인벤토리 freeze + Gate RED 기준선 + 표시 계층 테스트 provider 래핑 (7파일 47 렌더) |
+|     1 | Implemented 08-30 | `e2b40e650` | `contextMenu.*` 25 카탈로그 + G1 게이트                                            |
+|     2 | Implemented 08-30 | `c72794853` | `label` → `labelKey`, 표시 계층 3곳 `t()` 해소, G2 게이트 (**Phase 4 흡수**)       |
+|     3 | Implemented 08-30 | `068402d5f` | `command.*` 72 + `commandPalette.*` 16, `i18n` 필드 제거, 소비 3곳, G3 게이트      |
+|     4 | Phase 2 에 흡수   | `c72794853` | 레지스트리 `label(): {en,ko}` → `labelKey(): {key, params?}`                       |
+|     5 | Implemented 08-30 | (본 커밋)   | 게이트 전수 GREEN + Live Exercise + closure                                        |
+
+리뷰 round 1: MEDIUM 4 · LOW 1 전부 fixed → round 2 이슈 0건 승인. 기록: [reviews/200.md](../reviews/200.md)
 
 ## Context
 
@@ -82,7 +93,7 @@ Accepted — 2026-08-30 (review round 1: MEDIUM 4 · LOW 1 전부 fixed → roun
 - **대안 B 기각**: `i18nWiring.static.test.ts:20-26` 이 금지한 `getTranslation(locale, key)` 경로의 부활이다. 그 게이트는 손수 만든 번역 경로를 걷어내고 RAC formatter 로 단일화한 결정의 집행 장치이므로, 이를 되돌리는 것은 본 ADR 이 없애려는 "채널이 하나 더 생기는" 문제 그 자체다.
 - **대안 C 기각**: 문자열이 다시 provider 를 통과하므로 병기/단일 선택이 provider 로 되돌아온다 — 지금 결함의 형태를 그대로 유지한 채 언어만 맞추는 셈이다. 주입 누락이 타입으로 막히지 않는 점도 A 보다 약하다.
 
-> 구현 상세: [200-command-label-locale-resolution-breakdown.md](design/200-command-label-locale-resolution-breakdown.md)
+> 구현 상세: [200-command-label-locale-resolution-breakdown.md](../design/200-command-label-locale-resolution-breakdown.md)
 
 ## Risks
 
@@ -110,7 +121,24 @@ HIGH 위험은 R1 1건이며 G1 과 1:1 대응한다. 본 ADR 은 phase 6개 / �
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — Phase 5 계획은 breakdown §6)
+2026-08-30, Chrome MCP · `localhost:5173` 실행 빌더. 같은 프로젝트를 `en-US` 와
+`ko-KR` 로 각각 열어 4표면을 모두 exercise 했다 (G5).
+
+| 표면                         |                                                                                                                       `en-US` |                                                                                          `ko-KR` |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------: | -----------------------------------------------------------------------------------------------: |
+| 캔버스 우클릭 메뉴           | Copy · Paste here · Duplicate · Bring to Front · Bring Forward · Send Backward · Send to Back · Create component · Delete (9) | 복사 · 여기에 붙여넣기 · 복제 · 맨 앞으로 · 앞으로 · 뒤로 · 맨 뒤로 · 컴포넌트 만들기 · 삭제 (9) |
+| 메뉴 `aria-label`            |                                                                                                                "Context menu" |                                                                                  "컨텍스트 메뉴" |
+| 액션 바 `aria-label`         |                                                              Duplicate · Create component · More actions · Action bar options |                                                  복제 · 컴포넌트 만들기 · 더 보기 · 액션 바 옵션 |
+| 명령 팔레트 (63항목)         |                                                                                     Undo / System / "Available on the canvas" |                                             실행 취소 / 시스템 / "캔버스에서 실행할 수 있습니다" |
+| ActionTooltip (History undo) |                                                                                                                     "Undo ⌘Z" |                                                                                   "실행 취소 ⌘Z" |
+| 속성 패널 보간               |                                                                                                        "Select instances (1)" |                                                                              "인스턴스 선택 (1)" |
+
+팔레트는 라벨(`command.*`) · 카테고리(`commandPalette.category*`) · scope 힌트
+(`commandPalette.scope*`) 세 축이 모두 따라왔다. 툴팁 항목은 호출부가 `tooltip`
+을 주지 않아 `command.<id>` 로 파생되는 경로다 — Phase 3 이 바꾼 그 경로다.
+
+정적 게이트: G1 3 tests · G2 3 tests · G3 3 tests 전부 GREEN. G4 — `pnpm type-check`
+0 error + 전체 617 파일 4,959 tests PASS (실패 0).
 
 ## Consequences
 
