@@ -17,6 +17,8 @@ import {
   getEditingSemanticsOriginId,
   getEditingSemanticsOverrideItems,
   getEditingSemanticsRole,
+  isEditingSemanticsInstance,
+  isEditingSemanticsOrigin,
   type EditingSemanticsOverrideItem,
 } from "../../utils/editingSemantics";
 import { getFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
@@ -47,6 +49,15 @@ import type { PanelNode } from "../panelNode";
  * - 액션 아이콘 3종은 `ACTION_ICONS` — 캔버스 컨텍스트 메뉴의 같은 액션과 같은
  *   그림이어야 한다 (registry 주석이 이미 "Properties 패널 Component 섹션" 을
  *   소비처로 적어 두고 있었는데 실제로는 아이콘이 없었다).
+ *
+ * **액션 가용성은 두 축 (2026-08-30 — Pen.app 번들 실측)**. pencil 은 선택
+ * 노드마다 `prototype` (인스턴스) 과 `reusable` (원본) 을 따로 세고, 인스턴스
+ * 액션 (Go to component / Detach instance) 과 컴포넌트 액션 (Detach Component
+ * ↔ Create Component) 을 **동시에** 노출한다 — 그래서 인스턴스에 3개가 선다.
+ * 종전 composition 은 role enum 하나로 갈라 instance 를 먼저 잡았고, 그 결과
+ * 인스턴스에서는 컴포넌트 축 액션이 통째로 사라졌다 (다른 컴포넌트의 인스턴스를
+ * 원본으로 승격한 노드는 해제 진입점이 아예 없어 되돌릴 수 없었다).
+ * 용어도 pencil 을 따른다 — 원본 해제는 "Detach component" 하나로 부른다.
  */
 const ComponentIcon = ACTION_ICONS.component;
 const GoToOriginIcon = ACTION_ICONS.goToOrigin;
@@ -107,16 +118,20 @@ export const ComponentSemanticsSection = memo(
     );
     const undo = useStore((state) => state.undo);
     const role = getEditingSemanticsRole(element);
+    const isInstance = isEditingSemanticsInstance(element);
+    const isOrigin = isEditingSemanticsOrigin(element);
     const label = getEditingSemanticsLabel(role);
     const originId = getEditingSemanticsOriginId(element);
     const originElement = resolveOriginElement(originId, lookupElements);
     const isDetachableInstance = canDetachInstance(element);
     const overrideItems = getEditingSemanticsOverrideItems(element);
-    const instanceIds =
-      role === "origin"
-        ? getEditingSemanticsImpactInstanceIds(element, lookupElements)
-        : [];
-    const roleLabel = label ?? "Standard";
+    const instanceIds = isOrigin
+      ? getEditingSemanticsImpactInstanceIds(element, lookupElements)
+      : [];
+    // 두 축이 겹치는 노드는 색 마커가 하나뿐이라 (canvas 는 instance 색) 텍스트
+    // 라벨이 두 정체를 다 읽어 준다 — 라벨이 역할의 1차 채널이다.
+    const roleLabel =
+      isInstance && isOrigin ? "Instance · Origin" : (label ?? "Standard");
     const roleClass = role ?? "standard";
 
     if (!element) return null;
@@ -145,11 +160,8 @@ export const ComponentSemanticsSection = memo(
       detachInstance(elementId);
     };
 
-    const handleCreateComponent = async () => {
-      await toggleComponentOrigin(elementId);
-    };
-
-    const handleRemoveComponent = async () => {
+    // 생성/해제 양방향 1개 액션 (pencil `Cmd+Opt+K` 와 같은 토글).
+    const handleToggleComponentOrigin = async () => {
       await toggleComponentOrigin(elementId);
     };
 
@@ -195,42 +207,7 @@ export const ComponentSemanticsSection = memo(
         </div>
 
         <div className="component-semantics-toolbar">
-          {!role && (
-            <button
-              className="control-button"
-              onClick={handleCreateComponent}
-              type="button"
-            >
-              <ComponentIcon aria-hidden="true" size={14} />
-              Create component
-            </button>
-          )}
-          {role === "origin" && (
-            <>
-              {/* 종전의 "Impacts N instances" 행은 이 라벨이 흡수한다 — 같은 수를
-                  읽는 자리가 둘일 이유가 없다. 0건이면 비활성으로 남겨 "인스턴스가
-                  아직 없다" 를 계속 보인다. */}
-              <button
-                className="control-button"
-                disabled={instanceIds.length === 0}
-                onClick={handleSelectInstances}
-                type="button"
-              >
-                <Boxes aria-hidden="true" size={14} />
-                Select instances ({instanceIds.length})
-              </button>
-              <button
-                aria-label="Remove component"
-                className="control-button component-semantics-icon-action"
-                onClick={handleRemoveComponent}
-                title="Remove component"
-                type="button"
-              >
-                <ComponentIcon aria-hidden="true" size={14} />
-              </button>
-            </>
-          )}
-          {role === "instance" && (
+          {isInstance && (
             <>
               <button
                 className="control-button"
@@ -254,6 +231,29 @@ export const ComponentSemanticsSection = memo(
               )}
             </>
           )}
+          {isOrigin && (
+            /* 종전의 "Impacts N instances" 행은 이 라벨이 흡수한다 — 같은 수를
+               읽는 자리가 둘일 이유가 없다. 0건이면 비활성으로 남겨 "인스턴스가
+               아직 없다" 를 계속 보인다. */
+            <button
+              className="control-button"
+              disabled={instanceIds.length === 0}
+              onClick={handleSelectInstances}
+              type="button"
+            >
+              <Boxes aria-hidden="true" size={14} />
+              Select instances ({instanceIds.length})
+            </button>
+          )}
+          {/* 컴포넌트 축은 인스턴스 축과 독립이라 인스턴스에도 함께 선다. */}
+          <button
+            className="control-button"
+            onClick={handleToggleComponentOrigin}
+            type="button"
+          >
+            <ComponentIcon aria-hidden="true" size={14} />
+            {isOrigin ? "Detach component" : "Create component"}
+          </button>
         </div>
 
         {role === "instance" && overrideItems.length > 0 && (

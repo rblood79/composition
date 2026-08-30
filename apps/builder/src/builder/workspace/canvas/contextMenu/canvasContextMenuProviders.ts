@@ -23,7 +23,7 @@ import { useStore } from "../../../stores";
 import {
   canDetachInstance,
   getEditingSemanticsOriginId,
-  getEditingSemanticsRole,
+  isEditingSemanticsOrigin,
 } from "../../../utils/editingSemantics";
 import { requestEditingSemanticsDetachConfirmation } from "../../../utils/editingSemanticsImpactConfirmation";
 import { registerContextMenuProvider } from "../../../components/overlay/contextMenu";
@@ -243,7 +243,10 @@ function buildElementMenuItems(
     ? getEditingSemanticsOriginId(primaryElement)
     : null;
   const originElement = originId ? elementsMap.get(originId) : undefined;
-  const semanticsRole = getEditingSemanticsRole(primaryElement);
+  // 판정은 `reusable` 축 하나 — 인스턴스이면서 원본인 노드에서 role 로 갈랐다가
+  // "컴포넌트 만들기" 가 떠서, 이미 원본인 노드를 다시 원본으로 만드는 no-op
+  // 항목이 됐다 (Properties 패널 Component 섹션과 같은 축을 쓴다).
+  const isComponentOrigin = isEditingSemanticsOrigin(primaryElement);
   const detachableElement = selectedElements.find((element) =>
     canDetachInstance(element),
   );
@@ -336,8 +339,8 @@ function buildElementMenuItems(
     items.push(
       actionItem(
         "toggle-component-origin",
-        semanticsRole === "origin"
-          ? "컴포넌트 해제 / Remove component"
+        isComponentOrigin
+          ? "컴포넌트 분리 / Detach component"
           : "컴포넌트 만들기 / Create component",
         async () => {
           await useStore.getState().toggleComponentOrigin(primaryElement.id);

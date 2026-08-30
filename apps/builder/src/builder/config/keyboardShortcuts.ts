@@ -447,8 +447,8 @@ export const SHORTCUT_DEFINITIONS = {
     category: "canvas",
     scope: ["canvas-focused", "panel:properties"],
     priority: SHORTCUT_PRIORITY.CANVAS,
-    description: "Create/Remove Component",
-    i18n: { ko: "컴포넌트 생성/해제" },
+    description: "Create/Detach Component",
+    i18n: { ko: "컴포넌트 생성/분리" },
   },
 
   detachInstance: {

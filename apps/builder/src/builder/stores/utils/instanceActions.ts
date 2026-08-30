@@ -28,6 +28,7 @@ import { buildIdPathContext } from "../../../adapters/canonical/idPath";
 import {
   getEditingSemanticsImpactInstanceIds,
   getEditingSemanticsRole,
+  isEditingSemanticsOrigin,
 } from "../../utils/editingSemantics";
 import { requestEditingSemanticsImpactConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import { getDB } from "../../../lib/db";
@@ -559,7 +560,10 @@ export function buildDetachSnapshotsForOrigins(
   const elements: Element[] = [];
 
   for (const origin of origins) {
-    if (getEditingSemanticsRole(origin) !== "origin") continue;
+    // reusable 이면 origin 이다 — 다른 컴포넌트의 인스턴스이기도 한 노드
+    // (dual) 도 자기 인스턴스를 갖는다. role 로 판정하면 instance 가 먼저 잡혀
+    // 이 노드의 인스턴스들이 dangling ref 로 남는다.
+    if (!isEditingSemanticsOrigin(origin)) continue;
 
     const impactedInstanceIds = getEditingSemanticsImpactInstanceIds(
       origin,
@@ -802,8 +806,10 @@ export async function toggleComponentOrigin(
   const element = findInstanceActionElement(initialState.elements, elementId);
   if (!element) return null;
 
-  const role = getEditingSemanticsRole(element);
-  if (role !== "origin") {
+  // 판정 축은 `reusable` 하나 — 인스턴스이면서 동시에 재사용 원본인 노드는
+  // 여기서 원본 해제로 들어가야 한다 (role 판정 시 instance 가 먼저 잡혀
+  // "다시 reusable 로 만들기" 로 되돌아가 해제 자체가 불가능했다).
+  if (!isEditingSemanticsOrigin(element)) {
     const nextElement: CanonicalElement = {
       ...element,
       componentName: getComponentNameForElement(element),

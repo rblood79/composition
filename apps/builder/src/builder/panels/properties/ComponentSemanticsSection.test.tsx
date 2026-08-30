@@ -196,10 +196,74 @@ describe("ComponentSemanticsSection", () => {
     useStore.getState()._rebuildIndexes();
 
     render(<ComponentSemanticsSection elementId="origin" />);
-    fireEvent.click(screen.getByRole("button", { name: "Remove component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Detach component" }));
 
     await waitFor(() => {
       expect(useStore.getState().elementsMap.get("origin")).toMatchObject({
+        reusable: false,
+      });
+    });
+  });
+
+  // pencil 은 `prototype`(인스턴스) 과 `reusable`(원본) 을 따로 세어 두 축의
+  // 액션을 함께 노출한다 (Pen.app 번들 실측 2026-08-30). role enum 하나로
+  // 갈랐던 종전 구현은 인스턴스에서 컴포넌트 축 액션이 통째로 사라졌다.
+  it("instance also offers the component axis action", () => {
+    const origin = makeElement("origin", { page_id: "page-1", reusable: true });
+    const instance = makeElement("instance", {
+      type: "ref",
+      ref: "origin",
+      page_id: "page-1",
+    } as never);
+
+    useStore.setState({
+      currentPageId: "page-1",
+      elements: [origin, instance],
+      elementsMap: new Map([
+        ["origin", origin],
+        ["instance", instance],
+      ]),
+    });
+
+    render(<ComponentSemanticsSection elementId="instance" />);
+
+    expect(screen.getByRole("button", { name: "Go to component" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Detach instance" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Create component" }),
+    ).toBeTruthy();
+  });
+
+  it("reusable instance offers go to / detach instance / detach component", async () => {
+    const origin = makeElement("origin", { page_id: "page-1", reusable: true });
+    const dual = makeElement("dual", {
+      type: "ref",
+      ref: "origin",
+      page_id: "page-1",
+      reusable: true,
+    } as never);
+
+    useStore.setState({
+      currentPageId: "page-1",
+      elements: [origin, dual],
+      elementsMap: new Map([
+        ["origin", origin],
+        ["dual", dual],
+      ]),
+    });
+    useStore.getState()._rebuildIndexes();
+
+    render(<ComponentSemanticsSection elementId="dual" />);
+
+    // 색 마커는 하나뿐이라 (canvas 는 instance 색) 라벨이 두 정체를 읽어 준다.
+    expect(screen.getByText("Instance · Origin")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Go to component" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Detach instance" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Detach component" }));
+
+    await waitFor(() => {
+      expect(useStore.getState().elementsMap.get("dual")).toMatchObject({
         reusable: false,
       });
     });
@@ -316,7 +380,7 @@ describe("ComponentSemanticsSection", () => {
     expect(
       (
         screen.getByRole("button", {
-          name: "Remove component",
+          name: "Detach component",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(false);

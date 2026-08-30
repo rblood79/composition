@@ -80,14 +80,28 @@
     outline: none;
   }
 
+  /* rail 과 같은 상호작용 어법 — hover 는 --fg 8% wash, press 는 accent 채움.
+     행은 라벨이 주 정보라 기본 색만 --fg 로 유지한다 (rail 의 muted 기본은
+     아이콘 전용 어법). */
   .contextual-action-bar-option[data-focused],
   .contextual-action-bar-option[data-hovered] {
-    background: var(--bg-muted);
+    color: var(--fg);
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+  }
+
+  .contextual-action-bar-option[data-pressed] {
+    color: var(--fg-on-accent);
+    background: var(--accent);
   }
 
   .contextual-action-bar-option svg {
     color: var(--fg-muted);
     flex-shrink: 0;
+  }
+
+  /* accent 채움 위에서 muted 아이콘은 묻힌다 — 전경색을 행에 맞춘다. */
+  .contextual-action-bar-option[data-pressed] svg {
+    color: inherit;
   }
 
   .contextual-action-bar-toolbar,
@@ -105,21 +119,12 @@
     height: 28px;
     padding: 0;
     /* 공유 Button 에 ghost variant 부재 → button-base 기본 --button-color(--fg)
-       가 배경을 어둡게 칠한다 (HistoryPanel.css 와 같은 중화). 바 항목은
-       컨텍스트 메뉴 항목과 같은 line-art 어법: 투명 배경 + hover 회색 wash. */
+       가 배경을 어둡게 칠한다 (HistoryPanel.css 와 같은 중화). 색/배경 상태는
+       아래 `@layer utilities` 블록이 소유한다 — 여기(builder-system)는 geometry
+       와 토큰 중화만. */
     --button-color: transparent;
-    --button-text: var(--fg);
     --button-border: transparent;
     border-radius: var(--radius-md);
-  }
-
-  .contextual-action-bar .contextual-action-bar-item[data-hovered],
-  .contextual-action-bar .contextual-action-bar-item[data-focus-visible] {
-    --button-color: var(--bg-muted);
-  }
-
-  .contextual-action-bar .contextual-action-bar-item[data-pressed] {
-    --button-color: var(--accent-subtle);
   }
 
   .contextual-action-bar .contextual-action-bar-item[data-context="multi"] {
@@ -154,12 +159,16 @@
     outline: none;
   }
 
+  /* 바 항목과 같은 28×28 아이콘 버튼 — rail 어법 그대로.
+     `--accent-subtle` 은 builder 테마에서 --bg-muted 보다 밝은 중립 wash 라
+     강조가 뒤집힌다 (css-tokens.md). */
   .contextual-action-bar-align-grid .react-aria-MenuItem {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 28px;
     height: 28px;
+    color: var(--fg-muted);
     border-radius: var(--radius-md);
     cursor: default;
     outline: none;
@@ -167,6 +176,49 @@
 
   .contextual-action-bar-align-grid .react-aria-MenuItem[data-focused],
   .contextual-action-bar-align-grid .react-aria-MenuItem[data-hovered] {
-    background: var(--accent-subtle);
+    color: var(--fg);
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+  }
+
+  .contextual-action-bar-align-grid .react-aria-MenuItem[data-pressed] {
+    color: var(--fg-on-accent);
+    background: var(--accent);
+  }
+}
+
+/* 좌우 dock rail (`builder-control-group.css` 의 indicator ToggleButton) 과 같은
+ * 상호작용 어법: muted 기본 → hover 는 --fg 8% wash + --fg 리프트 → press 는
+ * accent 채움 + --fg-on-accent.
+ *
+ * rail 의 ToggleButton 은 `.button-base` 가 없어 builder-system 에서 바로 그리지만,
+ * 이 바의 항목은 공유 Button(= `.button-base`) 이다. layer 순서가
+ * `... builder-system, utilities` 라 utilities 의 `.button-base`
+ * (`background: var(--button-color)` + `[data-hovered]` 는 --button-color 를
+ * 15% black 으로 섞은 파생) 가 builder-system 의 background/color 를 specificity
+ * 와 무관하게 항상 이긴다. rail 과 같은 값을 그리려면 같은 layer 에서 더 높은
+ * specificity(0-3-0 > 0-1-0) 로 선언해야 한다 — 같은 layer 안에서는 선언 순서가
+ * 아니라 specificity 가 판정하므로 sheet import 순서에 의존하지 않는다. */
+@layer utilities {
+  .contextual-action-bar .contextual-action-bar-item {
+    /* rail 은 `border-width: 0` 이라 테두리가 없다. 여기서 width 를 건드리면
+       28×28 박스가 흔들리므로 색만 지운다 — 지우지 않으면 button-base 의
+       테두리 파생(--button-border 를 15% black 으로)이 hover 시 회색 링을
+       그린다. */
+    color: var(--fg-muted);
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .contextual-action-bar .contextual-action-bar-item[data-hovered],
+  .contextual-action-bar .contextual-action-bar-item[data-focus-visible] {
+    color: var(--fg);
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+    border-color: transparent;
+  }
+
+  .contextual-action-bar .contextual-action-bar-item[data-pressed] {
+    color: var(--fg-on-accent);
+    background: var(--accent);
+    border-color: transparent;
   }
 }

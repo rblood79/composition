@@ -726,17 +726,23 @@ function legacyElementToCanonicalNode(
     };
   }
 
-  const metadataElement = isReusableOrigin
+  // 두 축은 배타가 아니다 — 다른 컴포넌트의 인스턴스를 그대로 재사용 원본으로
+  // 승격한 노드 (pencil 의 variant 컴포넌트 패턴) 는 `ref` 와 `reusable` 을 함께
+  // 갖는다. legacy mirror 의 `componentRole` 은 값이 하나뿐이라 참조 링크를 잃지
+  // 않는 쪽 (instance + masterId) 을 싣고, 원본 축은 canonical 1차 필드
+  // `reusable` 이 나른다. 종전에는 origin 분기가 먼저 return 해 `ref` 가 통째로
+  // 사라졌다 — `type: "ref"` 인데 가리키는 곳이 없는 노드가 됐다.
+  const metadataElement = refTarget
     ? ({
         ...element,
-        componentRole: "master",
+        componentRole: "instance",
+        masterId: refTarget,
+        overrides: legacy.overrides ?? element.props,
       } as Element)
-    : refTarget
+    : isReusableOrigin
       ? ({
           ...element,
-          componentRole: "instance",
-          masterId: refTarget,
-          overrides: legacy.overrides ?? element.props,
+          componentRole: "master",
         } as Element)
       : element;
   const baseNode: CanonicalNode = {
@@ -755,13 +761,6 @@ function legacyElementToCanonicalNode(
     metadata: buildCanonicalMutationMetadata(metadataElement),
     ...buildCompositionExtensionField(element),
   };
-
-  if (isReusableOrigin) {
-    return {
-      ...baseNode,
-      reusable: true,
-    };
-  }
 
   if (refTarget) {
     const masterNode = findNodeById(doc.children, refTarget);
@@ -782,8 +781,17 @@ function legacyElementToCanonicalNode(
         overrides: refProps,
       } as Element),
       ...(descendants ? { descendants } : {}),
+      // 인스턴스이면서 동시에 재사용 원본인 노드는 두 필드를 함께 싣는다.
+      ...(isReusableOrigin ? { reusable: true } : {}),
     };
     return refNode;
+  }
+
+  if (isReusableOrigin) {
+    return {
+      ...baseNode,
+      reusable: true,
+    };
   }
 
   return baseNode;

@@ -29,25 +29,46 @@ function asElementLike(value: unknown): EditingSemanticsElementLike | null {
   return value as EditingSemanticsElementLike;
 }
 
-export function getEditingSemanticsRole(
-  element: unknown,
-): EditingSemanticsRole | null {
+/**
+ * 인스턴스 축 — 이 노드가 다른 노드를 참조하는가 (`ref` / legacy `masterId`).
+ *
+ * origin 축과 **독립**이다. pencil 도 두 축을 따로 센다 (`c.prototype` 이면
+ * detachInstance, `c.reusable` 이면 detachComponent — Pen.app 번들 실측
+ * 2026-08-30). 한 노드가 둘 다일 수 있다: 다른 컴포넌트의 인스턴스를 루트로
+ * 삼은 컴포넌트 (variant 패턴). `getEditingSemanticsRole` 은 마커용 단일 값이
+ * 필요해 instance 를 먼저 고르므로, **액션 가용성 판정에는 이 두 술어를 쓴다**
+ * — role 로 판정하면 dual 노드에서 origin 액션이 통째로 사라진다.
+ */
+export function isEditingSemanticsInstance(element: unknown): boolean {
   const candidate = asElementLike(element);
-  if (!candidate) return null;
+  if (!candidate) return false;
 
-  if (
+  return (
     candidate.type === "ref" ||
     candidate.componentRole === "instance" ||
     typeof candidate.masterId === "string" ||
     typeof candidate.ref === "string"
-  ) {
-    return "instance";
-  }
+  );
+}
 
-  if (candidate.reusable === true || candidate.componentRole === "master") {
-    return "origin";
-  }
+/** origin 축 — 이 노드 자신이 재사용 원본인가 (`reusable`). */
+export function isEditingSemanticsOrigin(element: unknown): boolean {
+  const candidate = asElementLike(element);
+  if (!candidate) return false;
 
+  return candidate.reusable === true || candidate.componentRole === "master";
+}
+
+/**
+ * 시각 마커 1개를 고르기 위한 단일 역할 값 — 두 축이 겹치면 instance 우선.
+ * 액션 가용성은 축 술어 (`isEditingSemanticsInstance` /
+ * `isEditingSemanticsOrigin`) 로 판정한다.
+ */
+export function getEditingSemanticsRole(
+  element: unknown,
+): EditingSemanticsRole | null {
+  if (isEditingSemanticsInstance(element)) return "instance";
+  if (isEditingSemanticsOrigin(element)) return "origin";
   return null;
 }
 

@@ -372,16 +372,21 @@
       color: var(--editing-semantics-instance);
     }
 
+    /* 인스턴스 축(Go to component/Detach instance)과 컴포넌트 축(Create/Detach
+       component)이 함께 서면 폭 222px 한 줄에 다 들어가지 않는다 — 줄여서
+       라벨을 자르는 대신 줄바꿈한다. */
     .component-semantics-toolbar {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: var(--spacing-xs);
     }
 
     /* 라벨 액션이 남는 폭을 먹고 보조 액션은 정사각으로 붙는다. `min-width` 를
-       풀지 않으므로 라벨은 잘리지 않는다 (최장 라벨 기준 여유 34px, 폭 222px). */
+       라벨 폭으로 잠가 두므로 라벨은 잘리지 않고 다음 줄로 내려간다. */
     .component-semantics-toolbar .control-button {
       flex: 1 1 auto;
+      min-width: fit-content;
     }
 
     /* 아이콘 전용 보조 액션 — chrome 은 같은 `.control-button` 정본을 쓰고 폭만
