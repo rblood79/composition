@@ -162,11 +162,22 @@ export function canDetachLegacyInstance(element: unknown): boolean {
   return candidate?.componentRole === "instance";
 }
 
+/**
+ * 분리할 원본이 실제로 지목돼 있는가 — `type` 은 보지 않는다.
+ *
+ * 캔버스 상호작용 elementsMap 은 인스턴스의 `type` 을 렌더되는 컴포넌트
+ * (`"Button"` 등) 로 해소해 넘기고 `ref` 만 보존한다. `type === "ref"` 를 함께
+ * 요구하면 그 표면에서만 판정이 뒤집혀 **캔버스 컨텍스트 메뉴·선택 툴바에서
+ * "인스턴스 분리" 가 통째로 사라진다** (Properties 패널은 canonical 을 읽어
+ * 정상이었다 — 2026-08-30 실측). 같은 map 을 읽는
+ * `getEditingSemanticsOriginId` 도 이미 `type` 을 보지 않는다.
+ */
 export function canDetachInstance(element: unknown): boolean {
   const candidate = asElementLike(element);
   return (
     candidate?.componentRole === "instance" ||
-    (candidate?.type === "ref" && typeof candidate.ref === "string")
+    typeof candidate?.ref === "string" ||
+    typeof candidate?.masterId === "string"
   );
 }
 

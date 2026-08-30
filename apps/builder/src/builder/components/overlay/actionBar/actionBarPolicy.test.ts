@@ -154,12 +154,14 @@ describe("applyActionBarPolicy — 컨텍스트별 allowlist·순서·상한", (
     ]);
   });
 
-  it("C3 인스턴스: 원본 이동 · 인스턴스 분리 · 복제 순", () => {
+  // 컴포넌트 축 3항목의 순서는 Properties 패널 Component 섹션과 같다.
+  it("C3 인스턴스: 원본 이동 · 인스턴스 분리 · 컴포넌트 토글 · 복제 순", () => {
     const model = applyActionBarPolicy(T1_INSTANCE);
     expect(model?.context).toBe("instance");
     expect(ids(model!.items)).toEqual([
       "go-to-origin",
       "detach-instance",
+      "toggle-component-origin",
       "duplicate",
     ]);
   });

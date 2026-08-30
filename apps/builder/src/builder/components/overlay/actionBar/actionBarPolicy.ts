@@ -44,7 +44,15 @@ export const ACTION_BAR_ALLOWLIST: Readonly<
   // 만들지 않으므로(2026-08-27 code-review #10) 여기 실릴 일 자체가 없다.
   single: ["duplicate", "toggle-component-origin"],
   frame: ["ungroup", "duplicate", "toggle-component-origin"],
-  instance: ["go-to-origin", "detach-instance", "duplicate"],
+  // 컴포넌트 축 항목의 좌→우 순서는 Properties 패널 Component 섹션과 같다
+  // (원본으로 이동 → 인스턴스 분리 → 컴포넌트 만들기/분리). 같은 액션 묶음이
+  // 두 표면에서 다른 순서로 서면 위치를 매번 다시 찾는다.
+  instance: [
+    "go-to-origin",
+    "detach-instance",
+    "toggle-component-origin",
+    "duplicate",
+  ],
   multi: ["align", "group", "duplicate", "detach-instance"],
 };
 
