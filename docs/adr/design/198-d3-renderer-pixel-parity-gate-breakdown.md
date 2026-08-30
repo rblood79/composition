@@ -209,6 +209,47 @@ therefore installs the wrong binary and the browser runner fails with
 environment manifest must record the **vitest-resolved** Playwright version, and
 CI must install through that resolution.
 
+**Preview leg (task 4) — reached**. The real `preview.html` bundle runs inside
+the same pinned Chromium as an iframe; the fixture enters through the production
+`UPDATE_CANONICAL_DOCUMENT` → `messageHandler` → runtime store →
+`CanonicalNodeRenderer` path, with no hand-built DOM. Measured:
+
+| Check                    | Result                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------- |
+| fixture nodes rendered   | 3/3 (`data-canonical-id` present, `react-aria-frame` class, `props.style` inline)                        |
+| geometry (artboard-rel.) | page `0,0,320,240` · outer `24,24,272,192` · inner `56,56,208,128` — equals the declared fixture exactly |
+| capture                  | `page.screenshot({ element, base64 })` → 1563 bytes, PNG magic verified                                  |
+| settle                   | converged in 2 iterations                                                                                |
+| determinism              | 10 re-sends → 1 distinct DOM signature                                                                   |
+| console/page errors      | 0                                                                                                        |
+
+**Both legs share one host.** `@vitest/browser`'s `page.screenshot({ element })`
+captures the Preview iframe from inside the same process that renders the Skia
+leg, so the ADR's assumed split (Node CanvasKit + a separate Playwright Preview
+driver) is unnecessary. One host means one environment manifest, one Chromium
+pin, and no cross-process fixture handoff — a strictly better answer to HC2 than
+the architecture sketched in §3.2.
+
+**R11 reproduced inside the harness itself.** The first Preview draft posted the
+canonical message immediately after the iframe's `load` event. `load` fires when
+the HTML arrives, before the module script mounts React and attaches the message
+listener, so the message reached a window with no listener. The body stayed
+empty, `settleByConvergence` converged on the first check (nothing was
+changing), and a `nodeCount > 1` liveness assertion passed on the 9 nodes of the
+bare HTML scaffold. The harness reported a green run for a frame that rendered
+nothing. Two fixes, both now load-bearing:
+
+1. Wait for the Preview's own `PREVIEW_READY` message
+   (`messageHandler.ts::messageSender.sendReady`) before sending the fixture.
+   A readiness handshake is not optional politeness; without it the capture
+   races the mount.
+2. Liveness is judged by **fixture node identity**, never by node count —
+   `querySelector('[data-element-id="…"]')` for each expected node. Node counts
+   are satisfied by scaffolding.
+
+This is the concrete case HC11 was written for, and it appeared in the first
+implementation attempt rather than in some distant future regression.
+
 **Blocker found for the production pilot (task 3, second half)**:
 `buildSkiaFrameContent` returns `null` unless `getSharedLayoutMap()`
 (`fullTreeLayout.ts:485`) has been published, and it consumes a full
