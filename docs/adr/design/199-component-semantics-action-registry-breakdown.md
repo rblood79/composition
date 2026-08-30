@@ -48,14 +48,14 @@ freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199
 
 **확정 시그니처** (스케치 대비 2곳 확장 — Phase 0 freeze 가 드러낸 발산 D3·D4 를 흡수):
 
-| 필드                                | 확정 형태                                                              | 이유                                                                                                  |
-| ----------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `label(target, ctx)`                | 함수 (고정 문자열 아님)                                                | `toggle-component-origin` 은 `reusable` 로 뒤집히고 `select-instances` 는 수를 단다                   |
-| `icon(target)`                      | 함수                                                                   | 같은 이유 — 만들기/분리로 그림도 뒤집힌다                                                             |
-| `isAvailable(target, ctx)`          | 노출 여부                                                              | —                                                                                                       |
-| **`isEnabled?(target, ctx)`** (추가) | 노출됐지만 지금 누를 수 없음                                          | 발산 D3 보존 — 원본 못 찾은 인스턴스에서 패널은 비활성, 메뉴는 미노출. 표면이 어느 쪽으로 표현할지 정함 |
-| **`ActionAvailabilityContext`** (추가) | `{ hasResolvedOrigin, instanceCount, selectionSize }`               | 노드 하나로 알 수 없는 맥락. `selectionSize` 는 발산 D4 (메뉴 다중 detach) 대비 — descriptor 는 단일 노드 계약 유지 |
-| `surfaces`                          | `properties-panel` / `context-menu` / `action-bar` 3종                | 단축키·agent 는 노출 표면이 아니라 명령 축 → `commandId` 로 연결                                      |
+| 필드                                   | 확정 형태                                              | 이유                                                                                                                |
+| -------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `label(target, ctx)`                   | 함수 (고정 문자열 아님)                                | `toggle-component-origin` 은 `reusable` 로 뒤집히고 `select-instances` 는 수를 단다                                 |
+| `icon(target)`                         | 함수                                                   | 같은 이유 — 만들기/분리로 그림도 뒤집힌다                                                                           |
+| `isAvailable(target, ctx)`             | 노출 여부                                              | —                                                                                                                   |
+| **`isEnabled?(target, ctx)`** (추가)   | 노출됐지만 지금 누를 수 없음                           | 발산 D3 보존 — 원본 못 찾은 인스턴스에서 패널은 비활성, 메뉴는 미노출. 표면이 어느 쪽으로 표현할지 정함             |
+| **`ActionAvailabilityContext`** (추가) | `{ hasResolvedOrigin, instanceCount, selectionSize }`  | 노드 하나로 알 수 없는 맥락. `selectionSize` 는 발산 D4 (메뉴 다중 detach) 대비 — descriptor 는 단일 노드 계약 유지 |
+| `surfaces`                             | `properties-panel` / `context-menu` / `action-bar` 3종 | 단축키·agent 는 노출 표면이 아니라 명령 축 → `commandId` 로 연결                                                    |
 
 `EditingSemanticsTarget` = `{ id, componentRole?, ref?, masterId?, reusable? }` — **`type` 없음** (HC3). 술어 3종(`isEditingSemanticsInstance` / `isEditingSemanticsOrigin` / `canDetachInstance`)은 재정의하지 않고 `adapters/canonical/editingSemantics` 에서 그대로 가져다 쓴다 — 축 판정은 이미 일치했고 (freeze 발산 D5) 이관 대상은 호출 지점이다.
 
@@ -63,7 +63,7 @@ freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199
 
 **G1 결과**: `pnpm type-check` 0 · 신규 12건 PASS · 관련 스위트 137 PASS (`config` / `actionBar` / `contextMenu` / `editingSemantics`) · `commandMeta.static.test.ts` 단언 무변경 · 소비처 0. 잔여 실패 1건 `shortcutDisplay.static.test.ts` 는 ADR-196 표면 2곳의 `⌘Z` 리터럴로 **선행 실패** (본 phase 무관, 신규 파일 glyph 리터럴 0).
 
-## 4. Phase 2 — 표면 이관 (소비처 3개, 순서 고정)
+## 4. Phase 2 — 표면 이관 (소비처 3개, 순서 고정) ✅ Implemented 2026-08-30
 
 | 순서 | 파일                                                                 | 변경                                                                                                  |
 | ---: | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -72,6 +72,10 @@ freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199
 |    3 | `builder/components/overlay/actionBar/actionBarPolicy.ts`            | `ACTION_BAR_ALLOWLIST.instance` 의 컴포넌트 축 3항목을 레지스트리 순서에서 파생. 나머지 컨텍스트 유지 |
 
 각 단계 종료 시 commit 가능 상태 + 해당 표면 live 확인.
+
+**G2 결과 (live, Chrome MCP)**: 4상태 × 3표면이 Phase 0 기준선과 일치. 변화는 D1 (메뉴 순서 통일) 1건 — HC5 명시 예외. 상세 표: [evidence §7](../evidence/199-surface-inventory.md#7-phase-2-live-실측-g2-2026-08-30-chrome-mcp).
+
+**live 에서만 드러난 선행 결함 1건 (D7 → R7)**: `ref` 노드의 캔버스 사영이 인스턴스 자신의 `reusable` 을 싣지 않아 Instance·Origin 노드의 우클릭 메뉴가 `컴포넌트 만들기` (no-op) 를 띄운다. 이관 전후 동일이라 회귀는 아니며 **Phase 4 (투영 불변식)** 로 흡수한다 — 술어가 아니라 입력을 만드는 쪽이 빠뜨리는 형태다.
 
 ---
 
@@ -90,7 +94,7 @@ freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199
 2. 정적 게이트 `editingSemanticsProjection.static.test.ts`:
    - `editingSemantics.ts` 소스에서 `candidate.type` / `.type ===` 참조 0건 (allowlist 주석 필요 시 사유 명시).
    - 술어 4종(`isEditingSemanticsInstance` / `isEditingSemanticsOrigin` / `canDetachInstance` / `getEditingSemanticsOriginId`) 에 대해 **사영 3종 fixture** (canonical node · 캔버스 interactionNodesMap 파생 · legacy elementsMap) 로 같은 결과를 반환하는 표 테스트.
-3. `CanvasActionElement` 타입에 `ref?` / `reusable?` / `componentRole?` / `masterId?` 를 명시 (현재 구조적으로 통과할 뿐 타입에 없음 — 계약을 타입으로 고정).
+3. **사영이 4필드를 싣는지** 확인/수리 (R7) — `renderers/rendererInput.ts:476` · `skia/StoreRenderBridge.ts:242-281`. 그리고 `CanvasActionElement` 타입에 `ref?` / `reusable?` / `componentRole?` / `masterId?` 를 명시 (현재 구조적으로 통과할 뿐 타입에 없음 — 계약을 타입으로 고정).
 
 ---
 

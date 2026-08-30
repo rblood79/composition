@@ -98,3 +98,32 @@
 | `toggleComponentOrigin` 표면 호출부         |   4 | 메뉴·패널·전역단축키·agent                                                                    |
 | `requestEditingSemanticsDetachConfirmation` |   4 | 메뉴·패널·패널단축키·전역단축키                                                               |
 | 술어의 잔존 `type` 참조                     |   1 | `editingSemantics.ts:47` (`isEditingSemanticsInstance`) — Phase 4 제거 대상                   |
+
+---
+
+## 7. Phase 2 live 실측 (G2, 2026-08-30 Chrome MCP)
+
+builder `localhost:5173` 실 프로젝트, Properties 패널 · 캔버스 우클릭 메뉴 · 선택 액션 바.
+
+| 상태                  | 패널 (실측)                                                       | 기준선(§4) 일치 |
+| --------------------- | ----------------------------------------------------------------- | :-------------: |
+| Standard              | `Create component` (라벨)                                         |       ✅        |
+| Origin (N=1)          | `Select instances (1)` (아이콘) → `Detach component` (라벨)       |       ✅        |
+| Instance              | `Go to component` → `Detach instance` → `Create component` (라벨) |       ✅        |
+| Instance·Origin (N=0) | `Go to component` → `Detach instance` → `Detach component` (라벨) |       ✅        |
+
+- 액션 바 (Instance): ⌖ → ◇− → ◇+ → 복제 — 레지스트리 순서대로 (아이콘 확대 캡처로 확인).
+- 컨텍스트 메뉴 (Instance·Origin, 캔버스 우클릭): `원본으로 이동 → 인스턴스 분리 → 컴포넌트 …` — **순서 통일 확인** (종전 만들기 선두 → 이제 패널·바와 같은 순서).
+- 컨텍스트 메뉴 (pure Origin, `type:"Button" reusable:true`): `컴포넌트 분리 / Detach component` ✅
+- 이관 전후 항목 집합·순서·라벨 변화는 D1 (메뉴 순서) 1건뿐 — HC5 명시 예외와 일치.
+
+### 발산 D7 (live 에서만 보임 — 정적 freeze 로는 안 잡힘)
+
+**같은 노드에서 패널과 캔버스 메뉴의 컴포넌트 축 라벨이 반대다.**
+
+- 노드: `93cac1f4…` — store 실측 `{ type: "ref", ref: "fc5fd6ab…", reusable: true }` (Instance·Origin)
+- 패널: `Detach component` (원본 맞음)
+- 캔버스 우클릭 메뉴: `컴포넌트 만들기 / Create component` — **이미 원본인 노드를 다시 원본으로 만드는 no-op 진입점**
+- pure origin (`type:"Button" reusable:true`) 은 메뉴도 `분리` 로 정상 → `reusable` 자체는 사영에 살아 있고, **`ref` 노드의 사영에서만** 인스턴스 자신의 `reusable` 이 사라진다.
+
+이관 전후 동일하므로 Phase 2 회귀 아님 — **선행 결함**이다. 술어는 이미 사영 불변 필드만 읽는데 (HC3) **사영이 그 필드를 싣지 않는** 반대쪽 절반이라, HC3 의 짝으로 Phase 4 에서 다룬다. 후보 경로: `renderers/rendererInput.ts:476` (`interactionNodesMap = renderTree.renderNodesMap`) · `skia/StoreRenderBridge.ts:242-281` (`toSyntheticSceneNode` — `reusable` 은 복사하지만 `ref`/`masterId`/`componentRole` 은 복사하지 않는다).
