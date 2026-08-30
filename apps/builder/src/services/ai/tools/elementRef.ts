@@ -1,4 +1,4 @@
-/**
+import type { ToolTranslate } from "../../../types/integrations/ai.types"; /**
  * 요소 참조 해석 — 도구가 받은 `elementId` 를 실제 id 로 바꾼다 (ADR-134 후속).
  *
  * **왜 생겼나 (2026-08-29 실물 측정)**: Ollama qwen3:14b 로 다단계 시나리오 2건을 돌렸더니
@@ -38,52 +38,58 @@ export interface ElementRefContext {
 
 export type ElementRefResult = { id: string } | { error: string };
 
-function recovery(ctx: ElementRefContext): string {
+function recovery(ctx: ElementRefContext, t: ToolTranslate): string {
   const known =
     lastCreatedId && ctx.elementsById.has(lastCreatedId)
-      ? ` 방금 만든 요소의 실제 id 는 "${lastCreatedId}" 입니다.`
+      ? t("aiToolError.lastCreatedIsNow", { id: lastCreatedId })
       : "";
-  return (
-    ` id 를 지어내지 마세요 — create_element 결과의 elementId 를 그대로 쓰거나,` +
-    ` "last-created" (방금 만든 것) / "selected" (선택한 것) 를 쓰거나,` +
-    ` search_elements · get_editor_state 로 실제 id 를 조회하세요.${known}`
-  );
+  return `${t("aiToolError.recovery")}${known}`;
 }
 
 export function resolveElementRef(
   arg: string | undefined | null,
   ctx: ElementRefContext,
+  t: ToolTranslate,
 ): ElementRefResult {
   if (!arg) {
-    return { error: `요소 id 가 비었습니다.${recovery(ctx)}` };
+    return {
+      error: t("aiToolError.idEmpty", { recovery: recovery(ctx, t) }),
+    };
   }
 
   if (arg === "selected") {
     return ctx.selectedElementId
       ? { id: ctx.selectedElementId }
       : {
-          error:
-            "선택된 요소가 없습니다. 먼저 요소를 선택하거나 실제 id 를 지정하세요.",
+          error: t("aiToolError.noSelection"),
         };
   }
 
   if (arg === "last-created") {
     if (!lastCreatedId) {
       return {
-        error: `아직 만든 요소가 없습니다. create_element 로 먼저 만들거나 실제 id 를 지정하세요.`,
+        error: t("aiToolError.nothingCreated"),
       };
     }
     // 만든 뒤 지워졌을 수 있다 — 기억이 문서보다 오래 남게 두지 않는다.
     if (!ctx.elementsById.has(lastCreatedId)) {
       return {
-        error: `방금 만든 요소가 더 이상 없습니다 (id: ${lastCreatedId}).${recovery(ctx)}`,
+        error: t("aiToolError.lastCreatedGone", {
+          id: lastCreatedId,
+          recovery: recovery(ctx, t),
+        }),
       };
     }
     return { id: lastCreatedId };
   }
 
   if (!ctx.elementsById.has(arg)) {
-    return { error: `요소를 찾을 수 없습니다: ${arg}.${recovery(ctx)}` };
+    return {
+      error: t("aiToolError.elementNotFound", {
+        id: String(arg),
+        recovery: recovery(ctx, t),
+      }),
+    };
   }
   return { id: arg };
 }

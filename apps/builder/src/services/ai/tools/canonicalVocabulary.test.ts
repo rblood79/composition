@@ -29,6 +29,8 @@ import {
   readCanonicalFields,
 } from "./canonicalNodeFields";
 import { toolDefinitions } from "./definitions";
+import { localizedStrings } from "@/i18n/translations";
+import type { ToolTranslate } from "@/types/integrations/ai.types";
 
 vi.mock("../../../lib/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../lib/db")>();
@@ -151,9 +153,17 @@ function seed() {
 
 const entries = () => historyManager.getCurrentPageEntries().length;
 
+/** ko-KR 카탈로그에 묶은 도구 오류 해소기 (ADR-200 후속). */
+const tt: ToolTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
+
 describe("canonical 1차 필드 검증 (순수)", () => {
   it("frame 전용 필드는 frame 이 아닌 노드에서 거부된다", () => {
     const { patch, rejected } = parseCanonicalFields(
+      tt,
       { clip: true, placeholder: true },
       "Button",
     );
@@ -162,17 +172,22 @@ describe("canonical 1차 필드 검증 (순수)", () => {
   });
 
   it("slot 은 false 또는 문자열 배열만 받는다", () => {
-    expect(parseCanonicalFields({ slot: false }, "frame").patch).toEqual({
+    expect(parseCanonicalFields(tt, { slot: false }, "frame").patch).toEqual({
       slot: false,
     });
-    expect(parseCanonicalFields({ slot: ["card"] }, "frame").patch).toEqual({
-      slot: ["card"],
-    });
-    expect(parseCanonicalFields({ slot: 3 }, "frame").rejected).toHaveLength(1);
+    expect(parseCanonicalFields(tt, { slot: ["card"] }, "frame").patch).toEqual(
+      {
+        slot: ["card"],
+      },
+    );
+    expect(
+      parseCanonicalFields(tt, { slot: 3 }, "frame").rejected,
+    ).toHaveLength(1);
   });
 
   it("모르는 필드는 조용히 무시하지 않고 사유와 함께 돌려준다", () => {
     const { rejected } = parseCanonicalFields(
+      tt,
       { componentSemantics: { kind: "origin" } },
       "frame",
     );
@@ -221,11 +236,14 @@ describe("도구 실행 — canonical patch 가 문서에 반영된다", () => {
   });
 
   it("create_element type:frame + clip/placeholder/slot 이 노드에 남는다", async () => {
-    const result = await createElementTool.execute({
-      type: "frame",
-      parentId: "body",
-      canonical: { clip: true, placeholder: true, slot: ["card"] },
-    });
+    const result = await createElementTool.execute(
+      {
+        type: "frame",
+        parentId: "body",
+        canonical: { clip: true, placeholder: true, slot: ["card"] },
+      },
+      tt,
+    );
 
     expect(result.success).toBe(true);
     const id = (result.data as { elementId: string }).elementId;
@@ -237,11 +255,14 @@ describe("도구 실행 — canonical patch 가 문서에 반영된다", () => {
   });
 
   it("frame 이 아닌 노드의 frame 전용 필드는 적용되지 않고 사유가 실린다", async () => {
-    const result = await createElementTool.execute({
-      type: "Button",
-      parentId: "body",
-      canonical: { clip: true, reusable: true },
-    });
+    const result = await createElementTool.execute(
+      {
+        type: "Button",
+        parentId: "body",
+        canonical: { clip: true, reusable: true },
+      },
+      tt,
+    );
 
     const data = result.data as {
       elementId: string;
@@ -252,23 +273,29 @@ describe("도구 실행 — canonical patch 가 문서에 반영된다", () => {
   });
 
   it("update_element 가 canonical 만으로도 동작한다 (props 없이)", async () => {
-    const created = await createElementTool.execute({
-      type: "frame",
-      parentId: "body",
-    });
+    const created = await createElementTool.execute(
+      {
+        type: "frame",
+        parentId: "body",
+      },
+      tt,
+    );
     const id = (created.data as { elementId: string }).elementId;
 
-    const updated = await updateElementTool.execute({
-      elementId: id,
-      canonical: { clip: true },
-    });
+    const updated = await updateElementTool.execute(
+      {
+        elementId: id,
+        canonical: { clip: true },
+      },
+      tt,
+    );
 
     expect(updated.success).toBe(true);
     expect(readCanonicalFields(id)).toEqual({ clip: true });
   });
 
   it("search_elements / get_editor_state 가 canonical 필드를 돌려준다", async () => {
-    const search = await searchElementsTool.execute({ hasSlot: true });
+    const search = await searchElementsTool.execute({ hasSlot: true }, tt);
     const found = (
       search.data as { elements: Array<{ id: string; canonical?: unknown }> }
     ).elements;
@@ -276,14 +303,14 @@ describe("도구 실행 — canonical patch 가 문서에 반영된다", () => {
     expect(found[0].canonical).toMatchObject({ slot: ["card"] });
 
     // 필터가 실제로 거르는지 — hasSlot:false 면 seeded 노드는 빠진다
-    const none = await searchElementsTool.execute({ hasSlot: false });
+    const none = await searchElementsTool.execute({ hasSlot: false }, tt);
     expect(
       (none.data as { elements: Array<{ id: string }> }).elements.map(
         (e) => e.id,
       ),
     ).not.toContain("seeded-frame");
 
-    const state = await getEditorStateTool.execute({});
+    const state = await getEditorStateTool.execute({}, tt);
     const data = state.data as {
       interactionRules: unknown[];
       tree: Array<{ id: string; children?: Array<{ canonical?: unknown }> }>;
@@ -302,19 +329,22 @@ describe("reusable: true 의 구조적 부작용 (Phase 3 실측)", () => {
   });
 
   it("frame 에 reusable 을 켜면 page scope 를 벗어나 layout 정의가 된다", async () => {
-    const before = await searchElementsTool.execute({});
+    const before = await searchElementsTool.execute({}, tt);
     expect(
       (before.data as { elements: Array<{ id: string }> }).elements.map(
         (e) => e.id,
       ),
     ).toContain("seeded-frame");
 
-    await updateElementTool.execute({
-      elementId: "seeded-frame",
-      canonical: { reusable: true },
-    });
+    await updateElementTool.execute(
+      {
+        elementId: "seeded-frame",
+        canonical: { reusable: true },
+      },
+      tt,
+    );
 
-    const after = await searchElementsTool.execute({});
+    const after = await searchElementsTool.execute({}, tt);
     expect(
       (after.data as { elements: Array<{ id: string }> }).elements.map(
         (e) => e.id,
@@ -334,16 +364,23 @@ describe("batch_design history 단위 (G3 실측)", () => {
 
   it("3-op 배치가 history 1 entry 로 묶인다 (undo 1회 복원)", async () => {
     const before = entries();
-    const result = await batchDesignTool.execute({
-      operations: [
-        { action: "create", args: { type: "Button", parentId: "body" } },
-        { action: "create", args: { type: "Button", parentId: "body" } },
-        {
-          action: "create",
-          args: { type: "frame", parentId: "body", canonical: { clip: true } },
-        },
-      ],
-    });
+    const result = await batchDesignTool.execute(
+      {
+        operations: [
+          { action: "create", args: { type: "Button", parentId: "body" } },
+          { action: "create", args: { type: "Button", parentId: "body" } },
+          {
+            action: "create",
+            args: {
+              type: "frame",
+              parentId: "body",
+              canonical: { clip: true },
+            },
+          },
+        ],
+      },
+      tt,
+    );
 
     expect(result.success).toBe(true);
     const createdCount = useStore.getState().elements.length;

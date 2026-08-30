@@ -98,7 +98,7 @@ describe("시스템 프롬프트 카탈로그 주입", () => {
 
   it("전체 카탈로그 상세를 다 싣지 않는다 (R3 — context 예산)", () => {
     const prompt = buildSystemPrompt(CONTEXT, t, "버튼을 secondary 로 바꿔줘");
-    const full = formatCatalogEntries(getAiComponentCatalog());
+    const full = formatCatalogEntries(getAiComponentCatalog(), t);
 
     // 대략치 (chars/3.5). 절대값이 아니라 배율이 요점이다.
     const promptTokens = Math.round(prompt.length / 3.5);

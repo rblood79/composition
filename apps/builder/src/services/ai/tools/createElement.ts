@@ -5,8 +5,9 @@
  */
 
 import type {
-  ToolExecutor,
   ToolExecutionResult,
+  ToolExecutor,
+  ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import type { Element } from "../../../types/core/store.types";
 import { getDefaultProps } from "../../../types/builder/unified.types";
@@ -23,10 +24,13 @@ import { rememberCreatedElement } from "./elementRef";
 export const createElementTool: ToolExecutor = {
   name: "create_element",
 
-  async execute(args: Record<string, unknown>): Promise<ToolExecutionResult> {
+  async execute(
+    args: Record<string, unknown>,
+    t: ToolTranslate,
+  ): Promise<ToolExecutionResult> {
     const type = args.type as string;
     if (!type) {
-      return { success: false, error: "type는 필수입니다." };
+      return { success: false, error: t("aiToolError.typeRequired") };
     }
 
     const aiProps = (args.props || {}) as Record<string, unknown>;
@@ -37,7 +41,7 @@ export const createElementTool: ToolExecutor = {
       { endpoint?: string } | undefined;
     // ADR-134 Phase 3: canonical 1차 필드 (clip / placeholder / slot / reusable)
     const { patch: canonicalPatch, rejected: canonicalRejected } =
-      parseCanonicalFields(args.canonical, type);
+      parseCanonicalFields(t, args.canonical, type);
 
     try {
       const {

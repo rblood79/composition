@@ -130,7 +130,9 @@ export class AgentService {
             const executor = this.toolExecutors.get(tc.name);
 
             if (!executor) {
-              const errorMsg = `알 수 없는 도구: ${tc.name}`;
+              const errorMsg = this.t("aiToolError.unknownTool", {
+                name: tc.name,
+              });
               yield {
                 type: "tool-error",
                 toolName: tc.name,
@@ -145,7 +147,7 @@ export class AgentService {
               continue;
             }
 
-            const result = await executor.execute(args);
+            const result = await executor.execute(args, this.t);
 
             yield {
               type: "tool-result",
@@ -184,7 +186,9 @@ export class AgentService {
         }
 
         const errorMsg =
-          error instanceof Error ? error.message : "LLM provider 오류";
+          error instanceof Error
+            ? error.message
+            : this.t("aiRuntime.providerError");
         yield {
           type: "tool-error",
           toolName: "llm_provider",

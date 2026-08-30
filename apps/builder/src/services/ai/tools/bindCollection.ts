@@ -14,8 +14,9 @@
 // index signature 만 더 있다 (`canonical` 저장 계약).
 import type { SerializedDataBinding } from "@composition/shared";
 import type {
-  ToolExecutor,
   ToolExecutionResult,
+  ToolExecutor,
+  ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
 import { resolveElementRef } from "./elementRef";
@@ -32,36 +33,40 @@ function isSupportedSource(value: unknown): value is SupportedSource {
 
 /** source 별 최소 config — 없으면 렌더 시점에야 실패하므로 여기서 막는다. */
 function validateConfig(
+  t: ToolTranslate,
   source: SupportedSource,
   config: Record<string, unknown>,
 ): string | null {
   if (source === "static") {
-    return Array.isArray(config.data)
-      ? null
-      : "static 바인딩은 config.data 배열이 필요합니다.";
+    return Array.isArray(config.data) ? null : t("aiToolError.staticNeedsData");
   }
   if (source === "api") {
     return config.baseUrl && config.endpoint
       ? null
-      : "api 바인딩은 config.baseUrl 과 config.endpoint 가 필요합니다.";
+      : t("aiToolError.apiNeedsUrl");
   }
-  return config.table ? null : "supabase 바인딩은 config.table 이 필요합니다.";
+  return config.table ? null : t("aiToolError.supabaseNeedsTable");
 }
 
 export const bindCollectionTool: ToolExecutor = {
   name: "bind_collection",
 
-  async execute(args: Record<string, unknown>): Promise<ToolExecutionResult> {
+  async execute(
+    args: Record<string, unknown>,
+    t: ToolTranslate,
+  ): Promise<ToolExecutionResult> {
     const elementIdArg = args.elementId as string | undefined;
     if (!elementIdArg) {
-      return { success: false, error: "elementId는 필수입니다." };
+      return { success: false, error: t("aiToolError.elementIdRequired") };
     }
 
     const source = args.source;
     if (!isSupportedSource(source)) {
       return {
         success: false,
-        error: `source 는 ${SUPPORTED_SOURCES.join(" / ")} 중 하나여야 합니다.`,
+        error: t("aiToolError.sourceOneOf", {
+          sources: SUPPORTED_SOURCES.join(" / "),
+        }),
       };
     }
 
@@ -72,7 +77,7 @@ export const bindCollectionTool: ToolExecutor = {
         ? (args.config as Record<string, unknown>)
         : {};
 
-    const configError = validateConfig(source, config);
+    const configError = validateConfig(t, source, config);
     if (configError) return { success: false, error: configError };
 
     try {
@@ -83,10 +88,14 @@ export const bindCollectionTool: ToolExecutor = {
 
       // 별칭·실제 id 를 한 곳에서 해석한다 (`elementRef.ts`) — 실패 시 다음 시도가
       // 맞도록 복구 경로를 담은 오류를 돌려준다.
-      const ref = resolveElementRef(elementIdArg, {
-        selectedElementId,
-        elementsById,
-      });
+      const ref = resolveElementRef(
+        elementIdArg,
+        {
+          selectedElementId,
+          elementsById,
+        },
+        t,
+      );
       if ("error" in ref) return { success: false, error: ref.error };
       const targetId = ref.id;
       const element = elementsById.get(targetId)!;
@@ -104,8 +113,7 @@ export const bindCollectionTool: ToolExecutor = {
       if (!applied) {
         return {
           success: false,
-          error:
-            "데이터 바인딩을 적용하지 못했습니다 (활성 문서 없음 또는 대상 노드 없음).",
+          error: t("aiToolError.bindFailed"),
         };
       }
 

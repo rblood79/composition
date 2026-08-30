@@ -135,7 +135,7 @@ describe("AgentService — 도구 전수 통과 (G2)", () => {
 
       const events = await drain(new AgentService(provider, t));
 
-      expect(execute).toHaveBeenCalledWith({ x: 1 });
+      expect(execute).toHaveBeenCalledWith({ x: 1 }, t);
       expect(events).toEqual([
         { type: "tool-use-start", toolName: name, toolCallId: "c1" },
         {

@@ -17,8 +17,9 @@ import {
   type InteractionRule,
 } from "@composition/shared";
 import type {
-  ToolExecutor,
   ToolExecutionResult,
+  ToolExecutor,
+  ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { runCanonicalMutation } from "../../../adapters/canonical/canonicalMutationRunner";
@@ -41,35 +42,41 @@ interface ActionResult {
 }
 
 function buildAction(
+  t: ToolTranslate,
   raw: ActionArgs,
   elementsById: Map<string, { type: string }>,
 ): ActionResult {
   if (raw.kind === "navigate") {
     return raw.path
       ? { action: { kind: "navigate", params: { path: raw.path } } }
-      : { error: "navigate 액션은 path 가 필요합니다." };
+      : { error: t("aiToolError.navigateNeedsPath") };
   }
 
   if (raw.kind === "toast") {
     return raw.message
       ? { action: { kind: "toast", params: { message: raw.message } } }
-      : { error: "toast 액션은 message 가 필요합니다." };
+      : { error: t("aiToolError.toastNeedsMessage") };
   }
 
   if (raw.kind === "capability") {
     if (!raw.targetId || !raw.capability) {
       return {
-        error: "capability 액션은 targetId 와 capability 가 필요합니다.",
+        error: t("aiToolError.capabilityNeedsTarget"),
       };
     }
     const target = elementsById.get(raw.targetId);
     if (!target) {
-      return { error: `대상 요소를 찾을 수 없습니다: ${raw.targetId}` };
+      return {
+        error: t("aiToolError.targetNotFound", { id: String(raw.targetId) }),
+      };
     }
     const available = resolveCapabilities(target.type);
     if (!available[raw.capability]) {
       return {
-        error: `${target.type} 은 '${raw.capability}' capability 를 노출하지 않습니다.`,
+        error: t("aiToolError.capabilityNotExposed", {
+          type: target.type,
+          capability: String(raw.capability),
+        }),
         hint: { availableCapabilities: Object.keys(available) },
       };
     }
@@ -84,20 +91,26 @@ function buildAction(
   }
 
   return {
-    error: "action.kind 는 navigate / toast / capability 중 하나여야 합니다.",
+    error: t("aiToolError.actionKind"),
   };
 }
 
 export const createInteractionRuleTool: ToolExecutor = {
   name: "create_interaction_rule",
 
-  async execute(args: Record<string, unknown>): Promise<ToolExecutionResult> {
+  async execute(
+    args: Record<string, unknown>,
+    t: ToolTranslate,
+  ): Promise<ToolExecutionResult> {
     const elementIdArg = args.elementId as string | undefined;
     const trigger = args.trigger as string | undefined;
     const actionArgs = (args.action ?? {}) as ActionArgs;
 
     if (!elementIdArg || !trigger) {
-      return { success: false, error: "elementId 와 trigger 는 필수입니다." };
+      return {
+        success: false,
+        error: t("aiToolError.ruleNeedsIdTrigger"),
+      };
     }
 
     try {
@@ -108,10 +121,14 @@ export const createInteractionRuleTool: ToolExecutor = {
 
       // 별칭·실제 id 를 한 곳에서 해석한다 (`elementRef.ts`) — 실패 시 다음 시도가
       // 맞도록 복구 경로를 담은 오류를 돌려준다.
-      const ref = resolveElementRef(elementIdArg, {
-        selectedElementId,
-        elementsById,
-      });
+      const ref = resolveElementRef(
+        elementIdArg,
+        {
+          selectedElementId,
+          elementsById,
+        },
+        t,
+      );
       if ("error" in ref) return { success: false, error: ref.error };
       const targetId = ref.id;
       const element = elementsById.get(targetId)!;
@@ -120,12 +137,16 @@ export const createInteractionRuleTool: ToolExecutor = {
       if (!triggers.includes(trigger)) {
         return {
           success: false,
-          error: `${element.type} 은 '${trigger}' 트리거를 제공하지 않습니다.`,
+          error: t("aiToolError.triggerNotProvided", {
+            type: element.type,
+            trigger: String(trigger),
+          }),
           data: { availableTriggers: triggers },
         };
       }
 
       const { action, error, hint } = buildAction(
+        t,
         actionArgs,
         elementsById as Map<string, { type: string }>,
       );
@@ -143,7 +164,10 @@ export const createInteractionRuleTool: ToolExecutor = {
 
       // 스키마 가드 — 구 `SerializedEvent` 형태가 섞이면 여기서 걸린다
       if (!isInteractionRule(rule)) {
-        return { success: false, error: "InteractionRule 스키마 검증 실패" };
+        return {
+          success: false,
+          error: t("aiToolError.ruleSchemaInvalid"),
+        };
       }
 
       // 러너 경유 (ADR-184) — events root collection 은 legacy mirror 가 없지만

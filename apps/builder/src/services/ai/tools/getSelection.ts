@@ -5,15 +5,19 @@
  */
 
 import type {
-  ToolExecutor,
   ToolExecutionResult,
+  ToolExecutor,
+  ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
 
 export const getSelectionTool: ToolExecutor = {
   name: "get_selection",
 
-  async execute(): Promise<ToolExecutionResult> {
+  async execute(
+    _args: Record<string, unknown>,
+    t: ToolTranslate,
+  ): Promise<ToolExecutionResult> {
     try {
       const {
         childrenByParent,
@@ -24,7 +28,7 @@ export const getSelectionTool: ToolExecutor = {
       if (!selectedElementId) {
         return {
           success: true,
-          data: { selected: null, message: "선택된 요소가 없습니다." },
+          data: { selected: null, message: t("aiToolError.selectionEmpty") },
         };
       }
 
@@ -34,7 +38,7 @@ export const getSelectionTool: ToolExecutor = {
           success: true,
           data: {
             selected: null,
-            message: "선택된 요소를 찾을 수 없습니다.",
+            message: t("aiToolError.selectionMissing"),
           },
         };
       }

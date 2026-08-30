@@ -26,9 +26,9 @@ export { toolDefinitions, getToolDefinitions } from "./definitions";
  */
 const runCommandLazyTool: ToolExecutor = {
   name: "run_command",
-  execute: async (args): Promise<ToolExecutionResult> => {
+  execute: async (args, t): Promise<ToolExecutionResult> => {
     const { runCommandTool } = await import("./runCommand");
-    return runCommandTool.execute(args);
+    return runCommandTool.execute(args, t);
   },
 };
 

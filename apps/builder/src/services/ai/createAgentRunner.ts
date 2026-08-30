@@ -59,11 +59,17 @@ export interface AgentRunner {
 }
 
 /** 계획 담당에게 넘길 직전 대화 (최근 6줄, 도구 메시지 제외). */
-function recentHistory(messages: readonly ChatMessage[]): string[] {
+function recentHistory(
+  messages: readonly ChatMessage[],
+  t: PromptTranslate,
+): string[] {
   return messages
     .filter((m) => m.role === "user" || m.role === "assistant")
     .slice(-7, -1)
-    .map((m) => `${m.role === "user" ? "사용자" : "AI"}: ${m.content}`)
+    .map(
+      (m) =>
+        `${m.role === "user" ? t("aiRuntime.roleUser") : "AI"}: ${m.content}`,
+    )
     .filter((line) => line.length > 6);
 }
 
@@ -71,7 +77,7 @@ class OrchestratedRunner implements AgentRunner {
   readonly orchestrated = true;
   private readonly orchestrator: Orchestrator;
 
-  constructor(t: PromptTranslate) {
+  constructor(private readonly t: PromptTranslate) {
     this.orchestrator = new Orchestrator({
       t,
       // 역할별 provider 는 라우터가 정한다 — 미구성 역할의 내림이 기록으로 남는다 (D8).
@@ -94,7 +100,7 @@ class OrchestratedRunner implements AgentRunner {
     yield* this.orchestrator.run(
       request.content,
       context,
-      recentHistory(messages),
+      recentHistory(messages, this.t),
     );
   }
 

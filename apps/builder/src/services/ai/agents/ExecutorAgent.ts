@@ -40,7 +40,11 @@ function userMessage(content: string): ChatMessage {
 export class ExecutorAgent {
   private readonly service: AgentService;
 
-  constructor(provider: LLMProvider, t: PromptTranslate) {
+  constructor(
+    provider: LLMProvider,
+    /** 프롬프트 문장 해소기 (ADR-200 후속). */
+    private readonly t: PromptTranslate,
+  ) {
     this.service = new AgentService(provider, t);
   }
 
@@ -59,7 +63,7 @@ export class ExecutorAgent {
       ? [
           step.instruction,
           "",
-          "이전 시도에서 다음이 어긋났습니다. 그 부분만 고치세요:",
+          this.t("aiRuntime.repairIntro"),
           ...priorIssues.map((issue) => `- ${issue}`),
         ].join("\n")
       : step.instruction;
@@ -75,7 +79,16 @@ export class ExecutorAgent {
           affectedElementIds?: string[];
         };
         record.log.push(
-          `단계 ${step.index}: ${event.toolName} → ${result?.success === false ? `실패 (${result.error ?? "사유 없음"})` : "성공"}`,
+          result?.success === false
+            ? this.t("aiExec.stepFailed", {
+                index: step.index,
+                tool: event.toolName,
+                reason: result.error ?? this.t("aiExec.noReason"),
+              })
+            : this.t("aiExec.stepOk", {
+                index: step.index,
+                tool: event.toolName,
+              }),
         );
         if (result?.success === false) record.hadError = true;
         for (const id of result?.affectedElementIds ?? []) {
@@ -83,7 +96,11 @@ export class ExecutorAgent {
         }
       } else if (event.type === "tool-error") {
         record.log.push(
-          `단계 ${step.index}: ${event.toolName} → 오류 ${event.error}`,
+          this.t("aiExec.stepError", {
+            index: step.index,
+            tool: event.toolName,
+            error: String(event.error),
+          }),
         );
         record.hadError = true;
       }

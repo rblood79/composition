@@ -21,6 +21,7 @@ import {
   type InspectorFieldKind,
   type ResolvedField,
 } from "@composition/shared";
+import type { PromptTranslate } from "../promptTranslate";
 
 /** 카탈로그가 모델에게 알려 주는 prop 1개. */
 export interface AiCatalogProp {
@@ -159,12 +160,16 @@ export function getCatalogByCategory(): ReadonlyMap<string, readonly string[]> {
 
 // ── 프롬프트 직렬화 ──────────────────────────────────────────────────
 
-function formatValues(prop: AiCatalogProp): string {
+function formatValues(prop: AiCatalogProp, t: PromptTranslate): string {
   const parts: string[] = [];
   if (prop.values) parts.push(prop.values.join("|"));
   else parts.push(prop.kind);
-  if (prop.default !== undefined && prop.default !== null && prop.default !== "")
-    parts.push(`기본 ${String(prop.default)}`);
+  if (
+    prop.default !== undefined &&
+    prop.default !== null &&
+    prop.default !== ""
+  )
+    parts.push(t("aiRuntime.propDefault", { value: String(prop.default) }));
   return parts.join(", ");
 }
 
@@ -181,30 +186,34 @@ export function formatCatalogIndex(): string {
  * Tier 2 — 컴포넌트 1개의 상세. `styles` 인자로 가는 보편 시각 키는 모든 컴포넌트가
  * 동일하므로 여기서 빼고 시스템 프롬프트에 한 번만 적는다 (중복 주입 = 예산 낭비).
  */
-export function formatCatalogEntry(entry: AiCatalogEntry): string {
+export function formatCatalogEntry(
+  entry: AiCatalogEntry,
+  t: PromptTranslate,
+): string {
   const head = [
     `### ${entry.type}`,
     `(${entry.category}`,
     entry.racPrimitive ? `, RAC ${entry.racPrimitive}` : "",
-    isContainerType(entry.type) ? ", 컨테이너" : "",
+    isContainerType(entry.type) ? t("aiRuntime.container") : "",
     ")",
   ].join("");
 
   if (entry.kind === "reusable") {
-    return `${head}\n- 조합 컴포넌트 — 만든 뒤 get_editor_state 로 편집 가능한 props 를 확인하세요`;
+    return `${head}\n${t("aiRuntime.compositeHint")}`;
   }
 
   const semantic = entry.props.filter((p) => p.origin === "semantic");
   if (semantic.length === 0) {
-    return `${head}\n- 편집 가능한 props 없음 (자식 요소로 구성)`;
+    return `${head}\n${t("aiRuntime.noEditableProps")}`;
   }
-  const lines = semantic.map((p) => `- ${p.name}: ${formatValues(p)}`);
+  const lines = semantic.map((p) => `- ${p.name}: ${formatValues(p, t)}`);
   return [head, ...lines].join("\n");
 }
 
 /** 여러 entry 를 한 블록으로. */
 export function formatCatalogEntries(
   entries: readonly AiCatalogEntry[],
+  t: PromptTranslate,
 ): string {
-  return entries.map(formatCatalogEntry).join("\n\n");
+  return entries.map((entry) => formatCatalogEntry(entry, t)).join("\n\n");
 }

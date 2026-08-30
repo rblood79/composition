@@ -25,6 +25,7 @@ import { createInteractionRuleTool } from "./createInteractionRule";
 import { createToolRegistry, getToolDefinitions } from "./index";
 import { localizedStrings } from "@/i18n/translations";
 import type { PromptTranslate } from "../promptTranslate";
+import type { ToolTranslate } from "@/types/integrations/ai.types";
 
 vi.mock("../../../lib/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../lib/db")>();
@@ -170,15 +171,25 @@ const tr: PromptTranslate = (key, params) => {
   return message ?? key;
 };
 
+/** ko-KR 카탈로그에 묶은 도구 오류 해소기 (ADR-200 후속). */
+const tt: ToolTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
+
 describe("bind_collection (D3)", () => {
   beforeEach(() => seed());
 
   it("dataBinding 을 props 가 아니라 extension 에 쓴다", async () => {
-    const result = await bindCollectionTool.execute({
-      elementId: "list-1",
-      source: "static",
-      config: { data: [{ id: 1, name: "A" }] },
-    });
+    const result = await bindCollectionTool.execute(
+      {
+        elementId: "list-1",
+        source: "static",
+        config: { data: [{ id: 1, name: "A" }] },
+      },
+      tt,
+    );
 
     expect(result.success).toBe(true);
     const ext = nodeExtension("list-1");
@@ -207,27 +218,36 @@ describe("bind_collection (D3)", () => {
 
   it("source 별 최소 config 를 검증한다", async () => {
     await expect(
-      bindCollectionTool.execute({
-        elementId: "list-1",
-        source: "static",
-        config: {},
-      }),
+      bindCollectionTool.execute(
+        {
+          elementId: "list-1",
+          source: "static",
+          config: {},
+        },
+        tt,
+      ),
     ).resolves.toMatchObject({ success: false });
 
     await expect(
-      bindCollectionTool.execute({
-        elementId: "list-1",
-        source: "api",
-        config: { baseUrl: "MOCK_DATA" },
-      }),
+      bindCollectionTool.execute(
+        {
+          elementId: "list-1",
+          source: "api",
+          config: { baseUrl: "MOCK_DATA" },
+        },
+        tt,
+      ),
     ).resolves.toMatchObject({ success: false });
 
     await expect(
-      bindCollectionTool.execute({
-        elementId: "list-1",
-        source: "graphql",
-        config: {},
-      }),
+      bindCollectionTool.execute(
+        {
+          elementId: "list-1",
+          source: "graphql",
+          config: {},
+        },
+        tt,
+      ),
     ).resolves.toMatchObject({ success: false });
   });
 });
@@ -236,11 +256,14 @@ describe("create_interaction_rule (D4)", () => {
   beforeEach(() => seed());
 
   it("Button onPress → toast 규칙이 events root collection 에 들어간다", async () => {
-    const result = await createInteractionRuleTool.execute({
-      elementId: "btn-1",
-      trigger: "onPress",
-      action: { kind: "toast", message: "저장했습니다" },
-    });
+    const result = await createInteractionRuleTool.execute(
+      {
+        elementId: "btn-1",
+        trigger: "onPress",
+        action: { kind: "toast", message: "저장했습니다" },
+      },
+      tt,
+    );
 
     expect(result.success).toBe(true);
     const events = activeDoc()?.events ?? [];
@@ -254,11 +277,14 @@ describe("create_interaction_rule (D4)", () => {
   });
 
   it("컴포넌트가 노출하지 않는 trigger 는 거부하고 목록을 돌려준다", async () => {
-    const result = await createInteractionRuleTool.execute({
-      elementId: "btn-1",
-      trigger: "onClick", // DOM 별칭 — 은퇴 어휘
-      action: { kind: "toast", message: "x" },
-    });
+    const result = await createInteractionRuleTool.execute(
+      {
+        elementId: "btn-1",
+        trigger: "onClick", // DOM 별칭 — 은퇴 어휘
+        action: { kind: "toast", message: "x" },
+      },
+      tt,
+    );
 
     expect(result.success).toBe(false);
     expect(
@@ -268,15 +294,18 @@ describe("create_interaction_rule (D4)", () => {
   });
 
   it("대상이 노출하지 않는 capability 는 거부한다", async () => {
-    const result = await createInteractionRuleTool.execute({
-      elementId: "btn-1",
-      trigger: "onPress",
-      action: {
-        kind: "capability",
-        targetId: "list-1",
-        capability: "doesNotExist",
+    const result = await createInteractionRuleTool.execute(
+      {
+        elementId: "btn-1",
+        trigger: "onPress",
+        action: {
+          kind: "capability",
+          targetId: "list-1",
+          capability: "doesNotExist",
+        },
       },
-    });
+      tt,
+    );
 
     expect(result.success).toBe(false);
     expect(
@@ -288,11 +317,14 @@ describe("create_interaction_rule (D4)", () => {
 
   it("action.kind 가 3종 밖이면 거부한다", async () => {
     await expect(
-      createInteractionRuleTool.execute({
-        elementId: "btn-1",
-        trigger: "onPress",
-        action: { kind: "runScript" },
-      }),
+      createInteractionRuleTool.execute(
+        {
+          elementId: "btn-1",
+          trigger: "onPress",
+          action: { kind: "runScript" },
+        },
+        tt,
+      ),
     ).resolves.toMatchObject({ success: false });
   });
 });

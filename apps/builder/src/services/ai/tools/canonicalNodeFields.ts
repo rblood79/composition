@@ -16,6 +16,7 @@
 import type { CanonicalNode } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { getNodeMap } from "../../../builder/stores/canonical/canonicalTraversalHelpers";
+import type { ToolTranslate } from "../../../types/integrations/ai.types";
 
 /** 도구가 읽고 쓰는 canonical 1차 필드. */
 export interface CanonicalFieldPatch {
@@ -50,6 +51,7 @@ export interface CanonicalFieldParseResult {
  * `rejected` 로 돌려준다 (잘못된 patch 가 문서에 들어가는 것보다 낫다).
  */
 export function parseCanonicalFields(
+  t: ToolTranslate,
   raw: unknown,
   nodeType: string | undefined,
 ): CanonicalFieldParseResult {
@@ -60,7 +62,9 @@ export function parseCanonicalFields(
   if (typeof raw !== "object" || Array.isArray(raw)) {
     return {
       patch,
-      rejected: [{ field: "canonical", reason: "객체여야 합니다." }],
+      rejected: [
+        { field: "canonical", reason: t("aiToolError.canonicalMustBeObject") },
+      ],
     };
   }
 
@@ -71,12 +75,14 @@ export function parseCanonicalFields(
       if (!isFrame) {
         rejected.push({
           field,
-          reason: `type: "frame" 노드에만 쓸 수 있습니다 (현재 ${nodeType ?? "unknown"}).`,
+          reason: t("aiToolError.frameOnly", {
+            type: nodeType ?? "unknown",
+          }),
         });
         continue;
       }
       if (typeof value !== "boolean") {
-        rejected.push({ field, reason: "boolean 이어야 합니다." });
+        rejected.push({ field, reason: t("aiToolError.mustBeBoolean") });
         continue;
       }
       patch[field] = value;
@@ -85,7 +91,7 @@ export function parseCanonicalFields(
 
     if (field === "reusable") {
       if (typeof value !== "boolean") {
-        rejected.push({ field, reason: "boolean 이어야 합니다." });
+        rejected.push({ field, reason: t("aiToolError.mustBeBoolean") });
         continue;
       }
       patch.reusable = value;
@@ -106,14 +112,14 @@ export function parseCanonicalFields(
       }
       rejected.push({
         field,
-        reason: "false 또는 문자열 배열이어야 합니다.",
+        reason: t("aiToolError.slotShape"),
       });
       continue;
     }
 
     rejected.push({
       field,
-      reason: `알 수 없는 canonical 필드입니다 (가능: clip, placeholder, slot, reusable).`,
+      reason: t("aiToolError.unknownCanonicalField"),
     });
   }
 

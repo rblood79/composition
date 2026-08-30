@@ -50,8 +50,21 @@ export interface ToolExecutionResult {
  */
 export interface ToolExecutor {
   name: string;
-  execute: (args: Record<string, unknown>) => Promise<ToolExecutionResult>;
+  /**
+   * 두 번째 인자는 오류 문구 해소기다 (ADR-200 후속) — 도구가 돌려주는 문장은
+   * 모델이 읽고 AI 패널이 그대로 보여 준다.
+   */
+  execute: (
+    args: Record<string, unknown>,
+    t: ToolTranslate,
+  ) => Promise<ToolExecutionResult>;
 }
+
+/** 도구 오류 문구 해소기. `services/ai` 는 순수 모듈이라 훅을 못 쓴다. */
+export type ToolTranslate = (
+  key: string,
+  params?: Record<string, string | number | boolean>,
+) => string;
 
 /**
  * Agent 방식 AI 서비스 인터페이스

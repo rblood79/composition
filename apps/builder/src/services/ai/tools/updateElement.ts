@@ -5,8 +5,9 @@
  */
 
 import type {
-  ToolExecutor,
   ToolExecutionResult,
+  ToolExecutor,
+  ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { adaptStylePatchWithFills } from "../styleAdapter";
 import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
@@ -21,10 +22,13 @@ import { findUnappliedProps } from "./mutationVerification";
 export const updateElementTool: ToolExecutor = {
   name: "update_element",
 
-  async execute(args: Record<string, unknown>): Promise<ToolExecutionResult> {
+  async execute(
+    args: Record<string, unknown>,
+    t: ToolTranslate,
+  ): Promise<ToolExecutionResult> {
     const elementIdArg = args.elementId as string;
     if (!elementIdArg) {
-      return { success: false, error: "elementId는 필수입니다." };
+      return { success: false, error: t("aiToolError.elementIdRequired") };
     }
 
     const newProps = (args.props || {}) as Record<string, unknown>;
@@ -41,7 +45,7 @@ export const updateElementTool: ToolExecutor = {
     ) {
       return {
         success: false,
-        error: "변경할 props, styles, fills 또는 canonical 필드를 지정하세요.",
+        error: t("aiToolError.nothingToUpdate"),
       };
     }
 
@@ -53,10 +57,14 @@ export const updateElementTool: ToolExecutor = {
 
       // 별칭·실제 id 를 한 곳에서 해석한다 (`elementRef.ts`) — 실패 시 다음 시도가
       // 맞도록 복구 경로를 담은 오류를 돌려준다.
-      const ref = resolveElementRef(elementIdArg, {
-        selectedElementId,
-        elementsById,
-      });
+      const ref = resolveElementRef(
+        elementIdArg,
+        {
+          selectedElementId,
+          elementsById,
+        },
+        t,
+      );
       if ("error" in ref) return { success: false, error: ref.error };
       const targetId = ref.id;
       const element = elementsById.get(targetId)!;
@@ -84,7 +92,7 @@ export const updateElementTool: ToolExecutor = {
       // ADR-134 Phase 3 — canonical 1차 필드는 schema 쪽이라 store action 직접 경유.
       // 노드 타입을 알아야 frame 전용 필드를 판정할 수 있으므로 요소 확인 뒤에 파싱한다.
       const { patch: canonicalPatch, rejected: canonicalRejected } =
-        parseCanonicalFields(canonicalArg, element.type);
+        parseCanonicalFields(t, canonicalArg, element.type);
 
       if (Object.keys(updates).length > 0) {
         await updateElementProps(targetId, updates);
@@ -98,7 +106,7 @@ export const updateElementTool: ToolExecutor = {
       if (!verified) {
         return {
           success: false,
-          error: `수정 후 요소를 찾을 수 없습니다: ${targetId}. get_editor_state 로 현재 상태를 다시 확인하세요.`,
+          error: t("aiToolError.missingAfterUpdate", { id: targetId }),
         };
       }
 
@@ -109,10 +117,7 @@ export const updateElementTool: ToolExecutor = {
       if (unapplied.length > 0) {
         return {
           success: false,
-          error:
-            `요청한 값이 반영되지 않았습니다: ${unapplied.join(", ")}. ` +
-            `원본(origin) 요소라 영향 확인이 필요했거나 편집이 차단됐을 수 있습니다. ` +
-            `get_editor_state 로 현재 값을 확인한 뒤 다시 시도하세요.`,
+          error: t("aiToolError.notApplied", { fields: unapplied.join(", ") }),
         };
       }
 
@@ -120,7 +125,10 @@ export const updateElementTool: ToolExecutor = {
       if (canonicalKeys.length > 0 && !canonicalApplied) {
         return {
           success: false,
-          error: `canonical 필드가 반영되지 않았습니다: ${canonicalKeys.join(", ")}. ${element.type} 이 지원하지 않는 필드일 수 있습니다.`,
+          error: t("aiToolError.canonicalNotApplied", {
+            fields: canonicalKeys.join(", "),
+            type: element.type,
+          }),
         };
       }
 

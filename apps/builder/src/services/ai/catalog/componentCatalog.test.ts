@@ -18,6 +18,15 @@ import {
   getAiComponentCatalog,
   getCatalogByCategory,
 } from "./componentCatalog";
+import { localizedStrings } from "@/i18n/translations";
+import type { PromptTranslate } from "../promptTranslate";
+
+/** ko-KR 카탈로그에 묶은 해소기 (ADR-200 후속). */
+const tr: PromptTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
 
 describe("AI 카탈로그 커버리지", () => {
   it("catalog type 을 하나도 빠뜨리지 않는다 (65+ 요건)", () => {
@@ -120,7 +129,9 @@ describe("SSOT 파생 대조", () => {
         .map((p) => p.name)
         .sort();
       if (actual.join(",") !== expected.join(",")) {
-        mismatches.push(`${entry.type}: ${actual.join("|")} ≠ ${expected.join("|")}`);
+        mismatches.push(
+          `${entry.type}: ${actual.join("|")} ≠ ${expected.join("|")}`,
+        );
       }
     }
 
@@ -146,10 +157,10 @@ describe("프롬프트 직렬화", () => {
   it("Button 상세에 SSOT variant 값이 그대로 실린다", () => {
     const entry = getAiCatalogEntry("Button");
     expect(entry).toBeDefined();
-    const text = formatCatalogEntry(entry!);
+    const text = formatCatalogEntry(entry!, tr);
     const variants = Object.keys(
-      (getComponentRulesTable() as Record<string, { variants?: object }>)
-        .Button?.variants ?? {},
+      (getComponentRulesTable() as Record<string, { variants?: object }>).Button
+        ?.variants ?? {},
     );
     expect(variants.length).toBeGreaterThan(0);
     for (const value of variants) expect(text).toContain(value);
@@ -158,7 +169,7 @@ describe("프롬프트 직렬화", () => {
 
   it("style origin prop 은 컴포넌트 상세에 넣지 않는다 (중복 주입 방지)", () => {
     const entry = getAiCatalogEntry("Button")!;
-    const text = formatCatalogEntry(entry);
+    const text = formatCatalogEntry(entry, tr);
     const styleProps = entry.props.filter((p) => p.origin === "style");
     expect(styleProps.length).toBeGreaterThan(0);
     for (const prop of styleProps) {
@@ -170,6 +181,7 @@ describe("프롬프트 직렬화", () => {
     const index = formatCatalogIndex();
     const categories = [...getCatalogByCategory().keys()];
     expect(index.split("\n")).toHaveLength(categories.length);
-    for (const category of categories) expect(index).toContain(`- ${category}:`);
+    for (const category of categories)
+      expect(index).toContain(`- ${category}:`);
   });
 });

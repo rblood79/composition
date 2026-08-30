@@ -36,6 +36,8 @@ vi.mock("../../../builder/stores/aiVisualFeedback", () => ({
 import { updateElementTool } from "./updateElement";
 import { deleteElementTool } from "./deleteElement";
 import { forgetCreatedElements } from "./elementRef";
+import { localizedStrings } from "@/i18n/translations";
+import type { ToolTranslate } from "@/types/integrations/ai.types";
 
 const ID = "el-1";
 
@@ -65,6 +67,13 @@ function harness(props: Record<string, unknown>, apply: boolean) {
   return { updateElementProps, removeElement, elementsById };
 }
 
+/** ko-KR 카탈로그에 묶은 도구 오류 해소기 (ADR-200 후속). */
+const tt: ToolTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
+
 describe("도구는 반영을 확인한 뒤 성공을 보고한다", () => {
   beforeEach(() => {
     forgetCreatedElements();
@@ -75,10 +84,13 @@ describe("도구는 반영을 확인한 뒤 성공을 보고한다", () => {
   it("update_element — 스토어가 조용히 무시하면 실패로 보고한다", async () => {
     harness({ children: "확인" }, false);
 
-    const result = await updateElementTool.execute({
-      elementId: ID,
-      props: { children: "제출" },
-    });
+    const result = await updateElementTool.execute(
+      {
+        elementId: ID,
+        props: { children: "제출" },
+      },
+      tt,
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("children");
@@ -87,10 +99,13 @@ describe("도구는 반영을 확인한 뒤 성공을 보고한다", () => {
   it("update_element — 반영되면 성공", async () => {
     harness({ children: "확인" }, true);
 
-    const result = await updateElementTool.execute({
-      elementId: ID,
-      props: { children: "제출" },
-    });
+    const result = await updateElementTool.execute(
+      {
+        elementId: ID,
+        props: { children: "제출" },
+      },
+      tt,
+    );
 
     expect(result.success).toBe(true);
   });
@@ -98,10 +113,13 @@ describe("도구는 반영을 확인한 뒤 성공을 보고한다", () => {
   it("update_element — 이미 요청한 값이면 성공 (변경 없음은 실패가 아니다)", async () => {
     harness({ children: "제출" }, false);
 
-    const result = await updateElementTool.execute({
-      elementId: ID,
-      props: { children: "제출" },
-    });
+    const result = await updateElementTool.execute(
+      {
+        elementId: ID,
+        props: { children: "제출" },
+      },
+      tt,
+    );
 
     expect(result.success).toBe(true);
   });
@@ -111,11 +129,14 @@ describe("도구는 반영을 확인한 뒤 성공을 보고한다", () => {
     canonicalStub.applied = false;
     harness({ children: "확인" }, true);
 
-    const result = await updateElementTool.execute({
-      elementId: ID,
-      props: { children: "제출" },
-      canonical: { clip: true },
-    });
+    const result = await updateElementTool.execute(
+      {
+        elementId: ID,
+        props: { children: "제출" },
+        canonical: { clip: true },
+      },
+      tt,
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("clip");
@@ -124,7 +145,7 @@ describe("도구는 반영을 확인한 뒤 성공을 보고한다", () => {
   it("delete_element — 요소가 남아 있으면 실패로 보고한다", async () => {
     harness({ children: "확인" }, false);
 
-    const result = await deleteElementTool.execute({ elementId: ID });
+    const result = await deleteElementTool.execute({ elementId: ID }, tt);
 
     expect(result.success).toBe(false);
   });
@@ -132,7 +153,7 @@ describe("도구는 반영을 확인한 뒤 성공을 보고한다", () => {
   it("delete_element — 삭제되면 성공", async () => {
     harness({ children: "확인" }, true);
 
-    const result = await deleteElementTool.execute({ elementId: ID });
+    const result = await deleteElementTool.execute({ elementId: ID }, tt);
 
     expect(result.success).toBe(true);
   });

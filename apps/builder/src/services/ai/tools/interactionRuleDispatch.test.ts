@@ -27,6 +27,8 @@ import {
   type DispatchDeps,
 } from "../../../preview/interactions/dispatcher";
 import { createInteractionRuleTool } from "./createInteractionRule";
+import { localizedStrings } from "@/i18n/translations";
+import type { ToolTranslate } from "@/types/integrations/ai.types";
 
 vi.mock("../../../lib/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../lib/db")>();
@@ -139,15 +141,25 @@ function storedRules(): InteractionRule[] {
   return [...(doc?.events ?? [])];
 }
 
+/** ko-KR 카탈로그에 묶은 도구 오류 해소기 (ADR-200 후속). */
+const tt: ToolTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
+
 describe("AI 규칙 → Preview dispatcher (G4)", () => {
   beforeEach(() => seed());
 
   it("도구가 만든 toast 규칙이 버튼 핸들러로 묶여 실행된다", async () => {
-    const created = await createInteractionRuleTool.execute({
-      elementId: "btn-1",
-      trigger: "onPress",
-      action: { kind: "toast", message: "AI 알림" },
-    });
+    const created = await createInteractionRuleTool.execute(
+      {
+        elementId: "btn-1",
+        trigger: "onPress",
+        action: { kind: "toast", message: "AI 알림" },
+      },
+      tt,
+    );
     expect(created.success).toBe(true);
 
     // 저장된 규칙을 Preview 와 같은 경로로 소비한다
@@ -173,11 +185,14 @@ describe("AI 규칙 → Preview dispatcher (G4)", () => {
   });
 
   it("dispatcher 가 규칙 자체도 그대로 실행한다 (실행 계약 대조)", async () => {
-    await createInteractionRuleTool.execute({
-      elementId: "btn-1",
-      trigger: "onPress",
-      action: { kind: "toast", message: "직접 실행" },
-    });
+    await createInteractionRuleTool.execute(
+      {
+        elementId: "btn-1",
+        trigger: "onPress",
+        action: { kind: "toast", message: "직접 실행" },
+      },
+      tt,
+    );
 
     const toasts: string[] = [];
     const outcome = executeInteractionRule(storedRules()[0], {

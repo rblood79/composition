@@ -12,6 +12,7 @@ import type { LLMToolDefinition } from "../providers/LLMProvider";
 import type {
   ToolExecutionResult,
   ToolExecutor,
+  ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import {
   executeAgentCommand,
@@ -71,14 +72,17 @@ export function buildRunCommandToolDefinition(
 export const runCommandTool: ToolExecutor = {
   name: "run_command",
 
-  async execute(args: Record<string, unknown>): Promise<ToolExecutionResult> {
+  async execute(
+    args: Record<string, unknown>,
+    t: ToolTranslate,
+  ): Promise<ToolExecutionResult> {
     const id = typeof args.id === "string" ? args.id : null;
     const ids = Array.isArray(args.ids)
       ? args.ids.filter((value): value is string => typeof value === "string")
       : null;
 
     if (!id && (!ids || ids.length === 0)) {
-      return { success: false, error: "id 또는 ids 가 필요합니다." };
+      return { success: false, error: t("aiToolError.idOrIdsRequired") };
     }
 
     try {

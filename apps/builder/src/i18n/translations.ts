@@ -812,6 +812,81 @@ const koKR: TranslationKeys = {
       "여러 명령을 순서대로 실행 (각 명령마다 승인을 따로 묻고, 실패하면 거기서 멈춥니다). id 대신 사용.",
     missingId: "id 또는 ids 가 필요합니다.",
   },
+  aiToolError: {
+    unknownTool: "알 수 없는 도구: {name}",
+    navigateNeedsPath: "navigate 액션은 path 가 필요합니다.",
+    toastNeedsMessage: "toast 액션은 message 가 필요합니다.",
+    capabilityNeedsTarget:
+      "capability 액션은 targetId 와 capability 가 필요합니다.",
+    targetNotFound: "대상 요소를 찾을 수 없습니다: {id}",
+    capabilityNotExposed:
+      "{type} 은 '{capability}' capability 를 노출하지 않습니다.",
+    actionKind:
+      "action.kind 는 navigate / toast / capability 중 하나여야 합니다.",
+    ruleNeedsIdTrigger: "elementId 와 trigger 는 필수입니다.",
+    triggerNotProvided: "{type} 은 '{trigger}' 트리거를 제공하지 않습니다.",
+    ruleSchemaInvalid: "InteractionRule 스키마 검증 실패",
+    lastCreatedIsNow: ' 방금 만든 요소의 실제 id 는 "{id}" 입니다.',
+    recovery:
+      ' id 를 지어내지 마세요 — create_element 결과의 elementId 를 그대로 쓰거나, "last-created" (방금 만든 것) / "selected" (선택한 것) 를 쓰거나, search_elements · get_editor_state 로 실제 id 를 조회하세요.',
+    idEmpty: "요소 id 가 비었습니다.{recovery}",
+    noSelection:
+      "선택된 요소가 없습니다. 먼저 요소를 선택하거나 실제 id 를 지정하세요.",
+    nothingCreated:
+      "아직 만든 요소가 없습니다. create_element 로 먼저 만들거나 실제 id 를 지정하세요.",
+    lastCreatedGone: "방금 만든 요소가 더 이상 없습니다 (id: {id}).{recovery}",
+    elementNotFound: "요소를 찾을 수 없습니다: {id}.{recovery}",
+    elementIdRequired: "elementId는 필수입니다.",
+    typeRequired: "type는 필수입니다.",
+    nothingToUpdate:
+      "변경할 props, styles, fills 또는 canonical 필드를 지정하세요.",
+    missingAfterUpdate:
+      "수정 후 요소를 찾을 수 없습니다: {id}. get_editor_state 로 현재 상태를 다시 확인하세요.",
+    notApplied:
+      "요청한 값이 반영되지 않았습니다: {fields}. 원본(origin) 요소라 영향 확인이 필요했거나 편집이 차단됐을 수 있습니다. get_editor_state 로 현재 값을 확인한 뒤 다시 시도하세요.",
+    canonicalNotApplied:
+      "canonical 필드가 반영되지 않았습니다: {fields}. {type} 이 지원하지 않는 필드일 수 있습니다.",
+    staticNeedsData: "static 바인딩은 config.data 배열이 필요합니다.",
+    apiNeedsUrl:
+      "api 바인딩은 config.baseUrl 과 config.endpoint 가 필요합니다.",
+    supabaseNeedsTable: "supabase 바인딩은 config.table 이 필요합니다.",
+    sourceOneOf: "source 는 {sources} 중 하나여야 합니다.",
+    bindFailed:
+      "데이터 바인딩을 적용하지 못했습니다 (활성 문서 없음 또는 대상 노드 없음).",
+    canonicalMustBeObject: "객체여야 합니다.",
+    frameOnly: 'type: "frame" 노드에만 쓸 수 있습니다 (현재 {type}).',
+    mustBeBoolean: "boolean 이어야 합니다.",
+    slotShape: "false 또는 문자열 배열이어야 합니다.",
+    unknownCanonicalField:
+      "알 수 없는 canonical 필드입니다 (가능: clip, placeholder, slot, reusable).",
+    operationsRequired: "operations 배열이 필요합니다.",
+    batchLimit: "한 번에 최대 20개 작업까지 가능합니다.",
+    unknownAction: "알 수 없는 action: {action}. create/update/delete만 가능.",
+    bodyUndeletable: "body 요소는 삭제할 수 없습니다.",
+    notDeleted:
+      "삭제되지 않았습니다: {id}. 보호된 요소이거나 편집이 차단된 상태일 수 있습니다. get_editor_state 로 현재 상태를 확인하세요.",
+    selectionEmpty: "선택된 요소가 없습니다.",
+    selectionMissing: "선택된 요소를 찾을 수 없습니다.",
+    idOrIdsRequired: "id 또는 ids 가 필요합니다.",
+  },
+  aiRuntime: {
+    roleUser: "사용자",
+    providerError: "LLM provider 오류",
+    propDefault: "기본 {value}",
+    container: ", 컨테이너",
+    compositeHint:
+      "- 조합 컴포넌트 — 만든 뒤 get_editor_state 로 편집 가능한 props 를 확인하세요",
+    noEditableProps: "- 편집 가능한 props 없음 (자식 요소로 구성)",
+    repairIntro: "이전 시도에서 다음이 어긋났습니다. 그 부분만 고치세요:",
+  },
+  aiExec: {
+    stepOk: "단계 {index}: {tool} → 성공",
+    stepFailed: "단계 {index}: {tool} → 실패 ({reason})",
+    stepError: "단계 {index}: {tool} → 오류 {error}",
+    noReason: "사유 없음",
+    remoteBlocked:
+      "{prefix}: {url} 는 원격 endpoint 라 브라우저에서 직접 부를 수 없습니다 (HC13). 로컬/사내 endpoint 를 쓰거나 프록시 경로를 기다려 주세요.",
+  },
   settings: {
     title: "설정",
     language: "언어",
@@ -2017,6 +2092,78 @@ const enUS: TranslationKeys = {
       "Runs several commands in order (each asks for approval separately and stops at the first failure). Use instead of id.",
     missingId: "Either id or ids is required.",
   },
+  aiToolError: {
+    unknownTool: "Unknown tool: {name}",
+    navigateNeedsPath: "A navigate action needs a path.",
+    toastNeedsMessage: "A toast action needs a message.",
+    capabilityNeedsTarget: "A capability action needs targetId and capability.",
+    targetNotFound: "Target element not found: {id}",
+    capabilityNotExposed:
+      "{type} does not expose the '{capability}' capability.",
+    actionKind: "action.kind must be one of navigate, toast or capability.",
+    ruleNeedsIdTrigger: "elementId and trigger are required.",
+    triggerNotProvided: "{type} does not provide the '{trigger}' trigger.",
+    ruleSchemaInvalid: "InteractionRule failed schema validation",
+    lastCreatedIsNow: ' The element you just made really has id "{id}".',
+    recovery:
+      ' Do not invent an id — copy elementId from the create_element result, use "last-created" (the one you just made) or "selected" (the current selection), or look up a real id with search_elements or get_editor_state.',
+    idEmpty: "The element id is empty.{recovery}",
+    noSelection:
+      "Nothing is selected. Select an element first, or give a real id.",
+    nothingCreated:
+      "You have not created an element yet. Make one with create_element, or give a real id.",
+    lastCreatedGone: "The element you just made is gone (id: {id}).{recovery}",
+    elementNotFound: "Element not found: {id}.{recovery}",
+    elementIdRequired: "elementId is required.",
+    typeRequired: "type is required.",
+    nothingToUpdate: "Give props, styles, fills or canonical fields to change.",
+    missingAfterUpdate:
+      "The element is gone after the update: {id}. Re-read the current state with get_editor_state.",
+    notApplied:
+      "These values were not applied: {fields}. The element may be a reuse origin needing an impact check, or editing may be blocked. Check the current values with get_editor_state and try again.",
+    canonicalNotApplied:
+      "Canonical fields were not applied: {fields}. {type} may not support them.",
+    staticNeedsData: "A static binding needs a config.data array.",
+    apiNeedsUrl: "An api binding needs config.baseUrl and config.endpoint.",
+    supabaseNeedsTable: "A supabase binding needs config.table.",
+    sourceOneOf: "source must be one of {sources}.",
+    bindFailed:
+      "Could not apply the data binding (no active document, or the target node is missing).",
+    canonicalMustBeObject: "must be an object.",
+    frameOnly: 'valid only on type: "frame" nodes (this one is {type}).',
+    mustBeBoolean: "must be a boolean.",
+    slotShape: "must be false or an array of strings.",
+    unknownCanonicalField:
+      "Unknown canonical field (allowed: clip, placeholder, slot, reusable).",
+    operationsRequired: "An operations array is required.",
+    batchLimit: "At most 20 operations at a time.",
+    unknownAction:
+      "Unknown action: {action}. Only create, update and delete are allowed.",
+    bodyUndeletable: "The body element cannot be deleted.",
+    notDeleted:
+      "Not deleted: {id}. The element may be protected, or editing may be blocked. Check the current state with get_editor_state.",
+    selectionEmpty: "Nothing is selected.",
+    selectionMissing: "The selected element could not be found.",
+    idOrIdsRequired: "Either id or ids is required.",
+  },
+  aiRuntime: {
+    roleUser: "User",
+    providerError: "LLM provider error",
+    propDefault: "default {value}",
+    container: ", container",
+    compositeHint:
+      "- Composite component — after creating it, check the editable props with get_editor_state",
+    noEditableProps: "- No editable props (composed from child elements)",
+    repairIntro: "The previous attempt got these wrong. Fix only those:",
+  },
+  aiExec: {
+    stepOk: "Step {index}: {tool} → ok",
+    stepFailed: "Step {index}: {tool} → failed ({reason})",
+    stepError: "Step {index}: {tool} → error {error}",
+    noReason: "no reason given",
+    remoteBlocked:
+      "{prefix}: {url} is a remote endpoint and cannot be called directly from the browser (HC13). Use a local or in-house endpoint, or wait for the proxy path.",
+  },
   settings: {
     title: "Settings",
     language: "Language",
@@ -2943,6 +3090,45 @@ const formattedMessages: Record<
     "aiOrchestrator.repairInstruction": (args) =>
       `지적된 부분을 고치세요. 목표: ${String(args?.goal ?? "")}`,
     "aiOrchestrator.repairAttempt": (args) => `수리 ${String(args?.n ?? 0)}회`,
+    "aiToolError.unknownTool": (args) =>
+      `알 수 없는 도구: ${String(args?.name ?? "")}`,
+    "aiToolError.targetNotFound": (args) =>
+      `대상 요소를 찾을 수 없습니다: ${String(args?.id ?? "")}`,
+    "aiToolError.capabilityNotExposed": (args) =>
+      `${String(args?.type ?? "")} 은 '${String(args?.capability ?? "")}' capability 를 노출하지 않습니다.`,
+    "aiToolError.triggerNotProvided": (args) =>
+      `${String(args?.type ?? "")} 은 '${String(args?.trigger ?? "")}' 트리거를 제공하지 않습니다.`,
+    "aiToolError.lastCreatedIsNow": (args) =>
+      ` 방금 만든 요소의 실제 id 는 "${String(args?.id ?? "")}" 입니다.`,
+    "aiToolError.idEmpty": (args) =>
+      `요소 id 가 비었습니다.${String(args?.recovery ?? "")}`,
+    "aiToolError.lastCreatedGone": (args) =>
+      `방금 만든 요소가 더 이상 없습니다 (id: ${String(args?.id ?? "")}).${String(args?.recovery ?? "")}`,
+    "aiToolError.elementNotFound": (args) =>
+      `요소를 찾을 수 없습니다: ${String(args?.id ?? "")}.${String(args?.recovery ?? "")}`,
+    "aiToolError.missingAfterUpdate": (args) =>
+      `수정 후 요소를 찾을 수 없습니다: ${String(args?.id ?? "")}. get_editor_state 로 현재 상태를 다시 확인하세요.`,
+    "aiToolError.notApplied": (args) =>
+      `요청한 값이 반영되지 않았습니다: ${String(args?.fields ?? "")}. 원본(origin) 요소라 영향 확인이 필요했거나 편집이 차단됐을 수 있습니다. get_editor_state 로 현재 값을 확인한 뒤 다시 시도하세요.`,
+    "aiToolError.canonicalNotApplied": (args) =>
+      `canonical 필드가 반영되지 않았습니다: ${String(args?.fields ?? "")}. ${String(args?.type ?? "")} 이 지원하지 않는 필드일 수 있습니다.`,
+    "aiToolError.sourceOneOf": (args) =>
+      `source 는 ${String(args?.sources ?? "")} 중 하나여야 합니다.`,
+    "aiToolError.frameOnly": (args) =>
+      `type: "frame" 노드에만 쓸 수 있습니다 (현재 ${String(args?.type ?? "")}).`,
+    "aiToolError.unknownAction": (args) =>
+      `알 수 없는 action: ${String(args?.action ?? "")}. create/update/delete만 가능.`,
+    "aiToolError.notDeleted": (args) =>
+      `삭제되지 않았습니다: ${String(args?.id ?? "")}. 보호된 요소이거나 편집이 차단된 상태일 수 있습니다. get_editor_state 로 현재 상태를 확인하세요.`,
+    "aiRuntime.propDefault": (args) => `기본 ${String(args?.value ?? "")}`,
+    "aiExec.stepOk": (args) =>
+      `단계 ${String(args?.index ?? 0)}: ${String(args?.tool ?? "")} → 성공`,
+    "aiExec.stepFailed": (args) =>
+      `단계 ${String(args?.index ?? 0)}: ${String(args?.tool ?? "")} → 실패 (${String(args?.reason ?? "")})`,
+    "aiExec.stepError": (args) =>
+      `단계 ${String(args?.index ?? 0)}: ${String(args?.tool ?? "")} → 오류 ${String(args?.error ?? "")}`,
+    "aiExec.remoteBlocked": (args) =>
+      `${String(args?.prefix ?? "")}: ${String(args?.url ?? "")} 는 원격 endpoint 라 브라우저에서 직접 부를 수 없습니다 (HC13). 로컬/사내 endpoint 를 쓰거나 프록시 경로를 기다려 주세요.`,
     "componentAction.selectInstances": (args) =>
       `인스턴스 선택 (${String(args?.count ?? 0)})`,
     "monitor.realtimeChart": (args) =>
@@ -3107,6 +3293,45 @@ const formattedMessages: Record<
     "aiOrchestrator.repairInstruction": (args) =>
       `Fix what was flagged. Goal: ${String(args?.goal ?? "")}`,
     "aiOrchestrator.repairAttempt": (args) => `Repair ${String(args?.n ?? 0)}`,
+    "aiToolError.unknownTool": (args) =>
+      `Unknown tool: ${String(args?.name ?? "")}`,
+    "aiToolError.targetNotFound": (args) =>
+      `Target element not found: ${String(args?.id ?? "")}`,
+    "aiToolError.capabilityNotExposed": (args) =>
+      `${String(args?.type ?? "")} does not expose the '${String(args?.capability ?? "")}' capability.`,
+    "aiToolError.triggerNotProvided": (args) =>
+      `${String(args?.type ?? "")} does not provide the '${String(args?.trigger ?? "")}' trigger.`,
+    "aiToolError.lastCreatedIsNow": (args) =>
+      ` The element you just made really has id "${String(args?.id ?? "")}".`,
+    "aiToolError.idEmpty": (args) =>
+      `The element id is empty.${String(args?.recovery ?? "")}`,
+    "aiToolError.lastCreatedGone": (args) =>
+      `The element you just made is gone (id: ${String(args?.id ?? "")}).${String(args?.recovery ?? "")}`,
+    "aiToolError.elementNotFound": (args) =>
+      `Element not found: ${String(args?.id ?? "")}.${String(args?.recovery ?? "")}`,
+    "aiToolError.missingAfterUpdate": (args) =>
+      `The element is gone after the update: ${String(args?.id ?? "")}. Re-read the current state with get_editor_state.`,
+    "aiToolError.notApplied": (args) =>
+      `These values were not applied: ${String(args?.fields ?? "")}. The element may be a reuse origin needing an impact check, or editing may be blocked. Check the current values with get_editor_state and try again.`,
+    "aiToolError.canonicalNotApplied": (args) =>
+      `Canonical fields were not applied: ${String(args?.fields ?? "")}. ${String(args?.type ?? "")} may not support them.`,
+    "aiToolError.sourceOneOf": (args) =>
+      `source must be one of ${String(args?.sources ?? "")}.`,
+    "aiToolError.frameOnly": (args) =>
+      `valid only on type: "frame" nodes (this one is ${String(args?.type ?? "")}).`,
+    "aiToolError.unknownAction": (args) =>
+      `Unknown action: ${String(args?.action ?? "")}. Only create, update and delete are allowed.`,
+    "aiToolError.notDeleted": (args) =>
+      `Not deleted: ${String(args?.id ?? "")}. The element may be protected, or editing may be blocked. Check the current state with get_editor_state.`,
+    "aiRuntime.propDefault": (args) => `default ${String(args?.value ?? "")}`,
+    "aiExec.stepOk": (args) =>
+      `Step ${String(args?.index ?? 0)}: ${String(args?.tool ?? "")} → ok`,
+    "aiExec.stepFailed": (args) =>
+      `Step ${String(args?.index ?? 0)}: ${String(args?.tool ?? "")} → failed (${String(args?.reason ?? "")})`,
+    "aiExec.stepError": (args) =>
+      `Step ${String(args?.index ?? 0)}: ${String(args?.tool ?? "")} → error ${String(args?.error ?? "")}`,
+    "aiExec.remoteBlocked": (args) =>
+      `${String(args?.prefix ?? "")}: ${String(args?.url ?? "")} is a remote endpoint and cannot be called directly from the browser (HC13). Use a local or in-house endpoint, or wait for the proxy path.`,
     "componentAction.selectInstances": (args) =>
       `Select instances (${String(args?.count ?? 0)})`,
     "monitor.realtimeChart": (args) =>

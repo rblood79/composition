@@ -5,8 +5,9 @@
  */
 
 import type {
-  ToolExecutor,
   ToolExecutionResult,
+  ToolExecutor,
+  ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
 import { resolveElementRef } from "./elementRef";
@@ -14,10 +15,13 @@ import { resolveElementRef } from "./elementRef";
 export const deleteElementTool: ToolExecutor = {
   name: "delete_element",
 
-  async execute(args: Record<string, unknown>): Promise<ToolExecutionResult> {
+  async execute(
+    args: Record<string, unknown>,
+    t: ToolTranslate,
+  ): Promise<ToolExecutionResult> {
     const elementIdArg = args.elementId as string;
     if (!elementIdArg) {
-      return { success: false, error: "elementId는 필수입니다." };
+      return { success: false, error: t("aiToolError.elementIdRequired") };
     }
 
     try {
@@ -28,17 +32,21 @@ export const deleteElementTool: ToolExecutor = {
 
       // 별칭·실제 id 를 한 곳에서 해석한다 (`elementRef.ts`) — 실패 시 다음 시도가
       // 맞도록 복구 경로를 담은 오류를 돌려준다.
-      const ref = resolveElementRef(elementIdArg, {
-        selectedElementId,
-        elementsById,
-      });
+      const ref = resolveElementRef(
+        elementIdArg,
+        {
+          selectedElementId,
+          elementsById,
+        },
+        t,
+      );
       if ("error" in ref) return { success: false, error: ref.error };
       const targetId = ref.id;
       const element = elementsById.get(targetId)!;
 
       // body 요소 보호
       if (element.type === "body") {
-        return { success: false, error: "body 요소는 삭제할 수 없습니다." };
+        return { success: false, error: t("aiToolError.bodyUndeletable") };
       }
 
       await removeElement(targetId);
@@ -48,7 +56,7 @@ export const deleteElementTool: ToolExecutor = {
       if (remaining && !remaining.deleted) {
         return {
           success: false,
-          error: `삭제되지 않았습니다: ${targetId}. 보호된 요소이거나 편집이 차단된 상태일 수 있습니다. get_editor_state 로 현재 상태를 확인하세요.`,
+          error: t("aiToolError.notDeleted", { id: targetId }),
         };
       }
 

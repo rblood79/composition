@@ -186,6 +186,7 @@ function categoriesFromRequest(request: string): string[] {
 
 /** 이번 요청에 펼칠 컴포넌트를 고른다. */
 export function selectCatalogEntries(
+  t: PromptTranslate,
   context: InjectionContext = {},
 ): InjectionResult {
   const budget = context.budget ?? DEFAULT_DETAIL_BUDGET;
@@ -230,7 +231,7 @@ export function selectCatalogEntries(
     .map((type) => getAiCatalogEntry(type))
     .filter((e): e is AiCatalogEntry => Boolean(e));
 
-  return { selected, reasons, text: formatCatalogEntries(selected) };
+  return { selected, reasons, text: formatCatalogEntries(selected, t) };
 }
 
 /**
@@ -241,7 +242,7 @@ export function buildCatalogSection(
   context: InjectionContext = {},
   t: PromptTranslate = (key) => key,
 ): string {
-  const { text } = selectCatalogEntries(context);
+  const { text } = selectCatalogEntries(t, context);
   return [
     t("aiCatalog.heading"),
     t("aiCatalog.intro1"),

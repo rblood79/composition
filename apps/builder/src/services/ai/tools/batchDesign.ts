@@ -17,6 +17,7 @@
 import type {
   ToolExecutor,
   ToolExecutionResult,
+  ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { historyManager } from "../../../builder/stores/history";
 import { createElementTool } from "./createElement";
@@ -37,17 +38,20 @@ const ACTION_EXECUTORS: Record<string, ToolExecutor> = {
 export const batchDesignTool: ToolExecutor = {
   name: "batch_design",
 
-  async execute(args: Record<string, unknown>): Promise<ToolExecutionResult> {
+  async execute(
+    args: Record<string, unknown>,
+    t: ToolTranslate,
+  ): Promise<ToolExecutionResult> {
     const operations = args.operations as BatchOperation[] | undefined;
 
     if (!operations || !Array.isArray(operations) || operations.length === 0) {
-      return { success: false, error: "operations 배열이 필요합니다." };
+      return { success: false, error: t("aiToolError.operationsRequired") };
     }
 
     if (operations.length > 20) {
       return {
         success: false,
-        error: "한 번에 최대 20개 작업까지 가능합니다.",
+        error: t("aiToolError.batchLimit"),
       };
     }
 
@@ -77,12 +81,14 @@ export const batchDesignTool: ToolExecutor = {
             index: i,
             action: op.action,
             success: false,
-            error: `알 수 없는 action: ${op.action}. create/update/delete만 가능.`,
+            error: t("aiToolError.unknownAction", {
+              action: String(op.action),
+            }),
           });
           continue;
         }
 
-        const result = await executor.execute(op.args || {});
+        const result = await executor.execute(op.args || {}, t);
         results.push({
           index: i,
           action: op.action,

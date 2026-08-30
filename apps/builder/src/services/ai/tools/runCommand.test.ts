@@ -11,6 +11,7 @@ import { buildRunCommandToolDefinition, runCommandTool } from "./runCommand";
 import { createToolRegistry, getToolDefinitions } from "./index";
 import { localizedStrings } from "@/i18n/translations";
 import type { PromptTranslate } from "../promptTranslate";
+import type { ToolTranslate } from "@/types/integrations/ai.types";
 
 const executeAgentCommand = vi.hoisted(() =>
   vi.fn(async (id: string) => ({
@@ -40,6 +41,13 @@ vi.mock("../../agent/executeAgentCommand", async (orig) => {
 
 /** ko-KR 카탈로그에 묶은 해소기 (ADR-200 후속). */
 const tr: PromptTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
+
+/** ko-KR 카탈로그에 묶은 도구 오류 해소기 (ADR-200 후속). */
+const tt: ToolTranslate = (key, params) => {
   const message = localizedStrings["ko-KR"][key];
   if (typeof message === "function") return message(params);
   return message ?? key;
@@ -79,7 +87,9 @@ describe("run_command 도구 정의", () => {
 
   it("레지스트리의 run_command 는 지연 로딩 executor 다 (초기 번들 분리 — HC6)", async () => {
     const registry = createToolRegistry();
-    const result = await registry.get("run_command")!.execute({ id: "zoomIn" });
+    const result = await registry
+      .get("run_command")!
+      .execute({ id: "zoomIn" }, tt);
     expect(result.success).toBe(true);
     expect(executeAgentCommand).toHaveBeenCalledWith(
       "zoomIn",
@@ -96,7 +106,7 @@ describe("run_command 실행 — executor 경유", () => {
   });
 
   it("id 1건 → executeAgentCommand(host: ai-panel)", async () => {
-    const result = await runCommandTool.execute({ id: "alignLeft" });
+    const result = await runCommandTool.execute({ id: "alignLeft" }, tt);
     expect(executeAgentCommand).toHaveBeenCalledWith(
       "alignLeft",
       undefined,
@@ -107,14 +117,17 @@ describe("run_command 실행 — executor 경유", () => {
   });
 
   it("거부된 명령은 success:false + reason", async () => {
-    const result = await runCommandTool.execute({ id: "openProject" });
+    const result = await runCommandTool.execute({ id: "openProject" }, tt);
     expect(result).toMatchObject({ success: false, error: "external" });
   });
 
   it("ids 배열 → executeAgentCommands 순서 실행", async () => {
-    const result = await runCommandTool.execute({
-      ids: ["zoomIn", "alignLeft"],
-    });
+    const result = await runCommandTool.execute(
+      {
+        ids: ["zoomIn", "alignLeft"],
+      },
+      tt,
+    );
     expect(executeAgentCommands).toHaveBeenCalledWith(
       [{ id: "zoomIn" }, { id: "alignLeft" }],
       expect.objectContaining({ host: "ai-panel" }),
@@ -123,7 +136,7 @@ describe("run_command 실행 — executor 경유", () => {
   });
 
   it("id/ids 둘 다 없으면 오류", async () => {
-    await expect(runCommandTool.execute({})).resolves.toMatchObject({
+    await expect(runCommandTool.execute({}, tt)).resolves.toMatchObject({
       success: false,
     });
   });
