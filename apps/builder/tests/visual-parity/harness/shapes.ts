@@ -99,15 +99,17 @@ function subtree(): unknown {
 
 export function makeShape(opts: ShapeOptions): CompositionDocument {
   const inner = subtree();
+  const bodyNode = {
+    id: SHAPE_BODY_ID,
+    type: opts.bodyType ?? "Body",
+    props: { style: containerStyle() },
+    children: [inner],
+  };
+
   const pageChildren = opts.bodyWrapper
-    ? [
-        {
-          id: SHAPE_BODY_ID,
-          type: "Body",
-          props: { style: containerStyle() },
-          children: [inner],
-        },
-      ]
+    ? opts.bodyAtRoot
+      ? []
+      : [bodyNode]
     : [inner];
 
   const page: Record<string, unknown> = {
@@ -122,9 +124,12 @@ export function makeShape(opts: ShapeOptions): CompositionDocument {
     page.props = { style: containerStyle() };
   }
 
+  const roots: unknown[] = [page];
+  if (opts.bodyWrapper && opts.bodyAtRoot) roots.push(bodyNode);
+
   return {
     version: "composition-1.0",
-    children: [page],
+    children: roots,
   } as unknown as CompositionDocument;
 }
 
@@ -148,5 +153,20 @@ export const SHAPES = [
     id: "S4",
     label: "page(meta) > Body > frame > frame  [축 A+B — 현 통합 fixture]",
     opts: { legacyPageMetadata: true, bodyWrapper: true },
+  },
+  {
+    id: "S5",
+    label: "page(meta) > body(소문자) > frame  [타입 케이스 교정]",
+    opts: { legacyPageMetadata: true, bodyWrapper: true, bodyType: "body" },
+  },
+  {
+    id: "S6",
+    label: "page(meta) + body(소문자, 루트) > frame [케이스+위치 교정]",
+    opts: {
+      legacyPageMetadata: true,
+      bodyWrapper: true,
+      bodyType: "body",
+      bodyAtRoot: true,
+    },
   },
 ] as const;

@@ -56,7 +56,11 @@ export function createPilotDocument(): CompositionDocument {
         children: [
           {
             id: FIXTURE_BODY_ID,
-            type: "Body",
+            // **소문자** — Preview 는 `el.type === "body"` 로 찾는다
+            // (`preview/App.tsx:1289,435`). 대문자 `"Body"` 로 두면 Preview 가
+            // body 를 못 찾아 자식 서브트리가 통째로 렌더되지 않는다.
+            // Phase 0 shape probe 가 이 축을 단독 변수로 확정했다 (S4 vs S5).
+            type: "body",
             props: {
               style: {
                 display: "block",

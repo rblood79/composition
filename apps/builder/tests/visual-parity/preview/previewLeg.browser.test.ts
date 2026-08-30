@@ -19,6 +19,10 @@ import {
   createPilotDocument,
   fixtureChecksum,
   FIXTURE_ARTBOARD,
+  FIXTURE_BODY_ID,
+  FIXTURE_GEOMETRY,
+  FIXTURE_INNER_ID,
+  FIXTURE_OUTER_ID,
   FIXTURE_PAGE_ID,
   FIXTURE_PROJECT_ID,
 } from "../harness/fixture";
@@ -139,8 +143,9 @@ describe("ADR-198 Phase 0 — Preview leg (task 4)", () => {
     // fixture 가 실제로 렌더됐는지는 fixture 의 노드가 DOM 에 있는지로 본다.
     const rendered = {
       page: idoc!.querySelector(`[data-element-id="${FIXTURE_PAGE_ID}"]`),
-      outer: idoc!.querySelector('[data-element-id="adr198-outer"]'),
-      inner: idoc!.querySelector('[data-element-id="adr198-inner"]'),
+      body: idoc!.querySelector(`[data-element-id="${FIXTURE_BODY_ID}"]`),
+      outer: idoc!.querySelector(`[data-element-id="${FIXTURE_OUTER_ID}"]`),
+      inner: idoc!.querySelector(`[data-element-id="${FIXTURE_INNER_ID}"]`),
     };
 
     console.log(
@@ -158,15 +163,11 @@ describe("ADR-198 Phase 0 — Preview leg (task 4)", () => {
     expect(previewReady).toBe(true);
     // page 노드는 통합 fixture 에서도 도달한다.
     expect(rendered.page).toBeTruthy();
-    // outer/inner 는 **현재 도달하지 않는다**. 원인은 `shapeProbe.browser.test.ts`
-    // 가 단일 축으로 확정했다 — **`Body` 래퍼** 다 (S1/S2 는 3/3, S3/S4 는 page 만).
-    // `legacy-page` metadata 도 색 표기(hex6/hex8)도 이 축이 아니다.
-    // 그런데 Skia 체인은 `Body` 를 **요구** 한다 (`buildPageLayoutPublisherInput`
-    // 이 `pageSnapshot.bodyElement` 없으면 null). 두 consumer 가 파일럿 fixture
-    // 에서 정면 충돌하고, 그게 G0 를 막는 지점이다 — Phase 1 이 받는다.
-    // 여기서는 통과시키려 형태를 되돌리지 않고 **현재 사실을 고정**한다.
-    expect(rendered.outer).toBeNull();
-    expect(rendered.inner).toBeNull();
+    // 3/3 도달. body 노드 타입을 소문자 `"body"` 로 고친 뒤부터다 —
+    // Preview 는 `el.type === "body"` 로 찾는다 (`preview/App.tsx:1289,435`).
+    // 이 축은 shape probe (S4 대문자 실패 vs S5 소문자 성공) 가 단독 변수로 확정했다.
+    expect(rendered.outer).toBeTruthy();
+    expect(rendered.inner).toBeTruthy();
 
     // L1 입력 — 노드별 geometry manifest. Skia leg 의 bounds 와 대조할 값.
     const geometry: Record<string, DOMRect> = {};
@@ -195,10 +196,15 @@ describe("ADR-198 Phase 0 — Preview leg (task 4)", () => {
     // 뒤에야 의미가 있다 — Phase 1. 지금은 geometry 가 **수집되는지** 만 고정한다.
     // (통합 fixture 의 page frame 은 스스로 크기를 선언하지 않는다. 크기는 `Body`
     //  가 갖는데 그 노드가 아직 도달하지 않아 page 는 auto 폭 200 으로 잡힌다.)
-    // 현재 상태: page div 는 자식이 도달하지 않아 **높이 0** 이다. 이 값을 그대로
-    // 고정한다 — 0 이 아니게 되는 순간(= 자식이 렌더되기 시작하는 순간) 이 기대가
-    // 깨져서 기록 갱신을 강제한다 (ratchet).
-    expect(geometry.page.height).toBe(0);
+    // L1 대조의 기준값 — fixture 가 선언한 좌표가 실제 렌더 결과와 일치해야
+    // L1 이 vacuous 하지 않다.
+    expect(geometry.body.width).toBe(FIXTURE_ARTBOARD.width);
+    expect(geometry.body.height).toBe(FIXTURE_ARTBOARD.height);
+    expect(geometry.outer.x).toBe(FIXTURE_GEOMETRY.outer.x);
+    expect(geometry.outer.y).toBe(FIXTURE_GEOMETRY.outer.y);
+    expect(geometry.outer.width).toBe(FIXTURE_GEOMETRY.outer.width);
+    expect(geometry.inner.x).toBe(FIXTURE_GEOMETRY.inner.x);
+    expect(geometry.inner.y).toBe(FIXTURE_GEOMETRY.inner.y);
   }, 60_000);
 
   it("아티보드를 PNG 으로 캡처한다 (두 leg 산출물 중 Preview 쪽)", async () => {

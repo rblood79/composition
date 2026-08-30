@@ -325,21 +325,16 @@ describe("ADR-198 Phase 0 — G0 Skia leg (프로덕션 경로)", () => {
    * 반대로 red 로 두면 스위트를 commit 할 수 없다. `it.fails` 는 **ratchet** 이다 —
    * 칠해지기 시작하는 순간 이 테스트가 실패해서 기록 갱신을 강제한다.
    *
-   * **아직 규명되지 않은 것 (Phase 1 이 받는다)**:
+   * **이건 fixture 문제가 아니라 실제 발산이다.** 같은 fixture(같은 checksum)를
+   * Preview leg 은 세 노드 전부 칠한다 — `previewLeg.browser.test.ts` 실측으로
+   * `body/outer/inner` 3/3, geometry 도 선언값과 일치, PNG 1251B. Skia 만 비어 있다.
+   * 즉 하니스가 한 fixture 에서 두 PNG 을 내고 **D3 발산을 실제로 잡아냈다.**
    *
-   * - Skia 가 왜 비는가. 후보는 (a) `frame` 이 layout 컨테이너라 배경 shape 미생성,
-   *   (b) catalog 배경 채널 hex6 전용이라 hex8 alpha 밀림 — 둘 다 백색을 만든다.
-   *   이를 가르려던 축약 probe 는 네 조합 모두 `none` 을 반환해 **계측기가 무효**였고
-   *   폐기했다. 근거 없는 원인 주장을 남기지 않는다.
-   * - 이게 제품 발산인지 fixture 형태 문제인지. 같은 통합 fixture 에서
-   *   **Preview leg 도 page 노드만 렌더한다**(`previewLeg.browser.test.ts` 실측:
-   *   `outer=false inner=false`). 더 단순한 형태(page frame > frame > frame,
-   *   `Body`/`legacy-page` 없음)에서는 Preview 가 3/3 을 칠했다. 즉 지금 갈리는
-   *   변수는 **두 leg 을 동시에 만족하는 문서 형태가 아직 없다는 것** 이고,
-   *   그건 Phase 1 (fixture and result contracts) 의 산출물이다.
-   *
-   * 요약: 두 leg 모두 PNG 에 도달하지만 **같은 fixture 에서 둘 다 비어 있어**
-   * G0 의 "two PNGs from one checksum" 은 아직 충족되지 않았다.
+   * **원인은 미규명**: 후보는 (a) `frame` 이 layout 컨테이너라 배경 shape 미생성,
+   * (b) catalog 배경 채널 hex6 전용이라 hex8 alpha 밀림 — 둘 다 백색을 만든다.
+   * 이를 가르려던 축약 probe 는 네 조합 모두 `none` 을 반환해 **계측기가 무효**였고
+   * 폐기했다. 원인 규명과 수정은 breakdown §7 (Out of Scope) 에 따라 별도 작업이며,
+   * 근거 없는 원인 주장을 여기 남기지 않는다.
    */
   it.fails(
     "[미해결 기록] fixture 의 fill 색이 Skia 좌표에 찍힌다 — 현재 실패",

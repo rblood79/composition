@@ -231,51 +231,67 @@ published layout nodes and is fully deterministic (10 runs, 1 hash `7ff2c4c5`,
 `buildPageLayoutPublisherInput` returns `null` without `pageSnapshot.bodyElement`,
 so the page needs `metadata.type: "legacy-page"` and a `Body` child.
 
-_The gap — located to one axis_. A four-shape probe
-(`tests/visual-parity/preview/shapeProbe.browser.test.ts`) varies two axes
+_The blocker was a fixture-authoring error, and fixing it turned G0 into a real
+finding._ A four-shape probe
+(`tests/visual-parity/preview/shapeProbe.browser.test.ts`) varied two axes
 independently against the real Preview, with S1 as a control arm:
 
-| Shape                                              | page | outer | inner |
-| -------------------------------------------------- | :--: | :---: | :---: |
-| S1 `page(style) > frame > frame` (control)         |  ✓   |   ✓   |   ✓   |
-| S2 `page(style, legacy-page meta) > frame > frame` |  ✓   |   ✓   |   ✓   |
-| S3 `page > Body > frame > frame`                   |  ✓   |   ✗   |   ✗   |
-| S4 `page(meta) > Body > frame > frame`             |  ✓   |   ✗   |   ✗   |
+| Shape                                               | page | outer | inner |
+| --------------------------------------------------- | :--: | :---: | :---: |
+| S1 `page(style) > frame > frame` (control)          |  ✓   |   ✓   |   ✓   |
+| S2 `page(style, legacy-page meta) > frame > frame`  |  ✓   |   ✓   |   ✓   |
+| S3 `page > Body > frame > frame`                    |  ✓   |   ✗   |   ✗   |
+| S4 `page(meta) > Body > frame > frame`              |  ✓   |   ✗   |   ✗   |
+| S5 `page(meta) > body > frame > frame` (lower-case) |  ✓   |   ✓   |   ✓   |
+| S6 `page(meta)` + root-level `body`                 |  ✓   |   ✗   |   ✗   |
 
-**The `Body` wrapper is the single variable.** `legacy-page` metadata makes no
-difference (S1 vs S2), and colour notation makes none either — S4 fails
-identically with hex6 and hex8, so the hex8 channel question is not what stops
-the Preview leg.
+The single variable is **the node type's letter case**. Preview resolves its
+body with `el.type === "body"` (`preview/App.tsx:1289,435`); the fixture had
+written `"Body"`, so no body was found and the whole subtree was dropped.
+`legacy-page` metadata is irrelevant (S1 vs S2), colour notation is irrelevant
+(S4 fails identically with hex6 and hex8), and moving the body to the document
+root makes it worse (S6). Lower-casing one string in
+`harness/fixture.ts` fixed it — a fixture-authoring error, exactly as the
+earlier caveat suspected, not a product defect.
 
-This puts the two consumers in **direct conflict on the pilot fixture**:
+**With one fixture both legs now accept, G0's substance is reached and the
+harness immediately caught a D3 divergence:**
 
-- Preview renders the subtree **without** `Body` and not **with** it.
-- The Skia chain requires `Body` — `buildPageLayoutPublisherInput` returns
-  `null` when `pageSnapshot.bodyElement` is unresolved.
+| Leg     | From fixture checksum `1ad05caa`                                                                                                         |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Preview | 3/3 nodes rendered (`react-aria-body` / `react-aria-frame`, backgrounds painted), geometry equal to the declared fixture, **PNG 1251 B** |
+| Skia    | production chain reaches **PNG 635 B**, 3 published layout nodes, fully deterministic — but the frame is **uniform white**, `variance 0` |
 
-That conflict, not a missing capability in either leg, is what blocks G0's "two
-PNGs from one checksum". Resolving it is Phase 1's fixture-contract work.
+One canonical document, one checksum, two production paths, two PNGs — and they
+disagree. That is what this ADR was built to detect, and it fired on the first
+fixture rather than on some future regression.
 
-_Scope of the claim_: this says **this** `Body` construction is not rendered by
-Preview, not that Preview cannot render `Body`. Real projects contain `Body`
-nodes and Preview renders them, so the fixture's `Body` is likely missing
-something the production path supplies (page registration, required props, or a
-different node shape). Phase 1 must establish the authoring contract rather than
-assume a product defect. The Skia blank remains separately unattributed —
-candidates `frame` generating no background shape and the hex6-only catalog
-channel both produce white, and no valid instrument has separated them.
+_The Skia blank is not attributed._ Candidates: `frame` is a layout container
+that generates no background shape, and the catalog background channel is
+hex6-only so a hex8 value shifts alpha to 0. Both produce white. A short-cut
+probe written to separate them returned `none` for all four
+type × notation combinations, meaning **the instrument was invalid**; it was
+deleted rather than kept as evidence. Attribution and any fix are separate work
+under §7. Lower-casing the body node changed nothing on the Skia side (identical
+hash `7ff2c4c5` before and after), so the two issues are independent.
 
-_Instrument validation mattered here._ The first run of this probe reported all
-four shapes passing. The cause was the probe itself: it sent every document with
-`documentRevision: 1`, and the runtime store ignores a non-increasing revision,
-so later shapes were never applied and the DOM still showed the first shape's
-output. Making the revision monotonic reversed the result for S3/S4. Two guards
-now hold the probe honest — a monotonically increasing revision per send, and
-the S1 control arm, which must render 3/3 or the whole measurement is discarded
-(`reference-parity-grid-needs-control-arm`). An earlier attempt in this same
-phase — a short-cut fill probe that returned `none` for all four
-type × notation combinations — was deleted for the same reason. Two invalid
-instruments in one phase is the argument for a control arm, not against probes.
+_Why failing expectations were pinned rather than made to pass_: switching the
+fixture to a container type and colour notation that happen to paint
+(`Card` + hex6) would make the suite green by choosing favourable input —
+`measurement-validity.md` §1 Q2. The Skia expectation is instead pinned with
+`it.fails` plus exact values, which acts as a ratchet. That ratchet has already
+proved itself: when the body case was fixed, the Preview leg's pinned
+`expect(outer).toBeNull()` broke and forced this record to be updated.
+
+_Instrument validation mattered twice._ The shape probe's first run reported all
+four shapes passing, because it sent every document with `documentRevision: 1`
+and the runtime store ignores a non-increasing revision — later shapes were
+never applied and the DOM still showed the first shape's output. Making the
+revision monotonic reversed S3/S4. Two guards now hold the probe honest: a
+monotonically increasing revision per send, and the S1 control arm, which must
+render 3/3 or the measurement is discarded
+(`reference-parity-grid-needs-control-arm`). Two invalid instruments in one
+phase is the argument for a control arm, not against probes.
 
 _R11 confirmed twice, in the harness itself._ First, the Preview draft posted the
 canonical message right after the iframe `load` event — before the module script
