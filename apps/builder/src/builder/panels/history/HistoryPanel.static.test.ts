@@ -10,11 +10,11 @@ describe("HistoryPanel panel-system contract", () => {
   it("uses the shared panel sections with Photoshop history grouping", async () => {
     const source = await readHistorySource("HistoryPanel.tsx");
 
-    expect(source).toContain('title="작업 내역"');
-    expect(source).toContain('title="스냅샷"');
+    expect(source).toContain('title={t("history.title")}');
+    expect(source).toContain('title={t("history.snapshotsSection")}');
     expect(source).toContain("collapsible={false}");
     expect(source).toContain('id="history-edits"');
-    expect(source).toContain('title="편집"');
+    expect(source).toContain('title={t("history.editsSection")}');
     expect(source).not.toContain('className="history-snapshot-header"');
   });
 
@@ -22,17 +22,23 @@ describe("HistoryPanel panel-system contract", () => {
     const source = await readHistorySource("HistoryPanel.tsx");
 
     expect(source).toMatch(/<MenuItem\s+id="clear-history"/);
-    expect(source).toContain("현재 페이지 기록 초기화");
+    expect(source).toContain('t("history.clearPage")');
     expect(source).not.toContain('aria-label="Clear history"');
   });
 
   it("places undo and redo before snapshot actions in the panel header", async () => {
     const source = await readHistorySource("HistoryPanel.tsx");
     const actionsIndex = source.indexOf('<Toolbar className="history-actions"');
-    const undoIndex = source.indexOf('aria-label="실행 취소"', actionsIndex);
-    const redoIndex = source.indexOf('aria-label="다시 실행"', actionsIndex);
+    const undoIndex = source.indexOf(
+      'aria-label={t("command.undo")}',
+      actionsIndex,
+    );
+    const redoIndex = source.indexOf(
+      'aria-label={t("command.redo")}',
+      actionsIndex,
+    );
     const snapshotIndex = source.indexOf(
-      'aria-label="스냅샷 생성"',
+      'aria-label={t("history.createSnapshot")}',
       actionsIndex,
     );
 
@@ -79,13 +85,13 @@ describe("HistoryPanel panel-system contract", () => {
     expect(sectionContentRule).not.toContain("gap:");
     expect(css).not.toContain("border-bottom: 1px solid var(--border)");
     expect(css).toContain("border: 0");
-    expect(historyButtonRule).toContain(
-      "height: var(--control-size)",
-    );
+    expect(historyButtonRule).toContain("height: var(--control-size)");
     expect(historyButtonRule).toContain(
       "padding: var(--spacing-xs) var(--spacing-sm)",
     );
-    expect(historyButtonRule).not.toContain("min-height: var(--control-size-lg)");
+    expect(historyButtonRule).not.toContain(
+      "min-height: var(--control-size-lg)",
+    );
     expect(activeHistoryButtonRule).toContain(
       "--button-color: var(--bg-muted)",
     );

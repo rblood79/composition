@@ -37,16 +37,23 @@ function nodeDisplayName(node: CanonicalNode): string | null {
     : null;
 }
 
+/** 표시 시점 해소기 — 이 모듈은 순수 `.ts` 라 훅을 못 쓴다 (ADR-200 어법). */
+export type TranslateFn = (
+  key: string,
+  params?: Record<string, string | number | boolean>,
+) => string;
+
 function subjectFromEvent(
   event: CanonicalHistoryNodeEvent,
   doc: CompositionDocument | null,
+  t: TranslateFn,
 ): string | null {
   if (event.type === "insert" || event.type === "remove") {
     return nodeDisplayName(event.node);
   }
   const location = doc ? findLocation(doc, event.nodeId) : null;
   if (location) return nodeDisplayName(location.node);
-  return `${truncateId(event.nodeId)} (삭제됨)`;
+  return t("history.entryDeletedSubject", { id: truncateId(event.nodeId) });
 }
 
 function subjectFromLegacySnapshot(entry: HistoryEntry): string | null {
@@ -65,10 +72,11 @@ function subjectFromElementId(entry: HistoryEntry): string | null {
 function resolveSubject(
   entry: HistoryEntry,
   doc: CompositionDocument | null,
+  t: TranslateFn,
 ): string | null {
   const events = entry.data.canonicalEvents;
   if (events && events.length > 0) {
-    return subjectFromEvent(events[0], doc);
+    return subjectFromEvent(events[0], doc, t);
   }
   return subjectFromLegacySnapshot(entry) ?? subjectFromElementId(entry);
 }
@@ -92,42 +100,45 @@ function countBatchTargets(entry: HistoryEntry): number {
 export function getHistoryEntryLabel(
   entry: HistoryEntry,
   doc: CompositionDocument | null,
+  t: TranslateFn,
 ): string {
-  const subject = resolveSubject(entry, doc);
+  const subject = resolveSubject(entry, doc, t);
   const suffix = subject ? ` ${subject}` : "";
 
   switch (entry.type) {
     case "add":
-      return `추가${suffix}`;
+      return t("history.entryAdd", { suffix });
     case "remove":
-      return `삭제${suffix}`;
+      return t("history.entryRemove", { suffix });
     case "update":
-      return `수정${suffix}`;
+      return t("history.entryUpdate", { suffix });
     case "move":
-      return `이동${suffix}`;
+      return t("history.entryMove", { suffix });
     case "batch":
-      return `일괄 수정 (${countBatchTargets(entry)})`;
+      return t("history.entryBatch", { count: countBatchTargets(entry) });
     case "group": {
       const count =
         entry.data.groupData?.childIds?.length ?? entry.elementIds?.length ?? 0;
-      return `그룹 (${count})`;
+      return t("history.entryGroup", { count });
     }
     case "ungroup": {
       const count =
         entry.data.groupData?.childIds?.length ?? entry.elementIds?.length ?? 0;
-      return `그룹 해제 (${count})`;
+      return t("history.entryUngroup", { count });
     }
     case "page-title": {
       const event = entry.data.pageTitleEvent;
       return event?.after
-        ? `페이지 이름 변경 — ${event.after}`
-        : "페이지 이름 변경";
+        ? t("history.entryPageTitleNamed", { title: event.after })
+        : t("history.entryPageTitle");
     }
     case "page-position": {
       const count = new Set(
         entry.data.pagePositionEvent?.entries.map((item) => item.pageId) ?? [],
       ).size;
-      return count > 1 ? `페이지 이동 (${count})` : "페이지 이동";
+      return count > 1
+        ? t("history.entryPageMoveCount", { count })
+        : t("history.entryPageMove");
     }
     case "page-guide": {
       // ADR-181 — 목록 전체 교체라 before/after 길이 차로 생성/삭제를 가른다.
@@ -142,28 +153,39 @@ export function getHistoryEntryLabel(
       }
       if (after > before) {
         const count = after - before;
-        return count > 1 ? `가이드 추가 (${count})` : "가이드 추가";
+        return count > 1
+          ? t("history.entryGuideAddCount", { count })
+          : t("history.entryGuideAdd");
       }
       if (after < before) {
         const count = before - after;
-        return count > 1 ? `가이드 삭제 (${count})` : "가이드 삭제";
+        return count > 1
+          ? t("history.entryGuideRemoveCount", { count })
+          : t("history.entryGuideRemove");
       }
-      return "가이드 이동";
+      return t("history.entryGuideMove");
     }
     case "snapshot-restore": {
       // ADR-180 — snapshotName 은 entry 에 담긴 사본이라 스냅샷 삭제 후에도
       // 라벨 유지 (R5)
       const name = entry.data.snapshotRestoreEvent?.snapshotName;
-      return name ? `스냅샷 복원 — ${name}` : "스냅샷 복원";
+      return name
+        ? t("history.entrySnapshotRestoreNamed", { name })
+        : t("history.entrySnapshotRestore");
     }
     case "page-lifecycle": {
       // ADR-185 G-1 — 페이지 생성/삭제 (제목은 entry 에 담긴 사본)
       const event = entry.data.pageLifecycleEvent;
       const title = event?.page.title;
-      const verb = event?.action === "delete" ? "페이지 삭제" : "페이지 추가";
-      return title ? `${verb} — ${title}` : verb;
+      const verb =
+        event?.action === "delete"
+          ? t("history.entryPageDelete")
+          : t("history.entryPageAdd");
+      return title
+        ? t("history.entryPageLifecycleNamed", { verb, title })
+        : verb;
     }
     default:
-      return "변경";
+      return t("history.entryDefault");
   }
 }

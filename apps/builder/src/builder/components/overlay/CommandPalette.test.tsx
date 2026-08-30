@@ -362,6 +362,6 @@ describe("CommandPalette — registry 소비", () => {
     });
 
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
-    expect(screen.getByText("실행 가능 1 / 63")).toBeTruthy();
+    expect(screen.getByText("1 of 63 available")).toBeTruthy();
   });
 });

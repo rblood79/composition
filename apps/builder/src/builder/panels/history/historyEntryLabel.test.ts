@@ -13,7 +13,19 @@ import type { CompositionDocument } from "@composition/shared";
 
 import type { Element } from "@/types/core/store.types";
 import type { HistoryEntry } from "../../stores/history";
+import { localizedStrings } from "@/i18n/translations";
 import { getHistoryEntryLabel } from "./historyEntryLabel";
+
+/**
+ * ko-KR 카탈로그에 묶은 해소기 — 라벨은 이제 카탈로그가 고른다 (ADR-200 어법).
+ * 아래 단정이 한국어인 것은 이 `t` 가 ko 를 읽기 때문이고, 카탈로그에 키가
+ * 없으면 키 문자열이 그대로 나와 단정이 깨진다.
+ */
+const t = (key: string, params?: Record<string, string | number | boolean>) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
 
 const NODE_ID = "3f2a9b1c-dead-beef-0000-111122223333";
 
@@ -70,7 +82,7 @@ describe("getHistoryEntryLabel", () => {
       },
     } as unknown as Partial<HistoryEntry>);
 
-    const label = getHistoryEntryLabel(entry, null);
+    const label = getHistoryEntryLabel(entry, null, t);
     expect(label).toBe("추가 submit_button");
     expect(label).not.toContain(NODE_ID);
   });
@@ -90,7 +102,9 @@ describe("getHistoryEntryLabel", () => {
       },
     } as unknown as Partial<HistoryEntry>);
 
-    expect(getHistoryEntryLabel(entry, makeDoc())).toBe("수정 submit_button");
+    expect(getHistoryEntryLabel(entry, makeDoc(), t)).toBe(
+      "수정 submit_button",
+    );
   });
 
   it("v2 update entry + 삭제된 노드: truncated id + (삭제됨)", () => {
@@ -112,7 +126,7 @@ describe("getHistoryEntryLabel", () => {
       version: "composition-1.0",
       children: [],
     } as unknown as CompositionDocument;
-    const label = getHistoryEntryLabel(entry, emptyDoc);
+    const label = getHistoryEntryLabel(entry, emptyDoc, t);
     expect(label).toBe("수정 3f2a9b1c… (삭제됨)");
   });
 
@@ -129,7 +143,7 @@ describe("getHistoryEntryLabel", () => {
       },
     });
 
-    expect(getHistoryEntryLabel(entry, null)).toBe("수정 hero_title");
+    expect(getHistoryEntryLabel(entry, null, t)).toBe("수정 hero_title");
   });
 
   it("sentinel elementId 는 원시 노출하지 않는다", () => {
@@ -138,7 +152,7 @@ describe("getHistoryEntryLabel", () => {
       elementId: "drag-reorder",
       data: {},
     });
-    expect(getHistoryEntryLabel(dragEntry, null)).toBe("이동");
+    expect(getHistoryEntryLabel(dragEntry, null, t)).toBe("이동");
 
     const batchEntry = makeEntry({
       type: "batch",
@@ -146,7 +160,7 @@ describe("getHistoryEntryLabel", () => {
       elementIds: ["a", "b", "c"],
       data: {},
     });
-    expect(getHistoryEntryLabel(batchEntry, null)).toBe("일괄 수정 (3)");
+    expect(getHistoryEntryLabel(batchEntry, null, t)).toBe("일괄 수정 (3)");
   });
 
   it("page-position entry: 페이지 이동 라벨 + 다중 페이지 카운트", () => {
@@ -166,7 +180,7 @@ describe("getHistoryEntryLabel", () => {
         },
       },
     } as unknown as Partial<HistoryEntry>);
-    expect(getHistoryEntryLabel(single, null)).toBe("페이지 이동");
+    expect(getHistoryEntryLabel(single, null, t)).toBe("페이지 이동");
 
     const multi = makeEntry({
       type: "page-position",
@@ -190,7 +204,7 @@ describe("getHistoryEntryLabel", () => {
         },
       },
     } as unknown as Partial<HistoryEntry>);
-    expect(getHistoryEntryLabel(multi, null)).toBe("페이지 이동 (2)");
+    expect(getHistoryEntryLabel(multi, null, t)).toBe("페이지 이동 (2)");
   });
 
   it("snapshot-restore entry: 스냅샷 이름 사본으로 라벨 (스냅샷 삭제와 무관)", () => {
@@ -205,7 +219,7 @@ describe("getHistoryEntryLabel", () => {
         },
       },
     } as unknown as Partial<HistoryEntry>);
-    expect(getHistoryEntryLabel(entry, null)).toBe(
+    expect(getHistoryEntryLabel(entry, null, t)).toBe(
       "스냅샷 복원 — 로그인 화면 v1",
     );
 
@@ -214,7 +228,7 @@ describe("getHistoryEntryLabel", () => {
       elementId: "page-1",
       data: {},
     });
-    expect(getHistoryEntryLabel(withoutEvent, null)).toBe("스냅샷 복원");
+    expect(getHistoryEntryLabel(withoutEvent, null, t)).toBe("스냅샷 복원");
   });
 
   it("batch entry: canonicalEvents 의 고유 노드 수로 카운트", () => {
@@ -237,7 +251,7 @@ describe("getHistoryEntryLabel", () => {
       },
     } as unknown as Partial<HistoryEntry>);
 
-    expect(getHistoryEntryLabel(entry, null)).toBe("일괄 수정 (2)");
+    expect(getHistoryEntryLabel(entry, null, t)).toBe("일괄 수정 (2)");
   });
 
   it("page-title entry는 변경된 page 이름을 표시한다", () => {
@@ -253,7 +267,7 @@ describe("getHistoryEntryLabel", () => {
       },
     });
 
-    expect(getHistoryEntryLabel(entry, null)).toBe(
+    expect(getHistoryEntryLabel(entry, null, t)).toBe(
       "페이지 이름 변경 — Landing",
     );
   });

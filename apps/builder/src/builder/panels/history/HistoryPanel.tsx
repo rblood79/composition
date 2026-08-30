@@ -32,6 +32,7 @@ import {
   type HistorySnapshot,
 } from "../../stores/history/snapshots";
 import { restoreSnapshot } from "../../stores/history/snapshotRestore";
+import { useI18n } from "@/i18n";
 import { getHistoryEntryLabel } from "./historyEntryLabel";
 import "./HistoryPanel.css";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
@@ -95,6 +96,7 @@ export function HistoryPanel() {
 }
 
 function HistoryPanelContent() {
+  const { t } = useI18n();
   const goToHistoryIndex = useStore((state) => state.goToHistoryIndex);
   const historyOperationInProgress = useStore(
     (state) => state.historyOperationInProgress,
@@ -260,11 +262,13 @@ function HistoryPanelContent() {
   const handleDeleteSnapshot = useCallback(
     (snapshot: HistorySnapshot) => {
       if (!projectId) return;
-      if (confirm(`스냅샷 "${snapshot.name}"을(를) 삭제할까요?`)) {
+      if (
+        confirm(t("history.confirmDeleteSnapshot", { name: snapshot.name }))
+      ) {
         void snapshotManager.deleteSnapshot(projectId, snapshot.id);
       }
     },
-    [projectId],
+    [projectId, t],
   );
 
   // ============================================
@@ -274,10 +278,10 @@ function HistoryPanelContent() {
   const handleClear = useCallback(() => {
     const currentPageId = useStore.getState().currentPageId;
     if (!currentPageId) return;
-    if (confirm("현재 페이지 히스토리를 모두 삭제할까요?")) {
+    if (confirm(t("history.confirmClearPage"))) {
       historyManager.clearPageHistory(currentPageId);
     }
-  }, []);
+  }, [t]);
 
   const handleJumpToIndex = useCallback(
     async (targetIndex: number) => {
@@ -298,7 +302,7 @@ function HistoryPanelContent() {
     const mapped: HistoryListItem[] = entries.map((entry, index) => ({
       id: entry.id,
       index,
-      label: getHistoryEntryLabel(entry, activeDoc),
+      label: getHistoryEntryLabel(entry, activeDoc, t),
       type: entry.type,
       timestamp: entry.timestamp,
     }));
@@ -309,7 +313,7 @@ function HistoryPanelContent() {
       ordered.push({
         id: "history-start",
         index: -1,
-        label: "시작 상태",
+        label: t("history.initialState"),
         timestamp: undefined,
         isStart: true,
       });
@@ -322,16 +326,19 @@ function HistoryPanelContent() {
     <div className="panel history-panel">
       <PanelHeader
         icon={<History size={iconProps.size} />}
-        title="작업 내역"
+        title={t("history.title")}
         panelId="history"
         actions={
-          <Toolbar className="history-actions" aria-label="작업 내역 도구">
+          <Toolbar
+            className="history-actions"
+            aria-label={t("history.toolbarLabel")}
+          >
             <ActionIconButton
               onPress={handleUndo}
               isDisabled={
                 !historyInfo.canUndo || restoring || historyOperationInProgress
               }
-              aria-label="실행 취소"
+              aria-label={t("command.undo")}
               shortcutId="undo"
             >
               <Undo size={iconProps.size} />
@@ -341,7 +348,7 @@ function HistoryPanelContent() {
               isDisabled={
                 !historyInfo.canRedo || restoring || historyOperationInProgress
               }
-              aria-label="다시 실행"
+              aria-label={t("command.redo")}
               shortcutId="redo"
             >
               <Redo size={iconProps.size} />
@@ -349,11 +356,11 @@ function HistoryPanelContent() {
             <ActionIconButton
               onPress={handleCreateSnapshot}
               isDisabled={!projectId || !canCreateSnapshot || restoring}
-              aria-label="스냅샷 생성"
+              aria-label={t("history.createSnapshot")}
               tooltip={
                 canCreateSnapshot
-                  ? "현재 문서 스냅샷 생성"
-                  : "상한 도달 — 기존 스냅샷을 삭제한 후 생성할 수 있습니다"
+                  ? t("history.createSnapshotHint")
+                  : t("history.createSnapshotLimit")
               }
             >
               <Camera size={iconProps.size} />
@@ -367,14 +374,14 @@ function HistoryPanelContent() {
               isDisabled={
                 !activeUserSnapshot || restoring || historyOperationInProgress
               }
-              aria-label="활성 스냅샷 삭제"
-              tooltip="활성 스냅샷 삭제"
+              aria-label={t("history.deleteActiveSnapshot")}
+              tooltip={t("history.deleteActiveSnapshot")}
             >
               <DeleteIcon size={iconProps.size} />
             </ActionIconButton>
             <MenuTrigger>
               <ActionIconButton
-                aria-label="기록 작업"
+                aria-label={t("history.menuLabel")}
                 isDisabled={
                   historyInfo.totalEntries === 0 || historyOperationInProgress
                 }
@@ -388,7 +395,7 @@ function HistoryPanelContent() {
               >
                 <Menu
                   className="history-menu"
-                  aria-label="기록 작업"
+                  aria-label={t("history.menuLabel")}
                   onAction={(key) => {
                     if (key === "clear-history") {
                       handleClear();
@@ -399,10 +406,10 @@ function HistoryPanelContent() {
                     id="clear-history"
                     className="history-menu-item"
                     data-destructive="true"
-                    textValue="현재 페이지 기록 초기화"
+                    textValue={t("history.clearPage")}
                   >
                     <DeleteIcon size={iconSmall.size} />
-                    <span>현재 페이지 기록 초기화</span>
+                    <span>{t("history.clearPage")}</span>
                   </MenuItem>
                 </Menu>
               </Popover>
@@ -414,7 +421,7 @@ function HistoryPanelContent() {
       <div className="panel-contents">
         {projectId && (
           <Section
-            title="스냅샷"
+            title={t("history.snapshotsSection")}
             badge={
               <span className="history-count">
                 {userSnapshots.length}/{USER_SNAPSHOT_LIMIT}
@@ -482,7 +489,7 @@ function HistoryPanelContent() {
 
         <Section
           id="history-edits"
-          title="편집"
+          title={t("history.editsSection")}
           badge={
             <span className="history-count">
               {Math.max(historyInfo.currentIndex + 1, 0)}/
@@ -494,8 +501,8 @@ function HistoryPanelContent() {
           {displayEntries.length === 0 ? (
             <EmptyState
               icon={<History size={48} />}
-              message="작업 내역이 없습니다"
-              description="요소를 추가하거나 수정하면 기록이 표시됩니다"
+              message={t("history.emptyMessage")}
+              description={t("history.emptyDescription")}
             />
           ) : (
             <div className="history-list">
@@ -509,7 +516,7 @@ function HistoryPanelContent() {
                 const Icon = entryIcon(item);
                 const itemDetails =
                   !isStart && timestamp !== undefined
-                    ? `${formatTimestamp(timestamp)} · ${item.index + 1}번째 기록`
+                    ? `${formatTimestamp(timestamp)} · ${t("history.entryOrdinal", { index: item.index + 1 })}`
                     : undefined;
 
                 return (
@@ -529,8 +536,8 @@ function HistoryPanelContent() {
                       aria-current={isActive ? "step" : undefined}
                       aria-label={
                         itemDetails
-                          ? `${item.label}, ${itemDetails}${isActive ? ", 현재 상태" : ""}`
-                          : `${item.label}${isActive ? ", 현재 상태" : ""}`
+                          ? `${item.label}, ${itemDetails}${isActive ? `, ${t("history.currentState")}` : ""}`
+                          : `${item.label}${isActive ? `, ${t("history.currentState")}` : ""}`
                       }
                     >
                       <span className="history-item-icon">

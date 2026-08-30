@@ -388,17 +388,17 @@ export function CommandPalette({
     >
       <Modal className="command-palette-modal">
         <Dialog
-          aria-label="명령어 팔레트"
+          aria-label={t("commandPalette.dialogLabel")}
           className="panel command-palette-panel"
         >
           <PanelHeader
             icon={<Command size={iconProps.size} />}
-            title="명령어"
+            title={t("commandPalette.title")}
             actions={
               <ActionIconButton
                 onPress={() => handleOpenChange(false)}
-                aria-label="닫기"
-                tooltip="닫기"
+                aria-label={t("common.close")}
+                tooltip={t("common.close")}
               >
                 <X size={iconProps.size} />
               </ActionIconButton>
@@ -413,14 +413,14 @@ export function CommandPalette({
               appearance="control"
               value={search}
               onChange={setSearch}
-              placeholder="명령어 검색..."
-              aria-label="명령어 검색"
+              placeholder={t("commandPalette.searchPlaceholder")}
+              aria-label={t("commandPalette.searchLabel")}
             />
 
             {/* Command List */}
             {filteredCommands.length > 0 ? (
               <ListBox
-                aria-label="명령어 목록"
+                aria-label={t("commandPalette.listLabel")}
                 className="command-palette-list"
                 selectionMode="single"
                 onAction={handleAction}
@@ -453,7 +453,7 @@ export function CommandPalette({
               </ListBox>
             ) : (
               <div className="command-palette-empty">
-                "{search}"에 대한 결과가 없습니다
+                {t("commandPalette.noResults", { query: search })}
               </div>
             )}
 
@@ -461,16 +461,21 @@ export function CommandPalette({
             <div className="command-palette-footer">
               <div className="command-palette-hints">
                 <span className="command-palette-hint">
-                  <kbd>↑↓</kbd> 이동
+                  <kbd>↑↓</kbd> {t("commandPalette.hintMove")}
                 </span>
                 <span className="command-palette-hint">
-                  <kbd>↵</kbd> 실행
+                  <kbd>↵</kbd> {t("commandPalette.hintRun")}
                 </span>
                 <span className="command-palette-hint">
-                  <kbd>esc</kbd> 닫기
+                  <kbd>esc</kbd> {t("commandPalette.hintClose")}
                 </span>
               </div>
-              <span>{`실행 가능 ${executableCount} / ${filteredCommands.length}`}</span>
+              <span>
+                {t("commandPalette.executableCount", {
+                  count: executableCount,
+                  total: filteredCommands.length,
+                })}
+              </span>
             </div>
           </div>
         </Dialog>

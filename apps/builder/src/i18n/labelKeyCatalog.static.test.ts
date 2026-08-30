@@ -29,7 +29,7 @@ const FROZEN_KEY_COUNTS: Partial<
 > = {
   contextMenu: 25,
   command: 72,
-  commandPalette: 16,
+  commandPalette: 26,
 };
 
 const SRC_ROOT = path.resolve(__dirname, "..");
