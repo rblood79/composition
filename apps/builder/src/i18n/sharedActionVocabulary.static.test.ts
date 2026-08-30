@@ -25,14 +25,13 @@ const HOMONYMS = new Set([
 
 /**
  * 같은 개념인데 표기가 갈린 자리 — **고쳐야 할 것**이지만 어느 쪽으로 통일할지는
- * 별도 판단이 필요해 남겨 둔다. 목록이 늘어나면 안 된다.
+ * 별도 판단이 필요해 남겨 둔다. 지금은 비어 있고, 비어 있는 채로 두는 것이 목표다.
  *
- * `Interactions`("이벤트"↔"인터랙션") 와 `History`("히스토리"↔"작업 내역") 는
- * 2026-08-31 에 각각 "인터랙션" / "작업 내역" 으로 통일해 목록에서 뺐다.
+ * 2026-08-31 에 세 건을 비웠다: `Interactions`("이벤트"→"인터랙션"),
+ * `History`("히스토리"→"작업 내역"), `Default`("기본값"→"기본" + 폰트 섹션 머리말은
+ * 값이 아니라 분류라 영어까지 `Built-in` 으로 갈라냄).
  */
-const KNOWN_DRIFT = new Set([
-  "Default", // "기본값"(fonts.defaultValue) ↔ "기본"(fonts.sectionDefault, settings.uiScaleDefault)
-]);
+const KNOWN_DRIFT = new Set<string>([]);
 
 describe("표면이 달라도 같은 동작은 같은 이름", () => {
   const en = localizedStrings["en-US"] as Record<string, unknown>;

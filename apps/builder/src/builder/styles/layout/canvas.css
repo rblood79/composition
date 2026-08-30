@@ -79,6 +79,8 @@
   .panel-header .panel-actions {
     display: flex;
     flex-direction: row;
+    /* 버튼은 줄어들지 않는다 — 남는 폭은 이름표가 가져간다 */
+    flex: 0 0 auto;
   }
 
   /* 크기는 `styles/modules/builder-control-size.css` 의 lg 티어. */
@@ -95,6 +97,19 @@
     line-height: var(--text-xs--line-height);
     font-size: var(--text-xs);
     color: var(--fg);
+    /* 남는 폭을 이름표가 차지한다. flex item 의 기본 min-width:auto 는 줄임표를
+       무력화하므로 0 으로 낮춘다. */
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* 좁은 패널에서 이름이 두 줄로 접히면 글자가 잘려 읽을 수 없게 된다 — 한 줄로
+     두고 넘치면 줄임표. 전체 이름은 title 속성으로 남는다. */
+  .panel-header .panel-title-text {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .panel-header .panel-icon {

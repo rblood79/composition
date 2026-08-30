@@ -72,14 +72,19 @@ export function PanelHeader({
   const closeLabel = i18n ? i18n.t("common.close") : "Close";
   const handleClose =
     onClose ?? (panelId ? () => togglePanelWorkspace(panelId) : undefined);
+  const resolvedTitle = i18n
+    ? translateKey(i18n.t, semanticLabelKeys[title] ?? title, title)
+    : title;
 
   return (
     <div className={`panel-header ${className}`.trim()}>
       <h3 className="panel-title">
         {icon && <span className="panel-icon">{icon}</span>}
-        {i18n
-          ? translateKey(i18n.t, semanticLabelKeys[title] ?? title, title)
-          : title}
+        {/* 이름표를 span 으로 감싸는 이유: 익명 flex item 은 줄바꿈을 막을 수 없어
+            좁은 패널에서 "작업 내역" 같은 두 어절 이름이 두 줄로 접혀 잘렸다. */}
+        <span className="panel-title-text" title={resolvedTitle}>
+          {resolvedTitle}
+        </span>
       </h3>
       {(actions || handleClose) && (
         <div className="panel-actions">
