@@ -111,11 +111,11 @@ pnpm --filter @composition/builder test -- propertyFieldIcons.static actionIcons
 
 ```
 apps/builder/src/builder/components/icons/morph/
-  core/               ← upstream src/core/* 그대로 (MIT 헤더 + UPSTREAM.md: 1.7.1 / 38d2a72 / 갱신 절차)
-    parse.ts normalize.ts resample.ts plan.ts interpolate.ts serialize.ts spring.ts types.ts index.ts
+  core/               ← upstream src/core/* 8 파일 그대로 (index 없음 — MIT 헤더 + UPSTREAM.md: 1.7.1 / 38d2a72 / 갱신 절차)
+    parse.ts normalize.ts resample.ts plan.ts interpolate.ts serialize.ts spring.ts types.ts
   dom.ts              ← upstream src/dom/index.ts (createMorph · singleton rAF · WeakMap 캐시 · canonicalD)
-  iconNodes.ts        ← name → IconNode 변환 + 모듈 Map 캐시 (참조 고정)
-  MorphIcon.tsx       ← React binding (upstream src/react/index.tsx 축소판: 이름 기반, controlled 모드·imperative handle 제거)
+  iconNodes.ts        ← resolveIconInput(IconInput): string 이면 getIconData 조회 + 모듈 Map 캐시, IconNode 면 지원 태그 검증 후 통과 (참조 고정은 호출부 책임)
+  MorphIcon.tsx       ← React binding (upstream src/react/index.tsx 축소판: icon prop = IconInput (이름 | IconNode), controlled 모드·imperative handle 제거)
   statePairs.ts       ← ICON_STATE_PAIRS 레지스트리 (SSOT)
   StateIcon.tsx       ← boolean 전용 얇은 껍질
   __tests__/
@@ -128,7 +128,7 @@ apps/builder/src/builder/components/icons/morph/
 ### 3-2. 파이프라인 (순수 함수 — 마지막 단계만 DOM)
 
 ```
-getIconData(name) → IconNode (Map 캐시) → resampleIcon (normalize→cubic, 64pt 호길이)
+resolveIconInput(input) → IconNode (string 이면 getIconData + Map 캐시) → resampleIcon (normalize→cubic, 64pt 호길이)
   → buildPlan(src, dst) (Procrustes 정렬, WeakMap<src, WeakMap<dst, Plan>>)
   → Spring.step(dt) → interpPolar(plan, t, out) → serialize(out) → path.setAttribute("d")
 정지 시: path.setAttribute("d", canonicalD(target))  ← 곡선 fidelity 복귀
@@ -155,8 +155,15 @@ Phase 3 확장 후보는 §2-3 재판정 통과분만 (`inset` / `step` / `ai` /
 
 ```tsx
 // MorphIcon — any → any (enum 전환 포함). lucide-react 와 같은 presentation prop.
+// icon 은 IconInput = string(레지스트리 이름) | IconNode([tag, attrs][]) — 종류 무관.
 <MorphIcon icon="chevron-down" size={14} strokeWidth={2} color="var(--color-gray-400)"
            spring="smooth" reducedMotion="user" aria-hidden />
+
+// custom 아이콘 (getIconData 에 없는 것 — components/icons/SquareOff · LayoutFreeform)
+// 은 IconNode 를 모듈 최상위 const 로 고정해 그대로 넘긴다.
+// (SquareOff.tsx:39-41 은 <path> 3개, LayoutFreeform 은 rx=1 rect — 둘 다 지원 태그)
+const SQUARE_OFF_NODE: IconNode = [["path", { d: "M20.4 20.4a2 2 0 0 1-1.4.6H5…" }], …];
+<MorphIcon icon={on ? SQUARE_NODE : SQUARE_OFF_NODE} size={16} />
 
 // StateIcon — boolean 전용. 레지스트리 키만 받는다 (짝 없는 토글은 쓰지 않음 = fallback).
 <StateIcon pair="lock" on={locked} size={16} />
@@ -180,7 +187,8 @@ DOM 산출: `<svg width height viewBox="0 0 24 24" fill="none" stroke stroke-wid
 | 정본 경계 (2026-08-30)  | 아이콘 정본 3개의 축이 다르다 — **액션** = `ACTION_ICONS` (2+ surface 의 같은 액션) · **속성 필드** = `propertyFieldIcons` (catalog 필드 key) · **상태 쌍** = `ICON_STATE_PAIRS` (한 컨트롤의 on/off 형태). 등재 전 `panel-structure.md` §아이콘 판정 기준 ①뜻 일치 ②같은 화면 변별 통과 필수. `ACTION_ICONS` 등재 액션의 쌍은 그 registry 를 정본으로 두고 쌍만 참조 (직접 lucide import 금지 조항 유지) |
 | reducedMotion 기본 user | OS `prefers-reduced-motion` 시 `morphTo ≡ set` (프레임 0). `never` 는 명시 opt-in 만                                                                                                                                                                                                                                                                                                                      |
 | spring 기본 smooth      | ζ=1 임계 감쇠 (overshoot 0). `snappy` 허용, `bouncy` 는 chrome 금지                                                                                                                                                                                                                                                                                                                                       |
-| 참조 고정               | 같은 이름 → 같은 IconNode 참조 (모듈 Map). 매 render 변환 금지 — plan WeakMap 캐시가 쌍당 1회가 되는 전제                                                                                                                                                                                                                                                                                                 |
+| 참조 고정               | 같은 이름 → 같은 IconNode 참조 (모듈 Map). **IconNode 를 직접 넘길 때는 모듈 최상위 const 로 고정** — 매 render 새 배열을 만들면 plan `WeakMap` 캐시가 매번 miss (dev 경고로 검출)                                                                                                                                                                                                                        |
+| 입력 검증               | upstream core 는 미지원 태그를 `throw` 한다 (`normalize.ts` default) 이고 dom driver 에 catch 가 없다 — `resolveIconInput` 이 화이트리스트로 걸러 `null` 을 반환한다. 예외를 render 로 올리지 않는다                                                                                                                                                                                                      |
 | 정지 시 canonical       | settle 후 `d === canonicalD(target)` (테스트 고정)                                                                                                                                                                                                                                                                                                                                                        |
 | rAF                     | morph 전체 singleton 1개, 정지 시 0 timer. Skia 루프 (`SkiaCanvas.tsx:627`) 와 무관 — canvas 미적용                                                                                                                                                                                                                                                                                                       |
 | upstream 갱신           | `core/` 디렉토리 통째 교체 → Prettier 재포맷 (PostToolUse hook 이 어차피 적용 — upstream 은 biome 포맷이라 바이트 hash 비교는 무의미, 비교는 테스트로) → invariants/dom 테스트 통과 → `UPSTREAM.md` 에 upstream commit 기록. 부분 patch 금지 (drift 누적 방지)                                                                                                                                            |
@@ -191,7 +199,7 @@ DOM 산출: `<svg width height viewBox="0 0 24 24" fill="none" stroke stroke-wid
 
 | 파일                                           | 변경                                                                                                 |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `components/icons/morph/core/*` (9)            | upstream 복사 + MIT 헤더 + `UPSTREAM.md`                                                             |
+| `components/icons/morph/core/*` (8)            | upstream 복사 + MIT 헤더 + `UPSTREAM.md`                                                             |
 | `components/icons/morph/dom.ts`                | upstream `src/dom/index.ts` 복사                                                                     |
 | `__tests__/invariants.test.ts` · `dom.test.ts` | bun:test → vitest 치환 (`describe/test/expect` 동일, rAF fake 는 upstream `test/client-dom.ts` 이식) |
 | 본 문서 §2                                     | 재grep 결과로 표 갱신 (freeze commit)                                                                |
@@ -200,11 +208,11 @@ Gate G0: vitest 이식 케이스 전부 PASS · `pnpm type-check` 0 (리뷰 prob
 
 ### Phase 1 — `MorphIcon` + 이름 캐시
 
-| 파일                           | 변경                                                                                                                                                                                                            |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `iconNodes.ts`                 | `getIconData` → IconNode, `Map<string, IconNode>`; 미존재 이름은 `null` (렌더 0, dev 경고)                                                                                                                      |
-| `MorphIcon.tsx`                | `useState(() => canonicalD(initial))` 1회 · `useLayoutEffect` mount `createMorph` · `icon` 변경 effect `morphTo` · unmount `destroy`. controlled(`from/to/progress`)·imperative handle 제거                     |
-| `__tests__/MorphIcon.test.tsx` | reducedMotion 기본 `user` (upstream driver 기본은 `never`, `dom/index.ts:166`) · 같은 이름 재렌더 시 `morphTo` 0회 · unmount 후 rAF 0 · React StrictMode 이중 mount 후 live driver 1개 (cleanup `destroy` 보존) |
+| 파일                           | 변경                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `iconNodes.ts`                 | `resolveIconInput(input: IconInput): IconNode \| null` — string 이면 `getIconData` + `Map<string, IconNode>` 캐시, 배열이면 지원 태그 (path/line/circle/ellipse/rect/polyline/polygon) 화이트리스트 검증 후 반환. 미존재 이름·미지원 태그는 `null` (렌더 0, dev 경고 — upstream `normalize.ts` 의 `unsupported tag` throw 가 render 로 전파되는 것을 차단)      |
+| `MorphIcon.tsx`                | `useState(() => canonicalD(initial))` 1회 · `useLayoutEffect` mount `createMorph` · `icon` 변경 effect `morphTo` · unmount `destroy`. controlled(`from/to/progress`)·imperative handle 제거                                                                                                                                                                     |
+| `__tests__/MorphIcon.test.tsx` | reducedMotion 기본 `user` (upstream driver 기본은 `never`, `dom/index.ts:166`) · 같은 이름 재렌더 시 `morphTo` 0회 · unmount 후 rAF 0 · React StrictMode 이중 mount 후 live driver 1개 (cleanup `destroy` 보존) · **IconNode 직접 전달 경로** (getIconData 미조회 · 같은 참조 재렌더 시 `morphTo` 0회) · 미지원 태그 (`<g>`) 포함 IconNode 로 throw 없이 렌더 0 |
 
 Gate G1: 초기 chunk Δ ≤ +10KB gz (`vite build` 산출 비교, ADR-196 방법) · 같은 이름 참조 동일성 테스트.
 
@@ -254,4 +262,4 @@ Gate G3: 추가 pair 마다 statePairs 테스트 + live 1회 + §2-3 정본 경�
 - canvas (Skia) · Preview · Publish 의 사용자 요소 `Icon` — 미적용 (사용자 결정). 나중에 D3 transition 채널로 다루려면 별도 ADR (Skia write adapter + 대칭 검증 필요).
 - lucide-react 컴포넌트 기반 `ActionIcon` 타입 (`actionIcons.ts`) 과 속성 필드 정본 (`propertyFieldIcons.ts`) — 둘 다 존속. 본 ADR 은 상태 쌍 축만 추가한다 (§3-5 정본 경계).
 - enum 전환 (breakpoint 3종 등) 은 `MorphIcon` 직접 사용 가능하나 본 ADR 에서 교체 대상 없음.
-- `svgToIcon` / `fitIcon` (비-24 그리드 아이콘 팩 재격자) — 사용자 문서 아이콘 데이터 경로라 비스코프.
+- `svgToIcon` / `fitIcon` (비-24 그리드 아이콘 팩 재격자) — 사용자 문서 아이콘 데이터 경로라 비스코프. 24 그리드 stroke 아이콘이면 lucide 여부와 무관하게 `IconNode` 직접 전달로 morph 가능 (custom `SquareOff` / `LayoutFreeform` 포함).
