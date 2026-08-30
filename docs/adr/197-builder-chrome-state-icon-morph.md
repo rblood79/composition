@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-08-30 (계약 확장 2026-08-30: `MorphIcon` 의 `icon` prop = `IconInput` (이름 | IconNode) — 사용자 지시. review-adr round 2 — 기준선 재검토 갱신: MED 2·LOW 2 전부 fixed, `docs/adr/reviews/197.md`; round 1 승인 2026-08-30, 직전 Proposed 2026-08-30)
+Deprecated — 2026-08-30 (사용자 판단: "기대보다 퀄리티가 떨어진다" → 구현 전량 롤백)
+
+> 롤백 기록: Phase 0~3 구현은 `31d56ee41` · `0181a9153` · `1509b9936` · `023f11fbd` · `ed7b35dae` 로 반영됐다가 2026-08-30 코드만 되돌렸다 (vendoring 디렉토리 삭제 + 교체 8+4곳 원복). 설계·실측·리뷰 기록은 다시 볼 때를 위해 남긴다. 재개하려면 아래 §Consequences 뒤의 "롤백에서 남은 것" 을 먼저 읽을 것.
 
 > 출처: 2026-08-29 사용자 요청 — "빌더 내 아이콘을 더 동적으로 표현. lock-keyhole-open → lock-keyhole 식 on/off 개념을 더하면 단순한 아이콘에 시각 효과로 가독성·시인성을 줄 수 있다" + "재사용 가능한 패턴으로". 적용 대상은 **Builder chrome 한정, canvas 미적용** (사용자 결정). 완전 신규 주제 (fork 아님) — 전제 기록은 [breakdown §1](design/197-builder-chrome-state-icon-morph-breakdown.md).
 
@@ -138,7 +140,7 @@ Accepted — 2026-08-30 (계약 확장 2026-08-30: `MorphIcon` 의 `icon` prop =
 | G2   | Phase 2 완료   | `statePairs.test.ts` PASS (양끝 존재 · θ/σ 유한 · off≠on) · 교체 파일 기존 테스트 PASS · 아이콘 static 게이트 유지 (`actionIcons.static` · `propertyFieldIcons.static` · `sectionHeaderIcon.static`) · 등재 쌍이 같은 화면 필드 아이콘과 그림 미충돌 (R8) · **Live Exercise** (breakdown §6: lock / pin / theme + reduced-motion + rAF 0 — 조건: 보이는 탭 (`visibilityState: visible`, hidden 탭은 rAF 정지로 오판), DPR 2, dark 테마, reduced-motion 은 OS 설정으로 켜고 끔)                           | 특정 쌍이 시각 미달이면 해당 쌍만 레지스트리 제외 (삼항 유지), 나머지 진행            |
 | G3   | Phase 3 항목별 | 추가 쌍마다 G2 테스트 + live 1회 + 정본 경계 확인 (R8). 미확인 2건 (`view` 시각 · `save` 배치) 은 실측 근거를 breakdown §2-3 에 기록                                                                                                                                                                                                                                                                                                                                                                     | 근거 미달 항목은 미등록 — 억지 짝 금지                                                |
 
-### Live Exercise
+### Live Exercise (롤백 전 실측 — 기록 보존)
 
 **2026-08-30 (Chrome MCP, dev 5173, 보이는 탭)** — Phase 2 부분 통과. 확인: Action Bar 옵션 메뉴의 Pin 이 `MorphIcon` 으로 렌더 (단일 `<path>` · canonical cubic, 같은 메뉴의 lucide 항목은 path 2·4개) · pin 토글 후 형태 교체 · 보이는 컨트롤에서 driver 부착. 미확인 (테스트로 고정): 비행 프레임과 정지 canonical 복귀 · reduced-motion — `MorphIcon.settle.test.tsx` 가 실제 driver 로 검증.
 
@@ -172,3 +174,18 @@ Accepted — 2026-08-30 (계약 확장 2026-08-30: `MorphIcon` 의 `icon` prop =
 - chrome 아이콘 정본이 셋이 된다: 액션 = `ACTION_ICONS`, 속성 필드 = `propertyFieldIcons`, 상태 쌍 = `ICON_STATE_PAIRS`. 리뷰 시 "상태가 있는데 삼항을 썼는가" 를 봐야 한다.
 - 이식 테스트 (~120 케이스) 가 vitest 실행 시간에 더해진다 (순수 함수라 ms 단위).
 - Preview / canvas 의 사용자 요소 `Icon` 은 그대로 즉시 교체 — 빌더 chrome 과 사용자 문서의 아이콘 동작이 달라진다 (의도된 범위 한정, breakdown §7).
+
+## 롤백에서 남은 것 (2026-08-30)
+
+되돌린 것은 코드뿐이고, 다시 볼 때 값이 있는 사실은 아래다.
+
+| 사실                             | 내용                                                                                                                                                                                    |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 수학·전환 자체는 동작했다        | 포그라운드 탭 실측 — Theme: sun canonical(C 12/405) → 비행 polyline(L 567, 10 프레임) → moon canonical(C 7/318). AI rail: bot(C 14/372) → polyline(L 441, 8 프레임) → bot-off(C 15/446) |
+| 번들 비용                        | 초기 chunk +7,236 B gz (대조군 A/B, `dist/assets/main-*.js`)                                                                                                                            |
+| 교체 가능 지점은 생각보다 적었다 | 초안 11곳 중 실제로 "한 컨트롤의 두 상태" 는 8곳. 확장 후보 11곳 중 4곳만 등재 가능 (탭 아이콘·1회 실행 액션·enum 버튼 그룹·별도 subtree 는 짝이 아니다)                                |
+| 측정 조건 2개                    | ① 백그라운드 탭은 rAF 0 프레임 (40 요청 → 0 실행) — 어떤 morph 도 안 움직인다 ② 패널은 `<Activity>` 안이라 닫히면 effect 가 해제된다                                                    |
+| 부딪힌 계약                      | `shared/ToggleButton` 은 children 을 element 로만 받는다 (render prop 금지, `ToggleButton.tsx:94`) — 이걸 어겨 rail 아이콘 10개가 사라졌었다                                            |
+| 아이콘 정본 3중화                | 액션(`ACTION_ICONS`) · 속성 필드(`propertyFieldIcons`) · 상태 쌍 — 세 번째 축을 들이면 같은 화면에서 그림 하나가 두 뜻을 갖는 자리가 생긴다 (`Lock`/`Eye`/`EyeOff`)                     |
+
+재개한다면 vendoring (`morphicons` 1.7.1, `38d2a72`) 부터가 아니라 **"형태 전환이 실제로 값을 주는 지점이 8곳뿐인데 core 1,470 LOC 을 들일 값인가"** 를 먼저 판정해야 한다.

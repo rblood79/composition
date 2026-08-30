@@ -79,11 +79,13 @@ export function ComponentMemoryList({
       </div>
 
       {/* Total */}
-      <div className="component-memory-total">
-        <span className="total-label">
+      <div className="monitor-summary">
+        <span className="monitor-summary-label">
           {localize("totalElementsMemory", "Total Elements Memory:")}
         </span>
-        <span className="total-value">{formatBytes(totalMemory)}</span>
+        <span className="monitor-summary-value">
+          {formatBytes(totalMemory)}
+        </span>
       </div>
 
       <div

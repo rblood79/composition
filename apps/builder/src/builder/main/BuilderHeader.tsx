@@ -12,6 +12,7 @@ import {
   Upload,
   CircleHelp,
   Info,
+  Columns,
   LayoutDashboard,
   Settings,
 } from "lucide-react";
@@ -60,7 +61,6 @@ const DeleteIcon = ACTION_ICONS.delete;
 // icon}`)는 미디어 쿼리 경계를 서술하는 **별개 타입**이다 — 혼동 금지.
 export type { Breakpoint } from "../workspace/types";
 import type { Breakpoint } from "../workspace/types";
-import { StateIcon } from "../components/icons";
 
 export interface BuilderHeaderProps {
   projectId?: string;
@@ -309,9 +309,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
         >
           <ActionTooltipTrigger tooltip={compareLabel}>
             <ToggleButton id="compare" aria-label={compareLabel}>
-              <StateIcon
-                pair="compare"
-                on={isCompareMode}
+              <Columns
                 strokeWidth={iconProps.strokeWidth}
                 size={iconProps.size}
               />

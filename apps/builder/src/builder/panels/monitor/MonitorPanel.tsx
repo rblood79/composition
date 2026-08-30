@@ -18,6 +18,7 @@ import {
   History,
   MemoryStick,
   Percent,
+  RefreshCw,
   Zap,
 } from "lucide-react";
 import { iconProps, iconLarge } from "../../../utils/ui/uiConstants";
@@ -31,8 +32,7 @@ import { MemoryActions } from "./components/MemoryActions";
 import { ThresholdIndicator } from "./components/ThresholdIndicator";
 import { ExportButton } from "./components/ExportButton";
 import { RealtimeChart } from "./components/RealtimeChart";
-import { FPSMeter } from "./components/FPSMeter";
-import { WebVitalsCard } from "./components/WebVitalsCard";
+import { RealtimeMetrics } from "./components/RealtimeMetrics";
 import { ComponentMemoryList } from "./components/ComponentMemoryList";
 import { ThresholdSettings } from "./components/ThresholdSettings";
 import {
@@ -40,7 +40,12 @@ import {
   type ThresholdConfig,
 } from "./utils/thresholdConfig";
 import { useToast } from "@/builder/hooks";
-import { PanelHeader, Section, ToastContainer } from "../../components";
+import {
+  ActionIconButton,
+  PanelHeader,
+  Section,
+  ToastContainer,
+} from "../../components";
 import { translateKey, useOptionalI18n } from "../../../i18n";
 
 const MAX_HISTORY_POINTS = 60; // 최대 60개 데이터 포인트 (10분)
@@ -273,11 +278,17 @@ export function MonitorPanel() {
           <Section
             id="monitor-realtime-metrics"
             title={localize("realtimeMetrics", "Realtime Metrics")}
+            actions={
+              <ActionIconButton
+                aria-label={localize("refreshWebVitals", "Refresh Web Vitals")}
+                onPress={collectLocalVitals}
+                tooltip={localize("refreshWebVitals", "Refresh Web Vitals")}
+              >
+                <RefreshCw size={iconProps.size} aria-hidden="true" />
+              </ActionIconButton>
+            }
           >
-            <div className="realtime-metrics-row">
-              <FPSMeter fps={fps} />
-              <WebVitalsCard vitals={vitals} onRefresh={collectLocalVitals} />
-            </div>
+            <RealtimeMetrics fps={fps} vitals={vitals} />
           </Section>
           <Section
             id="monitor-realtime-memory"

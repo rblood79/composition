@@ -19,6 +19,7 @@ import {
 } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
+  Square,
   SquareDashed,
   SquareRoundCorner,
   SquareDashedBottom,
@@ -26,7 +27,7 @@ import {
   Eclipse,
   Scissors,
 } from "lucide-react";
-import { StateIcon } from "../../../components/icons";
+import { SquareOff } from "../../../components/icons";
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
 import {
   applyShadowInset,
@@ -313,9 +314,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
             isDisabled={!hasShadow}
             onChange={handleInsetChange}
           >
-            <StateIcon
-              pair="inset"
-              on={insetActive}
+            <SquareOff
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}

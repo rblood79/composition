@@ -42,6 +42,8 @@ import {
   Shrink,
   ChevronsLeftRightEllipsis,
   Ratio,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { LayoutFreeform } from "../../../components/icons";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
@@ -80,7 +82,6 @@ import type { BoundingBox } from "../../../workspace/canvas/selection/types";
 import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
 import { resolveContainerStylesFallback } from "../../../workspace/canvas/layout/engines/implicitStyles";
 import type { CanvasLayoutNode } from "../../../workspace/canvas/layout/layoutNode";
-import { StateIcon } from "../../../components/icons";
 
 const ICON_SIZE = 14;
 const ICON_STROKE = 1.5;
@@ -668,13 +669,19 @@ const TransformSectionContent = memo(function TransformSectionContent() {
               aria-label={localize("Lock aspect ratio")}
               onPress={handleAspectRatioLock}
             >
-              <StateIcon
-                pair="lock"
-                on={Boolean(styleValues.aspectRatio)}
-                color={iconProps.color}
-                size={iconProps.size}
-                strokeWidth={iconProps.strokeWidth}
-              />
+              {styleValues.aspectRatio ? (
+                <Lock
+                  color={iconProps.color}
+                  size={iconProps.size}
+                  strokeWidth={iconProps.strokeWidth}
+                />
+              ) : (
+                <Unlock
+                  color={iconProps.color}
+                  size={iconProps.size}
+                  strokeWidth={iconProps.strokeWidth}
+                />
+              )}
             </SwatchIconButton>
           </div>
         </div>

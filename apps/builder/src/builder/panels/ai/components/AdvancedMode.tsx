@@ -8,11 +8,10 @@
  * 진행 영역은 **일어난 것만** 그린다. 분해 실행이 아니면 계획도 수리도 없으므로 영역 자체가
  * 생기지 않는다 (빈 상자를 그리면 "여기 뭔가 있어야 하나" 라는 오해가 생긴다).
  */
-import { Wrench } from "lucide-react";
+import { CircleCheck, CircleDot, Wrench } from "lucide-react";
 import { AgentProfileSettings } from "./AgentProfileSettings";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { hasProgress, type AgentProgress } from "../hooks/agentProgress";
-import { StateIcon } from "../../../components/icons";
 
 interface AdvancedModeProps {
   progress: AgentProgress;
@@ -53,7 +52,11 @@ export function AdvancedMode({ progress }: AdvancedModeProps) {
                   data-status={row.status}
                   key={`${row.agent}-${index}`}
                 >
-                  <StateIcon pair="step" on={row.status === "done"} size={13} />
+                  {row.status === "done" ? (
+                    <CircleCheck size={13} />
+                  ) : (
+                    <CircleDot size={13} />
+                  )}
                   <span className="ai-progress-agent-label">{row.label}</span>
                   {row.summary && trimLabelEcho(row.label, row.summary) ? (
                     <span className="ai-progress-agent-summary">

@@ -33,14 +33,19 @@
     margin-bottom: 0;
   }
 
+  /* 패널 전체 폭 상태 줄 (최적화 진행 등). 섹션 안의 `.threshold-indicator` 와 같은 높이·
+     글자를 쓰되, 패널 경계에 붙는 줄이라 모서리는 두지 않는다. */
   .monitor-panel .monitor-status-message {
-    padding: var(--spacing-xs) var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--inspector-control-size);
+    padding: 0 var(--spacing-sm);
     background: var(--bg-overlay);
     border-bottom: 1px solid var(--border);
     color: var(--fg-muted);
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
-    text-align: center;
   }
 
   .monitor-panel .panel-tabs {
@@ -141,24 +146,28 @@
     fill: var(--monitor-danger);
   }
 
-  .monitor-panel .chart-current-value {
+  /* "라벨 … 값" 요약 줄 — 차트 하단 Current 와 Analysis 의 Total 이 같은 모양을 각자
+     정의하고 있었다. 표면은 필드 값 상자(`.react-aria-Group`)와 같은 재료다. */
+  .monitor-panel .monitor-summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--spacing-sm);
     min-width: 0;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background: var(--bg-raised);
+    min-height: var(--inspector-control-size);
+    padding: 0 var(--spacing-sm);
+    background: var(--bg-muted);
     border-radius: var(--radius-md);
     box-shadow: var(--inset-shadow-sm);
     font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
   }
 
-  .monitor-panel .chart-current-value .label {
+  .monitor-panel .monitor-summary-label {
     color: var(--fg-muted);
   }
 
-  .monitor-panel .chart-current-value .value {
+  .monitor-panel .monitor-summary-value {
     min-width: 0;
     overflow: hidden;
     color: var(--fg);
@@ -167,7 +176,11 @@
     white-space: nowrap;
   }
 
-  .monitor-panel .chart-current-value.danger {
+  .monitor-panel .monitor-summary[data-status="danger"] {
+    box-shadow: inset 0 0 0 1px var(--monitor-danger);
+  }
+
+  .monitor-panel .monitor-summary[data-status="danger"] .monitor-summary-value {
     color: var(--monitor-danger);
   }
 
@@ -273,14 +286,18 @@
     font-size: var(--text-sm);
   }
 
+  /* 상태 배너 — 높이·모서리·글자는 필드 값 상자(`.react-aria-Group`)·요약 줄과 같은 격자에
+     둔다. 색만 상태를 말한다. */
   .monitor-panel .threshold-indicator {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
+    min-height: var(--inspector-control-size);
+    padding: 0 var(--spacing-sm);
     border-radius: var(--radius-md);
     font-size: var(--text-xs);
     font-weight: var(--font-weight-medium);
+    line-height: var(--text-xs--line-height);
   }
 
   .monitor-panel .threshold-indicator[data-threshold="safe"] {
@@ -298,183 +315,62 @@
     color: var(--monitor-danger);
   }
 
-  .monitor-panel .realtime-metrics-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-    gap: var(--spacing-sm);
+  /* 실시간 지표 5칸 — FPS + Core Web Vitals 를 같은 크기로 늘어놓는다.
+     종전에는 FPS 카드 1개 + Vitals 카드 1개(안에서 2×2) 라 같은 종류의 값 5개가
+     두 크기·두 어법으로 보였다. 칸 재료는 Stats/Browser 탭의 지표 칸과 같다. */
+  .monitor-panel .section .monitor-metrics-row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .monitor-panel .monitor-metric {
     min-width: 0;
   }
 
-  .monitor-panel .fps-meter,
-  .monitor-panel .web-vitals-card {
-    min-width: 0;
-    padding: var(--spacing-sm);
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-  }
-
-  .monitor-panel .fps-meter[data-status="good"] {
-    border-color: var(--monitor-safe);
-  }
-
-  .monitor-panel .fps-meter[data-status="warning"] {
-    border-color: var(--monitor-warning);
-  }
-
-  .monitor-panel .fps-meter[data-status="poor"] {
-    border-color: var(--monitor-danger);
-  }
-
-  .monitor-panel .fps-meter-header,
-  .monitor-panel .web-vitals-header {
+  .monitor-panel .monitor-metric-value {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-xs);
+    min-height: var(--inspector-control-size);
   }
 
-  .monitor-panel .fps-meter-title,
-  .monitor-panel .web-vitals-title {
-    margin: 0;
+  .monitor-panel .monitor-metric-value > svg {
+    flex: 0 0 auto;
     color: var(--fg-muted);
+  }
+
+  .monitor-panel .monitor-metric-value > span {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--fg);
     font-size: var(--text-xs);
-    font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-xs--line-height);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .monitor-panel .fps-meter-value {
-    display: flex;
-    align-items: baseline;
-    gap: var(--spacing-3xs);
+  .monitor-panel .monitor-metric-unit {
+    margin-left: var(--spacing-3xs);
+    color: var(--fg-muted);
+    font-weight: var(--font-weight-normal);
   }
 
-  .monitor-panel .fps-current {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-bold);
-    line-height: 1;
-  }
-
-  .monitor-panel .fps-meter[data-status="good"] .fps-current {
+  /* 상태는 값 상자의 테두리·글자색 하나로만 — 배경까지 물들이면 필드 상자의 재료가
+     칸마다 달라진다. `--monitor-*` 는 `--positive/--warning/--negative` 파생이다. */
+  .monitor-panel .monitor-metric-value[data-status="good"] > span {
     color: var(--monitor-safe);
   }
 
-  .monitor-panel .fps-meter[data-status="warning"] .fps-current {
+  .monitor-panel .monitor-metric-value[data-status="needs-improvement"] > span {
     color: var(--monitor-warning);
   }
 
-  .monitor-panel .fps-meter[data-status="poor"] .fps-current {
+  .monitor-panel .monitor-metric-value[data-status="poor"] > span {
     color: var(--monitor-danger);
   }
 
-  .monitor-panel .fps-unit,
-  .monitor-panel .fps-stat-label,
-  .monitor-panel .web-vital-unit {
-    color: var(--fg-muted);
-    font-size: var(--text-2xs);
-  }
-
-  .monitor-panel .fps-meter-stats {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--spacing-sm);
-    margin-top: var(--spacing-xs);
-    padding-top: var(--spacing-xs);
-    border-top: 1px solid var(--border);
-  }
-
-  .monitor-panel .fps-stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .monitor-panel .fps-stat-value {
-    font-size: var(--text-xs);
-    font-weight: var(--font-weight-semibold);
-  }
-
-  .monitor-panel .fps-mini-chart {
-    display: flex;
-    align-items: flex-end;
-    gap: 1px;
-    height: 24px;
-    margin-top: var(--spacing-xs);
-    padding-top: var(--spacing-xs);
-    overflow: hidden;
-    border-top: 1px solid var(--border);
-  }
-
-  .monitor-panel .fps-bar {
-    flex: 1;
-    min-width: 2px;
-    background: var(--bg-emphasis);
-    border-radius: 1px 1px 0 0;
-  }
-
-  .monitor-panel .fps-bar[data-status="good"] {
-    background: var(--monitor-safe);
-  }
-
-  .monitor-panel .fps-bar[data-status="warning"] {
-    background: var(--monitor-warning);
-  }
-
-  .monitor-panel .fps-bar[data-status="poor"] {
-    background: var(--monitor-danger);
-  }
-
-  .monitor-panel .web-vitals-refresh,
-  .monitor-panel .component-memory-refresh,
-  .monitor-panel .threshold-settings-btn {
-    padding: var(--spacing-xs);
-  }
-
-  .monitor-panel .web-vitals-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--spacing-xs);
-    min-width: 0;
-  }
-
-  .monitor-panel .web-vital-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    min-width: 0;
-    padding: var(--spacing-xs);
-    background: var(--bg-inset);
-    border-left: 3px solid var(--border);
-    border-radius: var(--radius-sm);
-  }
-
-  .monitor-panel .web-vital-item[data-status="good"] {
-    border-left-color: var(--monitor-safe);
-  }
-
-  .monitor-panel .web-vital-item[data-status="needs-improvement"] {
-    border-left-color: var(--monitor-warning);
-  }
-
-  .monitor-panel .web-vital-item[data-status="poor"] {
-    border-left-color: var(--monitor-danger);
-  }
-
-  .monitor-panel .web-vital-label {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--fg-muted);
-    font-size: var(--text-xs);
-    font-weight: var(--font-weight-semibold);
-    text-overflow: ellipsis;
-  }
-
-  .monitor-panel .web-vital-value {
-    margin-left: auto;
-    color: var(--fg);
-    font-size: var(--text-xs);
-    font-weight: var(--font-weight-semibold);
-    white-space: nowrap;
+  .monitor-panel .monitor-metric-value[data-status="poor"] {
+    box-shadow: inset 0 0 0 1px var(--monitor-danger);
   }
 
   .monitor-panel
@@ -498,33 +394,6 @@
     margin: 0;
     padding: 0;
     border: 0;
-  }
-
-  .monitor-panel .component-memory-total {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-sm);
-    min-width: 0;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background: var(--bg-raised);
-    border-radius: var(--radius-md);
-    box-shadow: var(--inset-shadow-sm);
-    font-size: var(--text-xs);
-  }
-
-  .monitor-panel .total-label {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--fg-muted);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .monitor-panel .total-value {
-    flex-shrink: 0;
-    color: var(--fg);
-    font-weight: var(--font-weight-semibold);
   }
 
   .monitor-panel .component-memory-items {
@@ -614,8 +483,9 @@
       width: 100%;
     }
 
-    .monitor-panel .web-vitals-grid {
-      grid-template-columns: 1fr;
+    /* 300px 이하에서는 5칸이 라벨 폭 아래로 눌린다 — 같은 크기를 유지한 채 두 줄로 접는다. */
+    .monitor-panel .section .monitor-metrics-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 

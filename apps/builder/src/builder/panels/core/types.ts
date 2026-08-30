@@ -8,7 +8,6 @@
 import type { ComponentType } from "react";
 import type { LucideIcon } from "lucide-react";
 import type { ShortcutId } from "../../config/keyboardShortcuts";
-import type { IconStatePair } from "../../components/icons";
 
 /**
  * 패널 카테고리
@@ -98,15 +97,8 @@ export interface PanelConfig {
   /** 표시 이름 (영문, 옵션) */
   nameEn?: string;
 
-  /** 아이콘 컴포넌트 (lucide-react) — rail/헤더의 패널 정체 아이콘 */
+  /** 아이콘 컴포넌트 (lucide-react) */
   icon: LucideIcon;
-
-  /**
-   * 열림/닫힘을 형태로도 말하는 패널만 지정 (ADR-197). 지정하면 rail 토글이
-   * `icon` 대신 `StateIcon` 을 그린다 — 짝이 있는 패널만 해당하고, 없으면
-   * 기존 정적 아이콘 + `data-selected` 를 그대로 쓴다.
-   */
-  statePair?: IconStatePair;
 
   /** 패널 컴포넌트 */
   component: ComponentType<PanelProps>;

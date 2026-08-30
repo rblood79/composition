@@ -11,6 +11,7 @@
  */
 
 import { useState, useCallback } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useDataStore } from "../../../stores/data";
 import type {
   Variable as VariableType,
@@ -25,7 +26,6 @@ import {
 } from "../../../components";
 import "./VariableEditor.css";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
-import { StateIcon } from "../../../components/icons";
 import {
   semanticLabelKeys,
   translateKey,
@@ -250,7 +250,11 @@ function ValidationEditor({
         className="variable-editor-section-toggle"
         onClick={() => onToggleSection("validation")}
       >
-        <StateIcon pair="expand" on={isExpanded} {...iconEditProps} />
+        {isExpanded ? (
+          <ChevronDown {...iconEditProps} />
+        ) : (
+          <ChevronRight {...iconEditProps} />
+        )}
         <span className="variable-editor-section-title">
           {i18n
             ? translateKey(

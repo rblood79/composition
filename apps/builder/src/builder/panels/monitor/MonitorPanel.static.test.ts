@@ -33,6 +33,10 @@ describe("MonitorPanel common panel contract", () => {
     expect(source).not.toContain("stat-card");
     expect(source).not.toContain("stats-grid");
     expect(source).not.toContain("PanelProps");
+    // Realtime 지표는 5칸 한 격자다 (FPS + Core Web Vitals 4종).
+    expect(source).toContain("<RealtimeMetrics");
+    expect(source).not.toContain("<FPSMeter");
+    expect(source).not.toContain("<WebVitalsCard");
   });
 
   it("keeps tabs and charts responsive to the placed panel width", async () => {
@@ -112,6 +116,29 @@ describe("MonitorPanel common panel contract", () => {
     expect(thresholdSettings).not.toContain("threshold-settings-popup");
   });
 
+  it("Realtime 지표 5칸이 패널 필드 어법을 쓴다", async () => {
+    const [metrics, css] = await Promise.all([
+      readMonitorSource("components/RealtimeMetrics.tsx"),
+      readMonitorSource("monitor-panel.css"),
+    ]);
+
+    // FPS + LCP/CLS/FID/TTFB — 순서까지 고정 (한 격자에 같은 크기).
+    expect(metrics.match(/key: "(fps|lcp|cls|fid|ttfb)"/g)).toEqual([
+      'key: "fps"',
+      'key: "lcp"',
+      'key: "cls"',
+      'key: "fid"',
+      'key: "ttfb"',
+    ]);
+    expect(metrics).toContain('className="fieldset-row monitor-metrics-row"');
+    expect(metrics).toContain('className="properties-aria monitor-metric"');
+    expect(metrics).toContain('className="fieldset-legend"');
+    expect(metrics).toContain(
+      'className="react-aria-Group monitor-metric-value"',
+    );
+    expect(css).toContain("grid-template-columns: repeat(5, minmax(0, 1fr))");
+  });
+
   it("scopes Monitor visuals and removes the legacy global selectors", async () => {
     const css = await readMonitorSource("monitor-panel.css");
 
@@ -129,6 +156,15 @@ describe("MonitorPanel common panel contract", () => {
     expect(css).not.toContain(".memory-actions-row");
     expect(css).not.toContain(".memory-tab-content");
     expect(css).not.toContain(".analysis-actions-row");
+    // Realtime 5칸 — FPS 카드 + Vitals 카드 두 어법으로 되돌아가지 않는다.
+    expect(css).not.toContain(".fps-meter");
+    expect(css).not.toContain(".web-vitals-card");
+    expect(css).not.toContain(".web-vital-item");
+    expect(css).not.toContain(".realtime-metrics-row");
+    // "라벨 … 값" 요약 줄은 한 정의 (`.monitor-summary`) 다.
+    expect(css).not.toContain(".chart-current-value");
+    expect(css).not.toContain(".component-memory-total");
+    expect(css).toContain(".monitor-summary");
     expect(css).not.toMatch(
       /\.monitor-threshold-popover\s*\{[^}]*position:\s*absolute/s,
     );

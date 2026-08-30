@@ -10,7 +10,6 @@ import { useI18n } from "../../i18n";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import type { PanelId, PanelSide } from "../panels/core/types";
 import { getPanelLabel } from "./panelLabels";
-import { StateIcon } from "../components/icons";
 
 const PANEL_SIDE_LABEL_KEYS = {
   left: "workspace.leftPanelControls",
@@ -89,19 +88,10 @@ export const PanelToggleGroup = memo(function PanelToggleGroup({
               tooltipPlacement={tooltipPlacement}
             >
               <ToggleButton id={panelId} aria-label={panelName}>
-                {config.statePair ? (
-                  <StateIcon
-                    pair={config.statePair}
-                    on={activePanelIds.has(panelId)}
-                    strokeWidth={iconProps.strokeWidth}
-                    size={iconProps.size}
-                  />
-                ) : (
-                  <Icon
-                    strokeWidth={iconProps.strokeWidth}
-                    size={iconProps.size}
-                  />
-                )}
+                <Icon
+                  strokeWidth={iconProps.strokeWidth}
+                  size={iconProps.size}
+                />
               </ToggleButton>
             </ActionTooltipTrigger>
           );

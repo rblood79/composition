@@ -173,10 +173,15 @@ export function MemoryChart({
 
       {/* Current value display */}
       <div
-        className={`chart-current-value ${isAboveThreshold ? "danger" : ""}`}
+        className="monitor-summary"
+        data-status={isAboveThreshold ? "danger" : undefined}
       >
-        <span className="label">{localize("current", "Current:")}</span>
-        <span className="value">{formatBytes(currentValue)}</span>
+        <span className="monitor-summary-label">
+          {localize("current", "Current:")}
+        </span>
+        <span className="monitor-summary-value">
+          {formatBytes(currentValue)}
+        </span>
       </div>
     </div>
   );
