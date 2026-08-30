@@ -43,9 +43,12 @@ import type { PanelNode } from "../panelNode";
  *   다르게 읽힌다. pencil 의 solid/dashed 선 구분은 채택하지 않는다 — composition
  *   캔버스는 역할을 **색으로만** 구분하므로(ADR-112) 패널에만 선 축을 새로 만들면
  *   두 화면의 마커 언어가 갈린다.
- * - 라벨 액션은 `.control-button` 정본. 좁은 폭에 두 액션이 함께 서는 origin /
- *   instance 는 pencil 처럼 보조 액션을 아이콘 전용으로 줄이되, chrome 은 같은
- *   `.control-button` 을 폭만 정사각으로 좁혀 쓴다 (두 번째 버튼 정의 안 만듦).
+ * - **액션 줄은 한 줄** (pencil 배치). pencil 은 인스턴스 축 액션 (go to /
+ *   detach instance) 을 아이콘 전용 + 툴팁으로, 컴포넌트 축 액션 (Create /
+ *   Detach Component) 만 라벨로 세워 한 줄에 담는다. composition 만 갖는
+ *   "Select instances" 도 같은 어법으로 아이콘 전용이고 수는 툴팁이 나른다.
+ *   chrome 은 pencil 의 ghost 버튼이 아니라 composition 의 `.control-button`
+ *   정본이며, 아이콘 전용은 폭만 정사각으로 좁힌다 (두 번째 버튼 정의 안 만듦).
  * - 액션 아이콘 3종은 `ACTION_ICONS` — 캔버스 컨텍스트 메뉴의 같은 액션과 같은
  *   그림이어야 한다 (registry 주석이 이미 "Properties 패널 Component 섹션" 을
  *   소비처로 적어 두고 있었는데 실제로는 아이콘이 없었다).
@@ -132,6 +135,9 @@ export const ComponentSemanticsSection = memo(
     // 라벨이 두 정체를 다 읽어 준다 — 라벨이 역할의 1차 채널이다.
     const roleLabel =
       isInstance && isOrigin ? "Instance · Origin" : (label ?? "Standard");
+    const componentAxisLabel = isOrigin
+      ? "Detach component"
+      : "Create component";
     const roleClass = role ?? "standard";
 
     if (!element) return null;
@@ -210,13 +216,14 @@ export const ComponentSemanticsSection = memo(
           {isInstance && (
             <>
               <button
-                className="control-button"
+                aria-label="Go to component"
+                className="control-button component-semantics-icon-action"
                 disabled={!originElement}
                 onClick={handleGoToOrigin}
+                title="Go to component"
                 type="button"
               >
                 <GoToOriginIcon aria-hidden="true" size={14} />
-                Go to component
               </button>
               {isDetachableInstance && (
                 <button
@@ -232,27 +239,37 @@ export const ComponentSemanticsSection = memo(
             </>
           )}
           {isOrigin && (
-            /* 종전의 "Impacts N instances" 행은 이 라벨이 흡수한다 — 같은 수를
-               읽는 자리가 둘일 이유가 없다. 0건이면 비활성으로 남겨 "인스턴스가
-               아직 없다" 를 계속 보인다. */
+            /* 종전의 "Impacts N instances" 행은 이 액션이 흡수한다 — 같은 수를
+               읽는 자리가 둘일 이유가 없다. 아이콘 전용이라 수는 툴팁/접근 이름이
+               나르고, 0건이면 비활성으로 남겨 "인스턴스가 아직 없다" 를 보인다. */
             <button
-              className="control-button"
+              aria-label={`Select instances (${instanceIds.length})`}
+              className="control-button component-semantics-icon-action"
               disabled={instanceIds.length === 0}
               onClick={handleSelectInstances}
+              title={`Select instances (${instanceIds.length})`}
               type="button"
             >
               <Boxes aria-hidden="true" size={14} />
-              Select instances ({instanceIds.length})
             </button>
           )}
-          {/* 컴포넌트 축은 인스턴스 축과 독립이라 인스턴스에도 함께 선다. */}
+          {/* 컴포넌트 축은 인스턴스 축과 독립이라 인스턴스에도 함께 선다.
+              두 축이 겹치면 앞선 아이콘이 3개라 라벨까지 서면 235px — 폭 215px
+              한 줄을 넘긴다. pencil 도 이 줄을 한 줄로 유지하므로 그때만
+              아이콘 전용으로 좁힌다 (라벨은 툴팁/접근 이름이 계속 나른다). */}
           <button
-            className="control-button"
+            aria-label={componentAxisLabel}
+            className={
+              isInstance && isOrigin
+                ? "control-button component-semantics-icon-action"
+                : "control-button"
+            }
             onClick={handleToggleComponentOrigin}
+            title={componentAxisLabel}
             type="button"
           >
             <ComponentIcon aria-hidden="true" size={14} />
-            {isOrigin ? "Detach component" : "Create component"}
+            {isInstance && isOrigin ? null : componentAxisLabel}
           </button>
         </div>
 
