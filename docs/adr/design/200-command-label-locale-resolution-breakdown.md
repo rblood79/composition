@@ -25,29 +25,29 @@
 
 `contextMenu` 라는 문자열은 `translations.ts` / `types.ts` 에 **0회** 등장 — 메뉴용 키가 애초에 없다.
 
-### 2-2. 신설 키 (총 101)
+### 2-2. 신설 키 (총 117)
 
 | 키 묶음             |  수 | 내역                                                                               |
 | ------------------- | --: | ---------------------------------------------------------------------------------- |
-| `contextMenu.*`     |  25 | 항목 라벨 16 + 정렬 6 + 분배 2 + 메뉴 `aria-label` 1 (`ContextMenuOverlay.tsx:78`) |
+| `contextMenu.*`     |  25 | 항목 라벨 16 + 정렬 6 + 분배 2 + 메뉴 `aria-label` 1 (`ContextMenuOverlay.tsx:81`) |
 | `command.*`         |  72 | `SHORTCUT_DEFINITIONS` 전 항목 (`description` → en, `i18n.ko` → ko)                |
 | `commandPalette.*`  |  16 | 카테고리 8 (`CommandPalette.tsx:85-92`) + scope 힌트 8 (`:97-104`)                 |
 | `componentAction.*` |   4 | ADR-199 레지스트리 4액션                                                           |
 
 ### 2-3. 표면 4개 (같은 라벨을 그리는 곳)
 
-`ContextMenuOverlay.tsx:120,152` (메뉴 · 서브메뉴) · `ContextualActionBar.tsx:72,83,96,128,140,145` (바 · 오버플로 메뉴) · `ComponentSemanticsSection.tsx` (속성 패널) · `CommandPalette.tsx:260` (팔레트).
+`ContextMenuOverlay.tsx:121,164` (메뉴 항목) · `:134` (서브메뉴 `aria-label`) · `ContextualActionBar.tsx:72,83,96,128,140,145` (바 · 오버플로 메뉴) · `ComponentSemanticsSection.tsx` (속성 패널) · `CommandPalette.tsx:260` (팔레트).
 
 ## 3. Phase 분해
 
-| Phase | 내용                                                                                                |  risk   | Gate      |
-| ----: | --------------------------------------------------------------------------------------------------- | :-----: | --------- |
-|     0 | 인벤토리 freeze (§2) + 정적 게이트 3종 RED 작성                                                     |   LOW   | G1~G3 RED |
-|     1 | 카탈로그: `TranslationKeys` 확장 + ko/en `contextMenu.*` 25 추가                                    |   LOW   | G1        |
-|     2 | 메뉴 스키마 + 표시 계층: `label` → `labelKey`, provider 24 전환, Overlay/ActionBar 가 `t()` 로 해소 | **MED** | G1·G2·G4  |
-|     3 | 명령 라벨: `command.*` 72 + `commandPalette.*` 16, `ShortcutDefinition.i18n` 제거, 소비 3곳 전환    | **MED** | G3·G4     |
-|     4 | ADR-199 레지스트리: `label(): {en,ko}` → `labelKey`, 3 표면 어법 재적용, 199 게이트 재정렬          |   MED   | G4        |
-|     5 | 게이트 전수 GREEN + Live Exercise + closure 5단계                                                   |   LOW   | G1~G5     |
+| Phase | 내용                                                                                                  |  risk   | Gate           |
+| ----: | ----------------------------------------------------------------------------------------------------- | :-----: | -------------- |
+|     0 | 인벤토리 freeze (§2) + 정적 게이트 3종 RED 작성 + **표시 계층 테스트 provider 래핑 선행 전환** (§5-2) |   LOW   | G1~G3 RED · G4 |
+|     1 | 카탈로그: `TranslationKeys` 확장 + ko/en `contextMenu.*` 25 추가                                      |   LOW   | G1             |
+|     2 | 메뉴 스키마 + 표시 계층: `label` → `labelKey`, provider 25 전환, Overlay/ActionBar 가 `t()` 로 해소   | **MED** | G1·G2·G4       |
+|     3 | 명령 라벨: `command.*` 72 + `commandPalette.*` 16, `ShortcutDefinition.i18n` 제거, 소비 3곳 전환      | **MED** | G3·G4          |
+|     4 | ADR-199 레지스트리: `label(): {en,ko}` → `labelKey`, 3 표면 어법 재적용, 199 게이트 재정렬            |   MED   | G4             |
+|     5 | 게이트 전수 GREEN + Live Exercise + closure 5단계                                                     |   LOW   | G1~G5          |
 
 Phase 2 는 타입 변경과 표시 계층 전환이 같은 커밋이어야 type-check 가 성립하므로 분리하지 않는다.
 
@@ -62,33 +62,63 @@ Phase 2 는 타입 변경과 표시 계층 전환이 같은 커밋이어야 type
 | `apps/builder/src/builder/workspace/canvas/contextMenu/noBilingualLiteral.static.test.ts` | G2 — provider 에 `한글 / English` 병기 리터럴 0                              |
 | `apps/builder/src/builder/config/commandLabelLocale.static.test.ts`                       | G3 — `i18n?.ko \|\| description` 패턴 0, `ShortcutDefinition.i18n` 필드 부재 |
 
-### 수정 (14)
+### 수정 (18 — 소스 15 · 테스트 3)
 
-| 파일                                                                 | 변경                                                                                                                                                   |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `i18n/types.ts`                                                      | `TranslationKeys` 에 `contextMenu` / `command` / `commandPalette` / `componentAction` 블록, `ShortcutDefinition.i18n` 은 `types/keyboard.ts` 에서 제거 |
-| `i18n/translations.ts`                                               | ko/en 키 101 추가                                                                                                                                      |
-| `builder/types/keyboard.ts`                                          | `i18n?: { ko?, ja?, [locale] }` 필드 제거 (82-88)                                                                                                      |
-| `builder/config/keyboardShortcuts.ts`                                | `i18n: { ko: ... }` 72줄 제거 (`description` 은 en 원본으로 카탈로그에 이관 후 유지 여부는 Phase 3 에서 결정)                                          |
-| `builder/components/overlay/contextMenu/types.ts`                    | `ContextMenuItem.label: string` → `labelKey: string` + `labelParams?: Record<string, string \| number \| boolean>`                                     |
-| `builder/components/overlay/contextMenu/ContextMenuOverlay.tsx`      | `t(item.labelKey)` 해소, 메뉴 `aria-label` 키화                                                                                                        |
-| `builder/components/overlay/actionBar/ContextualActionBar.tsx`       | `item.label` → `t(item.labelKey)` (aria-label 6곳)                                                                                                     |
-| `builder/workspace/canvas/contextMenu/canvasContextMenuProviders.ts` | 병기 리터럴 16 → 키, `actionItem` 시그니처 label→labelKey                                                                                              |
-| `builder/stores/utils/elementAlignment.ts`                           | `getAlignmentDescription` → `getAlignmentLabelKey`                                                                                                     |
-| `builder/stores/utils/elementDistribution.ts`                        | `getDistributionDescription` → `getDistributionLabelKey`                                                                                               |
-| `builder/components/overlay/CommandPalette.tsx`                      | `def.i18n?.ko \|\| def.description` → `t(\`command.${id}\`)`, 카테고리·scope 힌트 키화                                                                 |
-| `builder/components/overlay/ShortcutTooltip.tsx`                     | 같은 전환 (79)                                                                                                                                         |
-| `builder/components/ui/ActionTooltip.tsx`                            | 같은 전환 (64)                                                                                                                                         |
-| `builder/config/componentSemanticsActions.ts`                        | `label(): ActionLabel` → `labelKey()`, `formatBilingualLabel` 제거                                                                                     |
-| `builder/panels/properties/ComponentSemanticsSection.tsx`            | `.en` 고정 → `t(labelKey)`                                                                                                                             |
+| 파일                                                                                                                                        | 변경                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `i18n/types.ts`                                                                                                                             | `TranslationKeys` 에 `contextMenu` / `command` / `commandPalette` / `componentAction` 블록, `ShortcutDefinition.i18n` 은 `types/keyboard.ts` 에서 제거 |
+| `i18n/translations.ts`                                                                                                                      | ko/en 키 117 추가                                                                                                                                      |
+| `builder/types/keyboard.ts`                                                                                                                 | `i18n?: { ko?, ja?, [locale] }` 필드 제거 (82-88)                                                                                                      |
+| `builder/config/keyboardShortcuts.ts`                                                                                                       | `i18n: { ko: ... }` 72줄 제거 (`description` 은 en 원본으로 카탈로그에 이관 후 유지 여부는 Phase 3 에서 결정)                                          |
+| `builder/components/overlay/contextMenu/types.ts`                                                                                           | `ContextMenuItem.label: string` → `labelKey: string` + `labelParams?: Record<string, string \| number \| boolean>`                                     |
+| `builder/components/overlay/contextMenu/ContextMenuOverlay.tsx`                                                                             | `t(item.labelKey)` 해소, 메뉴 `aria-label` 키화                                                                                                        |
+| `builder/components/overlay/actionBar/ContextualActionBar.tsx`                                                                              | `item.label` → `t(item.labelKey)` (aria-label 6곳)                                                                                                     |
+| `builder/workspace/canvas/contextMenu/canvasContextMenuProviders.ts`                                                                        | 병기 리터럴 16 → 키, `actionItem` 시그니처 label→labelKey                                                                                              |
+| `builder/stores/utils/elementAlignment.ts`                                                                                                  | `getAlignmentDescription` → `getAlignmentLabelKey`                                                                                                     |
+| `builder/stores/utils/elementDistribution.ts`                                                                                               | `getDistributionDescription` → `getDistributionLabelKey`                                                                                               |
+| `builder/components/overlay/CommandPalette.tsx`                                                                                             | `def.i18n?.ko \|\| def.description` → `t(\`command.${id}\`)`, 카테고리·scope 힌트 키화                                                                 |
+| `builder/components/overlay/ShortcutTooltip.tsx`                                                                                            | 같은 전환 (79)                                                                                                                                         |
+| `builder/components/ui/ActionTooltip.tsx`                                                                                                   | 같은 전환 (64)                                                                                                                                         |
+| `builder/config/componentSemanticsActions.ts`                                                                                               | `label(): ActionLabel` → `labelKey()`, `formatBilingualLabel` 제거                                                                                     |
+| `builder/panels/properties/ComponentSemanticsSection.tsx`                                                                                   | `.en` 고정 → `t(labelKey)`                                                                                                                             |
+| `.../contextMenu/ContextMenuOverlay.test.tsx` · `.../properties/ComponentSemanticsSection.test.tsx` · `.../overlay/CommandPalette.test.tsx` | Phase 0 — `I18nProvider` 래핑 (36 렌더, §5-2)                                                                                                          |
 
 `buildActionBarItems.ts` / `actionBarPolicy.ts` / `buildContextMenuItems.ts` 는 id·순서만 다루므로 **변경 없음** — 라벨 축과 노출 축이 분리되어 있다는 것의 확인이기도 하다.
 
 ## 5. 테스트 영향
 
-- 메뉴 라벨 문자열을 assert 하는 기존 테스트: `canvasContextMenuProviders.test.ts` · `buildContextMenuItems.test.ts` · `ContextMenuOverlay.test.tsx` · `componentSemanticsActions.test.ts` — assert 대상을 문자열에서 키로 바꾼다.
-- 사용자 프로젝트 파일 재직렬화 **0건** — 라벨은 영속 데이터가 아니다 (canonical document 에 저장되지 않음).
-- 스크린리더 텍스트는 바뀐다 (병기 → 단일 언어). 접근성 회귀가 아니라 의도된 변경.
+### 5-1. `label` 을 읽는 테스트 10파일 (실측 2026-08-30)
+
+| Phase | 파일                                                                         | `label` 참조 | 성격                                  |
+| ----: | ---------------------------------------------------------------------------- | -----------: | ------------------------------------- |
+|     2 | `builder/components/overlay/contextMenu/buildContextMenuItems.test.ts`       |            4 | 픽스처 항목                           |
+|     2 | `builder/components/overlay/contextMenu/ContextMenuOverlay.test.tsx`         |            5 | 픽스처 + 렌더 단정                    |
+|     2 | `builder/components/overlay/actionBar/actionBarPolicy.test.ts`               |            2 | 픽스처 (`label: id`)                  |
+|     2 | `builder/components/overlay/actionBar/buildActionBarItems.test.ts`           |            1 | 픽스처 (`label: id`)                  |
+|     2 | `builder/components/overlay/actionBar/ContextualActionBar.keyboard.test.tsx` |            2 | 한국어 픽스처 라벨                    |
+|     3 | `builder/components/overlay/CommandPalette.test.tsx`                         |            6 | 라벨 텍스트로 항목 조회 (`itemFor`)   |
+|     3 | `builder/config/keyboardShortcuts.test.ts`                                   |            1 | `i18n: { ko }` 필드 단정              |
+|     4 | `builder/config/componentSemanticsActions.test.ts`                           |            9 | `label().en` + `formatBilingualLabel` |
+|     4 | `builder/config/componentSemanticsActions.static.test.ts`                    |            1 | `LABEL_LITERALS` 게이트               |
+|     4 | `builder/panels/properties/ComponentSemanticsSection.test.tsx`               |           22 | 패널 렌더 단정                        |
+
+`canvasContextMenuEntry.test.ts` 의 `card-label` 은 요소 id 라 해당 없음. ADR-199 의 `editingSemanticsProjection.static.test.ts` (9 tests) 도 `label` 참조 0 이라 영향 밖 — R5 의 영향 범위가 30건 (12+7+11) 인 이유다.
+
+### 5-2. provider 래핑 선행 전환 (Phase 0, R7)
+
+표시 계층 4곳 중 `ContextualActionBar` 만 이미 `useI18n` 을 쓴다 (`:164`, `:206`) — 그 테스트는 `I18nProvider` 로 감싸져 있다. 나머지 3곳은 훅이 없고, 그 테스트가 provider 없이 렌더한다:
+
+| 파일                                 | `render(` | `I18nProvider` |
+| ------------------------------------ | --------: | -------------: |
+| `ContextMenuOverlay.test.tsx`        |         4 |              0 |
+| `ComponentSemanticsSection.test.tsx` |        20 |              0 |
+| `CommandPalette.test.tsx`            |        12 |              0 |
+
+Phase 2·3·4 가 각각 이 중 하나에 훅을 넣으므로 래핑은 **공통 선행 작업**이다. Phase 0 에서 세 파일을 한 번에 전환하면 이후 phase 가 빨간 테스트 없이 시작한다. `useI18n` 은 provider 밖에서 throw 하고 (`i18n/useI18n.ts:38-40`), `useOptionalI18n` (`:46-50`) 이 격리 렌더용 대안이다 — 표시 계층은 provider 하위가 보장되므로 `useI18n` + 테스트 래핑을 택한다.
+
+### 5-3. 하위 호환
+
+사용자 프로젝트 파일 재직렬화 **0건** — 라벨은 canonical document 에 저장되지 않는다. 스크린리더 텍스트는 바뀐다 (병기 → 단일 언어). 접근성 회귀가 아니라 의도된 변경.
 
 ## 6. Live Exercise 계획 (Phase 5)
 

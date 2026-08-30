@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-30
+Accepted — 2026-08-30 (review round 1: MEDIUM 4 · LOW 1 전부 fixed → round 2 이슈 0건 승인. 기록: [reviews/200.md](reviews/200.md))
 
 ## Context
 
@@ -13,15 +13,15 @@ Proposed — 2026-08-30
 **Hard Constraints**:
 
 1. `DEFAULT_LOCALE = "en-US"` (`i18n/locales.ts:34`) 인데 라벨 채널 4개 중 locale 을 읽는 것은 **0개** — 병기 16 (`canvasContextMenuProviders.ts:141~483`), 한국어 단독 8 (`elementAlignment.ts:245-256`, `elementDistribution.ts:284-291`), ko 우선 72 (`keyboardShortcuts.ts` `i18n.ko` × 소비 3곳), 표면별 고정 4 (`componentSemanticsActions.ts:123~192`).
-2. 번역 SSOT 는 `localizedStrings` 단일 카탈로그 (`translations.ts:1331`, ko 문자열 leaf 402, 소비 파일 56) 이고, 접근자는 `@react-aria/i18n` 의 `useLocalizedStringFormatter` 를 감싼 **훅 전용** `t` 뿐이다 (`I18nProvider.tsx:96`). 비-훅 접근자는 없다.
+2. 번역 SSOT 는 `localizedStrings` 단일 카탈로그 (`translations.ts:1331`, ko 문자열 leaf 402, 소비 파일 56) 이고, 접근자는 `@react-aria/i18n` 의 `useLocalizedStringFormatter` 를 감싼 **훅 전용** `t` 뿐이다 (`I18nProvider.tsx:90-100`). 비-훅 접근자는 없다.
 3. `translations.ts` / `i18n/types.ts` 에 `contextMenu` 문자열은 **0회** — 메뉴용 키 자체가 없다.
 4. `i18n/i18nWiring.static.test.ts:20-26` 이 손수 만든 `getTranslation(locale, key)` + `replacePlaceholders` 경로의 **부활을 금지**한다. 과거 그 경로를 걷어내고 RAC formatter 로 단일화한 결정의 게이트다.
-5. 라벨은 영속 데이터가 아니다 — canonical document 에 저장되지 않으므로 사용자 프로젝트 재직렬화 **0건**. 하위 호환 비용은 라벨 문자열을 assert 하는 테스트 4파일과 스크린리더 텍스트 변경에 한정된다.
+5. 라벨은 영속 데이터가 아니다 — canonical document 에 저장되지 않으므로 사용자 프로젝트 재직렬화 **0건**. 하위 호환 비용은 `label` 을 읽는 테스트 **10파일** (Phase 2 5 · Phase 3 2 · Phase 4 3 — 목록은 breakdown §5) 과 스크린리더 텍스트 변경에 한정된다.
 
 **Soft Constraints**:
 
 - ADR-182 (메뉴) / 192 (액션 바) / 195 (팔레트) / 196 (명령 metadata) / 199 (시맨틱 액션 레지스트리) 가 이미 반영돼 있어, 라벨 축만 갈아끼우고 **노출 축 (항목·순서·가용성) 은 건드리지 않아야** 한다.
-- ko 카탈로그에 없는 신규 키 101개의 번역은 기존 병기 리터럴의 한국어 절반을 그대로 옮기면 대부분 채워진다.
+- ko 카탈로그에 없는 신규 키 117개의 번역은 기존 병기 리터럴의 한국어 절반을 그대로 옮기면 대부분 채워진다.
 
 **SSOT 3-domain 귀속**: 본 ADR 의 대상은 **빌더 chrome 의 문자열**이라 D1 (DOM/접근성 — RAC) · D2 (Props/API — RSP) · D3 (시각 스타일 — catalog) 어디에도 속하지 않으며 경계를 교차하지 않는다. 캔버스 컴포넌트의 렌더 결과는 변하지 않는다. Spec/Generator 확장 ADR 이 아니므로 "Generator 가 자식 selector/variant emit 을 지원하는가" 항목은 해당 없음.
 
@@ -30,12 +30,12 @@ Proposed — 2026-08-30
 ### 대안 A: 렌더 시점 번역 (`labelKey` + 표시 계층 해소)
 
 - 설명: `ContextMenuItem.label: string` 을 `labelKey: string` (+ `labelParams?`) 로 바꾼다. provider·레지스트리는 **문자열을 갖지 않고 키만** 싣고, `ContextMenuOverlay` / `ContextualActionBar` / 속성 패널 / 팔레트가 `useI18n().t` 로 해소한다. `SHORTCUT_DEFINITIONS.i18n.ko` 는 `command.*` 키로 이관하고 필드를 제거한다.
-- 근거: Figma·VS Code 의 메뉴 계층이 명령 정의에는 id 만 두고 표시 계층에서 nls 로 해소하는 구조와 같다. 프로젝트 내부에도 선례가 있다 — `PanelToggleGroup` 은 `getPanelLabel`, `DataTablePanel` 은 `datatable.${key}` 로 이미 키 → 표시 계층 해소 형태다 (`i18nWiring.static.test.ts:70-79`).
+- 근거: Figma·VS Code 의 메뉴 계층이 명령 정의에는 id 만 두고 표시 계층에서 nls 로 해소하는 구조와 같다. 프로젝트 내부에도 선례가 있다 — `PanelToggleGroup` 은 `getPanelLabel`, `DataTablePanel` 은 `datatable.${key}` 로 이미 키 → 표시 계층 해소 형태다 (`i18nWiring.static.test.ts:67,79`).
 - 위험:
   - 기술: MEDIUM — 표시 계층 4곳 + provider/레지스트리 스키마 변경. 새 메커니즘은 없고 기존 훅 경계 안이다.
-  - 성능: LOW — 메뉴가 열릴 때 항목 수(≤20)만큼의 카탈로그 조회. 카탈로그는 재사용, 번들 증가는 키 101개 문자열.
+  - 성능: LOW — 메뉴가 열릴 때 항목 수(≤20)만큼의 카탈로그 조회. 카탈로그는 재사용, 번들 증가는 키 117개 문자열.
   - 유지보수: LOW — 정의 지점 4 → 1. 새 항목은 키만 추가하면 4표면이 같이 따라온다.
-  - 마이그레이션: MEDIUM — `label` 제거는 `ContextMenuItem` 의 공개 형태 변경이라 소비 2곳과 테스트 4파일이 함께 바뀐다.
+  - 마이그레이션: MEDIUM — `label` 제거는 `ContextMenuItem` 의 공개 형태 변경이라 소비 2곳과 테스트 10파일이 함께 바뀐다.
 
 ### 대안 B: 모듈 레벨 접근자 (`translate(locale, key)`)
 
@@ -73,8 +73,8 @@ Proposed — 2026-08-30
 
 선택 근거:
 
-1. **누락이 타입 오류로 드러난다** — `label` 필드를 없애면 표시 계층은 `labelKey` 를 번역하지 않고는 문자열을 얻을 수 없다. C 는 같은 누락이 런타임에 키 노출로만 드러나며, `deps` 가 선택 인자라 새 소비 표면이 생길 때마다 다시 발생한다 (`buildActionBarItems.ts:29` 의 `deps: ContextMenuDeps = {}` 가 지금도 그 형태다).
-2. **잔존 MEDIUM 위험이 유한하고 1회성이다** — 마이그레이션 MEDIUM 은 `ContextMenuItem` 소비 2곳과 라벨을 assert 하는 테스트 4파일에 한정되며, 사용자 프로젝트 재직렬화는 0건이다 (Context HC5).
+1. **번역해야 할 지점이 타입으로 드러난다** — `label` 필드를 없애면 문자열을 그리던 모든 자리가 컴파일 오류가 되어 표시 계층 전수가 한 번에 열거된다. 다만 `labelKey` 도 `string` 이라 **키를 번역하지 않고 그대로 그리는 것까지 타입이 막지는 않는다** — 그 잔여는 G2 의 정적 조항 (표시 계층이 `labelKey` 를 `t()` 없이 렌더하지 않는다) 과 G5 가 맡는다. C 는 이 열거 자체가 없고, `deps` 가 선택 인자라 주입 누락이 새 소비 표면마다 조용히 재발한다 (`buildActionBarItems.ts:29` 의 `deps: ContextMenuDeps = {}` 가 지금도 그 형태다).
+2. **잔존 MEDIUM 위험이 유한하고 1회성이다** — 마이그레이션 MEDIUM 은 `ContextMenuItem` 소비 2곳과 `label` 을 읽는 테스트 10파일에 한정되며, 사용자 프로젝트 재직렬화는 0건이다 (Context HC5).
 3. **정의 지점이 4 → 1 로 줄고 새 채널이 생기지 않는다** — provider·레지스트리·정렬 유틸·`ShortcutDefinition.i18n` 이 전부 키만 들게 되어 "표면마다 다른 문자열" 의 재발 자리가 사라진다. 라벨 축을 표시 계층으로 옮겨도 ADR-199 가 세운 **노출 축** (`surfaces` / `isAvailable` / 순서) 은 그대로다.
 
 기각 사유:
@@ -86,26 +86,27 @@ Proposed — 2026-08-30
 
 ## Risks
 
-| ID  | 위험                                                                                                                                                                                                                                                                                        | 심각도 | 대응                                                                                                   |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------ |
-| R1  | 카탈로그에 없는 키를 쓰면 `t()` 가 키 문자열을 그대로 돌려줘 (`I18nProvider.tsx:96` catch) 화면에 `contextMenu.copy` 가 노출 — 메뉴 (`ContextMenuOverlay.tsx:120,152`) · 액션 바 aria-label (`ContextualActionBar.tsx:83,145`) · 팔레트 (`CommandPalette.tsx:260`) 3경로 모두 조용히 깨진다 |  HIGH  | G1 — 코드가 참조하는 라벨 키 전수가 ko/en 양쪽 카탈로그에 있는지 정적 게이트                           |
-| R2  | 병기 리터럴이 다른 provider·표면에서 되살아남 (ADR-182 → 192 → 199 로 번진 전례)                                                                                                                                                                                                            |  MED   | G2 — provider 에 `한글 / English` 패턴 0 정적 게이트                                                   |
-| R3  | `ShortcutDefinition.i18n` 제거 시 팔레트·툴팁 2종 (`CommandPalette.tsx:260`, `ShortcutTooltip.tsx:79`, `ActionTooltip.tsx:64`) 라벨 소실                                                                                                                                                    |  MED   | G3 — `i18n?.ko \|\| description` 패턴 0 + 필드 부재 정적 게이트, Phase 3 에서 3곳 동시 전환            |
-| R4  | 액션 바 `aria-label` 이 병기에서 단일 언어로 바뀌어 스크린리더 읽는 텍스트가 달라짐                                                                                                                                                                                                         |  LOW   | 의도된 변경. Live Exercise 에서 두 locale 모두 확인                                                    |
-| R5  | ADR-199 레지스트리 `label` 스키마 변경으로 199 가 세운 테스트 30건 (12+7+11) 이 흔들림                                                                                                                                                                                                      |  MED   | Phase 4 에서 199 게이트를 같은 커밋에 재정렬. 노출 축 필드는 불변이므로 정적 게이트 자체는 유지        |
-| R6  | 신규 키 101개 중 ko 번역 품질 편차                                                                                                                                                                                                                                                          |  LOW   | 기존 병기 리터럴의 한국어 절반을 그대로 이관 — 새로 번역하는 것은 `command.*` 중 `i18n.ko` 없는 항목뿐 |
+| ID  | 위험                                                                                                                                                                                                                                                                                                                 | 심각도 | 대응                                                                                                                                             |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | 카탈로그에 없는 키를 쓰면 `t()` 가 키 문자열을 그대로 돌려줘 (`I18nProvider.tsx:98` catch) 화면에 `contextMenu.copy` 가 노출 — 메뉴 (`ContextMenuOverlay.tsx:121,164`) · 액션 바 aria-label (`ContextualActionBar.tsx:83,145`) · 팔레트 (`CommandPalette.tsx:260`) 3경로 모두 조용히 깨진다                          |  HIGH  | G1 — 코드가 참조하는 라벨 키 전수가 ko/en 양쪽 카탈로그에 있는지 정적 게이트                                                                     |
+| R2  | 병기 리터럴이 다른 provider·표면에서 되살아남 (ADR-182 → 192 → 199 로 번진 전례)                                                                                                                                                                                                                                     |  MED   | G2 — provider 에 `한글 / English` 패턴 0 정적 게이트                                                                                             |
+| R3  | `ShortcutDefinition.i18n` 제거 시 팔레트·툴팁 2종 (`CommandPalette.tsx:260`, `ShortcutTooltip.tsx:79`, `ActionTooltip.tsx:64`) 라벨 소실                                                                                                                                                                             |  MED   | G3 — `i18n?.ko \|\| description` 패턴 0 + 필드 부재 정적 게이트, Phase 3 에서 3곳 동시 전환                                                      |
+| R4  | 액션 바 `aria-label` 이 병기에서 단일 언어로 바뀌어 스크린리더 읽는 텍스트가 달라짐                                                                                                                                                                                                                                  |  LOW   | 의도된 변경. Live Exercise 에서 두 locale 모두 확인                                                                                              |
+| R5  | ADR-199 레지스트리 `label` 스키마 변경으로 199 가 세운 테스트 30건 (12+7+11) 이 흔들림                                                                                                                                                                                                                               |  MED   | Phase 4 에서 199 게이트를 같은 커밋에 재정렬. 노출 축 필드는 불변이므로 정적 게이트 자체는 유지                                                  |
+| R6  | 신규 키 117개 중 ko 번역 품질 편차                                                                                                                                                                                                                                                                                   |  LOW   | 기존 병기 리터럴의 한국어 절반을 그대로 이관 — 새로 번역하는 것은 `command.*` 중 `i18n.ko` 없는 항목뿐                                           |
+| R7  | 표시 계층 4곳 중 `ContextualActionBar` 만 이미 `useI18n` 을 쓰고 나머지 3곳은 훅이 없다. 그 테스트가 `I18nProvider` 없이 렌더 중이라 (`ContextMenuOverlay.test.tsx` 4 · `ComponentSemanticsSection.test.tsx` 20 · `CommandPalette.test.tsx` 12 = **36 렌더**, 래핑 0) 훅을 넣는 순간 전부 throw (`useI18n.ts:38-40`) |  MED   | Phase 0 에서 세 테스트를 provider 래핑으로 선행 전환 (또는 `useOptionalI18n` — `useI18n.ts:46-50` 이 격리 렌더 용도로 존재). G4 통과 조건에 편입 |
 
-HIGH 위험은 R1 1건이며 G1 과 1:1 대응한다. 본 ADR 은 phase 6개 / 위험 6개로 별도 ADR 분리가 필요한 규모가 아니다 — 라벨 축 하나를 4채널에서 걷어내는 단일 작업이고, 채널별로 쪼개면 중간 상태에서 표면마다 다른 언어가 되는 구간이 생긴다.
+HIGH 위험은 R1 1건이며 G1 과 1:1 대응한다. 본 ADR 은 phase 6개 / 위험 7개로 별도 ADR 분리가 필요한 규모가 아니다 — 라벨 축 하나를 4채널에서 걷어내는 단일 작업이고, 채널별로 쪼개면 중간 상태에서 표면마다 다른 언어가 되는 구간이 생긴다.
 
 ## Gates
 
-| Gate | 시점                | 통과 조건                                                                                                                 | 실패 시 대안                                                          |
-| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| G1   | Phase 1·2·4 각 종료 | 정적 테스트 — 코드가 참조하는 라벨 키 전수가 `localizedStrings["ko-KR"]` · `["en-US"]` 양쪽에 존재 (누락 0)               | 키 추가 후 재실행. 미해소 시 해당 표면 전환 보류                      |
-| G2   | Phase 2 종료        | 정적 테스트 — `canvasContextMenuProviders.ts` 에 `한글 / English` 병기 리터럴 0                                           | 잔존 리터럴을 키로 전환                                               |
-| G3   | Phase 3 종료        | 정적 테스트 — `i18n?.ko \|\| description` 패턴 0, `ShortcutDefinition` 에 `i18n` 필드 부재                                | 소비 3곳 전환 완료까지 Phase 3 미종료                                 |
-| G4   | 매 phase 종료       | `pnpm type-check` 0 + 메뉴·액션바·팔레트·199 관련 vitest PASS                                                             | 실패 원인 수리 후 재실행 (pre-push 훅과 Stop hook type-check 가 집행) |
-| G5   | Phase 5             | Live Exercise — `en-US` 에서 메뉴·액션 바·팔레트 전 항목 영어, `ko-KR` 전환 후 한국어. Chrome MCP 로 실행하고 본문에 기재 | 실패 시 Implemented 승격 보류 (`adr-status-sync-check.sh` 가 block)   |
+| Gate | 시점                | 통과 조건                                                                                                                                                                                                | 실패 시 대안                                                          |
+| ---- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| G1   | Phase 1·2·4 각 종료 | 정적 테스트 — 코드가 참조하는 라벨 키 전수가 `localizedStrings["ko-KR"]` · `["en-US"]` 양쪽에 존재 (누락 0)                                                                                              | 키 추가 후 재실행. 미해소 시 해당 표면 전환 보류                      |
+| G2   | Phase 2·3·4 각 종료 | 정적 테스트 2조항 — (a) `canvasContextMenuProviders.ts` 에 `한글 / English` 병기 리터럴 0, (b) 표시 계층 4파일이 `labelKey` 를 `t()` 없이 렌더하는 JSX 0 (미번역 키 노출 차단 — Decision 근거 1 의 잔여) | 잔존 리터럴을 키로 전환 / 미번역 렌더 지점을 `t()` 경유로 수정        |
+| G3   | Phase 3 종료        | 정적 테스트 — `i18n?.ko \|\| description` 패턴 0, `ShortcutDefinition` 에 `i18n` 필드 부재                                                                                                               | 소비 3곳 전환 완료까지 Phase 3 미종료                                 |
+| G4   | 매 phase 종료       | `pnpm type-check` 0 + `label` 을 읽는 테스트 10파일 PASS (Phase 0 의 provider 래핑 전환 3파일 36 렌더 포함)                                                                                              | 실패 원인 수리 후 재실행 (pre-push 훅과 Stop hook type-check 가 집행) |
+| G5   | Phase 5             | Live Exercise — `en-US` 에서 메뉴·액션 바·팔레트 전 항목 영어, `ko-KR` 전환 후 한국어. Chrome MCP 로 실행하고 본문에 기재                                                                                | 실패 시 Implemented 승격 보류 (`adr-status-sync-check.sh` 가 block)   |
 
 ### Live Exercise
 
@@ -122,7 +123,7 @@ HIGH 위험은 R1 1건이며 G1 과 1:1 대응한다. 본 ADR 은 phase 6개 / �
 
 ### Negative
 
-- `ContextMenuItem` 의 공개 형태가 바뀌어 (`label` → `labelKey`) 항목을 만드는 모든 코드와 라벨을 assert 하는 테스트 4파일이 함께 바뀐다.
+- `ContextMenuItem` 의 공개 형태가 바뀌어 (`label` → `labelKey`) 항목을 만드는 모든 코드와 `label` 을 읽는 테스트 10파일이 함께 바뀐다.
 - 라벨이 표시 시점에 해소되므로 provider 단위 테스트만으로는 사용자가 보는 문자열을 확인할 수 없다 — 표시 계층 테스트와 G1 정적 게이트가 그 역할을 나눠 갖는다.
 - 스크린리더가 읽는 액션 바 텍스트가 병기에서 단일 언어로 바뀐다.
 - 정적 게이트 3종이 늘어 CI 실행 시간이 소폭 증가한다.
