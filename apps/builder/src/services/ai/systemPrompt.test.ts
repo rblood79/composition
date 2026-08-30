@@ -9,6 +9,8 @@ import {
   getAiComponentCatalog,
 } from "./catalog/componentCatalog";
 import type { BuilderContext } from "../../types/integrations/chat.types";
+import { localizedStrings } from "@/i18n/translations";
+import type { PromptTranslate } from "./promptTranslate";
 
 const CONTEXT: BuilderContext = {
   currentPageId: "page-1",
@@ -18,9 +20,16 @@ const CONTEXT: BuilderContext = {
   ],
 } as BuilderContext;
 
+/** ko-KR 카탈로그에 묶은 프롬프트 해소기 (ADR-200 후속). */
+const t: PromptTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
+
 describe("시스템 프롬프트 카탈로그 주입", () => {
   it("요청과 관련된 컴포넌트의 허용 값을 실어 보낸다", () => {
-    const prompt = buildSystemPrompt(CONTEXT, "버튼을 secondary 로 바꿔줘");
+    const prompt = buildSystemPrompt(CONTEXT, t, "버튼을 secondary 로 바꿔줘");
     const variants = Object.keys(
       (getComponentRulesTable() as Record<string, { variants?: object }>).Button
         ?.variants ?? {},
@@ -30,14 +39,14 @@ describe("시스템 프롬프트 카탈로그 주입", () => {
   });
 
   it("전체 type 목록은 항상 들어간다 (Tier 1)", () => {
-    const prompt = buildSystemPrompt(CONTEXT, "버튼 추가");
+    const prompt = buildSystemPrompt(CONTEXT, t, "버튼 추가");
     for (const type of ["Tooltip", "TagGroup", "Switch", "Calendar"]) {
       expect(prompt).toContain(type);
     }
   });
 
   it("존재하지 않는 컴포넌트를 광고하지 않는다", () => {
-    const prompt = buildSystemPrompt(CONTEXT, "레이아웃 만들어줘");
+    const prompt = buildSystemPrompt(CONTEXT, t, "레이아웃 만들어줘");
     const known = new Set(getAiComponentCatalog().map((e) => e.type));
     // 구 프롬프트가 하드코딩하던 목록에는 catalog 에 없는 type 이 섞여 있었다
     for (const stale of ["Div"]) {
@@ -59,6 +68,7 @@ describe("시스템 프롬프트 카탈로그 주입", () => {
           parent_id: "body",
         },
       },
+      t,
       "이거 고쳐줘",
     );
     expect(prompt).toContain("### Text");
@@ -80,13 +90,14 @@ describe("시스템 프롬프트 카탈로그 주입", () => {
           parent_id: "body",
         },
       },
+      t,
       "이거 고쳐줘",
     );
     expect(prompt).toContain("최신값");
   });
 
   it("전체 카탈로그 상세를 다 싣지 않는다 (R3 — context 예산)", () => {
-    const prompt = buildSystemPrompt(CONTEXT, "버튼을 secondary 로 바꿔줘");
+    const prompt = buildSystemPrompt(CONTEXT, t, "버튼을 secondary 로 바꿔줘");
     const full = formatCatalogEntries(getAiComponentCatalog());
 
     // 대략치 (chars/3.5). 절대값이 아니라 배율이 요점이다.

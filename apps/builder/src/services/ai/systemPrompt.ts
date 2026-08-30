@@ -11,6 +11,7 @@
 import { UNIVERSAL_STYLE_CONTRACTS } from "@composition/shared";
 import type { BuilderContext } from "../../types/integrations/chat.types";
 import { buildCatalogSection } from "./catalog";
+import type { PromptTranslate } from "./promptTranslate";
 
 /** `styles` 인자가 받는 보편 시각 키 — 컴포넌트마다 같아서 한 번만 적는다. */
 function universalStyleKeys(): string {
@@ -24,6 +25,7 @@ function universalStyleKeys(): string {
  */
 export function buildSystemPrompt(
   context: BuilderContext,
+  t: PromptTranslate,
   request?: string,
 ): string {
   const { currentPageId, selectedElementId, elements } = context;
@@ -38,64 +40,56 @@ export function buildSystemPrompt(
     presentTypes: [...new Set(elements.map((el) => el.type))],
   });
 
-  return `당신은 composition 웹 빌더의 AI 디자인 어시스턴트입니다.
-사용자의 자연어 요청을 분석하여 제공된 도구를 사용해 디자인 요소를 생성, 수정, 삭제합니다.
+  // 문장은 카탈로그가 고른다 (ADR-200 후속) — 특히 "응답 언어" 규칙이 여기에 있어서,
+  // 빌더가 en-US 인데 프롬프트만 한국어를 지시하던 어긋남이 사라진다.
+  const selectedLine = selectedElement
+    ? `${selectedElement.type} (ID: ${selectedElementId})`
+    : t("aiPrompt.stateNone");
+
+  const selectedBlock = selectedElement
+    ? `
+${t("aiPrompt.selectedHeading")}
+${t("aiPrompt.selectedTag", { type: selectedElement.type })}
+${t("aiPrompt.selectedProps", { props: JSON.stringify(selectedElement.props, null, 2) })}
+${t("aiPrompt.selectedParent", { parent: selectedElement.parent_id || "root" })}
+`
+    : "";
+
+  return `${t("aiPrompt.role")}
 
 ${catalogSection}
 
-frame — layout container (ADR-130). 여러 요소를 담는 컨테이너는 Group 이 아니라 frame 입니다.
+${t("aiPrompt.frameNote")}
 
-## 스타일 (update_element 의 styles 인자)
-CSS 속성명을 camelCase 로 씁니다. 모든 컴포넌트가 공통으로 받는 키:
+${t("aiPrompt.stylesHeading")}
+${t("aiPrompt.stylesBody")}
 ${universalStyleKeys()}
-배경은 backgroundColor 대신 fills 를 우선 사용하세요.
+${t("aiPrompt.stylesFills")}
 
-## 사용 가능한 Mock Data 엔드포인트
+${t("aiPrompt.mockHeading")}
 /countries, /cities, /timezones, /products, /categories,
 /status, /priorities, /tags, /languages, /currencies,
 /users, /departments, /projects, /component-tree
 
-## 현재 빌더 상태
-- 페이지 ID: ${currentPageId}
-- 선택된 요소: ${selectedElement ? `${selectedElement.type} (ID: ${selectedElementId})` : "없음"}
-- 총 요소 수: ${elements.length}개
-${
-  selectedElement
-    ? `
-## 선택된 요소 정보
-- 태그: ${selectedElement.type}
-- Props: ${JSON.stringify(selectedElement.props, null, 2)}
-- 부모 ID: ${selectedElement.parent_id || "root"}
-`
-    : ""
-}
-## 규칙
-1. 요소를 생성/수정하기 전에 get_editor_state나 get_selection으로 현재 상태를 파악하세요.
-2. **elementId 는 지어내지 마세요.** 방금 만든 요소를 이어서 다룰 때는 "last-created",
-   현재 선택된 요소는 "selected" 를 쓰세요. 그 외에는 create_element 결과의
-   data.elementId 를 그대로 옮기거나 search_elements / get_editor_state 로 조회한 실제
-   id 만 쓸 수 있습니다. created-element-id / cardId 같은 자리표시자는 실패합니다.
-3. props 값은 카탈로그가 알려 준 허용 값에서만 고르세요. 목록에 없는 값은 만들지 마세요.
-4. 항상 한국어로 응답하세요.
-5. 작업 완료 후 사용자에게 무엇을 했는지 간략히 설명하세요.
-6. 여러 작업을 한 번에 할 때는 batch_design 을 쓰세요 — 사용자가 되돌리기 한 번으로 전부 되돌릴 수 있습니다.
+${t("aiPrompt.stateHeading")}
+${t("aiPrompt.statePageId", { id: String(currentPageId) })}
+${t("aiPrompt.stateSelected", { value: selectedLine })}
+${t("aiPrompt.stateCount", { count: elements.length })}
+${selectedBlock}
+${t("aiPrompt.rulesHeading")}
+${t("aiPrompt.rule1")}
+${t("aiPrompt.rule2")}
+${t("aiPrompt.rule3")}
+${t("aiPrompt.rule4")}
+${t("aiPrompt.rule5")}
+${t("aiPrompt.rule6")}
 
-## canonical 1차 필드 (create_element / update_element 의 canonical 인자)
-- clip / placeholder: type "frame" 에서만 유효합니다.
-- slot: false 또는 삽입 가능한 reusable component id 배열.
-- reusable: 재사용 원본 표시. frame 에 켜면 페이지 요소 목록에서 빠지고 layout 정의가 되므로,
-  화면에 보이는 컨테이너를 만들 때는 켜지 마세요.
+${t("aiPrompt.canonicalHeading")}
+${t("aiPrompt.canonicalBody")}
 
-## 데이터 바인딩 (bind_collection)
-ListBox / GridList / Table 같은 collection 컴포넌트에 데이터를 연결합니다.
-source 는 static (config.data 배열) / api (config.baseUrl + endpoint) / supabase (config.table).
-데이터 소스 자체를 만들지는 않습니다 — 이미 있는 데이터에 요소를 잇습니다.
+${t("aiPrompt.bindingHeading")}
+${t("aiPrompt.bindingBody")}
 
-## 이벤트 규칙 (create_interaction_rule)
-trigger 는 컴포넌트가 실제로 노출하는 callback 이름입니다 (예: Button 은 onPress).
-onClick 같은 DOM 이름은 쓰지 않습니다. action 은 3종:
-- navigate: { kind: "navigate", path: "/about" }
-- toast: { kind: "toast", message: "저장했습니다" }
-- capability: { kind: "capability", targetId, capability, value? } — 대상이 노출하는 capability 만.
-틀린 trigger/capability 를 보내면 도구가 사용 가능한 목록을 돌려주니 그것으로 고쳐 부르세요.`;
+${t("aiPrompt.eventsHeading")}
+${t("aiPrompt.eventsBody")}`;
 }

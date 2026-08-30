@@ -14,6 +14,8 @@ import type {
   LLMStreamEvent,
 } from "./providers/LLMProvider";
 import type { AgentEvent } from "../../types/integrations/ai.types";
+import { localizedStrings } from "@/i18n/translations";
+import type { PromptTranslate } from "./promptTranslate";
 import type {
   BuilderContext,
   ChatMessage,
@@ -117,6 +119,13 @@ async function drain(
   return events;
 }
 
+/** ko-KR 카탈로그에 묶은 프롬프트 해소기 (ADR-200 후속). */
+const t: PromptTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
+
 describe("AgentService — 도구 전수 통과 (G2)", () => {
   it.each(TOOL_NAMES)(
     "%s 가 레지스트리로 전달되고 결과가 대화에 실린다",
@@ -124,7 +133,7 @@ describe("AgentService — 도구 전수 통과 (G2)", () => {
       execute.mockClear();
       const { provider, seen } = stubProvider(name);
 
-      const events = await drain(new AgentService(provider));
+      const events = await drain(new AgentService(provider, t));
 
       expect(execute).toHaveBeenCalledWith({ x: 1 });
       expect(events).toEqual([
@@ -151,7 +160,7 @@ describe("AgentService — 도구 전수 통과 (G2)", () => {
 
   it("system prompt 는 대화 맨 앞에 한 번만 실린다", async () => {
     const { provider, seen } = stubProvider("get_selection");
-    await drain(new AgentService(provider));
+    await drain(new AgentService(provider, t));
 
     expect(seen[0][0]).toEqual({ role: "system", content: "system" });
     expect(seen[1].filter((m) => m.role === "system")).toHaveLength(1);
@@ -159,7 +168,7 @@ describe("AgentService — 도구 전수 통과 (G2)", () => {
 
   it("등록되지 않은 도구는 tool-error 로 남고 루프는 계속된다", async () => {
     const { provider } = stubProvider("unknown_tool");
-    const events = await drain(new AgentService(provider));
+    const events = await drain(new AgentService(provider, t));
 
     expect(events[1]).toMatchObject({
       type: "tool-error",
@@ -170,7 +179,7 @@ describe("AgentService — 도구 전수 통과 (G2)", () => {
 
   it("stop() 이후에는 aborted 로 끝난다 (AbortController 보존)", async () => {
     const { provider } = stubProvider("get_selection");
-    const service = new AgentService(provider);
+    const service = new AgentService(provider, t);
 
     const events: AgentEvent[] = [];
     for await (const event of service.runAgentLoop(USER, CONTEXT)) {
@@ -192,7 +201,7 @@ describe("AgentService — 도구 전수 통과 (G2)", () => {
       },
     };
 
-    const events = await drain(new AgentService(provider));
+    const events = await drain(new AgentService(provider, t));
     expect(events).toEqual([
       {
         type: "tool-error",

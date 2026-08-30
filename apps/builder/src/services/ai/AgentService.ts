@@ -20,6 +20,7 @@ import type {
 } from "../../types/integrations/chat.types";
 import { createToolRegistry, getToolDefinitions } from "./tools";
 import { buildSystemPrompt } from "./systemPrompt";
+import type { PromptTranslate } from "./promptTranslate";
 import {
   isRateLimitError,
   type LLMMessage,
@@ -35,7 +36,11 @@ export class AgentService {
   private toolExecutors: Map<string, ToolExecutor>;
   private abortController: AbortController | null = null;
 
-  constructor(private readonly provider: LLMProvider) {
+  constructor(
+    private readonly provider: LLMProvider,
+    /** 프롬프트 문장 해소기 — 응답 언어가 여기서 정해진다 (ADR-200 후속). */
+    private readonly t: PromptTranslate,
+  ) {
     this.toolExecutors = createToolRegistry();
   }
 
@@ -52,7 +57,10 @@ export class AgentService {
       .find((m) => m.role === "user")?.content;
 
     const conversation: LLMMessage[] = [
-      { role: "system", content: buildSystemPrompt(context, latestRequest) },
+      {
+        role: "system",
+        content: buildSystemPrompt(context, this.t, latestRequest),
+      },
       ...this.convertMessages(messages),
     ];
 
@@ -272,7 +280,7 @@ export class AgentService {
  * 미구성이면 `null` — 키가 없어서가 아니라 **endpoint·모델이 정해지지 않아서** 다.
  * 호출자는 이 상태를 사용자에게 설정으로 안내한다 (기존 "키 없음" 분기와 같은 자리).
  */
-export function createAgentService(): AgentService | null {
+export function createAgentService(t: PromptTranslate): AgentService | null {
   const provider = resolveProvider("main");
   if (!provider) {
     if (import.meta.env.DEV) {
@@ -282,5 +290,5 @@ export function createAgentService(): AgentService | null {
     }
     return null;
   }
-  return new AgentService(provider);
+  return new AgentService(provider, t);
 }

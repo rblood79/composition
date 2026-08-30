@@ -596,6 +596,36 @@ export interface TranslationKeys {
     auditLogs: string;
     projectMembers: string;
   };
+  aiPrompt: {
+    role: string;
+    frameNote: string;
+    stylesHeading: string;
+    stylesBody: string;
+    stylesFills: string;
+    mockHeading: string;
+    stateHeading: string;
+    statePageId: string;
+    stateSelected: string;
+    stateNone: string;
+    stateCount: string;
+    selectedHeading: string;
+    selectedTag: string;
+    selectedProps: string;
+    selectedParent: string;
+    rulesHeading: string;
+    rule1: string;
+    rule2: string;
+    rule3: string;
+    rule4: string;
+    rule5: string;
+    rule6: string;
+    canonicalHeading: string;
+    canonicalBody: string;
+    bindingHeading: string;
+    bindingBody: string;
+    eventsHeading: string;
+    eventsBody: string;
+  };
   settings: {
     title: string;
     language: string;

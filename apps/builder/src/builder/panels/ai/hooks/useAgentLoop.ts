@@ -15,6 +15,7 @@ import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
 import type { BuilderContext } from "../../../../types/integrations/chat.types";
 import { buildBuilderContext } from "../../../../services/ai/builderContext";
 import type { ToolExecutionResult } from "../../../../types/integrations/ai.types";
+import { useI18n } from "@/i18n";
 import {
   initialProgress,
   reduceProgress,
@@ -30,6 +31,7 @@ const PROGRESS_EVENTS = new Set([
 ]);
 
 export function useAgentLoop() {
+  const { t } = useI18n();
   const {
     messages,
     isStreaming,
@@ -47,7 +49,7 @@ export function useAgentLoop() {
   } = useConversationStore();
 
   // Agent 실행기 (한 번만 생성) — planner 프로파일이 있으면 Plan→Execute→Verify 분해 실행
-  const agent = useMemo(() => createAgentRunner(), []);
+  const agent = useMemo(() => createAgentRunner(t), [t]);
 
   // 계획·역할·수리 진행 (ADR-134 Phase 8) — 기본 표면은 안 읽는다, 고급 모드만 읽는다.
   const [progress, setProgress] = useState<AgentProgress>(initialProgress);

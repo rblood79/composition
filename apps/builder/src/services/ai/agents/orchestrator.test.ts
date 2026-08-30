@@ -11,6 +11,8 @@ import type { LLMProvider, LLMStreamEvent } from "../providers/LLMProvider";
 import type { BuilderContext } from "../../../types/integrations/chat.types";
 import { MAX_REPAIR_ATTEMPTS, Orchestrator } from "./orchestrator";
 import type { AgentRole } from "./types";
+import { localizedStrings } from "@/i18n/translations";
+import type { PromptTranslate } from "../promptTranslate";
 
 vi.mock("../../../lib/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../lib/db")>();
@@ -70,6 +72,7 @@ function build(overrides: Partial<Record<AgentRole, LLMProvider>> = {}) {
     verifier: overrides.verifier ?? verifier,
   };
   const orchestrator = new Orchestrator({
+    t,
     resolve: (role) => map[role],
     fallback: map.executor,
   });
@@ -81,6 +84,13 @@ async function collect(gen: AsyncGenerator<unknown>) {
   for await (const e of gen) events.push(e as Record<string, unknown>);
   return events;
 }
+
+/** ko-KR 카탈로그에 묶은 프롬프트 해소기 (ADR-200 후속). */
+const t: PromptTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
 
 describe("역할별 프로파일 라우팅", () => {
   it("planner / executor / verifier 가 각자 provider 로 호출된다", async () => {
@@ -111,6 +121,7 @@ describe("역할별 프로파일 라우팅", () => {
   it("역할 프로파일이 없으면 fallback 으로 내려간다", async () => {
     const only = scripted("main", ["했습니다."]);
     const orchestrator = new Orchestrator({
+      t,
       resolve: () => undefined,
       fallback: only,
     });

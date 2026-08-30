@@ -16,6 +16,7 @@ import { ExecutorAgent, type ExecutionRecord } from "./ExecutorAgent";
 import { PlannerAgent } from "./PlannerAgent";
 import { VerifierAgent } from "./VerifierAgent";
 import type { AgentPlan, OrchestratorEvent, ProviderResolver } from "./types";
+import type { PromptTranslate } from "../promptTranslate";
 
 /** 수리 시도 상한 — 넘으면 사람에게 넘긴다. */
 export const MAX_REPAIR_ATTEMPTS = 2;
@@ -23,6 +24,8 @@ export const MAX_REPAIR_ATTEMPTS = 2;
 export type OrchestratedEvent = AgentEvent | OrchestratorEvent;
 
 export interface OrchestratorOptions {
+  /** 프롬프트 문장 해소기 — 응답 언어를 정한다 (ADR-200 후속). */
+  t: PromptTranslate;
   /** 역할별 provider. 미구성 역할은 `main` 으로 내린다 (호출자가 fallback 제공). */
   resolve: ProviderResolver;
   /** 어느 역할도 구성되지 않았을 때 쓸 provider. */
@@ -100,7 +103,7 @@ export class Orchestrator {
     if (decomposed) yield { type: "plan-ready", plan: plan! };
 
     // ── Execute ─────────────────────────────────────────────────────
-    this.executor = new ExecutorAgent(executorProvider);
+    this.executor = new ExecutorAgent(executorProvider, this.options.t);
     const record: ExecutionRecord = {
       log: [],
       affectedElementIds: [],

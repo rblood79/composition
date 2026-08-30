@@ -53,6 +53,8 @@ vi.mock("../../../stores/aiVisualFeedback", () => ({
 
 import { useConversationStore } from "../../../stores/conversation";
 import { useAgentLoop } from "./useAgentLoop";
+import { createElement } from "react";
+import { I18nProvider } from "@/i18n";
 
 beforeEach(() => {
   useConversationStore.setState({
@@ -70,6 +72,10 @@ afterEach(() => {
   scripted.lastContext = null;
 });
 
+/** 훅이 `useI18n` 을 쓰므로 provider 밑에서 돌린다 (ADR-200 R7). */
+const wrapper = ({ children }: { children: React.ReactNode }) =>
+  createElement(I18nProvider, null, children);
+
 describe("도구 실행 뒤의 assistant 텍스트", () => {
   it("도구 결과 다음에 온 텍스트도 화면에 남는다", async () => {
     scripted.events = [
@@ -83,7 +89,7 @@ describe("도구 실행 뒤의 assistant 텍스트", () => {
       { type: "text-delta", content: "프레임을 만들었습니다." },
     ] as OrchestratedEvent[];
 
-    const { result } = renderHook(() => useAgentLoop());
+    const { result } = renderHook(() => useAgentLoop(), { wrapper });
     await act(async () => {
       await result.current.runAgent("프레임 만들어줘");
     });
@@ -102,7 +108,7 @@ describe("도구 실행 뒤의 assistant 텍스트", () => {
 describe("진행 표시", () => {
   it("계획·역할·수리가 진행 상태로 모인다", async () => {
     scripted.events = [
-      { type: "agent-start", agent: "planner", label: "계획" },
+      { type: "agent-start", agent: "planner", labelKey: "ai.rolePlanner" },
       {
         type: "plan-ready",
         plan: { goal: "목표", steps: [{ index: 1, instruction: "a" }] },
@@ -111,7 +117,7 @@ describe("진행 표시", () => {
       { type: "repair-attempt", attempt: 1, max: 2, issues: ["어긋남"] },
     ] as OrchestratedEvent[];
 
-    const { result } = renderHook(() => useAgentLoop());
+    const { result } = renderHook(() => useAgentLoop(), { wrapper });
     await act(async () => {
       await result.current.runAgent("만들어줘");
     });
@@ -132,7 +138,7 @@ describe("컨텍스트 조립 시점", () => {
   it("패널 effect 가 돌지 않아도 스토어에서 만들어 실행한다", async () => {
     scripted.events = [];
 
-    const { result } = renderHook(() => useAgentLoop());
+    const { result } = renderHook(() => useAgentLoop(), { wrapper });
     await act(async () => {
       await result.current.runAgent("만들어줘");
     });

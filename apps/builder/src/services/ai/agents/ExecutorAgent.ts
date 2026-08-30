@@ -15,6 +15,7 @@ import type {
 } from "../../../types/integrations/chat.types";
 import type { LLMProvider } from "../providers/LLMProvider";
 import { AgentService } from "../AgentService";
+import type { PromptTranslate } from "../promptTranslate";
 import type { PlanStep } from "./types";
 
 export interface ExecutionRecord {
@@ -39,8 +40,8 @@ function userMessage(content: string): ChatMessage {
 export class ExecutorAgent {
   private readonly service: AgentService;
 
-  constructor(provider: LLMProvider) {
-    this.service = new AgentService(provider);
+  constructor(provider: LLMProvider, t: PromptTranslate) {
+    this.service = new AgentService(provider, t);
   }
 
   stop(): void {
