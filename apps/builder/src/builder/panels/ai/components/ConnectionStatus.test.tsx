@@ -13,6 +13,8 @@ import {
 } from "../../../../services/ai/providers/agentProfiles";
 import type { AgentProfileConfig } from "../../../../services/ai/providers/AgentProfileRegistry";
 import { ConnectionStatus } from "./ConnectionStatus";
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 
 const localCfg = (model: string): AgentProfileConfig => ({
   provider: "openai-compatible",
@@ -32,6 +34,10 @@ function loadProfiles(map: Record<string, AgentProfileConfig>) {
   getAgentProfileRegistry();
 }
 
+/** 표시 계층이 `useI18n` 을 쓰므로 provider 밑에서 그린다 (ADR-200 R7). */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
+
 describe("ConnectionStatus", () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => {
@@ -42,8 +48,8 @@ describe("ConnectionStatus", () => {
 
   it("아무것도 없으면 로컬 endpoint 를 안내한다", () => {
     loadProfiles({ main: { ...localCfg("") } });
-    render(<ConnectionStatus />);
-    expect(screen.getByText(/에이전트 프로파일 미구성/)).toBeTruthy();
+    renderWithI18n(<ConnectionStatus />);
+    expect(screen.getByText(/No agent profile configured/)).toBeTruthy();
     expect(screen.getByText(/localhost:11434/)).toBeTruthy();
   });
 
@@ -54,8 +60,8 @@ describe("ConnectionStatus", () => {
       verifier: localCfg("verify-model"),
       fast: localCfg("fast-model"),
     });
-    render(<ConnectionStatus />);
-    for (const label of ["계획", "실행", "검증", "분류"]) {
+    renderWithI18n(<ConnectionStatus />);
+    for (const label of ["Plan", "Execute", "Verify", "Classify"]) {
       expect(screen.getByText(label)).toBeTruthy();
     }
     expect(screen.getByText(/plan-model/)).toBeTruthy();
@@ -64,20 +70,22 @@ describe("ConnectionStatus", () => {
 
   it("내림이 있으면 사유를 보여 준다 (조용한 내림 금지)", () => {
     loadProfiles({ main: localCfg("only-main") });
-    render(<ConnectionStatus />);
+    renderWithI18n(<ConnectionStatus />);
     // 계획 프로파일이 없어 기본으로 내려간 사실이 문장으로 나온다
-    expect(screen.getAllByText(/기본 프로파일로 실행합니다/).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/running on the main profile/).length,
+    ).toBeGreaterThan(0);
   });
 
   it("로컬·사설망이면 폐쇄망 배지를 붙인다", () => {
     loadProfiles({ main: localCfg("m") });
-    render(<ConnectionStatus />);
-    expect(screen.getAllByText(/폐쇄망/).length).toBeGreaterThan(0);
+    renderWithI18n(<ConnectionStatus />);
+    expect(screen.getAllByText(/Private/).length).toBeGreaterThan(0);
   });
 
   it("원격 endpoint 에는 폐쇄망 배지를 붙이지 않는다", () => {
     loadProfiles({ main: remoteCfg("m") });
-    render(<ConnectionStatus />);
-    expect(screen.queryByText(/폐쇄망/)).toBeNull();
+    renderWithI18n(<ConnectionStatus />);
+    expect(screen.queryByText(/Private/)).toBeNull();
   });
 });

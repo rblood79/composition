@@ -16,7 +16,8 @@ import type {
 
 export interface AgentProgressRow {
   agent: AgentRole;
-  label: string;
+  /** 라벨 **키** — 해소는 표시 시점에 (ADR-200). */
+  labelKey: string;
   status: "running" | "done";
   ok?: boolean;
   summary?: string;
@@ -59,7 +60,7 @@ export function reduceProgress(
         ...state,
         agents: [
           ...state.agents,
-          { agent: event.agent, label: event.label, status: "running" },
+          { agent: event.agent, labelKey: event.labelKey, status: "running" },
         ],
       };
 

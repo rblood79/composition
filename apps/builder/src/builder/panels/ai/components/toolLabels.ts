@@ -60,7 +60,9 @@ export function describeToolCall(
   args?: Record<string, unknown>,
 ): string {
   const detail = subject(args);
-  return detail ? `${toolIntentLabel(name)} · ${detail}` : toolIntentLabel(name);
+  return detail
+    ? `${toolIntentLabel(name)} · ${detail}`
+    : toolIntentLabel(name);
 }
 
 /** 결과 시점 한 줄 — 실패는 이유를 그대로 보여준다 (숨기면 신입이 막힌다). */

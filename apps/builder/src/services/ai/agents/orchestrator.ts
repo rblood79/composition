@@ -15,11 +15,7 @@ import type { BuilderContext } from "../../../types/integrations/chat.types";
 import { ExecutorAgent, type ExecutionRecord } from "./ExecutorAgent";
 import { PlannerAgent } from "./PlannerAgent";
 import { VerifierAgent } from "./VerifierAgent";
-import type {
-  AgentPlan,
-  OrchestratorEvent,
-  ProviderResolver,
-} from "./types";
+import type { AgentPlan, OrchestratorEvent, ProviderResolver } from "./types";
 
 /** 수리 시도 상한 — 넘으면 사람에게 넘긴다. */
 export const MAX_REPAIR_ATTEMPTS = 2;
@@ -77,7 +73,11 @@ export class Orchestrator {
     // ── Plan ────────────────────────────────────────────────────────
     let plan: AgentPlan | null = null;
     if (plannerProvider) {
-      yield { type: "agent-start", agent: "planner", label: "계획" };
+      yield {
+        type: "agent-start",
+        agent: "planner",
+        labelKey: "ai.rolePlanner",
+      };
       plan = await new PlannerAgent(plannerProvider).plan(
         request,
         builderSummary(context),
@@ -107,7 +107,11 @@ export class Orchestrator {
       hadError: false,
     };
 
-    yield { type: "agent-start", agent: "executor", label: "실행" };
+    yield {
+      type: "agent-start",
+      agent: "executor",
+      labelKey: "ai.roleExecutor",
+    };
     for (const step of steps) {
       yield* this.executor.runStep(step, context, record);
     }
@@ -127,7 +131,11 @@ export class Orchestrator {
     const verifier = new VerifierAgent(verifierProvider);
 
     for (let attempt = 0; attempt <= MAX_REPAIR_ATTEMPTS; attempt++) {
-      yield { type: "agent-start", agent: "verifier", label: "검증" };
+      yield {
+        type: "agent-start",
+        agent: "verifier",
+        labelKey: "ai.roleVerifier",
+      };
       const outcome = await verifier.verify(plan, record.log);
       yield {
         type: "agent-end",
@@ -156,7 +164,11 @@ export class Orchestrator {
       };
 
       // 지적된 부분만 다시 시킨다 — 계획 전체를 다시 돌리면 중복 생성이 난다.
-      yield { type: "agent-start", agent: "executor", label: "수리" };
+      yield {
+        type: "agent-start",
+        agent: "executor",
+        labelKey: "ai.roleRepair",
+      };
       yield* this.executor.runStep(
         { index: 0, instruction: `지적된 부분을 고치세요. 목표: ${plan.goal}` },
         context,

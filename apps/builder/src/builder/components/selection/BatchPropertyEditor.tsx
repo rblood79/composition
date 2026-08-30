@@ -7,11 +7,22 @@
 
 import { useState, useMemo, useCallback } from "react";
 import type { Element } from "../../../types/core/store.types";
-import { PropertyInput, PropertySelect, PropertySwitch, PropertyFieldset } from "../property";
+import {
+  PropertyInput,
+  PropertySelect,
+  PropertySwitch,
+  PropertyFieldset,
+} from "../property";
 import { Button } from "@composition/shared/components";
 import { RefreshCw, Check } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { findCommonProperties, filterPropertiesByCategory, isBatchEditable, getPropertyType } from "../../panels/properties/utils/batchPropertyUtils";
+import { useI18n } from "@/i18n";
+import {
+  findCommonProperties,
+  filterPropertiesByCategory,
+  isBatchEditable,
+  getPropertyType,
+} from "../../panels/properties/utils/batchPropertyUtils";
 import type { PropertyValue } from "../../panels/properties/utils/batchPropertyUtils";
 
 import "./BatchPropertyEditor.css";
@@ -45,8 +56,13 @@ export function BatchPropertyEditor({
   onBatchUpdate,
   className = "",
 }: BatchPropertyEditorProps) {
-  const [category, setCategory] = useState<"all" | "layout" | "style" | "content">("all");
-  const [pendingUpdates, setPendingUpdates] = useState<Record<string, unknown>>({});
+  const { t } = useI18n();
+  const [category, setCategory] = useState<
+    "all" | "layout" | "style" | "content"
+  >("all");
+  const [pendingUpdates, setPendingUpdates] = useState<Record<string, unknown>>(
+    {},
+  );
   const [showMixedOnly, setShowMixedOnly] = useState(false);
 
   // Find common properties
@@ -56,7 +72,10 @@ export function BatchPropertyEditor({
 
   // Filter by category
   const filteredProps = useMemo(() => {
-    const filtered = filterPropertiesByCategory(commonPropsData.commonProps, category);
+    const filtered = filterPropertiesByCategory(
+      commonPropsData.commonProps,
+      category,
+    );
     if (showMixedOnly) {
       return filtered.filter((prop) => prop.isMixed);
     }
@@ -96,7 +115,7 @@ export function BatchPropertyEditor({
     (key: string, originalValue: unknown) => {
       return key in pendingUpdates ? pendingUpdates[key] : originalValue;
     },
-    [pendingUpdates]
+    [pendingUpdates],
   );
 
   // Render property input based on type
@@ -208,35 +227,39 @@ export function BatchPropertyEditor({
       <div className="batch-header">
         <div className="batch-info">
           <p className="batch-count">
-            {commonPropsData.elementCount}개 요소의 공통 속성
+            {t("selection.batchCommonProps", {
+              count: commonPropsData.elementCount,
+            })}
           </p>
           <p className="batch-types">
-            타입: {commonPropsData.elementTypes.join(", ")}
+            {t("selection.batchTypes", {
+              types: commonPropsData.elementTypes.join(", "),
+            })}
           </p>
           {mixedCount > 0 && (
             <p className="batch-mixed">
               <span className="mixed-indicator">⚠</span>
-              {mixedCount}개 속성이 다른 값을 가지고 있습니다
+              {t("selection.batchMixedCount", { count: mixedCount })}
             </p>
           )}
         </div>
 
         <div className="batch-controls">
           <PropertySelect
-            label="카테고리"
+            label={t("selection.batchCategory")}
             value={category}
             onChange={(value) => setCategory(value as typeof category)}
             options={[
-              { value: "all", label: "전체" },
-              { value: "layout", label: "레이아웃" },
-              { value: "style", label: "스타일" },
-              { value: "content", label: "콘텐츠" },
+              { value: "all", label: t("selection.filterAll") },
+              { value: "layout", label: t("selection.batchCategoryLayout") },
+              { value: "style", label: t("selection.batchCategoryStyle") },
+              { value: "content", label: t("selection.batchCategoryContent") },
             ]}
           />
 
           {mixedCount > 0 && (
             <PropertySwitch
-              label="Mixed만 표시"
+              label={t("selection.batchMixedOnly")}
               isSelected={showMixedOnly}
               onChange={setShowMixedOnly}
             />
@@ -244,12 +267,12 @@ export function BatchPropertyEditor({
         </div>
       </div>
 
-      <PropertyFieldset legend="공통 속성">
+      <PropertyFieldset legend={t("selection.batchLegend")}>
         {editableProps.length === 0 ? (
           <p className="batch-empty">
             {showMixedOnly
-              ? "Mixed 상태인 공통 속성이 없습니다."
-              : "편집 가능한 공통 속성이 없습니다."}
+              ? t("selection.batchEmptyMixed")
+              : t("selection.batchEmpty")}
           </p>
         ) : (
           editableProps.map((prop) => renderPropertyInput(prop))
@@ -269,7 +292,11 @@ export function BatchPropertyEditor({
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
-            <span>모두 적용 ({Object.keys(pendingUpdates).length}개)</span>
+            <span>
+              {t("selection.batchApplyAll", {
+                count: Object.keys(pendingUpdates).length,
+              })}
+            </span>
           </Button>
 
           <Button
@@ -283,18 +310,19 @@ export function BatchPropertyEditor({
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
-            <span>초기화</span>
+            <span>{t("selection.reset")}</span>
           </Button>
         </div>
       )}
 
       <div className="batch-footer">
-        <p className="batch-hint">
-          💡 변경사항은 "모두 적용" 버튼을 눌러야 반영됩니다.
-        </p>
+        <p className="batch-hint">💡 {t("selection.batchApplyHint")}</p>
         {hasPendingUpdates && (
           <p className="batch-warning">
-            ⚠️ {Object.keys(pendingUpdates).length}개의 변경사항이 대기 중입니다.
+            ⚠️{" "}
+            {t("selection.batchPending", {
+              count: Object.keys(pendingUpdates).length,
+            })}
           </p>
         )}
       </div>

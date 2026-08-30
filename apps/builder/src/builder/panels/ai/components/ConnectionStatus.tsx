@@ -13,15 +13,18 @@ import { getRoutingReport } from "../../../../services/ai/createAgentRunner";
 import { getAgentProfileRegistry } from "../../../../services/ai/providers/agentProfiles";
 import { isClosedNetworkProfile } from "../../../../services/ai/routing/AgentProfileRouter";
 import type { AgentTask } from "../../../../services/ai/routing/AgentProfileRouter";
+import { useI18n } from "@/i18n";
 
-const TASK_LABEL: Readonly<Record<AgentTask, string>> = {
-  plan: "계획",
-  execute: "실행",
-  verify: "검증",
-  classify: "분류",
+/** task → 라벨 **키** (ADR-200 어법). */
+const TASK_LABEL_KEYS: Readonly<Record<AgentTask, string>> = {
+  plan: "ai.taskPlan",
+  execute: "ai.taskExecute",
+  verify: "ai.taskVerify",
+  classify: "ai.taskClassify",
 };
 
 export function ConnectionStatus() {
+  const { t } = useI18n();
   const report = getRoutingReport();
   const registry = getAgentProfileRegistry();
 
@@ -30,11 +33,11 @@ export function ConnectionStatus() {
       <div className="ai-connection ai-connection-empty">
         <WifiOff size={14} />
         <div>
-          <p className="ai-connection-title">에이전트 프로파일 미구성</p>
+          <p className="ai-connection-title">{t("ai.profileMissing")}</p>
           <p className="ai-connection-hint">
-            로컬 endpoint (예: Ollama <code>http://localhost:11434/v1</code>) 와
-            모델을 지정하면 바로 쓸 수 있습니다. 원격 상용 provider 는 프록시가
-            준비되기 전까지 브라우저에서 직접 호출할 수 없습니다.
+            {t("ai.profileMissingHintLead")}{" "}
+            <code>http://localhost:11434/v1</code>
+            {t("ai.profileMissingHintTail")}
           </p>
         </div>
       </div>
@@ -59,15 +62,18 @@ export function ConnectionStatus() {
               }
             >
               <span className="ai-connection-task">
-                {TASK_LABEL[decision.task]}
+                {t(TASK_LABEL_KEYS[decision.task])}
               </span>
               <span className="ai-connection-profile">
-                {decision.profileId ?? "없음"}
+                {decision.profileId ?? t("ai.profileNone")}
                 {config?.model ? ` · ${config.model}` : ""}
               </span>
               {closed ? (
-                <span className="ai-connection-badge" title="로컬·사설망 endpoint">
-                  <Wifi size={11} /> 폐쇄망
+                <span
+                  className="ai-connection-badge"
+                  title={t("ai.privateNetworkHint")}
+                >
+                  <Wifi size={11} /> {t("ai.privateNetworkBadge")}
                 </span>
               ) : null}
             </li>
@@ -78,7 +84,17 @@ export function ConnectionStatus() {
       {report.notices.length > 0 && (
         <ul className="ai-connection-notices">
           {report.notices.map((notice) => (
-            <li key={notice}>{notice}</li>
+            <li key={`${notice.key}|${JSON.stringify(notice.params ?? {})}`}>
+              {t(
+                notice.key,
+                // 인자 값 자체가 라벨 키라 한 겹 더 해소한다.
+                notice.params
+                  ? Object.fromEntries(
+                      Object.entries(notice.params).map(([k, v]) => [k, t(v)]),
+                    )
+                  : undefined,
+              )}
+            </li>
           ))}
         </ul>
       )}

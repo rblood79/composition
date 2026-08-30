@@ -34,7 +34,7 @@ describe("1순위 프로파일", () => {
       );
       expect(decision.profileId).toBe(profileId);
       expect(decision.downgraded).toBe(false);
-      expect(decision.notice).toBeUndefined();
+      expect(decision.noticeKey).toBeUndefined();
     },
   );
 });
@@ -44,7 +44,8 @@ describe("내림", () => {
     const decision = routeTask("plan", lookupFrom({ main: local() }) as never);
     expect(decision.profileId).toBe("main");
     expect(decision.downgraded).toBe(true);
-    expect(decision.notice).toContain("계획");
+    expect(decision.noticeKey).toBe("ai.noticeDowngradedToMain");
+    expect(decision.noticeParams).toEqual({ role: "ai.rolePlanner" });
   });
 
   it("main 도 없으면 구성된 아무 프로파일로 내려간다", () => {
@@ -54,7 +55,11 @@ describe("내림", () => {
     );
     expect(decision.profileId).toBe("executor");
     expect(decision.downgraded).toBe(true);
-    expect(decision.notice).toContain("실행");
+    expect(decision.noticeKey).toBe("ai.noticeDowngradedToFallback");
+    expect(decision.noticeParams).toEqual({
+      role: "ai.rolePlanner",
+      fallback: "ai.roleExecutor",
+    });
   });
 
   it("예약 프로파일(vision)로는 내려가지 않는다", () => {
@@ -77,7 +82,7 @@ describe("내림", () => {
   it("아무것도 없으면 profileId 는 null + 설정 안내", () => {
     const decision = routeTask("execute", lookupFrom({}) as never);
     expect(decision.profileId).toBeNull();
-    expect(decision.notice).toContain("설정");
+    expect(decision.noticeKey).toBe("ai.noticeNoProfile");
   });
 });
 

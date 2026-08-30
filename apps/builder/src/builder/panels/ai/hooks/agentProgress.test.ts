@@ -46,7 +46,12 @@ describe("에이전트 진행 상태", () => {
 
   it("수리 시도를 셈한다 — 자기 수정이 일어났음을 보여준다", () => {
     const progress = run([
-      { type: "repair-attempt", attempt: 1, max: 2, issues: ["Heading 이 비었다"] },
+      {
+        type: "repair-attempt",
+        attempt: 1,
+        max: 2,
+        issues: ["Heading 이 비었다"],
+      },
     ] as OrchestratedEvent[]);
 
     expect(progress.repairs).toHaveLength(1);

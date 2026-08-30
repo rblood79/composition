@@ -23,6 +23,7 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
+import { useI18n } from "@/i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useConversationStore } from "../../stores/conversation";
 import { useStore } from "../../stores";
@@ -89,11 +90,9 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-function ChatInput({
-  onSend,
-  disabled = false,
-  placeholder = "무엇이든 물어보세요",
-}: ChatInputProps) {
+function ChatInput({ onSend, disabled = false, placeholder }: ChatInputProps) {
+  const { t } = useI18n();
+  const askLabel = placeholder ?? t("ai.askPlaceholder");
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -132,17 +131,17 @@ function ChatInput({
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         onInput={handleInput}
-        placeholder={placeholder}
+        placeholder={askLabel}
         disabled={disabled}
         rows={3}
-        aria-label="무엇이든 물어보세요"
+        aria-label={askLabel}
       />
       <div className="ai-composer-actions">
         <ActionIconButton
           type="button"
           isDisabled
-          aria-label="참조 이미지 추가"
-          tooltip="참조 이미지 추가 (준비 중)"
+          aria-label={t("ai.addReferenceImage")}
+          tooltip={t("ai.addReferenceImageSoon")}
           tooltipPlacement="top"
         >
           <ImagePlus size={iconProps.size} />
@@ -151,8 +150,8 @@ function ChatInput({
           type="button"
           onPress={handleSend}
           isDisabled={disabled || !value.trim()}
-          aria-label="질문 제출"
-          tooltip="질문 제출"
+          aria-label={t("ai.submit")}
+          tooltip={t("ai.submit")}
           tooltipPlacement="top"
         >
           <Send size={iconProps.size} />
@@ -186,6 +185,7 @@ function ChatContainer({
   hasAgent,
   onOpenAdvanced,
 }: ChatContainerProps) {
+  const { t } = useI18n();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll
@@ -194,26 +194,25 @@ function ChatContainer({
   }, [messages]);
 
   const targetLabel = selectedElementType
-    ? `선택한 ${formatElementType(selectedElementType)}`
-    : "현재 페이지";
+    ? t("ai.targetSelected", { type: formatElementType(selectedElementType) })
+    : t("ai.targetPage");
   const suggestions = [
-    `해주세요: ${targetLabel}의 시각적 계층을 개선해 주세요.`,
-    `해주세요: ${targetLabel}의 간격과 정렬을 정리해 주세요.`,
-    `보여주세요: ${targetLabel} 편집 방법을 알려 주세요.`,
+    t("ai.suggestHierarchy", { target: targetLabel }),
+    t("ai.suggestSpacing", { target: targetLabel }),
+    t("ai.suggestHowTo", { target: targetLabel }),
   ];
 
   return (
     <div className="panel-contents ai-contents">
       <div className="ai-transcript" aria-live="polite">
         {messages.length === 0 && !hasAgent ? (
-          <div className="ai-welcome" role="group" aria-label="시작하기">
-            <p className="ai-intro">
-              먼저 어떤 모델을 쓸지 알려 주세요. 로컬 endpoint (Ollama 등) 나
-              사용하는 API 키를 고르면 바로 시작할 수 있습니다.
-            </p>
-            <p className="ai-context-label">
-              키는 기본적으로 이 세션에만 남고 저장하지 않습니다.
-            </p>
+          <div
+            className="ai-welcome"
+            role="group"
+            aria-label={t("ai.welcomeLabel")}
+          >
+            <p className="ai-intro">{t("ai.welcomeBody")}</p>
+            <p className="ai-context-label">{t("ai.welcomeKeyNotice")}</p>
             <div className="ai-suggestions">
               <Button
                 className="ai-suggestion"
@@ -222,19 +221,21 @@ function ChatContainer({
                 onPress={onOpenAdvanced}
               >
                 <Sparkles size={iconProps.size} aria-hidden="true" />
-                <span>에이전트 설정 열기</span>
+                <span>{t("ai.openAgentSettings")}</span>
               </Button>
             </div>
           </div>
         ) : messages.length === 0 ? (
           <div className="ai-welcome">
-            <p className="ai-intro">
-              AI와 composition의 강력한 기능을 사용하여 디자인을 개선하세요.
-            </p>
+            <p className="ai-intro">{t("ai.intro")}</p>
             <p className="ai-context-label">
-              다음은 {targetLabel}에 대한 맞춤형 아이디어입니다.
+              {t("ai.suggestionsIntro", { target: targetLabel })}
             </p>
-            <div className="ai-suggestions" role="group" aria-label="추천 요청">
+            <div
+              className="ai-suggestions"
+              role="group"
+              aria-label={t("ai.suggestionsLabel")}
+            >
               {suggestions.map((suggestion) => (
                 <Button
                   key={suggestion}
@@ -265,9 +266,7 @@ function ChatContainer({
 
       <div className="ai-composer-region">
         <ChatInput onSend={onSendMessage} disabled={isDisabled} />
-        <p className="ai-disclaimer">
-          AI 생성 응답입니다. 사용하기 전에 확인해야 합니다.
-        </p>
+        <p className="ai-disclaimer">{t("ai.disclaimer")}</p>
       </div>
     </div>
   );
@@ -277,6 +276,7 @@ function ChatContainer({
  * AIPanelContent - AI 패널 메인 로직
  */
 function AIPanelContent() {
+  const { t } = useI18n();
   /**
    * 고급 모드 (ADR-134 Phase 8, D9) — 기본 표면은 입력과 결과만 남기고, 모델 구성·라우팅·
    * 계획 분해는 한 번의 명시적 전환 뒤로 격리한다.
@@ -323,9 +323,9 @@ function AIPanelContent() {
             <ActionIconButton
               onPress={() => setAdvancedOpen((open) => !open)}
               type="button"
-              aria-label="고급 모드"
+              aria-label={t("ai.advancedMode")}
               aria-pressed={advancedOpen}
-              tooltip="고급 모드 (모델 구성 · 진행 상세)"
+              tooltip={t("ai.advancedModeHint")}
             >
               <Settings2
                 color={iconProps.color}
@@ -338,7 +338,7 @@ function AIPanelContent() {
                 onPress={clearConversation}
                 type="button"
                 aria-label="Clear conversation"
-                tooltip="대화 초기화"
+                tooltip={t("ai.resetConversation")}
               >
                 <DeleteIcon
                   color={iconProps.color}

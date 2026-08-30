@@ -220,10 +220,11 @@ describe("ADR-181: page-guide entry 소비 지점 6곳 (C4 커버리지)", () =>
   it("C4 #6 — 패널 라벨/아이콘 (라벨 없는 entry 방지)", async () => {
     const label = await readSource("../../panels/history/historyEntryLabel.ts");
     expect(label).toContain('case "page-guide"');
-    // 목록 전체 교체라 길이 차로 생성/삭제/이동을 가른다
-    expect(label).toContain("가이드 추가");
-    expect(label).toContain("가이드 삭제");
-    expect(label).toContain("가이드 이동");
+    // 목록 전체 교체라 길이 차로 생성/삭제/이동을 가른다. 문구 자체는
+    // 카탈로그가 고르므로 (ADR-200) 여기서는 세 갈래의 키를 고정한다.
+    expect(label).toContain("history.entryGuideAdd");
+    expect(label).toContain("history.entryGuideRemove");
+    expect(label).toContain("history.entryGuideMove");
 
     const panel = await readSource("../../panels/history/HistoryPanel.tsx");
     // ENTRY_TYPE_ICONS 는 Record<HistoryEntry["type"], LucideIcon> 이라 누락 시

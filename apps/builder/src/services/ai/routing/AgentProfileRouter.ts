@@ -34,16 +34,20 @@ export interface RoutingDecision {
   /** 1순위가 아니라 내려온 경우. */
   downgraded: boolean;
   /** 사용자에게 보여 줄 한 줄 (내림이 있을 때만). */
-  notice?: string;
+  /** 안내 문구 **키** — 표시 시점에 해소한다 (ADR-200). */
+  noticeKey?: string;
+  /** 안내 문구 보간 인자 — 값은 그 자체가 또 라벨 키다. */
+  noticeParams?: Record<string, string>;
 }
 
-const LABEL: Readonly<Record<AgentProfileId, string>> = {
-  main: "기본",
-  planner: "계획",
-  executor: "실행",
-  verifier: "검증",
-  fast: "분류",
-  vision: "이미지",
+/** 프로파일 → 라벨 **키**. 이 모듈은 서비스라 문장을 만들지 않는다 (ADR-200). */
+const LABEL_KEYS: Readonly<Record<AgentProfileId, string>> = {
+  main: "ai.roleMain",
+  planner: "ai.rolePlanner",
+  executor: "ai.roleExecutor",
+  verifier: "ai.roleVerifier",
+  fast: "ai.roleFast",
+  vision: "ai.roleVisionShort",
 };
 
 export type ProfileLookup = (
@@ -65,7 +69,8 @@ export function routeTask(
       task,
       profileId: "main",
       downgraded: true,
-      notice: `${LABEL[preferred]} 프로파일이 없어 기본 프로파일로 실행합니다.`,
+      noticeKey: "ai.noticeDowngradedToMain",
+      noticeParams: { role: LABEL_KEYS[preferred] },
     };
   }
 
@@ -80,7 +85,11 @@ export function routeTask(
       task,
       profileId: fallback,
       downgraded: true,
-      notice: `${LABEL[preferred]} · 기본 프로파일이 없어 ${LABEL[fallback]} 프로파일로 실행합니다.`,
+      noticeKey: "ai.noticeDowngradedToFallback",
+      noticeParams: {
+        role: LABEL_KEYS[preferred],
+        fallback: LABEL_KEYS[fallback],
+      },
     };
   }
 
@@ -88,7 +97,7 @@ export function routeTask(
     task,
     profileId: null,
     downgraded: false,
-    notice: "구성된 에이전트 프로파일이 없습니다. 설정에서 endpoint 와 모델을 지정하세요.",
+    noticeKey: "ai.noticeNoProfile",
   };
 }
 
@@ -96,8 +105,8 @@ export interface RoutingReport {
   decisions: RoutingDecision[];
   /** 하나라도 실행 가능한가. */
   ready: boolean;
-  /** 내림이 있는 작업들 — 상태 표시가 이것만 보여 준다. */
-  notices: string[];
+  /** 내림이 있는 작업들 — 상태 표시가 이것만 보여 준다 (키 + 보간 인자). */
+  notices: Array<{ key: string; params?: Record<string, string> }>;
 }
 
 /** 네 작업이 각각 어디로 가는지 한눈에 — 연결 상태 UI 의 데이터 소스. */
@@ -108,12 +117,16 @@ export function describeRouting(lookup: ProfileLookup): RoutingReport {
   return {
     decisions,
     ready: decisions.some((d) => d.profileId !== null),
+    // 같은 안내가 여러 작업에서 나오면 한 번만 — 키 + 인자 조합으로 센다.
     notices: [
-      ...new Set(
+      ...new Map(
         decisions
-          .filter((d) => d.notice)
-          .map((d) => d.notice as string),
-      ),
+          .filter((d) => d.noticeKey)
+          .map((d) => [
+            `${d.noticeKey}|${JSON.stringify(d.noticeParams ?? {})}`,
+            { key: d.noticeKey as string, params: d.noticeParams },
+          ]),
+      ).values(),
     ],
   };
 }

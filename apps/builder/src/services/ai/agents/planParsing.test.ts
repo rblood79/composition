@@ -38,7 +38,9 @@ describe("parsePlan", () => {
   });
 
   it("6단계를 넘으면 자른다", () => {
-    const steps = Array.from({ length: 10 }, (_, i) => ({ instruction: `S${i}` }));
+    const steps = Array.from({ length: 10 }, (_, i) => ({
+      instruction: `S${i}`,
+    }));
     expect(parsePlan(JSON.stringify({ steps }))?.steps).toHaveLength(6);
   });
 

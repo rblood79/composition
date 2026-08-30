@@ -35,7 +35,10 @@ export function parseVerdict(raw: string): VerifyOutcome {
       ? parsed.issues.filter((i): i is string => typeof i === "string")
       : [];
     // ok 가 명시적으로 false 일 때만 실패로 본다 — 판정 불명은 통과 (위 규칙과 동형).
-    return { ok: parsed.ok !== false, issues: parsed.ok === false ? issues : [] };
+    return {
+      ok: parsed.ok !== false,
+      issues: parsed.ok === false ? issues : [],
+    };
   } catch {
     return { ok: true, issues: [] };
   }

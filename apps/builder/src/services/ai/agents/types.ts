@@ -33,7 +33,7 @@ export interface VerifyOutcome {
 
 /** 오케스트레이션이 추가로 내보내는 진행 이벤트 (기존 AgentEvent 와 합집합). */
 export type OrchestratorEvent =
-  | { type: "agent-start"; agent: AgentRole; label: string }
+  | { type: "agent-start"; agent: AgentRole; labelKey: string }
   | { type: "agent-end"; agent: AgentRole; ok: boolean; summary?: string }
   | { type: "plan-ready"; plan: AgentPlan }
   | {

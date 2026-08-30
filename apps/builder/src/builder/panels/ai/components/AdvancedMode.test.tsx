@@ -13,20 +13,26 @@ vi.mock("./ConnectionStatus", () => ({
 }));
 
 import { AdvancedMode, trimLabelEcho } from "./AdvancedMode";
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 
 const empty: AgentProgress = { plan: null, agents: [], repairs: [] };
 
 afterEach(cleanup);
 
+/** 표시 계층이 `useI18n` 을 쓰므로 provider 밑에서 그린다 (ADR-200 R7). */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
+
 describe("고급 모드", () => {
   it("프로파일 설정과 연결 상태를 함께 담는다 — 여기가 L4 표면", () => {
-    render(<AdvancedMode progress={empty} />);
+    renderWithI18n(<AdvancedMode progress={empty} />);
     expect(screen.getByText("프로파일 설정 자리")).toBeTruthy();
     expect(screen.getByText("연결 상태 자리")).toBeTruthy();
   });
 
   it("계획 단계를 보여준다", () => {
-    render(
+    renderWithI18n(
       <AdvancedMode
         progress={{
           plan: {
@@ -47,25 +53,34 @@ describe("고급 모드", () => {
   });
 
   it("역할별 진행과 수리 시도를 보여준다", () => {
-    render(
+    renderWithI18n(
       <AdvancedMode
         progress={{
           plan: null,
           agents: [
-            { agent: "planner", label: "계획", status: "done", ok: true },
-            { agent: "executor", label: "실행", status: "running" },
+            {
+              agent: "planner",
+              labelKey: "ai.rolePlanner",
+              status: "done",
+              ok: true,
+            },
+            {
+              agent: "executor",
+              labelKey: "ai.roleExecutor",
+              status: "running",
+            },
           ],
           repairs: [{ attempt: 1, max: 2, issues: ["Heading 이 비었다"] }],
         }}
       />,
     );
-    expect(screen.getByText("계획")).toBeTruthy();
-    expect(screen.getByText("실행")).toBeTruthy();
+    expect(screen.getByText("Planner")).toBeTruthy();
+    expect(screen.getByText("Executor")).toBeTruthy();
     expect(screen.getByText(/Heading 이 비었다/)).toBeTruthy();
   });
 
   it("진행이 없으면 진행 영역을 만들지 않는다", () => {
-    render(<AdvancedMode progress={empty} />);
+    renderWithI18n(<AdvancedMode progress={empty} />);
     expect(screen.queryByRole("group", { name: "에이전트 진행" })).toBeNull();
   });
 });

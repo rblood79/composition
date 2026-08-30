@@ -81,7 +81,9 @@ export class ExecutorAgent {
           record.affectedElementIds.push(id);
         }
       } else if (event.type === "tool-error") {
-        record.log.push(`단계 ${step.index}: ${event.toolName} → 오류 ${event.error}`);
+        record.log.push(
+          `단계 ${step.index}: ${event.toolName} → 오류 ${event.error}`,
+        );
         record.hadError = true;
       }
       yield event;

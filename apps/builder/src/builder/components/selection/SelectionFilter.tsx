@@ -11,6 +11,7 @@ import { PropertyInput, PropertySelect } from "../property";
 import { Filter, X } from "lucide-react";
 import { Button } from "@composition/shared/components";
 import { iconProps } from "../../../utils/ui/uiConstants";
+import { useI18n } from "@/i18n";
 
 import "./SelectionFilter.css";
 export interface SelectionFilterProps {
@@ -38,6 +39,7 @@ export function SelectionFilter({
   onFilteredElements,
   className = "",
 }: SelectionFilterProps) {
+  const { t } = useI18n();
   const [filterType, setFilterType] = useState<
     "all" | "type" | "tag" | "property"
   >("all");
@@ -124,7 +126,7 @@ export function SelectionFilter({
             size={iconProps.size}
             strokeWidth={iconProps.strokeWidth}
           />
-          <span>필터</span>
+          <span>{t("selection.filter")}</span>
         </Button>
       </div>
     );
@@ -135,7 +137,7 @@ export function SelectionFilter({
       <div className="filter-header">
         <div className="filter-title">
           <Filter size={iconProps.size} />
-          <span>선택 필터</span>
+          <span>{t("selection.filterTitle")}</span>
         </div>
         <Button
           variant="ghost"
@@ -149,24 +151,24 @@ export function SelectionFilter({
 
       <div className="filter-content">
         <PropertySelect
-          label="필터 타입"
+          label={t("selection.filterType")}
           value={filterType}
           onChange={(value) => setFilterType(value as typeof filterType)}
           options={[
-            { value: "all", label: "전체" },
-            { value: "type", label: "타입으로" },
-            { value: "tag", label: "태그로" },
-            { value: "property", label: "속성으로" },
+            { value: "all", label: t("selection.filterAll") },
+            { value: "type", label: t("selection.filterByType") },
+            { value: "tag", label: t("selection.filterByTag") },
+            { value: "property", label: t("selection.filterByProperty") },
           ]}
         />
 
         {(filterType === "type" || filterType === "tag") && (
           <PropertySelect
-            label="태그"
+            label={t("selection.tag")}
             value={selectedTag}
             onChange={setSelectedTag}
             options={[
-              { value: "", label: "선택하세요" },
+              { value: "", label: t("selection.choose") },
               ...uniqueTags.map((type) => ({ value: type, label: type })),
             ]}
           />
@@ -175,16 +177,16 @@ export function SelectionFilter({
         {filterType === "property" && (
           <>
             <PropertyInput
-              label="속성 키"
+              label={t("selection.propertyKey")}
               value={propertyKey}
               onChange={setPropertyKey}
-              placeholder="예: className, id, style"
+              placeholder={t("selection.propertyKeyPlaceholder")}
             />
             <PropertyInput
-              label="속성 값 (선택)"
+              label={t("selection.propertyValue")}
               value={propertyValue}
               onChange={setPropertyValue}
-              placeholder="값 검색 (비워두면 존재 여부만 확인)"
+              placeholder={t("selection.propertyValuePlaceholder")}
             />
           </>
         )}
@@ -200,10 +202,10 @@ export function SelectionFilter({
               (filterType === "property" && !propertyKey)
             }
           >
-            필터 적용
+            {t("selection.applyFilter")}
           </Button>
           <Button variant="ghost" size="sm" onPress={handleClearFilter}>
-            초기화
+            {t("selection.reset")}
           </Button>
         </div>
       </div>

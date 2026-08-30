@@ -29,20 +29,22 @@ import {
   setByokKey,
   setPersistOptIn,
 } from "../../../../services/ai/providers/byokKeyStore";
+import { useI18n } from "@/i18n";
 
-const PROFILE_LABEL: Readonly<Record<AgentProfileId, string>> = {
-  main: "기본",
-  planner: "계획",
-  executor: "실행",
-  verifier: "검증",
-  fast: "분류",
-  vision: "이미지 (예약)",
+/** 프로파일 → 라벨 **키** (ADR-200 어법). */
+const PROFILE_LABEL_KEYS: Readonly<Record<AgentProfileId, string>> = {
+  main: "ai.roleMain",
+  planner: "ai.rolePlanner",
+  executor: "ai.roleExecutor",
+  verifier: "ai.roleVerifier",
+  fast: "ai.roleFast",
+  vision: "ai.roleVision",
 };
 
-const PRESETS: ReadonlyArray<{ id: AgentProfilePresetId; label: string }> = [
-  { id: "local-ollama", label: "로컬 (Ollama)" },
-  { id: "anthropic", label: "Anthropic" },
-  { id: "openai", label: "OpenAI 호환" },
+const PRESETS: ReadonlyArray<{ id: AgentProfilePresetId; labelKey: string }> = [
+  { id: "local-ollama", labelKey: "ai.presetLocalOllama" },
+  { id: "anthropic", labelKey: "" },
+  { id: "openai", labelKey: "ai.presetOpenAiCompatible" },
 ];
 
 const EMPTY: AgentProfileConfig = {
@@ -52,6 +54,7 @@ const EMPTY: AgentProfileConfig = {
 };
 
 export function AgentProfileSettings() {
+  const { t } = useI18n();
   // 저장 시마다 다시 그린다 — 레지스트리는 React 상태가 아니다.
   const [revision, setRevision] = useState(0);
   const [persist, setPersist] = useState(() => isPersistOptedIn());
@@ -77,7 +80,7 @@ export function AgentProfileSettings() {
   return (
     <div className="ai-profile-settings" data-revision={revision}>
       <fieldset className="properties-aria ai-profile-presets">
-        <legend className="fieldset-legend">프리셋</legend>
+        <legend className="fieldset-legend">{t("ai.presetsLegend")}</legend>
         <div className="ai-profile-preset-row">
           {PRESETS.map((preset) => (
             <Button
@@ -87,22 +90,20 @@ export function AgentProfileSettings() {
               size="sm"
               onPress={() => applyPreset(preset.id)}
             >
-              {preset.label}
+              {preset.labelKey ? t(preset.labelKey) : "Anthropic"}
             </Button>
           ))}
         </div>
-        <p className="ai-profile-hint">
-          프리셋은 endpoint 만 채웁니다. 모델은 직접 고르세요 — 비어 있으면 그
-          프로파일은 쓰이지 않습니다.
-        </p>
+        <p className="ai-profile-hint">{t("ai.presetsHint")}</p>
       </fieldset>
-
 
       {editable.map((id) => {
         const config = registry.get(id) ?? EMPTY;
         return (
           <fieldset key={id} className="properties-aria ai-profile-row">
-            <legend className="fieldset-legend">{PROFILE_LABEL[id]}</legend>
+            <legend className="fieldset-legend">
+              {t(PROFILE_LABEL_KEYS[id])}
+            </legend>
 
             <label className="ai-profile-field">
               <span>provider</span>
@@ -115,7 +116,7 @@ export function AgentProfileSettings() {
                 }
               >
                 <option value="openai-compatible">
-                  OpenAI 호환 (Ollama · vLLM · LM Studio · 사내 gateway)
+                  {t("ai.openAiCompatibleHint")}
                 </option>
                 <option value="anthropic">Anthropic</option>
               </select>
@@ -132,21 +133,21 @@ export function AgentProfileSettings() {
             </label>
 
             <label className="ai-profile-field">
-              <span>모델</span>
+              <span>{t("ai.model")}</span>
               <input
                 type="text"
                 value={config.model}
-                placeholder="비워 두면 미구성"
+                placeholder={t("ai.modelPlaceholder")}
                 onChange={(e) => update(id, { model: e.target.value })}
               />
             </label>
 
             <label className="ai-profile-field">
-              <span>키 이름</span>
+              <span>{t("ai.keyName")}</span>
               <input
                 type="text"
                 value={config.credentialRef ?? ""}
-                placeholder="로컬 endpoint 는 비워 둡니다"
+                placeholder={t("ai.keyNamePlaceholder")}
                 onChange={(e) =>
                   update(id, { credentialRef: e.target.value || undefined })
                 }
@@ -155,11 +156,11 @@ export function AgentProfileSettings() {
 
             {config.credentialRef ? (
               <label className="ai-profile-field">
-                <span>키 값</span>
+                <span>{t("ai.keyValue")}</span>
                 <input
                   type="password"
                   autoComplete="off"
-                  placeholder="입력 후 이 칸은 비워집니다"
+                  placeholder={t("ai.keyValuePlaceholder")}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (!value || !config.credentialRef) return;
@@ -173,7 +174,7 @@ export function AgentProfileSettings() {
       })}
 
       <fieldset className="properties-aria ai-profile-secrets">
-        <legend className="fieldset-legend">키 보관</legend>
+        <legend className="fieldset-legend">{t("ai.keyStorageLegend")}</legend>
         <label className="ai-profile-check">
           <input
             type="checkbox"
@@ -183,11 +184,9 @@ export function AgentProfileSettings() {
               setPersist(e.target.checked);
             }}
           />
-          <span>이 브라우저에 키를 저장합니다</span>
+          <span>{t("ai.keyStorageToggle")}</span>
         </label>
-        <p className="ai-profile-hint">
-          기본은 이 세션에서만 기억합니다. 끄면 저장된 키가 즉시 삭제됩니다.
-        </p>
+        <p className="ai-profile-hint">{t("ai.keyStorageHint")}</p>
       </fieldset>
     </div>
   );

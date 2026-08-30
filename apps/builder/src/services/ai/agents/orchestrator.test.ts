@@ -7,10 +7,7 @@
  * 3. 수리가 상한(2회)에서 멈추는가 — 무한 수리는 사용자 캔버스를 계속 바꾼다.
  */
 import { describe, expect, it, vi } from "vitest";
-import type {
-  LLMProvider,
-  LLMStreamEvent,
-} from "../providers/LLMProvider";
+import type { LLMProvider, LLMStreamEvent } from "../providers/LLMProvider";
 import type { BuilderContext } from "../../../types/integrations/chat.types";
 import { MAX_REPAIR_ATTEMPTS, Orchestrator } from "./orchestrator";
 import type { AgentRole } from "./types";
@@ -18,10 +15,14 @@ import type { AgentRole } from "./types";
 vi.mock("../../../lib/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../lib/db")>();
   const table = new Proxy(() => Promise.resolve([]), {
-    get: (_t, prop) => (prop === "then" ? undefined : () => Promise.resolve([])),
+    get: (_t, prop) =>
+      prop === "then" ? undefined : () => Promise.resolve([]),
     apply: () => Promise.resolve([]),
   });
-  const noop = new Proxy({}, { get: (_t, p) => (p === "then" ? undefined : table) });
+  const noop = new Proxy(
+    {},
+    { get: (_t, p) => (p === "then" ? undefined : table) },
+  );
   return { ...actual, getDB: vi.fn(async () => noop) };
 });
 
@@ -31,7 +32,10 @@ const CONTEXT: BuilderContext = {
 } as BuilderContext;
 
 /** 대본대로 응답하는 가짜 provider. 호출 횟수를 센다. */
-function scripted(id: string, replies: string[]): LLMProvider & { calls: number } {
+function scripted(
+  id: string,
+  replies: string[],
+): LLMProvider & { calls: number } {
   let turn = 0;
   const provider = {
     id: "openai-compatible" as const,
@@ -81,7 +85,9 @@ async function collect(gen: AsyncGenerator<unknown>) {
 describe("역할별 프로파일 라우팅", () => {
   it("planner / executor / verifier 가 각자 provider 로 호출된다", async () => {
     const { orchestrator, planner, executor, verifier } = build();
-    const events = await collect(orchestrator.run("대시보드 만들어줘", CONTEXT));
+    const events = await collect(
+      orchestrator.run("대시보드 만들어줘", CONTEXT),
+    );
 
     expect(planner.calls).toBe(1);
     expect(executor.calls).toBeGreaterThanOrEqual(2); // 단계 2개
@@ -95,7 +101,9 @@ describe("역할별 프로파일 라우팅", () => {
 
   it("계획이 나오면 plan-ready 로 단계를 알린다", async () => {
     const { orchestrator } = build();
-    const events = await collect(orchestrator.run("대시보드 만들어줘", CONTEXT));
+    const events = await collect(
+      orchestrator.run("대시보드 만들어줘", CONTEXT),
+    );
     const ready = events.find((e) => e.type === "plan-ready");
     expect((ready?.plan as { steps: unknown[] })?.steps).toHaveLength(2);
   });
@@ -108,16 +116,20 @@ describe("역할별 프로파일 라우팅", () => {
     });
     const events = await collect(orchestrator.run("버튼 만들어줘", CONTEXT));
     expect(only.calls).toBeGreaterThanOrEqual(1);
-    expect(events.some((e) => e.type === "agent-start" && e.agent === "executor")).toBe(true);
+    expect(
+      events.some((e) => e.type === "agent-start" && e.agent === "executor"),
+    ).toBe(true);
   });
 });
 
 describe("단순 요청은 분해하지 않는다", () => {
   it("계획이 1단계면 검증을 부르지 않는다", async () => {
-    const planner = scripted(
-      "planner",
-      [JSON.stringify({ goal: "색 변경", steps: [{ instruction: "variant 를 바꾼다" }] })],
-    );
+    const planner = scripted("planner", [
+      JSON.stringify({
+        goal: "색 변경",
+        steps: [{ instruction: "variant 를 바꾼다" }],
+      }),
+    ]);
     const { orchestrator, verifier } = build({ planner });
     const events = await collect(orchestrator.run("버튼 색 바꿔줘", CONTEXT));
 
@@ -144,7 +156,9 @@ describe("bounded repair", () => {
       JSON.stringify({ ok: false, issues: ["제목이 없습니다"] }),
     ]);
     const { orchestrator } = build({ verifier });
-    const events = await collect(orchestrator.run("대시보드 만들어줘", CONTEXT));
+    const events = await collect(
+      orchestrator.run("대시보드 만들어줘", CONTEXT),
+    );
 
     const repairs = events.filter((e) => e.type === "repair-attempt");
     expect(repairs).toHaveLength(MAX_REPAIR_ATTEMPTS);
@@ -159,7 +173,9 @@ describe("bounded repair", () => {
 
   it("검증이 통과하면 수리하지 않는다", async () => {
     const { orchestrator } = build();
-    const events = await collect(orchestrator.run("대시보드 만들어줘", CONTEXT));
+    const events = await collect(
+      orchestrator.run("대시보드 만들어줘", CONTEXT),
+    );
     expect(events.filter((e) => e.type === "repair-attempt")).toHaveLength(0);
   });
 
@@ -169,7 +185,9 @@ describe("bounded repair", () => {
       id: "openai-compatible" as const,
       model: "executor",
       calls: 0,
-      async *completeWithTools(messages: readonly { role: string; content?: unknown }[]) {
+      async *completeWithTools(
+        messages: readonly { role: string; content?: unknown }[],
+      ) {
         const user = messages.find((m) => m.role === "user");
         if (typeof user?.content === "string") seen.push(user.content);
         yield { type: "text-delta" as const, delta: "ok" };

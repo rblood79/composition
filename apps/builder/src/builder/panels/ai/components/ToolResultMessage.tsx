@@ -15,8 +15,7 @@ interface ToolResultMessageProps {
 export function ToolResultMessage({ message }: ToolResultMessageProps) {
   const toolName = message.metadata?.toolName ?? "";
   const result = message.metadata?.toolResult as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
 
   if (!result) return null;
 

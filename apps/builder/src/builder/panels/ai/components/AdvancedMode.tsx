@@ -12,6 +12,7 @@ import { CircleCheck, CircleDot, Wrench } from "lucide-react";
 import { AgentProfileSettings } from "./AgentProfileSettings";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { hasProgress, type AgentProgress } from "../hooks/agentProgress";
+import { useI18n } from "@/i18n";
 
 interface AdvancedModeProps {
   progress: AgentProgress;
@@ -34,13 +35,15 @@ export function trimLabelEcho(label: string, summary: string): string {
 }
 
 export function AdvancedMode({ progress }: AdvancedModeProps) {
+  const { t } = useI18n();
+
   return (
     <div className="ai-advanced">
       <ConnectionStatus />
 
       {hasProgress(progress) && (
         <section
-          aria-label="에이전트 진행"
+          aria-label={t("ai.agentProgress")}
           className="ai-progress"
           role="group"
         >
@@ -57,10 +60,13 @@ export function AdvancedMode({ progress }: AdvancedModeProps) {
                   ) : (
                     <CircleDot size={13} />
                   )}
-                  <span className="ai-progress-agent-label">{row.label}</span>
-                  {row.summary && trimLabelEcho(row.label, row.summary) ? (
+                  <span className="ai-progress-agent-label">
+                    {t(row.labelKey)}
+                  </span>
+                  {row.summary &&
+                  trimLabelEcho(t(row.labelKey), row.summary) ? (
                     <span className="ai-progress-agent-summary">
-                      {trimLabelEcho(row.label, row.summary)}
+                      {trimLabelEcho(t(row.labelKey), row.summary)}
                     </span>
                   ) : null}
                 </li>
@@ -90,7 +96,11 @@ export function AdvancedMode({ progress }: AdvancedModeProps) {
             <div className="ai-progress-repair" key={repair.attempt}>
               <Wrench size={13} />
               <span>
-                수리 {repair.attempt}/{repair.max} · {repair.issues.join(" · ")}
+                {t("ai.agentRepair", {
+                  attempt: repair.attempt,
+                  max: repair.max,
+                })}{" "}
+                · {repair.issues.join(" · ")}
               </span>
             </div>
           ))}

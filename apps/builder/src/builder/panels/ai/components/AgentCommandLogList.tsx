@@ -8,18 +8,21 @@
 import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
 import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { useAgentCommandLogStore } from "../../../stores/agentCommandLog";
+import { useI18n } from "@/i18n";
 
-const STATUS_LABEL: Record<string, string> = {
-  ok: "실행",
-  denied: "거부",
-  "precondition-failed": "조건 미충족",
-  declined: "승인 거부",
-  error: "오류",
+/** 상태 → 라벨 **키** — 해소는 표시 시점에 한다 (ADR-200). */
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  ok: "ai.logOk",
+  denied: "ai.logDenied",
+  "precondition-failed": "ai.logPreconditionFailed",
+  declined: "ai.logDeclined",
+  error: "ai.logError",
 };
 
 const RECENT_LIMIT = 8;
 
 export function AgentCommandLogList() {
+  const { t } = useI18n();
   const entries = useAgentCommandLogStore((state) => state.entries);
   if (entries.length === 0) return null;
 
@@ -30,9 +33,9 @@ export function AgentCommandLogList() {
   const undoLabel = formatShortcut(SHORTCUT_DEFINITIONS.undo);
 
   return (
-    <section aria-label="agent 가 실행한 명령" className="ai-command-log">
+    <section aria-label={t("ai.commandLogLabel")} className="ai-command-log">
       <h3 className="ai-command-log-title">
-        agent 실행 명령 ({entries.length})
+        {t("ai.commandLogTitle", { count: entries.length })}
       </h3>
       <ul className="ai-command-log-list">
         {recent.map((entry) => (
@@ -43,7 +46,9 @@ export function AgentCommandLogList() {
           >
             <span className="ai-command-log-id">{entry.id}</span>
             <span className="ai-command-log-status">
-              {STATUS_LABEL[entry.status] ?? entry.status}
+              {STATUS_LABEL_KEYS[entry.status]
+                ? t(STATUS_LABEL_KEYS[entry.status])
+                : entry.status}
               {entry.reason ? ` · ${entry.reason}` : ""}
               {entry.undoable ? ` · ${undoLabel} 로 복원` : ""}
             </span>

@@ -119,6 +119,12 @@ vi.mock("@composition/shared/components", () => ({
 }));
 
 import { AIPanel } from "./AIPanel";
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
+
+/** 표시 계층이 `useI18n` 을 쓰므로 provider 밑에서 그린다 (ADR-200 R7). */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
 
 describe("AIPanel Photoshop-style initial experience", () => {
   beforeEach(() => {
@@ -134,49 +140,49 @@ describe("AIPanel Photoshop-style initial experience", () => {
   });
 
   it("shows contextual recommendations and the persistent composer", () => {
-    render(<AIPanel />);
+    renderWithI18n(<AIPanel />);
 
     expect(screen.getByRole("heading", { name: "AI Assistant" })).toBeTruthy();
     expect(
-      screen.getByText("다음은 선택한 Button에 대한 맞춤형 아이디어입니다."),
+      screen.getByText("Here are some ideas for the selected Button."),
     ).toBeTruthy();
-    expect(screen.getByRole("group", { name: "추천 요청" })).toBeTruthy();
+    expect(
+      screen.getByRole("group", { name: "Suggested prompts" }),
+    ).toBeTruthy();
     expect(
       screen.getByRole("button", {
-        name: /선택한 Button의 시각적 계층을 개선해 주세요/,
+        name: /Please improve the visual hierarchy of the selected Button/,
       }),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("textbox", { name: "무엇이든 물어보세요" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Ask anything" })).toBeTruthy();
     expect(
       screen.getByRole<HTMLButtonElement>("button", {
-        name: "참조 이미지 추가",
+        name: "Add reference image",
       }).disabled,
     ).toBe(true);
     expect(
-      screen.getByRole<HTMLButtonElement>("button", { name: "질문 제출" })
+      screen.getByRole<HTMLButtonElement>("button", { name: "Submit question" })
         .disabled,
     ).toBe(true);
     expect(
-      screen.getByText("AI 생성 응답입니다. 사용하기 전에 확인해야 합니다."),
+      screen.getByText("AI-generated response — check it before you use it."),
     ).toBeTruthy();
   });
 
   it("routes recommendations and typed prompts through the existing agent loop", () => {
-    render(<AIPanel />);
+    renderWithI18n(<AIPanel />);
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: /선택한 Button의 시각적 계층을 개선해 주세요/,
+        name: /Please improve the visual hierarchy of the selected Button/,
       }),
     );
     expect(mockRunAgent).toHaveBeenCalledWith(
-      "해주세요: 선택한 Button의 시각적 계층을 개선해 주세요.",
+      "Please improve the visual hierarchy of the selected Button.",
     );
 
     const composer = screen.getByRole("textbox", {
-      name: "무엇이든 물어보세요",
+      name: "Ask anything",
     });
     fireEvent.change(composer, { target: { value: "간격을 정리해 줘" } });
     fireEvent.keyDown(composer, { key: "Enter", shiftKey: false });
@@ -194,21 +200,19 @@ describe("AIPanel 기본 표면 depth (ADR-134 Phase 8, D9)", () => {
   afterEach(cleanup);
 
   it("기본 표면에는 고급 표면이 섞이지 않는다 — 입력과 결과만", () => {
-    render(<AIPanel />);
+    renderWithI18n(<AIPanel />);
 
     expect(screen.queryByText("고급 모드 자리")).toBeNull();
-    expect(
-      screen.getByRole("textbox", { name: "무엇이든 물어보세요" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Ask anything" })).toBeTruthy();
   });
 
   it("고급 모드는 한 번의 명시적 전환으로만 열린다", () => {
-    render(<AIPanel />);
+    renderWithI18n(<AIPanel />);
 
-    fireEvent.click(screen.getByRole("button", { name: "고급 모드" }));
+    fireEvent.click(screen.getByRole("button", { name: "Advanced mode" }));
     expect(screen.getByText("고급 모드 자리")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "고급 모드" }));
+    fireEvent.click(screen.getByRole("button", { name: "Advanced mode" }));
     expect(screen.queryByText("고급 모드 자리")).toBeNull();
   });
 });
@@ -218,20 +222,22 @@ describe("BYOK 미설정 최초 진입 (R2)", () => {
 
   it("빈 채팅이 아니라 설정 안내를 보여준다", () => {
     mockLoopState.hasAgent = false;
-    render(<AIPanel />);
+    renderWithI18n(<AIPanel />);
 
-    expect(screen.getByRole("group", { name: "시작하기" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Get started" })).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "에이전트 설정 열기" }),
+      screen.getByRole("button", { name: "Open agent settings" }),
     ).toBeTruthy();
     expect(screen.queryByRole("group", { name: "추천 요청" })).toBeNull();
   });
 
   it("안내 버튼이 고급 모드를 연다 — 길이 한 번에 이어진다", () => {
     mockLoopState.hasAgent = false;
-    render(<AIPanel />);
+    renderWithI18n(<AIPanel />);
 
-    fireEvent.click(screen.getByRole("button", { name: "에이전트 설정 열기" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open agent settings" }),
+    );
     expect(screen.getByText("고급 모드 자리")).toBeTruthy();
   });
 });

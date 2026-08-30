@@ -4,6 +4,7 @@
 
 import { Square } from "lucide-react";
 import { ActionIconButton } from "../../../components";
+import { useI18n } from "@/i18n";
 
 interface AgentControlsProps {
   currentTurn: number;
@@ -11,15 +12,19 @@ interface AgentControlsProps {
 }
 
 export function AgentControls({ currentTurn, onStop }: AgentControlsProps) {
+  const { t } = useI18n();
+
   return (
     <div className="ai-agent-controls">
-      <span className="ai-agent-status">도구 실행 중 ({currentTurn}/10)</span>
+      <span className="ai-agent-status">
+        {t("ai.agentRunning", { turn: currentTurn })}
+      </span>
       <ActionIconButton
         className="ai-agent-stop"
         onPress={onStop}
         type="button"
-        aria-label="에이전트 중단"
-        tooltip="에이전트 중단"
+        aria-label={t("ai.agentStop")}
+        tooltip={t("ai.agentStop")}
       >
         <Square size={12} />
       </ActionIconButton>

@@ -16,6 +16,7 @@ import {
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
 import { formatShortcut } from "../../hooks";
+import { useI18n } from "@/i18n";
 
 import "./MultiSelectStatusIndicator.css";
 
@@ -104,12 +105,14 @@ export function MultiSelectStatusIndicator({
   onDistribute,
   className = "",
 }: MultiSelectStatusIndicatorProps) {
+  const { t } = useI18n();
+
   return (
     <div className={`multi-select-status ${className}`.trim()}>
       <div className="status-header">
         <div className="status-count">
           <span className="count-number">{count}</span>
-          <span className="count-label">개 요소 선택됨</span>
+          <span className="count-label">{t("selection.countLabel")}</span>
         </div>
         {primaryElementType && (
           <div className="primary-element-badge">
@@ -121,7 +124,7 @@ export function MultiSelectStatusIndicator({
 
       <div className="status-actions">
         <div className="action-group">
-          <span className="group-label">편집</span>
+          <span className="group-label">{t("selection.groupEdit")}</span>
           <Button
             variant="ghost"
             size="sm"
@@ -134,7 +137,7 @@ export function MultiSelectStatusIndicator({
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
-            <span>모두 복사</span>
+            <span>{t("selection.copyAll")}</span>
             <span className="shortcut-hint">{shortcutLabel("copy")}</span>
           </Button>
 
@@ -149,13 +152,13 @@ export function MultiSelectStatusIndicator({
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
-            <span>붙여넣기</span>
+            <span>{t("selection.paste")}</span>
             <span className="shortcut-hint">{shortcutLabel("paste")}</span>
           </Button>
         </div>
 
         <div className="action-group">
-          <span className="group-label">구성</span>
+          <span className="group-label">{t("selection.groupArrange")}</span>
           <Button
             variant="ghost"
             size="sm"
@@ -168,7 +171,7 @@ export function MultiSelectStatusIndicator({
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
-            <span>그룹화</span>
+            <span>{t("selection.group")}</span>
             <span className="shortcut-hint">{shortcutLabel("group")}</span>
           </Button>
         </div>
@@ -176,7 +179,7 @@ export function MultiSelectStatusIndicator({
         {/* Phase 5: Alignment buttons */}
         {onAlign && (
           <div className="action-group">
-            <span className="group-label">정렬</span>
+            <span className="group-label">{t("selection.groupAlign")}</span>
             <div className="button-row">
               <Button
                 variant="ghost"
@@ -268,7 +271,9 @@ export function MultiSelectStatusIndicator({
         {/* Phase 5.2: Distribution buttons */}
         {onDistribute && (
           <div className="action-group">
-            <span className="group-label">분산</span>
+            <span className="group-label">
+              {t("selection.groupDistribute")}
+            </span>
             <div className="button-row">
               <Button
                 variant="ghost"
@@ -302,7 +307,7 @@ export function MultiSelectStatusIndicator({
         )}
 
         <div className="action-group">
-          <span className="group-label">관리</span>
+          <span className="group-label">{t("selection.groupManage")}</span>
           <Button
             variant="ghost"
             size="sm"
@@ -315,7 +320,7 @@ export function MultiSelectStatusIndicator({
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
-            <span>모두 삭제</span>
+            <span>{t("selection.deleteAll")}</span>
             <span className="shortcut-hint">⌦</span>
           </Button>
 
@@ -331,19 +336,15 @@ export function MultiSelectStatusIndicator({
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
-            <span>선택 해제</span>
+            <span>{t("selection.clear")}</span>
             <span className="shortcut-hint">Esc</span>
           </Button>
         </div>
       </div>
 
       <div className="status-info">
-        <p className="info-text">
-          다중 선택 모드입니다. 첫 번째 요소의 속성이 Inspector에 표시됩니다.
-        </p>
-        <p className="info-hint">
-          💡 공통 속성을 일괄 편집하려면 아래 배치 편집기를 사용하세요.
-        </p>
+        <p className="info-text">{t("selection.multiSelectNotice")}</p>
+        <p className="info-hint">💡 {t("selection.multiSelectHint")}</p>
       </div>
     </div>
   );
