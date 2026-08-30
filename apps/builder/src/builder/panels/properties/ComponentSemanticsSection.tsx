@@ -1,5 +1,10 @@
 import { memo, useMemo } from "react";
-import { Boxes } from "lucide-react";
+// 인스턴스 노드를 가리키는 그림 — pencil 도 인스턴스 레이어 아이콘에 `diamond`
+// 를 쓴다 (Pen.app 번들 `$de`: `n.prototype` → `diamond`). "Select instances" 는
+// pencil 에 없는 composition 전용 액션이라 베낄 그림이 없어, 같은 줄의 다른
+// 액션(diamond-plus/minus)과 한 가족인 이 심볼로 맞춘다. 한 surface 에만
+// 나오므로 ACTION_ICONS 등재 기준(2개 이상)에는 미달 — 직접 import 로 둔다.
+import { Diamond } from "lucide-react";
 
 import { PropertySection } from "../../components";
 import { ACTION_ICONS } from "../../config/actionIcons";
@@ -255,7 +260,7 @@ export const ComponentSemanticsSection = memo(
               title={`Select instances (${instanceIds.length})`}
               type="button"
             >
-              <Boxes aria-hidden="true" size={14} />
+              <Diamond aria-hidden="true" size={14} />
             </button>
           )}
           {/* 컴포넌트 축은 인스턴스 축과 독립이라 인스턴스에도 함께 선다.
