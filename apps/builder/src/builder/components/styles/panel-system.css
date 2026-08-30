@@ -297,6 +297,19 @@
       }
     }
 
+    /* 가로 배치가 필요할 때 `.section-content` 아래 한 겹만 두는 표준 래퍼 (ADR-163 §4).
+       기본형은 인스펙터 3열 템플릿(`--inspector-row-columns`, `.section` 정의)이고,
+       열 구성이 다른 인스턴스는 조상 스코프로 덮는다 (`.monitor-panel .monitor-stats-row`).
+
+       **2026-08-30 Monitor 표준화가 첫 소비자다** — 그전까지 이 클래스는 규칙 문서에만
+       있고 CSS 정의가 0건이라, 붙여도 아무 일도 일어나지 않는 이름이었다. */
+    .fieldset-row {
+      display: grid;
+      grid-template-columns: var(--inspector-row-columns);
+      gap: var(--spacing-sm);
+      min-width: 0;
+    }
+
     /* Component 섹션 — 정체는 한 줄 칩, 액션은 그 아래 한 줄 (pencil app 배치).
        종전 Name / Role / Impacts 3행 key-value 는 폭 222px 패널에서 라벨 열이
        절반을 먹고도 값이 3개뿐이라, 이름·역할을 한 칩으로 합치고 수(instances)는

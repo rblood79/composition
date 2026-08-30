@@ -14,10 +14,24 @@ describe("MonitorPanel common panel contract", () => {
     expect(source).toContain("<PanelHeader");
     expect(source).toContain('i18n.t("panels.monitor")');
     expect(source).toContain('panelId="monitor"');
-    expect(source).toContain(
-      'className="panel-contents monitor-panel-contents"',
-    );
+    // 탭 패널 골격은 Styles/Navigator/DataTable 과 같다 — `Tabs` 가 `.panel-header.panel-tabrow`
+    // 와 `TabPanel`(= `.panel-contents`) 을 감싸고, 스크롤은 각 `TabPanel` 이 갖는다.
+    // 종전에는 `.panel-contents` 가 `Tabs` 를 감싸고 `TabPanel` 은 로컬 클래스라
+    // 탭 줄까지 본문 패딩·배경을 받고 스크롤이 두 번 정의됐다.
+    expect(source).not.toContain("monitor-tab-panel");
+    expect(
+      source.match(/<TabPanel[^>]*className="panel-contents/g),
+    ).toHaveLength(5);
     expect(source.match(/<Section/g)).toHaveLength(7);
+    // 섹션은 id 로 접힘 상태를 저장한다 (다른 패널과 동일) — 전부 collapsible={false} 아님.
+    expect(source).not.toContain("collapsible={false}");
+    expect(source.match(/id="monitor-[a-z-]+"/g)).toHaveLength(7);
+    // 읽기 전용 지표는 패널 필드 어법 (fieldset + legend + react-aria-Group).
+    expect(source).toContain('className="properties-aria monitor-stat"');
+    expect(source).toContain('className="fieldset-legend"');
+    expect(source).toContain('className="react-aria-Group monitor-stat-value"');
+    expect(source).not.toContain("stat-card");
+    expect(source).not.toContain("stats-grid");
     expect(source).not.toContain("PanelProps");
   });
 
@@ -109,6 +123,12 @@ describe("MonitorPanel common panel contract", () => {
     expect(css).not.toContain(".popup-footer");
     expect(css).not.toContain(".btn-primary");
     expect(css).not.toContain(".btn-secondary");
+    // 자체 카드 어법으로 되돌아가지 않는다 — 지표는 공용 필드, 액션은 공용 버튼.
+    expect(css).not.toContain(".stat-card");
+    expect(css).not.toContain(".stats-grid");
+    expect(css).not.toContain(".memory-actions-row");
+    expect(css).not.toContain(".memory-tab-content");
+    expect(css).not.toContain(".analysis-actions-row");
     expect(css).not.toMatch(
       /\.monitor-threshold-popover\s*\{[^}]*position:\s*absolute/s,
     );

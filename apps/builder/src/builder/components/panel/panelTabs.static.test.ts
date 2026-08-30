@@ -13,6 +13,12 @@ import { resolve, relative } from "node:path";
  * 같은 값을 `.panel-tablist` 인스턴스 override 로 다시 쓰면 크롬 정의가 두 곳이 되고,
  * 패널 골격(`panel-header` 줄이 몇 개인가)도 패널마다 달라진다 — 실제로 DataTable/Monitor 가
  * 그 상태였다.
+ *
+ * **`TabPanel` = `.panel-contents`** (2026-08-30 Monitor 표준화). 스크롤·패딩·배경을 갖는
+ * 본문은 탭 **안**이다. Monitor 만 `.panel-contents` 가 `Tabs` 를 감싸고 `TabPanel` 은
+ * 로컬 클래스(`.monitor-tab-panel`)라, 탭 줄까지 본문 크롬을 받고 스크롤 규칙이 두 곳에
+ * 있었다. `Tabs` 가 탭 줄만 감싸고 본문을 형제 `.panel-contents` 에 두는 DataTable 편집기
+ * 형태는 `TabPanel` 자체를 쓰지 않으므로 이 조항의 대상이 아니다.
  */
 
 const BUILDER_ROOT = resolve(__dirname, "../..");
@@ -45,11 +51,28 @@ describe("패널 탭 구조 가드", () => {
       const dir = resolve(file, "..", "..");
       const siblings = await collectTsxFiles(dir);
       const wrapped = await Promise.all(
-        siblings.map(async (s) => (await readFile(s, "utf-8")).includes("panel-header panel-tabrow")),
+        siblings.map(async (s) =>
+          (await readFile(s, "utf-8")).includes("panel-header panel-tabrow"),
+        ),
       );
       if (!wrapped.some(Boolean)) offenders.push(relative(BUILDER_ROOT, file));
     }
     expect(offenders, offenders.join("\n")).toEqual([]);
+  });
+
+  it("`TabPanel` 은 곧 `.panel-contents` 다 (스크롤 영역이 탭 밖으로 나가지 않는다)", async () => {
+    const files = await collectTsxFiles(BUILDER_ROOT);
+    const offenders: string[] = [];
+    for (const file of files) {
+      const source = await readFile(file, "utf-8");
+      for (const match of source.matchAll(/<TabPanel\b([\s\S]*?)>/g)) {
+        const attrs = match[1];
+        if (/className="panel-contents/.test(attrs)) continue;
+        const line = source.slice(0, match.index).split("\n").length;
+        offenders.push(`${relative(BUILDER_ROOT, file)}:${line}`);
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 
   it("구조 클래스는 패널별 twin 을 만들지 않는다 (CSS 0건 이름 중복 차단)", async () => {
@@ -60,7 +83,10 @@ describe("패널 탭 구조 가드", () => {
     for (const file of files) {
       const source = await readFile(file, "utf-8");
       const m = source.match(/[a-z]+-panel-(tabs|tabrow|tablist)\b/g);
-      if (m) offenders.push(`${relative(BUILDER_ROOT, file)}: ${[...new Set(m)].join(", ")}`);
+      if (m)
+        offenders.push(
+          `${relative(BUILDER_ROOT, file)}: ${[...new Set(m)].join(", ")}`,
+        );
     }
     expect(offenders, offenders.join("\n")).toEqual([]);
   });

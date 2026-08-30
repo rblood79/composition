@@ -5,7 +5,7 @@
  */
 
 import { Download } from "lucide-react";
-import { Button } from "@composition/shared/components";
+import { Button } from "react-aria-components";
 import type { MemoryStats } from "../hooks/useMemoryStats";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
@@ -70,8 +70,6 @@ export function ExportButton({ stats, format = "json" }: ExportButtonProps) {
   return (
     <Button
       className="control-button export-button"
-      variant="secondary"
-      size="sm"
       onPress={handleExport}
       isDisabled={!stats}
       aria-label={localize(

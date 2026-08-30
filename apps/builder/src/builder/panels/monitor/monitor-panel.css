@@ -17,9 +17,20 @@
     container-type: inline-size;
   }
 
+  /* 각 `TabPanel` 이 곧 `.panel-contents` 다 (Styles/Navigator/DataTable 과 같은 골격).
+     공용 `.panel-contents` 가 패딩·배경을 주고, 여기서는 탭 전환 때 폭이 튀지 않도록
+     스크롤바 자리만 고정한다. */
   .monitor-panel .monitor-panel-contents {
+    flex: 1;
     min-width: 0;
-    overflow: hidden;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .monitor-panel .monitor-panel-contents > .section:last-child {
+    margin-bottom: 0;
   }
 
   .monitor-panel .monitor-status-message {
@@ -58,20 +69,6 @@
     flex-shrink: 0;
   }
 
-  .monitor-panel .monitor-tab-panel {
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-  }
-
-  .monitor-panel .monitor-tab-panel > .section:last-child {
-    margin-bottom: 0;
-  }
-
-  .monitor-panel .memory-tab-content,
   .monitor-panel .component-memory-list {
     display: flex;
     flex-direction: column;
@@ -122,7 +119,7 @@
 
   .monitor-panel .chart-axis-label {
     fill: var(--fg-muted);
-    font-size: 10px;
+    font-size: var(--text-2xs);
   }
 
   .monitor-panel .chart-line {
@@ -174,34 +171,20 @@
     color: var(--monitor-danger);
   }
 
-  .monitor-panel .memory-actions-row {
+  /* 액션 버튼 한 줄. 종전 `.memory-actions` 는 문구+버튼을 `--bg-raised` 카드로 한 번 더
+     감싸 섹션 안에 상자가 이중이었다 — 문구는 `.monitor-hint`, 버튼은 공용
+     `.control-button` 으로 풀었다. */
+  .monitor-panel .monitor-action-row {
     display: flex;
-    align-items: stretch;
-    flex-wrap: wrap;
-    gap: var(--spacing-sm);
-    min-width: 0;
-  }
-
-  .monitor-panel .memory-actions {
-    display: flex;
-    flex: 1 1 220px;
     align-items: center;
-    justify-content: space-between;
     flex-wrap: wrap;
     gap: var(--spacing-sm);
     min-width: 0;
-    padding: var(--spacing-sm);
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
   }
 
-  .monitor-panel .recommendation {
-    flex: 1 1 140px;
+  .monitor-panel .monitor-hint {
+    margin: 0;
     min-width: 0;
-  }
-
-  .monitor-panel .recommendation-text {
     color: var(--fg-muted);
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
@@ -226,63 +209,50 @@
     }
   }
 
-  .monitor-panel .stats-grid {
-    display: grid;
+  /* 인스펙터 3열 템플릿(`--inspector-row-columns`) 대신 지표 개수에 맞춰 흐르게 한다 —
+     `.fieldset-row` 인스턴스 override. */
+  /* 공용 base 가 `.section .fieldset-row`(0-2-0) 라 조상에 `.section` 을 함께 적어
+     확정적으로 이긴다 — 같은 특정도면 import 순서(panel-system.css 가 뒤)로 base 가 이긴다. */
+  .monitor-panel .section .monitor-stats-row {
     grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
-    gap: var(--spacing-sm);
+  }
+
+  /* `.properties-aria` 에는 live layout 규칙이 없어(ADR-163 Phase 1) 고유 클래스가
+     min-width 를 공급한다 — fieldset 의 min-content 기본값 해제. */
+  .monitor-panel .monitor-stat {
     min-width: 0;
   }
 
-  .monitor-panel .stat-card {
+  .monitor-panel .monitor-stat-value {
     display: flex;
-    align-items: flex-start;
-    gap: var(--spacing-sm);
-    min-width: 0;
-    padding: var(--spacing-sm);
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-  }
-
-  .monitor-panel .stat-card.highlight {
-    border-color: var(--monitor-danger);
-  }
-
-  .monitor-panel .stat-icon {
-    display: flex;
-    flex: 0 0 32px;
     align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: var(--bg-overlay);
-    border-radius: var(--radius-md);
+    gap: var(--spacing-xs);
+    min-height: var(--inspector-control-size);
+  }
+
+  .monitor-panel .monitor-stat-value > svg {
+    flex: 0 0 auto;
     color: var(--fg-muted);
   }
 
-  .monitor-panel .stat-card.highlight .stat-icon {
-    color: var(--monitor-danger);
-  }
-
-  .monitor-panel .stat-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-3xs);
+  .monitor-panel .monitor-stat-value > span {
     min-width: 0;
-  }
-
-  .monitor-panel .stat-content > .stat-value {
     overflow: hidden;
     color: var(--fg);
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-xs--line-height);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .monitor-panel .stat-content > .stat-label {
-    color: var(--fg-muted);
-    font-size: var(--text-xs);
+  .monitor-panel .monitor-stat-value[data-highlight] {
+    box-shadow: inset 0 0 0 1px var(--monitor-danger);
+  }
+
+  .monitor-panel .monitor-stat-value[data-highlight] > svg,
+  .monitor-panel .monitor-stat-value[data-highlight] > span {
+    color: var(--monitor-danger);
   }
 
   .monitor-panel .browser-memory-fallback,
@@ -507,23 +477,23 @@
     white-space: nowrap;
   }
 
-  .monitor-panel .analysis-actions-row {
-    display: flex;
-    align-items: center;
+  .monitor-panel
+    .section[data-section-id="monitor-component-memory"]
+    .monitor-action-row {
     justify-content: flex-end;
-    gap: var(--spacing-xs);
-    min-width: 0;
   }
 
-  .monitor-panel .component-memory-controls {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+  /* 정렬 필드 1칸 + 아이콘 1칸. 열 구성은 인스턴스 override 지만 영역 이름은 공용 계약
+     그대로 둔다 — `.fieldset-actions` 가 `grid-area: icon` 으로 마지막 칸을 잡는다
+     (ADR-163 §3 "columns 토큰 + 고유 grid-template-areas 조합"). */
+  .monitor-panel .section .component-memory-controls {
+    grid-template-columns: minmax(0, 1fr) var(--inspector-control-size);
+    grid-template-areas: "sort icon";
     align-items: end;
-    gap: var(--spacing-xs);
-    min-width: 0;
   }
 
   .monitor-panel .component-memory-sort {
+    grid-area: sort;
     min-width: 0;
     margin: 0;
     padding: 0;
@@ -640,7 +610,7 @@
       border: 0;
     }
 
-    .monitor-panel .memory-actions-row > .export-button {
+    .monitor-panel .monitor-action-row > .control-button {
       width: 100%;
     }
 

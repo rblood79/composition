@@ -157,246 +157,265 @@ export function MonitorPanel() {
         panelId="monitor"
       />
 
-      <div className="panel-contents monitor-panel-contents">
-        {statusMessage && (
-          <div className="monitor-status-message" role="status">
-            {statusMessage}
-          </div>
-        )}
+      {statusMessage && (
+        <div className="monitor-status-message" role="status">
+          {statusMessage}
+        </div>
+      )}
 
-        <Tabs
-          className="panel-tabs"
-          selectedKey={activeTab}
-          onSelectionChange={(key) => setActiveTab(key as string)}
-        >
-          <div className="panel-header panel-tabrow">
-            <TabList
-              className="panel-tablist"
-              aria-label={localize("tabs", "Monitor tabs")}
-            >
-              <Tab id="memory" className="panel-tab">
-                <MemoryStick
-                  color="currentColor"
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                  aria-hidden="true"
-                />
-                <span className="panel-tab-label">
-                  {localize("memory", "Memory")}
-                </span>
-              </Tab>
-              <Tab id="realtime" className="panel-tab">
-                <Zap
-                  color="currentColor"
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                  aria-hidden="true"
-                />
-                <span className="panel-tab-label">
-                  {localize("realtime", "Realtime")}
-                </span>
-              </Tab>
-              <Tab id="stats" className="panel-tab">
-                <Database
-                  color="currentColor"
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                  aria-hidden="true"
-                />
-                <span className="panel-tab-label">
-                  {localize("stats", "Stats")}
-                </span>
-              </Tab>
-              <Tab id="browser" className="panel-tab">
-                <AppWindow
-                  color="currentColor"
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                  aria-hidden="true"
-                />
-                <span className="panel-tab-label">
-                  {localize("browser", "Browser")}
-                </span>
-              </Tab>
-              <Tab id="analysis" className="panel-tab">
-                <BarChart3
-                  color="currentColor"
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                  aria-hidden="true"
-                />
-                <span className="panel-tab-label">
-                  {localize("analysis", "Analysis")}
-                </span>
-              </Tab>
-            </TabList>
-          </div>
-
-          <TabPanel id="memory" className="monitor-tab-panel">
-            <Section
-              title={localize("memoryUsage", "Memory Usage")}
-              collapsible={false}
-            >
-              <div className="memory-tab-content">
-                {stats?.browserMemory && (
-                  <ThresholdIndicator
-                    value={memoryPercent}
-                    label={localize("browserMemory", "Browser Memory")}
-                  />
-                )}
-                <MemoryChart
-                  data={memoryHistory}
-                  height={100}
-                  threshold={50 * 1024 * 1024}
-                />
-              </div>
-            </Section>
-            <Section title={localize("actions", "Actions")} collapsible={false}>
-              <div className="memory-actions-row">
-                {stats && (
-                  <MemoryActions
-                    onOptimize={handleOptimize}
-                    recommendation={stats.recommendation}
-                    isOptimizing={isOptimizing}
-                  />
-                )}
-                <ExportButton stats={stats} format="json" />
-              </div>
-            </Section>
-          </TabPanel>
-
-          <TabPanel id="realtime" className="monitor-tab-panel">
-            <Section
-              title={localize("realtimeMetrics", "Realtime Metrics")}
-              collapsible={false}
-            >
-              <div className="realtime-metrics-row">
-                <FPSMeter fps={fps} />
-                <WebVitalsCard vitals={vitals} onRefresh={collectLocalVitals} />
-              </div>
-            </Section>
-            <Section
-              title={localize("memoryUsage", "Memory Usage")}
-              collapsible={false}
-            >
-              <RealtimeChart
-                data={timeSeriesData}
-                height={100}
-                metric="memoryPercent"
-                showThresholds={true}
+      <Tabs
+        className="panel-tabs"
+        selectedKey={activeTab}
+        onSelectionChange={(key) => setActiveTab(key as string)}
+      >
+        <div className="panel-header panel-tabrow">
+          <TabList
+            className="panel-tablist"
+            aria-label={localize("tabs", "Monitor tabs")}
+          >
+            <Tab id="memory" className="panel-tab">
+              <MemoryStick
+                color="currentColor"
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+                aria-hidden="true"
               />
-            </Section>
-          </TabPanel>
+              <span className="panel-tab-label">
+                {localize("memory", "Memory")}
+              </span>
+            </Tab>
+            <Tab id="realtime" className="panel-tab">
+              <Zap
+                color="currentColor"
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+                aria-hidden="true"
+              />
+              <span className="panel-tab-label">
+                {localize("realtime", "Realtime")}
+              </span>
+            </Tab>
+            <Tab id="stats" className="panel-tab">
+              <Database
+                color="currentColor"
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+                aria-hidden="true"
+              />
+              <span className="panel-tab-label">
+                {localize("stats", "Stats")}
+              </span>
+            </Tab>
+            <Tab id="browser" className="panel-tab">
+              <AppWindow
+                color="currentColor"
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+                aria-hidden="true"
+              />
+              <span className="panel-tab-label">
+                {localize("browser", "Browser")}
+              </span>
+            </Tab>
+            <Tab id="analysis" className="panel-tab">
+              <BarChart3
+                color="currentColor"
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+                aria-hidden="true"
+              />
+              <span className="panel-tab-label">
+                {localize("analysis", "Analysis")}
+              </span>
+            </Tab>
+          </TabList>
+        </div>
 
-          <TabPanel id="stats" className="monitor-tab-panel">
-            <Section
-              title={localize("documentStats", "Document Stats")}
-              collapsible={false}
-            >
-              <div className="stats-grid">
-                {stats && (
-                  <>
-                    <StatCard
-                      label={localize("pages", "Pages")}
-                      value={stats.pageCount.toString()}
-                      icon={<Files size={iconProps.size} />}
-                    />
-                    <StatCard
-                      label={localize("historyEntries", "History Entries")}
-                      value={stats.totalEntries.toString()}
-                      icon={<History size={iconProps.size} />}
-                    />
-                    <StatCard
-                      label={localize("memoryUsage", "Memory Usage")}
-                      value={formatBytes(stats.estimatedMemoryUsage)}
-                      icon={<MemoryStick size={iconProps.size} />}
-                      highlight={stats.estimatedMemoryUsage > 50 * 1024 * 1024}
-                    />
-                  </>
-                )}
-              </div>
-            </Section>
-          </TabPanel>
-
-          <TabPanel id="browser" className="monitor-tab-panel">
-            <Section
-              title={localize("browserMemory", "Browser Memory")}
-              collapsible={false}
-            >
-              {stats?.browserMemory ? (
-                <div className="stats-grid">
-                  <StatCard
-                    label={localize("usedHeap", "Used Heap")}
-                    value={formatBytes(stats.browserMemory.usedJSHeapSize)}
-                    icon={<MemoryStick size={iconProps.size} />}
-                  />
-                  <StatCard
-                    label={localize("totalHeap", "Total Heap")}
-                    value={formatBytes(stats.browserMemory.totalJSHeapSize)}
-                    icon={<MemoryStick size={iconProps.size} />}
-                  />
-                  <StatCard
-                    label={localize("heapLimit", "Heap Limit")}
-                    value={formatBytes(stats.browserMemory.jsHeapSizeLimit)}
-                    icon={<MemoryStick size={iconProps.size} />}
-                  />
-                  <StatCard
-                    label={localize("usage", "Usage")}
-                    value={`${stats.browserMemory.usagePercent.toFixed(1)}%`}
-                    icon={<Percent size={iconProps.size} />}
-                    highlight={stats.browserMemory.usagePercent > 75}
-                  />
-                </div>
-              ) : (
-                <div className="browser-memory-fallback">
-                  <AppWindow size={iconLarge.size} />
-                  <p>
-                    {localize(
-                      "browserFallback",
-                      "Browser memory information is only available in Chrome/Edge.",
-                    )}
-                  </p>
-                </div>
+        <TabPanel id="memory" className="panel-contents monitor-panel-contents">
+          <Section
+            id="monitor-memory-usage"
+            title={localize("memoryUsage", "Memory Usage")}
+          >
+            {/* `.section-content` 가 이미 세로 스택 + gap 이라 래퍼를 한 겹 더 두지 않는다. */}
+            {stats?.browserMemory && (
+              <ThresholdIndicator
+                value={memoryPercent}
+                label={localize("browserMemory", "Browser Memory")}
+              />
+            )}
+            <MemoryChart
+              data={memoryHistory}
+              height={100}
+              threshold={50 * 1024 * 1024}
+            />
+          </Section>
+          <Section
+            id="monitor-memory-actions"
+            title={localize("actions", "Actions")}
+          >
+            {stats && <p className="monitor-hint">{stats.recommendation}</p>}
+            <div className="monitor-action-row">
+              {stats && (
+                <MemoryActions
+                  onOptimize={handleOptimize}
+                  isOptimizing={isOptimizing}
+                />
               )}
-            </Section>
-          </TabPanel>
+              <ExportButton stats={stats} format="json" />
+            </div>
+          </Section>
+        </TabPanel>
 
-          <TabPanel id="analysis" className="monitor-tab-panel">
-            <Section
-              title={localize("componentMemory", "Component Memory")}
-              collapsible={false}
-            >
-              <div className="analysis-actions-row">
-                <ExportButton stats={stats} format="csv" />
-                <ThresholdSettings
-                  config={thresholdConfig}
-                  onChange={setThresholdConfig}
+        <TabPanel
+          id="realtime"
+          className="panel-contents monitor-panel-contents"
+        >
+          <Section
+            id="monitor-realtime-metrics"
+            title={localize("realtimeMetrics", "Realtime Metrics")}
+          >
+            <div className="realtime-metrics-row">
+              <FPSMeter fps={fps} />
+              <WebVitalsCard vitals={vitals} onRefresh={collectLocalVitals} />
+            </div>
+          </Section>
+          <Section
+            id="monitor-realtime-memory"
+            title={localize("memoryUsage", "Memory Usage")}
+          >
+            <RealtimeChart
+              data={timeSeriesData}
+              height={100}
+              metric="memoryPercent"
+              showThresholds={true}
+            />
+          </Section>
+        </TabPanel>
+
+        <TabPanel id="stats" className="panel-contents monitor-panel-contents">
+          <Section
+            id="monitor-document-stats"
+            title={localize("documentStats", "Document Stats")}
+          >
+            <div className="fieldset-row monitor-stats-row">
+              {stats && (
+                <>
+                  <MonitorStat
+                    label={localize("pages", "Pages")}
+                    value={stats.pageCount.toString()}
+                    icon={<Files size={iconProps.size} />}
+                  />
+                  <MonitorStat
+                    label={localize("historyEntries", "History Entries")}
+                    value={stats.totalEntries.toString()}
+                    icon={<History size={iconProps.size} />}
+                  />
+                  <MonitorStat
+                    label={localize("memoryUsage", "Memory Usage")}
+                    value={formatBytes(stats.estimatedMemoryUsage)}
+                    icon={<MemoryStick size={iconProps.size} />}
+                    highlight={stats.estimatedMemoryUsage > 50 * 1024 * 1024}
+                  />
+                </>
+              )}
+            </div>
+          </Section>
+        </TabPanel>
+
+        <TabPanel
+          id="browser"
+          className="panel-contents monitor-panel-contents"
+        >
+          <Section
+            id="monitor-browser-memory"
+            title={localize("browserMemory", "Browser Memory")}
+          >
+            {stats?.browserMemory ? (
+              <div className="fieldset-row monitor-stats-row">
+                <MonitorStat
+                  label={localize("usedHeap", "Used Heap")}
+                  value={formatBytes(stats.browserMemory.usedJSHeapSize)}
+                  icon={<MemoryStick size={iconProps.size} />}
+                />
+                <MonitorStat
+                  label={localize("totalHeap", "Total Heap")}
+                  value={formatBytes(stats.browserMemory.totalJSHeapSize)}
+                  icon={<MemoryStick size={iconProps.size} />}
+                />
+                <MonitorStat
+                  label={localize("heapLimit", "Heap Limit")}
+                  value={formatBytes(stats.browserMemory.jsHeapSizeLimit)}
+                  icon={<MemoryStick size={iconProps.size} />}
+                />
+                <MonitorStat
+                  label={localize("usage", "Usage")}
+                  value={`${stats.browserMemory.usagePercent.toFixed(1)}%`}
+                  icon={<Percent size={iconProps.size} />}
+                  highlight={stats.browserMemory.usagePercent > 75}
                 />
               </div>
-              <ComponentMemoryList enabled={activeTab === "analysis"} />
-            </Section>
-          </TabPanel>
-        </Tabs>
-      </div>
+            ) : (
+              <div className="browser-memory-fallback">
+                <AppWindow size={iconLarge.size} />
+                <p>
+                  {localize(
+                    "browserFallback",
+                    "Browser memory information is only available in Chrome/Edge.",
+                  )}
+                </p>
+              </div>
+            )}
+          </Section>
+        </TabPanel>
+
+        <TabPanel
+          id="analysis"
+          className="panel-contents monitor-panel-contents"
+        >
+          <Section
+            id="monitor-component-memory"
+            title={localize("componentMemory", "Component Memory")}
+          >
+            <div className="monitor-action-row">
+              <ExportButton stats={stats} format="csv" />
+              <ThresholdSettings
+                config={thresholdConfig}
+                onChange={setThresholdConfig}
+              />
+            </div>
+            <ComponentMemoryList enabled={activeTab === "analysis"} />
+          </Section>
+        </TabPanel>
+      </Tabs>
     </div>
   );
 }
 
-interface StatCardProps {
+interface MonitorStatProps {
   label: string;
   value: string;
   icon: React.ReactNode;
   highlight?: boolean;
 }
 
-function StatCard({ label, value, icon, highlight }: StatCardProps) {
+/**
+ * 읽기 전용 지표 한 칸 — Properties/Styles 의 필드와 같은 어법이다:
+ * `fieldset.properties-aria` + `legend.fieldset-legend`(라벨) + `.react-aria-Group`(값 상자).
+ *
+ * 종전에는 `--bg-raised` 카드에 32px 아이콘 상자를 얹은 자체 형태라, 같은 화면에 뜨는
+ * 다른 패널의 필드와 라벨 위치·상자 표면·아이콘 크기가 전부 달랐다.
+ */
+function MonitorStat({ label, value, icon, highlight }: MonitorStatProps) {
   return (
-    <div className={`stat-card ${highlight ? "highlight" : ""}`}>
-      <div className="stat-icon">{icon}</div>
-      <div className="stat-content">
-        <div className="stat-value">{value}</div>
-        <div className="stat-label">{label}</div>
+    <fieldset className="properties-aria monitor-stat">
+      <legend className="fieldset-legend">{label}</legend>
+      <div
+        className="react-aria-Group monitor-stat-value"
+        data-highlight={highlight ? "true" : undefined}
+      >
+        {icon}
+        <span>{value}</span>
       </div>
-    </div>
+    </fieldset>
   );
 }

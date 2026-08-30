@@ -50,7 +50,9 @@ export function ComponentMemoryList({
 
   return (
     <div className="component-memory-list">
-      <div className="component-memory-controls">
+      {/* 필드 + 아이콘 액션 한 줄 = 표준 `.fieldset-row` + `.fieldset-actions` (ADR-163 §4).
+          종전 `.component-memory-controls` 는 같은 배치를 자체 grid 로 다시 정의했다. */}
+      <div className="fieldset-row component-memory-controls">
         <PropertySelect
           className="component-memory-sort"
           label="Sort by"
@@ -58,20 +60,22 @@ export function ComponentMemoryList({
           options={SORT_OPTIONS}
           onChange={(value) => setSortBy(value as SortBy)}
         />
-        <ActionIconButton
-          className="component-memory-refresh"
-          onPress={refresh}
-          aria-label={localize(
-            "refreshComponentMemory",
-            "Refresh component memory",
-          )}
-          tooltip={localize(
-            "refreshComponentMemory",
-            "Refresh component memory",
-          )}
-        >
-          <RefreshCw size={iconSmall.size} />
-        </ActionIconButton>
+        <div className="fieldset-actions">
+          <ActionIconButton
+            className="component-memory-refresh"
+            onPress={refresh}
+            aria-label={localize(
+              "refreshComponentMemory",
+              "Refresh component memory",
+            )}
+            tooltip={localize(
+              "refreshComponentMemory",
+              "Refresh component memory",
+            )}
+          >
+            <RefreshCw size={iconSmall.size} />
+          </ActionIconButton>
+        </div>
       </div>
 
       {/* Total */}
