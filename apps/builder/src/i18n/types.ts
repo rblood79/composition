@@ -87,6 +87,33 @@ export interface TranslationKeys {
     reset: string;
     hide: string;
   };
+  contextMenu: {
+    ariaLabel: string;
+    bringToFront: string;
+    bringForward: string;
+    sendBackward: string;
+    sendToBack: string;
+    copy: string;
+    paste: string;
+    pasteHere: string;
+    duplicate: string;
+    group: string;
+    ungroup: string;
+    align: string;
+    delete: string;
+    zoomToFit: string;
+    showRulers: string;
+    hideRulers: string;
+    snapToObjects: string;
+    alignLeft: string;
+    alignCenter: string;
+    alignRight: string;
+    alignTop: string;
+    alignMiddle: string;
+    alignBottom: string;
+    distributeHorizontal: string;
+    distributeVertical: string;
+  };
   settings: {
     title: string;
     language: string;
