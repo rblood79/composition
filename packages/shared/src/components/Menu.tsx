@@ -28,6 +28,7 @@ import {
 } from "../catalog/slotRoles";
 import "./styles/generated/Menu.css";
 import "./styles/Menu.css";
+import { useComponentStrings } from "../i18n";
 
 /**
  * Phase 4: data-* 패턴 전환
@@ -124,6 +125,7 @@ export function MenuButton<T extends object>({
   slotComposition,
   ...props
 }: MenuButtonProps<T>) {
+  const t = useComponentStrings();
   // ADR-073 Task 7: selection props → RAC Menu props 변환
   // 주의: Partial<MenuProps<T>> 로 타입하면 items T 추론이 깨짐 → T-독립 타입으로 선언
   const racSelectedKeys: Set<string> | undefined =
@@ -217,7 +219,7 @@ export function MenuButton<T extends object>({
           <Popover data-size={size}>
             <Menu className={getMenuClassName()} data-size={size}>
               <AriaMenuItem key="loading" textValue="Loading">
-                ⏳ 데이터 로딩 중...
+                {t("loadingData")}
               </AriaMenuItem>
             </Menu>
           </Popover>
@@ -239,7 +241,7 @@ export function MenuButton<T extends object>({
           <Popover data-size={size}>
             <Menu className={getMenuClassName()} data-size={size}>
               <AriaMenuItem key="error" textValue="Error">
-                ❌ 오류: {error}
+                {t("errorWithMessage", { message: String(error) })}
               </AriaMenuItem>
             </Menu>
           </Popover>
@@ -454,12 +456,12 @@ export function MenuButton<T extends object>({
         >
           {loading && (
             <AriaMenuItem key="loading" textValue="Loading">
-              ⏳ 데이터 로딩 중...
+              {t("loadingData")}
             </AriaMenuItem>
           )}
           {error && (
             <AriaMenuItem key="error" textValue="Error">
-              ❌ 오류: {error}
+              {t("errorWithMessage", { message: String(error) })}
             </AriaMenuItem>
           )}
           {!loading && !error && (children as React.ReactNode)}

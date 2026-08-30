@@ -22,6 +22,7 @@ import type {
 import { useCollectionData } from "../hooks";
 import { Skeleton } from "./Skeleton";
 import "./styles/generated/Tabs.css";
+import { useComponentStrings } from "../i18n";
 
 /**
  * Phase 4: data-* 패턴 전환
@@ -116,6 +117,7 @@ export function Tabs({
   children,
   ...props
 }: TabsExtendedProps) {
+  const t = useComponentStrings();
   // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
   const {
     data: boundData,
@@ -188,9 +190,9 @@ export function Tabs({
           data-size={size}
         >
           <RACTabList className="react-aria-TabList">
-            <RACTab className="react-aria-Tab">⏳ 로딩 중...</RACTab>
+            <RACTab className="react-aria-Tab">{t("loading")}</RACTab>
           </RACTabList>
-          <RACTabPanel className="react-aria-TabPanel">로딩 중...</RACTabPanel>
+          <RACTabPanel className="react-aria-TabPanel">{t("loadingPlain")}</RACTabPanel>
         </RACTabs>
       );
     }
@@ -204,7 +206,7 @@ export function Tabs({
           data-size={size}
         >
           <RACTabList className="react-aria-TabList">
-            <RACTab className="react-aria-Tab">❌ 오류</RACTab>
+            <RACTab className="react-aria-Tab">{t("error")}</RACTab>
           </RACTabList>
           <RACTabPanel className="react-aria-TabPanel">{error}</RACTabPanel>
         </RACTabs>
@@ -236,9 +238,9 @@ export function Tabs({
           data-size={size}
         >
           <RACTabList className="react-aria-TabList">
-            <RACTab className="react-aria-Tab">⏳ 로딩 중...</RACTab>
+            <RACTab className="react-aria-Tab">{t("loading")}</RACTab>
           </RACTabList>
-          <RACTabPanel className="react-aria-TabPanel">로딩 중...</RACTabPanel>
+          <RACTabPanel className="react-aria-TabPanel">{t("loadingPlain")}</RACTabPanel>
         </RACTabs>
       );
     }
@@ -252,7 +254,7 @@ export function Tabs({
           data-size={size}
         >
           <RACTabList className="react-aria-TabList">
-            <RACTab className="react-aria-Tab">❌ 오류</RACTab>
+            <RACTab className="react-aria-Tab">{t("error")}</RACTab>
           </RACTabList>
           <RACTabPanel className="react-aria-TabPanel">{error}</RACTabPanel>
         </RACTabs>

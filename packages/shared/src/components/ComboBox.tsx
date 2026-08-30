@@ -33,6 +33,7 @@ import {
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
 import "./styles/generated/ComboBox.css";
+import { useComponentStrings } from "../i18n";
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환
@@ -101,6 +102,7 @@ export function ComboBox<T extends object>({
   isQuiet,
   ...props
 }: ComboBoxProps<T>) {
+  const t = useComponentStrings();
   // chevron glyph 크기 — Skia SelectIcon 과 동일한 catalog 값 (Select/DatePicker 동형).
   //   구 `width={16}` 하드코딩은 size 를 바꿔도 glyph 가 16 고정이었다 (2026-07-14).
   const chevronIconSize = resolveTriggerIconSize(size);
@@ -315,8 +317,8 @@ export function ComboBox<T extends object>({
         </Button>
       </div>
       {description && <Text slot="description">{description}</Text>}
-      {isLoadingState && <Text slot="description">⏳ 데이터 로딩 중...</Text>}
-      {isErrorState && <FieldError>❌ 오류: {error}</FieldError>}
+      {isLoadingState && <Text slot="description">{t("loadingData")}</Text>}
+      {isErrorState && <FieldError>{t("errorWithMessage", { message: String(error) })}</FieldError>}
       {errorMessage && !isErrorState && <FieldError>{errorMessage}</FieldError>}
       {shouldRenderPopover && (
         <Popover

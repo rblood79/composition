@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "./Button";
+import { useComponentStrings } from "../i18n";
 import "./styles/generated/Pagination.css";
 
 export interface PaginationProps {
@@ -23,6 +24,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   showPageInfo = true,
   className = "",
 }) => {
+  const t = useComponentStrings();
   const handlePrevious = () => {
     if (currentPage > 1 && !isLoading) {
       onPageChange(currentPage - 1);
@@ -60,7 +62,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <Button
           onPress={handlePrevious}
           isDisabled={currentPage <= 1 || isLoading}
-          children="이전"
+          children={t("previousPage")}
         />
 
         {/* 페이지 번호들 */}
@@ -70,7 +72,7 @@ export const Pagination: React.FC<PaginationProps> = ({
             onPress={() => handlePageClick(pageNum)}
             isDisabled={isLoading}
             data-current={pageNum === currentPage}
-            aria-label={`페이지 ${pageNum}로 이동`}
+            aria-label={t("goToPage", { page: pageNum })}
             aria-current={pageNum === currentPage ? "page" : undefined}
             children={pageNum}
           />
@@ -86,7 +88,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           <Button
             onPress={() => handlePageClick(totalPages)}
             isDisabled={isLoading}
-            aria-label={`페이지 ${totalPages}로 이동`}
+            aria-label={t("goToPage", { page: totalPages })}
             children={totalPages}
           />
         )}
@@ -95,8 +97,8 @@ export const Pagination: React.FC<PaginationProps> = ({
         <Button
           onPress={handleNext}
           isDisabled={!hasNextPage || isLoading}
-          aria-label="다음 페이지"
-          children="다음"
+          aria-label={t("nextPageLabel")}
+          children={t("nextPage")}
         />
       </div>
 
@@ -105,11 +107,12 @@ export const Pagination: React.FC<PaginationProps> = ({
         <div className="pagination-info">
           {totalItems ? (
             <>
-              페이지 {currentPage} / {totalPages}
-              <span className="mx-1">•</span>총 {totalItems}개 항목
+              {t("pageOfTotal", { current: currentPage, total: totalPages })}
+              <span className="mx-1">•</span>
+              {t("totalItems", { count: totalItems })}
             </>
           ) : (
-            `페이지 ${currentPage} / ${totalPages}`
+            t("pageOfTotal", { current: currentPage, total: totalPages })
           )}
         </div>
       )}

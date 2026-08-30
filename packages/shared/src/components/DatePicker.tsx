@@ -32,6 +32,7 @@ import {
 } from "./FieldNecessityIndicator";
 
 import "./styles/generated/DatePicker.css";
+import { useComponentStrings } from "../i18n";
 
 export interface DatePickerProps<T extends DateValue> extends Omit<
   AriaDatePickerProps<T>,
@@ -119,7 +120,7 @@ export function DatePicker<T extends DateValue>({
   allowClear = false,
   includeTime = false,
   timeFormat = "24h",
-  timeLabel = "시간",
+  timeLabel,
   granularity,
   timezone,
   defaultToday = false,
@@ -139,6 +140,7 @@ export function DatePicker<T extends DateValue>({
   calendarSystem,
   ...props
 }: DatePickerProps<T>) {
+  const t = useComponentStrings();
   // 트리거 calendar glyph 크기 — Skia SelectIcon 과 **동일한** catalog 값(D3 대칭).
   //   구 `fontSize: 16` 하드코딩은 size 를 바꿔도 DOM glyph 가 16 고정이었다 (2026-07-14).
   const triggerIconSize = resolveTriggerIconSize(size);
@@ -301,7 +303,7 @@ export function DatePicker<T extends DateValue>({
             <div className="date-picker-time-section">
               <div className="date-picker-time-field-wrapper">
                 <Label className="date-picker-time-field-label">
-                  {timeLabel}
+                  {timeLabel ?? t("timeLabel")}
                 </Label>
                 <TimeField
                   granularity={

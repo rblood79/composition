@@ -25,6 +25,7 @@ import {
 import { useCollectionData } from "../hooks";
 
 import "./styles/generated/RadioGroup.css";
+import { useComponentStrings } from "../i18n";
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환
@@ -67,6 +68,7 @@ export function RadioGroup({
   labelPosition = "top",
   ...props
 }: RadioGroupProps) {
+  const t = useComponentStrings();
   // useCollectionData Hook으로 데이터 가져오기 (Static, API, Supabase 통합)
   const {
     data: boundData,
@@ -132,7 +134,7 @@ export function RadioGroup({
               )}
             </Label>
           )}
-          <Text>⏳ 데이터 로딩 중...</Text>
+          <Text>{t("loadingData")}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaRadioGroup>
       );
@@ -158,7 +160,7 @@ export function RadioGroup({
               )}
             </Label>
           )}
-          <Text>❌ 오류: {error}</Text>
+          <Text>{t("errorWithMessage", { message: String(error) })}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaRadioGroup>
       );
@@ -240,7 +242,7 @@ export function RadioGroup({
               )}
             </Label>
           )}
-          <Text>⏳ 데이터 로딩 중...</Text>
+          <Text>{t("loadingData")}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaRadioGroup>
       );
@@ -266,7 +268,7 @@ export function RadioGroup({
               )}
             </Label>
           )}
-          <Text>❌ 오류: {error}</Text>
+          <Text>{t("errorWithMessage", { message: String(error) })}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaRadioGroup>
       );

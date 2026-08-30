@@ -12,6 +12,7 @@
 
 import React from "react";
 import { CircleAlert, RefreshCw, LoaderCircle, Inbox } from "lucide-react";
+import { useComponentStrings } from "../i18n";
 import "./CollectionErrorState.css";
 
 interface CollectionErrorStateProps {
@@ -38,6 +39,7 @@ export function CollectionLoadingState({
   size = "md",
   height,
 }: Pick<CollectionErrorStateProps, "size" | "height">) {
+  const t = useComponentStrings();
   return (
     <div
       className={`collection-state collection-loading ${size}`}
@@ -47,7 +49,7 @@ export function CollectionLoadingState({
         className="collection-state-spinner"
         size={size === "sm" ? 16 : size === "lg" ? 24 : 20}
       />
-      <span className="collection-state-text">데이터 로딩 중...</span>
+      <span className="collection-state-text">{t("loadingDataPlain")}</span>
     </div>
   );
 }
@@ -61,6 +63,7 @@ export function CollectionErrorDisplay({
   size = "md",
   height,
 }: Pick<CollectionErrorStateProps, "error" | "onRetry" | "size" | "height">) {
+  const t = useComponentStrings();
   return (
     <div
       className={`collection-state collection-error ${size}`}
@@ -71,7 +74,7 @@ export function CollectionErrorDisplay({
       </div>
       <div className="collection-error-content">
         <span className="collection-error-message">
-          {error || "데이터를 불러오지 못했습니다"}
+          {error || t("loadFailed")}
         </span>
         {onRetry && (
           <button
@@ -80,7 +83,7 @@ export function CollectionErrorDisplay({
             onClick={onRetry}
           >
             <RefreshCw size={14} />
-            <span>다시 시도</span>
+            <span>{t("retry")}</span>
           </button>
         )}
       </div>
@@ -92,7 +95,7 @@ export function CollectionErrorDisplay({
  * 빈 상태 컴포넌트
  */
 export function CollectionEmptyState({
-  message = "표시할 데이터가 없습니다",
+  message,
   size = "md",
   height,
 }: {
@@ -100,13 +103,14 @@ export function CollectionEmptyState({
   size?: "sm" | "md" | "lg";
   height?: number | string;
 }) {
+  const t = useComponentStrings();
   return (
     <div
       className={`collection-state collection-empty ${size}`}
       style={height ? { height } : undefined}
     >
       <Inbox size={size === "sm" ? 16 : size === "lg" ? 24 : 20} />
-      <span className="collection-state-text">{message}</span>
+      <span className="collection-state-text">{message ?? t("emptyData")}</span>
     </div>
   );
 }

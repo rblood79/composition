@@ -44,6 +44,7 @@ import {
 import { Skeleton } from "./Skeleton";
 
 import "./styles/ListBox.css";
+import { useComponentStrings } from "../i18n";
 
 // 아이템 높이 고정값 (가상화용)
 const ITEM_HEIGHT = 40;
@@ -124,6 +125,7 @@ export function ListBox<T extends object>({
   rowTemplateSources,
   ...props
 }: ExtendedListBoxProps<T>) {
+  const t = useComponentStrings();
   // ADR-159 P3: label 템플릿 compile — 렌더 당 1회 (compileFieldTemplate 은 text 키
   //   캐시라 재compile 비용 없음). 토큰 없는 소스는 null → 기존 item.label (BC).
   //   내부 기본/가상화 렌더는 label 단일 표시 — description 은 renderer slot emit 소관.
@@ -476,7 +478,7 @@ export function ListBox<T extends object>({
             isDisabled
             className="react-aria-ListBoxItem"
           >
-            ⏳ 데이터 로딩 중...
+            {t("loadingData")}
           </AriaListBoxItem>
         </AriaListBox>
       );
@@ -496,7 +498,7 @@ export function ListBox<T extends object>({
             isDisabled
             className="react-aria-ListBoxItem"
           >
-            ❌오류: {error}
+            {t("errorWithMessage", { message: String(error) })}
           </AriaListBoxItem>
         </AriaListBox>
       );
@@ -550,7 +552,7 @@ export function ListBox<T extends object>({
             isDisabled
             className="react-aria-ListBoxItem"
           >
-            ⏳ 데이터 로딩 중...
+            {t("loadingData")}
           </AriaListBoxItem>
         </AriaListBox>
       );
@@ -570,7 +572,7 @@ export function ListBox<T extends object>({
             isDisabled
             className="react-aria-ListBoxItem"
           >
-            ❌오류: {error}
+            {t("errorWithMessage", { message: String(error) })}
           </AriaListBoxItem>
         </AriaListBox>
       );

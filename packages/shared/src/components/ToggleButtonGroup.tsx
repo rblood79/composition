@@ -23,6 +23,7 @@ import "./styles/generated/ToggleButtonGroup.css";
 // staticColor × indicator 조합 전용 수동 CSS (ToggleButton.css 동형 — 고정 흑백은 catalog
 // 토큰으로 표현 불가). 기본(segmented) 모드는 자식 ToggleButton 의 수동 CSS 가 담당한다.
 import "./styles/ToggleButtonGroup.css";
+import { useComponentStrings } from "../i18n";
 
 export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {
   indicator?: boolean;
@@ -72,6 +73,7 @@ export function ToggleButtonGroup({
   children,
   ...props
 }: ToggleButtonGroupExtendedProps) {
+  const t = useComponentStrings();
   const {
     data: boundData,
     loading,
@@ -133,12 +135,12 @@ export function ToggleButtonGroup({
 
   const loadingContent = (
     <RACToggleButton className="react-aria-ToggleButton button-base">
-      ⏳ 로딩 중...
+      {t("loading")}
     </RACToggleButton>
   );
   const errorContent = (
     <RACToggleButton className="react-aria-ToggleButton button-base">
-      ❌ 오류
+      {t("error")}
     </RACToggleButton>
   );
 

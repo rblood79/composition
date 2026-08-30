@@ -17,6 +17,7 @@
 
 import React from "react";
 import "./styles/generated/Slot.css";
+import { useComponentStrings } from "../i18n";
 
 export interface SlotProps {
   /** Slot 식별자 (예: "content", "sidebar", "navigation") */
@@ -67,6 +68,7 @@ export function Slot({
   isEditMode = true,
   ...props
 }: SlotProps) {
+  const t = useComponentStrings();
   const isEmpty = !children || (Array.isArray(children) && children.length === 0);
 
   // Edit 모드가 아니고 children이 있으면 children만 렌더링 (Slot UI 숨김)
@@ -93,7 +95,7 @@ export function Slot({
           <div className="react-aria-Slot-info">
             <span className="react-aria-Slot-name">
               {name}
-              {required && <span className="react-aria-Slot-required-badge">필수</span>}
+              {required && <span className="react-aria-Slot-required-badge">{t("required")}</span>}
             </span>
             {description && (
               <span className="react-aria-Slot-description">{description}</span>

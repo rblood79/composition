@@ -39,6 +39,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Skeleton } from "./Skeleton";
+import { useComponentStrings } from "../i18n";
 
 /**
  * API Fetcher 타입 (DI용)
@@ -60,6 +61,33 @@ export type ApiConfig = Record<string, ApiFetcher<unknown>>;
  * 기존 동작 그대로 통과 (BC). 분류는 shared classifyTableCellDisplay 단일 소스 —
  * Skia projection(appendTableRowProjection)과 동일 판정 (G2 대칭).
  */
+/**
+ * 칩 placeholder 는 별도 컴포넌트다 — `renderTableCellValue` 는 순수 함수라 훅을 못 쓰는데
+ * 그룹 이름표(`aria-label`)는 주변 locale 을 따라야 한다. 호출부 서명은 그대로 둔다.
+ */
+function TableCellTags({ chips }: { chips: readonly string[] }) {
+  const t = useComponentStrings();
+  return (
+    <AriaTagGroup
+      aria-label={t("collectionValue")}
+      className="react-aria-TagGroup table-cell-tag-group"
+    >
+      <AriaTagList className="react-aria-TagList">
+        {chips.map((chip, index) => (
+          <Tag
+            key={`${chip}-${index}`}
+            id={`${chip}-${index}`}
+            className="react-aria-Tag"
+            textValue={chip || `tag-${index + 1}`}
+          >
+            {chip}
+          </Tag>
+        ))}
+      </AriaTagList>
+    </AriaTagGroup>
+  );
+}
+
 export function renderTableCellValue(value: unknown): React.ReactNode {
   if (React.isValidElement(value)) return value;
   if (value !== null && typeof value === "object") {
@@ -69,25 +97,7 @@ export function renderTableCellValue(value: unknown): React.ReactNode {
         display.overflow > 0
           ? [...display.items, `+${display.overflow}`]
           : display.items;
-      return (
-        <AriaTagGroup
-          aria-label="컬렉션 값"
-          className="react-aria-TagGroup table-cell-tag-group"
-        >
-          <AriaTagList className="react-aria-TagList">
-            {chips.map((chip, index) => (
-              <Tag
-                key={`${chip}-${index}`}
-                id={`${chip}-${index}`}
-                className="react-aria-Tag"
-                textValue={chip || `tag-${index + 1}`}
-              >
-                {chip}
-              </Tag>
-            ))}
-          </AriaTagList>
-        </AriaTagGroup>
-      );
+      return <TableCellTags chips={chips} />;
     }
     return display.text;
   }

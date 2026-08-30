@@ -38,6 +38,7 @@ import {
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
 import "./styles/generated/Select.css";
+import { useComponentStrings } from "../i18n";
 
 export interface SelectProps<T extends object> extends Omit<
   AriaSelectProps<T>,
@@ -115,6 +116,7 @@ export function Select<T extends object>({
   isQuiet,
   ...props
 }: SelectProps<T>) {
+  const t = useComponentStrings();
   // chevron glyph 크기 — Skia SelectIcon 과 **동일한** catalog 값(D3 대칭). `.select-chevron`
   //   span 은 `--select-chevron-size` 로 **박스**만 잡고, 안의 svg 는 `width={16}` 하드코딩이라
   //   size 를 바꿔도 glyph 가 16 고정이었다 (DatePicker 와 동일 결함 — 2026-07-14).
@@ -211,7 +213,7 @@ export function Select<T extends object>({
             textValue="Loading"
             className="react-aria-ListBoxItem"
           >
-            ⏳ 데이터 로딩 중...
+            {t("loadingData")}
           </ListBoxItem>
         );
       }
@@ -224,7 +226,7 @@ export function Select<T extends object>({
             textValue="Error"
             className="react-aria-ListBoxItem"
           >
-            ❌ 오류: {error}
+            {t("errorWithMessage", { message: String(error) })}
           </ListBoxItem>
         );
       }
@@ -398,14 +400,14 @@ export function Select<T extends object>({
           {/* Show loading message */}
           {hasDataBinding && loading && (
             <Text slot="description" className="react-aria-Description">
-              ⏳ 데이터 로딩 중...
+              {t("loadingData")}
             </Text>
           )}
 
           {/* Show error message */}
           {hasDataBinding && error && (
             <FieldError className="react-aria-FieldError">
-              ❌ 오류: {error}
+              {t("errorWithMessage", { message: String(error) })}
             </FieldError>
           )}
 

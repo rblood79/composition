@@ -19,6 +19,7 @@ import { useCollectionData } from "../hooks";
 import { Skeleton } from "./Skeleton";
 
 import "./styles/Tree.css";
+import { useComponentStrings } from "../i18n";
 
 export interface MyTreeProps<T extends object> extends TreeProps<T> {
   /**
@@ -267,6 +268,7 @@ export interface TreeItemProps extends Omit<
 }
 
 export function TreeItem(props: TreeItemProps) {
+  const t = useComponentStrings();
   const {
     title,
     value,
@@ -293,7 +295,7 @@ export function TreeItem(props: TreeItemProps) {
         {children} {/* 다른 컴포넌트들 (Button, Text 등) */}
         {showInfoButton && (
           <Button
-            aria-label={`${displayTitle} 정보`}
+            aria-label={t("itemInfo", { title: displayTitle })}
             onPress={onInfoClick}
             className="tree-item-info-button"
           >

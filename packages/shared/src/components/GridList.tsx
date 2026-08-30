@@ -26,6 +26,7 @@ import {
 } from "../collections/fieldTemplate";
 
 import "./styles/GridList.css";
+import { useComponentStrings } from "../i18n";
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환
@@ -110,6 +111,7 @@ export function GridList<T extends object>({
   isQuiet,
   ...restProps
 }: ExtendedGridListProps<T>) {
+  const t = useComponentStrings();
   // 카드 variant — quiet 이 유일한 항목 축이다(컨테이너의 default/accent 와 별개).
   //   생성 CSS `.react-aria-GridListItem[data-variant="quiet"]` 가 이 값으로 걸린다.
   //   항목에 data-variant 를 붙이는 것 자체가 신규다 — 생성 CSS 는 진작 variant 별 규칙을
@@ -275,7 +277,7 @@ export function GridList<T extends object>({
                   selectionBehavior === "toggle" && (
                     <MyCheckbox slot="selection" />
                   )}
-                ⏳ 데이터 로딩 중...
+                {t("loadingData")}
               </>
             )}
           </AriaGridListItem>
@@ -306,7 +308,7 @@ export function GridList<T extends object>({
                   selectionBehavior === "toggle" && (
                     <MyCheckbox slot="selection" />
                   )}
-                ❌ 오류: {error}
+                {t("errorWithMessage", { message: String(error) })}
               </>
             )}
           </AriaGridListItem>
@@ -376,7 +378,7 @@ export function GridList<T extends object>({
                   selectionBehavior === "toggle" && (
                     <MyCheckbox slot="selection" />
                   )}
-                ⏳ 데이터 로딩 중...
+                {t("loadingData")}
               </>
             )}
           </AriaGridListItem>
@@ -407,7 +409,7 @@ export function GridList<T extends object>({
                   selectionBehavior === "toggle" && (
                     <MyCheckbox slot="selection" />
                   )}
-                ❌ 오류: {error}
+                {t("errorWithMessage", { message: String(error) })}
               </>
             )}
           </AriaGridListItem>

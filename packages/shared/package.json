@@ -43,6 +43,10 @@
     "./hooks": {
       "types": "./src/hooks/index.ts",
       "default": "./src/hooks/index.ts"
+    },
+    "./i18n": {
+      "types": "./src/i18n/index.ts",
+      "default": "./src/i18n/index.ts"
     }
   },
   "scripts": {
@@ -60,6 +64,7 @@
     "@internationalized/date": "^3.12.3",
     "@internationalized/number": "^3.6.7",
     "@react-aria/focus": "^3.22.1",
+    "@react-aria/i18n": "^3.13.1",
     "@react-aria/utils": "^3.34.1",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.10",

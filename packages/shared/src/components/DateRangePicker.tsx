@@ -32,6 +32,7 @@ import {
 import { Icon } from "./Icon";
 
 import "./styles/generated/DateRangePicker.css";
+import { useComponentStrings } from "../i18n";
 
 export interface DateRangePickerProps<T extends DateValue> extends Omit<
   AriaDateRangePickerProps<T>,
@@ -98,8 +99,8 @@ export function DateRangePicker<T extends DateValue>({
   allowClear = false,
   includeTime = false,
   timeFormat = "24h",
-  startTimeLabel = "시작 시간",
-  endTimeLabel = "종료 시간",
+  startTimeLabel,
+  endTimeLabel,
   granularity,
   locale,
   calendarSystem,
@@ -120,6 +121,7 @@ export function DateRangePicker<T extends DateValue>({
   validationBehavior,
   ...props
 }: DateRangePickerProps<T>) {
+  const t = useComponentStrings();
   // 트리거 calendar glyph 크기 — Skia SelectIcon 과 동일한 catalog 값 (DatePicker 동형).
   const triggerIconSize = resolveTriggerIconSize(size);
 
@@ -281,7 +283,7 @@ export function DateRangePicker<T extends DateValue>({
               <div className="date-picker-time-fields-container">
                 <div className="date-picker-time-field-wrapper">
                   <Label className="date-picker-time-field-label">
-                    {startTimeLabel}
+                    {startTimeLabel ?? t("startTimeLabel")}
                   </Label>
                   <TimeField
                     granularity={
@@ -297,7 +299,7 @@ export function DateRangePicker<T extends DateValue>({
                 </div>
                 <div className="date-picker-time-field-wrapper">
                   <Label className="date-picker-time-field-label">
-                    {endTimeLabel}
+                    {endTimeLabel ?? t("endTimeLabel")}
                   </Label>
                   <TimeField
                     granularity={

@@ -60,12 +60,15 @@ export function getBrowserLocale(): SupportedLocale {
   return (matchingLocale as SupportedLocale) || DEFAULT_LOCALE;
 }
 
+/** 저장 키 — Preview iframe 도 이 키의 `storage` 이벤트를 듣는다 */
+export const LOCALE_STORAGE_KEY = "composition-locale";
+
 /**
  * Get locale from localStorage or the English default
  */
 export function getStoredLocale(): SupportedLocale {
   try {
-    const stored = localStorage.getItem("composition-locale");
+    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
     if (stored && stored in localeConfigs) {
       return stored as SupportedLocale;
     }
@@ -81,7 +84,7 @@ export function getStoredLocale(): SupportedLocale {
  */
 export function setStoredLocale(locale: SupportedLocale): void {
   try {
-    localStorage.setItem("composition-locale", locale);
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
   } catch (error) {
     console.error("Error saving locale to localStorage:", error);
   }

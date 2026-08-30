@@ -12,6 +12,7 @@ export { translations, localizedStrings } from "./translations";
 export {
   localeConfigs,
   DEFAULT_LOCALE,
+  LOCALE_STORAGE_KEY,
   getLocaleConfig,
   getBrowserLocale,
   getStoredLocale,

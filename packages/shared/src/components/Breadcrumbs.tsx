@@ -9,6 +9,7 @@ import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 import { useResolvedCollectionItems } from "../hooks";
 import { Skeleton } from "./Skeleton";
 import "./styles/Breadcrumbs.css";
+import { useComponentStrings } from "../i18n";
 
 /**
  * RSP API: https://react-spectrum.adobe.com/react-spectrum/Breadcrumbs.html
@@ -73,6 +74,7 @@ export function Breadcrumbs<T extends object>({
   children,
   ...props
 }: BreadcrumbsExtendedProps<T>) {
+  const t = useComponentStrings();
   // ADR-912 영역 B (A): collection items 단일 계약 — dataBinding(async/dataTable) 과 정적
   //   props.items(StoredBreadcrumbItem[])를 같은 toItemProjectionRow normalizer 로 흡수.
   //   Skia appendBreadcrumbRowProjection(getFlatProjectionRows) 와 동일 row 형태 = 시각 대칭 SSOT.
@@ -143,7 +145,7 @@ export function Breadcrumbs<T extends object>({
         data-size={size}
       >
         <Breadcrumb>
-          <Link>⏳ 로딩 중...</Link>
+          <Link>{t("loading")}</Link>
         </Breadcrumb>
       </RACBreadcrumbs>
     );
@@ -156,7 +158,7 @@ export function Breadcrumbs<T extends object>({
         data-size={size}
       >
         <Breadcrumb>
-          <Link>❌ 오류</Link>
+          <Link>{t("error")}</Link>
         </Breadcrumb>
       </RACBreadcrumbs>
     );

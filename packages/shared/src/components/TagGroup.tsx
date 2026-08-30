@@ -21,6 +21,7 @@ import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import { useResolvedCollectionItems } from "../hooks";
 import "./styles/TagGroup.css";
+import { useComponentStrings } from "../i18n";
 
 export interface TagGroupProps<T>
   extends
@@ -102,6 +103,7 @@ export function TagGroup<T extends object>({
   labelPosition = "top",
   ...props
 }: TagGroupProps<T>): JSX.Element {
+  const t = useComponentStrings();
   // Build className with variant and size (재사용을 위해 최상위에 선언)
   const tagGroupClassName = "react-aria-TagGroup";
 
@@ -320,7 +322,7 @@ export function TagGroup<T extends object>({
         >
           {label && <Label>{label}</Label>}
           <TagList className="react-aria-TagList">
-            <AriaTag textValue="Loading">⏳ 데이터 로딩 중...</AriaTag>
+            <AriaTag textValue={t("loadingLabel")}>{t("loadingData")}</AriaTag>
           </TagList>
           {description && <Text slot="description">{description}</Text>}
         </AriaTagGroup>
@@ -340,7 +342,7 @@ export function TagGroup<T extends object>({
         >
           {label && <Label>{label}</Label>}
           <TagList className="react-aria-TagList">
-            <AriaTag textValue="Error">❌ 오류: {error}</AriaTag>
+            <AriaTag textValue={t("errorLabel")}>{t("errorWithMessage", { message: String(error) })}</AriaTag>
           </TagList>
           {description && <Text slot="description">{description}</Text>}
         </AriaTagGroup>
@@ -431,7 +433,7 @@ export function TagGroup<T extends object>({
         >
           {label && <Label>{label}</Label>}
           <TagList className="react-aria-TagList">
-            <AriaTag textValue="Loading">⏳ 데이터 로딩 중...</AriaTag>
+            <AriaTag textValue={t("loadingLabel")}>{t("loadingData")}</AriaTag>
           </TagList>
           {description && <Text slot="description">{description}</Text>}
         </AriaTagGroup>
@@ -451,7 +453,7 @@ export function TagGroup<T extends object>({
         >
           {label && <Label>{label}</Label>}
           <TagList className="react-aria-TagList">
-            <AriaTag textValue="Error">❌ 오류: {error}</AriaTag>
+            <AriaTag textValue={t("errorLabel")}>{t("errorWithMessage", { message: String(error) })}</AriaTag>
           </TagList>
           {description && <Text slot="description">{description}</Text>}
         </AriaTagGroup>
