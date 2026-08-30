@@ -23,9 +23,13 @@ const LABEL_NAMESPACES = [
   "componentAction",
 ] as const;
 
-/** Phase 0 freeze (`evidence/200-label-channel-inventory.md`). */
-const FROZEN_KEY_COUNTS: Partial<Record<(typeof LABEL_NAMESPACES)[number], number>> = {
+/** Phase 0 freeze (`evidence/200-label-channel-inventory.md` §2-2, 총 118). */
+const FROZEN_KEY_COUNTS: Partial<
+  Record<(typeof LABEL_NAMESPACES)[number], number>
+> = {
   contextMenu: 25,
+  command: 72,
+  commandPalette: 16,
 };
 
 const SRC_ROOT = path.resolve(__dirname, "..");
@@ -88,7 +92,7 @@ describe("ADR-200 G1 — 라벨 키 카탈로그", () => {
     }
   });
 
-  it("contextMenu 네임스페이스가 Phase 0 freeze 수치와 같다", () => {
+  it("라벨 네임스페이스 키 수가 freeze 수치와 같다", () => {
     for (const [namespace, expected] of Object.entries(FROZEN_KEY_COUNTS)) {
       const count = Object.keys(localizedStrings["ko-KR"]).filter((key) =>
         key.startsWith(`${namespace}.`),

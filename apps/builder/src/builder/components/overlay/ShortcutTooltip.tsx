@@ -16,13 +16,14 @@
  * ```
  */
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback } from "react";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
-} from '../../config/keyboardShortcuts';
-import { formatShortcut } from '@/builder/hooks';
-import './ShortcutTooltip.css';
+} from "../../config/keyboardShortcuts";
+import { formatShortcut } from "@/builder/hooks";
+import { useI18n } from "@/i18n";
+import "./ShortcutTooltip.css";
 
 // ============================================
 // Types
@@ -36,7 +37,7 @@ export interface ShortcutTooltipProps {
   /** 툴팁 지연 시간 (ms) */
   delay?: number;
   /** 툴팁 위치 */
-  placement?: 'top' | 'bottom' | 'left' | 'right';
+  placement?: "top" | "bottom" | "left" | "right";
   /** 커스텀 라벨 (description 대신 사용) */
   label?: string;
 }
@@ -49,9 +50,10 @@ export function ShortcutTooltip({
   shortcutId,
   children,
   delay = 700,
-  placement = 'bottom',
+  placement = "bottom",
   label,
 }: ShortcutTooltipProps) {
+  const { t } = useI18n();
   const def = SHORTCUT_DEFINITIONS[shortcutId];
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -76,7 +78,7 @@ export function ShortcutTooltip({
   }
 
   const display = formatShortcut({ key: def.key, modifier: def.modifier });
-  const description = label || def.i18n?.ko || def.description;
+  const description = label || t(`command.${shortcutId}`);
 
   return (
     <span

@@ -45,7 +45,7 @@
 |     0 | ✅ **Implemented 2026-08-30** — 인벤토리 freeze (`evidence/200-label-channel-inventory.md`) + Gate RED 기준선 실측 + 표시 계층 테스트 provider 래핑 선행 전환 (§5-2)           |   LOW   | G4 ✅           |
 |     1 | ✅ **Implemented 2026-08-30** — `TranslationKeys.contextMenu` + ko/en 25 키, G1 게이트 (`i18n/labelKeyCatalog.static.test.ts`) 신설                                            |   LOW   | G1 ✅ (3 tests) |
 |     2 | ✅ **Implemented 2026-08-30** — `label` → `labelKey`(+`labelParams`), provider 25 전환, Overlay/ActionBar/패널이 `t()` 로 해소, G2 게이트 신설. **Phase 4 흡수** (아래 판단 2) | **MED** | G1·G2·G4 ✅     |
-|     3 | 명령 라벨: `command.*` 72 + `commandPalette.*` 16, `ShortcutDefinition.i18n` 제거, 소비 3곳 전환                                                                               | **MED** | G3·G4           |
+|     3 | ✅ **Implemented 2026-08-30** — `command.*` 72 + `commandPalette.*` 16, `ShortcutDefinition.i18n` 제거, 소비 3곳(팔레트·ShortcutTooltip·ActionTooltip) 전환, G3 게이트 신설    | **MED** | G3·G4 ✅        |
 |     4 | ✅ **Phase 2 에 흡수 2026-08-30** — 레지스트리 `label(): {en,ko}` → `labelKey(): {key, params?}`, 199 테스트 재정렬                                                            |   MED   | G4 ✅           |
 |     5 | 게이트 전수 GREEN + Live Exercise + closure 5단계                                                                                                                              |   LOW   | G1~G5           |
 

@@ -39,7 +39,6 @@ import type { ShortcutScope } from "../../types/keyboard";
 const renderWithI18n = (ui: ReactElement) =>
   render(ui, { wrapper: I18nProvider });
 
-
 const mockScope = vi.hoisted(() => ({
   current: "canvas-focused" as ShortcutScope,
 }));
@@ -177,11 +176,11 @@ describe("CommandPalette — registry 소비", () => {
 
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
-    expect(itemFor("복제").dataset.executable).toBe("true");
-    const styles = itemFor("스타일 복사");
+    expect(itemFor("Duplicate").dataset.executable).toBe("true");
+    const styles = itemFor("Copy Styles");
     expect(styles.dataset.executable).toBe("false");
     expect(styles.dataset.availability).toBe("scope-mismatch");
-    expect(styles.textContent).toContain("스타일 패널에서 실행할 수 있습니다");
+    expect(styles.textContent).toContain("Available in the Styles panel");
   });
 
   it("panel:styles 로 열면 반대로 갈린다", () => {
@@ -205,11 +204,11 @@ describe("CommandPalette — registry 소비", () => {
 
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
-    expect(itemFor("복제").dataset.executable).toBe("false");
-    expect(itemFor("복제").textContent).toContain(
-      "캔버스에서 실행할 수 있습니다",
+    expect(itemFor("Duplicate").dataset.executable).toBe("false");
+    expect(itemFor("Duplicate").textContent).toContain(
+      "Available on the canvas",
     );
-    expect(itemFor("스타일 복사").dataset.executable).toBe("true");
+    expect(itemFor("Copy Styles").dataset.executable).toBe("true");
   });
 
   it("메뉴 focus가 scope를 바꿔도 열기 직전의 안정 scope를 고정한다", () => {
@@ -246,14 +245,14 @@ describe("CommandPalette — registry 소비", () => {
     screen.getByRole("menuitem", { name: "Menu trigger" }).focus();
     rerender(fixture(true));
 
-    expect(itemFor("복제").dataset.executable).toBe("true");
-    expect(itemFor("스타일 복사").dataset.executable).toBe("false");
+    expect(itemFor("Duplicate").dataset.executable).toBe("true");
+    expect(itemFor("Copy Styles").dataset.executable).toBe("false");
 
     mockScope.current = "panel:styles";
     rerender(fixture(true));
 
-    expect(itemFor("복제").dataset.executable).toBe("true");
-    expect(itemFor("스타일 복사").dataset.executable).toBe("false");
+    expect(itemFor("Duplicate").dataset.executable).toBe("true");
+    expect(itemFor("Copy Styles").dataset.executable).toBe("false");
   });
 
   it("global 명령은 어느 scope 에서 열어도 executable", () => {
@@ -268,16 +267,16 @@ describe("CommandPalette — registry 소비", () => {
     });
 
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
-    expect(itemFor("실행 취소").dataset.executable).toBe("true");
+    expect(itemFor("Undo").dataset.executable).toBe("true");
   });
 
   it("등록이 없으면 미등록으로 흐려진다", () => {
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
-    const item = itemFor("모든 섹션 펼침/접힘");
+    const item = itemFor("Toggle All Sections");
     expect(item.dataset.executable).toBe("false");
     expect(item.dataset.availability).toBe("unregistered");
-    expect(item.textContent).toContain("지금은 실행할 수 없습니다");
+    expect(item.textContent).toContain("Not available right now");
   });
 
   it("실행은 닫힌 뒤 handler 를 정확히 1회 부른다", async () => {
@@ -294,7 +293,7 @@ describe("CommandPalette — registry 소비", () => {
 
     renderWithI18n(<CommandPalette isOpen onOpenChange={onOpenChange} />);
 
-    press(itemFor("복제"));
+    press(itemFor("Duplicate"));
 
     // 닫기가 먼저, 실행은 rAF 뒤 (RAC 포커스 복원 이후)
     expect(onOpenChange).toHaveBeenCalledWith(false);
@@ -317,7 +316,7 @@ describe("CommandPalette — registry 소비", () => {
 
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
-    press(itemFor("스타일 복사"));
+    press(itemFor("Copy Styles"));
     await flushFrame();
 
     expect(handler).not.toHaveBeenCalled();
@@ -345,7 +344,7 @@ describe("CommandPalette — registry 소비", () => {
 
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
-    press(itemFor("선택 해제 / 모달 닫기"));
+    press(itemFor("Clear Selection / Close Modal"));
     await flushFrame();
 
     expect(high).toHaveBeenCalledTimes(1);

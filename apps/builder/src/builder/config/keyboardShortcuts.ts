@@ -46,7 +46,6 @@ export const SHORTCUT_DEFINITIONS = {
     allowInInput: true,
     capture: true,
     description: "Undo",
-    i18n: { ko: "실행 취소" },
   },
 
   redo: {
@@ -58,7 +57,6 @@ export const SHORTCUT_DEFINITIONS = {
     allowInInput: true,
     capture: true,
     description: "Redo",
-    i18n: { ko: "다시 실행" },
   },
 
   // ==========================================
@@ -73,7 +71,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATION,
     capture: true,
     description: "Zoom In",
-    i18n: { ko: "확대" },
   },
 
   zoomInNumpad: {
@@ -84,7 +81,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATION,
     capture: true,
     description: "Zoom In (numpad)",
-    i18n: { ko: "확대 (숫자패드)" },
   },
 
   zoomOut: {
@@ -95,7 +91,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATION,
     capture: true,
     description: "Zoom Out",
-    i18n: { ko: "축소" },
   },
 
   zoomToFit: {
@@ -106,7 +101,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATION,
     capture: true,
     description: "Fit to Screen",
-    i18n: { ko: "화면에 맞추기" },
   },
 
   // Figma·Pencil 이 같은 ⇧2 에 둔 액션. ⇧2 는 "@" 를 만들므로 `code` 로 맞춘다.
@@ -118,7 +112,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.NAVIGATION,
     description: "Zoom to Selection",
-    i18n: { ko: "선택에 맞추기" },
   },
 
   zoom100: {
@@ -129,7 +122,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATION,
     capture: true,
     description: "Zoom 100%",
-    i18n: { ko: "100%로 확대" },
   },
 
   zoom200: {
@@ -140,7 +132,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATION,
     capture: true,
     description: "Zoom 200%",
-    i18n: { ko: "200%로 확대" },
   },
 
   // 아래 패널·진입점 계열은 `allowInInput: true` 다. 입력창에 포커스가 있으면
@@ -167,7 +158,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle Navigator Panel",
-    i18n: { ko: "탐색기 패널 토글" },
   },
 
   toggleComponents: {
@@ -179,7 +169,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle Components Panel",
-    i18n: { ko: "컴포넌트 패널 토글" },
   },
 
   toggleDatatable: {
@@ -191,7 +180,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle DataTable Panel",
-    i18n: { ko: "데이터테이블 패널 토글" },
   },
 
   toggleTheme: {
@@ -203,7 +191,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle Theme Panel",
-    i18n: { ko: "테마 패널 토글" },
   },
 
   toggleProperties: {
@@ -215,7 +202,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle Properties Panel",
-    i18n: { ko: "속성 패널 토글" },
   },
 
   toggleStyles: {
@@ -227,7 +213,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle Styles Panel",
-    i18n: { ko: "스타일 패널 토글" },
   },
 
   toggleEvents: {
@@ -239,7 +224,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle Interactions Panel",
-    i18n: { ko: "인터랙션 패널 토글" },
   },
 
   toggleHistory: {
@@ -251,7 +235,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle History Panel",
-    i18n: { ko: "히스토리 패널 토글" },
   },
 
   toggleWorkflowOverlay: {
@@ -263,7 +246,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle Workflow Overlay",
-    i18n: { ko: "Workflow 오버레이 토글" },
   },
 
   // ⌃ 는 ⌥ 의 문자 변환을 억제하지 않는다 (억제하는 것은 ⌘ 뿐) — 실물 macOS 에서
@@ -279,7 +261,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle Monitor Panel",
-    i18n: { ko: "모니터 패널 토글" },
   },
 
   /**
@@ -293,7 +274,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
     description: "Toggle Rulers",
-    i18n: { ko: "눈금자 토글" },
   },
 
   openSettings: {
@@ -304,7 +284,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Open Settings",
-    i18n: { ko: "설정 열기" },
   },
 
   // 프로젝트 목록(대시보드)으로 나간다. Figma·Sketch 가 같은 ⌘O 에 둔 자리이고,
@@ -320,7 +299,6 @@ export const SHORTCUT_DEFINITIONS = {
     allowInInput: true,
     capture: true,
     description: "Open Project",
-    i18n: { ko: "프로젝트 열기" },
   },
 
   // Pencil 이 ⌘K 를 AI 채팅에 쓴다 — 같은 자리에 두면 두 도구를 오가는 손이
@@ -335,7 +313,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
     description: "Toggle AI Panel",
-    i18n: { ko: "AI 패널 토글" },
   },
 
   commandPalette: {
@@ -348,7 +325,6 @@ export const SHORTCUT_DEFINITIONS = {
     allowInInput: true,
     palette: false,
     description: "Open Command Palette",
-    i18n: { ko: "명령 팔레트 열기" },
   },
 
   // ==========================================
@@ -362,7 +338,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: ["canvas-focused", "panel:events"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Copy",
-    i18n: { ko: "복사" },
   },
 
   paste: {
@@ -372,7 +347,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: ["canvas-focused", "panel:events"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Paste",
-    i18n: { ko: "붙여넣기" },
   },
 
   cut: {
@@ -382,7 +356,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Cut",
-    i18n: { ko: "잘라내기" },
   },
 
   // z-order — children[] 순서가 곧 그리기 순서라 "앞" 은 배열 뒤쪽이다
@@ -395,7 +368,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Bring to Front",
-    i18n: { ko: "맨 앞으로" },
   },
 
   bringForward: {
@@ -405,7 +377,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Bring Forward",
-    i18n: { ko: "앞으로" },
   },
 
   sendBackward: {
@@ -415,7 +386,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Send Backward",
-    i18n: { ko: "뒤로" },
   },
 
   sendToBack: {
@@ -425,7 +395,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Send to Back",
-    i18n: { ko: "맨 뒤로" },
   },
 
   duplicate: {
@@ -438,7 +407,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: ["canvas-focused", "panel:navigator"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Duplicate",
-    i18n: { ko: "복제" },
   },
 
   toggleComponentOrigin: {
@@ -448,7 +416,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: ["canvas-focused", "panel:properties"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Create/Detach Component",
-    i18n: { ko: "컴포넌트 생성/분리" },
   },
 
   detachInstance: {
@@ -459,7 +426,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.CANVAS,
     capture: true,
     description: "Detach Instance",
-    i18n: { ko: "인스턴스 분리" },
   },
 
   selectAll: {
@@ -469,7 +435,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Select All",
-    i18n: { ko: "모두 선택" },
   },
 
   delete: {
@@ -479,7 +444,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: ["canvas-focused", "panel:events"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Delete",
-    i18n: { ko: "삭제" },
   },
 
   deleteAlt: {
@@ -489,7 +453,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: ["canvas-focused", "panel:events"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Delete",
-    i18n: { ko: "삭제" },
   },
 
   escape: {
@@ -499,7 +462,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: ["canvas-focused", "panel:events", "modal"],
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Clear Selection / Close Modal",
-    i18n: { ko: "선택 해제 / 모달 닫기" },
   },
 
   nextElement: {
@@ -509,7 +471,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Next Element",
-    i18n: { ko: "다음 요소" },
   },
 
   prevElement: {
@@ -519,7 +480,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Previous Element",
-    i18n: { ko: "이전 요소" },
   },
 
   // ==========================================
@@ -533,7 +493,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Frame",
-    i18n: { ko: "프레임" },
   },
 
   ungroup: {
@@ -543,7 +502,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Unframe",
-    i18n: { ko: "프레임 해제" },
   },
 
   // ⌥ 계열은 macOS 에서 문자를 바꾼다 (⌥A→å, ⌥S→ß, ⌥⇧V→◊). `key` 로 맞추면
@@ -557,7 +515,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Align Left",
-    i18n: { ko: "왼쪽 정렬" },
   },
 
   alignHCenter: {
@@ -568,7 +525,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Align Horizontal Center",
-    i18n: { ko: "가로 중앙 정렬" },
   },
 
   alignRight: {
@@ -579,7 +535,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Align Right",
-    i18n: { ko: "오른쪽 정렬" },
   },
 
   alignTop: {
@@ -590,7 +545,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Align Top",
-    i18n: { ko: "위쪽 정렬" },
   },
 
   alignVCenter: {
@@ -601,7 +555,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Align Vertical Center",
-    i18n: { ko: "세로 중앙 정렬" },
   },
 
   alignBottom: {
@@ -612,7 +565,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Align Bottom",
-    i18n: { ko: "아래쪽 정렬" },
   },
 
   distributeH: {
@@ -623,7 +575,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Distribute Horizontally",
-    i18n: { ko: "가로 분배" },
   },
 
   distributeV: {
@@ -634,7 +585,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Distribute Vertically",
-    i18n: { ko: "세로 분배" },
   },
 
   // ==========================================
@@ -651,7 +601,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "panel:properties",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
     description: "Copy Properties",
-    i18n: { ko: "속성 복사" },
   },
 
   pasteProperties: {
@@ -661,7 +610,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "panel:properties",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
     description: "Paste Properties",
-    i18n: { ko: "속성 붙여넣기" },
   },
 
   // ==========================================
@@ -675,7 +623,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "panel:styles",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
     description: "Copy Styles",
-    i18n: { ko: "스타일 복사" },
   },
 
   pasteStyles: {
@@ -685,7 +632,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "panel:styles",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
     description: "Paste Styles",
-    i18n: { ko: "스타일 붙여넣기" },
   },
 
   toggleFocusMode: {
@@ -696,7 +642,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "panel:styles",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
     description: "Toggle Focus Mode",
-    i18n: { ko: "포커스 모드 토글" },
   },
 
   // 종전에 정의가 「전부 펼침」·「전부 접힘」 둘이었지만 구현은 접힘 개수를 보고
@@ -709,7 +654,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "panel:styles",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
     description: "Toggle All Sections",
-    i18n: { ko: "모든 섹션 펼침/접힘" },
   },
 
   // ==========================================
@@ -728,7 +672,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Move Before Sibling",
-    i18n: { ko: "이전 형제로 이동" },
   },
 
   arrowDown: {
@@ -738,7 +681,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Move After Sibling",
-    i18n: { ko: "다음 형제로 이동" },
   },
 
   arrowLeft: {
@@ -748,7 +690,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Move Before Sibling",
-    i18n: { ko: "이전 형제로 이동" },
   },
 
   arrowRight: {
@@ -758,7 +699,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Move After Sibling",
-    i18n: { ko: "다음 형제로 이동" },
   },
 
   // ==========================================
@@ -776,7 +716,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Nudge Page Up 10px",
-    i18n: { ko: "페이지 위로 10px 이동" },
   },
 
   arrowDownShift: {
@@ -786,7 +725,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Nudge Page Down 10px",
-    i18n: { ko: "페이지 아래로 10px 이동" },
   },
 
   arrowLeftShift: {
@@ -796,7 +734,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Nudge Page Left 10px",
-    i18n: { ko: "페이지 왼쪽으로 10px 이동" },
   },
 
   arrowRightShift: {
@@ -806,7 +743,6 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
     description: "Nudge Page Right 10px",
-    i18n: { ko: "페이지 오른쪽으로 10px 이동" },
   },
 
   // ==========================================
@@ -833,7 +769,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Next Item",
-    i18n: { ko: "다음 항목" },
   },
 
   treeNavUp: {
@@ -844,7 +779,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Previous Item",
-    i18n: { ko: "이전 항목" },
   },
 
   treeNavRight: {
@@ -855,7 +789,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Expand",
-    i18n: { ko: "펼치기" },
   },
 
   treeNavLeft: {
@@ -866,7 +799,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Collapse",
-    i18n: { ko: "접기" },
   },
 
   treeNavHome: {
@@ -877,7 +809,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "First Item",
-    i18n: { ko: "첫 번째 항목" },
   },
 
   treeNavEnd: {
@@ -888,7 +819,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Last Item",
-    i18n: { ko: "마지막 항목" },
   },
 
   treeSelect: {
@@ -899,7 +829,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Select Item",
-    i18n: { ko: "항목 선택" },
   },
 
   treeSelectSpace: {
@@ -911,7 +840,6 @@ export const SHORTCUT_DEFINITIONS = {
     priority: SHORTCUT_PRIORITY.NAVIGATOR,
     palette: false,
     description: "Select Item",
-    i18n: { ko: "항목 선택" },
   },
 } as const satisfies ShortcutDefinitions;
 

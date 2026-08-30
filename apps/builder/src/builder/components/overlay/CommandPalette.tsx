@@ -41,6 +41,7 @@ import {
   type ShortcutCategory,
 } from "@/builder/hooks";
 import { matchesScope } from "../../hooks/useActiveScope";
+import { useI18n } from "@/i18n";
 import {
   getCommandRegistrySnapshot,
   resolveCommand,
@@ -67,6 +68,7 @@ interface CommandItem {
   shortcut: string;
   scope: ShortcutScope | readonly ShortcutScope[];
   availability: CommandAvailability;
+  /** 힌트 **키** — 표시 시점에 해소한다 (ADR-200). 실행 가능하면 null. */
   hint: string | null;
 }
 
@@ -81,30 +83,31 @@ export interface CommandPaletteProps {
 // Constants
 // ============================================
 
-const CATEGORY_LABELS: Record<ShortcutCategory, string> = {
-  system: "시스템",
-  navigation: "탐색",
-  panels: "패널",
-  canvas: "캔버스",
-  tools: "도구",
-  properties: "속성",
-  events: "이벤트",
-  navigator: "탐색기",
+const CATEGORY_LABEL_KEYS: Record<ShortcutCategory, string> = {
+  system: "commandPalette.categorySystem",
+  navigation: "commandPalette.categoryNavigation",
+  panels: "commandPalette.categoryPanels",
+  canvas: "commandPalette.categoryCanvas",
+  tools: "commandPalette.categoryTools",
+  properties: "commandPalette.categoryProperties",
+  events: "commandPalette.categoryEvents",
+  navigator: "commandPalette.categoryNavigator",
 };
 
 /** scope 불일치 힌트 — "무엇을 해야 실행되는가" 를 말한다. */
-const SCOPE_HINTS: Record<ShortcutScope, string> = {
-  global: "지금은 실행할 수 없습니다",
-  "canvas-focused": "캔버스에서 실행할 수 있습니다",
-  "panel:properties": "속성 패널에서 실행할 수 있습니다",
-  "panel:styles": "스타일 패널에서 실행할 수 있습니다",
-  "panel:events": "인터랙션 패널에서 실행할 수 있습니다",
-  "panel:navigator": "탐색기 패널에서 실행할 수 있습니다",
-  modal: "지금은 실행할 수 없습니다",
-  "text-editing": "지금은 실행할 수 없습니다",
+const SCOPE_HINT_KEYS: Record<ShortcutScope, string> = {
+  global: "commandPalette.scopeGlobal",
+  "canvas-focused": "commandPalette.scopeCanvasFocused",
+  "panel:properties": "commandPalette.scopePanelProperties",
+  "panel:styles": "commandPalette.scopePanelStyles",
+  "panel:events": "commandPalette.scopePanelEvents",
+  "panel:navigator": "commandPalette.scopePanelNavigator",
+  modal: "commandPalette.scopeModal",
+  "text-editing": "commandPalette.scopeTextEditing",
 };
 
-function scopeHint(
+/** 라벨이 아니라 **키**를 돌려준다 — 해소는 표시 시점에 한다 (ADR-200). */
+function scopeHintKey(
   scope: ShortcutScope | readonly ShortcutScope[],
 ): string | null {
   // 배열이면 첫 scope 를 대표로 삼는다 — 정의의 첫 항목이 주 컨텍스트다
@@ -112,7 +115,17 @@ function scopeHint(
   const first: ShortcutScope = Array.isArray(scope)
     ? (scope as readonly ShortcutScope[])[0]
     : (scope as ShortcutScope);
-  return SCOPE_HINTS[first] ?? null;
+  return SCOPE_HINT_KEYS[first] ?? null;
+}
+
+/** 실행 불가 사유 → 힌트 키. 등록 자체가 없는 항목은 global 과 같은 문장이다. */
+function hintKeyFor(
+  availability: CommandAvailability,
+  scope: ShortcutScope | readonly ShortcutScope[],
+): string | null {
+  if (availability === "executable") return null;
+  if (availability === "scope-mismatch") return scopeHintKey(scope);
+  return SCOPE_HINT_KEYS.global;
 }
 
 /**
@@ -186,6 +199,8 @@ export function CommandPalette({
   isOpen: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: CommandPaletteProps = {}) {
+  const { t } = useI18n();
+
   // State
   const [internalOpen, setInternalOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -257,20 +272,15 @@ export function CommandPalette({
 
         return {
           id,
-          label: def.i18n?.ko || def.description,
+          label: t(`command.${id}`),
           category: def.category,
           shortcut: formatShortcut({ key: def.key, modifier: def.modifier }),
           scope: def.scope,
           availability,
-          hint:
-            availability === "executable"
-              ? null
-              : availability === "scope-mismatch"
-                ? scopeHint(def.scope)
-                : "지금은 실행할 수 없습니다",
+          hint: hintKeyFor(availability, def.scope),
         };
       });
-  }, [registrySnapshot, scopeAtOpen]);
+  }, [registrySnapshot, scopeAtOpen, t]);
 
   // 검색 결과 필터링
   const filteredCommands = useMemo(() => {
@@ -432,7 +442,9 @@ export function CommandPalette({
                         {cmd.label}
                       </span>
                       <span className="command-palette-item-category">
-                        {cmd.hint ?? CATEGORY_LABELS[cmd.category]}
+                        {cmd.hint
+                          ? t(cmd.hint)
+                          : t(CATEGORY_LABEL_KEYS[cmd.category])}
                       </span>
                     </div>
                     <kbd className="command-palette-kbd">{cmd.shortcut}</kbd>

@@ -77,13 +77,6 @@ export interface ShortcutDefinition {
    * 그 행이라는 보장이 없다). 정적 게이트가 allowlist 로 고정한다.
    */
   palette?: false;
-
-  /** 다국어 설명 */
-  i18n?: {
-    ko?: string;
-    ja?: string;
-    [locale: string]: string | undefined;
-  };
 }
 
 /**

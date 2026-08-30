@@ -11,23 +11,20 @@
  * 대신 아예 툴팁이 없었다.
  */
 
-import {
-  Tooltip,
-  TooltipTrigger,
-  OverlayArrow,
-} from "react-aria-components";
+import { Tooltip, TooltipTrigger, OverlayArrow } from "react-aria-components";
 import type { ReactElement, ReactNode } from "react";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
 import { formatShortcut } from "@/builder/hooks";
+import { useI18n } from "@/i18n";
 import "./ActionTooltip.css";
 
 export type ActionTooltipPlacement = "top" | "bottom" | "left" | "right";
 
 export interface ActionTooltipOptions {
-  /** 툴팁 라벨. 생략하면 정의의 i18n.ko → description 순으로 채운다. */
+  /** 툴팁 라벨. 생략하면 `command.${shortcutId}` 를 표시 시점에 해소한다. */
   tooltip?: string;
   /** 단축키 id — 표기는 정의에서 파생한다 (문자열 직접 전달 금지). */
   shortcutId?: ShortcutId;
@@ -59,12 +56,10 @@ export function withActionTooltip(
     delay = 700,
   }: ActionTooltipOptions,
 ): ReactElement {
-  const shortcutDef = shortcutId ? SHORTCUT_DEFINITIONS[shortcutId] : undefined;
-  const tooltipLabel =
-    tooltip || shortcutDef?.i18n?.ko || shortcutDef?.description;
   const shortcutDisplay = shortcutDisplayFor(shortcutId);
 
-  if (!tooltipLabel) {
+  // 라벨을 만들 재료가 없으면 툴팁 자체가 없다.
+  if (!tooltip && !shortcutId) {
     return trigger;
   }
 
@@ -77,13 +72,29 @@ export function withActionTooltip(
             <path d="M0 0 L4 4 L8 0" />
           </svg>
         </OverlayArrow>
-        <span className="action-tooltip-label">{tooltipLabel}</span>
+        <ActionTooltipLabel tooltip={tooltip} shortcutId={shortcutId} />
         {shortcutDisplay && (
           <kbd className="action-tooltip-kbd">{shortcutDisplay}</kbd>
         )}
       </Tooltip>
     </TooltipTrigger>
   );
+}
+
+/**
+ * 라벨은 표시 시점에 해소한다 (ADR-200) — `withActionTooltip` 은 컴포넌트가
+ * 아니라 훅을 쓸 수 없으므로, 훅이 필요한 조각만 컴포넌트로 떼어 낸다.
+ */
+function ActionTooltipLabel({
+  tooltip,
+  shortcutId,
+}: {
+  tooltip?: string;
+  shortcutId?: ShortcutId;
+}) {
+  const { t } = useI18n();
+  const label = tooltip ?? (shortcutId ? t(`command.${shortcutId}`) : "");
+  return <span className="action-tooltip-label">{label}</span>;
 }
 
 export interface ActionTooltipTriggerProps extends ActionTooltipOptions {
