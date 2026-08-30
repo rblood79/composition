@@ -40,16 +40,18 @@
 
 ## 3. Phase 분해
 
-| Phase | 내용                                                                                                  |  risk   | Gate           |
-| ----: | ----------------------------------------------------------------------------------------------------- | :-----: | -------------- |
-|     0 | 인벤토리 freeze (§2) + 정적 게이트 3종 RED 작성 + **표시 계층 테스트 provider 래핑 선행 전환** (§5-2) |   LOW   | G1~G3 RED · G4 |
-|     1 | 카탈로그: `TranslationKeys` 확장 + ko/en `contextMenu.*` 25 추가                                      |   LOW   | G1             |
-|     2 | 메뉴 스키마 + 표시 계층: `label` → `labelKey`, provider 25 전환, Overlay/ActionBar 가 `t()` 로 해소   | **MED** | G1·G2·G4       |
-|     3 | 명령 라벨: `command.*` 72 + `commandPalette.*` 16, `ShortcutDefinition.i18n` 제거, 소비 3곳 전환      | **MED** | G3·G4          |
-|     4 | ADR-199 레지스트리: `label(): {en,ko}` → `labelKey`, 3 표면 어법 재적용, 199 게이트 재정렬            |   MED   | G4             |
-|     5 | 게이트 전수 GREEN + Live Exercise + closure 5단계                                                     |   LOW   | G1~G5          |
+| Phase | 내용                                                                                                                                                                          |  risk   | Gate                        |
+| ----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-----: | --------------------------- |
+|     0 | ✅ **Implemented 2026-08-30** — 인벤토리 freeze (`evidence/200-label-channel-inventory.md`) + Gate RED 기준선 실측 + 표시 계층 테스트 provider 래핑 선행 전환 (§5-2, 34 렌더) |   LOW   | G4 ✅ (3파일 34 tests PASS) |
+|     1 | 카탈로그: `TranslationKeys` 확장 + ko/en `contextMenu.*` 25 추가                                                                                                              |   LOW   | G1                          |
+|     2 | 메뉴 스키마 + 표시 계층: `label` → `labelKey`, provider 25 전환, Overlay/ActionBar 가 `t()` 로 해소                                                                           | **MED** | G1·G2·G4                    |
+|     3 | 명령 라벨: `command.*` 72 + `commandPalette.*` 16, `ShortcutDefinition.i18n` 제거, 소비 3곳 전환                                                                              | **MED** | G3·G4                       |
+|     4 | ADR-199 레지스트리: `label(): {en,ko}` → `labelKey`, 3 표면 어법 재적용, 199 게이트 재정렬                                                                                    |   MED   | G4                          |
+|     5 | 게이트 전수 GREEN + Live Exercise + closure 5단계                                                                                                                             |   LOW   | G1~G5                       |
 
 Phase 2 는 타입 변경과 표시 계층 전환이 같은 커밋이어야 type-check 가 성립하므로 분리하지 않는다.
+
+**진행 중 판단 (2026-08-30)**: 정적 게이트 3종의 **커밋 시점**을 Phase 0 에서 각 게이트가 GREEN 되는 phase 로 옮겼다 (G1 → Phase 1, G2 → Phase 2, G3 → Phase 3). RED 테스트를 main 에 커밋하면 남은 phase 내내 스위트가 빨간 채로 남는다 — RED 사실은 evidence 문서 §3 의 실측 기준선 (G1 0 · G2 16 · G3 3 + 1/72) 으로 대체 기록했다. 사유·근거: `evidence/200-label-channel-inventory.md` §5.
 
 ## 4. 파일 변경표
 
@@ -81,7 +83,7 @@ Phase 2 는 타입 변경과 표시 계층 전환이 같은 커밋이어야 type
 | `builder/components/ui/ActionTooltip.tsx`                                                                                                   | 같은 전환 (64)                                                                                                                                         |
 | `builder/config/componentSemanticsActions.ts`                                                                                               | `label(): ActionLabel` → `labelKey()`, `formatBilingualLabel` 제거                                                                                     |
 | `builder/panels/properties/ComponentSemanticsSection.tsx`                                                                                   | `.en` 고정 → `t(labelKey)`                                                                                                                             |
-| `.../contextMenu/ContextMenuOverlay.test.tsx` · `.../properties/ComponentSemanticsSection.test.tsx` · `.../overlay/CommandPalette.test.tsx` | Phase 0 — `I18nProvider` 래핑 (36 렌더, §5-2)                                                                                                          |
+| `.../contextMenu/ContextMenuOverlay.test.tsx` · `.../properties/ComponentSemanticsSection.test.tsx` · `.../overlay/CommandPalette.test.tsx` | Phase 0 — `I18nProvider` 래핑 (34 렌더, §5-2)                                                                                                          |
 
 `buildActionBarItems.ts` / `actionBarPolicy.ts` / `buildContextMenuItems.ts` 는 id·순서만 다루므로 **변경 없음** — 라벨 축과 노출 축이 분리되어 있다는 것의 확인이기도 하다.
 
@@ -112,7 +114,7 @@ Phase 2 는 타입 변경과 표시 계층 전환이 같은 커밋이어야 type
 | ------------------------------------ | --------: | -------------: |
 | `ContextMenuOverlay.test.tsx`        |         4 |              0 |
 | `ComponentSemanticsSection.test.tsx` |        20 |              0 |
-| `CommandPalette.test.tsx`            |        12 |              0 |
+| `CommandPalette.test.tsx`            |        10 |              0 |
 
 Phase 2·3·4 가 각각 이 중 하나에 훅을 넣으므로 래핑은 **공통 선행 작업**이다. Phase 0 에서 세 파일을 한 번에 전환하면 이후 phase 가 빨간 테스트 없이 시작한다. `useI18n` 은 provider 밖에서 throw 하고 (`i18n/useI18n.ts:38-40`), `useOptionalI18n` (`:46-50`) 이 격리 렌더용 대안이다 — 표시 계층은 provider 하위가 보장되므로 `useI18n` + 테스트 래핑을 택한다.
 

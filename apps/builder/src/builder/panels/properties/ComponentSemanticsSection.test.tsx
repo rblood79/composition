@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 import {
   act,
   cleanup,
@@ -22,6 +24,15 @@ import { historyManager } from "../../stores/history";
 import { useStore } from "../../stores";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
+
+/**
+ * ADR-200 Phase 0 — 표시 계층이 `t()` 로 라벨을 해소하게 되므로 provider 하위에서
+ * 렌더한다. 훅 도입(Phase 2~4)보다 먼저 옮겨 두어 그 phase 가 빨간 테스트 없이
+ * 시작한다 (design breakdown §5-2).
+ */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
+
 
 // Canonical migration: `reusable` / `ref` / `componentRole` are CanonicalNode (RefNode)
 // fields, not legacy Element fields, but runtime reads them off the object. Widen the
@@ -82,7 +93,7 @@ describe("ComponentSemanticsSection", () => {
       elementsMap: new Map([["origin", origin]]),
     });
 
-    render(<ComponentSemanticsSection elementId="origin" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
 
     expect(screen.getByText("Component")).toBeTruthy();
     // 이름과 역할은 key-value 2행이 아니라 정체 칩 한 줄이 함께 보인다.
@@ -101,7 +112,7 @@ describe("ComponentSemanticsSection", () => {
       elementsMap: new Map([["instance", instance]]),
     });
 
-    render(<ComponentSemanticsSection elementId="instance" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
 
     expect(screen.getByText("Instance")).toBeTruthy();
     expect(
@@ -117,7 +128,7 @@ describe("ComponentSemanticsSection", () => {
       elementsMap: new Map([["plain", plain]]),
     });
 
-    render(<ComponentSemanticsSection elementId="plain" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="plain" />);
 
     expect(screen.getByText("Component")).toBeTruthy();
     expect(screen.getByText("Standard")).toBeTruthy();
@@ -130,7 +141,7 @@ describe("ComponentSemanticsSection", () => {
   });
 
   it("renders nothing for missing element", () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <ComponentSemanticsSection elementId="missing" />,
     );
 
@@ -151,7 +162,7 @@ describe("ComponentSemanticsSection", () => {
       elementsMap: new Map([["frame-body", frameBody]]),
     });
 
-    const { container } = render(
+    const { container } = renderWithI18n(
       <ComponentSemanticsSection elementId="frame-body" />,
     );
 
@@ -171,7 +182,7 @@ describe("ComponentSemanticsSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<ComponentSemanticsSection elementId="plain" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="plain" />);
     fireEvent.click(screen.getByRole("button", { name: "Create component" }));
 
     await waitFor(() => {
@@ -195,7 +206,7 @@ describe("ComponentSemanticsSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<ComponentSemanticsSection elementId="origin" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
     fireEvent.click(screen.getByRole("button", { name: "Detach component" }));
 
     await waitFor(() => {
@@ -225,7 +236,7 @@ describe("ComponentSemanticsSection", () => {
       ]),
     });
 
-    render(<ComponentSemanticsSection elementId="instance" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
 
     expect(screen.getByRole("button", { name: "Go to component" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Detach instance" })).toBeTruthy();
@@ -253,7 +264,7 @@ describe("ComponentSemanticsSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<ComponentSemanticsSection elementId="dual" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="dual" />);
 
     // 색 마커는 하나뿐이라 (canvas 는 instance 색) 라벨이 두 정체를 읽어 준다.
     expect(screen.getByText("Instance · Origin")).toBeTruthy();
@@ -290,7 +301,7 @@ describe("ComponentSemanticsSection", () => {
       ]),
     });
 
-    render(<ComponentSemanticsSection elementId="instance" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     fireEvent.click(screen.getByRole("button", { name: "Go to component" }));
 
     expect(useStore.getState().selectedElementId).toBe("origin");
@@ -318,7 +329,7 @@ describe("ComponentSemanticsSection", () => {
       ]),
     });
 
-    render(<ComponentSemanticsSection elementId="instance" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     fireEvent.click(screen.getByRole("button", { name: "Go to component" }));
 
     expect(useStore.getState().selectedElementId).toBe("origin");
@@ -348,7 +359,7 @@ describe("ComponentSemanticsSection", () => {
       ]),
     });
 
-    render(<ComponentSemanticsSection elementId="instance" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     fireEvent.click(screen.getByRole("button", { name: "Go to component" }));
 
     expect(useStore.getState().selectedElementId).toBe("origin");
@@ -377,7 +388,7 @@ describe("ComponentSemanticsSection", () => {
       ]),
     });
 
-    render(<ComponentSemanticsSection elementId="origin" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
     // 영향 수는 별도 행이 아니라 "Select instances (N)" 라벨이 보인다.
     expect(
       screen.getByRole("button", { name: "Select instances (2)" }),
@@ -430,7 +441,7 @@ describe("ComponentSemanticsSection", () => {
       ]),
     });
 
-    render(<ComponentSemanticsSection elementId="origin" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
     fireEvent.click(
       screen.getByRole("button", { name: "Select instances (2)" }),
     );
@@ -484,7 +495,7 @@ describe("ComponentSemanticsSection", () => {
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", doc);
 
-    render(<ComponentSemanticsSection elementId="origin" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
     fireEvent.click(
       screen.getByRole("button", { name: "Select instances (1)" }),
     );
@@ -521,7 +532,7 @@ describe("ComponentSemanticsSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<ComponentSemanticsSection elementId="instance" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     fireEvent.click(screen.getByRole("button", { name: "Detach instance" }));
 
     expect(confirmSpy).toHaveBeenCalled();
@@ -563,7 +574,7 @@ describe("ComponentSemanticsSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<ComponentSemanticsSection elementId="instance" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     // fieldset(role=group) + legend 가 접근 이름을 제공 — panel 전역 properties-aria
     // 패턴과 동일. getByLabelText 는 legend 라벨링을 인식하지 않으므로 role 쿼리 사용.
     expect(screen.getByRole("group", { name: "Overrides" })).toBeTruthy();
@@ -607,7 +618,7 @@ describe("ComponentSemanticsSection", () => {
     });
     useStore.getState()._rebuildIndexes();
 
-    render(<ComponentSemanticsSection elementId="instance" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Reset slot/label.text override",
@@ -684,7 +695,7 @@ describe("ComponentSemanticsSection", () => {
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", initialDoc);
 
-    render(<ComponentSemanticsSection elementId="instance" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     expect(
       screen.getByRole("button", {
         name: "Reset heading.label override",
@@ -727,7 +738,7 @@ describe("ComponentSemanticsSection", () => {
       ]),
     });
 
-    render(<ComponentSemanticsSection elementId="instance" />);
+    renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     fireEvent.click(screen.getByRole("button", { name: "Detach instance" }));
 
     await waitFor(() => {

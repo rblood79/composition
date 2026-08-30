@@ -6,6 +6,8 @@
  * handler 를 정확히 1회 부르는가, (3) 닫힘 뒤에 부르는가. 종전에는 switch 12
  * case 만 실행되고 나머지 59개는 골라도 팔레트만 닫혔다.
  */
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 import {
   render,
   screen,
@@ -28,6 +30,15 @@ import {
   resetCommandRegistry,
 } from "../../stores/commandRegistry";
 import type { ShortcutScope } from "../../types/keyboard";
+
+/**
+ * ADR-200 Phase 0 — 표시 계층이 `t()` 로 라벨을 해소하게 되므로 provider 하위에서
+ * 렌더한다. 훅 도입(Phase 2~4)보다 먼저 옮겨 두어 그 phase 가 빨간 테스트 없이
+ * 시작한다 (design breakdown §5-2).
+ */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
+
 
 const mockScope = vi.hoisted(() => ({
   current: "canvas-focused" as ShortcutScope,
@@ -139,7 +150,7 @@ afterEach(() => {
 
 describe("CommandPalette — registry 소비", () => {
   it("palette:false 정의는 목록에서 빠진다 (63개)", () => {
-    render(<CommandPalette isOpen onOpenChange={() => {}} />);
+    renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
     expect(document.querySelectorAll(".command-palette-item")).toHaveLength(63);
     expect(screen.queryByText("명령 팔레트 열기")).toBeNull();
@@ -164,7 +175,7 @@ describe("CommandPalette — registry 소비", () => {
       disabled: false,
     });
 
-    render(<CommandPalette isOpen onOpenChange={() => {}} />);
+    renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
     expect(itemFor("복제").dataset.executable).toBe("true");
     const styles = itemFor("스타일 복사");
@@ -192,7 +203,7 @@ describe("CommandPalette — registry 소비", () => {
       disabled: false,
     });
 
-    render(<CommandPalette isOpen onOpenChange={() => {}} />);
+    renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
     expect(itemFor("복제").dataset.executable).toBe("false");
     expect(itemFor("복제").textContent).toContain(
@@ -229,7 +240,7 @@ describe("CommandPalette — registry 소비", () => {
         <CommandPalette isOpen={isOpen} onOpenChange={() => {}} />
       </>
     );
-    const { rerender } = render(fixture(false));
+    const { rerender } = renderWithI18n(fixture(false));
 
     mockScope.current = "global";
     screen.getByRole("menuitem", { name: "Menu trigger" }).focus();
@@ -256,12 +267,12 @@ describe("CommandPalette — registry 소비", () => {
       disabled: false,
     });
 
-    render(<CommandPalette isOpen onOpenChange={() => {}} />);
+    renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
     expect(itemFor("실행 취소").dataset.executable).toBe("true");
   });
 
   it("등록이 없으면 미등록으로 흐려진다", () => {
-    render(<CommandPalette isOpen onOpenChange={() => {}} />);
+    renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
     const item = itemFor("모든 섹션 펼침/접힘");
     expect(item.dataset.executable).toBe("false");
@@ -281,7 +292,7 @@ describe("CommandPalette — registry 소비", () => {
       disabled: false,
     });
 
-    render(<CommandPalette isOpen onOpenChange={onOpenChange} />);
+    renderWithI18n(<CommandPalette isOpen onOpenChange={onOpenChange} />);
 
     press(itemFor("복제"));
 
@@ -304,7 +315,7 @@ describe("CommandPalette — registry 소비", () => {
       disabled: false,
     });
 
-    render(<CommandPalette isOpen onOpenChange={() => {}} />);
+    renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
     press(itemFor("스타일 복사"));
     await flushFrame();
@@ -332,7 +343,7 @@ describe("CommandPalette — registry 소비", () => {
       disabled: false,
     });
 
-    render(<CommandPalette isOpen onOpenChange={() => {}} />);
+    renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
     press(itemFor("선택 해제 / 모달 닫기"));
     await flushFrame();
@@ -351,7 +362,7 @@ describe("CommandPalette — registry 소비", () => {
       disabled: false,
     });
 
-    render(<CommandPalette isOpen onOpenChange={() => {}} />);
+    renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
     expect(screen.getByText("실행 가능 1 / 63")).toBeTruthy();
   });
 });

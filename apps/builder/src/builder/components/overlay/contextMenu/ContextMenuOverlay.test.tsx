@@ -1,7 +1,18 @@
 // @vitest-environment jsdom
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ContextMenuOverlay } from "./ContextMenuOverlay";
+
+/**
+ * ADR-200 Phase 0 — 표시 계층이 `t()` 로 라벨을 해소하게 되므로 provider 하위에서
+ * 렌더한다. 훅 도입(Phase 2~4)보다 먼저 옮겨 두어 그 phase 가 빨간 테스트 없이
+ * 시작한다 (design breakdown §5-2).
+ */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
+
 
 describe("ContextMenuOverlay", () => {
   afterEach(() => {
@@ -12,7 +23,7 @@ describe("ContextMenuOverlay", () => {
     const onClose = vi.fn();
     const run = vi.fn();
 
-    render(
+    renderWithI18n(
       <ContextMenuOverlay
         isOpen
         onClose={onClose}
@@ -50,7 +61,7 @@ describe("ContextMenuOverlay", () => {
   it("reserves the icon column per menu so labels share one start line", async () => {
     const Icon = () => <svg data-testid="copy-icon" />;
 
-    render(
+    renderWithI18n(
       <ContextMenuOverlay
         isOpen
         onClose={vi.fn()}
@@ -82,7 +93,7 @@ describe("ContextMenuOverlay", () => {
   });
 
   it("omits the icon column entirely when no item declares an icon", async () => {
-    render(
+    renderWithI18n(
       <ContextMenuOverlay
         isOpen
         onClose={vi.fn()}
@@ -103,7 +114,7 @@ describe("ContextMenuOverlay", () => {
   });
 
   it("does not render a modal underlay", async () => {
-    render(
+    renderWithI18n(
       <ContextMenuOverlay
         isOpen
         onClose={vi.fn()}
