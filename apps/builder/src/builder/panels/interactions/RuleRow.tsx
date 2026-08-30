@@ -20,7 +20,7 @@ import { CapabilityPicker } from "./CapabilityPicker";
 import { ParamField } from "./ParamField";
 import { TargetPicker } from "./TargetPicker";
 import { TriggerPicker } from "./TriggerPicker";
-import { TRIGGER_LABELS } from "./labels";
+import { triggerLabel } from "./labels";
 import type { ActionChoice } from "./types";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
@@ -73,7 +73,7 @@ export const RuleRow = memo(function RuleRow({
     : t("interactions.targetUnset");
 
   const summary = useMemo(() => {
-    const when = TRIGGER_LABELS[rule.trigger] ?? rule.trigger;
+    const when = triggerLabel(rule.trigger, t);
     if (rule.action.kind === "navigate") {
       const path = rule.action.params.path;
       return path
@@ -90,7 +90,7 @@ export const RuleRow = memo(function RuleRow({
     const capLabel =
       caps[rule.action.capability]?.label ?? rule.action.capability;
     return `${when} → ${capLabel} @ ${targetLabel}`;
-  }, [rule.trigger, rule.action, targetType, targetLabel]);
+  }, [rule.trigger, rule.action, targetType, targetLabel, t]);
 
   const choice: ActionChoice = rule.action.kind;
 

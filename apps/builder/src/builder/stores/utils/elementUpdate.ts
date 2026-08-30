@@ -456,10 +456,12 @@ export const createUpdateElementPropsAction =
           error,
         );
         // 🚀 Phase 7: Toast + Undo 버튼
-        globalToast.error("저장에 실패했습니다.", {
+        globalToast.error("Save failed.", {
           duration: 8000,
+          messageKey: "errors.saveFailed",
           action: {
-            label: "되돌리기",
+            label: "Undo",
+            labelKey: "errors.undo",
             onClick: () => get().undo(),
           },
         });
@@ -623,10 +625,12 @@ export const createUpdateElementAction =
           error,
         );
         // 🚀 Phase 7: Toast + Undo 버튼
-        globalToast.error("저장에 실패했습니다.", {
+        globalToast.error("Save failed.", {
           duration: 8000,
+          messageKey: "errors.saveFailed",
           action: {
-            label: "되돌리기",
+            label: "Undo",
+            labelKey: "errors.undo",
             onClick: () => get().undo(),
           },
         });
@@ -810,10 +814,12 @@ export const createBatchUpdateElementPropsAction =
           error,
         );
         // 🚀 Phase 7: Toast + Undo 버튼
-        globalToast.error("저장에 실패했습니다.", {
+        globalToast.error("Save failed.", {
           duration: 8000,
+          messageKey: "errors.saveFailed",
           action: {
-            label: "되돌리기",
+            label: "Undo",
+            labelKey: "errors.undo",
             onClick: () => get().undo(),
           },
         });
@@ -1014,10 +1020,12 @@ export const createBatchUpdateElementsAction =
         error,
       );
       // 🚀 Phase 7: Toast + Undo 버튼
-      globalToast.error("저장에 실패했습니다.", {
+      globalToast.error("Save failed.", {
         duration: 8000,
+        messageKey: "errors.saveFailed",
         action: {
-          label: "되돌리기",
+          label: "Undo",
+          labelKey: "errors.undo",
           onClick: () => get().undo(),
         },
       });

@@ -13,13 +13,24 @@ export type ToastType = "success" | "warning" | "error" | "info";
 
 export interface ToastAction {
   label: string;
+  /**
+   * 라벨의 카탈로그 키 — 있으면 렌더 시점에 해소한다.
+   *
+   * store action 처럼 훅을 못 쓰는 자리에서 온 토스트를 위한 채널이다. 문구를
+   * 여기서 굳히면 토스트가 떠 있는 동안 언어를 바꿔도 직전 언어가 남는다.
+   */
+  labelKey?: string;
   onClick: () => void;
 }
 
 export interface Toast {
   id: string;
   type: ToastType;
+  /** 해소된 문구. `messageKey` 가 있으면 렌더는 그쪽을 쓴다. */
   message: string;
+  /** 문구의 카탈로그 키 — 훅을 못 쓰는 호출부용 (ToastAction.labelKey 와 같은 이유). */
+  messageKey?: string;
+  messageParams?: Record<string, string | number | boolean>;
   duration: number;
   action?: ToastAction;
 }
@@ -45,6 +56,8 @@ interface ToastActions {
       action?: ToastAction;
       /** 쿨다운 무시 (Undo 등 중요한 액션용) */
       bypassCooldown?: boolean;
+      messageKey?: string;
+      messageParams?: Record<string, string | number | boolean>;
     },
   ) => string | null;
 
@@ -66,12 +79,19 @@ export const useToastStore = create<ToastState & ToastActions>((set, get) => ({
   lastShownMap: new Map(),
 
   showToast: (type, message, options = {}) => {
-    const { duration = 5000, action, bypassCooldown = false } = options;
+    const {
+      duration = 5000,
+      action,
+      bypassCooldown = false,
+      messageKey,
+      messageParams,
+    } = options;
     const state = get();
 
     // 중복 알림 방지 (동일 메시지 쿨다운)
     if (!bypassCooldown) {
-      const key = `${type}:${message}`;
+      // 쿨다운은 언어와 무관해야 한다 — 같은 알림을 언어만 바꿔 두 번 띄우지 않는다.
+      const key = `${type}:${messageKey ?? message}`;
       const lastShown = state.lastShownMap.get(key);
       const now = Date.now();
 
@@ -86,7 +106,15 @@ export const useToastStore = create<ToastState & ToastActions>((set, get) => ({
     }
 
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    const toast: Toast = { id, type, message, duration, action };
+    const toast: Toast = {
+      id,
+      type,
+      message,
+      messageKey,
+      messageParams,
+      duration,
+      action,
+    };
 
     set((state) => ({
       toasts: [...state.toasts, toast],
@@ -128,6 +156,8 @@ type GlobalToastOptions = {
   duration?: number;
   action?: ToastAction;
   bypassCooldown?: boolean;
+  messageKey?: string;
+  messageParams?: Record<string, string | number | boolean>;
 };
 
 export const globalToast = {

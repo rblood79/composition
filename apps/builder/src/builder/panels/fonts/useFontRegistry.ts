@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/i18n";
 import { validateFontFile, FONT_LIMITS } from "@composition/shared";
 import type { FontFaceAsset, FontRegistryV2 } from "@composition/shared";
 import {
@@ -35,6 +36,7 @@ export interface FontRegistryController {
 }
 
 export function useFontRegistry(): FontRegistryController {
+  const { t } = useI18n();
   const [registry, setRegistry] = useState<FontRegistryV2>(() =>
     loadFontRegistry(),
   );
@@ -76,28 +78,35 @@ export function useFontRegistry(): FontRegistryController {
     return groups;
   }, [registry]);
 
-  const upload = useCallback(async (files: FileList) => {
-    // 저장 직전 레지스트리를 다시 읽는다 — 다른 소비처(모달/패널)가 방금 추가한
-    // face 를 stale state 로 덮어쓰지 않기 위해.
-    let currentRegistry = loadFontRegistry();
+  const upload = useCallback(
+    async (files: FileList) => {
+      // 저장 직전 레지스트리를 다시 읽는다 — 다른 소비처(모달/패널)가 방금 추가한
+      // face 를 stale state 로 덮어쓰지 않기 위해.
+      let currentRegistry = loadFontRegistry();
 
-    for (const file of Array.from(files)) {
-      const validationError = validateFontFile(file);
-      if (validationError) {
-        console.warn("[FontManager]", validationError);
-        continue;
+      for (const file of Array.from(files)) {
+        const validationError = validateFontFile(file);
+        if (validationError) {
+          console.warn("[FontManager]", validationError);
+          continue;
+        }
+        if (currentRegistry.faces.length >= FONT_LIMITS.MAX_FACES) {
+          console.warn("[FontManager] 최대 폰트 수 초과");
+          break;
+        }
+        const face = await createFontFaceFromFile(
+          file,
+          undefined,
+          t("errors.fontFileUnreadable"),
+        );
+        currentRegistry = addFontFace(currentRegistry, face);
       }
-      if (currentRegistry.faces.length >= FONT_LIMITS.MAX_FACES) {
-        console.warn("[FontManager] 최대 폰트 수 초과");
-        break;
-      }
-      const face = await createFontFaceFromFile(file);
-      currentRegistry = addFontFace(currentRegistry, face);
-    }
 
-    saveRegistryAndNotify(currentRegistry);
-    setRegistry(currentRegistry);
-  }, []);
+      saveRegistryAndNotify(currentRegistry);
+      setRegistry(currentRegistry);
+    },
+    [t],
+  );
 
   const remove = useCallback((faceId: string) => {
     const next = removeFontFace(loadFontRegistry(), faceId);

@@ -5,25 +5,37 @@
  * When 축(RAC callback)과 Do 축 최상위 선택지만 다룬다.
  */
 
-/** RAC callback → 한국어 레이블. 미등록 trigger 는 원문 그대로 노출한다. */
-export const TRIGGER_LABELS: Readonly<Record<string, string>> = {
-  onPress: "누를 때",
-  onChange: "값이 바뀔 때",
-  onSelectionChange: "선택이 바뀔 때",
-  onExpandedChange: "펼침이 바뀔 때",
-  onOpenChange: "열림이 바뀔 때",
-  onInputChange: "입력이 바뀔 때",
-  onChangeEnd: "값 변경이 끝날 때",
-  onAction: "항목을 실행할 때",
-  onRemove: "항목을 제거할 때",
-  onSubmit: "제출할 때",
-  onReset: "초기화할 때",
-  onFocus: "포커스를 받을 때",
-  onBlur: "포커스를 잃을 때",
+/** 문구 해소기 — 순수 모듈이라 훅을 못 쓴다, 호출부가 넘긴다 (ADR-200 후속). */
+export type LabelTranslate = (
+  key: string,
+  params?: Record<string, string | number | boolean>,
+) => string;
+
+/** RAC callback → 카탈로그 키. 미등록 trigger 는 원문 그대로 노출한다. */
+export const TRIGGER_LABEL_KEYS: Readonly<Record<string, string>> = {
+  onPress: "interactions.triggerOnPress",
+  onChange: "interactions.triggerOnChange",
+  onSelectionChange: "interactions.triggerOnSelectionChange",
+  onExpandedChange: "interactions.triggerOnExpandedChange",
+  onOpenChange: "interactions.triggerOnOpenChange",
+  onInputChange: "interactions.triggerOnInputChange",
+  onChangeEnd: "interactions.triggerOnChangeEnd",
+  onAction: "interactions.triggerOnAction",
+  onRemove: "interactions.triggerOnRemove",
+  onSubmit: "interactions.triggerOnSubmit",
+  onReset: "interactions.triggerOnReset",
+  onFocus: "interactions.triggerOnFocus",
+  onBlur: "interactions.triggerOnBlur",
 };
 
-export const ACTION_CHOICE_LABELS = {
-  navigate: "페이지 이동",
-  toast: "토스트 표시",
-  capability: "컴포넌트 기능…",
+/** 미등록 trigger 는 RAC 원문(onCustomThing)이 그대로 나가는 편이 낫다. */
+export function triggerLabel(trigger: string, t: LabelTranslate): string {
+  const key = TRIGGER_LABEL_KEYS[trigger];
+  return key ? t(key) : trigger;
+}
+
+export const ACTION_CHOICE_LABEL_KEYS = {
+  navigate: "interactions.actionNavigate",
+  toast: "interactions.actionToast",
+  capability: "interactions.actionCapability",
 } as const;

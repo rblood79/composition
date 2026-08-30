@@ -309,6 +309,8 @@ const PagePositionRow = memo(function PagePositionRow({
 
 const TransformSectionContent = memo(function TransformSectionContent() {
   const i18n = useOptionalI18n();
+  /** 패널 자체 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const t = (key: string) => (i18n ? i18n.t(key) : key);
   const localize = (label: string) =>
     i18n
       ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
@@ -523,7 +525,9 @@ const TransformSectionContent = memo(function TransformSectionContent() {
   const isBlockParent =
     parentDisplay === "block" || parentDisplay === "inline-block";
   const heightFillDisabled = isBlockParent;
-  const heightFillReason = isBlockParent ? "Block 부모에서 불가" : undefined;
+  const heightFillReason = isBlockParent
+    ? t("propertiesPanel.heightFillBlockParent")
+    : undefined;
   // Width Fill은 모든 부모에서 가능 (block: 100%, flex: flex-grow, grid: stretch)
   const widthFillDisabled = false;
 

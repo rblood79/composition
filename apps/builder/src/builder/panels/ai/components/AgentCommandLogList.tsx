@@ -50,7 +50,9 @@ export function AgentCommandLogList() {
                 ? t(STATUS_LABEL_KEYS[entry.status])
                 : entry.status}
               {entry.reason ? ` · ${entry.reason}` : ""}
-              {entry.undoable ? ` · ${undoLabel} 로 복원` : ""}
+              {entry.undoable
+                ? t("ai.logRestorable", { shortcut: undoLabel })
+                : ""}
             </span>
           </li>
         ))}

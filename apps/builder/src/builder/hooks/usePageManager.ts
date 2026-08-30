@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { useI18n } from "@/i18n";
 import { useListData } from "react-stately";
 import { Element } from "../../types/core/store.types";
 import { type Page, getDefaultProps } from "../../types/builder/unified.types";
@@ -108,6 +109,7 @@ export interface UsePageManagerProps {
 export const usePageManager = ({
   requestAutoSelectAfterUpdate,
 }: UsePageManagerProps = {}): UsePageManagerReturn => {
+  const { t } = useI18n();
   // 1. pages 관리: useListData (append/remove 자동)
   const pageList = useListData<ApiPage>({
     initialItems: [],
@@ -132,7 +134,7 @@ export const usePageManager = ({
       if (creatingPageRef.current) {
         return {
           success: false,
-          error: new Error("페이지 생성이 이미 진행 중입니다"),
+          error: new Error(t("errors.pageCreateInProgress")),
         };
       }
 
@@ -336,7 +338,7 @@ export const usePageManager = ({
       if (initializingRef.current === projectId) {
         return {
           success: false,
-          error: new Error("프로젝트가 이미 초기화 중입니다"),
+          error: new Error(t("errors.projectInitInProgress")),
         };
       }
 

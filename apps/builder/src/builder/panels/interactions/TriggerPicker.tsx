@@ -8,7 +8,8 @@ import { memo } from "react";
 import { resolveTriggers } from "@composition/shared";
 
 import { PropertySelect } from "../../components/property/PropertySelect";
-import { TRIGGER_LABELS } from "./labels";
+import { triggerLabel } from "./labels";
+import { useI18n } from "@/i18n";
 
 interface TriggerPickerProps {
   componentType: string;
@@ -23,9 +24,10 @@ export const TriggerPicker = memo(function TriggerPicker({
 }: TriggerPickerProps) {
   const triggers = resolveTriggers(componentType);
 
-  const options = triggers.map((t) => ({
-    value: t,
-    label: TRIGGER_LABELS[t] ?? t,
+  const { t } = useI18n();
+  const options = triggers.map((trigger) => ({
+    value: trigger,
+    label: triggerLabel(trigger, t),
   }));
 
   return (

@@ -8,6 +8,11 @@ import type { Page } from "../../../types/builder/unified.types";
 import { useStore } from "../../stores";
 import { useViewportSyncStore } from "../../workspace/canvas/stores";
 import { usePageManager } from "../usePageManager";
+import { I18nProvider } from "@/i18n";
+
+/** 훅이 오류 문구를 카탈로그에서 뽑으므로 provider 밑에서 돌린다 (ADR-200 R7). */
+const renderPageManager = () =>
+  renderHook(() => usePageManager(), { wrapper: I18nProvider });
 
 function makePage(id: string): Page {
   return {
@@ -64,7 +69,7 @@ describe("usePageManager page creation activation", () => {
     const homeBody = makeBody("body-1", home.id);
     useStore.getState().appendPageShell(home, homeBody, { x: 0, y: 0 });
 
-    const { result } = renderHook(() => usePageManager());
+    const { result } = renderPageManager();
 
     let createdPageId: string | null = null;
     await act(async () => {
@@ -103,7 +108,7 @@ describe("usePageManager page creation activation", () => {
       y: 0,
     });
 
-    const { result } = renderHook(() => usePageManager());
+    const { result } = renderPageManager();
 
     await act(async () => {
       const addResult = await result.current.addPage("project-1");
@@ -119,7 +124,7 @@ describe("usePageManager page creation activation", () => {
     useStore.getState().appendPageShell(home, homeBody, { x: 0, y: 0 });
 
     const activateSpy = vi.spyOn(useStore.getState(), "activatePage");
-    const { result } = renderHook(() => usePageManager());
+    const { result } = renderPageManager();
 
     await act(async () => {
       const addResult = await result.current.addPageWithParams({
@@ -153,7 +158,7 @@ describe("usePageManager page creation activation", () => {
       height: 480,
     });
 
-    const { result } = renderHook(() => usePageManager());
+    const { result } = renderPageManager();
 
     await act(async () => {
       const addResult = await result.current.addPage("project-1");

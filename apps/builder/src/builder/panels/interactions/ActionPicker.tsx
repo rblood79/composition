@@ -7,12 +7,11 @@
 import { memo } from "react";
 
 import { PropertySelect } from "../../components/property/PropertySelect";
-import { ACTION_CHOICE_LABELS } from "./labels";
+import { ACTION_CHOICE_LABEL_KEYS } from "./labels";
 import type { ActionChoice } from "./types";
+import { useI18n } from "@/i18n";
 
-const OPTIONS = (Object.keys(ACTION_CHOICE_LABELS) as ActionChoice[]).map(
-  (k) => ({ value: k, label: ACTION_CHOICE_LABELS[k] }),
-);
+const CHOICES = Object.keys(ACTION_CHOICE_LABEL_KEYS) as ActionChoice[];
 
 interface ActionPickerProps {
   value: ActionChoice;
@@ -23,12 +22,17 @@ export const ActionPicker = memo(function ActionPicker({
   value,
   onChange,
 }: ActionPickerProps) {
+  const { t } = useI18n();
+  const options = CHOICES.map((choice) => ({
+    value: choice,
+    label: t(ACTION_CHOICE_LABEL_KEYS[choice]),
+  }));
   return (
     <PropertySelect
       label="Do"
       value={value}
       onChange={(v) => onChange(v as ActionChoice)}
-      options={OPTIONS}
+      options={options}
     />
   );
 });

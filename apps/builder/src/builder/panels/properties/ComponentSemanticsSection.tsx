@@ -214,11 +214,13 @@ export const ComponentSemanticsSection = memo(
       // override (특히 dataBinding) 를 날려도 되돌릴 수 있게 undo 액션 토스트를
       // 띄운다. reset 은 history entry 1건이므로 undo() 1회로 정확히 복구된다.
       const isItemsFork = item.fieldKey === "items" && !item.descendantPath;
-      const label = isItemsFork ? "items (forked)" : item.label;
-      globalToast.info(`'${label}' override 해제됨`, {
+      const label = isItemsFork
+        ? t("propertiesPanel.itemsForkedLabel")
+        : item.label;
+      globalToast.info(t("propertiesPanel.overrideCleared", { label }), {
         // 같은 필드를 반복해서 reset 해도 매번 회복 안내가 떠야 하므로 쿨다운 무시.
         bypassCooldown: true,
-        action: { label: "실행취소", onClick: () => undo() },
+        action: { label: t("errors.undo"), onClick: () => undo() },
       });
     };
 
@@ -252,7 +254,8 @@ export const ComponentSemanticsSection = memo(
             // 원본을 못 찾은 인스턴스에서 "원본으로 이동" 은 사라지지 않고
             // 비활성으로 선다 — 자리가 유지돼야 줄의 다른 액션 위치가 흔들리지
             // 않는다 (컨텍스트 메뉴는 같은 상황에서 항목을 뺀다).
-            const enabled = action.isEnabled?.(semanticsTarget, availability) ?? true;
+            const enabled =
+              action.isEnabled?.(semanticsTarget, availability) ?? true;
             return (
               <button
                 aria-label={label}
@@ -300,7 +303,7 @@ export const ComponentSemanticsSection = memo(
                     onClick={() => handleResetOverrideField(item)}
                     title={
                       isItemsFork
-                        ? "이 인스턴스의 items 가 origin 과 분리(fork)되었습니다 — origin items 변경이 반영되지 않습니다. Reset 시 origin 에 다시 연결됩니다."
+                        ? t("propertiesPanel.itemsForkedHint")
                         : undefined
                     }
                     type="button"

@@ -14,6 +14,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { InteractionRule } from "@composition/shared";
+import { localizedStrings } from "@/i18n/translations";
 
 import {
   computeWorkflowEdges,
@@ -44,9 +45,18 @@ function navRule(over: Partial<InteractionRule> = {}): InteractionRule {
   } as InteractionRule;
 }
 
+/**
+ * 엣지 라벨은 이제 카탈로그에서 온다 — ko 로 묶어 패널과 같은 어휘인지 본다
+ * (해소기를 안 넘기면 키가 그대로 나가는 것이 기본값이다).
+ */
+const tr = (key: string): string => {
+  const message = localizedStrings["ko-KR"][key];
+  return typeof message === "function" ? message(undefined) : (message ?? key);
+};
+
 describe("computeWorkflowEdges — canonical 인터랙션 규칙", () => {
   it("navigate 규칙이 event-navigation 엣지가 된다", () => {
-    const edges = computeWorkflowEdges(PAGES, [BUTTON], [navRule()]);
+    const edges = computeWorkflowEdges(PAGES, [BUTTON], [navRule()], tr);
     expect(edges).toEqual([
       {
         id: "btn-1-page-2-event-navigation",

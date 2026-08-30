@@ -627,8 +627,8 @@ export function BuilderCanvas({
     [activeCanonicalDocument],
   );
   const workflowEdges = useMemo(() => {
-    return computeWorkflowEdges(pages, sceneNodes, interactionRules);
-  }, [pages, sceneNodes, interactionRules]);
+    return computeWorkflowEdges(pages, sceneNodes, interactionRules, t);
+  }, [pages, sceneNodes, interactionRules, t]);
   const dataSourceEdges = useMemo(() => {
     return computeDataSourceEdges(sceneNodes);
   }, [sceneNodes]);

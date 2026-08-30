@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect } from "react";
+import { useI18n } from "@/i18n";
 import { focusCanvasContainer } from "./useActiveScope";
 import type { CompositionDocument } from "@composition/shared";
 import {
@@ -98,6 +99,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
     validateElements,
     getErrorStats,
   } = useErrorHandler();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!isConfiguredRef.current) {
@@ -125,10 +127,14 @@ export const useElementCreator = (): UseElementCreatorReturn => {
       // 요소 유효성 검사
       const validation = validateElements(elements);
       if (!validation.isValid) {
-        handleError(validation.errors.join(", "), "요소 유효성 검사 실패", {
-          type: "validation",
-          severity: "high",
-        });
+        handleError(
+          validation.errors.join(", "),
+          t("errors.elementValidation"),
+          {
+            type: "validation",
+            severity: "high",
+          },
+        );
         isProcessingRef.current = false;
         return;
       }
@@ -287,7 +293,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
           }
         }
       } catch (error) {
-        handleError(error, `요소 생성 실패: ${type}`, {
+        handleError(error, t("errors.elementCreateFailed", { type }), {
           type: "creation",
           severity: "high",
           elementId: selectedElementId || undefined,

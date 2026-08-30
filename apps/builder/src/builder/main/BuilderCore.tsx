@@ -533,7 +533,7 @@ export const BuilderCore: React.FC = () => {
       });
 
       if (!result.success) {
-        setError(result.error?.message || "프로젝트 초기화 실패");
+        setError(result.error?.message || t("errors.projectInitFailed"));
         isInitializing.current = false;
         return;
       }
@@ -743,16 +743,16 @@ export const BuilderCore: React.FC = () => {
         const result = await fetchElements(targetPage.id);
         if (!result.success) {
           handleError(
-            result.error || new Error("페이지 로드 실패"),
-            "페이지 이동",
+            result.error || new Error(t("errors.pageLoadFailed")),
+            t("errors.pageNavigateContext"),
           );
         }
       } else {
         console.warn(`[BuilderCore] Page not found for path: ${path}`);
         // 페이지를 찾지 못한 경우 사용자에게 알림
         handleError(
-          new Error(`페이지를 찾을 수 없습니다: ${path}`),
-          "페이지 이동",
+          new Error(t("errors.pageNotFound", { path })),
+          t("errors.pageNavigateContext"),
         );
       }
     };

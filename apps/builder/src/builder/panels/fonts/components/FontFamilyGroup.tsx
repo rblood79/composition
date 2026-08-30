@@ -8,6 +8,7 @@
 import { FileTypeCorner } from "lucide-react";
 import type { FontFaceAsset } from "@composition/shared";
 import { PropertySection, PropertyListItem } from "../../../components";
+import { useI18n } from "@/i18n";
 
 interface FontFamilyGroupProps {
   family: string;
@@ -36,6 +37,7 @@ export function FontFamilyGroup({
   faces,
   onDelete,
 }: FontFamilyGroupProps) {
+  const { t } = useI18n();
   return (
     <PropertySection title={`${family} (${faces.length})`}>
       {faces.map((face) => {
@@ -48,7 +50,7 @@ export function FontFamilyGroup({
             icon={FileTypeCorner}
             value={face.source.originalFileName ?? face.id}
             onDelete={() => onDelete(face.id)}
-            deleteLabel={`${family} ${label} 삭제`}
+            deleteLabel={t("fonts.deleteFace", { family, face: label })}
           />
         );
       })}

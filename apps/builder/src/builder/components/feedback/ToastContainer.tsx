@@ -9,7 +9,8 @@
 import { Toast } from "./Toast";
 import { useToastStore } from "../../stores/toast";
 import type { Toast as HookToastType } from "@/builder/hooks";
-import type { Toast as StoreToastType } from "../../stores/toast";
+import type { Toast as StoreToastType, ToastAction } from "../../stores/toast";
+import { useI18n } from "@/i18n";
 import "./Toast.css";
 
 interface ToastContainerProps {
@@ -19,7 +20,11 @@ interface ToastContainerProps {
   onDismiss?: (id: string) => void;
 }
 
-export function ToastContainer({ toasts: hookToasts = [], onDismiss }: ToastContainerProps) {
+export function ToastContainer({
+  toasts: hookToasts = [],
+  onDismiss,
+}: ToastContainerProps) {
+  const { t } = useI18n();
   // 글로벌 store 토스트
   const storeToasts = useToastStore((state) => state.toasts);
   const dismissStoreToast = useToastStore((state) => state.dismissToast);
@@ -33,6 +38,10 @@ export function ToastContainer({ toasts: hookToasts = [], onDismiss }: ToastCont
   if (allToasts.length === 0) {
     return null;
   }
+
+  /** 액션 라벨도 키가 있으면 렌더 시점에 해소한다 (store action 발 토스트). */
+  const resolveAction = (action?: ToastAction): ToastAction | undefined =>
+    action?.labelKey ? { ...action, label: t(action.labelKey) } : action;
 
   const handleDismiss = (id: string, source: "hook" | "store") => {
     if (source === "hook" && onDismiss) {
@@ -49,9 +58,20 @@ export function ToastContainer({ toasts: hookToasts = [], onDismiss }: ToastCont
           key={toast.id}
           id={toast.id}
           type={toast.type}
-          message={toast.message}
+          message={
+            toast.source === "store" && (toast as StoreToastType).messageKey
+              ? t(
+                  (toast as StoreToastType).messageKey!,
+                  (toast as StoreToastType).messageParams,
+                )
+              : toast.message
+          }
           onDismiss={(id) => handleDismiss(id, toast.source)}
-          action={toast.source === "store" ? (toast as StoreToastType).action : undefined}
+          action={
+            toast.source === "store"
+              ? resolveAction((toast as StoreToastType).action)
+              : undefined
+          }
         />
       ))}
     </div>

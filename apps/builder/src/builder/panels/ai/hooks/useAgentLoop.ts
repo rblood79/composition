@@ -66,12 +66,10 @@ export function useAgentLoop() {
       if (intent) {
         addAssistantMessage(intent.description || t("aiIntent.done"), intent);
       } else {
-        addAssistantMessage(
-          "죄송합니다. 요청을 이해하지 못했습니다. 다시 시도해주세요.",
-        );
+        addAssistantMessage(t("ai.notUnderstood"));
       }
     },
-    [addAssistantMessage],
+    [addAssistantMessage, t],
   );
 
   /**

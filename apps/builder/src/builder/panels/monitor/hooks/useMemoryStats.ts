@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { historyManager } from "../../../stores/history";
+import { useI18n } from "@/i18n";
 
 export interface MemoryStats {
   pageCount: number;
@@ -21,7 +22,8 @@ export interface MemoryStats {
     jsHeapSizeLimit: number;
     usagePercent: number;
   } | null;
-  recommendation: string;
+  /** 권장 문구의 카탈로그 키 — 해소는 렌더 시점. */
+  recommendationKey: string;
   isBrowserMemorySupported: boolean;
 }
 
@@ -47,6 +49,7 @@ interface UseMemoryStatsOptions {
  * 메모리 통계 수집 훅
  */
 export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
+  const { t } = useI18n();
   const { enabled = true, interval = 10000 } = options;
   const [stats, setStats] = useState<MemoryStats | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>("");
@@ -73,7 +76,7 @@ export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
         : null;
 
       // 권장사항 생성
-      const recommendation = generateRecommendation(
+      const recommendationKey = generateRecommendation(
         historyStats.totalEntries,
         historyStats.estimatedMemoryUsage,
         browserMemory?.usagePercent,
@@ -84,7 +87,7 @@ export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
         totalEntries: historyStats.totalEntries,
         estimatedMemoryUsage: historyStats.estimatedMemoryUsage,
         browserMemory,
-        recommendation,
+        recommendationKey,
         isBrowserMemorySupported: !!perfWithMemory.memory,
       });
     } catch (error) {
@@ -153,7 +156,7 @@ export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
   // 메모리 최적화 함수
   const optimize = useCallback(async () => {
     setIsOptimizing(true);
-    setStatusMessage("메모리 최적화 중...");
+    setStatusMessage(t("monitor.optimizeRunning"));
 
     try {
       // 최적화 실행
@@ -168,9 +171,9 @@ export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
       await new Promise((resolve) => setTimeout(resolve, 100));
       collectStats();
 
-      setStatusMessage("메모리 최적화 완료");
+      setStatusMessage(t("monitor.optimizeDone"));
     } catch (error) {
-      setStatusMessage("최적화 중 오류 발생");
+      setStatusMessage(t("monitor.optimizeFailed"));
       if (import.meta.env.DEV) {
         console.error("[useMemoryStats] Optimization failed:", error);
       }
@@ -185,7 +188,11 @@ export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
 }
 
 /**
- * 메모리 상태 기반 권장사항 생성
+ * 메모리 상태 기반 권장 문구의 **카탈로그 키**.
+ *
+ * 문구가 아니라 키를 싣는 이유: 이 함수는 통계 수집 시점에 한 번 돌지만 화면은
+ * 언어가 바뀔 때마다 다시 그린다. 문구를 여기서 굳히면 언어를 바꿔도 직전 언어의
+ * 권장사항이 남는다 — 해소는 렌더 시점(MonitorPanel)이 맞다.
  */
 function generateRecommendation(
   totalEntries: number,
@@ -196,23 +203,23 @@ function generateRecommendation(
 
   // 브라우저 메모리 사용량 기반 권장사항
   if (browserUsagePercent && browserUsagePercent > 75) {
-    return "브라우저 메모리 사용량이 높습니다. 일부 탭을 닫거나 페이지를 새로고침하세요.";
+    return "monitor.adviceBrowserHigh";
   }
 
   // 히스토리 메모리 기반 권장사항
   if (memoryMB > 50) {
-    return "메모리 사용량이 50MB를 초과했습니다. 최적화를 실행하세요.";
+    return "monitor.adviceHeapHigh";
   }
 
   if (totalEntries > 200) {
-    return "히스토리 항목이 많습니다. 불필요한 작업을 정리하세요.";
+    return "monitor.adviceHistoryLarge";
   }
 
   if (memoryMB > 20) {
-    return "메모리 사용량이 적정 수준입니다.";
+    return "monitor.adviceModerate";
   }
 
-  return "메모리 상태가 양호합니다.";
+  return "monitor.adviceHealthy";
 }
 
 /**

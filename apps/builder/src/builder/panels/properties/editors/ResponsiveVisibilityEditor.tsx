@@ -17,6 +17,7 @@ import {
   BREAKPOINT_ORDER,
 } from "../../../../types/builder/responsive.types";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
+import { useI18n } from "@/i18n";
 
 interface ResponsiveVisibilityEditorProps {
   /** 현재 가시성 설정 */
@@ -68,6 +69,7 @@ export const ResponsiveVisibilityEditor = memo(
     disabled = false,
     lockedBreakpoints = [],
   }: ResponsiveVisibilityEditorProps) {
+    const { t } = useI18n();
     const isLocked = useCallback(
       (bp: BreakpointName) => lockedBreakpoints.includes(bp),
       [lockedBreakpoints],
@@ -123,7 +125,9 @@ export const ResponsiveVisibilityEditor = memo(
                   disabled={disabled || locked}
                   title={
                     locked
-                      ? `${config.label}: Base (Display 속성으로 제어)`
+                      ? t("propertiesPanel.visibilityLockedBase", {
+                          breakpoint: config.label,
+                        })
                       : `${config.label}: ${isVisible ? "Visible" : "Hidden"} (${config.minWidth}px${config.maxWidth ? `-${config.maxWidth}px` : "+"})`
                   }
                   aria-pressed={isVisible}

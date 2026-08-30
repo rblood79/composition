@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useI18n } from "@/i18n";
 import { Element } from "../../types/core/store.types";
 import { ElementUtils } from "../../utils/element/elementUtils";
 import { hasFrameElementMirrorId } from "../../adapters/canonical/frameMirror";
@@ -63,6 +64,7 @@ export interface UseErrorHandlerReturn {
 }
 
 export const useErrorHandler = (): UseErrorHandlerReturn => {
+  const { t } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorHistory, setErrorHistory] = useState<ErrorInfo[]>([]);
@@ -85,7 +87,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
       const timestamp = new Date();
 
       // 에러 메시지 추출
-      let errorMessage = "알 수 없는 오류";
+      let errorMessage = t("errors.unknown");
       let stack: string | undefined;
 
       if (error instanceof Error) {
@@ -99,7 +101,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
 
       // 컨텍스트 메시지 생성
       const contextMessage = context
-        ? `${context} 중 오류가 발생했습니다: ${errorMessage}`
+        ? t("errors.withContext", { context, message: errorMessage })
         : errorMessage;
 
       // 에러 정보 생성
@@ -163,7 +165,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
       try {
         const currentStack = rollbackStack;
         if (currentStack.length === 0) {
-          handleError("롤백할 작업이 없습니다.", "Rollback", {
+          handleError(t("errors.rollbackNothing"), "Rollback", {
             type: "validation",
             severity: "low",
           });
@@ -219,12 +221,16 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
                 break;
             }
           } catch (rollbackError) {
-            handleError(rollbackError, `롤백 실패: ${point.operation}`, {
-              type: "validation",
-              severity: "high",
-              elementId: point.elementId,
-              operation: point.operation,
-            });
+            handleError(
+              rollbackError,
+              t("errors.rollbackFailed", { operation: point.operation }),
+              {
+                type: "validation",
+                severity: "high",
+                elementId: point.elementId,
+                operation: point.operation,
+              },
+            );
           }
         }
 
@@ -233,7 +239,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
 
         return true;
       } catch (error) {
-        handleError(error, "롤백 처리 중 오류", {
+        handleError(error, t("errors.rollbackError"), {
           type: "validation",
           severity: "high",
         });
@@ -262,7 +268,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
           retryCountRef.current.set(operationId, retryCount);
 
           if (retryCount >= maxRetries) {
-            handleError(error, `작업 재시도 실패 (${maxRetries}회 시도)`, {
+            handleError(error, t("errors.retryFailed", { count: maxRetries }), {
               type: "network",
               severity: "high",
               recoverable: false,
@@ -273,11 +279,15 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
             const delay = Math.pow(2, retryCount) * 1000;
             await ElementUtils.delay(delay);
 
-            handleError(error, `작업 재시도 중 (${retryCount}/${maxRetries})`, {
-              type: "network",
-              severity: "low",
-              recoverable: true,
-            });
+            handleError(
+              error,
+              t("errors.retrying", { attempt: retryCount, max: maxRetries }),
+              {
+                type: "network",
+                severity: "low",
+                recoverable: true,
+              },
+            );
           }
         }
       }
@@ -291,7 +301,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
 
       // 기본 유효성 검사
       if (!Array.isArray(elements)) {
-        errors.push("요소 배열이 유효하지 않습니다.");
+        errors.push(t("errors.elementsInvalid"));
         return { isValid: false, errors };
       }
 
@@ -299,22 +309,22 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
       const ids = new Set<string>();
       elements.forEach((element, index) => {
         if (!element.id) {
-          errors.push(`요소 ${index}: ID가 없습니다.`);
+          errors.push(t("errors.elementNoId", { index }));
         } else if (ids.has(element.id)) {
-          errors.push(`요소 ${index}: 중복된 ID (${element.id})`);
+          errors.push(
+            t("errors.elementDuplicateId", { index, id: element.id }),
+          );
         } else {
           ids.add(element.id);
         }
 
         // 필수 필드 검사
         if (!element.type) {
-          errors.push(`요소 ${element.id}: 태그가 없습니다.`);
+          errors.push(t("errors.elementNoTag", { id: element.id }));
         }
         // ⭐ Layout/Slot System: page_id 또는 legacy layout binding 중 하나는 있어야 함
         if (!element.page_id && !hasFrameElementMirrorId(element)) {
-          errors.push(
-            `요소 ${element.id}: 페이지 ID 또는 레이아웃 ID가 없습니다.`,
-          );
+          errors.push(t("errors.elementNoOwner", { id: element.id }));
         }
       });
 
@@ -346,7 +356,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
 
       elements.forEach((element) => {
         if (hasCycle(element.id)) {
-          errors.push(`요소 ${element.id}: 순환 참조가 감지되었습니다.`);
+          errors.push(t("errors.elementCycle", { id: element.id }));
         }
       });
 

@@ -310,6 +310,8 @@ export interface TranslationKeys {
     batchPending: string;
   };
   ai: {
+    notUnderstood: string;
+    logRestorable: string;
     askPlaceholder: string;
     addReferenceImage: string;
     addReferenceImageSoon: string;
@@ -378,6 +380,7 @@ export interface TranslationKeys {
     noticeNoProfile: string;
   };
   fonts: {
+    deleteFace: string;
     defaultValue: string;
     searchLabel: string;
     searchPlaceholder: string;
@@ -393,6 +396,22 @@ export interface TranslationKeys {
     uploadFormats: string;
   };
   interactions: {
+    triggerOnPress: string;
+    triggerOnChange: string;
+    triggerOnSelectionChange: string;
+    triggerOnExpandedChange: string;
+    triggerOnOpenChange: string;
+    triggerOnInputChange: string;
+    triggerOnChangeEnd: string;
+    triggerOnAction: string;
+    triggerOnRemove: string;
+    triggerOnSubmit: string;
+    triggerOnReset: string;
+    triggerOnFocus: string;
+    triggerOnBlur: string;
+    actionNavigate: string;
+    actionToast: string;
+    actionCapability: string;
     capability: string;
     capabilityRemount: string;
     target: string;
@@ -410,6 +429,11 @@ export interface TranslationKeys {
     summaryToastWithMessage: string;
   };
   propertiesPanel: {
+    overrideCleared: string;
+    itemsForkedLabel: string;
+    itemsForkedHint: string;
+    heightFillBlockParent: string;
+    visibilityLockedBase: string;
     slotMerge: string;
     slotReplace: string;
     emptyMessage: string;
@@ -886,6 +910,8 @@ export interface TranslationKeys {
     mobile: string;
   };
   workspace: {
+    canvasRecovering: string;
+    canvasInitializing: string;
     workArea: string;
     movePanel: string;
     resizePanel: string;
@@ -970,6 +996,32 @@ export interface TranslationKeys {
   };
   dashboard: {
     confirmDeleteProject: string;
+  };
+  errors: {
+    unknown: string;
+    withContext: string;
+    rollbackNothing: string;
+    rollbackFailed: string;
+    rollbackError: string;
+    retryFailed: string;
+    retrying: string;
+    elementsInvalid: string;
+    elementNoId: string;
+    elementDuplicateId: string;
+    elementNoTag: string;
+    elementNoOwner: string;
+    elementCycle: string;
+    elementValidation: string;
+    elementCreateFailed: string;
+    projectInitFailed: string;
+    projectInitInProgress: string;
+    pageLoadFailed: string;
+    pageNavigateContext: string;
+    pageNotFound: string;
+    pageCreateInProgress: string;
+    fontFileUnreadable: string;
+    saveFailed: string;
+    undo: string;
   };
   datatable: Record<string, string>;
   monitor: Record<string, string>;

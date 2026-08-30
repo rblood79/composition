@@ -287,6 +287,8 @@ const koKR: TranslationKeys = {
     batchPending: "{count}개의 변경사항이 대기 중입니다.",
   },
   ai: {
+    notUnderstood: "죄송합니다. 요청을 이해하지 못했습니다. 다시 시도해주세요.",
+    logRestorable: " · {shortcut} 로 복원",
     askPlaceholder: "무엇이든 물어보세요",
     addReferenceImage: "참조 이미지 추가",
     addReferenceImageSoon: "참조 이미지 추가 (준비 중)",
@@ -363,6 +365,7 @@ const koKR: TranslationKeys = {
       "구성된 에이전트 프로파일이 없습니다. 설정에서 endpoint 와 모델을 지정하세요.",
   },
   fonts: {
+    deleteFace: "{family} {face} 삭제",
     defaultValue: "기본값",
     searchLabel: "폰트 검색",
     searchPlaceholder: "폰트 검색...",
@@ -379,6 +382,22 @@ const koKR: TranslationKeys = {
     uploadFormats: ".woff2, .woff, .ttf, .otf (최대 5MB)",
   },
   interactions: {
+    triggerOnPress: "누를 때",
+    triggerOnChange: "값이 바뀔 때",
+    triggerOnSelectionChange: "선택이 바뀔 때",
+    triggerOnExpandedChange: "펼침이 바뀔 때",
+    triggerOnOpenChange: "열림이 바뀔 때",
+    triggerOnInputChange: "입력이 바뀔 때",
+    triggerOnChangeEnd: "값 변경이 끝날 때",
+    triggerOnAction: "항목을 실행할 때",
+    triggerOnRemove: "항목을 제거할 때",
+    triggerOnSubmit: "제출할 때",
+    triggerOnReset: "초기화할 때",
+    triggerOnFocus: "포커스를 받을 때",
+    triggerOnBlur: "포커스를 잃을 때",
+    actionNavigate: "페이지 이동",
+    actionToast: "토스트 표시",
+    actionCapability: "컴포넌트 기능…",
     capability: "기능",
     capabilityRemount: "{label} (재설정)",
     target: "대상",
@@ -396,6 +415,12 @@ const koKR: TranslationKeys = {
     summaryToastWithMessage: '{when} → 토스트 "{message}"',
   },
   propertiesPanel: {
+    overrideCleared: "'{label}' override 해제됨",
+    itemsForkedLabel: "items (forked)",
+    itemsForkedHint:
+      "이 인스턴스의 items 가 origin 과 분리(fork)되었습니다 — origin items 변경이 반영되지 않습니다. Reset 시 origin 에 다시 연결됩니다.",
+    heightFillBlockParent: "Block 부모에서 불가",
+    visibilityLockedBase: "{breakpoint}: Base (Display 속성으로 제어)",
     slotMerge: "병합 (새 Slot만 추가)",
     slotReplace: "덮어쓰기",
     emptyMessage: "편집 가능한 속성이 없습니다",
@@ -946,6 +971,8 @@ const koKR: TranslationKeys = {
     mobile: "모바일",
   },
   workspace: {
+    canvasRecovering: "⚠️ GPU 리소스 복구 중...",
+    canvasInitializing: "🔄 캔버스 초기화 중...",
     workArea: "패널 작업 영역",
     movePanel: "{panel} 패널 이동",
     resizePanel: "{panel} 패널 {edge} 크기 조절",
@@ -1032,6 +1059,32 @@ const koKR: TranslationKeys = {
   },
   dashboard: {
     confirmDeleteProject: "정말로 이 프로젝트를 삭제하시겠습니까?",
+  },
+  errors: {
+    unknown: "알 수 없는 오류",
+    withContext: "{context} 중 오류가 발생했습니다: {message}",
+    rollbackNothing: "롤백할 작업이 없습니다.",
+    rollbackFailed: "롤백 실패: {operation}",
+    rollbackError: "롤백 처리 중 오류",
+    retryFailed: "작업 재시도 실패 ({count}회 시도)",
+    retrying: "작업 재시도 중 ({attempt}/{max})",
+    elementsInvalid: "요소 배열이 유효하지 않습니다.",
+    elementNoId: "요소 {index}: ID가 없습니다.",
+    elementDuplicateId: "요소 {index}: 중복된 ID ({id})",
+    elementNoTag: "요소 {id}: 태그가 없습니다.",
+    elementNoOwner: "요소 {id}: 페이지 ID 또는 레이아웃 ID가 없습니다.",
+    elementCycle: "요소 {id}: 순환 참조가 감지되었습니다.",
+    elementValidation: "요소 유효성 검사 실패",
+    elementCreateFailed: "요소 생성 실패: {type}",
+    projectInitFailed: "프로젝트 초기화 실패",
+    projectInitInProgress: "프로젝트가 이미 초기화 중입니다",
+    pageLoadFailed: "페이지 로드 실패",
+    pageNavigateContext: "페이지 이동",
+    pageNotFound: "페이지를 찾을 수 없습니다: {path}",
+    pageCreateInProgress: "페이지 생성이 이미 진행 중입니다",
+    fontFileUnreadable: "폰트 파일을 읽을 수 없습니다.",
+    saveFailed: "저장에 실패했습니다.",
+    undo: "되돌리기",
   },
   datatable: {
     tabs: "DataTable 탭",
@@ -1157,6 +1210,15 @@ const koKR: TranslationKeys = {
     columns: "열",
   },
   monitor: {
+    optimizeRunning: "메모리 최적화 중...",
+    optimizeDone: "메모리 최적화 완료",
+    optimizeFailed: "최적화 중 오류 발생",
+    adviceBrowserHigh:
+      "브라우저 메모리 사용량이 높습니다. 일부 탭을 닫거나 페이지를 새로고침하세요.",
+    adviceHeapHigh: "메모리 사용량이 50MB를 초과했습니다. 최적화를 실행하세요.",
+    adviceHistoryLarge: "히스토리 항목이 많습니다. 불필요한 작업을 정리하세요.",
+    adviceModerate: "메모리 사용량이 적정 수준입니다.",
+    adviceHealthy: "메모리 상태가 양호합니다.",
     warningThresholdHint: "노란색 경고가 표시되는 메모리 사용률",
     dangerThresholdHint: "빨간색 위험 경고가 표시되는 메모리 사용률",
     tabs: "모니터 탭",
@@ -1609,6 +1671,9 @@ const enUS: TranslationKeys = {
     batchPending: "{count} changes are pending.",
   },
   ai: {
+    notUnderstood:
+      "Sorry — I couldn't understand that request. Please try again.",
+    logRestorable: " · restorable with {shortcut}",
     askPlaceholder: "Ask anything",
     addReferenceImage: "Add reference image",
     addReferenceImageSoon: "Add reference image (coming soon)",
@@ -1685,6 +1750,7 @@ const enUS: TranslationKeys = {
       "No agent profile is configured. Set an endpoint and a model in settings.",
   },
   fonts: {
+    deleteFace: "Delete {family} {face}",
     defaultValue: "Default",
     searchLabel: "Search fonts",
     searchPlaceholder: "Search fonts...",
@@ -1700,6 +1766,22 @@ const enUS: TranslationKeys = {
     uploadFormats: ".woff2, .woff, .ttf, .otf (up to 5MB)",
   },
   interactions: {
+    triggerOnPress: "On press",
+    triggerOnChange: "On value change",
+    triggerOnSelectionChange: "On selection change",
+    triggerOnExpandedChange: "On expand or collapse",
+    triggerOnOpenChange: "On open or close",
+    triggerOnInputChange: "On input change",
+    triggerOnChangeEnd: "When the value settles",
+    triggerOnAction: "On item action",
+    triggerOnRemove: "On item removal",
+    triggerOnSubmit: "On submit",
+    triggerOnReset: "On reset",
+    triggerOnFocus: "On focus",
+    triggerOnBlur: "On blur",
+    actionNavigate: "Go to page",
+    actionToast: "Show a toast",
+    actionCapability: "Component capability…",
     capability: "Capability",
     capabilityRemount: "{label} (resets)",
     target: "Target",
@@ -1717,6 +1799,13 @@ const enUS: TranslationKeys = {
     summaryToastWithMessage: '{when} → toast "{message}"',
   },
   propertiesPanel: {
+    overrideCleared: "'{label}' override cleared",
+    itemsForkedLabel: "items (forked)",
+    itemsForkedHint:
+      "This instance's items are forked from the origin — origin changes no longer flow in. Reset reconnects it to the origin.",
+    heightFillBlockParent: "Not available under a block parent",
+    visibilityLockedBase:
+      "{breakpoint}: Base (controlled by the Display property)",
     slotMerge: "Merge (add new slots only)",
     slotReplace: "Replace",
     emptyMessage: "No editable properties",
@@ -2272,6 +2361,8 @@ const enUS: TranslationKeys = {
     mobile: "Mobile",
   },
   workspace: {
+    canvasRecovering: "⚠️ Recovering GPU resources…",
+    canvasInitializing: "🔄 Preparing the canvas…",
     workArea: "Panel workspace",
     movePanel: "Move {panel} panel",
     resizePanel: "Resize {panel} panel {edge}",
@@ -2358,6 +2449,32 @@ const enUS: TranslationKeys = {
   },
   dashboard: {
     confirmDeleteProject: "Delete this project?",
+  },
+  errors: {
+    unknown: "Unknown error",
+    withContext: "Something went wrong during {context}: {message}",
+    rollbackNothing: "Nothing to roll back.",
+    rollbackFailed: "Rollback failed: {operation}",
+    rollbackError: "Rollback error",
+    retryFailed: "Retry failed after {count} attempts",
+    retrying: "Retrying ({attempt}/{max})",
+    elementsInvalid: "The element list is not valid.",
+    elementNoId: "Element {index}: missing ID.",
+    elementDuplicateId: "Element {index}: duplicate ID ({id})",
+    elementNoTag: "Element {id}: missing tag.",
+    elementNoOwner: "Element {id}: missing page ID or layout ID.",
+    elementCycle: "Element {id}: circular reference detected.",
+    elementValidation: "Element validation failed",
+    elementCreateFailed: "Could not create element: {type}",
+    projectInitFailed: "Project initialization failed",
+    projectInitInProgress: "The project is already initializing",
+    pageLoadFailed: "Page load failed",
+    pageNavigateContext: "page navigation",
+    pageNotFound: "Page not found: {path}",
+    pageCreateInProgress: "A page is already being created",
+    fontFileUnreadable: "Could not read the font file.",
+    saveFailed: "Save failed.",
+    undo: "Undo",
   },
   datatable: {
     tabs: "DataTable tabs",
@@ -2483,6 +2600,16 @@ const enUS: TranslationKeys = {
     columns: "Columns",
   },
   monitor: {
+    optimizeRunning: "Optimizing memory…",
+    optimizeDone: "Memory optimized",
+    optimizeFailed: "Optimization failed",
+    adviceBrowserHigh:
+      "Browser memory usage is high. Close some tabs or reload the page.",
+    adviceHeapHigh: "Memory usage passed 50MB. Run an optimization.",
+    adviceHistoryLarge:
+      "There are many history entries. Clear the ones you no longer need.",
+    adviceModerate: "Memory usage is within a reasonable range.",
+    adviceHealthy: "Memory is healthy.",
     warningThresholdHint: "Memory usage that shows the yellow warning",
     dangerThresholdHint: "Memory usage that shows the red danger warning",
     tabs: "Monitor tabs",
@@ -3040,6 +3167,35 @@ const formattedMessages: Record<
   Record<string, (args: FormatterVariables | undefined) => string>
 > = {
   "ko-KR": {
+    "errors.withContext": (args) =>
+      `${String(args?.context ?? "")} 중 오류가 발생했습니다: ${String(args?.message ?? "")}`,
+    "errors.rollbackFailed": (args) =>
+      `롤백 실패: ${String(args?.operation ?? "")}`,
+    "errors.retryFailed": (args) =>
+      `작업 재시도 실패 (${String(args?.count ?? 0)}회 시도)`,
+    "errors.retrying": (args) =>
+      `작업 재시도 중 (${String(args?.attempt ?? 0)}/${String(args?.max ?? 0)})`,
+    "errors.elementNoId": (args) =>
+      `요소 ${String(args?.index ?? 0)}: ID가 없습니다.`,
+    "errors.elementDuplicateId": (args) =>
+      `요소 ${String(args?.index ?? 0)}: 중복된 ID (${String(args?.id ?? "")})`,
+    "errors.elementNoTag": (args) =>
+      `요소 ${String(args?.id ?? "")}: 태그가 없습니다.`,
+    "errors.elementNoOwner": (args) =>
+      `요소 ${String(args?.id ?? "")}: 페이지 ID 또는 레이아웃 ID가 없습니다.`,
+    "errors.elementCycle": (args) =>
+      `요소 ${String(args?.id ?? "")}: 순환 참조가 감지되었습니다.`,
+    "errors.elementCreateFailed": (args) =>
+      `요소 생성 실패: ${String(args?.type ?? "")}`,
+    "errors.pageNotFound": (args) =>
+      `페이지를 찾을 수 없습니다: ${String(args?.path ?? "")}`,
+    "propertiesPanel.overrideCleared": (args) =>
+      `'${String(args?.label ?? "")}' override 해제됨`,
+    "propertiesPanel.visibilityLockedBase": (args) =>
+      `${String(args?.breakpoint ?? "")}: Base (Display 속성으로 제어)`,
+    "fonts.deleteFace": (args) =>
+      `${String(args?.family ?? "")} ${String(args?.face ?? "")} 삭제`,
+    "ai.logRestorable": (args) => ` · ${String(args?.shortcut ?? "")} 로 복원`,
     "datatable.countItems": (args) => `${String(args?.count ?? 0)}개`,
     "datatable.tableMeta": (args) =>
       `${String(args?.fields ?? 0)}개 필드 · ${String(args?.rows ?? 0)}개 행`,
@@ -3259,6 +3415,36 @@ const formattedMessages: Record<
     "messages.itemCount": (args) => `${String(args?.count ?? 0)}개`,
   },
   "en-US": {
+    "errors.withContext": (args) =>
+      `Something went wrong during ${String(args?.context ?? "")}: ${String(args?.message ?? "")}`,
+    "errors.rollbackFailed": (args) =>
+      `Rollback failed: ${String(args?.operation ?? "")}`,
+    "errors.retryFailed": (args) =>
+      `Retry failed after ${String(args?.count ?? 0)} attempts`,
+    "errors.retrying": (args) =>
+      `Retrying (${String(args?.attempt ?? 0)}/${String(args?.max ?? 0)})`,
+    "errors.elementNoId": (args) =>
+      `Element ${String(args?.index ?? 0)}: missing ID.`,
+    "errors.elementDuplicateId": (args) =>
+      `Element ${String(args?.index ?? 0)}: duplicate ID (${String(args?.id ?? "")})`,
+    "errors.elementNoTag": (args) =>
+      `Element ${String(args?.id ?? "")}: missing tag.`,
+    "errors.elementNoOwner": (args) =>
+      `Element ${String(args?.id ?? "")}: missing page ID or layout ID.`,
+    "errors.elementCycle": (args) =>
+      `Element ${String(args?.id ?? "")}: circular reference detected.`,
+    "errors.elementCreateFailed": (args) =>
+      `Could not create element: ${String(args?.type ?? "")}`,
+    "errors.pageNotFound": (args) =>
+      `Page not found: ${String(args?.path ?? "")}`,
+    "propertiesPanel.overrideCleared": (args) =>
+      `'${String(args?.label ?? "")}' override cleared`,
+    "propertiesPanel.visibilityLockedBase": (args) =>
+      `${String(args?.breakpoint ?? "")}: Base (controlled by the Display property)`,
+    "fonts.deleteFace": (args) =>
+      `Delete ${String(args?.family ?? "")} ${String(args?.face ?? "")}`,
+    "ai.logRestorable": (args) =>
+      ` · restorable with ${String(args?.shortcut ?? "")}`,
     "datatable.countItems": (args) => `${String(args?.count ?? 0)}`,
     "datatable.tableMeta": (args) =>
       `${String(args?.fields ?? 0)} fields · ${String(args?.rows ?? 0)} rows`,

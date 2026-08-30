@@ -263,7 +263,9 @@ export function MonitorPanel() {
             id="monitor-memory-actions"
             title={localize("actions", "Actions")}
           >
-            {stats && <p className="monitor-hint">{stats.recommendation}</p>}
+            {stats && (
+              <p className="monitor-hint">{t(stats.recommendationKey)}</p>
+            )}
             <div className="monitor-action-row">
               {stats && (
                 <MemoryActions

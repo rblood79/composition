@@ -15,7 +15,10 @@ import {
   type FrameNode,
   type InteractionRule,
 } from "@composition/shared";
-import { TRIGGER_LABELS } from "../../../panels/interactions/labels";
+import {
+  triggerLabel,
+  type LabelTranslate,
+} from "../../../panels/interactions/labels";
 
 // ============================================
 // Types
@@ -113,6 +116,8 @@ export function computeWorkflowEdges(
   pages: WorkflowPageInput[],
   elements: WorkflowElementInput[],
   rules: readonly InteractionRule[] = [],
+  /** 엣지 라벨 해소기 — 순수 모듈이라 훅을 못 쓴다, 호출부가 넘긴다. */
+  t: LabelTranslate = (key) => key,
 ): WorkflowEdge[] {
   // slug → pageId 매핑 (정규화된 슬러그 사용)
   const slugMap = new Map<string, string>();
@@ -191,7 +196,7 @@ export function computeWorkflowEdges(
       sourceElementId: rule.elementId,
       // 패널과 같은 어휘를 쓴다 — 캔버스에 "onPress", 패널에 "누를 때" 가
       // 뜨면 같은 것을 두 이름으로 부르는 셈이다.
-      label: TRIGGER_LABELS[rule.trigger] ?? rule.trigger,
+      label: triggerLabel(rule.trigger, t),
     });
   }
 

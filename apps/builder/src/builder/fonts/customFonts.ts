@@ -44,8 +44,10 @@ export function saveRegistryAndNotify(registry: FontRegistryV2): void {
 export async function createFontFaceFromFile(
   file: File,
   family?: string,
+  /** 읽기 실패 문구 — 순수 모듈이라 호출부가 해소해 넘긴다 (ADR-200 후속). */
+  unreadableMessage = "Could not read the font file.",
 ): Promise<FontFaceAsset> {
-  const source = await readFileAsDataUrl(file);
+  const source = await readFileAsDataUrl(file, unreadableMessage);
   const legacyFormat = inferFontFormatFromName(file.name);
   const format: FontFormat | undefined =
     legacyFormat === "embedded-opentype" || legacyFormat === "svg"
@@ -265,11 +267,15 @@ function inferWeightStyleFromFileName(fileName: string): {
   return { weight, style };
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
+function readFileAsDataUrl(
+  file: File,
+  /** 순수 모듈이라 훅을 못 쓴다 — 호출부가 해소한 문구를 넘긴다. */
+  unreadableMessage: string,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(new Error("폰트 파일을 읽을 수 없습니다."));
+    reader.onerror = () => reject(new Error(unreadableMessage));
     reader.readAsDataURL(file);
   });
 }
