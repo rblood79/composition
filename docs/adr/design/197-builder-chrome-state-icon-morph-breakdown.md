@@ -1,6 +1,6 @@
 # ADR-197 Breakdown: Builder chrome 상태 아이콘 morph — morphicons core vendoring + StateIcon 레지스트리
 
-> **진행 로그** — Phase 0 Implemented 2026-08-30 (vendoring 9 파일 + 이식 테스트 40 PASS · G0 통과) · Phase 1 Implemented 2026-08-30 (`MorphIcon` + `resolveIconInput`, 테스트 60 PASS · G1 통과 — 초기 chunk Δ **+7.07 KB gz**).
+> **진행 로그** — Phase 2 Implemented 2026-08-30 (`StateIcon` + 레지스트리 6쌍 + 교체 **8곳**, 테스트 82 PASS · 제외 4곳은 §2-2 판정) · Phase 0 Implemented 2026-08-30 (vendoring 9 파일 + 이식 테스트 40 PASS · G0 통과) · Phase 1 Implemented 2026-08-30 (`MorphIcon` + `resolveIconInput`, 테스트 60 PASS · G1 통과 — 초기 chunk Δ **+7.07 KB gz**).
 >
 > 2026-08-30 초안. ADR 본문: [197-builder-chrome-state-icon-morph.md](../197-builder-chrome-state-icon-morph.md).
 > Phase 0 inventory 는 본 문서의 표를 갱신하는 commit 으로 freeze 한다 (M3 — 추정/실측 gap 은
@@ -50,7 +50,18 @@
 | 11  | `panels/styles/sections/TransformSection.tsx:673`              | lock / unlock                | 16   | → 레지스트리에서 **lock-keyhole-open → lock-keyhole** 로 교체 (사용자 예시)                           |
 | 12  | `panels/properties/editors/ResponsiveVisibilityEditor.tsx:142` | eye-off → eye                | 12   | breakpoint 별 3개                                                                                     |
 
-제외: `panels/ai/AIPanel.tsx:72` (user↔bot 은 메시지별 고정, 전환 없음) · `LayersSection.tsx:278` / `FrameElementTree.tsx:156` (`Minimize` 단일 액션).
+**Phase 2 실측 판정 (2026-08-30)** — 위 목록 중 **8곳만 교체**했다. 나머지는 "한 컨트롤의 두 상태" 가 아니어서 제외:
+
+| 제외                            | 근거                                                                                                                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #5 `FrameElementTree.tsx:270`   | 트리 chevron 은 **이미 CSS 회전**으로 상태를 말한다 (`NavigatorPanel.css:446-457` `transition: transform 150ms` + `rotate(90deg)`, 같은 어법의 호출부 3곳). morph 를 얹으면 이중 변형 |
+| #7 `SettingsPanel.tsx:57`       | `getThemeModeIcon()` 은 `PropertySelect icon={...}` 로 넘어가는 **필드 아이콘 슬롯** (컴포넌트 타입 계약). 상태 쌍 축이 아니다 — HC7 정본 경계                                        |
+| #9 `../dashboard/index.tsx:701` | light/dark/auto **3버튼 동시 표시** (`ToggleButtonGroup`) — breakpoint 그룹과 같은 enum 어법이라 짝이 성립하지 않는다                                                                 |
+| #10 `LayoutSection.tsx:483,518` | 접힘/펼침이 **서로 다른 subtree** 를 렌더한다 (`layout-container` ↔ `layout-container-expanded`). 두 아이콘이 다른 마운트라 형태 전환 자체가 불가                                     |
+
+제외 (초안 단계): `panels/ai/AIPanel.tsx:72` (user↔bot 은 메시지별 고정) · `LayersSection.tsx:278` / `FrameElementTree.tsx:156` (`Minimize` 단일 액션).
+
+**기준선 정정**: 초안의 "회전·crossfade·transition CSS 0건" 은 틀렸다. 상태 표시용 회전이 트리 chevron 1곳 (`NavigatorPanel.css:451-457`) 에 있다. 나머지 `rotate()` 는 스피너 5곳 · 툴팁 화살표 3곳 · height 필드 아이콘 정적 90° 1곳으로 상태와 무관.
 
 ### 2-3. 확장 후보 — 재판정 (2026-08-30 실측)
 
@@ -250,17 +261,28 @@ Gate G1 **통과 (2026-08-30)**:
 | IconNode 직접 전달      | 같은 참조 재렌더 시 `morphTo` 0회 · 다른 참조면 1회                                                                                                                                                    |
 | 미지원 태그 (R9)        | `<g>` 포함 입력에서 throw 없이 렌더 0, `createMorph` 호출 0회                                                                                                                                          |
 
-### Phase 2 — `StateIcon` + 레지스트리 + 교체 11곳 (§2-2)
+### Phase 2 — `StateIcon` + 레지스트리 + 교체 8곳 (§2-2) — ✅ Implemented 2026-08-30
 
-| 파일                              | 변경                                                                                                    |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `statePairs.ts` · `StateIcon.tsx` | §3-3 / §3-4                                                                                             |
-| `__tests__/statePairs.test.ts`    | 모든 pair 양끝 `getIconData` 존재 · `buildPlan` 항목 θ/σ 유한 · index 0 ≠ index 1                       |
-| §2-2 #1~#5, #7~#12 (10 파일)      | 삼항 → `StateIcon`. `TransformSection` 은 lock/unlock → `lock` 쌍 (keyhole)                             |
-| §2-2 #6 `ContextualActionBar.tsx` | 순서 제약 해제 — ADR-192 completed (`docs/adr/completed/192-contextual-action-bar.md`, 2026-08-30 확인) |
-| `FrameElementTree.tsx:270`        | `isExpanded` 가 있으므로 `expand` 쌍으로 승격 (CSS 회전 없음 확인됨)                                    |
+| 파일                              | 변경                                                                                                                                                                                                                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `statePairs.ts` · `StateIcon.tsx` | §3-3 / §3-4                                                                                                                                                                                                                                                 |
+| `__tests__/statePairs.test.ts`    | 모든 pair 양끝 `getIconData` 존재 · `buildPlan` 항목 θ/σ 유한 · index 0 ≠ index 1                                                                                                                                                                           |
+| 교체 8곳                          | `RuleRow:130` · `ItemsManager:79,231` · `VariableEditor:254` (expand) · `ContextualActionBar:165` (pin) · `ThemesPanel:315` (theme, 액션 어법이라 `on={!isDark}`) · `TransformSection:673` (lock → keyhole 쌍) · `ResponsiveVisibilityEditor:142` (visible) |
+| `components/icons/index.ts`       | `MorphIcon` / `StateIcon` / `ICON_STATE_PAIRS` 배럴 export — 호출부는 여기서 import                                                                                                                                                                         |
+| 제외 4곳                          | §2-2 판정표 (트리 chevron CSS 회전 · SettingsPanel 필드 아이콘 슬롯 · dashboard enum 3버튼 · LayoutSection 별도 subtree)                                                                                                                                    |
 
-Gate G2: statePairs 테스트 PASS · type-check 0 · 교체 파일 기존 테스트 PASS (`RuleRow` / `ItemsManager` / `ResponsiveVisibilityEditor` 등 existing) · **신규 static 게이트 유지** (`actionIcons.static.test.ts` · `propertyFieldIcons.static.test.ts` · `sectionHeaderIcon.static.test.ts` PASS) · 등재 쌍이 같은 화면의 필드 아이콘과 그림이 겹치지 않음 (§2-3 정본 경계) · **Live Exercise** (§6).
+Gate G2 **통과 (2026-08-30)**:
+
+| 조건                 | 결과                                                                                                                                                                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `statePairs.test.ts` | 6쌍 × (양끝 존재 · off≠on · plan θ/lnSigma/res 유한) PASS                                                                                                                                                                                                                |
+| 정지 fidelity (R3)   | `MorphIcon.settle.test.tsx` — **실제 driver + 손 pump rAF**: 마운트 canonical · 비행 중 polyline · 정지 시 `d === canonicalD(target)` · 연속 토글 후에도 마지막 목표 canonical · reduced-motion 이면 프레임 0                                                            |
+| 전체 morph 스위트    | 7 파일 82 PASS                                                                                                                                                                                                                                                           |
+| type-check / eslint  | PASS / 0 (교체 파일의 잔여 lint 9건은 ActionBar 자체의 기존 오류 — 변경 전후 동일)                                                                                                                                                                                       |
+| 기존 스위트          | 실패는 pre-existing 1건 (`shortcutDisplay.static`) 만                                                                                                                                                                                                                    |
+| static 아이콘 게이트 | `actionIcons.static` · `propertyFieldIcons.static` · `sectionHeaderIcon.static` PASS (교체가 두 정본을 건드리지 않음)                                                                                                                                                    |
+| 정본 경계 (R8)       | 등재 6쌍 중 `lock` / `visible` 은 Styles·Properties 화면에서 `propertyFieldIcons` 의 `Lock`/`Eye`/`EyeOff` 와 **같은 화면에 서지 않는다** — `isReadOnly`/`isQuiet`/`showValueLabel` 은 catalog 필드 행, 교체 지점은 Transform 잠금 버튼·breakpoint 표시 버튼 (실측 확인) |
+| Live Exercise        | §6 — 부분 통과 (아래 기록)                                                                                                                                                                                                                                               |
 
 ### Phase 3 — 확장 후보 (§2-3, 확인 필요 해소 후)
 
@@ -283,7 +305,25 @@ Gate G3: 추가 pair 마다 statePairs 테스트 + live 1회 + §2-3 정본 경�
 | 번들        | 초기 chunk Δ                                                    | `vite build` 비교 |
 | live        | §6                                                              | Chrome MCP        |
 
-## 6. Live Exercise 시나리오 (Implemented 승격 조건)
+## 6. Live Exercise
+
+### 6-1. 2026-08-30 실행 결과 (Chrome MCP, dev 5173, 보이는 탭)
+
+| 확인                     | 결과                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Action Bar 옵션 메뉴 Pin | ✅ `MorphIcon` 이 렌더 — **단일 `<path>`**, canonical cubic 4자리 (`M12 17C12 18.6667…`). 같은 메뉴의 lucide 항목은 path 2·4개로 대조됨    |
+| 상태 매핑                | ✅ pin 토글 후 재개봉 시 canonical 이 다른 형태로 교체 (C 7 → C 14)                                                                        |
+| driver 부착              | ✅ 보이는 컨트롤에서 `createMorph` 실행 확인 (임시 DOM 마커로 측정 후 제거)                                                                |
+| 비행 프레임 · 정지 복귀  | ⚠️ 라이브 미확인 — 팝오버가 선택 즉시 닫혀 프레임을 잡지 못했다. 대신 **실제 driver 를 쓰는 테스트** 로 고정 (`MorphIcon.settle.test.tsx`) |
+| reduced-motion           | ⚠️ 라이브 미확인 (OS 설정 전환 불가) — 같은 테스트의 `matchMedia` 케이스로 고정                                                            |
+
+### 6-2. 측정 조건 함정 (실측 발견 — 재현 시 필수)
+
+**패널은 `<Activity>` 안에서 산다** (`layout/PanelWorkspace.tsx:388`). 닫힌 패널은 DOM 이 남은 채 `display:none` 이고, React 는 그 서브트리의 **ref 를 붙이지 않고 effect 도 다시 돌리지 않는다** — 그래서 숨은 패널의 아이콘은 마운트 시점 형태에 멈춰 있고 토글해도 `d` 가 바뀌지 않는다. 이것을 버그로 오독했다가, `getBoundingClientRect().width > 0` 로 가시성을 먼저 확인하고서야 정리됐다. 라이브 검증은 **컨트롤이 실제로 보이는 상태에서만** 유효하다 (`measurement-validity.md` §2 패턴 8).
+
+패널이 다시 보이면 ref 가 그때 붙고 effect 가 최신 `node` 로 돌아 형태가 맞춰진다 (attach 는 `targetRef.current` 를 읽는다).
+
+### 6-3. 잔여 시나리오 (Implemented 승격 전 확인)
 
 1. Styles › Transform 에서 aspectRatio 잠금 토글 — lock-keyhole-open → lock-keyhole 고리 회전, 정지 후 lucide 원본과 동일 (DOM `d` 가 canonical 4자리 문자열).
 2. Action Bar 옵션 메뉴 Pin — 메뉴 열린 채 토글, 14px 에서 슬래시 생성 확인.

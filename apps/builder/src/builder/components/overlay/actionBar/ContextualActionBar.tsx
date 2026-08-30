@@ -23,8 +23,6 @@ import {
   EyeOff,
   GripVertical,
   MoreHorizontal,
-  Pin,
-  PinOff,
   RotateCcw,
 } from "lucide-react";
 import { Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
@@ -40,6 +38,7 @@ import type { ActionBarModel } from "./actionBarPolicy";
 import { buildActionBarItems } from "./buildActionBarItems";
 import { useActionBarPlacement } from "./useActionBarPlacement";
 import "./actionBar.css";
+import { StateIcon } from "../../icons";
 
 const ICON_SIZE = 16;
 const MENU_ICON_SIZE = 14;
@@ -162,7 +161,6 @@ function OptionsMenu({
   onAction: (key: OptionKey) => void;
 }) {
   const { t } = useI18n();
-  const PinIcon = pinned ? PinOff : Pin;
   return (
     <MenuTrigger>
       <Button
@@ -185,7 +183,7 @@ function OptionsMenu({
           onAction={(key) => onAction(String(key) as OptionKey)}
         >
           <MenuItem id="pin" className="contextual-action-bar-option">
-            <PinIcon size={MENU_ICON_SIZE} aria-hidden="true" />
+            <StateIcon pair="pin" on={pinned} size={MENU_ICON_SIZE} />
             <span>{pinned ? t("actionBar.unpin") : t("actionBar.pin")}</span>
           </MenuItem>
           <MenuItem id="reset" className="contextual-action-bar-option">

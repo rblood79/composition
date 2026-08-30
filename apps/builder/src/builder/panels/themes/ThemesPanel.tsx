@@ -6,7 +6,7 @@
  */
 
 import { memo, useCallback } from "react";
-import { SwatchBook, Check, Sun, Moon } from "lucide-react";
+import { SwatchBook, Check } from "lucide-react";
 import {
   Button,
   ToggleButton as RAToggleButton,
@@ -33,6 +33,7 @@ import { MiniThemePreview } from "./MiniThemePreview";
 import { useThemeMessenger } from "../../hooks/useThemeMessenger";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../fonts/customFonts";
 import "./ThemesPanel.css";
+import { StateIcon } from "../../components/icons";
 
 // ============================================================================
 // TintGrid — 10색 ColorSwatch 프리셋 버튼
@@ -311,11 +312,13 @@ function ThemesContent() {
             isSelected={isDark}
             onChange={handleDarkModeToggle}
           >
-            {isDark ? (
-              <Sun size={iconProps.size} strokeWidth={iconProps.strokeWidth} />
-            ) : (
-              <Moon size={iconProps.size} strokeWidth={iconProps.strokeWidth} />
-            )}
+            {/* 액션 어법 — dark 일 때 sun 을 보여 "라이트로 전환" 을 가리킨다 */}
+            <StateIcon
+              pair="theme"
+              on={!isDark}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
           </RAToggleButton>
         }
       />

@@ -14,7 +14,7 @@ Accepted — 2026-08-30 (계약 확장 2026-08-30: `MorphIcon` 의 `icon` prop =
 
 2026-08-29 실측 · **2026-08-30 재검토 갱신** (breakdown §2 — 그 사이 아이콘 전수조사 `9f8b3089b` 17건 교체 · Monitor 패널 재구성 `cb42ead69` · 속성 필드 아이콘 정본 신설 `60a4dab37` 반영):
 
-- chrome 은 108 파일이 lucide-react 를 import 하고, 상태가 바뀌는 아이콘은 삼항으로 컴포넌트를 갈아끼운다 — 11곳 (`RuleRow.tsx:130`, `ItemsManager.tsx:79,231`, `ContextualActionBar.tsx:165`, `TransformSection.tsx:673`, `ResponsiveVisibilityEditor.tsx:142` 등). 회전·crossfade·`transition` CSS 는 0건.
+- chrome 은 108 파일이 lucide-react 를 import 하고, 상태가 바뀌는 아이콘은 삼항으로 컴포넌트를 갈아끼운다 — 11곳 (`RuleRow.tsx:130`, `ItemsManager.tsx:79,231`, `ContextualActionBar.tsx:165`, `TransformSection.tsx:673`, `ResponsiveVisibilityEditor.tsx:142` 등) — Phase 2 실측에서 그중 **8곳만 한 컨트롤의 두 상태**였다 (나머지는 다른 subtree·필드 아이콘 슬롯·enum 3버튼, breakdown §2-2 판정표). 상태 표시용 회전 CSS 는 트리 chevron 1곳뿐 (`NavigatorPanel.css:451-457`, 호출부 3) — 그 자리는 교체 대상에서 제외했다.
 - 상태를 가지지만 아이콘이 고정된 컨트롤이 6곳 더 있다 (`AppearanceSection.tsx:317` inset, `PanelToggleGroup.tsx:91` ai, `BuilderHeader.tsx:312` compare 등 — 2026-08-30 재판정에서 초안 11곳 중 5건은 토글이 아니어서 제외, breakdown §2-3). 이들은 RAC `ToggleButton[data-selected]` 의 회색 wash (`ActionIconButton.css:29` `color-mix(var(--fg) 10%)`, `SwatchIconButton.css:31` `--accent-subtle`) 만으로 상태를 말하는데, wash 는 "켜짐" 과 "눌림" 을 구분하지 못한다.
 - lucide 는 base ↔ `-off` / `-open` / `-check` / `-x` 짝을 다수 제공한다 (composition 데이터 기준 `-off` 74 · `-check` 32 · `-x` 34 · `-open` 10). 짝이 있는 곳에 형태 자체가 상태를 말하게 하고, 두 형태 사이를 연속으로 이으면 전환도 읽힌다.
 - morphicons (MIT, 런타임 의존 0, core 6.6 KB gz) 는 stroke 아이콘 둘 사이의 similarity (회전·크기) 를 closed-form Procrustes 로 구해 polar 보간한다 — 회전 그룹을 손으로 선언하지 않아도 chevron-right → chevron-down 이 θ 90° 로 나온다 (breakdown §2-4 실계산). 입력 계약 (`IconNode = [tag, attrs][]`) 이 composition 의 `LucideIconData` (`paths[]` + `circles[]`) 와 무손실 호환이다.
@@ -58,7 +58,7 @@ Accepted — 2026-08-30 (계약 확장 2026-08-30: `MorphIcon` 의 `icon` prop =
   - 기술: L — 순수 함수 1,470 LOC, 테스트 123 케이스 이식 (bun:test → vitest 는 API 동일).
   - 성능: L — core+dom 7.1 KB gz 상한, 비행 중 alloc 은 프레임당 문자열 1개, 정지 시 timer 0.
   - 유지보수: **M** — vendoring drift. 완화: `UPSTREAM.md` hash + "디렉토리 통째 교체 + 불변식 테스트" 갱신 절차, 부분 patch 금지.
-  - 마이그레이션: L — 신규 모듈, 기존 lucide-react 컴포넌트는 그대로 (짝 없는 토글은 계속 정적). 롤백 = `StateIcon` 호출 11곳을 삼항으로 되돌림.
+  - 마이그레이션: L — 신규 모듈, 기존 lucide-react 컴포넌트는 그대로 (짝 없는 토글은 계속 정적). 롤백 = `StateIcon` 호출 8곳을 삼항으로 되돌림.
 
 ### 대안 C: CSS transform / opacity 전환만 (라이브러리 0)
 
@@ -140,13 +140,17 @@ Accepted — 2026-08-30 (계약 확장 2026-08-30: `MorphIcon` 의 `icon` prop =
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — breakdown §6 시나리오 5개의 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분.)
+**2026-08-30 (Chrome MCP, dev 5173, 보이는 탭)** — Phase 2 부분 통과. 확인: Action Bar 옵션 메뉴의 Pin 이 `MorphIcon` 으로 렌더 (단일 `<path>` · canonical cubic, 같은 메뉴의 lucide 항목은 path 2·4개) · pin 토글 후 형태 교체 · 보이는 컨트롤에서 driver 부착. 미확인 (테스트로 고정): 비행 프레임과 정지 canonical 복귀 · reduced-motion — `MorphIcon.settle.test.tsx` 가 실제 driver 로 검증.
+
+**측정 조건 (필수)**: 패널은 `<Activity>` 안에 있어 (`layout/PanelWorkspace.tsx:388`) 닫힌 패널은 DOM 이 남은 채 ref·effect 가 멈춘다 — 아이콘이 마운트 형태에 고정돼 "안 바뀐다" 로 보인다. 라이브 판정은 컨트롤이 **실제로 보일 때만** 유효하다 (breakdown §6-2).
+
+(Implemented 승격 시 breakdown §6-3 잔여 시나리오 결과를 여기에 추가.)
 
 ## Consequences
 
 ### Positive
 
-- chrome 의 상태 전환 11곳이 형태 연속 전환을 얻고, 상태 있는 고정 아이콘 6곳 (Phase 3) 에 on/off 형태가 생긴다 — `data-selected` wash 에 의존하던 시인성이 형태로 옮겨간다.
+- chrome 의 상태 전환 8곳이 형태 연속 전환을 얻고, 상태 있는 고정 아이콘 6곳 (Phase 3) 에 on/off 형태가 생긴다 — `data-selected` wash 에 의존하던 시인성이 형태로 옮겨간다.
 - 새 토글은 `statePairs.ts` 한 줄 + `<StateIcon pair on />` — 지점별 삼항·CSS 가 사라지고, 쌍 교체 (lock/unlock → lock-keyhole) 가 한 곳 수정으로 전 지점에 반영된다.
 - 접근성 기본값 (`reducedMotion: "user"`) 이 컴포넌트에 고정돼 지점별로 잊을 수 없다.
 - `MorphIcon` 이 아이콘 종류에 무관하다 — 24 그리드 stroke 이면 lucide 레지스트리 밖 custom 아이콘도 `IconNode` 로 같은 경로를 탄다 (`StateIcon` 은 그 위의 boolean 전용 편의 층).

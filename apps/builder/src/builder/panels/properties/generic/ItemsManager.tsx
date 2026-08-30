@@ -1,7 +1,5 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import {
-  ChevronDown,
-  ChevronRight,
   FolderPlus,
   Minus,
   SeparatorHorizontal,
@@ -22,6 +20,7 @@ import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 import "../editors/styles/propertyEditors.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { resolvePropertyFieldIcon } from "../../../config/propertyFieldIcons";
+import { StateIcon } from "../../../components/icons";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -76,7 +75,7 @@ const ItemRow = memo(function ItemRow({
           aria-label={expanded ? "Collapse" : "Expand"}
           onClick={() => setExpanded((prev) => !prev)}
         >
-          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          <StateIcon pair="expand" on={expanded} size={12} />
         </button>
         <span className="editor-item-title">{label}</span>
         <button
@@ -228,7 +227,7 @@ const SectionRow = memo(function SectionRow({
           aria-label={expanded ? "Collapse section" : "Expand section"}
           onClick={() => setExpanded((prev) => !prev)}
         >
-          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          <StateIcon pair="expand" on={expanded} size={12} />
         </button>
         <span className="editor-item-title items-manager-section-title">
           {header}

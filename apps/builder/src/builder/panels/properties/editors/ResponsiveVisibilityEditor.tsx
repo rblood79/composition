@@ -6,7 +6,7 @@
  */
 
 import { memo, useCallback } from "react";
-import { Monitor, Tablet, Smartphone, Eye, EyeOff } from "lucide-react";
+import { Monitor, Tablet, Smartphone } from "lucide-react";
 import { PropertySection } from "../../../components";
 import type {
   ResponsiveVisibility,
@@ -17,6 +17,7 @@ import {
   BREAKPOINT_ORDER,
 } from "../../../../types/builder/responsive.types";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
+import { StateIcon } from "../../../components/icons";
 
 interface ResponsiveVisibilityEditorProps {
   /** 현재 가시성 설정 */
@@ -138,11 +139,7 @@ export const ResponsiveVisibilityEditor = memo(
                       </span>
                     )}
                   </span>
-                  {isVisible ? (
-                    <Eye size={iconSmall.size} />
-                  ) : (
-                    <EyeOff size={iconSmall.size} />
-                  )}
+                  <StateIcon pair="visible" on={isVisible} size={iconSmall.size} />
                 </button>
               );
             })}
