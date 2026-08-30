@@ -1,13 +1,11 @@
 .action-icon-button {
+  /* 크기·정렬·padding 은 `styles/modules/builder-control-size.css` 가 소유한다
+     (구 `padding: var(--spacing-sm)` 파생 제거). 여기는 색과 상태만. */
   appearance: none;
   background: transparent;
   border: none;
-  padding: var(--spacing-sm);
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
   outline: none;
 

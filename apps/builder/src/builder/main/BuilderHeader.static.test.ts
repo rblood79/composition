@@ -97,9 +97,12 @@ describe("BuilderHeader chrome control groups", () => {
       '.react-aria-ToggleButtonGroup[data-orientation="vertical"]',
     );
     expect(groupStyles).toMatch(
-      /\.builder-control-group\.react-aria-ToggleButtonGroup\s*\{[\s\S]*?--button-color: var\(--bg-raised\);[\s\S]*?background: var\(--button-color\);/,
+      /\.builder-control-group\.react-aria-ToggleButtonGroup\s*\{[\s\S]*?--button-color: var\(--chrome-surface\);[\s\S]*?background: var\(--button-color\);/,
     );
-    expect(groupStyles).toMatch(
+    // indicator ToggleButton 의 크기·padding 은 `builder-control-size.css` 의 lg 티어가
+    // 소유한다 — 같은 선택자를 두 파일이 쓰면 import 순서가 판정하므로 여기엔 없어야 한다
+    // (게이트: styles/controlSize.static.test.ts).
+    expect(groupStyles).not.toMatch(
       /\.react-aria-ToggleButton\s*\{[\s\S]*?padding: var\(--spacing-sm\);/,
     );
     expect(groupStyles).toMatch(
@@ -108,8 +111,12 @@ describe("BuilderHeader chrome control groups", () => {
     expect(groupStyles).toMatch(
       /\.react-aria-SelectionIndicator\s*\{[\s\S]*?--button-color: var\(--accent\);[\s\S]*?background: var\(--button-color\);/,
     );
+    // chrome island 3종은 표면/여백/그림자를 직접 쓰지 않고 정본 토큰만 읽는다.
     expect(groupStyles).toMatch(
-      /\.builder-viewport-controls\s*\{[\s\S]*?background: var\(--bg-raised\);/,
+      /\.builder-action-group,\s*\.builder-viewport-controls\s*\{[\s\S]*?background: var\(--chrome-surface\);/,
+    );
+    expect(groupStyles).toMatch(
+      /\.builder-viewport-controls\s*\{[\s\S]*?padding: var\(--chrome-padding\);[\s\S]*?border: var\(--chrome-border\);[\s\S]*?border-radius: var\(--chrome-radius\);[\s\S]*?box-shadow: var\(--chrome-shadow\);/,
     );
     expect(groupStyles).toMatch(
       /\.builder-viewport-controls[\s\S]*?> \.builder-control-group\.react-aria-ToggleButtonGroup\s*\{[\s\S]*?--button-color: transparent;[\s\S]*?padding: 0;[\s\S]*?box-shadow: none;/,

@@ -1,0 +1,67 @@
+@layer builder-system {
+  /* ========================================
+   * 컨트롤 크기 정본 — 아이콘 전용 정사각 컨트롤 (2026-08-30)
+   *
+   * 티어 토큰은 `builder-system.css` §Control size 가 소유한다 (28 / 32 두 개뿐).
+   * 이 파일은 **그 토큰을 실제로 소비하는 유일한 자리**다 — chrome(rail / viewport /
+   * header / action bar)과 패널(헤더 · 섹션 헤더 · 목록 · 트리)이 같은 규칙을 읽는다.
+   *
+   * ── 패턴 (이것만 지키면 된다) ──────────────────────────────────────────
+   * 1. 아이콘 전용 컨트롤은 `--icon-control-size` 를 읽는 정사각 상자다.
+   *    크기를 **선언**하고 아이콘은 가운데 정렬한다.
+   * 2. `padding` 으로 크기를 만들지 않는다. 여기서 `padding: 0` 으로 고정한다.
+   * 3. 자리마다 크기를 바꾸려면 **`--icon-control-size` 만** 다시 준다.
+   *    `width` / `height` / `padding` 을 개별 규칙에서 다시 쓰지 않는다.
+   * 4. 티어는 2개뿐 — `var(--control-size)`(기본) 또는 `var(--control-size-lg)`.
+   *    세 번째 값을 쓰지 않는다.
+   *
+   * ── Why (실측 2026-08-30) ─────────────────────────────────────────────
+   * 이전에는 아이콘 버튼 어디에도 크기 선언이 없었고 전부 `padding × 2 + 아이콘 16px`
+   * 파생이었다. 그래서 같은 `.iconButton` 이름이 자리마다 다른 크기가 됐다 —
+   * `.panel-header`/`.section-header` 는 padding 8px 로 32px, `.list-item-actions` 는
+   * padding 4px 로 24px, `.elementItemActions` 는 `--text-xl` 고정으로 20px.
+   * 크기가 규칙의 결과가 아니라 **부작용**이었다는 게 병인이다. 선언으로 바꾸면
+   * 자리를 옮겨도 크기가 따라 변하지 않는다.
+   *
+   * 게이트: `controlSize.static.test.ts`
+   * ======================================== */
+
+  /* ── 기본 티어 (28px) ── */
+  .action-icon-button,
+  .iconButton,
+  .contextual-action-bar .contextual-action-bar-item,
+  .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]
+    .react-aria-ToggleButton {
+    --icon-control-size: var(--control-size);
+
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    inline-size: var(--icon-control-size);
+    block-size: var(--icon-control-size);
+    min-inline-size: var(--icon-control-size);
+    padding: 0;
+  }
+
+  /* ── lg 티어 (32px) — chrome island 버튼과 헤더 행의 액션 슬롯 ──
+   * 크기만 올린다. 나머지 기하는 위 규칙이 그대로 소유한다. */
+  .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]
+    .react-aria-ToggleButton,
+  .builder-action-group .action-icon-button,
+  .panel-header .iconButton,
+  .panel-header .action-icon-button,
+  .section-header .iconButton,
+  .section-header .action-icon-button {
+    --icon-control-size: var(--control-size-lg);
+  }
+
+  /* ── 아이콘 전용이 아닌 chrome 컨트롤 ──
+   * 정사각이 아니라 폭이 내용에 따르므로 높이만 티어에 맞춘다. */
+  .header_contents .zoom-controls .zoom-trigger-button,
+  .header_contents:first-child .react-aria-Button.header-menu-button {
+    box-sizing: border-box;
+    block-size: var(--control-size-lg);
+  }
+}

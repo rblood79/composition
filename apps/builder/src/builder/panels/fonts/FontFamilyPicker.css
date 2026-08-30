@@ -18,7 +18,7 @@
 
   .font-picker-search-input {
     width: 100%;
-    height: var(--inspector-control-size);
+    height: var(--control-size);
     padding: 0 var(--spacing-sm);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -68,7 +68,7 @@
     align-items: center;
     gap: var(--spacing-xs);
     width: 100%;
-    height: var(--inspector-control-size);
+    height: var(--control-size);
     padding: 0 var(--spacing-sm);
     border: none;
     border-radius: var(--radius-sm);

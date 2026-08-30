@@ -53,7 +53,7 @@
     display: flex;
     align-items: center;
     width: 100%;
-    height: var(--inspector-control-size, 28px);
+    height: var(--control-size, 28px);
     gap: var(--spacing-sm);
     padding: var(--spacing-xs);
     border-radius: var(--radius-md);
@@ -109,7 +109,7 @@
    *
    * Why 승격 (2026-08-30): 라벨 액션 버튼이 25개 클래스 / 47개 호출부에서 각자 정의돼
    * 높이가 22·26·28·32·34·36·38px 로 갈렸다. 패널의 필드·탭 줄은 전부
-   * `--inspector-control-size`(28px) 라 버튼만 격자에서 튀어나왔다. 같은 "추가" 액션
+   * `--control-size`(28px) 라 버튼만 격자에서 튀어나왔다. 같은 "추가" 액션
    * 6종의 배경 4·radius 2·글자 2·글자색 3이 전부 달랐고, `focus-visible` 은 29개 중
    * 24개(83%)에 아예 없어 키보드로는 위치가 보이지 않았다. 어법(표면+테두리, 점선 추가,
    * accent 확정)은 이미 공유하고 있었으므로 새 언어를 만들지 않고 유일한 완성형이던
@@ -125,7 +125,7 @@
     align-items: center;
     justify-content: center;
     gap: var(--spacing-xs);
-    height: var(--inspector-control-size);
+    height: var(--control-size);
     padding: 0 var(--spacing-sm);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -246,7 +246,7 @@
 
     /* Section Header */
     .section-header {
-      height: var(--header-height);
+      height: var(--control-size-lg);
 
       background-color: var(--bg-raised);
       border-bottom: 1px solid var(--border);
@@ -272,10 +272,6 @@
       display: flex;
     }
 
-    .section-header .iconButton {
-      padding: var(--spacing-sm);
-    }
-
     .section-content {
       background-color: var(--bg-inset);
       padding: var(--spacing-sm);
@@ -290,8 +286,8 @@
           background-color: var(--bg-raised);
           border-color: transparent;
           padding: var(--spacing);
-          height: var(--inspector-control-size);
-          width: var(--inspector-control-size);
+          height: var(--control-size);
+          width: var(--control-size);
           box-shadow: var(--shadow-xs);
         }
       }
@@ -318,7 +314,7 @@
       display: flex;
       align-items: center;
       gap: var(--spacing-xs);
-      min-height: var(--inspector-control-size);
+      min-height: var(--control-size);
       padding: 0 var(--spacing-sm);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
@@ -399,7 +395,7 @@
       .control-button.component-semantics-icon-action {
       flex: 0 0 auto;
       justify-content: center;
-      width: var(--inspector-control-size);
+      width: var(--control-size);
       padding: 0;
     }
 
@@ -433,7 +429,7 @@
       gap: var(--spacing-xs);
       grid-template-columns: auto minmax(0, 1fr) auto;
       line-height: var(--text-xs--line-height);
-      min-height: var(--inspector-control-size);
+      min-height: var(--control-size);
       padding: var(--spacing-xs) var(--spacing-sm);
       text-align: left;
       width: 100%;
@@ -468,7 +464,7 @@
       display: flex;
       gap: var(--spacing-sm);
       justify-content: space-between;
-      min-height: var(--inspector-control-size);
+      min-height: var(--control-size);
     }
 
     .frame-slot-name,
@@ -507,7 +503,7 @@
       display: grid;
       gap: var(--spacing-xs);
       grid-template-columns: minmax(0, 1fr) auto;
-      min-height: var(--inspector-control-size);
+      min-height: var(--control-size);
       padding: var(--spacing-xs) var(--spacing-sm);
     }
 

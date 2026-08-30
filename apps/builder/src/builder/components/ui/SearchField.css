@@ -10,7 +10,7 @@
   flex-direction: row;
   align-items: center;
   width: 100%;
-  height: var(--header-height);
+  height: var(--control-size-lg);
   gap: var(--spacing-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
   border: 1px solid var(--border);

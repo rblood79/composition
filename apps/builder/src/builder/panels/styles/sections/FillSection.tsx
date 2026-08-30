@@ -208,7 +208,7 @@ export const FillSectionInline = memo(function FillSectionInline() {
 /**
  * FillBackgroundInline - style-background 그리드 구조에 맞는 V2 Fill UI
  *
- * 기존 PropertyColor와 동일한 그리드 레이아웃(3열: 1fr 1fr inspector-control-size)에서:
+ * 기존 PropertyColor와 동일한 그리드 레이아웃(3열: 1fr 1fr control-size)에서:
  * - 첫번째 Fill: PropertyColor 스타일 swatch (클릭 시 FillDetailPopover)
  * - + 버튼: 3번째 열 (actions-icon)
  * - 추가 Fill(2번째~): 그리드 아래 FillLayerRow 리스트

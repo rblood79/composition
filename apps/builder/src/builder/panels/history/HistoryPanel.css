@@ -78,7 +78,7 @@
     justify-content: flex-start;
     gap: var(--spacing-sm);
     width: 100%;
-    height: var(--inspector-control-size);
+    height: var(--control-size);
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: 0;
     text-align: left;
@@ -121,7 +121,7 @@
   .history-snapshot-rename {
     flex: 1;
     min-width: 0;
-    min-height: var(--header-height);
+    min-height: var(--control-size-lg);
     padding: var(--spacing-xs) var(--spacing-sm);
     font-size: var(--text-xs);
     color: var(--fg);

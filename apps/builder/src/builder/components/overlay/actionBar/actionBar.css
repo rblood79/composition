@@ -2,7 +2,10 @@
   /* ========================================
    * ADR-192 Contextual Action Bar
    * 캔버스 하단 중앙 플로팅 (Photoshop Contextual Task Bar 모델).
-   * chrome 은 `.context-menu-popover` 와 같은 토큰 — 팝오버 계열 시각 어법 공유.
+   * 바 자신의 chrome 은 `builder-system.css` §Chrome island 토큰 — rail·viewport
+   * controls·action group 과 같은 표면이다 (구 `1px solid var(--border)` 테두리와
+   * 하드코드 4px 패딩은 그 셋과 갈린 값이라 제거). 팝오버 자식들은 아래에서 계속
+   * 팝오버 어법을 따른다.
    * 부모 `.workspace-overlay` 는 pointer-events:none — 바 루트만 다시 켠다.
    * ======================================== */
 
@@ -12,11 +15,11 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    padding: 4px;
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
+    padding: var(--chrome-padding);
+    background: var(--chrome-surface);
+    border: var(--chrome-border);
+    border-radius: var(--chrome-radius);
+    box-shadow: var(--chrome-shadow);
     pointer-events: auto;
     z-index: 20;
     contain: layout style;
@@ -112,13 +115,9 @@
   }
 
   .contextual-action-bar .contextual-action-bar-item {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    /* 공유 Button 에 ghost variant 부재 → button-base 기본 --button-color(--fg)
+    /* 크기·정렬·padding 은 `styles/modules/builder-control-size.css` 의 기본
+       티어(28px)가 소유한다 — 구 `width/height: 28px` 하드코드 제거.
+       공유 Button 에 ghost variant 부재 → button-base 기본 --button-color(--fg)
        가 배경을 어둡게 칠한다 (HistoryPanel.css 와 같은 중화). 색/배경 상태는
        아래 `@layer utilities` 블록이 소유한다 — 여기(builder-system)는 geometry
        와 토큰 중화만. */

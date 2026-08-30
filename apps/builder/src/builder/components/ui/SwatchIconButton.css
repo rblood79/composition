@@ -8,8 +8,8 @@
   border-radius: var(--radius-md);
   cursor: pointer;
   box-shadow: var(--inset-shadow-sm);
-  height: var(--inspector-control-size);
-  width: var(--inspector-control-size);
+  height: var(--control-size);
+  width: var(--control-size);
   color: var(--fg-muted);
 
   .swatch-icon-inner {

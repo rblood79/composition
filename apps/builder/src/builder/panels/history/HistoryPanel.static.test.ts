@@ -80,12 +80,12 @@ describe("HistoryPanel panel-system contract", () => {
     expect(css).not.toContain("border-bottom: 1px solid var(--border)");
     expect(css).toContain("border: 0");
     expect(historyButtonRule).toContain(
-      "height: var(--inspector-control-size)",
+      "height: var(--control-size)",
     );
     expect(historyButtonRule).toContain(
       "padding: var(--spacing-xs) var(--spacing-sm)",
     );
-    expect(historyButtonRule).not.toContain("min-height: var(--header-height)");
+    expect(historyButtonRule).not.toContain("min-height: var(--control-size-lg)");
     expect(activeHistoryButtonRule).toContain(
       "--button-color: var(--bg-muted)",
     );

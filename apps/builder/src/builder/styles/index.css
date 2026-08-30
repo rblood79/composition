@@ -10,6 +10,7 @@
 @import "./layout/canvas.css";
 
 /* Modules */
+@import "./modules/builder-control-size.css";
 @import "./modules/builder-control-group.css";
 @import "./modules/element-tree.css";
 @import "./modules/error-loading.css";

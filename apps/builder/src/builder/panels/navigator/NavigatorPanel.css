@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: var(--inspector-control-size);
+  min-height: var(--control-size);
   padding-inline: var(--spacing);
   border-radius: var(--radius-md);
   transition: background-color 100ms ease;
@@ -32,7 +32,7 @@
 .elementItemIndent {
   display: inline-block;
   width: var(--spacing-lg);
-  height: var(--inspector-control-size);
+  height: var(--control-size);
   /*var(--spacing-lg);*/
   position: relative;
 
@@ -121,12 +121,10 @@
   transform: translateX(100%);
 }
 
+/* 크기는 `styles/modules/builder-control-size.css` 의 기본 티어(28px) — 트리 행
+   높이와 같다. 구 `--text-xl` 고정(20px)은 세 번째 크기였다. */
 .elementItemActions .iconButton {
-  width: var(--text-xl);
-  height: var(--text-xl);
-  padding: 0 var(--spacing);
   border-radius: var(--radius-md);
-  box-sizing: border-box;
 }
 
 .elementItemActions .layer-drag-handle {
@@ -271,7 +269,7 @@
 }
 
 .navigator-panel-content .react-aria-TreeItem {
-  min-height: var(--inspector-control-size);
+  min-height: var(--control-size);
   padding: 0;
   border-radius: var(--radius-md);
 }

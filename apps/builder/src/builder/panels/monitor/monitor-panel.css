@@ -39,7 +39,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: var(--inspector-control-size);
+    min-height: var(--control-size);
     padding: 0 var(--spacing-sm);
     background: var(--bg-overlay);
     border-bottom: 1px solid var(--border);
@@ -154,7 +154,7 @@
     justify-content: space-between;
     gap: var(--spacing-sm);
     min-width: 0;
-    min-height: var(--inspector-control-size);
+    min-height: var(--control-size);
     padding: 0 var(--spacing-sm);
     background: var(--bg-muted);
     border-radius: var(--radius-md);
@@ -240,7 +240,7 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    min-height: var(--inspector-control-size);
+    min-height: var(--control-size);
   }
 
   .monitor-panel .monitor-stat-value > svg {
@@ -292,7 +292,7 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    min-height: var(--inspector-control-size);
+    min-height: var(--control-size);
     padding: 0 var(--spacing-sm);
     border-radius: var(--radius-md);
     font-size: var(--text-xs);
@@ -330,7 +330,7 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    min-height: var(--inspector-control-size);
+    min-height: var(--control-size);
   }
 
   .monitor-panel .monitor-metric-value > svg {
@@ -383,7 +383,7 @@
      그대로 둔다 — `.fieldset-actions` 가 `grid-area: icon` 으로 마지막 칸을 잡는다
      (ADR-163 §3 "columns 토큰 + 고유 grid-template-areas 조합"). */
   .monitor-panel .section .component-memory-controls {
-    grid-template-columns: minmax(0, 1fr) var(--inspector-control-size);
+    grid-template-columns: minmax(0, 1fr) var(--control-size);
     grid-template-areas: "sort icon";
     align-items: end;
   }
@@ -521,7 +521,7 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: space-between;
-    min-height: var(--header-height);
+    min-height: var(--control-size-lg);
     border-bottom: 1px solid var(--border);
   }
 

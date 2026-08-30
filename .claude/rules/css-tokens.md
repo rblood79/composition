@@ -103,6 +103,45 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 - ✅ 강조는 **`--accent` 테두리** 또는 `background: var(--accent)` + `color: var(--fg-on-accent)` (`.list-item.applied` 가 이 어법). 무채색 chrome 이라 강조는 채도가 아니라 **명도**로 준다 — 테마에 따라 대비 방향이 뒤집히며 양쪽 다 성립한다.
 - 카드 내부 도형/아이콘에 `currentColor` 를 쓰려면 **그 요소에 `color` 를 직접 선언**해야 한다. `.list-item.applied` / `.selected` 가 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에, 상속에 맡기면 흰 선이 밝은 표면 위에 그려져 사라진다.
 
+## 빌더 chrome 기하 — 표면 1종 · 크기 2티어 (CRITICAL, 2026-08-30)
+
+색 토큰과 같은 규율이 **기하(표면·테두리·그림자·크기)** 에도 적용된다. 값을 규칙마다 손으로 쓰면 같은 요소가 자리마다 달라진다.
+
+### Chrome island (떠 있는 표면)
+
+좌/우 panel toggle rail · header viewport controls · header action group · contextual action bar · workspace panel frame 은 **하나의 디자인 요소**다. 정본: `builder-system.css` §Chrome island.
+
+| 토큰                       | 용도                                              |
+| -------------------------- | ------------------------------------------------- |
+| `--chrome-surface`         | 표면색 (지면 `--bg-overlay` 위의 raised)          |
+| `--chrome-border`          | `0` — **테두리 없음**. 분리는 그림자 단계로만     |
+| `--chrome-radius`          | 모서리                                            |
+| `--chrome-padding` / `-gap`| 안쪽 여백 · 항목 간격                             |
+| `--chrome-shadow`          | 고도 1 — 컨트롤 island                            |
+| `--chrome-shadow-floating` | 고도 2 — 자유 배치되는 panel frame                |
+
+- ❌ chrome 표면에 `--bg-raised` / `--shadow-sm` **직접 사용** — 다시 갈린다
+- ❌ chrome 에 `border` / `outline` 링 추가 (구 `--border-pressed` + placed outline = 링 2겹)
+- ❌ 표면색 3종 분기 (`--bg-muted` / `--bg-overlay` 혼용)
+- 게이트: `apps/builder/src/builder/styles/chromeIsland.static.test.ts`
+
+### 컨트롤 크기 — 2티어뿐
+
+| 토큰                | 값   | 대상                                                                          |
+| ------------------- | ---- | ----------------------------------------------------------------------------- |
+| `--control-size`    | 28px | 필드 · 탭 · 라벨 액션(`.control-button`) · 목록/트리 행 · 인라인 아이콘 버튼 · action bar 항목 |
+| `--control-size-lg` | 32px | chrome island 버튼 · `panel-header` · `section-header` 행 · SearchField        |
+
+**아이콘 전용 정사각 컨트롤의 기하 정본은 `styles/modules/builder-control-size.css` 한 파일**이다. 자리마다 크기를 바꿀 때는 `--icon-control-size` 만 다시 준다.
+
+- ❌ **`padding × 2 + 아이콘` 으로 크기 만들기** — 크기가 규칙의 결과가 아니라 부작용이 된다. 실제로 같은 `.iconButton` 이 자리마다 20 / 24 / 32px 이었다
+- ❌ 개별 규칙에서 `width` / `height` / `padding` 재선언 — 소유자는 기하 정본 파일 하나
+- ❌ 세 번째 크기 도입 (`--text-xl` 같은 타이포 토큰을 상자 크기로 전용하는 것 포함)
+- ❌ 자리 이름 토큰 부활 (`--inspector-control-size` / `--header-height`) — 이름이 자리를 가리키면 다른 자리의 컨트롤이 소비할 근거를 잃고, 그게 파생 크기가 생긴 경로다
+- 게이트: `apps/builder/src/builder/styles/controlSize.static.test.ts`
+
+**같은 선택자를 두 파일이 쓰지 않는다.** specificity 가 같으면 `@layer` 안에서는 import 순서가 판정하므로, 기하 선언은 정본 파일에만 두고 나머지 파일은 색·상태만 소유한다.
+
 ## 금지된 M3 토큰
 
 ```

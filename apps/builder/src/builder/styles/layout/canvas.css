@@ -67,7 +67,7 @@
   /* Panel Header */
   .app :where(aside, .panel-workspace) .panel-header,
   .command-palette-modal .panel-header {
-    height: var(--header-height);
+    height: var(--control-size-lg);
     background-color: var(--bg-raised);
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -81,9 +81,9 @@
     flex-direction: row;
   }
 
+  /* 크기는 `styles/modules/builder-control-size.css` 의 lg 티어. */
   .panel-header .iconButton {
     border-width: 0px;
-    padding: var(--spacing-sm);
   }
 
   .panel-header .panel-title {

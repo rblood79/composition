@@ -105,16 +105,21 @@ describe("NavigatorPanel shared panel style contract", () => {
     );
 
     expect(css).toMatch(
-      /\.navigator-panel-content \.react-aria-TreeItem \{[^}]*min-height: var\(--inspector-control-size\);[^}]*border-radius: var\(--radius-md\);/s,
+      /\.navigator-panel-content \.react-aria-TreeItem \{[^}]*min-height: var\(--control-size\);[^}]*border-radius: var\(--radius-md\);/s,
     );
     expect(css).toMatch(
-      /\.elementItem \{[^}]*min-height: var\(--inspector-control-size\);[^}]*padding-inline: var\(--spacing\);[^}]*border-radius: var\(--radius-md\);/s,
+      /\.elementItem \{[^}]*min-height: var\(--control-size\);[^}]*padding-inline: var\(--spacing\);[^}]*border-radius: var\(--radius-md\);/s,
     );
     expect(css).toMatch(
-      /\.elementItemIndent \{[^}]*height: var\(--inspector-control-size\);/s,
+      /\.elementItemIndent \{[^}]*height: var\(--control-size\);/s,
     );
+    // 크기는 `styles/modules/builder-control-size.css` 의 기본 티어(28px)가 소유한다 —
+    // 구 `--text-xl` 고정(20px)은 티어 밖 세 번째 크기였다 (controlSize.static.test.ts).
     expect(css).toMatch(
-      /\.elementItemActions \.iconButton \{[^}]*width: var\(--text-xl\);[^}]*height: var\(--text-xl\);[^}]*padding: 0 var\(--spacing\);/s,
+      /\.elementItemActions \.iconButton \{[^}]*border-radius: var\(--radius-md\);/s,
+    );
+    expect(css).not.toMatch(
+      /\.elementItemActions \.iconButton \{[^}]*(width|height): var\(--text-xl\);/s,
     );
     expect(layerTreeSource).toContain("itemHeight={28}");
     expect(frameTreeSource).toContain("itemHeight={28}");

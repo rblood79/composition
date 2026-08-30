@@ -10,7 +10,7 @@
   .section {
     /* 인스펙터 3열 row 템플릿 SSOT (ADR-163 Phase 4-b — 구 9회 재선언 단일화).
        각 섹션 wrapper 는 이 토큰 + 고유 grid-template-areas 조합으로 배치. */
-    --inspector-row-columns: 1fr 1fr var(--inspector-control-size);
+    --inspector-row-columns: 1fr 1fr var(--control-size);
 
     /* Styles Panel - Section-specific layouts */
     &[data-section-id="layout"] .section-content {

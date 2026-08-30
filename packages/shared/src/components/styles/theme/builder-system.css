@@ -22,9 +22,28 @@
     --sizes-inspectorWidth: 320px;
     --sidebar-width: 240px;
 
-    /* Inspector control sizes */
-    --header-height: 32px;
-    --inspector-control-size: calc(var(--text-2xl) + var(--spacing));
+    /* ===== Control size — 2 티어 정본 (2026-08-30) =====
+     * 빌더의 모든 컨트롤 높이는 이 둘 중 하나다. 세 번째 크기를 만들지 않는다.
+     *
+     *   --control-size     28px  필드 · 탭 · 라벨 액션(.control-button) ·
+     *                            목록/트리 행 · 인라인 아이콘 버튼 · action bar 항목
+     *   --control-size-lg  32px  chrome island 버튼(rail / viewport / header) ·
+     *                            panel-header · section-header 행 · SearchField
+     *
+     * 두 티어는 같은 공식에서 나온다 — 본문 격자(--text-2xl 24px)에 여백 한 단계를
+     * 더한 값이라, 루트 글꼴이 커져도 격자와 함께 움직인다.
+     *
+     * Why 2-티어인가 (실측 2026-08-30): 이전 이름은 `--inspector-control-size` /
+     * `--header-height` 로 **쓰이는 자리**를 가리켰다. 그래서 chrome island 과 목록 행
+     * 아이콘 버튼은 자기 자리를 가리키는 이름이 없다고 보고 크기를 아예 선언하지 않은 채
+     * `padding × 2 + 아이콘` 파생에 맡겼다 — 같은 `.iconButton` 이 자리마다 20 / 24 /
+     * 32px 이 됐다. 이름을 **역할(크기 티어)** 로 바꾸면 모든 컨트롤이 소비할 근거가 생긴다.
+     *
+     * 규칙: 아이콘 전용 정사각 컨트롤은 **크기를 선언한다** — padding 파생 금지.
+     * 정본 규칙과 게이트: `apps/builder/src/builder/styles/modules/builder-control-size.css`
+     */
+    --control-size: calc(var(--text-2xl) + var(--spacing));
+    --control-size-lg: calc(var(--text-2xl) + var(--spacing-sm));
     --inspector-label-width: calc(var(--text-2xl) + var(--spacing));
 
     /* Builder Save Button (using primary blue) */
@@ -111,6 +130,30 @@
      * 않는다 — 두 도구를 오가는 사용자에게 같은 색이어야 같은 의미로 읽힌다. */
     --editing-semantics-origin: #d480ff;
     --editing-semantics-instance: #9580ff;
+
+    /* ===== Chrome island (2026-08-30) =====
+     * 캔버스 위에 떠 있는 빌더 chrome 표면의 정본. 소비처는 좌/우 panel toggle
+     * rail · header viewport controls · header action group · contextual action
+     * bar · workspace panel frame 다섯이고, 전부 같은 디자인 요소로 읽혀야 한다.
+     *
+     * Why: 다섯이 각자 손으로 값을 썼다 — 표면색 3종(--bg-raised / --bg-muted /
+     * --bg-overlay), 테두리 3종(없음 / --border / --border-pressed + placed 상태의
+     * outline 이중 링), padding 은 토큰과 4px 하드코드가 섞였다. 같은 요소가 위치마다
+     * 다르게 보였다.
+     *
+     * 확정 어법: **테두리 없음, 분리는 그림자 단계로만**. 지면(--bg-overlay) 위에
+     * raised 표면이 뜨고, 고도만 두 단계다 — 컨트롤 island 는 sm, 자유 배치되는
+     * panel frame 은 lg. 이 두 값 밖의 표면색/테두리를 chrome 에 새로 도입하지 않는다.
+     *
+     * 값이 아니라 이름을 소비할 것: 소비처는 --bg-raised / --shadow-sm 을 직접
+     * 쓰지 말고 아래 이름을 읽는다. 그래야 다음 조정이 이 블록 한 곳에서 끝난다. */
+    --chrome-surface: var(--bg-raised);
+    --chrome-border: 0;
+    --chrome-radius: var(--radius-lg);
+    --chrome-padding: var(--spacing-xs);
+    --chrome-gap: var(--spacing-xs);
+    --chrome-shadow: var(--shadow-sm);
+    --chrome-shadow-floating: var(--shadow-lg);
   }
 
   /* portal 로 나간 overlay 의 글자 크기 기준.

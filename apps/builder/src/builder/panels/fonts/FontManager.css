@@ -115,8 +115,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--inspector-control-size);
-    height: var(--inspector-control-size);
+    width: var(--control-size);
+    height: var(--control-size);
     padding: 0;
     border: none;
     border-radius: var(--radius-sm);

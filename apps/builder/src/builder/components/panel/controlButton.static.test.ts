@@ -10,7 +10,7 @@ import { resolve, relative } from "node:path";
  *
  * **왜 가드가 필요한가**: 통일 직전 실측에서 라벨 액션 버튼이 25개 클래스 / 47개 호출부에
  * 흩어져 각자 chrome 을 정의했고, 높이가 22·26·28·32·34·36·38px 로 갈려 패널 필드 격자
- * (`--inspector-control-size` 28px)에서 버튼만 튀어나왔다. 같은 "추가" 액션 6종의 배경 4종·
+ * (`--control-size` 28px)에서 버튼만 튀어나왔다. 같은 "추가" 액션 6종의 배경 4종·
  * radius 2종·글자 2종·글자색 3종이 전부 달랐고 `focus-visible` 은 29개 중 24개에 없었다.
  * 새 패널이 또 로컬 버튼 클래스를 만들면 같은 곳으로 되돌아간다.
  *
@@ -110,7 +110,7 @@ describe("라벨 액션 버튼 정본 (.control-button)", () => {
       source.indexOf("  .control-button {"),
       source.indexOf("  .control-button > svg"),
     );
-    expect(block).toContain("height: var(--inspector-control-size)");
+    expect(block).toContain("height: var(--control-size)");
   });
 
   it("은퇴한 로컬 버튼 클래스가 되살아나지 않는다", async () => {

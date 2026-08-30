@@ -290,7 +290,8 @@
 }
 
 .list-item-actions .iconButton {
-  padding: var(--spacing-xs);
+  /* 크기는 `styles/modules/builder-control-size.css` 의 기본 티어(28px).
+     구 `padding: var(--spacing-xs)` 파생(24px)은 제거됐다. */
   border: none;
   background: transparent;
   border-radius: var(--radius-sm);

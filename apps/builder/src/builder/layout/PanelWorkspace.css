@@ -172,10 +172,14 @@
     margin: 0;
     overflow: visible;
     color: var(--fg);
-    background: var(--bg-overlay);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-pressed);
-    box-shadow: var(--shadow-lg);
+    /* chrome island 정본 (`builder-system.css` §Chrome island). 자유 배치되는
+     * 표면이라 그림자만 한 단계 위(floating)를 쓰고, 표면색·테두리는 rail /
+     * viewport controls / action bar 와 같다. 구 `--bg-overlay` +
+     * `1px solid var(--border-pressed)` 는 그 셋과 갈린 값이었다. */
+    background: var(--chrome-surface);
+    border-radius: var(--chrome-radius);
+    border: var(--chrome-border);
+    box-shadow: var(--chrome-shadow-floating);
     opacity: 1;
     transform: none;
     transition:
@@ -187,10 +191,6 @@
 
   .panel-workspace .workspace-panel-frame[data-mode="hidden"] {
     display: none;
-  }
-
-  .panel-workspace .workspace-panel-frame[data-mode="placed"] {
-    outline: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   }
 
   .panel-workspace .workspace-panel-frame[data-dragging="true"] {
@@ -207,7 +207,7 @@
     height: 14px;
     padding: 4px 0 6px;
     color: var(--fg-muted);
-    background: var(--bg-raised);
+    background: var(--chrome-surface);
     border: 0;
     cursor: grab;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
