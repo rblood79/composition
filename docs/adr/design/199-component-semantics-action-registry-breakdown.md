@@ -16,7 +16,7 @@
 
 ---
 
-## 2. Phase 0 — inventory freeze (착수 전 필수)
+## 2. Phase 0 — inventory freeze (착수 전 필수) ✅ Implemented 2026-08-30
 
 현행 4개 표면의 **항목 · 라벨 · 가용성 조건 · 순서**를 표로 고정한다. 이 표가 이관 후 동일성 판정의 기준선이다.
 
@@ -27,7 +27,7 @@
 | `toggle-component-origin` | 라벨, `Create/Detach component` | `컴포넌트 만들기/분리 / Create…`  | allowlist 3번 (2026-08-30 편입) | `⌘⌥K` · agent `toggleComponentOrigin` |
 | `select-instances`        | 아이콘, `Select instances (N)`  | **없음**                          | **없음**                        | —                                     |
 
-freeze 산출물: `docs/adr/evidence/199-surface-inventory.md` (표 + 각 항목의 현행 파일/라인 인용).
+freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199-surface-inventory.md) (4표면 매트릭스 · 순서/라벨/가용성 · 4상태 × 3표면 G2 대조표 · 수치 기준선). **freeze 로 새로 드러난 발산 3건** — D1 메뉴 순서가 패널·바와 반대 (의도적 통일 대상, HC5 예외), D3 원본 없는 인스턴스에서 패널은 비활성·메뉴는 미노출 (보존), D4 `detach-instance` 만 메뉴에서 다중 선택을 받음 (`selectedElements.find` — descriptor 는 단일 노드 계약, 다중 경로는 표면 필터로 보존).
 
 ### 2-1. 현행 중복 실측 (2026-08-30)
 

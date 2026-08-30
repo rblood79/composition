@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-30
+Accepted — 2026-08-30 (리뷰 round 1 승인 — 이슈 4건 전부 `fixed`: [reviews/199.md](reviews/199.md))
 
 ## Context
 
