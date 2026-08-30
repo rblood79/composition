@@ -104,6 +104,10 @@ describe("LayerTreeItemContent editing semantics marker", () => {
         element: {
           id: "instance",
           type: "ref",
+          // ADR-199 Phase 4 — 인스턴스 축은 `ref`/`masterId`/`componentRole` 로만
+          // 판정한다 (`type` 은 사영마다 값이 달라진다). `ref` 없는 `type:"ref"`
+          // 는 실제로 만들어지지 않는 모양이다 (RefNode.ref 는 스키마 required).
+          ref: "origin",
           props: {},
         },
       }),

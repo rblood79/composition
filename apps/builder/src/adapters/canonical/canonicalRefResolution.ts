@@ -185,7 +185,7 @@ export function resolveCanonicalRefElement<
     overrides: _overrides,
     props: _props,
     ref: _ref,
-    reusable: _reusable,
+    reusable: ownReusable,
     type: _type,
     ...refFieldOverrides
   } = node as T & CanonicalRefFields & LegacyElementMirrorFields;
@@ -232,7 +232,12 @@ export function resolveCanonicalRefElement<
     ref,
     name: node.name ?? master.name,
     componentName: node.componentName ?? master.componentName,
-    reusable: undefined,
+    // 원본의 `reusable` 은 넘기지 않되 (모든 인스턴스가 원본으로 읽히면 안 된다)
+    // 인스턴스 **자신의** 승격은 보존한다 — ADR-199 R7. 통째로 지우면 dual
+    // 노드(ref + 자기 reusable)가 캔버스 표면에서 원본으로 안 읽혀 "컴포넌트
+    // 만들기" 라는 no-op 진입점이 뜬다 (패널은 canonical 을 직접 읽어 정상,
+    // 두 표면이 같은 노드에 반대 라벨을 띄웠다 — 2026-08-30 live 실측).
+    reusable: ownReusable === true ? true : undefined,
   } as T;
 }
 

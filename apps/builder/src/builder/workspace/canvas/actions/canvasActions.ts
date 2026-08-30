@@ -15,6 +15,7 @@ import { alignElements } from "../../../stores/utils/elementAlignment";
 import type { AlignmentType } from "../../../stores/utils/elementAlignment";
 import { distributeElements } from "../../../stores/utils/elementDistribution";
 import type { DistributionType } from "../../../stores/utils/elementDistribution";
+import type { EditingSemanticsTarget } from "@/adapters/canonical/editingSemantics";
 import {
   trackGroupCreation,
   trackMultiPaste,
@@ -26,7 +27,16 @@ type CanvasActionStoreElement = NonNullable<
   ReturnType<CanvasActionElementsMap["get"]>
 >;
 
-export interface CanvasActionElement {
+/**
+ * 캔버스 액션 계층이 읽는 element.
+ *
+ * 시맨틱 축 필드는 `EditingSemanticsTarget` 을 그대로 합친다 — 구조상 이미
+ * 통과하던 것을 **타입으로 고정**해, 사영이 그 필드를 떨어뜨리면 여기서
+ * 먼저 걸리게 한다 (ADR-199 R7 — 해소가 인스턴스 자신의 `reusable` 을 지워
+ * 캔버스 메뉴만 반대 라벨을 띄웠다). 필드 이름은 어댑터 타입이 소유한다
+ * (ADR-116 G5 — legacy mirror 필드명은 `adapters/canonical/**` 안에서만).
+ */
+export type CanvasActionElement = {
   id: string;
   type: string;
   props: Record<string, unknown>;
@@ -37,7 +47,7 @@ export interface CanvasActionElement {
   customId?: string | null;
   componentName?: string | null;
   deleted?: boolean;
-}
+} & Partial<Omit<EditingSemanticsTarget, "id">>;
 
 export interface CanvasActionContext {
   elementsMap: ReadonlyMap<string, CanvasActionElement>;

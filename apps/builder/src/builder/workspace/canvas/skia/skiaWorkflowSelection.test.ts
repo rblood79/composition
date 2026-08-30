@@ -93,7 +93,12 @@ describe("buildSelectionRenderData editing semantics", () => {
       1,
       new Map([["instance", { x: 0, y: 0, width: 80, height: 32 }]]),
       makeSelection(["instance"]),
-      new Map([["instance", makeElement("instance", { type: "ref" })]]),
+      // ADR-199 Phase 4 — `type` 은 사영마다 값이 달라 술어가 읽지 않는다.
+      // `ref` 없는 `type:"ref"` 는 실제로 만들어지지 않는 모양이다 (RefNode.ref 는
+      // 스키마 required, 생성 지점 7곳 전부 함께 쓴다).
+      new Map([
+        ["instance", makeElement("instance", { type: "ref", ref: "origin" } as never)],
+      ]),
     );
 
     expect(result.semanticRole).toBe("instance");

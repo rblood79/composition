@@ -100,15 +100,39 @@ freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199
 
 ---
 
-## 6. Phase 4 — 투영 불변식
+## 6. Phase 4 — 투영 불변식 ✅ Implemented 2026-08-30
 
-1. **잔존 `type` 참조 제거 (착수 시점 1건)** — `isEditingSemanticsInstance` 의 `candidate.type === "ref"` disjunct (`adapters/canonical/editingSemantics.ts:47`). 2026-08-30 수리는 `canDetachInstance` 만 사영 불변 필드로 바꿨고 instance 축 술어는 그대로였다. 제거 순서: ⓐ `RefNode.ref: string` required 확인 완료 (`composition-document.types.ts:885`) → canonical 공간에서 잉여 ⓑ legacy `elementsMap` / mirror 경로에 `type:"ref"` + `ref` 부재 노드가 없음을 grep + `editingSemantics.test.ts` fixture 로 확인 ⓒ 확인 후 제거, 미확인이면 제거 대신 사유를 allowlist 에 등재.
-2. 정적 게이트 `editingSemanticsProjection.static.test.ts`:
-   - `editingSemantics.ts` 소스에서 `candidate.type` / `.type ===` 참조 0건 (allowlist 주석 필요 시 사유 명시).
-   - 술어 4종(`isEditingSemanticsInstance` / `isEditingSemanticsOrigin` / `canDetachInstance` / `getEditingSemanticsOriginId`) 에 대해 **사영 3종 fixture** (canonical node · 캔버스 interactionNodesMap 파생 · legacy elementsMap) 로 같은 결과를 반환하는 표 테스트.
-3. **사영이 4필드를 싣는지** 확인/수리 (R7) — `renderers/rendererInput.ts:476` · `skia/StoreRenderBridge.ts:242-281`. 그리고 `CanvasActionElement` 타입에 `ref?` / `reusable?` / `componentRole?` / `masterId?` 를 명시 (현재 구조적으로 통과할 뿐 타입에 없음 — 계약을 타입으로 고정).
+### 6-1. 잔존 `type` 참조 제거 (착수 시점 1건)
 
----
+`isEditingSemanticsInstance` 의 `candidate.type === "ref"` disjunct 제거 (`adapters/canonical/editingSemantics.ts:47`).
+
+안전성 확인 후 제거:
+
+- ⓐ `RefNode.ref: string` required (`packages/shared/src/types/composition-document.types.ts:885`) → canonical 공간에서 잉여.
+- ⓑ `type: "ref"` 를 만드는 비-테스트 지점 **7곳 전부** `ref` 를 함께 쓴다 (`storeBridge.ts:261` · `slotAndLayoutAdapter.ts:150` · `canonicalMutations.ts:776,971` · `pageFrameBinding.ts:308` · `FrameSlotSection.tsx:192` · `ComponentSlotFillSection.tsx:301`).
+- ⓒ 제거. 유일하게 걸린 것은 `skiaWorkflowSelection.test.ts` 의 `ref` 없는 `type:"ref"` fixture — 실제로 만들어지지 않는 모양이라 fixture 를 고쳤다.
+
+### 6-2. R7 수리 — 사영이 시맨틱 축을 싣게 한다
+
+원인은 `adapters/canonical/canonicalRefResolution.ts:235` 의 `reusable: undefined` 였다. 원본의 `reusable` 이 모든 인스턴스로 새는 것을 막으려던 것인데, **인스턴스 자신의** 승격까지 같이 지웠다. 그래서 자신이 원본으로 승격된 dual 노드에서 캔버스 메뉴만 "컴포넌트 만들기" (no-op) 를 띄웠다.
+
+수정: `reusable: ownReusable === true ? true : undefined` — 원본 축은 안 넘기고 자신의 축만 보존. synthetic **자식** 복제(`:682`)의 `reusable: undefined` 는 그대로 둔다 (복제된 자식은 원본이 아니다).
+
+RED → GREEN: `canonicalRefResolution.test.ts` 에 dual 노드 보존 + 원본 누수 없음 2단언 추가.
+
+### 6-3. 타입으로 고정
+
+`CanvasActionElement` 에 `Partial<Omit<EditingSemanticsTarget, "id">>` 를 합쳐, 사영이 시맨틱 축을 떨어뜨리면 타입에서 먼저 걸리게 했다. 필드 **이름**은 어댑터 타입이 소유한다 (ADR-116 G5).
+
+### 6-4. 정적 게이트
+
+`adapters/canonical/__tests__/editingSemanticsProjection.static.test.ts` (신규, 9건):
+
+- 술어 4종 본문에 `type` 참조 0건 (주석 제외).
+- `type` 을 읽는 함수는 **사유가 적힌 allowlist 안에만** — `hasEditingSlotMarker`(노드 종류 자체) · `getCanonicalOverrideFieldKeys`(키 제외용 구조 분해) · `getEditingSemanticsOverrideFields`/`Items`(Properties 패널 1곳만 소비, 입력이 canonical). 사유 길이까지 단언해 빈 사유로 늘리지 못한다.
+- **사영 3종 fixture** (canonical · `resolveCanonicalRefElement` 해소 결과 · legacy mirror) 가 술어 4종에 같은 답을 준다. dual 노드 케이스가 R7 회귀 방지선이다.
+
+**G3-b live (Chrome MCP)**: 같은 dual 노드에서 캔버스 우클릭 메뉴 `컴포넌트 분리 / Detach component` + 패널 `Detach component` — 두 표면이 같은 라벨. 수리 전에는 메뉴만 `컴포넌트 만들기` 였다.
 
 ## 7. Phase 5 — 정적 게이트 (표면 파생 동일성)
 
@@ -164,7 +188,7 @@ freeze 산출물: [`docs/adr/evidence/199-surface-inventory.md`](../evidence/199
 - [ ] 메뉴 이관 + live 확인 (우클릭 4상태)
 - [ ] 바 순서 파생 + `actionBarPolicy.test.ts` 갱신
 - [x] 실행/확인 경로 통합 + 라벨 fallback 통일
-- [ ] 잔존 `type` 참조 1건 제거 (안전성 ⓐⓑ 확인 후) + 투영 불변식 게이트 2종
+- [x] 잔존 `type` 참조 1건 제거 (안전성 ⓐⓑ 확인 후) + 투영 불변식 게이트 2종 + R7 수리
 - [ ] 표면 파생 동일성 게이트
 - [ ] CHANGELOG (사용자-가시 변화 있을 때만 — 항목 집합이 동일하면 면제)
 - [ ] `### Live Exercise` 절 작성 후 Implemented 승격

@@ -36,6 +36,36 @@ function makeElement(id: string, overrides: LegacyOverrides = {}): Element {
 }
 
 describe("canonicalRefResolution", () => {
+  // ADR-199 R7 (2026-08-30 live 실측) — 인스턴스를 컴포넌트로 승격한 dual 노드
+  // (`type:"ref"` + 자신의 `reusable:true`) 에서 캔버스 우클릭 메뉴가 "컴포넌트
+  // 만들기" 를 띄웠다. 이미 원본인 노드를 다시 원본으로 만드는 no-op 진입점이다.
+  // 원인은 해소가 원본의 `reusable` 누수를 막으려고 필드를 통째로 지운 것 —
+  // 인스턴스 **자신의** 축까지 같이 사라졌다.
+  it("keeps the instance's own reusable and never inherits the origin's", () => {
+    const origin = makeElement("origin", { type: "Button", reusable: true });
+    const plain = makeElement("plain", {
+      type: "ref",
+      ref: "origin",
+    } as never);
+    const promoted = makeElement("promoted", {
+      type: "ref",
+      ref: "origin",
+      reusable: true,
+    } as never);
+
+    const resolvedPlain = resolveCanonicalRefElement(plain, [origin, plain]);
+    const resolvedPromoted = resolveCanonicalRefElement(promoted, [
+      origin,
+      promoted,
+    ]);
+
+    // 원본의 축은 넘어오지 않는다 — 모든 인스턴스가 원본으로 보이면 안 된다
+    expect((resolvedPlain as { reusable?: boolean }).reusable).toBeUndefined();
+    // 자신이 승격된 노드는 두 축을 다 갖는다 (패널이 "Instance · Origin" 으로 읽는 상태)
+    expect((resolvedPromoted as { reusable?: boolean }).reusable).toBe(true);
+    expect(resolvedPromoted.type).toBe("Button");
+  });
+
   it("resolves a canonical ref root as the origin type with merged props", () => {
     const origin = makeElement("origin", {
       type: "Text",

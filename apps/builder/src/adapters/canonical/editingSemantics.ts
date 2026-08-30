@@ -43,8 +43,11 @@ export function isEditingSemanticsInstance(element: unknown): boolean {
   const candidate = asElementLike(element);
   if (!candidate) return false;
 
+  // `type` 은 읽지 않는다 (ADR-199 HC3) — 캔버스 사영은 type 을 렌더 컴포넌트로
+  // 해소하므로 같은 함수가 표면마다 다르게 답한다. `type:"ref"` 를 만드는 자리
+  // 7곳이 전부 `ref` 를 함께 쓰고 (`RefNode.ref` 는 스키마 required) 이 축은
+  // 아래 세 필드로 완전히 덮인다.
   return (
-    candidate.type === "ref" ||
     candidate.componentRole === "instance" ||
     typeof candidate.masterId === "string" ||
     typeof candidate.ref === "string"
