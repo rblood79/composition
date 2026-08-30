@@ -16,10 +16,10 @@ describe("CommandPalette panel shell contract", () => {
     expect(source).toContain("<ModalOverlay");
     expect(source).toContain('<Modal className="command-palette-modal">');
     expect(source).toMatch(
-      /<Dialog\s+aria-label="명령어 팔레트"\s+className="panel command-palette-panel"\s*>/,
+      /<Dialog\s+aria-label=\{t\("commandPalette\.dialogLabel"\)\}\s+className="panel command-palette-panel"\s*>/,
     );
     expect(source).toMatch(
-      /<PanelHeader\s+icon=\{<Command size=\{iconProps\.size\} \/>\}\s+title="명령어"/,
+      /<PanelHeader\s+icon=\{<Command size=\{iconProps\.size\} \/>\}\s+title=\{t\("commandPalette\.title"\)\}/,
     );
     // 헤더 우측 close 는 다른 패널과 같은 PanelHeader actions(.panel-actions) 경로
     expect(source).toMatch(
@@ -32,7 +32,7 @@ describe("CommandPalette panel shell contract", () => {
       'import { SearchField as BuilderSearchField } from "../ui/SearchField";',
     );
     expect(source).toMatch(
-      /<BuilderSearchField\s+ref=\{inputRef\}\s+appearance="control"[\s\S]*?aria-label="명령어 검색"\s*\/>/,
+      /<BuilderSearchField\s+ref=\{inputRef\}\s+appearance="control"[\s\S]*?aria-label=\{t\("commandPalette\.searchLabel"\)\}\s*\/>/,
     );
     expect(source).not.toContain('<div className="command-palette-search">');
     expect(source).not.toContain('className="command-palette-input"');

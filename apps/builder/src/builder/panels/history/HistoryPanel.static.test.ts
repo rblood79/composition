@@ -28,7 +28,7 @@ describe("HistoryPanel panel-system contract", () => {
 
   it("places undo and redo before snapshot actions in the panel header", async () => {
     const source = await readHistorySource("HistoryPanel.tsx");
-    const actionsIndex = source.indexOf('<Toolbar className="history-actions"');
+    const actionsIndex = source.indexOf('className="history-actions"');
     const undoIndex = source.indexOf(
       'aria-label={t("command.undo")}',
       actionsIndex,
