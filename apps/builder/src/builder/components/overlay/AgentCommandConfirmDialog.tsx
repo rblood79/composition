@@ -7,6 +7,8 @@
  * 하려는가" 를 보여 준다 (호출자·명령 id·되돌림 가능 여부).
  */
 import { useEffect, useState } from "react";
+import { SHORTCUT_DEFINITIONS } from "../../config/keyboardShortcuts";
+import { formatShortcut } from "../../hooks/useKeyboardShortcutsRegistry";
 import {
   Button,
   Dialog,
@@ -38,6 +40,10 @@ export function AgentCommandConfirmDialogHost() {
     if (!isOpen && request) resolveAgentCommandConfirmation(false);
   };
 
+  // 표기는 정의에서 파생한다 — 하드코딩하면 바인딩이 바뀔 때 조용히 어긋난다
+  // (ADR-182 후속에서 실제로 3건이 어긋나 있었다).
+  const undoLabel = formatShortcut(SHORTCUT_DEFINITIONS.undo);
+
   return (
     <ModalOverlay
       className="agent-confirm-overlay"
@@ -61,7 +67,7 @@ export function AgentCommandConfirmDialogHost() {
             <p className="agent-confirm-meta" data-testid="agent-confirm-meta">
               {request?.id} · {request?.mutation} ·{" "}
               {request?.undo === "history"
-                ? "실행 후 되돌리기(⌘Z) 1회로 복원"
+                ? `실행 후 되돌리기(${undoLabel}) 1회로 복원`
                 : "되돌릴 수 없음"}
             </p>
           </div>

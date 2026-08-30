@@ -40,6 +40,14 @@ const EXCLUDE_PATTERNS: readonly RegExp[] = [
   // ADR-112 dev-only evidence fixture intentionally preserves raw marker fields
   // (`reusable`, `ref`, `slot`) that are not legacy mirror persistence writes.
   /\/apps\/builder\/src\/builder\/dev\/editingSemanticsFixture\.ts$/,
+  // ADR-117 G5 baseline seeding fixture — 같은 dev-only 범주.
+  // `import.meta.env.DEV` + `?benchmark=path-heavy-117` 에서만 실행되고
+  // (`BuilderCore.tsx:590`) production 번들에서는 떨어져 나간다. 그리고 이
+  // `setElements` 는 wrapper 우회가 아니라 **방금 세운 canonical 문서에서**
+  // legacy mirror 를 파생시키는 호출이다 (바로 위에서 `setDocument` →
+  // `getCanonicalDocumentElementsView(document)`), 즉 게이트가 지키려는
+  // SSOT 방향과 같은 방향이다.
+  /\/apps\/builder\/src\/builder\/dev\/pathHeavy117Fixture\.ts$/,
 ];
 
 const VIOLATION_PATTERN =

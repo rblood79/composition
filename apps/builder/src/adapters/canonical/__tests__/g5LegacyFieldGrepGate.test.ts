@@ -93,6 +93,13 @@ const EXCLUDE_PATH_PATTERNS: readonly RegExp[] = [
   // "죽은 분기" 로 보고 제거했다가 해당 테스트가 즉시 잡아냈다 — mirror 필드는 계산된 키로
   // 쓰여서 `componentRole:` 리터럴 grep 에 안 걸린다.
   /\/apps\/builder\/src\/resolvers\/canonical\/storeBridge\.ts$/,
+  // i18n 문자열 표 — 매치되는 것은 legacy 필드 접근이 아니라 **번역 키**다
+  // (`Overrides: "properties.overrides"` 의 키 문자열이 `\.overrides` 에 걸린다).
+  // 이 디렉터리는 `labels.ts`(UI 텍스트→키) · `translations.ts`(키→텍스트) 같은
+  // 순수 문자열 맵이라 element/store 접근이 0건이다 (2026-08-30 실측:
+  // `elementsMap`/`useStore`/`element.`/`canonical` grep 전부 0). 키 이름을
+  // 바꾸는 것은 규칙의 뜻과 무관한 회피라 경로로 제외한다.
+  /\/apps\/builder\/src\/i18n\//,
 ];
 
 /** design §9.3 첫번째 grep 의 5 필드 (legacy field name) */

@@ -5,6 +5,8 @@
  * (거부·전제 미충족·승인 거부도 보여야 무엇이 일어나지 **않았는지** 알 수 있다).
  * 세션 메모리라 새로고침하면 비는 것이 정상 (R5).
  */
+import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
+import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { useAgentCommandLogStore } from "../../../stores/agentCommandLog";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -23,6 +25,10 @@ export function AgentCommandLogList() {
 
   const recent = entries.slice(-RECENT_LIMIT).reverse();
 
+  // 표기는 정의에서 파생한다 — 하드코딩하면 바인딩이 바뀔 때 조용히 어긋난다
+  // (ADR-182 후속에서 실제로 3건이 어긋나 있었다).
+  const undoLabel = formatShortcut(SHORTCUT_DEFINITIONS.undo);
+
   return (
     <section aria-label="agent 가 실행한 명령" className="ai-command-log">
       <h3 className="ai-command-log-title">
@@ -39,7 +45,7 @@ export function AgentCommandLogList() {
             <span className="ai-command-log-status">
               {STATUS_LABEL[entry.status] ?? entry.status}
               {entry.reason ? ` · ${entry.reason}` : ""}
-              {entry.undoable ? " · ⌘Z 로 복원" : ""}
+              {entry.undoable ? ` · ${undoLabel} 로 복원` : ""}
             </span>
           </li>
         ))}
