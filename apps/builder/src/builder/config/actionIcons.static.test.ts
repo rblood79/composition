@@ -89,6 +89,13 @@ const INTENTIONAL_DIVERGENCE: ReadonlyArray<{
       "어포던스가 아니라 마케팅 표면의 그래픽이다. 제품 크롬 규칙 대상 밖.",
   },
   {
+    file: "builder/config/propertyFieldIcons.ts",
+    symbols: ["Focus"],
+    reason:
+      "`autoFocus` prop 필드 아이콘 — 포커스를 받는 속성을 가리키는 그림이고, " +
+      "원본으로 이동하는 액션(goToOrigin)이 아니다. 심볼만 겹친다.",
+  },
+  {
     file: "builder/components/property/PropertyNumberInput.tsx",
     symbols: ["Plus"],
     reason:

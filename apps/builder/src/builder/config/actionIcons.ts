@@ -8,18 +8,19 @@ import {
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
   AlignVerticalJustifyStart,
-  ArrowUpRight,
   ClipboardPaste,
   Component,
   Copy,
   CopyPlus,
+  DiamondMinus,
+  DiamondPlus,
+  Focus,
   Plus,
   Group,
   Magnet,
   RulerDimensionLine,
   Trash2,
   Ungroup,
-  Unlink,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import type { AlignmentType } from "../stores/utils/elementAlignment";
@@ -115,10 +116,24 @@ export const ACTION_ICONS = {
   ungroup: Ungroup,
 
   // ── 컴포넌트 (origin/instance) ────────────────────────
-  /** 컨텍스트 메뉴 · Properties 패널 Component 섹션 */
+  /**
+   * 컨텍스트 메뉴 · 선택 툴바 · Properties 패널 Component 섹션.
+   *
+   * 그림은 pencil 과 같은 lucide 심볼을 쓴다 (Pen.app 번들 실측 2026-08-30 —
+   * `focus` / `diamond-plus` / `diamond-minus`). 같은 개념을 두 앱이 다른
+   * 그림으로 부르면 pencil 에서 온 사용자가 매번 다시 배운다.
+   *
+   * `detach` 하나가 **인스턴스 분리와 컴포넌트 해제 양쪽**을 가리킨다 — pencil
+   * 도 두 액션에 같은 `diamond-minus` 를 쓴다 (붙은 것을 떼는 같은 동작).
+   * 둘이 한 줄에 함께 서는 조합 (인스턴스이면서 원본) 에서는 컴포넌트 축이
+   * 라벨을 유지해 구분이 유지된다 — Component 섹션 참조.
+   *
+   * `component` 는 액션이 아니라 **정체 표시**용 (섹션의 이름 칩) 이라 따로 둔다.
+   */
   component: Component,
-  goToOrigin: ArrowUpRight,
-  detach: Unlink,
+  goToOrigin: Focus,
+  createComponent: DiamondPlus,
+  detach: DiamondMinus,
 
   // ── 정렬·분배 ─────────────────────────────────────────
   /** 정렬 서브메뉴 자신을 가리키는 대표 아이콘 */

@@ -346,7 +346,14 @@ function buildElementMenuItems(
           await useStore.getState().toggleComponentOrigin(primaryElement.id);
         },
         "toggleComponentOrigin",
-        { icon: ACTION_ICONS.component },
+        // 생성/해제 양방향 토글이라 그림도 함께 뒤집는다 (pencil 과 같은
+        // `diamond-plus` / `diamond-minus`) — 라벨만 바뀌고 그림이 고정이면
+        // 어느 방향인지 아이콘이 말해 주지 않는다.
+        {
+          icon: isComponentOrigin
+            ? ACTION_ICONS.detach
+            : ACTION_ICONS.createComponent,
+        },
       ),
     );
 

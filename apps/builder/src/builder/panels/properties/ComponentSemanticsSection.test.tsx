@@ -259,6 +259,11 @@ describe("ComponentSemanticsSection", () => {
     expect(screen.getByText("Instance · Origin")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Go to component" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Detach instance" })).toBeTruthy();
+    // 인스턴스 0건이면 누를 것이 없는 dead 버튼이라 세우지 않는다 — 그 자리를
+    // 비워야 컴포넌트 축이 라벨을 유지한 채 한 줄에 선다.
+    expect(
+      screen.queryByRole("button", { name: /^Select instances/ }),
+    ).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Detach component" }));
 

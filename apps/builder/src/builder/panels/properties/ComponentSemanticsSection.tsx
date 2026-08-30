@@ -64,6 +64,7 @@ import type { PanelNode } from "../panelNode";
  */
 const ComponentIcon = ACTION_ICONS.component;
 const GoToOriginIcon = ACTION_ICONS.goToOrigin;
+const CreateComponentIcon = ACTION_ICONS.createComponent;
 const DetachIcon = ACTION_ICONS.detach;
 
 function resolveOriginElement(
@@ -138,6 +139,8 @@ export const ComponentSemanticsSection = memo(
     const componentAxisLabel = isOrigin
       ? "Detach component"
       : "Create component";
+    const iconOnlyComponentAxis =
+      isInstance && isOrigin && instanceIds.length > 0;
     const roleClass = role ?? "standard";
 
     if (!element) return null;
@@ -238,14 +241,16 @@ export const ComponentSemanticsSection = memo(
               )}
             </>
           )}
-          {isOrigin && (
+          {isOrigin && instanceIds.length > 0 && (
             /* 종전의 "Impacts N instances" 행은 이 액션이 흡수한다 — 같은 수를
                읽는 자리가 둘일 이유가 없다. 아이콘 전용이라 수는 툴팁/접근 이름이
-               나르고, 0건이면 비활성으로 남겨 "인스턴스가 아직 없다" 를 보인다. */
+               나른다. 0건이면 누를 것이 없는 dead 버튼이라 세우지 않는다 —
+               "인스턴스가 아직 없다" 는 정체 칩의 Origin 라벨이 이미 말하고,
+               자리를 비워야 인스턴스이면서 원본인 노드의 줄이 라벨을 유지한다
+               (아이콘 3개 + 라벨 = 235px > 폭 215px). */
             <button
               aria-label={`Select instances (${instanceIds.length})`}
               className="control-button component-semantics-icon-action"
-              disabled={instanceIds.length === 0}
               onClick={handleSelectInstances}
               title={`Select instances (${instanceIds.length})`}
               type="button"
@@ -254,13 +259,15 @@ export const ComponentSemanticsSection = memo(
             </button>
           )}
           {/* 컴포넌트 축은 인스턴스 축과 독립이라 인스턴스에도 함께 선다.
-              두 축이 겹치면 앞선 아이콘이 3개라 라벨까지 서면 235px — 폭 215px
-              한 줄을 넘긴다. pencil 도 이 줄을 한 줄로 유지하므로 그때만
-              아이콘 전용으로 좁힌다 (라벨은 툴팁/접근 이름이 계속 나른다). */}
+              앞에 아이콘이 3개 서는 조합 (인스턴스이면서 원본 + 인스턴스 보유)
+              만 라벨까지 235px 로 폭 215px 를 넘기므로 그때만 아이콘 전용으로
+              좁힌다 (라벨은 툴팁/접근 이름이 계속 나른다). 이 경우에만 분리
+              액션 둘이 같은 그림으로 나란히 서는데, pencil 도 두 액션에 같은
+              `diamond-minus` 를 쓴다. */}
           <button
             aria-label={componentAxisLabel}
             className={
-              isInstance && isOrigin
+              iconOnlyComponentAxis
                 ? "control-button component-semantics-icon-action"
                 : "control-button"
             }
@@ -268,8 +275,12 @@ export const ComponentSemanticsSection = memo(
             title={componentAxisLabel}
             type="button"
           >
-            <ComponentIcon aria-hidden="true" size={14} />
-            {isInstance && isOrigin ? null : componentAxisLabel}
+            {isOrigin ? (
+              <DetachIcon aria-hidden="true" size={14} />
+            ) : (
+              <CreateComponentIcon aria-hidden="true" size={14} />
+            )}
+            {iconOnlyComponentAxis ? null : componentAxisLabel}
           </button>
         </div>
 
