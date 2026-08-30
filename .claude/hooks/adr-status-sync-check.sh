@@ -163,7 +163,7 @@ $( [ -n "$LIVE_LIST" ] && printf 'Live Exercise 근거 없음 (CLAUDE.md §완�
 1. docs/adr/README.md — Implemented 섹션 행 이동 + 카운트 갱신
 2. docs/CHANGELOG.md — 새 엔트리 추가 (Section/Title/Why/Files 포맷)
    - 헤더 형식: ## [한글 제목 — 기술 요약] - YYYY-MM-DD
-   - 서브섹션 순서: Breaking Changes → Bug Fixes → Features → Architecture → Performance → Documentation → Infrastructure
+   - 서브섹션 이름: Added / Changed / Removed / Fixed / Performance / Tests / Documentation / Infrastructure (Breaking Changes 는 있으면 최상단)
    - 'Why:' 한 줄 포함 (단순 'X가 Y로 변경됨' 금지)
 3. Live Exercise — 다음 중 하나로 실제 builder 에서 무엇을 exercise 했는지 기록:
    - ADR 본문에 \`### Live Exercise\` 절 (시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분)

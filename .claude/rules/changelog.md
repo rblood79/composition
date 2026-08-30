@@ -14,12 +14,12 @@ paths:
 | 트리거                                       | 반영 범위                           | 타이밍                |
 | -------------------------------------------- | ----------------------------------- | --------------------- |
 | ADR Status `Accepted → Implemented` 승격     | 해당 ADR 전체 요약                  | Implemented 승격 커밋 |
-| 사용자-가시 버그 수정 (UI/렌더/입력/저장)    | Bug Fixes 섹션                      | 수정 커밋             |
-| 신규 컴포넌트 / 신규 prop / 신규 public API  | Features 섹션                       | 병합 커밋             |
-| 3개 이상 파일에 걸친 아키텍처 변경           | Architecture 섹션                   | 최종 Phase 커밋       |
+| 사용자-가시 버그 수정 (UI/렌더/입력/저장)    | Fixed 섹션                          | 수정 커밋             |
+| 신규 컴포넌트 / 신규 prop / 신규 public API  | Added 섹션                          | 병합 커밋             |
+| 3개 이상 파일에 걸친 아키텍처 변경           | Changed 섹션                        | 최종 Phase 커밋       |
 | BREAKING CHANGE (props 제거, 토큰명 변경 등) | Breaking Changes 섹션 (최상단 bold) | 변경 커밋             |
 | 성능 회귀 수정 (FPS / 번들 / 초기 로드)      | Performance 섹션                    | 측정 반영 커밋        |
-| Phase 다단계 작업 완결                       | Architecture 또는 Features          | Phase 최종 커밋       |
+| Phase 다단계 작업 완결                       | Changed 또는 Added                  | Phase 최종 커밋       |
 
 **단순 작업 면제** (CHANGELOG 반영 불필요): typo / 주석 수정 / 내부 변수명 리팩터 / 테스트만 추가 / 문서 오타 / agents.jsonl 통계 등 stats 파일 / `.claude/` hook 설정 튜닝.
 
@@ -51,17 +51,27 @@ git log --since="<위 날짜>" --oneline | wc -l
 - 날짜: ISO 8601 (`YYYY-MM-DD`), 커밋 날짜 기준 (author date, not commit date)
 - 버전 번호(`v1.2.3`) 사용 금지 — composition 은 SemVer 미적용, 주제 기반 엔트리
 
-### 서브섹션 순서 (고정)
+### 서브섹션
 
-1. `### Breaking Changes` (있을 때만, 최상단)
-2. `### Bug Fixes`
-3. `### Features`
-4. `### Architecture`
-5. `### Performance`
-6. `### Documentation`
-7. `### Infrastructure` (hook / CI / build)
+| 섹션                     | 담는 것                                     |
+| ------------------------ | ------------------------------------------- |
+| `### Breaking Changes`   | props 제거 / 토큰명 변경 등 — **있으면 최상단 (고정)** |
+| `### Added`              | 신규 기능 / 컴포넌트 / prop / public API    |
+| `### Changed`            | 동작·구조 변경, 아키텍처 전환, 판단 기록    |
+| `### Removed`            | 제거된 기능 / prop / 파일                   |
+| `### Fixed`              | 사용자-가시 버그 수정                       |
+| `### Performance`        | 측정값이 달라지는 변경                      |
+| `### Tests`              | 회귀 테스트 / 게이트 신설                   |
+| `### Documentation`      | 문서                                        |
+| `### Infrastructure`     | hook / CI / build                           |
 
-없는 섹션은 생략. 순서 섞지 않음.
+없는 섹션은 생략. **강제되는 순서는 `Breaking Changes` 최상단 하나뿐**이고, 나머지는 위 순서를 권장한다 — 엔트리마다 무게중심이 다르므로 (버그 중심 엔트리는 `Fixed` 를 먼저 두는 편이 읽기 낫다) 순서를 고정하지 않는다.
+
+**이름의 출처**: CHANGELOG.md 머리말이 선언한 대로 [Keep a Changelog 1.0.0](https://keepachangelog.com/en/1.0.0/) 의 원 규격 이름을 쓴다 (`Added / Changed / Deprecated / Removed / Fixed / Security`). `Performance` / `Tests` / `Documentation` / `Infrastructure` 는 composition 확장이다.
+
+**과거 엔트리는 다시 쓰지 않는다**: 2026-08-25 이전 엔트리는 구 확장 이름 (`Bug Fixes` / `Features` / `Architecture`) 을 쓴다. 그것이 그 시점의 규약이었으므로 개명하지 않는다 — CHANGELOG 는 기록이고, 사후 편집은 기록을 왜곡한다. 새 엔트리만 위 이름을 쓴다.
+
+> **왜 바뀌었나 (2026-08-31)**: 08-25 무렵부터 새 엔트리가 Keep a Changelog 원 규격으로 옮겨 갔고, 최근 25개 엔트리에서 원 규격 이름 45회 대 구 확장 이름 4회로 사실상 전환이 끝났다. 규칙만 구 목록에 머물러 있어 이 문서를 갱신한다. 구 목록으로 되돌리려면 ~40개 엔트리를 사후 개명해야 하고, 특히 `Changed` 는 구 목록에 대응어가 없어 아키텍처가 아닌 항목까지 `Architecture` 로 잘못 분류하게 된다.
 
 ### 항목 작성 규칙
 
@@ -71,7 +81,7 @@ git log --since="<위 날짜>" --oneline | wc -l
 - 근본 원인 있는 버그는 **"Why:"** 한 줄 포함 — 단순 "X 가 Y 로 변경됨" 금지
 
 ```markdown
-### Bug Fixes
+### Fixed
 
 - **Label 20/21px 정렬 불일치** (ADR-057 Phase 3):
   - ProgressBarValue/MeterValue/SliderOutput Spec `sizes` 에 `lineHeight` 미정의 → CanvasKit 기본값 사용
@@ -97,12 +107,13 @@ git log --since="<위 날짜>" --oneline | wc -l
 ## 6. 금지 패턴
 
 - ❌ ADR `Implemented` 승격 커밋에 CHANGELOG 반영 누락
-- ❌ BREAKING CHANGE 를 일반 `### Features` 에 섞어 기록 (별도 `### Breaking Changes` 필수)
+- ❌ 과거 엔트리의 섹션 이름을 새 규약으로 개명 (기록 사후 편집)
+- ❌ BREAKING CHANGE 를 일반 `### Added` / `### Changed` 에 섞어 기록 (별도 `### Breaking Changes` 필수)
 - ❌ 커밋 SHA / 커밋 메시지를 그대로 복붙 — 사용자 관점 요약으로 재작성
 - ❌ `v1.0.0` 같은 버전 헤더 (SemVer 미적용 프로젝트)
 - ❌ 14일 이상 drift 를 무시하고 새 엔트리만 추가 — 반드시 catch-up 블록 먼저
 - ❌ 아카이브 파일 (`CHANGELOG-YYYY-archived.md`) 재편집
-- ❌ 서브섹션 순서 섞기 (Breaking → Bug Fixes → Features → Architecture → Performance → Documentation → Infrastructure 고정)
+- ❌ `### Breaking Changes` 를 최상단이 아닌 곳에 두기 (나머지 섹션 순서는 권장일 뿐 강제 아님)
 - ❌ 변경 이유 ("Why:") 없는 버그 수정 항목
 - ❌ `docs/CHANGELOG.md` 가 500KB 넘어서도 아카이빙 미수행
 
