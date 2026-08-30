@@ -52,17 +52,30 @@ interface NodePictureEntry {
   lastUsed: number;
 }
 
+/** 드래그 중인 전체 subtree를 한 drawPicture로 재생하기 위한 단기 캐시. */
+interface DragSubtreePictureEntry {
+  streamRef: object;
+  registryVersion: number;
+  picture: SkPicture;
+  imageRefs: SkImage[] | null;
+  elementIds: ReadonlySet<string>;
+}
+
 /** GPU/WASM 메모리 보호 상한 (요소당 1 entry — LRU 퇴거) */
 const MAX_NODE_PICTURES = 1024;
 
 /** elementId → entry. LRU 순서는 `entry.lastUsed` 스탬프가 보유한다. */
 const cache = new Map<string, NodePictureEntry>();
 
+/** 활성 drag root 수만큼만 존재하며 drag 종료/stream 교체 시 전량 해제된다. */
+const dragSubtreeCache = new Map<string, DragSubtreePictureEntry>();
+
 /** 단조 증가 사용 시각 — LRU 비교 전용 */
 let useClock = 0;
 
 /** SkImage → 그 이미지를 참조하는 elementId 집합 (퇴거 시 동시 invalidate) */
 const imageIndex = new Map<SkImage, Set<string>>();
+const dragImageIndex = new Map<SkImage, Set<string>>();
 
 /** transition/animation tick 이 in-place mutate 중인 노드 — 캐시 대상 제외 */
 let volatileIds: ReadonlySet<string> | null = null;
@@ -161,6 +174,118 @@ export function storeNodePicture(
   syncMetricsSize();
 }
 
+/** 동일 command stream/revision에서 기록한 drag subtree picture 조회. */
+export function getCachedDragSubtreePicture(
+  elementId: string,
+  streamRef: object,
+  registryVersion: number,
+): SkPicture | null {
+  const entry = dragSubtreeCache.get(elementId);
+  if (
+    entry &&
+    entry.streamRef === streamRef &&
+    entry.registryVersion === registryVersion &&
+    !hasVolatileElement(entry.elementIds)
+  ) {
+    if (process.env.NODE_ENV === "development") {
+      getCacheMetrics("dragSubtreePicture").recordHit();
+    }
+    return entry.picture;
+  }
+  const missReason =
+    entry && hasVolatileElement(entry.elementIds) ? "volatile" : "revision";
+  if (entry) invalidateDragSubtreePicture(elementId);
+  if (process.env.NODE_ENV === "development") {
+    getCacheMetrics("dragSubtreePicture").recordMiss(
+      entry ? missReason : "cold",
+    );
+  }
+  return null;
+}
+
+/** drag subtree picture 저장 — 활성 root 수만큼만 유지한다. */
+export function storeDragSubtreePicture(
+  elementId: string,
+  streamRef: object,
+  registryVersion: number,
+  picture: SkPicture,
+  imageRefs: SkImage[] | null,
+  elementIds: ReadonlySet<string>,
+): void {
+  invalidateDragSubtreePicture(elementId);
+  dragSubtreeCache.set(elementId, {
+    streamRef,
+    registryVersion,
+    picture,
+    imageRefs,
+    elementIds,
+  });
+  if (imageRefs) {
+    for (const image of imageRefs) {
+      let ids = dragImageIndex.get(image);
+      if (!ids) {
+        ids = new Set();
+        dragImageIndex.set(image, ids);
+      }
+      ids.add(elementId);
+    }
+  }
+  syncMetricsSize();
+}
+
+function hasVolatileElement(elementIds: ReadonlySet<string>): boolean {
+  if (volatileIds) {
+    for (const elementId of volatileIds) {
+      if (elementIds.has(elementId)) return true;
+    }
+  }
+  if (presentationVolatileIds) {
+    for (const elementId of presentationVolatileIds) {
+      if (elementIds.has(elementId)) return true;
+    }
+  }
+  return false;
+}
+
+export function invalidateDragSubtreePicture(elementId: string): void {
+  const entry = dragSubtreeCache.get(elementId);
+  if (!entry) return;
+  scheduleWasmDisposal(entry.picture);
+  dragSubtreeCache.delete(elementId);
+  if (entry.imageRefs) {
+    for (const image of entry.imageRefs) {
+      const ids = dragImageIndex.get(image);
+      if (!ids) continue;
+      ids.delete(elementId);
+      if (ids.size === 0) dragImageIndex.delete(image);
+    }
+  }
+  syncMetricsSize();
+}
+
+export function clearDragSubtreePictureCache(): void {
+  for (const elementId of [...dragSubtreeCache.keys()]) {
+    invalidateDragSubtreePicture(elementId);
+  }
+}
+
+/** 새 drag plan과 무관한 root/revision picture를 즉시 retire한다. */
+export function prepareDragSubtreePictureCache(
+  streamRef: object,
+  registryVersion: number,
+  activeElementIds: ReadonlySet<string>,
+): void {
+  for (const [elementId, entry] of [...dragSubtreeCache]) {
+    if (
+      !activeElementIds.has(elementId) ||
+      entry.streamRef !== streamRef ||
+      entry.registryVersion !== registryVersion
+    ) {
+      invalidateDragSubtreePicture(elementId);
+    }
+  }
+}
+
 /** 단일 노드 entry 폐기 (Picture 해제 + image 역참조 정리) */
 export function invalidateNodePicture(elementId: string): void {
   const entry = cache.get(elementId);
@@ -176,10 +301,17 @@ export function invalidateNodePicture(elementId: string): void {
  */
 function invalidateNodePicturesByImage(image: SkImage): void {
   const ids = imageIndex.get(image);
-  if (!ids) return;
-  // invalidateNodePicture 가 imageIndex 를 정리하므로 복사본 순회
-  for (const id of [...ids]) {
-    invalidateNodePicture(id);
+  if (ids) {
+    // invalidateNodePicture 가 imageIndex 를 정리하므로 복사본 순회
+    for (const id of [...ids]) {
+      invalidateNodePicture(id);
+    }
+  }
+  const dragIds = dragImageIndex.get(image);
+  if (dragIds) {
+    for (const id of [...dragIds]) {
+      invalidateDragSubtreePicture(id);
+    }
   }
 }
 
@@ -197,6 +329,8 @@ export function clearNodePictureCache(): void {
   }
   cache.clear();
   imageIndex.clear();
+  clearDragSubtreePictureCache();
+  dragImageIndex.clear();
   syncMetricsSize();
 }
 
@@ -258,6 +392,7 @@ function evictLeastRecentlyUsed(): void {
 function syncMetricsSize(): void {
   if (process.env.NODE_ENV === "development") {
     getCacheMetrics("nodePicture").setSize(cache.size);
+    getCacheMetrics("dragSubtreePicture").setSize(dragSubtreeCache.size);
   }
 }
 

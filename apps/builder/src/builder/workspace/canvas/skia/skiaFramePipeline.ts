@@ -44,6 +44,10 @@ import { recordWasmMetric } from "../utils/gpuProfilerCore";
 import { collectVisiblePageRoots } from "./visiblePageRoots";
 import { collectVisibleFrameRoots } from "./visibleFrameRoots";
 import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
+import {
+  buildDragPresentationNode,
+  buildDragPresentationPlan,
+} from "./dragPresentation";
 
 // ============================================
 // Content Build — 입력/출력 타입
@@ -113,6 +117,7 @@ export function buildSkiaFrameContent(
   const renderChildrenMap = result.childrenMap ?? rendererInput.childrenMap;
   const nodeBoundsMap = result.nodeBoundsMap;
   const contentNode = result.contentNode;
+  const dragPresentationNode = result.dragPresentationNode;
 
   return {
     sharedScene: buildSharedSceneDerivedData(
@@ -129,6 +134,7 @@ export function buildSkiaFrameContent(
     nodeBoundsMap,
     workflowElementBoundsMap: null, // workflow 단계에서 필요 시 빌드
     contentNode,
+    dragPresentationNode,
     hasAIEffects,
     empty: false,
   };
@@ -188,6 +194,7 @@ interface InternalBuildResult {
   childrenMap?: Map<string, CanvasSceneNode[]>;
   nodeBoundsMap: Map<string, AIEffectNodeBounds> | null;
   contentNode: SkiaRenderable;
+  dragPresentationNode: SkiaRenderable | null;
 }
 
 function buildViaCommandStream(
@@ -250,6 +257,10 @@ function buildViaCommandStream(
       baseCanonicalRevision: layoutVersion,
     },
   );
+  const dragPresentationPlan = buildDragPresentationPlan(
+    stream,
+    registryVersion,
+  );
 
   if (process.env.NODE_ENV === "development") {
     recordWasmMetric("skiaTreeBuildTime", performance.now() - treeBuildStart);
@@ -295,6 +306,9 @@ function buildViaCommandStream(
         stream.selfSpans,
         bodyPageIds,
         currentPagePositionSnapshot,
+        dragPresentationPlan
+          ? { end: dragPresentationPlan.backgroundCommandEnd }
+          : undefined,
       );
     },
     renderDamageSkia(canvas, bounds) {
@@ -310,6 +324,9 @@ function buildViaCommandStream(
       );
     },
   };
+  const dragPresentationNode = dragPresentationPlan
+    ? buildDragPresentationNode(ck, dragPresentationPlan, fontMgr, bodyPageIds)
+    : null;
 
   return {
     treeBoundsMap,
@@ -317,6 +334,7 @@ function buildViaCommandStream(
     childrenMap: commandChildrenMap,
     nodeBoundsMap,
     contentNode,
+    dragPresentationNode,
   };
 }
 

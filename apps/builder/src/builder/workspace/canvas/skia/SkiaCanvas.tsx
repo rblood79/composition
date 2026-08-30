@@ -36,7 +36,10 @@ import {
   tickPagePosStaleFrames,
 } from "./skiaTreeBuilder";
 import { tickAnimations, getInterpolatedOffsets } from "./dragAnimator";
-import { setDragSiblingOffsets } from "./nodeRendererTree";
+import {
+  getDragSiblingOffsetRevision,
+  setDragSiblingOffsets,
+} from "./nodeRendererTree";
 import { buildSkiaFrameContent } from "./skiaFramePipeline";
 import {
   invalidateCommandStreamCache,
@@ -226,6 +229,7 @@ export function SkiaCanvas({
     getPagePositionPresentationSnapshot().version,
   );
   const pageGuideRevisionRef = useRef(getPageGuideRevision());
+  const dragSiblingOffsetRevisionRef = useRef(getDragSiblingOffsetRevision());
 
   // Workflow/hover 캐시
   const invalidationPacketRef = useRef(invalidationPacket);
@@ -829,12 +833,17 @@ export function SkiaCanvas({
       // Drag animation
       const dropIndicator = dropIndicatorSnapshotRef?.current ?? null;
       if (dropIndicator) {
-        const stillAnimating = tickAnimations();
+        tickAnimations();
         const interpolated = getInterpolatedOffsets();
         setDragSiblingOffsets(interpolated.size > 0 ? interpolated : null);
-        if (stillAnimating) {
-          notifyLayoutChange();
-        }
+      }
+      const dragSiblingOffsetRevision = getDragSiblingOffsetRevision();
+      if (dragSiblingOffsetRevision !== dragSiblingOffsetRevisionRef.current) {
+        dragSiblingOffsetRevisionRef.current = dragSiblingOffsetRevision;
+        // sibling offset은 execute 시점의 presentation 값이다. registry/command
+        // stream은 유지하고, 이 값을 bake하는 content snapshot만 갱신한다.
+        renderer.invalidateContent();
+        recordInvalidation("content", "dragSiblingPresentation");
       }
 
       // Content build — Command Stream 경로
@@ -859,8 +868,13 @@ export function SkiaCanvas({
         return;
       }
 
-      const { sharedScene, nodeBoundsMap, hasAIEffects, contentNode } =
-        contentResult;
+      const {
+        sharedScene,
+        nodeBoundsMap,
+        hasAIEffects,
+        contentNode,
+        dragPresentationNode,
+      } = contentResult;
       const snapshot = createFrameInputSnapshot({
         registryVersion,
         pagePosVersion: documentPageFrameVersion,
@@ -880,6 +894,7 @@ export function SkiaCanvas({
           nodeBoundsMap,
           hasAIEffects,
           contentNode,
+          dragPresentationNode,
           allPageFrames: allPageFramesRef.current,
           visiblePageFrames:
             currentRendererInput.editMode === "layout"

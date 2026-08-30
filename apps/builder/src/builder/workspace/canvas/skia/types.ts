@@ -415,6 +415,8 @@ export interface ContentBuildResult {
   > | null;
   /** 렌더러에 설정할 content node */
   contentNode: SkiaRenderable;
+  /** drag target subtree를 retained picture로 재생하는 presentation node */
+  dragPresentationNode: SkiaRenderable | null;
   /** AI 이펙트 활성 여부 */
   hasAIEffects: boolean;
   /** 빈 트리 여부 (빈 경우 렌더링 스킵) */

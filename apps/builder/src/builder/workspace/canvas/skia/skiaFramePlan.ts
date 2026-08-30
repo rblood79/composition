@@ -66,6 +66,7 @@ export interface BuildFrameRenderPlanInput {
   nodeBoundsMap: Map<string, AIEffectNodeBounds> | null;
   hasAIEffects: boolean;
   contentNode: SkiaRenderable;
+  dragPresentationNode?: SkiaRenderable | null;
   elementsMap: Map<string, CanvasSceneNode>;
   invalidationPacket: RendererInvalidationPacket;
   allPageFrames?: Array<{
@@ -116,6 +117,7 @@ export function buildFrameRenderPlan(
     nodeBoundsMap,
     hasAIEffects,
     contentNode,
+    dragPresentationNode,
     elementsMap,
     invalidationPacket,
     allPageFrames,
@@ -161,7 +163,7 @@ export function buildFrameRenderPlan(
       })
     : null;
 
-  const overlayNode = buildOverlayNode({
+  const chromeOverlayNode = buildOverlayNode({
     ck,
     fontMgr,
     treeBoundsMap: sharedScene.treeBoundsMap,
@@ -191,6 +193,15 @@ export function buildFrameRenderPlan(
     skiaCanvasHeight,
     dpr,
   });
+  const overlayNode: SkiaRenderable = dragPresentationNode
+    ? {
+        renderSkia(canvas, bounds) {
+          // Dragged content는 정적 content snapshot 위, selection/drop chrome 아래.
+          dragPresentationNode.renderSkia(canvas, bounds);
+          chromeOverlayNode.renderSkia(canvas, bounds);
+        },
+      }
+    : chromeOverlayNode;
 
   return {
     sharedScene,

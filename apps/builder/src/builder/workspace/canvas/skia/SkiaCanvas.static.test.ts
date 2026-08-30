@@ -47,6 +47,22 @@ describe("SkiaCanvas render invalidation contract", () => {
     );
   });
 
+  it("sibling drag animation은 registry가 아닌 content presentation만 갱신한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "SkiaCanvas.tsx"),
+      "utf-8",
+    );
+    const start = source.indexOf("// Drag animation");
+    const end = source.indexOf("// Content build", start);
+    const dragAnimationBlock = source.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(dragAnimationBlock).toContain("getDragSiblingOffsetRevision()");
+    expect(dragAnimationBlock).toContain("renderer.invalidateContent()");
+    expect(dragAnimationBlock).not.toContain("notifyLayoutChange()");
+  });
+
   it("publishes the exact camera/page snapshot from the Skia render frame", async () => {
     const source = await readFile(
       resolve(__dirname, "SkiaCanvas.tsx"),

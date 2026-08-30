@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Image as SkImage, SkPicture } from "canvaskit-wasm";
 
 /**
  * imageCache LRU 퇴거 계약.
@@ -61,6 +62,8 @@ const {
 } = await import("./imageCache");
 const { drainPendingWasmDisposals, getPendingWasmDisposalCount } =
   await import("./deferredDisposal");
+const { clearNodePictureCache, storeDragSubtreePicture } =
+  await import("./nodePictureCache");
 
 /** MAX_CACHE_SIZE (모듈 내부 상수) 와 같은 값 */
 const MAX_CACHE_SIZE = 100;
@@ -89,6 +92,8 @@ describe("imageCache LRU 퇴거", () => {
   });
 
   afterEach(() => {
+    clearNodePictureCache();
+    drainPendingWasmDisposals();
     clearImageCache();
     vi.unstubAllGlobals();
   });
@@ -179,5 +184,37 @@ describe("imageCache LRU 퇴거", () => {
 
     drainPendingWasmDisposals();
     expect(evicted.delete).toHaveBeenCalledTimes(1);
+  });
+
+  it("drag subtree가 참조한 mask image는 Picture를 먼저 폐기한다", async () => {
+    await loadUrls(MAX_CACHE_SIZE);
+    const maskImage = getSkImage("https://example.test/0.png");
+    expect(maskImage).not.toBeNull();
+
+    const picture = { delete: vi.fn() };
+    storeDragSubtreePicture(
+      "drag-root",
+      {},
+      1,
+      picture as unknown as SkPicture,
+      [maskImage! as unknown as SkImage],
+      new Set(["drag-root"]),
+    );
+    releaseSkImage("https://example.test/0.png");
+    drainPendingWasmDisposals();
+
+    const evictedImage = createdImages[0];
+    await loadUrls(1, MAX_CACHE_SIZE);
+
+    expect(picture.delete).not.toHaveBeenCalled();
+    expect(evictedImage.delete).not.toHaveBeenCalled();
+    expect(getPendingWasmDisposalCount()).toBe(2);
+
+    drainPendingWasmDisposals();
+    expect(picture.delete).toHaveBeenCalledTimes(1);
+    expect(evictedImage.delete).toHaveBeenCalledTimes(1);
+    expect(picture.delete.mock.invocationCallOrder[0]).toBeLessThan(
+      evictedImage.delete.mock.invocationCallOrder[0]!,
+    );
   });
 });

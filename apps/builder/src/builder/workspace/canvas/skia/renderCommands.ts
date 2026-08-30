@@ -76,7 +76,7 @@ const CMD_DRAW = 1 as const;
 const CMD_CHILDREN_BEGIN = 2 as const;
 const CMD_CHILDREN_END = 3 as const;
 const CMD_ELEMENT_END = 4 as const;
-const DRAG_ELEMENT_ALPHA = 0.9;
+export const DRAG_ELEMENT_ALPHA = 0.9;
 
 /**
  * ADR-189 Phase 0/G0 read-only baseline metrics.
@@ -264,6 +264,24 @@ interface ElementEndCmd {
 
 export type RenderCommand =
   ElementBeginCmd | DrawCmd | ChildrenBeginCmd | ChildrenEndCmd | ElementEndCmd;
+
+/** retained drag picture 기록 등 command stream 부분 실행용 옵션. */
+export interface RenderCommandExecutionOptions {
+  /** 실행할 첫 command index. 기본값 0. */
+  start?: number;
+  /** 실행 종료 command index(exclusive). 기본값 commands.length. */
+  end?: number;
+  /**
+   * drag target 판정은 유지하되 delta/alpha를 고정한다.
+   * retained subtree picture는 origin 좌표/불투명 상태로 한 번 기록한 뒤,
+   * 실제 translate/alpha를 picture 바깥 presentation layer에서 적용한다.
+   */
+  dragPresentationOverride?: {
+    dx: number;
+    dy: number;
+    applyAlpha: boolean;
+  };
+}
 
 /**
  * 요소의 self-draw 블록 커맨드 구간 — [start, end).
@@ -2000,9 +2018,13 @@ export function executeRenderCommands(
   selfSpans?: ReadonlyMap<string, SelfSpan>,
   pageRootPageIds?: ReadonlyMap<string, string>,
   pagePositionSnapshot: PagePositionPresentationSnapshot = getPagePositionPresentationSnapshot(),
+  options: RenderCommandExecutionOptions = {},
 ): void {
+  const start = Math.max(0, options.start ?? 0);
+  const end = Math.min(commands.length, options.end ?? commands.length);
+  if (end <= start) return;
   if (process.env.NODE_ENV === "development") {
-    addCommandCount(commands.length);
+    addCommandCount(end - start);
   }
   const spans =
     selfSpans && selfSpans.size > 0 && isNodePictureCacheEnabled()
@@ -2014,13 +2036,14 @@ export function executeRenderCommands(
     ck,
     canvas,
     commands,
-    0,
-    commands.length,
+    start,
+    end,
     cullingBounds,
     fontMgr,
     spans,
     pageRootPageIds,
     pagePositionSnapshot,
+    options,
   );
 }
 
@@ -2041,6 +2064,7 @@ function executeCommandRange(
   selfSpans?: ReadonlyMap<string, SelfSpan>,
   pageRootPageIds?: ReadonlyMap<string, string>,
   pagePositionSnapshot?: PagePositionPresentationSnapshot,
+  options: RenderCommandExecutionOptions = {},
 ): void {
   const cullLeft = cullingBounds.x;
   const cullTop = cullingBounds.y;
@@ -2108,12 +2132,16 @@ function executeCommandRange(
               pagePositionSnapshot ?? getPagePositionPresentationSnapshot(),
             )
           : null;
+        const dragDx = options.dragPresentationOverride
+          ? options.dragPresentationOverride.dx
+          : (dragOff?.dx ?? 0);
+        const dragDy = options.dragPresentationOverride
+          ? options.dragPresentationOverride.dy
+          : (dragOff?.dy ?? 0);
         const dox =
-          (hasDragOffset ? dragOff.dx : (sibOff?.dx ?? 0)) +
-          (pageDelta?.dx ?? 0);
+          (hasDragOffset ? dragDx : (sibOff?.dx ?? 0)) + (pageDelta?.dx ?? 0);
         const doy =
-          (hasDragOffset ? dragOff.dy : (sibOff?.dy ?? 0)) +
-          (pageDelta?.dy ?? 0);
+          (hasDragOffset ? dragDy : (sibOff?.dy ?? 0)) + (pageDelta?.dy ?? 0);
 
         // AABB 컬링 (width/height=0 가상 컨테이너는 스킵)
         if (cmd.width > 0 || cmd.height > 0) {
@@ -2167,7 +2195,10 @@ function executeCommandRange(
         canvas.translate(cmd.x + dox, cmd.y + doy);
 
         // A-8: 드래그 중인 요소 반투명 처리
-        if (hasDragOffset) {
+        if (
+          hasDragOffset &&
+          (options.dragPresentationOverride?.applyAlpha ?? true)
+        ) {
           const alphaPaint = acquirePooledPaint(ck);
           alphaPaint.setAlphaf(DRAG_ELEMENT_ALPHA);
           canvas.saveLayer(alphaPaint);

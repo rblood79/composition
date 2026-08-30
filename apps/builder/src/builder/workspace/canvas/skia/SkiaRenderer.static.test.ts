@@ -34,4 +34,12 @@ describe("ADR-189 sparse damage rendering guards", () => {
     expect(syncPath).toContain("this.ck.BlendMode.Clear");
     expect(syncPath).toContain("canvas.drawImage(snapshot, 0, 0)");
   });
+
+  it("drag overlay present 중에도 content animation을 content frame으로 승격한다", async () => {
+    const source = await rendererSource();
+
+    expect(source).toContain(
+      '(frameType === "idle" || frameType === "present") &&',
+    );
+  });
 });

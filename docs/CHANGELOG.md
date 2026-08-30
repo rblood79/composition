@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컴포넌트 원본·인스턴스 드래그 응답성] - 2026-08-31
+
+### Fixed
+
+- **자식이 많은 컴포넌트 원본·인스턴스를 옮길 때 포인터보다 요소가 느리게 따라오던 문제**: 드래그 위치가 바뀔 때마다 전체 command stream과 Canvas content snapshot을 다시 만들던 경로를 분리했습니다. 드래그 시작에 정적 배경과 이동 subtree를 한 번 기록하고, 이동 중에는 retained picture의 translate만 갱신합니다. Flow 재배치의 sibling animation도 registry와 분리해 command stream과 이동 subtree를 유지합니다. 일반 요소와 컴포넌트 원본·인스턴스가 같은 presentation 경로를 사용하며, 드롭할 때 canonical 위치를 한 번 커밋하는 계약은 유지됩니다.
+
+### Tests
+
+- 같은 drag target의 pointer delta와 sibling animation이 registry invalidation을 반복하지 않는지, 대상 subtree picture가 delta 변화 사이에 다시 record되지 않는지, image mask eviction이 `Picture → Image` 순서로 안전하게 폐기되는지 회귀 테스트를 추가했습니다.
+
 ## [빌더 전체가 언어 설정을 따릅니다 — ADR-200 후속] - 2026-08-30
 
 ### Fixed

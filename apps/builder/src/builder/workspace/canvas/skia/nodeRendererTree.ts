@@ -28,6 +28,8 @@ const G = globalThis as unknown as {
     string,
     { dx: number; dy: number }
   > | null;
+  __composition_dragSiblingOffsetRevision?: number;
+  __composition_dragPresentationRetained?: boolean;
 };
 
 function _get(): DragVisualOffsetData | null {
@@ -52,6 +54,16 @@ export function getSiblingOffset(
   return G.__composition_dragSiblingOffsets?.get(elementId);
 }
 
+/** registry와 분리된 sibling presentation 세대. SkiaCanvas가 content snapshot만 갱신한다. */
+export function getDragSiblingOffsetRevision(): number {
+  return G.__composition_dragSiblingOffsetRevision ?? 0;
+}
+
+/** command tail 분리가 성립하지 않을 때 delta별 legacy invalidation으로 폴백한다. */
+export function setDragPresentationRetained(retained: boolean): void {
+  G.__composition_dragPresentationRetained = retained;
+}
+
 /**
  * 드래그 중인 요소(들)의 시각적 오프셋을 설정한다.
  * Store는 변경하지 않고, 렌더링 시점에만 canvas.translate로 적용.
@@ -60,7 +72,11 @@ export function getSiblingOffset(
  * 세션 동안 같은 Set 참조를 재사용할 것 (동등성 비교가 참조 우선). 단일
  * 대상은 string 그대로 받는다 (기존 호출/테스트 호환).
  *
- * @param skipInvalidation true면 notifyLayoutChange() 호출 스킵 (drop 시 store 갱신이 별도로 트리거)
+ * target 집합 변경은 command stream의 top-layer 구성을 바꾸므로 항상
+ * notifyLayoutChange() 한다. 같은 target의 dx/dy 변경은 render-time
+ * presentation 값만 바꾸며, SkiaCanvas의 drag overlay frame이 소비한다.
+ *
+ * @param skipInvalidation 하위 호환 인자. target topology 변경은 이 값과 무관하게 invalidate한다.
  */
 export function setDragVisualOffset(
   target: ReadonlySet<string> | string | null,
@@ -78,17 +94,30 @@ export function setDragVisualOffset(
   G.__composition_dragVisualOffset =
     elementIds !== null && elementIds.size > 0 ? { elementIds, dx, dy } : null;
 
-  if (skipInvalidation) return;
-
   const next = G.__composition_dragVisualOffset;
-  const changed =
+  const targetChanged =
     (prev === null) !== (next === null) ||
-    (prev &&
-      next &&
-      (prev.dx !== next.dx ||
-        prev.dy !== next.dy ||
-        !sameIdSet(prev.elementIds, next.elementIds)));
-  if (changed) {
+    (prev && next && !sameIdSet(prev.elementIds, next.elementIds));
+  if (targetChanged) {
+    // 정상 command stream은 drag root를 tail로 유예하므로 optimistic true.
+    // frame build가 불변식 실패를 발견하면 false로 내려 legacy invalidation한다.
+    G.__composition_dragPresentationRetained = next !== null;
+    notifyLayoutChange();
+    return;
+  }
+
+  // 같은 drag target의 위치 변화는 retained subtree picture의 translate만
+  // 갱신한다. registryVersion을 올리면 command stream/content surface 전체를
+  // 매 pointermove마다 다시 기록하게 된다.
+  const offsetChanged =
+    prev !== null &&
+    next !== null &&
+    (prev.dx !== next.dx || prev.dy !== next.dy);
+  if (
+    offsetChanged &&
+    !skipInvalidation &&
+    G.__composition_dragPresentationRetained === false
+  ) {
     notifyLayoutChange();
   }
 }
@@ -102,8 +131,37 @@ export function setDragVisualOffset(
 export function setDragSiblingOffsets(
   offsets: Map<string, { dx: number; dy: number }> | null,
 ): void {
-  G.__composition_dragSiblingOffsets = offsets;
-  notifyLayoutChange();
+  const current = G.__composition_dragSiblingOffsets ?? null;
+  if (offsets === null) {
+    if (current === null) return;
+    G.__composition_dragSiblingOffsets = null;
+    G.__composition_dragSiblingOffsetRevision =
+      getDragSiblingOffsetRevision() + 1;
+    return;
+  }
+
+  let changed = current === null || current.size !== offsets.size;
+  if (!changed && current) {
+    for (const [elementId, next] of offsets) {
+      const prev = current.get(elementId);
+      if (!prev || prev.dx !== next.dx || prev.dy !== next.dy) {
+        changed = true;
+        break;
+      }
+    }
+  }
+  if (!changed) return;
+
+  // dragAnimator가 같은 Map을 매 RAF clear/reuse하므로 caller Map을 보관하지
+  // 않는다. 전역 snapshot Map 자체는 재사용해 hot-path 할당을 제한한다.
+  const snapshot = current ?? new Map<string, { dx: number; dy: number }>();
+  snapshot.clear();
+  for (const [elementId, offset] of offsets) {
+    snapshot.set(elementId, { dx: offset.dx, dy: offset.dy });
+  }
+  G.__composition_dragSiblingOffsets = snapshot;
+  G.__composition_dragSiblingOffsetRevision =
+    getDragSiblingOffsetRevision() + 1;
 }
 
 /** 현재 드래그 시각적 오프셋 반환 */

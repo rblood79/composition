@@ -1021,9 +1021,14 @@ export class SkiaRenderer {
     let frameReason = classification.reason;
 
     // transition/animation 보간값을 SkiaNodeData에 override.
-    // dirty 노드가 있으면 idle을 content로 승격하여 매 프레임 재렌더링.
+    // overlay present 중에도 content animation은 계속 진행돼야 한다. drag
+    // presentation이 active면 정적 배경은 contentNode가, dragged subtree는
+    // volatile picture miss가 각각 최신 값을 기록한다.
     const hasAnimationChanges = this.applyAnimationOverrides(now);
-    if (frameType === "idle" && hasAnimationChanges) {
+    if (
+      (frameType === "idle" || frameType === "present") &&
+      hasAnimationChanges
+    ) {
       frameType = "content";
       frameReason = "animation";
     }
