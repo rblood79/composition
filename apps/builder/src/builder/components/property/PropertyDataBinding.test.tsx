@@ -10,10 +10,16 @@ vi.mock("../../stores/data", () => ({
 }));
 
 import { PropertyDataBinding } from "./PropertyDataBinding";
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
+
+/** 표시 계층이 `useI18n` 을 쓰므로 provider 밑에서 그린다 (ADR-200 R7). */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
 
 describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07-24)", () => {
   it("갱신 모드 / 갱신 간격 / 데이터 경로 오소링 UI 를 렌더하지 않는다", () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <PropertyDataBinding
         value={{
           source: "dataTable",
@@ -47,7 +53,7 @@ describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07
 
   it("컬렉션 선택 시 기존 path / refreshMode / refreshInterval 을 모두 보존한다", () => {
     const onChange = vi.fn();
-    const { container } = render(
+    const { container } = renderWithI18n(
       <PropertyDataBinding
         value={{
           source: "dataTable",

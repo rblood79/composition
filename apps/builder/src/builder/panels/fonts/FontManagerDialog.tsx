@@ -22,6 +22,7 @@ import { FONT_LIMITS } from "@composition/shared";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { FontManagerBody } from "./components/FontManagerBody";
 import { useFontRegistry } from "./useFontRegistry";
+import { useI18n } from "@/i18n";
 
 interface FontManagerDialogProps {
   isOpen: boolean;
@@ -49,20 +50,21 @@ export function FontManagerDialog({
 }
 
 function FontManagerDialogContent({ close }: { close: () => void }) {
+  const { t } = useI18n();
   const { faceCount } = useFontRegistry();
 
   return (
     <>
       <div className="font-manager-dialog-header">
         <Heading slot="title" className="font-manager-dialog-title">
-          폰트 관리
+          {t("fonts.manageFonts")}
         </Heading>
         <span className="font-count-badge">
           {faceCount}/{FONT_LIMITS.MAX_FACES}
         </span>
         <Button
           className="font-manager-dialog-close"
-          aria-label="닫기"
+          aria-label={t("common.close")}
           onPress={close}
         >
           <X size={iconProps.size} strokeWidth={iconProps.strokeWidth} />

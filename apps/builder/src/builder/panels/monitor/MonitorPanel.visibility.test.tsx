@@ -4,6 +4,8 @@ import { Activity } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MonitorPanel } from "./MonitorPanel";
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 
 type IdleCallback = (deadline: IdleDeadline) => void;
 type FrameCallback = (time: number) => void;
@@ -32,6 +34,10 @@ function Fixture({ visible }: { visible: boolean }) {
     </Activity>
   );
 }
+
+/** 표시 계층이 `useI18n` 을 쓰므로 provider 밑에서 그린다 (ADR-200 R7). */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
 
 describe("MonitorPanel Activity visibility lifecycle", () => {
   const idleCallbacks = new Map<number, IdleCallback>();
@@ -73,7 +79,7 @@ describe("MonitorPanel Activity visibility lifecycle", () => {
   });
 
   it("stops chart/observer/poll callbacks while hidden and preserves the selected tab", async () => {
-    const { rerender, unmount } = render(<Fixture visible={true} />);
+    const { rerender, unmount } = renderWithI18n(<Fixture visible={true} />);
 
     expect(TrackedResizeObserver.activeCount).toBeGreaterThan(0);
     expect(idleCallbacks.size).toBeGreaterThan(0);

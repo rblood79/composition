@@ -8,7 +8,12 @@ import type { ActionBarModel } from "./actionBarPolicy";
 const model: ActionBarModel = {
   context: "single",
   items: [
-    { kind: "action", id: "duplicate", labelKey: "contextMenu.duplicate", run: () => undefined },
+    {
+      kind: "action",
+      id: "duplicate",
+      labelKey: "contextMenu.duplicate",
+      run: () => undefined,
+    },
     {
       kind: "action",
       id: "toggle-component-origin",

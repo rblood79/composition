@@ -124,6 +124,7 @@ const CatalogEditContractEditor = memo(
     /** catalog "Content" 그룹에 주입할 비-catalog 컨트롤 (Button 자식 Icon/Text 편집). */
     contentExtras?: ReactNode;
   }) {
+    const { t } = useI18n();
     const selectedCanonicalElement = useCanonicalPropertyElement(
       selectedElement.id,
     );
@@ -275,8 +276,10 @@ const CatalogEditContractEditor = memo(
       }
       return (
         <EmptyState
-          message="편집 가능한 속성이 없습니다"
-          description={`'${selectedElement.type}' 컴포넌트의 편집 계약이 비어 있습니다.`}
+          message={t("propertiesPanel.emptyMessage")}
+          description={t("propertiesPanel.emptyDescription", {
+            type: selectedElement.type,
+          })}
         />
       );
     }
@@ -415,6 +418,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
   ) => void;
   onSetSelectedElements: (ids: string[]) => void;
 }) {
+  const { t } = useI18n();
   // 🚀 이 컴포넌트에서만 multiSelectMode, selectedElementIds 구독
   const multiSelectMode = useStore((state) => state.multiSelectMode) || false;
   const rawSelectedElementIds = useStore((state) => state.selectedElementIds);
@@ -508,7 +512,11 @@ const MultiSelectContent = memo(function MultiSelectContent({
 
   const handleDeleteAll = async () => {
     if (
-      !confirm(`${selectedElementIds.length}개 요소를 모두 삭제하시겠습니까?`)
+      !confirm(
+        t("propertiesPanel.confirmDeleteSelection", {
+          count: selectedElementIds.length,
+        }),
+      )
     )
       return;
     try {
@@ -718,7 +726,7 @@ function PropertiesPanelContent() {
           panelId="properties"
         />
         <div className="panel-contents">
-          <EmptyState message="요소를 선택하세요" />
+          <EmptyState message={t("propertiesPanel.selectElement")} />
         </div>
       </div>
     );
@@ -739,7 +747,7 @@ function PropertiesPanelContent() {
                 !selectedElement?.properties ||
                 Object.keys(selectedElement.properties).length === 0
               }
-              tooltip="속성 복사"
+              tooltip={t("propertiesPanel.copyProperties")}
               shortcutId="copyProperties"
             >
               <CopyIcon
@@ -751,7 +759,7 @@ function PropertiesPanelContent() {
             <ActionIconButton
               onPress={handlePasteProperties}
               aria-label="Paste properties"
-              tooltip="속성 붙여넣기"
+              tooltip={t("propertiesPanel.pasteProperties")}
               shortcutId="pasteProperties"
             >
               <PasteIcon

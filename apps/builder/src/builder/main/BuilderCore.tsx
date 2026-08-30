@@ -407,15 +407,19 @@ export const BuilderCore: React.FC = () => {
   const { stats: recoveryStats } = useAutoRecovery({
     onRecovery: useCallback(
       (reason: string) => {
-        showToast("info", `성능 자동 복구 완료: ${reason}`, 8000);
+        showToast("info", t("messages.perfRecovered", { reason }), 8000);
       },
-      [showToast],
+      [showToast, t],
     ),
     onWarning: useCallback(
       (metrics: { healthScore: number }) => {
-        showToast("warning", `성능 경고: Health ${metrics.healthScore}%`, 5000);
+        showToast(
+          "warning",
+          t("messages.perfWarning", { health: metrics.healthScore }),
+          5000,
+        );
       },
-      [showToast],
+      [showToast, t],
     ),
   });
 

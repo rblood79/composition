@@ -127,6 +127,7 @@ import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 
 import { useGPUProfiler } from "./utils/gpuProfilerCore";
 import { hitTestPoint } from "./wasm-bindings/spatialIndex";
+import { useI18n } from "@/i18n";
 
 /** 선택에 맞출 때 남길 여백 — zoomToFit 의 fitPaddingRatio 와 같은 값 */
 const SELECTION_FIT_PADDING_RATIO = 0.9;
@@ -237,6 +238,7 @@ export function BuilderCanvas({
   pageHeight = DEFAULT_HEIGHT,
   initialPanOffsetX,
 }: BuilderCanvasProps) {
+  const { t } = useI18n();
   // Dev-only: rAF 기반 FPS/프레임타임 측정(렌더 idle 여부와는 별개)
   useGPUProfiler(import.meta.env.DEV);
 
@@ -1452,7 +1454,7 @@ export function BuilderCanvas({
             fontSize: "14px",
           }}
         >
-          <span>레이아웃 엔진 로드에 실패했습니다.</span>
+          <span>{t("canvas.engineLoadFailed")}</span>
           <button
             onClick={() => window.location.reload()}
             style={{
@@ -1465,7 +1467,7 @@ export function BuilderCanvas({
               fontSize: "13px",
             }}
           >
-            새로고침
+            {t("canvas.reload")}
           </button>
         </div>
       )}

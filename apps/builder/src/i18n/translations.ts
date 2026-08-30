@@ -362,6 +362,97 @@ const koKR: TranslationKeys = {
     noticeNoProfile:
       "구성된 에이전트 프로파일이 없습니다. 설정에서 endpoint 와 모델을 지정하세요.",
   },
+  fonts: {
+    defaultValue: "기본값",
+    searchLabel: "폰트 검색",
+    searchPlaceholder: "폰트 검색...",
+    sectionDefault: "기본",
+    sectionMine: "내 폰트",
+    addFonts: "폰트 추가",
+    manageFonts: "폰트 관리",
+    emptyMessage: "등록된 폰트가 없습니다",
+    emptyDescription:
+      "폰트 파일(.woff2, .woff, .ttf, .otf)을 드래그하거나 업로드하세요",
+    uploadLabel: "폰트 파일 업로드",
+    uploadFull: "최대 폰트 수에 도달했습니다",
+    uploadPrompt: "폰트 파일을 드래그하거나 클릭하세요",
+    uploadFormats: ".woff2, .woff, .ttf, .otf (최대 5MB)",
+  },
+  interactions: {
+    capability: "기능",
+    capabilityRemount: "{label} (재설정)",
+    target: "대상",
+    targetUnset: "대상 미지정",
+    rulesTitle: "규칙",
+    selectElement: "요소를 선택하세요",
+    noTriggers: "{type} 은 트리거를 제공하지 않습니다",
+    noRules: "아직 규칙이 없습니다. 규칙을 추가해 이 요소의 동작을 정의하세요.",
+    addRule: "규칙 추가",
+    deleteRule: "규칙 삭제",
+    editRule: "규칙 편집",
+    summaryNavigate: "{when} → 페이지 이동",
+    summaryNavigateWithPath: "{when} → 페이지 이동 ({path})",
+    summaryToast: "{when} → 토스트",
+    summaryToastWithMessage: '{when} → 토스트 "{message}"',
+  },
+  propertiesPanel: {
+    emptyMessage: "편집 가능한 속성이 없습니다",
+    emptyDescription: "'{type}' 컴포넌트의 편집 계약이 비어 있습니다.",
+    selectElement: "요소를 선택하세요",
+    copyProperties: "속성 복사",
+    pasteProperties: "속성 붙여넣기",
+    confirmDeleteSelection: "{count}개 요소를 모두 삭제하시겠습니까?",
+    dataBinding: "데이터 바인딩",
+    collection: "컬렉션",
+    collectionPlaceholder: "컬렉션 선택...",
+    collectionEmpty: "등록된 Collection 이 없습니다.",
+    removeBinding: "바인딩 제거",
+    legacyBinding:
+      "legacy {source} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.",
+    fieldTemplatePlaceholder: "텍스트 또는 {field}",
+    insertField: "필드 삽입",
+    collectionField: "collection 필드",
+    slotExisting: "기존 Slot이 있습니다",
+    slotExistingBody:
+      "“{preset}” 프리셋을 적용하려면 기존 Slot을 어떻게 처리할지 선택하세요.",
+    slotCurrent: "현재 Slot ({count}개):",
+    slotHasContent: "(콘텐츠 있음)",
+    slotContentWarning:
+      "일부 Slot에 콘텐츠가 있습니다. 덮어쓰기 시 삭제됩니다.",
+    presetApplied: "적용됨",
+  },
+  canvas: {
+    engineLoadFailed: "레이아웃 엔진 로드에 실패했습니다.",
+    reload: "새로고침",
+  },
+  aiTool: {
+    createElement: "요소 생성",
+    createElementDone: "생성함",
+    updateElement: "요소 수정",
+    updateElementDone: "수정함",
+    deleteElement: "요소 삭제",
+    deleteElementDone: "삭제함",
+    getEditorState: "화면 구성 확인",
+    getEditorStateDone: "확인함",
+    getSelection: "선택 확인",
+    searchElements: "요소 검색",
+    searchElementsDone: "찾음",
+    batchDesign: "여러 곳 한번에 변경",
+    batchDesignDone: "변경함",
+    bindCollection: "데이터 연결",
+    bindCollectionDone: "연결함",
+    createInteractionRule: "동작 규칙 추가",
+    createInteractionRuleDone: "추가함",
+    runCommand: "빌더 명령 실행",
+    runCommandDone: "실행함",
+    genericDone: "{name} 완료",
+    selectedElement: "선택한 요소",
+    callWithDetail: "{intent} · {detail}",
+    failed: "{intent} 실패",
+    failedWithReason: "{intent} 실패 · {reason}",
+    resultWithDetail: "{detail} {done}",
+    resultPlain: "{intent} · {done}",
+  },
   settings: {
     title: "설정",
     language: "언어",
@@ -748,6 +839,10 @@ const koKR: TranslationKeys = {
     loadingData: "데이터를 불러오는 중...",
     errorLoadingData: "데이터를 불러오는 중 오류가 발생했습니다",
     itemCount: "{count}개",
+    memoryCritical: "메모리 사용량이 위험 수준입니다 ({percent}%)",
+    memoryHigh: "메모리 사용량이 높습니다 ({percent}%)",
+    perfRecovered: "성능 자동 복구 완료: {reason}",
+    perfWarning: "성능 경고: Health {health}%",
   },
 };
 
@@ -1105,6 +1200,95 @@ const enUS: TranslationKeys = {
       "{role} · no main profile — running on the {fallback} profile.",
     noticeNoProfile:
       "No agent profile is configured. Set an endpoint and a model in settings.",
+  },
+  fonts: {
+    defaultValue: "Default",
+    searchLabel: "Search fonts",
+    searchPlaceholder: "Search fonts...",
+    sectionDefault: "Default",
+    sectionMine: "My fonts",
+    addFonts: "Add fonts",
+    manageFonts: "Manage fonts",
+    emptyMessage: "No fonts added yet",
+    emptyDescription: "Drag or upload font files (.woff2, .woff, .ttf, .otf)",
+    uploadLabel: "Upload font files",
+    uploadFull: "You have reached the font limit",
+    uploadPrompt: "Drag font files here, or click to choose",
+    uploadFormats: ".woff2, .woff, .ttf, .otf (up to 5MB)",
+  },
+  interactions: {
+    capability: "Capability",
+    capabilityRemount: "{label} (resets)",
+    target: "Target",
+    targetUnset: "No target",
+    rulesTitle: "Rules",
+    selectElement: "Select an element",
+    noTriggers: "{type} provides no triggers",
+    noRules: "No rules yet. Add one to define how this element behaves.",
+    addRule: "Add rule",
+    deleteRule: "Delete rule",
+    editRule: "Edit rule",
+    summaryNavigate: "{when} → go to page",
+    summaryNavigateWithPath: "{when} → go to page ({path})",
+    summaryToast: "{when} → toast",
+    summaryToastWithMessage: '{when} → toast "{message}"',
+  },
+  propertiesPanel: {
+    emptyMessage: "No editable properties",
+    emptyDescription: "The editing contract for '{type}' is empty.",
+    selectElement: "Select an element",
+    copyProperties: "Copy properties",
+    pasteProperties: "Paste properties",
+    confirmDeleteSelection: "Delete all {count} selected elements?",
+    dataBinding: "Data binding",
+    collection: "Collection",
+    collectionPlaceholder: "Choose a collection...",
+    collectionEmpty: "No collections registered.",
+    removeBinding: "Remove binding",
+    legacyBinding:
+      "Legacy {source} binding — choosing a collection switches it to dataTable.",
+    fieldTemplatePlaceholder: "Text or {field}",
+    insertField: "Insert field",
+    collectionField: "Collection field",
+    slotExisting: "Existing slots found",
+    slotExistingBody:
+      "Choose what to do with the existing slots before applying the “{preset}” preset.",
+    slotCurrent: "Current slots ({count}):",
+    slotHasContent: "(has content)",
+    slotContentWarning: "Some slots have content. Overwriting deletes it.",
+    presetApplied: "Applied",
+  },
+  canvas: {
+    engineLoadFailed: "The layout engine failed to load.",
+    reload: "Reload",
+  },
+  aiTool: {
+    createElement: "Create element",
+    createElementDone: "created",
+    updateElement: "Update element",
+    updateElementDone: "updated",
+    deleteElement: "Delete element",
+    deleteElementDone: "deleted",
+    getEditorState: "Check the layout",
+    getEditorStateDone: "checked",
+    getSelection: "Check the selection",
+    searchElements: "Search elements",
+    searchElementsDone: "found",
+    batchDesign: "Change several places at once",
+    batchDesignDone: "changed",
+    bindCollection: "Connect data",
+    bindCollectionDone: "connected",
+    createInteractionRule: "Add a behavior rule",
+    createInteractionRuleDone: "added",
+    runCommand: "Run a builder command",
+    runCommandDone: "ran",
+    genericDone: "{name} done",
+    selectedElement: "the selected element",
+    callWithDetail: "{intent} · {detail}",
+    failed: "{intent} failed",
+    failedWithReason: "{intent} failed · {reason}",
+    resultWithDetail: "{detail} {done}",
+    resultPlain: "{intent} · {done}",
   },
   settings: {
     title: "Settings",
@@ -1492,6 +1676,10 @@ const enUS: TranslationKeys = {
     loadingData: "Loading data...",
     errorLoadingData: "Error loading data",
     itemCount: "{count} items",
+    memoryCritical: "Memory use is at a critical level ({percent}%)",
+    memoryHigh: "Memory use is high ({percent}%)",
+    perfRecovered: "Performance recovered automatically: {reason}",
+    perfWarning: "Performance warning: health {health}%",
   },
 };
 
@@ -1943,6 +2131,46 @@ const formattedMessages: Record<
       `${String(args?.role ?? "")} 프로파일이 없어 기본 프로파일로 실행합니다.`,
     "ai.noticeDowngradedToFallback": (args) =>
       `${String(args?.role ?? "")} · 기본 프로파일이 없어 ${String(args?.fallback ?? "")} 프로파일로 실행합니다.`,
+    "interactions.capabilityRemount": (args) =>
+      `${String(args?.label ?? "")} (재설정)`,
+    "interactions.noTriggers": (args) =>
+      `${String(args?.type ?? "")} 은 트리거를 제공하지 않습니다`,
+    "interactions.summaryNavigate": (args) =>
+      `${String(args?.when ?? "")} → 페이지 이동`,
+    "interactions.summaryNavigateWithPath": (args) =>
+      `${String(args?.when ?? "")} → 페이지 이동 (${String(args?.path ?? "")})`,
+    "interactions.summaryToast": (args) =>
+      `${String(args?.when ?? "")} → 토스트`,
+    "interactions.summaryToastWithMessage": (args) =>
+      `${String(args?.when ?? "")} → 토스트 "${String(args?.message ?? "")}"`,
+    "propertiesPanel.emptyDescription": (args) =>
+      `'${String(args?.type ?? "")}' 컴포넌트의 편집 계약이 비어 있습니다.`,
+    "propertiesPanel.confirmDeleteSelection": (args) =>
+      `${String(args?.count ?? 0)}개 요소를 모두 삭제하시겠습니까?`,
+    "propertiesPanel.legacyBinding": (args) =>
+      `legacy ${String(args?.source ?? "")} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.`,
+    "propertiesPanel.slotExistingBody": (args) =>
+      `“${String(args?.preset ?? "")}” 프리셋을 적용하려면 기존 Slot을 어떻게 처리할지 선택하세요.`,
+    "propertiesPanel.slotCurrent": (args) =>
+      `현재 Slot (${String(args?.count ?? 0)}개):`,
+    "aiTool.genericDone": (args) => `${String(args?.name ?? "")} 완료`,
+    "aiTool.callWithDetail": (args) =>
+      `${String(args?.intent ?? "")} · ${String(args?.detail ?? "")}`,
+    "aiTool.failed": (args) => `${String(args?.intent ?? "")} 실패`,
+    "aiTool.failedWithReason": (args) =>
+      `${String(args?.intent ?? "")} 실패 · ${String(args?.reason ?? "")}`,
+    "aiTool.resultWithDetail": (args) =>
+      `${String(args?.detail ?? "")} ${String(args?.done ?? "")}`,
+    "aiTool.resultPlain": (args) =>
+      `${String(args?.intent ?? "")} · ${String(args?.done ?? "")}`,
+    "messages.memoryCritical": (args) =>
+      `메모리 사용량이 위험 수준입니다 (${String(args?.percent ?? "")}%)`,
+    "messages.memoryHigh": (args) =>
+      `메모리 사용량이 높습니다 (${String(args?.percent ?? "")}%)`,
+    "messages.perfRecovered": (args) =>
+      `성능 자동 복구 완료: ${String(args?.reason ?? "")}`,
+    "messages.perfWarning": (args) =>
+      `성능 경고: Health ${String(args?.health ?? 0)}%`,
     "componentAction.selectInstances": (args) =>
       `인스턴스 선택 (${String(args?.count ?? 0)})`,
     "monitor.realtimeChart": (args) =>
@@ -2022,6 +2250,46 @@ const formattedMessages: Record<
       `No ${String(args?.role ?? "")} profile — running on the main profile.`,
     "ai.noticeDowngradedToFallback": (args) =>
       `${String(args?.role ?? "")} · no main profile — running on the ${String(args?.fallback ?? "")} profile.`,
+    "interactions.capabilityRemount": (args) =>
+      `${String(args?.label ?? "")} (resets)`,
+    "interactions.noTriggers": (args) =>
+      `${String(args?.type ?? "")} provides no triggers`,
+    "interactions.summaryNavigate": (args) =>
+      `${String(args?.when ?? "")} → go to page`,
+    "interactions.summaryNavigateWithPath": (args) =>
+      `${String(args?.when ?? "")} → go to page (${String(args?.path ?? "")})`,
+    "interactions.summaryToast": (args) =>
+      `${String(args?.when ?? "")} → toast`,
+    "interactions.summaryToastWithMessage": (args) =>
+      `${String(args?.when ?? "")} → toast "${String(args?.message ?? "")}"`,
+    "propertiesPanel.emptyDescription": (args) =>
+      `The editing contract for '${String(args?.type ?? "")}' is empty.`,
+    "propertiesPanel.confirmDeleteSelection": (args) =>
+      `Delete all ${String(args?.count ?? 0)} selected elements?`,
+    "propertiesPanel.legacyBinding": (args) =>
+      `Legacy ${String(args?.source ?? "")} binding — choosing a collection switches it to dataTable.`,
+    "propertiesPanel.slotExistingBody": (args) =>
+      `Choose what to do with the existing slots before applying the “${String(args?.preset ?? "")}” preset.`,
+    "propertiesPanel.slotCurrent": (args) =>
+      `Current slots (${String(args?.count ?? 0)}):`,
+    "aiTool.genericDone": (args) => `${String(args?.name ?? "")} done`,
+    "aiTool.callWithDetail": (args) =>
+      `${String(args?.intent ?? "")} · ${String(args?.detail ?? "")}`,
+    "aiTool.failed": (args) => `${String(args?.intent ?? "")} failed`,
+    "aiTool.failedWithReason": (args) =>
+      `${String(args?.intent ?? "")} failed · ${String(args?.reason ?? "")}`,
+    "aiTool.resultWithDetail": (args) =>
+      `${String(args?.detail ?? "")} ${String(args?.done ?? "")}`,
+    "aiTool.resultPlain": (args) =>
+      `${String(args?.intent ?? "")} · ${String(args?.done ?? "")}`,
+    "messages.memoryCritical": (args) =>
+      `Memory use is at a critical level (${String(args?.percent ?? "")}%)`,
+    "messages.memoryHigh": (args) =>
+      `Memory use is high (${String(args?.percent ?? "")}%)`,
+    "messages.perfRecovered": (args) =>
+      `Performance recovered automatically: ${String(args?.reason ?? "")}`,
+    "messages.perfWarning": (args) =>
+      `Performance warning: health ${String(args?.health ?? 0)}%`,
     "componentAction.selectInstances": (args) =>
       `Select instances (${String(args?.count ?? 0)})`,
     "monitor.realtimeChart": (args) =>

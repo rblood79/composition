@@ -23,6 +23,7 @@ import { TriggerPicker } from "./TriggerPicker";
 import { TRIGGER_LABELS } from "./labels";
 import type { ActionChoice } from "./types";
 import { ACTION_ICONS } from "../../config/actionIcons";
+import { useI18n } from "@/i18n";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -51,6 +52,7 @@ export const RuleRow = memo(function RuleRow({
   onChange,
   onRemove,
 }: RuleRowProps) {
+  const { t } = useI18n();
   const getPageElements = useStore((state) => state.getPageElements);
   const currentPageId = useStore((state) => state.currentPageId);
 
@@ -68,17 +70,21 @@ export const RuleRow = memo(function RuleRow({
     ? target.customId
       ? `${target.type} #${target.customId}`
       : target.type
-    : "대상 미지정";
+    : t("interactions.targetUnset");
 
   const summary = useMemo(() => {
     const when = TRIGGER_LABELS[rule.trigger] ?? rule.trigger;
     if (rule.action.kind === "navigate") {
       const path = rule.action.params.path;
-      return `${when} → 페이지 이동${path ? ` (${path})` : ""}`;
+      return path
+        ? t("interactions.summaryNavigateWithPath", { when, path })
+        : t("interactions.summaryNavigate", { when });
     }
     if (rule.action.kind === "toast") {
       const msg = rule.action.params.message;
-      return `${when} → 토스트${msg ? ` "${msg}"` : ""}`;
+      return msg
+        ? t("interactions.summaryToastWithMessage", { when, message: msg })
+        : t("interactions.summaryToast", { when });
     }
     const caps = resolveCapabilities(targetType);
     const capLabel =
@@ -134,7 +140,7 @@ export const RuleRow = memo(function RuleRow({
           type="button"
           className="interaction-rule-remove"
           onClick={onRemove}
-          aria-label="규칙 삭제"
+          aria-label={t("interactions.deleteRule")}
         >
           <DeleteIcon size={14} />
         </button>
@@ -142,7 +148,9 @@ export const RuleRow = memo(function RuleRow({
 
       {expanded && (
         <fieldset className="properties-aria interaction-rule-editor">
-          <legend className="fieldset-legend">규칙 편집</legend>
+          <legend className="fieldset-legend">
+            {t("interactions.editRule")}
+          </legend>
 
           <TriggerPicker
             componentType={componentType}

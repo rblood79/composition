@@ -11,6 +11,7 @@ import {
 } from "react";
 import { Upload } from "lucide-react";
 import { iconProps } from "../../../../utils/ui/uiConstants";
+import { useI18n } from "@/i18n";
 
 interface FontUploadZoneProps {
   onUpload: (files: FileList) => void;
@@ -20,6 +21,7 @@ interface FontUploadZoneProps {
 const ACCEPTED = ".woff2,.woff,.ttf,.otf";
 
 export function FontUploadZone({ onUpload, disabled }: FontUploadZoneProps) {
+  const { t } = useI18n();
   const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -73,7 +75,7 @@ export function FontUploadZone({ onUpload, disabled }: FontUploadZoneProps) {
       onClick={handleClick}
       role="button"
       tabIndex={0}
-      aria-label="폰트 파일 업로드"
+      aria-label={t("fonts.uploadLabel")}
     >
       <Upload
         size={iconProps.size}
@@ -81,13 +83,9 @@ export function FontUploadZone({ onUpload, disabled }: FontUploadZoneProps) {
         strokeWidth={iconProps.strokeWidth}
       />
       <span className="font-upload-label">
-        {disabled
-          ? "최대 폰트 수에 도달했습니다"
-          : "폰트 파일을 드래그하거나 클릭하세요"}
+        {disabled ? t("fonts.uploadFull") : t("fonts.uploadPrompt")}
       </span>
-      <span className="font-upload-hint">
-        .woff2, .woff, .ttf, .otf (최대 5MB)
-      </span>
+      <span className="font-upload-hint">{t("fonts.uploadFormats")}</span>
       <input
         ref={inputRef}
         type="file"

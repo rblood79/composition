@@ -21,11 +21,13 @@ import { RuleRow } from "./RuleRow";
 import { useInteractionRules } from "./useInteractionRules";
 import "./InteractionsPanel.css";
 import { ACTION_ICONS } from "../../config/actionIcons";
+import { useI18n } from "@/i18n";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
 export function InteractionsPanel() {
+  const { t } = useI18n();
   const selectedElement = useDebouncedSelectedElementData();
 
   if (!selectedElement) {
@@ -37,7 +39,7 @@ export function InteractionsPanel() {
           panelId="events"
         />
         <div className="panel-contents">
-          <EmptyState message="요소를 선택하세요" />
+          <EmptyState message={t("interactions.selectElement")} />
         </div>
       </div>
     );
@@ -61,6 +63,7 @@ function InteractionsPanelContent({
   elementId,
   componentType,
 }: InteractionsPanelContentProps) {
+  const { t } = useI18n();
   const { rules, addRule, updateRule, removeRule } =
     useInteractionRules(elementId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -84,20 +87,19 @@ function InteractionsPanelContent({
       />
       <div className="panel-contents">
         <Section
-          title="규칙"
+          title={t("interactions.rulesTitle")}
           id="interactions-rules"
           badge={rules.length > 0 ? String(rules.length) : undefined}
         >
           {!canTrigger ? (
             <EmptyState
-              message={`${componentType} 은 트리거를 제공하지 않습니다`}
+              message={t("interactions.noTriggers", { type: componentType })}
             />
           ) : (
             <>
               {rules.length === 0 && (
                 <p className="interactions-empty">
-                  아직 규칙이 없습니다. 규칙을 추가해 이 요소의 동작을
-                  정의하세요.
+                  {t("interactions.noRules")}
                 </p>
               )}
 
@@ -125,7 +127,7 @@ function InteractionsPanelContent({
                 onClick={handleAdd}
               >
                 <AddIcon size={14} />
-                규칙 추가
+                {t("interactions.addRule")}
               </button>
             </>
           )}

@@ -45,6 +45,7 @@ import "./PropertyDataBinding.css";
 // 있어 shared 사본을 보는 쪽에서는 계약을 알 수 없었다.
 export type { RefreshMode, DataBindingValue } from "@composition/shared";
 import type { DataBindingValue } from "@composition/shared";
+import { useI18n } from "@/i18n";
 
 interface PropertyDataBindingProps {
   /** 라벨 */
@@ -71,13 +72,14 @@ interface PropertyDataBindingProps {
 //   데이터 소스는 dataTable(collection) 단일. 피커는 collection(테이블명) 선택만 노출.
 
 export const PropertyDataBinding = memo(function PropertyDataBinding({
-  label = "데이터 바인딩",
+  label,
   icon: Icon,
   value,
   onChange,
   className,
   disabled,
 }: PropertyDataBindingProps) {
+  const { t } = useI18n();
   // Data Store에서 collection 목록 가져오기 (dataTable 단일 소스 — ADR-159 P4b)
   const collections = useCollections();
 
@@ -165,7 +167,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
               selectedKey={source === "dataTable" ? name || null : null}
               onSelectionChange={handleNameChange}
               onOpenChange={nameSelectFocus.restoreFocusOnClose}
-              aria-label="컬렉션"
+              aria-label={t("propertiesPanel.collection")}
               isDisabled={disabled}
             >
               <Button
@@ -174,7 +176,9 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
               >
                 <SelectValue>
                   {({ isPlaceholder, selectedText }) =>
-                    isPlaceholder ? "컬렉션 선택..." : selectedText
+                    isPlaceholder
+                      ? t("propertiesPanel.collectionPlaceholder")
+                      : selectedText
                   }
                 </SelectValue>
                 <span aria-hidden="true" className="select-chevron">
@@ -209,7 +213,9 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
               </Popover>
             </AriaSelect>
           ) : (
-            <div className="binding-empty">등록된 Collection 이 없습니다.</div>
+            <div className="binding-empty">
+              {t("propertiesPanel.collectionEmpty")}
+            </div>
           )}
 
           {/* 해제 버튼은 Select 렌더 여부와 무관하게 노출 — collection 이 0개인
@@ -219,7 +225,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
               className="binding-clear"
               onClick={handleClear}
               type="button"
-              aria-label="바인딩 제거"
+              aria-label={t("propertiesPanel.removeBinding")}
               disabled={disabled}
             >
               <X size={iconEditProps.size} />
@@ -230,7 +236,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
         {/* 기존 문서의 비-dataTable 바인딩 안내 (read 호환 — 신규 기록은 dataTable 고정) */}
         {isLegacyNonTableBinding && (
           <div className="binding-empty">
-            legacy {source} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.
+            {t("propertiesPanel.legacyBinding", { source })}
           </div>
         )}
       </div>

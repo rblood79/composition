@@ -11,8 +11,10 @@ import { FontUploadZone } from "./FontUploadZone";
 import { FontFamilyGroup } from "./FontFamilyGroup";
 import { useFontRegistry } from "../useFontRegistry";
 import "../FontManager.css";
+import { useI18n } from "@/i18n";
 
 export function FontManagerBody() {
+  const { t } = useI18n();
   const { familyGroups, faceCount, isFull, upload, remove } = useFontRegistry();
 
   return (
@@ -24,8 +26,8 @@ export function FontManagerBody() {
       {faceCount === 0 ? (
         <EmptyState
           icon={<Type size={48} />}
-          message="등록된 폰트가 없습니다"
-          description="폰트 파일(.woff2, .woff, .ttf, .otf)을 드래그하거나 업로드하세요"
+          message={t("fonts.emptyMessage")}
+          description={t("fonts.emptyDescription")}
         />
       ) : (
         Array.from(familyGroups.entries()).map(([family, faces]) => (

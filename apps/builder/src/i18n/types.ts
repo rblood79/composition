@@ -377,6 +377,93 @@ export interface TranslationKeys {
     noticeDowngradedToFallback: string;
     noticeNoProfile: string;
   };
+  fonts: {
+    defaultValue: string;
+    searchLabel: string;
+    searchPlaceholder: string;
+    sectionDefault: string;
+    sectionMine: string;
+    addFonts: string;
+    manageFonts: string;
+    emptyMessage: string;
+    emptyDescription: string;
+    uploadLabel: string;
+    uploadFull: string;
+    uploadPrompt: string;
+    uploadFormats: string;
+  };
+  interactions: {
+    capability: string;
+    capabilityRemount: string;
+    target: string;
+    targetUnset: string;
+    rulesTitle: string;
+    selectElement: string;
+    noTriggers: string;
+    noRules: string;
+    addRule: string;
+    deleteRule: string;
+    editRule: string;
+    summaryNavigate: string;
+    summaryNavigateWithPath: string;
+    summaryToast: string;
+    summaryToastWithMessage: string;
+  };
+  propertiesPanel: {
+    emptyMessage: string;
+    emptyDescription: string;
+    selectElement: string;
+    copyProperties: string;
+    pasteProperties: string;
+    confirmDeleteSelection: string;
+    dataBinding: string;
+    collection: string;
+    collectionPlaceholder: string;
+    collectionEmpty: string;
+    removeBinding: string;
+    legacyBinding: string;
+    fieldTemplatePlaceholder: string;
+    insertField: string;
+    collectionField: string;
+    slotExisting: string;
+    slotExistingBody: string;
+    slotCurrent: string;
+    slotHasContent: string;
+    slotContentWarning: string;
+    presetApplied: string;
+  };
+  canvas: {
+    engineLoadFailed: string;
+    reload: string;
+  };
+  aiTool: {
+    createElement: string;
+    createElementDone: string;
+    updateElement: string;
+    updateElementDone: string;
+    deleteElement: string;
+    deleteElementDone: string;
+    getEditorState: string;
+    getEditorStateDone: string;
+    getSelection: string;
+    searchElements: string;
+    searchElementsDone: string;
+    batchDesign: string;
+    batchDesignDone: string;
+    bindCollection: string;
+    bindCollectionDone: string;
+    createInteractionRule: string;
+    createInteractionRuleDone: string;
+    runCommand: string;
+    runCommandDone: string;
+    genericDone: string;
+    selectedElement: string;
+    callWithDetail: string;
+    failed: string;
+    failedWithReason: string;
+    resultWithDetail: string;
+    resultPlain: string;
+  };
   settings: {
     title: string;
     language: string;
@@ -611,6 +698,10 @@ export interface TranslationKeys {
     loadingData: string;
     errorLoadingData: string;
     itemCount: string;
+    memoryCritical: string;
+    memoryHigh: string;
+    perfRecovered: string;
+    perfWarning: string;
   };
 }
 

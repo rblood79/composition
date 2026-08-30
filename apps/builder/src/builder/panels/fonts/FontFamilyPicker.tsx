@@ -45,6 +45,7 @@ import { DEFAULT_FONT_OPTIONS } from "../../fonts/customFonts";
 import { useFontRegistry } from "./useFontRegistry";
 import { FontManagerDialog } from "./FontManagerDialog";
 import "./FontFamilyPicker.css";
+import { useI18n } from "@/i18n";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -72,6 +73,7 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
   value,
   onChange,
 }: FontFamilyPickerProps) {
+  const { t } = useI18n();
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [isManagerOpen, setManagerOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -151,7 +153,7 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
               className="font-picker-value"
               style={value ? { fontFamily: value } : undefined}
             >
-              {value || "기본값"}
+              {value || t("fonts.defaultValue")}
             </span>
             <span aria-hidden="true" className="select-chevron">
               <ChevronDown size={iconProps.size} />
@@ -168,8 +170,8 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
                   <Input
                     autoFocus
                     className="font-picker-search-input"
-                    aria-label="폰트 검색"
-                    placeholder="폰트 검색..."
+                    aria-label={t("fonts.searchLabel")}
+                    placeholder={t("fonts.searchPlaceholder")}
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                   />
@@ -185,13 +187,15 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
                 onSelectionChange={handleSelectionChange}
               >
                 <ListBoxSection className="font-picker-section">
-                  <Header className="font-picker-section-header">기본</Header>
+                  <Header className="font-picker-section-header">
+                    {t("fonts.sectionDefault")}
+                  </Header>
                   <ListBoxItem
                     id={RESET_KEY}
                     className="react-aria-ListBoxItem font-picker-item"
-                    textValue="기본값"
+                    textValue={t("fonts.defaultValue")}
                   >
-                    기본값
+                    {t("fonts.defaultValue")}
                   </ListBoxItem>
                   {visibleBuiltins.map((family) => (
                     <ListBoxItem
@@ -208,7 +212,7 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
                 {visibleCustoms.length > 0 && (
                   <ListBoxSection className="font-picker-section">
                     <Header className="font-picker-section-header">
-                      내 폰트
+                      {t("fonts.sectionMine")}
                     </Header>
                     {visibleCustoms.map((family) => (
                       <ListBoxItem
@@ -230,7 +234,9 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
                   onPress={handleOpenManager}
                 >
                   <ManageIcon size={iconProps.size} aria-hidden="true" />
-                  {faceCount === 0 ? "폰트 추가" : "폰트 관리"}
+                  {faceCount === 0
+                    ? t("fonts.addFonts")
+                    : t("fonts.manageFonts")}
                 </Button>
               </div>
             </Dialog>

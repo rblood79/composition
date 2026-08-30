@@ -16,6 +16,7 @@ import { Dialog, DialogTrigger, Modal, Heading } from "react-aria-components";
 import type { ExistingSlotInfo, PresetApplyMode } from "./types";
 import { iconProps } from "../../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../../config/actionIcons";
+import { useI18n } from "@/i18n";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -40,6 +41,7 @@ export const ExistingSlotDialog = memo(function ExistingSlotDialog({
   onConfirm,
   onClose,
 }: ExistingSlotDialogProps) {
+  const { t } = useI18n();
   const hasChildrenSlots = existingSlots.some((slot) => slot.hasChildren);
 
   const handleReplace = useCallback(() => {
@@ -76,25 +78,28 @@ export const ExistingSlotDialog = memo(function ExistingSlotDialog({
         <Dialog className="react-aria-Dialog existing-slot-dialog">
           <Heading slot="title" className="dialog-title">
             <AlertTriangle className="icon-warning" size={iconProps.size} />
-            기존 Slot이 있습니다
+            {t("propertiesPanel.slotExisting")}
           </Heading>
 
           <div className="dialog-content">
             <p className="dialog-description">
-              &ldquo;{presetName}&rdquo; 프리셋을 적용하려면 기존 Slot을 어떻게
-              처리할지 선택하세요.
+              {t("propertiesPanel.slotExistingBody", { preset: presetName })}
             </p>
 
             <div className="existing-slots-list">
               <p className="list-title">
-                현재 Slot ({existingSlots.length}개):
+                {t("propertiesPanel.slotCurrent", {
+                  count: existingSlots.length,
+                })}
               </p>
               <ul>
                 {existingSlots.map((slot) => (
                   <li key={slot.elementId}>
                     <span className="slot-name">{slot.slotName}</span>
                     {slot.hasChildren && (
-                      <span className="slot-warning">(콘텐츠 있음)</span>
+                      <span className="slot-warning">
+                        {t("propertiesPanel.slotHasContent")}
+                      </span>
                     )}
                   </li>
                 ))}
@@ -104,9 +109,7 @@ export const ExistingSlotDialog = memo(function ExistingSlotDialog({
             {hasChildrenSlots && (
               <div className="warning-box">
                 <AlertTriangle size={iconProps.size} />
-                <span>
-                  일부 Slot에 콘텐츠가 있습니다. 덮어쓰기 시 삭제됩니다.
-                </span>
+                <span>{t("propertiesPanel.slotContentWarning")}</span>
               </div>
             )}
           </div>

@@ -8,6 +8,7 @@
 import type { ReactNode } from "react";
 
 import "./LoadingSpinner.css";
+import { useI18n } from "@/i18n";
 export interface LoadingSpinnerProps {
   /** 표시할 아이콘 (선택, 기본: 회전 스피너) */
   icon?: ReactNode;
@@ -40,11 +41,14 @@ export interface LoadingSpinnerProps {
  */
 export function LoadingSpinner({
   icon,
-  message = "불러오는 중...",
+  message,
   description,
   size = "md",
   className = "",
 }: LoadingSpinnerProps) {
+  const { t } = useI18n();
+  const text = message ?? t("common.loading");
+
   return (
     <div className={`inspector loading ${className}`.trim()}>
       <div className="loading-state">
@@ -66,7 +70,7 @@ export function LoadingSpinner({
             </svg>
           </div>
         )}
-        <p className="loading-message">{message}</p>
+        <p className="loading-message">{text}</p>
         {description && <p className="loading-description">{description}</p>}
       </div>
     </div>

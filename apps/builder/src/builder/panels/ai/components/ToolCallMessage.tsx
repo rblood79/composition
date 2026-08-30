@@ -6,6 +6,7 @@
  */
 import { LoaderCircle, Wrench, X } from "lucide-react";
 import { describeToolCall } from "./toolLabels";
+import { useI18n } from "@/i18n";
 
 interface ToolCallMessageProps {
   name: string;
@@ -14,11 +15,13 @@ interface ToolCallMessageProps {
 }
 
 export function ToolCallMessage({ name, status, error }: ToolCallMessageProps) {
+  const { t } = useI18n();
+
   return (
     <div className="tool-call-message" data-status={status}>
       <div className="tool-call-header">
         <Wrench size={13} />
-        <span className="tool-call-label">{describeToolCall(name)}</span>
+        <span className="tool-call-label">{describeToolCall(name, t)}</span>
         {status === "running" ? (
           <LoaderCircle className="tool-call-spinner" size={13} />
         ) : (

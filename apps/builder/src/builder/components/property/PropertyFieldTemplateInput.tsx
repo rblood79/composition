@@ -18,6 +18,7 @@ import { iconEditProps } from "../../../utils/ui/uiConstants";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import "./PropertyFieldTemplateInput.css";
+import { useI18n } from "@/i18n";
 
 interface PropertyFieldTemplateInputProps {
   label?: string;
@@ -44,6 +45,7 @@ export function PropertyFieldTemplateInput({
   placeholder,
   disabled,
 }: PropertyFieldTemplateInputProps) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const normalizedValue = value ?? "";
   const [draft, setDraft] = useState(() => ({
@@ -96,13 +98,15 @@ export function PropertyFieldTemplateInput({
           onKeyDown={(e) => {
             if (e.key === "Enter") commit(inputValue);
           }}
-          placeholder={placeholder ?? "텍스트 또는 {field}"}
+          placeholder={
+            placeholder ?? t("propertiesPanel.fieldTemplatePlaceholder")
+          }
           disabled={disabled}
         />
         <MenuTrigger>
           <Button
             className="react-aria-Button field-picker-trigger"
-            aria-label="필드 삽입"
+            aria-label={t("propertiesPanel.insertField")}
             isDisabled={disabled || columns.length === 0}
             // 팝오버를 필드 박스(부모 react-aria-Group) 좌측·폭에 정렬하려면 offset 을
             // 트리거 버튼 기준으로 계산해야 한다 — controlRef 를 우측 버튼에 붙이면
@@ -119,7 +123,7 @@ export function PropertyFieldTemplateInput({
           >
             <Menu
               className="react-aria-Menu field-picker-menu"
-              aria-label="collection 필드"
+              aria-label={t("propertiesPanel.collectionField")}
               onAction={(key) => insertField(String(key))}
             >
               {columns.map((column) => (

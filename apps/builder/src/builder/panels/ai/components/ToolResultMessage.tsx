@@ -7,12 +7,14 @@
  */
 import type { ChatMessage } from "../../../../types/integrations/chat.types";
 import { describeToolResult } from "./toolLabels";
+import { useI18n } from "@/i18n";
 
 interface ToolResultMessageProps {
   message: ChatMessage;
 }
 
 export function ToolResultMessage({ message }: ToolResultMessageProps) {
+  const { t } = useI18n();
   const toolName = message.metadata?.toolName ?? "";
   const result = message.metadata?.toolResult as
     Record<string, unknown> | undefined;
@@ -24,7 +26,7 @@ export function ToolResultMessage({ message }: ToolResultMessageProps) {
   return (
     <div className="tool-result-message" data-success={success}>
       <span className="tool-result-label">
-        {describeToolResult(toolName, result)}
+        {describeToolResult(toolName, result, t)}
       </span>
     </div>
   );

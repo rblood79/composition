@@ -10,6 +10,7 @@ import { isCapabilityTarget } from "@composition/shared";
 
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { useStore } from "../../stores";
+import { useI18n } from "@/i18n";
 
 interface TargetPickerProps {
   value: string;
@@ -23,6 +24,7 @@ export const TargetPicker = memo(function TargetPicker({
   onChange,
   excludeId,
 }: TargetPickerProps) {
+  const { t } = useI18n();
   const currentPageId = useStore((state) => state.currentPageId);
   const getPageElements = useStore((state) => state.getPageElements);
 
@@ -40,7 +42,7 @@ export const TargetPicker = memo(function TargetPicker({
 
   return (
     <PropertySelect
-      label="대상"
+      label={t("interactions.target")}
       value={value}
       onChange={onChange}
       options={options}

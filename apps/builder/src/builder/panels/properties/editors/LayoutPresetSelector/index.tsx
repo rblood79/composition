@@ -33,6 +33,7 @@ import type { PresetApplyMode, PreviewArea } from "./types";
 import { useStore } from "../../../../stores";
 import "./styles.css";
 import { iconEditProps } from "../../../../../utils/ui/uiConstants";
+import { useI18n } from "@/i18n";
 
 interface LayoutPresetSelectorProps {
   /** Layout ID */
@@ -61,6 +62,7 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
   layoutId,
   bodyElementId,
 }: LayoutPresetSelectorProps) {
+  const { t } = useI18n();
   // 선택된 프리셋 상태
   const [selectedPresetKey, setSelectedPresetKey] = useState<string | null>(
     null,
@@ -194,7 +196,9 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
                     />
                     <span className="list-item-name">{preset.name}</span>
                     {isApplied && (
-                      <span className="list-item-badge applied">적용됨</span>
+                      <span className="list-item-badge applied">
+                        {t("propertiesPanel.presetApplied")}
+                      </span>
                     )}
                   </Button>
                 );

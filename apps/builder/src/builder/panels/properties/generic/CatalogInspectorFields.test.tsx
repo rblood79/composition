@@ -14,6 +14,8 @@ vi.mock("../../../stores/data", () => ({
 }));
 
 import { CatalogInspectorFields } from "./CatalogInspectorFields";
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 
 const theme: InspectorFieldTheme = {
   resolveDimensionOptions(_type, key) {
@@ -30,9 +32,13 @@ const theme: InspectorFieldTheme = {
   },
 };
 
+/** 표시 계층이 `useI18n` 을 쓰므로 provider 밑에서 그린다 (ADR-200 R7). */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
+
 describe("CatalogInspectorFields — ADR-142 #8 live 배선", () => {
   it("Button accepts(PropContract) 를 section 그룹 + kind별 컨트롤로 렌더한다", () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <CatalogInspectorFields
         componentType="Button"
         contracts={buttonBinding.props.accepts}
@@ -59,7 +65,7 @@ describe("CatalogInspectorFields — ADR-142 #8 live 배선", () => {
   // ADR-912 회귀 복원: catalog cutover 후 kind:"binding"(dataBinding) 이 default:null 로
   //   빠져 collection 의 RSP Dynamic collections Data 소스 UI 가 소실됐던 회귀 가드.
   it('kind:"binding" dataBinding field 를 PropertyDataBinding(Data 소스 UI)로 렌더한다', () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <CatalogInspectorFields
         componentType="Table"
         contracts={tableBinding.props.accepts}
@@ -75,6 +81,6 @@ describe("CatalogInspectorFields — ADR-142 #8 live 배선", () => {
     expect(text).toContain("Data");
     // PropertyDataBinding 의 컬렉션 피커 placeholder 가 DOM 에 존재 (no-op null 아님).
     //   ADR-159 P4b: 소스 선택 단계 제거 — 컬렉션(테이블명) 선택 단일.
-    expect(text).toContain("컬렉션 선택");
+    expect(text).toContain("Choose a collection");
   });
 });

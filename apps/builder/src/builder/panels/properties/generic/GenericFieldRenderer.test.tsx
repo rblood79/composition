@@ -24,6 +24,8 @@ vi.mock("../hooks/useOwnerCollectionColumns", async (importActual) => {
 });
 
 import { GenericFieldRenderer } from "./GenericFieldRenderer";
+import type { ReactElement } from "react";
+import { I18nProvider } from "@/i18n";
 
 const stringField = (
   key: string,
@@ -40,7 +42,7 @@ const stringField = (
 });
 
 const renderFields = (fields: ResolvedField[]) =>
-  render(
+  renderWithI18n(
     <GenericFieldRenderer
       fields={fields}
       onSemanticUpdate={vi.fn()}
@@ -49,12 +51,16 @@ const renderFields = (fields: ResolvedField[]) =>
     />,
   );
 
+/** 표시 계층이 `useI18n` 을 쓰므로 provider 밑에서 그린다 (ADR-200 R7). */
+const renderWithI18n = (ui: ReactElement) =>
+  render(ui, { wrapper: I18nProvider });
+
 describe("GenericFieldRenderer — ADR-159 P4a 필드 피커 게이트", () => {
   it("템플릿 텍스트 키(children) + 소유 컬럼 존재 → 필드 피커 입력 렌더", () => {
     ownerColumnsMock.mockReturnValue(["num", "role", "email"]);
     const { container } = renderFields([stringField("children")]);
     expect(
-      container.querySelector('button[aria-label="필드 삽입"]'),
+      container.querySelector('button[aria-label="Insert field"]'),
     ).not.toBeNull();
   });
 
@@ -62,7 +68,7 @@ describe("GenericFieldRenderer — ADR-159 P4a 필드 피커 게이트", () => {
     ownerColumnsMock.mockReturnValue(null);
     const { container } = renderFields([stringField("children")]);
     expect(
-      container.querySelector('button[aria-label="필드 삽입"]'),
+      container.querySelector('button[aria-label="Insert field"]'),
     ).toBeNull();
     expect(container.querySelector("input")).not.toBeNull();
   });
@@ -71,7 +77,7 @@ describe("GenericFieldRenderer — ADR-159 P4a 필드 피커 게이트", () => {
     ownerColumnsMock.mockReturnValue(["num", "role"]);
     const { container } = renderFields([stringField("placeholder")]);
     expect(
-      container.querySelector('button[aria-label="필드 삽입"]'),
+      container.querySelector('button[aria-label="Insert field"]'),
     ).toBeNull();
   });
 
@@ -79,7 +85,7 @@ describe("GenericFieldRenderer — ADR-159 P4a 필드 피커 게이트", () => {
     ownerColumnsMock.mockReturnValue(["num", "role"]);
     const { container } = renderFields([stringField("children", "style")]);
     expect(
-      container.querySelector('button[aria-label="필드 삽입"]'),
+      container.querySelector('button[aria-label="Insert field"]'),
     ).toBeNull();
   });
 });

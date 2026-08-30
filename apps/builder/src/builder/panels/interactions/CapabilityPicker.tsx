@@ -9,6 +9,7 @@ import { memo, useMemo } from "react";
 import { resolveCapabilities } from "@composition/shared";
 
 import { PropertySelect } from "../../components/property/PropertySelect";
+import { useI18n } from "@/i18n";
 
 interface CapabilityPickerProps {
   targetType: string;
@@ -21,18 +22,21 @@ export const CapabilityPicker = memo(function CapabilityPicker({
   value,
   onChange,
 }: CapabilityPickerProps) {
+  const { t } = useI18n();
   const options = useMemo(() => {
     const caps = resolveCapabilities(targetType);
     return Object.entries(caps).map(([key, def]) => ({
       value: key,
       // remount 기능은 내부 상태(포커스/스크롤)가 초기화된다 — 선택 전에 알린다
-      label: def.remount ? `${def.label} (재설정)` : def.label,
+      label: def.remount
+        ? t("interactions.capabilityRemount", { label: def.label })
+        : def.label,
     }));
   }, [targetType]);
 
   return (
     <PropertySelect
-      label="기능"
+      label={t("interactions.capability")}
       value={value}
       onChange={onChange}
       options={options}

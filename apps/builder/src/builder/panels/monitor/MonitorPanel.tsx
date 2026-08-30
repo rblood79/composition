@@ -47,10 +47,12 @@ import {
   ToastContainer,
 } from "../../components";
 import { translateKey, useOptionalI18n } from "../../../i18n";
+import { useI18n } from "@/i18n";
 
 const MAX_HISTORY_POINTS = 60; // 최대 60개 데이터 포인트 (10분)
 
 export function MonitorPanel() {
+  const { t } = useI18n();
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `monitor.${key}`, fallback) : fallback;
@@ -110,12 +112,15 @@ export function MonitorPanel() {
     if (percent >= 75) {
       showToast(
         "error",
-        `메모리 사용량이 위험 수준입니다 (${percent.toFixed(1)}%)`,
+        t("messages.memoryCritical", { percent: percent.toFixed(1) }),
       );
     } else if (percent >= 60) {
-      showToast("warning", `메모리 사용량이 높습니다 (${percent.toFixed(1)}%)`);
+      showToast(
+        "warning",
+        t("messages.memoryHigh", { percent: percent.toFixed(1) }),
+      );
     }
-  }, [browserMemoryUsagePercent, activeTab, showToast]);
+  }, [browserMemoryUsagePercent, activeTab, showToast, t]);
 
   // 메모리 히스토리 수집 (memory 탭에서만)
   useEffect(() => {
