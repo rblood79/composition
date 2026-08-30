@@ -81,3 +81,4 @@
 {"sha":"c1c90dc794cfaa8f52b7ac6fff711449e5b3f183","date":"2026-08-27T20:41:18+09:00","promoted_adrs":["docs/adr/completed/195-command-palette-execution-registry.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"a5be9a3e7ffe59fc2ddaf43b4786657f63d2020c","date":"2026-08-28T21:25:09+09:00","promoted_adrs":["docs/adr/completed/196-agent-command-surface.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"31fbd79ac8f9602d260fab562bb6052b7ae4e209","date":"2026-08-29T00:06:30+09:00","promoted_adrs":["docs/adr/completed/134-ai-assistant-llm-infrastructure-unification.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"49729d31d844dbf0f81309683b960d844069f1a5","date":"2026-08-30T18:06:29+09:00","promoted_adrs":["docs/adr/completed/199-component-semantics-action-registry.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
