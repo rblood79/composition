@@ -13,6 +13,7 @@ import { memo } from "react";
 import type { CapabilityParam } from "@composition/shared";
 
 import { PropertyInput } from "../../components/property/PropertyInput";
+import { useI18n } from "@/i18n";
 
 interface ParamFieldProps {
   param: CapabilityParam;
@@ -25,11 +26,12 @@ export const ParamField = memo(function ParamField({
   value,
   onChange,
 }: ParamFieldProps) {
+  const { t } = useI18n();
   const isNumber = param.kind === "number";
 
   return (
     <PropertyInput
-      label={param.label}
+      label={t(param.labelKey)}
       type={isNumber ? "number" : "text"}
       value={
         value === undefined || value === null ? "" : (value as string | number)

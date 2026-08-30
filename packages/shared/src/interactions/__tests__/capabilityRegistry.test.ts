@@ -37,7 +37,7 @@ describe("G1 — capability 근거 집행", () => {
   });
 
   it("모든 capability 에 label 이 있다", () => {
-    const missing = ALL_DEFS.filter(([, , def]) => !def.label?.trim()).map(
+    const missing = ALL_DEFS.filter(([, , def]) => !def.labelKey?.trim()).map(
       ([type, key]) => `${type}.${key}`,
     );
     expect(missing).toEqual([]);

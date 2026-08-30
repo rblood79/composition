@@ -428,6 +428,38 @@ export interface TranslationKeys {
     summaryToast: string;
     summaryToastWithMessage: string;
   };
+  /**
+   * Capability 어휘 — `packages/shared` 의 `CAPABILITY_REGISTRY` 가 `labelKey` 로
+   * 가리키는 키다. 여기서 키를 지우면 shared 쪽 참조가 조용히 키 문자열로 새어 나온다.
+   */
+  capabilities: {
+    show: string;
+    hide: string;
+    toggleVisibility: string;
+    selectItem: string;
+    clearSelection: string;
+    expand: string;
+    collapse: string;
+    collapseAll: string;
+    open: string;
+    close: string;
+    check: string;
+    uncheck: string;
+    toggleCheck: string;
+    turnOn: string;
+    turnOff: string;
+    toggleOnOff: string;
+    setValue: string;
+    selectTab: string;
+    submit: string;
+    reset: string;
+    paramItemKey: string;
+    paramTabKey: string;
+    paramValue: string;
+    paramValueToSelect: string;
+    paramPath: string;
+    paramMessage: string;
+  };
   propertiesPanel: {
     overrideCleared: string;
     itemsForkedLabel: string;

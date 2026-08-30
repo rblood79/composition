@@ -28,11 +28,19 @@
 /** capability 가 값을 요구할 때 패널이 물어볼 입력의 종류 */
 export interface CapabilityParam {
   kind: "itemKey" | "value" | "text" | "number";
-  label: string;
+  /** 입력 레이블의 카탈로그 키 (`labelKey` 와 같은 이유로 문구가 아니다) */
+  labelKey: string;
 }
 
 export interface CapabilityDef {
-  label: string;
+  /**
+   * 표시 문구의 **카탈로그 키** — 문구 자체가 아니다.
+   *
+   * shared 는 빌더의 i18n provider 에 닿을 수 없고 (앱 경계), 규칙은 저장돼 뒤에 다시
+   * 읽히므로 문구를 여기 굳히면 언어를 바꿔도 예전 언어가 남는다. 키만 싣고 패널이
+   * 렌더 시점에 푼다 (ADR-200 후속).
+   */
+  labelKey: string;
   /**
    * patch 대상 prop 경로. `style.` 접두는 `props.style` 하위를 뜻한다.
    * `imperative: true` 인 특례는 prop 이 아니라 DOM ref 호출이라 빈 문자열.
@@ -80,21 +88,21 @@ export interface ComponentCapability {
  */
 export const COMMON_CAPABILITIES: Readonly<Record<string, CapabilityDef>> = {
   show: {
-    label: "표시",
+    labelKey: "capabilities.show",
     prop: "style.display",
     value: null,
     racRef:
       "CSS display — props.style 은 전 렌더러가 root 에 전달 (ADR-907 Layer C)",
   },
   hide: {
-    label: "숨김",
+    labelKey: "capabilities.hide",
     prop: "style.display",
     value: "none",
     racRef:
       "CSS display — props.style 은 전 렌더러가 root 에 전달 (ADR-907 Layer C)",
   },
   toggle: {
-    label: "표시 전환",
+    labelKey: "capabilities.toggleVisibility",
     prop: "style.display",
     value: "!self",
     racRef:
@@ -120,27 +128,27 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onSelectionChange", "onExpandedChange"],
     capabilities: {
       selectItem: {
-        label: "항목 선택",
+        labelKey: "capabilities.selectItem",
         prop: "selectedKeys",
         value: "!param",
-        param: { kind: "itemKey", label: "항목 키" },
+        param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
         racRef: "Tree.md — selectedKeys (controlled)",
       },
       clearSelection: {
-        label: "선택 해제",
+        labelKey: "capabilities.clearSelection",
         prop: "selectedKeys",
         value: [],
         racRef: "Tree.md — selectedKeys (controlled)",
       },
       expand: {
-        label: "펼치기",
+        labelKey: "capabilities.expand",
         prop: "expandedKeys",
         value: "!param",
-        param: { kind: "itemKey", label: "항목 키" },
+        param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
         racRef: "Tree.md — expandedKeys (controlled)",
       },
       collapse: {
-        label: "모두 접기",
+        labelKey: "capabilities.collapseAll",
         prop: "expandedKeys",
         value: [],
         racRef: "Tree.md — expandedKeys (controlled)",
@@ -151,14 +159,14 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onSelectionChange", "onRemove"],
     capabilities: {
       selectItem: {
-        label: "항목 선택",
+        labelKey: "capabilities.selectItem",
         prop: "selectedKeys",
         value: "!param",
-        param: { kind: "itemKey", label: "항목 키" },
+        param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
         racRef: "TagGroup.md — selectedKeys (controlled)",
       },
       clearSelection: {
-        label: "선택 해제",
+        labelKey: "capabilities.clearSelection",
         prop: "selectedKeys",
         value: [],
         racRef: "TagGroup.md — selectedKeys (controlled)",
@@ -169,13 +177,13 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onOpenChange"],
     capabilities: {
       open: {
-        label: "열기",
+        labelKey: "capabilities.open",
         prop: "isOpen",
         value: true,
         racRef: "Modal.md — ModalOverlayProps.isOpen (controlled)",
       },
       close: {
-        label: "닫기",
+        labelKey: "capabilities.close",
         prop: "isOpen",
         value: false,
         racRef: "Modal.md — ModalOverlayProps.isOpen (controlled)",
@@ -188,15 +196,15 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onSelectionChange"],
     capabilities: {
       selectItem: {
-        label: "항목 선택",
+        labelKey: "capabilities.selectItem",
         prop: "defaultSelectedKeys",
         value: "!param",
-        param: { kind: "itemKey", label: "항목 키" },
+        param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
         racRef: "ListBox.md — selectedKeys / defaultSelectedKeys",
         remount: true,
       },
       clearSelection: {
-        label: "선택 해제",
+        labelKey: "capabilities.clearSelection",
         prop: "defaultSelectedKeys",
         value: [],
         racRef: "ListBox.md — selectedKeys / defaultSelectedKeys",
@@ -208,15 +216,15 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onSelectionChange"],
     capabilities: {
       selectItem: {
-        label: "항목 선택",
+        labelKey: "capabilities.selectItem",
         prop: "defaultSelectedKeys",
         value: "!param",
-        param: { kind: "itemKey", label: "항목 키" },
+        param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
         racRef: "GridList.md — selectedKeys / defaultSelectedKeys",
         remount: true,
       },
       clearSelection: {
-        label: "선택 해제",
+        labelKey: "capabilities.clearSelection",
         prop: "defaultSelectedKeys",
         value: [],
         racRef: "GridList.md — selectedKeys / defaultSelectedKeys",
@@ -228,21 +236,21 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onChange"],
     capabilities: {
       check: {
-        label: "체크",
+        labelKey: "capabilities.check",
         prop: "isSelected",
         value: true,
         racRef: "Checkbox.md — isSelected (controlled)",
         remount: true,
       },
       uncheck: {
-        label: "체크 해제",
+        labelKey: "capabilities.uncheck",
         prop: "isSelected",
         value: false,
         racRef: "Checkbox.md — isSelected (controlled)",
         remount: true,
       },
       toggleCheck: {
-        label: "체크 전환",
+        labelKey: "capabilities.toggleCheck",
         prop: "isSelected",
         value: "!self",
         racRef: "Checkbox.md — isSelected (controlled)",
@@ -254,21 +262,21 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onChange"],
     capabilities: {
       check: {
-        label: "켜기",
+        labelKey: "capabilities.turnOn",
         prop: "isSelected",
         value: true,
         racRef: "ToggleButton.md — isSelected (controlled)",
         remount: true,
       },
       uncheck: {
-        label: "끄기",
+        labelKey: "capabilities.turnOff",
         prop: "isSelected",
         value: false,
         racRef: "ToggleButton.md — isSelected (controlled)",
         remount: true,
       },
       toggleCheck: {
-        label: "켬/끔 전환",
+        labelKey: "capabilities.toggleOnOff",
         prop: "isSelected",
         value: "!self",
         racRef: "ToggleButton.md — isSelected (controlled)",
@@ -280,10 +288,10 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onChange"],
     capabilities: {
       setValue: {
-        label: "값 설정",
+        labelKey: "capabilities.setValue",
         prop: "value",
         value: "!param",
-        param: { kind: "value", label: "선택할 값" },
+        param: { kind: "value", labelKey: "capabilities.paramValueToSelect" },
         racRef: "RadioGroup.md — value (controlled)",
         remount: true,
       },
@@ -293,10 +301,10 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onChange", "onChangeEnd"],
     capabilities: {
       setValue: {
-        label: "값 설정",
+        labelKey: "capabilities.setValue",
         prop: "value",
         value: "!param",
-        param: { kind: "number", label: "값" },
+        param: { kind: "number", labelKey: "capabilities.paramValue" },
         racRef: "Slider.md — value (controlled)",
         remount: true,
       },
@@ -306,12 +314,12 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onSelectionChange"],
     capabilities: {
       selectTab: {
-        label: "탭 선택",
+        labelKey: "capabilities.selectTab",
         // Preview 는 `defaultSelectedKey` 만 소비하고 key 에 그 값을 포함한다
         // (breakdown §0 표 ③) — patch 대상 prop 이름이 `selectedKey` 가 아니다.
         prop: "defaultSelectedKey",
         value: "!param",
-        param: { kind: "itemKey", label: "탭 키" },
+        param: { kind: "itemKey", labelKey: "capabilities.paramTabKey" },
         racRef: "Tabs.md — selectedKey / defaultSelectedKey",
         remount: true,
       },
@@ -321,14 +329,14 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onExpandedChange"],
     capabilities: {
       expand: {
-        label: "펼치기",
+        labelKey: "capabilities.expand",
         prop: "isExpanded",
         value: true,
         racRef: "Disclosure.md — isExpanded (controlled)",
         remount: true,
       },
       collapse: {
-        label: "접기",
+        labelKey: "capabilities.collapse",
         prop: "isExpanded",
         value: false,
         racRef: "Disclosure.md — isExpanded (controlled)",
@@ -342,14 +350,14 @@ export const CAPABILITY_REGISTRY: Readonly<
     events: ["onSubmit", "onReset"],
     capabilities: {
       submit: {
-        label: "제출",
+        labelKey: "capabilities.submit",
         prop: "",
         value: null,
         racRef: "Form.md — RAC 이 native <form> 위임 → ref.requestSubmit()",
         imperative: true,
       },
       reset: {
-        label: "초기화",
+        labelKey: "capabilities.reset",
         prop: "",
         value: null,
         racRef: "Form.md — RAC 이 native <form> 위임 → ref.reset()",
@@ -421,11 +429,25 @@ export const CAPABILITY_REGISTRY: Readonly<
   },
 } as const;
 
-/** 앱 액션 — 대상 요소가 없는 전역 동작 */
+/**
+ * 앱 액션 — 대상 요소가 없는 전역 동작.
+ *
+ * `labelKey` 는 패널 Do 축 선택지(`ACTION_CHOICE_LABEL_KEYS`)와 **같은 키**를 가리킨다 —
+ * 같은 동작을 두 문장으로 갈라 두면 한쪽만 고쳐지는 순간 어휘가 어긋난다.
+ */
 export const APP_ACTIONS = {
-  navigate: { label: "페이지 이동", param: { kind: "text", label: "경로" } },
-  toast: { label: "토스트 표시", param: { kind: "text", label: "메시지" } },
-} as const satisfies Record<string, { label: string; param: CapabilityParam }>;
+  navigate: {
+    labelKey: "interactions.actionNavigate",
+    param: { kind: "text", labelKey: "capabilities.paramPath" },
+  },
+  toast: {
+    labelKey: "interactions.actionToast",
+    param: { kind: "text", labelKey: "capabilities.paramMessage" },
+  },
+} as const satisfies Record<
+  string,
+  { labelKey: string; param: CapabilityParam }
+>;
 
 export type AppActionKind = keyof typeof APP_ACTIONS;
 

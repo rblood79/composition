@@ -86,9 +86,9 @@ export const RuleRow = memo(function RuleRow({
         ? t("interactions.summaryToastWithMessage", { when, message: msg })
         : t("interactions.summaryToast", { when });
     }
-    const caps = resolveCapabilities(targetType);
-    const capLabel =
-      caps[rule.action.capability]?.label ?? rule.action.capability;
+    const capDef = resolveCapabilities(targetType)[rule.action.capability];
+    // 미등재 capability 는 키를 그대로 보여준다 — 규칙이 무엇을 가리키는지는 남는다
+    const capLabel = capDef ? t(capDef.labelKey) : rule.action.capability;
     return `${when} → ${capLabel} @ ${targetLabel}`;
   }, [rule.trigger, rule.action, targetType, targetLabel, t]);
 

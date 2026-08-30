@@ -29,10 +29,10 @@ export const CapabilityPicker = memo(function CapabilityPicker({
       value: key,
       // remount 기능은 내부 상태(포커스/스크롤)가 초기화된다 — 선택 전에 알린다
       label: def.remount
-        ? t("interactions.capabilityRemount", { label: def.label })
-        : def.label,
+        ? t("interactions.capabilityRemount", { label: t(def.labelKey) })
+        : t(def.labelKey),
     }));
-  }, [targetType]);
+  }, [targetType, t]);
 
   return (
     <PropertySelect

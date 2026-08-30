@@ -167,7 +167,10 @@ export function executeInteractionRule(
     // registry 에 `imperative: true` 로 표시된 특례는 prop patch 로 환원 불가라
     // dispatcher 가 다루지 않는다. 등재 자체가 보류(c) 이므로 정상 경로에서는
     // 도달하지 않지만, 조용히 no-op 하면 "눌렀는데 아무 일도 없다" 가 된다.
-    return { ok: false, reason: `imperative capability 미지원: ${def.label}` };
+    return {
+      ok: false,
+      reason: `imperative capability 미지원: ${target.type}.${action.capability}`,
+    };
   }
 
   const resolved = resolveValue(
