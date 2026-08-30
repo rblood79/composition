@@ -27,6 +27,11 @@ export function VariableList({ projectId }: VariableListProps) {
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const t = (
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
   const variables = useVariables();
   const createVariable = useDataStore((state) => state.createVariable);
   const deleteVariable = useDataStore((state) => state.deleteVariable);
@@ -46,7 +51,7 @@ export function VariableList({ projectId }: VariableListProps) {
   const pageVariables = variables.filter((v) => v.scope === "page");
 
   const handleCreate = async () => {
-    const name = prompt("Variable 이름을 입력하세요:");
+    const name = prompt(t("promptVariableName"));
     if (!name) return;
 
     try {
@@ -65,7 +70,7 @@ export function VariableList({ projectId }: VariableListProps) {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+    if (!confirm(t("confirmDelete"))) return;
 
     try {
       await deleteVariable(id);
@@ -104,7 +109,7 @@ export function VariableList({ projectId }: VariableListProps) {
           type="button"
           className="iconButton"
           onClick={(e) => handleEdit(variable.id, e)}
-          title={localize("edit", "편집")}
+          title={localize("edit", "Edit")}
         >
           <SquarePen {...iconEditProps} />
         </button>
@@ -112,7 +117,7 @@ export function VariableList({ projectId }: VariableListProps) {
           type="button"
           className="iconButton"
           onClick={(e) => handleDelete(variable.id, e)}
-          title={localize("delete", "삭제")}
+          title={localize("delete", "Delete")}
         >
           <DeleteIcon {...iconEditProps} />
         </button>
@@ -124,7 +129,11 @@ export function VariableList({ projectId }: VariableListProps) {
     <Section
       id="variable-list"
       title={localize("variableList", "Variable List")}
-      badge={<span className="datatable-list-count">{variables.length}개</span>}
+      badge={
+        <span className="datatable-list-count">
+          {t("countItems", { count: variables.length })}
+        </span>
+      }
       collapsible={false}
     >
       {variables.length === 0 ? (
@@ -146,7 +155,7 @@ export function VariableList({ projectId }: VariableListProps) {
                   {localize("global", "Global")}
                 </span>
                 <span className="list-subgroup-count">
-                  {globalVariables.length}개
+                  {t("countItems", { count: globalVariables.length })}
                 </span>
               </div>
               <div className="list-group" role="list">
@@ -163,7 +172,7 @@ export function VariableList({ projectId }: VariableListProps) {
                   {localize("page", "Page")}
                 </span>
                 <span className="list-subgroup-count">
-                  {pageVariables.length}개
+                  {t("countItems", { count: pageVariables.length })}
                 </span>
               </div>
               <div className="list-group" role="list">

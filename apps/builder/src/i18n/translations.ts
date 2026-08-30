@@ -396,6 +396,8 @@ const koKR: TranslationKeys = {
     summaryToastWithMessage: '{when} → 토스트 "{message}"',
   },
   propertiesPanel: {
+    slotMerge: "병합 (새 Slot만 추가)",
+    slotReplace: "덮어쓰기",
     emptyMessage: "편집 가능한 속성이 없습니다",
     emptyDescription: "'{type}' 컴포넌트의 편집 계약이 비어 있습니다.",
     selectElement: "요소를 선택하세요",
@@ -994,6 +996,11 @@ const koKR: TranslationKeys = {
     collapseAll: "모두 접기",
   },
   styles: {
+    responsiveGlobalHint:
+      "편집은 모든 breakpoint 에 공통 적용됩니다(전역). 툴바에서 Tablet / Mobile 로 전환하면 Layout · Transform 속성을 해당 breakpoint 전용으로 분리(override)할 수 있습니다.",
+    responsiveNoOverrides:
+      "아직 override 가 없습니다. 편집은 전역입니다 — 아래에서 속성을 추가하면 {breakpoint} 전용으로 분리됩니다.",
+    restoreGlobally: "전역으로 되돌리기",
     view: "스타일 뷰",
     layout: "레이아웃",
     layoutHint: "변형 · 레이아웃",
@@ -1011,7 +1018,47 @@ const koKR: TranslationKeys = {
     focus: "포커스",
     selectElement: "요소를 선택하세요",
   },
+  agentConfirm: {
+    title: "명령 실행 승인",
+    body: "{host} 가 {summary} 를 실행하려 합니다.",
+    undoable: "실행 후 되돌리기({shortcut}) 1회로 복원",
+    notUndoable: "되돌릴 수 없음",
+    reject: "거부",
+    approve: "실행",
+    hostAiPanel: "AI 패널",
+    hostChromeMcp: "외부 agent (Chrome MCP)",
+    hostMcp: "외부 agent (MCP)",
+    hostUnknown: "agent",
+  },
+  dashboard: {
+    confirmDeleteProject: "정말로 이 프로젝트를 삭제하시겠습니까?",
+  },
   datatable: {
+    tabs: "DataTable 탭",
+    tableTabs: "테이블 탭",
+    apiTabs: "API 탭",
+    variableTabs: "변수 탭",
+    countItems: "{count}개",
+    tableMeta: "{fields}개 필드 · {rows}개 행",
+    confirmDelete: "정말 삭제하시겠습니까?",
+    promptVariableName: "Variable 이름을 입력하세요:",
+    promptApiUrl:
+      "API URL을 입력하세요 (예: https://pokeapi.co/api/v2/pokemon):",
+    importSucceeded:
+      'DataTable "{name}"이(가) 생성되었습니다.\n{columns}개 컬럼, {rows}개 행',
+    importFailed: "Import 실패: {message}",
+    bodyHint: "POST/PUT/PATCH 요청의 본문을 JSON 형식으로 입력합니다.",
+    bodyVariableHint: "{{변수명}} 형식으로 변수를 참조할 수 있습니다.",
+    detectFound: '✓ "{field}" 감지됨 ({count}개 항목)',
+    detectNoArray: "⚠ 배열 필드를 찾을 수 없습니다",
+    detectAlreadyArray: "✓ 응답이 이미 배열입니다 (dataPath 불필요)",
+    detectUnknownShape: "⚠ 응답 형식을 인식할 수 없습니다",
+    detectRequestFailed: "✗ API 호출 실패: {message}",
+    dataPathHint:
+      "응답 JSON에서 데이터 배열을 추출할 경로입니다. (예: results, data.items)",
+    targetTableHint:
+      "API 응답 데이터를 저장할 DataTable 이름입니다. Test 탭에서 Import 시 기본값으로 사용됩니다.",
+    fieldMappingHint: "API 응답 필드를 DataTable 필드에 매핑합니다.",
     tables: "테이블",
     apis: "API",
     variables: "변수",
@@ -1110,6 +1157,8 @@ const koKR: TranslationKeys = {
     columns: "열",
   },
   monitor: {
+    warningThresholdHint: "노란색 경고가 표시되는 메모리 사용률",
+    dangerThresholdHint: "빨간색 위험 경고가 표시되는 메모리 사용률",
     tabs: "모니터 탭",
     memory: "메모리",
     realtime: "실시간",
@@ -1668,6 +1717,8 @@ const enUS: TranslationKeys = {
     summaryToastWithMessage: '{when} → toast "{message}"',
   },
   propertiesPanel: {
+    slotMerge: "Merge (add new slots only)",
+    slotReplace: "Replace",
     emptyMessage: "No editable properties",
     emptyDescription: "The editing contract for '{type}' is empty.",
     selectElement: "Select an element",
@@ -2271,6 +2322,11 @@ const enUS: TranslationKeys = {
     collapseAll: "Collapse All",
   },
   styles: {
+    responsiveGlobalHint:
+      "Edits apply to every breakpoint (global). Switch to Tablet / Mobile in the toolbar to split Layout · Transform properties into that breakpoint only.",
+    responsiveNoOverrides:
+      "No overrides yet — edits are global. Add a property below to split it into {breakpoint} only.",
+    restoreGlobally: "restore globally",
     view: "Style view",
     layout: "Layout",
     layoutHint: "Transform · Layout",
@@ -2288,7 +2344,47 @@ const enUS: TranslationKeys = {
     focus: "Focus",
     selectElement: "Select an element",
   },
+  agentConfirm: {
+    title: "Approve command",
+    body: "{host} wants to run {summary}.",
+    undoable: "Restorable with a single undo ({shortcut})",
+    notUndoable: "Cannot be undone",
+    reject: "Reject",
+    approve: "Run",
+    hostAiPanel: "AI panel",
+    hostChromeMcp: "External agent (Chrome MCP)",
+    hostMcp: "External agent (MCP)",
+    hostUnknown: "agent",
+  },
+  dashboard: {
+    confirmDeleteProject: "Delete this project?",
+  },
   datatable: {
+    tabs: "DataTable tabs",
+    tableTabs: "Table tabs",
+    apiTabs: "API tabs",
+    variableTabs: "Variable tabs",
+    countItems: "{count}",
+    tableMeta: "{fields} fields · {rows} rows",
+    confirmDelete: "Are you sure you want to delete this?",
+    promptVariableName: "Enter a variable name:",
+    promptApiUrl: "Enter the API URL (e.g. https://pokeapi.co/api/v2/pokemon):",
+    importSucceeded:
+      'DataTable "{name}" created.\n{columns} columns, {rows} rows',
+    importFailed: "Import failed: {message}",
+    bodyHint: "Enter the body of POST/PUT/PATCH requests as JSON.",
+    bodyVariableHint: "Reference variables with the {{variableName}} syntax.",
+    detectFound: '✓ Detected "{field}" ({count} items)',
+    detectNoArray: "⚠ No array field found",
+    detectAlreadyArray:
+      "✓ The response is already an array (no dataPath needed)",
+    detectUnknownShape: "⚠ Unrecognized response shape",
+    detectRequestFailed: "✗ API request failed: {message}",
+    dataPathHint:
+      "Path to the data array in the response JSON (e.g. results, data.items).",
+    targetTableHint:
+      "Name of the DataTable that stores the API response. Used as the default when importing from the Test tab.",
+    fieldMappingHint: "Maps API response fields onto DataTable fields.",
     tables: "Tables",
     apis: "APIs",
     variables: "Variables",
@@ -2387,6 +2483,8 @@ const enUS: TranslationKeys = {
     columns: "Columns",
   },
   monitor: {
+    warningThresholdHint: "Memory usage that shows the yellow warning",
+    dangerThresholdHint: "Memory usage that shows the red danger warning",
     tabs: "Monitor tabs",
     memory: "Memory",
     realtime: "Realtime",
@@ -2942,6 +3040,23 @@ const formattedMessages: Record<
   Record<string, (args: FormatterVariables | undefined) => string>
 > = {
   "ko-KR": {
+    "datatable.countItems": (args) => `${String(args?.count ?? 0)}개`,
+    "datatable.tableMeta": (args) =>
+      `${String(args?.fields ?? 0)}개 필드 · ${String(args?.rows ?? 0)}개 행`,
+    "datatable.importSucceeded": (args) =>
+      `DataTable "${String(args?.name ?? "")}"이(가) 생성되었습니다.\n${String(args?.columns ?? 0)}개 컬럼, ${String(args?.rows ?? 0)}개 행`,
+    "datatable.importFailed": (args) =>
+      `Import 실패: ${String(args?.message ?? "")}`,
+    "datatable.detectFound": (args) =>
+      `✓ "${String(args?.field ?? "")}" 감지됨 (${String(args?.count ?? 0)}개 항목)`,
+    "datatable.detectRequestFailed": (args) =>
+      `✗ API 호출 실패: ${String(args?.message ?? "")}`,
+    "agentConfirm.body": (args) =>
+      `${String(args?.host ?? "")} 가 ${String(args?.summary ?? "")} 를 실행하려 합니다.`,
+    "agentConfirm.undoable": (args) =>
+      `실행 후 되돌리기(${String(args?.shortcut ?? "")}) 1회로 복원`,
+    "styles.responsiveNoOverrides": (args) =>
+      `아직 override 가 없습니다. 편집은 전역입니다 — 아래에서 속성을 추가하면 ${String(args?.breakpoint ?? "")} 전용으로 분리됩니다.`,
     "workspace.movePanel": (args) => `${String(args?.panel ?? "")} 패널 이동`,
     "workspace.resizePanel": (args) =>
       `${String(args?.panel ?? "")} 패널 ${String(args?.edge ?? "")} 크기 조절`,
@@ -3144,6 +3259,23 @@ const formattedMessages: Record<
     "messages.itemCount": (args) => `${String(args?.count ?? 0)}개`,
   },
   "en-US": {
+    "datatable.countItems": (args) => `${String(args?.count ?? 0)}`,
+    "datatable.tableMeta": (args) =>
+      `${String(args?.fields ?? 0)} fields · ${String(args?.rows ?? 0)} rows`,
+    "datatable.importSucceeded": (args) =>
+      `DataTable "${String(args?.name ?? "")}" created.\n${String(args?.columns ?? 0)} columns, ${String(args?.rows ?? 0)} rows`,
+    "datatable.importFailed": (args) =>
+      `Import failed: ${String(args?.message ?? "")}`,
+    "datatable.detectFound": (args) =>
+      `✓ Detected "${String(args?.field ?? "")}" (${String(args?.count ?? 0)} items)`,
+    "datatable.detectRequestFailed": (args) =>
+      `✗ API request failed: ${String(args?.message ?? "")}`,
+    "agentConfirm.body": (args) =>
+      `${String(args?.host ?? "")} wants to run ${String(args?.summary ?? "")}.`,
+    "agentConfirm.undoable": (args) =>
+      `Restorable with a single undo (${String(args?.shortcut ?? "")})`,
+    "styles.responsiveNoOverrides": (args) =>
+      `No overrides yet — edits are global. Add a property below to split it into ${String(args?.breakpoint ?? "")} only.`,
     "workspace.movePanel": (args) => `Move ${String(args?.panel ?? "")} panel`,
     "workspace.resizePanel": (args) =>
       `Resize ${String(args?.panel ?? "")} panel ${String(args?.edge ?? "")}`,

@@ -89,6 +89,11 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
     i18n
       ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
       : label;
+  /** 패널 자체 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const t = (
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ) => (i18n ? i18n.t(`styles.${key}`, params) : key);
   const {
     activeBreakpoint,
     isBase,
@@ -173,11 +178,7 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
     <PropertySection title="Responsive">
       <div className="responsive-section">
         {isBase ? (
-          <p className="responsive-hint">
-            편집은 모든 breakpoint 에 공통 적용됩니다(전역). 툴바에서 Tablet /
-            Mobile 로 전환하면 Layout · Transform 속성을 해당 breakpoint
-            전용으로 분리(override)할 수 있습니다.
-          </p>
+          <p className="responsive-hint">{t("responsiveGlobalHint")}</p>
         ) : (
           <div className="responsive-overrides">
             <div className="responsive-overrides-header">
@@ -186,8 +187,9 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
 
             {activeOverrideCount === 0 ? (
               <p className="responsive-hint">
-                아직 override 가 없습니다. 편집은 전역입니다 — 아래에서 속성을
-                추가하면 {BP_LABEL[activeBreakpoint]} 전용으로 분리됩니다.
+                {t("responsiveNoOverrides", {
+                  breakpoint: BP_LABEL[activeBreakpoint],
+                })}
               </p>
             ) : (
               <div className="responsive-chips">
@@ -199,7 +201,7 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
                       className="responsive-chip-clear"
                       onClick={() => handleRemoveOverride(p.key)}
                       aria-label={`Remove ${localize(p.label)} override`}
-                      title={`${localize(p.label)} ${i18n?.locale === "ko-KR" ? "전역으로 되돌리기" : "restore globally"}`}
+                      title={`${localize(p.label)} ${t("restoreGlobally")}`}
                     >
                       <X size={11} />
                     </button>
@@ -215,7 +217,7 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
                       className="responsive-chip-clear"
                       onClick={() => handleRemoveOverride(key)}
                       aria-label={`Remove ${localize(formatPropLabel(key))} override`}
-                      title={`${localize(formatPropLabel(key))} ${i18n?.locale === "ko-KR" ? "전역으로 되돌리기" : "restore globally"}`}
+                      title={`${localize(formatPropLabel(key))} ${t("restoreGlobally")}`}
                     >
                       <X size={11} />
                     </button>

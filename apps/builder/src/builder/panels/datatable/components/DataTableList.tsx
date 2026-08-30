@@ -36,6 +36,11 @@ export function DataTableList({
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const t = (
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
   // 개별 selector로 Map 직접 구독 (리렌더링 최적화)
   const dataTablesMap = useDataStore((state) => state.collections);
   const apiEndpointsMap = useDataStore((state) => state.apiEndpoints);
@@ -64,7 +69,7 @@ export function DataTableList({
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+    if (!confirm(t("confirmDelete"))) return;
 
     try {
       await deleteCollection(id);
@@ -86,7 +91,9 @@ export function DataTableList({
       id="datatable-list"
       title={localize("tableList", "Table List")}
       badge={
-        <span className="datatable-list-count">{collections.length}개</span>
+        <span className="datatable-list-count">
+          {t("countItems", { count: collections.length })}
+        </span>
       }
       collapsible={false}
     >
@@ -116,8 +123,10 @@ export function DataTableList({
                 <div className="list-item-content">
                   <div className="list-item-name">{table.name}</div>
                   <div className="list-item-meta">
-                    {table.schema.length}개 필드 · {table.mockData?.length || 0}
-                    개 행
+                    {t("tableMeta", {
+                      fields: table.schema.length,
+                      rows: table.mockData?.length || 0,
+                    })}
                     {linkedApi && (
                       <>
                         {" "}
@@ -137,7 +146,7 @@ export function DataTableList({
                     type="button"
                     className="iconButton"
                     onClick={(e) => handleEdit(table.id, e)}
-                    title={localize("edit", "편집")}
+                    title={localize("edit", "Edit")}
                   >
                     <SquarePen {...iconEditProps} />
                   </button>
@@ -145,7 +154,7 @@ export function DataTableList({
                     type="button"
                     className="iconButton"
                     onClick={(e) => handleDelete(table.id, e)}
-                    title={localize("delete", "삭제")}
+                    title={localize("delete", "Delete")}
                   >
                     <DeleteIcon {...iconEditProps} />
                   </button>
@@ -156,7 +165,11 @@ export function DataTableList({
         </div>
       )}
 
-      <Button className="control-button" data-variant="add" onPress={onCreateClick}>
+      <Button
+        className="control-button"
+        data-variant="add"
+        onPress={onCreateClick}
+      >
         <AddIcon {...iconProps} />
         <span>{localize("addTable", "Add Table")}</span>
       </Button>

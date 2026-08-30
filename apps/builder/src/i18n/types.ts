@@ -410,6 +410,8 @@ export interface TranslationKeys {
     summaryToastWithMessage: string;
   };
   propertiesPanel: {
+    slotMerge: string;
+    slotReplace: string;
     emptyMessage: string;
     emptyDescription: string;
     selectElement: string;
@@ -934,6 +936,9 @@ export interface TranslationKeys {
     collapseAll: string;
   };
   styles: {
+    responsiveGlobalHint: string;
+    responsiveNoOverrides: string;
+    restoreGlobally: string;
     view: string;
     layout: string;
     layoutHint: string;
@@ -950,6 +955,21 @@ export interface TranslationKeys {
     pasteStyles: string;
     focus: string;
     selectElement: string;
+  };
+  agentConfirm: {
+    title: string;
+    body: string;
+    undoable: string;
+    notUndoable: string;
+    reject: string;
+    approve: string;
+    hostAiPanel: string;
+    hostChromeMcp: string;
+    hostMcp: string;
+    hostUnknown: string;
+  };
+  dashboard: {
+    confirmDeleteProject: string;
   };
   datatable: Record<string, string>;
   monitor: Record<string, string>;

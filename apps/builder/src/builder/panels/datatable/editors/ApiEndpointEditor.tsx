@@ -56,6 +56,12 @@ export function ApiEndpointEditor({
   onClose,
   activeTab,
 }: ApiEndpointEditorProps) {
+  const i18n = useOptionalI18n();
+  /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const t = (
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
   const updateApiEndpoint = useDataStore((state) => state.updateApiEndpoint);
   const executeApiEndpoint = useDataStore((state) => state.executeApiEndpoint);
   const createDataTable = useDataStore((state) => state.createDataTable);
@@ -272,19 +278,23 @@ export function ApiEndpointEditor({
 
         // 성공 알림 (간단한 alert - 추후 Toast로 개선)
         alert(
-          `DataTable "${tableName}"이(가) 생성되었습니다.\n${schema.length}개 컬럼, ${mockData.length}개 행`,
+          t("importSucceeded", {
+            name: tableName,
+            columns: schema.length,
+            rows: mockData.length,
+          }),
         );
 
         // 컬럼 선택 초기화
         setDetectedColumns([]);
       } catch (error) {
         console.error("❌ DataTable Import 실패:", error);
-        alert(`Import 실패: ${(error as Error).message}`);
+        alert(t("importFailed", { message: (error as Error).message }));
       } finally {
         setIsImporting(false);
       }
     },
-    [testResult, endpoint.project_id, createDataTable],
+    [testResult, endpoint.project_id, createDataTable, t],
   );
 
   // Note: onClose is handled by parent DataTableEditorPanel
@@ -438,7 +448,12 @@ function QueryParamsEditor({ endpoint, onUpdate }: QueryParamsEditorProps) {
         </div>
       ))}
 
-      <button type="button" className="control-button" data-variant="add" onClick={handleAdd}>
+      <button
+        type="button"
+        className="control-button"
+        data-variant="add"
+        onClick={handleAdd}
+      >
         <AddIcon {...iconEditProps} />
         {localize("addParameter", "Add Parameter")}
       </button>
@@ -503,7 +518,12 @@ function HeadersEditor({
         ))}
       </div>
 
-      <button type="button" className="control-button" data-variant="add" onClick={onAdd}>
+      <button
+        type="button"
+        className="control-button"
+        data-variant="add"
+        onClick={onAdd}
+      >
         <AddIcon {...iconEditProps} />
         Add Header
       </button>
@@ -521,6 +541,12 @@ interface BodyEditorProps {
 }
 
 function BodyEditor({ endpoint, onUpdate }: BodyEditorProps) {
+  const i18n = useOptionalI18n();
+  /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const t = (
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
   // bodyTemplate is already a string (JSON template)
   const bodyTemplate = endpoint.bodyTemplate || "";
 
@@ -531,9 +557,9 @@ function BodyEditor({ endpoint, onUpdate }: BodyEditorProps) {
   return (
     <div className="body-editor">
       <p className="editor-description">
-        POST/PUT/PATCH 요청의 본문을 JSON 형식으로 입력합니다.
+        {t("bodyHint")}
         <br />
-        {"{{변수명}} 형식으로 변수를 참조할 수 있습니다."}
+        {t("bodyVariableHint")}
       </p>
 
       <textarea
@@ -560,6 +586,11 @@ function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const t = (
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
   const executeApiEndpoint = useDataStore((state) => state.executeApiEndpoint);
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectResult, setDetectResult] = useState<string | null>(null);
@@ -593,20 +624,22 @@ function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
               responseMapping: { ...endpoint.responseMapping, dataPath: field },
             });
             setDetectResult(
-              `✓ "${field}" 감지됨 (${fieldValue.length}개 항목)`,
+              t("detectFound", { field, count: fieldValue.length }),
             );
             return;
           }
         }
-        setDetectResult("⚠ 배열 필드를 찾을 수 없습니다");
+        setDetectResult(t("detectNoArray"));
       } else if (Array.isArray(result)) {
         // 이미 배열인 경우 dataPath 불필요
-        setDetectResult("✓ 응답이 이미 배열입니다 (dataPath 불필요)");
+        setDetectResult(t("detectAlreadyArray"));
       } else {
-        setDetectResult("⚠ 응답 형식을 인식할 수 없습니다");
+        setDetectResult(t("detectUnknownShape"));
       }
     } catch (error) {
-      setDetectResult(`✗ API 호출 실패: ${(error as Error).message}`);
+      setDetectResult(
+        t("detectRequestFailed", { message: (error as Error).message }),
+      );
     } finally {
       setIsDetecting(false);
     }
@@ -648,9 +681,7 @@ function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
           {detectResult}
         </p>
       )}
-      <p className="field-description">
-        응답 JSON에서 데이터 배열을 추출할 경로입니다. (예: results, data.items)
-      </p>
+      <p className="field-description">{t("dataPathHint")}</p>
 
       <PropertyInput
         label="Target DataTable"
@@ -658,19 +689,14 @@ function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
         onChange={(value) => onUpdate({ targetCollection: value })}
         placeholder="pokemon_list"
       />
-      <p className="field-description">
-        API 응답 데이터를 저장할 DataTable 이름입니다. Test 탭에서 Import 시
-        기본값으로 사용됩니다.
-      </p>
+      <p className="field-description">{t("targetTableHint")}</p>
 
       <div className="section-divider" />
 
       <h4 className="section-title">
         {localize("fieldMapping", "Field Mapping")}
       </h4>
-      <p className="field-description">
-        API 응답 필드를 DataTable 필드에 매핑합니다.
-      </p>
+      <p className="field-description">{t("fieldMappingHint")}</p>
 
       <FieldMappingEditor endpoint={endpoint} onUpdate={onUpdate} />
     </div>
@@ -767,7 +793,12 @@ function FieldMappingEditor({ endpoint, onUpdate }: FieldMappingEditorProps) {
         ))}
       </div>
 
-      <button type="button" className="control-button" data-variant="add" onClick={handleAdd}>
+      <button
+        type="button"
+        className="control-button"
+        data-variant="add"
+        onClick={handleAdd}
+      >
         <AddIcon {...iconEditProps} />
         {localize("addMapping", "Add Mapping")}
       </button>
@@ -814,7 +845,8 @@ function TestEditor({
 
       <button
         type="button"
-        className="control-button" data-variant="primary"
+        className="control-button"
+        data-variant="primary"
         onClick={onTest}
         disabled={isExecuting}
       >

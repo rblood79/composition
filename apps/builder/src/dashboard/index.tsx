@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { historyIndexedDB } from "../builder/stores/history/historyIndexedDB";
 import { useUiStore, type ThemeMode } from "../stores/uiStore";
+import { useOptionalI18n } from "../i18n";
 import { createInitialProjectDocument } from "./createInitialProjectDocument";
 import type { ProjectListItem } from "../types/dashboard.types";
 import { deriveProjectRenderModelFromDocument } from "@composition/shared";
@@ -369,6 +370,9 @@ function CreateProjectTile({
 }
 
 function Dashboard() {
+  const i18n = useOptionalI18n();
+  /** 대시보드 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const t = (key: string) => (i18n ? i18n.t(`dashboard.${key}`) : key);
   const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const createInputRef = useRef<HTMLInputElement | null>(null);
@@ -596,7 +600,7 @@ function Dashboard() {
   };
 
   const handleDeleteProject = (id: string) => {
-    if (!confirm("정말로 이 프로젝트를 삭제하시겠습니까?")) return;
+    if (!confirm(t("confirmDeleteProject"))) return;
     void deleteProjectMutation.execute(id).catch((err) => {
       console.error("프로젝트 삭제 에러:", err);
     });

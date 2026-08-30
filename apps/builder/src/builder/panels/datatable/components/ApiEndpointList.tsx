@@ -27,6 +27,11 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const t = (
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
   const apiEndpoints = useApiEndpoints();
   const createApiEndpoint = useDataStore((state) => state.createApiEndpoint);
   const deleteApiEndpoint = useDataStore((state) => state.deleteApiEndpoint);
@@ -41,9 +46,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
     editorMode?.type === "api-edit" ? editorMode.endpointId : null;
 
   const handleCreate = async () => {
-    const url = prompt(
-      "API URL을 입력하세요 (예: https://pokeapi.co/api/v2/pokemon):",
-    );
+    const url = prompt(t("promptApiUrl"));
     if (!url) return;
 
     // URL 파싱하여 baseUrl과 path 분리
@@ -74,7 +77,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+    if (!confirm(t("confirmDelete"))) return;
 
     try {
       await deleteApiEndpoint(id);
@@ -102,7 +105,9 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
       id="api-list"
       title={localize("apiList", "API List")}
       badge={
-        <span className="datatable-list-count">{apiEndpoints.length}개</span>
+        <span className="datatable-list-count">
+          {t("countItems", { count: apiEndpoints.length })}
+        </span>
       }
       collapsible={false}
     >

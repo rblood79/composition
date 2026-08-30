@@ -127,7 +127,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
           title={i18n ? i18n.t("panels.dataTable") : "DataTable"}
           panelId="datatable"
         />
-        <EmptyState message={localize("noProject", "프로젝트를 선택하세요")} />
+        <EmptyState message={localize("noProject", "Select a project")} />
       </div>
     );
   }
@@ -164,7 +164,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
             className="iconButton"
             type="button"
             onClick={handleRefresh}
-            title={localize("refresh", "새로고침")}
+            title={localize("refresh", "Refresh")}
           >
             <RefreshCw size={iconProps.size} />
           </button>
@@ -190,11 +190,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
             aria-label={localize("tabs", "DataTable tabs")}
           >
             {TABS.map((tab) => (
-              <Tab
-                key={tab.id}
-                id={tab.id}
-                className="panel-tab"
-              >
+              <Tab key={tab.id} id={tab.id} className="panel-tab">
                 <tab.icon
                   color="currentColor"
                   strokeWidth={iconProps.strokeWidth}

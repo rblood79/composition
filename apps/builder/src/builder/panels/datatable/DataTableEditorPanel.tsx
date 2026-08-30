@@ -179,7 +179,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
             <div className="panel-header panel-tabrow">
               <TabList
                 className="panel-tablist"
-                aria-label={localize("tableTabs", "tableTabs")}
+                aria-label={localize("tableTabs", "Table tabs")}
               >
                 {TABLE_TABS.map((tab) => (
                   <Tab key={tab.id} id={tab.id} className="panel-tab">
@@ -211,7 +211,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
             <div className="panel-header panel-tabrow">
               <TabList
                 className="panel-tablist"
-                aria-label={localize("apiTabs", "apiTabs")}
+                aria-label={localize("apiTabs", "API tabs")}
               >
                 {API_TABS.map((tab) => (
                   <Tab key={tab.id} id={tab.id} className="panel-tab">
@@ -242,7 +242,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
             <div className="panel-header panel-tabrow">
               <TabList
                 className="panel-tablist"
-                aria-label={localize("variableTabs", "variableTabs")}
+                aria-label={localize("variableTabs", "Variable tabs")}
               >
                 {VARIABLE_TABS.map((tab) => (
                   <Tab key={tab.id} id={tab.id} className="panel-tab">
@@ -315,7 +315,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
         if (!dataTable) {
           return (
             <EmptyState
-              message={localize("tableNotFound", "테이블을 찾을 수 없습니다")}
+              message={localize("tableNotFound", "Table not found")}
             />
           );
         }
@@ -332,7 +332,10 @@ function EditorContent({ mode, close }: EditorContentProps) {
         // TODO: ApiEndpointCreator 구현 필요
         return (
           <EmptyState
-            message={localize("apiCreationPending", "API 생성 기능 준비 중")}
+            message={localize(
+              "apiCreationPending",
+              "API creation is not ready yet",
+            )}
           />
         );
 
@@ -340,9 +343,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
         const endpoint = apiEndpoints.find((e) => e.id === mode.endpointId);
         if (!endpoint) {
           return (
-            <EmptyState
-              message={localize("apiNotFound", "API를 찾을 수 없습니다")}
-            />
+            <EmptyState message={localize("apiNotFound", "API not found")} />
           );
         }
         return (
@@ -360,7 +361,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
           <EmptyState
             message={localize(
               "variableCreationPending",
-              "변수 생성 기능 준비 중",
+              "Variable creation is not ready yet",
             )}
           />
         );
@@ -370,7 +371,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
         if (!variable) {
           return (
             <EmptyState
-              message={localize("variableNotFound", "변수를 찾을 수 없습니다")}
+              message={localize("variableNotFound", "Variable not found")}
             />
           );
         }
@@ -386,7 +387,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
       default:
         return (
           <EmptyState
-            message={localize("selectEditorItem", "편집할 항목을 선택하세요")}
+            message={localize("selectEditorItem", "Select an item to edit")}
           />
         );
     }

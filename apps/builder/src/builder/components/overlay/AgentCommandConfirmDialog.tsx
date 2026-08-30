@@ -22,15 +22,24 @@ import {
   subscribeAgentCommandConfirmation,
   type AgentCommandConfirmationRequest,
 } from "../../../services/agent/agentCommandConfirmation";
+import { useI18n } from "@/i18n";
 import "./AgentCommandConfirmDialog.css";
 
-const HOST_LABEL: Record<string, string> = {
-  "ai-panel": "AI 패널",
-  "chrome-mcp": "외부 agent (Chrome MCP)",
-  mcp: "외부 agent (MCP)",
+/** 호출자 표기 — 키만 두고 문구는 카탈로그가 갖는다 (ADR-200 후속). */
+const HOST_LABEL_KEYS: Record<string, string> = {
+  "ai-panel": "agentConfirm.hostAiPanel",
+  "chrome-mcp": "agentConfirm.hostChromeMcp",
+  mcp: "agentConfirm.hostMcp",
 };
 
+/**
+ * 본문은 한 문장이라 통째로 번역한다 — 조각으로 쪼개면 어순이 다른 언어에서
+ * 문장이 깨진다. `<strong>` 을 유지하려고 요약 자리에 sentinel 을 넣고 자른다.
+ */
+const SUMMARY_SLOT = "\u0000";
+
 export function AgentCommandConfirmDialogHost() {
+  const { t } = useI18n();
   const [request, setRequest] =
     useState<AgentCommandConfirmationRequest | null>(null);
 
@@ -44,6 +53,14 @@ export function AgentCommandConfirmDialogHost() {
   // (ADR-182 후속에서 실제로 3건이 어긋나 있었다).
   const undoLabel = formatShortcut(SHORTCUT_DEFINITIONS.undo);
 
+  const hostLabel = t(
+    HOST_LABEL_KEYS[request?.host ?? ""] ?? "agentConfirm.hostUnknown",
+  );
+  const [bodyBefore, bodyAfter] = t("agentConfirm.body", {
+    host: hostLabel,
+    summary: SUMMARY_SLOT,
+  }).split(SUMMARY_SLOT);
+
   return (
     <ModalOverlay
       className="agent-confirm-overlay"
@@ -56,19 +73,20 @@ export function AgentCommandConfirmDialogHost() {
           <div className="agent-confirm-header">
             <ShieldAlert aria-hidden="true" size={18} />
             <Heading className="agent-confirm-title" slot="title">
-              명령 실행 승인
+              {t("agentConfirm.title")}
             </Heading>
           </div>
           <div className="agent-confirm-body">
             <p>
-              {HOST_LABEL[request?.host ?? ""] ?? "agent"} 가{" "}
-              <strong>{request?.summary ?? ""}</strong> 를 실행하려 합니다.
+              {bodyBefore}
+              <strong>{request?.summary ?? ""}</strong>
+              {bodyAfter}
             </p>
             <p className="agent-confirm-meta" data-testid="agent-confirm-meta">
               {request?.id} · {request?.mutation} ·{" "}
               {request?.undo === "history"
-                ? `실행 후 되돌리기(${undoLabel}) 1회로 복원`
-                : "되돌릴 수 없음"}
+                ? t("agentConfirm.undoable", { shortcut: undoLabel })
+                : t("agentConfirm.notUndoable")}
             </p>
           </div>
           <div className="agent-confirm-actions">
@@ -76,7 +94,7 @@ export function AgentCommandConfirmDialogHost() {
               className="control-button"
               onPress={() => resolveAgentCommandConfirmation(false)}
             >
-              거부
+              {t("agentConfirm.reject")}
             </Button>
             <Button
               autoFocus
@@ -84,7 +102,7 @@ export function AgentCommandConfirmDialogHost() {
               data-variant="primary"
               onPress={() => resolveAgentCommandConfirmation(true)}
             >
-              실행
+              {t("agentConfirm.approve")}
             </Button>
           </div>
         </Dialog>

@@ -114,7 +114,10 @@ export function ThresholdSettings({
                 }
               />
               <p className="monitor-threshold-hint">
-                노란색 경고가 표시되는 메모리 사용률
+                {localize(
+                  "warningThresholdHint",
+                  "Memory usage that shows the yellow warning",
+                )}
               </p>
             </div>
 
@@ -133,7 +136,10 @@ export function ThresholdSettings({
                 }
               />
               <p className="monitor-threshold-hint">
-                빨간색 위험 경고가 표시되는 메모리 사용률
+                {localize(
+                  "dangerThresholdHint",
+                  "Memory usage that shows the red danger warning",
+                )}
               </p>
             </div>
 

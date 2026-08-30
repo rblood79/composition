@@ -117,15 +117,15 @@ export const ExistingSlotDialog = memo(function ExistingSlotDialog({
           <div className="dialog-actions">
             <Button variant="secondary" onPress={handleCancel}>
               <X size={iconProps.size} />
-              취소
+              {t("common.cancel")}
             </Button>
             <Button variant="secondary" onPress={handleMerge}>
               <Merge size={iconProps.size} />
-              병합 (새 Slot만 추가)
+              {t("propertiesPanel.slotMerge")}
             </Button>
             <Button variant="primary" onPress={handleReplace}>
               <DeleteIcon size={iconProps.size} />
-              덮어쓰기
+              {t("propertiesPanel.slotReplace")}
             </Button>
           </div>
         </Dialog>
