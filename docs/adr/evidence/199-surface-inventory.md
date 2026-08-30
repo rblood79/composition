@@ -1,6 +1,6 @@
 # ADR-199 Phase 0 — 표면 인벤토리 freeze (G0)
 
-> 본문: [199-component-semantics-action-registry.md](../199-component-semantics-action-registry.md) · breakdown [§2](../design/199-component-semantics-action-registry-breakdown.md)
+> 본문: [199-component-semantics-action-registry.md](../completed/199-component-semantics-action-registry.md) · breakdown [§2](../design/199-component-semantics-action-registry-breakdown.md)
 > 기준 commit: `740d15162` · 측정일 2026-08-30 · 전부 소스 직접 인용 (실행 측정 아님 — 정적 freeze)
 
 이 문서가 **이관 후 동일성 판정의 기준선**이다. Phase 2·3 이후 각 표면의 항목·라벨·순서·가용성이 아래와 달라지면 G2 실패로 본다. 아래 "의도적 통일" 로 표시한 항목만 예외이며, 그 변경은 HC5 (사용자 가시 회귀 0) 의 예외로 ADR 본문에 명시돼야 한다.

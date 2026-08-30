@@ -1,7 +1,7 @@
 # ADR-199 구현 상세 — 컴포넌트 시맨틱 액션 레지스트리 + 투영 불변식
 
-> 본문: [199-component-semantics-action-registry.md](../199-component-semantics-action-registry.md)
-> 상태: Proposed — 2026-08-30 (착수 전, 사용자 승인 대기)
+> 본문: [199-component-semantics-action-registry.md](../completed/199-component-semantics-action-registry.md)
+> 상태: **Implemented — 2026-08-30** (Phase 0~5 당일 종결)
 
 ---
 
@@ -134,15 +134,33 @@ RED → GREEN: `canonicalRefResolution.test.ts` 에 dual 노드 보존 + 원본 
 
 **G3-b live (Chrome MCP)**: 같은 dual 노드에서 캔버스 우클릭 메뉴 `컴포넌트 분리 / Detach component` + 패널 `Detach component` — 두 표면이 같은 라벨. 수리 전에는 메뉴만 `컴포넌트 만들기` 였다.
 
-## 7. Phase 5 — 정적 게이트 (표면 파생 동일성)
+## 7. Phase 5 — 정적 게이트 (표면 파생 동일성) ✅ Implemented 2026-08-30
 
-`componentSemanticsActions.static.test.ts`:
+`builder/config/componentSemanticsActions.static.test.ts` (신규, 7건):
 
-- 패널 · 메뉴 소스에 컴포넌트 액션 라벨 리터럴 0건 (레지스트리 경유만).
-- `ACTION_BAR_ALLOWLIST.instance` 의 컴포넌트 축 항목 순서 == 레지스트리 순서.
-- 레지스트리 id 중 **메뉴·바에 노출되는 것** (`surfaces` 에 `context-menu` 또는 `action-bar` 포함) 이 ADR-182 item id 계약 집합에 존재. 패널 전용 id (`select-instances` — 현행 182 집합에 없음, `actionBarPolicy.test.ts:229` 계약 7종에도 없음) 는 대상 밖 — 계약 집합에 넣으면 메뉴에 항목을 추가해야 해 HC5 (항목 집합 이관 전후 동일) 와 충돌한다.
+- 표면 3곳 (패널 · 메뉴 · 바) 소스에 **라벨 리터럴 0건** — 주석은 제외한다 (규칙을 설명하는 인용까지 막으면 문서가 사라진다). 실측상 남은 인용은 전부 주석.
+- **바의 컴포넌트 축 순서 == 레지스트리 순서** — 손으로 맞추던 자리가 파생으로 바뀌었는지 기계로 확인.
+- **패널 전용 id 는 어떤 바 컨텍스트에도 없다** — `select-instances` 를 조용히 메뉴·바에 올리면 HC5 (항목 집합 이관 전후 동일) 가 깨진다. Phase 0 freeze §5 의 판정을 그대로 집행.
+- `commandId` 가 `SHORTCUT_DEFINITIONS` 의 실제 키 — 두 축이 같은 문자열로 만나는지.
+- 표면 소스가 store 액션을 직접 부르지 않는다 (Phase 3 통일의 잠금).
 
----
+### 7-1. G4 — 번들·프레임 경로
+
+| 항목                | 값                                                                               |
+| ------------------- | -------------------------------------------------------------------------------- |
+| 대조군              | `740d15162` (Phase 0 착수 직전), production `pnpm -F @composition/builder build` |
+| 측정 대상           | `index.html` 이 참조하는 초기 청크 11개 (js+css) gzip 합계                       |
+| baseline            | 1,381,302 B                                                                      |
+| Phase 4 종료 (HEAD) | 1,382,111 B                                                                      |
+| **delta**           | **+809 B** (상한 +2,048 B — HC4 통과)                                            |
+
+Skia 프레임 경로 진입 0: 레지스트리·러너 소비자 7곳은 전부 패널 · 메뉴 · 바 · 단축키 · agent 다. `workspace/canvas/skia/**` 와 `workspace/canvas/renderers/**` 참조 **0건** (grep).
+
+### 7-2. G5 — 종결 직전 스위트
+
+기존 4종 (`actionBarPolicy` · `canvasContextMenuProviders` · `ComponentSemanticsSection` · `editingSemantics`) + 신규 5종 = **9 파일 120건 PASS**, `pnpm type-check` 0.
+
+전수 스위트 잔존 실패 3 파일은 전부 선행 — `exportSsotGrepGate` (ADR-117 dev fixture `pathHeavy117Fixture.ts:375`) · `g5LegacyFieldGrepGate` (i18n `properties.overrides` 3건) · `shortcutDisplay.static` (ADR-196 표면 `⌘Z` 2건).
 
 ## 8. 파일 변경 요약
 
@@ -163,7 +181,7 @@ RED → GREEN: `canonicalRefResolution.test.ts` 에 dual 노드 보존 + 원본 
 | `builder/workspace/canvas/actions/canvasActions.ts`                      | 수정 (타입)      |
 | `adapters/canonical/editingSemantics.ts`                                 | 수정 (주석/타입) |
 
-신규 5 · 수정 10 (Phase 3 종료 시점 실측). 사용자 문서/프로젝트 파일 스키마 변경 0.
+신규 7 · 수정 12 (Phase 5 종료 실측 — 정적 게이트 2종 · 사영 수리 · fixture 정정 포함). 사용자 문서/프로젝트 파일 스키마 변경 0.
 
 ---
 
@@ -182,13 +200,13 @@ RED → GREEN: `canonicalRefResolution.test.ts` 에 dual 노드 보존 + 원본 
 
 ## 10. 체크리스트
 
-- [ ] Phase 0 inventory freeze 문서 작성 (`docs/adr/evidence/199-surface-inventory.md`)
-- [ ] descriptor 타입 + 배열 (소비 0) — type-check 통과
-- [ ] 패널 이관 + live 4상태 확인
-- [ ] 메뉴 이관 + live 확인 (우클릭 4상태)
-- [ ] 바 순서 파생 + `actionBarPolicy.test.ts` 갱신
+- [x] Phase 0 inventory freeze 문서 작성 (`docs/adr/evidence/199-surface-inventory.md`)
+- [x] descriptor 타입 + 배열 (소비 0) — type-check 통과
+- [x] 패널 이관 + live 4상태 확인
+- [x] 메뉴 이관 + live 확인 (우클릭 4상태)
+- [x] 바 순서 파생 + `actionBarPolicy.test.ts` 갱신
 - [x] 실행/확인 경로 통합 + 라벨 fallback 통일
 - [x] 잔존 `type` 참조 1건 제거 (안전성 ⓐⓑ 확인 후) + 투영 불변식 게이트 2종 + R7 수리
-- [ ] 표면 파생 동일성 게이트
-- [ ] CHANGELOG (사용자-가시 변화 있을 때만 — 항목 집합이 동일하면 면제)
-- [ ] `### Live Exercise` 절 작성 후 Implemented 승격
+- [x] 표면 파생 동일성 게이트
+- [x] CHANGELOG — 메뉴 순서 통일 (D1) 과 dual 노드 라벨 정정 (R7) 이 사용자-가시 변화
+- [x] `### Live Exercise` 절 작성 후 Implemented 승격

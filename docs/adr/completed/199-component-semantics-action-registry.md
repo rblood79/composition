@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-08-30 (리뷰 round 1 승인 — 이슈 4건 전부 `fixed`: [reviews/199.md](reviews/199.md))
+Implemented — 2026-08-30 (Phase 0~5 당일 종결. 리뷰 round 1 승인 — 이슈 4건 전부 `fixed`: [reviews/199.md](../reviews/199.md))
 
 ## Context
 
@@ -97,7 +97,7 @@ Accepted — 2026-08-30 (리뷰 round 1 승인 — 이슈 4건 전부 `fixed`: [
 - **대안 A 기각**: 두 번째 레지스트리를 만들면 "새 액션을 명령 축에 넣나 시맨틱 축에 넣나" 판단이 영구 비용으로 남는다. 4액션 한정이라는 이점은 B 에서도 optional 필드로 동일하게 얻는다.
 - **대안 C 기각**: 라벨 2계열 · 확인 payload 4곳이 그대로 남아 R2 계열 발산을 못 막는다. 유지보수 HIGH 가 본 ADR 의 목적과 정면 충돌.
 
-> 구현 상세: [199-component-semantics-action-registry-breakdown.md](design/199-component-semantics-action-registry-breakdown.md)
+> 구현 상세: [199-component-semantics-action-registry-breakdown.md](../design/199-component-semantics-action-registry-breakdown.md) · Phase 0 freeze: [199-surface-inventory.md](../evidence/199-surface-inventory.md)
 
 ## Risks
 
@@ -124,9 +124,33 @@ Accepted — 2026-08-30 (리뷰 round 1 승인 — 이슈 4건 전부 `fixed`: [
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — 실제 builder 에서 exercise 한 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분. 미기재 시 Stop hook 이 승격을 block)
+2026-08-30 · 실제 builder (`localhost:5173`, 프로젝트 `668e57bb`) · **Chrome MCP** 직접 조작.
+
+| #   | 시나리오                                                                   | 결과                                                                                                                                               |
+| --- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Properties 패널 4상태 (Standard / Origin N=1 / Instance / Instance·Origin) | 항목·순서·라벨·아이콘전용 분기가 Phase 0 기준선과 일치 — `Create component` / `Select instances (1)`+`Detach component` / 3개 / 3개                |
+| 2   | 선택 액션 바 (instance)                                                    | ⌖ → ◇− → ◇+ → 복제 — 레지스트리 순서 (아이콘 확대 캡처로 확인). 이관 전 누락됐던 `toggle-component-origin` 포함                                    |
+| 3   | 캔버스 우클릭 메뉴 (instance)                                              | `원본으로 이동 → 인스턴스 분리 → 컴포넌트 …` — 패널·바와 순서 통일 (종전은 만들기가 선두, HC5 명시 예외 1건)                                       |
+| 4   | 분리 확인 다이얼로그 — 메뉴 경로 / `⌘⌥X` 경로                              | 두 경로가 같은 문구 (`Detaching button_1 will turn it into a standalone element…`), 취소 시 인스턴스 보존 (`type:"ref"` + `reusable`), 중복 노출 0 |
+| 5   | dual 노드 (`type:"ref"` + 자기 `reusable`) 의 컴포넌트 축 라벨 (R7)        | 수리 전 = 메뉴만 `컴포넌트 만들기` (no-op) / **수리 후 = 메뉴·패널 모두 `Detach component`** — 두 표면 일치                                        |
+| 6   | 인스턴스 → 컴포넌트 승격 (패널 버튼 실제 클릭)                             | 역할 칩 `Instance · Origin`, canonical 에 `ref` 와 `reusable` 동시 보존                                                                            |
+
+시나리오 5 는 **live 에서만 드러난 선행 결함**이라 R7 로 등재 후 Phase 4 에서 수리했다 (정적 freeze 로는 두 표면이 같은 술어를 쓰는 것으로 보였다 — 갈린 것은 술어가 아니라 입력 사영).
 
 ## Consequences
+
+### 결과 (2026-08-30 종결)
+
+Phase 0~5 당일 종결. 신규 7 · 수정 12 파일, 사용자 문서/프로젝트 스키마 변경 0.
+
+| Hard constraint | 결과                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------- |
+| HC1 (정의 1곳)  | 라벨 2→**1** · 순서 2→**1** · 가용성 3→**1** · 실행/확인 4~5→**1**. 표면 소스 라벨 리터럴 0건 (정적 게이트) |
+| HC2 (id 불변)   | rename 0건. 실측 재고정 — `ShortcutId` 72 · `COMMAND_META` 72 · ADR-182 항목 id 18                          |
+| HC3 (사영 불변) | 술어 4종 `type` 참조 0건 + **사영 3종 fixture 동일 결과**. 사영 쪽 결손 1건 (R7) 수리                       |
+| HC4 (성능)      | 초기 청크 gz **+809 B** (상한 2,048). Skia 프레임 경로 참조 0건                                             |
+| HC5 (회귀 0)    | 4상태 × 3표면 live 대조 일치. 의도적 변경 2건 — 메뉴 순서 통일(D1), dual 노드 라벨 정정(R7, 결함 수리)      |
+| HC6 (BC)        | 사용자 영향 0% (스키마·공개 API 변경 0)                                                                     |
 
 ### Positive
 
