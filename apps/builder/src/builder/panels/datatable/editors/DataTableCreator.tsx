@@ -40,6 +40,7 @@ import { PropertyFieldset, Section } from "../../../components";
 import type { DataTablePreset } from "../presets/types";
 import { PRESET_CATEGORIES } from "../presets/types";
 import { getPresetsByCategory } from "../presets/dataTablePresets";
+import { resolvePresetSchema, type PresetTranslate } from "../presets/types";
 import "./DataTableCreator.css";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
 
@@ -91,6 +92,9 @@ export function DataTableCreator({
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  /** preset 문구 해소기 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const tr: PresetTranslate = (key, params) =>
+    i18n ? i18n.t(key, params) : key;
   const createDataTable = useDataStore((state) => state.createDataTable);
 
   // 선택 상태
@@ -119,11 +123,13 @@ export function DataTableCreator({
           useMockData: true,
         });
       } else if (selectedPreset) {
-        const sampleData = selectedPreset.generateSampleData(sampleCount);
+        // 여기서 해소한 문구가 사용자 테이블에 굳는다 — 이후에는 사용자
+        // 데이터라 다시 번역하지 않는다 (presets/types.ts `PresetTranslate`).
+        const sampleData = selectedPreset.generateSampleData(sampleCount, tr);
         await createDataTable({
           name: selectedPreset.name,
           project_id: projectId,
-          schema: selectedPreset.schema,
+          schema: resolvePresetSchema(selectedPreset.schema, tr),
           mockData: sampleData,
           useMockData: true,
         });
@@ -204,7 +210,9 @@ export function DataTableCreator({
                         {renderIcon(preset.icon, 16)}
                       </div>
                       <div className="list-item-name">{preset.name}</div>
-                      <div className="list-item-desc">{preset.description}</div>
+                      <div className="list-item-desc">
+                        {tr(preset.descriptionKey)}
+                      </div>
                       <div className="list-item-meta">
                         {preset.schema.length} fields
                       </div>
@@ -255,7 +263,7 @@ export function DataTableCreator({
                 )}
               </span>
               <span className="schema-field-type">{field.type}</span>
-              <span className="schema-field-label">{field.label}</span>
+              <span className="schema-field-label">{tr(field.labelKey)}</span>
             </div>
           ))}
         </Section>
@@ -263,10 +271,7 @@ export function DataTableCreator({
 
       {/* Footer */}
       <div className="creator-footer">
-        <Button
-          className="control-button"
-          onPress={onClose}
-        >
+        <Button className="control-button" onPress={onClose}>
           {i18n ? i18n.t("common.cancel") : "Cancel"}
         </Button>
         <Button

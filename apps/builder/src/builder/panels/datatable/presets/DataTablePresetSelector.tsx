@@ -119,6 +119,8 @@ export function DataTablePresetSelector({
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  /** preset 문구 해소기 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const t = (key: string) => (i18n ? i18n.t(key) : key);
   // 내부 상태 (uncontrolled mode)
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = controlledIsOpen ?? internalIsOpen;
@@ -257,7 +259,7 @@ export function DataTablePresetSelector({
                               key={cat.id}
                               id={cat.id}
                               className="panel-tab"
-                              aria-label={`${cat.name} — ${cat.description}`}
+                              aria-label={`${cat.name} — ${t(cat.descriptionKey)}`}
                             >
                               {renderCategoryIcon(cat.id, iconProps.size)}
                               <span className="panel-tab-label">
@@ -285,7 +287,7 @@ export function DataTablePresetSelector({
                           </div>
                           <div className="list-item-name">{preset.name}</div>
                           <div className="list-item-desc">
-                            {preset.description}
+                            {t(preset.descriptionKey)}
                           </div>
                           <div className="list-item-meta">
                             {preset.schema.length} fields
@@ -344,7 +346,7 @@ export function DataTablePresetSelector({
                                 {field.type}
                               </span>
                               <span className="schema-field-label">
-                                {field.label}
+                                {t(field.labelKey)}
                               </span>
                             </div>
                           ))}

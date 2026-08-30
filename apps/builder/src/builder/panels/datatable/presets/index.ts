@@ -8,7 +8,11 @@
  */
 
 // Types
-export type { PresetCategory, PresetCategoryMeta, DataTablePreset } from "./types";
+export type {
+  PresetCategory,
+  PresetCategoryMeta,
+  DataTablePreset,
+} from "./types";
 export { PRESET_CATEGORIES } from "./types";
 
 // Preset Definitions
