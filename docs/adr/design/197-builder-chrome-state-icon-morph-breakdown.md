@@ -1,6 +1,6 @@
 # ADR-197 Breakdown: Builder chrome 상태 아이콘 morph — morphicons core vendoring + StateIcon 레지스트리
 
-> **진행 로그** — Phase 0 Implemented 2026-08-30 (vendoring 9 파일 + 이식 테스트 40 PASS · G0 통과, 아래 §4 Phase 0).
+> **진행 로그** — Phase 0 Implemented 2026-08-30 (vendoring 9 파일 + 이식 테스트 40 PASS · G0 통과) · Phase 1 Implemented 2026-08-30 (`MorphIcon` + `resolveIconInput`, 테스트 60 PASS · G1 통과 — 초기 chunk Δ **+7.07 KB gz**).
 >
 > 2026-08-30 초안. ADR 본문: [197-builder-chrome-state-icon-morph.md](../197-builder-chrome-state-icon-morph.md).
 > Phase 0 inventory 는 본 문서의 표를 갱신하는 commit 으로 freeze 한다 (M3 — 추정/실측 gap 은
@@ -230,15 +230,25 @@ Gate G0 **통과 (2026-08-30)**:
 | Prettier 재포맷 후 동일 | 재포맷 (`core/*.ts` 일부 · `dom/index.ts`) 후 40 PASS 동일                                                                                                          |
 | 기존 스위트 회귀        | 없음 — 전체 실행의 실패 4건은 morph 디렉토리를 치운 상태에서도 동일 (pre-existing: `shortcutDisplay.static` 1 · `exportSsotGrepGate` 2 · `g5LegacyFieldGrepGate` 1) |
 
-### Phase 1 — `MorphIcon` + 이름 캐시
+### Phase 1 — `MorphIcon` + 이름 캐시 — ✅ Implemented 2026-08-30
 
-| 파일                           | 변경                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `iconNodes.ts`                 | `resolveIconInput(input: IconInput): IconNode \| null` — string 이면 `getIconData` + `Map<string, IconNode>` 캐시, 배열이면 지원 태그 (path/line/circle/ellipse/rect/polyline/polygon) 화이트리스트 검증 후 반환. 미존재 이름·미지원 태그는 `null` (렌더 0, dev 경고 — upstream `normalize.ts` 의 `unsupported tag` throw 가 render 로 전파되는 것을 차단)      |
-| `MorphIcon.tsx`                | `useState(() => canonicalD(initial))` 1회 · `useLayoutEffect` mount `createMorph` · `icon` 변경 effect `morphTo` · unmount `destroy`. controlled(`from/to/progress`)·imperative handle 제거                                                                                                                                                                     |
-| `__tests__/MorphIcon.test.tsx` | reducedMotion 기본 `user` (upstream driver 기본은 `never`, `dom/index.ts:166`) · 같은 이름 재렌더 시 `morphTo` 0회 · unmount 후 rAF 0 · React StrictMode 이중 mount 후 live driver 1개 (cleanup `destroy` 보존) · **IconNode 직접 전달 경로** (getIconData 미조회 · 같은 참조 재렌더 시 `morphTo` 0회) · 미지원 태그 (`<g>`) 포함 IconNode 로 throw 없이 렌더 0 |
+| 파일                           | 변경                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `iconNodes.ts`                 | `resolveIconInput(input: IconInput): IconNode \| null` — string 이면 `getIconData` + `Map<string, IconNode>` 캐시, 배열이면 지원 태그 (path/line/circle/ellipse/rect/polyline/polygon) 화이트리스트 검증 후 반환. 미존재 이름·미지원 태그는 `null` (렌더 0, dev 경고 — upstream `normalize.ts` 의 `unsupported tag` throw 가 render 로 전파되는 것을 차단)                                                   |
+| `MorphIcon.tsx`                | 마운트 값 묶음 `useState(() => ({node, d, reducedMotion}))` 1회 · **콜백 ref + cleanup** 으로 `createMorph`/`destroy` (`useLayoutEffect` 대신 — StrictMode 이중 mount 에서 살아 있는 driver 를 1개로 유지) · `icon` 변경 effect `morphTo` · controlled(`from/to/progress`)·imperative handle 제거. `d` 는 마운트 값으로 얼려 둔다 (매 render 목표 `d` 를 내려보내면 React 가 전환 시작 프레임을 앞질러 쓴다) |
+| `__tests__/MorphIcon.test.tsx` | reducedMotion 기본 `user` (upstream driver 기본은 `never`, `dom/index.ts:166`) · 같은 이름 재렌더 시 `morphTo` 0회 · unmount 후 rAF 0 · React StrictMode 이중 mount 후 live driver 1개 (cleanup `destroy` 보존) · **IconNode 직접 전달 경로** (getIconData 미조회 · 같은 참조 재렌더 시 `morphTo` 0회) · 미지원 태그 (`<g>`) 포함 IconNode 로 throw 없이 렌더 0                                              |
 
-Gate G1: 초기 chunk Δ ≤ +10KB gz (`vite build` 산출 비교, ADR-196 방법) · 같은 이름 참조 동일성 테스트.
+Gate G1 **통과 (2026-08-30)**:
+
+| 조건                    | 결과                                                                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 초기 chunk Δ ≤ +10KB gz | **+7,236 B gz (7.07 KB)** — 대조군 A/B: 같은 HEAD 에서 `vite build` 2회, 산출물은 `dist/assets/main-*.js` (ADR-196 이후 엔트리 이름이 `index-*` 아님). 전체 js 합계 Δ +7,727 B                         |
+| 측정 조건               | 소비자가 아직 0 이라 그냥 빌드하면 tree-shaking 으로 Δ=0 이 나온다 (vacuous). `main.tsx` 에 임시 eager import 를 넣은 probe 빌드로 **Phase 2 가 실제로 지불할 비용**을 쟀고, 측정 후 probe 는 되돌렸다 |
+| 같은 이름 참조 동일성   | `iconNodes.test.ts` — `Object.is(resolve("chevron-down"), resolve("chevron-down"))`                                                                                                                    |
+| reducedMotion 기본      | `MorphIcon.test.tsx` — driver 에 `"user"` 전달 (upstream 기본 `"never"` 뒤집기)                                                                                                                        |
+| StrictMode 이중 mount   | 살아 있는 driver 1개 (콜백 ref cleanup)                                                                                                                                                                |
+| IconNode 직접 전달      | 같은 참조 재렌더 시 `morphTo` 0회 · 다른 참조면 1회                                                                                                                                                    |
+| 미지원 태그 (R9)        | `<g>` 포함 입력에서 throw 없이 렌더 0, `createMorph` 호출 0회                                                                                                                                          |
 
 ### Phase 2 — `StateIcon` + 레지스트리 + 교체 11곳 (§2-2)
 
