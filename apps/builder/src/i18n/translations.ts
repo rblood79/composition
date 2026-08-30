@@ -730,6 +730,88 @@ const koKR: TranslationKeys = {
     repairInstruction: "지적된 부분을 고치세요. 목표: {goal}",
     repairAttempt: "수리 {n}회",
   },
+  aiToolDef: {
+    createElement:
+      "캔버스에 새 요소를 생성합니다. 버튼, 입력 필드, 테이블 등 다양한 UI 컴포넌트를 만들 수 있습니다.",
+    createType: "생성할 컴포넌트 타입",
+    parentId: "부모 요소 ID. 없으면 선택된 요소 또는 body에 추가.",
+    props: "컴포넌트 속성 (children, variant, placeholder, label 등)",
+    styles:
+      "CSS 인라인 스타일 (padding, fontSize, width, height 등). camelCase 사용. Fill V2 배경은 fills를 우선 사용.",
+    fills:
+      "배경 Fill 레이어 배열. color/linear-gradient/radial-gradient/angular-gradient/image/mesh-gradient를 지원.",
+    clip: "children 이 frame 경계를 넘으면 잘라낸다 (frame 전용).",
+    placeholder: "빈 frame placeholder UI 표시 (frame 전용).",
+    slot: "slot 선언. false = 비활성, 문자열 배열 = 삽입 가능한 reusable component id 목록.",
+    reusable:
+      "이 노드를 재사용 가능한 원본으로 표시. frame 에 켜면 페이지 요소 목록에서 빠지고 layout 정의가 된다 — 페이지에 보이는 컨테이너를 만들 때는 켜지 말 것.",
+    updateElement: "기존 요소의 속성이나 스타일을 수정합니다.",
+    updateProps: "변경할 컴포넌트 속성",
+    updateStyles:
+      "변경할 CSS 인라인 스타일. camelCase 사용. Fill V2 배경은 fills를 우선 사용.",
+    updateFills: "교체할 배경 Fill 레이어 배열.",
+    deleteElement: "요소를 삭제합니다. body 요소는 삭제할 수 없습니다.",
+    getEditorState:
+      "현재 에디터 상태를 조회합니다. 페이지 구조, 요소 트리, 선택 상태 등을 반환합니다.",
+    includeStyles: "스타일 정보 포함 여부. false면 토큰 절약.",
+    maxDepth: "트리 탐색 최대 깊이. 기본 5.",
+    getSelection:
+      "현재 선택된 요소의 상세 정보를 조회합니다. 태그, 속성, 스타일, 부모/자식 관계를 반환합니다.",
+    searchElements:
+      "조건에 맞는 요소를 검색합니다. 태그, 속성명, 속성값, 스타일 속성으로 필터링할 수 있습니다.",
+    searchTag: "검색할 컴포넌트 태그 (예: Button, TextField)",
+    searchPropName: "검색할 속성 이름 (예: children, variant)",
+    searchPropValue: "검색할 속성 값. propName과 함께 사용.",
+    searchStyleProp:
+      "해당 CSS 속성이 설정된 요소를 검색 (예: padding, fontSize). Fill 기반 배경 검색은 별도 fills 데이터를 확인하세요.",
+    searchLimit: "최대 반환 개수. 기본 20.",
+    searchSlot: "slot 이 선언된(비어 있지 않은) 노드만 / 아닌 노드만.",
+    searchReusable: "재사용 원본 노드만 / 아닌 노드만.",
+    searchClip: "clip 이 켜진 frame 만 / 아닌 노드만.",
+    batchDesign:
+      "여러 생성/수정/삭제 작업을 한 번에 순차 실행합니다. 복잡한 레이아웃을 한 번에 만들 때 유용합니다.",
+    batchOperations:
+      "실행할 작업 배열. 순서대로 실행되며, 하나라도 실패하면 중단됩니다.",
+    batchType: "작업 유형",
+    batchArgs:
+      "해당 작업의 인자. create: {type, props, styles, parentId}, update: {elementId, props, styles}, delete: {elementId}",
+    bindCollection:
+      "요소에 collection 데이터 바인딩을 겁니다 (ListBox/GridList/Table 등). 데이터 소스(collection) 자체를 만들지는 않고, 이미 있는 데이터에 요소를 잇습니다.",
+    bindSource:
+      "데이터 출처. static = config.data 배열 그대로, api = config.baseUrl+endpoint, supabase = config.table.",
+    bindConfig:
+      "source 별 설정. static: { data: [...] } · api: { baseUrl, endpoint, dataMapping } · supabase: { table }.",
+    createRule:
+      "요소에 이벤트 규칙을 추가합니다 (예: 버튼 누르면 toast 표시, 다른 요소의 기능 구동). trigger 와 capability 는 컴포넌트가 실제로 노출하는 것만 쓸 수 있고, 틀리면 사용 가능한 목록을 돌려줍니다.",
+    ruleTrigger:
+      "컴포넌트가 노출하는 callback 이름 (예: onPress). onClick 같은 DOM 별칭은 쓰지 않습니다.",
+    ruleAction:
+      "수행할 동작. kind: navigate(path) | toast(message) | capability(targetId, capability, value?).",
+  },
+  aiToolId: {
+    canonicalCreate:
+      'canonical schema 1차 필드. clip/placeholder 는 type: "frame" 에서만 유효하고, slot/reusable 은 모든 노드에 쓸 수 있다.',
+    canonicalUpdate:
+      'canonical schema 1차 필드 patch. clip/placeholder 는 type: "frame" 에서만, slot/reusable 은 모든 노드.',
+    elementIdUpdate:
+      '수정할 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
+    elementIdDelete:
+      '삭제할 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
+    elementIdTarget:
+      '대상 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
+    elementIdTrigger:
+      '트리거 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
+  },
+  aiRunCommand: {
+    needsApproval: ", 사용자 승인 필요",
+    description:
+      "빌더 명령을 이름으로 실행합니다 (정렬·분배·그룹·복제·z-order·되돌리기·줌·패널 토글 등). 요소 좌표를 직접 계산하지 말고 이 도구를 쓰세요. 파괴적 명령은 사용자 승인 뒤에만 실행됩니다.",
+    availableHeading: "사용 가능한 명령:",
+    idParam: "실행할 명령 id",
+    idsParam:
+      "여러 명령을 순서대로 실행 (각 명령마다 승인을 따로 묻고, 실패하면 거기서 멈춥니다). id 대신 사용.",
+    missingId: "id 또는 ids 가 필요합니다.",
+  },
   settings: {
     title: "설정",
     language: "언어",
@@ -1850,6 +1932,90 @@ const enUS: TranslationKeys = {
     repairExhausted: "Tried {max} repairs; these remain:",
     repairInstruction: "Fix what was flagged. Goal: {goal}",
     repairAttempt: "Repair {n}",
+  },
+  aiToolDef: {
+    createElement:
+      "Creates a new element on the canvas. Buttons, input fields, tables and other UI components.",
+    createType: "The component type to create",
+    parentId:
+      "Parent element ID. Without it the element goes under the selection, or body.",
+    props: "Component props (children, variant, placeholder, label and so on)",
+    styles:
+      "Inline CSS styles (padding, fontSize, width, height and so on) in camelCase. For Fill V2 backgrounds prefer fills.",
+    fills:
+      "Array of background fill layers. Supports color, linear-gradient, radial-gradient, angular-gradient, image and mesh-gradient.",
+    clip: "Clips children that overflow the frame bounds (frames only).",
+    placeholder: "Shows the empty-frame placeholder UI (frames only).",
+    slot: "Slot declaration. false disables it; a string array lists reusable component ids that may be inserted.",
+    reusable:
+      "Marks this node as a reuse origin. On a frame it drops out of the page element list and becomes a layout definition — leave it off for containers meant to be visible.",
+    updateElement: "Updates the props or styles of an existing element.",
+    updateProps: "The component props to change",
+    updateStyles:
+      "The inline CSS styles to change, in camelCase. For Fill V2 backgrounds prefer fills.",
+    updateFills: "The array of background fill layers to replace.",
+    deleteElement: "Deletes an element. The body element cannot be deleted.",
+    getEditorState:
+      "Reads the current editor state — page structure, element tree and selection.",
+    includeStyles: "Whether to include style data. false saves tokens.",
+    maxDepth: "Maximum tree depth to walk. Default 5.",
+    getSelection:
+      "Reads the current selection in detail — tag, props, styles and parent/child relations.",
+    searchElements:
+      "Searches for elements. Filter by tag, prop name, prop value or style property.",
+    searchTag: "Component tag to search for (Button, TextField, …)",
+    searchPropName: "Prop name to search for (children, variant, …)",
+    searchPropValue: "Prop value to search for. Use together with propName.",
+    searchStyleProp:
+      "Finds elements that set this CSS property (padding, fontSize, …). For fill-based backgrounds check the fills data instead.",
+    searchLimit: "Maximum number of results. Default 20.",
+    searchSlot:
+      "Only nodes that declare a (non-empty) slot, or only those that do not.",
+    searchReusable: "Only reuse-origin nodes, or only those that are not.",
+    searchClip: "Only frames with clip on, or only those without.",
+    batchDesign:
+      "Runs several create/update/delete operations in order, in one go. Useful for building a complex layout at once.",
+    batchOperations:
+      "The operations to run. They execute in order and stop at the first failure.",
+    batchType: "Operation type",
+    batchArgs:
+      "Arguments for the operation. create: {type, props, styles, parentId}; update: {elementId, props, styles}; delete: {elementId}",
+    bindCollection:
+      "Binds collection data to an element (ListBox, GridList, Table, …). It does not create the collection itself — it wires the element to data that already exists.",
+    bindSource:
+      "Where the data comes from. static = the config.data array as-is; api = config.baseUrl + endpoint; supabase = config.table.",
+    bindConfig:
+      "Per-source configuration. static: { data: [...] } · api: { baseUrl, endpoint, dataMapping } · supabase: { table }.",
+    createRule:
+      "Adds an interaction rule to an element (press a button to show a toast, drive another element's capability, …). trigger and capability must be ones the component actually exposes; if they are wrong the tool returns the available list.",
+    ruleTrigger:
+      "A callback name the component exposes (onPress, …). Do not use DOM aliases such as onClick.",
+    ruleAction:
+      "The action to run. kind: navigate(path) | toast(message) | capability(targetId, capability, value?).",
+  },
+  aiToolId: {
+    canonicalCreate:
+      'Canonical schema first-class fields. clip/placeholder apply only to type: "frame"; slot/reusable apply to any node.',
+    canonicalUpdate:
+      'Patch for canonical schema first-class fields. clip/placeholder only on type: "frame"; slot/reusable on any node.',
+    elementIdUpdate:
+      'ID of the element to update. "last-created" is the one you just made, "selected" is the current selection. Otherwise a real id only — no placeholders.',
+    elementIdDelete:
+      'ID of the element to delete. "last-created" is the one you just made, "selected" is the current selection. Otherwise a real id only — no placeholders.',
+    elementIdTarget:
+      'ID of the target element. "last-created" is the one you just made, "selected" is the current selection. Otherwise a real id only — no placeholders.',
+    elementIdTrigger:
+      'ID of the trigger element. "last-created" is the one you just made, "selected" is the current selection. Otherwise a real id only — no placeholders.',
+  },
+  aiRunCommand: {
+    needsApproval: ", needs approval",
+    description:
+      "Runs a builder command by name (align, distribute, group, duplicate, z-order, undo, zoom, panel toggles and so on). Use this instead of computing element coordinates yourself. Destructive commands run only after the user approves.",
+    availableHeading: "Available commands:",
+    idParam: "The id of the command to run",
+    idsParam:
+      "Runs several commands in order (each asks for approval separately and stops at the first failure). Use instead of id.",
+    missingId: "Either id or ids is required.",
   },
   settings: {
     title: "Settings",

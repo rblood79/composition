@@ -23,6 +23,8 @@ import { __resetTraversalCache_TEST_ONLY__ } from "../../../builder/stores/canon
 import { bindCollectionTool } from "./bindCollection";
 import { createInteractionRuleTool } from "./createInteractionRule";
 import { createToolRegistry, getToolDefinitions } from "./index";
+import { localizedStrings } from "@/i18n/translations";
+import type { PromptTranslate } from "../promptTranslate";
 
 vi.mock("../../../lib/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../lib/db")>();
@@ -161,6 +163,13 @@ function nodeExtension(nodeId: string): Record<string, unknown> | undefined {
   return find(doc?.children);
 }
 
+/** ko-KR 카탈로그에 묶은 해소기 (ADR-200 후속). */
+const tr: PromptTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
+};
+
 describe("bind_collection (D3)", () => {
   beforeEach(() => seed());
 
@@ -295,7 +304,7 @@ describe("레지스트리 등록", () => {
     expect(registry.has("create_interaction_rule")).toBe(true);
     expect(registry.size).toBe(10);
 
-    const names = (await getToolDefinitions()).map((d) => d.name);
+    const names = (await getToolDefinitions(tr)).map((d) => d.name);
     expect(names).toContain("bind_collection");
     expect(names).toContain("create_interaction_rule");
     expect(names).toHaveLength(10);

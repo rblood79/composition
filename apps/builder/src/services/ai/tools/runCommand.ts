@@ -20,6 +20,7 @@ import {
 } from "../../agent/executeAgentCommand";
 import { requestAgentCommandConfirmation } from "../../agent/agentCommandConfirmation";
 import type { AgentExecutionContext } from "../../agent/executeAgentCommand";
+import type { PromptTranslate } from "../promptTranslate";
 
 /** AI 패널 host — 승인은 앱 안 다이얼로그, 기록은 `agentCommandLog`. */
 export const aiPanelAgentContext: AgentExecutionContext = {
@@ -36,31 +37,31 @@ export const aiPanelAgentContext: AgentExecutionContext = {
 };
 
 /** allowlist 를 enum 으로 굳힌 도구 정의 — 목록·설명이 `COMMAND_META` 에서 파생된다. */
-export function buildRunCommandToolDefinition(): LLMToolDefinition {
+export function buildRunCommandToolDefinition(
+  t: PromptTranslate,
+): LLMToolDefinition {
   const commands = listAgentCommands();
   const lines = commands.map(
     (c) =>
-      `${c.id}: ${c.description} (${c.mutation}${c.confirm ? ", 사용자 승인 필요" : ""})`,
+      `${c.id}: ${c.description} (${c.mutation}${c.confirm ? t("aiRunCommand.needsApproval") : ""})`,
   );
   return {
     name: "run_command",
-    description:
-      "빌더 명령을 이름으로 실행합니다 (정렬·분배·그룹·복제·z-order·되돌리기·줌·패널 토글 등). " +
-      "요소 좌표를 직접 계산하지 말고 이 도구를 쓰세요. 파괴적 명령은 사용자 승인 뒤에만 실행됩니다.\n" +
-      `사용 가능한 명령:\n${lines.join("\n")}`,
+    description: `${t("aiRunCommand.description")}\n${t(
+      "aiRunCommand.availableHeading",
+    )}\n${lines.join("\n")}`,
     parameters: {
       type: "object",
       properties: {
         id: {
           type: "string",
           enum: commands.map((c) => c.id),
-          description: "실행할 명령 id",
+          description: t("aiRunCommand.idParam"),
         },
         ids: {
           type: "array",
           items: { type: "string", enum: commands.map((c) => c.id) },
-          description:
-            "여러 명령을 순서대로 실행 (각 명령마다 승인을 따로 묻고, 실패하면 거기서 멈춥니다). id 대신 사용.",
+          description: t("aiRunCommand.idsParam"),
         },
       },
     },

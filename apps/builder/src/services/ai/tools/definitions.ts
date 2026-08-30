@@ -6,6 +6,7 @@
  */
 
 import type { LLMToolDefinition } from "../providers/LLMProvider";
+import type { PromptTranslate } from "../promptTranslate";
 
 /**
  * 도구 정의의 중첩 형태 (OpenAI function calling wire 형태).
@@ -64,60 +65,52 @@ export const toolDefinitions: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "create_element",
-      description:
-        "캔버스에 새 요소를 생성합니다. 버튼, 입력 필드, 테이블 등 다양한 UI 컴포넌트를 만들 수 있습니다.",
+      description: "aiToolDef.createElement",
       parameters: {
         type: "object",
         properties: {
           type: {
             type: "string",
-            description: "생성할 컴포넌트 타입",
+            description: "aiToolDef.createType",
             enum: COMPONENT_TAGS,
           },
           parentId: {
             type: "string",
-            description: "부모 요소 ID. 없으면 선택된 요소 또는 body에 추가.",
+            description: "aiToolDef.parentId",
           },
           props: {
             type: "object",
-            description:
-              "컴포넌트 속성 (children, variant, placeholder, label 등)",
+            description: "aiToolDef.props",
           },
           styles: {
             type: "object",
-            description:
-              "CSS 인라인 스타일 (padding, fontSize, width, height 등). camelCase 사용. Fill V2 배경은 fills를 우선 사용.",
+            description: "aiToolDef.styles",
           },
           fills: {
             type: "array",
-            description:
-              "배경 Fill 레이어 배열. color/linear-gradient/radial-gradient/angular-gradient/image/mesh-gradient를 지원.",
+            description: "aiToolDef.fills",
             items: {
               type: "object",
             },
           },
           canonical: {
             type: "object",
-            description:
-              'canonical schema 1차 필드. clip/placeholder 는 type: "frame" 에서만 유효하고, slot/reusable 은 모든 노드에 쓸 수 있다.',
+            description: "aiToolId.canonicalCreate",
             properties: {
               clip: {
                 type: "boolean",
-                description:
-                  "children 이 frame 경계를 넘으면 잘라낸다 (frame 전용).",
+                description: "aiToolDef.clip",
               },
               placeholder: {
                 type: "boolean",
-                description: "빈 frame placeholder UI 표시 (frame 전용).",
+                description: "aiToolDef.placeholder",
               },
               slot: {
-                description:
-                  "slot 선언. false = 비활성, 문자열 배열 = 삽입 가능한 reusable component id 목록.",
+                description: "aiToolDef.slot",
               },
               reusable: {
                 type: "boolean",
-                description:
-                  "이 노드를 재사용 가능한 원본으로 표시. frame 에 켜면 페이지 요소 목록에서 빠지고 layout 정의가 된다 — 페이지에 보이는 컨테이너를 만들 때는 켜지 말 것.",
+                description: "aiToolDef.reusable",
               },
             },
           },
@@ -130,35 +123,32 @@ export const toolDefinitions: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "update_element",
-      description: "기존 요소의 속성이나 스타일을 수정합니다.",
+      description: "aiToolDef.updateElement",
       parameters: {
         type: "object",
         properties: {
           elementId: {
             type: "string",
-            description:
-              '수정할 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
+            description: "aiToolId.elementIdUpdate",
           },
           props: {
             type: "object",
-            description: "변경할 컴포넌트 속성",
+            description: "aiToolDef.updateProps",
           },
           styles: {
             type: "object",
-            description:
-              "변경할 CSS 인라인 스타일. camelCase 사용. Fill V2 배경은 fills를 우선 사용.",
+            description: "aiToolDef.updateStyles",
           },
           fills: {
             type: "array",
-            description: "교체할 배경 Fill 레이어 배열.",
+            description: "aiToolDef.updateFills",
             items: {
               type: "object",
             },
           },
           canonical: {
             type: "object",
-            description:
-              'canonical schema 1차 필드 patch. clip/placeholder 는 type: "frame" 에서만, slot/reusable 은 모든 노드.',
+            description: "aiToolId.canonicalUpdate",
             properties: {
               clip: { type: "boolean" },
               placeholder: { type: "boolean" },
@@ -175,14 +165,13 @@ export const toolDefinitions: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "delete_element",
-      description: "요소를 삭제합니다. body 요소는 삭제할 수 없습니다.",
+      description: "aiToolDef.deleteElement",
       parameters: {
         type: "object",
         properties: {
           elementId: {
             type: "string",
-            description:
-              '삭제할 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
+            description: "aiToolId.elementIdDelete",
           },
         },
         required: ["elementId"],
@@ -193,18 +182,17 @@ export const toolDefinitions: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "get_editor_state",
-      description:
-        "현재 에디터 상태를 조회합니다. 페이지 구조, 요소 트리, 선택 상태 등을 반환합니다.",
+      description: "aiToolDef.getEditorState",
       parameters: {
         type: "object",
         properties: {
           includeStyles: {
             type: "boolean",
-            description: "스타일 정보 포함 여부. false면 토큰 절약.",
+            description: "aiToolDef.includeStyles",
           },
           maxDepth: {
             type: "number",
-            description: "트리 탐색 최대 깊이. 기본 5.",
+            description: "aiToolDef.maxDepth",
           },
         },
       },
@@ -214,8 +202,7 @@ export const toolDefinitions: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "get_selection",
-      description:
-        "현재 선택된 요소의 상세 정보를 조회합니다. 태그, 속성, 스타일, 부모/자식 관계를 반환합니다.",
+      description: "aiToolDef.getSelection",
       parameters: {
         type: "object",
         properties: {},
@@ -226,43 +213,41 @@ export const toolDefinitions: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "search_elements",
-      description:
-        "조건에 맞는 요소를 검색합니다. 태그, 속성명, 속성값, 스타일 속성으로 필터링할 수 있습니다.",
+      description: "aiToolDef.searchElements",
       parameters: {
         type: "object",
         properties: {
           type: {
             type: "string",
-            description: "검색할 컴포넌트 태그 (예: Button, TextField)",
+            description: "aiToolDef.searchTag",
           },
           propName: {
             type: "string",
-            description: "검색할 속성 이름 (예: children, variant)",
+            description: "aiToolDef.searchPropName",
           },
           propValue: {
             type: "string",
-            description: "검색할 속성 값. propName과 함께 사용.",
+            description: "aiToolDef.searchPropValue",
           },
           styleProp: {
             type: "string",
-            description:
-              "해당 CSS 속성이 설정된 요소를 검색 (예: padding, fontSize). Fill 기반 배경 검색은 별도 fills 데이터를 확인하세요.",
+            description: "aiToolDef.searchStyleProp",
           },
           limit: {
             type: "number",
-            description: "최대 반환 개수. 기본 20.",
+            description: "aiToolDef.searchLimit",
           },
           hasSlot: {
             type: "boolean",
-            description: "slot 이 선언된(비어 있지 않은) 노드만 / 아닌 노드만.",
+            description: "aiToolDef.searchSlot",
           },
           reusable: {
             type: "boolean",
-            description: "재사용 원본 노드만 / 아닌 노드만.",
+            description: "aiToolDef.searchReusable",
           },
           clip: {
             type: "boolean",
-            description: "clip 이 켜진 frame 만 / 아닌 노드만.",
+            description: "aiToolDef.searchClip",
           },
         },
       },
@@ -272,27 +257,24 @@ export const toolDefinitions: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "batch_design",
-      description:
-        "여러 생성/수정/삭제 작업을 한 번에 순차 실행합니다. 복잡한 레이아웃을 한 번에 만들 때 유용합니다.",
+      description: "aiToolDef.batchDesign",
       parameters: {
         type: "object",
         properties: {
           operations: {
             type: "array",
-            description:
-              "실행할 작업 배열. 순서대로 실행되며, 하나라도 실패하면 중단됩니다.",
+            description: "aiToolDef.batchOperations",
             items: {
               type: "object",
               properties: {
                 action: {
                   type: "string",
                   enum: ["create", "update", "delete"],
-                  description: "작업 유형",
+                  description: "aiToolDef.batchType",
                 },
                 args: {
                   type: "object",
-                  description:
-                    "해당 작업의 인자. create: {type, props, styles, parentId}, update: {elementId, props, styles}, delete: {elementId}",
+                  description: "aiToolDef.batchArgs",
                 },
               },
               required: ["action", "args"],
@@ -307,26 +289,22 @@ export const toolDefinitions: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "bind_collection",
-      description:
-        "요소에 collection 데이터 바인딩을 겁니다 (ListBox/GridList/Table 등). 데이터 소스(collection) 자체를 만들지는 않고, 이미 있는 데이터에 요소를 잇습니다.",
+      description: "aiToolDef.bindCollection",
       parameters: {
         type: "object",
         properties: {
           elementId: {
             type: "string",
-            description:
-              '대상 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
+            description: "aiToolId.elementIdTarget",
           },
           source: {
             type: "string",
             enum: ["static", "api", "supabase"],
-            description:
-              "데이터 출처. static = config.data 배열 그대로, api = config.baseUrl+endpoint, supabase = config.table.",
+            description: "aiToolDef.bindSource",
           },
           config: {
             type: "object",
-            description:
-              "source 별 설정. static: { data: [...] } · api: { baseUrl, endpoint, dataMapping } · supabase: { table }.",
+            description: "aiToolDef.bindConfig",
           },
         },
         required: ["elementId", "source", "config"],
@@ -337,25 +315,21 @@ export const toolDefinitions: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "create_interaction_rule",
-      description:
-        "요소에 이벤트 규칙을 추가합니다 (예: 버튼 누르면 toast 표시, 다른 요소의 기능 구동). trigger 와 capability 는 컴포넌트가 실제로 노출하는 것만 쓸 수 있고, 틀리면 사용 가능한 목록을 돌려줍니다.",
+      description: "aiToolDef.createRule",
       parameters: {
         type: "object",
         properties: {
           elementId: {
             type: "string",
-            description:
-              '트리거 요소 ID. "last-created" = 방금 만든 요소, "selected" = 현재 선택된 요소. 그 외에는 실제 id 만 (자리표시자 금지).',
+            description: "aiToolId.elementIdTrigger",
           },
           trigger: {
             type: "string",
-            description:
-              "컴포넌트가 노출하는 callback 이름 (예: onPress). onClick 같은 DOM 별칭은 쓰지 않습니다.",
+            description: "aiToolDef.ruleTrigger",
           },
           action: {
             type: "object",
-            description:
-              "수행할 동작. kind: navigate(path) | toast(message) | capability(targetId, capability, value?).",
+            description: "aiToolDef.ruleAction",
             properties: {
               kind: {
                 type: "string",
@@ -382,22 +356,48 @@ export const toolDefinitions: ChatCompletionTool[] = [
  * 동적 import 인 이유: agent 명령 표면 (`COMMAND_META` + adapter + executor) 은 agent 가
  * 실제로 명령을 부를 때만 필요하다. 정적으로 매달면 초기 번들에 3KB+ 가 상주한다 (HC6).
  */
-export async function getToolDefinitions(): Promise<LLMToolDefinition[]> {
+export async function getToolDefinitions(
+  t: PromptTranslate,
+): Promise<LLMToolDefinition[]> {
   const { buildRunCommandToolDefinition } = await import("./runCommand");
   return [
-    ...toLLMToolDefinitions(toolDefinitions),
-    buildRunCommandToolDefinition(),
+    ...toLLMToolDefinitions(toolDefinitions, t),
+    buildRunCommandToolDefinition(t),
   ];
 }
 
 /** 중첩 정의 → provider 중립 정의 (JSON Schema 는 그대로 통과). */
+/**
+ * 정의에 실린 것은 문구가 아니라 **키**다 (ADR-200 후속). 중첩 schema 어디에나
+ * `description` 이 있으므로 재귀로 훑어 한 번에 해소한다 — 키가 아닌 값(빈 문자열
+ * 등)은 그대로 지나간다.
+ */
+function resolveDescriptions(value: unknown, t: PromptTranslate): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => resolveDescriptions(item, t));
+  }
+  if (typeof value !== "object" || value === null) return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, nested] of Object.entries(value)) {
+    out[key] =
+      key === "description" && typeof nested === "string"
+        ? t(nested)
+        : resolveDescriptions(nested, t);
+  }
+  return out;
+}
+
 export function toLLMToolDefinitions(
   definitions: readonly ChatCompletionTool[],
+  t: PromptTranslate,
 ): LLMToolDefinition[] {
   return definitions.map((definition) => ({
     name: definition.function.name,
-    description: definition.function.description ?? "",
-    parameters: definition.function.parameters ?? {
+    description: t(definition.function.description ?? ""),
+    parameters: (resolveDescriptions(
+      definition.function.parameters,
+      t,
+    ) as LLMToolDefinition["parameters"]) ?? {
       type: "object",
       properties: {},
     },

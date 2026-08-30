@@ -5,7 +5,7 @@
  * 나가고, 각자의 스트리밍 조각이 같은 `LLMStreamEvent` 로 돌아오는지 본다. 네트워크는
  * `fetchImpl` 주입으로 대체한다 (키 0, 외부 호출 0).
  *
- * "기존 7개 도구 시그니처 보존" 은 `getToolDefinitions()` 의 실제 산출물을 그대로 실어
+ * "기존 7개 도구 시그니처 보존" 은 `getToolDefinitions(tr)` 의 실제 산출물을 그대로 실어
  * 확인한다 — 도구 파일을 고치지 않고 통합 인터페이스를 지나는지가 G1 조건이다.
  */
 import { describe, expect, it, vi } from "vitest";
@@ -25,6 +25,8 @@ import {
   createAgentProfileRegistry,
   isProfileConfigured,
 } from "./AgentProfileRegistry";
+import { localizedStrings } from "@/i18n/translations";
+import type { PromptTranslate } from "../promptTranslate";
 
 function sseResponse(events: unknown[]): Response {
   const body = events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
@@ -72,6 +74,13 @@ const TOOL: LLMToolDefinition = {
   name: "run_command",
   description: "빌더 명령 실행",
   parameters: { type: "object", properties: { id: { type: "string" } } },
+};
+
+/** ko-KR 카탈로그에 묶은 해소기 (ADR-200 후속). */
+const tr: PromptTranslate = (key, params) => {
+  const message = localizedStrings["ko-KR"][key];
+  if (typeof message === "function") return message(params);
+  return message ?? key;
 };
 
 describe("OpenAI 호환 어댑터", () => {
@@ -315,8 +324,8 @@ describe("Anthropic 어댑터", () => {
 
 describe("기존 도구 시그니처 보존 (G1)", () => {
   it("도구 10종이 이름·스키마 그대로 두 어댑터의 요청 본문에 실린다", async () => {
-    const definitions = await getToolDefinitions();
-    // Phase 2 부터 `getToolDefinitions()` 자체가 provider 중립 형태다
+    const definitions = await getToolDefinitions(tr);
+    // Phase 2 부터 `getToolDefinitions(tr)` 자체가 provider 중립 형태다
     const neutral: LLMToolDefinition[] = definitions.map((d) => ({ ...d }));
     expect(neutral).toHaveLength(10);
 

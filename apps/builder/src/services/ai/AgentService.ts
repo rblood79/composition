@@ -64,7 +64,7 @@ export class AgentService {
       ...this.convertMessages(messages),
     ];
 
-    const tools = await getToolDefinitions();
+    const tools = await getToolDefinitions(this.t);
     let turn = 0;
 
     while (turn < MAX_TURNS) {
