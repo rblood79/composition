@@ -34,6 +34,12 @@ export interface LayoutResult {
   y: number;
   width: number;
   height: number;
+  /**
+   * border-box 상단 기준 in-flow baseline (ADR-923 Phase 2 — 엔진 출력 계약).
+   * 원천 없는 노드는 엔진이 height(bottom 폴백, CSS 2.1 §10.8.1)로 해소해 내보낸다.
+   * optional: 엔진 경유가 아닌 mock/합성 LayoutResult 는 생략 가능.
+   */
+  baseline?: number;
 }
 
 /** Opaque handle to a layout node. */
@@ -100,8 +106,9 @@ export interface EngineTraceNode {
 }
 
 /**
- * flat `[x0,y0,w0,h0, x1,...]` Float32Array 를 handle 순서대로 슬라이스해
- * `Map<handle, LayoutResult>` 로 재구성한다(handle 당 4값).
+ * flat `[x0,y0,w0,h0,b0, x1,...]` Float32Array 를 handle 순서대로 슬라이스해
+ * `Map<handle, LayoutResult>` 로 재구성한다(ADR-923 Phase 2 — handle 당 **5값**,
+ * b = baseline. 엔진 get_layouts_batch stride 와 반드시 일치해야 한다).
  */
 function flatToLayoutMap(
   handles: number[],
@@ -109,12 +116,13 @@ function flatToLayoutMap(
 ): Map<number, LayoutResult> {
   const result = new Map<number, LayoutResult>();
   for (let i = 0; i < handles.length; i++) {
-    const off = i * 4;
+    const off = i * 5;
     result.set(handles[i], {
       x: flat[off],
       y: flat[off + 1],
       width: flat[off + 2],
       height: flat[off + 3],
+      baseline: flat[off + 4],
     });
   }
   return result;

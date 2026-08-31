@@ -37,7 +37,6 @@ export {
   // vertical-align, line-height
   parseVerticalAlign,
   parseLineHeight,
-  calculateBaseline,
   // 타입
   type LayoutEngine,
   type ComputedLayout,

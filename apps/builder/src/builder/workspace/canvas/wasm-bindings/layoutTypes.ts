@@ -12,10 +12,7 @@ export type TaffyDisplay = "flex" | "grid" | "block" | "none";
 export type TaffyPosition = "relative" | "absolute";
 export type TaffyOverflow = "visible" | "hidden" | "clip" | "scroll";
 export type TaffyFlexDirection =
-  | "row"
-  | "column"
-  | "row-reverse"
-  | "column-reverse";
+  "row" | "column" | "row-reverse" | "column-reverse";
 export type TaffyFlexWrap = "nowrap" | "wrap" | "wrap-reverse";
 export type TaffyJustifyContent =
   | "flex-start"
@@ -167,6 +164,15 @@ export interface TaffyStyle {
   // 키워드(fit/min/max-content)와 §4.5 automatic minimum floor 의 입력.
   contentMinWidth?: number;
   contentMaxWidth?: number;
+
+  // Baseline 계약 입력 3종 (ADR-923 Phase 2 — wasm 경계).
+  // 엔진 NodeStyle.vertical_align/line_height/leaf_baseline 대응.
+  /** vertical-align CSS 키워드 (baseline/top/middle/bottom) — 엔진이 u8 매핑 */
+  verticalAlign?: string;
+  /** line-height — px 해석 완료 스칼라 (배율·단위는 TS 가 fontSize 로 선해석) */
+  lineHeight?: number;
+  /** 텍스트 leaf 첫 줄 baseline (content-box 상단 기준 px — 측정 공급 채널) */
+  leafBaseline?: number;
 }
 
 /** Opaque handle to a layout node. (구 TaffyNodeHandle — 자체 엔진 handle 과 동일 규약) */

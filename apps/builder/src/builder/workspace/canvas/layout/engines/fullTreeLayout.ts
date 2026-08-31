@@ -1033,6 +1033,14 @@ function taffyStyleToRecord(style: TaffyStyle): Record<string, unknown> {
   if (style.contentMaxWidth !== undefined)
     result.contentMaxWidth = style.contentMaxWidth;
 
+  // baseline 계약 입력 3종 (ADR-923 Phase 2) — 숫자 스칼라·키워드 문자열 그대로
+  // (applyCommonTaffyStyle 이 px 해석을 이미 끝냈다: lineHeight 는 px 숫자).
+  if (style.verticalAlign !== undefined)
+    result.verticalAlign = style.verticalAlign;
+  if (style.lineHeight !== undefined) result.lineHeight = style.lineHeight;
+  if (style.leafBaseline !== undefined)
+    result.leafBaseline = style.leafBaseline;
+
   return result;
 }
 

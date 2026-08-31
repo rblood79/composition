@@ -96,7 +96,6 @@ import {
   measureFontMetrics,
   getTextMeasurer,
 } from "../../utils/textMeasure";
-import type { FontMetrics } from "../../utils/textMeasure";
 import {
   resolveCSSSizeValue,
   FIT_CONTENT as CSS_FIT_CONTENT,
@@ -4833,6 +4832,21 @@ export function enrichWithIntrinsicSize(
       : maxC;
     injectedStyle.contentMinWidth = minC;
     injectedStyle.contentMaxWidth = maxC;
+    // ADR-923 Phase 2 — 텍스트 leaf 첫 줄 baseline 공급 (content-box 상단 기준):
+    // CSS half-leading 모델 — (lineHeight − fontHeight)/2 + ascent. lineHeight 는
+    // 명시값(px/배율) 우선, 없으면 폰트 내장 normal (fontBoundingBox). 측정 체인은
+    // contentMin/MaxWidth 와 동일 (measureFontMetrics — Canvas 2D TextMetrics 캐시).
+    const fmBaseline = measureFontMetrics(
+      scalarFontFamily,
+      fontSize,
+      scalarFontWeight,
+    );
+    const lineHeightPx =
+      parseLineHeight(styleRecord, fontSize) ?? fmBaseline.lineHeight;
+    injectedStyle.leafBaseline = Math.max(
+      0,
+      (lineHeightPx - fmBaseline.fontHeight) / 2 + fmBaseline.ascent,
+    );
   } else if (needsWidth && baseContentWidth > 0) {
     let injectWidth = baseContentWidth;
     injectWidth += box.padding.left + box.padding.right;
@@ -4900,7 +4914,8 @@ export function enrichWithIntrinsicSize(
     injectedStyle.width === style?.width &&
     injectedStyle.minWidth === style?.minWidth &&
     injectedStyle.contentMinWidth === style?.contentMinWidth &&
-    injectedStyle.contentMaxWidth === style?.contentMaxWidth
+    injectedStyle.contentMaxWidth === style?.contentMaxWidth &&
+    injectedStyle.leafBaseline === style?.leafBaseline
   ) {
     return element;
   }
@@ -4989,198 +5004,6 @@ export function parseLineHeight(
   }
 
   return undefined;
-}
-
-/**
- * inline-block 요소의 baseline 위치 계산
- *
- * CSS 명세 (Chrome 구현):
- * - 일반적인 경우: 마지막 줄 텍스트의 baseline
- * - overflow: hidden/auto/scroll → margin-box 하단
- * - 콘텐츠 없음 → margin-box 하단
- *
- * @param element - 대상 요소
- * @param height - 요소 높이 (margin 제외)
- * @returns baseline 위치 (요소 상단 기준 오프셋)
- *
- * @example
- * // 높이 100px, baseline이 하단에서 20px 위
- * calculateBaseline(element, 100) // → 80 (상단에서 80px 아래)
- */
-// 🚀 텍스트가 수직 중앙 정렬되는 요소 (CSS baseline ≈ height/2)
-// CSS에서 button/input/badge 등은 내부 텍스트가 수직 중앙 정렬되므로
-// baseline이 요소의 수직 중앙 근처에 위치
-const VERTICALLY_CENTERED_TAGS = new Set([
-  "button",
-  "submitbutton",
-  "fancybutton",
-  "togglebutton",
-  "input",
-  "select",
-  "badge",
-  "type",
-  "chip", // inline-flex 컴포넌트
-]);
-
-/**
- * 스타일에서 폰트 속성을 개별값으로 파싱
- *
- * measureFontMetrics()에 전달할 개별 폰트 속성 값을 추출합니다.
- * 기존 buildFontSpec()을 대체하여 구조화된 값으로 반환합니다.
- * 이를 통해 캐시 키 생성과 메트릭 측정을 효율적으로 수행합니다.
- */
-interface ParsedFontProps {
-  fontFamily: string;
-  fontSize: number;
-  fontWeight: string | number;
-}
-
-function parseFontProps(
-  style: Record<string, unknown> | undefined,
-): ParsedFontProps {
-  if (!style) {
-    return { fontFamily: "sans-serif", fontSize: 16, fontWeight: 400 };
-  }
-
-  const sizeProp = style.fontSize;
-  const familyProp = style.fontFamily;
-  const weightProp = style.fontWeight;
-
-  // fontSize 파싱
-  let fontSize = 16;
-  if (typeof sizeProp === "number") {
-    fontSize = sizeProp;
-  } else if (typeof sizeProp === "string" && sizeProp.trim()) {
-    const parsed = parseFloat(sizeProp.trim());
-    if (!isNaN(parsed)) fontSize = parsed;
-  }
-
-  // fontFamily 파싱
-  let fontFamily = "sans-serif";
-  if (typeof familyProp === "string" && familyProp.trim()) {
-    fontFamily = familyProp.trim();
-  }
-
-  // fontWeight 파싱
-  let fontWeight: string | number = 400;
-  if (typeof weightProp === "number") {
-    fontWeight = weightProp;
-  } else if (typeof weightProp === "string" && weightProp.trim()) {
-    fontWeight = weightProp.trim();
-  }
-
-  return { fontFamily, fontSize, fontWeight };
-}
-
-/**
- * 스타일에서 FontMetrics를 조회 (캐싱 포함)
- *
- * textMeasure.ts의 measureFontMetrics()에 위임하여
- * Canvas 2D TextMetrics 기반 정밀 ascent/descent를 반환합니다.
- *
- * 기존 measureAlphabeticAscent() + measureAlphabeticDescent()를 통합 교체:
- *
- * [Before] 매 호출마다 document.createElement('canvas') 생성:
- *   - measureAlphabeticAscent(fontSpec) → 새 Canvas 생성 → ascent | null
- *   - measureAlphabeticDescent(fontSpec) → 새 Canvas 생성 → descent | null
- *   - 2번 호출 시 Canvas 4개 생성 (ascent + descent 각각)
- *
- * [After] 싱글톤 context + Map 캐시로 O(1) 조회:
- *   - getFontMetricsFromStyle(style) → { ascent, descent, fontHeight }
- *   - 캐시 히트 시 Canvas context 접근 없음
- *   - SSR 환경에서도 fontSize 기반 근사값 자동 반환 (null 대신)
- */
-function getFontMetricsFromStyle(
-  style: Record<string, unknown> | undefined,
-): FontMetrics {
-  const { fontFamily, fontSize, fontWeight } = parseFontProps(style);
-  return measureFontMetrics(fontFamily, fontSize, fontWeight);
-}
-
-/**
- * inline-block 요소의 baseline 위치 계산
- *
- * CSS 명세 (Chrome 구현):
- * - 일반적인 경우: 마지막 줄 텍스트의 baseline
- * - overflow: hidden/auto/scroll → margin-box 하단
- * - 콘텐츠 없음 → margin-box 하단
- *
- * Wave 3 정밀화: measureFontMetrics()의 캐싱된 ascent/descent를 활용하여
- * 폰트 메트릭 기반 정밀 계산을 수행합니다.
- * 기존 measureAlphabeticAscent()/measureAlphabeticDescent()의 매 호출
- * Canvas 생성 문제를 해결하고, SSR 환경에서도 근사값을 안정적으로 제공합니다.
- *
- * @param element - 대상 요소
- * @param height - 요소 높이 (margin 제외)
- * @returns baseline 위치 (요소 상단 기준 오프셋)
- *
- * @example
- * // 높이 100px, baseline이 하단에서 20px 위
- * calculateBaseline(element, 100) // → 80 (상단에서 80px 아래)
- */
-export function calculateBaseline(
-  element: CanvasLayoutNode,
-  height: number,
-): number {
-  const style = element.props?.style as Record<string, unknown> | undefined;
-  const type = (element.type ?? "").toLowerCase();
-
-  // overflow가 visible이 아니면 하단이 baseline
-  const overflow = style?.overflow as string | undefined;
-  const overflowX = style?.overflowX as string | undefined;
-  const overflowY = style?.overflowY as string | undefined;
-
-  if (
-    (overflow && overflow !== "visible") ||
-    (overflowX && overflowX !== "visible") ||
-    (overflowY && overflowY !== "visible")
-  ) {
-    return height; // 하단
-  }
-
-  // 콘텐츠가 없으면 하단이 baseline
-  // 높이가 0이면 콘텐츠 없음으로 간주
-  if (height === 0) {
-    return 0;
-  }
-
-  // 폰트 메트릭 조회 (캐싱됨, SSR-safe — 근사값 자동 반환)
-  const fm = getFontMetricsFromStyle(style);
-
-  // 버튼/input 등 텍스트 수직 중앙 정렬 요소
-  // CSS에서 이 요소들의 baseline은 수직 중앙의 텍스트 baseline
-  if (VERTICALLY_CENTERED_TAGS.has(type)) {
-    // baseline = (height - effectiveLineHeight) / 2 + ascent
-    const lineHeight = parseLineHeight(style);
-    const effectiveLineHeight = lineHeight ?? height;
-
-    // 텍스트 블록은 요소 수직 중앙에 위치:
-    //   텍스트 블록 상단 = (height - effectiveLineHeight) / 2
-    const textBlockTop = (height - effectiveLineHeight) / 2;
-    return textBlockTop + fm.ascent;
-  }
-
-  // 일반적인 경우: 폰트 메트릭 기반 baseline 계산
-  const lineHeight = parseLineHeight(style);
-
-  if (lineHeight !== undefined && lineHeight <= height) {
-    // line-height가 있으면 half-leading 모델로 정밀 계산
-    // CSS half-leading: (lineHeight - fontHeight) / 2
-    // baseline from line box top = half-leading + ascent
-    const halfLeading = (lineHeight - fm.fontHeight) / 2;
-
-    if (height <= lineHeight * 1.5) {
-      // 단일 줄로 간주
-      return Math.max(halfLeading + fm.ascent, 0);
-    } else {
-      // 여러 줄: 마지막 줄 baseline
-      return height - lineHeight + halfLeading + fm.ascent;
-    }
-  }
-
-  // line-height 없음: 요소 높이를 단일 line box로 간주
-  // ascent가 곧 baseline 위치
-  return fm.ascent;
 }
 
 // ============================================
@@ -5413,6 +5236,28 @@ export function applyCommonTaffyStyle(
   }
   if (typeof style.contentMaxWidth === "number") {
     result.contentMaxWidth = style.contentMaxWidth;
+  }
+
+  // ADR-923 Phase 2 — baseline 계약 입력 3종. verticalAlign 은 CSS 키워드 문자열
+  // (엔진 tree.rs 가 u8 매핑), lineHeight 는 여기서 px 로 선해석 (엔진은 폰트
+  // 메트릭이 없어 배율을 해석할 수 없다), leafBaseline 은 enrichWithIntrinsicSize
+  // 가 주입한 측정 스칼라 통과.
+  if (typeof style.verticalAlign === "string" && style.verticalAlign.trim()) {
+    result.verticalAlign = style.verticalAlign;
+  }
+  {
+    const fsRaw = style.fontSize;
+    const fs =
+      typeof fsRaw === "number"
+        ? fsRaw
+        : typeof fsRaw === "string"
+          ? parseFloat(fsRaw) || undefined
+          : undefined;
+    const lineHeightPx = parseLineHeight(style, fs);
+    if (lineHeightPx !== undefined) result.lineHeight = lineHeightPx;
+  }
+  if (typeof style.leafBaseline === "number") {
+    result.leafBaseline = style.leafBaseline;
   }
 
   // Min/Max size

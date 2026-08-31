@@ -259,6 +259,18 @@ pub struct NodeStyle {
     pub content_min_width: Option<f32>,
     /// max-content 폭 (단일줄 폭)
     pub content_max_width: Option<f32>,
+
+    // Baseline 계약 (ADR-923 Phase 2) — block line box 의 vertical-align/baseline/
+    // line_height 슬롯(단위 3-a "미소비") 해소 + 컨테이너 baseline 출력의 입력.
+    /// vertical-align CSS 키워드 (baseline/top/middle/bottom — 그 외/미설정 = baseline).
+    /// tree.rs 가 block.rs u8 코드로 매핑한다 (flex enum 매핑과 같은 경계 역할).
+    pub vertical_align: Option<String>,
+    /// line-height — **px 해석 완료 스칼라** (TS 가 배율·단위를 fontSize 로 선해석.
+    /// 엔진은 폰트 메트릭이 없어 배율을 스스로 해석할 수 없다 — ADR-165 와 같은 계약).
+    pub line_height: Option<f32>,
+    /// 텍스트 leaf 의 첫 줄 baseline (content-box 상단 기준 px — TS 측정 공급 채널.
+    /// content_min/max_width 와 같은 성격: CSS 속성이 아니라 측정 스칼라).
+    pub leaf_baseline: Option<f32>,
 }
 
 /// `NodeStyle` 선언 필드 수 — ADR-156 R7/G6 정적 가드 앵커.
@@ -266,7 +278,7 @@ pub struct NodeStyle {
 /// breakdown §1-3 3축 교차표의 "NodeStyle 49필드" 를 코드로 고정한다. 이 값을
 /// 바꾸면(= 필드 추가/삭제) `nodestyle_field_contract_guard` 의 전수 구조분해가
 /// 먼저 컴파일 RED 이므로, 교차표 갱신 없이 필드만 늘리는 silent drift 가 차단된다.
-pub const NODESTYLE_FIELD_COUNT: usize = 51;
+pub const NODESTYLE_FIELD_COUNT: usize = 54;
 
 /// 「선언 O · 송신 O · 소비 X」 필드 (camelCase = serde 계약명).
 ///
@@ -299,10 +311,33 @@ pub struct NodeLayout {
     pub y: f32,
     pub width: f32,
     pub height: f32,
+    /// border-box 상단 기준 in-flow baseline (ADR-923 Phase 2).
+    ///
+    /// - leaf: `leaf_baseline` 입력 + padding/border-top (텍스트 첫 줄)
+    /// - flex/grid 컨테이너: 첫 in-flow item 의 baseline (Flexbox §8.5 근사)
+    /// - block 컨테이너: 마지막 in-flow line box(또는 마지막 baseline 보유 자식)
+    ///
+    /// **내부 센티널 `BASELINE_NONE`(-1.0) = baseline 원천 없음.** 경계 출력
+    /// (`get_layouts_batch`/`getLayout`)과 block intake 는 height(bottom) 폴백으로
+    /// 해석한다 (CSS 2.1 §10.8.1 — in-flow line box 없는 inline-block 은 bottom).
+    /// 센티널을 내부에 보존하는 이유: 폴백값(height)을 저장해 두면 부모가 stretch 로
+    /// height 를 덮어쓸 때 stale 이 되고, "원천 없음" 과 "실측 baseline == height" 를
+    /// 구분할 수 없어 컨테이너 전파(원천 있는 자식만 전파)가 깨진다.
+    pub baseline: f32,
 }
 
+/// `NodeLayout.baseline` 의 "원천 없음" 센티널 — 경계에서 height 폴백.
+pub const BASELINE_NONE: f32 = -1.0;
+
 impl NodeLayout {
-    const ZERO: NodeLayout = NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    const ZERO: NodeLayout =
+        NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0, baseline: BASELINE_NONE };
+
+    /// 경계 계약값 — 원천 있으면 그 값, 없으면 height (bottom 폴백).
+    #[inline]
+    pub fn resolved_baseline(&self) -> f32 {
+        if self.baseline >= 0.0 { self.baseline } else { self.height }
+    }
 }
 
 /// 측정 패스 전후 복구 단위 — `(handle, dirty, subtree_dirty, layout, last_avail, last_solved)`.
@@ -967,7 +1002,7 @@ impl LayoutTree {
             None => return,
         };
         if let Some(n) = self.get_mut(handle) {
-            n.layout = NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+            n.layout = NodeLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0, baseline: BASELINE_NONE };
             n.dirty = false;
             n.subtree_dirty = false;
         }
@@ -1480,8 +1515,19 @@ impl LayoutTree {
             // (content_main/cross, content_w) 의 제안값이 된다.
             let w = self.resolve_leaf_intrinsic_width(handle, explicit_w, avail_w);
             let h = explicit_h;
+            // ADR-923 Phase 2: leaf baseline = TS 측정 스칼라(`leafBaseline`, content-box
+            // 상단 기준 첫 줄 baseline) + 자기 padding/border-top (border-box 좌표 승격).
+            // 원천 없으면 센티널 — 경계/부모 intake 가 height(bottom) 로 폴백 (§10.8.1).
+            let baseline = match self.get(handle).and_then(|n| n.style.leaf_baseline) {
+                Some(lb) => {
+                    let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+                    let ctx = self.ctx_for(avail_w);
+                    pad_border_start(&style, &ctx, false) + lb.max(0.0)
+                }
+                None => BASELINE_NONE,
+            };
             if let Some(n) = self.get_mut(handle) {
-                n.layout = NodeLayout { x: 0.0, y: 0.0, width: w, height: h };
+                n.layout = NodeLayout { x: 0.0, y: 0.0, width: w, height: h, baseline };
                 n.dirty = false;
                 n.subtree_dirty = false;
             }
@@ -1721,12 +1767,10 @@ impl LayoutTree {
             );
 
             if let Some(n) = self.get_mut(c) {
-                n.layout = NodeLayout {
-                    x,
-                    y,
-                    width: nw,
-                    height: nh,
-                };
+                // out-of-flow: baseline 은 부모 전파에 참여하지 않지만 자식 자신의
+                // 값(자기 solve 기록)은 보존한다 (ADR-923 Phase 2).
+                let baseline = n.layout.baseline;
+                n.layout = NodeLayout { x, y, width: nw, height: nh, baseline };
                 n.dirty = false;
                 n.subtree_dirty = false;
             }
@@ -2426,13 +2470,23 @@ impl LayoutTree {
         //    (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
         let mut max_right: f32 = 0.0;
         let mut max_bottom: f32 = 0.0;
+        // ADR-923 Phase 2: flex 컨테이너 baseline = 첫 in-flow item 의 baseline
+        // (Flexbox §8.5 — baseline 참여 판정(align-self:baseline 그룹)은 S8 미구현이라
+        // 첫 원천 보유 item 근사. 원천 없는 item 은 건너뛴다 — bottom 폴백을 전파하면
+        // 컨테이너 자신의 bottom 폴백과 달라져 §10.8.1 을 위반한다).
+        let mut first_item_baseline: f32 = BASELINE_NONE;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
             let (x, y, w, h) = (out[off], out[off + 1], out[off + 2], out[off + 3]);
             max_right = max_right.max(x + w);
             max_bottom = max_bottom.max(y + h);
             if let Some(n) = self.get_mut(c) {
-                n.layout = NodeLayout { x: x + off_x, y: y + off_y, width: w, height: h };
+                let child_baseline = n.layout.baseline;
+                n.layout =
+                    NodeLayout { x: x + off_x, y: y + off_y, width: w, height: h, baseline: child_baseline };
+                if first_item_baseline < 0.0 && child_baseline >= 0.0 {
+                    first_item_baseline = y + off_y + child_baseline;
+                }
             }
         }
 
@@ -2491,7 +2545,13 @@ impl LayoutTree {
         }
 
         if let Some(n) = self.get_mut(handle) {
-            n.layout = NodeLayout { x: 0.0, y: 0.0, width: container_w, height: container_h };
+            n.layout = NodeLayout {
+                x: 0.0,
+                y: 0.0,
+                width: container_w,
+                height: container_h,
+                baseline: first_item_baseline,
+            };
             n.dirty = false;
             n.subtree_dirty = false;
         }
@@ -2591,7 +2651,9 @@ impl LayoutTree {
         for (i, &c) in children.iter().enumerate() {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let (cw, ch) = child_sizes[i];
-            write_block_item(&mut data, i, &cstyle, cw, ch, &ctx, &height_ctx);
+            // ADR-923 Phase 2: 자식 solve 가 기록한 baseline (border-top 기준, 센티널 보존).
+            let child_baseline = self.get(c).map(|n| n.layout.baseline).unwrap_or(BASELINE_NONE);
+            write_block_item(&mut data, i, &cstyle, cw, ch, child_baseline, &ctx, &height_ctx);
             let off = i * block::FIELD_COUNT;
             // **인라인 available 이 미결정이면 auto 폭 block-level 자식은 fit-content 다.**
             //
@@ -2648,6 +2710,10 @@ impl LayoutTree {
         //    (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
         let mut max_right: f32 = 0.0;
         let mut max_bottom: f32 = 0.0;
+        // ADR-923 Phase 2: block 컨테이너 baseline = 마지막 in-flow line box(정확값은
+        // 아래 block.rs meta), line box 가 마지막이 아니면 마지막 baseline 원천 보유
+        // 자식의 baseline (CSS 2.1 §10.8.1 "last in-flow line box" 의 중첩 전파 근사).
+        let mut last_inflow_baseline: f32 = BASELINE_NONE;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
             let (mut x, y, w, h) = (out[off], out[off + 1] - escaped_top, out[off + 2], out[off + 3]);
@@ -2669,9 +2735,32 @@ impl LayoutTree {
             max_right = max_right.max(x + w);
             max_bottom = max_bottom.max(y + h);
             if let Some(n) = self.get_mut(c) {
-                n.layout = NodeLayout { x: x + off_x, y: y + off_y, width: w, height: h };
+                let child_baseline = n.layout.baseline;
+                n.layout =
+                    NodeLayout { x: x + off_x, y: y + off_y, width: w, height: h, baseline: child_baseline };
+                let code = data[i * block::FIELD_COUNT];
+                if code == 1.0 {
+                    // atomic inline-level: line box 참여 — 원천 없어도 bottom 폴백이 곧
+                    // baseline 이다. 근사 후보 = item y + 해소값; 마지막 자식이 line box 면
+                    // 아래 meta 정확값(top/middle/bottom 정렬 반영)이 이 근사를 덮는다.
+                    let resolved = if child_baseline >= 0.0 { child_baseline } else { h };
+                    last_inflow_baseline = y + off_y + resolved;
+                } else if child_baseline >= 0.0 {
+                    last_inflow_baseline = y + off_y + child_baseline;
+                }
             }
         }
+
+        // ADR-923 Phase 2: 마지막 자식이 line box 참여자면 block.rs meta 의 마지막
+        // line box baseline(content-box y, escape 전 좌표)이 정확값 — off_y/escape 보정.
+        let last_line_baseline = out[meta_off + 2];
+        let last_child_is_line_item = !children.is_empty()
+            && data[(children.len() - 1) * block::FIELD_COUNT] == 1.0;
+        let container_baseline = if last_child_is_line_item && last_line_baseline >= 0.0 {
+            off_y + (last_line_baseline - escaped_top)
+        } else {
+            last_inflow_baseline
+        };
 
         // 컨테이너 크기: 명시 있으면 명시, 없으면 자식 bounding box(탈출 margin 제외됨).
         let container_w = if explicit_w > 0.0 { explicit_w } else { max_right };
@@ -2710,7 +2799,13 @@ impl LayoutTree {
         }
 
         if let Some(n) = self.get_mut(handle) {
-            n.layout = NodeLayout { x: 0.0, y: 0.0, width: container_w, height: container_h };
+            n.layout = NodeLayout {
+                x: 0.0,
+                y: 0.0,
+                width: container_w,
+                height: container_h,
+                baseline: container_baseline,
+            };
             n.escaped_mt = escaped_top;
             n.escaped_mb = escaped_bottom;
             n.dirty = false;
@@ -3172,6 +3267,9 @@ impl LayoutTree {
         let grid_align_items = parse_align_items(style.align_items.as_deref());
         let grid_justify_items = parse_justify_items(style.justify_items.as_deref());
         let mut max_right: f32 = 0.0;
+        // ADR-923 Phase 2: grid 컨테이너 baseline = 첫 row 첫 원천 보유 item 근사
+        // (auto-flow row 배치 순서 = row-major 이므로 첫 원천 item 이 첫 row 소속).
+        let mut first_item_baseline: f32 = BASELINE_NONE;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
             let (x, y, w, h) = (bounds[off], bounds[off + 1], bounds[off + 2], bounds[off + 3]);
@@ -3268,7 +3366,17 @@ impl LayoutTree {
             });
             max_right = max_right.max(x + w);
             if let Some(n) = self.get_mut(c) {
-                n.layout = NodeLayout { x: fx + off_x, y: fy + off_y, width: fw, height: fh };
+                let child_baseline = n.layout.baseline;
+                n.layout = NodeLayout {
+                    x: fx + off_x,
+                    y: fy + off_y,
+                    width: fw,
+                    height: fh,
+                    baseline: child_baseline,
+                };
+                if first_item_baseline < 0.0 && child_baseline >= 0.0 {
+                    first_item_baseline = fy + off_y + child_baseline;
+                }
             }
         }
 
@@ -3409,7 +3517,13 @@ impl LayoutTree {
         }
 
         if let Some(n) = self.get_mut(handle) {
-            n.layout = NodeLayout { x: 0.0, y: 0.0, width: final_w, height: final_h };
+            n.layout = NodeLayout {
+                x: 0.0,
+                y: 0.0,
+                width: final_w,
+                height: final_h,
+                baseline: first_item_baseline,
+            };
             n.dirty = false;
             n.subtree_dirty = false;
         }
@@ -3557,13 +3671,16 @@ impl LayoutTree {
 
     // ── 결과 수집 (taffy_bridge.rs get_layouts_batch 대응) ──
 
-    /// 여러 노드의 레이아웃을 flat `[x0,y0,w0,h0, x1,y1,w1,h1, ...]` 로 수집.
-    /// 무효 handle 은 `[0,0,0,0]`.
+    /// 여러 노드의 레이아웃을 flat `[x0,y0,w0,h0,b0, x1,y1,w1,h1,b1, ...]` 로 수집
+    /// (ADR-923 Phase 2 — handle 당 **5값**, b = baseline). 무효 handle 은 `[0,0,0,0,0]`.
+    ///
+    /// baseline 은 경계 계약값으로 해소해 내보낸다 — 원천 없으면 height(bottom 폴백,
+    /// CSS 2.1 §10.8.1). 내부 센티널(`BASELINE_NONE`)은 경계를 넘지 않는다.
     pub fn get_layouts_batch(&self, handles: &[usize]) -> Vec<f32> {
-        let mut out = Vec::with_capacity(handles.len() * 4);
+        let mut out = Vec::with_capacity(handles.len() * 5);
         for &h in handles {
             let l = self.get(h).map(|n| n.layout).unwrap_or(NodeLayout::ZERO);
-            out.extend_from_slice(&[l.x, l.y, l.width, l.height]);
+            out.extend_from_slice(&[l.x, l.y, l.width, l.height, l.resolved_baseline()]);
         }
         out
     }
@@ -4621,18 +4738,23 @@ impl MarginAxisReverse {
 /// 결과(cw/ch)를 그대로. width/height 명시(>0)면 그 값, 없으면 AUTO(-1) — block.rs 가
 /// auto→stretch(width) / auto→content(height) 로 분기. min/max 미지정도 AUTO(-1).
 ///
-/// vertical_align/baseline/line_height 는 단위 3-a 미소비(inline-block line box 는
-/// 상단이 blockify 하거나 leaf 로 전달 — 컨테이너 자식은 block/inline-block 중
-/// block 우선) → baseline(0) / valign(0=baseline) / line_height AUTO 기본값.
+/// vertical_align/baseline/line_height (ADR-923 Phase 2 배선 — 구 "미소비" 해소):
+/// valign 은 style 키워드 → u8, baseline 은 자식 solve 가 기록한 `NodeLayout.baseline`
+/// (센티널 <0 = 원천 없음 → block.rs 가 border-box bottom 으로 해소 — CSS 2.1
+/// §10.8.1), line_height 는 px 해석 완료 스칼라(AUTO=-1).
 ///
 /// specified size(width/height, min/max 동일) = border-box — intake 에서
 /// `spec_to_content` 로 pad_border 감산 후 block.rs 에 content 값으로 전달한다.
+// 8번째 인자(child_baseline)는 ADR-923 Phase 2 계약 — flat 슬롯 직렬화 함수라
+// 구조체 묶음이 오히려 계약 가독성을 해친다 (block.rs 필드표와 1:1 대응 유지).
+#[allow(clippy::too_many_arguments)]
 fn write_block_item(
     data: &mut [f32],
     i: usize,
     cstyle: &NodeStyle,
     cw: f32,
     ch: f32,
+    child_baseline: f32,
     ctx: &CssValueContext,
     height_ctx: &CssValueContext,
 ) {
@@ -4710,9 +4832,23 @@ fn write_block_item(
         .map(|v| spec_to_content(v, pad_border_v)).unwrap_or(-1.0);
     data[off + 14] = cw; // content_w
     data[off + 15] = ch; // content_h
-    data[off + 16] = 0.0; // vertical_align (0=baseline)
-    data[off + 17] = 0.0; // baseline
-    data[off + 18] = -1.0; // line_height AUTO
+    // ADR-923 Phase 2 — 단위 3-a "미소비" 3 슬롯 해소: 실제 style/자식 solve 값 전달.
+    data[off + 16] = vertical_align_code(cstyle.vertical_align.as_deref());
+    data[off + 17] = child_baseline; // <0 = 원천 없음 → block.rs 가 border-box bottom 으로 해소
+    data[off + 18] = cstyle.line_height.unwrap_or(-1.0); // px 스칼라, AUTO=-1
+}
+
+/// vertical-align CSS 키워드 → block.rs u8 코드 (0=baseline 1=top 2=middle 3=bottom).
+///
+/// 미지원 키워드(sub/super/text-top/text-bottom/`<length>`)는 baseline(0) —
+/// capability matrix seed(breakdown §2.2 S6) 대상이지 silent 확장 대상이 아니다.
+fn vertical_align_code(v: Option<&str>) -> f32 {
+    match v.map(str::trim) {
+        Some(s) if s.eq_ignore_ascii_case("top") => 1.0,
+        Some(s) if s.eq_ignore_ascii_case("middle") => 2.0,
+        Some(s) if s.eq_ignore_ascii_case("bottom") => 3.0,
+        _ => 0.0,
+    }
 }
 
 /// min_width/height 중 main 축 (row → min_width).
@@ -4982,6 +5118,9 @@ mod tests {
             aspect_ratio: _,
             content_min_width: _,
             content_max_width: _,
+            vertical_align: _,
+            line_height: _,
+            leaf_baseline: _,
         } = NodeStyle::default();
 
         // (2) 산술 계약 — 소비 + 미소비 = 선언. breakdown §1-3 "49 = 소비 40 + 미소비 9"
@@ -4989,8 +5128,11 @@ mod tests {
         //     "49 = 소비 49 + 미소비 0" 으로 이동했다(justify_self/justify_items 소비 전환:
         //     solve_grid grid_inline_justify). ADR-165 (2026-07-25): 측정 스칼라 2필드
         //     (content_min_width/content_max_width) 추가 — 소비처는 resolve_leaf_intrinsic_width
-        //     + write_flex_item off 19 → "51 = 소비 51 + 미소비 0".
-        const CONSUMED_COUNT: usize = 51;
+        //     + write_flex_item off 19 → "51 = 소비 51 + 미소비 0". ADR-923 Phase 2
+        //     (2026-09-01): baseline 계약 3필드(vertical_align/line_height/leaf_baseline)
+        //     추가 — 소비처는 write_block_item 슬롯 16/17/18 + leaf solve baseline →
+        //     "54 = 소비 54 + 미소비 0".
+        const CONSUMED_COUNT: usize = 54;
         assert_eq!(
             CONSUMED_COUNT + UNCONSUMED_NODESTYLE_FIELDS.len(),
             NODESTYLE_FIELD_COUNT,
@@ -6988,17 +7130,17 @@ mod tests {
         tree.compute_layout(handles[0], 400.0, 300.0);
         tree.compute_layout(handles[1], 400.0, 300.0);
         let flat = tree.get_layouts_batch(&handles);
-        assert_eq!(flat.len(), 8, "2 노드 × 4 = 8 f32");
-        // 노드 0: 100×50, 노드 1: 200×80 (x/y=0).
-        assert_eq!(&flat[0..4], &[0.0, 0.0, 100.0, 50.0]);
-        assert_eq!(&flat[4..8], &[0.0, 0.0, 200.0, 80.0]);
+        assert_eq!(flat.len(), 10, "2 노드 × 5 = 10 f32 (ADR-923 Phase 2: +baseline)");
+        // 노드 0: 100×50, 노드 1: 200×80 (x/y=0). baseline 원천 없음 → height 폴백.
+        assert_eq!(&flat[0..5], &[0.0, 0.0, 100.0, 50.0, 50.0]);
+        assert_eq!(&flat[5..10], &[0.0, 0.0, 200.0, 80.0, 80.0]);
     }
 
     #[test]
     fn layouts_batch_invalid_handle_zero() {
         let tree = LayoutTree::new();
         let flat = tree.get_layouts_batch(&[42]);
-        assert_eq!(flat, vec![0.0, 0.0, 0.0, 0.0]);
+        assert_eq!(flat, vec![0.0, 0.0, 0.0, 0.0, 0.0]);
     }
 
     // ── 단위 4: 증분 dirty 추적 ──
@@ -7633,6 +7775,120 @@ mod tests {
                 visits[visits.len() / 2]
             );
         }
+    }
+
+    // ── ADR-923 Phase 2: baseline 출력 계약 + 입력 3종 ──
+    //
+    // 계약: `NodeLayout.baseline` = border-box 상단 기준 in-flow baseline. leaf 는
+    // `leafBaseline` 입력(+pad/border-top), flex/grid 는 첫 원천 item, block 은 마지막
+    // line box(meta)/마지막 원천 자식. 원천 없으면 경계에서 height(bottom) 폴백.
+    // 입력 3종(verticalAlign/lineHeight/leafBaseline)은 block intake 슬롯 16/17/18
+    // ("미소비" 해소) + leaf solve 가 소비한다.
+
+    /// leaf: leafBaseline 입력 → baseline 출력 (pad_top 가산), 부재 시 height 폴백.
+    /// block 컨테이너: 마지막 원천 보유 자식(L1)의 baseline 전파 (L2 는 원천 없음).
+    #[test]
+    fn adr923_p2_leaf_baseline_output_and_bottom_fallback() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"60px","height":"30px","leafBaseline":24,"paddingTop":"4px"},"children":[]},
+            {"style":{"width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"100px"},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 100.0);
+        let flat = tree.get_layouts_batch(&h);
+        assert_eq!(flat.len(), 15, "3 노드 × 5");
+        assert_eq!(flat[4], 28.0, "L1 baseline = paddingTop 4 + leafBaseline 24");
+        assert_eq!(flat[9], flat[8], "L2 원천 없음 → height(bottom) 폴백");
+        assert_eq!(flat[14], 28.0, "block 컨테이너 = 마지막 원천 자식(L1, y=0) 의 baseline");
+    }
+
+    /// Button 시나리오: inline-flex 컨테이너 2개가 내부 텍스트 leaf 의 baseline 으로
+    /// 같은 line box 에서 정렬 — flex 컨테이너 baseline 전파(첫 item) + line box 정렬 +
+    /// block 부모의 마지막 line box baseline 출력.
+    #[test]
+    fn adr923_p2_inline_flex_containers_align_by_text_baseline() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"60px","height":"20px","leafBaseline":16},"children":[]},
+            {"style":{"display":"inline-flex","flexDirection":"row"},"children":[0]},
+            {"style":{"width":"60px","height":"40px","leafBaseline":32},"children":[]},
+            {"style":{"display":"inline-flex","flexDirection":"row"},"children":[2]},
+            {"style":{"display":"block","width":"300px","height":"100px"},"children":[1,3]}
+        ]"#;
+        // post-order: B(3) 의 자식이 2 (leafB).
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, 100.0);
+        let a = tree.get_layout(h[1]);
+        let b = tree.get_layout(h[3]);
+        assert_eq!(a.baseline, 16.0, "A 컨테이너 baseline = 첫 item(leaf lb 16)");
+        assert_eq!(b.baseline, 32.0, "B 컨테이너 baseline = 첫 item(leaf lb 32)");
+        assert_eq!((a.x, a.y), (0.0, 16.0), "A 는 line baseline(32) 에 맞춰 16 내려감");
+        assert_eq!((b.x, b.y), (60.0, 0.0), "B 가 line baseline 결정 (32)");
+        let flat = tree.get_layouts_batch(&h);
+        assert_eq!(flat[4 * 5 + 4], 32.0, "block 부모 baseline = 마지막 line box(32)");
+    }
+
+    /// verticalAlign:"top" item 은 baseline 정렬에 불참 — 줄 상단 고정.
+    #[test]
+    fn adr923_p2_vertical_align_top_pins_item() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"60px","height":"20px","leafBaseline":16},"children":[]},
+            {"style":{"display":"inline-flex","flexDirection":"row"},"children":[0]},
+            {"style":{"width":"60px","height":"40px","leafBaseline":32},"children":[]},
+            {"style":{"display":"inline-flex","flexDirection":"row","verticalAlign":"top"},"children":[2]},
+            {"style":{"display":"block","width":"300px","height":"100px"},"children":[1,3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, 100.0);
+        let a = tree.get_layout(h[1]);
+        let b = tree.get_layout(h[3]);
+        assert_eq!(a.y, 0.0, "baseline 참여자가 A 뿐 → line baseline 16, A 는 0");
+        assert_eq!(b.y, 0.0, "top 정렬 — baseline 불참");
+    }
+
+    /// lineHeight 입력은 line box 높이를 키운다 — 다음 block 형제의 y 로 관측.
+    #[test]
+    fn adr923_p2_line_height_extends_line_box() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"60px","height":"20px","leafBaseline":16},"children":[]},
+            {"style":{"display":"inline-flex","flexDirection":"row","lineHeight":50},"children":[0]},
+            {"style":{"display":"block","height":"10px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px"},"children":[1,2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 300.0, 200.0);
+        let c = tree.get_layout(h[2]);
+        assert_eq!(c.y, 50.0, "line box 높이 = max(item 20, lineHeight 50)");
+    }
+
+    /// flex/grid 컨테이너 baseline = 첫 원천 item (padding offset 포함).
+    #[test]
+    fn adr923_p2_flex_and_grid_container_baseline_first_item() {
+        let mut tree = LayoutTree::new();
+        let flex_json = r#"[
+            {"style":{"width":"30px","height":"20px","leafBaseline":12},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","paddingTop":"5px","width":"100px","height":"50px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(flex_json).unwrap();
+        tree.compute_layout(h[1], 200.0, 100.0);
+        assert_eq!(
+            tree.get_layout(h[1]).baseline,
+            17.0,
+            "flex: paddingTop 5 + item y 0 + leaf baseline 12"
+        );
+
+        let mut tree2 = LayoutTree::new();
+        let grid_json = r#"[
+            {"style":{"width":"30px","height":"20px","leafBaseline":12},"children":[]},
+            {"style":{"display":"grid","gridTemplateColumns":["100px"],"width":"100px","height":"50px"},"children":[0]}
+        ]"#;
+        let h2 = tree2.build_tree_batch(grid_json).unwrap();
+        tree2.compute_layout(h2[1], 200.0, 100.0);
+        assert_eq!(tree2.get_layout(h2[1]).baseline, 12.0, "grid: 첫 row 첫 item baseline");
     }
 
     // ── ADR-923 Phase 1: display.rs 배선 — outer → line item, inner → solver ──

@@ -36,7 +36,6 @@ export {
   // 🚀 Phase 6: vertical-align, line-height
   parseVerticalAlign,
   parseLineHeight,
-  calculateBaseline,
   // 🚀 §6 P1: 버튼 size config 단일 소스
   getButtonSizeConfig,
   // 🚀 §6 P1: intrinsic size 주입 (엔진 공유)

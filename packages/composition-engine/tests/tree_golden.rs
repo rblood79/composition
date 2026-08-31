@@ -59,11 +59,12 @@ fn layout_relative(batch_json: &str) -> Vec<f32> {
     let mut abs_x = vec![0.0f32; n];
     let mut abs_y = vec![0.0f32; n];
     for i in 0..n {
-        let (mut ax, mut ay) = (flat[i * 4], flat[i * 4 + 1]);
+        // ADR-923 Phase 2: get_layouts_batch stride 5 (x,y,w,h,baseline).
+        let (mut ax, mut ay) = (flat[i * 5], flat[i * 5 + 1]);
         let mut p = parent[i];
         while p != usize::MAX {
-            ax += flat[p * 4];
-            ay += flat[p * 4 + 1];
+            ax += flat[p * 5];
+            ay += flat[p * 5 + 1];
             p = parent[p];
         }
         abs_x[i] = ax;
@@ -76,8 +77,8 @@ fn layout_relative(batch_json: &str) -> Vec<f32> {
     for i in 0..n {
         out.push(abs_x[i] - rx); // x (절대 - root)
         out.push(abs_y[i] - ry); // y
-        out.push(flat[i * 4 + 2]); // w (크기는 offset 무관)
-        out.push(flat[i * 4 + 3]); // h
+        out.push(flat[i * 5 + 2]); // w (크기는 offset 무관)
+        out.push(flat[i * 5 + 3]); // h — baseline(+4) 은 golden 대조 제외 (Phase 3 케이스로)
     }
     out
 }

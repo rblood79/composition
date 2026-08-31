@@ -25,7 +25,7 @@
 //! | 14  | content_w       | intrinsic content 폭                |
 //! | 15  | content_h       | intrinsic content 높이              |
 //! | 16  | vertical_align  | 0=baseline 1=top 2=middle 3=bottom  |
-//! | 17  | baseline        | inline-block baseline offset        |
+//! | 17  | baseline        | border-box top 기준. **<0 = 원천 없음** → border-box bottom(child_h) 폴백 (ADR-923 P2, §10.8.1) |
 //! | 18  | line_height     | AUTO=-1                             |
 //!
 //! ## 미구현 (다음 세션 — dual-run FAIL 이 fixture)
@@ -111,8 +111,10 @@ struct LineItem {
 /// * `prev_sibling_margin_bottom` - Previous sibling's margin bottom (context)
 ///
 /// # Returns
-/// Float32Array: [x, y, w, h, ...] for each child, plus 2 trailing values:
-/// [firstChildMarginTop, lastChildMarginBottom]
+/// Float32Array: [x, y, w, h, ...] for each child, plus 3 trailing values:
+/// [firstChildMarginTop, lastChildMarginBottom, lastLineBaseline]
+/// (lastLineBaseline: 마지막 line box 의 baseline — content-box y, line box 없으면
+/// AUTO=-1. ADR-923 Phase 2 — 컨테이너 baseline 출력의 정확값 원천.)
 #[wasm_bindgen]
 pub fn block_layout(
     data: &[f32],
@@ -128,8 +130,8 @@ pub fn block_layout(
         return vec![0.0, 0.0].into_boxed_slice();
     }
 
-    // Output: 4 values per child + 2 trailing metadata
-    let mut out = vec![0.0f32; child_count * OUT_FIELDS + 2];
+    // Output: 4 values per child + 3 trailing metadata (ADR-923 P2: +lastLineBaseline)
+    let mut out = vec![0.0f32; child_count * OUT_FIELDS + 3];
 
     let mut current_y: f32 = 0.0;
     let mut current_x: f32 = 0.0;
@@ -140,6 +142,8 @@ pub fn block_layout(
 
     // LineBox accumulator for inline-block elements
     let mut line_items: Vec<LineItem> = Vec::new();
+    // 마지막으로 flush 된 line box 의 baseline (content-box y). line box 없으면 AUTO.
+    let mut last_line_baseline: f32 = AUTO;
 
     for i in 0..child_count {
         let off = i * FIELD_COUNT;
@@ -181,9 +185,14 @@ pub fn block_layout(
             let child_h = child_content_h + pad_border_v;
             let total_width = child_w + m_left + m_right;
 
+            // ADR-923 Phase 2: baseline <0 = 원천 없음 → border-box bottom(child_h) 폴백
+            // (CSS 2.1 §10.8.1 — in-flow line box 없는 inline-block 의 baseline).
+            let baseline = if baseline >= 0.0 { baseline } else { child_h };
+
             // Line wrap check
             if current_x + total_width > available_width && current_x > 0.0 {
-                flush_line_box(&line_items, current_y, &mut out);
+                let lb = flush_line_box(&line_items, current_y, &mut out);
+                last_line_baseline = current_y + lb;
                 current_y += calculate_line_box_height(&line_items);
                 current_x = 0.0;
                 line_items.clear();
@@ -211,8 +220,10 @@ pub fn block_layout(
         } else if display == DISPLAY_EMPTY_BLOCK {
             // Empty block: self-collapse top/bottom margins
             if !line_items.is_empty() {
-                current_y += calculate_line_box_height(&line_items);
-                flush_line_box(&line_items, current_y - calculate_line_box_height(&line_items), &mut out);
+                let lbh = calculate_line_box_height(&line_items);
+                let lb = flush_line_box(&line_items, current_y, &mut out);
+                last_line_baseline = current_y + lb;
+                current_y += lbh;
                 current_x = 0.0;
                 line_items.clear();
             }
@@ -238,7 +249,8 @@ pub fn block_layout(
             // Block: vertical stacking + margin collapse
             if !line_items.is_empty() {
                 let lbh = calculate_line_box_height(&line_items);
-                flush_line_box(&line_items, current_y, &mut out);
+                let lb = flush_line_box(&line_items, current_y, &mut out);
+                last_line_baseline = current_y + lb;
                 current_y += lbh;
                 current_x = 0.0;
                 line_items.clear();
@@ -305,7 +317,8 @@ pub fn block_layout(
 
     // Flush remaining line box
     if !line_items.is_empty() {
-        flush_line_box(&line_items, current_y, &mut out);
+        let lb = flush_line_box(&line_items, current_y, &mut out);
+        last_line_baseline = current_y + lb;
     }
 
     // Trailing metadata
@@ -319,6 +332,7 @@ pub fn block_layout(
     let meta_off = child_count * OUT_FIELDS;
     out[meta_off] = first_child_margin_top;
     out[meta_off + 1] = last_child_margin_bottom;
+    out[meta_off + 2] = last_line_baseline; // ADR-923 P2 — line box 없으면 AUTO
 
     out.into_boxed_slice()
 }
@@ -359,10 +373,13 @@ fn calculate_line_box_height(items: &[LineItem]) -> f32 {
     max_total_height.max(baseline_height)
 }
 
-/// Flush line box items: compute vertical positions and write x/y to output
-fn flush_line_box(items: &[LineItem], start_y: f32, out: &mut [f32]) {
+/// Flush line box items: compute vertical positions and write x/y to output.
+///
+/// 반환값: 이 line box 의 baseline (line top 기준 offset — 호출자가 start_y 를 더해
+/// content-box y 로 만든다. ADR-923 Phase 2 — trailing meta `lastLineBaseline` 원천).
+fn flush_line_box(items: &[LineItem], start_y: f32, out: &mut [f32]) -> f32 {
     if items.is_empty() {
-        return;
+        return 0.0;
     }
 
     let line_box_height = calculate_line_box_height(items);
@@ -395,6 +412,8 @@ fn flush_line_box(items: &[LineItem], start_y: f32, out: &mut [f32]) {
         out[item.out_index + 1] = final_y;
         // width and height already written
     }
+
+    line_baseline
 }
 
 /// Exposed margin collapse for debugging/testing from JS
@@ -406,6 +425,36 @@ pub fn wasm_collapse_margins(a: f32, b: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── ADR-923 Phase 2: baseline meta + 센티널 폴백 ──
+
+    /// trailing meta[2] = 마지막 line box baseline (make_inline_block 은 0.8h).
+    #[test]
+    fn line_box_meta_reports_last_line_baseline() {
+        let mut data = Vec::new();
+        data.extend(make_inline_block(50.0, 30.0, VALIGN_BASELINE));
+        data.extend(make_inline_block(60.0, 40.0, VALIGN_BASELINE));
+        let out = block_layout(&data, 300.0, 600.0, false, false, 0.0);
+        let meta_off = 2 * OUT_FIELDS;
+        assert_eq!(out.len(), meta_off + 3, "trailing meta 3 (ADR-923 P2)");
+        assert_eq!(out[meta_off + 2], 32.0, "line baseline = max(24, 32) — 0.8×40");
+
+        let block_only = make_block(100.0, 50.0, 0.0, 0.0);
+        let out2 = block_layout(&block_only, 300.0, 600.0, false, false, 0.0);
+        assert_eq!(out2[OUT_FIELDS + 2], AUTO, "line box 없음 → AUTO");
+    }
+
+    /// baseline 센티널(<0) = 원천 없음 → border-box bottom(child_h) 폴백 (§10.8.1).
+    #[test]
+    fn inline_block_baseline_sentinel_falls_back_to_bottom() {
+        let mut first = make_inline_block(50.0, 30.0, VALIGN_BASELINE);
+        first[17] = -1.0; // 원천 없음 → 폴백 30 (bottom)
+        let mut data = first;
+        data.extend(make_inline_block(60.0, 40.0, VALIGN_BASELINE)); // baseline 32
+        let out = block_layout(&data, 300.0, 600.0, false, false, 0.0);
+        // line_baseline = max(30, 32) = 32 → 첫 item y = 32 - 30 = 2.
+        assert_eq!(out[1], 2.0, "폴백 baseline(=bottom 30) 으로 정렬");
+    }
 
     fn make_block(width: f32, height: f32, m_top: f32, m_bottom: f32) -> Vec<f32> {
         vec![

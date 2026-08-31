@@ -141,22 +141,29 @@ impl LayoutEngine {
         self.tree.compute_layout(root, avail_w, avail_h);
     }
 
-    /// 여러 노드 레이아웃을 flat `[x0,y0,w0,h0, x1,...]` 로 수집.
+    /// 여러 노드 레이아웃을 flat `[x0,y0,w0,h0,b0, x1,...]` 로 수집
+    /// (ADR-923 Phase 2 — handle 당 **5값**, b = baseline: 원천 없으면 height 폴백).
     ///
     /// JS(`getLayoutsBatch`)는 이 flat Float32Array 를 handle 순서로 슬라이스해
-    /// `Map<handle, LayoutResult>` 로 재구성한다(persistentTaffyTree.ts).
+    /// `Map<handle, LayoutResult>` 로 재구성한다(compositionEngine.ts flatToLayoutMap).
     #[wasm_bindgen(js_name = getLayoutsBatch)]
     pub fn get_layouts_batch(&self, handles: &[usize]) -> Box<[f32]> {
         self.tree.get_layouts_batch(handles).into_boxed_slice()
     }
 
-    /// 단일 노드 레이아웃 JSON(`{"x":..,"y":..,"width":..,"height":..}`).
+    /// 단일 노드 레이아웃 JSON(`{"x":..,"y":..,"width":..,"height":..,"baseline":..}`).
+    ///
+    /// baseline 은 경계 계약값 (ADR-923 Phase 2 — 원천 없으면 height 폴백).
     #[wasm_bindgen(js_name = getLayout)]
     pub fn get_layout(&self, handle: usize) -> String {
         let l = self.tree.get_layout(handle);
         format!(
-            r#"{{"x":{},"y":{},"width":{},"height":{}}}"#,
-            l.x, l.y, l.width, l.height
+            r#"{{"x":{},"y":{},"width":{},"height":{},"baseline":{}}}"#,
+            l.x,
+            l.y,
+            l.width,
+            l.height,
+            l.resolved_baseline()
         )
     }
 
