@@ -55,14 +55,6 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 정렬된 표·정렬 의존 텍스트는 Edit 부분 수정 대신 표 블록 전체 (필요 시 파일 전체) 를 Write 로 교체한다 — old_string 정렬 mismatch 반복 실패 방지. 수동 정렬 작업 금지: Prettier PostToolUse hook 이 되돌린다. 내용만 쓰고 정렬은 포맷터에 위임.
 
-## Slash Commands · Agents
-
-skill / command / agent 목록과 description 은 세션에 자동 로드된다 (SessionStart roster 포함). 자세한 skill 목록과 사용 빈도: [skills/INDEX.md](.claude/skills/INDEX.md)
-
-## CRITICAL 규칙 (11개) → `.claude/rules/` 자동 로드
-
-위반 시 즉시 수정. 파일 편집 시 glob-scoped rule 이 자동 주입된다 (상시 로드 2개: `ssot-hierarchy.md`, `git-workflow.md`). 전체 목록 및 상세: [SKILL.md](.claude/skills/composition-patterns/SKILL.md)
-
 ## 상태 변경 파이프라인
 
 `Memory → Index → History (즉시) → DB → Preview (백그라운드)` — 순서 필수 보존. 요소 순서는 canonical `children[]` 배열이 SSOT (ADR-118), `order_num` 은 export mirror 파생. 상세: `.claude/rules/state-management.md`
