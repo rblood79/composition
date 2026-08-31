@@ -143,6 +143,14 @@ ADR-198 의 발산은 이 그림자 안에서 났다: `needsBlockChildFullWidth`
 | G5   | Phase 5 종료                | registry 밖 display class 변경 0 (게이트 테스트) · S4 migration 멱등 · S7 노출 차단 + import strip · S8 4항목 각 1 차등 케이스로 현재 격차 수치 고정                                               | 미선언 치환 발견 시 등록 없이는 머지 불가                                                                                                     |
 | G6   | Implemented 승격            | `### Live Exercise` — 실제 빌더에서 block 컨테이너 + Button 2개 + 폭 명시 div 를 만들어 Canvas·Preview·패널 값 일치 확인 (Chrome MCP 또는 사용자 confirm)                                          | 승격 보류                                                                                                                                     |
 
+**측정 조건 (measurement-validity.md §1 — Gate 수치의 전제)**:
+
+- Q1 출처: G1 차등 케이스는 손으로 쓴 CSS 케이스(합성 복제물 아님) — 분포가 아니라 **계약이 갈리는 입력 차원**(명시 폭 block 형제 / wrap / vertical-align 4종 / line-height / margin / empty block / 부모 padding)을 직접 쓴다. G3 의 5k fixture 는 규모 전용.
+- Q2 불리 케이스: G1 에 ADR-198 catalog 발산 재현(명시 폭 block 형제) 을 필수 포함 — 현 시뮬레이션이 틀리는 입력. G3 는 block 컨테이너 비율이 높은 문서를 별도 arm 으로 잰다(flex 위주 5k 만 재면 block 경로 비용이 안 보인다).
+- Q3 대조군: G1 은 같은 케이스를 (전) 현 어댑터 경로 / (후) 엔진 직결 경로로 두 번 재서 Chrome 대비 오차를 나란히 기록. G3 는 Phase 0 baseline 이 대조군.
+- Q4 소비 경로: registry(G5) 는 선언만으로는 무효 — 게이트 테스트가 실제 어댑터 출력을 registry 와 대조해야 가동 경로다. Phase 0 의 "동작 변경 0" 상태에서는 registry 가 아직 아무것도 막지 않음을 명시.
+- Q5 oracle 독립성: G1 의 기준값은 실 Chrome `getBoundingClientRect`(ADR-156 하니스) — cargo golden 이 아니다. golden 은 결과를 기록할 뿐 통과 판정에 쓰지 않는다. 측정 조건 고정: `@vitest/browser` Chromium, viewport 1280×720, DPR 1, visible 탭 (ADR-198 R14 승계).
+
 ### Live Exercise
 
 (Implemented 승격 시 기재 — 시나리오 · 결과 · 날짜 · Chrome MCP/사용자 confirm 구분)
