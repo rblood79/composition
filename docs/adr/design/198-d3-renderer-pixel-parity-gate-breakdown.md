@@ -993,6 +993,62 @@ were clean (12 files, 84 passed + 1 expected fail). Not attributed. Phase 5 sets
 wall-time budgets and should treat this as the first evidence that the settle
 timeouts are sensitive to machine load.
 
+#### Phase 4b result — 2026-08-31 (budgets were not the problem)
+
+Files: `compare/crossLeg.browser.test.ts`, `scripts/visual-parity-gate.mjs`
+(smoke matrix).
+
+Phase 4a proved what the comparator catches by running one leg against itself.
+This phase finally points it where it was built to point: the production Skia
+leg against the production Preview leg, one fixture, one checksum.
+
+**The measurement answered a different question than the one asked.** Phase 4b
+was scoped as "calibrate cross-leg budgets"; the answer is that the budgets are
+not what is standing in the way. Three divergences remain, and none of them is a
+tolerance problem:
+
+| case | residual | character |
+| --- | --- | --- |
+| `basic-geometry-paint` | fill regions at `maxByte 145` (`body-fill` ratio 0.0221, `outer-fill` 0.0557) | **not only an edge band** — outside a 3px band around every node boundary the frame still carries `maxByte 145` at `changed 0.0016`. Corner arcs are the leading suspect; unproven |
+| `catalog-state-paint` | L1 geometry: `state-button-enabled` differs by **x 140px, y 55px** (and width 2.66px) | layout, not raster. The pixel layers do not run at all — pixel diffs after a geometry divergence are not interpretable |
+| `text-raster-resources` | `heading-text` 0.0769/239, `paragraph-text` 0.0963/204, `image-raster` **ratio 0.914** mean 137 | text sits near the expected hinting range; the image region differs across 91% of its pixels, which reads as one leg not drawing it |
+
+Compare with the pre-repair numbers that forced the 4a/4b split
+(`maxByte 234-239`, `changedFraction` 0.076-0.304 whole-frame): repairing the
+Skia frame fill and the hex8 channel shift removed the bulk of the gap. What is
+left is smaller and, more importantly, **structured** — each residual now points
+at a specific mechanism instead of at "everything is white".
+
+**Budgets were left exactly as declared.** Widening `non-text` from `maxByte 2`
+to 145 would have turned every remaining finding above into a pass, which is the
+vacuous-gate failure R5 names and the task-state stop criterion forbids. Instead
+the current state is pinned: `KNOWN_OVER_BUDGET` lists which regions exceed
+budget per case, and `KNOWN_LAYERS` pins the per-layer verdict. Fixing any
+divergence shrinks the list, breaks the assertion, and forces the record to be
+updated — the same ratchet discipline Phases 0/2/3 used.
+
+**Region-level `inset` cannot separate edge from fill, so a frame-level split
+was added.** Insetting a region by N px does not remove a child element's
+boundary, because the child sits inside the parent's box — measured:
+`outer-fill` held `maxByte 145` even at `inset3` while its own `inner-fill` was
+`maxByte 0` at every inset. `edgeSplit()` therefore masks a band around **every**
+node rect across the whole frame and reports edge-band and fill-interior
+separately. That is what showed the `basic-geometry-paint` residual is not
+purely an edge effect.
+
+**Diagnostics are written to files, not the console.** Browser-mode Vitest hides
+the logs of passing tests, and every assertion here passes by construction (they
+are ratchets). `.artifacts/<case>.crossleg.json` carries layers, failures,
+per-region metrics with the inset series, the edge/fill split at bands 1-3, and
+both legs' geometry.
+
+**Gate cost after adding the case**: smoke 84 tests / 9.2s (budget 90s), full
+100 / 9.9s (budget 300s).
+
+**G3 remains unmet on its positive half**, and that is now recorded with
+numbers rather than deferred. Root-causing the three residuals is production
+work under §7 and needs its own authorization.
+
 ### Phase 5 — CI and developer workflow integration
 
 **Purpose**: make the gate automatic rather than advisory.
