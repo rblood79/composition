@@ -9,6 +9,13 @@
  *
  * (a) 와 (b) 는 ADR 이 주장할 수 있는 범위가 정반대다. 그래서 도형을 3종으로 나눠
  * 각각의 delta 를 따로 잰다 — measurement-validity §1 Q2 (유리한 경우만 재지 말 것).
+ *
+ * ## 이 파일은 parity leg 이 아니다 — **환경 probe** 다
+ *
+ * 씬이 아니라 도형을 직접 그린다. 래스터라이저 자체의 차이를 재는 것이 목적이라
+ * 렌더 파이프라인을 태우면 변수만 늘어난다. 이 파일의 산출물은 **어떤 parity
+ * 판정에도 입력되지 않는다** — 그래서 `productionPath.browser.test.ts` 의
+ * 직접-draw 금지 규칙에 명시 예외로 등록돼 있다 (침묵 예외 금지).
  */
 
 import { describe, it, expect, beforeAll } from "vitest";

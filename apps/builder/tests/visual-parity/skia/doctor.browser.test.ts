@@ -13,6 +13,14 @@
  *    L3 예산(≤0.001) 밖이면 게이트의 주장 범위를 "software-rasterized Skia vs
  *    Preview" 로 좁혀야 한다. 이 테스트가 그 실측이다.
  *
+ ## 이 파일은 parity leg 이 아니다 — **환경 probe** 다
+ *
+ * 여기서는 씬이 아니라 도형을 직접 그린다. "이 host 에서 CanvasKit 이 살아 있는가",
+ * "SW 와 GL 래스터가 얼마나 다른가" 를 재려면 렌더 파이프라인이 아니라 알려진
+ * 도형이 필요하기 때문이다. 이 파일의 산출물은 **어떤 parity 판정에도 입력되지
+ * 않는다** — 그래서 `productionPath.browser.test.ts` 의 직접-draw 금지 규칙에서
+ * 명시 예외로 등록돼 있다 (침묵 예외 금지).
+ *
  * host 결정: pinned @vitest/browser Chromium + offscreen `MakeSurface`
  * (ADR-198 Soft Constraint 의 fallback). `initCanvasKit` 이 `window` 와
  * Vite `BASE_URL` 에 의존하므로 순수 Node host 는 프로덕션 초기화를 복제해야

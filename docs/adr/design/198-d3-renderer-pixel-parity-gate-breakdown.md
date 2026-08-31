@@ -685,6 +685,58 @@ Tasks:
 **Gate G1 (entry half) + G2 Skia**: production-path proof, 10 identical
 normalized hashes, no external requests, and balanced resources.
 
+#### Phase 2 result — 2026-08-31 (G1 entry half + G2 Skia PASS, one liveness residual)
+
+Suite: **8 files / 42 cases, 3.79s** (41 pass + 1 expected fail — the Phase 0
+Skia paint ratchet).
+
+**G1 entry half — proved statically, not by runtime numbers**
+(`tests/visual-parity/productionPath.browser.test.ts`). A bespoke renderer would
+produce perfectly deterministic, pretty PNGs, so R3 cannot be closed by
+measurement; the guard reads the sources with a raw glob and asserts:
+
+- `harness/skiaRunner.ts` references all eight production entries
+  (`buildCanonicalSceneModel`, `buildSceneSnapshot`,
+  `buildPageLayoutPublisherInput`, `useLayoutPublisher`, `StoreRenderBridge`,
+  `createSkiaRendererInput`, `buildSkiaFrameContent`, `exportToImage`);
+- it reaches them only through the `@/` alias — a relative `../../src` import
+  would resolve to a second module instance;
+- **zero direct drawing calls** (`new ck.Paint`, `canvas.draw*`, `ck.LTRBRect`,
+  `ck.RRectXY`, `ck.Shader.Make*`, `ck.MaskFilter.Make*`) anywhere in the parity
+  legs or cases;
+- no per-leg document field (`skiaDocument` / `previewDocument` …) exists — HC2
+  enforced in source, not just in prose;
+- the glob is non-empty, so the whole check cannot pass vacuously.
+
+The two environment probes (`skia/doctor`, `skia/rasterDelta`) are an explicit
+allowlist, and the guard **requires each of them to state in its own source why
+it is exempt** — a silent exemption fails the test. Both were caught by this
+rule on its first run and now carry that rationale.
+
+**G2 Skia**
+
+| Check                     | Result                                                                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10-run normalized hash    | 1 distinct hash per case, worst inter-run `maxByte` **0** — `basic-geometry-paint` `7ff2c4c5`, `catalog-state-paint` `7c565dc7`, `text-raster-resources` `b9424408` |
+| external requests         | **0** of 0 observed (fetch + XHR intercepted across all three cases)                                                                                                |
+| CanvasKit surface balance | created 20 / deleted 20 / **leaked 0** over 10 repeated runs                                                                                                        |
+
+**Liveness residual — and it narrows the Phase 0 blank.** G2 also requires
+liveness, and per-case variance is now pinned:
+
+| Case                    | Skia variance |
+| ----------------------- | ------------: |
+| `basic-geometry-paint`  |       **0.0** |
+| `catalog-state-paint`   |         763.0 |
+| `text-raster-resources` |          35.0 |
+
+Two of three cases **do** paint. The same harness and the same production chain
+produce a blank only for the case built entirely from `frame` containers, which
+points the Phase 0 "Skia blank" at the **container-type axis** rather than at a
+global failure. This is circumstantial, not proof — the cases also differ in
+which components and colour notations they use — so no cause is claimed and the
+values are pinned as ratchets instead. Attribution stays §7 work.
+
 ### Phase 3 — Production Preview DOM/CSS leg
 
 **Purpose**: capture the actual isolated Preview consumer from the same fixture.
