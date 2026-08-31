@@ -47,20 +47,24 @@ import { byteDiff } from "../harness/pixels";
 import type { LegResult, Rect, VisualParityCase } from "../harness/types";
 
 /**
- * **G3 positive 는 아직 미충족이다.** Phase 4b 실측(2026-08-31)이 남긴 발산 3건을
- * 여기에 못박는다 — 예산을 넓혀 초록을 만들지 않기 위한 장치다 (R5).
+ * **케이스별 현재 판정을 못박는다.** 예산을 넓혀 초록을 만들지 않기 위한 장치이며
+ * (R5), 발산이 고쳐지면 목록이 줄어 단언이 깨지고 기록 갱신을 강제한다.
  *
- * | 케이스 | 남은 발산 | 성격 |
- * | --- | --- | --- |
- * | `basic-geometry-paint` | 채움 region 이 maxByte 145 | 경계 밴드만이 아니다. 요소 경계에서 3px 바깥으로 나가도 maxByte 145 가 남는다 (changed 0.0016) — 모서리 arc 가 유력하나 미규명 |
- * | `catalog-state-paint` | L1 geometry — 버튼 위치가 x 140px / y 55px 어긋난다 | 래스터가 아니라 **레이아웃**이 갈렸다. 픽셀 층은 그래서 실행되지 않는다 (해석 불가) |
- * | `text-raster-resources` | text 2종 예산 초과 + `image-raster` diffRatio 0.914 | 텍스트는 hinting 으로 예상 범위지만 이미지는 91% 가 다르다 — 한쪽이 안 그리는 쪽에 가깝다 |
+ * | 케이스 | 상태 (2026-08-31) |
+ * | --- | --- |
+ * | `basic-geometry-paint` | **통과** — 선언 예산 그대로 L3 pass. 잔여는 모서리 arc 의 AA(`maxByte 96`)뿐이고 비율이 0.00068 로 예산(0.001) 안이라 HC6 의 AND 조항이 막지 않는다 |
+ * | `catalog-state-paint` | L1 geometry 발산 — 버튼이 x 140px / y 55px 어긋난다. 픽셀 층은 해석 불가라 실행되지 않는다 |
+ * | `text-raster-resources` | text 2종 + `image-raster` (ratio 0.914) |
  *
- * 셋 다 **원인 미규명**이며 수리는 프로덕션 scope 라 별도 승인 대상이다
- * (breakdown §7). 여기서는 현재 값을 고정만 한다.
+ * basic 이 통과로 바뀐 경위: 착수 시점엔 세 region 이 `maxByte 145` 로 막혀 있었고
+ * 그건 예산 문제가 아니라 **Skia 가 프레임 테두리를 아예 안 그리던 결함**이었다
+ * (같은 자리에서 배경도 안 그리고 있었다 — `FrameSpec.render.shapes()`). 고친 뒤
+ * 예산은 한 줄도 건드리지 않은 채 통과했다.
+ *
+ * 남은 둘은 원인 미규명이거나(text/raster) 수리 방식이 결정 대기다(catalog 레이아웃).
  */
 const KNOWN_OVER_BUDGET: Record<string, string[]> = {
-  "basic-geometry-paint": ["body-fill", "outer-fill", "outer-border-radius"],
+  "basic-geometry-paint": [],
   // L1 에서 멈춰 픽셀 층이 아예 안 돈다 — region 목록이 비는 것이 정상이다.
   "catalog-state-paint": [],
   "text-raster-resources": ["heading-text", "paragraph-text", "image-raster"],
@@ -69,7 +73,7 @@ const KNOWN_OVER_BUDGET: Record<string, string[]> = {
 /** 층별 현재 판정. 어느 층이 좋아지거나 나빠져도 드러난다. */
 const KNOWN_LAYERS: Record<string, string> = {
   "basic-geometry-paint":
-    "env:pass live:pass L0:pass L1:pass L2:skip L3:fail L4:pass",
+    "env:pass live:pass L0:pass L1:pass L2:skip L3:pass L4:pass",
   "catalog-state-paint":
     "env:pass live:pass L0:pass L1:fail L2:skip L3:skip L4:skip",
   "text-raster-resources":
@@ -220,6 +224,52 @@ function edgeSplit(
   };
 }
 
+/**
+ * 큰 델타가 **어디에** 있는지 거친 지도로 낸다.
+ *
+ * region 요약(maxByte/changed)은 "얼마나 다른가" 만 말하고 "어디가" 를 말하지
+ * 않는다. 모서리 arc 인지, 테두리 선인지, 면 전체인지에 따라 원인이 완전히
+ * 다르므로 좌표 분포를 같이 남긴다.
+ */
+function deltaMap(
+  a: Uint8Array,
+  b: Uint8Array,
+  frame: { width: number; height: number },
+  cols = 40,
+  rows = 20,
+): { grid: string[]; hotspots: { x: number; y: number; d: number }[] } {
+  const cw = frame.width / cols;
+  const ch = frame.height / rows;
+  const cell = new Uint8Array(cols * rows);
+  const hotspots: { x: number; y: number; d: number }[] = [];
+
+  for (let y = 0; y < frame.height; y++) {
+    for (let x = 0; x < frame.width; x++) {
+      const i = (y * frame.width + x) * 4;
+      let d = 0;
+      for (let c = 0; c < 4; c++) {
+        const delta = Math.abs(a[i + c] - b[i + c]);
+        if (delta > d) d = delta;
+      }
+      if (d === 0) continue;
+      const ci = Math.min(rows - 1, Math.floor(y / ch)) * cols +
+        Math.min(cols - 1, Math.floor(x / cw));
+      if (d > cell[ci]) cell[ci] = d;
+      if (d > 64 && hotspots.length < 60) hotspots.push({ x, y, d });
+    }
+  }
+
+  const glyph = (d: number) =>
+    d === 0 ? "." : d <= 2 ? "-" : d <= 16 ? "+" : d <= 64 ? "o" : "#";
+  const grid: string[] = [];
+  for (let r = 0; r < rows; r++) {
+    let line = "";
+    for (let c = 0; c < cols; c++) line += glyph(cell[r * cols + c]);
+    grid.push(line);
+  }
+  return { grid, hotspots };
+}
+
 /** 한 줄에 담기는 region 요약 — 통과했을 때도 남아야 하는 값이다. */
 function formatRegions(r: ParityReport): string {
   return r.regions
@@ -332,6 +382,30 @@ describe("ADR-198 Phase 4b — Skia ↔ Preview cross-leg (G3 positive)", () => 
                   ),
                 ),
                 geometry: { skia: skia.geometry, preview: preview.geometry },
+                deltaMap: deltaMap(
+                  skia.pixels!,
+                  preview.pixels!,
+                  c.viewport,
+                ),
+                // 경계를 가로지르는 세로 슬라이스 — 어느 leg 이 무슨 색을 놓는지
+                // 픽셀 단위로 본다 (요약 지표로는 "누가 무엇을" 이 안 보인다).
+                edgeSlice: (() => {
+                  const first = Object.values(skia.geometry)[1];
+                  if (!first) return null;
+                  const x = Math.round(first.x + first.width / 2);
+                  const rows: Record<string, string> = {};
+                  for (
+                    let y = Math.max(0, Math.round(first.y) - 2);
+                    y < Math.round(first.y) + 8;
+                    y++
+                  ) {
+                    const i = (y * c.viewport.width + x) * 4;
+                    const px = (arr: Uint8Array) =>
+                      Array.from(arr.subarray(i, i + 4)).join(",");
+                    rows[`y=${y}`] = `skia ${px(skia.pixels!)} | preview ${px(preview.pixels!)}`;
+                  }
+                  return { x, rows };
+                })(),
               },
               null,
               2,
@@ -362,7 +436,7 @@ describe("ADR-198 Phase 4b — Skia ↔ Preview cross-leg (G3 positive)", () => 
         );
       });
 
-      it("[미해결 기록] 예산을 넘는 region 이 실측 목록과 정확히 일치한다", () => {
+      it("예산을 넘는 region 이 실측 목록과 정확히 일치한다", () => {
         console.log(
           `[ADR-198 P4b] ${c.id} regions:\n    ${formatRegions(report)}`,
         );
@@ -377,7 +451,7 @@ describe("ADR-198 Phase 4b — Skia ↔ Preview cross-leg (G3 positive)", () => 
         );
       });
 
-      it("[미해결 기록] 층별 판정이 실측과 일치한다", () => {
+      it("층별 판정이 실측과 일치한다", () => {
         const actual = report.layers.map((l) => `${l.layer}:${l.status}`).join(" ");
         console.log(`[ADR-198 P4b] ${c.id} layers=${actual}`);
 
