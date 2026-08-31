@@ -239,7 +239,12 @@ CR_REFS=$(grep -oE '\\`/?[a-z][a-z0-9-]+\\`' "$CR" | tr -d '`\\/' | sort -u || t
 XR_REFS=$(grep 'add_hint' "$XR" | grep -oE '[a-z][a-z0-9]*(-[a-z0-9]+)+' | sort -u || true)
 CR_SKILLS=$(comm -12 <(norm "$CR_REFS") <(norm "$SKILLS"))
 XR_SKILLS=$(comm -12 <(norm "$XR_REFS") <(norm "$SKILLS"))
-report_set_eq "router skill 커버리지 (claude ↔ codex)" "claude router" "$CR_SKILLS" "codex router" "$XR_SKILLS"
+# 2026-08-31: 대칭(집합 일치) → 포함(claude ⊆ codex). Claude 라우터는 CLAUDE.md·path rule·skill description 이 이미 싣는 것을 빼고
+# 시점 신호 3종만 남겼다 (실측 42% 프롬프트 897B → 오탐 다수). Codex 는 그 상시 context 가 없어 라우터가 1차 표면 — 축소 대상 아님.
+claude_only=$(set_minus "$CR_SKILLS" "$XR_SKILLS")
+if [ -n "$claude_only" ]; then fail "router skill 커버리지 — claude 만 라우팅 (codex 누락): $(printf '%s' "$claude_only" | tr '\n' ' ')"; else ok "router skill 커버리지 — claude($(norm "$CR_SKILLS" | wc -l | tr -d ' ')) ⊆ codex($(norm "$XR_SKILLS" | wc -l | tr -d ' '))"; fi
+codex_only=$(set_minus "$XR_SKILLS" "$CR_SKILLS")
+[ -n "$codex_only" ] && info "codex 만 라우팅 (의도됨 — Claude 는 상시 context 가 대신): $(printf '%s' "$codex_only" | tr '\n' ' ')"
 CR_AGENTS=$(comm -12 <(norm "$CR_REFS") <(norm "$KNOWN_AGENTS"))
 unreg=$(set_minus "$AGENTS" "$CR_AGENTS")
 [ -n "$unreg" ] && info "claude router 가 힌트하지 않는 agent: $(printf '%s' "$unreg" | tr '\n' ' ')"

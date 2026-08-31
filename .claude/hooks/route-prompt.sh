@@ -1,161 +1,60 @@
 #!/usr/bin/env bash
-# UserPromptSubmit hook — 프롬프트 분류 후 관련 skill/agent 힌트를 system-reminder로 주입
-# Claude Code 레퍼런스: https://docs.claude.com/en/docs/claude-code/hooks
+# UserPromptSubmit hook — 프롬프트에서 의도 3종만 감지해 한 줄 힌트를 additionalContext 로 주입
 #
-# stdin으로 JSON을 받고, stdout으로 출력한 텍스트가 additionalContext로 주입된다.
+# 2026-08-31 축소 (실측 495 프롬프트/50 세션): 구 14 분기가 42% 프롬프트에 평균 897B 를 실었고
+# 대부분이 CLAUDE.md·path rule·skill description 과 중복이거나 오탐이었다 —
+#   "PR" 이 preview/props 의 pr 에 매칭(완료 143회), "test" 가 latest 에, "이동"·"반대"·"상태" 가 일상어에,
+#   skill 본문이 user 메시지로 주입될 때 8~9 분기 동시 발화, "6. … 진행해" 가 ADR phase 실행으로.
+# 남긴 것 = 상시 context 가 못 주는 시점 신호 3개 (ADR 사용자 전용 진입점 / 렌더링 cross-check / 정정→메모리).
+# 분기 추가 전 확인: CLAUDE.md 나 rules/ 가 이미 말하는가? 정규식이 영어 부분 문자열에 걸리는가?
 
 set -euo pipefail
 
-# JSON payload 읽기 (claude code가 stdin으로 전달)
 payload=$(cat)
-
-# prompt 추출 (jq 없을 수도 있으니 fallback)
 if command -v jq >/dev/null 2>&1; then
-  prompt=$(echo "$payload" | jq -r '.prompt // empty' 2>/dev/null || echo "")
+  prompt=$(printf '%s' "$payload" | jq -r '.prompt // empty' 2>/dev/null || echo "")
 else
-  prompt=$(echo "$payload" | sed -n 's/.*"prompt":"\([^"]*\)".*/\1/p')
+  prompt=$(printf '%s' "$payload" | sed -n 's/.*"prompt":"\([^"]*\)".*/\1/p')
 fi
-
 [ -z "$prompt" ] && exit 0
+
+# skill 본문 / 붙여넣은 문서는 사용자 의도가 아니다 — 분석 제외
+case "$prompt" in
+  "Base directory for this skill"*|*"<command-name>"*) exit 0 ;;
+esac
+[ "${#prompt}" -gt 4000 ] && exit 0
 
 hints=""
 
-# 렌더링 / Canvas / Skia / CSS 정합성
-if echo "$prompt" | grep -qiE "렌더링|Skia|Canvas|WebGL|정합성|cross[- ]?check|CSS.*(WebGL|Canvas|Skia)"; then
+# ADR — 사용자 전용 진입점 (execute-adr / create-adr 는 모델 자동 호출 비활성). 번호 또는 명시 키워드 요구 — "N. … 진행해" 오탐 차단
+if printf '%s' "$prompt" | grep -qiE "ADR-?[0-9]{2,3}.{0,20}(실행|진행|Phase)|execute-adr"; then
   hints="${hints}
-- 렌더링 작업 감지 → \`/cross-check\` skill 필수 실행
-- 디버깅 필요 시 \`debugger\` agent 위임 (Read/Grep/Bash 허용)
-- 2개 렌더링 타겟 × 5개 레이어 모두 검증 (spec/factory/CSS renderer/Skia renderer/editor)"
-fi
-
-# ADR 실행 / phase 진행 (먼저 매칭 — 더 구체적)
-# 키워드: ADR-NNN + 실행/진행/land/Phase 류 결합
-if echo "$prompt" | grep -qiE "ADR[- ]?[0-9]+.{0,30}(실행|진행|land|next)|execute[- ]?adr|Phase[- ]?[0-9α-ωA-Z\-]*.{0,15}(실행|진행|land|next)|다음 ?Phase|미[- ]?land|phase ?(자동|진행|실행|land)|adr ?phase ?(실행|진행)|P[- ]?[0-9α-ωA-Z]+.{0,15}(실행|land|진행)"; then
+- ADR phase 실행 → \`execute-adr\` 는 사용자 전용: \`/execute-adr NNN\` 직접 입력을 안내하고 대기 (자율 phase 실행 금지)"
+elif printf '%s' "$prompt" | grep -qiE "ADR.{0,30}(리뷰|검토|review)"; then
   hints="${hints}
-- ADR phase 실행 감지 → \`execute-adr\` 는 사용자 전용 skill (모델 자동 호출 비활성): 사용자가 \`/execute-adr {NNN}\` 을 직접 입력해야 실행. 자연어 요청만 있으면 그 안내 후 대기 — 자율 phase 실행 금지
-  - Phase 0 사전 조건 전체 통과 필수 (ADR 존재+Status / design breakdown / git clean / main / type-check baseline / dist 신선도 / 전제·관점 자가 점검)
-  - HIGH+ phase 는 mode=auto 라도 무조건 사용자 surface
-  - main 직접 push (rules/git-workflow.md 절대 정책 — PR 금지)
-  - max_phases=3 default (HIGH 비용 누적 차단)"
-# ADR 작성 / 리뷰 (실행 키워드 미매칭 시)
-# 2026-07-11 축소: "ADR" 단독 mention 은 힌트 미주입 — 구현 중 매 턴 review 힌트가
-# 재주입되어 재검토 루프를 유발한 실측 (reviews/912=16 round) 에 따른 정정.
-# 의도 키워드 (리뷰/생성) 결합 시에만 해당 힌트 주입.
-elif echo "$prompt" | grep -qiE "ADR|아키텍처 결정|설계 문서|architecture decision"; then
-  if echo "$prompt" | grep -qiE "리뷰|검토|review"; then
-    hints="${hints}
-- ADR 리뷰 감지 → \`review-adr\` skill"
-  fi
-  if echo "$prompt" | grep -qiE "생성|작성|만들|초안|new ADR|create|draft|propose"; then
-    hints="${hints}
-- ADR 생성 감지 → \`create-adr\` 는 사용자 전용 skill (모델 자동 호출 비활성): 사용자가 \`/new-adr <제목>\` 을 직접 입력해야 생성 (번호 자동 할당 + Risk-First 템플릿). 자연어 요청만 있으면 안내 후 대기"
-  fi
-fi
-
-# 새 컴포넌트 / S2 전환
-if echo "$prompt" | grep -qiE "새 컴포넌트|컴포넌트 (구현|만들|추가|설계)|new component|implement component|S2 전환"; then
+- ADR 리뷰 → \`review-adr\` skill"
+elif printf '%s' "$prompt" | grep -qiE "ADR.{0,20}(생성|작성|만들|초안)|new ADR|/new-adr"; then
   hints="${hints}
-- 새 컴포넌트 워크플로:
-  1. 요구사항/대안 탐색 — 대안 2개 이상 비교 (아키텍처 판단이면 \`architect\` agent)
-  2. \`component-design\` skill + \`composition-patterns\` 규칙 — React Aria/Spectrum 문서 참조
-  3. 다단계면 ADR design breakdown 으로 phase 분할
-  4. \`implementer\` agent → \`reviewer\` agent → \`evaluator\` agent"
+- ADR 생성 → \`create-adr\` 는 사용자 전용: \`/new-adr <제목>\` 직접 입력을 안내하고 대기"
 fi
 
-# 버그 / 에러
-if echo "$prompt" | grep -qiE "버그|bug|에러|error|실패|fail|crash|broken|안 ?(됨|되|나와)|망가"; then
+# 렌더링 — 수정 후 cross-check 는 CLAUDE.md 에도 있지만 착수 시점에 한 줄로 상기
+if printf '%s' "$prompt" | grep -qiE "렌더링|Skia|CanvasKit|cross[- ]?check|정합성 ?(검증|체크)"; then
   hints="${hints}
-- 버그 수정 워크플로:
-  1. root-cause 4단계 (재현 → 가설 → 검증 → 수정) — 수정 전 원인 확정. \`.claude/rules/\` 의 실측 \"Why\" 기록부터 조회
-  2. \`debugger\` agent 위임 고려
-  3. 수정 후 \`/cross-check\` (렌더링 관련인 경우)
-  - ❌ 금지: 증상만 덮는 workaround, eslint-disable"
+- 렌더링 변경 → 수정 후 \`/cross-check\` 필수 (CSS/Skia 2 타겟 × 5 레이어) · 원인 추적은 \`debugger\` agent"
 fi
 
-# 리팩토링
-if echo "$prompt" | grep -qiE "리팩토링|refactor|재구조|이동|migration|마이그레이션"; then
+# 사용자 정정 — 전제·관점 / SSOT / 정책 / 의존 방향 류면 same-session 메모리 기록 (단발 오타 정정은 제외)
+if printf '%s' "$prompt" | grep -qiE "아니야|아니라|그게 아니|틀렸|정정하자면|잘못 ?(이해|읽|봤|알)|misunderstood|that'?s wrong|not what I"; then
   hints="${hints}
-- 리팩토링 워크플로:
-  - 대규모 → \`refactorer\` agent + worktree 격리 (\`.claude/rules/git-workflow.md\` §3)
-  - 2+ 독립 작업 → 독립 agent 병렬 실행 (CLAUDE.md §병렬 워크플로)
-  - 완료 후 \`reviewer\` agent 검증"
+- 정정 감지 → 전제·관점/SSOT/정책/의존 방향 류면 \`memory/feedback-*.md\` 신규·갱신 + MEMORY.md 한 줄 (\"다음에 기억\" 약속만으로 끝내지 않는다); 단발 오타 정정은 skip"
 fi
 
-# 테스트
-if echo "$prompt" | grep -qiE "테스트|test|E2E|storybook|playwright|vitest"; then
-  hints="${hints}
-- 테스트 작업 → \`tester\` agent (Vitest/RTL/Storybook/Playwright)
-- 구현 중 → TDD (RED-GREEN-REFACTOR) — 실패하는 테스트 먼저"
-fi
-
-# 레이아웃 / 엔진 (자체 Rust WASM — ADR-916, JS 어댑터 심볼명만 Taffy* 유지)
-if echo "$prompt" | grep -qiE "레이아웃|layout|Taffy|flex|grid|align|정렬"; then
-  hints="${hints}
-- 레이아웃 작업 → rules/layout-engine.md 자동 로드 (packages/composition-engine/**)
-- layoutVersion **5-심볼 2계층** 체인 — 계층 A·B 는 AND, 한쪽만 등재하면 무반영. 먼저 축 판정: \`props.foo\` 인가 \`props.style.foo\` 인가
-  - A 트리거: props축 \`LAYOUT_AFFECTING_PROP_KEYS\` (layoutInvalidation.ts, allowlist — 추가 필수) / style축 \`NON_LAYOUT_PROPS_UPDATE\` (elementUpdate.ts, blacklist — layout 영향 키를 **넣지 말 것**) / 상속 \`INHERITED_LAYOUT_PROPS_UPDATE\`
-  - B 캐시 시그니처 (layoutCache.ts): style축 \`LAYOUT_STYLE_KEYS\` / props축 \`LAYOUT_PROP_KEYS\` (**style 축 키 금지** — props[key] 만 읽으므로 style 키를 넣어도 항상 undefined)
-  - 증상 구분: A 누락 = 재계산 자체를 안 함 / B 누락 = 재계산은 돌지만 시그니처 동일 → 캐시 히트로 이전 결과 재사용. **새로고침 후에만 반영되면 B 를 의심**
-  - 심볼명 주의: \`LAYOUT_AFFECTING_PROPS\` (뒤에 _KEYS 없음) 는 코드에 0건 — 과거 심볼"
-fi
-
-# 상태관리 / Zustand
-if echo "$prompt" | grep -qiE "상태|store|zustand|slice|elementsMap|childrenMap"; then
-  hints="${hints}
-- 상태관리 작업 → rules/state-management.md 자동 로드
-- 파이프라인 순서 필수: Memory → Index → History → DB → Preview (요소 순서는 canonical children[] SSOT — ADR-118)
-- ADR-137 Selection Consumer Contract: page-bound mutation 은 commit 시점 \`readImmediateSelectionSnapshot()\` + \`apply*FromSelection(snapshot, ...)\` 또는 명시 context 의 \`apply*Explicit({ pageId, contextReason, ... })\` 로 분류"
-fi
-
-# Page-bound selection/frame race (ADR-137)
-if echo "$prompt" | grep -qiE "Page.*Frame|Frame.*Page|page-bound|selectedElement|deferred.*selection|선택.*Frame|프로퍼티.*Frame|다른 Page|currentPageId"; then
-  hints="${hints}
-- Page-bound selection/frame 경로 감지 → ADR-137 Selection Consumer Contract 확인
-  - deferred inspector data 는 display-only
-  - selection write 는 commit 시점 \`readImmediateSelectionSnapshot()\`
-  - projection/editing context 만 explicit \`pageId\` + \`contextReason\` 허용
-  - stale mismatch 상태에서는 page-bound controls hide/disable"
-fi
-
-# 병렬 검증
-if echo "$prompt" | grep -qiE "전체 검증|일괄|패밀리|컴포넌트 전체|parallel|sweep"; then
-  hints="${hints}
-- 패밀리 단위 일괄 → \`parallel-verify\` skill
-- 반복 검증 루틴 → \`/loop\` 활용"
-fi
-
-# 사용자 정정 / 전제·관점 재지정 — auto-memory 기록 권고
-if echo "$prompt" | grep -qiE "아니야|아니라|그게 아니|잘못|틀렸|틀렸어|정정|다시 봐|다시 보니|본질은|그런 게 아니|반대|거꾸로|^아니|correct(ion)?|actually|wrong|misunderstood|reverse"; then
-  hints="${hints}
-- 사용자 정정 감지 → 정정 내용이 전제·관점 / process / SSOT / 정책 / 의존 방향 류면 **same-session memory 기록 권고**:
-  1. 정정 내용 요약 (1-2 문장 + Why + How to apply)
-  2. \`~/.claude/projects/-Users-admin-work-composition/memory/feedback-*.md\` 신규 또는 기존 갱신
-  3. \`MEMORY.md\` 인덱스에 한 줄 추가
-  - 단발성 사실 정정 (typo / 변수명 / 숫자 오타) 이면 skip
-  - 회피 패턴: \"다음에 기억하겠음\" 약속만 (메모리 미적재) — 다음 세션에서 동일 정정 재발 위험
-  - 우선 기록 카테고리: SSOT 경계, ADR 의존 방향, 전제·관점 제기 의무, git/PR 정책, 재발 패턴"
-fi
-
-# 완료 / 머지 — git working tree에 변경 있을 때만 의미 있음 (단순 질문 false-positive 차단)
-if echo "$prompt" | grep -qiE "완료|끝났|마무리|머지|merge|PR|커밋|commit"; then
-  if ! git -C "${CLAUDE_PROJECT_DIR:-.}" diff --quiet HEAD 2>/dev/null \
-     || [ -n "$(git -C "${CLAUDE_PROJECT_DIR:-.}" ls-files --others --exclude-standard 2>/dev/null)" ]; then
-    hints="${hints}
-- 완료 직전 체크:
-  - 검증 명령을 실제로 실행한 출력을 근거로 제시 (CLAUDE.md §완료 기준 — live behavior 1회 exercise)
-  - \`reviewer\` agent 또는 \`/review\`
-  - pnpm type-check 통과 확인"
-  fi
-fi
-
-# 힌트가 있으면 출력
 if [ -n "$hints" ]; then
   cat <<EOF
 <workflow-hints>
-프롬프트 분석 기반 권장 워크플로 (route-prompt.sh):
-$hints
-
-위 힌트는 자동 분석 결과입니다. 필요 시 무시 가능하나, 권장 skill/agent는 ROI가 검증된 루트입니다.
+${hints#
+}
 </workflow-hints>
 EOF
 fi

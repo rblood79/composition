@@ -164,6 +164,12 @@ case_start "'ADR 생성해줘' → create-adr 사용자 전용 안내"
 run_hook route-prompt.sh "$(prompt_json '명령 팔레트 ADR 생성해줘')"; assert_contains '사용자 전용'
 case_start "인사말 → 힌트 없음"
 run_hook route-prompt.sh "$(prompt_json '안녕하세요')"; assert_allow
+case_start "'6. … 진행해' (ADR 번호 없음) → execute-adr 오탐 없음"
+run_hook route-prompt.sh "$(prompt_json '6. route-prompt.sh 축소 진행해')"; assert_not_contains 'execute-adr'
+case_start "'preview props 정리 후 커밋' → 영어 부분 문자열(pr/test) 오탐 없음"
+run_hook route-prompt.sh "$(prompt_json 'preview 패널 props 정리하고 latest 커밋해줘')"; assert_allow
+case_start "skill 본문 주입(Base directory …) → 분석 제외"
+run_hook route-prompt.sh "$(prompt_json 'Base directory for this skill: /x — 렌더링 ADR-195 실행 정정')"; assert_allow
 
 # ---------- session-start.sh / precompact-snapshot.sh / type-check-gate.sh ----------
 printf '\n== session-start.sh · precompact-snapshot.sh · type-check-gate.sh ==\n'
