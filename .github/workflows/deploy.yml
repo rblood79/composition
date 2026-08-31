@@ -15,9 +15,110 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ADR-198 Phase 5 — D3 시각 파리티 smoke.
+  #
+  # 이 저장소는 web PR 을 금지하므로 (`.claude/rules/git-workflow.md`) PR status
+  # check 라는 자리가 없다. 그래서 게이트는 이 워크플로 **안의 job** 으로 두고
+  # 배포 job 이 `needs:` 로 의존한다 — 별도 워크플로 간 `needs:` 는 GitHub
+  # Actions 에 없는 기능이라, breakdown §3.2 가 예고한 "deploy.yml 에 직접
+  # 붙이는" 경로를 택한다. job 이름과 pass/fail 계약은 그대로 유지한다.
+  #
+  # 경로 스코프는 workflow 의 `paths:` 가 아니라 **job 안에서** 판정한다.
+  # `paths:` 로 걸러 job 이 skip 되면 `needs:` 를 건 배포 job 까지 같이 skip 되어
+  # 문서만 고친 push 가 조용히 배포되지 않는다.
+  visual-parity-smoke:
+    name: Visual Parity Smoke (ADR-198)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect D3-relevant changes
+        id: scope
+        run: |
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "이전 커밋을 알 수 없다 — 전량 검사로 본다"
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only "$BEFORE" "${{ github.sha }}")"
+          if printf '%s\n' "$CHANGED" | grep -Eq '^(packages/shared/src/(catalog|components|renderers)/|packages/specs/src/|apps/builder/src/builder/workspace/canvas/|apps/builder/src/builder/factories/|apps/builder/src/preview/|apps/builder/public/(fonts|wasm)/|apps/builder/tests/visual-parity/|apps/builder/vitest\.(visual-parity|browser)\.config\.ts$|apps/builder/scripts/visual-parity-gate\.mjs$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "D3 경로 변경 없음 — 게이트를 돌리지 않는다 (배포는 계속된다)"
+          fi
+
+      - name: Setup pnpm
+        if: steps.scope.outputs.run == 'true'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Setup Rust toolchain
+        if: steps.scope.outputs.run == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/composition-engine/target
+          key: ${{ runner.os }}-cargo-parity-${{ hashFiles('packages/composition-engine/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install wasm-pack
+        if: steps.scope.outputs.run == 'true'
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Install dependencies
+        if: steps.scope.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile
+
+      # 레이아웃은 composition-engine 단독 경로다 (ADR-916, Taffy 제거). Skia leg
+      # 이 프로덕션 레이아웃을 그대로 태우므로 이 산출물 없이는 게이트가 뜨지 않는다.
+      - name: Build composition-engine WASM
+        if: steps.scope.outputs.run == 'true'
+        run: pnpm wasm:build:engine
+
+      - name: Install Chromium (pinned Playwright)
+        if: steps.scope.outputs.run == 'true'
+        run: pnpm -F @composition/builder exec playwright install --with-deps chromium
+
+      # 러너가 doctor 를 먼저 돌리고, skip·0건·예산 초과를 전부 실패로 판정한다.
+      - name: Visual parity smoke
+        if: steps.scope.outputs.run == 'true'
+        run: pnpm -F @composition/builder test:visual-parity:smoke
+
+      - name: Upload failure artifacts
+        if: failure() && steps.scope.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-parity-artifacts-${{ github.sha }}
+          path: apps/builder/tests/visual-parity/.artifacts/
+          retention-days: 7
+          if-no-files-found: warn
+
   build-and-deploy:
     name: Build and Deploy
     runs-on: ubuntu-latest
+    needs: visual-parity-smoke
 
     steps:
       - name: Checkout repo

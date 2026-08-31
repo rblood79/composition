@@ -41,7 +41,9 @@
     "prepare:wasm": "node scripts/prepare-wasm.mjs",
     "prepare:specs": "node packages/specs/scripts/extract-lucide-icons.mjs && pnpm run build:specs",
     "postinstall": "pnpm run prepare:wasm && pnpm run prepare:specs",
-    "codex:session-start": "bash scripts/codex/session-start.sh"
+    "codex:session-start": "bash scripts/codex/session-start.sh",
+    "gate:install": "bash scripts/install-git-hooks.sh",
+    "gate:visual-parity": "pnpm -F @composition/builder test:visual-parity:smoke"
   },
   "devDependencies": {
     "@playwright/mcp": "^0.0.79",

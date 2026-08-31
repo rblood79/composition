@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# ADR-198 Phase 5 — D3 시각 파리티 pre-push 게이트
+#
+# 이 저장소는 web PR 을 금지하고 main 에 직접 push 한다
+# (`.claude/rules/git-workflow.md`). 그래서 PR status check 라는 자리가 없고,
+# **push 직전이 첫 차단 지점**이다.
+#
+# 다만 게이트가 흐름을 끊으면 그 자체가 손실이라는 것이 같은 규칙의 요지다.
+# 그래서 두 가지를 지킨다:
+#
+# 1. **경로 스코프** — D3 에 닿지 않는 push (문서/통계/ADR 본문 등) 는 테스트를
+#    돌리지 않고 즉시 통과한다. 실측상 대부분의 push 가 여기 해당한다.
+# 2. **탈출구** — `SKIP_VISUAL_PARITY=1 git push ...` 로 건너뛸 수 있다.
+#    건너뛴 사실은 조용하지 않게 출력한다.
+#
+# 설치: `bash scripts/install-git-hooks.sh` (core.hooksPath 를 .githooks 로)
+
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+if [ "${SKIP_VISUAL_PARITY:-0}" = "1" ]; then
+  echo "[ADR-198] SKIP_VISUAL_PARITY=1 — 시각 파리티 게이트를 건너뛴다 (의도한 것이 맞는지 확인)"
+  exit 0
+fi
+
+# push 되는 커밋 범위의 변경 파일 목록.
+# pre-push 는 stdin 으로 "<local ref> <local sha> <remote ref> <remote sha>" 를 받는다.
+ZERO="0000000000000000000000000000000000000000"
+CHANGED=""
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [ "$local_sha" = "$ZERO" ] && continue # 브랜치 삭제
+  if [ "$remote_sha" = "$ZERO" ]; then
+    # 원격에 없는 ref — 기준을 origin/main 으로 잡고, 그것도 없으면 전량 검사로 본다
+    if base="$(git merge-base "$local_sha" origin/main 2>/dev/null)"; then
+      RANGE="$base..$local_sha"
+    else
+      CHANGED="__ALL__"
+      break
+    fi
+  else
+    RANGE="$remote_sha..$local_sha"
+  fi
+  CHANGED="$CHANGED"$'\n'"$(git diff --name-only "$RANGE" 2>/dev/null)"
+done
+
+[ -z "${CHANGED// /}" ] && exit 0
+
+# D3 관련 경로 — catalog/spec/생성 CSS, Canvas·Skia, Preview, 폰트·wasm, 하니스
+D3_PATHS='^(packages/shared/src/(catalog|components|renderers)/|packages/specs/src/|apps/builder/src/builder/workspace/canvas/|apps/builder/src/builder/factories/|apps/builder/src/preview/|apps/builder/public/(fonts|wasm)/|apps/builder/tests/visual-parity/|apps/builder/vitest\.(visual-parity|browser)\.config\.ts$|apps/builder/scripts/visual-parity-gate\.mjs$)'
+
+if [ "$CHANGED" != "__ALL__" ]; then
+  MATCHED="$(printf '%s\n' "$CHANGED" | grep -E "$D3_PATHS" || true)"
+  if [ -z "$MATCHED" ]; then
+    exit 0
+  fi
+  echo "[ADR-198] D3 경로 변경 감지 — 시각 파리티 smoke 게이트를 돌린다:"
+  printf '%s\n' "$MATCHED" | head -5 | sed 's/^/    /'
+fi
+
+cd "$REPO_ROOT" || exit 1
+if ! pnpm -F @composition/builder test:visual-parity:smoke; then
+  echo ""
+  echo "[ADR-198] push 를 막았다 — Skia↔Preview 시각 파리티 smoke 실패."
+  echo "  증거: apps/builder/tests/visual-parity/.artifacts/"
+  echo "  의도한 변경이면 원인을 먼저 기록하고, 급하면 SKIP_VISUAL_PARITY=1 로 밀 수 있다."
+  exit 1
+fi
+
+exit 0
