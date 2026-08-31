@@ -607,6 +607,67 @@ Tasks:
 **Gate G1 (identity half)**: both legs emit the same checksums and exact expected
 node identity/order for all pilots.
 
+#### Phase 1 result — 2026-08-31 (G1 identity half PASS)
+
+Contracts live in `tests/visual-parity/harness/{types,identity,previewDriver,skiaRunner}.ts`;
+pilots in `tests/visual-parity/cases/`. Suite: **6 files / 30 cases, 3.42s**
+(29 pass + 1 expected fail — the Phase 0 Skia paint ratchet, deliberately kept).
+
+| Pilot                   | fixture / env checksum  | Skia nodeOrder                                              | Preview nodeOrder        | identity |
+| ----------------------- | ----------------------- | ----------------------------------------------------------- | ------------------------ | -------- |
+| `basic-geometry-paint`  | `c2e2a3f5` / `0e6b92be` | body, outer, inner                                          | page, body, outer, inner | PASS     |
+| `catalog-state-paint`   | `58c859c8` / `01640568` | body, clip, overflow-child, button-enabled, button-disabled | + page                   | PASS     |
+| `text-raster-resources` | `199b529b` / `35d3c5fa` | body, heading, paragraph, image                             | + page                   | PASS     |
+
+Both legs report the **same document checksum and the same environment
+checksum** on every pilot, and both pass liveness. The only structural
+difference is the artboard container.
+
+**Contract decision — the artboard is the frame of reference, not a compared
+node.** Skia's `nodeOrder` comes from `content.sharedScene.treeBoundsMap`, which
+has no entry for the page because the page _is_ the surface; Preview emits it as
+a `<div data-element-id>` because the DOM needs a container element. These are
+two representations of the same visual result, and `ssot-hierarchy.md` defines
+symmetry as sameness of visual result, not of implementation. §3.6 already uses
+the artboard as the crop boundary rather than as content. `VisualParityCase`
+therefore declares `artboardNodeId` explicitly and excludes it from
+`expectedNodeIds`.
+
+This is a contract being written down, not an expectation being lowered, and two
+guards keep it honest:
+
+1. Any missing or reordered **content** node still fails
+   `PARITY-L0-IDENTITY` — negatives (c) and (d) prove it.
+2. A per-case test pins the exclusion's premise: Skia must **not** contain the
+   artboard node and Preview **must**. If either leg changes, that test breaks
+   and the contract is re-examined.
+
+**Residual carried to Phase 4**: the artboard's own visual properties
+(background, size) are now covered by no identity check. §3.6's artboard crop
+and background treatment must actually implement that, and Phase 4 has to verify
+it rather than inherit the assumption.
+
+**Negative probes — all four fire with the intended code before any pixel work**:
+
+| Probe                  | Result                                                      |
+| ---------------------- | ----------------------------------------------------------- |
+| (a) different document | `PARITY-L0-IDENTITY@fixtureChecksum`                        |
+| (b) different theme    | `PARITY-ENV@environmentChecksum` (`0e6b92be` vs `40e7b9ac`) |
+| (c) missing node       | `PARITY-L0-IDENTITY@n2`                                     |
+| (d) reordered nodes    | `PARITY-L0-IDENTITY@n2`                                     |
+
+**Two observations recorded, not acted on** (§7):
+
+1. Preview renders one canonical `Image` node as **two DOM elements** sharing the
+   same `data-element-id` — a `display:contents` wrapper plus the `<img>`. The
+   driver de-duplicates by id and picks the element with a real box for geometry,
+   since `nodeOrder` is a list of node ids; this is a harness-contract choice,
+   not a leg behaviour change.
+2. React warns `<div> cannot contain a nested <body>` — Preview renders the
+   lower-case `body` node as a real `<body>` tag nested inside the page `<div>`.
+   This follows directly from the page > body shape that Phase 0 established
+   experimentally, and was left untouched.
+
 ### Phase 2 — Production Skia software leg
 
 **Purpose**: produce deterministic software PNGs without a duplicate renderer.
