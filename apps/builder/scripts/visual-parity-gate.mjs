@@ -71,7 +71,7 @@ const SMOKE = [
  * 파일 하나가 include glob 에서 빠지거나 셋업이 깨져 조용히 줄어드는 경우가
  * 게이트를 vacuous 하게 만드는 실제 경로다.
  */
-const FLOORS = { doctor: 3, smoke: 81, full: 94 };
+const FLOORS = { doctor: 3, smoke: 81, full: 98 };
 
 /** HC10 — 초 단위 벽시계 예산 */
 const BUDGET_SECONDS = { smoke: 90, full: 300 };
