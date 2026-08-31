@@ -82,7 +82,7 @@ cat <<EOF
 - \`cross-check\` — CSS↔Skia 렌더링 정합성 (렌더링 수정 후 필수)
 - \`parallel-verify\` — 컴포넌트 패밀리 일괄 검증
 - \`component-design\` — 새 컴포넌트 설계 (React Aria/Spectrum 참조)
-- \`create-adr\` — 새 ADR 작성 — 사용자 전용 (\`/new-adr <제목>\` 직접 입력)
+- \`create-adr\` — 새 ADR 작성 — 사용자 전용 (\`/create-adr <제목>\` 직접 입력)
 - \`review-adr\` — ADR 검증
 - \`react-aria\` / \`react-spectrum\` — 공식 API 레퍼런스
 - \`match-target\` — Vision-based visual tuning 루프 (참조 이미지 + budget) — 사용자 전용 (\`/match-target\` 직접 입력)

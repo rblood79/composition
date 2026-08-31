@@ -33,9 +33,9 @@ if printf '%s' "$prompt" | grep -qiE "ADR-?[0-9]{2,3}.{0,20}(실행|진행|Phase
 elif printf '%s' "$prompt" | grep -qiE "ADR.{0,30}(리뷰|검토|review)"; then
   hints="${hints}
 - ADR 리뷰 → \`review-adr\` skill"
-elif printf '%s' "$prompt" | grep -qiE "ADR.{0,20}(생성|작성|만들|초안)|new ADR|/new-adr"; then
+elif printf '%s' "$prompt" | grep -qiE "ADR.{0,20}(생성|작성|만들|초안)|new ADR|/create-adr"; then
   hints="${hints}
-- ADR 생성 → \`create-adr\` 는 사용자 전용: \`/new-adr <제목>\` 직접 입력을 안내하고 대기"
+- ADR 생성 → \`create-adr\` 는 사용자 전용: \`/create-adr <제목>\` 직접 입력을 안내하고 대기"
 fi
 
 # 렌더링 — 수정 후 cross-check 는 CLAUDE.md 에도 있지만 착수 시점에 한 줄로 상기

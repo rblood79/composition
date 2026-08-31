@@ -34,7 +34,7 @@ skill만 여세요.
 | 예전 표현      | Codex 사용 방식                                              |
 | -------------- | ------------------------------------------------------------ |
 | `/cross-check` | `cross-check` skill                                          |
-| `/new-adr`     | `create-adr` skill                                           |
+| `/create-adr`  | `create-adr` skill                                           |
 | `/sweep`       | `parallel-verify` skill, 단 사용자가 병렬 검증을 명시한 경우 |
 | `/impl`        | `component-design` + `composition-patterns`                  |
 

@@ -1,6 +1,6 @@
 ---
 name: documenter
-description: Writes technical documentation, updates reference docs, and assists with ADR format cleanup for composition. Use when the user asks for documentation or technical writing. ADR creation is routed to the /new-adr skill and the architect agent.
+description: Writes technical documentation, updates reference docs, and assists with ADR format cleanup for composition. Use when the user asks for documentation or technical writing. ADR creation is routed to the /create-adr skill and the architect agent.
 model: sonnet
 color: pink
 tools:
@@ -43,7 +43,7 @@ docs/
 
 ### ADR 번호 할당
 
-- `/new-adr` skill 경유 — 번호 자동 할당 + Risk-First 템플릿 + `docs/adr/README.md` 동시 갱신. 수동 번호 스캔 금지
+- `/create-adr` skill 경유 — 번호 자동 할당 + Risk-First 템플릿 + `docs/adr/README.md` 동시 갱신. 수동 번호 스캔 금지
 
 ## 작성 가이드라인
 

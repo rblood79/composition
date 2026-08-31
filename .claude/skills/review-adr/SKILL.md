@@ -365,5 +365,5 @@ Subagent 리뷰 결과는 **가설 (hint)** 로 취급. Main 은 **확증자 (ve
 
 - "코드 리뷰해줘" → ❌ (코드 리뷰 → reviewer 에이전트)
 - "README 수정해줘" → ❌ (문서 편집)
-- "ADR 새로 작성해줘" → ❌ (작성 → create-adr 스킬 (`/new-adr`))
+- "ADR 새로 작성해줘" → ❌ (작성 → create-adr 스킬 (`/create-adr`))
 - "PR 리뷰해줘" → ❌ (PR → reviewer 에이전트)

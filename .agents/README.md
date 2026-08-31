@@ -80,7 +80,7 @@
 | Legacy Claude 자산                     | Codex 대응                                                     |
 | -------------------------------------- | -------------------------------------------------------------- |
 | `/cross-check` (skill 직접 호출)       | `.agents/skills/cross-check/SKILL.md`                          |
-| `.claude/commands/new-adr.md`          | `.agents/skills/create-adr/SKILL.md`                           |
+| `/create-adr` (skill 직접 호출)        | `.agents/skills/create-adr/SKILL.md`                           |
 | `.claude/commands/sweep.md`            | `.agents/skills/parallel-verify/SKILL.md`                      |
 | `.claude/hooks/protect-files.sh`       | `.codex/hooks/protect-files.sh` + `pnpm run codex:guard`       |
 | `.claude/hooks/auto-format.sh`         | `.codex/hooks/auto-format.sh` + `pnpm run codex:format`        |

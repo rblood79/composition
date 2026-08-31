@@ -32,7 +32,7 @@ composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monore
 - **버그 수정**: `/fix` (`debugger` agent → `/cross-check`) — 증상 수정 금지, root cause 확정 후 수정. 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록이 정본
 - **구현**: TDD (RED-GREEN-REFACTOR) 기본 — `tester` agent
 - **렌더링 수정 후**: `/cross-check` 최종 검증
-- **ADR 생성**: 사용자가 `/new-adr` 직접 입력 — create-adr / execute-adr / match-target 은 모델 자동 호출 비활성 (사용자 전용)
+- **ADR 생성**: 사용자가 `/create-adr` 직접 입력 — create-adr / execute-adr / match-target 은 모델 자동 호출 비활성 (사용자 전용)
 - **다단계 계획**: ADR design breakdown (`docs/adr/design/*-breakdown.md`) 이 정본 — 별도 계획 문서 계층 신설 금지
 - **완료 직전 검증**: 아래 §완료 기준 자가 적용 + `reviewer` agent
 - **단순 작업** (한 줄 수정, 설정 변경): 위 절차 스킵 가능

@@ -8,7 +8,7 @@
 # 동작:
 #   1. tool_input.file_path 가 docs/adr/<숫자>-...md 신규 파일 패턴인지 확인
 #   2. transcript_path 에서 직전 사용자 메시지 (userType=external, content=string) 추출
-#   3. 직전 5개 사용자 메시지에 ADR 발의 의도 키워드 ("ADR" / "/new-adr" / "create-adr") 매칭
+#   3. 직전 5개 사용자 메시지에 ADR 발의 의도 키워드 ("ADR" / "create-adr") 매칭
 #   4. evidence 없으면 permissionDecision: deny + 안내
 #
 # 예외:
@@ -99,9 +99,9 @@ RECENT_USER_MSG=$(jq -r '
 # 단순 "ADR" mention 만으로는 통과 안 됨. ADR-127 우회 사례 (사용자 메시지에 ADR 단순 mention 만 있어도 통과).
 # 명시 발의 표현만 매칭:
 # - 한국어: "새 ADR" / "신규 ADR" / "ADR 발의" / "ADR 생성" / "ADR 작성" / "ADR 만들" / "ADR 분리" / "ADR-NNN 발의" / "fork"
-# - 영어: "new ADR" / "create ADR" / "propose ADR" / "draft ADR" / "ADR fork" / "/new-adr" / "create-adr"
+# - 영어: "new ADR" / "create ADR" / "propose ADR" / "draft ADR" / "ADR fork" / "/create-adr"
 # 일상 mention ("ADR-126 Phase 2 진행 중" / "ADR 참조" / "ADR 본문 갱신") 는 통과 X
-if echo "$RECENT_USER_MSG" | grep -qiE '(새|신규|new|create|propose|draft)[[:space:]]*ADR|ADR(-[0-9]+)?[[:space:]]*(발의|생성|작성|만들|분리|fork|propose|draft|create)|/new-adr|create-adr'; then
+if echo "$RECENT_USER_MSG" | grep -qiE '(새|신규|new|create|propose|draft)[[:space:]]*ADR|ADR(-[0-9]+)?[[:space:]]*(발의|생성|작성|만들|분리|fork|propose|draft|create)|create-adr'; then
   exit 0
 fi
 

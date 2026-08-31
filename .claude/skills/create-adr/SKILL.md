@@ -27,7 +27,7 @@ disable-model-invocation: true
 ls docs/adr/ docs/adr/completed/ | grep -oE '^[0-9]+' | sort -n | awk '$1<900' | tail -1
 ```
 
-→ **900 미만 정규 밴드의 최대 + 1** = 새 ADR 번호 (3자리 zero-pad; 현재 다음 번호 `148`)
+→ **900 미만 정규 밴드의 최대 + 1** = 새 ADR 번호 (3자리 zero-pad — 위 명령 출력 + 1. 하드코딩 금지)
 
 > **900+ 밴드**: 인프라/렌더링 특수 트랙 (현 최대 920). **사용자가 명시 요청할 때만** 900 밴드 최대 + 1 사용:
 >
