@@ -27,15 +27,25 @@ import type { CaseNode } from "./harness";
  *
  * 측정: WASM init 은 `beforeAll` 로 제외. run 마다 `resetPersistentTree(pageId)` 를 **타이머
  * 밖**에서 호출해 full build 를 강제(증분 경로 배제). warm-up 5회 뒤 30회, p50/p95 는
- * nearest-rank. 결과 JSON: `tests/parity/.artifacts/adr-923-layout-baseline.json` (untracked
- * — 수치는 evidence 문서로 옮긴다).
+ * nearest-rank. 결과 JSON: `tests/parity/.artifacts/adr-923-layout-baseline-<tag>.json` (untracked
+ * — 수치는 evidence 문서로 옮긴다). G3 판정 (r4): baseline commit 과 candidate commit 을 교대로
+ * fresh-browser N=3 쌍 측정하고 arm 별 median(after_p95ᵢ / before_p95ᵢ) ≤ 1.05 — 단일 run 편차
+ * (+5.9% / +7.7%) 가 +5% 보다 커 단일 run 판정은 폐기. N 은 결과 확인 전에 고정.
  *
  * pipelineLeg(`harness.ts:223`) 와 같은 방식으로 elementsMap/childrenMap 을 만든다 — 결과 대신
  * 시간을 재므로 harness 를 수정하지 않고 map 구성만 미러한다.
  */
 
 const ENABLED = import.meta.env.VITE_ADR923_BASELINE === "1";
-const ARTIFACT = "tests/parity/.artifacts/adr-923-layout-baseline.json";
+/**
+ * run 식별 tag (G3 r4 — before/after 교대 N=3 쌍, raw 는 run 마다 고유 파일 보존).
+ * `VITE_ADR923_BASELINE_TAG=<before|after>-<sha>-<i>` 로 지정, 미지정 시 timestamp.
+ */
+const TAG = (
+  (import.meta.env.VITE_ADR923_BASELINE_TAG as string | undefined) ??
+  new Date().toISOString()
+).replace(/[^A-Za-z0-9._-]/g, "-");
+const ARTIFACT = `tests/parity/.artifacts/adr-923-layout-baseline-${TAG}.json`;
 const WARMUP_RUNS = 5;
 const MEASURED_RUNS = 30;
 const AVAIL_W = 1200;
@@ -60,6 +70,7 @@ interface ArmStats {
 interface BaselineResult {
   adr: "923";
   phase: "0";
+  tag: string;
   measuredAt: string;
   availW: number;
   availH: number;
@@ -284,6 +295,7 @@ describe.skipIf(!ENABLED)(
       result = {
         adr: "923",
         phase: "0",
+        tag: TAG,
         measuredAt: new Date().toISOString(),
         availW: AVAIL_W,
         availH: AVAIL_H,
