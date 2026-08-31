@@ -145,7 +145,7 @@ figma + Retool + composition Preview 가 이미 industry-standard pattern produc
 | createLeafComponent (ListBoxItem) | `react-aria-components@1.17.0/src/ListBox.tsx:251-358`                   |
 | Virtualizer visible-only          | `react-aria-components@1.17.0/src/Virtualizer.tsx`                       |
 
-각 Phase 진행 시 RAC 소스 직접 참조 (`.claude/rules/react-aria-skill.md` §"GitHub 소스코드 직접 참조" 적용).
+각 Phase 진행 시 RAC 소스 직접 참조 (`.claude/skills/component-design/SKILL.md` §1-3 "S2 기능 추가/변환 시: GitHub 소스코드 직접 참조" 적용 — 구 react-aria-skill.md 에서 이관).
 
 ## 부록 — 외부 reference (industry-standard tree+가상화 검증)
 

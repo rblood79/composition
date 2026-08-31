@@ -1,1 +1,0 @@
-../../.claude/rules/react-aria-skill.md

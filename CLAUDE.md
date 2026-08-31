@@ -59,7 +59,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 skill / command / agent 목록과 description 은 세션에 자동 로드된다 (SessionStart roster 포함). 자세한 skill 목록과 사용 빈도: [skills/INDEX.md](.claude/skills/INDEX.md)
 
-## CRITICAL 규칙 (12개) → `.claude/rules/` 자동 로드
+## CRITICAL 규칙 (11개) → `.claude/rules/` 자동 로드
 
 위반 시 즉시 수정. 파일 편집 시 glob-scoped rule 이 자동 주입된다 (상시 로드 2개: `ssot-hierarchy.md`, `git-workflow.md`). 전체 목록 및 상세: [SKILL.md](.claude/skills/composition-patterns/SKILL.md)
 

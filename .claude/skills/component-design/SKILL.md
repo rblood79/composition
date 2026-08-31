@@ -46,6 +46,17 @@ Read .claude/skills/react-spectrum/references/components/{ComponentName}.md
 
 Adobe의 Spectrum 2 디자인 시스템 구현을 참조하여 composition 컴포넌트와 비교한다.
 
+#### S2 기능 추가/변환 시: GitHub 소스코드 직접 참조 (CRITICAL — 구 `.claude/rules/react-aria-skill.md` 에서 이관 2026-08-31)
+
+기존 컴포넌트에 S2 전용 기능을 추가하거나 S2 패턴으로 변환할 때, **문서(API/Props)만으로는 내부 구현을 파악할 수 없다.** GitHub 소스코드를 직접 fetch 하여 실제 메커니즘을 확인한 후 내재화한다.
+
+1. 위 문서로 Props/API 사양 파악
+2. `WebFetch https://raw.githubusercontent.com/adobe/react-spectrum/main/packages/@react-spectrum/s2/src/{ComponentName}.tsx` — 실제 소스 참조
+3. 핵심 패턴 추출 (DOM 측정, 상태 흐름, 무한 루프 방지 등)
+4. composition 컨벤션으로 내재화 (§React Aria 내재화 원칙)
+
+적용 시점: S2 전용 기능 추가 · 복잡한 DOM 측정/상태 관리 포함 기능 · 문서만으로 불명확한 경우.
+
 ### 1-4. 조사 결과 정리
 
 - 사용할 React Aria hooks/components 목록
