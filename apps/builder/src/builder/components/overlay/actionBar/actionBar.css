@@ -38,8 +38,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 28px;
+    width: var(--icon-control-size);
+    height: var(--icon-control-size);
     color: var(--fg-muted);
     cursor: grab;
     touch-action: none;
