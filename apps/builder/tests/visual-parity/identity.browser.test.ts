@@ -22,6 +22,10 @@ import { CASE_PROJECT_ID } from "./cases/scaffold";
 import { PreviewDriver } from "./harness/previewDriver";
 import { runSkiaLegResult } from "./harness/skiaRunner";
 import {
+  knownDefectHits,
+  unexplainedErrors,
+} from "./harness/knownDefects";
+import {
   captureEnvironment,
   checkIdentity,
   checkLiveness,
@@ -161,8 +165,27 @@ describe("ADR-198 Phase 1 / G1 — identity half", () => {
      */
     it(`${c.id}: 두 leg 의 콘텐츠 노드 identity/order 가 일치한다 (G1)`, async () => {
       const { skia, preview: previewLeg } = await measure(c);
-      const identity = checkIdentity(skia, previewLeg, c.expectedNodeIds);
+
+      // 알려진 프로덕션 결함(knownDefects.ts)은 identity 판정에서 제외한다 —
+      // leg 산출물 자체는 걸러지지 않고, 무엇을 알면서 넘어가는지는 여기서
+      // 명시된다. 정확한 횟수는 아래 ratchet 이 따로 잡는다.
+      const identity = checkIdentity(
+        skia,
+        {
+          ...previewLeg,
+          consoleErrors: unexplainedErrors(c.id, previewLeg.consoleErrors),
+        },
+        c.expectedNodeIds,
+      );
       expect(identity.ok, describeVerdict(identity)).toBe(true);
+
+      // ratchet — 결함이 고쳐지거나 늘어나면 여기서 깨진다.
+      for (const { defect, hits } of knownDefectHits(
+        c.id,
+        previewLeg.consoleErrors,
+      )) {
+        expect(hits, `ratchet 불일치 — ${defect.note}`).toBe(defect.count);
+      }
     }, 180_000);
 
     /**

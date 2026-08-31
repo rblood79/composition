@@ -22,4 +22,24 @@ const config = mergeConfig(
 
 config.test!.include = ["tests/visual-parity/**/*.browser.test.ts"];
 
+// 뷰포트 핀 (HC4) — **캡처 배율을 1:1 로 만들기 위한 것이지 취향이 아니다.**
+//
+// Vitest 는 tester iframe 을 `browser.viewport` 크기로 만든 뒤 실제 창에 맞게 CSS
+// 로 축소한다 (`@vitest/browser-playwright` 의 `getIframeScale`). 그래서
+// `page.screenshot({ element })` 는 **축소된** 픽셀을 돌려준다. 실측:
+//
+// | viewport   | 창 높이 | 배율  | CSS 240x180 → PNG |
+// | ---------- | ------- | ----- | ----------------- |
+// | 414x896    | 720     | 0.804 | 193x145           |
+// | 1280x900   | 720     | 0.800 | 192x144           |
+// | 1280x720   | 720     | 1.000 | 240x180           |
+//
+// 축소된 캡처로 L3 를 재면 두 leg 이 서로 다른 해상도를 비교하게 된다 — 리샘플링
+// 오차가 예산 안에 숨어 진짜 발산을 가린다. 창 높이(720) 이하로 두면 배율이 1 이
+// 되고, 그 사실은 `productionLeg` 이 `shot.width === rect.width` 로 매번 재확인한다.
+config.test!.browser!.viewport = { width: 1280, height: 720 };
+config.test!.browser!.instances = [
+  { browser: "chromium", viewport: { width: 1280, height: 720 } },
+];
+
 export default config;

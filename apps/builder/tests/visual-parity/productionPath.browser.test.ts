@@ -14,6 +14,15 @@
  * 그린다. 둘은 parity leg 이 아니라 **환경 probe** 다 — "이 host 에서 CanvasKit 이
  * 살아 있는가", "SW 와 GL 래스터가 얼마나 다른가" 를 재려면 씬이 아니라 도형이
  * 필요하다. 이 둘의 산출물은 어떤 parity 판정에도 입력되지 않는다.
+ *
+ * `preview/simplifiedDomProbe.browser.test.ts` 는 DOM 을 손으로 만든다. HC3 가
+ * 실제로 무언가를 막는지 보려면 그걸 어긴 입력이 필요하기 때문이다 (Phase 3 task 5).
+ *
+ * ## Phase 3 이 더한 것 — Preview 쪽 대칭 규칙
+ *
+ * Skia leg 에 "직접 draw 금지" 가 있다면 Preview leg 에는 **"직접 마크업 금지"**
+ * 가 있다. `srcdoc` / `innerHTML =` 로 화면을 만들면 그 leg 은 Preview 번들이
+ * 아니라 테스트가 쓴 HTML 을 재게 된다 — Skia 쪽 자체 렌더러와 같은 결함이다.
  */
 
 import { describe, it, expect } from "vitest";
@@ -41,6 +50,17 @@ const REQUIRED_PRODUCTION_ENTRIES = [
   "createSkiaRendererInput",
   "buildSkiaFrameContent",
   "exportToImage",
+];
+
+/** negative probe — 간이 DOM 이 막히는지 보는 것이 목적이라 제외한다. */
+const DOM_FIXTURE_ALLOWLIST = ["./preview/simplifiedDomProbe.browser.test.ts"];
+
+/** 직접 마크업 신호 — Preview 번들을 우회해 화면을 손으로 만드는 호출. */
+const DIRECT_MARKUP_PATTERNS = [
+  /\.srcdoc\s*=/,
+  /\.innerHTML\s*=/,
+  /insertAdjacentHTML\s*\(/,
+  /document\.write\s*\(/,
 ];
 
 /** 직접 그리기 신호 — 씬을 우회해 캔버스에 손을 대는 호출. */
@@ -110,6 +130,51 @@ describe("ADR-198 Phase 2 / G1 entry half — 프로덕션 경로 정적 증명"
       expect(
         /환경 probe|environment probe|parity leg 이 아니/.test(src),
         `${path} 가 예외 사유를 소스에 적지 않았다`,
+      ).toBe(true);
+    }
+  });
+
+  it("Preview leg 이 프로덕션 번들을 연다 (`/preview.html`)", () => {
+    const driver = sources["./harness/previewDriver.ts"];
+    expect(driver, "previewDriver.ts 를 읽지 못했다").toBeTruthy();
+    expect(/["'`]\/preview\.html["'`]/.test(driver)).toBe(true);
+    // 프로덕션 canonical 메시지 타입으로만 문서를 넣는다
+    expect(driver).toContain("UPDATE_CANONICAL_DOCUMENT");
+  });
+
+  it("parity leg / 케이스에 직접 마크업이 0 이다 (HC3 의 Preview 쪽 대칭)", () => {
+    const offenders: string[] = [];
+
+    for (const [path, src] of Object.entries(sources)) {
+      if (DOM_FIXTURE_ALLOWLIST.includes(path)) continue;
+      if (path === "./productionPath.browser.test.ts") continue; // 패턴 정의 자신
+      for (const pattern of DIRECT_MARKUP_PATTERNS) {
+        const m = src.match(pattern);
+        if (m) offenders.push(`${path} → ${m[0]}`);
+      }
+    }
+
+    expect(
+      offenders,
+      `parity 경로에서 직접 마크업 발견:\n${offenders.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("간이 DOM 예외가 실제로 존재하고, 그 이유가 소스에 적혀 있다", () => {
+    for (const path of DOM_FIXTURE_ALLOWLIST) {
+      const src = sources[path];
+      expect(src, `예외로 적힌 ${path} 가 없다 — 목록이 stale`).toBeTruthy();
+      expect(
+        /negative probe/.test(src),
+        `${path} 가 예외 사유를 소스에 적지 않았다`,
+      ).toBe(true);
+      // 예외 파일은 규칙을 **어기는 입력이 막히는지**를 봐야 한다. 통과를
+      // 기대하는 파일이면 예외가 아니라 구멍이다.
+      expect(
+        /expect\((?:verdict\.)?ok\)\.toBe\(false\)|verdict\.ok\)\.toBe\(false\)/.test(
+          src,
+        ),
+        `${path} 가 "막힌다" 를 검사하지 않는다`,
       ).toBe(true);
     }
   });

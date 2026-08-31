@@ -101,6 +101,18 @@ export interface LegResult {
   /** 칠해진 노드 수 — liveness 판정 입력 (HC11) */
   paintedNodeCount: number;
   consoleErrors: string[];
+  /**
+   * 정규화 computed style — L2 입력. DOM leg 만 낼 수 있다.
+   *
+   * Skia leg 에 같은 필드가 없는 것은 비대칭이 아니다: L2 는 "선언된 시각 속성이
+   * 무엇인가" 를 보는 층이고, Skia 쪽 대응물은 catalog 해석 결과라 Phase 4 에서
+   * 별도 어댑터로 붙는다. 지금 비워 두는 것이 없는 값을 지어내는 것보다 낫다.
+   */
+  styles?: Record<string, Record<string, string>>;
+  /** 폰트/이미지/스타일시트 매니페스트의 체크섬 — R6 (로드 전 캡처) 차단 입력 */
+  resourceChecksum?: string;
+  /** 교차 출처 요청 URL. G2 는 0 을 요구한다 */
+  externalRequests?: string[];
 }
 
 /** 닫힌 실패 코드 집합 (HC9). 여기 없는 코드는 ledger ratchet 이 거부한다. */

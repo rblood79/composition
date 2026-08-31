@@ -754,6 +754,106 @@ Tasks:
 **Gate G1 (entry half) + G2 Preview**: same checksum/order, 10 identical hashes,
 external requests 0, and console/page errors 0.
 
+#### Phase 3 result — 2026-08-31 (G1 entry half runtime + G2 Preview PASS, one ratchet)
+
+Files: `tests/visual-parity/harness/{domCapture,knownDefects,artifacts}.ts`,
+`harness/previewDriver.ts` (extended), `preview/productionLeg.browser.test.ts`,
+`preview/simplifiedDomProbe.browser.test.ts`, and the Preview half of
+`productionPath.browser.test.ts`.
+
+**The capture was not 1:1, and no determinism gate could have told us.**
+
+Vitest builds the tester iframe at `browser.viewport` size and then scales it with
+CSS to fit the real window (`@vitest/browser-playwright`'s `getIframeScale`, which
+also corrects pointer coordinates). So `page.screenshot({ element })` returns
+**scaled** pixels, while `getBoundingClientRect()` inside the iframe reports the
+unscaled numbers — every geometry assertion still passes. Measured on this host
+(window height 720, `devicePixelRatio` 1 on both sides):
+
+| `browser.viewport` | scale | CSS 240x180 → PNG |
+| ------------------ | ----- | ----------------- |
+| 414x896 (default)  | 0.804 | 193x145           |
+| 1280x900           | 0.800 | 192x144           |
+| 1280x720           | 1.000 | 240x180           |
+
+This is a *systematic* downscale, not drift: it is perfectly repeatable, so the
+10-run hash, the surface balance and the environment checksum all stay green
+while L3 would be comparing two different resolutions with resampling error
+hidden inside the budget. Recorded as **R14**; the mitigation is the viewport pin
+in `vitest.visual-parity.config.ts` plus a per-run `shot.width === rect.width`
+assertion, so a host whose window is smaller fails loudly instead of quietly.
+
+**G1 entry half (runtime).** The static half proves the Skia leg *imports*
+production; the runtime half has to prove the Preview leg *is* the production
+consumer. `assertProductionEntry` requires two things together: the production
+handshake arrived, and sending different canonical documents produces different
+DOM. The second is the load-bearing one, and `simplifiedDomProbe` shows why — it
+builds a static DOM that is visually indistinguishable (same `data-element-id`s,
+same boxes) and runs it through **the same assertion function**:
+
+| probe                                   | verdict                                              |
+| --------------------------------------- | ---------------------------------------------------- |
+| static DOM, no handshake                | 2x `PARITY-ENV` (`PREVIEW_READY` + `canonical-path`) |
+| static DOM that **fakes** the handshake | 1x `PARITY-ENV` (`canonical-path`)                   |
+| the assertion called with one document  | throws — one document cannot distinguish consumers   |
+
+The forbidden-markup rule is the Preview-side mirror of "no direct draw":
+`srcdoc` / `innerHTML =` / `insertAdjacentHTML` / `document.write` are zero in the
+legs, the probe is the single allowlisted exception, and the allowlist entry must
+state its reason **and** assert that the offending input is rejected — an
+exception that expects a pass is a hole, not an exception.
+
+**Readiness acknowledgement.** The runtime has no per-document ack (only the
+boot-time `PREVIEW_READY`), so the driver derives one: each render records
+`fixtureChecksum → domFingerprint` (nodeOrder + geometry + normalized styles).
+Across 14 renders per case the mapping held in both directions — the same
+document always reproduced its fingerprint, including after a round trip through
+a different document, and a different document never reproduced it.
+
+**Error hooks are installed while the document is still parsing.** Attaching at
+`load` or at `PREVIEW_READY` would miss every error raised while the module
+script boots, which would make "console errors 0" vacuous exactly where it
+matters. The driver polls for the new window and patches it as soon as the
+navigation commits; the observed `readyState` at patch time was `interactive` for
+all three cases, i.e. before the deferred module script runs. The value is
+recorded in the artifact so a regression in hook timing is visible rather than
+silent.
+
+**Measured (per case, one leg):**
+
+| case                    | fixture    | env        | resource   |  PNG | capture | RGBA hash  | variance |
+| ----------------------- | ---------- | ---------- | ---------- | ---: | ------- | ---------- | -------: |
+| `basic-geometry-paint`  | `c2e2a3f5` | `0e6b92be` | `eb7de870` | 1505 | 240x180 | `288dda5e` |   5447.7 |
+| `catalog-state-paint`   | `58c859c8` | `01640568` | `eb7de870` | 3611 | 320x220 | `a032f24f` |   2941.1 |
+| `text-raster-resources` | `199b529b` | `35d3c5fa` | `943d0138` | 9250 | 320x240 | `8701b819` |   2462.7 |
+
+G2 Preview: 10 consecutive renders per case produced **one** RGBA hash with
+inter-run `maxByte` 0, external requests 0 (cross-origin resource-timing entries),
+and no unexplained console/page error. Artifacts (`.json` + `.png`) are written
+to `tests/visual-parity/.artifacts/` by the runner rather than logged, because
+browser-mode reporters hide the console output of passing tests — evidence that
+only appears on failure is not evidence.
+
+**This narrows the Phase 0 blank further.** `basic-geometry-paint` renders with
+variance **5447.7** in Preview and **0.0** in Skia, from the same fixture through
+the same harness. The fixture is therefore not the cause; the blank belongs to
+the Skia leg. Attribution stays out of scope, but the search space is now one
+leg, not two.
+
+**Ratchet — one real defect found, not papered over.** Preview renders catalog
+`Paragraph` as `<paragraph>` instead of `<p>`: `resolveHtmlTag`'s default
+(`preview/App.tsx:971`) falls through to `getElementForTag` →
+`type.toLowerCase()` (`packages/specs/src/runtime/tagToElement.ts:227`), and
+ADR-142's catalog cutover removed `Paragraph.spec` from the registry. `Text` hit
+the same wall earlier and received an explicit case (`App.tsx:894`); `Paragraph`
+did not. The binding requires `<p>`
+(`packages/shared/src/catalog/bindings/Paragraph.binding.ts:4,13`). The fixture
+was **not** changed to avoid it (measurement-validity §1 Q2). Instead
+`harness/knownDefects.ts` pins the exact occurrence count, shared by the Phase 1
+identity gate and the Phase 3 G2 gate so neither can drop it alone; fixing the
+defect breaks the ratchet, which is the intended signal to delete it. The
+production fix is outside this phase's test-only scope.
+
 ### Phase 4 — Layered diff, budgets, and sensitivity probes
 
 **Purpose**: turn artifacts into a credible blocking verdict.
