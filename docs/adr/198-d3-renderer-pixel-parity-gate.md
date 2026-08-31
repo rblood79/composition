@@ -15,10 +15,11 @@ Accepted — 2026-08-31 (Proposed 2026-08-30 · review round 1 이슈 3건 전�
 
 ### Phase 진행
 
-| Phase                                                 | 상태                | 근거                                    |
-| ----------------------------------------------------- | ------------------- | --------------------------------------- |
-| Phase 0 — inventory / host feasibility / pilot freeze | **완료 2026-08-31** | G0 통과 (축소된 조항 기준). `8a07cb3e1` |
-| Phase 1~6                                             | 미착수              | —                                       |
+| Phase                                                 | 상태                | 근거                                                                                                                                                      |
+| ----------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 — inventory / host feasibility / pilot freeze | **완료 2026-08-31** | G0 통과 (축소된 조항 기준). `8a07cb3e1`                                                                                                                   |
+| Phase 1 — fixture and result contracts                | **완료 2026-08-31** | G1 identity half 통과 — 파일럿 3종 전부 두 leg 이 같은 문서·환경 checksum + 콘텐츠 노드 identity/order 일치, negative 4종 의도한 코드로 차단. `9d892fac9` |
+| Phase 2~6                                             | 미착수              | —                                                                                                                                                         |
 
 > Source: user-requested architecture decision after evaluating
 > [vgpu](https://github.com/vercel-labs/vgpu). This is a new verification
