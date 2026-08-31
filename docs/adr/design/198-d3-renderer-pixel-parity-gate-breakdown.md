@@ -882,6 +882,117 @@ Tasks:
 probes fail the correct layer with the intended failure code, and resource
 cycles remain balanced.
 
+#### Phase 4 split into 4a / 4b — 2026-08-31 (user decision)
+
+Before starting Phase 4 the two legs were compared for the first time. The
+result decides how Phase 4 can be run at all:
+
+| case                    | Skia variance | Preview variance | maxByte | changedFraction |
+| ----------------------- | ------------: | ---------------: | ------: | --------------: |
+| `basic-geometry-paint`  |           0.0 |           5447.7 | **239** |       **0.304** |
+| `catalog-state-paint`   |         763.0 |           2941.1 | **234** |       **0.193** |
+| `text-raster-resources` |          35.0 |           2462.7 | **239** |       **0.076** |
+
+The declared non-text budget is `maxDiffRatio 0.001` / `maxByte 2`. The actual
+gap is 76-304x the ratio and >100x the amplitude. G3's positive half therefore
+has exactly two routes, and one of them is forbidden: widening the budget to
+admit the current divergence makes the gate vacuous (R5, and the task-state stop
+criterion "no forcing a gate green"). The user chose to split:
+
+- **4a** — build the comparator and **prove what it catches**, using a control
+  arm rather than the cross-leg gap.
+- **4b** — calibrate cross-leg budgets after the Skia divergence is repaired.
+  G3's positive half stays unmet until then, and that is recorded, not hidden.
+
+#### Phase 4a result — 2026-08-31 (instrument validated; two ADR-level findings)
+
+Files: `harness/{compare,ledger,mutations}.ts`,
+`compare/{negativeProbes,ledgerRatchet}.browser.test.ts`.
+
+**The probes compare a leg against itself.** Comparing the two legs would mix
+"the instrument caught this change" with "the renderers already differ", and the
+result would prove neither. Each probe runs the same Skia leg twice — once on
+the pilot document, once on a document with exactly one axis moved — so the only
+possible cause of a difference is the mutation (measurement-validity §1 Q3).
+Same-rasterizer comparison uses `maxByte 0` exact equality, never the perceptual
+threshold (§3.6).
+
+Two defects in the harness were found by the probes themselves, which is the
+point of running them:
+
+- **`PARITY-ENV` was unreachable in the control arm.** The backend check used
+  `[a, b].find(leg.legId === "skia")` — with two Skia legs it only ever inspected
+  the first, so a `gl` backend on the second passed silently. Now every Skia-side
+  leg is checked. In production use (Skia vs Preview) there is one Skia leg, so
+  this would have stayed invisible until a second Skia arm existed.
+- **L0 blocks mutation probes by construction.** A mutated document has a
+  different fixture checksum, so identity failed before any sensitivity could be
+  measured. `expectMutation` inverts that requirement: the checksums must
+  **differ**, so a mutation that turns out to be a no-op fails the probe instead
+  of quietly proving nothing.
+
+**Finding 1 — the "1px geometry offset" probe cannot fail L1, by the ADR's own
+rule.** §3.6 sets L1's blocking rule at "each delta ≤1 CSS px", while the Phase 4
+task list expects a 1px offset to fail. Measured: a 1px margin moves the box from
+`x 156 → 157`, `y 41 → 41.5`, L1 passes as specified, and the pixel layer catches
+the change. The ≤1px tolerance is not a mistake — cross-leg sub-pixel rounding
+needs it — so the probe was split instead: **probe 1** pins that a 1px shift
+passes L1 and is caught at L3, and **probe 1b** moves 4px to prove L1 blocks at
+all (and that it stops the run, since pixel diffs after a geometry divergence are
+not interpretable). Without 1b, "L1 pass" could just mean the layer sees nothing.
+
+**Finding 2 — a `frame`'s `backgroundColor` never reaches Skia pixels.** Changing
+one frame's fill from `#2F6FED` to `#00FF00` — full green — produces `maxByte 0`
+in **every** region. The same comparator, in the same run, catches a `variant`
+token change and a 4px shift, so this is not instrument insensitivity. Combined
+with Phase 0/3 (`basic-geometry-paint`, built entirely from frames, is the one
+case Skia renders uniformly white while Preview paints it at variance 5447.7),
+the Phase 0 blank now has a single-variable cause pointing at the frame fill
+channel rather than at the fixture or the harness. The repair is production Skia
+work and stays outside this phase; the measurement is pinned as a ratchet so the
+day it changes, the test says so.
+
+**Probe results:**
+
+| probe                          | expected                        | measured                                                       |
+| ------------------------------ | ------------------------------- | -------------------------------------------------------------- |
+| 1 — 1px offset                 | (revised) passes L1, caught L3  | L1 pass, `PARITY-L3-PIXEL`, box moved exactly 1px              |
+| 1b — 4px offset                | `PARITY-L1-GEOMETRY`, run stops | as expected; L3 `skip`                                          |
+| 2 — `variant` token change     | pixel layer, on amplitude too   | `PARITY-L3-PIXEL`, blocked region `maxByte` > 2                |
+| 3 — border 1px + radius 1px    | pixel or geometry layer         | blocked                                                         |
+| 4 — font size/line-height      | text layer                      | blocked                                                         |
+| 5 — blank both legs            | `PARITY-LIVE`, never a pass     | `PARITY-LIVE`; L3 `skip` — the identical blank frames never reach pixels |
+| 6 — non-`sw` backend           | `PARITY-ENV`, run stops         | `PARITY-ENV`; liveness `skip`                                   |
+| control — no mutation          | pass                            | pass, with L2 explicitly `skip`                                 |
+
+**Skipped layers are not counted as passes.** `ParityReport.layers` records
+`pass` / `fail` / `skip` with a reason for every skip. L2 is structurally skipped
+today because the Skia leg emits no normalized style — writing "all layers
+passed" while a layer never ran would be false, so the report says so out loud.
+
+**Exception ledger.** Seven ways of writing a soft exception are each rejected by
+a test that actually writes one: no owner (empty or `TBD`), no reason, no or
+malformed review date, a review date already past, a mask covering ≥90% of the
+frame (and an empty mask array, which reads as "anything"), a budget looser than
+the approved one, and a failure code outside the closed set. A valid entry
+passes, so the ratchet is not simply rejecting everything, and the live ledger is
+empty — which is the correct state. A static scan additionally checks that every
+`PARITY-*` string used anywhere in the harness is in `PARITY_CODES`, so a new
+code cannot appear without the ledger and `/fix` routing knowing about it.
+
+**`pixelmatch` ownership (R9).** It resolved only through hoisting from
+`packages/specs`, which is exactly the failure R9 names, so it is now declared in
+`apps/builder` at the same `^7.2.0`. The lockfile still carries a single
+`pixelmatch@7.2.0` entry — the version count did not increase. `pngjs` was not
+adopted: the browser encodes PNG natively, and adding a Node-stream library to a
+browser harness would buy nothing.
+
+**Flakiness note.** One full-suite run reported 4 failures while a `pnpm
+type-check` was running concurrently; four consecutive isolated runs afterwards
+were clean (12 files, 84 passed + 1 expected fail). Not attributed. Phase 5 sets
+wall-time budgets and should treat this as the first evidence that the settle
+timeouts are sensitive to machine load.
+
 ### Phase 5 — CI and developer workflow integration
 
 **Purpose**: make the gate automatic rather than advisory.

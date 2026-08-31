@@ -70,6 +70,7 @@
     "@types/lodash": "^4.17.25",
     "@types/node": "catalog:",
     "@types/papaparse": "^5.5.2",
+    "pixelmatch": "^7.2.0",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",

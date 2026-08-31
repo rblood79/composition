@@ -21,7 +21,9 @@ Accepted — 2026-08-31 (Proposed 2026-08-30 · review round 1 이슈 3건 전�
 | Phase 1 — fixture and result contracts                | **완료 2026-08-31** | G1 identity half 통과 — 파일럿 3종 전부 두 leg 이 같은 문서·환경 checksum + 콘텐츠 노드 identity/order 일치, negative 4종 의도한 코드로 차단. `9d892fac9`                                                         |
 | Phase 2 — production Skia software leg                | **완료 2026-08-31** | G1 entry half (정적 프로덕션 경로 증명 · 직접 draw 0 · 예외 사유 강제) + G2 Skia (10-run 해시 1종 maxByte 0 · 외부 요청 0 · surface 20/20 균형). liveness 는 3케이스 중 2케이스 충족, `basic-geometry-paint` 잔여 |
 | Phase 3 — production Preview DOM/CSS leg              | **완료 2026-08-31** | G1 entry half (런타임 진입 단언 — 핸드셰이크 + canonical 경로 생존, 간이 DOM 은 흉내 낸 핸드셰이크로도 차단) + G2 Preview (10-run RGBA 해시 1종 maxByte 0 · 외부 요청 0 · 설명되지 않은 에러 0). 캡처 배율 0.8 발견 → R14 + 뷰포트 핀. `Paragraph` → `<paragraph>` 결함 1건 ratchet |
-| Phase 4~6                                             | 미착수              | —                                                                                                                                                                                                                 |
+| Phase 4a — 계층 비교 계측기 + negative probe + ledger | **완료 2026-08-31** | 대조군(같은 leg × 단일 변형)으로 probe 6종 + ledger 7규칙 통과. 실측 2건: (1) §3.6 의 L1 허용치 "≤1px" 때문에 1px 오프셋은 정의상 L1 을 통과한다 → probe 를 1px(L3)/4px(L1) 로 분리, (2) frame 의 backgroundColor 가 Skia 픽셀에 도달하지 않는다 (`#00FF00` 로 바꿔도 전 region maxByte 0) — Phase 0 백색의 단일 변수 원인 |
+| Phase 4b — cross-leg 예산 교정 (G3 positive)          | 유보                | 두 leg 실측 격차가 예산의 76~304배 (maxByte 234~239). 예산을 넓히면 게이트가 vacuous 해지므로 Skia 발산 수리 후로 미룸 (사용자 결정 2026-08-31)                                                                    |
+| Phase 5~6                                             | 미착수              | —                                                                                                                                                                                                                 |
 
 > Source: user-requested architecture decision after evaluating
 > [vgpu](https://github.com/vercel-labs/vgpu). This is a new verification

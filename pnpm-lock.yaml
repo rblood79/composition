@@ -273,6 +273,9 @@ importers:
       jsdom:
         specifier: ^30.0.1
         version: 30.0.1
+      pixelmatch:
+        specifier: ^7.2.0
+        version: 7.2.0
       puppeteer:
         specifier: ^25.8.0
         version: 25.8.0(yauzl@2.10.0)
