@@ -17,7 +17,9 @@
     "test:watch": "vitest",
     "test:parity": "vitest run --config vitest.browser.config.ts",
     "test:visual-parity": "vitest run --config vitest.visual-parity.config.ts",
-    "clean": "rm -rf dist node_modules/.vite"
+    "clean": "rm -rf dist node_modules/.vite",
+    "test:visual-parity:smoke": "node scripts/visual-parity-gate.mjs smoke",
+    "test:visual-parity:full": "node scripts/visual-parity-gate.mjs full"
   },
   "dependencies": {
     "@composition/publish": "workspace:*",
