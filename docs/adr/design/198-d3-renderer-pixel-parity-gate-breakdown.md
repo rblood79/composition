@@ -1049,6 +1049,64 @@ both legs' geometry.
 numbers rather than deferred. Root-causing the three residuals is production
 work under §7 and needs its own authorization.
 
+#### Phase 4b follow-up — 2026-08-31 (two of the three residuals traced)
+
+The user authorized root-causing the three residuals, starting with the catalog
+one. Both traces below used the same discipline the phase itself argues for: a
+control arm that moves one axis, in both directions.
+
+**`catalog-state-paint` L1 geometry — root cause confirmed, repair is a decision.**
+
+The first hypothesis was that the engine flows block-level and inline-level
+siblings together where CSS would not. A control probe
+(`compare/blockInlineProbe.browser.test.ts`) **refuted** it: with a plain
+`inline-flex` frame in the same position, both legs place it identically. The
+axis is narrower than that:
+
+| second child | first child width | Skia | Preview |
+| --- | --- | --- | --- |
+| block frame | 120px | (16,56) | (16,56) |
+| inline-flex frame | 120px | (16,56) | (16,56) |
+| **catalog Button** | **120px** | **(136,21)** | **(16,56)** |
+| catalog Button | auto | (16,56) | (16,56) |
+
+The mechanism, read out of the code and confirmed by the last row:
+
+1. `Button` with no `style.display` resolves to `inline-block` via
+   `INLINE_BLOCK_TAGS` (`taffyDisplayAdapter.ts:395-408`).
+2. A block parent holding any inline-level child is converted wholesale to
+   **flex row wrap** to simulate an inline formatting context, because Taffy has
+   none (`taffyDisplayAdapter.ts:526-536`).
+3. Inside that simulation a block sibling only takes its own line by receiving
+   `width:100%`, and `needsBlockChildFullWidth` returns **false when the child
+   has an explicit width** (`taffyDisplayAdapter.ts:436-440`).
+4. So a fixed-width block sibling shares the line with inline-level siblings.
+   CSS gives a block box its own line regardless of width.
+
+`state-clip` is exactly that case (`width: 140px`). Removing the width restores
+agreement — the bidirectional control makes this a confirmed mechanism rather
+than a plausible story. **The repair changes layout semantics for existing
+documents**, so it is left as a user decision rather than taken unilaterally.
+
+**`basic-geometry-paint` residual — repaired, and the budget never moved.**
+
+A delta map showed the difference was a rectangle outline: the perimeter of the
+outer frame, interiors byte-identical. A pixel slice named the culprit —
+Preview painted `(16,42,92)` = `#102A5C` (the declared border) at y=20/21 while
+Skia left the fill colour `(47,111,237)` there. Same root cause as the frame
+background: `FrameSpec.render.shapes()` did not read `props.style`, so the
+border was never emitted. Fixing only the background had left this behind.
+
+After emitting a border shape, with **no change to any budget**:
+`body-fill` ratio 0.0221 → 0.00000, `outer-fill` 0.0557 → 0.00068 against the
+declared 0.001, and the case passes L3. The residual `maxByte 96` is corner-arc
+antialiasing whose ratio sits inside budget, so HC6's AND clause correctly
+declines to block it. This is the outcome Phase 4b predicted: the budgets were
+never the obstacle.
+
+`text-raster-resources` is untouched and remains pinned (text ×2 plus
+`image-raster` at ratio 0.914).
+
 ### Phase 5 — CI and developer workflow integration
 
 **Purpose**: make the gate automatic rather than advisory.
