@@ -2,8 +2,9 @@
 //!
 //! `apps/builder/.../layout/engines/taffyDisplayAdapter.ts` 의 **자기완결 순수**
 //! display 문자열 변환 계층 이식. CSS Display Level 3 이원 구조(outer/inner) 파싱 +
-//! blockification + inline-level 판정 + 자식 display 분류. 전부 문자열 in/out.
-//! (ADR-916 Phase 2-A `taffyDisplayAdapter.ts` 이관의 첫 착수 단위.)
+//! blockification + inline-level / atomic inline-level 판정. (구 자식 display 분류
+//! `classify_child_display` 는 ADR-923 Phase 1 에서 삭제 — inline-flex 를 Block 으로
+//! 분류해 line item 판정에 쓸 수 없었다.)
 //!
 //! Dropflow 원본(`packages/layout-flow/`) 의 검증된 Display 타입 시스템 기반.
 //! CSS Display Level 3 two-value display syntax(<https://www.w3.org/TR/css-display-3/>).

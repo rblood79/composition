@@ -12,7 +12,7 @@
 import type { CanvasLayoutNode } from "../layoutNode";
 import { getLayoutRootKey } from "../layoutRootKey";
 import type { ComputedLayout } from "./LayoutEngine";
-import type { TaffyStyle } from "../../wasm-bindings/layoutTypes";
+import type { TaffyDisplay, TaffyStyle } from "../../wasm-bindings/layoutTypes";
 import { isCompositionEngineReady } from "../../wasm-bindings/compositionEngineWasm";
 import { PersistentTaffyTree } from "./persistentTaffyTree";
 import { installLayoutExplain } from "./layoutExplain";
@@ -802,11 +802,37 @@ const IMPLICIT_DIM_PROPS = new Set([
 ]);
 
 /**
+ * batch `display` 정규화 — post-order implicit patch 경로의 **TS 운반 union 강제**
+ * (ADR-923 reviews round 6 r6h1, 2026-09-01).
+ *
+ * `patchBatchStyleFromImplicit` 는 문자열 값을 raw 로 복사하므로 style.display 가
+ * `inline-flex` / `inline-grid` / `inline-block` 이면 `buildNodeStyle` 이 정규화한 batch 값을
+ * 덮어써 union(`TaffyDisplay`) 밖 값이 wasm 경계에 도달했다 (Label 공통 주입이 style 을
+ * clone 하는 경우 등 — `tests/parity/seamDisplayInvariant.browser.test.ts` 가 재현). 엔진이
+ * Phase 1(`5822f2496`) 부터 outer 를 block 부모의 line item 으로 읽으므로 이 누출은
+ * 프로덕션 배치를 phase 경계 밖에서 바꾼다.
+ *
+ * 규칙 = 1차 writer 와 동일 (S9 — `TaffyFlexEngine.ts:110-117` / `buildNodeStyle` flex·grid
+ * 분기 / `toTaffyDisplay` inner-only): none → none, inner flex/grid → flex/grid, 그 외
+ * (block · inline · inline-block · flow-root · 미인식) → block. **Phase 5 (S9 제거) 에서
+ * 함께 삭제** — 그때는 CSS 값 통과가 계약이다 (seam 테스트도 같이 삭제/반전).
+ */
+function toBatchDisplay(raw: string): TaffyDisplay {
+  const blockified = blockifyDisplay(raw).trim().toLowerCase();
+  if (blockified === "flex" || blockified === "grid" || blockified === "none") {
+    return blockified;
+  }
+  return "block";
+}
+
+/**
  * applyImplicitStyles가 변경한 CSS 속성을 batch record에 패치.
  *
  * DFS post-order에서 자식은 부모보다 먼저 처리되므로,
  * 부모의 applyImplicitStyles 결과가 자식 batch 엔트리에 반영되지 않는다.
  * 변경된 속성만 찾아 taffyStyleToRecord 형식으로 패치한다.
+ *
+ * `display` 는 raw 복사 금지 — `toBatchDisplay` 로 운반 union 을 강제한다 (ADR-923 r6h1).
  */
 function patchBatchStyleFromImplicit(
   batchStyle: Record<string, unknown>,
@@ -862,8 +888,11 @@ function patchBatchStyleFromImplicit(
     ) {
       // CSS string ("1fr auto") → WASM 이 기대하는 array 로 정규화
       coercedVal = coerceGridTrack(val);
+    } else if (key === "display") {
+      // ADR-923 r6h1: 운반 union 강제 — raw inline-* 가 wasm 경계로 새지 않게 (Phase 5 제거)
+      coercedVal = toBatchDisplay(String(val));
     } else if (typeof val === "string") {
-      coercedVal = val; // display, flexDirection, alignItems 등
+      coercedVal = val; // flexDirection, alignItems 등
     } else if (Array.isArray(val)) {
       coercedVal = val; // gridTemplateAreas 등
     } else {
