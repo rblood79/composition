@@ -1,0 +1,1 @@
+../../.claude/rules/ssot-hierarchy-context.md
