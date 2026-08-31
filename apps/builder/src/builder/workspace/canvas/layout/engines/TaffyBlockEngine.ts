@@ -110,6 +110,7 @@ export function elementToTaffyBlockStyle(
   element: CanvasLayoutNode,
   taffyConfig: TaffyDisplayConfig,
   ctx: CSSValueContext = {},
+  computedFontSize?: number,
 ): TaffyStyle {
   const style = (element.props?.style || {}) as Record<string, unknown>;
   const result: TaffyStyle = {};
@@ -143,7 +144,7 @@ export function elementToTaffyBlockStyle(
   // Size + Min/Max + Padding + Border + Gap (공통 헬퍼)
   // Taffy 0.9 box model: style.size = border-box (padding+border 포함)
   // applyCommonTaffyStyle()이 size/padding/border/gap 처리 → padding 차감 금지
-  applyCommonTaffyStyle(result as Record<string, unknown>, style, ctx);
+  applyCommonTaffyStyle(result as Record<string, unknown>, style, ctx, computedFontSize);
 
   // Align self (block 자식도 flex 부모 안에 들어갈 수 있음)
   if (style.alignSelf) {

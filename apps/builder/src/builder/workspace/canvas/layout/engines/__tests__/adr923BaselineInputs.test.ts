@@ -49,4 +49,16 @@ describe("ADR-923 Phase 2 — applyCommonTaffyStyle baseline 입력 통과", () 
     applyCommonTaffyStyle(result, { lineHeight: "normal", fontSize: 16 }, {});
     expect(result.lineHeight).toBeUndefined();
   });
+
+  it("unitless lineHeight 는 상속 computed fontSize 로 환산한다 (r7m2 — inline 부재 시 기본 16 금지)", () => {
+    const result: Record<string, unknown> = {};
+    applyCommonTaffyStyle(result, { lineHeight: 1.5 }, {}, 20);
+    expect(result.lineHeight).toBe(30);
+  });
+
+  it("inline fontSize 가 computed fontSize 보다 우선한다 (computed 는 inline 포함이 원칙이나 방어 계약)", () => {
+    const result: Record<string, unknown> = {};
+    applyCommonTaffyStyle(result, { lineHeight: 1.5, fontSize: 10 }, {}, 20);
+    expect(result.lineHeight).toBe(15);
+  });
 });

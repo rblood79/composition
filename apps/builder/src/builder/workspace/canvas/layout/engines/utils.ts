@@ -5207,6 +5207,7 @@ export function applyCommonTaffyStyle(
   result: Record<string, unknown>,
   style: Record<string, unknown>,
   ctx: CSSValueContext,
+  computedFontSize?: number,
 ): void {
   // Size — parseCSSPropWithContext가 number|string|undefined 반환
   // normalizeStyle.dimToString()이 JSON 직렬화 시 number → "Npx" 변환
@@ -5246,6 +5247,9 @@ export function applyCommonTaffyStyle(
     result.verticalAlign = style.verticalAlign;
   }
   {
+    // r7m2: unitless 배율(1.5)의 환산 기준은 inline fontSize → 상속 computed fontSize
+    // 순 — computed 없이 기본 16 으로 떨어뜨리면 fontSize 상속 요소의 lineHeight 가
+    // 계약(CSS: 자신의 computed font-size 기준)과 어긋난다 (20×1.5 기대 30, 종전 24).
     const fsRaw = style.fontSize;
     const fs =
       typeof fsRaw === "number"
@@ -5253,7 +5257,7 @@ export function applyCommonTaffyStyle(
         : typeof fsRaw === "string"
           ? parseFloat(fsRaw) || undefined
           : undefined;
-    const lineHeightPx = parseLineHeight(style, fs);
+    const lineHeightPx = parseLineHeight(style, fs ?? computedFontSize);
     if (lineHeightPx !== undefined) result.lineHeight = lineHeightPx;
   }
   if (typeof style.leafBaseline === "number") {

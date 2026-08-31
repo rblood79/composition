@@ -838,6 +838,7 @@ function toBatchDisplay(raw: string): TaffyDisplay {
 function patchBatchStyleFromImplicit(
   batchStyle: Record<string, unknown>,
   modStyle: Record<string, unknown>,
+  computedFontSize?: number,
 ): void {
   // 각 modStyle key 를 Taffy 형식 (targetKey, coercedVal) 로 정규화한 뒤
   // batchStyle 의 현재 값과 비교해 달라진 경우에만 패치한다.
@@ -905,7 +906,8 @@ function patchBatchStyleFromImplicit(
           : typeof fsRaw === "string"
             ? parseFloat(fsRaw) || undefined
             : undefined;
-      const px = parseLineHeight({ lineHeight: val }, fs);
+      // r7m2: 기본 16 폴백 금지 — inline(mod/batch) 부재 시 상속 computed fontSize.
+      const px = parseLineHeight({ lineHeight: val }, fs ?? computedFontSize);
       if (px === undefined) continue; // normal/미해석 → 기존 batch 값 유지
       coercedVal = px;
     } else if (typeof val === "string") {
@@ -1135,7 +1137,7 @@ function buildNodeStyle(
     // applyCommonTaffyStyle로 공통 부분을 처리하고 grid display를 주입한다.
     const style = mergedStyle;
     const partial: Record<string, unknown> = { display: "grid" };
-    applyCommonTaffyStyle(partial, style, {});
+    applyCommonTaffyStyle(partial, style, {}, computedStyle.fontSize);
 
     // Grid container 핵심 속성 전달. spec/props.style 이 CSS string ("1fr auto")
     // 형식으로 저장할 수 있어 WASM 이 기대하는 track array 로 정규화.
@@ -1211,6 +1213,8 @@ function buildNodeStyle(
   const taffyStyle: TaffyStyle = elementToTaffyBlockStyle(
     enriched,
     taffyConfig,
+    {},
+    computedStyle.fontSize,
   );
   const record = taffyStyleToRecord(taffyStyle);
 
@@ -2063,7 +2067,11 @@ function traversePostOrder(
       string,
       unknown
     >;
-    patchBatchStyleFromImplicit(batch[batchIdx].style, modStyle);
+    patchBatchStyleFromImplicit(
+      batch[batchIdx].style,
+      modStyle,
+      resolveStyle(modStyle, computedStyle).fontSize,
+    );
 
     // DFS post-order: 자식이 부모보다 먼저 enrichment → fontSize 미주입 상태로 계산됨
     // implicitStyles가 fontSize를 주입하면 height(lineHeight 기반) + fit-content width 재계산
@@ -3070,7 +3078,7 @@ export function calculateFullTreeLayout(
             string,
             unknown
           >;
-          patchBatchStyleFromImplicit(node.style, reStyle);
+          patchBatchStyleFromImplicit(node.style, reStyle, childComputed.fontSize);
           const styleChanged = persistentTree.updateNodeStyle(
             node.elementId,
             node.style,

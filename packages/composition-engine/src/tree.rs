@@ -275,7 +275,8 @@ pub struct NodeStyle {
 
 /// `NodeStyle` 선언 필드 수 — ADR-156 R7/G6 정적 가드 앵커.
 ///
-/// breakdown §1-3 3축 교차표의 "NodeStyle 49필드" 를 코드로 고정한다. 이 값을
+/// breakdown §1-3 3축 교차표의 "NodeStyle 49필드"(현재 54 — ADR-165 +2 ·
+/// ADR-923 P2 +3) 를 코드로 고정한다. 이 값을
 /// 바꾸면(= 필드 추가/삭제) `nodestyle_field_contract_guard` 의 전수 구조분해가
 /// 먼저 컴파일 RED 이므로, 교차표 갱신 없이 필드만 늘리는 silent drift 가 차단된다.
 pub const NODESTYLE_FIELD_COUNT: usize = 54;
@@ -286,11 +287,11 @@ pub const NODESTYLE_FIELD_COUNT: usize = 54;
 /// 필드로, 소비 코드를 배선하면 이 목록에서 제거한다. 반대로 신규 미소비 필드가
 /// 생기면 여기 등재해야 `nodestyle_field_contract_guard` 산술(소비+미소비=선언)이
 /// 맞는다. `order`(E16)·`grid_template_areas` 는 `NodeStyle` 미선언(serde silent
-/// drop)이라 필드 수(49)에 불포함 — 유입 경로가 생기면 선언 후 재판정.
+/// drop)이라 필드 수(54)에 불포함 — 유입 경로가 생기면 선언 후 재판정.
 ///
 /// **2026-07-18 (옵션 3-a)**: `justifySelf`/`justifyItems` 는 `solve_grid` 의
 /// `grid_inline_justify`/`parse_justify_items` 배선으로 소비 전환 → 목록 비움.
-/// 남은 미소비 필드 0 (49 전부 소비).
+/// 남은 미소비 필드 0 (전부 소비 — 이후 ADR-165 +2 · ADR-923 P2 +3 로 54).
 pub const UNCONSUMED_NODESTYLE_FIELDS: [&str; 0] = [];
 
 /// batch 트리 빌드 입력 (taffy_bridge.rs `BatchNodeInput` 대응).
@@ -3267,9 +3268,13 @@ impl LayoutTree {
         let grid_align_items = parse_align_items(style.align_items.as_deref());
         let grid_justify_items = parse_justify_items(style.justify_items.as_deref());
         let mut max_right: f32 = 0.0;
-        // ADR-923 Phase 2: grid 컨테이너 baseline = 첫 row 첫 원천 보유 item 근사
-        // (auto-flow row 배치 순서 = row-major 이므로 첫 원천 item 이 첫 row 소속).
+        // ADR-923 Phase 2 (r7m1 수정): grid 컨테이너 baseline = **placement row-major
+        // 첫** 원천 보유 item (CSS-ALIGN-3 §9.3 first-baseline set = 첫 row 기준).
+        // 종전 children source 순서 첫 원천은 명시 placement 가 순서를 뒤집으면
+        // (row2 item 이 source 앞) 다른 row 의 baseline 을 냈다 — 후보 정렬 키 =
+        // 셀 (y, x) (offset 전 좌표; 같은 row 는 같은 트랙 y 라 f32 동등 비교 안전).
         let mut first_item_baseline: f32 = BASELINE_NONE;
+        let mut first_item_key: (f32, f32) = (f32::INFINITY, f32::INFINITY);
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
             let (x, y, w, h) = (bounds[off], bounds[off + 1], bounds[off + 2], bounds[off + 3]);
@@ -3374,7 +3379,11 @@ impl LayoutTree {
                     height: fh,
                     baseline: child_baseline,
                 };
-                if first_item_baseline < 0.0 && child_baseline >= 0.0 {
+                if child_baseline >= 0.0
+                    && (y < first_item_key.0
+                        || (y == first_item_key.0 && x < first_item_key.1))
+                {
+                    first_item_key = (y, x);
                     first_item_baseline = fy + off_y + child_baseline;
                 }
             }
@@ -5058,14 +5067,14 @@ mod tests {
     ///    여부 판정 → 미소비면 `UNCONSUMED_NODESTYLE_FIELDS` 등재. 문서 표 단독은
     ///    stale 화하므로(본 ADR 이 발견한 미소비 9필드가 어떤 가드에도 안 걸렸음)
     ///    이 구조분해가 상시성의 근거다.
-    /// 2. **산술 계약** — 소비 47 + 미소비 2 = 선언 49 (breakdown §1-3 "49 = 소비 +
+    /// 2. **산술 계약** — 소비 54 + 미소비 0 = 선언 54 (breakdown §1-3 "선언 = 소비 +
     ///    미소비" 앵커). 필드를 소비 배선하며 allowlist 에서 빼면 CONSUMED_COUNT 도
     ///    함께 갱신해야 통과.
     /// 3. **미소비 allowlist** — `UNCONSUMED_NODESTYLE_FIELDS` 가 §Residual 과 1:1.
     #[test]
     fn nodestyle_field_contract_guard() {
         // (1) 전수 구조분해 — `..` 절대 금지. 필드 추가 시 컴파일 RED.
-        //     소비 여부와 무관하게 49필드를 전부 명시(바인딩은 `_`)해야 통과한다.
+        //     소비 여부와 무관하게 54필드를 전부 명시(바인딩은 `_`)해야 통과한다.
         let NodeStyle {
             display: _,
             position: _,
@@ -7889,6 +7898,28 @@ mod tests {
         let h2 = tree2.build_tree_batch(grid_json).unwrap();
         tree2.compute_layout(h2[1], 200.0, 100.0);
         assert_eq!(tree2.get_layout(h2[1]).baseline, 12.0, "grid: 첫 row 첫 item baseline");
+    }
+
+    /// grid 컨테이너 baseline 은 **placement row-major 첫** 원천 item — source 순서가 아니다.
+    ///
+    /// Codex round 7 r7m1: 명시 placement 로 source 순서(A=row2, B=row1)를 뒤집으면
+    /// 종전 코드는 children 배열 첫 원천(A, row2)을 골라 30+12=42 를 냈다. CSS-ALIGN-3
+    /// §9.3 first-baseline set 은 첫 row 기준 — 기대값은 B(row1) 의 0+4=4.
+    #[test]
+    fn adr923_p2_grid_container_baseline_row_major_not_source_order() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"30px","height":"20px","leafBaseline":12,"gridRowStart":"2"},"children":[]},
+            {"style":{"width":"30px","height":"20px","leafBaseline":4,"gridRowStart":"1"},"children":[]},
+            {"style":{"display":"grid","gridTemplateColumns":["100px"],"gridTemplateRows":["30px","30px"],"width":"100px","height":"60px"},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 200.0, 100.0);
+        assert_eq!(
+            tree.get_layout(h[2]).baseline,
+            4.0,
+            "placement 첫 row(B, y=0) 의 원천 4 — source 첫(A, row2) 42 아님"
+        );
     }
 
     // ── ADR-923 Phase 1: display.rs 배선 — outer → line item, inner → solver ──

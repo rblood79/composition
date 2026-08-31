@@ -76,7 +76,10 @@ beforeAll(async () => {
   const outSpy = vi.spyOn(CompositionEngineLayout.prototype, "getLayoutsBatch");
   // r6h1 교훈: batch 를 다시 쓰는 **모든** writer 를 캡처 — 2-pass 재-enrich /
   // post-order patch 는 updateStyleRaw 로 나간다 (buildTreeBatch 만 보면 누락).
+  // r7l1: 세 번째 writer createNodeRaw(신규 노드 sync 추가 경로 — persistentTaffyTree
+  // addNode)도 캡처 — 이 시나리오에선 보통 0회지만 writer inventory 를 닫는다.
   const updSpy = vi.spyOn(CompositionEngineLayout.prototype, "updateStyleRaw");
+  const crSpy = vi.spyOn(CompositionEngineLayout.prototype, "createNodeRaw");
   try {
     pipelineLeg(NODES, 400, -1);
     batches = jsonSpy.mock.calls.map(
@@ -87,6 +90,9 @@ beforeAll(async () => {
       ...updSpy.mock.calls.map(
         ([, json]) => JSON.parse(json) as Record<string, unknown>,
       ),
+      ...crSpy.mock.calls.map(
+        ([json]) => JSON.parse(json) as Record<string, unknown>,
+      ),
     ];
     layoutMaps = outSpy.mock.results
       .filter((r) => r.type === "return")
@@ -95,6 +101,7 @@ beforeAll(async () => {
     jsonSpy.mockRestore();
     outSpy.mockRestore();
     updSpy.mockRestore();
+    crSpy.mockRestore();
   }
 });
 
