@@ -123,9 +123,11 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 
 ### MEDIUM
 
-- **[perf-checklist](rules/perf-checklist.md)** / **[perf-map-set-lookups](rules/perf-map-set-lookups.md)** / **[test-stories-required](rules/test-stories-required.md)**
+- **[perf-checklist](rules/perf-checklist.md)** / **[perf-map-set-lookups](rules/perf-map-set-lookups.md)** / **[perf-barrel-imports](rules/perf-barrel-imports.md)** / **[perf-dynamic-imports](rules/perf-dynamic-imports.md)** / **[perf-promise-all](rules/perf-promise-all.md)** / **[test-stories-required](rules/test-stories-required.md)**
 
 ## 상세 레퍼런스
+
+> **참조 깊이 1단** — skill 내부 파일 (`rules/*.md` 45 · `reference/*.md` 10) 은 전부 위 규칙 목록과 아래 표에서 **직접** 연다 (Claude Code skill 가이드 "one level deep"). 파일 간 링크는 see-also 이지 내용 위임이 아니다 — 새 rule/reference 를 추가하면 여기에 직접 등재한다 (`rules/_sections.md`·`_template.md` 는 작성 템플릿이라 제외).
 
 | 도메인                     | 파일                                                                                                                            |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
