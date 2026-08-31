@@ -282,7 +282,35 @@ icon class suffix → semantic 값 (row/column/block 등) 추가 변환은 optio
 
 불일치 발견 시 Phase 4 결과 테이블에 CRITICAL/HIGH 로 추가하고 즉시 수정.
 
+### 5.6 자동 시각 파리티 게이트 (ADR-198) — 사람 판단보다 먼저
+
+안정 fixture 에 대한 Skia↔Preview 대칭은 사람이 스크린샷을 보기 전에 기계가 먼저 판정합니다. dev 서버도 Chrome extension 도 필요 없습니다:
+
+```bash
+pnpm gate:visual-parity          # smoke — 파일럿 3종, 실측 7.4s
+pnpm -F @composition/builder test:visual-parity:full   # 전체 매트릭스
+```
+
+**게이트가 지금 실제로 막는 것** (Phase 1~4a 반영분):
+
+- 두 leg 의 fixture/환경 checksum·노드 identity·순서 불일치 (`PARITY-L0-IDENTITY`)
+- 죽은 프레임 — 두 leg 이 나란히 백색이어도 통과가 아님 (`PARITY-LIVE`)
+- Skia leg 이 `sw` 아닌 백엔드로 그려진 경우 (`PARITY-ENV`)
+- leg 별 10회 재현성 (`maxByte 0`), 외부 요청 0, 설명되지 않은 콘솔 에러 0
+- 계측기 민감도 — 4px 이동/토큰 색/보더·반경/폰트 메트릭 변경이 의도한 layer 에서 막히는지
+- 예외 ledger 의 7가지 무른 작성법 (주인 없음·사유 없음·만료된 검토일·프레임 90% 마스크·예산 완화·닫힌 집합 밖 코드)
+
+**게이트가 아직 막지 못하는 것** — 여기가 live 검토가 여전히 필요한 이유입니다:
+
+- **cross-leg 픽셀 예산이 미집행** (Phase 4b 잔여). 두 leg 실측 격차가 예산의 76~304배라 예산을 넓히면 게이트가 vacuous 해지므로, Skia frame fill 결함 수리 전까지 G3 positive 는 미충족으로 남겨 둡니다. 즉 **색·픽셀 발산은 아직 사람이 봐야 합니다.**
+- 파일럿 3종 밖의 컴포넌트·상태 (Phase 6 매트릭스 미착수)
+- 상호작용·포커스·애니메이션 등 고정 fixture 로 인코딩되지 않는 상태
+
+D3 경로를 건드린 push 는 pre-push hook 이 같은 smoke 를 자동으로 돌립니다 (`bash scripts/install-git-hooks.sh` 로 설치, `SKIP_VISUAL_PARITY=1` 로 우회).
+
 ### 생략 조건
+
+> Phase 5 를 생략해도 **§5.6 자동 게이트는 생략하지 않습니다** — 브라우저·dev 서버 없이 돌고, CI 환경에서도 실행됩니다.
 
 아래에 해당하면 Phase 5를 건너뜁니다:
 

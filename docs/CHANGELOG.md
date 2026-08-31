@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Skia↔Preview 시각 파리티 게이트 — push 차단 지점 추가 (ADR-198 Phase 5)] - 2026-08-31
+
+### Added
+
+- **D3 시각 파리티 게이트가 push 를 막을 수 있습니다**: catalog/spec·생성 CSS·Canvas/Skia·Preview·폰트/wasm·하니스 중 하나라도 건드린 push 는 `pre-push` 에서 Skia↔Preview smoke (실측 7.4초) 를 먼저 돌립니다. 그 외 push (문서·통계·ADR 본문 등) 는 즉시 통과하므로 평소 흐름은 그대로입니다. 설치 `bash scripts/install-git-hooks.sh`, 우회 `SKIP_VISUAL_PARITY=1 git push origin main`. 명령은 `pnpm gate:visual-parity` (smoke) / `pnpm -F @composition/builder test:visual-parity:full`.
+- 지금 이 게이트가 막는 것은 두 렌더러의 **입력 identity·죽은 프레임·재현성·계측기 민감도·예외 ledger** 입니다. **색·픽셀 발산은 아직 막지 못합니다** (ADR-198 Phase 4b 잔여) — 그 판단은 여전히 `/cross-check` 의 live 검토 소관입니다.
+
 ## [컴포넌트 원본·인스턴스 드래그 응답성] - 2026-08-31
 
 ### Fixed

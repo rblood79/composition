@@ -776,15 +776,15 @@ unscaled numbers — every geometry assertion still passes. Measured on this hos
 | 1280x900           | 0.800 | 192x144           |
 | 1280x720           | 1.000 | 240x180           |
 
-This is a *systematic* downscale, not drift: it is perfectly repeatable, so the
+This is a _systematic_ downscale, not drift: it is perfectly repeatable, so the
 10-run hash, the surface balance and the environment checksum all stay green
 while L3 would be comparing two different resolutions with resampling error
 hidden inside the budget. Recorded as **R14**; the mitigation is the viewport pin
 in `vitest.visual-parity.config.ts` plus a per-run `shot.width === rect.width`
 assertion, so a host whose window is smaller fails loudly instead of quietly.
 
-**G1 entry half (runtime).** The static half proves the Skia leg *imports*
-production; the runtime half has to prove the Preview leg *is* the production
+**G1 entry half (runtime).** The static half proves the Skia leg _imports_
+production; the runtime half has to prove the Preview leg _is_ the production
 consumer. `assertProductionEntry` requires two things together: the production
 handshake arrived, and sending different canonical documents produces different
 DOM. The second is the load-bearing one, and `simplifiedDomProbe` shows why — it
@@ -954,16 +954,16 @@ day it changes, the test says so.
 
 **Probe results:**
 
-| probe                          | expected                        | measured                                                       |
-| ------------------------------ | ------------------------------- | -------------------------------------------------------------- |
-| 1 — 1px offset                 | (revised) passes L1, caught L3  | L1 pass, `PARITY-L3-PIXEL`, box moved exactly 1px              |
-| 1b — 4px offset                | `PARITY-L1-GEOMETRY`, run stops | as expected; L3 `skip`                                          |
-| 2 — `variant` token change     | pixel layer, on amplitude too   | `PARITY-L3-PIXEL`, blocked region `maxByte` > 2                |
-| 3 — border 1px + radius 1px    | pixel or geometry layer         | blocked                                                         |
-| 4 — font size/line-height      | text layer                      | blocked                                                         |
-| 5 — blank both legs            | `PARITY-LIVE`, never a pass     | `PARITY-LIVE`; L3 `skip` — the identical blank frames never reach pixels |
-| 6 — non-`sw` backend           | `PARITY-ENV`, run stops         | `PARITY-ENV`; liveness `skip`                                   |
-| control — no mutation          | pass                            | pass, with L2 explicitly `skip`                                 |
+| probe                       | expected                        | measured                                                                 |
+| --------------------------- | ------------------------------- | ------------------------------------------------------------------------ |
+| 1 — 1px offset              | (revised) passes L1, caught L3  | L1 pass, `PARITY-L3-PIXEL`, box moved exactly 1px                        |
+| 1b — 4px offset             | `PARITY-L1-GEOMETRY`, run stops | as expected; L3 `skip`                                                   |
+| 2 — `variant` token change  | pixel layer, on amplitude too   | `PARITY-L3-PIXEL`, blocked region `maxByte` > 2                          |
+| 3 — border 1px + radius 1px | pixel or geometry layer         | blocked                                                                  |
+| 4 — font size/line-height   | text layer                      | blocked                                                                  |
+| 5 — blank both legs         | `PARITY-LIVE`, never a pass     | `PARITY-LIVE`; L3 `skip` — the identical blank frames never reach pixels |
+| 6 — non-`sw` backend        | `PARITY-ENV`, run stops         | `PARITY-ENV`; liveness `skip`                                            |
+| control — no mutation       | pass                            | pass, with L2 explicitly `skip`                                          |
 
 **Skipped layers are not counted as passes.** `ParityReport.layers` records
 `pass` / `fail` / `skip` with a reason for every skip. L2 is structurally skipped
@@ -1018,6 +1018,88 @@ Tasks:
 
 **Gate G5**: required check cannot skip, smoke ≤90s, full ≤5min, and each seeded
 failure produces complete artifacts.
+
+#### Phase 5 result — 2026-08-31 (local half measured; CI half written, unobserved)
+
+Files: `apps/builder/scripts/visual-parity-gate.mjs`, `apps/builder/package.json`,
+`.githooks/pre-push`, `scripts/install-git-hooks.sh`, `package.json`,
+`.github/workflows/deploy.yml`, `.claude/skills/cross-check/SKILL.md` §5.6.
+
+**A runner instead of a bare `vitest run`.** Four of this ADR's clauses cannot be
+expressed as a vitest invocation, so the gate is a script that wraps two of them:
+
+| clause              | what the runner does                                                                                      |
+| ------------------- | --------------------------------------------------------------------------------------------------------- |
+| HC11 / G5 ordering  | doctor runs in its **own** invocation first; vitest does not order files, so sequencing is the only proof |
+| G5 "cannot skip"    | measured test counts are floors (`doctor 3` / `smoke 69` / `full 82`); a silently emptied matrix fails    |
+| HC10 budgets        | wall time is compared to 90s / 300s on **every** run, not asserted in prose                               |
+| HC9 closed code set | a failure's `PARITY-*` code is lifted from the output; absent one, it is a setup failure → `PARITY-ENV`   |
+
+**Measured 2026-08-31** (warm local, pinned Chromium): smoke 72 tests / **7.4s**
+of a 90s budget; full 88 tests / **8.3s** of a 300s budget. `full` re-runs doctor,
+which is why its count exceeds the 85 the include glob holds.
+
+**The runner was checked against a control arm, not just observed passing.** Three
+deliberate breaks, each reverted after measuring: pointing `DOCTOR` at a
+nonexistent file stopped the run before the matrix with `PARITY-ENV` (proving the
+ordering is real, not incidental); raising the smoke floor to 999 failed on the
+count; lowering the budget to 1s failed on wall time. A gate that has never been
+seen to fail is not known to be a gate.
+
+**smoke/full split is by character, not by cost.** With the whole suite at 8.3s
+there is no cost to trim, so trimming for speed would only have made the smoke
+gate weaker for nothing. `rasterDelta` (the R13 premise, measured once) and the
+three preview harness probes ask questions about the harness rather than about
+the code being pushed, so they sit in `full`.
+
+**Two blocking points, because there is no PR.** `git-workflow.md` forbids web
+PRs, so a PR status check does not exist here. The gate therefore runs (a) in
+`.githooks/pre-push`, installed by `scripts/install-git-hooks.sh` via
+`core.hooksPath`, and (b) as a `visual-parity-smoke` job in `deploy.yml` that
+`build-and-deploy` declares in `needs:`.
+
+Two topology facts forced the shape:
+
+- **Cross-workflow `needs:` does not exist in GitHub Actions.** §3.2 anticipated
+  this and permitted attaching the job to `deploy.yml` directly; that is what was
+  done, with the job name and pass/fail contract preserved.
+- **Path scoping must live inside the job, never in workflow `paths:`.** A job
+  skipped by `paths:` propagates the skip to everything in its `needs:` chain, so
+  a docs-only push would silently stop deploying. The job always starts and
+  decides internally, and reports "no D3 paths changed" as a pass.
+
+The same path set gates the hook, so a push that cannot change D3 pixels costs
+nothing. Measured against real commits: `135829572` (docs) and `87340bc84`
+(stats) matched 0 paths and returned immediately; `b369fe1e4` matched 5 and
+`1bc3c0b69` matched 11 and ran the gate. `SKIP_VISUAL_PARITY=1` bypasses it and
+says so out loud.
+
+**G5 is partially met, and the missing half is not the harness's fault.**
+
+- Local pre-push gate: **met** — installed, exercised in a real
+  `git push origin main`, wall time measured.
+- `push: main` job that deployment depends on: **written, never observed.** No CI
+  run has been seen. Two reasons, both recorded rather than worked around: `gh`
+  is unauthenticated in this environment, and — separately — **`deploy.yml` has
+  been failing since `022f43c5a` (2026-07-06)**, where ADR-916 removed the root
+  `wasm:build` script that the workflow's "Build Rust WASM" step still calls
+  (`wasm:build:engine` is the surviving name). A gate wired into a workflow that
+  has not completed in ~2 months blocks nothing today. Repairing the deploy path
+  would resume GitHub Pages publishing after two months of silence, which is a
+  user decision and not this phase's scope, so it is reported instead of fixed.
+- Seeded-failure artifacts in CI: **not observed** for the same reason. The
+  upload step is declared with 7-day retention.
+
+Accordingly the ADR's status stays below Implemented and G5 is recorded as
+partially met; the acceptance evidence format's "push: main smoke wall time" row
+is an explicit residual, not an omission.
+
+**What `/cross-check` was told.** §5.6 now routes stable fixtures to
+`pnpm gate:visual-parity` before human screenshot review, and — more importantly
+— states what the gate does **not** yet enforce: cross-leg pixel budgets are
+unenforced until Phase 4b, so colour and pixel divergence remains a live-review
+responsibility. A skip note was added so that skipping Phase 5 (no dev server, no
+extension, CI) is not read as skipping the automated gate, which needs neither.
 
 ### Phase 6 — Representative D3 matrix and closure
 
