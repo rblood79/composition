@@ -127,18 +127,24 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 
 ## 상세 레퍼런스
 
-| 도메인                     | 파일                                                                               |
-| -------------------------- | ---------------------------------------------------------------------------------- |
-| Layout Engine              | [reference/layout-engine.md](reference/layout-engine.md)                           |
-| Layout Engine 구현 상세    | [reference/layout-details.md](reference/layout-details.md)                         |
-| Layout CSS 정합 실측 기록  | [reference/layout-css-parity-ledger.md](reference/layout-css-parity-ledger.md)     |
-| Canvas 렌더링 구현 상세    | [reference/canvas-details.md](reference/canvas-details.md)                         |
-| State 관리 구현 상세       | [reference/state-details.md](reference/state-details.md)                           |
-| Compositional Architecture | [reference/compositional-architecture.md](reference/compositional-architecture.md) |
-| Child Composition & Spec   | [reference/child-composition.md](reference/child-composition.md)                   |
-| Text Wrapping              | [reference/text-wrapping.md](reference/text-wrapping.md)                           |
-| Style Panel                | [reference/style-panel.md](reference/style-panel.md)                               |
-| Component Registry         | [reference/component-registry.md](reference/component-registry.md)                 |
+| 도메인                     | 파일                                                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Layout Engine              | [reference/layout-engine.md](reference/layout-engine.md)                                                                        |
+| Layout Engine 구현 상세    | [reference/layout-details.md](reference/layout-details.md)                                                                      |
+| Layout CSS 정합 실측 기록  | [reference/layout-css-parity-ledger.md](reference/layout-css-parity-ledger.md)                                                  |
+| Canvas 렌더링 구현 상세    | [reference/canvas-details.md](reference/canvas-details.md)                                                                      |
+| State 관리 구현 상세       | [reference/state-details.md](reference/state-details.md)                                                                        |
+| Compositional Architecture | [reference/compositional-architecture.md](reference/compositional-architecture.md)                                              |
+| Child Composition & Spec   | [reference/child-composition.md](reference/child-composition.md)                                                                |
+| Text Wrapping              | [reference/text-wrapping.md](reference/text-wrapping.md)                                                                        |
+| Style Panel                | [reference/style-panel.md](reference/style-panel.md)                                                                            |
+| Component Registry         | [reference/component-registry.md](reference/component-registry.md)                                                              |
+| ADR 리뷰 저장소 (Layer 0)  | [docs/adr/reviews/](../../../docs/adr/reviews/) — `review-adr` Phase 4.5 자동 영속화                                            |
+| 렌더링 아키텍처 결정       | [ADR-900](../../../docs/adr/completed/900-unified-skia-rendering-engine.md) — PixiJS 제거, 대안/결정/Gate                       |
+| 렌더링 구현 상세           | [ADR-900 breakdown](../../../docs/adr/design/900-unified-skia-engine-breakdown.md) — SceneGraph, Rust Layout, CSS3 렌더링 Phase |
+| 컴포넌트 스펙 (잔존 3개)   | [COMPONENT_SPEC.md](../../../docs/COMPONENT_SPEC.md) — 일반 컴포넌트는 catalog                                                  |
+| CSS 상세                   | [CSS_ARCHITECTURE.md](../../../docs/features/completed/CSS_ARCHITECTURE.md) — ITCSS + tv()                                      |
+| Spec↔CSS 경계              | [SPEC_CSS_BOUNDARY.md](../../../docs/reference/components/SPEC_CSS_BOUNDARY.md) — Leaf vs Container 분류표 (잔존 spec 3개 한정) |
 
 ## 서브에이전트 위임 가이드라인
 

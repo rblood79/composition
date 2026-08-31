@@ -103,6 +103,8 @@ COMMANDS=$(find .claude/commands -maxdepth 1 -name '*.md' -exec basename {} .md 
 RULES=$(find .claude/rules -maxdepth 1 -name '*.md' -exec basename {} \; | sort)
 AGENT_RULES=$(find .agents/rules -maxdepth 1 -name '*.md' -exec basename {} \; | sort)
 BUILTIN_AGENTS=$'Explore\ngeneral-purpose\nPlan\nclaude-code-guide'
+# Claude Code 번들 skill/command — 문서가 `/name` 으로 언급해도 .claude/ 에 실체가 없는 것이 정상
+BUILTIN_SLASH=$'loop\ncompact\nclear\nmodel\nhelp\ndoctor\ninit\nmemory\ncontext\nconfig\nskills\nmcp\nplugin\nresume\ncode-review\nsimplify\nsecurity-review\nfast\neffort\noutput-style\nadd-dir\nexport\nrewind\ncost\nstatus'
 PKG_SCRIPTS=$(node -e 'const p=require("./package.json");console.log(Object.keys(p.scripts||{}).join("\n"))')
 TRACKED=$(git ls-files)
 
@@ -196,41 +198,29 @@ CODEX_INDEX=$(grep -oE '\(([a-z0-9-]+)/SKILL\.md\)' .agents/skills/INDEX.md | se
 report_set_eq ".agents/skills/INDEX.md" "INDEX" "$CODEX_INDEX" ".claude/skills" "$SKILLS"
 
 # ---------- 6. CLAUDE.md 라우팅표 ----------
-section "6. CLAUDE.md — Agent 라우팅 매트릭스 · Slash Commands"
-MATRIX=$(md_section CLAUDE.md "Agent 라우팅 매트릭스")
-# 1차 agent 열 + 2차 검증 열 ("reviewer → evaluator") 모두 등록으로 인정
-MATRIX_AGENTS=$( { table_col "$MATRIX" 2; table_col "$MATRIX" 3; } | tr '→,' '\n\n' | sed -E 's/ *\(.*//; s/^[[:space:]]+//; /[[:space:]]skill[[:space:]]*$/d' | grep -oE '^[A-Za-z][A-Za-z-]*' | sort -u || true)
+section "6. CLAUDE.md — 참조 실존 (라우팅표·Slash 표는 2026-08-31 제거 — 목록 정본은 시스템 프롬프트의 skill/agent description)"
+# 완결성(전원 등록) 대신 실존성만 본다: CLAUDE.md 가 언급하는 \`/name\` 과 "\`name\` agent" 는 반드시 실체가 있어야 한다.
 KNOWN_AGENTS="$AGENTS
 $BUILTIN_AGENTS"
-unknown=$(set_minus "$MATRIX_AGENTS" "$KNOWN_AGENTS")
-[ -n "$unknown" ] && fail "라우팅표 1차 agent 에 실존하지 않는 이름: $(printf '%s' "$unknown" | tr '\n' ' ')"
-unreg=$(set_minus "$AGENTS" "$MATRIX_AGENTS")
-if [ -n "$unreg" ]; then fail "라우팅표에 등록되지 않은 agent: $(printf '%s' "$unreg" | tr '\n' ' ')"; else ok "라우팅표 agent 열 — .claude/agents 전원 등록"; fi
-MATRIX_SKILL_TOKENS=$(table_col "$MATRIX" 4 | grep -oE '[a-z][a-z0-9]*(-[a-z0-9]+)+(\.md)?' | grep -v '\.md$' || true)
 KNOWN_SKILLISH="$SKILLS
-$COMMANDS"
-unknown=$(set_minus "$MATRIX_SKILL_TOKENS" "$KNOWN_SKILLISH")
-if [ -n "$unknown" ]; then fail "라우팅표 skill 열에 실존하지 않는 이름: $(printf '%s' "$unknown" | tr '\n' ' ')"; else ok "라우팅표 skill 열 — 참조 전부 실존"; fi
-
-SLASH_SECTION=$(md_section CLAUDE.md "Slash Commands")
-CLAUDE_SLASH=$(grep -oE '`/[a-z][a-z0-9-]*`' <<<"$SLASH_SECTION" | tr -d '`/' | sort -u || true)
+$COMMANDS
+$BUILTIN_SLASH"
+CLAUDE_SLASH=$(grep -oE '`/[a-z][a-z0-9-]*`' CLAUDE.md | tr -d '`/' | sort -u || true)
 unknown=$(set_minus "$CLAUDE_SLASH" "$KNOWN_SKILLISH")
-[ -n "$unknown" ] && fail "§Slash Commands 에 command/skill 실체가 없는 항목: $(printf '%s' "$unknown" | tr '\n' ' ')"
-unreg=$(set_minus "$COMMANDS" "$CLAUDE_SLASH")
-if [ -n "$unreg" ]; then fail "§Slash Commands 에 없는 .claude/commands: $(printf '%s' "$unreg" | tr '\n' ' ')"; else ok "§Slash Commands — .claude/commands 전원 등록"; fi
+if [ -n "$unknown" ]; then fail "CLAUDE.md 가 언급하는 \`/name\` 에 command/skill 실체 없음: $(printf '%s' "$unknown" | tr '\n' ' ')"; else ok "CLAUDE.md \`/name\` 참조 — 전부 실존 ($(norm "$CLAUDE_SLASH" | wc -l | tr -d ' '))"; fi
+CLAUDE_AGENT_REFS=$(grep -oE '`[a-z][a-z-]*` agent' CLAUDE.md | grep -oE '[a-z][a-z-]*' | grep -v '^agent$' | sort -u || true)
+unknown=$(set_minus "$CLAUDE_AGENT_REFS" "$KNOWN_AGENTS")
+if [ -n "$unknown" ]; then fail "CLAUDE.md 가 언급하는 agent 에 실체 없음: $(printf '%s' "$unknown" | tr '\n' ' ')"; else ok "CLAUDE.md agent 참조 — 전부 실존 ($(norm "$CLAUDE_AGENT_REFS" | wc -l | tr -d ' '))"; fi
 
 # ---------- 7. SessionStart roster ×3 ----------
 section "7. SessionStart roster — Claude live · Codex live · Codex manual"
 SS=".claude/hooks/session-start.sh"
 ROSTER_SKILLS=$(sh_section "$SS" "핵심 Skills" | grep -oE '`[a-z][a-z0-9-]+\\?`' | tr -d '`\\' | sort -u || true)
 report_set_eq "roster §핵심 Skills" "roster" "$ROSTER_SKILLS" ".claude/skills" "$SKILLS"
-ROSTER_AGENTS=$( { table_col "$(sh_section "$SS" "Agents")" 2; table_col "$(sh_section "$SS" "Agents")" 3; } | tr '→' '\n' | sed -E 's/ *\(.*//; s/^[[:space:]]+//; /[[:space:]]skill[[:space:]]*$/d' | grep -oE '^[a-z][a-z-]*' | sort -u || true)
-unknown=$(set_minus "$ROSTER_AGENTS" "$KNOWN_AGENTS")
-[ -n "$unknown" ] && fail "roster §Agents 에 실존하지 않는 agent: $(printf '%s' "$unknown" | tr '\n' ' ')"
-unreg=$(set_minus "$AGENTS" "$ROSTER_AGENTS")
-if [ -n "$unreg" ]; then fail "roster §Agents 에 없는 agent: $(printf '%s' "$unreg" | tr '\n' ' ')"; else ok "roster §Agents — 전원 등록"; fi
-ROSTER_SLASH=$(sh_section "$SS" "Slash Commands" | grep -oE '`/[a-z][a-z0-9-]*\\?`' | tr -d '`\\/' | sort -u || true)
-report_set_eq "roster §Slash ↔ CLAUDE.md §Slash" "roster" "$ROSTER_SLASH" "CLAUDE.md" "$CLAUDE_SLASH"
+# roster §Agents / §Slash 는 2026-08-31 제거 (CLAUDE.md·시스템 프롬프트와 3중 중복). 남은 \`/name\` 언급은 실존만 본다.
+ROSTER_SLASH=$(grep -oE '`/[a-z][a-z0-9-]*\\?`' "$SS" | tr -d '`\\/' | sort -u || true)
+unknown=$(set_minus "$ROSTER_SLASH" "$KNOWN_SKILLISH")
+if [ -n "$unknown" ]; then fail "roster 가 언급하는 \`/name\` 에 command/skill 실체 없음: $(printf '%s' "$unknown" | tr '\n' ' ')"; else ok "roster \`/name\` 참조 — 전부 실존"; fi
 
 CSS="scripts/codex/session-start.sh"
 while IFS= read -r p; do

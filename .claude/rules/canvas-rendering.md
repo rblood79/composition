@@ -16,6 +16,10 @@ paths:
 >
 > 구현 상세는 [canvas-details.md](../skills/composition-patterns/reference/canvas-details.md) 참조
 
+## 0. 렌더링 버그 수정 원칙 (CLAUDE.md 에서 이관 2026-08-31)
+
+2개 렌더링 타겟 (CSS/Skia) × 5개 레이어 (spec/factory/CSS renderer/Skia renderer/editor). 한 경로만 수정 금지 → `/cross-check` 로 검증. factory → spec → renderer → editor 하류 파손 확인. 동일 패턴 이슈는 grep 배치 스윕. 요청 범위만 수정.
+
 ## 1. Skia 단일 렌더러 핵심 (ADR-900)
 
 - ADR-900 Unified Skia Engine — Skia 가 화면 + 이벤트 (EventBoundary) 통합 처리. PixiJS 완전 제거됨
@@ -36,24 +40,7 @@ VariantSpec 의 배경 계열 10+ 필드 + IndicatorModeSpec 의 background\* �
 
 ### Fill token 구조
 
-```ts
-interface FillStateTokens {
-  base: TokenRef; // required — 해당 fillStyle 의 default state
-  hover?: TokenRef;
-  pressed?: TokenRef;
-  selected?: TokenRef;
-  selectedHover?: TokenRef;
-  selectedPressed?: TokenRef;
-  emphasizedSelected?: TokenRef; // data-emphasized + data-selected
-}
-
-interface FillTokenSpec {
-  default: FillStateTokens; // required
-  outline?: Partial<FillStateTokens>; // [data-fill-style="outline"]
-  subtle?: Partial<FillStateTokens>; // [data-fill-style="subtle"]
-  alpha?: number; // 0-1
-}
-```
+타입 정의는 소스가 정본 — `packages/specs/src/types/spec.types.ts` 의 `FillStateTokens` (state 축: `base` 필수, 나머지 선택) / `FillTokenSpec` (fillStyle 축: `default` 필수, `outline`/`subtle` 은 `Partial`, `alpha` 0-1). 여기에 복사본을 두지 않는다 (drift 방지).
 
 ### Spec 작성 규약
 

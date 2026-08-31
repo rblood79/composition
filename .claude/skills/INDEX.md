@@ -1,6 +1,6 @@
 # Skills 카탈로그 (composition)
 
-일부 skill 은 `/` 명령 대응 (매핑: CLAUDE.md §Slash Commands). 사용 빈도는 본 파일 하단의 자동 갱신 블록 (`update-index.sh`) 참조.
+일부 skill 은 `/` 명령 대응 (`.claude/commands/*.md` + `disable-model-invocation` skill — 목록은 시스템 프롬프트에 자동 로드, CLAUDE.md 의 표는 2026-08-31 제거). 사용 빈도는 본 파일 하단의 자동 갱신 블록 (`update-index.sh`) 참조.
 
 ## composition 전용 (프로젝트)
 

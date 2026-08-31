@@ -70,6 +70,9 @@ if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/auto-progression-check.sh" ]; then
   progression_block=$("$CLAUDE_PROJECT_DIR/.claude/hooks/auto-progression-check.sh" 2>/dev/null || true)
 fi
 
+# 로스터는 §핵심 Skills 하나만 게시한다 (agent-catalog-gate §7·§12 의 catalog 대조 표면 + 사용자 전용 표기).
+# 프로세스 규율·agent 라우팅·slash 목록·hook 게이트는 CLAUDE.md 와 시스템 프롬프트의 skill/agent description 이 정본이라
+# 여기 중복 게시하지 않는다 (2026-08-31 — 3중 중복 제거, 세션당 ~1k tok).
 cat <<EOF
 <composition-workflow-roster>
 # composition 전용 워크플로 (자동 주입 — SessionStart)
@@ -85,53 +88,7 @@ cat <<EOF
 - \`match-target\` — Vision-based visual tuning 루프 (참조 이미지 + budget) — 사용자 전용 (\`/match-target\` 직접 입력)
 - \`execute-adr\` — ADR design breakdown 의 미반영 phase 자율 실행 (type-check + cross-check + main 직접 push) — 사용자 전용 (\`/execute-adr NNN\` 직접 입력)
 
-## 프로세스 규율 (프로젝트 정본 — 외부 플러그인 아님)
-- 다단계 구현 → ADR design breakdown 으로 phase 분할 (CLAUDE.md §대규모 작업 phase 분할)
-- 버그 root-cause 4단계 → \`/fix\` + \`.claude/rules/\` 의 실측 \"Why\" 기록 우선 조회
-- TDD (RED-GREEN-REFACTOR) → \`tester\` agent
-- 완료 직전 검증 → CLAUDE.md §완료 기준 (test PASS 단독 종결 금지 + live behavior 1회 exercise)
-- 격리 리팩토링 → worktree (\`.claude/rules/git-workflow.md\` §3)
-- 질문 의무는 4개 결정 지점 한정 → 그 외는 자율 진행 + 사후 보고 (CLAUDE.md §전제·관점 의문 처리)
-
-## Agents (작업 유형별 라우팅)
-| 상황 | 1차 agent | 2차 검증 |
-|---|---|---|
-| 새 기능 구현 | implementer | reviewer → evaluator |
-| 버그 재현/수정 | debugger | cross-check skill |
-| 아키텍처 설계/ADR | architect | review-adr skill |
-| 대규모 리팩토링 | refactorer (worktree) | reviewer |
-| UI 실제 동작 검증 | evaluator (Chrome MCP) | — |
-| 테스트 작성 | tester | — |
-| 문서 작성 | documenter | — |
-
-## 자동 규칙 (UserPromptSubmit hook)
-프롬프트에 아래 키워드 포함 시 관련 skill/agent 힌트 자동 주입:
-- "렌더링/Canvas/Skia" → cross-check + debugger
-- "ADR/아키텍처 결정" → create-adr / review-adr
-- "새 컴포넌트/S2 전환" → 대안 비교 → component-design → implementer
-- "버그/에러/실패" → root-cause 4단계 → debugger
-- "리팩토링" → refactorer + worktree
-- "테스트" → tester + TDD
-- "완료/머지/PR" → 실행 근거 확인 → reviewer
-- "정정/아니야/그게 아니라" → same-session memory 기록 권고
-
-## Slash Commands (표준 워크플로)
-- \`/cross-check\` — 렌더링 정합성 검증
-- \`/new-adr\` — ADR 생성
-- \`/impl\` — brainstorm → plan → implement 파이프라인
-- \`/fix\` — debug → cross-check 파이프라인
-- \`/review\` — 완료 전 품질 검증
-- \`/sweep\` — 패밀리 일괄 검증 + audit JSON report
-- \`/match-target\` — 참조 이미지 시각 수렴 루프
-- \`/execute-adr\` — ADR 자율 phase 실행 (HIGH 위험은 사용자 surface)
-
-## 자동 게이트 (Hook)
-- PostToolUse: spec/* 편집 시 \`.claude/.spec-rebuild-pending\` flag → Stop hook 시점 \`pnpm build:specs\` 1회 실행
-- Stop: type-check 전 spec rebuild 게이트 → flag 있으면 build → 그 후 type-check
-- Stop: ADR Implemented 승격 시 README/CHANGELOG 동시 갱신 강제 (block + escape hatch)
-- PreToolUse: 사용자 명시 발의 없는 ADR 신규 생성 차단 (transcript grep 기반)
-
-규칙: 한 줄 수정/단순 질문은 skill 스킵 가능. CRITICAL/HIGH 이슈는 즉시 수정.${drift_block}${memory_block}${progression_block}
+${drift_block}${memory_block}${progression_block}
 </composition-workflow-roster>
 EOF
 
