@@ -146,16 +146,20 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            apps/builder/src/builder/workspace/canvas/wasm/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('apps/builder/src/builder/workspace/canvas/wasm/Cargo.lock') }}
+            packages/composition-engine/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('packages/composition-engine/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
 
-      - name: Build Rust WASM
-        run: pnpm wasm:build
+      # 스크립트 이름은 `wasm:build:engine` 이다. 구 `wasm:build`(Taffy)는
+      # 022f43c5a(2026-07-06, ADR-916)에서 제거됐는데 이 단계가 따라오지 못해
+      # 그때부터 배포가 계속 실패했다 — 캐시 경로/키도 같은 커밋에서 사라진
+      # `canvas/wasm/` 을 가리키고 있었다.
+      - name: Build Rust WASM (composition-engine)
+        run: pnpm wasm:build:engine
 
       - name: Verify lockfile sync and install dependencies
         run: |
