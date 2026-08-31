@@ -162,8 +162,58 @@ function listArtifacts() {
   return readdirSync(dir).filter((f) => !f.startsWith("."));
 }
 
+/**
+ * 경로 스코프는 두 곳에 **문자 그대로** 복제돼 있다 — `.githooks/pre-push`(bash)
+ * 와 `.github/workflows/deploy.yml`(YAML). bash 도 YAML 도 공용 상수를 import 할
+ * 수 없어서 복제가 불가피한데, 복제는 조용히 갈린다: 한쪽만 넓히면 그 경로는
+ * 로컬에서만(또는 CI 에서만) 검사되고 반대쪽은 무음으로 통과한다.
+ *
+ * 그래서 게이트가 돌 때마다 두 문자열을 직접 비교한다. 갈리면 게이트 자체를
+ * 실패시킨다 — 스코프가 어긋난 상태의 초록은 무엇도 보증하지 않는다.
+ */
+function checkScopeSync() {
+  const repoRoot = resolve(BUILDER_ROOT, "../..");
+  const pick = (relPath) => {
+    const src = readFileSync(join(repoRoot, relPath), "utf8");
+    const m = src.match(/'(\^\(packages\/shared[^']*)'/);
+    return m ? m[1] : null;
+  };
+
+  const hook = pick(".githooks/pre-push");
+  const workflow = pick(".github/workflows/deploy.yml");
+
+  if (!hook || !workflow) {
+    return [
+      `경로 스코프 정규식을 찾지 못했다 (hook=${hook ? "ok" : "없음"}, ` +
+        `workflow=${workflow ? "ok" : "없음"}) — 한쪽이 사라지면 그쪽 차단 지점이 통째로 없어진다`,
+    ];
+  }
+  if (hook !== workflow) {
+    return [
+      "pre-push hook 과 deploy.yml 의 D3 경로 스코프가 갈렸다 — " +
+        "한쪽만 넓히면 그 경로는 반대쪽에서 무음으로 통과한다\n" +
+        `      hook:     ${hook}\n      workflow: ${workflow}`,
+    ];
+  }
+
+  const missing = [...DOCTOR, ...SMOKE].filter(
+    (f) => !existsSync(join(BUILDER_ROOT, f)),
+  );
+  if (missing.length > 0) {
+    return [`smoke 목록의 파일이 없다: ${missing.join(", ")} — 이름이 바뀌었거나 지워졌다`];
+  }
+  return [];
+}
+
 const tmp = mkdtempSync(join(tmpdir(), "adr198-gate-"));
 const runs = [];
+
+const scopeProblems = checkScopeSync();
+if (scopeProblems.length > 0) {
+  console.error(`\n[ADR-198] FAIL  code=PARITY-ENV  layer=env`);
+  for (const p of scopeProblems) console.error(`  - ${p}`);
+  process.exit(1);
+}
 
 console.log(`\n[ADR-198] visual parity gate — mode=${mode}`);
 console.log(`[ADR-198] 1/2 doctor fixture (HC11 — 환경 판정이 매트릭스보다 먼저)`);
