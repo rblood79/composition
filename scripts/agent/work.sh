@@ -186,8 +186,29 @@ do_verify() {
         tests=$(printf '%s\n' "$TS_FILES" | grep "^$dir/" | grep -E "$RE_TEST" | sed "s|^$dir/||" | tr '\n' ' ' | sed 's/ $//' || true)
         # shellcheck disable=SC2086
         run_step vitest "$p" pnpm -F "$(pkg_filter "$p")" exec vitest related --run --passWithNoTests $rel
-        # shellcheck disable=SC2086
-        [ -n "$tests" ] && run_step vitest "$p:test-files" pnpm -F "$(pkg_filter "$p")" exec vitest run $tests
+        # 테스트 파일은 **자기 config 로** 돌린다. 기본 config 의 include 가
+        # `src/**` 라서 `tests/**` 를 그냥 넘기면 "No test files found" → exit 1 로
+        # 항상 빨간불이 된다 (ADR-198 Phase 3 에서 확인). config 파일이 실재할 때만
+        # 갈아 끼우므로 다른 패키지 동작은 그대로다.
+        if [ -n "$tests" ]; then
+          local browser_tests visual_tests default_tests
+          # shellcheck disable=SC2086
+          visual_tests=$(printf '%s\n' $tests | grep -E '^tests/visual-parity/' | tr '\n' ' ' | sed 's/ $//' || true)
+          # shellcheck disable=SC2086
+          browser_tests=$(printf '%s\n' $tests | grep -E '^tests/parity/' | tr '\n' ' ' | sed 's/ $//' || true)
+          # shellcheck disable=SC2086
+          default_tests=$(printf '%s\n' $tests | grep -vE '^tests/(visual-parity|parity)/' | tr '\n' ' ' | sed 's/ $//' || true)
+          # shellcheck disable=SC2086
+          [ -n "$default_tests" ] && run_step vitest "$p:test-files" pnpm -F "$(pkg_filter "$p")" exec vitest run $default_tests
+          if [ -n "$browser_tests" ] && [ -f "$dir/vitest.browser.config.ts" ]; then
+            # shellcheck disable=SC2086
+            run_step vitest "$p:browser-parity" pnpm -F "$(pkg_filter "$p")" exec vitest run --config vitest.browser.config.ts $browser_tests
+          fi
+          if [ -n "$visual_tests" ] && [ -f "$dir/vitest.visual-parity.config.ts" ]; then
+            # shellcheck disable=SC2086
+            run_step vitest "$p:visual-parity" pnpm -F "$(pkg_filter "$p")" exec vitest run --config vitest.visual-parity.config.ts $visual_tests
+          fi
+        fi
       fi
       if pkg_has_typecheck "$p"; then
         run_step typecheck "$p" pnpm -F "$(pkg_filter "$p")" type-check
