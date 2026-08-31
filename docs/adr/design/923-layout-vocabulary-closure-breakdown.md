@@ -100,12 +100,12 @@ ADR-923 은 **display 의 이중 표현**과 **어댑터가 문서에 없는 의
 
 ### Phase 1 — `display.rs` 배선: outer → line item, inner → solver (Rust, seam 무변경)
 
-- [ ] 사용 함수는 `display::parse_display` **직접** — `classify_child_display`(`display.rs:138-149`) 는 inline-flex/inline-grid 를 Block 으로 분류하므로 line item 판정에 쓰지 않는다 (r3 과제 3). 해당 함수는 주석 갱신 또는 삭제. `block.rs:144-170` 은 code==1 만 line item 조건, `:211-218` 이 code 2 (empty block).
-- [ ] `tree.rs:3598 classify_container_display` → `display::parse_display(d).inner` 로: `Flex`→Flex, `Grid`→Grid, `Flow|FlowRoot`→Block. `:1185/:1373/:2552` 호출부 무변경.
-- [ ] `tree.rs:4609 write_block_item` display code → `parse_display(child).outer == Inline` **이고 inner ∈ {flow-root, flex, grid}** 면 1 (inline-block·inline-flex·inline-grid 전부 line item); 순수 `inline`(inner=flow) 은 현행대로 0 (S4 — B 갈래까지 block 격상 유지, r2 l4); 그 외 0. empty-block(2) 판정 유지.
-- [ ] blockification: flex/grid 컨테이너의 자식은 solver 진입 시 `display::blockify_display` 로 outer=block (CSS Display 3 §2.7). 현재 TS 가 하던 `blockifyDisplay` (`fullTreeLayout.ts:1796`) 의 Rust 대응.
-- [ ] cargo test: Button(`inline-flex`) 이 block 부모에서 line item + 자기 자식은 flex 로 배치되는 케이스, inline-grid 동형, 순수 inline(outer=inline, inner=flow) 은 **현행대로 block 격상(code 0)** 을 명시 테스트로 고정 (S4 — 본 ADR 밖, 동작 무변경 확인용).
-- [ ] `display.rs` 의 `taffyDisplayAdapter.ts:NNN` 참조 주석 → 배선 사실로 갱신.
+- [x] **완료 `5822f2496`** — `display::parse_display` 직접 사용. `classify_child_display`/`ChildDisplayClass` 는 **삭제** (inline-flex/inline-grid 를 Block 으로 분류 — line item 판정에 쓰면 안 됨, r3 과제 3; 크레이트 내 참조 0). 대신 `display::is_atomic_inline_level(d)` (outer=inline ∧ inner∈{flow-root,flex,grid}) 신설. `block.rs:144-170` 은 code==1 만 line item 조건, `:211-218` 이 code 2 (empty block).
+- [x] **완료** — `classify_container_display` → `container_display_of(parse_display(d))` (inner 만: Flex/Grid/Flow|FlowRoot|None→Block). 호출부 3곳 무변경. `node_establishes_bfc`(구 `:4244` 문자열 4종 매칭) 도 `inner ∈ {Flex, Grid}` 로 — 같은 의미의 5번째 문자열 매칭 사이트.
+- [x] **완료** — `write_block_item` display code = `is_atomic_inline_level(parse_display(child)) ? 1 : 0`. 순수 inline 0 (S4), empty-block(2) 는 intake 가 내지 않음 (block.rs 사전 분류 코드, 유지). 실측: block(300) > inline-flex×2 → 같은 줄 x 0/60, 폭 shrink-to-fit 60 (flex solve 의 content 반환값) · inline-grid → 폭 track 합 100, 뒤의 inline-block 이 같은 줄.
+- [x] **완료** — `LayoutTree::effective_display(handle)`: 자기 `parse_display` + 부모가 flex/grid 컨테이너면 `display::blockify` (outer=block, inner 유지). `solve_node` 가 이것으로 solver 를 고른다 (inner 만 쓰므로 동작 등가 — outer 소비자는 Phase 2 baseline). 문자열 판 `blockify_display` 는 `blockify` 에 위임.
+- [x] **완료** — tree.rs `adr923_*` 6 + display.rs 2: inline-flex line box 공유 · inner=flex 가로 배치 · inline-grid line item + grid inner · 순수 inline block 격상 유지 · inline-block 회귀 · flex 부모 blockify (outer=block, inner 유지) · classify inner-only. RED 3/6 (inline-flex/grid 가 300 으로 stretch) → GREEN 333/333. golden 15 · tree_golden 11 · layout_trace 10 전량 PASS, fixture 무변경.
+- [x] **완료** — `display.rs` 모듈 doc 을 "배선 (ADR-923 Phase 1)" 절로 갱신 (4 소비 지점 + TS 무변경 근거), 미이식 목록은 Phase 4/5 대상으로 재기술. 회귀: wasm 재빌드 후 builder parity 33 files / 930 pass (`displayContract` it.fails 유지, catalogComponentBox 2 = 기존 실패) · layout unit 48 files / 393 pass. clippy 신규 경고 0 (rustfmt 는 저장소 미적용).
 
 ### Phase 2 — baseline 출력 계약 + 입력 2종 (Rust + wasm 경계)
 
