@@ -29,6 +29,7 @@ import {
   calculateContentWidth,
   parseBoxModel,
   parseCSSPropWithContext,
+  parseLineHeight,
   measureTextWidth,
 } from "./utils";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
@@ -891,6 +892,22 @@ function patchBatchStyleFromImplicit(
     } else if (key === "display") {
       // ADR-923 r6h1: 운반 union 강제 — raw inline-* 가 wasm 경계로 새지 않게 (Phase 5 제거)
       coercedVal = toBatchDisplay(String(val));
+    } else if (key === "lineHeight") {
+      // ADR-923 Phase 2: lineHeight 배선 계약은 **px 숫자** (NodeStyle Option<f32>) —
+      // CSS-형 값("20px"/배율) raw 복사 금지. r6h1 display 와 동일 기전: 이 patch 는
+      // 2-pass 재-enrich 와 공유되어 1차 writer(applyCommonTaffyStyle)의 px 해석을
+      // 덮는다 — 문자열이 새면 updateStyleRaw serde 가 터져 WASM 경로 전체가 죽는다
+      // (tests/parity/seamBaselineContract.browser.test.ts 가 가드).
+      const fsRaw = modStyle.fontSize ?? batchStyle.fontSize;
+      const fs =
+        typeof fsRaw === "number"
+          ? fsRaw
+          : typeof fsRaw === "string"
+            ? parseFloat(fsRaw) || undefined
+            : undefined;
+      const px = parseLineHeight({ lineHeight: val }, fs);
+      if (px === undefined) continue; // normal/미해석 → 기존 batch 값 유지
+      coercedVal = px;
     } else if (typeof val === "string") {
       coercedVal = val; // flexDirection, alignItems 등
     } else if (Array.isArray(val)) {

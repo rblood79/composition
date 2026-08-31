@@ -19,22 +19,45 @@ import { pipelineLeg } from "./harness";
  * 가 있어도 최종 buildTreeBatch JSON 캡처가 판정 기준이다.
  */
 
+// R8-d(containerIntrinsic) 형 wrap 케이스 — fit-content 컨테이너 + 실텍스트가
+// 2-pass 재-enrich 를 강제한다. 그 pass 는 patchBatchStyleFromImplicit 를 공유하므로
+// CSS-형 lineHeight("20px" 문자열)가 raw 복사되면 updateStyleRaw 의 엔진 Option<f32>
+// serde 가 터진다 (r6h1 과 동일 기전 — 이 케이스가 그 경로의 가드).
 const NODES: CaseNode[] = [
   {
-    label: "text",
+    // wrap 유도자 — CSS-형 lineHeight 가 2-pass patch 를 지나게 한다 (스칼라 미주입:
+    // block 자식은 needsWidth=false — 그래서 아래 두 번째 text 가 스칼라 채널을 맡는다).
+    label: "text-wrap",
     elementType: "Text",
-    // width intrinsic 키워드 → enrichWithIntrinsicSize 의 스칼라 주입 트리거
-    // (block 자식은 stretch 라 기본 미주입 — needsWidth 조건, utils.ts).
-    // lineHeight px 문자열: post-order patch / 2-pass 재-enrich 경로가 raw 복사하면
-    // 엔진 Option<f32> serde 가 터진다 (r6h1 과 동일 기전 — 이 케이스가 가드).
-    style: { fontSize: 16, width: "fit-content", lineHeight: "20px" },
-    text: "baseline probe wraps here",
+    style: {
+      fontSize: 14,
+      fontFamily: "Arial",
+      fontWeight: 400,
+      lineHeight: "20px",
+    },
+    text: "Hello World Wide",
   },
-  { label: "sibling", style: { width: 40, height: 20 } },
   {
-    label: "parent",
-    style: { display: "block", width: 400 },
+    // 스칼라 공급자 — width intrinsic 키워드가 needsWidth 를 켠다 (utils.ts) →
+    // contentMin/MaxWidth + leafBaseline 주입 검증 대상.
+    label: "text-scalar",
+    elementType: "Text",
+    style: { fontSize: 16, width: "fit-content" },
+    text: "baseline probe",
+  },
+  {
+    label: "content",
+    style: { width: "fit-content", flexGrow: 1, overflowX: "hidden" },
     children: [0, 1],
+  },
+  {
+    label: "sidebar",
+    style: { width: "300px", flexShrink: 0, height: "40px" },
+  },
+  {
+    label: "root",
+    style: { display: "flex", flexDirection: "row", width: "340px" },
+    children: [2, 3],
   },
 ];
 
