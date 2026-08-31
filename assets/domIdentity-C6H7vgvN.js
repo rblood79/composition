@@ -1,0 +1,1 @@
+function e(e,t){return e!==`body`||t?.height!=null||t?.minHeight!=null?t:{...t,minHeight:`100vh`}}var t=new Set([`ListBoxItem`,`GridListItem`,`MenuItem`,`TreeItem`,`Tab`,`Tag`,`Row`,`TableRow`,`Column`,`Cell`,`TableCell`,`ColorSwatch`]);function n(e,n,r){if(r==null&&n&&!t.has(e))return n}export{e as n,n as t};

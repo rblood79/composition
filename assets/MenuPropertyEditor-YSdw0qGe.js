@@ -1,1 +1,0 @@
-import{r as e}from"./slotMirror-BFWTjrAL.js";import{bd as o,be as n}from"./main-CIAMe3KQ.js";const s=e.memo(function(t){const r=n("Menu");return r?e.createElement(o,{...t,spec:r}):null});export{s as default};
