@@ -29,7 +29,7 @@ if [ -n "$CHANGED" ]; then
   # Layout/Taffy 변경 → layout-engine 규칙 주입
   if echo "$CHANGED" | grep -qiE "layout|fullTree|taffy|enrichWith"; then
     echo "## Layout Rules (auto-injected from layout-engine.md)"
-    head -30 "$RULES_DIR/layout-engine.md" 2>/dev/null || true
+    head -34 "$RULES_DIR/layout-engine.md" 2>/dev/null || true
     echo ""
   fi
 

@@ -12,20 +12,6 @@ paths:
 # 레이아웃 엔진 규칙
 
 > 구현 상세: [layout-details.md](../skills/composition-patterns/reference/layout-details.md) · 아키텍처/WASM 경계: [layout-engine.md](../skills/composition-patterns/reference/layout-engine.md) · **엔진 CSS 정합 실측 기록 23절 전문**: [layout-css-parity-ledger.md](../skills/composition-patterns/reference/layout-css-parity-ledger.md)
->
-> `paths` 는 2026-08-31 협소화 — 구 `**/layout/**` 가 `builder/layout`(패널)·`styles/layout` 까지 매칭해 패널 작업에 본 규칙 전량(116KB)이 주입됐다. 새 레이아웃 파이프라인 경로가 생기면 여기 등재.
-
-## 엔진 선택
-
-- flex → TaffyFlexEngine, grid → TaffyGridEngine, block/undefined → TaffyBlockEngine (단일 자체 Rust WASM — `packages/composition-engine`, ADR-916 Implemented 2026-07-06; JS 어댑터 심볼명은 Taffy\* 유지)
-
-## position:absolute / fixed — 엔진 소속 + 의도적 미지원 경계 (ADR-164 Phase 2, 2026-07-25)
-
-- out-of-flow 배치는 **엔진 구현** (`tree.rs::place_absolute_children` + `resolve_abs_axis` — 양측 inset stretch / margin-auto 센터링 / 음수 inset·margin, 2026-07-14 `67ddfe899`). TS 에서 absolute 배치 보정 재도입 금지.
-- **의도적 미지원 2건** (ADR-164 Phase 0 실측 — 실사용 0건 확인 후 종결, breakdown §7 0-3):
-  - containing block **조상 체인** 탐색 (nearest positioned ancestor) — 직계 부모 고정. 재개 조건 = positioned ancestor 2단 이상 실사용 등장
-  - `position:fixed` viewport 기준 — absolute 근사. TS 도 fixed→absolute 로 강제 변환해 송신 (`fullTreeLayout.ts` patch 경로). 렌더 층 sticky/fixed 좌표 보정 (`renderCommands.ts`) 은 별도 경로로 존속. 재개 조건 = 캔버스 viewport(=page frame) 기준 fixed 실사용 등장
-- 재개 시 절차: 위 재개 조건 발생 → ADR-164 §4 조건부 규칙에 따라 해당 축만 엔진 구현 + fixture (새 ADR 불요)
 
 ## layoutVersion 계약 (CRITICAL)
 
@@ -49,6 +35,18 @@ paths:
 - **Why**: 계층 B 누락 → 캐시 히트로 변경 미반영(재계산은 돌지만 같은 시그니처라 이전 결과 재사용). 계층 A 누락 → 재계산 자체를 안 함. **실증**: `isExpanded`/`allowsMultipleExpanded` 가 `LAYOUT_AFFECTING_PROP_KEYS`(A) 와 `LAYOUT_PROP_KEYS`(B) **양쪽에 누락**되어 Disclosure collapse 가 Skia 에 무반영 (CHANGELOG 2026-05-09/07-14). **ADR-156 R6**: `justifySelf`/`justifyItems`/`gridAutoColumns`/`gridAutoRows`/`gridColumnStart`/`gridRowStart`/`overflowX`/`overflowY`/`order` 가 `LAYOUT_STYLE_KEYS`(B) 미등재 — 엔진을 고쳐도 해당 키만 바뀌는 편집은 캐시 히트로 흡수된다.
 - **grep 함정**: `gridColumn`/`gridRow` shorthand 는 `LAYOUT_STYLE_KEYS` 에 있으나 `gridColumnStart`/`gridRowStart` 는 **없다** — 본 문서 §"Grid area 이름 해석" 이 factory 에 요구하는 **숫자 line 병기** 형태로 쓰면 캐시 키에 걸리지 않는다. `overflow` 는 등재됐으나 파이프라인은 `overflowX`/`overflowY` 를 송신한다.
 - 심볼명 주의: **`LAYOUT_AFFECTING_PROPS`**(뒤에 `_KEYS` 없음)는 과거 심볼로 코드에 **0건**이다. 현행은 **`LAYOUT_AFFECTING_PROP_KEYS`** — 두 이름을 혼동해 "과거 심볼" 로 넘기지 말 것.
+
+## 엔진 선택
+
+- flex → TaffyFlexEngine, grid → TaffyGridEngine, block/undefined → TaffyBlockEngine (단일 자체 Rust WASM — `packages/composition-engine`, ADR-916 Implemented 2026-07-06; JS 어댑터 심볼명은 Taffy\* 유지)
+
+## position:absolute / fixed — 엔진 소속 + 의도적 미지원 경계 (ADR-164 Phase 2, 2026-07-25)
+
+- out-of-flow 배치는 **엔진 구현** (`tree.rs::place_absolute_children` + `resolve_abs_axis` — 양측 inset stretch / margin-auto 센터링 / 음수 inset·margin, 2026-07-14 `67ddfe899`). TS 에서 absolute 배치 보정 재도입 금지.
+- **의도적 미지원 2건** (ADR-164 Phase 0 실측 — 실사용 0건 확인 후 종결, breakdown §7 0-3):
+  - containing block **조상 체인** 탐색 (nearest positioned ancestor) — 직계 부모 고정. 재개 조건 = positioned ancestor 2단 이상 실사용 등장
+  - `position:fixed` viewport 기준 — absolute 근사. TS 도 fixed→absolute 로 강제 변환해 송신 (`fullTreeLayout.ts` patch 경로). 렌더 층 sticky/fixed 좌표 보정 (`renderCommands.ts`) 은 별도 경로로 존속. 재개 조건 = 캔버스 viewport(=page frame) 기준 fixed 실사용 등장
+- 재개 시 절차: 위 재개 조건 발생 → ADR-164 §4 조건부 규칙에 따라 해당 축만 엔진 구현 + fixture (새 ADR 불요)
 
 ## CONTAINER_TAGS
 
@@ -255,3 +253,7 @@ collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 **La
 - element.props.style 에 shorthand (`gap`/`padding`/`margin`) + longhand 동시 저장 금지 → `inspectorActions` 에서 shorthand → longhand 분배, store 는 longhand only
 - `firstDefined(inline, specPx, fallback)` 에 4+ 인자 전달 금지 → 3-arg 고정 시그니처. 우선순위 체인은 nullish coalescing (`??`) 으로 inline 자리에 압축
 - Select/ComboBox 높이에 `Math.ceil(fontSize * 1.5)` 금지 → parseLineHeight 우선
+
+## paths 관리
+
+- `paths` 는 2026-08-31 협소화 — 구 `**/layout/**` 가 `builder/layout`(패널)·`styles/layout` 까지 매칭해 패널 작업에 본 규칙 전량(116KB)이 주입됐다. 새 레이아웃 파이프라인 경로가 생기면 여기 등재.
