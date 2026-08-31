@@ -84,6 +84,7 @@ use serde::Deserialize;
 use std::cell::Cell;
 
 use crate::block;
+use crate::display::{self, Display, InnerDisplay};
 use crate::flex;
 use crate::grid;
 use crate::style::{resolve_css_size_value, CssValueContext, FIT_CONTENT, MAX_CONTENT, MIN_CONTENT};
@@ -1135,6 +1136,29 @@ impl LayoutTree {
         self.solve_node(c, sw, sh)
     }
 
+    /// 노드의 **실효** display 이원 구조 (ADR-923 Phase 1): 자기 style 의 CSS 값 1개를
+    /// `display::parse_display` 로 읽고, 부모가 flex/grid 컨테이너면 `display::blockify`
+    /// (outer=block, inner 유지 — CSS Display 3 §2.7; TS `fullTreeLayout.ts` `blockifyDisplay`
+    /// 의 엔진 대응). 부모가 block 이면 outer 그대로 — `write_block_item` 이 outer 로 line
+    /// item 을 판정한다. root(부모 없음) 는 자기 값 그대로.
+    fn effective_display(&self, handle: usize) -> Display {
+        let Some(node) = self.get(handle) else {
+            return display::parse_display(None);
+        };
+        let own = display::parse_display(node.style.display.as_deref());
+        let parent_is_flex_or_grid = node
+            .parent
+            .and_then(|p| self.get(p))
+            .map(|p| {
+                matches!(
+                    classify_container_display(p.style.display.as_deref()),
+                    ContainerDisplay::Flex | ContainerDisplay::Grid
+                )
+            })
+            .unwrap_or(false);
+        if parent_is_flex_or_grid { display::blockify(own) } else { own }
+    }
+
     /// 노드 하나를 solve — 자식을 먼저 재귀 solve 한 뒤 display 별로 배치.
     /// 반환: (content_width, content_height) — 부모 intrinsic 도출용.
     fn solve_node(&mut self, handle: usize, avail_w: f32, avail_h: f32) -> (f32, f32) {
@@ -1182,7 +1206,9 @@ impl LayoutTree {
         }
 
         let children = node.children.clone();
-        let display = classify_container_display(node.style.display.as_deref());
+        // ADR-923 Phase 1: display 이원 계약 — 자기 solver 는 **inner** 로 고른다. 부모가
+        // flex/grid 컨테이너면 blockify (outer=block, inner 유지 — CSS Display 3 §2.7).
+        let display = container_display_of(self.effective_display(handle));
         // 이 solve 가 쓰는 available 을 기록 — 위 게이트의 두 번째 키. 첫 borrow 가
         // 끝난 지점에서 한 번만 쓴다 (재-borrow 추가 없이).
         if let Some(n) = self.get_mut(handle) {
@@ -3586,21 +3612,27 @@ enum ContainerDisplay {
     Grid,
 }
 
-/// display 문자열 → 컨테이너 분류.
+/// display 문자열 → 컨테이너 분류 — `display::parse_display(d).inner` 만 본다 (ADR-923
+/// Phase 1). outer(inline/block) 는 **부모의 line item 판정** 몫이라 여기서 무관하다.
 ///
-/// - flex/inline-flex → Flex (단위 2)
-/// - grid/inline-grid → Grid (단위 3-b)
-/// - block/inline-block/flow-root/list-item/미설정/기타 → Block (단위 3-a)
+/// - inner Flex (flex/inline-flex) → Flex (단위 2)
+/// - inner Grid (grid/inline-grid) → Grid (단위 3-b)
+/// - inner Flow/FlowRoot/None (block/inline/inline-block/flow-root/none/list-item/미설정/
+///   미인식 → `parse_display` block 폴백) → Block (단위 3-a)
 ///
 /// display 미설정(None)이 Block 인 이유: CSS 초기 display 는 inline 이지만
 /// composition 의 `_hasChildren` 컨테이너는 상단(taffyDisplayAdapter)에서 blockify
 /// 되어 내려온다 — tree.rs 는 순수화된 스타일을 받으므로 컨테이너=block 이 기본.
 fn classify_container_display(display: Option<&str>) -> ContainerDisplay {
-    match display.map(|d| d.trim().to_ascii_lowercase()).as_deref() {
-        Some("flex") | Some("inline-flex") => ContainerDisplay::Flex,
-        Some("grid") | Some("inline-grid") => ContainerDisplay::Grid,
-        // block / inline-block / flow-root / list-item / 미설정 → Block
-        _ => ContainerDisplay::Block,
+    container_display_of(display::parse_display(display))
+}
+
+/// [`Display`] 이원 구조 → 컨테이너 solver (inner 만).
+fn container_display_of(d: Display) -> ContainerDisplay {
+    match d.inner {
+        InnerDisplay::Flex => ContainerDisplay::Flex,
+        InnerDisplay::Grid => ContainerDisplay::Grid,
+        InnerDisplay::Flow | InnerDisplay::FlowRoot | InnerDisplay::None => ContainerDisplay::Block,
     }
 }
 
@@ -4239,9 +4271,10 @@ fn node_establishes_bfc(style: &NodeStyle) -> bool {
     if overflow_creates_bfc(style) {
         return true;
     }
+    // flex/grid 컨테이너 = inner ∈ {Flex, Grid} (outer 무관 — ADR-923 Phase 1 `display.rs` 배선).
     matches!(
-        style.display.as_deref().map(|s| s.trim().to_ascii_lowercase()).as_deref(),
-        Some("flex") | Some("grid") | Some("inline-flex") | Some("inline-grid")
+        display::parse_display(style.display.as_deref()).inner,
+        InnerDisplay::Flex | InnerDisplay::Grid
     )
 }
 
@@ -4578,7 +4611,8 @@ impl MarginAxisReverse {
 
 /// 자식 스타일 + solve 된 content 크기 → block.rs flat f32 (19필드, 물리축).
 ///
-/// block.rs 필드 계약(FIELD_COUNT=19): 0=display(0=block/1=inline-block/2=empty-block),
+/// block.rs 필드 계약(FIELD_COUNT=19): 0=display(0=block/1=atomic inline-level — inline-block ·
+/// inline-flex · inline-grid, ADR-923 Phase 1/2=empty-block — intake 는 내지 않음, block.rs 사전 분류),
 /// 1=width(AUTO=-1/FIT_CONTENT=-2), 2=height, 3-6=margin(t/r/b/l), 7=bfc_flag,
 /// 8=pad_border_v, 9=pad_border_h, 10-13=min_w/max_w/min_h/max_h(AUTO=-1),
 /// 14=content_w, 15=content_h, 16=vertical_align, 17=baseline, 18=line_height(AUTO=-1).
@@ -4604,11 +4638,18 @@ fn write_block_item(
 ) {
     let off = i * block::FIELD_COUNT;
 
-    // display: 자식 display=inline-block 이면 1, 그 외 컨테이너 자식은 block(0).
-    // (grid/flex 자식도 이 컨테이너 안에선 block-level box 로 취급 — CSS 표준.)
-    let display_code: f32 = match cstyle.display.as_deref().map(|d| d.trim().to_ascii_lowercase()).as_deref() {
-        Some("inline-block") => 1.0,
-        _ => 0.0,
+    // display (ADR-923 Phase 1 — `display.rs` 이원 계약): 자식의 **outer** 가 inline 이고
+    // inner 가 flow-root/flex/grid 면 1 = block 부모의 line item (inline-block · inline-flex ·
+    // inline-grid — CSS 2.1 §9.2.2 atomic inline-level box). 그 외 0 = block-level box
+    // (block/flex/grid 자식은 이 컨테이너 안에선 block-level — CSS 표준). 순수 `inline`
+    // (inner=flow) 은 S4(B 갈래) 까지 0 유지 (요소 단위 inline 혼합 미지원). 2(empty-block)
+    // 는 intake 가 내지 않는다 (block.rs 사전 분류 코드).
+    let display_code: f32 = if display::is_atomic_inline_level(
+        display::parse_display(cstyle.display.as_deref()),
+    ) {
+        1.0
+    } else {
+        0.0
     };
 
     // 명시 width/height (음수=미지정 → AUTO -1). fit-content 는 FIT_CONTENT(-2)
@@ -7592,5 +7633,151 @@ mod tests {
                 visits[visits.len() / 2]
             );
         }
+    }
+
+    // ── ADR-923 Phase 1: display.rs 배선 — outer → line item, inner → solver ──
+    //
+    // 계약: 엔진 경계의 display 는 CSS 값 1개. 부모 block 은 자식의 **outer** 로 line item
+    // 여부를, 자식 자신은 **inner** 로 solver 를 고른다 (CSS Display 3 §2). TS 는 오늘
+    // inline-flex/inline-grid 를 엔진에 보내지 않으므로 (S9 정규화) 프로덕션 동작 무변경 —
+    // Phase 5 cutover 가 이 경로를 켠다.
+
+    /// block 부모 아래 inline-flex 자식 2 = 같은 line box (outer=inline 이 line item).
+    #[test]
+    fn adr923_block_parent_inline_flex_children_share_line_box() {
+        let mut tree = LayoutTree::new();
+        // post-order: leaf0, A(inline-flex>[0]), leaf2, B(inline-flex>[2]), root(block>[1,3])
+        let json = r#"[
+            {"style":{"width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"inline-flex","flexDirection":"row"},"children":[0]},
+            {"style":{"width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"inline-flex","flexDirection":"row"},"children":[2]},
+            {"style":{"display":"block","width":"300px","height":"100px"},"children":[1,3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, 100.0);
+        let a = tree.get_layout(h[1]);
+        let b = tree.get_layout(h[3]);
+        assert_eq!((a.x, a.y), (0.0, 0.0), "A 는 줄 머리");
+        assert_eq!((a.width, a.height), (60.0, 30.0), "inline-flex 폭은 shrink-to-fit (content)");
+        assert_eq!((b.x, b.y), (60.0, 0.0), "B 는 A 오른쪽 같은 줄 — line item");
+    }
+
+    /// inline-flex 자식의 inner=flex: 자기 자식 2개가 가로로 놓인다 (block 이면 세로).
+    #[test]
+    fn adr923_inline_flex_child_inner_solver_is_flex() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"40px","height":"20px"},"children":[]},
+            {"style":{"width":"40px","height":"20px"},"children":[]},
+            {"style":{"display":"inline-flex","flexDirection":"row"},"children":[0,1]},
+            {"style":{"display":"block","width":"300px","height":"100px"},"children":[2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 300.0, 100.0);
+        let l0 = tree.get_layout(h[0]);
+        let l1 = tree.get_layout(h[1]);
+        assert_eq!((l0.x, l0.y), (0.0, 0.0));
+        assert_eq!((l1.x, l1.y), (40.0, 0.0), "inner=flex row → 가로 배치");
+        let c = tree.get_layout(h[2]);
+        assert_eq!((c.width, c.height), (80.0, 20.0), "컨테이너는 item 합 (shrink-to-fit)");
+    }
+
+    /// inline-grid 동형: line item (outer=inline) + inner=grid (자식이 열 track 을 따른다).
+    #[test]
+    fn adr923_block_parent_inline_grid_child_is_line_item_with_grid_inner() {
+        let mut tree = LayoutTree::new();
+        // post-order: leaf0, leaf1, A(inline-grid 2col>[0,1]), B(inline-block 60×30), root(block>[2,3])
+        let json = r#"[
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"display":"inline-grid","gridTemplateColumns":["50px","50px"]},"children":[0,1]},
+            {"style":{"display":"inline-block","width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"100px"},"children":[2,3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, 100.0);
+        let l0 = tree.get_layout(h[0]);
+        let l1 = tree.get_layout(h[1]);
+        assert_eq!((l0.x, l0.width), (0.0, 50.0), "grid col 1");
+        assert_eq!((l1.x, l1.width), (50.0, 50.0), "grid col 2 — inner=grid");
+        let a = tree.get_layout(h[2]);
+        let b = tree.get_layout(h[3]);
+        assert_eq!(a.width, 100.0, "inline-grid 폭 = track 합");
+        assert_eq!((b.x, b.y), (100.0, 0.0), "inline-block B 가 inline-grid A 와 같은 줄");
+    }
+
+    /// 순수 inline(outer=inline, inner=flow) 은 S4(B 갈래) 까지 현행대로 block 격상 (code 0).
+    /// 본 ADR 밖 — 동작 무변경 확인용 고정.
+    #[test]
+    fn adr923_pure_inline_child_stays_block_level_until_s4() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"inline"},"children":[0]},
+            {"style":{"width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"inline"},"children":[2]},
+            {"style":{"display":"block","width":"300px","height":"100px"},"children":[1,3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, 100.0);
+        let a = tree.get_layout(h[1]);
+        let b = tree.get_layout(h[3]);
+        assert_eq!(a.width, 300.0, "block 격상 → auto 폭 stretch");
+        assert_eq!((b.x, b.y), (0.0, 30.0), "세로 적층 (현행 유지)");
+    }
+
+    /// inline-block 은 종전대로 line item — 회귀 고정 (tree intake 경유).
+    #[test]
+    fn adr923_inline_block_children_still_line_items() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"inline-block","width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"100px"},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 100.0);
+        let a = tree.get_layout(h[0]);
+        let b = tree.get_layout(h[1]);
+        assert_eq!((a.x, a.y), (0.0, 0.0));
+        assert_eq!((b.x, b.y), (60.0, 0.0));
+    }
+
+    /// 컨테이너 solver 선택은 inner 만 본다 — outer 는 부모의 line item 판정 몫.
+    #[test]
+    fn adr923_classify_container_display_uses_inner_only() {
+        assert!(matches!(classify_container_display(Some("inline-flex")), ContainerDisplay::Flex));
+        assert!(matches!(classify_container_display(Some("inline-grid")), ContainerDisplay::Grid));
+        assert!(matches!(classify_container_display(Some("inline-block")), ContainerDisplay::Block));
+        assert!(matches!(classify_container_display(Some("inline")), ContainerDisplay::Block));
+        assert!(matches!(classify_container_display(Some("flow-root")), ContainerDisplay::Block));
+        assert!(matches!(classify_container_display(Some("none")), ContainerDisplay::Block));
+        assert!(matches!(classify_container_display(Some("list-item")), ContainerDisplay::Block));
+        assert!(matches!(classify_container_display(None), ContainerDisplay::Block));
+    }
+
+    /// flex 부모 아래 inline-flex/inline-block 자식은 blockify (outer=block) — flex item 이고
+    /// inner 는 유지. `effective_display` 가 그 계약을 낸다.
+    #[test]
+    fn adr923_flex_parent_blockifies_inline_child_outer_keeps_inner() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"inline-flex","flexDirection":"row"},"children":[0]},
+            {"style":{"display":"inline-block","width":"60px","height":"30px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"300px","height":"100px"},"children":[1,2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 300.0, 100.0);
+        let a = tree.effective_display(h[1]);
+        assert_eq!(a, Display { outer: display::OuterDisplay::Block, inner: InnerDisplay::Flex });
+        let b = tree.effective_display(h[2]);
+        assert_eq!(b, Display { outer: display::OuterDisplay::Block, inner: InnerDisplay::FlowRoot });
+        // block 부모 아래서는 outer 가 보존된다 (root 는 부모 없음 → 자기 값).
+        assert_eq!(tree.effective_display(h[3]).outer, display::OuterDisplay::Block);
+        let la = tree.get_layout(h[1]);
+        let lb = tree.get_layout(h[2]);
+        assert_eq!((la.x, lb.x), (0.0, 60.0), "둘 다 flex item");
     }
 }
