@@ -81,19 +81,20 @@ describe("ADR-198 Phase 2 / G2 (Skia) — 결정성 · 외부 요청 · 리소�
 
   /**
    * **G2 는 liveness 도 요구한다** — 결정적인 백색 프레임은 결정적일 뿐 살아 있지
-   * 않다. 케이스별 실측을 그대로 고정한다:
+   * 않다.
    *
-   *   basic-geometry-paint   variance 0    ← 전부 `frame` 컨테이너. 안 칠해진다.
-   *   catalog-state-paint    variance 763  ← 칠해진다
-   *   text-raster-resources  variance 35   ← 칠해진다
+   * 2026-08-31 이전에는 `basic-geometry-paint` 만 `variance 0` 이었고 (전부
+   * `frame` 컨테이너), 그 값을 ratchet 으로 박아 두었다. 정황이 가리킨 대로
+   * 원인은 **`frame` 축**이 맞았다 — `FrameSpec.render.shapes()` 가 `props.style`
+   * 을 읽지 않아 배경 shape 자체를 만들지 않았고, 거기에 hex8 채널 시프트가
+   * 겹쳐 있었다 (ADR-198 §7 별도 작업으로 수리).
    *
-   * 세 케이스가 같은 하니스·같은 경로를 타는데 하나만 비었다는 사실은 Phase 0 의
-   * "Skia 백색" 후보를 좁힌다 — 전역 실패가 아니라 **`frame` 컨테이너 축**을
-   * 가리킨다. 다만 케이스들은 컨테이너 타입 말고도 다른 점이 있어서(사용 컴포넌트,
-   * 색 표기) 이건 **정황이지 증명이 아니다.** 원인 규명은 §7 별도 작업이고,
-   * 여기서는 현재 값을 ratchet 으로 박아 어느 쪽이든 바뀌면 드러나게 한다.
+   * 이제 세 케이스 모두 살아 있다. 개별 수치를 다시 박지 않는 이유: 고정값은
+   * fixture 를 조금만 손대도 깨지면서 정작 "죽은 프레임" 은 못 잡는다. G2 가
+   * 실제로 요구하는 것은 **모든 케이스가 0 보다 크다** 이므로 그것만 단언하고,
+   * 실측치는 로그로 남긴다.
    */
-  it("케이스별 liveness 현재값을 고정한다 (G2 liveness / HC11)", () => {
+  it("모든 케이스가 살아 있는 프레임을 낸다 (G2 liveness / HC11)", () => {
     const rows = PILOT_CASES.map((c) => {
       const r = runSkiaLegResult(ck, c.document, optsFor(c), envFor(c));
       return { id: c.id, variance: pixelVariance(r.pixels!) };
@@ -103,12 +104,7 @@ describe("ADR-198 Phase 2 / G2 (Skia) — 결정성 · 외부 요청 · 리소�
         `[ADR-198 P2-G2] liveness ${r.id}: variance=${r.variance.toFixed(1)}`,
       );
 
-    const byId = Object.fromEntries(rows.map((r) => [r.id, r.variance]));
-    // 칠해지는 두 케이스 — G2 liveness 충족
-    expect(byId["catalog-state-paint"]).toBeGreaterThan(0);
-    expect(byId["text-raster-resources"]).toBeGreaterThan(0);
-    // 안 칠해지는 한 케이스 — 미해결. 0 이 아니게 되면 이 기대가 깨져 기록을 갱신시킨다.
-    expect(byId["basic-geometry-paint"]).toBe(0);
+    for (const r of rows) expect.soft(r.variance).toBeGreaterThan(0);
   }, 180_000);
 
   it("케이스 실행 중 외부(다른 origin) 요청이 0 이다 (HC4/G2)", async () => {

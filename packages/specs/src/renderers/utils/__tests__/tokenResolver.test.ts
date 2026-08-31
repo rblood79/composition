@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { tokenToCSSVar, resolveToken, resolveColor } from "../tokenResolver";
+import {
+  tokenToCSSVar,
+  resolveToken,
+  resolveColor,
+  hexStringToNumber,
+} from "../tokenResolver";
 
 // 2026-07-20 (Selected variant 배선) — origin props.style 의 var() 리터럴이 Skia fill 로
 //   도달하는 경로. 역변환 가능한 단순 var() 는 토큰 해석 (theme 정합), 불가하면 passthrough.
@@ -154,5 +159,34 @@ describe("resolveToken — {shadow.*} theme 분기 (ADR-166)", () => {
         expect(v, `${key}/${theme}`).not.toContain("color-mix(");
       }
     }
+  });
+});
+
+// ADR-198 (2026-08-31) — 반환값 소비처는 전부 이 숫자를 `0xRRGGBB` 로 읽는다
+// (`hexToColor4fChannels` 가 16/8/0 마스크). `#RRGGBBAA` 를 그대로 parse 하면
+// 채널이 한 바이트 밀려 빨강이 사라지고 알파가 파랑 자리에 앉았다 — 실측으로
+// `#2F6FEDFF` 가 `(111,237,255)` 로 그려졌다. DOM 은 hex8 을 그대로 이해하므로
+// 이 시프트는 Skia↔Preview 가 같은 값에서 다른 색을 내는 D3 발산이었다.
+describe("hexStringToNumber — 표기별 채널 정합", () => {
+  it("#RRGGBB 는 그대로", () => {
+    expect(hexStringToNumber("#2F6FED")).toBe(0x2f6fed);
+  });
+
+  it("#RRGGBBAA 는 알파를 잘라내고 RGB 만 남긴다 (채널 시프트 회귀 차단)", () => {
+    expect(hexStringToNumber("#2F6FEDFF")).toBe(0x2f6fed);
+    // 알파가 FF 가 아니어도 색은 같아야 한다 — 알파는 다른 채널로 나른다.
+    expect(hexStringToNumber("#2F6FED80")).toBe(0x2f6fed);
+    // 시프트가 돌아오면 이 값이 된다.
+    expect(hexStringToNumber("#2F6FEDFF")).not.toBe(0x6fedff);
+  });
+
+  it("#RGB / #RGBA 단축 표기를 확장한다", () => {
+    expect(hexStringToNumber("#F0A")).toBe(0xff00aa);
+    expect(hexStringToNumber("#F0A8")).toBe(0xff00aa);
+  });
+
+  it("0x 표기와 비-hex fallback 은 기존 동작 유지", () => {
+    expect(hexStringToNumber("0x2F6FED")).toBe(0x2f6fed);
+    expect(hexStringToNumber("transparent")).toBe(0x000000);
   });
 });

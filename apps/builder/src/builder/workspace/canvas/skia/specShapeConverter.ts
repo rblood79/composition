@@ -90,13 +90,23 @@ function colorValueToFloat32(
   if (resolved === "transparent" || resolved === undefined || resolved === null)
     return TRANSPARENT;
   let hex: number;
+  // `#RRGGBBAA` 의 알파는 숫자 채널로 못 넘어온다 (`hexStringToNumber` 가 잘라낸다)
+  // — DOM 은 그 알파를 그대로 반영하므로 여기서 합성 alpha 에 곱하지 않으면 같은
+  // 값이 두 consumer 에서 다른 투명도로 보인다 (ADR-198).
+  let hexAlpha = 1;
   if (typeof resolved === "string") {
     hex = hexStringToNumber(resolved);
+    const body = resolved.startsWith("#") ? resolved.slice(1) : "";
+    if (body.length === 8) {
+      hexAlpha = parseInt(body.slice(6, 8), 16) / 255;
+    } else if (body.length === 4) {
+      hexAlpha = parseInt(`${body[3]}${body[3]}`, 16) / 255;
+    }
   } else {
     hex = resolved;
   }
   const [r, g, b] = hexToColor4fChannels(hex);
-  return Float32Array.of(r, g, b, alpha);
+  return Float32Array.of(r, g, b, alpha * hexAlpha);
 }
 
 /** Transparent color */

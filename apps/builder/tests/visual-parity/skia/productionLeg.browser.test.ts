@@ -19,14 +19,17 @@
  *    (renderCommands.ts:1392) 가 `getSkiaNode(id)` 부재 시 즉시 return 하므로,
  *    layout 발행만으로는 `buildSkiaFrameContent` 가 빈 boundsMap → null 을 준다.
  *    `StoreRenderBridge.sync` 가 필수 단계다.
- * 2. **catalog 배경 채널은 hex6 전용.** `#2F6FEDFF`(hex8) 을 넣으면
- *    `hexStringToNumber` 채널이 밀려 `0.435,0.929,1,0` 으로 읽힌다
- *    (buildSpecNodeData.ts:1720 주석의 실측 계약).
- * 3. **컨테이너 타입마다 배경 도달 여부가 다르다.** 같은 `props.style.backgroundColor`
- *    에 대해 `Card`/`Toolbar` 는 alpha 1 로 칠해지고, `frame`/`Group` 은
- *    `fill=0,0,0,0` 으로 남는다 (Frame.spec 이 layout 컨테이너라 배경 shape 을
- *    만들지 않음). Phase 6 매트릭스는 이 차이를 타입별로 명시해야 하며, 그전까지
- *    파일럿은 배경이 실제로 도달하는 타입을 쓴다.
+ * 2. ~~**catalog 배경 채널은 hex6 전용.**~~ (2026-08-31 수리) `#RRGGBBAA` 는
+ *    `hexStringToNumber` 가 알파를 잘라내고 `colorValueToFloat32` 가 합성
+ *    alpha 로 곱한다. 그전에는 채널이 한 바이트 밀려 `#2F6FEDFF` 가
+ *    `111,237,255` 로 그려졌다. `buildSpecNodeData` 의 fills→hex6 분해는
+ *    그대로 두었다 — 우회가 아니라 alpha 를 별도 채널로 나르는 설계다.
+ * 3. ~~**컨테이너 타입마다 배경 도달 여부가 다르다.**~~ (2026-08-31 수리)
+ *    `frame` 이 배경을 안 냈던 것은 타입의 성질이 아니라 `FrameSpec.render.shapes()`
+ *    가 `props.style` 을 읽지 않았기 때문이다. 이제 `frame` 도 `Card`/`Toolbar`
+ *    와 같이 배경이 도달한다. Phase 6 매트릭스는 타입별 차이를 여전히 명시하되,
+ *    "배경이 도달하는 타입만 고른다" 는 제약은 사라졌다 — 그 제약 자체가
+ *    유리한 입력만 재는 경로였다.
  *
  * ## fixture 계약
  *
@@ -40,6 +43,7 @@ import type { CanvasKit } from "canvaskit-wasm";
 import {
   createPilotDocument,
   FIXTURE_ARTBOARD,
+  FIXTURE_COLORS,
   FIXTURE_PAGE_ID,
 } from "../harness/fixture";
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
@@ -54,12 +58,31 @@ const PAGE_ID = FIXTURE_PAGE_ID;
 const PAGE_W = FIXTURE_ARTBOARD.width;
 const PAGE_H = FIXTURE_ARTBOARD.height;
 
+/**
+ * 기대 픽셀은 **fixture 가 authoring 한 색에서 직접 유도한다.**
+ *
+ * 손으로 적어 두면 fixture 와 조용히 갈린다 — 실제로 갈려 있었다: `INNER` 가
+ * `#D9264F` 로 박혀 있었는데 fixture 의 inner 는 `#E8443F` 다. 이 테스트가
+ * `it.fails` 인 동안에는 어차피 실패할 예정이라 아무도 눈치채지 못했고, Skia 가
+ * 칠하기 시작한 뒤에야 드러났다 (ADR-198, 2026-08-31). 유도해 두면 이 부류의
+ * 드리프트가 아예 생기지 않는다.
+ */
+function rgbaOf(hex8: string): [number, number, number, number] {
+  const b = hex8.replace("#", "");
+  return [
+    parseInt(b.slice(0, 2), 16),
+    parseInt(b.slice(2, 4), 16),
+    parseInt(b.slice(4, 6), 16),
+    b.length === 8 ? parseInt(b.slice(6, 8), 16) : 0xff,
+  ];
+}
+
 /** body 배경 — 흰색. */
-const BG: [number, number, number, number] = [0xff, 0xff, 0xff, 0xff];
+const BG = rgbaOf(FIXTURE_COLORS.body);
 /** 바깥 box fill — 파랑. */
-const OUTER: [number, number, number, number] = [0x2f, 0x6f, 0xed, 0xff];
-/** 안쪽 box fill — 자홍. */
-const INNER: [number, number, number, number] = [0xd9, 0x26, 0x4f, 0xff];
+const OUTER = rgbaOf(FIXTURE_COLORS.outer);
+/** 안쪽 box fill — 붉은색. */
+const INNER = rgbaOf(FIXTURE_COLORS.inner);
 
 /** 파일럿 문서를 러너에 태우는 얇은 래퍼 — 체인은 `harness/skiaRunner.ts` 소유. */
 function runPilot(ck: CanvasKit) {
@@ -101,27 +124,26 @@ describe("ADR-198 Phase 0 — G0 Skia leg (프로덕션 경로)", () => {
   });
 
   /**
-   * **현재 이 leg 은 백색 프레임을 낸다.** 통합 fixture(`harness/fixture.ts`)로
-   * 프로덕션 체인을 다 태워도 `variance = 0`, `outer(30,30) = 255,255,255,255`.
+   * **2026-08-31 이 leg 이 칠하기 시작했다** — 이 테스트는 오래도록 `it.fails`
+   * ratchet 이었다. Skia 는 `variance 0`, `outer(30,30) = 255,255,255,255` 인
+   * 백색 프레임을 냈고, 같은 fixture(같은 checksum)를 Preview 는 세 노드 전부
+   * 칠했다. 하니스가 한 fixture 에서 두 PNG 을 내고 D3 발산을 실제로 잡아낸
+   * 자리다.
    *
-   * `it.fails` 로 두는 이유: 통과시키려고 입력을 바꾸면(컨테이너를 `Card` 로, 색을
-   * hex6 로) 게이트가 유리한 입력만 재는 도구가 된다 (measurement-validity §1 Q2).
-   * 반대로 red 로 두면 스위트를 commit 할 수 없다. `it.fails` 는 **ratchet** 이다 —
-   * 칠해지기 시작하는 순간 이 테스트가 실패해서 기록 갱신을 강제한다.
+   * 원인은 두 겹이었고 (ADR-198 §7 별도 작업으로 규명), 둘 다 고쳐졌다:
    *
-   * **이건 fixture 문제가 아니라 실제 발산이다.** 같은 fixture(같은 checksum)를
-   * Preview leg 은 세 노드 전부 칠한다 — `previewLeg.browser.test.ts` 실측으로
-   * `body/outer/inner` 3/3, geometry 도 선언값과 일치, PNG 1251B. Skia 만 비어 있다.
-   * 즉 하니스가 한 fixture 에서 두 PNG 을 내고 **D3 발산을 실제로 잡아냈다.**
+   * 1. `FrameSpec.render.shapes()` 가 `props.style` 을 한 번도 읽지 않았다 —
+   *    frame 은 catalog 미등록이라 이 함수가 Skia 가 그릴 것을 정하는 유일한
+   *    자리인데, 배경 shape 을 아예 만들지 않았다. → 배경 box 방출.
+   * 2. `hexStringToNumber` 가 `#RRGGBBAA` 를 그대로 parse 해 채널이 한 바이트씩
+   *    밀렸다 (`#2F6FEDFF` → `111,237,255`). DOM 은 hex8 을 그대로 이해하므로
+   *    이것도 D3 발산이었다. → 알파 절단 + `colorValueToFloat32` 가 합성.
    *
-   * **원인은 미규명**: 후보는 (a) `frame` 이 layout 컨테이너라 배경 shape 미생성,
-   * (b) catalog 배경 채널 hex6 전용이라 hex8 alpha 밀림 — 둘 다 백색을 만든다.
-   * 이를 가르려던 축약 probe 는 네 조합 모두 `none` 을 반환해 **계측기가 무효**였고
-   * 폐기했다. 원인 규명과 수정은 breakdown §7 (Out of Scope) 에 따라 별도 작업이며,
-   * 근거 없는 원인 주장을 여기 남기지 않는다.
+   * 이제 세 좌표 모두 fixture 가 authoring 한 색과 정확히 일치한다. 통과가
+   * 정상이며, 다시 실패하면 위 두 경로 중 하나가 회귀한 것이다.
    */
-  it.fails(
-    "[미해결 기록] fixture 의 fill 색이 Skia 좌표에 찍힌다 — 현재 실패",
+  it(
+    "fixture 의 fill 색이 Skia 좌표에 그대로 찍힌다 (2026-08-31 수리 완료)",
     () => {
       const { pixels } = runPilot(ck);
 
@@ -131,18 +153,18 @@ describe("ADR-198 Phase 0 — G0 Skia leg (프로덕션 경로)", () => {
     },
   );
 
-  it("[미해결 기록] Skia leg 의 현재 liveness 를 0 으로 명시 고정", () => {
+  it("Skia leg 이 살아 있는 프레임을 낸다 (HC11 liveness)", () => {
     const { pixels } = runPilot(ck);
     const variance = pixelVariance(pixels);
 
     console.log(
-      `[ADR-198 P0-skia] 미해결: variance=${variance.toFixed(1)} ` +
+      `[ADR-198 P0-skia] liveness: variance=${variance.toFixed(1)} ` +
         `outer(30,30)=${pixelAt(pixels, PAGE_W, 30, 30).join(",")}`,
     );
 
     // 결정성 테스트는 백색 프레임에서도 통과한다 — HC11 liveness 가 없으면
     // 이 leg 은 "건강하고 결정적" 으로 보인다. R11 이 겨냥한 바로 그 상태.
-    expect(variance).toBe(0);
+    expect(variance).toBeGreaterThan(0);
   });
 
   it("결정성: 10회 연속 해시 동일 + 서로 간 maxByte 0 (HC5/G2)", () => {

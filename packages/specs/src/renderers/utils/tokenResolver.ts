@@ -193,9 +193,12 @@ const NAMED_COLOR_TO_CSS: Record<string, string> = {
  */
 for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
   if (token.endsWith("-subtle")) continue;
-  const target = token in COLOR_TOKEN_TO_CSS ? COLOR_TOKEN_TO_CSS : NAMED_COLOR_TO_CSS;
-  target[`${token}-hover`] ??= `color-mix(in srgb, var(${entry.cssVar}) 85%, black)`;
-  target[`${token}-pressed`] ??= `color-mix(in srgb, var(${entry.cssVar}) 75%, black)`;
+  const target =
+    token in COLOR_TOKEN_TO_CSS ? COLOR_TOKEN_TO_CSS : NAMED_COLOR_TO_CSS;
+  target[`${token}-hover`] ??=
+    `color-mix(in srgb, var(${entry.cssVar}) 85%, black)`;
+  target[`${token}-pressed`] ??=
+    `color-mix(in srgb, var(${entry.cssVar}) 75%, black)`;
 }
 
 /**
@@ -358,7 +361,24 @@ export function resolveFocusRingToken(ref: TokenRef): {
  */
 export function hexStringToNumber(hex: string): number {
   if (hex.startsWith("#")) {
-    return parseInt(hex.slice(1), 16);
+    const body = hex.slice(1);
+
+    // 반환값 소비처는 **전부** 이 숫자를 `0xRRGGBB` 로 읽는다
+    // (`hexToColor4fChannels` 가 16/8/0 비트를 마스크). 그래서 `#RRGGBBAA` 를
+    // 그대로 `parseInt` 하면 채널이 한 바이트씩 밀려 **빨강이 사라지고 알파가
+    // 파랑 자리에 앉는다** — `#2F6FEDFF` 가 `(111,237,255)` 로 그려졌다
+    // (ADR-198, 2026-08-31 실측). DOM/CSS 는 `#RRGGBBAA` 를 그대로 이해하므로
+    // 이 시프트는 두 consumer 가 같은 값에서 다른 색을 내는 D3 발산이었다.
+    // 알파는 여기서 표현할 수 없으니 잘라내고, 필요한 쪽이 따로 읽는다
+    // (Skia 는 `colorValueToFloat32` 가 hex 알파를 합성 alpha 로 곱한다).
+    if (body.length === 3 || body.length === 4) {
+      const [r, g, b] = [body[0], body[1], body[2]];
+      return parseInt(`${r}${r}${g}${g}${b}${b}`, 16);
+    }
+    if (body.length === 8) {
+      return parseInt(body.slice(0, 6), 16);
+    }
+    return parseInt(body, 16);
   }
   if (hex.startsWith("0x")) {
     return parseInt(hex, 16);
