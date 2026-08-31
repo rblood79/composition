@@ -1,91 +1,110 @@
-# ADR-923: 레이아웃 어휘 닫기 — TS IFC 시뮬레이션 제거·엔진 block/inline 경로 직결(A) + 미구현 레이아웃 의미 ingress 정규화(B)
+# ADR-923: display 이원 계약 — TS IFC 시뮬레이션 제거·엔진 outer/inner 직결 (C′)
 
 ## Status
 
-Proposed — 2026-08-31
+Proposed — 2026-08-31 · **r1 개정 2026-08-31** (Codex 설계 리뷰 5건 전부 성립 → 선택안 C 를 C′ 로 개정, B 갈래(ingress 정규화·persisted migration) 는 별도 결정으로 분리 — 사용자 결정 2026-08-31. 리뷰 기록: [reviews/923.md](reviews/923.md))
 
-> 번호: 사용자 요청 922 는 `922-photoshop-style-panel-layout-coordinator` 가 이미 사용 중 → 900 밴드(인프라/렌더링 트랙, ADR-916 계열) 최대 + 1 = 923. 사용자 명시 요청으로 900 밴드 사용.
+> 번호: 사용자 요청 922 는 `922-photoshop-style-panel-layout-coordinator` 가 사용 중 → 900 밴드 최대 + 1 = 923. 파일명은 r0 제목(`layout-vocabulary-closure`) 그대로 둔다 — 링크 안정성. 어휘 닫기(B 갈래) 자체는 §Decision 의 분리 사유대로 후속 결정 대상.
 
 ## Context
 
-**Domain: D3 시각 스타일** (layout flow 는 D3 — `.claude/rules/ssot-hierarchy.md` §3). D1/D2 변경 없음. Spec/Generator 확장 ADR 아님 — catalog CSS 생성기는 손대지 않는다.
+**Domain: D3 시각 스타일** (layout flow 는 D3 — `.claude/rules/ssot-hierarchy.md` §3). D1/D2 변경 없음. Spec/Generator 확장 ADR 아님 — catalog CSS 생성기는 손대지 않는다. 단, catalog 의 **Canvas 전용 display override** (DOM `inline-flex` ↔ Canvas `flex`) 를 걷어내는 것은 D3 대칭 복구다.
 
 ### 발견 경위
 
-ADR-198 (D3 픽셀 패리티 게이트) 가 두 프로덕션 leg 을 처음 맞댄 결과 catalog 파일럿에서 배치 발산이 났다 (`0aa52b68a`): block 부모 안의 **명시 폭 block 형제**가 Chrome 에서는 제 줄을 차지하는데 Skia 에서는 inline-block 형제와 같은 줄에 남는다. 원인을 추적하니 어댑터가 아니라 **어댑터의 전제**가 문제였다.
+ADR-198 (D3 픽셀 패리티 게이트) 가 두 프로덕션 leg 을 처음 맞댄 결과 catalog 파일럿에서 배치 발산이 났다 (`0aa52b68a`): block 부모 안의 **명시 폭 block 형제**가 Chrome 에서는 제 줄을 차지하는데 Skia 에서는 inline-block 형제와 같은 줄에 남는다. 원인을 추적하니 어댑터가 아니라 **어댑터의 전제**가 문제였고 (r0), r0 의 수리안은 다시 **catalog 컴포넌트의 display 이중 표현**에 걸려 무효였다 (r1 리뷰).
 
-### 실측 사실 (2026-08-31)
+### 실측 사실 (2026-08-31, r0 + r1)
 
-1. **전제가 낡았다.** `taffyDisplayAdapter.ts:20` "=== Taffy 시뮬레이션 규칙 ===", `:521` "Taffy는 inline formatting context를 지원하지 않으므로". Taffy 는 ADR-916 endgame 7/7 (`dd5a6e403`, 2026-07-06) 로 **완전 제거**됐고 (`composition-engine/Cargo.toml:5` "taffy dependency 부재가 본 crate 의 존재 이유"), 비테스트 14 파일이 Taffy 식별자를 아직 쓴다.
-2. **전제가 실제 엔진에 대해 거짓이다.** `packages/composition-engine/src/block.rs:141-215` 는 inline-block 자식의 line box 를 **자체 구현**한다 — wrap 판정, `flush_line_box`, `vertical_align`/`baseline`/`line_height` 필드 (WPT 유래 `block_layout.rs` 승계, ADR-916 1-C).
-3. **TS 치환이 엔진 구현을 가린다.** `fullTreeLayout.ts:1156 toTaffyDisplay` → block 부모에 inline-level 자식이 하나라도 있으면 `INLINE_BLOCK_PARENT_CONFIG` (flex row wrap) → `TaffyBlockEngine.ts:118 result.display = "flex"` → `tree.rs:3598 classify_container_display("flex") → Flex`. `solve_block` 의 inline-block 경로 (`tree.rs:4607` display code 1) 는 live 빌더에서 **도달 불가** — cargo test 만 지나간다.
-4. **엔진 안에서도 절반만 배선됐다.** `tree.rs:4590` 은 `vertical_align/baseline/line_height` 를 "미소비" 로 선언한다.
-5. **이중 선언.** `utils.ts:4400 INLINE_BLOCK_TAGS` 손 목록이 catalog `COMPONENT_RULES_TABLE` 의 display 와 별개 원천이고, TS `parseDisplay/classifyChildDisplay/blockifyDisplay` 는 `display.rs` 에 이미 이식된 것과 두 벌이다.
-6. **ingress 는 열려 있다.** 팔레트 factory 가 `display:"block"` 을 11곳(3파일)에 넣고, Style 패널 `DISPLAY_OPTIONS` 가 block/inline/inline-block 을 노출하며, pencil import 와 AI 생성이 있다. 반면 hydration migration chain(`adapters/canonical/index.ts:334-343`) 이라는 단일 chokepoint 선례가 이미 있다.
-
-ADR-198 의 발산은 이 그림자 안에서 났다: `needsBlockChildFullWidth` 는 block.rs 가 이미 하는 일의 **JS 재구현**이고, Chrome 과 갈린 건 그 재구현이다. 같은 부류의 치환이 어댑터 헤더에 4개 더 선언돼 있다 (순수 inline → block 격상, width:100% 보정, vertical-align → alignItems 근사, intrinsic width 주입).
+1. **전제가 낡았다.** `taffyDisplayAdapter.ts:20` "=== Taffy 시뮬레이션 규칙 ===", `:521` "Taffy는 inline formatting context를 지원하지 않으므로". Taffy 는 ADR-916 endgame 7/7 (`dd5a6e403`, 2026-07-06) 로 완전 제거됐고 (`composition-engine/Cargo.toml:5`), 비테스트 14 파일이 Taffy 식별자를 아직 쓴다.
+2. **엔진은 line box 를 갖고 있다.** `packages/composition-engine/src/block.rs:141-215` 가 inline-block 자식의 line box 를 구현한다 — wrap, `flush_line_box`, `vertical_align`/`baseline`/`line_height` (`:370-390` baseline 정렬).
+3. **TS 치환이 그 경로를 가린다.** `fullTreeLayout.ts:1156 toTaffyDisplay` → block 부모에 inline-level 자식이 있으면 `INLINE_BLOCK_PARENT_CONFIG` (flex row wrap) → `TaffyBlockEngine.ts:118 display="flex"` → `tree.rs:1185/3598 classify_container_display("flex") → Flex`. `solve_block` 의 inline 경로는 live 에서 도달 불가.
+4. **(r1) display 가 이중 표현이다 — 핵심.** DOM Button 은 `inline-flex` (`packages/shared/src/components/styles/Button.css:14`); catalog 의 Canvas fallback 은 `flex` (`componentRulesTable.ts:915`, 주석: "inline-flex 면 패널 Direction 이 block 으로 표시돼서" — 2026-06-27 사용자 지적으로 flex 선택). 부모는 자식을 `getElementDisplay` (`fullTreeLayout.ts:1795`, 손 목록 `INLINE_BLOCK_TAGS` → `"inline-block"`) 로 보고, 자식 자신은 `resolveContainerStylesFallback` (`:1031`) 로 `flex` 를 받는다. 같은 Button 이 부모 판정과 자기 style 에서 **다른 display** 를 갖는다.
+5. **(r1) 엔진은 문자열 하나만 본다.** `tree.rs:4609` 는 자식 display 가 정확히 `"inline-block"` 일 때만 line item(code 1). `display.rs` 의 CSS Display Level 3 `{outer, inner}` 모델 (`parse_display/classify_child_display/blockify_display`) 은 **tree.rs 어디에서도 호출되지 않는다** (참조 0 — 인프라 존재 ≠ 가동 경로). 따라서 r0 의 "TS 치환만 걷어내고 직결" 은 catalog Button 을 **block item** 으로 만들어 한 줄을 통째로 차지시킨다 — 지금보다 나쁘다.
+6. **(r1) baseline 이 역방향이다.** `tree.rs:4590` 이 `vertical_align/baseline/line_height` 를 0/AUTO 로 넣고, `block.rs:370-390` 이 그 baseline 으로 줄 위치를 잡는다. TS `calculateBaseline` (`utils.ts:5121`) 은 re-export 만 있고 production caller 0. baseline 은 자식 레이아웃·텍스트 측정이 끝난 뒤 나오는 **출력**이지 style 입력이 아니다.
+7. **(r1) `INLINE_BLOCK_TAGS` 는 두 개념의 겸용이다.** 기본 display 목록이자 intrinsic width/height 측정을 켜는 escape 목록 (`utils.ts:4570-4572 needsWidth`). ProgressCircle/CalendarGrid/DateInput 같은 self-render leaf 가 들어 있는 이유. 손 목록 24 vs catalog inline-\* 선언 30건 — "catalog 파생 == 손 목록" 은 다른 개념의 비교다.
+8. **(r1) hydration migration 은 단일 ingress 가 아니고 비가역이다.** 패널 `updateSelectedStyle` (`useStyleActions.ts:51`), AI `updateElementProps` (`services/ai/tools/updateElement.ts:98`) 가 store 를 직접 쓴다. migration chain 은 `usePageManager.ts:385` persist-back 에서만 돌고 IndexedDB 를 덮어써 원값이 사라진다. r0 의 B 갈래(S4 정규화) 는 세션 중 유입을 못 막고 롤백도 불가.
+9. **패널.** `useLayoutAuxiliary.ts:69 useFlexDirectionKeys` 는 `display !== "flex"` 면 block — `inline-flex` 를 flex 로 읽지 못한다. 이것이 사실 4 의 Canvas 전용 `flex` override 를 만든 원인이다.
 
 ### 문제 정의
 
-정합의 근본 구조는 두 가지뿐이다. (A) Chrome 을 진실로 두고 캔버스가 흉내낸다 — 작업량이 무한하다. (B) 문서 모델을 진실로 두고 캔버스와 Chrome 이 **같은 문서를 같은 의미로** 소비한다 — 작업량은 "빌더가 허용한 어휘 × 소비자 정확성" 으로 유한하다. 이 저장소는 뼈대가 (B) 다 (canonical document ADR-142, catalog D3 SSOT, ADR-916 자체 엔진, ADR-156 Chrome 차등 oracle). 어댑터의 시뮬레이션 층만 (A) 의 잔재로 남아 있다.
+정합의 근본 구조는 두 가지뿐이다. (A) Chrome 을 진실로 두고 캔버스가 흉내낸다 — 무한. (B) 문서 모델을 진실로 두고 캔버스와 Chrome 이 **같은 문서를 같은 의미로** 소비한다 — "어휘 × 소비자 정확성" 으로 유한. 이 저장소는 뼈대가 (B) 다 (canonical ADR-142, catalog D3 SSOT, ADR-916 자체 엔진, ADR-156 Chrome 차등 oracle). 남은 (A) 의 잔재가 둘이다: 어댑터의 시뮬레이션 층, 그리고 **display 를 "부모가 보는 값 / 자식이 받는 값 / DOM 이 받는 값" 세 가지로 갈라 놓은 표현**.
+
+CSS Display Level 3 는 이 문제를 이미 풀었다 — display 는 `outer`(부모 flow 참여) 와 `inner`(자기 자식 solver) 의 쌍이다:
+
+| CSS 값         | outer  | inner     |
+| -------------- | ------ | --------- |
+| `block`        | block  | flow      |
+| `inline-block` | inline | flow-root |
+| `inline-flex`  | inline | flex      |
+| `inline-grid`  | inline | grid      |
+
+Button = `inline-flex` = **line box 에 참여하면서 내부는 flex**. 이 한 값이 부모·자식·DOM 세 소비자에 같은 의미를 주면 이중 표현이 사라진다. 엔진에는 이 모델이 `display.rs` 로 이미 있다 — 배선만 없다.
 
 **Hard Constraints**:
 
-1. **치환 0 (측정 가능)**: 어댑터가 문서의 display class 와 다른 class 를 엔진에 넘기는 경우는 substitution registry 에 선언된 항목뿐이어야 한다 — registry 밖 발생 = 게이트 실패. 현재 미선언 치환 수: 8 (breakdown §2.1).
-2. **Chrome 차등 증명 선행**: 한 번도 live 로 돌지 않은 엔진 경로(block.rs line box) 를 켜기 전에 ADR-156 방식(실 Chrome `getBoundingClientRect`) 차등 케이스 ≥ 12 가 위치·크기 ≤ 1px 로 통과해야 한다. 허용치 확대 금지.
-3. **ADR-198 규율 승계**: 예산·fixture 무변경. `KNOWN_LAYERS` ratchet 은 수리 결과로만 갱신.
-4. **성능**: 5k fixture `computeLayout` p95 가 baseline 대비 +5% 이내.
-5. **단일 ingress**: 정규화는 진입로마다가 아니라 hydration migration chain 한 곳에서. 멱등.
-6. **D1/D2 무변경**: DOM/ARIA·props·canonical 스키마 변경 0.
+1. **display 단일 표현**: 엔진 경계의 display 는 CSS 값 1개이며, 엔진이 `display.rs` 로 outer/inner 를 해석한다. TS 가 부모 판정용과 자식 style 용으로 **다른 display** 를 만드는 경우 0 (측정: `childDisplays[i]` == 자식 노드에 전달된 `display`).
+2. **Canvas 전용 display override 0**: catalog `containerStyles.display` 가 DOM CSS 의 display 와 다른 rule 수 0 (현재 Button 확인, 전수는 Phase 0).
+3. **Chrome 차등 증명 선행**: live 로 돈 적 없는 엔진 block/inline 경로를 켜기 전 ADR-156 방식 차등 케이스 ≥ 12 가 위치·크기 ≤ 1px 로 통과. 허용치 확대 금지. **실패 = cutover 차단** (강등 분기 없음).
+4. **baseline 출력 계약**: baseline 은 `NodeLayout` 출력 필드로 자식 → 부모 상향 전파. style 입력은 `vertical-align`/`line-height` 만.
+5. **ADR-198 규율 승계**: 예산·fixture 무변경. ratchet 은 수리 결과로만 갱신.
+6. **성능**: 5k fixture `computeLayout` p95 가 baseline 대비 +5% 이내 (block 비율 높은 arm 별도).
+7. **D1/D2·스키마 무변경**: DOM/ARIA·props·canonical 스키마·persisted 문서 변경 0. (persisted migration 은 본 ADR 밖.)
 
 **Soft Constraints**:
 
 - block.rs line box 는 cargo test 로만 검증됐다 — live 동작 미지.
-- ADR-198 Phase 6(대표 매트릭스) 미착수 — 본 ADR 의 차등 케이스가 그 입력이 된다.
-- 단일 개발자 리뷰 용량 — Phase 를 commit 단위로 잘게.
-- 기존 문서의 배치가 바뀐다(Chrome 쪽으로). 사용자 체감은 "Preview 와 캔버스가 같아짐".
+- 2026-06-27 사용자 지적(패널 Direction 이 inline-flex 를 block 으로 표시) 을 재발시키면 안 된다 — catalog override 제거는 패널 수정과 같은 Phase.
+- ADR-198 Phase 6(대표 매트릭스) 미착수 — 본 ADR 의 차등 케이스가 그 입력.
+- 단일 개발자 리뷰 용량 — Rust 변경(tree.rs/block.rs) 은 commit 단위로 잘게.
 
 ## Alternatives Considered
 
 ### 대안 A: TS 시뮬레이션 정교화 (line-break 삽입 또는 익명 블록 그룹화)
 
-- 설명: 어댑터의 flex-row-wrap 시뮬레이션을 유지하고, block 형제 앞뒤에 줄바꿈 항목을 넣거나(외과적) 연속 inline 형제를 익명 블록으로 묶는다(구조적). 발견된 결함만 고친다.
-- 근거: CSS 2.1 §9.2.1.1 익명 블록 박스가 바로 이 구조다. Dropflow(`packages/layout-flow` 원본) 의 `classifyChild` 가 같은 접근. 다만 이는 **레이아웃 엔진 안에서** 하는 일이지 엔진 앞단 JS 에서 하는 일이 아니다.
+- 설명: flex-row-wrap 시뮬레이션을 유지하고 발견된 결함만 고친다.
+- 근거: CSS 2.1 §9.2.1.1 익명 블록 박스 — Dropflow `classifyChild` 와 같은 접근. 그러나 엔진 안의 일이지 엔진 앞단 JS 의 일이 아니다.
 - 위험:
-  - 기술: MEDIUM — flex 로 IFC 를 근사하는 한계(line-height strut, baseline 정렬, 줄 간 margin) 는 남는다.
-  - 성능: LOW — 변경 없음.
-  - 유지보수: **HIGH** — 같은 의미를 JS(어댑터) 와 Rust(block.rs) 두 곳이 구현. 한쪽 수정이 다른 쪽과 갈리는 구조를 고착. ADR-916 이 없앤 이중화를 되살린다.
-  - 마이그레이션: LOW — 문서 무변경.
+  - 기술: MEDIUM — flex 근사의 한계(strut, baseline, 줄 간 margin) 잔존.
+  - 성능: LOW.
+  - 유지보수: **HIGH** — 같은 의미를 JS 와 Rust 두 곳이 구현. ADR-916 이 없앤 이중화를 되살린다.
+  - 마이그레이션: LOW.
 
 ### 대안 B: 어휘에서 제거 + ingress 전면 정규화 (block+inline-level → 문서에 flex 기록)
 
-- 설명: block 컨테이너에 inline-level 자식이 들어오면 입력 시점에 컨테이너를 `display:flex; flexWrap:wrap; alignItems:baseline` 으로 **문서에** 기록한다. Chrome 도 같은 flex 를 받으므로 갈릴 자리가 없다. 시뮬레이션이 "엔진의 비밀" 에서 "문서의 값" 이 된다.
-- 근거: Figma auto-layout / Framer 의 방식 — 자기 레이아웃 모델(닫힌 어휘)을 CSS 로 내보내며 CSS 를 흉내내지 않는다. pen.dev 도 동형.
+- 설명: block 컨테이너에 inline-level 자식이 오면 입력 시점에 flex-wrap 으로 문서에 기록.
+- 근거: Figma auto-layout / Framer / pen.dev — 닫힌 어휘를 CSS 로 내보낸다.
 - 위험:
-  - 기술: LOW — 엔진 flex 경로는 검증됨.
+  - 기술: LOW.
   - 성능: LOW.
-  - 유지보수: MEDIUM — 정규화 규칙이 "CSS 의미와 다른 빌더 의미" 를 영구화. `display:block` 을 고른 사용자의 의도(줄 단위 블록 흐름)를 flex 로 바꾼다.
-  - 마이그레이션: **HIGH** — 기존 문서의 block 컨테이너 전부 재직렬화(factory 11곳 포함), 배치가 Chrome 의 원래 결과와 **멀어지는** 방향. 엔진이 이미 구현한 것을 버린다.
+  - 유지보수: MEDIUM — CSS 와 다른 빌더 의미를 영구화.
+  - 마이그레이션: **HIGH** — 기존 문서 전부 재직렬화 + (r1) hydration 이 단일 ingress 가 아니라 세션 중 유입을 못 막고, persist-back 이 원값을 지워 롤백 불가.
 
-### 대안 C: 갈래 분리 — 엔진 구현분은 직결(A), 미구현분만 정규화/선언(B)
+### 대안 C (r0 선택 — r1 리뷰로 기각): 갈래 분리 — 단일 display 문자열 그대로 직결(A) + 미구현분 정규화(B)
 
-- 설명: 상위 정책 "엔진이 구현한 의미만 문서에 존재하고, 치환은 몰래 하지 않는다" 를 두 갈래로 집행한다. **A 직결**: TS IFC 시뮬레이션·width:100% 보정·leaf 고정·vertical-align 근사를 제거하고 block.rs line box 를 쓴다; `tree.rs` 미소비 3 필드를 배선한다; 켜기 전 Chrome 차등으로 증명한다. **B 어휘 닫기**: 순수 `display:inline` 요소는 ingress 에서 `inline-block` 으로 정규화(문서 값), float/writing-mode/다단은 노출 차단 + import strip, grid 미구현 4종은 선언된 치환 + 차등 케이스로 수치 고정. 손 목록 `INLINE_BLOCK_TAGS` 는 catalog 파생으로, Taffy 명명은 개명.
-- 근거: Blink LayoutNG / Servo 는 block flow 안의 inline-block 을 line box 로 배치한다 — block.rs 가 승계한 WPT 파생 커널이 그 모델. Taffy 와 Yoga 는 inline 레이아웃을 명시적으로 범위 밖에 둔다 — 시뮬레이션은 그 제약의 산물이었고 제약은 ADR-916 으로 사라졌다. ADR-156 이 도입한 실 Chrome 차등 oracle 이 "켜기 전 증명" 수단이다.
+- 설명: TS 치환만 걷어내고 자식 display 를 엔진에 그대로 넘긴다; 미구현 의미는 ingress 정규화.
+- 근거: r0 에서 "엔진이 이미 구현했다" 는 사실에 근거. 그러나 **엔진이 문자열 하나만 보고, catalog 가 Button 에 `flex` 를 준다**는 두 사실을 놓쳤다.
 - 위험:
-  - 기술: MEDIUM — block.rs line box 가 live 미검증. 차등 케이스로 선행 증명 (HC2).
-  - 성능: MEDIUM — block 경로의 프레임당 비용을 flex 경로와 비교한 적 없음. baseline 대비 게이트 (HC4).
-  - 유지보수: LOW — 의미 구현이 Rust 한 곳, 선언이 catalog 한 곳, 정규화가 chain 한 곳.
-  - 마이그레이션: MEDIUM — block+inline-block 문서의 배치가 Chrome 쪽으로 1회 이동. 스키마 변경 0, migration 은 S4 정규화 1건(멱등).
-
-### 대안 D: 엔진에 완전한 IFC 구현 (순수 inline box · 텍스트 run 과 요소 혼합 · float)
-
-- 설명: Dropflow 전체를 Rust 로 이식해 CSS 2.1 §9.4.2 IFC 를 완전히 구현한다.
-- 근거: Dropflow / Servo Layout 2020.
-- 위험:
-  - 기술: **HIGH** — 텍스트 shaping 과 line breaking 을 엔진이 떠안음. 지금은 Skia Paragraph 가 담당.
+  - 기술: **HIGH** — catalog Button 이 block item 이 되어 발산이 악화된다 (사실 4·5). load-bearing 전제 실패.
   - 성능: MEDIUM.
-  - 유지보수: **HIGH** — 코드량 수천 줄, 리뷰 용량 초과 (ADR-916 R 표 동일 사유).
-  - 마이그레이션: LOW.
+  - 유지보수: MEDIUM — `INLINE_BLOCK_TAGS` 를 catalog display 로 대체하는 G4 가 다른 개념을 비교 (사실 7).
+  - 마이그레이션: **HIGH** — B 갈래의 persisted migration 이 비가역 (사실 8).
+
+### 대안 C′: display 이원 계약 — 엔진이 outer/inner 를 해석, TS 는 CSS 값 1개만 전달
+
+- 설명: (1) `tree.rs` 가 `display.rs` 를 배선한다 — 부모 `solve_block` 은 자식의 **outer** 로 line item 여부를, 자식 자신은 **inner** 로 block/flex/grid solver 를 고른다; flex/grid 부모 아래에서는 엔진이 blockify. (2) catalog 의 Canvas 전용 `flex` override 를 제거해 DOM 과 같은 `inline-flex` 로 두고, 패널 Direction 판정이 `inline-flex` 를 flex 로 읽게 고친다. (3) `INLINE_BLOCK_TAGS` 를 **default-display resolver**(catalog 파생) 와 **intrinsic-measurement capability**(self-render leaf 명시 목록) 로 분리한다. (4) baseline 을 `NodeLayout` 출력으로 상향 전파하고 `vertical-align`/`line-height` 만 입력으로 배선한다. (5) 그 뒤 TS IFC 시뮬레이션·width:100% 보정·leaf 고정·alignItems 근사를 단일 commit 으로 제거한다. (6) 치환·무시 감시는 display class 가 아니라 **property × value × engineSupport × policy × oracle** capability matrix 로 선언한다 — 본 ADR 은 seed 만, 집행은 B 갈래 후속 결정.
+- 근거: CSS Display Level 3 §2 (outer/inner) — Blink LayoutNG·Servo 가 정확히 이 모델로 inline-flex 를 line box item + flex container 로 배치한다. Dropflow 의 `Style.blockify()`/`classifyChild` 가 이미 `display.rs` 에 이식돼 있다 (ADR-916 2-A). Taffy·Yoga 가 inline 을 범위 밖에 둔 제약은 ADR-916 으로 소멸. ADR-156 의 실 Chrome 차등 oracle 이 "켜기 전 증명" 수단.
+- 위험:
+  - 기술: MEDIUM — block.rs line box live 미검증 + inline-flex 컨테이너의 baseline 산출(첫 in-flow 텍스트) 신규. 차등 케이스로 선행 증명 (HC3).
+  - 성능: MEDIUM — block 경로 비용 미측정. baseline arm 게이트 (HC6).
+  - 유지보수: LOW — 의미 해석이 `display.rs` 한 곳, display 값이 catalog 한 곳(DOM 과 동일), 측정 capability 가 명시 목록 한 곳.
+  - 마이그레이션: MEDIUM — 스키마·persisted 문서 변경 0. block+inline-level 문서의 배치가 Chrome 쪽으로 1회 이동. catalog Button display 값 변경(flex → inline-flex) 은 inner 가 같아 subtree 결과 무변.
+
+### 대안 D: 엔진에 완전한 IFC (순수 inline box · 텍스트 run 혼합 · float)
+
+- 설명: Dropflow 전체 이식.
+- 근거: Dropflow / Servo Layout 2020.
+- 위험: 기술 **HIGH** / 성능 MEDIUM / 유지보수 **HIGH** / 마이그레이션 LOW — 텍스트 shaping 을 엔진이 떠안음, 리뷰 용량 초과.
 
 ### Risk Threshold Check
 
@@ -93,63 +112,68 @@ ADR-198 의 발산은 이 그림자 안에서 났다: `needsBlockChildFullWidth`
 | ---- | ----- | ---- | -------- | ------------ | :--------: |
 | A    | M     | L    | **H**    | L            |     1      |
 | B    | L     | L    | M        | **H**        |     1      |
-| C    | M     | M    | L        | M            |     0      |
+| C    | **H** | M    | M        | **H**        |     2      |
+| C′   | M     | M    | L        | M            |     0      |
 | D    | **H** | M    | **H**    | L            |     2      |
 
-루프 판정: HIGH 0 인 대안(C) 이 존재 → 새 대안 추가 불요. CRITICAL 없음.
+루프 판정: r0 에서 HIGH 0 이던 C 가 r1 실측(사실 4·5·8) 으로 HIGH 2 가 됐다 → 위험을 회피하는 새 대안 C′ 추가 (루프 1회). C′ HIGH 0. CRITICAL 없음.
 
 ## Decision
 
-**대안 C: 갈래 분리 — 엔진 구현분 직결(A) + 미구현분 정규화/선언(B)** 를 선택한다.
+**대안 C′: display 이원 계약** 을 선택한다.
 
 선택 근거:
 
-1. 유일하게 4축 HIGH 0. 잔존 MEDIUM 셋(live 미검증 경로 / block 경로 비용 / 배치 이동) 은 전부 **켜기 전 측정**으로 관리 가능하다 — ADR-156 차등 oracle 과 ADR-198 픽셀 게이트가 이미 있어 새 계측 인프라가 필요 없다.
-2. 의미 구현을 Rust 한 곳으로 모으는 것이 ADR-916 의 결정("단일 엔진") 을 완성하는 일이다. 어댑터가 엔진 앞에서 의미를 다시 쓰는 구조는 ADR-916 이 없앤 이중화의 잔재다.
-3. 배치 이동 방향이 Chrome(=Preview=publish) 쪽이다. 사용자가 실제로 배포받는 결과로 캔버스가 수렴하므로 "기존 문서가 달라진다" 는 비용이 "패널·캔버스·Preview 가 같아진다" 는 이득과 같은 사건이다.
-4. B 갈래를 남기는 이유: 엔진이 진짜로 구현하지 않은 의미(순수 inline 요소, float, grid 4종) 에 대해 "몰래 치환" 을 금지하려면 선언 장치가 필요하다. 그것이 없으면 이번 부류의 발산이 다른 항목에서 재발한다.
+1. C′ 만 4축 HIGH 0. 잔존 MEDIUM(live 미검증 경로 / block 경로 비용 / 배치 이동) 은 전부 켜기 전 측정으로 관리된다 — ADR-156 차등 oracle + ADR-198 픽셀 게이트가 이미 있다.
+2. 새 모델이 아니라 **있는 모델의 배선**이다. `display.rs` 가 outer/inner 를 이미 구현하고, `block.rs` 가 line box 를 이미 구현한다. 비용은 tree.rs 의 문자열 매칭 4곳(`:1185/:1373/:2552/:4609`) 을 `display.rs` 호출로 바꾸는 것과 baseline 출력 필드 하나다.
+3. 이중 표현의 근원(catalog Canvas 전용 `flex`) 을 제거하면 D3 대칭이 값 수준에서 복구된다 — Canvas 와 DOM 이 같은 display 를 받는다. 2026-06-27 의 우회는 패널 결함을 catalog 로 덮은 것이었고, 패널을 고치는 것이 맞다.
+4. B 갈래를 분리하는 이유: catalog 발산 수리와 무관하고, 사실 8 때문에 **비파괴 설계**(store 쓰기 경로 정규화 + 원값 보존 + 패널/AI 경로 포함) 가 따로 필요하다. 그 설계 없이 본 ADR 에 두면 마이그레이션 HIGH 가 되돌아온다.
 
 기각 사유:
 
-- **대안 A 기각**: 엔진이 이미 갖고 있는 line box 를 JS 로 또 만든다. 이번 발산의 원인이 바로 그 JS 재구현이었다. 유지보수 HIGH 를 영구화.
-- **대안 B 기각**: 구현된 기능을 버리고 문서 의미를 CSS 에서 멀어지게 바꾼다. 마이그레이션 HIGH 이면서 얻는 것이 C 의 부분집합. 단, B 의 원리(닫힌 어휘 + 문서 값) 는 C 의 B 갈래로 흡수 — 엔진 미구현 항목에만 적용.
-- **대안 D 기각**: 텍스트 흐름은 Skia Paragraph 가 이미 담당하고 요소 단위 inline 혼합은 제품 요구가 아니다. 범위·리뷰 용량 초과. 필요해지면 별도 ADR.
+- **대안 A 기각**: 엔진이 가진 line box 를 JS 로 또 만든다. 이번 발산의 원인이 그 JS 재구현이었다.
+- **대안 B 기각**: 구현된 기능을 버리고 문서 의미를 CSS 에서 멀어지게 바꾼다. 게다가 (r1) ingress 가 단일이 아니고 migration 이 비가역이라 마이그레이션 HIGH.
+- **대안 C 기각 (r0 선택 철회)**: 단일 display 문자열 직결은 catalog Button 을 block item 으로 만든다 — 발산을 못 고치고 악화시킨다. `INLINE_BLOCK_TAGS`↔catalog diff 게이트는 다른 개념의 비교. baseline 을 입력으로 넣는 설계는 역방향. 세 결함 모두 Codex r1 리뷰 (reviews/923.md h1·h2·h3).
+- **대안 D 기각**: 텍스트 흐름은 Skia Paragraph 소관, 요소 단위 inline 혼합은 제품 요구 아님. 범위 초과.
+
+**분리 결정 (사용자 2026-08-31)**: r0 의 B 갈래 — S4 순수 `display:inline` 요소 정규화 / S7 float·writing-mode·다단 노출 차단 / S8 grid 미구현 4종 선언 / persisted migration — 는 본 ADR 에서 제외한다. 요건은 breakdown §8 에 기록하고 별도 결정으로 넘긴다. 본 ADR 은 capability matrix 의 **seed 선언**까지만 한다.
 
 > 구현 상세: [923-layout-vocabulary-closure-breakdown.md](design/923-layout-vocabulary-closure-breakdown.md)
 
 ## Risks
 
-| ID  | 위험                                                                                                                                                                                                                                                                                     |  심각도  | 대응                                                                                                                                                  |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | block.rs line box 가 live 로 돈 적이 없다 — 켜는 순간 미지의 결함이 사용자 문서에 노출. 경로: `block.rs:141-215` / `tree.rs:4590,4607` / `fullTreeLayout.ts:1156` / `TaffyBlockEngine.ts:118`                                                                                            | **HIGH** | G1: 켜기 전 Chrome 차등 케이스 ≥12 통과. 실패 케이스는 Phase 2 에서 엔진 수리 후 재실행. cutover 는 단일 commit(즉시 revert)                          |
-| R2  | 기존 문서 배치 이동 — block 컨테이너 + inline-level 자식 문서 전부. 경로: `factories/definitions/{DateColor,Form,Overlay}Components.ts` (`display:"block"` 11곳) / `styleOptions.ts:68 DISPLAY_OPTIONS` / `adapters/canonical/index.ts:334` migration chain. 로컬 프로젝트 영향 % 미측정 | **HIGH** | G2: Phase 0 에서 "영향 % / 평균 재직렬화 파일 수" 수식화. 이동 방향이 Chrome 쪽임을 ADR-198 픽셀 게이트로 증명(L1 pass). CHANGELOG 사용자-가시 엔트리 |
-| R3  | block 경로 프레임당 비용이 flex 경로보다 클 수 있음 — 5k 문서에서 p95 회귀                                                                                                                                                                                                               |   MED    | G3: baseline 대비 +5% 이내. 초과 시 block.rs 프로파일 후 수리, 예산 완화 금지                                                                         |
-| R4  | 이중 선언 drift — `INLINE_BLOCK_TAGS` 손 목록 ↔ catalog display, TS 분류 함수 ↔ `display.rs`                                                                                                                                                                                             |   MED    | G4: catalog 파생 집합과 손 목록 diff 0 확인 후 손 목록 삭제. 남는 TS 함수는 display.rs 와 table test 로 묶음                                          |
-| R5  | ingress 우회 — pencil import / AI 생성 / 직접 store 쓰기가 hydration chain 을 안 지나면 S4 정규화가 새지 않음                                                                                                                                                                            |   MED    | Phase 0 실측으로 경로 확정. 정규화는 chain 한 곳(HC5), 우회 경로가 있으면 chain 을 지나도록 배선                                                      |
-| R6  | 선언 누락 — registry 에 없는 치환이 새로 생기면 같은 부류 재발                                                                                                                                                                                                                           |   MED    | G5: registry 밖 class 변경을 게이트 테스트가 잡음. 새 치환은 registry 등록 + 차등 케이스 없이는 머지 불가                                             |
-| R7  | ADR-198 ratchet 상호작용 — catalog `KNOWN_LAYERS` 를 수리 전에 손대면 게이트 vacuous                                                                                                                                                                                                     |   LOW    | HC3. ratchet 은 Phase 3 결과로만 갱신                                                                                                                 |
-| R8  | tree.rs 3 필드 배선이 inline 자식 없는 block 컨테이너의 기존 결과를 바꿀 수 있음                                                                                                                                                                                                         |   LOW    | Phase 2 에서 cargo golden + ADR-156 기존 케이스 전량 회귀. 변화가 있으면 Chrome 값으로만 판정                                                         |
-| R9  | Taffy 명명 잔재가 후속 작업을 잘못 이끎 (본 세션에서 실제로 발생)                                                                                                                                                                                                                        |   LOW    | Phase 6 개명 + 헤더 재작성. 개명은 동작 무변경 commit 으로 분리                                                                                       |
+| ID  | 위험                                                                                                                                                                                         |  심각도  | 대응                                                                                                                                           |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | block.rs line box + inline-flex baseline 산출이 live 로 돈 적 없다. 경로: `block.rs:141-215,370-390` / `tree.rs:1185,4590,4609` / `fullTreeLayout.ts:1156,1795` / `TaffyBlockEngine.ts:118`  | **HIGH** | G0 선행 검사 1케이스로 현재 실패를 확증 → G1 차등 ≥12 + baseline 케이스 통과 전 cutover 금지. 실패 = 차단(강등 없음). cutover 단일 commit      |
+| R2  | 기존 문서 배치 이동 — block 컨테이너 + inline-level 자식. 경로: `factories/definitions/{DateColor,Form,Overlay}Components.ts` `display:"block"` 11곳 / `styleOptions.ts:68` / import·AI 유입 | **HIGH** | G2: Phase 0 에서 "영향 % / 평균 재직렬화 파일 수" 수식화, ADR-198 L1 pass 로 방향이 Chrome 쪽임을 증명, CHANGELOG 사용자-가시 엔트리           |
+| R3  | block 경로 프레임당 비용 미측정                                                                                                                                                              |   MED    | G3: baseline 대비 +5%, block 비율 높은 arm 별도. 초과 시 block.rs 프로파일, 예산 완화 금지                                                     |
+| R4  | catalog `flex` override 제거가 패널 Direction 회귀 재발 (2026-06-27 사용자 지적). 경로: `useLayoutAuxiliary.ts:69` / `useLayoutValues` specPreset.display / `componentRulesTable.ts:915`     |   MED    | G4: 패널 수정과 catalog 수정을 **같은 commit**. Direction 이 inline-flex 를 flex-row/column 으로 표시하는 테스트                               |
+| R5  | `INLINE_BLOCK_TAGS` 분리 시 intrinsic 측정 capability 누락 → width 0 회귀 (DisclosureHeader "0×24" 선례). 경로: `utils.ts:4400,4570`                                                         |   MED    | G5: 24 항목을 두 개념으로 분류한 표를 Phase 0 에 고정, capability 목록은 명시 유지(파생 아님), 분리 전후 `enrichWithIntrinsicSize` 출력 diff 0 |
+| R6  | baseline 출력 계약이 flex/grid solver 에도 필요 — inline-flex Button 의 baseline = 첫 in-flow 텍스트 baseline. 미구현이면 `vertical-align: baseline` 이 bottom 으로 폴백                     |   MED    | G1 에 "inline-flex 컨테이너 + 텍스트 leaf" baseline 케이스 포함. leaf baseline 은 텍스트 측정값을 TS→엔진 입력으로, 컨테이너는 출력으로        |
+| R7  | display 단일 표현(HC1) 을 깨는 새 코드 유입 — `getElementDisplay` 와 style merge 가 다시 갈라짐                                                                                              |   MED    | HC1 측정 테스트(`childDisplays[i] == 자식 전달 display`) 를 fullTreeLayout 단위 테스트로 상시화                                                |
+| R8  | capability matrix 가 seed 로만 남아 S4/S7/S8 의 silent ignore 가 계속됨                                                                                                                      |   LOW    | 본 ADR 밖 — breakdown §8 요건 + B 갈래 후속 결정. seed 에 현재 격차 수치 기록                                                                  |
+| R9  | ADR-198 ratchet 을 수리 전에 손대면 게이트 vacuous                                                                                                                                           |   LOW    | HC5                                                                                                                                            |
+| R10 | Taffy 명명 잔재 (본 세션에서 실제로 분석을 잘못 이끔)                                                                                                                                        |   LOW    | Phase 6 개명, 동작 무변경 commit 분리                                                                                                          |
 
 ## Gates
 
-| Gate | 시점                        | 통과 조건                                                                                                                                                                                          | 실패 시 대안                                                                                                                                  |
-| ---- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| G0   | Phase 0 종료                | substitution registry 8항목 코드화(동작 변경 0) · BC 정량(영향 % / 평균 파일 수 / factory 11곳 자식 분류) · layout p50/p95 baseline · import/AI 경로 hydration 통과 여부 실측                      | 미측정 항목이 있으면 Phase 1 진입 금지                                                                                                        |
-| G1   | Phase 1 종료 · Phase 3 종료 | (전반) 어댑터 우회로 엔진 block 경로에 Chrome 차등 케이스 ≥12, 위치·크기 ≤1px, 허용치 무변경. (후반) cutover 후 같은 케이스가 프로덕션 경로로 통과 + ADR-198 `blockInlineProbe` 4 변형 두 leg 일치 | 실패 케이스를 엔진 결함으로 기록 → Phase 2 수리 → 재실행. 2회 후에도 실패면 해당 케이스를 registry 의 "선언된 치환" 으로 강등하고 사용자 판단 |
-| G2   | Phase 3 종료                | ADR-198 catalog-state-paint L1 pass(예산 무변경) · CHANGELOG 엔트리 · Phase 0 영향 % 가 breakdown §6 에 기록                                                                                       | L1 실패면 cutover commit revert, 원인 규명 후 재시도                                                                                          |
-| G3   | Phase 3 종료                | 5k fixture p95 ≤ baseline +5%                                                                                                                                                                      | block.rs 프로파일 → 수리. 예산 완화 금지                                                                                                      |
-| G4   | Phase 4 종료                | catalog 파생 inline-level 집합 == 구 `INLINE_BLOCK_TAGS` (diff 0) 확인 후 손 목록 삭제 · 남는 TS 분류 함수 ↔ display.rs table test 통과                                                            | diff 가 있으면 어느 쪽이 catalog 정본과 맞는지 판정 후 정합, 손 목록 유지 금지                                                                |
-| G5   | Phase 5 종료                | registry 밖 display class 변경 0 (게이트 테스트) · S4 migration 멱등 · S7 노출 차단 + import strip · S8 4항목 각 1 차등 케이스로 현재 격차 수치 고정                                               | 미선언 치환 발견 시 등록 없이는 머지 불가                                                                                                     |
-| G6   | Implemented 승격            | `### Live Exercise` — 실제 빌더에서 block 컨테이너 + Button 2개 + 폭 명시 div 를 만들어 Canvas·Preview·패널 값 일치 확인 (Chrome MCP 또는 사용자 confirm)                                          | 승격 보류                                                                                                                                     |
+| Gate | 시점                        | 통과 조건                                                                                                                                                                                                                                                                                                                                                | 실패 시 대안                                                                       |
+| ---- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| G0   | Phase 0 종료                | **선행 검사 1케이스** — style 없는 catalog Button 이 (a) 엔진에 CSS 값 1개(`inline-flex`) 로 도달하고 (b) block 부모에서 line item 이며 (c) 자기 subtree 는 flex solver 를 타는가: **현재 실패**를 확증(전제 검증). + 인벤토리: Canvas 전용 display override 전수 / `INLINE_BLOCK_TAGS` 24 → 두 개념 분류표 / BC 정량 / p50·p95 baseline(block arm 포함) | 선행 검사가 "현재 통과" 면 사실 4·5 가 틀린 것 — Phase 1 진입 금지, Context 재실측 |
+| G1   | Phase 3 종료 · Phase 5 종료 | (전반) 어댑터 우회로 엔진 outer/inner 경로에 Chrome 차등 ≥12 + baseline 케이스, 위치·크기 ≤1px, 허용치 무변경. (후반) cutover 후 프로덕션 경로로 재통과 + ADR-198 `blockInlineProbe` 4 변형 두 leg 일치                                                                                                                                                  | **cutover 차단**. 실패 케이스는 엔진 결함으로 기록 → 수리 → 재실행. 강등 분기 없음 |
+| G2   | Phase 5 종료                | ADR-198 catalog-state-paint L1 pass(예산 무변경) · CHANGELOG · 영향 % 가 breakdown §6 에 기록                                                                                                                                                                                                                                                            | cutover commit revert, 원인 규명 후 재시도                                         |
+| G3   | Phase 5 종료                | 5k fixture p95 ≤ baseline +5%, block 비율 높은 arm 도 동일                                                                                                                                                                                                                                                                                               | block.rs 프로파일 → 수리. 예산 완화 금지                                           |
+| G4   | Phase 4 종료                | catalog Canvas 전용 display override 0 (HC2) · 패널 Direction 이 `inline-flex` 를 flex 로 표시하는 테스트 통과 · 두 변경이 같은 commit                                                                                                                                                                                                                   | 패널 테스트 실패 시 catalog 변경 보류(둘 다 revert)                                |
+| G5   | Phase 4 종료                | `INLINE_BLOCK_TAGS` 24 항목이 default-display(catalog 파생) / intrinsic capability(명시 목록) 로 전부 분류되고, 분리 전후 `enrichWithIntrinsicSize` 출력 diff 0                                                                                                                                                                                          | 분류 불가 항목이 있으면 손 목록 유지 + 사유 기록, 삭제 보류                        |
+| G6   | Implemented 승격            | `### Live Exercise` — 실제 빌더에서 block 컨테이너 + Button 2개 + 폭 명시 div: Canvas·Preview·패널 값 일치 (Chrome MCP 또는 사용자 confirm)                                                                                                                                                                                                              | 승격 보류                                                                          |
 
-**측정 조건 (measurement-validity.md §1 — Gate 수치의 전제)**:
+**측정 조건 (measurement-validity.md §1)**:
 
-- Q1 출처: G1 차등 케이스는 손으로 쓴 CSS 케이스(합성 복제물 아님) — 분포가 아니라 **계약이 갈리는 입력 차원**(명시 폭 block 형제 / wrap / vertical-align 4종 / line-height / margin / empty block / 부모 padding)을 직접 쓴다. G3 의 5k fixture 는 규모 전용.
-- Q2 불리 케이스: G1 에 ADR-198 catalog 발산 재현(명시 폭 block 형제) 을 필수 포함 — 현 시뮬레이션이 틀리는 입력. G3 는 block 컨테이너 비율이 높은 문서를 별도 arm 으로 잰다(flex 위주 5k 만 재면 block 경로 비용이 안 보인다).
-- Q3 대조군: G1 은 같은 케이스를 (전) 현 어댑터 경로 / (후) 엔진 직결 경로로 두 번 재서 Chrome 대비 오차를 나란히 기록. G3 는 Phase 0 baseline 이 대조군.
-- Q4 소비 경로: registry(G5) 는 선언만으로는 무효 — 게이트 테스트가 실제 어댑터 출력을 registry 와 대조해야 가동 경로다. Phase 0 의 "동작 변경 0" 상태에서는 registry 가 아직 아무것도 막지 않음을 명시.
-- Q5 oracle 독립성: G1 의 기준값은 실 Chrome `getBoundingClientRect`(ADR-156 하니스) — cargo golden 이 아니다. golden 은 결과를 기록할 뿐 통과 판정에 쓰지 않는다. 측정 조건 고정: `@vitest/browser` Chromium, viewport 1280×720, DPR 1, visible 탭 (ADR-198 R14 승계).
+- Q1 출처: G1 케이스는 손으로 쓴 CSS 케이스 — 계약이 갈리는 입력 차원(명시 폭 block 형제 / wrap / vertical-align 4종 / line-height / margin / empty block / 부모 padding / **inline-flex 컨테이너 baseline**) 을 직접 쓴다. G3 의 5k fixture 는 규모 전용.
+- Q2 불리 케이스: G1 에 ADR-198 catalog 발산 재현 필수. G3 는 block 컨테이너 비율 높은 문서를 별도 arm.
+- Q3 대조군: G1 은 같은 케이스를 (전) 현 어댑터 경로 / (후) 엔진 직결 경로로 두 번 재서 Chrome 대비 오차를 나란히 기록. G3 는 Phase 0 baseline.
+- Q4 소비 경로: G0 선행 검사가 "엔진에 무엇이 도달하는가" 를 wasm 경계에서 직접 읽는다 — TS 쪽 추정 금지. HC1 테스트는 실제 `fullTreeLayout` 출력을 대조.
+- Q5 oracle 독립성: 기준값은 실 Chrome `getBoundingClientRect` (ADR-156) — cargo golden 은 통과 판정에 쓰지 않는다. 조건 고정: `@vitest/browser` Chromium, viewport 1280×720, DPR 1, visible 탭 (ADR-198 R14 승계).
 
 ### Live Exercise
 
@@ -159,15 +183,15 @@ ADR-198 의 발산은 이 그림자 안에서 났다: `needsBlockChildFullWidth`
 
 ### Positive
 
-- `taffyDisplayAdapter.ts`(개명 후 `displayAdapter.ts`) 가 "CSS → 엔진 style 번역" 만 남고 의미 재작성이 사라진다. block 컨테이너 배치의 정본이 `block.rs` 한 곳이 된다.
-- ADR-198 catalog 발산이 예산 변경 없이 닫힌다. `crossLeg.browser.test.ts` 의 `KNOWN_LAYERS["catalog-state-paint"]` 가 L1 pass 로 갱신된다.
-- 이번 부류("엔진이 문서에 없는 의미를 몰래 만든다") 가 registry + 게이트 테스트로 구조적으로 차단된다 — 순수 inline / float / grid 4종이 선언 상태로 드러난다.
-- 패널 → 캔버스 → Preview 가 같은 문서를 같은 의미로 읽으므로, 패널에 엔진 사용값을 병기하는 후속 작업의 전제가 갖춰진다 (compare 모드 없이).
-- Taffy 명명 14 파일이 정리돼 ADR-916 endgame 의 "주석 정리" 가 실제로 끝난다.
+- display 가 부모·자식·DOM 세 소비자에 한 값이 된다. `display.rs` 가 실제로 가동 경로에 들어가고, `block.rs` line box 가 처음으로 live 를 탄다.
+- catalog 의 Canvas 전용 `flex` override 가 사라져 D3 대칭이 값 수준에서 복구된다. 2026-06-27 우회의 원인(패널) 이 고쳐진다.
+- ADR-198 catalog 발산이 예산 변경 없이 닫힌다 (`KNOWN_LAYERS["catalog-state-paint"]` L1 pass).
+- `INLINE_BLOCK_TAGS` 의 두 역할이 이름을 얻는다 — 어느 컴포넌트가 왜 목록에 있는지 설명 가능해진다.
+- capability matrix seed 가 B 갈래 후속 결정의 입력이 된다.
 
 ### Negative
 
-- block 컨테이너 + inline-block 자식을 가진 기존 문서의 배치가 1회 바뀐다 (Chrome 쪽으로). 영향 % 는 Phase 0 에서 수식화, CHANGELOG 에 사용자-가시로 기록.
-- `display:inline` 을 요소에 직접 쓰던 문서는 hydration 시 `inline-block` 으로 정규화된다 — 패널에서 `inline` 선택지가 사라진다.
-- Phase 2 가 `tree.rs`/`cascade.rs`/`style.rs` 의 `NodeStyle` 을 넓힌다 — Rust 변경이라 리뷰 부담이 있고, ADR-916 golden 을 Chrome 값으로 갱신해야 할 수 있다.
-- 개명 commit 이 14 파일의 import 를 건드려 blame 이 한 번 끊긴다 (동작 무변경 commit 으로 격리).
+- block 컨테이너 + inline-level 자식 문서의 배치가 1회 바뀐다 (Chrome 쪽). 영향 % 는 Phase 0, CHANGELOG 기록.
+- `tree.rs`/`block.rs` 에 `NodeLayout.baseline` 출력과 style 입력 2종이 늘어 wasm 경계 계약이 바뀐다 — golden 은 Chrome 값으로만 갱신.
+- 순수 `display:inline` 요소·float·grid 4종의 silent ignore 는 본 ADR 로 해소되지 않는다 — seed 선언만. 후속 결정 필요.
+- 개명 commit 이 14 파일 import 를 건드린다 (동작 무변경 commit 으로 격리).
