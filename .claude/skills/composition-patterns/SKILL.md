@@ -131,6 +131,7 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 | -------------------------- | ---------------------------------------------------------------------------------- |
 | Layout Engine              | [reference/layout-engine.md](reference/layout-engine.md)                           |
 | Layout Engine 구현 상세    | [reference/layout-details.md](reference/layout-details.md)                         |
+| Layout CSS 정합 실측 기록  | [reference/layout-css-parity-ledger.md](reference/layout-css-parity-ledger.md)     |
 | Canvas 렌더링 구현 상세    | [reference/canvas-details.md](reference/canvas-details.md)                         |
 | State 관리 구현 상세       | [reference/state-details.md](reference/state-details.md)                           |
 | Compositional Architecture | [reference/compositional-architecture.md](reference/compositional-architecture.md) |
