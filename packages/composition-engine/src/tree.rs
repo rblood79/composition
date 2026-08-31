@@ -267,6 +267,7 @@ pub struct NodeStyle {
     pub vertical_align: Option<String>,
     /// line-height — **px 해석 완료 스칼라** (TS 가 배율·단위를 fontSize 로 선해석.
     /// 엔진은 폰트 메트릭이 없어 배율을 스스로 해석할 수 없다 — ADR-165 와 같은 계약).
+    /// 소비는 컨테이너 strut(solve_block → block_layout_with_strut) — item 슬롯 18 은 S4 예약.
     pub line_height: Option<f32>,
     /// 텍스트 leaf 의 첫 줄 baseline (content-box 상단 기준 px — TS 측정 공급 채널.
     /// content_min/max_width 와 같은 성격: CSS 속성이 아니라 측정 스칼라).
@@ -2710,16 +2711,18 @@ impl LayoutTree {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let (cw, ch) = child_sizes[i];
             // ADR-923 Phase 2: 자식 solve 가 기록한 baseline (border-top 기준, 센티널 보존).
-            // Phase 3 (r7 관찰 → Chrome 실측 ib-overflow-hidden-baseline): overflow ≠
-            // visible 인 atomic inline 은 내부 line box 와 무관하게 bottom margin edge 가
-            // baseline (§10.8.1 두 번째 조항) — 센티널로 강제해 intake 의 margin-edge
-            // 폴백을 태운다.
+            // Phase 3 (r7 관찰 → Chrome 실측 ib-overflow-hidden-baseline): overflow 가
+            // visible/clip 이외인 atomic inline 은 내부 line box 와 무관하게 bottom margin
+            // edge 가 baseline (§10.8.1 두 번째 조항) — 센티널로 강제해 intake 의
+            // margin-edge 폴백을 태운다. clip 은 제외 (r8 Chrome 실측
+            // ib-overflow-clip-baseline: clip 도 visible 처럼 last line box baseline 유지
+            // — hidden 과 다르다. Codex r8 과제6 'clip 포함 타당' 주장 실측 반증).
             let overflow_hides_baseline = [
                 cstyle.overflow_x.as_deref(),
                 cstyle.overflow_y.as_deref(),
             ]
             .into_iter()
-            .any(|v| matches!(v, Some(s) if !s.eq_ignore_ascii_case("visible")));
+            .any(|v| matches!(v, Some(s) if !s.eq_ignore_ascii_case("visible") && !s.eq_ignore_ascii_case("clip")));
             let child_baseline = if overflow_hides_baseline {
                 BASELINE_NONE
             } else {
@@ -2840,8 +2843,12 @@ impl LayoutTree {
         };
 
         // 컨테이너 크기: 명시 있으면 명시, 없으면 자식 bounding box(탈출 margin 제외됨).
+        // r8h2: 마지막 line box 의 strut/valign 초과분은 자식 rect 밖 — block.rs meta
+        // in-flow bottom(마지막 flush 포함)과의 max 가 정확값 (Chrome strut-last-line:
+        // ib20+strut40, tail 없음 → root 40. 자식 rect bbox 만으론 20).
+        let flow_bottom = out[meta_off + 3] - escaped_top;
         let container_w = if explicit_w > 0.0 { explicit_w } else { max_right };
-        let container_h = if explicit_h > 0.0 { explicit_h } else { max_bottom };
+        let container_h = if explicit_h > 0.0 { explicit_h } else { max_bottom.max(flow_bottom) };
 
         // 5) **shrink-to-fit 확정 뒤 재-solve** — `%` 재해소 + auto 폭 자식 stretch 복원.
         //   실측(2026-07-28): 폭 120 으로 확정된 shrink-to-fit block 안에서 `width:50%` 자식이
@@ -4456,13 +4463,16 @@ fn pad_border_end(style: &NodeStyle, ctx: &CssValueContext, horizontal: bool) ->
     resolve_dimension(p, ctx) + resolve_dimension(b, ctx)
 }
 
-/// `overflow_x`/`overflow_y` 가 `visible` 이 아닌 값을 하나라도 가지면 BFC 생성
+/// `overflow_x`/`overflow_y` 가 `visible`/`clip` 이외 값을 하나라도 가지면 BFC 생성
 /// (CSS 2.1 §9.4.1 — E17/ADR-156 P4). BFC 는 부모-자식 마진 상쇄를 차단한다.
+/// `clip` 제외 (r8m2) — css-overflow-3 §valdef-overflow-clip: hidden 과 달리 새
+/// formatting context 를 만들지 않는다 (Chrome 실측 clip-no-bfc: margin 관통 탈출).
 fn overflow_creates_bfc(style: &NodeStyle) -> bool {
-    let non_visible = |v: Option<&str>| {
-        matches!(v.map(|s| s.trim().to_ascii_lowercase()).as_deref(), Some(o) if o != "visible")
+    let makes_bfc = |v: Option<&str>| {
+        matches!(v.map(|s| s.trim().to_ascii_lowercase()).as_deref(),
+            Some(o) if o != "visible" && o != "clip")
     };
-    non_visible(style.overflow_x.as_deref()) || non_visible(style.overflow_y.as_deref())
+    makes_bfc(style.overflow_x.as_deref()) || makes_bfc(style.overflow_y.as_deref())
 }
 
 /// 이 노드가 새 BFC 를 확립하는가 (형제 관통 상쇄 차단 — block.rs bfc_flag).
@@ -4825,8 +4835,9 @@ impl MarginAxisReverse {
 ///
 /// vertical_align/baseline/line_height (ADR-923 Phase 2 배선 — 구 "미소비" 해소):
 /// valign 은 style 키워드 → u8, baseline 은 자식 solve 가 기록한 `NodeLayout.baseline`
-/// (센티널 <0 = 원천 없음 → block.rs 가 border-box bottom 으로 해소 — CSS 2.1
-/// §10.8.1), line_height 는 px 해석 완료 스칼라(AUTO=-1).
+/// (센티널 <0 = 원천 없음 → block.rs 가 bottom margin edge 로 해소 — CSS 2.1
+/// §10.8.1 r8l1 정정), line_height 는 px 스칼라(AUTO=-1 — 슬롯 18 은 S4 예약,
+/// 실소비는 컨테이너 strut 경로).
 ///
 /// specified size(width/height, min/max 동일) = border-box — intake 에서
 /// `spec_to_content` 로 pad_border 감산 후 block.rs 에 content 값으로 전달한다.
@@ -4919,8 +4930,8 @@ fn write_block_item(
     data[off + 15] = ch; // content_h
     // ADR-923 Phase 2 — 단위 3-a "미소비" 3 슬롯 해소: 실제 style/자식 solve 값 전달.
     data[off + 16] = vertical_align_code(cstyle.vertical_align.as_deref());
-    data[off + 17] = child_baseline; // <0 = 원천 없음 → block.rs 가 border-box bottom 으로 해소
-    data[off + 18] = cstyle.line_height.unwrap_or(-1.0); // px 스칼라, AUTO=-1
+    data[off + 17] = child_baseline; // <0 = 원천 없음 → block.rs 가 bottom margin edge 로 해소 (P3 §10.8.1)
+    data[off + 18] = cstyle.line_height.unwrap_or(-1.0); // px 스칼라, AUTO=-1 — S4 예약 (소비는 컨테이너 strut)
 }
 
 /// vertical-align CSS 키워드 → block.rs u8 코드 (0=baseline 1=top 2=middle 3=bottom).
@@ -5215,7 +5226,8 @@ mod tests {
         //     (content_min_width/content_max_width) 추가 — 소비처는 resolve_leaf_intrinsic_width
         //     + write_flex_item off 19 → "51 = 소비 51 + 미소비 0". ADR-923 Phase 2
         //     (2026-09-01): baseline 계약 3필드(vertical_align/line_height/leaf_baseline)
-        //     추가 — 소비처는 write_block_item 슬롯 16/17/18 + leaf solve baseline →
+        //     추가 — 소비처는 write_block_item 슬롯 16/17 + 컨테이너 strut(line_height)
+        //     + leaf solve baseline (슬롯 18 은 S4 text run 예약 — r8l1 정정) →
         //     "54 = 소비 54 + 미소비 0".
         const CONSUMED_COUNT: usize = 54;
         assert_eq!(
@@ -8025,6 +8037,68 @@ mod tests {
         let h2 = tree2.build_tree_batch(json2).unwrap();
         tree2.compute_layout(h2[2], 300.0, 200.0);
         assert_eq!(tree2.get_layout(h2[1]).y, 70.0, "item ascent 50 + strut descent 20");
+    }
+
+    /// r8h1 — vertical-align:middle 은 margin box 중심을 baseline 에 고정 (Chrome
+    /// valign-middle-tall: ib20 + ib60(middle) → baseline 30, ib20 y=10 — line 중앙설이면 0).
+    #[test]
+    fn adr923_p3_valign_middle_tall_pushes_baseline() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"inline-block","width":"60px","height":"60px","verticalAlign":"middle"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px"},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[0]).y, 10.0, "asc=30 → baseline item y 10");
+        assert_eq!(tree.get_layout(h[1]).y, 0.0, "middle 60 중심 = baseline 30 → y 0");
+    }
+
+    /// r8h2 — 마지막 line box 의 strut 높이가 컨테이너 auto-height 에 반영 (Chrome
+    /// strut-last-line: ib20 + strut40, tail 없음 → root h 40 — 자식 bbox 만으론 20).
+    #[test]
+    fn adr923_p3_last_line_strut_extends_auto_height() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"block","width":"300px","lineHeight":40},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).height, 40.0, "auto height = 마지막 line box 40");
+    }
+
+    /// r8m2 — overflow:clip 은 BFC 를 만들지 않는다 (css-overflow-3 §valdef-overflow-clip;
+    /// Chrome clip-no-bfc: 자식 margin-top 이 clip 부모를 관통해 탈출).
+    #[test]
+    fn adr923_p3_overflow_clip_no_bfc_margin_escapes() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","marginTop":"20px","height":"10px"},"children":[]},
+            {"style":{"display":"block","overflowX":"clip","overflowY":"clip"},"children":[0]},
+            {"style":{"display":"block","width":"300px","height":"200px"},"children":[1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).height, 10.0, "margin 관통 → wrap h 10");
+        assert_eq!(tree.get_layout(h[0]).y, 0.0, "wrap 상대 y 0 (margin 탈출)");
+    }
+
+    /// r8 오라클 — overflow:clip 의 inline-block baseline 은 visible 처럼 last line box
+    /// (Chrome ib-overflow-clip-baseline: a.y 20 — margin-edge 강제였다면 10).
+    #[test]
+    fn adr923_p3_overflow_clip_keeps_line_box_baseline() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"inline-block","width":"60px","paddingBottom":"10px","overflowX":"clip","overflowY":"clip"},"children":[0]},
+            {"style":{"display":"inline-block","width":"60px","height":"40px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px"},"children":[1,2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).y, 20.0, "a baseline = last line box 20 → y 40-20");
     }
 
     /// vertical-align: bottom 초과분은 line 을 위로 늘려 baseline 을 아래로 민다

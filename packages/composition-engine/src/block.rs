@@ -25,8 +25,8 @@
 //! | 14  | content_w       | intrinsic content 폭                |
 //! | 15  | content_h       | intrinsic content 높이              |
 //! | 16  | vertical_align  | 0=baseline 1=top 2=middle 3=bottom  |
-//! | 17  | baseline        | border-box top 기준. **<0 = 원천 없음** → border-box bottom(child_h) 폴백 (ADR-923 P2, §10.8.1) |
-//! | 18  | line_height     | AUTO=-1                             |
+//! | 17  | baseline        | border-box top 기준. **<0 = 원천 없음** → bottom margin edge(child_h+m_bottom) 폴백 (ADR-923 P3 r8l1 정정, §10.8.1) |
+//! | 18  | line_height     | AUTO=-1 — S4 text run 예약 (atomic 은 margin box 참여) |
 //!
 //! ## 미구현 (다음 세션 — dual-run FAIL 이 fixture)
 //!
@@ -152,11 +152,11 @@ pub fn block_layout_with_strut(
     let _ = available_height; // reserved for future use
     let child_count = data.len() / FIELD_COUNT;
     if child_count == 0 {
-        return vec![0.0, 0.0].into_boxed_slice();
+        return vec![0.0, 0.0, AUTO, 0.0].into_boxed_slice();
     }
 
-    // Output: 4 values per child + 3 trailing metadata (ADR-923 P2: +lastLineBaseline)
-    let mut out = vec![0.0f32; child_count * OUT_FIELDS + 3];
+    // Output: 4 values per child + 4 trailing metadata (P2: +lastLineBaseline · P3 r8h2: +inFlowBottom)
+    let mut out = vec![0.0f32; child_count * OUT_FIELDS + 4];
 
     let mut current_y: f32 = 0.0;
     let mut current_x: f32 = 0.0;
@@ -343,6 +343,7 @@ pub fn block_layout_with_strut(
     if !line_items.is_empty() {
         let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height);
         last_line_baseline = current_y + m.baseline;
+        current_y += m.height; // r8h2 — 마지막 line box 높이를 in-flow bottom 에 반영 (Chrome strut-last-line)
     }
 
     // Trailing metadata
@@ -357,6 +358,7 @@ pub fn block_layout_with_strut(
     out[meta_off] = first_child_margin_top;
     out[meta_off + 1] = last_child_margin_bottom;
     out[meta_off + 2] = last_line_baseline; // ADR-923 P2 — line box 없으면 AUTO
+    out[meta_off + 3] = current_y; // P3 r8h2 — in-flow content bottom (마지막 line box 포함; auto-height 원천)
 
     out.into_boxed_slice()
 }
@@ -372,7 +374,10 @@ pub fn block_layout_with_strut(
 ///   S4/Phase 5 판정. Chrome 실측 strut-short/tall: 40px strut → line 40 / 50+20=70).
 /// - **vertical-align: bottom 초과분은 line 을 위로 늘려 baseline 을 아래로 민다**
 ///   (§10.8.1 — Chrome 실측 valign-bottom: ib20(baseline)+ib40(bottom) → baseline 40,
-///   ib20 y=20). top/middle 초과분은 아래로 늘어 baseline 불변.
+///   ib20 y=20). top 초과분은 아래로 늘어 baseline 불변. **middle 은 line 중앙이
+///   아니라 baseline 에 margin box 중심 고정** (§10.8 baseline + x-height/2 — fontSize 0
+///   채널이라 x-height 0, 실폰트 보정은 S4/Phase 5. Chrome 실측 r8 valign-middle-tall:
+///   ib20+ib60(middle) → baseline 30, ib20 y=10 — line 중앙설이면 y 0).
 struct LineMetrics {
     height: f32,
     baseline: f32,
@@ -390,20 +395,24 @@ fn line_metrics(items: &[LineItem], strut_line_height: f32) -> LineMetrics {
     }
     let mut max_top: f32 = 0.0;
     let mut max_bottom: f32 = 0.0;
-    let mut max_middle: f32 = 0.0;
     for item in items {
         let mbox = item.height + item.margin_top + item.margin_bottom;
         match item.vertical_align {
             VALIGN_TOP => max_top = max_top.max(mbox),
             VALIGN_BOTTOM => max_bottom = max_bottom.max(mbox),
-            VALIGN_MIDDLE => max_middle = max_middle.max(mbox),
+            VALIGN_MIDDLE => {
+                // r8h1 — middle 은 baseline 참여: margin box 중심을 baseline(+x-height/2=0)
+                // 에 고정하므로 asc/desc 를 절반씩 민다 (line 중앙 배치 아님 — Chrome 실측).
+                asc = asc.max(mbox / 2.0);
+                desc = desc.max(mbox / 2.0);
+            }
             _ => {
                 asc = asc.max(item.margin_top + item.baseline);
                 desc = desc.max(item.height - item.baseline + item.margin_bottom);
             }
         }
     }
-    let height = (asc + desc).max(max_top).max(max_bottom).max(max_middle);
+    let height = (asc + desc).max(max_top).max(max_bottom);
     let baseline = asc.max(max_bottom - desc);
     LineMetrics { height, baseline }
 }
@@ -425,9 +434,9 @@ fn flush_line_box(
             VALIGN_TOP => start_y + item.margin_top,
             VALIGN_BOTTOM => start_y + m.height - item.height - item.margin_bottom,
             VALIGN_MIDDLE => {
-                start_y
-                    + (m.height - item.height - item.margin_top - item.margin_bottom) / 2.0
-                    + item.margin_top
+                // r8h1 — margin box 중심 = baseline (x-height 0 채널).
+                let mbox = item.height + item.margin_top + item.margin_bottom;
+                start_y + m.baseline - mbox / 2.0 + item.margin_top
             }
             _ => {
                 // baseline (default)
@@ -462,7 +471,7 @@ mod tests {
         data.extend(make_inline_block(60.0, 40.0, VALIGN_BASELINE));
         let out = block_layout(&data, 300.0, 600.0, false, false, 0.0);
         let meta_off = 2 * OUT_FIELDS;
-        assert_eq!(out.len(), meta_off + 3, "trailing meta 3 (ADR-923 P2)");
+        assert_eq!(out.len(), meta_off + 4, "trailing meta 4 (ADR-923 P3 r8h2: +inFlowBottom)");
         assert_eq!(out[meta_off + 2], 32.0, "line baseline = max(24, 32) — 0.8×40");
 
         let block_only = make_block(100.0, 50.0, 0.0, 0.0);
@@ -470,7 +479,31 @@ mod tests {
         assert_eq!(out2[OUT_FIELDS + 2], AUTO, "line box 없음 → AUTO");
     }
 
-    /// baseline 센티널(<0) = 원천 없음 → border-box bottom(child_h) 폴백 (§10.8.1).
+    /// r8h1 — middle 은 margin box 중심을 baseline 에 고정 (Chrome valign-middle-tall).
+    #[test]
+    fn adr923_p3_valign_middle_anchors_to_baseline() {
+        let mut data = Vec::new();
+        data.extend(make_inline_block(60.0, 20.0, VALIGN_BASELINE)); // baseline 16 (0.8h)
+        data.extend(make_inline_block(60.0, 60.0, VALIGN_MIDDLE));
+        let out = block_layout(&data, 300.0, 600.0, false, false, 0.0);
+        // asc = max(16, 30) = 30 · desc = max(4, 30) = 30 → H 60, baseline 30.
+        assert_eq!(out[1], 14.0, "baseline item y = 30 - 16");
+        assert_eq!(out[OUT_FIELDS + 1], 0.0, "middle 60 의 중심 = baseline 30 → y 0");
+        let meta_off = 2 * OUT_FIELDS;
+        assert_eq!(out[meta_off + 2], 30.0, "middle 이 밀어올린 line baseline 30");
+    }
+
+    /// r8h2 — 마지막 line box 의 strut 높이가 meta in-flow bottom 에 반영.
+    #[test]
+    fn adr923_p3_last_line_strut_in_flow_bottom() {
+        let data = make_inline_block(60.0, 20.0, VALIGN_BASELINE);
+        let out = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 40.0);
+        // strut asc=desc=20 · item asc 16/desc 4 → H 40, baseline 20.
+        assert_eq!(out[1], 4.0, "item y = baseline 20 - 16");
+        assert_eq!(out[OUT_FIELDS + 3], 40.0, "in-flow bottom = 마지막 line box 포함 40");
+    }
+
+    /// baseline 센티널(<0) = 원천 없음 → bottom margin edge(child_h+m_bottom) 폴백 (§10.8.1).
     #[test]
     fn inline_block_baseline_sentinel_falls_back_to_bottom() {
         let mut first = make_inline_block(50.0, 30.0, VALIGN_BASELINE);

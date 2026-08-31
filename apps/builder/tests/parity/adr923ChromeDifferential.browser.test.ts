@@ -462,6 +462,81 @@ const CASES: DiffCase[] = [
       },
     ],
   },
+{
+    name: "valign-middle-tall — r8: middle 은 baseline 에 중심 고정 (x-height/2=0)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "a", style: ib(60, 20) },
+      { label: "m", style: ib(60, 60, { verticalAlign: "middle" }) },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 1],
+      },
+    ],
+  },
+  {
+    name: "strut-last-line — r8: 마지막 line box 의 strut 높이가 auto-height 에 반영",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "a", style: ib(60, 20) },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", lineHeight: "40px", ...FS0 },
+        engineStyle: { lineHeight: 40 },
+        children: [0],
+      },
+    ],
+  },
+  {
+    name: "clip-no-bfc — r8: overflow:clip 은 BFC 를 만들지 않는다 (margin 관통)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "inner",
+        style: { display: "block", marginTop: "20px", height: "10px" },
+      },
+      {
+        label: "wrap",
+        style: { display: "block", overflowX: "clip", overflowY: "clip" },
+        children: [0],
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1],
+      },
+    ],
+  },
+  {
+    name: "ib-overflow-clip-baseline — r8: clip 의 inline-block baseline 판정 (오라클)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "a1", style: ib(60, 20) },
+      {
+        label: "a",
+        style: {
+          display: "inline-block",
+          width: "60px",
+          paddingBottom: "10px",
+          overflowX: "clip",
+          overflowY: "clip",
+          ...FS0,
+        },
+        children: [0],
+      },
+      { label: "b", style: ib(60, 40) },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
 ];
 
 /** engine leg 입력 — engineStyle override 적용. */
@@ -516,5 +591,40 @@ describe("ADR-923 Phase 3 — Chrome 차등 (어댑터 우회 엔진 직결, G1 
     };
 
     expect(bad, `${c.name} — Chrome↔엔진 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+});
+
+// ── r8l2 — 프로덕션 파이프라인 wrap intrinsic-min 전용 fixture (게이트) ──
+//
+// Phase 3 수리 중 유일하게 프로덕션 실효인 wrap flex min-content 정정
+// (`min_wrap_measure` — css-flexbox-1 §9.9.1: min-content = 최대 item contribution,
+// 합산 아님) 을 **프로덕션 어댑터 경로(pipelineLeg)** 로 게이트한다 — 위 표의
+// 엔진 직결 ib-shrink-to-fit-wrap 은 raw inline-flex 라 프로덕션 운반 어휘 밖.
+// display:flex(운반 union 내) row 부모의 flex item 이 min-width:auto 바닥으로
+// min-content 를 실제로 소비한다: max-content 160 → shrink 목표 60 → 바닥 80.
+describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이트)", () => {
+  beforeAll(async () => {
+    await initCompositionEngineWasm();
+  });
+
+  it("flex row 60px 안 wrap flex item 은 min-content(최대 item 80)로 바닥", () => {
+    const nodes: CaseNode[] = [
+      { label: "f1", style: { width: "80px", height: "20px" } },
+      { label: "f2", style: { width: "80px", height: "20px" } },
+      {
+        label: "f",
+        style: { display: "flex", flexWrap: "wrap" },
+        children: [0, 1],
+      },
+      {
+        label: "root",
+        style: { display: "flex", width: "60px" },
+        children: [2],
+      },
+    ];
+    const dom = domLeg(nodes, 60);
+    const pipe = pipelineLeg(nodes, 60, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
   });
 });
