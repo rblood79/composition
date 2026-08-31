@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프레임 배경색이 캔버스에 보입니다] - 2026-08-31
+
+### Fixed
+
+- **프레임에 배경색을 칠해도 빌더 캔버스에는 아무것도 보이지 않던 문제**:
+  - 미리보기는 같은 색을 칠하는데 캔버스만 비어 있었습니다. 자식 요소가 있는 프레임은 더 확실히 비었습니다.
+  - **Why**: 프레임의 시각 정의(`FrameSpec.render.shapes()`)가 스타일 값을 한 번도 읽지 않아 배경을 그릴 도형 자체를 만들지 않았고, 자식이 있으면 도형을 0개 냈습니다. 프레임은 카탈로그 미등록이라 이 함수가 캔버스가 무엇을 그릴지 정하는 유일한 자리입니다.
+  - 이제 자식 유무와 무관하게 배경을 그리고, 모서리 반경도 함께 반영합니다.
+  - 위치: `packages/specs/src/components/Frame.spec.ts`
+- **`#RRGGBBAA` 로 적은 색이 캔버스에서 다른 색으로 그려지던 문제**:
+  - `#2F6FED` 파랑이 하늘색으로 보였습니다 — 빨강이 사라지고 투명도가 파랑 자리에 앉았습니다.
+  - **Why**: 색 문자열을 숫자로 바꾸는 자리(`hexStringToNumber`)가 8자리 표기의 투명도까지 그대로 실어 채널이 한 바이트씩 밀렸습니다. 이 숫자를 받는 쪽은 전부 `0xRRGGBB` 로 읽습니다. 브라우저는 8자리 표기를 그대로 이해하므로 같은 색이 미리보기와 캔버스에서 달랐습니다.
+  - 이제 두 곳이 같은 색을 내고, 투명도도 반영됩니다 (`#00FF0080` 은 반투명 초록). `#RGB` / `#RGBA` 단축 표기도 함께 지원합니다.
+  - 위치: `packages/specs/src/renderers/utils/tokenResolver.ts`, `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts`
+
+### Tests
+
+- 두 결함 모두 회귀 테스트를 붙였습니다 — 프레임 배경 도형 방출(자식 있는 경우 포함)과 표기별 색 채널 정합. ADR-198 시각 파리티 하니스에서 이 결함을 못박아 두었던 ratchet 3개는 통과 단언으로 전환했습니다.
+
 ## [Skia↔Preview 시각 파리티 게이트 — push 차단 지점 추가 (ADR-198 Phase 5)] - 2026-08-31
 
 ### Added
