@@ -1172,6 +1172,46 @@ impl LayoutTree {
         self.solve_node(c, sw, sh)
     }
 
+    /// block 컨테이너의 자식 1개 solve — atomic inline(line item) 이고 폭 auto 면
+    /// **shrink-to-fit** (CSS 2.1 §10.3.9: used width = min(max-content,
+    /// max(min-content, available − margin − pad/border))).
+    ///
+    /// ADR-923 Phase 3 (r6 관찰 → Chrome 실측 ib-shrink-to-fit-wrap ·
+    /// ib-fit-under-min-content · ib-pct-child-shrink): 종전엔 부모의 definite
+    /// available 로 1회 solve 한 content 폭을 그대로 써 wrap flex(80×2, avail 100)가
+    /// fit-content 100 대신 80 이 되고, available < min-content 에서 floor 없이
+    /// 잘리고, percentage 자식이 부모 available 기준으로 선해소됐다. fit 확정 후 그
+    /// 폭으로 재-solve — wrap·percentage 가 fit 기준으로 재해소되고, used width 는
+    /// content bbox 가 아니라 fit 자체다 (§10.3.9 used value). 재-solve 전
+    /// `mark_subtree_dirty` 필수 (측정 pass clean 캐시 함정).
+    fn solve_block_child(&mut self, c: usize, sw: f32, sh: f32) -> (f32, f32) {
+        let (atomic, w_auto, has_children, cstyle) = match self.get(c) {
+            Some(n) => (
+                display::is_atomic_inline_level(display::parse_display(
+                    n.style.display.as_deref(),
+                )),
+                matches!(n.style.width.as_deref(), None | Some("auto")),
+                !n.children.is_empty(),
+                n.style.clone(),
+            ),
+            None => return self.solve_child_intrinsic_aware(c, sw, sh),
+        };
+        if sw >= 0.0 && atomic && w_auto && has_children {
+            if let Some((min_w, max_w)) = self.measure_intrinsic_width(c) {
+                let ctx = self.ctx_for(sw);
+                let pbh = axis_pad_border(&cstyle, &ctx, true);
+                let margins = resolve_dimension(cstyle.margin_left.as_deref(), &ctx)
+                    + resolve_dimension(cstyle.margin_right.as_deref(), &ctx);
+                let avail_content = (sw - margins - pbh).max(0.0);
+                let fit = max_w.min(min_w.max(avail_content));
+                self.mark_subtree_dirty(c);
+                let (_, h) = self.solve_node(c, fit + pbh, sh);
+                return (fit, h);
+            }
+        }
+        self.solve_child_intrinsic_aware(c, sw, sh)
+    }
+
     /// 노드의 **실효** display 이원 구조 (ADR-923 Phase 1): 자기 style 의 CSS 값 1개를
     /// `display::parse_display` 로 읽고, 부모가 flex/grid 컨테이너면 `display::blockify`
     /// (outer=block, inner 유지 — CSS Display 3 §2.7; TS `fullTreeLayout.ts` `blockifyDisplay`
@@ -2471,6 +2511,11 @@ impl LayoutTree {
         //    (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
         let mut max_right: f32 = 0.0;
         let mut max_bottom: f32 = 0.0;
+        // ADR-923 Phase 3: wrap row 컨테이너의 min-content 측정용 — 최대 item outer 기여
+        // (css-flexbox-1 §9.9: wrap 의 min-content main 은 합산이 아니라 최대 item).
+        let min_wrap_measure =
+            is_row && wraps && matches!(intrinsic_mode(avail_w), Some(IntrinsicMode::Min));
+        let mut max_item_outer: f32 = 0.0;
         // ADR-923 Phase 2: flex 컨테이너 baseline = 첫 in-flow item 의 baseline
         // (Flexbox §8.5 — baseline 참여 판정(align-self:baseline 그룹)은 S8 미구현이라
         // 첫 원천 보유 item 근사. 원천 없는 item 은 건너뛴다 — bottom 폴백을 전파하면
@@ -2481,6 +2526,13 @@ impl LayoutTree {
             let (x, y, w, h) = (out[off], out[off + 1], out[off + 2], out[off + 3]);
             max_right = max_right.max(x + w);
             max_bottom = max_bottom.max(y + h);
+            if min_wrap_measure {
+                let cst = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+                let outer = w
+                    + resolve_dimension(cst.margin_left.as_deref(), &parent_ctx)
+                    + resolve_dimension(cst.margin_right.as_deref(), &parent_ctx);
+                max_item_outer = max_item_outer.max(outer);
+            }
             if let Some(n) = self.get_mut(c) {
                 let child_baseline = n.layout.baseline;
                 n.layout =
@@ -2499,6 +2551,11 @@ impl LayoutTree {
         let auto_main_h = if is_row { None } else { clamped_auto_main };
         let container_w = if explicit_w > 0.0 {
             explicit_w
+        } else if min_wrap_measure {
+            // 측정 pass 는 센티널 available 로 단일 라인 배치라 max_right 가 합산이 된다
+            // — Min 모드의 wrap 컨테이너만 최대 item outer 로 대체 (§9.9. 실측:
+            // 80×2 wrap 의 min-content 는 160 이 아니라 80 — adr923_p3_inline_shrink_to_fit).
+            max_item_outer
         } else {
             auto_main_w.unwrap_or(max_right)
         };
@@ -2620,7 +2677,7 @@ impl LayoutTree {
         //    자식 percent height 가 auto 로 해소되게 한다 (위 게이트와 동일 근거).
         let mut child_sizes: Vec<(f32, f32)> = Vec::with_capacity(children.len());
         for &c in children {
-            let cs = self.solve_child_intrinsic_aware(c, child_avail_w, child_containing_h);
+            let cs = self.solve_block_child(c, child_avail_w, child_containing_h);
             child_sizes.push(cs);
         }
 
@@ -2653,7 +2710,21 @@ impl LayoutTree {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let (cw, ch) = child_sizes[i];
             // ADR-923 Phase 2: 자식 solve 가 기록한 baseline (border-top 기준, 센티널 보존).
-            let child_baseline = self.get(c).map(|n| n.layout.baseline).unwrap_or(BASELINE_NONE);
+            // Phase 3 (r7 관찰 → Chrome 실측 ib-overflow-hidden-baseline): overflow ≠
+            // visible 인 atomic inline 은 내부 line box 와 무관하게 bottom margin edge 가
+            // baseline (§10.8.1 두 번째 조항) — 센티널로 강제해 intake 의 margin-edge
+            // 폴백을 태운다.
+            let overflow_hides_baseline = [
+                cstyle.overflow_x.as_deref(),
+                cstyle.overflow_y.as_deref(),
+            ]
+            .into_iter()
+            .any(|v| matches!(v, Some(s) if !s.eq_ignore_ascii_case("visible")));
+            let child_baseline = if overflow_hides_baseline {
+                BASELINE_NONE
+            } else {
+                self.get(c).map(|n| n.layout.baseline).unwrap_or(BASELINE_NONE)
+            };
             write_block_item(&mut data, i, &cstyle, cw, ch, child_baseline, &ctx, &height_ctx);
             let off = i * block::FIELD_COUNT;
             // **인라인 available 이 미결정이면 auto 폭 block-level 자식은 fit-content 다.**
@@ -2691,13 +2762,18 @@ impl LayoutTree {
 
         // 3) block_layout — 부모-자식 collapse 활성 (차단 요인 없을 때). metadata
         //    (firstChildMarginTop/lastChildMarginBottom) 로 탈출 margin 을 회수한다.
-        let out = block::block_layout(
+        // ADR-923 Phase 3: 컨테이너 line-height(px) = strut (§10.8 — Chrome 실측
+        // strut-short/tall). None = strut 없음 (TS 는 "normal" 을 보내지 않는다 — 그
+        // gap 의 공급 채널은 S4/Phase 5 판정).
+        let strut_line_height = style.line_height.unwrap_or(-1.0);
+        let out = block::block_layout_with_strut(
             &data,
             child_avail_w,
             child_avail_h,
             can_collapse_top,
             can_collapse_bottom,
             0.0,
+            strut_line_height,
         );
         let meta_off = children.len() * 4;
         // 탈출한 top margin — block.rs 는 첫 자식을 여전히 y=escaped_top 에 배치하고 이 값을
@@ -7858,9 +7934,12 @@ mod tests {
         assert_eq!(b.y, 0.0, "top 정렬 — baseline 불참");
     }
 
-    /// lineHeight 입력은 line box 높이를 키운다 — 다음 block 형제의 y 로 관측.
+    /// atomic inline 의 lineHeight 는 line box 를 키우지 **않는다** — §10.8: atomic
+    /// inline-level(ib/inline-flex/inline-grid) 은 margin box 로만 참여. Phase 3 Chrome
+    /// 실측(atomic-line-height-inert: dom tail.y 20)으로 Phase 2 의 종전 가정(50 확장)을
+    /// 반전. line box 확장은 **컨테이너** lineHeight(strut) 의 몫 — 아래 strut 테스트.
     #[test]
-    fn adr923_p2_line_height_extends_line_box() {
+    fn adr923_p3_atomic_line_height_inert() {
         let mut tree = LayoutTree::new();
         let json = r#"[
             {"style":{"width":"60px","height":"20px","leafBaseline":16},"children":[]},
@@ -7871,7 +7950,7 @@ mod tests {
         let h = tree.build_tree_batch(json).unwrap();
         tree.compute_layout(h[3], 300.0, 200.0);
         let c = tree.get_layout(h[2]);
-        assert_eq!(c.y, 50.0, "line box 높이 = max(item 20, lineHeight 50)");
+        assert_eq!(c.y, 20.0, "line box = item margin box 20 — item lineHeight 50 불관여");
     }
 
     /// flex/grid 컨테이너 baseline = 첫 원천 item (padding offset 포함).
@@ -7920,6 +7999,124 @@ mod tests {
             4.0,
             "placement 첫 row(B, y=0) 의 원천 4 — source 첫(A, row2) 42 아님"
         );
+    }
+
+    /// 컨테이너 line-height = strut (§10.8) — ascent=descent=lh/2 로 line box 참여.
+    /// Chrome 실측 strut-short(40 strut > item 20 → line 40) · strut-tall(item 50 →
+    /// 50 + strut descent 20 = 70).
+    #[test]
+    fn adr923_p3_parent_line_height_strut() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"block","height":"10px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px","lineHeight":40},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).y, 40.0, "strut 40 이 item 20 위 line 을 40 으로");
+
+        let mut tree2 = LayoutTree::new();
+        let json2 = r#"[
+            {"style":{"display":"inline-block","width":"60px","height":"50px"},"children":[]},
+            {"style":{"display":"block","height":"10px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px","lineHeight":40},"children":[0,1]}
+        ]"#;
+        let h2 = tree2.build_tree_batch(json2).unwrap();
+        tree2.compute_layout(h2[2], 300.0, 200.0);
+        assert_eq!(tree2.get_layout(h2[1]).y, 70.0, "item ascent 50 + strut descent 20");
+    }
+
+    /// vertical-align: bottom 초과분은 line 을 위로 늘려 baseline 을 아래로 민다
+    /// (§10.8.1 — Chrome 실측 valign-bottom: a.y 20).
+    #[test]
+    fn adr923_p3_valign_bottom_pushes_baseline() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"inline-block","width":"60px","height":"40px","verticalAlign":"bottom"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px"},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[0]).y, 20.0, "baseline = max(20, 40-0) = 40 → a.y 20");
+        assert_eq!(tree.get_layout(h[1]).y, 0.0, "bottom 정렬 — line bottom 에 맞음");
+    }
+
+    /// 폴백 baseline = bottom **margin** edge (§10.8.1 — Chrome 실측
+    /// ib-baseline-margin-bottom: h20+mb8 → baseline 28, a.y 12).
+    #[test]
+    fn adr923_p3_baseline_fallback_margin_edge() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","width":"60px","height":"20px","marginBottom":"8px"},"children":[]},
+            {"style":{"display":"inline-block","width":"60px","height":"40px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px"},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[0]).y, 12.0, "40(line) − 28(margin-edge baseline)");
+    }
+
+    /// overflow ≠ visible 인 atomic inline 은 내부 line box 대신 bottom margin edge 가
+    /// baseline (§10.8.1 두 번째 조항 — Chrome 실측 ib-overflow-hidden-baseline: a.y 10).
+    #[test]
+    fn adr923_p3_overflow_hidden_forces_margin_edge_baseline() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"inline-block","width":"60px","paddingBottom":"10px","overflowX":"hidden","overflowY":"hidden"},"children":[0]},
+            {"style":{"display":"inline-block","width":"60px","height":"40px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"200px"},"children":[1,2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 300.0, 200.0);
+        assert_eq!(
+            tree.get_layout(h[1]).y,
+            10.0,
+            "내부 line baseline 20 무시 — margin edge 30 으로 정렬 (40-30)"
+        );
+    }
+
+    /// atomic inline + 폭 auto 는 shrink-to-fit (§10.3.9) — Chrome 실측 3종:
+    /// wrap fit-content 100 (one-pass 80 아님) · available < min-content 는 floor 80 ·
+    /// percentage 자식은 fit(60) 기준 재해소 30.
+    #[test]
+    fn adr923_p3_inline_shrink_to_fit() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"80px","height":"20px"},"children":[]},
+            {"style":{"width":"80px","height":"20px"},"children":[]},
+            {"style":{"display":"inline-flex","flexWrap":"wrap"},"children":[0,1]},
+            {"style":{"display":"block","width":"100px","height":"200px"},"children":[2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 300.0, 200.0);
+        let f = tree.get_layout(h[2]);
+        assert_eq!(f.width, 100.0, "fit-content = min(160, max(80, 100)) = 100");
+        assert_eq!(f.height, 40.0, "fit 100 에서 wrap → 2 line");
+
+        let mut tree2 = LayoutTree::new();
+        let json2 = r#"[
+            {"style":{"width":"80px","height":"20px"},"children":[]},
+            {"style":{"display":"inline-flex"},"children":[0]},
+            {"style":{"display":"block","width":"60px","height":"200px"},"children":[1]}
+        ]"#;
+        let h2 = tree2.build_tree_batch(json2).unwrap();
+        tree2.compute_layout(h2[2], 300.0, 200.0);
+        assert_eq!(tree2.get_layout(h2[1]).width, 80.0, "min-content floor — overflow");
+
+        let mut tree3 = LayoutTree::new();
+        let json3 = r#"[
+            {"style":{"width":"60px","height":"20px","flexShrink":0},"children":[]},
+            {"style":{"width":"50%","height":"20px","flexShrink":0},"children":[]},
+            {"style":{"display":"inline-flex"},"children":[0,1]},
+            {"style":{"display":"block","width":"100px","height":"200px"},"children":[2]}
+        ]"#;
+        let h3 = tree3.build_tree_batch(json3).unwrap();
+        tree3.compute_layout(h3[3], 300.0, 200.0);
+        assert_eq!(tree3.get_layout(h3[2]).width, 60.0, "fit = maxc(pct→auto) = 60");
+        assert_eq!(tree3.get_layout(h3[1]).width, 30.0, "50% 는 fit 60 기준 재해소");
     }
 
     // ── ADR-923 Phase 1: display.rs 배선 — outer → line item, inner → solver ──

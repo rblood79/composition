@@ -48,6 +48,7 @@ const DISPLAY_INLINE_BLOCK: u8 = 1;
 const DISPLAY_EMPTY_BLOCK: u8 = 2; // pre-classified empty block
 
 // Vertical align
+#[allow(dead_code)] // 기본값 0 은 match 의 `_` 팔이 처리 — 테스트·계약 문서용 명명 상수
 const VALIGN_BASELINE: u8 = 0;
 const VALIGN_TOP: u8 = 1;
 const VALIGN_MIDDLE: u8 = 2;
@@ -97,7 +98,6 @@ struct LineItem {
     margin_bottom: f32,
     vertical_align: u8,
     baseline: f32,
-    line_height: f32,
 }
 
 /// Calculate block layout for pre-processed children.
@@ -123,6 +123,31 @@ pub fn block_layout(
     can_collapse_top: bool,
     can_collapse_bottom: bool,
     prev_sibling_margin_bottom: f32,
+) -> Box<[f32]> {
+    block_layout_with_strut(
+        data,
+        available_width,
+        available_height,
+        can_collapse_top,
+        can_collapse_bottom,
+        prev_sibling_margin_bottom,
+        AUTO,
+    )
+}
+
+/// `block_layout` + 컨테이너 strut line-height (ADR-923 Phase 3).
+///
+/// `strut_line_height` = 컨테이너의 line-height px (AUTO=-1 → strut 없음). 각 line box 에
+/// ascent = descent = lh/2 의 zero-width baseline 참여자로 들어간다 (`line_metrics` doc —
+/// Chrome 실측 strut-short/tall). wasm export 는 기존 `block_layout` 시그니처를 유지한다.
+pub fn block_layout_with_strut(
+    data: &[f32],
+    available_width: f32,
+    available_height: f32,
+    can_collapse_top: bool,
+    can_collapse_bottom: bool,
+    prev_sibling_margin_bottom: f32,
+    strut_line_height: f32,
 ) -> Box<[f32]> {
     let _ = available_height; // reserved for future use
     let child_count = data.len() / FIELD_COUNT;
@@ -165,7 +190,7 @@ pub fn block_layout(
         let content_h = data[off + 15];
         let vertical_align = data[off + 16] as u8;
         let baseline = data[off + 17];
-        let line_height = data[off + 18]; // AUTO = -1
+        let _line_height = data[off + 18]; // 예약 (S4 text run) — atomic inline 은 §10.8 margin box 로만 참여 (Phase 3 Chrome 실측)
 
         let child_creates_bfc = bfc_flag == 1;
         let out_off = i * OUT_FIELDS;
@@ -185,15 +210,17 @@ pub fn block_layout(
             let child_h = child_content_h + pad_border_v;
             let total_width = child_w + m_left + m_right;
 
-            // ADR-923 Phase 2: baseline <0 = 원천 없음 → border-box bottom(child_h) 폴백
-            // (CSS 2.1 §10.8.1 — in-flow line box 없는 inline-block 의 baseline).
-            let baseline = if baseline >= 0.0 { baseline } else { child_h };
+            // ADR-923 Phase 3 (r7 관찰 → Chrome 실측 ib-baseline-margin-bottom): 폴백
+            // baseline 은 border-box bottom 이 아니라 **bottom margin edge** (CSS 2.1
+            // §10.8.1 — h20+mb8 → baseline 28, Chrome y 12). overflow≠visible 강제는
+            // tree.rs write 쪽이 센티널로 만들어 이 폴백을 태운다 (같은 조항).
+            let baseline = if baseline >= 0.0 { baseline } else { child_h + m_bottom };
 
             // Line wrap check
             if current_x + total_width > available_width && current_x > 0.0 {
-                let lb = flush_line_box(&line_items, current_y, &mut out);
-                last_line_baseline = current_y + lb;
-                current_y += calculate_line_box_height(&line_items);
+                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height);
+                last_line_baseline = current_y + m.baseline;
+                current_y += m.height;
                 current_x = 0.0;
                 line_items.clear();
             }
@@ -207,7 +234,6 @@ pub fn block_layout(
                 margin_bottom: m_bottom,
                 vertical_align,
                 baseline,
-                line_height,
             });
 
             // Write width/height (x/y will be set by flush_line_box)
@@ -220,10 +246,9 @@ pub fn block_layout(
         } else if display == DISPLAY_EMPTY_BLOCK {
             // Empty block: self-collapse top/bottom margins
             if !line_items.is_empty() {
-                let lbh = calculate_line_box_height(&line_items);
-                let lb = flush_line_box(&line_items, current_y, &mut out);
-                last_line_baseline = current_y + lb;
-                current_y += lbh;
+                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height);
+                last_line_baseline = current_y + m.baseline;
+                current_y += m.height;
                 current_x = 0.0;
                 line_items.clear();
             }
@@ -248,10 +273,9 @@ pub fn block_layout(
         } else {
             // Block: vertical stacking + margin collapse
             if !line_items.is_empty() {
-                let lbh = calculate_line_box_height(&line_items);
-                let lb = flush_line_box(&line_items, current_y, &mut out);
-                last_line_baseline = current_y + lb;
-                current_y += lbh;
+                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height);
+                last_line_baseline = current_y + m.baseline;
+                current_y += m.height;
                 current_x = 0.0;
                 line_items.clear();
             }
@@ -317,8 +341,8 @@ pub fn block_layout(
 
     // Flush remaining line box
     if !line_items.is_empty() {
-        let lb = flush_line_box(&line_items, current_y, &mut out);
-        last_line_baseline = current_y + lb;
+        let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height);
+        last_line_baseline = current_y + m.baseline;
     }
 
     // Trailing metadata
@@ -337,74 +361,77 @@ pub fn block_layout(
     out.into_boxed_slice()
 }
 
-/// Calculate line box height from items
-fn calculate_line_box_height(items: &[LineItem]) -> f32 {
+/// Line box 세로 메트릭 (ADR-923 Phase 3 — Chrome 차등 실측으로 재정의).
+///
+/// - **atomic inline 의 `line_height` 는 관여하지 않는다** (CSS 2.1 §10.8 — inline-block/
+///   inline-flex/inline-grid 는 margin box 로 참여. Chrome 실측 atomic-line-height-inert:
+///   item lineHeight 50 이어도 line = 20). slot 18 은 S4(순수 inline text run) 예약.
+/// - **strut** (§10.8 — 컨테이너 폰트/line-height 의 zero-width inline box): 컨테이너
+///   line-height 가 px 로 오면 ascent = descent = lh/2 로 baseline 참여 (half-leading —
+///   폰트 축은 TS 선해석 몫이라 fontSize 0 기준 정확, 실폰트 ascent 보정 공급 채널은
+///   S4/Phase 5 판정. Chrome 실측 strut-short/tall: 40px strut → line 40 / 50+20=70).
+/// - **vertical-align: bottom 초과분은 line 을 위로 늘려 baseline 을 아래로 민다**
+///   (§10.8.1 — Chrome 실측 valign-bottom: ib20(baseline)+ib40(bottom) → baseline 40,
+///   ib20 y=20). top/middle 초과분은 아래로 늘어 baseline 불변.
+struct LineMetrics {
+    height: f32,
+    baseline: f32,
+}
+
+fn line_metrics(items: &[LineItem], strut_line_height: f32) -> LineMetrics {
     if items.is_empty() {
-        return 0.0;
+        return LineMetrics { height: 0.0, baseline: 0.0 };
     }
-
-    let mut max_total_height: f32 = 0.0;
-    let mut max_baseline_from_top: f32 = 0.0;
-
+    let mut asc: f32 = 0.0;
+    let mut desc: f32 = 0.0;
+    if strut_line_height >= 0.0 {
+        asc = strut_line_height / 2.0;
+        desc = strut_line_height / 2.0;
+    }
+    let mut max_top: f32 = 0.0;
+    let mut max_bottom: f32 = 0.0;
+    let mut max_middle: f32 = 0.0;
     for item in items {
-        let total_h = item.height + item.margin_top + item.margin_bottom;
-        max_total_height = max_total_height.max(total_h);
-
-        if item.line_height != AUTO {
-            let lh_with_margin = item.line_height + item.margin_top + item.margin_bottom;
-            max_total_height = max_total_height.max(lh_with_margin);
-        }
-
-        if item.vertical_align == VALIGN_BASELINE {
-            let baseline_from_top = item.margin_top + item.baseline;
-            max_baseline_from_top = max_baseline_from_top.max(baseline_from_top);
+        let mbox = item.height + item.margin_top + item.margin_bottom;
+        match item.vertical_align {
+            VALIGN_TOP => max_top = max_top.max(mbox),
+            VALIGN_BOTTOM => max_bottom = max_bottom.max(mbox),
+            VALIGN_MIDDLE => max_middle = max_middle.max(mbox),
+            _ => {
+                asc = asc.max(item.margin_top + item.baseline);
+                desc = desc.max(item.height - item.baseline + item.margin_bottom);
+            }
         }
     }
-
-    let mut max_below_baseline: f32 = 0.0;
-    for item in items {
-        if item.vertical_align == VALIGN_BASELINE {
-            let below = item.height - item.baseline + item.margin_bottom;
-            max_below_baseline = max_below_baseline.max(below);
-        }
-    }
-
-    let baseline_height = max_baseline_from_top + max_below_baseline;
-    max_total_height.max(baseline_height)
+    let height = (asc + desc).max(max_top).max(max_bottom).max(max_middle);
+    let baseline = asc.max(max_bottom - desc);
+    LineMetrics { height, baseline }
 }
 
 /// Flush line box items: compute vertical positions and write x/y to output.
 ///
-/// 반환값: 이 line box 의 baseline (line top 기준 offset — 호출자가 start_y 를 더해
-/// content-box y 로 만든다. ADR-923 Phase 2 — trailing meta `lastLineBaseline` 원천).
-fn flush_line_box(items: &[LineItem], start_y: f32, out: &mut [f32]) -> f32 {
-    if items.is_empty() {
-        return 0.0;
-    }
-
-    let line_box_height = calculate_line_box_height(items);
-
-    // Calculate baseline for the line box
-    let mut line_baseline: f32 = 0.0;
-    for item in items {
-        if item.vertical_align == VALIGN_BASELINE {
-            let baseline_from_top = item.margin_top + item.baseline;
-            line_baseline = line_baseline.max(baseline_from_top);
-        }
-    }
-
+/// 반환: 이 line box 의 메트릭 — 호출자가 `current_y + baseline` 으로 trailing meta
+/// `lastLineBaseline`(content-box y) 를 만들고 `height` 만큼 y 를 전진한다
+/// (ADR-923 Phase 2 컨테이너 baseline 출력의 정확값 원천).
+fn flush_line_box(
+    items: &[LineItem],
+    start_y: f32,
+    out: &mut [f32],
+    strut_line_height: f32,
+) -> LineMetrics {
+    let m = line_metrics(items, strut_line_height);
     for item in items {
         let final_y = match item.vertical_align {
             VALIGN_TOP => start_y + item.margin_top,
-            VALIGN_BOTTOM => start_y + line_box_height - item.height - item.margin_bottom,
+            VALIGN_BOTTOM => start_y + m.height - item.height - item.margin_bottom,
             VALIGN_MIDDLE => {
                 start_y
-                    + (line_box_height - item.height - item.margin_top - item.margin_bottom) / 2.0
+                    + (m.height - item.height - item.margin_top - item.margin_bottom) / 2.0
                     + item.margin_top
             }
             _ => {
                 // baseline (default)
-                start_y + line_baseline - item.baseline
+                start_y + m.baseline - item.baseline
             }
         };
 
@@ -412,8 +439,7 @@ fn flush_line_box(items: &[LineItem], start_y: f32, out: &mut [f32]) -> f32 {
         out[item.out_index + 1] = final_y;
         // width and height already written
     }
-
-    line_baseline
+    m
 }
 
 /// Exposed margin collapse for debugging/testing from JS
