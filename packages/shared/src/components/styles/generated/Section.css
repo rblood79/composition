@@ -5,157 +5,157 @@
  * ============================================================ */
 
 @layer components {
-  .react-aria-Section {
-    /* Base styles — archetype: default */
+
+.react-aria-Section {
+  /* Base styles — archetype: default */
     display: inline-flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition:
-      background 0.15s ease,
-      border-color 0.15s ease,
-      transform 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
-    /* Default variant */
-    background: var(--bg);
-    color: var(--fg);
-    border: none;
+  /* Default variant */
+  background: var(--bg);
+  color: var(--fg);
+  border: none;
 
-    /* Default size */
-    height: auto;
-    padding: 16px 16px;
-    font-size: var(--text-base);
-    border-radius: var(--radius-md);
-    gap: 12px;
+  /* Default size */
+  height: auto;
+  padding: 16px 16px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-md);
+  gap: 12px;
+}
+
+.react-aria-Section[data-variant="default"] {
+  background: var(--bg);
+  color: var(--fg);
+  background: transparent;
+
+  &[data-hovered] {
+    background: var(--bg);
   }
 
-  .react-aria-Section[data-variant="default"] {
+  &[data-pressed] {
     background: var(--bg);
-    color: var(--fg);
-    background: transparent;
-
-    &[data-hovered] {
-      background: var(--bg);
-    }
-
-    &[data-pressed] {
-      background: var(--bg);
-    }
   }
+}
 
-  .react-aria-Section[data-variant="accent"] {
+.react-aria-Section[data-variant="accent"] {
+  background: var(--accent-subtle);
+  color: var(--fg);
+
+  &[data-hovered] {
     background: var(--accent-subtle);
-    color: var(--fg);
-
-    &[data-hovered] {
-      background: var(--accent-subtle);
-    }
-
-    &[data-pressed] {
-      background: var(--accent-subtle);
-    }
   }
 
-  .react-aria-Section[data-variant="neutral"] {
+  &[data-pressed] {
+    background: var(--accent-subtle);
+  }
+}
+
+.react-aria-Section[data-variant="neutral"] {
+  background: var(--bg-muted);
+  color: var(--fg);
+
+  &[data-hovered] {
     background: var(--bg-muted);
-    color: var(--fg);
-
-    &[data-hovered] {
-      background: var(--bg-muted);
-    }
-
-    &[data-pressed] {
-      background: var(--bg-muted);
-    }
   }
 
-  .react-aria-Section[data-variant="purple"] {
+  &[data-pressed] {
+    background: var(--bg-muted);
+  }
+}
+
+.react-aria-Section[data-variant="purple"] {
+  background: var(--hue-purple-subtle);
+  color: var(--fg);
+
+  &[data-hovered] {
     background: var(--hue-purple-subtle);
-    color: var(--fg);
-
-    &[data-hovered] {
-      background: var(--hue-purple-subtle);
-    }
-
-    &[data-pressed] {
-      background: var(--hue-purple-subtle);
-    }
   }
 
-  .react-aria-Section[data-variant="surface"] {
+  &[data-pressed] {
+    background: var(--hue-purple-subtle);
+  }
+}
+
+.react-aria-Section[data-variant="surface"] {
+  background: var(--bg-inset);
+  color: var(--fg);
+
+  &[data-hovered] {
     background: var(--bg-inset);
-    color: var(--fg);
-
-    &[data-hovered] {
-      background: var(--bg-inset);
-    }
-
-    &[data-pressed] {
-      background: var(--bg-inset);
-    }
   }
 
-  .react-aria-Section[data-variant="outlined"] {
+  &[data-pressed] {
+    background: var(--bg-inset);
+  }
+}
+
+.react-aria-Section[data-variant="outlined"] {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+
+  &[data-hovered] {
     background: var(--bg);
-    color: var(--fg);
-    border-color: var(--border);
-
-    &[data-hovered] {
-      background: var(--bg);
-    }
-
-    &[data-pressed] {
-      background: var(--bg);
-    }
   }
 
-  .react-aria-Section[data-size="sm"] {
-    height: auto;
-    padding: 12px 12px;
-    font-size: var(--text-sm);
-    border-radius: var(--radius-sm);
-    gap: 8px;
+  &[data-pressed] {
+    background: var(--bg);
   }
+}
 
-  .react-aria-Section[data-size="md"] {
-    height: auto;
-    padding: 16px 16px;
-    font-size: var(--text-base);
-    border-radius: var(--radius-md);
-    gap: 12px;
-  }
+.react-aria-Section[data-size="sm"] {
+  height: auto;
+  padding: 12px 12px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+  gap: 8px;
+}
 
-  .react-aria-Section[data-size="lg"] {
-    height: auto;
-    padding: 24px 24px;
-    font-size: var(--text-lg);
-    border-radius: var(--radius-lg);
-    gap: 16px;
-  }
+.react-aria-Section[data-size="md"] {
+  height: auto;
+  padding: 16px 16px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-md);
+  gap: 12px;
+}
 
-  .react-aria-Section[data-hovered] {
-  }
+.react-aria-Section[data-size="lg"] {
+  height: auto;
+  padding: 24px 24px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-lg);
+  gap: 16px;
+}
 
-  .react-aria-Section[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
-  }
+.react-aria-Section[data-hovered] {
+}
 
-  .react-aria-Section[data-pressed] {
-  }
+.react-aria-Section[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
 
-  .react-aria-Section[data-disabled] {
-    opacity: 0.38;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
+.react-aria-Section[data-pressed] {
+}
 
-  @media (forced-colors: active) {
-    .react-aria-Section {
-      forced-color-adjust: auto;
-    }
+.react-aria-Section[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-Section {
+    forced-color-adjust: auto;
   }
+}
+
+
 } /* @layer components */

@@ -1,0 +1,37 @@
+- generic [ref=e138]:
+  - main [ref=e140]:
+    - toolbar "Selection actions" [ref=e152]:
+      - button "More actions" [ref=e153]
+      - button "Action bar options" [ref=e158]
+  - generic "Panel workspace":
+    - generic:
+      - banner [ref=e163]:
+        - generic [ref=e164]:
+          - button "Menu" [ref=e165] [cursor=pointer]
+          - img "composition logo" [ref=e168]
+          - generic [ref=e169]: Style preset check
+        - group "Viewport controls" [ref=e171]:
+          - radiogroup "Viewport size" [ref=e172]:
+            - radio "Desktop" [checked] [ref=e173] [cursor=pointer]
+            - radio "Tablet" [ref=e177] [cursor=pointer]
+            - radio "Mobile" [ref=e181] [cursor=pointer]
+          - generic [ref=e186] [cursor=pointer]:
+            - textbox "Zoom level" [ref=e187]: 100%
+            - button "Zoom menu" [ref=e188]
+        - generic [ref=e191]:
+          - toolbar "View options" [ref=e192]:
+            - button "Compare Mode (Preview + Skia)" [ref=e193] [cursor=pointer]
+          - button "Preview" [ref=e198] [cursor=pointer]
+      - generic:
+        - toolbar "Left panel controls" [ref=e203]:
+          - button "Navigator" [ref=e204] [cursor=pointer]
+          - button "Components" [ref=e209] [cursor=pointer]
+          - button "DataTable" [ref=e214] [cursor=pointer]
+          - button "DataTable Editor" [ref=e220] [cursor=pointer]
+          - button "Theme" [ref=e226] [cursor=pointer]
+        - toolbar "Right panel controls" [ref=e233]:
+          - button "AI" [ref=e234] [cursor=pointer]
+          - button "Properties" [ref=e239] [cursor=pointer]
+          - button "Styles" [ref=e244] [cursor=pointer]
+          - button "Interactions" [ref=e250] [cursor=pointer]
+          - button "History" [ref=e255] [cursor=pointer]

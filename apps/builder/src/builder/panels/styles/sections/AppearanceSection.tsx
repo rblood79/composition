@@ -28,7 +28,11 @@ import {
   Scissors,
 } from "lucide-react";
 import { SquareOff } from "../../../components/icons";
-import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
+import {
+  BORDER_RADIUS_PRESET_OPTIONS,
+  BORDER_WIDTH_PRESET_OPTIONS,
+  OVERFLOW_OPTIONS,
+} from "../constants/styleOptions";
 import {
   applyShadowInset,
   getShadowToken,
@@ -216,7 +220,10 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
           label="Border Width"
           className="border-width"
           value={styleValues.borderWidth}
-          units={["reset", "px"]}
+          units={[]}
+          allowKeywords={false}
+          presets={BORDER_WIDTH_PRESET_OPTIONS}
+          presetAriaLabel="Border Width Preset"
           onChange={(value) => updateStyleImmediate("borderWidth", value)}
           onDrag={(value) => updateStylePreview("borderWidth", value)}
           min={0}
@@ -227,7 +234,10 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
           label="Border Radius"
           className="border-radius"
           value={styleValues.borderRadius}
-          units={["reset", "px"]}
+          units={[]}
+          allowKeywords={false}
+          presets={BORDER_RADIUS_PRESET_OPTIONS}
+          presetAriaLabel="Border Radius Preset"
           onChange={(value) => updateStyleImmediate("borderRadius", value)}
           onDrag={(value) => updateStylePreview("borderRadius", value)}
           min={0}

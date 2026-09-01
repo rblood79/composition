@@ -1,0 +1,162 @@
+- generic [ref=e138]:
+  - main [ref=e140]:
+    - toolbar "Selection actions" [ref=e152]:
+      - button "More actions" [ref=e153]
+      - button "Action bar options" [ref=e158]
+  - generic "Panel workspace":
+    - generic:
+      - banner [ref=e163]:
+        - generic [ref=e164]:
+          - button "Menu" [ref=e165] [cursor=pointer]
+          - img "composition logo" [ref=e168]
+          - generic [ref=e169]: Style preset check
+        - group "Viewport controls" [ref=e171]:
+          - radiogroup "Viewport size" [ref=e172]:
+            - radio "Desktop" [checked] [ref=e173] [cursor=pointer]
+            - radio "Tablet" [ref=e177] [cursor=pointer]
+            - radio "Mobile" [ref=e181] [cursor=pointer]
+          - generic [ref=e186] [cursor=pointer]:
+            - textbox "Zoom level" [ref=e187]: 100%
+            - button "Zoom menu" [ref=e188]
+        - generic [ref=e191]:
+          - toolbar "View options" [ref=e192]:
+            - button "Compare Mode (Preview + Skia)" [ref=e193] [cursor=pointer]
+          - button "Preview" [ref=e198] [cursor=pointer]
+      - generic:
+        - toolbar "Left panel controls" [ref=e203]:
+          - button "Navigator" [ref=e204] [cursor=pointer]
+          - button "Components" [active] [pressed] [ref=e209] [cursor=pointer]
+          - button "DataTable" [ref=e214] [cursor=pointer]
+          - button "DataTable Editor" [ref=e220] [cursor=pointer]
+          - button "Theme" [ref=e226] [cursor=pointer]
+        - toolbar "Right panel controls" [ref=e233]:
+          - button "AI" [ref=e234] [cursor=pointer]
+          - button "Properties" [ref=e239] [cursor=pointer]
+          - button "Styles" [ref=e244] [cursor=pointer]
+          - button "Interactions" [ref=e250] [cursor=pointer]
+          - button "History" [ref=e255] [cursor=pointer]
+        - generic [ref=e261]:
+          - button "Move Components panel" [ref=e262]
+          - generic [ref=e265]:
+            - generic [ref=e266]:
+              - heading "Components" [level=3] [ref=e267]
+              - generic [ref=e273]:
+                - button [ref=e274] [cursor=pointer]
+                - button "Close" [ref=e278] [cursor=pointer]
+            - searchbox "Search components" [ref=e283]
+            - generic [ref=e288]:
+              - generic [ref=e289]:
+                - generic [ref=e290]:
+                  - generic [ref=e291]:
+                    - text: Content
+                    - generic [ref=e292]: "13"
+                  - button "Collapse section" [ref=e294]
+                - list [ref=e298]:
+                  - button "text" [ref=e299] [cursor=pointer]
+                  - button "icon" [ref=e303] [cursor=pointer]
+                  - button "separator" [ref=e309] [cursor=pointer]
+                  - button "badge" [ref=e315] [cursor=pointer]
+                  - button "progress bar" [ref=e320] [cursor=pointer]
+                  - button "skeleton" [ref=e325] [cursor=pointer]
+                  - button "avatar" [ref=e333] [cursor=pointer]
+                  - button "avatar group" [ref=e340] [cursor=pointer]
+                  - button "status light" [ref=e348] [cursor=pointer]
+                  - button "inline alert" [ref=e354] [cursor=pointer]
+                  - button "progress circle" [ref=e359] [cursor=pointer]
+                  - button "image" [ref=e371] [cursor=pointer]
+                  - button "illustrated message" [ref=e378] [cursor=pointer]
+              - generic [ref=e385]:
+                - generic [ref=e386]:
+                  - generic [ref=e387]:
+                    - text: Layout
+                    - generic [ref=e388]: "10"
+                  - button "Collapse section" [ref=e390]
+                - list [ref=e394]:
+                  - button "card" [ref=e395] [cursor=pointer]
+                  - button "frame" [ref=e400] [cursor=pointer]
+                  - button "tabs" [ref=e410] [cursor=pointer]
+                  - button "breadcrumbs" [ref=e415] [cursor=pointer]
+                  - button "link" [ref=e420] [cursor=pointer]
+                  - button "navigation" [ref=e426] [cursor=pointer]
+                  - button "pagination" [ref=e430] [cursor=pointer]
+                  - button "disclosure group" [ref=e436] [cursor=pointer]
+                  - button "disclosure" [ref=e441] [cursor=pointer]
+                  - button "card view" [ref=e446] [cursor=pointer]
+              - generic [ref=e451]:
+                - generic [ref=e452]:
+                  - generic [ref=e453]:
+                    - text: Buttons
+                    - generic [ref=e454]: "7"
+                  - button "Collapse section" [ref=e456]
+                - list [ref=e460]:
+                  - button "button" [ref=e461] [cursor=pointer]
+                  - button "icon button" [ref=e467] [cursor=pointer]
+                  - button "toggle button" [ref=e472] [cursor=pointer]
+                  - button "toggle button group" [ref=e478] [cursor=pointer]
+                  - button "toolbar" [ref=e488] [cursor=pointer]
+                  - button "button group" [ref=e494] [cursor=pointer]
+                  - button "menu" [ref=e504] [cursor=pointer]
+              - generic:
+                - generic [ref=e508]:
+                  - generic [ref=e509]:
+                    - text: Forms
+                    - generic [ref=e510]: "17"
+                  - button "Collapse section" [ref=e512]
+                - list [ref=e516]:
+                  - button "text field" [ref=e517] [cursor=pointer]
+                  - button "text area" [ref=e522] [cursor=pointer]
+                  - button "number field" [ref=e527] [cursor=pointer]
+                  - button "search field" [ref=e533] [cursor=pointer]
+                  - button "color field" [ref=e539] [cursor=pointer]
+                  - button "checkbox" [ref=e548] [cursor=pointer]
+                  - button "checkbox group" [ref=e554] [cursor=pointer]
+                  - button "radio group" [ref=e564] [cursor=pointer]
+                  - button "select" [ref=e574] [cursor=pointer]
+                  - button "combo box" [ref=e579] [cursor=pointer]
+                  - button "switch" [ref=e584] [cursor=pointer]
+                  - button "slider" [ref=e590] [cursor=pointer]
+                  - button "meter" [ref=e594] [cursor=pointer]
+                  - button "color picker" [ref=e600] [cursor=pointer]
+                  - button "drop zone" [ref=e607] [cursor=pointer]
+                  - button "file trigger" [ref=e613] [cursor=pointer]
+                  - button "form" [ref=e620] [cursor=pointer]
+              - generic:
+                - generic [ref=e630]:
+                  - generic [ref=e631]:
+                    - text: Collections
+                    - generic [ref=e632]: "7"
+                  - button "Collapse section" [ref=e634]
+                - list [ref=e638]:
+                  - button "table" [ref=e639] [cursor=pointer]
+                  - button "list box" [ref=e644] [cursor=pointer]
+                  - button "grid list" [ref=e648] [cursor=pointer]
+                  - button "tree" [ref=e653] [cursor=pointer]
+                  - button "tag group" [ref=e659] [cursor=pointer]
+                  - button "section" [ref=e665] [cursor=pointer]
+                  - button "table view" [ref=e670] [cursor=pointer]
+              - generic:
+                - generic [ref=e675]:
+                  - generic [ref=e676]:
+                    - text: Date & Time
+                    - generic [ref=e677]: "6"
+                  - button "Collapse section" [ref=e679]
+                - list [ref=e683]:
+                  - button "calendar" [ref=e684] [cursor=pointer]
+                  - button "date picker" [ref=e689] [cursor=pointer]
+                  - button "date range picker" [ref=e695] [cursor=pointer]
+                  - button "date field" [ref=e700] [cursor=pointer]
+                  - button "time field" [ref=e706] [cursor=pointer]
+                  - button "range calendar" [ref=e711] [cursor=pointer]
+              - generic:
+                - generic [ref=e716]:
+                  - generic [ref=e717]:
+                    - text: Overlays
+                    - generic [ref=e718]: "4"
+                  - button "Collapse section" [ref=e720]
+                - list [ref=e724]:
+                  - button "dialog" [ref=e725] [cursor=pointer]
+                  - button "modal" [ref=e730] [cursor=pointer]
+                  - button "popover" [ref=e735] [cursor=pointer]
+                  - button "tooltip" [ref=e740] [cursor=pointer]
+          - separator "Resize Components panel right" [ref=e745]
+          - separator "Resize Components panel bottom" [ref=e746]

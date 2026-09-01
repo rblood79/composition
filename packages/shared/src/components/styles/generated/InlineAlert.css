@@ -5,8 +5,9 @@
  * ============================================================ */
 
 @layer components {
-  .react-aria-InlineAlert {
-    /* Base styles — archetype: alert */
+
+.react-aria-InlineAlert {
+  /* Base styles — archetype: alert */
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -14,180 +15,182 @@
     width: 100%;
     font-family: var(--font-sans);
 
-    /* Container styles (ADR-071 + ADR-083 Phase 1) */
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 
-    /* Default variant */
-    background: var(--informative-subtle);
-    color: var(--fg);
-    border: 1px solid var(--informative);
+  /* Default variant */
+  background: var(--informative-subtle);
+  color: var(--fg);
+  border: 1px solid var(--informative);
 
-    /* Default size */
-    height: auto;
-    padding: 16px 16px;
-    font-size: var(--text-base);
-    border-radius: var(--radius-lg);
-    gap: 12px;
-  }
+  /* Default size */
+  height: auto;
+  padding: 16px 16px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-lg);
+  gap: 12px;
+}
 
-  .react-aria-InlineAlert[data-variant="neutral"] {
+.react-aria-InlineAlert[data-variant="neutral"] {
+  background: var(--bg-muted);
+  color: var(--fg);
+  border-color: var(--fg-muted);
+
+  &[data-hovered] {
     background: var(--bg-muted);
-    color: var(--fg);
-    border-color: var(--fg-muted);
-
-    &[data-hovered] {
-      background: var(--bg-muted);
-    }
-
-    &[data-pressed] {
-      background: var(--bg-muted);
-    }
   }
 
-  .react-aria-InlineAlert[data-variant="info"] {
+  &[data-pressed] {
+    background: var(--bg-muted);
+  }
+}
+
+.react-aria-InlineAlert[data-variant="info"] {
+  background: var(--informative-subtle);
+  color: var(--fg);
+  border-color: var(--informative);
+
+  &[data-hovered] {
     background: var(--informative-subtle);
-    color: var(--fg);
-    border-color: var(--informative);
-
-    &[data-hovered] {
-      background: var(--informative-subtle);
-    }
-
-    &[data-pressed] {
-      background: var(--informative-subtle);
-    }
   }
 
-  .react-aria-InlineAlert[data-variant="positive"] {
+  &[data-pressed] {
+    background: var(--informative-subtle);
+  }
+}
+
+.react-aria-InlineAlert[data-variant="positive"] {
+  background: var(--positive-subtle);
+  color: var(--fg);
+  border-color: var(--positive);
+
+  &[data-hovered] {
     background: var(--positive-subtle);
-    color: var(--fg);
-    border-color: var(--positive);
-
-    &[data-hovered] {
-      background: var(--positive-subtle);
-    }
-
-    &[data-pressed] {
-      background: var(--positive-subtle);
-    }
   }
 
-  .react-aria-InlineAlert[data-variant="notice"] {
+  &[data-pressed] {
+    background: var(--positive-subtle);
+  }
+}
+
+.react-aria-InlineAlert[data-variant="notice"] {
+  background: var(--notice-subtle);
+  color: var(--fg);
+  border-color: var(--notice);
+
+  &[data-hovered] {
     background: var(--notice-subtle);
-    color: var(--fg);
-    border-color: var(--notice);
-
-    &[data-hovered] {
-      background: var(--notice-subtle);
-    }
-
-    &[data-pressed] {
-      background: var(--notice-subtle);
-    }
   }
 
-  .react-aria-InlineAlert[data-variant="negative"] {
+  &[data-pressed] {
+    background: var(--notice-subtle);
+  }
+}
+
+.react-aria-InlineAlert[data-variant="negative"] {
+  background: var(--negative-subtle);
+  color: var(--fg);
+  border-color: var(--negative);
+
+  &[data-hovered] {
     background: var(--negative-subtle);
-    color: var(--fg);
-    border-color: var(--negative);
-
-    &[data-hovered] {
-      background: var(--negative-subtle);
-    }
-
-    &[data-pressed] {
-      background: var(--negative-subtle);
-    }
   }
 
-  .react-aria-InlineAlert[data-size="sm"] {
-    height: auto;
-    padding: 8px 8px;
-    font-size: var(--text-sm);
-    border-radius: var(--radius-md);
-    gap: 8px;
+  &[data-pressed] {
+    background: var(--negative-subtle);
   }
+}
 
-  .react-aria-InlineAlert[data-size="md"] {
-    height: auto;
-    padding: 16px 16px;
-    font-size: var(--text-base);
-    border-radius: var(--radius-lg);
-    gap: 12px;
-  }
+.react-aria-InlineAlert[data-size="sm"] {
+  height: auto;
+  padding: 8px 8px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  gap: 8px;
+}
 
-  .react-aria-InlineAlert[data-size="lg"] {
-    height: auto;
-    padding: 24px 24px;
-    font-size: var(--text-lg);
-    border-radius: var(--radius-xl);
-    gap: 16px;
-  }
+.react-aria-InlineAlert[data-size="md"] {
+  height: auto;
+  padding: 16px 16px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-lg);
+  gap: 12px;
+}
 
-  /* Heading */
-  .react-aria-InlineAlert .alert-heading {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1.4;
-  }
+.react-aria-InlineAlert[data-size="lg"] {
+  height: auto;
+  padding: 24px 24px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-xl);
+  gap: 16px;
+}
 
-  /* Description */
-  .react-aria-InlineAlert .react-aria-Description {
-    margin: 0;
-    width: 100%;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 1.5;
-  }
+/* Heading */
+.react-aria-InlineAlert .alert-heading {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
 
-  .react-aria-InlineAlert[data-size="sm"] .alert-heading {
-    font-size: 14px;
-    font-weight: 700;
-  }
+/* Description */
+.react-aria-InlineAlert .react-aria-Description {
+  margin: 0;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
 
-  .react-aria-InlineAlert[data-size="sm"] .react-aria-Description {
-    font-size: 12px;
-    font-weight: 400;
-  }
+.react-aria-InlineAlert[data-size="sm"] .alert-heading {
+  font-size: 14px;
+  font-weight: 700;
+}
 
-  .react-aria-InlineAlert[data-size="md"] .alert-heading {
-    font-size: 16px;
-    font-weight: 700;
-  }
+.react-aria-InlineAlert[data-size="sm"] .react-aria-Description {
+  font-size: 12px;
+  font-weight: 400;
+}
 
-  .react-aria-InlineAlert[data-size="md"] .react-aria-Description {
-    font-size: 14px;
-    font-weight: 400;
-  }
+.react-aria-InlineAlert[data-size="md"] .alert-heading {
+  font-size: 16px;
+  font-weight: 700;
+}
 
-  .react-aria-InlineAlert[data-size="lg"] .alert-heading {
-    font-size: 18px;
-    font-weight: 700;
-  }
+.react-aria-InlineAlert[data-size="md"] .react-aria-Description {
+  font-size: 14px;
+  font-weight: 400;
+}
 
-  .react-aria-InlineAlert[data-size="lg"] .react-aria-Description {
-    font-size: 16px;
-    font-weight: 400;
-  }
+.react-aria-InlineAlert[data-size="lg"] .alert-heading {
+  font-size: 18px;
+  font-weight: 700;
+}
 
-  .react-aria-InlineAlert[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
-  }
+.react-aria-InlineAlert[data-size="lg"] .react-aria-Description {
+  font-size: 16px;
+  font-weight: 400;
+}
 
-  .react-aria-InlineAlert[data-disabled] {
-    opacity: 0.38;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
+.react-aria-InlineAlert[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
 
-  @media (forced-colors: active) {
-    .react-aria-InlineAlert {
-      forced-color-adjust: auto;
-    }
+.react-aria-InlineAlert[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-InlineAlert {
+    forced-color-adjust: auto;
   }
+}
+
+
 } /* @layer components */

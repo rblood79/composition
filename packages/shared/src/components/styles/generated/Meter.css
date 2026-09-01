@@ -5,8 +5,9 @@
  * ============================================================ */
 
 @layer components {
-  .react-aria-Meter {
-    /* Base styles — archetype: progress */
+
+.react-aria-Meter {
+  /* Base styles — archetype: progress */
     display: grid;
     box-sizing: border-box;
     box-sizing: border-box;
@@ -18,129 +19,130 @@
     --label-font-size: var(--text-sm);
     --fill-color: var(--informative);
 
-    /* Container styles (ADR-071 + ADR-083 Phase 1) */
-    display: grid;
-    grid-template-areas: "label value" "bar bar";
-    grid-template-columns: 1fr auto;
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: grid;
+  grid-template-areas: "label value" "bar bar";
+  grid-template-columns: 1fr auto;
 
-    /* Default size */
-    font-size: var(--text-sm);
-    border-radius: var(--radius-sm);
-    line-height: var(--text-sm--line-height);
-    gap: 4px;
+  /* Default size */
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+  line-height: var(--text-sm--line-height);
+  gap: 4px;
+}
+
+.react-aria-Meter[data-size="sm"] {
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+  line-height: var(--text-xs--line-height);
+  gap: 4px;
+}
+
+.react-aria-Meter[data-size="md"] {
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+  line-height: var(--text-sm--line-height);
+  gap: 4px;
+}
+
+.react-aria-Meter[data-size="lg"] {
+  font-size: var(--text-base);
+  border-radius: var(--radius-md);
+  line-height: var(--text-base--line-height);
+  gap: 4px;
+}
+
+.react-aria-Meter[data-size="xl"] {
+  font-size: var(--text-lg);
+  border-radius: var(--radius-lg);
+  line-height: var(--text-lg--line-height);
+  gap: 4px;
+}
+
+.react-aria-Meter[data-hovered] {
+}
+
+.react-aria-Meter[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Meter[data-pressed] {
+}
+
+.react-aria-Meter[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Meter[data-label-position="side"] {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.react-aria-Meter[data-label-position="side"] .bar {
+  order: 1;
+  flex: 1;
+}
+
+.react-aria-Meter[data-label-position="side"] .value {
+  order: 2;
+}
+
+.react-aria-Meter[data-variant="informative"] {
+  --fill-color: var(--informative);
+}
+
+.react-aria-Meter[data-variant="positive"] {
+  --fill-color: var(--positive);
+}
+
+.react-aria-Meter[data-variant="warning"] {
+  --fill-color: var(--notice);
+}
+
+.react-aria-Meter[data-variant="critical"] {
+  --fill-color: var(--negative);
+}
+
+.react-aria-Meter[data-size="sm"] {
+  --label-font-size: var(--text-xs);
+}
+
+.react-aria-Meter[data-size="md"] {
+  --label-font-size: var(--text-sm);
+}
+
+.react-aria-Meter[data-size="lg"] {
+  --label-font-size: var(--text-base);
+}
+
+.react-aria-Meter[data-size="xl"] {
+  --label-font-size: var(--text-lg);
+}
+
+.react-aria-Meter[data-disabled="true"] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-Meter {
+    forced-color-adjust: auto;
   }
+}
 
-  .react-aria-Meter[data-size="sm"] {
-    font-size: var(--text-xs);
-    border-radius: var(--radius-sm);
-    line-height: var(--text-xs--line-height);
-    gap: 4px;
+@media (prefers-reduced-motion: reduce) {
+  .react-aria-Meter {
+    transition-duration: 0s !important;
   }
-
-  .react-aria-Meter[data-size="md"] {
-    font-size: var(--text-sm);
-    border-radius: var(--radius-sm);
-    line-height: var(--text-sm--line-height);
-    gap: 4px;
-  }
-
-  .react-aria-Meter[data-size="lg"] {
-    font-size: var(--text-base);
-    border-radius: var(--radius-md);
-    line-height: var(--text-base--line-height);
-    gap: 4px;
-  }
-
-  .react-aria-Meter[data-size="xl"] {
-    font-size: var(--text-lg);
-    border-radius: var(--radius-lg);
-    line-height: var(--text-lg--line-height);
-    gap: 4px;
-  }
-
-  .react-aria-Meter[data-hovered] {
-  }
-
-  .react-aria-Meter[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
-  }
-
-  .react-aria-Meter[data-pressed] {
-  }
-
-  .react-aria-Meter[data-disabled] {
-    opacity: 0.38;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-  /* ── Tier 2: Composite Delegation ── */
-
-  .react-aria-Meter[data-label-position="side"] {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .react-aria-Meter[data-label-position="side"] .bar {
-    order: 1;
-    flex: 1;
-  }
-
-  .react-aria-Meter[data-label-position="side"] .value {
-    order: 2;
-  }
-
-  .react-aria-Meter[data-variant="informative"] {
-    --fill-color: var(--informative);
-  }
-
-  .react-aria-Meter[data-variant="positive"] {
-    --fill-color: var(--positive);
-  }
-
-  .react-aria-Meter[data-variant="warning"] {
-    --fill-color: var(--notice);
-  }
-
-  .react-aria-Meter[data-variant="critical"] {
-    --fill-color: var(--negative);
-  }
-
-  .react-aria-Meter[data-size="sm"] {
-    --label-font-size: var(--text-xs);
-  }
-
-  .react-aria-Meter[data-size="md"] {
-    --label-font-size: var(--text-sm);
-  }
-
-  .react-aria-Meter[data-size="lg"] {
-    --label-font-size: var(--text-base);
-  }
-
-  .react-aria-Meter[data-size="xl"] {
-    --label-font-size: var(--text-lg);
-  }
-
-  .react-aria-Meter[data-disabled="true"] {
-    opacity: 0.38;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-  @media (forced-colors: active) {
-    .react-aria-Meter {
-      forced-color-adjust: auto;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .react-aria-Meter {
-      transition-duration: 0s !important;
-    }
-  }
+}
 
   .react-aria-Meter .react-aria-Label {
     grid-area: label;
@@ -170,6 +172,7 @@
     transition: width 200ms ease-out;
     forced-color-adjust: auto;
   }
+
 
   .react-aria-Meter[data-size="sm"] .bar {
     height: var(--spacing-xs);
@@ -206,4 +209,6 @@
   .react-aria-Meter[data-size="xl"] .value {
     font-size: var(--text-lg);
   }
+
+
 } /* @layer components */

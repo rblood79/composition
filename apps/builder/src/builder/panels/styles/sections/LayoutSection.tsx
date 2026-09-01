@@ -50,6 +50,7 @@ import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
 import { isDirectionDrivenTag } from "../utils/orientationDrivenTags";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
+import { SPACING_PRESET_OPTIONS } from "../constants/styleOptions";
 
 // 4방향 값 추출은 이제 useLayoutValues 훅에서 처리됨
 
@@ -441,7 +442,10 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           label="Gap"
           className="displayGap"
           value={styleValues.gap}
-          units={["reset", "px"]}
+          units={[]}
+          allowKeywords={false}
+          presets={SPACING_PRESET_OPTIONS}
+          presetAriaLabel="Gap Preset"
           onChange={(value) => handleSpacingCommit("gap", value)}
           onDrag={(value) => handleSpacingPreview("gap", value)}
           min={0}
@@ -458,7 +462,10 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             label="Padding"
             className="padding"
             value={styleValues.padding}
-            units={["reset", "px"]}
+            units={[]}
+            allowKeywords={false}
+            presets={SPACING_PRESET_OPTIONS}
+            presetAriaLabel="Padding Preset"
             onChange={(value) => handleSpacingCommit("padding", value)}
             onDrag={(value) => handleSpacingPreview("padding", value)}
             min={0}
@@ -469,7 +476,10 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             label="Margin"
             className="margin"
             value={styleValues.margin}
-            units={["reset", "px"]}
+            units={[]}
+            allowKeywords={false}
+            presets={SPACING_PRESET_OPTIONS}
+            presetAriaLabel="Margin Preset"
             onChange={(value) => updateStyleImmediate("margin", value)}
             onDrag={(value) => updateStylePreview("margin", value)}
             min={0}

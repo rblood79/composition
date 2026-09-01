@@ -86,6 +86,13 @@ function parseUnitValue(value: string): {
     return { numericValue: null, unit: trimmed };
   }
 
+  // CSS custom property references are valid style values but are not numeric
+  // units. Preserve them so preset selection and the input can reflect the
+  // active token instead of falling back to 0px.
+  if (/^var\(--[a-z0-9-]+\)$/i.test(trimmed)) {
+    return { numericValue: null, unit: trimmed };
+  }
+
   // ⭐ Shorthand 값 처리: "8px 12px" → 첫 번째 값 "8px" 사용
   // padding, margin 등의 shorthand CSS 속성이 여러 값을 가질 때 첫 번째 값을 파싱
   const firstValue = trimmed.split(/\s+/)[0];
@@ -98,6 +105,118 @@ function parseUnitValue(value: string): {
   }
 
   return { numericValue: 0, unit: "px" };
+}
+
+function getCssVariableValue(value: string): string | undefined {
+  const match = value.trim().match(/^var\((--[a-z0-9-]+)\)$/i);
+  if (!match || typeof document === "undefined") return undefined;
+
+  const resolved = getComputedStyle(document.documentElement)
+    .getPropertyValue(match[1])
+    .trim();
+  return resolved || undefined;
+}
+
+function formatPixelValue(value: number): string {
+  return `${Number.isInteger(value) ? value : Number(value.toFixed(4))}px`;
+}
+
+function toPixelValue(value: string): string {
+  const trimmed = value.trim();
+  const remMatch = trimmed.match(/^(-?\d*\.?\d+)rem$/i);
+  if (!remMatch) return trimmed;
+
+  const rootFontSize =
+    typeof document !== "undefined"
+      ? parseFloat(getComputedStyle(document.documentElement).fontSize)
+      : NaN;
+  const baseFontSize = Number.isFinite(rootFontSize) ? rootFontSize : 16;
+  return formatPixelValue(Number(remMatch[1]) * baseFontSize);
+}
+
+function getPresetDisplayValue(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed === "") return "";
+
+  const resolvedValue = getCssVariableValue(trimmed) ?? trimmed;
+  const resolved = toPixelValue(resolvedValue);
+  const resolvedParsed = parseUnitValue(resolved);
+  if (resolvedParsed.numericValue !== null) {
+    return String(resolvedParsed.numericValue);
+  }
+
+  const parsed = parseUnitValue(trimmed);
+  return parsed.numericValue !== null
+    ? parsed.unit
+      ? `${parsed.numericValue}${parsed.unit}`
+      : String(parsed.numericValue)
+    : trimmed;
+}
+
+function findMatchingPreset(
+  inputValue: string,
+  presets?: PropertyUnitInputProps["presets"],
+) {
+  const trimmedInputValue = inputValue.trim();
+
+  return presets?.find((preset) => {
+    const presetValue = preset.value.trim();
+    const presetDisplayValue = getPresetDisplayValue(preset.value);
+    return (
+      presetValue === trimmedInputValue ||
+      presetDisplayValue === trimmedInputValue
+    );
+  });
+}
+
+function getPresetCommitValue(preset: {
+  id: string;
+  label: string;
+  value: string;
+}): string {
+  const trimmed = preset.value.trim();
+  if (trimmed === "") return "";
+
+  const resolved = getCssVariableValue(trimmed);
+  return resolved ? toPixelValue(resolved) : preset.value;
+}
+
+function presetsUseCssUnits(
+  presets?: PropertyUnitInputProps["presets"],
+): boolean {
+  return Boolean(
+    presets?.some((preset) => {
+      const value = preset.value.trim();
+      return value !== "" && parseUnitValue(value).unit !== "";
+    }),
+  );
+}
+
+function getInputDisplayValue(
+  value: string,
+  parsed: ReturnType<typeof parseUnitValue>,
+  isPreservedEmptyValue: boolean,
+  presets?: PropertyUnitInputProps["presets"],
+): string {
+  const trimmed = value.trim();
+  const hasResetPreset = presets?.some((preset) => preset.value.trim() === "");
+
+  if (isPreservedEmptyValue || (hasResetPreset && trimmed === "")) {
+    return "";
+  }
+
+  const matchingPreset = presets?.find(
+    (preset) =>
+      preset.value.trim() === trimmed ||
+      getPresetDisplayValue(preset.value) === trimmed,
+  );
+  if (matchingPreset) {
+    return getPresetDisplayValue(matchingPreset.value);
+  }
+
+  return parsed.numericValue !== null
+    ? String(parsed.numericValue)
+    : (INPUT_DISPLAY_LABELS[parsed.unit] ?? parsed.unit);
 }
 
 export const PropertyUnitInput = memo(
@@ -143,44 +262,60 @@ export const PropertyUnitInput = memo(
     const [draftUnit, setDraftUnit] = useState<string | null>(null);
     const unit = draftUnit ?? resolvedUnit;
     const hasPresets = Boolean(presets?.length);
+    const hasUnitPresets = presetsUseCssUnits(presets);
+    const inputUnit = hasPresets && hasUnitPresets ? "px" : unit;
     const isKeyword = parsed.numericValue === null;
-    const [inputValue, setInputValue] = useState(
-      isPreservedEmptyValue
-        ? ""
-        : parsed.numericValue !== null
-          ? String(parsed.numericValue)
-          : (INPUT_DISPLAY_LABELS[parsed.unit] ?? parsed.unit),
+    const [inputValue, setInputValue] = useState(() =>
+      getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets),
     );
     const numericInputValue = Number(inputValue.trim());
+    const matchingPreset = findMatchingPreset(inputValue, presets);
     const selectedPreset =
-      inputValue.trim() !== "" && Number.isFinite(numericInputValue)
-        ? presets?.find((preset) => Number(preset.value) === numericInputValue)
-        : undefined;
+      (matchingPreset?.value.trim() !== "" ? matchingPreset : undefined) ??
+      (inputValue.trim() !== "" && Number.isFinite(numericInputValue)
+        ? presets?.find((preset) => {
+            if (preset.value.trim() === "") return false;
+            const presetParsed = parseUnitValue(preset.value);
+            return (
+              presetParsed.numericValue !== null &&
+              presetParsed.numericValue === numericInputValue
+            );
+          })
+        : undefined);
     // ⭐ useRef로 변경: Enter 키로 저장했는지 추적 (useState는 비동기!)
     const justSavedViaEnterRef = useRef(false);
     // ⭐ 마지막으로 저장한 값 추적 - 중복 호출 방지
     const lastSavedValueRef = useRef<string>(value);
     const focusedElementIdRef = useRef<string | null>(null);
+    const syncAfterPresetRef = useRef(false);
     const inputElementRef = useRef<HTMLInputElement>(null);
 
     // preview 경로가 elementsMap 을 mutate 하면서 value prop 이 편집값으로 바뀌어도
     // focus 중인 input 은 편집 세션을 유지해야 한다 (DOM activeElement 기준).
     useEffect(() => {
-      if (
+      const isInputFocused =
         inputElementRef.current !== null &&
-        document.activeElement === inputElementRef.current
+        document.activeElement === inputElementRef.current;
+      const isEditingCurrentElement =
+        focusedElementIdRef.current === selectedElementId;
+      if (
+        isInputFocused &&
+        isEditingCurrentElement &&
+        !syncAfterPresetRef.current
       ) {
         return;
       }
 
+      syncAfterPresetRef.current = false;
       justSavedViaEnterRef.current = false;
       lastSavedValueRef.current = value;
       focusedElementIdRef.current = null;
-      const nextDisplay = isPreservedEmptyValue
-        ? ""
-        : parsed.numericValue !== null
-          ? String(parsed.numericValue)
-          : (INPUT_DISPLAY_LABELS[parsed.unit] ?? parsed.unit);
+      const nextDisplay = getInputDisplayValue(
+        value,
+        parsed,
+        isPreservedEmptyValue,
+        presets,
+      );
       queueMicrotask(() => {
         setInputValue(nextDisplay);
         setDraftUnit(null);
@@ -191,6 +326,7 @@ export const PropertyUnitInput = memo(
       parsed.numericValue,
       parsed.unit,
       isPreservedEmptyValue,
+      presets,
     ]);
 
     const handleInputChange = (newValue: string) => {
@@ -237,6 +373,17 @@ export const PropertyUnitInput = memo(
       const resolved =
         INPUT_LABEL_TO_KEYWORD[trimmed.toLowerCase()] ?? trimmed.toLowerCase();
 
+      const matchingPreset = findMatchingPreset(trimmed, presets);
+      if (hasPresets && matchingPreset) {
+        const newValue = getPresetCommitValue(matchingPreset);
+        if (newValue !== value && newValue !== lastSavedValueRef.current) {
+          lastSavedValueRef.current = newValue;
+          onChange(newValue);
+        }
+        focusedElementIdRef.current = null;
+        return;
+      }
+
       if (allowEmptyReset && trimmed === "") {
         if (lastSavedValueRef.current !== "") {
           lastSavedValueRef.current = "";
@@ -261,26 +408,28 @@ export const PropertyUnitInput = memo(
       const num = parseFloat(trimmed);
       if (isNaN(num)) {
         // Invalid input, revert to previous value
-        if (numericValue !== null) {
-          setInputValue(String(numericValue));
-        } else {
-          setInputValue("");
-        }
+        setInputValue(
+          getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets),
+        );
         return;
       }
 
       if (num < min || num > max) {
         // Out of range, revert to previous value
-        if (numericValue !== null) {
-          setInputValue(String(numericValue));
-        } else {
-          setInputValue("");
-        }
+        setInputValue(
+          getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets),
+        );
         return;
       }
 
       // ⭐ 키워드 단위(auto, fit-content 등)에서 숫자로 전환 시 px로 기본 설정
-      const effectiveUnit = KEYWORDS.includes(unit) ? "px" : unit;
+      const effectiveUnit = hasPresets
+        ? hasUnitPresets
+          ? "px"
+          : ""
+        : KEYWORDS.includes(unit)
+          ? "px"
+          : unit;
 
       // commit 판정은 lastSavedValueRef 기준 — preview 가 value prop 을 편집값으로
       // 먼저 반영할 수 있어 `parseUnitValue(value)` 비교는 "변경 없음" 오판 가능.
@@ -356,9 +505,17 @@ export const PropertyUnitInput = memo(
         const resolved =
           INPUT_LABEL_TO_KEYWORD[trimmed.toLowerCase()] ??
           trimmed.toLowerCase();
+        const matchingPreset = findMatchingPreset(trimmed, presets);
         let shouldSave = false;
 
-        if (allowEmptyReset && trimmed === "") {
+        if (hasPresets && matchingPreset) {
+          const newVal = getPresetCommitValue(matchingPreset);
+          if (newVal !== value && newVal !== lastSavedValueRef.current) {
+            lastSavedValueRef.current = newVal;
+            onChange(newVal);
+            shouldSave = true;
+          }
+        } else if (allowEmptyReset && trimmed === "") {
           if (lastSavedValueRef.current !== "") {
             lastSavedValueRef.current = "";
             onChange("");
@@ -375,7 +532,13 @@ export const PropertyUnitInput = memo(
           const num = parseFloat(trimmed);
           if (!isNaN(num) && num >= min && num <= max) {
             // ⭐ 키워드 단위(auto, fit-content 등)에서 숫자로 전환 시 px로 기본 설정
-            const effectiveUnit = KEYWORDS.includes(unit) ? "px" : unit;
+            const effectiveUnit = hasPresets
+              ? hasUnitPresets
+                ? "px"
+                : ""
+              : KEYWORDS.includes(unit)
+                ? "px"
+                : unit;
 
             // preview 경로가 value prop 을 먼저 편집값으로 반영할 수 있으므로
             // commit 판정은 lastSavedValueRef (이전 commit 결과) 기준.
@@ -409,12 +572,12 @@ export const PropertyUnitInput = memo(
         e.preventDefault();
         newValue = Math.min(newValue + step, max);
         setInputValue(String(newValue));
-        updateFn(`${newValue}${unit}`);
+        updateFn(`${newValue}${inputUnit}`);
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         newValue = Math.max(newValue - step, min);
         setInputValue(String(newValue));
-        updateFn(`${newValue}${unit}`);
+        updateFn(`${newValue}${inputUnit}`);
       }
     };
 
@@ -449,16 +612,20 @@ export const PropertyUnitInput = memo(
                 );
                 if (!preset) return;
 
-                const nextValue = parseUnitValue(preset.value);
+                syncAfterPresetRef.current = true;
                 setInputValue(
-                  nextValue.numericValue !== null
-                    ? String(nextValue.numericValue)
-                    : (INPUT_DISPLAY_LABELS[nextValue.unit] ?? nextValue.unit),
+                  getInputDisplayValue(
+                    getPresetCommitValue(preset),
+                    parseUnitValue(getPresetCommitValue(preset)),
+                    false,
+                    presets,
+                  ),
                 );
                 setDraftUnit(null);
-                if (preset.value !== lastSavedValueRef.current) {
-                  lastSavedValueRef.current = preset.value;
-                  onChange(preset.value);
+                const newValue = getPresetCommitValue(preset);
+                if (newValue !== lastSavedValueRef.current) {
+                  lastSavedValueRef.current = newValue;
+                  onChange(newValue);
                 }
                 return;
               }

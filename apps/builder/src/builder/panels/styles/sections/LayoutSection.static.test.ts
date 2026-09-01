@@ -25,4 +25,22 @@ describe("LayoutSection spacing input commit contract", () => {
     expect(source).toContain("justSavedViaEnterRef");
     expect(source).toContain("if (justSavedViaEnterRef.current)");
   });
+
+  it("uses the shared spacing token preset list for collapsed spacing inputs", async () => {
+    const source = await readFile(
+      resolve(__dirname, "LayoutSection.tsx"),
+      "utf-8",
+    );
+    const optionsSource = await readFile(
+      resolve(__dirname, "../constants/styleOptions.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain(
+      'import { SPACING_PRESET_OPTIONS } from "../constants/styleOptions"',
+    );
+    expect(source.match(/presets=\{SPACING_PRESET_OPTIONS\}/g)).toHaveLength(3);
+    expect(optionsSource).toContain('value: "var(--spacing-xs)"');
+    expect(optionsSource).toContain('value: "var(--spacing-xl)"');
+  });
 });

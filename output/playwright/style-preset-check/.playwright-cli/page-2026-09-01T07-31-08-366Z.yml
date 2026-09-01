@@ -1,0 +1,316 @@
+- generic [ref=e1]:
+  - generic [ref=e1084]:
+    - log [ref=e1085]:
+      - generic [ref=e1544]: 6 options available.
+      - generic [ref=e1545]: Reset, selected
+    - log
+  - generic [ref=e138]:
+    - main [ref=e140]:
+      - toolbar [ref=e1546]:
+        - button [ref=e1547]
+        - button [ref=e1548]
+        - button [ref=e1549]
+        - button [ref=e1550]
+    - generic "Panel workspace":
+      - generic:
+        - banner [ref=e163]:
+          - generic [ref=e164]:
+            - button [ref=e1551] [cursor=pointer]
+            - generic [ref=e169]: Style preset check
+          - group [ref=e1553]:
+            - radiogroup [ref=e1554]:
+              - radio [checked] [ref=e1555] [cursor=pointer]
+              - radio [ref=e1556] [cursor=pointer]
+              - radio [ref=e1557] [cursor=pointer]
+            - generic [ref=e186] [cursor=pointer]:
+              - textbox [ref=e1558]: 100%
+              - button [ref=e1559]
+          - generic [ref=e191]:
+            - toolbar [ref=e1560]:
+              - button [ref=e1561] [cursor=pointer]
+            - button [ref=e1562] [cursor=pointer]
+        - generic:
+          - toolbar [ref=e1563]:
+            - button [ref=e1564] [cursor=pointer]
+            - button [pressed] [ref=e1565] [cursor=pointer]
+            - button [ref=e1566] [cursor=pointer]
+            - button [ref=e1567] [cursor=pointer]
+            - button [ref=e1568] [cursor=pointer]
+          - toolbar [ref=e1569]:
+            - button [ref=e1570] [cursor=pointer]
+            - button [ref=e1571] [cursor=pointer]
+            - button [pressed] [ref=e1572] [cursor=pointer]
+            - button [ref=e1573] [cursor=pointer]
+            - button [ref=e1574] [cursor=pointer]
+          - generic:
+            - generic [ref=e261]:
+              - button [ref=e1575]
+              - generic [ref=e265]:
+                - generic [ref=e266]:
+                  - heading [level=3] [ref=e1576]:
+                    - generic [ref=e1577]: Components
+                  - generic [ref=e273]:
+                    - button [ref=e274] [cursor=pointer]
+                    - button [ref=e1578] [cursor=pointer]
+                - searchbox [ref=e1579]
+                - generic [ref=e288]:
+                  - generic [ref=e777]:
+                    - generic [ref=e778]:
+                      - generic [ref=e779]:
+                        - text: Recently Used
+                        - generic [ref=e780]: "1"
+                      - button [ref=e1580]
+                    - list [ref=e787]:
+                      - button [ref=e1581] [cursor=pointer]:
+                        - generic [ref=e791]: "1"
+                        - generic [ref=e792]: text
+                  - generic [ref=e289]:
+                    - generic [ref=e290]:
+                      - generic [ref=e291]:
+                        - text: Content
+                        - generic [ref=e292]: "13"
+                      - button [ref=e1582]
+                    - list [ref=e298]:
+                      - button [ref=e1583] [cursor=pointer]:
+                        - generic [ref=e302]: text
+                      - button [ref=e1584] [cursor=pointer]:
+                        - generic [ref=e308]: icon
+                      - button [ref=e1585] [cursor=pointer]:
+                        - generic [ref=e314]: separator
+                      - button [ref=e1586] [cursor=pointer]:
+                        - generic [ref=e319]: badge
+                      - button [ref=e1587] [cursor=pointer]:
+                        - generic [ref=e324]: progress bar
+                      - button [ref=e1588] [cursor=pointer]:
+                        - generic [ref=e332]: skeleton
+                      - button [ref=e1589] [cursor=pointer]:
+                        - generic [ref=e339]: avatar
+                      - button [ref=e1590] [cursor=pointer]:
+                        - generic [ref=e347]: avatar group
+                      - button [ref=e1591] [cursor=pointer]:
+                        - generic [ref=e353]: status light
+                      - button [ref=e1592] [cursor=pointer]:
+                        - generic [ref=e358]: inline alert
+                      - button [ref=e1593] [cursor=pointer]:
+                        - generic [ref=e370]: progress circle
+                      - button [ref=e1594] [cursor=pointer]:
+                        - generic [ref=e377]: image
+                      - button [ref=e1595] [cursor=pointer]:
+                        - generic [ref=e384]: illustrated message
+                  - generic [ref=e385]:
+                    - generic [ref=e386]:
+                      - generic [ref=e387]:
+                        - text: Layout
+                        - generic [ref=e388]: "10"
+                      - button [ref=e1596]
+                    - list [ref=e394]:
+                      - button [ref=e1597] [cursor=pointer]:
+                        - generic [ref=e399]: card
+                      - button [ref=e1598] [cursor=pointer]:
+                        - generic [ref=e409]: frame
+                      - button [ref=e1599] [cursor=pointer]:
+                        - generic [ref=e414]: tabs
+                      - button [ref=e1600] [cursor=pointer]:
+                        - generic [ref=e419]: breadcrumbs
+                      - button [ref=e1601] [cursor=pointer]:
+                        - generic [ref=e425]: link
+                      - button [ref=e1602] [cursor=pointer]:
+                        - generic [ref=e429]: navigation
+                      - button [ref=e1603] [cursor=pointer]:
+                        - generic [ref=e435]: pagination
+                      - button [ref=e1604] [cursor=pointer]:
+                        - generic [ref=e440]: disclosure group
+                      - button [ref=e1605] [cursor=pointer]:
+                        - generic [ref=e445]: disclosure
+                      - button [ref=e1606] [cursor=pointer]:
+                        - generic [ref=e450]: card view
+                  - generic [ref=e452]:
+                    - generic [ref=e453]:
+                      - text: Buttons
+                      - generic [ref=e454]: "7"
+                    - button [ref=e1607]
+                  - list [ref=e460]:
+                    - button [ref=e1608] [cursor=pointer]:
+                      - generic [ref=e466]: button
+                    - button [ref=e1609] [cursor=pointer]:
+                      - generic [ref=e471]: icon button
+                    - button [ref=e1610] [cursor=pointer]:
+                      - generic [ref=e477]: toggle button
+                    - button [ref=e1611] [cursor=pointer]:
+                      - generic [ref=e487]: toggle button group
+                    - button [ref=e1612] [cursor=pointer]:
+                      - generic [ref=e493]: toolbar
+                    - button [ref=e1613] [cursor=pointer]:
+                      - generic [ref=e503]: button group
+                    - button [ref=e1614] [cursor=pointer]:
+                      - generic [ref=e507]: menu
+                  - generic [ref=e508]:
+                    - generic [ref=e509]:
+                      - text: Forms
+                      - generic [ref=e510]: "17"
+                    - button [ref=e1615]
+                  - list [ref=e516]:
+                    - button [ref=e1616] [cursor=pointer]:
+                      - generic [ref=e521]: text field
+                    - button [ref=e1617] [cursor=pointer]:
+                      - generic [ref=e526]: text area
+                    - button [ref=e1618] [cursor=pointer]:
+                      - generic [ref=e532]: number field
+                    - button [ref=e1619] [cursor=pointer]:
+                      - generic [ref=e538]: search field
+                    - button [ref=e1620] [cursor=pointer]:
+                      - generic [ref=e547]: color field
+                    - button [ref=e1621] [cursor=pointer]:
+                      - generic [ref=e553]: checkbox
+                    - button [ref=e1622] [cursor=pointer]:
+                      - generic [ref=e563]: checkbox group
+                    - button [ref=e1623] [cursor=pointer]:
+                      - generic [ref=e573]: radio group
+                    - button [ref=e1624] [cursor=pointer]:
+                      - generic [ref=e578]: select
+                    - button [ref=e1625] [cursor=pointer]:
+                      - generic [ref=e583]: combo box
+                    - button [ref=e1626] [cursor=pointer]:
+                      - generic [ref=e589]: switch
+                    - button [ref=e1627] [cursor=pointer]:
+                      - generic [ref=e593]: slider
+                    - button [ref=e1628] [cursor=pointer]:
+                      - generic [ref=e599]: meter
+                    - button [ref=e1629] [cursor=pointer]:
+                      - generic [ref=e606]: color picker
+                    - button [ref=e1630] [cursor=pointer]:
+                      - generic [ref=e612]: drop zone
+                    - button [ref=e1631] [cursor=pointer]:
+                      - generic [ref=e619]: file trigger
+                    - button [ref=e1632] [cursor=pointer]:
+                      - generic [ref=e629]: form
+                  - generic [ref=e630]:
+                    - generic [ref=e631]:
+                      - text: Collections
+                      - generic [ref=e632]: "7"
+                    - button [ref=e1633]
+                  - list [ref=e638]:
+                    - button [ref=e1634] [cursor=pointer]:
+                      - generic [ref=e643]: table
+                    - button [ref=e1635] [cursor=pointer]:
+                      - generic [ref=e647]: list box
+                    - button [ref=e1636] [cursor=pointer]:
+                      - generic [ref=e652]: grid list
+                    - button [ref=e1637] [cursor=pointer]:
+                      - generic [ref=e658]: tree
+                    - button [ref=e1638] [cursor=pointer]:
+                      - generic [ref=e664]: tag group
+                    - button [ref=e1639] [cursor=pointer]:
+                      - generic [ref=e669]: section
+                    - button [ref=e1640] [cursor=pointer]:
+                      - generic [ref=e674]: table view
+                  - generic [ref=e675]:
+                    - generic [ref=e676]:
+                      - text: Date & Time
+                      - generic [ref=e677]: "6"
+                    - button [ref=e1641]
+                  - list [ref=e683]:
+                    - button [ref=e1642] [cursor=pointer]:
+                      - generic [ref=e688]: calendar
+                    - button [ref=e1643] [cursor=pointer]:
+                      - generic [ref=e694]: date picker
+                    - button [ref=e1644] [cursor=pointer]:
+                      - generic [ref=e699]: date range picker
+                    - button [ref=e1645] [cursor=pointer]:
+                      - generic [ref=e705]: date field
+                    - button [ref=e1646] [cursor=pointer]:
+                      - generic [ref=e710]: time field
+                    - button [ref=e1647] [cursor=pointer]:
+                      - generic [ref=e715]: range calendar
+                  - generic [ref=e716]:
+                    - generic [ref=e717]:
+                      - text: Overlays
+                      - generic [ref=e718]: "4"
+                    - button [ref=e1648]
+                  - list [ref=e724]:
+                    - button [ref=e1649] [cursor=pointer]:
+                      - generic [ref=e729]: dialog
+                    - button [ref=e1650] [cursor=pointer]:
+                      - generic [ref=e734]: modal
+                    - button [ref=e1651] [cursor=pointer]:
+                      - generic [ref=e739]: popover
+                    - button [ref=e1652] [cursor=pointer]:
+                      - generic [ref=e744]: tooltip
+              - separator [ref=e1653]
+              - separator [ref=e1654]
+            - generic [ref=e793]:
+              - button [ref=e1655]
+              - generic [ref=e797]:
+                - generic [ref=e798]:
+                  - heading [level=3] [ref=e1656]:
+                    - generic [ref=e1657]: Text
+                  - generic [ref=e806]:
+                    - button [ref=e1658] [cursor=pointer]
+                    - button [ref=e1659] [cursor=pointer]
+                    - button [ref=e1660] [cursor=pointer]
+                - generic [ref=e817]:
+                  - tablist [ref=e1661]:
+                    - tab [ref=e1662] [cursor=pointer]
+                    - tab [selected] [ref=e1664] [cursor=pointer]:
+                      - generic [ref=e1665]: Style
+                    - tab [ref=e1666] [cursor=pointer]
+                    - tab [ref=e1668] [cursor=pointer]
+                    - tab [ref=e1670] [cursor=pointer]
+                  - tabpanel "Style" [ref=e1432]:
+                    - generic [ref=e1433]:
+                      - generic [ref=e1434]:
+                        - generic [ref=e1435]: Appearance
+                        - button [ref=e1672]
+                      - generic [ref=e1440]:
+                        - generic [ref=e1441]:
+                          - group [ref=e1673]:
+                            - generic [ref=e1443]: Background
+                            - button [ref=e1674] [cursor=pointer]
+                          - button [ref=e1676] [cursor=pointer]
+                        - generic [ref=e1450]:
+                          - group [ref=e1677]:
+                            - generic [ref=e1452]: Color
+                            - button [ref=e1678] [cursor=pointer]
+                          - group [ref=e1680]:
+                            - generic [ref=e1456]: Border Width
+                            - generic [ref=e1465]:
+                              - combobox [ref=e1681]: "0"
+                              - button [ref=e1682]
+                          - group "Border Radius" [ref=e1470]:
+                            - generic [ref=e1478]:
+                              - combobox "Border Radius" [expanded] [active] [ref=e1479]: "0"
+                              - button [expanded] [ref=e1683]
+                          - group [ref=e1684]:
+                            - generic [ref=e1484]: Border Style
+                            - generic [ref=e1486]:
+                              - button [ref=e1685]:
+                                - generic [ref=e1491]: solid
+                              - combobox [ref=e1497]
+                          - button [ref=e1686] [cursor=pointer]
+                        - generic [ref=e1505]:
+                          - group [ref=e1687]:
+                            - generic [ref=e1507]: Box Shadow
+                            - generic [ref=e1509]:
+                              - button [ref=e1688]:
+                                - generic [ref=e1515]: none
+                              - combobox [ref=e1521]
+                          - group [ref=e1689]:
+                            - generic [ref=e1523]: inset
+                            - button [disabled]
+                        - group [ref=e1690]:
+                          - generic [ref=e1526]: Overflow
+                          - generic [ref=e1528]:
+                            - button [ref=e1691]:
+                              - generic [ref=e1537]: Visible
+                            - combobox [ref=e1543]
+              - separator [ref=e1692]
+              - separator [ref=e1693]
+  - generic [ref=e1695]:
+    - listbox "Suggestions Border Radius Preset" [ref=e1696]:
+      - option "Reset" [selected] [ref=e1697] [cursor=pointer]
+      - option "XS" [ref=e1698] [cursor=pointer]
+      - option "S" [ref=e1699] [cursor=pointer]
+      - option "M" [ref=e1700] [cursor=pointer]
+      - option "L" [ref=e1701] [cursor=pointer]
+      - option "XL" [ref=e1702] [cursor=pointer]
+    - button "Dismiss" [ref=e1704]

@@ -1,0 +1,280 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e896]:
+    - log [ref=f2e897]:
+      - generic [ref=f2e1064]: XS
+      - generic [ref=f2e1065]: XS, selected
+    - log
+  - generic [ref=f2e4]:
+    - main [ref=f2e6]:
+      - toolbar "Selection actions" [ref=f2e1066]:
+        - button "More actions" [ref=f2e1067]
+        - button "Action bar options" [ref=f2e1068]
+    - generic "Panel workspace":
+      - generic:
+        - banner [ref=f2e29]:
+          - generic [ref=f2e30]:
+            - button "Menu" [ref=f2e1069] [cursor=pointer]
+            - img "composition logo" [ref=f2e1070]
+            - generic [ref=f2e35]: Style preset check
+          - group "Viewport controls" [ref=f2e1071]:
+            - radiogroup "Viewport size" [ref=f2e1072]:
+              - radio "Desktop" [checked] [ref=f2e1073] [cursor=pointer]
+              - radio "Tablet" [ref=f2e1074] [cursor=pointer]
+              - radio "Mobile" [ref=f2e1075] [cursor=pointer]
+            - generic [ref=f2e52] [cursor=pointer]:
+              - textbox "Zoom level" [ref=f2e1076]: 100%
+              - button "Zoom menu" [ref=f2e1077]
+          - generic [ref=f2e57]:
+            - toolbar "View options" [ref=f2e1078]:
+              - button "Compare Mode (Preview + Skia)" [ref=f2e1079] [cursor=pointer]
+            - button "Preview" [ref=f2e1080] [cursor=pointer]
+        - generic:
+          - toolbar "Left panel controls" [ref=f2e1081]:
+            - button "Navigator" [ref=f2e1082] [cursor=pointer]
+            - button "Components" [pressed] [ref=f2e1083] [cursor=pointer]
+            - button "DataTable" [ref=f2e1084] [cursor=pointer]
+            - button "DataTable Editor" [ref=f2e1085] [cursor=pointer]
+            - button "Theme" [ref=f2e1086] [cursor=pointer]
+          - toolbar "Right panel controls" [ref=f2e1087]:
+            - button "AI" [ref=f2e1088] [cursor=pointer]
+            - button "Properties" [ref=f2e1089] [cursor=pointer]
+            - button "Styles" [pressed] [ref=f2e1090] [cursor=pointer]
+            - button "Interactions" [ref=f2e1091] [cursor=pointer]
+            - button "History" [ref=f2e1092] [cursor=pointer]
+          - generic:
+            - generic [ref=f2e127]:
+              - button "Move Components panel" [ref=f2e1093]
+              - generic [ref=f2e131]:
+                - generic [ref=f2e132]:
+                  - heading "Components" [level=3] [ref=f2e1094]
+                  - generic [ref=f2e139]:
+                    - button [ref=f2e140] [cursor=pointer]
+                    - button "Close" [ref=f2e1096] [cursor=pointer]
+                - searchbox "Search components" [ref=f2e1097]
+                - generic [ref=f2e154]:
+                  - generic [ref=f2e155]:
+                    - generic [ref=f2e156]:
+                      - generic [ref=f2e157]:
+                        - text: Recently Used
+                        - generic [ref=f2e158]: "1"
+                      - button "Clear Recent History" [ref=f2e1098]
+                    - list [ref=f2e165]:
+                      - button "1 text" [ref=f2e1099] [cursor=pointer]:
+                        - generic [ref=f2e169]: "1"
+                        - generic [ref=f2e170]: text
+                  - generic [ref=f2e171]:
+                    - generic [ref=f2e172]:
+                      - generic [ref=f2e173]:
+                        - text: Content
+                        - generic [ref=f2e174]: "13"
+                      - button "Collapse section" [ref=f2e1100]
+                    - list [ref=f2e180]:
+                      - button "text" [ref=f2e1101] [cursor=pointer]
+                      - button "icon" [ref=f2e1102] [cursor=pointer]
+                      - button "separator" [ref=f2e1103] [cursor=pointer]
+                      - button "badge" [ref=f2e1104] [cursor=pointer]
+                      - button "progress bar" [ref=f2e1105] [cursor=pointer]
+                      - button "skeleton" [ref=f2e1106] [cursor=pointer]
+                      - button "avatar" [ref=f2e1107] [cursor=pointer]
+                      - button "avatar group" [ref=f2e1108] [cursor=pointer]
+                      - button "status light" [ref=f2e1109] [cursor=pointer]
+                      - button "inline alert" [ref=f2e1110] [cursor=pointer]
+                      - button "progress circle" [ref=f2e1111] [cursor=pointer]
+                      - button "image" [ref=f2e1112] [cursor=pointer]
+                      - button "illustrated message" [ref=f2e1113] [cursor=pointer]
+                  - generic [ref=f2e267]:
+                    - generic [ref=f2e268]:
+                      - generic [ref=f2e269]:
+                        - text: Layout
+                        - generic [ref=f2e270]: "10"
+                      - button "Collapse section" [ref=f2e1114]
+                    - list [ref=f2e276]:
+                      - button "card" [ref=f2e1115] [cursor=pointer]
+                      - button "frame" [ref=f2e1116] [cursor=pointer]
+                      - button "tabs" [ref=f2e1117] [cursor=pointer]
+                      - button "breadcrumbs" [ref=f2e1118] [cursor=pointer]
+                      - button "link" [ref=f2e1119] [cursor=pointer]
+                      - button "navigation" [ref=f2e1120] [cursor=pointer]
+                      - button "pagination" [ref=f2e1121] [cursor=pointer]
+                      - button "disclosure group" [ref=f2e1122] [cursor=pointer]
+                      - button "disclosure" [ref=f2e1123] [cursor=pointer]
+                      - button "card view" [ref=f2e1124] [cursor=pointer]
+                  - generic:
+                    - generic [ref=f2e333]:
+                      - generic [ref=f2e334]:
+                        - text: Buttons
+                        - generic [ref=f2e335]: "7"
+                      - button "Collapse section" [ref=f2e1125]
+                    - list [ref=f2e341]:
+                      - button "button" [ref=f2e1126] [cursor=pointer]
+                      - button "icon button" [ref=f2e1127] [cursor=pointer]
+                      - button "toggle button" [ref=f2e1128] [cursor=pointer]
+                      - button "toggle button group" [ref=f2e1129] [cursor=pointer]
+                      - button "toolbar" [ref=f2e1130] [cursor=pointer]
+                      - button "button group" [ref=f2e1131] [cursor=pointer]
+                      - button "menu" [ref=f2e1132] [cursor=pointer]
+                  - generic:
+                    - generic [ref=f2e389]:
+                      - generic [ref=f2e390]:
+                        - text: Forms
+                        - generic [ref=f2e391]: "17"
+                      - button "Collapse section" [ref=f2e1133]
+                    - list [ref=f2e397]:
+                      - button "text field" [ref=f2e1134] [cursor=pointer]
+                      - button "text area" [ref=f2e1135] [cursor=pointer]
+                      - button "number field" [ref=f2e1136] [cursor=pointer]
+                      - button "search field" [ref=f2e1137] [cursor=pointer]
+                      - button "color field" [ref=f2e1138] [cursor=pointer]
+                      - button "checkbox" [ref=f2e1139] [cursor=pointer]
+                      - button "checkbox group" [ref=f2e1140] [cursor=pointer]
+                      - button "radio group" [ref=f2e1141] [cursor=pointer]
+                      - button "select" [ref=f2e1142] [cursor=pointer]
+                      - button "combo box" [ref=f2e1143] [cursor=pointer]
+                      - button "switch" [ref=f2e1144] [cursor=pointer]
+                      - button "slider" [ref=f2e1145] [cursor=pointer]
+                      - button "meter" [ref=f2e1146] [cursor=pointer]
+                      - button "color picker" [ref=f2e1147] [cursor=pointer]
+                      - button "drop zone" [ref=f2e1148] [cursor=pointer]
+                      - button "file trigger" [ref=f2e1149] [cursor=pointer]
+                      - button "form" [ref=f2e1150] [cursor=pointer]
+                  - generic:
+                    - generic [ref=f2e511]:
+                      - generic [ref=f2e512]:
+                        - text: Collections
+                        - generic [ref=f2e513]: "7"
+                      - button "Collapse section" [ref=f2e1151]
+                    - list [ref=f2e519]:
+                      - button "table" [ref=f2e1152] [cursor=pointer]
+                      - button "list box" [ref=f2e1153] [cursor=pointer]
+                      - button "grid list" [ref=f2e1154] [cursor=pointer]
+                      - button "tree" [ref=f2e1155] [cursor=pointer]
+                      - button "tag group" [ref=f2e1156] [cursor=pointer]
+                      - button "section" [ref=f2e1157] [cursor=pointer]
+                      - button "table view" [ref=f2e1158] [cursor=pointer]
+                  - generic:
+                    - generic [ref=f2e556]:
+                      - generic [ref=f2e557]:
+                        - text: Date & Time
+                        - generic [ref=f2e558]: "6"
+                      - button "Collapse section" [ref=f2e1159]
+                    - list [ref=f2e564]:
+                      - button "calendar" [ref=f2e1160] [cursor=pointer]
+                      - button "date picker" [ref=f2e1161] [cursor=pointer]
+                      - button "date range picker" [ref=f2e1162] [cursor=pointer]
+                      - button "date field" [ref=f2e1163] [cursor=pointer]
+                      - button "time field" [ref=f2e1164] [cursor=pointer]
+                      - button "range calendar" [ref=f2e1165] [cursor=pointer]
+                  - generic:
+                    - generic [ref=f2e597]:
+                      - generic [ref=f2e598]:
+                        - text: Overlays
+                        - generic [ref=f2e599]: "4"
+                      - button "Collapse section" [ref=f2e1166]
+                    - list [ref=f2e605]:
+                      - button "dialog" [ref=f2e1167] [cursor=pointer]
+                      - button "modal" [ref=f2e1168] [cursor=pointer]
+                      - button "popover" [ref=f2e1169] [cursor=pointer]
+                      - button "tooltip" [ref=f2e1170] [cursor=pointer]
+              - separator "Resize Components panel right" [ref=f2e1171]
+              - separator "Resize Components panel bottom" [ref=f2e1172]
+            - generic [ref=f2e628]:
+              - button "Move Styles panel" [ref=f2e1173]
+              - generic [ref=f2e632]:
+                - generic [ref=f2e633]:
+                  - heading "body" [level=3] [ref=f2e1174]
+                  - generic [ref=f2e641]:
+                    - button "Copy styles" [ref=f2e1176] [cursor=pointer]
+                    - button "Paste styles" [ref=f2e1177] [cursor=pointer]
+                    - button "Close" [ref=f2e1178] [cursor=pointer]
+                - generic [ref=f2e656]:
+                  - tablist "Style view" [ref=f2e1179]:
+                    - tab "Layout" [selected] [ref=f2e1180] [cursor=pointer]:
+                      - generic "Layout — Transform · Layout" [ref=f2e1181]: Layout
+                    - tab "Style" [ref=f2e1182] [cursor=pointer]:
+                      - generic "Style — Appearance" [ref=f2e1183]
+                    - tab "Text" [ref=f2e1184] [cursor=pointer]:
+                      - generic "Text — Typography" [ref=f2e1185]
+                    - tab "Screen" [ref=f2e1186] [cursor=pointer]:
+                      - generic "Screen — Responsive · Visibility" [ref=f2e1187]
+                    - tab "Modified (3)" [ref=f2e1188] [cursor=pointer]:
+                      - generic "Modified — Properties different from defaults 3 modified" [ref=f2e1189]
+                  - tabpanel "Layout" [ref=f2e686]:
+                    - generic [ref=f2e687]:
+                      - generic [ref=f2e688]:
+                        - generic [ref=f2e689]: Transform
+                        - button "Collapse section" [ref=f2e1190]
+                      - generic [ref=f2e694]:
+                        - generic [ref=f2e695]:
+                          - group "Width" [ref=f2e1191]:
+                            - generic [ref=f2e703]:
+                              - combobox "Width" [ref=f2e1192]: "1920"
+                              - button "Show suggestions" [ref=f2e1193]
+                          - group "Height" [ref=f2e1194]:
+                            - generic [ref=f2e715]:
+                              - combobox "Height" [ref=f2e1195]: "1080"
+                              - button "Show suggestions" [ref=f2e1196]
+                          - button "Toggle constraints" [ref=f2e1197] [cursor=pointer]
+                        - generic [ref=f2e726]:
+                          - group "X" [ref=f2e1198]:
+                            - generic [ref=f2e734]:
+                              - combobox "X" [ref=f2e1199]: "317"
+                              - button "Show suggestions" [ref=f2e1200]
+                          - group "Y" [ref=f2e1201]:
+                            - generic [ref=f2e746]:
+                              - combobox "Y" [ref=f2e1202]: "1160"
+                              - button "Show suggestions" [ref=f2e1203]
+                    - generic [ref=f2e751]:
+                      - generic [ref=f2e752]:
+                        - generic [ref=f2e753]: Layout
+                        - generic [ref=f2e754]:
+                          - button "Reset section" [ref=f2e1204]
+                          - button "Collapse section" [ref=f2e1208]
+                      - generic [ref=f2e758]:
+                        - generic [ref=f2e759]:
+                          - generic [ref=f2e760]:
+                            - generic [ref=f2e761]: Direction
+                            - radiogroup "Flex direction" [ref=f2e1209]:
+                              - radio [checked] [ref=f2e763] [cursor=pointer]
+                              - radio [ref=f2e767] [cursor=pointer]
+                              - radio [ref=f2e772] [cursor=pointer]
+                          - generic [ref=f2e777]:
+                            - generic [ref=f2e778]: Alignment
+                            - radiogroup "Flex alignment" [ref=f2e1210]:
+                              - radio [ref=f2e780] [cursor=pointer]
+                              - radio [ref=f2e783] [cursor=pointer]
+                              - radio [ref=f2e786] [cursor=pointer]
+                              - radio [ref=f2e789] [cursor=pointer]
+                              - radio [ref=f2e792] [cursor=pointer]
+                              - radio [ref=f2e795] [cursor=pointer]
+                              - radio [ref=f2e798] [cursor=pointer]
+                              - radio [ref=f2e801] [cursor=pointer]
+                              - radio [ref=f2e804] [cursor=pointer]
+                          - button "Layout grid" [ref=f2e1211] [cursor=pointer]
+                          - generic [ref=f2e815]:
+                            - generic [ref=f2e816]: Space
+                            - radiogroup "Justify content alignment" [ref=f2e1212]:
+                              - radio [ref=f2e818] [cursor=pointer]
+                              - radio [ref=f2e822] [cursor=pointer]
+                              - radio [ref=f2e827] [cursor=pointer]
+                          - generic [ref=f2e831]:
+                            - generic [ref=f2e832]: Wrap
+                            - radiogroup "Flex wrap" [ref=f2e1213]:
+                              - radio [ref=f2e834] [cursor=pointer]
+                              - radio [ref=f2e839] [cursor=pointer]
+                              - radio [checked] [ref=f2e844] [cursor=pointer]
+                          - group "Gap" [ref=f2e848]:
+                            - generic [ref=f2e856]:
+                              - combobox "Gap" [active] [ref=f2e857]: "4"
+                              - button "Gap Preset" [ref=f2e1214]
+                        - generic [ref=f2e861]:
+                          - group "Padding" [ref=f2e1215]:
+                            - generic [ref=f2e870]:
+                              - combobox "Padding" [ref=f2e1216]: "0"
+                              - button "Padding Preset" [ref=f2e1217]
+                          - group "Margin" [ref=f2e1218]:
+                            - generic [ref=f2e881]:
+                              - combobox "Margin" [ref=f2e1219]: "0"
+                              - button "Margin Preset" [ref=f2e1220]
+                          - button "Expand spacing to 4-way input" [ref=f2e1221] [cursor=pointer]
+              - separator "Resize Styles panel left" [ref=f2e1222]
+              - separator "Resize Styles panel bottom" [ref=f2e1223]
