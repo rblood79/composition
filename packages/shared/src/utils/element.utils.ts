@@ -7,6 +7,7 @@
  */
 
 import type { Element } from "../types/element.types";
+import { resolveTextSourceText } from "@composition/specs";
 
 // ============================================
 // ID Generation
@@ -129,8 +130,11 @@ export function extractStyle(element: Element): React.CSSProperties {
  * 요소의 텍스트 콘텐츠 추출
  */
 export function extractTextContent(element: Element): string {
-  const props = element.props as Record<string, unknown>;
-  return String(props?.children || props?.text || props?.label || "");
+  // ADR-923 r15m1 — 타입별 텍스트 원천 계약 (Preview · Skia · 레이아웃 단일 지점) 에 위임.
+  return resolveTextSourceText(
+    element.type,
+    element.props as Record<string, unknown> | undefined,
+  );
 }
 
 // ============================================

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import type { CanvasLayoutNode } from "../../layoutNode";
 import {
+  calculateContentWidth,
   resolveTextLeafContent,
   resolveTextLeafWhiteSpace,
   textLeafRendersContent,
@@ -113,5 +115,41 @@ describe("ADR-923 r11h1 — textLeafRendersContent (white-space 처리 후 내�
     expect(textLeafRendersContent(" ", " PRE ")).toBe(true);
     expect(textLeafRendersContent(" ", "pre-wrap")).toBe(true);
     expect(textLeafRendersContent(" ", "break-spaces")).toBe(true);
+  });
+});
+
+/**
+ * ADR-923 r15m1 — 레이아웃의 텍스트 원천은 타입별 계약 (`@composition/specs` `resolveTextSourceText`,
+ * Preview · Skia 와 같은 단일 지점). AI `create_element`/`update_element` 의 열린 props 가 만드는
+ * 조합에서 텍스트 leaf 가 아닌 기본 군 (Button/Column/TreeItem/Div) 도 `label`/`title` 폭을 싣지
+ * 않는다 — round 14 까지 `extractTextContent` 만의 순서 `label → text → children → title …` 이었다.
+ */
+describe("ADR-923 r15m1 — 기본 군 (비-텍스트 leaf) 의 원천도 타입별 계약", () => {
+  const measure = (type: string, props: Record<string, unknown>) =>
+    calculateContentWidth({
+      id: `w-${type}`,
+      type,
+      props: { ...props, style: { fontSize: "16px" } },
+    } as unknown as CanvasLayoutNode);
+  it("Button/Column/TreeItem/Div: AI label·title 장문이 있어도 children 폭", () => {
+    const long = "AI wrote a long label into an open props object";
+    for (const type of ["Button", "Column", "TreeItem", "Div"]) {
+      const base = measure(type, { children: "Y" });
+      expect(base).toBeGreaterThan(0);
+      expect(measure(type, { children: "Y", label: long })).toBe(base);
+      expect(measure(type, { children: "Y", title: long })).toBe(base);
+    }
+  });
+  it("ListBoxItem: label 이 children 을 이긴다 (collection 데이터 SSOT — Preview `label || children`)", () => {
+    const labelOnly = measure("ListBoxItem", { label: "Aardvark" });
+    expect(labelOnly).toBeGreaterThan(0);
+    expect(measure("ListBoxItem", { label: "Aardvark", children: "Y" })).toBe(
+      labelOnly,
+    );
+  });
+  it("Text: AI create_element 저장 형태 `{children: 'Text', label: 'AI Label'}` 은 children", () => {
+    expect(
+      resolveTextLeafContent({ children: "Text", label: "AI Label" }),
+    ).toBe("Text");
   });
 });

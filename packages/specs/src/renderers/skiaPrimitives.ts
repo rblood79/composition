@@ -36,6 +36,7 @@ import {
 } from "./datePickerShapes";
 import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
+import { resolveTextSourceText } from "./utils/textSource";
 import { resolveIllustratedMessageMetric } from "./utils/illustratedMessageMetrics";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import type { CatalogResolvedPaint } from "./catalogPaint";
@@ -274,9 +275,10 @@ const breadcrumbCrumb: SkiaPrimitiveDrawFn = ({
   style,
 }) => {
   const ff = (style?.fontFamily as string) || fontFamily.sans;
-  const text = String(
-    props.children ?? props.label ?? props.title ?? "",
-  ).trim();
+  // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (Breadcrumb 은 기본 군 `children`; Preview
+  //   renderBreadcrumbs 도 children 만 그린다). 종전 `children ?? label ?? title` 은 이 primitive 만의
+  //   순서였다.
+  const text = resolveTextSourceText("Breadcrumb", props).trim();
   const isLast = props._isLast === true;
   const separator = String(props._separator ?? "›");
   const fontSize = resolveSpecFontSize(

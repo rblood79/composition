@@ -1,5 +1,5 @@
 import React from "react";
-import { TAILWIND_PALETTE } from "@composition/specs";
+import { resolveTextSourceText, TAILWIND_PALETTE } from "@composition/specs";
 import {
   Form,
   TextField,
@@ -534,9 +534,9 @@ export const renderLabel = (
 
   const content = (
     <>
-      {typeof element.props.children === "string"
-        ? element.props.children
-        : null}
+      {/* ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (Skia · 레이아웃과 같은 단일 지점): Label 은
+          텍스트 leaf 군 `children → text`. */}
+      {resolveTextSourceText("Label", element.props) || null}
       {children.map((child) => renderElement(child, child.id))}
     </>
   );
@@ -584,13 +584,9 @@ export const renderDescription = (
       style={element.props.style}
       className={element.props.className}
     >
-      {/* ADR-923 r13m2 — 원천 SSOT 는 binding content(children); legacy `text` 는 후순위 fallback
-          (Card 안 Description 렌더 LayoutRenderers 와 같은 순서). */}
-      {typeof element.props.children === "string"
-        ? element.props.children
-        : typeof element.props.text === "string"
-          ? element.props.text
-          : null}
+      {/* ADR-923 r13m2 — 원천 SSOT 는 binding content(children); legacy `text` 는 후순위 fallback.
+          r15m1 — 순서는 타입별 계약 단일 지점 (`children → text`, Skia · 레이아웃과 동일). */}
+      {resolveTextSourceText("Description", element.props) || null}
       {children.map((child) => renderElement(child, child.id))}
     </Description>
   );
@@ -615,7 +611,9 @@ export const renderFieldError = (
       style={element.props.style}
       className={element.props.className}
     >
-      {typeof element.props.text === "string" ? element.props.text : null}
+      {/* ADR-923 r15m1 — 종전 `text` 만 읽어 inspector 가 쓰는 `children` (binding accepts) 을
+          Preview 만 무시했다. 타입별 계약 `children → text` (Skia · 레이아웃과 동일). */}
+      {resolveTextSourceText("FieldError", element.props) || null}
       {children.map((child) => renderElement(child, child.id))}
     </FieldError>
   );

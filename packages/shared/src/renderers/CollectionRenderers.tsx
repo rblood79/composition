@@ -31,7 +31,11 @@ import type {
   RuntimeMenuItem,
   StoredTagItem,
 } from "@composition/specs";
-import { isMenuSectionEntry, isMenuSeparatorEntry } from "@composition/specs";
+import {
+  resolveTextSourceText,
+  isMenuSectionEntry,
+  isMenuSeparatorEntry,
+} from "@composition/specs";
 import { getSelectedChildIds } from "./selection";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
 // ADR-148 Phase 4 — MenuItem slot 구성 소비 (origin slot 자식의 존재 gating / 스타일 overlay).
@@ -92,13 +96,11 @@ export const renderTree = (
         (child) => child.type !== "TreeItem",
       );
 
-      const displayTitle = String(
-        item.props.title ||
-          item.props.label ||
-          item.props.value ||
-          item.props.children ||
-          `Item ${item.id}`,
-      );
+      // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (TreeItem 은 기본 군 `children`; factory 가 쓰는
+      //   키). 종전 `title || label || value || children` 은 production writer 가 없는 키를 Preview
+      //   만 읽어 Skia (`children`) 와 갈렸다.
+      const displayTitle =
+        resolveTextSourceText("TreeItem", item.props) || `Item ${item.id}`;
 
       const hasChildren = childTreeItems.length > 0;
 
@@ -200,13 +202,9 @@ export const renderTreeItem = (
     (child) => child.type !== "TreeItem",
   );
 
-  const displayTitle = String(
-    element.props.title ||
-      element.props.label ||
-      element.props.value ||
-      element.props.children ||
-      `Item ${element.id}`,
-  );
+  // ADR-923 r15m1 — 타입별 계약 (TreeItem `children`) — 위 renderTree 의 재귀 경로와 동일.
+  const displayTitle =
+    resolveTextSourceText("TreeItem", element.props) || `Item ${element.id}`;
 
   const hasChildren = childTreeItems.length > 0;
 
@@ -824,7 +822,8 @@ export const renderMenu = (
   const commonProps = {
     id: element.customId,
     "data-element-id": element.id,
-    label: String(element.props.label || element.props.children || "Menu"),
+    // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (Menu 는 `label → children`; factory 가 둘 다 쓴다).
+    label: resolveTextSourceText("Menu", element.props) || "Menu",
     variant: (element.props.variant as string) || "primary",
     size: (element.props.size as "xs" | "sm" | "md" | "lg" | "xl") || "md",
     style: element.props.style,

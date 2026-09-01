@@ -790,7 +790,8 @@ const koKR: TranslationKeys = {
       "캔버스에 새 요소를 생성합니다. 버튼, 입력 필드, 테이블 등 다양한 UI 컴포넌트를 만들 수 있습니다.",
     createType: "생성할 컴포넌트 타입",
     parentId: "부모 요소 ID. 없으면 선택된 요소 또는 body에 추가.",
-    props: "컴포넌트 속성 (children, variant, placeholder, label 등)",
+    props:
+      "컴포넌트 속성 — 표시 텍스트는 children 에 (ListBoxItem·GridListItem·Menu 만 label, 입력 필드는 placeholder); 그 외 variant, size, isDisabled 등",
     styles:
       "CSS 인라인 스타일 (padding, fontSize, width, height 등). camelCase 사용. Fill V2 배경은 fills를 우선 사용.",
     fills:
@@ -801,7 +802,8 @@ const koKR: TranslationKeys = {
     reusable:
       "이 노드를 재사용 가능한 원본으로 표시. frame 에 켜면 페이지 요소 목록에서 빠지고 layout 정의가 된다 — 페이지에 보이는 컨테이너를 만들 때는 켜지 말 것.",
     updateElement: "기존 요소의 속성이나 스타일을 수정합니다.",
-    updateProps: "변경할 컴포넌트 속성",
+    updateProps:
+      "변경할 컴포넌트 속성 — 표시 텍스트는 children 에 (ListBoxItem·GridListItem·Menu 만 label, 입력 필드는 placeholder)",
     updateStyles:
       "변경할 CSS 인라인 스타일. camelCase 사용. Fill V2 배경은 fills를 우선 사용.",
     updateFills: "교체할 배경 Fill 레이어 배열.",
@@ -2213,7 +2215,8 @@ const enUS: TranslationKeys = {
     createType: "The component type to create",
     parentId:
       "Parent element ID. Without it the element goes under the selection, or body.",
-    props: "Component props (children, variant, placeholder, label and so on)",
+    props:
+      "Component props — visible text goes in children (label only for ListBoxItem/GridListItem/Menu, placeholder for input fields); others such as variant, size, isDisabled",
     styles:
       "Inline CSS styles (padding, fontSize, width, height and so on) in camelCase. For Fill V2 backgrounds prefer fills.",
     fills:
@@ -2224,7 +2227,8 @@ const enUS: TranslationKeys = {
     reusable:
       "Marks this node as a reuse origin. On a frame it drops out of the page element list and becomes a layout definition — leave it off for containers meant to be visible.",
     updateElement: "Updates the props or styles of an existing element.",
-    updateProps: "The component props to change",
+    updateProps:
+      "The component props to change — visible text goes in children (label only for ListBoxItem/GridListItem/Menu, placeholder for input fields)",
     updateStyles:
       "The inline CSS styles to change, in camelCase. For Fill V2 backgrounds prefer fills.",
     updateFills: "The array of background fill layers to replace.",

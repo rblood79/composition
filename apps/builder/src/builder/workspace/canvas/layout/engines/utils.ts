@@ -14,6 +14,7 @@
 import type { Margin, BoxModel, VerticalAlign } from "./types";
 import type { CanvasLayoutNode } from "../layoutNode";
 import {
+  resolveTextSourceText,
   fontFamily as specFontFamily,
   // ADR-912 단계5 step4 (2026-06-17): InputSpec import 제거 — input height 분기를
   //   resolveSkiaRule("Input").sizes read-through 로 이관(spec 삭제 선행, Breadcrumbs/Menu 동형).
@@ -1345,58 +1346,17 @@ export function measureTextWidth(
 }
 
 /**
- * 텍스트 콘텐츠 추출
- *
- * 다양한 prop에서 텍스트 문자열 추출
- * 우선순위: label > text > children > title > placeholder > value
+ * 텍스트 콘텐츠 추출 — ADR-923 r15m1: 타입별 텍스트 원천 계약 (`@composition/specs`
+ * `resolveTextSourceText`, Preview · Skia 와 같은 단일 지점) 에 위임한다. 종전 이 함수만의 순서
+ * `label > text > children > title > placeholder > value` 는 Preview 가 그리지 않는 `label`
+ * (Button/Column 등 기본 군) 과 `title`/`value` 의 폭을 실었다 — AI 의 열린 props 가 그 차이에
+ * 도달했다 (Button `{children: "Button", label: "긴 AI label"}` → 레이아웃만 label 폭).
  */
 function extractTextContent(
+  type: string,
   props: Record<string, unknown> | undefined,
 ): string {
-  if (!props) return "";
-
-  // 우선순위에 따라 텍스트 소스 확인
-  const textSources = [
-    props.label,
-    props.text,
-    props.children,
-    props.title,
-    props.placeholder,
-    props.value,
-  ];
-
-  for (const source of textSources) {
-    const text = extractFromValue(source);
-    if (text) return text;
-  }
-
-  return "";
-}
-
-/**
- * 단일 값에서 텍스트 추출
- */
-function extractFromValue(value: unknown): string {
-  if (value === undefined || value === null) return "";
-
-  // 문자열
-  if (typeof value === "string") return value;
-
-  // 숫자
-  if (typeof value === "number") return String(value);
-
-  // 배열 (복수 children)
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => {
-        if (typeof item === "string") return item;
-        if (typeof item === "number") return String(item);
-        return "";
-      })
-      .join("");
-  }
-
-  return "";
+  return resolveTextSourceText(type, props);
 }
 
 /** BUTTON_SIZE_CONFIG 경로를 사용하는 태그 (calculateContentWidth/Height 공통) */
@@ -1929,7 +1889,7 @@ export function calculateContentWidth(
   if (type === "button" || type === "submitbutton" || type === "fancybutton") {
     const btnProps = element.props as Record<string, unknown> | undefined;
     const iconName = btnProps?.iconName as string | undefined;
-    const btnText = extractTextContent(btnProps ?? {});
+    const btnText = extractTextContent(type, btnProps);
     if (iconName && !btnText) {
       const defaultSize = DEFAULT_SIZE_BY_TAG[type] ?? "md";
       const size = (btnProps?.size as string) ?? defaultSize;
@@ -1949,9 +1909,11 @@ export function calculateContentWidth(
   // childElements가 없는 legacy Checkbox/Radio/Switch 요소의 fallback 경로
   // ADR-923 r13m2 — 텍스트 leaf 는 원천 SSOT (children) 로. extractTextContent 의 label 우선은
   //   Preview 가 그리지 않는 label 폭을 실었다 (Chrome box.x 10 / 211).
-  const text = TEXT_LEAF_TAGS.has(type)
-    ? resolveTextLeafContent(element.props as Record<string, unknown>)
-    : extractTextContent(element.props as Record<string, unknown>);
+  // r15m1 — 타입별 계약 단일 지점으로 통합 (텍스트 leaf 분기는 계약 안의 군 판정).
+  const text = extractTextContent(
+    type,
+    element.props as Record<string, unknown>,
+  );
 
   const indicatorConfig = PHANTOM_INDICATOR_CONFIGS[type];
   if (indicatorConfig) {
@@ -4181,11 +4143,11 @@ export function calculateContentHeight(
   //   (TabPanel/CardFooter 빈 컨테이너 +24, 2026-07-14 sweep).
   {
     const props8 = element.props as Record<string, unknown> | undefined;
-    // r13m2 — 텍스트 leaf 는 원천 SSOT (children); 그 외 leaf 는 종전 체인 유지.
-    const text8 = TEXT_LEAF_TAGS.has(type)
-      ? resolveTextLeafContent(props8)
-      : (props8?.children ?? props8?.text ?? props8?.label);
-    const hasText8 = text8 != null && String(text8) !== "";
+    // r13m2 — 텍스트 leaf 는 원천 SSOT (children); r15m1 — 그 외 leaf 도 같은 타입별 계약
+    //   (종전 `children ?? text ?? label` 은 이 지점만의 순서였고 `??` 라 `children: ""` 이
+    //   폴백을 막았다).
+    const text8 = resolveTextSourceText(type, props8);
+    const hasText8 = text8 !== "";
     const hasKids8 =
       (childElements?.length ?? 0) > 0 ||
       (getChildElements?.(element.id)?.length ?? 0) > 0;
@@ -4290,7 +4252,7 @@ export function parseBoxModel(
       const isIconOnlyButton =
         isFormElement &&
         !!(props?.iconName as string) &&
-        !extractTextContent(props ?? {});
+        !extractTextContent(type, props);
       const effectivePaddingLeft = isIconOnlyButton
         ? sizeConfig.paddingY
         : sizeConfig.paddingLeft;
@@ -4570,30 +4532,31 @@ export function resolveTextLeafWhiteSpace(
 }
 
 /**
- * ADR-923 P3 r12l3·r13m2·r14m2 — 텍스트 leaf (TEXT_LEAF_TAGS) 의 내용 원천 **SSOT** =
- * **writer 인벤토리** 기준 `children` → `text` (첫 비어있지 않은 값):
+ * ADR-923 P3 r12l3·r13m2·r14m2·r15m1 — 텍스트 leaf (TEXT_LEAF_TAGS) 의 내용 원천.
+ *
+ * 정본은 `@composition/specs` `renderers/utils/textSource.ts` (타입별 텍스트 원천 계약 — Preview ·
+ * Skia · 레이아웃 공용 단일 지점). 텍스트 leaf 7종은 `children → text` 군:
  * - `children`: binding content (inspector · factory · overlay 편집) — Preview generic/renderLabel 이
  *   그리는 키.
- * - `text`: **Pencil import writer** (`collectPencilProps` 가 pencil text 노드의 `text` 를 그대로 씀)
- *   — Preview renderDescription/FieldError/Card Description 과 generic 렌더 (r14m2 fallback) 가 그린다.
+ * - `text`: **Pencil import writer** (`collectPencilProps` 가 pencil text 노드의 `text` 를 canonical
+ *   Text 에 그대로 씀) + legacy 문서 — Preview renderDescription/FieldError 와 generic 렌더가 그린다.
  *   round 13 의 children-only 는 이 writer 를 놓쳐 import 문서의 텍스트를 내용 없음으로 오분류했다
  *   (Chrome b.y 60 / 40, flex 폭 w(Y) / 0).
- * - `label`/`title`: 텍스트 leaf 에 쓰는 writer 없음 (inspector surface 밖, factory 0, Pencil 은 text)
- *   + Preview 가 이 7종에서 읽지 않음 → 원천 아님. `label` 은 collection item/field 의 원천이며
- *   그쪽은 `extractTextContent` (label 우선 — Preview renderListBoxItem 등 `label || children`) 담당.
- * 순서 children → text 는 Skia `buildCatalogShapes` (`label || children || text || placeholder`) 와
- * 같다 — import 뒤 inspector 편집이 children 을 쓰면 stale `text` 보다 children 이 이겨야 한다.
- * 문자열화는 React renderable 규칙 (`extractFromValue`: string/number 그대로, 배열은
+ * - `label`/`title`: 계약 밖 — inspector/factory/Pencil 은 쓰지 않지만 **AI `create_element`/
+ *   `update_element` 는 열린 props 를 검증 없이 병합**하므로 (round 15 r15m1) "writer 0" 이 아니다.
+ *   그래서 "읽지 않는다" 는 세 표면이 같은 계약을 읽을 때만 안전하다 — round 14 까지 Skia 가
+ *   `label` 을 먼저 읽어 AI Text `{children: "Text", label: "AI Label"}` 에서 갈렸다.
+ * 순서 children → text: import 뒤 inspector 편집이 children 을 쓰면 stale `text` 보다 children 이
+ * 이겨야 한다. 문자열화는 React renderable 규칙 (`textFromValue`: string/number 그대로, 배열은
  * string/number 항목만 이어붙임, object/boolean 은 "") — 종전 `String(...)` 은 `[" ", " "]` 를
  * `" , "` 로, object 를 `"[object Object]"` 로 만들어 신호를 오염시켰다 (r12l3).
  */
 export function resolveTextLeafContent(
   props: Record<string, unknown> | undefined,
 ): string {
-  if (!props) return "";
-  const fromChildren = extractFromValue(props.children);
-  if (fromChildren !== "") return fromChildren;
-  return extractFromValue(props.text);
+  // r15m1 — 텍스트 leaf 7종은 계약의 `children → text` 군 (`textSourceOrder("text")`); 순서·문자열화
+  //   규칙은 계약 모듈이 정본이고 이 함수는 텍스트 leaf 호출부의 이름 유지용 위임이다.
+  return resolveTextSourceText("text", props);
 }
 
 export function enrichWithIntrinsicSize(
@@ -4720,12 +4683,11 @@ export function enrichWithIntrinsicSize(
     (rawWidth === "min-content" || rawWidth === "max-content")
   ) {
     const props = element.props as Record<string, unknown> | undefined;
-    // r13m2 — 텍스트 leaf 는 원천 SSOT (children); 그 외 (INLINE_BLOCK 등) 는 종전 체인 유지.
+    // r13m2 — 텍스트 leaf 는 원천 SSOT (children); r15m1 — 그 외 (INLINE_BLOCK 등) 도 같은
+    //   타입별 계약 (종전 `children ?? text ?? label ?? title` 은 이 지점만의 순서).
     const textContent = suppliesIntrinsicScalars
       ? textLeafContent
-      : String(
-          props?.children ?? props?.text ?? props?.label ?? props?.title ?? "",
-        );
+      : resolveTextSourceText(type, props);
     if (textContent) {
       const styleRecord = style as Record<string, unknown> | undefined;
       // ADR-058 Phase 1: Text가 Spec 경로로 전환되면서 5-point patch 분기 제거.

@@ -29,7 +29,11 @@ import {
 } from "../components/ColorSwatchPicker";
 import { parseColor } from "react-aria-components";
 import { Slot } from "../components/Slot";
-import { getIconData, TAILWIND_PALETTE } from "@composition/specs";
+import {
+  resolveTextSourceText,
+  getIconData,
+  TAILWIND_PALETTE,
+} from "@composition/specs";
 
 /** ColorSwatch/ColorPicker 기본값 — 팔레트 단일 원천 (ADR-191 R8). */
 const DEFAULT_SWATCH_HEX = TAILWIND_PALETTE.blue[500];
@@ -582,9 +586,13 @@ export const renderButton = (
               styleFontSize,
             )
           : null;
+        // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (Button 은 기본 군 `children`; Skia ·
+        //   레이아웃과 같은 단일 지점). 자식·아이콘 없고 children 미지정일 때의 "Button" 폴백은
+        //   종전 그대로 (children 이 빈 문자열이면 폴백 없음).
+        const buttonText = resolveTextSourceText("Button", element.props);
         const textContent =
-          typeof element.props.children === "string"
-            ? element.props.children
+          buttonText !== "" || typeof element.props.children === "string"
+            ? buttonText
             : children.length === 0 && !iconName
               ? "Button"
               : null;
@@ -1733,7 +1741,8 @@ export const renderDisclosureHeader = (
 ): React.ReactNode => {
   return (
     <span key={element.id} data-element-id={element.id}>
-      {String(element.props.children || element.props.title || "Section")}
+      {/* ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (DisclosureHeader 는 기본 군 `children`). */}
+      {resolveTextSourceText("DisclosureHeader", element.props) || "Section"}
     </span>
   );
 };

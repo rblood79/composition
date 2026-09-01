@@ -1,4 +1,5 @@
 import React from "react";
+import { resolveTextSourceText } from "@composition/specs";
 import Table, { type ColumnDefinition } from "../components/Table";
 import type {
   PreviewElement,
@@ -30,6 +31,18 @@ const columnCreationRequestedRef = React.createRef<Set<string>>();
 if (!columnCreationRequestedRef.current) {
   (columnCreationRequestedRef as React.MutableRefObject<Set<string>>).current =
     new Set();
+}
+
+/**
+ * Column 헤더 텍스트 — ADR-923 r15m1: 타입별 텍스트 원천 계약 (Column 은 기본 군 `children`; factory
+ * 와 데이터 컬럼 생성 모두 children 을 쓴다 — 데이터 경로는 label 도 같은 값으로 함께 기록) 에
+ * 위임. 종전 `children || label` 의 label 폴백은 production writer 가 없는 (AI 만 도달하는) 키라
+ * 계약에서 뺐다 — Skia 는 label 을 먼저 읽어 갈렸다.
+ */
+export function resolveColumnHeaderLabel(
+  props: Record<string, unknown> | undefined,
+): string {
+  return resolveTextSourceText("Column", props) || "Column";
 }
 
 /**
@@ -65,7 +78,7 @@ export const renderTable = (
 
     return {
       key: dataKey as string,
-      label: (col.props.children || col.props.label || "Column") as string,
+      label: resolveColumnHeaderLabel(col.props),
       elementId: col.id,
       order_num: index,
       allowsSorting: Boolean(col.props.allowsSorting ?? true),

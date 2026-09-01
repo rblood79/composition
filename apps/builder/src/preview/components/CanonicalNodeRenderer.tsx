@@ -17,6 +17,7 @@
  */
 
 import React from "react";
+import { resolveTextSourceText } from "@composition/specs";
 import * as RAC from "react-aria-components";
 import { rendererMap } from "@composition/shared/renderers";
 import { useRuntimeStore } from "../store";
@@ -923,7 +924,7 @@ export function CanonicalNodeRenderer({
             collectionAncestor={nextCollectionAncestor}
           />
         ))
-      : resolveGenericLeafText(adaptedEl.props),
+      : resolveGenericLeafText(adaptedEl.type, adaptedEl.props),
   );
 }
 
@@ -931,20 +932,19 @@ export function CanonicalNodeRenderer({
  * ADR-923 r14m2 — generic leaf 의 텍스트: `children` (binding content) 이 비어 있으면 legacy `text`
  * (Pencil import writer — `collectPencilProps` 가 pencil text 노드의 `text` 를 그대로 canonical props
  * 에 쓴다). 종전엔 children 만 그려 import 문서의 Text/Heading/Paragraph 가 Preview 에서 비어
- * 있었다 (Skia·레이아웃은 text 를 읽음 — D3 비대칭). renderDescription/Card Description 과 같은
- * children → text 순서.
+ * 있었다 (Skia·레이아웃은 text 를 읽음 — D3 비대칭).
+ *
+ * r15m1 — 순서·문자열화는 타입별 텍스트 원천 계약 (`@composition/specs` `resolveTextSourceText`,
+ * Skia · 레이아웃과 같은 단일 지점) 에 위임. AI `create_element` 가 Text 에 `label` 을 써도 세 표면이
+ * 함께 `children` 을 읽는다. 배열 children 은 계약의 문자열화 (string/number 항목 이어붙임) 로 —
+ * React 가 `["a","b"]` 를 "ab" 로 그리는 것과 같은 결과.
  */
 function resolveGenericLeafText(
+  type: string,
   props: Record<string, unknown> | undefined,
 ): React.ReactNode {
-  const children = props?.children as React.ReactNode;
-  if (children !== undefined && children !== null && children !== "") {
-    return children;
-  }
-  const text = props?.text;
-  if (typeof text === "string" && text !== "") return text;
-  if (typeof text === "number") return String(text);
-  return children;
+  const text = resolveTextSourceText(type, props);
+  return text === "" ? null : text;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

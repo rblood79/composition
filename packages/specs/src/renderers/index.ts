@@ -40,6 +40,14 @@ export { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 
 // ADR-142 #5 — generic shape-descriptor 생성기 (render.shapes 대체)
 export { buildCatalogShapes } from "./buildCatalogShapes";
+// ADR-923 r15m1 — 노드 텍스트 원천 계약 (Preview · Skia · 레이아웃 공용 단일 지점)
+export {
+  resolveTextSourceKey,
+  resolveTextSourceText,
+  textFromValue,
+  textSourceOrder,
+} from "./utils/textSource";
+export type { TextSourceKey } from "./utils/textSource";
 export type { CatalogResolvedPaint } from "./catalogPaint";
 
 // ADR-912 단계5: ComponentVisualRule 타입만 production 정본으로 re-export.

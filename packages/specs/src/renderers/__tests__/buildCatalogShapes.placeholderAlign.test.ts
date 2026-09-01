@@ -52,38 +52,61 @@ const sizeMd: SizeSpec = {
   paddingX: 12,
 } as unknown as SizeSpec;
 
+// ADR-923 r15m1 — 텍스트 원천은 타입별 계약이라 nodeType 을 넘긴다 (field leaf 는 `placeholder`,
+//   box 기본 군은 `children`). 정렬 신호 (`props.placeholder != null`) 는 원천과 별개의 데이터 분기.
 const textShape = (
   visual: ComponentVisualRule | undefined,
   props: Record<string, unknown>,
-) => buildCatalogShapes(visual, props, sizeMd).find((s) => s.type === "text");
+  nodeType: string,
+) =>
+  buildCatalogShapes(
+    visual,
+    props,
+    sizeMd,
+    "default",
+    undefined,
+    nodeType,
+  ).find((s) => s.type === "text");
 
 describe("buildCatalogShapes — input field placeholder 좌측 정렬 (회귀 방지)", () => {
   it("opaque box + placeholder → text left (Input/SelectValue parity)", () => {
-    const t = textShape(opaqueBoxVisual, { placeholder: "Enter value..." });
+    const t = textShape(
+      opaqueBoxVisual,
+      { placeholder: "Enter value..." },
+      "Input",
+    );
     expect(t?.align).toBe("left");
   });
 
   it("opaque box + value 만(placeholder 없음) → text center 유지 (box 기본)", () => {
     // placeholder 신호가 없으면 box 기본 center — 비-field box 회귀 0 확증.
-    const t = textShape(opaqueBoxVisual, { label: "Click Me" });
+    const t = textShape(opaqueBoxVisual, { children: "Click Me" }, "Button");
     expect(t?.align).toBe("center");
   });
 
   it("visual=undefined(variants:{} shell, TextField 류) + placeholder → text left", () => {
     // TextField 는 variants:{} 라 resolveSkiaVisualRule 가 undefined 반환 → visual.textAlign
     // 경로로는 못 잡힘. placeholder 데이터 신호가 단일 진입점임을 확증.
-    const t = textShape(undefined, {
-      label: "Text Field",
-      placeholder: "Enter value...",
-    });
+    const t = textShape(
+      undefined,
+      {
+        label: "Text Field",
+        placeholder: "Enter value...",
+      },
+      "TextField",
+    );
     expect(t?.align).toBe("left");
   });
 
   it("style.textAlign 사용자 명시가 placeholder 신호보다 우선", () => {
-    const t = textShape(opaqueBoxVisual, {
-      placeholder: "Enter value...",
-      style: { textAlign: "right" },
-    });
+    const t = textShape(
+      opaqueBoxVisual,
+      {
+        placeholder: "Enter value...",
+        style: { textAlign: "right" },
+      },
+      "Input",
+    );
     expect(t?.align).toBe("right");
   });
 
@@ -91,7 +114,8 @@ describe("buildCatalogShapes — input field placeholder 좌측 정렬 (회귀 �
     // rule 이 명시적으로 textAlign 을 주면 placeholder 와 무관하게 적용(미래 확장 경로).
     const t = textShape(
       { ...opaqueBoxVisual, textAlign: "left" },
-      { label: "X" },
+      { children: "X" },
+      "Button",
     );
     expect(t?.align).toBe("left");
   });

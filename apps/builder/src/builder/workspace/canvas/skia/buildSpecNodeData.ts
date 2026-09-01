@@ -1281,14 +1281,18 @@ function buildCatalogShapesOrPrimitive(
   // base box+text + prepend/append 패턴(backdrop/shadow/arrow) 합성 (ADR-142 Inc3 overlays).
   // ADR-923 r14m2 — round 13 의 binding-선언 기반 label/text 차단은 철회: binding `accepts` 는
   //   편집 surface 지 렌더 소비 집합이 아니다 — Pencil import 는 `props.text` 를 쓰고 (production
-  //   writer), collection item 은 Preview 가 `label || children` 을 그린다. 텍스트 원천 순서는
-  //   buildCatalogShapes 단일 지점 (`label || children || text || placeholder`) 이 정본.
+  //   writer), collection item 은 Preview 가 `label || children` 을 그린다.
+  // ADR-923 r15m1 — 텍스트 원천 순서는 타입별 계약 (`@composition/specs` `resolveTextSourceText`,
+  //   Preview · 레이아웃과 같은 단일 지점) 이 정본이라 `type` 을 넘긴다. round 14 의 Skia 단일 지점
+  //   (`label || children || text || placeholder` 를 모든 타입에) 은 Preview 의 children 우선 타입
+  //   (Text/Button/Column) 과 갈렸고 AI 의 열린 props 가 그 차이에 도달했다.
   const base = buildCatalogShapes(
     visual,
     paint,
     shellOnlyProps,
     sizeSpec,
     textDecoration,
+    type,
   );
   const prepend: Shape[] = [];
   const append: Shape[] = [];

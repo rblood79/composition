@@ -37,6 +37,7 @@ import type {
   StoredGridListEntry,
 } from "@composition/specs";
 import {
+  resolveTextSourceText,
   isListBoxSectionEntry,
   isGridListSectionEntry,
 } from "@composition/specs";
@@ -652,7 +653,9 @@ export const renderListBoxItem = (
     if (childElements.length > 0) {
       return childElements.map((child) => context.renderElement(child));
     }
-    return String(element.props.label || element.props.children || "");
+    // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (ListBoxItem 은 `label → children`; Skia ·
+    //   레이아웃과 같은 단일 지점).
+    return resolveTextSourceText("ListBoxItem", element.props);
   };
 
   return (
@@ -1050,7 +1053,8 @@ export const renderGridListItem = (
     if (childElements.length > 0) {
       return childElements.map((child) => context.renderElement(child));
     }
-    const label = String(element.props.label || element.props.children || "");
+    // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (GridListItem 은 `label → children`).
+    const label = resolveTextSourceText("GridListItem", element.props);
     const description = element.props.description as string | undefined;
     return (
       <>

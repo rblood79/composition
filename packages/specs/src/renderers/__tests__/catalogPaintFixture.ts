@@ -182,6 +182,7 @@ export function buildCatalogShapes(
   size: SizeSpec,
   state: ComponentState = "default",
   textDecoration?: string,
+  nodeType?: string,
 ) {
   return renderCatalogShapes(
     visual,
@@ -189,6 +190,7 @@ export function buildCatalogShapes(
     props,
     size,
     textDecoration,
+    nodeType,
   );
 }
 

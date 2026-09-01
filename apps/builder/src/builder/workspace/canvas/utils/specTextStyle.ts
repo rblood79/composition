@@ -263,6 +263,8 @@ export function extractSpecTextStyle(
       propsForShapes,
       size,
       textDecoration && textDecoration !== "none" ? textDecoration : undefined,
+      // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (Preview · 레이아웃과 같은 단일 지점).
+      type,
     );
   } else if (spec) {
     shapes = spec.render.shapes(propsForShapes, size, "default");

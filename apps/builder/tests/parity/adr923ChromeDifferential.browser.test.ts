@@ -1931,4 +1931,37 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
     const bad = diffCase(nodes, dom, pipe);
     expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
   });
+  // r15m1 — AI `create_element`/`update_element` 는 열린 props 를 검증 없이 병합한다 (writer
+  //   인벤토리가 놓친 경로). 텍스트 leaf 가 아닌 기본 군 (Button/Column/TreeItem) 의 레이아웃 원천은
+  //   round 14 까지 `extractTextContent` 만의 순서 `label → text → children → title …` 이라, AI 가
+  //   `label` 을 쓰면 Preview 가 그리지 않는 label 폭을 실었다. 타입별 계약 단일 지점
+  //   (`resolveTextSourceText`) 으로 통합 — RED 원천은 unit 게이트 (`adr923TextLeafContentSignal`
+  //   r15m1: Button/Column/TreeItem `calculateContentWidth` 가 label 장문에 불변 · specs
+  //   `buildCatalogShapes.textSource` · Preview `textSourceContract`). 이 Chrome 하니스는 그 RED 를
+  //   실을 수 없다: plain-DOM 대조군은 catalog box (Button paddingX 등) 를 모르고 (Button probe: DOM
+  //   10.2 / 파이프라인 68 — label 유무 무관), Div 같은 비-텍스트 leaf 는 파이프라인이 inline 텍스트
+  //   폭을 재지 않는다 (DOM 10.2 / 0 — canonical 모델에서 텍스트는 Text leaf 에 산다). 아래는 텍스트
+  //   leaf 경로가 계약 통합 뒤에도 그대로인지 고정하는 pin (레이아웃은 round 13 부터 children 우선이라
+  //   첫 실행 PASS — RED 원천 아님).
+  it("flex row 안 Text (children 'Y' + AI label 장문, width:auto) 폭은 children 폭 (r15m1 pin; Chrome box.x = w(Y))", () => {
+    const nodes: CaseNode[] = [
+      {
+        label: "t",
+        elementType: "Text",
+        text: "Y",
+        props: { label: "AI wrote a long label into an open props object" },
+        style: { width: "auto", height: "10px", fontSize: "16px" },
+      },
+      { label: "box", style: { width: "50px", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "flex", width: "300px" },
+        children: [0, 1],
+      },
+    ];
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
 });

@@ -18,6 +18,7 @@ function callCatalog(
   props: Record<string, unknown>,
   size: SizeSpec,
   state: Parameters<typeof buildCatalogShapes>[3],
+  nodeType?: string,
 ) {
   const variantName =
     (props.variant as string | undefined) ?? spec.defaultVariant;
@@ -30,6 +31,7 @@ function callCatalog(
     size,
     state,
     textDecoration && textDecoration !== "none" ? textDecoration : undefined,
+    nodeType,
   );
 }
 
@@ -69,14 +71,24 @@ const fixtureSize = {
  *   Button.spec 삭제 후 parity oracle 대신 buildCatalogShapes 자체 동작을 직접 단언.
  */
 describe("buildCatalogShapes — box+text generic 공통 경로", () => {
-  it("label 이 legacy children 보다 우선한다", () => {
-    const shapes = callCatalog(
+  it("텍스트 원천은 타입별 계약 — 기본 군 (Button 류 box) 은 children, ListBoxItem 은 label 우선 (ADR-923 r15m1)", () => {
+    // round 14 까지 여기서 모든 타입에 `label` 을 먼저 읽어 Preview (Button 은 children) 와 갈렸다.
+    const box = callCatalog(
       fillFixtureSpec,
       { label: "Actions", children: "Legacy", variant: "primary" },
       fixtureSize,
       "default",
+      "Button",
     );
-    expect(shapes.find((s) => s.type === "text")?.text).toBe("Actions");
+    expect(box.find((s) => s.type === "text")?.text).toBe("Legacy");
+    const item = callCatalog(
+      fillFixtureSpec,
+      { label: "Actions", children: "Legacy", variant: "primary" },
+      fixtureSize,
+      "default",
+      "ListBoxItem",
+    );
+    expect(item.find((s) => s.type === "text")?.text).toBe("Actions");
   });
 
   it("_hasChildren shell — text 없이 bg(+border)만 반환", () => {

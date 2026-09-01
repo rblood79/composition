@@ -23,6 +23,7 @@ import { fontFamily } from "../primitives/typography";
 import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
 import type { CatalogResolvedPaint } from "./catalogPaint";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
+import { resolveTextSourceText } from "./utils/textSource";
 import { measureSpecTextWidth } from "./utils/measureText";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 
@@ -274,6 +275,11 @@ export function buildCatalogShapes(
   props: Record<string, unknown>,
   size: SizeSpec,
   textDecoration?: string,
+  /**
+   * ADR-923 r15m1 — 노드 canonical type. 텍스트 원천 순서는 타입별 계약 (`resolveTextSourceText`,
+   * Preview · 레이아웃과 같은 단일 지점) 이라 type 이 필요하다. 미전달 시 기본 군 (`children`).
+   */
+  nodeType?: string,
 ): Shape[] {
   const style = props.style as Record<string, unknown> | undefined;
 
@@ -310,27 +316,13 @@ export function buildCatalogShapes(
     hasOpaqueCatalogBackground,
   } = paint;
 
-  // ADR-923 r14m2 — 텍스트 원천 순서 (writer 인벤토리 기준, Preview 와 대칭):
-  //   `label` (collection item/field — Preview renderListBoxItem 등 `label || children`) →
-  //   `children` (binding content: inspector/factory/overlay) → `text` (Pencil import writer —
-  //   Preview renderDescription/FieldError/generic fallback) → `placeholder`.
-  //   children 이 text 보다 앞: import 뒤 inspector 편집이 children 을 쓰면 stale `text` 가 아니라
-  //   children 을 그려야 한다 (종전 `label || text || children`). children 은 string/number 만 텍스트
-  //   (배열/object 는 텍스트 아님 — React renderable 규칙).
-  const childrenText =
-    typeof props.children === "string"
-      ? props.children
-      : typeof props.children === "number"
-        ? String(props.children)
-        : undefined;
-  const text =
-    (props.label as string | undefined) ||
-    childrenText ||
-    (props.text as string | undefined) ||
-    // ADR-912 R1 (2026-06-12): placeholder 는 보편 RAC prop — 값이 비었을 때 DOM 이
-    //   placeholder 를 표시하듯 Skia 도 동일 text 로 그린다 (SelectValue/Input 류 field leaf).
-    //   컴포넌트 식별 분기 아님 — 데이터 유무로만 분기 (ADR-142 §3).
-    (props.placeholder as string | undefined);
+  // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 단일 지점 (`renderers/utils/textSource.ts`) 에 위임.
+  //   round 14 까지 여기서 `label || children || text || placeholder` 를 모든 타입에 적용해 Preview
+  //   (Text/Button/Column 은 children 우선) 와 갈렸고, AI `create_element` 의 열린 props 가 그 차이에
+  //   도달했다 (`{children: "Text", label: "AI Label"}` → Skia "AI Label" / Preview "Text"). 순서·
+  //   문자열화 규칙 (배열은 string/number 항목 이어붙임) 은 계약 모듈이 정본이다.
+  const resolvedText = resolveTextSourceText(nodeType, props);
+  const text = resolvedText !== "" ? resolvedText : undefined;
 
   // 비-DOM-trivial primitive(원/선/아이콘 등 box+text 로 표현 안 되는 도형)는 여기서
   // 그리지 않는다 — `PrimitiveBinding.skiaPrimitive` draw module(renderers/skiaPrimitives.ts)이
