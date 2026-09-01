@@ -7,6 +7,7 @@ vi.mock("./useSkiaNode", () => ({
 import { notifyLayoutChange } from "./useSkiaNode";
 import {
   getDragSiblingOffsetRevision,
+  getDragVisualOffsetRevision,
   setDragPresentationRetained,
   setDragSiblingOffsets,
   setDragVisualOffset,
@@ -23,12 +24,29 @@ describe("drag presentation invalidation", () => {
 
   it("같은 target의 pointer delta만 바뀌면 registry를 invalidate하지 않는다", () => {
     const ids = new Set(["instance"]);
+    const initialRevision = getDragVisualOffsetRevision();
 
     setDragVisualOffset(ids, 10, 20);
     setDragVisualOffset(ids, 30, 40);
     setDragVisualOffset(new Set(["instance"]), 50, 60);
 
     expect(notify).toHaveBeenCalledTimes(1);
+    expect(getDragVisualOffsetRevision()).toBe(initialRevision + 3);
+  });
+
+  it("drag offset presentation revision은 의미 있는 변화에만 증가한다", () => {
+    const ids = new Set(["instance"]);
+    const initialRevision = getDragVisualOffsetRevision();
+
+    setDragVisualOffset(ids, 0, 0, true);
+    setDragVisualOffset(ids, 0, 0, true);
+    setDragVisualOffset(new Set(["instance"]), 0, 0, true);
+    setDragVisualOffset(ids, 10, 20, true);
+    setDragVisualOffset(ids, 10, 20, true);
+    setDragVisualOffset(null, 0, 0, true);
+    setDragVisualOffset(null, 0, 0, true);
+
+    expect(getDragVisualOffsetRevision()).toBe(initialRevision + 3);
   });
 
   it("target topology 시작/교체/종료는 skip 인자와 무관하게 invalidate한다", () => {

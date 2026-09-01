@@ -38,6 +38,7 @@ import {
 import { tickAnimations, getInterpolatedOffsets } from "./dragAnimator";
 import {
   getDragSiblingOffsetRevision,
+  getDragVisualOffsetRevision,
   setDragSiblingOffsets,
 } from "./nodeRendererTree";
 import { buildSkiaFrameContent } from "./skiaFramePipeline";
@@ -111,7 +112,7 @@ export interface SkiaCanvasProps {
   invalidateLayout: () => void;
   /**
    * ADR-074 Phase 4: scene sub-packet 만 BuilderCanvas 에서 주입.
-   * overlay packet (ai + selection + dragActive) 은 SkiaCanvas 내부에서
+   * overlay packet (ai + selection) 은 SkiaCanvas 내부에서
    * useStore 로 직접 구독하여 생성 — BuilderCanvas 루트 selection 구독 제거.
    */
   sceneInvalidationPacket: RendererSceneInvalidation;
@@ -175,7 +176,6 @@ export function SkiaCanvas({
         flashAnimations: aiFlashAnimations,
         generatingNodes: aiGeneratingNodes,
       },
-      dragActive: false,
       selection: {
         currentPageId,
         editingContextId,
@@ -229,6 +229,7 @@ export function SkiaCanvas({
     getPagePositionPresentationSnapshot().version,
   );
   const pageGuideRevisionRef = useRef(getPageGuideRevision());
+  const dragVisualOffsetRevisionRef = useRef(getDragVisualOffsetRevision());
   const dragSiblingOffsetRevisionRef = useRef(getDragSiblingOffsetRevision());
 
   // Workflow/hover 캐시
@@ -740,12 +741,6 @@ export function SkiaCanvas({
       }
       lastAIActiveRef.current = currentAIActive;
 
-      // 드래그 중 오버레이 갱신
-      if (packet.dragActive) {
-        overlayVersionRef.current++;
-        recordInvalidation("overlay", "drag");
-      }
-
       // Workflow 오버레이 상태
       const workflowOverlaySignature = packet.workflow.overlaySignature;
       if (
@@ -829,6 +824,16 @@ export function SkiaCanvas({
         skiaFontManager.getFamilies().length > 0
           ? skiaFontManager.getFontMgr()
           : undefined;
+
+      // Drag visual presentation
+      const dragVisualOffsetRevision = getDragVisualOffsetRevision();
+      if (dragVisualOffsetRevision !== dragVisualOffsetRevisionRef.current) {
+        dragVisualOffsetRevisionRef.current = dragVisualOffsetRevision;
+        // 같은 target의 delta는 retained picture의 translate에서 소비한다.
+        // registry/content를 무효화하지 않고 현재 surface를 다시 present한다.
+        overlayVersionRef.current++;
+        recordInvalidation("overlay", "dragPresentation");
+      }
 
       // Drag animation
       const dropIndicator = dropIndicatorSnapshotRef?.current ?? null;

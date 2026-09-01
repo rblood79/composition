@@ -47,7 +47,7 @@ export interface RendererAIInvalidation {
 /**
  * ADR-074 Phase 3: scene/overlay 분리.
  * - Scene: workflow (scene structure 의존, selection-invariant)
- * - Overlay: ai + dragActive + selection (selection/transient 의존)
+ * - Overlay: ai + selection (selection/transient 의존)
  *
  * 2026-08-14: grid sub-packet 제거 (캔버스 월드 격자 삭제와 동반).
  */
@@ -61,13 +61,11 @@ export interface RendererSceneInvalidation {
 
 export interface RendererOverlayInvalidationInput {
   ai: RendererAIInvalidation;
-  dragActive: boolean;
   selection: RendererSelectionInvalidationInput;
 }
 
 export interface RendererOverlayInvalidation {
   ai: RendererAIInvalidation;
-  dragActive: boolean;
   selection: RendererSelectionInvalidation;
 }
 
@@ -191,7 +189,7 @@ export function createSceneInvalidationPacket(
 }
 
 /**
- * ADR-074 Phase 3: overlay sub-packet (ai + dragActive + selection).
+ * ADR-074 Phase 3: overlay sub-packet (ai + selection).
  * selection-dependent — selection 변화 시 재생성.
  */
 export function createOverlayInvalidationPacket(
@@ -199,7 +197,6 @@ export function createOverlayInvalidationPacket(
 ): RendererOverlayInvalidation {
   return {
     ai: input.ai,
-    dragActive: input.dragActive,
     selection: {
       ...input.selection,
       editingSignature: input.selection.editingContextId ?? "",
@@ -220,7 +217,6 @@ export function createRendererInvalidationPacket(
   });
   const overlay = createOverlayInvalidationPacket({
     ai: packet.ai,
-    dragActive: packet.dragActive,
     selection: packet.selection,
   });
   return {

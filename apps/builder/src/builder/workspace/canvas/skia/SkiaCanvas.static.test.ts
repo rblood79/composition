@@ -63,6 +63,23 @@ describe("SkiaCanvas render invalidation contract", () => {
     expect(dragAnimationBlock).not.toContain("notifyLayoutChange()");
   });
 
+  it("drag delta는 registry/content 재빌드 없이 overlay frame만 갱신한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "SkiaCanvas.tsx"),
+      "utf-8",
+    );
+    const start = source.indexOf("// Drag visual presentation");
+    const end = source.indexOf("// Drag animation", start);
+    const dragPresentationBlock = source.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(dragPresentationBlock).toContain("getDragVisualOffsetRevision()");
+    expect(dragPresentationBlock).toContain("overlayVersionRef.current++");
+    expect(dragPresentationBlock).not.toContain("renderer.invalidateContent()");
+    expect(dragPresentationBlock).not.toContain("notifyLayoutChange()");
+  });
+
   it("publishes the exact camera/page snapshot from the Skia render frame", async () => {
     const source = await readFile(
       resolve(__dirname, "SkiaCanvas.tsx"),

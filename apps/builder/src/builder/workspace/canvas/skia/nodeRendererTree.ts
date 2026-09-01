@@ -24,6 +24,7 @@ interface DragVisualOffsetData {
 
 const G = globalThis as unknown as {
   __composition_dragVisualOffset?: DragVisualOffsetData | null;
+  __composition_dragVisualOffsetRevision?: number;
   __composition_dragSiblingOffsets?: Map<
     string,
     { dx: number; dy: number }
@@ -57,6 +58,15 @@ export function getSiblingOffset(
 /** registry와 분리된 sibling presentation 세대. SkiaCanvas가 content snapshot만 갱신한다. */
 export function getDragSiblingOffsetRevision(): number {
   return G.__composition_dragSiblingOffsetRevision ?? 0;
+}
+
+/** registry와 분리된 drag offset presentation 세대. SkiaCanvas가 overlay frame만 갱신한다. */
+export function getDragVisualOffsetRevision(): number {
+  return G.__composition_dragVisualOffsetRevision ?? 0;
+}
+
+function bumpDragVisualOffsetRevision(): void {
+  G.__composition_dragVisualOffsetRevision = getDragVisualOffsetRevision() + 1;
 }
 
 /** command tail 분리가 성립하지 않을 때 delta별 legacy invalidation으로 폴백한다. */
@@ -99,6 +109,7 @@ export function setDragVisualOffset(
     (prev === null) !== (next === null) ||
     (prev && next && !sameIdSet(prev.elementIds, next.elementIds));
   if (targetChanged) {
+    bumpDragVisualOffsetRevision();
     // 정상 command stream은 drag root를 tail로 유예하므로 optimistic true.
     // frame build가 불변식 실패를 발견하면 false로 내려 legacy invalidation한다.
     G.__composition_dragPresentationRetained = next !== null;
@@ -113,6 +124,9 @@ export function setDragVisualOffset(
     prev !== null &&
     next !== null &&
     (prev.dx !== next.dx || prev.dy !== next.dy);
+  if (offsetChanged) {
+    bumpDragVisualOffsetRevision();
+  }
   if (
     offsetChanged &&
     !skipInvalidation &&

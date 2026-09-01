@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [절대 위치 요소 드래그가 포인터를 즉시 따라갑니다] - 2026-09-01
+
+### Fixed
+
+- **Position을 Absolute로 바꾼 요소와 `Cmd + drag` 대상이 느리게 이동하던 문제**: 이전 retained drag 최적화가 같은 대상의 위치 변화에서 전체 command stream 재생성을 막았지만, 그 변화가 새 프레임을 표시해야 한다는 별도 신호도 없었습니다. 포인터 좌표는 정상 갱신되면서 Canvas는 대부분 idle frame으로 분류되어 화면만 드물게 표시됐습니다. drag offset 전용 presentation revision을 추가해 매 animation frame에 기존 retained picture의 translate만 다시 표시하고, registry와 content snapshot은 유지합니다.
+
+### Tests
+
+- 같은 delta 반복은 revision을 올리지 않고, 실제 target/delta 변화만 overlay frame을 갱신하며 registry/content invalidation으로 되돌아가지 않는 회귀 테스트를 추가했습니다.
+
 ## [여백 접힘 경계 4가지가 미리보기와 같아집니다] - 2026-09-01
 
 ### Fixed
