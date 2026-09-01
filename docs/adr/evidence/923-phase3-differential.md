@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 14 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 15 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -375,7 +375,7 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
     import** 가 `props.text` 를 쓴다 (`collectPencilProps`, production writer — `pencilImport.test.ts`
     :14) (ii) collection item (ListBoxItem/GridListItem/TreeItem/Column/Menu) 은 Preview 가
     `label || children` 을 그린다 (`SelectionRenderers.tsx` :655/:1053 · `CollectionRenderers.tsx`
-    :205 · `TableRenderer.tsx` :68). round 13 의 33-primitive label/text 차단은 (i) 의 Skia 텍스트와
+    :205 · `TableRenderer.tsx` :68 — 단 Column 은 `children || label` 로 순서가 반대였다, Codex r15 정정). round 13 의 33-primitive label/text 차단은 (i) 의 Skia 텍스트와
     (ii) 의 item label 을 지웠다 (Codex probe). 수리: 차단 helper 삭제 (3 호출 원복) ·
     `resolveTextLeafContent` = **children → text** (첫 비어있지 않은 값; label/title 은 텍스트 leaf
     writer 0 + Preview 미소비) · Skia `buildCatalogShapes` = `label || children || text || placeholder`
@@ -394,6 +394,47 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
       `buildCatalogShapes.textSource.test.ts` (label > children > text > placeholder · children 이
       text 를 이김 · 배열 children 은 텍스트 아님) 로 판별.
     - r14l2: breakdown :125 대조군 수치 18/51 정정.
+
+## round 15 수리 1건 (Codex 판독 r15m1 — 세 표면 unit 게이트로 확정; Chrome plain-DOM 하니스는 이 RED 를 실을 수 없음, `04503eebd`)
+
+32. **텍스트 원천을 타입별 계약 단일 모듈로 통합** (r15m1 — round 14 수리 31 의 "label/title writer 0"
+    전제 정정): writer 인벤토리가 **AI `create_element`/`update_element`** (`createElement.ts` :52
+    `{...defaultProps, ...aiProps}` · `updateElement.ts` :72 `updateElementProps(id, {...newProps})` —
+    열린 props 를 검증 없이 병합·저장) 를 빠뜨렸다. AI Text `{label: "AI Label"}` → 저장
+    `{children: "Text", label: "AI Label"}` → Skia (`label` 우선) "AI Label" / Preview·레이아웃 "Text";
+    Button/Column 도 같은 조합에 도달 (Codex 반례). root cause 는 writer 하나의 누락이 아니라 **텍스트
+    원천 순서를 consumer 마다 따로 들고 있던 것** — 열린 writer (AI/DB/마이그레이션) 가 있는 한
+    인벤토리로 "writer 0" 을 확정할 수 없고, 순서가 한 곳이라도 다르면 도달 가능한 반례가 있다.
+    수리: `@composition/specs` `renderers/utils/textSource.ts` (`resolveTextSourceText(type, props)` —
+    writer 인벤토리로 도출한 타입별 순서: 기본 `children` · 텍스트 leaf 7 + FieldError `children → text`
+    · ListBoxItem/GridListItem/Menu `label → children` · field leaf 9 (Input/TextArea/TextField/
+    SearchField/NumberField/ColorField/Select/SelectValue/ComboBox) `placeholder`; 문자열화
+    `textFromValue` 공통 — 배열은 string/number 이어붙임) 을 **세 표면이 전부 위임**: Skia
+    `buildCatalogShapes(…, nodeType)` (호출 3곳 type 전달) + `breadcrumbCrumb` primitive · 레이아웃
+    `extractTextContent(type, props)` / `resolveTextLeafContent` / 비-텍스트 leaf `??` 체인 2곳 ·
+    Preview generic (`resolveGenericLeafText(type, props)`) + Label/Description/FieldError +
+    ListBoxItem/GridListItem/Menu + TreeItem (2) + Column (`resolveColumnHeaderLabel`) +
+    DisclosureHeader + Button + shared `extractTextContent(element)`. 계약 밖 키 (기본 군의 `label`/
+    `title`/`value`/`text`/`placeholder`) 는 세 표면이 **함께** 무시한다 — Preview 의 TreeItem
+    `title/label/value` · Column `label` · DisclosureHeader `title` 폴백은 production writer 가 없는 (AI 만
+    도달하는) 키라 계약에서 뺐고, FieldError 는 inspector 가 쓰는 `children` 을 Preview 만 무시하던
+    것이 함께 고쳐졌다. AI 도구 설명 (i18n `aiToolDef.props`/`updateProps` ko·en) 에 "표시 텍스트는
+    children" 을 명시 (writer 측 보강 — 계약의 대체 아님).
+    - **게이트 (전부 RED 확인 — 수리 코드를 종전 순서로 원복해 실측)**: specs unit `textSource.test.ts`
+      13 + `buildCatalogShapes.textSource.test.ts` 7 (Skia 종전 순서 원복 → 6 RED) · layout unit
+      `adr923TextLeafContentSignal` r15m1 3 (`calculateContentWidth` Button/Column/TreeItem/Div 가
+      label·title 장문에 불변 · ListBoxItem label 우선 · AI 저장 형태 — 레이아웃 종전 순서 원복 → 1 RED)
+      · Preview `textSourceContract.test.tsx` 6 (shared — ListBoxItem/GridListItem/TreeItem/Column/Menu/
+      Label/Description/FieldError/DisclosureHeader/Button 반환 element 텍스트 = 계약; Column 종전
+      `children || label` 원복 → 1 RED) + `CanonicalNodeRenderer.textSource.test.tsx` 4 (generic
+      Text/Heading DOM · cutover Button DOM). Chrome 차등에는 pin 1 (Text + AI label 장문, 첫 실행 PASS
+      — 레이아웃은 round 13 부터 children 우선) 만 — 이 하니스는 RED 를 실을 수 없다: plain-DOM
+      대조군은 catalog box 를 모르고 (Button probe DOM 10.2 / 파이프라인 68, label 유무 무관) 비-텍스트
+      leaf 의 inline 텍스트는 파이프라인이 재지 않는다 (Div probe DOM 10.2 / 0 — canonical 모델에서
+      텍스트는 Text leaf 에 산다).
+    - 기존 specs 테스트 2 파일 (`buildCatalogShapes.test.ts` "label 우선" · `placeholderAlign` 5) 은
+      round 14 의 Skia 단일 순서를 고정하던 것이라 계약 (nodeType) 으로 갱신 — 배열 children 은 Skia
+      도 "ab" (Preview 가 그리는 결과; 종전 Skia 만 "텍스트 아님" 으로 `text` 로 넘어갔다).
 
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
@@ -504,6 +545,19 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
   원천 + Skia `label || children || text` 경유) 렌더 불변, ProgressBar `label` content 그대로, wrap 카드
   불변 (Desert Sunset·Hiking Trail 한 줄 + Mountain Sunrise 줄바꿈), 콘솔 에러 0 (로드 시점 포함).
 
+- **round 15 수리 후**: Rust 변경 0 (cargo 371 불변) · 차등 **97/97** (69 케이스 + 게이트 28; 신규 pin 1
+  첫 실행 PASS) · 대조군 발산 18 / 정합 51 · full **parity 1033** (기존 catalogComponentBox 2 · 1 expected
+  fail · 2 skipped) · layout unit 50 files/415 (+3) · Skia/utils/overlay/preview unit 662 (+4) · specs 873
+  (+15: `textSource` 13 · `buildCatalogShapes.textSource` +2) · shared 926 (+6 `textSourceContract`) ·
+  type-check 0. 원복 RED (실측): Skia 종전 순서 6 · 레이아웃 종전 순서 1 · Preview Column 종전 순서 1.
+
+- **Live Exercise (round 15 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 재로드 (Chrome MCP) —
+  Components 페이지 Skia: ListBox 템플릿 `{label}`/`{description}` · collection 항목 (Inbox/Starred/
+  Archive — label 우선 군) · 카드 (Documents · 12 files) · Menu 항목 행 (`{label}`/`{shortcut}`/
+  `{description}`) · Tabs (Action 1~3) · 폼 Label (Name/Email) + Input placeholder (field leaf
+  `placeholder` 군) · Button (Cancel/Save) · Tooltip `{label}` 전부 렌더 불변, Home 페이지 Button ×10
+  불변, 콘솔 에러 0 (재로드 시점 포함).
+
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
 - ~~마지막 line box auto-height 미반영~~ → round 8 수리 7 로 종결.
@@ -544,3 +598,14 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
   은 used 폭 기준으로 해소된다 — 비-root 자식과 같은 모델 (부모 intake 가 used 폭을 넘김). CSS 는
   containing block 기준이라 "min/max 가 바인딩되는 auto root + % padding" 조합에서만 갈린다 (라이브
   body 는 폭 명시 주입이라 무관).
+- (r15) publish `ElementRenderer` 는 `children` 만 읽는다 (`apps/publish/src/renderer/ElementRenderer.tsx`
+  :83~165) — 계약의 `text` (Pencil import) · `placeholder` 군을 publish 가 아직 위임하지 않는다. publish 는
+  빌더 안정화 후 착수 방침 (링크만) 이라 범위 밖 — 착수 시 `resolveTextSourceText` 위임이 첫 항목.
+- (r15) field leaf 의 `value`: DOM `<input>` 은 value 가 있으면 value 를, 없으면 placeholder 를 보이지만
+  Skia `buildCatalogShapes` 는 value 를 그리지 않는다 (round 14 이전부터; 계약은 `placeholder` 만). 라이브
+  도달 (inspector value 편집) 이라 후속 후보 — 이번 round 범위 (label / AI writer) 밖이라 계약에 넣지 않음.
+- (r15) `cssResolver.resolveCurrentColor` whole-value 비교는 `toLowerCase()` 만 (Codex r15 관찰) —
+  white-space 범위 밖, Chrome 반례 미측정.
+- (r15) Chrome plain-DOM 하니스는 catalog box leaf (Button paddingX) 와 비-텍스트 leaf 의 inline 텍스트를
+  못 싣는다 — 텍스트 원천 계약의 RED 는 unit 게이트 (세 표면) 가 원천. catalog CSS 를 domLeg 에 싣는 별도
+  하니스 (위 Text width:100% 관찰과 같은 축) 가 필요.

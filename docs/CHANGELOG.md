@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [AI 가 만든 텍스트가 캔버스·미리보기·크기 계산에서 같은 글자를 보입니다] - 2026-09-01
+
+### Fixed
+
+- AI 어시스턴트가 요소를 만들거나 고칠 때 `label` 같은 다른 속성에 글자를 넣으면 캔버스만 그 글자를 그리고 미리보기·크기 계산은 `children` 을 읽어 서로 달랐던 문제를 고쳤습니다. 이제 요소 종류마다 어떤 속성이 표시 텍스트인지 한 곳에서 정하고 (기본 `children`, Text 류는 `children` → `text`, ListBox/GridList 항목과 Menu 는 `label` → `children`, 입력 필드는 `placeholder`), 캔버스·미리보기·크기 계산이 모두 같은 규칙을 씁니다 (ADR-923 Codex round 15).
+- 미리보기의 FieldError 가 속성 패널에서 편집한 텍스트 (`children`) 를 무시하고 `text` 만 보이던 문제를 같은 규칙으로 고쳤습니다.
+- 미리보기의 Tree 항목·Table 열 머리글·Disclosure 헤더가 캔버스는 읽지 않는 `title`/`label` 을 대신 보이던 차이를 없앴습니다 (실제 편집 경로가 쓰지 않는 속성 — AI 가 넣은 경우에만 해당).
+
+### Changed
+
+- AI 도구 설명에 표시 텍스트를 넣을 속성 (`children`) 을 명시했습니다.
+
 ## [Pencil 로 가져온 텍스트가 미리보기와 캔버스 양쪽에 보입니다] - 2026-09-01
 
 ### Fixed
