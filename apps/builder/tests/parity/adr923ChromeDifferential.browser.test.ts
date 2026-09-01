@@ -766,6 +766,82 @@ const CASES: DiffCase[] = [
       },
     ],
   },
+  // ── round 9 후속 관찰 ① — height:0 명시 self-collapsing (§8.3.1 "zero or auto computed height") ──
+  {
+    name: "height-zero-self-collapsing — 관찰①: height:0 명시 + margin 은 self-collapsing (chain 관통, b.y 40)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "z",
+        style: { display: "block", height: "0px", marginTop: "20px", marginBottom: "30px" },
+      },
+      {
+        label: "b",
+        style: { display: "block", height: "10px", marginTop: "5px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 1, 2],
+      },
+    ],
+  },
+  {
+    name: "height-zero-with-content-not-self-collapsing — 관찰① 대조군: height:0 이라도 in-flow 내용이 있으면 self-collapsing 아님 (b.y 60)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      { label: "inner", style: { display: "block", height: "10px" } },
+      {
+        label: "z",
+        style: { display: "block", height: "0px", marginTop: "20px", marginBottom: "30px" },
+        children: [1],
+      },
+      {
+        label: "b",
+        style: { display: "block", height: "10px", marginTop: "5px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 2, 3],
+      },
+    ],
+  },
+  {
+    name: "self-collapsing-wrapper-of-empty — 관찰①: 자식이 전부 self-collapsing 이면 wrapper 도 self-collapsing (b.y 40)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "e",
+        style: { display: "block", marginTop: "20px", marginBottom: "30px" },
+      },
+      { label: "wrap", style: { display: "block" }, children: [1] },
+      {
+        label: "b",
+        style: { display: "block", height: "10px", marginTop: "5px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 2, 3],
+      },
+    ],
+  },
 ];
 
 /** engine leg 입력 — engineStyle override 적용. */

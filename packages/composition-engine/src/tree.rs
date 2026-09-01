@@ -382,6 +382,13 @@ struct TreeNode {
     /// margin 과 collapse 하여 상쇄 chain 을 잇는다. 비-block solve(flex/grid/leaf)는 0.
     escaped_mt: f32,
     escaped_mb: f32,
+    /// 이 block 컨테이너가 **self-collapsing** 인가 (CSS 2.1 §8.3.1 — 상하 padding/border 0 ·
+    /// height auto 또는 0 · min-height 0 · line box 없음 · in-flow 자식 없거나 전부 관통 ·
+    /// BFC 아님). 재귀 정의라 자식의 `solve_block` 이 판정해 두면 부모 intake 가 읽어 block
+    /// flat 코드 2 로 보낸다 — `height: 0` 명시 컨테이너는 intake 의 auto-height 규칙만으론
+    /// 분류할 수 없다 (ADR-923 P3 r9 후속 ①, Chrome height-zero-self-collapsing). leaf 는
+    /// false 유지 (intake 의 `content_h == 0` 규칙이 담당).
+    self_collapsing: bool,
     /// 폭 축 intrinsic 측정 캐시 `(mutation_gen, min_content, max_content)` — border-box
     /// (ADR-169 Phase 1).
     ///
@@ -597,6 +604,7 @@ impl LayoutTree {
             parent: None,
             escaped_mt: 0.0,
             escaped_mb: 0.0,
+            self_collapsing: false,
             intrinsic_w: None,
             last_avail: None,
             last_solved: None,
@@ -738,6 +746,7 @@ impl LayoutTree {
                 parent: None,
                 escaped_mt: 0.0,
                 escaped_mb: 0.0,
+                self_collapsing: false,
                 intrinsic_w: None,
                 last_avail: None,
                 last_solved: None,
@@ -1547,6 +1556,7 @@ impl LayoutTree {
         if let Some(n) = self.get_mut(handle) {
             n.escaped_mt = 0.0;
             n.escaped_mb = 0.0;
+            n.self_collapsing = false;
         }
 
         // leaf(=in-flow 자식 없음): 자기 크기만. absolute 자식만 있는 경우도 여기 해당 —
@@ -2758,6 +2768,26 @@ impl LayoutTree {
             if ch_bfc {
                 data[off + 7] = 1.0; // bfc_flag
             }
+            // self-collapsing 합집합 (write_block_item 의 auto-height 규칙 +):
+            //  (a) 자식 solve_block 이 판정한 플래그 — 재귀 정의, height:0 명시 컨테이너 포함.
+            //  (b) leaf(in-flow 자식 없음 → solve_block 미경유) 의 `height: 0` 명시 — 상하
+            //      pad/border 0 · min-height 0 · BFC 아님 · content_h 0. 내용 있는 height:0
+            //      컨테이너는 (a) 가 false 라 제외 (Chrome height-zero-with-content 대조군).
+            if data[off] == 0.0 {
+                let (flag, is_leaf) = self
+                    .get(c)
+                    .map(|n| (n.self_collapsing, n.children.is_empty()))
+                    .unwrap_or((false, true));
+                let leaf_zero_h = is_leaf
+                    && data[off + 2] == 0.0
+                    && data[off + 8] == 0.0
+                    && data[off + 12] <= 0.0
+                    && data[off + 7] == 0.0
+                    && ch <= 0.0;
+                if flag || leaf_zero_h {
+                    data[off] = 2.0;
+                }
+            }
         }
 
         // 3) block_layout — 부모-자식 collapse 활성 (차단 요인 없을 때). metadata
@@ -2889,6 +2919,16 @@ impl LayoutTree {
             };
             n.escaped_mt = escaped_top;
             n.escaped_mb = escaped_bottom;
+            // §8.3.1 self-collapsing 판정 (struct doc) — in-flow 하단 0 = 자식 없거나 전부 관통,
+            // line box 없음(meta lastLineBaseline 센티널), height auto/0, 상하 pad/border 0,
+            // min-height 0, BFC 아님. 부모 intake 가 코드 2 로 읽는다.
+            n.self_collapsing = !block_is_bfc
+                && off_y == 0.0
+                && bottom_barrier == 0.0
+                && flow_bottom <= 0.0
+                && out[meta_off + 2] < 0.0
+                && explicit_h <= 0.0
+                && resolve_dimension_opt(style.min_height.as_deref(), &parent_ctx).unwrap_or(0.0) <= 0.0;
             n.dirty = false;
             n.subtree_dirty = false;
         }
@@ -8260,6 +8300,37 @@ mod tests {
         assert_eq!(tree.get_layout(h[1]).y, 0.0, "leading empty = wrap top border edge");
         assert_eq!(tree.get_layout(h[2]).y, 0.0, "solid at wrap content top");
         assert_eq!(tree.get_layout(h[4]).height, 50.0);
+    }
+
+    /// r9 후속 ① — `height: 0` 명시 + margin 도 self-collapsing (§8.3.1 "zero or auto computed
+    /// height"; Chrome height-zero-self-collapsing: b.y 40 · root 50). in-flow 내용이 있으면
+    /// 아님 (대조군 b.y 60 · root 70).
+    #[test]
+    fn adr923_p3_r9_height_zero_self_collapsing() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px","marginBottom":"10px"},"children":[]},
+            {"style":{"display":"block","height":"0px","marginTop":"20px","marginBottom":"30px"},"children":[]},
+            {"style":{"display":"block","height":"10px","marginTop":"5px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0,1,2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[2]).y, 40.0, "chain max(10,20,30,5) 관통");
+        assert_eq!(tree.get_layout(h[3]).height, 50.0);
+
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px","marginBottom":"10px"},"children":[]},
+            {"style":{"display":"block","height":"10px"},"children":[]},
+            {"style":{"display":"block","height":"0px","marginTop":"20px","marginBottom":"30px"},"children":[1]},
+            {"style":{"display":"block","height":"10px","marginTop":"5px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0,2,3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[3]).y, 60.0, "내용 있는 height:0 은 self-collapsing 아님");
+        assert_eq!(tree.get_layout(h[4]).height, 70.0);
     }
 
     /// r9 인접 — line box 는 margin 을 collapse 하지 않는다 (block h10+mb10 뒤 inline-block
