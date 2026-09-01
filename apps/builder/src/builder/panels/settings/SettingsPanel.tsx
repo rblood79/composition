@@ -10,7 +10,7 @@
  * @updated 2026-03-05 - ADR-021 Phase D: Supabase 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
-import { UnfoldHorizontal, ZoomIn, Moon, Sun, Settings } from "lucide-react";
+import { UnfoldHorizontal, Settings } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
@@ -21,7 +21,6 @@ import {
 import { useUiStore } from "../../../stores/uiStore";
 import {
   PropertySwitch,
-  PropertySelect,
   PropertyUnitInput,
   PropertySection,
   PropertySizeToggle,
@@ -66,26 +65,16 @@ function SettingsContent() {
   const uiScale = useUiStore((state) => state.uiScale);
   const setUiScale = useUiStore((state) => state.setUiScale);
 
-  // Theme Mode에 따른 아이콘 결정
-  const getThemeModeIcon = () => {
-    if (themeMode === "dark") return Moon;
-    if (themeMode === "light") return Sun;
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    return prefersDark ? Moon : Sun;
-  };
-
   const themeModeOptions = [
-    { value: "light", label: t("settings.themeModeLight") },
-    { value: "dark", label: t("settings.themeModeDark") },
-    { value: "auto", label: t("settings.themeModeAuto") },
+    { id: "light", label: t("settings.themeModeLight") },
+    { id: "dark", label: t("settings.themeModeDark") },
+    { id: "auto", label: t("settings.themeModeAuto") },
   ];
 
   const uiScaleOptions = [
-    { value: "80", label: t("settings.uiScaleSmall") },
-    { value: "100", label: t("settings.uiScaleDefault") },
-    { value: "120", label: t("settings.uiScaleLarge") },
+    { id: "80", label: "S" },
+    { id: "100", label: "M" },
+    { id: "120", label: "L" },
   ];
 
   const pageLayoutOptions = [
@@ -184,20 +173,20 @@ function SettingsContent() {
 
         {/* Theme Settings Section */}
         <PropertySection title={t("settings.themeAppearance")}>
-          <PropertySelect
+          <PropertySizeToggle
             label={t("settings.themeMode")}
             value={themeMode}
             onChange={handleThemeModeChange}
             options={themeModeOptions}
-            icon={getThemeModeIcon()}
+            className="settings-theme-mode-toggle"
           />
 
-          <PropertySelect
+          <PropertySizeToggle
             label={t("settings.uiScale")}
             value={String(uiScale)}
             onChange={handleUiScaleChange}
             options={uiScaleOptions}
-            icon={ZoomIn}
+            className="settings-ui-scale-toggle"
           />
         </PropertySection>
 

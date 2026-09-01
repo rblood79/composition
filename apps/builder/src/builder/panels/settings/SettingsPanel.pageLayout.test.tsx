@@ -6,8 +6,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../stores";
 import { SettingsPanel } from "./SettingsPanel";
 
-const { alignPagesToScreenMock } = vi.hoisted(() => ({
+const {
+  alignPagesToScreenMock,
+  sendDarkModeMock,
+  setThemeModeMock,
+  setUiScaleMock,
+} = vi.hoisted(() => ({
   alignPagesToScreenMock: vi.fn(),
+  sendDarkModeMock: vi.fn(),
+  setThemeModeMock: vi.fn(),
+  setUiScaleMock: vi.fn(),
 }));
 
 vi.mock("../../workspace/canvas/viewport/pageLayoutActions", () => ({
@@ -106,7 +114,7 @@ vi.mock("../../components", () => ({
 }));
 
 vi.mock("@/builder/hooks", () => ({
-  useThemeMessenger: () => ({ sendDarkMode: vi.fn() }),
+  useThemeMessenger: () => ({ sendDarkMode: sendDarkModeMock }),
 }));
 
 vi.mock("@/i18n", () => ({
@@ -116,8 +124,8 @@ vi.mock("@/i18n", () => ({
 
 vi.mock("../../../stores/uiStore", () => {
   const state = {
-    setThemeMode: vi.fn(),
-    setUiScale: vi.fn(),
+    setThemeMode: setThemeModeMock,
+    setUiScale: setUiScaleMock,
     themeMode: "light",
     uiScale: 100,
   };
@@ -130,6 +138,9 @@ vi.mock("../../../stores/uiStore", () => {
 describe("SettingsPanel page layout synchronization", () => {
   beforeEach(() => {
     alignPagesToScreenMock.mockReset();
+    sendDarkModeMock.mockReset();
+    setThemeModeMock.mockReset();
+    setUiScaleMock.mockReset();
     useStore.setState({
       pageGap: 80,
       pageLayoutDirection: "auto",
@@ -183,5 +194,38 @@ describe("SettingsPanel page layout synchronization", () => {
 
     expect(useStore.getState().pageGap).toBe(40);
     expect(observedGaps).toEqual([40]);
+  });
+
+  it("Theme Mode를 변경하면 토글 선택값과 dark mode 동기화를 유지한다", () => {
+    render(<SettingsPanel />);
+
+    fireEvent.change(screen.getByLabelText("settings.themeMode"), {
+      target: { value: "dark" },
+    });
+
+    expect(setThemeModeMock).toHaveBeenCalledWith("dark");
+    expect(sendDarkModeMock).toHaveBeenCalledWith(true);
+  });
+
+  it("UI Scale은 S/M/L로 표시하고 실제 scale 값은 숫자로 저장한다", () => {
+    render(<SettingsPanel />);
+
+    const scaleSelect = screen.getByLabelText("settings.uiScale");
+    expect(
+      Array.from(scaleSelect.querySelectorAll("option")).map((option) => [
+        option.value,
+        option.textContent,
+      ]),
+    ).toEqual([
+      ["80", "S"],
+      ["100", "M"],
+      ["120", "L"],
+    ]);
+
+    fireEvent.change(scaleSelect, {
+      target: { value: "80" },
+    });
+
+    expect(setUiScaleMock).toHaveBeenCalledWith(80);
   });
 });

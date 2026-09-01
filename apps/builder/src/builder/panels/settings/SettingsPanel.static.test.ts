@@ -19,10 +19,21 @@ describe("SettingsPanel 공통 panel 구조", () => {
       "utf-8",
     );
 
-    expect(source).toContain('value: "auto"');
+    expect(source).toContain('id: "auto"');
     expect(source).toContain('t("settings.pageLayoutAuto")');
     expect(source).toContain("PropertySizeToggle");
     expect(source).toContain('className="settings-page-layout-toggle"');
+    expect(source).toContain('className="settings-theme-mode-toggle"');
+    expect(source).toContain('className="settings-ui-scale-toggle"');
+    expect(source).toContain('t("settings.themeModeAuto")');
+    expect(source).toContain('id: "light"');
+    expect(source).toContain('id: "dark"');
+    expect(source).toContain('id: "auto"');
+    expect(source).toContain('{ id: "80", label: "S" }');
+    expect(source).toContain('{ id: "100", label: "M" }');
+    expect(source).toContain('{ id: "120", label: "L" }');
+    expect(source).not.toContain("getThemeModeIcon");
+    expect(source).not.toContain("PropertySelect");
     expect(source).toContain("PropertyUnitInput");
     expect(source).toContain('t("settings.pageGap")');
     expect(source).toContain("value={String(pageGap)}");

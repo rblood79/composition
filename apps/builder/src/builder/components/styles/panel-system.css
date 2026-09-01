@@ -275,7 +275,8 @@
     .section-content {
       background-color: var(--bg-inset);
       padding: var(--spacing-sm);
-
+      display: flex;
+      flex-direction: column;
       gap: var(--spacing-sm);
 
       .fieldset-actions {

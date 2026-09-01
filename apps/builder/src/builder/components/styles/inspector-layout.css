@@ -587,7 +587,9 @@
       }
     }
 
-    .settings-page-layout-toggle.react-aria-ToggleButtonGroup[data-indicator="true"] {
+    .settings-page-layout-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
+    .settings-theme-mode-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
+    .settings-ui-scale-toggle.react-aria-ToggleButtonGroup[data-indicator="true"] {
       gap: var(--spacing);
 
       .react-aria-ToggleButton {
