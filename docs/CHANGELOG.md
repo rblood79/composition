@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Builder에 들어갈 때 패널과 선택 Action Bar가 빈 캔버스보다 먼저 보이던 문제를 고쳤습니다. 프로젝트 데이터와 CanvasKit·폰트·Surface가 준비되고, 현재 프로젝트 문서가 실제 Skia 프레임으로 화면에 제출된 뒤에만 두 UI가 나타납니다.
-- 기존 로딩 화면에 프로젝트 준비 단계를 반영한 진행률을 표시합니다. 시간에 따라 임의로 증가하거나 timeout으로 완료 처리하지 않으며, WebGL Canvas를 끈 경우에는 Preview iframe 준비 상태를 같은 완료 경계로 사용합니다.
+- Builder에 들어갈 때 Header·패널·선택 Action Bar가 빈 캔버스보다 먼저 보이던 문제를 고쳤습니다. 프로젝트 데이터와 CanvasKit·폰트·Surface가 준비되고, 현재 프로젝트 문서가 실제 Skia 프레임으로 화면에 제출된 뒤에만 이 chrome이 나타납니다.
+- 기존 로딩 화면에 프로젝트 준비 단계를 반영한 진행률을 표시합니다. 시간에 따라 임의로 증가하거나 timeout으로 완료 처리하지 않으며, WebGL Canvas를 끈 경우에는 Preview iframe 준비 상태를 같은 완료 경계로 사용합니다. 실제 첫 프레임이 제출된 뒤 100% 상태를 한 번 화면에 그린 다음 Builder chrome을 공개합니다. 별도 회전 아이콘이나 배경 패턴을 추가하지 않고 Builder 작업 영역의 dot background를 로딩 단계부터 그대로 보여줍니다.
 
 ## [설정을 지정하지 않은 표·배지가 캔버스와 미리보기에서 같은 크기로 그려집니다] - 2026-09-02
 

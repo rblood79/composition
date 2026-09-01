@@ -20,13 +20,52 @@ describe("BuilderCore canonical document direct cutover contract", () => {
       "documentRevision: canonicalState.documentVersion",
     );
     expect(source).toContain(
-      'className={isBuilderReady ? "app" : "app builder-booting"}',
+      'className={isBuilderPresented ? "app" : "app builder-booting"}',
     );
+    expect(source).toContain("hasPaintedBootstrapCompletion");
+    expect(source).toContain("const isBuilderPresented =");
+    expect(source).toContain("window.requestAnimationFrame");
     expect(source).toContain('className="loading-progress"');
     expect(source).toContain("value={bootstrapProgress}");
+    expect(styles).toContain(".app.builder-booting .header");
     expect(styles).toContain(".app.builder-booting .panel-dock-stage");
     expect(styles).toContain(".app.builder-booting .contextual-action-bar");
+    expect(styles).toContain(
+      ".app.builder-booting .workspace-status-indicator",
+    );
     expect(styles).toContain("visibility: hidden");
+  });
+
+  it("로딩 화면은 별도 아이콘이나 배경 패턴 없이 기존 workspace DotBackground를 노출한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCore.tsx"),
+      "utf-8",
+    );
+    const styles = await readFile(
+      resolve(__dirname, "../styles/modules/error-loading.css"),
+      "utf-8",
+    );
+    const canvasSource = await readFile(
+      resolve(__dirname, "../workspace/canvas/BuilderCanvas.tsx"),
+      "utf-8",
+    );
+    const translations = await readFile(
+      resolve(__dirname, "../../i18n/translations.ts"),
+      "utf-8",
+    );
+
+    expect(source).not.toContain("loading-cube");
+    expect(source).not.toContain("/appIcon.svg");
+    expect(styles).not.toContain("cube-spin");
+    expect(styles).toMatch(
+      /\.loading-overlay\s*\{[\s\S]*?background-color: transparent;/,
+    );
+    expect(styles).toContain(
+      '.app.builder-booting [data-testid="skia-canvas-unified"]',
+    );
+    expect(styles).toContain(".app.builder-booting .ruler-overlay");
+    expect(canvasSource).toContain("<DotBackground />");
+    expect(translations).not.toContain('canvasInitializing: "🔄');
   });
 
   it("legacy sidebar/modal hosts 대신 단일 PanelWorkspace를 사용한다", async () => {

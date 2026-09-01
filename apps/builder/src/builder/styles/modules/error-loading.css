@@ -46,18 +46,22 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--bg);
+    background-color: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
   }
 
-  /* 초기 bootstrap 동안에도 PanelWorkspace는 측정/geometry 계산을 계속한다.
-   * display:none/unmount 대신 presentation만 막아 first Skia flush 직후 같은
-   * geometry로 chrome을 노출한다. Header는 stage 밖이라 계속 유지된다. */
+  /* 초기 bootstrap 동안에도 PanelWorkspace 측정과 Skia render/flush는 계속한다.
+   * display:none/unmount 대신 presentation만 막아 기존 DotBackground를 노출하고,
+   * matching first flush의 100% 완료 paint 뒤 같은 geometry로 canvas/chrome을 표시한다. */
+  .app.builder-booting .header,
   .app.builder-booting .panel-dock-stage,
-  .app.builder-booting .contextual-action-bar {
+  .app.builder-booting .contextual-action-bar,
+  .app.builder-booting [data-testid="skia-canvas-unified"],
+  .app.builder-booting .ruler-overlay,
+  .app.builder-booting .workspace-status-indicator {
     visibility: hidden;
     pointer-events: none;
   }
@@ -66,53 +70,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
-  }
-
-  /* 3D Cube — 4면 구조 */
-  .loading-cube-wrapper {
-    width: 64px;
-    height: 64px;
-    perspective: 400px;
-  }
-
-  .loading-cube {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    transform-style: preserve-3d;
-    animation: cube-spin 3s cubic-bezier(0.68, -0.15, 0.32, 1.15) infinite;
-  }
-
-  .loading-cube-face {
-    position: absolute;
-    width: 64px;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backface-visibility: hidden;
-  }
-
-  .loading-cube-face img {
-    width: 54px;
-    height: 54px;
-  }
-
-  .loading-cube-front {
-    transform: rotateY(0deg) translateZ(32px);
-  }
-
-  .loading-cube-right {
-    transform: rotateY(90deg) translateZ(32px);
-  }
-
-  .loading-cube-back {
-    transform: rotateY(180deg) translateZ(32px);
-  }
-
-  .loading-cube-left {
-    transform: rotateY(270deg) translateZ(32px);
   }
 
   .loading-text {
@@ -169,28 +126,5 @@
     gap: 12px;
     color: var(--fg);
     font-size: 14px;
-  }
-
-  /* 90도씩 단계별 회전 + 각 면에서 잠깐 멈춤 */
-  @keyframes cube-spin {
-    0%,
-    15% {
-      transform: rotateY(0deg);
-    }
-    25%,
-    40% {
-      transform: rotateY(-90deg);
-    }
-    50%,
-    65% {
-      transform: rotateY(-180deg);
-    }
-    75%,
-    90% {
-      transform: rotateY(-270deg);
-    }
-    100% {
-      transform: rotateY(-360deg);
-    }
   }
 }

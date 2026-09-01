@@ -225,6 +225,8 @@ export const BuilderCore: React.FC = () => {
   // effect가 시작되기 전 첫 render부터 loading이어야 chrome flash가 없다.
   const [projectBootstrapPhase, setProjectBootstrapPhase] =
     useState<ProjectBootstrapPhase>("project");
+  const [hasPaintedBootstrapCompletion, setHasPaintedBootstrapCompletion] =
+    useState(false);
   const isCanvasReady = useCanvasLifecycleStore((state) => state.isCanvasReady);
   const canvasBootstrapPhase = useCanvasLifecycleStore(
     (state) => state.bootstrapPhase,
@@ -1322,14 +1324,33 @@ export const BuilderCore: React.FC = () => {
     ? isCanvasReady
     : iframeReadyState === "ready";
   const isBuilderReady = projectBootstrapPhase === "renderer" && rendererReady;
+  useEffect(() => {
+    if (!isBuilderReady) {
+      setHasPaintedBootstrapCompletion(false);
+      return;
+    }
+
+    let revealFrameId = 0;
+    const completionFrameId = window.requestAnimationFrame(() => {
+      revealFrameId = window.requestAnimationFrame(() => {
+        setHasPaintedBootstrapCompletion(true);
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(completionFrameId);
+      window.cancelAnimationFrame(revealFrameId);
+    };
+  }, [isBuilderReady]);
+
+  const isBuilderPresented = isBuilderReady && hasPaintedBootstrapCompletion;
   const bootstrapProgress = resolveBootstrapProgress(
     projectBootstrapPhase,
     canvasBootstrapPhase,
     isBuilderReady,
   );
   const isInitialBootstrap =
-    projectBootstrapPhase !== "error" && !isBuilderReady;
-  const isPageOnlyLoading = isBuilderReady && isPageLoading;
+    projectBootstrapPhase !== "error" && !isBuilderPresented;
+  const isPageOnlyLoading = isBuilderPresented && isPageLoading;
   const showLoadingOverlay = isInitialBootstrap || isPageLoading;
   const hasCanvasBootstrapError =
     isInitialBootstrap && canvasBootstrapPhase === "error";
@@ -1340,7 +1361,9 @@ export const BuilderCore: React.FC = () => {
       : t("messages.loadingData");
 
   return (
-    <BuilderViewport className={isBuilderReady ? "app" : "app builder-booting"}>
+    <BuilderViewport
+      className={isBuilderPresented ? "app" : "app builder-booting"}
+    >
       {/* ADR-155 Phase 2: 캔버스 전역 선택 단축키 host — 패널 Activity gating 과
           무관하게 항상 mounted. leaf null 렌더라 구독 재렌더가 여기로 전파 안 됨 */}
       <CanvasSelectionShortcutsHost />
@@ -1369,22 +1392,6 @@ export const BuilderCore: React.FC = () => {
             </div>
           ) : (
             <div className="loading-content">
-              <div className="loading-cube-wrapper">
-                <div className="loading-cube">
-                  <div className="loading-cube-face loading-cube-front">
-                    <img src="/appIcon.svg" alt="" width={54} height={54} />
-                  </div>
-                  <div className="loading-cube-face loading-cube-right">
-                    <img src="/appIcon.svg" alt="" width={54} height={54} />
-                  </div>
-                  <div className="loading-cube-face loading-cube-back">
-                    <img src="/appIcon.svg" alt="" width={54} height={54} />
-                  </div>
-                  <div className="loading-cube-face loading-cube-left">
-                    <img src="/appIcon.svg" alt="" width={54} height={54} />
-                  </div>
-                </div>
-              </div>
               <div className="loading-status">
                 <div className="loading-text">{loadingLabel}</div>
                 {!isPageOnlyLoading && (

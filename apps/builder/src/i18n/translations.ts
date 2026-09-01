@@ -1004,7 +1004,7 @@ const koKR: TranslationKeys = {
   },
   workspace: {
     canvasRecovering: "⚠️ GPU 리소스 복구 중...",
-    canvasInitializing: "🔄 캔버스 초기화 중...",
+    canvasInitializing: "캔버스 초기화 중...",
     workArea: "패널 작업 영역",
     movePanel: "{panel} 패널 이동",
     resizePanel: "{panel} 패널 {edge} 크기 조절",
@@ -2427,7 +2427,7 @@ const enUS: TranslationKeys = {
   },
   workspace: {
     canvasRecovering: "⚠️ Recovering GPU resources…",
-    canvasInitializing: "🔄 Preparing the canvas…",
+    canvasInitializing: "Preparing the canvas…",
     workArea: "Panel workspace",
     movePanel: "Move {panel} panel",
     resizePanel: "Resize {panel} panel {edge}",
