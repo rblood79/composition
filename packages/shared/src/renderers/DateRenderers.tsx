@@ -8,6 +8,7 @@ import {
 } from "../components/list";
 import { I18nProvider } from "react-aria-components";
 import type { PreviewElement, RenderContext } from "../types";
+import { resolvePropagatedText } from "./utils/propagatedLabel";
 import { today, now, getLocalTimeZone, Time } from "@internationalized/date";
 
 /**
@@ -205,7 +206,15 @@ export const renderDatePicker = (
       size={(size as "sm" | "md" | "lg") || "md"}
       locale={locale}
       calendarSystem={calendarSystem}
-      label={String(element.props.label || "Date Picker")}
+      // ADR-923 r17m1: parent `label` 이 propagation SSOT (빈 문자열 = 비움) — undefined 일 때만
+      //   Label 자식 (legacy), 그것도 없으면 "Date Picker".
+      label={resolvePropagatedText(
+        element.props.label,
+        context.childrenByParent
+          .get(element.id)
+          ?.find((c) => c.type === "Label"),
+        "Date Picker",
+      )}
       description={String(element.props.description || "")}
       errorMessage={String(element.props.errorMessage || "")}
       placeholder={resolvePlaceholder(element.props)}
@@ -301,7 +310,15 @@ export const renderDateRangePicker = (
       style={element.props.style}
       className={element.props.className}
       size={(size as "sm" | "md" | "lg") || "md"}
-      label={String(element.props.label || "Date Range Picker")}
+      // ADR-923 r17m1: parent `label` 이 propagation SSOT (빈 문자열 = 비움) — undefined 일 때만
+      //   Label 자식 (legacy), 그것도 없으면 "Date Range Picker".
+      label={resolvePropagatedText(
+        element.props.label,
+        context.childrenByParent
+          .get(element.id)
+          ?.find((c) => c.type === "Label"),
+        "Date Range Picker",
+      )}
       description={String(element.props.description || "")}
       errorMessage={String(element.props.errorMessage || "")}
       placeholder={resolvePlaceholder(element.props)}
@@ -408,7 +425,15 @@ export const renderDateField = (
       data-element-id={element.id}
       style={element.props.style}
       className={element.props.className}
-      label={String(element.props.label || "Date")}
+      // ADR-923 r17m1: parent `label` 이 propagation SSOT (빈 문자열 = 비움) — undefined 일 때만
+      //   Label 자식 (legacy), 그것도 없으면 "Date".
+      label={resolvePropagatedText(
+        element.props.label,
+        context.childrenByParent
+          .get(element.id)
+          ?.find((c) => c.type === "Label"),
+        "Date",
+      )}
       description={String(element.props.description || "")}
       errorMessage={String(element.props.errorMessage || "")}
       size={
@@ -484,7 +509,15 @@ export const renderTimeField = (
       data-element-id={element.id}
       style={element.props.style}
       className={element.props.className}
-      label={String(element.props.label || "Time")}
+      // ADR-923 r17m1: parent `label` 이 propagation SSOT (빈 문자열 = 비움) — undefined 일 때만
+      //   Label 자식 (legacy), 그것도 없으면 "Time".
+      label={resolvePropagatedText(
+        element.props.label,
+        context.childrenByParent
+          .get(element.id)
+          ?.find((c) => c.type === "Label"),
+        "Time",
+      )}
       description={String(element.props.description || "")}
       errorMessage={String(element.props.errorMessage || "")}
       size={

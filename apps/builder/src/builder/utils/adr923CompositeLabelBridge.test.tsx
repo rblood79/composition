@@ -83,9 +83,29 @@ describe("ADR-923 r16m1 — composite parent label ↔ canonical Label 자식 �
     ({ def }) => labelChildText(def) !== undefined,
   );
 
-  it("sweep 대상: 직접 Label 자식 (문자열 children) 을 만드는 factory 가족이 있다", () => {
-    expect(withLabel.map(({ def }) => def.type)).toContain("ColorField");
-    expect(withLabel.length).toBeGreaterThanOrEqual(10);
+  it("sweep 대상 = 직접 Label 자식 (문자열 children) 을 만드는 factory 20 가족 (정확한 집합 — 문서 수치와 동일, r17l1)", () => {
+    expect([...new Set(withLabel.map(({ def }) => def.type))].sort()).toEqual([
+      "Checkbox",
+      "CheckboxGroup",
+      "ColorField",
+      "ComboBox",
+      "DateField",
+      "DatePicker",
+      "DateRangePicker",
+      "Meter",
+      "NumberField",
+      "ProgressBar",
+      "Radio",
+      "RadioGroup",
+      "SearchField",
+      "Select",
+      "Slider",
+      "Switch",
+      "TagGroup",
+      "TextArea",
+      "TextField",
+      "TimeField",
+    ]);
   });
 
   it("모든 가족: registry `→ Label.children` 규칙 + 생성 시 parent SSOT == Label 텍스트 + 변경 도달", () => {
@@ -221,6 +241,29 @@ describe("ADR-923 r16m1 — ColorField label: Preview DOM == Skia·레이아웃 
         <>{rendererMap[type]!(legacy, previewContext([staleLabel]))}</>,
       );
       expect(legacyRender.container.textContent).toContain("Checkbox Group");
+    }
+  });
+  it('r17m1: parent `label: ""` 는 비움 — Preview 가 stale Label 자식으로 되살리지 않고 Skia·레이아웃도 "" 를 자식에 override', () => {
+    for (const type of ["CheckboxGroup", "RadioGroup"]) {
+      const parent = {
+        id: `${type}-e`,
+        type,
+        props: { label: "" },
+      } as unknown as PreviewElement;
+      const staleLabel = {
+        id: `${type}-e-label`,
+        type: "Label",
+        parent_id: parent.id,
+        props: { children: "Stale Group" },
+      } as unknown as PreviewElement;
+      const { container } = render(
+        <>{rendererMap[type]!(parent, previewContext([staleLabel]))}</>,
+      );
+      expect(container.textContent).not.toContain("Stale Group");
+      const patch = resolvePropagatedProps(type, parent.props, "Label", {
+        children: "Stale Group",
+      });
+      expect(patch?.children).toBe("");
     }
   });
 });

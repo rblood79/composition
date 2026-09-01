@@ -8,6 +8,8 @@ import {
   pencilNodeToCompositionDocument,
 } from "@composition/shared";
 
+import { applyCanonicalDocumentMigrations } from "../../adapters/canonical/canonicalDocumentMigrations";
+
 const COMPOSITION_DOCUMENT_VERSION_PREFIX = "composition-";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -33,22 +35,29 @@ export function normalizeCompositionImportPayload(
   payload: unknown,
   source: string,
 ): CompositionDocument {
+  // ADR-923 r17m2 (2026-09-01): external import master 도 main document 와 같은 형태 migration 체인을
+  //   통과한다 — 종전엔 어느 migration 도 안 거쳐 legacy ColorField (parent label 부재) 가 Preview
+  //   무라벨 / Skia "Color" 로 남았다. 멱등 — 고칠 게 없으면 같은 참조.
   if (isCompositionDocumentPayload(payload)) {
-    return payload;
+    return applyCanonicalDocumentMigrations(payload);
   }
 
   if (isPencilPayloadDocument(payload)) {
-    return pencilDocumentToCompositionDocument(payload, {
-      source,
-      forceTopLevelReusable: true,
-    });
+    return applyCanonicalDocumentMigrations(
+      pencilDocumentToCompositionDocument(payload, {
+        source,
+        forceTopLevelReusable: true,
+      }),
+    );
   }
 
   if (isRecord(payload) && typeof payload.id === "string") {
-    return pencilNodeToCompositionDocument(payload as PencilNode, {
-      source,
-      forceTopLevelReusable: true,
-    });
+    return applyCanonicalDocumentMigrations(
+      pencilNodeToCompositionDocument(payload as PencilNode, {
+        source,
+        forceTopLevelReusable: true,
+      }),
+    );
   }
 
   throw new Error(

@@ -41,6 +41,7 @@ import {
   isListBoxSectionEntry,
   isGridListSectionEntry,
 } from "@composition/specs";
+import { resolvePropagatedText } from "./utils/propagatedLabel";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
 // ADR-148 Phase 0 — slot 구성 소비 (origin slot 자식의 존재 gating / 스타일 / 순서).
 import {
@@ -1554,10 +1555,8 @@ export const renderComboBox = (
     : [];
   const inputEl = wrapperChildren.find((c) => c.type === "SelectValue");
 
-  // child element props 우선 → parent props fallback
-  const comboLabel = labelEl
-    ? String(labelEl.props?.children || "")
-    : String(element.props.label || "");
+  // ADR-923 r17m1: parent `label` 이 propagation SSOT — undefined 일 때만 Label 자식 (legacy).
+  const comboLabel = resolvePropagatedText(element.props.label, labelEl);
   const comboPlaceholder = inputEl
     ? String(inputEl.props?.placeholder || "")
     : String(element.props.placeholder || "");

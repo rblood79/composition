@@ -47,10 +47,7 @@ import {
 import { migrateLegacyListBoxTemplatesToOrigins } from "./legacyListBoxTemplateMigration";
 import { ensureGridListTemplateOrigins } from "../../builder/components/gridlist/gridListTemplateOrigins";
 import { ensureMenuTemplateOrigins } from "../../builder/components/menu/menuTemplateOrigins";
-import { migrateCheckboxRadioItemsStructure } from "./checkboxRadioItemsMigration";
-import { migrateFieldInlineLayout } from "./fieldInlineLayoutMigration";
-import { migrateColorFieldParentLabel } from "./colorFieldParentLabelMigration";
-import { migrateCircleLeafInlineSize } from "./circleLeafInlineSizeMigration";
+import { applyCanonicalDocumentMigrations } from "./canonicalDocumentMigrations";
 import { ensureReusableCompositeOrigins } from "../../builder/components/reusableCompositeOrigins";
 import { buildIdPathContext, segId } from "./idPath";
 import { buildLegacyElementMetadata } from "./legacyMetadata";
@@ -332,30 +329,20 @@ export function legacyToCanonical(
   return ensureReusableCompositeOrigins(
     // 2026-07-14: 정원형 leaf(Avatar/ProgressCircle) stale inline width/height strip —
     //   size 변경이 selection 영역에 반영되도록 크기 결정권을 catalog sizes 로 환원.
-    migrateCircleLeafInlineSize(
-      // ADR-913 후속 (2026-06-19): field family inline display/flexDirection strip —
-      //   labelPosition="side" CSS↔Skia 대칭 복구. checkboxRadio migration 동형 chain.
-      migrateFieldInlineLayout(
-        // ADR-923 r16m1 (2026-09-01): ColorField parent label 보충 — Preview/Skia 라벨 대칭.
-        migrateColorFieldParentLabel(
-          migrateCheckboxRadioItemsStructure(
-            // ADR-148 Phase 4: GridListItem/MenuItem collection item slot origin —
-            //   ListBox 동형 hydration 체인 (Components 페이지 seed, 멱등 repair).
-            ensureMenuTemplateOrigins(
-              ensureGridListTemplateOrigins(
-                migrateLegacyListBoxTemplatesToOrigins({
-                  version: "composition-1.0",
-                  ...(themesSnapshot !== undefined
-                    ? { themes: themesSnapshot }
-                    : {}),
-                  ...(tokensSnapshot !== undefined
-                    ? { tokens: tokensSnapshot }
-                    : {}),
-                  children: [...layoutFrames, ...reusableMasters, ...pageNodes],
-                }),
-              ),
-            ),
-          ),
+    // ADR-923 r17m2 (2026-09-01): 형태 migration 4개 (CheckboxRadio 구조 · ColorField parent label ·
+    //   field inline layout strip · circle leaf inline size strip) 는 단일 체인
+    //   `applyCanonicalDocumentMigrations` — usePageManager persist-back · external import 와 같은 함수.
+    applyCanonicalDocumentMigrations(
+      // ADR-148 Phase 4: GridListItem/MenuItem collection item slot origin —
+      //   ListBox 동형 hydration 체인 (Components 페이지 seed, 멱등 repair).
+      ensureMenuTemplateOrigins(
+        ensureGridListTemplateOrigins(
+          migrateLegacyListBoxTemplatesToOrigins({
+            version: "composition-1.0",
+            ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
+            ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
+            children: [...layoutFrames, ...reusableMasters, ...pageNodes],
+          }),
         ),
       ),
     ),

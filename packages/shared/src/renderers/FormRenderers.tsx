@@ -1,5 +1,7 @@
 import React from "react";
 import { resolveTextSourceText, TAILWIND_PALETTE } from "@composition/specs";
+
+import { resolvePropagatedText } from "./utils/propagatedLabel";
 import {
   Form,
   TextField,
@@ -394,10 +396,8 @@ export const renderSearchField = (
     : [];
   const inputEl = wrapperChildren.find((c) => c.type === "SelectValue");
 
-  // child element props 우선 → parent props fallback
-  const label = labelEl
-    ? String(labelEl.props?.children || "")
-    : String(element.props.label || "");
+  // ADR-923 r17m1: parent `label` 이 propagation SSOT — undefined 일 때만 Label 자식 (legacy).
+  const label = resolvePropagatedText(element.props.label, labelEl);
   const placeholder = inputEl
     ? String(inputEl.props?.placeholder || "")
     : String(element.props.placeholder || "");
@@ -713,14 +713,12 @@ export const renderCheckboxGroup = (
   // isSelected: true인 체크박스들의 ID를 value 배열로 생성
   const selectedValues = getSelectedChildIds(checkboxChildren);
 
-  // 그룹 라벨: parent `label`(D2 SSOT — Inspector binding·AI writer) 우선, Label 자식 텍스트는
-  //   parent 에 없는 legacy 문서 폴백 (renderElement 호출 제거 — 이중 렌더링 방지).
-  //   ADR-923 r16m1: Skia·레이아웃은 propagation `label → Label.children`(override) 로 parent 를
-  //   읽으므로 Preview 도 parent 우선이어야 AI 가 parent 만 쓴 문서에서 세 표면이 같다.
+  // 그룹 라벨: parent `label`(D2 SSOT — Inspector binding·AI writer) 이 undefined 가 아니면 그 값
+  //   그대로 (빈 문자열 = 사용자가 비움, r17m1), undefined 면 Label 자식 텍스트 (legacy 문서 폴백;
+  //   renderElement 호출 제거 — 이중 렌더링 방지). propagation engine 과 같은 경계 —
+  //   `resolvePropagatedText` 참조 (ADR-923 r16m1·r17m1).
   const groupLabel =
-    (element.props.label as string) ||
-    (labelChild?.props?.children as string) ||
-    undefined;
+    resolvePropagatedText(element.props.label, labelChild) || undefined;
 
   return (
     <CheckboxGroup
@@ -912,14 +910,12 @@ export const renderRadioGroup = (
     context.childrenByParent.get(radioParentId) ?? []
   ).filter((child) => child.type === "Radio");
 
-  // 그룹 라벨: parent `label`(D2 SSOT — Inspector binding·AI writer) 우선, Label 자식 텍스트는
-  //   parent 에 없는 legacy 문서 폴백 (renderElement 호출 제거 — 이중 렌더링 방지).
-  //   ADR-923 r16m1: Skia·레이아웃은 propagation `label → Label.children`(override) 로 parent 를
-  //   읽으므로 Preview 도 parent 우선이어야 AI 가 parent 만 쓴 문서에서 세 표면이 같다.
+  // 그룹 라벨: parent `label`(D2 SSOT — Inspector binding·AI writer) 이 undefined 가 아니면 그 값
+  //   그대로 (빈 문자열 = 사용자가 비움, r17m1), undefined 면 Label 자식 텍스트 (legacy 문서 폴백;
+  //   renderElement 호출 제거 — 이중 렌더링 방지). propagation engine 과 같은 경계 —
+  //   `resolvePropagatedText` 참조 (ADR-923 r16m1·r17m1).
   const groupLabel =
-    (element.props.label as string) ||
-    (labelChild?.props?.children as string) ||
-    undefined;
+    resolvePropagatedText(element.props.label, labelChild) || undefined;
 
   // 선택값 정본: 자식 Radio 의 isSelected 우선, 없으면 그룹 value fallback.
   //   RAC Radio 에는 isSelected prop 이 없고 선택은 그룹 value(자기 value 일치) 로만

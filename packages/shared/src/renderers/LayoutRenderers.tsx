@@ -34,6 +34,7 @@ import {
   getIconData,
   TAILWIND_PALETTE,
 } from "@composition/specs";
+import { resolvePropagatedText } from "./utils/propagatedLabel";
 
 /** ColorSwatch/ColorPicker 기본값 — 팔레트 단일 원천 (ADR-191 R8). */
 const DEFAULT_SWATCH_HEX = TAILWIND_PALETTE.blue[500];
@@ -776,9 +777,8 @@ export const renderProgressBar = (
   const labelEl = childrenByParent
     .get(element.id)
     ?.find((c) => c.type === "Label");
-  const label = labelEl
-    ? String(labelEl.props?.children || "")
-    : String(element.props.label || "");
+  // ADR-923 r17m1: parent `label` 이 propagation SSOT — undefined 일 때만 Label 자식 (legacy).
+  const label = resolvePropagatedText(element.props.label, labelEl);
 
   return (
     <ProgressBar
@@ -836,9 +836,8 @@ export const renderMeter = (
   const meterLabelEl = childrenByParent
     .get(element.id)
     ?.find((c) => c.type === "Label");
-  const meterLabel = meterLabelEl
-    ? String(meterLabelEl.props?.children || "")
-    : String(element.props.label || "");
+  // ADR-923 r17m1: parent `label` 이 propagation SSOT — undefined 일 때만 Label 자식 (legacy).
+  const meterLabel = resolvePropagatedText(element.props.label, meterLabelEl);
 
   return (
     <Meter
@@ -1681,12 +1680,11 @@ export const renderDisclosure = (
     (c) => c.type === "DisclosureHeader" || c.type === "Heading",
   );
 
+  // ADR-923 r17m3: 헤더 자식의 텍스트는 타입별 계약 (`DisclosureHeader` 기본 군 `children`) —
+  //   종전 `children || title` 은 AI 가 헤더에 `title` 만 쓰면 Preview 만 그 값을 보였다 (Skia·레이아웃은
+  //   계약상 내용 없음). 헤더 자식이 없는 legacy 문서만 parent `title` 폴백.
   const title = headerEl
-    ? String(
-        (headerEl.props as Record<string, unknown>).children ||
-          (headerEl.props as Record<string, unknown>).title ||
-          "Section",
-      )
+    ? resolveTextSourceText(headerEl.type, headerEl.props) || "Section"
     : String(element.props.title || "Section");
 
   const contentChildren = children.filter(

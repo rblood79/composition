@@ -33,10 +33,7 @@ import { countUserPagesForAutoName } from "../pages/systemComponentsPage";
 import { migrateLegacyListBoxTemplatesToOrigins } from "../../adapters/canonical/legacyListBoxTemplateMigration";
 import { ensureGridListTemplateOrigins } from "../components/gridlist/gridListTemplateOrigins";
 import { ensureMenuTemplateOrigins } from "../components/menu/menuTemplateOrigins";
-import { migrateCheckboxRadioItemsStructure } from "../../adapters/canonical/checkboxRadioItemsMigration";
-import { migrateFieldInlineLayout } from "../../adapters/canonical/fieldInlineLayoutMigration";
-import { migrateColorFieldParentLabel } from "../../adapters/canonical/colorFieldParentLabelMigration";
-import { migrateCircleLeafInlineSize } from "../../adapters/canonical/circleLeafInlineSizeMigration";
+import { applyCanonicalDocumentMigrations } from "../../adapters/canonical/canonicalDocumentMigrations";
 import { ensureReusableCompositeOrigins } from "../components/reusableCompositeOrigins";
 import { resolvePageLayoutBounds } from "../workspace/canvas/pageLayoutConstants";
 
@@ -397,19 +394,12 @@ export const usePageManager = ({
         const document = ensureReusableCompositeOrigins(
           // 2026-07-14: 정원형 leaf(Avatar/ProgressCircle) stale inline width/height strip
           //   (persist-back 경로) — 크기 결정권을 catalog sizes 로 환원.
-          migrateCircleLeafInlineSize(
-            // ADR-913 후속 (2026-06-19): field inline display/flexDirection strip (persist-back 경로).
-            migrateFieldInlineLayout(
-              // ADR-923 r16m1 (2026-09-01): ColorField parent label 보충 (persist-back 경로).
-              migrateColorFieldParentLabel(
-                migrateCheckboxRadioItemsStructure(
-                  // ADR-148 Phase 4: GridListItem/MenuItem slot origin — ListBox 동형 체인.
-                  ensureMenuTemplateOrigins(
-                    ensureGridListTemplateOrigins(
-                      migrateLegacyListBoxTemplatesToOrigins(baseDocument),
-                    ),
-                  ),
-                ),
+          // ADR-923 r17m2 (2026-09-01): 형태 migration 4개는 단일 체인 (hydration · external import 와 동일).
+          applyCanonicalDocumentMigrations(
+            // ADR-148 Phase 4: GridListItem/MenuItem slot origin — ListBox 동형 체인.
+            ensureMenuTemplateOrigins(
+              ensureGridListTemplateOrigins(
+                migrateLegacyListBoxTemplatesToOrigins(baseDocument),
               ),
             ),
           ),
