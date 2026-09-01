@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { CanvasLayoutNode } from "../../layoutNode";
 import {
+  calculateContentHeight,
   calculateContentWidth,
+  resolveTagWrapLayout,
   resolveTextLeafContent,
   resolveTextLeafWhiteSpace,
   textLeafRendersContent,
@@ -177,12 +179,149 @@ describe("ADR-923 r18m1 — DisclosureHeader/Breadcrumb 측정도 타입별 계�
   it("Breadcrumb: children 만 — AI label/title 은 폭에 실리지 않는다", () => {
     const base = measure("Breadcrumb", { children: "Home" });
     expect(base).toBeGreaterThan(0);
-    expect(measure("Breadcrumb", { label: "Home" })).toBe(0);
+    // r19m1: 빈 라벨도 non-last separator 폭은 남는다 (DOM ::after · Skia) — "" crumb 와 같아야 한다.
+    expect(measure("Breadcrumb", { label: "Home" })).toBe(
+      measure("Breadcrumb", { children: "" }),
+    );
+    expect(measure("Breadcrumb", { label: "Home" })).toBeLessThan(base);
     expect(
       measure("Breadcrumb", {
         children: "Home",
         title: "AI wrote a long title",
       }),
     ).toBe(base);
+  });
+});
+
+/**
+ * ADR-923 r19m1 — 집계·간접 분기의 기본 글자. Breadcrumbs 컨테이너 측정은 직접 자식만 봐서 items
+ * projection 문서 (자식 = Rows 그룹) 에서 crumb 0 → 항상 "Home"/"Products"/"Detail" 폭을 주입했고
+ * (DOM/Skia 는 그 글자를 만들지 않는다), 빈 라벨 crumb 은 non-last separator 폭 (DOM `::after` ·
+ * Skia breadcrumb_crumb) 을 잃었다. TagList 는 `label || \`Tag N\`` 로 이 측정만의 기본 글자였다
+ * (DOM/Skia 는 toItemProjectionRow 로 itemKey 를 그린다). IllustratedMessage 는 "" 줄을 접지 않았다.
+ */
+describe("ADR-923 r19m1 — Breadcrumbs 집계 · TagList 라벨 정규화 · IllustratedMessage '' 줄", () => {
+  const crumb = (id: string, children: string, isLast: boolean) =>
+    ({
+      id,
+      type: "Breadcrumb",
+      props: {
+        children,
+        _isLast: isLast,
+        _separator: "›",
+        size: "M",
+        style: { width: "fit-content" },
+      },
+    }) as unknown as CanvasLayoutNode;
+  const measureBreadcrumbs = (
+    crumbs: CanvasLayoutNode[],
+    parentProps: Record<string, unknown> = { size: "M" },
+  ) => {
+    const rows = {
+      id: "bc-rows",
+      type: "Rows",
+      props: { style: { display: "flex", flexDirection: "row" } },
+    } as unknown as CanvasLayoutNode;
+    const byId = new Map<string, CanvasLayoutNode[]>([[rows.id, crumbs]]);
+    return calculateContentWidth(
+      {
+        id: "bc",
+        type: "Breadcrumbs",
+        props: parentProps,
+      } as unknown as CanvasLayoutNode,
+      [rows],
+      (id) => byId.get(id) ?? [],
+    );
+  };
+
+  it("Breadcrumbs: projection crumb (Rows 아래) 의 실제 라벨 합 — 종전 기본 3 crumb 폭", () => {
+    const crumbs = [
+      crumb("c1", "A", false),
+      crumb("c2", "B", false),
+      crumb("c3", "C", true),
+    ];
+    const w = measureBreadcrumbs(crumbs);
+    const sum = crumbs.reduce((acc, c) => acc + calculateContentWidth(c), 0);
+    expect(w).toBeGreaterThan(0);
+    expect(Math.abs(w - sum)).toBeLessThanOrEqual(crumbs.length); // crumb 별 ceil 오차
+    expect(w).toBeLessThan(120); // "Home › Products › Detail" (≈200) 이 아니다
+  });
+
+  it("Breadcrumbs: crumb 0 → 0 (기본 crumb 없음)", () => {
+    expect(
+      calculateContentWidth(
+        {
+          id: "bc0",
+          type: "Breadcrumbs",
+          props: { size: "M" },
+        } as unknown as CanvasLayoutNode,
+        [],
+      ),
+    ).toBe(0);
+    expect(measureBreadcrumbs([])).toBe(0);
+  });
+
+  it("Breadcrumbs: 라벨 전부 '' → non-last separator 폭만", () => {
+    const sepOnly = calculateContentWidth(crumb("s", "", false));
+    expect(sepOnly).toBeGreaterThan(0);
+    expect(calculateContentWidth(crumb("l", "", true))).toBe(0);
+    const w = measureBreadcrumbs([
+      crumb("c1", "", false),
+      crumb("c2", "", false),
+      crumb("c3", "", true),
+    ]);
+    expect(Math.abs(w - sepOnly * 2)).toBeLessThanOrEqual(1);
+  });
+
+  it("Breadcrumbs: pre-migration 자식 Breadcrumb element 도 같은 계약 (children 만, 마지막은 index)", () => {
+    const legacy = [
+      { id: "l1", type: "Breadcrumb", props: { children: "Home" } },
+      { id: "l2", type: "Breadcrumb", props: { label: "AI only" } },
+    ] as unknown as CanvasLayoutNode[];
+    const w = calculateContentWidth(
+      {
+        id: "bcl",
+        type: "Breadcrumbs",
+        props: { size: "M" },
+      } as unknown as CanvasLayoutNode,
+      legacy,
+    );
+    const expected = calculateContentWidth(crumb("x", "Home", false)); // 두 번째는 last + "" → 0
+    expect(Math.abs(w - expected)).toBeLessThanOrEqual(1);
+  });
+
+  it("TagList: 빈 label 은 DOM/Skia 처럼 itemKey 를 그린다 — 측정도 같은 정규화 (종전 'Tag N')", () => {
+    const items = [
+      { id: "an-identifier-long-enough-to-wrap-the-row", label: "" },
+      { id: "another-identifier-long-enough-to-wrap-row", label: "" },
+    ];
+    const base = {
+      containerWidth: 160,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 0,
+    };
+    const r = resolveTagWrapLayout({ items, ...base });
+    const named = resolveTagWrapLayout({
+      items: items.map((it) => ({ ...it, label: it.id })),
+      ...base,
+    });
+    expect(named.rowCount).toBe(2);
+    expect(r.rowCount).toBe(2); // "Tag 1"/"Tag 2" 면 한 줄
+    expect(r.contentHeight).toBe(named.contentHeight);
+  });
+
+  it("IllustratedMessage: heading/description '' → 그 줄과 gap 이 빠진다, 부재는 기본 글자 줄 유지", () => {
+    const h = (props: Record<string, unknown>) =>
+      calculateContentHeight({
+        id: "im",
+        type: "IllustratedMessage",
+        props: { size: "md", ...props },
+      } as unknown as CanvasLayoutNode);
+    const full = h({});
+    expect(full).toBe(240); // 24 + 120 + 12 + 27 + 12 + 21 + 24
+    expect(h({ heading: "No content" })).toBe(full);
+    expect(h({ heading: "" })).toBe(full - 12 - 27);
+    expect(h({ heading: "", description: "" })).toBe(full - 12 - 27 - 12 - 21);
   });
 });

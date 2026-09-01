@@ -33,6 +33,7 @@ import {
   resolveTextSourceText,
   getIconData,
   TAILWIND_PALETTE,
+  resolveIllustratedMessageText,
 } from "@composition/specs";
 import { resolvePropagatedText } from "./utils/propagatedLabel";
 
@@ -588,15 +589,12 @@ export const renderButton = (
             )
           : null;
         // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (Button 은 기본 군 `children`; Skia ·
-        //   레이아웃과 같은 단일 지점). 자식·아이콘 없고 children 미지정일 때의 "Button" 폴백은
-        //   종전 그대로 (children 이 빈 문자열이면 폴백 없음).
+        //   레이아웃과 같은 단일 지점).
+        // ADR-923 r19m1 — 계약 결과가 비면 글자 없음. 종전 "자식·아이콘 없고 children 미지정 →
+        //   'Button'" 폴백은 이 legacy 경로 (`?canonical=0` · canonical 실패 안전망) 만의 두 번째
+        //   원천이었다 — Skia buildCatalogShapes 는 "" 면 text shape 를 만들지 않는다.
         const buttonText = resolveTextSourceText("Button", element.props);
-        const textContent =
-          buttonText !== "" || typeof element.props.children === "string"
-            ? buttonText
-            : children.length === 0 && !iconName
-              ? "Button"
-              : null;
+        const textContent = buttonText !== "" ? buttonText : null;
 
         return (
           <>
@@ -2068,9 +2066,12 @@ export const renderIllustratedMessage = (
   element: PreviewElement,
   _context: RenderContext,
 ): React.ReactNode => {
-  const heading = (element.props.heading as string) || "No content";
-  const description =
-    (element.props.description as string) || "There is nothing to display.";
+  // ADR-923 r19m1 — 텍스트 원천 단일 지점 (specs). 종전 `||` 는 사용자가 비운 "" 를 "No content"
+  //   로 되살려 Skia (`??`, 빈 줄) 와 갈렸다. 세 표면 동일: 부재 → 기본 글자, "" → 줄 자체 없음
+  //   (빈 div 도 flex gap 을 차지하므로 미렌더 — layout 높이 차감 · Skia y 접힘과 정합).
+  const { heading, description } = resolveIllustratedMessageText(
+    element.props as Record<string, unknown>,
+  );
 
   return (
     <div
@@ -2106,12 +2107,16 @@ export const renderIllustratedMessage = (
       >
         &#9675;
       </div>
-      <div style={{ fontSize: 18, fontWeight: 600, color: "var(--fg)" }}>
-        {heading}
-      </div>
-      <div style={{ fontSize: 14, color: "var(--fg-muted)" }}>
-        {description}
-      </div>
+      {heading !== "" ? (
+        <div style={{ fontSize: 18, fontWeight: 600, color: "var(--fg)" }}>
+          {heading}
+        </div>
+      ) : null}
+      {description !== "" ? (
+        <div style={{ fontSize: 14, color: "var(--fg-muted)" }}>
+          {description}
+        </div>
+      ) : null}
     </div>
   );
 };

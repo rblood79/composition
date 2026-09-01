@@ -55,6 +55,7 @@ import {
   // ADR-151 후속 (2026-07-17): IllustratedMessage 높이 분기 — escape(skiaPrimitives)/DOM 과
   //   동일 metric SSOT (Layer D 동일 resolver 원칙).
   resolveIllustratedMessageMetric,
+  resolveIllustratedMessageText,
 } from "@composition/specs";
 import type { SizeSpec, CollectionRowMetricEntry } from "@composition/specs";
 import {
@@ -85,6 +86,7 @@ import {
   isSlotEnabled,
   readSlotComposition,
   resolveSelectionCheckboxVisible,
+  toItemProjectionRow,
 } from "@composition/shared";
 import {
   resolveSkiaRule,
@@ -975,6 +977,8 @@ function resolveTagChipMetric(sizeName: string): {
  */
 export function resolveTagWrapLayout(input: {
   items: ReadonlyArray<{
+    id?: string;
+    key?: string;
     label?: string;
     icon?: string | null;
     avatar?: string | null;
@@ -1019,7 +1023,10 @@ export function resolveTagWrapLayout(input: {
   let visibleItemCount = 0;
 
   for (let i = 0; i < items.length; i++) {
-    const label = items[i].label || `Tag ${i + 1}`;
+    // ADR-923 r19m1 — 라벨 정규화를 DOM (useResolvedCollectionItems) · Skia (appendTagRowProjection)
+    //   와 같은 toItemProjectionRow 로. 종전 `label || \`Tag ${i + 1}\`` 은 이 측정만의 기본 글자였다
+    //   (빈 label 은 두 표면 모두 itemKey 를 그린다).
+    const label = toItemProjectionRow(items[i], i).label;
     const textWidth = measureTextWidth(label, fontSize, "Pretendard", 400);
     // 좌측 슬롯(avatar/icon) 보유 chip 은 그만큼 넓다 — 행 wrap/maxRows 접힘 판정이
     //   실제 배치와 어긋나지 않도록 같은 값을 더한다(DOM 미러 측정도 슬롯을 포함해야 정합).
@@ -1581,7 +1588,8 @@ export function calculateContentWidth(
     // ADR-923 r18m1 sweep — 타입별 계약 (Skia `breadcrumb_crumb` · Preview 와 같은 단일 지점);
     //   종전 `children ?? label ?? title` 은 이 측정만의 순서였다 (r15m1 형태).
     const label = resolveTextSourceText("Breadcrumb", props);
-    if (!label) return 0;
+    // ADR-923 r19m1 — 빈 라벨이어도 non-last 의 separator 폭은 남는다 (DOM `::after` · Skia
+    //   breadcrumb_crumb 동일). 종전 `if (!label) return 0` 은 separator 를 잃어 다음 crumb 이 겹쳤다.
     const specStyle = extractSpecTextStyle("breadcrumb", {
       size: rspSize,
     });
@@ -1620,36 +1628,48 @@ export function calculateContentWidth(
     const fontWeight = specStyle?.fontWeight ?? 400;
     const ffamily = specStyle?.fontFamily ?? specFontFamily.sans;
 
-    // 자식 Breadcrumb 요소에서 레이블 추출 (caller-provided source order)
-    const crumbs: string[] = [];
-    if (childElements && childElements.length > 0) {
-      for (const child of childElements) {
-        const childProps = child.props as Record<string, unknown> | undefined;
-        // ADR-923 r18m1 sweep — 타입별 계약 (위 단일 Breadcrumb 측정과 동일).
-        const label = resolveTextSourceText("Breadcrumb", childProps);
-        if (label) crumbs.push(label);
+    // ADR-923 r19m1 — crumb 원천은 실제 그려지는 노드: items projection (Rows 그룹 아래 Breadcrumb
+    //   crumb — 라벨은 scene 이 toItemProjectionRow 로 정규화해 `children` 에 실었다) 또는 pre-migration
+    //   자식 Breadcrumb element. 종전 코드는 직접 자식만 봐서 projection 문서 (자식 = Rows) 에서
+    //   crumb 0 → 항상 "Home"/"Products"/"Detail" 폭 (M 192px) 을 컨테이너에 주입했다 — DOM/Skia 는
+    //   그 글자를 만들지 않는다. 기본 crumb 없음: crumb 0 → 0. 빈 라벨 crumb 도 non-last separator
+    //   폭은 남는다 (DOM `::after` · Skia breadcrumb_crumb, 위 1.17 단일 crumb 측정과 동일).
+    const crumbNodes: CanvasLayoutNode[] = [];
+    for (const child of childElements ?? []) {
+      const childTag = String(child.type).toLowerCase();
+      if (childTag === "breadcrumb") {
+        crumbNodes.push(child);
+      } else if (childTag === "rows") {
+        for (const crumb of getChildElements?.(child.id) ?? []) {
+          if (String(crumb.type).toLowerCase() === "breadcrumb") {
+            crumbNodes.push(crumb);
+          }
+        }
       }
     }
-    // 자식이 없으면 기본값
-    if (crumbs.length === 0) {
-      crumbs.push("Home", "Products", "Detail");
-    }
+    if (crumbNodes.length === 0) return 0;
 
     const separatorPadding = breadcrumbSeparatorAfterPaddingXPx(rspSize);
+    const sepWidth = measureTextWidth(separator, fontSize, ffamily, 400);
 
-    // 1) 실측 기반 폭 (모든 텍스트를 measureTextWidth로 계산)
+    // 실측 기반 폭 (모든 텍스트를 measureTextWidth로 계산) — 마지막 crumb 는 projection `_isLast`,
+    //   legacy 자식은 source order 의 마지막.
     let measuredWidth = 0;
-    for (let i = 0; i < crumbs.length; i++) {
-      const isLast = i === crumbs.length - 1;
-      const crumbWeight = isLast ? 600 : fontWeight;
+    for (let i = 0; i < crumbNodes.length; i++) {
+      const crumbProps = crumbNodes[i].props as
+        Record<string, unknown> | undefined;
+      const label = resolveTextSourceText("Breadcrumb", crumbProps);
+      const isLast =
+        typeof crumbProps?._isLast === "boolean"
+          ? crumbProps._isLast
+          : i === crumbNodes.length - 1;
       measuredWidth += measureTextWidth(
-        crumbs[i],
+        label,
         fontSize,
         ffamily,
-        crumbWeight,
+        isLast ? 600 : fontWeight,
       );
       if (!isLast) {
-        const sepWidth = measureTextWidth(separator, fontSize, ffamily, 400);
         measuredWidth += separatorPadding + sepWidth + separatorPadding;
       }
     }
@@ -2292,7 +2312,13 @@ export function calculateContentHeight(
       (s.rowGap ?? s.gap) as string | number | undefined,
       m.gap,
     );
-    const contentHeight = m.box + gap * 2 + m.headingLine + m.descLine;
+    // ADR-923 r19m1 — "" 줄은 접는다 (Preview div 미렌더 · Skia illustrated_message y 동일);
+    //   부재는 기본 글자 줄 유지. 텍스트 원천은 specs 단일 지점.
+    const imText = resolveIllustratedMessageText(props);
+    const contentHeight =
+      m.box +
+      (imText.heading !== "" ? gap + m.headingLine : 0) +
+      (imText.description !== "" ? gap + m.descLine : 0);
     const hasStylePadding =
       s.padding != null || s.paddingTop != null || s.paddingBottom != null;
     return hasStylePadding ? contentHeight : contentHeight + m.paddingY * 2;

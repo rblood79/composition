@@ -9,7 +9,11 @@ import {
   renderFieldError,
   renderLabel,
 } from "../FormRenderers";
-import { renderButton, renderDisclosureHeader } from "../LayoutRenderers";
+import {
+  renderButton,
+  renderDisclosureHeader,
+  renderIllustratedMessage,
+} from "../LayoutRenderers";
 import { renderGridListItem, renderListBoxItem } from "../SelectionRenderers";
 import { resolveColumnHeaderLabel } from "../TableRenderer";
 
@@ -164,5 +168,44 @@ describe("ADR-923 r15m1 — Preview 렌더러 텍스트 = 텍스트 원천 계�
     expect(collectText(renderButton(el("Button", btn), makeContext()))).toBe(
       "Button",
     );
+  });
+});
+
+/**
+ * ADR-923 r19m1 — 계약 결과 뒤의 간접 기본 글자. legacy `renderButton` (`?canonical=0` · canonical
+ * 실패 안전망) 은 children 미지정 + 자식·아이콘 없음이면 "Button" 을 냈고 (Skia buildCatalogShapes 는
+ * "" 면 text shape 없음), IllustratedMessage 는 `||` 라 사용자가 비운 "" 를 "No content" 로 되살렸다
+ * (Skia illustrated_message 는 `??`). 기본 글자는 세 표면이 같이 갖거나 없어야 한다 — Button 은 없음,
+ * IllustratedMessage 는 부재만 기본 글자 · "" 는 줄 자체 없음 (빈 div 도 flex gap 을 차지한다).
+ */
+describe("ADR-923 r19m1 — legacy Button · IllustratedMessage 기본 글자", () => {
+  it("Button (legacy 경로): children 부재 · AI label 만 · '' 전부 '' (종전 'Button')", () => {
+    for (const props of [{}, { label: "AI Label" }, { children: "" }]) {
+      expect(
+        collectText(renderButton(el("Button", props), makeContext())),
+        JSON.stringify(props),
+      ).toBe("");
+    }
+  });
+
+  it("IllustratedMessage: 부재 → 기본 글자 (Skia ?? 동일), '' → 글자도 줄도 없음", () => {
+    const withDefaults = collectText(
+      renderIllustratedMessage(el("IllustratedMessage", {}), makeContext()),
+    );
+    expect(withDefaults).toContain("No content");
+    expect(withDefaults).toContain("There is nothing to display.");
+
+    const emptied = renderIllustratedMessage(
+      el("IllustratedMessage", { heading: "", description: "" }),
+      makeContext(),
+    );
+    const text = collectText(emptied);
+    expect(text).not.toContain("No content");
+    expect(text).not.toContain("There is nothing");
+    const outer = emptied as React.ReactElement<{ children: React.ReactNode }>;
+    const kids = React.Children.toArray(outer.props.children).filter(
+      isValidElement,
+    );
+    expect(kids).toHaveLength(1); // 일러스트 placeholder 만 — 빈 heading/description div 없음
   });
 });

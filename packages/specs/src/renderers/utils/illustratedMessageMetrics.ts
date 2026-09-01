@@ -108,3 +108,33 @@ export function resolveIllustratedMessageMetric(
     totalHeight: contentHeight + paddingY * 2,
   };
 }
+
+/** IllustratedMessage 기본 글자 — Preview · Skia · layout 세 표면이 같은 값을 갖는 단일 지점. */
+export const ILLUSTRATED_MESSAGE_DEFAULT_HEADING = "No content";
+export const ILLUSTRATED_MESSAGE_DEFAULT_DESCRIPTION =
+  "There is nothing to display.";
+
+/**
+ * IllustratedMessage heading/description 텍스트 원천 (ADR-923 r19m1).
+ *
+ * - 부재 (undefined) → 기본 글자 (세 표면 동일 — 종전 Skia 의 `??` 와 같다).
+ * - 명시적 `""` → `""` 그대로: consumer 는 그 줄 자체를 접는다 (Preview 는 div 미렌더, layout
+ *   `illustratedmessage` 높이는 gap + line 차감, Skia `illustrated_message` 는 shape 미생성 + y 접힘).
+ *   종전 Preview 의 `||` 는 사용자가 비운 "" 를 기본 글자로 되살려 Skia (빈 줄) 와 갈렸다.
+ */
+export function resolveIllustratedMessageText(
+  props: Record<string, unknown> | undefined,
+): { heading: string; description: string } {
+  const heading = props?.heading;
+  const description = props?.description;
+  return {
+    heading:
+      typeof heading === "string"
+        ? heading
+        : ILLUSTRATED_MESSAGE_DEFAULT_HEADING,
+    description:
+      typeof description === "string"
+        ? description
+        : ILLUSTRATED_MESSAGE_DEFAULT_DESCRIPTION,
+  };
+}

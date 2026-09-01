@@ -156,6 +156,44 @@ describe("illustrated_message escape 기하 (md, containerWidth 350)", () => {
     expect(h.y).toBe(40 + 120 + 20 + 13.5);
   });
 
+  it("ADR-923 r19m1 — heading '' 은 줄 자체가 빠진다 (Preview/layout 동일): heading shape 없음, description 27+12 위로", () => {
+    const shapes = draw!({
+      props: {
+        size: "md",
+        _containerWidth: 350,
+        heading: "",
+        description: "d",
+      },
+      size: CATALOG_SIZES.md as unknown as SizeSpec,
+      visual: undefined,
+      style: undefined,
+    })!;
+    expect(byId(shapes, "heading")).toBeUndefined();
+    expect(byId(shapes, "description").y).toBe(24 + 120 + 12 + 21 / 2);
+    const both = draw!({
+      props: { size: "md", _containerWidth: 350, heading: "", description: "" },
+      size: CATALOG_SIZES.md as unknown as SizeSpec,
+      visual: undefined,
+      style: undefined,
+    })!;
+    expect(byId(both, "heading")).toBeUndefined();
+    expect(byId(both, "description")).toBeUndefined();
+  });
+
+  it("ADR-923 r19m1 — 부재는 기본 글자 줄 유지 (?? — Preview 와 같은 기본)", () => {
+    const shapes = draw!({
+      props: { size: "md", _containerWidth: 350 },
+      size: CATALOG_SIZES.md as unknown as SizeSpec,
+      visual: undefined,
+      style: undefined,
+    })!;
+    expect(byId(shapes, "heading").text).toBe("No content");
+    expect(byId(shapes, "heading").y).toBe(169.5);
+    expect(byId(shapes, "description").text).toBe(
+      "There is nothing to display.",
+    );
+  });
+
   it("_containerWidth 미주입 시 content-min 폭 (120+24·2=168) 기준", () => {
     const shapes = draw!({
       props: { size: "md" },

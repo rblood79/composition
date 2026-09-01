@@ -200,7 +200,9 @@ export function MenuButton<T extends object>({
     composeRenderProps(baseClassName, (className) =>
       className ? `react-aria-Menu ${className}` : "react-aria-Menu",
     );
-  const triggerLabel = label || "Menu";
+  // ADR-923 r19m1 — 종전 `label || "Menu"` 는 렌더러 (`renderMenu`, r18m1) 가 텍스트 원천 계약으로
+  //   낸 빈 label 을 다시 "Menu" 로 되살렸다 (Skia 는 기본 글자 없음). 계약 결과 그대로 — 부재도 "".
+  const triggerLabel = label ?? "";
 
   // ColumnMapping이 있으면 각 데이터 항목마다 MenuItem 렌더링
   // ListBox와 동일한 패턴: Element tree의 MenuItem 템플릿 + Field 자식 사용

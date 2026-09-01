@@ -26,7 +26,10 @@
  */
 
 import React from "react";
-import { resolveIllustratedMessageMetric } from "@composition/specs";
+import {
+  resolveIllustratedMessageMetric,
+  resolveIllustratedMessageText,
+} from "@composition/specs";
 import type { IllustratedMessageSizeLike } from "@composition/specs";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 
@@ -64,8 +67,12 @@ export function IllustratedMessage({
   className,
   ...rest
 }: IllustratedMessageProps): React.ReactElement {
-  const headingText = heading || "No content";
-  const descriptionText = description || "There is nothing to display.";
+  // ADR-923 r19m1 — 텍스트 원천 단일 지점 (specs). 종전 `||` 는 사용자가 비운 "" 를 "No content"
+  //   로 되살려 Skia illustrated_message (`??`, "" 는 줄 없음) 와 갈렸다. 세 표면 동일: 부재 → 기본
+  //   글자, "" → 줄 자체 없음 (빈 div 도 flex gap 을 차지하므로 미렌더 — layout 높이 차감 · Skia y
+  //   접힘과 정합). legacy 렌더러 `renderIllustratedMessage` 도 같은 지점을 쓴다.
+  const { heading: headingText, description: descriptionText } =
+    resolveIllustratedMessageText({ heading, description });
 
   // catalog rule sizes read-through — Skia escape/layout 분기와 동일 metric source.
   const sizeKey = String(size).toLowerCase();
@@ -107,25 +114,29 @@ export function IllustratedMessage({
       >
         &#9675;
       </div>
-      <div
-        style={{
-          fontSize: m.headingFs,
-          lineHeight: 1.5,
-          fontWeight: 600,
-          color: "var(--fg)",
-        }}
-      >
-        {headingText}
-      </div>
-      <div
-        style={{
-          fontSize: m.descFs,
-          lineHeight: 1.5,
-          color: "var(--fg-muted)",
-        }}
-      >
-        {descriptionText}
-      </div>
+      {headingText !== "" ? (
+        <div
+          style={{
+            fontSize: m.headingFs,
+            lineHeight: 1.5,
+            fontWeight: 600,
+            color: "var(--fg)",
+          }}
+        >
+          {headingText}
+        </div>
+      ) : null}
+      {descriptionText !== "" ? (
+        <div
+          style={{
+            fontSize: m.descFs,
+            lineHeight: 1.5,
+            color: "var(--fg-muted)",
+          }}
+        >
+          {descriptionText}
+        </div>
+      ) : null}
     </div>
   );
 }

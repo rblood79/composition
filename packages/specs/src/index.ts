@@ -321,6 +321,7 @@ export type { LayoutToken } from "./renderers";
 export {
   ILLUSTRATED_MESSAGE_BOX,
   resolveIllustratedMessageMetric,
+  resolveIllustratedMessageText,
 } from "./renderers/utils/illustratedMessageMetrics";
 export type {
   IllustratedMessageMetric,

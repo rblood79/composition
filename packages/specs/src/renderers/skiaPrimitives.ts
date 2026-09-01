@@ -37,7 +37,10 @@ import {
 import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { resolveTextSourceText } from "./utils/textSource";
-import { resolveIllustratedMessageMetric } from "./utils/illustratedMessageMetrics";
+import {
+  resolveIllustratedMessageMetric,
+  resolveIllustratedMessageText,
+} from "./utils/illustratedMessageMetrics";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import type { CatalogResolvedPaint } from "./catalogPaint";
 import {
@@ -3032,9 +3035,9 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
   const ff = (style?.fontFamily as string) || fontFamily.sans;
   const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
 
-  const heading = (props.heading as string) ?? "No content";
-  const description =
-    (props.description as string) ?? "There is nothing to display.";
+  // ADR-923 r19m1 — 텍스트 원천 단일 지점 (부재 → 기본 글자, "" → 줄 자체를 접는다; Preview div
+  //   미렌더 · layout illustratedmessage 높이 차감과 동일).
+  const { heading, description } = resolveIllustratedMessageText(props);
 
   const shapes: Shape[] = [];
 
@@ -3066,36 +3069,46 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
     whiteSpace: "nowrap" as const,
   });
 
+  // "" 줄은 shape 도 세로 자리도 없다 (r19m1) — cursorY 로 gap + line 을 조건부 누적.
+  let cursorY = padTop + m.box;
+
   // Heading 텍스트 — DOM fontWeight 600 / var(--fg), lineHeight 1.5 밴드 세로 중앙.
-  shapes.push({
-    id: "heading",
-    type: "text" as const,
-    x: contentX,
-    y: padTop + m.box + gap + m.headingLine / 2,
-    text: heading,
-    fontSize: m.headingFs,
-    fontFamily: ff,
-    fontWeight: 600,
-    fill: textColor,
-    align: textAlign,
-    baseline: "middle" as const,
-    maxWidth: contentW,
-  });
+  if (heading !== "") {
+    cursorY += gap;
+    shapes.push({
+      id: "heading",
+      type: "text" as const,
+      x: contentX,
+      y: cursorY + m.headingLine / 2,
+      text: heading,
+      fontSize: m.headingFs,
+      fontFamily: ff,
+      fontWeight: 600,
+      fill: textColor,
+      align: textAlign,
+      baseline: "middle" as const,
+      maxWidth: contentW,
+    });
+    cursorY += m.headingLine;
+  }
 
   // Description 텍스트 — DOM var(--fg-muted), lineHeight 1.5 밴드 세로 중앙.
-  shapes.push({
-    id: "description",
-    type: "text" as const,
-    x: contentX,
-    y: padTop + m.box + gap + m.headingLine + gap + m.descLine / 2,
-    text: description,
-    fontSize: m.descFs,
-    fontFamily: ff,
-    fill: "{color.neutral-subdued}" as TokenRef,
-    align: textAlign,
-    baseline: "middle" as const,
-    maxWidth: contentW,
-  });
+  if (description !== "") {
+    cursorY += gap;
+    shapes.push({
+      id: "description",
+      type: "text" as const,
+      x: contentX,
+      y: cursorY + m.descLine / 2,
+      text: description,
+      fontSize: m.descFs,
+      fontFamily: ff,
+      fill: "{color.neutral-subdued}" as TokenRef,
+      align: textAlign,
+      baseline: "middle" as const,
+      maxWidth: contentW,
+    });
+  }
 
   return shapes;
 };
