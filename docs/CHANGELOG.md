@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [요소 사이 여백과 '넘침 잘라내기' 가 미리보기와 같아집니다] - 2026-09-01
+
+### Fixed
+
+- **Overflow 를 `Clip` 으로 둔 flex 항목이 캔버스에서 미리보기보다 좁게 그려지던 문제**:
+  - 스타일 패널에서 Overflow = Clip 을 고르면 캔버스의 항목이 내용 폭 아래로 줄어들었습니다 (미리보기는 내용 폭을 지킵니다).
+  - **Why**: 엔진이 `clip` 을 `hidden` 과 같은 "스크롤 컨테이너" 로 분류해 flex 항목의 자동 최소 폭(내용 기반)을 0 으로 내렸습니다. CSS 에서 스크롤 컨테이너는 `scroll` / `auto` / `hidden` 뿐이고 `clip` 은 아닙니다. 판정 3곳(BFC · baseline · flex 최소 폭)이 각자 문자열을 비교하고 있어 하나만 어긋나 있었고, 한 술어로 합쳤습니다.
+  - 위치: `packages/composition-engine/src/tree.rs` (`is_scrollable_overflow`), `flex.rs`
+- **block 컨테이너 안 자식 여백(margin)이 캔버스에서 미리보기와 다르게 접히던 문제** (Chrome 실측 케이스 12건으로 확정):
+  - 안쪽 여백(padding)이 있는 부모의 마지막 자식 bottom margin 이 부모 높이에 빠져 있었습니다 (미리보기 31 / 캔버스 11).
+  - 내용이 없는 빈 block 의 위·아래 margin 이 하나로 접히지 않아 부모가 그만큼 더 높았습니다 (미리보기 10 / 캔버스 30).
+  - flex 컨테이너(그리고 overflow 가 scroll/hidden 인 상자)의 **자기** margin 이 형제·부모와 접히지 않고 더해졌습니다.
+  - block 요소 뒤에 오는 인라인 줄이 앞 요소의 bottom margin 을 무시하고 붙었습니다.
+  - **Why**: 엔진 block 솔버의 "빈 block" 분류를 만들어 내는 자리가 없어 (단위 테스트에서만 살아 있었음) 모든 자식이 일반 block 으로 흘렀고, 컨테이너 높이는 마지막 margin 이 부모 밖으로 빠지는지·안에 남는지를 구분하지 못한 채 자식 사각형의 합으로 계산됐습니다. BFC 상자의 margin 차단은 "자기 자식과" 만이어야 하는데 자기 margin 까지 막았습니다. CSS 2.1 §8.3.1 / §10.6.3 대로 정리했습니다.
+  - 위치: `packages/composition-engine/src/block.rs`, `tree.rs` (`write_block_item` self-collapsing 분류, `solve_block` auto height)
+- 검증: Chrome 차등 41/41 · 렌더 parity 975 회귀 0 · ADR-923 Phase 3 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
+
 ## [프레임 테두리가 캔버스에 보입니다] - 2026-08-31
 
 ### Fixed

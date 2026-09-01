@@ -7,50 +7,71 @@
 > 허용치 무변경). 대조군 원본: `tests/parity/.artifacts/adr923-phase3-differential.json`
 > (매 실행 재생성 — vitest browser 는 통과 테스트 콘솔을 숨기므로 파일로 내보낸다).
 > **round 8 갱신 (`efb56a888`)**: Codex 판독 반례 2 + clip 오라클 + 프로덕션 게이트로
-> 23 → **27 케이스**, 수리 3건 추가 (아래 6~8).
+> 23 → 27 케이스, 수리 3건 추가 (6~~8).
+> **round 9 갱신**: Codex 판독 r9h1/r9m2 재현 5 + 인접 margin-collapse 경계 7 로
+> 27 → **39 케이스**, 수리 4건 추가 (9~~12). 표 밖 pipelineLeg 게이트 2 (r8l2 + r9h1 clip).
 
-## 결과 — 27 케이스 전부 엔진 직결 ≤1px (round 8 수리 후)
+## 결과 — 39 케이스 전부 엔진 직결 ≤1px (round 9 수리 후)
 
-1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~5) → 23/23.
+1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
-오라클 포함) → 수리 6~8 → **27/27 pass**. 어댑터 대조군은 **발산 18 / 정합 9** — 현
-IFC 시뮬레이션이 Chrome 과 갈리는 차원의 실측 (Phase 5 cutover 가 닫을 대상. "정합"
-은 시뮬레이션이 우연히 맞는 차원). 종전 "16/23 발산" 표기는 오집계 (r8m1 — 실측
-15/23, valign-top 을 발산으로 오전기; 27 케이스 기준 18/9 로 정정).
+오라클 포함) → 수리 6~~8 → 27/27. Codex round 9 판독이 flex clip auto-min(HIGH) + block
+auto-height 꼬리 margin 반례 2(MEDIUM) 로 재개방 → 재현 5 + 인접 경계 7 = 12 케이스 추가,
+**RED 10/12** (hidden 대조군 2 만 첫 실행 PASS) → 수리 9~12 → **39/39 pass**. 어댑터
+대조군은 **발산 18 / 정합 21** — 현 IFC 시뮬레이션이 Chrome 과 갈리는 차원의 실측
+(Phase 5 cutover 가 닫을 대상. "정합" 은 시뮬레이션이 우연히 맞는 차원 — round 9 추가
+12 케이스는 프로덕션 어댑터가 엔진 block/flex 경로를 그대로 타므로 수리 후 전부 정합).
+종전 "16/23 발산" 표기는 오집계 (r8m1 — 실측 15/23; 27 케이스 18/9; 39 케이스 18/21).
 
-| 케이스 | 차원 | 엔진 직결 (게이트) | 현 어댑터 (대조군) |
-| --- | --- | --- | --- |
-| ib-two-one-line | inline-block 2개 한 줄 | 정합 | 발산 1: a.y: dom=4.0 eng=2.0 (Δ2.0) |
-| ib-wrap | 3개 중 셋째 줄바꿈 | 정합 | 정합 |
-| explicit-width-block-sibling | 명시 폭 block 형제 (ADR-198 재현) | 정합 | 발산 6: a.y: dom=0.0 eng=5.0 (Δ5.0) · mid.x: dom=0.0 eng=60.0 (Δ60.0) · mid.y: dom=20.0 eng=0.0 (Δ20.0) · b.x: dom=0.0 eng=180.0 (Δ180.0) · b.y: dom=50.0 eng=5.0 (Δ45.0) · root.h: dom=70.0 eng=30.0 (Δ40.0) |
-| auto-width-block-sibling | auto 폭 block 형제 | 정합 | 정합 |
-| valign-top |  | 정합 | 정합 |
-| valign-middle |  | 정합 | 발산 1: a.y: dom=0.0 eng=10.0 (Δ10.0) |
-| valign-bottom |  | 정합 | 정합 |
-| valign-baseline | 기본 baseline 정렬 (bottom = 폴백 baseline) | 정합 | 발산 1: a.y: dom=20.0 eng=10.0 (Δ10.0) |
-| child-margin | 인라인 마진 + 형제 block | 정합 | 발산 1: a.y: dom=5.0 eng=2.5 (Δ2.5) |
-| empty-block-sibling | 빈 block 이 줄을 끊는다 | 정합 | 정합 |
-| parent-padding | 부모 padding 안 line box | 정합 | 정합 |
-| inline-flex-nested-baseline | inline-flex 컨테이너 baseline (R6 필수) | 정합 | 발산 12: a1a.y: dom=20.0 eng=0.0 (Δ20.0) · a1.y: dom=20.0 eng=0.0 (Δ20.0) · a.y: dom=20.0 eng=0.0 (Δ20.0) · a.w: dom=60.0 eng=320.0 (Δ260.0) · b1a.x: dom=60.0 eng=0.0 (Δ60.0) · b1a.y: dom=0.0 eng=35.0 (Δ35.0) · b1.x: dom=60.0 eng=0.0 (Δ60.0) · b1.y: dom=0.0 eng=35.0 (Δ35.0) · b.x: dom=60.0 eng=0.0 (Δ60.0) · b.y: dom=0.0 eng=35.0 (Δ35.0) · b.w: dom=60.0 eng=320.0 (Δ260.0) · root.h: dom=55.0 eng=75.0 (Δ20.0) |
-| inline-grid-line | inline-grid 가 line item | 정합 | 발산 1: a.y: dom=10.0 eng=5.0 (Δ5.0) |
-| ib-shrink-to-fit-wrap | r6: fit-content 100 vs one-pass 80 | 정합 | 정합 |
-| ib-fit-under-min-content | available < min-content 는 overflow | 정합 | 발산 2: c1.w: dom=80.0 eng=60.0 (Δ20.0) · f.w: dom=80.0 eng=60.0 (Δ20.0) |
-| ib-pct-child-shrink | r6: shrink-to-fit 안 percentage 재해소 | 정합 | 발산 2: p2.w: dom=30.0 eng=50.0 (Δ20.0) · f.w: dom=60.0 eng=100.0 (Δ40.0) |
-| ib-baseline-margin-bottom | r7: 폴백 baseline 은 margin edge (§10.8.1) | 정합 | 발산 1: a.y: dom=12.0 eng=6.0 (Δ6.0) |
-| ib-overflow-hidden-baseline | r7: overflow≠visible 은 margin edge (§10.8.1) | 정합 | 발산 2: a1.y: dom=10.0 eng=5.0 (Δ5.0) · a.y: dom=10.0 eng=5.0 (Δ5.0) |
-| valign-top-bottom-only | r7: baseline 참여자 없는 줄 | 정합 | 발산 1: c.y: dom=10.0 eng=0.0 (Δ10.0) |
-| inline-flex-column-baseline | r7: column flex 첫 item baseline | 정합 | 발산 5: c1a.y: dom=28.0 eng=4.0 (Δ24.0) · c1.y: dom=28.0 eng=4.0 (Δ24.0) · c2.y: dom=40.0 eng=16.0 (Δ24.0) · c.y: dom=28.0 eng=4.0 (Δ24.0) · root.h: dom=60.0 eng=40.0 (Δ20.0) |
-| atomic-line-height-inert | atomic inline 의 line-height 는 line box 에 관여하지 않는다 | 정합 | 정합 |
-| strut-short | 부모 line-height strut 이 짧은 item 위로 line 확장 | 정합 | 발산 2: tail.y: dom=40.0 eng=20.0 (Δ20.0) · root.h: dom=50.0 eng=30.0 (Δ20.0) |
-| strut-tall | item 이 strut 보다 커도 strut descent 는 남는다 | 정합 | 발산 2: tail.y: dom=70.0 eng=50.0 (Δ20.0) · root.h: dom=80.0 eng=60.0 (Δ20.0) |
-| valign-middle-tall | r8: middle 은 baseline 에 중심 고정 (x-height/2=0) | 정합 | 발산 1: a.y: dom=10.0 eng=20.0 (Δ10.0) |
-| strut-last-line | r8: 마지막 line box 의 strut 높이가 auto-height 에 반영 | 정합 | 발산 1: root.h: dom=40.0 eng=20.0 (Δ20.0) |
-| clip-no-bfc | r8: overflow:clip 은 BFC 를 만들지 않는다 (margin 관통) | 정합 | 정합 |
-| ib-overflow-clip-baseline | r8: clip 의 inline-block baseline 판정 (오라클) | 정합 | 발산 3: a1.y: dom=20.0 eng=5.0 (Δ15.0) · a.y: dom=20.0 eng=5.0 (Δ15.0) · root.h: dom=50.0 eng=40.0 (Δ10.0) |
+| #   | 케이스                          | 차원                                                                                        | 엔진 직결 (게이트) | 현 어댑터 (대조군)                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | ib-two-one-line                 | inline-block 2개 한 줄                                                                      | 정합               | 발산 1: a.y: dom=4.0 eng=2.0 (Δ2.0)                                                                                                                                                                                                                                                                                                                                                                                       |
+| 2   | ib-wrap                         | 3개 중 셋째 줄바꿈                                                                          | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 3   | explicit-width-block-sibling    | 명시 폭 block 형제 (ADR-198 재현)                                                           | 정합               | 발산 6: a.y: dom=0.0 eng=5.0 (Δ5.0) · mid.x: dom=0.0 eng=60.0 (Δ60.0) · mid.y: dom=20.0 eng=0.0 (Δ20.0) · b.x: dom=0.0 eng=180.0 (Δ180.0) · b.y: dom=50.0 eng=5.0 (Δ45.0) · root.h: dom=70.0 eng=30.0 (Δ40.0)                                                                                                                                                                                                             |
+| 4   | auto-width-block-sibling        | auto 폭 block 형제                                                                          | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 5   | valign-top                      |                                                                                             | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 6   | valign-middle                   |                                                                                             | 정합               | 발산 1: a.y: dom=0.0 eng=10.0 (Δ10.0)                                                                                                                                                                                                                                                                                                                                                                                     |
+| 7   | valign-bottom                   |                                                                                             | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 8   | valign-baseline                 | 기본 baseline 정렬 (bottom = 폴백 baseline)                                                 | 정합               | 발산 1: a.y: dom=20.0 eng=10.0 (Δ10.0)                                                                                                                                                                                                                                                                                                                                                                                    |
+| 9   | child-margin                    | 인라인 마진 + 형제 block                                                                    | 정합               | 발산 1: a.y: dom=5.0 eng=2.5 (Δ2.5)                                                                                                                                                                                                                                                                                                                                                                                       |
+| 10  | empty-block-sibling             | 빈 block 이 줄을 끊는다                                                                     | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 11  | parent-padding                  | 부모 padding 안 line box                                                                    | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 12  | inline-flex-nested-baseline     | inline-flex 컨테이너 baseline (R6 필수)                                                     | 정합               | 발산 12: a1a.y: dom=20.0 eng=0.0 (Δ20.0) · a1.y: dom=20.0 eng=0.0 (Δ20.0) · a.y: dom=20.0 eng=0.0 (Δ20.0) · a.w: dom=60.0 eng=320.0 (Δ260.0) · b1a.x: dom=60.0 eng=0.0 (Δ60.0) · b1a.y: dom=0.0 eng=35.0 (Δ35.0) · b1.x: dom=60.0 eng=0.0 (Δ60.0) · b1.y: dom=0.0 eng=35.0 (Δ35.0) · b.x: dom=60.0 eng=0.0 (Δ60.0) · b.y: dom=0.0 eng=35.0 (Δ35.0) · b.w: dom=60.0 eng=320.0 (Δ260.0) · root.h: dom=55.0 eng=75.0 (Δ20.0) |
+| 13  | inline-grid-line                | inline-grid 가 line item                                                                    | 정합               | 발산 1: a.y: dom=10.0 eng=5.0 (Δ5.0)                                                                                                                                                                                                                                                                                                                                                                                      |
+| 14  | ib-shrink-to-fit-wrap           | r6: fit-content 100 vs one-pass 80                                                          | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 15  | ib-fit-under-min-content        | available < min-content 는 overflow                                                         | 정합               | 발산 2: c1.w: dom=80.0 eng=60.0 (Δ20.0) · f.w: dom=80.0 eng=60.0 (Δ20.0)                                                                                                                                                                                                                                                                                                                                                  |
+| 16  | ib-pct-child-shrink             | r6: shrink-to-fit 안 percentage 재해소                                                      | 정합               | 발산 2: p2.w: dom=30.0 eng=50.0 (Δ20.0) · f.w: dom=60.0 eng=100.0 (Δ40.0)                                                                                                                                                                                                                                                                                                                                                 |
+| 17  | ib-baseline-margin-bottom       | r7: 폴백 baseline 은 margin edge (§10.8.1)                                                  | 정합               | 발산 1: a.y: dom=12.0 eng=6.0 (Δ6.0)                                                                                                                                                                                                                                                                                                                                                                                      |
+| 18  | ib-overflow-hidden-baseline     | r7: scroll container 는 margin edge (css-align-3 §9.1)                                      | 정합               | 발산 2: a1.y: dom=10.0 eng=5.0 (Δ5.0) · a.y: dom=10.0 eng=5.0 (Δ5.0)                                                                                                                                                                                                                                                                                                                                                      |
+| 19  | valign-top-bottom-only          | r7: baseline 참여자 없는 줄                                                                 | 정합               | 발산 1: c.y: dom=10.0 eng=0.0 (Δ10.0)                                                                                                                                                                                                                                                                                                                                                                                     |
+| 20  | inline-flex-column-baseline     | r7: column flex 첫 item baseline                                                            | 정합               | 발산 5: c1a.y: dom=28.0 eng=4.0 (Δ24.0) · c1.y: dom=28.0 eng=4.0 (Δ24.0) · c2.y: dom=40.0 eng=16.0 (Δ24.0) · c.y: dom=28.0 eng=4.0 (Δ24.0) · root.h: dom=60.0 eng=40.0 (Δ20.0)                                                                                                                                                                                                                                            |
+| 21  | atomic-line-height-inert        | atomic inline 의 line-height 는 line box 에 관여하지 않는다                                 | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 22  | strut-short                     | 부모 line-height strut 이 짧은 item 위로 line 확장                                          | 정합               | 발산 2: tail.y: dom=40.0 eng=20.0 (Δ20.0) · root.h: dom=50.0 eng=30.0 (Δ20.0)                                                                                                                                                                                                                                                                                                                                             |
+| 23  | strut-tall                      | item 이 strut 보다 커도 strut descent 는 남는다                                             | 정합               | 발산 2: tail.y: dom=70.0 eng=50.0 (Δ20.0) · root.h: dom=80.0 eng=60.0 (Δ20.0)                                                                                                                                                                                                                                                                                                                                             |
+| 24  | valign-middle-tall              | r8: middle 은 baseline 에 중심 고정 (x-height/2=0)                                          | 정합               | 발산 1: a.y: dom=10.0 eng=20.0 (Δ10.0)                                                                                                                                                                                                                                                                                                                                                                                    |
+| 25  | strut-last-line                 | r8: 마지막 line box 의 strut 높이가 auto-height 에 반영                                     | 정합               | 발산 1: root.h: dom=40.0 eng=20.0 (Δ20.0)                                                                                                                                                                                                                                                                                                                                                                                 |
+| 26  | clip-no-bfc                     | r8: overflow:clip 은 BFC 를 만들지 않는다 (margin 관통)                                     | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 27  | ib-overflow-clip-baseline       | r8: clip 의 inline-block baseline 판정 (오라클)                                             | 정합               | 발산 3: a1.y: dom=20.0 eng=5.0 (Δ15.0) · a.y: dom=20.0 eng=5.0 (Δ15.0) · root.h: dom=50.0 eng=40.0 (Δ10.0)                                                                                                                                                                                                                                                                                                                |
+| 28  | flex-item-clip-auto-min         | r9h1: overflow:clip flex item 은 scroll container 아님 → §4.5 content floor 유지 (f.w 80)   | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 29  | flex-item-hidden-auto-min       | r9h1 대조군: hidden 은 scroll container → floor 0 (f.w 60)                                  | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 30  | trailing-empty-block-escape     | r9m2: 꼬리 empty block 의 관통 margin 은 부모 bottom 으로 탈출 (root 10)                    | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 31  | trailing-margin-contained       | r9m2: padding-bottom 부모는 마지막 bottom margin 을 content 에 포함 (31)                    | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 32  | trailing-empty-block-contained  | r9m2: padding-bottom 부모 안 꼬리 empty block 관통 margin 포함 (41)                         | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 33  | bfc-last-child-margin-escape    | r9 인접: BFC 자식(flex) 의 자기 bottom margin 은 부모 bottom 과 collapse (sib.y 30)         | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 34  | bfc-sibling-top-collapse        | r9 인접: BFC 자식(flex) 의 자기 top margin 은 이전 형제 bottom 과 collapse (b.y 30)         | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 35  | bfc-first-child-top-escape      | r9 인접: BFC 자식(flex) 의 자기 top margin 은 부모 top 과 collapse (wrap.y 30·h 10)         | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 36  | empty-first-child-padded        | r9 인접: padding-top 부모 안 첫 empty block = non-zero bottom border 가정 위치 (solid.y 31) | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 37  | empty-first-chain-through-wrap  | r9 인접: 첫 empty + 다음 block 의 chain 이 wrap top 으로 통째 탈출 (wrap.y 40)              | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 38  | flex-item-cross-hidden-auto-min | r9h1 양축: overflowY hidden 만 있어도 computed overflowX auto → scroll container (f.w 60)   | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 39  | block-margin-then-line-box      | r9 인접: line box 는 margin 을 collapse 하지 않는다 (block mb10 뒤 inline-block y 20)       | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
-별도 게이트 (표 밖): **r8l2 — 프로덕션 wrap intrinsic-min** (`pipelineLeg` 게이트,
-display:flex row 60px 안 wrap flex item 이 min-content 최대 item 80 으로 바닥 — 수리
-5 의 유일한 프로덕션 실효 경로를 운반 어휘 그대로 고정).
+별도 게이트 (표 밖, `pipelineLeg` = 프로덕션 어댑터 경로):
+
+- **r8l2 — 프로덕션 wrap intrinsic-min**: display:flex row 60px 안 wrap flex item 이
+  min-content 최대 item 80 으로 바닥 (수리 5 의 프로덕션 실효 경로를 운반 어휘 그대로 고정).
+- **r9h1 — 프로덕션 overflow:clip (shorthand)**: 같은 구조에 Style Panel 이 쓰는 shorthand
+  `overflow: "clip"` → Chrome f.w 80 (수리 전 pipeline 60). 패널 → `utils.ts` shorthand
+  분배 → wasm 경계 → `write_flex_item` 슬롯 18 의 전 경로를 고정.
 
 ## 수리 5건 (1차 실행 9 fail 의 root cause — 전부 Chrome 실측으로 확정)
 
@@ -64,8 +85,8 @@ display:flex row 60px 안 wrap flex item 이 min-content 최대 item 80 으로 �
    가 ascent=descent=lh/2 의 zero-width baseline 참여자 (§10.8 half-leading — fontSize 0
    기준 정확; 실폰트 ascent 보정 공급 채널은 S4/Phase 5 판정). wasm export 시그니처 유지.
 4. **폴백 baseline = bottom margin edge** (`block.rs` intake `child_h + m_bottom`) +
-   **overflow 강제** (`tree.rs` 가 센티널로 강제 — §10.8.1 두 조항, r7 관찰 확정.
-   round 8 정정: 강제 대상은 visible/**clip** 이외 — 수리 8).
+   **scroll container 강제** (`tree.rs` 가 센티널로 강제 — §10.8.1, r7 관찰 확정.
+   round 8 정정: 강제 대상은 visible/**clip** 이외 — 수리 8. round 9 규범 귀속: 수리 12).
 5. **atomic inline shrink-to-fit** (`tree.rs solve_block_child` + `solve_flex` min 측정):
    폭 auto atomic inline 은 fit = min(max-content, max(min-content, available−margin−pb)),
    fit 으로 재-solve (wrap·percentage 재해소, used width = fit — §10.3.9). wrap row 컨테이너의
@@ -80,9 +101,9 @@ display:flex row 60px 안 wrap flex item 이 min-content 최대 item 80 으로 �
    a.y 10 — 종전 중앙설은 기존 40px 케이스에서 우연히 동치라 통과했었다).
 7. **마지막 line box 높이의 auto-height 반영** (r8h2): 마지막 flush 가 `current_y` 를
    전진하지 않아 tail 형제가 없으면 strut/valign 초과분이 증발 — trailing meta 4번째
-   **inFlowBottom** 신설(`block.rs`) + 컨테이너 auto-height 를 자식 bbox 와의 max 로
-   소비(`tree.rs`). strut-last-line: root 40 vs 종전 20 (기존 strut 케이스는 전부 tail
-   보유라 관측 밖이었다).
+   **inFlowBottom** 신설(`block.rs`) + 컨테이너 auto-height 소비(`tree.rs`).
+   strut-last-line: root 40 vs 종전 20 (기존 strut 케이스는 전부 tail 보유라 관측 밖이었다).
+   round 9 정정: 자식 bbox 와의 max 가 아니라 **inFlowBottom 단독** (수리 10).
 8. **overflow: clip 은 BFC 도 baseline 도 만들지 않는다** (r8m2 + 오라클): `tree.rs`
    `overflow_creates_bfc` 와 baseline 억제 술어 **양쪽에서 clip 제외** — css-overflow-3
    §valdef-overflow-clip (clip-no-bfc: margin 관통 탈출), inline-block baseline 은
@@ -90,33 +111,94 @@ display:flex row 60px 안 wrap flex item 이 min-content 최대 item 80 으로 �
    강제였다면 10. **Codex r8 과제 6 의 "baseline 은 clip 포함 타당" 판정을 오라클
    케이스가 반증** — BFC 쪽만 확증, baseline 쪽은 확장 수리).
 
-## 프로덕션 영향
+## round 9 수리 4건 (Codex 판독 r9h1/r9m2 + 인접 경계 — 전부 Chrome 실측으로 확정)
 
-수리 1~4·6~8 + 5 의 shrink-to-fit 본체는 line item(atomic inline) 경로 — 현 프로덕션
-display 운반 union 은 inline-\* 를 보내지 않아 **휴면** (Phase 5 cutover 가 활성화).
-overflow:"clip" 은 builder UI 미노출이라 수리 8 도 실효 0. 유일한 실효 변화 = **wrap
-flex 컨테이너의 min-content 측정 정정** (수리 5 — r8l2 가 프로덕션 어댑터 경로로
-게이트). full parity 962 회귀 0 으로 확인.
+9. **scroll container 단일 술어** (`tree.rs is_scrollable_overflow`/`is_scroll_container`,
+   r9h1): overflow 판정 3곳 (BFC 생성 · block baseline 강제 · flex §4.5 automatic minimum)
+   이 각자 문자열 비교를 들고 있어 flex 만 clip 을 "clipped" 로 남겼다 → 한 술어로
+   통합. css-flexbox-1 §4.5 "automatic minimum size on a flex item whose computed overflow
+   value is **non-scrollable** is its content-based minimum size; for scroll containers …
+   zero" + css-overflow-3 §3.1 "scroll, auto, hidden … cause the box to be a scroll
+   container" → clip/visible 은 floor 유지 (flex-item-clip-auto-min f.w 80, hidden 대조군
+   60). 양축 판정: 한 축이 scrollable 이면 다른 축 visible 은 auto 로 계산되므로
+   overflowY hidden 만 있어도 scroll container (flex-item-cross-hidden-auto-min 60 —
+   종전 main 축 단독 판정은 이 케이스에서 80 이었을 것). `flex.rs` 슬롯 18 의미론을
+   "clipped" → "scroll container" 로 개명.
+10. **block auto height = in-flow bottom 단독 + 꼬리 margin chain 포함/탈출** (`block.rs`
+    trailing, `tree.rs container_h`, r9m2): 부모 bottom 과 collapse 하지 못하는
+    (`can_collapse_bottom=false` — padding/border/BFC) 마지막 margin chain 은 content 에
+    포함 (§10.6.3 "bottom margin edge of the last in-flow child" — trailing-margin-contained
+    31 / trailing-empty-block-contained 41), collapse 하면 탈출·제외 (trailing-empty-
+    block-escape 10). 컨테이너 auto height 는 자식 rect bbox 를 버리고 block.rs meta
+    inFlowBottom 만 소비 — bbox 는 꼬리 self-collapsing box 의 rect(as-if-border 자리)
+    와 음수 bottom margin 을 부풀린다.
+11. **self-collapsing box 의 intake 분류** (`tree.rs write_block_item` → 코드 2, r9m2
+    root cause): 종전 주석은 "block.rs 사전 분류" 라 했지만 발행 주체가 없어 `DISPLAY_
+EMPTY_BLOCK` 경로는 cargo 단위 테스트에서만 살아 있었다 — 프로덕션·차등 하니스에선
+    empty block 이 일반 block 으로 흘러 top/bottom margin 이 관통하지 않았다 (empty-first-
+    child-padded: solid.y 51 vs Chrome 31). 조건 = block-level · 상하 padding/border 0 ·
+    height auto · min-height 0/미지정 · content_h 0 · BFC 아님 (§8.3.1). block.rs 는
+    위치를 "non-zero bottom border 가 있었다면" 자리(자기 top 만 이전 chain 과 collapse)
+    로, 부모 top 과 collapse 하는 선두 chain 은 부모 top border edge 로 놓는다
+    (empty-first-chain-through-wrap: empty/solid/wrap y 40 — 종전 30/60/30). `height: 0`
+    명시는 보수적으로 제외 (자식 유무를 intake 에서 볼 수 없어 content 있는 height:0
+    box 와 구분 불가 — 관찰).
+12. **BFC 자식의 자기 margin 은 형제·부모와 collapse 한다** (`block.rs` — `bfc_flag`
+    미소비화, 인접): §8.3.1 의 BFC 조항은 "자기 **in-flow 자식** 과 collapse 하지
+    않는다" 뿐인데 block.rs 는 BFC 자식의 자기 top 을 합산(`prev + m_top`)하고 bottom
+    탈출을 0 으로 막았다 (bfc-sibling-top-collapse b.y 40 vs Chrome 30 · bfc-last-child-
+    margin-escape sib.y 10 vs 30 · bfc-first-child-top-escape wrap.h 30 vs 10). 자식
+    내부 차단은 tree.rs 가 자식 solve 의 `can_collapse_*=false` 로 이미 하고 있어
+    block.rs 의 이중 차단이 오류였다. 슬롯 7 은 프로토콜 호환용 잔존. 같은 정리로
+    **line box 는 margin 을 collapse 하지 않는다** — 새 line box 가 시작될 때 pending
+    chain 을 그대로 놓고, 마지막이 line box 면 탈출 margin 0 (block-margin-then-line-box
+    b.y 20 vs 종전 10 — 종전 `prev_margin_bottom` 을 inline 분기가 버렸다).
+    round 8 수리 8 의 규범 귀속 (r9l1): CSS 2.1 §10.8.1 "overflow other than visible" 문면은
+    css-align-3 §9.1 "a block container that is a **block-axis scroll container** always has
+    a last baseline set … block-end margin edge" 로 갱신됐고 clip 은 scroll container 가
+    아니다 — Chrome 결과와 규범이 일치 (css-overflow-3 자체에는 baseline 조항 없음).
 
-## 검증 (2026-09-01, round 8 수리 후)
+## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
-- cargo **352** (+6: block 2 · tree 4 — adr923 filter 24/24) · golden 15 · layout_trace
-  10 · tree_golden 11 · clippy 신규 0 (경고 7 = 기존 위치 tree.rs:2034/6496-6499/6789-6790).
-- wasm 재빌드 → 차등 **27/27** (신규 3 RED→GREEN + clip 오라클 + r8l2 게이트) · full
-  **parity 962 pass** (실패 = 기존 catalogComponentBox GridListItem/Tooltip 2 건만) ·
-  layout unit 49 files/401 · type-check 0.
+- **실효 (프로덕션 어댑터 경로가 그대로 타는 수리)**: 수리 5 (wrap min-content, r8l2
+  게이트) · **수리 9** (Style Panel Overflow = Clip 이 `styleOptions.ts` 로 직접 노출되고
+  shorthand `overflow` 는 `utils.ts` 가 overflowX/Y 로 분배 — 종전 clip flex item 은
+  min-content 바닥을 잃어 Chrome 보다 좁게 그려졌다; r9h1 pipeline 게이트) · **수리
+  10~12** (block 컨테이너의 block 자식 margin — padding-bottom 부모의 마지막 margin,
+  빈 block 의 margin 관통, flex 자식의 자기 margin collapse, block 뒤 인라인 줄의 margin:
+  모두 운반 union 안 어휘라 프로덕션 활성. full parity 975 회귀 0).
+- **휴면 (inline-\* 운반 전까지)**: 수리 1~~4·6~~8 의 line item 경로 본체 — 현 프로덕션
+  display 운반 union 은 inline-\* 를 보내지 않아 Phase 5 cutover 가 활성화. 단 수리 8 의
+  BFC 쪽(clip 부모의 margin 관통)과 수리 12 의 line box 규칙은 block 경로라 활성.
+- AI styles (`services/ai/styleAdapter.ts`) 도 열린 객체라 overflow:clip 이 들어올 수 있다
+  — 같은 경로.
+
+## 검증 (2026-09-01, round 9 수리 후)
+
+- cargo **362** (+10: block 4 · tree 6 — adr923 filter 34/34) · golden 15 · layout_trace
+  10 · tree_golden 11 · doc 1 · clippy 신규 0 (경고 7 = 기존 위치 tree.rs:2035/6525-6528/6818-6819).
+- wasm 재빌드 → 차등 **41/41** (39 케이스 + 게이트 2; 신규 12 중 RED 10 → GREEN, hidden
+  대조군 2 는 첫 실행 PASS 유지) · full **parity 975 pass** (실패 = 기존 catalogComponentBox
+  GridListItem/Tooltip 2 건만 · 1 expected fail · 2 skipped) · layout unit 49 files/401 ·
+  type-check 0.
 - **Live Exercise (Phase 3 완료 시)**: 실 빌더(localhost:5173, TEST 프로젝트) Chrome MCP
   로드 — Skia 캔버스 3 페이지 정상 렌더, Page 2 wrap 카드(Desert Sunset·Hiking Trail
   한 줄 + Mountain Sunrise 줄바꿈, 자연폭 유지·collapse 0) 확대 확인, 콘솔 에러 0.
 - **Live Exercise (round 8 수리 후, `efb56a888`)**: 같은 빌더·TEST 프로젝트 재로드 —
-  Skia 전 페이지 정상 렌더, Page 2 wrap 카드 배치 불변 확대 확인, 콘솔 에러 0
-  (round 8 수리는 프로덕션 휴면이라 무회귀 표본).
+  Skia 전 페이지 정상 렌더, Page 2 wrap 카드 배치 불변 확대 확인, 콘솔 에러 0.
+
+- **Live Exercise (round 9 수리 후)**: Live: 실 빌더(localhost:5173) TEST 프로젝트 재로드 — Skia 전 페이지 정상 렌더, Page 2 wrap 카드 배치 불변(Desert Sunset·Hiking Trail 한 줄 + Mountain Sunrise 줄바꿈) 확대 확인, Home Button/avatar 스택 정상, 콘솔 에러 0 (로드 시점 포함). r9h1 프로덕션 경로(패널 shorthand overflow:clip → 어댑터 → wasm)는 pipelineLeg 게이트가 고정.
 
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
-- ~~마지막 line box auto-height 미반영~~ → **round 8 수리 7 로 종결** (관찰 → 결함 확정).
-- ~~middle 의 line box 중앙 근사~~ → **round 8 수리 6 으로 종결** — 잔여는 실폰트
-  x-height 공급 채널 (S4 판정).
+- ~~마지막 line box auto-height 미반영~~ → round 8 수리 7 로 종결.
+- ~~middle 의 line box 중앙 근사~~ → round 8 수리 6 으로 종결 — 잔여는 실폰트 x-height
+  공급 채널 (S4 판정).
 - strut 의 실폰트 ascent 보정 (half-leading 의 폰트 항) — TS 공급 채널 S4/Phase 5 판정.
 - TS 는 lineHeight "normal" 을 엔진에 보내지 않는다 — 프로덕션 strut 의 normal 해소
   (≈1.2em) 공급은 Phase 5 cutover 시 판정.
+- `height: 0` 명시 + margin 의 self-collapsing (§8.3.1 "zero or auto computed height") 은
+  intake 가 자식 유무를 볼 수 없어 미분류 (수리 11) — 필요해지면 자식 수를 intake 로.
+- TS `enrichWithIntrinsicSize` DC-6 overflow cap (`utils.ts:4531` `overflow !== "visible"`)
+  은 clip 을 hidden 과 같이 취급한다 — intrinsic 주입 휴리스틱(Taffy 시대)이라 Chrome
+  케이스 미측정, ADR-923 범위 밖 (INLINE_BLOCK_TAGS 주입 경로 정리 시 판정).
