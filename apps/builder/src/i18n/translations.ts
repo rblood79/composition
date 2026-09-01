@@ -1244,7 +1244,8 @@ const koKR: TranslationKeys = {
     adviceBrowserHigh:
       "브라우저 메모리 사용량이 높습니다. 일부 탭을 닫거나 페이지를 새로고침하세요.",
     adviceHeapHigh: "메모리 사용량이 50MB를 초과했습니다. 최적화를 실행하세요.",
-    adviceHistoryLarge: "작업 내역 항목이 많습니다. 불필요한 작업을 정리하세요.",
+    adviceHistoryLarge:
+      "작업 내역 항목이 많습니다. 불필요한 작업을 정리하세요.",
     adviceModerate: "메모리 사용량이 적정 수준입니다.",
     adviceHealthy: "메모리 상태가 양호합니다.",
     warningThresholdHint: "노란색 경고가 표시되는 메모리 사용률",
@@ -2366,7 +2367,7 @@ const enUS: TranslationKeys = {
     rulersAndGuides: "Rulers & Guides",
     showRulers: "Show Rulers",
     snapToObjects: "Snap to Objects",
-    showActionBar: "Show selection action bar",
+    showActionBar: "Show Action Bar",
     pageLayout: "Page Layout",
     pageLayoutHorizontal: "Horizontal",
     pageLayoutVertical: "Vertical",
