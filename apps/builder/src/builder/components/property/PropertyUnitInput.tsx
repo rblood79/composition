@@ -43,6 +43,14 @@ interface PropertyUnitInputProps {
   placeholder?: string;
   min?: number;
   max?: number;
+  /** 우측 chevron 목록에서 현재 숫자값을 교체하는 preset 명령. */
+  presets?: ReadonlyArray<{
+    id: string;
+    label: string;
+    value: string;
+  }>;
+  /** preset trigger의 접근성 이름. */
+  presetAriaLabel?: string;
 }
 
 const DEFAULT_UNITS = ["px", "%", "rem", "em", "vh", "vw", "reset"];
@@ -109,6 +117,8 @@ export const PropertyUnitInput = memo(
     placeholder = "reset",
     min = 0,
     max = 9999,
+    presets,
+    presetAriaLabel,
   }: PropertyUnitInputProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
@@ -132,6 +142,7 @@ export const PropertyUnitInput = memo(
         : parsed.unit);
     const [draftUnit, setDraftUnit] = useState<string | null>(null);
     const unit = draftUnit ?? resolvedUnit;
+    const hasPresets = Boolean(presets?.length);
     const isKeyword = parsed.numericValue === null;
     const [inputValue, setInputValue] = useState(
       isPreservedEmptyValue
@@ -140,6 +151,11 @@ export const PropertyUnitInput = memo(
           ? String(parsed.numericValue)
           : (INPUT_DISPLAY_LABELS[parsed.unit] ?? parsed.unit),
     );
+    const numericInputValue = Number(inputValue.trim());
+    const selectedPreset =
+      inputValue.trim() !== "" && Number.isFinite(numericInputValue)
+        ? presets?.find((preset) => Number(preset.value) === numericInputValue)
+        : undefined;
     // ⭐ useRef로 변경: Enter 키로 저장했는지 추적 (useState는 비동기!)
     const justSavedViaEnterRef = useRef(false);
     // ⭐ 마지막으로 저장한 값 추적 - 중복 호출 방지
@@ -423,25 +439,53 @@ export const PropertyUnitInput = memo(
             className="react-aria-ComboBox react-aria-UnitComboBox"
             ref={comboBoxRef}
             isDisabled={isDisabled}
-            inputValue={unit === "" ? "—" : unit}
+            inputValue={hasPresets ? "" : unit === "" ? "—" : unit}
             onSelectionChange={(key) => {
-              if (key !== null) {
-                const selectedUnit = key === "—" ? "" : (key as string);
-                handleUnitChange(selectedUnit);
+              if (key === null) return;
+
+              if (hasPresets) {
+                const preset = presets?.find(
+                  (candidate) => candidate.id === String(key),
+                );
+                if (!preset) return;
+
+                const nextValue = parseUnitValue(preset.value);
+                setInputValue(
+                  nextValue.numericValue !== null
+                    ? String(nextValue.numericValue)
+                    : (INPUT_DISPLAY_LABELS[nextValue.unit] ?? nextValue.unit),
+                );
+                setDraftUnit(null);
+                if (preset.value !== lastSavedValueRef.current) {
+                  lastSavedValueRef.current = preset.value;
+                  onChange(preset.value);
+                }
+                return;
               }
+
+              const selectedUnit = key === "—" ? "" : (key as string);
+              handleUnitChange(selectedUnit);
             }}
             selectedKey={
-              draftUnit ??
-              (value === "" && units.includes("reset")
-                ? "reset"
-                : unit === ""
-                  ? "—"
-                  : unit)
+              hasPresets
+                ? (selectedPreset?.id ?? null)
+                : (draftUnit ??
+                  (value === "" && units.includes("reset")
+                    ? "reset"
+                    : unit === ""
+                      ? "—"
+                      : unit))
             }
             aria-label={
-              i18n
-                ? translateKey(i18n.t, semanticLabelKeys.Unit ?? "Unit", "Unit")
-                : "Unit"
+              hasPresets
+                ? (presetAriaLabel ?? displayLabel ?? "Preset")
+                : i18n
+                  ? translateKey(
+                      i18n.t,
+                      semanticLabelKeys.Unit ?? "Unit",
+                      "Unit",
+                    )
+                  : "Unit"
             }
           >
             <div className="combobox-container" ref={comboBoxContainerRef}>
@@ -466,7 +510,10 @@ export const PropertyUnitInput = memo(
                 }
                 placeholder={placeholder}
               />
-              <Button className="react-aria-Button">
+              <Button
+                className="react-aria-Button"
+                aria-label={hasPresets ? presetAriaLabel : undefined}
+              >
                 <ChevronDown size={iconProps.size} />
               </Button>
             </div>
@@ -475,16 +522,27 @@ export const PropertyUnitInput = memo(
               style={popoverStyle}
             >
               <ListBox className="react-aria-ListBox">
-                {units.map((u) => (
-                  <ListBoxItem
-                    key={u === "" ? "—" : u}
-                    id={u === "" ? "—" : u}
-                    className="react-aria-ListBoxItem"
-                    textValue={u === "" ? "—" : u}
-                  >
-                    {u === "" ? "—" : u}
-                  </ListBoxItem>
-                ))}
+                {hasPresets
+                  ? presets?.map((preset) => (
+                      <ListBoxItem
+                        key={preset.id}
+                        id={preset.id}
+                        className="react-aria-ListBoxItem"
+                        textValue={preset.label}
+                      >
+                        {preset.label}
+                      </ListBoxItem>
+                    ))
+                  : units.map((u) => (
+                      <ListBoxItem
+                        key={u === "" ? "—" : u}
+                        id={u === "" ? "—" : u}
+                        className="react-aria-ListBoxItem"
+                        textValue={u === "" ? "—" : u}
+                      >
+                        {u === "" ? "—" : u}
+                      </ListBoxItem>
+                    ))}
               </ListBox>
             </Popover>
           </AriaComboBox>
@@ -505,6 +563,8 @@ export const PropertyUnitInput = memo(
       prevProps.allowEmptyReset === nextProps.allowEmptyReset &&
       prevProps.isDisabled === nextProps.isDisabled &&
       prevProps.placeholder === nextProps.placeholder &&
+      prevProps.presets === nextProps.presets &&
+      prevProps.presetAriaLabel === nextProps.presetAriaLabel &&
       prevProps.preserveEmptyValueOnUnitChange ===
         nextProps.preserveEmptyValueOnUnitChange &&
       JSON.stringify(prevProps.units) === JSON.stringify(nextProps.units)

@@ -3,7 +3,7 @@ import { historyManager } from "../../../stores/history";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { getDB } from "../../../../lib/db";
 import { useViewportSyncStore } from "../stores";
-import { resolvePageLayoutAvailableWidth } from "../pageLayoutConstants";
+import { resolvePageLayoutBounds } from "../pageLayoutConstants";
 
 type BreakpointName = import("@composition/shared").BreakpointName;
 
@@ -41,6 +41,13 @@ export function alignPagesToScreen(): void {
     return;
   }
 
+  const pageLayoutBounds = resolvePageLayoutBounds(
+    containerSize.width,
+    zoom,
+    pageGap,
+    pageLayoutPanelMetrics,
+  );
+
   const storeState = useStore.getState();
   const beforePositions = { ...storeState.pagePositions };
   const activeBreakpoint = (
@@ -54,11 +61,8 @@ export function alignPagesToScreen(): void {
     pageGap,
     pageLayoutDirection,
     undefined,
-    resolvePageLayoutAvailableWidth(
-      containerSize.width,
-      zoom,
-      pageLayoutPanelMetrics,
-    ),
+    pageLayoutBounds.availableWidth,
+    pageLayoutBounds.leftInset,
   );
 
   const afterPositions = useStore.getState().pagePositions;

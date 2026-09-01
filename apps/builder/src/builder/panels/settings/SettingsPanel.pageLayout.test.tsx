@@ -1,0 +1,187 @@
+// @vitest-environment jsdom
+
+import type { ReactNode } from "react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useStore } from "../../stores";
+import { SettingsPanel } from "./SettingsPanel";
+
+const { alignPagesToScreenMock } = vi.hoisted(() => ({
+  alignPagesToScreenMock: vi.fn(),
+}));
+
+vi.mock("../../workspace/canvas/viewport/pageLayoutActions", () => ({
+  alignPagesToScreen: alignPagesToScreenMock,
+}));
+
+vi.mock("../../components", () => ({
+  PanelHeader: () => null,
+  PropertyUnitInput: ({
+    label,
+    onChange,
+    presetAriaLabel,
+    presets = [],
+    value,
+  }: {
+    label: string;
+    onChange: (value: string) => void;
+    presetAriaLabel: string;
+    presets?: ReadonlyArray<{ id: string; label: string; value: string }>;
+    value: string;
+  }) => (
+    <div>
+      <input
+        aria-label={label}
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+      />
+      <select
+        aria-label={presetAriaLabel}
+        defaultValue=""
+        onChange={(event) => {
+          const preset = presets.find(
+            (candidate) => candidate.id === event.currentTarget.value,
+          );
+          if (preset) onChange(preset.value);
+        }}
+      >
+        <option value="">—</option>
+        {presets.map((preset) => (
+          <option key={preset.id} value={preset.id}>
+            {preset.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  ),
+  PropertySection: ({ children }: { children: ReactNode }) => <>{children}</>,
+  PropertySelect: ({
+    label,
+    onChange,
+    options,
+    value,
+  }: {
+    label: string;
+    onChange: (value: string) => void;
+    options: ReadonlyArray<{ label: string; value: string }>;
+    value: string;
+  }) => (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(event) => onChange(event.currentTarget.value)}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ),
+  PropertySwitch: () => null,
+  PropertySizeToggle: ({
+    label,
+    onChange,
+    options,
+    value,
+  }: {
+    label: string;
+    onChange: (value: string) => void;
+    options: ReadonlyArray<{ id: string; label: string }>;
+    value: string;
+  }) => (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(event) => onChange(event.currentTarget.value)}
+    >
+      {options.map((option) => (
+        <option key={option.id} value={option.id}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ),
+}));
+
+vi.mock("@/builder/hooks", () => ({
+  useThemeMessenger: () => ({ sendDarkMode: vi.fn() }),
+}));
+
+vi.mock("@/i18n", () => ({
+  LanguageSwitcher: () => null,
+  useI18n: () => ({ t: (key: string) => key }),
+}));
+
+vi.mock("../../../stores/uiStore", () => {
+  const state = {
+    setThemeMode: vi.fn(),
+    setUiScale: vi.fn(),
+    themeMode: "light",
+    uiScale: 100,
+  };
+
+  return {
+    useUiStore: (selector: (value: typeof state) => unknown) => selector(state),
+  };
+});
+
+describe("SettingsPanel page layout synchronization", () => {
+  beforeEach(() => {
+    alignPagesToScreenMock.mockReset();
+    useStore.setState({
+      pageGap: 80,
+      pageLayoutDirection: "auto",
+    } as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("Page Layout 변경값을 저장한 뒤 Canvas page 위치를 다시 정렬한다", () => {
+    const observedDirections: string[] = [];
+    alignPagesToScreenMock.mockImplementation(() => {
+      observedDirections.push(useStore.getState().pageLayoutDirection);
+    });
+    render(<SettingsPanel />);
+
+    fireEvent.change(screen.getByLabelText("settings.pageLayout"), {
+      target: { value: "vertical" },
+    });
+
+    expect(useStore.getState().pageLayoutDirection).toBe("vertical");
+    expect(observedDirections).toEqual(["vertical"]);
+  });
+
+  it("Page Gap 변경값을 저장한 뒤 Canvas page 위치를 다시 정렬한다", () => {
+    const observedGaps: number[] = [];
+    alignPagesToScreenMock.mockImplementation(() => {
+      observedGaps.push(useStore.getState().pageGap);
+    });
+    render(<SettingsPanel />);
+
+    fireEvent.change(screen.getByLabelText("settings.pageGap"), {
+      target: { value: "120" },
+    });
+
+    expect(useStore.getState().pageGap).toBe(120);
+    expect(observedGaps).toEqual([120]);
+  });
+
+  it("Page Gap preset 선택값을 저장한 뒤 Canvas page 위치를 다시 정렬한다", () => {
+    const observedGaps: number[] = [];
+    alignPagesToScreenMock.mockImplementation(() => {
+      observedGaps.push(useStore.getState().pageGap);
+    });
+    render(<SettingsPanel />);
+
+    fireEvent.change(screen.getByLabelText("settings.pageGapPreset"), {
+      target: { value: "sm" },
+    });
+
+    expect(useStore.getState().pageGap).toBe(40);
+    expect(observedGaps).toEqual([40]);
+  });
+});

@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { Page } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
+import { calculateNextPagePosition } from "../../../stores/elements";
 import { normalizePageLayoutDirection } from "../../../stores/canvasSettings";
 import { useViewportSyncStore } from "../stores";
-import { PAGE_STACK_GAP } from "../pageLayoutConstants";
+import {
+  PAGE_STACK_GAP,
+  resolvePageLayoutBounds,
+} from "../pageLayoutConstants";
 import { alignPagesToScreen } from "./pageLayoutActions";
 
 const makePage = (id: string): Page =>
@@ -108,7 +112,7 @@ describe("alignPagesToScreen", () => {
     });
   });
 
-  it("auto 배치는 좌·우 panel 폭과 side gap을 browser 폭에 포함한다", () => {
+  it("auto 배치는 browser 폭 안에서 좌·우 panel 뒤에 page를 배치한다", () => {
     const pages = [makePage("page-1"), makePage("page-2")];
     useStore.setState({
       pageLayoutDirection: "auto",
@@ -120,16 +124,16 @@ describe("alignPagesToScreen", () => {
       },
     } as never);
     useViewportSyncStore.getState().setCanvasSize({
-      width: 600,
+      width: 300,
       height: 400,
     });
     useViewportSyncStore.getState().setContainerSize({
-      width: 700,
+      width: 702,
       height: 900,
     });
     useViewportSyncStore.getState().setPageLayoutPanelMetrics({
-      leftWidth: 300,
-      rightWidth: 300,
+      leftWidth: 200,
+      rightWidth: 200,
       gap: 4,
     });
     useViewportSyncStore.getState().setViewportSnapshot({
@@ -139,10 +143,40 @@ describe("alignPagesToScreen", () => {
 
     alignPagesToScreen();
 
-    expect(useStore.getState().pagePositions).toEqual({
-      "page-1": { x: 0, y: 0 },
-      "page-2": { x: 700, y: 0 },
+    const positions = useStore.getState().pagePositions;
+    const bounds = resolvePageLayoutBounds(702, 1, 100, {
+      leftWidth: 200,
+      rightWidth: 200,
+      gap: 4,
     });
+
+    expect(bounds.browserWidth).toBe(1310);
+    expect(positions).toEqual({
+      "page-1": { x: 304, y: 0 },
+      "page-2": { x: 704, y: 0 },
+    });
+    expect(positions["page-1"].x).toBe(bounds.leftInset);
+    expect(positions["page-2"].x + 300).toBeLessThanOrEqual(
+      bounds.browserWidth - bounds.rightInset,
+    );
+  });
+
+  it("auto로 추가하는 page도 panel 뒤의 bounds를 사용한다", () => {
+    const nextPosition = calculateNextPagePosition(
+      [makePage("page-1"), makePage("page-2")],
+      {
+        "page-1": { x: 304, y: 0 },
+        "page-2": { x: 704, y: 0 },
+      },
+      300,
+      400,
+      100,
+      "auto",
+      702,
+      304,
+    );
+
+    expect(nextPosition).toEqual({ x: 304, y: 500 });
   });
 
   it("does not change manually positioned pages when canvas size is unavailable", () => {

@@ -586,5 +586,17 @@
         }
       }
     }
+
+    .settings-page-layout-toggle.react-aria-ToggleButtonGroup[data-indicator="true"] {
+      gap: var(--spacing);
+
+      .react-aria-ToggleButton {
+        flex: 1;
+        width: auto;
+        max-width: none;
+        min-width: 0;
+        padding-inline: var(--spacing-xs);
+      }
+    }
   }
 }

@@ -127,7 +127,7 @@ import {
 } from "./skia/workflowEdges";
 import {
   resolveAutoPageColumnCount,
-  resolvePageLayoutAvailableWidth,
+  resolvePageLayoutBounds,
 } from "./pageLayoutConstants";
 import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 
@@ -657,6 +657,12 @@ export function BuilderCanvas({
     const anchorPosition = anchorPageId
       ? pagePositions[anchorPageId]
       : undefined;
+    const pageLayoutBounds = resolvePageLayoutBounds(
+      containerSize.width,
+      zoom,
+      pageGap,
+      pageLayoutPanelMetrics,
+    );
     return computeFrameAreas(
       activeCanonicalDocument,
       framePositions,
@@ -668,11 +674,7 @@ export function BuilderCanvas({
         pageHeight,
         pageGap,
         pageLayoutDirection,
-        resolvePageLayoutAvailableWidth(
-          containerSize.width,
-          zoom,
-          pageLayoutPanelMetrics,
-        ),
+        pageLayoutBounds.availableWidth,
       );
       return {
         ...area,

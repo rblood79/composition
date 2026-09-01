@@ -37,7 +37,7 @@ import { migrateCheckboxRadioItemsStructure } from "../../adapters/canonical/che
 import { migrateFieldInlineLayout } from "../../adapters/canonical/fieldInlineLayoutMigration";
 import { migrateCircleLeafInlineSize } from "../../adapters/canonical/circleLeafInlineSizeMigration";
 import { ensureReusableCompositeOrigins } from "../components/reusableCompositeOrigins";
-import { resolvePageLayoutAvailableWidth } from "../workspace/canvas/pageLayoutConstants";
+import { resolvePageLayoutBounds } from "../workspace/canvas/pageLayoutConstants";
 
 function normalizePageSlug(slug: string | null | undefined): string {
   if (!slug) return "";
@@ -156,6 +156,12 @@ export const usePageManager = ({
       useStore.getState();
     const { canvasSize, containerSize, pageLayoutPanelMetrics, zoom } =
       useViewportSyncStore.getState();
+    const pageLayoutBounds = resolvePageLayoutBounds(
+      containerSize.width,
+      zoom,
+      pageGap,
+      pageLayoutPanelMetrics,
+    );
     return calculateNextPagePosition(
       pages,
       pagePositions,
@@ -163,11 +169,8 @@ export const usePageManager = ({
       canvasSize.height,
       pageGap,
       pageLayoutDirection,
-      resolvePageLayoutAvailableWidth(
-        containerSize.width,
-        zoom,
-        pageLayoutPanelMetrics,
-      ),
+      pageLayoutBounds.availableWidth,
+      pageLayoutBounds.leftInset,
     );
   }, []);
 
@@ -440,6 +443,12 @@ export const usePageManager = ({
         // override 병합 (entry 부재 페이지만 재계산 폴백 — lazy write 대응).
         const currentCanvasSize = useViewportSyncStore.getState().canvasSize;
         const currentViewport = useViewportSyncStore.getState();
+        const pageLayoutBounds = resolvePageLayoutBounds(
+          currentViewport.containerSize.width,
+          currentViewport.zoom,
+          pageGap,
+          currentViewport.pageLayoutPanelMetrics,
+        );
         initializePagePositions(
           storePages,
           currentCanvasSize.width,
@@ -447,11 +456,8 @@ export const usePageManager = ({
           pageGap,
           pageLayoutDirection,
           document.pagePositions,
-          resolvePageLayoutAvailableWidth(
-            currentViewport.containerSize.width,
-            currentViewport.zoom,
-            currentViewport.pageLayoutPanelMetrics,
-          ),
+          pageLayoutBounds.availableWidth,
+          pageLayoutBounds.leftInset,
         );
         // 위치를 먼저 준비한 뒤 page 목록을 publish하여 미초기화 page가
         // 렌더 단계에서 (0, 0)으로 겹치는 중간 상태를 만들지 않는다.

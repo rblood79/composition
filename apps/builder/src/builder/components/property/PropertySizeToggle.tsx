@@ -14,6 +14,7 @@ interface PropertySizeToggleProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  className?: string;
   /** Size options: "3" = S/M/L, "5" = XS/S/M/L/XL */
   scale?: "3" | "5";
   /** Custom options override (scale 무시) */
@@ -38,6 +39,7 @@ export const PropertySizeToggle = memo(function PropertySizeToggle({
   label,
   value,
   onChange,
+  className,
   scale = "3",
   options,
 }: PropertySizeToggleProps) {
@@ -59,8 +61,10 @@ export const PropertySizeToggle = memo(function PropertySizeToggle({
     <fieldset className="properties-aria">
       <legend className="fieldset-legend">{displayLabel}</legend>
       <ToggleButtonGroup
+        className={className}
         aria-label={displayLabel}
         selectionMode="single"
+        disallowEmptySelection
         selectedKeys={[value]}
         onSelectionChange={handleChange}
         indicator

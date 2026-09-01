@@ -27,7 +27,7 @@ import { getDB } from "../../../lib/db";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { canonicalDocumentToElements } from "../canonical/canonicalElementsView";
 import { useViewportSyncStore } from "../../workspace/canvas/stores";
-import { resolvePageLayoutAvailableWidth } from "../../workspace/canvas/pageLayoutConstants";
+import { resolvePageLayoutBounds } from "../../workspace/canvas/pageLayoutConstants";
 import { historyManager, type HistoryEntry } from "../history";
 import { snapshotManager } from "./snapshots";
 
@@ -73,6 +73,12 @@ export async function applySnapshotDocument(
 
   const canvasSize = useViewportSyncStore.getState().canvasSize;
   const viewport = useViewportSyncStore.getState();
+  const pageLayoutBounds = resolvePageLayoutBounds(
+    viewport.containerSize.width,
+    viewport.zoom,
+    store.pageGap,
+    viewport.pageLayoutPanelMetrics,
+  );
   store.initializePagePositions(
     storePages,
     canvasSize.width,
@@ -80,11 +86,8 @@ export async function applySnapshotDocument(
     store.pageGap,
     store.pageLayoutDirection,
     docCopy.pagePositions,
-    resolvePageLayoutAvailableWidth(
-      viewport.containerSize.width,
-      viewport.zoom,
-      viewport.pageLayoutPanelMetrics,
-    ),
+    pageLayoutBounds.availableWidth,
+    pageLayoutBounds.leftInset,
   );
   store.setPages(storePages);
 

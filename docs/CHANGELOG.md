@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Settings의 Page Layout 선택지를 `Auto`·`Horizontal`·`Vertical`로 통일하고 기본값을 `Auto`로 설정했습니다. 기존 `zigzag` 값은 `Auto`로 읽습니다.
 - `Auto` 정렬은 Canvas-local 폭에 좌·우 panel 폭, shell 여백, 양쪽 `Page Gap`을 더해 browser 전체 폭을 계산하고, 두 panel 사이의 page 영역을 기준으로 현재 zoom과 선택된 breakpoint의 page 폭이 panel과 겹치지 않도록 최대 page 수를 한 줄에 배치한 뒤 이후 page를 다음 줄로 넘깁니다.
-- Settings의 Page Layout 아래에 Page Gap을 추가했습니다. 기본값은 기존 `PAGE_STACK_GAP`과 같은 `80px`이며, 가로·세로·Auto 배치와 새 page 생성에 동일하게 적용됩니다.
+- Settings의 Page Layout을 `Auto`·`Horizontal`·`Vertical` ToggleButtonGroup으로 바꾸고, Page Gap은 Transform의 Width와 같은 숫자 입력 셸 및 Layout Gap 아이콘을 재사용합니다. chevron 목록의 `S`·`M`·`L`은 입력값을 각각 `40`·`80`·`120`으로 교체하고 현재 값과 일치하는 항목만 check를 표시하며, preset 외 사용자값에는 check를 표시하지 않습니다. 기본값은 기존 `PAGE_STACK_GAP`과 같은 `80px`이며, 두 설정을 바꾸면 Canvas의 page 위치도 즉시 다시 정렬됩니다.
 
 ## [빌더 패널의 빈 상태가 공통 패턴을 사용합니다] - 2026-09-01
 

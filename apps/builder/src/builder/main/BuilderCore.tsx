@@ -27,7 +27,7 @@ import {
   CANVAS_BREAKPOINTS,
   CANVAS_VIEWPORT,
 } from "../workspace/canvasBreakpoints";
-import { resolvePageLayoutAvailableWidth } from "../workspace/canvas/pageLayoutConstants";
+import { resolvePageLayoutBounds } from "../workspace/canvas/pageLayoutConstants";
 import { useViewportSyncStore } from "../workspace/canvas/stores";
 import { CanvasSelectionShortcutsHost } from "../panels/properties/CanvasSelectionShortcuts";
 import { BuilderCanvas } from "./BuilderCanvas";
@@ -458,16 +458,20 @@ export const BuilderCore: React.FC = () => {
       // desktop → desktop tier, tablet/mobile → 동명 tier.
       const nextBreakpoint = toResponsiveBreakpoint(String(value));
       const currentBreakpoint = useStore.getState().activeBreakpoint;
+      const viewport = useViewportSyncStore.getState();
+      const pageLayoutBounds = resolvePageLayoutBounds(
+        viewport.containerSize.width,
+        viewport.zoom,
+        useStore.getState().pageGap,
+        viewport.pageLayoutPanelMetrics,
+      );
       switchPagePositionsBreakpoint(currentBreakpoint, nextBreakpoint, {
         pageWidth: CANVAS_VIEWPORT[nextBreakpoint].width,
         pageHeight: CANVAS_VIEWPORT[nextBreakpoint].height,
         gap: useStore.getState().pageGap,
         direction: useStore.getState().pageLayoutDirection,
-        availableWidth: resolvePageLayoutAvailableWidth(
-          useViewportSyncStore.getState().containerSize.width,
-          useViewportSyncStore.getState().zoom,
-          useViewportSyncStore.getState().pageLayoutPanelMetrics,
-        ),
+        availableWidth: pageLayoutBounds.availableWidth,
+        pageStartX: pageLayoutBounds.leftInset,
       });
       setActiveBreakpoint(nextBreakpoint);
       invalidateLayout();
@@ -482,16 +486,20 @@ export const BuilderCore: React.FC = () => {
     if (initial != null) {
       const nextBreakpoint = toResponsiveBreakpoint(String(initial));
       const currentBreakpoint = useStore.getState().activeBreakpoint;
+      const viewport = useViewportSyncStore.getState();
+      const pageLayoutBounds = resolvePageLayoutBounds(
+        viewport.containerSize.width,
+        viewport.zoom,
+        useStore.getState().pageGap,
+        viewport.pageLayoutPanelMetrics,
+      );
       switchPagePositionsBreakpoint(currentBreakpoint, nextBreakpoint, {
         pageWidth: CANVAS_VIEWPORT[nextBreakpoint].width,
         pageHeight: CANVAS_VIEWPORT[nextBreakpoint].height,
         gap: useStore.getState().pageGap,
         direction: useStore.getState().pageLayoutDirection,
-        availableWidth: resolvePageLayoutAvailableWidth(
-          useViewportSyncStore.getState().containerSize.width,
-          useViewportSyncStore.getState().zoom,
-          useViewportSyncStore.getState().pageLayoutPanelMetrics,
-        ),
+        availableWidth: pageLayoutBounds.availableWidth,
+        pageStartX: pageLayoutBounds.leftInset,
       });
       setActiveBreakpoint(nextBreakpoint);
     }

@@ -10,7 +10,7 @@
  * @updated 2026-03-05 - ADR-021 Phase D: Supabase 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
-import { LayoutGrid, ZoomIn, Moon, Sun, Settings } from "lucide-react";
+import { UnfoldHorizontal, ZoomIn, Moon, Sun, Settings } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
@@ -22,13 +22,21 @@ import { useUiStore } from "../../../stores/uiStore";
 import {
   PropertySwitch,
   PropertySelect,
-  PropertyNumberInput,
+  PropertyUnitInput,
   PropertySection,
+  PropertySizeToggle,
   PanelHeader,
 } from "../../components";
 import { useThemeMessenger } from "@/builder/hooks";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
+import { alignPagesToScreen } from "../../workspace/canvas/viewport/pageLayoutActions";
+
+const PAGE_GAP_PRESETS = [
+  { id: "sm", label: "S", value: "40" },
+  { id: "md", label: "M", value: "80" },
+  { id: "lg", label: "L", value: "120" },
+] as const;
 
 function SettingsContent() {
   const { sendDarkMode } = useThemeMessenger();
@@ -81,9 +89,9 @@ function SettingsContent() {
   ];
 
   const pageLayoutOptions = [
-    { value: "auto", label: t("settings.pageLayoutAuto") },
-    { value: "horizontal", label: t("settings.pageLayoutHorizontal") },
-    { value: "vertical", label: t("settings.pageLayoutVertical") },
+    { id: "auto", label: t("settings.pageLayoutAuto") },
+    { id: "horizontal", label: t("settings.pageLayoutHorizontal") },
+    { id: "vertical", label: t("settings.pageLayoutVertical") },
   ];
 
   const handleThemeModeChange = (value: string) => {
@@ -100,6 +108,18 @@ function SettingsContent() {
   const handleUiScaleChange = (value: string) => {
     const scale = parseInt(value) as 80 | 100 | 120;
     setUiScale(scale);
+  };
+
+  const handlePageLayoutChange = (value: string) => {
+    setPageLayoutDirection(value as PageLayoutDirection);
+    alignPagesToScreen();
+  };
+
+  const handlePageGapChange = (value: string) => {
+    const nextGap = Number.parseFloat(value);
+    if (!Number.isFinite(nextGap)) return;
+    setPageGap(nextGap);
+    alignPagesToScreen();
   };
 
   return (
@@ -140,26 +160,25 @@ function SettingsContent() {
             icon={ACTION_ICONS.toggleSnap}
           />
 
-          <PropertySelect
+          <PropertySizeToggle
             label={t("settings.pageLayout")}
             value={normalizePageLayoutDirection(pageLayoutDirection)}
-            onChange={(value) =>
-              setPageLayoutDirection(value as PageLayoutDirection)
-            }
+            onChange={handlePageLayoutChange}
             options={pageLayoutOptions}
-            icon={LayoutGrid}
+            className="settings-page-layout-toggle"
           />
 
-          <PropertyNumberInput
+          <PropertyUnitInput
             label={t("settings.pageGap")}
-            value={pageGap}
+            value={String(pageGap)}
             min={0}
             max={2000}
-            step={1}
-            onChange={(value) => {
-              if (value !== undefined) setPageGap(value);
-            }}
-            icon={LayoutGrid}
+            onChange={handlePageGapChange}
+            icon={UnfoldHorizontal}
+            units={[]}
+            allowKeywords={false}
+            presets={PAGE_GAP_PRESETS}
+            presetAriaLabel={t("settings.pageGapPreset")}
           />
         </PropertySection>
 

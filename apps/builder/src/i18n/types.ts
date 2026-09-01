@@ -894,6 +894,7 @@ export interface TranslationKeys {
     showActionBar: string;
     pageLayout: string;
     pageGap: string;
+    pageGapPreset: string;
     pageLayoutAuto: string;
     pageLayoutHorizontal: string;
     pageLayoutVertical: string;

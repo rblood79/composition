@@ -1,5 +1,13 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../stores";
 import { PropertyUnitInput } from "./PropertyUnitInput";
@@ -173,4 +181,70 @@ describe("PropertyUnitInput numeric editing", () => {
       expect(onChange).toHaveBeenCalledWith("");
     },
   );
+
+  it("preset은 trigger에 선택값을 표시하지 않고 숫자 입력값만 교체한다", async () => {
+    const onChange = vi.fn();
+
+    function PageGapHarness() {
+      const [value, setValue] = useState("80");
+      return (
+        <PropertyUnitInput
+          label="Page Gap"
+          value={value}
+          units={[]}
+          allowKeywords={false}
+          presets={[
+            { id: "sm", label: "S", value: "40" },
+            { id: "md", label: "M", value: "80" },
+            { id: "lg", label: "L", value: "120" },
+          ]}
+          presetAriaLabel="Page Gap Preset"
+          onChange={(nextValue) => {
+            onChange(nextValue);
+            setValue(nextValue);
+          }}
+        />
+      );
+    }
+
+    render(<PageGapHarness />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const input = screen.getByRole("combobox", { name: "Page Gap" });
+    const trigger = screen.getByRole("button", { name: "Page Gap Preset" });
+    expect(trigger.textContent).toBe("");
+
+    fireEvent.click(trigger);
+    expect(
+      screen.getByRole("option", { name: "M" }).getAttribute("aria-selected"),
+    ).toBe("true");
+    fireEvent.click(screen.getByRole("option", { name: "L" }));
+
+    expect((input as HTMLInputElement).value).toBe("120");
+    expect(trigger.textContent).toBe("");
+    await waitFor(() => {
+      expect(screen.queryByRole("option", { name: "L" })).toBeNull();
+    });
+    expect(onChange).toHaveBeenCalledWith("120");
+
+    fireEvent.click(trigger);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("option", { name: "L" }).getAttribute("aria-selected"),
+      ).toBe("true");
+    });
+    fireEvent.click(screen.getByRole("option", { name: "L" }));
+
+    fireEvent.change(input, { target: { value: "95" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.click(trigger);
+
+    expect(
+      screen
+        .getAllByRole("option")
+        .every((option) => option.getAttribute("aria-selected") === "false"),
+    ).toBe(true);
+  });
 });

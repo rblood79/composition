@@ -314,6 +314,8 @@ export interface ElementsState {
     >,
     /** auto 배치에서 한 줄의 기준이 되는 world 좌표 폭 */
     availableWidth?: number,
+    /** auto 배치에서 첫 page가 시작하는 world 좌표 x */
+    pageStartX?: number,
   ) => void;
   updatePagePosition: (pageId: string, x: number, y: number) => void;
   updatePagePositionsBatch: (
@@ -560,6 +562,8 @@ export interface PagePositionBreakpointSwitchOptions {
   direction: PageLayoutDirection;
   /** auto 배치에서 한 줄의 기준이 되는 world 좌표 폭 */
   availableWidth?: number;
+  /** auto 배치에서 첫 page가 시작하는 world 좌표 x */
+  pageStartX?: number;
 }
 
 export function calculatePagePositions(
@@ -569,6 +573,7 @@ export function calculatePagePositions(
   gap: number,
   direction: PageLayoutDirection = "horizontal",
   availableWidth?: number,
+  pageStartX = 0,
 ): PagePositions {
   const positions: PagePositions = {};
   const normalizedDirection = normalizePageLayoutDirection(direction);
@@ -592,7 +597,7 @@ export function calculatePagePositions(
       const column = index % columnCount;
       const row = Math.floor(index / columnCount);
       positions[pages[index].id] = {
-        x: column * (pageWidth + gap),
+        x: pageStartX + column * (pageWidth + gap),
         y: row * (pageHeight + gap),
       };
     }
@@ -615,6 +620,7 @@ export function calculateNextPagePosition(
   gap: number,
   direction: PageLayoutDirection,
   availableWidth?: number,
+  pageStartX = 0,
 ): PagePosition {
   const positionedPages = pages
     .map((page) => ({ page, position: pagePositions[page.id] }))
@@ -649,7 +655,7 @@ export function calculateNextPagePosition(
       const column = index % columnCount;
       const row = Math.floor(index / columnCount);
       const candidate = {
-        x: column * (pageWidth + gap),
+        x: pageStartX + column * (pageWidth + gap),
         y: row * (pageHeight + gap),
       };
       const collides = positionedPages.some(({ position }) => {
@@ -2211,6 +2217,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       direction: PageLayoutDirection = "horizontal",
       persisted,
       availableWidth,
+      pageStartX,
     ) => {
       const positions = calculatePagePositions(
         pages,
@@ -2219,6 +2226,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         gap,
         direction,
         availableWidth,
+        pageStartX,
       );
 
       // ADR-177: document `pagePositions` 를 breakpoint 축으로 뒤집어 페이지 단위
@@ -2302,6 +2310,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
                 options.gap,
                 options.direction,
                 options.availableWidth,
+                options.pageStartX,
               )
             : undefined;
         const targetPositionMap =

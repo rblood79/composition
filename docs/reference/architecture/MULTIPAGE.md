@@ -48,11 +48,11 @@ updatePagePosition(pageId, x, y); // 단일 페이지 위치 업데이트
 - `initializePagePositions`: `order_num` 정렬 후 `direction` 파라미터에 따라 배치 방식 결정:
   - `horizontal`: `currentX += pageWidth + gap` 수평 배치.
   - `vertical`: `currentY += pageHeight + gap` 수직 배치.
-  - `auto`: Canvas-local 화면 폭에 좌·우 panel 폭과 panel↔canvas gap을 더한 browser 폭을 `zoom`으로 world 폭으로 환산한 뒤, 선택된 breakpoint의 `pageWidth`와 Settings의 `Page Gap`을 기준으로 한 줄의 최대 page 수를 계산한다. `col = i % columnCount`, `row = Math.floor(i / columnCount)`으로 다음 줄에 배치한다.
+  - `auto`: Canvas-local 화면 폭에 좌·우 panel 점유 폭과 shell 여백, 양쪽 `Page Gap`을 더해 browser 전체 폭을 만든다. 이 전체 폭의 좌·우 inset 사이를 page 영역으로 사용하고, 선택된 breakpoint의 `pageWidth`와 Settings의 `Page Gap`을 기준으로 한 줄의 최대 page 수를 계산한다. 첫 page는 좌측 panel 뒤의 `Page Gap`에서 시작하며, `col = i % columnCount`, `row = Math.floor(i / columnCount)`으로 다음 줄에 배치한다.
 - `usePageManager.initializeProject()` 완료 후 `initializePagePositions()` 호출.
 - `addPage()` 시 현재 `pageLayoutDirection`에 맞춰 마지막 page 다음 위치에 Settings의 `Page Gap`을 유지하며 새 페이지를 추가한다.
 - breakpoint(사이즈) 변경과 Settings 패널의 배치 방향 변경은 기존 page 위치를 유지한다. 상단 `ZoomControls` popover의 `화면 정렬` command가 현재 canvas 크기와 Settings의 방향을 사용해 `initializePagePositions()`를 호출하고 모든 페이지를 명시적으로 재배치한다.
-- `auto`의 가용 폭은 `(containerSize.width + leftPanelWidth + rightPanelWidth + sideGaps) / zoom`, page 크기는 `useViewportSyncStore.getState().canvasSize`에서 동적으로 읽음 (하드코딩 없음).
+- `auto`의 browser 전체 폭은 `(containerSize.width / zoom) + leftInset + rightInset`, page 가용 폭은 `browserWidth - leftInset - rightInset`이다. `leftInset`/`rightInset`은 panel 폭과 shell 여백을 world 좌표로 환산한 값에 해당 측면 `Page Gap`을 더한 값이며, page 크기는 `useViewportSyncStore.getState().canvasSize`에서 동적으로 읽음 (하드코딩 없음).
 
 ### Phase 2: 다중 페이지 PixiJS 씬 그래프
 
