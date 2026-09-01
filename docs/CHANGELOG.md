@@ -20,9 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 내용이 없는 빈 block 의 위·아래 margin 이 하나로 접히지 않아 부모가 그만큼 더 높았습니다 (미리보기 10 / 캔버스 30).
   - flex 컨테이너(그리고 overflow 가 scroll/hidden 인 상자)의 **자기** margin 이 형제·부모와 접히지 않고 더해졌습니다.
   - block 요소 뒤에 오는 인라인 줄이 앞 요소의 bottom margin 을 무시하고 붙었습니다.
+  - 높이를 `0` 으로 둔 빈 요소의 위·아래 margin 이 접히지 않아 다음 요소가 더 아래에 놓였습니다 (미리보기 40 / 캔버스 60).
   - **Why**: 엔진 block 솔버의 "빈 block" 분류를 만들어 내는 자리가 없어 (단위 테스트에서만 살아 있었음) 모든 자식이 일반 block 으로 흘렀고, 컨테이너 높이는 마지막 margin 이 부모 밖으로 빠지는지·안에 남는지를 구분하지 못한 채 자식 사각형의 합으로 계산됐습니다. BFC 상자의 margin 차단은 "자기 자식과" 만이어야 하는데 자기 margin 까지 막았습니다. CSS 2.1 §8.3.1 / §10.6.3 대로 정리했습니다.
   - 위치: `packages/composition-engine/src/block.rs`, `tree.rs` (`write_block_item` self-collapsing 분류, `solve_block` auto height)
-- 검증: Chrome 차등 41/41 · 렌더 parity 975 회귀 0 · ADR-923 Phase 3 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
+- 검증: Chrome 차등 44/44 · 렌더 parity 978 회귀 0 · ADR-923 Phase 3 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
 
 ## [프레임 테두리가 캔버스에 보입니다] - 2026-08-31
 
