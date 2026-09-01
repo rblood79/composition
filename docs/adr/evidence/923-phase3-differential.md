@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 15 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 16 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -415,7 +415,7 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
     Preview generic (`resolveGenericLeafText(type, props)`) + Label/Description/FieldError +
     ListBoxItem/GridListItem/Menu + TreeItem (2) + Column (`resolveColumnHeaderLabel`) +
     DisclosureHeader + Button + shared `extractTextContent(element)`. 계약 밖 키 (기본 군의 `label`/
-    `title`/`value`/`text`/`placeholder`) 는 세 표면이 **함께** 무시한다 — Preview 의 TreeItem
+    `title`/`value`/`text`/`placeholder`) 는 세 표면이 **함께** 무시한다 (**노드 자기 텍스트에 한함** — composite parent 의 `label`/`placeholder` 는 parent props 가 SSOT 이고 propagation registry 가 canonical 자식으로 잇는 별개 축, round 16 수리 33) — Preview 의 TreeItem
     `title/label/value` · Column `label` · DisclosureHeader `title` 폴백은 production writer 가 없는 (AI 만
     도달하는) 키라 계약에서 뺐고, FieldError 는 inspector 가 쓰는 `children` 을 Preview 만 무시하던
     것이 함께 고쳐졌다. AI 도구 설명 (i18n `aiToolDef.props`/`updateProps` ko·en) 에 "표시 텍스트는
@@ -435,6 +435,42 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
     - 기존 specs 테스트 2 파일 (`buildCatalogShapes.test.ts` "label 우선" · `placeholderAlign` 5) 은
       round 14 의 Skia 단일 순서를 고정하던 것이라 계약 (nodeType) 으로 갱신 — 배열 children 은 Skia
       도 "ab" (Preview 가 그리는 결과; 종전 Skia 만 "텍스트 아님" 으로 `text` 로 넘어갔다).
+
+## round 16 수리 1건 (Codex 판독 r16m1 — composite parent label 다리; factory sweep 이 2 가족 추가 검출, `89155edea`)
+
+33. **composite parent `label` 을 canonical Label 자식으로 잇는 propagation 다리** (r16m1 — round 15 의 "세 표면 위임" 은
+    노드 자기 텍스트 (buildCatalogShapes text shape · generic leaf · 콘텐츠 폭) 에만 성립하고, composite parent 의 slot
+    텍스트는 다른 축이었다). Preview 는 parent props 로 RAC 를 self-compose (`renderColorField` `label={element.props.label}`)
+    하고, Skia (`applyParentPropagationProps` :457) · 레이아웃 (`fullTreeLayout` :2153 `resolvePropagatedProps`) · Inspector
+    store 쓰기 (`PropertiesPanel` :207 `buildPropagationUpdates`) 는 propagation registry 의 `label → Label.children (override)`
+    로만 canonical Label 자식에 닿는다 — 형제 field 9종 (TextField/TextArea/SearchField/NumberField/DateField/TimeField/
+    DatePicker/Select/ComboBox) 은 전부 이 규칙을 갖는데 ColorField 는 spec 시절 (`ColorField.spec.ts` propagation `size` 만)
+    부터 없었고 factory parent 에 `label` 도 없었다 (`DateColorComponents.ts` — DateField/TimeField 는 parent label + Label
+    자식 둘 다). 그래서 Inspector (binding `label` accepts) / AI 가 parent label 을 쓰면 Preview "Changed Color" / Skia·
+    레이아웃 "Color" (Codex 반례 — 확증), 생성 직후는 Preview 무라벨 / Skia "Color".
+    - **factory sweep 게이트가 같은 누락을 2 가족 더 검출**: 직접 Label 자식 (문자열 children) 을 만드는 factory 전부
+      (13 가족) 에 대해 (i) registry `→ Label.children` 규칙 (ii) 생성 시 parent SSOT == Label 텍스트 (iii) parent 변경이
+      `resolvePropagatedProps` 로 도달 — 수리 전 RED = ColorField · **CheckboxGroup · RadioGroup** (binding 이 parent
+      `label` 을 받지만 규칙 없음 → Inspector label 편집이 어느 표면에도 안 닿았다: Preview 는 Label 자식 우선
+      `labelChild.children || props.label` 이라 stale, Skia 도 자식 stale — 표면끼리는 같았지만 편집이 죽어 있었고, 규칙만
+      추가하면 AI 가 parent 만 쓴 문서에서 Skia 만 바뀌는 새 갈림이 생기므로 Preview 순서를 parent 우선으로 함께 정렬).
+    - 수리: registry 3 가족 `label → Label.children (override)` · ColorField factory parent `label: "Color"` · Preview
+      CheckboxGroup/RadioGroup `props.label || labelChild.children` (parent = D2 SSOT, 자식은 mirror + legacy 폴백) ·
+      hydration migration `migrateColorFieldParentLabel` (parent `label` 부재 시 Label 자식 텍스트로 채움 — `label: ""` 은
+      보존, 멱등, `adapters/canonical/index.ts` + `usePageManager.ts` 두 체인).
+    - 게이트: `apps/builder/src/builder/utils/adr923CompositeLabelBridge.test.tsx` 5 (sweep 2 + ColorField 3표면 2 + 그룹
+      parent 우선 1 — 수리 전 RED 3+2) · `colorFieldParentLabelMigration.test.ts` 3. Chrome 차등에는 싣지 않음 (plain-DOM
+      하니스 한계 — round 15 와 같은 이유).
+    - **계약 밖 키 공동 무시 주장의 정정**: 수리 32 의 "계약 밖 키는 세 표면이 함께 무시" 는 노드 자기 텍스트 한정.
+      composite parent 의 `label`/`placeholder` 는 parent props 가 SSOT 이고 propagation registry 가 자식으로 잇는 별개 축 —
+      이 축의 닫힘 기준은 "Label 자식을 만드는 factory 가족 전부가 규칙을 가진다" (sweep 게이트).
+    - **description / errorMessage (r16m1 의 나머지 반 — 이번 수리 밖)**: field/group binding 15종이 Inspector 로 parent
+      `description`/`errorMessage` 를 받고 Preview 는 RAC slot 으로 그리지만 (`errorMessage` 는 `isInvalid` 일 때만 —
+      RAC FieldError), **Skia 는 어떤 field 가족에서도 이 둘을 그리지 않는다** — factory 에 Description 자식이 없고
+      (TextField/DateField/TimeField 의 FieldError 자식은 `children: ""` + `display: none`, 규칙 없음) skiaPrimitives 의
+      `description` reader 는 card/listbox_item (collection) 뿐. round 15 이전부터의 D3 투영 공백 (text 원천 순서 문제가
+      아님) 이고 수리 = 가족 전체 canonical 자식 (Description/FieldError) + propagation + FieldError 가시성 ↔ `isInvalid` +
+      레이아웃 높이 — ADR-923 (레이아웃 어휘) 범위 밖으로 판정, 관찰로 기록하고 사용자 scope 결정 대기.
 
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
@@ -558,6 +594,17 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
   `placeholder` 군) · Button (Cancel/Save) · Tooltip `{label}` 전부 렌더 불변, Home 페이지 Button ×10
   불변, 콘솔 에러 0 (재로드 시점 포함).
 
+- **round 16 수리 후**: Rust 변경 0 (TS 만 — cargo 미재실행, Codex round 16 재실행 371) · 차등 **97/97** · full
+  **parity 1033** (기존 catalogComponentBox 2 · 1 expected fail · 2 skipped) · layout unit 50 files/415 · builder unit
+  (utils/factories/adapters/preview/skia/utils/overlay/panels) 182 files/1607 (+8: 다리 5 · migration 3) · shared 926 ·
+  type-check 0. 수리 전 RED (실측): sweep 1 FAIL (ColorField·CheckboxGroup·RadioGroup 규칙 부재 나열) + ColorField 3표면
+  2 FAIL (Preview 는 "Changed Color", 다리 없음 / factory parent label 없음).
+
+- **Live Exercise (round 16 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP) — 팔레트에서 ColorField
+  추가 → Skia "Color" + Inspector Label "Color" (parent label) → Inspector Label 에 "Brand Color" 입력 → Skia 캔버스
+  "Brand Color" (propagation → Label 자식) · Preview iframe (`preview.html`) `.react-aria-ColorField label` = "Brand Color"
+  (DOM) — 두 표면 동일, 콘솔 에러 0. 확인 후 요소 삭제. (publish 탭은 ColorField 를 안 그린다 — publish 범위 밖 관찰 유지.)
+
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
 - ~~마지막 line box auto-height 미반영~~ → round 8 수리 7 로 종결.
@@ -609,3 +656,10 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
 - (r15) Chrome plain-DOM 하니스는 catalog box leaf (Button paddingX) 와 비-텍스트 leaf 의 inline 텍스트를
   못 싣는다 — 텍스트 원천 계약의 RED 는 unit 게이트 (세 표면) 가 원천. catalog CSS 를 domLeg 에 싣는 별도
   하니스 (위 Text width:100% 관찰과 같은 축) 가 필요.
+- (r16) field/group 의 parent `description`/`errorMessage` 를 Skia 가 어떤 가족에서도 그리지 않는다 (수리 33 참조) — Inspector
+  writer 15 binding · Preview RAC slot · Skia 투영 0 · 레이아웃 높이 0. ADR-923 범위 밖 (레이아웃 어휘가 아니라 D3 투영 공백)
+  — 사용자 scope 결정 대기: 가족 전체 canonical Description/FieldError 자식 + propagation + `isInvalid` 가시성 + 높이.
+- (r16) Codex 원복 (b) — 레이아웃 종전 순서 원복 시 Chrome r13m2·r15 pin 도 RED (95/97): 종전 `extractTextContent` 가 Text 의
+  콘텐츠 폭 경로에도 도달한다 — round 16 프롬프트의 "PASS 유지 예상" 은 틀렸다 (Chrome pin 이 레이아웃 원천 순서도 잡는다).
+- (r16) Codex 원복 (c″) — Preview generic 종전 함수 원복 시 `CanonicalNodeRenderer.textSource` 4/4 PASS: 게이트가 출력 의미만
+  잡고 공용 resolver 위임 자체는 검출하지 않는다 (의미가 같으면 위임 여부는 게이트 밖 — 의도).

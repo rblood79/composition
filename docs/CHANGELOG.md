@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ColorField 의 라벨을 바꾸면 캔버스와 미리보기가 같은 글자를 보입니다] - 2026-09-01
+
+### Fixed
+
+- ColorField 의 Label 을 속성 패널 (또는 AI) 에서 바꾸면 미리보기만 바뀌고 캔버스는 "Color" 그대로였던 문제를 고쳤습니다 — 다른 입력 필드 (TextField·Select 등) 가 쓰는 부모→자식 라벨 전달 규칙이 ColorField 에만 없었습니다 (ADR-923 Codex round 16).
+- 새로 추가한 ColorField 가 캔버스에는 "Color" 라벨을 보이면서 미리보기에는 라벨이 없던 문제를 고쳤습니다. 이미 만들어 둔 문서의 ColorField 도 열 때 자동으로 같은 라벨을 갖습니다.
+- CheckboxGroup·RadioGroup 의 Label 을 속성 패널에서 바꿔도 캔버스·미리보기 어느 쪽에도 반영되지 않던 문제를 고쳤습니다 — 같은 전달 규칙을 추가했고, 미리보기는 그룹 라벨을 부모 값에서 먼저 읽습니다.
+
 ## [AI 가 만든 텍스트가 캔버스·미리보기·크기 계산에서 같은 글자를 보입니다] - 2026-09-01
 
 ### Fixed
