@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 20 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 21 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -643,6 +643,56 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
       컴포넌트 4 · componentStrings 4 (`Could not find intl message menuTriggerLabel`) · CollectionRenderers 1 · LayoutRenderers
       1 = 18.
 
+## round 21 수리 8건 (Codex 판독 r21m1/r21m2/r21l1 + live sweep 1 — Chrome 실 CSS 오라클 케이스 7 · 단위 15 · binding 다리 2, 종전 코드 원복 RED 4 조합, `1155ae702`)
+
+round 20 은 **발견된** ListBox/GridList/Button 만 닫았다. 같은 형태 (한 표면만 갖는 빈 내용 기본값) 를 collection/container 가족
+전체로 대조하니 5 종이 더 열려 있었고 (r21m1), Button 하한은 최종 폭과 **다른 padding 원천**을 쓰고 있었다 (r21m2).
+
+54. **ToggleButtonGroup 빈 구조** (r21m1 — `utils.ts` 경로 C: 자식 ToggleButton 도 legacy `items` 도 없으면 폭은 §6
+    `DEFAULT_WIDTH` 80, 높이는 size 의 버튼 높이 30 이었다. DOM 은 `width: fit-content` flex 컨테이너에 padding/border 가 없어
+    **0×0** — 버튼이 0 개면 상자도 없다. r20 수리 52 의 Button `DEFAULT_WIDTH` 와 같은 형태.)
+55. **Tabs 빈 items + stale TabPanel** (r21m1 — Preview `renderTabs` 는 `items.map(findPanelForItem)` 로만 panel 을 그린다:
+    items 가 비면 빈 TabList (Tab 0 → 높이 0) 만 있고 panel 은 하나도 없으며, item 이 지워진 뒤 남은 stale `TabPanel` 자식도
+    DOM 에 없다. layout 은 tab bar 29 + 첫 panel (padding 24 + 높이) 을 무조건 더했다. `utils.ts` Tabs 분기 · `implicitStyles`
+    tabs/tabpanels/tablist 세 분기를 같은 판정 (`resolveTabsItems` — items SSOT, Tabs 는 dataBinding 경로 없음) 으로.)
+56. **TagGroup 슬롯 자식의 가시성 원천** (r21m1 — Preview 는 parent prop 이 비면 Label/Description/FieldError 를 렌더하지 않는다
+    (`TagGroup.tsx` `{label && <Label>}`) → DOM 에 요소가 없어 flex gap 도 없다. layout 은 Label 자식 (글자 "" → 높이 0) 을 세어
+    gap 4 를 더했다. 자식 element 의 글자가 아니라 **parent prop** 이 조건 — composite parent → 슬롯 자식은 propagation 다리
+    (r16m1) 라 판정 원천이 부모다. 높이 합산·Taffy 자식 양쪽에서 제외.)
+57. **GridList / Tree 의 `data-empty` 상태 padding** (r21m1 — 수동 CSS 는 빈 상태에 base 와 다른 padding 을 둔다
+    (`GridList.css [data-empty] { padding: var(--spacing-lg) }` 16 · `Tree.css` `--spacing-xl` 24). catalog `containerStyles` 는
+    base 규칙이라 layout 은 이 상태를 몰랐다 — r20 이 GridList 빈 집합을 0 으로 닫은 것도 base 만 본 결과다. 행 원천 (정적 items ·
+    scene 주입 `_projectedRowsContentHeight` · 자식) 이 전부 없을 때만 적용하고, 인라인 padding 은 DOM 에서도 상태 규칙을 이기므로
+    (inline > class) 그대로 둔다. Tree 는 전용 분기가 없어 fallback 이 후주입으로만 닿았다 → ListBox 처럼 선주입.)
+58. **Table `min-height: 40px` 의 layout 채널** (r21m1 — 수동 `Table.css` 의 `min-height` 를 catalog top-level
+    `containerStyles` + fallback allowlist (`minHeight`) 로 공급. `width: 100%` (ADR-151 B22) 와 같은 채널이며 `heightMode: "fixed"`
+    는 `implicitStyles` Table 분기가 height 를 덮으므로 auto 에서만 드러난다.)
+59. **Table 높이 prop 의 registry 다리** (live — 58 을 넣고 live 를 보니 Preview 는 `heightMode: "auto"` 에서도 402 였다.
+    `Table.binding.ts` `accepts` 에 `heightMode`/`height` 선언이 없어 cutover 렌더러 (`CanonicalNodeRenderer`) 가 두 prop 을
+    전달하지 못했고, 컴포넌트 기본값 (fixed × 400) 이 고정으로 나왔다 — Inspector·AI writer 가 써도 화면이 안 바뀌는 dead writer
+    이면서 layout 만 두 prop 을 읽어 auto 에서 갈렸다 (r18m1 Disclosure `title` 과 같은 형태). 선언 추가로 live 3 모드가 붙었다.)
+60. **Button min-content 하한의 원천 통일** (r21m2 — catalog `min-width` 하한은 catalog padding 으로, 최종 폭은 인라인 padding 으로
+    계산해 `padding: 20` → layout 84 vs DOM 68, `padding: 0 · minWidth: 0` → 44 vs 2 였다. `parseBoxModel` 의 leaf padding/border
+    결정을 `resolveLeafBoxEdges` 로 뽑아 **하한과 최종 폭이 같은 함수**를 쓴다 (인라인 우선 · icon-only 정사각 · Tag remove 보정).
+    인라인 `minWidth` 는 엔진이 `box.minWidth` 로 직접 적용하므로 (0 포함 — DOM 도 inline `min-width` 가 클래스를 이긴다) 그때는
+    catalog 하한을 겹치지 않는다.)
+61. **ADR-157 주석 정정** (r21l1 — `utils.ts` §1.55b/§1.55c 와 게이트 2 파일의 머리말이 제거된 3/4 sample fallback 을 현재 동작으로
+    서술했다. r20 은 단언만 정적 items 로 옮기고 설명을 남겼다.)
+    - 게이트 (round 21): **Chrome 실 CSS 오라클** `catalogComponentBox` +7 (Button padding:20 · Button padding:0+minWidth:0 ·
+      ToggleButtonGroup · Tabs · GridList `data-empty` · Tree `data-empty` · Table auto) — 하니스에 `attrs` (RAC 상태 속성) ·
+      `props` (DOM 이 안 그리는 prop) · `style` (양 leg 공통 인라인) 축 추가. 단위 `adr923EmptyStructureBox.test.ts` 15
+      (Button 하한 3 · TBG 2 · Tabs 4 · TagGroup 2 · data-empty 4) · shared `collectionBindings.test.ts` +2 (Table binding 다리 —
+      accepts 선언 + `toRacProps` 전달) · `resolveContainerStylesFallback.test.ts` table 케이스 갱신.
+    - 원복 RED (실측, HEAD 파일로 교체 → 게이트 → 수리본 복구): `utils.ts`+`implicitStyles.ts` 동시 원복 → 단위 10 + Chrome 9 ·
+      `implicitStyles.ts` 단독 → 단위 5 + Chrome 6 · catalog Table `minHeight` 단독 → Chrome 1 (dom 40 / pipe 0) ·
+      `Table.binding.ts` 단독 → shared 2 = **4 조합**.
+    - **Live (Chrome MCP, 2026-09-02)**: 빈 8 조합을 팔레트로 만들어 Skia layout box (`__composition_LAYOUT_DEBUG__`) 와 Preview
+      compare DOM 을 같이 잰다 — ToggleButtonGroup 0×0 = 0×0 · Tabs 366×0 = 366×0 (TabList 만, panel 없음) · GridList 366×32 =
+      366×32 (`data-empty` padding 16) · Tree 366×50 = 366×50 (padding 24) · Button `padding:20` 68×42 = 68×42 ·
+      Button `padding:0 minWidth:0` 2×2 = 2×2 · Table 3 모드 auto 40 = 40 (virtualizer inline `auto`) · fixed 402 = 402 ·
+      `height: 240` → 242 = 242. TagGroup 은 빈 label 이 두 표면 모두 gap 없이 붙었다 (Skia 32 · DOM 30 — 잔여 2px 은 TagList chip
+      행 metric 축, 아래 관찰).
+
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
 - **실효 (프로덕션 어댑터 경로가 그대로 타는 수리)**: 수리 5 (wrap min-content, r8l2
@@ -807,6 +857,10 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
   2 · 1 expected fail · 2 skipped) · layout unit 52 files/431 (+8) · builder unit 10 영역 207 files/1810 · shared 100 files/953
   (+7) · specs 75 files/875 · type-check 0. 원복 RED (실측) 18 — 수리 47~53 참조.
 
+- **round 21 수리 후**: Rust 변경 0 (TS 만) · 차등 **97/97** · full **parity 1041** (+7 빈 구조 상자 실 CSS; 기존
+  catalogComponentBox 2 · 1 expected fail · 2 skipped) · layout unit 53 files/**446** (+15) · builder unit 10 영역 207
+  files/1810 · shared 100 files/**955** (+2) · specs 75 files/875 · type-check 0. 원복 RED (실측) 4 조합 — 수리 54~61 참조.
+
 - **Live Exercise (round 19 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP) — ① 팔레트에서 Breadcrumbs 추가
   (366×24, body stretch) → Styles Width size "fit" → 190×24, 선택 상자가 "Home › Category › Page" 끝에 맞음 (실제 crumb 폭; 종전
   phantom "Home › Products › Detail" 192 와 2px 차라 live 만으로는 판별력이 낮다 — 판별은 unit RED: crumb 0 → 192 phantom · A/B/C
@@ -825,12 +879,31 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
   `undefined` 로 쓰므로 store `updateElementProps` (AI/import 와 같은 열린 writer 경로) 로 넣었다. 콘솔 에러 0 · 두 요소 삭제.
   GridList 빈 집합·legacy Button 경로는 unit + Chrome 실 CSS 게이트.
 
+- **Live Exercise (round 21 수리 후, 2026-09-02)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP, compare mode) —
+  팔레트 (`ComponentsPanel` 의 `handleAddElement`) 로 ToggleButtonGroup · Tabs · GridList · Tree · Table · TagGroup · Button 2 를
+  body 아래 만들고 빈 상태로 만든 뒤 (자식 삭제 · `items: []` · `label: ""` · `heightMode: "auto"` · 인라인 padding/minWidth),
+  Skia layout box (`__composition_LAYOUT_DEBUG__.getSharedLayoutMap()`) 와 Preview iframe DOM 을 같이 측정: ToggleButtonGroup
+  **0×0 = 0×0** · Tabs 366×**0** = 366×0 (TabList 만) · GridList 366×**32** = 366×32 · Tree 366×**50** = 366×50 · Button
+  `padding:20` **68×42** = 68×42 · Button `padding:0 minWidth:0` **2×2** = 2×2 (수리 전 layout 80×30 / 29 / 0 / 10 / 84 / 44).
+  Table 은 수리 58 만으로는 Preview 가 402 그대로여서 (heightMode 미전달) 수리 59 를 추가 — 이후 auto **40 = 40**
+  (`.react-aria-TableVirtualizer` inline `auto`) · fixed 402 = 402 · `height: 240` → 242 = 242. TagGroup 은 빈 label 에서 두
+  표면 모두 gap 없이 붙었다 (Skia 32 · DOM 30 — 잔여 2px 은 chip 행 metric, 관찰 등재). 콘솔 에러 0 · 생성 요소 전부 삭제
+  (요소 수 86 복귀).
+
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
 - ~~마지막 line box auto-height 미반영~~ → round 8 수리 7 로 종결.
 - ~~middle 의 line box 중앙 근사~~ → round 8 수리 6 으로 종결 — 잔여는 실폰트 x-height
   공급 채널 (S4 판정).
 - strut 의 실폰트 ascent 보정 (half-leading 의 폰트 항) — TS 공급 채널 S4/Phase 5 판정.
+- **(r21)** TagList chip 행 metric 이 DOM 보다 2px 높다 (live: TagGroup label "Tags" → Skia 56 = 20 + gap 4 + TagList 32 ·
+  DOM 54 = 20 + 4 + chip 30; 빈 label 도 Skia 32 vs DOM 30). 빈 내용 상자 축이 아니라 **내용이 있는** chip 행의 높이 공식 축
+  (`resolveTagWrapLayout` + taglist 분기의 paddingY 재가산) — 별도 판정.
+- **(r21)** catalog `sizes.height` 는 여전히 layout 에 전달되지 않는다 (r20 관찰 유지) — Button md `height: 0` (auto) 이라 현재
+  무영향.
+- **(r21)** spacing 토큰 스케일 2계열 공존: specs `primitives/spacing.ts` 의 md/lg/xl/2xl (16/24/32/48) 이 CSS
+  `--spacing-md/lg/xl/2xl` (12/16/24/32) 과 다르다 (2xs/xs/sm 만 일치). catalog 는 이 4 토큰을 `{spacing.X}` 로 쓰지 않아 layout
+  도달 소비자가 없어 드러나지 않았을 뿐 — 수리 57 은 그래서 `resolveToken` 대신 CSS px 표를 쓴다. 토큰 정렬은 별도 판정.
 - TS 는 lineHeight "normal" 을 엔진에 보내지 않는다 — 프로덕션 strut 의 normal 해소
   (≈1.2em) 공급은 Phase 5 cutover 시 판정.
 - ~~`height: 0` 명시 self-collapsing 미분류~~ → **후속 ① 수리 13 으로 종결** (자식 solve 의
