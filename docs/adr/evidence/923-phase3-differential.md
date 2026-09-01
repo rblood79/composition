@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 17 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 18 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -513,6 +513,55 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
       sweep 정확 집합 20 (r17l1) · `canonicalDocumentMigrations.test.ts` 3.
     - r17l2: breakdown/ADR 의 builder unit 1607 → 1612 정정 (round 16 시점), round 17 은 1616.
 
+## round 18 수리 4건 (Codex 판독 r18m1/r18m2/r18m3 + LOW 1 — 전부 unit 게이트로 확정, 종전 코드 원복 RED 12, `9bd23adf5`)
+
+38. **Preview 의 계약 결과 뒤 기본 글자 제거 (sweep 6 + 레이아웃 2)** (r18m1 — 수리 37 의
+    `resolveTextSourceText(...) || "Section"` 이 계약 resolver 의 빈 결과에 truthiness 기본값을 다시 붙여 명시적 빈 값과
+    부재를 합쳤다; Skia `buildCatalogShapes` :319 는 계약 결과가 "" 면 text shape 를 안 그리므로 사용자가 비운 헤더가 Skia 는
+    비고 Preview 는 "Section" 이었다). grep sweep 으로 같은 형태를 전부 찾았다 — Preview: Disclosure 헤더 (`LayoutRenderers`
+    :1687) · 헤더 없는 legacy parent `title || "Section"` (:1688) · standalone `renderDisclosureHeader` (:1743) · Column
+    `resolveColumnHeaderLabel` `|| "Column"` (`TableRenderer` :45) · TreeItem `` || `Item ${id}` `` (`CollectionRenderers`
+    :103/:207) · Menu `|| "Menu"` (:826) — Skia 는 어느 것도 기본 글자를 그리지 않는다 (Column/TreeItem/Menu 전부
+    catalog box+text 계약). 레이아웃: DisclosureHeader `children ?? title ?? "Section"` (`utils.ts` :1454 — 헤더가 없거나 AI 가
+    `title` 만 쓴 문서에서 "Section" 폭 측정) · Breadcrumb `children ?? label ?? title` (:1579/:1625 — r15m1 형태의 측정만의
+    순서, Skia `breadcrumb_crumb`·Preview 는 계약). 전부 계약 텍스트 그대로 (기본 글자 없음). `FormRenderers` 의
+    `|| null` 3 (Label/Description/FieldError) 은 "" → 노드 없음이라 Skia 와 같아 유지.
+39. **Disclosure parent `title` 다리** (r18m1 확증 중 — binding 은 `title` 을 D2 편집 surface 로 선언하는데 registry 에
+    `title → DisclosureHeader.children` 규칙이 없어 Inspector Title 이 어느 표면에도 닿지 않았고 (factory 헤더가 항상
+    있으므로), 헤더 없는 legacy 형태에선 Preview 만 parent title 을 읽었다 — round 16 ColorField label 다리와 같은 부재,
+    Card `title → CardHeader.Heading.children` 이 선례). 규칙 추가 (override) + Preview
+    `resolvePropagatedText(element.props.title, headerEl)` (engine 경계: parent undefined 만 자식 계약, `""` 는 비움);
+    legacy `Heading` 헤더는 registry 대상이 아니라 계약만; 헤더 자식이 없으면 어느 표면도 그리지 않는다 (Preview-only
+    parent title 읽기 제거). factory 는 parent `title` 을 쓰지 않는다 (Card 동형 — parent undefined = 헤더 자기 텍스트).
+40. **main document 정규화 체인 단일 소유 + 전체 문서 교체 경계 결선** (r18m2 — 수리 36 의 진입점 인벤토리가
+    hydration · persist-back · import 에 한정돼 **전체 문서 교체 경계** `applySnapshotDocument` (`snapshotRestore.ts` —
+    snapshot 복원 `restoreSnapshot` · undo/redo 재적용 `applySnapshotRestoreHistoryEntry` · 프로젝트 JSON 파일 가져오기
+    `BuilderCore.tsx` :1164 `handleImportProject`) 를 빠뜨렸다; 이 경계는 어느 migration 도 안 거쳐 store·IndexedDB 를
+    legacy 형태로 교체했다). root cause 는 결선 하나가 아니라 origin 시드 3 + legacy ListBox + 형태 migration 을 같은 순서로
+    중첩하는 체인이 두 곳에 복제된 구조 (수리 36 은 형태 migration 만 모았다) — `adapters/canonical/mainDocumentNormalization.ts`
+    `normalizeMainDocument` 로 모으고 hydration (`index.ts`) · persist-back (`usePageManager.ts`) · `applySnapshotDocument`
+    (JSON round-trip 뒤) 가 전부 이것을 호출. `setDocument` 호출자 인벤토리 (21): 위 3 경계 외 18 은 이미 열린 canonical
+    document 의 mutation/undo/frame 결선 (canonicalMutations 6 · pageFrameBinding · frameLayoutCascade · usePageTreeData ·
+    pageTitleMutation · canonicalFrameStore · frameActions · canonicalHistoryEvents · editorPresentationCommitAdapter 2) 과
+    dev fixture 1 (`pathHeavy117Fixture` — 현행 코드가 생성, 테스트 전용) 이라 진입점이 아니다 (Codex r18 과제 3 판정과 동일).
+41. **import adapter 단일 출구 + 분기별 기능 게이트** (r18m3 — 수리 36 의 정적 게이트가 파일 단위 "문자열 1회 이상" 이라
+    CompositionDocument 분기만 체인을 뺀 원복 (c) 에서 기능 1 만 RED, 정적은 PASS). 분기마다 체인을 감싸는 구조 자체를
+    바꿨다: `convertImportPayload` (변환 3 분기, migration 없음) + `normalizeCompositionImportPayload` 가
+    `applyCanonicalDocumentMigrations(convertImportPayload(...))` 단일 출구 — 분기 누락이 구조적으로 불가. 게이트: 분기별
+    기능 3 (CompositionDocument legacy ColorField · Pencil document / Pencil node 의 field inline `display` strip — Pencil 노드는
+    `children` 이 노드 필드라 Label 텍스트를 못 실어 `migrateFieldInlineLayout` 으로 통과를 잰다) + 정적 (호출 정확히 1회 ·
+    `convertImportPayload(` 를 감쌈 · 개별 migration/시드 직접 호출 0).
+    - 게이트 (round 18): shared `propagatedLabel.test.tsx` 13 (+4: Disclosure 헤더 `""` · AI `title` 만 → "" · parent title
+      우선/`""`/헤더 없음 · Heading 헤더 · standalone 헤더) · `textSourceContract.test.tsx` TreeItem/Column "" · builder
+      `adr923DisclosureTitleBridge.test.tsx` 3 (registry · `resolvePropagatedProps` · Preview 렌더) ·
+      `snapshotRestoreNormalization.test.ts` 1 (실제 canonical store + mock DB: store·persist 양쪽 parent label, 입력 불변,
+      allowShrink/reason) · `canonicalDocumentMigrations.test.ts` 9 (함수 · normalizeMainDocument 멱등 · 분기 3 · 정적 4) ·
+      layout `adr923TextLeafContentSignal.test.ts` +2 (DisclosureHeader `{}`/`""`/`{title}` → 0 · Breadcrumb label/title 0).
+    - 원복 RED (실측, HEAD 파일로 교체 → 게이트 → 수리본 복구): LayoutRenderers 4 · TableRenderer 1 · snapshotRestore 2
+      (기능 + 정적) · importPayloadAdapter 정적 1 (HEAD 의 3-wrapped 형태 = 호출 3회) · propagationRegistry 2 · layout utils 2
+      = 12.
+    - r18l1: README ADR-923 행의 `|` 8 → 6 (r17 설명 안에 끼어든 `|     |` 제거).
+
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
 - **실효 (프로덕션 어댑터 경로가 그대로 타는 수리)**: 수리 5 (wrap min-content, r8l2
@@ -657,6 +706,18 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
   Option 1/2 만) · compare mode Preview iframe (`preview.html`) `.react-aria-CheckboxGroup` textContent = "Option 1Option 2"
   (stale "Checkbox Group" 없음) — 두 표면 동일. undo 로 복원 후 요소 제거.
 
+- **round 18 수리 후**: Rust 변경 0 (TS 만) · 차등 **97/97** · full **parity 1033** (기존 catalogComponentBox 2 · 1
+  expected fail · 2 skipped) · layout unit 50 files/417 (+2) · builder unit 10 영역 (9 영역 + resolvers/canonical +
+  stores/history) 207 files/1810 · shared 98 files/939 (+4) · type-check 0. 원복 RED (실측) 12 — 수리 38~41 참조.
+
+- **Live Exercise (round 18 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP) — 팔레트에서 Disclosure
+  추가 (Skia "Section Title", Inspector Title 빈 칸 = parent undefined) → Inspector Title "Live Title" 입력 → Skia 캔버스 헤더
+  "Live Title" (registry 다리 → DisclosureHeader.children) → Title 비움 (cmd+a · Backspace · Enter) → Skia 헤더 chevron 만
+  (366×56, "Section" 없음) · compare mode Preview iframe (`preview.html`) `.react-aria-Disclosure` heading/button
+  textContent = "" · 전체 textContent = "Section content goes here." (stale "Section Title"·기본 "Section" 없음) — 두 표면
+  동일, 콘솔 에러 0. 확인 후 요소 삭제. snapshot 복원/프로젝트 파일 가져오기 경계는 실제 canonical store 를 쓰는 unit
+  게이트 (DB 만 mock) 로 확인 — live 는 legacy 형태 snapshot 을 만들 수단이 없다.
+
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
 - ~~마지막 line box auto-height 미반영~~ → round 8 수리 7 로 종결.
@@ -715,8 +776,17 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
   콘텐츠 폭 경로에도 도달한다 — round 16 프롬프트의 "PASS 유지 예상" 은 틀렸다 (Chrome pin 이 레이아웃 원천 순서도 잡는다).
 - (r16) Codex 원복 (c″) — Preview generic 종전 함수 원복 시 `CanonicalNodeRenderer.textSource` 4/4 PASS: 게이트가 출력 의미만
   잡고 공용 resolver 위임 자체는 검출하지 않는다 (의미가 같으면 위임 여부는 게이트 밖 — 의도).
-- (r17) Disclosure 에 헤더 자식이 없는 legacy 문서: Preview 는 parent `title || "Section"` 을 보이고 Skia 는 제목을 안
-  그린다 — round 15 이전부터. 헤더 자식이 있는 경로 (factory 기본) 는 수리 37 로 계약 위임.
+- ~~(r17) Disclosure 에 헤더 자식이 없는 legacy 문서: Preview 는 parent `title || "Section"` 을 보이고 Skia 는 제목을 안
+  그린다~~ → **round 18 수리 38·39 로 종결** (Preview-only parent title 읽기 제거 + registry 다리 — 헤더 없으면 어느 표면도
+  안 그린다).
 - (r17) parent-only reader (TextField/TextArea/NumberField/Select `label || ""`, TagGroup) 는 `""` 를 `""` 로 두어 engine 과
   같다; parent 부재 legacy 문서에서만 자식 텍스트를 안 읽는데, 이 가족들은 factory 가 항상 parent label 을 쓴다 (sweep
   조건 ii) — 반례 경로 없음, 미변경.
+- (r18) Pencil import 의 Label 텍스트는 `text` 로 들어온다 (Pencil 노드의 `children` 은 노드 필드) — `migrateColorFieldParentLabel`
+  의 `labelChildText` 는 Label `children` 만 읽어 Pencil 경유 legacy ColorField 는 parent label 을 못 받는다. Pencil 이 ColorField
+  를 내는 경로는 composition export 왕복 (`metadata.compositionType`) 뿐이고 export 가 Label `props.children` 을 싣지 않아
+  (`componentToPencilTree` 가 `children` 키를 노드 필드로 건너뜀) 왕복 자체가 텍스트를 잃는다 — Pencil 왕복 텍스트 보존은
+  ADR-923 범위 밖 후속 후보.
+- (r18) Disclosure 의 Inspector Title 은 수리 39 전까지 어느 표면에도 닿지 않는 D2 writer 였다 — 같은 종류 (binding accepts 의
+  content string 인데 registry 다리가 없는 composite parent) 의 전수 sweep 은 round 16 의 Label 자식 20 가족 밖이라
+  description/errorMessage 별도 작업 (사용자 결정) 과 같은 묶음으로 둔다.

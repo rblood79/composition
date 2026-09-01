@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [헤더·표 머리글·메뉴 글자를 비우면 미리보기도 비고, 예전 스냅샷 복원과 파일 가져오기도 보정을 거칩니다] - 2026-09-01
+
+### Fixed
+
+- Disclosure 헤더 · 표(Table) 열 머리글 · 트리 항목 · 메뉴 버튼의 글자를 속성 패널에서 비우면 캔버스는 비는데 미리보기는 "Section" · "Column" · "Item …" · "Menu" 같은 기본 글자를 보이던 차이를 없앴습니다 — 미리보기도 캔버스처럼 빈 채로 둡니다.
+- Disclosure 의 속성 패널 Title 이 캔버스·미리보기 헤더에 반영되지 않던 문제를 고쳤습니다 (Card 의 Title 과 같은 방식으로 헤더 글자에 전달).
+- 예전 스냅샷을 복원하거나 프로젝트 JSON 파일을 불러올 때 옛 문서 형태 보정 (ColorField 라벨 등) 을 건너뛰던 문제를 고쳤습니다 — 새로고침으로 여는 것과 같은 보정을 거칩니다.
+
 ## [라벨을 비우면 미리보기도 비고, 가져온 문서의 ColorField 도 라벨을 갖습니다] - 2026-09-01
 
 ### Fixed
