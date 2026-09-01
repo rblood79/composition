@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [여백 접힘 경계 4가지가 미리보기와 같아집니다] - 2026-09-01
+
+### Fixed
+
+- **높이를 `0` 으로 둔 텍스트 요소의 위·아래 여백이 하나로 접혀 다음 요소가 올라오던 문제** (미리보기 60 / 캔버스 40):
+  - **Why**: 엔진은 텍스트를 직접 보지 못해 "줄 상자(line box) 가 있는가" 를 텍스트 측정 스칼라(`leafBaseline`) 로만 알 수 있는데, 그 스칼라는 flex/grid 자식이거나 폭이 자동일 때만 공급되고 높이·폭이 명시된 텍스트는 공급 전에 반환됐습니다. CSS 에서 내용이 있는 요소는 높이가 0 이어도 여백이 접히지 않습니다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`enrichWithIntrinsicSize`), `packages/composition-engine/src/tree.rs` (leaf 경로)
+- **절대 위치(absolute) 자식만 가진 빈 상자의 여백이 접히지 않던 문제** (미리보기 40 / 캔버스 60): 흐름 밖 자식은 상자를 비우지 않는 것으로 잘못 세어졌습니다. 빈 상자 판정을 한 곳(자식 solve 플래그) 으로 모았습니다.
+- **양수·음수 여백이 세 개 이상 만나면 접힌 값이 달라지던 문제** (미리보기 20 / 캔버스 35): 두 개씩 차례로 접으면 "가장 큰 양수 + 가장 작은 음수" 라는 CSS 규칙과 어긋납니다. 여백을 값이 아니라 (양수 최대, 음수 최소) 쌍으로 형제·빈 상자·부모 경계 전부에 넘기도록 바꿨습니다 (`block.rs` `MarginSet`).
+- **음수 여백으로 상자 높이가 음수로 계산되던 문제** (미리보기 2 / 캔버스 −8): 자동 높이는 0 아래로 내려가지 않습니다. 같은 자리에서 "내용이 있어도 음수 여백 때문에 빈 상자로 오판" 하던 것도 함께 고쳤습니다 (미리보기 60 / 캔버스 40).
+- 검증: Chrome 차등 56/56 (51 케이스 + 게이트 5) · 렌더 parity 990 회귀 0 · ADR-923 Phase 3 round 10 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
+
 ## [요소 사이 여백과 '넘침 잘라내기' 가 미리보기와 같아집니다] - 2026-09-01
 
 ### Fixed
