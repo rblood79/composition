@@ -197,3 +197,39 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
     expect(result.maxRows).toBe(3);
   });
 });
+
+/**
+ * ADR-923 r21m1 (2026-09-02) — Table 높이 축의 registry 다리.
+ *
+ * `Table.tsx` 는 `heightMode`(fixed/auto/viewport/full) × `height` 로 가상화 영역 높이를 정하고
+ * layout(`implicitStyles` Table 분기)도 같은 두 prop 을 읽는데, binding accepts 선언이 없어 cutover
+ * 렌더러가 둘 다 전달하지 않았다 → live Preview 는 항상 컴포넌트 기본값(fixed 400 → border-box 402)
+ * 이라 Inspector·AI writer 가 써도 화면이 안 바뀌고(dead writer), `heightMode: "auto"` 로 둔 빈
+ * Table 이 DOM 402 vs layout 40(수동 `Table.css min-height: 40px`) 으로 갈렸다. r18m1 Disclosure
+ * `title` 과 같은 형태 — 선언 없는 prop 은 소비 경로가 없다.
+ */
+describe("ADR-923 r21m1 — Table 높이 prop 이 cutover 렌더러에 도달한다", () => {
+  it("binding accepts 에 heightMode/height 선언 (Inspector writer + Preview 소비 경로)", () => {
+    const binding = getPrimitiveBinding("Table")!;
+    expect(binding.props.accepts.heightMode).toBeDefined();
+    expect(binding.props.accepts.heightMode?.default).toBe("fixed");
+    expect(
+      binding.props.accepts.heightMode?.options?.map((o) => o.value),
+    ).toEqual(["fixed", "auto", "viewport", "full"]);
+    expect(binding.props.accepts.height).toBeDefined();
+    expect(binding.props.accepts.height?.kind).toBe("number");
+  });
+
+  it("toRacProps: heightMode/height 를 그대로 전달 (컴포넌트 기본값 fixed 400 고정 해소)", () => {
+    const result = toRacProps(
+      {
+        id: "tbl1",
+        type: "Table",
+        props: { heightMode: "auto", height: 240 },
+      } as never,
+      getPrimitiveBinding("Table")!,
+    ) as Record<string, unknown>;
+    expect(result.heightMode).toBe("auto");
+    expect(result.height).toBe(240);
+  });
+});

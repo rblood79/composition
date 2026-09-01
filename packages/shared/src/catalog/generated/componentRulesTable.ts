@@ -11572,8 +11572,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
     //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
     //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
+    // ADR-923 r21m1 (2026-09-02): 수동 Table.css `min-height: 40px` 도 같은 채널 — heightMode
+    //   "auto" 의 빈 Table 이 DOM 40 vs layout 0 이었다 (fixed 는 implicitStyles 가 height 를 덮는다).
     containerStyles: {
       width: "100%",
+      minHeight: "40px",
     },
     variants: {
       default: {

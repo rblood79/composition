@@ -2,10 +2,10 @@
  * ADR-157 Phase 4 — data-bound GridList 소유자 배치 진실성 (layout Layer D, ListBox 선례 확산).
  *
  * `calculateContentHeight` §1.55c(GridList 분기)는 `props.items` 만 순회한다 — dataBinding/
- * collections 미접근. 따라서 순수 dataBinding 소유자(props.items 없음)는 4-item 기본값 fallback 을
- * 반환하고, scene 은 sample(10 카드) + hatch(remainder) 를 visualRows 전체 높이로 투영한다 →
- * layout(4-item) ≠ scene(visualRows) → enrich 가 owner 를 4-item 으로 고정 → 투영된 rowsGroup 이
- * clip 된다(Hard Constraint 2 배치 진실성 위반).
+ * collections 미접근. 따라서 순수 dataBinding 소유자(props.items 없음)는 items 만으로는 행 0 이다
+ * (ADR-923 r20m1 뒤 sample fallback 없음 — 과거엔 4-item 기본값 fallback 을 반환해 scene 의
+ * sample(10 카드) + hatch(remainder) visualRows 투영과 어긋났고, enrich 가 owner 를 4-item 으로
+ * 고정해 투영된 rowsGroup 이 clip 됐다 — Hard Constraint 2 배치 진실성 위반).
  *
  * Phase 4: scene 이 sample mode owner 에 `_projectedRowsContentHeight`(= ceil(totalRows/columns) ×
  * rowHeight, hatch 와 동일 window resolver stride)를 주입하고, §1.55c 가 items fallback 대신 그

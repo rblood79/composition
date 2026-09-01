@@ -51,6 +51,19 @@ interface CatalogCase {
   /** 컨테이너 안에 넣을 고정 크기 자식 (w×h px). */
   children: Array<{ w: number; h: number }>;
   availW: number;
+  /**
+   * DOM leg 전용 data-* 속성 (ADR-923 r21m1) — RAC 가 상태로 붙이는 속성 (`data-empty`, Tree 의
+   * opt-in `data-composition-tree`). 수동 CSS 의 상태 규칙 (`[data-empty] { padding }`) 은 이 속성이
+   * 있어야 캐스케이드된다. pipeline leg 은 같은 상태를 element 구조 (자식 0 · items 없음) 로 판정한다.
+   */
+  attrs?: Record<string, string>;
+  /** pipeline leg 전용 props (`heightMode` 등 DOM 이 그리지 않는 prop). */
+  props?: Record<string, unknown>;
+  /**
+   * 양쪽 leg 에 같이 주는 인라인 style (ADR-923 r21m2) — leaf 의 사용자 override 축 (`padding`,
+   * `minWidth`). 컨테이너의 catalog 전달 축을 재는 케이스에는 주지 않는다 (위 계약).
+   */
+  style?: Record<string, string>;
 }
 
 /**
@@ -67,6 +80,17 @@ function catalogDomLeg(c: CatalogCase): Bounds[] {
 
   const host = document.createElement("div");
   host.className = `react-aria-${c.type}`;
+  // Preview iframe 의 전역 리셋 (`apps/builder/src/preview/index.tsx` `* { box-sizing: border-box }`)
+  //   을 그대로 둔다 — ground truth 환경의 일부다 (수동 CSS 가 box-sizing 을 안 쓰는 Table 의
+  //   `min-height` 가 Preview 에선 border-box 로 잡힌다).
+  host.style.boxSizing = "border-box";
+  for (const [k, v] of Object.entries(c.attrs ?? {})) host.setAttribute(k, v);
+  for (const [k, v] of Object.entries(c.style ?? {})) {
+    host.style.setProperty(
+      k.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`),
+      v,
+    );
+  }
 
   const kids = c.children.map((k) => {
     const el = document.createElement("div");
@@ -109,11 +133,12 @@ function catalogNodes(c: CatalogCase): CaseNode[] {
   const hostIdx = kids.length;
   return [
     ...kids,
-    // 인라인 style 없음 — catalog 가 유일한 스타일 소스다.
+    // 인라인 style 없음 (기본) — catalog 가 유일한 스타일 소스다. `style` 은 leaf override 케이스만.
     {
       label: c.type,
-      style: {},
+      style: { ...(c.style ?? {}) },
       elementType: c.type,
+      ...(c.props ? { props: c.props } : {}),
       children: kids.map((_, i) => i),
     },
     {
@@ -181,6 +206,40 @@ const CASES: CatalogCase[] = [
   //   `min-width` 68 × padding 4/4 + border 1/1 = 10 (줄 상자 없음). layout 은 종전 DEFAULT_WIDTH 80
   //   (+26 → 106) × lineHeight 20 (+10 → 30) 이었고 minWidth 는 deriveSizeConfig 가 버렸다.
   { type: "Button", children: [], availW: 320 },
+  // ADR-923 r21m2 — 빈 Button 의 min-content 하한은 **실효** padding/border 와 인라인 minWidth 기준.
+  //   DOM: `min-width` 68 border-box 는 padding 이 20 이어도 68 (content 하한 26), `min-width:0` 이면
+  //   padding 0 + border 2 = 2. layout 은 catalog padding 24 로 하한 42 를 굳혀 84 / 44 였다.
+  { type: "Button", children: [], availW: 320, style: { padding: "20px" } },
+  {
+    type: "Button",
+    children: [],
+    availW: 320,
+    style: { padding: "0px", minWidth: "0px" },
+  },
+  // ADR-923 r21m1 — 빈 구조 상자 sweep. DOM 은 자식 0 이면 자기 상자만 남고 (ToggleButtonGroup
+  //   0×0, Tabs 0), RAC `data-empty` 상태 규칙이 padding 을 바꾼다 (GridList spacing-lg 16 ·
+  //   Tree spacing-xl 24), Table 은 수동 CSS `min-height: 40px`. layout 은 각각 80×30 / 29 /
+  //   0 / 4 / 2 였다 — catalog 기본 규칙만 알고 상태 규칙·빈 구조를 모른다.
+  { type: "ToggleButtonGroup", children: [], availW: 320 },
+  { type: "Tabs", children: [], availW: 320, props: { items: [] } },
+  {
+    type: "GridList",
+    children: [],
+    availW: 320,
+    attrs: { "data-empty": "true" },
+  },
+  {
+    type: "Tree",
+    children: [],
+    availW: 320,
+    attrs: { "data-empty": "true", "data-composition-tree": "true" },
+  },
+  {
+    type: "Table",
+    children: [],
+    availW: 320,
+    props: { heightMode: "auto" },
+  },
 ];
 
 /**

@@ -16,6 +16,8 @@ import {
   PHANTOM_INDICATOR_CONFIGS,
   phantomIndicatorGap,
   phantomIndicatorSizeKey,
+  isTagGroupSlotChildVisible,
+  resolveTabsItems,
 } from "./utils";
 import {
   // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert padding/gap/자식 font
@@ -633,6 +635,10 @@ const CONTAINER_STYLES_FALLBACK_KEYS = [
   "paddingRight",
   "paddingBottom",
   "paddingLeft",
+  // ADR-923 r21m1 (2026-09-02): 수동 Table.css `min-height: 40px` 의 layout 채널 (width:100% 와 같은
+  //   B22 형태). heightMode "auto" 의 빈 Table 이 DOM 40 vs layout 0 이었다 — fixed 는 implicitStyles
+  //   Table 분기가 height/minHeight 를 덮는다.
+  "minHeight",
 ] as const;
 
 /**
@@ -802,6 +808,52 @@ export const FORM_SIDE_LABEL_WIDTH = 176;
 export const FORM_SIDE_LABEL_GAP = 16;
 
 // ─── 내부 헬퍼 ──────────────────────────────────────────────────────
+
+/**
+ * ADR-923 r21m1 — 빈 collection 의 RAC `data-empty` 상태 padding (px). 비어 있음 = 행 원천 전부 없음:
+ *   - GridList: `props.items` · scene 주입 `_projectedRowsContentHeight` (dataBinding sample mode) ·
+ *     자식 (projection rows-group / 정적 item) 전부 없음 → `GridList.css [data-empty] padding:
+ *     var(--spacing-lg)`.
+ *   - Tree: 정적 TreeItem 자식 없음 → `Tree.css [data-empty] padding: var(--spacing-xl)`. Tree 는
+ *     dataBinding 행 projection 이 없어 dataBinding 소유자는 판정하지 않는다 (별도 축).
+ *   - ListBox `[data-empty]` 는 정렬만 바꾼다 (padding 그대로) → 없음.
+ * 값은 DOM 이 읽는 CSS var 그대로 (`shared-tokens.css` `--spacing-lg: 1rem` = 16 · `--spacing-xl:
+ * 1.5rem` = 24). **`resolveToken("{spacing.lg}")` 를 쓰지 않는다** — specs `primitives/spacing.ts` 의
+ * md/lg/xl/2xl (16/24/32/48) 는 CSS (12/16/24/32) 와 어긋난 별개 스케일이라 (2xs/xs/sm 만 일치) 여기
+ * 넣으면 48/66 이 된다 (r21 실측). catalog 는 그 4 토큰을 쓰지 않아 layout 도달 소비자가 없었을 뿐
+ * 정렬은 별도 판정 대상이다 (evidence 관찰 r21).
+ */
+const EMPTY_STATE_PADDING_PX = {
+  /** GridList.css `[data-empty] { padding: var(--spacing-lg) }` */
+  gridlist: 16,
+  /** Tree.css `[data-empty] { padding: var(--spacing-xl) }` */
+  tree: 24,
+} as const;
+
+function resolveEmptyCollectionStatePadding(
+  containerTag: string,
+  containerProps: Record<string, unknown> | undefined,
+  children: CanvasLayoutNode[],
+): number | undefined {
+  if (containerTag === "gridlist") {
+    const items = containerProps?.items;
+    const hasItems = Array.isArray(items) && items.length > 0;
+    if (
+      hasItems ||
+      containerProps?._projectedRowsContentHeight != null ||
+      children.length > 0
+    ) {
+      return undefined;
+    }
+    return EMPTY_STATE_PADDING_PX.gridlist;
+  }
+  if (containerTag === "tree") {
+    if (containerProps?.dataBinding != null) return undefined;
+    if (children.some((c) => c.type === "TreeItem")) return undefined;
+    return EMPTY_STATE_PADDING_PX.tree;
+  }
+  return undefined;
+}
 
 /**
  * 사용자 padding이 설정되어 있는지 확인.
@@ -1165,6 +1217,29 @@ export function applyImplicitStyles(
   let effectiveParent = containerEl;
   let filteredChildren = children;
 
+  // ── 빈 collection 의 RAC `data-empty` 상태 규칙 (ADR-923 r21m1) ─────────────────
+  // 수동 CSS 가 `[data-empty]` 에 base 와 다른 padding 을 둔다 (GridList `--spacing-lg` 16 · Tree
+  //   `--spacing-xl` 24; ListBox 는 정렬만 바꾼다). catalog containerStyles 는 base 규칙이라 layout 은
+  //   이 상태를 몰랐다 (r20 이 GridList 빈 집합을 0 으로 닫은 것도 base 만 본 것). 사용자 인라인
+  //   padding 은 DOM 에서도 상태 규칙을 이기므로 (inline > class) 그대로 둔다.
+  const emptyStatePadding = resolveEmptyCollectionStatePadding(
+    containerTag,
+    containerProps,
+    children,
+  );
+  if (emptyStatePadding !== undefined && !hasUserPadding(rawParentStyle)) {
+    delete parentStyle.padding;
+    parentStyle.paddingTop = emptyStatePadding;
+    parentStyle.paddingRight = emptyStatePadding;
+    parentStyle.paddingBottom = emptyStatePadding;
+    parentStyle.paddingLeft = emptyStatePadding;
+  }
+  if (containerTag === "tree") {
+    // Tree 는 전용 분기가 없어 catalog fallback 이 후주입 (buildNodeStyle) 으로만 닿았다 — 빈 상태
+    //   padding 을 싣기 위해 ListBox 와 같이 parentStyle 을 선주입한다.
+    effectiveParent = withParentStyle(containerEl, { ...parentStyle });
+  }
+
   // ── Menu ──────────────────────────────────────────────────────────
   // Menu는 트리거 버튼만 캔버스에 렌더링 — MenuItem 자식은 Popover이므로 Taffy 레이아웃 제외
   if (containerTag === "menu") {
@@ -1293,22 +1368,26 @@ export function applyImplicitStyles(
     const sideMode = hasResolvedSideLabelVariant(tagGroupVariant.styles);
 
     // Compositional Label: whiteSpace nowrap 주입 (줄바꿈 방지)
-    filteredChildren = children.map((child) => {
-      if (child.type === "Label") {
-        const cs = (child.props?.style || {}) as Record<string, unknown>;
-        return {
-          ...child,
-          props: {
-            ...child.props,
-            style: {
-              ...cs,
-              whiteSpace: cs.whiteSpace ?? "nowrap",
+    // ADR-923 r21m1 — parent prop 이 빈 슬롯 자식 (Label/Description/FieldError) 은 Preview 가 렌더하지
+    //   않아 DOM 에 없다 (`{label && <Label>}`) — Taffy 트리에서도 뺀다 (gap 한 칸 방지).
+    filteredChildren = children
+      .filter((child) => isTagGroupSlotChildVisible(child, containerProps))
+      .map((child) => {
+        if (child.type === "Label") {
+          const cs = (child.props?.style || {}) as Record<string, unknown>;
+          return {
+            ...child,
+            props: {
+              ...child.props,
+              style: {
+                ...cs,
+                whiteSpace: cs.whiteSpace ?? "nowrap",
+              },
             },
-          },
-        } as CanvasLayoutNode;
-      }
-      return child;
-    });
+          } as CanvasLayoutNode;
+        }
+        return child;
+      });
 
     const tgDefaultDir = hasTagList ? "column" : "row";
     // ADR-087 SP6: display/gap 는 TagGroup.spec containerStyles 로 리프팅됨.
@@ -1753,13 +1832,26 @@ export function applyImplicitStyles(
   // ── Tabs ───────────────────────────────────────────────────────────
   if (containerTag === "tabs") {
     const sizeName = (containerProps?.size as string) ?? "md";
-    const tabBarHeight = specSizeField("tabs", sizeName, "height") ?? 30;
+    // ADR-923 r21m1 — items 가 비면 (dataBinding 없음 — Tabs 는 items SSOT 만) Preview 는 빈 TabList
+    //   (Tab 0 → 높이 0) 만 그리고 TabPanel 은 하나도 그리지 않는다 (`renderTabs` `items.map(
+    //   findPanelForItem)`). stale TabPanel 자식도 DOM 에 없다. 종전엔 tab bar 29 + panel padding 24
+    //   를 무조건 실었다.
+    const tabsEmpty =
+      resolveTabsItems(containerProps).length === 0 &&
+      containerProps?.dataBinding == null;
+    const tabBarHeight = tabsEmpty
+      ? 0
+      : (specSizeField("tabs", sizeName, "height") ?? 30);
     const tabPanelPadding = resolveTabPanelPadding(sizeName);
 
     const tabListEl = children.find((c) => c.type === "TabList");
-    const tabPanelsEl = children.find((c) => c.type === "TabPanels");
+    const tabPanelsEl = tabsEmpty
+      ? undefined
+      : children.find((c) => c.type === "TabPanels");
     // 직속 TabPanel (TabPanels 없는 flat 구조)
-    const directPanel = children.find((c) => c.type === "TabPanel");
+    const directPanel = tabsEmpty
+      ? undefined
+      : children.find((c) => c.type === "TabPanel");
 
     if (tabListEl) {
       // 새 구조 (TabList 존재): TabList에 고정 height 주입 → Taffy 레이아웃 포함
@@ -1826,7 +1918,20 @@ export function applyImplicitStyles(
       (tabsProps?.defaultSelectedKey as string | undefined);
 
     // 활성 TabPanel: itemId가 selectedKey와 매칭 (ADR-066). 없으면 첫 번째.
-    const panelItems = children.filter((c) => c.type === "TabPanel");
+    // ADR-923 r21m1 — item 이 없는 stale panel 은 Preview 가 그리지 않는다 (owner items 로 필터).
+    const ownerItemIds = new Set(
+      resolveTabsItems(tabsProps).map((it) => String(it.id)),
+    );
+    const filterByOwnerItems =
+      tabsParent !== undefined && tabsProps?.dataBinding == null;
+    const panelItems = children.filter(
+      (c) =>
+        c.type === "TabPanel" &&
+        (!filterByOwnerItems ||
+          ownerItemIds.has(
+            String((c.props as Record<string, unknown> | undefined)?.itemId),
+          )),
+    );
     const activePanel = selectedKey
       ? (panelItems.find(
           (p) => (p.props as Record<string, unknown>)?.itemId === selectedKey,
@@ -1853,7 +1958,15 @@ export function applyImplicitStyles(
     const tabsParent = findAncestorByTag(containerEl, "Tabs", elementById, 3);
     const tabsProps = tabsParent?.props as Record<string, unknown> | undefined;
     const sizeName = (tabsProps?.size as string) ?? "md";
-    const tabBarHeight = specSizeField("tabs", sizeName, "height") ?? 30;
+    // ADR-923 r21m1 — owner Tabs 도 자기 props 도 items 가 없으면 (dataBinding 없음) Tab 0 → 높이 0.
+    const tabListEmpty =
+      tabsParent !== undefined &&
+      tabsProps?.dataBinding == null &&
+      resolveTabsItems(tabsProps).length === 0 &&
+      resolveTabsItems(containerProps).length === 0;
+    const tabBarHeight = tabListEmpty
+      ? 0
+      : (specSizeField("tabs", sizeName, "height") ?? 30);
     // density (2026-08-21): Spectrum 규칙상 density 는 폰트가 아니라 **탭 항목 사이 간격**을
     //   바꾼다 (design-data `tab-item-to-tab-item-compact-horizontal-medium`). catalog
     //   `TabList.densities` 가 SSOT 이고 DOM 은 generate-css 가 같은 데이터를

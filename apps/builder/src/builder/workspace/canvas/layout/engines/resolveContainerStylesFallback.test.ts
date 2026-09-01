@@ -436,11 +436,14 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     it("text/table → width:100% (ADR-151 B22 — generated/수동 CSS 폭 채널 배선)", () => {
       // DOM 폭 원천 = CSS `width:100%` (Text generated archetype base / Table 수동 CSS).
       //   flex 부모에서 Skia 만 fit-content 붕괴하던 발산의 배선.
-      for (const t of ["text", "table"]) {
-        expect(resolveContainerStylesFallback(t, {})).toEqual({
-          width: "100%",
-        });
-      }
+      expect(resolveContainerStylesFallback("text", {})).toEqual({
+        width: "100%",
+      });
+      // ADR-923 r21m1: 수동 Table.css `min-height: 40px` 도 같은 채널 (빈 auto Table DOM 40).
+      expect(resolveContainerStylesFallback("table", {})).toEqual({
+        width: "100%",
+        minHeight: "40px",
+      });
       // 사용자 명시 width 우선 — fallback 미주입
       expect(resolveContainerStylesFallback("text", { width: 120 })).toEqual(
         {},

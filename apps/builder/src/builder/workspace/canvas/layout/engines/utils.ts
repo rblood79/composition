@@ -1385,6 +1385,39 @@ const BUTTON_LIKE_BOX_TAGS = new Set(["button", "input", "menu"]);
  * (→ 30) 으로 채워 세 표면 중 layout 만 갖는 빈 내용 기본값이었다 (r19 가 "Button"/"Menu" 기본
  * 글자를 지우자 도달). input 은 내용 없이도 줄 상자를 가지므로 제외.
  */
+/**
+ * ADR-923 r21m1 — TagGroup 슬롯 자식 (Label / Description / FieldError) 의 가시성은 **parent prop** 이
+ * 정한다. Preview `renderTagGroup` 은 `label={String(element.props.label || "")}` 를 넘기고
+ * `TagGroup.tsx` 가 `{label && <Label>}` 로 렌더한다 — 자식 element 의 글자가 아니라 parent 값이 truthy
+ * 인지가 DOM 존재 조건이다 (composite parent → Label 자식은 propagation 다리, r16m1). 자식이 DOM 에
+ * 없으면 flex gap 도 없다.
+ */
+const TAG_GROUP_SLOT_CHILD_PROP: Record<string, string> = {
+  label: "label",
+  description: "description",
+  fielderror: "errorMessage",
+};
+export function isTagGroupSlotChildVisible(
+  child: CanvasLayoutNode,
+  ownerProps: Record<string, unknown> | undefined,
+): boolean {
+  const key = TAG_GROUP_SLOT_CHILD_PROP[(child.type ?? "").toLowerCase()];
+  if (key === undefined) return true;
+  return Boolean(ownerProps?.[key]);
+}
+
+/**
+ * ADR-923 r21m1 — Tabs 의 tab 집합 (items SSOT — Tabs.props.items → propagation → TabList.props.items).
+ * Preview `renderTabs` 와 scene `resolveDataBoundTabProjection` 이 읽는 것과 같은 원천.
+ */
+export function resolveTabsItems(
+  props: Record<string, unknown> | undefined,
+): Array<{ id?: unknown }> {
+  return Array.isArray(props?.items)
+    ? (props.items as Array<{ id?: unknown }>)
+    : [];
+}
+
 const BUTTON_TEXT_LEAF_TAGS = new Set([
   "button",
   "submitbutton",
@@ -1799,8 +1832,10 @@ export function calculateContentWidth(
       }
       return Math.max(...buttonWidths);
     }
-    // items 도 children 도 없으면 기본값
-    return DEFAULT_WIDTH;
+    // ADR-923 r21m1 — 버튼이 0개면 상자도 없다: DOM 은 `width: fit-content` flex 컨테이너에 padding/
+    //   border 가 없어 0×0. 종전 §6 `DEFAULT_WIDTH` 80 은 한 표면만 갖는 빈 구조 기본값이었다
+    //   (r20 Button `DEFAULT_WIDTH` 와 같은 형태).
+    return 0;
   }
 
   // 1.9. Button/ToggleButton RSP composite (자식 Icon+Text element 보유):
@@ -2106,18 +2141,22 @@ export function calculateContentWidth(
       // minWidth 적용: totalWidth = contentWidth + padding >= minWidth
       // Badge와 동일한 너비 계산 (cssVariableReader.ts BADGE_FALLBACKS 참조)
       const minWidth = (sizeConfig as { minWidth?: number }).minWidth;
-      if (minWidth !== undefined) {
-        const effectivePaddingRight = getTagRemoveAdjustedPaddingRight(
-          type,
-          sizeConfig,
-          tagAllowsRemoving,
-        );
-        const padding = sizeConfig.paddingLeft + effectivePaddingRight;
+      // ADR-923 r21m2 — 하한의 padding/border 는 최종 폭 (enrich → parseBoxModel) 과 **같은 원천**
+      //   (`resolveLeafBoxEdges`: 인라인 우선, 없으면 catalog · icon-only · Tag remove 보정) 이어야
+      //   한다. 종전엔 catalog padding 으로 하한 42 를 만들고 최종 폭엔 인라인 padding 20×2 를 더해
+      //   84 (DOM 68) 였다. 인라인 `minWidth` 는 엔진이 box.minWidth 로 직접 적용하므로 (0 포함 —
+      //   DOM 도 inline `min-width` 가 클래스 `min-width` 를 이긴다) 그때는 catalog 하한을 겹치지 않는다.
+      if (minWidth !== undefined && style?.minWidth == null) {
+        const edges = resolveLeafBoxEdges(element, 0);
         // minWidth 는 border-box (생성 CSS `box-sizing: border-box` + `min-width`) — content 하한은
         //   padding 과 border 를 뺀 값 (ADR-923 r20 sweep: 종전 border 미차감은 이 분기가 죽어 있어 드러나지 않았다).
         const minContentWidth = Math.max(
           0,
-          minWidth - padding - sizeConfig.borderWidth * 2,
+          minWidth -
+            edges.padding.left -
+            edges.padding.right -
+            edges.border.left -
+            edges.border.right,
         );
         return Math.max(minContentWidth, textWidth + iconExtra + removeExtra);
       }
@@ -2484,10 +2523,11 @@ export function calculateContentHeight(
     });
 
     // ADR-157 Phase 3 (배치 진실성): §1.55b 는 props.items 만 순회한다 — dataBinding/collections
-    //   미접근이라 순수 dataBinding 소유자는 3-item fallback 을 반환하고, scene 은 sample(N행) +
-    //   hatch(remainder) 를 totalRows 전체 높이로 투영한다 → owner clip. scene 이 sample mode
-    //   owner 에 주입한 `_projectedRowsContentHeight`(= totalRows × rowHeight, window resolver
-    //   출력 = samples/hatch 와 동일 rowHeight)를 소비해 padding + 전체 높이 + border 를 반환한다.
+    //   미접근이라 순수 dataBinding 소유자는 items 가 없어 행 0 으로 읽힌다 (r20m1 뒤 sample fallback
+    //   없음 — 과거의 3-item fallback 은 scene 의 sample(N행) + hatch(remainder) totalRows 투영과
+    //   어긋나 owner clip 을 냈다). scene 이 sample mode owner 에 주입한 `_projectedRowsContentHeight`
+    //   (= totalRows × rowHeight, window resolver 출력 = samples/hatch 와 동일 rowHeight) 가 dataBinding
+    //   행 높이의 유일한 원천이며, 이를 소비해 padding + 전체 높이 + border 를 반환한다.
     //   rowsGroup gap=0 이라 inter-row gap 없음(주입값 = 순수 행 합). 캐시: layoutCache.ts
     //   LAYOUT_PROP_KEYS 에 등재(행 수 변화 시 owner 시그니처 무효화 — height/isExpanded 선례).
     const projectedRowsContentHeight = parseNumericValue(
@@ -2729,8 +2769,9 @@ export function calculateContentHeight(
     });
 
     // ADR-157 Phase 4 (배치 진실성 — GridList 확산): §1.55c 는 props.items 만 순회한다 —
-    //   dataBinding/collections 미접근이라 순수 dataBinding 소유자는 4-item fallback 을 반환하고,
-    //   scene 은 sample(N행) + hatch(remainder) 를 visualRows 전체 높이로 투영한다 → owner clip.
+    //   dataBinding/collections 미접근이라 순수 dataBinding 소유자는 items 가 없어 행 0 으로 읽힌다
+    //   (r20m1 뒤 sample fallback 없음 — 과거의 4-item fallback 은 scene 의 sample(N행) + hatch
+    //   (remainder) visualRows 투영과 어긋나 owner clip 을 냈다). dataBinding 행 높이의 유일한 원천은
     //   scene(appendGridListRowProjection)이 sample mode owner 에 주입한 `_projectedRowsContentHeight`
     //   (= ceil(totalRows/columns) × rowHeight, window resolver stride = samples/hatch 와 동일)를
     //   소비해 padding + 전체 높이 + border 를 반환한다(§1.55b ListBox 선례 동형). GridList 는
@@ -2898,6 +2939,12 @@ export function calculateContentHeight(
   const tag0 = (element.type ?? "").toLowerCase();
   if (tag0 === "togglebuttongroup") {
     const props = element.props as Record<string, unknown> | undefined;
+    // ADR-923 r21m1 — 자식 ToggleButton 도 legacy items 도 없으면 높이 0 (DOM 빈 flex 컨테이너).
+    //   종전엔 버튼 유무와 무관하게 size 의 버튼 높이 30 을 돌려줬다.
+    const hasToggleButtons =
+      (childElements !== undefined && childElements.length > 0) ||
+      (Array.isArray(props?.items) && (props.items as unknown[]).length > 0);
+    if (!hasToggleButtons) return 0;
     const sizeName = (props?.size as string) ?? "md";
     const sizeConfig =
       TOGGLEBUTTON_SIZE_CONFIG[sizeName] ?? TOGGLEBUTTON_SIZE_CONFIG["md"];
@@ -3768,6 +3815,12 @@ export function calculateContentHeight(
     //   기반 row-wrap height 를 돌려주므로 여기서는 단순 세로 합산 + gap 만 담당.
     if (type === "taggroup") {
       const props = element.props as Record<string, unknown> | undefined;
+      // ADR-923 r21m1 — Preview 는 parent prop 이 비면 슬롯 자식을 렌더하지 않는다 (`TagGroup.tsx`
+      //   `{label && <Label>}` / `{description && <Text slot="description">}` / errorMessage) → DOM 엔
+      //   요소가 없어 gap 도 없다. layout 은 Label 자식 (글자 "" → 높이 0) 을 세어 gap 4 를 더했다.
+      const tgChildren = childElements.filter((c) =>
+        isTagGroupSlotChildVisible(c, props),
+      );
       // containerStyles.gap = "{spacing.xs}" → 4. style.gap 편집 우선, 없으면 token fallback.
       const gap = readGapValue(style) ?? 4;
       // labelPosition="side" 시 row 배치 → 세로 합산이 아닌 max.
@@ -3782,7 +3835,7 @@ export function calculateContentHeight(
       //   실제 wrap 폭과 일치시킨다.
       let sideTagListAvail = availableWidth;
       if (isSideLayout && availableWidth !== undefined) {
-        const labelEl = childElements.find((c) => c.type === "Label");
+        const labelEl = tgChildren.find((c) => c.type === "Label");
         if (labelEl) {
           const labelChildren = getChildElements?.(labelEl.id);
           const labelWidth = calculateContentWidth(
@@ -3811,8 +3864,8 @@ export function calculateContentHeight(
 
       let totalHeight = 0;
       const childHeights: number[] = [];
-      for (let i = 0; i < childElements.length; i++) {
-        let child = childElements[i];
+      for (let i = 0; i < tgChildren.length; i++) {
+        let child = tgChildren[i];
         // TagList child 의 items 가 owner(TagGroup) SSOT 와 다르면 owner items 를 주입
         //   (정적 items 한정 — dataBinding 은 useCollectionData 가 별도 소스로 채운다).
         if (
@@ -3901,6 +3954,20 @@ export function calculateContentHeight(
             (c) => c.type === "TabPanel",
           );
         }
+      }
+      // ADR-923 r21m1 — Preview (`renderTabs`) 는 `items.map(findPanelForItem)` 로만 TabPanel 을
+      //   그린다: items 가 비면 빈 TabList (Tab 0 → 높이 0) 만 있고 panel 은 하나도 없다. stale
+      //   TabPanel 자식 (item 이 지워진 뒤 남은 것) 도 DOM 에 없다. 종전엔 tab bar 29 + 첫 panel 을
+      //   무조건 더했다. Tabs 는 dataBinding 없이 items SSOT 만 (scene `resolveDataBoundTabProjection`).
+      const tabItems = resolveTabsItems(props);
+      if (tabItems.length === 0 && props?.dataBinding == null) return 0;
+      const tabItemIds = new Set(tabItems.map((it) => String(it.id)));
+      if (tabItems.length > 0) {
+        panelChildren = panelChildren.filter((p) =>
+          tabItemIds.has(
+            String((p.props as Record<string, unknown> | undefined)?.itemId),
+          ),
+        );
       }
       const selectedKey =
         (props?.selectedKey as string | undefined) ??
@@ -4225,55 +4292,18 @@ export function calculateContentHeight(
  * @param viewportWidth - vw 계산용
  * @param viewportHeight - vh 계산용
  */
-export function parseBoxModel(
+/**
+ * ADR-923 r21m2 — size-config leaf (button 가족 · INLINE_UI 태그) 의 **실효** padding/border.
+ * 인라인이 있으면 인라인, 없으면 catalog sizeConfig (icon-only 정사각 padding · Tag remove 보정).
+ * `parseBoxModel` (최종 상자) 과 `calculateContentWidth` 의 catalog `min-width` 하한이 **같은 함수**
+ * 를 쓴다 — 두 원천이 갈리면 하한과 최종 padding 이 서로 다른 padding 을 품는다 (padding:20 → 84
+ * vs DOM 68). 다른 태그는 인라인 parse 결과 그대로.
+ */
+export function resolveLeafBoxEdges(
   element: CanvasLayoutNode,
   availableWidth: number,
-  availableHeight: number,
-  viewportWidth?: number,
-  viewportHeight?: number,
-): BoxModel {
+): { padding: BoxModel["padding"]; border: BoxModel["border"] } {
   const style = element.props?.style as Record<string, unknown> | undefined;
-
-  // width/height 파싱 (%, px, vh, vw, auto 지원)
-  let width = parseSize(
-    style?.width,
-    availableWidth,
-    viewportWidth,
-    viewportHeight,
-  );
-  let height = parseSize(
-    style?.height,
-    availableHeight,
-    viewportWidth,
-    viewportHeight,
-  );
-
-  // min/max 파싱
-  const minWidth = parseSize(
-    style?.minWidth,
-    availableWidth,
-    viewportWidth,
-    viewportHeight,
-  );
-  const maxWidth = parseSize(
-    style?.maxWidth,
-    availableWidth,
-    viewportWidth,
-    viewportHeight,
-  );
-  const minHeight = parseSize(
-    style?.minHeight,
-    availableHeight,
-    viewportWidth,
-    viewportHeight,
-  );
-  const maxHeight = parseSize(
-    style?.maxHeight,
-    availableHeight,
-    viewportWidth,
-    viewportHeight,
-  );
-
   // padding 파싱 (C3: availableWidth 전달로 % 값 해석)
   let padding = parsePadding(style, availableWidth);
 
@@ -4339,6 +4369,63 @@ export function parseBoxModel(
       };
     }
   }
+
+  return { padding, border };
+}
+
+export function parseBoxModel(
+  element: CanvasLayoutNode,
+  availableWidth: number,
+  availableHeight: number,
+  viewportWidth?: number,
+  viewportHeight?: number,
+): BoxModel {
+  const style = element.props?.style as Record<string, unknown> | undefined;
+
+  // width/height 파싱 (%, px, vh, vw, auto 지원)
+  let width = parseSize(
+    style?.width,
+    availableWidth,
+    viewportWidth,
+    viewportHeight,
+  );
+  let height = parseSize(
+    style?.height,
+    availableHeight,
+    viewportWidth,
+    viewportHeight,
+  );
+
+  // min/max 파싱
+  const minWidth = parseSize(
+    style?.minWidth,
+    availableWidth,
+    viewportWidth,
+    viewportHeight,
+  );
+  const maxWidth = parseSize(
+    style?.maxWidth,
+    availableWidth,
+    viewportWidth,
+    viewportHeight,
+  );
+  const minHeight = parseSize(
+    style?.minHeight,
+    availableHeight,
+    viewportWidth,
+    viewportHeight,
+  );
+  const maxHeight = parseSize(
+    style?.maxHeight,
+    availableHeight,
+    viewportWidth,
+    viewportHeight,
+  );
+
+  // padding/border — 인라인 우선, size-config leaf 는 catalog 보정 (resolveLeafBoxEdges 단일 원천).
+  const { padding, border } = resolveLeafBoxEdges(element, availableWidth);
+  const type = (element.type ?? "").toLowerCase();
+  const isFormElement = BUTTON_LIKE_BOX_TAGS.has(type);
 
   // 🚀 Phase 11: box-sizing: border-box 처리
   // border-box인 경우 width/height에서 padding + border 제외하여 content-box 크기로 변환
