@@ -472,6 +472,15 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
       아님) 이고 수리 = 가족 전체 canonical 자식 (Description/FieldError) + propagation + FieldError 가시성 ↔ `isInvalid` +
       레이아웃 높이 — ADR-923 (레이아웃 어휘) 범위 밖으로 판정, 관찰로 기록 — **사용자 결정 2026-09-01: 범위 밖, 별도 작업** (Phase 4 이후).
 
+34. **overlay 텍스트 편집 (캔버스 더블클릭) 의 읽기·쓰기 키를 텍스트 원천 계약에 위임** (round 16 확증 중 자체
+    발견 — round 15 축의 마지막 미위임 reader/writer). `useTextEdit.ts` 는 자체 순서 `value || defaultValue ||
+children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 자체 규칙 (`value`/`defaultValue` 있으면 value →
+    children → text → label) 이었다 — AI 가 Button 에 `label` 만 쓰면 캔버스·Preview 는 아무것도 안 그리는데 편집창에는
+    "Go" 가 떴고 확정 시 `label` 에 다시 써서 계속 안 보였다 (TEXT_EDITABLE_TAGS 는 기본·텍스트 leaf 군이라 도달 경로는
+    AI 계약 밖 키뿐). 수리: `extractText(type, props)` → `resolveTextSourceText`, `getTextPropKey` →
+    `resolveTextSourceKey ?? textSourceOrder(type)[0]` (입력 계열 value 편집은 보존 — 가시 태그 밖). 게이트
+    `useTextEdit.textSource.test.ts` 5.
+
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
 - **실효 (프로덕션 어댑터 경로가 그대로 타는 수리)**: 수리 5 (wrap min-content, r8l2
@@ -596,14 +605,14 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
 
 - **round 16 수리 후**: Rust 변경 0 (TS 만 — cargo 미재실행, Codex round 16 재실행 371) · 차등 **97/97** · full
   **parity 1033** (기존 catalogComponentBox 2 · 1 expected fail · 2 skipped) · layout unit 50 files/415 · builder unit
-  (utils/factories/adapters/preview/skia/utils/overlay/panels) 182 files/1607 (+8: 다리 5 · migration 3) · shared 926 ·
+  (utils/factories/adapters/preview/skia/utils/overlay/panels) 183 files/1612 (+13: 다리 5 · migration 3 · overlay 5) · shared 926 ·
   type-check 0. 수리 전 RED (실측): sweep 1 FAIL (ColorField·CheckboxGroup·RadioGroup 규칙 부재 나열) + ColorField 3표면
   2 FAIL (Preview 는 "Changed Color", 다리 없음 / factory parent label 없음).
 
 - **Live Exercise (round 16 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP) — 팔레트에서 ColorField
   추가 → Skia "Color" + Inspector Label "Color" (parent label) → Inspector Label 에 "Brand Color" 입력 → Skia 캔버스
   "Brand Color" (propagation → Label 자식) · Preview iframe (`preview.html`) `.react-aria-ColorField label` = "Brand Color"
-  (DOM) — 두 표면 동일, 콘솔 에러 0. 확인 후 요소 삭제. (publish 탭은 ColorField 를 안 그린다 — publish 범위 밖 관찰 유지.)
+  (DOM) — 두 표면 동일, 콘솔 에러 0. 확인 후 요소 삭제. (publish 탭은 ColorField 를 안 그린다 — publish 범위 밖 관찰 유지.) 수리 34: Components 페이지 Save Button 더블클릭 (그룹 → Button → 편집) → 편집창 초기값 "Save" (계약 = children) → "Go!" 입력 · 바깥 클릭 확정 → Skia "Go!" · undo 로 복원.
 
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
