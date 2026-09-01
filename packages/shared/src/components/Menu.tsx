@@ -203,6 +203,28 @@ export function MenuButton<T extends object>({
   // ADR-923 r19m1 — 종전 `label || "Menu"` 는 렌더러 (`renderMenu`, r18m1) 가 텍스트 원천 계약으로
   //   낸 빈 label 을 다시 "Menu" 로 되살렸다 (Skia 는 기본 글자 없음). 계약 결과 그대로 — 부재도 "".
   const triggerLabel = label ?? "";
+  // ADR-923 r20m2 — 보이는 글자 (텍스트 원천 계약) 와 D1 접근성 이름은 다른 경로다. `{...props}` 는
+  //   `MenuTrigger` (context provider — `BaseMenuTriggerProps` 에 aria 없음) 로 가서 호출자의
+  //   aria-label/aria-labelledby 가 버려졌으므로 trigger Button 에 직접 건다. 보이는 글자도 호출자
+  //   이름도 없으면 컴포넌트 기본 이름 (i18n — 속성이라 화면·Skia 에는 아무것도 없다).
+  const ariaLabel = props["aria-label"];
+  const ariaLabelledBy = props["aria-labelledby"];
+  const triggerAriaLabel =
+    ariaLabel ??
+    (triggerLabel === "" && ariaLabelledBy === undefined
+      ? t("menuTriggerLabel")
+      : undefined);
+  const triggerButton = (
+    <Button
+      className="react-aria-Button button-base"
+      data-variant={variant}
+      data-size={size}
+      aria-label={triggerAriaLabel}
+      aria-labelledby={ariaLabelledBy}
+    >
+      {triggerLabel}
+    </Button>
+  );
 
   // ColumnMapping이 있으면 각 데이터 항목마다 MenuItem 렌더링
   // ListBox와 동일한 패턴: Element tree의 MenuItem 템플릿 + Field 자식 사용
@@ -211,13 +233,7 @@ export function MenuButton<T extends object>({
     if (loading) {
       return (
         <MenuTrigger {...props}>
-          <Button
-            className="react-aria-Button button-base"
-            data-variant={variant}
-            data-size={size}
-          >
-            {triggerLabel}
-          </Button>
+          {triggerButton}
           <Popover data-size={size}>
             <Menu className={getMenuClassName()} data-size={size}>
               <AriaMenuItem key="loading" textValue="Loading">
@@ -233,13 +249,7 @@ export function MenuButton<T extends object>({
     if (error) {
       return (
         <MenuTrigger {...props}>
-          <Button
-            className="react-aria-Button button-base"
-            data-variant={variant}
-            data-size={size}
-          >
-            {triggerLabel}
-          </Button>
+          {triggerButton}
           <Popover data-size={size}>
             <Menu className={getMenuClassName()} data-size={size}>
               <AriaMenuItem key="error" textValue="Error">
@@ -323,13 +333,7 @@ export function MenuButton<T extends object>({
 
       return (
         <MenuTrigger {...props}>
-          <Button
-            className="react-aria-Button button-base"
-            data-variant={variant}
-            data-size={size}
-          >
-            {triggerLabel}
-          </Button>
+          {triggerButton}
           <Popover data-size={size}>
             <Menu
               items={menuItems as Iterable<T>}
@@ -346,13 +350,7 @@ export function MenuButton<T extends object>({
     // 데이터 없음
     return (
       <MenuTrigger {...props}>
-        <Button
-          className="react-aria-Button button-base"
-          data-variant={variant}
-          data-size={size}
-        >
-          {triggerLabel}
-        </Button>
+        {triggerButton}
         <Popover data-size={size}>
           <Menu className={getMenuClassName()} data-size={size}>
             {children}
@@ -418,13 +416,7 @@ export function MenuButton<T extends object>({
 
     return (
       <MenuTrigger {...props}>
-        <Button
-          className="react-aria-Button button-base"
-          data-variant={variant}
-          data-size={size}
-        >
-          {triggerLabel}
-        </Button>
+        {triggerButton}
         <Popover>
           <Menu
             items={menuItems}
@@ -442,13 +434,7 @@ export function MenuButton<T extends object>({
   // Static Children 또는 Loading/Error 상태
   return (
     <MenuTrigger {...props}>
-      <Button
-        className="react-aria-Button button-base"
-        data-variant={variant}
-        data-size={size}
-      >
-        {triggerLabel}
-      </Button>
+      {triggerButton}
       <Popover>
         <Menu
           {...props}

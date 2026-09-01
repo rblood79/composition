@@ -556,6 +556,18 @@ export const renderButton = (
       isDisabled={Boolean(element.props.isDisabled as boolean)}
       isPending={Boolean(element.props.isPending)}
       name={element.props.name ? String(element.props.name) : undefined}
+      // ADR-923 r20m2 sweep — legacy 경로도 D1 이름 (aria-*) 을 전달한다 (r19m1 이 "Button" 폴백을
+      //   지운 뒤 계약 결과 "" 인 Button 은 이 값이 유일한 이름; canonical Button 은 rest spread).
+      aria-label={
+        typeof element.props["aria-label"] === "string"
+          ? element.props["aria-label"]
+          : undefined
+      }
+      aria-labelledby={
+        typeof element.props["aria-labelledby"] === "string"
+          ? element.props["aria-labelledby"]
+          : undefined
+      }
       style={element.props.style}
       className={element.props.className}
       onPress={handlePress as unknown as () => void}

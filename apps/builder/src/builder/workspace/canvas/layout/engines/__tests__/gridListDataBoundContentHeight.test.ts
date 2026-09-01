@@ -55,17 +55,30 @@ describe("calculateContentHeight — data-bound GridList _projectedRowsContentHe
     );
   });
 
-  it("주입값은 4-item 기본 fallback 보다 훨씬 큼 (clip 방지)", () => {
+  it("주입값은 items 없는 빈 소유자 (padding + border) 보다 훨씬 큼 (clip 방지)", () => {
     const injected = calculateContentHeight(
       makeGridList({ _projectedRowsContentHeight: 28000 }),
     );
-    const fallback = calculateContentHeight(makeGridList({})); // items 없음 → 4-item
-    expect(injected).toBeGreaterThan(fallback);
+    // ADR-923 r20m1: items 없음 → 카드 0 (종전 4-card sample fallback 은 DOM/scene 에 없는 높이).
+    const empty = calculateContentHeight(makeGridList({}));
+    expect(empty).toBe(
+      mDefault.paddingTop + mDefault.paddingBottom + mDefault.borderWidth * 2,
+    );
+    expect(injected).toBeGreaterThan(empty);
     expect(injected).toBeGreaterThan(1000);
   });
 
-  it("_projectedRowsContentHeight 없으면 기존 items 경로 유지 (회귀 — 4-item fallback 340)", () => {
-    const h = calculateContentHeight(makeGridList({}));
+  it("_projectedRowsContentHeight 없으면 기존 items 경로 유지 (회귀 — 정적 4 카드 340)", () => {
+    const h = calculateContentHeight(
+      makeGridList({
+        items: [
+          { id: "i1", label: "Item 1", description: "Description" },
+          { id: "i2", label: "Item 2", description: "Description" },
+          { id: "i3", label: "Item 3", description: "Description" },
+          { id: "i4", label: "Item 4", description: "Description" },
+        ],
+      }),
+    );
     // 4 카드(desc) × 76 + 3 gap × 12 = 340. 카드 = pad24 + border2 + label24 + gap2 + desc24 = 76.
     //   2026-07-23: border2(catalog GridListItem.sizes.md.borderWidth=1×2) 가산 — projected
     //   카드(content50 + pad24 + border2 = 76) 와 정합. 과거 74 는 border 누락(컨테이너 -6 잔차)이었다.

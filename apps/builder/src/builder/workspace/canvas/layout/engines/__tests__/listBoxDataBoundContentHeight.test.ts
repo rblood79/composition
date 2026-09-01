@@ -41,18 +41,28 @@ describe("calculateContentHeight — data-bound ListBox _projectedRowsContentHei
     expect(h).toBe(m.paddingTop + m.paddingBottom + 5000 + m.borderWidth * 2);
   });
 
-  it("주입값은 3-item 기본 fallback 보다 훨씬 큼 (clip 방지)", () => {
+  it("주입값은 items 없는 빈 소유자 (padding + border) 보다 훨씬 큼 (clip 방지)", () => {
     const injected = calculateContentHeight(
       makeListBox({ _projectedRowsContentHeight: 5000 }),
     );
-    const fallback = calculateContentHeight(makeListBox({})); // items 없음 → 3-item
-    expect(injected).toBeGreaterThan(fallback);
+    // ADR-923 r20m1: items 없음 → 행 0 (종전 3-item sample fallback 은 DOM/scene 에 없는 높이).
+    const empty = calculateContentHeight(makeListBox({}));
+    expect(empty).toBe(m.paddingTop + m.paddingBottom + m.borderWidth * 2);
+    expect(injected).toBeGreaterThan(empty);
     expect(injected).toBeGreaterThan(1000);
   });
 
-  it("_projectedRowsContentHeight 없으면 기존 items 경로 유지 (회귀 — 3-item fallback)", () => {
-    const h = calculateContentHeight(makeListBox({}));
-    // 3 fallback items(label-only) → padding + 3×itemHeight + 2×rowGap + border.
+  it("_projectedRowsContentHeight 없으면 기존 items 경로 유지 (회귀 — 정적 3 items)", () => {
+    const h = calculateContentHeight(
+      makeListBox({
+        items: [
+          { id: "item-1", label: "Item 1" },
+          { id: "item-2", label: "Item 2" },
+          { id: "item-3", label: "Item 3" },
+        ],
+      }),
+    );
+    // 3 items(label-only) → padding + 3×itemHeight + 2×rowGap + border.
     const expected =
       m.paddingTop +
       m.paddingBottom +

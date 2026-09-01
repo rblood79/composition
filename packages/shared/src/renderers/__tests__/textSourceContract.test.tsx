@@ -209,3 +209,38 @@ describe("ADR-923 r19m1 — legacy Button · IllustratedMessage 기본 글자", 
     expect(kids).toHaveLength(1); // 일러스트 placeholder 만 — 빈 heading/description div 없음
   });
 });
+
+/**
+ * ADR-923 r20m2 sweep — 렌더러가 element.props 의 `aria-label`/`aria-labelledby` 를 떨어뜨리면
+ * 계약 결과가 "" 인 control 은 이름이 없다. Menu factory 는 `"aria-label": "Menu"` 를 쓰지만
+ * `renderMenu` 가 전달하지 않았고, legacy `renderButton` (r19m1 이 "Button" 폴백 제거) 도 같다.
+ */
+describe("ADR-923 r20m2 — 렌더러 aria-label/aria-labelledby 전달", () => {
+  it("renderMenu: element.props aria-* → MenuButton props", () => {
+    const node = renderMenu(
+      el("Menu", {
+        label: "",
+        items: [],
+        "aria-label": "Menu",
+        "aria-labelledby": "h1",
+      }),
+      makeContext(),
+    ) as React.ReactElement<Record<string, unknown>>;
+    expect(node.props["aria-label"]).toBe("Menu");
+    expect(node.props["aria-labelledby"]).toBe("h1");
+    const none = renderMenu(
+      el("Menu", { label: "", items: [] }),
+      makeContext(),
+    ) as React.ReactElement<Record<string, unknown>>;
+    expect(none.props["aria-label"]).toBeUndefined();
+  });
+
+  it("renderButton (legacy): children '' + aria-label → Button props 에 도달", () => {
+    const node = renderButton(
+      el("Button", { children: "", "aria-label": "Close" }),
+      makeContext(),
+    ) as React.ReactElement<Record<string, unknown>>;
+    expect(node.props["aria-label"]).toBe("Close");
+    expect(collectText(node)).toBe("");
+  });
+});

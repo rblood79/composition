@@ -790,6 +790,8 @@ const DEFAULT_WIDTH = 80;
 // SizeSpec의 TokenRef fontSize를 resolved number로 변환하는 헬퍼
 interface ResolvedSizeConfig {
   height?: number;
+  /** catalog sizes.minWidth (border-box, DOM `min-width` 와 같은 상자) — ADR-923 r20 sweep 전엔 버려졌다. */
+  minWidth?: number;
   paddingLeft: number;
   paddingRight: number;
   paddingY: number;
@@ -826,6 +828,10 @@ function deriveSizeConfig(
       borderWidth: s.borderWidth ?? 1,
       iconSize: s.iconSize ?? 16,
       iconGap: s.iconGap ?? s.gap ?? 8,
+      // ADR-923 r20 sweep — catalog Button sizes.minWidth (45/50/68/95/122) 는 생성 CSS 가 `min-width`
+      //   로 내지만 여기서 버려져 layout 의 minWidth 분기 (아래 calculateContentWidth) 가 죽어 있었다
+      //   (DOM 68 vs layout 54). SizeSpec 타입엔 없고 rule → SizeSpec 은 cast passthrough 라 값은 흐른다.
+      minWidth: (s as { minWidth?: number }).minWidth,
     };
   }
   return result;
@@ -1371,6 +1377,20 @@ const BUTTON_LIKE_TAGS = new Set(["button", "input", "select", "a", "menu"]);
 
 /** BUTTON_SIZE_CONFIG 경로 (parseBoxModel용, select/a 제외) */
 const BUTTON_LIKE_BOX_TAGS = new Set(["button", "input", "menu"]);
+
+/**
+ * 글자가 내용인 button 가족 — 텍스트 원천 계약 결과가 "" 이고 아이콘도 없으면 DOM (`display:flex`
+ * button, min-height 없음) 은 줄 상자 없이 padding + border 만 남고 폭은 catalog `min-width` 다.
+ * ADR-923 r20 sweep: 종전 layout 은 빈 글자를 `DEFAULT_WIDTH` 80 (+padding → 106) 과 줄 상자 20
+ * (→ 30) 으로 채워 세 표면 중 layout 만 갖는 빈 내용 기본값이었다 (r19 가 "Button"/"Menu" 기본
+ * 글자를 지우자 도달). input 은 내용 없이도 줄 상자를 가지므로 제외.
+ */
+const BUTTON_TEXT_LEAF_TAGS = new Set([
+  "button",
+  "submitbutton",
+  "fancybutton",
+  "menu",
+]);
 
 /**
  * Calendar 계열 type (lowercase). RangeCalendarSpec은 CalendarSpec을 spread하므로
@@ -1989,7 +2009,9 @@ export function calculateContentWidth(
     return indicatorSize + indicatorGap + textWidth;
   }
 
-  if (text) {
+  // ADR-923 r20 sweep — button 가족은 글자가 비어도 size 분기 (textWidth 0 → catalog minWidth) 로.
+  //   종전엔 `if (text)` 밖으로 떨어져 §6 `DEFAULT_WIDTH` 80 을 받았다 (icon-only 분기도 도달 불가).
+  if (text || BUTTON_TEXT_LEAF_TAGS.has(type)) {
     const props = element.props as Record<string, unknown> | undefined;
 
     // 버튼, 인풋 등은 size prop에 따라 fontSize 결정
@@ -2053,8 +2075,8 @@ export function calculateContentWidth(
             // icon + gap + text
             iconExtra = iconSize + iconGap;
           } else {
-            // icon-only: iconSize만 반환
-            return iconSize;
+            // icon-only: 아이콘 폭만 (아래 minWidth 하한은 DOM `min-width` 와 같이 적용)
+            iconExtra = iconSize;
           }
         }
       }
@@ -2091,7 +2113,12 @@ export function calculateContentWidth(
           tagAllowsRemoving,
         );
         const padding = sizeConfig.paddingLeft + effectivePaddingRight;
-        const minContentWidth = Math.max(0, minWidth - padding);
+        // minWidth 는 border-box (생성 CSS `box-sizing: border-box` + `min-width`) — content 하한은
+        //   padding 과 border 를 뺀 값 (ADR-923 r20 sweep: 종전 border 미차감은 이 분기가 죽어 있어 드러나지 않았다).
+        const minContentWidth = Math.max(
+          0,
+          minWidth - padding - sizeConfig.borderWidth * 2,
+        );
         return Math.max(minContentWidth, textWidth + iconExtra + removeExtra);
       }
 
@@ -2475,14 +2502,11 @@ export function calculateContentHeight(
       );
     }
 
-    const entries =
-      Array.isArray(rawEntries) && rawEntries.length > 0
-        ? rawEntries
-        : [
-            { id: "item-1", label: "Item 1" },
-            { id: "item-2", label: "Item 2" },
-            { id: "item-3", label: "Item 3" },
-          ];
+    // ADR-923 r20m1 — 빈 집합은 행 0. 종전 3-item sample fallback 은 collection rows SSOT 전환
+    //   (ADR-912 `useResolvedCollectionItems` sourceKind "empty" → rows [] · scene rows 0 → projection
+    //   없음) 뒤 layout 에만 남아 두 표면에 없는 110px 을 컨테이너에 주입했다 (Breadcrumbs 192px
+    //   phantom 과 같은 형태 — 한 표면만 갖는 빈 집합 기본값).
+    const entries = Array.isArray(rawEntries) ? rawEntries : [];
     // ADR-147: description 행은 render.shapes 에서 더 높음(itemHeightWithDescription).
     //   행마다 description 유무로 높이를 합산해야 description 항목이 잘리지 않는다.
     // ADR-148 Phase 0: origin 구성에서 description slot 자식이 제거됐으면(projection 이
@@ -2689,15 +2713,9 @@ export function calculateContentHeight(
   if (tag1 === "gridlist") {
     const props = element.props as Record<string, unknown> | undefined;
     const rawEntries = props?.items;
-    const entries =
-      Array.isArray(rawEntries) && rawEntries.length > 0
-        ? rawEntries
-        : [
-            { id: "i1", label: "Item 1", description: "Description" },
-            { id: "i2", label: "Item 2", description: "Description" },
-            { id: "i3", label: "Item 3", description: "Description" },
-            { id: "i4", label: "Item 4", description: "Description" },
-          ];
+    // ADR-923 r20m1 — 빈 집합은 카드 0 (§1.55b ListBox 동형). 종전 4-card sample fallback 은 DOM
+    //   (rows []) · scene (projection 없음) 에 없는 164px 을 컨테이너에 주입했다.
+    const entries = Array.isArray(rawEntries) ? rawEntries : [];
 
     // 2026-07-29: prop 부재 fallback 도 grid (catalog `GridList.binding.ts` layout.default 정합).
     const layout = String(props?.layout ?? "grid");
@@ -2897,6 +2915,16 @@ export function calculateContentHeight(
   const isButtonLike = BUTTON_LIKE_BOX_TAGS.has(type);
   if (isButtonLike || inlineUIConfig) {
     const props = element.props as Record<string, unknown> | undefined;
+    // ADR-923 r20 sweep — 빈 글자 + 아이콘·pending 없음 → 줄 상자 없음 (content 0; enrich 가 padding +
+    //   border 만 더한다 = Chrome 10). 종전엔 글자 유무와 무관하게 lineHeight 20 을 가정해 30 이었다.
+    if (
+      BUTTON_TEXT_LEAF_TAGS.has(type) &&
+      extractTextContent(type, props) === "" &&
+      !props?.iconName &&
+      !props?.isPending
+    ) {
+      return 0;
+    }
     const defaultSize = DEFAULT_SIZE_BY_TAG[type] ?? "md";
     const size = (props?.size as string) ?? defaultSize;
     const configMap = isButtonLike ? BUTTON_SIZE_CONFIG : inlineUIConfig!;
@@ -4792,7 +4820,12 @@ export function enrichWithIntrinsicSize(
             _computedStyle,
           )
         : box.contentHeight;
-  if (needsHeight && childResolvedHeight > 0) {
+  // ADR-923 r20 sweep — button 가족은 content 0 (빈 글자) 도 주입 대상: 엔진은 catalog padding/border
+  //   (sizeConfig 경유 parseBoxModel) 를 모르므로 미주입이면 0 이 된다. Chrome 은 padding + border 상자.
+  if (
+    needsHeight &&
+    (childResolvedHeight > 0 || BUTTON_TEXT_LEAF_TAGS.has(type))
+  ) {
     let injectHeight = childResolvedHeight;
     // ComboBox/Select: calculateContentHeight가 전체 시각적 높이(label+input/trigger)를 반환
     // spec shapes가 내부 padding 없이 렌더링하므로 추가 padding/border 불필요

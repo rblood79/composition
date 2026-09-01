@@ -825,6 +825,16 @@ export const renderMenu = (
     // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (Menu 는 `label → children`; factory 가 둘 다 쓴다).
     //   r18m1 — 기본 글자 없음 (Skia 는 계약 결과가 "" 면 trigger text 를 안 그린다).
     label: resolveTextSourceText("Menu", element.props),
+    // ADR-923 r20m2 — D1 접근성 이름은 보이는 글자와 다른 경로. factory 가 쓰는 `"aria-label": "Menu"`
+    //   와 열린 writer 의 aria-labelledby 를 MenuButton (trigger Button) 에 전달한다.
+    "aria-label":
+      typeof element.props["aria-label"] === "string"
+        ? element.props["aria-label"]
+        : undefined,
+    "aria-labelledby":
+      typeof element.props["aria-labelledby"] === "string"
+        ? element.props["aria-labelledby"]
+        : undefined,
     variant: (element.props.variant as string) || "primary",
     size: (element.props.size as "xs" | "sm" | "md" | "lg" | "xl") || "md",
     style: element.props.style,

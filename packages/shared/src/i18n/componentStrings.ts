@@ -52,6 +52,8 @@ interface ComponentStringTable {
   goToPage: (args: StringVariables) => string;
   pageOfTotal: (args: StringVariables) => string;
   totalItems: (args: StringVariables) => string;
+  /** ADR-923 r20m2 — 보이는 글자가 없고 호출자 aria 도 없는 Menu trigger 의 접근성 이름 (속성만). */
+  menuTriggerLabel: string;
 }
 
 /** 사전에 등재된 키 */
@@ -81,7 +83,8 @@ export const COMPONENT_STRINGS: Record<
     loadingLabel: "Loading",
     error: "❌ Error",
     errorLabel: "Error",
-    errorWithMessage: (args: StringVariables) => `❌ Error: ${args?.message ?? ""}`,
+    errorWithMessage: (args: StringVariables) =>
+      `❌ Error: ${args?.message ?? ""}`,
     loadFailed: "Couldn't load the data",
     retry: "Try again",
     emptyData: "No data to show",
@@ -98,6 +101,7 @@ export const COMPONENT_STRINGS: Record<
     pageOfTotal: (args: StringVariables) =>
       `Page ${args?.current ?? ""} / ${args?.total ?? ""}`,
     totalItems: (args: StringVariables) => `${args?.count ?? 0} items total`,
+    menuTriggerLabel: "Menu",
   },
   "ko-KR": {
     loadingData: "⏳ 데이터 로딩 중...",
@@ -107,7 +111,8 @@ export const COMPONENT_STRINGS: Record<
     loadingLabel: "로딩 중",
     error: "❌ 오류",
     errorLabel: "오류",
-    errorWithMessage: (args: StringVariables) => `❌ 오류: ${args?.message ?? ""}`,
+    errorWithMessage: (args: StringVariables) =>
+      `❌ 오류: ${args?.message ?? ""}`,
     loadFailed: "데이터를 불러오지 못했습니다",
     retry: "다시 시도",
     emptyData: "표시할 데이터가 없습니다",
@@ -124,6 +129,7 @@ export const COMPONENT_STRINGS: Record<
     pageOfTotal: (args: StringVariables) =>
       `페이지 ${args?.current ?? ""} / ${args?.total ?? ""}`,
     totalItems: (args: StringVariables) => `총 ${args?.count ?? 0}개 항목`,
+    menuTriggerLabel: "메뉴",
   },
 };
 

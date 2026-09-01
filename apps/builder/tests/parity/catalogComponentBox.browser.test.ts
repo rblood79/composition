@@ -177,6 +177,10 @@ const CASES: CatalogCase[] = [
   { type: "Form", children: KIDS_2, availW: 320 },
   { type: "TabPanel", children: KIDS_2, availW: 320 },
   { type: "ListBox", children: KIDS_2, availW: 320 },
+  // ADR-923 r20 sweep — 내용 없는 Button (텍스트 원천 계약 "" · 아이콘 없음): DOM 은 catalog
+  //   `min-width` 68 × padding 4/4 + border 1/1 = 10 (줄 상자 없음). layout 은 종전 DEFAULT_WIDTH 80
+  //   (+26 → 106) × lineHeight 20 (+10 → 30) 이었고 minWidth 는 deriveSizeConfig 가 버렸다.
+  { type: "Button", children: [], availW: 320 },
 ];
 
 /**
