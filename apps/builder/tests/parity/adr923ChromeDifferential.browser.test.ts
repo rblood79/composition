@@ -1885,4 +1885,50 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
     const bad = diffCase(nodes, dom, pipe);
     expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
   });
+  // r14m1 — cascade 키워드 주변 공백·대문자 (`" INHERIT "`): CSS 는 키워드를 ASCII 대소문자 무시로
+  //   읽고 앞뒤 공백을 버린다 → Chrome 60. cssResolver 가 trim 없이 소문자화만 하면 키워드로 못
+  //   읽어 computed 에 raw 가 남는다 (40).
+  it("부모 pre + 자식 inline white-space:' INHERIT ' (공백·대문자) → computed pre → line box 있음 (r14m1; Chrome b.y 60)", () => {
+    const nodes = textZeroIn(
+      { whiteSpace: "pre" },
+      { whiteSpace: " INHERIT " },
+      " ",
+    );
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  // r14m2 — Pencil import 는 텍스트를 `props.text` 에 쓴다 (production writer). 텍스트 leaf 의 내용
+  //   원천은 children → text (첫 비어있지 않은 값) — `text` 만 있는 Text 도 Chrome/Preview 처럼 내용이
+  //   있다 (children-only 원천이면 line box 없음·폭 0 으로 오분류).
+  it("props.text 만 있는 Text (Pencil import writer) 는 line box 있음 (r14m2; Chrome b.y 60)", () => {
+    const nodes = textZero({}, "hello");
+    nodes[1] = { ...nodes[1], textPropKey: "text" };
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("flex row 안 props.text 만 있는 Text (width:auto) 폭은 text 폭 (r14m2; Chrome box.x = w(Y))", () => {
+    const nodes: CaseNode[] = [
+      {
+        label: "t",
+        elementType: "Text",
+        text: "Y",
+        textPropKey: "text",
+        style: { width: "auto", height: "10px", fontSize: "16px" },
+      },
+      { label: "box", style: { width: "50px", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "flex", width: "300px" },
+        children: [0, 1],
+      },
+    ];
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
 });

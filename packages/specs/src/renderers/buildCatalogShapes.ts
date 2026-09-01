@@ -310,10 +310,23 @@ export function buildCatalogShapes(
     hasOpaqueCatalogBackground,
   } = paint;
 
+  // ADR-923 r14m2 — 텍스트 원천 순서 (writer 인벤토리 기준, Preview 와 대칭):
+  //   `label` (collection item/field — Preview renderListBoxItem 등 `label || children`) →
+  //   `children` (binding content: inspector/factory/overlay) → `text` (Pencil import writer —
+  //   Preview renderDescription/FieldError/generic fallback) → `placeholder`.
+  //   children 이 text 보다 앞: import 뒤 inspector 편집이 children 을 쓰면 stale `text` 가 아니라
+  //   children 을 그려야 한다 (종전 `label || text || children`). children 은 string/number 만 텍스트
+  //   (배열/object 는 텍스트 아님 — React renderable 규칙).
+  const childrenText =
+    typeof props.children === "string"
+      ? props.children
+      : typeof props.children === "number"
+        ? String(props.children)
+        : undefined;
   const text =
     (props.label as string | undefined) ||
+    childrenText ||
     (props.text as string | undefined) ||
-    (props.children as string | undefined) ||
     // ADR-912 R1 (2026-06-12): placeholder 는 보편 RAC prop — 값이 비었을 때 DOM 이
     //   placeholder 를 표시하듯 Skia 도 동일 text 로 그린다 (SelectValue/Input 류 field leaf).
     //   컴포넌트 식별 분기 아님 — 데이터 유무로만 분기 (ADR-142 §3).

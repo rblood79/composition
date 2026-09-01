@@ -4545,34 +4545,44 @@ export function textLeafRendersContent(
 const CSS_CASCADE_KEYWORDS = new Set(["inherit", "initial", "unset", "revert"]);
 
 /**
- * ADR-923 P3 r13m1 — 텍스트 leaf 의 white-space 해석 (line box 신호용).
- * - inline 의 **구체값** (normal/pre/…) 은 그대로 — implicit 주입이 computed 산출 뒤에 실릴 수
- *   있어 inline 이 최신이다.
- * - inline 이 cascade 키워드 (`inherit`/`unset`/`initial`/`revert`) 이거나 부재면 cssResolver
- *   **computed** 를 쓴다 — 키워드는 거기서 이미 해석됐다 (inherit·unset → 부모값, initial·revert →
+ * ADR-923 P3 r13m1·r14m1·r14l1 — 텍스트 leaf 의 white-space 해석 (line box 신호용).
+ * - **computed 우선**: cssResolver computed 는 inline 값을 이미 포함하고 cascade 키워드
+ *   (`inherit`/`unset`/`initial`/`revert`) 도 해석해 두었다 (inherit·unset → 부모값, initial·revert →
  *   normal). 종전 `style?.whiteSpace ?? computed` 는 `inherit` 를 raw 로 받아 normal 로 취급했다
- *   (Chrome 부모 pre + 자식 inherit 60 / 40).
- * - computed 가 없으면 (직접 호출) 키워드는 normal 로 폴백 — 부모를 알 수 없다.
+ *   (Chrome 부모 pre + 자식 inherit 60 / 40). computed 값도 trim + 소문자로 정규화한다 (r14m1 —
+ *   resolver 가 정규화하지 못한 raw 가 남는 경우의 방어; 정규화 결과가 여전히 키워드면 해석 실패 →
+ *   normal).
+ * - computed 가 없을 때만 (직접 호출·단위 테스트) inline raw — 구체값은 그대로, 키워드는 normal 폴백
+ *   (부모를 알 수 없다). "inline 구체값이 computed 보다 최신" 이라는 종전 근거는 성립하지 않는다 —
+ *   implicit 주입 뒤엔 이 함수가 호출되지 않고 2-pass 는 computed 를 다시 만든다 (r14l1).
  */
 export function resolveTextLeafWhiteSpace(
   style: Record<string, unknown> | undefined,
   computed: { whiteSpace?: unknown } | undefined,
 ): string | undefined {
+  const c = computed?.whiteSpace;
+  const cStr = typeof c === "string" ? c.trim().toLowerCase() : undefined;
+  if (cStr) return CSS_CASCADE_KEYWORDS.has(cStr) ? "normal" : cStr;
   const raw = style?.whiteSpace;
   const rawStr = typeof raw === "string" ? raw.trim().toLowerCase() : undefined;
-  if (rawStr && !CSS_CASCADE_KEYWORDS.has(rawStr)) return rawStr;
-  const c = computed?.whiteSpace;
-  if (typeof c === "string" && c !== "") return c;
-  return rawStr ? "normal" : undefined;
+  if (!rawStr) return undefined;
+  return CSS_CASCADE_KEYWORDS.has(rawStr) ? "normal" : rawStr;
 }
 
 /**
- * ADR-923 P3 r12l3·r13m2 — 텍스트 leaf (TEXT_LEAF_TAGS) 의 내용 원천 **SSOT**: binding 이
- * content 로 선언한 `children` 하나 (Text/Heading/Paragraph/Description/Label/Kbd/Code 전부
- * `accepts.children.section === "content"`). Preview 도 이 leaf 들의 텍스트를 children 으로만
- * 그린다 (generic 렌더 · renderLabel) — `label`/`text`/`title` 을 원천으로 읽으면 Chrome 이
- * 그리지 않는 글자의 폭·높이가 측정에 실린다 (r13m2: label 우선 측정 시 flex row box.x 211 /
- * Chrome 10). 신호 (line box) · 폭/높이 측정 · min/max-content 키워드 전부 이 함수를 쓴다.
+ * ADR-923 P3 r12l3·r13m2·r14m2 — 텍스트 leaf (TEXT_LEAF_TAGS) 의 내용 원천 **SSOT** =
+ * **writer 인벤토리** 기준 `children` → `text` (첫 비어있지 않은 값):
+ * - `children`: binding content (inspector · factory · overlay 편집) — Preview generic/renderLabel 이
+ *   그리는 키.
+ * - `text`: **Pencil import writer** (`collectPencilProps` 가 pencil text 노드의 `text` 를 그대로 씀)
+ *   — Preview renderDescription/FieldError/Card Description 과 generic 렌더 (r14m2 fallback) 가 그린다.
+ *   round 13 의 children-only 는 이 writer 를 놓쳐 import 문서의 텍스트를 내용 없음으로 오분류했다
+ *   (Chrome b.y 60 / 40, flex 폭 w(Y) / 0).
+ * - `label`/`title`: 텍스트 leaf 에 쓰는 writer 없음 (inspector surface 밖, factory 0, Pencil 은 text)
+ *   + Preview 가 이 7종에서 읽지 않음 → 원천 아님. `label` 은 collection item/field 의 원천이며
+ *   그쪽은 `extractTextContent` (label 우선 — Preview renderListBoxItem 등 `label || children`) 담당.
+ * 순서 children → text 는 Skia `buildCatalogShapes` (`label || children || text || placeholder`) 와
+ * 같다 — import 뒤 inspector 편집이 children 을 쓰면 stale `text` 보다 children 이 이겨야 한다.
  * 문자열화는 React renderable 규칙 (`extractFromValue`: string/number 그대로, 배열은
  * string/number 항목만 이어붙임, object/boolean 은 "") — 종전 `String(...)` 은 `[" ", " "]` 를
  * `" , "` 로, object 를 `"[object Object]"` 로 만들어 신호를 오염시켰다 (r12l3).
@@ -4581,7 +4591,9 @@ export function resolveTextLeafContent(
   props: Record<string, unknown> | undefined,
 ): string {
   if (!props) return "";
-  return extractFromValue(props.children);
+  const fromChildren = extractFromValue(props.children);
+  if (fromChildren !== "") return fromChildren;
+  return extractFromValue(props.text);
 }
 
 export function enrichWithIntrinsicSize(

@@ -35,7 +35,6 @@ import {
 import {
   isCatalogCutover,
   getPrimitiveBinding,
-  maskNonContentTextProps,
   isDisclosureExpandedInContext,
   resolveSelectionCheckboxVisible,
   toSkiaStyle,
@@ -1280,12 +1279,14 @@ function buildCatalogShapesOrPrimitive(
     : specProps;
 
   // base box+text + prepend/append 패턴(backdrop/shadow/arrow) 합성 (ADR-142 Inc3 overlays).
-  // ADR-923 r13m2 — 텍스트 원천 SSOT: children 을 content 로 선언한 primitive 는 Preview 가 children
-  //   만 그리므로 label/text 를 차단 (binding 선언 기준 — Text{children:"", label:"X"} 가 Skia 만 "X").
+  // ADR-923 r14m2 — round 13 의 binding-선언 기반 label/text 차단은 철회: binding `accepts` 는
+  //   편집 surface 지 렌더 소비 집합이 아니다 — Pencil import 는 `props.text` 를 쓰고 (production
+  //   writer), collection item 은 Preview 가 `label || children` 을 그린다. 텍스트 원천 순서는
+  //   buildCatalogShapes 단일 지점 (`label || children || text || placeholder`) 이 정본.
   const base = buildCatalogShapes(
     visual,
     paint,
-    maskNonContentTextProps(type, shellOnlyProps),
+    shellOnlyProps,
     sizeSpec,
     textDecoration,
   );

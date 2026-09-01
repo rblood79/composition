@@ -467,31 +467,3 @@ export function getPrimitiveBinding(
 ): PrimitiveBinding | undefined {
   return PRIMITIVE_BINDINGS[type];
 }
-
-/**
- * ADR-923 r13m2 — primitive 가 텍스트 내용을 `children` 으로 받는가
- * (`accepts.children.section === "content"`). Preview (generic 렌더 · renderLabel) 는 그런
- * primitive 의 텍스트를 children 으로만 그리므로 Skia/측정도 `label`/`text` 를 원천으로 읽으면
- * 안 된다. `label` 을 content 로 선언한 field/indicator (ProgressBar/Meter/Slider/TextField…) 는
- * 해당 없음 — 데이터 분기 (binding 선언), 컴포넌트별 if 아님.
- */
-export function bindingDeclaresChildrenContent(type: string): boolean {
-  return (
-    getPrimitiveBinding(type)?.props?.accepts?.children?.section === "content"
-  );
-}
-
-/**
- * ADR-923 r13m2 — `buildCatalogShapes` 의 legacy 텍스트 fallback (`label || text || children ||
- * placeholder`) 이 children-content primitive 에서 Preview 가 그리지 않는 `label`/`text` 를 먼저
- * 읽어 Skia 가 다른 글자를 그렸다 (텍스트 원천 SSOT 부재). children 을 content 로 선언한 primitive
- * 에 한해 두 키를 차단한다 — 원천은 children (+ placeholder: value-empty field leaf 표시).
- */
-export function maskNonContentTextProps(
-  type: string,
-  props: Record<string, unknown>,
-): Record<string, unknown> {
-  if (!bindingDeclaresChildrenContent(type)) return props;
-  if (props.label === undefined && props.text === undefined) return props;
-  return { ...props, label: undefined, text: undefined };
-}

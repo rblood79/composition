@@ -39,25 +39,42 @@ describe("ADR-923 r12l3 — resolveTextLeafContent", () => {
     expect(resolveTextLeafContent({ children: 0 })).toBe("0");
     expect(textLeafRendersContent("0", undefined)).toBe(true);
   });
-  it("원천은 binding content(children) 하나 — label/text/title 은 Preview 가 그리지 않으므로 내용이 아니다 (r13m2)", () => {
+  it("원천은 writer 인벤토리 기준 children → text (첫 비어있지 않은 값); label/title 은 텍스트 leaf 의 writer·Preview 원천이 아니다 (r13m2·r14m2)", () => {
     expect(
       resolveTextLeafContent({ children: "c", label: "l", text: "t" }),
     ).toBe("c");
-    expect(resolveTextLeafContent({ text: "t", label: "l" })).toBe("");
+    // Pencil import writer (`props.text`) — round 13 children-only 가 놓친 원천.
+    expect(resolveTextLeafContent({ text: "t", label: "l" })).toBe("t");
+    // import 뒤 inspector 편집: children 이 stale text 를 이긴다 (Skia 순서와 동일).
+    expect(resolveTextLeafContent({ children: "edited", text: "pencil" })).toBe(
+      "edited",
+    );
+    expect(resolveTextLeafContent({ children: "", text: "t" })).toBe("t");
     expect(resolveTextLeafContent({ children: "", label: "l" })).toBe("");
     expect(resolveTextLeafContent({ title: "T" })).toBe("");
     expect(resolveTextLeafContent(undefined)).toBe("");
   });
 });
 
-describe("ADR-923 r13m1 — resolveTextLeafWhiteSpace (cascade 키워드는 computed 로)", () => {
-  it("inline 구체값이 computed 보다 우선 (implicit 주입이 computed 뒤에 실릴 수 있다)", () => {
+describe("ADR-923 r13m1·r14m1 — resolveTextLeafWhiteSpace (computed 우선, 정규화)", () => {
+  it("computed 가 있으면 computed (inline 을 이미 포함) — trim + 소문자 정규화 (r14m1)", () => {
+    expect(
+      resolveTextLeafWhiteSpace({ whiteSpace: "pre" }, { whiteSpace: " PRE " }),
+    ).toBe("pre");
     expect(
       resolveTextLeafWhiteSpace(
-        { whiteSpace: " PRE " },
+        { whiteSpace: "pre" },
         { whiteSpace: "normal" },
       ),
-    ).toBe("pre");
+    ).toBe("normal");
+  });
+  it("computed 에 키워드 raw 가 남았으면 (resolver 미해석) normal 폴백", () => {
+    expect(
+      resolveTextLeafWhiteSpace(
+        { whiteSpace: " INHERIT " },
+        { whiteSpace: " INHERIT " },
+      ),
+    ).toBe("normal");
   });
   it("inline inherit/unset/initial/revert 는 computed 가 해석한 값", () => {
     for (const kw of ["inherit", "unset", "initial", "revert"]) {
@@ -66,7 +83,10 @@ describe("ADR-923 r13m1 — resolveTextLeafWhiteSpace (cascade 키워드는 comp
       ).toBe("pre");
     }
   });
-  it("inline 부재 → computed(상속); 둘 다 없으면 undefined; computed 없는 키워드는 normal", () => {
+  it("computed 부재 (직접 호출) → inline 구체값; 둘 다 없으면 undefined; computed 없는 키워드는 normal", () => {
+    expect(resolveTextLeafWhiteSpace({ whiteSpace: " PRE " }, undefined)).toBe(
+      "pre",
+    );
     expect(resolveTextLeafWhiteSpace({}, { whiteSpace: "pre-line" })).toBe(
       "pre-line",
     );

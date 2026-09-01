@@ -776,8 +776,7 @@ export function CanonicalNodeRenderer({
       //   RAC className prop 은 default 를 대체하므로 base 클래스를 함께 명시한다. internal source
       //   (self-compose 렌더러)는 자체 root 클래스 규약이 있어 대상에서 제외 — 종전 동작 유지.
       const authoredClassName = adaptedEl.props?.className as
-        | string
-        | undefined;
+        string | undefined;
       // rac source 는 RAC 가 default className 을 **대체**하므로 base 를 함께 명시하고,
       //   internal source(composition wrapper)는 자기 root 에서 base 를 합성하므로
       //   (`react-aria-X ${className}` — Badge/Icon/ListBox/Table/Dialog… 전수 확인)
@@ -924,8 +923,28 @@ export function CanonicalNodeRenderer({
             collectionAncestor={nextCollectionAncestor}
           />
         ))
-      : (adaptedEl.props?.children as React.ReactNode),
+      : resolveGenericLeafText(adaptedEl.props),
   );
+}
+
+/**
+ * ADR-923 r14m2 — generic leaf 의 텍스트: `children` (binding content) 이 비어 있으면 legacy `text`
+ * (Pencil import writer — `collectPencilProps` 가 pencil text 노드의 `text` 를 그대로 canonical props
+ * 에 쓴다). 종전엔 children 만 그려 import 문서의 Text/Heading/Paragraph 가 Preview 에서 비어
+ * 있었다 (Skia·레이아웃은 text 를 읽음 — D3 비대칭). renderDescription/Card Description 과 같은
+ * children → text 순서.
+ */
+function resolveGenericLeafText(
+  props: Record<string, unknown> | undefined,
+): React.ReactNode {
+  const children = props?.children as React.ReactNode;
+  if (children !== undefined && children !== null && children !== "") {
+    return children;
+  }
+  const text = props?.text;
+  if (typeof text === "string" && text !== "") return text;
+  if (typeof text === "number") return String(text);
+  return children;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

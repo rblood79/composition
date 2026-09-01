@@ -42,6 +42,12 @@ export interface CaseNode {
    */
   props?: Record<string, unknown>;
   /**
+   * pipeline leg 이 `text` 를 실을 prop 키 (ADR-923 r14m2) — 기본 `children` (inspector/factory
+   * writer). `"text"` 는 Pencil import writer (`collectPencilProps` 가 pencil text 노드의 `text`
+   * 필드를 그대로 canonical props 에 쓴다). DOM leg 은 어느 쪽이든 textContent.
+   */
+  textPropKey?: "children" | "text";
+  /**
    * DOM leg 전용 intrinsic 원자 (ADR-165 engine-leg 케이스) — inline-block 폭 px 목록.
    * 컨테이너 fontSize:0 으로 공백 폭을 0 으로 만들어 min-content = max(원자),
    * max-content = Σ원자 가 **정확 정수**가 되게 한다. 엔진 leg 는 대응 스칼라를
@@ -252,7 +258,9 @@ export function pipelineLeg(
       page_id: i === rootIdx ? pageId : null,
       props: {
         ...(node.props ?? {}),
-        ...(node.text !== undefined ? { children: node.text } : {}),
+        ...(node.text !== undefined
+          ? { [node.textPropKey ?? "children"]: node.text }
+          : {}),
         style,
       },
     } as unknown as CanvasLayoutNode);

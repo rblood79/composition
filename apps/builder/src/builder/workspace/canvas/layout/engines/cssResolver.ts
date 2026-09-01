@@ -359,7 +359,9 @@ function resolveCascadeKeyword(
 ): unknown | typeof INHERIT_SENTINEL {
   if (typeof value !== "string") return value;
 
-  const lower = value.toLowerCase();
+  // ADR-923 r14m1 — CSS 키워드는 ASCII 대소문자 무시 + 앞뒤 공백 무시 (`" INHERIT "` 도 inherit).
+  //   trim 없이 소문자화만 하면 키워드로 못 읽어 computed 에 raw 가 남는다 (Chrome 부모 pre 상속 60 / 40).
+  const lower = value.trim().toLowerCase();
 
   switch (lower) {
     case "inherit":
@@ -714,7 +716,7 @@ export function preprocessStyle(
 
     // cascade 키워드 해석 (부모 없는 flat 처리: 비상속 속성은 initial로 fallback)
     if (typeof rawValue === "string") {
-      const lower = rawValue.toLowerCase();
+      const lower = rawValue.trim().toLowerCase(); // r14m1 — 키워드는 trim + 소문자
 
       if (lower === "initial" || lower === "revert") {
         const initial = CSS_INITIAL_VALUES[prop];
