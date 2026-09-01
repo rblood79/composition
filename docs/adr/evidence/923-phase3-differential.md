@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 21 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 22 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -693,6 +693,37 @@ round 20 은 **발견된** ListBox/GridList/Button 만 닫았다. 같은 형태 
       `height: 240` → 242 = 242. TagGroup 은 빈 label 이 두 표면 모두 gap 없이 붙었다 (Skia 32 · DOM 30 — 잔여 2px 은 TagList chip
       행 metric 축, 아래 관찰).
 
+## round 22 수리 3건 (Codex 판독 r22m1 + 전수 sweep 2 — 전수 동치 게이트 2 · Chrome 실 CSS 오라클 +1 · shared 6, 종전 코드 원복 RED 3 조합, `6c2e1b388`)
+
+round 21 이 Table 에 `heightMode`/`height` binding 다리를 놓았지만 layout 의 기존 리터럴 fallback (300) 을 정렬하지 않았다 (r22m1).
+같은 형태 — **prop 부재 기본값을 두 표면이 각자 들고 있는 자리** — 를 catalog 전 타입으로 대조하니 두 축이 더 갈려 있었다.
+
+62. **Table prop 부재 기본 높이** (r22m1 — `toRacProps` 는 props 에 키가 없으면 `accepts[key].default` 를 채워 컴포넌트에 넘기므로
+    prop 없는 Table 의 Preview 는 fixed × 400 = 402 다. layout 은 자기 리터럴 300 → 302 였다. factory 는 생성 시 항상
+    `height: 400` 을 기록해 팔레트 경로에서는 가려졌고, canonical/import/AI 입력만 prop 부재를 표현한다. shared
+    `resolveBindingPropDefault(type, key)` 를 단일 조회로 두고 `implicitStyles` Table 분기가 그것을 읽는다.)
+63. **기본 size 표 ↔ catalog `defaultSize`** (sweep — layout 의 `DEFAULT_SIZE_BY_TAG` 는 catalog 와 **별개 표**였고 두 타입에서
+    값이 갈렸다: Badge (catalog `sm` · 표 `md`) · Select (catalog `md` · 표 `sm`). 생성 CSS 의 base 규칙은 `defaultSize` 값으로
+    emit 되므로 (`.react-aria-Badge { padding: 2px 8px; font-size: text-xs }` = sm) prop 없는 요소의 DOM 은 catalog 기본 size 이고
+    layout 만 다른 size config 를 골라 폰트·padding·높이가 어긋났다. catalog 등록 타입은 `resolveComponentRuleByTag(tag).defaultSize`
+    가 정본이고 표에는 catalog 에 없는 legacy 별칭 (`type`/`chip`/`submitbutton`/`fancybutton`/`a`) 만 남긴다.)
+64. **catalog `sizes[size].borderWidth` 의 L3 미러 누락** (오라클이 연 결함 — 63 을 넣고 Badge 케이스를 실 CSS 로 재니 DOM 20 vs
+    layout 18 이었다. 생성기는 size 블록마다 `border-width` 를 emit 하는데 (`CSSGenerator` — `containerStyles.border` shorthand 가
+    있을 때만 skip) `resolveContainerStylesFallback` 의 L3 size 축 미러는 height/padding/gap 만 옮겨 border 축이 빠져 있었다.
+    top-level `containerStyles` 가 없는 타입은 이 값이 캔버스에 도달할 경로가 아예 없었다 — GridListItem 도 같은 축이다.)
+    - 게이트 (round 22): 단위 `adr923DefaultContractParity.test.ts` 6 — **전수 동치 2** (catalog 전 타입에 대해 "prop 부재" 와
+      "binding accepts default 명시" / "catalog defaultSize·defaultVariant 명시" 의 layout 4 표면 결과가 같은지) + 갈렸던 3 타입
+      고정 4. 새 기본값 축이 생기면 layout 이 따라오지 않는 즉시 RED 다. shared `defaultContractLookup.test.ts` 6 (조회 계약 —
+      casing · `toRacProps` 와 같은 값 · 미등록 undefined). Chrome 실 CSS 오라클 `catalogComponentBox` +1 (Badge — prop 없는 기본
+      size + border 축). 기대값 갱신 2: `tableFixedHeightBorderImplicitStyles` (302 → 402, DOM 근거 기재) ·
+      `resolveContainerStylesFallback` gridlistitem (`borderWidth: 1` — 생성 CSS `border: 1px solid var(--border)` 근거).
+    - 원복 RED (실측, HEAD 파일로 교체 → 게이트 → 수리본 복구 · md5 대조): `implicitStyles.ts` → layout 4 + Chrome 3 ·
+      `utils.ts` → layout 3 + Chrome 3 · shared helper 2 파일 → shared 6 = **3 조합**.
+    - **Live (Chrome MCP, 2026-09-02)**: 팔레트로 Table·Badge 를 만든 뒤 factory 가 기록한 `height`/`heightMode`(Table) ·
+      `size`(Badge) 를 store 에서 **제거**해 prop 부재 입력을 재현했다 (팔레트 경로는 factory 가 값을 채워 결함을 가린다).
+      Skia layout box ↔ Preview compare DOM: Table 366×402 = 366×402 (수리 전 Skia 302) · Badge 높이 22 = 22 · padding 2/8 ·
+      border 1 · font 12px (sm, 수리 전 Skia 30). 콘솔 에러 0, 생성 요소 전부 삭제 (86 복귀).
+
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
 - **실효 (프로덕션 어댑터 경로가 그대로 타는 수리)**: 수리 5 (wrap min-content, r8l2
@@ -860,6 +891,10 @@ round 20 은 **발견된** ListBox/GridList/Button 만 닫았다. 같은 형태 
 - **round 21 수리 후**: Rust 변경 0 (TS 만) · 차등 **97/97** · full **parity 1041** (+7 빈 구조 상자 실 CSS; 기존
   catalogComponentBox 2 · 1 expected fail · 2 skipped) · layout unit 53 files/**446** (+15) · builder unit 10 영역 207
   files/1810 · shared 100 files/**955** (+2) · specs 75 files/875 · type-check 0. 원복 RED (실측) 4 조합 — 수리 54~61 참조.
+- **round 22 수리 후**: Rust 변경 0 (TS 만) · 차등 **97/97** · full **parity 1042** (+1 Badge 실 CSS; 기존
+  catalogComponentBox GridListItem/Tooltip 2 · 1 expected fail · 2 skipped) · layout unit 54 files/**452** (+6) · builder unit
+  10 영역 207 files/1810 · shared 101 files/**961** (+6) · specs 75 files/875 · type-check 0 (`TYPE-CHECK PASS`).
+  원복 RED (실측) 3 조합 — 수리 62~64 참조.
 
 - **Live Exercise (round 19 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP) — ① 팔레트에서 Breadcrumbs 추가
   (366×24, body stretch) → Styles Width size "fit" → 190×24, 선택 상자가 "Home › Category › Page" 끝에 맞음 (실제 crumb 폭; 종전
@@ -888,6 +923,13 @@ round 20 은 **발견된** ListBox/GridList/Button 만 닫았다. 같은 형태 
   Table 은 수리 58 만으로는 Preview 가 402 그대로여서 (heightMode 미전달) 수리 59 를 추가 — 이후 auto **40 = 40**
   (`.react-aria-TableVirtualizer` inline `auto`) · fixed 402 = 402 · `height: 240` → 242 = 242. TagGroup 은 빈 label 에서 두
   표면 모두 gap 없이 붙었다 (Skia 32 · DOM 30 — 잔여 2px 은 chip 행 metric, 관찰 등재). 콘솔 에러 0 · 생성 요소 전부 삭제
+  (요소 수 86 복귀).
+
+- **Live Exercise (round 22 수리 후, 2026-09-02)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP, compare mode) —
+  팔레트로 Table · Badge 를 만든 뒤 factory 가 기록한 `height`/`heightMode`(Table) · `size`(Badge) 를 store `setElements` 로
+  **제거**해 prop 부재 입력을 재현했다 (팔레트 경로는 factory 가 값을 채우므로 결함이 가려진다 — canonical/import/AI 만 부재를
+  표현한다). Skia layout box ↔ Preview iframe DOM: Table 366×**402** = 366×402 (수리 전 Skia 302) · Badge 높이 **22** = 22
+  (`padding 2px 8px` · `border-width 1px` · `font-size 12px` = catalog sm; 수리 전 Skia 30). 콘솔 에러 0 · 생성 요소 전부 삭제
   (요소 수 86 복귀).
 
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
