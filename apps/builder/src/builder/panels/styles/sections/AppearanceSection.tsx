@@ -14,6 +14,10 @@ import {
   PropertySelect,
 } from "../../../components";
 import {
+  BORDER_RADIUS_PRESET_OPTIONS,
+  BORDER_WIDTH_PRESET_OPTIONS,
+} from "../../../components/property/propertyUnitPresets";
+import {
   SwatchIconButton,
   SwatchIconToggleButton,
 } from "../../../components/ui";
@@ -28,11 +32,7 @@ import {
   Scissors,
 } from "lucide-react";
 import { SquareOff } from "../../../components/icons";
-import {
-  BORDER_RADIUS_PRESET_OPTIONS,
-  BORDER_WIDTH_PRESET_OPTIONS,
-  OVERFLOW_OPTIONS,
-} from "../constants/styleOptions";
+import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
 import {
   applyShadowInset,
   getShadowToken,

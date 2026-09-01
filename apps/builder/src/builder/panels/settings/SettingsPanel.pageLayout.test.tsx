@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../stores";
+import type { PropertyUnitPreset } from "../../components/property/propertyUnitPresets";
 import { SettingsPanel } from "./SettingsPanel";
 
 const {
@@ -34,7 +35,7 @@ vi.mock("../../components", () => ({
     label: string;
     onChange: (value: string) => void;
     presetAriaLabel: string;
-    presets?: ReadonlyArray<{ id: string; label: string; value: string }>;
+    presets?: readonly PropertyUnitPreset[];
     value: string;
   }) => (
     <div>

@@ -11,6 +11,11 @@ import {
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../stores";
 import { PropertyUnitInput } from "./PropertyUnitInput";
+import {
+  BORDER_WIDTH_PRESET_OPTIONS,
+  PAGE_GAP_PRESETS,
+  SPACING_PRESET_OPTIONS,
+} from "./propertyUnitPresets";
 
 describe("PropertyUnitInput numeric editing", () => {
   beforeAll(() => {
@@ -193,11 +198,7 @@ describe("PropertyUnitInput numeric editing", () => {
           value={value}
           units={[]}
           allowKeywords={false}
-          presets={[
-            { id: "sm", label: "S", value: "40" },
-            { id: "md", label: "M", value: "80" },
-            { id: "lg", label: "L", value: "120" },
-          ]}
+          presets={PAGE_GAP_PRESETS}
           presetAriaLabel="Page Gap Preset"
           onChange={(nextValue) => {
             onChange(nextValue);
@@ -269,14 +270,7 @@ describe("PropertyUnitInput numeric editing", () => {
           value={value}
           units={[]}
           allowKeywords={false}
-          presets={[
-            { id: "reset", label: "Reset", value: "" },
-            { id: "xs", label: "XS", value: "var(--spacing-xs)" },
-            { id: "sm", label: "S", value: "var(--spacing-sm)" },
-            { id: "md", label: "M", value: "var(--spacing-md)" },
-            { id: "lg", label: "L", value: "var(--spacing-lg)" },
-            { id: "xl", label: "XL", value: "var(--spacing-xl)" },
-          ]}
+          presets={SPACING_PRESET_OPTIONS}
           presetAriaLabel="Padding Preset"
           onChange={(nextValue) => {
             onChange(nextValue);
@@ -411,10 +405,7 @@ describe("PropertyUnitInput numeric editing", () => {
         value="0px"
         units={[]}
         allowKeywords={false}
-        presets={[
-          { id: "reset", label: "Reset", value: "" },
-          { id: "xs", label: "XS", value: "1px" },
-        ]}
+        presets={BORDER_WIDTH_PRESET_OPTIONS}
         presetAriaLabel="Border Width Preset"
         onChange={vi.fn()}
       />,

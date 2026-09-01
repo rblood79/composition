@@ -18,7 +18,7 @@ describe("AppearanceSection border preset contract", () => {
 
   it("keeps radius presets on the shared radius token scale", async () => {
     const source = await readFile(
-      resolve(__dirname, "../constants/styleOptions.ts"),
+      resolve(__dirname, "../../../components/property/propertyUnitPresets.ts"),
       "utf-8",
     );
 

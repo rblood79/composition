@@ -8,6 +8,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, memo } from "react";
 import { PropertySection, PropertyUnitInput } from "../../../components";
+import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
 import {
   ToggleButton,
   ToggleButtonGroup,
@@ -50,7 +51,6 @@ import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
 import { isDirectionDrivenTag } from "../utils/orientationDrivenTags";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
-import { SPACING_PRESET_OPTIONS } from "../constants/styleOptions";
 
 // 4방향 값 추출은 이제 useLayoutValues 훅에서 처리됨
 

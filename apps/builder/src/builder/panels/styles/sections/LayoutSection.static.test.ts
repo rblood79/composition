@@ -31,16 +31,16 @@ describe("LayoutSection spacing input commit contract", () => {
       resolve(__dirname, "LayoutSection.tsx"),
       "utf-8",
     );
-    const optionsSource = await readFile(
-      resolve(__dirname, "../constants/styleOptions.ts"),
+    const presetsSource = await readFile(
+      resolve(__dirname, "../../../components/property/propertyUnitPresets.ts"),
       "utf-8",
     );
 
     expect(source).toContain(
-      'import { SPACING_PRESET_OPTIONS } from "../constants/styleOptions"',
+      'import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets"',
     );
     expect(source.match(/presets=\{SPACING_PRESET_OPTIONS\}/g)).toHaveLength(3);
-    expect(optionsSource).toContain('value: "var(--spacing-xs)"');
-    expect(optionsSource).toContain('value: "var(--spacing-xl)"');
+    expect(presetsSource).toContain('value: "var(--spacing-xs)"');
+    expect(presetsSource).toContain('value: "var(--spacing-xl)"');
   });
 });

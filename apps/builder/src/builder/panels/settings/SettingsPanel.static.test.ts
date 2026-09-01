@@ -18,6 +18,10 @@ describe("SettingsPanel 공통 panel 구조", () => {
       resolve(__dirname, "SettingsPanel.tsx"),
       "utf-8",
     );
+    const presetsSource = await readFile(
+      resolve(__dirname, "../../components/property/propertyUnitPresets.ts"),
+      "utf-8",
+    );
 
     expect(source).toContain('id: "auto"');
     expect(source).toContain('t("settings.pageLayoutAuto")');
@@ -40,10 +44,14 @@ describe("SettingsPanel 공통 panel 구조", () => {
     expect(source).toContain("units={[]}");
     expect(source).toContain("allowKeywords={false}");
     expect(source).toContain("presets={PAGE_GAP_PRESETS}");
+    expect(source).toContain(
+      'import { PAGE_GAP_PRESETS } from "../../components/property/propertyUnitPresets"',
+    );
     expect(source).toContain("icon={UnfoldHorizontal}");
-    expect(source).toContain('{ id: "sm", label: "S", value: "40" }');
-    expect(source).toContain('{ id: "md", label: "M", value: "80" }');
-    expect(source).toContain('{ id: "lg", label: "L", value: "120" }');
+    expect(source).not.toContain("const PAGE_GAP_PRESETS");
+    expect(presetsSource).toContain('{ id: "sm", label: "S", value: "40" }');
+    expect(presetsSource).toContain('{ id: "md", label: "M", value: "80" }');
+    expect(presetsSource).toContain('{ id: "lg", label: "L", value: "120" }');
     expect(source).toContain("onChange={handlePageLayoutChange}");
     expect(source).toContain("onChange={handlePageGapChange}");
     expect(source).toContain("alignPagesToScreen();");

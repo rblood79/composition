@@ -26,16 +26,11 @@ import {
   PropertySizeToggle,
   PanelHeader,
 } from "../../components";
+import { PAGE_GAP_PRESETS } from "../../components/property/propertyUnitPresets";
 import { useThemeMessenger } from "@/builder/hooks";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
 import { alignPagesToScreen } from "../../workspace/canvas/viewport/pageLayoutActions";
-
-const PAGE_GAP_PRESETS = [
-  { id: "sm", label: "S", value: "40" },
-  { id: "md", label: "M", value: "80" },
-  { id: "lg", label: "L", value: "120" },
-] as const;
 
 function SettingsContent() {
   const { sendDarkMode } = useThemeMessenger();

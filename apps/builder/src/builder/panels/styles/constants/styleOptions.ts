@@ -40,40 +40,6 @@ export const BORDER_STYLES: { value: string; label: string }[] = [
   { value: "outset", label: "outset" },
 ];
 
-export type StylePresetOption = {
-  id: string;
-  label: string;
-  value: string;
-};
-
-export const SPACING_PRESET_OPTIONS: readonly StylePresetOption[] = [
-  { id: "reset", label: "Reset", value: "" },
-  { id: "xs", label: "XS", value: "var(--spacing-xs)" },
-  { id: "sm", label: "S", value: "var(--spacing-sm)" },
-  { id: "md", label: "M", value: "var(--spacing-md)" },
-  { id: "lg", label: "L", value: "var(--spacing-lg)" },
-  { id: "xl", label: "XL", value: "var(--spacing-xl)" },
-];
-
-/** Border Width에는 전용 토큰이 없어 시각적 단계만 preset으로 제공한다. */
-export const BORDER_WIDTH_PRESET_OPTIONS: readonly StylePresetOption[] = [
-  { id: "reset", label: "Reset", value: "" },
-  { id: "xs", label: "XS", value: "1px" },
-  { id: "sm", label: "S", value: "2px" },
-  { id: "md", label: "M", value: "4px" },
-  { id: "lg", label: "L", value: "8px" },
-  { id: "xl", label: "XL", value: "12px" },
-];
-
-export const BORDER_RADIUS_PRESET_OPTIONS: readonly StylePresetOption[] = [
-  { id: "reset", label: "Reset", value: "" },
-  { id: "xs", label: "XS", value: "var(--radius-xs)" },
-  { id: "sm", label: "S", value: "var(--radius-sm)" },
-  { id: "md", label: "M", value: "var(--radius-md)" },
-  { id: "lg", label: "L", value: "var(--radius-lg)" },
-  { id: "xl", label: "XL", value: "var(--radius-xl)" },
-];
-
 export const BLEND_MODE_OPTIONS: { value: string; label: string }[] = [
   { value: "normal", label: "Normal" },
   { value: "multiply", label: "Multiply" },

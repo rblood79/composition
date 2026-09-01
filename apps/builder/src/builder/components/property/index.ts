@@ -8,6 +8,13 @@ export { PropertySelect } from "./PropertySelect";
 export { PropertySwitch } from "./PropertySwitch";
 export { PropertySlider } from "./PropertySlider";
 export { PropertyUnitInput } from "./PropertyUnitInput";
+export {
+  BORDER_RADIUS_PRESET_OPTIONS,
+  BORDER_WIDTH_PRESET_OPTIONS,
+  PAGE_GAP_PRESETS,
+  SPACING_PRESET_OPTIONS,
+  type PropertyUnitPreset,
+} from "./propertyUnitPresets";
 export { PropertyColor } from "./PropertyColor";
 export { PropertyColorPicker } from "./PropertyColorPicker";
 export { PropertyCustomId } from "./PropertyCustomId";

@@ -11,6 +11,7 @@ import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
+import type { PropertyUnitPreset } from "./propertyUnitPresets";
 import {
   semanticLabelKeys,
   translateKey,
@@ -44,11 +45,7 @@ interface PropertyUnitInputProps {
   min?: number;
   max?: number;
   /** 우측 chevron 목록에서 현재 숫자값을 교체하는 preset 명령. */
-  presets?: ReadonlyArray<{
-    id: string;
-    label: string;
-    value: string;
-  }>;
+  presets?: readonly PropertyUnitPreset[];
   /** preset trigger의 접근성 이름. */
   presetAriaLabel?: string;
 }
@@ -613,16 +610,16 @@ export const PropertyUnitInput = memo(
                 if (!preset) return;
 
                 syncAfterPresetRef.current = true;
+                const newValue = getPresetCommitValue(preset);
                 setInputValue(
                   getInputDisplayValue(
-                    getPresetCommitValue(preset),
-                    parseUnitValue(getPresetCommitValue(preset)),
+                    newValue,
+                    parseUnitValue(newValue),
                     false,
                     presets,
                   ),
                 );
                 setDraftUnit(null);
-                const newValue = getPresetCommitValue(preset);
                 if (newValue !== lastSavedValueRef.current) {
                   lastSavedValueRef.current = newValue;
                   onChange(newValue);
