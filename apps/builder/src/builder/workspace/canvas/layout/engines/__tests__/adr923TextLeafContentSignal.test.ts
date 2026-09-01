@@ -11,13 +11,25 @@ import { resolveTextLeafContent, textLeafRendersContent } from "../utils";
 describe("ADR-923 r12l3 — resolveTextLeafContent", () => {
   it("배열 children 은 string/number 항목만 이어붙인다 (쉼표 없음)", () => {
     expect(resolveTextLeafContent({ children: [" ", " "] })).toBe("  ");
-    expect(resolveTextLeafContent({ children: ["a", 1, { x: 1 }, null] })).toBe("a1");
-    expect(textLeafRendersContent(resolveTextLeafContent({ children: [" ", " "] }), undefined)).toBe(false);
+    expect(resolveTextLeafContent({ children: ["a", 1, { x: 1 }, null] })).toBe(
+      "a1",
+    );
+    expect(
+      textLeafRendersContent(
+        resolveTextLeafContent({ children: [" ", " "] }),
+        undefined,
+      ),
+    ).toBe(false);
   });
   it("object / boolean children 은 내용이 아니다", () => {
     expect(resolveTextLeafContent({ children: { type: "span" } })).toBe("");
     expect(resolveTextLeafContent({ children: true })).toBe("");
-    expect(textLeafRendersContent(resolveTextLeafContent({ children: { type: "span" } }), "normal")).toBe(false);
+    expect(
+      textLeafRendersContent(
+        resolveTextLeafContent({ children: { type: "span" } }),
+        "normal",
+      ),
+    ).toBe(false);
   });
   it("number 0 은 내용", () => {
     expect(resolveTextLeafContent({ children: 0 })).toBe("0");

@@ -1353,8 +1353,15 @@ const CASES: DiffCase[] = [
     availW: 300,
     availH: -1,
     nodes: [
-      { label: "c", style: { display: "block", height: "20px", marginBottom: "20px" } },
-      { label: "p", style: { display: "block", minHeight: "50%", marginBottom: "15px" }, children: [0] },
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", minHeight: "50%", marginBottom: "15px" },
+        children: [0],
+      },
       { label: "b", style: { display: "block", height: "10px" } },
       {
         label: "root",
@@ -1368,8 +1375,15 @@ const CASES: DiffCase[] = [
     availW: 300,
     availH: -1,
     nodes: [
-      { label: "c", style: { display: "block", height: "20px", marginBottom: "20px" } },
-      { label: "p", style: { display: "block", minHeight: "50%", marginBottom: "15px" }, children: [0] },
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", minHeight: "50%", marginBottom: "15px" },
+        children: [0],
+      },
       { label: "b", style: { display: "block", height: "10px" } },
       {
         label: "root",
@@ -1383,8 +1397,20 @@ const CASES: DiffCase[] = [
     availW: 300,
     availH: -1,
     nodes: [
-      { label: "c", style: { display: "block", height: "20px", marginBottom: "20px" } },
-      { label: "p", style: { display: "block", minHeight: "30px", maxHeight: "10px", marginBottom: "15px" }, children: [0] },
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: {
+          display: "block",
+          minHeight: "30px",
+          maxHeight: "10px",
+          marginBottom: "15px",
+        },
+        children: [0],
+      },
       { label: "b", style: { display: "block", height: "10px" } },
       {
         label: "root",
@@ -1401,7 +1427,13 @@ const CASES: DiffCase[] = [
       { label: "c", style: { display: "block", height: "20px" } },
       {
         label: "root",
-        style: { display: "block", width: "300px", minHeight: "30px", maxHeight: "10px", ...FS0 },
+        style: {
+          display: "block",
+          width: "300px",
+          minHeight: "30px",
+          maxHeight: "10px",
+          ...FS0,
+        },
         children: [0],
       },
     ],
@@ -1414,7 +1446,12 @@ const CASES: DiffCase[] = [
       { label: "c", style: { minHeight: "30px", maxHeight: "10px" } },
       {
         label: "root",
-        style: { display: "grid", gridTemplateColumns: ["1fr"], width: "300px", ...FS0 },
+        style: {
+          display: "grid",
+          gridTemplateColumns: ["1fr"],
+          width: "300px",
+          ...FS0,
+        },
         children: [0],
       },
     ],
@@ -1427,7 +1464,12 @@ const CASES: DiffCase[] = [
       { label: "c", style: { display: "block", height: "20px" } },
       {
         label: "abs",
-        style: { position: "absolute", bottom: "0px", width: "20px", height: "10px" },
+        style: {
+          position: "absolute",
+          bottom: "0px",
+          width: "20px",
+          height: "10px",
+        },
         engineStyle: { insetBottom: "0px" },
       },
       {
@@ -1440,6 +1482,25 @@ const CASES: DiffCase[] = [
         label: "root",
         style: { display: "block", width: "300px", ...FS0 },
         children: [2, 3],
+      },
+    ],
+  },
+  {
+    name: "root-explicit-height-zero-min-height-clamp — r12 과제 5 (sweep): root 명시 height:0 에도 min-height 가 건다 (§10.7; Chrome root.h 10 / 종전 has_h 분기 0)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "c", style: { display: "block", height: "20px" } },
+      {
+        label: "root",
+        style: {
+          display: "block",
+          width: "300px",
+          height: "0px",
+          minHeight: "10px",
+          ...FS0,
+        },
+        children: [0],
       },
     ],
   },
@@ -1702,7 +1763,11 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
     expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
   });
   it("부모 pre 상속 + 자식 inline normal 재지정 → line box 없음 (r12h1 대조군, b.y 40)", () => {
-    const nodes = textZeroIn({ whiteSpace: "pre" }, { whiteSpace: "normal" }, " ");
+    const nodes = textZeroIn(
+      { whiteSpace: "pre" },
+      { whiteSpace: "normal" },
+      " ",
+    );
     const dom = domLeg(nodes, 300);
     const pipe = pipelineLeg(nodes, 300, -1);
     const bad = diffCase(nodes, dom, pipe);

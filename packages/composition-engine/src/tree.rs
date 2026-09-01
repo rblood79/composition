@@ -843,9 +843,15 @@ impl LayoutTree {
             }
         }
 
-        // ② auto height → content + pad_border, 이어서 자기 min/max clamp. explicit 높이는 유지.
+        // ② auto height → content + pad_border. 이어서 자기 min/max clamp 는 **명시 높이에도**
+        //    적용 (§10.7 은 computed height 가 무엇이든 min/max 를 건다 — r12 과제 5: root
+        //    `height:0 + min-height:10` Chrome 10 / 종전 has_h 분기가 clamp 를 건너뛰어 0.
+        //    명시 높이 > 0 인 비-root 는 solve_node :1512~ 가 같은 clamp 를 이미 한다). 라이브
+        //    root(body) 는 min/max 미선언이라 무영향.
         if !has_h {
             layout.height += own_pb_v;
+        }
+        {
             // r12m2 sweep — §10.7: max 먼저, 그 다음 min (Chrome root min-height:30 + max-height:10
             // → 30 / 종전 10).
             if let Some(mx) = resolve_dimension_opt(style.max_height.as_deref(), &ctx_h) {
@@ -8622,6 +8628,15 @@ mod tests {
         let h = tree.build_tree_batch(json).unwrap();
         tree.compute_layout(h[1], 300.0, 200.0);
         assert_eq!(tree.get_layout(h[1]).height, 30.0, "root fixup 도 max-then-min");
+
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"20px"},"children":[]},
+            {"style":{"display":"block","width":"300px","height":"0px","minHeight":"10px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).height, 10.0, "root 명시 height:0 에도 min-height clamp (§10.7)");
 
         let mut tree = LayoutTree::new();
         let json = r#"[
