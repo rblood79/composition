@@ -53,6 +53,15 @@
     z-index: 9999;
   }
 
+  /* 초기 bootstrap 동안에도 PanelWorkspace는 측정/geometry 계산을 계속한다.
+   * display:none/unmount 대신 presentation만 막아 first Skia flush 직후 같은
+   * geometry로 chrome을 노출한다. Header는 stage 밖이라 계속 유지된다. */
+  .app.builder-booting .panel-dock-stage,
+  .app.builder-booting .contextual-action-bar {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .loading-content {
     display: flex;
     flex-direction: column;
@@ -111,6 +120,55 @@
     font-weight: 500;
     color: var(--fg-muted);
     letter-spacing: 0.02em;
+  }
+
+  .loading-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 200px;
+  }
+
+  .loading-progress {
+    width: 200px;
+    height: 4px;
+    overflow: hidden;
+    appearance: none;
+    background: var(--bg-muted);
+    border: 0;
+    border-radius: 999px;
+  }
+
+  .loading-progress::-webkit-progress-bar {
+    background: var(--bg-muted);
+    border-radius: 999px;
+  }
+
+  .loading-progress::-webkit-progress-value {
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width 160ms ease;
+  }
+
+  .loading-progress::-moz-progress-bar {
+    background: var(--accent);
+    border-radius: 999px;
+  }
+
+  .loading-percent {
+    color: var(--fg-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .loading-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--fg);
+    font-size: 14px;
   }
 
   /* 90도씩 단계별 회전 + 각 면에서 잠깐 멈춤 */

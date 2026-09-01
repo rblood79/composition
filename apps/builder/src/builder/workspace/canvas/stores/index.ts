@@ -8,6 +8,8 @@ export {
   useCanvasLifecycleStore,
   selectIsCanvasUsable,
   type CanvasLifecycleState,
+  type CanvasBootstrapPhase,
+  type CanvasPresentationTarget,
 } from "./canvasLifecycle";
 export {
   useCanvasMetricsStore,

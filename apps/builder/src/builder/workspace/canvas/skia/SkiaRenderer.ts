@@ -985,8 +985,8 @@ export class SkiaRenderer {
     camera: CameraState,
     overlayVersion: number,
     screenOverlayVersion = 0,
-  ): void {
-    if (this.disposed || !this.contentNode) return;
+  ): boolean {
+    if (this.disposed || !this.contentNode) return false;
 
     const now = performance.now();
     this.tickDevMetrics(now);
@@ -1005,8 +1005,7 @@ export class SkiaRenderer {
       this.initContentSurface();
       // Content surface 실패 시 레거시 폴백
       if (!this.contentSurface) {
-        this.renderSingleSurface(cullingBounds, camera);
-        return;
+        return this.renderSingleSurface(cullingBounds, camera);
       }
     }
 
@@ -1101,6 +1100,7 @@ export class SkiaRenderer {
     this.lastCamera.zoom = camera.zoom;
     this.lastCamera.panX = camera.panX;
     this.lastCamera.panY = camera.panY;
+    return frameType !== "idle";
   }
 
   // ============================================
@@ -1117,8 +1117,8 @@ export class SkiaRenderer {
   private renderSingleSurface(
     cullingBounds: DOMRect,
     camera: CameraState,
-  ): void {
-    if (this.disposed || !this.contentNode) return;
+  ): boolean {
+    if (this.disposed || !this.contentNode) return false;
 
     const start = performance.now();
 
@@ -1138,13 +1138,14 @@ export class SkiaRenderer {
     if (process.env.NODE_ENV === "development") {
       recordWasmMetric("skiaFrameTime", performance.now() - start);
     }
+    return true;
   }
 
   /**
    * 통합 렌더 진입점.
    *
-   * Feature Flag에 따라 이중 Surface 또는 레거시 모드를 선택한다.
-   * SkiaOverlay에서 호출한다.
+   * 실제 main surface flush가 수행된 경우에만 true를 반환한다. bootstrap
+   * readiness는 이 제출 신호를 소비하며, idle RAF는 acknowledgment가 아니다.
    */
   render(
     cullingBounds: DOMRect,
@@ -1152,9 +1153,9 @@ export class SkiaRenderer {
     camera: CameraState,
     overlayVersion: number,
     screenOverlayVersion = 0,
-  ): void {
+  ): boolean {
     try {
-      this.renderDualSurface(
+      return this.renderDualSurface(
         cullingBounds,
         registryVersion,
         camera,

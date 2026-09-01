@@ -7,6 +7,7 @@ import { historyManager } from "../stores/history";
 import { applySnapshotDocument } from "../stores/history/snapshotRestore";
 import { applyCanonicalThemes } from "@/adapters/canonical";
 import type { BreakpointName } from "@composition/shared";
+import { Button } from "@composition/shared/components";
 
 /**
  * ADR-154: BuilderHeader breakpoint preset(id) → 반응형 BreakpointName 매핑.
@@ -14,6 +15,30 @@ import type { BreakpointName } from "@composition/shared";
  * desktop tier 로 resolve. 아트보드 토글은 desktop/tablet/mobile 3개 (laptop 제거 2026-07-21).
  */
 const VALID_BREAKPOINT_IDS = new Set<string>(["desktop", "tablet", "mobile"]);
+
+type ProjectBootstrapPhase = "project" | "data" | "renderer" | "error";
+
+const CANVAS_BOOTSTRAP_PROGRESS: Record<CanvasBootstrapPhase, number> = {
+  idle: 55,
+  wasm: 65,
+  fonts: 75,
+  surface: 88,
+  "first-frame": 95,
+  ready: 100,
+  error: 95,
+};
+
+function resolveBootstrapProgress(
+  projectPhase: ProjectBootstrapPhase,
+  canvasPhase: CanvasBootstrapPhase,
+  rendererReady: boolean,
+): number {
+  if (rendererReady) return 100;
+  if (projectPhase === "project") return 15;
+  if (projectPhase === "data") return 45;
+  if (projectPhase === "error") return 0;
+  return CANVAS_BOOTSTRAP_PROGRESS[canvasPhase];
+}
 
 function toResponsiveBreakpoint(value: string): BreakpointName {
   return value === "tablet" || value === "mobile" ? value : "desktop";
@@ -28,7 +53,11 @@ import {
   CANVAS_VIEWPORT,
 } from "../workspace/canvasBreakpoints";
 import { resolvePageLayoutBounds } from "../workspace/canvas/pageLayoutConstants";
-import { useViewportSyncStore } from "../workspace/canvas/stores";
+import {
+  useCanvasLifecycleStore,
+  useViewportSyncStore,
+  type CanvasBootstrapPhase,
+} from "../workspace/canvas/stores";
 import { CanvasSelectionShortcutsHost } from "../panels/properties/CanvasSelectionShortcuts";
 import { BuilderCanvas } from "./BuilderCanvas";
 
@@ -36,6 +65,7 @@ import { BuilderViewport } from "./BuilderViewport";
 import { Workspace } from "../workspace";
 import { isWebGLCanvas, isCanvasCompareMode } from "../../utils/featureFlags";
 import { startCanonicalDocumentSync } from "../stores/canonical/canonicalDocumentSync";
+import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 // ADR-116 Phase 2 G3 Step 4 — BuilderCore layout refresh dual-mode
 import {
   getActiveCanonicalDocument,
@@ -192,6 +222,13 @@ export const BuilderCore: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { t } = useI18n();
   const [projectInfo, setProjectInfo] = useState<Project | null>(null);
+  // effect가 시작되기 전 첫 render부터 loading이어야 chrome flash가 없다.
+  const [projectBootstrapPhase, setProjectBootstrapPhase] =
+    useState<ProjectBootstrapPhase>("project");
+  const isCanvasReady = useCanvasLifecycleStore((state) => state.isCanvasReady);
+  const canvasBootstrapPhase = useCanvasLifecycleStore(
+    (state) => state.bootstrapPhase,
+  );
 
   // Store 상태
   // 🚀 최적화: elements/currentPageId 구독 제거 - 필요할 때 getState()로 읽기
@@ -374,8 +411,7 @@ export const BuilderCore: React.FC = () => {
   }, [themeMode]);
 
   // 훅 사용
-  const { error, isLoading, setError, setIsLoading, handleError, clearError } =
-    useErrorHandler();
+  const { error, setError, handleError, clearError } = useErrorHandler();
   // const { handleAddElement } = useElementCreator();  // 사용하지 않음
   const {
     handleIframeLoad,
@@ -545,7 +581,8 @@ export const BuilderCore: React.FC = () => {
 
       isInitializing.current = true;
 
-      setIsLoading(true);
+      setProjectBootstrapPhase("project");
+      useCanvasLifecycleStore.getState().beginCanvasBootstrap(projectId);
       pageShellBridgeSuspendedRef.current = true;
       const result = await initializeProject(projectId).finally(() => {
         pageShellBridgeSuspendedRef.current = false;
@@ -553,9 +590,12 @@ export const BuilderCore: React.FC = () => {
 
       if (!result.success) {
         setError(result.error?.message || t("errors.projectInitFailed"));
+        setProjectBootstrapPhase("error");
         isInitializing.current = false;
         return;
       }
+
+      setProjectBootstrapPhase("data");
 
       // ⭐ DataStore 초기화 (Variables, Collections, ApiEndpoints) — edit mode 무관.
       // Why: collections/variables 는 project 스코프이고 page 모드에서도 소비된다
@@ -569,8 +609,6 @@ export const BuilderCore: React.FC = () => {
       } catch (error) {
         console.error("[BuilderCore] DataStore 초기화 실패:", error);
       }
-
-      setIsLoading(false);
 
       // ADR-021 Phase C: localStorage에서 ThemeConfig 복원
       useThemeConfigStore.getState().initThemeConfig(projectId);
@@ -614,6 +652,22 @@ export const BuilderCore: React.FC = () => {
         applyPathHeavy117Fixture(projectId, useStore.getState());
       }
 
+      const canonicalState = useCanonicalDocumentStore.getState();
+      if (canonicalState.currentProjectId !== projectId) {
+        setError(t("errors.projectInitFailed"));
+        setProjectBootstrapPhase("error");
+        isInitializing.current = false;
+        return;
+      }
+
+      // document/data/theme가 모두 반영된 최소 revision을 target으로 고정한다.
+      // 이 호출만으로 ready가 되지 않으며, Skia main surface가 해당 revision
+      // 이상을 실제 flush한 뒤 acknowledgment해야 chrome이 열린다.
+      useCanvasLifecycleStore.getState().setPresentationTarget({
+        projectId,
+        documentRevision: canonicalState.documentVersion,
+      });
+      setProjectBootstrapPhase("renderer");
       initializedProjectId.current = projectId;
       isInitializing.current = false;
     };
@@ -624,7 +678,7 @@ export const BuilderCore: React.FC = () => {
     return () => {
       MessageService.clearIframeCache();
     };
-  }, [projectId, initializeProject, setIsLoading, setError]);
+  }, [projectId, initializeProject, setError]);
 
   // 🔧 FIX: 프리뷰 요소 전송은 PREVIEW_READY 핸들러에서 처리
   // (BuilderCore에서 중복 전송하지 않음 - useIframeMessenger.ts:178-201 참고)
@@ -1263,8 +1317,30 @@ export const BuilderCore: React.FC = () => {
     };
   }, [setSelectedElement]);
 
+  const usesSkiaRenderer = isWebGLCanvas();
+  const rendererReady = usesSkiaRenderer
+    ? isCanvasReady
+    : iframeReadyState === "ready";
+  const isBuilderReady = projectBootstrapPhase === "renderer" && rendererReady;
+  const bootstrapProgress = resolveBootstrapProgress(
+    projectBootstrapPhase,
+    canvasBootstrapPhase,
+    isBuilderReady,
+  );
+  const isInitialBootstrap =
+    projectBootstrapPhase !== "error" && !isBuilderReady;
+  const isPageOnlyLoading = isBuilderReady && isPageLoading;
+  const showLoadingOverlay = isInitialBootstrap || isPageLoading;
+  const hasCanvasBootstrapError =
+    isInitialBootstrap && canvasBootstrapPhase === "error";
+  const loadingLabel = isPageOnlyLoading
+    ? t("messages.loadingData")
+    : projectBootstrapPhase === "renderer"
+      ? t("workspace.canvasInitializing")
+      : t("messages.loadingData");
+
   return (
-    <BuilderViewport>
+    <BuilderViewport className={isBuilderReady ? "app" : "app builder-booting"}>
       {/* ADR-155 Phase 2: 캔버스 전역 선택 단축키 host — 패널 Activity gating 과
           무관하게 항상 mounted. leaf null 렌더라 구독 재렌더가 여기로 전파 안 됨 */}
       <CanvasSelectionShortcutsHost />
@@ -1277,30 +1353,54 @@ export const BuilderCore: React.FC = () => {
         </div>
       )}
 
-      {/* 로딩 표시 (초기화 또는 페이지 로딩) */}
-      {(isLoading || isPageLoading) && (
+      {/* 로딩 표시 (프로젝트 + matching Skia first presentation 또는 페이지 로딩) */}
+      {showLoadingOverlay && (
         <div className="loading-overlay">
-          <div className="loading-content">
-            <div className="loading-cube-wrapper">
-              <div className="loading-cube">
-                <div className="loading-cube-face loading-cube-front">
-                  <img src="/appIcon.svg" alt="" width={54} height={54} />
-                </div>
-                <div className="loading-cube-face loading-cube-right">
-                  <img src="/appIcon.svg" alt="" width={54} height={54} />
-                </div>
-                <div className="loading-cube-face loading-cube-back">
-                  <img src="/appIcon.svg" alt="" width={54} height={54} />
-                </div>
-                <div className="loading-cube-face loading-cube-left">
-                  <img src="/appIcon.svg" alt="" width={54} height={54} />
+          {hasCanvasBootstrapError ? (
+            <div className="loading-error" role="alert">
+              <span>{t("canvas.engineLoadFailed")}</span>
+              <Button
+                variant="primary"
+                size="sm"
+                onPress={() => window.location.reload()}
+              >
+                {t("canvas.reload")}
+              </Button>
+            </div>
+          ) : (
+            <div className="loading-content">
+              <div className="loading-cube-wrapper">
+                <div className="loading-cube">
+                  <div className="loading-cube-face loading-cube-front">
+                    <img src="/appIcon.svg" alt="" width={54} height={54} />
+                  </div>
+                  <div className="loading-cube-face loading-cube-right">
+                    <img src="/appIcon.svg" alt="" width={54} height={54} />
+                  </div>
+                  <div className="loading-cube-face loading-cube-back">
+                    <img src="/appIcon.svg" alt="" width={54} height={54} />
+                  </div>
+                  <div className="loading-cube-face loading-cube-left">
+                    <img src="/appIcon.svg" alt="" width={54} height={54} />
+                  </div>
                 </div>
               </div>
+              <div className="loading-status">
+                <div className="loading-text">{loadingLabel}</div>
+                {!isPageOnlyLoading && (
+                  <>
+                    <progress
+                      className="loading-progress"
+                      aria-label={loadingLabel}
+                      max={100}
+                      value={bootstrapProgress}
+                    />
+                    <div className="loading-percent">{bootstrapProgress}%</div>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="loading-text">
-              {isLoading ? "Initializing..." : "Loading page..."}
-            </div>
-          </div>
+          )}
         </div>
       )}
 

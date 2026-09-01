@@ -43,3 +43,14 @@ describe("ADR-189 sparse damage rendering guards", () => {
     );
   });
 });
+
+describe("Skia surface presentation acknowledgment", () => {
+  it("idle frame과 실제 main surface flush를 boolean으로 구분한다", async () => {
+    const source = await rendererSource();
+
+    expect(source).toMatch(/private renderDualSurface\([\s\S]*?\): boolean \{/);
+    expect(source).toContain('return frameType !== "idle";');
+    expect(source).toMatch(/render\([\s\S]*?\): boolean \{/);
+    expect(source).toContain("return this.renderDualSurface(");
+  });
+});

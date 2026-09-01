@@ -102,6 +102,31 @@ describe("SkiaCanvas render invalidation contract", () => {
     expect(renderIndex).toBeGreaterThan(presentationIndex);
   });
 
+  it("matching project revision을 실제 surface 제출 뒤에만 acknowledge한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "SkiaCanvas.tsx"),
+      "utf-8",
+    );
+
+    const renderIndex = source.indexOf("const didPresent = observe(");
+    const guardIndex = source.indexOf(
+      "if (didPresent && pendingTarget)",
+      renderIndex,
+    );
+    const acknowledgmentIndex = source.indexOf(
+      "lifecycle.acknowledgePresentedFrame({",
+      guardIndex,
+    );
+
+    expect(renderIndex).toBeGreaterThan(-1);
+    expect(guardIndex).toBeGreaterThan(renderIndex);
+    expect(acknowledgmentIndex).toBeGreaterThan(guardIndex);
+    expect(source).toContain(
+      "projectId: renderedProjectId,\n            documentRevision: currentRendererInput.documentRevision,",
+    );
+    expect(source).toContain("rendererRef.current?.invalidateContent()");
+  });
+
   it("feeds StoreRenderBridge from page-resolved rendererInput maps", async () => {
     const source = await readFile(
       resolve(__dirname, "SkiaCanvas.tsx"),

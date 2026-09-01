@@ -205,6 +205,10 @@ export function SkiaCanvas({
   const rendererRef = useRef<SkiaRenderer | null>(null);
   const [ready, setReady] = useState(false);
   const contextLostRef = useRef(false);
+  const presentationTarget = useCanvasLifecycleStore(
+    (state) => state.presentationTarget,
+  );
+  const presentationTargetRef = useRef(presentationTarget);
 
   // Phase 6: Selection/AI 상태 변경 감지용 ref
   const overlayVersionRef = useRef(0);
@@ -543,22 +547,41 @@ export function SkiaCanvas({
     let cancelled = false;
     (async () => {
       try {
+        useCanvasLifecycleStore.getState().setBootstrapPhase("wasm");
         await initAllWasm();
         if (cancelled) return;
 
         getCanvasKit(); // CanvasKit 초기화 확인
+        useCanvasLifecycleStore.getState().setBootstrapPhase("fonts");
         // 기본 폰트 로딩 (빌트인 Variable → 커스텀)
         await loadBuiltinFontsToSkia();
         await loadAllCustomFontsToSkia();
-        if (!cancelled) setReady(true);
+        if (!cancelled) {
+          useCanvasLifecycleStore.getState().setBootstrapPhase("surface");
+          setReady(true);
+        }
       } catch (e) {
         console.error("[SkiaCanvas] WASM/Font 초기화 실패:", e);
+        if (!cancelled) {
+          useCanvasLifecycleStore.getState().failCanvasBootstrap();
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // 프로젝트 hydration이 완료되면 matching revision의 실제 surface flush를
+  // 새 bootstrap target으로 기다린다. renderer가 이미 idle 상태여도 target
+  // 설정 직후 한 프레임을 강제로 제출해 이전 프로젝트/이전 revision의 화면을
+  // 준비 완료로 오인하지 않는다.
+  useEffect(() => {
+    presentationTargetRef.current = presentationTarget;
+    if (presentationTarget) {
+      rendererRef.current?.invalidateContent();
+    }
+  }, [presentationTarget]);
 
   // 동적 폰트 동기화
   useEffect(() => {
@@ -609,6 +632,7 @@ export function SkiaCanvas({
     // 담당하므로 renderer 가 background color 를 보유할 필요 없음.
     const renderer = new SkiaRenderer(ck, skiaCanvas, dpr);
     rendererRef.current = renderer;
+    useCanvasLifecycleStore.getState().setBootstrapPhase("first-frame");
 
     // 테마 변경 동기화 — Skia 캐시 무효화 + invalidation 트리거 (background color 직접
     // 갱신은 BodySpec TokenRef resolve 가 자동 처리, 본 watcher 는 frame 재렌더만 보장)
@@ -942,14 +966,32 @@ export function SkiaCanvas({
       // camera/page snapshot을 소비한다. callback은 transform-only여야 한다.
       publishCanvasFramePresentation(cameraState, pagePositionSnapshot);
 
-      observe(PERF_LABEL.RENDER_SKIA_DRAW, () => {
+      const didPresent = observe(PERF_LABEL.RENDER_SKIA_DRAW, () =>
         renderer.render(
           framePlan.cullingBounds,
           registryVersion,
           cameraState,
           overlayVersionRef.current,
-        );
-      });
+        ),
+      );
+
+      const pendingTarget = presentationTargetRef.current;
+      if (didPresent && pendingTarget) {
+        const renderedProjectId =
+          useCanonicalDocumentStore.getState().currentProjectId;
+        if (renderedProjectId) {
+          const lifecycle = useCanvasLifecycleStore.getState();
+          lifecycle.acknowledgePresentedFrame({
+            projectId: renderedProjectId,
+            documentRevision: currentRendererInput.documentRevision,
+          });
+          // 성공한 acknowledgment 뒤에는 ref를 비워 이후 RAF의 Zustand 접근을
+          // 제거한다. revision이 아직 target보다 낮으면 다음 제출을 계속 기다린다.
+          if (useCanvasLifecycleStore.getState().isCanvasReady) {
+            presentationTargetRef.current = null;
+          }
+        }
+      }
     };
 
     // renderFrameCore는 내부에서 requestAnimationFrame(renderFrame)을 호출하므로,

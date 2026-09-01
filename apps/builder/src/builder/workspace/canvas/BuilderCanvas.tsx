@@ -37,7 +37,7 @@ import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElem
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { useContextMenu } from "../../components/overlay/contextMenu/useContextMenu";
 import { resolveContextMenuDisposition } from "../../components/overlay/contextMenu/contextMenuPolicy";
-import { useCanvasLifecycleStore, useViewportSyncStore } from "./stores";
+import { useViewportSyncStore } from "./stores";
 import {
   applyViewportState,
   clampViewportZoom,
@@ -92,7 +92,6 @@ import { GPUDebugOverlay } from "./utils/GPUDebugOverlay";
 import { useCanvasElementSelectionHandlers } from "./hooks/useCanvasElementSelectionHandlers";
 import { useCentralCanvasPointerHandlers } from "./hooks/useCentralCanvasPointerHandlers";
 import { useCanvasRuntimeBootstrap } from "./hooks/useCanvasRuntimeBootstrap";
-import { useCanvasSurfaceLifecycle } from "./hooks/useCanvasSurfaceLifecycle";
 import { useLayoutPublisher } from "./hooks/useLayoutPublisher";
 import { useDragBridge } from "./hooks/useDragBridge";
 import { usePageDrag } from "./hooks/usePageDrag";
@@ -422,11 +421,6 @@ export function BuilderCanvas({
     zoom,
     canvasGestureSession,
     getSnapCandidateFrames,
-  );
-
-  // Canvas sync actions
-  const setCanvasReady = useCanvasLifecycleStore(
-    (state) => state.setCanvasReady,
   );
 
   // ADR-122 Phase 3: active canonical document 가 있으면 Skia scene input은
@@ -1437,8 +1431,6 @@ export function BuilderCanvas({
     handleElementClickRef.current = handleElementClick;
     handleElementDoubleClickRef.current = handleElementDoubleClick;
   }, [handleElementClick, handleElementDoubleClick]);
-
-  useCanvasSurfaceLifecycle({ setCanvasReady });
 
   const pageTitleEditorRect = pageTitleEditState
     ? resolvePageTitleEditorRect(pageTitleEditState.bounds, zoom, panOffset)

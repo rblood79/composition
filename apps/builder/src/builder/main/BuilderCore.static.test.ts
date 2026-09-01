@@ -3,6 +3,32 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("BuilderCore canonical document direct cutover contract", () => {
+  it("첫 render부터 matching Skia presentation 전까지 chrome을 숨기고 진행률을 표시한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCore.tsx"),
+      "utf-8",
+    );
+    const styles = await readFile(
+      resolve(__dirname, "../styles/modules/error-loading.css"),
+      "utf-8",
+    );
+
+    expect(source).toContain('useState<ProjectBootstrapPhase>("project")');
+    expect(source).toContain("beginCanvasBootstrap(projectId)");
+    expect(source).toContain("setPresentationTarget({");
+    expect(source).toContain(
+      "documentRevision: canonicalState.documentVersion",
+    );
+    expect(source).toContain(
+      'className={isBuilderReady ? "app" : "app builder-booting"}',
+    );
+    expect(source).toContain('className="loading-progress"');
+    expect(source).toContain("value={bootstrapProgress}");
+    expect(styles).toContain(".app.builder-booting .panel-dock-stage");
+    expect(styles).toContain(".app.builder-booting .contextual-action-bar");
+    expect(styles).toContain("visibility: hidden");
+  });
+
   it("legacy sidebar/modal hosts 대신 단일 PanelWorkspace를 사용한다", async () => {
     const source = await readFile(
       resolve(__dirname, "BuilderCore.tsx"),
