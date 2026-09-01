@@ -7,12 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [텍스트의 줄바꿈 키워드·본문 원천·페이지 폭 제한이 미리보기와 같아집니다] - 2026-09-01
+
+### Fixed
+
+- 텍스트 요소에 `white-space: inherit`/`unset` 을 직접 지정하면 부모의 줄바꿈 설정을 무시하고 `normal` 처럼 배치되던 문제를 고쳤습니다 — 미리보기(Chrome) 처럼 부모 값을 따릅니다 (ADR-923 Codex round 13).
+- Text·Heading·Paragraph·Description·Label·Kbd·Code 의 캔버스 폭·높이 측정과 Skia 렌더가 편집 표면에 없는 `label`/`text` prop 을 본문보다 먼저 읽어 미리보기와 다른 글자 폭이 실리던 문제를 고쳤습니다 — 본문 원천을 `children` 하나로 통일했고, 미리보기의 Description 도 같은 순서로 읽습니다.
+- 페이지(root) 폭이 `auto` 이고 `min-width`/`max-width` 로 제한될 때 자식이 제한 전 폭으로 배치되던 문제를 고쳤습니다.
+
 ## [페이지 자동 배치가 화면 폭과 breakpoint를 반영합니다] - 2026-09-01
 
 ### Changed
 
 - Settings의 Page Layout 선택지를 `Auto`·`Horizontal`·`Vertical`로 통일하고 기본값을 `Auto`로 설정했습니다. 기존 `zigzag` 값은 `Auto`로 읽습니다.
-- `Auto` 정렬은 현재 zoom과 선택된 breakpoint의 page 폭, 좌·우 panel 폭 및 panel 여백을 포함한 browser 폭을 기준으로 화면에 들어가는 최대 page 수를 한 줄에 배치하고, 이후 page를 다음 줄로 넘깁니다.
+- `Auto` 정렬은 Canvas-local 폭에 좌·우 panel 폭, shell 여백, 양쪽 `Page Gap`을 더해 browser 전체 폭을 계산하고, 두 panel 사이의 page 영역을 기준으로 현재 zoom과 선택된 breakpoint의 page 폭이 panel과 겹치지 않도록 최대 page 수를 한 줄에 배치한 뒤 이후 page를 다음 줄로 넘깁니다.
 - Settings의 Page Layout 아래에 Page Gap을 추가했습니다. 기본값은 기존 `PAGE_STACK_GAP`과 같은 `80px`이며, 가로·세로·Auto 배치와 새 page 생성에 동일하게 적용됩니다.
 
 ## [빌더 패널의 빈 상태가 공통 패턴을 사용합니다] - 2026-09-01

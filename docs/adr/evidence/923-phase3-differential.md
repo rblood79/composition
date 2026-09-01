@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 68 케이스 전부 엔진 직결 ≤1px (round 12 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 13 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -111,6 +111,7 @@ sweep/대조군 2 = 7 케이스 추가, **RED 4/7** (+ 게이트 5 중 RED 3; r1
 | 66  | grid-item-min-over-max-height-min-wins               | r12m2 sweep: grid auto 트랙 기여값 clamp 도 max-then-min (c.h 30 / 종전 10)                                                 | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | 67  | height-zero-parent-abs-child-bottom-inset            | r12l2 게이트: height:0 부모의 abs containing block 높이 0 → bottom:0 자식 y −10 (content 기준이면 +10; 원복 (f) 에서만 RED) | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | 68  | root-explicit-height-zero-min-height-clamp           | r12 과제 5 sweep: root 명시 height:0 에도 min-height clamp (root.h 10 / 종전 0)                                             | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 69  | root-min-over-max-width-min-wins                     | r13l4: root auto 폭 clamp max-then-min + 자식은 used 폭 안에 배치 (root.w 250 · c.w 250 / 종전 c.w 300)                     | 정합               | 정합                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 별도 게이트 (표 밖, `pipelineLeg` = 프로덕션 어댑터 경로):
 
@@ -289,7 +290,7 @@ EMPTY_BLOCK` 경로는 cargo 단위 테스트에서만 살아 있었다 — 프�
     — intrinsic block size 와 최종 block size 가 다르면 end margin strut 을 제거 ·
     `length_utils.cc` `ComputeBlockSizeForFragment` (min/max clamp).
 
-## round 12 수리 5건 (Codex 판독 r12h1/r12m1/r12m2/r12l1/r12l2/r12l3 + 과제 5 — 전부 Chrome 실측으로 확정)
+## round 12 수리 5건 (Codex 판독 r12h1/r12m1/r12m2/r12l1/r12l2/r12l3 + 과제 5 — 전부 Chrome 실측으로 확정; 커밋 `ea097ef68` (세션 밖 도구가 중간 상태를 커밋·push — 내용은 그대로 이어받음) · `6770013b2` (수리 마무리) · `2eea7c742` (문서), r13l3 공시)
 
 22. **상속 white-space** (`utils.ts` `enrichWithIntrinsicSize`, r12h1): white-space 는 inherited
     property 인데 신호가 inline `style.whiteSpace` 만 읽었다 → `?? _computedStyle?.whiteSpace`
@@ -313,11 +314,52 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
 26. **root 명시 height 의 min/max clamp** (`tree.rs fixup_root_self_size`, r12 과제 5): `has_h`
     분기가 명시 높이에서 clamp 를 건너뛰어 root `height:0 + min-height:10` 이 0 (Chrome 10) →
     clamp 를 has_h 와 무관하게 적용 (§10.7). 비-root 명시 높이 > 0 은 solve_node 가 이미 clamp,
-    height:0 자식은 부모 intake 슬롯 12 가 clamp (#58). 라이브 root(body) 는 min/max 미선언.
+    height:0 자식은 부모 intake 슬롯 12 가 clamp (#58). 라이브 root(body) 는 Builder 가 authored
+    height 를 걷어내고 viewport `minHeight` 를 주입한다 (`fullTreeLayout.ts` Step 1.5; Preview 도
+    `minHeight:100vh`) → 처음부터 `!has_h` + min-height clamp 경로라 이 이동으로 body 동작은
+    불변 (r13l1 정정 — 종전 "min/max 미선언" 서술은 오류).
     - **게이트 2 (r12l1 · r12l2)**: flex row 공백만 Text 폭 (width:auto 명시 — Chrome 0, raw 측정
       원복 5) · height:0 부모 abs containing block (#67 — Codex 실측 원복 시 abs.y −10 → +10). 폭
       스칼라는 내용이 없을 때 **0 을 공급** (`Option` 부재 = "측정 없음" — 엔진 auto 폴백이 현재 0
       이라 동치지만 "알려진 0" 으로 고정).
+
+## round 13 수리 3건 (Codex 판독 r13m1/r13m2 + r13l4 게이트가 연 root 폭 결함 — 전부 Chrome 실측으로 확정, `1e1f3a85d`)
+
+27. **white-space cascade 키워드** (`utils.ts` `resolveTextLeafWhiteSpace`, r13m1): 신호가 inline
+    `style.whiteSpace` 를 computed 보다 먼저 읽어 `inherit`/`unset` 을 raw 문자열 (→ normal) 로
+    소비했다 — cssResolver computed 는 이미 키워드를 해석해 두었는데 (inherit·unset → 부모값,
+    initial·revert → normal) 버려졌다. 해석 규칙: inline **구체값** 은 그대로 (implicit 주입이
+    computed 산출 뒤에 실릴 수 있어 inline 이 최신), 키워드·부재는 computed, computed 없는 키워드는
+    normal 폴백 (Chrome 부모 pre + 자식 `inherit`/`unset` b.y 60 / 종전 40; `initial` 대조군 40).
+28. **텍스트 leaf 내용 원천 SSOT** (r13m2): 네 소비처의 원천 순서가 달랐다 — 신호
+    children→text→label→title · 폭 측정 `extractTextContent` label→text→children · Skia
+    `buildCatalogShapes` label||text||children||placeholder · Preview generic/renderLabel children 만.
+    SSOT = binding 이 content 로 선언한 `children` (TEXT_LEAF 7종 전부
+    `accepts.children.section === "content"` — Preview 가 그리는 것). `resolveTextLeafContent` 를
+    children-only 로 고정하고 텍스트 leaf 의 신호·폭 측정 (`calculateContentWidth` 분기)·높이 측정
+    (`calculateContentHeight` 빈 판정·wrap 측정)·min/max-content 키워드·빈 leaf 판정 전부 이 함수로.
+    Skia 렌더 (`buildSpecNodeData`)·측정 (`specTextStyle`)·overlay 의 `buildCatalogShapes` 호출은
+    `maskNonContentTextProps` — binding 이 children 을 content 로 선언하면 label/text 차단 (데이터
+    분기; `label` 을 content 로 선언한 ProgressBar/Meter/Slider/TextField 는 그대로). Preview
+    `renderDescription` 은 legacy `text` 선행을 children 선행으로 (Card 안 Description 렌더와 같은
+    순서). (Chrome flex row children "Y" + label "XXXXXXXXXXXXXXXXXXXX" (width:auto) box.x 10.2 /
+    종전 label 폭 211; children "" + label "X" 대조군 40 — 신호가 이미 children 을 봐 스칼라 0 경로.)
+29. **root auto 폭의 min/max clamp 를 자식 배치 전에** (`tree.rs compute_layout`, r13l4 게이트가 연
+    결함): root 폭 clamp 는 `fixup_root_self_size` 가 solve **뒤** root 상자만 고쳐 자식은 clamp 전
+    폭 (300) 으로 배치됐다 — CSS 는 used 폭 (containing block fill → max-then-min) 안에 자식을
+    배치한다 (§10.3.3/§10.4). `compute_layout` 이 auto 폭 root 의 used 폭을 먼저 구해 `solve_node`
+    에 넘긴다 (비-root 는 부모 intake 가 used 폭을 넘기는 ADR-170 §1 과 같은 모델; % min/max 는
+    원래 available ctx). (Chrome root min-width:250 + max-width:100 → c.w 250 / 종전 300; 명시 폭
+    root 는 solve_node 가 이미 clamp — cargo 대조군 250.) 게이트 #69 는 Codex 가 요청한 "폭 축 독립
+    케이스" 였고 첫 실행에서 RED (c.w 300) — 회귀 게이트가 아니라 결함 발견이었다.
+    - **게이트 5 (r13m1 3 · r13m2 2)**: 부모 pre + 자식 inline `inherit` (60) · `unset` (60) ·
+      `initial` 대조군 (40) · children "" + label "X" 대조군 (40) · flex row children "Y" + label 장문
+      (box.x = w(Y)). 하니스 `CaseNode.props` (pipeline 전용 — DOM 이 그리지 않는 prop) 추가 —
+      대조군을 유리하게 바꾼 것이 아니라 Preview 가 그리지 않는 prop 을 실은 것.
+    - 원복 RED (수리 전 첫 실행 실측): (a) `style?.whiteSpace ?? computed` 복원 → inherit/unset
+      게이트 2 RED (root.h 50 / Chrome 70) · (b) `extractTextContent` label 우선 복원 → r13m2 flex
+      게이트 RED (box.x 211 / 10.2) · (c) `compute_layout` solve_w 제거 → #69 RED (c.w 300 / 250) ·
+      (d) `maskNonContentTextProps` 제거 → Skia 만 label 을 그림 (차등 하니스 밖 — live 로 확인).
 
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
@@ -404,6 +446,20 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
   줄바꿈), Components 텍스트 leaf (수리 22·23 경유 — 상속 white-space · children 정규화) 배치 불변,
   콘솔 에러 0 (로드 시점 포함).
 
+- **round 13 수리 후**: cargo **371** (+1: tree — adr923 filter 43/43) · golden 15 · layout_trace
+  10 · tree_golden 11 · doc 1 · clippy 신규 0 (경고 7 기존). wasm 재빌드 → 차등 **93/93** (69 케이스
+  - 게이트 24; 신규 케이스 #69 첫 실행 RED (c.w 300 / 250) + 게이트 5 중 RED 3 (inherit · unset ·
+    label 장문 box.x 211 / 10.2), 대조군 2 GREEN) · 대조군 발산 18 / 정합 51 · full **parity 1029 pass**
+    (기존 catalogComponentBox 2 · 1 expected fail · 2 skipped) · layout unit 50 files/411 (+3 unit:
+    `resolveTextLeafWhiteSpace` · children-only 원천) · Skia/utils/overlay unit 519 · shared 920 ·
+    type-check 0.
+
+- **Live Exercise (round 13 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 재로드 (Chrome MCP) —
+  Skia 전 페이지 (25 페이지 Auto 배치) 정상, Page 2 카드 텍스트 leaf (Card Title · description —
+  수리 28 의 children-only 원천 + Skia `maskNonContentTextProps` 경유) 렌더 불변, ProgressBar 의
+  `label` content ("Progress" + 값 — label-content binding 은 차단 대상 아님) 그대로, wrap 카드 불변
+  (Desert Sunset·Hiking Trail 한 줄 + Mountain Sunrise 줄바꿈), 콘솔 에러 0 (로드 시점 포함).
+
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
 - ~~마지막 line box auto-height 미반영~~ → round 8 수리 7 로 종결.
@@ -429,10 +485,19 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
   clamp 를 받지 않는다~~ → **round 12 수리 26 으로 종결** (Codex r12 과제 5 Chrome 실측 10 / 0).
 - §8.3.1 미커버 경계 (Codex r11 과제 10 목록, r12 과제 10 판정): ~~percentage height × bottom
   collapse~~ (r12 definite·indefinite 정합) · ~~inline↔block 전환~~ (raw 엔진 정합, 어댑터 발산은
-  Phase 5 대상) · **root margin** (root-relative 하니스가 외부 margin 을 관측 못 함) · **anonymous
+  Phase 5 대상) · ~~**root margin**~~ (Codex r13 과제 10 — wrapper padding 으로 관측, Chrome/engine/pipeline probe-root.y 11 · child.y 42 정합 → 잔여 제외) · **anonymous
   block box** (`display.rs` 가 pure inline 을 block 으로 올려 현 어휘로 구성 불가 — S4) · clearance ·
   float/clear · writing-mode · multicol/fragmentation · 생성 콘텐츠 (float/clear · writing-mode ·
   multicol 은 `block.rs` 모듈 doc 명시 미대상).
 - 프로덕션 Text 의 catalog 기본 `width: 100%` 는 plain-DOM 대조군 밖 (위 §프로덕션 영향 round 12) —
   catalog 기본값 축의 Builder↔Preview 대조는 catalog CSS 를 domLeg 에 싣는 별도 하니스가 필요
   (Phase 5/catalog 판정).
+- (r13) Preview 의 `text` legacy prop: `renderDescription` 은 children 선행으로 정렬했고 `renderFieldError`
+  (`text` 만 렌더) 와 generic 렌더 (children 만) 는 그대로 — D2 surface (binding `accepts`) 에 `text`
+  는 없고 writer 도 0 이라 legacy 문서에서만 갈린다. 통일은 Preview/publish 렌더러 판정 (Phase 5).
+- (r13) cssResolver 는 `revert` 를 `initial` 로 취급한다 (노코드 정책, 파일 doc 명시) — Chrome 의
+  inline `white-space: revert` 는 상속값으로 되돌아간다. 게이트 미작성 (정책 문서화된 의도적 차이).
+- (r13) root auto 폭의 used 폭을 `solve_node` 의 available 로 넘기므로 root 자신의 % padding/margin
+  은 used 폭 기준으로 해소된다 — 비-root 자식과 같은 모델 (부모 intake 가 used 폭을 넘김). CSS 는
+  containing block 기준이라 "min/max 가 바인딩되는 auto root + % padding" 조합에서만 갈린다 (라이브
+  body 는 폭 명시 주입이라 무관).
