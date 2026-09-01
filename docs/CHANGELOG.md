@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [목록·격자 목록의 선택 방식 기본값이 속성 패널 표시와 실제 화면에서 같아졌습니다] - 2026-09-02
+
+### Fixed
+
+- GridList·ListBox 의 Selection Mode 를 지정하지 않았을 때, 속성 패널은 "Single" 로 보이는데 미리보기는 선택이 꺼진 상태로 그려지던 불일치를 고쳤습니다 — 지정하지 않았을 때의 기본값을 "None" 으로 바로잡아 패널 표시와 실제 화면이 같아집니다. 빌더에서 새로 만든 GridList 는 값이 기록되어 영향이 없었고, 파일 가져오기·AI 로 만든 문서에서 드러났습니다 (ADR-923 Codex round 24).
+- 선택 방식·선택 표시 (Selection Mode/Style) 를 지정하지 않았을 때 쓰이는 기본값을 캔버스·미리보기·가상 스크롤이 각자 따로 들고 있던 것을 한 곳에서 읽도록 통일했습니다 — 한쪽만 바뀌어 두 화면이 조용히 갈리던 여지를 없앱니다.
+
+### Added
+
+- `@composition/shared` 에 컴포넌트 기본값 조회 함수 (`resolveBindingPropDefault` · `resolveBindingSelectionMode` · `resolveBindingSelectionStyle` · `resolveComponentRuleByTag`) 를 추가했습니다. 지정하지 않은 prop 의 기본값을 캔버스·미리보기 어느 쪽에서도 같은 곳에서 읽기 위한 것으로, 컴포넌트 카탈로그 선언이 유일한 원천입니다 (ADR-923 round 22~24).
+
 ## [캔버스가 준비된 뒤 패널이 열리고 프로젝트 로딩 진행률을 표시합니다] - 2026-09-02
 
 ### Fixed
