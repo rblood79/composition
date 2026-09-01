@@ -37,6 +37,11 @@ export interface CaseNode {
   /** pipeline leg 의 element type (기본 "box") — 텍스트 leaf 케이스는 "Text" 등 TEXT_LEAF_TAGS. */
   elementType?: string;
   /**
+   * pipeline leg 전용 추가 props (ADR-923 r13m2) — DOM 은 그리지 않는 prop (`label` 등) 을
+   * 요소에 실어 텍스트 원천 우선순위를 검증한다. DOM leg 은 무시 (Preview 도 그리지 않는다).
+   */
+  props?: Record<string, unknown>;
+  /**
    * DOM leg 전용 intrinsic 원자 (ADR-165 engine-leg 케이스) — inline-block 폭 px 목록.
    * 컨테이너 fontSize:0 으로 공백 폭을 0 으로 만들어 min-content = max(원자),
    * max-content = Σ원자 가 **정확 정수**가 되게 한다. 엔진 leg 는 대응 스칼라를
@@ -245,8 +250,11 @@ export function pipelineLeg(
       id: ids[i],
       type: node.elementType ?? "box",
       page_id: i === rootIdx ? pageId : null,
-      props:
-        node.text !== undefined ? { children: node.text, style } : { style },
+      props: {
+        ...(node.props ?? {}),
+        ...(node.text !== undefined ? { children: node.text } : {}),
+        style,
+      },
     } as unknown as CanvasLayoutNode);
   });
 

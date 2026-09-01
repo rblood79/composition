@@ -807,7 +807,30 @@ impl LayoutTree {
             self.mark_subtree_dirty(root);
             self.last_compute = Some((root, available_width, available_height));
         }
-        self.solve_node(root, available_width, available_height);
+        // r13l4 (ADR-923 P3) — root 의 auto 폭은 containing block(available_width) 을 채운 뒤 자기
+        // min/max 로 clamp 한 값이 **used 폭**이고 (§10.3.3 + §10.4, max-then-min), 자식은 그 used
+        // 폭 안에 배치된다. 종전엔 solve 뒤 `fixup_root_self_size` 가 root 상자만 clamp 해 자식은
+        // clamp 전 폭으로 배치됐다 (Chrome root min-width:250 + max-width:100 → c.w 250 / 종전 300).
+        // 비-root 는 부모 intake 가 used 폭을 넘기므로 (ADR-170 §1) root 만 여기서 같은 규칙을
+        // 건다. % min/max 는 containing block(원래 available_width) 기준.
+        let solve_w = {
+            let style = self.get(root).map(|n| n.style.clone()).unwrap_or_default();
+            let ctx_w = self.ctx_for(available_width);
+            let has_w = resolve_dimension_opt(style.width.as_deref(), &ctx_w).is_some();
+            if has_w || available_width <= 0.0 {
+                available_width
+            } else {
+                let mut w = available_width;
+                if let Some(mx) = resolve_dimension_opt(style.max_width.as_deref(), &ctx_w) {
+                    w = w.min(mx);
+                }
+                if let Some(mn) = resolve_dimension_opt(style.min_width.as_deref(), &ctx_w) {
+                    w = w.max(mn);
+                }
+                w
+            }
+        };
+        self.solve_node(root, solve_w, available_height);
         self.fixup_root_self_size(root, available_width, available_height);
     }
 
@@ -818,7 +841,12 @@ impl LayoutTree {
     /// 없어** 그 shrink-to-fit 이 그대로 최종 크기가 된다. CSS 는 block-level root 를 containing
     /// block(availW)으로 fill 하고, auto 높이에 pad_border 를 더하며, 자기 min/max 로 clamp 한다.
     ///
-    /// **explicit 차원은 건드리지 않는다** — 라이브 root(body)는 명시 크기라 회귀 0. auto 축에만 적용.
+    /// 폭: explicit 은 유지, auto 는 availW fill + min/max clamp (r13l4 이후 `compute_layout` 이 solve
+    /// **전**에 같은 clamp 를 걸어 자식도 used 폭 기준 — 여기서는 idempotent 재적용). 높이: auto 는
+    /// content + pad_border, min/max clamp 는 **명시 높이에도** 적용 (r12 과제 5 · §10.7). 라이브
+    /// root(body) 는 Builder 가 authored height 를 걷어내고 viewport `minHeight` 를 주입한다
+    /// (`fullTreeLayout.ts` Step 1.5 — Preview 도 `minHeight:100vh`) → 처음부터 `!has_h` + min-height
+    /// clamp 경로였고, 수리 26 (clamp 를 has_h 밖으로) 으로 body 동작은 바뀌지 않는다 (r13l1).
     fn fixup_root_self_size(&mut self, root: usize, avail_w: f32, avail_h: f32) {
         let style = self.get(root).map(|n| n.style.clone()).unwrap_or_default();
         let ctx_w = self.ctx_for(avail_w);
@@ -847,7 +875,8 @@ impl LayoutTree {
         //    적용 (§10.7 은 computed height 가 무엇이든 min/max 를 건다 — r12 과제 5: root
         //    `height:0 + min-height:10` Chrome 10 / 종전 has_h 분기가 clamp 를 건너뛰어 0.
         //    명시 높이 > 0 인 비-root 는 solve_node :1512~ 가 같은 clamp 를 이미 한다). 라이브
-        //    root(body) 는 min/max 미선언이라 무영향.
+        //    root(body) 는 height 미명시 + viewport minHeight 주입 (`fullTreeLayout.ts`) 이라 종전부터
+        //    `!has_h` clamp 경로 — 이 이동으로 동작 불변 (r13l1).
         if !has_h {
             layout.height += own_pb_v;
         }
@@ -8647,6 +8676,33 @@ mod tests {
         tree.compute_layout(h[1], 300.0, 200.0);
         assert_eq!(tree.get_layout(h[0]).height, 30.0, "grid item min > max → 30");
         assert_eq!(tree.get_layout(h[1]).height, 30.0, "auto 트랙 기여값도 30");
+    }
+
+    /// r13l4 (ADR-923 P3) — root 의 auto 폭 min/max clamp 는 자식 배치 **전** 에 적용 (Chrome root
+    /// min-width:250 + max-width:100 → root.w 250 · c.w 250; 종전 fixup 만 → root 250 / c 300).
+    #[test]
+    fn adr923_p3_r13_root_auto_width_clamp_before_dispatch() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"20px"},"children":[]},
+            {"style":{"display":"block","minWidth":"250px","maxWidth":"100px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).width, 250.0, "root used 폭 = clamp(300) max-then-min");
+        assert_eq!(tree.get_layout(h[0]).width, 250.0, "자식은 clamp 된 used 폭 안에 배치");
+
+        // 대조군: 명시 폭 root 는 종전 경로 (solve_node 가 dispatch 전 clamp — ADR-170 §1) 로 이미
+        // used 250 → 자식 250 (§10.4 는 명시 폭에도 건다).
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"20px"},"children":[]},
+            {"style":{"display":"block","width":"300px","minWidth":"250px","maxWidth":"100px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).width, 250.0, "명시 폭 root 도 §10.4 clamp");
+        assert_eq!(tree.get_layout(h[0]).width, 250.0, "명시 폭 root 는 종전 경로 (solve_node clamp) 로 이미 자식 250");
     }
 
     /// r9 인접 — line box 는 margin 을 collapse 하지 않는다 (block h10+mb10 뒤 inline-block

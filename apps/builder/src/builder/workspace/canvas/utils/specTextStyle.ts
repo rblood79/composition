@@ -29,7 +29,7 @@ import {
   resolveToken,
   buildCatalogShapes,
 } from "@composition/specs";
-import { isCatalogCutover } from "@composition/shared";
+import { isCatalogCutover, maskNonContentTextProps } from "@composition/shared";
 import {
   resolveSkiaCatalogRenderInput,
   resolveSkiaRule,
@@ -260,7 +260,8 @@ export function extractSpecTextStyle(
     shapes = buildCatalogShapes(
       visual,
       paint,
-      propsForShapes,
+      // ADR-923 r13m2 — 렌더(buildSpecNodeData) 와 같은 텍스트 원천 SSOT (children-content 는 label/text 차단).
+      maskNonContentTextProps(entry.catalogType!, propsForShapes),
       size,
       textDecoration && textDecoration !== "none" ? textDecoration : undefined,
     );

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveTextLeafContent, textLeafRendersContent } from "../utils";
+import {
+  resolveTextLeafContent,
+  resolveTextLeafWhiteSpace,
+  textLeafRendersContent,
+} from "../utils";
 
 /**
  * ADR-923 Phase 3 r11h1/r12l3 — 텍스트 leaf 의 내용 추출과 line box 신호.
@@ -35,11 +39,41 @@ describe("ADR-923 r12l3 — resolveTextLeafContent", () => {
     expect(resolveTextLeafContent({ children: 0 })).toBe("0");
     expect(textLeafRendersContent("0", undefined)).toBe(true);
   });
-  it("원천 우선순위 children → text → label → title, 첫 정의값 (빈 문자열도 정의값)", () => {
-    expect(resolveTextLeafContent({ text: "t", label: "l" })).toBe("t");
+  it("원천은 binding content(children) 하나 — label/text/title 은 Preview 가 그리지 않으므로 내용이 아니다 (r13m2)", () => {
+    expect(
+      resolveTextLeafContent({ children: "c", label: "l", text: "t" }),
+    ).toBe("c");
+    expect(resolveTextLeafContent({ text: "t", label: "l" })).toBe("");
     expect(resolveTextLeafContent({ children: "", label: "l" })).toBe("");
-    expect(resolveTextLeafContent({ title: "T" })).toBe("T");
+    expect(resolveTextLeafContent({ title: "T" })).toBe("");
     expect(resolveTextLeafContent(undefined)).toBe("");
+  });
+});
+
+describe("ADR-923 r13m1 — resolveTextLeafWhiteSpace (cascade 키워드는 computed 로)", () => {
+  it("inline 구체값이 computed 보다 우선 (implicit 주입이 computed 뒤에 실릴 수 있다)", () => {
+    expect(
+      resolveTextLeafWhiteSpace(
+        { whiteSpace: " PRE " },
+        { whiteSpace: "normal" },
+      ),
+    ).toBe("pre");
+  });
+  it("inline inherit/unset/initial/revert 는 computed 가 해석한 값", () => {
+    for (const kw of ["inherit", "unset", "initial", "revert"]) {
+      expect(
+        resolveTextLeafWhiteSpace({ whiteSpace: kw }, { whiteSpace: "pre" }),
+      ).toBe("pre");
+    }
+  });
+  it("inline 부재 → computed(상속); 둘 다 없으면 undefined; computed 없는 키워드는 normal", () => {
+    expect(resolveTextLeafWhiteSpace({}, { whiteSpace: "pre-line" })).toBe(
+      "pre-line",
+    );
+    expect(resolveTextLeafWhiteSpace(undefined, undefined)).toBeUndefined();
+    expect(
+      resolveTextLeafWhiteSpace({ whiteSpace: "inherit" }, undefined),
+    ).toBe("normal");
   });
 });
 

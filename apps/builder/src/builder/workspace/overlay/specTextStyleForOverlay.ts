@@ -20,7 +20,7 @@ import {
   resolveColor,
   buildCatalogShapes,
 } from "@composition/specs";
-import { isCatalogCutover } from "@composition/shared";
+import { isCatalogCutover, maskNonContentTextProps } from "@composition/shared";
 import {
   resolveSkiaCatalogRenderInput,
   resolveSkiaRule,
@@ -117,7 +117,7 @@ export function extractFullSpecTextStyle(
     shapes = buildCatalogShapes(
       visual,
       paint,
-      propsForShapes,
+      maskNonContentTextProps(entry.catalogType!, propsForShapes), // ADR-923 r13m2 — 렌더/측정과 같은 원천 SSOT
       size,
       textDecoration && textDecoration !== "none" ? textDecoration : undefined,
     );

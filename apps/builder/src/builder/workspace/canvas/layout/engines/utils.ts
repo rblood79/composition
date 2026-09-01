@@ -1947,7 +1947,11 @@ export function calculateContentWidth(
 
   // 3. 텍스트 콘텐츠 기반 너비 측정 (Canvas 2D measureText 사용)
   // childElements가 없는 legacy Checkbox/Radio/Switch 요소의 fallback 경로
-  const text = extractTextContent(element.props as Record<string, unknown>);
+  // ADR-923 r13m2 — 텍스트 leaf 는 원천 SSOT (children) 로. extractTextContent 의 label 우선은
+  //   Preview 가 그리지 않는 label 폭을 실었다 (Chrome box.x 10 / 211).
+  const text = TEXT_LEAF_TAGS.has(type)
+    ? resolveTextLeafContent(element.props as Record<string, unknown>)
+    : extractTextContent(element.props as Record<string, unknown>);
 
   const indicatorConfig = PHANTOM_INDICATOR_CONFIGS[type];
   if (indicatorConfig) {
@@ -4076,9 +4080,9 @@ export function calculateContentHeight(
   //   CSS 0 vs Skia 24 발산, 2026-07-14 sweep). template placeholder("{label}")는
   //   비어있지 않은 문자열이라 영향 없음.
   if (TEXT_LEAF_TAGS.has(type)) {
+    // r13m2 — 원천 SSOT (children).
     const tlProps = element.props as Record<string, unknown> | undefined;
-    const tlText = tlProps?.children ?? tlProps?.text ?? tlProps?.label;
-    if (tlText == null || String(tlText) === "") return 0;
+    if (resolveTextLeafContent(tlProps) === "") return 0;
   }
   const ws49 = style?.whiteSpace as string | undefined;
   if (
@@ -4089,9 +4093,7 @@ export function calculateContentHeight(
     ws49 !== "pre"
   ) {
     const props = element.props as Record<string, unknown> | undefined;
-    const textContent = String(
-      props?.children ?? props?.text ?? props?.label ?? "",
-    );
+    const textContent = resolveTextLeafContent(props); // r13m2 — 원천 SSOT
     if (textContent) {
       // ADR-058 Phase 1: Text가 Spec 경로로 전환되면서 5-point patch 분기 제거.
       // textLeafSpec 우선: render.shapes 와 동일 우선순위(props.size 시 size.fontSize).
@@ -4179,7 +4181,10 @@ export function calculateContentHeight(
   //   (TabPanel/CardFooter 빈 컨테이너 +24, 2026-07-14 sweep).
   {
     const props8 = element.props as Record<string, unknown> | undefined;
-    const text8 = props8?.children ?? props8?.text ?? props8?.label;
+    // r13m2 — 텍스트 leaf 는 원천 SSOT (children); 그 외 leaf 는 종전 체인 유지.
+    const text8 = TEXT_LEAF_TAGS.has(type)
+      ? resolveTextLeafContent(props8)
+      : (props8?.children ?? props8?.text ?? props8?.label);
     const hasText8 = text8 != null && String(text8) !== "";
     const hasKids8 =
       (childElements?.length ?? 0) > 0 ||
@@ -4527,7 +4532,7 @@ export function textLeafRendersContent(
   text: string,
   whiteSpace: unknown,
 ): boolean {
-  // (아래 본문) — 호출자는 whiteSpace 를 inline style → computed(상속) 순으로 넘긴다 (r12h1).
+  // (아래 본문) — 호출자는 whiteSpace 를 resolveTextLeafWhiteSpace 로 해석해 넘긴다 (r12h1·r13m1).
   if (text === "") return false;
   const ws =
     typeof whiteSpace === "string" ? whiteSpace.trim().toLowerCase() : "normal";
@@ -4536,22 +4541,47 @@ export function textLeafRendersContent(
   return /[^ \t\n\r\f]/.test(text);
 }
 
+/** CSS cascade 키워드 — inline 값이 이것이면 raw 로 소비하지 않고 computed 를 쓴다 (r13m1). */
+const CSS_CASCADE_KEYWORDS = new Set(["inherit", "initial", "unset", "revert"]);
+
 /**
- * ADR-923 P3 r12l3 — 텍스트 leaf 의 내용 원천 (children → text → label → title, 첫 정의값 —
- * `??` 체인과 같은 선택) 을 React renderable 규칙으로 문자열화한다 (`extractFromValue`:
- * string/number 그대로, 배열은 string/number 항목만 이어붙임, object/boolean 은 ""). 종전
- * `String(...)` 은 `[" ", " "]` 를 `" , "` (쉼표 = 내용) 로, object 를 `"[object Object]"` 로
- * 만들어 line box 신호를 오염시켰다.
+ * ADR-923 P3 r13m1 — 텍스트 leaf 의 white-space 해석 (line box 신호용).
+ * - inline 의 **구체값** (normal/pre/…) 은 그대로 — implicit 주입이 computed 산출 뒤에 실릴 수
+ *   있어 inline 이 최신이다.
+ * - inline 이 cascade 키워드 (`inherit`/`unset`/`initial`/`revert`) 이거나 부재면 cssResolver
+ *   **computed** 를 쓴다 — 키워드는 거기서 이미 해석됐다 (inherit·unset → 부모값, initial·revert →
+ *   normal). 종전 `style?.whiteSpace ?? computed` 는 `inherit` 를 raw 로 받아 normal 로 취급했다
+ *   (Chrome 부모 pre + 자식 inherit 60 / 40).
+ * - computed 가 없으면 (직접 호출) 키워드는 normal 로 폴백 — 부모를 알 수 없다.
+ */
+export function resolveTextLeafWhiteSpace(
+  style: Record<string, unknown> | undefined,
+  computed: { whiteSpace?: unknown } | undefined,
+): string | undefined {
+  const raw = style?.whiteSpace;
+  const rawStr = typeof raw === "string" ? raw.trim().toLowerCase() : undefined;
+  if (rawStr && !CSS_CASCADE_KEYWORDS.has(rawStr)) return rawStr;
+  const c = computed?.whiteSpace;
+  if (typeof c === "string" && c !== "") return c;
+  return rawStr ? "normal" : undefined;
+}
+
+/**
+ * ADR-923 P3 r12l3·r13m2 — 텍스트 leaf (TEXT_LEAF_TAGS) 의 내용 원천 **SSOT**: binding 이
+ * content 로 선언한 `children` 하나 (Text/Heading/Paragraph/Description/Label/Kbd/Code 전부
+ * `accepts.children.section === "content"`). Preview 도 이 leaf 들의 텍스트를 children 으로만
+ * 그린다 (generic 렌더 · renderLabel) — `label`/`text`/`title` 을 원천으로 읽으면 Chrome 이
+ * 그리지 않는 글자의 폭·높이가 측정에 실린다 (r13m2: label 우선 측정 시 flex row box.x 211 /
+ * Chrome 10). 신호 (line box) · 폭/높이 측정 · min/max-content 키워드 전부 이 함수를 쓴다.
+ * 문자열화는 React renderable 규칙 (`extractFromValue`: string/number 그대로, 배열은
+ * string/number 항목만 이어붙임, object/boolean 은 "") — 종전 `String(...)` 은 `[" ", " "]` 를
+ * `" , "` 로, object 를 `"[object Object]"` 로 만들어 신호를 오염시켰다 (r12l3).
  */
 export function resolveTextLeafContent(
   props: Record<string, unknown> | undefined,
 ): string {
   if (!props) return "";
-  for (const key of ["children", "text", "label", "title"] as const) {
-    const v = props[key];
-    if (v !== undefined && v !== null) return extractFromValue(v);
-  }
-  return "";
+  return extractFromValue(props.children);
 }
 
 export function enrichWithIntrinsicSize(
@@ -4660,9 +4690,11 @@ export function enrichWithIntrinsicSize(
   // r12h1 — white-space 는 inherited property: inline style 이 없으면 cssResolver 의 computed
   //   (부모 상속) 값을 쓴다 (Chrome 부모 pre + 자식 공백만 → line box 있음 b.y 60 / inline 만
   //   읽으면 40).
+  // r13m1 — inline 의 cascade 키워드 (inherit/unset) 는 computed 가 해석한 값으로 (Chrome 부모 pre
+  //   + 자식 `white-space: inherit` 60 / raw 키워드를 normal 로 소비하면 40).
   const textLeafHasLineBox = textLeafRendersContent(
     textLeafContent,
-    style?.whiteSpace ?? _computedStyle?.whiteSpace,
+    resolveTextLeafWhiteSpace(style, _computedStyle),
   );
 
   if (!needsHeight && !needsWidth && !textLeafHasLineBox) return element;
@@ -4676,9 +4708,12 @@ export function enrichWithIntrinsicSize(
     (rawWidth === "min-content" || rawWidth === "max-content")
   ) {
     const props = element.props as Record<string, unknown> | undefined;
-    const textContent = String(
-      props?.children ?? props?.text ?? props?.label ?? props?.title ?? "",
-    );
+    // r13m2 — 텍스트 leaf 는 원천 SSOT (children); 그 외 (INLINE_BLOCK 등) 는 종전 체인 유지.
+    const textContent = suppliesIntrinsicScalars
+      ? textLeafContent
+      : String(
+          props?.children ?? props?.text ?? props?.label ?? props?.title ?? "",
+        );
     if (textContent) {
       const styleRecord = style as Record<string, unknown> | undefined;
       // ADR-058 Phase 1: Text가 Spec 경로로 전환되면서 5-point patch 분기 제거.

@@ -584,10 +584,12 @@ export const renderDescription = (
       style={element.props.style}
       className={element.props.className}
     >
-      {typeof element.props.text === "string"
-        ? element.props.text
-        : typeof element.props.children === "string"
-          ? element.props.children
+      {/* ADR-923 r13m2 — 원천 SSOT 는 binding content(children); legacy `text` 는 후순위 fallback
+          (Card 안 Description 렌더 LayoutRenderers 와 같은 순서). */}
+      {typeof element.props.children === "string"
+        ? element.props.children
+        : typeof element.props.text === "string"
+          ? element.props.text
           : null}
       {children.map((child) => renderElement(child, child.id))}
     </Description>

@@ -1504,6 +1504,24 @@ const CASES: DiffCase[] = [
       },
     ],
   },
+  {
+    name: "root-min-over-max-width-min-wins — r13l4: root 자신의 auto 폭 clamp 도 max-then-min (§10.4; Chrome root.w 250 / min-then-max 100)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "c", style: { display: "block", height: "20px" } },
+      {
+        label: "root",
+        style: {
+          display: "block",
+          minWidth: "250px",
+          maxWidth: "100px",
+          ...FS0,
+        },
+        children: [0],
+      },
+    ],
+  },
 ];
 
 /** engine leg 입력 — engineStyle override 적용. */
@@ -1786,6 +1804,73 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
         label: "t",
         elementType: "Text",
         text: " ",
+        style: { width: "auto", height: "10px", fontSize: "16px" },
+      },
+      { label: "box", style: { width: "50px", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "flex", width: "300px" },
+        children: [0, 1],
+      },
+    ];
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  // r13m1 — inline `white-space` 의 cascade 키워드 (`inherit`/`unset`) 는 raw 값이 아니라
+  //   cssResolver computed (부모 pre 상속) 로 읽어야 한다 (Chrome 60 / raw 키워드를 normal 로
+  //   소비하면 40). `initial` 은 normal 로 되돌아가 40 (대조군).
+  it("부모 pre + 자식 inline white-space:inherit → computed pre → line box 있음 (r13m1; Chrome b.y 60, raw 키워드 소비 시 40)", () => {
+    const nodes = textZeroIn(
+      { whiteSpace: "pre" },
+      { whiteSpace: "inherit" },
+      " ",
+    );
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("부모 pre + 자식 inline white-space:unset (상속 속성 → inherit) → line box 있음 (r13m1; b.y 60)", () => {
+    const nodes = textZeroIn(
+      { whiteSpace: "pre" },
+      { whiteSpace: "unset" },
+      " ",
+    );
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("부모 pre + 자식 inline white-space:initial → normal → line box 없음 (r13m1 대조군; b.y 40)", () => {
+    const nodes = textZeroIn(
+      { whiteSpace: "pre" },
+      { whiteSpace: "initial" },
+      " ",
+    );
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  // r13m2 — 텍스트 leaf 의 내용 원천은 binding 이 content 로 선언한 `children` 하나 (Preview 가
+  //   그리는 것). `label`/`text` 를 측정 원천으로 읽으면 Chrome 이 그리지 않는 글자의 폭이 실린다.
+  it("children 빈 문자열 + label 'X' Text 는 내용 없음 → self-collapsing (r13m2 대조군; Chrome b.y 40)", () => {
+    const nodes = textZero({}, "");
+    nodes[1] = { ...nodes[1], props: { label: "X" } };
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("flex row 안 children 'Y' + label 'XXXXXXXXXXXXXXXXXXXX' Text (width:auto) 폭은 children 폭 (r13m2; Chrome box.x = w(Y), label 우선 측정 시 w(XXXX…))", () => {
+    const nodes: CaseNode[] = [
+      {
+        label: "t",
+        elementType: "Text",
+        text: "Y",
+        props: { label: "XXXXXXXXXXXXXXXXXXXX" },
         style: { width: "auto", height: "10px", fontSize: "16px" },
       },
       { label: "box", style: { width: "50px", height: "10px" } },
