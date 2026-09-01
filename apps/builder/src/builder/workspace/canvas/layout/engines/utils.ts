@@ -1451,7 +1451,9 @@ export function calculateContentWidth(
   //   style override(fontSize/paddingX)는 buildCatalogShapes 와 동일 우선순위로 반영.
   if (type === "disclosureheader") {
     const props = element.props as Record<string, unknown> | undefined;
-    const text = String(props?.children ?? props?.title ?? "Section");
+    // ADR-923 r18m1 — 타입별 계약 (기본 군 `children`) · 기본 글자 없음: Skia 는 "" 면 text 를 안
+    //   그리는데 여기서 "Section" 폭을 재면 헤더를 비운 (또는 AI `title` 만 쓴) 문서의 측정이 갈린다.
+    const text = resolveTextSourceText("DisclosureHeader", props);
     if (!text) return 0;
     const dhDims = disclosureHeaderDims(String(props?.size ?? "md"));
     const paddingX =
@@ -1576,7 +1578,9 @@ export function calculateContentWidth(
     const props = element.props as Record<string, unknown> | undefined;
     const parentSize = String(props?.size ?? "M");
     const rspSize = normalizeBreadcrumbRspSizeKey(parentSize);
-    const label = String(props?.children ?? props?.label ?? props?.title ?? "");
+    // ADR-923 r18m1 sweep — 타입별 계약 (Skia `breadcrumb_crumb` · Preview 와 같은 단일 지점);
+    //   종전 `children ?? label ?? title` 은 이 측정만의 순서였다 (r15m1 형태).
+    const label = resolveTextSourceText("Breadcrumb", props);
     if (!label) return 0;
     const specStyle = extractSpecTextStyle("breadcrumb", {
       size: rspSize,
@@ -1621,9 +1625,8 @@ export function calculateContentWidth(
     if (childElements && childElements.length > 0) {
       for (const child of childElements) {
         const childProps = child.props as Record<string, unknown> | undefined;
-        const label = String(
-          childProps?.children ?? childProps?.label ?? childProps?.title ?? "",
-        );
+        // ADR-923 r18m1 sweep — 타입별 계약 (위 단일 Breadcrumb 측정과 동일).
+        const label = resolveTextSourceText("Breadcrumb", childProps);
         if (label) crumbs.push(label);
       }
     }

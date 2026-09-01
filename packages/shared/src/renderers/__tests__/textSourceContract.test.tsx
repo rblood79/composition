@@ -96,24 +96,24 @@ describe("ADR-923 r15m1 — Preview 렌더러 텍스트 = 텍스트 원천 계�
     const title = (node as React.ReactElement<{ title?: string }>).props.title;
     expect(title).toBe(resolveTextSourceText("TreeItem", props));
     expect(title).toBe("Node 1");
-    // 계약 밖 키만 있으면 내용 없음 → 렌더러 폴백 (`Item ${id}`).
+    // 계약 밖 키만 있으면 내용 없음 → "" (r18m1: 기본 글자 없음 — Skia 는 "" 면 text 를 안 그린다).
     const only = renderTreeItem(
       el("TreeItem", { title: "T" }, "tree-x"),
       makeContext(),
     );
     expect((only as React.ReactElement<{ title?: string }>).props.title).toBe(
-      "Item tree-x",
+      "",
     );
   });
 
-  it("Column: children 만 — 데이터 컬럼 (label+children 동일 기록) 은 불변, AI label 만 있으면 'Column' 폴백", () => {
+  it("Column: children 만 — 데이터 컬럼 (label+children 동일 기록) 은 불변, AI label 만 있으면 '' (r18m1 기본 글자 없음)", () => {
     expect(resolveColumnHeaderLabel({ children: "Name", label: "Name" })).toBe(
       "Name",
     );
     expect(resolveColumnHeaderLabel({ children: "Name", label: LONG })).toBe(
       resolveTextSourceText("Column", { children: "Name", label: LONG }),
     );
-    expect(resolveColumnHeaderLabel({ label: LONG })).toBe("Column");
+    expect(resolveColumnHeaderLabel({ label: LONG })).toBe("");
     // inspector 로 children 을 고친 데이터 컬럼: stale label 이 아니라 children (Skia 도 동일).
     expect(
       resolveColumnHeaderLabel({ children: "Edited", label: "Name" }),

@@ -153,3 +153,36 @@ describe("ADR-923 r15m1 — 기본 군 (비-텍스트 leaf) 의 원천도 타입
     ).toBe("Text");
   });
 });
+
+/**
+ * ADR-923 r18m1 — 측정의 기본 글자·계약 밖 키 제거. DisclosureHeader 는 `children ?? title ?? "Section"`
+ * 으로 헤더가 비었거나 AI 가 `title` 만 쓴 문서에서 "Section" 폭을 쟀고 (Skia·Preview 는 내용 없음),
+ * Breadcrumb 은 `children ?? label ?? title` 로 이 측정만의 순서였다 (r15m1 형태).
+ */
+describe("ADR-923 r18m1 — DisclosureHeader/Breadcrumb 측정도 타입별 계약, 기본 글자 없음", () => {
+  const measure = (type: string, props: Record<string, unknown>) =>
+    calculateContentWidth({
+      id: `w18-${type}`,
+      type,
+      props: { ...props, style: { fontSize: "16px" } },
+    } as unknown as CanvasLayoutNode);
+  it("DisclosureHeader: children 만 — 없거나 비었거나 AI title 만이면 0 (종전 'Section' 폭)", () => {
+    expect(
+      measure("DisclosureHeader", { children: "Section Title" }),
+    ).toBeGreaterThan(0);
+    expect(measure("DisclosureHeader", {})).toBe(0);
+    expect(measure("DisclosureHeader", { children: "" })).toBe(0);
+    expect(measure("DisclosureHeader", { title: "AI Title" })).toBe(0);
+  });
+  it("Breadcrumb: children 만 — AI label/title 은 폭에 실리지 않는다", () => {
+    const base = measure("Breadcrumb", { children: "Home" });
+    expect(base).toBeGreaterThan(0);
+    expect(measure("Breadcrumb", { label: "Home" })).toBe(0);
+    expect(
+      measure("Breadcrumb", {
+        children: "Home",
+        title: "AI wrote a long title",
+      }),
+    ).toBe(base);
+  });
+});

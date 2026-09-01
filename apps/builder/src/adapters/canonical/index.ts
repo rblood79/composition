@@ -44,11 +44,7 @@ import {
   isLegacySlotTag,
   tagToType,
 } from "./tagRename";
-import { migrateLegacyListBoxTemplatesToOrigins } from "./legacyListBoxTemplateMigration";
-import { ensureGridListTemplateOrigins } from "../../builder/components/gridlist/gridListTemplateOrigins";
-import { ensureMenuTemplateOrigins } from "../../builder/components/menu/menuTemplateOrigins";
-import { applyCanonicalDocumentMigrations } from "./canonicalDocumentMigrations";
-import { ensureReusableCompositeOrigins } from "../../builder/components/reusableCompositeOrigins";
+import { normalizeMainDocument } from "./mainDocumentNormalization";
 import { buildIdPathContext, segId } from "./idPath";
 import { buildLegacyElementMetadata } from "./legacyMetadata";
 import {
@@ -326,27 +322,16 @@ export function legacyToCanonical(
     ? snapshotTokensFromResolved(getTokens())
     : undefined;
 
-  return ensureReusableCompositeOrigins(
-    // 2026-07-14: 정원형 leaf(Avatar/ProgressCircle) stale inline width/height strip —
-    //   size 변경이 selection 영역에 반영되도록 크기 결정권을 catalog sizes 로 환원.
-    // ADR-923 r17m2 (2026-09-01): 형태 migration 4개 (CheckboxRadio 구조 · ColorField parent label ·
-    //   field inline layout strip · circle leaf inline size strip) 는 단일 체인
-    //   `applyCanonicalDocumentMigrations` — usePageManager persist-back · external import 와 같은 함수.
-    applyCanonicalDocumentMigrations(
-      // ADR-148 Phase 4: GridListItem/MenuItem collection item slot origin —
-      //   ListBox 동형 hydration 체인 (Components 페이지 seed, 멱등 repair).
-      ensureMenuTemplateOrigins(
-        ensureGridListTemplateOrigins(
-          migrateLegacyListBoxTemplatesToOrigins({
-            version: "composition-1.0",
-            ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
-            ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
-            children: [...layoutFrames, ...reusableMasters, ...pageNodes],
-          }),
-        ),
-      ),
-    ),
-  );
+  // ADR-923 r18m2 (2026-09-01): main document 정규화 체인 (origin 시드 + 형태 migration 4개) 은
+  //   `normalizeMainDocument` 단일 소유 — persist-back (usePageManager) · 전체 문서 교체
+  //   (applySnapshotDocument: 복원 / undo·redo 재적용 / 프로젝트 JSON 파일 가져오기) 와 같은 함수.
+  //   종전엔 같은 체인이 두 곳에 복제돼 있었고 전체 문서 교체 경계는 어느 것도 안 거쳤다.
+  return normalizeMainDocument({
+    version: "composition-1.0",
+    ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
+    ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
+    children: [...layoutFrames, ...reusableMasters, ...pageNodes],
+  });
 }
 
 /**

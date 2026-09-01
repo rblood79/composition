@@ -1680,12 +1680,19 @@ export const renderDisclosure = (
     (c) => c.type === "DisclosureHeader" || c.type === "Heading",
   );
 
-  // ADR-923 r17m3: 헤더 자식의 텍스트는 타입별 계약 (`DisclosureHeader` 기본 군 `children`) —
-  //   종전 `children || title` 은 AI 가 헤더에 `title` 만 쓰면 Preview 만 그 값을 보였다 (Skia·레이아웃은
-  //   계약상 내용 없음). 헤더 자식이 없는 legacy 문서만 parent `title` 폴백.
-  const title = headerEl
-    ? resolveTextSourceText(headerEl.type, headerEl.props) || "Section"
-    : String(element.props.title || "Section");
+  // ADR-923 r17m3 → r18m1: 헤더 텍스트는 두 축 — parent `title` 은 propagation registry
+  //   (`title → DisclosureHeader.children`, Card `title → Heading` 동형) 가 헤더 자식으로 잇는 다리라
+  //   `resolvePropagatedText` (engine 과 같은 경계: parent `undefined` 만 자식, `""` 는 비움); 헤더
+  //   자식 자체는 타입별 계약 (`DisclosureHeader` 기본 군 `children`). 기본 글자 없음 — Skia
+  //   (`buildCatalogShapes`) 는 계약 결과가 "" 면 text shape 를 안 그리므로 Preview 가 `|| "Section"`
+  //   으로 되살리면 사용자가 비운 헤더가 Preview 에만 "Section" 으로 남았다 (Codex r18m1). legacy
+  //   `Heading` 헤더는 registry 대상이 아니라 계약만; 헤더 자식이 없으면 어느 표면도 그리지 않는다.
+  const title =
+    headerEl?.type === "DisclosureHeader"
+      ? resolvePropagatedText(element.props.title, headerEl)
+      : headerEl
+        ? resolveTextSourceText(headerEl.type, headerEl.props)
+        : "";
 
   const contentChildren = children.filter(
     (c) => c.type !== "DisclosureHeader" && c.type !== "Heading",
@@ -1739,8 +1746,9 @@ export const renderDisclosureHeader = (
 ): React.ReactNode => {
   return (
     <span key={element.id} data-element-id={element.id}>
-      {/* ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (DisclosureHeader 는 기본 군 `children`). */}
-      {resolveTextSourceText("DisclosureHeader", element.props) || "Section"}
+      {/* ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (DisclosureHeader 는 기본 군 `children`).
+          r18m1 — 기본 글자 없음: Skia 는 계약 결과가 "" 면 text shape 를 안 그린다. */}
+      {resolveTextSourceText("DisclosureHeader", element.props)}
     </span>
   );
 };

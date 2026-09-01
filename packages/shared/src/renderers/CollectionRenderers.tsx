@@ -99,8 +99,8 @@ export const renderTree = (
       // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (TreeItem 은 기본 군 `children`; factory 가 쓰는
       //   키). 종전 `title || label || value || children` 은 production writer 가 없는 키를 Preview
       //   만 읽어 Skia (`children`) 와 갈렸다.
-      const displayTitle =
-        resolveTextSourceText("TreeItem", item.props) || `Item ${item.id}`;
+      //   r18m1 — 기본 글자 없음 (Skia 는 계약 결과가 "" 면 text 를 안 그린다).
+      const displayTitle = resolveTextSourceText("TreeItem", item.props);
 
       const hasChildren = childTreeItems.length > 0;
 
@@ -203,8 +203,8 @@ export const renderTreeItem = (
   );
 
   // ADR-923 r15m1 — 타입별 계약 (TreeItem `children`) — 위 renderTree 의 재귀 경로와 동일.
-  const displayTitle =
-    resolveTextSourceText("TreeItem", element.props) || `Item ${element.id}`;
+  //   r18m1 — 기본 글자 없음 (Skia 는 계약 결과가 "" 면 text 를 안 그린다).
+  const displayTitle = resolveTextSourceText("TreeItem", element.props);
 
   const hasChildren = childTreeItems.length > 0;
 
@@ -823,7 +823,8 @@ export const renderMenu = (
     id: element.customId,
     "data-element-id": element.id,
     // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (Menu 는 `label → children`; factory 가 둘 다 쓴다).
-    label: resolveTextSourceText("Menu", element.props) || "Menu",
+    //   r18m1 — 기본 글자 없음 (Skia 는 계약 결과가 "" 면 trigger text 를 안 그린다).
+    label: resolveTextSourceText("Menu", element.props),
     variant: (element.props.variant as string) || "primary",
     size: (element.props.size as "xs" | "sm" | "md" | "lg" | "xl") || "md",
     style: element.props.style,

@@ -138,6 +138,16 @@ const cardContentPropagationRules: PropagationRule[] = [
 const disclosurePropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "DisclosureHeader", override: true },
   { parentProp: "size", childPath: "DisclosureContent", override: true },
+  // ADR-923 r18m1 (2026-09-01): binding 이 D2 편집 surface 로 선언한 parent `title` 은 헤더 자식
+  //   `children` 으로 잇는 다리가 없어 Inspector Title 이 어느 표면에도 닿지 않았고 (factory 헤더가
+  //   항상 있으므로), 헤더 없는 legacy 형태에선 Preview 만 parent title 을 읽었다. Card
+  //   `title → CardHeader.Heading.children` 와 같은 형태 — round 16 ColorField label 다리 동형.
+  {
+    parentProp: "title",
+    childPath: "DisclosureHeader",
+    childProp: "children",
+    override: true,
+  },
 ];
 
 /**

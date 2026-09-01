@@ -2,9 +2,10 @@
  * @fileoverview 스냅샷 복원 시퀀스 — ADR-180 Phase 2
  *
  * 복원 = canonical document 전체 교체. 시퀀스는 boot hydrate
- * (`usePageManager.ts` initializeProject — setDocument → 페이지 모델 파생 →
- * mirror 전체 교체 → 페이지 위치 초기화 → persist) 와 **동형**이다 (G2:
- * 복원 결과 == 같은 문서 새로고침 hydrate 결과).
+ * (`usePageManager.ts` initializeProject — 정규화 체인 → setDocument → 페이지 모델
+ * 파생 → mirror 전체 교체 → 페이지 위치 초기화 → persist) 와 **동형**이다 (G2:
+ * 복원 결과 == 같은 문서 새로고침 hydrate 결과). 정규화 체인 (origin 시드 + 형태
+ * migration, `normalizeMainDocument`) 도 같은 함수 — ADR-923 r18m2.
  *
  * store 접근은 call-site 주입 (`get`) — `historyActions.ts` 의 SetState/GetState
  * 주입 스타일과 동일. `useStore` 를 직접 import 하면
@@ -30,6 +31,7 @@ import { useViewportSyncStore } from "../../workspace/canvas/stores";
 import { resolvePageLayoutBounds } from "../../workspace/canvas/pageLayoutConstants";
 import { historyManager, type HistoryEntry } from "../history";
 import { snapshotManager } from "./snapshots";
+import { normalizeMainDocument } from "../../../adapters/canonical/mainDocumentNormalization";
 
 type GetState = Parameters<StateCreator<ElementsState>>[1];
 
@@ -53,7 +55,13 @@ export async function applySnapshotDocument(
 ): Promise<void> {
   // 스냅샷 캐시본 격리 — store/persist 에 캐시 객체를 직접 노출하지 않는다
   // (snapshots.ts 캡처 격리와 동일 계약, JSON round-trip)
-  const docCopy = JSON.parse(JSON.stringify(doc)) as CompositionDocument;
+  // ADR-923 r18m2 (2026-09-01): 전체 문서 교체 경계도 boot hydrate 와 같은 정규화 체인 (origin 시드 +
+  //   형태 migration) 을 통과한다 — 과거 snapshot 복원 · undo/redo 재적용 · 프로젝트 JSON 파일
+  //   가져오기 (BuilderCore) 가 전부 이 함수로 들어오므로 여기가 단일 소유자. 종전엔 어느 migration
+  //   도 안 거쳐 legacy 형태 (ColorField parent label 부재 등) 가 store·IndexedDB 에 그대로 실렸다.
+  const docCopy = normalizeMainDocument(
+    JSON.parse(JSON.stringify(doc)) as CompositionDocument,
+  );
 
   // 1. canonical 1차 (ADR-122 HC #2) — documentVersion 증가
   useCanonicalDocumentStore.getState().setDocument(projectId, docCopy);

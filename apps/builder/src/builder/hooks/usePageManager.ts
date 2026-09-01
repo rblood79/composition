@@ -30,11 +30,7 @@ import {
 } from "@composition/shared";
 import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
 import { countUserPagesForAutoName } from "../pages/systemComponentsPage";
-import { migrateLegacyListBoxTemplatesToOrigins } from "../../adapters/canonical/legacyListBoxTemplateMigration";
-import { ensureGridListTemplateOrigins } from "../components/gridlist/gridListTemplateOrigins";
-import { ensureMenuTemplateOrigins } from "../components/menu/menuTemplateOrigins";
-import { applyCanonicalDocumentMigrations } from "../../adapters/canonical/canonicalDocumentMigrations";
-import { ensureReusableCompositeOrigins } from "../components/reusableCompositeOrigins";
+import { normalizeMainDocument } from "../../adapters/canonical/mainDocumentNormalization";
 import { resolvePageLayoutBounds } from "../workspace/canvas/pageLayoutConstants";
 
 function normalizePageSlug(slug: string | null | undefined): string {
@@ -391,19 +387,10 @@ export const usePageManager = ({
         // Option B (anchor-less): origin bootstrap + 기존 instance 의 in-tree template
         //   anchor strip 을 hydration 시점에 함께 수행. anchor 가 제거되면 document 참조가
         //   바뀌어 아래 persist-back 으로 IndexedDB 가 정리된다(멱등 — anchor 없으면 no-op).
-        const document = ensureReusableCompositeOrigins(
-          // 2026-07-14: 정원형 leaf(Avatar/ProgressCircle) stale inline width/height strip
-          //   (persist-back 경로) — 크기 결정권을 catalog sizes 로 환원.
-          // ADR-923 r17m2 (2026-09-01): 형태 migration 4개는 단일 체인 (hydration · external import 와 동일).
-          applyCanonicalDocumentMigrations(
-            // ADR-148 Phase 4: GridListItem/MenuItem slot origin — ListBox 동형 체인.
-            ensureMenuTemplateOrigins(
-              ensureGridListTemplateOrigins(
-                migrateLegacyListBoxTemplatesToOrigins(baseDocument),
-              ),
-            ),
-          ),
-        );
+        // ADR-923 r18m2 (2026-09-01): main document 정규화 체인 (origin 시드 + 형태 migration) 은
+        //   `normalizeMainDocument` 단일 소유 — hydration (adapters/canonical) · 전체 문서 교체
+        //   (applySnapshotDocument) 와 같은 함수.
+        const document = normalizeMainDocument(baseDocument);
         // persist-back 은 "기존 row 를 읽은" 경우에만 — null read 에서 파생된
         // skeleton 을 write 하면 (read 가 일시 miss 였을 때) 실제 데이터를 덮어쓴다.
         // 신규 프로젝트 row 는 dashboard 생성 시점에 이미 기록되므로 여기서 만들 이유 없음.

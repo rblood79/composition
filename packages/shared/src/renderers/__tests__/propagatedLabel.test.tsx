@@ -10,6 +10,7 @@ import {
 } from "../FormRenderers";
 import {
   renderDisclosure,
+  renderDisclosureHeader,
   renderMeter,
   renderProgressBar,
 } from "../LayoutRenderers";
@@ -115,26 +116,68 @@ describe('ADR-923 r17m1 — composite renderer 의 label = parent 우선, "" 는
   }
 });
 
-describe("ADR-923 r17m3 — Disclosure 제목 = 헤더 자식의 텍스트 원천 계약", () => {
-  it("헤더 `{children}` 은 그대로, AI `{title}` 만 있는 헤더는 계약상 내용 없음 → 'Section'", () => {
+describe("ADR-923 r17m3 → r18m1 — Disclosure 제목 = parent `title` 다리 + 헤더 자식 계약, 기본 글자 없음", () => {
+  const titleOf = (parent: PreviewElement, header?: PreviewElement) =>
+    findProp(
+      renderDisclosure(parent, makeContext(header ? [header] : [])),
+      "title",
+    );
+  it("헤더 `{children}` 은 그대로; AI `{title}` 만 있는 헤더는 계약상 내용 없음 → '' (종전 'Section')", () => {
     const disclosure = el("Disclosure", {});
+    expect(
+      titleOf(
+        disclosure,
+        el("DisclosureHeader", { children: "Hdr" }, "hdr", disclosure.id),
+      ),
+    ).toBe("Hdr");
+    expect(
+      titleOf(
+        disclosure,
+        el("DisclosureHeader", { title: "AI Title" }, "hdr2", disclosure.id),
+      ),
+    ).toBe("");
+  });
+  it("r18m1: 사용자가 비운 헤더 `{children: ''}` 은 '' — Skia 가 text shape 를 안 그리듯 Preview 도 'Section' 으로 되살리지 않는다", () => {
+    const disclosure = el("Disclosure", {});
+    expect(
+      titleOf(
+        disclosure,
+        el("DisclosureHeader", { children: "" }, "hdr3", disclosure.id),
+      ),
+    ).toBe("");
+  });
+  it("parent `title` 은 헤더 자식보다 우선 (registry 다리 — engine 경계와 동일), '' 는 비움, 헤더 없으면 ''", () => {
     const header = el(
       "DisclosureHeader",
-      { children: "Hdr" },
-      "hdr",
-      disclosure.id,
+      { children: "Stale" },
+      "hdr4",
+      "Disclosure-p",
     );
     expect(
-      findProp(renderDisclosure(disclosure, makeContext([header])), "title"),
-    ).toBe("Hdr");
-    const aiHeader = el(
-      "DisclosureHeader",
-      { title: "AI Title" },
-      "hdr2",
-      disclosure.id,
-    );
+      titleOf(el("Disclosure", { title: "Parent" }, "Disclosure-p"), header),
+    ).toBe("Parent");
     expect(
-      findProp(renderDisclosure(disclosure, makeContext([aiHeader])), "title"),
-    ).toBe("Section");
+      titleOf(el("Disclosure", { title: "" }, "Disclosure-p"), header),
+    ).toBe("");
+    expect(titleOf(el("Disclosure", { title: "Orphan" }, "Disclosure-p"))).toBe(
+      "",
+    );
+  });
+  it("legacy `Heading` 헤더는 registry 대상이 아니라 계약만 (parent title 무시)", () => {
+    const heading = el("Heading", { children: "H" }, "h", "Disclosure-p");
+    expect(
+      titleOf(el("Disclosure", { title: "Parent" }, "Disclosure-p"), heading),
+    ).toBe("H");
+  });
+  it("단독 DisclosureHeader 도 기본 글자 없음", () => {
+    expect(
+      findProp(
+        renderDisclosureHeader(
+          el("DisclosureHeader", { children: "" }),
+          makeContext(),
+        ),
+        "children",
+      ),
+    ).toBe("");
   });
 });

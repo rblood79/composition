@@ -42,7 +42,9 @@ if (!columnCreationRequestedRef.current) {
 export function resolveColumnHeaderLabel(
   props: Record<string, unknown> | undefined,
 ): string {
-  return resolveTextSourceText("Column", props) || "Column";
+  // ADR-923 r18m1 — 기본 글자 없음: Skia (Column catalog box+text) 는 계약 결과가 "" 면 text 를 안
+  //   그리므로 Preview 만 "Column" 을 되살리면 사용자가 비운 헤더가 Preview 에만 남는다.
+  return resolveTextSourceText("Column", props);
 }
 
 /**
