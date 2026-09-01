@@ -297,8 +297,9 @@ fn golden_grid_named_areas() {
 // block golden — block_layout(data, avail_w, avail_h, collapse_top, collapse_bot,
 //                             prev_sibling_margin_bottom)
 // FIELD_COUNT=21 (r10m2: 19 → 21, 슬롯 19/20 = margin 음수 성분): [display,w,h,mt,mr,mb,ml,bfc,pb_v,pb_h,min_w,max_w,min_h,max_h,
-//   content_w,content_h,valign,baseline,line_height]
-// 출력: 자식당 [x,y,w,h] + 후행 2값 [firstChildMarginTop, lastChildMarginBottom]
+//   content_w,content_h,valign,baseline,line_height,mt_neg,mb_neg]
+// 출력: 자식당 [x,y,w,h] + 후행 6값 [firstChildMarginTop, lastChildMarginBottom,
+//   lastLineBaseline, inFlowBottom, firstChildMarginTopNeg, lastChildMarginBottomNeg]
 // ─────────────────────────────────────────────────────────────────────────────
 
 fn block_child(w: f32, h: f32, mt: f32, mb: f32) -> [f32; BLOCK_FIELDS] {
@@ -326,7 +327,7 @@ fn golden_block_vertical_stack() {
         data.extend_from_slice(&block_child(200.0, 50.0, 0.0, 0.0));
     }
     let out = block_layout(&data, 400.0, 1000.0, false, false, 0.0);
-    // 후행 2값 제외하고 3 children 만 대조.
+    // 후행 meta 6값 제외하고 3 children 만 대조.
     let bounds = &out[..12];
     assert_bounds(
         "block_vertical_stack",

@@ -1,7 +1,8 @@
 //! ADR-916 Phase 1-C — CSS Block 레이아웃 (CSS 2.1 §8, §9.4.1 BFC / §8.3.1 margin collapse)
 //!
 //! Taffy 를 대체하는 자체 block solver. 기존 `apps/builder/.../wasm/src/block_layout.rs`
-//! (625줄, unit test 17) 를 **입력 계약(FIELD_COUNT=19) 그대로 승계 이식**한 것.
+//! (625줄, unit test 17) 를 **입력 계약(당시 FIELD_COUNT=19) 그대로 승계 이식**한 것
+//! (r10m2 로 21 — 아래 §입력 계약).
 //! 원본은 runtime 미가동(layoutWorker 전용, LAYOUT_WORKER=false) 이었으나 검증된
 //! margin collapse / inline-block line box / fit-content 커널이므로 재작성 대신 이식하여
 //! WPT-파생 검증 자산 상실(Soft Constraint) 을 회피한다.
@@ -113,8 +114,9 @@ struct LineItem {
 /// * `prev_sibling_margin_bottom` - Previous sibling's margin bottom (context)
 ///
 /// # Returns
-/// Float32Array: [x, y, w, h, ...] for each child, plus 4 trailing values:
-/// [firstChildMarginTop, lastChildMarginBottom, lastLineBaseline, inFlowBottom]
+/// Float32Array: [x, y, w, h, ...] for each child, plus 6 trailing values:
+/// [firstChildMarginTop, lastChildMarginBottom, lastLineBaseline, inFlowBottom,
+///  firstChildMarginTopNeg, lastChildMarginBottomNeg] (r10m2 — 0/1 은 값, 4/5 는 음수 성분)
 /// (lastLineBaseline: 마지막 line box 의 baseline — content-box y, line box 없으면
 /// AUTO=-1. ADR-923 Phase 2 — 컨테이너 baseline 출력의 정확값 원천.
 /// inFlowBottom: in-flow content 하단 = auto height 원천 (P3 r8h2) — 부모 bottom 과

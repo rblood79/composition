@@ -462,7 +462,7 @@ const CASES: DiffCase[] = [
       },
     ],
   },
-{
+  {
     name: "valign-middle-tall — r8: middle 은 baseline 에 중심 고정 (x-height/2=0)",
     availW: 300,
     availH: -1,
@@ -607,7 +607,12 @@ const CASES: DiffCase[] = [
       },
       {
         label: "root",
-        style: { display: "block", width: "300px", paddingBottom: "1px", ...FS0 },
+        style: {
+          display: "block",
+          width: "300px",
+          paddingBottom: "1px",
+          ...FS0,
+        },
         children: [0],
       },
     ],
@@ -627,7 +632,12 @@ const CASES: DiffCase[] = [
       },
       {
         label: "root",
-        style: { display: "block", width: "300px", paddingBottom: "1px", ...FS0 },
+        style: {
+          display: "block",
+          width: "300px",
+          paddingBottom: "1px",
+          ...FS0,
+        },
         children: [0, 1],
       },
     ],
@@ -778,7 +788,12 @@ const CASES: DiffCase[] = [
       },
       {
         label: "z",
-        style: { display: "block", height: "0px", marginTop: "20px", marginBottom: "30px" },
+        style: {
+          display: "block",
+          height: "0px",
+          marginTop: "20px",
+          marginBottom: "30px",
+        },
       },
       {
         label: "b",
@@ -803,7 +818,12 @@ const CASES: DiffCase[] = [
       { label: "inner", style: { display: "block", height: "10px" } },
       {
         label: "z",
-        style: { display: "block", height: "0px", marginTop: "20px", marginBottom: "30px" },
+        style: {
+          display: "block",
+          height: "0px",
+          marginTop: "20px",
+          marginBottom: "30px",
+        },
         children: [1],
       },
       {
@@ -857,7 +877,12 @@ const CASES: DiffCase[] = [
       },
       {
         label: "z",
-        style: { display: "block", height: "0px", marginTop: "20px", marginBottom: "30px" },
+        style: {
+          display: "block",
+          height: "0px",
+          marginTop: "20px",
+          marginBottom: "30px",
+        },
         children: [1],
       },
       {
@@ -941,8 +966,16 @@ const CASES: DiffCase[] = [
         label: "g",
         style: { display: "block", height: "10px", marginTop: "-20px" },
       },
-      { label: "c", style: { display: "block", marginTop: "30px" }, children: [1] },
-      { label: "wrap", style: { display: "block", marginTop: "25px" }, children: [2] },
+      {
+        label: "c",
+        style: { display: "block", marginTop: "30px" },
+        children: [1],
+      },
+      {
+        label: "wrap",
+        style: { display: "block", marginTop: "25px" },
+        children: [2],
+      },
       {
         label: "b",
         style: { display: "block", height: "10px", marginTop: "5px" },
@@ -967,7 +1000,11 @@ const CASES: DiffCase[] = [
         label: "e",
         style: { display: "block", marginTop: "30px", marginBottom: "-20px" },
       },
-      { label: "wrap", style: { display: "block", marginTop: "25px" }, children: [1] },
+      {
+        label: "wrap",
+        style: { display: "block", marginTop: "25px" },
+        children: [1],
+      },
       {
         label: "b",
         style: { display: "block", height: "10px", marginTop: "5px" },
@@ -1014,7 +1051,12 @@ const CASES: DiffCase[] = [
       },
       {
         label: "root",
-        style: { display: "block", width: "300px", paddingBottom: "1px", ...FS0 },
+        style: {
+          display: "block",
+          width: "300px",
+          paddingBottom: "1px",
+          ...FS0,
+        },
         children: [0],
       },
     ],
@@ -1082,6 +1124,230 @@ const CASES: DiffCase[] = [
       },
     ],
   },
+  {
+    name: "parent-explicit-height-bottom-margin-contained — r11m1: height:50px 부모의 마지막 자식 bottom margin 은 부모 bottom 과 adjoining 아님 (§8.3.1 bottom 조건 = height auto + min-height 0; b.y 50)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", height: "50px" },
+        children: [0],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-min-height-nonbinding-bottom-margin-collapses — r11m1 대조군: min-height:10px (content 20 보다 작아 미바인딩) 부모는 접힘 유지 — §8.3.1 adjoining 조건은 height auto 뿐, min-height:0 은 self-collapsing 조건 (Chrome b.y 40; min_h>0 일괄 포함이면 55)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", minHeight: "10px", marginBottom: "15px" },
+        children: [0],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-min-height-binding-bottom-margin — r11m1: min-height:100px 바인딩 시 strut 미전파 (Chrome b.y 115 — 탈출이면 120)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", minHeight: "100px", marginBottom: "15px" },
+        children: [0],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-min-height-partially-binding-bottom-margin — r11m1: min-height:30px 이 strut 제외 content 20 보다 크고 strut 포함 40 보다 작을 때 strut 미전파 (Blink: used ≠ intrinsic; Chrome p.h 30 · b.y 45 — 포함-후-clamp 모델의 40 · 55 반증)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", minHeight: "30px", marginBottom: "15px" },
+        children: [0],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-max-height-binding-bottom-margin — r11m1: max-height:10px 바인딩 시 strut 미전파 (Chrome p.h 10 · b.y 25 — 탈출이면 30)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", maxHeight: "10px", marginBottom: "15px" },
+        children: [0],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-height-zero-bottom-margin-contained — r11m1 인접: height:0 (auto 아님) 부모는 used height 0 + 마지막 자식 margin 미탈출 (b.y 0)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", height: "0px" },
+        children: [0],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-height-zero-min-height-used — r11m1 인접: height:0 + min-height:10px 부모의 used height 는 10, 자식 margin 미탈출 (b.y 10)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", height: "0px", minHeight: "10px" },
+        children: [0],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-min-height-zero-bottom-margin-collapses — r11m1 대조군: min-height:0 명시 + auto height 는 접힘 유지 (max(20,15)=20; b.y 40)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", minHeight: "0px", marginBottom: "15px" },
+        children: [0],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-max-height-bottom-margin-collapses — r11m1 대조군: max-height 는 §8.3.1 bottom 조건에 없어 접힘 유지 (b.y 40)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", maxHeight: "100px", marginBottom: "15px" },
+        children: [0],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-explicit-height-top-margin-still-collapses — r11m1 대조군: height 명시는 top collapse 에 무관 (§8.3.1 top 조건은 border/padding 만; p.y 30 · c.y 30 · b.y 80)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px" },
+      },
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginTop: "20px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", height: "50px" },
+        children: [1],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 2, 3],
+      },
+    ],
+  },
 ];
 
 /** engine leg 입력 — engineStyle override 적용. */
@@ -1125,13 +1391,16 @@ describe("ADR-923 Phase 3 — Chrome 차등 (어댑터 우회 엔진 직결, G1 
       const pipe = pipelineLeg(c.nodes, c.availW, c.availH);
       const pipeBad = diffCase(c.nodes, dom, pipe);
       adapterNote =
-        pipeBad.length === 0 ? "정합" : `발산 ${pipeBad.length}: ${pipeBad.join(" | ")}`;
+        pipeBad.length === 0
+          ? "정합"
+          : `발산 ${pipeBad.length}: ${pipeBad.join(" | ")}`;
     } catch (e) {
       adapterNote = `error: ${String(e)}`;
     }
     console.log(`[ADR-923 P3] ${c.name} · adapterLeg(대조군): ${adapterNote}`);
     RECORD[c.name] = {
-      engine: bad.length === 0 ? "정합" : `발산 ${bad.length}: ${bad.join(" | ")}`,
+      engine:
+        bad.length === 0 ? "정합" : `발산 ${bad.length}: ${bad.join(" | ")}`,
       adapter: adapterNote,
     };
 
@@ -1199,8 +1468,14 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
   // r10h1 — Text leaf 의 line box 는 엔진에 `leafBaseline` 스칼라로만 도달한다
   // (§8.3.1 "no line boxes" — 텍스트가 있으면 height:0 이어도 self-collapsing 아님).
   // Chrome b.y 60 (20+0+30 순차) · self-collapsing 오분류면 40 (chain collapse).
-  const textZero = (extra: Record<string, unknown>, text: string): CaseNode[] => [
-    { label: "a", style: { display: "block", height: "10px", marginBottom: "10px" } },
+  const textZero = (
+    extra: Record<string, unknown>,
+    text: string,
+  ): CaseNode[] => [
+    {
+      label: "a",
+      style: { display: "block", height: "10px", marginBottom: "10px" },
+    },
     {
       label: "t",
       elementType: "Text",
@@ -1213,7 +1488,10 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
         ...extra,
       },
     },
-    { label: "b", style: { display: "block", height: "10px", marginTop: "5px" } },
+    {
+      label: "b",
+      style: { display: "block", height: "10px", marginTop: "5px" },
+    },
     {
       label: "root",
       style: { display: "block", width: "300px" },
@@ -1236,6 +1514,69 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
   });
   it("빈 텍스트 height:0 Text leaf 는 line box 없음 → self-collapsing (r10h1 대조군, b.y 40)", () => {
     const nodes = textZero({}, "");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("공백만 있는 Text leaf (white-space normal) 는 collapsible 공백이 전부 제거돼 line box 없음 → self-collapsing (r11h1, b.y 40)", () => {
+    const nodes = textZero({}, " ");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("공백·탭·개행만 있는 Text leaf (normal) 도 line box 없음 (r11h1, b.y 40)", () => {
+    const nodes = textZero({}, " \t\n ");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("공백만 + white-space:nowrap 도 collapsible → line box 없음 (r11h1, b.y 40)", () => {
+    const nodes = textZero({ whiteSpace: "nowrap" }, " ");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("공백만 + white-space:pre-line 은 공백·탭 collapsible → line box 없음 (r11h1 경계, b.y 40)", () => {
+    const nodes = textZero({ whiteSpace: "pre-line" }, " \t ");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("개행만 + white-space:pre-line 은 segment break 보존 (forced line break) → Chrome 판정 (r11h1 경계)", () => {
+    const nodes = textZero({ whiteSpace: "pre-line" }, "\n");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("공백만 + white-space:pre 는 공백 보존 → line box 있음 (r11h1 대조군, b.y 60)", () => {
+    const nodes = textZero({ whiteSpace: "pre" }, " ");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("공백만 + white-space:pre-wrap 도 line box 있음 (r11h1 대조군, b.y 60)", () => {
+    const nodes = textZero({ whiteSpace: "pre-wrap" }, "  ");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("nbsp 만 있는 Text leaf 는 collapsible 아님 → line box 있음 (r11h1 대조군, b.y 60)", () => {
+    const nodes = textZero({}, "\u00A0");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("fontSize:0 텍스트 x 는 line box 있음 (높이 0 이어도 line box; r11h1 대조군, b.y 60)", () => {
+    const nodes = textZero({ fontSize: "0px" }, "x");
     const dom = domLeg(nodes, 300);
     const pipe = pipelineLeg(nodes, 300, -1);
     const bad = diffCase(nodes, dom, pipe);

@@ -38,8 +38,9 @@
 //!   세 커널의 계약이 비대칭이라(2026-07-04 실사) display 별 최소 검증층으로 재분할:
 //!   - **단위 3-a (land)**: **block dispatch** — `block_layout`.
 //!     flex 와 계약이 가장 가까움(자식 flat f32, 자식 재귀 solve 로 content_w/h 확보).
-//!     block.rs 는 19필드/자식(물리축, vertical stacking) + OUT 은 `4*n + 2` (trailing
-//!     firstChildMarginTop/lastChildMarginBottom metadata). auto width 는 컨테이너로
+//!     block.rs 는 21필드/자식(물리축, vertical stacking — r10m2 로 19→21) + OUT 은
+//!     `4*n + 6` (trailing firstChildMarginTop/lastChildMarginBottom/lastLineBaseline/
+//!     inFlowBottom + 음수 성분 2). auto width 는 컨테이너로
 //!     stretch, fit-content 는 content_w 사용. margin collapse/inline-block/BFC 는
 //!     block.rs 내부 처리 — tree.rs 는 오케스트레이션(자식 solve → flat → 위치 반영).
 //!   - **단위 3-b (본 파일 현재)**: **grid dispatch** — `grid_layout`. grid 는 계약이
@@ -2652,7 +2653,7 @@ impl LayoutTree {
     /// block 컨테이너 solve — 자식 재귀 → `block.rs`(`block_layout`) → 컨테이너 크기 도출.
     ///
     /// block 은 flex 와 달리 논리축 변환이 없다(항상 물리 vertical stacking). 자식을
-    /// 먼저 solve 해 content_w/h 를 확보하고, 19필드 flat f32(물리축)로 직렬화해
+    /// 먼저 solve 해 content_w/h 를 확보하고, 21필드 flat f32(물리축)로 직렬화해
     /// `block_layout` 에 넘긴다. auto width 자식은 컨테이너 폭으로 stretch(block.rs
     /// 내부), 그 stretch 폭은 자식 solve 시점엔 모르므로 solve 는 content 만 산출하고
     /// 최종 폭은 block.rs 가 결정 → 반영 후 bounding box 로 컨테이너 크기 도출.
@@ -2734,9 +2735,21 @@ impl LayoutTree {
         let block_is_bfc = creates_bfc || parent_is_flex_or_grid;
         let can_collapse_top = !block_is_bfc && off_y == 0.0; // off_y = padding_top+border_top
         let bottom_barrier = pad_border_end(&style, &parent_ctx, false);
-        let can_collapse_bottom = !block_is_bfc && bottom_barrier == 0.0;
+        // r11m1 — §8.3.1 adjoining: "bottom margin of a last in-flow child and bottom margin of
+        // its parent if the parent has 'auto' computed height" (padding/border 0 · BFC 아님 은
+        // 종전 조건). 명시 height (0 포함 — height:0 은 auto 가 아니다) 면 마지막 자식 margin 은
+        // 부모 안에 남는다 (Chrome parent-explicit-height-bottom-margin-contained b.y 50 / 종전
+        // 70 · height:0 0 / 종전 20). `min-height: 0` 은 adjoining 조건이 아니라 self-collapsing
+        // 조건 — min/max-height 는 아래 flow_bottom 확정 뒤 **바인딩 여부**로 판정한다. top
+        // 조건에는 height 가 없다 (parent-explicit-height-top-margin-still-collapses p.y 30).
+        // height 판정 ctx 는 `resolve_self_size`(explicit_h) 와 같은 avail_h.
+        let own_height_is_auto =
+            resolve_dimension_opt(style.height.as_deref(), &self.ctx_for(avail_h)).is_none();
+        let own_min_h =
+            resolve_dimension_opt(style.min_height.as_deref(), &parent_ctx).unwrap_or(0.0);
+        let can_collapse_bottom = !block_is_bfc && bottom_barrier == 0.0 && own_height_is_auto;
 
-        // 2) 자식 → block flat f32 (19필드, 물리축).
+        // 2) 자식 → block flat f32 (FIELD_COUNT=21 필드, 물리축).
         let measuring = intrinsic_mode(avail_w).is_some();
         let mut data = vec![0.0f32; children.len() * block::FIELD_COUNT];
         for (i, &c) in children.iter().enumerate() {
@@ -2889,10 +2902,35 @@ impl LayoutTree {
         // 이 bbox 에선 auto height 를 부풀린다 (r9m2 — Chrome trailing-empty-block-escape
         // root 10, bbox 면 30).
         let flow_bottom = out[meta_off + 3] - escaped_top;
+        // r11m1 — min/max-height 가 **바인딩**되면 (used block-size ≠ strut 제외 intrinsic) 마지막
+        // 자식의 bottom margin strut 은 부모 밖으로 전파되지 않는다 — Blink 모델, Chrome 실측:
+        // min-height:30 (content 20 < 30 < strut 포함 40) p.h 30 · b.y 45 (포함-후-clamp 모델이면
+        // 55) · max-height:10 b.y 25 · min-height:100 b.y 115 / 미바인딩 min-height:10 은 접힘
+        // 유지 b.y 40 (종전 min_h > 0 일괄 포함은 55 로 발산). 사용 높이는 부모 intake 의
+        // `clamp_size`(슬롯 12/13, content-box) 가 확정하므로 여기선 strut 만 지운다 — 자식 margin
+        // edge 는 상자 안 overflow. 비교는 슬롯과 같은 content-box.
+        let flow_content = flow_bottom.max(0.0);
+        let own_max_h_content = resolve_dimension_opt(style.max_height.as_deref(), &parent_ctx)
+            .map(|mx| spec_to_content(mx, own_pb_v));
+        let min_max_binds = spec_to_content(own_min_h, own_pb_v) > flow_content
+            || own_max_h_content.is_some_and(|mx| mx < flow_content);
+        let escaped_bottom_set = if can_collapse_bottom && min_max_binds {
+            block::MarginSet::ZERO
+        } else {
+            escaped_bottom_set
+        };
         let container_w = if explicit_w > 0.0 { explicit_w } else { max_right };
         // auto height 는 0 하한 (r10m3 — 음수 margin 으로 in-flow bottom 이 content 원점 위로
         // 올라가도 used height 는 음수가 아니다: Chrome negative-top-margin-padded root.h 2).
-        let container_h = if explicit_h > 0.0 { explicit_h } else { flow_bottom.max(0.0) };
+        let container_h = if explicit_h > 0.0 {
+            explicit_h
+        } else if own_height_is_auto {
+            flow_bottom.max(0.0)
+        } else {
+            // 명시 height:0 은 auto 가 아니다 (r11m1 인접) — used content 0. min-height clamp 와
+            // padding 은 auto 와 같은 경로 (부모 intake `clamp_size` / root fixup) 가 적용한다.
+            0.0
+        };
 
         // 5) **shrink-to-fit 확정 뒤 재-solve** — `%` 재해소 + auto 폭 자식 stretch 복원.
         //   실측(2026-07-28): 폭 120 으로 확정된 shrink-to-fit block 안에서 `width:50%` 자식이
@@ -2948,7 +2986,7 @@ impl LayoutTree {
                 && bottom_barrier == 0.0
                 && all_children_collapse_through
                 && explicit_h <= 0.0
-                && resolve_dimension_opt(style.min_height.as_deref(), &parent_ctx).unwrap_or(0.0) <= 0.0;
+                && own_min_h <= 0.0;
             n.dirty = false;
             n.subtree_dirty = false;
         }
@@ -4892,10 +4930,11 @@ impl MarginAxisReverse {
     }
 }
 
-/// 자식 스타일 + solve 된 content 크기 → block.rs flat f32 (19필드, 물리축).
+/// 자식 스타일 + solve 된 content 크기 → block.rs flat f32 (21필드, 물리축).
 ///
-/// block.rs 필드 계약(FIELD_COUNT=19): 0=display(0=block/1=atomic inline-level — inline-block ·
-/// inline-flex · inline-grid, ADR-923 Phase 1/2=empty-block — intake 는 내지 않음, block.rs 사전 분류),
+/// block.rs 필드 계약(FIELD_COUNT=21 — r10m2): 0=display(0=block/1=atomic inline-level — inline-block ·
+/// inline-flex · inline-grid, ADR-923 Phase 1/2=self-collapsing — 이 함수는 0/1 만 쓰고, 코드 2 는
+/// solve_block intake 가 자식 solve 플래그로 발행, r10m1),
 /// 1=width(AUTO=-1/FIT_CONTENT=-2), 2=height, 3-6=margin(t/r/b/l), 7=bfc_flag,
 /// 8=pad_border_v, 9=pad_border_h, 10-13=min_w/max_w/min_h/max_h(AUTO=-1),
 /// 14=content_w, 15=content_h, 16=vertical_align, 17=baseline, 18=line_height(AUTO=-1),
@@ -8475,6 +8514,71 @@ mod tests {
         assert_eq!(tree.get_layout(h[3]).height, 0.0, "wrap used height 0 하한");
         assert_eq!(tree.get_layout(h[4]).y, 60.0, "wrap 은 self-collapsing 아님 (자식 내용 있음)");
         assert_eq!(tree.get_layout(h[5]).height, 70.0);
+    }
+
+    /// r11m1 — 부모 bottom 과 마지막 자식 bottom margin 의 adjoining 은 §8.3.1 "parent has
+    /// auto computed height" (padding/border 0 · BFC 아님 은 종전 조건) + Blink: min/max-height
+    /// 가 바인딩되면 strut 미전파. Chrome 실측: height:50px 부모 b.y 50 (종전 70) · height:0
+    /// 부모는 auto 가 아니라 used height 0 + margin 미탈출 b.y 0 (종전 20) · height:0+min-height:
+    /// 10 → 10 (종전 30) · min-height:30 부분 바인딩 p.h 30 · b.y 45 · min-height:100 b.y 115 ·
+    /// max-height:10 b.y 25. 대조군: 미바인딩 min-height:10 / min-height:0 / max-height:100 은
+    /// 접힘 유지 (b.y 40), height 명시는 top collapse 에 무관 (p.y 30 · b.y 80).
+    #[test]
+    fn adr923_p3_r11_parent_bottom_collapse_auto_height_and_unbound_min_max() {
+        let run = |p_style: &str| -> (f32, f32, f32) {
+            let mut tree = LayoutTree::new();
+            let json = format!(
+                r#"[
+                {{"style":{{"display":"block","height":"20px","marginBottom":"20px"}},"children":[]}},
+                {{"style":{{"display":"block",{p_style}}},"children":[0]}},
+                {{"style":{{"display":"block","height":"10px"}},"children":[]}},
+                {{"style":{{"display":"block","width":"300px"}},"children":[1,2]}}
+            ]"#
+            );
+            let h = tree.build_tree_batch(&json).unwrap();
+            tree.compute_layout(h[3], 300.0, 200.0);
+            (tree.get_layout(h[1]).height, tree.get_layout(h[2]).y, tree.get_layout(h[3]).height)
+        };
+        assert_eq!(run(r#""height":"50px""#), (50.0, 50.0, 60.0), "height 명시 → 자식 margin 미탈출");
+        assert_eq!(
+            run(r#""minHeight":"10px","marginBottom":"15px""#),
+            (20.0, 40.0, 50.0),
+            "미바인딩 min-height → 접힘 유지 (max(20,15)=20)"
+        );
+        assert_eq!(
+            run(r#""minHeight":"30px","marginBottom":"15px""#),
+            (30.0, 45.0, 55.0),
+            "부분 바인딩 min-height → strut 미전파, used 30 (자식 margin edge 40 은 overflow)"
+        );
+        assert_eq!(
+            run(r#""minHeight":"100px","marginBottom":"15px""#),
+            (100.0, 115.0, 125.0),
+            "바인딩 min-height → strut 미전파, 부모 자기 margin 15 만"
+        );
+        assert_eq!(
+            run(r#""maxHeight":"10px","marginBottom":"15px""#),
+            (10.0, 25.0, 35.0),
+            "바인딩 max-height → strut 미전파"
+        );
+        assert_eq!(run(r#""height":"0px""#), (0.0, 0.0, 10.0), "height:0 은 auto 가 아니다 — used 0");
+        assert_eq!(run(r#""height":"0px","minHeight":"10px""#), (10.0, 10.0, 20.0), "height:0 + min-height:10 → used 10");
+        assert_eq!(run(r#""minHeight":"0px","marginBottom":"15px""#), (20.0, 40.0, 50.0), "min-height:0 명시 → 접힘 유지");
+        assert_eq!(run(r#""maxHeight":"100px","marginBottom":"15px""#), (20.0, 40.0, 50.0), "max-height 는 bottom 조건 아님");
+
+        // top collapse 는 height 와 무관 (§8.3.1 top 조건 = border/padding 만).
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px"},"children":[]},
+            {"style":{"display":"block","height":"20px","marginTop":"20px"},"children":[]},
+            {"style":{"display":"block","height":"50px"},"children":[1]},
+            {"style":{"display":"block","height":"10px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0,2,3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[2]).y, 30.0, "c 의 margin-top 이 p top 을 관통");
+        assert_eq!(tree.get_layout(h[1]).y, 0.0);
+        assert_eq!(tree.get_layout(h[3]).y, 80.0);
     }
 
     /// r9 인접 — line box 는 margin 을 collapse 하지 않는다 (block h10+mb10 뒤 inline-block

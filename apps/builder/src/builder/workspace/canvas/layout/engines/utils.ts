@@ -4512,6 +4512,29 @@ const SPEC_SHAPES_INPUT_TAGS = new Set([
  *
  * @param computedStyle - 상속 적용 후 해당 요소의 computed style (fontSize 등 활용)
  */
+/**
+ * ADR-923 P3 r11h1 — 텍스트 leaf 가 white-space 처리 뒤에도 렌더할 내용이 남는가
+ * (= 엔진이 읽는 **line box 존재 신호**). CSS Text 3 §4.1.1 white-space processing:
+ * - `normal` / `nowrap`: 공백·탭·segment break 전부 collapsible → 줄 시작·끝에서 제거.
+ *   공백만 있는 문자열은 아무것도 남지 않아 line box 가 없다 (Chrome `" "` → 이웃 margin 이
+ *   관통, b.y 40 — raw nonempty 판정은 60 으로 오분류했다).
+ * - `pre-line`: 공백·탭은 collapsible, segment break 는 forced line break 로 보존 →
+ *   `"\n"` 만 있어도 line box 가 있다 (Chrome 실측 b.y 60).
+ * - `pre` / `pre-wrap` / `break-spaces`: 전부 보존 → 비어 있지 않으면 line box.
+ * U+00A0 (nbsp) 등 비-collapsible 문자는 모든 모드에서 내용이다.
+ */
+export function textLeafRendersContent(
+  text: string,
+  whiteSpace: unknown,
+): boolean {
+  if (text === "") return false;
+  const ws =
+    typeof whiteSpace === "string" ? whiteSpace.trim().toLowerCase() : "normal";
+  if (ws === "pre" || ws === "pre-wrap" || ws === "break-spaces") return true;
+  if (ws === "pre-line") return /[^ \t\f]/.test(text);
+  return /[^ \t\n\r\f]/.test(text);
+}
+
 export function enrichWithIntrinsicSize(
   element: CanvasLayoutNode,
   availableWidth: number,
@@ -4620,7 +4643,11 @@ export function enrichWithIntrinsicSize(
           "",
       )
     : "";
-  const textLeafHasLineBox = textLeafContent !== "";
+  // r11h1 — 신호는 raw 문자열이 아니라 white-space 처리 후 남는 내용 (textLeafRendersContent).
+  const textLeafHasLineBox = textLeafRendersContent(
+    textLeafContent,
+    style?.whiteSpace,
+  );
 
   if (!needsHeight && !needsWidth && !textLeafHasLineBox) return element;
 
@@ -4827,8 +4854,10 @@ export function enrichWithIntrinsicSize(
       (styleRecord?.fontWeight as number | string | undefined) ??
       _computedStyle?.fontWeight ??
       400;
-    // 폭 스칼라 2종은 width 가 auto/키워드일 때만 (명시 폭은 엔진이 그대로 쓴다).
-    if (needsWidth && baseContentWidth > 0) {
+    // 폭 스칼라 2종은 width 가 auto/키워드일 때만 (명시 폭은 엔진이 그대로 쓴다). r11h1 —
+    // white-space 처리로 내용이 사라지면 Chrome 의 max-content 는 0 이라 공급하지 않는다
+    // (raw `" "` 측정폭은 collapsible 공백의 폭이다).
+    if (needsWidth && baseContentWidth > 0 && textLeafHasLineBox) {
       // max-content = 단일줄 측정폭 (childResolvedWidth — resolvedIntrinsicWidth 는
       // min-content 키워드일 때 최장 단어 폭이라 max 스칼라로 쓰면 안 됨).
       // Math.ceil: 엔진 f32 ↔ JS f64 정밀도 경계 (layout-engine.md 기타 규칙).
@@ -4858,8 +4887,9 @@ export function enrichWithIntrinsicSize(
     // P3 r10h1 — 이 스칼라는 엔진의 **line box 존재 신호**이기도 하다 (§8.3.1 self-
     // collapsing 제외 — height:0 텍스트 leaf 의 margin 이 관통하지 않는다, Chrome b.y 60).
     // 그래서 width 명시 여부(needsWidth)와 무관하게 텍스트가 있으면 공급한다 — 빈
-    // 텍스트는 line box 가 없어 공급하지 않는다 (self-collapsing, Chrome b.y 40).
-    if (textContent) {
+    // 텍스트·collapsible 공백만 있는 텍스트(r11h1)는 line box 가 없어 공급하지 않는다
+    // (self-collapsing, Chrome b.y 40).
+    if (textLeafHasLineBox) {
       const fmBaseline = measureFontMetrics(
         scalarFontFamily,
         fontSize,
