@@ -24,6 +24,7 @@ import {
   type ActionBarOffset,
   type ActionBarSettings,
 } from "./utils/actionBarStorage";
+import { PAGE_STACK_GAP } from "../workspace/canvas/pageLayoutConstants";
 
 /** 페이지 배치 방향 */
 export type PageLayoutDirection = "auto" | "horizontal" | "vertical";
@@ -143,6 +144,10 @@ export interface SettingsState {
   pageLayoutDirection: PageLayoutDirection;
   /** 페이지 배치 방향 설정 */
   setPageLayoutDirection: (direction: PageLayoutDirection) => void;
+  /** 페이지 사이 간격 (기본값: 현재 page stack gap인 80px) */
+  pageGap: number;
+  /** 페이지 사이 간격 설정 */
+  setPageGap: (gap: number) => void;
 
   /**
    * ADR-154: 현재 활성 반응형 breakpoint (기본값: 'desktop').
@@ -170,6 +175,7 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
   workflowStraightEdges: true,
   workflowFocusedPageId: null,
   pageLayoutDirection: "auto" as PageLayoutDirection,
+  pageGap: PAGE_STACK_GAP,
   activeBreakpoint: "desktop" as BreakpointName,
   historyInfo: {
     canUndo: false,
@@ -321,6 +327,13 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
    */
   setPageLayoutDirection: (direction: PageLayoutDirection) => {
     set({ pageLayoutDirection: normalizePageLayoutDirection(direction) });
+  },
+
+  /** 페이지 사이 간격 설정 */
+  setPageGap: (gap: number) => {
+    set({
+      pageGap: Number.isFinite(gap) && gap >= 0 ? gap : PAGE_STACK_GAP,
+    });
   },
 
   /**

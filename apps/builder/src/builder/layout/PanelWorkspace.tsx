@@ -1160,8 +1160,47 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     [workspaceLayout],
   );
 
+  const pageLayoutPanelMetrics = useMemo(() => {
+    const leftFrames: PanelWorkspaceFrameSnapshot[] = [];
+    const rightFrames: PanelWorkspaceFrameSnapshot[] = [];
+
+    for (const frame of snapshot.frameGeometries.values()) {
+      const isLeftPlacement =
+        frame.placementZone === "left" || frame.placementZone.endsWith("-left");
+      const isRightPlacement =
+        frame.placementZone === "right" ||
+        frame.placementZone.endsWith("-right");
+
+      if (isLeftPlacement) {
+        leftFrames.push(frame);
+      } else if (isRightPlacement) {
+        rightFrames.push(frame);
+      }
+    }
+
+    const resolveFrameExtent = (
+      frames: readonly PanelWorkspaceFrameSnapshot[],
+    ): number => {
+      if (frames.length === 0) return 0;
+      const left = Math.min(...frames.map((frame) => frame.x));
+      const right = Math.max(...frames.map((frame) => frame.x + frame.width));
+      return Math.max(0, right - left);
+    };
+
+    return {
+      leftWidth: resolveFrameExtent(leftFrames),
+      rightWidth: resolveFrameExtent(rightFrames),
+    };
+  }, [snapshot.frameGeometries]);
+
   return (
-    <div className="panel-workspace" aria-label={t("workspace.workArea")}>
+    <div
+      className="panel-workspace"
+      aria-label={t("workspace.workArea")}
+      data-page-layout-left-panel-width={pageLayoutPanelMetrics.leftWidth}
+      data-page-layout-right-panel-width={pageLayoutPanelMetrics.rightWidth}
+      data-page-layout-panel-gap={PANEL_WORKSPACE_GAP}
+    >
       <PanelDock
         chrome={chrome}
         stageRef={stageRef}

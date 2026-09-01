@@ -126,7 +126,6 @@ import {
   computeFrameAreas,
 } from "./skia/workflowEdges";
 import {
-  PAGE_STACK_GAP,
   resolveAutoPageColumnCount,
   resolvePageLayoutAvailableWidth,
 } from "./pageLayoutConstants";
@@ -258,6 +257,9 @@ export function BuilderCanvas({
   const { wasmLayoutFailed, wasmLayoutReady } = useCanvasRuntimeBootstrap();
 
   const containerSize = useViewportSyncStore((state) => state.containerSize);
+  const pageLayoutPanelMetrics = useViewportSyncStore(
+    (state) => state.pageLayoutPanelMetrics,
+  );
 
   // 컨테이너 ref 콜백: 마운트 시점에 DOM 노드를 안전하게 확보
   const setContainerNode = useCallback((node: HTMLDivElement | null) => {
@@ -464,6 +466,7 @@ export function BuilderCanvas({
     (state) => state.framePositionsVersion,
   );
   const pageLayoutDirection = useStore((state) => state.pageLayoutDirection);
+  const pageGap = useStore((state) => state.pageGap);
 
   const pageIndex = useStore((state) => state.pageIndex);
   const scenePageIndex = canonicalSceneModel?.pageIndex ?? pageIndex;
@@ -663,9 +666,13 @@ export function BuilderCanvas({
         index,
         pageWidth,
         pageHeight,
-        PAGE_STACK_GAP,
+        pageGap,
         pageLayoutDirection,
-        resolvePageLayoutAvailableWidth(containerSize.width, zoom),
+        resolvePageLayoutAvailableWidth(
+          containerSize.width,
+          zoom,
+          pageLayoutPanelMetrics,
+        ),
       );
       return {
         ...area,
@@ -681,10 +688,12 @@ export function BuilderCanvas({
     pages,
     framePositions,
     isFrameEditMode,
+    pageGap,
     pageHeight,
     pageLayoutDirection,
     pagePositions,
     pageWidth,
+    pageLayoutPanelMetrics,
     containerSize.width,
     zoom,
     selectedReusableFrameId,

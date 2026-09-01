@@ -3,10 +3,7 @@ import { historyManager } from "../../../stores/history";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { getDB } from "../../../../lib/db";
 import { useViewportSyncStore } from "../stores";
-import {
-  PAGE_STACK_GAP,
-  resolvePageLayoutAvailableWidth,
-} from "../pageLayoutConstants";
+import { resolvePageLayoutAvailableWidth } from "../pageLayoutConstants";
 
 type BreakpointName = import("@composition/shared").BreakpointName;
 
@@ -35,8 +32,9 @@ async function persistActiveCanonicalDocument(
  * no-op (lazy write).
  */
 export function alignPagesToScreen(): void {
-  const { canvasSize, containerSize, zoom } = useViewportSyncStore.getState();
-  const { initializePagePositions, pageLayoutDirection, pages } =
+  const { canvasSize, containerSize, pageLayoutPanelMetrics, zoom } =
+    useViewportSyncStore.getState();
+  const { initializePagePositions, pageGap, pageLayoutDirection, pages } =
     useStore.getState();
 
   if (pages.length === 0 || canvasSize.width <= 0 || canvasSize.height <= 0) {
@@ -53,10 +51,14 @@ export function alignPagesToScreen(): void {
     pages,
     canvasSize.width,
     canvasSize.height,
-    PAGE_STACK_GAP,
+    pageGap,
     pageLayoutDirection,
     undefined,
-    resolvePageLayoutAvailableWidth(containerSize.width, zoom),
+    resolvePageLayoutAvailableWidth(
+      containerSize.width,
+      zoom,
+      pageLayoutPanelMetrics,
+    ),
   );
 
   const afterPositions = useStore.getState().pagePositions;

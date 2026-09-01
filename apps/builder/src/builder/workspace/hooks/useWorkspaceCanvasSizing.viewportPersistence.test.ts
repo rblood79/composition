@@ -69,6 +69,48 @@ describe("useWorkspaceCanvasSizing viewport persistence", () => {
     return { ...result, containerRef, canvasAreaRef };
   }
 
+  it("publishes left/right panel widths and gaps separately from viewport size", () => {
+    const host = document.createElement("div");
+    host.className = "panel-workspace-host";
+    const main = document.createElement("div");
+    main.className = "panel-workspace-main";
+    const container = document.createElement("div");
+    Object.defineProperties(container, {
+      clientWidth: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 700 },
+    });
+    const panelWorkspace = document.createElement("div");
+    panelWorkspace.className = "panel-workspace";
+    panelWorkspace.setAttribute("data-page-layout-left-panel-width", "240");
+    panelWorkspace.setAttribute("data-page-layout-right-panel-width", "320");
+    panelWorkspace.setAttribute("data-page-layout-panel-gap", "4");
+    main.append(container);
+    host.append(main, panelWorkspace);
+    document.body.append(host);
+
+    const rendered = renderHook(() =>
+      useWorkspaceCanvasSizing({
+        breakpoint: new Set(["desktop"]),
+        breakpoints: BREAKPOINTS,
+        canvasAreaRef: { current: container },
+        compareMode: false,
+        containerRef: { current: container },
+      }),
+    );
+
+    expect(useViewportSyncStore.getState().containerSize).toEqual({
+      width: 1000,
+      height: 700,
+    });
+    expect(useViewportSyncStore.getState().pageLayoutPanelMetrics).toEqual({
+      leftWidth: 240,
+      rightWidth: 320,
+      gap: 4,
+    });
+    rendered.unmount();
+    host.remove();
+  });
+
   it("restores the persisted desktop viewport after initial sizing", () => {
     window.localStorage.setItem(
       WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY,

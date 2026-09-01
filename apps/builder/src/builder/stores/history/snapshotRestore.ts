@@ -27,10 +27,7 @@ import { getDB } from "../../../lib/db";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { canonicalDocumentToElements } from "../canonical/canonicalElementsView";
 import { useViewportSyncStore } from "../../workspace/canvas/stores";
-import {
-  PAGE_STACK_GAP,
-  resolvePageLayoutAvailableWidth,
-} from "../../workspace/canvas/pageLayoutConstants";
+import { resolvePageLayoutAvailableWidth } from "../../workspace/canvas/pageLayoutConstants";
 import { historyManager, type HistoryEntry } from "../history";
 import { snapshotManager } from "./snapshots";
 
@@ -38,6 +35,7 @@ type GetState = Parameters<StateCreator<ElementsState>>[1];
 
 /** canvasSettings 슬라이스 필드 — ElementsState 타입에는 없지만 combined store 에 존재 */
 type StoreWithSettings = ElementsState & {
+  pageGap: number;
   pageLayoutDirection: PageLayoutDirection;
 };
 
@@ -79,12 +77,13 @@ export async function applySnapshotDocument(
     storePages,
     canvasSize.width,
     canvasSize.height,
-    PAGE_STACK_GAP,
+    store.pageGap,
     store.pageLayoutDirection,
     docCopy.pagePositions,
     resolvePageLayoutAvailableWidth(
       viewport.containerSize.width,
       viewport.zoom,
+      viewport.pageLayoutPanelMetrics,
     ),
   );
   store.setPages(storePages);

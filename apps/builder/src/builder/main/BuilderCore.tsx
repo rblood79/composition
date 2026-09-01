@@ -27,10 +27,7 @@ import {
   CANVAS_BREAKPOINTS,
   CANVAS_VIEWPORT,
 } from "../workspace/canvasBreakpoints";
-import {
-  PAGE_STACK_GAP,
-  resolvePageLayoutAvailableWidth,
-} from "../workspace/canvas/pageLayoutConstants";
+import { resolvePageLayoutAvailableWidth } from "../workspace/canvas/pageLayoutConstants";
 import { useViewportSyncStore } from "../workspace/canvas/stores";
 import { CanvasSelectionShortcutsHost } from "../panels/properties/CanvasSelectionShortcuts";
 import { BuilderCanvas } from "./BuilderCanvas";
@@ -464,11 +461,12 @@ export const BuilderCore: React.FC = () => {
       switchPagePositionsBreakpoint(currentBreakpoint, nextBreakpoint, {
         pageWidth: CANVAS_VIEWPORT[nextBreakpoint].width,
         pageHeight: CANVAS_VIEWPORT[nextBreakpoint].height,
-        gap: PAGE_STACK_GAP,
+        gap: useStore.getState().pageGap,
         direction: useStore.getState().pageLayoutDirection,
         availableWidth: resolvePageLayoutAvailableWidth(
           useViewportSyncStore.getState().containerSize.width,
           useViewportSyncStore.getState().zoom,
+          useViewportSyncStore.getState().pageLayoutPanelMetrics,
         ),
       });
       setActiveBreakpoint(nextBreakpoint);
@@ -487,11 +485,12 @@ export const BuilderCore: React.FC = () => {
       switchPagePositionsBreakpoint(currentBreakpoint, nextBreakpoint, {
         pageWidth: CANVAS_VIEWPORT[nextBreakpoint].width,
         pageHeight: CANVAS_VIEWPORT[nextBreakpoint].height,
-        gap: PAGE_STACK_GAP,
+        gap: useStore.getState().pageGap,
         direction: useStore.getState().pageLayoutDirection,
         availableWidth: resolvePageLayoutAvailableWidth(
           useViewportSyncStore.getState().containerSize.width,
           useViewportSyncStore.getState().zoom,
+          useViewportSyncStore.getState().pageLayoutPanelMetrics,
         ),
       });
       setActiveBreakpoint(nextBreakpoint);

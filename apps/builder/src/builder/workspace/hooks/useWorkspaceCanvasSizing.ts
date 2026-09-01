@@ -18,6 +18,7 @@ import {
   saveWorkspaceCanvasViewports,
   type WorkspaceCanvasViewport,
 } from "./workspaceCanvasViewportPersistence";
+import type { PageLayoutPanelMetrics } from "../canvas/pageLayoutConstants";
 
 interface UseWorkspaceCanvasSizingOptions {
   breakpoint?: Set<Key>;
@@ -44,6 +45,7 @@ export interface UseWorkspaceCanvasSizingResult {
 function publishCanvasLocalRect(
   container: HTMLDivElement,
   size: WorkspaceCanvasSize,
+  compareMode: boolean,
 ): void {
   const layoutVersion = container
     .closest<HTMLElement>(".panel-workspace-main")
@@ -51,7 +53,35 @@ function publishCanvasLocalRect(
   container.setAttribute("data-canvas-layout-version", layoutVersion ?? "");
   container.setAttribute("data-canvas-local-width", String(size.width));
   container.setAttribute("data-canvas-local-height", String(size.height));
-  useViewportSyncStore.getState().setContainerSize(size);
+  const viewportStore = useViewportSyncStore.getState();
+  viewportStore.setContainerSize(size);
+  viewportStore.setPageLayoutPanelMetrics(
+    compareMode
+      ? { leftWidth: 0, rightWidth: 0, gap: 0 }
+      : readPageLayoutPanelMetrics(container),
+  );
+}
+
+function readPageLayoutPanelMetrics(
+  container: HTMLDivElement,
+): PageLayoutPanelMetrics {
+  const panelWorkspace = container
+    .closest<HTMLElement>(".panel-workspace-host")
+    ?.querySelector<HTMLElement>(".panel-workspace");
+  if (!panelWorkspace) {
+    return { leftWidth: 0, rightWidth: 0, gap: 0 };
+  }
+
+  const readDimension = (attribute: string): number => {
+    const value = Number(panelWorkspace.getAttribute(attribute));
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  };
+
+  return {
+    leftWidth: readDimension("data-page-layout-left-panel-width"),
+    rightWidth: readDimension("data-page-layout-right-panel-width"),
+    gap: readDimension("data-page-layout-panel-gap"),
+  };
 }
 
 function syncCanvasLayoutVersion(container: HTMLDivElement): void {
@@ -344,7 +374,7 @@ export function useWorkspaceCanvasSizing({
         const isInitialLoad = containerSizeRef.current.width === 0;
         containerSizeRef.current = { height, width };
 
-        publishCanvasLocalRect(container, { height, width });
+        publishCanvasLocalRect(container, { height, width }, compareMode);
 
         if (usesPercentBreakpointRef.current) {
           setContainerSizeForPercent({ height, width });
@@ -362,9 +392,19 @@ export function useWorkspaceCanvasSizing({
     const mainSlot = container.closest<HTMLElement>(".panel-workspace-main");
     let layoutVersionObserver: MutationObserver | null = null;
     if (mainSlot) {
-      layoutVersionObserver = new MutationObserver(() =>
-        syncCanvasLayoutVersion(container),
-      );
+      layoutVersionObserver = new MutationObserver(() => {
+        syncCanvasLayoutVersion(container);
+        const currentSize = containerSizeRef.current;
+        if (currentSize.width > 0 && currentSize.height > 0) {
+          useViewportSyncStore
+            .getState()
+            .setPageLayoutPanelMetrics(
+              compareMode
+                ? { leftWidth: 0, rightWidth: 0, gap: 0 }
+                : readPageLayoutPanelMetrics(container),
+            );
+        }
+      });
       layoutVersionObserver.observe(mainSlot, {
         attributeFilter: ["data-layout-version"],
         attributes: true,
@@ -379,10 +419,14 @@ export function useWorkspaceCanvasSizing({
         height: initialHeight,
         width: initialWidth,
       };
-      publishCanvasLocalRect(container, {
-        height: initialHeight,
-        width: initialWidth,
-      });
+      publishCanvasLocalRect(
+        container,
+        {
+          height: initialHeight,
+          width: initialWidth,
+        },
+        compareMode,
+      );
 
       if (usesPercentBreakpointRef.current) {
         setContainerSizeForPercent({

@@ -3,6 +3,7 @@ import type { Page } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
 import { normalizePageLayoutDirection } from "../../../stores/canvasSettings";
 import { useViewportSyncStore } from "../stores";
+import { PAGE_STACK_GAP } from "../pageLayoutConstants";
 import { alignPagesToScreen } from "./pageLayoutActions";
 
 const makePage = (id: string): Page =>
@@ -18,6 +19,7 @@ describe("alignPagesToScreen", () => {
     useStore.setState({
       activeBreakpoint: "desktop",
       pageLayoutDirection: "horizontal",
+      pageGap: PAGE_STACK_GAP,
       pagePositions: {},
       pagePositionsByBreakpoint: {},
       pagePositionsVersion: 0,
@@ -32,6 +34,15 @@ describe("alignPagesToScreen", () => {
 
   it("Page Layout 기본값은 auto다", () => {
     expect(useStore.getInitialState().pageLayoutDirection).toBe("auto");
+    expect(useStore.getInitialState().pageGap).toBe(PAGE_STACK_GAP);
+  });
+
+  it("Page Gap 설정은 음수를 기본값으로 되돌리고 유효한 값을 저장한다", () => {
+    useStore.getState().setPageGap(120);
+    expect(useStore.getState().pageGap).toBe(120);
+
+    useStore.getState().setPageGap(-1);
+    expect(useStore.getState().pageGap).toBe(PAGE_STACK_GAP);
   });
 
   it("uses the Settings direction and current breakpoint canvas size", () => {
@@ -94,6 +105,43 @@ describe("alignPagesToScreen", () => {
       "page-2": { x: 2000, y: 0 },
       "page-3": { x: 0, y: 1160 },
       "page-4": { x: 2000, y: 1160 },
+    });
+  });
+
+  it("auto 배치는 좌·우 panel 폭과 side gap을 browser 폭에 포함한다", () => {
+    const pages = [makePage("page-1"), makePage("page-2")];
+    useStore.setState({
+      pageLayoutDirection: "auto",
+      pageGap: 100,
+      pages,
+      pagePositions: {
+        "page-1": { x: 0, y: 0 },
+        "page-2": { x: 2000, y: 0 },
+      },
+    } as never);
+    useViewportSyncStore.getState().setCanvasSize({
+      width: 600,
+      height: 400,
+    });
+    useViewportSyncStore.getState().setContainerSize({
+      width: 700,
+      height: 900,
+    });
+    useViewportSyncStore.getState().setPageLayoutPanelMetrics({
+      leftWidth: 300,
+      rightWidth: 300,
+      gap: 4,
+    });
+    useViewportSyncStore.getState().setViewportSnapshot({
+      panOffset: { x: 0, y: 0 },
+      zoom: 1,
+    });
+
+    alignPagesToScreen();
+
+    expect(useStore.getState().pagePositions).toEqual({
+      "page-1": { x: 0, y: 0 },
+      "page-2": { x: 700, y: 0 },
     });
   });
 

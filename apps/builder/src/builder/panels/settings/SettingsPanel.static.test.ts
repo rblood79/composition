@@ -21,6 +21,9 @@ describe("SettingsPanel 공통 panel 구조", () => {
 
     expect(source).toContain('value: "auto"');
     expect(source).toContain('t("settings.pageLayoutAuto")');
+    expect(source).toContain("PropertyNumberInput");
+    expect(source).toContain('t("settings.pageGap")');
+    expect(source).toContain("value={pageGap}");
     expect(source).not.toContain('value: "zigzag"');
     expect(source).not.toContain("pageLayoutZigzag");
   });

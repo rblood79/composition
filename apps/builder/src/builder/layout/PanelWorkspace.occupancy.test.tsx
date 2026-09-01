@@ -149,6 +149,8 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     const dockSurface = container.querySelector<HTMLElement>(
       ".panel-dock-surface",
     );
+    const panelWorkspace =
+      container.querySelector<HTMLElement>(".panel-workspace");
     const nodesFrame = container.querySelector<HTMLElement>(
       '.workspace-panel-frame[data-panel="navigator"]',
     );
@@ -169,6 +171,17 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     expect(dock?.getAttribute("data-column-limit")).toBe("2");
     expect(stage?.parentElement).toBe(dock);
     expect(dockSurface?.style.cssText).toBe("");
+    expect(panelWorkspace?.getAttribute("data-page-layout-panel-gap")).toBe(
+      "4",
+    );
+    expect(
+      Number(panelWorkspace?.getAttribute("data-page-layout-left-panel-width")),
+    ).toBeGreaterThan(0);
+    expect(
+      Number(
+        panelWorkspace?.getAttribute("data-page-layout-right-panel-width"),
+      ),
+    ).toBeGreaterThan(0);
     expect(dockSurface?.parentElement).toBe(stage);
     expect(
       dock?.querySelectorAll(":scope > .panel-dock-stage > .panel-toggle-rail"),

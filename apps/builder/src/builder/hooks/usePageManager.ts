@@ -37,10 +37,7 @@ import { migrateCheckboxRadioItemsStructure } from "../../adapters/canonical/che
 import { migrateFieldInlineLayout } from "../../adapters/canonical/fieldInlineLayoutMigration";
 import { migrateCircleLeafInlineSize } from "../../adapters/canonical/circleLeafInlineSizeMigration";
 import { ensureReusableCompositeOrigins } from "../components/reusableCompositeOrigins";
-import {
-  PAGE_STACK_GAP,
-  resolvePageLayoutAvailableWidth,
-} from "../workspace/canvas/pageLayoutConstants";
+import { resolvePageLayoutAvailableWidth } from "../workspace/canvas/pageLayoutConstants";
 
 function normalizePageSlug(slug: string | null | undefined): string {
   if (!slug) return "";
@@ -155,16 +152,22 @@ export const usePageManager = ({
   );
 
   const computeNextPagePosition = useCallback(() => {
-    const { pageLayoutDirection, pagePositions, pages } = useStore.getState();
-    const { canvasSize, containerSize, zoom } = useViewportSyncStore.getState();
+    const { pageGap, pageLayoutDirection, pagePositions, pages } =
+      useStore.getState();
+    const { canvasSize, containerSize, pageLayoutPanelMetrics, zoom } =
+      useViewportSyncStore.getState();
     return calculateNextPagePosition(
       pages,
       pagePositions,
       canvasSize.width,
       canvasSize.height,
-      PAGE_STACK_GAP,
+      pageGap,
       pageLayoutDirection,
-      resolvePageLayoutAvailableWidth(containerSize.width, zoom),
+      resolvePageLayoutAvailableWidth(
+        containerSize.width,
+        zoom,
+        pageLayoutPanelMetrics,
+      ),
     );
   }, []);
 
@@ -362,6 +365,7 @@ export const usePageManager = ({
           hydrateProjectSnapshot,
           initializePagePositions,
           setLazyLoadingEnabled,
+          pageGap,
           pageLayoutDirection,
         } = useStore.getState();
 
@@ -440,12 +444,13 @@ export const usePageManager = ({
           storePages,
           currentCanvasSize.width,
           currentCanvasSize.height,
-          PAGE_STACK_GAP,
+          pageGap,
           pageLayoutDirection,
           document.pagePositions,
           resolvePageLayoutAvailableWidth(
             currentViewport.containerSize.width,
             currentViewport.zoom,
+            currentViewport.pageLayoutPanelMetrics,
           ),
         );
         // 위치를 먼저 준비한 뒤 page 목록을 publish하여 미초기화 page가

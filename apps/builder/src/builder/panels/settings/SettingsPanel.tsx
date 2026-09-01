@@ -22,6 +22,7 @@ import { useUiStore } from "../../../stores/uiStore";
 import {
   PropertySwitch,
   PropertySelect,
+  PropertyNumberInput,
   PropertySection,
   PanelHeader,
 } from "../../components";
@@ -47,6 +48,8 @@ function SettingsContent() {
   const setPageLayoutDirection = useStore(
     (state) => state.setPageLayoutDirection,
   );
+  const pageGap = useStore((state) => state.pageGap);
+  const setPageGap = useStore((state) => state.setPageGap);
 
   // UI 설정 (글로벌 uiStore에서 가져옴)
   const themeMode = useUiStore((state) => state.themeMode);
@@ -144,6 +147,18 @@ function SettingsContent() {
               setPageLayoutDirection(value as PageLayoutDirection)
             }
             options={pageLayoutOptions}
+            icon={LayoutGrid}
+          />
+
+          <PropertyNumberInput
+            label={t("settings.pageGap")}
+            value={pageGap}
+            min={0}
+            max={2000}
+            step={1}
+            onChange={(value) => {
+              if (value !== undefined) setPageGap(value);
+            }}
             icon={LayoutGrid}
           />
         </PropertySection>

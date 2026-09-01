@@ -893,6 +893,7 @@ export interface TranslationKeys {
     snapToObjects: string;
     showActionBar: string;
     pageLayout: string;
+    pageGap: string;
     pageLayoutAuto: string;
     pageLayoutHorizontal: string;
     pageLayoutVertical: string;
