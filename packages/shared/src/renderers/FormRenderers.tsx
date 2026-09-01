@@ -713,10 +713,13 @@ export const renderCheckboxGroup = (
   // isSelected: true인 체크박스들의 ID를 value 배열로 생성
   const selectedValues = getSelectedChildIds(checkboxChildren);
 
-  // 그룹 라벨: Label 자식 Element의 텍스트 사용 (renderElement 호출 제거 — 이중 렌더링 방지)
+  // 그룹 라벨: parent `label`(D2 SSOT — Inspector binding·AI writer) 우선, Label 자식 텍스트는
+  //   parent 에 없는 legacy 문서 폴백 (renderElement 호출 제거 — 이중 렌더링 방지).
+  //   ADR-923 r16m1: Skia·레이아웃은 propagation `label → Label.children`(override) 로 parent 를
+  //   읽으므로 Preview 도 parent 우선이어야 AI 가 parent 만 쓴 문서에서 세 표면이 같다.
   const groupLabel =
-    (labelChild?.props?.children as string) ||
     (element.props.label as string) ||
+    (labelChild?.props?.children as string) ||
     undefined;
 
   return (
@@ -909,10 +912,13 @@ export const renderRadioGroup = (
     context.childrenByParent.get(radioParentId) ?? []
   ).filter((child) => child.type === "Radio");
 
-  // 그룹 라벨: Label 자식 Element의 텍스트 사용 (renderElement 호출 제거 — 이중 렌더링 방지)
+  // 그룹 라벨: parent `label`(D2 SSOT — Inspector binding·AI writer) 우선, Label 자식 텍스트는
+  //   parent 에 없는 legacy 문서 폴백 (renderElement 호출 제거 — 이중 렌더링 방지).
+  //   ADR-923 r16m1: Skia·레이아웃은 propagation `label → Label.children`(override) 로 parent 를
+  //   읽으므로 Preview 도 parent 우선이어야 AI 가 parent 만 쓴 문서에서 세 표면이 같다.
   const groupLabel =
-    (labelChild?.props?.children as string) ||
     (element.props.label as string) ||
+    (labelChild?.props?.children as string) ||
     undefined;
 
   // 선택값 정본: 자식 Radio 의 isSelected 우선, 없으면 그룹 value fallback.

@@ -395,8 +395,21 @@ const timeFieldPropagationRules: PropagationRule[] = [
 ];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): ColorField.spec 삭제 — propagation.rules 인라인 보존.
+//
+// ADR-923 r16m1 (2026-09-01): `label → Label.children` 추가 — spec 시절부터 size 만 있었다.
+//   composite parent 의 label 은 parent props(D2, Inspector binding `label`·AI writer)가 SSOT 고
+//   Preview 는 그것으로 RAC 를 self-compose 하는데, Skia(applyParentPropagationProps)·레이아웃
+//   (resolvePropagatedProps)·Inspector store 쓰기(buildPropagationUpdates)는 이 registry 로만
+//   canonical Label 자식에 닿는다. 규칙이 없으면 parent label 변경이 Preview 에만 보인다
+//   (Preview "Changed Color" / Skia·레이아웃 "Color"). 형제 field 9종(TextField~ComboBox) 동형.
 const colorFieldPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
 ];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): CheckboxGroup.spec 삭제 — propagation.rules 인라인 보존.
@@ -404,6 +417,15 @@ const checkboxGroupPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: ["Checkbox"], override: true },
   { parentProp: "size", childPath: ["Checkbox", "Label"], override: true },
   { parentProp: "size", childPath: "Label", override: true },
+  // ADR-923 r16m1 (2026-09-01): 그룹 label 다리 — ColorField 와 같은 누락 (factory sweep 검출).
+  //   binding 이 parent `label` 을 받지만 규칙이 없어 Inspector/AI 의 parent label 이 canonical
+  //   Label 자식에 닿지 않았다 (Preview 는 parent 우선으로 정렬 — renderCheckboxGroup).
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
 ];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): RadioGroup.spec 삭제 — propagation.rules 인라인 보존.
@@ -411,6 +433,13 @@ const radioGroupPropagationRules: PropagationRule[] = [
   { parentProp: "size", childPath: ["Radio"], override: true },
   { parentProp: "size", childPath: ["Radio", "Label"], override: true },
   { parentProp: "size", childPath: "Label", override: true },
+  // ADR-923 r16m1 (2026-09-01): 그룹 label 다리 — CheckboxGroup 동형.
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
 ];
 
 // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroup.spec 삭제 —

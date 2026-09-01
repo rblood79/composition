@@ -35,6 +35,7 @@ import { ensureGridListTemplateOrigins } from "../components/gridlist/gridListTe
 import { ensureMenuTemplateOrigins } from "../components/menu/menuTemplateOrigins";
 import { migrateCheckboxRadioItemsStructure } from "../../adapters/canonical/checkboxRadioItemsMigration";
 import { migrateFieldInlineLayout } from "../../adapters/canonical/fieldInlineLayoutMigration";
+import { migrateColorFieldParentLabel } from "../../adapters/canonical/colorFieldParentLabelMigration";
 import { migrateCircleLeafInlineSize } from "../../adapters/canonical/circleLeafInlineSizeMigration";
 import { ensureReusableCompositeOrigins } from "../components/reusableCompositeOrigins";
 import { resolvePageLayoutBounds } from "../workspace/canvas/pageLayoutConstants";
@@ -399,11 +400,14 @@ export const usePageManager = ({
           migrateCircleLeafInlineSize(
             // ADR-913 후속 (2026-06-19): field inline display/flexDirection strip (persist-back 경로).
             migrateFieldInlineLayout(
-              migrateCheckboxRadioItemsStructure(
-                // ADR-148 Phase 4: GridListItem/MenuItem slot origin — ListBox 동형 체인.
-                ensureMenuTemplateOrigins(
-                  ensureGridListTemplateOrigins(
-                    migrateLegacyListBoxTemplatesToOrigins(baseDocument),
+              // ADR-923 r16m1 (2026-09-01): ColorField parent label 보충 (persist-back 경로).
+              migrateColorFieldParentLabel(
+                migrateCheckboxRadioItemsStructure(
+                  // ADR-148 Phase 4: GridListItem/MenuItem slot origin — ListBox 동형 체인.
+                  ensureMenuTemplateOrigins(
+                    ensureGridListTemplateOrigins(
+                      migrateLegacyListBoxTemplatesToOrigins(baseDocument),
+                    ),
                   ),
                 ),
               ),

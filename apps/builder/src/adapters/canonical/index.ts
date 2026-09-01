@@ -49,6 +49,7 @@ import { ensureGridListTemplateOrigins } from "../../builder/components/gridlist
 import { ensureMenuTemplateOrigins } from "../../builder/components/menu/menuTemplateOrigins";
 import { migrateCheckboxRadioItemsStructure } from "./checkboxRadioItemsMigration";
 import { migrateFieldInlineLayout } from "./fieldInlineLayoutMigration";
+import { migrateColorFieldParentLabel } from "./colorFieldParentLabelMigration";
 import { migrateCircleLeafInlineSize } from "./circleLeafInlineSizeMigration";
 import { ensureReusableCompositeOrigins } from "../../builder/components/reusableCompositeOrigins";
 import { buildIdPathContext, segId } from "./idPath";
@@ -335,21 +336,24 @@ export function legacyToCanonical(
       // ADR-913 후속 (2026-06-19): field family inline display/flexDirection strip —
       //   labelPosition="side" CSS↔Skia 대칭 복구. checkboxRadio migration 동형 chain.
       migrateFieldInlineLayout(
-        migrateCheckboxRadioItemsStructure(
-          // ADR-148 Phase 4: GridListItem/MenuItem collection item slot origin —
-          //   ListBox 동형 hydration 체인 (Components 페이지 seed, 멱등 repair).
-          ensureMenuTemplateOrigins(
-            ensureGridListTemplateOrigins(
-              migrateLegacyListBoxTemplatesToOrigins({
-                version: "composition-1.0",
-                ...(themesSnapshot !== undefined
-                  ? { themes: themesSnapshot }
-                  : {}),
-                ...(tokensSnapshot !== undefined
-                  ? { tokens: tokensSnapshot }
-                  : {}),
-                children: [...layoutFrames, ...reusableMasters, ...pageNodes],
-              }),
+        // ADR-923 r16m1 (2026-09-01): ColorField parent label 보충 — Preview/Skia 라벨 대칭.
+        migrateColorFieldParentLabel(
+          migrateCheckboxRadioItemsStructure(
+            // ADR-148 Phase 4: GridListItem/MenuItem collection item slot origin —
+            //   ListBox 동형 hydration 체인 (Components 페이지 seed, 멱등 repair).
+            ensureMenuTemplateOrigins(
+              ensureGridListTemplateOrigins(
+                migrateLegacyListBoxTemplatesToOrigins({
+                  version: "composition-1.0",
+                  ...(themesSnapshot !== undefined
+                    ? { themes: themesSnapshot }
+                    : {}),
+                  ...(tokensSnapshot !== undefined
+                    ? { tokens: tokensSnapshot }
+                    : {}),
+                  children: [...layoutFrames, ...reusableMasters, ...pageNodes],
+                }),
+              ),
             ),
           ),
         ),

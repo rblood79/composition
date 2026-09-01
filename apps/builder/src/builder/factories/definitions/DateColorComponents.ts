@@ -497,6 +497,11 @@ export function createColorFieldDefinition(
     parent: {
       type: "ColorField",
       props: {
+        // ADR-923 r16m1 (2026-09-01): parent `label` = Label 자식 텍스트 (DateField/TimeField 동형).
+        //   Preview 는 parent label 로 RAC ColorField 를 self-compose 하므로 parent 에 없으면
+        //   생성 직후부터 Preview 무라벨 / Skia "Color" 였다. propagation `label → Label.children`
+        //   과 짝 — parent 가 SSOT, 자식은 mirror.
+        label: "Color",
         labelPosition: "top",
         isDisabled: false,
         // 2026-07-02 전수조사 fix: inline display/flexDirection/alignItems 제거 — Select/ComboBox
