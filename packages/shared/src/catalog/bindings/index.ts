@@ -497,3 +497,23 @@ export function resolveBindingPropDefault(
   if (bindingKey === undefined) return undefined;
   return PRIMITIVE_BINDINGS[bindingKey]?.props.accepts[key]?.default;
 }
+
+/**
+ * ADR-923 r23m1 sweep — collection 의 `selectionMode` 기본값. cutover 경로의 Preview 는
+ * `toRacProps` 가 채운 binding default 를 받으므로 (렌더러 destructure 기본값에 도달하지
+ * 않는다) layout·scene 의 판정 기본값도 같은 값이어야 한다. binding 이 선언하지 않은
+ * 타입만 호출자의 컴포넌트 기본값(`fallback`)을 쓴다.
+ *
+ * GridList 는 binding `single` 인데 layout·scene 이 `none` 을 들고 있었다 — 두 값 모두
+ * `checkboxModes: ["multiple"]` 밖이라 시각 결과는 같았지만, 기본값 원천이 둘이라 binding
+ * 쪽만 바뀌면 조용히 갈린다 (round 22 Table 높이와 같은 형태).
+ */
+export function resolveBindingSelectionMode(
+  type: string,
+  fallback: "none" | "single" | "multiple",
+): "none" | "single" | "multiple" {
+  const value = resolveBindingPropDefault(type, "selectionMode");
+  return value === "none" || value === "single" || value === "multiple"
+    ? value
+    : fallback;
+}

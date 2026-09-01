@@ -16,6 +16,7 @@ import {
   interpolateFieldTemplate,
   resolveComponentRule,
   resolveRowTemplateSource,
+  resolveBindingSelectionMode,
   resolveSelectionCheckboxVisible,
   resolveSlotComposition,
 } from "@composition/shared";
@@ -1528,7 +1529,8 @@ function appendGridListRowProjection(
     selectionMode: props.selectionMode,
     selectionStyle: props.selectionStyle,
     selectionBehavior: props.selectionBehavior,
-    defaultSelectionMode: "none",
+    // ADR-923 r23m1 — 기본값 원천은 catalog binding (layout·virtualization 과 같은 값).
+    defaultSelectionMode: resolveBindingSelectionMode("GridList", "none"),
     // GridList.tsx 게이트 = `selectionMode === "multiple"` (RAC starter 원본) → single 제외.
     //   Tree 규칙(single 포함)을 여기 쓰면 DOM 에 없는 체크박스를 그리고 카드가 22px 높아진다.
     checkboxModes: ["multiple"],

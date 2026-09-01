@@ -87,6 +87,7 @@ import { resolveComponentRuleByTag } from "@composition/shared";
 import {
   isSlotEnabled,
   readSlotComposition,
+  resolveBindingSelectionMode,
   resolveSelectionCheckboxVisible,
   toItemProjectionRow,
 } from "@composition/shared";
@@ -2839,7 +2840,9 @@ export function calculateContentHeight(
         selectionMode: props?.selectionMode,
         selectionStyle: props?.selectionStyle,
         selectionBehavior: props?.selectionBehavior,
-        defaultSelectionMode: "none",
+        // ADR-923 r23m1 — 기본값 원천은 catalog binding (Preview 는 toRacProps 가 채운 값을 받는다).
+        //   binding 미선언이면 GridList.tsx 컴포넌트 기본값 "none".
+        defaultSelectionMode: resolveBindingSelectionMode("GridList", "none"),
         // GridList.tsx 게이트와 동일 — single 은 DOM 에 체크박스가 없다.
         checkboxModes: ["multiple"],
         fallback: "toggle",

@@ -20,6 +20,7 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import {
   resolveCollectionItems,
   resolveCollectionWindow,
+  resolveBindingSelectionMode,
   resolveSelectionCheckboxVisible,
   resolveSlotComposition,
   isSlotEnabled,
@@ -200,7 +201,8 @@ function resolveGridListRowStride(
       selectionMode: props?.selectionMode,
       selectionStyle: props?.selectionStyle,
       selectionBehavior: props?.selectionBehavior,
-      defaultSelectionMode: "none",
+      // ADR-923 r23m1 — 기본값 원천은 catalog binding (layout §1.55c 와 같은 값).
+      defaultSelectionMode: resolveBindingSelectionMode("GridList", "none"),
       // GridList.tsx 게이트와 동일 — single 은 DOM 에 체크박스가 없다.
       checkboxModes: ["multiple"],
       fallback: "toggle",

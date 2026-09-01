@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   getComponentRulesTable,
@@ -30,19 +32,68 @@ import {
  * 아래 두 전수 대조가 새 기본값 축을 자동으로 감시한다 (binding 에 default 를 추가하거나
  * catalog defaultSize 를 바꾸면 layout 이 따라오지 않는 즉시 RED).
  */
-const node = (type: string, props: Record<string, unknown>): CanvasLayoutNode =>
-  ({ id: `${type}-r22`, type, props }) as unknown as CanvasLayoutNode;
+const node = (
+  type: string,
+  props: Record<string, unknown>,
+  id = `${type}-r22`,
+  parent_id?: string,
+): CanvasLayoutNode =>
+  ({ id, type, props, parent_id }) as unknown as CanvasLayoutNode;
+
+/**
+ * ADR-923 r23m1 — fixture 축. 기본값을 **자식·데이터가 있을 때만** 소비하는 경로가 있다
+ * (GridList `selectionMode` → 카드 선택 체크박스 높이 `utils.ts` `resolveCardSelectionExtra`
+ * 는 item 이 하나라도 있어야 실행된다). 빈 단일 노드만 재면 그런 기본값 변이가 게이트를
+ * 통과한다 — round 22 게이트가 실제로 GridList `selectionMode` single → multiple 을 놓쳤다.
+ */
+const FIXTURES: ReadonlyArray<{
+  name: string;
+  props?: Record<string, unknown>;
+  children?: ReadonlyArray<{ type: string; props: Record<string, unknown> }>;
+}> = [
+  { name: "bare" },
+  {
+    name: "children",
+    children: [
+      { type: "Text", props: { children: "A" } },
+      { type: "Text", props: { children: "B" } },
+    ],
+  },
+  {
+    name: "items",
+    props: {
+      items: [
+        { id: "i1", label: "A", description: "d1" },
+        { id: "i2", label: "B" },
+      ],
+    },
+  },
+];
 
 /** layout 4 표면 (컨테이너 주입 · 내용 폭/높이 · intrinsic 크기) 을 한 문자열로 접는다. */
-function layoutFingerprint(el: CanvasLayoutNode): string {
-  const byId = new Map<string, CanvasLayoutNode>([[el.id, el]]);
-  const implicit = applyImplicitStyles(el, [], () => [], byId, 400);
-  const enriched = enrichWithIntrinsicSize(el, 400, 0, undefined, [], () => []);
+function layoutFingerprint(
+  el: CanvasLayoutNode,
+  children: CanvasLayoutNode[],
+): string {
+  const byId = new Map<string, CanvasLayoutNode>([
+    [el.id, el],
+    ...children.map((c) => [c.id, c] as const),
+  ]);
+  const getChildren = (id: string) => (id === el.id ? children : []);
+  const implicit = applyImplicitStyles(el, children, getChildren, byId, 400);
+  const enriched = enrichWithIntrinsicSize(
+    el,
+    400,
+    0,
+    undefined,
+    children,
+    getChildren,
+  );
   return JSON.stringify({
     parent: implicit.effectiveParent.props?.style ?? {},
     filtered: implicit.filteredChildren.length,
-    w: calculateContentWidth(el),
-    h: calculateContentHeight(el, 400, [], () => []),
+    w: calculateContentWidth(el, children, getChildren),
+    h: calculateContentHeight(el, 400, children, getChildren),
     enriched: enriched.props?.style ?? {},
   });
 }
@@ -54,12 +105,21 @@ function diffTypes(
   for (const type of Object.keys(getComponentRulesTable())) {
     const defaults = defaultsOf(type);
     if (Object.keys(defaults).length === 0) continue;
-    const absent = layoutFingerprint(node(type, {}));
-    const explicit = layoutFingerprint(node(type, { ...defaults }));
-    if (absent !== explicit) {
-      diffs.push(
-        `${type} — 부재 ${absent} / 명시(${JSON.stringify(defaults)}) ${explicit}`,
-      );
+    for (const fixture of FIXTURES) {
+      const kids = (props: Record<string, unknown>) => {
+        const owner = node(type, props, `${type}-owner`);
+        const children = (fixture.children ?? []).map((c, i) =>
+          node(c.type, c.props, `${type}-child-${i}`, owner.id),
+        );
+        return layoutFingerprint(owner, children);
+      };
+      const absent = kids({ ...fixture.props });
+      const explicit = kids({ ...fixture.props, ...defaults });
+      if (absent !== explicit) {
+        diffs.push(
+          `${type} [${fixture.name}] — 부재 ${absent} / 명시(${JSON.stringify(defaults)}) ${explicit}`,
+        );
+      }
     }
   }
   return diffs;
@@ -152,5 +212,34 @@ describe("ADR-923 r22m1 — 갈려 있던 3 타입 고정", () => {
     const w = (props: Record<string, unknown>) =>
       calculateContentWidth(node("Select", { children: "Option", ...props }));
     expect(w({})).toBe(w({ size: "md" }));
+  });
+});
+
+/**
+ * ADR-923 r23m1 sweep — `defaultSelectionMode` 는 네 소비처 (layout 카드 높이 · scene 카드 ·
+ * virtualization stride · Skia Tree 체크박스) 가 각자 리터럴로 들고 있었다. cutover 경로의
+ * Preview 는 `toRacProps` 가 채운 binding default 를 받으므로 (렌더러 destructure 기본값에
+ * 도달하지 않는다) 기본값 원천은 catalog binding 하나여야 한다 — GridList 는 binding `single`
+ * 인데 세 자리가 `none` 을 들고 있었다 (둘 다 `checkboxModes: ["multiple"]` 밖이라 시각 결과는
+ * 같았지만 binding 쪽만 바뀌면 조용히 갈린다).
+ *
+ * layout 소비처는 위 전수 동치가 [items] fixture 로 감시한다. scene/virtualization/Skia 는
+ * 실행 경로가 달라 여기서는 **리터럴 부재**만 정적으로 고정한다 (값 자체는 shared
+ * `defaultContractLookup` 계약 테스트).
+ */
+describe("ADR-923 r23m1 — defaultSelectionMode 리터럴 0 (catalog binding 경유)", () => {
+  const FILES = [
+    "src/builder/workspace/canvas/layout/engines/utils.ts",
+    "src/builder/workspace/canvas/scene/collectionVirtualization.ts",
+    "src/builder/workspace/canvas/scene/canvasSceneNode.ts",
+    "src/builder/workspace/canvas/skia/buildSpecNodeData.ts",
+  ];
+
+  it.each(FILES)("%s — defaultSelectionMode 에 문자열 리터럴 없음", (rel) => {
+    const source = readFileSync(resolve(process.cwd(), rel), "utf8");
+    expect(source).toMatch(
+      /defaultSelectionMode:\s*resolveBindingSelectionMode\(/,
+    );
+    expect(source).not.toMatch(/defaultSelectionMode:\s*"/);
   });
 });

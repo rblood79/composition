@@ -4,6 +4,7 @@ import {
   getComponentRulesTable,
   getPrimitiveBinding,
   resolveBindingPropDefault,
+  resolveBindingSelectionMode,
   resolveComponentRuleByTag,
 } from "../index";
 import { toRacProps } from "../outputs/toRacProps";
@@ -41,7 +42,23 @@ describe("resolveBindingPropDefault — binding accepts default 조회", () => {
 
   it("미등록 타입 · 미선언 키는 undefined", () => {
     expect(resolveBindingPropDefault("Table", "notAProp")).toBeUndefined();
-    expect(resolveBindingPropDefault("NotAComponent", "height")).toBeUndefined();
+    expect(
+      resolveBindingPropDefault("NotAComponent", "height"),
+    ).toBeUndefined();
+  });
+});
+
+describe("resolveBindingSelectionMode — collection 선택 모드 기본값", () => {
+  it("binding 이 선언한 값을 준다 (GridList/Tree single · Table none)", () => {
+    expect(resolveBindingSelectionMode("GridList", "none")).toBe("single");
+    expect(resolveBindingSelectionMode("Tree", "single")).toBe("single");
+    expect(resolveBindingSelectionMode("Table", "single")).toBe("none");
+  });
+
+  it("binding 미선언 타입만 호출자의 컴포넌트 기본값", () => {
+    expect(resolveBindingSelectionMode("NotAComponent", "single")).toBe(
+      "single",
+    );
   });
 });
 
@@ -54,10 +71,9 @@ describe("resolveComponentRuleByTag — lowercase 태그 rule 조회", () => {
 
   it("테이블 전 타입에서 lowercase 조회가 Pascal 조회와 같은 rule", () => {
     for (const type of Object.keys(getComponentRulesTable())) {
-      expect(
-        resolveComponentRuleByTag(type.toLowerCase()),
-        type,
-      ).toBe(getComponentRulesTable()[type]);
+      expect(resolveComponentRuleByTag(type.toLowerCase()), type).toBe(
+        getComponentRulesTable()[type],
+      );
     }
   });
 

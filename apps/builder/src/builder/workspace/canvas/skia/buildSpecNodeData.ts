@@ -36,6 +36,7 @@ import {
   isCatalogCutover,
   getPrimitiveBinding,
   isDisclosureExpandedInContext,
+  resolveBindingSelectionMode,
   resolveSelectionCheckboxVisible,
   toSkiaStyle,
   usesButtonBaseUtility,
@@ -578,8 +579,8 @@ function resolveTreeSelectionCheckboxVisible(
         selectionMode: p.selectionMode,
         selectionStyle: p.selectionStyle,
         selectionBehavior: p.selectionBehavior,
-        // renderTree 의 기본값과 동일 — 미지정 Tree 는 "single" / "replace".
-        defaultSelectionMode: "single",
+        // ADR-923 r23m1 — 기본값 원천은 catalog binding; 미선언이면 Tree.tsx 기본값 "single".
+        defaultSelectionMode: resolveBindingSelectionMode("Tree", "single"),
         // Tree.tsx 게이트 = `selectionMode !== "none"` (RAC starter 원본) → single 포함.
         checkboxModes: ["single", "multiple"],
         fallback: "replace",
