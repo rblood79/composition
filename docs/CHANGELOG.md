@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [빈 목록은 빈 만큼만 차지하고, 글자 없는 버튼·메뉴도 미리보기와 같은 상자를 가집니다] - 2026-09-02
+
+### Fixed
+
+- 항목을 모두 비운 ListBox/GridList 가 캔버스에서 예전 기본 항목 3개/4개 높이 (110/164px) 를 차지하던 문제를 고쳤습니다 — 미리보기처럼 여백과 테두리만 남습니다 (ADR-923 Codex round 20).
+- 글자를 비운 Menu 단추가 캔버스에서 미리보기보다 넓고 높게 (106×30 vs 68×10) 그려지던 문제를 고쳤습니다 — 버튼 계열은 글자가 없으면 최소 폭과 여백만 차지하고, 짧은 글자 버튼도 이제 미리보기와 같은 최소 폭 (md 68px) 을 따릅니다.
+- 글자 없는 Menu 단추가 스크린리더에 이름 없는 버튼으로 읽히던 문제를 고쳤습니다 — 사용자가 준 aria-label 이 단추에 닿고, 없으면 "Menu"/"메뉴" 를 이름으로 씁니다 (화면에는 표시되지 않음). 빌더가 만든 Menu 의 aria-label 과 legacy 미리보기 Button 의 aria-label 도 이제 전달됩니다.
+
 ## [Breadcrumbs 상자 폭이 실제 항목에 맞고, IllustratedMessage·Menu 글자를 비우면 미리보기도 비웁니다] - 2026-09-01
 
 ### Fixed

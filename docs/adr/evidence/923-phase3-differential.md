@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 19 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 20 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -604,6 +604,45 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
     - r19l1: `.setDocument(` 직접 호출자 18 (교체 경계 2 + mutation/undo/frame 15 + dev fixture 1) — 수리 40 본문 정정. 종전 21 은
       receiver 경계 없는 grep 이 `getActiveCanonicalResetDocument(` 3건을 섞은 오집계.
 
+## round 20 수리 7건 (Codex 판독 r20m1/r20m2 + live sweep 3 — unit 게이트 + Chrome 실 CSS 오라클로 확정, 종전 코드 원복 RED 18, `641763bfb`)
+
+47. **layout 빈 정적 ListBox/GridList 의 sample-data fallback 제거** (r20m1 — `utils.ts` §1.55b/§1.55c 는 `props.items` 가 비면
+    3 행 ("Item 1~3", 110px) / 4 카드 (164px) 를 만들었다. DOM 은 `useResolvedCollectionItems` 가 빈 source 를 rows []
+    (sourceKind "empty") 로, scene 은 `appendListBoxRowProjection`/`appendGridListRowProjection` 이 rows 0 → projection 없음 —
+    layout 만 collection rows SSOT 전환 (ADR-912) 전의 fallback 을 남겼다 (Breadcrumbs 192px phantom · TagList `Tag N` 과 같은
+    형태). 빈 집합은 padding + border 뿐 (ListBox md 10). dataBinding 만 있고 행 0 인 소유자 (projection 없음 →
+    `_projectedRowsContentHeight` 미주입) 도 같은 경로. ADR-157 게이트 두 파일의 "3/4-item fallback" 단언은 정적 items 명시로
+    전환 — 결함을 회귀 게이트로 고정하고 있었다.)
+48. **Menu trigger 의 접근성 이름 경로 분리** (r20m2 — `components/Menu.tsx`: r19 수리 46 이 `label || "Menu"` 를 지우자 직접
+    사용한 빈 `<MenuButton>` 의 RAC Button 은 이름이 없어졌고, 호출자의 `aria-label`/`aria-labelledby` 는 `{...props}` 로
+    `MenuTrigger` (context provider — `BaseMenuTriggerProps` 에 aria 없음) 에 가서 버려졌다. 보이는 글자 = 텍스트 원천 계약
+    (그대로), 이름 = 호출자 aria-* → trigger Button 직접, 둘 다 없고 글자도 없으면 i18n `menuTriggerLabel` ("Menu"/"메뉴",
+    `i18n/componentStrings.ts`) — 속성이라 화면·Skia 에는 아무것도 없다. 6 분기의 trigger Button 을 단일 element 로.)
+49. **`renderMenu` 의 aria-\* 전달** (sweep — factory 는 `"aria-label": "Menu"` 를 쓰지만 (`NavigationComponents.ts` :30)
+    `renderMenu` commonProps 가 전달하지 않아 D1 이름 writer 가 죽어 있었다.)
+50. **legacy `renderButton` 의 aria-\* 전달** (sweep — r19 수리 42 가 "Button" 폴백을 지운 뒤 계약 결과 "" 인 Button 은 aria-\*
+    가 유일한 이름인데 legacy 경로가 떨어뜨렸다; canonical `Button` 컴포넌트는 rest spread.)
+51. **catalog `sizes.minWidth` 를 layout 이 소비** (live sweep — Menu trigger 빈 글자 live 에서 DOM 68×10 vs Skia 106×30.
+    `deriveSizeConfig` 가 `minWidth` (Button 45/50/68/95/122) 를 버려 `calculateContentWidth` 의 minWidth 분기가 죽어 있었다 —
+    글자 있는 버튼도 DOM `min-width` 68 vs layout 54. border-box (생성 CSS `box-sizing: border-box`) 라 content 하한 = minWidth
+    − padding − border.)
+52. **button 가족 빈 글자 폭** (live sweep — 빈 글자는 `if (text)` 밖 §6 `DEFAULT_WIDTH` 80 (+26 → 106) 로 떨어졌다 (icon-only
+    분기도 도달 불가). `BUTTON_TEXT_LEAF_TAGS` (button/submitbutton/fancybutton/menu) 는 글자가 비어도 size 분기 (textWidth 0 →
+    minWidth) 로.)
+53. **button 가족 빈 글자 높이** (live sweep — 글자 유무와 무관하게 lineHeight 20 줄 상자 (→ 30); Chrome 은 `display:flex`
+    button 에 내용이 없으면 padding + border 뿐 (min-height 없음, 10). 빈 글자 + iconName·isPending 없음 → content 0, enrich 가
+    button 가족에 한해 0 도 주입 (엔진은 catalog padding 을 모른다). input 은 내용 없이도 줄 상자 — 제외.)
+    - 게이트 (round 20): layout `adr923EmptyCollectionHeight.test.ts` 4 (ListBox 부재/[]/dataBinding-only → 10 · GridList → 0 ·
+      정적 1 행 · enrich 통합) · `adr923ButtonLikeEmptyText.test.ts` 4 (Button/Menu "" → 68×10 · "OK"/"Menu" → minWidth 68 · 긴
+      글자 > 68 · 아이콘/pending 은 줄 상자 · input 제외) · ADR-157 게이트 2 파일 정적 items 전환 · shared
+      `menuTriggerLabelEmpty.test.tsx` +5 (기본 aria-label · 호출자 aria-label · aria-labelledby 시 기본 없음 · 글자 있으면
+      aria-label 없음 · dataBinding 분기) · `textSourceContract.test.tsx` +2 (renderMenu/renderButton aria 전달) · **Chrome 실 CSS
+      오라클** `tests/parity/catalogComponentBox.browser.test.ts` Button 케이스 (내용 없는 `.react-aria-Button` DOM 68×10 =
+      pipeline).
+    - 원복 RED (실측, HEAD 파일로 교체 → 게이트 → 수리본 복구): layout utils 7 + Chrome Button 1 (dom 68×10 / pipe 106×30) · Menu
+      컴포넌트 4 · componentStrings 4 (`Could not find intl message menuTriggerLabel`) · CollectionRenderers 1 · LayoutRenderers
+      1 = 18.
+
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
 - **실효 (프로덕션 어댑터 경로가 그대로 타는 수리)**: 수리 5 (wrap min-content, r8l2
@@ -764,6 +803,10 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
   expected fail · 2 skipped) · layout unit 50 files/423 (+6) · builder unit 10 영역 207 files/1810 · shared 100 files/946 (+7) ·
   specs 75 files/875 (+2) · type-check 0. 원복 RED (실측) 12 — 수리 42~46 참조.
 
+- **round 20 수리 후**: Rust 변경 0 (TS 만) · 차등 **97/97** · full **parity 1034** (+1 Button 실 CSS; 기존 catalogComponentBox
+  2 · 1 expected fail · 2 skipped) · layout unit 52 files/431 (+8) · builder unit 10 영역 207 files/1810 · shared 100 files/953
+  (+7) · specs 75 files/875 · type-check 0. 원복 RED (실측) 18 — 수리 47~53 참조.
+
 - **Live Exercise (round 19 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP) — ① 팔레트에서 Breadcrumbs 추가
   (366×24, body stretch) → Styles Width size "fit" → 190×24, 선택 상자가 "Home › Category › Page" 끝에 맞음 (실제 crumb 폭; 종전
   phantom "Home › Products › Detail" 192 와 2px 차라 live 만으로는 판별력이 낮다 — 판별은 unit RED: crumb 0 → 192 phantom · A/B/C
@@ -772,6 +815,15 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
   빈 값을 `undefined` 로 쓴다** (`CatalogInspectorFields.tsx` :143 `v === "" ? undefined : v`) 라 부재 → 기본 글자 경로이고, "" 는
   AI `update_element`/import 같은 열린 writer 경로 — unit 3 표면 게이트로 확정 (Preview div 1 · layout 201/168 · Skia shape 없음).
   콘솔 에러 0. 확인 후 두 요소 삭제. legacy Button 경로 (`?canonical=0`) 는 unit 게이트.
+
+- **Live Exercise (round 20 수리 후, 2026-09-02)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP, compare mode) — ①
+  팔레트 ListBox 추가 (ref instance, items 3) → store `updateElementProps` 로 `items: []` → Skia layout map 366×**10** · Preview
+  iframe `[role=listbox]` 366×**10** (option 0, padding 4/4 · border 1) — 종전 layout 110. ② 팔레트 Menu 추가 (factory
+  `label`/`children`/`aria-label` 전부 "Menu") → Preview trigger `aria-label="Menu"` (수리 49 전엔 미전달) → label+children ""
+  → trigger 글자 "" · `aria-label="Menu"` (호출자 값), aria-label prop 삭제 → 기본 이름 "Menu" (i18n), `aria-label: "Actions"`
+  → "Actions". 같은 순간 **DOM 68×10 vs Skia 106×30** 발산 발견 → 수리 51~53 후 Skia **68×10** = DOM. Inspector 는 "" 를
+  `undefined` 로 쓰므로 store `updateElementProps` (AI/import 와 같은 열린 writer 경로) 로 넣었다. 콘솔 에러 0 · 두 요소 삭제.
+  GridList 빈 집합·legacy Button 경로는 unit + Chrome 실 CSS 게이트.
 
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
@@ -856,3 +908,13 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
   sweep 은 **렌더러 층 + 컴포넌트 층** 둘 다 봐야 한다 — round 18 의 Menu 처럼 렌더러만 고치면 컴포넌트가 되돌린다 (수리 46).
 - (r19) ToggleButtonGroup 측정의 items·children 0 → `DEFAULT_WIDTH` (80) 는 글자가 아닌 상자 기본값 (leaf 공통 폴백) — 빈
   ToggleButtonGroup 의 DOM 폭 (0) 과 다르지만 텍스트 축이 아니라 별도.
+- (r20) icon-only Button 폭은 §2.5 (`iconSize` 만) — DOM 은 `[data-icon-only]` padding 0 + `min-width` (md 68) 라 다른 축; 수리 52
+  의 minWidth 하한은 §2.5 를 거치지 않는다 (별도 후속).
+- (r20) INLINE_UI 태그 (badge/tag/chip/togglebutton/tab) 의 빈 글자는 여전히 `DEFAULT_WIDTH` 80 + 줄 상자 — r18/r19 writer 변경
+  밖이라 Chrome 미검증, 수리 52/53 은 button 가족 한정. 같은 형태의 후보.
+- (r20) catalog `sizes.height` 도 `deriveSizeConfig` 가 버린다 (`configHeight` 분기 dead) — Button 은 `height: 0` (= auto) 이라
+  현재 무영향, 다른 rule 이 height 를 쓰면 layout 만 못 본다.
+- (r20) Disclosure trigger 의 이름은 title 뿐 (RSP 동일 — `aria-label` 은 컨테이너 group 으로 간다); r18 수리로 title "" 이면
+  이름 없는 Button — D1 writer 가 없어 이번 sweep 밖.
+- (r20) 팔레트 카드 클릭은 **선택된 요소 안에** 넣는다 — ListBox 선택 상태에서 Menu 를 넣으면 ListBox 자식이 되어 Preview 에
+  안 그려진다 (items 렌더). live 절차 함정.
