@@ -470,7 +470,7 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
       (TextField/DateField/TimeField 의 FieldError 자식은 `children: ""` + `display: none`, 규칙 없음) skiaPrimitives 의
       `description` reader 는 card/listbox_item (collection) 뿐. round 15 이전부터의 D3 투영 공백 (text 원천 순서 문제가
       아님) 이고 수리 = 가족 전체 canonical 자식 (Description/FieldError) + propagation + FieldError 가시성 ↔ `isInvalid` +
-      레이아웃 높이 — ADR-923 (레이아웃 어휘) 범위 밖으로 판정, 관찰로 기록하고 사용자 scope 결정 대기.
+      레이아웃 높이 — ADR-923 (레이아웃 어휘) 범위 밖으로 판정, 관찰로 기록 — **사용자 결정 2026-09-01: 범위 밖, 별도 작업** (Phase 4 이후).
 
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
@@ -658,7 +658,7 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
   하니스 (위 Text width:100% 관찰과 같은 축) 가 필요.
 - (r16) field/group 의 parent `description`/`errorMessage` 를 Skia 가 어떤 가족에서도 그리지 않는다 (수리 33 참조) — Inspector
   writer 15 binding · Preview RAC slot · Skia 투영 0 · 레이아웃 높이 0. ADR-923 범위 밖 (레이아웃 어휘가 아니라 D3 투영 공백)
-  — 사용자 scope 결정 대기: 가족 전체 canonical Description/FieldError 자식 + propagation + `isInvalid` 가시성 + 높이.
+  — **사용자 결정 2026-09-01: 범위 밖, 별도 작업** (Phase 4 이후): 가족 전체 canonical Description/FieldError 자식 + propagation + `isInvalid` 가시성 + 높이.
 - (r16) Codex 원복 (b) — 레이아웃 종전 순서 원복 시 Chrome r13m2·r15 pin 도 RED (95/97): 종전 `extractTextContent` 가 Text 의
   콘텐츠 폭 경로에도 도달한다 — round 16 프롬프트의 "PASS 유지 예상" 은 틀렸다 (Chrome pin 이 레이아웃 원천 순서도 잡는다).
 - (r16) Codex 원복 (c″) — Preview generic 종전 함수 원복 시 `CanonicalNodeRenderer.textSource` 4/4 PASS: 게이트가 출력 의미만
