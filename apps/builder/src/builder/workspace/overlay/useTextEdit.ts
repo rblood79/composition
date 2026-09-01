@@ -23,6 +23,11 @@ import { setEditingElementId } from "../canvas/skia/nodeRenderers";
 import { useCanvasStore } from "../../stores/canvasStore";
 import { getSkiaNode, notifyLayoutChange } from "../canvas/skia/useSkiaNode";
 import { extractFullSpecTextStyle } from "./specTextStyleForOverlay";
+import {
+  resolveTextSourceKey,
+  resolveTextSourceText,
+  textSourceOrder,
+} from "@composition/specs";
 
 type TextEditNode = Parameters<
   Parameters<typeof visitCanonicalDocumentElements>[1]
@@ -180,18 +185,31 @@ function silentUpdateTextProp(elementId: string, value: string): void {
 }
 
 /**
- * 요소에서 텍스트 추출
+ * 편집 시작 텍스트 — 렌더 표면 (Skia · Preview · 레이아웃) 과 같은 타입별 텍스트 원천 계약
+ * (`@composition/specs` `resolveTextSourceText`, ADR-923 r15m1) 에 위임한다.
+ *
+ * round 16 (2026-09-01) 까지 overlay 는 자체 순서 `value || defaultValue || children || text || label`
+ * 을 들고 있었다 — AI `create_element`/`update_element` 가 Button 에 `label` 만 쓰면 캔버스·Preview 는
+ * 아무것도 안 그리는데 편집창에는 "Go" 가 떴고, 확정 시 `label` 에 다시 써서 계속 안 보였다.
+ * 입력 계열 (value 편집) 만 종전대로 — TEXT_EDITABLE_TAGS 밖이라 도달하지 않지만 의미를 보존.
  */
-function extractText(props: Record<string, unknown> | undefined): string {
+const INPUT_VALUE_EDIT_TAGS = new Set([
+  "Input",
+  "TextField",
+  "TextInput",
+  "SearchField",
+  "TextArea",
+]);
+
+export function extractText(
+  type: string,
+  props: Record<string, unknown> | undefined,
+): string {
   if (!props) return "";
-  return String(
-    props.value ||
-      props.defaultValue ||
-      props.children ||
-      props.text ||
-      props.label ||
-      "",
-  );
+  if (INPUT_VALUE_EDIT_TAGS.has(type)) {
+    return String(props.value || props.defaultValue || "");
+  }
+  return resolveTextSourceText(type, props);
 }
 
 /**
@@ -269,23 +287,17 @@ function extractTextStyle(
 /**
  * 텍스트 속성 키 결정 (저장 시 사용)
  */
-function getTextPropKey(
+/**
+ * 편집 결과를 쓸 prop 키 — 계약이 지금 텍스트를 읽는 키 (`resolveTextSourceKey`), 내용이 없으면 타입
+ * 순서의 첫 키 (기본 `children`, item `label`, 텍스트 leaf `children`). 계약 밖 키 (`label` on Button
+ * 등) 에는 쓰지 않는다 — 써도 세 표면이 안 읽는다.
+ */
+export function getTextPropKey(
   type: string,
   props: Record<string, unknown> | undefined,
 ): string {
-  if (props && ("value" in props || "defaultValue" in props)) return "value";
-  if (props && "children" in props) return "children";
-  if (props && "text" in props) return "text";
-  if (props && "label" in props) return "label";
-  // Input 관련 태그면 value, 아니면 children
-  const inputTags = new Set([
-    "Input",
-    "TextField",
-    "TextInput",
-    "SearchField",
-    "TextArea",
-  ]);
-  return inputTags.has(type) ? "value" : "children";
+  if (INPUT_VALUE_EDIT_TAGS.has(type)) return "value";
+  return resolveTextSourceKey(type, props) ?? textSourceOrder(type)[0];
 }
 
 // ============================================
@@ -315,7 +327,7 @@ export function useTextEdit(): UseTextEditReturn {
       }
 
       const props = element.props as Record<string, unknown> | undefined;
-      const text = extractText(props);
+      const text = extractText(element.type, props);
       const elStyle = element.props?.style as
         Record<string, unknown> | undefined;
 
