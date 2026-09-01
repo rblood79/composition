@@ -37,6 +37,7 @@ import {
   getPrimitiveBinding,
   isDisclosureExpandedInContext,
   resolveBindingSelectionMode,
+  resolveBindingSelectionStyle,
   resolveSelectionCheckboxVisible,
   toSkiaStyle,
   usesButtonBaseUtility,
@@ -577,7 +578,10 @@ function resolveTreeSelectionCheckboxVisible(
       const p = ancestor.props as Record<string, unknown>;
       return resolveSelectionCheckboxVisible({
         selectionMode: p.selectionMode,
-        selectionStyle: p.selectionStyle,
+        // ADR-923 r24m1 — style 축도 기본값 원천은 catalog binding. 아래 `fallback` 은
+        //   binding 미선언 타입용 최후 폴백으로만 남는다.
+        selectionStyle:
+          p.selectionStyle ?? resolveBindingSelectionStyle("Tree"),
         selectionBehavior: p.selectionBehavior,
         // ADR-923 r23m1 — 기본값 원천은 catalog binding; 미선언이면 Tree.tsx 기본값 "single".
         defaultSelectionMode: resolveBindingSelectionMode("Tree", "single"),

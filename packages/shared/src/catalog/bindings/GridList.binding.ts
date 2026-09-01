@@ -72,11 +72,15 @@ export const gridListBinding: PrimitiveBinding = {
           { value: "grid", label: "Grid" },
         ],
       },
+      // ADR-923 r24m1 — 기본값 "single" 은 어느 표면에도 없던 값이었다. RAC 기본은 "none",
+      //   `renderGridList` 도 `props.selectionMode || "none"` 로 렌더한다 (delegating 렌더러라
+      //   toRacProps 를 거치지 않아 이 default 가 Preview 에 도달하지 않았다). Inspector 만
+      //   contract.default 를 "현재값" 으로 보여 주어 패널 "Single" ↔ DOM none 이 갈렸다.
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",
         section: "state",
-        default: "single",
+        default: "none",
         options: [
           { value: "none", label: "None" },
           { value: "single", label: "Single" },

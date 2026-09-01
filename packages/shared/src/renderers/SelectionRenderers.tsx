@@ -20,6 +20,10 @@ import {
 } from "react-aria-components";
 import { DataField } from "../components/Field";
 import { resolveSelectionBehavior } from "../components/selectionStyle";
+import {
+  resolveBindingSelectionMode,
+  resolveBindingSelectionStyle,
+} from "../catalog/bindings";
 // ListBoxItem 행 slot 마크업 단일 소스 — Select/ComboBox 팝오버와 공유 (2026-08-21).
 import { renderListBoxItemSlotContent } from "../components/listBoxItemSlotContent";
 import type {
@@ -461,8 +465,8 @@ export const renderListBox = (
           (element.props.orientation as "horizontal" | "vertical") || "vertical"
         }
         selectionMode={
-          (element.props.selectionMode as "none" | "single" | "multiple") ||
-          "none"
+          (element.props.selectionMode as "none" | "single" | "multiple") ??
+          resolveBindingSelectionMode("ListBox", "none")
         }
         selectionBehavior={
           (element.props.selectionBehavior as "toggle" | "replace") || "toggle"
@@ -589,8 +593,8 @@ export const renderListBox = (
         (element.props.orientation as "horizontal" | "vertical") || "vertical"
       }
       selectionMode={
-        (element.props.selectionMode as "none" | "single" | "multiple") ||
-        "none"
+        (element.props.selectionMode as "none" | "single" | "multiple") ??
+        resolveBindingSelectionMode("ListBox", "none")
       }
       disallowEmptySelection={Boolean(element.props.disallowEmptySelection)}
       autoFocus={Boolean(element.props.autoFocus)}
@@ -972,15 +976,17 @@ export const renderGridList = (
       layout={(element.props.layout as "stack" | "grid") || "grid"}
       columns={(element.props.columns as number) || 2}
       selectionMode={
-        (element.props.selectionMode as "none" | "single" | "multiple") ||
-        "none"
+        (element.props.selectionMode as "none" | "single" | "multiple") ??
+        resolveBindingSelectionMode("GridList", "none")
       }
       // selectionStyle(RSP, 패널 표면) → selectionBehavior(RAC) — 변환은 shared helper
       //   단일 소스. 렌더러가 selectionBehavior 를 **항상 명시**로 넘기므로, 여기서
       //   selectionStyle 을 반영하지 않으면 컴포넌트 쪽 변환이 이 값에 가려 dead 가 된다
       //   (delegating renderer 가 prop 을 떨어뜨리는 이 저장소의 반복 결함 축).
       selectionBehavior={resolveSelectionBehavior({
-        selectionStyle: element.props.selectionStyle,
+        selectionStyle:
+          element.props.selectionStyle ??
+          resolveBindingSelectionStyle("GridList"),
         selectionBehavior: element.props.selectionBehavior,
         fallback: "toggle",
       })}

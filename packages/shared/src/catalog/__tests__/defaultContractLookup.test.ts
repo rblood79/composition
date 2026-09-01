@@ -5,6 +5,7 @@ import {
   getPrimitiveBinding,
   resolveBindingPropDefault,
   resolveBindingSelectionMode,
+  resolveBindingSelectionStyle,
   resolveComponentRuleByTag,
 } from "../index";
 import { toRacProps } from "../outputs/toRacProps";
@@ -49,9 +50,16 @@ describe("resolveBindingPropDefault — binding accepts default 조회", () => {
 });
 
 describe("resolveBindingSelectionMode — collection 선택 모드 기본값", () => {
-  it("binding 이 선언한 값을 준다 (GridList/Tree single · Table none)", () => {
-    expect(resolveBindingSelectionMode("GridList", "none")).toBe("single");
-    expect(resolveBindingSelectionMode("Tree", "single")).toBe("single");
+  // ADR-923 r24m1 기대값 갱신: GridList/ListBox 의 binding default 는 `single` 이었는데
+  //   **어느 표면에도 없던 값**이었다 — `renderGridList`/`renderListBox` 는
+  //   `props.selectionMode || "none"` 로 렌더하고(delegating 이라 toRacProps 미경유),
+  //   GridList factory 도 `selectionMode: "none"` 을 쓴다(SelectionComponents.ts). RAC 기본도
+  //   none. Inspector 만 `contract.default` 를 현재값으로 표시해 패널 Single ↔ DOM none 이
+  //   갈렸다. 선언을 실제 렌더 값으로 정정한다.
+  it("binding 이 선언한 값을 준다 (GridList/Table none · Tree single)", () => {
+    expect(resolveBindingSelectionMode("GridList", "single")).toBe("none");
+    expect(resolveBindingSelectionMode("ListBox", "single")).toBe("none");
+    expect(resolveBindingSelectionMode("Tree", "none")).toBe("single");
     expect(resolveBindingSelectionMode("Table", "single")).toBe("none");
   });
 
@@ -59,6 +67,18 @@ describe("resolveBindingSelectionMode — collection 선택 모드 기본값", (
     expect(resolveBindingSelectionMode("NotAComponent", "single")).toBe(
       "single",
     );
+  });
+});
+
+describe("resolveBindingSelectionStyle — 선택 표시 기본값 (r24m1)", () => {
+  it("binding 이 선언한 값을 준다 (GridList checkbox · Tree highlight)", () => {
+    expect(resolveBindingSelectionStyle("GridList")).toBe("checkbox");
+    expect(resolveBindingSelectionStyle("Tree")).toBe("highlight");
+  });
+
+  it("미선언 타입은 undefined — 호출자의 fallback 이 최후로 남는다", () => {
+    expect(resolveBindingSelectionStyle("ListBox")).toBeUndefined();
+    expect(resolveBindingSelectionStyle("NotAComponent")).toBeUndefined();
   });
 });
 

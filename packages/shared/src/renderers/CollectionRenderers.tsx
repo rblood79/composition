@@ -14,6 +14,10 @@ import {
 import { renderTagLeadingSlot } from "../components/tagLeadingSlot";
 import { resolveSelectionBehavior } from "../components/selectionStyle";
 import {
+  resolveBindingSelectionMode,
+  resolveBindingSelectionStyle,
+} from "../catalog/bindings";
+import {
   MenuSection as AriaMenuSection,
   Header as AriaMenuHeader,
   Separator as AriaMenuSeparator,
@@ -135,15 +139,17 @@ export const renderTree = (
         element.props["aria-label"] || element.props.label || "Tree",
       )}
       selectionMode={
-        (element.props.selectionMode as "none" | "single" | "multiple") ||
-        "single"
+        (element.props.selectionMode as "none" | "single" | "multiple") ??
+        resolveBindingSelectionMode("Tree", "single")
       }
       disallowEmptySelection={Boolean(element.props.disallowEmptySelection)}
       // selectionStyle(RSP, 패널 표면) → selectionBehavior(RAC) — shared helper 단일 소스.
       //   fallback 이 `"replace"` 인 것은 Tree 가 오래 이 값으로 렌더돼 체크박스 없는 상태가
       //   실질 기본이었기 때문 — 무지정 문서의 시각을 보존한다(GridList 는 "toggle").
       selectionBehavior={resolveSelectionBehavior({
-        selectionStyle: element.props.selectionStyle,
+        selectionStyle:
+          element.props.selectionStyle ??
+          resolveBindingSelectionStyle("Tree"),
         selectionBehavior: element.props.selectionBehavior,
         fallback: "replace",
       })}
@@ -389,8 +395,8 @@ export const renderTagGroup = (
       errorMessage={String(element.props.errorMessage || "")}
       allowsRemoving={Boolean(element.props.allowsRemoving)}
       selectionMode={
-        (element.props.selectionMode as "none" | "single" | "multiple") ||
-        "none"
+        (element.props.selectionMode as "none" | "single" | "multiple") ??
+        resolveBindingSelectionMode("TagGroup", "none")
       }
       selectionBehavior={
         (element.props.selectionBehavior as "toggle" | "replace") || "toggle"

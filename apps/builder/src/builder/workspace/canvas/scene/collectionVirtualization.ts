@@ -21,6 +21,7 @@ import {
   resolveCollectionItems,
   resolveCollectionWindow,
   resolveBindingSelectionMode,
+  resolveBindingSelectionStyle,
   resolveSelectionCheckboxVisible,
   resolveSlotComposition,
   isSlotEnabled,
@@ -199,7 +200,10 @@ function resolveGridListRowStride(
   const selectionExtra = resolveCardSelectionExtra({
     visible: resolveSelectionCheckboxVisible({
       selectionMode: props?.selectionMode,
-      selectionStyle: props?.selectionStyle,
+      // ADR-923 r24m1 — style 축도 기본값 원천은 catalog binding. 아래 `fallback` 은
+      //   binding 미선언 타입용 최후 폴백으로만 남는다.
+      selectionStyle:
+        props?.selectionStyle ?? resolveBindingSelectionStyle("GridList"),
       selectionBehavior: props?.selectionBehavior,
       // ADR-923 r23m1 — 기본값 원천은 catalog binding (layout §1.55c 와 같은 값).
       defaultSelectionMode: resolveBindingSelectionMode("GridList", "none"),

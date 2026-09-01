@@ -7,7 +7,15 @@ import {
   resolveBindingPropDefault,
 } from "@composition/shared";
 
+import type { CompositionDocument } from "@composition/shared";
+
 import type { CanvasLayoutNode } from "../../layoutNode";
+import {
+  buildCanvasSceneGraph,
+  type CanvasSceneNode,
+} from "../../../scene/canvasSceneNode";
+import { resolveVirtualizedCollectionWindows } from "../../../scene/collectionVirtualization";
+import { buildSpecNodeData } from "../../../skia/buildSpecNodeData";
 import { applyImplicitStyles } from "../implicitStyles";
 import {
   calculateContentHeight,
@@ -98,6 +106,45 @@ function layoutFingerprint(
   });
 }
 
+/**
+ * ADR-923 r24m1 — **활성화 축**. 어떤 기본값은 *다른* prop 이 비기본값일 때만 소비된다:
+ * GridList `selectionStyle` 은 `selectionMode` 가 `multiple` 일 때만 카드 높이에 닿는다
+ * (`checkboxModes: ["multiple"]`). 그런데 "전부 부재 ↔ 전부 명시" 대조는 명시 쪽이 **모든**
+ * 기본값을 한꺼번에 덮어써서 selectionMode 도 기본값으로 고정해 버리므로, 그 조합을 표현하지
+ * 못한다 — 실제로 `selectionStyle` 기본값을 checkbox → highlight 로 바꾸는 mutation 이 round 23
+ * 게이트를 그대로 통과했다.
+ *
+ * 그래서 각 타입마다 **비기본값 하나를 고정한 baseline** 을 더 만든다 (enum 은 non-default
+ * option 전부, size/variant 는 catalog 표의 non-default 첫 값). baseline 위에서 다시
+ * "부재 ↔ 명시" 를 비교하면 활성화된 경로의 기본값도 대조에 들어온다.
+ */
+function activationBaselines(type: string): Array<Record<string, unknown>> {
+  const out: Array<Record<string, unknown>> = [{}];
+  const accepts = getPrimitiveBinding(type)?.props.accepts ?? {};
+  for (const [key, contract] of Object.entries(accepts)) {
+    const options = (
+      contract as { options?: ReadonlyArray<{ value: string }> }
+    ).options;
+    if (options) {
+      for (const opt of options) {
+        if (opt.value !== contract.default) out.push({ [key]: opt.value });
+      }
+    } else if (contract.kind === "boolean") {
+      out.push({ [key]: true });
+    }
+  }
+  const rule = getComponentRulesTable()[type];
+  const otherSize = Object.keys(rule?.sizes ?? {}).find(
+    (k) => k !== rule?.defaultSize,
+  );
+  if (otherSize) out.push({ size: otherSize });
+  const otherVariant = Object.keys(rule?.variants ?? {}).find(
+    (k) => k !== rule?.defaultVariant,
+  );
+  if (otherVariant) out.push({ variant: otherVariant });
+  return out;
+}
+
 function diffTypes(
   defaultsOf: (type: string) => Record<string, unknown>,
 ): string[] {
@@ -113,12 +160,17 @@ function diffTypes(
         );
         return layoutFingerprint(owner, children);
       };
-      const absent = kids({ ...fixture.props });
-      const explicit = kids({ ...fixture.props, ...defaults });
-      if (absent !== explicit) {
-        diffs.push(
-          `${type} [${fixture.name}] — 부재 ${absent} / 명시(${JSON.stringify(defaults)}) ${explicit}`,
-        );
+      for (const baseline of activationBaselines(type)) {
+        const absent = kids({ ...fixture.props, ...baseline });
+        const explicit = kids({ ...fixture.props, ...defaults, ...baseline });
+        if (absent !== explicit) {
+          const at = Object.keys(baseline).length
+            ? ` @${JSON.stringify(baseline)}`
+            : "";
+          diffs.push(
+            `${type} [${fixture.name}]${at} — 부재 ${absent} / 명시(${JSON.stringify(defaults)}) ${explicit}`,
+          );
+        }
       }
     }
   }
@@ -235,11 +287,140 @@ describe("ADR-923 r23m1 — defaultSelectionMode 리터럴 0 (catalog binding �
     "src/builder/workspace/canvas/skia/buildSpecNodeData.ts",
   ];
 
-  it.each(FILES)("%s — defaultSelectionMode 에 문자열 리터럴 없음", (rel) => {
+  it.each(FILES)("%s — selectionMode/selectionStyle 기본값이 binding 경유", (rel) => {
     const source = readFileSync(resolve(process.cwd(), rel), "utf8");
     expect(source).toMatch(
       /defaultSelectionMode:\s*resolveBindingSelectionMode\(/,
     );
     expect(source).not.toMatch(/defaultSelectionMode:\s*"/);
+    // r24m1 — style 축도 같은 원천. `selectionStyle: props.x,` 로 되돌아가면 리터럴
+    //   `fallback` 이 다시 기본값 원천이 된다.
+    expect(source).toMatch(/\?\?\s*resolveBindingSelectionStyle\(/);
+  });
+});
+
+/**
+ * ADR-923 r24m2 — 위 정적 게이트는 **문자열만** 본다. 실제로
+ * `resolveBindingSelectionMode("NotAComponent", "multiple")` 처럼 잘못 결선해도 정적 4 + 기존
+ * scene 테스트가 전부 통과했다 (판독 실험). layout 밖 세 소비처는 실행 경로가 달라 layout 전수
+ * 동치가 닿지 않으므로, **각자의 production 진입점을 실행**해서 같은 계약(부재 = binding 기본값
+ * 명시)을 확인한다. 각 게이트에는 신호가 실제로 움직이는 **대조군**을 함께 둔다 — 대조군이
+ * 없으면 "언제나 false == false" 로 통과하는 빈 게이트가 된다.
+ */
+const SELECTION_DEFAULTS = {
+  selectionMode: resolveBindingPropDefault("GridList", "selectionMode"),
+  selectionStyle: resolveBindingPropDefault("GridList", "selectionStyle"),
+};
+
+function gridListDoc(props: Record<string, unknown>): CompositionDocument {
+  const items = Array.from({ length: 6 }, (_, i) => ({
+    id: `g${i}`,
+    label: `Card ${i}`,
+  }));
+  return {
+    version: "composition-1.0",
+    children: [
+      {
+        id: "page-1",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-1" },
+        children: [
+          {
+            id: "body-1",
+            type: "Body",
+            props: {},
+            children: [
+              {
+                id: "gridlist-1",
+                type: "GridList",
+                props: {
+                  items,
+                  layout: "stack",
+                  style: { height: 300, overflowY: "scroll" },
+                  ...props,
+                },
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  } as unknown as CompositionDocument;
+}
+
+describe("ADR-923 r24m2 — layout 밖 소비처의 기능 게이트", () => {
+  const sceneCheckboxes = (props: Record<string, unknown>): boolean[] => {
+    const graph = buildCanvasSceneGraph(gridListDoc(props));
+    return graph.nodes
+      .filter((n) => n.projection?.kind === "gridlist-row")
+      .map(
+        (n) =>
+          (n.props as Record<string, unknown>)._showSelectionCheckbox === true,
+      );
+  };
+
+  it("scene(buildCanvasSceneGraph): 카드 체크박스 신호가 부재 = 기본값 명시", () => {
+    const absent = sceneCheckboxes({});
+    expect(absent.length).toBeGreaterThan(0);
+    expect(absent).toEqual(sceneCheckboxes(SELECTION_DEFAULTS));
+    // 대조군 — 신호가 실제로 움직인다.
+    expect(sceneCheckboxes({ selectionMode: "multiple" })).toEqual(
+      absent.map(() => true),
+    );
+    expect(absent).toEqual(absent.map(() => false));
+  });
+
+  const stride = (props: Record<string, unknown>): number | undefined =>
+    resolveVirtualizedCollectionWindows({
+      doc: gridListDoc(props),
+      collections: [],
+      scrollTops: new Map(),
+    }).get("gridlist-1")?.rowHeight;
+
+  it("virtualization(resolveVirtualizedCollectionWindows): 행 stride 가 부재 = 기본값 명시", () => {
+    const absent = stride({});
+    expect(absent).toBeGreaterThan(0);
+    expect(absent).toBe(stride(SELECTION_DEFAULTS));
+    // 대조군 — 체크박스가 서면 stride 가 box(20) + gap(2) 만큼 커진다.
+    expect(stride({ selectionMode: "multiple" })).toBe((absent ?? 0) + 22);
+  });
+
+  const treeItemSkia = (treeProps: Record<string, unknown>): string => {
+    const tree = {
+      id: "tree-1",
+      type: "Tree",
+      parent_id: null,
+      page_id: "page-1",
+      props: treeProps,
+    } as unknown as CanvasSceneNode;
+    const item = {
+      id: "treeitem-1",
+      type: "TreeItem",
+      parent_id: "tree-1",
+      page_id: "page-1",
+      props: { children: "Item" },
+    } as unknown as CanvasSceneNode;
+    const node = buildSpecNodeData({
+      element: item,
+      layout: { x: 0, y: 0, width: 240, height: 32 } as never,
+      theme: "light",
+      elementsMap: new Map([
+        [tree.id, tree],
+        [item.id, item],
+      ]),
+    });
+    return JSON.stringify(node);
+  };
+
+  it("Skia(buildSpecNodeData): TreeItem 렌더 결과가 부재 = 기본값 명시", () => {
+    const treeDefaults = {
+      selectionMode: resolveBindingPropDefault("Tree", "selectionMode"),
+      selectionStyle: resolveBindingPropDefault("Tree", "selectionStyle"),
+    };
+    const absent = treeItemSkia({});
+    expect(absent).toBe(treeItemSkia(treeDefaults));
+    // 대조군 — checkbox 스타일이면 결과가 달라진다(행 앞 체크박스 슬롯).
+    expect(treeItemSkia({ selectionStyle: "checkbox" })).not.toBe(absent);
   });
 });

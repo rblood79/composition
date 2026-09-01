@@ -88,6 +88,7 @@ import {
   isSlotEnabled,
   readSlotComposition,
   resolveBindingSelectionMode,
+  resolveBindingSelectionStyle,
   resolveSelectionCheckboxVisible,
   toItemProjectionRow,
 } from "@composition/shared";
@@ -2838,7 +2839,10 @@ export function calculateContentHeight(
     const gridSelectionExtra = resolveCardSelectionExtra({
       visible: resolveSelectionCheckboxVisible({
         selectionMode: props?.selectionMode,
-        selectionStyle: props?.selectionStyle,
+        // ADR-923 r24m1 — style 축도 기본값 원천은 catalog binding. 아래 `fallback` 은
+        //   binding 미선언 타입용 최후 폴백으로만 남는다.
+        selectionStyle:
+          props?.selectionStyle ?? resolveBindingSelectionStyle("GridList"),
         selectionBehavior: props?.selectionBehavior,
         // ADR-923 r23m1 — 기본값 원천은 catalog binding (Preview 는 toRacProps 가 채운 값을 받는다).
         //   binding 미선언이면 GridList.tsx 컴포넌트 기본값 "none".

@@ -517,3 +517,22 @@ export function resolveBindingSelectionMode(
     ? value
     : fallback;
 }
+
+/**
+ * ADR-923 r24m1 — 같은 축의 `selectionStyle`. 체크박스 가시성 판정은 `selectionMode` 와
+ * `selectionStyle`(→ RAC `selectionBehavior`) 의 AND 인데, mode 만 binding 으로 옮기고
+ * style 은 소비처 리터럴 `fallback`("toggle"/"replace") 로 남겨 두면 **원천이 다시 둘**이
+ * 된다. 현재 값은 우연히 정합이라(GridList `checkbox`↔toggle · Tree `highlight`↔replace)
+ * 시각 차이가 없지만, binding 쪽 default 만 바꾸면 Preview 는 따라가고 layout·scene·Skia 는
+ * 리터럴에 묶여 갈린다 — 실제로 `checkbox → highlight` mutation 이 round 23 게이트를
+ * 그대로 통과했다.
+ *
+ * 소비처는 `selectionStyle: props.selectionStyle ?? resolveBindingSelectionStyle(type)` 로
+ * 넘긴다. binding 이 선언하지 않은 타입에서만 기존 `fallback` 이 최후 폴백으로 남는다.
+ */
+export function resolveBindingSelectionStyle(
+  type: string,
+): "checkbox" | "highlight" | undefined {
+  const value = resolveBindingPropDefault(type, "selectionStyle");
+  return value === "checkbox" || value === "highlight" ? value : undefined;
+}
