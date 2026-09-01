@@ -834,22 +834,25 @@ impl LayoutTree {
         if !has_w && avail_w > 0.0 {
             layout.width = avail_w;
             // min/max width clamp (자기 크기 — CSS §10.4).
-            if let Some(mn) = resolve_dimension_opt(style.min_width.as_deref(), &ctx_w) {
-                layout.width = layout.width.max(mn);
-            }
+            // r12m2 sweep — §10.4: max 먼저, 그 다음 min (min > max 면 min 우선).
             if let Some(mx) = resolve_dimension_opt(style.max_width.as_deref(), &ctx_w) {
                 layout.width = layout.width.min(mx);
+            }
+            if let Some(mn) = resolve_dimension_opt(style.min_width.as_deref(), &ctx_w) {
+                layout.width = layout.width.max(mn);
             }
         }
 
         // ② auto height → content + pad_border, 이어서 자기 min/max clamp. explicit 높이는 유지.
         if !has_h {
             layout.height += own_pb_v;
-            if let Some(mn) = resolve_dimension_opt(style.min_height.as_deref(), &ctx_h) {
-                layout.height = layout.height.max(mn);
-            }
+            // r12m2 sweep — §10.7: max 먼저, 그 다음 min (Chrome root min-height:30 + max-height:10
+            // → 30 / 종전 10).
             if let Some(mx) = resolve_dimension_opt(style.max_height.as_deref(), &ctx_h) {
                 layout.height = layout.height.min(mx);
+            }
+            if let Some(mn) = resolve_dimension_opt(style.min_height.as_deref(), &ctx_h) {
+                layout.height = layout.height.max(mn);
             }
         }
 
@@ -887,17 +890,19 @@ impl LayoutTree {
         let style = &node.style;
         let mut w = width;
         let mut h = height;
-        if let Some(mn) = resolve_dimension_opt(style.min_width.as_deref(), &ctx_w) {
-            w = w.max(mn);
-        }
+        // r12m2 sweep — max 먼저, 그 다음 min (§10.4/§10.7; Chrome grid item min-height:30 +
+        // max-height:10 → 트랙 30 / 종전 10).
         if let Some(mx) = resolve_dimension_opt(style.max_width.as_deref(), &ctx_w) {
             w = w.min(mx);
         }
-        if let Some(mn) = resolve_dimension_opt(style.min_height.as_deref(), &ctx_h) {
-            h = h.max(mn);
+        if let Some(mn) = resolve_dimension_opt(style.min_width.as_deref(), &ctx_w) {
+            w = w.max(mn);
         }
         if let Some(mx) = resolve_dimension_opt(style.max_height.as_deref(), &ctx_h) {
             h = h.min(mx);
+        }
+        if let Some(mn) = resolve_dimension_opt(style.min_height.as_deref(), &ctx_h) {
+            h = h.max(mn);
         }
         (w, h)
     }
@@ -2742,11 +2747,15 @@ impl LayoutTree {
         // 70 · height:0 0 / 종전 20). `min-height: 0` 은 adjoining 조건이 아니라 self-collapsing
         // 조건 — min/max-height 는 아래 flow_bottom 확정 뒤 **바인딩 여부**로 판정한다. top
         // 조건에는 height 가 없다 (parent-explicit-height-top-margin-still-collapses p.y 30).
-        // height 판정 ctx 는 `resolve_self_size`(explicit_h) 와 같은 avail_h.
+        // height 판정 ctx 는 `resolve_self_size`(explicit_h) 와 같은 avail_h. min/max-height 도
+        // 세로 축이라 같은 ctx — 부모가 auto 면 avail_h 는 INDEFINITE 라 percentage 는 None → 0
+        // (§10.7: containing block 높이 미명시 시 percentage min-height 는 0). 종전 `parent_ctx`
+        // (avail_w) 는 50% 를 폭 기준 150 으로 풀어 바인딩으로 오판 (r12m1 — Chrome b.y 40 / 35).
+        let own_height_ctx = self.ctx_for(avail_h);
         let own_height_is_auto =
-            resolve_dimension_opt(style.height.as_deref(), &self.ctx_for(avail_h)).is_none();
+            resolve_dimension_opt(style.height.as_deref(), &own_height_ctx).is_none();
         let own_min_h =
-            resolve_dimension_opt(style.min_height.as_deref(), &parent_ctx).unwrap_or(0.0);
+            resolve_dimension_opt(style.min_height.as_deref(), &own_height_ctx).unwrap_or(0.0);
         let can_collapse_bottom = !block_is_bfc && bottom_barrier == 0.0 && own_height_is_auto;
 
         // 2) 자식 → block flat f32 (FIELD_COUNT=21 필드, 물리축).
@@ -2910,8 +2919,9 @@ impl LayoutTree {
         // `clamp_size`(슬롯 12/13, content-box) 가 확정하므로 여기선 strut 만 지운다 — 자식 margin
         // edge 는 상자 안 overflow. 비교는 슬롯과 같은 content-box.
         let flow_content = flow_bottom.max(0.0);
-        let own_max_h_content = resolve_dimension_opt(style.max_height.as_deref(), &parent_ctx)
-            .map(|mx| spec_to_content(mx, own_pb_v));
+        let own_max_h_content =
+            resolve_dimension_opt(style.max_height.as_deref(), &own_height_ctx)
+                .map(|mx| spec_to_content(mx, own_pb_v));
         let min_max_binds = spec_to_content(own_min_h, own_pb_v) > flow_content
             || own_max_h_content.is_some_and(|mx| mx < flow_content);
         let escaped_bottom_set = if can_collapse_bottom && min_max_binds {
@@ -8579,6 +8589,49 @@ mod tests {
         assert_eq!(tree.get_layout(h[2]).y, 30.0, "c 의 margin-top 이 p top 을 관통");
         assert_eq!(tree.get_layout(h[1]).y, 0.0);
         assert_eq!(tree.get_layout(h[3]).y, 80.0);
+    }
+
+    /// r12m1/r12m2 — percentage min-height 는 세로 ctx (auto 부모 = indefinite → 0, §10.7:
+    /// Chrome b.y 40 / 수평 ctx 150 오판 35) · min > max 는 min 우선 (§10.7 max-then-min:
+    /// Chrome p.h 30 · b.y 45 / min-then-max 10 · 25) · sweep: root fixup (root.h 30 / 10) ·
+    /// grid 트랙 기여값 (c.h 30 / 10).
+    #[test]
+    fn adr923_p3_r12_percent_min_height_ctx_and_clamp_order() {
+        let run = |p_style: &str| -> (f32, f32, f32) {
+            let mut tree = LayoutTree::new();
+            let json = format!(
+                r#"[
+                {{"style":{{"display":"block","height":"20px","marginBottom":"20px"}},"children":[]}},
+                {{"style":{{"display":"block",{p_style}}},"children":[0]}},
+                {{"style":{{"display":"block","height":"10px"}},"children":[]}},
+                {{"style":{{"display":"block","width":"300px"}},"children":[1,2]}}
+            ]"#
+            );
+            let h = tree.build_tree_batch(&json).unwrap();
+            tree.compute_layout(h[3], 300.0, 200.0);
+            (tree.get_layout(h[1]).height, tree.get_layout(h[2]).y, tree.get_layout(h[3]).height)
+        };
+        assert_eq!(run(r#""minHeight":"50%","marginBottom":"15px""#), (20.0, 40.0, 50.0), "indefinite CB 의 % min-height = 0 → 접힘");
+        assert_eq!(run(r#""minHeight":"30px","maxHeight":"10px","marginBottom":"15px""#), (30.0, 45.0, 55.0), "min > max → min 우선");
+
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"20px"},"children":[]},
+            {"style":{"display":"block","width":"300px","minHeight":"30px","maxHeight":"10px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).height, 30.0, "root fixup 도 max-then-min");
+
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"minHeight":"30px","maxHeight":"10px"},"children":[]},
+            {"style":{"display":"grid","gridTemplateColumns":["1fr"],"width":"300px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[0]).height, 30.0, "grid item min > max → 30");
+        assert_eq!(tree.get_layout(h[1]).height, 30.0, "auto 트랙 기여값도 30");
     }
 
     /// r9 인접 — line box 는 margin 을 collapse 하지 않는다 (block h10+mb10 뒤 inline-block

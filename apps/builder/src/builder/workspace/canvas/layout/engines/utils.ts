@@ -4527,12 +4527,31 @@ export function textLeafRendersContent(
   text: string,
   whiteSpace: unknown,
 ): boolean {
+  // (아래 본문) — 호출자는 whiteSpace 를 inline style → computed(상속) 순으로 넘긴다 (r12h1).
   if (text === "") return false;
   const ws =
     typeof whiteSpace === "string" ? whiteSpace.trim().toLowerCase() : "normal";
   if (ws === "pre" || ws === "pre-wrap" || ws === "break-spaces") return true;
   if (ws === "pre-line") return /[^ \t\f]/.test(text);
   return /[^ \t\n\r\f]/.test(text);
+}
+
+/**
+ * ADR-923 P3 r12l3 — 텍스트 leaf 의 내용 원천 (children → text → label → title, 첫 정의값 —
+ * `??` 체인과 같은 선택) 을 React renderable 규칙으로 문자열화한다 (`extractFromValue`:
+ * string/number 그대로, 배열은 string/number 항목만 이어붙임, object/boolean 은 ""). 종전
+ * `String(...)` 은 `[" ", " "]` 를 `" , "` (쉼표 = 내용) 로, object 를 `"[object Object]"` 로
+ * 만들어 line box 신호를 오염시켰다.
+ */
+export function resolveTextLeafContent(
+  props: Record<string, unknown> | undefined,
+): string {
+  if (!props) return "";
+  for (const key of ["children", "text", "label", "title"] as const) {
+    const v = props[key];
+    if (v !== undefined && v !== null) return extractFromValue(v);
+  }
+  return "";
 }
 
 export function enrichWithIntrinsicSize(
@@ -4635,18 +4654,15 @@ export function enrichWithIntrinsicSize(
   const suppliesIntrinsicScalars = TEXT_LEAF_TAGS.has(type);
   const textLeafProps = element.props as Record<string, unknown> | undefined;
   const textLeafContent = suppliesIntrinsicScalars
-    ? String(
-        textLeafProps?.children ??
-          textLeafProps?.text ??
-          textLeafProps?.label ??
-          textLeafProps?.title ??
-          "",
-      )
+    ? resolveTextLeafContent(textLeafProps)
     : "";
   // r11h1 — 신호는 raw 문자열이 아니라 white-space 처리 후 남는 내용 (textLeafRendersContent).
+  // r12h1 — white-space 는 inherited property: inline style 이 없으면 cssResolver 의 computed
+  //   (부모 상속) 값을 쓴다 (Chrome 부모 pre + 자식 공백만 → line box 있음 b.y 60 / inline 만
+  //   읽으면 40).
   const textLeafHasLineBox = textLeafRendersContent(
     textLeafContent,
-    style?.whiteSpace,
+    style?.whiteSpace ?? _computedStyle?.whiteSpace,
   );
 
   if (!needsHeight && !needsWidth && !textLeafHasLineBox) return element;
@@ -4855,9 +4871,14 @@ export function enrichWithIntrinsicSize(
       _computedStyle?.fontWeight ??
       400;
     // 폭 스칼라 2종은 width 가 auto/키워드일 때만 (명시 폭은 엔진이 그대로 쓴다). r11h1 —
-    // white-space 처리로 내용이 사라지면 Chrome 의 max-content 는 0 이라 공급하지 않는다
-    // (raw `" "` 측정폭은 collapsible 공백의 폭이다).
-    if (needsWidth && baseContentWidth > 0 && textLeafHasLineBox) {
+    // white-space 처리로 내용이 사라지면 Chrome 의 max-content 는 0 (raw `" "` 측정폭은
+    // collapsible 공백의 폭). r12l1 — 그때 스칼라를 **생략하면 안 되고 0 을 공급**해야 한다:
+    // 엔진은 `Option` 부재를 "측정 없음" 으로 읽어 flex row 에서 leaf 를 available 로 늘렸다
+    // (Chrome t.w 0 / 생략 257 / 종전 공백 폭 4 — r12l1 게이트).
+    if (needsWidth && !textLeafHasLineBox) {
+      injectedStyle.contentMinWidth = 0;
+      injectedStyle.contentMaxWidth = 0;
+    } else if (needsWidth && baseContentWidth > 0) {
       // max-content = 단일줄 측정폭 (childResolvedWidth — resolvedIntrinsicWidth 는
       // min-content 키워드일 때 최장 단어 폭이라 max 스칼라로 쓰면 안 됨).
       // Math.ceil: 엔진 f32 ↔ JS f64 정밀도 경계 (layout-engine.md 기타 규칙).

@@ -1348,6 +1348,101 @@ const CASES: DiffCase[] = [
       },
     ],
   },
+  {
+    name: "parent-percent-min-height-indefinite-cb-collapses — r12m1: 부모 auto 높이(indefinite CB) 아래 min-height:50% 는 0 (§10.7) → 미바인딩, 접힘 유지 (b.y 40; 수평 ctx 로 150 해석 시 35)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "c", style: { display: "block", height: "20px", marginBottom: "20px" } },
+      { label: "p", style: { display: "block", minHeight: "50%", marginBottom: "15px" }, children: [0] },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-percent-min-height-definite-cb-binding — r12m1 대조군: root height:200px (definite CB) 아래 min-height:50% = 100 바인딩 → strut 미전파 (p.h 100 · b.y 115)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "c", style: { display: "block", height: "20px", marginBottom: "20px" } },
+      { label: "p", style: { display: "block", minHeight: "50%", marginBottom: "15px" }, children: [0] },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0, height: "200px" },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "parent-min-over-max-height-min-wins — r12m2: min-height:30 > max-height:10 이면 min 우선 (§10.7 max-then-min; Chrome p.h 30 · b.y 45 / min-then-max 는 10·25)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "c", style: { display: "block", height: "20px", marginBottom: "20px" } },
+      { label: "p", style: { display: "block", minHeight: "30px", maxHeight: "10px", marginBottom: "15px" }, children: [0] },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "root-min-over-max-height-min-wins — r12m2 sweep: root 자신의 auto 높이 clamp 도 max-then-min (Chrome root.h 30 / 종전 10)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "c", style: { display: "block", height: "20px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", minHeight: "30px", maxHeight: "10px", ...FS0 },
+        children: [0],
+      },
+    ],
+  },
+  {
+    name: "grid-item-min-over-max-height-min-wins — r12m2 sweep: grid auto 트랙 기여값 clamp 도 max-then-min (Chrome c.h 30 · root.h 30)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "c", style: { minHeight: "30px", maxHeight: "10px" } },
+      {
+        label: "root",
+        style: { display: "grid", gridTemplateColumns: ["1fr"], width: "300px", ...FS0 },
+        children: [0],
+      },
+    ],
+  },
+  {
+    name: "height-zero-parent-abs-child-bottom-inset — r12l2: height:0 (auto 아님) 부모의 absolute containing block 높이는 0 → bottom:0 자식 y = −10 (content 높이 기준이면 +10)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "c", style: { display: "block", height: "20px" } },
+      {
+        label: "abs",
+        style: { position: "absolute", bottom: "0px", width: "20px", height: "10px" },
+        engineStyle: { insetBottom: "0px" },
+      },
+      {
+        label: "p",
+        style: { display: "block", height: "0px", position: "relative" },
+        children: [0, 1],
+      },
+      { label: "b", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [2, 3],
+      },
+    ],
+  },
 ];
 
 /** engine leg 입력 — engineStyle override 적용. */
@@ -1498,6 +1593,16 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
       children: [0, 1, 2],
     },
   ];
+  /** root 에 style 을 얹어 자식 Text 가 상속받게 한다 (r12h1 — white-space 는 inherited). */
+  const textZeroIn = (
+    rootExtra: Record<string, unknown>,
+    extra: Record<string, unknown>,
+    text: string,
+  ): CaseNode[] => {
+    const nodes = textZero(extra, text);
+    nodes[3] = { ...nodes[3], style: { ...nodes[3].style, ...rootExtra } };
+    return nodes;
+  };
   it("height:0 Text leaf 는 line box 가 있어 self-collapsing 아님 (r10h1, b.y 60)", () => {
     const nodes = textZero({}, "hello");
     const dom = domLeg(nodes, 300);
@@ -1577,6 +1682,54 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
   });
   it("fontSize:0 텍스트 x 는 line box 있음 (높이 0 이어도 line box; r11h1 대조군, b.y 60)", () => {
     const nodes = textZero({ fontSize: "0px" }, "x");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("부모 white-space:pre 를 상속한 공백만 Text 는 line box 있음 (r12h1 — inherited property; b.y 60)", () => {
+    const nodes = textZeroIn({ whiteSpace: "pre" }, {}, " ");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("부모 white-space:break-spaces 상속 + 공백만 → line box 있음 (r12h1, b.y 60)", () => {
+    const nodes = textZeroIn({ whiteSpace: "break-spaces" }, {}, " ");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("부모 pre 상속 + 자식 inline normal 재지정 → line box 없음 (r12h1 대조군, b.y 40)", () => {
+    const nodes = textZeroIn({ whiteSpace: "pre" }, { whiteSpace: "normal" }, " ");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("부모 pre-line 상속 + 개행만 → segment break 보존 line box (r12h1 경계, b.y 60)", () => {
+    const nodes = textZeroIn({ whiteSpace: "pre-line" }, {}, "\n");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("flex row 안 공백만 Text (width:auto 명시, normal) 폭은 0 — 폭 스칼라 0 (r12l1; box.x 0, raw 공백 폭 공급 시 ≈4. width 미지정은 프로덕션 Text 기본 width:100% 가 실려 대조군 밖)", () => {
+    const nodes: CaseNode[] = [
+      {
+        label: "t",
+        elementType: "Text",
+        text: " ",
+        style: { width: "auto", height: "10px", fontSize: "16px" },
+      },
+      { label: "box", style: { width: "50px", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "flex", width: "300px" },
+        children: [0, 1],
+      },
+    ];
     const dom = domLeg(nodes, 300);
     const pipe = pipelineLeg(nodes, 300, -1);
     const bad = diffCase(nodes, dom, pipe);

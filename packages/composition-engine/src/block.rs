@@ -76,15 +76,19 @@ pub fn collapse_margins(a: f32, b: f32) -> f32 {
     }
 }
 
-/// Clamp a size value between min and max (AUTO = no limit)
+/// Clamp a size value between min and max (AUTO = no limit).
+///
+/// 순서는 CSS 2.1 §10.4/§10.7 — **max 를 먼저, 그 다음 min** (min > max 면 min 이 이긴다).
+/// 종전 min-then-max 는 max 가 이겨 Chrome 과 갈렸다 (r12m2 — min-height:30 + max-height:10
+/// 부모 p.h 30 · b.y 45 / 종전 10 · 25). flex.rs `clamp_size` 와 같은 순서.
 #[inline]
 fn clamp_size(value: f32, min_val: f32, max_val: f32) -> f32 {
     let mut result = value;
-    if min_val != AUTO {
-        result = result.max(min_val);
-    }
     if max_val != AUTO {
         result = result.min(max_val);
+    }
+    if min_val != AUTO {
+        result = result.max(min_val);
     }
     result
 }
