@@ -111,10 +111,25 @@ struct LineItem {
 /// * `prev_sibling_margin_bottom` - Previous sibling's margin bottom (context)
 ///
 /// # Returns
-/// Float32Array: [x, y, w, h, ...] for each child, plus 3 trailing values:
-/// [firstChildMarginTop, lastChildMarginBottom, lastLineBaseline]
+/// Float32Array: [x, y, w, h, ...] for each child, plus 4 trailing values:
+/// [firstChildMarginTop, lastChildMarginBottom, lastLineBaseline, inFlowBottom]
 /// (lastLineBaseline: 마지막 line box 의 baseline — content-box y, line box 없으면
-/// AUTO=-1. ADR-923 Phase 2 — 컨테이너 baseline 출력의 정확값 원천.)
+/// AUTO=-1. ADR-923 Phase 2 — 컨테이너 baseline 출력의 정확값 원천.
+/// inFlowBottom: in-flow content 하단 = auto height 원천 (P3 r8h2) — 부모 bottom 과
+/// collapse 하지 못한 마지막 margin chain 을 **포함**하고 (§10.6.3, r9m2), 탈출하는
+/// chain·self-collapsing 꼬리 box 는 제외한다.)
+///
+/// margin collapse 모델 (CSS 2.1 §8.3.1 — ADR-923 P3 r9 Chrome 실측으로 재정의):
+/// - `prev_margin_bottom` 이 "아직 놓이지 않은 인접 margin chain". block 은 자기 top 을
+///   chain 과 collapse 해 놓이고, self-collapsing box(코드 2) 는 top/bottom 을 chain 에
+///   더할 뿐 놓이지 않는다 (위치는 "non-zero bottom border 가 있었다면" 자리 — 부모 top
+///   과 collapse 하는 선두 chain 은 부모 top border edge).
+/// - 자식의 BFC 여부(bfc_flag)는 **자식 자신의** margin collapse 와 무관하다 — BFC 는
+///   자기 in-flow 자식과의 collapse 만 막는다(그 차단은 tree.rs 가 자식 solve 의
+///   can_collapse_* 로 한다). Chrome 실측 bfc-sibling-top-collapse / bfc-last-child-
+///   margin-escape / bfc-first-child-top-escape (r9). 슬롯 7 은 프로토콜 호환용 잔존.
+/// - line box 는 margin 을 collapse 하지 않는다 — line box 가 시작될 때 pending chain
+///   은 그대로 놓인다 (block-margin-then-line-box).
 #[wasm_bindgen]
 pub fn block_layout(
     data: &[f32],
@@ -165,6 +180,10 @@ pub fn block_layout_with_strut(
     let mut last_child_margin_bottom: f32 = 0.0;
     let mut is_first_block = true;
 
+    // 부모 top 과 collapse 하는 선두 self-collapsing box 들 (out offset) — 루프 뒤
+    // escaped top(= 부모 top border edge) 으로 y 를 덮는다 (§8.3.1).
+    let mut leading_empties: Vec<usize> = Vec::new();
+
     // LineBox accumulator for inline-block elements
     let mut line_items: Vec<LineItem> = Vec::new();
     // 마지막으로 flush 된 line box 의 baseline (content-box y). line box 없으면 AUTO.
@@ -179,7 +198,7 @@ pub fn block_layout_with_strut(
         let m_right = data[off + 4];
         let m_bottom = data[off + 5];
         let m_left = data[off + 6];
-        let bfc_flag = data[off + 7] as u8; // 1 = creates BFC
+        let _bfc_flag = data[off + 7]; // r9: 미소비 — 자식 자신의 margin 은 BFC 여부와 무관하게 collapse (모듈 doc)
         let pad_border_v = data[off + 8]; // padding_v + border_v combined
         let pad_border_h = data[off + 9]; // padding_h + border_h combined
         let min_w = data[off + 10];
@@ -192,8 +211,23 @@ pub fn block_layout_with_strut(
         let baseline = data[off + 17];
         let _line_height = data[off + 18]; // 예약 (S4 text run) — atomic inline 은 §10.8 margin box 로만 참여 (Phase 3 Chrome 실측)
 
-        let child_creates_bfc = bfc_flag == 1;
         let out_off = i * OUT_FIELDS;
+        // block-level 폭 (block / self-collapsing 공통): fit-content = content, 명시 px,
+        // auto = margin-box 가 available 에 stretch. auto 는 border-box 가 available-m 이라
+        // pad_border 를 더하지 않는다 (explicit/fit-content 는 content 폭이라 더한다).
+        let block_level_width = |width_val: f32| -> f32 {
+            let child_content_w = clamp_size(
+                if width_val == FIT_CONTENT {
+                    content_w
+                } else if width_val != AUTO {
+                    width_val
+                } else {
+                    available_width - m_left - m_right
+                },
+                min_w, max_w,
+            );
+            if width_val != AUTO { child_content_w + pad_border_h } else { child_content_w }
+        };
 
         if display == DISPLAY_INLINE_BLOCK {
             // Inline-block: accumulate into line box
@@ -225,6 +259,14 @@ pub fn block_layout_with_strut(
                 line_items.clear();
             }
 
+            // line box 는 margin collapse 에 참여하지 않는다 — 새 line box 가 시작되면
+            // pending chain 이 그대로 놓인다 (§8.3.1 — Chrome block-margin-then-line-box:
+            // block h10+mb10 뒤 inline-block y 20). 선두 탈출 chain 도 같은 값을 더해
+            // 좌표계(escaped top 포함)를 맞춘다.
+            if line_items.is_empty() {
+                current_y += prev_margin_bottom; // 아래에서 0 으로 리셋
+            }
+
             line_items.push(LineItem {
                 out_index: out_off,
                 x: current_x + m_left,
@@ -242,6 +284,7 @@ pub fn block_layout_with_strut(
 
             current_x += total_width;
             prev_margin_bottom = 0.0;
+            last_child_margin_bottom = 0.0; // 마지막이 line box 면 탈출할 margin 없음
             is_first_block = false;
         } else if display == DISPLAY_EMPTY_BLOCK {
             // Empty block: self-collapse top/bottom margins
@@ -260,13 +303,18 @@ pub fn block_layout_with_strut(
             let collapsed_self = collapse_margins(m_top, m_bottom);
             let through = collapse_margins(prev_margin_bottom, collapsed_self);
 
+            // 위치 = "non-zero bottom border 가 있었다면" 의 자리 (§8.3.1 — 자기 top 만
+            // 이전 chain 과 collapse. Chrome r9 trailing-empty-block-escape: solid h10+mb10
+            // 뒤 empty(mt20,mb30) y 30). current_y 는 전진하지 않는다 — auto height 에서
+            // 제외 (§10.6.3, Chrome root.h 10).
             out[out_off] = m_left;
-            out[out_off + 1] = current_y + through;
-            out[out_off + 2] = available_width - m_left - m_right;
+            out[out_off + 1] = current_y + collapse_margins(prev_margin_bottom, m_top);
+            out[out_off + 2] = block_level_width(width_val);
             out[out_off + 3] = 0.0;
 
             if is_first_block && can_collapse_top {
                 first_child_margin_top = collapse_margins(first_child_margin_top, through);
+                leading_empties.push(out_off);
             }
             last_child_margin_bottom = through;
             prev_margin_bottom = through;
@@ -281,45 +329,25 @@ pub fn block_layout_with_strut(
             }
 
             if is_first_block {
-                if can_collapse_top && !child_creates_bfc {
-                    first_child_margin_top = m_top;
-                    prev_margin_bottom = 0.0;
+                if can_collapse_top {
+                    // 선두 self-collapsing chain(prev) 과 자기 top 이 한 덩어리로 부모 top
+                    // 과 collapse (Chrome r9 empty-first-chain-through-wrap: wrap y 40).
+                    // 좌표계는 escaped top 을 포함하므로 y 도 같은 값만큼 전진한다.
+                    first_child_margin_top = collapse_margins(prev_margin_bottom, m_top);
                 }
                 is_first_block = false;
             }
 
-            let collapsed_margin_top = if child_creates_bfc {
-                prev_margin_bottom + m_top
-            } else {
-                collapse_margins(prev_margin_bottom, m_top)
-            };
+            // BFC 자식도 자기 top margin 은 이전 형제 bottom 과 collapse 한다 (§8.3.1 —
+            // Chrome r9 bfc-sibling-top-collapse: a mb20 + flex mt10 → y 30, 합산이면 40).
+            let collapsed_margin_top = collapse_margins(prev_margin_bottom, m_top);
             current_y += collapsed_margin_top;
 
-            // Block width
-            // fit-content: use content intrinsic width (shrink-to-fit)
-            let child_content_w = clamp_size(
-                if width_val == FIT_CONTENT {
-                    content_w                               // fit-content: content size
-                } else if width_val != AUTO {
-                    width_val                               // explicit px
-                } else {
-                    available_width - m_left - m_right      // auto: stretch to parent
-                },
-                min_w, max_w,
-            );
             let child_content_h = clamp_size(
                 if height_val != AUTO && height_val != FIT_CONTENT { height_val } else { content_h },
                 min_h, max_h,
             );
-
-            // Auto-width (== AUTO) 는 margin-box 가 이미 available 에 stretch 되어
-            // padding+border 를 content 폭이 포함(available - m 이 border-box). explicit px /
-            // fit-content(둘 다 != AUTO) 는 content 폭이므로 padding+border 를 더한다.
-            let child_w = if width_val != AUTO {
-                child_content_w + pad_border_h // explicit px / fit-content: content + padding + border
-            } else {
-                child_content_w // auto (margin-box already at available)
-            };
+            let child_w = block_level_width(width_val);
             let child_h = child_content_h + pad_border_v;
 
             out[out_off] = m_left;
@@ -329,13 +357,10 @@ pub fn block_layout_with_strut(
 
             current_y += child_h;
 
-            if child_creates_bfc {
-                prev_margin_bottom = m_bottom;
-                last_child_margin_bottom = 0.0;
-            } else {
-                prev_margin_bottom = m_bottom;
-                last_child_margin_bottom = m_bottom;
-            }
+            // BFC 자식의 bottom margin 도 다음 형제/부모 bottom 과 collapse 한다 (Chrome r9
+            // bfc-last-child-margin-escape: wrap>flex(h10,mb20) 뒤 sib y 30).
+            prev_margin_bottom = m_bottom;
+            last_child_margin_bottom = m_bottom;
         }
     }
 
@@ -351,7 +376,16 @@ pub fn block_layout_with_strut(
         first_child_margin_top = 0.0;
     }
     if !can_collapse_bottom {
+        // 부모 bottom 과 collapse 하지 못하는 마지막 margin chain 은 content 에 포함된다
+        // (§10.6.3 "last in-flow child 의 bottom margin edge" — Chrome r9 trailing-margin-
+        // contained: h10+mb20+pb1 → 31 / trailing-empty-block-contained → 41).
+        current_y += last_child_margin_bottom;
         last_child_margin_bottom = 0.0;
+    }
+    // 부모 top 과 collapse 한 선두 self-collapsing box 의 top border edge = 부모의 것
+    // (§8.3.1 — Chrome r9 empty-first-chain-through-wrap: empty y == wrap y).
+    for &o in &leading_empties {
+        out[o + 1] = first_child_margin_top;
     }
 
     let meta_off = child_count * OUT_FIELDS;
@@ -603,17 +637,17 @@ mod tests {
     }
 
     #[test]
-    fn test_bfc_blocks_collapse() {
+    fn test_bfc_sibling_top_margin_collapses() {
+        // r9 (Chrome bfc-sibling-top-collapse): BFC 자식의 자기 top margin 도 이전 형제
+        // bottom 과 collapse — y = 100 + max(20, 30) = 130 (구 모델 합산 150 은 오류).
         let mut data = Vec::new();
         data.extend(make_block(AUTO, 100.0, 0.0, 20.0));
-        // second child creates BFC
         let mut child2 = make_block(AUTO, 100.0, 30.0, 0.0);
-        child2[7] = 1.0; // bfc_flag
+        child2[7] = 1.0; // bfc_flag — 자식 자신의 margin collapse 에는 무관 (미소비)
         data.extend(child2);
 
         let result = block_layout(&data, 400.0, 800.0, false, false, 0.0);
-        // BFC: no collapse, y = 100 + 20 + 30 = 150
-        assert_eq!(result[5], 150.0);
+        assert_eq!(result[5], 130.0, "BFC sibling top margin collapses with previous bottom");
     }
 
     #[test]
@@ -806,8 +840,9 @@ mod tests {
     }
 
     #[test]
-    fn test_bfc_child_no_bottom_collapse_to_parent() {
-        // BFC 자식은 부모와 bottom margin collapse 안 함 → metadata 0.
+    fn test_bfc_child_bottom_margin_collapses_to_parent() {
+        // r9 (Chrome bfc-last-child-margin-escape): BFC 자식의 자기 bottom margin 은 부모
+        // bottom 과 collapse 해 탈출한다 — BFC 는 자기 in-flow 자식과의 collapse 만 막는다.
         let mut data = Vec::new();
         let mut child = make_block(AUTO, 100.0, 0.0, 35.0);
         child[7] = 1.0; // bfc_flag
@@ -815,7 +850,80 @@ mod tests {
 
         let result = block_layout(&data, 400.0, 800.0, false, true, 0.0);
         let meta_off = OUT_FIELDS; // child 1개 뒤 metadata 시작
-        // BFC 자식 → lastChildMarginBottom = 0 (부모로 전파 차단)
-        assert_eq!(result[meta_off + 1], 0.0, "BFC child bottom margin does not collapse to parent");
+        assert_eq!(result[meta_off + 1], 35.0, "BFC child bottom margin collapses to parent");
+    }
+
+    // ── ADR-923 Phase 3 round 9 — margin chain 경계 (Chrome 실측) ──
+
+    /// trailing-margin-contained: 부모 bottom 과 collapse 불가(can_collapse_bottom=false)
+    /// 면 마지막 bottom margin 이 in-flow bottom 에 포함 (h10+mb20 → 30).
+    #[test]
+    fn adr923_p3_r9_trailing_margin_contained_in_flow_bottom() {
+        let data = make_block(AUTO, 10.0, 0.0, 20.0);
+        let result = block_layout(&data, 300.0, 600.0, false, false, 0.0);
+        assert_eq!(result[OUT_FIELDS + 3], 30.0, "inFlowBottom includes contained trailing margin");
+        assert_eq!(result[OUT_FIELDS + 1], 0.0, "nothing escapes");
+        let escaped = block_layout(&data, 300.0, 600.0, false, true, 0.0);
+        assert_eq!(escaped[OUT_FIELDS + 3], 10.0, "escaping margin excluded from in-flow bottom");
+        assert_eq!(escaped[OUT_FIELDS + 1], 20.0);
+    }
+
+    /// trailing-empty-block-escape / -contained: 꼬리 self-collapsing box 는 위치만 갖고
+    /// (y = 10 + max(10,20) = 30) current_y 를 전진시키지 않는다. 탈출 시 bottom 10,
+    /// 포함 시 10 + max(10,20,30) = 40.
+    #[test]
+    fn adr923_p3_r9_trailing_empty_block_position_and_height() {
+        let mut data = Vec::new();
+        data.extend(make_block(AUTO, 10.0, 0.0, 10.0));
+        let mut e = make_block(AUTO, AUTO, 20.0, 30.0);
+        e[0] = DISPLAY_EMPTY_BLOCK as f32;
+        e[15] = 0.0;
+        data.extend(e);
+        let meta = 2 * OUT_FIELDS;
+        let esc = block_layout(&data, 300.0, 600.0, false, true, 0.0);
+        assert_eq!(esc[5], 30.0, "empty y = as-if non-zero bottom border");
+        assert_eq!(esc[meta + 3], 10.0, "escape: empty excluded");
+        assert_eq!(esc[meta + 1], 30.0, "chain escapes");
+        let con = block_layout(&data, 300.0, 600.0, false, false, 0.0);
+        assert_eq!(con[5], 30.0);
+        assert_eq!(con[meta + 3], 40.0, "contained: chain included");
+    }
+
+    /// empty-first-chain-through-wrap: 선두 empty(20,30) + block(mt5) 의 chain 30 이 통째
+    /// 부모 top 으로 탈출 — escaped 30, block y 30 (탈출 좌표계), empty y = escaped (부모 top
+    /// border edge).
+    #[test]
+    fn adr923_p3_r9_leading_empty_chain_escapes_whole() {
+        let mut data = Vec::new();
+        let mut e = make_block(AUTO, AUTO, 20.0, 30.0);
+        e[0] = DISPLAY_EMPTY_BLOCK as f32;
+        e[15] = 0.0;
+        data.extend(e);
+        data.extend(make_block(AUTO, 10.0, 5.0, 0.0));
+        let meta = 2 * OUT_FIELDS;
+        let out = block_layout(&data, 300.0, 600.0, true, true, 0.0);
+        assert_eq!(out[meta], 30.0, "escaped top = whole chain");
+        assert_eq!(out[5], 30.0, "block y = escaped (rel 0)");
+        assert_eq!(out[1], 30.0, "leading empty y = parent top border edge");
+        assert_eq!(out[meta + 3], 40.0, "in-flow bottom = 30 + 10");
+        // 부모 top 과 collapse 불가면 empty y = 자기 mt(20), block y = 30 (chain 30 놓임)
+        let padded = block_layout(&data, 300.0, 600.0, false, false, 0.0);
+        assert_eq!(padded[1], 20.0);
+        assert_eq!(padded[5], 30.0);
+        assert_eq!(padded[meta + 3], 40.0);
+    }
+
+    /// block-margin-then-line-box: line box 는 margin 을 collapse 하지 않는다 — block
+    /// h10+mb10 뒤 inline-block 은 y 20, 마지막이 line box 면 탈출 margin 0.
+    #[test]
+    fn adr923_p3_r9_pending_margin_lands_before_line_box() {
+        let mut data = Vec::new();
+        data.extend(make_block(AUTO, 10.0, 0.0, 10.0));
+        data.extend(make_inline_block(60.0, 20.0, VALIGN_BASELINE));
+        let meta = 2 * OUT_FIELDS;
+        let out = block_layout(&data, 300.0, 600.0, false, true, 0.0);
+        assert_eq!(out[5], 20.0, "inline-block y after block margin");
+        assert_eq!(out[meta + 1], 0.0, "no trailing margin escapes past a line box");
+        assert_eq!(out[meta + 3], 40.0);
     }
 }

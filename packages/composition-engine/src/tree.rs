@@ -260,8 +260,9 @@ pub struct NodeStyle {
     /// max-content 폭 (단일줄 폭)
     pub content_max_width: Option<f32>,
 
-    // Baseline 계약 (ADR-923 Phase 2) — block line box 의 vertical-align/baseline/
-    // line_height 슬롯(단위 3-a "미소비") 해소 + 컨테이너 baseline 출력의 입력.
+    // Baseline 계약 (ADR-923 Phase 2) — block line box 의 vertical-align/baseline 슬롯
+    // 배선 + 컨테이너 baseline 출력의 입력. line_height 는 컨테이너 strut 으로 소비되고
+    // block item 슬롯 18 은 S4 text run 예약 (P3 r8l1/r9l2 정정 — "슬롯 미소비 해소" 아님).
     /// vertical-align CSS 키워드 (baseline/top/middle/bottom — 그 외/미설정 = baseline).
     /// tree.rs 가 block.rs u8 코드로 매핑한다 (flex enum 매핑과 같은 경계 역할).
     pub vertical_align: Option<String>,
@@ -2711,19 +2712,15 @@ impl LayoutTree {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let (cw, ch) = child_sizes[i];
             // ADR-923 Phase 2: 자식 solve 가 기록한 baseline (border-top 기준, 센티널 보존).
-            // Phase 3 (r7 관찰 → Chrome 실측 ib-overflow-hidden-baseline): overflow 가
-            // visible/clip 이외인 atomic inline 은 내부 line box 와 무관하게 bottom margin
-            // edge 가 baseline (§10.8.1 두 번째 조항) — 센티널로 강제해 intake 의
-            // margin-edge 폴백을 태운다. clip 은 제외 (r8 Chrome 실측
-            // ib-overflow-clip-baseline: clip 도 visible 처럼 last line box baseline 유지
-            // — hidden 과 다르다. Codex r8 과제6 'clip 포함 타당' 주장 실측 반증).
-            let overflow_hides_baseline = [
-                cstyle.overflow_x.as_deref(),
-                cstyle.overflow_y.as_deref(),
-            ]
-            .into_iter()
-            .any(|v| matches!(v, Some(s) if !s.eq_ignore_ascii_case("visible") && !s.eq_ignore_ascii_case("clip")));
-            let child_baseline = if overflow_hides_baseline {
+            // Phase 3 (r7 관찰 → Chrome 실측 ib-overflow-hidden-baseline): **scroll
+            // container** 인 atomic inline 은 내부 line box 와 무관하게 bottom margin edge
+            // 가 baseline — 센티널로 강제해 intake 의 margin-edge 폴백을 태운다. 규범:
+            // css-align-3 §9.1 "a block container that is a block-axis scroll container
+            // always has a last baseline set … block-end margin edge" (CSS 2.1 §10.8.1
+            // "overflow other than visible" 문면을 scroll container 로 갱신한 조항 — r9l1).
+            // clip 은 scroll container 가 아니라 제외 (r8 Chrome 실측 ib-overflow-clip-
+            // baseline: last line box baseline 유지 — Codex r8 과제6 반증).
+            let child_baseline = if is_scroll_container(&cstyle) {
                 BASELINE_NONE
             } else {
                 self.get(c).map(|n| n.layout.baseline).unwrap_or(BASELINE_NONE)
@@ -2789,7 +2786,6 @@ impl LayoutTree {
         //    bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
         //    (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
         let mut max_right: f32 = 0.0;
-        let mut max_bottom: f32 = 0.0;
         // ADR-923 Phase 2: block 컨테이너 baseline = 마지막 in-flow line box(정확값은
         // 아래 block.rs meta), line box 가 마지막이 아니면 마지막 baseline 원천 보유
         // 자식의 baseline (CSS 2.1 §10.8.1 "last in-flow line box" 의 중첩 전파 근사).
@@ -2813,7 +2809,6 @@ impl LayoutTree {
                 };
             }
             max_right = max_right.max(x + w);
-            max_bottom = max_bottom.max(y + h);
             if let Some(n) = self.get_mut(c) {
                 let child_baseline = n.layout.baseline;
                 n.layout =
@@ -2842,13 +2837,15 @@ impl LayoutTree {
             last_inflow_baseline
         };
 
-        // 컨테이너 크기: 명시 있으면 명시, 없으면 자식 bounding box(탈출 margin 제외됨).
-        // r8h2: 마지막 line box 의 strut/valign 초과분은 자식 rect 밖 — block.rs meta
-        // in-flow bottom(마지막 flush 포함)과의 max 가 정확값 (Chrome strut-last-line:
-        // ib20+strut40, tail 없음 → root 40. 자식 rect bbox 만으론 20).
+        // 컨테이너 크기: 명시 있으면 명시. 높이는 block.rs meta **in-flow bottom** 단독
+        // (CSS 2.1 §10.6.3 — 마지막 line box(strut/valign 초과분 포함, r8h2) 또는 마지막
+        // in-flow block 의 bottom border/margin edge). 자식 rect bbox 는 쓰지 않는다 —
+        // 꼬리 self-collapsing box 의 rect(y=as-if-border 자리, h 0) 와 음수 bottom margin
+        // 이 bbox 에선 auto height 를 부풀린다 (r9m2 — Chrome trailing-empty-block-escape
+        // root 10, bbox 면 30).
         let flow_bottom = out[meta_off + 3] - escaped_top;
         let container_w = if explicit_w > 0.0 { explicit_w } else { max_right };
-        let container_h = if explicit_h > 0.0 { explicit_h } else { max_bottom.max(flow_bottom) };
+        let container_h = if explicit_h > 0.0 { explicit_h } else { flow_bottom };
 
         // 5) **shrink-to-fit 확정 뒤 재-solve** — `%` 재해소 + auto 폭 자식 stretch 복원.
         //   실측(2026-07-28): 폭 120 으로 확정된 shrink-to-fit block 안에서 `width:50%` 자식이
@@ -4463,16 +4460,33 @@ fn pad_border_end(style: &NodeStyle, ctx: &CssValueContext, horizontal: bool) ->
     resolve_dimension(p, ctx) + resolve_dimension(b, ctx)
 }
 
-/// `overflow_x`/`overflow_y` 가 `visible`/`clip` 이외 값을 하나라도 가지면 BFC 생성
-/// (CSS 2.1 §9.4.1 — E17/ADR-156 P4). BFC 는 부모-자식 마진 상쇄를 차단한다.
-/// `clip` 제외 (r8m2) — css-overflow-3 §valdef-overflow-clip: hidden 과 달리 새
-/// formatting context 를 만들지 않는다 (Chrome 실측 clip-no-bfc: margin 관통 탈출).
+/// overflow 한 축의 값이 **scrollable value** (scroll/auto/hidden — css-overflow-3 §3.1
+/// "cause the box to be a scroll container") 인가. `visible`/`clip`/미지정 = 아니다.
+///
+/// scroll container 판정의 **단일 술어** (ADR-923 P3 r9h1 — 종전 3곳이 따로 갈려 flex
+/// 만 clip 을 scroll container 로 오판): ① BFC 생성 (CSS 2.1 §9.4.1) ② block container
+/// last baseline 강제 (css-align-3 §9.1 "block-axis scroll container … block-end margin
+/// edge") ③ flex §4.5 automatic minimum (non-scrollable 만 content floor). Chrome 실측
+/// clip-no-bfc · ib-overflow-clip-baseline · flex-item-clip-auto-min 이 세 소비처의 clip
+/// 제외를 각각 확증한다.
+fn is_scrollable_overflow(v: Option<&str>) -> bool {
+    matches!(v.map(|s| s.trim().to_ascii_lowercase()).as_deref(),
+        Some(o) if !o.is_empty() && o != "visible" && o != "clip")
+}
+
+/// 이 노드가 scroll container 인가 — 한 축이라도 scrollable 이면 다른 축의 visible 은
+/// auto 로 계산되므로 (css-overflow-3 §3.1 computed value) 양축 판정과 같다.
+fn is_scroll_container(style: &NodeStyle) -> bool {
+    is_scrollable_overflow(style.overflow_x.as_deref())
+        || is_scrollable_overflow(style.overflow_y.as_deref())
+}
+
+/// scroll container 는 BFC 를 생성한다 (CSS 2.1 §9.4.1 — E17/ADR-156 P4). BFC 는
+/// 부모-자식 마진 상쇄를 차단한다. `clip` 제외 (r8m2) — css-overflow-3
+/// §valdef-overflow-clip: hidden 과 달리 새 formatting context 를 만들지 않는다
+/// (Chrome 실측 clip-no-bfc: margin 관통 탈출).
 fn overflow_creates_bfc(style: &NodeStyle) -> bool {
-    let makes_bfc = |v: Option<&str>| {
-        matches!(v.map(|s| s.trim().to_ascii_lowercase()).as_deref(),
-            Some(o) if o != "visible" && o != "clip")
-    };
-    makes_bfc(style.overflow_x.as_deref()) || makes_bfc(style.overflow_y.as_deref())
+    is_scroll_container(style)
 }
 
 /// 이 노드가 새 BFC 를 확립하는가 (형제 관통 상쇄 차단 — block.rs bfc_flag).
@@ -4504,7 +4518,7 @@ fn spec_to_content(v: f32, pad_border: f32) -> f32 {
 /// 2=height(cross), 3-6=margin(top/right/bottom/left, 물리), 7=pad_border_main,
 /// 8=pad_border_cross, 9=min_main, 10=max_main, 11=min_cross, 12=max_cross,
 /// 13=content_main, 14=content_cross, 15=flex_grow, 16=flex_shrink,
-/// 17=align_self, 18=overflow_main(0=visible/1=clipped — ADR-164 §4.5),
+/// 17=align_self, 18=overflow_main(0=non-scrollable/1=scroll container — ADR-164 §4.5, r9h1),
 /// 19=content_min_main(0=absent — 정확 min-content, ADR-165 §4.5 floor 정밀화).
 ///
 /// content_main/cross 는 자식 solve 결과(cw/ch)를 direction 으로 매핑. width/height
@@ -4621,17 +4635,11 @@ fn write_flex_item(
     // align_self (E1) — 0=auto(컨테이너 align-items 상속)/1~4 명시. flex item 은
     // justify_self 무효(grid 전용)라 여기선 align_self 만 소비.
     data[off + 17] = parse_align_self(cstyle.align_self.as_deref());
-    // §4.5 automatic minimum (ADR-164) — **item 자신의** 주축 overflow (부모 아님).
-    // row → overflowX / column → overflowY. 미지정 = visible = 0 (zero-init 계약).
-    let main_overflow = if is_row {
-        cstyle.overflow_x.as_deref()
-    } else {
-        cstyle.overflow_y.as_deref()
-    };
-    data[off + 18] = match main_overflow {
-        Some(v) if !v.trim().eq_ignore_ascii_case("visible") => 1.0,
-        _ => 0.0,
-    };
+    // §4.5 automatic minimum (ADR-164) — **item 자신이** scroll container 인가 (부모 아님).
+    // 한 축이 scrollable 이면 다른 축 visible 은 auto 로 계산되므로 양축 판정
+    // (`is_scroll_container`). clip/visible/미지정 = 0 (zero-init 계약) → content floor
+    // 유지 (r9h1 — Chrome 실측 flex-item-clip-auto-min 80 / hidden 대조군 60).
+    data[off + 18] = if is_scroll_container(cstyle) { 1.0 } else { 0.0 };
     // §4.5 floor 의 정확 min-content (ADR-165) — 스칼라는 폭 축 측정값이므로 row 에서만
     // 존재 (column 의 main=height 는 height-for-width 재줄바꿈 영역 → 2-pass 잔존 계약).
     // content_main(=cw, 자식 solve 반환) 과 같은 공간이 되도록 pad_border_main 가산.
@@ -4833,11 +4841,14 @@ impl MarginAxisReverse {
 /// 결과(cw/ch)를 그대로. width/height 명시(>0)면 그 값, 없으면 AUTO(-1) — block.rs 가
 /// auto→stretch(width) / auto→content(height) 로 분기. min/max 미지정도 AUTO(-1).
 ///
-/// vertical_align/baseline/line_height (ADR-923 Phase 2 배선 — 구 "미소비" 해소):
-/// valign 은 style 키워드 → u8, baseline 은 자식 solve 가 기록한 `NodeLayout.baseline`
-/// (센티널 <0 = 원천 없음 → block.rs 가 bottom margin edge 로 해소 — CSS 2.1
-/// §10.8.1 r8l1 정정), line_height 는 px 스칼라(AUTO=-1 — 슬롯 18 은 S4 예약,
-/// 실소비는 컨테이너 strut 경로).
+/// vertical_align/baseline (ADR-923 Phase 2 배선): valign 은 style 키워드 → u8,
+/// baseline 은 자식 solve 가 기록한 `NodeLayout.baseline` (센티널 <0 = 원천 없음 →
+/// block.rs 가 bottom margin edge 로 해소 — CSS 2.1 §10.8.1 r8l1 정정). line_height
+/// 슬롯 18 은 px 스칼라(AUTO=-1) 를 싣지만 **S4 text run 예약 — block.rs 미소비**
+/// (실소비는 컨테이너 strut 경로. r8l1/r9l2 정정 — "미소비 해소" 가 아니다).
+///
+/// display 코드 2 (self-collapsing box, CSS 2.1 §8.3.1) 는 intake 가 여기서 판정한다
+/// (r9m2 — 종전 "block.rs 사전 분류" 서술은 발행 주체가 없어 dead 였다).
 ///
 /// specified size(width/height, min/max 동일) = border-box — intake 에서
 /// `spec_to_content` 로 pad_border 감산 후 block.rs 에 content 값으로 전달한다.
@@ -4860,8 +4871,8 @@ fn write_block_item(
     // inner 가 flow-root/flex/grid 면 1 = block 부모의 line item (inline-block · inline-flex ·
     // inline-grid — CSS 2.1 §9.2.2 atomic inline-level box). 그 외 0 = block-level box
     // (block/flex/grid 자식은 이 컨테이너 안에선 block-level — CSS 표준). 순수 `inline`
-    // (inner=flow) 은 S4(B 갈래) 까지 0 유지 (요소 단위 inline 혼합 미지원). 2(empty-block)
-    // 는 intake 가 내지 않는다 (block.rs 사전 분류 코드).
+    // (inner=flow) 은 S4(B 갈래) 까지 0 유지 (요소 단위 inline 혼합 미지원). 2(self-
+    // collapsing) 는 아래 필드 확정 뒤 판정.
     let display_code: f32 = if display::is_atomic_inline_level(
         display::parse_display(cstyle.display.as_deref()),
     ) {
@@ -4932,6 +4943,24 @@ fn write_block_item(
     data[off + 16] = vertical_align_code(cstyle.vertical_align.as_deref());
     data[off + 17] = child_baseline; // <0 = 원천 없음 → block.rs 가 bottom margin edge 로 해소 (P3 §10.8.1)
     data[off + 18] = cstyle.line_height.unwrap_or(-1.0); // px 스칼라, AUTO=-1 — S4 예약 (소비는 컨테이너 strut)
+
+    // ADR-923 P3 r9m2 — self-collapsing box (CSS 2.1 §8.3.1 "top and bottom margins are
+    // adjoining"): block-level · 상하 padding/border 0 · height auto · min-height 0/미지정 ·
+    // in-flow content 0 (자식 solve content_h 0 = line box 없고 자식 전부 관통) · BFC 아님
+    // (Blink 는 flex/grid/scroll container 를 self-collapsing 으로 보지 않는다). 코드 2 →
+    // block.rs 가 top/bottom 을 한 chain 으로 관통시키고 auto height 에서 제외한다
+    // (Chrome 실측 trailing-empty-block-escape 10 / empty-first-chain-through-wrap).
+    // `height: 0` 명시는 보수적으로 제외 — 자식 유무를 여기서 볼 수 없어 content 있는
+    // height:0 box(비-self-collapsing) 와 구분 불가.
+    if display_code == 0.0
+        && pad_border_v == 0.0
+        && ch <= 0.0
+        && data[off + 2] == -1.0
+        && data[off + 12] <= 0.0
+        && !node_establishes_bfc(cstyle)
+    {
+        data[off] = 2.0;
+    }
 }
 
 /// vertical-align CSS 키워드 → block.rs u8 코드 (0=baseline 1=top 2=middle 3=bottom).
@@ -8099,6 +8128,154 @@ mod tests {
         let h = tree.build_tree_batch(json).unwrap();
         tree.compute_layout(h[3], 300.0, 200.0);
         assert_eq!(tree.get_layout(h[1]).y, 20.0, "a baseline = last line box 20 → y 40-20");
+    }
+
+    // ── round 9 — Chrome 실측 (r9h1 / r9m2 / 인접 margin chain) ──
+
+    /// r9h1 — overflow:clip flex item 은 scroll container 가 아니라 §4.5 content floor 유지
+    /// (Chrome flex-item-clip-auto-min: f.w 80 / hidden 대조군 60). 양축 판정: overflowY
+    /// hidden 만 있어도 overflowX 는 auto 로 계산돼 scroll container.
+    #[test]
+    fn adr923_p3_r9_flex_item_clip_keeps_auto_min_floor() {
+        let run = |overflow_key: &str, val: &str| -> f32 {
+            let mut tree = LayoutTree::new();
+            let json = format!(
+                r#"[
+                {{"style":{{"width":"80px","height":"20px"}},"children":[]}},
+                {{"style":{{"width":"80px","height":"20px"}},"children":[]}},
+                {{"style":{{"display":"flex","flexWrap":"wrap","{}":"{}"}},"children":[0,1]}},
+                {{"style":{{"display":"flex","width":"60px"}},"children":[2]}}
+            ]"#,
+                overflow_key, val
+            );
+            let h = tree.build_tree_batch(&json).unwrap();
+            tree.compute_layout(h[3], 60.0, 200.0);
+            tree.get_layout(h[2]).width
+        };
+        assert_eq!(run("overflowX", "clip"), 80.0, "clip: content floor 유지");
+        assert_eq!(run("overflowX", "visible"), 80.0, "visible: content floor 유지");
+        assert_eq!(run("overflowX", "hidden"), 60.0, "hidden: scroll container → floor 0");
+        assert_eq!(run("overflowY", "hidden"), 60.0, "cross 축 hidden 도 scroll container (computed overflow-x auto)");
+    }
+
+    /// r9m2 — 꼬리 self-collapsing box 의 관통 margin 은 부모 bottom 으로 탈출, auto
+    /// height 제외 (Chrome trailing-empty-block-escape: root h 10, empty y 30).
+    #[test]
+    fn adr923_p3_r9_trailing_empty_block_escapes_auto_height() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px","marginBottom":"10px"},"children":[]},
+            {"style":{"display":"block","marginTop":"20px","marginBottom":"30px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[2]).height, 10.0, "empty tail excluded");
+        assert_eq!(tree.get_layout(h[1]).y, 30.0, "as-if non-zero bottom border position");
+        assert_eq!(tree.get_layout(h[1]).height, 0.0);
+    }
+
+    /// r9m2 — padding-bottom 이 있으면 마지막 bottom margin(관통 chain 포함) 이 content 에
+    /// 포함 (Chrome trailing-margin-contained 31 / trailing-empty-block-contained 41).
+    #[test]
+    fn adr923_p3_r9_trailing_margin_contained_by_padding() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px","marginBottom":"20px"},"children":[]},
+            {"style":{"display":"block","width":"300px","paddingBottom":"1px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).height, 31.0);
+
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px","marginBottom":"10px"},"children":[]},
+            {"style":{"display":"block","marginTop":"20px","marginBottom":"30px"},"children":[]},
+            {"style":{"display":"block","width":"300px","paddingBottom":"1px"},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[2]).height, 41.0, "10 + max(10,20,30) + 1");
+    }
+
+    /// r9 인접 — BFC 자식(flex) 의 자기 margin 은 형제·부모와 collapse 한다 (Chrome
+    /// bfc-sibling-top-collapse b.y 30 / bfc-last-child-margin-escape sib.y 30 /
+    /// bfc-first-child-top-escape wrap y 30·h 10).
+    #[test]
+    fn adr923_p3_r9_bfc_child_own_margins_collapse() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px","marginBottom":"20px"},"children":[]},
+            {"style":{"display":"flex","marginTop":"10px","height":"10px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).y, 30.0, "sibling top collapse: 10 + max(20,10)");
+        assert_eq!(tree.get_layout(h[2]).height, 40.0);
+
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"flex","height":"10px","marginBottom":"20px"},"children":[]},
+            {"style":{"display":"block"},"children":[0]},
+            {"style":{"display":"block","height":"10px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[1,2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).height, 10.0, "wrap: bfc child mb escapes");
+        assert_eq!(tree.get_layout(h[2]).y, 30.0, "sib after escaped 20");
+
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px"},"children":[]},
+            {"style":{"display":"flex","marginTop":"20px","height":"10px"},"children":[]},
+            {"style":{"display":"block"},"children":[1]},
+            {"style":{"display":"block","width":"300px"},"children":[0,2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[2]).y, 30.0, "wrap y: bfc child mt escaped through wrap");
+        assert_eq!(tree.get_layout(h[2]).height, 10.0);
+        assert_eq!(tree.get_layout(h[1]).y, 0.0, "flex child at wrap content top");
+    }
+
+    /// r9 인접 — 선두 self-collapsing box + 다음 block 의 margin chain 이 wrap top 으로
+    /// 통째 탈출 (Chrome empty-first-chain-through-wrap: empty/solid/wrap y 40, root h 50).
+    #[test]
+    fn adr923_p3_r9_leading_empty_chain_escapes_through_wrap() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px"},"children":[]},
+            {"style":{"display":"block","marginTop":"20px","marginBottom":"30px"},"children":[]},
+            {"style":{"display":"block","marginTop":"5px","height":"10px"},"children":[]},
+            {"style":{"display":"block"},"children":[1,2]},
+            {"style":{"display":"block","width":"300px"},"children":[0,3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[3]).y, 40.0, "wrap y = 10 + max(20,30,5)");
+        assert_eq!(tree.get_layout(h[3]).height, 10.0);
+        assert_eq!(tree.get_layout(h[1]).y, 0.0, "leading empty = wrap top border edge");
+        assert_eq!(tree.get_layout(h[2]).y, 0.0, "solid at wrap content top");
+        assert_eq!(tree.get_layout(h[4]).height, 50.0);
+    }
+
+    /// r9 인접 — line box 는 margin 을 collapse 하지 않는다 (block h10+mb10 뒤 inline-block
+    /// y 20 — Chrome block-margin-then-line-box).
+    #[test]
+    fn adr923_p3_r9_block_margin_then_line_box() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px","marginBottom":"10px"},"children":[]},
+            {"style":{"display":"inline-block","width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0,1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).y, 20.0);
+        assert_eq!(tree.get_layout(h[2]).height, 40.0);
     }
 
     /// vertical-align: bottom 초과분은 line 을 위로 늘려 baseline 을 아래로 민다

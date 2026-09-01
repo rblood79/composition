@@ -537,6 +537,235 @@ const CASES: DiffCase[] = [
       },
     ],
   },
+  // ── round 9 (Codex r9h1 / r9m2 재현 + 인접 margin-collapse 경계 실측) ──
+  {
+    name: "flex-item-clip-auto-min — r9h1: overflow:clip flex item 은 scroll container 아님 → §4.5 content floor 유지",
+    availW: 60,
+    availH: -1,
+    nodes: [
+      { label: "f1", style: { width: "80px", height: "20px" } },
+      { label: "f2", style: { width: "80px", height: "20px" } },
+      {
+        label: "f",
+        style: { display: "flex", flexWrap: "wrap", overflowX: "clip" },
+        children: [0, 1],
+      },
+      {
+        label: "root",
+        style: { display: "flex", width: "60px", ...FS0 },
+        children: [2],
+      },
+    ],
+  },
+  {
+    name: "flex-item-hidden-auto-min — r9h1 대조군: hidden 은 scroll container → floor 0",
+    availW: 60,
+    availH: -1,
+    nodes: [
+      { label: "f1", style: { width: "80px", height: "20px" } },
+      { label: "f2", style: { width: "80px", height: "20px" } },
+      {
+        label: "f",
+        style: { display: "flex", flexWrap: "wrap", overflowX: "hidden" },
+        children: [0, 1],
+      },
+      {
+        label: "root",
+        style: { display: "flex", width: "60px", ...FS0 },
+        children: [2],
+      },
+    ],
+  },
+  {
+    name: "trailing-empty-block-escape — r9m2: 마지막 empty block 의 관통 margin 은 부모 bottom 으로 탈출 (auto height 제외)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "solid",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "empty",
+        style: { display: "block", marginTop: "20px", marginBottom: "30px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 1],
+      },
+    ],
+  },
+  {
+    name: "trailing-margin-contained — r9m2: 부모 padding-bottom 이 있으면 마지막 자식 bottom margin 은 content 에 포함",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "child",
+        style: { display: "block", height: "10px", marginBottom: "20px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", paddingBottom: "1px", ...FS0 },
+        children: [0],
+      },
+    ],
+  },
+  {
+    name: "trailing-empty-block-contained — r9m2: padding-bottom 부모 안 마지막 empty block 관통 margin 포함",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "solid",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "empty",
+        style: { display: "block", marginTop: "20px", marginBottom: "30px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", paddingBottom: "1px", ...FS0 },
+        children: [0, 1],
+      },
+    ],
+  },
+  {
+    name: "bfc-last-child-margin-escape — r9 인접: BFC 자식(flex) 의 자기 bottom margin 은 부모 bottom 과 collapse (탈출)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "b",
+        style: { display: "flex", height: "10px", marginBottom: "20px" },
+      },
+      { label: "wrap", style: { display: "block" }, children: [0] },
+      { label: "sib", style: { display: "block", height: "10px" } },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [1, 2],
+      },
+    ],
+  },
+  {
+    name: "bfc-sibling-top-collapse — r9 인접: BFC 자식(flex) 의 자기 top margin 은 이전 형제 bottom 과 collapse",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "20px" },
+      },
+      {
+        label: "b",
+        style: { display: "flex", marginTop: "10px", height: "10px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 1],
+      },
+    ],
+  },
+  {
+    name: "bfc-first-child-top-escape — r9 인접: BFC 자식(flex) 의 자기 top margin 은 부모 top 과 collapse (탈출)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "a", style: { display: "block", height: "10px" } },
+      {
+        label: "b",
+        style: { display: "flex", marginTop: "20px", height: "10px" },
+      },
+      { label: "wrap", style: { display: "block" }, children: [1] },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 2],
+      },
+    ],
+  },
+  {
+    name: "empty-first-child-padded — r9 인접: padding-top 부모 안 첫 empty block 위치 = non-zero bottom border 가정 (§8.3.1)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "empty",
+        style: { display: "block", marginTop: "20px", marginBottom: "30px" },
+      },
+      {
+        label: "solid",
+        style: { display: "block", marginTop: "5px", height: "10px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", paddingTop: "1px", ...FS0 },
+        children: [0, 1],
+      },
+    ],
+  },
+  {
+    name: "empty-first-chain-through-wrap — r9 인접: 첫 empty block + 다음 block 의 margin chain 이 wrap top 으로 통째 탈출",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      { label: "a", style: { display: "block", height: "10px" } },
+      {
+        label: "empty",
+        style: { display: "block", marginTop: "20px", marginBottom: "30px" },
+      },
+      {
+        label: "solid",
+        style: { display: "block", marginTop: "5px", height: "10px" },
+      },
+      { label: "wrap", style: { display: "block" }, children: [1, 2] },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 3],
+      },
+    ],
+  },
+  {
+    name: "flex-item-cross-hidden-auto-min — r9h1 양축: overflowY hidden 만 있어도 computed overflowX 는 auto → scroll container → floor 0",
+    availW: 60,
+    availH: -1,
+    nodes: [
+      { label: "f1", style: { width: "80px", height: "20px" } },
+      { label: "f2", style: { width: "80px", height: "20px" } },
+      {
+        label: "f",
+        style: { display: "flex", flexWrap: "wrap", overflowY: "hidden" },
+        children: [0, 1],
+      },
+      {
+        label: "root",
+        style: { display: "flex", width: "60px", ...FS0 },
+        children: [2],
+      },
+    ],
+  },
+  {
+    name: "block-margin-then-line-box — r9 인접: line box 는 margin 을 collapse 하지 않는다 (block mb10 뒤 inline-block y 20)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      { label: "b", style: ib(60, 20) },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 1],
+      },
+    ],
+  },
 ];
 
 /** engine leg 입력 — engineStyle override 적용. */
@@ -614,6 +843,29 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
       {
         label: "f",
         style: { display: "flex", flexWrap: "wrap" },
+        children: [0, 1],
+      },
+      {
+        label: "root",
+        style: { display: "flex", width: "60px" },
+        children: [2],
+      },
+    ];
+    const dom = domLeg(nodes, 60);
+    const pipe = pipelineLeg(nodes, 60, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  // r9h1 — Style Panel 의 Overflow=Clip (shorthand `overflow`) 은 scroll container 가
+  // 아니라 §4.5 content floor 를 잃지 않는다 (css-flexbox-1 §4.5 "non-scrollable" ·
+  // css-overflow-3 scrollable values = scroll/auto/hidden). Chrome f.w 80.
+  it("flex row 60px 안 overflow:clip wrap flex item 은 min-content 바닥 유지 (r9h1)", () => {
+    const nodes: CaseNode[] = [
+      { label: "f1", style: { width: "80px", height: "20px" } },
+      { label: "f2", style: { width: "80px", height: "20px" } },
+      {
+        label: "f",
+        style: { display: "flex", flexWrap: "wrap", overflow: "clip" },
         children: [0, 1],
       },
       {

@@ -67,7 +67,7 @@
 //! | 15  | flex_grow         | ≥0 (default 0)                  |
 //! | 16  | flex_shrink       | ≥0 (default 1)                  |
 //! | 17  | align_self        | 0=auto(상속) 1=stretch 2=start 3=center 4=end (E1/ADR-156 P2) |
-//! | 18  | overflow_main     | 0=visible(zero-init) 1=clipped — item 자신의 주축 overflow (ADR-164 §4.5) |
+//! | 18  | overflow_main     | 0=non-scrollable(visible/clip, zero-init) 1=scroll container(scroll/auto/hidden) — item 자신의 overflow (ADR-164 §4.5, r9h1) |
 //! | 19  | content_min_main  | 0=absent(zero-init) — 정확 min-content (main, ADR-165 §4.5 floor 정밀화) |
 //! | 20  | margin_auto_mask  | 0=없음(zero-init) — 물리 margin `auto` 비트마스크 (1=top 2=right 4=bottom 8=left) |
 //!
@@ -323,10 +323,13 @@ fn auto_min_main_from_parts(
     min_main: f32,
     max_main: f32,
     content_main: f32,
-    overflow_clipped: bool,
+    is_scroll_container: bool,
     content_min_main: f32,
 ) -> (f32, Option<FloorSource>) {
-    if min_main == AUTO && !overflow_clipped && main_size == AUTO {
+    // css-flexbox-1 §4.5: automatic minimum 은 computed overflow 가 **non-scrollable** 인
+    // item 에만 content-based — scroll container(scroll/auto/hidden) 는 0. clip 은
+    // non-scrollable (css-overflow-3 scrollable values 에 없음) — r9h1 Chrome 실측.
+    if min_main == AUTO && !is_scroll_container && main_size == AUTO {
         let (suggestion, source) = if content_min_main > 0.0 {
             (content_min_main, FloorSource::ContentMinScalar)
         } else {
@@ -1875,7 +1878,7 @@ mod tests {
         // item 자신의 주축 overflow ≠ visible (off 18 = 1) → §4.5 floor 미적용 (scroll
         // container item 은 content 밑으로 자유 shrink — 명세 조건).
         let mut f = item_auto(150.0, 20.0);
-        f[18] = 1.0; // overflow_main clipped
+        f[18] = 1.0; // overflow_main = scroll container (hidden/scroll/auto)
         let data = flatten(&[f]);
         let out = flex_layout(
             &data, 100.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
