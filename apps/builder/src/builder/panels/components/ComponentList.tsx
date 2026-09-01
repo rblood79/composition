@@ -2,9 +2,9 @@ import { useMemo, useCallback, memo, useState, useEffect } from "react";
 import { translations } from "../../../i18n";
 // ADR-912 collapse: palette icon 은 getPaletteItems() 가 catalog entry.panel.icon → lucide 매핑.
 // 아래 lucide import 는 ComponentList 자체 UI(검색/휴지통/접기 등) 전용으로만 잔존.
-import { Search, Blocks, ChevronsDownUp } from "lucide-react";
+import { Blocks, ChevronsDownUp, SearchX } from "lucide-react";
 import { getPaletteItems, type PaletteItem } from "./paletteItems";
-import { PanelHeader, Section } from "../../components";
+import { EmptyState, PanelHeader, Section } from "../../components";
 import { ActionIconButton } from "../../components/ui/ActionIconButton";
 import { useEditModeStore } from "../../stores/editMode";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -438,13 +438,11 @@ const ComponentList = memo(
           ) : (
             // 검색 결과 없음
             <div className="section">
-              <div className="search-no-results">
-                <Search size={24} color={iconProps.color} />
-                <p className="no-results-title">No components found</p>
-                <p className="no-results-hint">
-                  Try 'button', 'input', or 'table'
-                </p>
-              </div>
+              <EmptyState
+                icon={<SearchX size={32} />}
+                message="No components found"
+                description="Try 'button', 'input', or 'table'"
+              />
             </div>
           )}
         </div>

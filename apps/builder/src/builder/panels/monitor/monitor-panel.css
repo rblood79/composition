@@ -268,8 +268,7 @@
     color: var(--monitor-danger);
   }
 
-  .monitor-panel .browser-memory-fallback,
-  .monitor-panel .component-memory-empty {
+  .monitor-panel .browser-memory-fallback {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -280,8 +279,7 @@
     text-align: center;
   }
 
-  .monitor-panel .browser-memory-fallback p,
-  .monitor-panel .component-memory-empty p {
+  .monitor-panel .browser-memory-fallback p {
     margin: 0;
     font-size: var(--text-sm);
   }

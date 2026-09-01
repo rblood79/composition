@@ -10,6 +10,7 @@ import {
   PropertyUnitInput,
   PropertyColor,
   PropertySelect,
+  EmptyState,
 } from "../../../components";
 import type { SelectedElement } from "../../../inspector/types";
 import { useDirtyStyleProps } from "../hooks/useResetStyles";
@@ -27,6 +28,7 @@ import {
   AlignHorizontalSpaceAround,
   Bold,
   LayoutGrid,
+  PaintRoller,
   RulerDimensionLine,
   SquareDashedBottom,
   StretchVertical,
@@ -93,12 +95,11 @@ export function ModifiedStylesSection({
   if (modifiedProperties.length === 0) {
     return (
       <PropertySection title="Modified Styles">
-        <div className="empty-state">
-          <p className="empty-message">{localize("No modified styles")}</p>
-          <p className="empty-hint">
-            {localize("Edit any style property to see it here")}
-          </p>
-        </div>
+        <EmptyState
+          icon={<PaintRoller size={32} />}
+          message={localize("No modified styles")}
+          description={localize("Edit any style property to see it here")}
+        />
       </PropertySection>
     );
   }

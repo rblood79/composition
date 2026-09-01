@@ -10,7 +10,7 @@ import { useMemo } from "react";
 import { Table2, SquarePen, Link } from "lucide-react";
 import { Button } from "react-aria-components";
 import { useDataStore } from "../../../stores/data";
-import { Section } from "../../../components";
+import { EmptyState, Section } from "../../../components";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
@@ -98,14 +98,11 @@ export function DataTableList({
       collapsible={false}
     >
       {collections.length === 0 ? (
-        <div className="datatable-empty">
-          <Table2 size={32} className="datatable-empty-icon" />
-          <p className="datatable-empty-text">
-            {localize("tableEmpty", "No tables")}
-            <br />
-            {localize("addTableHint", "Add a new table.")}
-          </p>
-        </div>
+        <EmptyState
+          icon={<Table2 size={32} />}
+          message={localize("tableEmpty", "No tables")}
+          description={localize("addTableHint", "Add a new table.")}
+        />
       ) : (
         <div className="list-group" role="list">
           {collections.map((table) => {

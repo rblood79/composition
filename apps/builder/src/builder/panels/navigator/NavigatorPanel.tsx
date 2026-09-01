@@ -13,7 +13,7 @@ import {
   useState,
   type Key,
 } from "react";
-import { ListTree } from "lucide-react";
+import { FileText, ListTree } from "lucide-react";
 import { TabPanel, Tabs } from "react-aria-components";
 import { useParams } from "react-router";
 import "./NavigatorPanel.css";
@@ -22,7 +22,7 @@ import { useEditModeStore } from "../../stores/editMode";
 import { usePageManager, useIframeMessenger } from "@/builder/hooks";
 import { useI18n } from "../../../i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { PanelHeader } from "../../components";
+import { EmptyState, PanelHeader } from "../../components";
 import {
   NavigatorPanelTabs,
   type NavigatorPanelTabType,
@@ -180,9 +180,10 @@ const PagesTabContent = memo(function PagesTabContent({
 
   if (!currentPageId && pageCount === 0) {
     return (
-      <div className="panel-empty-state">
-        <p className="empty-message">{t("navigator.selectPage")}</p>
-      </div>
+      <EmptyState
+        icon={<FileText size={32} />}
+        message={t("navigator.selectPage")}
+      />
     );
   }
 

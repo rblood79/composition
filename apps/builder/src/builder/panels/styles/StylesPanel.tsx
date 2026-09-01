@@ -179,7 +179,10 @@ function StylesPanelContent() {
           panelId="styles"
         />
         <div className="panel-contents">
-          <EmptyState message={t("styles.selectElement")} />
+          <EmptyState
+            icon={<PaintRoller size={32} />}
+            message={t("styles.selectElement")}
+          />
         </div>
       </div>
     );

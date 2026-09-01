@@ -165,15 +165,6 @@
   flex-shrink: 0;
 }
 
-/* Empty State */
-.command-palette-empty {
-  padding: var(--spacing-2xl) var(--spacing-lg);
-  text-align: center;
-  color: var(--fg-muted);
-  font-size: var(--text-sm);
-  line-height: var(--text-sm--line-height);
-}
-
 /* Footer */
 .command-palette-footer {
   display: flex;

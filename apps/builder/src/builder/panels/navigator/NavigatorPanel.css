@@ -226,13 +226,6 @@
   display: none;
 }
 
-.no_element {
-  padding: var(--spacing-sm);
-  color: var(--fg-muted);
-  font-size: var(--text-xs);
-  line-height: var(--text-xs--line-height);
-}
-
 /* NavigatorPanel */
 .navigator-panel {
   display: flex;
@@ -280,15 +273,6 @@
 
 .navigator-panel-content .elementItemActions .layer-drag-handle {
   cursor: grab;
-}
-
-.navigator-panel .panel-empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100px;
-  color: var(--fg-muted);
-  font-size: var(--text-sm);
 }
 
 /* NavigatorPanelTabs */

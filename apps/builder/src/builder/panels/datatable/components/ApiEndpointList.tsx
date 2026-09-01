@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Globe, SquarePen, Play } from "lucide-react";
 import { useDataStore, useApiEndpoints } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
-import { Section } from "../../../components";
+import { EmptyState, Section } from "../../../components";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
@@ -112,14 +112,11 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
       collapsible={false}
     >
       {apiEndpoints.length === 0 ? (
-        <div className="datatable-empty">
-          <Globe size={32} className="datatable-empty-icon" />
-          <p className="datatable-empty-text">
-            {localize("apiEmpty", "No API endpoints")}
-            <br />
-            {localize("addApiHint", "Add a new API.")}
-          </p>
-        </div>
+        <EmptyState
+          icon={<Globe size={32} />}
+          message={localize("apiEmpty", "No API endpoints")}
+          description={localize("addApiHint", "Add a new API.")}
+        />
       ) : (
         <div className="list-group" role="list">
           {apiEndpoints.map((endpoint) => (

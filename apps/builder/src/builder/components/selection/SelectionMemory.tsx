@@ -12,13 +12,13 @@ import {
   iconProps,
   iconEditProps,
   iconSmall,
-  iconLarge,
 } from "../../../utils/ui/uiConstants";
 import {
   selectionMemory,
   formatTimestamp,
   type SelectionHistoryEntry,
 } from "../../utils/selectionMemory";
+import { EmptyState } from "../feedback/EmptyState";
 
 import "./SelectionMemory.css";
 import { ACTION_ICONS } from "../../config/actionIcons";
@@ -95,13 +95,11 @@ export function SelectionMemory({
   if (pageHistory.length === 0) {
     return (
       <div className={`selection-memory empty ${className}`.trim()}>
-        <div className="empty-state">
-          <History size={iconLarge.size} color="var(--fg-disabled)" />
-          <p className="empty-text">No selection history</p>
-          <p className="empty-hint">
-            Previous selections will appear here for quick access
-          </p>
-        </div>
+        <EmptyState
+          icon={<History size={32} />}
+          message="No selection history"
+          description="Previous selections will appear here for quick access"
+        />
       </div>
     );
   }

@@ -57,27 +57,6 @@
 
 /* Add Button */
 
-/* Empty State */
-.datatable-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xl);
-  text-align: center;
-}
-
-.datatable-empty-icon {
-  color: var(--fg-disabled);
-  margin-bottom: var(--spacing-sm);
-}
-
-.datatable-empty-text {
-  font-size: var(--text-sm);
-  color: var(--fg-muted);
-  margin-bottom: var(--spacing-md);
-}
-
 /* Badge Variants (extends common .list-item-badge) */
 .datatable-panel .list-item-badge.global {
   background: var(--color-primary-100);

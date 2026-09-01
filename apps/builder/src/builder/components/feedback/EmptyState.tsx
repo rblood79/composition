@@ -6,10 +6,11 @@
  */
 
 import type { ReactNode } from "react";
+import "./EmptyState.css";
 
 export interface EmptyStateProps {
-  /** 표시할 아이콘 (선택) */
-  icon?: ReactNode;
+  /** 표시할 아이콘 */
+  icon: ReactNode;
   /** 메인 메시지 */
   message: string;
   /** 추가 설명 (선택) */
@@ -23,7 +24,7 @@ export interface EmptyStateProps {
  *
  * @example
  * ```tsx
- * <EmptyState message="요소를 선택하세요" />
+ * <EmptyState icon={<Settings2 size={32} />} message="요소를 선택하세요" />
  * ```
  *
  * @example
@@ -42,11 +43,13 @@ export function EmptyState({
   className = "",
 }: EmptyStateProps) {
   return (
-    <div className={`inspector empty ${className}`.trim()}>
-      <div className="empty-state">
-        {icon && <div className="empty-icon">{icon}</div>}
-        <p className="empty-message">{message}</p>
-        {description && <p className="empty-description">{description}</p>}
+    <div className={`builder-empty-state ${className}`.trim()}>
+      <div className="builder-empty-state-content">
+        <div className="builder-empty-state-icon">{icon}</div>
+        <p className="builder-empty-state-message">{message}</p>
+        {description && (
+          <p className="builder-empty-state-description">{description}</p>
+        )}
       </div>
     </div>
   );

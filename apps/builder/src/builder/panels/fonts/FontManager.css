@@ -142,36 +142,4 @@
     min-height: 0;
     overflow-y: auto;
   }
-
-  /* EmptyState 의 시각 규칙(`.empty-message` 등)은 패널 스코프 안에 있어 모달까지
-     닿지 않는다 — 그대로 두면 본문 밖으로 흘러나온다. 값을 복제하지 않고 이
-     표면에서 필요한 배치·크기만 인스턴스 한정으로 준다. */
-  .font-manager-dialog-body .empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-xl) var(--spacing-lg);
-  }
-
-  .font-manager-dialog-body .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-xs);
-    text-align: center;
-  }
-
-  .font-manager-dialog-body .empty-icon {
-    color: var(--fg-disabled);
-  }
-
-  .font-manager-dialog-body .empty-message {
-    font-size: var(--text-sm);
-    color: var(--fg);
-  }
-
-  .font-manager-dialog-body .empty-description {
-    font-size: var(--text-xs);
-    color: var(--fg-muted);
-  }
 }

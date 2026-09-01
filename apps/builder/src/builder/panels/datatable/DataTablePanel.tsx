@@ -127,7 +127,10 @@ export function DataTablePanel({ isActive }: PanelProps) {
           title={i18n ? i18n.t("panels.dataTable") : "DataTable"}
           panelId="datatable"
         />
-        <EmptyState message={localize("noProject", "Select a project")} />
+        <EmptyState
+          icon={<Database size={32} />}
+          message={localize("noProject", "Select a project")}
+        />
       </div>
     );
   }

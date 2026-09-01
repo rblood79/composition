@@ -500,7 +500,7 @@ function HistoryPanelContent() {
         >
           {displayEntries.length === 0 ? (
             <EmptyState
-              icon={<History size={48} />}
+              icon={<History size={32} />}
               message={t("history.emptyMessage")}
               description={t("history.emptyDescription")}
             />

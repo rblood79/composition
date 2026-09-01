@@ -25,7 +25,7 @@ export function FontManagerBody() {
 
       {faceCount === 0 ? (
         <EmptyState
-          icon={<Type size={48} />}
+          icon={<Type size={32} />}
           message={t("fonts.emptyMessage")}
           description={t("fonts.emptyDescription")}
         />

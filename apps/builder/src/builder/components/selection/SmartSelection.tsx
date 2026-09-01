@@ -17,11 +17,12 @@ import {
   Palette,
   Braces,
 } from "lucide-react";
-import { iconProps, iconLarge } from "../../../utils/ui/uiConstants";
+import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   getAllSuggestions,
   type SuggestionResult,
 } from "../../utils/smartSelection";
+import { EmptyState } from "../feedback/EmptyState";
 
 import "./SmartSelection.css";
 export interface SmartSelectionProps {
@@ -82,14 +83,11 @@ export function SmartSelection({
   if (suggestions.length === 0) {
     return (
       <div className={`smart-selection empty ${className}`.trim()}>
-        <div className="empty-state">
-          <Sparkles size={iconLarge.size} color="var(--fg-disabled)" />
-          <p className="empty-text">No smart selection suggestions available</p>
-          <p className="empty-hint">
-            Select an element with siblings, children, or similar elements to
-            see suggestions
-          </p>
-        </div>
+        <EmptyState
+          icon={<Sparkles size={32} />}
+          message="No smart selection suggestions available"
+          description="Select an element with siblings, children, or similar elements to see suggestions"
+        />
       </div>
     );
   }

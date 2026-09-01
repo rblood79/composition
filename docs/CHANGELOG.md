@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [빌더 패널의 빈 상태가 공통 패턴을 사용합니다] - 2026-09-01
+
+### Fixed
+
+- **DataTable·Navigator·Components·Styles·Properties·Interactions 등에서 빈 화면의 표현이 제각각이던 문제**: DataTable empty의 icon–text 구조를 공통 `EmptyState`로 승격해 아이콘, 메시지, 설명의 배치와 색상 토큰을 통일했습니다.
+- **기존 패널별 empty CSS가 공통 컴포넌트와 분리되어 있던 문제**: 패널별 중복 스타일을 제거하고 도메인 아이콘만 각 화면이 주입하도록 정리했습니다. Canvas/Preview의 렌더링 empty 상태는 이번 범위에서 제외했습니다.
+
 ## [공백만 있는 텍스트와 높이를 정한 상자의 아래 여백이 미리보기와 같아집니다] - 2026-09-01
 
 ### Fixed

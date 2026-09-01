@@ -8,7 +8,7 @@
 import { Variable, SquarePen } from "lucide-react";
 import { useDataStore, useVariables } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
-import { Section } from "../../../components";
+import { EmptyState, Section } from "../../../components";
 import type { Variable as VariableType } from "../../../../types/builder/data.types";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -137,14 +137,11 @@ export function VariableList({ projectId }: VariableListProps) {
       collapsible={false}
     >
       {variables.length === 0 ? (
-        <div className="datatable-empty">
-          <Variable size={32} className="datatable-empty-icon" />
-          <p className="datatable-empty-text">
-            {localize("variableEmpty", "No variables")}
-            <br />
-            {localize("addVariableHint", "Add a new variable.")}
-          </p>
-        </div>
+        <EmptyState
+          icon={<Variable size={32} />}
+          message={localize("variableEmpty", "No variables")}
+          description={localize("addVariableHint", "Add a new variable.")}
+        />
       ) : (
         <>
           {/* Global Variables */}

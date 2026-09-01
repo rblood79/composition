@@ -13,7 +13,7 @@
 import React, { useCallback, useMemo } from "react";
 import type { Key } from "react-stately";
 import { Button } from "react-aria-components";
-import { Minimize, ChevronRight, Box, Settings2 } from "lucide-react";
+import { Minimize, ChevronRight, Box, Layers3, Settings2 } from "lucide-react";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
@@ -22,7 +22,7 @@ import { iconProps } from "../../../../utils/ui/uiConstants";
 import type { ElementProps } from "../../../../types/integrations/supabase.types";
 import type { ElementTreeItem } from "../../../../types/builder/stately.types";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
-import { ActionIconButton, Section } from "../../../components";
+import { ActionIconButton, EmptyState, Section } from "../../../components";
 import { useI18n } from "../../../../i18n";
 import { TreeBase, VirtualizedTree } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
@@ -162,9 +162,15 @@ export function FrameElementTree({
       }
     >
       {!frameId ? (
-        <p className="no_element">{t("navigator.selectFrame")}</p>
+        <EmptyState
+          icon={<Box size={32} />}
+          message={t("navigator.selectFrame")}
+        />
       ) : tree.length === 0 ? (
-        <p className="no_element">{t("navigator.noElements")}</p>
+        <EmptyState
+          icon={<Layers3 size={32} />}
+          message={t("navigator.noElements")}
+        />
       ) : treeNodes.length >= 12 ? (
         <VirtualizedTree<FrameElementTreeNode>
           aria-label={t("navigator.layers")}

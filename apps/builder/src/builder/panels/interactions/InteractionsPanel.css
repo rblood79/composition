@@ -6,14 +6,6 @@
  * `interactions-*`) 만 선언한다. 색상은 시맨틱 토큰만 사용 (원시 토큰·하드코딩 금지).
  */
 
-.interactions-empty {
-  margin: 0;
-  padding: var(--spacing-sm) 0;
-  color: var(--fg-muted);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-}
-
 .interaction-rule {
   display: flex;
   flex-direction: column;
@@ -90,4 +82,3 @@
   border-top: 1px solid var(--border);
   margin: 0;
 }
-

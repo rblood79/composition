@@ -13,8 +13,12 @@ import {
   type ComponentMemoryInfo,
 } from "../hooks/useComponentMemory";
 import { formatBytes } from "../hooks/useMemoryStats";
-import { iconSmall, iconLarge } from "../../../../utils/ui/uiConstants";
-import { ActionIconButton, PropertySelect } from "../../../components";
+import { iconSmall } from "../../../../utils/ui/uiConstants";
+import {
+  ActionIconButton,
+  EmptyState,
+  PropertySelect,
+} from "../../../components";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 interface ComponentMemoryListProps {
@@ -96,10 +100,10 @@ export function ComponentMemoryList({
           <ComponentMemoryItem key={info.elementId} info={info} />
         ))}
         {componentMemory.length === 0 && (
-          <div className="component-memory-empty">
-            <Box size={iconLarge.size} />
-            <p>{localize("noComponents", "No components to analyze")}</p>
-          </div>
+          <EmptyState
+            icon={<Box size={32} />}
+            message={localize("noComponents", "No components to analyze")}
+          />
         )}
       </div>
     </div>

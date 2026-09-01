@@ -276,6 +276,7 @@ const CatalogEditContractEditor = memo(
       }
       return (
         <EmptyState
+          icon={<Settings2 size={32} />}
           message={t("propertiesPanel.emptyMessage")}
           description={t("propertiesPanel.emptyDescription", {
             type: selectedElement.type,
@@ -726,7 +727,10 @@ function PropertiesPanelContent() {
           panelId="properties"
         />
         <div className="panel-contents">
-          <EmptyState message={t("propertiesPanel.selectElement")} />
+          <EmptyState
+            icon={<Settings2 size={32} />}
+            message={t("propertiesPanel.selectElement")}
+          />
         </div>
       </div>
     );

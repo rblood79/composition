@@ -22,11 +22,13 @@ import {
   FileJson,
   FileOutput,
   FilePlus2,
+  Globe,
   LayoutTemplate,
   Play,
   Settings,
   Shield,
   Table2,
+  Variable,
 } from "lucide-react";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
 import { useDataStore } from "../../stores/data";
@@ -315,6 +317,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
         if (!dataTable) {
           return (
             <EmptyState
+              icon={<Table2 size={32} />}
               message={localize("tableNotFound", "Table not found")}
             />
           );
@@ -332,6 +335,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
         // TODO: ApiEndpointCreator 구현 필요
         return (
           <EmptyState
+            icon={<Globe size={32} />}
             message={localize(
               "apiCreationPending",
               "API creation is not ready yet",
@@ -343,7 +347,10 @@ function EditorContent({ mode, close }: EditorContentProps) {
         const endpoint = apiEndpoints.find((e) => e.id === mode.endpointId);
         if (!endpoint) {
           return (
-            <EmptyState message={localize("apiNotFound", "API not found")} />
+            <EmptyState
+              icon={<Globe size={32} />}
+              message={localize("apiNotFound", "API not found")}
+            />
           );
         }
         return (
@@ -359,6 +366,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
         // TODO: VariableCreator 구현 필요
         return (
           <EmptyState
+            icon={<Variable size={32} />}
             message={localize(
               "variableCreationPending",
               "Variable creation is not ready yet",
@@ -371,6 +379,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
         if (!variable) {
           return (
             <EmptyState
+              icon={<Variable size={32} />}
               message={localize("variableNotFound", "Variable not found")}
             />
           );
@@ -387,6 +396,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
       default:
         return (
           <EmptyState
+            icon={<FileEdit size={32} />}
             message={localize("selectEditorItem", "Select an item to edit")}
           />
         );
@@ -453,6 +463,7 @@ export function DataTableEditorPanel() {
         />
         <div className="panel-contents">
           <EmptyState
+            icon={<FileEdit size={32} />}
             message={localize("selectEditorItem", "Select an item to edit")}
           />
         </div>

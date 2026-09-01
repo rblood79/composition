@@ -28,7 +28,7 @@ import {
   ListBoxItem,
   ModalOverlay,
 } from "react-aria-components";
-import { Command, X } from "lucide-react";
+import { Command, SearchX, X } from "lucide-react";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
@@ -52,6 +52,7 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import { PanelHeader } from "../panel/PanelHeader";
 import { ActionIconButton } from "../ui/ActionIconButton";
 import { SearchField as BuilderSearchField } from "../ui/SearchField";
+import { EmptyState } from "../feedback/EmptyState";
 import "./CommandPalette.css";
 
 // ============================================
@@ -452,9 +453,10 @@ export function CommandPalette({
                 ))}
               </ListBox>
             ) : (
-              <div className="command-palette-empty">
-                {t("commandPalette.noResults", { query: search })}
-              </div>
+              <EmptyState
+                icon={<SearchX size={32} />}
+                message={t("commandPalette.noResults", { query: search })}
+              />
             )}
 
             {/* Footer */}

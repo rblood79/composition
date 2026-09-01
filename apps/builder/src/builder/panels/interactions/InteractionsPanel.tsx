@@ -39,7 +39,10 @@ export function InteractionsPanel() {
           panelId="events"
         />
         <div className="panel-contents">
-          <EmptyState message={t("interactions.selectElement")} />
+          <EmptyState
+            icon={<SquareMousePointer size={32} />}
+            message={t("interactions.selectElement")}
+          />
         </div>
       </div>
     );
@@ -93,14 +96,16 @@ function InteractionsPanelContent({
         >
           {!canTrigger ? (
             <EmptyState
+              icon={<SquareMousePointer size={32} />}
               message={t("interactions.noTriggers", { type: componentType })}
             />
           ) : (
             <>
               {rules.length === 0 && (
-                <p className="interactions-empty">
-                  {t("interactions.noRules")}
-                </p>
+                <EmptyState
+                  icon={<SquareMousePointer size={32} />}
+                  message={t("interactions.noRules")}
+                />
               )}
 
               {rules.map((rule) => (

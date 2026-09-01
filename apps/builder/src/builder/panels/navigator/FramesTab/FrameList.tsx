@@ -19,7 +19,7 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
 import { iconProps } from "../../../../utils/ui/uiConstants";
-import { ActionIconButton, Section } from "../../../components";
+import { ActionIconButton, EmptyState, Section } from "../../../components";
 import { useI18n } from "../../../../i18n";
 import { TreeBase } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
@@ -118,7 +118,10 @@ export function FrameList({
       }
     >
       {frames.length === 0 ? (
-        <p className="no_element">{t("navigator.noFrames")}</p>
+        <EmptyState
+          icon={<Box size={32} />}
+          message={t("navigator.noFrames")}
+        />
       ) : (
         <TreeBase<FrameListNode>
           aria-label={t("navigator.frames")}
