@@ -379,15 +379,19 @@ struct TreeNode {
     /// 마지막 자식 bottom margin (E3/ADR-156 P4). `solve_block` 이 BFC 차단 요인
     /// (padding/border/overflow≠visible / flex·grid item)이 없을 때만 nonzero 로 채운다.
     /// 부모(=조부모)의 `solve_block` 이 이 노드를 block flat 으로 직렬화할 때 자기 style
-    /// margin 과 collapse 하여 상쇄 chain 을 잇는다. 비-block solve(flex/grid/leaf)는 0.
-    escaped_mt: f32,
-    escaped_mb: f32,
+    /// margin 과 collapse 하여 상쇄 chain 을 잇는다. 비-block solve(flex/grid/leaf)는 ZERO.
+    /// 값이 아니라 adjoining **집합** (block.rs `MarginSet`, r10m2) — 손자→자식→형제 3층의
+    /// margin 이 한 집합이라 최대 양수 + 최소 음수 로만 닫힌다.
+    escaped_mt: block::MarginSet,
+    escaped_mb: block::MarginSet,
     /// 이 block 컨테이너가 **self-collapsing** 인가 (CSS 2.1 §8.3.1 — 상하 padding/border 0 ·
     /// height auto 또는 0 · min-height 0 · line box 없음 · in-flow 자식 없거나 전부 관통 ·
     /// BFC 아님). 재귀 정의라 자식의 `solve_block` 이 판정해 두면 부모 intake 가 읽어 block
     /// flat 코드 2 로 보낸다 — `height: 0` 명시 컨테이너는 intake 의 auto-height 규칙만으론
-    /// 분류할 수 없다 (ADR-923 P3 r9 후속 ①, Chrome height-zero-self-collapsing). leaf 는
-    /// false 유지 (intake 의 `content_h == 0` 규칙이 담당).
+    /// 분류할 수 없다 (ADR-923 P3 r9 후속 ①, Chrome height-zero-self-collapsing). leaf
+    /// (in-flow 자식 없음 — absolute 자식만 있는 경우 포함, r10m1) 는 `solve_node` leaf 경로가
+    /// 같은 조건 + `leaf_baseline` 없음(= 텍스트 line box 없음, r10h1) 으로 판정한다.
+    /// **단일 원천** — intake 는 이 플래그만 읽는다 (r9m2 이중 층 교훈).
     self_collapsing: bool,
     /// 폭 축 intrinsic 측정 캐시 `(mutation_gen, min_content, max_content)` — border-box
     /// (ADR-169 Phase 1).
@@ -602,8 +606,8 @@ impl LayoutTree {
             dirty: true,
             subtree_dirty: false,
             parent: None,
-            escaped_mt: 0.0,
-            escaped_mb: 0.0,
+            escaped_mt: block::MarginSet::ZERO,
+            escaped_mb: block::MarginSet::ZERO,
             self_collapsing: false,
             intrinsic_w: None,
             last_avail: None,
@@ -744,8 +748,8 @@ impl LayoutTree {
                 dirty: true,
                 subtree_dirty: !child_handles.is_empty(),
                 parent: None,
-                escaped_mt: 0.0,
-                escaped_mb: 0.0,
+                escaped_mt: block::MarginSet::ZERO,
+                escaped_mb: block::MarginSet::ZERO,
                 self_collapsing: false,
                 intrinsic_w: None,
                 last_avail: None,
@@ -1554,8 +1558,8 @@ impl LayoutTree {
         // 재계산마다 hoisted margin 리셋 (E3). solve_block 만 nonzero 로 채우고,
         // flex/grid/leaf 는 0 유지 — display 가 block→flex 로 바뀌어도 stale escaped 잔존 없음.
         if let Some(n) = self.get_mut(handle) {
-            n.escaped_mt = 0.0;
-            n.escaped_mb = 0.0;
+            n.escaped_mt = block::MarginSet::ZERO;
+            n.escaped_mb = block::MarginSet::ZERO;
             n.self_collapsing = false;
         }
 
@@ -1579,8 +1583,25 @@ impl LayoutTree {
                 }
                 None => BASELINE_NONE,
             };
+            // §8.3.1 self-collapsing (leaf 판정 — r10h1/r10m1): block-level 여부는 부모 intake
+            // 가 본다. 상하 pad/border 0 · height auto/0 · min-height 0 · BFC 아님 · **line box
+            // 없음** = 텍스트 측정 스칼라(`leaf_baseline`) 부재 — 텍스트 leaf 는 height:0 이어도
+            // line box 가 있어 margin 이 관통하지 않는다 (Chrome text-leaf-height-zero-has-line-
+            // box b.y 60). absolute 자식만 있는 컨테이너도 이 경로다 (abs-only-height-zero b.y 40).
+            let leaf_self_collapsing = {
+                let lstyle = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+                let ctx = self.ctx_for(avail_w);
+                let min_h = resolve_dimension_opt(lstyle.min_height.as_deref(), &self.ctx_for(avail_h))
+                    .unwrap_or(0.0);
+                !node_establishes_bfc(&lstyle)
+                    && axis_pad_border(&lstyle, &ctx, false) == 0.0
+                    && h <= 0.0
+                    && min_h <= 0.0
+                    && lstyle.leaf_baseline.is_none()
+            };
             if let Some(n) = self.get_mut(handle) {
                 n.layout = NodeLayout { x: 0.0, y: 0.0, width: w, height: h, baseline };
+                n.self_collapsing = leaf_self_collapsing;
                 n.dirty = false;
                 n.subtree_dirty = false;
             }
@@ -2755,38 +2776,27 @@ impl LayoutTree {
             }
             // 자식이 자기 자식 상쇄로 hoisted margin 을 보유하면 자기 style margin 과 collapse
             //   해 상쇄 chain 을 잇는다 (E3 전파). 자식이 BFC 확립 시 형제 관통 상쇄 차단 flag.
-            let (ch_esc_mt, ch_esc_mb, ch_bfc) = self
+            let (ch_esc_mt, ch_esc_mb, ch_bfc, ch_self_collapsing) = self
                 .get(c)
-                .map(|n| (n.escaped_mt, n.escaped_mb, node_establishes_bfc(&n.style)))
-                .unwrap_or((0.0, 0.0, false));
-            if ch_esc_mt != 0.0 {
-                data[off + 3] = block::collapse_margins(data[off + 3], ch_esc_mt);
-            }
-            if ch_esc_mb != 0.0 {
-                data[off + 5] = block::collapse_margins(data[off + 5], ch_esc_mb);
-            }
+                .map(|n| (n.escaped_mt, n.escaped_mb, node_establishes_bfc(&n.style), n.self_collapsing))
+                .unwrap_or((block::MarginSet::ZERO, block::MarginSet::ZERO, false, false));
+            // r10m2 — own margin 과 탈출 chain 은 한 adjoining 집합: 슬롯 3/5 = 양수 성분,
+            // 19/20 = 음수 성분 (block.rs `MarginSet::of(3).with(19)`). 이항 collapse 로 값만
+            // 넘기면 손자 음수 margin 이 wrapper·형제 양수와 결합 순서에 따라 갈린다
+            // (Chrome mixed-sign-chain-hoisted-through-wrapper g.y 20 / 종전 35).
+            let mt = block::MarginSet::of(data[off + 3]).join(ch_esc_mt);
+            data[off + 3] = mt.pos;
+            data[off + 19] = mt.neg;
+            let mb = block::MarginSet::of(data[off + 5]).join(ch_esc_mb);
+            data[off + 5] = mb.pos;
+            data[off + 20] = mb.neg;
             if ch_bfc {
-                data[off + 7] = 1.0; // bfc_flag
+                data[off + 7] = 1.0; // bfc_flag — block.rs 미소비 (r9), 프로토콜 호환 잔존
             }
-            // self-collapsing 합집합 (write_block_item 의 auto-height 규칙 +):
-            //  (a) 자식 solve_block 이 판정한 플래그 — 재귀 정의, height:0 명시 컨테이너 포함.
-            //  (b) leaf(in-flow 자식 없음 → solve_block 미경유) 의 `height: 0` 명시 — 상하
-            //      pad/border 0 · min-height 0 · BFC 아님 · content_h 0. 내용 있는 height:0
-            //      컨테이너는 (a) 가 false 라 제외 (Chrome height-zero-with-content 대조군).
-            if data[off] == 0.0 {
-                let (flag, is_leaf) = self
-                    .get(c)
-                    .map(|n| (n.self_collapsing, n.children.is_empty()))
-                    .unwrap_or((false, true));
-                let leaf_zero_h = is_leaf
-                    && data[off + 2] == 0.0
-                    && data[off + 8] == 0.0
-                    && data[off + 12] <= 0.0
-                    && data[off + 7] == 0.0
-                    && ch <= 0.0;
-                if flag || leaf_zero_h {
-                    data[off] = 2.0;
-                }
+            // self-collapsing 코드 2 — **단일 원천** = 자식 solve 가 남긴 플래그 (solve_block
+            // 재귀 판정 또는 solve_node leaf 경로 — r10h1/r10m1). intake 는 판정하지 않는다.
+            if data[off] == 0.0 && ch_self_collapsing {
+                data[off] = 2.0;
             }
         }
 
@@ -2811,6 +2821,11 @@ impl LayoutTree {
         //   빼 컨테이너 content 원점(y=0)에 맞추고, 컨테이너 밖으로 hoist 한다.
         let escaped_top = out[meta_off];
         let escaped_bottom = out[meta_off + 1];
+        // r10m2 — meta 4/5 = 음수 성분 → 집합 복원 (부모 intake 가 own margin 과 합친다).
+        let escaped_top_set =
+            block::MarginSet { pos: escaped_top - out[meta_off + 4], neg: out[meta_off + 4] };
+        let escaped_bottom_set =
+            block::MarginSet { pos: escaped_bottom - out[meta_off + 5], neg: out[meta_off + 5] };
 
         // 4) 자식 위치 반영 + bounding box 로 컨테이너 content 크기 도출.
         //    bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
@@ -2875,7 +2890,9 @@ impl LayoutTree {
         // root 10, bbox 면 30).
         let flow_bottom = out[meta_off + 3] - escaped_top;
         let container_w = if explicit_w > 0.0 { explicit_w } else { max_right };
-        let container_h = if explicit_h > 0.0 { explicit_h } else { flow_bottom };
+        // auto height 는 0 하한 (r10m3 — 음수 margin 으로 in-flow bottom 이 content 원점 위로
+        // 올라가도 used height 는 음수가 아니다: Chrome negative-top-margin-padded root.h 2).
+        let container_h = if explicit_h > 0.0 { explicit_h } else { flow_bottom.max(0.0) };
 
         // 5) **shrink-to-fit 확정 뒤 재-solve** — `%` 재해소 + auto 폭 자식 stretch 복원.
         //   실측(2026-07-28): 폭 120 으로 확정된 shrink-to-fit block 안에서 `width:50%` 자식이
@@ -2909,6 +2926,8 @@ impl LayoutTree {
             return (report_w, h2);
         }
 
+        let all_children_collapse_through =
+            (0..children.len()).all(|i| data[i * block::FIELD_COUNT] == 2.0);
         if let Some(n) = self.get_mut(handle) {
             n.layout = NodeLayout {
                 x: 0.0,
@@ -2917,16 +2936,17 @@ impl LayoutTree {
                 height: container_h,
                 baseline: container_baseline,
             };
-            n.escaped_mt = escaped_top;
-            n.escaped_mb = escaped_bottom;
-            // §8.3.1 self-collapsing 판정 (struct doc) — in-flow 하단 0 = 자식 없거나 전부 관통,
-            // line box 없음(meta lastLineBaseline 센티널), height auto/0, 상하 pad/border 0,
-            // min-height 0, BFC 아님. 부모 intake 가 코드 2 로 읽는다.
+            n.escaped_mt = escaped_top_set;
+            n.escaped_mb = escaped_bottom_set;
+            // §8.3.1 self-collapsing 판정 (struct doc) — in-flow 자식 **전부** 관통(코드 2;
+            // line box 는 코드 1 이라 자동 제외), height auto/0, 상하 pad/border 0, min-height 0,
+            // BFC 아님. in-flow bottom ≤ 0 은 근거가 아니다 — 음수 margin 으로 bottom 이 0 이하로
+            // 내려가도 내용 있는 자식이 있으면 self-collapsing 이 아니다 (r10m3 인접, Chrome
+            // negative-flow-bottom-not-self-collapsing b.y 60). 부모 intake 가 코드 2 로 읽는다.
             n.self_collapsing = !block_is_bfc
                 && off_y == 0.0
                 && bottom_barrier == 0.0
-                && flow_bottom <= 0.0
-                && out[meta_off + 2] < 0.0
+                && all_children_collapse_through
                 && explicit_h <= 0.0
                 && resolve_dimension_opt(style.min_height.as_deref(), &parent_ctx).unwrap_or(0.0) <= 0.0;
             n.dirty = false;
@@ -4529,10 +4549,13 @@ fn overflow_creates_bfc(style: &NodeStyle) -> bool {
     is_scroll_container(style)
 }
 
-/// 이 노드가 새 BFC 를 확립하는가 (형제 관통 상쇄 차단 — block.rs bfc_flag).
-/// overflow≠visible + flex/grid 컨테이너가 대상. block.rs 는 flex/grid 자식을
-/// block-level box 로 취급하나, 그 자식은 자기 내부에 독립 formatting context 를
-/// 만들어 형제 margin 이 관통하지 못한다 (E3/E17).
+/// 이 노드가 새 BFC 를 확립하는가 — scroll container + flex/grid 컨테이너.
+///
+/// 소비처 (r10l3 정정): ① self-collapsing 판정 제외 (Blink 는 BFC 를 self-collapsing 으로
+/// 보지 않는다 — `solve_node` leaf 경로 / `solve_block` 플래그) ② block.rs 슬롯 7
+/// `bfc_flag` 는 **미소비** (r9 — BFC 자식 자신의 margin 도 형제·부모와 정상 collapse,
+/// Chrome bfc-sibling-top-collapse). 자기 in-flow 자식과의 collapse 차단은 `solve_block`
+/// 의 `can_collapse_*`(block_is_bfc) 가 한다 — 두 층이 같은 규칙을 막지 않는다.
 fn node_establishes_bfc(style: &NodeStyle) -> bool {
     if overflow_creates_bfc(style) {
         return true;
@@ -4875,7 +4898,8 @@ impl MarginAxisReverse {
 /// inline-flex · inline-grid, ADR-923 Phase 1/2=empty-block — intake 는 내지 않음, block.rs 사전 분류),
 /// 1=width(AUTO=-1/FIT_CONTENT=-2), 2=height, 3-6=margin(t/r/b/l), 7=bfc_flag,
 /// 8=pad_border_v, 9=pad_border_h, 10-13=min_w/max_w/min_h/max_h(AUTO=-1),
-/// 14=content_w, 15=content_h, 16=vertical_align, 17=baseline, 18=line_height(AUTO=-1).
+/// 14=content_w, 15=content_h, 16=vertical_align, 17=baseline, 18=line_height(AUTO=-1),
+/// 19/20=margin top/bottom 음수 성분 (r10m2 — intake 가 채움).
 ///
 /// 논리축 변환 없음(block 은 항상 물리 vertical stacking). content_w/h 는 자식 solve
 /// 결과(cw/ch)를 그대로. width/height 명시(>0)면 그 값, 없으면 AUTO(-1) — block.rs 가
@@ -4984,23 +5008,11 @@ fn write_block_item(
     data[off + 17] = child_baseline; // <0 = 원천 없음 → block.rs 가 bottom margin edge 로 해소 (P3 §10.8.1)
     data[off + 18] = cstyle.line_height.unwrap_or(-1.0); // px 스칼라, AUTO=-1 — S4 예약 (소비는 컨테이너 strut)
 
-    // ADR-923 P3 r9m2 — self-collapsing box (CSS 2.1 §8.3.1 "top and bottom margins are
-    // adjoining"): block-level · 상하 padding/border 0 · height auto · min-height 0/미지정 ·
-    // in-flow content 0 (자식 solve content_h 0 = line box 없고 자식 전부 관통) · BFC 아님
-    // (Blink 는 flex/grid/scroll container 를 self-collapsing 으로 보지 않는다). 코드 2 →
-    // block.rs 가 top/bottom 을 한 chain 으로 관통시키고 auto height 에서 제외한다
-    // (Chrome 실측 trailing-empty-block-escape 10 / empty-first-chain-through-wrap).
-    // `height: 0` 명시는 보수적으로 제외 — 자식 유무를 여기서 볼 수 없어 content 있는
-    // height:0 box(비-self-collapsing) 와 구분 불가.
-    if display_code == 0.0
-        && pad_border_v == 0.0
-        && ch <= 0.0
-        && data[off + 2] == -1.0
-        && data[off + 12] <= 0.0
-        && !node_establishes_bfc(cstyle)
-    {
-        data[off] = 2.0;
-    }
+    // 19/20 = adjoining 집합 음수 성분 — solve_block intake 가 탈출 chain 과 합쳐 채운다 (r10m2).
+    data[off + 19] = 0.0;
+    data[off + 20] = 0.0;
+    // self-collapsing(코드 2) 은 여기서 판정하지 않는다 — 자식 solve 가 남긴 플래그가 단일
+    // 원천 (r9m2 이중 층 교훈 · r10h1 텍스트 line box · r10m1 absolute 자식). intake 참조.
 }
 
 /// vertical-align CSS 키워드 → block.rs u8 코드 (0=baseline 1=top 2=middle 3=bottom).
@@ -8331,6 +8343,138 @@ mod tests {
         tree.compute_layout(h[4], 300.0, 200.0);
         assert_eq!(tree.get_layout(h[3]).y, 60.0, "내용 있는 height:0 은 self-collapsing 아님");
         assert_eq!(tree.get_layout(h[4]).height, 70.0);
+    }
+
+    /// r10h1 — 텍스트 leaf 는 `leafBaseline`(line box 신호) 이 있으면 height:0 이어도
+    /// self-collapsing 이 아니다 (Chrome text-leaf-height-zero-has-line-box b.y 60 / 없으면 40).
+    #[test]
+    fn adr923_p3_r10_text_leaf_height_zero_keeps_line_box() {
+        let run = |leaf: &str| {
+            let mut tree = LayoutTree::new();
+            let json = format!(
+                r#"[
+                {{"style":{{"display":"block","height":"10px","marginBottom":"10px"}},"children":[]}},
+                {{"style":{},"children":[]}},
+                {{"style":{{"display":"block","height":"10px","marginTop":"5px"}},"children":[]}},
+                {{"style":{{"display":"block","width":"300px"}},"children":[0,1,2]}}
+            ]"#,
+                leaf
+            );
+            let h = tree.build_tree_batch(&json).unwrap();
+            tree.compute_layout(h[3], 300.0, 200.0);
+            (tree.get_layout(h[2]).y, tree.get_layout(h[3]).height)
+        };
+        assert_eq!(
+            run(r#"{"display":"block","height":"0px","marginTop":"20px","marginBottom":"30px","leafBaseline":12}"#),
+            (60.0, 70.0),
+            "line box 있음 → 20 + 0 + 30 순차"
+        );
+        assert_eq!(
+            run(r#"{"display":"block","height":"0px","marginTop":"20px","marginBottom":"30px"}"#),
+            (40.0, 50.0),
+            "신호 없음 → self-collapsing chain max 30"
+        );
+    }
+
+    /// r10m1 — absolute 자식만 있는 height:0 컨테이너는 self-collapsing (solve_node leaf 경로 —
+    /// Chrome abs-only-height-zero b.y 40); auto height 대조군도 40.
+    #[test]
+    fn adr923_p3_r10_abs_only_children_self_collapsing() {
+        for z in [
+            r#"{"display":"block","height":"0px","marginTop":"20px","marginBottom":"30px"}"#,
+            r#"{"display":"block","marginTop":"20px","marginBottom":"30px"}"#,
+        ] {
+            let mut tree = LayoutTree::new();
+            let json = format!(
+                r#"[
+                {{"style":{{"display":"block","height":"10px","marginBottom":"10px"}},"children":[]}},
+                {{"style":{{"position":"absolute","width":"10px","height":"10px"}},"children":[]}},
+                {{"style":{},"children":[1]}},
+                {{"style":{{"display":"block","height":"10px","marginTop":"5px"}},"children":[]}},
+                {{"style":{{"display":"block","width":"300px"}},"children":[0,2,3]}}
+            ]"#,
+                z
+            );
+            let h = tree.build_tree_batch(&json).unwrap();
+            tree.compute_layout(h[4], 300.0, 200.0);
+            assert_eq!(tree.get_layout(h[3]).y, 40.0, "{z}");
+            assert_eq!(tree.get_layout(h[4]).height, 50.0, "{z}");
+        }
+    }
+
+    /// r10m2 — adjoining 집합이 3층(손자 탈출 · wrapper own · 형제 chain)을 넘는다:
+    /// {10, 25, 30, −20} = 10 (Chrome mixed-sign-chain-hoisted-through-wrapper g.y 20 —
+    /// 이항 누적이면 35); self-collapsing wrapper 변형 {10, 25, 30, −20, 5} → b.y 20.
+    #[test]
+    fn adr923_p3_r10_mixed_sign_margin_set_across_levels() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px","marginBottom":"10px"},"children":[]},
+            {"style":{"display":"block","height":"10px","marginTop":"-20px"},"children":[]},
+            {"style":{"display":"block","marginTop":"30px"},"children":[1]},
+            {"style":{"display":"block","marginTop":"25px"},"children":[2]},
+            {"style":{"display":"block","height":"10px","marginTop":"5px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0,3,4]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[5], 300.0, 200.0);
+        let abs_g = tree.get_layout(h[3]).y + tree.get_layout(h[2]).y + tree.get_layout(h[1]).y;
+        assert_eq!(abs_g, 20.0, "{{10,25,30,-20}} = 30 - 20");
+        assert_eq!(tree.get_layout(h[4]).y, 35.0);
+        assert_eq!(tree.get_layout(h[5]).height, 45.0);
+
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px","marginBottom":"10px"},"children":[]},
+            {"style":{"display":"block","marginTop":"30px","marginBottom":"-20px"},"children":[]},
+            {"style":{"display":"block","marginTop":"25px"},"children":[1]},
+            {"style":{"display":"block","height":"10px","marginTop":"5px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0,2,3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[3]).y, 20.0, "{{10,25,30,-20,5}} = 10");
+        assert_eq!(tree.get_layout(h[4]).height, 30.0);
+    }
+
+    /// r10m3 — auto height 0 하한 (Chrome negative-top-margin-padded root.h 2 ·
+    /// negative-bottom-margin-contained 1) + in-flow bottom ≤ 0 이어도 내용 있는 자식이
+    /// 있으면 self-collapsing 아님 (negative-flow-bottom-not-self-collapsing b.y 60).
+    #[test]
+    fn adr923_p3_r10_negative_margin_auto_height_floor() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"20px","marginTop":"-30px"},"children":[]},
+            {"style":{"display":"block","width":"300px","paddingTop":"1px","paddingBottom":"1px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[0]).y, -29.0);
+        assert_eq!(tree.get_layout(h[1]).height, 2.0, "content 0 하한 + padding 2");
+
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"20px","marginBottom":"-30px"},"children":[]},
+            {"style":{"display":"block","width":"300px","paddingBottom":"1px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[1]).height, 1.0);
+
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"10px","marginBottom":"10px"},"children":[]},
+            {"style":{"display":"block","height":"20px","marginBottom":"-30px"},"children":[]},
+            {"style":{"display":"block","height":"5px"},"children":[]},
+            {"style":{"display":"block","marginTop":"20px","marginBottom":"30px"},"children":[1,2]},
+            {"style":{"display":"block","height":"10px","marginTop":"5px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0,3,4]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[5], 300.0, 200.0);
+        assert_eq!(tree.get_layout(h[3]).height, 0.0, "wrap used height 0 하한");
+        assert_eq!(tree.get_layout(h[4]).y, 60.0, "wrap 은 self-collapsing 아님 (자식 내용 있음)");
+        assert_eq!(tree.get_layout(h[5]).height, 70.0);
     }
 
     /// r9 인접 — line box 는 margin 을 collapse 하지 않는다 (block h10+mb10 뒤 inline-block

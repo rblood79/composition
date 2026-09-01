@@ -842,6 +842,246 @@ const CASES: DiffCase[] = [
       },
     ],
   },
+  {
+    name: "abs-only-height-zero-self-collapsing — r10m1: absolute 자식만 가진 height:0 컨테이너는 self-collapsing (b.y 40)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "abs",
+        style: { position: "absolute", width: "10px", height: "10px" },
+      },
+      {
+        label: "z",
+        style: { display: "block", height: "0px", marginTop: "20px", marginBottom: "30px" },
+        children: [1],
+      },
+      {
+        label: "b",
+        style: { display: "block", height: "10px", marginTop: "5px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 2, 3],
+      },
+    ],
+  },
+  {
+    name: "abs-only-auto-height-self-collapsing — r10m1 대조군: 같은 구조 height auto 도 self-collapsing (b.y 40)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "abs",
+        style: { position: "absolute", width: "10px", height: "10px" },
+      },
+      {
+        label: "z",
+        style: { display: "block", marginTop: "20px", marginBottom: "30px" },
+        children: [1],
+      },
+      {
+        label: "b",
+        style: { display: "block", height: "10px", marginTop: "5px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 2, 3],
+      },
+    ],
+  },
+  {
+    name: "mixed-sign-chain-three-empties — r10m2: 부호 혼합 3+ adjoining margin 은 최대 양수 + 최소 음수 한 집합 (b.y 20)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "e1",
+        style: { display: "block", marginTop: "30px", marginBottom: "-20px" },
+      },
+      {
+        label: "e2",
+        style: { display: "block", marginTop: "5px", marginBottom: "25px" },
+      },
+      {
+        label: "b",
+        style: { display: "block", height: "10px", marginTop: "5px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 1, 2, 3],
+      },
+    ],
+  },
+  {
+    name: "mixed-sign-chain-hoisted-through-wrapper — r10m2: 손자에서 탈출한 음수 margin 도 wrapper·형제 margin 과 한 집합 (g.y 20)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "g",
+        style: { display: "block", height: "10px", marginTop: "-20px" },
+      },
+      { label: "c", style: { display: "block", marginTop: "30px" }, children: [1] },
+      { label: "wrap", style: { display: "block", marginTop: "25px" }, children: [2] },
+      {
+        label: "b",
+        style: { display: "block", height: "10px", marginTop: "5px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 3, 4],
+      },
+    ],
+  },
+  {
+    name: "mixed-sign-chain-self-collapsing-wrapper — r10m2: self-collapsing wrapper 의 자기 margin + 탈출 chain + 형제 margin 한 집합 (b.y 20)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "e",
+        style: { display: "block", marginTop: "30px", marginBottom: "-20px" },
+      },
+      { label: "wrap", style: { display: "block", marginTop: "25px" }, children: [1] },
+      {
+        label: "b",
+        style: { display: "block", height: "10px", marginTop: "5px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 2, 3],
+      },
+    ],
+  },
+  {
+    name: "negative-top-margin-padded-auto-height-clamped — r10m3: 음수 top margin 으로 in-flow bottom 이 음수여도 auto height 는 0 하한 (root.h 2)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginTop: "-30px" },
+      },
+      {
+        label: "root",
+        style: {
+          display: "block",
+          width: "300px",
+          paddingTop: "1px",
+          paddingRight: "1px",
+          paddingBottom: "1px",
+          paddingLeft: "1px",
+          ...FS0,
+        },
+        children: [0],
+      },
+    ],
+  },
+  {
+    name: "negative-bottom-margin-contained-clamped — r10m3: bottom padding 이 담는 음수 bottom margin 도 0 하한 (root.h 1)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "c",
+        style: { display: "block", height: "20px", marginBottom: "-30px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", paddingBottom: "1px", ...FS0 },
+        children: [0],
+      },
+    ],
+  },
+  {
+    name: "negative-flow-bottom-not-self-collapsing — r10m3 인접: 음수 margin 으로 in-flow bottom ≤ 0 이어도 내용 있는 컨테이너는 self-collapsing 아님 (b.y 60)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "c1",
+        style: { display: "block", height: "20px", marginBottom: "-30px" },
+      },
+      { label: "c2", style: { display: "block", height: "5px" } },
+      {
+        label: "wrap",
+        style: { display: "block", marginTop: "20px", marginBottom: "30px" },
+        children: [1, 2],
+      },
+      {
+        label: "b",
+        style: { display: "block", height: "10px", marginTop: "5px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 3, 4],
+      },
+    ],
+  },
+  {
+    name: "text-leaf-height-zero-has-line-box — r10h1: 텍스트 leaf 는 height:0 이어도 line box 가 있어 self-collapsing 아님 (b.y 60; engine leg 은 leafBaseline 스칼라 = line box 신호)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      {
+        label: "a",
+        style: { display: "block", height: "10px", marginBottom: "10px" },
+      },
+      {
+        label: "t",
+        style: {
+          display: "block",
+          height: "0px",
+          marginTop: "20px",
+          marginBottom: "30px",
+          fontSize: "16px",
+        },
+        text: "x",
+        elementType: "Text",
+        engineStyle: { leafBaseline: 12 },
+      },
+      {
+        label: "b",
+        style: { display: "block", height: "10px", marginTop: "5px" },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "300px", ...FS0 },
+        children: [0, 1, 2],
+      },
+    ],
+  },
 ];
 
 /** engine leg 입력 — engineStyle override 적용. */
@@ -952,6 +1192,52 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
     ];
     const dom = domLeg(nodes, 60);
     const pipe = pipelineLeg(nodes, 60, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+
+  // r10h1 — Text leaf 의 line box 는 엔진에 `leafBaseline` 스칼라로만 도달한다
+  // (§8.3.1 "no line boxes" — 텍스트가 있으면 height:0 이어도 self-collapsing 아님).
+  // Chrome b.y 60 (20+0+30 순차) · self-collapsing 오분류면 40 (chain collapse).
+  const textZero = (extra: Record<string, unknown>, text: string): CaseNode[] => [
+    { label: "a", style: { display: "block", height: "10px", marginBottom: "10px" } },
+    {
+      label: "t",
+      elementType: "Text",
+      text,
+      style: {
+        height: "0px",
+        marginTop: "20px",
+        marginBottom: "30px",
+        fontSize: "16px",
+        ...extra,
+      },
+    },
+    { label: "b", style: { display: "block", height: "10px", marginTop: "5px" } },
+    {
+      label: "root",
+      style: { display: "block", width: "300px" },
+      children: [0, 1, 2],
+    },
+  ];
+  it("height:0 Text leaf 는 line box 가 있어 self-collapsing 아님 (r10h1, b.y 60)", () => {
+    const nodes = textZero({}, "hello");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("width 명시 height:0 Text leaf 도 line box 신호 유지 (r10h1 인접, b.y 60)", () => {
+    const nodes = textZero({ width: "100px" }, "hello");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
+    const bad = diffCase(nodes, dom, pipe);
+    expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
+  });
+  it("빈 텍스트 height:0 Text leaf 는 line box 없음 → self-collapsing (r10h1 대조군, b.y 40)", () => {
+    const nodes = textZero({}, "");
+    const dom = domLeg(nodes, 300);
+    const pipe = pipelineLeg(nodes, 300, -1);
     const bad = diffCase(nodes, dom, pipe);
     expect(bad, `프로덕션 어댑터↔Chrome 발산:\n${bad.join("\n")}`).toEqual([]);
   });

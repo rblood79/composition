@@ -296,12 +296,12 @@ fn golden_grid_named_areas() {
 // ─────────────────────────────────────────────────────────────────────────────
 // block golden — block_layout(data, avail_w, avail_h, collapse_top, collapse_bot,
 //                             prev_sibling_margin_bottom)
-// FIELD_COUNT=19: [display,w,h,mt,mr,mb,ml,bfc,pb_v,pb_h,min_w,max_w,min_h,max_h,
+// FIELD_COUNT=21 (r10m2: 19 → 21, 슬롯 19/20 = margin 음수 성분): [display,w,h,mt,mr,mb,ml,bfc,pb_v,pb_h,min_w,max_w,min_h,max_h,
 //   content_w,content_h,valign,baseline,line_height]
 // 출력: 자식당 [x,y,w,h] + 후행 2값 [firstChildMarginTop, lastChildMarginBottom]
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn block_child(w: f32, h: f32, mt: f32, mb: f32) -> [f32; 19] {
+fn block_child(w: f32, h: f32, mt: f32, mb: f32) -> [f32; BLOCK_FIELDS] {
     [
         0.0, // display = block
         w,   // width
@@ -312,6 +312,8 @@ fn block_child(w: f32, h: f32, mt: f32, mb: f32) -> [f32; 19] {
         -1.0, -1.0, -1.0, -1.0, // min/max w/h (AUTO)
         w, h, // content w/h
         0.0, 0.0, -1.0, // valign, baseline, line_height(AUTO)
+        0.0, // 19 margin_top_neg (ADR-923 P3 r10m2 — 탈출 chain 음수 성분, golden 은 0)
+        0.0, // 20 margin_bottom_neg
     ]
 }
 
@@ -375,5 +377,6 @@ fn golden_block_negative_margin_collapse() {
 #[test]
 fn golden_field_contract_guard() {
     assert_eq!(FLEX_FIELD_COUNT, 21, "flex 필드 계약 변경 — golden 재작성 필요");
-    assert_eq!(BLOCK_FIELDS, 19, "block 필드 계약 변경 — golden 재작성 필요");
+    // ADR-923 P3 r10m2: 19 → 21 (슬롯 19/20 margin 음수 성분 — golden 입력은 0, 기대값 무변경).
+    assert_eq!(BLOCK_FIELDS, 21, "block 필드 계약 변경 — golden 재작성 필요");
 }

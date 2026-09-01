@@ -4605,7 +4605,24 @@ export function enrichWithIntrinsicSize(
       typeof rawWidth === "string" &&
       INTRINSIC_SIZE_KEYWORDS.has(rawWidth));
 
-  if (!needsHeight && !needsWidth) return element;
+  // ADR-923 P3 r10h1 — 텍스트 leaf 의 `leafBaseline` 은 엔진의 **line box 존재 신호**
+  //   (§8.3.1 self-collapsing 제외) 이기도 하다. width/height 가 둘 다 명시돼 크기 주입이
+  //   필요 없어도 텍스트가 있으면 이 스칼라는 공급해야 한다 — height:0 텍스트 leaf 의
+  //   margin 이 관통하지 않는다 (Chrome b.y 60 / 미공급 시 self-collapsing 40).
+  const suppliesIntrinsicScalars = TEXT_LEAF_TAGS.has(type);
+  const textLeafProps = element.props as Record<string, unknown> | undefined;
+  const textLeafContent = suppliesIntrinsicScalars
+    ? String(
+        textLeafProps?.children ??
+          textLeafProps?.text ??
+          textLeafProps?.label ??
+          textLeafProps?.title ??
+          "",
+      )
+    : "";
+  const textLeafHasLineBox = textLeafContent !== "";
+
+  if (!needsHeight && !needsWidth && !textLeafHasLineBox) return element;
 
   const box = parseBoxModel(element, availableWidth, availableHeight);
 
@@ -4642,9 +4659,12 @@ export function enrichWithIntrinsicSize(
   // Select: Compositional Architecture — Card와 동일하게 자식 기반 높이 + padding 경로
   // INLINE_BLOCK_TAGS(button, badge 등)은 명시적 고정 width가 있을 때 needsWidth=false가 되어
   // 이 early return에 걸리지만, 텍스트 줄바꿈 시 높이 재계산이 필요하므로 반드시 예외 처리해야 함.
+  // r10h1: 텍스트 leaf 는 height:0 이라 contentHeight 0 이어도 line box 신호(leafBaseline)
+  //   공급을 위해 통과 (위 early return 과 같은 사유).
   if (
     box.contentHeight <= 0 &&
     !needsWidth &&
+    !textLeafHasLineBox &&
     !SPEC_SHAPES_INPUT_TAGS.has(type) &&
     !INLINE_BLOCK_TAGS.has(type) &&
     !IMAGE_INTRINSIC_TAGS.has(type) &&
@@ -4789,12 +4809,8 @@ export function enrichWithIntrinsicSize(
   //   스칼라와 이중 적용 (G2). width 키워드는 applyCommonTaffyStyle 이 센티넬로 통과.
   //   INLINE_BLOCK/CIRCLE/IMAGE 주입과 컨테이너 선해석은 잔존 (display 의미론·컨테이너
   //   intrinsic 은 본 ADR 범위 밖 — breakdown §3).
-  const suppliesIntrinsicScalars = TEXT_LEAF_TAGS.has(type);
-  if (suppliesIntrinsicScalars && needsWidth && baseContentWidth > 0) {
-    const props = element.props as Record<string, unknown> | undefined;
-    const textContent = String(
-      props?.children ?? props?.text ?? props?.label ?? props?.title ?? "",
-    );
+  if (suppliesIntrinsicScalars) {
+    const textContent = textLeafContent;
     const styleRecord = style as Record<string, unknown> | undefined;
     const fontSize =
       typeof styleRecord?.fontSize === "number"
@@ -4811,42 +4827,51 @@ export function enrichWithIntrinsicSize(
       (styleRecord?.fontWeight as number | string | undefined) ??
       _computedStyle?.fontWeight ??
       400;
-    // max-content = 단일줄 측정폭 (childResolvedWidth — resolvedIntrinsicWidth 는
-    // min-content 키워드일 때 최장 단어 폭이라 max 스칼라로 쓰면 안 됨).
-    // Math.ceil: 엔진 f32 ↔ JS f64 정밀도 경계 (layout-engine.md 기타 규칙).
-    const maxC = Math.ceil(
-      childResolvedWidth > 0 ? childResolvedWidth : baseContentWidth,
-    );
-    const minC = textContent
-      ? Math.min(
-          Math.ceil(
-            calculateMinContentWidth(
-              textContent,
-              fontSize,
-              scalarFontFamily,
-              scalarFontWeight,
+    // 폭 스칼라 2종은 width 가 auto/키워드일 때만 (명시 폭은 엔진이 그대로 쓴다).
+    if (needsWidth && baseContentWidth > 0) {
+      // max-content = 단일줄 측정폭 (childResolvedWidth — resolvedIntrinsicWidth 는
+      // min-content 키워드일 때 최장 단어 폭이라 max 스칼라로 쓰면 안 됨).
+      // Math.ceil: 엔진 f32 ↔ JS f64 정밀도 경계 (layout-engine.md 기타 규칙).
+      const maxC = Math.ceil(
+        childResolvedWidth > 0 ? childResolvedWidth : baseContentWidth,
+      );
+      const minC = textContent
+        ? Math.min(
+            Math.ceil(
+              calculateMinContentWidth(
+                textContent,
+                fontSize,
+                scalarFontFamily,
+                scalarFontWeight,
+              ),
             ),
-          ),
-          maxC,
-        )
-      : maxC;
-    injectedStyle.contentMinWidth = minC;
-    injectedStyle.contentMaxWidth = maxC;
+            maxC,
+          )
+        : maxC;
+      injectedStyle.contentMinWidth = minC;
+      injectedStyle.contentMaxWidth = maxC;
+    }
     // ADR-923 Phase 2 — 텍스트 leaf 첫 줄 baseline 공급 (content-box 상단 기준):
     // CSS half-leading 모델 — (lineHeight − fontHeight)/2 + ascent. lineHeight 는
     // 명시값(px/배율) 우선, 없으면 폰트 내장 normal (fontBoundingBox). 측정 체인은
     // contentMin/MaxWidth 와 동일 (measureFontMetrics — Canvas 2D TextMetrics 캐시).
-    const fmBaseline = measureFontMetrics(
-      scalarFontFamily,
-      fontSize,
-      scalarFontWeight,
-    );
-    const lineHeightPx =
-      parseLineHeight(styleRecord, fontSize) ?? fmBaseline.lineHeight;
-    injectedStyle.leafBaseline = Math.max(
-      0,
-      (lineHeightPx - fmBaseline.fontHeight) / 2 + fmBaseline.ascent,
-    );
+    // P3 r10h1 — 이 스칼라는 엔진의 **line box 존재 신호**이기도 하다 (§8.3.1 self-
+    // collapsing 제외 — height:0 텍스트 leaf 의 margin 이 관통하지 않는다, Chrome b.y 60).
+    // 그래서 width 명시 여부(needsWidth)와 무관하게 텍스트가 있으면 공급한다 — 빈
+    // 텍스트는 line box 가 없어 공급하지 않는다 (self-collapsing, Chrome b.y 40).
+    if (textContent) {
+      const fmBaseline = measureFontMetrics(
+        scalarFontFamily,
+        fontSize,
+        scalarFontWeight,
+      );
+      const lineHeightPx =
+        parseLineHeight(styleRecord, fontSize) ?? fmBaseline.lineHeight;
+      injectedStyle.leafBaseline = Math.max(
+        0,
+        (lineHeightPx - fmBaseline.fontHeight) / 2 + fmBaseline.ascent,
+      );
+    }
   } else if (needsWidth && baseContentWidth > 0) {
     let injectWidth = baseContentWidth;
     injectWidth += box.padding.left + box.padding.right;
