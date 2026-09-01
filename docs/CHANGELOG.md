@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [공백만 있는 텍스트와 높이를 정한 상자의 아래 여백이 미리보기와 같아집니다] - 2026-09-01
+
+### Fixed
+
+- **내용이 공백뿐인 텍스트 요소의 위·아래 여백이 접히지 않고 그대로 남던 문제** (미리보기 40 / 캔버스 60):
+  - **Why**: 엔진에 "줄 상자(line box) 가 있는가" 를 알려주는 신호를 원본 문자열이 비어 있는지로만 만들었습니다. CSS 는 `white-space: normal`/`nowrap` 에서 공백·탭·줄바꿈만 있는 내용을 줄 시작·끝에서 지우므로 줄 상자가 없고, 여백은 빈 상자처럼 접힙니다. `pre` 계열과 nbsp, `pre-line` 의 줄바꿈은 그대로 줄 상자가 됩니다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`textLeafRendersContent`)
+- **높이를 직접 정한 상자 (`height: 50px`, `height: 0`) 안 마지막 자식의 아래 여백이 상자 밖으로 새어 다음 요소를 밀던 문제** (미리보기 50 / 캔버스 70): CSS 에서 부모와 마지막 자식의 아래 여백이 하나로 접히는 조건은 부모 높이가 `auto` 일 때뿐입니다. `min-height`/`max-height` 가 실제로 크기를 잡을 때도 (Chrome 기준) 여백은 상자 안에 남고, 잡지 않을 때는 종전처럼 접힙니다. `height: 0` 은 `auto` 가 아니므로 상자 높이도 0 (+`min-height`) 입니다.
+  - 위치: `packages/composition-engine/src/tree.rs` (`solve_block`)
+- 검증: Chrome 차등 75/75 (61 케이스 + 게이트 14) · 렌더 parity 1009 회귀 0 · ADR-923 Phase 3 round 11 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
+
 ## [절대 위치 요소 드래그가 포인터를 즉시 따라갑니다] - 2026-09-01
 
 ### Fixed
