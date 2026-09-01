@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [라벨을 비우면 미리보기도 비고, 가져온 문서의 ColorField 도 라벨을 갖습니다] - 2026-09-01
+
+### Fixed
+
+- CheckboxGroup·RadioGroup·SearchField·ProgressBar·Meter·ComboBox·DatePicker 류의 Label 을 속성 패널에서 비우면 캔버스는 비는데 미리보기는 예전 글자 (또는 "Date Picker" 같은 기본 글자) 를 계속 보이던 문제를 고쳤습니다 — 미리보기가 캔버스와 같은 규칙 (값이 없을 때만 자식 라벨) 으로 읽습니다 (ADR-923 Codex round 17).
+- 외부에서 가져온 (import) 문서의 옛 ColorField 가 미리보기에서 라벨 없이 보이던 문제를 고쳤습니다 — 가져온 문서도 열 때 같은 보정을 거칩니다.
+- Disclosure 헤더 글자를 AI 가 `title` 속성에만 넣었을 때 미리보기만 그 글자를 보이던 차이를 없앴습니다 (캔버스와 같은 속성 `children` 을 읽습니다).
+
 ## [ColorField 의 라벨을 바꾸면 캔버스와 미리보기가 같은 글자를 보입니다] - 2026-09-01
 
 ### Fixed

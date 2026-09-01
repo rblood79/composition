@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 16 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 17 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -449,7 +449,7 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
     자식 둘 다). 그래서 Inspector (binding `label` accepts) / AI 가 parent label 을 쓰면 Preview "Changed Color" / Skia·
     레이아웃 "Color" (Codex 반례 — 확증), 생성 직후는 Preview 무라벨 / Skia "Color".
     - **factory sweep 게이트가 같은 누락을 2 가족 더 검출**: 직접 Label 자식 (문자열 children) 을 만드는 factory 전부
-      (13 가족) 에 대해 (i) registry `→ Label.children` 규칙 (ii) 생성 시 parent SSOT == Label 텍스트 (iii) parent 변경이
+      (20 가족 — r17l1 정정: 게이트가 정확한 집합을 단언) 에 대해 (i) registry `→ Label.children` 규칙 (ii) 생성 시 parent SSOT == Label 텍스트 (iii) parent 변경이
       `resolvePropagatedProps` 로 도달 — 수리 전 RED = ColorField · **CheckboxGroup · RadioGroup** (binding 이 parent
       `label` 을 받지만 규칙 없음 → Inspector label 편집이 어느 표면에도 안 닿았다: Preview 는 Label 자식 우선
       `labelChild.children || props.label` 이라 stale, Skia 도 자식 stale — 표면끼리는 같았지만 편집이 죽어 있었고, 규칙만
@@ -480,6 +480,38 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
     AI 계약 밖 키뿐). 수리: `extractText(type, props)` → `resolveTextSourceText`, `getTextPropKey` →
     `resolveTextSourceKey ?? textSourceOrder(type)[0]` (입력 계열 value 편집은 보존 — 가시 태그 밖). 게이트
     `useTextEdit.textSource.test.ts` 5.
+
+## round 17 수리 3건 (Codex 판독 r17m1/r17m2/r17m3 + LOW 2 — 전부 unit 게이트로 확정, 종전 코드 원복 RED 6, `6e8d5ed39`)
+
+35. **Preview 의 composite label 읽기를 propagation engine 과 같은 경계로** (r17m1 — round 16 수리 33 의 그룹 라벨
+    `props.label || labelChild.children` 가 `||` 라 사용자가 비운 `label: ""` 이 stale Label 자식으로 되살아났다;
+    engine (`resolvePropagatedProps` :244 · Skia `resolvePropagationValue` :435) 은 **`undefined` 만** skip 하고 `""`/`null`
+    은 자식에 그대로 override 하므로 Preview "Stale Group" / Skia·레이아웃 "" 로 갈렸다). grep sweep 으로 같은 `||` 접기를
+    가진 reader 를 전부 찾았다: 그룹 2 + **child-first** 4 (SearchField `FormRenderers` :398 · ProgressBar `LayoutRenderers`
+    :779 · Meter :839 · ComboBox `SelectionRenderers` :1558 — AI 가 parent 만 쓴 문서에서 Skia 와 갈리는 r16 그룹과 같은
+    형태) + **default-fallback** 4 (DatePicker/DateRangePicker/DateField/TimeField `DateRenderers` :208/:304/:411/:487
+    `label || "Date Picker"` — `""` 가 "Date Picker" 로 되살아남). 수리: shared `renderers/utils/propagatedLabel.ts`
+    `resolvePropagatedText(parentValue, labelChild, fallback)` — parent 가 undefined 가 아니면 `textFromValue` 그대로
+    (`""` 포함), undefined 면 자식 계약 텍스트 (legacy), 없으면 fallback — 10 지점 전부 위임.
+36. **형태 migration 단일 체인 + external import 결선** (r17m2 — `migrateColorFieldParentLabel` 을 hydration/persist-back
+    두 체인에만 이었고 external import (`importPayloadAdapter.ts` `normalizeCompositionImportPayload`) 는 어느 migration
+    도 안 거쳐 import master 의 legacy ColorField 가 Preview 무라벨 / Skia "Color" 로 남았다). root cause 는 결선 하나가
+    아니라 **같은 4 migration 을 진입점마다 다시 적는 구조** — `adapters/canonical/canonicalDocumentMigrations.ts`
+    `applyCanonicalDocumentMigrations` (CheckboxRadio 구조 → ColorField parent label → field inline strip → circle leaf
+    strip, 종전 중첩 순서) 로 모으고 세 진입점 (`index.ts` :338 · `usePageManager.ts` :402 · import adapter 3 분기) 이
+    전부 이것을 호출. origin 시드/보수 (`ensure*`) 는 main document 전용이라 두 체인에 남김. 게이트
+    `canonicalDocumentMigrations.test.ts` 3 — 함수 · import 경로 · **정적 결선** (세 진입점이 단일 체인만 호출, 개별
+    migration 직접 호출 0 — 원복 (d) 가 unit 으로 못 잡던 결선 공백을 닫음).
+37. **Disclosure 제목 = 헤더 자식의 텍스트 원천 계약** (r17m3 — `renderDisclosure` 가 DisclosureHeader 자식의
+    `children || title` 을 직접 읽어 AI 가 헤더에 `title` 만 쓰면 Preview 만 그 값을 보였다; standalone
+    `renderDisclosureHeader` 만 위임돼 있었다). `resolveTextSourceText(headerEl.type, headerEl.props) || "Section"`.
+    헤더 자식이 없는 legacy 문서의 parent `title` 폴백은 유지 (Skia 는 헤더 없는 Disclosure 에 제목을 안 그린다 —
+    round 15 이전부터, 관찰).
+    - 게이트 (round 17): shared `propagatedLabel.test.tsx` 9 (helper 경계 1 · 7 renderer × {parent "Changed" 우선 ·
+      `""` 비움 · undefined → 자식} · Disclosure 헤더 계약 1) — 종전 FormRenderers/LayoutRenderers 원복 시 6 RED ·
+      builder `adr923CompositeLabelBridge` +1 (그룹 `""` → Preview stale 없음 + `resolvePropagatedProps` 자식 `""`) ·
+      sweep 정확 집합 20 (r17l1) · `canonicalDocumentMigrations.test.ts` 3.
+    - r17l2: breakdown/ADR 의 builder unit 1607 → 1612 정정 (round 16 시점), round 17 은 1616.
 
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
@@ -614,6 +646,17 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
   "Brand Color" (propagation → Label 자식) · Preview iframe (`preview.html`) `.react-aria-ColorField label` = "Brand Color"
   (DOM) — 두 표면 동일, 콘솔 에러 0. 확인 후 요소 삭제. (publish 탭은 ColorField 를 안 그린다 — publish 범위 밖 관찰 유지.) 수리 34: Components 페이지 Save Button 더블클릭 (그룹 → Button → 편집) → 편집창 초기값 "Save" (계약 = children) → "Go!" 입력 · 바깥 클릭 확정 → Skia "Go!" · undo 로 복원.
 
+- **round 17 수리 후**: Rust 변경 0 (TS 만) · 차등 **97/97** · full **parity 1033** (기존 catalogComponentBox 2 · 1
+  expected fail · 2 skipped) · layout unit 50 files/415 · builder unit 9 영역 184 files/1616 (+4: migration 체인 3 · 그룹
+  `""` 1) + resolvers/canonical 7 files/96 · shared 98 files/935 (+9 `propagatedLabel`) · type-check 0. 원복 RED (실측):
+  종전 FormRenderers + LayoutRenderers 로 `propagatedLabel.test` → 6 FAIL (CheckboxGroup · RadioGroup · SearchField ·
+  ProgressBar · Meter · Disclosure).
+
+- **Live Exercise (round 17 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP) — 팔레트에서
+  CheckboxGroup 추가 → Inspector Label "Checkbox Group" 을 비움 (Delete + Enter) → Skia 캔버스 그룹 라벨 사라짐 (84×52,
+  Option 1/2 만) · compare mode Preview iframe (`preview.html`) `.react-aria-CheckboxGroup` textContent = "Option 1Option 2"
+  (stale "Checkbox Group" 없음) — 두 표면 동일. undo 로 복원 후 요소 제거.
+
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
 - ~~마지막 line box auto-height 미반영~~ → round 8 수리 7 로 종결.
@@ -672,3 +715,8 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
   콘텐츠 폭 경로에도 도달한다 — round 16 프롬프트의 "PASS 유지 예상" 은 틀렸다 (Chrome pin 이 레이아웃 원천 순서도 잡는다).
 - (r16) Codex 원복 (c″) — Preview generic 종전 함수 원복 시 `CanonicalNodeRenderer.textSource` 4/4 PASS: 게이트가 출력 의미만
   잡고 공용 resolver 위임 자체는 검출하지 않는다 (의미가 같으면 위임 여부는 게이트 밖 — 의도).
+- (r17) Disclosure 에 헤더 자식이 없는 legacy 문서: Preview 는 parent `title || "Section"` 을 보이고 Skia 는 제목을 안
+  그린다 — round 15 이전부터. 헤더 자식이 있는 경로 (factory 기본) 는 수리 37 로 계약 위임.
+- (r17) parent-only reader (TextField/TextArea/NumberField/Select `label || ""`, TagGroup) 는 `""` 를 `""` 로 두어 engine 과
+  같다; parent 부재 legacy 문서에서만 자식 텍스트를 안 읽는데, 이 가족들은 factory 가 항상 parent label 을 쓴다 (sweep
+  조건 ii) — 반례 경로 없음, 미변경.
