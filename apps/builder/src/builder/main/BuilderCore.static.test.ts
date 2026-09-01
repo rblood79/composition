@@ -26,6 +26,11 @@ describe("BuilderCore canonical document direct cutover contract", () => {
     expect(source).toContain("const isBuilderPresented =");
     expect(source).toContain("window.requestAnimationFrame");
     expect(source).toContain('className="loading-progress"');
+    expect(source).toContain('className="loading-progress-native"');
+    expect(source).toContain('className="loading-progress-fill"');
+    expect(source).toContain(
+      "onTransitionEnd={handleBootstrapProgressTransitionEnd}",
+    );
     expect(source).toContain("value={bootstrapProgress}");
     expect(styles).toContain(".app.builder-booting .header");
     expect(styles).toContain(".app.builder-booting .panel-dock-stage");
@@ -34,6 +39,8 @@ describe("BuilderCore canonical document direct cutover contract", () => {
       ".app.builder-booting .workspace-status-indicator",
     );
     expect(styles).toContain("visibility: hidden");
+    expect(styles).toContain("transition: transform 160ms ease");
+    expect(styles).not.toContain("::-webkit-progress-value");
   });
 
   it("로딩 화면은 별도 아이콘이나 배경 패턴 없이 기존 workspace DotBackground를 노출한다", async () => {

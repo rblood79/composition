@@ -1330,6 +1330,14 @@ export const BuilderCore: React.FC = () => {
       return;
     }
 
+    // normal motion은 시각 fill의 transitionend가 완료 presentation을 확정한다.
+    // reduced motion에서는 transition이 없으므로 실제 100%를 한 번 paint한 뒤 공개한다.
+    const prefersReducedMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? true;
+    if (!prefersReducedMotion) {
+      return;
+    }
+
     let revealFrameId = 0;
     const completionFrameId = window.requestAnimationFrame(() => {
       revealFrameId = window.requestAnimationFrame(() => {
@@ -1348,6 +1356,13 @@ export const BuilderCore: React.FC = () => {
     canvasBootstrapPhase,
     isBuilderReady,
   );
+  const handleBootstrapProgressTransitionEnd = (
+    event: React.TransitionEvent<HTMLDivElement>,
+  ) => {
+    if (event.propertyName === "transform" && isBuilderReady) {
+      setHasPaintedBootstrapCompletion(true);
+    }
+  };
   const isInitialBootstrap =
     projectBootstrapPhase !== "error" && !isBuilderPresented;
   const isPageOnlyLoading = isBuilderPresented && isPageLoading;
@@ -1396,12 +1411,22 @@ export const BuilderCore: React.FC = () => {
                 <div className="loading-text">{loadingLabel}</div>
                 {!isPageOnlyLoading && (
                   <>
-                    <progress
-                      className="loading-progress"
-                      aria-label={loadingLabel}
-                      max={100}
-                      value={bootstrapProgress}
-                    />
+                    <div className="loading-progress">
+                      <progress
+                        className="loading-progress-native"
+                        aria-label={loadingLabel}
+                        max={100}
+                        value={bootstrapProgress}
+                      />
+                      <div
+                        className="loading-progress-fill"
+                        aria-hidden
+                        style={{
+                          transform: `scaleX(${bootstrapProgress / 100})`,
+                        }}
+                        onTransitionEnd={handleBootstrapProgressTransitionEnd}
+                      />
+                    </div>
                     <div className="loading-percent">{bootstrapProgress}%</div>
                   </>
                 )}
