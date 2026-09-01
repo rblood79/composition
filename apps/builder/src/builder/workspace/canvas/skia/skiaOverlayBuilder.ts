@@ -213,6 +213,8 @@ export interface OverlayBuildInput {
   overflowInfoMap?: Map<string, OverflowContentInfo>;
   // Drop Indicator (드래그 중 타겟 표시)
   dropIndicatorState: DropIndicatorState | null;
+  // Drag presentation (drop target 유무와 독립적인 실제 요소 drag 상태)
+  dragPresentationActive: boolean;
   // Visible page frames (page title/selection 계층)
   visiblePageFrames?: Array<{
     id: string;
@@ -344,6 +346,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
     childrenMap,
     overflowInfoMap,
     dropIndicatorState,
+    dragPresentationActive,
     visiblePageFrames,
     frameAreas,
     pageTitleBoundsMap,
@@ -801,7 +804,11 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       }
 
       // ── Selection (드래그 중에는 숨김 — 드래그 요소가 반투명으로 떠있으므로) ──
-      if (selectionData.semanticTargets.length > 0 && !dropIndicatorState) {
+      // dropIndicatorState는 drop target의 표현 상태일 뿐 drag session 신호가 아니다.
+      // Absolute/manual drag처럼 target이 없어도 selection chrome은 남지 않아야 한다.
+      const selectionChromeVisible =
+        !dragPresentationActive && !dropIndicatorState;
+      if (selectionData.semanticTargets.length > 0 && selectionChromeVisible) {
         for (const target of selectionData.semanticTargets) {
           renderSelectionBox(
             ck,
@@ -812,7 +819,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           );
         }
       }
-      if (selectionData.bounds && !dropIndicatorState) {
+      if (selectionData.bounds && selectionChromeVisible) {
         const selectionSemanticRole =
           selectionData.semanticRole ?? selectionData.slotMarkerRole;
         renderSelectionBox(

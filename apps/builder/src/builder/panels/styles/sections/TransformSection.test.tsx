@@ -10,6 +10,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Element } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
+import { historyManager } from "../../../stores/history";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { useSectionCollapse } from "../hooks/useSectionCollapse";
 import {
@@ -67,6 +68,7 @@ describe("TransformSection sizing controls", () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     act(() => {
       resetPagePositionPresentation();
@@ -278,6 +280,8 @@ describe("TransformSection sizing controls", () => {
   it("preserves a flex child's visual position when enabling absolute positioning", () => {
     const updateSelectedStyle = vi.fn();
     const updateSelectedStyles = vi.fn();
+    const moveElementToSiblingEdge = vi.fn(() => true);
+    const transactionSpy = vi.spyOn(historyManager, "runInTransaction");
     getSceneBoundsMock.mockImplementation((id: string) => {
       if (id === "button-1") {
         return { x: 160, y: 95, width: 200, height: 100 };
@@ -287,7 +291,11 @@ describe("TransformSection sizing controls", () => {
       }
       return undefined;
     });
-    useStore.setState({ updateSelectedStyle, updateSelectedStyles } as never);
+    useStore.setState({
+      updateSelectedStyle,
+      updateSelectedStyles,
+      moveElementToSiblingEdge,
+    } as never);
 
     render(<TransformSection />);
 
@@ -306,6 +314,14 @@ describe("TransformSection sizing controls", () => {
     expect(updateSelectedStyle).not.toHaveBeenCalledWith(
       "position",
       "absolute",
+    );
+    expect(moveElementToSiblingEdge).toHaveBeenCalledWith("button-1", "front");
+    expect(transactionSpy).toHaveBeenCalledWith(
+      { type: "batch", elementId: "button-1" },
+      expect.any(Function),
+    );
+    expect(updateSelectedStyles.mock.invocationCallOrder[0]).toBeLessThan(
+      moveElementToSiblingEdge.mock.invocationCallOrder[0],
     );
   });
 
@@ -361,19 +377,31 @@ describe("TransformSection sizing controls", () => {
   it("falls back to position-only activation when flex bounds are unavailable", () => {
     const updateSelectedStyle = vi.fn();
     const updateSelectedStyles = vi.fn();
-    useStore.setState({ updateSelectedStyle, updateSelectedStyles } as never);
+    const moveElementToSiblingEdge = vi.fn(() => true);
+    useStore.setState({
+      updateSelectedStyle,
+      updateSelectedStyles,
+      moveElementToSiblingEdge,
+    } as never);
 
     render(<TransformSection />);
 
     screen.getByRole("button", { name: "Absolute position" }).click();
 
-    expect(updateSelectedStyle).toHaveBeenCalledWith("position", "absolute");
-    expect(updateSelectedStyles).not.toHaveBeenCalled();
+    expect(updateSelectedStyles).toHaveBeenCalledWith({
+      position: "absolute",
+    });
+    expect(updateSelectedStyle).not.toHaveBeenCalledWith(
+      "position",
+      "absolute",
+    );
+    expect(moveElementToSiblingEdge).toHaveBeenCalledWith("button-1", "front");
   });
 
   it("keeps non-flex activation on the position-only path", () => {
     const updateSelectedStyle = vi.fn();
     const updateSelectedStyles = vi.fn();
+    const moveElementToSiblingEdge = vi.fn(() => true);
     setTestElements([
       {
         id: "button-1",
@@ -388,18 +416,29 @@ describe("TransformSection sizing controls", () => {
         props: { style: { display: "block" } },
       } as Element,
     ]);
-    useStore.setState({ updateSelectedStyle, updateSelectedStyles } as never);
+    useStore.setState({
+      updateSelectedStyle,
+      updateSelectedStyles,
+      moveElementToSiblingEdge,
+    } as never);
 
     render(<TransformSection />);
 
     screen.getByRole("button", { name: "Absolute position" }).click();
 
-    expect(updateSelectedStyle).toHaveBeenCalledWith("position", "absolute");
-    expect(updateSelectedStyles).not.toHaveBeenCalled();
+    expect(updateSelectedStyles).toHaveBeenCalledWith({
+      position: "absolute",
+    });
+    expect(updateSelectedStyle).not.toHaveBeenCalledWith(
+      "position",
+      "absolute",
+    );
+    expect(moveElementToSiblingEdge).toHaveBeenCalledWith("button-1", "front");
   });
 
   it("disables absolute positioning without clearing offsets", () => {
     const updateSelectedStyle = vi.fn();
+    const moveElementToSiblingEdge = vi.fn(() => true);
     setTestElements([
       {
         id: "button-1",
@@ -422,7 +461,10 @@ describe("TransformSection sizing controls", () => {
         props: { style: { display: "flex", flexDirection: "row" } },
       } as Element,
     ]);
-    useStore.setState({ updateSelectedStyle } as never);
+    useStore.setState({
+      updateSelectedStyle,
+      moveElementToSiblingEdge,
+    } as never);
 
     render(<TransformSection />);
 
@@ -436,6 +478,7 @@ describe("TransformSection sizing controls", () => {
     expect(updateSelectedStyle).toHaveBeenCalledWith("position", "");
     expect(updateSelectedStyle).not.toHaveBeenCalledWith("left", "");
     expect(updateSelectedStyle).not.toHaveBeenCalledWith("top", "");
+    expect(moveElementToSiblingEdge).not.toHaveBeenCalled();
   });
 
   // ADR-177 적응형 통합 — body 선택 시 position row 는 pagePositions 를 편집

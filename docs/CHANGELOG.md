@@ -12,10 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Position을 Absolute로 바꾼 요소와 `Cmd + drag` 대상이 느리게 이동하던 문제**: 이전 retained drag 최적화가 같은 대상의 위치 변화에서 전체 command stream 재생성을 막았지만, 그 변화가 새 프레임을 표시해야 한다는 별도 신호도 없었습니다. 포인터 좌표는 정상 갱신되면서 Canvas는 대부분 idle frame으로 분류되어 화면만 드물게 표시됐습니다. drag offset 전용 presentation revision을 추가해 매 animation frame에 기존 retained picture의 translate만 다시 표시하고, registry와 content snapshot은 유지합니다.
+- **Absolute 요소를 드래그할 때 선택 박스가 시작 위치에 남던 문제**: 선택 chrome의 표시 여부가 실제 drag 상태가 아니라 drop indicator 존재 여부를 사용했습니다. Absolute/manual drag는 drop target이 없을 수 있으므로 box·handle·치수 레이블이 원래 좌표에 남았습니다. 이제 drag visual presentation 상태를 직접 사용해 이동 중에는 selection chrome을 숨기고 종료 시 다시 표시합니다.
+- **Absolute로 전환한 요소가 최상위 레이어로 이동하지 않던 문제**: Transform 패널에서 Absolute를 켜는 시점에 선택 요소를 canonical 형제 순서의 마지막으로 이동합니다. 스타일 변경과 레이어 순서 변경은 하나의 Undo 항목으로 기록하며, Absolute를 끌 때는 순서를 유지합니다.
 
 ### Tests
 
-- 같은 delta 반복은 revision을 올리지 않고, 실제 target/delta 변화만 overlay frame을 갱신하며 registry/content invalidation으로 되돌아가지 않는 회귀 테스트를 추가했습니다.
+- 같은 delta 반복은 revision을 올리지 않고, 실제 target/delta 변화만 overlay frame을 갱신하며 registry/content invalidation으로 되돌아가지 않는 회귀 테스트를 추가했습니다. drop target이 없는 Absolute drag에서 selection chrome이 숨겨지는 계약과 Absolute 활성화 시 style·canonical front 이동이 단일 history transaction으로 실행되는 계약을 함께 고정했습니다.
 
 ## [여백 접힘 경계 4가지가 미리보기와 같아집니다] - 2026-09-01
 

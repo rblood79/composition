@@ -61,6 +61,7 @@ import {
   useParentFlexDirection,
 } from "../hooks/useTransformAuxiliary";
 import { useStore } from "../../../stores";
+import { historyManager } from "../../../stores/history";
 import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
 import {
   getPagePositionPresentationSnapshot,
@@ -464,6 +465,23 @@ const TransformSectionContent = memo(function TransformSectionContent() {
     updateStylesImmediate,
   ]);
 
+  const commitAbsoluteActivation = useCallback(
+    (styles: Record<string, string>) => {
+      const state = useStore.getState();
+      const elementId = state.selectedElementId;
+      if (!elementId) {
+        updateStylesImmediate(styles);
+        return;
+      }
+
+      historyManager.runInTransaction({ type: "batch", elementId }, () => {
+        updateStylesImmediate(styles);
+        useStore.getState().moveElementToSiblingEdge(elementId, "front");
+      });
+    },
+    [updateStylesImmediate],
+  );
+
   const handleAbsolutePositionChange = useCallback(
     (isSelected: boolean) => {
       if (!isSelected) {
@@ -494,15 +512,15 @@ const TransformSectionContent = memo(function TransformSectionContent() {
               : parentBounds,
           );
           if (activationStyles) {
-            updateStylesImmediate(activationStyles);
+            commitAbsoluteActivation(activationStyles);
             return;
           }
         }
       }
 
-      updateStyleImmediate("position", "absolute");
+      commitAbsoluteActivation({ position: "absolute" });
     },
-    [parentDisplay, updateStyleImmediate, updateStylesImmediate],
+    [commitAbsoluteActivation, parentDisplay, updateStyleImmediate],
   );
 
   if (!styleValues) return null;

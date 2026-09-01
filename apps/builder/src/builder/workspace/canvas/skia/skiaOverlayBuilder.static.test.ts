@@ -31,6 +31,24 @@ describe("skiaOverlayBuilder drag hover suppression contract", () => {
     );
     expect(hoverBlock).not.toBeNull();
   });
+
+  it("drop target이 없는 Absolute drag에서도 selection chrome을 숨긴다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "skiaOverlayBuilder.ts"),
+      "utf-8",
+    );
+    const selectionBlock = source.match(
+      /const selectionChromeVisible =\s*!dragPresentationActive && !dropIndicatorState;[\s\S]*?if \(selectionData\.lasso\)/,
+    );
+
+    expect(selectionBlock).not.toBeNull();
+    expect(selectionBlock?.[0]).toContain(
+      "selectionData.semanticTargets.length > 0 && selectionChromeVisible",
+    );
+    expect(selectionBlock?.[0]).toContain(
+      "selectionData.bounds && selectionChromeVisible",
+    );
+  });
 });
 
 describe("skiaOverlayBuilder frame title contract", () => {

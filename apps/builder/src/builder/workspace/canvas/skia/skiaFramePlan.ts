@@ -67,6 +67,7 @@ export interface BuildFrameRenderPlanInput {
   hasAIEffects: boolean;
   contentNode: SkiaRenderable;
   dragPresentationNode?: SkiaRenderable | null;
+  dragPresentationActive: boolean;
   elementsMap: Map<string, CanvasSceneNode>;
   invalidationPacket: RendererInvalidationPacket;
   allPageFrames?: Array<{
@@ -118,6 +119,7 @@ export function buildFrameRenderPlan(
     hasAIEffects,
     contentNode,
     dragPresentationNode,
+    dragPresentationActive,
     elementsMap,
     invalidationPacket,
     allPageFrames,
@@ -183,6 +185,7 @@ export function buildFrameRenderPlan(
     childrenMap: sharedScene.childrenMap,
     overflowInfoMap: sharedScene.overflowInfoMap,
     dropIndicatorState,
+    dragPresentationActive,
     visiblePageFrames,
     frameAreas,
     pageTitleBoundsMap,

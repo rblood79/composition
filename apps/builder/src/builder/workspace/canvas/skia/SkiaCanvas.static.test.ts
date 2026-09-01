@@ -78,6 +78,9 @@ describe("SkiaCanvas render invalidation contract", () => {
     expect(dragPresentationBlock).toContain("overlayVersionRef.current++");
     expect(dragPresentationBlock).not.toContain("renderer.invalidateContent()");
     expect(dragPresentationBlock).not.toContain("notifyLayoutChange()");
+    expect(source).toContain(
+      "dragPresentationActive: getDragVisualOffset() !== null",
+    );
   });
 
   it("publishes the exact camera/page snapshot from the Skia render frame", async () => {

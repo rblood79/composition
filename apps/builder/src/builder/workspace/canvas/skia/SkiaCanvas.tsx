@@ -38,6 +38,7 @@ import {
 import { tickAnimations, getInterpolatedOffsets } from "./dragAnimator";
 import {
   getDragSiblingOffsetRevision,
+  getDragVisualOffset,
   getDragVisualOffsetRevision,
   setDragSiblingOffsets,
 } from "./nodeRendererTree";
@@ -900,6 +901,7 @@ export function SkiaCanvas({
           hasAIEffects,
           contentNode,
           dragPresentationNode,
+          dragPresentationActive: getDragVisualOffset() !== null,
           allPageFrames: allPageFramesRef.current,
           visiblePageFrames:
             currentRendererInput.editMode === "layout"
