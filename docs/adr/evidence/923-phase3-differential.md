@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 18 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 19 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -540,8 +540,10 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
     legacy 형태로 교체했다). root cause 는 결선 하나가 아니라 origin 시드 3 + legacy ListBox + 형태 migration 을 같은 순서로
     중첩하는 체인이 두 곳에 복제된 구조 (수리 36 은 형태 migration 만 모았다) — `adapters/canonical/mainDocumentNormalization.ts`
     `normalizeMainDocument` 로 모으고 hydration (`index.ts`) · persist-back (`usePageManager.ts`) · `applySnapshotDocument`
-    (JSON round-trip 뒤) 가 전부 이것을 호출. `setDocument` 호출자 인벤토리 (21): 위 3 경계 외 18 은 이미 열린 canonical
-    document 의 mutation/undo/frame 결선 (canonicalMutations 6 · pageFrameBinding · frameLayoutCascade · usePageTreeData ·
+    (JSON round-trip 뒤) 가 전부 이것을 호출. `.setDocument(` 직접 호출자 인벤토리 (18 — 종전 "21" 은 receiver 경계 없는 grep 이
+    `getActiveCanonicalResetDocument(` 3건을 섞은 오집계, r19l1 정정): 교체 경계 2 (persist-back `usePageManager.ts` ·
+    `applySnapshotDocument`; hydration `index.ts` 는 정규화 경계지만 문서를 반환할 뿐 직접 호출자가 아니다) 외 15 는 이미 열린
+    canonical document 의 mutation/undo/frame 결선 (canonicalMutations 6 · pageFrameBinding · frameLayoutCascade · usePageTreeData ·
     pageTitleMutation · canonicalFrameStore · frameActions · canonicalHistoryEvents · editorPresentationCommitAdapter 2) 과
     dev fixture 1 (`pathHeavy117Fixture` — 현행 코드가 생성, 테스트 전용) 이라 진입점이 아니다 (Codex r18 과제 3 판정과 동일).
 41. **import adapter 단일 출구 + 분기별 기능 게이트** (r18m3 — 수리 36 의 정적 게이트가 파일 단위 "문자열 1회 이상" 이라
@@ -561,6 +563,46 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
       (기능 + 정적) · importPayloadAdapter 정적 1 (HEAD 의 3-wrapped 형태 = 호출 3회) · propagationRegistry 2 · layout utils 2
       = 12.
     - r18l1: README ADR-923 행의 `|` 8 → 6 (r17 설명 안에 끼어든 `|     |` 제거).
+
+## round 19 수리 5건 (Codex 판독 r19m1 + LOW 1 — 전부 unit 게이트로 확정, 종전 코드 원복 RED 12, `c298cbe6b`)
+
+42. **legacy Preview `renderButton` 의 "Button" 폴백 제거** (r19m1 ① — round 15 가 계약 위임하면서 "자식·아이콘 없고 children
+    미지정 → 'Button'" 폴백을 남겼다; 이 경로는 `?canonical=0` (`preview/App.tsx` :87 `USE_CANONICAL_RENDER`) 과 canonical
+    resolve/render 실패 안전망 (:230/:1229) 으로 도달하고, Skia `buildCatalogShapes` :324 는 계약 결과 "" 면 text shape 를 만들지
+    않는다). 계약 결과가 비면 글자 없음 (`LayoutRenderers.tsx` `renderButton`). canonical 경로의 shared `Button` 컴포넌트에는
+    기본 글자가 없다 (grep 0).
+43. **레이아웃 Breadcrumbs 집계의 기본 crumb 제거 + crumb 원천을 실제 그려지는 노드로** (r19m1 ② — `utils.ts` 1.2 분기는 직접
+    자식만 보고 "Home"/"Products"/"Detail" 을 기본으로 밀어 넣었다. 확증 중 더 큰 사실: items projection 문서 (ADR-912 — factory 가
+    만드는 모든 Breadcrumbs) 의 직접 자식은 projection `Rows` 그룹 하나뿐이라 crumb 0 → **항상** 기본 3 crumb 폭 (M 192px) 을
+    컨테이너에 주입했다 (`INLINE_BLOCK_TAGS` 소속이라 `enrichWithIntrinsicSize` 가 `childElements=[Rows]` 로 이 분기를 호출).
+    body 자식처럼 stretch 되는 자리에선 보이지 않고 fit-content/flex row 자리에서 드러난다). crumb 원천 = `Rows` 아래 projection
+    crumb (scene 이 `toItemProjectionRow` 로 정규화한 `children`/`_isLast`) 또는 pre-migration 자식 Breadcrumb element; crumb 0 → 0. 빈 라벨 crumb 도 non-last separator 폭은 남는다 (DOM `.react-aria-Breadcrumb:not(:last-child)::after` · Skia
+    `breadcrumb_crumb` 는 텍스트와 무관하게 separator 를 그린다) — 단일 crumb 측정 1.17 의 `if (!label) return 0` (r18m1 sweep 이
+    남긴 형태) 도 같이 수정. 종전 `if (label) crumbs.push(label)` 은 빈 crumb 의 separator 를 버렸다.
+44. **TagList 측정의 `label || \`Tag ${i + 1}\``제거** (sweep —`resolveTagWrapLayout`만의 기본 글자; DOM`useResolvedCollectionItems`· Skia`appendTagRowProjection`은`toItemProjectionRow` (`getItemLabel`: label/textValue/children/name/title/value → itemKey,
+    빈 문자열은 부재 취급) 로 같은 라벨을 그린다). 측정도 같은 정규화 — 빈 label 은 세 표면 모두 itemKey 폭.
+45. **IllustratedMessage 텍스트 원천 단일 지점 + "" 줄 접기 (세 표면)** (sweep — Preview 는 두 경로 모두 `||` (legacy
+    `renderIllustratedMessage` `LayoutRenderers.tsx` :2071 · canonical `CanonicalNodeRenderer` → shared
+    `components/IllustratedMessage.tsx` :67) 라 사용자가 비운 "" 를 "No content"/"There is nothing to display." 로 되살렸고 Skia
+    `illustrated_message` 는 `??` 라 부재만 기본 글자였다). 기본 글자 자체는 Skia 에도 있으므로 유지하되 형태를 통일:
+    `packages/specs/src/renderers/utils/illustratedMessageMetrics.ts` `resolveIllustratedMessageText` (부재 → 기본 글자, "" → "")
+    를 Preview 2 경로 · layout `illustratedmessage` 높이 · Skia primitive 가 공유. "" 는 줄 자체를 접는다 — Preview 는 div 미렌더
+    (빈 div 도 flex gap 을 차지해 높이가 갈린다), layout 은 gap + line 차감 (md: 240 → heading "" 201 → 둘 다 "" 168), Skia 는
+    shape 미생성 + y 접힘 (description y 205.5 → 166.5).
+46. **shared `Menu` 컴포넌트 trigger `label || "Menu"` → `label ?? ""`** (sweep — round 18 수리 38 이 렌더러 `renderMenu` 의
+    `|| "Menu"` 를 지웠지만 렌더러가 넘긴 빈 label 을 컴포넌트 (`components/Menu.tsx` :203 — canonical/legacy 두 경로가 모두 통과)
+    가 다시 "Menu" 로 되살렸다: 렌더러 층만 본 sweep 의 구멍. Skia 는 기본 글자 없음).
+    - 게이트 (round 19): shared `textSourceContract.test.tsx` +2 (legacy Button `{}`/`{label}`/`""` → "" · IllustratedMessage 부재/"")
+      · `components/__tests__/illustratedMessageEmptyLine.test.tsx` 2 (canonical 컴포넌트 줄 수 3/1/2) ·
+      `menuTriggerLabelEmpty.test.tsx` 3 · specs `illustratedMessage.metric.test.ts` +2 (heading "" → shape 없음 + description y
+      166.5 · 부재 → "No content" 169.5) · layout `adr923TextLeafContentSignal.test.ts` +6 (Breadcrumbs projection crumb 합 < 120 ·
+      crumb 0 → 0 · 전부 "" → separator×2 · legacy 자식 · TagList 빈 label rowCount 2 · IllustratedMessage 240/201/168) + r18
+      Breadcrumb `{label}` 단언을 "" crumb 와 동일 (separator 폭) 로.
+    - 원복 RED (실측, HEAD 파일로 교체 → 게이트 → 수리본 복구): LayoutRenderers 2 · skiaPrimitives 1 · layout utils 6 ·
+      IllustratedMessage 컴포넌트 1 · Menu 컴포넌트 2 = 12 (`illustratedMessageMetrics.ts` 단독 원복은 새 export 부재로 컴파일 불가
+      — 소비자 3 원복이 대신 잰다).
+    - r19l1: `.setDocument(` 직접 호출자 18 (교체 경계 2 + mutation/undo/frame 15 + dev fixture 1) — 수리 40 본문 정정. 종전 21 은
+      receiver 경계 없는 grep 이 `getActiveCanonicalResetDocument(` 3건을 섞은 오집계.
 
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
@@ -718,6 +760,19 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
   동일, 콘솔 에러 0. 확인 후 요소 삭제. snapshot 복원/프로젝트 파일 가져오기 경계는 실제 canonical store 를 쓰는 unit
   게이트 (DB 만 mock) 로 확인 — live 는 legacy 형태 snapshot 을 만들 수단이 없다.
 
+- **round 19 수리 후**: Rust 변경 0 (TS 만) · 차등 **97/97** · full **parity 1033** (기존 catalogComponentBox 2 · 1
+  expected fail · 2 skipped) · layout unit 50 files/423 (+6) · builder unit 10 영역 207 files/1810 · shared 100 files/946 (+7) ·
+  specs 75 files/875 (+2) · type-check 0. 원복 RED (실측) 12 — 수리 42~46 참조.
+
+- **Live Exercise (round 19 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP) — ① 팔레트에서 Breadcrumbs 추가
+  (366×24, body stretch) → Styles Width size "fit" → 190×24, 선택 상자가 "Home › Category › Page" 끝에 맞음 (실제 crumb 폭; 종전
+  phantom "Home › Products › Detail" 192 와 2px 차라 live 만으로는 판별력이 낮다 — 판별은 unit RED: crumb 0 → 192 phantom · A/B/C
+  라벨 < 120). ② IllustratedMessage 추가 (366×240) → Inspector Heading 비움 → Skia "No content" 240 유지 · compare mode Preview
+  iframe `[role=status]` textContent "○No contentTry another search term." · children 3 · 366×240 — 두 표면 동일. **Inspector 는
+  빈 값을 `undefined` 로 쓴다** (`CatalogInspectorFields.tsx` :143 `v === "" ? undefined : v`) 라 부재 → 기본 글자 경로이고, "" 는
+  AI `update_element`/import 같은 열린 writer 경로 — unit 3 표면 게이트로 확정 (Preview div 1 · layout 201/168 · Skia shape 없음).
+  콘솔 에러 0. 확인 후 두 요소 삭제. legacy Button 경로 (`?canonical=0`) 는 unit 게이트.
+
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
 - ~~마지막 line box auto-height 미반영~~ → round 8 수리 7 로 종결.
@@ -790,3 +845,14 @@ children || text || label` 로 편집 시작 텍스트를 뽑고, 쓰기 키도 
 - (r18) Disclosure 의 Inspector Title 은 수리 39 전까지 어느 표면에도 닿지 않는 D2 writer 였다 — 같은 종류 (binding accepts 의
   content string 인데 registry 다리가 없는 composite parent) 의 전수 sweep 은 round 16 의 Label 자식 20 가족 밖이라
   description/errorMessage 별도 작업 (사용자 결정) 과 같은 묶음으로 둔다.
+- (r19) shared 컴포넌트의 **dataBinding DOM 경로** row label 휴리스틱 5 (CheckboxGroup :280 · RadioGroup :283 · Menu :259/:283 ·
+  Tabs :280/:295 · ToggleButtonGroup :160 — `name || title || label || \`Option ${i + 1}\``류) 는`toItemProjectionRow`와 순서·빈 값
+처리가 모두 다르다 (Skia 는`getItemLabel`→ itemKey).`boundData`(API/collection 바인딩) 에서만 도는 경로라 정적 items · 문서
+텍스트 축 밖 — ADR-912 §2-D (DOM wrapper 는 hook adapter`rows`만) 미이관 잔여로 별도 작업. 같은 경로의`fallbackData` (API
+  실패 시 "Home/Products/Current" 등 11 컴포넌트) 도 DOM 만의 데이터 폴백이다 (Skia 는 API 를 못 부른다).
+- (r19) Table `ColumnGroup` 은 Preview 만 그린다 (`TableRenderer.tsx` :351 `label || "Group"`; Skia/scene 에 ColumnGroup 렌더 0) —
+  기본 글자가 아니라 표면 자체가 없는 축이라 이번 sweep 밖.
+- (r19) `?canonical=0` legacy Preview 경로는 별도 렌더러 집합 (rendererMap) 이고 canonical 경로는 cutover 컴포넌트라 기본 글자
+  sweep 은 **렌더러 층 + 컴포넌트 층** 둘 다 봐야 한다 — round 18 의 Menu 처럼 렌더러만 고치면 컴포넌트가 되돌린다 (수리 46).
+- (r19) ToggleButtonGroup 측정의 items·children 0 → `DEFAULT_WIDTH` (80) 는 글자가 아닌 상자 기본값 (leaf 공통 폴백) — 빈
+  ToggleButtonGroup 의 DOM 폭 (0) 과 다르지만 텍스트 축이 아니라 별도.

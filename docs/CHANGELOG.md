@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Breadcrumbs 상자 폭이 실제 항목에 맞고, IllustratedMessage·Menu 글자를 비우면 미리보기도 비웁니다] - 2026-09-01
+
+### Fixed
+
+- Breadcrumbs 를 내용 맞춤(fit) 폭으로 두면 상자가 실제 항목이 아니라 예전 기본 항목 ("Home › Products › Detail") 폭으로 잡히던 문제를 고쳤습니다 — 항목을 바꾸거나 비워도 상자가 실제 내용에 맞습니다 (ADR-923 Codex round 19).
+- IllustratedMessage 의 제목·설명을 비우면 캔버스는 그 줄을 접는데 미리보기는 "No content" 같은 기본 글자를 보이던 차이를 없앴습니다 — 두 화면 모두 그 줄을 접습니다 (값을 아예 넣지 않았을 때의 기본 글자는 그대로).
+- Menu 버튼 글자를 비우면 미리보기가 다시 "Menu" 를 보이던 문제를 고쳤습니다.
+- TagGroup 의 줄바꿈 계산이 라벨 없는 태그를 "Tag 1" 같은 글자 폭으로 재던 것을 화면에 실제로 보이는 글자 폭으로 바꿨습니다.
+
 ## [헤더·표 머리글·메뉴 글자를 비우면 미리보기도 비고, 예전 스냅샷 복원과 파일 가져오기도 보정을 거칩니다] - 2026-09-01
 
 ### Fixed
