@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Pencil 로 가져온 텍스트가 미리보기와 캔버스 양쪽에 보입니다] - 2026-09-01
+
+### Fixed
+
+- Pencil 에서 가져온 문서의 Text·Heading·Paragraph 가 미리보기에서 비어 있던 문제를 고쳤습니다 — Pencil 은 본문을 `text` 에 저장하는데 미리보기가 `children` 만 읽었습니다. 이제 캔버스·측정·미리보기가 같은 순서 (`children` → `text`) 로 읽습니다 (ADR-923 Codex round 14).
+- 같은 날 앞선 수정 (round 13) 이 Pencil 본문과 목록 항목 (ListBox/GridList/Tree/Column) 의 `label` 을 캔버스에서 지우던 회귀를 되돌렸습니다.
+- `white-space` 값에 앞뒤 공백이나 대문자가 있어도 (`" INHERIT "`) 키워드로 인식합니다.
+
 ## [텍스트의 줄바꿈 키워드·본문 원천·페이지 폭 제한이 미리보기와 같아집니다] - 2026-09-01
 
 ### Fixed
@@ -22,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings의 Page Layout 선택지를 `Auto`·`Horizontal`·`Vertical`로 통일하고 기본값을 `Auto`로 설정했습니다. 기존 `zigzag` 값은 `Auto`로 읽습니다.
 - `Auto` 정렬은 Canvas-local 폭에 좌·우 panel 폭, shell 여백, 양쪽 `Page Gap`을 더해 browser 전체 폭을 계산하고, 두 panel 사이의 page 영역을 기준으로 현재 zoom과 선택된 breakpoint의 page 폭이 panel과 겹치지 않도록 최대 page 수를 한 줄에 배치한 뒤 이후 page를 다음 줄로 넘깁니다.
 - Settings의 Page Layout을 `Auto`·`Horizontal`·`Vertical` ToggleButtonGroup으로 바꾸고, Page Gap은 Transform의 Width와 같은 숫자 입력 셸 및 Layout Gap 아이콘을 재사용합니다. chevron 목록의 `S`·`M`·`L`은 입력값을 각각 `40`·`80`·`120`으로 교체하고 현재 값과 일치하는 항목만 check를 표시하며, preset 외 사용자값에는 check를 표시하지 않습니다. 기본값은 기존 `PAGE_STACK_GAP`과 같은 `80px`이며, 두 설정을 바꾸면 Canvas의 page 위치도 즉시 다시 정렬됩니다.
+- Settings의 Theme Mode도 ToggleButtonGroup으로 통일하고, UI Scale은 실제 값 `80`·`100`·`120`을 유지하면서 표시를 `S`·`M`·`L`로 표준화했습니다.
 
 ## [빌더 패널의 빈 상태가 공통 패턴을 사용합니다] - 2026-09-01
 

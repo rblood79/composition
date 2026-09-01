@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 13 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 14 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -361,6 +361,40 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
       게이트 RED (box.x 211 / 10.2) · (c) `compute_layout` solve_w 제거 → #69 RED (c.w 300 / 250) ·
       (d) `maskNonContentTextProps` 제거 → Skia 만 label 을 그림 (차등 하니스 밖 — live 로 확인).
 
+## round 14 수리 2건 (Codex 판독 r14m1/r14m2 + r14l1/r14l2 — 전부 Chrome 실측으로 확정, `9fa92c8e1`)
+
+30. **cascade 키워드 정규화 + computed 우선** (`cssResolver.ts` `resolveCascadeKeyword` · flat 경로 ·
+    `utils.ts resolveTextLeafWhiteSpace`, r14m1·r14l1): resolver 가 소문자화만 하고 trim 을 안 해
+    `" INHERIT "` 를 키워드로 못 읽고 computed 에 raw 를 남겼다 → trim + 소문자 (CSS 키워드는 ASCII
+    대소문자·앞뒤 공백 무시). helper 는 **computed 우선** (inline 을 이미 포함) + computed 정규화 (남은
+    키워드는 normal 폴백), computed 부재 시에만 inline raw. round 13 의 "inline 구체값이 computed 보다
+    최신" 근거는 성립하지 않았다 — implicit 주입 뒤엔 이 함수가 호출되지 않고 2-pass 는 computed 를
+    재계산한다 (r14l1) (Chrome 부모 pre + 자식 `" INHERIT "` b.y 60 / 종전 40).
+31. **텍스트 원천 SSOT 를 writer 인벤토리로 재정의** (r14m2 — round 13 수리 28 의 binding-선언 기반
+    차단 **철회**): binding `accepts` 는 편집 surface 지 렌더 소비 집합이 아니었다 — (i) **Pencil
+    import** 가 `props.text` 를 쓴다 (`collectPencilProps`, production writer — `pencilImport.test.ts`
+    :14) (ii) collection item (ListBoxItem/GridListItem/TreeItem/Column/Menu) 은 Preview 가
+    `label || children` 을 그린다 (`SelectionRenderers.tsx` :655/:1053 · `CollectionRenderers.tsx`
+    :205 · `TableRenderer.tsx` :68). round 13 의 33-primitive label/text 차단은 (i) 의 Skia 텍스트와
+    (ii) 의 item label 을 지웠다 (Codex probe). 수리: 차단 helper 삭제 (3 호출 원복) ·
+    `resolveTextLeafContent` = **children → text** (첫 비어있지 않은 값; label/title 은 텍스트 leaf
+    writer 0 + Preview 미소비) · Skia `buildCatalogShapes` = `label || children || text || placeholder`
+    (children 이 stale import `text` 를 이김 — inspector 편집은 children 을 쓰고 overlay 편집은
+    `getTextPropKey` 로 원 키 유지) · Preview generic 렌더에 `text` fallback (`resolveGenericLeafText`
+    — import 문서의 Text/Heading/Paragraph 가 Preview 에서 비어 있던 D3 비대칭 해소;
+    renderDescription/Card Description 과 같은 순서) (Chrome `text` 만 있는 Text b.y 60 / 종전
+    children-only 40 · flex 폭 w(Y) / 0).
+    - **게이트 3 (r14m1 1 · r14m2 2)**: 부모 pre + `" INHERIT "` (60) · `text` 만 있는 height:0 Text
+      (60) · flex row `text` 만 있는 width:auto Text (box.x = w(Y)). 하니스 `CaseNode.textPropKey`
+      (`"children"` | `"text"`) — DOM 은 어느 쪽이든 textContent; writer 를 실은 것이지 대조군을
+      유리하게 바꾼 것 아님.
+    - 원복 RED (수리 전 첫 실행 실측): (a) resolver trim 제거 → `" INHERIT "` 게이트 RED (40 / 60) ·
+      (b) `resolveTextLeafContent` children-only → `text` 게이트 2 RED (40 / 60 · box.x) · (c) 차단
+      helper 복원 / `buildCatalogShapes` 순서 복원 → 차등 밖 — specs unit
+      `buildCatalogShapes.textSource.test.ts` (label > children > text > placeholder · children 이
+      text 를 이김 · 배열 children 은 텍스트 아님) 로 판별.
+    - r14l2: breakdown :125 대조군 수치 18/51 정정.
+
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
 - **실효 (프로덕션 어댑터 경로가 그대로 타는 수리)**: 수리 5 (wrap min-content, r8l2
@@ -460,6 +494,16 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
   `label` content ("Progress" + 값 — label-content binding 은 차단 대상 아님) 그대로, wrap 카드 불변
   (Desert Sunset·Hiking Trail 한 줄 + Mountain Sunrise 줄바꿈), 콘솔 에러 0 (로드 시점 포함).
 
+- **round 14 수리 후**: Rust 변경 0 (cargo 371 불변) · 차등 **96/96** (69 케이스 + 게이트 27; 신규
+  게이트 3 전부 첫 실행 RED) · 대조군 발산 18 / 정합 51 · full **parity 1032** (기존 catalogComponentBox
+  2 · 1 expected fail · 2 skipped) · layout unit 50 files/412 · Skia/utils/overlay/preview unit 658 ·
+  specs 858 (+5 `buildCatalogShapes.textSource`) · shared 920 · type-check 0.
+
+- **Live Exercise (round 14 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 재로드 (Chrome MCP, 25
+  페이지 Auto 배치) — Page 2 카드 텍스트 leaf (Card Title · description — 수리 31 의 children → text
+  원천 + Skia `label || children || text` 경유) 렌더 불변, ProgressBar `label` content 그대로, wrap 카드
+  불변 (Desert Sunset·Hiking Trail 한 줄 + Mountain Sunrise 줄바꿈), 콘솔 에러 0 (로드 시점 포함).
+
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
 - ~~마지막 line box auto-height 미반영~~ → round 8 수리 7 로 종결.
@@ -492,9 +536,8 @@ ctx_for(avail_h)` (explicit_h 와 같은 ctx; 부모 auto 면 INDEFINITE → Non
 - 프로덕션 Text 의 catalog 기본 `width: 100%` 는 plain-DOM 대조군 밖 (위 §프로덕션 영향 round 12) —
   catalog 기본값 축의 Builder↔Preview 대조는 catalog CSS 를 domLeg 에 싣는 별도 하니스가 필요
   (Phase 5/catalog 판정).
-- (r13) Preview 의 `text` legacy prop: `renderDescription` 은 children 선행으로 정렬했고 `renderFieldError`
-  (`text` 만 렌더) 와 generic 렌더 (children 만) 는 그대로 — D2 surface (binding `accepts`) 에 `text`
-  는 없고 writer 도 0 이라 legacy 문서에서만 갈린다. 통일은 Preview/publish 렌더러 판정 (Phase 5).
+- ~~(r13) Preview 의 `text` legacy prop — "writer 0" 전제~~ → **round 14 수리 31 로 종결** (Codex r14: Pencil import 가
+  production writer; generic 렌더 `text` fallback 추가, renderFieldError 는 `text` 만 — writer 인벤토리 상 정합).
 - (r13) cssResolver 는 `revert` 를 `initial` 로 취급한다 (노코드 정책, 파일 doc 명시) — Chrome 의
   inline `white-space: revert` 는 상속값으로 되돌아간다. 게이트 미작성 (정책 문서화된 의도적 차이).
 - (r13) root auto 폭의 used 폭을 `solve_node` 의 available 로 넘기므로 root 자신의 % padding/margin
