@@ -19,7 +19,7 @@
 > **68 케이스**, 수리 22~~26. 표 밖 pipelineLeg 게이트 19 (+ r12h1 상속 white-space 4: RED 3 ·
 > r12l1 flex 폭 1).
 
-## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 22 수리 후)
+## 결과 — 69 케이스 전부 엔진 직결 ≤1px (round 23 수리 후)
 
 1차 실행: 14 pass / **9 fail** → 전부 엔진 결함으로 확정·수리(수리 1~~5) → 23/23.
 Codex round 8 판독이 반례 2(middle·마지막 line box)로 재개방 → 케이스 4 추가(clip
@@ -724,6 +724,33 @@ round 21 이 Table 에 `heightMode`/`height` binding 다리를 놓았지만 layo
       Skia layout box ↔ Preview compare DOM: Table 366×402 = 366×402 (수리 전 Skia 302) · Badge 높이 22 = 22 · padding 2/8 ·
       border 1 · font 12px (sm, 수리 전 Skia 30). 콘솔 에러 0, 생성 요소 전부 삭제 (86 복귀).
 
+## round 23 수리 2건 (Codex 판독 r23m1 — 게이트 fixture 축 + 같은 형태 sweep 1, 원복 RED 3, `5678b377c`)
+
+round 22 의 전수 동치 게이트는 **자식 없는 단일 노드**만 재서, 기본값을 자식·데이터가 있을 때만 소비하는 경로를 검사하지
+못했다 (r23m1). Codex 가 GridList `selectionMode` 기본값을 `single` → `multiple` 로 바꿔 6 테스트 전부 PASS 하는 것을 보였고,
+item 1개를 넣으면 76 vs 98 로 갈린다는 것도 함께 보였다 — 판독 그대로 재현했다 (수리 전 게이트 6 PASS).
+
+65. **게이트 fixture 축 확장** (r23m1 — 타입마다 3 변형 (`bare` / 자식 2개 / `items` 2개) 으로 대조한다. 자식·데이터가 있어야
+    실행되는 경로 (`resolveCardSelectionExtra` 의 카드 선택 체크박스 높이 — `utils.ts` §1.55c) 가 이제 게이트 안에 들어온다.
+    같은 mutation 실험에서 확장 게이트는 `GridList [items] 76 vs 98` 로 RED 다.)
+66. **`defaultSelectionMode` 원천 통일** (sweep — 65 의 축을 따라가니 네 소비처 (layout 카드 높이 · scene 카드 ·
+    virtualization stride · Skia Tree 체크박스) 가 기본값을 각자 리터럴로 들고 있었다. cutover 경로의 Preview 는 `toRacProps`
+    가 채운 binding default 를 받으므로 렌더러 destructure 기본값에 도달하지 않는다 — GridList 는 binding `single` 인데 세
+    자리가 `none` 이었다. 두 값 모두 `checkboxModes: ["multiple"]` 밖이라 시각 결과는 같았지만 기본값 원천이 둘이라 binding
+    쪽만 바뀌면 조용히 갈린다 (round 22 Table 높이와 같은 형태). shared `resolveBindingSelectionMode(type, fallback)` 로
+    통일 — binding 미선언 타입만 호출자의 컴포넌트 기본값을 쓴다.)
+    - 게이트 (round 23): 확장 전수 동치 2 (fixture 3 변형 × catalog 전 타입) · shared `defaultContractLookup` +2
+      (`resolveBindingSelectionMode` — binding 선언값 · 미선언 폴백) · 정적 4 (네 소비처에 `defaultSelectionMode:` 문자열
+      리터럴 0, `resolveBindingSelectionMode(` 경유). scene/virtualization/Skia 는 layout 과 실행 경로가 달라 값 자체는 shared
+      계약이, 결선은 정적 게이트가 맡는다.
+    - 원복 RED (실측, HEAD 파일로 교체 → 게이트 → 수리본 복구 · md5 대조): 수리 66 네 파일 → 정적 게이트 **4 fail** ·
+      shared helper → `defaultContractLookup` **2 fail** · [확증] round 22 게이트 + GridList binding `single → multiple`
+      → **6 PASS (놓침)**, 같은 mutation 에 확장 게이트는 **1 RED** = **3 조합**.
+    - **Live (Chrome MCP, 2026-09-02)**: 팔레트 GridList (ref instance, items 3 · `layout: grid` · columns 2) 를 만들고
+      `selectionMode` 를 부재 / `multiple` / `single` 로 바꿔 Skia layout box ↔ Preview compare DOM 을 같이 잰다 —
+      부재 **164 = 164** (체크박스 0; binding default `single` 을 읽어도 GridList 게이트는 multiple 만) · `multiple`
+      **208 = 208** (체크박스 3, 2행 × 22) · `single` **164 = 164**. 콘솔 에러 0 · 생성 요소 삭제.
+
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
 - **실효 (프로덕션 어댑터 경로가 그대로 타는 수리)**: 수리 5 (wrap min-content, r8l2
@@ -895,6 +922,10 @@ round 21 이 Table 에 `heightMode`/`height` binding 다리를 놓았지만 layo
   catalogComponentBox GridListItem/Tooltip 2 · 1 expected fail · 2 skipped) · layout unit 54 files/**452** (+6) · builder unit
   10 영역 207 files/1810 · shared 101 files/**961** (+6) · specs 75 files/875 · type-check 0 (`TYPE-CHECK PASS`).
   원복 RED (실측) 3 조합 — 수리 62~64 참조.
+- **round 23 수리 후**: Rust 변경 0 (TS 만) · 차등 **97/97** · full **parity 1042** (기존 catalogComponentBox
+  GridListItem/Tooltip 2 · 1 expected fail · 2 skipped) · layout unit 54 files/**456** (+4) · builder unit 10 영역 207
+  files/**1812** (+2 — 본 수리 밖, 같은 시각 다른 세션이 커밋한 canvas readiness 테스트) · shared 101 files/**963** (+2) ·
+  specs 75 files/875 · type-check 0 (`TYPE-CHECK PASS`). 원복 RED (실측) 3 조합 — 수리 65~66 참조.
 
 - **Live Exercise (round 19 수리 후)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP) — ① 팔레트에서 Breadcrumbs 추가
   (366×24, body stretch) → Styles Width size "fit" → 190×24, 선택 상자가 "Home › Category › Page" 끝에 맞음 (실제 crumb 폭; 종전
@@ -931,6 +962,13 @@ round 21 이 Table 에 `heightMode`/`height` binding 다리를 놓았지만 layo
   표현한다). Skia layout box ↔ Preview iframe DOM: Table 366×**402** = 366×402 (수리 전 Skia 302) · Badge 높이 **22** = 22
   (`padding 2px 8px` · `border-width 1px` · `font-size 12px` = catalog sm; 수리 전 Skia 30). 콘솔 에러 0 · 생성 요소 전부 삭제
   (요소 수 86 복귀).
+
+- **Live Exercise (round 23 수리 후, 2026-09-02)**: 실 빌더(localhost:5173) TEST 프로젝트 Home (Chrome MCP, compare mode) —
+  팔레트 GridList (ref instance · items 3 · `layout: grid` columns 2) 의 `selectionMode` 를 부재 / `multiple` / `single` 로
+  바꿔 Skia layout box ↔ Preview iframe DOM 을 같이 측정: 부재 **164 = 164** (체크박스 0) · `multiple` **208 = 208**
+  (체크박스 3) · `single` **164 = 164**. 수리 66 은 시각 무변경 계약이고 (binding `single` 도 GridList 게이트 밖) live 가
+  그것을 확인한다. 콘솔 에러 0 · 생성 요소 삭제. 주: 같은 시각 다른 세션이 작업 중인 canvas readiness 오버레이 때문에
+  로드 직후 Header 가 잠시 가려져 compare 토글은 DOM 조회로 눌렀다 (ADR-923 범위 밖).
 
 ## 관찰 (Phase 3 종결에 포함하지 않는 후속 후보)
 
