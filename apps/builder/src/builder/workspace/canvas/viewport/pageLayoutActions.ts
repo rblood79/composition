@@ -3,7 +3,10 @@ import { historyManager } from "../../../stores/history";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { getDB } from "../../../../lib/db";
 import { useViewportSyncStore } from "../stores";
-import { PAGE_STACK_GAP } from "../pageLayoutConstants";
+import {
+  PAGE_STACK_GAP,
+  resolvePageLayoutAvailableWidth,
+} from "../pageLayoutConstants";
 
 type BreakpointName = import("@composition/shared").BreakpointName;
 
@@ -32,7 +35,7 @@ async function persistActiveCanonicalDocument(
  * no-op (lazy write).
  */
 export function alignPagesToScreen(): void {
-  const { canvasSize } = useViewportSyncStore.getState();
+  const { canvasSize, containerSize, zoom } = useViewportSyncStore.getState();
   const { initializePagePositions, pageLayoutDirection, pages } =
     useStore.getState();
 
@@ -52,6 +55,8 @@ export function alignPagesToScreen(): void {
     canvasSize.height,
     PAGE_STACK_GAP,
     pageLayoutDirection,
+    undefined,
+    resolvePageLayoutAvailableWidth(containerSize.width, zoom),
   );
 
   const afterPositions = useStore.getState().pagePositions;

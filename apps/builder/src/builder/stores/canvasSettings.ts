@@ -7,7 +7,7 @@
  * @since 2024-12-29
  * @updated 2025-12-29 - overlay/visualization 설정 제거 (WebGL 전환으로 불필요)
  * @updated 2026-02-10 - viewMode 제거 (레거시 ReactFlow 워크플로우 삭제)
- * @updated 2026-02-11 - pageLayoutDirection 추가 (가로/세로/지그재그 페이지 배치, Settings 패널에서 제어)
+ * @updated 2026-02-11 - pageLayoutDirection 추가 (자동/가로/세로 페이지 배치, Settings 패널에서 제어)
  * @updated 2026-08-14 - showGrid / snapToGrid / gridSize 제거. 캔버스 월드 격자는
  *   맞출 대상이 없었다 — 요소 좌표는 레이아웃 엔진 소유고, 격자가 기준이 될 수
  *   있는 유일한 대상인 페이지 위치는 자동 배치 간격(470px)이 8/16/24 어느 쪽과도
@@ -26,7 +26,17 @@ import {
 } from "./utils/actionBarStorage";
 
 /** 페이지 배치 방향 */
-export type PageLayoutDirection = "horizontal" | "vertical" | "zigzag";
+export type PageLayoutDirection = "auto" | "horizontal" | "vertical";
+export type LegacyPageLayoutDirection = PageLayoutDirection | "zigzag";
+
+/** 이전에 저장되거나 HMR 중 남은 zigzag 값은 새 auto 레이아웃으로 읽는다. */
+export function normalizePageLayoutDirection(
+  direction: string | null | undefined,
+): PageLayoutDirection {
+  if (direction === "auto" || direction === "vertical") return direction;
+  if (direction === "zigzag") return "auto";
+  return "horizontal";
+}
 
 export interface HistoryInfo {
   canUndo: boolean;
@@ -129,7 +139,7 @@ export interface SettingsState {
   /** Workflow 포커스 페이지 설정 */
   setWorkflowFocusedPageId: (pageId: string | null) => void;
 
-  /** 페이지 배치 방향 (기본값: 'horizontal') */
+  /** 페이지 배치 방향 (기본값: 'auto') */
   pageLayoutDirection: PageLayoutDirection;
   /** 페이지 배치 방향 설정 */
   setPageLayoutDirection: (direction: PageLayoutDirection) => void;
@@ -159,7 +169,7 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
   showWorkflowLayoutGroups: true,
   workflowStraightEdges: true,
   workflowFocusedPageId: null,
-  pageLayoutDirection: "horizontal" as PageLayoutDirection,
+  pageLayoutDirection: "auto" as PageLayoutDirection,
   activeBreakpoint: "desktop" as BreakpointName,
   historyInfo: {
     canUndo: false,
@@ -310,7 +320,7 @@ export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
    * 페이지 배치 방향 설정
    */
   setPageLayoutDirection: (direction: PageLayoutDirection) => {
-    set({ pageLayoutDirection: direction });
+    set({ pageLayoutDirection: normalizePageLayoutDirection(direction) });
   },
 
   /**

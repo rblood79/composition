@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [페이지 자동 배치가 화면 폭과 breakpoint를 반영합니다] - 2026-09-01
+
+### Changed
+
+- Settings의 Page Layout 선택지를 `Auto`·`Horizontal`·`Vertical`로 통일하고 기본값을 `Auto`로 설정했습니다. 기존 `zigzag` 값은 `Auto`로 읽습니다.
+- `Auto` 정렬은 현재 zoom과 선택된 breakpoint의 page 폭을 기준으로 화면에 들어가는 최대 page 수를 한 줄에 배치하고, 이후 page를 다음 줄로 넘깁니다. page 간 간격은 기존 `PAGE_STACK_GAP`을 유지합니다.
+
 ## [빌더 패널의 빈 상태가 공통 패턴을 사용합니다] - 2026-09-01
 
 ### Fixed

@@ -24,7 +24,10 @@ import {
 } from "react";
 import { useStore } from "../../stores";
 import { useDataStore } from "../../stores/data";
-import type { PageLayoutDirection } from "../../stores/canvasSettings";
+import {
+  normalizePageLayoutDirection,
+  type PageLayoutDirection,
+} from "../../stores/canvasSettings";
 import { useEditModeStore } from "../../stores/editMode";
 import {
   useCanonicalReusableFrameLayouts,
@@ -122,7 +125,11 @@ import {
   computeLayoutGroups,
   computeFrameAreas,
 } from "./skia/workflowEdges";
-import { PAGE_STACK_GAP } from "./pageLayoutConstants";
+import {
+  PAGE_STACK_GAP,
+  resolveAutoPageColumnCount,
+  resolvePageLayoutAvailableWidth,
+} from "./pageLayoutConstants";
 import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 
 import { useGPUProfiler } from "./utils/gpuProfilerCore";
@@ -170,15 +177,19 @@ function computeStackedCanvasPosition(
   height: number,
   gap: number,
   direction: PageLayoutDirection,
+  availableWidth = 0,
 ): { x: number; y: number } {
-  if (direction === "vertical") {
+  const normalizedDirection = normalizePageLayoutDirection(direction);
+
+  if (normalizedDirection === "vertical") {
     return { x: 0, y: index * (height + gap) };
   }
 
-  if (direction === "zigzag") {
+  if (normalizedDirection === "auto") {
+    const columnCount = resolveAutoPageColumnCount(width, gap, availableWidth);
     return {
-      x: (index % 2) * (width + gap),
-      y: Math.floor(index / 2) * (height + gap),
+      x: (index % columnCount) * (width + gap),
+      y: Math.floor(index / columnCount) * (height + gap),
     };
   }
 
@@ -654,6 +665,7 @@ export function BuilderCanvas({
         pageHeight,
         PAGE_STACK_GAP,
         pageLayoutDirection,
+        resolvePageLayoutAvailableWidth(containerSize.width, zoom),
       );
       return {
         ...area,
@@ -673,6 +685,8 @@ export function BuilderCanvas({
     pageLayoutDirection,
     pagePositions,
     pageWidth,
+    containerSize.width,
+    zoom,
     selectedReusableFrameId,
   ]);
 

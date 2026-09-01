@@ -5,7 +5,10 @@ import { StateCreator } from "zustand";
 import type { StoredMenuItem } from "@composition/specs";
 import { Element, ComponentElementProps } from "../../types/core/store.types";
 import { Page } from "../../types/builder/unified.types";
-import type { PageLayoutDirection } from "./canvasSettings";
+import {
+  normalizePageLayoutDirection,
+  type PageLayoutDirection,
+} from "./canvasSettings";
 import { historyManager } from "./history";
 import { captureCanonicalNodeLocations } from "./history/canonicalHistoryEvents";
 import { trackCanonicalMove } from "./utils/historyHelpers";
@@ -309,6 +312,8 @@ export interface ElementsState {
       string,
       Partial<Record<BreakpointName, { x: number; y: number }>>
     >,
+    /** auto 배치에서 한 줄의 기준이 되는 world 좌표 폭 */
+    availableWidth?: number,
   ) => void;
   updatePagePosition: (pageId: string, x: number, y: number) => void;
   updatePagePositionsBatch: (
@@ -527,6 +532,7 @@ import {
 } from "./canonical/pageTitleMutation";
 import { enqueuePagePersistence } from "../utils/pagePersistenceQueue";
 import { isComponentsPageMirror } from "../pages/systemComponentsPage";
+import { resolveAutoPageColumnCount } from "../workspace/canvas/pageLayoutConstants";
 
 export interface ElementsState {
   renamePageTitle: (pageId: string, title: string) => boolean;
@@ -552,6 +558,8 @@ export interface PagePositionBreakpointSwitchOptions {
   pageHeight: number;
   gap: number;
   direction: PageLayoutDirection;
+  /** auto 배치에서 한 줄의 기준이 되는 world 좌표 폭 */
+  availableWidth?: number;
 }
 
 export function calculatePagePositions(
@@ -560,10 +568,12 @@ export function calculatePagePositions(
   pageHeight: number,
   gap: number,
   direction: PageLayoutDirection = "horizontal",
+  availableWidth?: number,
 ): PagePositions {
   const positions: PagePositions = {};
+  const normalizedDirection = normalizePageLayoutDirection(direction);
 
-  if (direction === "vertical") {
+  if (normalizedDirection === "vertical") {
     let currentY = 0;
     for (const page of pages) {
       positions[page.id] = { x: 0, y: currentY };
@@ -572,10 +582,15 @@ export function calculatePagePositions(
     return positions;
   }
 
-  if (direction === "zigzag") {
+  if (normalizedDirection === "auto") {
+    const columnCount = resolveAutoPageColumnCount(
+      pageWidth,
+      gap,
+      availableWidth ?? 0,
+    );
     for (let index = 0; index < pages.length; index++) {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
+      const column = index % columnCount;
+      const row = Math.floor(index / columnCount);
       positions[pages[index].id] = {
         x: column * (pageWidth + gap),
         y: row * (pageHeight + gap),
@@ -599,6 +614,7 @@ export function calculateNextPagePosition(
   pageHeight: number,
   gap: number,
   direction: PageLayoutDirection,
+  availableWidth?: number,
 ): PagePosition {
   const positionedPages = pages
     .map((page) => ({ page, position: pagePositions[page.id] }))
@@ -607,7 +623,9 @@ export function calculateNextPagePosition(
         entry.position !== undefined,
     );
 
-  if (direction === "vertical") {
+  const normalizedDirection = normalizePageLayoutDirection(direction);
+
+  if (normalizedDirection === "vertical") {
     let maxBottom = 0;
     let anchorX = 0;
     for (const { position } of positionedPages) {
@@ -620,11 +638,16 @@ export function calculateNextPagePosition(
     return { x: anchorX, y: maxBottom === 0 ? 0 : maxBottom + gap };
   }
 
-  if (direction === "zigzag") {
+  if (normalizedDirection === "auto") {
+    const columnCount = resolveAutoPageColumnCount(
+      pageWidth,
+      gap,
+      availableWidth ?? 0,
+    );
     let index = pages.length;
     while (true) {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
+      const column = index % columnCount;
+      const row = Math.floor(index / columnCount);
       const candidate = {
         x: column * (pageWidth + gap),
         y: row * (pageHeight + gap),
@@ -2187,6 +2210,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       gap: number,
       direction: PageLayoutDirection = "horizontal",
       persisted,
+      availableWidth,
     ) => {
       const positions = calculatePagePositions(
         pages,
@@ -2194,6 +2218,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         pageHeight,
         gap,
         direction,
+        availableWidth,
       );
 
       // ADR-177: document `pagePositions` 를 breakpoint 축으로 뒤집어 페이지 단위
@@ -2276,6 +2301,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
                 options.pageHeight,
                 options.gap,
                 options.direction,
+                options.availableWidth,
               )
             : undefined;
         const targetPositionMap =

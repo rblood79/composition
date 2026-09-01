@@ -893,9 +893,9 @@ export interface TranslationKeys {
     snapToObjects: string;
     showActionBar: string;
     pageLayout: string;
+    pageLayoutAuto: string;
     pageLayoutHorizontal: string;
     pageLayoutVertical: string;
-    pageLayoutZigzag: string;
     themeAppearance: string;
     themeMode: string;
     themeModeLight: string;

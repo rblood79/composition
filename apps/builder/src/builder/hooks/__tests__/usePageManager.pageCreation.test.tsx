@@ -172,4 +172,43 @@ describe("usePageManager page creation activation", () => {
       y: 1720,
     });
   });
+
+  it("auto pageLayoutDirection은 화면 폭에 맞춰 다음 줄에 새 page를 둔다", async () => {
+    const first = makePage("page-1");
+    const second = makePage("page-2");
+    useStore.setState({
+      pageLayoutDirection: "auto",
+      pages: [first, second],
+      pagePositions: {
+        [first.id]: { x: 0, y: 0 },
+        [second.id]: { x: 2000, y: 0 },
+      },
+    });
+    useViewportSyncStore.getState().setCanvasSize({
+      width: 1920,
+      height: 1080,
+    });
+    useViewportSyncStore.getState().setContainerSize({
+      width: 2200,
+      height: 900,
+    });
+    useViewportSyncStore.getState().setViewportSnapshot({
+      panOffset: { x: 0, y: 0 },
+      zoom: 0.5,
+    });
+
+    const { result } = renderPageManager();
+
+    await act(async () => {
+      const addResult = await result.current.addPage("project-1");
+      expect(addResult.success).toBe(true);
+    });
+
+    const pages = useStore.getState().pages;
+    const createdPage = pages[pages.length - 1];
+    expect(useStore.getState().pagePositions[createdPage.id]).toEqual({
+      x: 0,
+      y: 1160,
+    });
+  });
 });

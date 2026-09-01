@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { Page } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
+import { normalizePageLayoutDirection } from "../../../stores/canvasSettings";
 import { useViewportSyncStore } from "../stores";
 import { alignPagesToScreen } from "./pageLayoutActions";
 
@@ -23,6 +24,14 @@ describe("alignPagesToScreen", () => {
       pages: [],
     } as never);
     useViewportSyncStore.getState().reset();
+  });
+
+  it("legacy zigzag 값은 auto로 정규화한다", () => {
+    expect(normalizePageLayoutDirection("zigzag")).toBe("auto");
+  });
+
+  it("Page Layout 기본값은 auto다", () => {
+    expect(useStore.getInitialState().pageLayoutDirection).toBe("auto");
   });
 
   it("uses the Settings direction and current breakpoint canvas size", () => {
@@ -49,6 +58,43 @@ describe("alignPagesToScreen", () => {
       useStore.getState().pagePositions,
     );
     expect(useStore.getState().pagePositionsVersion).toBe(1);
+  });
+
+  it("auto 배치는 zoom을 반영한 화면 폭 안에 최대 page를 한 줄로 둔다", () => {
+    const pages = [
+      makePage("page-1"),
+      makePage("page-2"),
+      makePage("page-3"),
+      makePage("page-4"),
+    ];
+    useStore.setState({
+      pageLayoutDirection: "auto",
+      pages,
+      pagePositions: Object.fromEntries(
+        pages.map((page, index) => [page.id, { x: index * 2000, y: 0 }]),
+      ),
+    } as never);
+    useViewportSyncStore.getState().setCanvasSize({
+      width: 1920,
+      height: 1080,
+    });
+    useViewportSyncStore.getState().setContainerSize({
+      width: 2200,
+      height: 900,
+    });
+    useViewportSyncStore.getState().setViewportSnapshot({
+      panOffset: { x: 0, y: 0 },
+      zoom: 0.5,
+    });
+
+    alignPagesToScreen();
+
+    expect(useStore.getState().pagePositions).toEqual({
+      "page-1": { x: 0, y: 0 },
+      "page-2": { x: 2000, y: 0 },
+      "page-3": { x: 0, y: 1160 },
+      "page-4": { x: 2000, y: 1160 },
+    });
   });
 
   it("does not change manually positioned pages when canvas size is unavailable", () => {

@@ -12,4 +12,16 @@ describe("SettingsPanel 공통 panel 구조", () => {
     expect(source).toContain('className="panel settings-panel"');
     expect(source).not.toContain('className="settings-panel"');
   });
+
+  it("offers Auto, Horizontal, and Vertical page layout choices", async () => {
+    const source = await readFile(
+      resolve(__dirname, "SettingsPanel.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain('value: "auto"');
+    expect(source).toContain('t("settings.pageLayoutAuto")');
+    expect(source).not.toContain('value: "zigzag"');
+    expect(source).not.toContain("pageLayoutZigzag");
+  });
 });

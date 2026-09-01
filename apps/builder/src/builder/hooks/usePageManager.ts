@@ -37,7 +37,10 @@ import { migrateCheckboxRadioItemsStructure } from "../../adapters/canonical/che
 import { migrateFieldInlineLayout } from "../../adapters/canonical/fieldInlineLayoutMigration";
 import { migrateCircleLeafInlineSize } from "../../adapters/canonical/circleLeafInlineSizeMigration";
 import { ensureReusableCompositeOrigins } from "../components/reusableCompositeOrigins";
-import { PAGE_STACK_GAP } from "../workspace/canvas/pageLayoutConstants";
+import {
+  PAGE_STACK_GAP,
+  resolvePageLayoutAvailableWidth,
+} from "../workspace/canvas/pageLayoutConstants";
 
 function normalizePageSlug(slug: string | null | undefined): string {
   if (!slug) return "";
@@ -153,7 +156,7 @@ export const usePageManager = ({
 
   const computeNextPagePosition = useCallback(() => {
     const { pageLayoutDirection, pagePositions, pages } = useStore.getState();
-    const canvasSize = useViewportSyncStore.getState().canvasSize;
+    const { canvasSize, containerSize, zoom } = useViewportSyncStore.getState();
     return calculateNextPagePosition(
       pages,
       pagePositions,
@@ -161,6 +164,7 @@ export const usePageManager = ({
       canvasSize.height,
       PAGE_STACK_GAP,
       pageLayoutDirection,
+      resolvePageLayoutAvailableWidth(containerSize.width, zoom),
     );
   }, []);
 
@@ -431,6 +435,7 @@ export const usePageManager = ({
         // ADR-177: document 에 저장된 배치가 있으면 페이지 단위로 재계산 결과를
         // override 병합 (entry 부재 페이지만 재계산 폴백 — lazy write 대응).
         const currentCanvasSize = useViewportSyncStore.getState().canvasSize;
+        const currentViewport = useViewportSyncStore.getState();
         initializePagePositions(
           storePages,
           currentCanvasSize.width,
@@ -438,6 +443,10 @@ export const usePageManager = ({
           PAGE_STACK_GAP,
           pageLayoutDirection,
           document.pagePositions,
+          resolvePageLayoutAvailableWidth(
+            currentViewport.containerSize.width,
+            currentViewport.zoom,
+          ),
         );
         // 위치를 먼저 준비한 뒤 page 목록을 publish하여 미초기화 page가
         // 렌더 단계에서 (0, 0)으로 겹치는 중간 상태를 만들지 않는다.

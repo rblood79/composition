@@ -8,7 +8,7 @@ composition의 빌더 캔버스에서 모든 페이지를 Pencil의 Frame처럼 
 
 - 렌더 범위: 프리뷰(iframe)는 현재 페이지 1개만 렌더링 유지.
 - 캔버스 렌더: 모든 페이지를 동시에 표시.
-- 페이지 배치: 가로 스택 기본 배치 (간격 80px). Settings 패널에서 가로/세로/지그재그 방향 전환 가능.
+- 페이지 배치: 자동 배치 기본 (간격 80px). Settings 패널에서 자동/가로/세로 방향 전환 가능.
 - 위치 조절: 페이지 타이틀 영역 드래그로 위치 재배치 가능.
 - 로딩 정책: 초기 로드 시 모든 페이지/요소를 로딩(페이지 단위 lazy load 없음).
 
@@ -46,13 +46,13 @@ updatePagePosition(pageId, x, y); // 단일 페이지 위치 업데이트
 ```
 
 - `initializePagePositions`: `order_num` 정렬 후 `direction` 파라미터에 따라 배치 방식 결정:
-  - `horizontal` (기본): `currentX += pageWidth + gap` 수평 배치.
+  - `horizontal`: `currentX += pageWidth + gap` 수평 배치.
   - `vertical`: `currentY += pageHeight + gap` 수직 배치.
-  - `zigzag`: 2열 그리드 배치 (`col = i % 2`, `row = Math.floor(i / 2)`).
+  - `auto`: 현재 캔버스의 화면 폭을 `zoom`으로 world 폭으로 환산한 뒤, 선택된 breakpoint의 `pageWidth`와 `gap`을 기준으로 한 줄의 최대 page 수를 계산한다. `col = i % columnCount`, `row = Math.floor(i / columnCount)`으로 다음 줄에 배치한다.
 - `usePageManager.initializeProject()` 완료 후 `initializePagePositions()` 호출.
 - `addPage()` 시 현재 `pageLayoutDirection`에 맞춰 마지막 page 다음 위치에 `PAGE_STACK_GAP`을 유지하며 새 페이지를 추가한다.
 - breakpoint(사이즈) 변경과 Settings 패널의 배치 방향 변경은 기존 page 위치를 유지한다. 상단 `ZoomControls` popover의 `화면 정렬` command가 현재 canvas 크기와 Settings의 방향을 사용해 `initializePagePositions()`를 호출하고 모든 페이지를 명시적으로 재배치한다.
-- 페이지 너비는 `useCanvasSyncStore.getState().canvasSize.width`에서 동적으로 읽음 (하드코딩 없음).
+- `auto`의 가용 폭은 `containerSize.width / zoom`, page 크기는 `useViewportSyncStore.getState().canvasSize`에서 동적으로 읽음 (하드코딩 없음).
 
 ### Phase 2: 다중 페이지 PixiJS 씬 그래프
 
@@ -234,7 +234,7 @@ export function usePageDrag(zoom: number): UsePageDragReturn {
 
 | 파일                                  | Phase   | 변경 내용                                                                                                                                                      |
 | ------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `stores/canvasSettings.ts`            | —       | `PageLayoutDirection` 타입 및 `pageLayoutDirection` / `setPageLayoutDirection` 상태 추가                                                                       |
+| `stores/canvasSettings.ts`            | —       | `PageLayoutDirection` 타입 및 `pageLayoutDirection` / `setPageLayoutDirection` 상태 추가 (자동/가로/세로)                                                      |
 | `stores/elements.ts`                  | 1       | `pagePositions`, `pagePositionsVersion`, `initializePagePositions`, `updatePagePosition` 상태/액션 추가. `initializePagePositions`에 `direction` 파라미터 추가 |
 | `stores/utils/elementRemoval.ts`      | —       | Body 요소 삭제 가드 추가                                                                                                                                       |
 | `hooks/usePageManager.ts`             | 1       | 초기화 시 `initializePagePositions` 호출, `addPage` 시 새 페이지 위치 계산 (동적 canvasSize)                                                                   |
@@ -262,4 +262,4 @@ export function usePageDrag(zoom: number): UsePageDragReturn {
 - 페이지 타이틀 영역(`PAGE_TITLE_HIT_HEIGHT = 24px`)은 드래그 핸들로 동작한다.
 - 타이틀은 페이지 상단에 노출하며, 활성 페이지는 selection 색상(`#3B82F6`), 비활성은 slate-500.
 - 페이지 간 간격: `PAGE_STACK_GAP = 80px`.
-- 페이지 배치 방향: Settings 패널 → Grid & Guides → Page Layout에서 Horizontal/Vertical/Zigzag 선택 가능 (기본: Horizontal).
+- 페이지 배치 방향: Settings 패널 → Grid & Guides → Page Layout에서 Auto/Horizontal/Vertical 선택 가능 (기본: Auto). 이전 `zigzag` 값은 `auto`로 정규화한다.
