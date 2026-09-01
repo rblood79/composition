@@ -38,9 +38,14 @@ describe("Table fixed height border 보정 (ADR-151 B8)", () => {
     expect(s.minHeight).toBe(402);
   });
 
-  it("height 미지정 → default 300 + 2 = 302", () => {
+  // ADR-923 r22m1 (2026-09-02): prop 부재 기본값은 catalog binding accepts default 가 정본이다.
+  //   `toRacProps` 가 prop 없는 Table 에 height 400 을 채워 Preview 는 402 인데, layout 만 자기
+  //   리터럴 300 을 써 302 였다 (같은 canonical 입력의 두 표면 발산 — factory 가 항상 height:400
+  //   을 기록해 생성 경로에서는 가려졌고 canonical/import 입력만 prop 부재를 표현한다).
+  it("height 미지정 → binding default 400 + 2 = 402 (종전 layout 리터럴 300 → 302)", () => {
     const s = styleOf(apply("Table", { style: {} }));
-    expect(s.height).toBe(302);
+    expect(s.height).toBe(402);
+    expect(s.minHeight).toBe(402);
   });
 
   it("사용자 style.height 명시 → 미주입 (사용자 우선)", () => {

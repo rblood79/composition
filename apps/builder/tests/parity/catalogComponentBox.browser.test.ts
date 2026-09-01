@@ -240,6 +240,11 @@ const CASES: CatalogCase[] = [
     availW: 320,
     props: { heightMode: "auto" },
   },
+  // ADR-923 r22m1 — prop 없는 요소의 기본 size. generated CSS 의 base 규칙은 catalog
+  //   `defaultSize` 값으로 emit 되므로 `.react-aria-Badge` 만 걸친 DOM 은 sm(padding 2/8,
+  //   text-xs) 이다. layout 은 별도 표(`DEFAULT_SIZE_BY_TAG.badge = "md"`)를 들고 있어
+  //   padding/폰트가 한 단계 컸다.
+  { type: "Badge", children: KIDS_1, availW: 320 },
 ];
 
 /**

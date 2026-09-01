@@ -145,6 +145,9 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         paddingRight: 16,
         rowGap: 2,
         columnGap: 2,
+        // ADR-923 r22m1 sweep — catalog `sizes.md.borderWidth` 축 (생성 CSS
+        //   `.react-aria-GridListItem { border: 1px solid var(--border); border-width: 1px }`).
+        borderWidth: 1,
       });
     });
   });

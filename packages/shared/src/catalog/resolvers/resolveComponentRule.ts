@@ -27,6 +27,31 @@ export function resolveComponentRule(
   return doc?.componentRules?.[type] ?? COMPONENT_RULES_TABLE[type];
 }
 
+/** lowercase type → PascalCase table key 역인덱스. */
+const LOWERCASE_RULE_KEY: ReadonlyMap<string, string> = (() => {
+  const m = new Map<string, string>();
+  for (const k of Object.keys(COMPONENT_RULES_TABLE)) m.set(k.toLowerCase(), k);
+  return m;
+})();
+
+/**
+ * ADR-923 r22m1 — lowercase 태그(`element.type.toLowerCase()`)도 받는 rule 조회.
+ *
+ * layout 은 소문자 태그로 동작하는데 테이블 키는 PascalCase 다. 소비처마다 역인덱스를 따로
+ * 만들면 "catalog 에 있는데 casing 때문에 못 찾아 자기 리터럴을 쓰는" 자리가 생긴다 — 실제로
+ * layout 의 `DEFAULT_SIZE_BY_TAG` 는 catalog `defaultSize` 와 별개 표였고 Badge(catalog sm ·
+ * layout md) / Select(catalog md · layout sm) 두 타입에서 값이 갈렸다.
+ */
+export function resolveComponentRuleByTag(
+  typeOrTag: string,
+  doc?: CompositionDocument | null,
+): ComponentRule | undefined {
+  const direct = resolveComponentRule(typeOrTag, doc);
+  if (direct !== undefined) return direct;
+  const key = LOWERCASE_RULE_KEY.get(typeOrTag.toLowerCase());
+  return key === undefined ? undefined : resolveComponentRule(key, doc);
+}
+
 /** build-time 생성 테이블 직접 노출 (테스트 / 전수 검증용). */
 export function getComponentRulesTable(): ComponentRulesTable {
   return COMPONENT_RULES_TABLE;

@@ -467,3 +467,33 @@ export function getPrimitiveBinding(
 ): PrimitiveBinding | undefined {
   return PRIMITIVE_BINDINGS[type];
 }
+
+/** lowercase type → PascalCase binding key 역인덱스 (layout 은 `element.type.toLowerCase()` 를 쓴다). */
+const LOWERCASE_BINDING_KEY: ReadonlyMap<string, string> = (() => {
+  const m = new Map<string, string>();
+  for (const k of Object.keys(PRIMITIVE_BINDINGS)) m.set(k.toLowerCase(), k);
+  return m;
+})();
+
+/**
+ * ADR-923 r22m1 — **prop 부재 기본값의 단일 원천**. `toRacProps` 는 `props` 에 키가 없으면
+ * `accepts[key].default` 를 채워 컴포넌트에 넘긴다 (`outputs/toRacProps.ts`). 그러므로 같은
+ * canonical 입력에서 Preview 가 실제로 쓰는 값은 이 default 이며, layout(Skia) 이 자기 리터럴
+ * fallback 을 따로 들고 있으면 prop 없는 요소에서만 두 표면이 갈린다 — round 21 이 Table 에
+ * `heightMode`/`height` 다리를 놓으면서 layout 의 기존 300 fallback 을 정렬하지 않아
+ * DOM 402 / layout 302 로 발산했다 (factory 는 항상 `height: 400` 을 기록해 생성 경로에서는
+ * 가려졌고, canonical/import 입력만 prop 부재를 표현한다).
+ *
+ * Pascal("Table") · lowercase("table") 둘 다 받는다.
+ */
+export function resolveBindingPropDefault(
+  typeOrTag: string,
+  key: string,
+): unknown {
+  const bindingKey =
+    PRIMITIVE_BINDINGS[typeOrTag] !== undefined
+      ? typeOrTag
+      : LOWERCASE_BINDING_KEY.get(typeOrTag.toLowerCase());
+  if (bindingKey === undefined) return undefined;
+  return PRIMITIVE_BINDINGS[bindingKey]?.props.accepts[key]?.default;
+}

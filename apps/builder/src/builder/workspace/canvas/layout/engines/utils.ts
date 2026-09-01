@@ -81,6 +81,8 @@ import {
   HTML_PRIMITIVE_DEFAULT_HEIGHTS,
 } from "@composition/specs";
 import type { ComponentRuleSize } from "@composition/shared";
+// ADR-923 r22m1 — prop 부재 기본 size 의 단일 원천 (catalog defaultSize, lowercase 태그 허용).
+import { resolveComponentRuleByTag } from "@composition/shared";
 // ADR-148 Phase 0 — projection 주입 slot 구성(_slots) gating (listbox_item escape 와 Layer D 대칭).
 import {
   isSlotEnabled,
@@ -1433,22 +1435,35 @@ const BUTTON_TEXT_LEAF_TAGS = new Set([
  */
 const CALENDAR_LIKE_TAGS = new Set(["calendar", "rangecalendar"]);
 
-/** 컴포넌트별 기본 size prop 값 */
+/**
+ * catalog 미등록 태그의 기본 size prop 값 — legacy/별칭 태그 전용 최후 폴백.
+ *
+ * ADR-923 r22m1 (2026-09-02): 종전 이 표는 catalog `defaultSize` 와 **별개 표**였고 두 타입에서
+ * 값이 갈렸다 — Badge(catalog `sm`, 표 `md`) · Select(catalog `md`, 표 `sm`). generated CSS 의
+ * base 규칙은 `defaultSize` 값으로 emit 되므로 prop 없는 요소의 DOM 은 catalog 기본 size 이고,
+ * layout 만 다른 size config 를 골라 폰트·padding·높이가 어긋났다. 이제 catalog 에 등록된 타입은
+ * `resolveComponentRuleByTag(...).defaultSize` 가 정본이고, 표에는 catalog 에 없는 태그만 남긴다.
+ */
 const DEFAULT_SIZE_BY_TAG: Record<string, string> = {
-  // Badge 계열: 'md' 기본값 (CSS TagGroup 기본 size=md와 동기화)
-  badge: "md",
+  // catalog 미등록 (canonical 타입 아님 — legacy 별칭)
   type: "md",
   chip: "md",
-  // Button 계열: 'md' 기본값
-  button: "md",
   submitbutton: "md",
   fancybutton: "md",
-  input: "md",
-  select: "sm",
   a: "md",
-  togglebutton: "md",
-  menu: "md",
 };
+
+/**
+ * 태그의 기본 size — catalog `defaultSize` 우선, 미등록 태그만 위 표, 그 외 "md".
+ * prop 부재 기본값은 Preview(generated CSS base = defaultSize)와 layout 이 같은 값을 써야 한다.
+ */
+function resolveDefaultSizeForTag(tag: string): string {
+  return (
+    resolveComponentRuleByTag(tag)?.defaultSize ??
+    DEFAULT_SIZE_BY_TAG[tag] ??
+    "md"
+  );
+}
 
 /**
  * 요소의 콘텐츠 너비 계산
@@ -1860,7 +1875,7 @@ export function calculateContentWidth(
     childElements &&
     childElements.length > 0
   ) {
-    const defaultSize = DEFAULT_SIZE_BY_TAG[type] ?? "md";
+    const defaultSize = resolveDefaultSizeForTag(type);
     const sizeName = (element.props as Record<string, unknown>)?.size as
       string | undefined;
     const configMap =
@@ -1969,7 +1984,7 @@ export function calculateContentWidth(
     const iconName = btnProps?.iconName as string | undefined;
     const btnText = extractTextContent(type, btnProps);
     if (iconName && !btnText) {
-      const defaultSize = DEFAULT_SIZE_BY_TAG[type] ?? "md";
+      const defaultSize = resolveDefaultSizeForTag(type);
       const size = (btnProps?.size as string) ?? defaultSize;
       const sizeConfig =
         BUTTON_SIZE_CONFIG[size] ??
@@ -2061,7 +2076,7 @@ export function calculateContentWidth(
         props as Record<string, unknown>,
       );
 
-      const defaultSize = DEFAULT_SIZE_BY_TAG[type] ?? "md";
+      const defaultSize = resolveDefaultSizeForTag(type);
       const size = (props?.size as string) ?? defaultSize;
       const configMap = isFormElement ? BUTTON_SIZE_CONFIG : inlineUIConfig!;
       const sizeConfig =
@@ -2972,7 +2987,7 @@ export function calculateContentHeight(
     ) {
       return 0;
     }
-    const defaultSize = DEFAULT_SIZE_BY_TAG[type] ?? "md";
+    const defaultSize = resolveDefaultSizeForTag(type);
     const size = (props?.size as string) ?? defaultSize;
     const configMap = isButtonLike ? BUTTON_SIZE_CONFIG : inlineUIConfig!;
     const sizeConfig =
@@ -4321,7 +4336,7 @@ export function resolveLeafBoxEdges(
 
   if (hasSizeConfig) {
     const props = element.props as Record<string, unknown> | undefined;
-    const defaultSize = DEFAULT_SIZE_BY_TAG[type] ?? "md";
+    const defaultSize = resolveDefaultSizeForTag(type);
     const size = (props?.size as string) ?? defaultSize;
     const configMap = isFormElement ? BUTTON_SIZE_CONFIG : inlineUISizeConfig!;
     const sizeConfig =

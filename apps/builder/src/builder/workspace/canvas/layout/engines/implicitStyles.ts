@@ -40,6 +40,7 @@ import {
   isDisclosureExpandedInContext,
   resolveCatalogContainerBase,
   resolveCatalogContainerVariants,
+  resolveBindingPropDefault,
   resolveCatalogDensityField,
   resolveComponentRule,
 } from "@composition/shared";
@@ -399,6 +400,20 @@ export function resolveContainerStylesFallback(
         assign("paddingLeft", sizeRecord.paddingX);
         assign("paddingRight", sizeRecord.paddingX);
       }
+    }
+    // ADR-923 r22m1 sweep (2026-09-02) — border 축. 생성기는 `size.borderWidth` 를 size 블록마다
+    //   emit 한다 (CSSGenerator §border-width — `containerStyles.border` shorthand 가 있을 때만
+    //   skip). L3 미러는 height/padding/gap 만 옮겨 이 축이 빠져 있었고, top-level containerStyles
+    //   가 없는 타입 (Badge 등) 은 border 1px 이 캔버스에 도달하지 않아 DOM 보다 상하좌우 2px
+    //   작았다 (Badge sm: DOM 20 vs layout 18).
+    if (
+      !has("borderWidth") &&
+      !has("border") &&
+      topLevelBox?.border == null &&
+      rule?.structure?.containerStyles?.border == null &&
+      typeof sizeRecord.borderWidth === "number"
+    ) {
+      assign("borderWidth", sizeRecord.borderWidth);
     }
     // `gap` 은 row 축이고 `columnGap` 은 column 축 override 다 (ComponentRuleSize 계약 —
     //   생성 CSS 도 `gap: {gap}px; column-gap: {columnGap}px` 로 emit).
@@ -1249,18 +1264,30 @@ export function applyImplicitStyles(
 
   // ── Table ──────────────────────────────────────────────────────────
   // CSS Table.tsx 는 heightMode(default "fixed") 에서 컨테이너 높이를
-  // props.height(px, default 300) 로 고정한다 — 가상화 스크롤 영역이라 행 수와
+  // props.height(px) 로 고정한다 — 가상화 스크롤 영역이라 행 수와
   // 무관. Skia layout 이 이를 미소비하면 content(헤더+바디 48px)로 수축해
   // CSS(402) vs Skia(48) 발산 (2026-07-13 parity sweep). 사용자 style.height
   // 명시 시 그 값 우선(미주입). heightMode "auto"/"viewport"/"full" 은 content
   // 유지 — viewport/full 은 vh 단위라 엔진 px 모델 밖 (근사 주입보다 무주입이 안전).
   if (containerTag === "table") {
-    const heightMode = (containerProps?.heightMode as string) ?? "fixed";
+    // ADR-923 r22m1 (2026-09-02) — prop 부재 기본값은 catalog binding accepts default 가 단일
+    //   원천이다. `toRacProps` 가 prop 없는 Table 에 `heightMode:"fixed"` / `height:400` 을 채워
+    //   Preview 컨테이너는 402 가 되는데, 여기 리터럴 fallback 이 300 이라 같은 canonical 입력이
+    //   layout 에서만 302 였다 (round 21 이 binding 다리를 놓으면서 이쪽을 정렬하지 않았다 —
+    //   factory 는 항상 height:400 을 기록하므로 생성 경로가 결함을 가렸고, canonical/import
+    //   입력만 prop 부재를 표현한다). 리터럴 300/"fixed" 는 binding 미등록 시 최후 폴백.
+    const heightMode =
+      (containerProps?.heightMode as string) ??
+      (resolveBindingPropDefault("Table", "heightMode") as string | undefined) ??
+      "fixed";
     if (parentStyle.height == null && heightMode === "fixed") {
+      const defaultH = resolveBindingPropDefault("Table", "height");
       const fixedH =
         typeof containerProps?.height === "number"
           ? (containerProps.height as number)
-          : 300;
+          : typeof defaultH === "number"
+            ? defaultH
+            : 300;
       // ADR-151 B8 (2026-07-16): DOM 은 외곽 .react-aria-Table(border 1px, height 미지정)
       //   안의 .react-aria-TableVirtualizer 에 height(400) 를 준다 — 외곽 border-box 402.
       //   Skia 는 Table element 단일 box 라 border 2px 를 height 에 합산해야 대칭 (dh-2 해소).
