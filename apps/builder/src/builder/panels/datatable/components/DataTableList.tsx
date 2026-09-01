@@ -100,8 +100,7 @@ export function DataTableList({
       {collections.length === 0 ? (
         <EmptyState
           icon={<Table2 size={32} />}
-          message={localize("tableEmpty", "No tables")}
-          description={localize("addTableHint", "Add a new table.")}
+          message={localize("tableEmpty", "No tables. Add a new table.")}
         />
       ) : (
         <div className="list-group" role="list">

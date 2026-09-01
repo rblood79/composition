@@ -114,8 +114,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
       {apiEndpoints.length === 0 ? (
         <EmptyState
           icon={<Globe size={32} />}
-          message={localize("apiEmpty", "No API endpoints")}
-          description={localize("addApiHint", "Add a new API.")}
+          message={localize("apiEmpty", "No API endpoints. Add a new API.")}
         />
       ) : (
         <div className="list-group" role="list">

@@ -139,8 +139,10 @@ export function VariableList({ projectId }: VariableListProps) {
       {variables.length === 0 ? (
         <EmptyState
           icon={<Variable size={32} />}
-          message={localize("variableEmpty", "No variables")}
-          description={localize("addVariableHint", "Add a new variable.")}
+          message={localize(
+            "variableEmpty",
+            "No variables. Add a new variable.",
+          )}
         />
       ) : (
         <>
