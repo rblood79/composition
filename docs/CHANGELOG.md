@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DataTable·Navigator·Components·Styles·Properties·Interactions 등에서 빈 화면의 표현이 제각각이던 문제**: DataTable empty의 icon–text 구조를 공통 `EmptyState`로 승격해 아이콘, 메시지, 설명의 배치와 색상 토큰을 통일했습니다.
 - **기존 패널별 empty CSS가 공통 컴포넌트와 분리되어 있던 문제**: 패널별 중복 스타일을 제거하고 도메인 아이콘만 각 화면이 주입하도록 정리했습니다. Canvas/Preview의 렌더링 empty 상태는 이번 범위에서 제외했습니다.
 
+## [상속된 줄바꿈 설정과 최소·최대 높이 경계가 미리보기와 같아집니다] - 2026-09-01
+
+### Fixed
+
+- **부모에서 `white-space: pre` 를 물려받은, 공백만 있는 텍스트의 여백이 접히던 문제** (미리보기 60 / 캔버스 40): 줄 상자 신호가 요소 자신의 인라인 스타일만 보고 상속값을 버렸습니다. 이제 computed(상속) 값을 읽습니다. 배열·객체 children 이 쉼표나 `[object Object]` 로 바뀌어 줄 상자로 잡히던 것도 함께 고쳤습니다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`resolveTextLeafContent`, `enrichWithIntrinsicSize`)
+- **높이가 자동인 상자의 `min-height: 50%` 가 폭 기준으로 풀려 아래 여백이 5px 어긋나던 문제** (미리보기 40 / 캔버스 35): CSS 에서 부모 높이가 정해지지 않은 percentage min-height 는 0 입니다. 세로 축 기준으로 풀도록 고쳤습니다.
+- **`min-height` 가 `max-height` 보다 클 때 작은 쪽이 이기던 문제** (미리보기 30 / 캔버스 10): CSS 는 max 를 먼저, 그다음 min 을 적용합니다 (min 이 우선). 블록 상자·최상위 상자·grid 트랙 기여값 세 곳이 같은 순서 오류였습니다. 최상위 상자가 높이를 직접 정했을 때 min/max 를 건너뛰던 것도 고쳤습니다.
+  - 위치: `packages/composition-engine/src/block.rs` (`clamp_size`), `packages/composition-engine/src/tree.rs` (`solve_block`, `fixup_root_self_size`, `track_contribution`)
+- 검증: Chrome 차등 87/87 (68 케이스 + 게이트 19) · 렌더 parity 1023 회귀 0 · ADR-923 Phase 3 round 12 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
+
 ## [공백만 있는 텍스트와 높이를 정한 상자의 아래 여백이 미리보기와 같아집니다] - 2026-09-01
 
 ### Fixed
