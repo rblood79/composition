@@ -99,7 +99,7 @@ SYNTHETIC → 차단 / 그 외 → `childElements.length > 0` 일 때만. 판정
 
 | Set                                                   | 위치                         | export | 제어 대상                                                                                                                                                                                                                                  |
 | ----------------------------------------------------- | ---------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `INLINE_BLOCK_TAGS`                                   | `utils.ts:3846`              |   ✅   | `enrichWithIntrinsicSize` 가 `calculateContentWidth` 텍스트 기반 intrinsic 폭을 주입하는 합성 leaf. **미등록 증상**: `needsWidth=false` → width 0 ("0×24" selection) 또는 fit-content 부모에서 stretch 발산 (CalendarGrid 2026-07-07 사례) |
+| `INTRINSIC_MEASURE_TAGS` (구 `INLINE_BLOCK_TAGS` — ADR-923 Phase 5 에서 측정 목록만 남기고 display 역할은 `resolveDefaultDisplay` 로 분리) | `utils.ts` (`INLINE_BLOCK_TAG_CLASSIFICATION` 파생) |   ✅   | `enrichWithIntrinsicSize` 가 `calculateContentWidth` 텍스트 기반 intrinsic 폭을 주입하는 합성 leaf. **미등록 증상**: `needsWidth=false` → width 0 ("0×24" selection) 또는 fit-content 부모에서 stretch 발산 (CalendarGrid 2026-07-07 사례) |
 | `TEXT_LEAF_TAGS`                                      | `utils.ts:3900`              |   ✅   | 줄바꿈 시 height 가 width 의존 — 2-pass 재계산 대상                                                                                                                                                                                        |
 | `SPEC_SHAPES_INPUT_TAGS`                              | `utils.ts:3923`              |   ❌   | contentHeight=0 이어도 height 주입이 필요한 self-render 태그 (progressbar/listbox/taglist 등)                                                                                                                                              |
 | `IMAGE_INTRINSIC_TAGS` / `INTRINSIC_SIZE_KEYWORDS`    | `utils.ts:3920/:3912`        |   ❌   | replaced element 자연 치수 / intrinsic 키워드 개입 판정                                                                                                                                                                                    |
@@ -136,7 +136,7 @@ SYNTHETIC → 차단 / 그 외 → `childElements.length > 0` 일 때만. 판정
    `DEFAULT_PROPS_MAP` literal row 는 전환 미완 type 전용.
 5. **`_hasChildren` 3분류 판정** — 정본 알고리즘으로 SHELL_ONLY / SYNTHETIC / Plain 판정 후
    `buildSpecNodeData.ts` 해당 Set 등록 (Plain 은 무등록).
-6. **레이아웃 Set 판정** — 자식 없는 합성 leaf 인가? → `INLINE_BLOCK_TAGS`.
+6. **레이아웃 Set 판정** — 자식 없는 합성 leaf 인가? → `INLINE_BLOCK_TAG_CLASSIFICATION` (측정 `INTRINSIC_MEASURE_TAGS` 파생; 기본 display 는 catalog `containerStyles.display` 가 정본, 손 목록은 파생 원천 없는 태그만).
    shapes 가 컨테이너 폭 좌표를 쓰는가? → `CONTAINER_DIMENSION_TAGS`.
    contentHeight 0 self-render 인가? → `SPEC_SHAPES_INPUT_TAGS`.
    collection 컨테이너면 ADR-907 Layer B/C/D 체크리스트 (정본 §2.6).
@@ -153,7 +153,7 @@ SYNTHETIC → 차단 / 그 외 → `childElements.length > 0` 일 때만. 판정
 | 자식 UI 가 이중 렌더 (Calendar 2026-04-17 유형) | SHELL_ONLY 대상을 SYNTHETIC 에 혼입                                               |
 | 자식 props 편집이 부모 시각에 미반영            | SYNTHETIC 미등록 (incrementalSync 확장 누락)                                      |
 | Skia 노드 자체가 안 생김 (텍스트 미표시)        | TAG_SPEC_MAP 도 catalog cutover 도 아님 — `isSpecPath` false                      |
-| width 0 / fit-content 부모에서 폭 발산          | `INLINE_BLOCK_TAGS` 미등록                                                        |
+| width 0 / fit-content 부모에서 폭 발산          | `INTRINSIC_MEASURE_TAGS` (`INLINE_BLOCK_TAG_CLASSIFICATION`) 미등록                                                        |
 | shapes 우측/중앙 좌표가 box 밖으로 어긋남       | `CONTAINER_DIMENSION_TAGS` 미등록                                                 |
 
 ---

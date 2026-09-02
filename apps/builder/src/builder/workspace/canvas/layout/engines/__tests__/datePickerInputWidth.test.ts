@@ -12,7 +12,7 @@ import { applyImplicitStyles } from "../implicitStyles";
  * 2차 버그(box < 콘텐츠, 2026-06-23): width 0 fix 가 `width:"100%"` 를 줬는데, 부모
  *   container 가 width:auto(body align-items:flex-start)라 Taffy 가 `100%` 를 콘텐츠보다
  *   작게 계산 → box < 콘텐츠 → segment 텍스트가 box 밖으로 넘침. → layout 분기는 width 를
- *   **주입하지 않고**(명시 width 만 보존), INLINE_BLOCK_TAGS(dateinput) + calculateContentWidth
+ *   **주입하지 않고**(명시 width 만 보존), INTRINSIC_MEASURE_TAGS(dateinput, 구 INLINE_BLOCK_TAGS) + calculateContentWidth
  *   dateinput 분기가 콘텐츠 자연폭을 산출하도록 위임(dateInputContentWidth.test.ts 가 폭 검증).
  *
  * factory(DateColorComponents.ts)는 DateInput 을 `SelectTrigger > DateInput` 자식으로

@@ -42,7 +42,7 @@ user-invocable: true
 | **Catalog/Spec**     | catalog: `componentRulesTable.ts` 해당 키 + `catalog/bindings/{Name}.binding.ts` / 잔존 spec: `packages/specs/src/components/{Name}.spec.ts` | catalog: variants, sizes, containerStyles / 잔존 spec: render.shapes(), properties |
 | **Factory**          | `apps/builder/src/builder/factories/definitions/*.ts`                                                                                        | 기본 props, style, 자식 구조                                                       |
 | **CSS Renderer**     | `packages/shared/src/components/styles/{Name}.css` + `styles/generated/{Name}.css`                                                           | data-variant/data-size 선택자, 토큰                                                |
-| **Skia Renderer**    | `tagSpecMap.ts` + `StoreRenderBridge.ts` + `buildBoxNodeData.ts` + `specTextStyle.ts` + `utils.ts`                                           | TAG_SPEC_MAP / isCatalogCutover, TEXT_BEARING_SPECS, INLINE_BLOCK_TAGS             |
+| **Skia Renderer**    | `tagSpecMap.ts` + `StoreRenderBridge.ts` + `buildBoxNodeData.ts` + `specTextStyle.ts` + `utils.ts`                                           | TAG_SPEC_MAP / isCatalogCutover, TEXT_BEARING_SPECS, INTRINSIC_MEASURE_TAGS (측정) · resolveDefaultDisplay (기본 display)             |
 | **Preview Renderer** | `packages/shared/src/renderers/*.tsx`                                                                                                        | variant/size props 전달, data-\* 속성                                              |
 
 ## Phase 3: 정합성 검증 항목

@@ -6,7 +6,7 @@ import { enrichWithIntrinsicSize } from "../utils";
 /**
  * flex-grow item 의 intrinsic width 주입 계약 (2026-07-14 회귀 게이트).
  *
- * 버그: `enrichWithIntrinsicSize` 가 INLINE_BLOCK_TAGS 자식에 intrinsic 폭을 **명시 width**
+ * 버그: `enrichWithIntrinsicSize` 가 INTRINSIC_MEASURE_TAGS (구 INLINE_BLOCK_TAGS) 자식에 intrinsic 폭을 **명시 width**
  *   로 주입 → `flex:1` item 의 grow 가 원천 차단. CSS 에서 intrinsic 폭은 flex **base size**
  *   일 뿐이고 used 폭은 free space 분배 결과다.
  *   실측(DatePicker > SelectTrigger(350) > DateInput `flex:1 minWidth:0`):
@@ -15,7 +15,7 @@ import { enrichWithIntrinsicSize } from "../utils";
  * 동반 결함: `!style?.minWidth` 가 **minWidth:0 을 미설정으로 오판**(falsy 함정) → implicitStyles
  *   가 준 `minWidth:0`(= 콘텐츠 밑으로 축소 허용) 을 intrinsic 폭으로 덮어씀.
  *
- * 대칭 확인: 같은 `flex:1 minWidth:0` 을 받는 SelectValue 는 INLINE_BLOCK_TAGS **비소속**이라
+ * 대칭 확인: 같은 `flex:1 minWidth:0` 을 받는 SelectValue 는 INTRINSIC_MEASURE_TAGS (구 INLINE_BLOCK_TAGS) **비소속**이라
  *   width 미주입 → 원래부터 정상 grow. Select 의 정상 동작은 우연이었다.
  */
 const makeDateInput = (

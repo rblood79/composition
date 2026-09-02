@@ -4558,15 +4558,16 @@ export interface InlineBlockTagClassification {
   /** 기본 display 의 원천 */
   readonly display: InlineBlockTagDisplaySource;
   /**
-   * `display: "hand"` 일 때 손 목록 값 — **현재 동작 값 하나만** 뜻한다 (`getElementDisplay` 가 오늘
-   * 돌려주는 `inline-block`). Phase 5 가 `resolveDefaultDisplay` 를 배선해도 hand 항목은 이 값이라
-   * 동작이 바뀌지 않는다. DOM 정합 후보값은 `domDisplay` 로 분리 (round 29 r29m2 — 한 필드에
-   * "현재 호환값" 과 "향후 후보값" 두 뜻을 싣지 않는다).
+   * `display: "hand"` 일 때 손 목록 값 — **현재 동작 값 하나만** 뜻한다: `resolveDefaultDisplay`
+   * (ADR-923 Phase 5 배선) 가 catalog 에 display 가 없는 태그에 돌려주는 값 (`inline-block` 6 ·
+   * calendargrid `block`). DOM 정합 후보값은 `domDisplay` 로 분리 (round 29 r29m2 — 한 필드에
+   * "현재 값" 과 "후보값" 두 뜻을 싣지 않는다).
    */
   readonly handDisplay?: string;
   /**
-   * 대응 DOM box 의 outer display (Q4 측정값, hand 항목만). `handDisplay` 와 다르면 Phase 5 전환
-   * 후보 — 전환 여부는 Phase 5 의 Q4 분류 절차에서 결정하고, `domEvidence` 가 측정 근거다.
+   * 대응 DOM box 의 outer display (Q4 측정값, hand 항목만). `handDisplay` 와 다르면 전환 후보 —
+   * Phase 5 (2026-09-02) 가 calendargrid 를 `block` 으로 전환해 현재 후보 0 (필드는 후속 판정용으로
+   * 남긴다), `domEvidence` 가 측정 근거다.
    */
   readonly domDisplay?: string;
   readonly domEvidence?: string;

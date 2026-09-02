@@ -13106,9 +13106,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ToggleButton: {
     defaultVariant: "default",
     defaultSize: "md",
-    // top-level containerStyles — Button 동일 발산 차단(Skia INLINE_BLOCK_TAGS("togglebutton")
-    //   → block). display 는 DOM 과 같은 `inline-flex` (ADR-923 Phase 5 — Button 과 같은 사유,
-    //   Direction selector 는 Phase 4 부터 inner 기준). gap=sizes[size].
+    // top-level containerStyles — Button 과 같은 발산 이력 (종전 Skia `INLINE_BLOCK_TAGS`("togglebutton")
+    //   → block, 2026-06-27; 그 목록은 ADR-923 Phase 5 에서 삭제). display 는 DOM 과 같은 `inline-flex`
+    //   (ADR-923 Phase 5 — Button 과 같은 사유, Direction selector 는 Phase 4 부터 inner 기준). gap=sizes[size].
     containerStyles: {
       display: "inline-flex",
       flexDirection: "row",

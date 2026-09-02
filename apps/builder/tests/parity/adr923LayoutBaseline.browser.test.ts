@@ -22,8 +22,9 @@ import type { CaseNode } from "./harness";
  * - arm F (flex 위주, 통상 형태): root flex-column → 8 flex-row(wrap) → 8 flex-column → 8
  *   flex-row(wrap) → 9 고정 크기 `box` leaf(40×20). 노드 5,193 (깊이 5, fan-out 8/8/8/9).
  * - arm B (block 위주, 불리 케이스): root block → 100 `display:"block"` 컨테이너 → 각 49
- *   catalog `Button`(`style: {}`, 짧은 text). 노드 5,001 (깊이 3, fan-out 100/49). 현재는
- *   IFC 시뮬레이션(flex wrap) 경로, Phase 5 후 block.rs line box 경로가 되는 fixture.
+ *   catalog `Button`(`style: {}`, 짧은 text). 노드 5,001 (깊이 3, fan-out 100/49). Phase 5
+ *   (2026-09-02) 부터 엔진 block.rs line box 경로를 타는 fixture — Phase 4 까지 (G3 before arm)
+ *   는 TS IFC 시뮬레이션(flex wrap) 경로였다.
  *
  * 측정: WASM init 은 `beforeAll` 로 제외. run 마다 `resetPersistentTree(pageId)` 를 **타이머
  * 밖**에서 호출해 full build 를 강제(증분 경로 배제). warm-up 5회 뒤 30회, p50/p95 는

@@ -22,18 +22,18 @@
  * 남은 변수를 하나로 줄인다: 갈리는 조건은 컴포넌트 종류가 아니라
  * **"명시 폭을 가진 block 형제 + inline-level 형제"** 다.
  *
- * ## 확정된 기전
+ * ## 확정된 기전 (Phase 4 까지의 종전 계약 — ADR-923 Phase 5, 2026-09-02 에서 해소, Δ0)
  *
- * 1. `Button` 은 style.display 가 없으면 `INLINE_BLOCK_TAGS` 규칙으로
- *    `inline-block` 이 된다 (`taffyDisplayAdapter.ts:395-408`).
+ * 1. `Button` 은 style.display 가 없으면 종전 `INLINE_BLOCK_TAGS` 규칙으로
+ *    `inline-block` 이 됐다 (지금은 `resolveDefaultDisplay` → catalog `inline-flex`).
  * 2. block 부모가 inline-level 자식을 하나라도 가지면 부모 전체가
- *    **flex row wrap 으로 전환**된다 — Taffy 에 IFC 가 없어서 그걸 흉내 내는
- *    경로다 (`taffyDisplayAdapter.ts:526-536`).
+ *    **flex row wrap 으로 전환**됐다 — 종전 TS IFC 시뮬레이션 (지금은 엔진 block.rs
+ *    line box 가 outer=inline 자식을 line item 으로 놓는다).
  * 3. 그 시뮬레이션 안에서 block 형제가 자기 줄을 차지하려면 `width:100%` 를
- *    받아야 하는데, `needsBlockChildFullWidth` 는 **자식에 명시 폭이 있으면
- *    false** 를 돌려준다 (`taffyDisplayAdapter.ts:436-440`).
- * 4. 그래서 폭이 명시된 block 형제는 flex item 으로 같은 줄에 남고, inline-level
- *    형제가 그 오른쪽에 붙는다. CSS 는 폭과 무관하게 block box 에 줄을 준다.
+ *    받아야 했는데, 종전 `needsBlockChildFullWidth` 는 **자식에 명시 폭이 있으면
+ *    false** 를 돌려줬다 (Phase 5 에서 삭제).
+ * 4. 그래서 폭이 명시된 block 형제가 flex item 으로 같은 줄에 남고, inline-level
+ *    형제가 그 오른쪽에 붙었다. CSS 는 폭과 무관하게 block box 에 줄을 준다.
  *
  * `catalog-state-paint` 의 `state-clip` 이 정확히 이 조건이다 (`width: 140px`).
  * 폭을 빼면(네 번째 줄) 100% 를 받아 줄을 차지하고 갈림이 사라진다 — 양방향
@@ -91,7 +91,7 @@ function probeDocument(
           type: "frame",
           props: {
             style: autoWidth
-              ? // 폭 미지정 — IFC 시뮬레이션이 block 자식에 100% 를 넣어 주는 조건
+              ? // 폭 미지정 — 종전 IFC 시뮬레이션이 block 자식에 100% 를 넣어 주던 조건 (대조군)
                 (() => {
                   const st = { ...boxStyle("block") } as Record<
                     string,
@@ -261,7 +261,8 @@ describe("ADR-198 — block/inline 형제 혼합에서 두 leg 이 갈리는가"
       `[ADR-198 probe] auto+Button skia second=${fmt(s2)} preview second=${fmt(p2)}`,
     );
     // 이 단언이 통과하면 원인은 display 종류가 아니라 **명시 폭을 가진 block
-    // 형제가 IFC 시뮬레이션(flex row wrap)에서 줄을 차지하지 못하는 것** 이다.
+    // 형제가 종전 IFC 시뮬레이션(flex row wrap)에서 줄을 차지하지 못하던 것** 이다
+    // (Phase 5 부터 엔진 line box — 두 leg Δ0).
     expect(s2.x).toBeCloseTo(p2.x, 1);
     expect(s2.y).toBeCloseTo(p2.y, 1);
   });
