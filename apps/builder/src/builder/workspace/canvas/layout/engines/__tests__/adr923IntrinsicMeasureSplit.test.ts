@@ -53,9 +53,10 @@ describe("ADR-923 Phase 4 G5 — INLINE_BLOCK_TAGS 분류표 + INTRINSIC_MEASURE
           getElementDisplay({ type: tag, props: {} }),
         );
         if (c.domDisplay !== undefined) {
-          expect(c.domEvidence?.length ?? 0, `${tag} domEvidence`).toBeGreaterThan(
-            20,
-          );
+          expect(
+            c.domEvidence?.length ?? 0,
+            `${tag} domEvidence`,
+          ).toBeGreaterThan(20);
         }
       } else {
         expect(c.handDisplay, tag).toBeUndefined();
@@ -192,12 +193,14 @@ describe("ADR-923 Phase 4 — resolveDefaultDisplay(type) (미배선)", () => {
     // Phase 5 전환 후보 = domDisplay 가 있고 현재 값과 다른 항목 — Q4 근거 (browser 게이트
     //   adr923CalendarGridQ4 + evidence §9) 가 붙은 calendargrid 하나뿐. 후보를 늘리려면 근거부터.
     const candidates = handEntries
-      .filter(([, c]) => c.domDisplay !== undefined && c.domDisplay !== c.handDisplay)
+      .filter(
+        ([, c]) => c.domDisplay !== undefined && c.domDisplay !== c.handDisplay,
+      )
       .map(([tag, c]) => `${tag}: ${c.handDisplay} → ${c.domDisplay}`);
     expect(candidates).toEqual(["calendargrid: inline-block → block"]);
-    expect(
-      INLINE_BLOCK_TAG_CLASSIFICATION.calendargrid.domEvidence,
-    ).toMatch(/adr923CalendarGridQ4/);
+    expect(INLINE_BLOCK_TAG_CLASSIFICATION.calendargrid.domEvidence).toMatch(
+      /adr923CalendarGridQ4/,
+    );
   });
 
   it("Phase 4 동작 무변경 잠금 — getElementDisplay 는 아직 INLINE_BLOCK_TAGS → inline-block (Phase 5 가 뒤집는다)", () => {

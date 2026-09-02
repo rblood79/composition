@@ -151,7 +151,13 @@ async function complexTree(
     result.parent,
     ...result.children,
   ]);
-  return { name: `palette:complex ${type}`, arm: "palette:complex", type, root, elements };
+  return {
+    name: `palette:complex ${type}`,
+    arm: "palette:complex",
+    type,
+    root,
+    elements,
+  };
 }
 
 function simpleTree(type: string, pageId: string): ProductionTree {
@@ -177,7 +183,13 @@ function simpleTree(type: string, pageId: string): ProductionTree {
 function refTree(type: string, pageId: string): ProductionTree {
   const instance = createRefInstance(type, pageId);
   const { root, elements } = resolveProductionSubtree(instance.id, [instance]);
-  return { name: `palette:ref ${type}`, arm: "palette:ref", type, root, elements };
+  return {
+    name: `palette:ref ${type}`,
+    arm: "palette:ref",
+    type,
+    root,
+    elements,
+  };
 }
 
 /** 팔레트 type 하나를 production 생성 형태로. */

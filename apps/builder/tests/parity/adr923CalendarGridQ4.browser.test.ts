@@ -11,6 +11,8 @@ import { getDefaultProps } from "@/types/builder/unified.types";
 import type { Element } from "@/types/core/store.types";
 import { INLINE_BLOCK_TAG_CLASSIFICATION } from "@/builder/workspace/canvas/layout/engines/utils";
 import { resolveDefaultDisplay } from "@/builder/workspace/canvas/layout/engines/defaultDisplay";
+import { getElementDisplay } from "@/builder/workspace/canvas/layout/engines/taffyDisplayAdapter";
+import { engineLeg, type CaseNode } from "./harness";
 import {
   layoutTree,
   paletteCreationTree,
@@ -30,14 +32,19 @@ vi.mock("@/builder/factories/utils/elementCreation", async (importOriginal) => {
  * DOM 정합 후보 (`block`) 를 production 경로로 잰다.
  *
  * 1. **production 트리 (팔레트 Calendar → factory: Calendar > CalendarHeader + CalendarGrid)** 를
- *    `calculateFullTreeLayout` 으로 돌려 wasm 경계 batch 의 부모 Calendar display (catalog top-level
- *    `flex` column) 와 CalendarGrid display (현재 `inline-block`) 를 캡처하고, CalendarGrid 에
- *    `display:block` / `inline-block` 을 명시한 mutation 과 **layout map 전체가 동일**함을 단언 —
- *    flex 부모 아래에서 outer display 는 inert 다 (엔진 blockify). 즉 Phase 5 가 어느 값을 배선해도
+ *    `calculateFullTreeLayout` 으로 돌려 wasm 경계 batch 를 캡처: 부모 Calendar 는 catalog top-level
+ *    `flex` column, CalendarGrid 는 부모가 보는 값 (`getElementDisplay`) 이 현재 `inline-block` 이지만
+ *    flex 자식이라 TS `blockifyDisplay` (fullTreeLayout `buildNodeStyle`) 가 `block` 으로 접어 보낸다.
+ *    CalendarGrid 에 `display:block` / `inline-block` 을 명시한 mutation 과 **layout map 전체가 동일**
+ *    함을 단언 — flex 부모 아래에서 outer display 는 inert 다. 즉 Phase 5 가 어느 값을 배선해도
  *    production 트리의 결과는 같다.
- * 2. **대조군 (자유 배치 — 팔레트가 만들지 않는 형태, AI/import writer 만 도달)**: block div 아래
- *    CalendarGrid + Button. 현재 값 (inline-block) 은 Button 이 옆에 붙고 `block` 은 아래로 내려간다 →
- *    축이 살아 있는 유일한 형태. DOM 은 이 형태를 Preview `resolveHtmlTag` 로 `<div>` (block) 에 그린다.
+ * 2. **대조군 (자유 배치 — 팔레트가 만들지 않는 형태, AI/import writer 만 도달)**: block 부모 아래
+ *    CalendarGrid 크기의 상자 + Button. (a) 엔진 직결 (`harness.engineLeg`, Phase 1 outer/inner 배선
+ *    = Phase 5 이후 production 이 도달하는 의미) 에서는 `inline-block` 이면 Button 이 같은 줄, `block`
+ *    이면 아래 줄 — 축이 살아 있는 유일한 형태. (b) 현 어댑터 경로 (`calculateFullTreeLayout`) 에서는
+ *    두 값이 **같은 결과** — IFC 시뮬레이션이 inline-level 형제 때문에 부모를 flex wrap 으로 바꾸고
+ *    폭이 주입된 block 형제를 같은 줄에 남긴다 (ADR-198 explicit-width-block-sibling 과 같은 원인,
+ *    Phase 5 제거 대상). DOM 은 이 형태를 Preview `resolveHtmlTag` 로 `<div>` (block) 에 그린다.
  * 3. **DOM leg (ground truth)**: 실 번들 CSS 로 shared `Calendar` 를 렌더 — RAC CalendarGrid 는 `<table>`
  *    (computed `table`, outer block-level) 이고 부모 `.calendar-grids` 는 `flex` — production 트리에서
  *    grid 의 outer display 가 inert 한 것은 DOM 도 같다. 상자 치수는 기록 (§9).
@@ -49,7 +56,9 @@ vi.mock("@/builder/factories/utils/elementCreation", async (importOriginal) => {
 function boxesOf(run: ReturnType<typeof layoutTree>): Record<string, number[]> {
   const out: Record<string, number[]> = {};
   for (const [id, l] of run.layout) {
-    out[id] = [l.x, l.y, l.width, l.height].map((v) => Math.round(v * 100) / 100);
+    out[id] = [l.x, l.y, l.width, l.height].map(
+      (v) => Math.round(v * 100) / 100,
+    );
   }
   return out;
 }
@@ -90,7 +99,7 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
     document.getElementById("adr923-q4-bundle")?.remove();
   });
 
-  it("production Calendar 트리: 부모 flex · CalendarGrid inline-block 도달, outer display mutation 은 inert", () => {
+  it("production Calendar 트리: 부모 flex · CalendarGrid 는 부모 시각 inline-block / 경계 도달 block (blockify), outer display mutation 은 inert", () => {
     const grid = calendar.elements.find((el) => el.type === "CalendarGrid");
     const header = calendar.elements.find((el) => el.type === "CalendarHeader");
     expect(grid, "factory CalendarGrid").toBeTruthy();
@@ -101,11 +110,13 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
     const gridBatch = current.batch.get(grid!.id)!;
     expect(parent.style.display).toBe("flex");
     expect(parent.style.flexDirection).toBe("column");
-    expect(gridBatch.style.display).toBe("inline-block");
+    // 부모가 보는 값 (getElementDisplay) = 현재 hand 값 = inline-block; wasm 경계는 flex 자식 blockify
+    expect(getElementDisplay(grid!)).toBe("inline-block");
     expect(INLINE_BLOCK_TAG_CLASSIFICATION.calendargrid.handDisplay).toBe(
-      gridBatch.style.display,
+      getElementDisplay(grid!),
     );
     expect(resolveDefaultDisplay("calendargrid")).toBe("inline-block");
+    expect(gridBatch.style.display).toBe("block");
 
     const asBlock = layoutTree(
       calendar.root.id,
@@ -120,19 +131,22 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
       -1,
     );
     expect(asBlock.batch.get(grid!.id)!.style.display).toBe("block");
+    expect(asInlineBlock.batch.get(grid!.id)!.style.display).toBe("block");
     expect(boxesOf(asBlock)).toEqual(boxesOf(current));
     expect(boxesOf(asInlineBlock)).toEqual(boxesOf(current));
 
     const g = current.layout.get(grid!.id)!;
     const c = current.layout.get(calendar.root.id)!;
+    const h = current.layout.get(header!.id)!;
     console.log(
-      `ADR923Q4 engine Calendar ${c.width}x${c.height} · CalendarGrid ${g.width}x${g.height} @(${g.x},${g.y}) · header ${current.layout.get(header!.id)!.width}x${current.layout.get(header!.id)!.height}`,
+      `ADR923Q4 engine Calendar ${c.width}x${c.height} · CalendarGrid ${g.width}x${g.height} @(${g.x},${g.y}) · header ${h.width}x${h.height} @(${h.x},${h.y})`,
     );
     expect(g.width).toBeGreaterThan(0);
     expect(g.height).toBeGreaterThan(0);
   });
 
-  it("대조군 — 자유 배치 (block div > CalendarGrid + Button): 축이 살아 있는 형태에서만 값이 갈린다", () => {
+  it("대조군 — 자유 배치 (block 부모 > CalendarGrid + Button): 엔진 직결에서는 갈리고, 현 어댑터 경로에서는 IFC 시뮬레이션이 같게 만든다", () => {
+    // (b) 현 어댑터 경로 — production 이 오늘 도달하는 결과
     const make = (display: string | undefined): Element[] => {
       const div = {
         id: "q4-free-root",
@@ -162,15 +176,43 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
     const asBlock = layoutTree("q4-free-root", make("block"), 400, -1);
     const gridNow = current.layout.get("q4-free-grid")!;
     const btnNow = current.layout.get("q4-free-button")!;
-    const gridBlock = asBlock.layout.get("q4-free-grid")!;
     const btnBlock = asBlock.layout.get("q4-free-button")!;
     console.log(
-      `ADR923Q4 free-form current grid ${gridNow.width}x${gridNow.height} button @(${btnNow.x},${btnNow.y}) · block grid ${gridBlock.width}x${gridBlock.height} button @(${btnBlock.x},${btnBlock.y})`,
+      `ADR923Q4 free-form pipeline current grid ${gridNow.width}x${gridNow.height} button @(${btnNow.x},${btnNow.y}) · block button @(${btnBlock.x},${btnBlock.y})`,
     );
-    // 현재 값: grid 가 inline-level 이라 Button 이 같은 줄 (y 동일) / block: Button 이 grid 아래
-    expect(btnNow.y).toBeLessThan(btnBlock.y);
-    expect(btnBlock.y).toBeGreaterThanOrEqual(gridBlock.y + gridBlock.height - 1);
-    expect(btnNow.x).toBeGreaterThan(gridNow.x);
+    // 현 경로: 두 값이 같은 결과 (Button 이 grid 옆) — IFC 시뮬레이션 (Phase 5 제거 대상) 의 사실 고정
+    expect([btnBlock.x, btnBlock.y]).toEqual([btnNow.x, btnNow.y]);
+    expect(btnNow.x).toBeGreaterThanOrEqual(gridNow.width - 1);
+
+    // (a) 엔진 직결 (Phase 1 outer/inner 배선) — Phase 5 이후 production 이 도달하는 의미
+    const gw = Math.round(gridNow.width);
+    const gh = Math.round(gridNow.height);
+    const bw = Math.round(btnNow.width);
+    const bh = Math.round(btnNow.height);
+    const nodes = (display: "inline-block" | "block"): CaseNode[] => [
+      {
+        label: "grid",
+        style: { display, width: `${gw}px`, height: `${gh}px` },
+      },
+      {
+        label: "button",
+        style: { display: "inline-block", width: `${bw}px`, height: `${bh}px` },
+      },
+      {
+        label: "root",
+        style: { display: "block", width: "400px", fontSize: "0px" },
+        children: [0, 1],
+      },
+    ];
+    const ib = engineLeg(nodes("inline-block"), 400, -1);
+    const bl = engineLeg(nodes("block"), 400, -1);
+    console.log(
+      `ADR923Q4 free-form engine inline-block button @(${ib[1].x},${ib[1].y}) · block button @(${bl[1].x},${bl[1].y}) (grid ${gw}x${gh}, button ${bw}x${bh})`,
+    );
+    expect(ib[1].x).toBeGreaterThanOrEqual(gw - 1); // 같은 줄
+    expect(bl[1].x).toBe(0); // 아래 줄
+    expect(bl[1].y).toBeGreaterThanOrEqual(gh - 1);
+    expect(ib[1].y).toBeLessThan(bl[1].y);
     // DOM 은 이 형태를 Preview 가 `<div>` (block) 로 그린다 — 정적 사실 고정
     expect(previewAppSource).toMatch(
       /case "CalendarGrid":\s*\n\s*return "div";/,
@@ -189,10 +231,16 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
       );
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
-    const cal = host.querySelector(".react-aria-Calendar") as HTMLElement | null;
+    const cal = host.querySelector(
+      ".react-aria-Calendar",
+    ) as HTMLElement | null;
     const grids = host.querySelector(".calendar-grids") as HTMLElement | null;
-    const grid = host.querySelector(".react-aria-CalendarGrid") as HTMLElement | null;
-    const header = host.querySelector(".react-aria-Calendar > header") as HTMLElement | null;
+    const grid = host.querySelector(
+      ".react-aria-CalendarGrid",
+    ) as HTMLElement | null;
+    const header = host.querySelector(
+      ".react-aria-Calendar > header",
+    ) as HTMLElement | null;
     expect(cal, ".react-aria-Calendar").toBeTruthy();
     expect(grids, ".calendar-grids").toBeTruthy();
     expect(grid, ".react-aria-CalendarGrid").toBeTruthy();
