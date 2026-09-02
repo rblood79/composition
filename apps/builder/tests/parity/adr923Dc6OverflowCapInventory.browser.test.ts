@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
 import {
@@ -7,75 +8,25 @@ import {
 import { PersistentTaffyTree } from "@/builder/workspace/canvas/layout/engines/persistentTaffyTree";
 import type { CanvasLayoutNode } from "@/builder/workspace/canvas/layout/layoutNode";
 import { useStore } from "@/builder/stores";
-import { createElementsFromDefinition } from "@/builder/factories/utils/elementCreation";
-import { COMPLEX_COMPONENT_TAGS } from "@/builder/factories/constants";
 import { getDefaultProps } from "@/types/builder/unified.types";
 import type { Element } from "@/types/core/store.types";
-import type {
-  ComponentDefinition,
-  ComponentCreationContext,
-} from "@/builder/factories/types";
 import { getComponentRulesTable } from "@composition/shared";
 import {
-  createTabsDefinition,
-  createTreeDefinition,
-} from "@/builder/factories/definitions/LayoutComponents";
-import {
-  createTextFieldDefinition,
-  createTextAreaDefinition,
-  createNumberFieldDefinition,
-  createSearchFieldDefinition,
-  createSliderDefinition,
-  createToastDefinition,
-} from "@/builder/factories/definitions/FormComponents";
-import {
-  createCardViewDefinition,
-  createIllustratedMessageDefinition,
-  createImageDefinition,
-  createProgressBarDefinition,
-  createMeterDefinition,
-  createProgressCircleDefinition,
-  createStatusLightDefinition,
-  createAvatarGroupDefinition,
-  createButtonGroupDefinition,
-} from "@/builder/factories/definitions/DisplayComponents";
-import {
-  createFrameLayoutDefinition,
-  createCheckboxDefinition,
-  createRadioDefinition,
-  createSwitchDefinition,
-  createCheckboxGroupDefinition,
-  createRadioGroupDefinition,
-  createTagGroupDefinition,
-  createBreadcrumbsDefinition,
-} from "@/builder/factories/definitions/GroupComponents";
-import {
-  createSelectDefinition,
-  createComboBoxDefinition,
-  createListBoxDefinition,
-  createGridListDefinition,
-} from "@/builder/factories/definitions/SelectionComponents";
-import {
-  createDialogDefinition,
-  createPopoverDefinition,
-  createTooltipDefinition,
-} from "@/builder/factories/definitions/OverlayComponents";
-import {
-  createDateFieldDefinition,
-  createTimeFieldDefinition,
-  createDatePickerDefinition,
-  createDateRangePickerDefinition,
-  createColorFieldDefinition,
-  createColorPickerDefinition,
-  createColorSwatchPickerDefinition,
-} from "@/builder/factories/definitions/DateColorComponents";
-import {
-  createDisclosureDefinition,
-  createDisclosureGroupDefinition,
-  createMenuDefinition,
-  createNavDefinition,
-  createPaginationDefinition,
-} from "@/builder/factories/definitions/NavigationComponents";
+  allPaletteCreationTrees,
+  paletteCreationFacets,
+  type ProductionTree,
+} from "./adr923ProductionTrees";
+
+// production 진입점 `ComponentFactory.createComplexComponent` 는 트리를 만든 뒤 store 에 기록한다
+//   (`addElementsToStore` → canonical mutation runner, bridge 필요). 기록 단계만 no-op — 트리 형태는
+//   무변경 (adr923ProductionTrees 계약).
+vi.mock("@/builder/factories/utils/elementCreation", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("@/builder/factories/utils/elementCreation")
+    >();
+  return { ...actual, addElementsToStore: () => [] };
+});
 
 /**
  * ADR-923 Phase 4 — **DC-6 overflow cap 인벤토리** (Phase 3 round 9 후속 ②, 동작 무변경).
@@ -84,63 +35,27 @@ import {
  * availableHeight/Width 로 cap 한다 (utils `isOverflowClipped`, 게이트 `needsHeight = !rawHeight`
  * 라 height 미지정 요소 전부가 대상). 이것은 엔진 flex §4.5 automatic minimum 의 TS 중복이면서
  * block 문맥에도 걸고 clip 을 hidden 과 같이 취급한다 — Phase 5 cutover 제거 목록. 이 Phase 는
- * **Q4 소비 경로 캡처만** 한다: 팔레트가 만드는 실제 트리 (factory definition + 기본 props +
- * `applyImplicitStyles`) 를 production 진입점 `calculateFullTreeLayout` 으로 돌려, wasm 경계로
- * 직렬화되는 batch (`PersistentTaffyTree.buildFull(batch)` — `buildTreeBatch` JSON 은 이 배열의
- * `{style, children}` 사영이라 elementId 를 잃으므로 한 단계 앞에서 잡는다) 에서 **overflow 를
- * 받는 노드의 주입 높이/폭이 availableHeight/Width 에 따라 달라지는가** (= cap 이 실제로 걸리는가)
- * 를 availH 24 ↔ 100000 두 run 으로 잰다.
+ * **Q4 소비 경로 캡처만** 한다: 팔레트가 만드는 실제 트리를 production 진입점 `calculateFullTreeLayout`
+ * 으로 돌려, wasm 경계로 직렬화되는 batch (`PersistentTaffyTree.buildFull(batch)` — `buildTreeBatch`
+ * JSON 은 이 배열의 `{style, children}` 사영이라 elementId 를 잃으므로 한 단계 앞에서 잡는다) 에서
+ * **overflow 를 받는 노드의 주입 높이/폭이 availableHeight/Width 에 따라 달라지는가** (= cap 이 실제로
+ * 걸리는가) 를 availH/availW 8 ↔ 100000 run 으로 잰다.
  *
- * 결과는 아래 EXPECTED 에 ratchet 으로 고정한다 (새 도달 = RED, 감소는 수리 결과로만).
+ * ## 입력 (round 29 r29m1 수리 — production 생성 SSOT 파생)
+ * - **팔레트 전수 × creation facet** (`adr923ProductionTrees`): reusableOrigin 5 는 origin seed +
+ *   `type:"ref"` instance → `resolveCanonicalRefTree` materialize (Card/InlineAlert/Form/Toolbar/
+ *   IconButton — 종전에는 leaf 로 만들어 origin 트리가 통째로 빠졌다), complex 는
+ *   `ComponentFactory.createComplexComponent` (종전 수동 CREATORS 44 에 없던 ToggleButtonGroup ·
+ *   Table · TableView · Calendar · RangeCalendar 가 complex 제외 조건 때문에 leaf 에도 못 들어갔다),
+ *   none 은 `getDefaultProps`. facet 집합 자체를 `EXPECTED_FACETS` 로 고정 — 팔레트/facet 변경 = RED.
+ * - **sub-part standalone** (참고 arm): catalog rule 중 팔레트도 아니고 팔레트 트리 안에도 나타나지
+ *   않는 type 을 `getDefaultProps` leaf 로 (사용자가 팔레트로 만들 수 없는 형태 — AI/import 같은
+ *   열린 writer 만 도달). 키에 `subpart` 접두사.
+ * - **사용자 inline** 5: Inspector Appearance > Overflow 가 쓰는 `style.overflow`.
+ *
+ * 결과는 아래 EXPECTED 에 ratchet 으로 고정한다 (새 도달 = RED, 감소는 수리 결과로만). 키는
+ * `${arm} ${type} > ${node} overflow:${v} H… W…` — arm 이 바뀌면 키가 바뀐다 (손실 없는 키).
  */
-type Creator = (ctx: ComponentCreationContext) => ComponentDefinition;
-
-const CREATORS: Record<string, Creator> = {
-  Tabs: createTabsDefinition,
-  Tree: createTreeDefinition,
-  TextField: createTextFieldDefinition,
-  TextArea: createTextAreaDefinition,
-  NumberField: createNumberFieldDefinition,
-  SearchField: createSearchFieldDefinition,
-  Slider: createSliderDefinition,
-  Toast: createToastDefinition,
-  CardView: createCardViewDefinition,
-  IllustratedMessage: createIllustratedMessageDefinition,
-  Image: createImageDefinition,
-  ProgressBar: createProgressBarDefinition,
-  Meter: createMeterDefinition,
-  ProgressCircle: createProgressCircleDefinition,
-  StatusLight: createStatusLightDefinition,
-  AvatarGroup: createAvatarGroupDefinition,
-  ButtonGroup: createButtonGroupDefinition,
-  frame: createFrameLayoutDefinition,
-  Checkbox: createCheckboxDefinition,
-  Radio: createRadioDefinition,
-  Switch: createSwitchDefinition,
-  CheckboxGroup: createCheckboxGroupDefinition,
-  RadioGroup: createRadioGroupDefinition,
-  TagGroup: createTagGroupDefinition,
-  Breadcrumbs: createBreadcrumbsDefinition,
-  Select: createSelectDefinition,
-  ComboBox: createComboBoxDefinition,
-  ListBox: createListBoxDefinition,
-  GridList: createGridListDefinition,
-  Dialog: createDialogDefinition,
-  Popover: createPopoverDefinition,
-  Tooltip: createTooltipDefinition,
-  DateField: createDateFieldDefinition,
-  TimeField: createTimeFieldDefinition,
-  DatePicker: createDatePickerDefinition,
-  DateRangePicker: createDateRangePickerDefinition,
-  ColorField: createColorFieldDefinition,
-  ColorPicker: createColorPickerDefinition,
-  ColorSwatchPicker: createColorSwatchPickerDefinition,
-  Disclosure: createDisclosureDefinition,
-  DisclosureGroup: createDisclosureGroupDefinition,
-  Menu: createMenuDefinition,
-  Nav: createNavDefinition,
-  Pagination: createPaginationDefinition,
-};
 
 interface CaseTree {
   name: string;
@@ -148,21 +63,7 @@ interface CaseTree {
   elements: Element[];
 }
 
-function factoryTree(type: string): CaseTree {
-  useStore.setState({ elements: [], elementsMap: new Map() } as never);
-  const def = CREATORS[type]({
-    parentElement: null,
-    pageId: null,
-    elements: [],
-  } as unknown as ComponentCreationContext);
-  const { parent, children } = createElementsFromDefinition(def, {
-    pageId: null,
-    layoutId: null,
-  });
-  return { name: type, root: parent, elements: [parent, ...children] };
-}
-
-function leafTree(type: string): CaseTree {
+function leafTree(type: string, prefix: string): CaseTree {
   let props: Record<string, unknown> = {};
   try {
     props = { ...(getDefaultProps(type) as Record<string, unknown>) };
@@ -170,12 +71,12 @@ function leafTree(type: string): CaseTree {
     props = {};
   }
   const root = {
-    id: `leaf-${type}`,
+    id: `${prefix}-${type}`,
     type,
     props,
     parent_id: null,
   } as unknown as Element;
-  return { name: type, root, elements: [root] };
+  return { name: `${prefix} ${type}`, root, elements: [root] };
 }
 
 /** 사용자 inline 경로 (Inspector Appearance > Overflow 가 `style.overflow` 를 쓴다) */
@@ -198,7 +99,7 @@ function inlineOverflowTree(overflow: string): CaseTree {
     parent_id: root.id,
   } as unknown as Element;
   return {
-    name: `div overflow:${overflow} (inline)`,
+    name: `inline div overflow:${overflow}`,
     root,
     elements: [root, text],
   };
@@ -216,7 +117,7 @@ function inlineOverflowLeafTree(overflow: string): CaseTree {
     parent_id: null,
   } as unknown as Element;
   return {
-    name: `Button overflow:${overflow} (inline)`,
+    name: `inline Button overflow:${overflow}`,
     root,
     elements: [root],
   };
@@ -330,19 +231,50 @@ function inventory(tree: CaseTree): Row[] {
   return rows;
 }
 
-const LEAF_TYPES = Object.keys(getComponentRulesTable()).filter(
-  (k) => !(k in CREATORS) && !COMPLEX_COMPONENT_TAGS.has(k) && k !== "body",
-);
-
 describe("ADR-923 Phase 4 — DC-6 overflow cap 인벤토리 (Q4 소비 경로 캡처)", () => {
+  let paletteTrees: ProductionTree[] = [];
+
   beforeAll(async () => {
     await initCompositionEngineWasm();
+    useStore.setState({ elements: [], elementsMap: new Map() } as never);
+    paletteTrees = await allPaletteCreationTrees("adr923-dc6-palette");
+  });
+
+  it("입력 집합 = 팔레트 × creation facet (production SSOT) — 집합 자체를 고정", () => {
+    const facets = paletteCreationFacets();
+    console.log(`ADR923DC6FACETS ${JSON.stringify(facets)}`);
+    expect(facets).toEqual(EXPECTED_FACETS);
+    // 세 arm 전부 실제 형태로 존재한다 (ref 는 origin 자손이 materialize 됐는가로 판정)
+    const byArm = new Map<string, ProductionTree[]>();
+    for (const t of paletteTrees) {
+      byArm.set(t.arm, [...(byArm.get(t.arm) ?? []), t]);
+    }
+    expect([...byArm.keys()].sort()).toEqual([
+      "palette:complex",
+      "palette:none",
+      "palette:ref",
+    ]);
+    for (const t of byArm.get("palette:ref") ?? []) {
+      expect(t.root.type, `${t.type} resolved root`).not.toBe("ref");
+      expect(t.elements.length, `${t.type} origin 자손`).toBeGreaterThan(1);
+    }
+    for (const t of byArm.get("palette:complex") ?? []) {
+      expect(t.root.type, `${t.type} factory root`).toBeTruthy();
+    }
   });
 
   it("overflow 를 받아 wasm 경계에 도달하는 노드와 cap 실동작 (ratchet)", () => {
+    const paletteTypes = new Set(paletteTrees.map((t) => t.type));
+    const typesInPaletteTrees = new Set(
+      paletteTrees.flatMap((t) => t.elements.map((el) => el.type)),
+    );
+    const subpartTypes = Object.keys(getComponentRulesTable()).filter(
+      (k) =>
+        !paletteTypes.has(k) && !typesInPaletteTrees.has(k) && k !== "body",
+    );
     const trees: CaseTree[] = [
-      ...Object.keys(CREATORS).map(factoryTree),
-      ...LEAF_TYPES.map(leafTree),
+      ...paletteTrees,
+      ...subpartTypes.map((t) => leafTree(t, "subpart")),
       inlineOverflowTree("hidden"),
       inlineOverflowTree("clip"),
       inlineOverflowTree("auto"),
@@ -356,47 +288,124 @@ describe("ADR-923 Phase 4 — DC-6 overflow cap 인벤토리 (Q4 소비 경로 �
         `${r.tree} > ${r.node} overflow:${r.overflow} H${r.heightCapped ? "capped" : "="} W${r.widthCapped ? "capped" : "="}`,
     );
     console.log(
-      "[ADR-923 DC-6 inventory]\n" +
+      `[ADR-923 DC-6 inventory] palette ${paletteTrees.length} · subpart ${subpartTypes.length} · inline 5\n` +
         rows
           .map(
             (r, i) =>
-              `${summary[i]} low(w@availW8,h@availH8)=${JSON.stringify(r.low)} high=${JSON.stringify(r.high)}`,
+              `ADR923DC6ROW ${summary[i]} low(w@availW8,h@availH8)=${JSON.stringify(r.low)} high=${JSON.stringify(r.high)}`,
           )
           .join("\n"),
     );
-    expect(trees.length).toBeGreaterThan(100);
+    expect(paletteTrees.length).toBeGreaterThan(60);
     expect(summary).toEqual(EXPECTED);
   });
 });
 
+/** 팔레트 type → creation facet (production SSOT 파생값의 고정 — 팔레트 추가/facet 변경 = RED). */
+const EXPECTED_FACETS: Record<string, "reusableOrigin" | "complex" | "none"> = {
+  Text: "none",
+  Icon: "none",
+  Separator: "none",
+  Badge: "none",
+  ProgressBar: "complex",
+  Skeleton: "none",
+  Avatar: "none",
+  AvatarGroup: "complex",
+  StatusLight: "none",
+  InlineAlert: "reusableOrigin",
+  ProgressCircle: "none",
+  Image: "none",
+  IllustratedMessage: "complex",
+  Card: "reusableOrigin",
+  frame: "none",
+  Tabs: "complex",
+  Breadcrumbs: "complex",
+  Link: "none",
+  Nav: "complex",
+  Pagination: "complex",
+  DisclosureGroup: "complex",
+  Disclosure: "complex",
+  CardView: "complex",
+  Slot: "none",
+  Button: "none",
+  IconButton: "reusableOrigin",
+  ToggleButton: "none",
+  ToggleButtonGroup: "complex",
+  Toolbar: "reusableOrigin",
+  ButtonGroup: "complex",
+  Menu: "complex",
+  TextField: "complex",
+  TextArea: "complex",
+  NumberField: "complex",
+  SearchField: "complex",
+  ColorField: "complex",
+  Checkbox: "complex",
+  CheckboxGroup: "complex",
+  RadioGroup: "complex",
+  Select: "complex",
+  ComboBox: "complex",
+  Switch: "complex",
+  Slider: "complex",
+  Meter: "complex",
+  TailSwatch: "none",
+  DropZone: "none",
+  FileTrigger: "none",
+  Form: "reusableOrigin",
+  Table: "complex",
+  ListBox: "complex",
+  GridList: "complex",
+  Tree: "complex",
+  TagGroup: "complex",
+  Section: "none",
+  TableView: "complex",
+  Calendar: "complex",
+  DatePicker: "complex",
+  DateRangePicker: "complex",
+  DateField: "complex",
+  TimeField: "complex",
+  RangeCalendar: "complex",
+  Dialog: "complex",
+  Modal: "none",
+  Popover: "complex",
+  Tooltip: "complex",
+};
+
 /**
- * 캡처 결과 (2026-09-02, base `ee4bd0b9d` + Phase 4 준비 코드 — DC-6 코드 무변경):
- * - overflow ≠ visible 로 wasm 경계에 도달하는 노드 18 (factory/implicit 16 + 사용자 inline 2 종류)
- * - **cap 이 실제로 걸리는 노드 6** — SelectValue (Select · ComboBox · NumberField · SearchField 의
- *   trigger 값 텍스트: implicit `overflow:hidden` 주입 + height 미지정 → 높이 cap) 4 + 사용자가
- *   INTRINSIC_MEASURE_TAGS leaf(Button) 에 inline overflow 를 준 경우 (높이 + 폭 cap) 2.
- * - 나머지 12 는 height 명시 (Card 160/45) 이거나 auto-height 컨테이너 (주입 높이가 엔진 결과로
- *   대체돼 cap 이 살아남지 않음 — Tree/ListBox/Dialog/DisclosureGroup/CardPreview/inline div).
+ * 캡처 결과 (2026-09-02, round 29 r29m1 수리 후 재캡처 — DC-6 코드 무변경):
+ * - 입력: 팔레트 65 (ref 5 · complex 41 · none 19) + sub-part standalone 21 + 사용자 inline 5.
+ * - overflow ≠ visible 로 wasm 경계에 도달하는 노드 **19** (팔레트 14 + inline 5).
+ * - **cap 이 실제로 걸리는 노드 8** — SelectValue 4 (Select · ComboBox · NumberField · SearchField 의
+ *   trigger 값 텍스트: implicit `overflow:hidden` 주입 + height 미지정 → 높이 cap) + **ListBox ·
+ *   GridList 2** (production 형태 = factory 의 `type:"ref"` parent 를 origin 에 해석한 컨테이너 —
+ *   overflow auto/hidden + height 미지정 + 정적 items 의 sample 행 높이 164 주입 → 높이 cap. 종전
+ *   수동 목록에서는 ref 가 해석되지 않아 `ListBox > ref H=` 로 보였다 — round 29 판독이 연 발견) +
+ *   사용자가 INTRINSIC_MEASURE_TAGS leaf(Button) 에 inline overflow 를 준 경우 (높이 + 폭 cap) 2.
+ * - 나머지 11 은 height 명시 (CardView 의 Card 160) 이거나 auto-height 컨테이너 (주입 높이가 엔진
+ *   결과로 대체돼 cap 이 살아남지 않음 — Card origin · Tree · Dialog · DisclosureGroup · inline div).
+ * - 종전 수동 목록이 놓친 형태 (ToggleButtonGroup · Table · TableView · Calendar · RangeCalendar
+ *   complex 5 · Form · Toolbar · InlineAlert · IconButton ref 4) 는 overflow 도달 노드 0.
  * Phase 5 제거 시 Chrome 케이스: block 문맥 auto-height + overflow hidden/clip 은 cap 되지 않는다 /
- * flex 문맥은 엔진 §4.5 가 담당 — SelectValue 4 + Button inline 이 그 회귀 게이트의 대상이다.
+ * flex 문맥은 엔진 §4.5 가 담당 — SelectValue 4 + ListBox/GridList 2 + Button inline 이 그 회귀
+ * 게이트의 대상이다.
  */
 const EXPECTED: string[] = [
-  "Tree > Tree overflow:auto H= W=",
-  "NumberField > SelectValue overflow:hidden Hcapped W=",
-  "SearchField > SelectValue overflow:hidden Hcapped W=",
-  "CardView > Card overflow:hidden H= W=",
-  "CardView > Card overflow:hidden H= W=",
-  "CardView > Card overflow:hidden H= W=",
-  "Select > SelectValue overflow:hidden Hcapped W=",
-  "ComboBox > SelectValue overflow:hidden Hcapped W=",
-  "ListBox > ref overflow:auto H= W=",
-  "Dialog > Dialog overflow:auto H= W=",
-  "DisclosureGroup > DisclosureGroup overflow:hidden H= W=",
-  "Card > Card overflow:hidden H= W=",
-  "CardPreview > CardPreview overflow:hidden H= W=",
-  "div overflow:hidden (inline) > div overflow:hidden H= W=",
-  "div overflow:clip (inline) > div overflow:clip H= W=",
-  "div overflow:auto (inline) > div overflow:auto H= W=",
-  "Button overflow:hidden (inline) > Button overflow:hidden Hcapped Wcapped",
-  "Button overflow:clip (inline) > Button overflow:clip Hcapped Wcapped",
+  "palette:ref Card > CardPreview overflow:hidden H= W=",
+  "palette:ref Card > Card overflow:hidden H= W=",
+  "palette:complex DisclosureGroup > DisclosureGroup overflow:hidden H= W=",
+  "palette:complex CardView > Card overflow:hidden H= W=",
+  "palette:complex CardView > Card overflow:hidden H= W=",
+  "palette:complex CardView > Card overflow:hidden H= W=",
+  "palette:complex NumberField > SelectValue overflow:hidden Hcapped W=",
+  "palette:complex SearchField > SelectValue overflow:hidden Hcapped W=",
+  "palette:complex Select > SelectValue overflow:hidden Hcapped W=",
+  "palette:complex ComboBox > SelectValue overflow:hidden Hcapped W=",
+  "palette:complex ListBox > ListBox overflow:auto Hcapped W=",
+  "palette:complex GridList > GridList overflow:hidden Hcapped W=",
+  "palette:complex Tree > Tree overflow:auto H= W=",
+  "palette:complex Dialog > Dialog overflow:auto H= W=",
+  "inline div overflow:hidden > div overflow:hidden H= W=",
+  "inline div overflow:clip > div overflow:clip H= W=",
+  "inline div overflow:auto > div overflow:auto H= W=",
+  "inline Button overflow:hidden > Button overflow:hidden Hcapped Wcapped",
+  "inline Button overflow:clip > Button overflow:clip Hcapped Wcapped",
 ];

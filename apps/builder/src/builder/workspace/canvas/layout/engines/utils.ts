@@ -4613,8 +4613,19 @@ export interface InlineBlockTagClassification {
   readonly role: InlineBlockTagRole;
   /** 기본 display 의 원천 */
   readonly display: InlineBlockTagDisplaySource;
-  /** `display: "hand"` 일 때 손 목록 값 (현재 동작) */
+  /**
+   * `display: "hand"` 일 때 손 목록 값 — **현재 동작 값 하나만** 뜻한다 (`getElementDisplay` 가 오늘
+   * 돌려주는 `inline-block`). Phase 5 가 `resolveDefaultDisplay` 를 배선해도 hand 항목은 이 값이라
+   * 동작이 바뀌지 않는다. DOM 정합 후보값은 `domDisplay` 로 분리 (round 29 r29m2 — 한 필드에
+   * "현재 호환값" 과 "향후 후보값" 두 뜻을 싣지 않는다).
+   */
   readonly handDisplay?: string;
+  /**
+   * 대응 DOM box 의 outer display (Q4 측정값, hand 항목만). `handDisplay` 와 다르면 Phase 5 전환
+   * 후보 — 전환 여부는 Phase 5 의 Q4 분류 절차에서 결정하고, `domEvidence` 가 측정 근거다.
+   */
+  readonly domDisplay?: string;
+  readonly domEvidence?: string;
   readonly reason: string;
 }
 
@@ -4782,15 +4793,21 @@ export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
     measure: true,
     role: "B",
     display: "hand",
-    handDisplay: "block",
+    handDisplay: "inline-block",
+    domDisplay: "block",
+    domEvidence:
+      "Q4 (tests/parity/adr923CalendarGridQ4.browser.test.ts, evidence/923-phase4-preparation.md §9): production Calendar 트리에서 부모 Calendar 는 두 표면 모두 flex 컨테이너 (catalog top-level flex column / DOM .calendar-grids flex) 라 outer display 는 inert — block 으로 바꿔도 layout map 동일. 자유 배치 형태의 DOM 은 Preview resolveHtmlTag → <div> (block), RAC 실체는 <table> (outer block-level)",
     reason:
-      "self-render leaf (cellSize*7) 측정. rule 은 있으나 catalog display 없음 → 파생 불가; DOM 은 UA table (block-level, §B outer=block). Phase 5 에서 catalog display 등재 판정",
+      "self-render leaf (cellSize*7) 측정. rule 은 있으나 catalog display 없음 → 파생 불가. 현재 값 유지 (inline-block); DOM 정합 후보 block 은 domDisplay — Phase 5 catalog display 등재 판정",
   },
   dateinput: {
     measure: true,
     role: "?",
     display: "hand",
     handDisplay: "inline-block",
+    domDisplay: "inline-block",
+    domEvidence:
+      "DOM 문맥 셀렉터 inline-flex (outer inline) — 현재 값과 outer 동일, 전환 후보 아님",
     reason:
       "self-render leaf (segments + icon) 측정 (2026-06-23 버그). rule 은 있으나 catalog display 없음 → 파생 불가; DOM 은 문맥 셀렉터 inline-flex (outer inline 동일). 현재 값 유지, Phase 5 catalog display 등재 판정",
   },

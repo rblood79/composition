@@ -5,7 +5,9 @@
  * 쓴다 — top-level `rule.containerStyles` 는 대체, 없으면 catalog 4층 merge, 잔존 spec 3종
  * Frame/Group/Slot 은 spec `containerStyles`):
  *   1. catalog / spec 파생 `display`
- *   2. 파생 원천이 없는 항목의 손 목록 (`INLINE_BLOCK_TAG_CLASSIFICATION` 의 `hand`) — 현재 동작 값
+ *   2. 파생 원천이 없는 항목의 손 목록 (`INLINE_BLOCK_TAG_CLASSIFICATION` 의 `hand.handDisplay`) —
+ *      **현재 동작 값** (전부 `inline-block`). DOM 정합 후보 (`domDisplay`) 는 여기서 읽지 않는다 —
+ *      Phase 5 배선이 hand 항목의 동작을 바꾸지 않도록 (round 29 r29m2). 후보 전환은 Phase 5 Q4 분류.
  *   3. `block` (CSS 초기값과 같은 canvas 기본)
  *
  * **Phase 4 에서는 어디에도 배선되지 않는다.** `getElementDisplay` (taffyDisplayAdapter) 는 Phase 5

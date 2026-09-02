@@ -279,6 +279,21 @@
       flex-direction: column;
       gap: var(--spacing-sm);
 
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 24px;
+        background: linear-gradient(
+          0deg,
+          rgba(255, 255, 255, 0.6),
+          transparent
+        );
+        pointer-events: none;
+      }
+
       .fieldset-actions {
         grid-area: icon;
         display: flex;
