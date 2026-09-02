@@ -7,18 +7,21 @@ skill만 여세요.
 
 > **Invocation 정책 (2026-08-28)**: `user-only` 스킬은 Codex 에서 사용자 명시 요청 시에만 연다 (Claude 호스트는 `disable-model-invocation: true` 로 `/name` 직접 입력만 허용). subagent/병렬은 Codex 에서 사용자 명시 시에만 (AGENTS.md) — Claude 는 라우팅표 기본 경로. 열 ↔ frontmatter 일치는 `pnpm codex:agent-catalog` 검사.
 
-| Skill                  | 경로                                                           | Trigger                                            | 같이 볼 항목                           | Invocation (Codex / Claude)                                                                      |
-| ---------------------- | -------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `composition-patterns` | [composition-patterns/SKILL.md](composition-patterns/SKILL.md) | 코드 규칙, 상태, 렌더링, 아키텍처 패턴             | `.agents/rules/*`                      | model + user                                                                                     |
-| `component-design`     | [component-design/SKILL.md](component-design/SKILL.md)         | 새 컴포넌트 설계/구현, 구조적 컴포넌트 변경        | `react-aria`, `react-spectrum`         | model + user                                                                                     |
-| `cross-check`          | [cross-check/SKILL.md](cross-check/SKILL.md)                   | CSS/WebGL/Canvas/Preview 정합성                    | `canvas-rendering.md`, `css-tokens.md` | model + user                                                                                     |
-| `parallel-verify`      | [parallel-verify/SKILL.md](parallel-verify/SKILL.md)           | 사용자가 병렬/서브에이전트 검증을 명시             | component family별 범위                | model + user                                                                                     |
-| `create-adr`           | [create-adr/SKILL.md](create-adr/SKILL.md)                     | 새 ADR 생성                                        | `adr-writing.md`                       | user-only — 사용자 명시 요청 시에만 (Claude: `/create-adr` 직접 입력만, 모델 자동 호출 비활성)   |
-| `review-adr`           | [review-adr/SKILL.md](review-adr/SKILL.md)                     | ADR/설계 문서 리뷰                                 | 대상 ADR, README, changelog            | model + user                                                                                     |
-| `react-aria`           | [react-aria/SKILL.md](react-aria/SKILL.md)                     | React Aria API/접근성 reference                    | 해당 component reference               | model + user                                                                                     |
-| `react-spectrum`       | [react-spectrum/SKILL.md](react-spectrum/SKILL.md)             | Spectrum Props/API reference                       | 해당 component reference               | model + user                                                                                     |
-| `match-target`         | [match-target/SKILL.md](match-target/SKILL.md)                 | 참조 이미지에 맞춘 시각 수렴 루프 (사용자 명시 시) | `cross-check`                          | user-only — 사용자 명시 요청 시에만 (Claude: `/match-target` 직접 입력만, 모델 자동 호출 비활성) |
-| `execute-adr`          | [execute-adr/SKILL.md](execute-adr/SKILL.md)                   | Accepted ADR 의 미반영 phase 실행 (사용자 명시 시) | design breakdown, `adr-writing.md`     | user-only — 사용자 명시 요청 시에만 (Claude: `/execute-adr` 직접 입력만, 모델 자동 호출 비활성)  |
+| Skill                  | 경로                                                           | Trigger                                                     | 같이 볼 항목                                 | Invocation (Codex / Claude)                                                                      |
+| ---------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `composition-patterns` | [composition-patterns/SKILL.md](composition-patterns/SKILL.md) | 코드 규칙, 상태, 렌더링, 아키텍처 패턴                      | `.agents/rules/*`                            | model + user                                                                                     |
+| `component-design`     | [component-design/SKILL.md](component-design/SKILL.md)         | 새 컴포넌트 설계/구현, 구조적 컴포넌트 변경                 | `react-aria`, `react-spectrum`               | model + user                                                                                     |
+| `cross-check`          | [cross-check/SKILL.md](cross-check/SKILL.md)                   | CSS/WebGL/Canvas/Preview 정합성                             | `canvas-rendering.md`, `css-tokens.md`       | model + user                                                                                     |
+| `parallel-verify`      | [parallel-verify/SKILL.md](parallel-verify/SKILL.md)           | 사용자가 병렬/서브에이전트 검증을 명시                      | component family별 범위                      | model + user                                                                                     |
+| `create-adr`           | [create-adr/SKILL.md](create-adr/SKILL.md)                     | 새 ADR 생성                                                 | `adr-writing.md`                             | user-only — 사용자 명시 요청 시에만 (Claude: `/create-adr` 직접 입력만, 모델 자동 호출 비활성)   |
+| `review-adr`           | [review-adr/SKILL.md](review-adr/SKILL.md)                     | ADR/설계 문서 리뷰                                          | 대상 ADR, README, changelog                  | model + user                                                                                     |
+| `react-aria`           | [react-aria/SKILL.md](react-aria/SKILL.md)                     | React Aria API/접근성 reference                             | 해당 component reference                     | model + user                                                                                     |
+| `react-spectrum`       | [react-spectrum/SKILL.md](react-spectrum/SKILL.md)             | Spectrum Props/API reference                                | 해당 component reference                     | model + user                                                                                     |
+| `match-target`         | [match-target/SKILL.md](match-target/SKILL.md)                 | 참조 이미지에 맞춘 시각 수렴 루프 (사용자 명시 시)          | `cross-check`                                | user-only — 사용자 명시 요청 시에만 (Claude: `/match-target` 직접 입력만, 모델 자동 호출 비활성) |
+| `execute-adr`          | [execute-adr/SKILL.md](execute-adr/SKILL.md)                   | Accepted ADR 의 미반영 phase 실행 (사용자 명시 시)          | design breakdown, `adr-writing.md`           | user-only — 사용자 명시 요청 시에만 (Claude: `/execute-adr` 직접 입력만, 모델 자동 호출 비활성)  |
+| `review`               | [review/SKILL.md](review/SKILL.md)                             | 완료 직전 코드 리뷰 체크리스트 (Claude 는 reviewer fork)    | `composition-patterns`, `.agents/rules/*`    | model + user                                                                                     |
+| `fix`                  | [fix/SKILL.md](fix/SKILL.md)                                   | 버그 root-cause 4단계 파이프라인 + 자주 나는 패턴           | `cross-check`, `.agents/rules/*` 의 Why 기록 | model + user                                                                                     |
+| `evaluate`             | [evaluate/SKILL.md](evaluate/SKILL.md)                         | 실행 중 builder 런타임 검증, 4축 채점 (Claude 는 격리 fork) | `cross-check`                                | model + user                                                                                     |
 
 ## Selection Consumer Contract
 
@@ -36,7 +39,9 @@ skill만 여세요.
 | `/cross-check` | `cross-check` skill                                          |
 | `/create-adr`  | `create-adr` skill                                           |
 | `/sweep`       | `parallel-verify` skill, 단 사용자가 병렬 검증을 명시한 경우 |
-| `/impl`        | `component-design` + `composition-patterns`                  |
+| `/fix`         | `fix` skill                                                  |
+| `/review`      | `review` skill                                               |
+| `/evaluate`    | `evaluate` skill                                             |
 
 ## 검증
 

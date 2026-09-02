@@ -67,6 +67,9 @@ cat <<EOF
 - \`react-aria\` / \`react-spectrum\` — 공식 API 레퍼런스
 - \`match-target\` — Vision-based visual tuning 루프 (참조 이미지 + budget) — 사용자 전용 (\`/match-target\` 직접 입력)
 - \`execute-adr\` — ADR design breakdown 의 미반영 phase 자율 실행 (type-check + cross-check + main 직접 push) — 사용자 전용 (\`/execute-adr NNN\` 직접 입력)
+- \`fix\` — 버그 수정 파이프라인 (root-cause 4단계 → 수정 → cross-check → live exercise)
+- \`review\` — 완료 직전 코드 리뷰 (reviewer 격리 fork, 9개 체크리스트)
+- \`evaluate\` — 런타임 검증 (Chrome MCP 4축 채점, 격리 fork)
 
 ${drift_block}${memory_block}
 </composition-workflow-roster>

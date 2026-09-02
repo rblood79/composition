@@ -28,13 +28,13 @@ composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monore
 
 ## 작업 워크플로
 
-- **복잡한 작업** (렌더링, drag-and-drop, 대규모 리팩토링): `architect` agent 로 접근 방식 탐색 후 선택 — 전제·관점 의문은 아래 §전제·관점 의문 처리 의 4개 결정 지점에서만 질문
+- **복잡한 작업** (렌더링, drag-and-drop, 대규모 리팩토링): built-in `Plan` agent 로 접근 방식 탐색 후 선택 — 전제·관점 의문은 아래 §전제·관점 의문 처리 의 4개 결정 지점에서만 질문
 - **버그 수정**: `/fix` (`debugger` agent → `/cross-check`) — 증상 수정 금지, root cause 확정 후 수정. 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록이 정본
-- **구현**: TDD (RED-GREEN-REFACTOR) 기본 — `tester` agent
+- **구현**: TDD (RED-GREEN-REFACTOR) 기본 — 메인 세션이 직접 (구현·테스트를 서브에이전트에 위임하면 컨텍스트만 잃는다)
 - **렌더링 수정 후**: `/cross-check` 최종 검증
 - **ADR 생성**: 사용자가 `/create-adr` 직접 입력 — create-adr / execute-adr / match-target 은 모델 자동 호출 비활성 (사용자 전용)
 - **다단계 계획**: ADR design breakdown (`docs/adr/design/*-breakdown.md`) 이 정본 — 별도 계획 문서 계층 신설 금지
-- **완료 직전 검증**: 아래 §완료 기준 자가 적용 + `reviewer` agent
+- **완료 직전 검증**: 아래 §완료 기준 자가 적용 + `/review` (reviewer 격리 fork) · 사용자-가시 변경은 `/evaluate` (런타임 4축 채점, 격리 fork)
 - **단순 작업** (한 줄 수정, 설정 변경): 위 절차 스킵 가능
 - CRITICAL/HIGH 이슈: 즉시 수정, 스킵 금지
 
@@ -73,16 +73,16 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ## 참조 체계
 
-| 용도             | 경로                                                                           | 설명                                                                                          |
-| ---------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| 코드 패턴/규칙   | [SKILL.md](.claude/skills/composition-patterns/SKILL.md)                       | 전체 규칙 인덱스 (CRITICAL/HIGH/MEDIUM)                                                       |
-| 도메인 규칙      | [.claude/rules/](.claude/rules/)                                               | Glob-scoped — 해당 파일 작업 시 자동 로드                                                     |
-| Agent 가이드     | [.claude/agents/](.claude/agents/)                                             | architect, implementer, evaluator, reviewer, debugger, documenter, refactorer, tester         |
-| ADR 현황         | [docs/adr/README.md](docs/adr/README.md)                                       | 전체 ADR 현황 대시보드                                                                        |
-| ADR 규칙         | [.claude/rules/adr-writing.md](.claude/rules/adr-writing.md)                   | Risk-First 템플릿, 위험 평가, 금지 패턴, 반복 패턴 선차단 (`docs/adr/**` 자동 로드)           |
-| 측정·검증 무결성 | [.claude/rules/measurement-validity.md](.claude/rules/measurement-validity.md) | Gate 수치 leakage 8-패턴 + 착수 전 5-질문 + 실패 record (`docs/adr/**`·performance 자동 로드) |
-| CHANGELOG 규칙   | [.claude/rules/changelog.md](.claude/rules/changelog.md)                       | 트리거·Drift 감시·catch-up·Keep a Changelog 포맷 (`docs/CHANGELOG*` 자동 로드)                |
-| CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 현재 엔트리 — 연도별 아카이브 (`CHANGELOG-YYYY-archived.md`) 로 이관                          |
+| 용도             | 경로                                                                           | 설명                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| 코드 패턴/규칙   | [SKILL.md](.claude/skills/composition-patterns/SKILL.md)                       | 전체 규칙 인덱스 (CRITICAL/HIGH/MEDIUM)                                                                       |
+| 도메인 규칙      | [.claude/rules/](.claude/rules/)                                               | Glob-scoped — 해당 파일 작업 시 자동 로드                                                                     |
+| Agent 가이드     | [.claude/agents/](.claude/agents/)                                             | reviewer, debugger — 얇은 persona (도구 제한·모델·격리만). 절차·체크리스트는 skills (review / fix / evaluate) |
+| ADR 현황         | [docs/adr/README.md](docs/adr/README.md)                                       | 전체 ADR 현황 대시보드                                                                                        |
+| ADR 규칙         | [.claude/rules/adr-writing.md](.claude/rules/adr-writing.md)                   | Risk-First 템플릿, 위험 평가, 금지 패턴, 반복 패턴 선차단 (`docs/adr/**` 자동 로드)                           |
+| 측정·검증 무결성 | [.claude/rules/measurement-validity.md](.claude/rules/measurement-validity.md) | Gate 수치 leakage 8-패턴 + 착수 전 5-질문 + 실패 record (`docs/adr/**`·performance 자동 로드)                 |
+| CHANGELOG 규칙   | [.claude/rules/changelog.md](.claude/rules/changelog.md)                       | 트리거·Drift 감시·catch-up·Keep a Changelog 포맷 (`docs/CHANGELOG*` 자동 로드)                                |
+| CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 현재 엔트리 — 연도별 아카이브 (`CHANGELOG-YYYY-archived.md`) 로 이관                                          |
 
 ## 마이그레이션/리네임/삭제 작업 원칙 (CRITICAL)
 
@@ -101,7 +101,7 @@ CSS/Skia 두 타겟 × 5 레이어 (spec/factory/CSS renderer/Skia renderer/edit
 ## 병렬 워크플로
 
 - 대규모 리팩토링: `isolation: "worktree"` 격리 에이전트. 독립 작업 2+ 개: Agent tool 병렬 호출 (단일 응답에 복수 agent)
-- reviewer + implementer 분리: 구현 에이전트 완료 후 reviewer 로 검증
+- 생성-평가 분리: 구현은 메인 세션, 검증은 `/review` (정적) · `/evaluate` (런타임) 격리 fork
 - worktree 통합은 main 직접 merge (PR 경유 금지) — 절차: `.claude/rules/git-workflow.md` §3
 - `/loop`: 렌더링 파리티 반복 검증에 적합
 

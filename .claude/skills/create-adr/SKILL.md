@@ -222,10 +222,10 @@ README 상단 `## 현황 요약` 표의 `미구현/진행 (Proposed/In Progress)
 
 ## Architect 에이전트 연동
 
-ADR 주제가 복잡하거나 외부 리서치가 필요한 경우, `architect` 에이전트를 호출하여 대안 생성 + 위험 평가를 위임할 수 있다.
+ADR 주제가 복잡하거나 외부 리서치가 필요한 경우, built-in `Plan` agent 를 호출하여 대안 생성 + 위험 평가를 위임할 수 있다.
 
 ```
-Agent(architect): "{주제}에 대한 ADR 대안 분석 요청.
+Agent(Plan): "{주제}에 대한 ADR 대안 분석 요청.
 최소 3개 대안 + 4축 위험 평가 + Risk Threshold Check 수행.
 외부 리서치(경쟁사, 오픈소스) 포함."
 ```

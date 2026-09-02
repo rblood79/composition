@@ -334,4 +334,4 @@ D3 경로를 건드린 push 는 pre-push hook 이 같은 smoke 를 자동으로 
 - "TextField placeholder 텍스트만 변경" → ❌ 시각 렌더링 미변경
 - "ESLint 규칙 추가" → ❌ 렌더링 무관
 - "Store 로직만 수정했어" → ❌ 렌더링 경로 미관여 (시각적 변화 없으면 불필요)
-- "단위 테스트 작성해줘" → ❌ 테스트 작업 → tester 에이전트
+- "단위 테스트 작성해줘" → ❌ 테스트 작업 → vitest 직접 작성 (메인 세션 TDD)

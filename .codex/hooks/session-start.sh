@@ -49,17 +49,19 @@ cat <<EOF
 - \`react-aria\` / \`react-spectrum\` — 공식 API 레퍼런스
 - \`match-target\` — 사용자 명시 요청 시에만 실행하는 visual tuning 루프 (user-only)
 - \`execute-adr\` — 사용자 명시 요청 시에만 ADR phase 실행 (user-only, HIGH 위험은 사용자 surface)
+- \`fix\` — 버그 수정 파이프라인 (root-cause 4단계 → 수정 → cross-check → live exercise)
+- \`review\` — 완료 직전 코드 리뷰 체크리스트 (model + user)
+- \`evaluate\` — 실행 중 builder 런타임 검증, 4축 채점 (model + user)
 
 ## Agents (사용자가 위임·병렬 작업을 명시한 경우에만)
-| 상황 | 1차 agent | 2차 검증 |
-|---|---|---|
-| 새 기능 구현 | implementer | reviewer → evaluator |
-| 버그 재현/수정 | debugger | cross-check skill |
-| 아키텍처 설계/ADR | architect | review-adr skill |
-| 대규모 리팩토링 | refactorer (worktree) | reviewer |
-| UI 실제 동작 검증 | evaluator (Chrome MCP) | — |
-| 테스트 작성 | tester | — |
-| 문서 작성 | documenter | — |
+2026-09-02 재편: persona 는 reviewer·debugger 2개, 절차는 skill.
+| 상황 | 경로 |
+|---|---|
+| 완료 직전 코드 리뷰 | `review` skill 체크리스트 (Claude 는 reviewer 격리 fork) → 수정은 메인 세션 |
+| 버그 재현/수정 | `fix` skill (root-cause 4단계) — 복잡하면 debugger 격리 조사 |
+| UI 실제 동작 검증 | `evaluate` skill (Chrome MCP 4축 채점) |
+| 아키텍처 설계/ADR | 메인 세션 + `review-adr` skill |
+| 구현·테스트·리팩토링·문서 | 메인 세션 직접 — 서브에이전트 위임 없음 |
 
 ## 자동 규칙 (UserPromptSubmit hook)
 프롬프트에 아래 키워드 포함 시 관련 skill/gate 힌트 자동 주입:
@@ -70,7 +72,7 @@ cat <<EOF
 - "리팩토링" → composition-patterns + scoped gate
 - "테스트" → 변경 모듈 인접 focused test
 - "완료/머지/PR" → evidence 확인 + codex:preflight
-- "정정/아니야/그게 아니라" → same-session memory 적재 권고
+- "정정/아니야/그게 아니라" → same-session memory 저장 권고
 
 ## Codex Entry Points
 - \`\$cross-check\` — 렌더링 정합성 검증

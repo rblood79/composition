@@ -11,7 +11,7 @@ ADR + design breakdown 파일을 읽어 미반영 phase 를 순차 자율 실행
 
 ## SSOT 체인 내 위상
 
-본 skill 은 **워크플로 orchestration** layer. Spec / DOM / API 의 어느 domain 에도 직접 mutation 권한을 갖지 않으며, **각 phase 가 정의한 mutation scope 내에서만 phase 별 implementer / debugger / cross-check 를 호출**. ADR fork 발생 시 [adr-writing.md fork checkpoint 4 질문](../../rules/adr-writing.md) 의무 발동.
+본 skill 은 **워크플로 orchestration** layer. Spec / DOM / API 의 어느 domain 에도 직접 mutation 권한을 갖지 않으며, **각 phase 가 정의한 mutation scope 내에서만 phase 별 메인 세션 / debugger / cross-check 를 호출**. ADR fork 발생 시 [adr-writing.md fork checkpoint 4 질문](../../rules/adr-writing.md) 의무 발동.
 
 ## 입력 요구사항
 
@@ -70,10 +70,10 @@ phase 안에서 다음 사이클 실행:
 
 ```
 1. PLAN — design breakdown 의 phase 본문에서 작업 항목 추출 (3-7 단계)
-2. RED  — TDD 적용 가능하면 vitest 실패 테스트 먼저 작성 (`tester` agent TDD)
+2. RED  — TDD 적용 가능하면 vitest 실패 테스트 먼저 작성 (메인 세션 직접)
 3. GREEN — 구현
    - 단일 영역 / LOW risk → 직접 Edit/Write
-   - 다중 파일 / MEDIUM+ risk → implementer agent dispatch (worktree 격리 권장)
+   - 다중 파일 / MEDIUM+ risk → 메인 세션 직접 구현 (worktree 격리 권장)
 4. agent dispatch 시 5-안전망 prompt 의무:
    - "commit + push exit code 명시 보고"
    - "type-check + vitest evidence 첨부"
