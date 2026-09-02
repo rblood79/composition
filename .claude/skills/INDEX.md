@@ -1,6 +1,6 @@
 # Skills 카탈로그 (composition)
 
-모든 skill 은 자연어 발동 + `/name` 직접 호출이 가능하다 (절차는 skill, persona 는 agent — 2026-09-02 재편. `.claude/commands/*.md` 는 skills 로 이관됐고 같은 이름은 skill 이 우선한다; command 파일 삭제는 사용자 승인 대기. 목록은 시스템 프롬프트에 자동 로드). 사용 빈도는 본 파일 하단의 자동 갱신 블록 (`update-index.sh`) 참조.
+모든 skill 은 자연어 발동 + `/name` 직접 호출이 가능하다 (절차는 skill, persona 는 agent — 2026-09-02 재편. `.claude/commands/` 는 skills 로 이관 후 2026-09-02 삭제. 목록은 시스템 프롬프트에 자동 로드). 사용 빈도는 본 파일 하단의 자동 갱신 블록 (`update-index.sh`) 참조.
 
 ## composition 전용 (프로젝트)
 

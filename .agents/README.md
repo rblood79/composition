@@ -77,12 +77,12 @@
 
 ## Legacy 매핑
 
-| Legacy Claude 자산                     | Codex 대응                                                     |
-| -------------------------------------- | -------------------------------------------------------------- |
-| `/cross-check` (skill 직접 호출)       | `.agents/skills/cross-check/SKILL.md`                          |
-| `/create-adr` (skill 직접 호출)        | `.agents/skills/create-adr/SKILL.md`                           |
-| `.claude/commands/sweep.md`            | `.agents/skills/parallel-verify/SKILL.md`                      |
-| `.claude/hooks/protect-files.sh`       | `.codex/hooks/protect-files.sh` + `pnpm run codex:guard`       |
-| `.claude/hooks/auto-format.sh`         | `.codex/hooks/auto-format.sh` + `pnpm run codex:format`        |
-| `.claude/hooks/type-check-gate.sh`     | `.codex/hooks/type-check-gate.sh` + `pnpm run codex:typecheck` |
-| `.claude/hooks/precompact-snapshot.sh` | `pnpm run codex:snapshot`                                      |
+| Legacy Claude 자산                                                              | Codex 대응                                                     |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `/cross-check` (skill 직접 호출)                                                | `.agents/skills/cross-check/SKILL.md`                          |
+| `/create-adr` (skill 직접 호출)                                                 | `.agents/skills/create-adr/SKILL.md`                           |
+| `.claude/skills/parallel-verify/SKILL.md` (`/sweep` command 는 2026-09-02 제거) | `.agents/skills/parallel-verify/SKILL.md`                      |
+| `.claude/hooks/protect-files.sh`                                                | `.codex/hooks/protect-files.sh` + `pnpm run codex:guard`       |
+| `.claude/hooks/auto-format.sh`                                                  | `.codex/hooks/auto-format.sh` + `pnpm run codex:format`        |
+| `.claude/hooks/type-check-gate.sh`                                              | `.codex/hooks/type-check-gate.sh` + `pnpm run codex:typecheck` |
+| `.claude/hooks/precompact-snapshot.sh`                                          | `pnpm run codex:snapshot`                                      |

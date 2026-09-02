@@ -1,5 +1,7 @@
 # Agent Teams 사용 매뉴얼
 
+> **아카이브 (2026-09-02)**: Agent Teams 는 현재 꺼져 있다 (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 가 어느 settings 에도 없음). 아래가 전제한 8개 서브에이전트 중 6개는 같은 날 삭제됐고 (architect/implementer/tester/evaluator/refactorer/documenter), 절차는 `review` / `fix` / `evaluate` skill 로 옮겨졌다 — 현행 경로는 `CLAUDE.md` §작업 워크플로. 본문은 역사 기록으로만 보존.
+
 > 작성일: 2026-02-11
 > 대상: `.claude/agents/`, `.claude/settings.json`
 > 요구사항: tmux, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`

@@ -113,7 +113,7 @@ packages/shared/src/**/*.d.ts.map
 # 개인 로컬 지침 (공식 권장: 비추적)
 CLAUDE.local.md
 
-# Codex/외부 도구가 .claude/commands/*.md 를 자동 이관해 만드는 잔재 — 정본은 .claude/commands/. 승인 삭제 후 sweep 커밋으로 2회 재유입 (7dcbce1d6·a0cba1b4d 참조)
+# Codex/외부 도구가 옛 .claude/commands/*.md 를 자동 이관해 만드는 잔재 — 정본은 .claude/skills/ (commands 는 2026-09-02 skills 로 병합). 승인 삭제 후 sweep 커밋으로 2회 재유입 (7dcbce1d6·a0cba1b4d 참조)
 .agents/skills/source-command-*/
 
 # ADR parity raw captures (local-only — ADR-923 G0/G3 baseline, 커밋 금지)

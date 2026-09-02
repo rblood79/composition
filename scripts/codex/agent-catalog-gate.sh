@@ -99,7 +99,7 @@ kebab_tokens() { grep -oE '[a-z][a-z0-9]*(-[a-z0-9]+)+' <<<"$1" || true; }
 SKILLS=$(find .claude/skills -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -exec basename {} \; | sort)
 AGENT_SKILLS=$(find .agents/skills -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -exec basename {} \; | sort)
 AGENTS=$(find .claude/agents -maxdepth 1 -name '*.md' -exec basename {} .md \; | sort)
-COMMANDS=$(find .claude/commands -maxdepth 1 -name '*.md' -exec basename {} .md \; | sort)
+COMMANDS=$( { [ -d .claude/commands ] && find .claude/commands -maxdepth 1 -name '*.md' -exec basename {} .md \; ; } | sort || true)  # commands 는 2026-09-02 skills 로 병합 — 디렉터리 부재 허용
 RULES=$(find .claude/rules -maxdepth 1 -name '*.md' -exec basename {} \; | sort)
 AGENT_RULES=$(find .agents/rules -maxdepth 1 -name '*.md' -exec basename {} \; | sort)
 BUILTIN_AGENTS=$'Explore\ngeneral-purpose\nPlan\nclaude-code-guide'

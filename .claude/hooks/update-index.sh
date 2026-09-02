@@ -13,7 +13,7 @@ index="${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/skills/INDEX.md"
 
 # 프로젝트 실존 skill/command 이름 allowlist (2026-08-18):
 # transcript 에는 외부 플러그인 skill·폐기된 이름도 찍히므로, 프로젝트 INDEX 에는
-# .claude/skills/ 디렉터리 + .claude/commands/*.md 에 실존하는 이름만 표기한다.
+# .claude/skills/ 디렉터리에 실존하는 이름만 표기한다 (.claude/commands 는 2026-09-02 skills 로 병합, find 는 부재 허용).
 proj_root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 # (BSD awk 는 -v 값의 개행 미허용 → 공백 구분 목록으로 전달; 이름은 kebab-case 라 공백 없음)
 valid_names=$( {

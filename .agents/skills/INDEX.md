@@ -34,14 +34,13 @@ skill만 여세요.
 
 ## Claude Command Aliases
 
-| 예전 표현      | Codex 사용 방식                                              |
-| -------------- | ------------------------------------------------------------ |
-| `/cross-check` | `cross-check` skill                                          |
-| `/create-adr`  | `create-adr` skill                                           |
-| `/sweep`       | `parallel-verify` skill, 단 사용자가 병렬 검증을 명시한 경우 |
-| `/fix`         | `fix` skill                                                  |
-| `/review`      | `review` skill                                               |
-| `/evaluate`    | `evaluate` skill                                             |
+| 예전 표현      | Codex 사용 방식     |
+| -------------- | ------------------- |
+| `/cross-check` | `cross-check` skill |
+| `/create-adr`  | `create-adr` skill  |
+| `/fix`         | `fix` skill         |
+| `/review`      | `review` skill      |
+| `/evaluate`    | `evaluate` skill    |
 
 ## 검증
 
