@@ -61,14 +61,14 @@ const TEST_REGISTRY = TEST_CONFIGS.map((config) =>
 );
 
 function migrateFixture(): PanelWorkspaceLayoutV4 {
-  const migrated = migratePanelWorkspaceLayoutV2ToV4(
-    createPanelWorkspaceLayoutV2(),
-    TEST_REGISTRY,
-    {
-      surfaceRect: { width: 1600, height: 852 },
-      migrationId: "panel-workspace-render-fanout-fixture",
-    },
-  );
+  const source = createPanelWorkspaceLayoutV2();
+  // navigator 아래에 datatableEditor 를 쌓아 좌측 cluster 에 row splitter (.panel-cluster-splitter)
+  // 와 column rail (.panel-dock-rail) 이 생기게 한다 — 그 leaf 들의 fan-out 도 함께 잰다.
+  source.visibility.datatableEditor = true;
+  const migrated = migratePanelWorkspaceLayoutV2ToV4(source, TEST_REGISTRY, {
+    surfaceRect: { width: 1600, height: 852 },
+    migrationId: "panel-workspace-render-fanout-fixture",
+  });
   if (!migrated.ok) throw new Error(migrated.error);
   return migrated.value;
 }
@@ -175,23 +175,71 @@ function dispatchPointer(
   fireEvent(target, event);
 }
 
-function frameStyles(container: HTMLElement): Map<string, string> {
+/** selector 에 맞는 요소들의 inline style 을 순서 (또는 data-panel) 키로 기록한다. */
+function styleMap(
+  container: HTMLElement,
+  selector: string,
+): Map<string, string> {
   return new Map(
-    [...container.querySelectorAll<HTMLElement>(".workspace-panel-frame")].map(
-      (frame) => [frame.dataset.panel ?? "", frame.style.cssText] as const,
+    [...container.querySelectorAll<HTMLElement>(selector)].map(
+      (element, index) =>
+        [
+          element.dataset.panel ?? String(index),
+          element.style.cssText,
+        ] as const,
     ),
   );
 }
 
-function changedFrameCount(
+function changedCount(
   before: Map<string, string>,
   after: Map<string, string>,
 ): number {
   let changed = 0;
-  for (const [panelId, style] of after) {
-    if (before.get(panelId) !== style) changed += 1;
+  for (const [key, style] of after) {
+    if (before.get(key) !== style) changed += 1;
   }
   return changed;
+}
+
+const FRAME = ".workspace-panel-frame";
+const CLUSTER_SPLITTER = ".panel-cluster-splitter";
+const DOCK_RAIL = ".panel-dock-rail";
+
+/** flush 한 번 전후의 DOM 변화량 — 렌더 수의 자기 정합 oracle. */
+function measureFlush(
+  container: HTMLElement,
+  action: () => void,
+): {
+  counts: Map<string, number>;
+  changedFrames: number;
+  changedSplitters: number;
+  changedRails: number;
+} {
+  const frames = styleMap(container, FRAME);
+  const splitters = styleMap(container, CLUSTER_SPLITTER);
+  const rails = styleMap(container, DOCK_RAIL);
+  const counts = countRenders(container, action);
+  return {
+    counts,
+    changedFrames: changedCount(frames, styleMap(container, FRAME)),
+    changedSplitters: changedCount(
+      splitters,
+      styleMap(container, CLUSTER_SPLITTER),
+    ),
+    changedRails: changedCount(rails, styleMap(container, DOCK_RAIL)),
+  };
+}
+
+/** 어느 flush 에서도 렌더되면 안 되는 상위 컴포넌트들. */
+function expectNoRootRenders(counts: Map<string, number>): void {
+  expect(renders(counts, "PanelWorkspaceOverlay")).toBe(0);
+  expect(renders(counts, "PanelDock")).toBe(0);
+  expect(renders(counts, "PanelToggleGroup")).toBe(0);
+  expect(renders(counts, "PanelFrameContent")).toBe(0);
+  expect(renders(counts, "HydratedPanelWorkspace")).toBe(0);
+  expect(renders(counts, "PanelWorkspaceSharedSplitters")).toBe(0);
+  expect(renders(counts, "PanelDockClusterPresentation")).toBe(0);
 }
 
 describe("PanelWorkspace coordinator flush 당 렌더 fan-out", () => {
@@ -250,13 +298,18 @@ describe("PanelWorkspace coordinator flush 당 렌더 fan-out", () => {
     vi.restoreAllMocks();
   });
 
-  it("resize flush 는 geometry 가 바뀐 frame 만 렌더하고 overlay 루트·dock·toggle rail 은 건드리지 않는다", () => {
+  it("resize flush 는 geometry 가 바뀐 frame·cluster splitter·rail 만 렌더하고 상위는 건드리지 않는다", () => {
     const { container } = renderPanelWorkspace(
       <PanelWorkspace chrome={<div />}>
         <div />
       </PanelWorkspace>,
     );
     act(flushFrames);
+    // fixture 전제: 좌측 cluster 에 row splitter 와 rail 이 실제로 있다
+    expect(container.querySelectorAll(CLUSTER_SPLITTER).length).toBeGreaterThan(
+      0,
+    );
+    expect(container.querySelectorAll(DOCK_RAIL).length).toBeGreaterThan(0);
 
     const splitter = container.querySelector<HTMLElement>(
       '.workspace-panel-frame[data-panel="navigator"] .panel-resize-handle[data-edge="right"]',
@@ -271,24 +324,23 @@ describe("PanelWorkspace coordinator flush 당 렌더 fan-out", () => {
       flushFrames();
     });
 
-    const stylesBefore = frameStyles(container);
-    const counts = countRenders(container, () => {
-      dispatchPointer(window, "pointermove", 324);
-      flushFrames();
-    });
-    const changedFrames = changedFrameCount(
-      stylesBefore,
-      frameStyles(container),
-    );
+    const { counts, changedFrames, changedSplitters, changedRails } =
+      measureFlush(container, () => {
+        dispatchPointer(window, "pointermove", 324);
+        flushFrames();
+      });
 
+    // column 폭이 바뀌면 그 column 의 frame 들·row splitter·rail 이 함께 바뀐다
     expect(changedFrames).toBeGreaterThanOrEqual(1);
+    expect(changedSplitters).toBeGreaterThanOrEqual(1);
+    expect(changedRails).toBeGreaterThanOrEqual(1);
     expect(renders(counts, "PanelFrame")).toBe(changedFrames);
     expect(renders(counts, "SnapshotPanelFrame")).toBe(changedFrames);
-    expect(renders(counts, "PanelWorkspaceOverlay")).toBe(0);
-    expect(renders(counts, "PanelDock")).toBe(0);
-    expect(renders(counts, "PanelToggleGroup")).toBe(0);
-    expect(renders(counts, "PanelFrameContent")).toBe(0);
-    expect(renders(counts, "HydratedPanelWorkspace")).toBe(0);
+    expect(renders(counts, "PanelWorkspaceSharedSplitter")).toBe(
+      changedSplitters,
+    );
+    expect(renders(counts, "PanelDockRail")).toBe(changedRails);
+    expectNoRootRenders(counts);
 
     act(() => {
       dispatchPointer(window, "pointerup", 324);
@@ -296,7 +348,7 @@ describe("PanelWorkspace coordinator flush 당 렌더 fan-out", () => {
     });
   });
 
-  it("move preview flush 는 끌리는 frame 하나만 렌더한다", () => {
+  it("move preview flush 는 끌리는 frame (과 그 column rail) 만 렌더한다", () => {
     const { container } = renderPanelWorkspace(
       <PanelWorkspace chrome={<div />}>
         <div />
@@ -316,17 +368,20 @@ describe("PanelWorkspace coordinator flush 당 렌더 fan-out", () => {
       flushFrames();
     });
 
-    const counts = countRenders(container, () => {
-      dispatchPointer(window, "pointermove", 64, 64);
-      flushFrames();
-    });
+    const { counts, changedFrames, changedSplitters, changedRails } =
+      measureFlush(container, () => {
+        dispatchPointer(window, "pointermove", 64, 64);
+        flushFrames();
+      });
 
+    expect(changedFrames).toBe(1);
     expect(renders(counts, "PanelFrame")).toBe(1);
     expect(renders(counts, "SnapshotPanelFrame")).toBe(1);
-    expect(renders(counts, "PanelWorkspaceOverlay")).toBe(0);
-    expect(renders(counts, "PanelDock")).toBe(0);
-    expect(renders(counts, "PanelToggleGroup")).toBe(0);
-    expect(renders(counts, "PanelFrameContent")).toBe(0);
+    // 미리보기 snapshot 은 committed splitter 를 그대로 쓴다 — splitter leaf 는 렌더 0
+    expect(changedSplitters).toBe(0);
+    expect(renders(counts, "PanelWorkspaceSharedSplitter")).toBe(0);
+    expect(renders(counts, "PanelDockRail")).toBe(changedRails);
+    expectNoRootRenders(counts);
 
     act(() => {
       dispatchPointer(window, "pointerup", 64, 64);

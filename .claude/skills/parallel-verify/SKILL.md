@@ -49,7 +49,7 @@ user-invocable: true
 4. skia (Skia renderer) 경로 확인:
    - tagSpecMap.ts의 TAG_SPEC_MAP 등록 OR catalog Skia cutover (StoreRenderBridge.ts의 isCatalogCutover)
    - specTextStyle.ts의 TEXT_BEARING_SPECS 등록 여부 (텍스트 컴포넌트)
-   - utils.ts의 INLINE_BLOCK_TAGS 등록 여부 (fit-content 컴포넌트)
+   - utils.ts의 INTRINSIC_MEASURE_TAGS (분류표 INLINE_BLOCK_TAG_CLASSIFICATION) 등록 여부 (fit-content 측정 컴포넌트; 기본 display 는 catalog containerStyles.display — ADR-923 Phase 5)
 5. editor (Preview 렌더러) — `packages/shared/src/renderers/*Renderers.tsx` 읽기
    → variant/size props가 React 컴포넌트에 전달되는지 확인
 

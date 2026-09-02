@@ -64,7 +64,7 @@ user-invocable: true
 
 ### 3.3 Skia 레이아웃 정합성
 
-- [ ] `INLINE_BLOCK_TAGS` 또는 `BUTTON_LIKE_TAGS` 등록 여부 (fit-content 필요 시)
+- [ ] `INTRINSIC_MEASURE_TAGS` (분류표 `INLINE_BLOCK_TAG_CLASSIFICATION`, utils.ts) 등록 여부 (fit-content 측정 필요 시 — 기본 display 는 catalog `containerStyles.display` 가 정본, ADR-923 Phase 5)
 - [ ] `TEXT_BEARING_SPECS` 등록 여부 (텍스트 폭 측정 필요 시)
 - [ ] `DEFAULT_SIZE_BY_TAG` 등록 여부
 - [ ] `calculateContentWidth`의 `isFormElement` 경로 포함 여부

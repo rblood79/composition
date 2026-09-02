@@ -188,6 +188,17 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain(
       "zIndex: frameZIndex(focusRank, isActive, isMoving)",
     );
+    // cluster splitter · column rail 도 부모는 id 목록 (원시값) 만, geometry 는 leaf 가 읽는다
+    expect(source).toContain("function PanelWorkspaceSharedSplitter(");
+    expect(source).toContain("function PanelDockRail(");
+    expect(source).toMatch(
+      /const splitterIds = usePanelWorkspaceLayoutValue\(coordinator, \(\) =>\s*coordinator\s*\.getSnapshot\(\)\s*\.splitters\.map\(\(splitter\) => splitter\.id\)/,
+    );
+    expect(source).toMatch(
+      /const columnKeys = usePanelWorkspaceLayoutValue\(coordinator, \(\) =>\s*panelDockColumns\(/,
+    );
+    // 유일하게 snapshot 전체를 구독하는 곳은 드래그 중에만 mount 되는 snap guide 뿐
+    expect(source.match(/usePanelWorkspaceLayoutSnapshot\(/g)).toHaveLength(1);
   });
 
   it("드래그 중 손잡이 표시와 커서는 hover 가 아니라 data-resizing 에 묶인다", async () => {
@@ -250,7 +261,9 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
 
     expect(source).toContain("snapshotFrame?.resizeEdges ?? []");
     expect(source).toContain("<PanelWorkspaceSharedSplitters");
-    expect(source).toContain("snapshot.splitters.map((splitter)");
+    expect(source).toContain(
+      "splitterIds.split(ID_LIST_SEPARATOR).map((splitterId)",
+    );
     expect(source).toContain("edge={edge}");
     expect(source).toContain("runtime.resizePanelFromReference(");
 

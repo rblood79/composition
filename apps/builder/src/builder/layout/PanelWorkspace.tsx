@@ -55,7 +55,9 @@ import {
   type PanelWorkspaceRuntime,
 } from "./panelWorkspaceRuntime";
 import {
+  panelWorkspaceSplitterGeometryEquals,
   usePanelWorkspaceFrameSnapshot,
+  usePanelWorkspaceLayoutSelector,
   usePanelWorkspaceLayoutSnapshot,
   usePanelWorkspaceLayoutValue,
 } from "./usePanelWorkspaceLayoutSnapshot";
@@ -179,9 +181,21 @@ interface SharedSplitterContract {
   value: number;
 }
 
-function sharedSplitterContract(
+/** splitter 가 조절하는 before 패널의 크기 (row 는 높이, column 은 폭). 배치되지 않았으면 -1. */
+function sharedSplitterBeforeFrameSize(
   splitter: PanelWorkspaceSplitterGeometry,
   snapshot: PanelWorkspaceLayoutSnapshot,
+): number {
+  const panelId = splitter.beforePanelIds[0];
+  const frame = panelId ? snapshot.frameGeometries.get(panelId) : undefined;
+  if (!frame) return -1;
+  return splitter.kind === "row" ? frame.height : frame.width;
+}
+
+function sharedSplitterContract(
+  splitter: PanelWorkspaceSplitterGeometry,
+  beforeFrameSize: number,
+  workspaceHeight: number,
   registry: readonly PanelWorkspaceRegistryEntry[],
   configsByPanelId: ReadonlyMap<PanelId, PanelConfig>,
   getPanelName: (config: PanelConfig) => string,
@@ -189,8 +203,7 @@ function sharedSplitterContract(
 ): SharedSplitterContract | null {
   const panelId = splitter.beforePanelIds[0];
   if (!panelId) return null;
-  const frame = snapshot.frameGeometries.get(panelId);
-  if (!frame) return null;
+  if (beforeFrameSize < 0) return null;
   const entriesByPanelId = registryEntryMap(registry);
   const beforeConfigs = splitter.beforePanelIds.flatMap((candidate) => {
     const config = configsByPanelId.get(candidate);
@@ -220,11 +233,11 @@ function sharedSplitterContract(
       }),
       maxValue: Math.max(
         Math.max(...beforeEntries.map((entry) => entry.minHeight)),
-        snapshot.workspaceRect.height,
+        workspaceHeight,
       ),
       minValue: Math.max(...beforeEntries.map((entry) => entry.minHeight)),
       panelId,
-      value: frame.height,
+      value: beforeFrameSize,
     };
   }
 
@@ -245,7 +258,7 @@ function sharedSplitterContract(
     maxValue,
     minValue,
     panelId,
-    value: frame.width,
+    value: beforeFrameSize,
   };
 }
 
@@ -305,68 +318,162 @@ interface PanelWorkspaceSharedSplittersProps extends PanelWorkspaceRuntimeProps 
   dockOrigin: PanelDockOrigin;
 }
 
+/** id 목록을 문자열 하나로 구독하기 위한 구분자 — 원시값이라야 값이 같은 flush 에 렌더가 없다. */
+const ID_LIST_SEPARATOR = " ";
+
+/**
+ * cluster 내부 splitter 의 부모. splitter 의 **집합** (id 목록) 만 구독해 splitter 가 생기거나
+ * 없어질 때만 렌더되고, 각 splitter 의 geometry 는 leaf 가 스스로 읽는다.
+ */
 function PanelWorkspaceSharedSplitters({
   configs,
   dockOrigin,
   runtime,
   setWorkspaceLayout,
 }: PanelWorkspaceSharedSplittersProps) {
-  const { t } = useI18n();
-  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  const coordinator = runtime.coordinator;
+  const splitterIds = usePanelWorkspaceLayoutValue(coordinator, () =>
+    coordinator
+      .getSnapshot()
+      .splitters.map((splitter) => splitter.id)
+      .join(ID_LIST_SEPARATOR),
+  );
   const configsByPanelId = useMemo(
     () => new Map(configs.map((config) => [config.id, config] as const)),
     [configs],
   );
+  if (splitterIds.length === 0) return null;
 
   return (
     <>
-      {snapshot.splitters.map((splitter) => {
-        const contract = sharedSplitterContract(
-          splitter,
-          snapshot,
-          runtime.getRegistry(),
-          configsByPanelId,
-          (config) => getPanelLabel(config, t),
-          t,
-        );
-        if (!contract) return null;
-        return (
-          <PanelSplitter
-            key={splitter.id}
-            edge={contract.edge}
-            label={contract.label}
-            controls={contract.controls}
-            value={contract.value}
-            minValue={contract.minValue}
-            maxValue={contract.maxValue}
-            layoutVersion={splitter.layoutVersion}
-            className="panel-cluster-splitter"
-            splitterKind={splitter.kind}
-            style={sharedSplitterStyle(
-              splitter,
-              splitterZIndex(runtime, splitter.clusterId),
-              dockOrigin,
-              isRightAnchoredPlacementZone(
-                runtime
-                  .getLayout()
-                  .clusters.find((cluster) => cluster.id === splitter.clusterId)
-                  ?.placementZone,
-              ),
-            )}
-            onResizeStart={() => runtime.beginInteraction()}
-            onResize={(deltaX, deltaY) => {
-              runtime.resizePanelFromReference(
-                contract.panelId,
-                contract.edge,
-                deltaX,
-                deltaY,
-              );
-            }}
-            onResizeEnd={() => setWorkspaceLayout(runtime.endInteraction())}
-          />
-        );
-      })}
+      {splitterIds.split(ID_LIST_SEPARATOR).map((splitterId) => (
+        <PanelWorkspaceSharedSplitter
+          key={splitterId}
+          splitterId={splitterId}
+          configsByPanelId={configsByPanelId}
+          dockOrigin={dockOrigin}
+          runtime={runtime}
+          setWorkspaceLayout={setWorkspaceLayout}
+        />
+      ))}
     </>
+  );
+}
+
+interface PanelWorkspaceSharedSplitterProps {
+  splitterId: string;
+  configsByPanelId: ReadonlyMap<PanelId, PanelConfig>;
+  dockOrigin: PanelDockOrigin;
+  runtime: PanelWorkspaceRuntime;
+  setWorkspaceLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
+}
+
+function findSharedSplitter(
+  coordinator: PanelWorkspaceLayoutCoordinator,
+  splitterId: string,
+): PanelWorkspaceSplitterGeometry | null {
+  return (
+    coordinator
+      .getSnapshot()
+      .splitters.find((splitter) => splitter.id === splitterId) ?? null
+  );
+}
+
+function nullableSplitterEquals(
+  a: PanelWorkspaceSplitterGeometry | null,
+  b: PanelWorkspaceSplitterGeometry | null,
+): boolean {
+  return (
+    a === b ||
+    (a !== null && b !== null && panelWorkspaceSplitterGeometryEquals(a, b))
+  );
+}
+
+/**
+ * cluster splitter 하나가 coordinator 를 구독하는 지점 (SnapshotPanelFrame 과 같은 구조).
+ * geometry 는 값 비교 캐시로, geometry 와 따로 바뀔 수 있는 입력 — before 패널 크기
+ * (aria-valuenow) · 작업 영역 높이 (row maxValue) · cluster 포커스 순서 (z-index) · anchor
+ * 방향 — 은 원시값으로 읽는다.
+ */
+function PanelWorkspaceSharedSplitter({
+  splitterId,
+  configsByPanelId,
+  dockOrigin,
+  runtime,
+  setWorkspaceLayout,
+}: PanelWorkspaceSharedSplitterProps) {
+  const { t } = useI18n();
+  const coordinator = runtime.coordinator;
+  const readSplitter = useCallback(
+    () => findSharedSplitter(coordinator, splitterId),
+    [coordinator, splitterId],
+  );
+  const splitter = usePanelWorkspaceLayoutSelector(
+    coordinator,
+    `splitter:${splitterId}`,
+    readSplitter,
+    nullableSplitterEquals,
+  );
+  const beforeFrameSize = usePanelWorkspaceLayoutValue(coordinator, () => {
+    const current = findSharedSplitter(coordinator, splitterId);
+    return current
+      ? sharedSplitterBeforeFrameSize(current, coordinator.getSnapshot())
+      : -1;
+  });
+  const workspaceHeight = usePanelWorkspaceLayoutValue(
+    coordinator,
+    () => coordinator.getSnapshot().workspaceRect.height,
+  );
+  const zIndex = usePanelWorkspaceLayoutValue(coordinator, () => {
+    const current = findSharedSplitter(coordinator, splitterId);
+    return current ? splitterZIndex(runtime, current.clusterId) : 30;
+  });
+  const rightAnchored = usePanelWorkspaceLayoutValue(coordinator, () => {
+    const current = findSharedSplitter(coordinator, splitterId);
+    if (!current) return false;
+    return isRightAnchoredPlacementZone(
+      runtime
+        .getLayout()
+        .clusters.find((cluster) => cluster.id === current.clusterId)
+        ?.placementZone,
+    );
+  });
+
+  if (!splitter) return null;
+  const contract = sharedSplitterContract(
+    splitter,
+    beforeFrameSize,
+    workspaceHeight,
+    runtime.getRegistry(),
+    configsByPanelId,
+    (config) => getPanelLabel(config, t),
+    t,
+  );
+  if (!contract) return null;
+
+  return (
+    <PanelSplitter
+      edge={contract.edge}
+      label={contract.label}
+      controls={contract.controls}
+      value={contract.value}
+      minValue={contract.minValue}
+      maxValue={contract.maxValue}
+      layoutVersion={splitter.layoutVersion}
+      className="panel-cluster-splitter"
+      splitterKind={splitter.kind}
+      style={sharedSplitterStyle(splitter, zIndex, dockOrigin, rightAnchored)}
+      onResizeStart={() => runtime.beginInteraction()}
+      onResize={(deltaX, deltaY) => {
+        runtime.resizePanelFromReference(
+          contract.panelId,
+          contract.edge,
+          deltaX,
+          deltaY,
+        );
+      }}
+      onResizeEnd={() => setWorkspaceLayout(runtime.endInteraction())}
+    />
   );
 }
 
@@ -978,14 +1085,18 @@ function panelDockColumns(
   return columns;
 }
 
-function panelClusterMap(
-  layout: PanelWorkspaceLayoutV4,
-  invalidationRevision: number,
-): ReadonlyMap<string, PanelWorkspaceClusterV4> {
-  // Runtime layout is mutable; the revision invalidates the memoized map.
-  void invalidationRevision;
-  return new Map(
-    layout.clusters.map((cluster) => [cluster.id, cluster] as const),
+function panelDockColumnKey(column: PanelDockColumnPresentation): string {
+  return `${column.clusterId}:${column.columnIndex}`;
+}
+
+function nullableColumnEquals(
+  a: PanelDockColumnPresentation | null,
+  b: PanelDockColumnPresentation | null,
+): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  return (
+    a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
   );
 }
 
@@ -994,46 +1105,84 @@ interface PanelDockClusterPresentationProps {
   runtime: PanelWorkspaceRuntime;
 }
 
+/**
+ * cluster column 경계선 (`.panel-dock-rail`) 의 부모. column 의 **집합** (키 목록) 만 구독해
+ * column 이 생기거나 없어질 때만 렌더되고, 각 column 의 extent 는 leaf 가 스스로 읽는다.
+ */
 function PanelDockClusterPresentation({
   dockOrigin,
   runtime,
 }: PanelDockClusterPresentationProps) {
-  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const layout = runtime.getLayout();
-  const columns = panelDockColumns(layout.clusters, snapshot);
-  const clustersById = useMemo(
-    () => panelClusterMap(runtime.getLayout(), snapshot.version),
-    [runtime, snapshot.version],
+  const coordinator = runtime.coordinator;
+  const columnKeys = usePanelWorkspaceLayoutValue(coordinator, () =>
+    panelDockColumns(runtime.getLayout().clusters, coordinator.getSnapshot())
+      .map(panelDockColumnKey)
+      .join(ID_LIST_SEPARATOR),
   );
+  if (columnKeys.length === 0) return null;
 
   return (
     <>
-      {columns.map((column) => {
-        const left = column.x - dockOrigin.x;
-        const top = column.y - dockOrigin.y;
-        const cluster = clustersById.get(column.clusterId);
-        const isRightAnchored = isRightAnchoredPlacementZone(
-          cluster?.placementZone,
-        );
-        return (
-          <div
-            key={`${column.clusterId}:${column.columnIndex}`}
-            aria-hidden="true"
-            className="panel-dock-rail"
-            style={{
-              height: column.height,
-              ...(isRightAnchored
-                ? {
-                    right:
-                      dockOrigin.workspaceWidth - column.x - column.width + 1,
-                  }
-                : { left: left + column.width - 1 }),
-              top,
-            }}
-          />
-        );
-      })}
+      {columnKeys.split(ID_LIST_SEPARATOR).map((columnKey) => (
+        <PanelDockRail
+          key={columnKey}
+          columnKey={columnKey}
+          dockOrigin={dockOrigin}
+          runtime={runtime}
+        />
+      ))}
     </>
+  );
+}
+
+interface PanelDockRailProps {
+  columnKey: string;
+  dockOrigin: PanelDockOrigin;
+  runtime: PanelWorkspaceRuntime;
+}
+
+function PanelDockRail({ columnKey, dockOrigin, runtime }: PanelDockRailProps) {
+  const coordinator = runtime.coordinator;
+  const readColumn = useCallback(
+    () =>
+      panelDockColumns(
+        runtime.getLayout().clusters,
+        coordinator.getSnapshot(),
+      ).find((column) => panelDockColumnKey(column) === columnKey) ?? null,
+    [columnKey, coordinator, runtime],
+  );
+  const column = usePanelWorkspaceLayoutSelector(
+    coordinator,
+    `dock-column:${columnKey}`,
+    readColumn,
+    nullableColumnEquals,
+  );
+  const isRightAnchored = usePanelWorkspaceLayoutValue(coordinator, () => {
+    const current = readColumn();
+    if (!current) return false;
+    return isRightAnchoredPlacementZone(
+      runtime
+        .getLayout()
+        .clusters.find((cluster) => cluster.id === current.clusterId)
+        ?.placementZone,
+    );
+  });
+  if (!column) return null;
+
+  const left = column.x - dockOrigin.x;
+  const top = column.y - dockOrigin.y;
+  return (
+    <div
+      aria-hidden="true"
+      className="panel-dock-rail"
+      style={{
+        height: column.height,
+        ...(isRightAnchored
+          ? { right: dockOrigin.workspaceWidth - column.x - column.width + 1 }
+          : { left: left + column.width - 1 }),
+        top,
+      }}
+    />
   );
 }
 

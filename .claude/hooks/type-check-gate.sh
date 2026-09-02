@@ -76,6 +76,17 @@ if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ] && command -v jq >/dev/null 2>&1
   if [ "${SESSION_WRITE_COUNT:-0}" -eq 0 ]; then
     exit 0
   fi
+  # 세션 편집 확장자 가드 (2026-09-02, 사용자 승인): 쓰기 도구는 썼지만 편집 대상이 전부
+  # 비-.ts/.tsx (문서·메모리·훅) 이고 agent 위임도 0 이면, 작업 트리의 .ts 변경은 여전히
+  # 외부 소유 → 이 세션에서 게이트 동작 금지.
+  # Why: ADR 문서만 쓴 세션이 병렬 세션(ADR-923 Phase 5)의 미커밋 .ts 로 Stop 마다 재차단
+  #   (2026-09-02 실측 12회 연속 — 수정 권한 없는 파일이라 세션 안에서 루프 종료 불가).
+  #   agent 위임이 있으면 하위 편집이 transcript 에 안 잡히므로 기존 보수 동작 유지.
+  SESSION_AGENT_COUNT=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use") | .name' "$TRANSCRIPT" 2>/dev/null | grep -cE '^(Task|Agent)$' || true)
+  SESSION_TS_EDIT_COUNT=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use") | select(.name=="Edit" or .name=="Write" or .name=="MultiEdit" or .name=="NotebookEdit") | .input.file_path // .input.notebook_path // empty' "$TRANSCRIPT" 2>/dev/null | grep -cE '\.(ts|tsx)$' || true)
+  if [ "${SESSION_AGENT_COUNT:-0}" -eq 0 ] && [ "${SESSION_TS_EDIT_COUNT:-0}" -eq 0 ]; then
+    exit 0
+  fi
 fi
 
 # .ts/.tsx 변경 감지

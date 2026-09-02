@@ -16,7 +16,9 @@ import {
   type PanelWorkspaceLayoutFrameScheduler,
 } from "./panelWorkspaceLayoutCoordinator";
 import {
+  panelWorkspaceSplitterGeometryEquals,
   usePanelWorkspaceFrameSnapshot,
+  usePanelWorkspaceLayoutSelector,
   usePanelWorkspaceLayoutSnapshot,
 } from "./usePanelWorkspaceLayoutSnapshot";
 
@@ -398,5 +400,68 @@ describe("ADR-922 useSyncExternalStore snapshot selectors", () => {
     expect(root.result.current.version).toBe(2);
     expect(frame.result.current).not.toBe(initial);
     expect(frame.result.current?.layoutVersion).toBe(2);
+  });
+
+  it("값 비교 selector 는 layoutVersion 만 바뀐 cluster splitter 를 같은 객체로 돌려준다", () => {
+    const scheduler = new TestFrameScheduler();
+    const source = createPanelWorkspaceLayoutV2();
+    source.visibility.datatableEditor = true; // 좌측 column 에 row splitter 생성
+    const migrated = migratePanelWorkspaceLayoutV2ToV4(
+      source,
+      PANEL_WORKSPACE_TEST_REGISTRY,
+      { surfaceRect: { width: 1400, height: 900 }, migrationId: "splitter" },
+    );
+    if (!migrated.ok) throw new Error(migrated.error);
+    const coordinator = requireCoordinator(
+      createInput({ layout: migrated.value }),
+      scheduler,
+    );
+    const splitterId = coordinator.getSnapshot().splitters[0]?.id;
+    expect(splitterId).toBeDefined();
+    const read = () =>
+      coordinator
+        .getSnapshot()
+        .splitters.find((splitter) => splitter.id === splitterId) ?? null;
+    const equals = (
+      a: ReturnType<typeof read>,
+      b: ReturnType<typeof read>,
+    ): boolean =>
+      a === b ||
+      (a !== null && b !== null && panelWorkspaceSplitterGeometryEquals(a, b));
+    const hook = renderHook(() =>
+      usePanelWorkspaceLayoutSelector(
+        coordinator,
+        `splitter:${splitterId}`,
+        read,
+        equals,
+      ),
+    );
+    const initial = hook.result.current;
+    expect(initial).not.toBeNull();
+
+    // 포커스 순서만 바뀐 layout → splitter 객체는 새로 만들어지지만 (layoutVersion 1) 같은 객체
+    const refocused = structuredClone(migrated.value);
+    refocused.clusterFocusOrder = [...refocused.clusterFocusOrder].reverse();
+    act(() => {
+      coordinator.queueInput(createInput({ layout: refocused }));
+      scheduler.flush(8.3);
+    });
+    expect(coordinator.getSnapshot().splitters[0]?.layoutVersion).toBe(1);
+    expect(hook.result.current).toBe(initial);
+
+    // 앞 패널 (navigator) 의 row 높이가 바뀌면 row splitter 의 y 가 바뀌므로 새 객체
+    const resized = structuredClone(refocused);
+    const navigatorRow = resized.clusters
+      .flatMap((cluster) => cluster.columns)
+      .flatMap((column) => column.rows)
+      .find((row) => row.panelId === "navigator");
+    if (!navigatorRow) throw new Error("navigator row not found");
+    navigatorRow.height += 40;
+    act(() => {
+      coordinator.queueInput(createInput({ layout: resized }));
+      scheduler.flush(16.6);
+    });
+    expect(hook.result.current).not.toBe(initial);
+    expect(hook.result.current?.geometry.y).not.toBe(initial?.geometry.y);
   });
 });
