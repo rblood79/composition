@@ -15,7 +15,7 @@ Proposed — 2026-09-02
 **원인 (Phase 0 실측, breakdown §2)**:
 
 1. **패널 조합 A/B** — navigator 만 열어도 p50 236.6 ms (드롭 100%), properties 만 열면 16.7 ms (드롭 0.5%), 둘 다 닫으면 16.7 ms. 비용은 Navigator 트리 단독으로 재현된다. Properties 는 할당 +18 MB/s 뿐이다.
-2. **가동되지 않는 가상화** — `LayerTree.tsx:214` 의 `treeNodes.length >= 300` 분기는 root 노드 개수 기준인데 모든 페이지의 root 는 body 1개다. 2026-08-29 도입 이후 실 문서에서 한 번도 켜진 적이 없다 (측정 Q4: 존재 ≠ 가동). 따라서 RAC `Tree` 가 600 행 전부를 mount 한다 (`TreeBase.tsx:187-208`).
+2. **가동되지 않는 가상화** — `LayerTree.tsx:214` 의 `treeNodes.length >= 300` 분기는 root 노드 개수 기준인데 모든 페이지의 root 는 body 1개다. 2026-08-29 도입 이후 실 문서에서 한 번도 켜진 적이 없다 (측정 Q4: 존재 ≠ 가동; 2026-09-03 사용자 프로젝트 live 확인 — 26 페이지 문서의 현재 페이지 root = body 1개). 따라서 RAC `Tree` 가 600 행 전부를 mount 한다 (`TreeBase.tsx:187-208`).
 3. **RAC Tree 의 재렌더 단위** — `selectedKeys` 가 바뀌면 `TreeStateContext` 를 소비하는 모든 `TreeItem` 이 재렌더되고 collection 이 재구축된다. self-time 상위가 전부 React/RAC 내부 (`ReactElement` 9.2%, RAC collection 빌더 `getDirectChildren`·`getItem`·`DOMElement` 8.8%, commit 6.8%, `ShadowTreeWalker` 3.7%) 이고 앱 행 콘텐츠 (`NormalItemContent`, `getEditingSemanticsRole`) 는 각 0.3% — 행 콘텐츠 memo 로는 닿지 않고 **행 수 자체** 를 줄여야 한다.
 
 **Hard Constraints**:
@@ -119,15 +119,15 @@ Proposed — 2026-09-02
 
 측정 조건 (모든 Gate 공통): 격리 프로젝트 · 시드 600 (body 아래 Text/frame) · Navigator + Properties 열림 · headless 60Hz · select 부류 100 ms 간격 3 s · 하니스 `pnpm perf:baseline -- --lane frame --classes idle,select`. 대조군 = 2026-09-02 A/B (both 234.8 ms). 불리 케이스 = 5k persistent 문서 + 실 포인터 클릭. live 확인은 DevTools CPU throttle 상태를 함께 기록한다 (사용자 환경은 4x slowdown — 하니스 수치와 직접 비교 금지, breakdown §8).
 
-| Gate | 시점              | 통과 조건                                                                                                                                                        | 실패 시 대안                                                                  |
-| ---- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| G0   | 코드 변경 전      | breakdown §2-5 보강 — 실 문서 root 수 · `[role=treeitem]` 수 (Chrome MCP, 사람 문서) + 현재 동작 체크리스트 기록                                                 | 기록 없이 착수 금지                                                           |
-| G1   | Phase 1 종료      | browser 테스트 (600 노드 · 320 px) treeitem ≤ 가시 행 + overscan×2 · 하니스 select gap p50 ≤ 33 ms · 드롭 ≤ 5% · longtask 0 · 60 요소 드롭 0 · DnD 3 케이스 동작 | 대안 B 임시 fallback + D1 debt HIGH 등재 + 후속 ADR 없이 본 ADR 안에서 재시도 |
-| G2   | Phase 2           | 가상화 전/후 같은 행 ARIA 속성 diff 0 · 키보드 ↑↓ Home/End typeahead · shift/meta 다중 선택 · 화면 밖 포커스 자동 스크롤 (Chrome MCP live)                       | 해당 축 RAC 설정 수정 후 재확인 — D1 계약 미달이면 승격 금지                  |
-| G3   | Phase 2           | 패널 숨김→복원 scrollTop 보존 · 캔버스 클릭 시 자동 펼침 + 선택 행 가시화 = §2-5 기준선                                                                          | scroll memory 대상 지정 / 선택 행 `scrollIntoView` 보강                       |
-| G4   | Phase 3           | 5k persistent 문서 select p50 ≤ 50 ms · `--headed` 1회 · 실 포인터 클릭 1회 · 하니스에 treeitem 수 기록 추가                                                     | ratchet 값을 실측으로 재설정하고 사유 기록                                    |
-| G5   | Implemented 전    | CHANGELOG · 기준선 문서 §3-2/§4 전/후 표 · `### Live Exercise` 절 · README                                                                                       | 승격 보류                                                                     |
-| G6   | Phase 4 착수 판정 | Styles + Properties + Navigator 열림 5k 에서 select gap p95 > 25 ms 또는 할당 > 60 MB/s → Phase 4 착수. 미달 → "측정상 불필요" 로 종결 기록                      | (판정 게이트 — 실패 개념 없음)                                                |
+| Gate | 시점              | 통과 조건                                                                                                                                                                                  | 실패 시 대안                                                                  |
+| ---- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| G0   | 코드 변경 전      | breakdown §2-5 보강 — 실 문서 root 수 (**2026-09-03 확인: 사용자 프로젝트 26 페이지, 현재 페이지 root = body 1개**) · `[role=treeitem]` 수 (전면 탭에서, 잔여) + 현재 동작 체크리스트 기록 | 기록 없이 착수 금지                                                           |
+| G1   | Phase 1 종료      | browser 테스트 (600 노드 · 320 px) treeitem ≤ 가시 행 + overscan×2 · 하니스 select gap p50 ≤ 33 ms · 드롭 ≤ 5% · longtask 0 · 60 요소 드롭 0 · DnD 3 케이스 동작                           | 대안 B 임시 fallback + D1 debt HIGH 등재 + 후속 ADR 없이 본 ADR 안에서 재시도 |
+| G2   | Phase 2           | 가상화 전/후 같은 행 ARIA 속성 diff 0 · 키보드 ↑↓ Home/End typeahead · shift/meta 다중 선택 · 화면 밖 포커스 자동 스크롤 (Chrome MCP live)                                                 | 해당 축 RAC 설정 수정 후 재확인 — D1 계약 미달이면 승격 금지                  |
+| G3   | Phase 2           | 패널 숨김→복원 scrollTop 보존 · 캔버스 클릭 시 자동 펼침 + 선택 행 가시화 = §2-5 기준선                                                                                                    | scroll memory 대상 지정 / 선택 행 `scrollIntoView` 보강                       |
+| G4   | Phase 3           | 5k persistent 문서 select p50 ≤ 50 ms · `--headed` 1회 · 실 포인터 클릭 1회 · 하니스에 treeitem 수 기록 추가                                                                               | ratchet 값을 실측으로 재설정하고 사유 기록                                    |
+| G5   | Implemented 전    | CHANGELOG · 기준선 문서 §3-2/§4 전/후 표 · `### Live Exercise` 절 · README                                                                                                                 | 승격 보류                                                                     |
+| G6   | Phase 4 착수 판정 | Styles + Properties + Navigator 열림 5k 에서 select gap p95 > 25 ms 또는 할당 > 60 MB/s → Phase 4 착수. 미달 → "측정상 불필요" 로 종결 기록                                                | (판정 게이트 — 실패 개념 없음)                                                |
 
 ### Live Exercise
 

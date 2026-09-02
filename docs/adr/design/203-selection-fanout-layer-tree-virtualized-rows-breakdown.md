@@ -8,6 +8,13 @@
 - **ADR-150 R2** 는 캔버스 collection window 와 LayerTree 패널 정책을 분리하고 "패널은 별도 정책 결정 후 검증" 으로 남겼다. 본 ADR 이 그 패널 정책이다. 의존 방향 없음 — 캔버스 projection window (Skia draw/hit) 와 패널 DOM 창 렌더는 서로 다른 표면이다.
 - tanstack 기반 `VirtualizedTree` 는 FramesTab (`FrameElementTree.tsx:176`) 도 쓴다 — scope 밖. LayerTree 에서만 제거하고 FramesTab 은 후속 fix 단위로 남긴다.
 
+**4 질문 lock-in** (`adr-writing.md` §"ADR Fork / 분리 결정 시 전제·관점 점검" — 신규 주제라 fork 는 아니지만 ADR-150·155 와의 관계 재론을 막기 위해 같은 형식으로 고정; /review 2026-09-03 LOW 반영):
+
+1. **base / 응용 분류**: 본 ADR 은 응용 (Navigator 패널 DOM 창 렌더) 이고 base 는 RAC `Tree` + `Virtualizer` (upstream). ADR-150 A2 (캔버스 collection window) · ADR-155 (패널 gating) 어느 쪽도 본 ADR 의 base 가 아니다 — prerequisite 없음.
+2. **schema 직교성**: 문서 schema · canonical 노드 · catalog 무접촉. 바뀌는 것은 패널 렌더 경로 (`TreeBase.tsx`) 와 CSS 행 높이 토큰뿐 — 150/155 의 schema 와 직교.
+3. **선행 ADR 전제 reverse 검증**: 150 R2 "window 는 캔버스 전용, 패널은 별도 정책" 은 본 ADR 후에도 그대로 성립 (패널이 캔버스 window 를 소비하지 않는다 — `useLayerTreeData.ts` 는 `LISTBOX_ROW_PROJECTION_WINDOW_LIMIT` 를 projected 행 cap 으로만 쓴다). 155 의 Activity gating 은 열린 패널에 무관하므로 방향 반전 없음. 사용자 confirm: `/create-adr` 직접 입력 (2026-09-02) + 추천 순서 답변 "adr생성 차례인가" 확인.
+4. **codex 3차 review 까지 미루지 않기**: 전제 (Navigator 단독 비용 · 가동된 적 없는 분기) 는 Phase 0 A/B 와 코드 사실 C1~~C9 로 착수 전에 확정했고, /review round 1 (2026-09-03) 이 C1~~C7 인용을 전수 대조해 정확 판정. 1차 진입 전 전제 검증 완료.
+
 ## §2 Phase 0 — inventory (2026-09-02 완료분 + 착수 시 보강 1건)
 
 ### 2-1. 패널 조합 A/B (완료 — `pnpm perf:baseline -- --lane frame --seed-count 600 --classes idle,select --duration-ms 3000 --open-panels <조합>`)
@@ -62,7 +69,7 @@ headless Chrome 60Hz · 격리 프로젝트 · 시드 600 (Text/frame, 전부 `p
 
 ### 2-5. 착수 시 보강 (G0 — 코드 변경 전 1회)
 
-- [ ] **실 문서 root 수** — Chrome MCP 로 사용자 프로젝트 1개를 열고 현재 페이지 `elements.filter(e => !e.parent_id).length` 와 `[role="treeitem"]` 수, `.layer-tree--virtualized` 유무 기록 (2026-09-02 시도는 boot "Preparing the canvas 100%" 정지 — ADR-923 readiness 작업 중 + 숨은 탭 RAF 정지 조합 — 로 미완). 측정 Q1: 사람이 만든 문서에서 C1 이 성립함을 1회 확인.
+- [x] **실 문서 root 수 — 확인 (2026-09-03, Chrome MCP, 사용자 프로젝트 "AAAA")**: 26 페이지 · 요소 98 · 현재 페이지 7 · `elements.filter(e => !e.parent_id)` = **1 (body)** → `treeNodes.length` 는 요소 수와 무관하게 1 이라 C1 이 사람이 만든 문서에서도 성립 (측정 Q1 충족). 잔여: `[role="treeitem"]` 수 · `.layer-tree--virtualized` 유무는 boot 가 `visibilityState: hidden` 탭에서 "Preparing the canvas 100%" 에 머물러 (ADR-923 readiness 게이트는 실제 Skia flush 전 UI 를 숨긴다 — 숨은 탭은 RAF 정지) 못 읽었다. Phase 1 착수 시 전면 탭 (visible) 에서 1회 기록.
 - [ ] **현재 동작 체크리스트** (parity 기준선): 키보드 ↑↓ · Home/End · typeahead · shift/meta 다중 선택 · 캔버스 클릭 → 트리 자동 펼침 + 선택 행 가시화 여부 · 우클릭 메뉴 · 삭제 버튼 · DnD 3 케이스 (형제 사이 / 컨테이너 안으로 / 무효 drop) · 패널 숨김→복원 scrollTop. 각 항목의 **현재 결과** 를 기록 (후속 G2/G3 의 대조군).
 
 ## §3 Phase 1 — 스파이크: RAC `Virtualizer` + `ListLayout` (G1)
