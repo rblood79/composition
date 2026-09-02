@@ -38,7 +38,10 @@
      * 게이트: PanelWorkspace.static.test.ts */
     --panel-workspace-gap: 4px;
     --panel-interaction-line-color: var(--focus-ring);
+    /* resize 손잡이 선의 두께·길이 — 가로형(위/아래 edge) 은 length×size, 세로형(좌/우 edge) 은
+       size×length. 패널 edge · cluster splitter · 패널 안 섹션 분할(SectionSplitStack) 이 같은 값을 쓴다. */
     --panel-interaction-line-size: 2px;
+    --panel-interaction-line-length: 36px;
 
     display: grid;
     z-index: 40;
@@ -353,7 +356,7 @@
     top: 50%;
     left: 4px;
     width: var(--panel-interaction-line-size);
-    height: 28px;
+    height: var(--panel-interaction-line-length);
     transform: translateY(-50%);
   }
 
@@ -361,14 +364,14 @@
   .panel-resize-handle[data-edge="bottom"]::after {
     top: 4px;
     left: 50%;
-    width: 28px;
+    width: var(--panel-interaction-line-length);
     height: var(--panel-interaction-line-size);
     transform: translateX(-50%);
   }
 
   .panel-resize-handle:hover::after,
   .panel-resize-handle:focus-visible::after {
-    opacity: 0.7;
+    opacity: 1;
   }
 
   .panel-cluster-splitter {

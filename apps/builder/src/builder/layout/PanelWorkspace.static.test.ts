@@ -75,6 +75,15 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
       "--panel-interaction-line-color: var(--focus-ring)",
     );
     expect(styles).toContain("--panel-interaction-line-size: 2px");
+    // 손잡이 선 길이 토큰 — 가로형은 length×size, 세로형은 size×length 로만 정의한다
+    expect(styles).toContain("--panel-interaction-line-length: 36px");
+    expect(styles).toMatch(
+      /\.panel-resize-handle\[data-edge="left"\]::after,[\s\S]*?height: var\(--panel-interaction-line-length\);/,
+    );
+    expect(styles).toMatch(
+      /\.panel-resize-handle\[data-edge="top"\]::after,[\s\S]*?width: var\(--panel-interaction-line-length\);/,
+    );
+    expect(styles).not.toMatch(/\.panel-resize-handle[^{]*::after\s*\{[^}]*\b28px/);
     expect(styles).toMatch(
       /\.panel-snap-target\[data-edge="top"\],[\s\S]*?height: var\(--panel-interaction-line-size\);/,
     );
