@@ -1945,7 +1945,7 @@ export function calculateContentWidth(
           getChildElements,
         );
         // border-box 산출: enrichWithIntrinsicSize와 동일하게 padding + border 추가
-        // (Tag, Badge 등 INLINE_BLOCK_TAGS의 spec padding/border가 포함되어야 함)
+        // (Tag, Badge 등 INTRINSIC_MEASURE_TAGS의 spec padding/border가 포함되어야 함)
         const childBox = parseBoxModel(child, 0, -1);
         return (
           contentW +
@@ -4523,84 +4523,28 @@ export function parseBoxModel(
 // ---------------------------------------------------------------------------
 
 /**
- * CSS 스펙에서 기본 display가 inline-block인 태그
+ * ADR-923 Phase 4 (G5) → Phase 5 — 구 `INLINE_BLOCK_TAGS` 24 항목의 **두 역할 분리** (Phase 0 §B
+ * 분류표, `docs/adr/evidence/923-phase0-inventory.md`). Phase 5 (2026-09-02) 에서 그 Set 은 삭제됐고
+ * 이 분류표가 두 역할의 단일 정본이다 — 측정은 `INTRINSIC_MEASURE_TAGS` (아래, 명시 목록), 기본
+ * display 는 `defaultDisplay.ts` `resolveDefaultDisplay` (catalog 파생 → hand 목록 → block).
  *
- * 레이아웃 엔진이 이 요소들을 block으로 처리할 때,
- * width가 없으면 100%로 확장된다.
- * fit-content 동작을 에뮬레이트하기 위해 intrinsic width를 주입한다.
- */
-export const INLINE_BLOCK_TAGS = new Set([
-  "button",
-  "submitbutton",
-  "fancybutton",
-  "togglebutton",
-  "badge",
-  "progresscircle",
-  "type",
-  "chip",
-  "checkbox",
-  "radio",
-  "switch",
-  "togglebuttongroup",
-  "toolbar",
-  "statuslight",
-  "link",
-  "linkbutton",
-  // "breadcrumbs" (컨테이너) 제거 (2026-07-13 parity sweep): catalog containerStyles 는
-  //   display:flex (블록 레벨 → 부모 폭 stretch) 이고 CSS 도 388 stretch 인데, fit-content
-  //   주입이 Skia 만 194 로 수축시켜 폭 발산. 높이는 implicitStyles breadcrumbs 분기가
-  //   계속 주입. 자식 "breadcrumb" (아래) 은 유지 — 개별 crumb 은 inline intrinsic.
-  // ADR-086 P5: Breadcrumb child — implicitStyles 의 width/height 주입이 제거되므로
-  //   enrichWithIntrinsicSize 가 calculateContentWidth/Height 의 breadcrumb 분기로
-  //   intrinsic 치수를 산출해야 Taffy 가 배치할 수 있다.
-  "breadcrumb",
-  "icon",
-  "menu",
-  "tab",
-  // ADR-912 (B+icon): DisclosureHeader catalog 발효 후 chevron(leading icon) + text
-  //   합성 inline-block leaf. enrichWithIntrinsicSize 가 calculateContentWidth 의
-  //   disclosureheader 분기로 intrinsic 폭(paddingX + iconSize + gap + text + paddingX)을
-  //   산출해야 Skia 시각(leading_icon append + text x-shift)과 폭 대칭이 유지된다.
-  //   미등록 시 needsWidth=false → width 0 (selection "0×24" 버그).
-  "disclosureheader",
-  // ADR-912 (B+icon): CalendarHeader catalog 발효 후 좌 chevron + center text + 우 chevron
-  //   합성 inline-block leaf. calculateContentWidth 의 calendarheader 분기로 intrinsic 폭
-  //   (cellSize + text + cellSize)을 산출해야 Skia 시각(inline_icon_text replace)과 폭 대칭
-  //   유지. 미등록 시 needsWidth=false → width 0 (DisclosureHeader 동일 회귀 경로).
-  "calendarheader",
-  // 2026-07-07 전수조사: CalendarGrid 도 self-render escape(calendar_month_grid, 자식 없는
-  //   합성 leaf) 이므로 intrinsic 폭(cellSize*7 + gap*6, calculateContentWidth calendargrid 분기)을
-  //   주입받아야 한다. 미등록 시 needsWidth=false → width 미주입 → Calendar(fit-content) 부모에서
-  //   grid 가 available 폭으로 stretch → Calendar 가 부모 폭 전체로 팽창(CSS fit-content 256 발산).
-  //   CalendarHeader 동형(둘 다 Calendar 자식 self-render leaf).
-  "calendargrid",
-  // DateInput 버그(2026-06-23): datefieldSegments escape 가 box+segment text+icon 을 한
-  //   노드에 그리는데, layout 분기가 `width:"100%"`(부모 auto 에서 작게 계산)를 줘서
-  //   box < 콘텐츠 → 텍스트가 box 밖으로 넘침. calculateContentWidth 의 dateinput 분기로
-  //   콘텐츠 자연폭(paddingX + segmentText + gap + icon + padRight)을 산출해야 box 가
-  //   콘텐츠를 담는다(DisclosureHeader/CalendarHeader 동형). 미등록 시 needsWidth=false.
-  "dateinput",
-]);
-
-/**
- * ADR-923 Phase 4 (G5) — `INLINE_BLOCK_TAGS` 24 항목의 **두 역할 분리** (Phase 0 §B 분류표,
- * `docs/adr/evidence/923-phase0-inventory.md`).
- *
- * `INLINE_BLOCK_TAGS` 는 두 개념을 한 Set 으로 겸용해 왔다 — (a) 부모가 보는 **기본 display**
- * (`getElementDisplay` → `inline-block`) 와 (b) **intrinsic 측정 필요** (`needsWidth` 게이트 →
- * `calculateContentWidth`). 24 항목 전부 (b) 는 필요하지만 (a) 는 항목마다 다르다:
+ * 구 Set 은 두 개념을 겸용해 왔다 — (a) 부모가 보는 **기본 display** (`getElementDisplay` →
+ * `inline-block`) 와 (b) **intrinsic 측정 필요** (`needsWidth` 게이트 → `calculateContentWidth`).
+ * 24 항목 전부 (b) 는 필요하지만 (a) 는 항목마다 다르다:
  * - role `AB` 11 — display 도 catalog 로 파생 가능 (inline-* — 사용자-가시 DOM 과 outer 일치)
  * - role `B` 6 — 측정만 필요. catalog/DOM 이 block-level (flex/grid/table) 인데 이 Set 에 있어 부모가
  *   inline-block 으로 봤다 (display 역할이 틀림 — Phase 5 에서 display 목록에서 빠진다)
  * - role `?` 7 — 분류 불가 + 사유 (catalog rule 없음 5 · Menu B7 의도된 차이 · DateInput display 없음)
- * display 원천: `catalog` (파생 가능) / `hand` (파생 원천 없음 → 손 목록 + 사유; 값은 **현재 동작**
- * 을 그대로 적는다 — Phase 4 는 동작 무변경, `resolveDefaultDisplay` 는 Phase 5 까지 미배선이고 Phase 5
- * Q4 소비 경로 캡처가 판정한다).
+ * display 원천: `catalog` (파생 가능 — 17) / `hand` (파생 원천 없음 → 손 목록 + 사유 — 7). hand 의
+ * `handDisplay` 는 **동작 값** 이다: rule 없는 5 + dateinput 은 `inline-block`, calendargrid 는 `block`
+ * (Phase 5 전환 — CalendarGrid Q4 `tests/parity/adr923CalendarGridQ4.browser.test.ts` +
+ * evidence/923-phase4-preparation.md §9, Codex round 30 판정). 후보 (`domDisplay`) 는 근거가 붙기
+ * 전까지 동작에 쓰지 않는다.
  *
- * Phase 4 에서는 `needsWidth` 만 `INTRINSIC_MEASURE_TAGS` 를 읽고 (멤버십 동일 → 출력 diff 0,
- * `adr923IntrinsicMeasureSplit.test.ts`), 나머지 `INLINE_BLOCK_TAGS` 소비처와 `getElementDisplay`
- * 는 Phase 5 cutover 까지 그대로 둔다 (단독 배선 시 catalog `flex` 가 부모 판정으로 새어 IFC
- * 시뮬레이션이 풀린다 — reviews/923 r2 m2).
+ * Phase 5 배선 결과 (G5 의도된 diff 목록, `adr923IntrinsicMeasureSplit.test.ts` 고정): catalog 17 은
+ * `inline-block` → catalog `containerStyles.display` (Button/ToggleButton inline-flex · badge 등
+ * inline-flex · progresscircle grid · togglebuttongroup/toolbar/disclosureheader/calendarheader
+ * flex · menu inline-flex), calendargrid `inline-block` → `block`, 나머지 hand 6 은 무변경.
  */
 /** Phase 0 §B 역할 — AB: display 파생 + 측정 · B: 측정만 (display 역할이 틀림) · ?: 분류 불가 (사유) */
 export type InlineBlockTagRole = "AB" | "B" | "?";
@@ -4645,7 +4589,7 @@ export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
     display: "hand",
     handDisplay: "inline-block",
     reason:
-      "catalog rule 없음 · 생성 참조 0 — 파생 원천 없음. 폭·높이는 button 분기 공유. 현재 값 유지, Phase 5 Q4 판정",
+      "catalog rule 없음 · 생성 참조 0 — 파생 원천 없음. 폭·높이는 button 분기 공유. Phase 5 cutover 후에도 손 목록 (inline-block) 유지 — 파생 원천 없음",
   },
   fancybutton: {
     measure: true,
@@ -4653,7 +4597,7 @@ export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
     display: "hand",
     handDisplay: "inline-block",
     reason:
-      "catalog rule 없음 · 생성 참조 0 — 파생 원천 없음. button 분기 공유. 현재 값 유지, Phase 5 Q4 판정",
+      "catalog rule 없음 · 생성 참조 0 — 파생 원천 없음. button 분기 공유. Phase 5 cutover 후에도 손 목록 (inline-block) 유지 — 파생 원천 없음",
   },
   togglebutton: {
     measure: true,
@@ -4682,7 +4626,7 @@ export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
     display: "hand",
     handDisplay: "inline-block",
     reason:
-      "catalog rule 없음 · 생성 경로 미확인 (소비처 needsWidth · VERTICALLY_CENTERED_TAGS 뿐). 현재 값 유지, Phase 5 Q4 판정",
+      "catalog rule 없음 · 생성 경로 미확인 (소비처 needsWidth · VERTICALLY_CENTERED_TAGS 뿐). Phase 5 cutover 후에도 손 목록 (inline-block) 유지 — 파생 원천 없음",
   },
   chip: {
     measure: true,
@@ -4690,7 +4634,7 @@ export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
     display: "hand",
     handDisplay: "inline-block",
     reason:
-      "catalog rule 없음 (chip 은 TagList self-render) · 생성 참조 0. 현재 값 유지, Phase 5 Q4 판정",
+      "catalog rule 없음 (chip 은 TagList self-render) · 생성 참조 0. Phase 5 cutover 후에도 손 목록 (inline-block) 유지 — 파생 원천 없음",
   },
   checkbox: {
     measure: true,
@@ -4745,7 +4689,8 @@ export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
     role: "?",
     display: "hand",
     handDisplay: "inline-block",
-    reason: "catalog rule 없음 · 생성 참조 0. 현재 값 유지, Phase 5 Q4 판정",
+    reason:
+      "catalog rule 없음 · 생성 참조 0. Phase 5 cutover 후에도 손 목록 (inline-block) 유지 — 파생 원천 없음",
   },
   breadcrumb: {
     measure: true,
@@ -4793,12 +4738,9 @@ export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
     measure: true,
     role: "B",
     display: "hand",
-    handDisplay: "inline-block",
-    domDisplay: "block",
-    domEvidence:
-      "Q4 (tests/parity/adr923CalendarGridQ4.browser.test.ts, evidence/923-phase4-preparation.md §9): production Calendar 트리에서 부모 Calendar 는 두 표면 모두 flex 컨테이너 (catalog top-level flex column / DOM .calendar-grids flex) 라 outer display 는 inert — block 으로 바꿔도 layout map 동일. 자유 배치 형태의 DOM 은 Preview resolveHtmlTag → <div> (block), RAC 실체는 <table> (outer block-level)",
+    handDisplay: "block",
     reason:
-      "self-render leaf (cellSize*7) 측정. rule 은 있으나 catalog display 없음 → 파생 불가. 현재 값 유지 (inline-block); DOM 정합 후보 block 은 domDisplay — Phase 5 catalog display 등재 판정",
+      "self-render leaf (cellSize*7) 측정. rule 은 있으나 catalog display 없음 → 파생 불가 → 손 목록. Phase 5 (2026-09-02) 에서 inline-block → block 전환 — Q4 (tests/parity/adr923CalendarGridQ4.browser.test.ts, evidence/923-phase4-preparation.md §9): production Calendar 트리에서 부모 Calendar 는 두 표면 모두 flex 컨테이너라 outer 는 inert (layout map 동일), 자유 배치 형태의 DOM 은 Preview resolveHtmlTag → <div> (block) · RAC 실체 <table> (outer block-level) 과 정합. Codex round 30 판정 (추가 측정 없이 block 선택 근거 충분)",
   },
   dateinput: {
     measure: true,
@@ -4809,14 +4751,14 @@ export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
     domEvidence:
       "DOM 문맥 셀렉터 inline-flex (outer inline) — 현재 값과 outer 동일, 전환 후보 아님",
     reason:
-      "self-render leaf (segments + icon) 측정 (2026-06-23 버그). rule 은 있으나 catalog display 없음 → 파생 불가; DOM 은 문맥 셀렉터 inline-flex (outer inline 동일). 현재 값 유지, Phase 5 catalog display 등재 판정",
+      "self-render leaf (segments + icon) 측정 (2026-06-23 버그). rule 은 있으나 catalog display 없음 → 파생 불가; DOM 은 문맥 셀렉터 inline-flex (outer inline 동일). Phase 5 cutover 후에도 손 목록 (inline-block) 유지 — DOM outer 와 같다",
   },
 };
 
 /**
- * intrinsic 측정 capability — **명시 목록** (catalog 파생 아님). `needsWidth` 의 유일한 소비 원천.
- * Phase 4 에서는 `INLINE_BLOCK_TAGS` 와 멤버십이 같다 (`adr923IntrinsicMeasureSplit.test.ts` 가
- * 고정) — Phase 5 가 `INLINE_BLOCK_TAGS` 를 삭제하면 이 목록만 남는다.
+ * intrinsic 측정 capability — **명시 목록** (catalog 파생 아님). `needsWidth` · `enrichWithIntrinsicSize`
+ * 의 측정 게이트가 읽는 유일한 원천 (구 `INLINE_BLOCK_TAGS` 24 와 멤버십 동일 — Phase 5 에서 그 Set 은
+ * 삭제됐고 `adr923IntrinsicMeasureSplit.test.ts` 가 분리 전 baseline 과 출력 diff 0 을 고정한다).
  */
 export const INTRINSIC_MEASURE_TAGS: ReadonlySet<string> = new Set(
   Object.entries(INLINE_BLOCK_TAG_CLASSIFICATION)
@@ -4980,18 +4922,19 @@ export function enrichWithIntrinsicSize(
   const style = element.props?.style as Record<string, unknown> | undefined;
   const type = (element.type ?? "").toLowerCase();
 
-  // DC-6: overflow cap — height/width: auto + overflow != visible 조합에서
-  // 자식 합산이 availableHeight/Width를 초과하지 않도록 제한
-  const overflow = (style?.overflow as string) ?? "visible";
-  const isOverflowClipped = overflow !== "visible";
+  // (ADR-923 Phase 5, 2026-09-02) DC-6 overflow cap 삭제 — 종전에는 height/width 미지정 + overflow ≠
+  //   visible 이면 주입 intrinsic 크기를 availableHeight/Width 로 잘랐다 (엔진 flex §4.5 automatic minimum
+  //   의 TS 중복 + block 문맥 오폭 + clip 을 hidden 과 같이 취급). flex 문맥의 scroll container 최소 크기
+  //   0 은 엔진 `is_scroll_container` → §4.5 가, block 문맥 auto-height 는 cap 없음이 CSS 다
+  //   (tests/parity/adr923Dc6OverflowCapInventory · adr923Dc6ChromeGate).
 
   // grow 하는 flex item 은 intrinsic width 를 **명시 width 로 굳히면 안 된다** (2026-07-14).
   //   CSS 에서 intrinsic 폭은 flex **base size** 일 뿐이고 used 폭은 grow 분배 결과다.
   //   `width` 로 박으면 free space 분배가 원천 차단된다 (flex-grow 가 죽음).
-  //   회귀: DatePicker > SelectTrigger > DateInput(`flex:1 minWidth:0`) 이 INLINE_BLOCK_TAGS
+  //   회귀: DatePicker > SelectTrigger > DateInput(`flex:1 minWidth:0`) 이 INTRINSIC_MEASURE_TAGS
   //   소속이라 needsWidth=true → width=102(콘텐츠) 주입 → trigger 가 350 인데 DateInput 은
   //   102 에 고정, icon 이 x=119 로 딸려옴 (DOM 은 grow 로 308 / icon x=345).
-  //   같은 `flex:1 minWidth:0` 을 받는 SelectValue 는 INLINE_BLOCK_TAGS 비소속이라 width
+  //   같은 `flex:1 minWidth:0` 을 받는 SelectValue 는 INTRINSIC_MEASURE_TAGS 비소속이라 width
   //   미주입 → 정상 grow. 즉 Select 의 정상 동작은 **우연**이었다.
   const growRaw =
     style?.flexGrow ??
@@ -5024,11 +4967,11 @@ export function enrichWithIntrinsicSize(
   const needsWidth =
     hasExplicitIntrinsicWidthKeyword ||
     // ADR-923 Phase 4 (G5): 측정 capability 는 INTRINSIC_MEASURE_TAGS (명시 목록) 가 원천 —
-    //   INLINE_BLOCK_TAGS 의 display 역할과 분리. 멤버십 동일 → 출력 diff 0 (분리 전 baseline 게이트).
+    //   INTRINSIC_MEASURE_TAGS 의 display 역할과 분리. 멤버십 동일 → 출력 diff 0 (분리 전 baseline 게이트).
     (INTRINSIC_MEASURE_TAGS.has(type) &&
       (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
     // 정원형 leaf(ProgressCircle/Avatar): width = diameter = catalog sizes.height.
-    //   progresscircle 은 INLINE_BLOCK_TAGS 로도 커버되지만 avatar 는 IMAGE_INTRINSIC_TAGS 소속이라
+    //   progresscircle 은 INTRINSIC_MEASURE_TAGS 로도 커버되지만 avatar 는 IMAGE_INTRINSIC_TAGS 소속이라
     //   아래 조건(문자열 키워드 한정)에 안 걸린다 — width 미주입 시 layout 0 → 명시 분기 필요.
     (CIRCLE_LEAF_TAGS.has(type) &&
       (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
@@ -5119,7 +5062,7 @@ export function enrichWithIntrinsicSize(
   // 또한, childElements가 있는 컨테이너(CardHeader/CardContent 등)도 예외:
   // 자체 텍스트는 없지만 자식 요소의 높이를 합산해야 하므로 calculateContentHeight가 필요함
   // Select: Compositional Architecture — Card와 동일하게 자식 기반 높이 + padding 경로
-  // INLINE_BLOCK_TAGS(button, badge 등)은 명시적 고정 width가 있을 때 needsWidth=false가 되어
+  // INTRINSIC_MEASURE_TAGS(button, badge 등)은 명시적 고정 width가 있을 때 needsWidth=false가 되어
   // 이 early return에 걸리지만, 텍스트 줄바꿈 시 높이 재계산이 필요하므로 반드시 예외 처리해야 함.
   // r10h1: 텍스트 leaf 는 height:0 이라 contentHeight 0 이어도 line box 신호(leafBaseline)
   //   공급을 위해 통과 (위 early return 과 같은 사유).
@@ -5128,7 +5071,7 @@ export function enrichWithIntrinsicSize(
     !needsWidth &&
     !textLeafHasLineBox &&
     !SPEC_SHAPES_INPUT_TAGS.has(type) &&
-    !INLINE_BLOCK_TAGS.has(type) &&
+    !INTRINSIC_MEASURE_TAGS.has(type) &&
     !IMAGE_INTRINSIC_TAGS.has(type) &&
     !(childElements && childElements.length > 0)
   ) {
@@ -5157,14 +5100,14 @@ export function enrichWithIntrinsicSize(
         )
       : IMAGE_INTRINSIC_TAGS.has(type) ||
           SPEC_SHAPES_INPUT_TAGS.has(type) ||
-          INLINE_BLOCK_TAGS.has(type) ||
+          INTRINSIC_MEASURE_TAGS.has(type) ||
           TEXT_LEAF_TAGS.has(type)
         ? calculateContentHeight(
             element,
             // INLINE_BLOCK 태그에 명시적 고정 너비(px)가 있으면 자신의 border-box 너비로
             // 텍스트 줄바꿈을 계산해야 함. 부모의 availableWidth를 사용하면 버튼 크기를
             // 초과한 너비로 측정되어 줄바꿈이 발생하지 않고 높이가 늘어나지 않는 버그 발생.
-            INLINE_BLOCK_TAGS.has(type) &&
+            INTRINSIC_MEASURE_TAGS.has(type) &&
               (parseNumericValue(rawWidth) ?? 0) > 0
               ? (parseNumericValue(rawWidth) as number)
               : availableWidth,
@@ -5235,20 +5178,12 @@ export function enrichWithIntrinsicSize(
       }
       injectHeight += box.border.top + box.border.bottom;
     }
-    // DC-6: overflow cap — availableHeight가 있고 overflow가 클리핑되면 초과분 제한
-    if (
-      isOverflowClipped &&
-      availableHeight > 0 &&
-      injectHeight > availableHeight
-    ) {
-      injectHeight = availableHeight;
-    }
     injectedStyle.height = injectHeight;
   }
 
   // Width 주입 (inline-block 태그의 fit-content / min-content / max-content 에뮬레이션)
   // childElements가 있으면 재계산 (ToggleButtonGroup 등 자식이 CanvasLayoutNode로 저장된 경우)
-  // childElements가 없어도 INLINE_BLOCK_TAGS(Tag, Badge 등)는 텍스트 기반 너비 계산 필요:
+  // childElements가 없어도 INTRINSIC_MEASURE_TAGS(Tag, Badge 등)는 텍스트 기반 너비 계산 필요:
   // box.contentWidth는 availableWidth 기반이므로 fit-content 시 부모 전체 너비를 차지하는 버그 발생
   const childResolvedWidth =
     childElements && childElements.length > 0
@@ -5258,7 +5193,7 @@ export function enrichWithIntrinsicSize(
           getChildElements,
           _computedStyle,
         )
-      : INLINE_BLOCK_TAGS.has(type) ||
+      : INTRINSIC_MEASURE_TAGS.has(type) ||
           CIRCLE_LEAF_TAGS.has(type) ||
           hasExplicitIntrinsicWidthKeyword
         ? calculateContentWidth(
@@ -5351,14 +5286,6 @@ export function enrichWithIntrinsicSize(
     let injectWidth = baseContentWidth;
     injectWidth += box.padding.left + box.padding.right;
     injectWidth += box.border.left + box.border.right;
-    // DC-6: overflow cap — availableWidth가 있고 overflow가 클리핑되면 초과분 제한
-    if (
-      isOverflowClipped &&
-      availableWidth > 0 &&
-      injectWidth > availableWidth
-    ) {
-      injectWidth = availableWidth;
-    }
     // Math.ceil: Taffy(f32)와 JS(f64) 간 부동소수점 정밀도 차이로
     // flex-wrap 컨테이너에서 자식 합계가 부모 폭을 미세하게 초과하여
     // 불필요한 wrap이 발생하는 것을 방지

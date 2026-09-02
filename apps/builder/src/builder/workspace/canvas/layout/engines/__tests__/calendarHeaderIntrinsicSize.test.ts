@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import type { CanvasLayoutNode } from "../../layoutNode";
 import {
-  INLINE_BLOCK_TAGS,
+  INTRINSIC_MEASURE_TAGS,
   calculateContentHeight,
   calculateContentWidth,
 } from "../utils";
@@ -11,10 +11,10 @@ import {
  * ADR-912 (B+icon) — CalendarHeader catalog 발효 후 Skia intrinsic 치수 회귀 게이트.
  *
  * 버그: CalendarHeader 가 catalog generic(inline_icon_text replace) 로 전환됐으나 layout 엔진의
- *   INLINE_BLOCK_TAGS 미등록 → enrichWithIntrinsicSize 가 width 미산출 → selection "0×30"(width 0).
+ *   INTRINSIC_MEASURE_TAGS 미등록 → enrichWithIntrinsicSize 가 width 미산출 → selection "0×30"(width 0).
  *   Skia 는 좌 chevron + center text + 우 chevron 을 그리지만 layout box 가 0 폭(DisclosureHeader 동일 회귀).
  *
- * 수정: (1) INLINE_BLOCK_TAGS 에 "calendarheader" 등록 → needsWidth=true.
+ * 수정: (1) INTRINSIC_MEASURE_TAGS 에 "calendarheader" 등록 → needsWidth=true.
  *   (2) calculateContentWidth calendarheader 분기(= calendargrid 공유) = cellSize*7 + gap*6
  *       (CalendarHeader 는 Calendar 자식이라 grid 폭과 동일 — inline_icon_text 우측 chevron 도 동일 폭 가정).
  *   (3) calculateContentHeight calendarheader 분기 = rule height(sm:24 / md:30 / lg:36, spec 의존 제거).
@@ -31,8 +31,8 @@ const makeHeader = (props: Record<string, unknown> = {}): CanvasLayoutNode =>
   }) as CanvasLayoutNode;
 
 describe("CalendarHeader intrinsic size (ADR-912 B+icon width 회귀)", () => {
-  test("INLINE_BLOCK_TAGS 에 calendarheader 등록 — width 주입 대상", () => {
-    expect(INLINE_BLOCK_TAGS.has("calendarheader")).toBe(true);
+  test("INTRINSIC_MEASURE_TAGS 에 calendarheader 등록 — width 주입 대상", () => {
+    expect(INTRINSIC_MEASURE_TAGS.has("calendarheader")).toBe(true);
   });
 
   test("calculateContentWidth — width 0 아님 (selection '0×30' 버그 차단)", () => {

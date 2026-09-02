@@ -40,7 +40,6 @@ export {
   getButtonSizeConfig,
   // 🚀 §6 P1: intrinsic size 주입 (엔진 공유)
   enrichWithIntrinsicSize,
-  INLINE_BLOCK_TAGS,
   INLINE_BLOCK_TAG_CLASSIFICATION,
   INTRINSIC_MEASURE_TAGS,
   getPhantomIndicatorWidth,

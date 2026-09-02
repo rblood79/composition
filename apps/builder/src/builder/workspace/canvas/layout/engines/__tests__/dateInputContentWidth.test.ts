@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import type { CanvasLayoutNode } from "../../layoutNode";
-import { INLINE_BLOCK_TAGS, calculateContentWidth } from "../utils";
+import { INTRINSIC_MEASURE_TAGS, calculateContentWidth } from "../utils";
 
 /**
  * DateInput intrinsic content width — Skia box 가 콘텐츠(segment text + icon)보다
@@ -12,7 +12,7 @@ import { INLINE_BLOCK_TAGS, calculateContentWidth } from "../utils";
  *   에서 콘텐츠 shrink)라 Taffy 가 `100%` 를 작게 계산 → box < 콘텐츠. escape 노드는
  *   자식이 없어 intrinsic width 0 → CSS 의 min-content 보장이 없다.
  *
- * 수정: DisclosureHeader/CalendarHeader 동형 — (1) INLINE_BLOCK_TAGS 에 "dateinput"
+ * 수정: DisclosureHeader/CalendarHeader 동형 — (1) INTRINSIC_MEASURE_TAGS 에 "dateinput"
  *   등록 → needsWidth=true. (2) calculateContentWidth dateinput 분기 = paddingX +
  *   segmentTextWidth + (picker 면 gap + iconSize + padRight, 아니면 우측 paddingX)
  *   (datefieldSegments escape Skia 공식과 1:1 대칭). 콘텐츠 자연폭 = CSS DatePicker
@@ -32,8 +32,8 @@ const makeDateInput = (props: Record<string, unknown> = {}): CanvasLayoutNode =>
   }) as CanvasLayoutNode;
 
 describe("DateInput intrinsic content width (2026-06-23 box < content 버그)", () => {
-  test("INLINE_BLOCK_TAGS 에 dateinput 등록 — width 주입 대상 (needsWidth 트리거)", () => {
-    expect(INLINE_BLOCK_TAGS.has("dateinput")).toBe(true);
+  test("INTRINSIC_MEASURE_TAGS 에 dateinput 등록 — width 주입 대상 (needsWidth 트리거)", () => {
+    expect(INTRINSIC_MEASURE_TAGS.has("dateinput")).toBe(true);
   });
 
   test("calculateContentWidth — width 0 아님 (box width 0 버그 차단)", () => {

@@ -371,7 +371,12 @@ const EXPECTED_FACETS: Record<string, "reusableOrigin" | "complex" | "none"> = {
 };
 
 /**
- * 캡처 결과 (2026-09-02, round 29 r29m1 수리 후 재캡처 — DC-6 코드 무변경):
+ * **Phase 5 (2026-09-02) — DC-6 cap 삭제 후 ratchet**: 아래 19 행의 도달 집합은 그대로이고 cap 실동작은
+ * 8 → **0** (SelectValue 4 · ListBox/GridList 2 · inline Button 2 전부 `H= W=`). 제거의 Chrome 회귀
+ * 게이트는 `adr923Dc6ChromeGate.browser.test.ts` (block 문맥 auto-height + overflow 는 cap 없음 /
+ * flex 문맥 scroll container 는 엔진 §4.5 automatic minimum 0). 아래 Phase 4 기록은 제거 전 사실.
+ *
+ * 캡처 결과 (2026-09-02, round 29 r29m1 수리 후 재캡처 — DC-6 코드 무변경, Phase 5 제거 전):
  * - 입력: 팔레트 65 (ref 5 · complex 41 · none 19) + sub-part standalone 21 + 사용자 inline 5.
  * - overflow ≠ visible 로 wasm 경계에 도달하는 노드 **19** (팔레트 14 + inline 5).
  * - **cap 이 실제로 걸리는 노드 8** — SelectValue 4 (Select · ComboBox · NumberField · SearchField 의
@@ -400,17 +405,17 @@ const EXPECTED: string[] = [
   "palette:complex CardView > Card overflow:hidden H= W=",
   "palette:complex CardView > Card overflow:hidden H= W=",
   "palette:complex CardView > Card overflow:hidden H= W=",
-  "palette:complex NumberField > SelectValue overflow:hidden Hcapped W=",
-  "palette:complex SearchField > SelectValue overflow:hidden Hcapped W=",
-  "palette:complex Select > SelectValue overflow:hidden Hcapped W=",
-  "palette:complex ComboBox > SelectValue overflow:hidden Hcapped W=",
-  "palette:complex ListBox > ListBox overflow:auto Hcapped W=",
-  "palette:complex GridList > GridList overflow:hidden Hcapped W=",
+  "palette:complex NumberField > SelectValue overflow:hidden H= W=",
+  "palette:complex SearchField > SelectValue overflow:hidden H= W=",
+  "palette:complex Select > SelectValue overflow:hidden H= W=",
+  "palette:complex ComboBox > SelectValue overflow:hidden H= W=",
+  "palette:complex ListBox > ListBox overflow:auto H= W=",
+  "palette:complex GridList > GridList overflow:hidden H= W=",
   "palette:complex Tree > Tree overflow:auto H= W=",
   "palette:complex Dialog > Dialog overflow:auto H= W=",
   "inline div overflow:hidden > div overflow:hidden H= W=",
   "inline div overflow:clip > div overflow:clip H= W=",
   "inline div overflow:auto > div overflow:auto H= W=",
-  "inline Button overflow:hidden > Button overflow:hidden Hcapped Wcapped",
-  "inline Button overflow:clip > Button overflow:clip Hcapped Wcapped",
+  "inline Button overflow:hidden > Button overflow:hidden H= W=",
+  "inline Button overflow:clip > Button overflow:clip H= W=",
 ];

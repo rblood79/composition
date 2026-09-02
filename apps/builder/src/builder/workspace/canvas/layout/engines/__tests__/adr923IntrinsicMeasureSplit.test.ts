@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  INLINE_BLOCK_TAGS,
   INLINE_BLOCK_TAG_CLASSIFICATION,
   INTRINSIC_MEASURE_TAGS,
   enrichWithIntrinsicSize,
@@ -40,7 +39,7 @@ const BASELINE = JSON.parse(
 describe("ADR-923 Phase 4 G5 — INLINE_BLOCK_TAGS 분류표 + INTRINSIC_MEASURE_TAGS 분리", () => {
   it("24 항목 전부 분류돼 있고 (measure 전부 true), hand 항목은 값·사유를 가진다", () => {
     const classified = Object.keys(INLINE_BLOCK_TAG_CLASSIFICATION).sort();
-    expect(classified).toEqual([...INLINE_BLOCK_TAGS].sort());
+    expect(classified).toEqual([...INTRINSIC_MEASURE_TAGS].sort());
     expect(classified).toHaveLength(24);
     for (const [tag, c] of Object.entries(INLINE_BLOCK_TAG_CLASSIFICATION)) {
       expect(c.measure, tag).toBe(true);
@@ -88,14 +87,17 @@ describe("ADR-923 Phase 4 G5 — INLINE_BLOCK_TAGS 분류표 + INTRINSIC_MEASURE
     );
   });
 
-  it("Phase 4: INTRINSIC_MEASURE_TAGS 멤버십 == INLINE_BLOCK_TAGS (Phase 5 가 후자를 삭제할 때까지)", () => {
+  it("Phase 5: INTRINSIC_MEASURE_TAGS == 분류표의 measure 항목 24 (구 INLINE_BLOCK_TAGS 는 삭제)", () => {
     expect([...INTRINSIC_MEASURE_TAGS].sort()).toEqual(
-      [...INLINE_BLOCK_TAGS].sort(),
+      Object.keys(INLINE_BLOCK_TAG_CLASSIFICATION).sort(),
     );
+    expect(INTRINSIC_MEASURE_TAGS.size).toBe(24);
+    const utilsSrc = readFileSync(resolve(__dirname, "../utils.ts"), "utf8");
+    expect(utilsSrc).not.toMatch(/export const INLINE_BLOCK_TAGS\b/);
   });
 
   it("분리 전 baseline 과 enrichWithIntrinsicSize 출력 diff 0 (24 + 대조군 7, width 4 변형)", () => {
-    const tags = [...INLINE_BLOCK_TAGS, ...CONTROL_TAGS];
+    const tags = [...INTRINSIC_MEASURE_TAGS, ...CONTROL_TAGS];
     expect(tags).toEqual(BASELINE.tags);
     const now = enrichFingerprints(tags);
     expect(Object.keys(now)).toEqual(Object.keys(BASELINE.fingerprints));
@@ -147,7 +149,29 @@ describe("ADR-923 Phase 4 G5 — INLINE_BLOCK_TAGS 분류표 + INTRINSIC_MEASURE
   });
 });
 
-describe("ADR-923 Phase 4 — resolveDefaultDisplay(type) (미배선)", () => {
+/** Phase 5 의도된 diff — 구 `inline-block` 에서 바뀐 18 항목의 값 (evidence/923-phase5-cutover.md). */
+const INTENDED_DIFF = [
+  "badge: inline-flex",
+  "breadcrumb: inline-flex",
+  "button: inline-flex",
+  "calendargrid: block",
+  "calendarheader: flex",
+  "checkbox: inline-flex",
+  "disclosureheader: flex",
+  "icon: inline-flex",
+  "link: inline-flex",
+  "menu: inline-flex",
+  "progresscircle: grid",
+  "radio: inline-flex",
+  "statuslight: inline-flex",
+  "switch: inline-flex",
+  "tab: inline-flex",
+  "togglebutton: inline-flex",
+  "togglebuttongroup: flex",
+  "toolbar: flex",
+];
+
+describe("ADR-923 Phase 5 — resolveDefaultDisplay(type) (getElementDisplay 배선)", () => {
   it("catalog 파생 항목은 production fallback 의 display 를 그대로 돌려준다", () => {
     for (const [tag, c] of Object.entries(INLINE_BLOCK_TAG_CLASSIFICATION)) {
       const derived = resolveContainerStylesFallback(tag, {}).display;
@@ -181,55 +205,69 @@ describe("ADR-923 Phase 4 — resolveDefaultDisplay(type) (미배선)", () => {
     expect(resolveDefaultDisplay(undefined)).toBe("block");
   });
 
-  it("hand 항목: resolveDefaultDisplay 는 현재 값 (inline-block) — DOM 정합 전환 후보 목록은 domDisplay 로 고정 (r29m2)", () => {
+  it("hand 항목 7: resolveDefaultDisplay 는 handDisplay (동작 값) — calendargrid 만 block (Q4), 미처리 후보 0", () => {
     const handEntries = Object.entries(INLINE_BLOCK_TAG_CLASSIFICATION).filter(
       ([, c]) => c.display === "hand",
     );
-    expect(handEntries).toHaveLength(7);
+    expect(handEntries.map(([t]) => t).sort()).toEqual([
+      "calendargrid",
+      "chip",
+      "dateinput",
+      "fancybutton",
+      "linkbutton",
+      "submitbutton",
+      "type",
+    ]);
     for (const [tag, c] of handEntries) {
       expect(resolveDefaultDisplay(tag), tag).toBe(c.handDisplay);
-      expect(resolveDefaultDisplay(tag), tag).toBe("inline-block");
+      expect(resolveDefaultDisplay(tag), tag).toBe(
+        tag === "calendargrid" ? "block" : "inline-block",
+      );
     }
-    // Phase 5 전환 후보 = domDisplay 가 있고 현재 값과 다른 항목 — Q4 근거 (browser 게이트
-    //   adr923CalendarGridQ4 + evidence §9) 가 붙은 calendargrid 하나뿐. 후보를 늘리려면 근거부터.
+    // 후보 (domDisplay ≠ handDisplay) 는 근거가 붙으면 handDisplay 로 옮긴다 — Phase 5 가 calendargrid 를
+    //   옮겨 (Q4 + Codex round 30) 미처리 후보는 0. 후보를 늘리려면 근거부터.
     const candidates = handEntries
       .filter(
         ([, c]) => c.domDisplay !== undefined && c.domDisplay !== c.handDisplay,
       )
-      .map(([tag, c]) => `${tag}: ${c.handDisplay} → ${c.domDisplay}`);
-    expect(candidates).toEqual(["calendargrid: inline-block → block"]);
-    expect(INLINE_BLOCK_TAG_CLASSIFICATION.calendargrid.domEvidence).toMatch(
+      .map(([tag]) => tag);
+    expect(candidates).toEqual([]);
+    expect(INLINE_BLOCK_TAG_CLASSIFICATION.calendargrid.reason).toMatch(
       /adr923CalendarGridQ4/,
     );
   });
 
-  it("Phase 4 동작 무변경 잠금 — getElementDisplay 는 아직 INLINE_BLOCK_TAGS → inline-block (Phase 5 가 뒤집는다)", () => {
+  it("Phase 5 배선 잠금 — getElementDisplay 는 resolveDefaultDisplay 를 쓴다; 의도된 diff 18 을 값으로 고정", () => {
     expect(getElementDisplay({ type: "Button", props: {} })).toBe(
-      "inline-block",
+      "inline-flex",
     );
-    expect(getElementDisplay({ type: "Badge", props: {} })).toBe(
-      "inline-block",
-    );
+    expect(getElementDisplay({ type: "Badge", props: {} })).toBe("inline-flex");
     expect(getElementDisplay({ type: "div", props: {} })).toBe("block");
-    // 의도된 diff 목록 (Phase 5 배선 시 바뀌는 항목) = catalog 파생 17 전부, hand 7 은 0 — hand 는
-    //   현재 값을 돌려주므로 배선만으로는 바뀌지 않는다 (r29m2). 목록 자체를 고정한다.
-    const divergent = [...INLINE_BLOCK_TAGS]
-      .filter(
-        (t) =>
-          resolveDefaultDisplay(t) !==
-          getElementDisplay({ type: t, props: {} }),
-      )
+    expect(
+      getElementDisplay({
+        type: "Button",
+        props: { style: { display: "block" } },
+      }),
+    ).toBe("block");
+    for (const t of Object.keys(INLINE_BLOCK_TAG_CLASSIFICATION)) {
+      expect(getElementDisplay({ type: t, props: {} }), t).toBe(
+        resolveDefaultDisplay(t),
+      );
+    }
+    // 의도된 diff (Phase 4 의 inline-block → Phase 5 값): catalog 17 + calendargrid 1 = 18. 값 자체를
+    //   고정한다 — 바뀌면 catalog containerStyles.display 또는 hand 목록이 바뀐 것이다.
+    const changed = Object.keys(INLINE_BLOCK_TAG_CLASSIFICATION)
+      .map((t) => [t, getElementDisplay({ type: t, props: {} })] as const)
+      .filter(([, v]) => v !== "inline-block")
+      .map(([t, v]) => `${t}: ${v}`)
       .sort();
-    const catalogTags = Object.entries(INLINE_BLOCK_TAG_CLASSIFICATION)
-      .filter(([, c]) => c.display === "catalog")
-      .map(([t]) => t)
-      .sort();
-    expect(divergent).toEqual(catalogTags);
-    expect(divergent).toHaveLength(17);
+    expect(changed).toEqual(INTENDED_DIFF);
+    expect(changed).toHaveLength(18);
     const src = readFileSync(
       resolve(__dirname, "../taffyDisplayAdapter.ts"),
       "utf8",
     );
-    expect(src).not.toMatch(/resolveDefaultDisplay/);
+    expect(src).toMatch(/resolveDefaultDisplay\(element\.type\)/);
+    expect(src).not.toMatch(/INLINE_BLOCK_TAGS\.has/);
   });
 });

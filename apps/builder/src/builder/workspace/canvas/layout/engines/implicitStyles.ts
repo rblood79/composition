@@ -1278,7 +1278,8 @@ export function applyImplicitStyles(
     //   입력만 prop 부재를 표현한다). 리터럴 300/"fixed" 는 binding 미등록 시 최후 폴백.
     const heightMode =
       (containerProps?.heightMode as string) ??
-      (resolveBindingPropDefault("Table", "heightMode") as string | undefined) ??
+      (resolveBindingPropDefault("Table", "heightMode") as
+        string | undefined) ??
       "fixed";
     if (parentStyle.height == null && heightMode === "fixed") {
       const defaultH = resolveBindingPropDefault("Table", "height");
@@ -2412,7 +2413,7 @@ export function applyImplicitStyles(
     );
 
     // DateInput에 부모 props 주입 (Spec shapes에서 세그먼트 텍스트 생성용)
-    //   width 미주입 (2026-06-23, datepicker 분기 동형): INLINE_BLOCK_TAGS(dateinput) +
+    //   width 미주입 (2026-06-23, datepicker 분기 동형): INTRINSIC_MEASURE_TAGS(dateinput) +
     //   calculateContentWidth 콘텐츠 자연폭이 box 폭을 산출 → 텍스트 overflow 차단.
     //   명시 width(cs.width) 보존, side 모드는 injectSideLabel 이 flex:1/minWidth:0 주입.
     filteredChildren = filteredChildren.map((child) => {
@@ -2884,7 +2885,7 @@ export function applyImplicitStyles(
     // DateInput(trigger field)에 세그먼트 텍스트 생성용 부모 props 주입.
     //   width 는 주입하지 않는다(2026-06-23): 이전엔 `width:"100%"` 를 줬으나 부모 container
     //   가 width:auto(body align-items:flex-start)라 Taffy 가 `100%` 를 콘텐츠보다 작게 계산
-    //   → box < 콘텐츠 → 텍스트 overflow. width 미주입 시 INLINE_BLOCK_TAGS(dateinput) +
+    //   → box < 콘텐츠 → 텍스트 overflow. width 미주입 시 INTRINSIC_MEASURE_TAGS(dateinput) +
     //   needsWidth → calculateContentWidth(dateinput 분기)가 콘텐츠 자연폭(segment text +
     //   icon + padding)을 산출 → box 가 콘텐츠를 담는다(DisclosureHeader/CalendarHeader 동형).
     //   사용자 명시 width(cs.width)는 보존. side 모드는 injectSideLabel 이 flex:1/minWidth:0 주입.
@@ -2987,7 +2988,7 @@ export function applyImplicitStyles(
     // whiteSpace: nowrap → ElementSprite 다중 줄 보정 로직 우회 (폰트 메트릭 기반 Y 이탈 방지)
     //
     // 2026-07-07 전수조사: `width: 100%` 주입 제거. 두 자식은 self-render escape leaf 로
-    //   INLINE_BLOCK_TAGS 등록(calendarheader/calendargrid) → enrichWithIntrinsicSize 가
+    //   INTRINSIC_MEASURE_TAGS 등록(calendarheader/calendargrid) → enrichWithIntrinsicSize 가
     //   calculateContentWidth 로 intrinsic 폭(cellSize*7 + gap*6 = md 246)을 주입한다.
     //   `width: 100%` 를 강제하면 Calendar(fit-content) 부모에서 100% 가 available 폭으로
     //   해소 → grid/header 가 부모 폭으로 stretch → Calendar 가 부모 폭 전체로 팽창(CSS

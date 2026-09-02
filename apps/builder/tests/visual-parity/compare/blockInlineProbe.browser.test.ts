@@ -93,7 +93,10 @@ function probeDocument(
             style: autoWidth
               ? // 폭 미지정 — IFC 시뮬레이션이 block 자식에 100% 를 넣어 주는 조건
                 (() => {
-                  const st = { ...boxStyle("block") } as Record<string, unknown>;
+                  const st = { ...boxStyle("block") } as Record<
+                    string,
+                    unknown
+                  >;
                   delete st.width;
                   return st;
                 })()
@@ -263,7 +266,7 @@ describe("ADR-198 — block/inline 형제 혼합에서 두 leg 이 갈리는가"
     expect(s2.y).toBeCloseTo(p2.y, 1);
   });
 
-  it("[미해결 기록] 같은 자리에 catalog Button 을 두면 두 leg 이 갈린다", () => {
+  it("같은 자리에 catalog Button 을 둬도 두 leg 이 일치한다 (ADR-923 Phase 5 — 종전 [미해결 기록])", () => {
     const m = measured.blockbutton;
     const skiaFirst = m.skia["probe-bt-first"];
     const skiaSecond = m.skia["probe-bt-second"];
@@ -286,9 +289,11 @@ describe("ADR-198 — block/inline 형제 혼합에서 두 leg 이 갈리는가"
       `[ADR-198 probe] block+Button 판정: Δx=${dx.toFixed(1)} Δy=${dy.toFixed(1)}`,
     );
 
-    // 현재 값을 못박는다. 수리되면 이 단언이 깨지고 기록을 갱신하게 된다.
-    expect(dx > 1 || dy > 1, "Button 배치가 두 leg 에서 일치한다 — 기록 갱신 필요").toBe(
-      true,
-    );
+    // ADR-923 Phase 5: Button 이 catalog inline-flex 그대로 엔진에 닿아 block 부모의 line box 로
+    //   배치된다 — 두 leg 일치 (종전에는 IFC 시뮬레이션이 Δx 140 / Δy 55 를 냈다).
+    expect(skiaSecond.x, "Button x").toBeCloseTo(prevSecond.x, 0);
+    expect(skiaSecond.y, "Button y").toBeCloseTo(prevSecond.y, 0);
+    expect(dx).toBeLessThanOrEqual(1);
+    expect(dy).toBeLessThanOrEqual(1);
   });
 });

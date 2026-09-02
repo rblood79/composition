@@ -53,7 +53,7 @@ import type { LegResult, Rect, VisualParityCase } from "../harness/types";
  * | 케이스 | 상태 (2026-08-31) |
  * | --- | --- |
  * | `basic-geometry-paint` | **통과** — 선언 예산 그대로 L3 pass. 잔여는 모서리 arc 의 AA(`maxByte 96`)뿐이고 비율이 0.00068 로 예산(0.001) 안이라 HC6 의 AND 조항이 막지 않는다 |
- * | `catalog-state-paint` | L1 geometry 발산 — 버튼이 x 140px / y 55px 어긋난다. 픽셀 층은 해석 불가라 실행되지 않는다 |
+ * | `catalog-state-paint` | L1 geometry 발산 — (2026-08-31) 버튼이 x 140px / y 55px 어긋났다 → **ADR-923 Phase 5 (2026-09-02)** 로 위치 발산은 0 (block 부모 안 Button 2 가 같은 줄, `blockInlineProbe` Δ0). 잔여 L1 은 Button **폭** Δ2.66 / Δ2.80px (텍스트 측정 — ADR-923 범위 밖, `.artifacts/catalog-state-paint.crossleg.json`) 라 층 판정은 그대로 `L1:fail`. 픽셀 층은 실행되지 않는다 |
  * | `text-raster-resources` | text 2종 + `image-raster` (ratio 0.914) |
  *
  * basic 이 통과로 바뀐 경위: 착수 시점엔 세 region 이 `maxByte 145` 로 막혀 있었고

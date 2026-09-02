@@ -920,11 +920,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   + 스타일 패널 Layout Direction(useLayoutValues specPreset.display) 양쪽이 읽는 단일 layout
     //   정본. structure.containerStyles 는 경로 A 가 못 읽어(top-level 만 조회) Skia 가
     //   INLINE_BLOCK_TAGS("button") → block 으로 자식(Icon/Text)을 세로로 쌓았다(CSS↔Skia 발산,
-    //   2026-06-27). display 는 `flex` — Direction selector 항목이 block/flex-row/flex-column 만
-    //   인식하고 inline-flex 항목은 없어서, inline-flex 면 Direction 이 block 으로 표시·활성된다
-    //   (사용자 지적 2026-06-27). gap 은 size 별(sizes[size].gap 4~12px)이라 여기 두지 않음.
+    //   2026-06-27). display 는 DOM 과 같은 `inline-flex` (ADR-923 Phase 5, 2026-09-02) — 종전
+    //   `flex` 는 Direction selector 가 inline-flex 를 block 으로 표시하던 문제의 우회였고 (2026-06-27),
+    //   그 표시는 Phase 4 가 패널 판정을 inner 기준(flex | inline-flex)으로 고쳐 해소했다. outer 가
+    //   inline 이어야 block 부모 안에서 Button 2 개가 한 줄에 놓인다 (엔진 line box).
+    //   gap 은 size 별(sizes[size].gap 4~12px)이라 여기 두지 않음.
     containerStyles: {
-      display: "flex",
+      display: "inline-flex",
       flexDirection: "row",
       alignItems: "center",
     },
@@ -13105,10 +13107,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "md",
     // top-level containerStyles — Button 동일 발산 차단(Skia INLINE_BLOCK_TAGS("togglebutton")
-    //   → block). display 는 `flex`(Direction selector 가 inline-flex 미인식 → block 표시 회피).
-    //   gap=sizes[size].
+    //   → block). display 는 DOM 과 같은 `inline-flex` (ADR-923 Phase 5 — Button 과 같은 사유,
+    //   Direction selector 는 Phase 4 부터 inner 기준). gap=sizes[size].
     containerStyles: {
-      display: "flex",
+      display: "inline-flex",
       flexDirection: "row",
       alignItems: "center",
     },

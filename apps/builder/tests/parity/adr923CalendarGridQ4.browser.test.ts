@@ -33,24 +33,25 @@ vi.mock("@/builder/factories/utils/elementCreation", async (importOriginal) => {
  *
  * 1. **production 트리 (팔레트 Calendar → factory: Calendar > CalendarHeader + CalendarGrid)** 를
  *    `calculateFullTreeLayout` 으로 돌려 wasm 경계 batch 를 캡처: 부모 Calendar 는 catalog top-level
- *    `flex` column, CalendarGrid 는 부모가 보는 값 (`getElementDisplay`) 이 현재 `inline-block` 이지만
- *    flex 자식이라 TS `blockifyDisplay` (fullTreeLayout `buildNodeStyle`) 가 `block` 으로 접어 보낸다.
+ *    `flex` column, CalendarGrid 는 부모가 보는 값 (`getElementDisplay`) 이 Phase 5 부터 hand 값 `block`
+ *    (Phase 4 까지는 `inline-block` 을 TS `blockifyDisplay` 가 `block` 으로 접어 보냈다 — 삭제됨).
  *    CalendarGrid 에 `display:block` / `inline-block` 을 명시한 mutation 과 **layout map 전체가 동일**
  *    함을 단언 — flex 부모 아래에서 outer display 는 inert 다. 즉 Phase 5 가 어느 값을 배선해도
  *    production 트리의 결과는 같다.
  * 2. **대조군 (자유 배치 — 팔레트가 만들지 않는 형태, AI/import writer 만 도달)**: block 부모 아래
  *    CalendarGrid 크기의 상자 + Button. (a) 엔진 직결 (`harness.engineLeg`, Phase 1 outer/inner 배선
  *    = Phase 5 이후 production 이 도달하는 의미) 에서는 `inline-block` 이면 Button 이 같은 줄, `block`
- *    이면 아래 줄 — 축이 살아 있는 유일한 형태. (b) 현 어댑터 경로 (`calculateFullTreeLayout`) 에서는
- *    두 값이 **같은 결과** — IFC 시뮬레이션이 inline-level 형제 때문에 부모를 flex wrap 으로 바꾸고
- *    폭이 주입된 block 형제를 같은 줄에 남긴다 (ADR-198 explicit-width-block-sibling 과 같은 원인,
- *    Phase 5 제거 대상). DOM 은 이 형태를 Preview `resolveHtmlTag` 로 `<div>` (block) 에 그린다.
+ *    이면 아래 줄 — 축이 살아 있는 유일한 형태. (b) production 경로 (`calculateFullTreeLayout`) 는
+ *    Phase 5 부터 (a) 와 같다 (Phase 4 까지는 IFC 시뮬레이션이 두 값을 같은 결과로 만들었다 —
+ *    ADR-198 explicit-width-block-sibling 과 같은 원인, 삭제됨). DOM 은 이 형태를 Preview
+ *    `resolveHtmlTag` 로 `<div>` (block) 에 그린다 — 기본값 block 과 정합.
  * 3. **DOM leg (ground truth)**: 실 번들 CSS 로 shared `Calendar` 를 렌더 — RAC CalendarGrid 는 `<table>`
  *    (computed `table`, outer block-level) 이고 부모 `.calendar-grids` 는 `flex` — production 트리에서
  *    grid 의 outer display 가 inert 한 것은 DOM 도 같다. 상자 치수는 기록 (§9).
  *
- * 판정: `handDisplay` = 현재 값 `inline-block` (배선 시 동작 무변경), `domDisplay` = `block` (전환 후보,
- * production 트리 diff 0 · 자유 배치 형태는 DOM `<div>` 와 정합) — Phase 5 Q4 분류 목록.
+ * 판정 (round 29): `handDisplay` = 당시 값 `inline-block`, `domDisplay` = `block` 후보. **Phase 5
+ * (2026-09-02, Codex round 30 판정)**: 후보를 채택해 `handDisplay: "block"` — production 트리 diff 0,
+ * 자유 배치 형태는 DOM `<div>` 와 정합. 이 게이트는 그 전환 뒤의 사실을 고정한다.
  */
 
 function boxesOf(run: ReturnType<typeof layoutTree>): Record<string, number[]> {
@@ -99,7 +100,7 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
     document.getElementById("adr923-q4-bundle")?.remove();
   });
 
-  it("production Calendar 트리: 부모 flex · CalendarGrid 는 부모 시각 inline-block / 경계 도달 block (blockify), outer display mutation 은 inert", () => {
+  it("production Calendar 트리: 부모 flex · CalendarGrid 는 부모 시각 block (Phase 5 hand 값) = 경계 도달 block, outer display mutation 은 inert", () => {
     const grid = calendar.elements.find((el) => el.type === "CalendarGrid");
     const header = calendar.elements.find((el) => el.type === "CalendarHeader");
     expect(grid, "factory CalendarGrid").toBeTruthy();
@@ -111,11 +112,11 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
     expect(parent.style.display).toBe("flex");
     expect(parent.style.flexDirection).toBe("column");
     // 부모가 보는 값 (getElementDisplay) = 현재 hand 값 = inline-block; wasm 경계는 flex 자식 blockify
-    expect(getElementDisplay(grid!)).toBe("inline-block");
+    expect(getElementDisplay(grid!)).toBe("block");
     expect(INLINE_BLOCK_TAG_CLASSIFICATION.calendargrid.handDisplay).toBe(
       getElementDisplay(grid!),
     );
-    expect(resolveDefaultDisplay("calendargrid")).toBe("inline-block");
+    expect(resolveDefaultDisplay("calendargrid")).toBe("block");
     expect(gridBatch.style.display).toBe("block");
 
     const asBlock = layoutTree(
@@ -130,8 +131,11 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
       400,
       -1,
     );
+    // Phase 5: TS blockify 삭제 — inline-block 이 그대로 경계에 닿고 엔진이 flex 자식을 blockify 한다
     expect(asBlock.batch.get(grid!.id)!.style.display).toBe("block");
-    expect(asInlineBlock.batch.get(grid!.id)!.style.display).toBe("block");
+    expect(asInlineBlock.batch.get(grid!.id)!.style.display).toBe(
+      "inline-block",
+    );
     expect(boxesOf(asBlock)).toEqual(boxesOf(current));
     expect(boxesOf(asInlineBlock)).toEqual(boxesOf(current));
 
@@ -145,7 +149,7 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
     expect(g.height).toBeGreaterThan(0);
   });
 
-  it("대조군 — 자유 배치 (block 부모 > CalendarGrid + Button): 엔진 직결에서는 갈리고, 현 어댑터 경로에서는 IFC 시뮬레이션이 같게 만든다", () => {
+  it("대조군 — 자유 배치 (block 부모 > CalendarGrid + Button): Phase 5 production 경로 = 엔진 직결 (block → Button 아래 줄 · inline-block → 같은 줄)", () => {
     // (b) 현 어댑터 경로 — production 이 오늘 도달하는 결과
     const make = (display: string | undefined): Element[] => {
       const div = {
@@ -182,7 +186,17 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
     );
     // 현 경로: 두 값이 같은 결과 (Button 이 grid 옆) — IFC 시뮬레이션 (Phase 5 제거 대상) 의 사실 고정
     expect([btnBlock.x, btnBlock.y]).toEqual([btnNow.x, btnNow.y]);
-    expect(btnNow.x).toBeGreaterThanOrEqual(gridNow.width - 1);
+    expect(btnNow.x).toBe(0); // 기본값 block → Button 은 아래 줄
+    expect(btnNow.y).toBeGreaterThanOrEqual(gridNow.height - 1);
+    const asInlineBlock = layoutTree(
+      "q4-free-root",
+      make("inline-block"),
+      400,
+      -1,
+    );
+    const btnIb = asInlineBlock.layout.get("q4-free-button")!;
+    expect(btnIb.x).toBeGreaterThanOrEqual(gridNow.width - 1); // inline-block → 같은 줄
+    expect(btnIb.y).toBeLessThan(btnNow.y);
 
     // (a) 엔진 직결 (Phase 1 outer/inner 배선) — Phase 5 이후 production 이 도달하는 의미
     const gw = Math.round(gridNow.width);

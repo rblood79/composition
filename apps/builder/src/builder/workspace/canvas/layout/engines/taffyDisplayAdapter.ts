@@ -17,39 +17,33 @@
  * 이를 통해 blockification, inline-level 판별, BFC 생성 판단이
  * 타입 시스템 수준에서 정확히 보장된다.
  *
- * === Taffy 시뮬레이션 규칙 ===
+ * === 번역 규칙 (ADR-923 Phase 5 cutover, 2026-09-02) ===
  *
- * 1. display 변환 (parseDisplay → Display 객체 → Taffy 매핑):
- *    - inline-block {outer:inline, inner:flow-root} → block 리프 (크기 고정)
- *    - inline-block 자식을 가진 부모 → flex row wrap (inline flow 시뮬레이션)
- *    - block/flow-root {outer:block, inner:flow*} → block
- *    - inline {outer:inline, inner:flow} → block (Taffy는 inline 개념 없음)
- *    - flex/inline-flex {inner:flex} → flex
- *    - grid/inline-grid {inner:grid} → grid
- *    - none {outer:none} → none
+ * TS 는 CSS display 값을 **그대로** 엔진 경계(`buildTreeBatch`)로 보낸다 — outer/inner 해석은
+ * 엔진 `display.rs` 가 맡는다 (outer=inline 은 block 부모의 line item, inner 는 solver 선택,
+ * flex/grid 자식의 blockify 는 `tree.rs`). 종전의 TS IFC 시뮬레이션 — block 부모 + inline-level
+ * 자식 → flex row wrap 합성, inline-block → 크기 고정 block 리프, block 형제 width:100% 보정,
+ * vertical-align → alignItems 근사, TS blockify, inline-flex → flex 정규화 — 는 전부 삭제됐다
+ * (ADR-923 breakdown §2.2 S1·S2·S3·S6·S9).
  *
- * 2. CSS Blockification (CSS Display Level 3):
- *    - flex/grid 부모의 자식은 outer:inline → outer:block 으로 자동 변환
- *    - Dropflow Style.blockify() 패턴: outer만 변환, inner 유지
- *
- * 3. Block-level 자식 자동 폭:
- *    - CSS block container 내 block-level 자식은 부모 폭 100% 자동 확장
- *    - flex-row-wrap 시뮬레이션에서는 명시적 width:100% 필요
- *
- * 4. Vertical Alignment:
- *    - Button/Badge/Select 등 UI 컴포넌트 → vertical-align: middle (= alignItems: center)
- *    - 일반 요소 → vertical-align: baseline
+ * 1. `normalizeCssDisplay(raw)`: 인식되는 CSS 값을 운반 union `TaffyDisplay` 로 — 손실 없는
+ *    정규화 (inline-* 보존). 미인식 값만 `block` 폴백 (엔진 `parse_display` 의 폴백과 같다).
+ * 2. `getElementDisplay(element)`: 명시 `style.display` 우선, 없으면 `resolveDefaultDisplay(type)`
+ *    (catalog 파생 → 손 목록 → block, `defaultDisplay.ts`).
+ * 3. `toTaffyDisplay(display, childDisplays)`: `{ taffyDisplay: normalizeCssDisplay(display) }` —
+ *    부모는 자식 display 와 무관하게 자기 값만 보낸다. `childDisplays` 는 HC1 게이트
+ *    (`tests/parity/adr923Hc1ChildDisplay`) 가 "부모가 본 자식 값 == 자식이 보낸 값" 을 대조하는
+ *    관측 인자다.
  *
  * @see packages/layout-flow/src/types.ts — Display, OuterDisplay, InnerDisplay 타입
  * @see packages/layout-flow/src/style.ts — Style.blockify(), Style.display 기본값
  * @see packages/layout-flow/src/adapters/composition-adapter.ts — parseDisplay(), classifyChild()
- * @see packages/layout-flow/src/layout-box.ts — FormattingBox.isInlineLevel()
  * @see ADR-009 (docs/adr/009-full-tree-wasm-layout.md)
  * @since 2026-02-28
  */
 
-import type { CanvasLayoutNode } from "../layoutNode";
-import { INLINE_BLOCK_TAGS } from "./utils";
+import type { TaffyDisplay } from "../../wasm-bindings/layoutTypes";
+import { resolveDefaultDisplay } from "./defaultDisplay";
 
 // ============================================
 // CSS Display Level 3 타입 — Dropflow 원본 기반
@@ -99,29 +93,20 @@ type InnerDisplay = "flow" | "flow-root" | "flex" | "grid" | "none";
  */
 type Display = { outer: OuterDisplay; inner: InnerDisplay };
 
-/**
- * 자식 요소의 display 분류
- *
- * Dropflow 원본의 classifyChild() (composition-adapter.ts:394-414)에서
- * 'replaced' 제외 (Taffy adapter에서는 태그 정보 없이 display 문자열만 사용).
- *
- * @see packages/layout-flow/src/adapters/composition-adapter.ts:394 — ChildDisplayClass
- */
-type ChildDisplayClass = "block" | "inline" | "none";
-
 // ============================================
 // Taffy 변환 결과 타입
 // ============================================
 
 /**
- * Taffy 엔진에 전달하는 display 설정
+ * 엔진에 전달하는 display 설정.
  *
- * taffyDisplay는 Taffy가 이해하는 display 모드이며,
- * 나머지 필드는 부모-자식 관계에 따라 주입되는 암묵적 flex 속성이다.
+ * `taffyDisplay` 는 **CSS display 값 그대로** (`TaffyDisplay` 운반 union, ADR-923 Phase 5).
+ * 나머지 필드는 종전 IFC 시뮬레이션이 주입하던 암묵 flex 속성 자리 — Phase 5 이후 어느 경로도
+ * 채우지 않는다 (`elementToTaffyBlockStyle` 패스스루 계약만 유지, 명명 정리는 Phase 6).
  */
 export interface TaffyDisplayConfig {
-  /** Taffy 내부 display 모드 */
-  taffyDisplay: "flex" | "block" | "grid" | "none";
+  /** 엔진 경계로 보내는 CSS display 값 */
+  taffyDisplay: TaffyDisplay;
   /** flex 방향 (taffyDisplay === 'flex'일 때 유효) */
   flexDirection?: "row" | "column";
   /** flex 줄바꿈 (taffyDisplay === 'flex'일 때 유효) */
@@ -177,76 +162,6 @@ export const VERTICAL_ALIGN_MIDDLE_TAGS: ReadonlySet<string> = new Set([
 // ============================================
 
 /** block 폴백 결과 (미인식 display 값 및 inline → block) */
-const BLOCK_FALLBACK: TaffyDisplayConfig = { taffyDisplay: "block" };
-
-// ============================================
-// 내부 헬퍼
-// ============================================
-
-/**
- * inline-block 자식들의 vertical-align 값을 기반으로
- * 부모 flex row wrap의 alignItems 값을 동적으로 결정한다.
- *
- * ADR-006 P2-3: vertical-align이 명시된 자식이 없으면 기존 'center'를 유지하여
- * 하위 호환성을 보장한다. 명시된 자식이 있으면 첫 번째 값을 사용한다.
- *
- * CSS vertical-align → Flexbox alignItems 매핑:
- * - top    → 'flex-start'
- * - middle → 'center'
- * - bottom → 'flex-end'
- * - baseline → 'baseline'
- *
- * @param childElements - 직계 자식 CanvasLayoutNode 배열
- * @returns Taffy alignItems 값 (기본값: 'center')
- */
-function resolveInlineBlockAlignItems(
-  childElements: CanvasLayoutNode[],
-): string {
-  const map: Record<string, string> = {
-    top: "flex-start",
-    middle: "center",
-    bottom: "flex-end",
-    baseline: "baseline",
-  };
-
-  const explicitAligns = childElements
-    .map(
-      (el) =>
-        (el.props?.style as Record<string, unknown> | undefined)
-          ?.verticalAlign as string | undefined,
-    )
-    .filter((va): va is string => va !== undefined && va !== "");
-
-  // 하위 호환성: vertical-align을 명시한 자식이 없으면 기존 'center' 유지
-  if (explicitAligns.length === 0) return "center";
-
-  return map[explicitAligns[0]] ?? "center";
-}
-
-/**
- * inline-block 자식을 가진 block 부모가 사용하는 flex row wrap 설정.
- *
- * CSS inline formatting context를 Taffy flex로 시뮬레이션:
- * - flexDirection: 'row' — 가로 배치
- * - flexWrap: 'wrap' — 줄바꿈
- * - alignItems: 'center' — VERTICAL_ALIGN_MIDDLE_TAGS 대다수가 middle (동적 오버라이드 가능)
- * - alignContent: 'flex-start' — CSS line box는 상단부터 쌓임 (Taffy 기본 stretch 방지)
- */
-const INLINE_BLOCK_PARENT_CONFIG: TaffyDisplayConfig = {
-  taffyDisplay: "flex",
-  flexDirection: "row",
-  flexWrap: "wrap",
-  alignItems: "center",
-  alignContent: "flex-start",
-};
-
-/** inline-block 자신이 사용하는 크기 고정 block 리프 설정 */
-const INLINE_BLOCK_LEAF_CONFIG: TaffyDisplayConfig = {
-  taffyDisplay: "block",
-  flexGrow: 0,
-  flexShrink: 0,
-};
-
 // ============================================
 // Dropflow 원본 기반 — 내부 함수
 // ============================================
@@ -302,95 +217,38 @@ function parseDisplay(value: string | undefined): Display {
 }
 
 /**
- * Display 이원 구조를 CSS display 문자열로 역변환.
+ * CSS display 문자열 → 운반 union `TaffyDisplay` (손실 없는 정규화, ADR-923 Phase 5).
  *
- * parseDisplay()의 역함수. blockifyDisplay() 등에서
- * Display 객체를 조작한 후 문자열로 반환할 때 사용.
+ * `parseDisplay` 로 outer/inner 를 읽고 CSS 문자열로 되돌린다 — 인식되는 값은 그대로
+ * (inline-flex · inline-grid · inline-block · inline 보존), `flow-root` 는 `block` (엔진 solver 는
+ * 둘 다 Block), 미인식 값은 `block` 폴백 (엔진 `parse_display` 와 같다). outer 해석은 엔진 몫이다.
  */
-function displayToString(d: Display): string {
+export function normalizeCssDisplay(raw: string | undefined): TaffyDisplay {
+  const d = parseDisplay(raw);
   if (d.outer === "none") return "none";
-  if (d.inner === "flex") return d.outer === "inline" ? "inline-flex" : "flex";
-  if (d.inner === "grid") return d.outer === "inline" ? "inline-grid" : "grid";
-  if (d.inner === "flow-root")
-    return d.outer === "inline" ? "inline-block" : "flow-root";
-  // inner === 'flow'
-  return d.outer === "inline" ? "inline" : "block";
-}
-
-/**
- * 자식 display 분류 — Dropflow classifyChild() 패턴.
- *
- * Dropflow 원본 (composition-adapter.ts:400-414):
- * - display === 'none'                          → 'none'
- * - display === 'inline' || 'inline-block'      → 'inline'
- * - display === 'block' / 'flex' / 'grid' / ... → 'block'
- *
- * inline-flex/inline-grid는 Taffy가 flex/grid로 네이티브 처리하므로
- * Dropflow 원본과 동일하게 'block'으로 분류한다.
- * (IFC 시뮬레이션이 아닌 Taffy native flex/grid 경로를 타야 함)
- *
- * @see packages/layout-flow/src/adapters/composition-adapter.ts:400 — classifyChild()
- */
-function classifyChildDisplay(display: string): ChildDisplayClass {
-  const parsed = parseDisplay(display);
-  if (parsed.outer === "none") return "none";
-  // Dropflow 원본 패턴: inline/inline-block만 inline 분류
-  // inner가 flow 또는 flow-root인 경우만 IFC 참여 대상
-  // inline-flex(inner:flex), inline-grid(inner:grid)는 block 분류
-  if (
-    parsed.outer === "inline" &&
-    (parsed.inner === "flow" || parsed.inner === "flow-root")
-  ) {
-    return "inline";
+  const inline = d.outer === "inline";
+  switch (d.inner) {
+    case "flex":
+      return inline ? "inline-flex" : "flex";
+    case "grid":
+      return inline ? "inline-grid" : "grid";
+    case "flow-root":
+      return inline ? "inline-block" : "block";
+    default:
+      return inline ? "inline" : "block";
   }
-  return "block";
-}
-
-// ============================================
-// 공개 함수
-// ============================================
-
-/**
- * CSS Display Level 3 Blockification 규칙.
- *
- * Dropflow 원본 Style.blockify() (style.ts:268-272) 패턴:
- * outer display만 block으로 변환하고, inner display는 유지.
- *
- * - { outer: 'inline', inner: 'flow' }       → 'block'       (inline → block)
- * - { outer: 'inline', inner: 'flow-root' }  → 'flow-root'   (inline-block → flow-root)
- * - { outer: 'inline', inner: 'flex' }       → 'flex'        (inline-flex → flex)
- * - { outer: 'inline', inner: 'grid' }       → 'grid'        (inline-grid → grid)
- * - { outer: 'block', ... }                  → 변경 없음
- *
- * NOTE: inline-block → 'flow-root' (CSS 명세 정확). Taffy 컨텍스트에서
- * toTaffyDisplay('flow-root', ...) → BLOCK_FALLBACK이므로
- * toTaffyDisplay('block', ...)과 동일한 Taffy 결과를 생성한다.
- *
- * 공개 인터페이스: CSS display 문자열 → CSS display 문자열 (호출부 호환)
- *
- * @see packages/layout-flow/src/style.ts:268 — Style.blockify()
- * @see https://www.w3.org/TR/css-display-3/#blockification
- */
-export function blockifyDisplay(display: string): string {
-  const parsed = parseDisplay(display);
-  if (parsed.outer === "inline") {
-    return displayToString({ outer: "block", inner: parsed.inner });
-  }
-  return display;
 }
 
 /**
  * 요소의 CSS display 기본값 결정.
  *
- * 우선순위:
- * 1. 명시적 display가 있으면 그대로 반환
- * 2. INLINE_BLOCK_TAGS(Button, Badge 등)는 기본 'inline-block'
- * 3. 그 외는 기본 'block'
+ * 1. 명시적 `style.display` 가 있으면 그대로
+ * 2. 없으면 `resolveDefaultDisplay(type)` — catalog(`containerStyles.display`) 파생 → 파생 원천
+ *    없는 손 목록(`INLINE_BLOCK_TAG_CLASSIFICATION` hand) → `block` (ADR-923 Phase 5 배선;
+ *    종전 `INLINE_BLOCK_TAGS → inline-block` 목록은 삭제됐다).
  *
- * 반환값은 CSS display 문자열이며, parseDisplay()로 변환하여
- * Display 이원 구조로 해석할 수 있다.
- *
- * @see utils.ts — INLINE_BLOCK_TAGS
+ * 반환값은 CSS display 문자열이다 — 부모가 자식을 볼 때와 자식이 자기 batch 를 만들 때 같은
+ * 함수를 쓰므로 두 시각이 갈리지 않는다 (HC1).
  */
 export function getElementDisplay(element: {
   type?: string;
@@ -400,142 +258,23 @@ export function getElementDisplay(element: {
   if (typeof style.display === "string" && style.display.length > 0) {
     return style.display;
   }
-  const type = (element.type ?? "").toLowerCase();
-  if (INLINE_BLOCK_TAGS.has(type)) {
-    return "inline-block";
-  }
-  return "block";
+  return resolveDefaultDisplay(element.type);
 }
 
 /**
- * display 값이 inline-level인지 판별.
+ * CSS display 값을 엔진 경계 설정으로 변환한다 — 값을 그대로 운반한다 (ADR-923 Phase 5).
  *
- * Dropflow 원본 패턴: display.outer === 'inline'
- * CSS 명세: inline-level box는 outer display type이 inline인 box.
+ * 종전에는 block 부모가 inline-level 자식을 보면 flex row wrap 으로 IFC 를 시뮬레이션하고
+ * inline-block 자신은 크기 고정 block 리프로 바꿨다. 지금은 부모도 자식도 자기 CSS 값만 보내고,
+ * block 부모 안의 inline-level 자식 배치(line box)는 엔진 `block.rs` 가 맡는다.
  *
- * @see packages/layout-flow/src/layout-box.ts:523 — FormattingBox.isInlineLevel()
- */
-export function isInlineLevel(display: string): boolean {
-  return parseDisplay(display).outer === "inline";
-}
-
-/**
- * flex-row-wrap 부모(inline-block 시뮬레이션) 안의 block-level 자식이
- * width:100%를 받아야 하는지 판별.
- *
- * CSS 명세: block container 내 block-level 자식은 자동으로 부모 폭 100%.
- * Taffy flex에서는 자식이 intrinsic 크기로 축소되므로 명시적 width 필요.
- *
- * 조건:
- * - 자식 display가 inline-level이 아님 (block, flex, grid 등)
- * - 자식에 명시적 width가 없거나 'auto'
- *
- * **주의**: 본 판정은 자식 축만 본다. 부모가 **진짜 CSS flex 컨테이너**인 경우엔
- *   호출하면 안 된다 — `isInlineBlockSimulationParent` 로 먼저 게이팅할 것.
- */
-export function needsBlockChildFullWidth(
-  childDisplay: string,
-  childWidth: unknown,
-): boolean {
-  if (isInlineLevel(childDisplay)) return false;
-  if (childWidth != null && childWidth !== "auto") return false;
-  return true;
-}
-
-/**
- * 부모의 flex-row-wrap 이 **IFC 시뮬레이션**(block 부모 + inline-level 자식 →
- * `toTaffyDisplay` 가 row+wrap 합성)인지, 아니면 **사용자/카탈로그가 선언한 진짜
- * CSS flex 컨테이너**인지 판별.
- *
- * **Why (TagGroup labelPosition="side" CSS↔Skia 비대칭, 2026-07-14)**:
- *   `needsBlockChildFullWidth` 의 block-child width:100% 보정은 IFC 시뮬레이션
- *   전용이다 (CSS block container 안의 block 자식은 부모 폭 100%). 그런데 호출부가
- *   결과 style(`display:flex && flexWrap:wrap`)만 보고 게이팅해, **진짜 flex row-wrap
- *   컨테이너**까지 오폭했다. CSS flex item 은 block-level 이어도 부모 폭 100% 가 아니다.
- *
- *   실제 사고: side 모드 TagGroup(`display:flex + row + wrap`)의 TagList 자식이
- *   `flex:1 / flexBasis:0%` 를 받았음에도 `width:100%` 를 덮어써 350px 로 고정 →
- *   `Label(68) + gap(4) + TagList(350) > 350` → TagList 가 **둘째 줄로 wrap** 되어
- *   Skia 만 세로 배치. DOM 은 flex-basis 가 이겨 정상 가로 배치 → 비대칭.
- *
- * @param cssDisplay 요소의 **실제 CSS display** (blockify 후 effectiveDisplay)
- */
-export function isInlineBlockSimulationParent(cssDisplay: string): boolean {
-  const inner = parseDisplay(cssDisplay).inner;
-  return inner !== "flex" && inner !== "grid";
-}
-
-/**
- * CSS display 값을 Taffy 엔진 내부 표현으로 변환한다.
- *
- * Display 이원 구조(parseDisplay)를 기반으로 변환:
- * - inner로 Taffy native 모드 판별 (flex, grid)
- * - outer로 inline-level 여부 판별 (inline-block 리프, 순수 inline)
- * - 자식 분류(classifyChildDisplay)로 부모 IFC 시뮬레이션 판별
- *
- * @param display - 요소의 CSS display 값 (e.g. 'block', 'flex', 'inline-block')
- * @param childDisplays - 직계 자식 요소들의 CSS display 값 배열
- * @param childElements - 직계 자식 CanvasLayoutNode 배열 (optional). 전달 시 vertical-align 기반
- *                        alignItems 동적 결정에 사용된다. (ADR-006 P2-3)
- * @returns Taffy 엔진에 전달할 TaffyDisplayConfig
- *
- * @example
- * // inline-block 자신 → block 리프
- * toTaffyDisplay('inline-block', [])
- * // { taffyDisplay: 'block', flexGrow: 0, flexShrink: 0 }
- *
- * @example
- * // block 부모 + inline-block 자식 → flex row wrap
- * toTaffyDisplay('block', ['inline-block', 'inline-block'])
- * // { taffyDisplay: 'flex', flexDirection: 'row', flexWrap: 'wrap', ... }
- *
- * @example
- * // flex 컨테이너
- * toTaffyDisplay('flex', ['block', 'block'])
- * // { taffyDisplay: 'flex' }
+ * @param display - 요소의 CSS display 값
+ * @param _childDisplays - 직계 자식의 CSS display 값 (관측 전용 — HC1 게이트가 module mock 으로
+ *   "부모가 본 자식 값 == 자식 batch display" 를 대조한다; 변환에는 쓰지 않는다)
  */
 export function toTaffyDisplay(
   display: string,
-  childDisplays: string[],
-  childElements?: CanvasLayoutNode[],
+  _childDisplays: readonly string[],
 ): TaffyDisplayConfig {
-  const parsed = parseDisplay(display);
-
-  // none → none
-  if (parsed.outer === "none") {
-    return { taffyDisplay: "none" };
-  }
-
-  // flex/grid (native) — inner 값 그대로 사용, outer 무관 (inline-flex/inline-grid 포함)
-  if (parsed.inner === "flex" || parsed.inner === "grid") {
-    return { taffyDisplay: parsed.inner };
-  }
-
-  // inline-block (outer=inline, inner=flow-root) → 크기 고정 block 리프
-  // 부모가 flex row wrap으로 전환된 컨테이너 안에 들어감
-  if (parsed.outer === "inline" && parsed.inner === "flow-root") {
-    return INLINE_BLOCK_LEAF_CONFIG;
-  }
-
-  // 순수 inline (outer=inline, inner=flow) → block 폴백
-  // Taffy는 inline formatting context를 지원하지 않으므로 block으로 격상
-  if (parsed.outer === "inline") {
-    return BLOCK_FALLBACK;
-  }
-
-  // block 부모 + inline-level 자식 → flex row wrap으로 IFC 시뮬레이션
-  // classifyChildDisplay()로 Dropflow classifyChild() 패턴 적용
-  if (childDisplays.some((cd) => classifyChildDisplay(cd) === "inline")) {
-    // ADR-006 P2-3: vertical-align 명시 자식이 있으면 alignItems를 동적으로 결정
-    if (childElements !== undefined && childElements.length > 0) {
-      const alignItems = resolveInlineBlockAlignItems(childElements);
-      if (alignItems !== INLINE_BLOCK_PARENT_CONFIG.alignItems) {
-        return { ...INLINE_BLOCK_PARENT_CONFIG, alignItems };
-      }
-    }
-    return INLINE_BLOCK_PARENT_CONFIG;
-  }
-
-  // block / flow-root → block
-  return BLOCK_FALLBACK;
+  return { taffyDisplay: normalizeCssDisplay(display) };
 }

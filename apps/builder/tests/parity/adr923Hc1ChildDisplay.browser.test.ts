@@ -13,10 +13,10 @@ import { pipelineLeg } from "./harness";
  *   - 부모 시각 = `toTaffyDisplay(display, childDisplays, …)` 의 `childDisplays` 인자 (module mock 으로 기록)
  *   - 자식 시각 = `buildTreeBatch` JSON 인자의 자식 노드 `style.display` (wasm 경계 실제 도달값)
  *
- * 현재 Button 은 부모가 `INLINE_BLOCK_TAGS → inline-block`, 자식 자신은 catalog fallback → `flex`
- * 로 갈린다 → `it.fails` 로 고정. Phase 5 (getElementDisplay → resolveDefaultDisplay 배선 + S9) 가
- * 두 값을 `inline-flex` 로 맞추면 일반 `it` 로 전환한다. 대조군(명시 display 자식) 은 지금도 통과해
- * 캡처 자체가 살아 있음을 보인다.
+ * Phase 4 까지 Button 은 부모가 `INLINE_BLOCK_TAGS → inline-block`, 자식 자신은 catalog fallback →
+ * `flex` 로 갈렸다 (`it.fails`). Phase 5 (2026-09-02 — getElementDisplay → resolveDefaultDisplay 배선
+ * + S9 CSS 값 통과 + catalog Button inline-flex) 가 두 값을 `inline-flex` 로 맞춰 일반 `it` 다.
+ * 대조군(명시 display 자식) 은 캡처 자체가 살아 있음을 보인다.
  */
 interface DisplayCall {
   display: string;
@@ -114,24 +114,7 @@ describe("ADR-923 HC1 — childDisplays[i] == 자식 노드의 엔진 도달 dis
     expect(batchChildDisplays).toEqual(parentChildDisplays);
   });
 
-  it.fails(
-    "style 없는 catalog Button 2 — 부모 시각(inline-block) ≠ 자식 도달값(flex) [Phase 5 에서 pass 전환]",
-    () => {
-      const { parentChildDisplays, batchChildDisplays } = captureCase([
-        { label: "btn-a", elementType: "Button", style: {}, text: "A" },
-        { label: "btn-b", elementType: "Button", style: {}, text: "B" },
-        {
-          label: "parent",
-          elementType: "box",
-          style: { display: "block", width: 400 },
-          children: [0, 1],
-        },
-      ]);
-      expect(batchChildDisplays).toEqual(parentChildDisplays);
-    },
-  );
-
-  it("현재 사실 고정: Button 은 부모 inline-block / 자식 flex (Phase 5 의도된 diff 목록의 근거)", () => {
+  it("style 없는 catalog Button 2 — 부모 시각 == 자식 도달값 (Phase 5 배선: 둘 다 inline-flex)", () => {
     const { parentChildDisplays, batchChildDisplays } = captureCase([
       { label: "btn-a", elementType: "Button", style: {}, text: "A" },
       { label: "btn-b", elementType: "Button", style: {}, text: "B" },
@@ -142,7 +125,21 @@ describe("ADR-923 HC1 — childDisplays[i] == 자식 노드의 엔진 도달 dis
         children: [0, 1],
       },
     ]);
-    expect(parentChildDisplays).toEqual(["inline-block", "inline-block"]);
-    expect(batchChildDisplays).toEqual(["flex", "flex"]);
+    expect(batchChildDisplays).toEqual(parentChildDisplays);
+  });
+
+  it("Phase 5 사실 고정: Button 은 부모·자식 모두 inline-flex (catalog 값 그대로 운반)", () => {
+    const { parentChildDisplays, batchChildDisplays } = captureCase([
+      { label: "btn-a", elementType: "Button", style: {}, text: "A" },
+      { label: "btn-b", elementType: "Button", style: {}, text: "B" },
+      {
+        label: "parent",
+        elementType: "box",
+        style: { display: "block", width: 400 },
+        children: [0, 1],
+      },
+    ]);
+    expect(parentChildDisplays).toEqual(["inline-flex", "inline-flex"]);
+    expect(batchChildDisplays).toEqual(["inline-flex", "inline-flex"]);
   });
 });

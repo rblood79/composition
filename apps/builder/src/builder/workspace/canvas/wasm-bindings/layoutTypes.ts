@@ -8,7 +8,21 @@
  * (composition-engine) 의 Rust `StyleInput` 스키마와 1:1 대응한다.
  */
 
-export type TaffyDisplay = "flex" | "grid" | "block" | "none";
+/**
+ * 엔진 경계 display 운반 union — **CSS display 값 그대로** (ADR-923 Phase 5, 2026-09-02).
+ * outer(inline → block 부모의 line item)/inner(solver) 해석은 엔진 `display.rs` 가 맡는다;
+ * TS 는 값을 지우지 않는다 (종전 union `flex | grid | block | none` 은 inline-* 의 outer 를 잃었다 — S9).
+ * 미인식 값은 `normalizeCssDisplay` 가 `block` 으로 폴백 (엔진 `parse_display` 와 동일).
+ */
+export type TaffyDisplay =
+  | "block"
+  | "inline"
+  | "inline-block"
+  | "flex"
+  | "inline-flex"
+  | "grid"
+  | "inline-grid"
+  | "none";
 export type TaffyPosition = "relative" | "absolute";
 export type TaffyOverflow = "visible" | "hidden" | "clip" | "scroll";
 export type TaffyFlexDirection =

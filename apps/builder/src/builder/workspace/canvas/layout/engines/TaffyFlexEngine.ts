@@ -109,7 +109,9 @@ export function elementToTaffyStyle(
   // Display
   const display = style.display as string | undefined;
   if (display === "flex" || display === "inline-flex") {
-    result.display = "flex";
+    // ADR-923 Phase 5 (S9): inline-flex 의 outer 를 지우지 않는다 — CSS 값 그대로 운반, 엔진
+    //   display.rs 가 outer(inline → 부모 line item)/inner(flex solver) 를 해석한다.
+    result.display = display;
   } else if (display === "none") {
     result.display = "none";
   } else {

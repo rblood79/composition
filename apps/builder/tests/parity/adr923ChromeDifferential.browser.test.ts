@@ -1559,19 +1559,16 @@ describe("ADR-923 Phase 3 — Chrome 차등 (어댑터 우회 엔진 직결, G1 
     const eng = engineLeg(toEngineNodes(c.nodes), c.availW, c.availH);
     const bad = diffCase(c.nodes, dom, eng);
 
-    // 대조군 (현 어댑터 경로) — 기록만, 게이트 아님 (breakdown Phase 3).
-    let adapterNote: string;
-    try {
-      const pipe = pipelineLeg(c.nodes, c.availW, c.availH);
-      const pipeBad = diffCase(c.nodes, dom, pipe);
-      adapterNote =
-        pipeBad.length === 0
-          ? "정합"
-          : `발산 ${pipeBad.length}: ${pipeBad.join(" | ")}`;
-    } catch (e) {
-      adapterNote = `error: ${String(e)}`;
-    }
-    console.log(`[ADR-923 P3] ${c.name} · adapterLeg(대조군): ${adapterNote}`);
+    // 프로덕션 어댑터 경로 — Phase 5 (G1 후반) 부터 **게이트** (Phase 3 에서는 기록만).
+    const pipe = pipelineLeg(c.nodes, c.availW, c.availH);
+    const pipeBad = diffCase(c.nodes, dom, pipe);
+    const adapterNote =
+      pipeBad.length === 0
+        ? "정합"
+        : `발산 ${pipeBad.length}: ${pipeBad.join(" | ")}`;
+    console.log(
+      `[ADR-923 P3] ${c.name} · adapterLeg(production): ${adapterNote}`,
+    );
     RECORD[c.name] = {
       engine:
         bad.length === 0 ? "정합" : `발산 ${bad.length}: ${bad.join(" | ")}`,
@@ -1579,6 +1576,10 @@ describe("ADR-923 Phase 3 — Chrome 차등 (어댑터 우회 엔진 직결, G1 
     };
 
     expect(bad, `${c.name} — Chrome↔엔진 발산:\n${bad.join("\n")}`).toEqual([]);
+    expect(
+      pipeBad,
+      `${c.name} — Chrome↔production 경로 발산 (G1 후반):\n${pipeBad.join("\n")}`,
+    ).toEqual([]);
   });
 });
 

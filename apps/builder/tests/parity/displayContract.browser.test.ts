@@ -168,14 +168,14 @@ beforeAll(async () => {
 });
 
 describe("ADR-923 G0 — catalog Button wasm 경계 display", () => {
-  it.fails("(a)/(b) 현재 경계값은 C′ 계약과 다르다", () => {
+  it("(a)/(b) 경계값 = C′ 계약 — Button inline-flex · 부모 block (Phase 5 통과, 2026-09-02)", () => {
     logRawCapture();
     console.log("[ADR-923 G0 (a)]", buttonDisplay());
-    expect.soft(buttonDisplay()).toBe("inline-flex");
+    expect(buttonDisplay()).toBe("inline-flex");
 
     logRawCapture();
     console.log("[ADR-923 G0 (b)]", parentDisplay());
-    expect.soft(parentDisplay()).toBe("block");
+    expect(parentDisplay()).toBe("block");
   });
 
   it("(c) Button subtree는 flex solver 입력을 받는다", () => {

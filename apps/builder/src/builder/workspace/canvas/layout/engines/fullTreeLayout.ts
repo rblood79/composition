@@ -12,7 +12,7 @@
 import type { CanvasLayoutNode } from "../layoutNode";
 import { getLayoutRootKey } from "../layoutRootKey";
 import type { ComputedLayout } from "./LayoutEngine";
-import type { TaffyDisplay, TaffyStyle } from "../../wasm-bindings/layoutTypes";
+import type { TaffyStyle } from "../../wasm-bindings/layoutTypes";
 import { isCompositionEngineReady } from "../../wasm-bindings/compositionEngineWasm";
 import { PersistentTaffyTree } from "./persistentTaffyTree";
 import { installLayoutExplain } from "./layoutExplain";
@@ -36,10 +36,8 @@ import { resolveStyle, getRootComputedStyle } from "./cssResolver";
 import type { ComputedStyle } from "./cssResolver";
 import {
   toTaffyDisplay,
-  blockifyDisplay,
   getElementDisplay,
-  isInlineBlockSimulationParent,
-  needsBlockChildFullWidth,
+  normalizeCssDisplay,
 } from "./taffyDisplayAdapter";
 import { elementToTaffyBlockStyle } from "./TaffyBlockEngine";
 import { elementToTaffyStyle } from "./TaffyFlexEngine";
@@ -803,37 +801,14 @@ const IMPLICIT_DIM_PROPS = new Set([
 ]);
 
 /**
- * batch `display` 정규화 — post-order implicit patch 경로의 **TS 운반 union 강제**
- * (ADR-923 reviews round 6 r6h1, 2026-09-01).
- *
- * `patchBatchStyleFromImplicit` 는 문자열 값을 raw 로 복사하므로 style.display 가
- * `inline-flex` / `inline-grid` / `inline-block` 이면 `buildNodeStyle` 이 정규화한 batch 값을
- * 덮어써 union(`TaffyDisplay`) 밖 값이 wasm 경계에 도달했다 (Label 공통 주입이 style 을
- * clone 하는 경우 등 — `tests/parity/seamDisplayInvariant.browser.test.ts` 가 재현). 엔진이
- * Phase 1(`5822f2496`) 부터 outer 를 block 부모의 line item 으로 읽으므로 이 누출은
- * 프로덕션 배치를 phase 경계 밖에서 바꾼다.
- *
- * 규칙 = 1차 writer 와 동일 (S9 — `TaffyFlexEngine.ts:110-117` / `buildNodeStyle` flex·grid
- * 분기 / `toTaffyDisplay` inner-only): none → none, inner flex/grid → flex/grid, 그 외
- * (block · inline · inline-block · flow-root · 미인식) → block. **Phase 5 (S9 제거) 에서
- * 함께 삭제** — 그때는 CSS 값 통과가 계약이다 (seam 테스트도 같이 삭제/반전).
- */
-function toBatchDisplay(raw: string): TaffyDisplay {
-  const blockified = blockifyDisplay(raw).trim().toLowerCase();
-  if (blockified === "flex" || blockified === "grid" || blockified === "none") {
-    return blockified;
-  }
-  return "block";
-}
-
-/**
  * applyImplicitStyles가 변경한 CSS 속성을 batch record에 패치.
  *
  * DFS post-order에서 자식은 부모보다 먼저 처리되므로,
  * 부모의 applyImplicitStyles 결과가 자식 batch 엔트리에 반영되지 않는다.
  * 변경된 속성만 찾아 taffyStyleToRecord 형식으로 패치한다.
  *
- * `display` 는 raw 복사 금지 — `toBatchDisplay` 로 운반 union 을 강제한다 (ADR-923 r6h1).
+ * `display` 는 `normalizeCssDisplay` 로 운반 union 에 맞춘다 — CSS 값 그대로, inline-* 보존
+ * (ADR-923 Phase 5; r6h1 의 inner-only 강제는 cutover 로 폐기).
  */
 function patchBatchStyleFromImplicit(
   batchStyle: Record<string, unknown>,
@@ -891,8 +866,8 @@ function patchBatchStyleFromImplicit(
       // CSS string ("1fr auto") → WASM 이 기대하는 array 로 정규화
       coercedVal = coerceGridTrack(val);
     } else if (key === "display") {
-      // ADR-923 r6h1: 운반 union 강제 — raw inline-* 가 wasm 경계로 새지 않게 (Phase 5 제거)
-      coercedVal = toBatchDisplay(String(val));
+      // ADR-923 Phase 5: CSS 값 그대로 (손실 없는 정규화 — 미인식 값만 block)
+      coercedVal = normalizeCssDisplay(String(val));
     } else if (key === "lineHeight") {
       // ADR-923 Phase 2: lineHeight 배선 계약은 **px 숫자** (NodeStyle Option<f32>) —
       // CSS-형 값("20px"/배율) raw 복사 금지. r6h1 display 와 동일 기전: 이 patch 는
@@ -1066,7 +1041,7 @@ function taffyStyleToRecord(style: TaffyStyle): Record<string, unknown> {
 /**
  * CanvasLayoutNode와 display 정보로 TaffyStyle을 계산 후 Record로 변환.
  *
- * display 타입에 따라 적절한 변환 함수를 선택한다:
+ * display 타입에 따라 적절한 변환 함수를 선택한다 (display 값 자체는 CSS 그대로 운반 — ADR-923 Phase 5):
  * - flex / inline-flex  → elementToTaffyStyle() (TaffyFlexEngine)
  * - grid / inline-grid  → applyCommonTaffyStyle() 기반 grid 스타일 (간소화)
  * - 그 외 (block 계열)  → elementToTaffyBlockStyle() + toTaffyDisplay()
@@ -1076,7 +1051,7 @@ function buildNodeStyle(
   computedStyle: ComputedStyle,
   childDisplays: string[],
   parentDisplay: string,
-  childElements?: CanvasLayoutNode[],
+  _childElements?: CanvasLayoutNode[],
 ): Record<string, unknown> {
   // ADR-079 P2 read-through 확장: Spec containerStyles 를 props.style 에 merge 한
   // enriched element 를 display/grid branch 양쪽에서 일관 참조. ProgressBar/Meter 등이
@@ -1136,7 +1111,10 @@ function buildNodeStyle(
     // fullTreeLayout 배치에서는 size/padding/border/gap 처리가 핵심이므로
     // applyCommonTaffyStyle로 공통 부분을 처리하고 grid display를 주입한다.
     const style = mergedStyle;
-    const partial: Record<string, unknown> = { display: "grid" };
+    // ADR-923 Phase 5 (S9): inline-grid 의 outer 보존 — 값 그대로 운반
+    const partial: Record<string, unknown> = {
+      display: normalizeCssDisplay(display),
+    };
     applyCommonTaffyStyle(partial, style, {}, computedStyle.fontSize);
 
     // Grid container 핵심 속성 전달. spec/props.style 이 CSS string ("1fr auto")
@@ -1206,10 +1184,9 @@ function buildNodeStyle(
     return partial;
   }
 
-  // block / inline-block / inline / flow-root / 기타 → TaffyBlockEngine 경로
-  // taffyDisplayAdapter가 모든 block layout 시뮬레이션 규칙을 TaffyDisplayConfig에 포함하고,
-  // elementToTaffyBlockStyle이 모든 필드를 패스스루하므로 수동 주입 불필요.
-  const taffyConfig = toTaffyDisplay(display, childDisplays, childElements);
+  // block / inline-block / inline / 기타 → TaffyBlockEngine 경로. display 는 CSS 값 그대로
+  // 운반된다 (ADR-923 Phase 5) — outer(inline → 부모 line item)/inner 해석은 엔진 display.rs.
+  const taffyConfig = toTaffyDisplay(display, childDisplays);
   const taffyStyle: TaffyStyle = elementToTaffyBlockStyle(
     enriched,
     taffyConfig,
@@ -1797,8 +1774,8 @@ function traversePostOrder(
   // 1. computed style 계산 (CSS 상속 처리)
   const elementStyle = (element.props?.style ?? {}) as Record<string, unknown>;
 
-  // GAP 1: CSS Blockification — 부모가 flex/grid면 현재 요소의 display를 blockify
-  const shouldBlockify = FLEX_GRID_DISPLAYS.has(parentDisplay);
+  // (ADR-923 Phase 5) TS blockify 삭제 — flex/grid 부모 아래 자식의 outer → block 변환은 엔진
+  //   tree.rs (display.rs blockify) 가 한다. 여기서는 CSS 값을 그대로 둔다.
   // ADR-912 (TableView 자식 Skia 대칭, 2026-06-25): effectiveDisplay 는 원본 element 가 아니라
   //   catalog/spec fallback(resolveContainerStylesFallback) 의 display 를 반영해야 한다. Row/
   //   TableHeader/TableBody 는 display 를 catalog rule.containerStyles 에만 선언하고 factory
@@ -1828,36 +1805,15 @@ function traversePostOrder(
   //   인지하도록 element 를 effectiveElement 로 통일. buildNodeStyle 은 자체 fallback 을 재적용하나
   //   effectiveDisplay 분기(grid/flex 자식 처리)와 element 가 어긋나지 않게 source 단일화.
   element = effectiveElement;
-  let effectiveDisplay = getElementDisplay(element);
-
-  if (shouldBlockify) {
-    const blockified = blockifyDisplay(effectiveDisplay);
-    if (blockified !== effectiveDisplay) {
-      effectiveDisplay = blockified;
-      element = {
-        ...element,
-        props: {
-          ...element.props,
-          style: {
-            ...((element.props?.style as Record<string, unknown>) ?? {}),
-            display: blockified,
-          },
-        },
-      };
-    }
-  }
+  const effectiveDisplay = getElementDisplay(element);
 
   const computedStyle = resolveStyle(elementStyle, parentComputed);
 
-  // 2. 자식들의 display 값 수집 (toTaffyDisplay inline-block 감지용)
-  // filteredChildren 기준으로 blockified 값 사용
-  const childDisplays: string[] = filteredChildren.map((childEl) => {
-    const rawDisplay = getElementDisplay(childEl);
-    if (FLEX_GRID_DISPLAYS.has(effectiveDisplay)) {
-      return blockifyDisplay(rawDisplay);
-    }
-    return rawDisplay;
-  });
+  // 2. 자식들의 display 값 수집 — CSS 값 그대로 (ADR-923 Phase 5: TS blockify 삭제, flex/grid
+  //    자식의 blockify 는 엔진 tree.rs). HC1 게이트가 이 값과 자식 batch display 의 일치를 본다.
+  const childDisplays: string[] = filteredChildren.map((childEl) =>
+    getElementDisplay(childEl),
+  );
 
   // 3. 자식 먼저 재귀 (post-order)
   // Fix 6: 현재 요소의 content area 크기를 자식의 availableWidth/Height로 전달
@@ -2445,48 +2401,10 @@ function traversePostOrder(
     filteredChildren,
   );
 
-  // 5.5. block→flex-row-wrap 변환 시 block-level 자식에 width:100% 주입
-  // CSS block container 내 block-level 자식은 자동으로 부모 폭 100%이지만
-  // Taffy flex-row-wrap 시뮬레이션에서는 명시적 설정 필요 (taffyDisplayAdapter 규칙)
-  //
-  // **부모 게이트 (2026-07-14)**: 본 보정은 **IFC 시뮬레이션 부모** 전용이다
-  //   (block/flow-root 부모 + inline-level 자식 → toTaffyDisplay 가 row+wrap 합성).
-  //   결과 style(display:flex && flexWrap:wrap)만 보면 **사용자/카탈로그가 선언한 진짜
-  //   CSS flex 컨테이너**까지 오폭한다 — CSS flex item 은 block-level 이어도 부모 폭
-  //   100% 가 아니다(flex-basis/grow 가 폭을 정한다).
-  //   사고: labelPosition="side" TagGroup(catalog containerVariants → flex+row+wrap)의
-  //   TagList 자식이 `flex:1/flexBasis:0%` 를 받았음에도 width:100%(=350) 로 덮여
-  //   `Label(68)+gap(4)+350 > 350` → 둘째 줄로 wrap → Skia 만 세로 배치(CSS 는 정상 가로).
-  if (
-    styleRecord.display === "flex" &&
-    styleRecord.flexWrap === "wrap" &&
-    isInlineBlockSimulationParent(effectiveDisplay)
-  ) {
-    for (let ci = 0; ci < childIds.length; ci++) {
-      const childEl = elementsMap.get(childIds[ci]);
-      const childStyle = (childEl?.props?.style ?? {}) as Record<
-        string,
-        unknown
-      >;
-      if (needsBlockChildFullWidth(childDisplays[ci], childStyle.width)) {
-        const childBatchIdx = indexMap.get(childIds[ci]);
-        if (childBatchIdx !== undefined) {
-          // enrichWithIntrinsicSize가 이미 numeric width를 주입한 경우 보존
-          // (Tag, Badge 등 INLINE_BLOCK_TAGS의 텍스트 기반 border-box 크기)
-          const existingW = batch[childBatchIdx].style.width;
-          if (
-            typeof existingW === "number" ||
-            (typeof existingW === "string" &&
-              existingW !== "auto" &&
-              existingW !== "100%")
-          ) {
-            continue;
-          }
-          batch[childBatchIdx].style.width = "100%";
-        }
-      }
-    }
-  }
+  // 5.5. (제거됨 — ADR-923 Phase 5) block 부모의 flex-row-wrap IFC 시뮬레이션과 그 안 block 형제의
+  // width:100% 보정 (`needsBlockChildFullWidth` / `isInlineBlockSimulationParent`) 은 삭제됐다 —
+  // block 컨테이너 안 block-level 자식의 auto → stretch 와 inline-level 자식의 line box 는 엔진
+  // block.rs 가 맡는다. TS 에서 폭 보정을 재도입하는 것은 금지 (layout-engine.md "TS 잔존 계약").
 
   // 5.7. (제거됨 — ADR-164 Phase 1) overflow 부모 기준 flexShrink:0 강제 주입은
   // 엔진 §4.5 automatic minimum size (flex.rs — **item 자신의** overflow 조건 +
@@ -3078,7 +2996,11 @@ export function calculateFullTreeLayout(
             string,
             unknown
           >;
-          patchBatchStyleFromImplicit(node.style, reStyle, childComputed.fontSize);
+          patchBatchStyleFromImplicit(
+            node.style,
+            reStyle,
+            childComputed.fontSize,
+          );
           const styleChanged = persistentTree.updateNodeStyle(
             node.elementId,
             node.style,
