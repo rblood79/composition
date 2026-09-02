@@ -124,6 +124,25 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(splitter).toContain("aria-valuemax={maxValue}");
   });
 
+  it("루트의 data-layout-version 은 snapshot 구독이 아니라 coordinator 직접 구독으로 쓴다", async () => {
+    const source = await readWorkspace();
+
+    // 루트가 snapshot 을 구독하면 패널 resize·move 의 매 flush 마다 루트 전체가 재렌더된다
+    expect(source).not.toContain("data-layout-version={snapshot.version}");
+    expect(source).toMatch(
+      /const applyLayoutVersion = \(\): void => \{\s*const version = String\(coordinator\.getSnapshot\(\)\.version\);\s*hostRef\.current\?\.setAttribute\("data-layout-version", version\);\s*mainRef\.current\?\.setAttribute\("data-layout-version", version\);/,
+    );
+    expect(source).toContain(
+      "return coordinator.subscribe(applyLayoutVersion);",
+    );
+    expect(source).toContain(
+      '<div ref={hostRef} className="panel-workspace-host">',
+    );
+    expect(source).toContain(
+      '<div ref={mainRef} className="panel-workspace-main">',
+    );
+  });
+
   it("드래그 중 손잡이 표시와 커서는 hover 가 아니라 data-resizing 에 묶인다", async () => {
     const styles = await readStyles();
     const splitter = await readSplitter();

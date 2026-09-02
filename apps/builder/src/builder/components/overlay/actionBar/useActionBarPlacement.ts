@@ -7,7 +7,13 @@
  *   바가 없는 동안(선택 0 / 텍스트 편집 / Hide)에는 잴 것이 없다.
  * - 부모(`.workspace-overlay`, inset:0) 가 배치 기준면.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useStore } from "../../../stores";
 import type { ActionBarOffset } from "../../../stores/utils/actionBarStorage";
 import {
@@ -122,7 +128,21 @@ export function useActionBarPlacement(pageId: string | null = null) {
     startY: number;
     base: ActionBarOffset;
     latest: ActionBarOffset | null;
+    /** pointerdown 시점에 한 번 잰 크기 — 드래그 중 바·overlay 크기는 변하지 않는다 */
+    sizes: { overlay: Size; bar: Size } | null;
   } | null>(null);
+
+  // 드래그 중 pointermove 는 React state 를 건드리지 않고 DOM transform 만 쓴다
+  // (자동 page anchor 와 같은 방식). move 마다 setState 하면 바 전체가 다시 렌더돼
+  // 프레임당 수백 KB 를 할당했다 (2026-09-02 실측: 드래그 중 +16 MB/s). 드래그 중
+  // 다른 이유로 렌더가 돌면 React 가 style.transform 을 base 값으로 되돌리므로,
+  // 렌더 뒤마다 마지막 위치를 다시 얹는다.
+  useLayoutEffect(() => {
+    const drag = dragRef.current;
+    const bar = barRef.current;
+    if (!drag?.latest || !bar) return;
+    bar.style.transform = actionBarTransform(drag.latest);
+  });
 
   // 바 DOM 은 마운트/언마운트를 반복한다 (선택 0 / 편집 중 / Hide → null).
   // callback ref 가 그 시점을 직접 받아 clamp + 관찰을 세우고 걷는다 — 노드를
@@ -212,6 +232,7 @@ export function useActionBarPlacement(pageId: string | null = null) {
         startY: event.clientY,
         base,
         latest: null,
+        sizes,
       };
       // 자동 page anchor를 기존 수동 좌표계로 바꾸되 같은 screen 위치를 유지한다.
       setDragOffset(base);
@@ -223,7 +244,11 @@ export function useActionBarPlacement(pageId: string | null = null) {
     (event: React.PointerEvent<HTMLElement>) => {
       const drag = dragRef.current;
       if (!drag || drag.pointerId !== event.pointerId) return;
-      const sizes = barRef.current ? measureBar(barRef.current) : null;
+      const bar = barRef.current;
+      // 크기는 pointerdown 에서 한 번 잰 값을 쓴다 — move 마다 getBoundingClientRect
+      // 를 두 번 부르면 매번 강제 layout 이 든다
+      const sizes = drag.sizes ?? (bar ? measureBar(bar) : null);
+      if (sizes && !drag.sizes) drag.sizes = sizes;
       const next = {
         dx: drag.base.dx + (event.clientX - drag.startX),
         dy: drag.base.dy + (event.clientY - drag.startY),
@@ -232,7 +257,7 @@ export function useActionBarPlacement(pageId: string | null = null) {
         ? clampActionBarOffset(next, sizes.overlay, sizes.bar)
         : next;
       drag.latest = clamped;
-      setDragOffset(clamped);
+      if (bar) bar.style.transform = actionBarTransform(clamped);
     },
     [],
   );

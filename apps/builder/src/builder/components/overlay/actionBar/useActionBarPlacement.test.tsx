@@ -249,6 +249,58 @@ describe("useActionBarPlacement — 드래그 commit (#11)", () => {
     ).toHaveLength(0);
   });
 
+  it("드래그 중 pointermove 는 React rerender 없이 DOM transform 만 갱신하고, 크기는 한 번만 잰다", () => {
+    useStore.setState({
+      actionBar: { hidden: false, pinned: false, offset: null },
+    } as never);
+    setRect("bar", { width: 200, height: 40 });
+    setRect("overlay", { width: 1000, height: 600 });
+    const onCommittedRender = vi.fn();
+    const view = render(
+      <Harness visible onCommittedRender={onCommittedRender} />,
+    );
+    const bar = view.getByTestId("bar");
+    const setActionBarOffset = vi.spyOn(
+      useStore.getState(),
+      "setActionBarOffset",
+    );
+
+    const pointer = (type: string, x: number) =>
+      act(() => {
+        const event = new MouseEvent(type, {
+          bubbles: true,
+          clientX: x,
+          clientY: 0,
+          button: 0,
+        }) as MouseEvent & { pointerId?: number };
+        event.pointerId = 1;
+        bar.setPointerCapture = () => {};
+        bar.hasPointerCapture = () => false;
+        bar.dispatchEvent(event);
+      });
+
+    pointer("pointerdown", 500);
+    const rendersAfterDown = onCommittedRender.mock.calls.length;
+    const rectSpy = Element.prototype.getBoundingClientRect as unknown as {
+      mock: { calls: unknown[] };
+    };
+    const rectCallsAfterDown = rectSpy.mock.calls.length;
+
+    pointer("pointermove", 480);
+    pointer("pointermove", 470);
+    pointer("pointermove", 460);
+
+    // move 3회에 렌더 0회, 강제 layout(getBoundingClientRect) 0회
+    expect(onCommittedRender).toHaveBeenCalledTimes(rendersAfterDown);
+    expect(rectSpy.mock.calls.length).toBe(rectCallsAfterDown);
+    expect(bar.style.transform).toBe("translate(calc(-50% + -40px), 0px)");
+
+    // drop 에서만 commit
+    pointer("pointerup", 460);
+    expect(setActionBarOffset).toHaveBeenCalledTimes(1);
+    expect(setActionBarOffset).toHaveBeenCalledWith({ dx: -40, dy: 0 });
+  });
+
   it("page anchor에서 첫 드래그를 시작해도 위치가 점프하지 않는다", () => {
     useStore.setState({
       actionBar: { hidden: false, pinned: false, offset: null },

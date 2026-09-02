@@ -1276,7 +1276,22 @@ function HydratedPanelWorkspace({
   const [runtime] = useState(() =>
     createRuntime(workspaceLayout, registry, stageRect),
   );
-  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
+  // `data-layout-version` 은 useWorkspaceCanvasSizing 의 MutationObserver 가 읽는
+  // 신호다. 루트가 snapshot 을 구독해 이 속성을 JSX 로 쓰면 패널 resize·move 의
+  // 매 flush 마다 루트 전체 (frame 12개 element 생성 포함) 가 다시 렌더된다.
+  // 속성 두 개만 필요하므로 coordinator 를 직접 구독해 DOM 에 쓴다 (2026-09-02).
+  const hostRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const coordinator = runtime.coordinator;
+    const applyLayoutVersion = (): void => {
+      const version = String(coordinator.getSnapshot().version);
+      hostRef.current?.setAttribute("data-layout-version", version);
+      mainRef.current?.setAttribute("data-layout-version", version);
+    };
+    applyLayoutVersion();
+    return coordinator.subscribe(applyLayoutVersion);
+  }, [runtime]);
 
   useEffect(() => {
     if (runtime && workspaceLayout) {
@@ -1306,14 +1321,8 @@ function HydratedPanelWorkspace({
   );
 
   return (
-    <div
-      className="panel-workspace-host"
-      data-layout-version={snapshot.version}
-    >
-      <div
-        className="panel-workspace-main"
-        data-layout-version={snapshot.version}
-      >
+    <div ref={hostRef} className="panel-workspace-host">
+      <div ref={mainRef} className="panel-workspace-main">
         {children}
       </div>
 
