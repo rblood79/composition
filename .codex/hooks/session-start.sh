@@ -7,11 +7,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/codex-hook-utils.sh"
 PROJECT_DIR=$(codex_hook_project_dir "$INPUT")
 
-# 일별 통계 스냅샷 (하루 1회만 기록, 백그라운드 실행으로 세션 시작 블로킹 없음)
-if [ -x "$PROJECT_DIR/.codex/hooks/daily-stats-snapshot.sh" ]; then
-  CODEX_PROJECT_DIR="$PROJECT_DIR" "$PROJECT_DIR/.codex/hooks/daily-stats-snapshot.sh" >/dev/null 2>&1 &
-fi
-
 # CHANGELOG drift 자동 감시 (rules/changelog.md §2 명시 — 14일/100 commit 초과 시 catch-up 권고)
 drift_block=""
 CHANGELOG_PATH="$PROJECT_DIR/docs/CHANGELOG.md"

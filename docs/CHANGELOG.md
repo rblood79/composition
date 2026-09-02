@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- GridList·ListBox 의 Selection Mode 를 지정하지 않았을 때, 속성 패널은 "Single" 로 보이는데 미리보기는 선택이 꺼진 상태로 그려지던 불일치를 고쳤습니다 — 지정하지 않았을 때의 기본값을 "None" 으로 바로잡아 패널 표시와 실제 화면이 같아집니다. 빌더에서 새로 만든 GridList 는 값이 기록되어 영향이 없었고, 파일 가져오기·AI 로 만든 문서에서 드러났습니다 (ADR-923 Codex round 24).
+- GridList·ListBox 의 Selection Mode 를 지정하지 않았을 때, 속성 패널은 "Single" 로 보이는데 미리보기는 선택이 꺼진 상태로 그려지던 불일치를 고쳤습니다 — 지정하지 않았을 때의 기본값을 "None" 으로 바로잡아 패널 표시와 실제 화면이 같아집니다. 빌더 팔레트와 AI 로 만든 GridList·ListBox 는 값이 기록되어 영향이 없었고, 값을 기록하지 않은 문서 (파일로 가져온 canonical 문서 등) 에서 드러났습니다 (ADR-923 Codex round 24).
 - 선택 방식·선택 표시 (Selection Mode/Style) 를 지정하지 않았을 때 쓰이는 기본값을 캔버스·미리보기·가상 스크롤이 각자 따로 들고 있던 것을 한 곳에서 읽도록 통일했습니다 — 한쪽만 바뀌어 두 화면이 조용히 갈리던 여지를 없앱니다.
 
 ### Added

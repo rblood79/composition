@@ -1,20 +1,6 @@
 #!/usr/bin/env bash
 # SessionStart hook — 세션 시작 시 composition 전용 agent/skill 로스터 및 권장 워크플로 주입
-# Wave A* (metrics-based auto-progression):
-#   - daily-stats-snapshot.sh (백그라운드, 기존)
-#   - metrics-snapshot.sh (백그라운드, 신규) — ADR drift 누적 수집
-#   - auto-progression-check.sh (foreground, 신규) — Wave 진입 조건 평가 출력
 set -euo pipefail
-
-# 일별 통계 스냅샷 (하루 1회만 기록, 백그라운드 실행으로 세션 시작 블로킹 없음)
-if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/daily-stats-snapshot.sh" ]; then
-  "$CLAUDE_PROJECT_DIR/.claude/hooks/daily-stats-snapshot.sh" >/dev/null 2>&1 &
-fi
-
-# Wave A* metrics 수집 (백그라운드 — 새 ADR Implemented commit 분석 후 stats/adr-drift.jsonl 누적)
-if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/metrics-snapshot.sh" ]; then
-  "$CLAUDE_PROJECT_DIR/.claude/hooks/metrics-snapshot.sh" >/dev/null 2>&1 &
-fi
 
 # CHANGELOG drift 자동 감시 (rules/changelog.md §2 명시 — 14일/100 commit 초과 시 catch-up 권고)
 drift_block=""
@@ -64,12 +50,6 @@ MEMORY_EOF
   fi
 fi
 
-# Wave A* auto-progression check (foreground — sample 충족 시 Wave B 진입 알림)
-progression_block=""
-if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/auto-progression-check.sh" ]; then
-  progression_block=$("$CLAUDE_PROJECT_DIR/.claude/hooks/auto-progression-check.sh" 2>/dev/null || true)
-fi
-
 # 로스터는 §핵심 Skills 하나만 게시한다 (agent-catalog-gate §7·§12 의 catalog 대조 표면 + 사용자 전용 표기).
 # 프로세스 규율·agent 라우팅·slash 목록·hook 게이트는 CLAUDE.md 와 시스템 프롬프트의 skill/agent description 이 정본이라
 # 여기 중복 게시하지 않는다 (2026-08-31 — 3중 중복 제거, 세션당 ~1k tok).
@@ -88,7 +68,7 @@ cat <<EOF
 - \`match-target\` — Vision-based visual tuning 루프 (참조 이미지 + budget) — 사용자 전용 (\`/match-target\` 직접 입력)
 - \`execute-adr\` — ADR design breakdown 의 미반영 phase 자율 실행 (type-check + cross-check + main 직접 push) — 사용자 전용 (\`/execute-adr NNN\` 직접 입력)
 
-${drift_block}${memory_block}${progression_block}
+${drift_block}${memory_block}
 </composition-workflow-roster>
 EOF
 

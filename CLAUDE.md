@@ -69,7 +69,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 정의: `.claude/settings.json` `hooks` + `.claude/hooks/*.sh`. **block 하는 것 2가지** — Stop 시 `.ts/.tsx` 변경이 있으면 `pnpm type-check` 실패를 block · ADR Implemented 승격 시 README/CHANGELOG 갱신과 `### Live Exercise` 절 부재를 block (escape hatch 있음).
 
-검증 도구: `pnpm codex:agent-catalog` (카탈로그 drift 게이트) · `pnpm hooks:selftest` (hook 54 케이스) · `pnpm agent:run` (run ledger). 사용 통계 (`stats/daily-log.jsonl`, `update-index.sh`): `CLAUDE.local.md` §사용 통계.
+검증 도구: `pnpm codex:agent-catalog` (카탈로그 drift 게이트) · `pnpm hooks:selftest` · `pnpm agent:run` (run ledger).
 
 ## 참조 체계
 

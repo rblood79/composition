@@ -17,7 +17,7 @@
 #         - docs/adr/evidence/NNN-*live*.md 파일 존재
 #         - 현재 run ledger (.agent/runs/current) 에 kind=live-exercise status=pass 기록
 #   4. 미반영이면 decision: block + 안내
-#   5. block / escape / pass 를 stats/hook-blocks.jsonl + run ledger 에 기록
+#   5. block / pass 를 run ledger 에 기록
 #
 # Escape hatch (README/CHANGELOG 분리 commit 전용 — live 근거에는 적용 안 됨):
 #   - ADR_SPLIT_COMMIT=1 환경변수 (지속)
@@ -41,21 +41,6 @@ LEDGER="${CLAUDE_PROJECT_DIR:-.}/scripts/agent/run-ledger.sh"
 [ -x "$LEDGER" ] || LEDGER="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/scripts/agent/run-ledger.sh"
 ledger() { [ -x "$LEDGER" ] && AGENT_EVIDENCE_SOURCE=adr-status-sync-check.sh bash "$LEDGER" evidence "$@" >/dev/null 2>&1 || true; }
 
-# Wave A* metrics: hook action 로깅 helper
-log_hook_action() {
-  local action="$1"  # block | escape
-  local stats_dir="${CLAUDE_PROJECT_DIR:-.}/.claude/stats"
-  mkdir -p "$stats_dir" 2>/dev/null || return 0
-  if command -v jq >/dev/null 2>&1; then
-    jq -nc \
-      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-      --arg action "$action" \
-      --arg hook "adr-status-sync-check" \
-      '{ts: $ts, hook: $hook, action: $action}' \
-      >> "$stats_dir/hook-blocks.jsonl" 2>/dev/null || true
-  fi
-}
-
 # Escape hatch (README/CHANGELOG 분리 commit) — 여기서 exit 하지 않고 flag 만 세운다 (live 검사는 계속)
 SPLIT_OK=0
 if [ "${ADR_SPLIT_COMMIT:-}" = "1" ]; then
@@ -72,7 +57,6 @@ ADR_FILES=$(git diff --name-only HEAD -- 'docs/adr/*.md' 'docs/adr/completed/*.m
   | grep -vE '/(design|reviews)/' || true)
 
 if [ -z "$ADR_FILES" ]; then
-  [ "$SPLIT_OK" = 1 ] && log_hook_action "escape"
   exit 0
 fi
 
@@ -102,15 +86,12 @@ while IFS= read -r f; do
 done <<< "$ADR_FILES"
 
 if [ ${#PROMOTED_ADRS[@]} -eq 0 ]; then
-  [ "$SPLIT_OK" = 1 ] && log_hook_action "escape"
   exit 0
 fi
 
 # a. README / CHANGELOG 동시 갱신
 MISSING=()
-if [ "$SPLIT_OK" = 1 ]; then
-  log_hook_action "escape"
-else
+if [ "$SPLIT_OK" != 1 ]; then
   README_CHANGED=$(git diff --name-only HEAD -- docs/adr/README.md 2>/dev/null || true)
   CHANGELOG_CHANGED=$(git diff --name-only HEAD -- docs/CHANGELOG.md 2>/dev/null || true)
   [ -z "$README_CHANGED" ] && MISSING+=("docs/adr/README.md")
@@ -142,8 +123,6 @@ if [ ${#MISSING[@]} -eq 0 ] && [ ${#LIVE_MISSING[@]} -eq 0 ]; then
   exit 0
 fi
 
-# block 로깅
-log_hook_action "block"
 ledger adr-sync block --detail "README/CHANGELOG 누락 ${#MISSING[@]} · Live Exercise 누락 ${#LIVE_MISSING[@]}"
 
 PROMOTED_LIST=$(printf '  - %s\n' "${PROMOTED_ADRS[@]}")

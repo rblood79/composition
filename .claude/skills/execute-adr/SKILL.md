@@ -31,7 +31,7 @@ Phase 1 진입 전 모두 통과:
 - [ ] **understood as (readchk — 첫 출력 1줄)**: 요청을 한 줄로 재진술한다 — `understood as: ADR-{NNN} 의 P{X} 를 {mode} 로 실행, scope = {포함/제외}`. 잘못 이해했으면 여기서 드러난다 (paperthin readchk). 같은 문장으로 run manifest 를 연다: `pnpm agent:run -- start --adr {NNN} --understood-as "..." --live "<live 시나리오>"` — 이후 type-check/preflight/adr-sync hook 이 `.agent/runs/<id>/evidence.jsonl` 에 실행 사실을 자동 append 한다 (local-only, 병합 순서 ③)
 - [ ] `docs/adr/{NNN}-*.md` 또는 `docs/adr/completed/{NNN}-*.md` 존재 + Status 가 `Accepted` 또는 `In Progress` (Implemented / Superseded → 진입 거부. `completed/` 매치 = 이미 Implemented → 진입 거부 — completed/ 탐색은 이 거부 사유를 확정하기 위한 것). **`Proposed` + 아래 전제 확정 조건 충족 시 → 되묻지 않고 `Accepted` 승격을 착수 절차에 포함** (Status 변경 + README.md 테이블 동시 갱신 후 진행 — adr-writing.md §Status 전이 "합의 완료" 가 리뷰 승인 기록으로 성립. 리뷰 승인 기록 없는 `Proposed` 만 진입 거부. Why: 리뷰 승인 ↔ Status 승격을 잇는 자동 절차 부재가 착수 시점 재질문의 1차 원인 — 2026-07-11 진단, ADR-148/149 실측)
 - [ ] design breakdown (`docs/adr/design/{NNN}-*-breakdown.md`) 존재 — 없으면 즉시 종료 + "design breakdown 없는 ADR 자율 실행 금지 (adr-writing.md 위반)" 보고
-- [ ] git working tree clean — 단 **auto-dirty 파일 allowlist 는 dirty 판정에서 제외**: `.claude/stats/*` (SessionStart hook 자동 갱신) 는 잔여 커밋으로 선행 정리 후 통과 (사용자에게 되묻지 않음). 그 외 파일의 uncommitted 변경 있으면 사용자에게 commit / stash 요청 (Why: stats hook 이 매 세션 tree 를 dirty 로 만들어 세션 첫 착수마다 불필요 재질문 발생 — 2026-07-11 진단)
+- [ ] git working tree clean — uncommitted 변경 있으면 사용자에게 commit / stash 요청
 - [ ] `git status` 의 branch 가 `main` — 다른 branch 면 "main 에서 직접 진행 (git-workflow.md 절대 정책)" 알림 + 사용자 confirm
 - [ ] `pnpm type-check` baseline PASS — 시작 시점 회귀 0 보장
 - [ ] dist 신선도 (cross-check skill §5.0) — `.spec-rebuild-pending` flag 없음 + dist 존재

@@ -369,6 +369,14 @@ describe("ADR-923 r24m2 — layout 밖 소비처의 기능 게이트", () => {
       absent.map(() => true),
     );
     expect(absent).toEqual(absent.map(() => false));
+    // r25m1 음성 대조 — **제외돼야 할 유효 enum**. GridList.tsx 게이트는 `multiple` 만 체크박스라
+    //   `single` 은 none 과 같아야 한다. 양성(multiple)·기본값(none) 만 보면 `checkboxModes` 를
+    //   Tree 규칙 ["single","multiple"] 로 바꿔도 통과했다 (판독 실험 13/13). style 축도 같은
+    //   형태로: multiple 이라도 highlight 면 체크박스가 없다.
+    expect(sceneCheckboxes({ selectionMode: "single" })).toEqual(absent);
+    expect(
+      sceneCheckboxes({ selectionMode: "multiple", selectionStyle: "highlight" }),
+    ).toEqual(absent);
   });
 
   const stride = (props: Record<string, unknown>): number | undefined =>
@@ -384,6 +392,36 @@ describe("ADR-923 r24m2 — layout 밖 소비처의 기능 게이트", () => {
     expect(absent).toBe(stride(SELECTION_DEFAULTS));
     // 대조군 — 체크박스가 서면 stride 가 box(20) + gap(2) 만큼 커진다.
     expect(stride({ selectionMode: "multiple" })).toBe((absent ?? 0) + 22);
+    // r25m1 음성 대조 — single 은 DOM 에 체크박스가 없으니 stride 도 그대로 (scene 과 동형).
+    expect(stride({ selectionMode: "single" })).toBe(absent);
+    expect(
+      stride({ selectionMode: "multiple", selectionStyle: "highlight" }),
+    ).toBe(absent);
+  });
+
+  /**
+   * r25m1 sweep — layout `utils.ts` 의 카드 선택 extra 도 같은 `checkboxModes: ["multiple"]` 을
+   * 든다. 위 전수 동치(부재 ↔ 명시)는 양쪽이 같이 움직이는 mutation(규칙 자체를 바꾸기)을
+   * 못 보므로, 여기서 세 모드를 직접 고정한다.
+   */
+  const gridListLayout = (props: Record<string, unknown>): string => {
+    const items = Array.from({ length: 3 }, (_, i) => ({
+      id: `g${i}`,
+      label: `Card ${i}`,
+    }));
+    return layoutFingerprint(
+      node("GridList", { items, layout: "stack", ...props }, "gridlist-layout"),
+      [],
+    );
+  };
+
+  it("layout(utils): 카드 선택 extra 가 multiple·checkbox 에서만 선다", () => {
+    const absent = gridListLayout({});
+    expect(gridListLayout({ selectionMode: "single" })).toBe(absent);
+    expect(gridListLayout({ selectionMode: "multiple" })).not.toBe(absent);
+    expect(
+      gridListLayout({ selectionMode: "multiple", selectionStyle: "highlight" }),
+    ).toBe(absent);
   });
 
   const treeItemSkia = (treeProps: Record<string, unknown>): string => {
@@ -422,5 +460,13 @@ describe("ADR-923 r24m2 — layout 밖 소비처의 기능 게이트", () => {
     expect(absent).toBe(treeItemSkia(treeDefaults));
     // 대조군 — checkbox 스타일이면 결과가 달라진다(행 앞 체크박스 슬롯).
     expect(treeItemSkia({ selectionStyle: "checkbox" })).not.toBe(absent);
+    // r25m1 — Tree 규칙은 single·multiple 둘 다 체크박스, none 만 제외. 모드 집합 전체를 고정한다
+    //   (["single"] 만 남기거나 GridList 규칙 ["multiple"] 로 바꾸면 여기서 RED).
+    expect(
+      treeItemSkia({ selectionStyle: "checkbox", selectionMode: "multiple" }),
+    ).not.toBe(absent);
+    expect(
+      treeItemSkia({ selectionStyle: "checkbox", selectionMode: "none" }),
+    ).toBe(absent);
   });
 });

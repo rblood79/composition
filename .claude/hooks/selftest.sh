@@ -10,7 +10,7 @@
 #   남았다. hook 은 등록됐다는 사실이 아니라 "샘플 입력 → 기대 판정" 으로만 살아 있음을
 #   증명한다 (feedback-infra-exists-vs-wired-consumption-path 와 같은 클래스).
 #
-# 격리: 임시 CLAUDE_PROJECT_DIR (flag/stat 기록 흡수) + 임시 git repo (adr-status-sync) +
+# 격리: 임시 CLAUDE_PROJECT_DIR (flag 기록 흡수) + 임시 git repo (adr-status-sync) +
 #   transcript JSONL fixture. 실제 저장소·type-check·prettier(npx) 는 호출하지 않는다.
 #
 # macOS bash 3.2 호환.
@@ -202,8 +202,6 @@ LEDGER="$ROOT_DIR/scripts/agent/run-ledger.sh"
 
 case_start "승격 + README/CHANGELOG 미갱신 + Live 없음 → block"
 adr_body Implemented; run_in_repo '{"hook_event_name":"Stop"}'; assert_block
-case_start "  (block 시) stats/hook-blocks.jsonl 기록"
-if [ -s "$REPO/.claude/stats/hook-blocks.jsonl" ]; then pass; else fail "기록 없음"; fi
 case_start "승격 + 동시 갱신 + Live Exercise 없음 → block (live 근거 필수)"
 sync_docs; run_in_repo '{"hook_event_name":"Stop"}'; assert_block
 case_start "  block 사유에 'Live Exercise' 안내"
@@ -290,20 +288,19 @@ wk close "forced" --force; if [ "$RC" -eq 0 ] && grep -q '"kind":"close-override
 
 # ---------- dashboard.sh (scripts/agent) — evidence 소비 전용 ----------
 printf '\n== dashboard.sh (pnpm agent:dashboard) ==\n'
-DASH="$ROOT_DIR/scripts/agent/dashboard.sh"; RUNS4="$TMP/runs4"; STATS4="$TMP/stats4"; mkdir -p "$RUNS4" "$STATS4"
-dsh() { OUT=$(AGENT_RUNS_DIR="$RUNS4" AGENT_STATS_DIR="$STATS4" bash "$DASH" "$@" 2>&1); RC=$?; }
+DASH="$ROOT_DIR/scripts/agent/dashboard.sh"; RUNS4="$TMP/runs4"; mkdir -p "$RUNS4"
+dsh() { OUT=$(AGENT_RUNS_DIR="$RUNS4" bash "$DASH" "$@" 2>&1); RC=$?; }
 case_start "기록 0 → 모든 섹션 '없음', exit 0"
-dsh; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'run 없음' && printf '%s' "$OUT" | grep -q 'adr-drift: (기록 없음)'; then pass; else fail "rc=$RC"; fi
+dsh; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'run 없음'; then pass; else fail "rc=$RC"; fi
 case_start "run + catalog-gate 기록 → 현재 run · gate 표 · drift FAIL/WARN 파싱"
 AGENT_RUNS_DIR="$RUNS4" bash "$LEDGER" start --understood-as "dashboard selftest" --live "builder X" >/dev/null 2>&1
 AGENT_RUNS_DIR="$RUNS4" bash "$LEDGER" evidence catalog-gate pass --detail "FAIL 0 WARN 2" >/dev/null 2>&1
 AGENT_RUNS_DIR="$RUNS4" bash "$LEDGER" evidence live-exercise block --detail "x" >/dev/null 2>&1
-printf '{"ts":"2026-08-28T00:00:00Z","hook":"adr-status-sync-check","action":"block"}\n{"ts":"2026-08-28T00:00:01Z","hook":"adr-status-sync-check","action":"escape"}\n' > "$STATS4/hook-blocks.jsonl"
-dsh; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'understood as: dashboard selftest' && printf '%s' "$OUT" | grep -q 'FAIL 0 · WARN 2' && printf '%s' "$OUT" | grep -q 'escape 비율 50%'; then pass; else fail "rc=$RC"; fi
+dsh; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'understood as: dashboard selftest' && printf '%s' "$OUT" | grep -q 'FAIL 0 · WARN 2'; then pass; else fail "rc=$RC"; fi
 case_start "  미해결 block 이 run 행에 표시"
 if printf '%s' "$OUT" | grep -q 'live-exercise$'; then pass; else fail "open block 미표시"; fi
-case_start "--json → 7 키 객체"
-dsh --json; if [ "$RC" -eq 0 ] && [ "$(printf '%s' "$OUT" | jq 'keys | length' 2>/dev/null)" = 7 ] && [ "$(printf '%s' "$OUT" | jq '.catalogDrift.warn')" = 2 ]; then pass; else fail "rc=$RC"; fi
+case_start "--json → 5 키 객체"
+dsh --json; if [ "$RC" -eq 0 ] && [ "$(printf '%s' "$OUT" | jq 'keys | length' 2>/dev/null)" = 5 ] && [ "$(printf '%s' "$OUT" | jq '.catalogDrift.warn')" = 2 ]; then pass; else fail "rc=$RC"; fi
 AGENT_RUNS_DIR="$RUNS4" bash "$LEDGER" close >/dev/null 2>&1
 
 # ---------- auto-format.sh (PostToolUse) ----------

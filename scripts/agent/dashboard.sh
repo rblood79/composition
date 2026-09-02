@@ -5,8 +5,6 @@
 #   Observer 는 evidence 의 consumer — 새 truth 를 만들지 않는다. 자체 산출 점수·해시 없음.
 #   모든 수치는 이미 있는 기록에서만 읽는다:
 #     .agent/runs/*/run.json · evidence.jsonl   (run ledger — local-only)
-#     .claude/stats/hook-blocks.jsonl           (Stop hook block / escape)
-#     .claude/stats/adr-drift.jsonl             (Implemented 승격 시 README/CHANGELOG 동기 여부)
 #     git log                                   (fix/revert scope — fix-visibility.sh 의 집계 그대로)
 #
 # 표시 지표 (P5 목록 그대로):
@@ -15,7 +13,6 @@
 #   3. run 별 targeted test / live exercise / cross-check 존재 여부 + 미해결 block
 #   4. 반복 fix scope 와 회귀 테스트 동반률
 #   5. catalog drift 수 (마지막 catalog-gate 기록; --fresh 면 지금 실행)
-#   6. gate block / escape 비율 · ADR drift sync 율
 #
 # macOS bash 3.2 호환. jq 필요.
 
@@ -23,7 +20,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUNS_DIR="${AGENT_RUNS_DIR:-$ROOT_DIR/.agent/runs}"
-STATS_DIR="${AGENT_STATS_DIR:-$ROOT_DIR/.claude/stats}"
 cd "$ROOT_DIR"
 
 if [ "${1:-}" = "--" ]; then shift; fi
@@ -105,16 +101,11 @@ if [ "$DRIFT_LAST" != null ] && [ -n "$DRIFT_LAST" ]; then
   DRIFT_JSON=$(printf '%s' "$DRIFT_LAST" | jq -c --arg f "${DF:-}" --arg w "${DW:-}" '{ts, status, run, fail: (if $f == "" then null else ($f|tonumber) end), warn: (if $w == "" then null else ($w|tonumber) end)}')
 fi
 
-# 6. hook block / escape · ADR drift sync
-HB="$STATS_DIR/hook-blocks.jsonl"; AD="$STATS_DIR/adr-drift.jsonl"
-HOOKS_JSON='[]'; [ -s "$HB" ] && HOOKS_JSON=$(jq -sc 'group_by(.hook) | map({hook: .[0].hook, block: map(select(.action == "block")) | length, escape: map(select(.action == "escape")) | length})' "$HB" 2>/dev/null || echo '[]')
-ADR_JSON='null'; [ -s "$AD" ] && ADR_JSON=$(tail -20 "$AD" | jq -sc '{window: length, synced: map(select(.synced == true)) | length}' 2>/dev/null || echo 'null')
-
 # ---------- 출력 ----------
 if [ "$JSON" = 1 ]; then
   jq -nc --argjson cur "$CUR_JSON" --argjson gates "$GATES_JSON" --argjson runs "$RUNS_JSON" --argjson fix "$FIX_JSON" \
-         --argjson drift "$DRIFT_JSON" --argjson hooks "$HOOKS_JSON" --argjson adr "$ADR_JSON" \
-    '{currentRun: $cur, gates: $gates, runs: $runs, fixScopes: $fix, catalogDrift: $drift, hookBlocks: $hooks, adrDriftSync: $adr}'
+         --argjson drift "$DRIFT_JSON" \
+    '{currentRun: $cur, gates: $gates, runs: $runs, fixScopes: $fix, catalogDrift: $drift}'
   exit 0
 fi
 
@@ -145,12 +136,4 @@ echo
 echo "## 5. catalog drift"
 if [ "$DRIFT_JSON" = null ]; then echo "  (catalog-gate 기록 없음 — pnpm codex:agent-catalog 또는 --fresh)"; else
   printf '%s' "$DRIFT_JSON" | jq -r '"  FAIL \(.fail // "?") · WARN \(.warn // "?")  (\(.status), \(.ts))"'
-fi
-echo
-echo "## 6. hook block / escape · ADR drift sync"
-if [ "$(printf '%s' "$HOOKS_JSON" | jq 'length')" = 0 ]; then echo "  hook-blocks: (기록 없음)"; else
-  printf '%s' "$HOOKS_JSON" | jq -r '.[] | "  \(.hook): block \(.block) · escape \(.escape)" + (if (.block + .escape) > 0 then " · escape 비율 \((.escape * 100 / (.block + .escape)) | floor)%" else "" end)'
-fi
-if [ "$ADR_JSON" = null ]; then echo "  adr-drift: (기록 없음)"; else
-  printf '%s' "$ADR_JSON" | jq -r '"  adr-drift: 최근 \(.window)건 중 README/CHANGELOG 동기 \(.synced)건"'
 fi

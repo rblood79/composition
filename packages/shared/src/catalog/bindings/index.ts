@@ -499,14 +499,16 @@ export function resolveBindingPropDefault(
 }
 
 /**
- * ADR-923 r23m1 sweep — collection 의 `selectionMode` 기본값. cutover 경로의 Preview 는
- * `toRacProps` 가 채운 binding default 를 받으므로 (렌더러 destructure 기본값에 도달하지
- * 않는다) layout·scene 의 판정 기본값도 같은 값이어야 한다. binding 이 선언하지 않은
- * 타입만 호출자의 컴포넌트 기본값(`fallback`)을 쓴다.
+ * ADR-923 r23m1 sweep → r24m1 정정 — collection 의 `selectionMode` 기본값 **단일 원천**.
+ * Preview 는 dispatch 에 따라 도달 경로가 둘이다: generic cutover 타입은 `toRacProps` 가 이
+ * binding default 를 채우고, delegating 렌더러 타입(GridList·ListBox·Tree·TagGroup)은
+ * `toRacProps` 를 거치지 않으므로 렌더러가 **이 helper 를 직접 호출**해 같은 값을 읽는다.
+ * layout·scene·Skia 의 판정 기본값도 같은 helper 를 쓴다. binding 이 선언하지 않은 타입만
+ * 호출자의 컴포넌트 기본값(`fallback`)을 쓴다.
  *
- * GridList 는 binding `single` 인데 layout·scene 이 `none` 을 들고 있었다 — 두 값 모두
- * `checkboxModes: ["multiple"]` 밖이라 시각 결과는 같았지만, 기본값 원천이 둘이라 binding
- * 쪽만 바뀌면 조용히 갈린다 (round 22 Table 높이와 같은 형태).
+ * 이력: r23 까지 GridList/ListBox binding 은 `single` 이었는데 렌더러는 리터럴 `|| "none"` 이라
+ * 그 값은 어느 표면에도 없었고 Inspector 만 그것을 "현재값" 으로 보였다 — r24m1 에서 두
+ * binding 을 실제 렌더 값 `none` 으로 정정하고 렌더러가 이 helper 를 읽게 했다.
  */
 export function resolveBindingSelectionMode(
   type: string,

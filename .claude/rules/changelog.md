@@ -21,7 +21,7 @@ paths:
 | 성능 회귀 수정 (FPS / 번들 / 초기 로드)      | Performance 섹션                    | 측정 반영 커밋        |
 | Phase 다단계 작업 완결                       | Changed 또는 Added                  | Phase 최종 커밋       |
 
-**단순 작업 면제** (CHANGELOG 반영 불필요): typo / 주석 수정 / 내부 변수명 리팩터 / 테스트만 추가 / 문서 오타 / agents.jsonl 통계 등 stats 파일 / `.claude/` hook 설정 튜닝.
+**단순 작업 면제** (CHANGELOG 반영 불필요): typo / 주석 수정 / 내부 변수명 리팩터 / 테스트만 추가 / 문서 오타 / `.claude/` hook 설정 튜닝.
 
 ## 2. Drift 감시 — 세션 시작 시 자가 점검 (CRITICAL)
 
@@ -53,17 +53,17 @@ git log --since="<위 날짜>" --oneline | wc -l
 
 ### 서브섹션
 
-| 섹션                     | 담는 것                                     |
-| ------------------------ | ------------------------------------------- |
-| `### Breaking Changes`   | props 제거 / 토큰명 변경 등 — **있으면 최상단 (고정)** |
-| `### Added`              | 신규 기능 / 컴포넌트 / prop / public API    |
-| `### Changed`            | 동작·구조 변경, 아키텍처 전환, 판단 기록    |
-| `### Removed`            | 제거된 기능 / prop / 파일                   |
-| `### Fixed`              | 사용자-가시 버그 수정                       |
-| `### Performance`        | 측정값이 달라지는 변경                      |
-| `### Tests`              | 회귀 테스트 / 게이트 신설                   |
-| `### Documentation`      | 문서                                        |
-| `### Infrastructure`     | hook / CI / build                           |
+| 섹션                   | 담는 것                                                |
+| ---------------------- | ------------------------------------------------------ |
+| `### Breaking Changes` | props 제거 / 토큰명 변경 등 — **있으면 최상단 (고정)** |
+| `### Added`            | 신규 기능 / 컴포넌트 / prop / public API               |
+| `### Changed`          | 동작·구조 변경, 아키텍처 전환, 판단 기록               |
+| `### Removed`          | 제거된 기능 / prop / 파일                              |
+| `### Fixed`            | 사용자-가시 버그 수정                                  |
+| `### Performance`      | 측정값이 달라지는 변경                                 |
+| `### Tests`            | 회귀 테스트 / 게이트 신설                              |
+| `### Documentation`    | 문서                                                   |
+| `### Infrastructure`   | hook / CI / build                                      |
 
 없는 섹션은 생략. **강제되는 순서는 `Breaking Changes` 최상단 하나뿐**이고, 나머지는 위 순서를 권장한다 — 엔트리마다 무게중심이 다르므로 (버그 중심 엔트리는 `Fixed` 를 먼저 두는 편이 읽기 낫다) 순서를 고정하지 않는다.
 

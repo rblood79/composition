@@ -50,18 +50,58 @@ function markup(node: React.ReactNode): string {
 }
 
 
-/** 차이를 속성 단위로 압축 — 마크업 전문은 길어서 실패 메시지가 읽히지 않는다. */
+/**
+ * 차이를 속성 단위로 압축 — 마크업 전문은 길어서 실패 메시지가 읽히지 않는다.
+ *
+ * ADR-923 r25m2 — 이 설명이 곧 `KNOWN_DIFFS` 의 **키**다. 그래서 설명은 **손실이 없어야**
+ * 한다: 속성 차이만 적고 나머지를 버리면, 이미 속성이 갈린 타입(ProgressBar 등)에 **내용·구조**
+ * 차이가 새로 생겨도 키가 그대로라 baseline 에 흡수된다 — 실제로 ProgressBar `valueLabel`
+ * 기본값 `"BROKEN"` 을 binding 에 넣어 표시 문구를 바꿔도 2/2 PASS 였다 (판독 실험).
+ * 그래서 양쪽에서 **서로 다른 속성만 걷어낸 나머지**를 다시 비교하고, 남는 차이가 있으면
+ * 첫 갈림 지점을 설명에 붙인다 (그 차이는 어떤 baseline 항목과도 일치하지 않아 즉시 RED).
+ */
 function describeMarkupDiff(absent: string, explicit: string): string {
-  const attrs = (html: string) =>
-    new Set(html.match(/[a-zA-Z-]+="[^"]*"/g) ?? []);
+  const ATTR = /[a-zA-Z-]+="[^"]*"/g;
+  const attrs = (html: string) => new Set(html.match(ATTR) ?? []);
   const a = attrs(absent);
   const e = attrs(explicit);
   const onlyAbsent = [...a].filter((x) => !e.has(x));
   const onlyExplicit = [...e].filter((x) => !a.has(x));
-  if (onlyAbsent.length === 0 && onlyExplicit.length === 0) {
-    return `— 속성 동일, 내용 차이:\n  부재  ${absent}\n  명시  ${explicit}`;
+  // 속성을 걷어낸 자리의 공백 잔여(`a="1"  b="2"`)까지 지워야 나머지 비교가 속성 유무에 흔들리지 않는다.
+  const strip = (html: string, drop: string[]) =>
+    drop
+      .reduce((acc, attr) => acc.split(attr).join(""), html)
+      .replace(/\s+/g, " ")
+      .replace(/\s+>/g, ">");
+  const restAbsent = strip(absent, onlyAbsent);
+  const restExplicit = strip(explicit, onlyExplicit);
+  let rest = "";
+  if (restAbsent !== restExplicit) {
+    // 공통 접두·접미를 걷어낸 **갈리는 구간**만 (앞뒤 문맥 조금) — 오프셋은 id 하나에도 흔들려 키로 못 쓴다.
+    let i = 0;
+    while (i < restAbsent.length && restAbsent[i] === restExplicit[i]) i++;
+    let k = 0;
+    while (
+      k < restAbsent.length - i &&
+      k < restExplicit.length - i &&
+      restAbsent[restAbsent.length - 1 - k] ===
+        restExplicit[restExplicit.length - 1 - k]
+    )
+      k++;
+    // 갈리는 구간을 태그 경계(직전 `>` · 직후 `<`)까지 넓혀 텍스트 노드 전체가 보이게 한다.
+    const prevGt = restAbsent.lastIndexOf(">", i);
+    if (prevGt >= 0) i = prevGt + 1;
+    const nextLt = restAbsent.indexOf("<", restAbsent.length - k);
+    if (nextLt >= i) k = restAbsent.length - nextLt;
+    const before = restAbsent.slice(Math.max(0, i - 30), i);
+    const after = restAbsent.slice(restAbsent.length - k, restAbsent.length - k + 20);
+    const mid = (html: string) => html.slice(i, html.length - k);
+    rest = ` / 내용·구조 차이: …${before}[${mid(restAbsent)}]${after}… ↔ 명시 [${mid(restExplicit)}]`;
   }
-  return `— 부재에만 [${onlyAbsent.join(" ")}] / 명시에만 [${onlyExplicit.join(" ")}]`;
+  if (onlyAbsent.length === 0 && onlyExplicit.length === 0) {
+    return `— 속성 동일${rest}`;
+  }
+  return `— 부재에만 [${onlyAbsent.join(" ")}] / 명시에만 [${onlyExplicit.join(" ")}]${rest}`;
 }
 
 /** binding 이 default 를 선언한 prop 집합. */
@@ -111,7 +151,9 @@ const FIXTURE_NAMES = FIXTURES.map((f) => f.name);
  *   `defaultVariant: "primary"` 이고 variants 에 `default` 가 없다 — 이쪽은 **binding 이 틀렸다**
  *   (ListBox 와 방향이 반대라 한 규칙으로 못 고친다).
  * - ProgressBar/Meter `value`: binding 이 50/75 를 선언하는데 렌더러 기본은 0 — 시각(막대 채움)
- *   차이. `value` 는 시각 기본값이 아니라 내용이라 방향 판정이 별도다.
+ *   + 값 문구(`<span class="value">0%</span>` ↔ `50%`/`75%`) 차이. `value` 는 시각 기본값이
+ *   아니라 **내용**이라 "내용 부재의 의미" 를 먼저 정해야 방향이 나온다 (round 25 판독 판정,
+ *   별도 scope). binding·factory 는 50/75 로 일치하고 렌더러만 `|| 0` 이다.
  * - ColorPicker/TableView/Toast: 각각 `data-variant`/`data-density`/`data-timeout` 미방출.
  */
 const KNOWN_DIFFS: readonly string[] = [
@@ -126,13 +168,14 @@ const KNOWN_DIFFS: readonly string[] = [
         `${t} [${f}] — 부재에만 [data-variant="primary"] / 명시에만 [data-variant="default"]`,
     ),
   ),
+  // r25m2 — 키가 내용 차이까지 담는다: 값 문구 `0%` ↔ `75%`/`50%` 가 같은 항목에 같이 실린다.
   ...FIXTURE_NAMES.map(
     (f) =>
-      `Meter [${f}] — 부재에만 [aria-valuenow="0" aria-valuetext="0%" style="width:0%"] / 명시에만 [aria-valuenow="75" aria-valuetext="75%" style="width:75%"]`,
+      `Meter [${f}] — 부재에만 [aria-valuenow="0" aria-valuetext="0%" style="width:0%"] / 명시에만 [aria-valuenow="75" aria-valuetext="75%" style="width:75%"] / 내용·구조 차이: …gressbar"><span class="value">[0%]</span><div class="b… ↔ 명시 [75%]`,
   ),
   ...FIXTURE_NAMES.map(
     (f) =>
-      `ProgressBar [${f}] — 부재에만 [aria-valuenow="0" aria-valuetext="0%" style="width:0%"] / 명시에만 [aria-valuenow="50" aria-valuetext="50%" style="width:50%"]`,
+      `ProgressBar [${f}] — 부재에만 [aria-valuenow="0" aria-valuetext="0%" style="width:0%"] / 명시에만 [aria-valuenow="50" aria-valuetext="50%" style="width:50%"] / 내용·구조 차이: …gressbar"><span class="value">[0%]</span><div class="b… ↔ 명시 [50%]`,
   ),
   ...[
     "ComboBox",
@@ -203,7 +246,7 @@ describe("ADR-923 r24m1 — Preview 렌더러의 부재 = binding 기본값 명�
         }
       }
     }
-    // 이 게이트가 처음 드러낸 잔여 축(2026-09-02). **선택 축은 이번에 수리**돼 목록에 없다.
+    // 이 게이트가 처음 드러낸 잔여 축 5개 45건(2026-09-02). **선택 축은 이번에 수리**돼 목록에 없다.
     //   나머지는 축마다 "어느 쪽이 맞는가" 가 갈려(아래 주석) 한 번에 못 고친다 — 값만 맞추면
     //   15개 컴포넌트의 DOM 이 근거 없이 바뀐다. 그래서 **현재 집합을 그대로 고정**한다:
     //   새 발산은 즉시 RED 이고, 아래 항목이 사라지면(수리) 그 결과로만 이 목록을 줄인다.

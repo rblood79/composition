@@ -792,7 +792,7 @@ delegating 집합(`renderFacetDeclaration.ts`)에 속한 타입을 `toRacProps` 
       와 Preview DOM 을 함께 잰다 — `selectionMode` **부재** = Preview 행 `aria-selected` 없음 · 체크박스 없음 / Skia
       **164**, **명시 `none`** = 같은 DOM · **164** (부재 = 기본값 명시), 대조군 **`multiple`** = 행 `aria-selected="false"`
       + 체크박스 · Skia **208** (+44 = 2행 × 22). 부재로 복귀 시 원상. 콘솔 에러 0 · 생성 요소 삭제.
-    - **잔여 인벤토리 (신규 게이트가 처음 드러낸 것, 이번 수리 밖)**: Preview 전수 동치에 축 5개 39건이 남아 baseline 으로
+    - **잔여 인벤토리 (신규 게이트가 처음 드러낸 것, 이번 수리 밖)**: Preview 전수 동치에 축 5개 45건이 남아 baseline 으로
       고정돼 있다 (`adr923DefaultContractRenderers.test.ts` `KNOWN_DIFFS` — 새 발산은 즉시 RED, 목록 축소는 수리 결과로만).
       축별 방향이 갈려 한 규칙으로 못 고친다: ① `data-label-align="start"` 미방출 8 타입 ② ListBox `data-variant` — 부재
       `primary`(컴포넌트 기본값 `ListBox.tsx:116`) vs binding `default`, **catalog ListBox variants 는 `default|accent`
