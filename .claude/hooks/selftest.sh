@@ -180,6 +180,40 @@ run_hook precompact-snapshot.sh '{"hook_event_name":"PreCompact"}'; assert_conta
 case_start "type-check-gate 재진입 가드 (STOP_HOOK_ACTIVE=true) → 통과"
 run_hook type-check-gate.sh '{"hook_event_name":"Stop"}' STOP_HOOK_ACTIVE=true; assert_allow
 
+# type-check-gate 세션 소유 가드 — 임시 git repo + transcript(tool_use) fixture.
+# package.json 의 type-check 를 stub (exit 3) 으로 두어 "게이트가 검사 단계까지 갔는가" 만 본다.
+GATE="$TMP/gate"; mkdir -p "$GATE/src"
+(
+  cd "$GATE" && git init -q && git -c user.name=t -c user.email=t@t config commit.gpgsign false
+  printf '{"name":"gate-stub","scripts":{"type-check":"echo STUB-TYPE-CHECK && exit 3"}}\n' > package.json
+  printf 'export const a = 1;\n' > src/a.ts
+  printf 'export const other = 1;\n' > src/other.ts
+  git add -A && git -c user.name=t -c user.email=t@t commit -qm init
+) >/dev/null 2>&1
+assistant_tool() {  # assistant_tool <transcript> <tool_name> <input-json>
+  jq -nc --arg n "$2" --argjson i "$3" '{type:"assistant",message:{content:[{type:"tool_use",name:$n,input:$i}]}}' >> "$1"
+}
+run_gate() {  # run_gate <transcript>
+  OUT=$(cd "$GATE" && printf '{"hook_event_name":"Stop","transcript_path":"%s"}' "$1" | env CLAUDE_PROJECT_DIR="$GATE" bash "$HOOKS/type-check-gate.sh" 2>/dev/null); RC=$?
+}
+T_EDIT_A="$TMP/t-gate-a.jsonl"; : > "$T_EDIT_A"; assistant_tool "$T_EDIT_A" Edit "{\"file_path\":\"$GATE/src/a.ts\"}"
+T_AGENT="$TMP/t-gate-agent.jsonl"; : > "$T_AGENT"; assistant_tool "$T_AGENT" Agent '{"prompt":"x"}'
+
+case_start "세션이 고친 .ts 가 전부 커밋됨 + 남의 dirty .ts → 교집합 비어 통과 (검사 안 함)"
+printf 'export const other = 2;\n' > "$GATE/src/other.ts"
+run_gate "$T_EDIT_A"; assert_allow
+case_start "세션이 고친 .ts 가 dirty → 검사 단계 진행 (stub type-check 실패 보고)"
+printf 'export const a = 2;\n' > "$GATE/src/a.ts"
+run_gate "$T_EDIT_A"; assert_contains 'type-check 실패'
+case_start "  stub type-check 가 실제로 호출됨"
+assert_contains 'STUB-TYPE-CHECK'
+case_start "agent 위임 세션 + 남의 dirty .ts → 보수적으로 검사 진행"
+git -C "$GATE" checkout -q -- src/a.ts
+run_gate "$T_AGENT"; assert_contains 'type-check 실패'
+case_start "dirty .ts 없음 → 통과"
+git -C "$GATE" checkout -q -- src/other.ts
+run_gate "$T_EDIT_A"; assert_allow
+
 # ---------- adr-status-sync-check.sh (Stop) — 임시 git repo ----------
 printf '\n== adr-status-sync-check.sh ==\n'
 REPO="$TMP/repo"; RUNS="$TMP/runs"; mkdir -p "$REPO/docs/adr" "$REPO/.claude" "$RUNS"

@@ -83,9 +83,24 @@ if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ] && command -v jq >/dev/null 2>&1
   #   (2026-09-02 실측 12회 연속 — 수정 권한 없는 파일이라 세션 안에서 루프 종료 불가).
   #   agent 위임이 있으면 하위 편집이 transcript 에 안 잡히므로 기존 보수 동작 유지.
   SESSION_AGENT_COUNT=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use") | .name' "$TRANSCRIPT" 2>/dev/null | grep -cE '^(Task|Agent)$' || true)
-  SESSION_TS_EDIT_COUNT=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use") | select(.name=="Edit" or .name=="Write" or .name=="MultiEdit" or .name=="NotebookEdit") | .input.file_path // .input.notebook_path // empty' "$TRANSCRIPT" 2>/dev/null | grep -cE '\.(ts|tsx)$' || true)
+  SESSION_TS_PATHS=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use") | select(.name=="Edit" or .name=="Write" or .name=="MultiEdit" or .name=="NotebookEdit") | .input.file_path // .input.notebook_path // empty' "$TRANSCRIPT" 2>/dev/null | grep -E '\.(ts|tsx)$' | sed "s|^${CLAUDE_PROJECT_DIR:-$PWD}/||" | sort -u || true)
+  SESSION_TS_EDIT_COUNT=$(printf '%s' "$SESSION_TS_PATHS" | grep -c . || true)
   if [ "${SESSION_AGENT_COUNT:-0}" -eq 0 ] && [ "${SESSION_TS_EDIT_COUNT:-0}" -eq 0 ]; then
     exit 0
+  fi
+  # 세션 dirty 교집합 가드 (2026-09-02, 사용자 승인): 이 세션이 고친 .ts/.tsx 가 전부 커밋돼
+  # 작업 트리에 하나도 남아 있지 않고 agent 위임도 0 이면, 남은 .ts 변경은 다른 세션 소유 →
+  # 그 세션의 Stop 훅이 같은 검사를 돌린다. 게이트가 사라지는 게 아니라 주인에게 옮겨진다.
+  # Why: .ts 를 고쳤지만 전부 push 한 세션이 병렬 세션의 미커밋 .ts 로 Stop 마다 재호출
+  #   (2026-09-02 실측 10회 연속, 매회 type-check 9초). 위 확장자 가드는 ".ts 를 아예 안 고친
+  #   세션" 만 면제해 이 경우가 남았다. Bash(sed/perl) 편집은 transcript 경로에 안 잡히는
+  #   사각 — 확장자 가드와 같은 전제. 에러를 내 파일로 거르는 방식은 쓰지 않는다 (내 export
+  #   변경으로 남의 파일이 깨진 경우를 놓친다).
+  if [ "${SESSION_AGENT_COUNT:-0}" -eq 0 ]; then
+    DIRTY_TS=$({ git diff --name-only HEAD; git ls-files --others --exclude-standard; } 2>/dev/null | grep -E '\.(ts|tsx)$' | sort -u || true)
+    if [ -z "$(comm -12 <(printf '%s\n' "$SESSION_TS_PATHS") <(printf '%s\n' "$DIRTY_TS"))" ]; then
+      exit 0
+    fi
   fi
 fi
 
