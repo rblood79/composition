@@ -1270,8 +1270,8 @@ impl LayoutTree {
 
     /// 노드의 **실효** display 이원 구조 (ADR-923 Phase 1): 자기 style 의 CSS 값 1개를
     /// `display::parse_display` 로 읽고, 부모가 flex/grid 컨테이너면 `display::blockify`
-    /// (outer=block, inner 유지 — CSS Display 3 §2.7; TS `fullTreeLayout.ts` `blockifyDisplay`
-    /// 의 엔진 대응). 부모가 block 이면 outer 그대로 — `write_block_item` 이 outer 로 line
+    /// (outer=block, inner 유지 — CSS Display 3 §2.7; ADR-923 Phase 5 부터 blockify 는 엔진만
+    /// 한다). 부모가 block 이면 outer 그대로 — `write_block_item` 이 outer 로 line
     /// item 을 판정한다. root(부모 없음) 는 자기 값 그대로.
     fn effective_display(&self, handle: usize) -> Display {
         let Some(node) = self.get(handle) else {

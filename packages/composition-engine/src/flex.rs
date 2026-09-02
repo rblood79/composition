@@ -784,10 +784,11 @@ pub fn flex_layout(
         //   라인이 1개로 떨어져도 multi-line 이고, 라인 cross 는 자식 max 로 남아 align-content
         //   가 배치한다. `line_count == 1` 로 판정하면 wrap 컨테이너의 유일 라인까지 컨테이너
         //   cross 로 승격시켜 align-content:flex-start 를 무력화한다.
-        //   실제 증상: body(display:block, 페이지 높이 definite) > Button 은 block IFC 시뮬레이션
-        //   (INLINE_BLOCK_PARENT_CONFIG = wrap + align-items:center + align-content:flex-start)
-        //   을 타는데, 라인이 페이지 높이로 승격되며 align-items:center 가 Button 을 세로 중앙에
-        //   배치 → CSS(좌상단)와 Skia(좌중앙) 비대칭. wrap 이면 승격하지 않아야 상단에 쌓인다.
+        //   실제 증상 (당시 — 종전 TS IFC 시뮬레이션, ADR-923 Phase 5 에서 삭제): body(display:block,
+        //   페이지 높이 definite) > Button 이 TS 합성 wrap + align-items:center +
+        //   align-content:flex-start 를 탔는데, 라인이 페이지 높이로 승격되며 align-items:center 가
+        //   Button 을 세로 중앙에 배치 → CSS(좌상단)와 Skia(좌중앙) 비대칭. wrap 이면 승격하지
+        //   않아야 상단에 쌓인다 — 규칙 자체는 CSS §5.2 이라 시뮬레이션과 무관하게 유효.
         //
         // **Why `max` 가 아니라 대입인가 (2026-07-27)**: §9.4 step 8 은 "**is** the flex
         //   container's inner cross size" — 라인이 컨테이너보다 커도 라인 cross 는 컨테이너
@@ -1783,7 +1784,8 @@ mod tests {
 
     #[test]
     fn wrap_single_line_definite_align_content_start_keeps_line_at_top() {
-        // block IFC 시뮬레이션 (taffyDisplayAdapter INLINE_BLOCK_PARENT_CONFIG):
+        // 종전 TS IFC 시뮬레이션이 만들던 합성 형태 (ADR-923 Phase 5 에서 시뮬레이션은 삭제 —
+        //   케이스는 wrap 컨테이너 자체 규칙 검증으로 유지):
         //   body(display:block, 페이지 높이 definite) > Button(inline-block)
         //   → flex/row/wrap + align_items:center + align_content:flex-start
         // CSS §5.2: flex-wrap:wrap 은 라인이 1개여도 **multi-line 컨테이너** — §9.4 step 8 의

@@ -1,21 +1,21 @@
 /**
- * CSS display 값 → Taffy 내부 표현 변환 레이어
+ * CSS display 값 → 엔진 경계 운반 레이어 (ADR-923 Phase 5 cutover, 2026-09-02)
  *
- * Presentation 레이어(style panel, CSS export, Preview)는 원본 CSS display 값을
- * 그대로 유지하고, Taffy 엔진 레이어에서만 이 모듈을 통해 내부 변환을 적용한다.
- *
- * 이 모듈은 Dropflow 오픈소스 원본(packages/layout-flow/)의 검증된
- * Display 타입 시스템을 기반으로, CSS Block Layout을 Taffy(Flexbox 엔진)에서
- * 시뮬레이션하기 위한 단일 소스이다.
+ * Presentation 레이어(style panel, CSS export, Preview)는 원본 CSS display 값을 그대로
+ * 유지하고, 레이아웃 파이프라인은 이 모듈을 거쳐 그 값을 **손실 없이** 엔진 경계
+ * (`buildTreeBatch`) 로 보낸다. display 의 해석 — outer(line item)/inner(solver)/flex·grid
+ * 자식 blockify — 은 엔진 `display.rs`·`tree.rs`·`block.rs` 소유다. 이 모듈은 더 이상
+ * CSS Block Layout 을 flex 엔진에서 시뮬레이션하지 않는다 (종전 단일 소스 역할은 삭제됐다).
  *
  * === CSS Display Level 3 기반 Display 이원 구조 ===
  *
- * Dropflow 원본의 Display = { outer: OuterDisplay, inner: InnerDisplay } 모델을 사용:
+ * `parseDisplay` / `displayToString` 은 Dropflow 원본(packages/layout-flow/) 의
+ * Display = { outer: OuterDisplay, inner: InnerDisplay } 모델을 쓴다:
  * - outer: 요소의 외부 참여 방식 (inline | block | none)
  * - inner: 요소 내부의 formatting context (flow | flow-root | flex | grid | none)
  *
- * 이를 통해 blockification, inline-level 판별, BFC 생성 판단이
- * 타입 시스템 수준에서 정확히 보장된다.
+ * 이 파일의 이원 구조는 `normalizeCssDisplay` (운반 union 정규화) 와 패널·게이트의 outer/inner
+ * 판독에만 쓰인다 — 엔진은 같은 모델의 Rust 판 (`display.rs`) 을 자체 소비한다.
  *
  * === 번역 규칙 (ADR-923 Phase 5 cutover, 2026-09-02) ===
  *

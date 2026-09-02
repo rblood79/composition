@@ -36,11 +36,11 @@
 //!   criteria ③). taffy 의존 0 + 레이아웃 모듈 결합 0 이라 clean 편입. `#[wasm_bindgen]`
 //!   struct 직접(게이트 밖) → wasm-pack 자동 export + native cargo test 통과(JsValue 미사용).
 //!
-//! - `display` — CSS Display 변환 순수 문자열 계층 (taffyDisplayAdapter.ts 자기완결 계층).
+//! - `display` — CSS Display 변환 순수 문자열 계층 (taffyDisplayAdapter.ts 의 이원 구조 이식).
 //!   Phase 2-A. CSS Display Level 3 이원 구조(outer/inner) 파싱 + blockification +
-//!   inline-level 판정 + 자식 display 분류. 미이식: getElementDisplay(INLINE_BLOCK_TAGS
-//!   tag 도메인 의존), toTaffyDisplay childElements 경로 + VERTICAL_ALIGN_MIDDLE_TAGS
-//!   (node/tag 의존 → tree.rs 2-B 노드 계약과 함께 이관).
+//!   inline-level 판정. ADR-923 Phase 5 (2026-09-02) 부터 TS 는 CSS display 값을 그대로
+//!   보내고 outer/inner 해석·blockify 는 이 계층과 tree.rs 만 한다 (TS IFC 시뮬레이션 삭제).
+//!   JS 잔류: 기본 display 해석 `resolveDefaultDisplay` (컴포넌트 tag 도메인).
 //!
 //! - `tree` — 트리 오케스트레이션 (taffy_bridge.rs batch 계약 대응). Phase 2-B.
 //!   `build_tree_batch` → `compute_layout` → `get_layouts_batch` 를 Taffy 없이

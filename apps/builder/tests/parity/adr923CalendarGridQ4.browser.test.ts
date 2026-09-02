@@ -184,7 +184,9 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
     console.log(
       `ADR923Q4 free-form pipeline current grid ${gridNow.width}x${gridNow.height} button @(${btnNow.x},${btnNow.y}) · block button @(${btnBlock.x},${btnBlock.y})`,
     );
-    // 현 경로: 두 값이 같은 결과 (Button 이 grid 옆) — IFC 시뮬레이션 (Phase 5 제거 대상) 의 사실 고정
+    // 현 경로 (Phase 5 —): 기본값 = `block` 이라 두 값이 같은 결과 (Button 이 아래 줄). 축이 살아
+    //   있는 것은 아래 inline-block 대조가 보인다 (엔진 직결 — Phase 4 까지는 IFC 시뮬레이션이
+    //   세 값을 전부 같은 결과로 접었다).
     expect([btnBlock.x, btnBlock.y]).toEqual([btnNow.x, btnNow.y]);
     expect(btnNow.x).toBe(0); // 기본값 block → Button 은 아래 줄
     expect(btnNow.y).toBeGreaterThanOrEqual(gridNow.height - 1);

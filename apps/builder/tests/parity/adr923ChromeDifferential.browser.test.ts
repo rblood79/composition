@@ -11,14 +11,16 @@ import {
 } from "./harness";
 
 /**
- * ADR-923 Phase 3 — Chrome 차등 증명 (G1 전반).
+ * ADR-923 Phase 3 — Chrome 차등 증명 (G1 전반) · Phase 5 부터 G1 후반 (production 경로 게이트).
  *
  * leg 1 (ground truth) — 실 Chrome `getBoundingClientRect` (harness.domLeg).
- * leg 2 (게이트 대상)   — **어댑터 우회** 엔진 직결 (harness.engineLeg — raw CSS
+ * leg 2 (게이트)        — **어댑터 우회** 엔진 직결 (harness.engineLeg — raw CSS
  *   display 문자열 inline-block/inline-flex/inline-grid 를 buildTreeBatch 로 직접
  *   전달, Phase 1 outer/inner 배선 + Phase 2 baseline 계약이 판정 대상).
- * leg 3 (대조군, 기록만) — 현 어댑터 경로 (harness.pipelineLeg — IFC 시뮬레이션).
- *   breakdown Phase 3: "(전) 현 어댑터 경로 결과도 같은 표에 나란히 기록".
+ * leg 3 (게이트, Phase 5 —) — production 어댑터 경로 (harness.pipelineLeg =
+ *   `calculateFullTreeLayout`, CSS 값 그대로 엔진 직결). Phase 3 에서는 IFC 시뮬레이션
+ *   대조군으로 기록만 했고 (breakdown Phase 3 "(전) 현 어댑터 경로 결과도 같은 표에
+ *   나란히 기록"), Phase 5 cutover 뒤에는 `pipeBad` 를 단언한다 (G1 후반).
  *
  * 통과: 위치·크기 ≤ 1px (harness.TOL). 실패 = 엔진 결함 → Phase 1·2 수리 → 재실행.
  * 강등 없음 (G1).

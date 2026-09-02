@@ -19,19 +19,24 @@
 //!   inline-flex · inline-grid 가 block 부모의 line item). 순수 `inline`(inner=flow) 은
 //!   S4(B 갈래) 까지 block 격상 유지.
 //! - `tree.rs solve_node` → 부모가 flex/grid 컨테이너면 [`blockify`] (CSS Display 3 §2.7 —
-//!   TS `fullTreeLayout.ts` `blockifyDisplay` 의 엔진 대응).
+//!   blockify 는 엔진만 한다; TS 쪽 대응물은 Phase 5 에서 삭제).
 //! - `tree.rs node_establishes_bfc` → `inner ∈ {Flex, Grid}`.
 //!
-//! TS 는 Phase 5 cutover 전까지 inline-flex/inline-grid 를 엔진에 보내지 않는다 (S9 정규화)
-//! — 프로덕션 동작은 그때까지 무변경.
+//! ## 경계 계약 (ADR-923 Phase 5 cutover, 2026-09-02)
 //!
-//! ## 미이식 (JS 잔류)
+//! TS 는 CSS display 값을 **그대로** 보낸다 — `taffyDisplayAdapter.ts normalizeCssDisplay` 가
+//! 인식 값 8 종 (block · inline · inline-block · flex · inline-flex · grid · inline-grid ·
+//! none) 을 손실 없이 운반하고 미인식만 block 으로 접는다 ([`parse_display`] 의 폴백과 같다).
+//! 종전 TS IFC 시뮬레이션 (block 부모 + inline-level 자식 → flex row wrap 합성, inline-block
+//! 크기 고정 leaf, block 형제 width:100% 보정, TS blockify, inline-flex → flex 정규화) 은 전부
+//! 삭제됐고 이 모듈 + `block.rs` line box + `tree.rs` blockify 가 그 자리를 맡는다.
 //!
-//! - `getElementDisplay` — `INLINE_BLOCK_TAGS`(utils.ts, 컴포넌트 tag 도메인 지식)
-//!   의존. ADR-923 Phase 4/5 가 default-display resolver(catalog 파생) 로 분리.
-//! - `needsBlockChildFullWidth` / `toTaffyDisplay` — IFC 시뮬레이션. ADR-923 Phase 5 제거
-//!   대상 (엔진 block.rs line box 가 대체).
-//! - `VERTICAL_ALIGN_MIDDLE_TAGS` — tag Set (tag 도메인).
+//! ## JS 잔류 (엔진 이관 대상 아님)
+//!
+//! - 기본 display 해석 `getElementDisplay` → `resolveDefaultDisplay` (`defaultDisplay.ts` —
+//!   catalog 파생 → 손 목록 → block). 컴포넌트 tag 도메인 지식이라 TS 에 남는다.
+//! - `toTaffyDisplay(display, childDisplays)` — `normalizeCssDisplay` 만 감싼 운반 함수.
+//!   `childDisplays` 는 HC1 게이트의 관측 인자.
 
 /// 요소의 외부 display 타입 (CSS Display Level 3 outer display).
 ///
@@ -150,7 +155,7 @@ pub fn blockify(d: Display) -> Display {
     }
 }
 
-/// 문자열 판 [`blockify`] (taffyDisplayAdapter.ts:374 `blockifyDisplay` 대응).
+/// 문자열 판 [`blockify`] (TS `blockifyDisplay` 는 ADR-923 Phase 5 에서 삭제 — 엔진 판만 남았다).
 ///
 /// - inline(inline+flow) → block / inline-block(inline+flow-root) → flow-root
 /// - inline-flex → flex / inline-grid → grid

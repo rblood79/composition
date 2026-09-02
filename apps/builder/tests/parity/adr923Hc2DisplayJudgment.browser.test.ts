@@ -110,6 +110,22 @@ let liveRoots: Root[] = [];
 let host: HTMLElement | undefined;
 const live: Record<string, string> = {};
 
+/**
+ * r31m1 — FieldError 는 **같은 production 상태 짝** 으로 잰다. Canvas 의 FieldError 자식은 factory inline
+ * `display:none` (`FormComponents.ts` TextField 정의) 이고 Canvas 어디에도 `isInvalid` 를 읽는 코드가 없다;
+ * DOM 은 RAC `FieldError` 가 validation invalid 일 때만 `<span>` 을 렌더한다. 상태를 갈라 잰 값을 한 행에
+ * 두면 판정이 비어 있다 — 기본 (isInvalid:false · errorMessage "") 과 invalid (isInvalid:true +
+ * errorMessage) 두 상태를 양쪽에서 각각 캡처하고, 표의 FieldError 행은 invalid 상태 짝을 근거로 판정한다.
+ */
+interface StatePair {
+  canvas: string;
+  dom: string;
+}
+const fieldErrorStates: Record<"default" | "invalid", StatePair> = {
+  default: { canvas: "(미캡처)", dom: "(미캡처)" },
+  invalid: { canvas: "(미캡처)", dom: "(미캡처)" },
+};
+
 function runOf(tree: ProductionTree): LayoutRun {
   let r = runs.get(tree.name);
   if (!r) {
@@ -187,6 +203,44 @@ beforeAll(async () => {
       domTag: tag,
       uaDisplay: uaDisplayOf(tag),
     });
+  }
+
+  // r31m1 — FieldError Canvas 상태 짝: 같은 팔레트 TextField 트리에서 parent 를 invalid 로 바꿔 (Inspector
+  //   writer 가 쓰는 top-level props — `isInvalid` · `errorMessage`) 한 번 더 돌린다. 자식 FieldError 노드는
+  //   손대지 않는다 — 상태만 다른 두 캡처.
+  {
+    const tf = trees.find(
+      (t) => t.type === "TextField" && t.root.type === "TextField",
+    );
+    const fe = tf?.elements.find((el) => el.type === "FieldError");
+    if (tf && fe) {
+      const dflt = runOf(tf).batch.get(fe.id);
+      fieldErrorStates.default.canvas = dflt
+        ? String(dflt.style.display ?? "(없음)")
+        : "(batch 없음)";
+      const invalidEls = tf.elements.map((el) =>
+        el.id === tf.root.id
+          ? ({
+              ...el,
+              props: {
+                ...el.props,
+                isInvalid: true,
+                errorMessage: "required",
+              },
+            } as Element)
+          : el,
+      );
+      const inv = layoutTree(
+        tf.root.id,
+        invalidEls,
+        400,
+        -1,
+        "hc2-invalid",
+      ).batch.get(fe.id);
+      fieldErrorStates.invalid.canvas = inv
+        ? String(inv.style.display ?? "(없음)")
+        : "(batch 없음)";
+    }
   }
 
   // live computed (실 번들 CSS) — DOM 충돌 3 + 선언 없음 17 중 렌더 가능한 것. 컴포넌트마다 root 를
@@ -356,6 +410,33 @@ beforeAll(async () => {
       c.live = live[type];
     }
   }
+
+  // r31m1 — FieldError DOM 상태 짝: 기본 상태 (isInvalid 없음, errorMessage "" — factory 와 같음) 는 RAC 가
+  //   FieldError 를 렌더하지 않는다. invalid 상태는 위 표 캡처 (`live.FieldError`) 그대로.
+  {
+    const mount = document.createElement("div");
+    mount.style.cssText = "width:400px;";
+    host.appendChild(mount);
+    const rt = createRoot(mount);
+    roots.push(rt);
+    await new Promise<void>((resolve) => {
+      rt.render(
+        React.createElement(
+          Boundary,
+          null,
+          React.createElement(TextField, { label: "Name", errorMessage: "" }),
+        ),
+      );
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+    const el = mount.querySelector(
+      ".react-aria-FieldError",
+    ) as HTMLElement | null;
+    fieldErrorStates.default.dom = el
+      ? `${el.tagName.toLowerCase()}:${getComputedStyle(el).display}`
+      : "(없음)";
+    fieldErrorStates.invalid.dom = live.FieldError ?? "(없음)";
+  }
   liveRoots = roots;
 });
 
@@ -379,6 +460,9 @@ afterAll(async () => {
  *     형태에서 항상 flex/grid 자식이라 outer 가 양쪽 모두 blockify (대응 box 명시)
  *   - `전환필요(후속)` outer 가 실제로 갈리는 palette/spec 항목 — catalog/spec 값 판정이 별도 D3 commit
  *     (breakdown Phase 5 후속 항목, evidence §HC2). 미판정 0 이 이 게이트다.
+ *   - `투영필요(후속)` display 값이 아니라 **parent 상태 prop → 자식 가시성** 투영이 없어 같은 상태에서
+ *     상자 유무가 갈리는 항목 (FieldError — r31m1). 상태 짝 캡처 `fieldErrorStates` 가 근거, 수리는 별도
+ *     commit (TagGroup 슬롯 자식 `isTagGroupSlotChildVisible` r21m1 과 동형).
  */
 const HC2: Record<
   string,
@@ -506,9 +590,9 @@ const HC2: Record<
   },
   FieldError: {
     canvas: "none",
-    dom: "span:block (live, isInvalid 일 때; 유효하면 렌더 없음)",
-    verdict: "일치",
-    box: ".react-aria-FieldError — 오류 없음 = 양쪽 없음; 오류 상태 투영은 별도",
+    dom: "span:block (live, isInvalid+errorMessage) · 기본 상태는 (없음) — 같은 상태 짝은 fieldErrorStates",
+    verdict: "투영필요(후속)",
+    box: ".react-aria-FieldError — 기본 상태: Canvas display:none ↔ DOM 미렌더 = 양쪽 상자 없음 (일치). invalid 상태: Canvas 는 여전히 none (factory inline display:none, isInvalid 를 읽는 Canvas 코드 0) ↔ DOM span:block (RAC 가 invalid 일 때만 렌더) = 갈림. display 값이 아니라 parent 상태 → 자식 가시성 투영 부재 — 별도 commit",
   },
   IllustratedMessage: {
     canvas: "flex",
@@ -610,7 +694,26 @@ describe("ADR-923 Phase 5 — HC2 판정표 (Canvas 전용 display override 33 r
     for (const r of Object.values(HC2))
       counts[r.verdict] = (counts[r.verdict] ?? 0) + 1;
     console.log(`ADR923HC2 verdicts ${JSON.stringify(counts)}`);
-    expect(counts["전환(Phase 5)"]).toBe(2);
-    expect(counts["전환필요(후속)"]).toBe(5);
+    expect(counts).toEqual({
+      "전환(Phase 5)": 2,
+      일치: 6,
+      "일치(outer)": 13,
+      "예외(투영)": 2,
+      "예외(inert)": 4,
+      "전환필요(후속)": 5,
+      "투영필요(후속)": 1,
+    });
+  });
+
+  it("FieldError 상태 짝 (r31m1) — 같은 production 상태에서 Canvas·DOM 을 잰다: 기본 = 양쪽 상자 없음 · invalid = Canvas none ↔ DOM span:block 갈림", () => {
+    console.log(
+      `ADR923HC2 FieldError states ${JSON.stringify(fieldErrorStates)}`,
+    );
+    expect(fieldErrorStates.default).toEqual({ canvas: "none", dom: "(없음)" });
+    expect(fieldErrorStates.invalid).toEqual({
+      canvas: "none",
+      dom: "span:block",
+    });
+    expect(HC2.FieldError.verdict).toBe("투영필요(후속)");
   });
 });
