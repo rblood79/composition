@@ -899,6 +899,13 @@ multiple` baseline 의 세 소비처(layout · scene · virtualization)가 highl
       seed 27/2702 PASS) · `fallback` 반전 mutation 은 선언된 binding 값이 항상 우선하고 선언 자체가 shared 테스트로 고정돼
       현 계약에서 동치 — 이슈 아님.
 
+## round 28 판독 (Codex — 수리 75 VERIFIED · LOW 1 문서, 코드 변경 0)
+
+- 판정: selection mode/style × 소비처 4 × helper 2 의 source identity 누락 0 · mutation 누출 0 (try/finally · 동기 callback · builder/shared 독립 실행 단위). 재실행 전부 일치, 원복 RED (a) 1+1 · (b) 2 · (c) 1+1 · (d) 3 기대 일치.
+- 다른 기본값 축은 **후속 mutation-hardening 범위** — Table `height=400` 은 같은 키·값 sibling 이 없고 직접 조회 (`Table.binding.ts:64` · `implicitStyles.ts:1279`); Badge/Select 는 component 별 리터럴 소비처가 아니라 동적 tag 단일 경로 (`utils.ts:1462`), helper 의 전 타입 객체 identity 는 `defaultContractLookup.test.ts:140` 이 고정. Badge→Code 같은 값 조건 분기 진단은 19/19 PASS 였으나 현 코드에 그 분기가 없어 남은 load-bearing 사실이 아님.
+- r28l1 LOW: README 923 행 집계 `수리 61` (r21 시점) 이 r22~r27 이력 추가 뒤에도 그대로 → **75** 로 정정.
+- 결론: **Phase 3 닫힘 · Phase 4 진입 가** (Decision C′ 재개 조건 충족하지 않음). Phase 4 착수는 사용자 승인 후.
+
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
 - **실효 (프로덕션 어댑터 경로가 그대로 타는 수리)**: 수리 5 (wrap min-content, r8l2
