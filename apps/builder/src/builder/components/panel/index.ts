@@ -1,3 +1,5 @@
 export { PanelHeader } from "./PanelHeader";
 export { Section } from "./Section";
 export type { SectionProps } from "./Section";
+export { SectionGroupToggleButton } from "./SectionGroupToggleButton";
+export type { SectionGroupToggleButtonProps } from "./SectionGroupToggleButton";

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [패널 헤더의 "모든 섹션 접기" 가 펼치기와 왕복하고, Styles 단축키가 다른 패널을 건드리지 않습니다] - 2026-09-02
+
+### Fixed
+
+- Components 패널 헤더의 "모든 섹션 접기" 버튼이 접기만 되고 다시 펼칠 수 없던 문제를 고쳤습니다. 모든 섹션이 접히면 버튼이 "모든 섹션 펼치기" (아이콘·라벨 함께) 로 바뀌고, 섹션 chevron 으로 하나씩 접어 전부 접힌 경우에도 같은 상태를 반영합니다.
+- Styles 패널의 전체 접기/펼치기 단축키 (⌥S) 가 다른 패널 (Components·Monitor·History 등) 의 섹션이 하나라도 접혀 있으면 펼침이 동작하지 않던 문제와, 펼칠 때 다른 패널의 접힘 상태까지 지우던 문제를 고쳤습니다. 이제 Styles 의 섹션 4개만 판정·조작합니다.
+
+### Added
+
+- 패널 헤더용 공용 "모든 섹션 접기/펼치기" 토글 버튼 (`SectionGroupToggleButton`) 과 섹션 그룹 판정 helper (`useSectionGroupToggle`) 를 추가했습니다. Components 패널이 먼저 쓰며, Navigator 패널의 Pages/Layers 접기·헤더 토글·분할 조절은 후속 단계로 이어집니다.
+
 ## [목록·격자 목록의 선택 방식 기본값이 속성 패널 표시와 실제 화면에서 같아졌습니다] - 2026-09-02
 
 ### Fixed

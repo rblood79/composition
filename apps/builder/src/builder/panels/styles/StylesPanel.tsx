@@ -39,7 +39,11 @@ import {
   type StyleGroupId,
   type StyleViewId,
 } from "./constants/styleGroups";
-import { useSectionCollapse } from "./hooks/useSectionCollapse";
+import {
+  STYLE_PANEL_SECTION_IDS,
+  useSectionCollapse,
+  useSectionGroupToggle,
+} from "./hooks/useSectionCollapse";
 import { useStyleActions } from "./hooks/useStyleActions";
 import { useDirtyStyleProps } from "./hooks/useResetStyles";
 import {
@@ -118,13 +122,14 @@ function StylesPanelContent() {
   const isCopyDisabled = !hasInlineStyle;
 
   const [view, setView] = useState<StyleViewId>("layout");
-  const {
-    expandAll,
-    collapseAll,
-    collapsedSections,
-    focusMode,
-    toggleFocusMode,
-  } = useSectionCollapse();
+  const focusMode = useSectionCollapse((s) => s.focusMode);
+  const toggleFocusMode = useSectionCollapse((s) => s.toggleFocusMode);
+  // ⌥S 전체 토글 — Styles 섹션 4개만 id 집합으로 판정·조작한다. 종전에는 접힌 섹션의
+  // 개수를 세어 판정해 다른 패널 섹션이 하나라도 접혀 있으면 영원히 거짓이었고, 펼칠 때
+  // 전 패널의 접힘 상태를 지웠다.
+  const { toggle: toggleStyleSections } = useSectionGroupToggle(
+    STYLE_PANEL_SECTION_IDS,
+  );
   const { copyStyles, pasteStyles } = useStyleActions();
 
   const handleViewChange = useCallback((key: React.Key) => {
@@ -150,16 +155,9 @@ function StylesPanelContent() {
     () =>
       bindHandlersToDefinitions(["toggleFocusMode", "toggleSections"], {
         toggleFocusMode,
-        toggleSections: () => {
-          const allCollapsed = collapsedSections.size === 4;
-          if (allCollapsed) {
-            expandAll();
-          } else {
-            collapseAll();
-          }
-        },
+        toggleSections: toggleStyleSections,
       }),
-    [toggleFocusMode, collapsedSections, expandAll, collapseAll],
+    [toggleFocusMode, toggleStyleSections],
   );
 
   useKeyboardShortcutsRegistry(shortcuts, [shortcuts], { activeScope });

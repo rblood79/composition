@@ -7,8 +7,35 @@
  * - Alt/Option + Shift + S: Focus Mode 토글
  */
 
+import { useCallback } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+
+/**
+ * Styles 패널의 섹션 id 4개 — `collapseAll()` 기본 대상이자 ⌥S 전체 토글의 판정 집합.
+ * 종전에는 StylesPanel 이 `collapsedSections.size === 4` 로 "전부 접힘" 을 판정해,
+ * 다른 패널(Components/Monitor/History)의 섹션이 하나라도 접혀 있으면 영원히 거짓이 되어
+ * ⌥S 로 다시 펼칠 수 없었다. 판정은 반드시 id 집합으로 한다.
+ */
+export const STYLE_PANEL_SECTION_IDS: readonly string[] = [
+  "transform",
+  "layout",
+  "appearance",
+  "typography",
+];
+
+/**
+ * 섹션 그룹이 전부 접혀 있는가 (일반 모드 기준 — `collapsedSections` 만 본다).
+ * Focus Mode 는 Section 이 그릴 때 덮어쓰는 표시 규칙이지 저장 상태가 아니므로 여기서 다루지 않는다.
+ * 빈 그룹은 "전부 접힘" 이 아니다 (토글 버튼이 펼침 상태로 보여야 한다).
+ */
+export function areAllSectionsCollapsed(
+  collapsedSections: ReadonlySet<string>,
+  sectionIds: readonly string[],
+): boolean {
+  if (sectionIds.length === 0) return false;
+  return sectionIds.every((id) => collapsedSections.has(id));
+}
 
 interface SectionCollapseState {
   // State
@@ -21,7 +48,9 @@ interface SectionCollapseState {
   isCollapsed: (sectionId: string) => boolean;
   expandSections: (sectionIds: string[]) => void;
   expandAll: () => void;
-  collapseAll: (sectionIds?: string[]) => void;
+  collapseAll: (sectionIds?: readonly string[]) => void;
+  /** 그룹이 전부 접혀 있으면 그 그룹만 펼치고, 아니면 그 그룹만 접는다 (다른 패널 id 불변). */
+  toggleSectionGroup: (sectionIds: readonly string[]) => void;
   toggleFocusMode: () => void;
   setFocusSection: (sectionId: string) => void;
 }
@@ -76,18 +105,25 @@ export const useSectionCollapse = create<SectionCollapseState>()(
       expandAll: () => set({ collapsedSections: new Set() }),
 
       // Collapse all sections (specific IDs or default style panel sections)
-      collapseAll: (sectionIds?: string[]) =>
+      collapseAll: (sectionIds?: readonly string[]) =>
         set((state) => ({
           collapsedSections: new Set([
             ...state.collapsedSections,
-            ...(sectionIds ?? [
-              "transform",
-              "layout",
-              "appearance",
-              "typography",
-            ]),
+            ...(sectionIds ?? STYLE_PANEL_SECTION_IDS),
           ]),
         })),
+
+      // Toggle a section group as a whole — 그룹 밖 id 는 건드리지 않는다
+      toggleSectionGroup: (sectionIds: readonly string[]) =>
+        set((state) => {
+          const newSet = new Set(state.collapsedSections);
+          if (areAllSectionsCollapsed(state.collapsedSections, sectionIds)) {
+            sectionIds.forEach((id) => newSet.delete(id));
+          } else {
+            sectionIds.forEach((id) => newSet.add(id));
+          }
+          return { collapsedSections: newSet };
+        }),
 
       // Toggle Focus Mode
       toggleFocusMode: () =>
@@ -135,3 +171,22 @@ export const useSectionCollapse = create<SectionCollapseState>()(
     },
   ),
 );
+
+/**
+ * 섹션 그룹 전체 접기/펼치기 — 패널 헤더 토글 버튼과 단축키가 공유하는 단일 판정.
+ * `allCollapsed` 는 primitive boolean 구독이라 그룹 밖 섹션 토글에는 리렌더하지 않는다.
+ */
+export function useSectionGroupToggle(sectionIds: readonly string[]): {
+  allCollapsed: boolean;
+  toggle: () => void;
+} {
+  const allCollapsed = useSectionCollapse((s) =>
+    areAllSectionsCollapsed(s.collapsedSections, sectionIds),
+  );
+  const toggleSectionGroup = useSectionCollapse((s) => s.toggleSectionGroup);
+  const toggle = useCallback(
+    () => toggleSectionGroup(sectionIds),
+    [sectionIds, toggleSectionGroup],
+  );
+  return { allCollapsed, toggle };
+}

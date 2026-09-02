@@ -2,10 +2,14 @@ import { useMemo, useCallback, memo, useState, useEffect } from "react";
 import { translations } from "../../../i18n";
 // ADR-912 collapse: palette icon 은 getPaletteItems() 가 catalog entry.panel.icon → lucide 매핑.
 // 아래 lucide import 는 ComponentList 자체 UI(검색/휴지통/접기 등) 전용으로만 잔존.
-import { Blocks, ChevronsDownUp, SearchX } from "lucide-react";
+import { Blocks, SearchX } from "lucide-react";
 import { getPaletteItems, type PaletteItem } from "./paletteItems";
-import { EmptyState, PanelHeader, Section } from "../../components";
-import { ActionIconButton } from "../../components/ui/ActionIconButton";
+import {
+  EmptyState,
+  PanelHeader,
+  Section,
+  SectionGroupToggleButton,
+} from "../../components";
 import { useEditModeStore } from "../../stores/editMode";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { ComponentSearch } from "./ComponentSearch";
@@ -99,16 +103,12 @@ const ComponentList = memo(
 
     // 검색 시 카테고리 자동 펼치기 (Section 컴포넌트가 collapse 상태 자체를 관리)
     const expandSections = useSectionCollapse((s) => s.expandSections);
-    const collapseAll = useSectionCollapse((s) => s.collapseAll);
 
+    // 헤더 전체 토글의 대상 = 카테고리 Section id 집합 (`comp-${categoryKey}`)
     const compSectionIds = useMemo(
       () => Object.keys(categoryConfig).map((key) => `comp-${key}`),
       [],
     );
-
-    const handleCollapseAll = useCallback(() => {
-      collapseAll(compSectionIds);
-    }, [collapseAll, compSectionIds]);
 
     // 이벤트 핸들러를 메모이제이션
     const handleComponentAdd = useCallback(
@@ -293,20 +293,7 @@ const ComponentList = memo(
           icon={<Blocks size={16} />}
           title="Components"
           panelId="components"
-          actions={
-            <>
-              <ActionIconButton
-                tooltip="Collapse all sections"
-                onPress={handleCollapseAll}
-              >
-                <ChevronsDownUp
-                  color={iconProps.color}
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                />
-              </ActionIconButton>
-            </>
-          }
+          actions={<SectionGroupToggleButton sectionIds={compSectionIds} />}
         />
 
         {/* 검색바 */}

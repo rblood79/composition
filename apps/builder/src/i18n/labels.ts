@@ -2,6 +2,8 @@ export const semanticLabelKeys: Record<string, string> = {
   "Reset section": "sections.reset",
   "Collapse section": "sections.collapse",
   "Expand section": "sections.expand",
+  "Collapse all sections": "sections.collapseAll",
+  "Expand all sections": "sections.expandAll",
   Direction: "styles.layout.direction",
   "Width size mode": "styles.layout.widthSizeMode",
   "Height size mode": "styles.layout.heightSizeMode",
