@@ -551,15 +551,8 @@ describe("ADR-923 r24m2 — layout 밖 소비처의 기능 게이트", () => {
       expect(sceneCheckboxes({})).toEqual(sceneAbsent);
       expect(stride({})).toBe(strideAbsent);
     });
-    // style 축도 같은 형태 — Tree 의 style 을 checkbox 로 바꿔도 GridList 는 그대로.
-    withBindingDefault("Tree", "selectionStyle", "checkbox", () => {
-      expect(
-        gridListLayout({
-          selectionMode: "multiple",
-          selectionStyle: undefined,
-        }),
-      ).toBe(gridListLayout({ selectionMode: "multiple" }));
-    });
+    // style 축의 음성 대조는 아래 r27m1 테스트에서 — 기준을 mutation **밖**에서 잡아야 한다
+    //   (mutation 안의 두 결과끼리 비교하면 둘 다 같이 움직여 항상 통과한다, 판독 지적).
   });
 
   it("binding mutation: Skia TreeItem 의 부재 기본값은 Tree binding 만 따라간다", () => {
@@ -577,5 +570,71 @@ describe("ADR-923 r24m2 — layout 밖 소비처의 기능 게이트", () => {
       expect(treeItemSkia({ selectionStyle: "checkbox" })).toBe(withCheckbox);
     });
     expect(treeItemSkia({ selectionStyle: "checkbox" })).toBe(withCheckbox);
+  });
+
+  /**
+   * ADR-923 r27m1 — **style 축의 source identity**. round 26 은 `selectionMode` 에만 양성 mutation 을
+   * 뒀다. 그래서 `resolveBindingSelectionStyle` 이 GridList 대신 **같은 현재값(`checkbox`)을 가진
+   * CardView binding** 을 읽어도 17/17 + layout 463 + shared 965 가 전부 통과했다 (판독 실험, 재현).
+   * 값이 같은 sibling 은 boolean 동치로도, Tree(다른 값) 음성 대조로도 못 가른다 — 축마다
+   * **양성(그 binding 을 움직이면 따라온다) + 같은 값 sibling 음성(움직여도 불변)** 이 있어야 한다.
+   * 비교 기준은 전부 mutation 밖에서 잡는다.
+   */
+  it("binding mutation: GridList selectionStyle 도 GridList binding 만 따라간다 (양성 + 같은 값 sibling 음성)", () => {
+    const base = { selectionMode: "multiple" };
+    const layoutCheckbox = gridListLayout(base);
+    const sceneCheckbox = sceneCheckboxes(base);
+    const strideCheckbox = stride(base);
+    const layoutHighlight = gridListLayout({
+      ...base,
+      selectionStyle: "highlight",
+    });
+    const sceneHighlight = sceneCheckboxes({
+      ...base,
+      selectionStyle: "highlight",
+    });
+    const strideHighlight = stride({ ...base, selectionStyle: "highlight" });
+    // 대조군 — style 축이 실제로 신호를 움직인다.
+    expect(layoutHighlight).not.toBe(layoutCheckbox);
+    expect(sceneHighlight).not.toEqual(sceneCheckbox);
+    expect(strideHighlight).not.toBe(strideCheckbox);
+    // 양성 — GridList binding 을 highlight 로 움직이면 부재가 highlight 명시와 같아진다.
+    withBindingDefault("GridList", "selectionStyle", "highlight", () => {
+      expect(gridListLayout(base)).toBe(layoutHighlight);
+      expect(sceneCheckboxes(base)).toEqual(sceneHighlight);
+      expect(stride(base)).toBe(strideHighlight);
+    });
+    expect(gridListLayout(base)).toBe(layoutCheckbox); // 복구
+    // 음성 — 같은 현재값을 가진 CardView, 다른 값을 가진 Tree 를 움직여도 GridList 소비처는 불변.
+    for (const [sibling, value] of [
+      ["CardView", "highlight"],
+      ["Tree", "checkbox"],
+    ] as const) {
+      withBindingDefault(sibling, "selectionStyle", value, () => {
+        expect(gridListLayout(base)).toBe(layoutCheckbox);
+        expect(sceneCheckboxes(base)).toEqual(sceneCheckbox);
+        expect(stride(base)).toBe(strideCheckbox);
+      });
+    }
+  });
+
+  it("binding mutation: Skia TreeItem 의 selectionStyle 부재 기본값은 Tree binding 만 따라간다", () => {
+    const absent = treeItemSkia({});
+    const explicitCheckbox = treeItemSkia({ selectionStyle: "checkbox" });
+    expect(explicitCheckbox).not.toBe(absent); // 대조군
+    // 양성 — Tree binding 을 checkbox 로 움직이면 부재가 checkbox 명시와 같아진다.
+    withBindingDefault("Tree", "selectionStyle", "checkbox", () => {
+      expect(treeItemSkia({})).toBe(explicitCheckbox);
+    });
+    expect(treeItemSkia({})).toBe(absent); // 복구
+    // 음성 — GridList/CardView 를 어느 값으로 움직여도 Tree 는 불변.
+    for (const [sibling, value] of [
+      ["GridList", "highlight"],
+      ["CardView", "highlight"],
+    ] as const) {
+      withBindingDefault(sibling, "selectionStyle", value, () => {
+        expect(treeItemSkia({})).toBe(absent);
+      });
+    }
   });
 });

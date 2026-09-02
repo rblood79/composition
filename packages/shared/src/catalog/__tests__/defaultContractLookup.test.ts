@@ -82,6 +82,54 @@ describe("resolveBindingSelectionStyle — 선택 표시 기본값 (r24m1)", () 
   });
 });
 
+/**
+ * ADR-923 r27m1 — helper 의 **source identity**. 반환값만 검사하면 같은 현재값을 가진 다른 binding
+ * (GridList ↔ CardView `checkbox`, GridList ↔ ListBox `none`) 을 읽는 오결선이 통과한다 (판독 실험:
+ * `resolveBindingSelectionStyle` 이 GridList 대신 CardView 를 읽어도 10/10). binding default 를
+ * 움직여서 그 type 의 것만 따라오는지 본다.
+ */
+function withBindingDefault<T>(
+  type: string,
+  key: string,
+  value: unknown,
+  run: () => T,
+): T {
+  const contract = getPrimitiveBinding(type)?.props.accepts[key] as
+    { default?: unknown } | undefined;
+  if (!contract) throw new Error(`${type}.${key} binding 없음`);
+  const prev = contract.default;
+  contract.default = value;
+  try {
+    return run();
+  } finally {
+    contract.default = prev;
+  }
+}
+
+describe("selection helper — source identity (r27m1)", () => {
+  it("resolveBindingSelectionStyle(GridList) 는 GridList binding 만 따라간다 (같은 값 CardView 는 무관)", () => {
+    expect(resolveBindingSelectionStyle("CardView")).toBe("checkbox"); // 같은 현재값 sibling
+    withBindingDefault("GridList", "selectionStyle", "highlight", () => {
+      expect(resolveBindingSelectionStyle("GridList")).toBe("highlight");
+    });
+    withBindingDefault("CardView", "selectionStyle", "highlight", () => {
+      expect(resolveBindingSelectionStyle("GridList")).toBe("checkbox");
+    });
+    expect(resolveBindingSelectionStyle("GridList")).toBe("checkbox");
+  });
+
+  it("resolveBindingSelectionMode(GridList) 는 GridList binding 만 따라간다 (같은 값 ListBox 는 무관)", () => {
+    expect(resolveBindingSelectionMode("ListBox", "single")).toBe("none"); // 같은 현재값 sibling
+    withBindingDefault("GridList", "selectionMode", "multiple", () => {
+      expect(resolveBindingSelectionMode("GridList", "none")).toBe("multiple");
+    });
+    withBindingDefault("ListBox", "selectionMode", "multiple", () => {
+      expect(resolveBindingSelectionMode("GridList", "single")).toBe("none");
+    });
+    expect(resolveBindingSelectionMode("GridList", "single")).toBe("none");
+  });
+});
+
 describe("resolveComponentRuleByTag — lowercase 태그 rule 조회", () => {
   it("Badge / Select 의 defaultSize 를 casing 무관하게 준다", () => {
     expect(resolveComponentRuleByTag("badge")?.defaultSize).toBe("sm");
