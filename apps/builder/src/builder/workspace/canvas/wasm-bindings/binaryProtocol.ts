@@ -337,7 +337,8 @@ function parseDimensionValue(value: unknown): { type: number; value: number } {
 /**
  * Grid placement 값 파싱.
  *
- * 입력은 항상 문자열 (taffyStyleToRecord에서 String() 변환됨).
+ * 입력은 항상 문자열 (`engineStyleToRecord` · `fullTreeLayout` grid 분기 · `utils.ts` 가 `String()` 으로
+ * 변환해 싣는다).
  * - "auto"   → type=0, value=0
  * - "span N" → type=2, value=N
  * - "N"      → type=1, value=N  (line number)

@@ -10,7 +10,8 @@
 
 /**
  * 엔진 경계 display 운반 union — **CSS display 값 그대로** (ADR-923 Phase 5, 2026-09-02).
- * outer(inline → block 부모의 line item)/inner(solver) 해석은 엔진 `display.rs` 가 맡는다;
+ * outer/inner 해석은 엔진 `display.rs` 가 맡는다 (line item 은 atomic inline-level — inline-block ·
+ * inline-flex · inline-grid — 만, 순수 inline 은 S4 까지 block 격상; inner 는 solver);
  * TS 는 값을 지우지 않는다 (종전 union `flex | grid | block | none` 은 inline-* 의 outer 를 잃었다 — S9).
  * 미인식 값은 `normalizeCssDisplay` 가 `block` 으로 폴백 (엔진 `parse_display` 와 동일).
  */
@@ -65,7 +66,8 @@ export type EngineAlignSelf =
   | "baseline"
   | "start"
   | "end";
-export type EngineGridAutoFlow = "row" | "column" | "row-dense" | "column-dense";
+export type EngineGridAutoFlow =
+  "row" | "column" | "row-dense" | "column-dense";
 export type EngineJustifyItems =
   | "start"
   | "end"

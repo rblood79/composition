@@ -20,7 +20,9 @@
  * === 번역 규칙 (ADR-923 Phase 5 cutover, 2026-09-02) ===
  *
  * TS 는 CSS display 값을 **그대로** 엔진 경계(`buildTreeBatch`)로 보낸다 — outer/inner 해석은
- * 엔진 `display.rs` 가 맡는다 (outer=inline 은 block 부모의 line item, inner 는 solver 선택,
+ * 엔진 `display.rs` 가 맡는다 (block 부모의 line item 은 **atomic inline-level** — outer=inline ∧
+ * inner∈{flow-root, flex, grid}, 즉 inline-block·inline-flex·inline-grid — 만이고, 순수 `inline`
+ * (inner=flow) 은 S4 까지 block-level 로 격상된다 (`is_atomic_inline_level`); inner 는 solver 선택,
  * flex/grid 자식의 blockify 는 `tree.rs`). 종전의 TS IFC 시뮬레이션 — block 부모 + inline-level
  * 자식 → flex row wrap 합성, inline-block → 크기 고정 block 리프, block 형제 width:100% 보정,
  * vertical-align → alignItems 근사, TS blockify, inline-flex → flex 정규화 — 는 전부 삭제됐다

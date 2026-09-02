@@ -37,31 +37,34 @@ useLayoutPublisher (canvas/hooks/)
                                      └─ tree::LayoutTree (src/tree.rs:217 — flex/block/grid dispatch)
 ```
 
-| 계층                 | 위치                                                                                      | 역할                                                                                            |
-| -------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Rust 커널            | `packages/composition-engine/src/{flex,block,grid}.rs`                                    | CSS 명세 기반 단일 컨테이너 solver (flat f32 계약)                                              |
-| Rust 오케스트레이션  | `packages/composition-engine/src/tree.rs`                                                 | batch 트리 빌드 → post-order solve → dirty 증분 재계산                                          |
-| WASM wrapper         | `packages/composition-engine/src/wasm.rs`                                                 | `LayoutTree` 를 JS `LayoutEngineAPI` 16 메서드로 노출 (`#[cfg(target_arch = "wasm32")]` 게이트) |
-| JS 동기 wrapper      | `apps/builder/src/builder/workspace/canvas/wasm-bindings/compositionEngine.ts`            | raw 반환(Uint32Array/Float32Array) → number[]/Map 변환                                          |
-| 엔진 factory         | `wasm-bindings/layoutBridge.ts`                                                           | `createLayoutEngine()` — 자체 엔진 단독 반환 (ADR-916 Phase 0-A seam)                           |
-| Persistent 트리      | `layout/engines/persistentLayoutTree.ts`                                                   | elementId↔handle 매핑, JSON 비교 증분 갱신, 페이지 전환 reset                                   |
-| Full-tree 파이프라인 | `layout/engines/fullTreeLayout.ts`                                                        | DFS post-order + enrichment + batch 직렬화 + 2-pass 교정                                        |
+| 계층                 | 위치                                                                                 | 역할                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Rust 커널            | `packages/composition-engine/src/{flex,block,grid}.rs`                               | CSS 명세 기반 단일 컨테이너 solver (flat f32 계약)                                              |
+| Rust 오케스트레이션  | `packages/composition-engine/src/tree.rs`                                            | batch 트리 빌드 → post-order solve → dirty 증분 재계산                                          |
+| WASM wrapper         | `packages/composition-engine/src/wasm.rs`                                            | `LayoutTree` 를 JS `LayoutEngineAPI` 16 메서드로 노출 (`#[cfg(target_arch = "wasm32")]` 게이트) |
+| JS 동기 wrapper      | `apps/builder/src/builder/workspace/canvas/wasm-bindings/compositionEngine.ts`       | raw 반환(Uint32Array/Float32Array) → number[]/Map 변환                                          |
+| 엔진 factory         | `wasm-bindings/layoutBridge.ts`                                                      | `createLayoutEngine()` — 자체 엔진 단독 반환 (ADR-916 Phase 0-A seam)                           |
+| Persistent 트리      | `layout/engines/persistentLayoutTree.ts`                                             | elementId↔handle 매핑, JSON 비교 증분 갱신, 페이지 전환 reset                                   |
+| Full-tree 파이프라인 | `layout/engines/fullTreeLayout.ts`                                                   | DFS post-order + enrichment + batch 직렬화 + 2-pass 교정                                        |
 | DFS 상단 (JS 잔류)   | `layout/engines/{utils,implicitStyles,cssResolver,cssValueParser,displayAdapter}.ts` | store/spec/tag 도메인 의존 계층 — Rust 이관 대상 아님 (ADR-916 2-B 실사)                        |
 
-### "Taffy" 네이밍 보존 규약
+### 어댑터 명명 (ADR-923 Phase 6 개명, 2026-09-03)
 
 `flexStyleAdapter.ts` / `blockStyleAdapter.ts` / `gridStyleAdapter.ts` / `persistentLayoutTree.ts` /
-`EngineStyle`(layoutTypes.ts) 는 **심볼명만 Taffy 계보 표기로 보존**된 순수 TypeScript 코드다.
-엔진 클래스는 삭제되었고 (ADR-916 1-E, commit `f2ac4860c`), 남은 것은 live 소비되는 style 변환 helper 뿐:
+`EngineStyle`(layoutTypes.ts) 는 엔진 입력으로의 **값 변환·정규화만** 하는 순수 TypeScript 코드다 — 계산은
+Rust 엔진 (`flex.rs`/`block.rs`/`grid.rs`) 이 한다. 엔진 클래스는 ADR-916 1-E (commit `f2ac4860c`) 에서
+삭제됐고, 남아 있던 `Taffy*` 식별자 (구 `TaffyFlexEngine.ts` · `TaffyStyle` · `PersistentTaffyTree` 등) 는
+ADR-923 Phase 6 (`7f1cf963d`) 에서 `Engine*` 로 개명됐다 — "Taffy 가 계산한다" 로 읽혀 분석을 잘못
+이끌었기 때문 (ADR-923 R10). 옛 이름은 ADR·evidence·reviews 이력 문서에만 남는다.
 
-| 파일                           | 잔존 심볼                      | 소비처                                       |
-| ------------------------------ | ------------------------------ | -------------------------------------------- |
-| `flexStyleAdapter.ts`           | `elementToEngineStyle()` (:101) | fullTreeLayout.ts:42                         |
-| `blockStyleAdapter.ts`          | `elementToEngineBlockStyle()`   | fullTreeLayout.ts:41                         |
-| `gridStyleAdapter.ts`           | `parseGridTemplate()` (:33)    | fullTreeLayout.ts:43 (`coerceGridTrack`)     |
-| `wasm-bindings/layoutTypes.ts` | `EngineStyle` 등 타입           | 자체 엔진 Rust `NodeStyle` 스키마와 1:1 대응 |
+| 파일                           | 심볼                                 | 소비처                                                          |
+| ------------------------------ | ------------------------------------ | --------------------------------------------------------------- |
+| `flexStyleAdapter.ts`          | `elementToEngineStyle()` (:101)      | fullTreeLayout.ts                                               |
+| `blockStyleAdapter.ts`         | `elementToEngineBlockStyle()` (:109) | fullTreeLayout.ts                                               |
+| `gridStyleAdapter.ts`          | `parseGridTemplate()` (:33)          | fullTreeLayout.ts (`coerceGridTrack`)                           |
+| `wasm-bindings/layoutTypes.ts` | `EngineStyle` 등 `Engine*` 타입 17   | 자체 엔진 Rust `StyleInput` 스키마 (Taffy 0.9 계보) 와 1:1 대응 |
 
-**Why**: 이름까지 rename 하면 소비처 diff 표면만 커진다 — layoutTypes.ts 헤더가 "스타일 스키마 계보 표기로 유지"를 명문화.
+개명 지도: `docs/adr/evidence/923-phase6-naming-capability-seed.md` §1.
 
 ---
 
@@ -176,13 +179,13 @@ ADR-916 2-B 착수 전 실사로 확정: DFS 상단 3-step (`resolveStyle` = sto
 `applyImplicitStyles` = tag/spec 의존 / `enrichWithIntrinsicSize` = specs·propagationRegistry 의존) 은
 **JS 잔류**. Rust 는 상단이 순수화한 EngineStyle record 만 받는다.
 
-| 모듈                                  | 역할                                                                                                                              | 핵심 심볼                                                                                                                                                                                                                                                             |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `engines/utils.ts` (4,872줄)          | intrinsic 측정·box model·태그별 크기                                                                                              | `enrichWithIntrinsicSize`(:3959), `calculateContentWidth`(:1213), `calculateContentHeight`(:2036), `parseBoxModel`(:3651), `applyCommonEngineStyle`(:4653), `applyFlexItemProperties`(:4747), `readGapValue`(:310 — longhand 우선 gap 읽기), `measureTextWidth`(:1094) |
-| `engines/implicitStyles.ts` (2,448줄) | 태그별 implicit style 주입 (순수 함수)                                                                                            | `applyImplicitStyles`, `resolveContainerStylesFallback`, `POPOVER_CHILDREN_TAGS`(:430), `FIELD_VISIBLE_CHILD_TAGS`(:453)                                                                                                                                              |
-| `engines/cssResolver.ts`              | inherit/initial/unset/revert + currentColor cascade                                                                               | `resolveStyle`, `getRootComputedStyle`(themeConfigStore 의존 — Rust 미이관 사유)                                                                                                                                                                                      |
-| `engines/cssValueParser.ts`           | px/%/vw/em/calc()/clamp()/var() 해석                                                                                              | `CSSVariableScope`, `createVariableScopeWithDOMFallback` — **주의**: `packages/specs/src/primitives/cssValueParser.ts`(ADR-907 Layer A) 와 별개 파일                                                                                                                  |
-| `engines/displayAdapter.ts`      | CSS display 값을 **그대로** 엔진 경계로 운반 (ADR-923 Phase 5, 2026-09-02) — `normalizeCssDisplay` 손실 없는 정규화 (미인식만 block) · 기본 display 는 `resolveDefaultDisplay` (`defaultDisplay.ts`, catalog 파생 → hand → block). outer/inner 해석·blockify·line box 는 엔진 `display.rs`·`tree.rs`·`block.rs` (TS IFC 시뮬레이션 삭제) | `normalizeCssDisplay`, `getElementDisplay`, `toEngineDisplay`(2-인자 — `childDisplays` 는 HC1 관측 인자), `parseDisplay`, `VERTICAL_ALIGN_MIDDLE_TAGS`(:137 — 소비처 0, Phase 6 정리 대상)                                                                                                                                              |
+| 모듈                                  | 역할                                                                                                                                                                                                                                                                                                                                     | 핵심 심볼                                                                                                                                                                                                                                                              |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `engines/utils.ts` (4,872줄)          | intrinsic 측정·box model·태그별 크기                                                                                                                                                                                                                                                                                                     | `enrichWithIntrinsicSize`(:3959), `calculateContentWidth`(:1213), `calculateContentHeight`(:2036), `parseBoxModel`(:3651), `applyCommonEngineStyle`(:4653), `applyFlexItemProperties`(:4747), `readGapValue`(:310 — longhand 우선 gap 읽기), `measureTextWidth`(:1094) |
+| `engines/implicitStyles.ts` (2,448줄) | 태그별 implicit style 주입 (순수 함수)                                                                                                                                                                                                                                                                                                   | `applyImplicitStyles`, `resolveContainerStylesFallback`, `POPOVER_CHILDREN_TAGS`(:430), `FIELD_VISIBLE_CHILD_TAGS`(:453)                                                                                                                                               |
+| `engines/cssResolver.ts`              | inherit/initial/unset/revert + currentColor cascade                                                                                                                                                                                                                                                                                      | `resolveStyle`, `getRootComputedStyle`(themeConfigStore 의존 — Rust 미이관 사유)                                                                                                                                                                                       |
+| `engines/cssValueParser.ts`           | px/%/vw/em/calc()/clamp()/var() 해석                                                                                                                                                                                                                                                                                                     | `CSSVariableScope`, `createVariableScopeWithDOMFallback` — **주의**: `packages/specs/src/primitives/cssValueParser.ts`(ADR-907 Layer A) 와 별개 파일                                                                                                                   |
+| `engines/displayAdapter.ts`           | CSS display 값을 **그대로** 엔진 경계로 운반 (ADR-923 Phase 5, 2026-09-02) — `normalizeCssDisplay` 손실 없는 정규화 (미인식만 block) · 기본 display 는 `resolveDefaultDisplay` (`defaultDisplay.ts`, catalog 파생 → hand → block). outer/inner 해석·blockify·line box 는 엔진 `display.rs`·`tree.rs`·`block.rs` (TS IFC 시뮬레이션 삭제) | `normalizeCssDisplay`, `getElementDisplay`, `toEngineDisplay`(2-인자 — `childDisplays` 는 HC1 관측 인자), `parseDisplay`, `VERTICAL_ALIGN_MIDDLE_TAGS`(:137 — 소비처 0, Phase 6 정리 대상)                                                                             |
 
 ### DFS post-order 와 implicit style 의 순서 문제
 
@@ -211,7 +214,7 @@ Cargo.toml 에 **taffy dependency 부재가 crate 존재 이유** — 추가 금
 | `tree.rs`          | 2,600 | 오케스트레이션 — `LayoutTree`(:217) handle 관리(free_list 재활용), `build_tree_batch`(:368), post-order `solve_node` → flex/block/grid dispatch, dirty 조상 전파 + clean 서브트리 skip, available 변경 시 전면 무효화 | `NodeStyle`(:99) camelCase JSON                             |
 | `style.rs`         | 1,042 | CSS 값 산술 커널 (cssValueParser 순수 계층 이식) — 단위/calc/clamp/min/max/env + font/border shorthand. var()/토큰은 JS 잔류 (선치환 입력)                                                                            | intrinsic → 센티넬 f32 (FIT/MIN/MAX_CONTENT)                |
 | `cascade.rs`       | 1,176 | cssResolver 자기완결 계층 — 상속 19종/초기값/cascade 키워드/currentColor/논리→물리                                                                                                                                    | `getRootComputedStyle` 은 미이식 (store 의존)               |
-| `display.rs`       | 283   | displayAdapter 순수 문자열 계층 — parse/blockify/classify                                                                                                                                                        | tag 의존 함수는 미이식                                      |
+| `display.rs`       | 283   | displayAdapter 순수 문자열 계층 — parse/blockify/classify                                                                                                                                                             | tag 의존 함수는 미이식                                      |
 | `spatial_index.rs` | 394   | hit-test/viewport culling 그리드 셀 인덱스 — 구 composition_wasm(Taffy) crate 에서 분리 편입 (endgame kill criteria ②)                                                                                                | `#[wasm_bindgen]` 직접 export                               |
 | `wasm.rs`          | 175   | `LayoutEngine` wrapper — 16 메서드 `js_name` camelCase, JSON 역직렬화 + flat f32 직렬화 + Err→JsValue 만 담당                                                                                                         | `#[cfg(target_arch = "wasm32")]` — native cargo test 무영향 |
 
@@ -262,8 +265,8 @@ live 렌더가 깨진다 (tree_golden 하네스가 조상 offset 누적으로 �
 | `[fullTreeLayout] WASM failed:` 에러                          | fullTreeLayout.ts catch(:2856) — batch payload parse error 가능성 (숫자 dimension 미정규화 → §2 grid branch px 화 확인)                                         |
 | `build_tree_batch: invalid type ... expected string/sequence` | grid track 미정규화(`coerceGridTrack`) 또는 `GRID_DIM_FIELDS` 누락                                                                                              |
 | `Sanitized non-finite values` 경고                            | Step 5 sanitize — 상류 enrichment 의 NaN 전파 (TokenRef 미해석 등)                                                                                              |
-| `[PersistentLayoutTree] buildFull: handles 길이 불일치`        | WASM 반환 handle ≠ batch 길이 — Rust 파싱 실패 후 부분 성공 여부 확인                                                                                           |
-| 등록 직후 겹침/1줄 degrade, 새로고침 후 정상                  | Step 3 full rebuild 조건 누락 (정본 §PersistentLayoutTree 금지 패턴)                                                                                             |
+| `[PersistentLayoutTree] buildFull: handles 길이 불일치`       | WASM 반환 handle ≠ batch 길이 — Rust 파싱 실패 후 부분 성공 여부 확인                                                                                           |
+| 등록 직후 겹침/1줄 degrade, 새로고침 후 정상                  | Step 3 full rebuild 조건 누락 (정본 §PersistentLayoutTree 금지 패턴)                                                                                            |
 | 편집이 캔버스에 미반영, 새로고침 후 반영                      | 계층 B(캐시 시그니처) 누락 — style 키면 **`LAYOUT_STYLE_KEYS`**, props 키면 `LAYOUT_PROP_KEYS` (§ 5-심볼 2계층 체인 실측 위치)                                  |
 | 편집이 캔버스에 미반영, 새로고침 해도 그대로                  | 계층 A(layoutVersion 트리거) 누락 — props 키면 `LAYOUT_AFFECTING_PROP_KEYS` 미등재, style 키면 `NON_LAYOUT_PROPS_UPDATE` 에 잘못 등재                           |
 | 특정 요소 layout 값 검사                                      | `getSharedLayoutMap()` / `onLayoutPublished()` (fullTreeLayout.ts:235/:188), persistent tree 의 `getLastJson(elementId)` 로 WASM 에 전달된 최종 style JSON 확인 |
@@ -279,8 +282,8 @@ live 렌더가 깨진다 (tree_golden 하네스가 조상 offset 누적으로 �
 
 | 시기          | 구성                                                                                                                                                                                                               | 근거                             |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
-| 2026-01~02    | display 별 이종 엔진 — DropflowBlockEngine(JS) + flexStyleAdapter/gridStyleAdapter(Taffy WASM), per-level 호출 + @pixi/layout                                                                                        | ADR-005 이전                     |
-| 2026-02~03    | Full-Tree 단일 WASM 호출 (DFS post-order batch) + PersistentLayoutTree 증분, Dropflow 제거 → Taffy 단일 엔진                                                                                                        | ADR-005 / ADR-009                |
+| 2026-01~02    | display 별 이종 엔진 — DropflowBlockEngine(JS) + flexStyleAdapter/gridStyleAdapter(Taffy WASM), per-level 호출 + @pixi/layout                                                                                      | ADR-005 이전                     |
+| 2026-02~03    | Full-Tree 단일 WASM 호출 (DFS post-order batch) + PersistentLayoutTree 증분, Dropflow 제거 → Taffy 단일 엔진                                                                                                       | ADR-005 / ADR-009                |
 | 2026-07-03~06 | 자체 Rust 엔진 `composition-engine` — flex/block/grid/tree self-impl → dual-run diff 0 → live 전환 → **Taffy 물리 삭제** (crate 2종 + pkg + JS 13파일, dual-run 하네스 동반 소멸, tree_golden 이 독립 oracle 승계) | ADR-916 (Implemented 2026-07-06) |
 
 구 문서가 인용하던 `DropflowBlockEngine` / `NON_CONTAINER_TAGS` / `SPEC_RENDERS_ALL_TAGS` /

@@ -20,7 +20,7 @@ describe("fullTreeLayout shared filtered children key contract", () => {
     );
   });
 
-  it("keys persistent Taffy trees by page/layout/id so reusable Frames do not share __default__", async () => {
+  it("keys persistent layout trees by page/layout/id so reusable Frames do not share __default__", async () => {
     const source = await readFile(
       resolve(__dirname, "fullTreeLayout.ts"),
       "utf-8",

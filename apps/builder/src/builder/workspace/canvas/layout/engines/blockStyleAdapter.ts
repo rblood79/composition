@@ -2,8 +2,9 @@
  * block 문맥 style 어댑터 — block 컨테이너 (display:block / flow-root) 와 그 자식의 style 을 엔진
  * 입력 `EngineStyle` 로 변환한다.
  *
- * 레이아웃 계산은 자체 Rust 엔진 `block.rs` (line box · blockify — ADR-923 Phase 5 부터 outer=inline
- * 자식은 엔진이 line item 으로 놓는다) 가 한다. 이 파일은 값 변환·정규화만 담당하며, display 는
+ * 레이아웃 계산은 자체 Rust 엔진 `block.rs` (line box · blockify — ADR-923 Phase 5 부터 atomic inline-level
+ * 자식 (inline-block · inline-flex · inline-grid, `is_atomic_inline_level`) 은 엔진이 line item 으로 놓고, 순수
+ * `inline` 은 S4 까지 block-level 로 격상한다) 가 한다. 이 파일은 값 변환·정규화만 담당하며, display 는
  * `displayAdapter.ts` 가 넘긴 CSS 값을 그대로 싣는다 (종전 TS IFC 시뮬레이션은 삭제됐다).
  *
  * 이력: 2026-02-28 Block → Taffy Block 전환 (구 `TaffyBlockEngine.ts`) · ADR-916 Taffy 완전 제거 ·
@@ -144,7 +145,12 @@ export function elementToEngineBlockStyle(
   // Size + Min/Max + Padding + Border + Gap (공통 헬퍼)
   // 엔진(Taffy 0.9 계보) box model: style.size = border-box (padding+border 포함)
   // applyCommonEngineStyle()이 size/padding/border/gap 처리 → padding 차감 금지
-  applyCommonEngineStyle(result as Record<string, unknown>, style, ctx, computedFontSize);
+  applyCommonEngineStyle(
+    result as Record<string, unknown>,
+    style,
+    ctx,
+    computedFontSize,
+  );
 
   // Align self (block 자식도 flex 부모 안에 들어갈 수 있음)
   if (style.alignSelf) {
