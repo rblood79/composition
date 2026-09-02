@@ -65,9 +65,9 @@ merge 규칙: Step 3.6에서 부모 implicit styles를 자식에 적용할 때, 
 
 ---
 
-## PersistentTaffyTree display/grid 전환 감지 상세
+## PersistentLayoutTree display/grid 전환 감지 상세
 
-증분 갱신 주체는 자체 Rust 레이아웃 엔진 (`packages/composition-engine`, ADR-916 — Taffy 완전 제거. `persistentTaffyTree.ts`/`TaffyFlexEngine` 등 JS 어댑터 심볼명은 보존). full rebuild 규칙 정본: `.claude/rules/layout-engine.md`.
+증분 갱신 주체는 자체 Rust 레이아웃 엔진 (`packages/composition-engine`, ADR-916 — Taffy 완전 제거. `persistentLayoutTree.ts`/`flexStyleAdapter` 등 JS 어댑터 심볼명은 보존). full rebuild 규칙 정본: `.claude/rules/layout-engine.md`.
 
 ### display 전환
 

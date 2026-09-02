@@ -24,7 +24,7 @@ composition Inspector 의 `distributeShorthand` (inspectorActions.ts) 는 CSS sh
 | `padding`           | `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft` |
 | `margin`            | `marginTop`, `marginRight`, `marginBottom`, `marginLeft`     |
 
-**Why**: React inline-style shorthand+longhand 공존 시 rerender 경고 + 레이아웃 엔진 어댑터 `applyCommonTaffyStyle` 순서 (gap → rowGap/columnGap override) 경합 방지.
+**Why**: React inline-style shorthand+longhand 공존 시 rerender 경고 + 레이아웃 엔진 어댑터 `applyCommonEngineStyle` 순서 (gap → rowGap/columnGap override) 경합 방지.
 
 **Consumer 제약**: `element.props.style` 을 읽는 모든 consumer (spec render.shapes, layout utils, Inspector UI) 는 **longhand 우선 + shorthand fallback** 으로 읽어야 한다.
 

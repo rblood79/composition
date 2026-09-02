@@ -1,10 +1,11 @@
 /**
- * Taffy 기반 CSS Grid 레이아웃 엔진
+ * grid style 어댑터 — CSS Grid 속성을 엔진 입력 `EngineStyle` 형식으로 변환한다 (`parseGridTemplate`
+ * 트랙 토큰화). 레이아웃 계산은 자체 Rust 엔진 `grid.rs` 가 한다.
  *
- * 기존 GridEngine의 커스텀 JS 구현 대신 Taffy WASM의 네이티브 Grid 지원을 사용합니다.
- * Feature Flag(taffyGrid)가 활성화된 경우에만 사용됩니다.
+ * 이력: 2026-02-17 커스텀 JS GridEngine → Taffy Grid (구 `TaffyGridEngine.ts`) · ADR-916 Taffy 완전 제거 ·
+ * ADR-923 Phase 6 개명 (2026-09-03).
  *
- * CSS Grid 속성 → TaffyStyle 변환 포함:
+ * CSS Grid 속성 → EngineStyle 변환 포함:
  * - gridTemplateColumns / gridTemplateRows (트랙 배열)
  * - gridAutoFlow, gridAutoColumns, gridAutoRows
  * - gridColumn / gridRow (line 기반 배치: "1 / 3", "span 2")
@@ -13,7 +14,6 @@
  * - justifyContent / justifyItems / alignItems / alignContent
  * - justifySelf / alignSelf (아이템)
  *
- * @since 2026-02-17 Phase 6 - Grid → Taffy Grid 통합
  */
 
 // ─── CSS 파싱 유틸리티 ────────────────────────────────────────────────

@@ -73,7 +73,7 @@ impl GridTrack {
 
 /// CSS grid-template 문자열을 최상위 토큰으로 분리. 괄호 depth 기반이라
 /// `repeat(auto-fill, minmax(200px, 1fr))` 같은 중첩을 하나의 토큰으로 유지.
-/// (GridLayout.utils.ts tokenizeTemplate / TaffyGridEngine.parseGridTemplate 동일)
+/// (GridLayout.utils.ts tokenizeTemplate / gridStyleAdapter.parseGridTemplate 동일)
 ///
 /// `tree.rs` 도 같은 분해를 써야 한다 — `split_whitespace` 로 자르면
 /// `minmax(50px, 80px)` 처럼 **내부에 공백이 있는** 토큰이 두 조각으로 쪼개진다.

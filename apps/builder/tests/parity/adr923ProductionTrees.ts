@@ -221,14 +221,14 @@ import {
   calculateFullTreeLayout,
   resetPersistentTree,
 } from "@/builder/workspace/canvas/layout/engines/fullTreeLayout";
-import { PersistentTaffyTree } from "@/builder/workspace/canvas/layout/engines/persistentTaffyTree";
+import { PersistentLayoutTree } from "@/builder/workspace/canvas/layout/engines/persistentLayoutTree";
 import type { CanvasLayoutNode } from "@/builder/workspace/canvas/layout/layoutNode";
 import type { ComputedLayout } from "@/builder/workspace/canvas/layout/engines/LayoutEngine";
 
 export interface LayoutRun {
   /** elementId → 결과 box (calculateFullTreeLayout 반환) */
   layout: Map<string, ComputedLayout>;
-  /** elementId → wasm 경계로 직렬화된 style (`PersistentTaffyTree.buildFull(batch)` 인자) */
+  /** elementId → wasm 경계로 직렬화된 style (`PersistentLayoutTree.buildFull(batch)` 인자) */
   batch: Map<string, { type: string; style: Record<string, unknown> }>;
 }
 
@@ -262,7 +262,7 @@ export function layoutTree(
   }
   const getChild = (id: string): CanvasLayoutNode[] =>
     (childrenMap.get(id) ?? []).map((cid) => elementsMap.get(cid)!);
-  const spy = vi.spyOn(PersistentTaffyTree.prototype, "buildFull");
+  const spy = vi.spyOn(PersistentLayoutTree.prototype, "buildFull");
   resetPersistentTree(pageId);
   try {
     const layout = calculateFullTreeLayout(

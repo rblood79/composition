@@ -14,7 +14,7 @@
 
 /**
  * 바이너리 인코딩을 위한 노드 입력.
- * fullTreeLayout.ts의 taffyStyleToRecord() 출력을 직접 수신한다.
+ * fullTreeLayout.ts의 engineStyleToRecord() 출력을 직접 수신한다.
  */
 export interface BinaryBatchInput {
   style: Record<string, unknown>;
@@ -299,7 +299,7 @@ function getEnumMap(bit: number): Record<string, number> | null {
 /**
  * Dimension 값 파싱.
  *
- * taffyStyleToRecord() 출력 포맷:
+ * engineStyleToRecord() 출력 포맷:
  * - "100px" → type=1 (length),  value=100.0
  * - "50%"   → type=2 (percent), value=0.5   (100으로 나눔)
  * - "auto"  → type=0 (auto),    value=0.0
@@ -582,7 +582,7 @@ const BIT_TO_KEY: Record<number, string> = Object.fromEntries(
  * - Pass 1: 각 노드의 비트맵·필드 계획 + 총 바이트 크기 산출
  * - Pass 2: ArrayBuffer 단일 할당 후 DataView로 순차 기록
  *
- * @param batch - taffyStyleToRecord() 출력 배열
+ * @param batch - engineStyleToRecord() 출력 배열
  * @returns 헤더 + 노드 직렬화 바이트
  */
 export function encodeBatchBinary(batch: BinaryBatchInput[]): Uint8Array {

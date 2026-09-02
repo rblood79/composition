@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import * as adapter from "../taffyDisplayAdapter";
+import * as adapter from "../displayAdapter";
 
 describe("ADR-923 Phase 5 — block 형제 width:100% 보정 (S2) 부재 잠금", () => {
   it("IFC 시뮬레이션 helper 는 export 되지 않는다", () => {

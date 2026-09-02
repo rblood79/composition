@@ -5,7 +5,7 @@ import {
   calculateFullTreeLayout,
   resetPersistentTree,
 } from "@/builder/workspace/canvas/layout/engines/fullTreeLayout";
-import { PersistentTaffyTree } from "@/builder/workspace/canvas/layout/engines/persistentTaffyTree";
+import { PersistentLayoutTree } from "@/builder/workspace/canvas/layout/engines/persistentLayoutTree";
 import type { CanvasLayoutNode } from "@/builder/workspace/canvas/layout/layoutNode";
 import { useStore } from "@/builder/stores";
 import { getDefaultProps } from "@/types/builder/unified.types";
@@ -36,7 +36,7 @@ vi.mock("@/builder/factories/utils/elementCreation", async (importOriginal) => {
  * 라 height 미지정 요소 전부가 대상). 이것은 엔진 flex §4.5 automatic minimum 의 TS 중복이면서
  * block 문맥에도 걸고 clip 을 hidden 과 같이 취급한다 — Phase 5 cutover 제거 목록. 이 Phase 는
  * **Q4 소비 경로 캡처만** 한다: 팔레트가 만드는 실제 트리를 production 진입점 `calculateFullTreeLayout`
- * 으로 돌려, wasm 경계로 직렬화되는 batch (`PersistentTaffyTree.buildFull(batch)` — `buildTreeBatch`
+ * 으로 돌려, wasm 경계로 직렬화되는 batch (`PersistentLayoutTree.buildFull(batch)` — `buildTreeBatch`
  * JSON 은 이 배열의 `{style, children}` 사영이라 elementId 를 잃으므로 한 단계 앞에서 잡는다) 에서
  * **overflow 를 받는 노드의 주입 높이/폭이 availableHeight/Width 에 따라 달라지는가** (= cap 이 실제로
  * 걸리는가) 를 availH/availW 8 ↔ 100000 run 으로 잰다.
@@ -146,7 +146,7 @@ function runTree(
   }
   const getChild = (id: string): CanvasLayoutNode[] =>
     (childrenMap.get(id) ?? []).map((cid) => elementsMap.get(cid)!);
-  const spy = vi.spyOn(PersistentTaffyTree.prototype, "buildFull");
+  const spy = vi.spyOn(PersistentLayoutTree.prototype, "buildFull");
   resetPersistentTree(pageId);
   try {
     const map = calculateFullTreeLayout(
@@ -187,7 +187,7 @@ interface Row {
   high: [unknown, unknown];
 }
 
-/** batch 치수는 `"21px"` 같은 px 문자열 (taffyStyleToRecord) — 숫자로 푼다. */
+/** batch 치수는 `"21px"` 같은 px 문자열 (engineStyleToRecord) — 숫자로 푼다. */
 function px(v: unknown): number | undefined {
   if (typeof v === "number") return v;
   if (typeof v === "string" && /^-?\d+(\.\d+)?px$/.test(v))

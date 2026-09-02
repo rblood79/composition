@@ -1,16 +1,16 @@
 /**
- * PersistentTaffyTree
+ * PersistentLayoutTree
  *
- * WASM Taffy 트리를 clear() 없이 유지하는 클래스.
+ * 엔진 WASM 트리를 clear() 없이 유지하는 클래스 (구 `persistentTaffyTree.ts` — ADR-923 Phase 6 개명).
  *
  * fullTreeLayout.ts의 매 프레임 clear() + buildTreeBatch() 패턴과 달리,
  * 변경된 노드만 updateStyleRaw() / setChildren()으로 갱신하여
- * Taffy internal dirty cache를 최대한 활용한다.
+ * 엔진 내부 dirty cache 를 최대한 활용한다.
  *
  * 변경 감지 전략:
  * - _lastJsonMap: JSON 문자열 비교로 간접 의존성 변경까지 포착 (부모/형제 변경 → enrichment/display adapter 결과)
  * - childrenHashMap: childIds.join(',') 비교 → 동일하면 setChildren 스킵
- * Taffy는 dirty 플래그가 있는 서브트리만 재계산하므로 변경 없는 노드는 O(1) 스킵된다.
+ * 엔진은 dirty 플래그가 있는 서브트리만 재계산하므로 변경 없는 노드는 O(1) 스킵된다.
  *
  * 사용 흐름:
  * 1. buildFull() — 초기 전체 트리 구축 (buildTreeBatch 1회 WASM 호출)
@@ -20,7 +20,7 @@
  * 5. getLayoutsBatch() — 전체 결과 수집
  * 6. reset() — 페이지 전환 시 전체 초기화
  *
- * @see fullTreeLayout.ts — BatchNode 타입, taffyStyleToRecord() 결과 형식
+ * @see fullTreeLayout.ts — BatchNode 타입, engineStyleToRecord() 결과 형식
  * @see compositionEngine.ts — CompositionEngineLayout.updateStyleRaw() / createNodeRaw()
  */
 
@@ -30,7 +30,7 @@ import type {
   EngineTraceNode,
   LayoutResult,
 } from "../../wasm-bindings/compositionEngine";
-import type { TaffyNodeHandle } from "../../wasm-bindings/layoutTypes";
+import type { EngineNodeHandle } from "../../wasm-bindings/layoutTypes";
 import { encodeBatchBinary } from "../../wasm-bindings/binaryProtocol";
 import type { BinaryBatchInput } from "../../wasm-bindings/binaryProtocol";
 
@@ -43,7 +43,7 @@ import type { BinaryBatchInput } from "../../wasm-bindings/binaryProtocol";
  * elementId 필드가 추가되어 handleMap 구성에 사용된다.
  */
 export interface PersistentBatchNode {
-  /** taffyStyleToRecord() 결과 — 이미 정규화된 Record (JSON 직렬화 가능) */
+  /** engineStyleToRecord() 결과 — 이미 정규화된 Record (JSON 직렬화 가능) */
   style: Record<string, unknown>;
   /** batch 배열 내 자식 인덱스 참조 (post-order DFS 순서 보장) */
   children: number[];
@@ -89,12 +89,12 @@ export interface PersistentTargetedLayoutResult {
 // ─── 클래스 ───────────────────────────────────────────────────────────
 
 /**
- * WASM Taffy 트리를 persistent하게 유지하는 래퍼 클래스.
+ * 엔진 WASM 트리를 persistent하게 유지하는 래퍼 클래스.
  *
  * 매 프레임 clear() 대신 변경 감지 기반 증분 갱신으로
- * Taffy internal dirty cache를 최대한 활용한다.
+ * 엔진 내부 dirty cache 를 최대한 활용한다.
  */
-export class PersistentTaffyTree {
+export class PersistentLayoutTree {
   /**
    * 레이아웃 엔진 (ADR-916 Phase 0-A seam).
    *
@@ -102,14 +102,14 @@ export class PersistentTaffyTree {
    * (2026-07-06) 후 factory 는 자체 엔진(composition-engine)을 단독 반환하며,
    * 이 클래스는 factory 만 교체하면 수정 없이 꽂힌다.
    */
-  private taffy: LayoutEngineAPI;
-  private rootHandle: TaffyNodeHandle | null = null;
+  private engine: LayoutEngineAPI;
+  private rootHandle: EngineNodeHandle | null = null;
 
   /**
-   * elementId → Taffy node handle 매핑.
+   * elementId → 엔진 node handle 매핑.
    * O(1) handle 조회 및 레이아웃 결과 매핑에 사용.
    */
-  private handleMap = new Map<string, TaffyNodeHandle>();
+  private handleMap = new Map<string, EngineNodeHandle>();
 
   /**
    * elementId → 마지막으로 WASM에 전달한 JSON.
@@ -129,7 +129,7 @@ export class PersistentTaffyTree {
    *   `createLayoutEngine()` factory 로 자체 엔진(composition-engine)을 획득한다.
    */
   constructor(engine?: LayoutEngineAPI) {
-    this.taffy = engine ?? createLayoutEngine();
+    this.engine = engine ?? createLayoutEngine();
   }
 
   // ─── 상태 조회 ──────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ export class PersistentTaffyTree {
    * WASM 엔진이 초기화되어 사용 가능한 상태인지 확인.
    */
   get isAvailable(): boolean {
-    return this.taffy.isAvailable();
+    return this.engine.isAvailable();
   }
 
   // ─── 초기 트리 구축 ─────────────────────────────────────────────────
@@ -169,28 +169,28 @@ export class PersistentTaffyTree {
     rootElementId: string,
     batch: PersistentBatchNode[],
     filteredChildIds: Map<string, string[]>,
-  ): TaffyNodeHandle[] {
+  ): EngineNodeHandle[] {
     // 1. WASM 호출 — binary protocol 사용 가능 시 TypedArray, 아니면 JSON fallback
     let handles: number[];
-    if (this.taffy.hasBinaryProtocol()) {
+    if (this.engine.hasBinaryProtocol()) {
       const binaryInput: BinaryBatchInput[] = batch.map((n) => ({
         style: n.style,
         children: n.children,
       }));
       const binaryData = encodeBatchBinary(binaryInput);
-      handles = this.taffy.buildTreeBatchBinary(binaryData);
+      handles = this.engine.buildTreeBatchBinary(binaryData);
     } else {
       const batchPayload = batch.map((n) => ({
         style: n.style,
         children: n.children,
       }));
-      handles = this.taffy.buildTreeBatch(JSON.stringify(batchPayload));
+      handles = this.engine.buildTreeBatch(JSON.stringify(batchPayload));
     }
 
     // 1.5. handles 길이 검증 — WASM 반환값이 batch와 불일치하면 데이터 손상 방지
     if (handles.length !== batch.length) {
       console.error(
-        `[PersistentTaffyTree] buildFull: handles 길이 불일치 (expected=${batch.length}, actual=${handles.length}). 트리 초기화 스킵.`,
+        `[PersistentLayoutTree] buildFull: handles 길이 불일치 (expected=${batch.length}, actual=${handles.length}). 트리 초기화 스킵.`,
       );
       return [];
     }
@@ -219,7 +219,7 @@ export class PersistentTaffyTree {
       const rootNode = batch[batch.length - 1];
       if (rootNode && rootNode.elementId !== rootElementId) {
         console.warn(
-          "[PersistentTaffyTree] buildFull: batch 마지막 요소가 rootElementId와 불일치.",
+          "[PersistentLayoutTree] buildFull: batch 마지막 요소가 rootElementId와 불일치.",
           { expected: rootElementId, actual: rootNode.elementId },
         );
       }
@@ -238,14 +238,14 @@ export class PersistentTaffyTree {
    * Store 레벨 dirty tracking만으로는 모든 변경을 포착할 수 없다.
    * JSON 비교는 DFS 계산 결과를 직접 비교하여 의존 경로와 무관하게 정확하다.
    *
-   * Taffy는 내부적으로 mark_dirty()를 호출하므로 다음 computeLayout()에서
+   * 엔진은 내부적으로 mark_dirty()를 호출하므로 다음 computeLayout()에서
    * 해당 노드와 조상 노드만 재계산된다.
    *
-   * styleRecord는 taffyStyleToRecord()로 이미 정규화된 상태여야 한다.
+   * styleRecord는 engineStyleToRecord()로 이미 정규화된 상태여야 한다.
    * (숫자 dimension이 "Npx" 문자열로 변환된 상태)
    *
    * @param elementId   - 업데이트할 요소 ID
-   * @param styleRecord - taffyStyleToRecord() 결과 (이미 정규화된 Record)
+   * @param styleRecord - engineStyleToRecord() 결과 (이미 정규화된 Record)
    * @returns true if 실제로 스타일이 변경되어 WASM 호출이 발생한 경우
    */
   updateNodeStyle(
@@ -265,9 +265,9 @@ export class PersistentTaffyTree {
       return false;
     }
 
-    // taffyStyleToRecord() 결과는 이미 "Npx" 형식으로 정규화되어 있으므로
+    // engineStyleToRecord() 결과는 이미 "Npx" 형식으로 정규화되어 있으므로
     // normalizeStyle() 이중 변환을 방지하기 위해 updateStyleRaw() 사용
-    this.taffy.updateStyleRaw(handle, json);
+    this.engine.updateStyleRaw(handle, json);
     this._lastJsonMap.set(elementId, json);
     return true;
   }
@@ -279,7 +279,7 @@ export class PersistentTaffyTree {
   markDirty(elementId: string): boolean {
     const handle = this.handleMap.get(elementId);
     if (handle === undefined) return false;
-    this.taffy.markDirty(handle);
+    this.engine.markDirty(handle);
     return true;
   }
 
@@ -313,9 +313,9 @@ export class PersistentTaffyTree {
     // handleMap에 존재하는 자식만 포함 (미등록 ID 방어)
     const childHandles = childIds
       .map((id) => this.handleMap.get(id))
-      .filter((h): h is TaffyNodeHandle => h !== undefined);
+      .filter((h): h is EngineNodeHandle => h !== undefined);
 
-    this.taffy.setChildren(parentHandle, childHandles);
+    this.engine.setChildren(parentHandle, childHandles);
     this.childrenHashMap.set(parentId, hash);
     return true;
   }
@@ -328,19 +328,19 @@ export class PersistentTaffyTree {
    * addNode() 후 반드시 부모의 updateChildren()을 호출하여
    * 트리 구조에 연결해야 한다.
    *
-   * styleRecord는 taffyStyleToRecord()로 이미 정규화된 상태여야 한다.
+   * styleRecord는 engineStyleToRecord()로 이미 정규화된 상태여야 한다.
    *
    * @param elementId   - 새 요소 ID
-   * @param styleRecord - taffyStyleToRecord() 결과 (이미 정규화된 Record)
-   * @returns 생성된 Taffy node handle
+   * @param styleRecord - engineStyleToRecord() 결과 (이미 정규화된 Record)
+   * @returns 생성된 엔진 node handle
    */
   addNode(
     elementId: string,
     styleRecord: Record<string, unknown>,
-  ): TaffyNodeHandle {
+  ): EngineNodeHandle {
     const json = JSON.stringify(styleRecord);
     // normalizeStyle() 이중 변환 방지를 위해 createNodeRaw() 사용
-    const handle = this.taffy.createNodeRaw(json);
+    const handle = this.engine.createNodeRaw(json);
     this.handleMap.set(elementId, handle);
     this._lastJsonMap.set(elementId, json);
     // childrenHashMap은 updateChildren() 호출 시 설정
@@ -360,7 +360,7 @@ export class PersistentTaffyTree {
     if (handle === undefined) return;
 
     try {
-      this.taffy.removeNode(handle);
+      this.engine.removeNode(handle);
     } finally {
       // WASM 예외 시에도 내부 맵 정리 보장 — stale handle 방지
       this.handleMap.delete(elementId);
@@ -374,7 +374,7 @@ export class PersistentTaffyTree {
   /**
    * 레이아웃 재계산.
    *
-   * Taffy internal dirty cache 덕분에 변경되지 않은 서브트리는 자동으로 스킵된다.
+   * 엔진 내부 dirty cache 덕분에 변경되지 않은 서브트리는 자동으로 스킵된다.
    * updateNodeStyle() / updateChildren() / addNode() 로 dirty된 노드와
    * 그 조상 노드만 재계산하므로, 전체 트리 재계산 대비 O(변경된 노드 수)로 동작한다.
    *
@@ -383,10 +383,10 @@ export class PersistentTaffyTree {
   computeLayout(availableWidth: number, availableHeight: number): void {
     if (this.rootHandle === null) {
       throw new Error(
-        "[PersistentTaffyTree] computeLayout: 트리가 초기화되지 않았습니다. buildFull()을 먼저 호출하세요.",
+        "[PersistentLayoutTree] computeLayout: 트리가 초기화되지 않았습니다. buildFull()을 먼저 호출하세요.",
       );
     }
-    this.taffy.computeLayout(this.rootHandle, availableWidth, availableHeight);
+    this.engine.computeLayout(this.rootHandle, availableWidth, availableHeight);
   }
 
   /**
@@ -397,9 +397,9 @@ export class PersistentTaffyTree {
    *
    * @returns handle → LayoutResult 매핑 (x, y, width, height)
    */
-  getLayoutsBatch(): Map<TaffyNodeHandle, LayoutResult> {
+  getLayoutsBatch(): Map<EngineNodeHandle, LayoutResult> {
     const handles = Array.from(this.handleMap.values());
-    return this.taffy.getLayoutsBatch(handles);
+    return this.engine.getLayoutsBatch(handles);
   }
 
   /**
@@ -415,8 +415,8 @@ export class PersistentTaffyTree {
    * @returns elementId → LayoutResult 매핑
    */
   getLayoutsForIds(elementIds: Iterable<string>): Map<string, LayoutResult> {
-    const requestedHandles: TaffyNodeHandle[] = [];
-    const elementIdsByHandle = new Map<TaffyNodeHandle, string>();
+    const requestedHandles: EngineNodeHandle[] = [];
+    const elementIdsByHandle = new Map<EngineNodeHandle, string>();
     const seenElementIds = new Set<string>();
 
     for (const elementId of elementIds) {
@@ -430,7 +430,7 @@ export class PersistentTaffyTree {
 
     if (requestedHandles.length === 0) return new Map();
 
-    const layouts = this.taffy.getLayoutsBatch(requestedHandles);
+    const layouts = this.engine.getLayoutsBatch(requestedHandles);
     const result = new Map<string, LayoutResult>();
     for (const [handle, layout] of layouts) {
       const elementId = elementIdsByHandle.get(handle);
@@ -521,10 +521,10 @@ export class PersistentTaffyTree {
   // ─── 조회 유틸리티 ──────────────────────────────────────────────────
 
   /**
-   * elementId에 대응하는 Taffy node handle 반환.
+   * elementId에 대응하는 엔진 node handle 반환.
    * 존재하지 않으면 undefined.
    */
-  getHandle(elementId: string): TaffyNodeHandle | undefined {
+  getHandle(elementId: string): EngineNodeHandle | undefined {
     return this.handleMap.get(elementId);
   }
 
@@ -534,10 +534,10 @@ export class PersistentTaffyTree {
    * getLayoutsBatch() 결과를 elementId 기반 Map으로 변환할 때 사용한다.
    * handleMap을 순회하므로 O(N) — 빈번한 호출 시 역방향 Map 캐시를 고려할 것.
    *
-   * @param handle - 조회할 Taffy node handle
+   * @param handle - 조회할 엔진 node handle
    * @returns 해당 elementId, 없으면 undefined
    */
-  getElementId(handle: TaffyNodeHandle): string | undefined {
+  getElementId(handle: EngineNodeHandle): string | undefined {
     for (const [id, h] of this.handleMap) {
       if (h === handle) return id;
     }
@@ -548,7 +548,7 @@ export class PersistentTaffyTree {
    * 전체 elementId → handle 매핑 반환.
    * 읽기 전용 접근에 사용 (Map 자체를 외부에서 수정하지 말 것).
    */
-  getAllHandles(): Map<string, TaffyNodeHandle> {
+  getAllHandles(): Map<string, EngineNodeHandle> {
     return this.handleMap;
   }
 
@@ -563,7 +563,7 @@ export class PersistentTaffyTree {
    * WASM 엔진에서 관리 중인 활성 노드 수.
    */
   nodeCount(): number {
-    return this.taffy.nodeCount();
+    return this.engine.nodeCount();
   }
 
   // ─── 판정 트레이스 (ADR-183 — 디버그 채널) ──────────────────────────
@@ -575,7 +575,7 @@ export class PersistentTaffyTree {
    * 사각이 된다 (ADR-183 Decision 1).
    */
   enableLayoutTrace(enabled: boolean): boolean {
-    return this.taffy.enableLayoutTrace?.(enabled) ?? false;
+    return this.engine.enableLayoutTrace?.(enabled) ?? false;
   }
 
   /**
@@ -586,7 +586,7 @@ export class PersistentTaffyTree {
   getLayoutTraceForElement(elementId: string): EngineTraceNode | null {
     const handle = this.handleMap.get(elementId);
     if (handle === undefined) return null;
-    return this.taffy.getLayoutTrace?.(handle) ?? null;
+    return this.engine.getLayoutTrace?.(handle) ?? null;
   }
 
   // ─── 초기화 / 정리 ──────────────────────────────────────────────────
@@ -599,8 +599,8 @@ export class PersistentTaffyTree {
    * 이후 buildFull()을 다시 호출해야 한다.
    */
   reset(): void {
-    if (this.taffy.isAvailable()) {
-      this.taffy.clear();
+    if (this.engine.isAvailable()) {
+      this.engine.clear();
     }
     this.rootHandle = null;
     this.handleMap.clear();

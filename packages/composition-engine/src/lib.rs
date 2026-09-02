@@ -36,7 +36,7 @@
 //!   criteria ③). taffy 의존 0 + 레이아웃 모듈 결합 0 이라 clean 편입. `#[wasm_bindgen]`
 //!   struct 직접(게이트 밖) → wasm-pack 자동 export + native cargo test 통과(JsValue 미사용).
 //!
-//! - `display` — CSS Display 변환 순수 문자열 계층 (taffyDisplayAdapter.ts 의 이원 구조 이식).
+//! - `display` — CSS Display 변환 순수 문자열 계층 (displayAdapter.ts 의 이원 구조 이식).
 //!   Phase 2-A. CSS Display Level 3 이원 구조(outer/inner) 파싱 + blockification +
 //!   inline-level 판정. ADR-923 Phase 5 (2026-09-02) 부터 TS 는 CSS display 값을 그대로
 //!   보내고 outer/inner 해석·blockify 는 이 계층과 tree.rs 만 한다 (TS IFC 시뮬레이션 삭제).
@@ -45,7 +45,7 @@
 //! - `tree` — 트리 오케스트레이션 (taffy_bridge.rs batch 계약 대응). Phase 2-B.
 //!   `build_tree_batch` → `compute_layout` → `get_layouts_batch` 를 Taffy 없이
 //!   자체 flex/block/grid 커널로 구현하는 계층. DFS 상단(style resolve/implicit/
-//!   enrich = tag/spec/store 도메인)은 JS 잔류, 본 모듈은 순수화된 TaffyStyle 트리만
+//!   enrich = tag/spec/store 도메인)은 JS 잔류, 본 모듈은 순수화된 EngineStyle 트리만
 //!   레이아웃 계산. 층별 점진 — 단위 1(handle+build 골격+leaf compute) / 단위 2
 //!   (post-order flex solve) / 단위 3-a(block dispatch) / 단위 3-b(grid dispatch) /
 //!   **단위 4(현재, 증분 dirty 추적)** land. flex/block/grid 3 display dispatch +
@@ -111,9 +111,9 @@
 //!   Taffy 엔진 클래스 4종이 인스턴스화 0건 / `.calculate()` 호출 0건 = dead.
 //!   삭제: `BaseTaffyEngine.ts`(abstract, `new TaffyLayout()` dead) +
 //!   `layoutAccelerator.ts`(importer 0). 클래스만 제거(파일 유지, live helper 보존):
-//!   `TaffyFlexEngine`/`TaffyGridEngine`/`TaffyBlockEngine` 클래스 + `isTaffy*Available`
-//!   삭제하되 순수 style helper `elementToTaffyStyle`/`parseGridTemplate`/
-//!   `elementToTaffyBlockStyle` 는 `fullTreeLayout.ts:41-43` 소비 유지. **사용자 결정**:
+//!   `flexStyleAdapter`/`gridStyleAdapter`/`blockStyleAdapter` 클래스 + `isTaffy*Available`
+//!   삭제하되 순수 style helper `elementToEngineStyle`/`parseGridTemplate`/
+//!   `elementToEngineBlockStyle` 는 `fullTreeLayout.ts:41-43` 소비 유지. **사용자 결정**:
 //!   폴백 유지(`layoutBridge.ts:84` WASM 미가용 안전망) + dead 코드만 삭제(crate/pkg
 //!   물리 삭제 아님). 잔존 참조 9/6/2 = 파일명 import 경로 + 주석뿐. type-check PASS
 //!   (baseline 69) 무회귀. commit f2ac4860c(-1252줄).

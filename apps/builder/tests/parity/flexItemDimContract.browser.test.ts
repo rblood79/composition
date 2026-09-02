@@ -20,7 +20,7 @@ import {
  * 사라진다**. 한 요소의 값 하나가 페이지 전체를 끄는 구조라 파싱 계약을 fixture 로
  * 잠근다.
  *
- * 위험 지점은 `taffyStyleToRecord`(=`dim()` 정규화) **뒤에** 값을 덧쓰는 경로다.
+ * 위험 지점은 `engineStyleToRecord`(=`dim()` 정규화) **뒤에** 값을 덧쓰는 경로다.
  * `applyFlexItemProperties` 가 그렇고, 그 안의 `parseCSSPropWithContext` 는
  * **절대 길이를 숫자로** 돌려준다 (`"0px"` → `0`). 백분율·`auto` 는 문자열로 남아
  * 무증상이라, 절대 길이 `flex-basis` 를 싣는 import/preset 에서만 드러났다.

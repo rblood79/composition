@@ -12,15 +12,15 @@
 import type { CanvasLayoutNode } from "../layoutNode";
 import { getLayoutRootKey } from "../layoutRootKey";
 import type { ComputedLayout } from "./LayoutEngine";
-import type { TaffyStyle } from "../../wasm-bindings/layoutTypes";
+import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
 import { isCompositionEngineReady } from "../../wasm-bindings/compositionEngineWasm";
-import { PersistentTaffyTree } from "./persistentTaffyTree";
+import { PersistentLayoutTree } from "./persistentLayoutTree";
 import { installLayoutExplain } from "./layoutExplain";
-import type { PersistentBatchNode } from "./persistentTaffyTree";
+import type { PersistentBatchNode } from "./persistentLayoutTree";
 import {
   enrichWithIntrinsicSize,
   setTagGroupAllowsRemovingContext,
-  applyCommonTaffyStyle,
+  applyCommonEngineStyle,
   applyFlexItemProperties,
   parseMargin,
   parsePadding,
@@ -35,13 +35,13 @@ import {
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
 import type { ComputedStyle } from "./cssResolver";
 import {
-  toTaffyDisplay,
+  toEngineDisplay,
   getElementDisplay,
   normalizeCssDisplay,
-} from "./taffyDisplayAdapter";
-import { elementToTaffyBlockStyle } from "./TaffyBlockEngine";
-import { elementToTaffyStyle } from "./TaffyFlexEngine";
-import { parseGridTemplate } from "./TaffyGridEngine";
+} from "./displayAdapter";
+import { elementToEngineBlockStyle } from "./blockStyleAdapter";
+import { elementToEngineStyle } from "./flexStyleAdapter";
+import { parseGridTemplate } from "./gridStyleAdapter";
 import {
   applyImplicitStyles,
   resolveContainerStylesFallback,
@@ -215,7 +215,7 @@ function sanitizeLayoutValue(v: number, fallback: number = 0): number {
   return fallback;
 }
 
-// ─── 페이지별 PersistentTaffyTree ──────────────────────────────────
+// ─── 페이지별 PersistentLayoutTree ──────────────────────────────────
 
 /**
  * 페이지별 Persistent Taffy 트리 맵.
@@ -224,9 +224,9 @@ function sanitizeLayoutValue(v: number, fallback: number = 0): number {
  * calculateFullTreeLayout()을 호출하므로, 싱글톤 트리는
  * 마지막 페이지의 rootHandle만 남아 다른 페이지 레이아웃이 깨진다.
  *
- * pageId별로 별도의 PersistentTaffyTree를 유지하여 해결한다.
+ * pageId별로 별도의 PersistentLayoutTree를 유지하여 해결한다.
  */
-const persistentTrees = new Map<string, PersistentTaffyTree>();
+const persistentTrees = new Map<string, PersistentLayoutTree>();
 
 // ADR-183 — dev 전용 레이아웃 explain 판독 채널 (`window.__layoutExplain`).
 // 게이트는 boolean 상수가 아니라 빌드타임 env 라 featureFlags registry 계약과
@@ -672,7 +672,7 @@ export function getSharedFilteredChildrenMap(): Map<string, string[]> | null {
 // ─── 내부 유틸리티 ───────────────────────────────────────────────────
 
 /** Taffy WASM binary protocol 은 grid track 을 array 로 기대. CSS 표준 string ("1fr auto")
- *  입력을 정규화. 이미 array 면 그대로 통과. `taffyStyleToRecord` /
+ *  입력을 정규화. 이미 array 면 그대로 통과. `engineStyleToRecord` /
  *  `buildNodeStyle` grid branch / `patchBatchStyleFromImplicit` 3 진입점 공유. */
 function coerceGridTrack(val: unknown): unknown {
   if (val === undefined) return undefined;
@@ -681,17 +681,17 @@ function coerceGridTrack(val: unknown): unknown {
 }
 
 /** dimension 값(number|string)을 WASM 이 기대하는 px string 으로 정규화.
- *  `taffyStyleToRecord` 내부 `dim()` 과 동일 계약이지만, **`dim()` 을 우회하거나
+ *  `engineStyleToRecord` 내부 `dim()` 과 동일 계약이지만, **`dim()` 을 우회하거나
  *  그 뒤에 값을 덧쓰는 경로**가 직접 호출해야 한다:
  *
- *  - **grid branch** — `applyCommonTaffyStyle`(숫자 그대로 반환) 결과를 partial 로
+ *  - **grid branch** — `applyCommonEngineStyle`(숫자 그대로 반환) 결과를 partial 로
  *    직접 반환해 `dim()` 을 안 거친다.
- *  - **block branch 의 flex item 주입** — `taffyStyleToRecord` **뒤에**
+ *  - **block branch 의 flex item 주입** — `engineStyleToRecord` **뒤에**
  *    `applyFlexItemProperties` 가 `parseCSSPropWithContext` 결과(절대 길이 → 숫자)를
  *    덧쓴다.
  *
  *  이 buildFull 경로는 `normalizeStyle.dimToString()` 후처리도 거치지 않는다
- *  (그 후처리는 persistentTaffyTree createNode/updateStyle 경로 전용).
+ *  (그 후처리는 persistentLayoutTree createNode/updateStyle 경로 전용).
  *
  *  **Why (2026-07-06 전수조사)**: ProgressBar/Meter/Slider 는 factory 가
  *  `rowGap: 4`(숫자) + `display: grid` 로 저장 → grid branch 가 숫자 rowGap 을
@@ -729,7 +729,7 @@ const DIM_FIELDS = [
   "insetLeft",
   // flexBasis — grid item 이 flex/grid 부모의 자식이면 applyFlexItemProperties 가
   // parseCSSPropWithContext 결과(number 가능)를 partial.flexBasis 에 주입. IMPLICIT_DIM_PROPS /
-  // taffyStyleToRecord.dim() 양쪽 모두 flexBasis 를 dim 대상으로 포함 → grid branch 도 정합.
+  // engineStyleToRecord.dim() 양쪽 모두 flexBasis 를 dim 대상으로 포함 → grid branch 도 정합.
   "flexBasis",
 ] as const;
 
@@ -805,7 +805,7 @@ const IMPLICIT_DIM_PROPS = new Set([
  *
  * DFS post-order에서 자식은 부모보다 먼저 처리되므로,
  * 부모의 applyImplicitStyles 결과가 자식 batch 엔트리에 반영되지 않는다.
- * 변경된 속성만 찾아 taffyStyleToRecord 형식으로 패치한다.
+ * 변경된 속성만 찾아 engineStyleToRecord 형식으로 패치한다.
  *
  * `display` 는 `normalizeCssDisplay` 로 운반 union 에 맞춘다 — CSS 값 그대로, inline-* 보존
  * (ADR-923 Phase 5; r6h1 의 inner-only 강제는 cutover 로 폐기).
@@ -871,7 +871,7 @@ function patchBatchStyleFromImplicit(
     } else if (key === "lineHeight") {
       // ADR-923 Phase 2: lineHeight 배선 계약은 **px 숫자** (NodeStyle Option<f32>) —
       // CSS-형 값("20px"/배율) raw 복사 금지. r6h1 display 와 동일 기전: 이 patch 는
-      // 2-pass 재-enrich 와 공유되어 1차 writer(applyCommonTaffyStyle)의 px 해석을
+      // 2-pass 재-enrich 와 공유되어 1차 writer(applyCommonEngineStyle)의 px 해석을
       // 덮는다 — 문자열이 새면 updateStyleRaw serde 가 터져 WASM 경로 전체가 죽는다
       // (tests/parity/seamBaselineContract.browser.test.ts 가 가드).
       const fsRaw = modStyle.fontSize ?? batchStyle.fontSize;
@@ -901,10 +901,10 @@ function patchBatchStyleFromImplicit(
   }
 }
 
-// ─── TaffyStyle → Record 변환 ────────────────────────────────────────
+// ─── EngineStyle → Record 변환 ────────────────────────────────────────
 
 /**
- * TaffyStyle 객체를 JSON 직렬화 가능한 Record로 변환.
+ * EngineStyle 객체를 JSON 직렬화 가능한 Record로 변환.
  *
  * 자체 엔진 pkg 에 전달할 style JSON 정규화 규칙을 적용한다.
  * - 숫자 dimension 값은 `${v}px` 문자열로 변환
@@ -912,7 +912,7 @@ function patchBatchStyleFromImplicit(
  * - 배열 필드(grid track)는 그대로 전달
  * - 문자열 필드는 그대로 전달
  */
-function taffyStyleToRecord(style: TaffyStyle): Record<string, unknown> {
+function engineStyleToRecord(style: EngineStyle): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   // dimension 값을 string으로 정규화하는 내부 헬퍼
@@ -1012,7 +1012,7 @@ function taffyStyleToRecord(style: TaffyStyle): Record<string, unknown> {
   if (style.columnGap !== undefined) result.columnGap = dim(style.columnGap);
   if (style.rowGap !== undefined) result.rowGap = dim(style.rowGap);
 
-  // Aspect ratio — TaffyStyle.aspectRatio는 이미 숫자이므로 그대로 전달
+  // Aspect ratio — EngineStyle.aspectRatio는 이미 숫자이므로 그대로 전달
   if (
     style.aspectRatio !== undefined &&
     typeof style.aspectRatio === "number" &&
@@ -1028,7 +1028,7 @@ function taffyStyleToRecord(style: TaffyStyle): Record<string, unknown> {
     result.contentMaxWidth = style.contentMaxWidth;
 
   // baseline 계약 입력 3종 (ADR-923 Phase 2) — 숫자 스칼라·키워드 문자열 그대로
-  // (applyCommonTaffyStyle 이 px 해석을 이미 끝냈다: lineHeight 는 px 숫자).
+  // (applyCommonEngineStyle 이 px 해석을 이미 끝냈다: lineHeight 는 px 숫자).
   if (style.verticalAlign !== undefined)
     result.verticalAlign = style.verticalAlign;
   if (style.lineHeight !== undefined) result.lineHeight = style.lineHeight;
@@ -1039,12 +1039,12 @@ function taffyStyleToRecord(style: TaffyStyle): Record<string, unknown> {
 }
 
 /**
- * CanvasLayoutNode와 display 정보로 TaffyStyle을 계산 후 Record로 변환.
+ * CanvasLayoutNode와 display 정보로 EngineStyle을 계산 후 Record로 변환.
  *
  * display 타입에 따라 적절한 변환 함수를 선택한다 (display 값 자체는 CSS 그대로 운반 — ADR-923 Phase 5):
- * - flex / inline-flex  → elementToTaffyStyle() (TaffyFlexEngine)
- * - grid / inline-grid  → applyCommonTaffyStyle() 기반 grid 스타일 (간소화)
- * - 그 외 (block 계열)  → elementToTaffyBlockStyle() + toTaffyDisplay()
+ * - flex / inline-flex  → elementToEngineStyle() (flexStyleAdapter)
+ * - grid / inline-grid  → applyCommonEngineStyle() 기반 grid 스타일 (간소화)
+ * - 그 외 (block 계열)  → elementToEngineBlockStyle() + toEngineDisplay()
  */
 function buildNodeStyle(
   element: CanvasLayoutNode,
@@ -1089,10 +1089,10 @@ function buildNodeStyle(
   const normalized = display.trim().toLowerCase();
 
   if (normalized === "flex" || normalized === "inline-flex") {
-    const taffyStyle: TaffyStyle = elementToTaffyStyle(enriched, computedStyle);
-    const record = taffyStyleToRecord(taffyStyle);
+    const engineStyle: EngineStyle = elementToEngineStyle(enriched, computedStyle);
+    const record = engineStyleToRecord(engineStyle);
     // Calendar/RangeCalendar width:fit-content 센티넬 통과 — ADR-165 로
-    //   applyCommonTaffyStyle 이 intrinsic 키워드를 일반 통과시키므로 본 allowlist 는
+    //   applyCommonEngineStyle 이 intrinsic 키워드를 일반 통과시키므로 본 allowlist 는
     //   보통 no-op 이지만, enriched 경로가 키워드를 못 실은 케이스의 안전망으로 유지
     //   (구 배경: 2026-07-13 parity sweep — drop 시 auto(stretch) 발산 256 vs 390).
     if (
@@ -1106,16 +1106,16 @@ function buildNodeStyle(
   }
 
   if (normalized === "grid" || normalized === "inline-grid") {
-    // Grid: applyCommonTaffyStyle 기반 간소화 경로
-    // 전체 grid 속성 변환은 TaffyGridEngine에 있으나
+    // Grid: applyCommonEngineStyle 기반 간소화 경로
+    // 전체 grid 속성 변환은 gridStyleAdapter에 있으나
     // fullTreeLayout 배치에서는 size/padding/border/gap 처리가 핵심이므로
-    // applyCommonTaffyStyle로 공통 부분을 처리하고 grid display를 주입한다.
+    // applyCommonEngineStyle로 공통 부분을 처리하고 grid display를 주입한다.
     const style = mergedStyle;
     // ADR-923 Phase 5 (S9): inline-grid 의 outer 보존 — 값 그대로 운반
     const partial: Record<string, unknown> = {
       display: normalizeCssDisplay(display),
     };
-    applyCommonTaffyStyle(partial, style, {}, computedStyle.fontSize);
+    applyCommonEngineStyle(partial, style, {}, computedStyle.fontSize);
 
     // Grid container 핵심 속성 전달. spec/props.style 이 CSS string ("1fr auto")
     // 형식으로 저장할 수 있어 WASM 이 기대하는 track array 로 정규화.
@@ -1176,24 +1176,24 @@ function buildNodeStyle(
     }
 
     // dimension 필드(gap/padding/border/size/margin/inset) 숫자 → px string 정규화.
-    // grid branch 는 partial 직접 반환이라 taffyStyleToRecord.dim() /
+    // grid branch 는 partial 직접 반환이라 engineStyleToRecord.dim() /
     // normalizeStyle.dimToString() 을 우회 → 숫자가 그대로 build_tree_batch 로 가면
-    // WASM parse error("expected string"). flex 경로(taffyStyleToRecord)와 대칭 확보.
+    // WASM parse error("expected string"). flex 경로(engineStyleToRecord)와 대칭 확보.
     normalizeDimFields(partial);
 
     return partial;
   }
 
-  // block / inline-block / inline / 기타 → TaffyBlockEngine 경로. display 는 CSS 값 그대로
+  // block / inline-block / inline / 기타 → blockStyleAdapter 경로. display 는 CSS 값 그대로
   // 운반된다 (ADR-923 Phase 5) — outer(inline → 부모 line item)/inner 해석은 엔진 display.rs.
-  const taffyConfig = toTaffyDisplay(display, childDisplays);
-  const taffyStyle: TaffyStyle = elementToTaffyBlockStyle(
+  const engineConfig = toEngineDisplay(display, childDisplays);
+  const engineStyle: EngineStyle = elementToEngineBlockStyle(
     enriched,
-    taffyConfig,
+    engineConfig,
     {},
     computedStyle.fontSize,
   );
-  const record = taffyStyleToRecord(taffyStyle);
+  const record = engineStyleToRecord(engineStyle);
 
   // CSS: block 요소가 flex/grid 부모의 자식이면 flex item 속성 적용
   // 자식의 display는 내부 formatting context만 결정, flex item 참여는 부모 display로 결정
@@ -1210,7 +1210,7 @@ function buildNodeStyle(
   //   다른 fallback 키(display/flexDirection 등)는 applyFlexItemProperties 가 무시.
   if (FLEX_GRID_DISPLAYS.has(parentDisplay)) {
     applyFlexItemProperties(record, mergedStyle);
-    // `applyFlexItemProperties` 는 `taffyStyleToRecord`(=dim() 정규화) **뒤에** 쓴다 —
+    // `applyFlexItemProperties` 는 `engineStyleToRecord`(=dim() 정규화) **뒤에** 쓴다 —
     //   `parseCSSPropWithContext` 가 절대 길이를 **숫자**로 돌려주므로
     //   (`flexBasis:"0px"` → `0`) 여기서 정규화하지 않으면 숫자가 그대로
     //   `build_tree_batch` 로 가서 `invalid type: integer, expected a string` →
@@ -1320,7 +1320,7 @@ export function computeTagFoldKeep(
  *
  * labelPosition="side" 인 TagGroup 은 `sideLabelProjectionContainer` 판정으로
  *   `preserveEnrichHeight=true` → enrich 의 calculateContentHeight(추정 wrap, stale mirror
- *   items 기반) 가 산출한 명시 height 가 Taffy 에 강제된다. Step 4.5b/c 가 자식(TagList/RowsGroup)
+ *   items 기반) 가 산출한 명시 height 가 엔진에 강제된다. Step 4.5b/c 가 자식(TagList/RowsGroup)
  *   을 자식-bottom 실측으로 교정해도 부모 명시 height 는 fixed 라 갱신 안 됨 → selection 여분 공백.
  *   자식 교정 시점에 부모 명시 height 를 제거해 Taffy row auto height(max 자식)로 재계산시킨다.
  *
@@ -1354,7 +1354,7 @@ export function shouldClearSideLabelTagGroupHeight(
  *
  * **Why (2026-07-22, ListBox 인스턴스 maxHeight:300 + 긴 label/desc)**: bounded-scroll owner 가
  * `onlyProjectionRowsChild` preserve 에 걸리면 enrich 의 1-pass 추정 height(단일 줄 행 합산)가
- * Taffy 에 동결된다. Step 4.5 2-pass 가 행을 wrap 실측(§1.55b-2 wrapContext)으로 재계산해
+ * 엔진에 동결된다. Step 4.5 2-pass 가 행을 wrap 실측(§1.55b-2 wrapContext)으로 재계산해
  * rowsGroup 은 커지는데(400) owner 는 동결값(234)에 머물러 CSS(min(content, maxHeight)=300)와
  * 발산 + 행 clip. bounded-scroll owner 는 preserve 를 제외해 Taffy auto(자식 실측 합) +
  * max_size(maxHeight) clamp 로 CSS 와 정합시킨다. **sample-mode(auto-height, ADR-157) owner 는
@@ -2094,9 +2094,9 @@ function traversePostOrder(
   //   flex-grow 억제 / non-container minWidth 주입까지 딸려온다 — utils.ts 주석 참조).
   const isGridChild =
     parentDisplay === "grid" || parentDisplay === "inline-grid";
-  // hasTaffyChildren: 실제 Taffy 노드로 처리된 자식이 있는지 확인
+  // hasEngineChildren: 실제 Taffy 노드로 처리된 자식이 있는지 확인
   // synthetic children도 이제 indexMap에 포함되므로 정상적으로 true 반환
-  const hasTaffyChildren = childIds.some((id) => indexMap.has(id));
+  const hasEngineChildren = childIds.some((id) => indexMap.has(id));
 
   // enrichment에 implicit-styled 자식 사용:
   // applyImplicitStyles가 주입한 padding/gap이 calculateContentWidth에 반영되어야
@@ -2182,7 +2182,7 @@ function traversePostOrder(
   //   scene node("Rows" RowsGroup, width:100%, flex-wrap)다. RowsGroup 의 칩 wrap 을 Taffy 에
   //   맡기면, TagList 가 side-label 에서 flex:1 폭을 Taffy 가 푸는 시점과 enrich 폭(Label 차감 229)
   //   사이 불일치로 1줄(28)로 무너진다(컨테이너 54 고정). items 기반 calculateContentHeight 가
-  //   maxRows/폭 wrap 을 정확히 계산하므로(229→2줄→60) 그 명시 height 를 Taffy 에 강제하는 게
+  //   maxRows/폭 wrap 을 정확히 계산하므로(229→2줄→60) 그 명시 height 를 엔진에 강제하는 게
   //   projection Taffy wrap 보다 정확. (ListBox/GridList top-level 은 enrich 폭=Taffy 폭 일치라
   //   기존 height 제거로도 정상 — TagList 의 flex:1 side-label 만 발산.)
   const onlyProjectionRowsChild =
@@ -2225,7 +2225,7 @@ function traversePostOrder(
     (onlyProjectionRowsChild && !isBoundedScrollOwnerStyle(elementStyle)) ||
     sideLabelProjectionContainer;
 
-  if (hasTaffyChildren && !preserveEnrichHeight) {
+  if (hasEngineChildren && !preserveEnrichHeight) {
     // A. 컨테이너: CSS height:auto → enrichment가 주입한 height를 제거
     // 사용자가 명시한 CSS height는 보존, enrichment가 추가한 height만 제거
     // → Taffy가 자식 border-box + padding + border로 height를 자동 계산
@@ -2246,7 +2246,7 @@ function traversePostOrder(
         };
       }
     }
-  } else if (!hasTaffyChildren) {
+  } else if (!hasEngineChildren) {
     // B. 리프: enrichWithIntrinsicSize의 early return guard로 height 미주입된 경우 보완
     // Panel 등 spec shapes 컴포넌트는 CSS height 없고 element children도 없지만
     // 시각적 콘텐츠가 있어 intrinsic height가 필요하다.
@@ -2296,7 +2296,7 @@ function traversePostOrder(
     const enrichedTag = (rawElement.type ?? "").toLowerCase();
     if (
       !enrichedStyle.height &&
-      !hasTaffyChildren &&
+      !hasEngineChildren &&
       (enrichedTag === "progressbar" ||
         enrichedTag === "progress" ||
         enrichedTag === "loadingbar" ||
@@ -2328,7 +2328,7 @@ function traversePostOrder(
   // 캔버스의 non-TEXT_LEAF 노드는 단일 행 렌더링(줄바꿈 없음)이므로
   // max-content(전체 텍스트 폭)를 minWidth로 주입하여
   // shrink-wrap 환경(alignItems:center 등)에서 텍스트 축소를 방지한다.
-  if (FLEX_GRID_DISPLAYS.has(parentDisplay) && !hasTaffyChildren) {
+  if (FLEX_GRID_DISPLAYS.has(parentDisplay) && !hasEngineChildren) {
     const enrichedStyle = (enriched.props?.style ?? {}) as Record<
       string,
       unknown
@@ -2391,7 +2391,7 @@ function traversePostOrder(
     }
   }
 
-  // 5. 현재 노드의 TaffyStyle 계산 → Record 변환
+  // 5. 현재 노드의 EngineStyle 계산 → Record 변환
   // filteredChildren 전달: vertical-align 기반 alignItems 동적 결정에 사용 (ADR-006 P2-3)
   const styleRecord = buildNodeStyle(
     enriched,
@@ -2464,13 +2464,13 @@ function traversePostOrder(
  * DFS 결과(batch)와 기존 persistent tree를 비교하여
  * 새 노드 추가 / 스타일 변경 / 자식 구조 변경 / 노드 삭제를 수행한다.
  *
- * PersistentTaffyTree 내부의 해시 비교로 실제 변경이 없는 노드는 자동 스킵되며,
+ * PersistentLayoutTree 내부의 해시 비교로 실제 변경이 없는 노드는 자동 스킵되며,
  * Taffy의 dirty cache 덕분에 computeLayout()에서 변경 없는 서브트리는 O(1) 스킵된다.
  *
  * @returns DEV 전용: 실제 갱신된 스타일/자식/추가/삭제 수
  */
 function incrementalUpdate(
-  tree: PersistentTaffyTree,
+  tree: PersistentLayoutTree,
   batch: PersistentBatchNode[],
   filteredChildIdsMap: Map<string, string[]>,
 ): {
@@ -2492,7 +2492,7 @@ function incrementalUpdate(
   }
 
   // 2. post-order 순회: 새 노드 추가 + 기존 노드 스타일 갱신
-  //    모든 batch 노드를 Taffy에 반영 (부분 필터 시 OLD+NEW 혼합 → 잘못된 계산)
+  //    모든 batch 노드를 엔진에 반영 (부분 필터 시 OLD+NEW 혼합 → 잘못된 계산)
   //    updateNodeStyle은 내부 JSON 비교로 변경 없는 노드 스킵
   for (const node of batch) {
     if (tree.hasNode(node.elementId)) {
@@ -2505,7 +2505,7 @@ function incrementalUpdate(
     }
   }
 
-  // 3. 자식 구조 갱신 (변경 감지는 PersistentTaffyTree 내부 hash 비교)
+  // 3. 자식 구조 갱신 (변경 감지는 PersistentLayoutTree 내부 hash 비교)
   for (const node of batch) {
     const childIds = filteredChildIdsMap.get(node.elementId) ?? [];
     if (tree.updateChildren(node.elementId, childIds)) {
@@ -2573,7 +2573,7 @@ export function calculateFullTreeLayout(
   const rootKey = getLayoutRootKey(rootEl);
   let persistentTree = persistentTrees.get(rootKey);
   if (!persistentTree) {
-    persistentTree = new PersistentTaffyTree();
+    persistentTree = new PersistentLayoutTree();
     persistentTrees.set(rootKey, persistentTree);
   }
   if (!persistentTree.isAvailable) return null;
@@ -3083,7 +3083,7 @@ export function calculateFullTreeLayout(
           //   **Why (side-label 여분 공백 근본, 2026-07-02)**: labelPosition="side" 인 TagGroup 은
           //   `sideLabelProjectionContainer` 판정으로 `preserveEnrichHeight=true` → enrich 의
           //   calculateContentHeight(추정 wrap, stale mirror items 기반) 가 산출한 명시 height 가
-          //   Taffy 에 강제된다(라이브 실측: 명시 98 = 3행 추정, 실제 TagList 자식은 2행 64). Step 4.5b/c
+          //   엔진에 강제된다(라이브 실측: 명시 98 = 3행 추정, 실제 TagList 자식은 2행 64). Step 4.5b/c
           //   가 TagList/RowsGroup 을 자식-bottom 실측(64)으로 교정하고 부모를 dirty 로 마킹해도,
           //   TagGroup 의 명시 height(98)는 auto 가 아니라 fixed 라 재계산 시에도 98 유지 →
           //   selection/hover outline 이 실제 자식(64) 아래로 34px(1행) 여분 공백. top-label 은 column

@@ -1,6 +1,6 @@
 //! ADR-916 Phase 2-A — CSS Display 변환 (순수 display 문자열 계층)
 //!
-//! `apps/builder/.../layout/engines/taffyDisplayAdapter.ts` 의 **자기완결 순수**
+//! `apps/builder/.../layout/engines/displayAdapter.ts` 의 **자기완결 순수**
 //! display 문자열 변환 계층 이식. CSS Display Level 3 이원 구조(outer/inner) 파싱 +
 //! blockification + inline-level / atomic inline-level 판정. (구 자식 display 분류
 //! `classify_child_display` 는 ADR-923 Phase 1 에서 삭제 — inline-flex 를 Block 으로
@@ -24,7 +24,7 @@
 //!
 //! ## 경계 계약 (ADR-923 Phase 5 cutover, 2026-09-02)
 //!
-//! TS 는 CSS display 값을 **그대로** 보낸다 — `taffyDisplayAdapter.ts normalizeCssDisplay` 가
+//! TS 는 CSS display 값을 **그대로** 보낸다 — `displayAdapter.ts normalizeCssDisplay` 가
 //! 인식 값 8 종 (block · inline · inline-block · flex · inline-flex · grid · inline-grid ·
 //! none) 을 손실 없이 운반하고 미인식만 block 으로 접는다 ([`parse_display`] 의 폴백과 같다).
 //! 종전 TS IFC 시뮬레이션 (block 부모 + inline-level 자식 → flex row wrap 합성, inline-block
@@ -35,7 +35,7 @@
 //!
 //! - 기본 display 해석 `getElementDisplay` → `resolveDefaultDisplay` (`defaultDisplay.ts` —
 //!   catalog 파생 → 손 목록 → block). 컴포넌트 tag 도메인 지식이라 TS 에 남는다.
-//! - `toTaffyDisplay(display, childDisplays)` — `normalizeCssDisplay` 만 감싼 운반 함수.
+//! - `toEngineDisplay(display, childDisplays)` — `normalizeCssDisplay` 만 감싼 운반 함수.
 //!   `childDisplays` 는 HC1 게이트의 관측 인자.
 
 /// 요소의 외부 display 타입 (CSS Display Level 3 outer display).
@@ -76,7 +76,7 @@ pub struct Display {
     pub inner: InnerDisplay,
 }
 
-/// CSS display 문자열을 [`Display`] 이원 구조로 파싱 (taffyDisplayAdapter.ts:274 `parseDisplay`).
+/// CSS display 문자열을 [`Display`] 이원 구조로 파싱 (displayAdapter.ts:274 `parseDisplay`).
 ///
 /// 9종 매핑 + 미인식 값은 `{ block, flow }` 폴백 (원본 DEV 경고는 부수효과라 생략).
 /// `None`/빈 문자열/공백도 미인식 → block 폴백 (원본 `value?.trim().toLowerCase()` default).
@@ -104,7 +104,7 @@ pub fn parse_display(value: Option<&str>) -> Display {
     }
 }
 
-/// [`Display`] 이원 구조를 CSS display 문자열로 역변환 (taffyDisplayAdapter.ts:310 `displayToString`).
+/// [`Display`] 이원 구조를 CSS display 문자열로 역변환 (displayAdapter.ts:310 `displayToString`).
 ///
 /// `parse_display` 의 역함수. 원본 분기 순서 그대로.
 pub fn display_to_string(d: Display) -> &'static str {
@@ -182,7 +182,7 @@ pub fn is_atomic_inline_level(d: Display) -> bool {
         && matches!(d.inner, InnerDisplay::FlowRoot | InnerDisplay::Flex | InnerDisplay::Grid)
 }
 
-/// display 값이 inline-level 인지 판별 (taffyDisplayAdapter.ts:418 `isInlineLevel`).
+/// display 값이 inline-level 인지 판별 (displayAdapter.ts:418 `isInlineLevel`).
 ///
 /// CSS 명세: inline-level box = outer display type 이 inline 인 box.
 pub fn is_inline_level(display: &str) -> bool {

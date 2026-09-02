@@ -24,7 +24,7 @@ import type { ComponentDefinition } from "../../types";
  * 어느 SSOT 에도 명시하지 않았다. DOM 은 generated CSS(.react-aria-Select 등)로
  * 정상이지만, Skia/Taffy 는 props.style 만 읽고 layout 엔진은 rule table 을 import
  * 하지 않으므로(ADR-907 Layer B), props.style 에 display 가 없으면
- * buildNodeStyle/getElementDisplay 가 display:"block" 으로 떨어져(taffyDisplayAdapter
+ * buildNodeStyle/getElementDisplay 가 display:"block" 으로 떨어져(displayAdapter
  * fallback) Select/ComboBox/NumberField/SearchField + SelectTrigger 가 Skia 에서
  * 찌부러진다(2026-06-12 live 적발 → factory props.style 로 layout 이관).
  *

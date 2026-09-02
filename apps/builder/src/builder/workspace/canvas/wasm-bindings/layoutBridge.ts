@@ -1,7 +1,7 @@
 /**
  * Layout Engine Bridge (ADR-100 / ADR-916)
  *
- * PersistentTaffyTree 의 엔진 주입 지점(factory).
+ * PersistentLayoutTree 의 엔진 주입 지점(factory).
  *
  * **ADR-916 Taffy 완전 제거 (2026-07-06)**: TaffyLayout 폴백 경로 삭제 — 자체
  * 엔진(composition-engine, taffy-free)을 단독 반환한다. WASM 미준비(startup
@@ -16,11 +16,11 @@ import type { EngineTraceNode, LayoutResult } from "./compositionEngine";
 /**
  * Common layout engine interface (ADR-916 Phase 0-A seam).
  *
- * PersistentTaffyTree 가 실제로 호출하는 batch 계약을 반영한다.
+ * PersistentLayoutTree 가 실제로 호출하는 batch 계약을 반영한다.
  * Taffy 완전 제거 후 자체 엔진(CompositionEngineLayout)이 이 계약의 유일 구현.
  *
  * **Why batch 계약** (2026-07-03 실사): 기존 인터페이스는 per-node API
- * (createNode/computeLayout/getLayout) 만 선언했으나, PersistentTaffyTree 는
+ * (createNode/computeLayout/getLayout) 만 선언했으나, PersistentLayoutTree 는
  * buildTreeBatch/getLayoutsBatch/setChildren/updateStyleRaw 등 batch 메서드를
  * 호출한다. 인터페이스가 실사용과 불일치하면 엔진 주입 시 타입 갭 발생 →
  * seam 이 성립하지 않는다. 실사용 batch 계약으로 정합.
@@ -28,7 +28,7 @@ import type { EngineTraceNode, LayoutResult } from "./compositionEngine";
 export interface LayoutEngineAPI {
   isAvailable(): boolean;
 
-  // ── batch tree 구축 (PersistentTaffyTree.buildFull 경유) ──
+  // ── batch tree 구축 (PersistentLayoutTree.buildFull 경유) ──
   buildTreeBatch(nodesJson: string): number[];
   buildTreeBatchBinary(data: Uint8Array): number[];
   hasBinaryProtocol(): boolean;

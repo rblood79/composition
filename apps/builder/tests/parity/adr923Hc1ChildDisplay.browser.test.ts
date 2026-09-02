@@ -10,7 +10,7 @@ import { pipelineLeg } from "./harness";
  * 자식은 flex solver 를 타는 이원 상태가 된다 — ADR-923 Context 의 사실 4·5).
  *
  * 캡처는 production 진입점(`calculateFullTreeLayout` = pipelineLeg) 을 그대로 돌리며:
- *   - 부모 시각 = `toTaffyDisplay(display, childDisplays, …)` 의 `childDisplays` 인자 (module mock 으로 기록)
+ *   - 부모 시각 = `toEngineDisplay(display, childDisplays, …)` 의 `childDisplays` 인자 (module mock 으로 기록)
  *   - 자식 시각 = `buildTreeBatch` JSON 인자의 자식 노드 `style.display` (wasm 경계 실제 도달값)
  *
  * Phase 4 까지 Button 은 부모가 `INLINE_BLOCK_TAGS → inline-block`, 자식 자신은 catalog fallback →
@@ -25,24 +25,24 @@ interface DisplayCall {
 const CALLS: DisplayCall[] = [];
 
 vi.mock(
-  "@/builder/workspace/canvas/layout/engines/taffyDisplayAdapter",
+  "@/builder/workspace/canvas/layout/engines/displayAdapter",
   async (importOriginal) => {
     const actual =
       await importOriginal<
-        typeof import("@/builder/workspace/canvas/layout/engines/taffyDisplayAdapter")
+        typeof import("@/builder/workspace/canvas/layout/engines/displayAdapter")
       >();
     return {
       ...actual,
-      toTaffyDisplay: (
+      toEngineDisplay: (
         display: string,
         childDisplays: string[],
         childElements?: unknown,
       ) => {
         CALLS.push({ display, childDisplays: [...childDisplays] });
-        return actual.toTaffyDisplay(
+        return actual.toEngineDisplay(
           display,
           childDisplays,
-          childElements as Parameters<typeof actual.toTaffyDisplay>[2],
+          childElements as Parameters<typeof actual.toEngineDisplay>[2],
         );
       },
     };
@@ -73,10 +73,10 @@ function captureCase(nodes: CaseNode[]): {
     const batchChildDisplays = batch[parentIdx].children.map((ci) =>
       String(batch[ci].style.display ?? ""),
     );
-    // 부모(block) 는 toTaffyDisplay 를 한 번 부른다 — childDisplays 길이 2 인 호출.
+    // 부모(block) 는 toEngineDisplay 를 한 번 부른다 — childDisplays 길이 2 인 호출.
     const parentCall = CALLS.filter((c) => c.childDisplays.length === 2).at(-1);
     if (!parentCall)
-      throw new Error("부모 toTaffyDisplay 호출 미캡처 (mock 미적용?)");
+      throw new Error("부모 toEngineDisplay 호출 미캡처 (mock 미적용?)");
     return {
       parentChildDisplays: parentCall.childDisplays,
       batchChildDisplays,

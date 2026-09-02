@@ -26,11 +26,11 @@
  * vertical-align → alignItems 근사, TS blockify, inline-flex → flex 정규화 — 는 전부 삭제됐다
  * (ADR-923 breakdown §2.2 S1·S2·S3·S6·S9).
  *
- * 1. `normalizeCssDisplay(raw)`: 인식되는 CSS 값을 운반 union `TaffyDisplay` 로 — 손실 없는
+ * 1. `normalizeCssDisplay(raw)`: 인식되는 CSS 값을 운반 union `EngineDisplay` 로 — 손실 없는
  *    정규화 (inline-* 보존). 미인식 값만 `block` 폴백 (엔진 `parse_display` 의 폴백과 같다).
  * 2. `getElementDisplay(element)`: 명시 `style.display` 우선, 없으면 `resolveDefaultDisplay(type)`
  *    (catalog 파생 → 손 목록 → block, `defaultDisplay.ts`).
- * 3. `toTaffyDisplay(display, childDisplays)`: `{ taffyDisplay: normalizeCssDisplay(display) }` —
+ * 3. `toEngineDisplay(display, childDisplays)`: `{ engineDisplay: normalizeCssDisplay(display) }` —
  *    부모는 자식 display 와 무관하게 자기 값만 보낸다. `childDisplays` 는 HC1 게이트
  *    (`tests/parity/adr923Hc1ChildDisplay`) 가 "부모가 본 자식 값 == 자식이 보낸 값" 을 대조하는
  *    관측 인자다.
@@ -42,7 +42,7 @@
  * @since 2026-02-28
  */
 
-import type { TaffyDisplay } from "../../wasm-bindings/layoutTypes";
+import type { EngineDisplay } from "../../wasm-bindings/layoutTypes";
 import { resolveDefaultDisplay } from "./defaultDisplay";
 
 // ============================================
@@ -72,7 +72,7 @@ type OuterDisplay = "inline" | "block" | "none";
  * - 'none': 레이아웃에서 제외
  *
  * NOTE: Dropflow 원본은 'flow'/'flow-root'/'none'만 지원 (block-only 엔진).
- * Taffy adapter는 flex/grid도 처리해야 하므로 확장.
+ * 이 어댑터는 flex/grid 도 다루므로 확장.
  *
  * @see packages/layout-flow/src/types.ts:48 — InnerDisplay
  */
@@ -94,26 +94,26 @@ type InnerDisplay = "flow" | "flow-root" | "flex" | "grid" | "none";
 type Display = { outer: OuterDisplay; inner: InnerDisplay };
 
 // ============================================
-// Taffy 변환 결과 타입
+// 엔진 경계 운반 타입
 // ============================================
 
 /**
  * 엔진에 전달하는 display 설정.
  *
- * `taffyDisplay` 는 **CSS display 값 그대로** (`TaffyDisplay` 운반 union, ADR-923 Phase 5).
+ * `engineDisplay` 는 **CSS display 값 그대로** (`EngineDisplay` 운반 union, ADR-923 Phase 5).
  * 나머지 필드는 종전 IFC 시뮬레이션이 주입하던 암묵 flex 속성 자리 — Phase 5 이후 어느 경로도
- * 채우지 않는다 (`elementToTaffyBlockStyle` 패스스루 계약만 유지, 명명 정리는 Phase 6).
+ * 채우지 않는다 (`elementToEngineBlockStyle` 패스스루 계약만 유지, 명명 정리는 Phase 6).
  */
-export interface TaffyDisplayConfig {
+export interface EngineDisplayConfig {
   /** 엔진 경계로 보내는 CSS display 값 */
-  taffyDisplay: TaffyDisplay;
-  /** flex 방향 (taffyDisplay === 'flex'일 때 유효) */
+  engineDisplay: EngineDisplay;
+  /** flex 방향 (engineDisplay === 'flex'일 때 유효) */
   flexDirection?: "row" | "column";
-  /** flex 줄바꿈 (taffyDisplay === 'flex'일 때 유효) */
+  /** flex 줄바꿈 (engineDisplay === 'flex'일 때 유효) */
   flexWrap?: "nowrap" | "wrap";
-  /** 교차축 정렬 (taffyDisplay === 'flex'일 때 유효) */
+  /** 교차축 정렬 (engineDisplay === 'flex'일 때 유효) */
   alignItems?: string;
-  /** flex line 정렬 (taffyDisplay === 'flex' + flexWrap일 때 유효) */
+  /** flex line 정렬 (engineDisplay === 'flex' + flexWrap일 때 유효) */
   alignContent?: string;
   /** flex 확장 비율 (inline-block 리프 고정 크기용) */
   flexGrow?: number;
@@ -158,7 +158,7 @@ export const VERTICAL_ALIGN_MIDDLE_TAGS: ReadonlySet<string> = new Set([
 ]);
 
 // ============================================
-// Taffy 변환 결과 상수
+// 엔진 경계 상수
 // ============================================
 
 /** block 폴백 결과 (미인식 display 값 및 inline → block) */
@@ -170,7 +170,7 @@ export const VERTICAL_ALIGN_MIDDLE_TAGS: ReadonlySet<string> = new Set([
  * CSS display 문자열을 Display 이원 구조로 파싱.
  *
  * Dropflow 원본 (composition-adapter.ts:313-330)을 기반으로 하되,
- * Taffy가 처리하는 flex/grid를 inner display로 확장.
+ * 엔진이 처리하는 flex/grid 를 inner display 로 확장.
  *
  * CSS Display Level 3 매핑:
  * - block        → { outer: 'block',  inner: 'flow' }
@@ -209,7 +209,7 @@ function parseDisplay(value: string | undefined): Display {
     default:
       if (import.meta.env.DEV) {
         console.warn(
-          `[taffyDisplayAdapter] Unrecognized CSS display value: "${value}". Falling back to block.`,
+          `[displayAdapter] Unrecognized CSS display value: "${value}". Falling back to block.`,
         );
       }
       return { outer: "block", inner: "flow" };
@@ -217,13 +217,13 @@ function parseDisplay(value: string | undefined): Display {
 }
 
 /**
- * CSS display 문자열 → 운반 union `TaffyDisplay` (손실 없는 정규화, ADR-923 Phase 5).
+ * CSS display 문자열 → 운반 union `EngineDisplay` (손실 없는 정규화, ADR-923 Phase 5).
  *
  * `parseDisplay` 로 outer/inner 를 읽고 CSS 문자열로 되돌린다 — 인식되는 값은 그대로
  * (inline-flex · inline-grid · inline-block · inline 보존), `flow-root` 는 `block` (엔진 solver 는
  * 둘 다 Block), 미인식 값은 `block` 폴백 (엔진 `parse_display` 와 같다). outer 해석은 엔진 몫이다.
  */
-export function normalizeCssDisplay(raw: string | undefined): TaffyDisplay {
+export function normalizeCssDisplay(raw: string | undefined): EngineDisplay {
   const d = parseDisplay(raw);
   if (d.outer === "none") return "none";
   const inline = d.outer === "inline";
@@ -272,9 +272,9 @@ export function getElementDisplay(element: {
  * @param _childDisplays - 직계 자식의 CSS display 값 (관측 전용 — HC1 게이트가 module mock 으로
  *   "부모가 본 자식 값 == 자식 batch display" 를 대조한다; 변환에는 쓰지 않는다)
  */
-export function toTaffyDisplay(
+export function toEngineDisplay(
   display: string,
   _childDisplays: readonly string[],
-): TaffyDisplayConfig {
-  return { taffyDisplay: normalizeCssDisplay(display) };
+): EngineDisplayConfig {
+  return { engineDisplay: normalizeCssDisplay(display) };
 }

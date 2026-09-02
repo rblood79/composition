@@ -30,7 +30,7 @@ import type {
 } from "../../wasm-bindings/compositionEngine";
 
 /**
- * explain 이 필요로 하는 트리 표면 — `PersistentTaffyTree` 가 구조적으로
+ * explain 이 필요로 하는 트리 표면 — `PersistentLayoutTree` 가 구조적으로
  * 만족한다. 인터페이스로 좁혀 테스트가 fake 를 주입할 수 있게 한다.
  */
 export interface ExplainableTree {

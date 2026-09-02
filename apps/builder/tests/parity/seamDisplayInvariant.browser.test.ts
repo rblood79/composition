@@ -6,7 +6,7 @@ import { pipelineLeg } from "./harness";
 
 /**
  * ADR-923 HC7 seam 불변식 (Phase 1~4 의 계약, 역사): wasm 경계 `buildTreeBatch` JSON 의 `display` 는 TS
- * 운반 union `TaffyDisplay`("flex" | "grid" | "block" | "none") 안이었다 — inline-flex /
+ * 운반 union `EngineDisplay`("flex" | "grid" | "block" | "none") 안이었다 — inline-flex /
  * inline-grid / inline-block 은 Phase 5 cutover 전까지 엔진에 도달하지 않았다. Phase 1 이
  * 엔진의 outer → line item 판정을 켰으므로, 이 불변식이 깨지면 프로덕션 배치가 phase 경계
  * 밖에서 바뀐다 (reviews/923.md round 6 r6h1: `patchBatchStyleFromImplicit` 가 raw display
@@ -20,7 +20,7 @@ import { pipelineLeg } from "./harness";
  * union 안이고 (`normalizeCssDisplay` — 미인식만 block), Label 의 `inline-flex` 는 접히지 않고 도달한다.
  */
 
-/** Phase 5 운반 union (`layoutTypes.ts` `TaffyDisplay`) — CSS 값 그대로. */
+/** Phase 5 운반 union (`layoutTypes.ts` `EngineDisplay`) — CSS 값 그대로. */
 const BATCH_DISPLAY_UNION: ReadonlySet<string> = new Set([
   "block",
   "inline",

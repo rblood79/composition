@@ -85,7 +85,7 @@ describe("fullTreeLayout shared filtered children key contract", () => {
  *
  * `calculateFullTreeLayout` 은 Taffy WASM 의존이라 단위 테스트에서 직접 행동 검증 불가 →
  * 소스 정적 계약으로 dimension 키 누락 회귀를 가드한다. 키 비교는 `node.style[k]` JSON 비교
- * (= `taffyStyleToRecord` 출력 = camelCase 단일 키) 이므로 키 이름 정확성도 함께 확증.
+ * (= `engineStyleToRecord` 출력 = camelCase 단일 키) 이므로 키 이름 정확성도 함께 확증.
  */
 describe("fullTreeLayout grid dimension-change full rebuild contract", () => {
   const DIMENSION_KEYS = [
@@ -148,17 +148,17 @@ describe("fullTreeLayout grid dimension-change full rebuild contract", () => {
     );
   });
 
-  it("compares prev vs current grid style with the same camelCase record shape as taffyStyleToRecord", async () => {
+  it("compares prev vs current grid style with the same camelCase record shape as engineStyleToRecord", async () => {
     const source = await readFile(
       resolve(__dirname, "fullTreeLayout.ts"),
       "utf-8",
     );
 
-    // 비교는 prevParsed[k] vs node.style[k] — 둘 다 taffyStyleToRecord 출력 shape
+    // 비교는 prevParsed[k] vs node.style[k] — 둘 다 engineStyleToRecord 출력 shape
     expect(source).toMatch(
       /JSON\.stringify\(prevParsed\[k\]\) !==\s*JSON\.stringify\(node\.style\[k\]\)/,
     );
-    // taffyStyleToRecord 가 width/height/min/max 를 camelCase 단일 키로 emit (비교 키와 1:1)
+    // engineStyleToRecord 가 width/height/min/max 를 camelCase 단일 키로 emit (비교 키와 1:1)
     expect(source).toMatch(/result\.width =/);
     expect(source).toMatch(/result\.minWidth =/);
     expect(source).toMatch(/result\.maxHeight =/);

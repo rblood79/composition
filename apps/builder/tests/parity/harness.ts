@@ -25,7 +25,7 @@ import type { CanvasLayoutNode } from "@/types/builder/unified.types";
  */
 
 // ── 케이스 스키마 (tree_golden.rs batch JSON 과 동일 형태) ──
-// post-order, root 마지막. style = TaffyStyle 레코드, children = 인덱스 배열.
+// post-order, root 마지막. style = EngineStyle 레코드, children = 인덱스 배열.
 export type StyleRecord = Record<string, string | number | string[]>;
 
 export interface CaseNode {
@@ -230,7 +230,7 @@ export function runParityCase(c: ParityCase): string[] {
 // Skia 좌표까지 온전히 도달하는지**를 CSS ground truth 와 대조한다.
 //
 // 노드 type 은 특수 분기(catalog/spec) 없는 generic block 컨테이너 `box`. fixture style 은
-// TaffyStyle 레코드(camelCase, "30px"/"block") = React.CSSProperties 호환.
+// EngineStyle 레코드(camelCase, "30px"/"block") = React.CSSProperties 호환.
 let pipelineCaseSeq = 0;
 export function pipelineLeg(
   nodes: CaseNode[],

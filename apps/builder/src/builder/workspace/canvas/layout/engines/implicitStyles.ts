@@ -1369,7 +1369,7 @@ export function applyImplicitStyles(
   // maxWidth (Spectrum 스키마 160, 2026-08-21): catalog sizes.maxWidth → 엔진 max_width clamp.
   //   DOM 은 generated CSS `max-width: 160px` (같은 catalog 값) — D3 symmetric.
   //   width: fit-content 동반 주입 — DOM root 는 inline-flex 라 shrink-wrap 인데 엔진은
-  //   inline-flex 를 block-level 로 blockify 해 부모 폭 stretch 가 된다 (taffyDisplayAdapter).
+  //   inline-flex 를 block-level 로 blockify 해 부모 폭 stretch 가 된다 (displayAdapter).
   //   fit-content 없이는 Skia tooltip 이 항상 정확히 maxWidth 폭이 되어 짧은 텍스트에서 발산.
   //   사용자 명시값(0 포함) 우선.
   if (containerTag === "tooltip") {
@@ -1581,7 +1581,7 @@ export function applyImplicitStyles(
     const px = specSizeField(containerTag, sizeName, "paddingX");
     const py = specSizeField(containerTag, sizeName, "paddingY");
     const gapVal = specSizeField(containerTag, sizeName, "gap");
-    // borderWidth 주입 필수 — 자식 보유 Button 은 hasTaffyChildren=true 라 enrichWithIntrinsicSize
+    // borderWidth 주입 필수 — 자식 보유 Button 은 hasEngineChildren=true 라 enrichWithIntrinsicSize
     //   의 height(content+padding+border) 가 제거되고 Taffy 자동 계산에 위임된다. Taffy 는
     //   parseBorder(style) 로 border 를 box 에 더하므로 borderWidth 미주입 시 height 에서 border
     //   2px 누락 → leaf Button(30px, enrichWithIntrinsicSize 가 border 더함)보다 2px 작아짐

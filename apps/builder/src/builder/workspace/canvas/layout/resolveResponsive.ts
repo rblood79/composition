@@ -9,7 +9,7 @@
  * 시각 대칭을 자동 성립시킨다.
  *
  * longhand 정책(ADR-909, R4): gap/padding/margin shorthand override 는 longhand 로
- * 분배해 base longhand 를 확실히 override 한다(엔진 `applyCommonTaffyStyle` 의
+ * 분배해 base longhand 를 확실히 override 한다(엔진 `applyCommonEngineStyle` 의
  * gap→rowGap/columnGap 적용 순서로 인한 편집 무시 회귀 방지). 그 외 키(longhand 포함)는
  * 직접 merge 하므로, 저장 형식이 shorthand 든 longhand 든 정확히 resolve 된다.
  *

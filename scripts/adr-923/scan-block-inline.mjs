@@ -21,7 +21,7 @@
  *       style.display ?? (INLINE_BLOCK_TAGS ? "inline-block" : "block")
  *     → `classifyChildDisplay`: outer=inline ∧ inner∈{flow, flow-root} 만 inline (inline-flex/inline-grid 는 block)
  *   - IFC 시뮬레이션 발생 = 컨테이너 own display 의 outer=block ∧ inner∈{flow, flow-root} ∧ inline 자식 ≥1
- *     (`taffyDisplayAdapter.ts toTaffyDisplay` 마지막 분기 — flex/grid/inline-* 컨테이너는 검사 자체를 안 한다)
+ *     (`displayAdapter.ts toEngineDisplay` 마지막 분기 — flex/grid/inline-* 컨테이너는 검사 자체를 안 한다)
  *
  * 추가로 **C′ 계약 근사** 도 센다 — Phase 5 후 자식 default display 가 catalog(=DOM, HC2) 에서 파생될 때
  * line box 가 생기는 컨테이너 수. 근사 규칙: 자식 outer = parse(style.display ?? catalog 구조 병합 display

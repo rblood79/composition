@@ -11,7 +11,7 @@
  *      (`domDisplay`) 는 읽지 않는다 — 후보는 근거가 붙은 뒤 `handDisplay` 로 옮긴다.
  *   3. `block` (CSS 초기값과 같은 canvas 기본)
  *
- * **Phase 5 (2026-09-02) 부터 `getElementDisplay` (taffyDisplayAdapter) 가 이 함수를 쓴다** —
+ * **Phase 5 (2026-09-02) 부터 `getElementDisplay` (displayAdapter) 가 이 함수를 쓴다** —
  * 종전 `INLINE_BLOCK_TAGS → inline-block` 목록은 삭제됐다. 배선과 함께 TS IFC 시뮬레이션이 제거돼
  * catalog `inline-flex` 가 부모 판정으로 흘러도 IFC 를 켜거나 끄는 분기가 없다 (엔진 display.rs 가
  * outer 를 해석). 별도 모듈인 이유: `utils.ts` ← `implicitStyles.ts` 의존 방향 때문에 utils 안에 두면

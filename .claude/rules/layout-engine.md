@@ -38,7 +38,7 @@ paths:
 
 ## 엔진 선택
 
-- flex → TaffyFlexEngine, grid → TaffyGridEngine, block/undefined → TaffyBlockEngine (단일 자체 Rust WASM — `packages/composition-engine`, ADR-916 Implemented 2026-07-06; JS 어댑터 심볼명은 Taffy\* 유지)
+- flex → `flexStyleAdapter.ts`, grid → `gridStyleAdapter.ts`, block/undefined → `blockStyleAdapter.ts` — 셋 다 **style 어댑터** (값 변환·정규화만) 이고 계산은 단일 자체 Rust WASM (`packages/composition-engine`, ADR-916 Implemented 2026-07-06) 이 한다. JS 심볼의 `Taffy*` 접두는 ADR-923 Phase 6 (2026-09-03) 에서 `Engine*` 로 개명 (`EngineStyle` · `EngineDisplay` · `toEngineDisplay` · `applyCommonEngineStyle` · `engineStyleToRecord` · `PersistentLayoutTree`; 파일 `displayAdapter` · `flexStyleAdapter` · `blockStyleAdapter` · `gridStyleAdapter` · `persistentLayoutTree`) — 옛 이름은 ADR·evidence 이력 문서에만 남는다
 
 ## position:absolute / fixed — 엔진 소속 + 의도적 미지원 경계 (ADR-164 Phase 2, 2026-07-25)
 
@@ -66,26 +66,26 @@ paths:
 - LABEL_DELEGATION_PARENT_TAGS: DatePicker/DateRangePicker 포함 필수. **Why**: 누락 → Label 24px 오계산
 - batch height override: `Math.ceil(fontSize * 1.5)` 대신 LABEL_SIZE_STYLE lineHeight 역참조
 
-## PersistentTaffyTree display/grid 전환 감지 (CRITICAL)
+## PersistentLayoutTree display/grid 전환 감지 (CRITICAL)
 
 - display 변경 및 gridTemplateColumns 변경 → **full rebuild 필수**. **Why**: 엔진(composition-engine) 증분 갱신이 처리 불가
 - `affectedNodeIds` 필터 시 `undefined` 조건 누락 금지. **Why**: 캐시 미스 시 undefined 전달 가능
 - **신규 grid container (`prevJson` 없음) → full rebuild 필수**. **Why**: 엔진 WASM `addNode` 증분 추가로는 gridTemplateColumns/Areas 가 auto-placement 로 degrade — 등록 직후 한 줄 배치, 새로고침(buildFull) 후에만 정상 2행. `!prevJson && (curDisplay === "grid" || "inline-grid")` 에서 needsFullRebuild=true 강제
 - **신규 컨테이너(자식 서브트리 보유) → full rebuild 필수** (grid 아니어도). **Why**: `addComplexElement`(부모+자식 트리 일괄 등록, 예 Select/ComboBox) 시 한 batch 에 부모+자식 다수 신규 노드가 들어오면 `addNode` 증분이 자식 layout 을 produce 못 함(layout=undefined) → 자식이 (0,0) 겹침 + 부모 height 가 자식 합산 미만으로 degrade(Select 등록 직후 34, 새로고침 full rebuild 후 54). `!prevJson && filteredChildIdsMap.get(id)?.length > 0` 에서 needsFullRebuild=true 강제 (grid 조건과 동일 게이트). ADR-912 R1 후속 (2026-06-12)
-- **기존 grid container 의 layout-영향 20-key 변경 → full rebuild 필수**: gridTemplateColumns/Rows/Areas/AutoColumns/AutoRows/AutoFlow + padding/padding{Top,Right,Bottom,Left} + gap/rowGap/columnGap + **width/height/min{Width,Height}/max{Width,Height}**. **Why**: `updateStyleRaw`(=set_style) 는 grid track/placement 캐시 invalidation 실패 → padding 변경 시 1줄 degrade / gap 변경 미반영 / **width 변경 시 1fr·auto track 이 변경 전 컨테이너 폭 기준으로 stale degrade (1줄로 무너짐) → 새로고침(buildFull) 후에만 정상 2행**. 비-grid 는 증분 유지 (Flex/Block `updateStyleRaw` 정상 동작 — dimension 변경 시 full rebuild 는 `isGridDisplay(curDisplay)` 분기 안에서만). `GRID_REBUILD_TRIGGER_KEYS` (`fullTreeLayout.ts`) 비교 키는 `taffyStyleToRecord` 출력 = camelCase 단일 키 (`width`/`minWidth` 등). `fullTreeLayout.static.test.ts` 가 dimension 6키 누락을 정적 가드. 2026-06-16 추가
+- **기존 grid container 의 layout-영향 20-key 변경 → full rebuild 필수**: gridTemplateColumns/Rows/Areas/AutoColumns/AutoRows/AutoFlow + padding/padding{Top,Right,Bottom,Left} + gap/rowGap/columnGap + **width/height/min{Width,Height}/max{Width,Height}**. **Why**: `updateStyleRaw`(=set_style) 는 grid track/placement 캐시 invalidation 실패 → padding 변경 시 1줄 degrade / gap 변경 미반영 / **width 변경 시 1fr·auto track 이 변경 전 컨테이너 폭 기준으로 stale degrade (1줄로 무너짐) → 새로고침(buildFull) 후에만 정상 2행**. 비-grid 는 증분 유지 (Flex/Block `updateStyleRaw` 정상 동작 — dimension 변경 시 full rebuild 는 `isGridDisplay(curDisplay)` 분기 안에서만). `GRID_REBUILD_TRIGGER_KEYS` (`fullTreeLayout.ts`) 비교 키는 `engineStyleToRecord` 출력 = camelCase 단일 키 (`width`/`minWidth` 등). `fullTreeLayout.static.test.ts` 가 dimension 6키 누락을 정적 가드. 2026-06-16 추가
 
 ## gridTemplate 직렬화 경로 (CRITICAL)
 
 - composition-engine WASM binary_protocol 은 `gridTemplateColumns`/`Rows`/`AutoColumns`/`AutoRows` 를 **track array** (`["1fr", "auto"]`) 로 기대. CSS 표준 string (`"1fr auto"`) 통과 시 `invalid type: string, expected a sequence` parse error → persistent tree 리셋 + 재빌드 루프. **3 직렬화 경로 모두 정규화 필수**:
-  - `fullTreeLayout.taffyStyleToRecord` (flex via elementToTaffyStyle)
+  - `fullTreeLayout.engineStyleToRecord` (flex via elementToEngineStyle)
   - `fullTreeLayout.buildNodeStyle` grid branch (direct partial)
   - `fullTreeLayout.patchBatchStyleFromImplicit` (applyImplicitStyles post-patch)
-- 정규화 헬퍼: `parseGridTemplate(template: string)` (`TaffyGridEngine.ts` export). 괄호 depth 기반 토큰화 → `repeat(auto-fill, minmax(...))` 복합 표현 정확 분해
+- 정규화 헬퍼: `parseGridTemplate(template: string)` (`gridStyleAdapter.ts` export). 괄호 depth 기반 토큰화 → `repeat(auto-fill, minmax(...))` 복합 표현 정확 분해
 - 이미 array 면 그대로 통과: `Array.isArray(val) ? val : parseGridTemplate(val)`
 
 ## Grid area 이름 해석 (CRITICAL)
 
-- `buildNodeStyle` grid branch 는 **gridArea 이름 해석 미지원** (`parseGridAreaShorthand` + templateAreas 매칭 은 `TaffyGridEngine.elementToTaffyGridStyle` 에만 존재)
+- `buildNodeStyle` grid branch 는 **gridArea 이름 해석 미지원** (`gridStyleAdapter.ts` 는 `parseGridTemplate` 트랙 토큰화만 export — gridArea 이름 → line 해석기는 파이프라인에 없다)
 - 자식에 `gridArea: "label"` 같은 이름만 주입하면 엔진이 string 그대로 받아 auto-placement 로 degrade → 자식이 container 밖으로 흘러나감
 - **Factory 패턴**: gridArea 이름과 **gridColumnStart/End + gridRowStart/End 숫자 line 병기**. CSS 경로는 spec `composition.staticSelectors` 의 `grid-area` 이름, Skia 경로는 숫자 line — 시각 대칭 유지 + 배치 정확성
 
@@ -93,7 +93,7 @@ paths:
 
 - `gap`/`padding`/`margin` shorthand 와 `rowGap`/`columnGap`/`paddingTop`/... longhand 가 element.props.style 에 **공존 시**:
   - React `setValueForStyles` rerender 경고 "Removing a style property during rerender"
-  - `applyCommonTaffyStyle` 적용 순서 (`gap → rowGap/columnGap`) 로 longhand 가 shorthand override → Panel 편집 무시
+  - `applyCommonEngineStyle` 적용 순서 (`gap → rowGap/columnGap`) 로 longhand 가 shorthand override → Panel 편집 무시
 - **정책**: store 는 항상 **longhand 만**. `inspectorActions.updateSelectedStyle` / `updateSelectedStylePreview` 가 shorthand 편집 입력을 longhand 로 분배 (gap → rowGap+columnGap, padding → padding{Top,Right,Bottom,Left}, margin → margin{Top,Right,Bottom,Left}). shorthand 자체는 `delete currentStyle[property]`
 - Factory 초기값은 longhand 로 저장 (예: ProgressBar `rowGap: 4, columnGap: 12`). React inline style 은 항상 longhand 만 직렬화 → collision 완전 제거
 - `useLayoutValues.gap` 표시는 `firstDefined(s.rowGap ?? s.columnGap ?? s.gap, numToPx(specPreset.gap), "0px")` — longhand 우선, legacy shorthand fallback
@@ -121,7 +121,7 @@ paths:
 
 4. `pageLayoutSignature` deps — elementById 포함
 5. `patchBatchStyleFromImplicit` — 배열 타입 지원
-6. display/grid 전환 감지 — full rebuild 조건 (§"PersistentTaffyTree display/grid 전환 감지")
+6. display/grid 전환 감지 — full rebuild 조건 (§"PersistentLayoutTree display/grid 전환 감지")
 
 **계층 A·B 는 AND** — 하나만 등재하면 무반영이며, 증상이 서로 다르다: A 누락 = 재계산 자체를 안 함 / B 누락 = 재계산은 돌지만 시그니처 동일 → 캐시 히트로 이전 결과 재사용. 새로고침 후에만 반영되면 B 를 의심할 것.
 
@@ -159,9 +159,9 @@ paths:
 
 엔진 `NodeStyle` 의 길이 필드는 전부 `Option<String>` 이라 숫자가 들어오면 `build_tree_batch` 가 **배치 전체**를 거부한다 (`invalid type: integer, expected a string`) → `calculateFullTreeLayout` 이 `null` → **그 페이지 레이아웃이 통째로 사라진다**. 요소 하나의 값 하나가 페이지 전체를 끄는 구조다.
 
-- 정규화 진입점은 `taffyStyleToRecord` 내부 `dim()` 하나가 아니다. **`dim()` 을 우회하거나 그 뒤에 값을 덧쓰는 경로**는 `normalizeDimFields`(`fullTreeLayout.ts`)를 직접 불러야 한다:
-  - grid branch — `applyCommonTaffyStyle` 결과를 partial 로 직접 반환 (dim 미경유)
-  - block branch 의 flex item 주입 — `taffyStyleToRecord` **뒤에** `applyFlexItemProperties` 가 덧쓴다
+- 정규화 진입점은 `engineStyleToRecord` 내부 `dim()` 하나가 아니다. **`dim()` 을 우회하거나 그 뒤에 값을 덧쓰는 경로**는 `normalizeDimFields`(`fullTreeLayout.ts`)를 직접 불러야 한다:
+  - grid branch — `applyCommonEngineStyle` 결과를 partial 로 직접 반환 (dim 미경유)
+  - block branch 의 flex item 주입 — `engineStyleToRecord` **뒤에** `applyFlexItemProperties` 가 덧쓴다
 - `parseCSSPropWithContext` 는 **절대 길이를 숫자로** 돌려준다 (`"0px"` → `0`). 백분율·`auto` 는 문자열로 남으므로 **절대 길이만** 터진다 — 그래서 증상이 드물고 늦게 발견된다.
 - 타입별 계약: 길이 = 문자열 / `flexGrow`·`flexShrink`·`aspectRatio`·측정 스칼라 = 숫자(f32) / grid track = 배열. `order` 는 `NodeStyle` 미선언이라 무시된다(파이프라인이 TS 에서 자식을 재정렬해 보정 — 엔진 직접 호출자는 `order` 를 못 얻는다).
 - **전례 2건**: `rowGap: 4` + `display:grid`(2026-07-06, ProgressBar/Meter/Slider) · `flexBasis:"0px"` block 자식(2026-07-27). 같은 병인인데 처방이 한쪽 branch 에만 있었다.
@@ -169,7 +169,7 @@ paths:
 
 ### 금지 패턴
 
-- ❌ `taffyStyleToRecord` 뒤에 style 을 덧쓰고 정규화 생략 → 절대 길이에서 배치 파싱 실패
+- ❌ `engineStyleToRecord` 뒤에 style 을 덧쓰고 정규화 생략 → 절대 길이에서 배치 파싱 실패
 - ❌ 새 dim 성 필드를 `DIM_FIELDS` 미등재로 추가 → 같은 크래시가 새 축으로 재발
 - ❌ 엔진에 길이를 숫자로 전달 (`flexBasis: 0`) — 숫자→문자열 변환은 **파이프라인 책임**
 
@@ -250,7 +250,7 @@ collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 **La
 - 신규 컨테이너(자식 서브트리 보유)를 `addNode` 증분으로만 추가 금지 → 자식 layout undefined + 겹침. `!prevJson && filteredChildIdsMap.get(id)?.length > 0` 분기에서 needsFullRebuild=true 강제 (grid 아니어도)
 - 기존 grid container 의 padding/gap/gridTemplate/**width/height/min·max** 변경을 `updateStyleRaw` 만으로 반영 시도 금지 → 20-key 변경 감지 후 full rebuild (dimension 키 누락 시 grid track stale degrade — 새로고침 후에만 정상)
 - `gridTemplateColumns: "1fr auto"` string 을 WASM 에 그대로 전달 금지 → `parseGridTemplate` 로 track array 정규화 (3 직렬화 경로 전부)
-- `display` 는 **CSS 값 그대로** 엔진 경계로 운반 (`normalizeCssDisplay` — 손실 없는 정규화, 미인식만 `block`) — inline-flex/inline-grid/inline-block 의 outer 를 TS 에서 지우는 정규화 (구 `toBatchDisplay` · `TaffyFlexEngine` inline-flex→flex · `toTaffyDisplay` inner-only) 재도입 금지. outer(line item)/inner(solver)/flex·grid 자식 blockify 는 엔진 `display.rs`·`tree.rs` 소유 (ADR-923 Phase 5, 2026-09-02)
+- `display` 는 **CSS 값 그대로** 엔진 경계로 운반 (`normalizeCssDisplay` — 손실 없는 정규화, 미인식만 `block`) — inline-flex/inline-grid/inline-block 의 outer 를 TS 에서 지우는 정규화 (구 `toBatchDisplay` · `flexStyleAdapter` inline-flex→flex · `toEngineDisplay` inner-only) 재도입 금지. outer(line item)/inner(solver)/flex·grid 자식 blockify 는 엔진 `display.rs`·`tree.rs` 소유 (ADR-923 Phase 5, 2026-09-02)
 - `buildNodeStyle` grid branch 에서 자식 gridArea 이름만 주입 금지 → gridColumnStart/End + gridRowStart/End 숫자 line 병기 필수
 - element.props.style 에 shorthand (`gap`/`padding`/`margin`) + longhand 동시 저장 금지 → `inspectorActions` 에서 shorthand → longhand 분배, store 는 longhand only
 - `firstDefined(inline, specPx, fallback)` 에 4+ 인자 전달 금지 → 3-arg 고정 시그니처. 우선순위 체인은 nullish coalescing (`??`) 으로 inline 자리에 압축

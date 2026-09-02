@@ -1,24 +1,24 @@
 /**
- * Taffy 기반 Block 레이아웃 엔진
+ * block 문맥 style 어댑터 — block 컨테이너 (display:block / flow-root) 와 그 자식의 style 을 엔진
+ * 입력 `EngineStyle` 로 변환한다.
  *
- * CSS display:block / inline-block / inline / flow-root 컨텍스트를
- * Taffy WASM의 네이티브 Block 레이아웃으로 계산합니다.
+ * 레이아웃 계산은 자체 Rust 엔진 `block.rs` (line box · blockify — ADR-923 Phase 5 부터 outer=inline
+ * 자식은 엔진이 line item 으로 놓는다) 가 한다. 이 파일은 값 변환·정규화만 담당하며, display 는
+ * `displayAdapter.ts` 가 넘긴 CSS 값을 그대로 싣는다 (종전 TS IFC 시뮬레이션은 삭제됐다).
  *
- * taffyDisplayAdapter를 통해 inline-block 자식을 가진 부모는
- * flex row wrap으로 자동 변환하여 inline flow를 시뮬레이션합니다.
- *
- * @since 2026-02-28 Phase 11 - Block → Taffy Block 전환
+ * 이력: 2026-02-28 Block → Taffy Block 전환 (구 `TaffyBlockEngine.ts`) · ADR-916 Taffy 완전 제거 ·
+ * ADR-923 Phase 5 시뮬레이션 삭제 (2026-09-02) · Phase 6 개명 (2026-09-03).
  */
 
 import type { CanvasLayoutNode } from "../layoutNode";
-import type { TaffyStyle } from "../../wasm-bindings/layoutTypes";
+import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
 import {
   parseMargin,
-  applyCommonTaffyStyle,
+  applyCommonEngineStyle,
   parseCSSPropWithContext,
 } from "./utils";
 import type { CSSValueContext } from "./cssValueParser";
-import type { TaffyDisplayConfig } from "./taffyDisplayAdapter";
+import type { EngineDisplayConfig } from "./displayAdapter";
 
 // ─── margin:auto 판별 ────────────────────────────────────────────────
 
@@ -26,9 +26,9 @@ import type { TaffyDisplayConfig } from "./taffyDisplayAdapter";
  * margin shorthand/개별 속성에서 'auto' 값인 방향을 판별.
  *
  * parseMargin()은 숫자 전용(Margin = {top: number, ...})이므로 'auto'를 표현 불가.
- * Taffy의 margin:auto 네이티브 지원을 활용하기 위해 원본 값을 직접 검사한다.
+ * 엔진의 margin:auto 네이티브 지원을 활용하기 위해 원본 값을 직접 검사한다.
  *
- * TaffyFlexEngine의 동일한 헬퍼를 복사 — private이므로 재사용 불가.
+ * flexStyleAdapter의 동일한 헬퍼를 복사 — private이므로 재사용 불가.
  */
 function resolveMarginAutoSides(style: Record<string, unknown> | undefined): {
   top: boolean;
@@ -96,43 +96,43 @@ function resolveMarginAutoSides(style: Record<string, unknown> | undefined): {
 // ─── Style 변환 ────────────────────────────────────────────────────────
 
 /**
- * Block 컨텍스트 자식 CanvasLayoutNode의 style을 TaffyStyle로 변환
+ * Block 컨텍스트 자식 CanvasLayoutNode의 style을 EngineStyle로 변환
  *
- * TaffyFlexEngine의 elementToTaffyStyle()과 달리 flex 전용 속성(flex-flow,
+ * flexStyleAdapter의 elementToEngineStyle()과 달리 flex 전용 속성(flex-flow,
  * flex shorthand, order 등)을 파싱하지 않습니다.
- * taffyConfig에서 inline-block 리프의 flexGrow/flexShrink를 적용합니다.
+ * engineConfig 의 display 를 그대로 싣는다 (나머지 필드는 Phase 5 이후 채워지지 않는 자리 — `EngineDisplayConfig` 참조).
  *
  * @param element - 대상 CanvasLayoutNode
- * @param taffyConfig - toTaffyDisplay()의 반환값 (자식 노드용)
+ * @param engineConfig - toEngineDisplay()의 반환값 (자식 노드용)
  * @param ctx - CSS 값 파싱 컨텍스트
  */
-export function elementToTaffyBlockStyle(
+export function elementToEngineBlockStyle(
   element: CanvasLayoutNode,
-  taffyConfig: TaffyDisplayConfig,
+  engineConfig: EngineDisplayConfig,
   ctx: CSSValueContext = {},
   computedFontSize?: number,
-): TaffyStyle {
+): EngineStyle {
   const style = (element.props?.style || {}) as Record<string, unknown>;
-  const result: TaffyStyle = {};
+  const result: EngineStyle = {};
 
-  // Display — taffyDisplayAdapter 결과 적용
-  result.display = taffyConfig.taffyDisplay;
+  // Display — displayAdapter 결과 적용
+  result.display = engineConfig.engineDisplay;
 
-  // TaffyDisplayConfig 전체 필드 패스스루
+  // EngineDisplayConfig 전체 필드 패스스루
   // inline-block 리프: flexGrow/flexShrink 고정 (크기 고정 아이템)
-  if (taffyConfig.flexGrow !== undefined)
-    result.flexGrow = taffyConfig.flexGrow;
-  if (taffyConfig.flexShrink !== undefined)
-    result.flexShrink = taffyConfig.flexShrink;
+  if (engineConfig.flexGrow !== undefined)
+    result.flexGrow = engineConfig.flexGrow;
+  if (engineConfig.flexShrink !== undefined)
+    result.flexShrink = engineConfig.flexShrink;
   // inline-block 부모 (flex row wrap 시뮬레이션): flexDirection/flexWrap/alignItems/alignContent
-  if (taffyConfig.flexDirection)
-    result.flexDirection = taffyConfig.flexDirection;
-  if (taffyConfig.flexWrap) result.flexWrap = taffyConfig.flexWrap;
-  if (taffyConfig.alignItems)
-    result.alignItems = taffyConfig.alignItems as TaffyStyle["alignItems"];
-  if (taffyConfig.alignContent)
+  if (engineConfig.flexDirection)
+    result.flexDirection = engineConfig.flexDirection;
+  if (engineConfig.flexWrap) result.flexWrap = engineConfig.flexWrap;
+  if (engineConfig.alignItems)
+    result.alignItems = engineConfig.alignItems as EngineStyle["alignItems"];
+  if (engineConfig.alignContent)
     result.alignContent =
-      taffyConfig.alignContent as TaffyStyle["alignContent"];
+      engineConfig.alignContent as EngineStyle["alignContent"];
 
   // Position
   if (style.position === "absolute" || style.position === "fixed") {
@@ -142,18 +142,18 @@ export function elementToTaffyBlockStyle(
   }
 
   // Size + Min/Max + Padding + Border + Gap (공통 헬퍼)
-  // Taffy 0.9 box model: style.size = border-box (padding+border 포함)
-  // applyCommonTaffyStyle()이 size/padding/border/gap 처리 → padding 차감 금지
-  applyCommonTaffyStyle(result as Record<string, unknown>, style, ctx, computedFontSize);
+  // 엔진(Taffy 0.9 계보) box model: style.size = border-box (padding+border 포함)
+  // applyCommonEngineStyle()이 size/padding/border/gap 처리 → padding 차감 금지
+  applyCommonEngineStyle(result as Record<string, unknown>, style, ctx, computedFontSize);
 
   // Align self (block 자식도 flex 부모 안에 들어갈 수 있음)
   if (style.alignSelf) {
-    result.alignSelf = style.alignSelf as TaffyStyle["alignSelf"];
+    result.alignSelf = style.alignSelf as EngineStyle["alignSelf"];
   }
 
   // Justify self
   if (style.justifySelf) {
-    result.justifySelf = style.justifySelf as TaffyStyle["justifySelf"];
+    result.justifySelf = style.justifySelf as EngineStyle["justifySelf"];
   }
 
   // Margin — margin:auto는 parseMargin()이 숫자 전용이므로 원본 값을 직접 검사
@@ -181,7 +181,7 @@ export function elementToTaffyBlockStyle(
       : undefined;
 
   // Inset (position offsets)
-  // Taffy 0.9는 Position::Relative와 Position::Absolute 모두에서 inset을 네이티브 처리
+  // 엔진(Taffy 0.9 계보)은 Position::Relative와 Position::Absolute 모두에서 inset을 네이티브 처리
   if (
     style.position === "absolute" ||
     style.position === "fixed" ||

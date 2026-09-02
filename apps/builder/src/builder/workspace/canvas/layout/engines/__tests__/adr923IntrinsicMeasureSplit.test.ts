@@ -8,7 +8,7 @@ import {
 } from "../utils";
 import { resolveDefaultDisplay } from "../defaultDisplay";
 import { resolveContainerStylesFallback } from "../implicitStyles";
-import { getElementDisplay } from "../taffyDisplayAdapter";
+import { getElementDisplay } from "../displayAdapter";
 import {
   CONTROL_TAGS,
   enrichFingerprints,
@@ -264,7 +264,7 @@ describe("ADR-923 Phase 5 — resolveDefaultDisplay(type) (getElementDisplay 배
     expect(changed).toEqual(INTENDED_DIFF);
     expect(changed).toHaveLength(18);
     const src = readFileSync(
-      resolve(__dirname, "../taffyDisplayAdapter.ts"),
+      resolve(__dirname, "../displayAdapter.ts"),
       "utf8",
     );
     expect(src).toMatch(/resolveDefaultDisplay\(element\.type\)/);

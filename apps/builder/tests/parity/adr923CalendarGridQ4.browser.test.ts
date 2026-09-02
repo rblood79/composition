@@ -11,7 +11,7 @@ import { getDefaultProps } from "@/types/builder/unified.types";
 import type { Element } from "@/types/core/store.types";
 import { INLINE_BLOCK_TAG_CLASSIFICATION } from "@/builder/workspace/canvas/layout/engines/utils";
 import { resolveDefaultDisplay } from "@/builder/workspace/canvas/layout/engines/defaultDisplay";
-import { getElementDisplay } from "@/builder/workspace/canvas/layout/engines/taffyDisplayAdapter";
+import { getElementDisplay } from "@/builder/workspace/canvas/layout/engines/displayAdapter";
 import { engineLeg, type CaseNode } from "./harness";
 import {
   layoutTree,

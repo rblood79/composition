@@ -8,7 +8,7 @@
  *
  * ## 왜 전역 캐시 + 동기 wrapper 인가
  *
- * `createLayoutEngine()`(layoutBridge.ts)은 **동기** factory 다 — PersistentTaffyTree
+ * `createLayoutEngine()`(layoutBridge.ts)은 **동기** factory 다 — PersistentLayoutTree
  * 생성자가 동기적으로 엔진을 요구한다. 그러나 WASM 로드는 비동기다. 이 갭은
  * `initCompositionEngineWasm()` 을 startup(init.ts)에서 호출해 전역 캐시를 채우고,
  * wrapper 는 캐시에서 즉시 생성하는 구조로 해소한다.

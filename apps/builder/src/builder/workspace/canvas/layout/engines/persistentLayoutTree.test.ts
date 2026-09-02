@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { LayoutEngineAPI } from "../../wasm-bindings/layoutBridge";
 import type { LayoutResult } from "../../wasm-bindings/compositionEngine";
 import {
-  PersistentTaffyTree,
+  PersistentLayoutTree,
   type PersistentBatchNode,
-} from "./persistentTaffyTree";
+} from "./persistentLayoutTree";
 
 class FakeLayoutEngine implements LayoutEngineAPI {
   readonly computedRoots: Array<{
@@ -72,10 +72,10 @@ class FakeLayoutEngine implements LayoutEngineAPI {
   }
 }
 
-describe("PersistentTaffyTree targeted layout result collection", () => {
+describe("PersistentLayoutTree targeted layout result collection", () => {
   it("requests only registered, unique handles and maps results by element id", () => {
     const engine = new FakeLayoutEngine();
-    const tree = new PersistentTaffyTree(engine);
+    const tree = new PersistentLayoutTree(engine);
     const batch: PersistentBatchNode[] = [
       { elementId: "child", style: {}, children: [] },
       { elementId: "root", style: {}, children: [0] },
@@ -100,7 +100,7 @@ describe("PersistentTaffyTree targeted layout result collection", () => {
 
   it("returns an empty result without touching the engine when no id is registered", () => {
     const engine = new FakeLayoutEngine();
-    const tree = new PersistentTaffyTree(engine);
+    const tree = new PersistentLayoutTree(engine);
 
     expect(tree.getLayoutsForIds(["missing"])).toEqual(new Map());
     expect(engine.requestedBatches).toEqual([]);
@@ -108,7 +108,7 @@ describe("PersistentTaffyTree targeted layout result collection", () => {
 
   it("marks promoted dirty roots, computes the persistent root, and collects only affected results", () => {
     const engine = new FakeLayoutEngine();
-    const tree = new PersistentTaffyTree(engine);
+    const tree = new PersistentLayoutTree(engine);
     tree.buildFull(
       "root",
       [
@@ -139,7 +139,7 @@ describe("PersistentTaffyTree targeted layout result collection", () => {
 
   it("keeps targeted input and result counters separate from engine compute", () => {
     const engine = new FakeLayoutEngine();
-    const tree = new PersistentTaffyTree(engine);
+    const tree = new PersistentLayoutTree(engine);
     tree.buildFull(
       "root",
       [

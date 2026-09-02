@@ -7,7 +7,7 @@ import { pipelineLeg } from "./harness";
 /**
  * ADR-923 G0: style 없는 catalog Button의 wasm 경계 display를 고정한다.
  * 현재 계약과 달라 `it.fails`로 두며, Phase 5 뒤 일반 `it`로 전환한다.
- * 캡처는 `toTaffyDisplay` 결과가 아닌 pipelineLeg의 `buildTreeBatch` JSON 인자다.
+ * 캡처는 `toEngineDisplay` 결과가 아닌 pipelineLeg의 `buildTreeBatch` JSON 인자다.
  */
 
 interface BatchNode {

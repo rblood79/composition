@@ -30,7 +30,7 @@ useLayoutPublisher (canvas/hooks/)
   └─ getCachedPageLayout (canvas/scene/layoutCache.ts — signature 기반 페이지 캐시)
        └─ calculateFullTreeLayoutFromSceneModel (engines/fullTreeLayout.ts:2887 — ADR-125 canonical entry)
             └─ calculateFullTreeLayout (fullTreeLayout.ts:2236 — DFS + batch 구성)
-                 └─ PersistentTaffyTree (engines/persistentTaffyTree.ts:59 — 증분 갱신 + handle 관리)
+                 └─ PersistentLayoutTree (engines/persistentLayoutTree.ts:59 — 증분 갱신 + handle 관리)
                       └─ createLayoutEngine() (wasm-bindings/layoutBridge.ts:59 — factory seam)
                            └─ CompositionEngineLayout (wasm-bindings/compositionEngine.ts:67 — 동기 wrapper)
                                 └─ wasm.rs LayoutEngine (packages/composition-engine/src/wasm.rs)
@@ -44,22 +44,22 @@ useLayoutPublisher (canvas/hooks/)
 | WASM wrapper         | `packages/composition-engine/src/wasm.rs`                                                 | `LayoutTree` 를 JS `LayoutEngineAPI` 16 메서드로 노출 (`#[cfg(target_arch = "wasm32")]` 게이트) |
 | JS 동기 wrapper      | `apps/builder/src/builder/workspace/canvas/wasm-bindings/compositionEngine.ts`            | raw 반환(Uint32Array/Float32Array) → number[]/Map 변환                                          |
 | 엔진 factory         | `wasm-bindings/layoutBridge.ts`                                                           | `createLayoutEngine()` — 자체 엔진 단독 반환 (ADR-916 Phase 0-A seam)                           |
-| Persistent 트리      | `layout/engines/persistentTaffyTree.ts`                                                   | elementId↔handle 매핑, JSON 비교 증분 갱신, 페이지 전환 reset                                   |
+| Persistent 트리      | `layout/engines/persistentLayoutTree.ts`                                                   | elementId↔handle 매핑, JSON 비교 증분 갱신, 페이지 전환 reset                                   |
 | Full-tree 파이프라인 | `layout/engines/fullTreeLayout.ts`                                                        | DFS post-order + enrichment + batch 직렬화 + 2-pass 교정                                        |
-| DFS 상단 (JS 잔류)   | `layout/engines/{utils,implicitStyles,cssResolver,cssValueParser,taffyDisplayAdapter}.ts` | store/spec/tag 도메인 의존 계층 — Rust 이관 대상 아님 (ADR-916 2-B 실사)                        |
+| DFS 상단 (JS 잔류)   | `layout/engines/{utils,implicitStyles,cssResolver,cssValueParser,displayAdapter}.ts` | store/spec/tag 도메인 의존 계층 — Rust 이관 대상 아님 (ADR-916 2-B 실사)                        |
 
 ### "Taffy" 네이밍 보존 규약
 
-`TaffyFlexEngine.ts` / `TaffyBlockEngine.ts` / `TaffyGridEngine.ts` / `persistentTaffyTree.ts` /
-`TaffyStyle`(layoutTypes.ts) 는 **심볼명만 Taffy 계보 표기로 보존**된 순수 TypeScript 코드다.
+`flexStyleAdapter.ts` / `blockStyleAdapter.ts` / `gridStyleAdapter.ts` / `persistentLayoutTree.ts` /
+`EngineStyle`(layoutTypes.ts) 는 **심볼명만 Taffy 계보 표기로 보존**된 순수 TypeScript 코드다.
 엔진 클래스는 삭제되었고 (ADR-916 1-E, commit `f2ac4860c`), 남은 것은 live 소비되는 style 변환 helper 뿐:
 
 | 파일                           | 잔존 심볼                      | 소비처                                       |
 | ------------------------------ | ------------------------------ | -------------------------------------------- |
-| `TaffyFlexEngine.ts`           | `elementToTaffyStyle()` (:101) | fullTreeLayout.ts:42                         |
-| `TaffyBlockEngine.ts`          | `elementToTaffyBlockStyle()`   | fullTreeLayout.ts:41                         |
-| `TaffyGridEngine.ts`           | `parseGridTemplate()` (:33)    | fullTreeLayout.ts:43 (`coerceGridTrack`)     |
-| `wasm-bindings/layoutTypes.ts` | `TaffyStyle` 등 타입           | 자체 엔진 Rust `NodeStyle` 스키마와 1:1 대응 |
+| `flexStyleAdapter.ts`           | `elementToEngineStyle()` (:101) | fullTreeLayout.ts:42                         |
+| `blockStyleAdapter.ts`          | `elementToEngineBlockStyle()`   | fullTreeLayout.ts:41                         |
+| `gridStyleAdapter.ts`           | `parseGridTemplate()` (:33)    | fullTreeLayout.ts:43 (`coerceGridTrack`)     |
+| `wasm-bindings/layoutTypes.ts` | `EngineStyle` 등 타입           | 자체 엔진 Rust `NodeStyle` 스키마와 1:1 대응 |
 
 **Why**: 이름까지 rename 하면 소비처 diff 표면만 커진다 — layoutTypes.ts 헤더가 "스타일 스키마 계보 표기로 유지"를 명문화.
 
@@ -69,7 +69,7 @@ useLayoutPublisher (canvas/hooks/)
 
 ### LayoutEngineAPI (layoutBridge.ts:28)
 
-`PersistentTaffyTree` 가 실제 호출하는 **batch 계약** 기준으로 인터페이스가 정의된다 (per-node API 아님):
+`PersistentLayoutTree` 가 실제 호출하는 **batch 계약** 기준으로 인터페이스가 정의된다 (per-node API 아님):
 
 - batch 구축: `buildTreeBatch(nodesJson)` / `buildTreeBatchBinary(data)` / `hasBinaryProtocol()`
 - 증분 갱신: `createNodeRaw` / `updateStyleRaw` / `setChildren` / `markDirty` / `removeNode`
@@ -82,8 +82,8 @@ useLayoutPublisher (canvas/hooks/)
 ### batch JSON 계약
 
 - **post-order 배열** (리프 먼저, 루트 마지막). `children` 은 같은 배열 내 **인덱스** (forward-reference 는 Rust 측에서 Err).
-- 루트 handle = `handles[handles.length - 1]` (persistentTaffyTree.ts:178).
-- style 은 `taffyStyleToRecord()`(fullTreeLayout.ts:621) 로 **이미 정규화된 Record** 여야 한다
+- 루트 handle = `handles[handles.length - 1]` (persistentLayoutTree.ts:178).
+- style 은 `engineStyleToRecord()`(fullTreeLayout.ts:621) 로 **이미 정규화된 Record** 여야 한다
   (숫자 dimension → `"Npx"` 문자열). `updateStyleRaw`/`createNodeRaw` 는 이중 변환을 피하려 raw 경로 사용.
 - Rust 측 스키마 = `NodeStyle`(tree.rs:99) — serde `camelCase` rename 으로 JS record 와 1:1.
   `gridTemplateAreas` 필드는 **없음** — grid area 이름은 JS factory 가 숫자 line 으로 병기한다
@@ -92,18 +92,18 @@ useLayoutPublisher (canvas/hooks/)
 ### binary protocol — 현재 휴면 경로
 
 `binaryProtocol.ts`(`encodeBatchBinary`, :569, magic `"TAFF"`) 는 보존되어 있고
-`PersistentTaffyTree.buildFull`(:137) 이 `hasBinaryProtocol()` 로 분기하지만, **자체 엔진은 false 를
+`PersistentLayoutTree.buildFull`(:137) 이 `hasBinaryProtocol()` 로 분기하지만, **자체 엔진은 false 를
 반환**(wasm.rs `has_binary_protocol` → false) 하므로 현행 live 경로는 항상 JSON `buildTreeBatch` 다.
 `buildTreeBatchBinary` 는 계약 충족용 stub (호출 시 Err). binary 최적화는 별도 착수 대상.
 
 ### grid track / dimension 정규화 — 3 진입점 + grid branch 전용 px 화
 
 - `coerceGridTrack()`(fullTreeLayout.ts:416): CSS string `"1fr auto"` → track array `["1fr","auto"]`.
-  이미 array 면 통과. `parseGridTemplate`(TaffyGridEngine.ts:33, 괄호 depth 토큰화) 위임.
-  공유 진입점 3곳 — `taffyStyleToRecord`(:657-665) / `buildNodeStyle` grid branch(:800-807) /
+  이미 array 면 통과. `parseGridTemplate`(gridStyleAdapter.ts:33, 괄호 depth 토큰화) 위임.
+  공유 진입점 3곳 — `engineStyleToRecord`(:657-665) / `buildNodeStyle` grid branch(:800-807) /
   `patchBatchStyleFromImplicit`(:593).
 - `normalizeGridDimFields()`(fullTreeLayout.ts:466) + `GRID_DIM_FIELDS`(:435, 25 keys):
-  grid branch 는 `taffyStyleToRecord.dim()` 정규화를 우회하는 partial 직접 반환 경로라
+  grid branch 는 `engineStyleToRecord.dim()` 정규화를 우회하는 partial 직접 반환 경로라
   숫자 값(`rowGap: 4` 등)을 자체적으로 `"4px"` 문자열화해야 한다.
   **Why**: 누락 시 `build_tree_batch: invalid type integer 4, expected string` parse error →
   layout null → persistent tree 리셋 무한 재시도 (2026-07-06 전수조사, fullTreeLayout.ts:430 주석).
@@ -142,9 +142,9 @@ useLayoutPublisher (canvas/hooks/)
    track/placement 캐시 invalidation 에 실패 (dimension 6키 포함, 2026-06-16 추가).
    정적 가드: `fullTreeLayout.static.test.ts`.
 
-원칙·금지 패턴은 정본 §PersistentTaffyTree display/grid 전환 감지 참조 — 여기는 코드 위치만.
+원칙·금지 패턴은 정본 §PersistentLayoutTree display/grid 전환 감지 참조 — 여기는 코드 위치만.
 
-### PersistentTaffyTree 변경 감지 2중 구조 (persistentTaffyTree.ts)
+### PersistentLayoutTree 변경 감지 2중 구조 (persistentLayoutTree.ts)
 
 - `_lastJsonMap`(:81): style JSON 문자열 비교 — 부모/형제 변경이 enrichment/display adapter 결과를
   바꾸는 **간접 의존성**까지 포착. 동일하면 WASM 호출 스킵 (`updateNodeStyle`:213).
@@ -174,15 +174,15 @@ A·B 는 **AND 조건**이며 축(props/style)에 따라 배열이 갈린다. �
 
 ADR-916 2-B 착수 전 실사로 확정: DFS 상단 3-step (`resolveStyle` = store 의존 /
 `applyImplicitStyles` = tag/spec 의존 / `enrichWithIntrinsicSize` = specs·propagationRegistry 의존) 은
-**JS 잔류**. Rust 는 상단이 순수화한 TaffyStyle record 만 받는다.
+**JS 잔류**. Rust 는 상단이 순수화한 EngineStyle record 만 받는다.
 
 | 모듈                                  | 역할                                                                                                                              | 핵심 심볼                                                                                                                                                                                                                                                             |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `engines/utils.ts` (4,872줄)          | intrinsic 측정·box model·태그별 크기                                                                                              | `enrichWithIntrinsicSize`(:3959), `calculateContentWidth`(:1213), `calculateContentHeight`(:2036), `parseBoxModel`(:3651), `applyCommonTaffyStyle`(:4653), `applyFlexItemProperties`(:4747), `readGapValue`(:310 — longhand 우선 gap 읽기), `measureTextWidth`(:1094) |
+| `engines/utils.ts` (4,872줄)          | intrinsic 측정·box model·태그별 크기                                                                                              | `enrichWithIntrinsicSize`(:3959), `calculateContentWidth`(:1213), `calculateContentHeight`(:2036), `parseBoxModel`(:3651), `applyCommonEngineStyle`(:4653), `applyFlexItemProperties`(:4747), `readGapValue`(:310 — longhand 우선 gap 읽기), `measureTextWidth`(:1094) |
 | `engines/implicitStyles.ts` (2,448줄) | 태그별 implicit style 주입 (순수 함수)                                                                                            | `applyImplicitStyles`, `resolveContainerStylesFallback`, `POPOVER_CHILDREN_TAGS`(:430), `FIELD_VISIBLE_CHILD_TAGS`(:453)                                                                                                                                              |
 | `engines/cssResolver.ts`              | inherit/initial/unset/revert + currentColor cascade                                                                               | `resolveStyle`, `getRootComputedStyle`(themeConfigStore 의존 — Rust 미이관 사유)                                                                                                                                                                                      |
 | `engines/cssValueParser.ts`           | px/%/vw/em/calc()/clamp()/var() 해석                                                                                              | `CSSVariableScope`, `createVariableScopeWithDOMFallback` — **주의**: `packages/specs/src/primitives/cssValueParser.ts`(ADR-907 Layer A) 와 별개 파일                                                                                                                  |
-| `engines/taffyDisplayAdapter.ts`      | CSS display 값을 **그대로** 엔진 경계로 운반 (ADR-923 Phase 5, 2026-09-02) — `normalizeCssDisplay` 손실 없는 정규화 (미인식만 block) · 기본 display 는 `resolveDefaultDisplay` (`defaultDisplay.ts`, catalog 파생 → hand → block). outer/inner 해석·blockify·line box 는 엔진 `display.rs`·`tree.rs`·`block.rs` (TS IFC 시뮬레이션 삭제) | `normalizeCssDisplay`, `getElementDisplay`, `toTaffyDisplay`(2-인자 — `childDisplays` 는 HC1 관측 인자), `parseDisplay`, `VERTICAL_ALIGN_MIDDLE_TAGS`(:137 — 소비처 0, Phase 6 정리 대상)                                                                                                                                              |
+| `engines/displayAdapter.ts`      | CSS display 값을 **그대로** 엔진 경계로 운반 (ADR-923 Phase 5, 2026-09-02) — `normalizeCssDisplay` 손실 없는 정규화 (미인식만 block) · 기본 display 는 `resolveDefaultDisplay` (`defaultDisplay.ts`, catalog 파생 → hand → block). outer/inner 해석·blockify·line box 는 엔진 `display.rs`·`tree.rs`·`block.rs` (TS IFC 시뮬레이션 삭제) | `normalizeCssDisplay`, `getElementDisplay`, `toEngineDisplay`(2-인자 — `childDisplays` 는 HC1 관측 인자), `parseDisplay`, `VERTICAL_ALIGN_MIDDLE_TAGS`(:137 — 소비처 0, Phase 6 정리 대상)                                                                                                                                              |
 
 ### DFS post-order 와 implicit style 의 순서 문제
 
@@ -211,7 +211,7 @@ Cargo.toml 에 **taffy dependency 부재가 crate 존재 이유** — 추가 금
 | `tree.rs`          | 2,600 | 오케스트레이션 — `LayoutTree`(:217) handle 관리(free_list 재활용), `build_tree_batch`(:368), post-order `solve_node` → flex/block/grid dispatch, dirty 조상 전파 + clean 서브트리 skip, available 변경 시 전면 무효화 | `NodeStyle`(:99) camelCase JSON                             |
 | `style.rs`         | 1,042 | CSS 값 산술 커널 (cssValueParser 순수 계층 이식) — 단위/calc/clamp/min/max/env + font/border shorthand. var()/토큰은 JS 잔류 (선치환 입력)                                                                            | intrinsic → 센티넬 f32 (FIT/MIN/MAX_CONTENT)                |
 | `cascade.rs`       | 1,176 | cssResolver 자기완결 계층 — 상속 19종/초기값/cascade 키워드/currentColor/논리→물리                                                                                                                                    | `getRootComputedStyle` 은 미이식 (store 의존)               |
-| `display.rs`       | 283   | taffyDisplayAdapter 순수 문자열 계층 — parse/blockify/classify                                                                                                                                                        | tag 의존 함수는 미이식                                      |
+| `display.rs`       | 283   | displayAdapter 순수 문자열 계층 — parse/blockify/classify                                                                                                                                                        | tag 의존 함수는 미이식                                      |
 | `spatial_index.rs` | 394   | hit-test/viewport culling 그리드 셀 인덱스 — 구 composition_wasm(Taffy) crate 에서 분리 편입 (endgame kill criteria ②)                                                                                                | `#[wasm_bindgen]` 직접 export                               |
 | `wasm.rs`          | 175   | `LayoutEngine` wrapper — 16 메서드 `js_name` camelCase, JSON 역직렬화 + flat f32 직렬화 + Err→JsValue 만 담당                                                                                                         | `#[cfg(target_arch = "wasm32")]` — native cargo test 무영향 |
 
@@ -262,8 +262,8 @@ live 렌더가 깨진다 (tree_golden 하네스가 조상 offset 누적으로 �
 | `[fullTreeLayout] WASM failed:` 에러                          | fullTreeLayout.ts catch(:2856) — batch payload parse error 가능성 (숫자 dimension 미정규화 → §2 grid branch px 화 확인)                                         |
 | `build_tree_batch: invalid type ... expected string/sequence` | grid track 미정규화(`coerceGridTrack`) 또는 `GRID_DIM_FIELDS` 누락                                                                                              |
 | `Sanitized non-finite values` 경고                            | Step 5 sanitize — 상류 enrichment 의 NaN 전파 (TokenRef 미해석 등)                                                                                              |
-| `[PersistentTaffyTree] buildFull: handles 길이 불일치`        | WASM 반환 handle ≠ batch 길이 — Rust 파싱 실패 후 부분 성공 여부 확인                                                                                           |
-| 등록 직후 겹침/1줄 degrade, 새로고침 후 정상                  | Step 3 full rebuild 조건 누락 (정본 §PersistentTaffyTree 금지 패턴)                                                                                             |
+| `[PersistentLayoutTree] buildFull: handles 길이 불일치`        | WASM 반환 handle ≠ batch 길이 — Rust 파싱 실패 후 부분 성공 여부 확인                                                                                           |
+| 등록 직후 겹침/1줄 degrade, 새로고침 후 정상                  | Step 3 full rebuild 조건 누락 (정본 §PersistentLayoutTree 금지 패턴)                                                                                             |
 | 편집이 캔버스에 미반영, 새로고침 후 반영                      | 계층 B(캐시 시그니처) 누락 — style 키면 **`LAYOUT_STYLE_KEYS`**, props 키면 `LAYOUT_PROP_KEYS` (§ 5-심볼 2계층 체인 실측 위치)                                  |
 | 편집이 캔버스에 미반영, 새로고침 해도 그대로                  | 계층 A(layoutVersion 트리거) 누락 — props 키면 `LAYOUT_AFFECTING_PROP_KEYS` 미등재, style 키면 `NON_LAYOUT_PROPS_UPDATE` 에 잘못 등재                           |
 | 특정 요소 layout 값 검사                                      | `getSharedLayoutMap()` / `onLayoutPublished()` (fullTreeLayout.ts:235/:188), persistent tree 의 `getLastJson(elementId)` 로 WASM 에 전달된 최종 style JSON 확인 |
@@ -279,8 +279,8 @@ live 렌더가 깨진다 (tree_golden 하네스가 조상 offset 누적으로 �
 
 | 시기          | 구성                                                                                                                                                                                                               | 근거                             |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
-| 2026-01~02    | display 별 이종 엔진 — DropflowBlockEngine(JS) + TaffyFlexEngine/TaffyGridEngine(Taffy WASM), per-level 호출 + @pixi/layout                                                                                        | ADR-005 이전                     |
-| 2026-02~03    | Full-Tree 단일 WASM 호출 (DFS post-order batch) + PersistentTaffyTree 증분, Dropflow 제거 → Taffy 단일 엔진                                                                                                        | ADR-005 / ADR-009                |
+| 2026-01~02    | display 별 이종 엔진 — DropflowBlockEngine(JS) + flexStyleAdapter/gridStyleAdapter(Taffy WASM), per-level 호출 + @pixi/layout                                                                                        | ADR-005 이전                     |
+| 2026-02~03    | Full-Tree 단일 WASM 호출 (DFS post-order batch) + PersistentLayoutTree 증분, Dropflow 제거 → Taffy 단일 엔진                                                                                                        | ADR-005 / ADR-009                |
 | 2026-07-03~06 | 자체 Rust 엔진 `composition-engine` — flex/block/grid/tree self-impl → dual-run diff 0 → live 전환 → **Taffy 물리 삭제** (crate 2종 + pkg + JS 13파일, dual-run 하네스 동반 소멸, tree_golden 이 독립 oracle 승계) | ADR-916 (Implemented 2026-07-06) |
 
 구 문서가 인용하던 `DropflowBlockEngine` / `NON_CONTAINER_TAGS` / `SPEC_RENDERS_ALL_TAGS` /

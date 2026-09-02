@@ -77,7 +77,7 @@ import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolv
 
 // CSS shorthand → longhand 분배 매핑 (inspectorActions 공용).
 // React inline style shorthand+longhand 공존 시 rerender 경고 + Taffy
-// applyCommonTaffyStyle 순서 (gap → rowGap/columnGap) 로 longhand override
+// applyCommonEngineStyle 순서 (gap → rowGap/columnGap) 로 longhand override
 // 발생 → Panel 편집 무시. store 는 longhand only 정책.
 type InspectorElementMap<TElement extends Element = Element> = Map<
   string,

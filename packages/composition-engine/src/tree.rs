@@ -10,7 +10,7 @@
 //!
 //! DFS 상단 3-step(resolveStyle+applyImplicitStyles+enrichWithIntrinsicSize)은
 //! tag/spec/store 도메인 의존이라 **JS 잔류**. 본 모듈은 상단이 이미 순수화한
-//! TaffyStyle 레코드(= `build_tree_batch` 의 nodesJson payload)를 입력받아 트리
+//! EngineStyle 레코드(= `build_tree_batch` 의 nodesJson payload)를 입력받아 트리
 //! 레이아웃만 계산한다. (Phase 1 flat f32 센티넬 철학과 동일 — 도메인 해석은 JS,
 //! 순수 계산만 Rust.)
 //!
@@ -175,7 +175,7 @@ fn shrink_to_fit_settled(
 /// 트리 노드의 스타일 표현 (taffy_bridge.rs `StyleInput` 대응).
 ///
 /// 모든 필드 optional — 미설정 필드는 CSS 초기값. camelCase JSON 계약은
-/// `build_tree_batch` 의 nodesJson payload(PersistentTaffyTree.buildFull 이
+/// `build_tree_batch` 의 nodesJson payload(PersistentLayoutTree.buildFull 이
 /// `JSON.stringify(node.style)` 로 직렬화) 와 1:1 대응해야 한다.
 ///
 /// 단위 1 은 자기 크기 해결에 필요한 필드만 실사용하지만, 계약 정합을 위해
@@ -3970,7 +3970,7 @@ enum ContainerDisplay {
 ///   미인식 → `parse_display` block 폴백) → Block (단위 3-a)
 ///
 /// display 미설정(None)이 Block 인 이유: CSS 초기 display 는 inline 이지만
-/// composition 의 `_hasChildren` 컨테이너는 상단(taffyDisplayAdapter)에서 blockify
+/// composition 의 `_hasChildren` 컨테이너는 상단(displayAdapter)에서 blockify
 /// 되어 내려온다 — tree.rs 는 순수화된 스타일을 받으므로 컨테이너=block 이 기본.
 fn classify_container_display(display: Option<&str>) -> ContainerDisplay {
     container_display_of(display::parse_display(display))

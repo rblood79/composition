@@ -4519,7 +4519,7 @@ export function parseBoxModel(
 }
 
 // ---------------------------------------------------------------------------
-// Intrinsic Size 주입 (§6 P1: Taffy 엔진 공유)
+// Intrinsic Size 주입 (§6 P1: 엔진 공유)
 // ---------------------------------------------------------------------------
 
 /**
@@ -5157,12 +5157,12 @@ export function enrichWithIntrinsicSize(
       injectHeight += box.border.top + box.border.bottom;
     } else if (!isSpecShapesInput) {
       // BUTTON_LIKE_BOX_TAGS(button 등): inline padding이 설정된 경우
-      // applyCommonTaffyStyle은 parsePadding(style)로 inline 값을 Taffy에 전달하지만,
+      // applyCommonEngineStyle은 parsePadding(style)로 inline 값을 엔진에 전달하지만,
       // box.padding은 parseBoxModel 내부 sizeConfig 로직으로 spec 값을 반환할 수 있다.
       // 이 불일치로 인해 injectHeight(spec 기반)와 Taffy padding(inline)이 달라져
       // content area가 좁아지고 텍스트가 잘리는 버그 발생.
       // 따라서 inline padding이 설정된 경우 parsePadding(style)을 직접 사용하여
-      // applyCommonTaffyStyle이 Taffy에 전달하는 값과 동일한 패딩으로 injectHeight 계산.
+      // applyCommonEngineStyle이 엔진에 전달하는 값과 동일한 패딩으로 injectHeight 계산.
       if (BUTTON_LIKE_BOX_TAGS.has(type)) {
         const hasInlinePad =
           style?.padding !== undefined ||
@@ -5209,7 +5209,7 @@ export function enrichWithIntrinsicSize(
   //   공급한다 — 엔진이 CSS-SIZING-3 §5 공식(fit/min/max-content clamp)과 §4.5 floor 의
   //   정확 min-content 를 소유 (tree.rs resolve_leaf_intrinsic_width / flex.rs off 19).
   //   구 width(단일줄 ceil)+minWidth(상한 근사) 주입 채널은 이 분기에서 제거 — 남기면
-  //   스칼라와 이중 적용 (G2). width 키워드는 applyCommonTaffyStyle 이 센티넬로 통과.
+  //   스칼라와 이중 적용 (G2). width 키워드는 applyCommonEngineStyle 이 센티넬로 통과.
   //   INLINE_BLOCK/CIRCLE/IMAGE 주입과 컨테이너 선해석은 잔존 (display 의미론·컨테이너
   //   intrinsic 은 본 ADR 범위 밖 — breakdown §3).
   if (suppliesIntrinsicScalars) {
@@ -5582,7 +5582,7 @@ export function calculateMaxContentWidth(
   return Math.ceil(measureTextWidth(text, fontSize, fontFamily, fontWeight));
 }
 
-// ─── Taffy 엔진 공용 유틸리티 ─────────────────────────────────────────
+// ─── 엔진 공용 유틸리티 ─────────────────────────────────────────
 
 /**
  * RC-3: CSS prop → number | string 파서 (단위 정규화 적용)
@@ -5590,7 +5590,7 @@ export function calculateMaxContentWidth(
  * rem, em, vh, vw, calc() 등을 resolveCSSSizeValue()로 해석.
  * % 값은 Taffy 네이티브 % 처리를 위해 문자열 그대로 반환.
  *
- * TaffyFlexEngine, TaffyGridEngine 공용
+ * flexStyleAdapter, gridStyleAdapter 공용
  */
 export function parseCSSPropWithContext(
   value: unknown,
@@ -5603,7 +5603,7 @@ export function parseCSSPropWithContext(
     // % 값은 Taffy가 네이티브로 처리
     if (value.endsWith("%")) return value;
     // intrinsic sizing 키워드는 본 파서에선 undefined — 숫자 파서 계약 유지.
-    //   ADR-165: 키워드의 엔진 통과는 applyCommonTaffyStyle 의 문자열 복원 분기가
+    //   ADR-165: 키워드의 엔진 통과는 applyCommonEngineStyle 의 문자열 복원 분기가
     //   담당한다 (텍스트 leaf 는 enrichment 가 스칼라 contentMin/MaxWidth 동반 공급,
     //   컨테이너는 enrichment numeric 선해석이 잔존해 키워드가 남는 경우만 통과).
     //   구 전역 drop 사유(2-pass 상호작용, 2026-07-13)는 스칼라 계약 도입으로 해소.
@@ -5626,12 +5626,12 @@ export function parseCSSPropWithContext(
 /**
  * Taffy 공통 스타일 적용: Size + Min/Max + Padding + Border + Gap
  *
- * TaffyFlexEngine과 TaffyGridEngine 양쪽에서 동일한 Box model + Gap 변환을
+ * flexStyleAdapter과 gridStyleAdapter 양쪽에서 동일한 Box model + Gap 변환을
  * 중복 없이 적용하기 위한 헬퍼.
  *
  * Position, Margin(auto), Inset은 엔진별 차이가 있으므로 포함하지 않음.
  */
-export function applyCommonTaffyStyle(
+export function applyCommonEngineStyle(
   result: Record<string, unknown>,
   style: Record<string, unknown>,
   ctx: CSSValueContext,
@@ -5767,7 +5767,7 @@ export function applyCommonTaffyStyle(
  * CSS 명세: flex/grid 부모의 모든 자식은 자신의 display와 무관하게
  * flex/grid item으로 참여한다. 자식의 display는 내부 formatting context만 결정.
  *
- * TaffyFlexEngine.elementToTaffyStyle()의 flex item 파싱 로직(L147-201)과
+ * flexStyleAdapter.elementToEngineStyle()의 flex item 파싱 로직(L147-201)과
  * 동일한 규칙을 적용하여, block/grid 경로에서도 재사용 가능하게 한다.
  *
  * @param result - 스타일 결과 객체 (in-place 수정)
@@ -5780,7 +5780,7 @@ export function applyFlexItemProperties(
   ctx: CSSValueContext = {},
 ): void {
   // flex shorthand → flexGrow/flexShrink/flexBasis 분해
-  // result에 이미 값이 있으면(taffyConfig 패스스루 등) shorthand로 덮어쓰지 않음
+  // result에 이미 값이 있으면(engineConfig 패스스루 등) shorthand로 덮어쓰지 않음
   if (style.flex !== undefined && style.flex !== null) {
     const flexVal = style.flex;
     if (typeof flexVal === "number") {
@@ -5836,7 +5836,7 @@ export function applyFlexItemProperties(
     }
   }
 
-  // 개별 속성은 shorthand/taffyConfig 모두를 덮어씀 (CSS 우선순위)
+  // 개별 속성은 shorthand/engineConfig 모두를 덮어씀 (CSS 우선순위)
   if (style.flexGrow !== undefined) result.flexGrow = Number(style.flexGrow);
   if (style.flexShrink !== undefined)
     result.flexShrink = Number(style.flexShrink);
@@ -5853,12 +5853,12 @@ export function applyFlexItemProperties(
 
   // Grid item line 배치 속성 (부모가 grid 인 block/inline leaf 자식).
   //   buildNodeStyle 의 grid-container branch(display:"grid")는 partial 에 직접 주입하지만,
-  //   block/inline leaf 자식(ProgressBarValue/MeterValue 등)은 elementToTaffyBlockStyle →
-  //   taffyStyleToRecord 경로를 타는데 elementToTaffyBlockStyle 이 justifySelf/alignSelf 만
+  //   block/inline leaf 자식(ProgressBarValue/MeterValue 등)은 elementToEngineBlockStyle →
+  //   engineStyleToRecord 경로를 타는데 elementToEngineBlockStyle 이 justifySelf/alignSelf 만
   //   패스스루하고 grid line(gridColumnStart/End/gridRowStart/End)은 누락한다. 그 결과
   //   Taffy 가 grid line 없이 auto-placement → grid item 이 컨테이너 밖으로 흘러나감
   //   (Skia 만 깨지고 DOM 은 CSSGenerator 가 grid-area 이름으로 정상 배치 → D3 비대칭).
-  //   justifySelf/alignSelf 는 elementToTaffyBlockStyle 이 이미 처리하므로 여기선 line 만.
+  //   justifySelf/alignSelf 는 elementToEngineBlockStyle 이 이미 처리하므로 여기선 line 만.
   if (style.gridColumnStart !== undefined)
     result.gridColumnStart = String(style.gridColumnStart);
   if (style.gridColumnEnd !== undefined)
@@ -5870,10 +5870,10 @@ export function applyFlexItemProperties(
 }
 
 /**
- * Taffy 엔진 공통 CSS 컨텍스트 구성
+ * 엔진 공통 CSS 컨텍스트 구성
  *
  * 부모 요소의 computed style과 CSS 단위 해석용 컨텍스트를 생성.
- * TaffyFlexEngine.calculate()와 TaffyGridEngine.calculate()에서 동일.
+ * flexStyleAdapter.calculate()와 gridStyleAdapter.calculate()에서 동일.
  */
 export function resolveParentContext(
   parent: CanvasLayoutNode,

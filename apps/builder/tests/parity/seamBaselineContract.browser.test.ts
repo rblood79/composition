@@ -10,8 +10,8 @@ import { pipelineLeg } from "./harness";
  *
  * 입력: 텍스트 leaf(Text) 의 batch record 에 enrichWithIntrinsicSize 가 주입한
  *   `leafBaseline`(측정 스칼라, content-box 상단 기준 px) 이 실려 도달한다 —
- *   contentMin/MaxWidth 와 같은 공급 채널 (utils.ts → applyCommonTaffyStyle →
- *   taffyStyleToRecord → buildTreeBatch JSON).
+ *   contentMin/MaxWidth 와 같은 공급 채널 (utils.ts → applyCommonEngineStyle →
+ *   engineStyleToRecord → buildTreeBatch JSON).
  * 출력: `getLayoutsBatch` 의 `LayoutResult.baseline` (stride 5) — 엔진이 원천 없는
  *   노드를 height(bottom 폴백, CSS 2.1 §10.8.1)로 해소하므로 모든 노드에서 숫자다.
  *
@@ -76,7 +76,7 @@ beforeAll(async () => {
   const outSpy = vi.spyOn(CompositionEngineLayout.prototype, "getLayoutsBatch");
   // r6h1 교훈: batch 를 다시 쓰는 **모든** writer 를 캡처 — 2-pass 재-enrich /
   // post-order patch 는 updateStyleRaw 로 나간다 (buildTreeBatch 만 보면 누락).
-  // r7l1: 세 번째 writer createNodeRaw(신규 노드 sync 추가 경로 — persistentTaffyTree
+  // r7l1: 세 번째 writer createNodeRaw(신규 노드 sync 추가 경로 — persistentLayoutTree
   // addNode)도 캡처 — 이 시나리오에선 보통 0회지만 writer inventory 를 닫는다.
   const updSpy = vi.spyOn(CompositionEngineLayout.prototype, "updateStyleRaw");
   const crSpy = vi.spyOn(CompositionEngineLayout.prototype, "createNodeRaw");

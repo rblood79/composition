@@ -1,20 +1,20 @@
 /**
- * Taffy 기반 Flexbox 레이아웃 엔진
+ * flex 컨테이너 style 어댑터 — CanvasLayoutNode 의 style 을 엔진 입력 `EngineStyle` (Rust
+ * `StyleInput` 스키마) 로 변환한다.
  *
- * 별도 layout runtime 위임 대신 Taffy WASM을 직접 호출하여
- * Flexbox 레이아웃을 계산합니다.
+ * 레이아웃 계산은 자체 Rust 엔진 (`packages/composition-engine`, ADR-916) 의 flex solver 가 한다 —
+ * 이 파일은 값 변환·정규화만 담당한다.
  *
- * Feature Flag(useTaffyFlex)가 활성화된 경우에만 사용됩니다.
- *
- * @since 2026-02-17 Phase 5 - Flex Yoga → Taffy 전환
+ * 이력: 2026-02-17 Flex Yoga → Taffy 전환 (구 `TaffyFlexEngine.ts`) · ADR-916 Taffy 완전 제거
+ * (2026-07-06, 스키마 계보만 유지) · ADR-923 Phase 6 개명 (2026-09-03).
  */
 
 import type { CanvasLayoutNode } from "../layoutNode";
-import type { TaffyStyle } from "../../wasm-bindings/layoutTypes";
+import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
 import {
   parseMargin,
   parseCSSPropWithContext,
-  applyCommonTaffyStyle,
+  applyCommonEngineStyle,
 } from "./utils";
 import type { ComputedStyle } from "./cssResolver";
 import type { CSSValueContext } from "./cssValueParser";
@@ -25,7 +25,7 @@ import type { CSSValueContext } from "./cssValueParser";
  * margin shorthand/개별 속성에서 'auto' 값인 방향을 판별.
  *
  * parseMargin()은 숫자 전용(Margin = {top: number, ...})이므로 'auto'를 표현 불가.
- * Taffy의 margin:auto 네이티브 지원을 활용하기 위해 원본 값을 직접 검사한다.
+ * 엔진의 margin:auto 네이티브 지원을 활용하기 위해 원본 값을 직접 검사한다.
  */
 function resolveMarginAutoSides(style: Record<string, unknown> | undefined): {
   top: boolean;
@@ -93,18 +93,18 @@ function resolveMarginAutoSides(style: Record<string, unknown> | undefined): {
 // ─── Style conversion ────────────────────────────────────────────────
 
 /**
- * CanvasLayoutNode의 style을 TaffyStyle로 변환
+ * CanvasLayoutNode의 style을 EngineStyle로 변환
  *
- * Taffy 네이티브 형식으로 직접 변환합니다.
+ * 엔진 `StyleInput` 형식으로 직접 변환합니다.
  * fit-content, 태그별 크기 계산은 engines/utils.ts의 유틸리티를 사용합니다.
  */
-export function elementToTaffyStyle(
+export function elementToEngineStyle(
   element: CanvasLayoutNode,
   computedStyle?: ComputedStyle,
   ctx: CSSValueContext = {},
-): TaffyStyle {
+): EngineStyle {
   const style = (element.props?.style || {}) as Record<string, unknown>;
-  const result: TaffyStyle = {};
+  const result: EngineStyle = {};
 
   // Display
   const display = style.display as string | undefined;
@@ -120,22 +120,22 @@ export function elementToTaffyStyle(
   }
 
   // Position
-  // CSS position:absolute / position:fixed → Taffy Position::Absolute
-  // CSS position:relative → Taffy Position::Relative (Taffy 기본값이지만 명시적으로 전달)
-  // CSS position:static / 미지정 → Taffy 기본값(Relative)
+  // CSS position:absolute / position:fixed → 엔진 Position::Absolute
+  // CSS position:relative → 엔진 Position::Relative (엔진 기본값이지만 명시적으로 전달)
+  // CSS position:static / 미지정 → 엔진 기본값(Relative)
   if (style.position === "absolute" || style.position === "fixed") {
     result.position = "absolute";
   } else if (style.position === "relative") {
     result.position = "relative";
-    // Taffy 0.9는 Position::Relative에서 inset을 네이티브로 처리한다.
+    // 엔진(Taffy 0.9 계보)은 Position::Relative에서 inset을 네이티브로 처리한다.
     // inset은 아래 "Inset (position offsets)" 블록에서 전달됨.
   }
-  // static / sticky / 미지정은 Taffy 기본값(relative)으로 처리되므로 별도 설정 불필요
+  // static / sticky / 미지정은 엔진 기본값(relative)으로 처리되므로 별도 설정 불필요
 
   // Size + Min/Max + Padding + Border + Gap (공통 헬퍼)
   // r7m2: 상속 computed fontSize 를 lineHeight 환산 기준으로 전달 (inline 우선은
-  // applyCommonTaffyStyle 내부에서 처리 — computed 는 inline 을 이미 포함한다).
-  applyCommonTaffyStyle(
+  // applyCommonEngineStyle 내부에서 처리 — computed 는 inline 을 이미 포함한다).
+  applyCommonEngineStyle(
     result as Record<string, unknown>,
     style,
     ctx,
@@ -159,28 +159,28 @@ export function elementToTaffyStyle(
 
   // Flex direction
   if (resolvedFlexDirection) {
-    result.flexDirection = resolvedFlexDirection as TaffyStyle["flexDirection"];
+    result.flexDirection = resolvedFlexDirection as EngineStyle["flexDirection"];
   }
 
   // Flex wrap
   if (resolvedFlexWrap) {
-    result.flexWrap = resolvedFlexWrap as TaffyStyle["flexWrap"];
+    result.flexWrap = resolvedFlexWrap as EngineStyle["flexWrap"];
   }
 
   // Justify content
   if (style.justifyContent) {
     result.justifyContent =
-      style.justifyContent as TaffyStyle["justifyContent"];
+      style.justifyContent as EngineStyle["justifyContent"];
   }
 
   // Align items
   if (style.alignItems) {
-    result.alignItems = style.alignItems as TaffyStyle["alignItems"];
+    result.alignItems = style.alignItems as EngineStyle["alignItems"];
   }
 
   // Align content
   if (style.alignContent) {
-    result.alignContent = style.alignContent as TaffyStyle["alignContent"];
+    result.alignContent = style.alignContent as EngineStyle["alignContent"];
   }
 
   // Flex shorthand: flex: <grow> [<shrink>] [<basis>]
@@ -233,7 +233,7 @@ export function elementToTaffyStyle(
 
   // Align self
   if (style.alignSelf) {
-    result.alignSelf = style.alignSelf as TaffyStyle["alignSelf"];
+    result.alignSelf = style.alignSelf as EngineStyle["alignSelf"];
   }
 
   // Order (flex item 순서 제어)
@@ -268,7 +268,7 @@ export function elementToTaffyStyle(
       : undefined;
 
   // Inset (position offsets)
-  // Taffy 0.9는 Position::Relative와 Position::Absolute 모두에서
+  // 엔진(Taffy 0.9 계보)은 Position::Relative와 Position::Absolute 모두에서
   // inset(top/right/bottom/left)을 네이티브로 처리하여 layout.location에 반영한다.
   if (
     style.position === "absolute" ||
