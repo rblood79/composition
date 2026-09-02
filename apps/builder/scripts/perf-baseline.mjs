@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 // perf-baseline.mjs — Builder 성능 기준선 하니스 (Phase 0, 2026-09-02).
 //
+// lane `frame` (churn): 상호작용 부류별로 D ms 동안 드라이버를 돌리며 페이지 안 기록기가
+//   rAF gap 분포·드롭·JS 할당률·GC 횟수·longtask·__composition_PERF__ 라벨·commandStream
+//   miss 를 모은다. headless 는 rAF 60Hz + SwiftShader 라 flush 축은 부풀고 절대값이 아닌
+//   같은 조건끼리의 비교치다 — 절대값은 --headed (실제 GPU·display cadence) 로.
+//
 // lane `leak` (retention): 상호작용 사이클 ×N 을 돌리고 매 사이클 끝에 강제 GC 후
 //   JS 힙·DOM 노드·리스너·ArrayBuffer(WASM 포함)·Skia 캐시 크기를 기록해 사이클당
 //   기울기로 누수를 판정한다. 할당률(churn) 은 보지 않는다 — 그건 lane `frame`.
@@ -10,6 +15,8 @@
 //
 //   pnpm perf:baseline -- --lane leak [--cycles 20] [--warmup 3]
 //     [--actions panels,pages,select,edit,zoom] [--project-url <url>] [--headed]
+//   pnpm perf:baseline -- --lane frame [--duration-ms 3000] [--seed-count 60]
+//     [--classes idle,pan,zoom,select,edit,panel-resize,page-switch,panel-toggle,layers-scroll]
 //
 // 결과: <out>/leak-<ts>.json + stdout 마크다운 표. 판정 기준 (warm-up 제외):
 //   기울기 > 지표별 문턱 AND 증가 스텝 비율 ≥ 0.6 → LEAK? (조사 대상)
@@ -33,6 +40,20 @@ const DEFAULTS = {
   retainerClass: "Object",
   retainerProps: ["parent_id", "page_id"],
   retainerSamples: 40,
+  durationMs: 3000,
+  openPanels: ["navigator", "properties"],
+  profile: false,
+  classes: [
+    "idle",
+    "pan",
+    "zoom",
+    "select",
+    "edit",
+    "panel-resize",
+    "page-switch",
+    "panel-toggle",
+    "layers-scroll",
+  ],
 };
 
 function parseArgs(argv) {
@@ -57,17 +78,24 @@ function parseArgs(argv) {
       options.retainerProps = next ? next.split(",").filter(Boolean) : [];
     else if (value === "--retainer-samples")
       options.retainerSamples = Number(next);
+    else if (value === "--duration-ms") options.durationMs = Number(next);
+    else if (value === "--classes") options.classes = next.split(",");
+    else if (value === "--profile") {
+      options.profile = true;
+      continue;
+    } else if (value === "--open-panels")
+      options.openPanels = next ? next.split(",").filter(Boolean) : [];
     else if (value === "--headed") {
       options.headed = true;
       continue;
     } else continue;
     i += 1;
   }
-  if (options.lane !== "leak")
-    throw new Error(`lane ${options.lane} 은 아직 없음 (leak 만)`);
+  if (!["leak", "frame"].includes(options.lane))
+    throw new Error(`lane ${options.lane}`);
   if (!["series", "attribute", "retainers"].includes(options.mode))
     throw new Error(`mode ${options.mode}`);
-  if (!(options.cycles > options.warmup + 2))
+  if (options.lane === "leak" && !(options.cycles > options.warmup + 2))
     throw new Error("cycles 는 warmup + 3 이상");
   return options;
 }
@@ -99,7 +127,11 @@ const PROBE_SCRIPT = `(() => {
       const k = key(type, listener, options);
       let set = byType.get(k);
       if (!set) { set = new Set(); byType.set(k, set); }
-      if (!set.has(listener)) { set.add(listener); bump("listener:" + targetKind(this), 1); }
+      // net 은 영속 target (window/document) 만 센다 — 요소 target 은 unmount 로 노드와 함께
+      // 사라져 removeEventListener 없이 죽으므로 net 이 계속 자라 오판한다 (CDP
+      // JSEventListeners/Nodes 가 평평한데 probe 만 LEAK? 로 나온 2026-09-02 사례).
+      // 요소 target 은 누적 등록 수로만 기록한다 (판정 제외 — thresholds 의 Infinity).
+      if (!set.has(listener)) { set.add(listener); const kind = targetKind(this); bump((kind === "window" || kind === "document" ? "listener:" : "listener-cumulative:") + kind, 1); }
     }
     return origAdd.call(this, type, listener, options);
   };
@@ -107,7 +139,7 @@ const PROBE_SCRIPT = `(() => {
     const byType = registry.get(this);
     if (byType && listener) {
       const set = byType.get(key(type, listener, options));
-      if (set && set.delete(listener)) bump("listener:" + targetKind(this), -1);
+      if (set && set.delete(listener)) { const kind = targetKind(this); if (kind === "window" || kind === "document") bump("listener:" + kind, -1); }
     }
     return origRemove.call(this, type, listener, options);
   };
@@ -191,6 +223,22 @@ async function openExistingProject(page, projectUrl) {
   await page.goto(projectUrl, { waitUntil: "networkidle" });
   await waitReady(page);
   return { projectName: null, projectUrl: page.url() };
+}
+
+// 새 컨텍스트는 패널이 전부 닫힌 채 부팅된다 (toggle 전부 aria-pressed=false, splitter 0).
+// 실사용 형태 (Navigator·Properties 열림) 로 맞춘다 — 리사이즈 드라이버도 splitter 가 필요.
+async function openPanels(page, names) {
+  for (const name of names) {
+    const button = page
+      .locator(
+        `.panel-toggle-rail button[aria-pressed="false"][aria-label="${name}" i]`,
+      )
+      .first();
+    if ((await button.count()) === 0) continue;
+    await button.click();
+    await page.waitForTimeout(300);
+  }
+  await page.waitForTimeout(500);
 }
 
 // 결정적 시드: 현재 페이지에 Text/frame 을 격자로 추가 + 두 번째 페이지 1개.
@@ -351,12 +399,10 @@ const ACTIONS = {
         if (!el) throw new Error("edit 대상 없음");
         const base = el.props?.style ?? {};
         for (let i = 0; i < 5; i += 1) {
-          await store
-            .getState()
-            .updateElementProps(id, {
-              ...el.props,
-              style: { ...base, width: `${170 + i * 4}px` },
-            });
+          await store.getState().updateElementProps(id, {
+            ...el.props,
+            style: { ...base, width: `${170 + i * 4}px` },
+          });
           await new Promise((r) => setTimeout(r, 30));
         }
         for (let i = 0; i < 5; i += 1) {
@@ -477,6 +523,7 @@ const THRESHOLDS = [
   [/^DetachedScriptStates$/, 0.3],
   [/^Documents$/, 0.3],
   [/^LayoutObjects$/, 5],
+  [/^probe:listener-cumulative:/, Infinity],
   [/^probe:/, 1],
   [/^cache:/, 1],
 ];
@@ -918,6 +965,337 @@ function renderAttribution(r) {
   return lines.join("\n");
 }
 
+// ── lane frame ───────────────────────────────────────────────────────────────
+// 페이지 안 기록기: rAF gap · usedJSHeapSize 프레임별 양(+) 증가 합 (MB/s) · GC 횟수
+// (음(−) delta) · longtask. heartbeat 대신 rAF 만 쓴다 (MessageChannel heartbeat 는
+// 자체 할당 ~18MB/s — 메모리 feedback-panel-resize-frame-cost-canvas-subscription-gc ⑤).
+const RECORDER_SCRIPT = `(() => {
+  window.__perfRecorder = {
+    start(opts = {}) {
+      // JS Self-Profiling (vite dev 가 Document-Policy: js-profiling 을 보낸다) — 부류별
+      // self-time 상위 프레임. 샘플 1ms, 최대 10만 샘플.
+      const profiler = opts.profile && typeof Profiler !== "undefined" ? new Profiler({ sampleInterval: 1, maxBufferSize: 100000 }) : null;
+      const gaps = []; let allocBytes = 0, gcCount = 0; let lastHeap = performance.memory?.usedJSHeapSize ?? 0;
+      const longTasks = [];
+      const lt = typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes.includes("longtask")
+        ? new PerformanceObserver((list) => { for (const e of list.getEntries()) longTasks.push(e.duration); }) : null;
+      lt?.observe({ type: "longtask" });
+      let last = performance.now(); let running = true;
+      const tick = () => { if (!running) return; const now = performance.now(); gaps.push(now - last); last = now;
+        const heap = performance.memory?.usedJSHeapSize ?? 0; const d = heap - lastHeap; if (d > 0) allocBytes += d; else if (d < 0) gcCount += 1; lastHeap = heap;
+        requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+      const t0 = performance.now();
+      window.__composition_PERF__?.reset?.(); window.__composition_PERF__?.resetLongTasks?.(); window.__composition_CACHE_METRICS__?.reset?.();
+      this._stop = async () => { running = false; const ms = performance.now() - t0; if (lt) { for (const e of lt.takeRecords()) longTasks.push(e.duration); lt.disconnect(); }
+        let profile = null;
+        if (profiler) {
+          const trace = await profiler.stop();
+          const self = new Map(); let total = 0, idle = 0;
+          const frameLabel = (fi) => { const f = trace.frames[fi]; const res = f.resourceId != null ? trace.resources[f.resourceId] : ""; const short = String(res).replace(/^.*[/]src[/]/, "src/").replace(/^.*[/]node_modules[/]/, "nm/").replace(/[?].*$/, ""); return (f.name || "(anonymous)") + " " + short + ":" + (f.line ?? 0); };
+          for (const sm of trace.samples) { total += 1; if (sm.stackId == null) { idle += 1; continue; } const st = trace.stacks[sm.stackId]; const label = frameLabel(st.frameId); self.set(label, (self.get(label) ?? 0) + 1); }
+          const top = [...self.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15).map(([frame, n]) => ({ frame, pct: +((n / total) * 100).toFixed(1) }));
+          // 앱 코드 (src/) 만 self-time 상위
+          const app = [...self.entries()].filter(([f]) => f.includes(" src/")).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([frame, n]) => ({ frame, pct: +((n / total) * 100).toFixed(1) }));
+          profile = { samples: total, idlePct: +((idle / total) * 100).toFixed(1), top, app };
+        }
+        return { ms, gaps, allocBytes, gcCount, longTasks, profile,
+          perf: (window.__composition_PERF__?.snapshotAll?.() ?? []).map((s) => ({ label: s.label, count: s.count, p50: s.p50, p95: s.p95, max: s.max })),
+          caches: (window.__composition_CACHE_METRICS__?.snapshotAll?.() ?? []).map((c) => ({ name: c.name, hits: c.hits, misses: c.misses, missReasons: c.missReasons ?? null })) }; };
+    },
+    stop() { return this._stop(); },
+  };
+})();`;
+
+function pct(sorted, q) {
+  if (!sorted.length) return 0;
+  return sorted[
+    Math.min(sorted.length - 1, Math.floor(q * (sorted.length - 1)))
+  ];
+}
+function summarizeRecording(rec, nominalMs = 1000 / 60) {
+  const gaps = [...rec.gaps].sort((a, b) => a - b);
+  const frames = gaps.length;
+  const dropped = rec.gaps.filter((g) => g > nominalMs * 1.5).length;
+  const perf = Object.fromEntries(rec.perf.map((p) => [p.label, p]));
+  const stream = rec.caches.find((c) => c.name === "commandStream");
+  return {
+    ms: Math.round(rec.ms),
+    frames,
+    fps: +(frames / (rec.ms / 1000)).toFixed(1),
+    gapP50: +pct(gaps, 0.5).toFixed(1),
+    gapP95: +pct(gaps, 0.95).toFixed(1),
+    gapP99: +pct(gaps, 0.99).toFixed(1),
+    gapMax: +(gaps[gaps.length - 1] ?? 0).toFixed(1),
+    dropPct: frames ? +((dropped / frames) * 100).toFixed(1) : 0,
+    allocMBps: +(rec.allocBytes / 1024 / 1024 / (rec.ms / 1000)).toFixed(1),
+    gcCount: rec.gcCount,
+    longTasks: rec.longTasks.length,
+    longTaskMs: Math.round(rec.longTasks.reduce((a, b) => a + b, 0)),
+    renderFrame: perf["render.frame"]
+      ? {
+          count: perf["render.frame"].count,
+          p50: +perf["render.frame"].p50.toFixed(2),
+          p95: +perf["render.frame"].p95.toFixed(2),
+        }
+      : null,
+    recordContent: perf["render.skia.record.content"]
+      ? {
+          count: perf["render.skia.record.content"].count,
+          p50: +perf["render.skia.record.content"].p50.toFixed(2),
+          p95: +perf["render.skia.record.content"].p95.toFixed(2),
+        }
+      : null,
+    flushContent: perf["render.skia.flush.content"]
+      ? {
+          p95: +perf["render.skia.flush.content"].p95.toFixed(2),
+          max: +perf["render.skia.flush.content"].max.toFixed(2),
+        }
+      : null,
+    streamMiss: stream
+      ? {
+          hits: stream.hits,
+          misses: stream.misses,
+          reasons: stream.missReasons,
+        }
+      : null,
+  };
+}
+
+// 드라이버 — 각각 durationMs 동안 동작. 휠은 canvas 에 dispatch (실핸들러 경로, 메모리
+// project-frame-drop-map-5k-baseline: 선택이 있으면 Phase E 가 휠을 scrollBy 로 삼킨다 →
+// 팬/줌 전 clearSelection). 포인터 경로 (패널 리사이즈) 는 Playwright mouse.
+const wheelBurst = (page, durationMs, initFactory) =>
+  page.evaluate(
+    async ({ durationMs, initFactorySrc }) => {
+      const initFactory = new Function("i", initFactorySrc);
+      window.__composition_STORE__.getState().clearSelection?.();
+      const canvas = document.querySelector(
+        '[data-testid="skia-canvas-unified"]',
+      );
+      const r = canvas.getBoundingClientRect();
+      const cx = r.left + r.width / 2,
+        cy = r.top + r.height / 2;
+      await new Promise((res) => {
+        const t0 = performance.now();
+        let i = 0;
+        const step = () => {
+          canvas.dispatchEvent(
+            new WheelEvent("wheel", {
+              clientX: cx,
+              clientY: cy,
+              bubbles: true,
+              cancelable: true,
+              ...initFactory(i++),
+            }),
+          );
+          if (performance.now() - t0 < durationMs) requestAnimationFrame(step);
+          else res();
+        };
+        requestAnimationFrame(step);
+      });
+    },
+    { durationMs, initFactorySrc: initFactory },
+  );
+
+const FRAME_CLASSES = {
+  idle: async (page, ctx, ms) => {
+    await page.waitForTimeout(ms);
+  },
+  // 팬: 좌→우→좌 왕복 (가시 집합이 바뀌는 경로 포함)
+  pan: (page, ctx, ms) =>
+    wheelBurst(
+      page,
+      ms,
+      "return { deltaX: (Math.floor(i / 40) % 2 ? -1 : 1) * 24, deltaY: 0 };",
+    ),
+  // 줌 오실레이션 ±30 (baseline 5K 와 같은 자극)
+  zoom: (page, ctx, ms) =>
+    wheelBurst(
+      page,
+      ms,
+      "return { deltaY: (Math.floor(i / 12) % 2 ? 30 : -30), ctrlKey: true };",
+    ),
+  // 선택 전환 (store 경로 — hit-test 는 안 거친다): 100ms 마다 다음 요소
+  select: (page, ctx, ms) =>
+    page.evaluate(
+      async ({ ids, ms }) => {
+        const store = window.__composition_STORE__;
+        const t0 = performance.now();
+        let i = 0;
+        while (performance.now() - t0 < ms) {
+          const id = ids[i++ % ids.length];
+          const s = store.getState();
+          const el = s.elements.find((e) => e.id === id);
+          if (el) s.setSelectedElement(id, el.props, el.props?.style ?? {}, {});
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        store.getState().clearSelection?.();
+      },
+      { ids: ctx.seedIds, ms },
+    ),
+  // 스타일 편집 5회/s (mutation 축: 동기 무효화 + persist)
+  edit: (page, ctx, ms) =>
+    page.evaluate(
+      async ({ id, ms }) => {
+        const store = window.__composition_STORE__;
+        const el = store.getState().elements.find((e) => e.id === id);
+        const base = el?.props?.style ?? {};
+        const t0 = performance.now();
+        let i = 0;
+        while (performance.now() - t0 < ms) {
+          await store
+            .getState()
+            .updateElementProps(id, {
+              ...el.props,
+              style: { ...base, width: `${160 + (i++ % 5) * 4}px` },
+            });
+          await new Promise((r) => setTimeout(r, 200));
+        }
+        await store
+          .getState()
+          .updateElementProps(id, { ...el.props, style: base });
+      },
+      { id: ctx.seedIds[1], ms },
+    ),
+  // 패널 리사이즈: 첫 세로 splitter 를 ±60px 왕복 (실 포인터)
+  "panel-resize": async (page, ctx, ms) => {
+    const handle = page
+      .locator('.panel-resize-handle[aria-orientation="vertical"]')
+      .first();
+    const box = await handle.boundingBox();
+    if (!box) throw new Error("splitter 없음");
+    const x0 = box.x + box.width / 2,
+      y0 = box.y + box.height / 2;
+    await page.mouse.move(x0, y0);
+    await page.mouse.down();
+    const t0 = Date.now();
+    let i = 0;
+    while (Date.now() - t0 < ms) {
+      const dx = 60 * Math.sin((i++ / 30) * Math.PI);
+      await page.mouse.move(x0 + dx, y0);
+      await page.waitForTimeout(16);
+    }
+    await page.mouse.move(x0, y0);
+    await page.mouse.up();
+  },
+  "page-switch": (page, ctx, ms) =>
+    page.evaluate(
+      async ({ pageIds, home, ms }) => {
+        const other = pageIds.find((p) => p !== home);
+        const store = window.__composition_STORE__;
+        const t0 = performance.now();
+        let i = 0;
+        while (performance.now() - t0 < ms) {
+          store.getState().activatePage(i++ % 2 ? home : other);
+          await new Promise((r) => setTimeout(r, 300));
+        }
+        store.getState().activatePage(home);
+        store.getState().clearSelection?.();
+      },
+      { pageIds: ctx.pageIds, home: ctx.homePageId, ms },
+    ),
+  "panel-toggle": async (page, ctx, ms) => {
+    const buttons = page.locator(".panel-toggle-rail button[aria-pressed]");
+    const n = await buttons.count();
+    let target = -1;
+    for (let i = 0; i < n; i += 1) {
+      const label = (
+        (await buttons.nth(i).getAttribute("aria-label")) ?? ""
+      ).toLowerCase();
+      if (!/monitor|모니터|\bai\b/.test(label)) {
+        target = i;
+        break;
+      }
+    }
+    if (target < 0) throw new Error("토글 버튼 없음");
+    const t0 = Date.now();
+    let clicks = 0;
+    while (Date.now() - t0 < ms) {
+      await buttons.nth(target).click();
+      clicks += 1;
+      await page.waitForTimeout(300);
+    }
+    if (clicks % 2 === 1) await buttons.nth(target).click();
+  },
+  // Layers(navigator) 패널 위 휠 스크롤 (DOM 트리)
+  "layers-scroll": async (page, ctx, ms) => {
+    const panel = page.locator('[data-panel-id="navigator"]').first();
+    const box = await panel.boundingBox();
+    if (!box) throw new Error("navigator 패널 없음");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const t0 = Date.now();
+    let i = 0;
+    while (Date.now() - t0 < ms) {
+      await page.mouse.wheel(0, (Math.floor(i++ / 20) % 2 ? -1 : 1) * 40);
+      await page.waitForTimeout(16);
+    }
+  },
+};
+
+async function runFrameLane(page, seed, options) {
+  await page.addScriptTag({ content: RECORDER_SCRIPT });
+  const results = {};
+  for (const cls of options.classes) {
+    const driver = FRAME_CLASSES[cls];
+    if (!driver) throw new Error(`unknown class ${cls}`);
+    await page.evaluate(() =>
+      window.__composition_STORE__.getState().clearSelection?.(),
+    );
+    await page.waitForTimeout(500);
+    await page.evaluate(
+      (profile) => window.__perfRecorder.start({ profile }),
+      options.profile,
+    );
+    await driver(page, seed, options.durationMs);
+    const rec = await page.evaluate(() => window.__perfRecorder.stop());
+    results[cls] = summarizeRecording(rec);
+    if (rec.profile) results[cls].profile = rec.profile;
+    await page.waitForTimeout(400);
+  }
+  return results;
+}
+
+function renderProfiles(results) {
+  const lines = [];
+  for (const [cls, r] of Object.entries(results)) {
+    if (!r.profile) continue;
+    lines.push(
+      `\n**profile: ${cls}** (samples ${r.profile.samples}, idle ${r.profile.idlePct}%)`,
+      "| self-time 상위 | % |",
+      "| --- | ---: |",
+    );
+    for (const t of r.profile.top) lines.push(`| ${t.frame} | ${t.pct} |`);
+    lines.push("| **앱 코드 (src/) 상위** | |");
+    for (const t of r.profile.app) lines.push(`| ${t.frame} | ${t.pct} |`);
+  }
+  return lines.join("\n");
+}
+
+function renderFrameTable(results) {
+  const lines = [
+    "\n### frame lane",
+    "| 부류 | frames/fps | gap p50 / p95 / p99 / max (ms) | 드롭% | 할당 MB/s | GC | longtask (n / ms) | render.frame p50/p95 | record.content p50/p95 | flush p95/max | stream miss |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+  ];
+  for (const [cls, r] of Object.entries(results)) {
+    const miss = r.streamMiss
+      ? `${r.streamMiss.misses}/${r.streamMiss.hits + r.streamMiss.misses}${
+          r.streamMiss.reasons
+            ? " " +
+              Object.entries(r.streamMiss.reasons)
+                .map(([k, v]) => `${k}:${v}`)
+                .join(",")
+            : ""
+        }`
+      : "-";
+    lines.push(
+      `| ${cls} | ${r.frames}/${r.fps} | ${r.gapP50} / ${r.gapP95} / ${r.gapP99} / ${r.gapMax} | ${r.dropPct} | ${r.allocMBps} | ${r.gcCount} | ${r.longTasks} / ${r.longTaskMs} | ${r.renderFrame ? `${r.renderFrame.p50}/${r.renderFrame.p95} (${r.renderFrame.count})` : "-"} | ${r.recordContent ? `${r.recordContent.p50}/${r.recordContent.p95} (${r.recordContent.count})` : "-"} | ${r.flushContent ? `${r.flushContent.p95}/${r.flushContent.max}` : "-"} | ${miss} |`,
+    );
+  }
+  return lines.join("\n");
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 async function main() {
   const options = parseArgs(process.argv.slice(2));
@@ -953,12 +1331,36 @@ async function main() {
       ? await openExistingProject(page, options.projectUrl)
       : await createIsolatedProject(page, options.baseUrl);
     process.stderr.write(`[boot] ${project.projectUrl}\n`);
+    await openPanels(page, options.openPanels);
     const seed = await seedDocument(page, options.seedCount);
     process.stderr.write(
       `[seed] elements ${seed.seedIds.length} · pages ${seed.pageIds.length}\n`,
     );
     await page.waitForTimeout(1_500);
 
+    if (options.lane === "frame") {
+      const results = await runFrameLane(page, seed, options);
+      const report = {
+        lane: "frame",
+        at: new Date().toISOString(),
+        chrome: browser.version(),
+        headless: !options.headed,
+        options: { ...options, storageState: "(redacted)" },
+        project: project.projectUrl,
+        seed: { elements: seed.seedIds.length, pages: seed.pageIds.length },
+        results,
+        pageErrors,
+        consoleErrors: consoleErrors.slice(0, 50),
+      };
+      const outPath = resolve(options.out, `frame-${Date.now()}.json`);
+      writeFileSync(outPath, JSON.stringify(report, null, 2));
+      process.stdout.write(
+        renderFrameTable(results) +
+          renderProfiles(results) +
+          `\n\n[out] ${outPath}\n[errors] page ${pageErrors.length} · console ${consoleErrors.length}\n`,
+      );
+      return;
+    }
     const report = {
       lane: "leak",
       at: new Date().toISOString(),

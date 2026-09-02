@@ -16,6 +16,7 @@ pnpm type-check                                     # Stop hook 이 같은 명�
 pnpm -F @composition/builder exec vitest run <path> # 단일 테스트 (실패 count 는 per-package 만 정확)
 pnpm -F @composition/builder test:parity            # browser vitest · visual smoke 는 pnpm gate:visual-parity
 pnpm codex:preflight                                # guard + format + typecheck + registration gate
+pnpm perf:baseline -- --lane leak|frame             # 누수·프레임 기준선 하니스 (Playwright+CDP, docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md)
 ```
 
 env: `apps/builder/.env.example` → `.env`. `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` 필수. `VITE_USE_WEBGL_CANVAS=false` 면 iframe Preview 폴백.
