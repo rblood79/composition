@@ -62,7 +62,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toContain(
       "panelDragMovedBeyondSnapThreshold(dragStart, next)",
     );
-    expect(source).toContain('dropCandidate?.kind === "panel-edge"');
+    expect(source).toContain('dropCandidate?.kind !== "panel-edge"');
+    expect(source).toContain("function PanelSnapGuideSlot(");
     expect(source).toContain("function PanelSnapGuide(");
     expect(source).toContain("data-edge={candidate.edge}");
     expect(source).toContain("PANEL_WORKSPACE_GAP / 2");
@@ -140,6 +141,52 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     );
     expect(source).toContain(
       '<div ref={mainRef} className="panel-workspace-main">',
+    );
+  });
+
+  it("overlay 루트는 snapshot 전체를 구독하지 않고 frame·splitter·snap guide·page-layout 폭이 각자 leaf 로 구독한다", async () => {
+    const source = await readWorkspace();
+    const overlayStart = source.indexOf(
+      "const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay(",
+    );
+    const overlayEnd = source.indexOf(
+      "function HydratedPanelWorkspace(",
+      overlayStart,
+    );
+    expect(overlayStart).toBeGreaterThan(0);
+    const overlay = source.slice(overlayStart, overlayEnd);
+
+    // 루트는 작업 영역 크기 두 개만 원시값으로 읽는다 (동작 게이트: PanelWorkspace.renderFanout.test.tsx)
+    expect(overlay).not.toContain("usePanelWorkspaceLayoutSnapshot(");
+    expect(overlay).not.toContain("usePanelSnapInteractionState(");
+    expect(overlay).toContain(
+      "() => coordinator.getSnapshot().workspaceRect.width,",
+    );
+    expect(overlay).toContain(
+      "() => coordinator.getSnapshot().workspaceRect.height,",
+    );
+    // page-layout 폭 속성은 JSX 가 아니라 coordinator 직접 구독 + setAttribute
+    expect(overlay).not.toContain("data-page-layout-left-panel-width={");
+    expect(overlay).toContain(
+      'element.setAttribute("data-page-layout-left-panel-width", leftWidth);',
+    );
+    expect(overlay).toContain(
+      "return coordinator.subscribe(applyPageLayoutPanelMetrics);",
+    );
+    // PanelDock 은 version prop 을 받지 않는다 (받으면 flush 마다 render-prop 전체가 재실행)
+    expect(source).not.toContain("version={snapshot.version}");
+    expect(source).not.toMatch(
+      /interface PanelDockProps \{[^}]*version: number/,
+    );
+    // frame 이 화면과 무관한 layoutVersion 만 바뀐 flush 에 재렌더되지 않도록 값 비교 캐시
+    expect(source).toContain(
+      "const snapshotFrame = usePanelWorkspaceFrameSnapshot(coordinator, config.id);",
+    );
+    expect(source).toMatch(
+      /const focusRank = usePanelWorkspaceLayoutValue\(coordinator, \(\) =>\s*frameFocusRank\(/,
+    );
+    expect(source).toContain(
+      "zIndex: frameZIndex(focusRank, isActive, isMoving)",
     );
   });
 

@@ -356,4 +356,47 @@ describe("ADR-922 useSyncExternalStore snapshot selectors", () => {
     expect(root.result.current.version).toBe(1);
     expect(frame.result.current).toBeNull();
   });
+
+  it("panel selector 는 geometry 가 같은 flush 에서 직전 frame 객체를 그대로 돌려주고, 바뀌면 새 객체를 준다", () => {
+    const scheduler = new TestFrameScheduler();
+    const coordinator = requireCoordinator(createInput(), scheduler);
+    // 우측 anchor 패널 — x 가 작업 영역 폭에 묶여 있어 폭 변경이 geometry 변경이 된다
+    const panelId: PanelId = "properties";
+    const root = renderHook(() => usePanelWorkspaceLayoutSnapshot(coordinator));
+    const frame = renderHook(() =>
+      usePanelWorkspaceFrameSnapshot(coordinator, panelId),
+    );
+    const initial = frame.result.current;
+    expect(initial).not.toBeNull();
+
+    // 포커스 순서만 바뀐 layout — coordinator 는 version 을 올리고 frame 객체를 전부 새로
+    // 만들지만 (layoutVersion 1), properties 의 화면상 geometry 는 그대로다.
+    const refocused = createPanelWorkspaceLayoutV4Fixture();
+    refocused.clusterFocusOrder = [...refocused.clusterFocusOrder].reverse();
+    act(() => {
+      coordinator.queueInput(createInput({ layout: refocused }));
+      scheduler.flush(8.3);
+    });
+
+    expect(root.result.current.version).toBe(1);
+    expect(
+      coordinator.getSnapshot().frameGeometries.get(panelId)?.layoutVersion,
+    ).toBe(1);
+    expect(frame.result.current).toBe(initial);
+
+    // 작업 영역 폭이 바뀌면 geometry 가 달라지므로 새 객체
+    act(() => {
+      coordinator.queueInput(
+        createInput({
+          layout: refocused,
+          workspaceRect: { width: 1000, height: 900 },
+        }),
+      );
+      scheduler.flush(16.6);
+    });
+
+    expect(root.result.current.version).toBe(2);
+    expect(frame.result.current).not.toBe(initial);
+    expect(frame.result.current?.layoutVersion).toBe(2);
+  });
 });

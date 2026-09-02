@@ -34,6 +34,7 @@ import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
 import { PanelSplitter } from "./PanelSplitter";
 import type {
   PanelWorkspaceFrameSnapshot,
+  PanelWorkspaceLayoutCoordinator,
   PanelWorkspaceLayoutSnapshot,
   PanelWorkspaceSplitterGeometry,
 } from "./panelWorkspaceLayoutCoordinator";
@@ -56,6 +57,7 @@ import {
 import {
   usePanelWorkspaceFrameSnapshot,
   usePanelWorkspaceLayoutSnapshot,
+  usePanelWorkspaceLayoutValue,
 } from "./usePanelWorkspaceLayoutSnapshot";
 import { useI18n } from "../../i18n";
 import "./PanelWorkspace.css";
@@ -124,16 +126,23 @@ const multiPanelClusterMembershipCache = new WeakMap<
   { layout: PanelWorkspaceLayoutV4; panelIds: ReadonlySet<PanelId> }
 >();
 
-function frameZIndex(
+/** 포커스 순서상 이 frame 의 cluster 위치. 배치되지 않은 패널은 -1. */
+function frameFocusRank(
   runtime: PanelWorkspaceRuntime,
   snapshotFrame: PanelWorkspaceFrameSnapshot | null,
+): number {
+  if (!snapshotFrame) return -1;
+  return runtime.getLayout().clusterFocusOrder.indexOf(snapshotFrame.clusterId);
+}
+
+function frameZIndex(
+  focusRank: number,
+  isActive: boolean,
   isMoving: boolean,
 ): number {
   if (isMoving) return 2_000;
-  if (!snapshotFrame) return 30;
-  const layout = runtime.getLayout();
-  const focusIndex = layout.clusterFocusOrder.indexOf(snapshotFrame.clusterId);
-  return 1_000 + Math.max(0, focusIndex);
+  if (!isActive) return 30;
+  return 1_000 + Math.max(0, focusRank);
 }
 
 function splitterZIndex(
@@ -402,6 +411,11 @@ interface PanelFrameProps {
   dockOrigin: PanelDockOrigin;
   runtime: PanelWorkspaceRuntime;
   snapshotFrame: PanelWorkspaceFrameSnapshot | null;
+  /** `frameFocusRank` — SnapshotPanelFrame 이 원시값으로 구독해 넘긴다. */
+  focusRank: number;
+  isClustered: boolean;
+  /** 위/아래 splitter 의 aria-valuemax 상한 (coordinator workspaceRect.height). */
+  workspaceHeight: number;
   side: PanelSide;
   onCommitLayout: (layout: PanelWorkspaceLayoutV4) => boolean;
   onFocusPanel: (panelId: PanelId) => void;
@@ -412,6 +426,9 @@ const PanelFrame = memo(function PanelFrame({
   dockOrigin,
   runtime,
   snapshotFrame,
+  focusRank,
+  isClustered,
+  workspaceHeight,
   side,
   onCommitLayout,
   onFocusPanel,
@@ -474,7 +491,6 @@ const PanelFrame = memo(function PanelFrame({
   const [isMoving, setIsMoving] = useState(false);
   const isActive = snapshotFrame !== null;
   const mode = frameMode(snapshotFrame);
-  const isClustered = panelBelongsToMultiPanelCluster(runtime, config.id);
   const contentId = `panel-${config.id}-content`;
   const panelName = getPanelLabel(config, t);
 
@@ -691,7 +707,7 @@ const PanelFrame = memo(function PanelFrame({
     top: appliedGeometry.y - dockOrigin.y,
     width: appliedGeometry.width,
     height: appliedGeometry.height,
-    zIndex: frameZIndex(runtime, snapshotFrame, isMoving),
+    zIndex: frameZIndex(focusRank, isActive, isMoving),
   };
 
   return (
@@ -764,10 +780,7 @@ const PanelFrame = memo(function PanelFrame({
           maxValue={
             edge === "left" || edge === "right"
               ? maxWidth
-              : Math.max(
-                  minHeight,
-                  runtime.coordinator.getSnapshot().workspaceRect.height,
-                )
+              : Math.max(minHeight, workspaceHeight)
           }
           layoutVersion={snapshotFrame?.layoutVersion}
           onResizeStart={() => {
@@ -798,13 +811,39 @@ interface SnapshotPanelFrameProps {
   onFocusPanel: (panelId: PanelId) => void;
 }
 
+/**
+ * frame 하나가 coordinator 를 구독하는 유일한 지점. overlay 루트는 snapshot 을 구독하지
+ * 않으므로 (매 flush 재렌더 = frame 12개 element 재생성), frame 이 화면에 다르게 그려질
+ * 입력만 여기서 leaf 로 읽는다 — geometry 는 값 비교 캐시가 걸린 frame selector 로,
+ * geometry 와 따로 바뀔 수 있는 포커스 순서 · cluster 합류 · 작업 영역 높이는 원시값으로.
+ */
 function SnapshotPanelFrame(props: SnapshotPanelFrameProps) {
-  const snapshotFrame = usePanelWorkspaceFrameSnapshot(
-    props.runtime.coordinator,
-    props.config.id,
+  const { runtime, config } = props;
+  const coordinator = runtime.coordinator;
+  const snapshotFrame = usePanelWorkspaceFrameSnapshot(coordinator, config.id);
+  const focusRank = usePanelWorkspaceLayoutValue(coordinator, () =>
+    frameFocusRank(
+      runtime,
+      coordinator.getSnapshot().frameGeometries.get(config.id) ?? null,
+    ),
+  );
+  const isClustered = usePanelWorkspaceLayoutValue(coordinator, () =>
+    panelBelongsToMultiPanelCluster(runtime, config.id),
+  );
+  const workspaceHeight = usePanelWorkspaceLayoutValue(
+    coordinator,
+    () => coordinator.getSnapshot().workspaceRect.height,
   );
 
-  return <PanelFrame {...props} snapshotFrame={snapshotFrame} />;
+  return (
+    <PanelFrame
+      {...props}
+      snapshotFrame={snapshotFrame}
+      focusRank={focusRank}
+      isClustered={isClustered}
+      workspaceHeight={workspaceHeight}
+    />
+  );
 }
 
 function createRuntime(
@@ -832,6 +871,44 @@ interface HydratedPanelWorkspaceProps {
   focusPanel: (panelId: PanelId) => void;
   stageRect: PanelWorkspaceRect;
   stageRef: RefObject<HTMLDivElement | null>;
+}
+
+/**
+ * 좌/우 zone 에 배치된 frame 들의 가로 extent. useWorkspaceCanvasSizing 이
+ * `.panel-workspace[data-page-layout-*-panel-width]` 로 읽어 캔버스 page layout 에 반영한다.
+ */
+function pageLayoutPanelMetricsFromSnapshot(
+  snapshot: PanelWorkspaceLayoutSnapshot,
+): { leftWidth: number; rightWidth: number } {
+  const leftFrames: PanelWorkspaceFrameSnapshot[] = [];
+  const rightFrames: PanelWorkspaceFrameSnapshot[] = [];
+
+  for (const frame of snapshot.frameGeometries.values()) {
+    const isLeftPlacement =
+      frame.placementZone === "left" || frame.placementZone.endsWith("-left");
+    const isRightPlacement =
+      frame.placementZone === "right" || frame.placementZone.endsWith("-right");
+
+    if (isLeftPlacement) {
+      leftFrames.push(frame);
+    } else if (isRightPlacement) {
+      rightFrames.push(frame);
+    }
+  }
+
+  const resolveFrameExtent = (
+    frames: readonly PanelWorkspaceFrameSnapshot[],
+  ): number => {
+    if (frames.length === 0) return 0;
+    const left = Math.min(...frames.map((frame) => frame.x));
+    const right = Math.max(...frames.map((frame) => frame.x + frame.width));
+    return Math.max(0, right - left);
+  };
+
+  return {
+    leftWidth: resolveFrameExtent(leftFrames),
+    rightWidth: resolveFrameExtent(rightFrames),
+  };
 }
 
 interface PanelWorkspaceOverlayProps {
@@ -990,14 +1067,37 @@ function PanelWorkspaceZoneOverlay() {
 interface PanelSnapGuideProps {
   candidate: Exclude<PanelDropCandidate, null | { kind: "zone" }>;
   dockOrigin: PanelDockOrigin;
-  snapshot: PanelWorkspaceLayoutSnapshot;
+  coordinator: PanelWorkspaceLayoutCoordinator;
+}
+
+interface PanelSnapGuideSlotProps {
+  dockOrigin: PanelDockOrigin;
+  coordinator: PanelWorkspaceLayoutCoordinator;
+}
+
+/** drop candidate 를 여기서 읽어 overlay 루트가 드래그 중 candidate 변화에 재렌더되지 않게 한다. */
+function PanelSnapGuideSlot({
+  dockOrigin,
+  coordinator,
+}: PanelSnapGuideSlotProps) {
+  const { dropCandidate } = usePanelSnapInteractionState();
+  if (dropCandidate?.kind !== "panel-edge") return null;
+  return (
+    <PanelSnapGuide
+      candidate={dropCandidate}
+      dockOrigin={dockOrigin}
+      coordinator={coordinator}
+    />
+  );
 }
 
 function PanelSnapGuide({
   candidate,
   dockOrigin,
-  snapshot,
+  coordinator,
 }: PanelSnapGuideProps) {
+  // 드래그 중 candidate 가 있을 때만 mount 되는 leaf 라 snapshot 전체 구독이 싸다.
+  const snapshot = usePanelWorkspaceLayoutSnapshot(coordinator);
   const target = snapshot.frameGeometries.get(candidate.panelId);
   if (!target) return null;
 
@@ -1052,7 +1152,6 @@ interface PanelDockProps {
   chrome?: ReactNode;
   stageRef: RefObject<HTMLDivElement | null>;
   surfaceWidth: number;
-  version: number;
 }
 
 function PanelDock({
@@ -1060,7 +1159,6 @@ function PanelDock({
   chrome,
   stageRef,
   surfaceWidth,
-  version,
 }: PanelDockProps) {
   const origin = useMemo<PanelDockOrigin>(() => {
     const origin = {
@@ -1076,7 +1174,6 @@ function PanelDock({
       className="panel-dock"
       data-column-limit="2"
       data-layout-type="floating"
-      data-layout-version={version}
     >
       {chrome ? <div className="panel-dock-chrome">{chrome}</div> : null}
       <div ref={stageRef} className="panel-dock-stage">
@@ -1097,15 +1194,52 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
   stageRef,
 }: PanelWorkspaceOverlayProps) {
   const { t } = useI18n();
-  const snapshot = usePanelWorkspaceLayoutSnapshot(runtime.coordinator);
-  const { dropCandidate } = usePanelSnapInteractionState();
+  // overlay 루트는 snapshot 전체를 구독하지 않는다 — 구독하면 resize·move 의 매 flush 마다
+  // PanelDock render-prop 아래 frame 12개 element 가 전부 다시 만들어진다 (2026-09-02 실측
+  // fiber 103개/flush). 루트가 정말 필요한 값은 작업 영역 크기 두 개뿐이므로 원시값으로
+  // 읽고, 나머지 (frame · splitter · rail · snap guide · page-layout 폭 속성) 는 각 leaf 가
+  // 스스로 구독한다.
+  const coordinator = runtime.coordinator;
+  const workspaceRectWidth = usePanelWorkspaceLayoutValue(
+    coordinator,
+    () => coordinator.getSnapshot().workspaceRect.width,
+  );
+  const workspaceRectHeight = usePanelWorkspaceLayoutValue(
+    coordinator,
+    () => coordinator.getSnapshot().workspaceRect.height,
+  );
   const surfaceRef = useRef<HTMLDivElement>(null);
-  const [surfaceWidth, setSurfaceWidth] = useState(
-    snapshot.workspaceRect.width,
-  );
-  const [surfaceHeight, setSurfaceHeight] = useState(
-    snapshot.workspaceRect.height,
-  );
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const [surfaceWidth, setSurfaceWidth] = useState(workspaceRectWidth);
+  const [surfaceHeight, setSurfaceHeight] = useState(workspaceRectHeight);
+
+  // `data-page-layout-*-panel-width` 는 useWorkspaceCanvasSizing 이 `.panel-workspace` 에서
+  // 읽는 신호다. JSX 로 쓰면 frameGeometries 구독이 필요하므로 coordinator 를 직접 구독해
+  // DOM 에 쓴다 (루트의 data-layout-version 과 같은 방식).
+  useLayoutEffect(() => {
+    const applyPageLayoutPanelMetrics = (): void => {
+      const element = workspaceRef.current;
+      if (!element) return;
+      const metrics = pageLayoutPanelMetricsFromSnapshot(
+        coordinator.getSnapshot(),
+      );
+      const leftWidth = String(metrics.leftWidth);
+      const rightWidth = String(metrics.rightWidth);
+      if (
+        element.getAttribute("data-page-layout-left-panel-width") !== leftWidth
+      ) {
+        element.setAttribute("data-page-layout-left-panel-width", leftWidth);
+      }
+      if (
+        element.getAttribute("data-page-layout-right-panel-width") !==
+        rightWidth
+      ) {
+        element.setAttribute("data-page-layout-right-panel-width", rightWidth);
+      }
+    };
+    applyPageLayoutPanelMetrics();
+    return coordinator.subscribe(applyPageLayoutPanelMetrics);
+  }, [coordinator]);
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
@@ -1129,8 +1263,8 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     if (
       surfaceWidth <= 0 ||
       surfaceHeight <= 0 ||
-      (surfaceWidth === snapshot.workspaceRect.width &&
-        surfaceHeight === snapshot.workspaceRect.height)
+      (surfaceWidth === workspaceRectWidth &&
+        surfaceHeight === workspaceRectHeight)
     ) {
       return;
     }
@@ -1140,8 +1274,8 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     });
   }, [
     runtime,
-    snapshot.workspaceRect.height,
-    snapshot.workspaceRect.width,
+    workspaceRectHeight,
+    workspaceRectWidth,
     surfaceHeight,
     surfaceWidth,
   ]);
@@ -1160,52 +1294,17 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     [workspaceLayout],
   );
 
-  const pageLayoutPanelMetrics = useMemo(() => {
-    const leftFrames: PanelWorkspaceFrameSnapshot[] = [];
-    const rightFrames: PanelWorkspaceFrameSnapshot[] = [];
-
-    for (const frame of snapshot.frameGeometries.values()) {
-      const isLeftPlacement =
-        frame.placementZone === "left" || frame.placementZone.endsWith("-left");
-      const isRightPlacement =
-        frame.placementZone === "right" ||
-        frame.placementZone.endsWith("-right");
-
-      if (isLeftPlacement) {
-        leftFrames.push(frame);
-      } else if (isRightPlacement) {
-        rightFrames.push(frame);
-      }
-    }
-
-    const resolveFrameExtent = (
-      frames: readonly PanelWorkspaceFrameSnapshot[],
-    ): number => {
-      if (frames.length === 0) return 0;
-      const left = Math.min(...frames.map((frame) => frame.x));
-      const right = Math.max(...frames.map((frame) => frame.x + frame.width));
-      return Math.max(0, right - left);
-    };
-
-    return {
-      leftWidth: resolveFrameExtent(leftFrames),
-      rightWidth: resolveFrameExtent(rightFrames),
-    };
-  }, [snapshot.frameGeometries]);
-
   return (
     <div
+      ref={workspaceRef}
       className="panel-workspace"
       aria-label={t("workspace.workArea")}
-      data-page-layout-left-panel-width={pageLayoutPanelMetrics.leftWidth}
-      data-page-layout-right-panel-width={pageLayoutPanelMetrics.rightWidth}
       data-page-layout-panel-gap={PANEL_WORKSPACE_GAP}
     >
       <PanelDock
         chrome={chrome}
         stageRef={stageRef}
         surfaceWidth={surfaceWidth}
-        version={snapshot.version}
       >
         {({ origin }) => (
           <>
@@ -1225,13 +1324,10 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
 
             <div ref={surfaceRef} className="panel-dock-surface">
               <PanelWorkspaceZoneOverlay />
-              {dropCandidate?.kind === "panel-edge" && (
-                <PanelSnapGuide
-                  candidate={dropCandidate}
-                  dockOrigin={origin}
-                  snapshot={snapshot}
-                />
-              )}
+              <PanelSnapGuideSlot
+                dockOrigin={origin}
+                coordinator={coordinator}
+              />
               <PanelDockClusterPresentation
                 dockOrigin={origin}
                 runtime={runtime}
@@ -1403,12 +1499,7 @@ function PanelWorkspaceContent({
       <div className="panel-workspace-host">
         <div className="panel-workspace-main">{children}</div>
         <div className="panel-workspace" aria-label={t("workspace.workArea")}>
-          <PanelDock
-            chrome={chrome}
-            stageRef={stageRef}
-            surfaceWidth={0}
-            version={0}
-          >
+          <PanelDock chrome={chrome} stageRef={stageRef} surfaceWidth={0}>
             {() => null}
           </PanelDock>
         </div>

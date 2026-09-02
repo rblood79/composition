@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [패널 크기 조절·이동 중 바뀐 패널만 다시 그립니다] - 2026-09-02
+
+### Changed
+
+- 패널 workspace 의 overlay 루트가 레이아웃 snapshot 전체를 구독하지 않습니다. 종전에는 resize·move 의 매 프레임마다 dock 과 패널 frame 12개가 통째로 다시 렌더됐습니다 (한 flush 에 컴포넌트 렌더 25개, 그중 frame 12 + frame 구독자 12). 이제 geometry 가 실제로 바뀐 frame 과 그 splitter 만 렌더됩니다 (Navigator 폭 조절: frame 1 + 구독자 1, 실제 빌더에서 확인). 화면 결과와 저장되는 레이아웃은 같습니다.
+  - frame 구독은 값 비교 캐시를 거칩니다. 좌표·크기·zone·cluster·resize edge 가 같으면 이전 객체를 그대로 돌려줘 렌더를 건너뜁니다. 포커스 순서 (z-index)·cluster 합류 표식·작업 영역 높이는 frame 과 따로 바뀔 수 있어 원시값으로 별도 구독합니다. 패널을 클릭해 앞으로 가져오는 동작은 그대로입니다 (실제 빌더에서 z-index 1001↔1002 전환 확인).
+  - 캔버스가 읽는 `data-page-layout-*-panel-width` 는 JSX 대신 coordinator 직접 구독으로 DOM 에 씁니다. snap guide 는 drop candidate 를 스스로 읽습니다. dock 의 `data-layout-version` 속성은 읽는 곳이 없어 제거했습니다.
+  - 회귀 게이트 `PanelWorkspace.renderFanout.test.tsx` 가 flush 당 렌더 컴포넌트 수를 fiber 순회로 고정합니다 (overlay 루트·dock·toggle rail 0, frame = geometry 가 바뀐 수).
+
 ## [패널 크기 조절이 마우스를 따라옵니다] - 2026-09-02
 
 ### Fixed

@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import type { PanelId } from "../panels/core/types";
 import type {
   PanelWorkspaceFrameSnapshot,
@@ -16,13 +16,86 @@ export function usePanelWorkspaceLayoutSnapshot(
   );
 }
 
+/**
+ * coordinator snapshot 에서 원시값 하나를 골라 구독한다. `read` 가 같은 값을 돌려주는
+ * flush 에서는 호출한 컴포넌트가 다시 렌더되지 않는다 — snapshot 전체를 구독하면 매
+ * flush 가 재렌더이므로, 루트가 아니라 leaf 가 필요한 값만 이 훅으로 읽는다.
+ */
+export function usePanelWorkspaceLayoutValue<
+  T extends string | number | boolean | null,
+>(coordinator: PanelWorkspaceLayoutCoordinator, read: () => T): T {
+  return useSyncExternalStore(coordinator.subscribe, read, read);
+}
+
+/**
+ * 두 frame 이 화면에 같은 결과를 내는가. `layoutVersion` 은 비교하지 않는다 — coordinator
+ * 는 flush 마다 모든 frame 객체를 새로 만들고 version 을 찍지만, 그 frame 을 그리는
+ * 컴포넌트가 다시 렌더될 이유는 geometry·zone·cluster·resize edge 가 바뀌었을 때뿐이다.
+ */
+export function panelWorkspaceFrameSnapshotEquals(
+  a: PanelWorkspaceFrameSnapshot,
+  b: PanelWorkspaceFrameSnapshot,
+): boolean {
+  if (a === b) return true;
+  if (
+    a.x !== b.x ||
+    a.y !== b.y ||
+    a.width !== b.width ||
+    a.height !== b.height ||
+    a.clusterId !== b.clusterId ||
+    a.placementZone !== b.placementZone ||
+    a.resizeEdges.length !== b.resizeEdges.length
+  ) {
+    return false;
+  }
+  for (let index = 0; index < a.resizeEdges.length; index += 1) {
+    if (a.resizeEdges[index] !== b.resizeEdges[index]) return false;
+  }
+  return true;
+}
+
+/**
+ * 패널 하나의 frame 을 구독한다. 새 snapshot 의 frame 이 직전과 화면상 같으면 직전 객체를
+ * 그대로 돌려줘 (`useSyncExternalStore` 의 Object.is 비교를 통과시켜) 재렌더를 막는다.
+ * 그래서 돌려준 frame 의 `layoutVersion` 은 "이 frame 이 마지막으로 바뀐 flush 의 version"
+ * 이지 최신 snapshot version 이 아니다 — 최신 version 은 `getSnapshot().version` 으로 읽는다.
+ */
 export function usePanelWorkspaceFrameSnapshot(
   coordinator: PanelWorkspaceLayoutCoordinator,
   panelId: PanelId,
 ): PanelWorkspaceFrameSnapshot | null {
-  return useSyncExternalStore(
-    coordinator.subscribe,
-    () => coordinator.getSnapshot().frameGeometries.get(panelId) ?? null,
-    () => coordinator.getSnapshot().frameGeometries.get(panelId) ?? null,
+  const read = useCallback(
+    () => readStableFrameSnapshot(coordinator, panelId),
+    [coordinator, panelId],
   );
+  return useSyncExternalStore(coordinator.subscribe, read, read);
+}
+
+// (coordinator, panelId) 별로 마지막에 돌려준 frame. React 밖에 두는 이유 — getSnapshot 은
+// 렌더 중 호출되므로 ref·클로저 변수를 여기서 고치면 react-hooks/immutability 위반이고,
+// 같은 패널을 읽는 훅 인스턴스가 여럿이어도 같은 객체를 받는 편이 맞다. coordinator 가
+// 수거되면 함께 사라진다.
+const stableFrameSnapshotCache = new WeakMap<
+  PanelWorkspaceLayoutCoordinator,
+  Map<PanelId, PanelWorkspaceFrameSnapshot>
+>();
+
+function readStableFrameSnapshot(
+  coordinator: PanelWorkspaceLayoutCoordinator,
+  panelId: PanelId,
+): PanelWorkspaceFrameSnapshot | null {
+  const next = coordinator.getSnapshot().frameGeometries.get(panelId) ?? null;
+  let frames = stableFrameSnapshotCache.get(coordinator);
+  if (!frames) {
+    frames = new Map();
+    stableFrameSnapshotCache.set(coordinator, frames);
+  }
+  if (next === null) {
+    frames.delete(panelId);
+    return null;
+  }
+  const cached = frames.get(panelId);
+  if (cached && panelWorkspaceFrameSnapshotEquals(cached, next)) return cached;
+  frames.set(panelId, next);
+  return next;
 }
