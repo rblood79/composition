@@ -129,6 +129,29 @@ describe("useFlexDirectionKeys", () => {
     const { result } = renderHook(() => useFlexDirectionKeys("e"));
     expect(result.current).toEqual(["column"]);
   });
+
+  // ADR-923 Phase 4 (G4 전반) — inline-flex 는 같은 flex 컨테이너: Direction 이 row/column 을 보여야 한다.
+  it("returns ['row'] / ['column'] when inline-flex (ADR-923 G4)", () => {
+    setElement("e", { display: "inline-flex" });
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "row",
+    ]);
+    setElement("e", { display: "inline-flex", flexDirection: "column" });
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "column",
+    ]);
+  });
+
+  it("inline-block / inline-grid 는 flex 가 아니다 (음성)", () => {
+    setElement("e", { display: "inline-block", flexDirection: "column" });
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "block",
+    ]);
+    setElement("e", { display: "inline-grid", flexDirection: "column" });
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "block",
+    ]);
+  });
 });
 
 describe("useFlexAlignmentKeys", () => {
@@ -158,6 +181,29 @@ describe("useFlexAlignmentKeys", () => {
     });
     const { result } = renderHook(() => useFlexAlignmentKeys("e"));
     expect(result.current).toEqual(["rightCenter"]);
+  });
+
+  // ADR-923 Phase 4 (G4 전반, r2 l3) — Alignment 9-grid 도 inline-flex 에서 표시된다.
+  it("inline-flex row + alignItems=center + justifyContent=flex-start → 'leftCenter' (ADR-923 G4)", () => {
+    setElement("e", {
+      display: "inline-flex",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-start",
+    });
+    const { result } = renderHook(() => useFlexAlignmentKeys("e"));
+    expect(result.current).toEqual(["leftCenter"]);
+  });
+
+  it("inline-block 은 alignItems 가 있어도 [] (음성)", () => {
+    setElement("e", {
+      display: "inline-block",
+      alignItems: "center",
+      justifyContent: "flex-start",
+    });
+    expect(renderHook(() => useFlexAlignmentKeys("e")).result.current).toEqual(
+      [],
+    );
   });
 });
 

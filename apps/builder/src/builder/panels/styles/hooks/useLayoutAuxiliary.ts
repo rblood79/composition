@@ -63,12 +63,24 @@ function useResolvedLayoutFields(id: string | null): ResolvedLayoutFields {
 }
 
 /**
- * Flex Direction 토글 키 — display=flex 이면 column|row, 아니면 block
+ * ADR-923 Phase 4 (G4 전반, reviews/923 r2 l3) — Direction · Alignment 의 flex 판정은
+ * outer 와 무관하게 **inner formatting context 가 flex 인가** 다: `flex` 와 `inline-flex` 는
+ * 같은 flex 컨테이너다 (CSS Display 3 — outer 만 다르다). 종전 `display === "flex"` 는
+ * 사용자가 지정한 `inline-flex` 요소를 block 으로 표시해 Direction/Alignment 토글이 죽었다
+ * (2026-06-27 회귀와 같은 표면). catalog 가 아직 `flex` 라 Button 표시는 무변경.
+ */
+function isFlexDisplay(display: string): boolean {
+  const d = display.trim().toLowerCase();
+  return d === "flex" || d === "inline-flex";
+}
+
+/**
+ * Flex Direction 토글 키 — display 가 flex | inline-flex 이면 column|row, 아니면 block
  */
 export function useFlexDirectionKeys(id: string | null): string[] {
   const { display, flexDirection } = useResolvedLayoutFields(id);
   return useMemo(() => {
-    if (display !== "flex") return ["block"];
+    if (!isFlexDisplay(display)) return ["block"];
     if (flexDirection === "column") return ["column"];
     return ["row"];
   }, [display, flexDirection]);
@@ -96,7 +108,7 @@ export function useFlexAlignmentKeys(id: string | null): string[] {
   const { display, flexDirection, alignItems, justifyContent } =
     useResolvedLayoutFields(id);
   return useMemo(() => {
-    if (display !== "flex") return [];
+    if (!isFlexDisplay(display)) return [];
     let vertical: string;
     let horizontal: string;
     if (flexDirection === "column") {

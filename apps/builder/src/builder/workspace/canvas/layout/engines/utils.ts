@@ -4583,6 +4583,231 @@ export const INLINE_BLOCK_TAGS = new Set([
 ]);
 
 /**
+ * ADR-923 Phase 4 (G5) — `INLINE_BLOCK_TAGS` 24 항목의 **두 역할 분리** (Phase 0 §B 분류표,
+ * `docs/adr/evidence/923-phase0-inventory.md`).
+ *
+ * `INLINE_BLOCK_TAGS` 는 두 개념을 한 Set 으로 겸용해 왔다 — (a) 부모가 보는 **기본 display**
+ * (`getElementDisplay` → `inline-block`) 와 (b) **intrinsic 측정 필요** (`needsWidth` 게이트 →
+ * `calculateContentWidth`). 24 항목 전부 (b) 는 필요하지만 (a) 는 항목마다 다르다:
+ * - role `AB` 11 — display 도 catalog 로 파생 가능 (inline-* — 사용자-가시 DOM 과 outer 일치)
+ * - role `B` 6 — 측정만 필요. catalog/DOM 이 block-level (flex/grid/table) 인데 이 Set 에 있어 부모가
+ *   inline-block 으로 봤다 (display 역할이 틀림 — Phase 5 에서 display 목록에서 빠진다)
+ * - role `?` 7 — 분류 불가 + 사유 (catalog rule 없음 5 · Menu B7 의도된 차이 · DateInput display 없음)
+ * display 원천: `catalog` (파생 가능) / `hand` (파생 원천 없음 → 손 목록 + 사유; 값은 **현재 동작**
+ * 을 그대로 적는다 — Phase 4 는 동작 무변경, `resolveDefaultDisplay` 는 Phase 5 까지 미배선이고 Phase 5
+ * Q4 소비 경로 캡처가 판정한다).
+ *
+ * Phase 4 에서는 `needsWidth` 만 `INTRINSIC_MEASURE_TAGS` 를 읽고 (멤버십 동일 → 출력 diff 0,
+ * `adr923IntrinsicMeasureSplit.test.ts`), 나머지 `INLINE_BLOCK_TAGS` 소비처와 `getElementDisplay`
+ * 는 Phase 5 cutover 까지 그대로 둔다 (단독 배선 시 catalog `flex` 가 부모 판정으로 새어 IFC
+ * 시뮬레이션이 풀린다 — reviews/923 r2 m2).
+ */
+/** Phase 0 §B 역할 — AB: display 파생 + 측정 · B: 측정만 (display 역할이 틀림) · ?: 분류 불가 (사유) */
+export type InlineBlockTagRole = "AB" | "B" | "?";
+/** 기본 display 의 원천 — catalog 파생 가능 / 손 목록 (파생 원천 없음) */
+export type InlineBlockTagDisplaySource = "catalog" | "hand";
+
+export interface InlineBlockTagClassification {
+  /** intrinsic 측정 (`needsWidth` → `calculateContentWidth`) 이 필요한가 — 24 항목 전부 true */
+  readonly measure: true;
+  readonly role: InlineBlockTagRole;
+  /** 기본 display 의 원천 */
+  readonly display: InlineBlockTagDisplaySource;
+  /** `display: "hand"` 일 때 손 목록 값 (현재 동작) */
+  readonly handDisplay?: string;
+  readonly reason: string;
+}
+
+export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
+  Record<string, InlineBlockTagClassification>
+> = {
+  button: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason:
+      "텍스트+아이콘 합성 leaf 폭 측정 (utils button 분기). display 는 catalog top-level (Phase 5 에서 inline-flex 전환 대상, DOM Button.css inline-flex)",
+  },
+  submitbutton: {
+    measure: true,
+    role: "?",
+    display: "hand",
+    handDisplay: "inline-block",
+    reason:
+      "catalog rule 없음 · 생성 참조 0 — 파생 원천 없음. 폭·높이는 button 분기 공유. 현재 값 유지, Phase 5 Q4 판정",
+  },
+  fancybutton: {
+    measure: true,
+    role: "?",
+    display: "hand",
+    handDisplay: "inline-block",
+    reason:
+      "catalog rule 없음 · 생성 참조 0 — 파생 원천 없음. button 분기 공유. 현재 값 유지, Phase 5 Q4 판정",
+  },
+  togglebutton: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason:
+      "텍스트 leaf 폭 측정. display 는 catalog top-level (Phase 5 inline-flex 전환 대상, DOM ToggleButton.css inline-flex)",
+  },
+  badge: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason:
+      "텍스트 leaf (전용 분기 없음 → 텍스트 fallback). catalog structure inline-flex = DOM",
+  },
+  progresscircle: {
+    measure: true,
+    role: "B",
+    display: "catalog",
+    reason:
+      "self-render leaf (CIRCLE_LEAF_TAGS, width = diameter). catalog structure grid = block-level — 이 Set 등재가 부모 판정을 inline-block 으로 만들어 DOM 과 어긋남 (B)",
+  },
+  type: {
+    measure: true,
+    role: "?",
+    display: "hand",
+    handDisplay: "inline-block",
+    reason:
+      "catalog rule 없음 · 생성 경로 미확인 (소비처 needsWidth · VERTICALLY_CENTERED_TAGS 뿐). 현재 값 유지, Phase 5 Q4 판정",
+  },
+  chip: {
+    measure: true,
+    role: "?",
+    display: "hand",
+    handDisplay: "inline-block",
+    reason:
+      "catalog rule 없음 (chip 은 TagList self-render) · 생성 참조 0. 현재 값 유지, Phase 5 Q4 판정",
+  },
+  checkbox: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason:
+      "합성 (indicator + Label 자식) childElements 경로 측정. catalog structure inline-flex (DOM 충돌 Checkbox.css flex vs generated inline-flex 는 Phase 5 HC2 판정)",
+  },
+  radio: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason:
+      "합성 (indicator + Label) 측정. catalog structure inline-flex (DOM 충돌 Radio.css flex vs generated inline-flex 는 Phase 5 HC2 판정)",
+  },
+  switch: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason:
+      "합성 (indicator + Label) 측정. catalog structure inline-flex = DOM Switch.css",
+  },
+  togglebuttongroup: {
+    measure: true,
+    role: "B",
+    display: "catalog",
+    reason:
+      "합성 컨테이너 fit-content 측정 (utils :1711 분기). catalog top/structure flex = block-level (B)",
+  },
+  toolbar: {
+    measure: true,
+    role: "B",
+    display: "catalog",
+    reason:
+      "자식 합산 fit-content 측정. catalog structure flex = block-level (B)",
+  },
+  statuslight: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason:
+      "합성 leaf (dot + text) 측정. catalog structure inline-flex (DOM generated dead — 실효 UA 기본, Phase 5 HC2 판정)",
+  },
+  link: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason: "텍스트 leaf 측정. catalog structure inline-flex = DOM Link.css",
+  },
+  linkbutton: {
+    measure: true,
+    role: "?",
+    display: "hand",
+    handDisplay: "inline-block",
+    reason: "catalog rule 없음 · 생성 참조 0. 현재 값 유지, Phase 5 Q4 판정",
+  },
+  breadcrumb: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason:
+      "합성 leaf (label + separator) 측정 (ADR-086 P5). catalog structure inline-flex (DOM generated dead → UA li, Phase 5 HC2 판정)",
+  },
+  icon: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason:
+      "self-render leaf (iconSize) 측정. catalog structure inline-flex = DOM generated Icon.css",
+  },
+  menu: {
+    measure: true,
+    role: "?",
+    display: "catalog",
+    reason:
+      "트리거 텍스트 측정 (BUTTON_LIKE_TAGS). catalog top-level inline-flex = Canvas 트리거 박스 (DOM root 는 popover flex — ADR-151 B7 의도된 차이, top-level 이 대체)",
+  },
+  tab: {
+    measure: true,
+    role: "AB",
+    display: "catalog",
+    reason:
+      "텍스트 leaf 측정 (텍스트 fallback). catalog structure inline-flex = DOM Tab.css",
+  },
+  disclosureheader: {
+    measure: true,
+    role: "B",
+    display: "catalog",
+    reason:
+      "합성 leaf (chevron + text) 측정 — R5 선례 073751610 (미등록 시 width 0). catalog structure flex = block-level (B)",
+  },
+  calendarheader: {
+    measure: true,
+    role: "B",
+    display: "catalog",
+    reason:
+      "합성 leaf (chevron + text + chevron) 측정. catalog structure flex = block-level (B)",
+  },
+  calendargrid: {
+    measure: true,
+    role: "B",
+    display: "hand",
+    handDisplay: "block",
+    reason:
+      "self-render leaf (cellSize*7) 측정. rule 은 있으나 catalog display 없음 → 파생 불가; DOM 은 UA table (block-level, §B outer=block). Phase 5 에서 catalog display 등재 판정",
+  },
+  dateinput: {
+    measure: true,
+    role: "?",
+    display: "hand",
+    handDisplay: "inline-block",
+    reason:
+      "self-render leaf (segments + icon) 측정 (2026-06-23 버그). rule 은 있으나 catalog display 없음 → 파생 불가; DOM 은 문맥 셀렉터 inline-flex (outer inline 동일). 현재 값 유지, Phase 5 catalog display 등재 판정",
+  },
+};
+
+/**
+ * intrinsic 측정 capability — **명시 목록** (catalog 파생 아님). `needsWidth` 의 유일한 소비 원천.
+ * Phase 4 에서는 `INLINE_BLOCK_TAGS` 와 멤버십이 같다 (`adr923IntrinsicMeasureSplit.test.ts` 가
+ * 고정) — Phase 5 가 `INLINE_BLOCK_TAGS` 를 삭제하면 이 목록만 남는다.
+ */
+export const INTRINSIC_MEASURE_TAGS: ReadonlySet<string> = new Set(
+  Object.entries(INLINE_BLOCK_TAG_CLASSIFICATION)
+    .filter(([, c]) => c.measure)
+    .map(([tag]) => tag),
+);
+
+/**
  * 텍스트만 포함하는 리프 태그 — 줄바꿈 시 높이가 width에 따라 동적으로 변함
  * enrichWithIntrinsicSize 2-pass에서 width 변경 시 높이 재계산 대상
  */
@@ -4781,7 +5006,9 @@ export function enrichWithIntrinsicSize(
   // Image: replaced element — auto/fit-content 시 자연 치수 사용 필요
   const needsWidth =
     hasExplicitIntrinsicWidthKeyword ||
-    (INLINE_BLOCK_TAGS.has(type) &&
+    // ADR-923 Phase 4 (G5): 측정 capability 는 INTRINSIC_MEASURE_TAGS (명시 목록) 가 원천 —
+    //   INLINE_BLOCK_TAGS 의 display 역할과 분리. 멤버십 동일 → 출력 diff 0 (분리 전 baseline 게이트).
+    (INTRINSIC_MEASURE_TAGS.has(type) &&
       (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
     // 정원형 leaf(ProgressCircle/Avatar): width = diameter = catalog sizes.height.
     //   progresscircle 은 INLINE_BLOCK_TAGS 로도 커버되지만 avatar 는 IMAGE_INTRINSIC_TAGS 소속이라

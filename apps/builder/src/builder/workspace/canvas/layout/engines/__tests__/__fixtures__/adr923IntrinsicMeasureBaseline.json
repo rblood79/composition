@@ -1,0 +1,575 @@
+{
+  "capturedAt": "ee4bd0b9d (Phase 4 착수 직전, INLINE_BLOCK_TAGS 경로)",
+  "tags": [
+    "button",
+    "submitbutton",
+    "fancybutton",
+    "togglebutton",
+    "badge",
+    "progresscircle",
+    "type",
+    "chip",
+    "checkbox",
+    "radio",
+    "switch",
+    "togglebuttongroup",
+    "toolbar",
+    "statuslight",
+    "link",
+    "linkbutton",
+    "breadcrumb",
+    "icon",
+    "menu",
+    "tab",
+    "disclosureheader",
+    "calendarheader",
+    "calendargrid",
+    "dateinput",
+    "div",
+    "text",
+    "label",
+    "avatar",
+    "breadcrumbs",
+    "taglist",
+    "tagview"
+  ],
+  "fingerprints": {
+    "button @absent": {
+      "height": 30,
+      "width": 68
+    },
+    "button @auto": {
+      "width": 68,
+      "height": 30
+    },
+    "button @fit-content": {
+      "width": 68,
+      "height": 30
+    },
+    "button @px120": {
+      "width": 120,
+      "height": 30
+    },
+    "submitbutton @absent": {
+      "height": 30,
+      "width": 68
+    },
+    "submitbutton @auto": {
+      "width": 68,
+      "height": 30
+    },
+    "submitbutton @fit-content": {
+      "width": 68,
+      "height": 30
+    },
+    "submitbutton @px120": {
+      "width": 120,
+      "height": 30
+    },
+    "fancybutton @absent": {
+      "height": 30,
+      "width": 68
+    },
+    "fancybutton @auto": {
+      "width": 68,
+      "height": 30
+    },
+    "fancybutton @fit-content": {
+      "width": 68,
+      "height": 30
+    },
+    "fancybutton @px120": {
+      "width": 120,
+      "height": 30
+    },
+    "togglebutton @absent": {
+      "height": 30,
+      "width": 117
+    },
+    "togglebutton @auto": {
+      "width": 117,
+      "height": 30
+    },
+    "togglebutton @fit-content": {
+      "width": 117,
+      "height": 30
+    },
+    "togglebutton @px120": {
+      "width": 120,
+      "height": 30
+    },
+    "badge @absent": {
+      "height": 22,
+      "width": 48
+    },
+    "badge @auto": {
+      "width": 48,
+      "height": 22
+    },
+    "badge @fit-content": {
+      "width": 48,
+      "height": 22
+    },
+    "badge @px120": {
+      "width": 120,
+      "height": 22
+    },
+    "progresscircle @absent": {
+      "width": 32,
+      "height": 32
+    },
+    "progresscircle @auto": {
+      "width": 32,
+      "height": 32
+    },
+    "progresscircle @fit-content": {
+      "width": 32,
+      "height": 32
+    },
+    "progresscircle @px120": {
+      "width": 120,
+      "height": 32
+    },
+    "type @absent": {
+      "height": 24,
+      "width": 30
+    },
+    "type @auto": {
+      "width": 30,
+      "height": 24
+    },
+    "type @fit-content": {
+      "width": 30,
+      "height": 24
+    },
+    "type @px120": {
+      "width": 120,
+      "height": 24
+    },
+    "chip @absent": {
+      "height": 30,
+      "width": 56
+    },
+    "chip @auto": {
+      "width": 56,
+      "height": 30
+    },
+    "chip @fit-content": {
+      "width": 56,
+      "height": 30
+    },
+    "chip @px120": {
+      "width": 120,
+      "height": 30
+    },
+    "checkbox @absent": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "height": 24,
+      "width": 84
+    },
+    "checkbox @auto": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "width": 84,
+      "height": 24
+    },
+    "checkbox @fit-content": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "width": 84,
+      "height": 24
+    },
+    "checkbox @px120": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "width": 120,
+      "height": 24
+    },
+    "radio @absent": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "height": 24,
+      "width": 63
+    },
+    "radio @auto": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "width": 63,
+      "height": 24
+    },
+    "radio @fit-content": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "width": 63,
+      "height": 24
+    },
+    "radio @px120": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "width": 120,
+      "height": 24
+    },
+    "switch @absent": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "height": 20,
+      "width": 88
+    },
+    "switch @auto": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "width": 88,
+      "height": 20
+    },
+    "switch @fit-content": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "width": 88,
+      "height": 20
+    },
+    "switch @px120": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "width": 120,
+      "height": 20
+    },
+    "togglebuttongroup @absent": {},
+    "togglebuttongroup @auto": {
+      "width": "auto"
+    },
+    "togglebuttongroup @fit-content": {
+      "width": "fit-content"
+    },
+    "togglebuttongroup @px120": {
+      "width": 120
+    },
+    "toolbar @absent": {
+      "height": 24,
+      "width": 40
+    },
+    "toolbar @auto": {
+      "width": 40,
+      "height": 24
+    },
+    "toolbar @fit-content": {
+      "width": 40,
+      "height": 24
+    },
+    "toolbar @px120": {
+      "width": 120,
+      "height": 24
+    },
+    "statuslight @absent": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "gap": 8,
+      "height": 24,
+      "width": 81
+    },
+    "statuslight @auto": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "gap": 8,
+      "width": 81,
+      "height": 24
+    },
+    "statuslight @fit-content": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "gap": 8,
+      "width": 81,
+      "height": 24
+    },
+    "statuslight @px120": {
+      "display": "inline-flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "gap": 8,
+      "width": 120,
+      "height": 24
+    },
+    "link @absent": {
+      "height": 20,
+      "width": 28
+    },
+    "link @auto": {
+      "width": 28,
+      "height": 20
+    },
+    "link @fit-content": {
+      "width": 28,
+      "height": 20
+    },
+    "link @px120": {
+      "width": 120,
+      "height": 20
+    },
+    "linkbutton @absent": {
+      "height": 24,
+      "width": 35
+    },
+    "linkbutton @auto": {
+      "width": 35,
+      "height": 24
+    },
+    "linkbutton @fit-content": {
+      "width": 35,
+      "height": 24
+    },
+    "linkbutton @px120": {
+      "width": 120,
+      "height": 24
+    },
+    "breadcrumb @absent": {
+      "height": 24,
+      "width": 64
+    },
+    "breadcrumb @auto": {
+      "width": 64,
+      "height": 24
+    },
+    "breadcrumb @fit-content": {
+      "width": 64,
+      "height": 24
+    },
+    "breadcrumb @px120": {
+      "width": 120,
+      "height": 24
+    },
+    "icon @absent": {
+      "height": 24,
+      "width": 24
+    },
+    "icon @auto": {
+      "width": 24,
+      "height": 24
+    },
+    "icon @fit-content": {
+      "width": 24,
+      "height": 24
+    },
+    "icon @px120": {
+      "width": 120,
+      "height": 24
+    },
+    "menu @absent": {
+      "height": 30,
+      "width": 68
+    },
+    "menu @auto": {
+      "width": 68,
+      "height": 30
+    },
+    "menu @fit-content": {
+      "width": 68,
+      "height": 30
+    },
+    "menu @px120": {
+      "width": 120,
+      "height": 30
+    },
+    "tab @absent": {
+      "height": 30,
+      "width": 61
+    },
+    "tab @auto": {
+      "width": 61,
+      "height": 30
+    },
+    "tab @fit-content": {
+      "width": 61,
+      "height": 30
+    },
+    "tab @px120": {
+      "width": 120,
+      "height": 30
+    },
+    "disclosureheader @absent": {
+      "height": 36,
+      "width": 83
+    },
+    "disclosureheader @auto": {
+      "width": 83,
+      "height": 36
+    },
+    "disclosureheader @fit-content": {
+      "width": 83,
+      "height": 36
+    },
+    "disclosureheader @px120": {
+      "width": 120,
+      "height": 36
+    },
+    "calendarheader @absent": {
+      "height": 30,
+      "width": 238
+    },
+    "calendarheader @auto": {
+      "width": 238,
+      "height": 30
+    },
+    "calendarheader @fit-content": {
+      "width": 238,
+      "height": 30
+    },
+    "calendarheader @px120": {
+      "width": 120,
+      "height": 30
+    },
+    "calendargrid @absent": {
+      "height": 200,
+      "width": 238
+    },
+    "calendargrid @auto": {
+      "width": 238,
+      "height": 200
+    },
+    "calendargrid @fit-content": {
+      "width": 238,
+      "height": 200
+    },
+    "calendargrid @px120": {
+      "width": 120,
+      "height": 200
+    },
+    "dateinput @absent": {
+      "height": 30,
+      "width": 122
+    },
+    "dateinput @auto": {
+      "width": 122,
+      "height": 30
+    },
+    "dateinput @fit-content": {
+      "width": 122,
+      "height": 30
+    },
+    "dateinput @px120": {
+      "width": 120,
+      "height": 30
+    },
+    "div @absent": {},
+    "div @auto": {
+      "width": "auto"
+    },
+    "div @fit-content": {
+      "width": 40
+    },
+    "div @px120": {
+      "width": 120
+    },
+    "text @absent": {
+      "height": 24,
+      "leafBaseline": 14.4
+    },
+    "text @auto": {
+      "width": "auto",
+      "height": 24,
+      "leafBaseline": 14.4
+    },
+    "text @fit-content": {
+      "width": "fit-content",
+      "height": 24,
+      "contentMinWidth": 32,
+      "contentMaxWidth": 32,
+      "leafBaseline": 14.4
+    },
+    "text @px120": {
+      "width": 120,
+      "height": 24,
+      "leafBaseline": 14.4
+    },
+    "label @absent": {
+      "fontSize": 14,
+      "fontWeight": 600,
+      "width": "fit-content",
+      "height": 20,
+      "contentMinWidth": 35,
+      "contentMaxWidth": 63,
+      "leafBaseline": 12.600000000000001
+    },
+    "label @auto": {
+      "fontSize": 14,
+      "fontWeight": 600,
+      "width": "auto",
+      "height": 20,
+      "leafBaseline": 12.600000000000001
+    },
+    "label @fit-content": {
+      "fontSize": 14,
+      "fontWeight": 600,
+      "width": "fit-content",
+      "height": 20,
+      "contentMinWidth": 35,
+      "contentMaxWidth": 63,
+      "leafBaseline": 12.600000000000001
+    },
+    "label @px120": {
+      "fontSize": 14,
+      "fontWeight": 600,
+      "width": 120,
+      "height": 20,
+      "leafBaseline": 12.600000000000001
+    },
+    "avatar @absent": {
+      "height": 32,
+      "width": 32
+    },
+    "avatar @auto": {
+      "width": 32,
+      "height": 32
+    },
+    "avatar @fit-content": {
+      "width": 32,
+      "height": 32
+    },
+    "avatar @px120": {
+      "width": 120,
+      "height": 32
+    },
+    "breadcrumbs @absent": {
+      "height": 24
+    },
+    "breadcrumbs @auto": {
+      "width": "auto",
+      "height": 24
+    },
+    "breadcrumbs @fit-content": {
+      "width": "fit-content",
+      "height": 24
+    },
+    "breadcrumbs @px120": {
+      "width": 120,
+      "height": 24
+    },
+    "taglist @absent": {},
+    "taglist @auto": {
+      "width": "auto"
+    },
+    "taglist @fit-content": {
+      "width": 40
+    },
+    "taglist @px120": {
+      "width": 120
+    },
+    "tagview @absent": {
+      "height": 24
+    },
+    "tagview @auto": {
+      "width": "auto",
+      "height": 24
+    },
+    "tagview @fit-content": {
+      "width": 40,
+      "height": 24
+    },
+    "tagview @px120": {
+      "width": 120,
+      "height": 24
+    }
+  }
+}

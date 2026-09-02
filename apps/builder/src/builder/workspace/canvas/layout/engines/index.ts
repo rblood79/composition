@@ -41,6 +41,8 @@ export {
   // 🚀 §6 P1: intrinsic size 주입 (엔진 공유)
   enrichWithIntrinsicSize,
   INLINE_BLOCK_TAGS,
+  INLINE_BLOCK_TAG_CLASSIFICATION,
+  INTRINSIC_MEASURE_TAGS,
   getPhantomIndicatorWidth,
 } from "./utils";
 
@@ -64,3 +66,5 @@ export {
   getSharedLayoutVersion,
   onLayoutPublished,
 } from "./fullTreeLayout";
+// ADR-923 Phase 4 — catalog 파생 기본 display (getElementDisplay 배선은 Phase 5)
+export { resolveDefaultDisplay } from "./defaultDisplay";
