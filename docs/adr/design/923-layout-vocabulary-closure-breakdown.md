@@ -184,11 +184,11 @@ ADR-923 은 **display 의 이중 표현**과 **어댑터가 문서에 없는 의
 
 ### Phase 6 — 명명 정리 + capability matrix seed + 문서
 
-- [ ] Taffy 식별자 8 파일(코드 7 + 파일명 5 합집합) 개명 (`taffyDisplayAdapter.ts → displayAdapter.ts`, `TaffyBlockEngine.ts → blockStyleAdapter.ts`, `TaffyStyle → EngineStyle`, `toTaffyDisplay → toEngineDisplay` …). 동작 무변경 commit.
-- [ ] 헤더 재작성: "시뮬레이션 규칙" 절 삭제 → "번역 규칙 + display 이원 계약(`display.rs`) 참조".
-- [ ] capability matrix **seed** (`apps/builder/src/builder/workspace/canvas/layout/engines/layoutCapabilityMatrix.ts`): 행 = `{ property, value, engineSupport: "native"|"partial"|"none", policy: "pass"|"declared-substitution"|"ignored", oracle?: string }`. §2.2 의 S4/S7/S8 을 `ignored`/`declared-substitution` 으로 **선언만**, 각 항목의 현재 Chrome 격차 수치를 1 케이스씩 기록. 집행(게이트 테스트·정규화) 은 §8.
-- [ ] `docs/CHANGELOG.md` (사용자-가시: block 컨테이너 안 inline-level 배치가 Chrome 과 일치, Button Direction 표시 정정), ADR-198 breakdown catalog 발산 종결 표기, ADR-916 완료 문서에 "명명 잔재 ADR-923 정리" 각주.
-- [ ] `### Live Exercise` → Implemented 승격.
+- [x] Taffy 식별자 8 파일(코드 7 + 파일명 5 합집합) 개명 (`taffyDisplayAdapter.ts → displayAdapter.ts`, `TaffyBlockEngine.ts → blockStyleAdapter.ts`, `TaffyStyle → EngineStyle`, `toTaffyDisplay → toEngineDisplay` …). 동작 무변경 commit. **완료 2026-09-03 `7f1cf963d`** — 파일 5 (+test) · 심볼 30종 (`layoutTypes` 타입 17 · `EngineDisplayConfig.engineDisplay` · `PersistentLayoutTree` · `elementToEngineStyle/BlockStyle` · `applyCommonEngineStyle` · `engineStyleToRecord` · 지역/필드) · 41 파일 (builder src/tests 31 · scripts 1 · Rust doc 4 · .claude 5). 개명 지도 evidence/923-phase6-naming-capability-seed.md §1. 검증 type-check · layout 469 · builder 3772 · focused 122 · cargo.
+- [x] 헤더 재작성: "시뮬레이션 규칙" 절 삭제 → "번역 규칙 + display 이원 계약(`display.rs`) 참조". **완료** — `displayAdapter.ts` 는 round 31 (`91c2c25e6`) 에서 운반 레이어 + 번역 규칙 3 으로, 개명 파일 4 머리말은 6a 에서 "style 어댑터 (값 변환만, 계산은 Rust 엔진)" 으로 재작성 (`blockStyleAdapter` 의 종전 IFC 시뮬레이션 서술 삭제, `layoutTypes.ts` "Taffy 접두 유지" 문구 정정).
+- [x] capability matrix **seed** (`apps/builder/src/builder/workspace/canvas/layout/engines/layoutCapabilityMatrix.ts`): 행 = `{ property, value, engineSupport: "native"|"partial"|"none", policy: "pass"|"declared-substitution"|"ignored", oracle?: string }`. §2.2 의 S4/S7/S8 을 `ignored`/`declared-substitution` 으로 **선언만**, 각 항목의 현재 Chrome 격차 수치를 1 케이스씩 기록. 집행(게이트 테스트·정규화) 은 §8. **완료 2026-09-03 `b48978fc1`** — 3 행 선언 + `adr923CapabilityMatrixSeed.browser.test.ts` 실측 고정: S4 `display:inline` ignored gap {41.9, 19, 259.2, 2} · S7 `float:left` ignored {0, 20, 0, 0} · S8 `grid-template-columns: subgrid` declared-substitution {100, 20, 0, 0}. `grid-auto-flow: dense` 는 실측 Δ0 (구현돼 있음 — §2.2 S8 의 "dense 미구현" 은 낡음) 이라 matrix 밖. 원복 RED (h) 표 값 1 · (i) 케이스 float 제거 1. evidence §2.
+- [x] `docs/CHANGELOG.md` (사용자-가시: block 컨테이너 안 inline-level 배치가 Chrome 과 일치, Button Direction 표시 정정), ADR-198 breakdown catalog 발산 종결 표기, ADR-916 완료 문서에 "명명 잔재 ADR-923 정리" 각주. **완료 2026-09-03** — CHANGELOG 2건은 Phase 5 엔트리 (`75d134e1f`) 에 이미 있음 (Phase 6 은 동작 무변경 면제, 승격 때 덧붙임) · ADR-198 breakdown `catalog-state-paint` L1 절 종결 표기 · ADR-916 각주.
+- [ ] `### Live Exercise` → Implemented 승격. (6d — Codex round 33 통과 후: 개명 후 main 에서 G6 시나리오 Chrome MCP 재실행 → 본문 기재 → Implemented + closure 5단계.)
 
 ## 4. 파일 변경표
 

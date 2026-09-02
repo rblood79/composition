@@ -1007,11 +1007,11 @@ was scoped as "calibrate cross-leg budgets"; the answer is that the budgets are
 not what is standing in the way. Three divergences remain, and none of them is a
 tolerance problem:
 
-| case | residual | character |
-| --- | --- | --- |
-| `basic-geometry-paint` | fill regions at `maxByte 145` (`body-fill` ratio 0.0221, `outer-fill` 0.0557) | **not only an edge band** — outside a 3px band around every node boundary the frame still carries `maxByte 145` at `changed 0.0016`. Corner arcs are the leading suspect; unproven |
-| `catalog-state-paint` | L1 geometry: `state-button-enabled` differs by **x 140px, y 55px** (and width 2.66px) | layout, not raster. The pixel layers do not run at all — pixel diffs after a geometry divergence are not interpretable |
-| `text-raster-resources` | `heading-text` 0.0769/239, `paragraph-text` 0.0963/204, `image-raster` **ratio 0.914** mean 137 | text sits near the expected hinting range; the image region differs across 91% of its pixels, which reads as one leg not drawing it |
+| case                    | residual                                                                                        | character                                                                                                                                                                          |
+| ----------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `basic-geometry-paint`  | fill regions at `maxByte 145` (`body-fill` ratio 0.0221, `outer-fill` 0.0557)                   | **not only an edge band** — outside a 3px band around every node boundary the frame still carries `maxByte 145` at `changed 0.0016`. Corner arcs are the leading suspect; unproven |
+| `catalog-state-paint`   | L1 geometry: `state-button-enabled` differs by **x 140px, y 55px** (and width 2.66px)           | layout, not raster. The pixel layers do not run at all — pixel diffs after a geometry divergence are not interpretable                                                             |
+| `text-raster-resources` | `heading-text` 0.0769/239, `paragraph-text` 0.0963/204, `image-raster` **ratio 0.914** mean 137 | text sits near the expected hinting range; the image region differs across 91% of its pixels, which reads as one leg not drawing it                                                |
 
 Compare with the pre-repair numbers that forced the 4a/4b split
 (`maxByte 234-239`, `changedFraction` 0.076-0.304 whole-frame): repairing the
@@ -1057,18 +1057,20 @@ control arm that moves one axis, in both directions.
 
 **`catalog-state-paint` L1 geometry — root cause confirmed, repair is a decision.**
 
+> **종결 (ADR-923 Phase 5, 2026-09-02)**: 아래 기전 (종전 TS IFC 시뮬레이션의 `needsBlockChildFullWidth`) 은 ADR-923 Phase 5 cutover 로 삭제되고 엔진 `block.rs` line box 가 대체했다 — `blockInlineProbe` block+Button 의 두 leg 위치 발산 (x 140 / y 55) 은 **0**. 잔여는 Button **폭** Δ2.66 / Δ2.80px (텍스트 측정 계열, ADR-923 범위 밖) 이라 `KNOWN_LAYERS["catalog-state-paint"]` 층 판정은 결과로만 갱신됐다 (`L1:fail` 유지, 내용은 폭 Δ). 상세: evidence/923-phase5-cutover.md §0 ADR-198 crossLeg 행.
+
 The first hypothesis was that the engine flows block-level and inline-level
 siblings together where CSS would not. A control probe
 (`compare/blockInlineProbe.browser.test.ts`) **refuted** it: with a plain
 `inline-flex` frame in the same position, both legs place it identically. The
 axis is narrower than that:
 
-| second child | first child width | Skia | Preview |
-| --- | --- | --- | --- |
-| block frame | 120px | (16,56) | (16,56) |
-| inline-flex frame | 120px | (16,56) | (16,56) |
-| **catalog Button** | **120px** | **(136,21)** | **(16,56)** |
-| catalog Button | auto | (16,56) | (16,56) |
+| second child       | first child width | Skia         | Preview     |
+| ------------------ | ----------------- | ------------ | ----------- |
+| block frame        | 120px             | (16,56)      | (16,56)     |
+| inline-flex frame  | 120px             | (16,56)      | (16,56)     |
+| **catalog Button** | **120px**         | **(136,21)** | **(16,56)** |
+| catalog Button     | auto              | (16,56)      | (16,56)     |
 
 The mechanism, read out of the code and confirmed by the last row:
 
