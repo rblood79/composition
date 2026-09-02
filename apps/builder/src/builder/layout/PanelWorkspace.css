@@ -370,9 +370,28 @@
     transform: translateX(-50%);
   }
 
+  /* 드래그 중(data-resizing) 에는 포인터가 손잡이 영역을 벗어나도 표시를 유지한다 —
+     패널 폭은 한 프레임 뒤에 따라오므로 hover 만으로는 드래그 내내 깜박인다. */
   .panel-resize-handle:hover::after,
-  .panel-resize-handle:focus-visible::after {
+  .panel-resize-handle:focus-visible::after,
+  .panel-resize-handle[data-resizing="true"]::after {
     opacity: 1;
+  }
+
+  /* 드래그 중 document.body 에 포털로 붙는 투명 막 (PanelSplitter). 손잡이 밖에서도
+     resize 커서를 유지하고 아래 요소의 hover·텍스트 선택을 막는다. */
+  .panel-resize-shield {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    cursor: ew-resize;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .panel-resize-shield[data-edge="top"],
+  .panel-resize-shield[data-edge="bottom"] {
+    cursor: ns-resize;
   }
 
   .panel-cluster-splitter {

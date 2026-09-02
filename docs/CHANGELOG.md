@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [크기 조절 손잡이가 드래그 중 깜박이지 않습니다] - 2026-09-02
+
+### Fixed
+
+- 패널·섹션·compare 구분선을 드래그하는 동안 손잡이 표시가 사라졌다 나타나던 것을 고쳤습니다. 표시가 마우스 hover 에만 묶여 있어, 패널이 한 프레임 뒤에 따라오는 사이 포인터가 10px 손잡이 영역을 벗어나면 꺼졌습니다. 이제 드래그가 진행되는 동안에는 포인터 위치와 무관하게 표시를 유지합니다.
+- 드래그 중에는 화면 전체에 투명 막을 덮어 resize 커서를 유지하고, 아래 패널·캔버스의 hover 반응과 텍스트 선택이 끼어들지 않게 했습니다. 키보드 조절 (화살표·Home·End) 은 막을 띄우지 않습니다.
+
 ## [Layout 패널이 inline-flex 요소의 방향·정렬을 표시합니다] - 2026-09-02
 
 ### Fixed

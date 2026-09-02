@@ -78,6 +78,49 @@ describe("PanelSplitter accessibility and interaction contract", () => {
     expect(onResize).toHaveBeenLastCalledWith(16, 0);
   });
 
+  it("keeps data-resizing and a body shield only while a pointer drag is in progress", () => {
+    vi.stubGlobal("PointerEvent", MouseEvent);
+    const onResize = vi.fn();
+
+    render(
+      <PanelSplitter
+        edge="bottom"
+        label="Navigator 패널 아래쪽 크기 조절"
+        controls="panel-navigator-content"
+        value={300}
+        minValue={160}
+        maxValue={800}
+        onResizeStart={vi.fn()}
+        onResize={onResize}
+        onResizeEnd={vi.fn()}
+      />,
+    );
+
+    const splitter = screen.getByRole("separator");
+    const shield = () => document.body.querySelector(".panel-resize-shield");
+
+    // 클릭만으로는 켜지지 않는다 (useMove 는 첫 이동에서 시작)
+    dispatchPointer(splitter, "pointerdown", 100);
+    expect(splitter.getAttribute("data-resizing")).toBeNull();
+    expect(shield()).toBeNull();
+
+    dispatchPointer(window, "pointermove", 108);
+    expect(splitter.getAttribute("data-resizing")).toBe("true");
+    expect(shield()?.getAttribute("data-edge")).toBe("bottom");
+    expect(shield()?.getAttribute("aria-hidden")).toBe("true");
+
+    dispatchPointer(window, "pointerup", 108);
+    expect(splitter.getAttribute("data-resizing")).toBeNull();
+    expect(shield()).toBeNull();
+
+    // 키보드 조절은 막을 띄우지 않는다
+    splitter.focus();
+    fireEvent.keyDown(splitter, { key: "ArrowDown" });
+    expect(onResize).toHaveBeenLastCalledWith(0, 1);
+    expect(splitter.getAttribute("data-resizing")).toBeNull();
+    expect(shield()).toBeNull();
+  });
+
   it("moves to min/max with Home/End and preserves physical RTL direction", () => {
     const onResize = vi.fn();
 

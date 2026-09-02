@@ -76,14 +76,16 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     );
     expect(styles).toContain("--panel-interaction-line-size: 2px");
     // 손잡이 선 길이 토큰 — 가로형은 length×size, 세로형은 size×length 로만 정의한다
-    expect(styles).toContain("--panel-interaction-line-length: 36px");
+    expect(styles).toContain("--panel-interaction-line-length: 32px");
     expect(styles).toMatch(
       /\.panel-resize-handle\[data-edge="left"\]::after,[\s\S]*?height: var\(--panel-interaction-line-length\);/,
     );
     expect(styles).toMatch(
       /\.panel-resize-handle\[data-edge="top"\]::after,[\s\S]*?width: var\(--panel-interaction-line-length\);/,
     );
-    expect(styles).not.toMatch(/\.panel-resize-handle[^{]*::after\s*\{[^}]*\b28px/);
+    expect(styles).not.toMatch(
+      /\.panel-resize-handle[^{]*::after\s*\{[^}]*\b28px/,
+    );
     expect(styles).toMatch(
       /\.panel-snap-target\[data-edge="top"\],[\s\S]*?height: var\(--panel-interaction-line-size\);/,
     );
@@ -120,6 +122,34 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(splitter).toContain("aria-controls={controls}");
     expect(splitter).toContain("aria-valuemin={minValue}");
     expect(splitter).toContain("aria-valuemax={maxValue}");
+  });
+
+  it("드래그 중 손잡이 표시와 커서는 hover 가 아니라 data-resizing 에 묶인다", async () => {
+    const styles = await readStyles();
+    const splitter = await readSplitter();
+
+    // 손잡이 표시: hover/focus 외에 드래그 상태에서도 유지 — 포인터가 한 프레임 뒤의
+    // 10px 영역을 벗어나도 표시가 깜박이지 않는다
+    expect(splitter).toContain(
+      'data-resizing={isResizing ? "true" : undefined}',
+    );
+    expect(splitter).toMatch(
+      /onMoveStart: \(event\) => \{[\s\S]*?if \(event\.pointerType !== "keyboard"\) setIsResizing\(true\);/,
+    );
+    expect(splitter).toMatch(/onMoveEnd: \(\) => \{\s*setIsResizing\(false\);/);
+    expect(styles).toMatch(
+      /\.panel-resize-handle:hover::after,\s*\.panel-resize-handle:focus-visible::after,\s*\.panel-resize-handle\[data-resizing="true"\]::after\s*\{\s*opacity: 1;/,
+    );
+
+    // 드래그 막: body 포털, 화면 전체, edge 별 resize 커서
+    expect(splitter).toContain('className="panel-resize-shield"');
+    expect(splitter).toMatch(/createPortal\([\s\S]*?document\.body,\s*\)/);
+    expect(styles).toMatch(
+      /\.panel-resize-shield\s*\{[\s\S]*?position: fixed;[\s\S]*?inset: 0;[\s\S]*?cursor: ew-resize;/,
+    );
+    expect(styles).toMatch(
+      /\.panel-resize-shield\[data-edge="top"\],\s*\.panel-resize-shield\[data-edge="bottom"\]\s*\{\s*cursor: ns-resize;/,
+    );
   });
 
   it("drag 자유 좌표는 preview로만 publish하고 valid candidate만 v3 graph에 commit한다", async () => {
