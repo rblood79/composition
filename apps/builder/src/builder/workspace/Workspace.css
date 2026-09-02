@@ -390,19 +390,20 @@
   overflow: hidden;
 }
 
+/* 2px 그리드 열이 구분선(그리드 배경 = var(--border)). 손잡이는 다른 resize 와 같은
+   .panel-resize-handle (PanelWorkspace.css 토큰) 이고, 10px 히트 영역을 이 선 가운데에 맞춘다. */
 .workspace-compare-resizer {
-  width: 2px;
-  cursor: col-resize;
-  background-color: #f24cb8;
   position: relative;
+  width: 2px;
   z-index: 10;
-  touch-action: none;
-  transition: background-color 150ms;
 }
 
-.workspace-compare-resizer:hover,
-.workspace-compare-resizer:active {
-  background-color: #c4278a;
+.workspace-compare-resizer .panel-resize-handle {
+  top: 0;
+  right: auto;
+  bottom: 0;
+  left: -4px;
+  width: 10px;
 }
 
 .workspace-compare-label {

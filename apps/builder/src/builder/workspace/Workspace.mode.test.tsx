@@ -22,8 +22,9 @@ vi.mock("./hooks/useWorkspaceCanvasSizing", () => ({
 vi.mock("./hooks/useWorkspaceCompareSplit", () => ({
   useWorkspaceCompareSplit: () => ({
     compareSplit: 50,
+    splitter: { value: 500, minValue: 200, maxValue: 800 },
     handleResizeEnd: vi.fn(),
-    handleResizeMove: vi.fn(),
+    handleResize: vi.fn(),
     handleResizeStart: vi.fn(),
   }),
 }));

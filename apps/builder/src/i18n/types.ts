@@ -951,6 +951,7 @@ export interface TranslationKeys {
     resizePanel: string;
     resizeRow: string;
     resizeColumn: string;
+    resizeCompare: string;
     leftPanelControls: string;
     rightPanelControls: string;
     bottomPanelControls: string;

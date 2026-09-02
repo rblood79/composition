@@ -44,10 +44,15 @@ export function Workspace({
   const useWebGL = isWebGLCanvas();
   const compareMode = useCompareModeStore((state) => state.isCompareMode);
 
-  const { compareSplit, handleResizeEnd, handleResizeMove, handleResizeStart } =
-    useWorkspaceCompareSplit({
-      containerRef,
-    });
+  const {
+    compareSplit,
+    splitter,
+    handleResizeEnd,
+    handleResize,
+    handleResizeStart,
+  } = useWorkspaceCompareSplit({
+    containerRef,
+  });
   const { canvasSize } = useWorkspaceCanvasSizing({
     breakpoint,
     breakpoints,
@@ -66,13 +71,14 @@ export function Workspace({
         <WorkspaceCompareMode
           canvasAreaRef={canvasAreaRef}
           compareSplit={compareSplit}
+          splitter={splitter}
           fallbackCanvas={fallbackCanvas}
           pageWidth={canvasSize.width}
           pageHeight={canvasSize.height}
           isCanvasReady={isCanvasReady}
           isContextLost={isContextLost}
           onResizeStart={handleResizeStart}
-          onResizeMove={handleResizeMove}
+          onResize={handleResize}
           onResizeEnd={handleResizeEnd}
         />
       ) : !useWebGL && fallbackCanvas ? (

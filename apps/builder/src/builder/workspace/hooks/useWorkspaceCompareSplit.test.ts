@@ -23,17 +23,6 @@ function createContainerRef(width = 1000) {
   return { current: container };
 }
 
-function createPointerEvent(clientX = 100) {
-  return {
-    clientX,
-    currentTarget: {
-      setPointerCapture: vi.fn(),
-    },
-    pointerId: 1,
-    preventDefault: vi.fn(),
-  } as unknown as React.PointerEvent<HTMLDivElement>;
-}
-
 describe("useWorkspaceCompareSplit persistence", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -66,7 +55,21 @@ describe("useWorkspaceCompareSplit persistence", () => {
     },
   );
 
-  it("writes only the latest split after resize ends", () => {
+  it("exposes the PanelSplitter px range derived from the container width", () => {
+    window.localStorage.setItem(STORAGE_KEY, "60");
+
+    const { result } = renderHook(() =>
+      useWorkspaceCompareSplit({ containerRef: createContainerRef(1000) }),
+    );
+
+    expect(result.current.splitter).toEqual({
+      value: 600,
+      minValue: 200,
+      maxValue: 800,
+    });
+  });
+
+  it("applies the cumulative drag delta from the start width and writes only the latest split at the end", () => {
     const setItem = vi.spyOn(Storage.prototype, "setItem");
     const containerRef = createContainerRef();
     const { result } = renderHook(() =>
@@ -74,9 +77,9 @@ describe("useWorkspaceCompareSplit persistence", () => {
     );
 
     act(() => {
-      result.current.handleResizeStart(createPointerEvent());
-      result.current.handleResizeMove(createPointerEvent(760));
-      result.current.handleResizeMove(createPointerEvent(840));
+      result.current.handleResizeStart();
+      result.current.handleResize(160, 0);
+      result.current.handleResize(240, 0);
     });
 
     expect(result.current.compareSplit).toBe(74);
@@ -90,7 +93,24 @@ describe("useWorkspaceCompareSplit persistence", () => {
     expect(setItem).toHaveBeenCalledWith(STORAGE_KEY, "74");
   });
 
-  it("ignores resize moves when the workspace width is zero", () => {
+  it("clamps to the 20–80% range in both directions", () => {
+    const { result } = renderHook(() =>
+      useWorkspaceCompareSplit({ containerRef: createContainerRef() }),
+    );
+
+    act(() => {
+      result.current.handleResizeStart();
+      result.current.handleResize(900, 0);
+    });
+    expect(result.current.compareSplit).toBe(80);
+
+    act(() => {
+      result.current.handleResize(-900, 0);
+    });
+    expect(result.current.compareSplit).toBe(20);
+  });
+
+  it("ignores deltas outside a drag and moves when the workspace width is zero", () => {
     const setItem = vi.spyOn(Storage.prototype, "setItem");
     const containerRef = createContainerRef(0);
     const { result } = renderHook(() =>
@@ -98,8 +118,13 @@ describe("useWorkspaceCompareSplit persistence", () => {
     );
 
     act(() => {
-      result.current.handleResizeStart(createPointerEvent());
-      result.current.handleResizeMove(createPointerEvent(100));
+      result.current.handleResize(100, 0);
+    });
+    expect(result.current.compareSplit).toBe(50);
+
+    act(() => {
+      result.current.handleResizeStart();
+      result.current.handleResize(100, 0);
       result.current.handleResizeEnd();
     });
 

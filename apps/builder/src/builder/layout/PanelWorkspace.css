@@ -6,6 +6,12 @@
   }
 
   .panel-workspace-host {
+    /* resize 손잡이 선 토큰 — host 에 두어 패널 workspace 와 main workspace(compare 구분선) 가
+       같은 값을 상속한다. 가로형(위/아래 edge) 은 length×size, 세로형(좌/우 edge) 은 size×length.
+       패널 edge · cluster splitter · 섹션 분할(SectionSplitStack) · compare 구분선이 같은 값을 쓴다. */
+    --panel-interaction-line-color: var(--focus-ring);
+    --panel-interaction-line-size: 2px;
+    --panel-interaction-line-length: 36px;
     display: grid;
     grid-area: main;
     grid-template-columns: minmax(0, 1fr);
@@ -37,11 +43,6 @@
      * (`.app` 의 zoom 은 px·rem 을 함께 늘려 이 축에 관여하지 않는다).
      * 게이트: PanelWorkspace.static.test.ts */
     --panel-workspace-gap: 4px;
-    --panel-interaction-line-color: var(--focus-ring);
-    /* resize 손잡이 선의 두께·길이 — 가로형(위/아래 edge) 은 length×size, 세로형(좌/우 edge) 은
-       size×length. 패널 edge · cluster splitter · 패널 안 섹션 분할(SectionSplitStack) 이 같은 값을 쓴다. */
-    --panel-interaction-line-size: 2px;
-    --panel-interaction-line-length: 36px;
 
     display: grid;
     z-index: 40;
