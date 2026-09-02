@@ -766,7 +766,7 @@ delegating 집합(`renderFacetDeclaration.ts`)에 속한 타입을 `toRacProps` 
     대신 binding 을 읽게 해 일치를 구조로 만들었다. ③ 같은 축의 `selectionStyle` 도 소비처 4곳이 리터럴 `fallback`
     ("toggle"/"replace") 을 기본값 원천으로 쓰고 있었다 — `resolveBindingSelectionStyle(type)` 로 통일, `fallback` 은
     binding 미선언 타입용 최후 폴백으로만 남는다.)
-68. **게이트 축 2개 추가** (r24m1 — ① **활성화 baseline**: 어떤 기본값은 *다른* prop 이 비기본값일 때만 소비된다
+68. **게이트 축 2개 추가** (r24m1 — ① **활성화 baseline**: 어떤 기본값은 _다른_ prop 이 비기본값일 때만 소비된다
     (GridList `selectionStyle` 은 `selectionMode: multiple` 일 때만 카드 높이에 닿는다). "전부 부재 ↔ 전부 명시" 대조는
     명시 쪽이 모든 기본값을 덮어써서 그 조합을 표현하지 못한다 — 판독이 보인 `selectionStyle` `checkbox → highlight`
     mutation 이 round 23 게이트를 그대로 통과했다. 타입마다 enum non-default option · boolean true · non-default size/variant
@@ -774,7 +774,7 @@ delegating 집합(`renderFacetDeclaration.ts`)에 속한 타입을 `toRacProps` 
     렌더러를 실제로 실행하고 `renderToStaticMarkup` 으로 그린 DOM 을 비교한다 — React element props 비교는 `undefined`
     통과 자리까지 전부 차이로 잡혀 쓸 수 없다.)
 69. **정적 게이트 → 기능 게이트** (r24m2 — 정적 4 는 문자열만 본다. `resolveBindingSelectionMode("NotAComponent",
-    "multiple")` 오결선이 정적 게이트 4 + 기존 scene 153 을 전부 통과하는 것을 재현했다. layout 밖 세 소비처를 각자의
+"multiple")` 오결선이 정적 게이트 4 + 기존 scene 153 을 전부 통과하는 것을 재현했다. layout 밖 세 소비처를 각자의
     production 진입점으로 실행하는 게이트를 추가한다 — `buildCanvasSceneGraph`(카드 `_showSelectionCheckbox`) ·
     `resolveVirtualizedCollectionWindows`(행 stride) · `buildSpecNodeData`(TreeItem 렌더 결과). 각 게이트에 **신호가 실제로
     움직이는 대조군**을 함께 둔다 — 없으면 "언제나 false == false" 로 통과하는 빈 게이트가 된다. 정적 4 는 리터럴 재도입
@@ -784,22 +784,64 @@ delegating 집합(`renderFacetDeclaration.ts`)에 속한 타입을 `toRacProps` 
       추가) · shared `defaultContractLookup` +2 (`resolveBindingSelectionStyle`).
     - 원복 RED (실측, 백업 교체 → 게이트 → 복구 · md5 대조): ① 수리 67③ 원복 + GridList binding `selectionStyle`
       `checkbox → highlight` → layout 전수 동치 **4 fail** (`GridList [items] @{"selectionMode":"multiple"} — 부재 h:98 /
-      명시 h:76` — 판독의 probe 그대로) · ② `canvasSceneNode` 오결선 → 기능 게이트 **1 fail**, 같은 오결선에서 정적 4 +
+명시 h:76` — 판독의 probe 그대로) · ② `canvasSceneNode` 오결선 → 기능 게이트 **1 fail**, 같은 오결선에서 정적 4 +
       scene 153 은 **전부 PASS** (판독 지적 재현) · ③ 렌더러 리터럴 원복 + binding `single` 복원(= round 24 이전 상태) →
       Preview 전수 동치 **1 fail** (`GridList [items] — 명시에만 [data-react-aria-pressable="true" aria-selected="false"
-      data-selection-mode="single"]`) = **3 조합**.
+data-selection-mode="single"]`) = **3 조합**.
     - **Live (Chrome MCP, 2026-09-02)**: 팔레트 GridList (ref instance, items 3) 를 만들어 compare mode 에서 Skia layout box
       와 Preview DOM 을 함께 잰다 — `selectionMode` **부재** = Preview 행 `aria-selected` 없음 · 체크박스 없음 / Skia
       **164**, **명시 `none`** = 같은 DOM · **164** (부재 = 기본값 명시), 대조군 **`multiple`** = 행 `aria-selected="false"`
-      + 체크박스 · Skia **208** (+44 = 2행 × 22). 부재로 복귀 시 원상. 콘솔 에러 0 · 생성 요소 삭제.
+      - 체크박스 · Skia **208** (+44 = 2행 × 22). 부재로 복귀 시 원상. 콘솔 에러 0 · 생성 요소 삭제.
     - **잔여 인벤토리 (신규 게이트가 처음 드러낸 것, 이번 수리 밖)**: Preview 전수 동치에 축 5개 45건이 남아 baseline 으로
       고정돼 있다 (`adr923DefaultContractRenderers.test.ts` `KNOWN_DIFFS` — 새 발산은 즉시 RED, 목록 축소는 수리 결과로만).
       축별 방향이 갈려 한 규칙으로 못 고친다: ① `data-label-align="start"` 미방출 8 타입 ② ListBox `data-variant` — 부재
       `primary`(컴포넌트 기본값 `ListBox.tsx:116`) vs binding `default`, **catalog ListBox variants 는 `default|accent`
       뿐이라 `primary` 는 존재하지 않는 variant** = 렌더 경로가 틀림 ③ Menu `data-variant` — catalog `defaultVariant:
-      "primary"` 이고 variants 에 `default` 가 없다 = **binding 이 틀림** (②와 방향 반대) ④ ProgressBar/Meter `value`
+"primary"` 이고 variants 에 `default` 가 없다 = **binding 이 틀림** (②와 방향 반대) ④ ProgressBar/Meter `value`
       binding 50/75 vs 렌더러 0 (막대 채움이 실제로 다름) ⑤ ColorPicker/TableView/Toast 의 `data-variant`/`data-density`/
       `data-timeout` 미방출.
+
+## round 25 수리 3건 (Codex 판독 r25m1/r25m2 + LOW 3 — 기능 게이트 음성 대조 + Preview ratchet 키 무손실, 원복 RED 4 조합)
+
+round 24 의 게이트 두 층이 각각 한 방향만 보고 있었다. 기능 게이트는 **양성 대조(multiple → 체크박스)와 기본값(none)** 만 확인해
+"제외돼야 할 유효 enum" 을 보지 않았고, Preview 전수 동치의 baseline 키(`describeMarkupDiff`)는 **속성 차이가 하나라도 있으면
+나머지(내용·구조) 를 버려** 그 뒤에 새로 생긴 차이가 같은 키로 흡수됐다. 둘 다 판독의 mutation 으로 재현했다 (scene/virtualization
+`checkboxModes` 를 Tree 규칙 `["single","multiple"]` 로 → 13/13 PASS · ProgressBar `valueLabel` 기본값 `"BROKEN"` → 2/2 PASS).
+
+70. **기능 게이트 음성 대조** (r25m1 — GridList.tsx 게이트는 `selectionMode === "multiple"` 만 체크박스라 **`single` 은 none 과
+    같아야** 하고, `multiple` 이라도 `selectionStyle: highlight` 면 체크박스가 없다. 세 소비처(scene `_showSelectionCheckbox` ·
+    virtualization stride · layout `utils.ts` 카드 extra)에 이 두 음성 대조를 더했다 — layout 은 전수 동치(부재 ↔ 명시)가
+    "규칙 자체를 바꾸는" mutation 을 못 보므로(양쪽이 같이 움직인다) 세 모드를 직접 고정하는 기능 게이트를 새로 둔다. Tree
+    (Skia `buildSpecNodeData`) 는 반대로 single·multiple 둘 다 체크박스, none 만 제외 — 모드 집합 전체를 고정한다.
+    `checkboxModes` 4 자리 전수: scene · virtualization · layout · Skia.)
+71. **Preview ratchet 키 무손실** (r25m2 — `describeMarkupDiff` 가 양쪽에서 **서로 다른 속성만 걷어낸 나머지**를 다시 비교하고,
+    남는 차이가 있으면 태그 경계까지 넓힌 갈리는 구간(`…<span class="value">[0%]</span>… ↔ 명시 [75%]`)을 키에 붙인다. 그 결과
+    **기존 Meter/ProgressBar 6건이 이미 내용 차이를 갖고 있었다**(값 문구 `0%` ↔ `75%`/`50%`) — 종전 키는 그것을 숨기고
+    있었다. baseline 6건의 키를 실제 차이로 갱신 (개수 45 그대로, 축소 아님).)
+72. **LOW 3** (r25l1 잔여 인벤토리 수치 39 → **45** (Meter·ProgressBar 각 3 fixture 6건 누락 — evidence·reviews·breakdown·README
+    4 곳 정정) · r25l2 `resolveBindingSelectionMode` 주석이 r24 이전 사실("Preview 는 toRacProps 경유 · GridList `single`")을
+    설명 → delegating 렌더러가 helper 를 직접 읽는 현 구조 + 이력으로 갱신 · r25l3 CHANGELOG "AI 로 만든 문서" — AI
+    `create_element` 는 GridList/ListBox 를 `COMPLEX_COMPONENT_TAGS` 경로(`createCompositeElement`)로 만들어 factory 가
+    `selectionMode: "none"` 을 기록하므로 prop 부재 문서가 아니다. 영향 범위를 "값을 기록하지 않은 문서 (파일로 가져온
+    canonical 문서 등)" 로 정정.)
+    - 게이트 (round 25): 기능 게이트 3 → **4** (layout `utils.ts` 카드 extra 신설) + 각 음성 대조 2 (single · multiple+highlight),
+      Tree Skia 모드 집합 3 · Preview 전수 동치 키 무손실 (속성 + 내용·구조).
+    - 원복 RED (실측, 백업 교체 → 게이트 → 복구 · md5 대조): ① scene+virtualization `checkboxModes` → Tree 규칙 → 기능 게이트
+      **2 fail** (round 24 게이트는 13/13 PASS 였다) · ② layout `utils.ts` → Tree 규칙 → 신설 layout 게이트 **1 fail** · ③ Skia
+      Tree `checkboxModes` → `["single"]` 만 → **1 fail** · ④ ProgressBar `valueLabel` 기본값 `"BROKEN"` → Preview 전수 동치
+      **1 fail** (`… ↔ 명시 [BROKEN]` — round 24 키로는 2/2 PASS 였다) = **4 조합**.
+    - **Live (Chrome MCP, 2026-09-02)**: 팔레트 GridList (ref instance, items 3) 를 만들어 Skia 선택 박스 크기 배지와 compare
+      mode Preview DOM 을 함께 잰다 — **`single`+checkbox = Skia 164 · Preview 행 `aria-selected="false"` + 체크박스 0** (none 과
+      같은 높이 — 음성 대조의 live 대응), `multiple`+checkbox = **208** · 체크박스 3 (대조군), `multiple`+highlight = **164** ·
+      체크박스 0, `none` = 164 · `aria-selected` 없음. 콘솔 에러 0 · 생성 요소 삭제 · compare mode 원복.
+    - **잔여 인벤토리 축별 판정 (round 25 판독, 이번 수리 밖 — 후속 scope)**: ① ListBox `data-variant` — 렌더러 기본 `primary`
+      가 틀림, catalog 정본은 `default` (`ListBox.tsx:111-116` · `componentRulesTable.ts:6499-6528`) ② Menu — binding `default`
+      가 틀림, catalog·컴포넌트 정본은 `primary` (`Menu.binding.ts:43-49` · `componentRulesTable.ts:6674-6705` · `Menu.tsx:114-120`)
+      ③ `labelAlign: start` 8 타입 — DOM 속성만 다르고 CSS 기본 정렬이 이미 start (`TextField.css:207-218`) = 시각 무차이
+      ④ ProgressBar/Meter `value` — 시각 token 이 아니라 **content 상태**. binding·factory 는 50/75 로 일치하고 렌더러만 0
+      (`DisplayComponents.ts:215-222/303-313` · `LayoutRenderers.tsx:804/860`) → "content 부재의 의미" 를 먼저 정해야 방향이
+      나온다 ⑤ ColorPicker/TableView/Toast — display 계약의 load-bearing 사실 아님. 판독 결론: 인벤토리로는 유효, Decision C′
+      재개 사유 아님.
 
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
