@@ -4,7 +4,7 @@
 
 ## composition 전용 (프로젝트)
 
-> **호출 정책 (2026-08-28, 병합 순서 ②)**: `disable-model-invocation: true` 스킬 (execute-adr / create-adr / match-target) 은 모델이 자동 호출할 수 없고 사용자가 `/name` 을 직접 입력해야 실행된다 — 자율 실행 표면 최소화 (메모리 execute-adr-surface-minimization / no-derived-adr-mid-execution 과 같은 실패 클래스 차단). subagent 정책은 호스트별로 다르다: Claude = CLAUDE.md §Agent 라우팅 매트릭스의 reviewer/evaluator 기본 경로, Codex = AGENTS.md "사용자 명시 시에만". 정책 열 ↔ frontmatter ↔ roster 일치는 `pnpm codex:agent-catalog` 가 검사한다.
+> **호출 정책 (2026-08-28, 병합 순서 ②)**: `disable-model-invocation: true` 스킬 (execute-adr / create-adr / match-target) 은 모델이 자동 호출할 수 없고 사용자가 `/name` 을 직접 입력해야 실행된다 — 자율 실행 표면 최소화 (메모리 execute-adr-surface-minimization / no-derived-adr-mid-execution 과 같은 실패 클래스 차단). subagent 정책은 호스트별로 다르다: Claude = CLAUDE.md §작업 워크플로 의 완료 직전 `/review` · `/evaluate` 격리 fork 경로, Codex = AGENTS.md "사용자 명시 시에만". 정책 열 ↔ frontmatter ↔ roster 일치는 `pnpm codex:agent-catalog` 가 검사한다.
 
 | Skill                                                 | 용도                                                                  | 발동 키워드                                    | 권장 시점                | 호출 정책 (Claude / Codex)                                                                         |
 | ----------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------- |

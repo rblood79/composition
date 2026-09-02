@@ -41,21 +41,23 @@ composition/
 │   ├── builder/     # 메인 빌더 앱 (@composition/builder)
 │   └── publish/     # 배포 런타임 (@composition/publish)
 ├── packages/
-│   ├── shared/      # 공유 타입/유틸 (@composition/shared)
+│   ├── shared/      # catalog·공용 타입/유틸 (@composition/shared)
+│   ├── specs/       # 잔존 spec 3개·CSS 생성 (@composition/specs)
+│   ├── composition-engine/  # Rust 레이아웃 엔진 (wasm)
 │   └── config/      # 공유 설정 (@composition/config)
 └── docs/            # 문서
 ```
 
 ## Commands
 
-| Command           | Description    |
-| ----------------- | -------------- |
-| `pnpm dev`        | 개발 서버 실행 |
-| `pnpm build`      | 프로덕션 빌드  |
-| `pnpm type-check` | 타입 검사      |
-| `pnpm lint`       | 린트 실행      |
-| `pnpm test`       | 테스트 실행    |
-| `pnpm storybook`  | Storybook 실행 |
+| Command                  | Description                                                  |
+| ------------------------ | ------------------------------------------------------------ |
+| `pnpm dev`               | 개발 서버 실행                                               |
+| `pnpm build`             | 프로덕션 빌드                                                |
+| `pnpm type-check`        | 타입 검사                                                    |
+| `pnpm lint`              | 린트 실행                                                    |
+| `pnpm test`              | 테스트 실행                                                  |
+| `pnpm wasm:build:engine` | Rust 엔진 wasm 빌드 (산출물 gitignored, Rust+wasm-pack 필요) |
 
 ## Documentation
 

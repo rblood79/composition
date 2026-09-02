@@ -31,7 +31,7 @@ composition 협업을 위한 Codex 실행 계약입니다. 이 파일은 항상 
 - `apps/publish`: publish/runtime 경로.
 - `packages/specs`: component spec, CSS generation, spec SSOT.
 - `packages/shared`: 공용 컴포넌트, CSS, renderer 계약.
-- `packages/composition-layout`: layout/wasm 계층.
+- `packages/composition-engine`: Rust 레이아웃 엔진 (wasm-pack 산출물은 gitignored — `pnpm wasm:build:engine`).
 - `docs/`: ADR, 설계, 운영 문서. `docs/CHANGELOG.md`는 사용자-가시 변경의
   SSOT입니다.
 - `scripts/codex`: Codex harness와 품질 게이트.

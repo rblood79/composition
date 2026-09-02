@@ -6,6 +6,22 @@ composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monore
 
 > **⚠️ 필수**: 코드 작업 시작 전 반드시 `.claude/skills/composition-patterns/SKILL.md`를 읽으세요.
 
+## 명령 · 환경
+
+```bash
+pnpm install                                        # postinstall: canvaskit wasm 복사 + specs 빌드
+pnpm wasm:build:engine                              # Rust 엔진 → wasm (산출물 gitignored, Rust+wasm-pack 필요 — fresh clone·엔진 변경 후 필수)
+pnpm dev                                            # builder dev 서버 (5173) · 포트 충돌 시 pnpm dev:kill
+pnpm type-check                                     # Stop hook 이 같은 명령 실행
+pnpm -F @composition/builder exec vitest run <path> # 단일 테스트 (실패 count 는 per-package 만 정확)
+pnpm -F @composition/builder test:parity            # browser vitest · visual smoke 는 pnpm gate:visual-parity
+pnpm codex:preflight                                # guard + format + typecheck + registration gate
+```
+
+env: `apps/builder/.env.example` → `.env`. `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` 필수. `VITE_USE_WEBGL_CANVAS=false` 면 iframe Preview 폴백.
+
+**구조**: `apps/builder` (Skia 빌더) · `apps/publish` (런타임) · `packages/shared` (catalog·공용) · `packages/specs` (잔존 spec 3개·CSS 생성) · `packages/composition-engine` (Rust 레이아웃) · `packages/config`
+
 ## SSOT 체인 정본 — 3-Domain 분할 (CRITICAL)
 
 **D1 DOM/접근성** (Adobe RAC 절대 권위) / **D2 Props/API** (RSP 참조 + custom — 타입만) / **D3 시각 스타일** (catalog `COMPONENT_RULES_TABLE` + theme/tokens SSOT — 잔존 spec 3개 Frame/Group/Slot 예외). Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 D3 의 **대등 symmetric consumer** — 대칭 = 시각 결과의 동일성.
@@ -92,7 +108,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ## Git Push 정책 (CRITICAL — 로컬 작업 환경 절대 정책)
 
-**web PR 자체 금지. 예외 없음.** default = `git add` → `git commit` → `git push origin main`. branch 분기 / PR 은 사용자 명시 요청 시에만. main push 차단 시 자동 branch 우회 금지 — 사용자에게 `! git push origin main` 직접 실행 요청. 정본 (상시 로드): `.claude/rules/git-workflow.md`
+**web PR 자체 금지. 예외 없음.** default = `git add` → `git commit` → `git push origin main`. 분기·PR·차단 시 대응·worktree 통합 절차는 상시 로드되는 `.claude/rules/git-workflow.md` 가 정본.
 
 ## 렌더링 버그 수정 원칙
 
