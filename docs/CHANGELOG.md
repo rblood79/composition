@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Navigator 의 Pages / Layers 사이 (Frames 탭은 Frames / Layers 사이) 에 드래그 구분선을 넣었습니다. 위 섹션은 내용 높이까지만 차지하고, 상한 (기본은 패널 높이의 절반) 을 넘으면 그 안에서 스크롤합니다. 아래 섹션은 남는 공간을 전부 씁니다. 구분선을 드래그하면 그 값이 상한으로 저장되어 새로고침 후에도 유지되고, 더블클릭하면 기본 상한으로 돌아옵니다. 키보드 (화살표·Home·End) 로도 조절할 수 있습니다.
 - Frames 탭의 Frames / Layers 섹션도 접을 수 있게 됐고, 헤더의 "모든 섹션 접기 / 펼치기" 토글이 Frames 탭에서도 동작합니다.
+- 구분선 손잡이는 마우스를 올리지 않아도 항상 보입니다 (올리거나 포커스하면 진해집니다). 끌 수 있는 자리라는 단서를 기본으로 드러내기 위해서입니다.
 
 ### Changed
 

@@ -56,10 +56,18 @@
   z-index: 3;
 }
 
+/* 손잡이는 항상 보인다 — 워크스페이스 패널 splitter 는 hover 에서만 나타나지만, 섹션
+   사이 구분선은 "여기를 끌 수 있다" 는 단서가 없으면 발견되지 않는다 (2026-09-02 사용자 지적). */
 .split-stack .panel-resize-handle.split-handle::after {
   top: 3px;
   left: 50%;
   width: 28px;
   height: 2px;
   transform: translateX(-50%);
+  opacity: 0.35;
+}
+
+.split-stack .panel-resize-handle.split-handle:hover::after,
+.split-stack .panel-resize-handle.split-handle:focus-visible::after {
+  opacity: 1;
 }
