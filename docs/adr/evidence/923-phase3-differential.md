@@ -872,6 +872,33 @@ layout 460 이 전부 통과했다 (판독 실험, 재현). 정적 게이트는 
     - 판독 판정 (round 26): 수리 71 VERIFIED — 속성 값 변경(50 → 51) · 기존 속성 차이 뒤의 구조 추가(ProgressBar · ColorPicker)
       모두 RED, 45건 키 갱신은 "숨겨진 값 문구 차이를 드러낸 것". `KNOWN_DIFFS` 축별 처리를 후속 범위로 두는 판단: 타당.
 
+## round 27 수리 1건 (Codex 판독 r27m1 — style 축의 source identity, 원복 RED 4 조합)
+
+round 26 의 binding mutation 게이트는 `selectionMode` 에만 양성 mutation 을 뒀다. `selectionStyle` 은 Tree(다른 값 `highlight`)
+음성 대조뿐이라, `resolveBindingSelectionStyle` 이 GridList 대신 **같은 현재값(`checkbox`)을 가진 CardView binding** 을 읽어도
+focused 17/17 · layout 463 · shared 965 가 전부 통과했다 (판독 실험, 재현). 값이 같은 sibling 은 boolean 동치로도 다른 값
+sibling 의 음성 대조로도 못 가른다. 또 round 26 의 Tree-style 음성 대조는 mutation **안**의 두 결과를 서로 비교해 둘 다 같이
+움직여 항상 통과하는 형태였다 (판독 지적).
+
+75. **style 축 source identity** (r27m1 — ① parity 게이트 +2: GridList `selectionStyle` → `highlight` 면 `selectionMode:
+multiple` baseline 의 세 소비처(layout · scene · virtualization)가 highlight 명시와 같아진다(양성) + 같은 값 CardView 와
+    다른 값 Tree 를 움직여도 불변(음성). Skia Tree 는 Tree `selectionStyle` → `checkbox` 면 부재가 checkbox 명시와 같아지고,
+    GridList/CardView 를 움직여도 불변. **비교 기준은 전부 mutation 밖에서** 잡는다 — 종전 vacuous 비교를 이 형태로 교체.
+    ② shared `defaultContractLookup` +2: helper 수준 source identity — `resolveBindingSelectionStyle("GridList")` 는 GridList
+    mutation 만 따라가고 같은 값 CardView 에 무관, `resolveBindingSelectionMode("GridList")` 는 같은 값 ListBox 에 무관.)
+    - 게이트 (round 27): parity 19 (+2) · shared `defaultContractLookup` 12 (+2). layout 463 → **465** · shared 965 → **967**.
+    - 원복 RED (실측, 백업 교체 → 게이트 → 복구 · md5 대조): ① helper `resolveBindingSelectionStyle` 이 GridList 일 때 CardView
+      를 읽도록 → parity **1 fail** + shared **1 fail** (round 26 게이트는 전부 PASS 였다) · ② `utils.ts`
+      `resolveBindingSelectionStyle("CardView")` → 정적 1 + mutation 1 = **2 fail** · ③ helper `resolveBindingSelectionMode` 가
+      GridList 일 때 ListBox 를 읽도록 → parity 1 + shared 1 = **2 fail** · ④ Skia `resolveBindingSelectionStyle("GridList")` →
+      정적 1 + 기존 Skia 게이트 1 + style mutation 1 = **3 fail** = **4 조합**.
+    - **Live (Chrome MCP, 2026-09-02)**: 프로덕션 코드 변경 0 (테스트만). 팔레트 GridList(items 3) 로 style 축의 live 대응만
+      재확인 — `selectionMode: multiple` + style 부재 = Skia **208** · 체크박스 (= GridList binding `checkbox`), `highlight`
+      명시 = **164**. 콘솔 에러 0 · 생성 요소 삭제.
+    - 판독 판정 (round 27): 수리 74 VERIFIED · singleton mutation 누출 0 (try/finally · memoization 없음 · 동일 worker 반복
+      seed 27/2702 PASS) · `fallback` 반전 mutation 은 선언된 binding 값이 항상 우선하고 선언 자체가 shared 테스트로 고정돼
+      현 계약에서 동치 — 이슈 아님.
+
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
 - **실효 (프로덕션 어댑터 경로가 그대로 타는 수리)**: 수리 5 (wrap min-content, r8l2
