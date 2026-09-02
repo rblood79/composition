@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { PreviewElement, RenderContext } from "@composition/shared";
 import { rendererMap } from "@composition/shared/renderers";
-import { getPrimitiveBinding, getComponentRulesTable } from "@composition/shared";
+import {
+  getPrimitiveBinding,
+  getComponentRulesTable,
+} from "@composition/shared";
 import {
   deriveDelegatingInternalRenderers,
   deriveDelegatingRacRenderers,
@@ -49,7 +52,6 @@ function markup(node: React.ReactNode): string {
   return renderToStaticMarkup(<>{node}</>);
 }
 
-
 /**
  * 차이를 속성 단위로 압축 — 마크업 전문은 길어서 실패 메시지가 읽히지 않는다.
  *
@@ -94,7 +96,10 @@ function describeMarkupDiff(absent: string, explicit: string): string {
     const nextLt = restAbsent.indexOf("<", restAbsent.length - k);
     if (nextLt >= i) k = restAbsent.length - nextLt;
     const before = restAbsent.slice(Math.max(0, i - 30), i);
-    const after = restAbsent.slice(restAbsent.length - k, restAbsent.length - k + 20);
+    const after = restAbsent.slice(
+      restAbsent.length - k,
+      restAbsent.length - k + 20,
+    );
     const mid = (html: string) => html.slice(i, html.length - k);
     rest = ` / 내용·구조 차이: …${before}[${mid(restAbsent)}]${after}… ↔ 명시 [${mid(restExplicit)}]`;
   }
@@ -115,7 +120,10 @@ function declaredDefaults(type: string): Record<string, unknown> {
 }
 
 /** 자식·데이터 유무로 소비 경로가 갈리는 prop 이 있다 (r23m1) — fixture 3 변형. */
-const FIXTURES: ReadonlyArray<{ name: string; props: Record<string, unknown> }> = [
+const FIXTURES: ReadonlyArray<{
+  name: string;
+  props: Record<string, unknown>;
+}> = [
   { name: "bare", props: {} },
   { name: "children", props: { children: "A" } },
   {
@@ -143,7 +151,8 @@ const FIXTURE_NAMES = FIXTURES.map((f) => f.name);
  *
  * - `data-label-align="start"` 미방출 (8 타입): binding 은 선언, delegating 렌더러는
  *   `undefined` 를 넘겨 속성이 안 실린다. generic(toRacProps) 경로 타입은 실린다 — 같은 축이
- *   dispatch 종류에 따라 갈린다.
+ *   dispatch 종류에 따라 갈린다. CSS 기본 정렬이 이미 start 라(`TextField.css` label-align 규칙)
+ *   시각 차이는 없다 (round 25 판독 판정).
  * - ListBox `data-variant`: 부재 `primary`(컴포넌트 기본값 `ListBox.tsx:116`) vs binding
  *   `default`. catalog ListBox variants 는 `default|accent` 뿐이라 **`primary` 는 존재하지 않는
  *   variant** — 이쪽은 렌더 경로가 틀렸다.
@@ -229,7 +238,11 @@ describe("ADR-923 r24m1 — Preview 렌더러의 부재 = binding 기본값 명�
     for (const type of TYPES) {
       const defaults = declaredDefaults(type);
       const render = (props: Record<string, unknown>): string => {
-        const el: PreviewElement = { id: `${type}-r24`, type, props } as PreviewElement;
+        const el: PreviewElement = {
+          id: `${type}-r24`,
+          type,
+          props,
+        } as PreviewElement;
         try {
           return markup(rendererMap[type](el, makeContext(el)));
         } catch (e) {

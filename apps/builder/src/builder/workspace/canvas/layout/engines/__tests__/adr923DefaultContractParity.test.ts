@@ -122,9 +122,8 @@ function activationBaselines(type: string): Array<Record<string, unknown>> {
   const out: Array<Record<string, unknown>> = [{}];
   const accepts = getPrimitiveBinding(type)?.props.accepts ?? {};
   for (const [key, contract] of Object.entries(accepts)) {
-    const options = (
-      contract as { options?: ReadonlyArray<{ value: string }> }
-    ).options;
+    const options = (contract as { options?: ReadonlyArray<{ value: string }> })
+      .options;
     if (options) {
       for (const opt of options) {
         if (opt.value !== contract.default) out.push({ [key]: opt.value });
@@ -287,16 +286,19 @@ describe("ADR-923 r23m1 — defaultSelectionMode 리터럴 0 (catalog binding �
     "src/builder/workspace/canvas/skia/buildSpecNodeData.ts",
   ];
 
-  it.each(FILES)("%s — selectionMode/selectionStyle 기본값이 binding 경유", (rel) => {
-    const source = readFileSync(resolve(process.cwd(), rel), "utf8");
-    expect(source).toMatch(
-      /defaultSelectionMode:\s*resolveBindingSelectionMode\(/,
-    );
-    expect(source).not.toMatch(/defaultSelectionMode:\s*"/);
-    // r24m1 — style 축도 같은 원천. `selectionStyle: props.x,` 로 되돌아가면 리터럴
-    //   `fallback` 이 다시 기본값 원천이 된다.
-    expect(source).toMatch(/\?\?\s*resolveBindingSelectionStyle\(/);
-  });
+  it.each(FILES)(
+    "%s — selectionMode/selectionStyle 기본값이 binding 경유",
+    (rel) => {
+      const source = readFileSync(resolve(process.cwd(), rel), "utf8");
+      expect(source).toMatch(
+        /defaultSelectionMode:\s*resolveBindingSelectionMode\(/,
+      );
+      expect(source).not.toMatch(/defaultSelectionMode:\s*"/);
+      // r24m1 — style 축도 같은 원천. `selectionStyle: props.x,` 로 되돌아가면 리터럴
+      //   `fallback` 이 다시 기본값 원천이 된다.
+      expect(source).toMatch(/\?\?\s*resolveBindingSelectionStyle\(/);
+    },
+  );
 });
 
 /**
@@ -375,7 +377,10 @@ describe("ADR-923 r24m2 — layout 밖 소비처의 기능 게이트", () => {
     //   형태로: multiple 이라도 highlight 면 체크박스가 없다.
     expect(sceneCheckboxes({ selectionMode: "single" })).toEqual(absent);
     expect(
-      sceneCheckboxes({ selectionMode: "multiple", selectionStyle: "highlight" }),
+      sceneCheckboxes({
+        selectionMode: "multiple",
+        selectionStyle: "highlight",
+      }),
     ).toEqual(absent);
   });
 
@@ -420,7 +425,10 @@ describe("ADR-923 r24m2 — layout 밖 소비처의 기능 게이트", () => {
     expect(gridListLayout({ selectionMode: "single" })).toBe(absent);
     expect(gridListLayout({ selectionMode: "multiple" })).not.toBe(absent);
     expect(
-      gridListLayout({ selectionMode: "multiple", selectionStyle: "highlight" }),
+      gridListLayout({
+        selectionMode: "multiple",
+        selectionStyle: "highlight",
+      }),
     ).toBe(absent);
   });
 
