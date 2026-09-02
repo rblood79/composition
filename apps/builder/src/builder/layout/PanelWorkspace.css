@@ -11,7 +11,7 @@
        패널 edge · cluster splitter · 섹션 분할(SectionSplitStack) · compare 구분선이 같은 값을 쓴다. */
     --panel-interaction-line-color: var(--focus-ring);
     --panel-interaction-line-size: 2px;
-    --panel-interaction-line-length: 36px;
+    --panel-interaction-line-length: 32px;
     display: grid;
     grid-area: main;
     grid-template-columns: minmax(0, 1fr);
