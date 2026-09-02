@@ -378,7 +378,9 @@ const EXPECTED_FACETS: Record<string, "reusableOrigin" | "complex" | "none"> = {
  *   trigger 값 텍스트: implicit `overflow:hidden` 주입 + height 미지정 → 높이 cap) + **ListBox ·
  *   GridList 2** (production 형태 = factory 의 `type:"ref"` parent 를 origin 에 해석한 컨테이너 —
  *   overflow auto/hidden + height 미지정 + 정적 items 의 sample 행 높이 164 주입 → 높이 cap. 종전
- *   수동 목록에서는 ref 가 해석되지 않아 `ListBox > ref H=` 로 보였다 — round 29 판독이 연 발견) +
+ *   수동 목록에서는 ref 가 해석되지 않아 ListBox 는 `> ref H=` 로 보였고 GridList 는 행 자체가 없었다
+ *   (ListBox factory ref parent 만 raw `overflow:"auto"` 를 지니고, GridList 의 `overflow:hidden` 은
+ *   implicitStyles gridlist 분기가 해석된 타입에만 주입 — round 29 판독이 연 발견, round 30 재실측) +
  *   사용자가 INTRINSIC_MEASURE_TAGS leaf(Button) 에 inline overflow 를 준 경우 (높이 + 폭 cap) 2.
  * - 나머지 11 은 height 명시 (CardView 의 Card 160) 이거나 auto-height 컨테이너 (주입 높이가 엔진
  *   결과로 대체돼 cap 이 살아남지 않음 — Card origin · Tree · Dialog · DisclosureGroup · inline div).
@@ -386,7 +388,10 @@ const EXPECTED_FACETS: Record<string, "reusableOrigin" | "complex" | "none"> = {
  *   complex 5 · Form · Toolbar · InlineAlert · IconButton ref 4) 는 overflow 도달 노드 0.
  * Phase 5 제거 시 Chrome 케이스: block 문맥 auto-height + overflow hidden/clip 은 cap 되지 않는다 /
  * flex 문맥은 엔진 §4.5 가 담당 — SelectValue 4 + ListBox/GridList 2 + Button inline 이 그 회귀
- * 게이트의 대상이다.
+ * 게이트의 대상이다. ListBox/GridList 는 production 서브트리를 main-axis 크기가 제한된 flex 부모의
+ * item 으로 두고 ListBox overflow:auto · GridList overflow:hidden 이 automatic minimum 0 으로
+ * 소비되는지 확인한다 (round 30 r30l3 — `is_scroll_container` (tree.rs) 는 §4.5 의 입력이지 대안이
+ * 아니다; 여기의 availableHeight=8 대조는 TS cap 존재만 확인하고 §4.5 소비를 증명하지 않는다).
  */
 const EXPECTED: string[] = [
   "palette:ref Card > CardPreview overflow:hidden H= W=",
