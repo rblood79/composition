@@ -177,11 +177,42 @@ function pushTrace(label: string, start: number, end: number): void {
 // ============================================================
 
 /**
+ * User Timing (`performance.mark/measure`) 방출 토글 — 기본 off.
+ *
+ * Why (2026-09-02 기준선, docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md
+ * §3-4): observe 는 호출마다 mark ×2 · measure · clearMarks ×2 · clearMeasures 를
+ * 불렀고, `clearMeasures(name)` 은 measure 버퍼를 훑는다. dev 에서는 React 19.2 가
+ * 렌더마다 "Components ⚛" measure 를 그 버퍼에 쌓아 (지우지 않음) 버퍼가 클수록
+ * 프레임당 계측 비용이 자랐다 — 유휴 600 요소에서 JS busy 의 25.6% 가 observe 자체,
+ * render.frame p95 7.6ms. 내부 링 버퍼 (record/pushTrace) 는 그대로 두고, DevTools
+ * flame graph 용 User Timing 은 `__composition_PERF__.setUserTiming(true)` 로 켠다.
+ */
+let userTimingEnabled = false;
+
+export function setUserTiming(enabled: boolean): void {
+  userTimingEnabled = enabled;
+}
+
+export function isUserTimingEnabled(): boolean {
+  return userTimingEnabled;
+}
+
+/**
  * Wrap a synchronous function and record its duration under `label`.
- * Also emits `performance.measure()` so durations appear in the DevTools
- * Performance panel flame graph.
+ * With user timing enabled, also emits `performance.measure()` so durations
+ * appear in the DevTools Performance panel flame graph.
  */
 export function observe<T>(label: string, fn: () => T): T {
+  if (!userTimingEnabled) {
+    const start = performance.now();
+    try {
+      return fn();
+    } finally {
+      const end = performance.now();
+      record(label, end - start);
+      pushTrace(label, start, end);
+    }
+  }
   const beginMark = `composition:${label}:begin`;
   const endMark = `composition:${label}:end`;
   const start = performance.now();
@@ -403,6 +434,7 @@ if (typeof window !== "undefined") {
       snapshotLongTask: typeof getSnapshot;
       snapshotLongTasks: typeof getAllLongTaskSnapshots;
       resetLongTasks: typeof resetLongTasks;
+      setUserTiming: typeof setUserTiming;
     };
   };
   w.__composition_PERF__ = {
@@ -413,6 +445,7 @@ if (typeof window !== "undefined") {
     snapshotLongTask: getSnapshot,
     snapshotLongTasks: getAllLongTaskSnapshots,
     resetLongTasks,
+    setUserTiming,
   };
   initLongTaskObserver();
 }

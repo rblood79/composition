@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [렌더 계측이 개발 빌드의 프레임을 잡아먹지 않습니다] - 2026-09-02
+
+### Changed
+
+- 렌더 계측 (`perfMarks.observe`) 이 기본으로는 DevTools 용 User Timing (`performance.mark/measure`) 을 남기지 않습니다. 종전에는 프레임마다 라벨당 mark·measure·clear 여섯 번을 불렀고, 그중 `clearMeasures` 가 measure 버퍼 전체를 훑었습니다. 개발 빌드에서는 React 19.2 가 렌더마다 measure 를 그 버퍼에 쌓고 지우지 않으므로 세션이 길수록 매 프레임 계측 비용이 자랐습니다 (600 요소 유휴에서 JS busy 의 25.6% 가 계측 자체). 내부 통계 (`__composition_PERF__.snapshot`) 는 그대로이고, flame graph 에 보이게 하려면 콘솔에서 `__composition_PERF__.setUserTiming(true)` 를 켭니다. 배포 빌드에는 React 의 measure 가 없어 체감 변화는 개발 환경에 한정됩니다.
+
 ## [편집을 반복해도 메모리가 쌓이지 않습니다] - 2026-09-02
 
 ### Fixed

@@ -97,6 +97,16 @@ JS 힙 기울기 edit +0.08 · select 0.00 · panels +0.02 · pages +0.02 MB/c, 
 
 `observe()` 는 호출마다 `performance.mark` ×2 · `measure` · `clearMarks` ×2 · `clearMeasures` 를 부른다 (`perfMarks.ts` 181~205행). 프레임당 라벨이 여럿이라 프레임마다 User Timing 호출 수십 번이고, `clearMeasures(name)` 은 measure 버퍼를 훑는다 — dev 에서는 React 19.2 가 그 버퍼에 렌더마다 measure 를 쌓으므로 (§2-2) **버퍼가 클수록 매 프레임 계측 비용이 자란다**. 유휴 600 요소의 render.frame p95 7.6ms 와 self-time 25.6% 가 이것이다. 처방 후보: User Timing 방출을 명시 토글 (예: `__composition_PERF__.userTiming = true`) 뒤로 옮기고 기본은 내부 링 버퍼만 유지. dev 전용 왜곡이지만 **이 저장소의 모든 dev 실측에 섞여 있던 값**이므로 Phase 1 첫 항목.
 
+**처방 반영 (같은 날, `perfMarks.setUserTiming` 토글 — 기본 off, 커밋 참조)**: 600 요소 headless 재측정 —
+
+| 부류          | render.frame p50/p95 (전 → 후) | gap p95 (전 → 후) | 드롭% (전 → 후) | JS idle (전 → 후) |
+| ------------- | -----------------------------: | ----------------: | --------------: | ----------------: |
+| idle          |          1.8/7.6 → **0.2/0.3** |       24.5 → 17.5 |         2.8 → 0 |       73.1 → 99.6 |
+| layers-scroll |              2.5/9.9 → 0.2/0.4 |       32.9 → 28.7 |     31.1 → 31.7 |       78.8 → 98.1 |
+| select        |                  2.8/3 → 0.6/1 |         266 → 336 |       100 → 100 |          8.8 → 11 |
+
+유휴 프레임 비용의 대부분이 계측이었다 (프레임당 ~1.6ms, dev measure 버퍼에 비례). layers-scroll 은 JS 가 98% 놀면서도 드롭 32% 그대로 → **DOM 축 확정**. select 는 변화 없음 → 계측이 아니라 렌더 fan-out. §3-2 표의 `render.frame` 열은 토글 전 값이라 이만큼 부풀어 있다 (gap·드롭·longtask 는 그대로 유효).
+
 ## 4. 판정 — 07-30 레버 5종과의 대조
 
 | 순위 | 축                                        | 근거 (본 문서)                                                     | 07-30 레버                 |
