@@ -22,21 +22,28 @@ import {
 } from "../utils/orientationDrivenTags";
 
 export function useStyleActions() {
+  // onPaste 는 getState() 만 쓰므로 안정 참조로 고정한다. 렌더마다 새 클로저를
+  // 넘기면 useCopyPaste 의 `paste` 가 렌더마다 바뀌고, 그 소비자
+  // (CanvasSelectionShortcutsHost) 의 useCallback 이 이전 렌더 클로저를 memo 로
+  // 붙잡는 V8 shared-context 사슬의 한 링크가 된다 (2026-09-02 leak 실측 —
+  // scripts/perf-baseline.mjs `edit` 시리즈, mutation 당 elements view 1개 영구 보유).
+  const onPasteStyles = useCallback((data: Record<string, unknown>) => {
+    // Convert all values to strings
+    const stylesObj: Record<string, string> = {};
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        stylesObj[key] = String(value);
+      }
+    });
+    useStore
+      .getState()
+      .updateSelectedStyles(sanitizeFillDerivedStylePatch(stylesObj, true));
+  }, []);
+
   // 🔥 최적화: useCopyPaste hook 사용
   const { copy: copyStylesInternal, paste: pasteStylesInternal } = useCopyPaste(
     {
-      onPaste: (data) => {
-        // Convert all values to strings
-        const stylesObj: Record<string, string> = {};
-        Object.entries(data).forEach(([key, value]) => {
-          if (value !== null && value !== undefined) {
-            stylesObj[key] = String(value);
-          }
-        });
-        useStore
-          .getState()
-          .updateSelectedStyles(sanitizeFillDerivedStylePatch(stylesObj, true));
-      },
+      onPaste: onPasteStyles,
       name: "styles",
     },
   );

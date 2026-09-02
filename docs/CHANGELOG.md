@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [편집을 반복해도 메모리가 쌓이지 않습니다] - 2026-09-02
+
+### Fixed
+
+- 스타일·속성을 편집할 때마다 그 시점의 요소 목록 사본이 메모리에 영구히 남던 것을 고쳤습니다 (요소 60개 문서에서 편집 1회당 약 14KB, 편집·undo·redo 를 계속하면 세션이 끝날 때까지 자랍니다). 원인은 캔버스 전역 단축키 host 였습니다. 편집마다 다시 렌더되면서 일부 핸들러만 새로 만들어졌고, 살아남은 이전 핸들러가 이전 렌더의 변수 전체 (그때의 요소 목록) 를 붙잡는 사슬이 렌더 수만큼 이어졌습니다. 이제 핸들러는 최신 값을 ref 로만 읽어 렌더 사이에 바뀌지 않습니다. 실측 (`pnpm perf:baseline --actions edit`, 강제 GC 후 힙 기울기): 사이클당 +0.28MB → +0.04MB.
+- 스타일 붙여넣기 핸들러도 렌더마다 새로 만들어져 같은 사슬의 한 링크였습니다. 함께 고정했습니다.
+
+### Added
+
+- `pnpm perf:baseline` — Builder 메모리 기준선 하니스 (`apps/builder/scripts/perf-baseline.mjs`). Playwright 로 dev 서버의 격리 프로젝트를 열어 패널 토글·페이지 전환·선택·편집(undo/redo)·줌 사이클을 돌리고, 사이클마다 강제 GC 후 JS 힙·Blink 힙·DOM 노드·리스너·ArrayBuffer·Skia 캐시 크기를 기록해 기울기로 누수를 판정합니다. `--mode attribute` (살아남은 할당의 스택 + 스냅샷 class diff) 와 `--mode retainers` (대상 객체의 최단 retainer 경로) 로 원인을 좁힙니다. React 19.2 dev 빌드가 렌더마다 남기는 `performance.measure` 항목은 앱 누수가 아니라 측정 전에 비웁니다.
+
 ## [block 컨테이너 안의 Button·inline 요소가 Chrome 과 같은 자리에 놓입니다] - 2026-09-02
 
 ### Fixed

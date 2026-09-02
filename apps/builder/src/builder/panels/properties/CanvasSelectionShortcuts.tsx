@@ -11,9 +11,27 @@
  *
  * panel:properties scope 의 Copy/Paste Properties 와 Cmd+? 도움말 토글은
  * 패널 UI 이므로 PropertiesPanel 에 잔류.
+ *
+ * 렌더별 값 (elementsById · selectedElement · style actions) 은 ref 로만 읽고
+ * 모든 핸들러는 deps `[]` 로 고정한다 — Why (2026-09-02 leak 실측,
+ * `scripts/perf-baseline.mjs --mode retainers`): 한 렌더의 클로저들은 V8 context
+ * 하나를 공유한다. `elementsById` 는 mutation 즉시, `selectedElement` 는
+ * useDeferredValue 라 한 렌더 늦게 바뀌므로 `getElementsMap` 과 `handleCopyStyles`
+ * 가 번갈아 재생성됐고, memo 로 살아남은 쪽이 직전 렌더 context 를, 그 context 가
+ * 또 이전 렌더의 memo 클로저를 잡아 렌더 수만큼 자라는 사슬이 됐다. 링크마다 그
+ * 시점의 elements view (문서 버전) 를 붙잡아 mutation 당 ~14KB 가 영구 보유됐다
+ * (요소 60개 문서, 편집 1회 = 렌더 2회). 핸들러가 렌더별 값을 직접 캡처하지 않으면
+ * 사슬의 첫 링크가 생기지 않는다.
  */
 
-import { memo, useCallback, useEffect, useMemo } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { useStore, useDebouncedSelectedElementData } from "../../stores";
 import {
   bindHandlersToDefinitions,
@@ -44,18 +62,24 @@ export const CanvasSelectionShortcutsHost = memo(
     const activeScope = useActiveScope();
     const { copyStyles, pasteStyles } = useStyleActions();
 
-    // 🚀 Performance: 액션만 가져오기 (구독 없음)
-    const setSelectedElement = useStore.getState().setSelectedElement;
-    const setSelectedElements = useStore.getState().setSelectedElements;
+    // 렌더별 값은 ref 경유 — 핸들러가 직접 캡처하면 파일 상단 Why 의 사슬이 생긴다.
+    const elementsByIdRef = useRef(elementsById);
+    const selectedElementRef = useRef(selectedElement);
+    const styleActionsRef = useRef({ copyStyles, pasteStyles });
+    useLayoutEffect(() => {
+      elementsByIdRef.current = elementsById;
+      selectedElementRef.current = selectedElement;
+      styleActionsRef.current = { copyStyles, pasteStyles };
+    });
 
     // 🚀 Performance: getState() 패턴 - 구독 없이 최신 상태 조회
     const getElementsMap = useCallback(
-      () => new Map(elementsById),
-      [elementsById],
+      () => new Map(elementsByIdRef.current),
+      [],
     );
     const getLegacyElementsMap = useCallback(
-      () => panelNodeMapToElementMap(elementsById),
-      [elementsById],
+      () => panelNodeMapToElementMap(elementsByIdRef.current),
+      [],
     );
     const getCurrentPageId = useCallback(
       () => useStore.getState().currentPageId,
@@ -101,7 +125,7 @@ export const CanvasSelectionShortcutsHost = memo(
       }
 
       // 🆕 O(1) 인덱스 기반 조회
-      const getPageElements = useStore.getState().getPageElements;
+      const { getPageElements, setSelectedElements } = useStore.getState();
       const pageElements = getPageElements(currentPageId);
 
       if (pageElements.length === 0) {
@@ -115,17 +139,20 @@ export const CanvasSelectionShortcutsHost = memo(
       // Use store's setSelectedElements
       setSelectedElements(allElementIds);
       console.log(`✅ [SelectAll] Selected ${allElementIds.length} elements`);
-    }, [getCurrentPageId, setSelectedElements]);
+    }, [getCurrentPageId]);
 
     // ⭐ Phase 3: Advanced Selection - Clear Selection (Esc)
     const handleEscapeClearSelection = useCallback(() => {
-      setSelectedElement(null);
+      useStore.getState().setSelectedElement(null);
       console.log("✅ [Esc] Selection cleared");
-    }, [setSelectedElement]);
+    }, []);
 
     const handleDetachSelectedInstance = useCallback(async () => {
-      const selectedId = getSelectedElementId() ?? selectedElement?.id;
-      const element = selectedId ? elementsById.get(selectedId) : null;
+      const selectedId =
+        getSelectedElementId() ?? selectedElementRef.current?.id;
+      const element = selectedId
+        ? elementsByIdRef.current.get(selectedId)
+        : null;
       if (!selectedId || !canDetachInstance(element)) return;
       // 확인 문구 조립은 `runComponentSemanticsAction` 이 소유한다 (ADR-199
       // Phase 3) — 종전에는 여기서 원본을 안 되짚어 패널과 문구가 갈렸다 (R2).
@@ -133,7 +160,7 @@ export const CanvasSelectionShortcutsHost = memo(
         targetId: selectedId,
         element,
       });
-    }, [elementsById, getSelectedElementId, selectedElement?.id]);
+    }, [getSelectedElementId]);
 
     // ⭐ Phase 3: Advanced Selection - Tab Navigation
     const handleTabNavigation = useCallback(
@@ -146,7 +173,7 @@ export const CanvasSelectionShortcutsHost = memo(
         event.preventDefault();
 
         const currentIndex = selectedElementIds.indexOf(
-          selectedElement?.id || "",
+          selectedElementRef.current?.id || "",
         );
         let nextIndex: number;
 
@@ -169,20 +196,16 @@ export const CanvasSelectionShortcutsHost = memo(
         const nextElement = elementsMap.get(nextElementId);
 
         if (nextElement) {
-          setSelectedElement(nextElementId, nextElement.props);
+          useStore
+            .getState()
+            .setSelectedElement(nextElementId, nextElement.props);
           console.log(
             `✅ [Tab] Navigated to element ${nextIndex + 1}/${selectedElementIds.length}:`,
             nextElement.type,
           );
         }
       },
-      [
-        getMultiSelectMode,
-        getSelectedElementIds,
-        selectedElement,
-        getElementsMap,
-        setSelectedElement,
-      ],
+      [getMultiSelectMode, getSelectedElementIds, getElementsMap],
     );
 
     // ⭐ Phase 4: Group Selection (Cmd+G)
@@ -219,14 +242,15 @@ export const CanvasSelectionShortcutsHost = memo(
     // 숨김 중에도 동작하던 단축키 계약 보존을 위해 host 에 등록.
     const handleCopyStyles = useCallback(async () => {
       const selectedStyle =
-        (selectedElement?.style as Record<string, unknown> | undefined) ?? null;
+        (selectedElementRef.current?.style as
+          Record<string, unknown> | undefined) ?? null;
       if (!selectedStyle) return;
-      await copyStyles(selectedStyle);
-    }, [selectedElement, copyStyles]);
+      await styleActionsRef.current.copyStyles(selectedStyle);
+    }, []);
 
     const handlePasteStyles = useCallback(async () => {
-      await pasteStyles();
-    }, [pasteStyles]);
+      await styleActionsRef.current.pasteStyles();
+    }, []);
 
     // 🔥 캔버스 전역 단축키 (PropertiesPanel 에서 이전 — ADR-155 Phase 2)
     //
