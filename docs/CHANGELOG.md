@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [block 컨테이너 안의 Button·inline 요소가 Chrome 과 같은 자리에 놓입니다] - 2026-09-02
+
+### Fixed
+
+- 캔버스에서 block 컨테이너 안에 Button 두 개를 두면 세로로 쌓이거나 (폭을 지정한 형제 뒤에서) 같은 줄에 남던 것을 고쳤습니다. 이제 Preview 와 같이 폭을 지정한 block 형제는 줄을 차지하고 Button 들은 그 아래 줄에 나란히 놓입니다 (ADR-923 Phase 5 — 레이아웃 엔진이 CSS display 값을 그대로 받아 inline 요소의 줄 배치를 직접 계산합니다. 종전에는 TS 가 block 컨테이너를 flex 로 흉내 냈습니다).
+- catalog 의 Button · ToggleButton 기본 display 가 DOM 과 같은 `inline-flex` 가 됐습니다. Styles 패널 Layout 의 Direction 은 row 로 표시됩니다 (Phase 4 의 inline-flex 표시 정정과 함께).
+- overflow 가 `hidden`/`clip`/`auto` 인 요소의 자동 높이·폭이 부모 크기로 잘리던 것을 없앴습니다. block 문맥에서는 CSS 대로 콘텐츠 크기를 유지하고, flex 문맥의 scroll container 는 엔진이 최소 크기 0 으로 줄입니다.
+- CalendarGrid 의 기본 display 가 `block` 이 됐습니다 (Calendar 안에서는 변화 없음).
+
+### Changed
+
+- 레이아웃 엔진으로 보내는 display 값이 CSS 값 그대로 (`inline-flex` · `inline-grid` · `inline-block` 보존) 가 됐습니다. 대규모 문서 (약 5,000 노드) 의 레이아웃 p95 는 flex 위주 +4.9%, block 위주 +2.5% 로 예산 (5%) 안입니다.
+
 ## [패널 크기 조절·이동 중 바뀐 패널만 다시 그립니다] - 2026-09-02
 
 ### Changed

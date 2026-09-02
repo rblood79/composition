@@ -215,6 +215,41 @@ describe("ADR-923 Phase 5 — DC-6 overflow cap 제거 (Chrome 게이트)", () =
     },
   );
 
+  it.each(["hidden", "clip"] as const)(
+    "block 부모 10px 안 catalog Button + inline overflow:%s (INTRINSIC leaf) — 주입 높이 30 은 availableHeight 에 무관 (종전 Hcapped)",
+    (overflow) => {
+      // 인벤토리 arm "inline Button overflow" 의 production 형태 — 텍스트 leaf 와 달리 INTRINSIC_MEASURE 분기의
+      //   height 주입을 타므로 종전 cap (availableHeight 10 으로 절단) 의 회귀 게이트다.
+      const parent = {
+        id: `dc6-gate-btn-parent-${overflow}`,
+        type: "div",
+        props: { style: { display: "block", width: 400, height: 10 } },
+        parent_id: null,
+      } as unknown as Element;
+      const button = {
+        id: `dc6-gate-btn-${overflow}`,
+        type: "Button",
+        props: { children: "Overflow", style: { overflow } },
+        parent_id: parent.id,
+      } as unknown as Element;
+      const low = layoutTree(parent.id, [parent, button], 400, 10, "dc6-gate");
+      const high = layoutTree(
+        parent.id,
+        [parent, button],
+        400,
+        100000,
+        "dc6-gate",
+      );
+      const hLow = low.layout.get(button.id)!.height;
+      const hHigh = high.layout.get(button.id)!.height;
+      console.log(
+        `ADR923DC6GATE block10 Button overflow:${overflow} h availH10=${hLow} availH1e5=${hHigh} reached ${String(low.batch.get(button.id)!.style.height)}`,
+      );
+      expect(hLow).toBe(hHigh);
+      expect(hLow).toBeGreaterThan(10 + 1);
+    },
+  );
+
   it("production Select 의 SelectValue 높이는 root availableHeight 에 무관하다 (종전 availH 8 에서 cap)", () => {
     const low = layoutTree(select.root.id, select.elements, 400, 8, "dc6-gate");
     const high = layoutTree(

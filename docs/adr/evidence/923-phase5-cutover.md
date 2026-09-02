@@ -1,0 +1,162 @@
+# ADR-923 Phase 5 — cutover (TS IFC 시뮬레이션 제거 · 엔진 display 직결) 실측 기록
+
+> 2026-09-02 · 실행 Claude · 사용자 착수 승인 2026-09-02 (Codex round 30 "Phase 4 닫힘 · Phase 5 착수 가" 근거) · 판독 Codex round 31 대기.
+> **동작 변경 Phase (HIGH, 단일 commit 계약 — 실제 경계는 §10: 코드·테스트는 다른 세션 커밋 `e2b657b0d`·`a1fd5e8fc` 에 휩쓸림)** — base `5cbcde540`. 게이트: G0 · G1 후반 · G2 · G3 · G4 후반 · G5 갱신 · HC1 · HC2 · HC7 반전 · G6 (live).
+
+## 0. 요약
+
+| 항목                                   | 결과                                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| catalog 전환 2                         | `componentRulesTable.ts` Button · ToggleButton top-level `containerStyles.display` `flex` → **`inline-flex`** (DOM 과 동일). 나머지 후보는 §5 HC2 판정표 (전환 필요 5 는 후속 D3 commit)                                                                                                                                                                                              |
+| `getElementDisplay` 배선               | 명시 `style.display` → 없으면 `resolveDefaultDisplay(type)` (catalog 파생 → hand → block). `INLINE_BLOCK_TAGS` 삭제, 측정 소비처 4 곳은 `INTRINSIC_MEASURE_TAGS` (멤버십 동일 — G5 baseline diff 0 유지). **의도된 diff 18** (§2) 을 G5 테스트가 값으로 고정                                                                                                                          |
+| calendargrid                           | hand `inline-block` → **`block`** (Q4 §9 + Codex round 30 판정). `domDisplay` 필드 제거 (후보 0)                                                                                                                                                                                                                                                                                      |
+| S9 (CSS 값 통과)                       | `TaffyDisplay` 운반 union → CSS 8 값 · `TaffyFlexEngine` inline-flex→flex 정규화 삭제 · `buildNodeStyle` grid 분기 inline-grid 보존 · `toTaffyDisplay` inner-only 반환 삭제 · `toBatchDisplay` 삭제 (→ `normalizeCssDisplay` 손실 없는 정규화) · `seamDisplayInvariant` 반전 (inline-flex 가 경계에 닿는다)                                                                           |
+| IFC 시뮬레이션 삭제                    | `INLINE_BLOCK_PARENT_CONFIG` · `INLINE_BLOCK_LEAF_CONFIG` · `resolveInlineBlockAlignItems` · `classifyChildDisplay` · `isInlineBlockSimulationParent` · `needsBlockChildFullWidth` · `blockifyDisplay` · `displayToString` 삭제, `toTaffyDisplay(display, childDisplays)` 는 `{ taffyDisplay: normalizeCssDisplay(display) }`, fullTreeLayout §5.5 width:100% 보정 + TS blockify 삭제 |
+| DC-6 cap 삭제                          | `enrichWithIntrinsicSize` 의 `isOverflowClipped` 높이/폭 cap 삭제 → 인벤토리 ratchet cap **8 → 0** (도달 19 유지). Chrome 게이트 **11** (`adr923Dc6ChromeGate`) §4                                                                                                                                                                                                                    |
+| G0 / HC1 / HC7                         | `displayContract` (a)(b) `it.fails` → `it` PASS (Button `inline-flex` · 부모 `block`) · HC1 부모 시각 == 자식 도달값 (`inline-flex`) PASS · HC7 seam 반전 PASS                                                                                                                                                                                                                        |
+| G1 후반 (Chrome 차등, production 경로) | Phase 3 케이스 **69** 을 `pipelineLeg` 로 **게이트** (기록만 → 단언) — 69/69 PASS (엔진 직결과 동일)                                                                                                                                                                                                                                                                                  |
+| G4 후반 (HC2 · 패널 · probe)           | HC2 판정표 **33/33** (미판정 0 — 전환 2 · 일치 7 · 일치(outer) 13 · 예외(투영) 2 · 예외(inert) 4 · **전환필요(후속) 5**) §5 · 패널 테스트 재통과 (Button preset `inline-flex`, Direction row) · `blockInlineProbe` block+Button **Δx 0 Δy 0** (종전 [미해결 기록] Δ 140/55)                                                                                                           |
+| ADR-198 crossLeg                       | `KNOWN_LAYERS["catalog-state-paint"]` 층 판정 **그대로 `L1:fail`** — 내용은 바뀜: 위치 발산 (x 140 / y 55) 0, 잔여는 Button **폭** Δ2.66 / Δ2.80px (텍스트 측정, 범위 밖). 결과로만 갱신 = 변경 없음, 주석에 기록                                                                                                                                                                     |
+| G3 성능                                | before/after 교대 fresh-browser N=3 쌍: median(after_p95/before_p95) **F 1.049 · B 1.025** (≤ 1.05) §6. p50 은 F +5~7% / B +5% 상승 (기록)                                                                                                                                                                                                                                            |
+| G2 / 회귀                              | smoke 81/81 (첫 실행 PARITY-ENV flake → 재실행 PASS) · full parity **1062** PASS (기존 GridListItem/Tooltip 2 실패 · skipped 2; +13) · layout 55 files/**469** · builder 10 영역 1814 · scene+styles 589 · shared 967 · specs 875 · cargo 371+ · type-check PASS                                                                                                                      |
+| Live (G6)                              | 실제 빌더 (Chrome MCP): block frame 300 > frame 140×40 + Button 2 — Skia 와 DOM(publish, 같은 shared CSS) 모두 Button 2 가 block 형제 아래 **같은 줄** (A @(0,40) · B x = A 폭). 패널 Direction = row. §7                                                                                                                                                                             |
+
+## 1. 코드 변경 (production 9 파일 + 테스트 13 + 규칙/스킬 3)
+
+| 파일                                                           | 변경                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wasm-bindings/layoutTypes.ts`                                 | `TaffyDisplay` = `block · inline · inline-block · flex · inline-flex · grid · inline-grid · none` (CSS 값 union)                                                                                                                                                                                                                                                                                                                          |
+| `engines/taffyDisplayAdapter.ts`                               | 375 줄 → 300 줄: 헤더 "번역 규칙" 재작성, `TaffyDisplayConfig.taffyDisplay: TaffyDisplay`, 시뮬레이션 심볼 8 삭제, `normalizeCssDisplay` 신설, `getElementDisplay` → `resolveDefaultDisplay`, `toTaffyDisplay` 2-인자                                                                                                                                                                                                                     |
+| `engines/fullTreeLayout.ts`                                    | import 정리 · `toBatchDisplay` 삭제 (`normalizeCssDisplay`) · grid 분기 `display: normalizeCssDisplay(display)` · TS blockify 블록 삭제 · `childDisplays` CSS 값 그대로 · §5.5 삭제 (주석 기록) · `_childElements` 미사용                                                                                                                                                                                                                 |
+| `engines/TaffyFlexEngine.ts`                                   | `inline-flex` 보존                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `engines/utils.ts`                                             | `INLINE_BLOCK_TAGS` 삭제 · 소비처 4 → `INTRINSIC_MEASURE_TAGS` · 분류표 doc Phase 5 · calendargrid `handDisplay: "block"` (domDisplay 제거) · hand reason 갱신 · DC-6 cap 2 곳 + `isOverflowClipped` 삭제                                                                                                                                                                                                                                 |
+| `engines/defaultDisplay.ts` · `implicitStyles.ts` · `index.ts` | 헤더 (배선됨) · 주석 3 곳 명칭 · export 제거                                                                                                                                                                                                                                                                                                                                                                                              |
+| `catalog/generated/componentRulesTable.ts`                     | Button `:927` · ToggleButton `:13108` `display: "inline-flex"` + 주석                                                                                                                                                                                                                                                                                                                                                                     |
+| 테스트                                                         | G5 (`adr923IntrinsicMeasureSplit` — 의도된 diff 18 고정 · hand 7 · 배선 잠금) · `blockChildFullWidthGate` (S2 부재 잠금으로 전환) · intrinsic 3 (명칭) · HC1 · G0 · seam 반전 · Q4 (block 전환 사실) · DC-6 인벤토리 ratchet · **신규** `adr923Dc6ChromeGate` (11) · **신규** `adr923Hc2DisplayJudgment` (2) · ChromeDifferential production 게이트 · `blockInlineProbe` 일치 단언 · `crossLeg` 주석 · `specPresetResolver` Button preset |
+| 규칙/스킬                                                      | `rules/layout-engine.md` (잔존 표 · 금지 패턴 "TS IFC 시뮬레이션 재도입 금지" · toBatchDisplay 규칙 대체 · §5.5 제거) · `skills/cross-check` · `skills/parallel-verify` (`INTRINSIC_MEASURE_TAGS`)                                                                                                                                                                                                                                        |
+
+## 2. 의도된 diff 18 (G5 `INTENDED_DIFF` — 구 `inline-block` 에서 바뀐 값)
+
+| tag               | Phase 5 값    | 원천                             |
+| ----------------- | ------------- | -------------------------------- |
+| button            | `inline-flex` | catalog top-level (Phase 5 전환) |
+| togglebutton      | `inline-flex` | catalog top-level (Phase 5 전환) |
+| badge             | `inline-flex` | catalog structure                |
+| checkbox          | `inline-flex` | catalog structure                |
+| radio             | `inline-flex` | catalog structure                |
+| switch            | `inline-flex` | catalog structure                |
+| statuslight       | `inline-flex` | catalog structure                |
+| link              | `inline-flex` | catalog structure                |
+| breadcrumb        | `inline-flex` | catalog structure                |
+| icon              | `inline-flex` | catalog structure                |
+| tab               | `inline-flex` | catalog structure                |
+| menu              | `inline-flex` | catalog top-level (B7)           |
+| progresscircle    | `grid`        | catalog structure                |
+| togglebuttongroup | `flex`        | catalog top-level                |
+| toolbar           | `flex`        | catalog structure                |
+| disclosureheader  | `flex`        | catalog structure                |
+| calendarheader    | `flex`        | catalog structure                |
+| calendargrid      | `block`       | hand (Q4 §9, round 30 판정)      |
+
+hand 6 (submitbutton · fancybutton · type · chip · linkbutton · dateinput) 은 `inline-block` 유지 — 파생 원천 없음.
+
+## 3. 원복 RED (mutation — 편집 역적용 → 실행 → 복원, md5 일치)
+
+| 원복                                                                 | RED (실측)                                                                                                                                                                                                                                              |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (a) catalog Button `inline-flex` → `flex`                            | G5 1 fail (의도된 diff `button: flex`) · G0 (a)/(b) 1 fail (Button 경계 `flex`) · HC1 사실 고정 1 fail (부모·자식 `flex`) — HC1 일치 검사는 양쪽 `flex` 라 PASS (일치 자체는 유지)                                                                      |
+| (b) `getElementDisplay` 를 `resolveDefaultDisplay` 대신 `block` 고정 | G5 2 fail (배선 잠금 · 의도된 diff) · HC1 2 fail (일치 검사 `block` vs `inline-flex` + 사실 고정)                                                                                                                                                       |
+| (c) `TaffyFlexEngine` inline-flex → `flex` 정규화 복원               | G0 (a) 1 fail (Button 경계 `flex`). **HC7 seam 은 PASS** — Label 의 `inline-flex` 는 post-order implicit patch (`normalizeCssDisplay`, 2차 writer) 가 다시 써서 경계에 닿는다. 1차 writer 회귀는 G0 가 잡는다                                           |
+| (d) DC-6 height cap 복원                                             | DC-6 인벤토리 ratchet 1 fail (SelectValue 4 · ListBox/GridList 2 Hcapped) · Chrome 게이트 3 fail (block 부모 10 안 Button overflow hidden/clip 불변 2 + SelectValue 불변 1). block Text 케이스는 텍스트 leaf 높이가 다른 경로라 이 cap 의 대상이 아니다 |
+
+## 4. DC-6 cap 삭제 — Chrome 게이트 (`tests/parity/adr923Dc6ChromeGate.browser.test.ts`, 11 PASS)
+
+| 케이스                                                                            | 결과                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| block 부모 20px > Text leaf (3 줄) overflow hidden / clip / auto                  | DOM 60 = production 60 (cap 없음, 1px 정합) ×3                                                                                                                                                                                                                                                                                                                                                                                          |
+| flex column 400 > production ListBox(auto) / GridList(hidden)                     | 경계 도달 overflow `auto` / `hidden` · specified height `164px` 그대로 · height 164 (cap 부재 증거)                                                                                                                                                                                                                                                                                                                                     |
+| flex column 80 > 같은 서브트리                                                    | raw (scroll container) → **80** — 엔진 §4.5 automatic minimum 0 소비 (`is_scroll_container` = §4.5 입력). visible/clip 도 80 — **관찰**: production collection 의 행은 가상화라 layout 트리 자식이 아니고 content-size suggestion 이 0 → automatic minimum = min(specified 164, content 0) = 0. DOM 은 행이 실제 자식이라 min-content 164 (아래 아날로그). 가상화 collection 의 min-content floor 는 ADR-923 범위 밖 항목으로 기록 (§9) |
+| DOM 아날로그 flex column 80 > div overflow auto/hidden/visible/clip > 164px 상자  | DOM 80/80/164/164 = production 80/80/164/164 (clip 은 scroll container 아님 — r9h1)                                                                                                                                                                                                                                                                                                                                                     |
+| production Select 의 SelectValue                                                  | root availableHeight 8 / 100000 에서 높이 **21 = 21** (종전 availH 8 에서 Hcapped)                                                                                                                                                                                                                                                                                                                                                      |
+| block 부모 10px > catalog Button + inline overflow hidden / clip (INTRINSIC leaf) | 주입 높이 **30 = 30** (availableHeight 10 / 100000 불변; 종전 Hcapped) — 인벤토리 arm "inline Button overflow" 의 production 형태                                                                                                                                                                                                                                                                                                       |
+
+인벤토리 (`adr923Dc6OverflowCapInventory`) ratchet: 도달 19 그대로, cap 행 8 → `H= W=` (SelectValue 4 · ListBox/GridList 2 · inline Button 2). 신규 도달 0.
+
+## 5. HC2 판정표 (`tests/parity/adr923Hc2DisplayJudgment.browser.test.ts` — 33 rule, 미판정 0)
+
+입력: Phase 0 §A 의 Q4 후보 13 · DOM 충돌 3 · DOM 선언 없음 17. Canvas 값 = 팔레트 생성 트리 (`adr923ProductionTrees`) 안의 해당 노드가 wasm 경계에 보내는 display (팔레트 밖 sub-part 는 부모 production 트리, 어디에도 없으면 standalone). DOM 값 = live computed (실 번들 CSS 로 shared 컴포넌트 렌더 — 16 종) / §A 파일 사실 / 소스 태그 (Table · TailSwatch · Tree). 판정 산출물 `tests/parity/.artifacts/adr923-hc2-capture.json`.
+
+| type               | Canvas 경계  | DOM                                                 | verdict        | 대응 box / 사유                                                                                        |
+| ------------------ | ------------ | --------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------ |
+| Button             | inline-flex  | inline-flex (Button.css:14)                         | 전환(Phase 5)  | .react-aria-Button                                                                                     |
+| ToggleButton       | inline-flex  | inline-flex (generated/ToggleButton.css:11)         | 전환(Phase 5)  | .react-aria-ToggleButton                                                                               |
+| Menu               | inline-flex  | flex (popover 목록)                                 | 예외(투영)     | Canvas Menu 박스 = MenuTrigger 의 Button (ADR-151 B7)                                                  |
+| FileTrigger        | inline-block | inline-flex (generated :24 실효)                    | 일치(outer)    | 자식 Button 1 — inner 차이 배치 영향 없음                                                              |
+| Skeleton           | inline-flex  | block (Skeleton.css:65 live)                        | 전환필요(후속) | catalog structure inline-flex ↔ live block (palette 항목, outer 다름)                                  |
+| ColorPicker        | flex         | flex                                                | 일치           |                                                                                                        |
+| ColorSlider        | block        | grid                                                | 일치(outer)    | 자식 없는 self-render leaf                                                                             |
+| ColorSwatchPicker  | flex         | flex                                                | 일치           |                                                                                                        |
+| GridList           | flex         | grid (GridList.css:4)                               | 일치(outer)    | implicitStyles gridlist 분기가 행을 자체 배치                                                          |
+| Label              | block        | inline-flex (Label.css:27)                          | 예외(inert)    | production 형태 전부 flex 부모 자식 → 양쪽 blockify                                                    |
+| Slot               | block        | inline-flex (generated/Slot.css archetype base)     | 전환필요(후속) | 잔존 spec Slot — spec containerStyles 에 display 명시 등재 필요 (CSSGenerator archetype 기본값과 갈림) |
+| Tag                | block        | flex (TagGroup.css:61)                              | 일치(outer)    | TagList self-render chip; standalone 은 열린 writer 만                                                 |
+| TagList            | flex         | contents (TagGroup.css:32)                          | 예외(투영)     | DOM 은 box 없음 — Tag 가 TagGroup flex 에 직접 참여                                                    |
+| Checkbox           | inline-flex  | label:inline-flex (live)                            | 일치           | 충돌 해소 — live 승자 generated inline-flex                                                            |
+| Radio              | inline-flex  | label:flex (live — Radio.css:9 승)                  | 예외(inert)    | RadioGroup(flex) 자식 → 양쪽 blockify                                                                  |
+| SliderOutput       | inline-flex  | output:flex (live)                                  | 예외(inert)    | Slider 컨테이너 자식 → 양쪽 blockify                                                                   |
+| Avatar             | inline-flex  | div:flex (live)                                     | 전환필요(후속) | catalog structure inline-flex ↔ live flex (palette 항목)                                               |
+| Breadcrumb         | inline-flex  | li:flex (live)                                      | 예외(inert)    | Breadcrumbs(flex) 자식; Canvas 는 standalone 만                                                        |
+| CalendarHeader     | flex         | header:flex (live)                                  | 일치           |                                                                                                        |
+| DisclosureHeader   | flex         | h3:block (live)                                     | 일치(outer)    | Canvas 합성 leaf                                                                                       |
+| FieldError         | none         | span:block (live, invalid 일 때)                    | 일치           | 오류 없음 = 양쪽 없음; 오류 상태 투영은 별도                                                           |
+| IllustratedMessage | flex         | div:flex (live)                                     | 일치           |                                                                                                        |
+| MeterTrack         | grid         | div:block (live)                                    | 일치(outer)    | .bar — 합성 렌더                                                                                       |
+| MeterValue         | grid         | span:block (live)                                   | 일치(outer)    | .value                                                                                                 |
+| ProgressBarTrack   | grid         | div:block (live)                                    | 일치(outer)    | .bar                                                                                                   |
+| ProgressBarValue   | grid         | span:block (live)                                   | 일치(outer)    | .value                                                                                                 |
+| ProgressCircle     | grid         | div:block (live)                                    | 일치(outer)    | SVG self-render                                                                                        |
+| StatusLight        | inline-flex  | div:flex (live)                                     | 전환필요(후속) | catalog structure inline-flex ↔ live flex (palette 항목)                                               |
+| TableHeader        | flex         | thead (소스)                                        | 일치(outer)    | Canvas Table 은 flex 행 투영 (ADR-912)                                                                 |
+| TableBody          | flex         | tbody (소스)                                        | 일치(outer)    | 동상                                                                                                   |
+| TailSwatch         | inline-flex  | div UA block (소스 — Tailwind 래퍼, generated dead) | 전환필요(후속) | palette 항목, live 미측정 (ColorSlider 의존)                                                           |
+| TextArea           | flex         | div:flex (live .react-aria-TextField 래퍼)          | 일치           | 안쪽 textarea 는 block                                                                                 |
+| Tree               | flex         | div UA block (소스)                                 | 일치(outer)    | 행 투영                                                                                                |
+
+**전환필요(후속) 5** (Skeleton · Slot · Avatar · StatusLight · TailSwatch) 는 palette 항목이면서 outer 가 실제로 갈리는 케이스 — 이번 commit 은 판정만 하고 catalog/spec 값 변경은 별도 D3 commit (각각 Skia 시각 확인 동반). breakdown Phase 5 후속 항목.
+
+## 6. G3 성능 (before/after 교대, fresh browser, N=3 고정)
+
+`VITE_ADR923_BASELINE=1 VITE_ADR923_BASELINE_TAG=<before|after>-5cbcde540-<i>` — before = production 9 파일 패치 역적용 (`git apply -R`), after = 재적용. 순서 B1 A1 B2 A2 B3 A3. 노드 F 5,193 · B 5,001.
+
+| 쌍  | F before p50/p95 | F after p50/p95 | F ratio | B before p50/p95 | B after p50/p95 | B ratio |
+| --- | ---------------- | --------------- | ------- | ---------------- | --------------- | ------- |
+| 1   | 25.4 / 30.5      | 27.2 / 32       | 1.049   | 107.1 / 117.5    | 113 / 121.2     | 1.031   |
+| 2   | 25.9 / 30.6      | 27.2 / 30.6     | 1.000   | 109.5 / 120.2    | 115.4 / 123.2   | 1.025   |
+| 3   | 27 / 29.7        | 28.1 / 32.4     | 1.091   | 107.9 / 120.2    | 115 / 121.3     | 1.009   |
+
+median(after_p95 / before_p95): **F 1.049 · B 1.025** — 게이트 ≤ 1.05 통과 (F 는 상한 근접). p50 은 F 25.4~~27.0 → 27.2~~28.1 (+5~~7%), B 107~~110 → 113~115 (+5%) 로 일관되게 상승 — CSS 값이 그대로 엔진에 닿아 block 부모의 line box 경로가 더 자주 실행되는 비용으로 본다 (기록; 예산 안). N 은 결과 확인 전 고정, run 추가 없음.
+
+## 7. Live Exercise (Chrome MCP, 2026-09-02, localhost:5173 · 프로젝트 AAAA · Home 390×844)
+
+- 팔레트 클릭으로 body 아래 frame F1 추가 → Inspector writer (`updateElementProps`) 로 `display:block · width:300px` → F1 안에 frame F2 (`140×40`, block) → F1 안에 palette Button 2 (production 생성 경로 `useElementCreator`).
+- **Skia** (`__composition_LAYOUT_DEBUG__.getSharedLayoutMap()`): F1 300×70 · F2 140×40 @(0,0) · Button A 69×30 @(0,40) · Button B 69×30 @(**69**,40) — 폭 명시 block 형제가 줄을 차지하고 Button 2 는 아래 줄에 나란히 (캔버스 확대 스크린샷 일치, 선택 배지 69×30).
+- **DOM** (publish `/publish/#page-<Home>`, 같은 shared CSS): F1 block 300×74 · F2 block 140×40 @(0,0) · Button A `inline-flex` 73.53×34 @(0,40) · Button B @(**73.53**,40). 배치 동일 (y 40, B.x = A 폭). Button 크기 차이 (69×30 vs 73.53×34) 는 publish 의 Button size/텍스트 측정 — display 축 아님 (crossLeg 잔여 폭 Δ 와 같은 계열, 범위 밖).
+- **패널**: Button 선택 → Layout Direction = **row** (2번째 토글), Alignment center, Width size fit — inline-flex 를 inner 기준으로 읽는다 (G4).
+- 콘솔 에러 0 (추적 시작 이후). 테스트 요소 4 삭제, 요소 수 93 복원.
+
+## 8. 검증 (2026-09-02)
+
+layout 55 files/**469** (Phase 4 474 → S2 게이트 9→2 · G5 재편) · builder 10 영역 **1814** · scene+styles **589** (specPresetResolver Button preset `inline-flex` 갱신) · shared **967** · specs **875** · cargo **371 + 37** · focused browser (HC1 · G0 · seam · Q4 · DC-6 · ChromeDifferential 69) **107** + DC-6 게이트 11 + HC2 2 · smoke 81/81 (첫 실행 PARITY-ENV 환경 flake — 브라우저 vitest 직후 첫 smoke, 메모리 `reference-adr198-prepush-smoke-first-attempt-flake` — 재실행 PASS) · full parity **1062** (기존 2 · skipped 2) · type-check PASS · 금지 어휘 0.
+
+## 9. 관찰 · 후속 (수리 금지 — 기록만)
+
+- **HC2 전환필요 5** (§5): Skeleton · Slot · Avatar · StatusLight · TailSwatch — catalog structure / spec 기본값이 DOM outer 와 갈린다. 별도 D3 commit (각 Skia 시각 확인).
+- **가상화 collection 의 min-content floor** (§4): production ListBox/GridList 는 행이 layout 트리 자식이 아니라 content-size suggestion 0 → visible/clip 에서도 부모 제약에 맞춰 준다 (DOM 은 164 유지). Inspector 로 overflow visible 을 준 collection 이 제약 flex 안에 있을 때만 드러난다.
+- **Button 폭 Δ2.7px** (crossLeg `catalog-state-paint` 잔여 L1) · publish 에서 Button 34 vs Skia 30 — 텍스트 측정/size 계열, ADR-923 범위 밖.
+- p50 +5~7% (§6) — 예산 안. 추적하려면 line box 경로 프로파일 (별도).
+
+## 10. 절차 기록 — 커밋 경계 (다른 세션의 `git add -A` sweep 2회)
+
+- 1차: 작업 중 Phase 5 파일 25 개가 다른 세션의 로컬 커밋 `5078b78e9` (영문 메시지, 미push) 로 휩쓸림 → 파일 목록이 전부 본 Phase 의 것임을 확인하고 `git reset --soft HEAD~1` 로 되돌려 (작업 트리·index 보존) 단일 commit 계약을 지키려 했다.
+- 2차: 원복 RED · G3 교대 측정 · live exercise 를 마치는 사이 같은 세션이 다시 휩쓸어 **push 까지 했다** — `e2b657b0d` (`refactor(layout): update display handling for Phase 5 cutover …`, 본 Phase 의 코드·테스트 25 파일 전부) · `a1fd5e8fc` (`refactor(layout): enhance type-check gate logic …`, 그 세션의 hook·PanelWorkspace 변경 + 본 Phase 의 `rules/layout-engine.md` · `skills/cross-check` · `skills/parallel-verify` · `adr923Hc2DisplayJudgment` 최종본 · CHANGELOG 그 세션 엔트리). 두 커밋은 origin/main 에 있어 재작성하지 않는다 (이력 손실 0, 내용 온전). 본 Phase 의 커밋은 남은 것 — DC-6 Chrome 게이트 Button 케이스 보강 · 본 evidence · breakdown/ADR/README/CHANGELOG — 이며 커밋 메시지에 휩쓸린 두 커밋을 명시한다. round 29 (`5b229437c`) 와 같은 절차. 영문 커밋 메시지는 그 세션의 것이다.
+- 다른 세션의 dirty 파일 (`PanelWorkspace.tsx` 등) 은 건드리지 않았다.
