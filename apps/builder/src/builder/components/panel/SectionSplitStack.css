@@ -31,7 +31,6 @@
 .split-pane > .section {
   flex: 0 1 auto;
   min-height: 0;
-  box-shadow: 0 -6px 8px 0px rgba(0, 0, 0, 0.06);
 }
 
 .split-pane > .section > .section-content {
@@ -55,14 +54,4 @@
   height: 8px;
   cursor: ns-resize;
   z-index: 3;
-}
-
-/* 손잡이는 항상 보인다 — 섹션 사이 구분선은 "여기를 끌 수 있다" 는 단서가 없으면 발견되지
-   않는다. 선의 두께·길이·색은 PanelWorkspace.css 의 .panel-resize-handle::after 토큰
-   (--panel-interaction-line-size/length/color) 을 그대로 물려받고, 표시 opacity 는 패널
-   splitter 의 hover 표시값과 같은 1 로 고정한다 (hover/focus 변화 없음). 손잡이 높이가 8px 라
-   2px 선을 가운데 두려고 top 만 3px 로 맞춘다 (2026-09-02 사용자 지적). */
-.split-stack .panel-resize-handle.split-handle::after {
-  top: 3px;
-  opacity: 1;
 }
