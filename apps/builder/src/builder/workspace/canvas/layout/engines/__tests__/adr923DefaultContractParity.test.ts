@@ -279,24 +279,40 @@ describe("ADR-923 r22m1 — 갈려 있던 3 타입 고정", () => {
  * `defaultContractLookup` 계약 테스트).
  */
 describe("ADR-923 r23m1 — defaultSelectionMode 리터럴 0 (catalog binding 경유)", () => {
-  const FILES = [
-    "src/builder/workspace/canvas/layout/engines/utils.ts",
-    "src/builder/workspace/canvas/scene/collectionVirtualization.ts",
-    "src/builder/workspace/canvas/scene/canvasSceneNode.ts",
-    "src/builder/workspace/canvas/skia/buildSpecNodeData.ts",
+  // r26m1 — 파일마다 **결선 대상 component 도 고정**한다. helper 호출 여부만 보면
+  //   `resolveBindingSelectionMode("Tree", …)` 오결선이 통과한다 (GridList 규칙에서 none·single 은
+  //   같은 false 라 기능 게이트의 boolean 동치도 못 가른다 — 아래 binding mutation 게이트와 짝).
+  const FILES: ReadonlyArray<[string, string]> = [
+    ["src/builder/workspace/canvas/layout/engines/utils.ts", "GridList"],
+    [
+      "src/builder/workspace/canvas/scene/collectionVirtualization.ts",
+      "GridList",
+    ],
+    ["src/builder/workspace/canvas/scene/canvasSceneNode.ts", "GridList"],
+    ["src/builder/workspace/canvas/skia/buildSpecNodeData.ts", "Tree"],
   ];
 
   it.each(FILES)(
-    "%s — selectionMode/selectionStyle 기본값이 binding 경유",
-    (rel) => {
+    "%s — selectionMode/selectionStyle 기본값이 %s binding 경유",
+    (rel, component) => {
       const source = readFileSync(resolve(process.cwd(), rel), "utf8");
       expect(source).toMatch(
-        /defaultSelectionMode:\s*resolveBindingSelectionMode\(/,
+        new RegExp(
+          `defaultSelectionMode:\\s*resolveBindingSelectionMode\\("${component}",`,
+        ),
       );
       expect(source).not.toMatch(/defaultSelectionMode:\s*"/);
+      // 다른 component 로 결선된 호출이 같은 파일에 남아 있으면 안 된다.
+      expect(source).not.toMatch(
+        new RegExp(`resolveBindingSelection(Mode|Style)\\("(?!${component}")`),
+      );
       // r24m1 — style 축도 같은 원천. `selectionStyle: props.x,` 로 되돌아가면 리터럴
       //   `fallback` 이 다시 기본값 원천이 된다.
-      expect(source).toMatch(/\?\?\s*resolveBindingSelectionStyle\(/);
+      expect(source).toMatch(
+        new RegExp(
+          `\\?\\?\\s*resolveBindingSelectionStyle\\("${component}"\\)`,
+        ),
+      );
     },
   );
 });
@@ -476,5 +492,90 @@ describe("ADR-923 r24m2 — layout 밖 소비처의 기능 게이트", () => {
     expect(
       treeItemSkia({ selectionStyle: "checkbox", selectionMode: "none" }),
     ).toBe(absent);
+  });
+
+  /**
+   * ADR-923 r26m1 — **결선 대상 component 고정 (binding mutation)**. 위 기능 게이트는 현재 값의
+   * boolean 동치만 본다: GridList 규칙(`checkboxModes: ["multiple"]`)에서 none 과 single 은 둘 다
+   * "체크박스 없음" 이라, layout 의 `defaultSelectionMode` 를 **Tree binding**(`single`) 으로
+   * 오결선해도 14/14 + layout 460 이 전부 통과했다 (판독 실험). 값이 우연히 같은 결과로 접히면
+   * 어느 binding 을 읽는지는 출력에 안 나온다.
+   *
+   * 그래서 **binding 자체를 움직인다**: GridList binding 의 default 를 바꾸면 GridList 소비처의
+   * "부재" 결과가 그 값을 명시한 결과와 같아져야 하고(따라간다), Tree binding 을 바꿔도 GridList
+   * 소비처는 움직이지 않아야 한다(다른 원천은 안 읽는다). Tree(Skia) 는 반대 방향. 계약의 정의
+   * "부재 = 그 타입의 binding 기본값" 을 값 우연과 무관하게 실행으로 확인한다.
+   */
+  function withBindingDefault<T>(
+    type: string,
+    key: string,
+    value: unknown,
+    run: () => T,
+  ): T {
+    const contract = getPrimitiveBinding(type)?.props.accepts[key] as
+      { default?: unknown } | undefined;
+    if (!contract) throw new Error(`${type}.${key} binding 없음`);
+    const prev = contract.default;
+    contract.default = value;
+    try {
+      return run();
+    } finally {
+      contract.default = prev;
+    }
+  }
+
+  it("binding mutation: GridList 소비처 3 (layout·scene·virtualization) 의 부재 기본값이 GridList binding 을 따라간다", () => {
+    // 대조군 — mutation 이 실제로 신호를 움직인다 (게이트 자체의 살아 있음).
+    expect(gridListLayout({})).not.toBe(
+      gridListLayout({ selectionMode: "multiple" }),
+    );
+    withBindingDefault("GridList", "selectionMode", "multiple", () => {
+      expect(gridListLayout({})).toBe(
+        gridListLayout({ selectionMode: "multiple" }),
+      );
+      expect(sceneCheckboxes({})).toEqual(
+        sceneCheckboxes({ selectionMode: "multiple" }),
+      );
+      expect(stride({})).toBe(stride({ selectionMode: "multiple" }));
+    });
+    // 복구 확인 — mutation 이 새지 않는다.
+    expect(gridListLayout({})).toBe(gridListLayout({ selectionMode: "none" }));
+  });
+
+  it("binding mutation: Tree binding 을 바꿔도 GridList 소비처 3 은 움직이지 않는다 (오결선 음성 대조)", () => {
+    const layoutAbsent = gridListLayout({});
+    const sceneAbsent = sceneCheckboxes({});
+    const strideAbsent = stride({});
+    withBindingDefault("Tree", "selectionMode", "multiple", () => {
+      expect(gridListLayout({})).toBe(layoutAbsent);
+      expect(sceneCheckboxes({})).toEqual(sceneAbsent);
+      expect(stride({})).toBe(strideAbsent);
+    });
+    // style 축도 같은 형태 — Tree 의 style 을 checkbox 로 바꿔도 GridList 는 그대로.
+    withBindingDefault("Tree", "selectionStyle", "checkbox", () => {
+      expect(
+        gridListLayout({
+          selectionMode: "multiple",
+          selectionStyle: undefined,
+        }),
+      ).toBe(gridListLayout({ selectionMode: "multiple" }));
+    });
+  });
+
+  it("binding mutation: Skia TreeItem 의 부재 기본값은 Tree binding 만 따라간다", () => {
+    const withCheckbox = treeItemSkia({ selectionStyle: "checkbox" });
+    withBindingDefault("Tree", "selectionMode", "none", () => {
+      expect(treeItemSkia({ selectionStyle: "checkbox" })).toBe(
+        treeItemSkia({ selectionStyle: "checkbox", selectionMode: "none" }),
+      );
+      expect(treeItemSkia({ selectionStyle: "checkbox" })).not.toBe(
+        withCheckbox,
+      );
+    });
+    // GridList binding 을 바꿔도 Tree 는 그대로.
+    withBindingDefault("GridList", "selectionMode", "none", () => {
+      expect(treeItemSkia({ selectionStyle: "checkbox" })).toBe(withCheckbox);
+    });
+    expect(treeItemSkia({ selectionStyle: "checkbox" })).toBe(withCheckbox);
   });
 });
