@@ -406,6 +406,11 @@
   width: 10px;
 }
 
+/* Navigator 섹션 분할과 같이 손잡이는 항상 보인다 (hover/focus 변화 없음) */
+.workspace-compare-resizer .panel-resize-handle::after {
+  opacity: 1;
+}
+
 .workspace-compare-label {
   position: absolute;
   top: 8px;

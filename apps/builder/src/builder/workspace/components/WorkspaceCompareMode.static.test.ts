@@ -25,6 +25,10 @@ describe("WorkspaceCompareMode resize handle", () => {
     const css = await readFile(resolve(__dirname, "../Workspace.css"), "utf-8");
 
     expect(css).toMatch(/\.workspace-compare-resizer \.panel-resize-handle \{/);
+    // Navigator 섹션 분할과 같이 손잡이는 항상 보인다
+    expect(css).toMatch(
+      /\.workspace-compare-resizer \.panel-resize-handle::after \{[^}]*opacity: 1;/,
+    );
     expect(css).not.toContain("#f24cb8");
     expect(css).not.toContain("col-resize");
   });

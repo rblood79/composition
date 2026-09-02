@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Layout 패널이 inline-flex 요소의 방향·정렬을 표시합니다] - 2026-09-02
+
+### Fixed
+
+- Styles 패널의 Layout 섹션에서 `display: inline-flex` 요소의 Direction (row / column) 과 Alignment 9-grid 가 비어 있던 것을 고쳤습니다. 종전에는 `flex` 만 flex 컨테이너로 보아 사용자가 지정한 `inline-flex` 요소를 block 으로 표시했습니다. 팔레트 컴포넌트 (Button 등) 의 표시는 변하지 않습니다. (ADR-923 Phase 4)
+
 ## [Navigator 의 두 섹션 사이를 드래그해 높이를 나눌 수 있습니다] - 2026-09-02
 
 ### Added
@@ -15,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frames 탭의 Frames / Layers 섹션도 접을 수 있게 됐고, 헤더의 "모든 섹션 접기 / 펼치기" 토글이 Frames 탭에서도 동작합니다.
 - 구분선 손잡이는 마우스를 올리지 않아도 항상 보입니다 (마우스를 올려도 변하지 않음). 끌 수 있는 자리라는 단서를 기본으로 드러내기 위해서입니다.
 - 빌더의 크기 조절 손잡이 선을 한 규격으로 맞췄습니다. 가로형은 36×2px, 세로형은 2×36px, 보일 때 불투명도 1 이며 패널 가장자리·패널 묶음 사이·패널 안 섹션 사이가 모두 같은 토큰을 씁니다.
-- compare 모드 (CSS / Canvas 나란히 보기) 의 가운데 구분선도 같은 손잡이로 바꿨습니다. 분홍 막대 대신 공통 선 규격을 쓰고, 키보드 (화살표·Home·End) 와 접근성 이름 (`role="separator"`) 이 생겼습니다. 저장되는 분할 비율과 20~80% 범위는 그대로입니다.
+- compare 모드 (CSS / Canvas 나란히 보기) 의 가운데 구분선도 같은 손잡이로 바꿨습니다. 분홍 막대 대신 공통 선 규격을 쓰고 (Navigator 와 같이 항상 표시), 키보드 (화살표·Home·End) 와 접근성 이름 (`role="separator"`) 이 생겼습니다. 저장되는 분할 비율과 20~80% 범위는 그대로입니다.
 
 ### Changed
 
