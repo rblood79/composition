@@ -23,6 +23,7 @@ import type { ElementProps } from "../../../../types/integrations/supabase.types
 import type { ElementTreeItem } from "../../../../types/builder/stately.types";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import { ActionIconButton, EmptyState, Section } from "../../../components";
+import { NAVIGATOR_SECTION_IDS } from "../navigatorSectionIds";
 import { useI18n } from "../../../../i18n";
 import { TreeBase, VirtualizedTree } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
@@ -144,9 +145,9 @@ export function FrameElementTree({
 
   return (
     <Section
+      id={NAVIGATOR_SECTION_IDS.frameLayers}
       className="node-tree-section"
       title={t("navigator.layers")}
-      collapsible={false}
       actions={
         <ActionIconButton
           aria-label={t("navigator.collapseTree")}

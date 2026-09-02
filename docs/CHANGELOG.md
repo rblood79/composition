@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Navigator 의 두 섹션 사이를 드래그해 높이를 나눌 수 있습니다] - 2026-09-02
+
+### Added
+
+- Navigator 의 Pages / Layers 사이 (Frames 탭은 Frames / Layers 사이) 에 드래그 구분선을 넣었습니다. 위 섹션은 내용 높이까지만 차지하고, 상한 (기본은 패널 높이의 절반) 을 넘으면 그 안에서 스크롤합니다. 아래 섹션은 남는 공간을 전부 씁니다. 구분선을 드래그하면 그 값이 상한으로 저장되어 새로고침 후에도 유지되고, 더블클릭하면 기본 상한으로 돌아옵니다. 키보드 (화살표·Home·End) 로도 조절할 수 있습니다.
+- Frames 탭의 Frames / Layers 섹션도 접을 수 있게 됐고, 헤더의 "모든 섹션 접기 / 펼치기" 토글이 Frames 탭에서도 동작합니다.
+
+### Changed
+
+- Navigator 는 이제 탭 전체가 한 덩어리로 스크롤하지 않고 섹션마다 따로 스크롤합니다. 페이지가 많아도 Layers 섹션이 화면 아래로 밀리지 않습니다. 이 변경으로 Layers 트리의 대용량 가상 스크롤 (300개 이상) 이 실제로 동작합니다. 종전에는 트리 높이가 묶이지 않아 전부 그려졌습니다.
+
 ## [Navigator 의 Pages·Layers 를 접을 수 있고, 페이지를 검색할 수 있습니다] - 2026-09-02
 
 ### Added

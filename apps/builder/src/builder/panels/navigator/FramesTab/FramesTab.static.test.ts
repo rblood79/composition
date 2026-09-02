@@ -54,11 +54,11 @@ describe("FramesTab frame selection race guard", () => {
     expect(source).not.toContain("useStore((state) => state.elementsMap)");
   });
 
-  it("does not add an extra layouts-tab wrapper around Frames sections", async () => {
+  it("stacks Frames sections in the shared SectionSplitStack without an extra layouts-tab wrapper", async () => {
     const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
 
     expect(source).not.toContain('className="layouts-tab"');
-    expect(source).toContain("<>");
+    expect(source).toContain("<SectionSplitStack");
     expect(source).toContain("<FrameList");
     expect(source).toContain("<FrameElementTree");
   });

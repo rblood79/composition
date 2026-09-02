@@ -26,6 +26,7 @@ import {
   EmptyState,
   PanelHeader,
   SectionGroupToggleButton,
+  SectionSplitStack,
 } from "../../components";
 import {
   NavigatorPanelTabs,
@@ -35,7 +36,12 @@ import { FramesTab } from "./FramesTab/FramesTab";
 // 🚀 Performance: 분리된 섹션 컴포넌트
 import { PagesSection } from "./PagesSection";
 import { LayersSection } from "./LayersSection";
-import { NAVIGATOR_SECTION_ID_LIST } from "./navigatorSectionIds";
+import {
+  NAVIGATOR_LAYOUTS_TAB_SECTION_IDS,
+  NAVIGATOR_PAGES_TAB_SECTION_IDS,
+  NAVIGATOR_SECTION_IDS,
+  NAVIGATOR_SPLIT_STORAGE_KEYS,
+} from "./navigatorSectionIds";
 import {
   scheduleCancelableBackgroundTask,
   scheduleNextFrame,
@@ -96,10 +102,13 @@ export function NavigatorPanel() {
         title={t("panels.navigator")}
         panelId="navigator"
         actions={
-          // Pages/Layers Section 전체 접기·펼치기 — Layouts 탭은 아직 Section 이 없어 비활성 (3단계 공용 컨테이너에서 해제)
+          // 활성 탭의 두 Section 전체 접기·펼치기 (Pages/Layers 또는 Frames/Layers)
           <SectionGroupToggleButton
-            sectionIds={NAVIGATOR_SECTION_ID_LIST}
-            isDisabled={activeTab !== "pages"}
+            sectionIds={
+              activeTab === "pages"
+                ? NAVIGATOR_PAGES_TAB_SECTION_IDS
+                : NAVIGATOR_LAYOUTS_TAB_SECTION_IDS
+            }
           />
         }
       />
@@ -200,18 +209,24 @@ const PagesTabContent = memo(function PagesTabContent({
   }
 
   return (
-    <>
-      <PagesSection projectId={projectId} />
-      {activeLayerPageId ? (
-        <LayersSection currentPageId={activeLayerPageId} />
-      ) : (
-        <div
-          className="node-tree-section-placeholder"
-          aria-hidden="true"
-          style={{ minHeight: 72 }}
-        />
-      )}
-    </>
+    <SectionSplitStack
+      storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.pages}
+      topId={NAVIGATOR_SECTION_IDS.pages}
+      bottomId={NAVIGATOR_SECTION_IDS.layers}
+      label={t("navigator.resizeSections")}
+      top={<PagesSection projectId={projectId} />}
+      bottom={
+        activeLayerPageId ? (
+          <LayersSection currentPageId={activeLayerPageId} />
+        ) : (
+          <div
+            className="node-tree-section-placeholder"
+            aria-hidden="true"
+            style={{ minHeight: 72 }}
+          />
+        )
+      }
+    />
   );
 });
 

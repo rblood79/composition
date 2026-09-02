@@ -16,7 +16,10 @@
 import React, { memo } from "react";
 import { ChevronUp, RotateCcw } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { useSectionCollapse } from "../../panels/styles/hooks/useSectionCollapse";
+import {
+  isSectionCollapsedInState,
+  useSectionCollapse,
+} from "../../panels/styles/hooks/useSectionCollapse";
 import {
   semanticLabelKeys,
   translateKey,
@@ -84,11 +87,9 @@ export const Section = memo(
         )
       : "Expand section";
     // 이 섹션의 collapsed 여부만 구독 (primitive boolean → 다른 섹션 toggle에 무반응)
-    const persistedCollapsed = useSectionCollapse((s) => {
-      if (!id) return false;
-      if (s.focusMode) return s.activeFocusSection !== id;
-      return s.collapsedSections.has(id);
-    });
+    const persistedCollapsed = useSectionCollapse((s) =>
+      id ? isSectionCollapsedInState(s, id) : false,
+    );
     const toggleSection = useSectionCollapse((s) => s.toggleSection);
 
     const [localExpanded, setLocalExpanded] = React.useState(defaultExpanded);

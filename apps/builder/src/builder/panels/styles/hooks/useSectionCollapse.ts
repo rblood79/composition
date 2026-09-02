@@ -25,6 +25,21 @@ export const STYLE_PANEL_SECTION_IDS: readonly string[] = [
 ];
 
 /**
+ * Section 이 실제로 그리는 접힘 판정 — Focus Mode 면 활성 섹션 외 전부 접힘, 아니면 저장 집합.
+ * Section 과 분할 컨테이너(SectionSplitStack) 가 같은 규칙을 읽는다.
+ */
+export function isSectionCollapsedInState(
+  state: Pick<
+    SectionCollapseState,
+    "collapsedSections" | "focusMode" | "activeFocusSection"
+  >,
+  sectionId: string,
+): boolean {
+  if (state.focusMode) return state.activeFocusSection !== sectionId;
+  return state.collapsedSections.has(sectionId);
+}
+
+/**
  * 섹션 그룹이 전부 접혀 있는가 (일반 모드 기준 — `collapsedSections` 만 본다).
  * Focus Mode 는 Section 이 그릴 때 덮어쓰는 표시 규칙이지 저장 상태가 아니므로 여기서 다루지 않는다.
  * 빈 그룹은 "전부 접힘" 이 아니다 (토글 버튼이 펼침 상태로 보여야 한다).

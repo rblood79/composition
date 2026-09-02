@@ -1055,6 +1055,7 @@ const koKR: TranslationKeys = {
     collapseTree: "트리 접기",
     searchPages: "페이지 검색",
     noPagesMatch: "일치하는 페이지가 없습니다",
+    resizeSections: "섹션 높이 조절",
   },
   styles: {
     responsiveGlobalHint:
@@ -2480,6 +2481,7 @@ const enUS: TranslationKeys = {
     collapseTree: "Collapse tree",
     searchPages: "Search pages",
     noPagesMatch: "No pages match",
+    resizeSections: "Resize sections",
   },
   styles: {
     responsiveGlobalHint:

@@ -20,6 +20,7 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 const DeleteIcon = ACTION_ICONS.delete;
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { ActionIconButton, EmptyState, Section } from "../../../components";
+import { NAVIGATOR_SECTION_IDS } from "../navigatorSectionIds";
 import { useI18n } from "../../../../i18n";
 import { TreeBase } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
@@ -100,9 +101,9 @@ export function FrameList({
 
   return (
     <Section
+      id={NAVIGATOR_SECTION_IDS.frames}
       className="node-tree-section"
       title={t("navigator.frames")}
-      collapsible={false}
       actions={
         <ActionIconButton
           aria-label={t("navigator.addFrame")}

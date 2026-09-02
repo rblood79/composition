@@ -236,9 +236,11 @@
   overflow: hidden;
 }
 
+/* 탭 컨텐츠는 스크롤 컨테이너가 아니다 — SectionSplitStack 이 높이를 받아 각 섹션이 따로 스크롤한다 */
 .navigator-panel-content {
   min-width: 0;
-  overflow-x: hidden;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .navigator-panel-content .node-tree-section .section-content {

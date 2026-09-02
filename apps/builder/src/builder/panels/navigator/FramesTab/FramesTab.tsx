@@ -17,6 +17,12 @@ import React, { useCallback, useEffect, useMemo } from "react";
 import { useParams } from "react-router";
 import { FrameList } from "./FrameList";
 import { FrameElementTree } from "./FrameElementTree";
+import { SectionSplitStack } from "../../../components";
+import { useI18n } from "@/i18n";
+import {
+  NAVIGATOR_SECTION_IDS,
+  NAVIGATOR_SPLIT_STORAGE_KEYS,
+} from "../navigatorSectionIds";
 import {
   useCanonicalReusableFrameLayouts,
   useSelectedReusableFrameId,
@@ -100,6 +106,7 @@ export function FramesTab({
   requestAutoSelectAfterUpdate,
   projectId: projectIdProp,
 }: FramesTabProps) {
+  const { t } = useI18n();
   const { projectId: projectIdFromParams } = useParams<{ projectId: string }>();
   const projectId = projectIdProp || projectIdFromParams;
 
@@ -517,33 +524,40 @@ export function FramesTab({
   );
 
   return (
-    <>
-      {/* Frames List — ADR-111 P2 PR-D 추출 */}
-      <FrameList
-        frames={reusableFrames}
-        selectedFrameId={currentFrame?.id ?? null}
-        onSelect={handleSelectFrame}
-        onDelete={handleDeleteFrame}
-        onAdd={handleAddFrame}
-      />
-
-      {/* Frame node tree — ADR-111 P2 PR-D2 추출 */}
-      <FrameElementTree
-        tree={frameElementTree}
-        frameId={currentFrame?.id ?? null}
-        selectedElementId={selectedElementId}
-        expandedKeys={expandedStringKeys}
-        toggleKey={toggleKey}
-        onCollapseAll={collapseFrameTree}
-        onElementClick={(el) => {
-          setSelectedElement(el.id, el.props as ElementProps);
-          requestAnimationFrame(() =>
-            sendElementSelectedMessage(el.id, el.props as ElementProps),
-          );
-        }}
-        onElementDelete={handleDeleteElement}
-      />
-    </>
+    <SectionSplitStack
+      storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.layouts}
+      topId={NAVIGATOR_SECTION_IDS.frames}
+      bottomId={NAVIGATOR_SECTION_IDS.frameLayers}
+      label={t("navigator.resizeSections")}
+      top={
+        /* Frames List — ADR-111 P2 PR-D 추출 */
+        <FrameList
+          frames={reusableFrames}
+          selectedFrameId={currentFrame?.id ?? null}
+          onSelect={handleSelectFrame}
+          onDelete={handleDeleteFrame}
+          onAdd={handleAddFrame}
+        />
+      }
+      bottom={
+        /* Frame node tree — ADR-111 P2 PR-D2 추출 */
+        <FrameElementTree
+          tree={frameElementTree}
+          frameId={currentFrame?.id ?? null}
+          selectedElementId={selectedElementId}
+          expandedKeys={expandedStringKeys}
+          toggleKey={toggleKey}
+          onCollapseAll={collapseFrameTree}
+          onElementClick={(el) => {
+            setSelectedElement(el.id, el.props as ElementProps);
+            requestAnimationFrame(() =>
+              sendElementSelectedMessage(el.id, el.props as ElementProps),
+            );
+          }}
+          onElementDelete={handleDeleteElement}
+        />
+      }
+    />
   );
 }
 

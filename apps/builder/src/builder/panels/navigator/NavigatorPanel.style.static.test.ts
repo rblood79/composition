@@ -9,11 +9,13 @@ const NODE_SECTION_FILES = [
   "FramesTab/FrameElementTree.tsx",
 ];
 
-// Pages/Layers 는 접기 가능 + persist id (Navigator UX 2단계). FramesTab 두 파일은
-// 3단계 공용 분할 컨테이너에서 같은 형태로 옮긴다 — 그 전까지 접기 비활성 유지.
+// 네 섹션 전부 접기 가능 + persist id (Navigator UX 2·3단계). 헤더 전체 토글과
+// SectionSplitStack 이 같은 id 를 읽는다.
 const COLLAPSIBLE_SECTION_FILES: Record<string, string> = {
   "PagesSection.tsx": "id={NAVIGATOR_SECTION_IDS.pages}",
   "LayersSection.tsx": "id={NAVIGATOR_SECTION_IDS.layers}",
+  "FramesTab/FrameList.tsx": "id={NAVIGATOR_SECTION_IDS.frames}",
+  "FramesTab/FrameElementTree.tsx": "id={NAVIGATOR_SECTION_IDS.frameLayers}",
 };
 
 describe("NavigatorPanel shared panel style contract", () => {
@@ -37,7 +39,9 @@ describe("NavigatorPanel shared panel style contract", () => {
     expect(panelSource).toContain('panelId="navigator"');
     // 헤더 close 앞의 전체 접기/펼치기 — Pages/Layers Section id 집합을 그대로 읽는다
     expect(panelSource).toContain("<SectionGroupToggleButton");
-    expect(panelSource).toContain("sectionIds={NAVIGATOR_SECTION_ID_LIST}");
+    expect(panelSource).toContain("NAVIGATOR_PAGES_TAB_SECTION_IDS");
+    expect(panelSource).toContain("NAVIGATOR_LAYOUTS_TAB_SECTION_IDS");
+    expect(panelSource).not.toContain("isDisabled={activeTab");
     // 구조 클래스는 공용 단일 이름만 쓴다 — CSS 규칙이 없는 `navigator-panel-tabs/tabrow/tablist`
     // twin 은 2026-08-30 탭 통일에서 제거됐다 (panelTabs.static.test.ts 가 재도입을 막는다).
     expect(panelSource).toContain('className="panel-tabs"');
@@ -57,17 +61,39 @@ describe("NavigatorPanel shared panel style contract", () => {
 
       expect(source).toContain("Section");
       expect(source).toContain('className="node-tree-section"');
-      const idProp = COLLAPSIBLE_SECTION_FILES[file];
-      if (idProp) {
-        expect(source).toContain(idProp);
-        expect(source).not.toContain("collapsible={false}");
-      } else {
-        expect(source).toContain("collapsible={false}");
-      }
+      expect(source).toContain(COLLAPSIBLE_SECTION_FILES[file]);
+      expect(source).not.toContain("collapsible={false}");
       expect(source).not.toContain("PanelHeader");
       expect(source).not.toContain('className="section-content elements"');
     },
   );
+
+  it("both tabs stack their two sections in the shared SectionSplitStack", async () => {
+    const panelSource = await readFile(
+      resolve(__dirname, "NavigatorPanel.tsx"),
+      "utf-8",
+    );
+    const framesSource = await readFile(
+      resolve(__dirname, "FramesTab/FramesTab.tsx"),
+      "utf-8",
+    );
+
+    expect(panelSource).toContain("<SectionSplitStack");
+    expect(panelSource).toContain("storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.pages}");
+    expect(panelSource).toContain("topId={NAVIGATOR_SECTION_IDS.pages}");
+    expect(panelSource).toContain("bottomId={NAVIGATOR_SECTION_IDS.layers}");
+    expect(framesSource).toContain("<SectionSplitStack");
+    expect(framesSource).toContain("storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.layouts}");
+    expect(framesSource).toContain("topId={NAVIGATOR_SECTION_IDS.frames}");
+    expect(framesSource).toContain("bottomId={NAVIGATOR_SECTION_IDS.frameLayers}");
+
+    // 탭 컨텐츠는 스크롤 컨테이너가 아니다 — 각 섹션이 따로 스크롤한다
+    const css = await readFile(
+      resolve(__dirname, "NavigatorPanel.css"),
+      "utf-8",
+    );
+    expect(css).toMatch(/\.navigator-panel-content \{[^}]*overflow: hidden;/s);
+  });
 
   it("keeps only equal-width distribution as the local tab override", async () => {
     const css = await readFile(

@@ -1,0 +1,65 @@
+/**
+ * SectionSplitStack — 세로 두 Section 분할
+ *
+ * 스크롤은 각 Section 의 .section-content 가 맡는다. 위 pane 은 내용 맞춤 + max-height(상한),
+ * 아래 pane 은 남는 공간 전부. 구분선은 두 pane 경계에 겹쳐 놓는 0 높이 래퍼 + 8px 손잡이.
+ * (PanelWorkspace.css 의 .panel-resize-handle 은 @layer 안이라 여기 무계층 규칙이 이긴다.)
+ */
+
+.split-stack {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.split-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.split-pane[data-split-role="top"] {
+  flex: 0 1 auto;
+}
+
+.split-pane[data-split-role="bottom"] {
+  flex: 1 1 0;
+}
+
+.split-pane > .section {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.split-pane > .section > .section-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.split-divider {
+  position: relative;
+  flex: 0 0 auto;
+  height: 0;
+}
+
+.split-stack .panel-resize-handle.split-handle {
+  position: absolute;
+  top: -4px;
+  right: 0;
+  left: 0;
+  height: 8px;
+  cursor: ns-resize;
+  z-index: 3;
+}
+
+.split-stack .panel-resize-handle.split-handle::after {
+  top: 3px;
+  left: 50%;
+  width: 28px;
+  height: 2px;
+  transform: translateX(-50%);
+}

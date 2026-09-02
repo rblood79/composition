@@ -996,6 +996,7 @@ export interface TranslationKeys {
     collapseTree: string;
     searchPages: string;
     noPagesMatch: string;
+    resizeSections: string;
   };
   styles: {
     responsiveGlobalHint: string;
