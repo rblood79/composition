@@ -822,7 +822,7 @@ round 24 의 게이트 두 층이 각각 한 방향만 보고 있었다. 기능 
     4 곳 정정) · r25l2 `resolveBindingSelectionMode` 주석이 r24 이전 사실("Preview 는 toRacProps 경유 · GridList `single`")을
     설명 → delegating 렌더러가 helper 를 직접 읽는 현 구조 + 이력으로 갱신 · r25l3 CHANGELOG "AI 로 만든 문서" — AI
     `create_element` 는 GridList/ListBox 를 `COMPLEX_COMPONENT_TAGS` 경로(`createCompositeElement`)로 만들어 factory 가
-    `selectionMode: "none"` 을 기록하므로 prop 부재 문서가 아니다. 영향 범위를 "값을 기록하지 않은 문서 (파일로 가져온
+    `selectionMode` 를 기록하므로(GridList `"none"` · ListBox `"single"` — r26l1 정정) prop 부재 문서가 아니다. 영향 범위를 "값을 기록하지 않은 문서 (파일로 가져온
     canonical 문서 등)" 로 정정.)
     - 게이트 (round 25): 기능 게이트 3 → **4** (layout `utils.ts` 카드 extra 신설) + 각 음성 대조 2 (single · multiple+highlight),
       Tree Skia 모드 집합 3 · Preview 전수 동치 키 무손실 (속성 + 내용·구조).
@@ -842,6 +842,35 @@ round 24 의 게이트 두 층이 각각 한 방향만 보고 있었다. 기능 
       (`DisplayComponents.ts:215-222/303-313` · `LayoutRenderers.tsx:804/860`) → "content 부재의 의미" 를 먼저 정해야 방향이
       나온다 ⑤ ColorPicker/TableView/Toast — display 계약의 load-bearing 사실 아님. 판독 결론: 인벤토리로는 유효, Decision C′
       재개 사유 아님.
+
+## round 26 수리 2건 (Codex 판독 r26m1 + r26l1 — 결선 대상 component 고정, 원복 RED 4 조합)
+
+round 25 의 기능 게이트는 **현재 값의 boolean 동치**만 본다. GridList 규칙(`checkboxModes: ["multiple"]`)에서 none 과 single 은
+둘 다 "체크박스 없음" 이라, layout `utils.ts` 의 `defaultSelectionMode` 를 **Tree binding**(`single`) 으로 오결선해도 14/14 +
+layout 460 이 전부 통과했다 (판독 실험, 재현). 정적 게이트는 helper 호출 여부만 보고 component 인자를 보지 않았다. 값이 우연히
+같은 결과로 접히면 **어느 binding 을 읽는지는 출력에 안 나온다** — 그래서 binding 자체를 움직인다.
+
+73. **결선 대상 component 고정** (r26m1 — ① **binding mutation 게이트**: 테스트 안에서 `getPrimitiveBinding(type).props.accepts
+[key].default` 를 바꾸고(`finally` 복구) production 진입점을 다시 실행한다. GridList binding `selectionMode` → `multiple`
+    이면 layout · scene · virtualization 의 "부재" 결과가 `multiple` 명시와 같아져야 하고(따라간다), Tree binding 을 `multiple`
+    로 바꿔도 세 소비처는 움직이지 않아야 한다(다른 원천은 안 읽는다). Tree(Skia `buildSpecNodeData`) 는 반대 방향 — Tree
+    `none` 이면 checkbox 스타일에서도 체크박스가 사라지고, GridList 를 바꿔도 그대로. 계약의 정의 "부재 = **그 타입의**
+    binding 기본값" 을 값 우연과 무관하게 확인한다. mutation 이 실제로 신호를 움직이는 대조군 + 복구 확인 포함. ② 정적
+    게이트는 파일마다 component 리터럴을 고정(`resolveBindingSelectionMode("GridList",` / `("Tree",`) 하고 다른 component 로
+    결선된 호출이 남아 있으면 RED — 리터럴 재도입·오결선 재도입 차단용.)
+74. **r26l1** (evidence 가 "GridList/ListBox factory 가 `selectionMode: "none"` 을 기록" 이라 썼는데 ListBox factory 는
+    `"single"` (`SelectionComponents.ts:255`) — "값을 기록한다" 는 공통 사실을 하나의 값으로 합쳐 쓴 오류. 정정. CHANGELOG 의
+    "값이 기록되어 영향이 없다" 결론은 그대로.)
+    - 게이트 (round 26): binding mutation 3 (GridList 소비처 3 따라감 · Tree mutation 에 GridList 소비처 3 불변 + style 축 ·
+      Skia Tree 는 Tree 만 따라감) · 정적 4 를 component 고정으로 강화. layout 460 → **463**.
+    - 원복 RED (실측, 백업 교체 → 게이트 → 복구 · md5 대조): ① layout `utils.ts` → `("Tree", "none")` → **3 fail** (정적 1 +
+      binding mutation 2; round 25 게이트는 14/14 PASS 였다) · ② scene → Tree → **3 fail** · ③ virtualization → Tree → **3 fail**
+      · ④ Skia Tree → `("GridList", "single")` → **3 fail** (정적 1 + 기존 Skia 게이트 1 + mutation 1) = **4 조합**.
+    - **Live (Chrome MCP, 2026-09-02)**: 프로덕션 코드 변경 0 (테스트·문서만). 팔레트 GridList(items 3) 로 계약의 live 대응만
+      재확인 — 명시 `none` = Skia **164**, `selectionMode` 키를 문서에서 제거한 **부재** = **164** (부재 = GridList binding
+      기본값). 콘솔 에러 0 · 생성 요소 삭제.
+    - 판독 판정 (round 26): 수리 71 VERIFIED — 속성 값 변경(50 → 51) · 기존 속성 차이 뒤의 구조 추가(ProgressBar · ColorPicker)
+      모두 RED, 45건 키 갱신은 "숨겨진 값 문구 차이를 드러낸 것". `KNOWN_DIFFS` 축별 처리를 후속 범위로 두는 판단: 타당.
 
 ## 프로덕션 영향 (round 9 정정 — 종전 "clip UI 미노출·실효 0" 공시는 오류, r9m1)
 
