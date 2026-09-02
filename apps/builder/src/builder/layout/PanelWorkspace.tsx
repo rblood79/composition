@@ -318,8 +318,11 @@ interface PanelWorkspaceSharedSplittersProps extends PanelWorkspaceRuntimeProps 
   dockOrigin: PanelDockOrigin;
 }
 
-/** id 목록을 문자열 하나로 구독하기 위한 구분자 — 원시값이라야 값이 같은 flush 에 렌더가 없다. */
-const ID_LIST_SEPARATOR = " ";
+/**
+ * id 목록을 문자열 하나로 구독하기 위한 구분자 — 원시값이라야 값이 같은 flush 에 렌더가 없다.
+ * NUL 은 PanelId·zone·cluster id 어디에도 나올 수 없는 문자라 id 의 문자 집합에 기대지 않는다.
+ */
+const ID_LIST_SEPARATOR = "\u0000";
 
 /**
  * cluster 내부 splitter 의 부모. splitter 의 **집합** (id 목록) 만 구독해 splitter 가 생기거나
