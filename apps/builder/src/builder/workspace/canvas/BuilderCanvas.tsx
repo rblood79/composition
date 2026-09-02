@@ -37,7 +37,7 @@ import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElem
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { useContextMenu } from "../../components/overlay/contextMenu/useContextMenu";
 import { resolveContextMenuDisposition } from "../../components/overlay/contextMenu/contextMenuPolicy";
-import { useViewportSyncStore } from "./stores";
+import { selectFrameAreaPanelMetrics, useViewportSyncStore } from "./stores";
 import {
   applyViewportState,
   clampViewportZoom,
@@ -256,9 +256,6 @@ export function BuilderCanvas({
   const { wasmLayoutFailed, wasmLayoutReady } = useCanvasRuntimeBootstrap();
 
   const containerSize = useViewportSyncStore((state) => state.containerSize);
-  const pageLayoutPanelMetrics = useViewportSyncStore(
-    (state) => state.pageLayoutPanelMetrics,
-  );
 
   // 컨테이너 ref 콜백: 마운트 시점에 DOM 노드를 안전하게 확보
   const setContainerNode = useCallback((node: HTMLDivElement | null) => {
@@ -351,6 +348,14 @@ export function BuilderCanvas({
   const pages = useStore((state) => state.pages);
   const currentEditMode = useEditModeStore((state) => state.mode);
   const isFrameEditMode = currentEditMode === "layout";
+  // pageLayoutPanelMetrics 는 frameAreas (frame edit mode) 에만 쓰인다. 패널 크기 조절
+  // 중에는 이 값이 매 프레임 바뀌므로 (PanelWorkspace data-attr → useWorkspaceCanvasSizing
+  // MutationObserver → store), 무조건 구독하면 BuilderCanvas 전체가 매 프레임 재렌더된다
+  // (2026-09-02 실측: 드래그 중 JS 할당 109 MB/s · GC 10회/2초 → 구독 차단 시 21 MB/s).
+  // frame edit mode 밖에서는 null 로 고정해 store 변경이 재렌더로 이어지지 않게 한다.
+  const pageLayoutPanelMetrics = useViewportSyncStore((state) =>
+    selectFrameAreaPanelMetrics(state, isFrameEditMode),
+  );
   // ADR-074 Phase 4: selectedElementId/Ids/editingContextId/ai 3개 구독을
   // SkiaCanvas 내부로 이전. 루트 리렌더 fan-out 차단.
   const setSelectedElement = useStore((state) => state.setSelectedElement);
@@ -646,7 +651,7 @@ export function BuilderCanvas({
 
   // ADR-111 P3-δ (B): canonical reusable frame 별 캔버스 영역 그룹.
   const frameAreas = useMemo(() => {
-    if (!isFrameEditMode) return [];
+    if (!isFrameEditMode || !pageLayoutPanelMetrics) return [];
     const anchorPageId = currentPageId ?? pages[0]?.id ?? null;
     const anchorPosition = anchorPageId
       ? pagePositions[anchorPageId]

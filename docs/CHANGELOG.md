@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [패널 크기 조절이 마우스를 따라옵니다] - 2026-09-02
+
+### Fixed
+
+- 패널 가장자리를 드래그할 때 패널이 마우스보다 늦게 따라오던 것을 고쳤습니다. 원인은 캔버스였습니다. 패널 폭이 바뀔 때마다 `BuilderCanvas` 전체가 다시 렌더돼 (페이지 재중앙 정렬용 패널 폭 값을 항상 구독) 매 프레임 수 MB 를 할당하고 GC 가 프레임을 멈췄습니다. 이 값은 frame 편집 모드에서만 쓰이므로 그때만 구독합니다. 실측 (Navigator 드래그, 50Hz 표시): 프레임 드롭 35% → 0%, 메인 스레드 차단 2초당 1.6초 → 3초당 0.06초, JS 할당 109 MB/s → 31 MB/s.
+
 ## [크기 조절 손잡이가 드래그 중 깜박이지 않습니다] - 2026-09-02
 
 ### Fixed

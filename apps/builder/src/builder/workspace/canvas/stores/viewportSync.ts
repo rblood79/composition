@@ -82,6 +82,23 @@ export const useViewportSyncStore = create<ViewportSyncState>()(
   })),
 );
 
+/**
+ * BuilderCanvas 가 pageLayoutPanelMetrics 를 구독할 때 쓰는 selector.
+ *
+ * 이 값은 frame edit mode 의 frameAreas 계산에만 쓰인다. 그런데 패널 크기 조절
+ * 중에는 PanelWorkspace 가 매 프레임 `data-page-layout-*-panel-width` 를 고쳐 쓰고
+ * useWorkspaceCanvasSizing 의 MutationObserver 가 그 값을 여기로 옮기므로, 값을
+ * 그대로 구독하면 BuilderCanvas 전체가 매 프레임 재렌더된다 (2026-09-02 실측:
+ * Navigator 드래그 중 JS 할당 109 MB/s · GC 10회/2초 → 이 구독 차단 시 21 MB/s ·
+ * 1회. 프레임 드롭의 주원인). frame edit mode 가 아니면 null 을 돌려 store 변경이
+ * 재렌더로 이어지지 않게 한다.
+ */
+export const selectFrameAreaPanelMetrics = (
+  state: Pick<ViewportSyncState, "pageLayoutPanelMetrics">,
+  isFrameEditMode: boolean,
+): PageLayoutPanelMetrics | null =>
+  isFrameEditMode ? state.pageLayoutPanelMetrics : null;
+
 export const selectCanvasViewportSnapshot = (
   state: Pick<ViewportSyncState, "panOffset" | "zoom">,
 ): CanvasViewportSnapshot => ({
