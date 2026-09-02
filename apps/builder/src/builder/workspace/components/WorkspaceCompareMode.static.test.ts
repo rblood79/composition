@@ -29,6 +29,10 @@ describe("WorkspaceCompareMode resize handle", () => {
     expect(css).toMatch(
       /\.workspace-compare-resizer \.panel-resize-handle::after \{[^}]*opacity: 1;/,
     );
+    // 두 pane 을 가르는 선은 전체 높이 (두께는 공통 토큰)
+    expect(css).toMatch(
+      /\.workspace-compare-resizer \.panel-resize-handle::after \{[^}]*height: 100%;/,
+    );
     expect(css).not.toContain("#f24cb8");
     expect(css).not.toContain("col-resize");
   });

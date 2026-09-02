@@ -406,8 +406,12 @@
   width: 10px;
 }
 
-/* Navigator 섹션 분할과 같이 손잡이는 항상 보인다 (hover/focus 변화 없음) */
+/* Navigator 섹션 분할과 같이 손잡이는 항상 보인다 (hover/focus 변화 없음). 두 pane 을 가르는
+   자리라 선은 36px 조각이 아니라 전체 높이로 — 두께·색은 공통 토큰 그대로. */
 .workspace-compare-resizer .panel-resize-handle::after {
+  top: 0;
+  height: 100%;
+  transform: none;
   opacity: 1;
 }
 
