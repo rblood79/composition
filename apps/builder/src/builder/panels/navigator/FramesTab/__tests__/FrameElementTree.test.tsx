@@ -278,7 +278,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
       const onCollapseAll = vi.fn();
       render(<FrameElementTree {...makeProps({ onCollapseAll })} />);
 
-      fireEvent.click(screen.getByRole("button", { name: "Collapse All" }));
+      fireEvent.click(screen.getByRole("button", { name: "Collapse tree" }));
 
       expect(onCollapseAll).toHaveBeenCalledTimes(1);
     });

@@ -331,3 +331,67 @@ describe("PagesSection page selection", () => {
     expect(mockRequestAutoSelectAfterUpdate).not.toHaveBeenCalled();
   });
 });
+
+describe("PagesSection page search", () => {
+  beforeEach(resetMockState);
+  afterEach(() => {
+    cleanup();
+  });
+
+  function seedPages() {
+    const home = makePage("page-1", "Home", 0);
+    const about = makePage("page-2", "About", 1);
+    const blog = makePage("page-3", "Blog", 2);
+    const post = { ...makePage("page-4", "First Post", 3), parent_id: blog.id };
+    mockStoreState.pages = [home, about, blog, post];
+    mockStoreState.currentPageId = home.id;
+    mockStoreState.pageElementsSnapshot = {
+      [home.id]: [makeElement("body-1", home.id)],
+    };
+  }
+
+  it("검색을 열고 입력하면 일치 페이지와 그 조상만 트리에 남는다", () => {
+    seedPages();
+    render(<PagesSection projectId="project-1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Search pages" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search pages" }), {
+      target: { value: "post" },
+    });
+
+    expect(screen.getByRole("button", { name: "Blog" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "First Post" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Home" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "About" })).toBeNull();
+  });
+
+  it("일치 페이지가 없으면 안내 문구를 보이고, Escape 로 닫으면 전체 목록으로 돌아간다", () => {
+    seedPages();
+    render(<PagesSection projectId="project-1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Search pages" }));
+    const input = screen.getByRole("searchbox", { name: "Search pages" });
+    fireEvent.change(input, { target: { value: "zzz" } });
+
+    expect(screen.getByRole("status").textContent).toBe("No pages match");
+    expect(screen.queryByRole("button", { name: "Home" })).toBeNull();
+
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(screen.queryByRole("searchbox")).toBeNull();
+    expect(screen.getByRole("button", { name: "Home" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "First Post" })).toBeTruthy();
+  });
+
+  it("페이지가 하나뿐이면 검색 토글을 내지 않는다", () => {
+    const home = makePage("page-1", "Home", 0);
+    mockStoreState.pages = [home];
+    mockStoreState.currentPageId = home.id;
+    mockStoreState.pageElementsSnapshot = {
+      [home.id]: [makeElement("body-1", home.id)],
+    };
+    render(<PagesSection projectId="project-1" />);
+
+    expect(screen.queryByRole("button", { name: "Search pages" })).toBeNull();
+  });
+});

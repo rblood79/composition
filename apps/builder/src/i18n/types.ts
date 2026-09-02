@@ -993,7 +993,9 @@ export interface TranslationKeys {
     selectFrame: string;
     noElements: string;
     layers: string;
-    collapseAll: string;
+    collapseTree: string;
+    searchPages: string;
+    noPagesMatch: string;
   };
   styles: {
     responsiveGlobalHint: string;

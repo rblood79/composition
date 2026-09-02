@@ -22,7 +22,11 @@ import { useEditModeStore } from "../../stores/editMode";
 import { usePageManager, useIframeMessenger } from "@/builder/hooks";
 import { useI18n } from "../../../i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { EmptyState, PanelHeader } from "../../components";
+import {
+  EmptyState,
+  PanelHeader,
+  SectionGroupToggleButton,
+} from "../../components";
 import {
   NavigatorPanelTabs,
   type NavigatorPanelTabType,
@@ -31,6 +35,7 @@ import { FramesTab } from "./FramesTab/FramesTab";
 // 🚀 Performance: 분리된 섹션 컴포넌트
 import { PagesSection } from "./PagesSection";
 import { LayersSection } from "./LayersSection";
+import { NAVIGATOR_SECTION_ID_LIST } from "./navigatorSectionIds";
 import {
   scheduleCancelableBackgroundTask,
   scheduleNextFrame,
@@ -90,6 +95,13 @@ export function NavigatorPanel() {
         }
         title={t("panels.navigator")}
         panelId="navigator"
+        actions={
+          // Pages/Layers Section 전체 접기·펼치기 — Layouts 탭은 아직 Section 이 없어 비활성 (3단계 공용 컨테이너에서 해제)
+          <SectionGroupToggleButton
+            sectionIds={NAVIGATOR_SECTION_ID_LIST}
+            isDisabled={activeTab !== "pages"}
+          />
+        }
       />
 
       <Tabs

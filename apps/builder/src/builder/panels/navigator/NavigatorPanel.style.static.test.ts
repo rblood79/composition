@@ -9,6 +9,13 @@ const NODE_SECTION_FILES = [
   "FramesTab/FrameElementTree.tsx",
 ];
 
+// Pages/Layers 는 접기 가능 + persist id (Navigator UX 2단계). FramesTab 두 파일은
+// 3단계 공용 분할 컨테이너에서 같은 형태로 옮긴다 — 그 전까지 접기 비활성 유지.
+const COLLAPSIBLE_SECTION_FILES: Record<string, string> = {
+  "PagesSection.tsx": "id={NAVIGATOR_SECTION_IDS.pages}",
+  "LayersSection.tsx": "id={NAVIGATOR_SECTION_IDS.layers}",
+};
+
 describe("NavigatorPanel shared panel style contract", () => {
   it("uses the common panel shell and content classes", async () => {
     const panelSource = await readFile(
@@ -28,6 +35,9 @@ describe("NavigatorPanel shared panel style contract", () => {
     );
     expect(panelSource).toContain("<PanelHeader");
     expect(panelSource).toContain('panelId="navigator"');
+    // 헤더 close 앞의 전체 접기/펼치기 — Pages/Layers Section id 집합을 그대로 읽는다
+    expect(panelSource).toContain("<SectionGroupToggleButton");
+    expect(panelSource).toContain("sectionIds={NAVIGATOR_SECTION_ID_LIST}");
     // 구조 클래스는 공용 단일 이름만 쓴다 — CSS 규칙이 없는 `navigator-panel-tabs/tabrow/tablist`
     // twin 은 2026-08-30 탭 통일에서 제거됐다 (panelTabs.static.test.ts 가 재도입을 막는다).
     expect(panelSource).toContain('className="panel-tabs"');
@@ -47,7 +57,13 @@ describe("NavigatorPanel shared panel style contract", () => {
 
       expect(source).toContain("Section");
       expect(source).toContain('className="node-tree-section"');
-      expect(source).toContain("collapsible={false}");
+      const idProp = COLLAPSIBLE_SECTION_FILES[file];
+      if (idProp) {
+        expect(source).toContain(idProp);
+        expect(source).not.toContain("collapsible={false}");
+      } else {
+        expect(source).toContain("collapsible={false}");
+      }
       expect(source).not.toContain("PanelHeader");
       expect(source).not.toContain('className="section-content elements"');
     },

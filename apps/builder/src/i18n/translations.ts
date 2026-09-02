@@ -1052,7 +1052,9 @@ const koKR: TranslationKeys = {
     selectFrame: "프레임을 선택하면 요소가 표시됩니다",
     noElements: "이 프레임에 요소가 없습니다",
     layers: "레이어",
-    collapseAll: "모두 접기",
+    collapseTree: "트리 접기",
+    searchPages: "페이지 검색",
+    noPagesMatch: "일치하는 페이지가 없습니다",
   },
   styles: {
     responsiveGlobalHint:
@@ -2475,7 +2477,9 @@ const enUS: TranslationKeys = {
     selectFrame: "Select a frame to view elements",
     noElements: "No elements in this frame",
     layers: "Layers",
-    collapseAll: "Collapse All",
+    collapseTree: "Collapse tree",
+    searchPages: "Search pages",
+    noPagesMatch: "No pages match",
   },
   styles: {
     responsiveGlobalHint:

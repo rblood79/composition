@@ -149,8 +149,8 @@ export function FrameElementTree({
       collapsible={false}
       actions={
         <ActionIconButton
-          aria-label={t("navigator.collapseAll")}
-          tooltip={t("navigator.collapseAll")}
+          aria-label={t("navigator.collapseTree")}
+          tooltip={t("navigator.collapseTree")}
           onPress={onCollapseAll}
         >
           <Minimize

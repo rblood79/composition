@@ -245,6 +245,19 @@
   min-width: 0;
 }
 
+/* Pages 검색 — 섹션 안에 놓이므로 flat 필드의 좌우 border 를 복원하고 트리 행 높이에 맞춘다 */
+.navigator-panel-content .page-search-field {
+  height: var(--control-size);
+  border-width: 1px;
+  border-radius: var(--radius-md);
+}
+
+.navigator-panel-content .page-search-empty {
+  padding: var(--spacing-sm);
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+}
+
 .navigator-panel-content :is(.react-aria-Tree, .page-tree, .frame-tree) {
   display: flex;
   flex-direction: column;

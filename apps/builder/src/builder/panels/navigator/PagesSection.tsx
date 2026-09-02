@@ -10,16 +10,21 @@ import React, {
   useCallback,
   useDeferredValue,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import type { Key } from "react-stately";
-import { Home } from "lucide-react";
+import { Home, Search } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
 import { useIframeMessenger, usePageManager } from "@/builder/hooks";
 import { ActionIconButton, Section } from "../../components";
+import { ActionIconToggleButton } from "../../components/ui/ActionIconButton";
+import { SearchField } from "../../components/ui/SearchField";
 import { PageTree } from "./tree/PageTree";
+import { NAVIGATOR_SECTION_IDS } from "./navigatorSectionIds";
+import { filterPagesByQuery } from "./filterPagesByQuery";
 import { getDB } from "../../../lib/db";
 import type { Element, Page } from "../../../types/builder/unified.types";
 import { panToPage } from "../../workspace/canvas/viewport/panToPage";
@@ -86,12 +91,42 @@ export const PagesSection = memo(function PagesSection({
   });
 
   const [expandedKeys, setExpandedKeys] = useState<Set<Key>>(new Set());
+  // Pages 검색 — 페이지가 많을 때 찾기용. 열려 있는 동안만 질의가 트리에 적용된다.
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [pageQuery, setPageQuery] = useState("");
   const [isFallbackTransitioning, setIsFallbackTransitioning] = useState(false);
   const [isRenamingSinglePage, setIsRenamingSinglePage] = useState(false);
   const singlePageRenameCancelRef = useRef(false);
   const singlePage = pages.length === 1 ? (pages[0] ?? null) : null;
+  const canSearch = pages.length > 1;
   const autoSelectedPageIdRef = useRef<string | null>(null);
   const activatedPageIdRef = useRef<string | null>(null);
+
+  const pageQueryResult = useMemo(
+    () => filterPagesByQuery(pages, isSearchOpen ? pageQuery : ""),
+    [isSearchOpen, pageQuery, pages],
+  );
+  // 검색 중에는 일치 항목의 조상을 강제로 펼친다 (사용자 펼침 상태 위에 합집합)
+  const treeExpandedKeys = useMemo(() => {
+    if (pageQueryResult.expandIds.size === 0) return expandedKeys;
+    return new Set<Key>([...expandedKeys, ...pageQueryResult.expandIds]);
+  }, [expandedKeys, pageQueryResult.expandIds]);
+
+  const closeSearch = useCallback(() => {
+    setIsSearchOpen(false);
+    setPageQuery("");
+  }, []);
+
+  const handleSearchToggle = useCallback(
+    (selected: boolean) => {
+      if (selected) {
+        setIsSearchOpen(true);
+      } else {
+        closeSearch();
+      }
+    },
+    [closeSearch],
+  );
 
   // 페이지 추가 핸들러
   const handleAddPage = useCallback(async () => {
@@ -346,24 +381,56 @@ export const PagesSection = memo(function PagesSection({
 
   return (
     <Section
+      id={NAVIGATOR_SECTION_IDS.pages}
       className="node-tree-section"
       title={t("navigator.pages")}
-      collapsible={false}
       actions={
-        <ActionIconButton
-          aria-label={t("navigator.addPage")}
-          tooltip={t("navigator.addPage")}
-          isDisabled={isCreatingPage}
-          onPress={handleAddPage}
-        >
-          <AddIcon
-            color={iconProps.color}
-            strokeWidth={iconProps.strokeWidth}
-            size={iconProps.size}
-          />
-        </ActionIconButton>
+        <>
+          {canSearch && (
+            <ActionIconToggleButton
+              aria-label={t("navigator.searchPages")}
+              tooltip={t("navigator.searchPages")}
+              isSelected={isSearchOpen}
+              onChange={handleSearchToggle}
+            >
+              <Search
+                color={iconProps.color}
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+              />
+            </ActionIconToggleButton>
+          )}
+          <ActionIconButton
+            aria-label={t("navigator.addPage")}
+            tooltip={t("navigator.addPage")}
+            isDisabled={isCreatingPage}
+            onPress={handleAddPage}
+          >
+            <AddIcon
+              color={iconProps.color}
+              strokeWidth={iconProps.strokeWidth}
+              size={iconProps.size}
+            />
+          </ActionIconButton>
+        </>
       }
     >
+      {isSearchOpen && canSearch && (
+        <SearchField
+          className="page-search-field"
+          autoFocus
+          value={pageQuery}
+          onChange={setPageQuery}
+          placeholder={t("navigator.searchPages")}
+          aria-label={t("navigator.searchPages")}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              closeSearch();
+            }
+          }}
+        />
+      )}
       {isFallbackTransitioning ? (
         <div aria-hidden="true" style={{ minHeight: 120 }} />
       ) : singlePage ? (
@@ -426,11 +493,15 @@ export const PagesSection = memo(function PagesSection({
             )}
           </div>
         </div>
+      ) : pageQueryResult.query && pageQueryResult.matchCount === 0 ? (
+        <div className="page-search-empty" role="status">
+          {t("navigator.noPagesMatch")}
+        </div>
       ) : (
         <PageTree
-          pages={pages}
+          pages={pageQueryResult.pages}
           selectedPageId={deferredSelectedPageId}
-          expandedKeys={expandedKeys}
+          expandedKeys={treeExpandedKeys}
           onExpandedChange={setExpandedKeys}
           onPageSelect={handlePageSelect}
           onPageDelete={handlePageDelete}

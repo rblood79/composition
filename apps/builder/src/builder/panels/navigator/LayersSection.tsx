@@ -19,6 +19,7 @@ import {
 } from "../../utils/scheduleTask";
 import type { PanelNode } from "../panelNode";
 import { useI18n } from "../../../i18n";
+import { NAVIGATOR_SECTION_IDS } from "./navigatorSectionIds";
 
 interface LayersSectionProps {
   currentPageId: string;
@@ -266,13 +267,13 @@ export const LayersSection = memo(function LayersSection({
 
   return (
     <Section
+      id={NAVIGATOR_SECTION_IDS.layers}
       className="node-tree-section"
       title={t("navigator.layers")}
-      collapsible={false}
       actions={
         <ActionIconButton
-          aria-label={t("navigator.collapseAll")}
-          tooltip={t("navigator.collapseAll")}
+          aria-label={t("navigator.collapseTree")}
+          tooltip={t("navigator.collapseTree")}
           onPress={handleCollapseAll}
         >
           <Minimize

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Navigator 의 Pages·Layers 를 접을 수 있고, 페이지를 검색할 수 있습니다] - 2026-09-02
+
+### Added
+
+- Navigator 패널의 Pages / Layers 섹션에 접기·펼치기 chevron 을 넣었습니다. 접힘 상태는 다른 패널 섹션과 같은 방식으로 저장되어 새로고침 후에도 유지됩니다.
+- Navigator 헤더 (닫기 버튼 앞) 에 "모든 섹션 접기 / 펼치기" 토글을 추가했습니다. Components 패널 헤더와 같은 버튼이며, Layouts 탭에서는 아직 섹션이 없어 비활성입니다.
+- Pages 섹션에 검색을 추가했습니다 (페이지가 2개 이상일 때 돋보기 토글). 제목·slug 부분 일치로 거르고, 일치한 페이지의 상위 페이지는 계층을 유지하기 위해 함께 남기고 자동으로 펼칩니다. Escape 로 닫으면 전체 목록으로 돌아갑니다.
+
+### Changed
+
+- Layers 섹션과 Layouts 탭 요소 트리의 "모두 접기" 버튼 문구를 "트리 접기" 로 바꿨습니다. 헤더의 "모든 섹션 접기" 와 뜻이 겹치지 않게 하기 위해서입니다.
+
 ## [패널 헤더의 "모든 섹션 접기" 가 펼치기와 왕복하고, Styles 단축키가 다른 패널을 건드리지 않습니다] - 2026-09-02
 
 ### Fixed
