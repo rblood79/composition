@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Skeleton · Avatar · TailSwatch · Slot 의 배치가 캔버스와 Preview 에서 같습니다] - 2026-09-03
+
+### Fixed
+
+- block 컨테이너 안에서 Skeleton 과 TailSwatch 가 캔버스에서는 내용 폭으로 줄고 (TailSwatch 는 폭 0) Preview 에서는 부모 폭을 채우던 것, Avatar 가 캔버스에서는 다음 요소와 같은 줄에 붙고 Preview 에서는 줄을 차지하던 것을 고쳤습니다. 컴포넌트 규칙 (catalog) 의 display 값을 Preview 가 실제로 쓰는 값 (Skeleton·TailSwatch block, Avatar flex) 으로 맞췄습니다.
+- 재사용 프레임의 Slot 자리가 Preview 에서 내용 폭 (73px) 으로 줄어들던 것을 고쳤습니다 — Slot 스펙에 display:block 을 명시해 캔버스와 같이 부모 폭을 채웁니다.
+
+### Tests
+
+- `adr923Hc2ConversionRect.browser.test.ts` (5 컴포넌트 Canvas ↔ Preview 실경로 outer 상자 대조) 신설, HC2 판정표 `전환필요(후속)` 5 → 0. StatusLight 는 Preview 실경로 (`renderStatusLight` 인라인 inline-flex) 를 재측정해 규칙 무변경으로 일치 확인.
+
 ## [입력 상자 래퍼와 그룹 라벨도 부모에서 편집합니다] - 2026-09-03
 
 ### Changed

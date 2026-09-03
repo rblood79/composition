@@ -64,7 +64,16 @@ HC2 판정 (`923-phase5-cutover.md` §5) 은 "catalog inline-flex ↔ live flex"
 
 ## 4. Live Exercise
 
-**main 통합 시 실행** (메인 세션 — Chrome MCP, localhost:5173): 팔레트에서 Skeleton · Avatar · StatusLight · TailSwatch 를 body 에 놓고 Canvas 폭이 §1 표와 같은지 (Skeleton · TailSwatch 부모 폭, Avatar 32, StatusLight fit-content), reusable frame 편집에서 Slot placeholder 가 Canvas · Preview 모두 부모 폭인지 1회 확인. 이 evidence 에는 browser vitest (실 Chromium) 대조만 있다.
+**main 통합 후 실행 (2026-09-03, 메인 세션 — Chrome MCP, localhost:5173, 프로젝트 e16b69c6 Home, 병합 커밋 위)**: Home body 는 flex column 이라 outer display 가 blockify 되므로 팔레트로 frame 을 만들어 `display:block · width:300px` 으로 바꾸고 그 안에 Avatar → Button → Skeleton → StatusLight 를 팔레트로 넣었다 (production 생성 경로). Skia rect (`__composition_LAYOUT_DEBUG__.getSharedLayoutMap()`, frame 기준):
+
+| 자식        | rect               | 판정                                                                                    |
+| ----------- | ------------------ | --------------------------------------------------------------------------------------- |
+| Avatar      | `[0, 0, 32, 32]`   | flex (block-level) — 다음 형제 Button 이 같은 줄이 아니라 **다음 줄** `[0, 32, 69, 30]` |
+| Button      | `[0, 32, 69, 30]`  | inline-flex 그대로 (Avatar 가 줄을 차지해 아래로)                                       |
+| Skeleton    | `[0, 62, 300, 20]` | block — 부모 폭 300 (종전 inline-flex 는 shrink-wrap)                                   |
+| StatusLight | `[0, 82, 75, 24]`  | inline-flex fit-content (catalog 무변경, §1 표 77 → 실 production 75)                   |
+
+frame 106 = 32 + 30 + 20 + 24. 콘솔 에러 0, 생성 요소 5 삭제 (요소 수 56 복원). **TailSwatch · Slot 은 live 미실행** — TailSwatch 는 ColorSlider 안에서만 생성되고 Slot 은 reusable frame 편집이 필요해 browser gate (`adr923Hc2ConversionRect` — TailSwatch 0 → 400, Slot DOM 73.47 → 400) 만이 근거다 (기록).
 
 ## 5. 변경 파일
 
