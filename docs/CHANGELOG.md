@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [입력 상자 래퍼와 그룹 라벨도 부모에서 편집합니다] - 2026-09-03
+
+### Changed
+
+- NumberField · Select · ComboBox · SearchField · DatePicker · DateRangePicker 안의 입력 상자 래퍼 (SelectTrigger) 와 CheckboxGroup · RadioGroup · Meter · ProgressBar · Slider 안의 라벨 (Label), DatePicker · DateRangePicker 래퍼 안의 날짜 입력 (DateInput) 을 Layers 에서 선택하면 Properties 와 Styles 패널이 "부모에서 편집하는 요소" 안내를 띄웁니다. 이 요소들에 직접 준 스타일은 Preview/Publish 가 읽는 경로가 없어 캔버스에서만 달라 보였는데, 이제 캔버스도 무시합니다 — 부모의 속성으로 편집하세요. 안내의 부모 이름은 실제로 그리는 요소 (DatePicker 의 날짜 입력이면 DatePicker) 입니다.
+
+### Fixed
+
+- Meter · ProgressBar 의 라벨이 캔버스에서 부모의 Label 속성이 아니라 처음 만들 때의 글자 ("Storage" · "Progress") 폭으로 잡혀 Preview 보다 넓게 그려지던 것을 고쳤습니다 (400px 에서 54/61 → 40, Preview 39).
+
+### Tests
+
+- `adr923WrapperSubpartProjection.browser.test.ts` 3 (9 컴포넌트 — 래퍼·라벨에 아무 스타일을 얹어도 캔버스 상자가 깨끗한 상태와 같다 · Preview 상자 대조 · 래퍼 폭 = 부모 폭), bridge `read-only sub-part 확장 (후반)` 1 (owner 13 조합 + Skia). 원복 7종 재측정 — 6 은 게이트 반응, 1 (Label 숫자 grid line 주입) 은 무반응 기록.
+
+## [Preview 메시징을 canonical document 단일 채널로 정리했습니다] - 2026-09-03
+
+### Changed
+
+- Builder의 Preview 전체 동기화 계약을 `UPDATE_CANONICAL_DOCUMENT` 하나로 정리했습니다. 수신처가 이미 제거된 `UPDATE_ELEMENTS` 송신·대기열 분기와 ACK 상태를 없애고, 페이지·frame 선택은 기존 Builder store 선택과 `ELEMENT_SELECTED` 경로만 사용합니다.
+
+### Removed
+
+- Preview가 callback을 주입하지 않아 아무 동작도 하지 않던 `REQUEST_ELEMENT_SELECTION` 메시지와 Builder의 `requestAutoSelectAfterUpdate`·`requestElementSelection` API를 제거했습니다.
+
+### Tests
+
+- `useIframeMessenger.canonical.test.ts`가 제거된 bulk sync·ACK·선택 protocol과 호출자 재도입을 함께 차단합니다.
+
 ## [입력 필드의 라벨·입력 상자·오류 메시지 요소는 부모에서 편집합니다] - 2026-09-03
 
 ### Changed

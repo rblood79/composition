@@ -4,6 +4,7 @@ import {
   FIELD_ERROR_CHILD_SELECTOR,
   hasDelegatedChild,
   isDelegatedSubpartChild,
+  resolveDelegatedSubpartOwnerType,
   resolveDelegatedChildFontSize,
   resolveInheritedLineHeight,
 } from "@composition/shared";
@@ -411,10 +412,98 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 propagation 다리
         `${childType} < ${parentType} 인라인 무시`,
       ).toBe(JSON.stringify(clean));
     }
-    // 범위 밖: delegation 없는 parent · SelectTrigger 래퍼
+    // 범위 밖: delegation 없는 parent · 래퍼 안의 SelectValue (placeholder 텍스트 축을 DOM 이 읽는다)
     expect(isDelegatedSubpartChild("Label", "Button")).toBe(false);
-    expect(isDelegatedSubpartChild("Label", "CheckboxGroup")).toBe(false);
-    expect(isDelegatedSubpartChild("SelectTrigger", "NumberField")).toBe(false);
+    expect(
+      isDelegatedSubpartChild("SelectValue", "SelectTrigger", "Select"),
+    ).toBe(false);
+    expect(isDelegatedSubpartChild("SelectTrigger", "Button")).toBe(false);
+  });
+
+  it("read-only sub-part 확장 (판정 A × 2, 2026-09-03 후반) — SelectTrigger 래퍼 · 그룹 Label · 래퍼 아래 DateInput 도 Skia 가 인라인을 통째로 무시하고 owner 는 field 다", () => {
+    const layout = { x: 0, y: 0, width: 200, height: 30 } as ComputedLayout;
+    // [child, parent, grandparent?, 기대 owner]
+    const cases: Array<[string, string, string | undefined, string]> = [
+      ["SelectTrigger", "NumberField", undefined, "NumberField"],
+      ["SelectTrigger", "Select", undefined, "Select"],
+      ["SelectTrigger", "ComboBox", undefined, "ComboBox"],
+      ["SelectTrigger", "SearchField", undefined, "SearchField"],
+      ["SelectTrigger", "DatePicker", undefined, "DatePicker"],
+      ["SelectTrigger", "DateRangePicker", undefined, "DateRangePicker"],
+      ["Label", "CheckboxGroup", undefined, "CheckboxGroup"],
+      ["Label", "RadioGroup", undefined, "RadioGroup"],
+      ["Label", "Meter", undefined, "Meter"],
+      ["Label", "ProgressBar", undefined, "ProgressBar"],
+      ["Label", "Slider", undefined, "Slider"],
+      ["DateInput", "SelectTrigger", "DatePicker", "DatePicker"],
+      ["DateInput", "SelectTrigger", "DateRangePicker", "DateRangePicker"],
+    ];
+    for (const [childType, parentType, grandType, owner] of cases) {
+      expect(
+        resolveDelegatedSubpartOwnerType(childType, parentType, grandType),
+        `${childType} < ${parentType}${grandType ? ` < ${grandType}` : ""}`,
+      ).toBe(owner);
+      const grand = grandType
+        ? ({
+            id: `${grandType}-sp3`,
+            type: grandType,
+            parent_id: null,
+            props: { label: "Name", size: "md" },
+          } as unknown as CanvasSceneNode)
+        : undefined;
+      const parent = {
+        id: `${parentType}-sp3`,
+        type: parentType,
+        parent_id: grand?.id ?? null,
+        props: grand ? {} : { label: "Name", size: "md" },
+      } as unknown as CanvasSceneNode;
+      const make = (style: Record<string, unknown>) =>
+        ({
+          id: `${parentType}-${childType}-sp3`,
+          type: childType,
+          parent_id: parent.id,
+          props: {
+            ...(childType === "Label" ? { children: "Name" } : {}),
+            style,
+          },
+        }) as unknown as CanvasSceneNode;
+      const build = (el: CanvasSceneNode) =>
+        buildSpecNodeData({
+          element: el,
+          layout,
+          theme: "light",
+          elementsMap: new Map(
+            [grand, parent, el]
+              .filter((n): n is CanvasSceneNode => !!n)
+              .map((n) => [n.id, n] as const),
+          ),
+        });
+      const clean = build(make({}));
+      const junk = build(
+        make({
+          color: "rgb(1, 2, 3)",
+          fontSize: 30,
+          fontWeight: 900,
+          marginTop: 30,
+          padding: 9,
+          width: 50,
+          lineHeight: 10,
+          backgroundColor: "rgb(4, 5, 6)",
+          borderRadius: 40,
+        }),
+      );
+      expect(
+        JSON.stringify(junk),
+        `${childType} < ${parentType} 인라인 무시`,
+      ).toBe(JSON.stringify(clean));
+    }
+    // 조부모 hop 은 SelectTrigger 래퍼에서만 — 다른 중간 노드는 판정하지 않는다
+    expect(
+      resolveDelegatedSubpartOwnerType("DateInput", "frame", "DatePicker"),
+    ).toBeNull();
+    expect(
+      resolveDelegatedSubpartOwnerType("Label", "SelectTrigger", "Select"),
+    ).toBeNull();
   });
 
   it("Inspector 쓰기 — parent 변경 {isInvalid} / {errorMessage} 가 FieldError 자식 store 업데이트로 나온다", () => {

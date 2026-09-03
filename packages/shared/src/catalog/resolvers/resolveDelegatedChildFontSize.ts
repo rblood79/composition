@@ -106,13 +106,55 @@ export function hasDelegatedChild(
  * Input · DateInput 확장). Preview/publish 는 canonical 자식을 읽지 않으므로 자식 인라인 style 은 DOM 에
  * 닿을 채널이 없다: Canvas read 경로는 인라인을 무시하고, 패널은 편집을 parent 로 귀속한다.
  */
-export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<Record<string, string>> =
-  {
-    FieldError: ".react-aria-FieldError",
-    Label: ".react-aria-Label",
-    Input: ".react-aria-Input",
-    DateInput: ".react-aria-DateInput",
-  };
+export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
+  Record<string, readonly string[]>
+> = {
+  FieldError: [".react-aria-FieldError"],
+  Label: [".react-aria-Label"],
+  Input: [".react-aria-Input"],
+  DateInput: [".react-aria-DateInput"],
+  // 입력 상자 래퍼 (2026-09-03 판정 A — SelectTrigger 확장). DOM 렌더러 (`FormRenderers` · `SelectionRenderers`
+  //   · `DateRenderers`) 는 canonical SelectTrigger 를 SelectValue 손자를 찾는 경로로만 쓰고 그 style·props 는
+  //   읽지 않는다 — 래퍼 상자는 parent rule delegation 이 그린다: NumberField · DatePicker · DateRangePicker
+  //   `.react-aria-Group`, ComboBox `.combobox-container`, SearchField `.searchfield-container`, Select 은 RAC
+  //   Select 의 trigger 가 Button 자체 (`.react-aria-Button` 안에 SelectValue + chevron).
+  SelectTrigger: [
+    ".react-aria-Group",
+    ".combobox-container",
+    ".searchfield-container",
+    ".react-aria-Button",
+  ],
+};
+
+/**
+ * delegation 항목 없이도 DOM 이 parent `label` prop 으로 RAC Label 을 self-compose 하는 parent (2026-09-03 판정
+ * A — 그룹 Label 확장). 자식 Label 은 parent `label` 이 undefined 일 때 **텍스트만** legacy 폴백으로 읽히고
+ * (`resolvePropagatedText`, ADR-923 r17m1 — Slider 는 그것도 없이 parent prop 만) style 은 어떤 채널로도 DOM 에
+ * 닿지 않는다. 이 parent 들은 delegation 이 없어 DOM Label 이 Label rule 로 직접 스타일되므로 Canvas Label rule
+ * 과 이미 같다 — 갈리는 것은 자식 인라인뿐이라 같은 read-only sub-part 다. factory 는 Meter · ProgressBar ·
+ * Slider 에만 Label 자식을 만들고 CheckboxGroup · RadioGroup 은 옛 문서만 해당한다.
+ */
+export const SELF_COMPOSED_LABEL_PARENTS: ReadonlySet<string> = new Set([
+  "CheckboxGroup",
+  "RadioGroup",
+  "Meter",
+  "ProgressBar",
+  "Slider",
+]);
+
+/**
+ * sub-part 래퍼 — 이 type 이 직계 parent 면 자식의 판정은 **조부모** (field) 에 대해 한다. DatePicker ·
+ * DateRangePicker 의 canonical 은 `field > SelectTrigger > DateInput` 이라 DateInput 의 직계는 SelectTrigger 인데,
+ * DOM 은 field rule delegation `.react-aria-DateInput` 으로 그린다 (DateField · TimeField 와 같은 판정).
+ */
+export const SUBPART_HOP_WRAPPER_TYPES: ReadonlySet<string> = new Set([
+  "SelectTrigger",
+]);
+
+/** 래퍼 안에서 DOM 이 실제로 호스트하는 sub-part 만 hop — `.react-aria-Group > .react-aria-DateInput`. */
+export const SUBPART_HOP_CHILD_TYPES: ReadonlySet<string> = new Set([
+  "DateInput",
+]);
 
 function delegationSelectors(parentType: string): string[] {
   const rule = resolveComponentRuleByTag(parentType);
@@ -130,19 +172,55 @@ function selectorHasToken(selector: string, token: string): boolean {
   return next === "" || !/[A-Za-z0-9_-]/.test(next);
 }
 
-/** parent rule (또는 DOM root alias) 의 delegation 이 이 자식 type 의 class 토큰을 갖는가. */
-export function isDelegatedSubpartChild(
-  childType: string | null | undefined,
-  parentType: string | null | undefined,
-): boolean {
-  if (!childType || !parentType) return false;
-  const token = DELEGATED_SUBPART_CHILD_TOKENS[childType];
-  if (!token) return false;
+function ownsSubpartDirect(childType: string, parentType: string): boolean {
+  if (childType === "Label" && SELF_COMPOSED_LABEL_PARENTS.has(parentType))
+    return true;
+  const tokens = DELEGATED_SUBPART_CHILD_TOKENS[childType];
+  if (!tokens) return false;
   const has = (p: string) =>
-    delegationSelectors(p).some((sel) => selectorHasToken(sel, token));
+    delegationSelectors(p).some((sel) =>
+      tokens.some((token) => selectorHasToken(sel, token)),
+    );
   if (has(parentType)) return true;
   const alias = DOM_ROOT_RULE_ALIAS[parentType.toLowerCase()];
   return alias ? has(alias) : false;
+}
+
+/**
+ * 이 자식이 read-only sub-part 면 그것을 **소유한 DOM parent type** (직계 parent, 또는 직계가 sub-part 래퍼면
+ * 조부모) 을, 아니면 null 을 돌려준다. 패널 안내의 `{parent}` 와 FieldError delegation 글자 크기 조회가 이
+ * owner 를 쓴다.
+ */
+export function resolveDelegatedSubpartOwnerType(
+  childType: string | null | undefined,
+  parentType: string | null | undefined,
+  grandparentType?: string | null,
+): string | null {
+  if (!childType || !parentType) return null;
+  if (ownsSubpartDirect(childType, parentType)) return parentType;
+  if (
+    grandparentType &&
+    SUBPART_HOP_WRAPPER_TYPES.has(parentType) &&
+    SUBPART_HOP_CHILD_TYPES.has(childType) &&
+    ownsSubpartDirect(childType, grandparentType)
+  )
+    return grandparentType;
+  return null;
+}
+
+/**
+ * parent rule (또는 DOM root alias) 의 delegation 이 이 자식 type 의 class 토큰을 갖는가 — 또는 parent 가 Label 을
+ * self-compose 하는 그룹인가. `grandparentType` 을 주면 직계가 sub-part 래퍼 (SelectTrigger) 일 때 조부모로 판정.
+ */
+export function isDelegatedSubpartChild(
+  childType: string | null | undefined,
+  parentType: string | null | undefined,
+  grandparentType?: string | null,
+): boolean {
+  return (
+    resolveDelegatedSubpartOwnerType(childType, parentType, grandparentType) !=
+    null
+  );
 }
 
 export function resolveDelegatedChildFontSize(

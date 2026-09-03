@@ -11,12 +11,8 @@
 
 import type { CanvasLayoutNode } from "../layoutNode";
 import { getLayoutRootKey } from "../layoutRootKey";
-import {
-  FIELD_ERROR_CHILD_SELECTOR,
-  hasDelegatedChild,
-  isDelegatedSubpartChild,
-  resolveDelegatedChildFontSize,
-} from "@composition/shared";
+import { hasDelegatedChild } from "@composition/shared";
+import { isReadOnlySubpart, projectReadOnlySubpart } from "./readOnlySubpart";
 import type { ComputedLayout } from "./LayoutEngine";
 import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
 import { isCompositionEngineReady } from "../../wasm-bindings/compositionEngineWasm";
@@ -1499,35 +1495,9 @@ function traversePostOrder(
   //   가 아니라 CSS width 로 채운다; content-box padding overflow 26 은 별도 기록). 줄 높이는 명시 주입하지
   //   않는다 — 빈 FieldError 는 DOM 에 줄 상자가 없어 높이 0 (round 3 fe2h1). Label 폭은 ADR-165 fit-content
   //   주입, 굵기는 rule textWeight 가 맡는다.
-  if (rawElement.parent_id) {
-    const spParent = elementsMap.get(rawElement.parent_id);
-    if (spParent && isDelegatedSubpartChild(rawElement.type, spParent.type)) {
-      const spStyle = (rawElement.props?.style ?? {}) as Record<
-        string,
-        unknown
-      >;
-      const projected: Record<string, unknown> =
-        spStyle.display !== undefined ? { display: spStyle.display } : {};
-      if (rawElement.type === "FieldError") {
-        const feFontSize = resolveDelegatedChildFontSize(
-          spParent.type,
-          FIELD_ERROR_CHILD_SELECTOR,
-          (spParent.props as Record<string, unknown> | undefined)?.size as
-            string | undefined,
-        );
-        if (feFontSize != null) projected.fontSize = feFontSize;
-      } else if (
-        rawElement.type === "Input" ||
-        rawElement.type === "DateInput"
-      ) {
-        projected.width = "100%";
-      }
-      rawElement = {
-        ...rawElement,
-        props: { ...rawElement.props, style: projected },
-      } as CanvasLayoutNode;
-    }
-  }
+  //   SelectTrigger 래퍼 · 그룹 (CheckboxGroup·RadioGroup·Meter·ProgressBar·Slider) Label · 래퍼 아래
+  //   DateInput 도 같은 판정 (2026-09-03 판정 A 확장) — 투영 규칙은 `readOnlySubpart.ts` 한 곳.
+  rawElement = projectReadOnlySubpart(rawElement, elementsMap);
 
   // Heading/Description → InlineAlert 부모 spec에서 font 스타일 주입 (텍스트 폭 측정 정합성)
   if (rawElement.type === "Heading" || rawElement.type === "Description") {
@@ -1771,9 +1741,13 @@ function traversePostOrder(
 
   // GAP 3: Implicit Style 통합 — 원본 자식 수집 후 applyImplicitStyles로 전처리
   const rawChildIds = childrenMap.get(elementId) ?? [];
+  // read-only sub-part 자식은 **투영된 사본**을 implicitStyles 에 넘긴다 — implicit 은 `cs.X ?? 기본값` 으로
+  //   주입하므로 raw 인라인 (DOM 미도달 junk) 을 보면 기본값 주입이 막히고 (SelectTrigger width 100% ·
+  //   padding, Label gridArea …) 3.6 delta 가 그 키를 못 건진다. 자식 visit 과 같은 투영 함수 하나.
   const rawChildren = rawChildIds
     .map((id) => elementsMap.get(id))
-    .filter((el): el is CanvasLayoutNode => el !== undefined);
+    .filter((el): el is CanvasLayoutNode => el !== undefined)
+    .map((el) => projectReadOnlySubpart(el, elementsMap));
 
   const { effectiveParent, filteredChildren } = applyImplicitStyles(
     rawElement,
@@ -2078,14 +2052,13 @@ function traversePostOrder(
     // read-only sub-part (2026-09-03 판정 A): implicitStyles 는 자식 style 을 `{...cs, 주입}` 으로 복사하므로
     //   modStyle 에 자식의 인라인 (DOM 미도달 junk) 이 그대로 실려 있다. 자식 visit 에서 걷어낸 인라인이
     //   여기서 되살아나지 않도록, sub-part 자식은 implicit 이 **추가·변경한 키만** 패치한다.
-    const origStyleForDelta = (originalEl.props?.style ?? {}) as Record<
+    //   기준은 raw 인라인이 아니라 **투영값** (implicit 입력이 투영 사본이므로 implicit 이 주입한 키만 남는다).
+    const projectedOriginal = projectReadOnlySubpart(originalEl, elementsMap);
+    const isSubpartChild = projectedOriginal !== originalEl;
+    const origStyleForDelta = (projectedOriginal.props?.style ?? {}) as Record<
       string,
       unknown
     >;
-    const isSubpartChild = isDelegatedSubpartChild(
-      filteredChild.type,
-      effectiveParent.type,
-    );
     const implicitDelta = (
       full: Record<string, unknown>,
     ): Record<string, unknown> => {
@@ -2121,10 +2094,10 @@ function traversePostOrder(
       processedElementsMap.set(filteredChild.id, filteredChild);
     }
 
-    const origStyle = (originalEl.props?.style ?? {}) as Record<
-      string,
-      unknown
-    >;
+    // sub-part 자식은 raw 인라인 (junk width/fontSize) 이 아니라 투영값이 기준 — factory `width:fit-content`
+    //   에 걸리는 폭 재측정도 건너뛴다 (재측정은 raw `children` 텍스트를 읽어 propagation 된 텍스트로 잰
+    //   visit 값을 덮는다: Meter Label "Storage" 54 vs 투영 "Name" 40 = DOM 39, 2026-09-03 실측).
+    const origStyle = origStyleForDelta;
     const modStyle = implicitDelta(
       (filteredChild.props?.style ?? {}) as Record<string, unknown>,
     );
@@ -3292,15 +3265,9 @@ export function calculateFullTreeLayout(
       //   판정 A) 는 인라인 margin 을 엔진이 무시하므로 overlay 보고도 batch (축소된 style) 를 읽는다 —
       //   raw store style 을 읽으면 적용되지 않은 margin 띠가 overlay 에 그려진다 (live 실측).
       const rawEl = elementsMap.get(node.elementId);
-      const rawParent = rawEl?.parent_id
-        ? elementsMap.get(rawEl.parent_id)
-        : undefined;
-      const isReadOnlySubpart =
-        !!rawEl &&
-        !!rawParent &&
-        isDelegatedSubpartChild(rawEl.type, rawParent.type);
+      const readOnlySubpart = !!rawEl && isReadOnlySubpart(rawEl, elementsMap);
       const elementStyle = (
-        isReadOnlySubpart ? (node.style ?? {}) : (rawEl?.props?.style ?? {})
+        readOnlySubpart ? (node.style ?? {}) : (rawEl?.props?.style ?? {})
       ) as Record<string, unknown>;
       const margin = parseMargin(elementStyle);
 

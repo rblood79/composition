@@ -42,7 +42,7 @@ import {
   toSkiaStyle,
   usesButtonBaseUtility,
   FIELD_ERROR_CHILD_SELECTOR,
-  isDelegatedSubpartChild,
+  resolveDelegatedSubpartOwnerType,
   resolveDelegatedChildFontSize,
   resolveInheritedLineHeight,
 } from "@composition/shared";
@@ -1588,10 +1588,28 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   는 글자 크기 = parent rule delegation (`.react-aria-FieldError` hint 변수 — layout 과 같은 resolver),
   //   줄 높이 = root 상속 1.5 (활성 bundle 에 FieldError line-height 규칙 없음, r2 feh3). Label 은 size
   //   delegation (parent size → Label rule) 으로 이미 DOM 과 같은 값을 읽는다 (11 parent 전부 동일 실측).
-  const spParent = element.parent_id
+  //   SelectTrigger 래퍼 · 그룹 (CheckboxGroup·RadioGroup·Meter·ProgressBar·Slider) Label · 래퍼 아래 DateInput
+  //   도 같은 판정 (2026-09-03 판정 A 확장) — owner 는 직계 parent 또는 (직계가 SelectTrigger 면) 조부모.
+  const spDirectParent = element.parent_id
     ? elementsMap.get(element.parent_id)
     : undefined;
-  if (spParent && isDelegatedSubpartChild(element.type, spParent.type)) {
+  const spGrandparent = spDirectParent?.parent_id
+    ? elementsMap.get(spDirectParent.parent_id)
+    : undefined;
+  const spOwnerType = spDirectParent
+    ? resolveDelegatedSubpartOwnerType(
+        element.type,
+        spDirectParent.type,
+        spGrandparent?.type,
+      )
+    : null;
+  const spParent =
+    spOwnerType == null
+      ? undefined
+      : spOwnerType === spDirectParent?.type
+        ? spDirectParent
+        : spGrandparent;
+  if (spParent) {
     const existingStyle = (specProps.style || {}) as Record<string, unknown>;
     const projectedDisplay =
       existingStyle.display !== undefined

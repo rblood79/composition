@@ -54,7 +54,7 @@ import {
   withSlotMirrorName,
 } from "../../../adapters/canonical/slotMirror";
 import { dispatchSemanticUpdateWithPropagation } from "./semanticUpdateDispatch";
-import { isDelegatedSubpart, useSelectedParentType } from "../delegatedSubpart";
+import { isDelegatedSubpart, useSelectedSubpartOwnerType } from "../delegatedSubpart";
 import {
   alignSelection,
   copySelection,
@@ -695,10 +695,10 @@ function PropertiesPanelContent() {
   // 선택된 요소가 없으면 빈 상태 표시
   // ADR-923 잔여 1 (2026-09-03 판정 A): DOM 이 parent 로 self-compose 하는 sub-part (field 의 FieldError)
   //   는 편집 surface 를 parent 로 귀속 — 안내만 띄운다 (`delegatedSubpart.ts`).
-  const selectedParentType = useSelectedParentType(selectedElement?.id);
+  const selectedSubpartOwnerType = useSelectedSubpartOwnerType(selectedElement?.id);
   const delegatedSubpart = isDelegatedSubpart(
     selectedElement?.type,
-    selectedParentType,
+    selectedSubpartOwnerType,
   );
 
   if (!selectedElement) {
@@ -766,7 +766,7 @@ function PropertiesPanelContent() {
             message={t("propertiesPanel.delegatedSubpartMessage")}
             description={t("propertiesPanel.delegatedSubpartDescription", {
               type: selectedElement.type,
-              parent: selectedParentType ?? "",
+              parent: selectedSubpartOwnerType ?? "",
             })}
           />
         ) : (

@@ -684,6 +684,24 @@ const B22_CSS_FULL_WIDTH_TAGS = new Set([
 //   "paddingX"/"paddingY") read-through 로 대체 (SelectTrigger spec 삭제됨 → rule fallback 경로).
 //   CSS padding 형식 top right bottom left 에서 right=top(paddingY), left=paddingLeft 매핑 유지.
 
+/**
+ * field-trigger 래퍼 (SelectTrigger) 의 base-axis — row flex · 폭 100% (side 모드 제외) · gap 4. Select/ComboBox/
+ * SearchField/NumberField 분기와 DatePicker/DateRangePicker 분기가 같이 쓴다 (Δ11 의도 잔존 — 한 곳). 래퍼는
+ * read-only sub-part (2026-09-03 판정 A) 라 factory 인라인이 layout 에 실리지 않으므로 이 주입이 유일 채널이다.
+ */
+function fieldTriggerRowStyle(
+  cs: Record<string, unknown>,
+  sideMode: boolean,
+): Record<string, unknown> {
+  return {
+    ...cs,
+    display: cs.display ?? "flex",
+    flexDirection: cs.flexDirection ?? "row",
+    width: sideMode ? cs.width : (cs.width ?? "100%"),
+    gap: cs.gap ?? 4,
+  };
+}
+
 /** catalog SelectTrigger.sizes 에서 padding(left/right/y) read-through. number 좁히기. */
 function specPaddingFromCatalog(sizeName: string): {
   left: number;
@@ -2157,11 +2175,7 @@ export function applyImplicitStyles(
           props: {
             ...child.props,
             style: {
-              ...cs,
-              display: cs.display ?? "flex",
-              flexDirection: cs.flexDirection ?? "row",
-              width: sideMode ? cs.width : (cs.width ?? "100%"),
-              gap: cs.gap ?? 4,
+              ...fieldTriggerRowStyle(cs, sideMode),
               ...withSpecPadding(cs, sizeName),
             },
           },
@@ -2519,6 +2533,12 @@ export function applyImplicitStyles(
             style: {
               ...cs,
               gridArea: cs.gridArea ?? "label",
+              // Skia grid 경로는 gridArea 이름 해석 미지원 → 숫자 line (Slider 분기 동형). Label 은 read-only
+              //   sub-part (2026-09-03 판정 A) 라 factory 인라인이 layout 에 실리지 않으므로 여기서 주입한다.
+              gridColumnStart: cs.gridColumnStart ?? "1",
+              gridColumnEnd: cs.gridColumnEnd ?? "2",
+              gridRowStart: cs.gridRowStart ?? "1",
+              gridRowEnd: cs.gridRowEnd ?? "2",
               fontSize: labelFontSize,
               minWidth: cs.minWidth ?? 0,
               whiteSpace: cs.whiteSpace ?? "nowrap",
@@ -2899,6 +2919,16 @@ export function applyImplicitStyles(
     //   이미 소유하므로(implicitStyles selecttrigger 분기) DateInput 은 콘텐츠 높이로 둔다.
     //   Select 의 SelectValue 가 height 주입 없이 콘텐츠(21)로 남는 것과 동형.
     filteredChildren = filteredChildren.map((child) => {
+      // 입력 box 래퍼 (SelectTrigger) 의 row flex · 폭 100% · gap — Select/ComboBox 분기와 같은 값. read-only
+      //   sub-part (2026-09-03 판정 A) 라 factory 인라인이 layout 에 실리지 않으므로 여기서 주입한다 (height ·
+      //   padding · border 는 `selecttrigger` 컨테이너 분기 소유).
+      if (child.type === "SelectTrigger") {
+        const cs = (child.props?.style || {}) as Record<string, unknown>;
+        return {
+          ...child,
+          props: { ...child.props, style: fieldTriggerRowStyle(cs, sideMode) },
+        } as CanvasLayoutNode;
+      }
       if (child.type === "DateInput") {
         const cs = (child.props?.style || {}) as Record<string, unknown>;
         return {
