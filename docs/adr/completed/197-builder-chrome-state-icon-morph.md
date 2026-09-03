@@ -2,11 +2,13 @@
 
 ## Status
 
-Deprecated — 2026-08-30 (사용자 판단: "기대보다 퀄리티가 떨어진다" → 구현 전량 롤백)
+Deprecated — 2026-08-30 (사용자 판단: "기대보다 퀄리티가 떨어진다" → 구현 전량 롤백) · **계획 폐기 확정 2026-09-03** (사용자 결정 — 재개 계획 없음, 문서는 음성 결과 기록으로만 보존)
 
-> 롤백 기록: Phase 0~3 구현은 `31d56ee41` · `0181a9153` · `1509b9936` · `023f11fbd` · `ed7b35dae` 로 반영됐다가 2026-08-30 코드만 되돌렸다 (vendoring 디렉토리 삭제 + 교체 8+4곳 원복). 설계·실측·리뷰 기록은 다시 볼 때를 위해 남긴다. 재개하려면 아래 §Consequences 뒤의 "롤백에서 남은 것" 을 먼저 읽을 것.
+> 롤백 기록: Phase 0~3 구현은 `31d56ee41` · `0181a9153` · `1509b9936` · `023f11fbd` · `ed7b35dae` 로 반영됐다가 2026-08-30 코드만 되돌렸다 (vendoring 디렉토리 삭제 + 교체 8+4곳 원복). 코드 흔적 0 (`morphicons` / `MorphIcon` / `StateIcon` / `ICON_STATE_PAIRS` grep 0건, 2026-09-03 확인).
+>
+> 2026-09-03 사용자 결정으로 **계획 자체를 폐기**한다 — 아래 Phase·Gate 는 실행 대상이 아니고, 남은 것은 아래 §롤백에서 남은 것 의 실측 사실뿐이다. 같은 주제를 다시 다루려면 이 문서를 재개하지 말고 새 ADR 을 작성한다.
 
-> 출처: 2026-08-29 사용자 요청 — "빌더 내 아이콘을 더 동적으로 표현. lock-keyhole-open → lock-keyhole 식 on/off 개념을 더하면 단순한 아이콘에 시각 효과로 가독성·시인성을 줄 수 있다" + "재사용 가능한 패턴으로". 적용 대상은 **Builder chrome 한정, canvas 미적용** (사용자 결정). 완전 신규 주제 (fork 아님) — 전제 기록은 [breakdown §1](design/197-builder-chrome-state-icon-morph-breakdown.md).
+> 출처: 2026-08-29 사용자 요청 — "빌더 내 아이콘을 더 동적으로 표현. lock-keyhole-open → lock-keyhole 식 on/off 개념을 더하면 단순한 아이콘에 시각 효과로 가독성·시인성을 줄 수 있다" + "재사용 가능한 패턴으로". 적용 대상은 **Builder chrome 한정, canvas 미적용** (사용자 결정). 완전 신규 주제 (fork 아님) — 전제 기록은 [breakdown §1](../design/197-builder-chrome-state-icon-morph-breakdown.md).
 
 ## Context
 
@@ -111,7 +113,7 @@ Deprecated — 2026-08-30 (사용자 판단: "기대보다 퀄리티가 떨어�
 - **대안 C 기각**: chevron 4곳에만 유효. lock / eye / sun / pin / maximize 는 회전만으로 이어지지 않고, crossfade 는 "두 아이콘이 겹쳐 사라짐" 이라 형태 연속성이 없어 사용자 의도 미충족.
 - **대안 D 기각**: 유지보수 HIGH — 쌍마다 수작업 에셋, lucide 갱신과 분리된 동기화 부담. Lottie 경로는 HC1 위반.
 
-> 구현 상세: [197-builder-chrome-state-icon-morph-breakdown.md](design/197-builder-chrome-state-icon-morph-breakdown.md)
+> 구현 상세: [197-builder-chrome-state-icon-morph-breakdown.md](../design/197-builder-chrome-state-icon-morph-breakdown.md)
 
 ## Risks
 
@@ -188,4 +190,4 @@ Deprecated — 2026-08-30 (사용자 판단: "기대보다 퀄리티가 떨어�
 | 부딪힌 계약                      | `shared/ToggleButton` 은 children 을 element 로만 받는다 (render prop 금지, `ToggleButton.tsx:94`) — 이걸 어겨 rail 아이콘 10개가 사라졌었다                                            |
 | 아이콘 정본 3중화                | 액션(`ACTION_ICONS`) · 속성 필드(`propertyFieldIcons`) · 상태 쌍 — 세 번째 축을 들이면 같은 화면에서 그림 하나가 두 뜻을 갖는 자리가 생긴다 (`Lock`/`Eye`/`EyeOff`)                     |
 
-재개한다면 vendoring (`morphicons` 1.7.1, `38d2a72`) 부터가 아니라 **"형태 전환이 실제로 값을 주는 지점이 8곳뿐인데 core 1,470 LOC 을 들일 값인가"** 를 먼저 판정해야 한다.
+본 계획은 2026-09-03 폐기됐다. 같은 주제를 다시 다룬다면 vendoring (`morphicons` 1.7.1, `38d2a72`) 부터가 아니라 **"형태 전환이 실제로 값을 주는 지점이 8곳뿐인데 core 1,470 LOC 을 들일 값인가"** 를 먼저 판정하는 새 ADR 이어야 한다 — 위 표가 그 판정의 입력이다.

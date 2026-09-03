@@ -1,8 +1,10 @@
 # ADR-197 Breakdown: Builder chrome 상태 아이콘 morph — morphicons core vendoring + StateIcon 레지스트리
 
-> **롤백 2026-08-30** — Phase 0~3 이 반영됐다가 사용자 판단 ("기대보다 퀄리티가 떨어진다") 으로 **코드만 전량 되돌려졌다**. 아래 phase 표의 결과·수치는 당시 실측 기록이며 현재 코드에는 없다 — 재개 판단은 ADR 본문 §롤백에서 남은 것 부터.
+> **폐기 2026-09-03** — 사용자 결정으로 계획 자체가 폐기됐다. 아래 Phase·체크리스트는 **실행 대상이 아니며**, 값이 남은 것은 실측 수치뿐이다 (ADR 본문 §롤백에서 남은 것).
 >
-> 2026-08-30 초안. ADR 본문: [197-builder-chrome-state-icon-morph.md](../197-builder-chrome-state-icon-morph.md).
+> **롤백 2026-08-30** — Phase 0~3 이 반영됐다가 사용자 판단 ("기대보다 퀄리티가 떨어진다") 으로 **코드만 전량 되돌려졌다**. 아래 phase 표의 결과·수치는 당시 실측 기록이며 현재 코드에는 없다.
+>
+> 2026-08-30 초안. ADR 본문: [197-builder-chrome-state-icon-morph.md](../completed/197-builder-chrome-state-icon-morph.md).
 > Phase 0 inventory 는 본 문서의 표를 갱신하는 commit 으로 freeze 한다 (M3 — 추정/실측 gap 은
 > inventory 보강이지 fork 사유가 아님).
 
