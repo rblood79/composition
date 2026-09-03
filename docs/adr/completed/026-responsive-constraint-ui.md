@@ -193,7 +193,7 @@ width: auto / fit-content  → Fit
 | 히스토리 기록       | `stores/utils/sizeModeResolver.ts`                  | CSS 속성 변경 전 recordHistory                                      |
 | layoutVersion 증가  | `sizeModeResolver.ts`                               | 레이아웃 영향 속성 변경 시 필수                                     |
 
-**예상 변경**: 3~4파일 신규, 2~3파일 수정
+**예상 변경**: 3~~4파일 신규, 2~~3파일 수정
 
 ### Phase 2: Min/Max 제약 + Aspect Ratio (P3)
 
@@ -218,7 +218,7 @@ width: auto / fit-content  → Fit
 | align-self/justify-self 변환 | `sizeModeResolver.ts`        | 부모 display에 따른 CSS 분기                    |
 | Box Model 다이어그램         | `BoxModelDiagram.tsx` (신규) | margin/border/padding 시각화 (대안 C 일부 채택) |
 
-**예상 변경**: 1~2파일 신규, 2~3파일 수정
+**예상 변경**: 1~~2파일 신규, 2~~3파일 수정
 
 ### Phase 4: 컨텍스트 인지 + 스마트 전환 (P4)
 
@@ -411,7 +411,7 @@ width: auto / fit-content  → Fit
 
 - [ADR-008: Layout Engine](008-layout-engine.md) — Taffy WASM 단일 엔진
 - [ADR-009: Figma-Class Rendering](009-full-tree-wasm-layout.md) — 렌더링/레이아웃 파이프라인
-- PENCIL_VS_composition_UI_UX.md — Pencil 비교 분석 (정렬/배치/스냅)
+- [PENCIL_VS_XSTUDIO_UI_UX.md](../../legacy/PENCIL_VS_XSTUDIO_UI_UX.md) — Pencil 비교 분석 (정렬/배치/스냅)
 
 ---
 

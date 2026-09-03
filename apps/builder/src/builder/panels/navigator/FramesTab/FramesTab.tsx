@@ -95,7 +95,6 @@ interface FramesTabProps {
   selectedElementId: string | null;
   setSelectedElement: (elementId: string | null, props?: ElementProps) => void;
   sendElementSelectedMessage: (elementId: string, props: ElementProps) => void;
-  requestAutoSelectAfterUpdate: (elementId: string) => void;
   projectId?: string;
 }
 
@@ -103,7 +102,6 @@ export function FramesTab({
   selectedElementId,
   setSelectedElement,
   sendElementSelectedMessage,
-  requestAutoSelectAfterUpdate,
   projectId: projectIdProp,
 }: FramesTabProps) {
   const { t } = useI18n();
@@ -351,7 +349,6 @@ export function FramesTab({
 
       expandKey(bodyElement.id);
       setSelectedElement(bodyElement.id, bodyElement.props as ElementProps);
-      requestAutoSelectAfterUpdate(bodyElement.id);
       const schedule =
         typeof requestAnimationFrame === "function"
           ? requestAnimationFrame
@@ -373,7 +370,6 @@ export function FramesTab({
       hydratedElementsMap,
       expandKey,
       frameElementScopes,
-      requestAutoSelectAfterUpdate,
       sendElementSelectedMessage,
       setSelectedElement,
     ],

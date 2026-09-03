@@ -23,7 +23,6 @@ const mockStoreState = vi.hoisted(() => ({
   renamePageTitle: vi.fn(),
 }));
 
-const mockRequestAutoSelectAfterUpdate = vi.hoisted(() => vi.fn());
 const mockLoadPageIfNeeded = vi.hoisted(() => vi.fn(async () => undefined));
 const mockAddPage = vi.hoisted(() => vi.fn(async () => undefined));
 const mockPanToPage = vi.hoisted(() => vi.fn());
@@ -40,9 +39,6 @@ vi.mock("../../stores", () => ({
 }));
 
 vi.mock("@/builder/hooks", () => ({
-  useIframeMessenger: () => ({
-    requestAutoSelectAfterUpdate: mockRequestAutoSelectAfterUpdate,
-  }),
   usePageManager: () => ({
     addPage: mockAddPage,
     loadPageIfNeeded: mockLoadPageIfNeeded,
@@ -208,7 +204,6 @@ describe("PagesSection page selection", () => {
 
     expect(mockPanToPage).toHaveBeenCalledWith(home.id);
     expect(mockStoreState.activatePage).toHaveBeenCalledWith(home.id, "body-1");
-    expect(mockRequestAutoSelectAfterUpdate).toHaveBeenCalledWith("body-1");
     expect(mockLoadPageIfNeeded).not.toHaveBeenCalled();
   });
 
@@ -231,7 +226,6 @@ describe("PagesSection page selection", () => {
       );
     });
     expect(mockPanToPage).toHaveBeenCalledWith(home.id);
-    expect(mockRequestAutoSelectAfterUpdate).toHaveBeenCalledWith("body-1");
   });
 
   it("Pages 탭 진입 시 currentPageId가 이미 있으면 store activation으로 선택 보정을 위임한다", async () => {
@@ -250,7 +244,6 @@ describe("PagesSection page selection", () => {
       expect(mockStoreState.activatePage).toHaveBeenCalledWith(home.id);
     });
     expect(mockLoadPageIfNeeded).toHaveBeenCalledWith(home.id);
-    expect(mockRequestAutoSelectAfterUpdate).not.toHaveBeenCalled();
   });
 
   it("단일 page 행을 선택해도 page body를 선택한다", () => {
@@ -267,7 +260,6 @@ describe("PagesSection page selection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Select page Home" }));
 
     expect(mockStoreState.activatePage).toHaveBeenCalledWith(home.id, "body-1");
-    expect(mockRequestAutoSelectAfterUpdate).toHaveBeenCalledWith("body-1");
   });
 
   it("단일 page 행을 더블클릭하면 inline title rename을 확정한다", () => {
@@ -328,7 +320,6 @@ describe("PagesSection page selection", () => {
       expect(mockStoreState.activatePage).toHaveBeenCalledWith(home.id);
     });
     expect(mockLoadPageIfNeeded).toHaveBeenCalledWith(home.id);
-    expect(mockRequestAutoSelectAfterUpdate).not.toHaveBeenCalled();
   });
 });
 

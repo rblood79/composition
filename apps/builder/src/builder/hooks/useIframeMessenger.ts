@@ -28,7 +28,6 @@ import { useStore } from "../stores";
 import { useEditModeStore } from "../stores/editMode";
 import {
   getCanonicalReusableFrameLayouts,
-  getSelectedReusableFrameId,
   useCanonicalReusableFrameLayouts,
   useSelectedReusableFrameId,
 } from "../stores/canonical/canonicalFrameStore";
@@ -73,7 +72,6 @@ import {
 // ADR-056 Phase 3: Base Typography 초기 동기화
 import { useThemeConfigStore } from "../../stores/themeConfigStore";
 import { normalizeExternalFillIngressBatch } from "../panels/styles/utils/fillExternalIngress";
-import { includeCanonicalRefDependencies } from "../utils/canonicalRefDependencies";
 import {
   editorPresentationFillPilotRuntime,
   editorPresentationFillPreviewBridge,
@@ -82,9 +80,6 @@ import type { EditorPresentationPreviewTransport } from "../presentation/editorP
 
 export type IframeReadyState =
   "not_initialized" | "loading" | "ready" | "error";
-
-// 🎯 모듈 레벨 변수: 모든 useIframeMessenger 인스턴스가 공유
-let pendingAutoSelectElementId: string | null = null;
 
 function getActiveCanonicalDocumentForPreviewRead(): CompositionDocument | null {
   const canonical = useCanonicalDocumentStore.getState();
@@ -132,10 +127,7 @@ export interface UseIframeMessengerReturn {
   handleMessage: (event: MessageEvent) => void;
   handleUndo: DebouncedFunc<() => Promise<void>>;
   handleRedo: DebouncedFunc<() => Promise<void>>;
-  sendElementsToIframe: (elements: Element[]) => void;
   sendElementSelectedMessage: (elementId: string, props?: ElementProps) => void;
-  requestElementSelection: (elementId: string) => void;
-  requestAutoSelectAfterUpdate: (elementId: string) => void;
   sendLayoutsToIframe: () => void;
   sendPagesToIframe: () => void;
   sendDataTablesToIframe: () => void;
@@ -192,8 +184,6 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     useState<IframeReadyState>("not_initialized");
   const iframeReadyStateRef = useRef<IframeReadyState>("not_initialized"); // 🔧 Ref로 즉시 상태 변경
   const messageQueueRef = useRef<Array<{ type: string; payload: unknown }>>([]);
-  const lastAckTimestampRef = useRef<number>(0); // ✅ 마지막 ACK 시점
-  const isSendingRef = useRef(false); // ✅ 전송 중 플래그
   const previewGeneratedElementsRef = useRef<Map<string, Element>>(new Map());
   const previewGeneratedElementsFlushIdRef = useRef<number | null>(null);
   const ownsIframeTransportRef = useRef(false);
@@ -268,65 +258,6 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     },
     [flushPreviewGeneratedElements],
   );
-
-  // 요소들을 iframe에 전송 (상태에 따라 큐잉)
-  // ⭐ Layout/Slot System: pageInfo도 함께 전송 (초기 로드 시 Layout 렌더링용)
-  const sendElementsToIframe = useCallback((elementsToSend: Element[]) => {
-    const iframe = MessageService.getIframe();
-
-    // 🔧 FIX: Ref를 사용하여 최신 상태 확인 (비동기 state 업데이트 회피)
-    const currentReadyState = iframeReadyStateRef.current;
-
-    // ⭐ Layout/Slot System: editMode에 따라 pageInfo 결정
-    const currentEditMode = useEditModeStore.getState().mode;
-    const selectedReusableFrameId = getSelectedReusableFrameId();
-    const { currentPageId, pages } = useStore.getState();
-    const currentPage = pages.find((p) => p.id === currentPageId);
-    const scopedElements =
-      currentEditMode === "layout" || !currentPageId
-        ? elementsToSend
-        : includeCanonicalRefDependencies(
-            elementsToSend.filter(
-              (element) => element.page_id === currentPageId,
-            ),
-            elementsToSend,
-          );
-
-    // Layout 편집 모드: pageId=null, layoutId=selectedReusableFrameId
-    // Page 모드: pageId=currentPageId, layoutId=page legacy layout binding
-    // ADR-903 P3-D-4 Phase B: reusableFrameId 신규 field — canonical model 의
-    // reusable frame 식별자. 현 시점 layoutId 와 동일 의미 (alias). Preview 가
-    // version 으로 분기해 신규 field 우선 사용 가능. legacy layoutId 는 BC 위해 유지.
-    const layoutId =
-      currentEditMode === "layout"
-        ? selectedReusableFrameId
-        : getNullablePageFrameBindingId(currentPage);
-    const pageInfo = {
-      pageId: currentEditMode === "layout" ? null : currentPageId,
-      layoutId,
-      reusableFrameId: layoutId,
-    };
-
-    // iframe이 준비되지 않았으면 큐에 넣기
-    if (currentReadyState !== "ready" || !iframe?.contentWindow) {
-      messageQueueRef.current.push({
-        type: "UPDATE_ELEMENTS",
-        payload: { elements: scopedElements, pageInfo },
-      });
-      return;
-    }
-
-    // ADR-903 P3-D-4 Phase B: version bump
-    // - legacy-1.0 → composition-1.0 (canonical resolver 전환 완료 신호)
-    // - Preview 가 version 으로 reusableFrameId vs layoutId 우선순위 분기
-    const message = {
-      type: "UPDATE_ELEMENTS",
-      version: "composition-1.0" as const,
-      elements: scopedElements,
-      pageInfo,
-    };
-    iframe.contentWindow.postMessage(message, window.location.origin);
-  }, []); // ✅ 의존성 제거 (Ref 사용)
 
   const sendCanonicalDocumentToIframe = useCallback(
     (
@@ -667,30 +598,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     messageQueueRef.current = [];
 
     queue.forEach((item) => {
-      if (item.type === "UPDATE_ELEMENTS") {
-        // ⭐ Layout/Slot System: 새 payload 형식 (elements + pageInfo)
-        // ADR-903 P3-D-4 Phase B: reusableFrameId 추가 (layoutId alias)
-        const payload = item.payload as {
-          elements: Element[];
-          pageInfo: {
-            pageId: string | null;
-            layoutId: string | null;
-            reusableFrameId?: string | null;
-          };
-        };
-        // ADR-903 P3-D-4 Phase B: version composition-1.0 (큐 경로 동기화)
-        iframe.contentWindow!.postMessage(
-          {
-            type: "UPDATE_ELEMENTS",
-            version: "composition-1.0" as const,
-            elements: payload.elements,
-            pageInfo: payload.pageInfo,
-          },
-          window.location.origin,
-        );
-      } else if (item.type === "ELEMENT_SELECTED") {
-        iframe.contentWindow!.postMessage(item.payload, window.location.origin);
-      } else if (item.type === "REQUEST_ELEMENT_SELECTION") {
+      if (item.type === "ELEMENT_SELECTED") {
         iframe.contentWindow!.postMessage(item.payload, window.location.origin);
       } else if (item.type === "UPDATE_PAGE_INFO") {
         // ⭐ Layout/Slot System: Page 정보 전송
@@ -848,34 +756,6 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
             }
           };
           requestAnimationFrame(checkHydration);
-        }
-
-        return;
-      }
-
-      // ✅ ACK: Preview가 요소를 받았다는 확인
-      if (event.data.type === "ELEMENTS_UPDATED_ACK") {
-        // ACK 시점 기록
-        lastAckTimestampRef.current = event.data.timestamp || Date.now();
-
-        // 전송 플래그 해제 (즉시)
-        isSendingRef.current = false;
-
-        // 🎯 대기 중인 auto-select가 있으면 실행 (모듈 레벨 변수)
-        if (pendingAutoSelectElementId) {
-          const elementId = pendingAutoSelectElementId;
-          pendingAutoSelectElementId = null; // 초기화
-
-          const iframe = MessageService.getIframe();
-          if (iframe?.contentWindow) {
-            iframe.contentWindow.postMessage(
-              {
-                type: "REQUEST_ELEMENT_SELECTION",
-                elementId,
-              },
-              "*", // 개발환경: origin 제한 없음
-            );
-          }
         }
 
         return;
@@ -1090,7 +970,6 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
       enqueuePreviewGeneratedElements,
       processMessageQueue,
       activeCanonicalDocument,
-      sendElementsToIframe,
       sendCanonicalDocumentToIframe,
       sendLayoutsToIframe,
       sendPagesToIframe,
@@ -1362,35 +1241,6 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   // processMessageQueue는 PREVIEW_READY 핸들러에서 직접 호출됨
 
   // Preview에 요소 선택 요청 (rect 정보와 함께 응답받기)
-  const requestElementSelection = useCallback((elementId: string) => {
-    const iframe = MessageService.getIframe();
-
-    const message = {
-      type: "REQUEST_ELEMENT_SELECTION",
-      elementId,
-    };
-
-    // 🔧 FIX: iframe이 준비되지 않았으면 큐에 넣기
-    if (iframeReadyStateRef.current !== "ready" || !iframe?.contentWindow) {
-      messageQueueRef.current.push({
-        type: "REQUEST_ELEMENT_SELECTION",
-        payload: message,
-      });
-      return;
-    }
-
-    iframe.contentWindow.postMessage(message, window.location.origin);
-  }, []); // ✅ 의존성 제거 (Ref 사용)
-
-  // 🎯 UPDATE_ELEMENTS 후 ACK를 받으면 자동으로 요소 선택 (모듈 레벨 변수)
-  const requestAutoSelectAfterUpdate = useCallback(
-    (elementId: string) => {
-      if (isWebGLOnly) return; // 🚀 WebGL-only 모드에서는 스킵
-      pendingAutoSelectElementId = elementId;
-    },
-    [isWebGLOnly],
-  );
-
   // 🚀 Phase 11: WebGL-only 모드에서는 no-op 반환
   // Hook은 항상 호출되지만, 실제 작업은 스킵됨
   if (isWebGLOnly) {
@@ -1400,10 +1250,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
       handleMessage: () => {},
       handleUndo: noopDebouncedAsync,
       handleRedo: noopDebouncedAsync,
-      sendElementsToIframe: () => {},
       sendElementSelectedMessage: () => {},
-      requestElementSelection: () => {},
-      requestAutoSelectAfterUpdate: () => {},
       sendLayoutsToIframe: () => {},
       sendPagesToIframe: () => {},
       sendDataTablesToIframe: () => {},
@@ -1419,10 +1266,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     handleMessage,
     handleUndo,
     handleRedo,
-    sendElementsToIframe,
     sendElementSelectedMessage,
-    requestElementSelection,
-    requestAutoSelectAfterUpdate,
     sendLayoutsToIframe,
     sendPagesToIframe,
     sendDataTablesToIframe,

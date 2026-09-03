@@ -735,7 +735,7 @@ return (
 ## 참조
 
 - Pencil 구현 분석: `docs/pencil-extracted/` (engine/07, 11, 12, 13, 14, ui/19)
-- Pencil vs composition 비교: `docs/legacy/PENCIL_VS_composition_UI_UX.md`
+- Pencil vs composition 비교: `docs/legacy/PENCIL_VS_XSTUDIO_UI_UX.md`
 - Skia 텍스트 렌더링: `apps/builder/src/builder/workspace/canvas/skia/nodeRenderers.ts`
 - Spec 텍스트 스타일: `apps/builder/src/builder/workspace/canvas/skia/specTextStyle.ts`
 - 멀티페이지: `docs/MULTIPAGE.md`

@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Preview가 callback을 주입하지 않아 아무 동작도 하지 않던 `REQUEST_ELEMENT_SELECTION` 메시지와 Builder의 `requestAutoSelectAfterUpdate`·`requestElementSelection` API를 제거했습니다.
+- `UPDATE_ELEMENTS` 전용 page scope 확장 helper였던 `canonicalRefDependencies`와 전용 테스트를 제거했습니다. canonical document 전체 전송 경로에서는 사용되지 않습니다.
 
 ### Tests
 

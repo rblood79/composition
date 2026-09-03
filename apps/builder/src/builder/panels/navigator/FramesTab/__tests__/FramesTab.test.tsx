@@ -190,7 +190,6 @@ function makeProps(): React.ComponentProps<typeof FramesTab> {
     selectedElementId: null,
     setSelectedElement: vi.fn(),
     sendElementSelectedMessage: vi.fn(),
-    requestAutoSelectAfterUpdate: vi.fn(),
     projectId: "test-project",
   };
 }
@@ -320,9 +319,6 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       expect(props.setSelectedElement).toHaveBeenCalledWith(
         "body-f-1",
         expect.objectContaining({ style: { display: "flex" } }),
-      );
-      expect(props.requestAutoSelectAfterUpdate).toHaveBeenCalledWith(
-        "body-f-1",
       );
       expect(mockExpandKey).toHaveBeenCalledWith("body-f-1");
     });
@@ -471,9 +467,6 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
           expect.objectContaining({ style: { display: "flex" } }),
         );
       });
-      expect(props.requestAutoSelectAfterUpdate).toHaveBeenCalledWith(
-        "body-new-frame",
-      );
       expect(mockExpandKey).toHaveBeenCalledWith("body-new-frame");
     });
   });

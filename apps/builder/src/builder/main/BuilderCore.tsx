@@ -421,7 +421,6 @@ export const BuilderCore: React.FC = () => {
     // iframeUndo, iframeRedo는 사용하지 않음
     // updateElementProps는 제거됨
     iframeReadyState,
-    requestAutoSelectAfterUpdate,
   } = useIframeMessenger();
   const {
     pages,
@@ -430,7 +429,7 @@ export const BuilderCore: React.FC = () => {
     // addPage,  // 사용하지 않음
     initializeProject,
     // pageList,  // 사용하지 않음
-  } = usePageManager({ requestAutoSelectAfterUpdate });
+  } = usePageManager();
   // 🚀 Phase 5: 페이지 Lazy Loading 통합
   const { isLoading: isPageLoading, stats: pageLoaderStats } = usePageLoader();
   // 인접 페이지 프리로드 (백그라운드)
@@ -782,10 +781,8 @@ export const BuilderCore: React.FC = () => {
     return unsub;
   }, [iframeReadyState]);
 
-  // ADR-122 Phase 3: Preview active render sync 는 useIframeMessenger 의
-  // UPDATE_CANONICAL_DOCUMENT effect 가 담당한다. BuilderCore 는 더 이상
-  // canonical document 를 Element[] 로 projection 해서 UPDATE_ELEMENTS 를
-  // publish 하지 않는다.
+  // ADR-125: Preview active render sync 는 useIframeMessenger 의
+  // UPDATE_CANONICAL_DOCUMENT effect 가 단독으로 담당한다.
 
   // NAVIGATE_TO_PAGE 메시지 수신 (Preview iframe에서)
   useEffect(() => {
@@ -1106,36 +1103,6 @@ export const BuilderCore: React.FC = () => {
   //     handleError(result.error || new Error("페이지 생성 실패"), "페이지 생성");
   //   }
   // }, [projectId, addPage, handleError]);
-
-  // 요소 추가 핸들러 (사용하지 않음 - 주석 처리)
-  // const handleAddElementWrapper = useCallback(
-  //   async (type: string, parentId?: string) => {
-  //     if (!currentPageId) return;
-  //     try {
-  //       const addElement = useStore.getState().addElement as (
-  //         element: Element
-  //       ) => void;
-  //       await handleAddElement(
-  //         type,
-  //         currentPageId,
-  //         parentId || selectedElementId,
-  //         elements,
-  //         addElement,
-  //         sendElementsToIframe
-  //       );
-  //     } catch (error) {
-  //       handleError(error, "요소 생성");
-  //     }
-  //   },
-  //   [
-  //     currentPageId,
-  //     selectedElementId,
-  //     elements,
-  //     handleAddElement,
-  //     sendElementsToIframe,
-  //     handleError,
-  //   ]
-  // );
 
   // 요소 로드 핸들러 (사용하지 않음 - 주석 처리)
   // const fetchElementsWrapper = useCallback(

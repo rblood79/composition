@@ -248,8 +248,7 @@ export const createAddElementAction =
     // 🔧 CRITICAL: elementsMap 재구축 (요소 추가 후 캐시 업데이트)
     get()._rebuildIndexes();
 
-    // 3. iframe 업데이트는 useIframeMessenger의 useEffect에서 자동 처리
-    // (elements 변경 감지 → sendElementsToIframe 자동 호출)
+    // 3. Preview 업데이트는 canonical document 변경 effect에서 자동 처리
 
     // 4. Canonical document 저장
     try {
@@ -348,8 +347,7 @@ export const createAddComplexElementAction =
     // 🔧 CRITICAL: elementsMap 재구축 (복합 요소 추가 후 캐시 업데이트)
     get()._rebuildIndexes();
 
-    // 3. iframe 업데이트는 useIframeMessenger의 useEffect에서 자동 처리
-    // (elements 변경 감지 → sendElementsToIframe 자동 호출)
+    // 3. Preview 업데이트는 canonical document 변경 effect에서 자동 처리
 
     // 4. Canonical document 저장
     try {

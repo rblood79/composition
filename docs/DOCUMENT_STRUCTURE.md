@@ -1,6 +1,6 @@
 # docs 디렉토리 구조 가이드
 
-> **최종 업데이트**: 2026-04-17
+> **최종 업데이트**: 2026-09-03
 
 이 문서는 `docs/` 디렉토리의 구조와 각 하위 디렉토리의 목적을 설명합니다.
 
@@ -11,14 +11,14 @@
 ```
 docs/
 ├── adr/                    # Architecture Decision Records
-│   ├── completed/          # 완료된 ADR (57개)
+│   ├── completed/          # 완료된 ADR (221개)
 │   ├── design/              # ADR 상세 구현 breakdown (SSOT: docs/adr/design/)
 │   │   ├── completed/      # 완료된 ADR의 breakdown
 │   │   └── *-breakdown.md   # 진행 중 ADR의 breakdown
-│   └── *.md                # 진행 중/미구현 ADR (21개)
+│   └── *.md                # 진행 중/미구현 ADR (14개, README 제외)
 │
 ├── features/               # 기능별 상세 문서
-│   └── completed/          # 완료된 기능 문서 (12개)
+│   └── completed/          # 완료된 기능 문서 (20개, README 제외)
 │
 ├── reference/              # 참조 문서
 │   ├── api/                # API 문서
@@ -38,14 +38,14 @@ docs/
 │   ├── migration/          # 마이그레이션 가이드
 │   └── troubleshooting/    # 문제 해결
 │
-├── legacy/                 # 레거시 문서 (삭제 예정)
+├── legacy/                 # 역사적 참조를 위한 레거시 문서
 │
 ├── CHANGELOG.md            # 변경 이력 (2026년~)
 ├── CHANGELOG-2025-archived.md  # 2025년 이전 변경 이력
 ├── COMPONENT_SPEC.md       # 컴포넌트 스펙 참조
 ├── CSS_SUPPORT_MATRIX.md   # CSS 지원 매트릭스
 ├── COLOR_PICKER.md         # Color Picker 설계
-├── AGENTS_TEAMS.md         # Agent Teams 매뉴얼
+├── AGENTS_TEAMS-archived.md # Agent Teams 매뉴얼 아카이브
 └── README.md               # 문서 메인 인덱스
 ```
 

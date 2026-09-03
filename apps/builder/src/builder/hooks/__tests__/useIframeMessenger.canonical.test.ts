@@ -1,56 +1,59 @@
 /**
- * ADR-903 P3-D-4 — useIframeMessenger UPDATE_ELEMENTS schema canonical 전환 검증
+ * Builder → Preview canonical 단일 채널 계약 검증.
  *
- * 본 test 는 RED phase: GREEN 변환 (postMessage schema 의 layoutId →
- * reusableFrameId + version: "composition-1.0" bump) 전까지 의도적으로 FAIL.
- *
- * 변환 목표:
- * - message.version: "legacy-1.0" → "composition-1.0"
- * - pageInfo.layoutId 필드 제거 또는 reusableFrameId 와 alias 병기
- * - Preview 측 messageHandler.ts 가 신규 schema 수신 가능
- *
- * 참조:
- * - docs/adr/design/903-phase3d-runtime-breakdown.md §4.4
- * - 변환 위치: apps/builder/src/builder/hooks/useIframeMessenger.ts L196~235
+ * ADR-125 이후 bulk node sync는 UPDATE_CANONICAL_DOCUMENT만 사용한다.
+ * 제거된 UPDATE_ELEMENTS/ACK 기반 자동 선택 protocol이 다시 추가되지 않도록
+ * 송신 hook과 기존 호출자를 함께 고정한다.
  */
 
 import { describe, it, expect } from "vitest";
 
-describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)", () => {
-  describe("postMessage version bump", () => {
-    // [RED] current: version: "legacy-1.0" 고정
-    // GREEN: version: "composition-1.0" 으로 bump
-    it("UPDATE_ELEMENTS message 의 version 이 'composition-1.0' 으로 bump 된다", async () => {
+describe("Builder → Preview canonical 단일 채널", () => {
+  describe("legacy bulk sync 제거", () => {
+    it("UPDATE_ELEMENTS 송신·queue·ACK 상태를 보유하지 않는다", async () => {
       const fs = await import("node:fs/promises");
       const path = await import("node:path");
       const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
       const source = await fs.readFile(filePath, "utf-8");
-      // composition-1.0 등장이 확인되어야 함
-      expect(source).toMatch(/version:\s*"composition-1\.0"/);
-      // legacy-1.0 의 leftover 가 없어야 함 (UPDATE_ELEMENTS 메시지 한정)
-      const updateElementsBlock = source.match(
-        /const message = \{[\s\S]{0,300}type: "UPDATE_ELEMENTS"[\s\S]{0,300}\};/,
+      const previewHandlerSource = await fs.readFile(
+        path.resolve(__dirname, "../../../preview/messaging/messageHandler.ts"),
+        "utf-8",
       );
-      expect(
-        updateElementsBlock,
-        "UPDATE_ELEMENTS message 객체 추출 실패 — 시그니처 변경 시 regex 동기화",
-      ).not.toBeNull();
-      expect(updateElementsBlock![0]).not.toMatch(/version:\s*"legacy-1\.0"/);
+
+      expect(source).not.toContain("sendElementsToIframe");
+      expect(source).not.toContain("UPDATE_ELEMENTS");
+      expect(source).not.toContain("ELEMENTS_UPDATED_ACK");
+      expect(source).not.toContain("lastAckTimestampRef");
+      expect(source).not.toContain("isSendingRef");
+      expect(source).not.toContain("pendingAutoSelectElementId");
+      expect(source).not.toContain("requestElementSelection");
+      expect(source).not.toContain("REQUEST_ELEMENT_SELECTION");
+      expect(previewHandlerSource).not.toContain("REQUEST_ELEMENT_SELECTION");
+    });
+
+    it("호출자가 제거된 ACK 기반 자동 선택 API를 사용하지 않는다", async () => {
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const relativePaths = [
+        "../../main/BuilderCore.tsx",
+        "../usePageManager.ts",
+        "../../panels/navigator/NavigatorPanel.tsx",
+        "../../panels/navigator/PagesSection.tsx",
+        "../../panels/navigator/FramesTab/FramesTab.tsx",
+      ];
+      const sources = await Promise.all(
+        relativePaths.map((relativePath) =>
+          fs.readFile(path.resolve(__dirname, relativePath), "utf-8"),
+        ),
+      );
+
+      for (const source of sources) {
+        expect(source).not.toContain("requestAutoSelectAfterUpdate");
+      }
     });
   });
 
-  describe("pageInfo schema canonical 전환", () => {
-    // [RED] current: pageInfo.layoutId 만 사용
-    // GREEN: pageInfo.reusableFrameId 추가 (또는 layoutId → reusableFrameId rename)
-    it("pageInfo 에 reusableFrameId 필드가 등장한다", async () => {
-      const fs = await import("node:fs/promises");
-      const path = await import("node:path");
-      const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
-      const source = await fs.readFile(filePath, "utf-8");
-      // reusableFrameId 식별자 등장
-      expect(source).toMatch(/reusableFrameId/);
-    });
-
+  describe("pageInfo와 canonical document 동기화", () => {
     it("UPDATE_PAGE_INFO effect 가 page/layout edit mode 전환을 dependency 로 구독한다", async () => {
       const fs = await import("node:fs/promises");
       const path = await import("node:path");

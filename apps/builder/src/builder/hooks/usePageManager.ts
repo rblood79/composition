@@ -77,21 +77,15 @@ export interface UsePageManagerReturn {
   pageList: ReturnType<typeof useListData<ApiPage>>;
 }
 
-export interface UsePageManagerProps {
-  requestAutoSelectAfterUpdate?: (elementId: string) => void;
-}
-
 /**
  * usePageManager - React Stately useListData 기반 페이지 관리
  *
  * wrapper 함수 불필요: 모든 함수가 에러를 return으로 처리
  * useCallback 사용: fetchElements, initializeProject는 메모이제이션됨 (무한 재렌더 방지)
  *
- * @param props - requestAutoSelectAfterUpdate 함수 (iframe messenger에서)
  * @example
  * ```tsx
- * const { requestAutoSelectAfterUpdate } = useIframeMessenger();
- * const { pages, selectedPageId, fetchElements, addPage, initializeProject } = usePageManager({ requestAutoSelectAfterUpdate });
+ * const { pages, selectedPageId, fetchElements, addPage, initializeProject } = usePageManager();
  *
  * // wrapper 없이 직접 사용
  * const result = await fetchElements(pageId);
@@ -100,9 +94,7 @@ export interface UsePageManagerProps {
  * }
  * ```
  */
-export const usePageManager = ({
-  requestAutoSelectAfterUpdate,
-}: UsePageManagerProps = {}): UsePageManagerReturn => {
+export const usePageManager = (): UsePageManagerReturn => {
   const { t } = useI18n();
   // 1. pages 관리: useListData (append/remove 자동)
   const pageList = useListData<ApiPage>({
@@ -192,11 +184,6 @@ export const usePageManager = ({
           existingPageElements.find((el) => el.type === "body") ??
           existingPageElements[0];
 
-        // mergeElements 전에 auto-select 예약 — race condition 방지
-        if (bodyElement && requestAutoSelectAfterUpdate) {
-          requestAutoSelectAfterUpdate(bodyElement.id);
-        }
-
         if (bodyElement) {
           useStore.getState().setSelectedElement(bodyElement.id);
         }
@@ -207,7 +194,7 @@ export const usePageManager = ({
         return { success: false, error: error as Error };
       }
     },
-    [requestAutoSelectAfterUpdate],
+    [],
   );
 
   /**
@@ -462,12 +449,6 @@ export const usePageManager = ({
 
           useStore.getState().activatePage(pageToSelect.id, bodyElement?.id);
           setSelectedPageId(pageToSelect.id);
-
-          if (bodyElement) {
-            if (requestAutoSelectAfterUpdate) {
-              requestAutoSelectAfterUpdate(bodyElement.id);
-            }
-          }
         }
 
         initializingRef.current = null;
@@ -478,7 +459,7 @@ export const usePageManager = ({
         return { success: false, error: error as Error };
       }
     },
-    [pageList, requestAutoSelectAfterUpdate],
+    [pageList],
   );
 
   /**

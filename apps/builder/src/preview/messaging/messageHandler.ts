@@ -128,11 +128,6 @@ export interface UpdateAuthContextMessage {
   token: string | null;
 }
 
-export interface RequestElementSelectionMessage {
-  type: "REQUEST_ELEMENT_SELECTION";
-  elementId: string;
-}
-
 export type BuilderToPreviewMessage =
   | UpdateCanonicalDocumentMessage
   | EditorPresentationPatchMessage
@@ -149,8 +144,7 @@ export type BuilderToPreviewMessage =
   | UpdateDataTablesMessage
   | UpdateApiEndpointsMessage
   | UpdateVariablesMessage
-  | UpdateAuthContextMessage
-  | RequestElementSelectionMessage;
+  | UpdateAuthContextMessage;
 
 // ============================================
 // Message Handler Class
@@ -185,18 +179,15 @@ type StoreActions = Pick<
 
 export class MessageHandler {
   private store: StoreActions;
-  private onElementSelected?: (elementId: string) => void;
   private onVariablesUpdated?: (variables: RuntimeVariable[]) => void;
 
   constructor(
     store: StoreActions,
     options?: {
-      onElementSelected?: (elementId: string) => void;
       onVariablesUpdated?: (variables: RuntimeVariable[]) => void;
     },
   ) {
     this.store = store;
-    this.onElementSelected = options?.onElementSelected;
     this.onVariablesUpdated = options?.onVariablesUpdated;
   }
 
@@ -290,10 +281,6 @@ export class MessageHandler {
         this.handleUpdateAuthContext(data);
         break;
 
-      case "REQUEST_ELEMENT_SELECTION":
-        this.handleRequestElementSelection(data);
-        break;
-
       default:
         // 알 수 없는 메시지 타입은 무시
         break;
@@ -384,14 +371,6 @@ export class MessageHandler {
 
   private handleUpdateAuthContext(data: UpdateAuthContextMessage): void {
     this.store.setAuthToken(data.token);
-  }
-
-  private handleRequestElementSelection(
-    data: RequestElementSelectionMessage,
-  ): void {
-    if (this.onElementSelected) {
-      this.onElementSelected(data.elementId);
-    }
   }
 
   // ============================================

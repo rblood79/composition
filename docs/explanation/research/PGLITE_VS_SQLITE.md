@@ -1,5 +1,13 @@
 # PGlite vs SQLite 비교 분석
 
+> **역사 문서 — 현행 구현 아님**
+>
+> 이 문서는 2025-11-07의 Electron/PGlite 검토 기록입니다. 현재 Builder의
+> 프로젝트 데이터는 IndexedDB에 저장되고 Supabase는 인증에만 사용합니다.
+> 현행 구조는 [IndexedDB 스키마](../../reference/schemas/INDEXDB.md)와
+> [ADR-128](../../adr/completed/128-supabase-backend-decommission.md)을
+> 참조하세요.
+
 **작성일**: 2025-11-07
 **프로젝트**: composition Electron Local Database
 
@@ -871,7 +879,7 @@ await db.query("SELECT * FROM elements WHERE props->>'variant' = $1", [
 ✅ src/types/electron.d.ts (46줄)
    - TypeScript 타입 정의
 
-✅ docs/ELECTRON_SETUP_GUIDE.md (698줄)
+✅ docs/legacy/ELECTRON_SETUP.md (역사 기록)
    - 전체 구현 가이드
    - 빌드 및 배포 방법
 ```
@@ -1029,7 +1037,7 @@ npm run electron:dev
 npm run electron:build
 ```
 
-자세한 내용은 `docs/ELECTRON_SETUP_GUIDE.md`를 참고하세요.
+자세한 역사 기록은 [`docs/legacy/ELECTRON_SETUP.md`](../../legacy/ELECTRON_SETUP.md)를 참고하세요.
 
 ---
 

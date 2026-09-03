@@ -18,7 +18,7 @@ import type { Key } from "react-stately";
 import { Home, Search } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
-import { useIframeMessenger, usePageManager } from "@/builder/hooks";
+import { usePageManager } from "@/builder/hooks";
 import { ActionIconButton, Section } from "../../components";
 import { ActionIconToggleButton } from "../../components/ui/ActionIconButton";
 import { SearchField } from "../../components/ui/SearchField";
@@ -84,11 +84,7 @@ export const PagesSection = memo(function PagesSection({
   const removePageLocal = useStore((state) => state.removePageLocal);
   const renamePageTitle = useStore((state) => state.renamePageTitle);
 
-  // Hooks
-  const { requestAutoSelectAfterUpdate } = useIframeMessenger();
-  const { addPage, loadPageIfNeeded, isCreatingPage } = usePageManager({
-    requestAutoSelectAfterUpdate,
-  });
+  const { addPage, loadPageIfNeeded, isCreatingPage } = usePageManager();
 
   const [expandedKeys, setExpandedKeys] = useState<Set<Key>>(new Set());
   // Pages 검색 — 페이지가 많을 때 찾기용. 열려 있는 동안만 질의가 트리에 적용된다.
@@ -154,9 +150,6 @@ export const PagesSection = memo(function PagesSection({
         startTransition(() => {
           activatePage(page.id, pageBodyElement?.id ?? null);
         });
-        if (pageBodyElement) {
-          requestAutoSelectAfterUpdate(pageBodyElement.id);
-        }
         return pageBodyElement;
       };
 
@@ -175,16 +168,10 @@ export const PagesSection = memo(function PagesSection({
           startTransition(() => {
             activatePage(page.id, hydratedBodyElement.id);
           });
-          requestAutoSelectAfterUpdate(hydratedBodyElement.id);
         });
       }
     },
-    [
-      activatePage,
-      currentPageId,
-      loadPageIfNeeded,
-      requestAutoSelectAfterUpdate,
-    ],
+    [activatePage, currentPageId, loadPageIfNeeded],
   );
 
   useEffect(() => {

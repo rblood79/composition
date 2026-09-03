@@ -30,6 +30,10 @@ dist
 /coverage
 packages/*/coverage/
 
+# Playwright CLI raw page snapshots (runtime output; curated evidence belongs in docs/adr/evidence)
+.playwright-cli/
+output/playwright/**/.playwright-cli/
+
 .cache
 .vercel
 .output

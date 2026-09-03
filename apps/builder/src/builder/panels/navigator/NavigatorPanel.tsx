@@ -57,9 +57,6 @@ export function NavigatorPanel() {
   // Edit Mode state
   const editMode = useEditModeStore((state) => state.mode);
 
-  // Hooks
-  const { requestAutoSelectAfterUpdate } = useIframeMessenger();
-
   // 프로젝트 초기화 - pages가 비어있으면 초기화
   // 🚀 Performance: 탭 관련 상태만 구독
   const setEditMode = useEditModeStore((state) => state.setMode);
@@ -129,10 +126,7 @@ export function NavigatorPanel() {
           id="layouts"
           className="panel-contents navigator-panel-content"
         >
-          <FramesTabContent
-            projectId={projectId}
-            requestAutoSelectAfterUpdate={requestAutoSelectAfterUpdate}
-          />
+          <FramesTabContent projectId={projectId} />
         </TabPanel>
       </Tabs>
     </div>
@@ -148,10 +142,7 @@ const PagesTabContent = memo(function PagesTabContent({
   const pageCount = useStore((state) => state.pages.length);
   const currentPageId = useStore((state) => state.currentPageId);
   const deferredCurrentPageId = useDeferredValue(currentPageId);
-  const { requestAutoSelectAfterUpdate } = useIframeMessenger();
-  const { initializeProject } = usePageManager({
-    requestAutoSelectAfterUpdate,
-  });
+  const { initializeProject } = usePageManager();
   const [visibleLayerPageId, setVisibleLayerPageId] = useState<string | null>(
     deferredCurrentPageId,
   );
@@ -232,10 +223,8 @@ const PagesTabContent = memo(function PagesTabContent({
 
 const FramesTabContent = memo(function FramesTabContent({
   projectId,
-  requestAutoSelectAfterUpdate,
 }: {
   projectId: string | undefined;
-  requestAutoSelectAfterUpdate?: (elementId: string) => void;
 }) {
   const selectedElementId = useStore((state) => state.selectedElementId);
   const setSelectedElement = useStore((state) => state.setSelectedElement);
@@ -246,7 +235,6 @@ const FramesTabContent = memo(function FramesTabContent({
       selectedElementId={selectedElementId}
       setSelectedElement={setSelectedElement}
       sendElementSelectedMessage={sendElementSelectedMessage}
-      requestAutoSelectAfterUpdate={requestAutoSelectAfterUpdate!}
       projectId={projectId}
     />
   );
