@@ -61,6 +61,7 @@
 | CSS/token/spec drift          | `composition-patterns` + `css-tokens.md` + `ssot-hierarchy.md` | `pnpm run build:specs` 필요 여부 확인              |
 | Layout/Yoga/grid/flex         | `layout-engine.md`                                             | layoutVersion/cache invalidation 확인              |
 | React Aria/Spectrum component | `component-design` + 해당 reference                            | accessibility/keyboard contract 확인               |
+| 웹 UI 구현/리뷰               | `web-interface-guidelines.md`                                  | 프로젝트 예외 확인; 감사 시 최신 원문 재조회       |
 | ADR review                    | `review-adr`                                                   | file:line 증거, README/status/changelog drift 확인 |
 | 대량 family 검증              | `parallel-verify`                                              | 사용자가 병렬/서브에이전트를 명시한 경우만         |
 

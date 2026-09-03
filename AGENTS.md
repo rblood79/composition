@@ -86,6 +86,8 @@ Codex harness를 혼동하지 않습니다. 공용 상태 주입은 전역 Codex
 - 코드 패턴·상태·렌더링 판단: `.agents/skills/composition-patterns/SKILL.md`
 - 새 컴포넌트 설계/구현: `.agents/skills/component-design/SKILL.md`
 - 렌더링 경로 정합성: `.agents/skills/cross-check/SKILL.md`
+- 웹 UI 구현/리뷰 기준: `.agents/rules/web-interface-guidelines.md`
+  (명시적 UI 감사에서는 전역 `web-design-guidelines` skill로 최신 제작사 규칙 확인)
 - ADR 생성/리뷰: `.agents/skills/create-adr/SKILL.md`,
   `.agents/skills/review-adr/SKILL.md`
 - 병렬 검증: 사용자가 병렬/서브에이전트를 명시한 경우에만

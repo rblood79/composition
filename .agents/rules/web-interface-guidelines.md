@@ -1,0 +1,1 @@
+../../.claude/rules/web-interface-guidelines.md
