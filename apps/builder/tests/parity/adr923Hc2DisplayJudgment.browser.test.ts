@@ -8,7 +8,6 @@ import { RadioGroup } from "@composition/shared/components/RadioGroup";
 import { Slider } from "@composition/shared/components/Slider";
 import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
 import { ProgressCircle } from "@composition/shared/components/ProgressCircle";
-import { StatusLight } from "@composition/shared/components/StatusLight";
 import { Meter } from "@composition/shared/components/Meter";
 import { ProgressBar } from "@composition/shared/components/ProgressBar";
 import { Breadcrumbs } from "@composition/shared/components/Breadcrumbs";
@@ -69,7 +68,11 @@ const DOM_CONFLICTS = ["Checkbox", "Radio", "SliderOutput"] as const;
  * Phase 5 후속 HC2 전환 — DOM 을 preview 실경로 (`rendererMap`) 로 재는 type. 전환 commit 마다 한 항목씩
  * 들어오며, 여기 든 type 은 아래 `renders` (shared 컴포넌트 직접 마운트) 에서 빠진다.
  */
-const PREVIEW_LEG_TYPES: readonly string[] = ["Skeleton", "Avatar"];
+const PREVIEW_LEG_TYPES: readonly string[] = [
+  "Skeleton",
+  "Avatar",
+  "StatusLight",
+];
 const UNDECLARED = [
   "Avatar",
   "Breadcrumb",
@@ -315,12 +318,6 @@ beforeAll(async () => {
         value: 50,
         "aria-label": "p",
       }),
-    },
-    {
-      types: [
-        ["StatusLight", (m) => m.firstElementChild as HTMLElement | null],
-      ],
-      node: React.createElement(StatusLight, { children: "On" }),
     },
     {
       types: [
@@ -653,9 +650,9 @@ const HC2: Record<
   },
   StatusLight: {
     canvas: "inline-flex",
-    dom: "div:flex (live)",
-    verdict: "전환필요(후속)",
-    box: "StatusLight root div — catalog structure inline-flex ↔ live flex (outer 다름, palette 항목)",
+    dom: 'div:inline-flex (live — rendererMap renderStatusLight 인라인 display inline-flex, LayoutRenderers.tsx; shared StatusLight.tsx:87 은 flex 이나 production 표면 미사용 — preview 는 rendererMap, publish 는 createHtmlElement("div"))',
+    verdict: "일치",
+    box: "StatusLight root div — Phase 5 후속 재측정 (2026-09-03): 종전 행의 'live flex' 는 shared StatusLight.tsx 직접 마운트 값 (production 미사용 표면). preview 실경로는 inline-flex = catalog (2026-07-13 sweep 이 CSS 388 ↔ Skia 75 폭 발산을 이 값으로 닫음) — catalog 변경 0",
   },
   TableHeader: {
     canvas: "flex",
@@ -717,11 +714,11 @@ describe("ADR-923 Phase 5 — HC2 판정표 (Canvas 전용 display override 33 r
     console.log(`ADR923HC2 verdicts ${JSON.stringify(counts)}`);
     expect(counts).toEqual({
       "전환(Phase 5)": 2,
-      일치: 8,
+      일치: 9,
       "일치(outer)": 14,
       "예외(투영)": 2,
       "예외(inert)": 4,
-      "전환필요(후속)": 3,
+      "전환필요(후속)": 2,
     });
   });
 
