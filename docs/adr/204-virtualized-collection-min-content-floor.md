@@ -2,17 +2,23 @@
 
 ## Status
 
-Proposed — 2026-09-04
+Accepted — 2026-09-04 (리뷰 round 1 종결 · Phase 0 반영)
+
+진행 로그:
+
+- **Phase 0 Implemented 2026-09-04** — G0 first-nail 통과 + 도달 인벤토리. 설계 교체 1건 (collection 을 쓰지 않는 형태로) · ADR 전제 정정 2건. [evidence](evidence/204-phase0-first-nail-and-reach.md)
 
 ## Context
 
-Canvas 의 ListBox / GridList / Table 은 행을 **scene graph 투영**으로 그린다 — 행은 레이아웃 트리의 자식이 아니다 (`collectionVirtualization.ts`, `fullTreeLayout.ts:139` `A2_WINDOWED_COLLECTION_TAGS`, 자식 0 이면 GAP 4 skip `:3322-3335`). 그래서 이 collection 이 flex item 이 될 때 엔진이 보는 **content 크기 제안이 0** 이다. DOM 은 ListBox / GridList 에서 RAC 가 행을 실제 자식으로 렌더하므로 같은 문서에서 min-content 가 행 수 × stride 다 (실측 범위도 이 둘뿐 — Table 은 DOM 쪽도 RAC `TableVirtualizer` 가 창 렌더라 양쪽 leg 모두 미측정이다, Phase 0 확인 대상).
+Canvas 의 **ListBox · GridList** 는 행을 **scene graph 투영**으로 그린다 — 행이 레이아웃 트리의 자식이 아니라 실측 자식 수가 0 이다 (`collectionVirtualization.ts`, `fullTreeLayout.ts:139` `A2_WINDOWED_COLLECTION_TAGS`, 자식 0 이면 GAP 4 skip `:3322-3335`; Phase 0 인벤토리 실측). 같은 투영 목록의 **Table 은 레이아웃 자식이 2** 라 이 형태가 아니다 — 투영 대상인 것과 자식이 0 인 것은 다른 사실이었다. 그래서 이 collection 이 flex item 이 될 때 엔진이 보는 **content 크기 제안이 0** 이다. DOM 은 ListBox / GridList 에서 RAC 가 행을 실제 자식으로 렌더하므로 같은 문서에서 min-content 가 행 수 × stride 다 (실측 범위도 이 둘뿐 — Table 은 DOM 쪽도 RAC `TableVirtualizer` 가 창 렌더라 양쪽 leg 모두 미측정이다, Phase 0 확인 대상).
 
 실측 (ADR-923 Phase 5, `adr923Dc6ChromeGate.browser.test.ts:147-213`): 제약 `flex column 80` 안의 production ListBox(auto) / GridList(hidden) 는 주입 높이 164 를 갖고도 80 으로 줄어든다. `overflow` 를 `visible` / `clip` 으로 바꿔도 **여전히 80** 이고, 같은 의미의 DOM 아날로그는 **164** 다. scroll container 는 §4.5 가 floor 0 을 주도록 정한 대로라 양쪽이 같지만, **non-scrollable 인 visible / clip 에서 D3 대칭이 갈린다**. ADR-923 은 이 지점을 범위 밖 관찰로 기록만 했다 (`evidence/923-phase5-cutover.md:78` · `:166`).
 
 엔진 쪽 코드 사실은 두 가지다. ① §4.5 자동 최소 크기는 **주축 크기가 auto 일 때만** content 기반이다 (`flex.rs:332` — definite 이면 `min_main`(AUTO) 을 그대로 반환). ② TS 가 공급하는 정확 min-content 스칼라는 **가로축에만** 있다 (`tree.rs:260` `content_min_width` · `layoutTypes.ts:181`, 커널 슬롯 19 는 `is_row` 에서만 실린다 — `tree.rs:4790-4800`). 즉 세로축에는 "이 노드의 콘텐츠가 최소 이만큼" 을 말할 채널 자체가 없다. 이 스칼라가 실제로 다니는 길은 JSON 이고 binary protocol 은 아직 미가동이다 (`binaryProtocol.ts:81-85` — 가로축 스칼라도 비등재). ③ 커널 슬롯 19 자체는 이미 **논리 main** 이다 (`flex.rs:75` `content_min_main`) — 세로축을 위해 새 슬롯을 만들 필요가 없고, 비어 있는 것은 `tree.rs:4793` 의 `is_row` writer 가드다.
 
-**두 사실이 곱해진다**: ①의 가드 때문에 슬롯 19 는 **주축 크기가 AUTO 일 때만 읽힌다** (`flex.rs:301-310` — `main_size` = `data[off+1]`, 필드 계약상 논리 main). 그런데 측정 케이스의 collection 은 주입 높이 164 가 **definite 한 논리 main 으로 경계에 닿는다** (`adr923Dc6ChromeGate.browser.test.ts:147` 케이스 제목). 따라서 세로축 값을 공급해도 그 경로에서는 읽히지 않는다 — ②만 닫는 것으로는 부족하고 ①도 같이 닫아야 한다.
+**두 사실이 곱해진다**: ①의 가드 때문에 슬롯 19 는 **주축 크기가 AUTO 일 때만 읽힌다** (`flex.rs:301-310` — `main_size` = `data[off+1]`, 필드 계약상 논리 main). 그런데 측정 케이스의 collection 은 주입 높이 164 가 **definite 한 논리 main 으로 경계에 닿는다** (`adr923Dc6ChromeGate.browser.test.ts:147`). 따라서 세로축 값을 공급해도 그 경로에서는 읽히지 않는다 — ②만 닫는 것으로는 부족하고 ①도 같이 닫아야 한다.
+
+**Phase 0 실측 (G0)**: ①은 collection 과 무관하게 성립한다 — 자식이 실재하는 일반 상자에서도 주축이 definite 이면 Chrome 164 vs production 80 으로 갈리고, 대조군인 주축 AUTO (164=164) 와 scroll container (80=80) 는 정합이다 (양 축 동일). 즉 ①은 **§4.5 specified size suggestion 절의 부재**이고 그 자체로 이미 발산 중이다.
 
 본 ADR 은 **base** — 레이아웃 엔진의 자동 최소 크기 **입력 계약**을 정한다. ADR-150 A2(투영 window)·ADR-162(템플릿 자식 실체화)는 투영 정밀도의 응용 축이고 canonical schema 와 직교다 (분류 근거: design breakdown §1).
 
@@ -23,7 +29,7 @@ Canvas 의 ListBox / GridList / Table 은 행을 **scene graph 투영**으로 �
 1. 격차 행의 Canvas 높이가 Chrome 실측과 **≤ 1px** (ADR-198 픽셀 정합과 같은 판정 축).
 2. scrollable (`hidden` / `auto`) 행은 **값 불변** — 현행 정합 상태 회귀 0.
 3. 프레임 예산: `pnpm perf:baseline -- --lane frame` 600 요소 p50 회귀 **≤ +1%**, 레이아웃 **노드 수 증가 0**.
-4. 하위 호환: canonical 재직렬화 **0 파일** (read-time 파생만). 도달 범위는 **기본 상태를 포함한다** — 코드상 non-scrollable 인 기본값이 둘 있다: `Table` 은 catalog 에 overflow 선언이 없고 (`componentRulesTable.ts` `Table` rule) implicitStyles 도 주지 않으면서 `heightMode:"fixed"` 기본으로 height 400 이 definite 이며 (`implicitStyles.ts:1350-1380`), **stack 배치 GridList** 도 else 분기가 overflow 를 두지 않는다 (`implicitStyles.ts:1600-1605` — grid 배치만 `?? "hidden"`). scrollable 기본값은 ListBox `auto` (catalog) 와 grid 배치 GridList `hidden` 뿐이다. 영향 문서 수는 Phase 0 에서 센다 (0 이 아닐 수 있다).
+4. 하위 호환: canonical 재직렬화 **0 파일** (read-time 파생만). 도달 범위는 **기본 상태를 포함한다** (Phase 0 실측): 팔레트 기본 상태에서 격차 조건 (non-scrollable + 주축 definite) 을 만족하는 collection 은 **`Table` 하나**다 — overflow 선언이 없고 (`componentRulesTable.ts` `Table` rule · implicitStyles 도 주지 않는다) `heightMode:"fixed"` 기본으로 height 400 이 definite 이다 (`implicitStyles.ts:1350-1380`). ListBox `auto` · (grid 배치) GridList `hidden` 은 scrollable 이라 기본 상태가 정합이고, `visible`/`clip` 을 저작했을 때만 격차가 난다. collection 밖까지 세면 후보가 **세로축 128 · 가로축 58 노드** (팔레트 64 트리 210 노드) 다.
 5. cargo 기존 스위트 + browser parity 전량 PASS 유지 — 대안 C 가 커널 조건을 넓히므로 collection 밖 회귀를 이 전량이 잡는다.
 
 **Soft Constraints**:
@@ -90,17 +96,19 @@ Canvas 의 ListBox / GridList / Table 은 행을 **scene graph 투영**으로 �
 
 **대안 A + 대안 C 를 하나의 결정으로 함께 채택**한다 (별도 ADR 분리 금지 — adr-writing.md M3).
 
-둘 중 하나만으로는 측정 케이스가 닫히지 않는다. A 가 공급하는 세로축 content-min 은 주축 크기가 AUTO 일 때만 읽히고 (`flex.rs:332`), 측정 케이스의 collection 은 주입 높이가 definite 한 논리 main 으로 경계에 닿는다. 거꾸로 C 만 구현하면 `min(specified, content)` 의 content 가 0 이라 floor 도 0 이다. **서로가 서로의 전제**이므로 조건부가 아니라 결합이 결정이다.
+**순서는 C → A** (Phase 0 실측으로 확정). C 가 주 경로다 — 기본 상태 격차 (`Table`, 자식 2 라 공급이 이미 있다) 를 단독으로 닫고, collection 밖 일반 상자의 발산도 같이 닫는다. A 는 부 경로다 — ListBox/GridList 는 기본이 scrollable 이라 정합이고, `visible`/`clip` 을 저작한 경우에만 필요하며 그때는 C 와 함께여야 한다 (공급 0 + 가드 두 겹).
+
+착수 전 안은 A 를 주 경로로, C 를 "Chrome 측정에 따른 조건부 흡수" 로 뒀다. 리뷰 round 1 이 조건부를 필수로 정정했고, Phase 0 이 우선순위까지 뒤집었다.
 
 선택 근거:
 
-1. 격차의 원인이 **입력 공급 부재 (A) 와 소비 가드 (C) 두 겹**이고, 둘 다 레이아웃 트리 형태를 바꾸지 않고 닫힌다 — 최소 표면이다.
+1. 격차의 원인이 **소비 가드 (C) 와 입력 공급 부재 (A) 두 겹**이고, 둘 다 레이아웃 트리 형태를 바꾸지 않고 닫힌다 — 최소 표면이다.
 2. 산출값의 원천이 이미 있다 — 투영이 스크롤 총량을 내려고 계산하는 행 높이를 그대로 쓴다. 새 심볼을 만들면 스크롤 총량과 floor 가 갈릴 수 있고, 같은 심볼을 쓰면 그 갈림이 구조적으로 불가능하다.
 3. 커널에 새 슬롯이 필요 없다 — 슬롯 19 는 이미 논리 main 이고 비어 있는 것은 writer 의 축 가드뿐이다 (`tree.rs:4793`). 경계 변경은 TS 필드 1개로 끝난다.
 
 기각 사유:
 
-- **대안 B 기각**: 프레임 예산 (Hard Constraint 3, 노드 수 증가 0) 과 정면 충돌하고, ADR-150 A2 의 단일 window 계약을 깬다. 얻는 것은 A 와 같은 값 하나다.
+- **대안 B 기각**: 프레임 예산 (Hard Constraint 3, 노드 수 증가 0) 과 정면 충돌하고, ADR-150 A2 의 단일 window 계약을 깬다. 얻는 것은 A 와 같은 값 하나이며, 기본 상태 격차 (Table) 는 B 로도 안 닫힌다 — Table 은 이미 자식이 있고 원인이 가드이기 때문이다.
 - **대안 C 단독 기각**: collection 의 content 가 0 이므로 이 절만으로는 격차가 그대로다 — 그래서 기각이 아니라 **A 와의 결합**으로 둔다. C 는 collection 밖 definite 높이 flex item 전반에도 닿으므로 회귀 표면이 이 결정의 가장 큰 비용이고, G1/G3 이 그 비용을 잰다.
 - **대안 D 기각**: 기본 상태 둘 (`Table` · stack 배치 `GridList`) 이 이미 도달 조건을 만족한다 (Hard Constraint 4) — "사용자가 명시로 준 경우만" 이라는 D 의 전제가 성립하지 않는다.
 
@@ -108,23 +116,23 @@ Canvas 의 ListBox / GridList / Table 은 행을 **scene graph 투영**으로 �
 
 ## Risks
 
-| ID  | 위험                                                                                                                                                                                                                                                                                                                                                                                                              | 심각도 | 대응                                                                                                                                                                       |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | 대안 C 의 커널 조건 확장이 **collection 밖 definite 높이 flex item 전반**에 닿는다 — 회귀 표면이 본 결정의 최대 비용이다 (`flex.rs:332` 는 전 항목 공통 커널)                                                                                                                                                                                                                                                     |  HIGH  | G1 (도달 매트릭스 + scrollable 불변) · G3 (cargo 전량 + browser parity 전량). 매트릭스에 collection 밖 대조군 (definite 높이 일반 div) 을 필수로 포함                      |
-| R2  | 투영 행 높이의 정밀도 한계 (템플릿 style·description 밖 임의 자식 콘텐츠 미반영 — `collectionVirtualization.ts` 주석) 가 floor 에 그대로 전이                                                                                                                                                                                                                                                                     |  MED   | 스크롤 총량과 **같은 심볼**을 공유하므로 두 값이 갈리지 않는다. 정밀화는 ADR-162/157 트랙                                                                                  |
-| R3  | 신규 스칼라가 **한 경로에만 실려 조용히 사라진다**. 현행 활성 경로는 JSON (`layoutTypes.ts:181` `contentMinWidth` · Rust `tree.rs:260`) 이고 binary protocol 은 미가동이다 (`binaryProtocol.ts:81-85` — ADR-165 가로축 스칼라가 이미 비등재, 실구현 시 f32 범위 편입이 주석으로만 남아 있다). 세로축 스칼라를 JSON 에만 넣고 그 주석을 갱신하지 않으면 binary protocol 실구현 시점에 intrinsic sizing 이 회귀한다 |  HIGH  | JSON 경로 배선 + `binaryProtocol.ts` 비등재 목록에 세로축 스칼라 같이 명기 (silent drop 을 그 주석이 유일하게 경고한다). G2 원복 RED 로 배선 고정, G3 로 cargo·parity 전량 |
-| R4  | 도달 범위가 Hard Constraint 4 로 넓어졌지만 **실제 문서 출현 수는 여전히 미측정**이다 — 넓다고 가정하고 넓게 고치는 것도 leakage 다                                                                                                                                                                                                                                                                               |  MED   | Phase 0 에서 실 문서·fixture 계수. 0 이면 그 사실을 기록하되 "미관측" 을 dead 로 읽지 않는다 (ADR-923 착수 9 규율, `measurement-validity.md` Q1)                           |
-| R5  | 세로축 content-min 을 채우는 것이 `tree.rs:4789-4790` 이 명시한 **2-pass 잔존 계약** ("column 의 main=height 는 height-for-width 재줄바꿈 영역") 과 충돌할 수 있다 — 그 가드는 실수가 아니라 선언된 제약이다                                                                                                                                                                                                      |  MED   | Phase 1 에서 collection 은 텍스트 재줄바꿈 대상이 아님을 근거로 좁게 채운다 (type 한정). 텍스트 노드로 일반화 금지 — 일반화 시 별도 판정                                   |
+| ID  | 위험                                                                                                                                                                                                                                                                                                                                                                                                              | 심각도 | 대응                                                                                                                                                                                     |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 대안 C 의 커널 조건 확장이 **collection 밖 definite 주축 flex item 전반**에 닿는다 — Phase 0 실측 후보 세로축 128 · 가로축 58 노드 (팔레트 64 트리 210 노드). 성격은 '새 회귀' 가 아니라 **기존 발산을 닫는 것** (G0 의 definite 행이 이미 Chrome 과 갈려 있다) 이라, 실제 위험은 **잘못된 값에 고정된 기존 게이트 기준선이 RED 로 뜨는 것**                                                                      |  HIGH  | Phase 1 에서 전량 게이트를 돌려 움직이는 기준선을 전부 조사하고 각각 '종전 값이 Chrome 과 갈려 있었나' 로 판정 — 갈려 있었으면 기준선 갱신, 아니면 결함. G1 에 collection 밖 대조군 필수 |
+| R2  | 투영 행 높이의 정밀도 한계 (템플릿 style·description 밖 임의 자식 콘텐츠 미반영 — `collectionVirtualization.ts` 주석) 가 floor 에 그대로 전이                                                                                                                                                                                                                                                                     |  MED   | 스크롤 총량과 **같은 심볼**을 공유하므로 두 값이 갈리지 않는다. 정밀화는 ADR-162/157 트랙                                                                                                |
+| R3  | 신규 스칼라가 **한 경로에만 실려 조용히 사라진다**. 현행 활성 경로는 JSON (`layoutTypes.ts:181` `contentMinWidth` · Rust `tree.rs:260`) 이고 binary protocol 은 미가동이다 (`binaryProtocol.ts:81-85` — ADR-165 가로축 스칼라가 이미 비등재, 실구현 시 f32 범위 편입이 주석으로만 남아 있다). 세로축 스칼라를 JSON 에만 넣고 그 주석을 갱신하지 않으면 binary protocol 실구현 시점에 intrinsic sizing 이 회귀한다 |  HIGH  | JSON 경로 배선 + `binaryProtocol.ts` 비등재 목록에 세로축 스칼라 같이 명기 (silent drop 을 그 주석이 유일하게 경고한다). G2 원복 RED 로 배선 고정, G3 로 cargo·parity 전량               |
+| R4  | 도달 범위가 Hard Constraint 4 로 넓어졌지만 **실제 문서 출현 수는 여전히 미측정**이다 — 넓다고 가정하고 넓게 고치는 것도 leakage 다                                                                                                                                                                                                                                                                               |  MED   | Phase 0 에서 실 문서·fixture 계수. 0 이면 그 사실을 기록하되 "미관측" 을 dead 로 읽지 않는다 (ADR-923 착수 9 규율, `measurement-validity.md` Q1)                                         |
+| R5  | 세로축 content-min 을 채우는 것이 `tree.rs:4789-4790` 이 명시한 **2-pass 잔존 계약** ("column 의 main=height 는 height-for-width 재줄바꿈 영역") 과 충돌할 수 있다 — 그 가드는 실수가 아니라 선언된 제약이다                                                                                                                                                                                                      |  MED   | Phase 1 에서 collection 은 텍스트 재줄바꿈 대상이 아님을 근거로 좁게 채운다 (type 한정). 텍스트 노드로 일반화 금지 — 일반화 시 별도 판정                                                 |
 
 ## Gates
 
-| Gate | 시점                | 통과 조건                                                                                                                                                                                                     | 실패 시 대안                                                              |
-| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| G0   | Phase 0 종료        | first-nail — production ListBox 를 `height` 없이 (주축 AUTO) 제약 flex 안에 두고 `overflow:visible` 로 1회 측정. AUTO 에서 격차가 사라지면 definite 가드가 원인임이 확정되고 A+C 결합이 필요조건으로 고정된다 | 격차가 AUTO 에서도 남으면 원인 가설이 틀린 것 — Decision 재작성 후 재리뷰 |
-| G1   | Phase 3             | 도달 매트릭스의 격차 행 전부 Chrome 과 ≤1px, scrollable 행 값 불변                                                                                                                                            | 대안 C 흡수 여부 재판정 → 그래도 미달이면 대안 B 재평가                   |
-| G2   | Phase 3             | 원복 RED — (a) 세로축 스칼라 공급 제거 → 격차 행 RED, (b) 해당 시 specified 절 원복 → 일반 케이스 RED                                                                                                         | 게이트가 변경을 감지하지 못하는 것이므로 게이트를 먼저 고친다             |
-| G3   | Phase 3             | cargo 기존 스위트 + browser parity 전량 PASS · frame p50 회귀 ≤ +1% · 레이아웃 노드 수 증가 0                                                                                                                 | 공급 대상을 도달 매트릭스의 격차 행 type 으로 좁혀 재측정                 |
-| G4   | Implemented 승격 전 | live exercise — 빌더에서 collection 에 `overflow:visible` 을 주고 제약 flex 안에 둔 뒤 Skia rect 와 publish DOM 대조                                                                                          | 승격 보류                                                                 |
+| Gate | 시점                | 통과 조건                                                                                                                                                                                                     | 실패 시 대안                                                  |
+| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| G0   | Phase 0 종료        | **통과 (2026-09-04)** — collection 을 쓰지 않는 일반 상자로 가드만 분리: definite 주축에서 DOM 164 vs production 80 (양 축), 대조군 auto·scroll 정합. [evidence](evidence/204-phase0-first-nail-and-reach.md) | (해당 없음 — 통과)                                            |
+| G1   | Phase 3             | 도달 매트릭스의 격차 행 전부 Chrome 과 ≤1px, scrollable 행 값 불변                                                                                                                                            | 대안 C 흡수 여부 재판정 → 그래도 미달이면 대안 B 재평가       |
+| G2   | Phase 3             | 원복 RED — (a) 세로축 스칼라 공급 제거 → 격차 행 RED, (b) 해당 시 specified 절 원복 → 일반 케이스 RED                                                                                                         | 게이트가 변경을 감지하지 못하는 것이므로 게이트를 먼저 고친다 |
+| G3   | Phase 3             | cargo 기존 스위트 + browser parity 전량 PASS · frame p50 회귀 ≤ +1% · 레이아웃 노드 수 증가 0                                                                                                                 | 공급 대상을 도달 매트릭스의 격차 행 type 으로 좁혀 재측정     |
+| G4   | Implemented 승격 전 | live exercise — 빌더에서 collection 에 `overflow:visible` 을 주고 제약 flex 안에 둔 뒤 Skia rect 와 publish DOM 대조                                                                                          | 승격 보류                                                     |
 
 ## Consequences
 

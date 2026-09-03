@@ -31,7 +31,11 @@
 | 도달 실측: 제약 flex column 80 안에서 production ListBox/GridList 는 visible/clip 에서도 **80** — DOM 아날로그는 **164**                                      | `apps/builder/tests/parity/adr923Dc6ChromeGate.browser.test.ts:147-213`         | `sed -n '145,215p' apps/builder/tests/parity/adr923Dc6ChromeGate.browser.test.ts`                |
 | 관찰 기록 원천 (수리 금지 · 범위 밖 항목으로 남긴 지점)                                                                                                       | `docs/adr/evidence/923-phase5-cutover.md:78` · `:166`                           | `grep -n "가상화 collection" docs/adr/evidence/923-phase5-cutover.md`                            |
 
-## 3. Phase 0 — 사실 고정 + first-nail (착수 승인 단위 · 인벤토리와 별도)
+## 3. Phase 0 — 사실 고정 + first-nail ✅ Implemented 2026-09-04
+
+> 결과 정본: [evidence/204-phase0-first-nail-and-reach.md](../evidence/204-phase0-first-nail-and-reach.md). 게이트 2 파일 11 PASS.
+> **설계 교체 1건** — 아래 first-nail 은 착수 첫 작업으로 교체됐다 (원안은 collection 의 주축을 AUTO 로 바꾸는 형태였는데, 그러면 가드와 공급이 같이 움직여 원인이 갈리지 않는다). 교체안은 collection 을 쓰지 않고 자식이 실재하는 일반 상자로 가드만 분리한다.
+> **전제 재정정 2건** — Table 은 레이아웃 자식이 2 (자식 0 은 ListBox·GridList 뿐) · 기본 상태 격차는 Table 하나. 그 결과 Phase 1 순서가 **C → A** 로 확정됐다.
 
 **first-nail (원인 가설 반증 1 케이스)**: production ListBox 를 `height` 없이 (주축 AUTO) 제약 flex column 안에 두고 `overflow:visible` 로 1회 측정한다.
 
@@ -48,7 +52,7 @@
 3. BC 수식화 — 로컬 검증 프로젝트와 fixture 전수에서 "collection + non-scrollable + 제약 flex 주축 item" 형태의 실제 출현 수를 센다. **기본 상태 둘 (`Table` · stack `GridList`) 이 이미 non-scrollable** 이므로 authored overflow 만 세면 과소 계수다. 재직렬화는 0 (read-time 파생, canonical 미변경) 임을 같이 기록.
 4. 대안 C 회귀 표면 — collection 밖 "definite 높이 + min auto + non-scrollable" flex item 의 출현 수 (R1 HIGH 의 크기).
 
-## 4. Phase 1 — 엔진 (Rust)
+## 4. Phase 1 — 엔진 (Rust) · 순서 C → A (Phase 0 확정)
 
 - 세로축 content-min 필드 추가 (`content_min_height`) — Rust `NodeStyle` + TS `layoutTypes.ts` (활성 경로는 JSON). 커널 쪽은 슬롯 19 (`content_min_main`, 이미 논리 main) 를 `is_row` 에 따라 둘 중 하나로 채운다 — **`FLEX_FIELD_COUNT` 불변**.
 - 채우는 대상을 **가상화 collection type 으로 한정**한다 (R5) — `tree.rs:4789-4790` 이 column 축을 비운 사유는 height-for-width 재줄바꿈 2-pass 계약이고, 텍스트 노드로 일반화하면 그 계약과 충돌한다.
