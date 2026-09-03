@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- 캔버스에서 block 컨테이너 안에 Button 두 개를 두면 세로로 쌓이거나 (폭을 지정한 형제 뒤에서) 같은 줄에 남던 것을 고쳤습니다. 이제 Preview 와 같이 폭을 지정한 block 형제는 줄을 차지하고 Button 들은 그 아래 줄에 나란히 놓입니다 (ADR-923 Phase 5 — 레이아웃 엔진이 CSS display 값을 그대로 받아 inline 요소의 줄 배치를 직접 계산합니다. 종전에는 TS 가 block 컨테이너를 flex 로 흉내 냈습니다).
+- 캔버스에서 block 컨테이너 안에 Button 두 개를 두면 세로로 쌓이거나 (폭을 지정한 형제 뒤에서) 같은 줄에 남던 것을 고쳤습니다. 이제 Preview 와 같이 폭을 지정한 block 형제는 줄을 차지하고 Button 들은 그 아래 줄에 나란히 놓입니다 (ADR-923 Phase 5 — 레이아웃 엔진이 CSS display 값을 그대로 받아 inline 요소의 줄 배치를 직접 계산합니다. 종전에는 TS 가 block 컨테이너를 flex 로 흉내 냈습니다). ADR-923 은 2026-09-03 Implemented 로 승격됐습니다 — 실제 빌더에서 같은 시나리오를 다시 확인했고, Phase 6 에서 레이아웃 어댑터의 옛 `Taffy*` 이름을 `Engine*` 로 바꾸고 (동작 무변경) 엔진이 아직 CSS 그대로 구현하지 않는 자리 (`display:inline` · `float` · grid `subgrid`·`dense`) 를 capability matrix 로 선언해 Chrome 과의 격차를 테스트로 고정했습니다.
 - catalog 의 Button · ToggleButton 기본 display 가 DOM 과 같은 `inline-flex` 가 됐습니다. Styles 패널 Layout 의 Direction 은 row 로 표시됩니다 (Phase 4 의 inline-flex 표시 정정과 함께).
 - overflow 가 `hidden`/`clip`/`auto` 인 요소의 자동 높이·폭이 부모 크기로 잘리던 것을 없앴습니다. block 문맥에서는 CSS 대로 콘텐츠 크기를 유지하고, flex 문맥의 scroll container 는 엔진이 최소 크기 0 으로 줄입니다.
 - CalendarGrid 의 기본 display 가 `block` 이 됐습니다 (Calendar 안에서는 변화 없음).

@@ -1,13 +1,13 @@
 # ADR-923 Phase 6 — 명명 정리 · capability matrix seed 실측 기록
 
-> 2026-09-03 · 실행 Claude · 사용자 착수 승인 2026-09-03 (Codex round 32 "Phase 5 닫힘 · Phase 6 진입 가" 근거) · 판독 Codex round 33 대기. 동작 무변경 phase (6a 개명 · 6b 선언) — 6d (`### Live Exercise` → Implemented 승격 + closure) 는 round 33 통과 후.
+> 2026-09-03 · 실행 Claude · 사용자 착수 승인 2026-09-03 (Codex round 32 "Phase 5 닫힘 · Phase 6 진입 가" 근거) · 판독 Codex round 33 (MEDIUM 2 · LOW 3 → 수리 `ca0ceea87`, §6) · round 34 (LOW 1 문서 동기화 r34l1 → 본 문서·breakdown 갱신; 6a·6b 닫힘). 동작 무변경 phase (6a 개명 · 6b 선언) — 6d (`### Live Exercise` → Implemented 승격 + closure) 는 round 34 뒤 진행 (§7).
 
 ## 0. 요약
 
 | 항목                                    | 결과                                                                                                                                                                                                                                                                                                                                                                                                 |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 6a 개명 (`7f1cf963d`, 41 파일)          | 파일 5 (+ test 1) · 심볼 30종 (`layoutTypes` `Taffy*` 타입 17 포함) · 지역 변수·private 필드 · 개명 파일 머리말 재작성 ("style 어댑터 — 값 변환만, 계산은 Rust 엔진"; `blockStyleAdapter` 머리말의 종전 IFC 시뮬레이션 서술 삭제) · 규칙 `layout-engine.md` "JS 어댑터 심볼명은 Taffy\* 유지" 조항 → 개명 명시 · stale 심볼 `gridStyleAdapter.elementToTaffyGridStyle` 정정. 실행 코드 변경 = 이름뿐 |
-| 6b capability matrix seed (`b48978fc1`) | `layoutCapabilityMatrix.ts` 3 행 (S4 · S7 · S8) 선언 + `adr923CapabilityMatrixSeed.browser.test.ts` 가 Chrome 격차 1 케이스씩 실측·고정 (표 수치 = 실측, 격차 > 0). **round 33 정정 (§6)**: S8 oracle 2 (subgrid · dense — production 운반 longhand 로 격리, dense 는 미구현 확정) · S4 policy declared-substitution · policy 경계 대조 it                                                           |
+| 6b capability matrix seed (`b48978fc1`) | `layoutCapabilityMatrix.ts` 3 행 (S4 · S7 · S8) 선언 + `adr923CapabilityMatrixSeed.browser.test.ts` 가 값별 Chrome 격차 케이스 (`oracles[]` — S4 1 · S7 1 · S8 2) 를 실측·고정 (표 수치 = 실측, 격차 > 0, policy 경계 대조). **round 33 정정 (§6)**: S8 oracle 2 (subgrid · dense — production 운반 longhand 로 격리, dense 는 미구현 확정) · S4 policy declared-substitution · policy 경계 대조 it  |
 | 검증 (6a)                               | type-check PASS · layout 469 · builder (workspace·stores·panels·factories·utils·components·hooks·preview·types·ai) 3772 · focused browser 8 파일 122 · cargo 371+15+10+11+1                                                                                                                                                                                                                          |
 | 검증 (6b)                               | seed 3/3 (round 33 뒤) · 원복 RED (h)~(l) 5 · type-check PASS                                                                                                                                                                                                                                                                                                                                        |
 
@@ -60,7 +60,7 @@ round 33 r33l1 — 남아 있던 현행 설명 4곳 정정: `binaryProtocol.ts:3
 - ADR-198 breakdown: `catalog-state-paint` L1 geometry 절에 종결 표기 (ADR-923 Phase 5 — 위치 발산 0, 잔여 Button 폭 Δ2.66 은 텍스트 측정).
 - ADR-916 완료 문서: "명명 잔재 ADR-923 Phase 6 정리" 각주. round 33 r33l3 — 6c 커밋이 건드린 인접 줄 (Prettier 가 `N1~N5` 를 `N1~~N5` 취소선으로 바꾼 tree_golden 로그 줄) 의 금지 어휘 1건 교체 + `N1–N5` 로 되돌림. 파일의 다른 이력 줄은 손대지 않음 (완료 ADR 의 과거 기록).
 
-## 5. 잔여 (6d — Codex round 33 통과 후)
+## 5. 6d 계획 (round 34 통과 후 실행 — 결과는 §7)
 
 - 실제 빌더에서 G6 시나리오 (block 컨테이너 + Button 2 + 폭 명시 frame) 를 개명 후 main 으로 1회 재실행 (Chrome MCP) → ADR 본문 `### Live Exercise` 기재 → Status `Implemented` + closure 5단계 (Status · 진행 로그 · README 카운트/행 · `docs/adr/completed/` 이동 + 경로 정합 · CHANGELOG).
 
@@ -75,3 +75,9 @@ round 33 r33l1 — 남아 있던 현행 설명 4곳 정정: `binaryProtocol.ts:3
 | r33l3 | 확증 | ADR-916 건드린 줄 어휘 교체 + Prettier `~~` 되돌림 (§4).                                                                                                                                                                                                                                                                                                                            |
 
 검증: 원복 RED (h)~(l) 5/5 · focused browser 9 파일 **125** (124 + policy 경계 대조 it 1) · full parity **1068** PASS (기존 GridListItem/Tooltip 2 FAIL · skipped 2) · layout unit 469 · type-check PASS. Rust 무변경 (cargo 371+15+10+11+1 은 round 33 판독 수치 그대로). 동작 변경 0 — live 대상 없음, CHANGELOG 면제.
+
+## 7. 6d — Live Exercise 재실행 · Implemented 승격 (2026-09-03)
+
+- **Codex round 34** (HIGH 0 · MEDIUM 0 · LOW 1): r33m1 (S8 longhand 격리 · dense sparse 커서) · r33m2 (S4 declared-substitution · 경계 대조) · r33l1~~l3 전부 VERIFIED, 재실행 focused 125 · seed 3/3 · layout 469 · builder 5183 · type-check · cargo · full parity 1068 · smoke 84, 원복 (h)~~(l) 전부 기대 RED. r34l1 (문서 동기화 — evidence 머리말 "round 33 대기" · breakdown 스키마 `oracle?: string` / "1 케이스씩" · §8 S4 `ignored`) → 본 문서 §0 머리말·6b 행 · breakdown Phase 6 ③ 스키마·§8 S4 · README 갱신. 6a·6b 닫힘.
+- **Live (Chrome MCP, localhost:5173, 프로젝트 "123", Home 390×844, main `ca0ceea87`)**: Phase 5 §7 과 같은 G6 시나리오 — 팔레트 frame F1 (`display:block · width:300px`) > frame F2 (`display:block · 140×40`) + palette Button 2. Skia `getSharedLayoutMap()`: F1 300×70 · F2 140×40 @(0,0) · A 69×30 @(0,40) · B 69×30 @(69,40). DOM (눈 아이콘 → publish, sessionStorage 핸드오프): F1 block 300×74 · F2 140×40 @(0,0) · A `inline-flex` 73.52×34 @(0,40) · B @(73.52,40). 패널 Direction row · Alignment center · Width fit. 콘솔 에러 0. 요소 4 삭제 후 Home 7 복원. (MCP 가 직접 만든 탭에서 `/publish/#page-…` 를 열면 sessionStorage 가 비어 파일 드롭 화면만 뜬다 — 빌더 헤더 눈 아이콘으로 열어야 한다.)
+- **closure 5단계**: Status `Implemented — 2026-09-03` + 진행 로그 · README 카운트 210/16 + 완료 표 행 + 진행 표 행 제거 · `docs/adr/completed/923-layout-vocabulary-closure.md` 이동 + 상대 링크 (`../reviews` · `../evidence` · `../design`) + evidence/923-phase0-inventory 링크 정합 · CHANGELOG Phase 5 엔트리에 승격 덧붙임 · breakdown Phase 6 ⑤ [x].

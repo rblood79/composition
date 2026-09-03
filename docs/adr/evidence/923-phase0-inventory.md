@@ -1,6 +1,6 @@
 # ADR-923 Phase 0 — inventory (G0 승인 범위 (b))
 
-> 본문: [923-layout-vocabulary-closure.md](../923-layout-vocabulary-closure.md) · breakdown [§2 · Phase 0 · §6](../design/923-layout-vocabulary-closure-breakdown.md)
+> 본문: [923-layout-vocabulary-closure.md](../completed/923-layout-vocabulary-closure.md) · breakdown [§2 · Phase 0 · §6](../design/923-layout-vocabulary-closure-breakdown.md)
 > 기준 commit: `ea3ae5f3e` · 측정일 2026-08-31 · 실행: Claude (Fable 5) — 사용자 지시 "직접해" (Codex 대체)
 > **round 4 (Codex 판독, evidence-verification) 반영 2026-08-31** — r4m1 (§A 정확값 재집계 · base 셀렉터 엄격화) · r4l1 (inline-\* 30) · r4l2 ("121" 출처 정정) · r4l3 (§D raw 덮어쓰기·3 run) · r4l4 (README 표). 기록: [reviews/923.md](../reviews/923.md) round 4.
 > 측정 방식: §A · §B · §C-1 · §E = 정적 (소스 직접 인용; catalog 값은 `tsx` import 로 추출, 스크립트 정규식 파서와 123/123 rule 일치 확인) · §C-2 = `scripts/adr-923/scan-block-inline.mjs` 실행 · §D = `@vitest/browser` Chromium 실행
