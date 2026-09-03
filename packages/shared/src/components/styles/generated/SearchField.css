@@ -73,23 +73,23 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-SearchField[data-size="xs"] .react-aria-Label {
+.react-aria-SearchField[data-size="xs"] {
   --sf-label-size: var(--text-2xs);
 }
 
-.react-aria-SearchField[data-size="sm"] .react-aria-Label {
+.react-aria-SearchField[data-size="sm"] {
   --sf-label-size: var(--text-xs);
 }
 
-.react-aria-SearchField[data-size="md"] .react-aria-Label {
+.react-aria-SearchField[data-size="md"] {
   --sf-label-size: var(--text-sm);
 }
 
-.react-aria-SearchField[data-size="lg"] .react-aria-Label {
+.react-aria-SearchField[data-size="lg"] {
   --sf-label-size: var(--text-base);
 }
 
-.react-aria-SearchField[data-size="xl"] .react-aria-Label {
+.react-aria-SearchField[data-size="xl"] {
   --sf-label-size: var(--text-lg);
 }
 
@@ -99,27 +99,27 @@
   --label-margin: 0;
 }
 
-.react-aria-SearchField[data-size="xs"] .react-aria-Input {
+.react-aria-SearchField[data-size="xs"] {
   --sf-input-size: var(--text-2xs);
   --sf-input-line-height: var(--text-2xs--line-height);
 }
 
-.react-aria-SearchField[data-size="sm"] .react-aria-Input {
+.react-aria-SearchField[data-size="sm"] {
   --sf-input-size: var(--text-xs);
   --sf-input-line-height: var(--text-xs--line-height);
 }
 
-.react-aria-SearchField[data-size="md"] .react-aria-Input {
+.react-aria-SearchField[data-size="md"] {
   --sf-input-size: var(--text-sm);
   --sf-input-line-height: var(--text-sm--line-height);
 }
 
-.react-aria-SearchField[data-size="lg"] .react-aria-Input {
+.react-aria-SearchField[data-size="lg"] {
   --sf-input-size: var(--text-base);
   --sf-input-line-height: var(--text-base--line-height);
 }
 
-.react-aria-SearchField[data-size="xl"] .react-aria-Input {
+.react-aria-SearchField[data-size="xl"] {
   --sf-input-size: var(--text-lg);
   --sf-input-line-height: var(--text-lg--line-height);
 }
@@ -136,23 +136,23 @@
   line-height: var(--sf-input-line-height);
 }
 
-.react-aria-SearchField[data-size="xs"] .react-aria-FieldError {
+.react-aria-SearchField[data-size="xs"] {
   --sf-hint-size: var(--text-2xs);
 }
 
-.react-aria-SearchField[data-size="sm"] .react-aria-FieldError {
+.react-aria-SearchField[data-size="sm"] {
   --sf-hint-size: var(--text-xs);
 }
 
-.react-aria-SearchField[data-size="md"] .react-aria-FieldError {
+.react-aria-SearchField[data-size="md"] {
   --sf-hint-size: var(--text-xs);
 }
 
-.react-aria-SearchField[data-size="lg"] .react-aria-FieldError {
+.react-aria-SearchField[data-size="lg"] {
   --sf-hint-size: var(--text-sm);
 }
 
-.react-aria-SearchField[data-size="xl"] .react-aria-FieldError {
+.react-aria-SearchField[data-size="xl"] {
   --sf-hint-size: var(--text-base);
 }
 
@@ -166,23 +166,23 @@
   color: var(--fg-muted);
 }
 
-.react-aria-SearchField[data-size="xs"] .search-icon {
+.react-aria-SearchField[data-size="xs"] {
   --sf-icon-size: 10px;
 }
 
-.react-aria-SearchField[data-size="sm"] .search-icon {
+.react-aria-SearchField[data-size="sm"] {
   --sf-icon-size: 12px;
 }
 
-.react-aria-SearchField[data-size="md"] .search-icon {
+.react-aria-SearchField[data-size="md"] {
   --sf-icon-size: 16px;
 }
 
-.react-aria-SearchField[data-size="lg"] .search-icon {
+.react-aria-SearchField[data-size="lg"] {
   --sf-icon-size: 18px;
 }
 
-.react-aria-SearchField[data-size="xl"] .search-icon {
+.react-aria-SearchField[data-size="xl"] {
   --sf-icon-size: 22px;
 }
 
@@ -199,23 +199,23 @@
   height: var(--sf-icon-size);
 }
 
-.react-aria-SearchField[data-size="xs"] .react-aria-Button {
+.react-aria-SearchField[data-size="xs"] {
   --sf-btn-size: 10px;
 }
 
-.react-aria-SearchField[data-size="sm"] .react-aria-Button {
+.react-aria-SearchField[data-size="sm"] {
   --sf-btn-size: 14px;
 }
 
-.react-aria-SearchField[data-size="md"] .react-aria-Button {
+.react-aria-SearchField[data-size="md"] {
   --sf-btn-size: 18px;
 }
 
-.react-aria-SearchField[data-size="lg"] .react-aria-Button {
+.react-aria-SearchField[data-size="lg"] {
   --sf-btn-size: 22px;
 }
 
-.react-aria-SearchField[data-size="xl"] .react-aria-Button {
+.react-aria-SearchField[data-size="xl"] {
   --sf-btn-size: 28px;
 }
 
@@ -257,23 +257,23 @@
   height: var(--sf-icon-size);
 }
 
-.react-aria-SearchField[data-size="xs"] .searchfield-container {
+.react-aria-SearchField[data-size="xs"] {
   --sf-container-padding: var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs);
 }
 
-.react-aria-SearchField[data-size="sm"] .searchfield-container {
+.react-aria-SearchField[data-size="sm"] {
   --sf-container-padding: var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm);
 }
 
-.react-aria-SearchField[data-size="md"] .searchfield-container {
+.react-aria-SearchField[data-size="md"] {
   --sf-container-padding: var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md);
 }
 
-.react-aria-SearchField[data-size="lg"] .searchfield-container {
+.react-aria-SearchField[data-size="lg"] {
   --sf-container-padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg);
 }
 
-.react-aria-SearchField[data-size="xl"] .searchfield-container {
+.react-aria-SearchField[data-size="xl"] {
   --sf-container-padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl);
 }
 

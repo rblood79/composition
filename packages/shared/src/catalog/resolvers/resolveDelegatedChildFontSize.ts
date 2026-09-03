@@ -21,6 +21,12 @@ import { resolveComponentRuleByTag } from "./resolveComponentRule";
 export const FIELD_ERROR_CHILD_SELECTOR = ".react-aria-FieldError";
 
 /**
+ * description 줄의 자식 selector — DOM 은 `<Text slot="description">` 를 parent props 로 self-compose 한다
+ * (`TextField.tsx` 외 13 컴포넌트 동형). 시각은 parent rule 의 이 delegation 이 정한다 (ADR-923 착수 10).
+ */
+export const DESCRIPTION_CHILD_SELECTOR = '[slot="description"]';
+
+/**
  * `:root { line-height: 1.5 }` (`components/styles/theme/shared-tokens.css`) — 활성 CSS bundle 에
  * `.react-aria-FieldError` 줄 높이 규칙이 없어 (base.css 는 font-size·color 만; catalog 파생
  * `generated/FieldError.css` 는 `styles/index.css` 의 import 66개에 **미포함**) DOM 은 이 root 비율을
@@ -113,6 +119,11 @@ export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
   Label: [".react-aria-Label"],
   Input: [".react-aria-Input"],
   DateInput: [".react-aria-DateInput"],
+  // description 줄 (2026-09-04 판정 — 착수 10): DOM 은 parent `description` prop 으로 self-compose 하고
+  //   (`<Text slot="description">`) canonical 자식을 읽지 않는다. 이 토큰을 delegation 에 가진 parent 는
+  //   field 12 종뿐이라 (Card · collection item 의 Description 은 delegation 이 없어 영향 0) 그 아래의
+  //   canonical Description 자식만 parent 소유가 된다.
+  Description: ['[slot="description"]'],
   // 입력 상자 래퍼 (2026-09-03 판정 A — SelectTrigger 확장). DOM 렌더러 (`FormRenderers` · `SelectionRenderers`
   //   · `DateRenderers`) 는 canonical SelectTrigger 를 SelectValue 손자를 찾는 경로로만 쓰고 그 style·props 는
   //   읽지 않는다 — 래퍼 상자는 parent rule delegation 이 그린다: NumberField · DatePicker · DateRangePicker
@@ -269,6 +280,41 @@ export function isDelegatedSubpartChild(
   );
 }
 
+/** 이 entry 의 bridge 가 읽는 변수를 선언한 **같은 rule 안의 다른 entry** 의 variables. */
+function findDeclaringEntryVariables(
+  parentType: string,
+  entry: DelegationLike,
+): unknown {
+  const bridges = entry.bridges as Record<string, unknown> | undefined;
+  const wanted =
+    cssVarName(bridges?.["font-size"]) ??
+    cssVarName(bridges?.["--error-font-size"]) ??
+    cssVarName(bridges?.["--label-font-size"]);
+  if (!wanted) return undefined;
+  // TextArea 처럼 DOM root 클래스를 다른 rule 에서 빌려오는 타입은 그 rule 의 delegation 이 선언한다.
+  const alias = DOM_ROOT_RULE_ALIAS[parentType.toLowerCase()];
+  const entriesOf = (type: string): DelegationLike[] => {
+    const d = resolveComponentRuleByTag(type)?.structure?.composition
+      ?.delegation;
+    return Array.isArray(d) ? (d as DelegationLike[]) : [];
+  };
+  const list = [
+    ...entriesOf(parentType),
+    ...(alias ? entriesOf(alias) : []),
+  ];
+  if (list.length === 0) return undefined;
+  for (const d of list) {
+    const vars = d?.variables;
+    if (!vars || typeof vars !== "object") continue;
+    const bySize = vars as Record<string, Record<string, unknown> | undefined>;
+    const declares = Object.values(bySize).some(
+      (sizeVars) => sizeVars != null && wanted in sizeVars,
+    );
+    if (declares) return vars;
+  }
+  return undefined;
+}
+
 export function resolveDelegatedChildFontSize(
   parentType: string,
   childSelector: string,
@@ -282,7 +328,11 @@ export function resolveDelegatedChildFontSize(
     })();
   if (!found) return undefined;
   const { entry, defaultSize } = found;
-  const variables = entry.variables;
+  // bridge 가 읽는 변수를 **다른 entry 가 선언**하는 경우 (field 의 `[slot="description"]` 이
+  //   `.react-aria-FieldError` 의 `--{prefix}-hint-size` 를 읽는다) — 생성 CSS 는 그 변수를 parent scope
+  //   에 emit 하므로 (착수 10) DOM 은 상속으로 읽는다. 여기서도 같은 rule 안의 선언 entry 를 찾아간다.
+  const variables =
+    entry.variables ?? findDeclaringEntryVariables(parentType, entry);
   if (!variables || typeof variables !== "object") return undefined; // "auto" 는 미지원
   const bySize = variables as Record<
     string,

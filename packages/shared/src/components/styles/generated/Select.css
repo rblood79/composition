@@ -76,23 +76,23 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-Select[data-size="xs"] .react-aria-Label {
+.react-aria-Select[data-size="xs"] {
   --select-label-size: var(--text-2xs);
 }
 
-.react-aria-Select[data-size="sm"] .react-aria-Label {
+.react-aria-Select[data-size="sm"] {
   --select-label-size: var(--text-xs);
 }
 
-.react-aria-Select[data-size="md"] .react-aria-Label {
+.react-aria-Select[data-size="md"] {
   --select-label-size: var(--text-sm);
 }
 
-.react-aria-Select[data-size="lg"] .react-aria-Label {
+.react-aria-Select[data-size="lg"] {
   --select-label-size: var(--text-base);
 }
 
-.react-aria-Select[data-size="xl"] .react-aria-Label {
+.react-aria-Select[data-size="xl"] {
   --select-label-size: var(--text-lg);
 }
 
@@ -102,31 +102,31 @@
   --label-margin: var(--spacing-xs);
 }
 
-.react-aria-Select[data-size="xs"] .react-aria-Button {
+.react-aria-Select[data-size="xs"] {
   --select-btn-padding: var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs);
   --select-btn-font-size: var(--text-2xs);
   --select-btn-line-height: var(--text-2xs--line-height);
 }
 
-.react-aria-Select[data-size="sm"] .react-aria-Button {
+.react-aria-Select[data-size="sm"] {
   --select-btn-padding: var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm);
   --select-btn-font-size: var(--text-xs);
   --select-btn-line-height: var(--text-xs--line-height);
 }
 
-.react-aria-Select[data-size="md"] .react-aria-Button {
+.react-aria-Select[data-size="md"] {
   --select-btn-padding: var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md);
   --select-btn-font-size: var(--text-sm);
   --select-btn-line-height: var(--text-sm--line-height);
 }
 
-.react-aria-Select[data-size="lg"] .react-aria-Button {
+.react-aria-Select[data-size="lg"] {
   --select-btn-padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg);
   --select-btn-font-size: var(--text-base);
   --select-btn-line-height: var(--text-base--line-height);
 }
 
-.react-aria-Select[data-size="xl"] .react-aria-Button {
+.react-aria-Select[data-size="xl"] {
   --select-btn-padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl);
   --select-btn-font-size: var(--text-lg);
   --select-btn-line-height: var(--text-lg--line-height);
@@ -189,27 +189,27 @@
   display: none;
 }
 
-.react-aria-Select[data-size="xs"] .select-chevron {
+.react-aria-Select[data-size="xs"] {
   --select-chevron-size: 14px;
   --select-chevron-margin: var(--spacing-xs);
 }
 
-.react-aria-Select[data-size="sm"] .select-chevron {
+.react-aria-Select[data-size="sm"] {
   --select-chevron-size: 16px;
   --select-chevron-margin: var(--spacing-sm);
 }
 
-.react-aria-Select[data-size="md"] .select-chevron {
+.react-aria-Select[data-size="md"] {
   --select-chevron-size: 18px;
   --select-chevron-margin: var(--spacing);
 }
 
-.react-aria-Select[data-size="lg"] .select-chevron {
+.react-aria-Select[data-size="lg"] {
   --select-chevron-size: 22px;
   --select-chevron-margin: var(--spacing-md);
 }
 
-.react-aria-Select[data-size="xl"] .select-chevron {
+.react-aria-Select[data-size="xl"] {
   --select-chevron-size: 28px;
   --select-chevron-margin: var(--spacing-lg);
 }
@@ -229,23 +229,23 @@
   box-shadow: var(--shadow-sm);
 }
 
-.react-aria-Select[data-size="xs"] .react-aria-FieldError {
+.react-aria-Select[data-size="xs"] {
   --select-hint-size: var(--text-2xs);
 }
 
-.react-aria-Select[data-size="sm"] .react-aria-FieldError {
+.react-aria-Select[data-size="sm"] {
   --select-hint-size: var(--text-2xs);
 }
 
-.react-aria-Select[data-size="md"] .react-aria-FieldError {
+.react-aria-Select[data-size="md"] {
   --select-hint-size: var(--text-xs);
 }
 
-.react-aria-Select[data-size="lg"] .react-aria-FieldError {
+.react-aria-Select[data-size="lg"] {
   --select-hint-size: var(--text-sm);
 }
 
-.react-aria-Select[data-size="xl"] .react-aria-FieldError {
+.react-aria-Select[data-size="xl"] {
   --select-hint-size: var(--text-base);
 }
 

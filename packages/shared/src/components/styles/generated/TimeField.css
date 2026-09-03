@@ -66,23 +66,23 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-TimeField[data-size="xs"] .react-aria-Label {
+.react-aria-TimeField[data-size="xs"] {
   --time-field-label-size: var(--text-2xs);
 }
 
-.react-aria-TimeField[data-size="sm"] .react-aria-Label {
+.react-aria-TimeField[data-size="sm"] {
   --time-field-label-size: var(--text-xs);
 }
 
-.react-aria-TimeField[data-size="md"] .react-aria-Label {
+.react-aria-TimeField[data-size="md"] {
   --time-field-label-size: var(--text-sm);
 }
 
-.react-aria-TimeField[data-size="lg"] .react-aria-Label {
+.react-aria-TimeField[data-size="lg"] {
   --time-field-label-size: var(--text-base);
 }
 
-.react-aria-TimeField[data-size="xl"] .react-aria-Label {
+.react-aria-TimeField[data-size="xl"] {
   --time-field-label-size: var(--text-lg);
 }
 
@@ -92,35 +92,35 @@
   --label-margin: var(--spacing-xs);
 }
 
-.react-aria-TimeField[data-size="xs"] .react-aria-DateInput {
+.react-aria-TimeField[data-size="xs"] {
   --time-field-input-padding: var(--spacing-3xs) var(--spacing-xs);
   --time-field-input-size: var(--text-2xs);
   --time-field-input-line-height: var(--text-2xs--line-height);
   --time-field-input-min-width: 100px;
 }
 
-.react-aria-TimeField[data-size="sm"] .react-aria-DateInput {
+.react-aria-TimeField[data-size="sm"] {
   --time-field-input-padding: var(--spacing-2xs) var(--spacing-sm);
   --time-field-input-size: var(--text-xs);
   --time-field-input-line-height: var(--text-xs--line-height);
   --time-field-input-min-width: 120px;
 }
 
-.react-aria-TimeField[data-size="md"] .react-aria-DateInput {
+.react-aria-TimeField[data-size="md"] {
   --time-field-input-padding: var(--spacing-xs) var(--spacing-md);
   --time-field-input-size: var(--text-sm);
   --time-field-input-line-height: var(--text-sm--line-height);
   --time-field-input-min-width: 150px;
 }
 
-.react-aria-TimeField[data-size="lg"] .react-aria-DateInput {
+.react-aria-TimeField[data-size="lg"] {
   --time-field-input-padding: var(--spacing-sm) var(--spacing-lg);
   --time-field-input-size: var(--text-base);
   --time-field-input-line-height: var(--text-base--line-height);
   --time-field-input-min-width: 180px;
 }
 
-.react-aria-TimeField[data-size="xl"] .react-aria-DateInput {
+.react-aria-TimeField[data-size="xl"] {
   --time-field-input-padding: var(--spacing-md) var(--spacing-xl);
   --time-field-input-size: var(--text-lg);
   --time-field-input-line-height: var(--text-lg--line-height);
@@ -142,23 +142,23 @@
   transition: border-color 200ms ease, background-color 200ms ease;
 }
 
-.react-aria-TimeField[data-size="xs"] .react-aria-DateSegment {
+.react-aria-TimeField[data-size="xs"] {
   --time-field-segment-size: var(--text-2xs);
 }
 
-.react-aria-TimeField[data-size="sm"] .react-aria-DateSegment {
+.react-aria-TimeField[data-size="sm"] {
   --time-field-segment-size: var(--text-xs);
 }
 
-.react-aria-TimeField[data-size="md"] .react-aria-DateSegment {
+.react-aria-TimeField[data-size="md"] {
   --time-field-segment-size: var(--text-sm);
 }
 
-.react-aria-TimeField[data-size="lg"] .react-aria-DateSegment {
+.react-aria-TimeField[data-size="lg"] {
   --time-field-segment-size: var(--text-base);
 }
 
-.react-aria-TimeField[data-size="xl"] .react-aria-DateSegment {
+.react-aria-TimeField[data-size="xl"] {
   --time-field-segment-size: var(--text-lg);
 }
 
@@ -206,23 +206,23 @@
   cursor: not-allowed;
 }
 
-.react-aria-TimeField[data-size="xs"] .react-aria-FieldError {
+.react-aria-TimeField[data-size="xs"] {
   --time-field-hint-size: var(--text-2xs);
 }
 
-.react-aria-TimeField[data-size="sm"] .react-aria-FieldError {
+.react-aria-TimeField[data-size="sm"] {
   --time-field-hint-size: var(--text-xs);
 }
 
-.react-aria-TimeField[data-size="md"] .react-aria-FieldError {
+.react-aria-TimeField[data-size="md"] {
   --time-field-hint-size: var(--text-xs);
 }
 
-.react-aria-TimeField[data-size="lg"] .react-aria-FieldError {
+.react-aria-TimeField[data-size="lg"] {
   --time-field-hint-size: var(--text-sm);
 }
 
-.react-aria-TimeField[data-size="xl"] .react-aria-FieldError {
+.react-aria-TimeField[data-size="xl"] {
   --time-field-hint-size: var(--text-base);
 }
 

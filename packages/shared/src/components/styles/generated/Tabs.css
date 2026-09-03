@@ -53,17 +53,17 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-Tabs[data-size="sm"] .react-aria-Tab {
+.react-aria-Tabs[data-size="sm"] {
   --tab-padding: var(--spacing-2xs) var(--spacing-sm);
   --tab-font-size: var(--text-xs);
 }
 
-.react-aria-Tabs[data-size="md"] .react-aria-Tab {
+.react-aria-Tabs[data-size="md"] {
   --tab-padding: var(--spacing-xs) var(--spacing-md);
   --tab-font-size: var(--text-sm);
 }
 
-.react-aria-Tabs[data-size="lg"] .react-aria-Tab {
+.react-aria-Tabs[data-size="lg"] {
   --tab-padding: var(--spacing-sm) var(--spacing-lg);
   --tab-font-size: var(--text-base);
 }

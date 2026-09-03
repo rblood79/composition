@@ -79,23 +79,23 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-NumberField[data-size="xs"] .react-aria-Label {
+.react-aria-NumberField[data-size="xs"] {
   --nf-label-size: var(--text-2xs);
 }
 
-.react-aria-NumberField[data-size="sm"] .react-aria-Label {
+.react-aria-NumberField[data-size="sm"] {
   --nf-label-size: var(--text-xs);
 }
 
-.react-aria-NumberField[data-size="md"] .react-aria-Label {
+.react-aria-NumberField[data-size="md"] {
   --nf-label-size: var(--text-sm);
 }
 
-.react-aria-NumberField[data-size="lg"] .react-aria-Label {
+.react-aria-NumberField[data-size="lg"] {
   --nf-label-size: var(--text-base);
 }
 
-.react-aria-NumberField[data-size="xl"] .react-aria-Label {
+.react-aria-NumberField[data-size="xl"] {
   --nf-label-size: var(--text-lg);
 }
 
@@ -147,27 +147,27 @@
   border-color: var(--negative);
 }
 
-.react-aria-NumberField[data-size="xs"] .react-aria-Input {
+.react-aria-NumberField[data-size="xs"] {
   --nf-input-font-size: var(--text-2xs);
   --nf-input-line-height: var(--text-2xs--line-height);
 }
 
-.react-aria-NumberField[data-size="sm"] .react-aria-Input {
+.react-aria-NumberField[data-size="sm"] {
   --nf-input-font-size: var(--text-xs);
   --nf-input-line-height: var(--text-xs--line-height);
 }
 
-.react-aria-NumberField[data-size="md"] .react-aria-Input {
+.react-aria-NumberField[data-size="md"] {
   --nf-input-font-size: var(--text-sm);
   --nf-input-line-height: var(--text-sm--line-height);
 }
 
-.react-aria-NumberField[data-size="lg"] .react-aria-Input {
+.react-aria-NumberField[data-size="lg"] {
   --nf-input-font-size: var(--text-base);
   --nf-input-line-height: var(--text-base--line-height);
 }
 
-.react-aria-NumberField[data-size="xl"] .react-aria-Input {
+.react-aria-NumberField[data-size="xl"] {
   --nf-input-font-size: var(--text-lg);
   --nf-input-line-height: var(--text-lg--line-height);
 }
@@ -188,27 +188,27 @@
   --input-line-height: var(--nf-input-line-height);
 }
 
-.react-aria-NumberField[data-size="xs"] .react-aria-Button {
+.react-aria-NumberField[data-size="xs"] {
   --nf-btn-size: 10px;
   --nf-btn-icon-size: 10px;
 }
 
-.react-aria-NumberField[data-size="sm"] .react-aria-Button {
+.react-aria-NumberField[data-size="sm"] {
   --nf-btn-size: 14px;
   --nf-btn-icon-size: 12px;
 }
 
-.react-aria-NumberField[data-size="md"] .react-aria-Button {
+.react-aria-NumberField[data-size="md"] {
   --nf-btn-size: 18px;
   --nf-btn-icon-size: 16px;
 }
 
-.react-aria-NumberField[data-size="lg"] .react-aria-Button {
+.react-aria-NumberField[data-size="lg"] {
   --nf-btn-size: 22px;
   --nf-btn-icon-size: 18px;
 }
 
-.react-aria-NumberField[data-size="xl"] .react-aria-Button {
+.react-aria-NumberField[data-size="xl"] {
   --nf-btn-size: 28px;
   --nf-btn-icon-size: 22px;
 }
@@ -253,23 +253,23 @@
   height: var(--nf-btn-icon-size);
 }
 
-.react-aria-NumberField[data-size="xs"] .react-aria-FieldError {
+.react-aria-NumberField[data-size="xs"] {
   --nf-hint-size: var(--text-2xs);
 }
 
-.react-aria-NumberField[data-size="sm"] .react-aria-FieldError {
+.react-aria-NumberField[data-size="sm"] {
   --nf-hint-size: var(--text-xs);
 }
 
-.react-aria-NumberField[data-size="md"] .react-aria-FieldError {
+.react-aria-NumberField[data-size="md"] {
   --nf-hint-size: var(--text-xs);
 }
 
-.react-aria-NumberField[data-size="lg"] .react-aria-FieldError {
+.react-aria-NumberField[data-size="lg"] {
   --nf-hint-size: var(--text-sm);
 }
 
-.react-aria-NumberField[data-size="xl"] .react-aria-FieldError {
+.react-aria-NumberField[data-size="xl"] {
   --nf-hint-size: var(--text-base);
 }
 

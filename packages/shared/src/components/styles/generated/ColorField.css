@@ -76,23 +76,23 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-ColorField[data-size="xs"] .react-aria-Label {
+.react-aria-ColorField[data-size="xs"] {
   --cf-label-size: var(--text-2xs);
 }
 
-.react-aria-ColorField[data-size="sm"] .react-aria-Label {
+.react-aria-ColorField[data-size="sm"] {
   --cf-label-size: var(--text-xs);
 }
 
-.react-aria-ColorField[data-size="md"] .react-aria-Label {
+.react-aria-ColorField[data-size="md"] {
   --cf-label-size: var(--text-sm);
 }
 
-.react-aria-ColorField[data-size="lg"] .react-aria-Label {
+.react-aria-ColorField[data-size="lg"] {
   --cf-label-size: var(--text-base);
 }
 
-.react-aria-ColorField[data-size="xl"] .react-aria-Label {
+.react-aria-ColorField[data-size="xl"] {
   --cf-label-size: var(--text-lg);
 }
 
@@ -102,35 +102,35 @@
   --label-margin: var(--spacing-xs);
 }
 
-.react-aria-ColorField[data-size="xs"] .react-aria-Input {
+.react-aria-ColorField[data-size="xs"] {
   --cf-input-padding: var(--spacing-3xs) var(--spacing-xs);
   --cf-input-size: var(--text-2xs);
   --cf-input-line-height: var(--text-2xs--line-height);
   --cf-input-max-width: 9ch;
 }
 
-.react-aria-ColorField[data-size="sm"] .react-aria-Input {
+.react-aria-ColorField[data-size="sm"] {
   --cf-input-padding: var(--spacing-2xs) var(--spacing-sm);
   --cf-input-size: var(--text-xs);
   --cf-input-line-height: var(--text-xs--line-height);
   --cf-input-max-width: 10ch;
 }
 
-.react-aria-ColorField[data-size="md"] .react-aria-Input {
+.react-aria-ColorField[data-size="md"] {
   --cf-input-padding: var(--spacing-xs) var(--spacing-md);
   --cf-input-size: var(--text-sm);
   --cf-input-line-height: var(--text-sm--line-height);
   --cf-input-max-width: 12ch;
 }
 
-.react-aria-ColorField[data-size="lg"] .react-aria-Input {
+.react-aria-ColorField[data-size="lg"] {
   --cf-input-padding: var(--spacing-sm) var(--spacing-lg);
   --cf-input-size: var(--text-base);
   --cf-input-line-height: var(--text-base--line-height);
   --cf-input-max-width: 14ch;
 }
 
-.react-aria-ColorField[data-size="xl"] .react-aria-Input {
+.react-aria-ColorField[data-size="xl"] {
   --cf-input-padding: var(--spacing-md) var(--spacing-xl);
   --cf-input-size: var(--text-lg);
   --cf-input-line-height: var(--text-lg--line-height);
@@ -146,23 +146,23 @@
   box-sizing: border-box;
 }
 
-.react-aria-ColorField[data-size="xs"] .react-aria-FieldError {
+.react-aria-ColorField[data-size="xs"] {
   --cf-hint-size: var(--text-2xs);
 }
 
-.react-aria-ColorField[data-size="sm"] .react-aria-FieldError {
+.react-aria-ColorField[data-size="sm"] {
   --cf-hint-size: var(--text-2xs);
 }
 
-.react-aria-ColorField[data-size="md"] .react-aria-FieldError {
+.react-aria-ColorField[data-size="md"] {
   --cf-hint-size: var(--text-xs);
 }
 
-.react-aria-ColorField[data-size="lg"] .react-aria-FieldError {
+.react-aria-ColorField[data-size="lg"] {
   --cf-hint-size: var(--text-sm);
 }
 
-.react-aria-ColorField[data-size="xl"] .react-aria-FieldError {
+.react-aria-ColorField[data-size="xl"] {
   --cf-hint-size: var(--text-base);
 }
 

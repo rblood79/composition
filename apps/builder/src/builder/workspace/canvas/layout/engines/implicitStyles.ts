@@ -36,6 +36,12 @@ import {
 import type { SizeSpec, TokenRef, ShadowTokens } from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import {
+  DESCRIPTION_CHILD_SELECTOR,
+  hasDelegatedChild,
+  resolveDelegatedChildFontSize,
+  resolveInheritedLineHeight,
+} from "@composition/shared";
+import {
   getComponentRulesTable,
   isDisclosureExpandedInContext,
   resolveCatalogContainerBase,
@@ -3328,6 +3334,61 @@ export function applyImplicitStyles(
       }
       return child;
     });
+  }
+
+  // ── description 줄 합성 (ADR-923 Phase 5 후속 착수 10, 2026-09-04 사용자 판단) ──
+  //
+  // DOM 은 parent `description` prop 으로 `<Text slot="description">` 를 **self-compose** 한다
+  // (`TextField.tsx` 외 13 컴포넌트 동형; rendererMap 은 `element.props.description` 을 그대로 넘긴다).
+  // 시각은 parent rule 의 `[slot="description"]` delegation 이 정한다 — 글자 크기는 size 별 hint 변수,
+  // 줄 높이는 root 상속 1.5 (FieldError 와 같은 소유권 · 같은 원천).
+  //
+  // 반면 canonical 에는 그 자식이 **없다** (factory 가 field 에 Description 을 만들지 않는다) — 그래서
+  // 같은 문서가 DOM 에서만 한 줄 더 높았다 (실측 TextField md 83 vs Canvas 56). parent `description` 이
+  // 텍스트 SSOT 이므로 Canvas 는 **합성 노드**로 그린다 (Checkbox/Radio/Switch 의 synthetic Label 선례) —
+  // 기존 문서 migration 없이 옛 문서도 즉시 같아진다. 자식이 canonical 에 있더라도 이 줄의 소유자는
+  // parent 다 (read-only sub-part).
+  const descriptionText = containerProps?.description;
+  if (
+    typeof descriptionText === "string" &&
+    descriptionText.trim().length > 0 &&
+    hasDelegatedChild(containerEl.type, DESCRIPTION_CHILD_SELECTOR) &&
+    !filteredChildren.some((c) => c.id === `${containerEl.id}__syndesc`)
+  ) {
+    const descFontSize =
+      resolveDelegatedChildFontSize(
+        containerEl.type,
+        DESCRIPTION_CHILD_SELECTOR,
+        containerProps?.size as string | undefined,
+      ) ?? 12;
+    const syntheticDescription: CanvasLayoutNode = {
+      id: `${containerEl.id}__syndesc`,
+      type: "Description",
+      props: {
+        children: descriptionText,
+        style: {
+          display: "block",
+          width: "100%",
+          fontSize: descFontSize,
+          // 활성 bundle 에 `[slot="description"]` 줄 높이 규칙이 없다 — DOM 은 root `line-height: 1.5`
+          //   를 상속한다 (FieldError 와 같은 실측 근거).
+          lineHeight: `${resolveInheritedLineHeight(descFontSize)}px`,
+        },
+      },
+      parent_id: containerEl.id,
+      page_id: containerEl.page_id,
+    } as CanvasLayoutNode;
+    // DOM 순서: … 컨트롤 → description → FieldError.
+    const errIdx = filteredChildren.findIndex((c) => c.type === "FieldError");
+    if (errIdx >= 0) {
+      filteredChildren = [
+        ...filteredChildren.slice(0, errIdx),
+        syntheticDescription,
+        ...filteredChildren.slice(errIdx),
+      ];
+    } else {
+      filteredChildren = [...filteredChildren, syntheticDescription];
+    }
   }
 
   // ── Label flexShrink 공통 주입 ────────────────────────────────────

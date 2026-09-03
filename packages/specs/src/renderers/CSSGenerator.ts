@@ -1251,7 +1251,16 @@ function generateCompositionCSS<Props>(spec: ComponentSpec<Props>): string[] {
       const entries = Object.entries(vars);
       if (entries.length === 0) continue;
 
-      lines.push(`${sel}[data-size="${sizeName}"] ${childSelector} {`);
+      // ADR-923 Phase 5 후속 착수 10 (2026-09-04): size 변수는 **parent scope** 로 emit 한다.
+      //   종전에는 `${sel}[data-size] ${childSelector}` 로 그 자식에만 선언돼, **다른 자식의 bridge 가
+      //   같은 변수를 읽을 때 해소되지 않았다** — field 12 종의 `[slot="description"]` 이
+      //   `font-size: var(--{prefix}-hint-size)` 를 읽는데 그 변수는 `.react-aria-FieldError` 에만
+      //   선언돼 있어 declaration 이 무효가 되고 description 글자 크기가 **상속값으로 떨어졌다**
+      //   (실측: DateField md 16 · TextField md 14 — 카탈로그가 정한 12/14 가 아니다).
+      //   parent scope 선언은 가시성만 넓힌다 (자식은 상속으로 그대로 읽는다). 변수명이 entry 별
+      //   `prefix` 로 갈려 있어 rule 안에서 다른 childSelector 가 같은 이름을 선언하는 경우는 0 이다
+      //   (전수 확인). bridge (generic 이름 재노출) 는 그대로 자식 scope 에 남는다.
+      lines.push(`${sel}[data-size="${sizeName}"] {`);
       for (const [varName, value] of entries) {
         lines.push(`  ${varName}: ${value};`);
       }

@@ -66,23 +66,23 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-DateField[data-size="xs"] .react-aria-Label {
+.react-aria-DateField[data-size="xs"] {
   --df-label-size: var(--text-2xs);
 }
 
-.react-aria-DateField[data-size="sm"] .react-aria-Label {
+.react-aria-DateField[data-size="sm"] {
   --df-label-size: var(--text-xs);
 }
 
-.react-aria-DateField[data-size="md"] .react-aria-Label {
+.react-aria-DateField[data-size="md"] {
   --df-label-size: var(--text-sm);
 }
 
-.react-aria-DateField[data-size="lg"] .react-aria-Label {
+.react-aria-DateField[data-size="lg"] {
   --df-label-size: var(--text-base);
 }
 
-.react-aria-DateField[data-size="xl"] .react-aria-Label {
+.react-aria-DateField[data-size="xl"] {
   --df-label-size: var(--text-lg);
 }
 
@@ -92,35 +92,35 @@
   --label-margin: var(--spacing-xs);
 }
 
-.react-aria-DateField[data-size="xs"] .react-aria-DateInput {
+.react-aria-DateField[data-size="xs"] {
   --df-input-padding: var(--spacing-3xs) var(--spacing-xs);
   --df-input-size: var(--text-2xs);
   --df-input-line-height: var(--text-2xs--line-height);
   --df-input-min-width: 100px;
 }
 
-.react-aria-DateField[data-size="sm"] .react-aria-DateInput {
+.react-aria-DateField[data-size="sm"] {
   --df-input-padding: var(--spacing-2xs) var(--spacing-sm);
   --df-input-size: var(--text-xs);
   --df-input-line-height: var(--text-xs--line-height);
   --df-input-min-width: 120px;
 }
 
-.react-aria-DateField[data-size="md"] .react-aria-DateInput {
+.react-aria-DateField[data-size="md"] {
   --df-input-padding: var(--spacing-xs) var(--spacing-md);
   --df-input-size: var(--text-sm);
   --df-input-line-height: var(--text-sm--line-height);
   --df-input-min-width: 150px;
 }
 
-.react-aria-DateField[data-size="lg"] .react-aria-DateInput {
+.react-aria-DateField[data-size="lg"] {
   --df-input-padding: var(--spacing-sm) var(--spacing-lg);
   --df-input-size: var(--text-base);
   --df-input-line-height: var(--text-base--line-height);
   --df-input-min-width: 180px;
 }
 
-.react-aria-DateField[data-size="xl"] .react-aria-DateInput {
+.react-aria-DateField[data-size="xl"] {
   --df-input-padding: var(--spacing-md) var(--spacing-xl);
   --df-input-size: var(--text-lg);
   --df-input-line-height: var(--text-lg--line-height);
@@ -142,23 +142,23 @@
   transition: border-color 200ms ease, background-color 200ms ease;
 }
 
-.react-aria-DateField[data-size="xs"] .react-aria-DateSegment {
+.react-aria-DateField[data-size="xs"] {
   --df-segment-size: var(--text-2xs);
 }
 
-.react-aria-DateField[data-size="sm"] .react-aria-DateSegment {
+.react-aria-DateField[data-size="sm"] {
   --df-segment-size: var(--text-xs);
 }
 
-.react-aria-DateField[data-size="md"] .react-aria-DateSegment {
+.react-aria-DateField[data-size="md"] {
   --df-segment-size: var(--text-sm);
 }
 
-.react-aria-DateField[data-size="lg"] .react-aria-DateSegment {
+.react-aria-DateField[data-size="lg"] {
   --df-segment-size: var(--text-base);
 }
 
-.react-aria-DateField[data-size="xl"] .react-aria-DateSegment {
+.react-aria-DateField[data-size="xl"] {
   --df-segment-size: var(--text-lg);
 }
 
@@ -207,23 +207,23 @@
   cursor: not-allowed;
 }
 
-.react-aria-DateField[data-size="xs"] .react-aria-FieldError {
+.react-aria-DateField[data-size="xs"] {
   --df-hint-size: var(--text-2xs);
 }
 
-.react-aria-DateField[data-size="sm"] .react-aria-FieldError {
+.react-aria-DateField[data-size="sm"] {
   --df-hint-size: var(--text-xs);
 }
 
-.react-aria-DateField[data-size="md"] .react-aria-FieldError {
+.react-aria-DateField[data-size="md"] {
   --df-hint-size: var(--text-xs);
 }
 
-.react-aria-DateField[data-size="lg"] .react-aria-FieldError {
+.react-aria-DateField[data-size="lg"] {
   --df-hint-size: var(--text-sm);
 }
 
-.react-aria-DateField[data-size="xl"] .react-aria-FieldError {
+.react-aria-DateField[data-size="xl"] {
   --df-hint-size: var(--text-base);
 }
 

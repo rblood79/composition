@@ -61,23 +61,23 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-ToggleButtonGroup[data-size="xs"] .react-aria-ToggleButton {
+.react-aria-ToggleButtonGroup[data-size="xs"] {
   --btn-border-radius: var(--radius-sm);
 }
 
-.react-aria-ToggleButtonGroup[data-size="sm"] .react-aria-ToggleButton {
+.react-aria-ToggleButtonGroup[data-size="sm"] {
   --btn-border-radius: var(--radius-sm);
 }
 
-.react-aria-ToggleButtonGroup[data-size="md"] .react-aria-ToggleButton {
+.react-aria-ToggleButtonGroup[data-size="md"] {
   --btn-border-radius: var(--radius-md);
 }
 
-.react-aria-ToggleButtonGroup[data-size="lg"] .react-aria-ToggleButton {
+.react-aria-ToggleButtonGroup[data-size="lg"] {
   --btn-border-radius: var(--radius-lg);
 }
 
-.react-aria-ToggleButtonGroup[data-size="xl"] .react-aria-ToggleButton {
+.react-aria-ToggleButtonGroup[data-size="xl"] {
   --btn-border-radius: var(--radius-lg);
 }
 

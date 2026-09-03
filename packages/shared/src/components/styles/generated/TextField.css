@@ -78,27 +78,27 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-TextField[data-size="xs"] .react-aria-Label {
+.react-aria-TextField[data-size="xs"] {
   --tf-label-size: var(--text-2xs);
   --tf-label-margin: 0px;
 }
 
-.react-aria-TextField[data-size="sm"] .react-aria-Label {
+.react-aria-TextField[data-size="sm"] {
   --tf-label-size: var(--text-xs);
   --tf-label-margin: 0px;
 }
 
-.react-aria-TextField[data-size="md"] .react-aria-Label {
+.react-aria-TextField[data-size="md"] {
   --tf-label-size: var(--text-sm);
   --tf-label-margin: 2px;
 }
 
-.react-aria-TextField[data-size="lg"] .react-aria-Label {
+.react-aria-TextField[data-size="lg"] {
   --tf-label-size: var(--text-base);
   --tf-label-margin: 4px;
 }
 
-.react-aria-TextField[data-size="xl"] .react-aria-Label {
+.react-aria-TextField[data-size="xl"] {
   --tf-label-size: var(--text-lg);
   --tf-label-margin: 6px;
 }
@@ -109,31 +109,31 @@
   --label-margin: var(--tf-label-margin);
 }
 
-.react-aria-TextField[data-size="xs"] :is(.react-aria-Input, .react-aria-TextArea) {
+.react-aria-TextField[data-size="xs"] {
   --tf-input-padding: var(--spacing-3xs) var(--spacing-xs);
   --tf-input-size: var(--text-2xs);
   --tf-input-line-height: var(--text-2xs--line-height);
 }
 
-.react-aria-TextField[data-size="sm"] :is(.react-aria-Input, .react-aria-TextArea) {
+.react-aria-TextField[data-size="sm"] {
   --tf-input-padding: var(--spacing-2xs) var(--spacing-sm);
   --tf-input-size: var(--text-xs);
   --tf-input-line-height: var(--text-xs--line-height);
 }
 
-.react-aria-TextField[data-size="md"] :is(.react-aria-Input, .react-aria-TextArea) {
+.react-aria-TextField[data-size="md"] {
   --tf-input-padding: var(--spacing-xs) var(--spacing-md);
   --tf-input-size: var(--text-sm);
   --tf-input-line-height: var(--text-sm--line-height);
 }
 
-.react-aria-TextField[data-size="lg"] :is(.react-aria-Input, .react-aria-TextArea) {
+.react-aria-TextField[data-size="lg"] {
   --tf-input-padding: var(--spacing-sm) var(--spacing-lg);
   --tf-input-size: var(--text-base);
   --tf-input-line-height: var(--text-base--line-height);
 }
 
-.react-aria-TextField[data-size="xl"] :is(.react-aria-Input, .react-aria-TextArea) {
+.react-aria-TextField[data-size="xl"] {
   --tf-input-padding: var(--spacing-md) var(--spacing-xl);
   --tf-input-size: var(--text-lg);
   --tf-input-line-height: var(--text-lg--line-height);
@@ -170,23 +170,23 @@
   opacity: 0.38;
 }
 
-.react-aria-TextField[data-size="xs"] .react-aria-FieldError {
+.react-aria-TextField[data-size="xs"] {
   --tf-hint-size: var(--text-2xs);
 }
 
-.react-aria-TextField[data-size="sm"] .react-aria-FieldError {
+.react-aria-TextField[data-size="sm"] {
   --tf-hint-size: var(--text-xs);
 }
 
-.react-aria-TextField[data-size="md"] .react-aria-FieldError {
+.react-aria-TextField[data-size="md"] {
   --tf-hint-size: var(--text-sm);
 }
 
-.react-aria-TextField[data-size="lg"] .react-aria-FieldError {
+.react-aria-TextField[data-size="lg"] {
   --tf-hint-size: var(--text-base);
 }
 
-.react-aria-TextField[data-size="xl"] .react-aria-FieldError {
+.react-aria-TextField[data-size="xl"] {
   --tf-hint-size: var(--text-lg);
 }
 
