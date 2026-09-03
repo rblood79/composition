@@ -34,7 +34,8 @@ vi.mock("@/builder/factories/utils/elementCreation", async (importOriginal) => {
  *   - DOM leg: `rendererMap[type]` 을 400px block mount 에 그림 (`adr923PreviewLeg`) — computed display + rect.
  * 단언 (CONVERTED 에 든 type 만 — 전환 commit 마다 한 항목씩 들어온다):
  *   - outer display 동치 (block-level ↔ inline-level 이 display 가 정하는 축)
- *   - block-level 이면 양쪽 폭 = 부모 폭 (|Δw| ≤ 1) · inline-level 이면 양쪽 shrink-to-fit (< 부모 폭). inline 의
+ *   - block-level 이면 양쪽 폭 동치 (|Δw| ≤ 1 — 명시 폭이 없으면 부모 폭, Avatar 처럼 명시 폭이면 그 폭) ·
+ *     inline-level 이면 양쪽 shrink-to-fit (< 부모 폭). inline 의
  *     Δw 는 텍스트 run 측정 차 (폰트 체인) 라 기록만 한다. 높이는 inner 렌더 차이 (Skia 합성 vs DOM 자식) 라 기록만.
  * 캡처 (5 전부) 는 `.artifacts/adr923-hc2-conversion-rect.json` — 전환 전·후 rect 는 evidence 표로 옮긴다.
  *
@@ -52,7 +53,7 @@ const CONVERSION = [
 type ConversionType = (typeof CONVERSION)[number];
 
 /** 전환 commit 이 끝난 type — 단언 대상. 캡처는 CONVERSION 전부. */
-const CONVERTED: readonly ConversionType[] = ["Skeleton"];
+const CONVERTED: readonly ConversionType[] = ["Skeleton", "Avatar"];
 
 const HOST_W = 400;
 
@@ -191,13 +192,11 @@ describe("ADR-923 Phase 5 후속 — HC2 전환필요 5 rect 대조 (Canvas prod
       const outer = outerOf(p.dom.display);
       expect(outerOf(p.canvas.display), `${type} outer`).toBe(outer);
       if (outer === "block") {
+        // block-level: 명시 폭이 없으면 양쪽 다 부모 폭, 명시 폭 (Avatar 32) 이면 양쪽 다 그 폭 — 폭 동치.
         expect(
-          Math.abs(p.canvas.w - HOST_W),
-          `${type} canvas w`,
+          Math.abs(p.canvas.w - p.dom.w),
+          `${type} Δw (block-level)`,
         ).toBeLessThanOrEqual(1);
-        expect(Math.abs(p.dom.w - HOST_W), `${type} dom w`).toBeLessThanOrEqual(
-          1,
-        );
       } else {
         expect(p.canvas.w, `${type} canvas shrink-to-fit`).toBeLessThan(HOST_W);
         expect(p.dom.w, `${type} dom shrink-to-fit`).toBeLessThan(HOST_W);

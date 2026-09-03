@@ -6,7 +6,6 @@ import { Checkbox } from "@composition/shared/components/Checkbox";
 import { Radio } from "@composition/shared/components/Radio";
 import { RadioGroup } from "@composition/shared/components/RadioGroup";
 import { Slider } from "@composition/shared/components/Slider";
-import { Avatar } from "@composition/shared/components/Avatar";
 import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
 import { ProgressCircle } from "@composition/shared/components/ProgressCircle";
 import { StatusLight } from "@composition/shared/components/StatusLight";
@@ -70,7 +69,7 @@ const DOM_CONFLICTS = ["Checkbox", "Radio", "SliderOutput"] as const;
  * Phase 5 후속 HC2 전환 — DOM 을 preview 실경로 (`rendererMap`) 로 재는 type. 전환 commit 마다 한 항목씩
  * 들어오며, 여기 든 type 은 아래 `renders` (shared 컴포넌트 직접 마운트) 에서 빠진다.
  */
-const PREVIEW_LEG_TYPES: readonly string[] = ["Skeleton"];
+const PREVIEW_LEG_TYPES: readonly string[] = ["Skeleton", "Avatar"];
 const UNDECLARED = [
   "Avatar",
   "Breadcrumb",
@@ -298,10 +297,6 @@ beforeAll(async () => {
         defaultValue: 30,
         showValueLabel: true,
       }),
-    },
-    {
-      types: [["Avatar", (m) => m.firstElementChild as HTMLElement | null]],
-      node: React.createElement(Avatar, { initials: "AB" }),
     },
     {
       types: [
@@ -591,10 +586,10 @@ const HC2: Record<
     box: ".react-aria-SliderOutput — Slider 컨테이너(grid/flex) 자식이라 양쪽 blockify",
   },
   Avatar: {
-    canvas: "inline-flex",
-    dom: "div:flex (live)",
-    verdict: "전환필요(후속)",
-    box: "Avatar root div — catalog structure inline-flex ↔ live flex (outer 다름, palette 항목)",
+    canvas: "flex",
+    dom: "div:flex (live — rendererMap renderAvatar 인라인 display flex, LayoutRenderers.tsx; shared Avatar.tsx:109 도 flex)",
+    verdict: "일치",
+    box: "Avatar root div — Phase 5 후속 전환 (2026-09-03): catalog structure inline-flex → flex (DOM 실효값)",
   },
   Breadcrumb: {
     canvas: "inline-flex",
@@ -722,11 +717,11 @@ describe("ADR-923 Phase 5 — HC2 판정표 (Canvas 전용 display override 33 r
     console.log(`ADR923HC2 verdicts ${JSON.stringify(counts)}`);
     expect(counts).toEqual({
       "전환(Phase 5)": 2,
-      일치: 7,
+      일치: 8,
       "일치(outer)": 14,
       "예외(투영)": 2,
       "예외(inert)": 4,
-      "전환필요(후속)": 4,
+      "전환필요(후속)": 3,
     });
   });
 
