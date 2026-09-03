@@ -52,13 +52,8 @@ const CONVERSION = [
 ] as const;
 type ConversionType = (typeof CONVERSION)[number];
 
-/** 전환 commit 이 끝난 type — 단언 대상. 캡처는 CONVERSION 전부. */
-const CONVERTED: readonly ConversionType[] = [
-  "Skeleton",
-  "Avatar",
-  "StatusLight",
-  "TailSwatch",
-];
+/** 전환 commit 이 끝난 type — 단언 대상 (5 commit 완료로 CONVERSION 전부). 캡처는 CONVERSION 전부. */
+const CONVERTED: readonly ConversionType[] = [...CONVERSION];
 
 const HOST_W = 400;
 

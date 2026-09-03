@@ -38,6 +38,16 @@ export const SlotSpec: ComponentSpec<SlotProps> = {
 
   defaultSize: "md",
 
+  // ADR-923 Phase 5 후속 HC2 전환 (2026-09-03): outer display 를 **명시**한다. 종전에는 미등재라 CSSGenerator 가
+  //   archetype "default" 기본값 inline-flex 를 emit 하고 Canvas (`resolveDefaultDisplay` — spec containerStyles 부재
+  //   → 캔버스 기본 block) 는 block 이라 두 consumer 가 갈렸다. 값은 block — production 에서 Slot 은 frame body
+  //   (display block, `createDefaultBodyProps`) 의 자식이라 outer 가 배치를 정하고, page 모드 preview
+  //   (`App.tsx` `.preview-slot` div UA block) · Canvas 가 이미 block 이다. 상세:
+  //   docs/adr/evidence/923-phase5-followup-hc2-conversion.md.
+  containerStyles: {
+    display: "block",
+  },
+
   sizes: {
     sm: {
       height: 40,

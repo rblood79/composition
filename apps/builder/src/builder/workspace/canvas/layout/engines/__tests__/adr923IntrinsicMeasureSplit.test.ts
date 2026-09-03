@@ -191,13 +191,19 @@ describe("ADR-923 Phase 5 — resolveDefaultDisplay(type) (getElementDisplay 배
   });
 
   it("잔존 spec 3종 · PascalCase 입력 · 미등록 타입", () => {
-    // Frame/Group/Slot spec 은 containerStyles 를 갖지 않는다 (Group.spec:111 / Frame.spec:200 의 flex 는
+    // Frame/Group spec 은 containerStyles 를 갖지 않는다 (Group.spec:111 / Frame.spec:200 의 flex 는
     //   Skia shape layout) → spec 경로 {} → canvas 기본 block = 현 getElementDisplay 와 동일.
-    for (const t of ["frame", "group", "slot"]) {
+    for (const t of ["frame", "group"]) {
       expect(resolveContainerStylesFallback(t, {}).display, t).toBeUndefined();
       expect(resolveDefaultDisplay(t), t).toBe("block");
       expect(getElementDisplay({ type: t, props: {} }), t).toBe("block");
     }
+    // Slot spec 은 Phase 5 후속 HC2 전환 (2026-09-03) 으로 containerStyles.display = "block" 을 **명시**한다 —
+    //   Canvas 값은 그대로 block 이지만 이제 기본값이 아니라 spec 파생이고, CSSGenerator 도 같은 값을 emit 한다
+    //   (종전 archetype default 기본값 inline-flex 와 갈렸음).
+    expect(resolveContainerStylesFallback("slot", {}).display).toBe("block");
+    expect(resolveDefaultDisplay("slot")).toBe("block");
+    expect(getElementDisplay({ type: "slot", props: {} })).toBe("block");
     expect(resolveDefaultDisplay("Button")).toBe(
       resolveDefaultDisplay("button"),
     );

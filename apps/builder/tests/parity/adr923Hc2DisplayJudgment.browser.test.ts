@@ -73,6 +73,7 @@ const PREVIEW_LEG_TYPES: readonly string[] = [
   "Avatar",
   "StatusLight",
   "TailSwatch",
+  "Slot",
 ];
 const UNDECLARED = [
   "Avatar",
@@ -550,9 +551,9 @@ const HC2: Record<
   },
   Slot: {
     canvas: "block",
-    dom: "inline-flex (generated/Slot.css archetype base — Slot.spec 에 display 없음)",
-    verdict: "전환필요(후속)",
-    box: ".react-aria-Slot — 잔존 spec: spec containerStyles 에 display 명시 등재가 필요 (CSSGenerator archetype 기본값과 Canvas 기본값이 갈림)",
+    dom: "div:block (live — rendererMap renderSlot → Slot.tsx .react-aria-Slot, frame 편집 모드 placeholder; generated/Slot.css 가 Slot.spec containerStyles display block 을 emit)",
+    verdict: "일치",
+    box: ".react-aria-Slot — Phase 5 후속 전환 (2026-09-03): 잔존 spec Slot.spec containerStyles 에 display block 명시 (종전 archetype default 기본값 inline-flex ↔ Canvas 기본 block). 부모 (frame body) 가 block 이라 값이 배치에 영향 — page 모드 `.preview-slot` (UA block) · Canvas block 과 같은 block 으로",
   },
   Tag: {
     canvas: "block",
@@ -716,11 +717,10 @@ describe("ADR-923 Phase 5 — HC2 판정표 (Canvas 전용 display override 33 r
     console.log(`ADR923HC2 verdicts ${JSON.stringify(counts)}`);
     expect(counts).toEqual({
       "전환(Phase 5)": 2,
-      일치: 10,
+      일치: 11,
       "일치(outer)": 14,
       "예외(투영)": 2,
       "예외(inert)": 4,
-      "전환필요(후속)": 1,
     });
   });
 
