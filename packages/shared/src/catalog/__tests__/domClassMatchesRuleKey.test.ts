@@ -72,13 +72,18 @@ describe("TextArea sizes — field 패밀리 스케일 정렬", () => {
     }
   });
 
-  it("height 는 TextArea 고유값으로 유지된다 — 여러 줄 입력 박스", () => {
+  it("height 는 없다 — 본체 높이의 정본은 rows × 줄 높이 계약이다", () => {
+    // 2026-09-04 (ADR-923 Phase 5 후속 착수 7): 구 64/80/120/160 은 **어느 표면도 읽지 않는 값**이라
+    //   삭제했다 (전 표면 변이 대조: 값을 641/801/1201/1601 로 바꿔도 parity 1090 · builder 5246 ·
+    //   shared 972 중 반응한 것은 이 값을 고정하던 종전 테스트 하나뿐). Canvas 는 implicitStyles 가
+    //   `rows × Input 줄 높이 + padding + border` 로 계산하고 (착수 2) DOM 은 브라우저가 `<textarea
+    //   rows>` 로 계산한다. 다시 심으면 "여러 줄 상자 높이의 SSOT" 로 잘못 읽히므로 부재를 고정한다.
     const ta = table.TextArea.sizes;
-    expect([ta.sm.height, ta.md.height, ta.lg.height, ta.xl.height]).toEqual([
-      64, 80, 120, 160,
-    ]);
-    // TextField 한 줄 높이와 달라야 한다 (동일해지면 스케일 정렬이 과했다는 신호).
-    expect(ta.md.height).not.toBe(table.TextField.sizes.md.height);
+    for (const size of ["sm", "md", "lg", "xl"] as const) {
+      expect(ta[size].height, `TextArea.sizes.${size}.height`).toBeUndefined();
+    }
+    // 한 줄 상자 (Input) 쪽은 반대로 있어야 한다 — 계산식의 입력이다.
+    expect(typeof table.Input.sizes.md.height).toBe("number");
   });
 
   it("xs 는 없다 — Spectrum text-area 는 s/m/l/xl 4종", () => {

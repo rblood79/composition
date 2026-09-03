@@ -32,6 +32,25 @@
 
 ## 5. 범위 밖 (기록만)
 
-- catalog `TextArea.sizes[size].height` 64/80/120/160 — 양쪽 다 안 읽는 dead 값. 계약 테스트 `domClassMatchesRuleKey.test.ts` "height 는 TextArea 고유값" 이 지키고 있어 삭제는 별도 commit (D3 SSOT 정리) — 사용자 판단.
+- ~~catalog `TextArea.sizes[size].height` 64/80/120/160 — 양쪽 다 안 읽는 dead 값~~ → **2026-09-04 삭제** (사용자 판단: 삭제). §6 참조.
 - lg Label 줄 높이 Δ1.15 (DOM 22.85 vs Canvas 24) — Label 일반 격차.
 - Style 패널 "Vertical Align: top" 이 이제 실제로 위에 붙는다 (종전 no-op) — 사용자-가시, CHANGELOG 기재.
+
+## 6. 후속 — catalog `TextArea.sizes[size].height` 삭제 (2026-09-04, 착수 7)
+
+사용자 판단: **삭제**. 근거 — 실제 높이는 `rows × Input 줄 높이 + padding + border` 계약이고 (§2) 이 값은 DOM·Canvas 모두 미소비다. 남겨두면 "여러 줄 상자 높이의 SSOT" 로 잘못 읽힌다.
+
+**dead 확인은 grep 이 아니라 전 표면 변이 대조로** (메모리 `feedback-grep-zero-refs-is-not-dead-code`): 64/80/120/160 → 641/801/1201/1601 로 바꾸고 세 스위트를 돌렸다.
+
+| 스위트          | 규모 | 변이에 반응한 것                                        |
+| --------------- | ---- | ------------------------------------------------------- |
+| browser parity  | 1090 | 없음 (기존 2 실패 그대로)                               |
+| builder unit    | 5246 | 없음 (기존 4 실패 그대로 — 다른 세션 소관)              |
+| shared unit     | 972  | **1** — 이 값을 고정하던 `domClassMatchesRuleKey` 테스트 |
+
+즉 값을 읽는 유일한 소비자가 그 값을 고정하는 테스트였다.
+
+- 변경: `componentRulesTable.ts` TextArea sizes 4개에서 `height` 제거 (paddingX/fontSize/borderRadius/gap 유지) + 삭제 사유 주석.
+- 테스트 개정: "height 는 TextArea 고유값으로 유지된다" → **"height 는 없다 — 본체 높이의 정본은 rows × 줄 높이 계약이다"** (부재 고정 + 계산식 입력인 `Input.sizes.md.height` 는 존재해야 함). 다시 심으면 RED.
+- live: 같은 문서의 TextArea md rows 3 — root 342×96 · Input 342×70 으로 §4 와 동일 (변화 0).
+- 검증: type-check PASS · parity 1086 PASS (기존 2) · builder 5223 PASS (기존 4) · shared 972 PASS.

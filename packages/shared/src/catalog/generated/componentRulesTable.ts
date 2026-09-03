@@ -12232,34 +12232,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //     radius    DOM 4/6/8/12    ↔ 구 rule sm/md/md/lg = 4/6/6/8  (lg·xl 어긋남)
       //     fontSize  DOM xs/sm/base/lg ↔ 구 rule sm/base/lg/xl  (전 구간 한 단계 큼)
       //   Spectrum 도 text-area 를 "text field 가 지원하는 표준 옵션 전부"로 규정하므로 타입
-      //   스케일 공유가 정본이다 — 어긋난 쪽은 Skia. `height`(64/80/120/160)만 TextArea 고유:
-      //   여러 줄 입력 박스라 TextField(22/30/42/54)와 달라야 한다. gap 은 원래 동일.
+      //   스케일 공유가 정본이다 — 어긋난 쪽은 Skia. gap 은 원래 동일.
+      //
+      // 2026-09-04 (ADR-923 Phase 5 후속 착수 7) — `height`(64/80/120/160) **삭제**. TextArea 본체
+      //   높이의 정본은 `rows × Input 줄 높이 + padding + border` 계약이다 (착수 2, DOM `<textarea
+      //   rows>` 와 같은 식): Canvas 는 implicitStyles 가 그 식으로 계산하고 DOM 은 브라우저가 rows 로
+      //   계산한다 — **이 값은 어느 쪽도 읽지 않았다**. 전 표면 변이 대조로 확인 (64/80/120/160 →
+      //   641/801/1201/1601: parity 1090 · builder 5246 · shared 972 중 반응한 것은 이 값을 고정하던
+      //   테스트 하나뿐). 남겨두면 "여러 줄 상자 높이의 SSOT" 로 잘못 읽힌다.
       sm: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
-        height: 64,
         gap: 4,
       },
       md: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
-        height: 80,
         gap: 6,
       },
       lg: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
-        height: 120,
         gap: 8,
       },
       xl: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
-        height: 160,
         gap: 10,
       },
     },
