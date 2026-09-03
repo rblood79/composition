@@ -6,8 +6,12 @@
  * conversation store + G.3 시각 피드백 연동
  */
 
-import { useMemo, useCallback, useState } from "react";
-import { createAgentRunner } from "../../../../services/ai/createAgentRunner";
+import { useCallback, useRef, useState } from "react";
+import {
+  createAgentRunner,
+  type AgentRunner,
+} from "../../../../services/ai/createAgentRunner";
+import { isAgentProfileReady } from "../../../../services/ai/providers/agentProfiles";
 import { intentParser } from "../../../../services/ai/IntentParser";
 import { useConversationStore } from "../../../stores/conversation";
 import { useStore } from "../../../stores";
@@ -48,8 +52,15 @@ export function useAgentLoop() {
     incrementTurn,
   } = useConversationStore();
 
-  // Agent 실행기 (한 번만 생성) — planner 프로파일이 있으면 Plan→Execute→Verify 분해 실행
-  const agent = useMemo(() => createAgentRunner(t), [t]);
+  /**
+   * 지금 도는 실행기 — `stopAgent` 가 잡는다.
+   *
+   * 실행기는 **턴 시작 시점에** 만든다 (planner 프로파일이 있으면 Plan→Execute→Verify
+   * 분해 실행). mount 때 한 번 memo 하면 설정 패널에서 프로파일을 채운 뒤에도 null 실행기가
+   * 남아 새로고침 전까지 fallback 만 나왔다 (2026-09-03 live 실측 — LLM 호출 0).
+   * 프로파일·BYOK 키도 그 시점에 조회한다 (D10 — 키는 호출 인자로만).
+   */
+  const runnerRef = useRef<AgentRunner | null>(null);
 
   // 계획·역할·수리 진행 (ADR-134 Phase 8) — 기본 표면은 안 읽는다, 고급 모드만 읽는다.
   const [progress, setProgress] = useState<AgentProgress>(initialProgress);
@@ -84,7 +95,9 @@ export function useAgentLoop() {
       // 유저 메시지 추가
       addUserMessage(message);
 
-      // Agent 모드
+      // Agent 모드 — 실행기는 이 턴의 프로파일로 만든다
+      const agent = createAgentRunner(t);
+      runnerRef.current = agent;
       if (agent) {
         try {
           setAgentRunning(true);
@@ -217,7 +230,7 @@ export function useAgentLoop() {
       }
     },
     [
-      agent,
+      t,
       addUserMessage,
       addAssistantMessage,
       appendToLastMessage,
@@ -234,12 +247,12 @@ export function useAgentLoop() {
    * Agent 중단
    */
   const stopAgent = useCallback(() => {
-    agent?.stop();
+    runnerRef.current?.stop();
     useAIVisualFeedbackStore.getState().cancelGenerating();
     setAgentRunning(false);
     setStreamingStatus(false);
     setRunningTool(null);
-  }, [agent, setAgentRunning, setStreamingStatus]);
+  }, [setAgentRunning, setStreamingStatus]);
 
   return {
     messages,
@@ -251,6 +264,7 @@ export function useAgentLoop() {
     activeToolCalls,
     runAgent,
     stopAgent,
-    hasAgent: !!agent,
+    // 렌더 시점 판정 — 설정 패널에서 돌아오는 재렌더에서 바로 갱신된다
+    hasAgent: isAgentProfileReady("main"),
   };
 }

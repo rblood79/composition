@@ -3458,6 +3458,8 @@ const formattedMessages: Record<
       `알 수 없는 도구: ${String(args?.name ?? "")}`,
     "aiRuntime.refused": (args) =>
       `모델이 이 요청을 거절했습니다 (안전 분류: ${String(args?.category ?? "")}). 요청을 바꿔 다시 시도하세요.`,
+    "aiRuntime.providerError": () =>
+      "모델 호출에 실패했습니다. endpoint·모델·키 설정을 확인하세요.",
     "aiToolError.targetNotFound": (args) =>
       `대상 요소를 찾을 수 없습니다: ${String(args?.id ?? "")}`,
     "aiToolError.capabilityNotExposed": (args) =>
@@ -3714,6 +3716,8 @@ const formattedMessages: Record<
       `Unknown tool: ${String(args?.name ?? "")}`,
     "aiRuntime.refused": (args) =>
       `The model declined this request (safety category: ${String(args?.category ?? "")}). Rephrase and try again.`,
+    "aiRuntime.providerError": () =>
+      "The model call failed. Check the endpoint, model, and key settings.",
     "aiToolError.targetNotFound": (args) =>
       `Target element not found: ${String(args?.id ?? "")}`,
     "aiToolError.capabilityNotExposed": (args) =>

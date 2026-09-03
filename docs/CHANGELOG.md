@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 어떤 package에서도 사용하지 않는 pnpm catalog의 `jotai` 항목을 제거했습니다.
 
+## [AI 패널에서 모델을 설정하면 새로고침 없이 바로 씁니다] - 2026-09-03
+
+### Fixed
+
+- AI 패널을 연 뒤 에이전트 설정에서 endpoint·모델을 채우면, 새로고침 전까지 모든 요청이 "요청을 이해하지 못했습니다" 로만 답하던 것을 고쳤습니다 (모델 호출 자체가 없었음). 실행기를 패널이 열릴 때 한 번 만들던 것을 매 요청 시점에 만들도록 바꿔, 설정 직후 요청부터 모델을 호출합니다. 패널의 "먼저 모델을 알려 주세요" 안내도 설정을 마치고 돌아오면 바로 사라집니다.
+- 모델 호출이 실패했을 때 오류 말풍선에 번역 키 이름 (`aiRuntime.providerError`) 이 그대로 보이던 것을 고쳤습니다 — 이제 "모델 호출에 실패했습니다. endpoint·모델·키 설정을 확인하세요." 로 표시됩니다.
+
+### Tests
+
+- `useAgentLoop.test.ts` — 미구성 상태로 연 패널이 설정 후 재렌더만으로 다음 턴부터 실행기를 쓰는지 (1건). `AnthropicProvider.live.test.ts` 신설 — `ANTHROPIC_API_KEY` (환경변수 또는 `apps/builder/.env`) 가 있을 때만 실제 Claude API 에 2턴 (도구 호출 → 원문 replay) 을 보내 400 없음을 확인하는 게이트, 키 없으면 skip.
+
 ## [AI 어시스턴트가 Claude 5 계열 (Fable 5.1 · Opus 5 · Sonnet 5) 과 호환됩니다] - 2026-09-03
 
 ### Fixed
