@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [AI 어시스턴트가 Claude 5 계열 (Fable 5.1 · Opus 5 · Sonnet 5) 과 호환됩니다] - 2026-09-03
+
+### Fixed
+
+- 에이전트 프로파일에 Claude 5 계열 모델을 넣으면 첫 요청부터 400 이 나던 것을 고쳤습니다. 어댑터가 Fable 5 이전 Messages API 계약을 전제하고 있었습니다 — 추론 강도를 `thinking.budget_tokens` 로 보내고 (Fable 5.x 는 thinking 을 끌 수도 예산을 줄 수도 없음 → 400), `temperature 0.7` 을 항상 실었으며 (비기본값 400), 도구 호출 턴의 thinking 블록을 버리고 assistant 턴을 재조립해 도구 결과를 돌려보내는 두 번째 요청이 실패했습니다. 이제 강도는 `output_config.effort` 로 보내고, temperature 는 보내지 않으며, 응답 원문 (thinking 블록·signature 포함) 을 그대로 다음 요청에 되돌립니다. Fable 5.1 레퍼런스 (overview · what's new · migration guide) 대조 결과입니다.
+- 모델이 안전 분류기로 요청을 거절하면 (`stop_reason: "refusal"`) 빈 응답으로 끝나던 것을 고쳤습니다 — AI 패널에 거절 사유 (분류 카테고리) 를 표시하고 재시도하지 않습니다.
+
+### Changed
+
+- 시스템 프롬프트를 세션 동안 고정하고 (역할 · 전체 컴포넌트 목록 · 규칙), 페이지·선택 요소·관련 컴포넌트 상세는 이번 턴 사용자 메시지 앞에 붙입니다. Claude 5 계열은 요청 간에 system 이 바뀌면 prompt cache 가 깨지고 thinking 블록의 prefix binding 이 어긋나므로 (Fable 5.1 은 400), 이력을 append-only 로 유지합니다.
+- 추론 강도 선택지에 `xhigh` · `max` 가 추가됐고 (Claude 5 effort 5단계), Anthropic 어댑터의 기본 `max_tokens` 가 2048 → 16000 으로 올랐습니다 (adaptive thinking 이 이 한도 안에서 돌아감). OpenAI 호환 어댑터의 기본값은 그대로입니다.
+
+### Tests
+
+- `providers.test.ts` — 요청 본문에 `output_config.effort` 만 있고 `thinking` · `temperature` 가 없는지, thinking/redacted_thinking/text/tool_use 블록을 index 순으로 모아 signature 째 replay 하는지, `refusal` + `stop_details.category` 를 노출하는지 (6건). `AgentService.test.ts` — system 고정 + 턴 컨텍스트가 마지막 user 메시지에만 붙는지, provider 원문이 다음 요청에 실리는지, refusal 이 재시도 없이 끝나는지 (3건). `systemPrompt.test.ts` 를 분리 API 로 재작성.
+
 ## [Skeleton · Avatar · TailSwatch · Slot 의 배치가 캔버스와 Preview 에서 같습니다] - 2026-09-03
 
 ### Fixed

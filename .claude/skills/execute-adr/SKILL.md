@@ -123,7 +123,7 @@ git commit -m "$(cat <<'COMMIT_EOF'
 
 {detailed body — 3-7 lines, why 중심}
 
-Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 COMMIT_EOF
 )"
 

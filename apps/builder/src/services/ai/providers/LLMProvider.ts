@@ -20,8 +20,14 @@
 /** 지원 provider 종류. 로컬/사내 endpoint 는 전부 `openai-compatible` + baseUrl 로 포섭한다. */
 export type LLMProviderId = "anthropic" | "openai-compatible";
 
-/** 추론 강도 — provider 별 대응 필드로 변환된다 (없으면 무시). */
-export type ReasoningEffort = "low" | "medium" | "high";
+/**
+ * 추론 강도 — provider 별 대응 필드로 변환된다 (없으면 무시).
+ *
+ * Claude 5 계열의 `effort` 5단계 (`xhigh` · `max` 포함, 기본 `high`) 와 OpenAI
+ * `reasoning_effort` 를 같은 이름으로 받는다. effort 파라미터가 없는 모델 (Haiku 4.5 등)
+ * 은 프로파일에서 비워 둔다 — 보내면 400 이다.
+ */
+export type ReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
 
 /** 도구 정의 — JSON Schema 그대로. MCP tool schema 와 같은 형태 (ADR-134 D11). */
 export interface LLMToolDefinition {
@@ -38,22 +44,50 @@ export interface LLMToolCall {
   arguments: string;
 }
 
+/**
+ * provider 가 돌려준 assistant 턴 **원문** — 같은 provider 로 다음 요청을 보낼 때 그대로
+ * replay 한다.
+ *
+ * 필요한 이유: Claude 5 계열은 thinking 이 항상 켜져 있고, 도구 결과를 돌려보내는 턴에는
+ * 직전 assistant 턴의 thinking 블록 (signature 포함, 빈 블록도) 이 변경 없이 실려야 한다 —
+ * 중립 필드 (text + toolCalls) 로 재조립하면 thinking 이 빠져 400 이다. 다른 provider 의
+ * 원문은 무시하고 중립 필드로 재조립한다 (`providerId` 로 판정).
+ */
+export interface LLMAssistantTurn {
+  providerId: LLMProviderId;
+  /** provider wire 형식 그대로 — 어댑터 밖에서는 열어 보지 않는다. */
+  blocks: readonly unknown[];
+}
+
 /** provider 중립 대화 메시지. */
 export type LLMMessage =
   | { role: "system"; content: string }
   | { role: "user"; content: string }
-  | { role: "assistant"; content: string | null; toolCalls?: LLMToolCall[] }
+  | {
+      role: "assistant";
+      content: string | null;
+      toolCalls?: LLMToolCall[];
+      /** 같은 provider 로 replay 할 원문 (thinking 블록 보존). */
+      providerContent?: LLMAssistantTurn;
+    }
   | { role: "tool"; toolCallId: string; content: string };
 
-/** 종료 사유. */
+/** 종료 사유. `refusal` 은 안전 분류기가 응답을 거절한 것 — 재시도 대상이 아니다. */
 export type LLMStopReason =
-  "end" | "tool-calls" | "max-tokens" | "aborted" | "other";
+  "end" | "tool-calls" | "max-tokens" | "refusal" | "aborted" | "other";
 
 /** 스트리밍 이벤트 — 텍스트 조각, 완성된 도구 호출, 종료. */
 export type LLMStreamEvent =
   | { type: "text-delta"; delta: string }
   | { type: "tool-call"; call: LLMToolCall }
-  | { type: "stop"; reason: LLMStopReason };
+  | {
+      type: "stop";
+      reason: LLMStopReason;
+      /** `refusal` 의 `stop_details.category` 같은 부가 정보. */
+      detail?: string;
+      /** 이 턴의 원문 — 호출자가 assistant 메시지에 실어 다음 요청에 replay 한다. */
+      assistantTurn?: LLMAssistantTurn;
+    };
 
 export interface LLMCompletionOptions {
   tools?: readonly LLMToolDefinition[];
@@ -161,7 +195,12 @@ export function assertBrowserCallAllowed(
   );
 }
 
-/** 두 어댑터가 공유하는 기본값 — 기존 `GroqAgentService` 값을 그대로 승계한다. */
+/**
+ * OpenAI 호환 어댑터의 기본값 — 기존 `GroqAgentService` 값을 그대로 승계한다.
+ * Anthropic 어댑터는 쓰지 않는다: Claude 5 계열은 비기본 `temperature` 가 400 이고,
+ * adaptive thinking 이 `max_tokens` 안에서 돌아 2048 로는 모자란다
+ * (`ANTHROPIC_DEFAULT_MAX_TOKENS`).
+ */
 export const LLM_DEFAULTS = {
   temperature: 0.7,
   maxTokens: 2048,

@@ -19,12 +19,13 @@ import type {
   BuilderContext,
 } from "../../types/integrations/chat.types";
 import { createToolRegistry, getToolDefinitions } from "./tools";
-import { buildSystemPrompt } from "./systemPrompt";
+import { buildSystemPrompt, buildTurnContext } from "./systemPrompt";
 import type { PromptTranslate } from "./promptTranslate";
 import {
   isRateLimitError,
   type LLMMessage,
   type LLMProvider,
+  type LLMStreamEvent,
 } from "./providers/LLMProvider";
 import { resolveProvider } from "./providers/agentProfiles";
 
@@ -56,12 +57,14 @@ export class AgentService {
       .reverse()
       .find((m) => m.role === "user")?.content;
 
+    // system 은 세션 동안 고정 — 빌더 상태·Tier 2 상세는 이번 턴 user 메시지에 싣는다
+    // (Claude 5 계열의 prompt cache · thinking prefix binding, systemPrompt.ts 상단).
     const conversation: LLMMessage[] = [
-      {
-        role: "system",
-        content: buildSystemPrompt(context, this.t, latestRequest),
-      },
-      ...this.convertMessages(messages),
+      { role: "system", content: buildSystemPrompt(this.t) },
+      ...this.convertMessages(
+        messages,
+        buildTurnContext(context, this.t, latestRequest),
+      ),
     ];
 
     const tools = await getToolDefinitions(this.t);
@@ -78,6 +81,7 @@ export class AgentService {
       try {
         let assistantContent = "";
         const toolCalls: ToolCall[] = [];
+        let stop: Extract<LLMStreamEvent, { type: "stop" }> | undefined;
 
         for await (const event of this.streamWithRetry(conversation, tools)) {
           if (this.abortController.signal.aborted) {
@@ -94,7 +98,22 @@ export class AgentService {
               name: event.call.name,
               arguments: event.call.arguments,
             });
+          } else if (event.type === "stop") {
+            stop = event;
           }
+        }
+
+        // 안전 분류기 거절 — 재시도 대상이 아니다. 사유를 그대로 보여 주고 끝낸다.
+        if (stop?.reason === "refusal") {
+          yield {
+            type: "tool-error",
+            toolName: "llm_provider",
+            toolCallId: "",
+            error: this.t("aiRuntime.refused", {
+              category: stop.detail ?? "",
+            }),
+          };
+          return;
         }
 
         // Tool calls 없으면 → 최종 응답
@@ -103,6 +122,7 @@ export class AgentService {
           return;
         }
 
+        // provider 원문 (thinking 블록 포함) 을 같이 실어 다음 요청에 그대로 replay 한다.
         conversation.push({
           role: "assistant",
           content: assistantContent || null,
@@ -111,6 +131,9 @@ export class AgentService {
             name: tc.name,
             arguments: tc.arguments,
           })),
+          ...(stop?.assistantTurn
+            ? { providerContent: stop.assistantTurn }
+            : {}),
         });
 
         for (const tc of toolCalls) {
@@ -246,35 +269,49 @@ export class AgentService {
     this.abortController?.abort();
   }
 
-  /** ChatMessage[] → provider 중립 메시지. */
-  private convertMessages(messages: ChatMessage[]): LLMMessage[] {
-    return messages
-      .filter((msg) => msg.role !== "system") // system prompt는 별도 처리
-      .map((msg): LLMMessage => {
-        if (msg.role === "tool" && msg.metadata?.toolCallId) {
-          return {
-            role: "tool",
-            toolCallId: msg.metadata.toolCallId,
-            content: msg.content,
-          };
-        }
+  /**
+   * ChatMessage[] → provider 중립 메시지.
+   *
+   * `turnContext` 는 **마지막 user 메시지** 앞에만 붙는다 — 이전 턴은 그대로 둬야
+   * 이력이 append-only 로 남는다.
+   */
+  private convertMessages(
+    messages: ChatMessage[],
+    turnContext?: string,
+  ): LLMMessage[] {
+    const history = messages.filter((msg) => msg.role !== "system"); // system prompt는 별도 처리
+    const latestUserIndex = history.map((m) => m.role).lastIndexOf("user");
 
-        if (msg.role === "assistant" && msg.metadata?.toolCalls?.length) {
-          return {
-            role: "assistant",
-            content: msg.content || null,
-            toolCalls: msg.metadata.toolCalls.map((tc) => ({
-              id: tc.id,
-              name: tc.name,
-              arguments: JSON.stringify(tc.arguments),
-            })),
-          };
-        }
+    return history.map((msg, index): LLMMessage => {
+      if (msg.role === "tool" && msg.metadata?.toolCallId) {
+        return {
+          role: "tool",
+          toolCallId: msg.metadata.toolCallId,
+          content: msg.content,
+        };
+      }
 
-        return msg.role === "assistant"
-          ? { role: "assistant", content: msg.content }
-          : { role: "user", content: msg.content };
-      });
+      if (msg.role === "assistant" && msg.metadata?.toolCalls?.length) {
+        return {
+          role: "assistant",
+          content: msg.content || null,
+          toolCalls: msg.metadata.toolCalls.map((tc) => ({
+            id: tc.id,
+            name: tc.name,
+            arguments: JSON.stringify(tc.arguments),
+          })),
+        };
+      }
+
+      if (msg.role === "assistant") {
+        return { role: "assistant", content: msg.content };
+      }
+      const withContext =
+        turnContext && index === latestUserIndex
+          ? `${turnContext}\n\n${msg.content}`
+          : msg.content;
+      return { role: "user", content: withContext };
+    });
   }
 }
 

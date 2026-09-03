@@ -235,14 +235,12 @@ export function selectCatalogEntries(
 }
 
 /**
- * 시스템 프롬프트에 넣을 카탈로그 절 전체 (Tier 1 + Tier 2).
- * `styles` 로 가는 보편 시각 키는 컴포넌트마다 같으므로 여기 한 번만 적는다.
+ * Tier 1 — 전체 type 목록. 요청과 무관하게 같으므로 **고정 system prompt** 에 들어간다
+ * (Claude 5 계열은 system 이 요청 간에 바뀌면 prompt cache 와 thinking prefix 가 깨진다).
  */
-export function buildCatalogSection(
-  context: InjectionContext = {},
+export function buildCatalogIndexSection(
   t: PromptTranslate = (key) => key,
 ): string {
-  const { text } = selectCatalogEntries(t, context);
   return [
     t("aiCatalog.heading"),
     t("aiCatalog.intro1"),
@@ -250,8 +248,29 @@ export function buildCatalogSection(
     "",
     t("aiCatalog.allHeading"),
     formatCatalogIndex(),
+  ].join("\n");
+}
+
+/** Tier 2 — 이번 요청에 관련된 상세. 턴마다 달라지므로 턴 컨텍스트 (user 턴) 에 실린다. */
+export function buildCatalogDetailSection(
+  context: InjectionContext = {},
+  t: PromptTranslate = (key) => key,
+): string {
+  const { text } = selectCatalogEntries(t, context);
+  return [t("aiCatalog.detailHeading"), text].join("\n");
+}
+
+/**
+ * 카탈로그 절 전체 (Tier 1 + Tier 2) — 단일 프롬프트가 필요한 호출자·테스트용.
+ * 에이전트 루프는 위 두 함수를 따로 쓴다.
+ */
+export function buildCatalogSection(
+  context: InjectionContext = {},
+  t: PromptTranslate = (key) => key,
+): string {
+  return [
+    buildCatalogIndexSection(t),
     "",
-    t("aiCatalog.detailHeading"),
-    text,
+    buildCatalogDetailSection(context, t),
   ].join("\n");
 }

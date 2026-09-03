@@ -17,7 +17,11 @@ import {
   type LLMStreamEvent,
   type LLMToolDefinition,
 } from "./LLMProvider";
-import { AnthropicProvider, toAnthropicMessages } from "./AnthropicProvider";
+import {
+  ANTHROPIC_DEFAULT_MAX_TOKENS,
+  AnthropicProvider,
+  toAnthropicMessages,
+} from "./AnthropicProvider";
 import { OpenAICompatibleProvider } from "./OpenAICompatibleProvider";
 import {
   AGENT_PROFILE_IDS,
@@ -278,7 +282,7 @@ describe("Anthropic 어댑터", () => {
       }),
     );
 
-    expect(events).toEqual([
+    expect(events.slice(0, 2)).toEqual([
       { type: "text-delta", delta: "정렬" },
       {
         type: "tool-call",
@@ -288,8 +292,10 @@ describe("Anthropic 어댑터", () => {
           arguments: '{"id":"alignLeft"}',
         },
       },
-      { type: "stop", reason: "tool-calls" },
     ]);
+    // stop 은 replay 용 원문 (assistantTurn) 을 같이 실어 온다
+    expect(events[2]).toMatchObject({ type: "stop", reason: "tool-calls" });
+    expect(events).toHaveLength(3);
 
     expect(capture.calls[0].url).toBe("https://api.anthropic.com/v1/messages");
     const body = capture.body();
@@ -298,10 +304,202 @@ describe("Anthropic 어댑터", () => {
       name: "run_command",
       input_schema: TOOL.parameters,
     });
-    expect(body.thinking).toEqual({ type: "enabled", budget_tokens: 1024 });
+    // Claude 5 계열은 adaptive thinking 이 기본 — effort 는 `output_config` 로 간다.
+    // `thinking.budget_tokens` · 비기본 `temperature` 는 Fable 5.x 에서 400 이다.
+    expect(body.output_config).toEqual({ effort: "low" });
+    expect(body.thinking).toBeUndefined();
+    expect(body.temperature).toBeUndefined();
     const headers = capture.calls[0].init.headers as Record<string, string>;
     expect(headers["x-api-key"]).toBe("sk-ant-test");
     expect(headers["anthropic-version"]).toBe("2023-06-01");
+  });
+
+  it("effort 가 없으면 output_config 도 없고, max_tokens 는 thinking 을 담을 만큼 넉넉하다", async () => {
+    const capture = captureFetch(() => sseResponse([]));
+    await collect(
+      new AnthropicProvider({
+        baseUrl: "https://api.anthropic.com",
+        model: "claude-sonnet-5",
+        allowRemoteDirect: true,
+        fetchImpl: capture.impl,
+      }).completeWithTools(MESSAGES),
+    );
+    const body = capture.body();
+    expect(body.output_config).toBeUndefined();
+    expect(body.thinking).toBeUndefined();
+    expect(body.temperature).toBeUndefined();
+    expect(body.max_tokens).toBe(ANTHROPIC_DEFAULT_MAX_TOKENS);
+    expect(body.max_tokens).toBeGreaterThanOrEqual(16000);
+  });
+
+  it("thinking 블록을 signature 째 모아 stop 이벤트의 assistantTurn 으로 돌려준다", async () => {
+    const capture = captureFetch(() =>
+      sseResponse([
+        {
+          type: "content_block_start",
+          index: 0,
+          content_block: { type: "thinking", thinking: "" },
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "thinking_delta", thinking: "정렬을 " },
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "thinking_delta", thinking: "바꾼다" },
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "signature_delta", signature: "sig_abc" },
+        },
+        { type: "content_block_stop", index: 0 },
+        {
+          type: "content_block_start",
+          index: 1,
+          content_block: { type: "redacted_thinking", data: "REDACTED" },
+        },
+        { type: "content_block_stop", index: 1 },
+        {
+          type: "content_block_start",
+          index: 2,
+          content_block: { type: "text", text: "" },
+        },
+        {
+          type: "content_block_delta",
+          index: 2,
+          delta: { type: "text_delta", text: "정렬" },
+        },
+        {
+          type: "content_block_start",
+          index: 3,
+          content_block: {
+            type: "tool_use",
+            id: "toolu_1",
+            name: "run_command",
+          },
+        },
+        {
+          type: "content_block_delta",
+          index: 3,
+          delta: {
+            type: "input_json_delta",
+            partial_json: '{"id":"alignLeft"}',
+          },
+        },
+        { type: "message_delta", delta: { stop_reason: "tool_use" } },
+      ]),
+    );
+    const provider = new AnthropicProvider({
+      baseUrl: "https://api.anthropic.com",
+      model: "claude-fable-5-1",
+      allowRemoteDirect: true,
+      fetchImpl: capture.impl,
+    });
+
+    const events = await collect(
+      provider.completeWithTools(MESSAGES, { tools: [TOOL] }),
+    );
+
+    // thinking 은 사용자에게 흘리지 않는다 — text-delta 는 text 블록만
+    expect(events.filter((e) => e.type === "text-delta")).toEqual([
+      { type: "text-delta", delta: "정렬" },
+    ]);
+    const stop = events.at(-1);
+    expect(stop).toMatchObject({ type: "stop", reason: "tool-calls" });
+    if (stop?.type !== "stop") throw new Error("stop 이벤트 없음");
+    expect(stop.assistantTurn).toEqual({
+      providerId: "anthropic",
+      blocks: [
+        { type: "thinking", thinking: "정렬을 바꾼다", signature: "sig_abc" },
+        { type: "redacted_thinking", data: "REDACTED" },
+        { type: "text", text: "정렬" },
+        {
+          type: "tool_use",
+          id: "toolu_1",
+          name: "run_command",
+          input: { id: "alignLeft" },
+        },
+      ],
+    });
+  });
+
+  it("assistantTurn 을 실은 assistant 메시지는 블록 그대로 replay 한다 (thinking 보존)", () => {
+    const blocks = [
+      { type: "thinking", thinking: "", signature: "sig_empty" },
+      { type: "text", text: "정렬" },
+      {
+        type: "tool_use",
+        id: "toolu_1",
+        name: "run_command",
+        input: { id: "x" },
+      },
+    ];
+    const { messages } = toAnthropicMessages([
+      { role: "user", content: "정렬해" },
+      {
+        role: "assistant",
+        content: "정렬",
+        toolCalls: [
+          { id: "toolu_1", name: "run_command", arguments: '{"id":"x"}' },
+        ],
+        providerContent: { providerId: "anthropic", blocks },
+      },
+      { role: "tool", toolCallId: "toolu_1", content: "{}" },
+    ]);
+
+    expect(messages[1]).toEqual({ role: "assistant", content: blocks });
+    expect(messages[2].content[0]).toMatchObject({
+      type: "tool_result",
+      tool_use_id: "toolu_1",
+    });
+  });
+
+  it("다른 provider 가 만든 assistantTurn 은 무시하고 중립 필드로 재조립한다", () => {
+    const { messages } = toAnthropicMessages([
+      { role: "user", content: "정렬해" },
+      {
+        role: "assistant",
+        content: "정렬",
+        providerContent: {
+          providerId: "openai-compatible",
+          blocks: [{ role: "assistant", content: "정렬" }],
+        },
+      },
+    ]);
+    expect(messages[1]).toEqual({
+      role: "assistant",
+      content: [{ type: "text", text: "정렬" }],
+    });
+  });
+
+  it("stop_reason refusal 은 stop_details.category 와 함께 refusal 로 돌려준다", async () => {
+    const capture = captureFetch(() =>
+      sseResponse([
+        {
+          type: "message_delta",
+          delta: {
+            stop_reason: "refusal",
+            stop_details: { category: "cyber" },
+          },
+        },
+      ]),
+    );
+    const events = await collect(
+      new AnthropicProvider({
+        baseUrl: "https://api.anthropic.com",
+        model: "claude-fable-5-1",
+        allowRemoteDirect: true,
+        fetchImpl: capture.impl,
+      }).completeWithTools(MESSAGES),
+    );
+    expect(events.at(-1)).toMatchObject({
+      type: "stop",
+      reason: "refusal",
+      detail: "cyber",
+    });
   });
 
   it("브라우저 우회 헤더를 스스로 붙이지 않는다 (Phase 2 D10 결정 대상)", async () => {
