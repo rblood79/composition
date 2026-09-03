@@ -31,7 +31,7 @@
 
 ### 2-3. implicitStyles
 
-- `fieldTriggerRowStyle(cs, sideMode)` helper — field 분기와 picker 분기가 같이 쓴다 (row flex · width 100% · gap 4). picker 분기에 SelectTrigger 주입이 없어 인라인을 걷어내자 Canvas 래퍼가 152/271 로 줄었다 (DOM 418) → 주입 추가. ADR-912 Δ11 grep gate (`flexDirection: cs.flexDirection ?? "row"` ≤ 3) 가 4 로 걸려 helper 로 합쳤다 (현재 2).
+- `fieldTriggerRowStyle(cs, sideMode)` helper — field 분기와 picker 분기가 같이 쓴다 (row flex · width 100% · gap 4). picker 분기에 SelectTrigger 주입이 없어 인라인을 걷어내자 Canvas 래퍼가 152/271 로 줄었다 (DOM 418) → 주입 추가. ADR-912 Δ11 grep gate (`flexDirection: cs.flexDirection ?? "row"` ≤ 3) 가 4 로 걸려 helper 로 합쳤다. gate regex 매치는 3 = baseline 3 (helper 정의 1 + 잔존 직접 할당 2 — `cs.flexDirection` 2095 행 · `parentStyle.flexDirection` 2228 행); helper 호출처가 2 다 (Codex 판독 f5b-l1 정정, 2026-09-03).
 - progressbar/meter Label 에 숫자 grid line 4 (`gridColumnStart/End 1/2 · gridRowStart/End 1/2`) 주입 — Slider 분기 동형. factory 인라인이 layout 에 실리지 않으므로 read-time 채널이 필요하다 (gridArea 이름은 엔진이 해석하지 않는다, layout-engine.md §Grid area 이름 해석).
 
 ### 2-4. Skia · 패널
@@ -67,3 +67,9 @@
 - SelectValue 의 placeholder 텍스트 축 (Select 은 자식 우선, ComboBox/SearchField 는 parent 우선) — DOM 이 읽으므로 편집 surface 유지. style 은 DOM 미도달이지만 이번 판정에 넣지 않았다.
 - DOM 래퍼 content-box overflow (NumberField·ComboBox·SearchField·DatePicker·DateRangePicker 418 > root 400; Select 은 400) — 기존 기록과 같은 계열, 별도 작업.
 - 3.6 재측정이 raw `children` 텍스트를 읽는 것 자체 (비-sub-part Label 에도 해당) — propagation 텍스트를 쓰도록 바꾸는 것은 Label 폭 일반 결함으로 별도.
+
+## 6. 판독 (phase 당 1회, rules/review-loop-closure.md §1)
+
+- Codex 판독 1회 (2026-09-03, 고정 스냅샷 `b6b2786df`): **VERIFIED_WITH_LOW_DEFERRED** — HIGH 0 · MEDIUM 0 · LOW 1 (`f5b-l1` doc-drift: §2-3 의 Δ11 gate 매치 수 "현재 2" 가 helper 호출처 수였고 gate regex 매치는 3 = baseline 3). 동작·gate 실패 없음 → 본 문서 정정으로 반영. 판독이 재현한 사실: hop DateInput 한정 (factory `DateColorComponents.ts:89` · DOM `DatePicker.tsx:217` · 음성 대조 bridge 테스트) · 투영 함수 3곳 (visit `fullTreeLayout.ts:1500` · implicit 입력 `:1742` · delta `:2052`) · 원복 (t)~(y) node/browser FAIL 수 §3 표와 일치 · (z) node·browser GREEN 재현 (자식 순서가 다른 production 문서 재현 없음 → LOW deferred 유지).
+- 판독 스냅샷 게이트: browser 15/15 (HC2 + rect + sub-part) · bridge 12/12 · Δ11 gate 15/15 · type-check PASS · full parity 1085 PASS (기존 GridListItem/Tooltip 2 FAIL).
+- **닫힘 선언 (실행자)**: 수리 검증 HIGH 0 — 후속 항목 "SelectTrigger 래퍼 · 그룹 Label · picker DateInput read-only sub-part" 닫힘. 재개 조건은 §5 범위 밖 항목의 착수 지시뿐.

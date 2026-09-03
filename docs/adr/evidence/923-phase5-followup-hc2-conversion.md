@@ -83,3 +83,9 @@ frame 106 = 32 + 30 + 20 + 24. 콘솔 에러 0, 생성 요소 5 삭제 (요소 �
 - 테스트: `apps/builder/tests/parity/adr923Hc2DisplayJudgment.browser.test.ts` (5 행 + 분포 + `PREVIEW_LEG_TYPES` 실경로 live) · `apps/builder/tests/parity/adr923Hc2ConversionRect.browser.test.ts` (신규) · `apps/builder/tests/parity/adr923PreviewLeg.ts` (신규 헬퍼) · `apps/builder/src/builder/workspace/canvas/layout/engines/__tests__/adr923IntrinsicMeasureSplit.test.ts` (잔존 spec 단언 분리) · `packages/specs/src/renderers/__tests__/__snapshots__/CSSGenerator.snapshot.test.ts.snap`
 - evidence: 본 문서 (신규) · `923-phase5-cutover.md` §5 5 행 verdict + 안내 1문단
 - 손대지 않음: DOM CSS/인라인 · `defaultDisplay.ts` · 엔진 · CHANGELOG · README · reviews · breakdown · `.claude/rules`
+
+## 6. 판독 (phase 당 1회, rules/review-loop-closure.md §1)
+
+- Codex 판독 1회 (2026-09-03, 고정 스냅샷 `b6b2786df`): **VERIFIED** — HIGH 0 · MEDIUM 0 · LOW 0. 판독이 재현한 사실: StatusLight catalog 무변경 판정 (Preview production 경로 `adaptElementStyle → rendererMap[type]`, `preview/App.tsx:819` · `renderStatusLight` 인라인 inline-flex, shared `StatusLight.tsx` 의 flex 는 Preview oracle 아님; 실측 Canvas 77×24 · Preview 75.03×21 outer 일치) · Slot block 선택 (reusable frame body `display:block` 이라 자식 blockify 없음 — `unified.types.ts:1803`; spec 원복 시 DOM 폭 400 → 73.47 로 비퇴화) · rect gate 5 (`adr923Hc2ConversionRect.browser.test.ts:24/46/174`) · 원복 RED Skeleton 2 · Avatar 2 · StatusLight 1 · TailSwatch 2 · Slot 3 (§2 표와 일치 — Slot intrinsic 3번째 RED 는 worktree-local workspace 링크 재설치 후 재현, 본 저장소 node_modules symlink 를 읽은 첫 실행은 위양성으로 제외).
+- 판독 스냅샷 게이트: browser 15/15 · intrinsic split 9/9 · type-check PASS · full parity 1085 PASS (기존 2 FAIL).
+- **닫힘 선언 (실행자)**: 수리 검증 HIGH 0 — 후속 항목 "HC2 전환필요 5" 닫힘 (5 → 0).
