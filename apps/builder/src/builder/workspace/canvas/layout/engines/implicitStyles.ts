@@ -1293,6 +1293,32 @@ export function applyImplicitStyles(
     parentStyle.paddingBottom = emptyStatePadding;
     parentStyle.paddingLeft = emptyStatePadding;
   }
+  // Slot (reusable frame 편집 = layout 모드 placeholder, ADR-923 Phase 5 후속 착수 3, 2026-09-03):
+  //   DOM `.react-aria-Slot` 은 generated Slot.css (잔존 spec sizes) 가 `height: 60px` (sm 40 · lg 80)
+  //   를 주는데 Canvas 는 자식 없는 컨테이너라 content 0 → placeholder 가 보이지 않았다 (실측 DOM 400×60
+  //   vs Canvas 400×0). spec sizes[size].height 를 **minHeight** 로 read-time 주입 — 레이아웃 템플릿의
+  //   Slot 인라인 (`layoutTemplates.ts` `minHeight: 60` · content slot `flex: 1`) 과 같은 계약이라
+  //   flex 로 늘어나는 slot 을 고정 높이로 눌러 앉히지 않는다. page 모드 (`_slotChrome: "hidden"`,
+  //   DOM `.preview-slot` content 높이) 와 사용자 명시 height/minHeight 는 제외.
+  if (
+    containerTag === "slot" &&
+    containerProps?._slotChrome !== "hidden" &&
+    rawParentStyle.height == null &&
+    rawParentStyle.minHeight == null
+  ) {
+    const slotHeight = specSizeField(
+      "slot",
+      (containerProps?.size as string) ?? "md",
+      "height",
+    );
+    if (slotHeight != null) {
+      effectiveParent = withParentStyle(containerEl, {
+        ...parentStyle,
+        minHeight: slotHeight,
+      });
+    }
+  }
+
   if (containerTag === "tree") {
     // Tree 는 전용 분기가 없어 catalog fallback 이 후주입 (buildNodeStyle) 으로만 닿았다 — 빈 상태
     //   padding 을 싣기 위해 ListBox 와 같이 parentStyle 을 선주입한다.

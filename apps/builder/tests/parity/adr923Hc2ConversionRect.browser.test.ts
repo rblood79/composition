@@ -200,6 +200,14 @@ describe("ADR-923 Phase 5 후속 — HC2 전환필요 5 rect 대조 (Canvas prod
           Math.abs(p.canvas.w - p.dom.w),
           `${type} Δw (block-level)`,
         ).toBeLessThanOrEqual(1);
+        if (type === "Slot") {
+          // ADR-923 Phase 5 후속 착수 3 (2026-09-03): layout 모드 Slot placeholder 높이 — DOM generated
+          //   Slot.css `height: 60px` (spec sizes.md) ↔ Canvas implicit 주입 (종전 400×0).
+          expect(
+            Math.abs(p.canvas.h - p.dom.h),
+            `${type} Δh (placeholder ${p.canvas.h} vs ${p.dom.h})`,
+          ).toBeLessThanOrEqual(1);
+        }
       } else {
         expect(p.canvas.w, `${type} canvas shrink-to-fit`).toBeLessThan(HOST_W);
         expect(p.dom.w, `${type} dom shrink-to-fit`).toBeLessThan(HOST_W);

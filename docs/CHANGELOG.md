@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [재사용 프레임 편집에서 새로 넣은 슬롯 (Slot) 이 캔버스에 보입니다] - 2026-09-04
+
+### Fixed
+
+- 프레임 편집 모드에서 팔레트로 추가한 슬롯이 높이 0 으로 그려져 보이지 않았습니다. 이제 슬롯 크기 (sm 40 · md 60 · lg 80px) 만큼의 자리 표시 상자로 보입니다. 템플릿으로 만든 슬롯의 배치는 그대로입니다.
+
 ## [텍스트 영역 (TextArea) 의 높이가 캔버스와 미리보기에서 같습니다] - 2026-09-03
 
 ### Fixed
