@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-02
+Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 기록 + `/execute-adr 203` 착수로 승격)
 
 ## Context
 
@@ -121,7 +121,7 @@ Proposed — 2026-09-02
 
 | Gate | 시점              | 통과 조건                                                                                                                                                                                  | 실패 시 대안                                                                  |
 | ---- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| G0   | 코드 변경 전      | breakdown §2-5 보강 — 실 문서 root 수 (**2026-09-03 확인: 사용자 프로젝트 26 페이지, 현재 페이지 root = body 1개**) · `[role=treeitem]` 수 (전면 탭에서, 잔여) + 현재 동작 체크리스트 기록 | 기록 없이 착수 금지                                                           |
+| G0   | 코드 변경 전      | breakdown §2-5 보강 — 실 문서 root 수 (**2026-09-03 확인: 사용자 프로젝트 26 페이지, 현재 페이지 root = body 1개**) · `[role=treeitem]` 수 (전면 탭에서, 잔여) + 현재 동작 체크리스트 기록. **2026-09-03 통과** — breakdown §2-5: 실 DOM 은 `role="treegrid"` + 행 `role="row"` (treeitem 아님), 초기 행 1 → body 펼침 후 12 (Components 페이지), `.layer-tree--virtualized` 없음, 체크리스트 11 항목 기록 (shift 구간 선택이 2 행 · 캔버스 선택 행 자동 스크롤 없음 = 현재 값) | 기록 없이 착수 금지                                                           |
 | G1   | Phase 1 종료      | browser 테스트 (600 노드 · 320 px) treeitem ≤ 가시 행 + overscan×2 · 하니스 select gap p50 ≤ 33 ms · 드롭 ≤ 5% · longtask 0 · 60 요소 드롭 0 · DnD 3 케이스 동작                           | 대안 B 임시 fallback + D1 debt HIGH 등재 + 후속 ADR 없이 본 ADR 안에서 재시도 |
 | G2   | Phase 2           | 가상화 전/후 같은 행 ARIA 속성 diff 0 · 키보드 ↑↓ Home/End typeahead · shift/meta 다중 선택 · 화면 밖 포커스 자동 스크롤 (Chrome MCP live)                                                 | 해당 축 RAC 설정 수정 후 재확인 — D1 계약 미달이면 승격 금지                  |
 | G3   | Phase 2           | 패널 숨김→복원 scrollTop 보존 · 캔버스 클릭 시 자동 펼침 + 선택 행 가시화 = §2-5 기준선                                                                                                    | scroll memory 대상 지정 / 선택 행 `scrollIntoView` 보강                       |

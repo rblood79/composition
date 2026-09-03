@@ -70,7 +70,13 @@ headless Chrome 60Hz · 격리 프로젝트 · 시드 600 (Text/frame, 전부 `p
 ### 2-5. 착수 시 보강 (G0 — 코드 변경 전 1회)
 
 - [x] **실 문서 root 수 — 확인 (2026-09-03, Chrome MCP, 사용자 프로젝트 "AAAA")**: 26 페이지 · 요소 98 · 현재 페이지 7 · `elements.filter(e => !e.parent_id)` = **1 (body)** → `treeNodes.length` 는 요소 수와 무관하게 1 이라 C1 이 사람이 만든 문서에서도 성립 (측정 Q1 충족). 잔여: `[role="treeitem"]` 수 · `.layer-tree--virtualized` 유무는 boot 가 `visibilityState: hidden` 탭에서 "Preparing the canvas 100%" 에 머물러 (ADR-923 readiness 게이트는 실제 Skia flush 전 UI 를 숨긴다 — 숨은 탭은 RAF 정지) 못 읽었다. Phase 1 착수 시 전면 탭 (visible) 에서 1회 기록.
-- [ ] **현재 동작 체크리스트** (parity 기준선): 키보드 ↑↓ · Home/End · typeahead · shift/meta 다중 선택 · 캔버스 클릭 → 트리 자동 펼침 + 선택 행 가시화 여부 · 우클릭 메뉴 · 삭제 버튼 · DnD 3 케이스 (형제 사이 / 컨테이너 안으로 / 무효 drop) · 패널 숨김→복원 scrollTop. 각 항목의 **현재 결과** 를 기록 (후속 G2/G3 의 대조군).
+- [x] **현재 동작 체크리스트 — 기록 (2026-09-03, Chrome MCP 전면 탭 `visibilityState: visible`, 창 2699×1258 CSS px · DPR 1 · DevTools 미열림 = CPU throttle 없음, main 928058f2c)**. 프로젝트 "123" (대시보드 유일 — 이전 기록의 "AAAA" 는 목록에 없음), Pages 트리 25 행, **Components** 페이지 (body + 11 컨테이너 = 펼침 후 12 행, Form 펼침 시 15 행; Home 은 7 행). 실 DOM: RAC 1.20 `Tree` 는 `role="treegrid"` + 행 `role="row"` (`aria-label` / `aria-level` / `aria-posinset` / `aria-setsize` / `aria-selected` / `aria-expanded`, `data-key`, `data-level`) + 셀 `role="gridcell"` — ADR 의 `[role=treeitem]` 표기는 실 DOM 과 다르므로 이후 계측은 `[role="row"]` 로 센다. 초기 (body 접힘) 행 1, `.layer-tree--virtualized` 없음 (C1·C2 live 확정). 행 높이 28px (`.elementItem` min-height = `--control-size` = calc(1.5rem + 0.25rem)), 트리 `overflow: visible`, 스크롤 컨테이너 = `.section-content` (12 행에서 clientHeight 191 / scrollHeight 352).
+  - 키보드: ↓↓ ListBoxItem → ListBox ✓ · ↑ ✓ · End → Card ✓ (section 스크롤 동반) · Home → body ✓ · typeahead `T` → Toolbar ✓.
+  - 다중 선택 (실 포인터 클릭): ListBox 클릭 → shift+클릭 MenuItem → 선택 **[ListBox, MenuItem] 2 행** (구간 4 행이 아님 — 현재 값, 본 ADR 은 이 값을 대조군으로 쓴다) · meta+클릭 Form → 3 (토글 추가) · meta 재클릭 → 2 · 일반 클릭 → 1.
+  - 캔버스 → 트리: 단일 클릭 → 최상위 MenuItem 선택 + 행 가시 ✓ · 더블 클릭 → 중첩 Text@3 선택, MenuItem 자동 펼침 ✓, **선택 행은 하단이 잘림** (row top 863 / box 684~875, scrollTop 81 유지) — 현재도 선택 행 자동 스크롤은 없다 (G3 대조군).
+  - 우클릭 메뉴: `role=menu` 9 항목 (Copy · Paste · Duplicate · Bring to Front · Bring Forward · Send Backward · Send to Back · Detach component · Delete) ✓ · Escape 닫힘 ✓. 삭제 버튼: 선택 행 `.elementItemActions` 에 "Drag MenuItem" / "Delete MenuItem" ✓ (미실행).
+  - DnD (실 포인터 드래그, HTML5 native): ① 형제 사이 — GridListItem → GridList 뒤 ✓ (Cmd+Z 복원 ✓) · ② 컨테이너 안으로 — Form 을 컨테이너에 "on" 드롭 → 자식으로 이동, 컨테이너 자동 펼침 없음 ✓ (Cmd+Z 복원 ✓) · ③ 무효 — Form → 자기 자식 TextField 위 드롭 → 순서 불변 ✓.
+  - 패널 숨김 → 복원: `.section-content` scrollTop 120 → 헤더 × 숨김 → 좌측 레일 복원 → scrollTop **120** ✓ (C8 capture 리스너 경로 확인).
 
 ## §3 Phase 1 — 스파이크: RAC `Virtualizer` + `ListLayout` (G1)
 
