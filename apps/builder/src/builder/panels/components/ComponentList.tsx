@@ -150,9 +150,8 @@ const ComponentList = memo(
     // Tag → i18n key 매핑 (모든 locale 번역으로 검색 가능)
     const i18nLabelsMap = useMemo(() => {
       const map = new Map<string, string[]>();
-      const specialTagMap: Record<string, string> = {
-        TailSwatch: "colorPicker",
-      };
+      // type 과 i18n key 가 다른 항목만 등재 (TailSwatch → colorPicker 는 2026-09-04 팔레트에서 제거).
+      const specialTagMap: Record<string, string> = {};
       const allLocales = Object.values(translations);
 
       for (const comp of allComponents) {

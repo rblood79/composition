@@ -67,4 +67,8 @@ describe("ADR-912 collapse — getPaletteItems() == palette oracle (회귀 0)", 
     const derivedSeq = derived.map((p) => `${p.category}/${p.type}`);
     expect(derivedSeq).toEqual(oracleSeq);
   });
+
+  it("TailSwatch 는 팔레트에 없다 — ComponentFactory creator 가 없는 dead 항목 (2026-09-04 사용자 판정)", () => {
+    expect(getPaletteItems().some((i) => i.type === "TailSwatch")).toBe(false);
+  });
 });

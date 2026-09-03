@@ -32,5 +32,5 @@
 ## 5. 범위 밖 (기록만)
 
 - **layout 모드 frame body 의 flex row 가 Canvas 에서 column 으로 보인다** — Frame 1 body 는 store·canonical 모두 `display: flex · flexDirection: row` 인데 Slot sidebar (`width: 250px`) 가 390 폭으로 세로 적층되고 width 편집 (100px) 에도 rect 가 안 변한다 (content slot 의 `flex: 1` 은 세로로 반응). Preview 는 layout 모드를 안 그려 대조 표면이 없다. 다음 착수 후보 — 원인은 미확정 (frame body 축 또는 Slot 폭 채널).
-- catalog `TailSwatch` 팔레트 항목이 dead (creator 없음) — 제거 vs 구현은 제품 판단. `TailSwatch.sizes.height 32` 도 그때 정리.
+- ~~catalog `TailSwatch` 팔레트 항목이 dead (creator 없음) — 제거 vs 구현은 제품 판단.~~ **사용자 판정 (2026-09-04): "컴포넌트에서 제공하지 않는다" → 팔레트 노출 제거** (`paletteItems.ts` PALETTE_ONLY · PALETTE_ORDER, `ComponentList` i18n 매핑, oracle fixture; 게이트 `paletteItems.test.ts` "TailSwatch 는 팔레트에 없다"). catalog rule/binding/generated CSS/shared `TailSwatch.tsx` (builder `PropertyColorPicker` 가 `MyColorSwatches` 를 쓴다) 는 남긴다 — 파일 삭제는 별도 승인.
 - Slot.spec `sizes.height` 가 CSS `height` 로 나가지만 Canvas 는 `minHeight` 로 읽는다 — 의미를 spec 에서 `minHeight` 로 옮길지 (CSSGenerator 필드) 별도 판단.

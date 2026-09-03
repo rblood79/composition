@@ -283,12 +283,6 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Gauge",
   },
   {
-    type: "TailSwatch",
-    category: "forms",
-    label: "color picker",
-    icon: "Paintbrush",
-  },
-  {
     type: "DropZone",
     category: "forms",
     label: "drop zone",

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컴포넌트 팔레트에서 동작하지 않던 "color picker" 항목을 뺐습니다] - 2026-09-04
+
+### Removed
+
+- 팔레트의 "color picker" (TailSwatch) 는 클릭해도 요소가 추가되지 않던 항목입니다. 제공하지 않는 컴포넌트로 정리해 팔레트에서 제거했습니다. 속성 패널의 색상 선택 UI 는 그대로입니다.
+
 ## [재사용 프레임 편집에서 새로 넣은 슬롯 (Slot) 이 캔버스에 보입니다] - 2026-09-04
 
 ### Fixed

@@ -141,8 +141,10 @@ export const ICON_MAP: Record<
 
 /**
  * catalog 미등록 7(palette O/catalog X) — builder 측 overlay.
- * §2-5-1a 에서 각 type 의 catalog 전환(C-shell 7 / Image escape / TailSwatch palette-only)은
- * 별도 축. 본 proof 는 ComponentList 파생 메커니즘 증명이 목적이라 7 을 palette-only 로 유지.
+ * §2-5-1a 에서 각 type 의 catalog 전환(C-shell 7 / Image escape)은 별도 축. 본 proof 는
+ * ComponentList 파생 메커니즘 증명이 목적이라 palette-only 로 유지.
+ * TailSwatch 는 2026-09-04 제거 — ComponentFactory creator 가 없어 추가 자체가 안 되던 dead 항목
+ *   (사용자 판정 "컴포넌트에서 제공하지 않는다"). catalog rule/binding/shared 컴포넌트는 별도 정리.
  */
 const PALETTE_ONLY: Record<string, Omit<PanelMeta, "placeable">> = {
   AvatarGroup: { category: "content", label: "avatar group", icon: "Users" },
@@ -155,7 +157,6 @@ const PALETTE_ONLY: Record<string, Omit<PanelMeta, "placeable">> = {
     label: "button group",
     icon: "GroupIcon",
   },
-  TailSwatch: { category: "forms", label: "color picker", icon: "Paintbrush" },
   TableView: {
     category: "collections",
     label: "table view",
@@ -227,7 +228,6 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "Slider", source: "catalog" },
   // Meter: 값 표시 계열 — Slider 뒤 (형제 ProgressBar 는 content 카테고리).
   { type: "Meter", source: "catalog" },
-  { type: "TailSwatch", source: "overlay" },
   { type: "DropZone", source: "catalog" },
   { type: "FileTrigger", source: "catalog" },
   { type: "Form", source: "catalog" },
