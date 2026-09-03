@@ -1,7 +1,7 @@
 ---
 name: debugger
 description: Debugs issues, tracks down bugs, analyzes performance problems, and investigates crashes in composition. Use when the user reports rendering bugs, FPS drops, state management errors, or communication failures.
-model: sonnet
+model: opus
 color: red
 tools:
   - Read
