@@ -30,6 +30,7 @@ import {
   type LayoutRun,
   type ProductionTree,
 } from "./adr923ProductionTrees";
+import { computedDisplayOf, mountProductionRoot } from "./adr923PreviewLeg";
 
 vi.mock("@/builder/factories/utils/elementCreation", async (importOriginal) => {
   const actual =
@@ -65,6 +66,11 @@ const CANDIDATES = [
   "TagList",
 ] as const;
 const DOM_CONFLICTS = ["Checkbox", "Radio", "SliderOutput"] as const;
+/**
+ * Phase 5 후속 HC2 전환 — DOM 을 preview 실경로 (`rendererMap`) 로 재는 type. 전환 commit 마다 한 항목씩
+ * 들어오며, 여기 든 type 은 아래 `renders` (shared 컴포넌트 직접 마운트) 에서 빠진다.
+ */
+const PREVIEW_LEG_TYPES: readonly string[] = ["Skeleton"];
 const UNDECLARED = [
   "Avatar",
   "Breadcrumb",
@@ -412,6 +418,25 @@ beforeAll(async () => {
     }
   }
 
+  // Phase 5 후속 HC2 전환 (2026-09-03) — `전환필요(후속)` 5 의 DOM 은 **preview 실경로** 로 잰다: 팔레트 production
+  //   트리 root 를 App.tsx 와 같은 순서 (`adaptElementStyle` → `rendererMap[type]`) 로 마운트 (`adr923PreviewLeg`).
+  //   Avatar · StatusLight 는 shared 컴포넌트가 아니라 LayoutRenderers 가 자체 div 를 그린다 (renderAvatar flex ·
+  //   renderStatusLight inline-flex) — shared `StatusLight.tsx` (flex) 는 production 표면 어디에도 없다 (publish 는
+  //   `createHtmlElement("div")`). Canvas leg 와 같은 props 로 두 표면을 재는 것이 HC2 의 계약이다.
+  for (const type of PREVIEW_LEG_TYPES) {
+    const owner = trees.find((t) => t.type === type && t.root.type === type);
+    if (!owner) throw new Error(`${type}: 팔레트 production 트리 없음`);
+    const el = await mountProductionRoot(
+      host,
+      roots,
+      owner.elements,
+      type === "Slot" ? "layout" : "page",
+    );
+    live[type] = computedDisplayOf(el);
+    const c = captures.find((x) => x.type === type)!;
+    c.live = live[type];
+  }
+
   // r31m1 — FieldError DOM 상태 짝: 기본 상태 (isInvalid 없음, errorMessage "" — factory 와 같음) 는 RAC 가
   //   FieldError 를 렌더하지 않는다. invalid 상태는 위 표 캡처 (`live.FieldError`) 그대로.
   {
@@ -494,10 +519,10 @@ const HC2: Record<
     box: ".react-aria-FileTrigger — inner flow-root vs flex 는 자식 Button 1개라 배치 차이 없음",
   },
   Skeleton: {
-    canvas: "inline-flex",
-    dom: "block (Skeleton.css:65 live; generated inline-flex 는 dead)",
-    verdict: "전환필요(후속)",
-    box: ".react-aria-Skeleton — catalog structure inline-flex ↔ live CSS block (outer 다름, palette 항목)",
+    canvas: "block",
+    dom: "div:block (live — rendererMap renderSkeleton → Skeleton.tsx .react-aria-Skeleton, Skeleton.css:65; generated inline-flex 는 dead)",
+    verdict: "일치",
+    box: ".react-aria-Skeleton — Phase 5 후속 전환 (2026-09-03): catalog structure inline-flex → block (DOM 실효값)",
   },
   ColorPicker: {
     canvas: "flex",
@@ -697,11 +722,11 @@ describe("ADR-923 Phase 5 — HC2 판정표 (Canvas 전용 display override 33 r
     console.log(`ADR923HC2 verdicts ${JSON.stringify(counts)}`);
     expect(counts).toEqual({
       "전환(Phase 5)": 2,
-      일치: 6,
+      일치: 7,
       "일치(outer)": 14,
       "예외(투영)": 2,
       "예외(inert)": 4,
-      "전환필요(후속)": 5,
+      "전환필요(후속)": 4,
     });
   });
 

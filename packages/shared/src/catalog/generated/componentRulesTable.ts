@@ -10404,7 +10404,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "simple",
       element: "div",
       containerStyles: {
-        display: "inline-flex",
+        // ADR-923 Phase 5 후속 HC2 전환 (2026-09-03): inline-flex → block. DOM 실효값은 수동
+        //   `styles/Skeleton.css:65` (.react-aria-Skeleton display block, Skeleton.tsx import) 이고
+        //   generated/Skeleton.css 는 로드되지 않는다 — Canvas (resolveDefaultDisplay) 가 같은 outer 를 읽도록
+        //   catalog 를 DOM 에 맞춘다. evidence/923-phase5-followup-hc2-conversion.md.
+        display: "block",
         alignItems: "center",
       },
       states: {},
