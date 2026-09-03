@@ -67,7 +67,6 @@ const COMPAT_EXTRACTION_RUNTIME_FILES = [
   "apps/builder/src/adapters/canonical/canonicalRefResolution.ts",
   "apps/builder/src/adapters/canonical/editingSemantics.ts",
   "apps/builder/src/adapters/canonical/canonicalMutations.ts",
-  "apps/builder/src/adapters/canonical/exportLegacyDocument.ts",
 ] as const;
 
 /** design §9.3 grep -g exclude pattern 정합 */

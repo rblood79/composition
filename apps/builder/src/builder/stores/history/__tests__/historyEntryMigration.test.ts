@@ -60,7 +60,7 @@ describe("extractPropsFromDiff", () => {
 });
 
 describe("migrateV1EntryToV2", () => {
-  it("identity preserve: 이미 canonicalEvents 보유한 entry", () => {
+  it("identity preserve: 이미 canonicalEvents 보유한 entry (legacy 없으면 same ref)", () => {
     const existingEvent = {
       type: "update" as const,
       nodeId: "elem-1",
@@ -72,6 +72,27 @@ describe("migrateV1EntryToV2", () => {
     });
     const result = migrateV1EntryToV2(entry);
     expect(result).toBe(entry);
+  });
+
+  it("이미 canonicalEvents 보유 + legacy snapshot → identity (strip deferred until raw-read=0)", () => {
+    const existingEvent = {
+      type: "update" as const,
+      nodeId: "elem-1",
+      prevProps: { a: 1 },
+      nextProps: { a: 2 },
+    };
+    const entry = makeEntry({
+      data: {
+        canonicalEvents: [existingEvent],
+        prevProps: { a: 1 },
+        props: { a: 2 },
+      },
+    });
+    const result = migrateV1EntryToV2(entry);
+    expect(result.data.canonicalEvents).toEqual([existingEvent]);
+    // fallback 안전: strip 은 raw-read=0 이후
+    expect(result.data.prevProps).toEqual({ a: 1 });
+    expect(result.data.props).toEqual({ a: 2 });
   });
 
   it("type=update + diff → CanonicalUpdateEvent 1개", () => {
@@ -176,30 +197,85 @@ describe("migrateV1EntryToV2", () => {
     expect(result.data.canonicalEvents).toHaveLength(2);
   });
 
-  it("type=add + element snapshot → graceful degradation (canonicalEvents: [])", () => {
+  it("type=add + element snapshot → insert canonicalEvents (legacy payload kept for fallback)", () => {
     const entry = makeEntry({
       type: "add",
+      elementId: "btn-1",
       data: {
         element: {
           id: "btn-1",
           type: "Button",
-          props: {},
+          props: { label: "Go" },
+          parent_id: "body-1",
         } as never,
       },
     });
     const result = migrateV1EntryToV2(entry);
-    expect(result.data.canonicalEvents).toEqual([]);
+    expect(result.data.canonicalEvents).toHaveLength(1);
+    expect(result.data.canonicalEvents![0]).toMatchObject({
+      type: "insert",
+      parentId: "body-1",
+      node: expect.objectContaining({ id: "btn-1", type: "Button" }),
+    });
+    expect(result.data.element).toMatchObject({ id: "btn-1" });
   });
 
-  it("type=remove + childElements → graceful degradation", () => {
+  it("type=remove + element/childElements → remove canonicalEvents (legacy payload kept)", () => {
     const entry = makeEntry({
       type: "remove",
+      elementId: "frame-1",
       data: {
-        childElements: [{ id: "child-1", type: "Button", props: {} } as never],
+        element: {
+          id: "frame-1",
+          type: "frame",
+          props: {},
+          parent_id: "body-1",
+        } as never,
+        childElements: [
+          {
+            id: "child-1",
+            type: "Button",
+            props: {},
+            parent_id: "frame-1",
+          } as never,
+        ],
       },
     });
     const result = migrateV1EntryToV2(entry);
-    expect(result.data.canonicalEvents).toEqual([]);
+    expect(result.data.canonicalEvents!.length).toBeGreaterThan(0);
+    expect(
+      result.data.canonicalEvents!.every((event) => event.type === "remove"),
+    ).toBe(true);
+    expect(result.data.element).toMatchObject({ id: "frame-1" });
+    expect(result.data.childElements).toHaveLength(1);
+  });
+
+  it("type=batch + prevElements/elements → replace events (legacy payload kept)", () => {
+    const entry = makeEntry({
+      type: "batch",
+      data: {
+        prevElements: [
+          {
+            id: "btn-1",
+            type: "Button",
+            props: { label: "A" },
+            parent_id: "body-1",
+          } as never,
+        ],
+        elements: [
+          {
+            id: "btn-1",
+            type: "Button",
+            props: { label: "B" },
+            parent_id: "body-1",
+          } as never,
+        ],
+      },
+    });
+    const result = migrateV1EntryToV2(entry);
+    expect(result.data.canonicalEvents!.length).toBeGreaterThan(0);
+    expect(result.data.prevElements).toHaveLength(1);
+    expect(result.data.elements).toHaveLength(1);
   });
 
   it("empty entry → graceful degradation", () => {

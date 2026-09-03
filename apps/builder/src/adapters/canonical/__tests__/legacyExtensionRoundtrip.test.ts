@@ -1,67 +1,33 @@
 /**
- * @fileoverview Legacy events/dataBinding round-trip — ADR-116 Phase 5 G7
- *   본격 cutover (2026-05-01)
+ * @fileoverview ADR-116 Phase 5 G7 canonical extension contract.
  *
- * **검증 영역**:
- * - `legacyToCanonical` 가 element.events / element.dataBinding 를
- *   `x-composition` extension 으로 분리 (metadata.legacyProps 미반영)
- * - `exportLegacyDocument` 가 `x-composition` extension 에서 reverse 추출하여
- *   element.events / element.dataBinding 복원 (top-level field 로 분리)
- * - round-trip 정합 (legacy → canonical → legacy 동등)
- * - `buildLegacyElementMetadata` 는 events/dataBinding 미보존 (dual-storage 종결)
- * - undefined / null edge case
- *
- * **G7 본격 cutover framing**:
- * - transition first slice (metadata.legacyProps dual-storage) 종결.
- * - `x-composition` extension namespace 가 events/dataBinding 단일 SSOT.
- * - 본 file 의 검증 = legacy ↔ canonical adapter 영역의 schema 분리 정합.
- *
- * **isolated 분리 사유**: 본 file 은 store import 무경유 (`legacyMetadata.ts` +
- * `exportLegacyDocument.ts` + `index.ts` 의 `legacyToCanonical` 만 import) —
- * vitest mock 함정 영역 외.
+ * Legacy element 입력의 events/dataBinding은 canonical `x-composition`으로만
+ * 이동하며 metadata.legacyProps에 중복 저장되지 않는다. 프로젝트 JSON
+ * 가져오기/내보내기는 canonical document를 직접 사용하므로 역변환 계약은 없다.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import type {
   CanonicalNode,
   CompositionDocument,
   CompositionExtension,
 } from "@composition/shared";
 
+import type { DataBinding, Element } from "@/types/builder/unified.types";
 import { buildLegacyElementMetadata } from "../legacyMetadata";
-import { exportLegacyDocument } from "../exportLegacyDocument";
 import { legacyToCanonical } from "../index";
-import {
-  firstUserPageNode,
-  userExportedElements,
-} from "./helpers/systemBootstrapNodes";
+import { firstUserPageNode } from "./helpers/systemBootstrapNodes";
 import type { LegacyAdapterInput } from "../types";
-import type { Element } from "@/types/builder/unified.types";
-import type { DataBinding } from "@/types/builder/unified.types";
 
-// legacy fixture: canonical 전환으로 Element 에서 제거된 `order_num` 등을 fixture 가
-// 유지(runtime adapter 가 객체에서 읽음) → 타입만 허용. 값/구조 불변.
 type LegacyEl = Element & {
   order_num?: number;
   reusable?: boolean;
   ref?: string;
 };
 
-function makeCanonicalDoc(children: CanonicalNode[]): CompositionDocument {
-  // canonical document 의 필수 필드는 `version`(접두사 `composition-`) — 구 schema 의
-  // `schemaVersion: "1.0"` 은 제거됨(ADR-903 HC#10). 올바른 필드명으로 정합.
-  return { version: "composition-1.0", children };
-}
-
-/**
- * legacyToCanonical 호출용 minimal deps stub — convertComponentRole 은 단순 baseline
- * (master/instance 분기 미적용), convertPageLayout 은 null 반환 (page 미사용 시).
- */
 const noopDeps = {
   convertComponentRole: () => ({
     reusable: false,
-    // ConvertComponentRoleFn 반환의 ref 는 `string | undefined` (null 아님) — no-op
-    // stub 이므로 undefined (reusable:false 라 runtime 에서 ref 미사용).
     ref: undefined,
     descendantsRemapped: undefined,
     rootOverrides: undefined,
@@ -71,216 +37,178 @@ const noopDeps = {
 
 const TEST_PAGE_ID = "__test_page__";
 
-/**
- * legacyToCanonical 는 elements 를 page_id 기반 grouping → pages 가 비어 있으면
- * element 가 emit 안 됨. test 용 dummy page 로 wrapping 후 첫 page node 의
- * children 으로 element 들이 변환됨.
- */
 function buildCanonicalFromElements(elements: Element[]): CompositionDocument {
   const pageIds = new Set<string>();
-  const elementsWithPage = elements.map((e) => {
-    const pageId = e.page_id ?? TEST_PAGE_ID;
+  const elementsWithPage = elements.map((element) => {
+    const pageId = element.page_id ?? TEST_PAGE_ID;
     pageIds.add(pageId);
-    return { ...e, page_id: pageId };
+    return { ...element, page_id: pageId };
   });
-  const pages = Array.from(pageIds).map((id) => ({
-    id,
-    title: id,
-    project_id: "test-proj",
-    slug: id,
-  }));
   const input: LegacyAdapterInput = {
     elements: elementsWithPage,
-    pages,
+    pages: Array.from(pageIds).map((id) => ({
+      id,
+      title: id,
+      project_id: "test-proj",
+      slug: id,
+    })),
     layouts: [],
   };
   return legacyToCanonical(input, noopDeps);
 }
 
-/**
- * bootstrap origin element 를 걷어낸 export 결과 (fixture 가 넣은 element 만).
- *
- * `legacyToCanonical` 이 모든 document 에 시스템 Components 페이지 + ListBox template
- * origin 을 bootstrap 하므로, 필터 없는 `exportLegacyDocument(doc)[0]` 은 fixture element
- * 가 아니라 `page-components-body` 다.
- */
-function exportUserElements(doc: CompositionDocument): Element[] {
-  return userExportedElements(exportLegacyDocument(doc));
-}
-
-/**
- * dummy page wrapper 안의 첫 element node 추출 (G7 cutover 검증 helper).
- *
- * `legacyToCanonical` 이 시스템 Components 페이지를 첫 편집 페이지 **앞에** bootstrap 하므로
- * `doc.children[0]` 은 dummy page 가 아니다 — `firstUserPageNode` 로 skip 한다.
- */
 function firstElementNode(
   doc: CompositionDocument,
 ): CanonicalNode & { "x-composition"?: CompositionExtension } {
   const node = firstUserPageNode(doc).children?.[0];
-  if (!node) {
-    throw new Error("test fixture: page node has no children");
-  }
-  return node as CanonicalNode & { "x-composition"?: CompositionExtension };
+  if (!node) throw new Error("test fixture: page node has no children");
+  return node as CanonicalNode & {
+    "x-composition"?: CompositionExtension;
+  };
 }
 
-// ─────────────────────────────────────────────
-// A. legacyToCanonical — events/dataBinding → x-composition extension
-// ─────────────────────────────────────────────
-
-describe("legacyToCanonical — G7 cutover events/dataBinding → x-composition extension", () => {
-  it("element.events 정의 → 해당 노드 'x-composition'.events 로 분리", () => {
-    const element: LegacyEl = {
-      id: "el-1",
-      type: "Button",
-      props: { variant: "primary" },
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-      events: [{ id: "evt-1", kind: "onPress" }],
-    };
-
-    const doc = buildCanonicalFromElements([element]);
-    const node = firstElementNode(doc);
-    expect(node["x-composition"]?.events).toEqual([
-      { id: "evt-1", kind: "onPress" },
+describe("A. legacyToCanonical canonical extension", () => {
+  it("events를 x-composition에만 저장한다", () => {
+    const doc = buildCanonicalFromElements([
+      {
+        id: "button",
+        type: "Button",
+        props: { variant: "primary" },
+        parent_id: null,
+        page_id: null,
+        order_num: 0,
+        events: [{ id: "press", kind: "onPress" }],
+      } as LegacyEl,
     ]);
-    // metadata.legacyProps 에 events 미spread (dual-storage 종결)
-    const meta = node.metadata as { legacyProps?: Record<string, unknown> };
-    expect(meta.legacyProps).not.toHaveProperty("events");
+    const node = firstElementNode(doc);
+
+    expect(node["x-composition"]?.events).toEqual([
+      { id: "press", kind: "onPress" },
+    ]);
+    expect(
+      (node.metadata as { legacyProps?: Record<string, unknown> }).legacyProps,
+    ).not.toHaveProperty("events");
+    expect((node as unknown as { events?: unknown }).events).toBeUndefined();
   });
 
-  it("element.dataBinding 정의 → 해당 노드 'x-composition'.dataBinding 으로 분리", () => {
+  it("dataBinding을 x-composition에만 저장한다", () => {
     const dataBinding: DataBinding = {
       type: "collection",
       source: "supabase",
       config: { table: "users" },
     };
-    const element: LegacyEl = {
-      id: "el-2",
-      type: "ListBox",
-      props: { variant: "default" },
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-      dataBinding,
-    };
-
-    const doc = buildCanonicalFromElements([element]);
+    const doc = buildCanonicalFromElements([
+      {
+        id: "list",
+        type: "ListBox",
+        props: {},
+        parent_id: null,
+        page_id: null,
+        order_num: 0,
+        dataBinding,
+      } as LegacyEl,
+    ]);
     const node = firstElementNode(doc);
+
     expect(node["x-composition"]?.dataBinding).toEqual(dataBinding);
-    const meta = node.metadata as { legacyProps?: Record<string, unknown> };
-    expect(meta.legacyProps).not.toHaveProperty("dataBinding");
+    expect(
+      (node.metadata as { legacyProps?: Record<string, unknown> }).legacyProps,
+    ).not.toHaveProperty("dataBinding");
+    expect(
+      (node as unknown as { dataBinding?: unknown }).dataBinding,
+    ).toBeUndefined();
   });
 
-  it("events / dataBinding 양쪽 동시 정의 → extension 동시 분리", () => {
-    const element: LegacyEl = {
-      id: "el-3",
-      type: "Button",
-      props: {},
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-      events: [{ id: "e1", kind: "onPress" }],
-      dataBinding: {
-        type: "value",
-        source: "state",
-        config: { key: "count" },
-      },
-    };
-
-    const doc = buildCanonicalFromElements([element]);
-    const node = firstElementNode(doc);
-    expect(node["x-composition"]?.events).toEqual([
-      { id: "e1", kind: "onPress" },
+  it("events와 dataBinding을 함께 보존한다", () => {
+    const doc = buildCanonicalFromElements([
+      {
+        id: "button",
+        type: "Button",
+        props: {},
+        events: [{ id: "press", kind: "onPress" }],
+        dataBinding: {
+          type: "value",
+          source: "state",
+          config: { key: "count" },
+        },
+      } as LegacyEl,
     ]);
-    expect(node["x-composition"]?.dataBinding).toEqual({
+    const extension = firstElementNode(doc)["x-composition"];
+
+    expect(extension?.events).toEqual([{ id: "press", kind: "onPress" }]);
+    expect(extension?.dataBinding).toEqual({
       type: "value",
       source: "state",
       config: { key: "count" },
     });
   });
 
-  it("events / dataBinding 미정의 → 'x-composition' field 자체 노출 안 함", () => {
-    const element: LegacyEl = {
-      id: "el-4",
-      type: "Button",
-      props: {},
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-    };
+  it("events와 dataBinding이 없으면 extension을 만들지 않는다", () => {
+    const doc = buildCanonicalFromElements([
+      {
+        id: "button",
+        type: "Button",
+        props: {},
+      } as LegacyEl,
+    ]);
 
-    const doc = buildCanonicalFromElements([element]);
-    const node = firstElementNode(doc);
-    expect(node["x-composition"]).toBeUndefined();
+    expect(firstElementNode(doc)["x-composition"]).toBeUndefined();
   });
 
-  it("빈 배열 events 는 extension 미노출 (length === 0 skip)", () => {
-    const element: LegacyEl = {
-      id: "el-5",
-      type: "Button",
-      props: {},
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-      events: [],
-    };
+  it("빈 events 배열이면 extension을 만들지 않는다", () => {
+    const doc = buildCanonicalFromElements([
+      {
+        id: "button",
+        type: "Button",
+        props: {},
+        events: [],
+      } as LegacyEl,
+    ]);
 
-    const doc = buildCanonicalFromElements([element]);
-    const node = firstElementNode(doc);
-    expect(node["x-composition"]?.events).toBeUndefined();
+    expect(firstElementNode(doc)["x-composition"]?.events).toBeUndefined();
   });
 });
 
-// ─────────────────────────────────────────────
-// B. buildLegacyElementMetadata — events/dataBinding 미보존 (dual-storage 종결)
-// ─────────────────────────────────────────────
-
-describe("buildLegacyElementMetadata — G7 cutover dual-storage 종결", () => {
-  it("element.events 정의해도 metadata.legacyProps 에 events 키 미노출", () => {
-    const element: LegacyEl = {
-      id: "el-1",
+describe("B. buildLegacyElementMetadata extension 분리", () => {
+  it("top-level events를 legacyProps에 복제하지 않는다", () => {
+    const metadata = buildLegacyElementMetadata({
+      id: "button",
       type: "Button",
-      props: { variant: "primary" },
-      events: [{ id: "evt-1", kind: "onPress" }],
-    };
+      props: {},
+      events: [{ id: "press", kind: "onPress" }],
+    } as LegacyEl);
 
-    const metadata = buildLegacyElementMetadata(element);
     expect(metadata.legacyProps).not.toHaveProperty("events");
   });
 
-  it("element.dataBinding 정의해도 metadata.legacyProps 에 dataBinding 키 미노출", () => {
-    const element: LegacyEl = {
-      id: "el-2",
+  it("top-level dataBinding을 legacyProps에 복제하지 않는다", () => {
+    const metadata = buildLegacyElementMetadata({
+      id: "list",
       type: "ListBox",
       props: {},
       dataBinding: {
-        type: "collection",
-        source: "supabase",
-        config: { table: "users" },
+        type: "value",
+        source: "state",
+        config: { key: "count" },
       },
-    };
+    } as LegacyEl);
 
-    const metadata = buildLegacyElementMetadata(element);
     expect(metadata.legacyProps).not.toHaveProperty("dataBinding");
   });
 
-  it("element.props 의 events/dataBinding 키는 spread 그대로 보존 (top-level 만 분리)", () => {
-    const element: LegacyEl = {
-      id: "el-3",
+  it("props 안의 동명 사용자 값은 그대로 보존한다", () => {
+    const metadata = buildLegacyElementMetadata({
+      id: "button",
       type: "Button",
       props: {
-        events: [{ id: "props-evt", kind: "onPress" }],
+        events: [{ id: "props-event", kind: "onPress" }],
         dataBinding: { type: "static", source: "static", config: {} },
       },
-      events: [{ id: "top-evt", kind: "onClick" }],
-    };
+      events: [{ id: "top-event", kind: "onClick" }],
+    } as LegacyEl);
 
-    const metadata = buildLegacyElementMetadata(element);
-    // props.events 는 metadata.legacyProps 에 그대로 (top-level events 영향 무관)
     expect(metadata.legacyProps.events).toEqual([
-      { id: "props-evt", kind: "onPress" },
+      { id: "props-event", kind: "onPress" },
     ]);
     expect(metadata.legacyProps.dataBinding).toEqual({
       type: "static",
@@ -290,552 +218,169 @@ describe("buildLegacyElementMetadata — G7 cutover dual-storage 종결", () => 
   });
 });
 
-// ─────────────────────────────────────────────
-// C. exportLegacyDocument — x-composition extension reverse
-// ─────────────────────────────────────────────
-
-describe("exportLegacyDocument — G7 cutover extension reverse", () => {
-  it("'x-composition'.events 보존된 노드 → element.events 복원", () => {
-    const doc = makeCanonicalDoc([
+describe("E. canonical document serialization contract", () => {
+  it("모든 metadata.legacyProps에서 events와 dataBinding을 제거한다", () => {
+    const doc = buildCanonicalFromElements([
       {
-        id: "seg-1",
-        type: "Button",
-        props: {},
-        "x-composition": {
-          events: [{ id: "evt-1", kind: "onPress" }],
-        },
-      } as CanonicalNode,
-    ]);
-
-    const elements = exportUserElements(doc);
-    expect(elements).toHaveLength(1);
-    expect(elements[0].events).toEqual([{ id: "evt-1", kind: "onPress" }]);
-    // props 에 events 미잔존
-    expect(elements[0].props).not.toHaveProperty("events");
-  });
-
-  it("'x-composition'.dataBinding 보존된 노드 → element.dataBinding 복원", () => {
-    const doc = makeCanonicalDoc([
-      {
-        id: "seg-2",
-        type: "ListBox",
-        props: {},
-        "x-composition": {
-          dataBinding: {
-            type: "collection",
-            source: "supabase",
-            config: { table: "users" },
-          },
-        },
-      } as CanonicalNode,
-    ]);
-
-    const [el] = exportUserElements(doc);
-    expect(el.dataBinding).toEqual({
-      type: "collection",
-      source: "supabase",
-      config: { table: "users" },
-    });
-    expect(el.props).not.toHaveProperty("dataBinding");
-  });
-
-  it("extension 미정의 노드 → element 에 events/dataBinding 미정의", () => {
-    const doc = makeCanonicalDoc([
-      {
-        id: "seg-3",
-        type: "Button",
-        props: {},
-      },
-    ]);
-
-    const [el] = exportUserElements(doc);
-    expect(el.events).toBeUndefined();
-    expect(el.dataBinding).toBeUndefined();
-  });
-
-  it("props.events 는 extension 미정의 시 props 로 잔존", () => {
-    const doc = makeCanonicalDoc([
-      {
-        id: "seg-4",
-        type: "Button",
-        props: {
-          events: [{ id: "stale-evt", kind: "onPress" }],
-        },
-      } as CanonicalNode,
-    ]);
-
-    const [el] = exportUserElements(doc);
-    // top-level events 는 미설정 (extension 미정의)
-    expect(el.events).toBeUndefined();
-    expect(el.props.events).toEqual([{ id: "stale-evt", kind: "onPress" }]);
-  });
-
-  it("component ref descendants.children 은 override payload 로만 보존하고 element 로 중복 export 하지 않는다", () => {
-    const doc = makeCanonicalDoc([
-      {
-        id: "card-origin",
-        type: "Card",
-        reusable: true,
-        props: {},
-        children: [
-          {
-            id: "card-header",
-            type: "CardHeader",
-            props: {},
-            children: [
-              {
-                id: "card-heading",
-                type: "Heading",
-                props: { children: "Origin" },
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: "card-instance",
-        type: "ref",
-        ref: "card-origin",
-        props: {},
-        descendants: {
-          "card-header": {
-            children: [
-              {
-                id: "card-heading",
-                type: "Heading",
-                props: { children: "Instance" },
-              },
-            ],
-          },
-        },
-      } as CanonicalNode,
-    ]);
-
-    const elements = exportUserElements(doc);
-
-    expect(
-      elements.filter((element) => element.id === "card-heading"),
-    ).toHaveLength(1);
-    expect(
-      elements.find((element) => element.id === "card-instance"),
-    ).toMatchObject({
-      componentRole: "instance",
-      masterId: "card-origin",
-      descendants: {
-        "card-header": {
-          children: [
-            expect.objectContaining({
-              id: "card-heading",
-              type: "Heading",
-            }),
-          ],
-        },
-      },
-    });
-  });
-
-  it("page ref descendants.children 은 page content 로 export 한다", () => {
-    const doc = makeCanonicalDoc([
-      {
-        id: "page-1",
-        type: "ref",
-        ref: "layout-frame-1",
-        metadata: { type: "legacy-page", pageId: "page-1" },
-        descendants: {
-          content: {
-            children: [
-              {
-                id: "page-card",
-                type: "Card",
-                props: {},
-              },
-            ],
-          },
-        },
-      } as CanonicalNode,
-      {
-        id: "layout-frame-1",
-        type: "frame",
-        reusable: true,
-        metadata: { type: "legacy-layout", layoutId: "frame-1" },
-        children: [],
-      },
-    ]);
-
-    expect(exportUserElements(doc)).toEqual([
-      expect.objectContaining({
-        id: "page-card",
-        page_id: "page-1",
-      }),
-    ]);
-  });
-});
-
-// ─────────────────────────────────────────────
-// D. round-trip 정합 (legacy → canonical → legacy 동등)
-// ─────────────────────────────────────────────
-
-describe("Round-trip — legacy → canonical (extension) → legacy 동등", () => {
-  it("Button + events round-trip preserves canonical props and extension", () => {
-    const original: LegacyEl = {
-      id: "el-rt-1",
-      customId: "el-rt-1",
-      type: "Button",
-      props: { variant: "primary", children: "Click" },
-      parent_id: null,
-      page_id: "page-1",
-      order_num: 5,
-      events: [{ id: "evt-rt", kind: "onPress" }],
-    };
-
-    const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportUserElements(doc);
-    expect(restored.id).toBe(original.id);
-    expect(restored.type).toBe(original.type);
-    expect(restored.props).toEqual(original.props);
-    expect(restored.parent_id).toBe(original.parent_id);
-    expect(restored.page_id).toBe(original.page_id);
-    expect(restored).not.toHaveProperty("order_num");
-    expect(restored.events).toEqual(original.events);
-    // props 에 events 누락 (extension 으로 분리됨)
-    expect(restored.props).not.toHaveProperty("events");
-  });
-
-  it("ListBox + dataBinding round-trip 동등", () => {
-    const original: LegacyEl = {
-      id: "el-rt-2",
-      customId: "el-rt-2",
-      type: "ListBox",
-      props: { variant: "default" },
-      parent_id: null,
-      page_id: "page-1",
-      order_num: 0,
-      dataBinding: {
-        type: "collection",
-        source: "supabase",
-        config: { table: "items", limit: 50 },
-      },
-    };
-
-    const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportUserElements(doc);
-    expect(restored.dataBinding).toEqual(original.dataBinding);
-    expect(restored.props).not.toHaveProperty("dataBinding");
-  });
-
-  it("events + dataBinding 동시 round-trip 동등", () => {
-    const original: LegacyEl = {
-      id: "el-rt-3",
-      customId: "el-rt-3",
-      type: "Button",
-      props: { variant: "primary" },
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-      events: [
-        { id: "e1", kind: "onPress" },
-        { id: "e2", kind: "onHover" },
-      ],
-      dataBinding: {
-        type: "value",
-        source: "state",
-        config: { key: "count" },
-      },
-    };
-
-    const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportUserElements(doc);
-    expect(restored.events).toEqual(original.events);
-    expect(restored.dataBinding).toEqual(original.dataBinding);
-    expect(restored.props).toEqual({ variant: "primary" });
-  });
-
-  it("events/dataBinding 미정의 element round-trip — restored 도 미정의", () => {
-    const original: LegacyEl = {
-      id: "el-rt-4",
-      customId: "el-rt-4",
-      type: "Box",
-      props: { name: "container" },
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-    };
-
-    const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportUserElements(doc);
-    expect(restored.events).toBeUndefined();
-    expect(restored.dataBinding).toBeUndefined();
-  });
-
-  it("element.props.events 와 top-level events 공존 — props.events 보존 + top-level 우선 분리", () => {
-    const original: LegacyEl = {
-      id: "el-rt-5",
-      customId: "el-rt-5",
-      type: "Button",
-      props: {
-        variant: "primary",
-        events: [{ id: "props-evt", kind: "onPress" }],
-      },
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-      events: [{ id: "top-evt", kind: "onClick" }],
-    };
-
-    const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportUserElements(doc);
-    // top-level events = extension 으로 분리 후 복원
-    expect(restored.events).toEqual([{ id: "top-evt", kind: "onClick" }]);
-    // props.events 는 CanonicalNode.props 통해 복원
-    expect(restored.props.events).toEqual([
-      { id: "props-evt", kind: "onPress" },
-    ]);
-  });
-});
-
-// ─────────────────────────────────────────────
-// E. G7 closure marker — canonical document 직렬화 형태 contract
-// ─────────────────────────────────────────────
-
-/**
- * **G7 closure 의 본질**: events/dataBinding 가 canonical document 의 직렬화
- * 형태에서 `x-composition` extension 단일 위치에만 존재. metadata.legacyProps
- * (transition first slice 의 dual-storage) 또는 다른 위치에는 0건.
- *
- * 본 contract 검증은 canonical document 의 schema 정합성 보장 — Phase 3 G4
- * canonical primary write 진입 시점에 events/dataBinding 의 SSOT 가 extension
- * 임을 grep gate 자동 검증.
- *
- * 본 영역 외 write boundary 5 site (Inspector mapper / history undo-redo /
- * AI tool / factory / Events Panel) 는 element top-level events/dataBinding
- * 직접 write 영역 — Phase 3 G4 canonical primary write 진입 시점의 migration
- * 영역 (G7 closure 의 일부 아님). design §10.2.12 분류 참조.
- */
-describe("G7 closure marker — canonical document 직렬화 형태 contract", () => {
-  it("legacyToCanonical 결과의 모든 metadata.legacyProps 에 events/dataBinding 키 0건", () => {
-    const elements: LegacyEl[] = [
-      {
-        id: "el-c-1",
+        id: "button",
         type: "Button",
         props: { variant: "primary" },
-        events: [{ id: "evt-1", kind: "onPress" }],
-      },
+        events: [{ id: "press", kind: "onPress" }],
+      } as LegacyEl,
       {
-        id: "el-c-2",
+        id: "list",
         type: "ListBox",
-        props: { variant: "default" },
+        props: {},
         dataBinding: {
           type: "collection",
           source: "supabase",
           config: { table: "users" },
         },
-      },
+      } as LegacyEl,
       {
-        id: "el-c-3",
+        id: "box",
         type: "Box",
-        props: { name: "container" },
-        // events/dataBinding 미정의
-      },
-    ];
+        props: {},
+      } as LegacyEl,
+    ]);
 
-    const doc = buildCanonicalFromElements(elements);
-
-    // DFS 순회 — 모든 노드의 metadata.legacyProps 에 events/dataBinding 키 0건
     function visit(node: CanonicalNode): void {
-      const meta = node.metadata as
-        | { legacyProps?: Record<string, unknown> }
-        | undefined;
-      if (meta?.legacyProps) {
-        expect(meta.legacyProps).not.toHaveProperty("events");
-        expect(meta.legacyProps).not.toHaveProperty("dataBinding");
+      const legacyProps = (
+        node.metadata as { legacyProps?: Record<string, unknown> } | undefined
+      )?.legacyProps;
+      if (legacyProps) {
+        expect(legacyProps).not.toHaveProperty("events");
+        expect(legacyProps).not.toHaveProperty("dataBinding");
       }
-      if (node.children) {
-        for (const child of node.children) visit(child);
-      }
+      node.children?.forEach(visit);
     }
-    for (const child of doc.children) visit(child);
+
+    doc.children.forEach(visit);
   });
 
-  it("legacyToCanonical 결과 — events 정의 element 가 있으면 해당 노드의 'x-composition'.events 단일 위치에만 존재", () => {
-    const original: LegacyEl = {
-      id: "el-c-events",
-      type: "Button",
-      props: {},
-      events: [{ id: "evt-c", kind: "onPress" }],
-    };
+  it("events를 x-composition의 단일 위치에 직렬화한다", () => {
+    const node = firstElementNode(
+      buildCanonicalFromElements([
+        {
+          id: "button",
+          type: "Button",
+          props: {},
+          events: [{ id: "press", kind: "onPress" }],
+        } as LegacyEl,
+      ]),
+    );
 
-    const doc = buildCanonicalFromElements([original]);
-    const node = firstElementNode(doc);
-
-    // 직렬화 형태 contract: x-composition.events 에만 존재
     expect(node["x-composition"]?.events).toEqual([
-      { id: "evt-c", kind: "onPress" },
+      { id: "press", kind: "onPress" },
     ]);
-    // 다른 위치 0건 (metadata.legacyProps / node 직접 / children 등)
-    const meta = node.metadata as
-      | { legacyProps?: Record<string, unknown> }
-      | undefined;
-    expect(meta?.legacyProps).not.toHaveProperty("events");
+    expect(
+      (node.metadata as { legacyProps?: Record<string, unknown> }).legacyProps,
+    ).not.toHaveProperty("events");
     expect((node as unknown as { events?: unknown }).events).toBeUndefined();
   });
 
-  it("legacyToCanonical 결과 — dataBinding 정의 element 가 있으면 해당 노드의 'x-composition'.dataBinding 단일 위치에만 존재", () => {
-    const original: LegacyEl = {
-      id: "el-c-db",
-      type: "ListBox",
-      props: {},
-      dataBinding: {
-        type: "value",
-        source: "state",
-        config: { key: "count" },
-      },
-    };
-
-    const doc = buildCanonicalFromElements([original]);
-    const node = firstElementNode(doc);
+  it("dataBinding을 x-composition의 단일 위치에 직렬화한다", () => {
+    const node = firstElementNode(
+      buildCanonicalFromElements([
+        {
+          id: "list",
+          type: "ListBox",
+          props: {},
+          dataBinding: {
+            type: "value",
+            source: "state",
+            config: { key: "count" },
+          },
+        } as LegacyEl,
+      ]),
+    );
 
     expect(node["x-composition"]?.dataBinding).toEqual({
       type: "value",
       source: "state",
       config: { key: "count" },
     });
-    const meta = node.metadata as
-      | { legacyProps?: Record<string, unknown> }
-      | undefined;
-    expect(meta?.legacyProps).not.toHaveProperty("dataBinding");
+    expect(
+      (node.metadata as { legacyProps?: Record<string, unknown> }).legacyProps,
+    ).not.toHaveProperty("dataBinding");
     expect(
       (node as unknown as { dataBinding?: unknown }).dataBinding,
     ).toBeUndefined();
   });
 
-  it("legacyToCanonical 결과 — events/dataBinding 미정의 element 는 'x-composition' 자체 노출 안 함", () => {
-    const original: LegacyEl = {
-      id: "el-c-none",
-      type: "Box",
-      props: { name: "container" },
-    };
+  it("extension 값이 없으면 x-composition을 직렬화하지 않는다", () => {
+    const node = firstElementNode(
+      buildCanonicalFromElements([
+        {
+          id: "box",
+          type: "Box",
+          props: {},
+        } as LegacyEl,
+      ]),
+    );
 
-    const doc = buildCanonicalFromElements([original]);
-    const node = firstElementNode(doc);
     expect(node["x-composition"]).toBeUndefined();
   });
 });
 
-// ─────────────────────────────────────────────
-// F. G6-2 second slice — history parity 자동 cover (canonicalDocumentSync 회로)
-// ─────────────────────────────────────────────
-
-/**
- * **G6-2 second slice (§10.2.13)** — legacy history undo/redo → canonical store
- * sync 회로의 events/dataBinding 자동 cover evidence.
- *
- * **회로**: `useStore mutation` → `canonicalDocumentSync.scheduleSync` →
- * `selectCanonicalDocument(state, pages, layouts)` → `legacyToCanonical(input)` →
- * `useCanonicalDocumentStore.setDocument(...)`. 본 회로의 핵심 변환 단계 =
- * `legacyToCanonical` — events/dataBinding 가 `x-composition` extension 으로
- * 직렬화. mutation forward/reverse (undo/redo) 모두 동일 변환 경로 통과 →
- * **history parity 가 G7 cutover 의 결과로 자동 cover**.
- *
- * **isolated 검증 패턴** (vitest mock path resolution 회피):
- * - `canonicalDocumentSync.test.ts` 는 `useStore` import 시 `stores/index.ts`
- *   evaluation 로 `createElementsSlice is not a function` setup fail (별 영역).
- * - 본 file 은 `legacyToCanonical` + `exportLegacyDocument` 만 import →
- *   store 무경유 → 회로의 핵심 변환 단계 단독 검증.
- *
- * **검증 의의**: G7 본격 cutover 후 events/dataBinding 가 `x-composition`
- * 단일 SSOT 로 직렬화 → history undo (events 제거) / redo (events 복원) 도
- * 동일 회로 통과 → write-through sync 의 events/dataBinding 자동 cover
- * evidence 도달.
- */
-describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSync 회로)", () => {
-  it("forward mutation (events 추가) → legacyToCanonical → x-composition.events 직렬화", () => {
+describe("F. canonical extension history parity", () => {
+  it("events 추가를 canonical extension에 반영한다", () => {
     const baseline: LegacyEl = {
-      id: "el-h-1",
+      id: "button",
       type: "Button",
-      props: { variant: "primary" },
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-      // events 미정의 (initial)
+      props: {},
     };
-
-    // mutation: events 추가
-    const mutated: LegacyEl = {
-      ...baseline,
-      events: [{ id: "evt-h", kind: "onPress" }],
-    };
-
-    const docInitial = buildCanonicalFromElements([baseline]);
-    const docMutated = buildCanonicalFromElements([mutated]);
-
-    expect(firstElementNode(docInitial)["x-composition"]).toBeUndefined();
-    expect(firstElementNode(docMutated)["x-composition"]?.events).toEqual([
-      { id: "evt-h", kind: "onPress" },
-    ]);
-  });
-
-  it("reverse mutation (events 제거 = history.undo) → x-composition.events 미노출", () => {
     const withEvents: LegacyEl = {
-      id: "el-h-2",
-      type: "Button",
-      props: {},
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-      events: [{ id: "evt-h", kind: "onPress" }],
+      ...baseline,
+      events: [{ id: "press", kind: "onPress" }],
     };
 
-    // history.undo() simulation: events 제거
-    const undone: LegacyEl = {
-      ...withEvents,
-      events: undefined,
-    };
-
-    const docMutated = buildCanonicalFromElements([withEvents]);
-    const docUndone = buildCanonicalFromElements([undone]);
-
-    expect(firstElementNode(docMutated)["x-composition"]?.events).toEqual([
-      { id: "evt-h", kind: "onPress" },
-    ]);
-    expect(firstElementNode(docUndone)["x-composition"]).toBeUndefined();
+    expect(
+      firstElementNode(buildCanonicalFromElements([baseline]))["x-composition"],
+    ).toBeUndefined();
+    expect(
+      firstElementNode(buildCanonicalFromElements([withEvents]))[
+        "x-composition"
+      ]?.events,
+    ).toEqual([{ id: "press", kind: "onPress" }]);
   });
 
-  it("re-mutation (events 재추가 = history.redo) → x-composition.events 재직렬화", () => {
-    const undone: LegacyEl = {
-      id: "el-h-3",
+  it("events 제거를 canonical extension에 반영한다", () => {
+    const withEvents: LegacyEl = {
+      id: "button",
       type: "Button",
       props: {},
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-      // undo 직후 미정의
+      events: [{ id: "press", kind: "onPress" }],
     };
 
-    // history.redo() simulation: events 재추가
+    expect(
+      firstElementNode(
+        buildCanonicalFromElements([{ ...withEvents, events: undefined }]),
+      )["x-composition"],
+    ).toBeUndefined();
+  });
+
+  it("events 재추가를 canonical extension에 반영한다", () => {
     const redone: LegacyEl = {
-      ...undone,
-      events: [{ id: "evt-r", kind: "onPress" }],
+      id: "button",
+      type: "Button",
+      props: {},
+      events: [{ id: "press", kind: "onPress" }],
     };
 
-    const docUndone = buildCanonicalFromElements([undone]);
-    const docRedone = buildCanonicalFromElements([redone]);
-
-    expect(firstElementNode(docUndone)["x-composition"]).toBeUndefined();
-    expect(firstElementNode(docRedone)["x-composition"]?.events).toEqual([
-      { id: "evt-r", kind: "onPress" },
-    ]);
+    expect(
+      firstElementNode(buildCanonicalFromElements([redone]))["x-composition"]
+        ?.events,
+    ).toEqual([{ id: "press", kind: "onPress" }]);
   });
 
-  it("dataBinding mutation forward/reverse 회로 — undo/redo 동일 cover", () => {
+  it("dataBinding 추가·제거를 canonical extension에 반영한다", () => {
     const baseline: LegacyEl = {
-      id: "el-h-4",
+      id: "list",
       type: "ListBox",
-      props: { variant: "default" },
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
+      props: {},
     };
-    const withDb: LegacyEl = {
+    const withBinding: LegacyEl = {
       ...baseline,
       dataBinding: {
         type: "collection",
@@ -843,86 +388,57 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
         config: { table: "items" },
       },
     };
-    const undone: LegacyEl = { ...withDb, dataBinding: undefined };
 
-    const docInitial = buildCanonicalFromElements([baseline]);
-    const docMutated = buildCanonicalFromElements([withDb]);
-    const docUndone = buildCanonicalFromElements([undone]);
-
-    expect(firstElementNode(docInitial)["x-composition"]).toBeUndefined();
-    expect(firstElementNode(docMutated)["x-composition"]?.dataBinding).toEqual({
+    expect(
+      firstElementNode(buildCanonicalFromElements([withBinding]))[
+        "x-composition"
+      ]?.dataBinding,
+    ).toEqual({
       type: "collection",
       source: "supabase",
       config: { table: "items" },
     });
-    // undo: dataBinding 제거 → x-composition 미노출
-    expect(firstElementNode(docUndone)["x-composition"]).toBeUndefined();
+    expect(
+      firstElementNode(
+        buildCanonicalFromElements([
+          { ...withBinding, dataBinding: undefined },
+        ]),
+      )["x-composition"],
+    ).toBeUndefined();
   });
 
-  it("multi-element mutation (events + dataBinding 동시 변경) 회로 정합", () => {
-    const elements: LegacyEl[] = [
+  it("여러 노드의 extension을 각 canonical node에 분리한다", () => {
+    const doc = buildCanonicalFromElements([
       {
-        id: "el-m-1",
+        id: "button",
         type: "Button",
         props: {},
-        parent_id: null,
-        page_id: null,
         order_num: 0,
-        events: [{ id: "e-1", kind: "onPress" }],
-      },
+        events: [{ id: "press", kind: "onPress" }],
+      } as LegacyEl,
       {
-        id: "el-m-2",
+        id: "list",
         type: "ListBox",
         props: {},
-        parent_id: null,
-        page_id: null,
         order_num: 1,
-        dataBinding: { type: "value", source: "state", config: { key: "x" } },
-      },
-    ];
-
-    const doc = buildCanonicalFromElements(elements);
-    const pageNode = firstUserPageNode(doc);
-    const node1 = pageNode.children![0] as CanonicalNode & {
-      "x-composition"?: CompositionExtension;
-    };
-    const node2 = pageNode.children![1] as CanonicalNode & {
-      "x-composition"?: CompositionExtension;
-    };
-
-    expect(node1["x-composition"]?.events).toEqual([
-      { id: "e-1", kind: "onPress" },
+        dataBinding: {
+          type: "value",
+          source: "state",
+          config: { key: "items" },
+        },
+      } as LegacyEl,
     ]);
-    expect(node2["x-composition"]?.dataBinding).toEqual({
+    const nodes = firstUserPageNode(doc).children as Array<
+      CanonicalNode & { "x-composition"?: CompositionExtension }
+    >;
+
+    expect(nodes[0]["x-composition"]?.events).toEqual([
+      { id: "press", kind: "onPress" },
+    ]);
+    expect(nodes[1]["x-composition"]?.dataBinding).toEqual({
       type: "value",
       source: "state",
-      config: { key: "x" },
+      config: { key: "items" },
     });
-    // 양 노드 모두 metadata.legacyProps 에는 events/dataBinding 미spread (G7 cutover 정합)
-    const meta1 = node1.metadata as { legacyProps?: Record<string, unknown> };
-    const meta2 = node2.metadata as { legacyProps?: Record<string, unknown> };
-    expect(meta1.legacyProps).not.toHaveProperty("events");
-    expect(meta2.legacyProps).not.toHaveProperty("dataBinding");
-  });
-
-  it("round-trip 보장 — mutation forward → legacyToCanonical → exportLegacyDocument → element 동등 (history.undo 후 재mutation 도 동등)", () => {
-    const original: LegacyEl = {
-      id: "el-rt-h",
-      type: "Button",
-      props: { variant: "primary" },
-      parent_id: null,
-      page_id: null,
-      order_num: 0,
-      events: [{ id: "rt-evt", kind: "onPress" }],
-      dataBinding: { type: "value", source: "state", config: { key: "y" } },
-    };
-
-    const doc = buildCanonicalFromElements([original]);
-    const [restored] = exportUserElements(doc);
-
-    // history undo simulation: 변경 직전 element 재구성. forward → reverse 동등
-    expect(restored.events).toEqual(original.events);
-    expect(restored.dataBinding).toEqual(original.dataBinding);
-    expect(restored.props).toEqual({ variant: "primary" });
   });
 });

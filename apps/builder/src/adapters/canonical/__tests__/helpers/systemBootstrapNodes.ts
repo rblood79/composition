@@ -16,7 +16,6 @@
  */
 
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import type { Element } from "@/types/builder/unified.types";
 import { COMPONENTS_SYSTEM_PAGE_ID } from "@/builder/pages/systemComponentsPage";
 
 export { COMPONENTS_SYSTEM_PAGE_ID };
@@ -43,11 +42,4 @@ export function firstUserPageNode(doc: CompositionDocument): CanonicalNode {
   const node = userDocumentChildren(doc)[0];
   if (!node) throw new Error("test fixture: no user page node in document");
   return node;
-}
-
-/** `exportLegacyDocument` 결과에서 bootstrap origin element 를 제외한 것. */
-export function userExportedElements(elements: Element[]): Element[] {
-  return elements.filter(
-    (element) => element.page_id !== COMPONENTS_SYSTEM_PAGE_ID,
-  );
 }

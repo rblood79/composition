@@ -64,6 +64,10 @@ local Builder 실측:
 `panelWorkspaceLayoutV3Rollback.ts`는 actual surface rect로 v3를 검증하고 다음 source를
 구분한다.
 
+> 2026-09-03: 이 V3→V2 rollback build 전용 구현은 V4 전환 완료 후 production
+> 호출이 없어 제거됐다. 현행 복구는 `panelWorkspaceLayoutV4Persistence.ts`의
+> V3 exact backup과 V3→V4 migration이 담당한다.
+
 | source                        | v2 target                                                       |
 | ----------------------------- | --------------------------------------------------------------- |
 | migration 직후 byte-identical | matching `composition-panel-layout.v2-backup`의 exact raw       |

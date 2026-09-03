@@ -20,6 +20,7 @@ Implemented — 2026-05-12
 - 2026-05-12 Phase 4 land — ADR-121~127 Status block 에 "Superseded in part by ADR-128" 1-line addendum 추가 (ADR-123 은 in full)
 - 2026-05-12 Phase 5 baseline 측정 — type-error 683 / 번들 raw 5.4MB / gzipped 1.5MB 산출. Phase 0 절대 baseline 부재로 본 측정은 "ADR-128 land 후 reference baseline"
 - 2026-05-12 Phase 6 final freeze — `.type-errors-baseline.txt` 683 freeze + Status Implemented 승격 + README + CHANGELOG
+- 2026-09-03 후속 정리 — 프로젝트 JSON 가져오기/내보내기가 canonical document를 직접 저장·복원하므로 Phase 3의 `exportLegacyDocument()` 보존 결정은 더 이상 필요하지 않다. production 호출 0인 역변환 helper와 전용 테스트를 제거하고 `legacyToCanonical()`의 기존 데이터 변환 테스트는 유지한다.
 
 ## Context
 
@@ -39,7 +40,7 @@ composition Builder 의 backend 의존성을 재평가한 결과, Supabase 사�
 
 **Baseline framing reverse (CRITICAL)**:
 
-ADR-121~127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (예: ADR-122 `exportLegacyDocument()` 는 cloud/export/import/temporary compatibility boundary 에서만, ADR-123 cloud documents row schema 단일화, ADR-126 boundary 18 file 유지) 은 **cloud 사용을 가정한 premise 기반**이었다. 본 사실 (cloud 사용 zero) 확정 후 그 premise 가 stale 이며, 본 ADR 이 ADR-121~127 의 cloud-only boundary 부분을 **part-supersede** 한다 (internal canonical 정리 부분은 그대로 유지).
+ADR-121–127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (예: ADR-122 `exportLegacyDocument()` 는 cloud/export/import/temporary compatibility boundary 에서만, ADR-123 cloud documents row schema 단일화, ADR-126 boundary 18 file 유지) 은 **cloud 사용을 가정한 premise 기반**이었다. 본 사실 (cloud 사용 zero) 확정 후 그 premise 가 stale 이며, 본 ADR 이 ADR-121–127 의 cloud-only boundary 부분을 **part-supersede** 한다 (internal canonical 정리 부분은 그대로 유지).
 
 **Hard Constraints**:
 
@@ -136,14 +137,14 @@ ADR-121~127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (�
 
 ## Gates
 
-| Gate          | 시점                                        | 통과 조건                                                                                                                                                                                                                                                        | 실패 시 대안                                                                   |
-| ------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| G-Phase-1     | sub-phase 1-α~1-ε 진행 직전                 | (a) grep import 으로 cloud 의존 외부 호출자 0건 (b) targeted vitest baseline PASS                                                                                                                                                                                | 외부 호출자 발견 시 해당 sub-phase 분리 + 호출자 우선 정리                     |
-| G-Phase-2     | adapter file 제거 직전                      | (a) `legacyElementsApiService` / `PagesApiService` cloud part import grep 0건 (b) `apps/builder/src/services/api/` 영역 의존 분석 완료                                                                                                                           | 잔존 호출자 발견 시 file scope 재정의 (IndexedDB-only adapter 로 rename)       |
-| G-Phase-3     | export/import scope 결정 직전               | 사용자 explicit confirm — file export / import 시나리오 유지 vs 제거                                                                                                                                                                                             | confirm 미완료 시 Phase 3 진입 차단, Phase 1~2 만 land 후 ADR Implemented 보류 |
-| G-Phase-4     | ADR-121~127 addendum 작성 직전              | 본 ADR 본문 §Risks R4 의 addendum 형식 표준화 사용                                                                                                                                                                                                               | 형식 미정합 시 R4 대응 절차 적용                                               |
-| G-Phase-5     | baseline refresh (type-error + 번들 사이즈) | (a) Phase 1~4 commit 후 `pnpm type-check` PASS + type-error baseline 자동 감소량 측정 결과 메모리 `project-type-baseline-categories` 에 반영 (b) `pnpm build` 후 번들 사이즈 감소량 측정 + design breakdown §7 §5-B 에 수치 기록 (목표 추정 -15~-40KB 정합 확인) | 자동 감소 0 시 dead 기인 가정 재검토 + ADR scope 축소                          |
-| G-Implemented | ADR Status 승격                             | (a) Phase 1~4 all PASS (b) Phase 5 baseline 측정 완료 (c) 사용자 환경 smoke (create/edit/delete/undo/redo 시나리오) PASS                                                                                                                                         | 미통과 항목 잔존 시 Implemented 보류, Accepted 단계 유지                       |
+| Gate          | 시점                                        | 통과 조건                                                                                                                                                                                                                                                           | 실패 시 대안                                                                   |
+| ------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| G-Phase-1     | sub-phase 1-α~1-ε 진행 직전                 | (a) grep import 으로 cloud 의존 외부 호출자 0건 (b) targeted vitest baseline PASS                                                                                                                                                                                   | 외부 호출자 발견 시 해당 sub-phase 분리 + 호출자 우선 정리                     |
+| G-Phase-2     | adapter file 제거 직전                      | (a) `legacyElementsApiService` / `PagesApiService` cloud part import grep 0건 (b) `apps/builder/src/services/api/` 영역 의존 분석 완료                                                                                                                              | 잔존 호출자 발견 시 file scope 재정의 (IndexedDB-only adapter 로 rename)       |
+| G-Phase-3     | export/import scope 결정 직전               | 사용자 explicit confirm — file export / import 시나리오 유지 vs 제거                                                                                                                                                                                                | confirm 미완료 시 Phase 3 진입 차단, Phase 1~2 만 land 후 ADR Implemented 보류 |
+| G-Phase-4     | ADR-121~127 addendum 작성 직전              | 본 ADR 본문 §Risks R4 의 addendum 형식 표준화 사용                                                                                                                                                                                                                  | 형식 미정합 시 R4 대응 절차 적용                                               |
+| G-Phase-5     | baseline refresh (type-error + 번들 사이즈) | (a) Phase 1–4 commit 후 `pnpm type-check` PASS + type-error baseline 자동 감소량 측정 결과 메모리 `project-type-baseline-categories` 에 반영 (b) `pnpm build` 후 번들 사이즈 감소량 측정 + design breakdown §7 §5-B 에 수치 기록 (목표 추정 15–40KB 감소 정합 확인) | 자동 감소 0 시 dead 기인 가정 재검토 + ADR scope 축소                          |
+| G-Implemented | ADR Status 승격                             | (a) Phase 1~4 all PASS (b) Phase 5 baseline 측정 완료 (c) 사용자 환경 smoke (create/edit/delete/undo/redo 시나리오) PASS                                                                                                                                            | 미통과 항목 잔존 시 Implemented 보류, Accepted 단계 유지                       |
 
 ## Consequences
 

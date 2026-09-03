@@ -1,7 +1,6 @@
 const ADR126_ELEMENT_IMPORT_ALLOWED_FILES = new Set([
   "src/adapters/canonical/canonicalMutations.ts",
   "src/adapters/canonical/componentSemanticsMirror.ts",
-  "src/adapters/canonical/exportLegacyDocument.ts",
   "src/adapters/canonical/frameLayoutCascade.ts",
   "src/adapters/canonical/idPath.ts",
   "src/adapters/canonical/index.ts",

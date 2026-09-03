@@ -19,7 +19,7 @@ paths:
 
 ## Zustand 패턴
 
-> **ADR-116/122 Implemented (2026-05-02 / 2026-05-09)**: `CompositionDocument` canonical schema 가 primary SSOT 로 land 완료. Builder runtime hot path 의 legacy `elementsMap`/`childrenMap` mutable subscription / mutation 은 0건 — canonical store + read-only derived snapshot 으로 갈음. 잔존 boundary helper (`frameMirror` / `slotMirror` / `componentSemanticsMirror` / `compositionExtensionFields` / `exportLegacyDocument`) 는 ADR-116 G7 + ADR-122 HC.3 boundary allowlist 내 의도된 architectural 영역. canonical 흐름 상세는 [docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md) 참조
+> **ADR-116/122 Implemented (2026-05-02 / 2026-05-09)**: `CompositionDocument` canonical schema 가 primary SSOT 로 전환 완료. Builder runtime hot path 의 legacy `elementsMap`/`childrenMap` mutable subscription / mutation 은 0건 — canonical store + read-only derived snapshot 으로 갈음. 잔존 boundary helper (`frameMirror` / `slotMirror` / `componentSemanticsMirror` / `compositionExtensionFields`) 는 runtime에 필요한 격리 영역이다. 프로젝트 JSON 가져오기/내보내기는 canonical document를 직접 사용하며 legacy `Element[]` 역변환 helper는 2026-09-03 제거됐다. canonical 흐름 상세는 [docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md) 참조
 
 - StateCreator factory 패턴 + 슬라이스 개별 파일 분리
 - O(1) 인덱스: elementsMap(요소), childrenMap(자식), pageIndex(페이지). 배열 순회 금지. **ADR-122 Implemented (2026-05-09)** — Builder hot path 에서 `useStore.elementsMap`/`childrenMap` mutable subscription 0건. canonical selectors / `useStore.elements[]` 기반 read-only derived 사용

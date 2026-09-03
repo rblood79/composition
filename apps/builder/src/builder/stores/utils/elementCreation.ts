@@ -14,7 +14,7 @@ import type {
   FrameNode,
 } from "@composition/shared";
 import { getActiveCanonicalDocument } from "@/builder/stores/canonical/canonicalElementsBridge";
-import { getCanonicalRefOverrideEntries } from "../canonical/canonicalElementsView";
+import { getCanonicalRefOverrideEntries } from "../canonical/canonicalTraversalHelpers";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import {
   buildCanonicalInsertEvents,

@@ -238,7 +238,7 @@ export function legacyToCanonical(
       metadata: buildLegacyElementMetadata(element),
       // ADR-116 Phase 5 G7 본격 cutover (2026-05-01): events/dataBinding 을
       // `x-composition` namespaced extension 으로 분리. extension 이 단일 SSOT.
-      // exportLegacyDocument 와 canonicalNodeToElement 는 extension 에서 복원.
+      // canonicalNodeToElement 호환 view는 extension에서 복원.
       ...buildCompositionExtensionField(element),
     };
 

@@ -19,7 +19,6 @@ import type {
   CanonicalNode,
   CompositionDocument,
   CompositionExtension,
-  DescendantOverride,
   RefNode,
 } from "@composition/shared";
 import type { Element } from "../../../types/builder/unified.types";
@@ -121,25 +120,12 @@ function getRefDescendantChildren(node: CanonicalNode): CanonicalNode[][] {
     .filter((children) => children.length > 0);
 }
 
-export function getCanonicalRefOverrideEntries(
-  node: CanonicalNode,
-): Array<[string, DescendantOverride]> {
-  if (node.type !== "ref") return [];
-  const descendants = (node as RefNode).descendants ?? {};
-  return Object.entries(descendants);
-}
-
-export function withCanonicalRefOverrides(
-  refNode: RefNode,
-  overrides: RefNode["descendants"],
-): RefNode {
-  if (overrides && Object.keys(overrides).length > 0) {
-    return { ...refNode, descendants: overrides };
-  }
-
-  const { descendants: _descendants, ...rest } = refNode;
-  return rest as RefNode;
-}
+// Ref override helpers — ADR-127 leaf 소유권은 canonicalTraversalHelpers.
+// panel/store 최종 소비자를 위해 동일 심볼을 여기서 re-export 한다.
+export {
+  getCanonicalRefOverrideEntries,
+  withCanonicalRefOverrides,
+} from "./canonicalTraversalHelpers";
 
 function isPagePlaceholderNode(node: CanonicalNode): boolean {
   const metadata = node.metadata as CanonicalScopeMetadata | undefined;
@@ -274,15 +260,13 @@ export function getActiveCanonicalDocumentElements(): Element[] | null {
   const doc = getActiveCanonicalDocument();
   if (!doc) return null;
 
-  return collectCanonicalDocumentElements(doc);
+  // WeakMap-cached view — update/removal/instance hot path 가 매 visit 마다
+  // 전체 DFS 를 다시 돌리지 않도록 한다.
+  return [...getCanonicalDocumentElementsView(doc).elements];
 }
 
 function collectCanonicalDocumentElements(doc: CompositionDocument): Element[] {
-  const result: Element[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    result.push(element);
-  });
-  return result;
+  return [...getCanonicalDocumentElementsView(doc).elements];
 }
 
 // ─────────────────────────────────────────────

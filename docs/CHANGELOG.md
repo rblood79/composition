@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Legacy model migration 저위험 이관을 진행했습니다] - 2026-09-03
+
+### Changed
+
+- deprecated instance resolver (`resolveInstanceProps` / `resolveInstanceElement`) 를 제거하고, legacy detach 는 `mergePropsWithStyleDeep` + override mirror 로 확정 props 를 만듭니다.
+- EditMode UI 타입을 `layout.types` 에서 `editMode` store 로 분리하고, Slot 소비·layout template 은 로컬 계약으로 좁혔습니다. reusable frame 목록 읽기는 `ReusableFrameLayoutSummary` 를 씁니다.
+- canonical elements view 의 id 조회·page filter 는 캐시된 `getCanonicalDocumentElementsView` 를 쓰고, ref override helper 소유권은 ADR-127 traversal 모듈로 옮겼습니다.
+- history v1 IndexedDB entry 의 structural add/remove 와 `prevElements`/`elements` batch 를 canonical events 로 변환합니다. legacy fallback 과 payload strip 은 raw legacy read 가 0 임을 확인하기 전까지 유지합니다.
+
+### Tests
+
+- leaf/static gate, history migration (add/remove/batch), IndexedDB adapter 계약, canvas/overlay/resetStyles view 경로 가드를 추가·갱신했습니다.
+
+## [사용되지 않는 호환·rollback 계약을 정리했습니다] - 2026-09-03
+
+### Removed
+
+- 프로젝트 JSON 가져오기/내보내기가 canonical document를 직접 사용함에 따라 production 호출이 없는 `exportLegacyDocument` 역변환 helper와 전용 테스트를 제거했습니다. 현행 파일 호환 경로와 `legacyToCanonical` 기존 데이터 변환 테스트는 유지합니다.
+- 현행 V4 panel workspace migration 체인에서 참조하지 않는 과거 V3→V2 operational rollback 구현과 전용 테스트를 제거했습니다. V3 record의 V4 승격과 exact V3 backup 기반 migration commit 검증·재개는 그대로 유지합니다.
+- test-only collection migration helper를 `@composition/shared`와 `@composition/shared/utils` 공개 barrel에서 제거했습니다. 변환 계약 단위 테스트는 내부 모듈을 직접 검증합니다.
+
 ## [사용되지 않는 Builder 호환 API를 정리했습니다] - 2026-09-03
 
 ### Removed

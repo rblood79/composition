@@ -17,7 +17,6 @@ import {
   withComponentInstanceMirror,
   withComponentOriginMirror,
 } from "@/adapters/canonical/componentSemanticsMirror";
-import { exportLegacyDocument } from "@/adapters/canonical/exportLegacyDocument";
 import type { Element, Page } from "../../../../types/core/store.types";
 import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import {
@@ -653,8 +652,7 @@ describe("instance store actions", () => {
       .getState()
       .getDocument("project-1");
     const refNode = findCanonicalNodeById(nextDoc?.children ?? [], ref.id) as
-      | RefNode
-      | undefined;
+      RefNode | undefined;
 
     expect(refNode?.descendants).toEqual({
       heading: { tone: "accent" },
@@ -722,8 +720,7 @@ describe("instance store actions", () => {
 
     const result = useStore.getState().detachInstance("ref");
     const detachedRoot = useStore.getState().elementsMap.get("ref") as
-      | (Element & { ref?: string; reusable?: boolean })
-      | undefined;
+      (Element & { ref?: string; reusable?: boolean }) | undefined;
     const materializedChildren = useStore
       .getState()
       .elements.filter((element) => element.parent_id === "ref");
@@ -1044,8 +1041,7 @@ describe("instance store actions", () => {
       // accessor cast 로 읽는다. undo 후 instance→일반 element 복귀를 검증.
       (
         useStore.getState().elementsMap.get("button") as
-          | { reusable?: boolean }
-          | undefined
+          { reusable?: boolean } | undefined
       )?.reusable,
     ).toBeUndefined();
   });
@@ -1126,14 +1122,6 @@ describe("instance store actions", () => {
         }),
       }),
     ]);
-    expect(
-      exportLegacyDocument(nextDoc!).find((element) => element.id === "button"),
-    ).toMatchObject(
-      withComponentOriginMirror({
-        componentName: "primary-action",
-        reusable: true,
-      }),
-    );
   });
 
   it("removes component origin silently when no instances exist", async () => {
@@ -1192,8 +1180,7 @@ describe("instance store actions", () => {
 
     await useStore.getState().toggleComponentOrigin("origin");
     const detachedInstance = useStore.getState().elementsMap.get("instance") as
-      | (Element & { ref?: string })
-      | undefined;
+      (Element & { ref?: string }) | undefined;
     const materializedChild = useStore
       .getState()
       .elements.find((element) => element.parent_id === "instance");
@@ -1203,8 +1190,7 @@ describe("instance store actions", () => {
     expect(
       (
         useStore.getState().elementsMap.get("origin") as
-          | { reusable?: boolean }
-          | undefined
+          { reusable?: boolean } | undefined
       )?.reusable,
     ).toBeFalsy();
     expect(detachedInstance).toMatchObject({
@@ -1266,8 +1252,7 @@ describe("instance store actions", () => {
     await useStore.getState().removeElement("origin");
 
     const detachedInstance = useStore.getState().elementsMap.get("instance") as
-      | (Element & { ref?: string })
-      | undefined;
+      (Element & { ref?: string }) | undefined;
     const materializedChild = useStore
       .getState()
       .elements.find((element) => element.parent_id === "instance");
@@ -1375,8 +1360,7 @@ describe("instance store actions", () => {
     const raceInstance = useStore
       .getState()
       .elementsMap.get("race-instance") as
-      | (Element & { ref?: string })
-      | undefined;
+      (Element & { ref?: string }) | undefined;
     expect(raceInstance).toMatchObject({ type: "Button" });
     expect(raceInstance?.ref).toBeUndefined();
   });
@@ -1444,8 +1428,7 @@ describe("instance store actions", () => {
       const raceInstance = useStore
         .getState()
         .elementsMap.get("race-instance") as
-        | (Element & { ref?: string })
-        | undefined;
+        (Element & { ref?: string }) | undefined;
       expect(useStore.getState().elementsMap.get("origin")).toMatchObject({
         reusable: false,
       });

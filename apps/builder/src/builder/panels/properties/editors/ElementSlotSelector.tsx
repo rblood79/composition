@@ -9,7 +9,6 @@ import { memo, useMemo } from "react";
 import { Layers } from "lucide-react";
 import { PropertySelect, PropertySection } from "../../../components";
 import { useStore } from "../../../stores";
-import type { SlotInfo } from "../../../../types/builder/layout.types";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
 import { getNullablePageFrameBindingId } from "../../../../adapters/canonical/frameMirror";
 import {
@@ -21,6 +20,18 @@ interface ElementSlotSelectorProps {
   elementId: string;
   currentSlotName: string | null | undefined;
   onSlotChange: (slotName: string) => void;
+}
+
+/**
+ * Slot Assignment UI 옵션 — legacy `type:"Slot"` marker 스캔 결과.
+ * layout.types.SlotInfo 와 분리 (canonical FrameNode.slot 이관 전 local contract).
+ */
+interface ElementSlotOption {
+  name: string;
+  displayName: string;
+  required: boolean;
+  description?: string;
+  elementId: string;
 }
 
 export const ElementSlotSelector = memo(function ElementSlotSelector({
@@ -36,7 +47,7 @@ export const ElementSlotSelector = memo(function ElementSlotSelector({
   // ADR-112 follow-up: preset apply 직후 생성된 legacy Slot element 는
   // legacy layout binding 을 즉시 보유한다. canonical projection 을 기다리면 Slot selector 가
   // 새로고침 전까지 비어 보일 수 있으므로 usePresetApply 와 같은 직접 매칭을 사용한다.
-  const slots = useMemo((): SlotInfo[] => {
+  const slots = useMemo((): ElementSlotOption[] => {
     if (!element?.page_id) return [];
 
     const page = pages.find((p) => p.id === element.page_id);

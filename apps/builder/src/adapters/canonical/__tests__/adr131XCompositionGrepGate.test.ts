@@ -16,7 +16,6 @@
  *   canonical export)
  * - `adapters/canonical/canonicalMutations.ts` — buildCompositionExtensionField
  * - `adapters/canonical/slotAndLayoutAdapter.ts` — buildCompositionExtensionField
- * - `adapters/canonical/exportLegacyDocument.ts` — canonical → legacy export
  * - `stores/canonical/canonicalDocumentStore.ts` — updateNodeExtension (G7
  *   Extension Boundary 의 단일 mutation 진입점)
  * - `stores/canonical/canonicalElementsView.ts` — extension snapshot bridge
@@ -44,7 +43,6 @@ const BOUNDARY_ALLOWLIST: ReadonlyArray<string> = [
   "apps/builder/src/adapters/canonical/index.ts",
   "apps/builder/src/adapters/canonical/canonicalMutations.ts",
   "apps/builder/src/adapters/canonical/slotAndLayoutAdapter.ts",
-  "apps/builder/src/adapters/canonical/exportLegacyDocument.ts",
   "apps/builder/src/adapters/canonical/compositionExtensionFields.ts",
   "apps/builder/src/adapters/canonical/legacyMetadata.ts",
   "apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts",

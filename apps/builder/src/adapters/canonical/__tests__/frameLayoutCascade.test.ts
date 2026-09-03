@@ -4,7 +4,6 @@ import type { Element, Page } from "@/types/builder/unified.types";
 import type { Layout } from "@/types/builder/layout.types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { applyDeleteReusableFrameCanonicalPrimary } from "../frameLayoutCascade";
-import { exportLegacyDocument } from "../exportLegacyDocument";
 
 const mocks = vi.hoisted(() => ({
   db: {
@@ -107,6 +106,10 @@ describe("frameLayoutCascade page-frame unbinding", () => {
     expect(pageNode).toEqual(
       expect.objectContaining({
         type: "frame",
+        metadata: expect.objectContaining({
+          type: "legacy-page",
+          pageId: "page-1",
+        }),
         children: [
           expect.objectContaining({
             id: "page-1-body",
@@ -117,20 +120,6 @@ describe("frameLayoutCascade page-frame unbinding", () => {
           }),
         ],
       }),
-    );
-    expect(exportLegacyDocument(doc!)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "page-1-button",
-          page_id: "page-1",
-          parent_id: "page-1-body",
-        }),
-        expect.objectContaining({
-          id: "page-1-instance",
-          page_id: "page-1",
-          parent_id: "page-1-body",
-        }),
-      ]),
     );
   });
 });

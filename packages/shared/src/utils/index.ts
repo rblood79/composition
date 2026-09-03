@@ -11,12 +11,6 @@ export * from "./core/numberUtils";
 export * from "./export.utils";
 export * from "./compositionDocumentOrder";
 export * from "./disclosureGroupExpansion";
-export * from "./migrateCollectionItems";
-// ADR-076: BC re-export (deprecated, 신규 코드는 migrateCollectionItems 사용)
-export {
-  applySelectComboBoxMigration,
-  type SelectComboBoxMigrationResult,
-} from "./migrateSelectComboBoxItems";
 
 export * from "./font.utils";
 export * from "./fontRegistry";

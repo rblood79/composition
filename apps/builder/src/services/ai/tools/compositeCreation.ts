@@ -17,7 +17,6 @@
  * - 그 외 leaf → 호출자가 기존 단일 element 경로로 만든다
  */
 import type { CompositionDocument } from "@composition/shared";
-import type { Element } from "../../../types/builder/unified.types";
 import { ComponentFactory } from "../../../builder/factories/ComponentFactory";
 import { COMPLEX_COMPONENT_TAGS } from "../../../builder/factories/constants";
 import { getReusableCompositeOriginId } from "../../../builder/components/reusableCompositeOrigins";
@@ -33,6 +32,25 @@ import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/can
 /** 합성 생성 분기 — 팔레트(`useElementCreator`)와 같은 우선순위. */
 export type CompositeMode = "reusable" | "complex" | "leaf";
 
+/**
+ * ADR-126: AI 합성 경로가 필요한 노드 모양만 — deprecated `Element` import 금지.
+ * factory / parent resolve 경계에서는 structural 호환만 요구한다.
+ */
+export interface CompositeCreationNode {
+  id: string;
+  type: string;
+  customId?: string | null;
+  componentName?: string | null;
+  page_id?: string | null;
+  parent_id?: string | null;
+  props?: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+  ref?: string;
+  [COMPONENT_ROLE_MIRROR_FIELD]?: "master" | "instance";
+  [COMPONENT_MASTER_ID_MIRROR_FIELD]?: string;
+}
+
 export function resolveCompositeMode(type: string): CompositeMode {
   if (getReusableCompositeOriginId(type)) return "reusable";
   if (COMPLEX_COMPONENT_TAGS.has(type)) return "complex";
@@ -41,11 +59,18 @@ export function resolveCompositeMode(type: string): CompositeMode {
 
 export interface CompositeCreationInput {
   type: string;
-  elements: Element[];
+  elements: CompositeCreationNode[];
   currentPageId: string | null;
   selectedElementId: string | null;
   parentIdOverride?: string | null;
-  addElement: (element: Element) => void | Promise<void>;
+  /**
+   * Store `addElement` 시그니처를 수용한다 (method 형태 — 파라미터 bivariant).
+   * `CompositeCreationNode` 는 Element 의 structural 부분집합이다.
+   */
+  addElement(
+    element: CompositeCreationNode,
+    options?: { skipHistory?: boolean },
+  ): void | Promise<void>;
 }
 
 export interface CompositeCreationOutcome {
@@ -54,6 +79,11 @@ export interface CompositeCreationOutcome {
   /** 함께 만들어진 자식 수 — 도구 결과에 실어 모델이 구조를 알게 한다. */
   childCount: number;
 }
+
+type CreateComplexComponentArgs = Parameters<
+  typeof ComponentFactory.createComplexComponent
+>;
+type ResolveCreationParentArgs = Parameters<typeof resolveCreationParentId>[0];
 
 function activeDocument(): CompositionDocument | null {
   const canonical = useCanonicalDocumentStore.getState();
@@ -79,7 +109,7 @@ export async function createCompositeElement(
     input.parentIdOverride ??
     resolveCreationParentId({
       selectedElementId: input.selectedElementId,
-      elements: input.elements,
+      elements: input.elements as ResolveCreationParentArgs["elements"],
       currentPageId: input.currentPageId,
       layoutId: null,
       doc,
@@ -104,7 +134,7 @@ export async function createCompositeElement(
         parent_id: parentId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      } as Element,
+      } satisfies CompositeCreationNode,
       null,
     );
 
@@ -119,9 +149,9 @@ export async function createCompositeElement(
 
   const result = await ComponentFactory.createComplexComponent(
     input.type,
-    parentElement,
+    parentElement as CreateComplexComponentArgs[1],
     input.currentPageId ?? "",
-    input.elements,
+    input.elements as CreateComplexComponentArgs[3],
     null,
     doc,
   );

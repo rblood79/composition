@@ -18,6 +18,7 @@ import {
   type SerializableElementDiff,
 } from "../utils/elementDiff";
 import type { ElementsState } from "../elements";
+import { recordRawLegacyHistoryRead } from "./rawLegacyHistoryRead";
 import { getDB } from "../../../lib/db";
 import {
   areCanonicalMutationStoreActionsRegistered,
@@ -747,7 +748,8 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       );
       updatedSelectedElementId = selection.selectedElementId;
       updatedSelectedElementProps = selection.selectedElementProps;
-    } else
+    } else {
+      recordRawLegacyHistoryRead(`undo-apply:${entry.type}`);
       switch (entry.type) {
         case "add": {
           // 추가된 요소 제거 (역작업)
@@ -963,6 +965,7 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
           break;
         }
       }
+    }
 
     // HC#2 (canonical 1차) — legacy fallback (v1 IndexedDB entry 전용) 도
     // canonical 을 먼저 갱신하고, set 은 canonical 재파생 결과를 사용해
@@ -1172,7 +1175,8 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       );
       updatedSelectedElementId = selection.selectedElementId;
       updatedSelectedElementProps = selection.selectedElementProps;
-    } else
+    } else {
+      recordRawLegacyHistoryRead(`redo-apply:${entry.type}`);
       switch (entry.type) {
         case "add": {
           // 요소와 자식 요소들 추가
@@ -1372,6 +1376,7 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
           break;
         }
       }
+    }
 
     // HC#2 (canonical 1차) — undo 와 동일: legacy fallback (v1 entry 전용) 은
     // canonical 먼저 갱신 후 재파생 결과로 set (ADR-122 §Residual 해소).
@@ -1597,6 +1602,8 @@ function applyHistoryEntry(
       selectedElementProps: selection.selectedElementProps,
     };
   }
+
+  recordRawLegacyHistoryRead(`go-to:${direction}:${entry.type}`);
 
   let updatedElements = elements;
   let updatedSelectedElementId = selectedElementId;

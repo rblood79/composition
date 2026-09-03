@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useStore } from "../stores";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
+import { getCanonicalDocumentElementsView } from "../stores/canonical/canonicalElementsView";
 import { MessageService } from "../../utils/messaging";
 import { isValidPreviewMessage } from "../../utils/messageValidation";
 import { useVisibleOverlays } from "./hooks/useVisibleOverlays";
@@ -21,13 +21,8 @@ function getActiveCanonicalElementForOverlay(
   const doc = canonical.documents.get(projectId);
   if (!doc) return null;
 
-  let found: { type: string } | null = null;
-  visitCanonicalDocumentElements(doc, (element) => {
-    if (!found && element.id === elementId) {
-      found = element;
-    }
-  });
-  return found;
+  const element = getCanonicalDocumentElementsView(doc).byId.get(elementId);
+  return element ? { type: element.type } : null;
 }
 
 interface Rect {

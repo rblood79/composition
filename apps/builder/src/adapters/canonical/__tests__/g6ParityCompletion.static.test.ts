@@ -3,10 +3,9 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion contract", () => {
-  it("keeps native mutation, export, resolver, navigation, and frame binding wiring", async () => {
+  it("keeps native mutation, resolver, navigation, and frame binding wiring", async () => {
     const [
       mutationsSource,
-      exportSource,
       resolverSource,
       componentSectionSource,
       pageFrameBindingSource,
@@ -15,7 +14,6 @@ describe("ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion contract", (
       framesTabSource,
     ] = await Promise.all([
       readFile(resolve(__dirname, "../canonicalMutations.ts"), "utf-8"),
-      readFile(resolve(__dirname, "../exportLegacyDocument.ts"), "utf-8"),
       readFile(
         resolve(__dirname, "../../../resolvers/canonical/index.ts"),
         "utf-8",
@@ -49,12 +47,6 @@ describe("ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion contract", (
     expect(mutationsSource).toContain("descendants[slotPath]");
     expect(mutationsSource).toContain("appendChildToDescendants");
     expect(mutationsSource).toContain("removeNodeFromDescendants");
-    expect(exportSource).toContain(
-      "walkAndCollect(child, out, nextParentId, scopedContext)",
-    );
-    expect(exportSource).toContain("componentRole");
-    expect(exportSource).toContain("masterId");
-    expect(exportSource).toContain("descendants");
     expect(resolverSource).toContain("type: master.type");
     expect(resolverSource).toContain("_resolvedFrom: master.id");
     expect(componentSectionSource).toMatch(/resolveReference\(\s*originId,/);

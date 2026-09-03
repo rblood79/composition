@@ -33,7 +33,12 @@
  * - 자세한 schema: `packages/shared/src/types/composition-document.types.ts:206-284`
  */
 
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import type {
+  CanonicalNode,
+  CompositionDocument,
+  DescendantOverride,
+  RefNode,
+} from "@composition/shared";
 
 import { useCanonicalDocumentStore } from "./canonicalDocumentStore";
 
@@ -221,6 +226,37 @@ export function getNodeMap(): Map<string, CanonicalNode> {
 export function getChildrenByParent(): Map<string, CanonicalNode[]> {
   const c = ensureCache();
   return c?.childrenByParent ?? new Map();
+}
+
+// ─────────────────────────────────────────────
+// Ref override helpers (canonical-native — Element projection 비의존)
+// ─────────────────────────────────────────────
+
+/**
+ * `RefNode.descendants` entries. Element[] materialize 없이 override 순회.
+ * history / creation 경계의 ADR-127 leaf 계약.
+ */
+export function getCanonicalRefOverrideEntries(
+  node: CanonicalNode,
+): Array<[string, DescendantOverride]> {
+  if (node.type !== "ref") return [];
+  const descendants = (node as RefNode).descendants ?? {};
+  return Object.entries(descendants);
+}
+
+/**
+ * descendants 가 비어 있으면 키를 제거한 RefNode 를 반환한다.
+ */
+export function withCanonicalRefOverrides(
+  refNode: RefNode,
+  overrides: RefNode["descendants"],
+): RefNode {
+  if (overrides && Object.keys(overrides).length > 0) {
+    return { ...refNode, descendants: overrides };
+  }
+
+  const { descendants: _descendants, ...rest } = refNode;
+  return rest as RefNode;
 }
 
 // ─────────────────────────────────────────────

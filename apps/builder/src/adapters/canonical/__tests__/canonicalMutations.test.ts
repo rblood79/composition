@@ -14,16 +14,12 @@ import {
   resetCanonicalMutationStoreActions,
   setElementsCanonicalPrimary,
 } from "../canonicalMutations";
-import { exportLegacyDocument } from "../exportLegacyDocument";
 
 /**
- * Legacy roundtrip fixture types.
+ * Legacy input fixture types.
  *
- * `exportLegacyDocument` 가 보존해야 할 legacy JSON shape (`order_num` /
- * `layout_id` / `slot_name` / `componentRole` / `masterId`) 를 검증하기 위한
- * test-only 확장 타입. ADR-126 Phase 6 에서 `Element` interface 가 canonical-
- * native 로 정리되면서 이 필드들은 runtime 타입에서 제거되었으나, JSON export/
- * import boundary 에서는 외부 호환을 위해 metadata.legacyProps 에 보존된다.
+ * canonical mutation adapter가 기존 element snapshot을 읽을 때 필요한 필드를
+ * test-only 확장 타입으로 표현한다.
  */
 type LegacyTestElement = Element & {
   order_num?: number;
@@ -79,9 +75,8 @@ function makeLayout(id: string): Layout {
  * 받는다. canonical `CompositionDocument["children"]` 은 `FrameNode | RefNode`
  * union 이지만, fixture 가 inline literal 로 union 의 한 member (`ref` /
  * `placeholder` 등) 를 작성할 때 TypeScript 가 narrow 하지 못해 excess
- * property check 가 발동한다. legacy roundtrip 검증 의도상 type 강제는
- * `exportLegacyDocument` 실행 시점에 충분히 보장되므로, fixture builder 는
- * loose-typed object 를 받고 결과만 satisfies 로 검증한다.
+ * property check 가 발동한다. fixture builder는 loose-typed object를 받고
+ * mutation 결과의 canonical node를 직접 검증한다.
  */
 function makeDocument(
   children: Array<Record<string, unknown>> = [],
@@ -1310,19 +1305,19 @@ describe("canonical mutation wrappers", () => {
     const nextDoc = useCanonicalDocumentStore
       .getState()
       .getDocument("project-1");
-    expect(JSON.stringify(nextDoc)).toContain("page-1-button");
-    expect(JSON.stringify(nextDoc)).toContain("page-1-instance");
-    expect(exportLegacyDocument(nextDoc!)).toEqual(
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    expect(pageNode?.children).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: "page-1-button",
-          page_id: "page-1",
-          parent_id: "page-1-body",
-        }),
-        expect.objectContaining({
-          id: "page-1-instance",
-          page_id: "page-1",
-          parent_id: "page-1-body",
+          id: "page-1-body",
+          children: expect.arrayContaining([
+            expect.objectContaining({ id: "page-1-button" }),
+            expect.objectContaining({
+              id: "page-1-instance",
+              type: "ref",
+              ref: "origin",
+            }),
+          ]),
         }),
       ]),
     );
@@ -1390,12 +1385,6 @@ describe("canonical mutation wrappers", () => {
         children: [expect.objectContaining({ id: "page-body" })],
       }),
     ]);
-    expect(exportLegacyDocument(nextDoc!)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "page-body", page_id: "page-1" }),
-        expect.objectContaining({ id: "frame-body", page_id: null }),
-      ]),
-    );
     expect(setElements).not.toHaveBeenCalled();
   });
 
@@ -1607,12 +1596,6 @@ describe("canonical mutation wrappers", () => {
         },
       }),
     );
-    expect(exportLegacyDocument(nextDoc!)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "slot-fill-a", page_id: "page-1" }),
-        expect.objectContaining({ id: "slot-fill-b", page_id: "page-1" }),
-      ]),
-    );
     expect(setElements).not.toHaveBeenCalled();
   });
 
@@ -1802,13 +1785,11 @@ describe("canonical mutation wrappers", () => {
         descendants: {},
       }),
     );
-    expect(exportLegacyDocument(nextDoc!)).toEqual(
-      expect.not.arrayContaining([expect.objectContaining({ id: "old-fill" })]),
-    );
+    expect(JSON.stringify(nextDoc)).not.toContain("old-fill");
     expect(setElements).not.toHaveBeenCalled();
   });
 
-  it("mergeElementsCanonicalPrimary preserves ref and descendants mirror fields for legacy export", () => {
+  it("mergeElementsCanonicalPrimary preserves canonical origin and ref fields", () => {
     const setElements = vi.fn();
     const page = makePage("page-1");
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
@@ -1855,6 +1836,15 @@ describe("canonical mutation wrappers", () => {
     const nextDoc = useCanonicalDocumentStore
       .getState()
       .getDocument("project-1");
+    expect(nextDoc?.children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "master",
+          reusable: true,
+          name: "Master Button",
+        }),
+      ]),
+    );
     const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
     expect(pageNode?.children).toEqual([
       expect.objectContaining({
@@ -1867,22 +1857,6 @@ describe("canonical mutation wrappers", () => {
         },
       }),
     ]);
-    expect(exportLegacyDocument(nextDoc!)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "master",
-          componentRole: "master",
-          componentName: "Master Button",
-        }),
-        expect.objectContaining({
-          id: "instance",
-          componentRole: "instance",
-          masterId: "master",
-          overrides: { children: "Override" },
-          descendants: { "master-label": { children: "Child Override" } },
-        }),
-      ]),
-    );
     expect(setElements).not.toHaveBeenCalled();
   });
 
@@ -1950,18 +1924,6 @@ describe("canonical mutation wrappers", () => {
         props: { style: { left: "24px" } },
       }),
     ]);
-    expect(exportLegacyDocument(nextDoc!)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "instance",
-          type: "ref",
-          ref: "origin",
-          componentRole: "instance",
-          masterId: "origin",
-          overrides: { style: { left: "24px" } },
-        }),
-      ]),
-    );
     expect(setElements).not.toHaveBeenCalled();
   });
 
@@ -2041,7 +2003,7 @@ describe("canonical mutation wrappers", () => {
     ]);
   });
 
-  it("mergeElementsCanonicalPrimary preserves reusable page origins across export round-trip", () => {
+  it("mergeElementsCanonicalPrimary preserves reusable page origins in canonical storage", () => {
     const setElements = vi.fn();
     const page = makePage("page-1");
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
@@ -2065,14 +2027,13 @@ describe("canonical mutation wrappers", () => {
       getCurrentProjectId: () => "project-1",
     });
 
-    mergeElementsCanonicalPrimary([
-      makeElement("origin", "Button", {
-        page_id: "page-1",
-        componentName: "primary-action",
-        reusable: true,
-        order_num: 0,
-      } as never),
-    ]);
+    const origin = makeElement("origin", "Button", {
+      page_id: "page-1",
+      componentName: "primary-action",
+      reusable: true,
+      order_num: 0,
+    } as never);
+    mergeElementsCanonicalPrimary([origin]);
 
     const firstDoc = useCanonicalDocumentStore
       .getState()
@@ -2092,36 +2053,23 @@ describe("canonical mutation wrappers", () => {
         }),
       }),
     ]);
+    expect(
+      firstDoc?.children.filter((node) => node.id === "origin"),
+    ).toHaveLength(0);
 
-    const derivedElements = exportLegacyDocument(firstDoc!);
-    const exportedOrigin = derivedElements.find(
-      (element) => element.id === "origin",
-    );
-    expect(exportedOrigin).toMatchObject({
-      id: "origin",
-      page_id: "page-1",
-      parent_id: null,
-      componentRole: "master",
-      reusable: true,
-    });
-
-    mergeElementsCanonicalPrimary([exportedOrigin as Element]);
-
-    const roundTripDoc = useCanonicalDocumentStore
+    mergeElementsCanonicalPrimary([origin]);
+    const mergedTwiceDoc = useCanonicalDocumentStore
       .getState()
       .getDocument("project-1");
-    const roundTripPageNode = roundTripDoc?.children.find(
+    const mergedTwicePage = mergedTwiceDoc?.children.find(
       (node) => node.id === "page-1",
     );
     expect(
-      roundTripDoc?.children.filter((node) => node.id === "origin"),
+      mergedTwicePage?.children?.filter((node) => node.id === "origin"),
+    ).toHaveLength(1);
+    expect(
+      mergedTwiceDoc?.children.filter((node) => node.id === "origin"),
     ).toHaveLength(0);
-    expect(roundTripPageNode?.children).toEqual([
-      expect.objectContaining({
-        id: "origin",
-        reusable: true,
-      }),
-    ]);
     expect(setElements).not.toHaveBeenCalled();
   });
 

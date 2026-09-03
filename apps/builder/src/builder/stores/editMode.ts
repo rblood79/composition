@@ -4,23 +4,64 @@
  * Page 편집 모드와 Layout 편집 모드를 관리
  * - Page 모드: 일반 Page 요소 편집
  * - Layout 모드: Layout 구조 및 Slot 편집
+ *
+ * EditMode* UI 상태 타입은 legacy `layout.types` schema 와 분리한다
+ * (legacy model migration — layout-contracts slice).
  */
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { StateCreator } from "zustand";
-import type {
-  EditMode,
-  EditContext,
-  EditModeStoreState,
-  EditModeStoreActions,
-} from "../../types/builder/layout.types";
 
 // ============================================
-// Store Type
+// Edit Mode Types (UI state — not layout schema)
 // ============================================
 
-type EditModeStore = EditModeStoreState & EditModeStoreActions;
+/** 편집 모드 타입 */
+export type EditMode = "page" | "layout";
+
+/** 편집 컨텍스트 */
+export interface EditContext {
+  mode: EditMode;
+  pageId: string | null;
+  layoutId: string | null;
+}
+
+/** Edit Mode Store State */
+export interface EditModeStoreState {
+  /** 현재 편집 모드 */
+  mode: EditMode;
+
+  /** Page 모드일 때 편집 중인 Page ID */
+  pageId: string | null;
+
+  /** Layout 모드일 때 편집 중인 Layout ID */
+  layoutId: string | null;
+}
+
+/** Edit Mode Store Actions */
+export interface EditModeStoreActions {
+  /** Page 편집 모드로 전환 */
+  enterPageMode: (pageId: string) => void;
+
+  /** Layout 편집 모드로 전환 */
+  enterLayoutMode: (layoutId: string) => void;
+
+  /** 현재 편집 컨텍스트 반환 */
+  getEditContext: () => EditContext;
+
+  /** Edit Mode 직접 설정 (탭 전환용) */
+  setMode: (mode: EditMode) => void;
+
+  /** 현재 편집 중인 Page ID 설정 */
+  setCurrentPageId: (pageId: string | null) => void;
+
+  /** 현재 편집 중인 Layout ID 설정 */
+  setCurrentLayoutId: (layoutId: string | null) => void;
+}
+
+/** 완전한 Edit Mode Store 타입 */
+export type EditModeStore = EditModeStoreState & EditModeStoreActions;
 
 // ============================================
 // Store Slice Creator

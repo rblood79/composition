@@ -1,9 +1,8 @@
 /**
- * @fileoverview ADR-116 Phase 3 G4 sub-phase 3-C — exportLegacyDocument 단일 SSOT
- * grep gate codify (D18=A 검증).
+ * @fileoverview ADR-116 Phase 3 G4 — canonical mutation direct-write grep gate.
  *
  * design §8.6 의 grep 명령을 vitest 로 codify. legacy `elements[]` direct write
- * site 가 본 함수 외부에 0건이 되어야 G4 PASS 시그널 (D18=A 단일 SSOT 격리).
+ * site 가 canonical mutation wrapper 외부에 0건이어야 G4 PASS다.
  *
  * **본 단축 단계 (3-C 부분)**: baseline 17 site 측정. 후속 sub-phase 에서 점진
  * refactor 하여 0 도달 목표. baseline 이 증가하면 regression — 본 test 가 자동
@@ -36,7 +35,6 @@ const EXCLUDE_PATTERNS: readonly RegExp[] = [
   /\.test\.tsx?$/,
   /\/apps\/builder\/src\/adapters\//,
   /\/apps\/builder\/src\/lib\/db\/migration[^/]*\.ts$/,
-  /\/apps\/builder\/src\/builder\/utils\/exportLegacyDocument\.ts$/,
   // ADR-112 dev-only evidence fixture intentionally preserves raw marker fields
   // (`reusable`, `ref`, `slot`) that are not legacy mirror persistence writes.
   /\/apps\/builder\/src\/builder\/dev\/editingSemanticsFixture\.ts$/,
@@ -147,7 +145,7 @@ function scanViolations(): Violation[] {
 // Tests
 // ─────────────────────────────────────────────
 
-describe("ADR-116 Phase 3 G4 — exportLegacyDocument SSOT grep gate (D18=A)", () => {
+describe("ADR-116 Phase 3 G4 — canonical mutation direct-write grep gate", () => {
   it("baseline regression detection: 위반 site 수 ≤ baseline", () => {
     const violations = scanViolations();
     if (violations.length > BASELINE_VIOLATION_COUNT) {

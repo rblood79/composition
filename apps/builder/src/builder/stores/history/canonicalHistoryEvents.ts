@@ -16,11 +16,11 @@ import {
 } from "@/adapters/canonical/canonicalMutations";
 import { getFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
 import type { Element } from "@/types/core/store.types";
+import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 import {
   getCanonicalRefOverrideEntries,
-  visitCanonicalDocumentElements,
   withCanonicalRefOverrides,
-} from "../canonical/canonicalElementsView";
+} from "../canonical/canonicalTraversalHelpers";
 import {
   selectActiveCanonicalDocument,
   useCanonicalDocumentStore,

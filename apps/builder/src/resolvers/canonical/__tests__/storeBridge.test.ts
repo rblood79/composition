@@ -6,7 +6,7 @@
  * - `buildResolvedNodeIndex(tree)` — DFS flatten Map
  * - `extractCanonicalPropsFromResolved(resolved)` — canonical props 추출
  * - `resolveInstanceWithSharedCache(instance, master, cache?)` — mini-doc + cache 통과한
- *   Element 재구성 — legacy `resolveInstanceElement` 와 시각 등가성 보장
+ *   Element 재구성 — mergePropsWithStyleDeep oracle 과 시각 등가성 보장
  * - `buildParentIndex(tree)` — DFS child → parent id Map (P3-B)
  * - `getCanonicalParentId(index, elementId)` — canonical parent id 조회 (P3-B)
  */
@@ -20,11 +20,12 @@ import type {
 
 import {
   getComponentMasterReference,
+  getComponentOverridesMirror,
   isComponentInstanceMirrorElement,
   withComponentInstanceMirror,
   withComponentOriginMirror,
 } from "@/adapters/canonical/componentSemanticsMirror";
-import { resolveInstanceElement } from "@/utils/component/instanceResolver";
+import { mergePropsWithStyleDeep } from "@/utils/component/instanceResolver";
 import {
   buildResolvedNodeIndex,
   buildParentIndex,
@@ -47,6 +48,16 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 // fixture helpers (integration.test.ts 패턴 공유)
 // ─────────────────────────────────────────────────────────────────────────────
+
+function expectedMergedInstanceProps(
+  instance: Element,
+  master: Element,
+): Record<string, unknown> {
+  return mergePropsWithStyleDeep(
+    master.props || {},
+    getComponentOverridesMirror(instance) ?? {},
+  );
+}
 
 function el(partial: Partial<Element> & Pick<Element, "id" | "type">): Element {
   return {
@@ -288,13 +299,13 @@ describe("resolveInstanceWithSharedCache", () => {
     );
 
     const canonical = resolveInstanceWithSharedCache(instance, master);
-    const legacy = resolveInstanceElement(instance, master);
+    const expectedProps = expectedMergedInstanceProps(instance, master);
 
     expect(canonical).not.toBeNull();
     expect(canonical?.type).toBe("Button");
     expect(canonical?.id).toBe("i1");
     // style 심층 병합 포함 props 완전 일치 — ADR-903 Decision 시각 대칭
-    expect(canonical?.props).toEqual(legacy.props);
+    expect(canonical?.props).toEqual(expectedProps);
   });
 
   it("TC10: master 없음 → null (caller 는 element 그대로 처리)", () => {
@@ -382,8 +393,8 @@ describe("resolveInstanceWithSharedCache", () => {
 // 모두 canonical 우선 + legacy fallback 전략을 사용한다. 다음 세션에 fallback
 // 제거를 안전하게 하기 위해 다양한 master/instance/overrides 조합을 fuzz 한다.
 //
-// 모든 케이스는 `resolveInstanceWithSharedCache` 결과가 legacy
-// `resolveInstanceElement` 와 deep-equal 임을 검증.
+// 모든 케이스는 `resolveInstanceWithSharedCache` 결과가
+// mergePropsWithStyleDeep oracle 과 deep-equal 임을 검증.
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("resolveInstanceWithSharedCache — D-C 안전망 회귀", () => {
@@ -411,8 +422,8 @@ describe("resolveInstanceWithSharedCache — D-C 안전망 회귀", () => {
       { overrideProps: {} },
     );
     const canonical = resolveInstanceWithSharedCache(instance, master);
-    const legacy = resolveInstanceElement(instance, master);
-    expect(canonical?.props).toEqual(legacy.props);
+    const expectedProps = expectedMergedInstanceProps(instance, master);
+    expect(canonical?.props).toEqual(expectedProps);
     expect(canonical?.props.label).toBe("MasterOnly");
   });
 
@@ -432,8 +443,8 @@ describe("resolveInstanceWithSharedCache — D-C 안전망 회귀", () => {
       "m2",
     );
     const canonical = resolveInstanceWithSharedCache(instance, master);
-    const legacy = resolveInstanceElement(instance, master);
-    expect(canonical?.props).toEqual(legacy.props);
+    const expectedProps = expectedMergedInstanceProps(instance, master);
+    expect(canonical?.props).toEqual(expectedProps);
   });
 
   it("TC16: nested style merge — color 만 override, fontSize/padding 은 master 보존", () => {
@@ -465,8 +476,8 @@ describe("resolveInstanceWithSharedCache — D-C 안전망 회귀", () => {
       },
     );
     const canonical = resolveInstanceWithSharedCache(instance, master);
-    const legacy = resolveInstanceElement(instance, master);
-    expect(canonical?.props).toEqual(legacy.props);
+    const expectedProps = expectedMergedInstanceProps(instance, master);
+    expect(canonical?.props).toEqual(expectedProps);
 
     const style = canonical?.props.style as Record<string, unknown>;
     expect(style.color).toBe("red");
@@ -492,8 +503,8 @@ describe("resolveInstanceWithSharedCache — D-C 안전망 회귀", () => {
       { overrideProps: { label: "Overridden", isDisabled: true } },
     );
     const canonical = resolveInstanceWithSharedCache(instance, master);
-    const legacy = resolveInstanceElement(instance, master);
-    expect(canonical?.props).toEqual(legacy.props);
+    const expectedProps = expectedMergedInstanceProps(instance, master);
+    expect(canonical?.props).toEqual(expectedProps);
     expect(canonical?.props.label).toBe("Overridden");
     expect(canonical?.props.isDisabled).toBe(true);
   });
@@ -537,8 +548,8 @@ describe("resolveInstanceWithSharedCache — D-C 안전망 회귀", () => {
     const results = instances.map((inst) =>
       resolveInstanceWithSharedCache(inst, master, cache),
     );
-    const legacyResults = instances.map((inst) =>
-      resolveInstanceElement(inst, master),
+    const expectedResults = instances.map((inst) =>
+      expectedMergedInstanceProps(inst, master),
     );
 
     // 각 instance 가 자신의 overrides 와 머지된 props 산출
@@ -549,9 +560,9 @@ describe("resolveInstanceWithSharedCache — D-C 안전망 회귀", () => {
     expect(results[2]?.props.label).toBe("Default"); // master 그대로
     expect(results[2]?.props.variant).toBe("primary");
 
-    // 모두 legacy 와 deep-equal
+    // 모두 merge oracle 과 deep-equal
     for (let i = 0; i < instances.length; i++) {
-      expect(results[i]?.props).toEqual(legacyResults[i].props);
+      expect(results[i]?.props).toEqual(expectedResults[i]);
     }
   });
 
@@ -574,11 +585,10 @@ describe("resolveInstanceWithSharedCache — D-C 안전망 회귀", () => {
     );
 
     const canonical = resolveInstanceWithSharedCache(instance, master);
-    const legacy = resolveInstanceElement(instance, master);
+    const expectedProps = expectedMergedInstanceProps(instance, master);
 
     expect(canonical?.type).toBe("Box");
-    expect(legacy.type).toBe("Box");
-    expect(canonical?.props).toEqual(legacy.props);
+    expect(canonical?.props).toEqual(expectedProps);
   });
 
   it("TC20: instance.id 보존 — master.id 로 덮어쓰지 않음", () => {
@@ -636,9 +646,9 @@ describe("resolveInstanceWithSharedCache — D-C 안전망 회귀", () => {
       },
     );
     const canonical = resolveInstanceWithSharedCache(instance, master);
-    const legacy = resolveInstanceElement(instance, master);
+    const expectedProps = expectedMergedInstanceProps(instance, master);
 
-    expect(canonical?.props).toEqual(legacy.props);
+    expect(canonical?.props).toEqual(expectedProps);
     const style = canonical?.props.style as Record<string, unknown>;
     expect(style.color).toBe("red"); // override
     expect(style.backgroundColor).toBe("white"); // master 보존

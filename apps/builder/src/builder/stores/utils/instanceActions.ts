@@ -13,10 +13,7 @@
 import { v4 as uuidv4 } from "uuid";
 import type { Element } from "../../../types/core/store.types";
 import type { ElementsState } from "../elements";
-import {
-  mergePropsWithStyleDeep,
-  resolveInstanceProps,
-} from "../../../utils/component/instanceResolver";
+import { mergePropsWithStyleDeep } from "../../../utils/component/instanceResolver";
 import { historyManager } from "../history";
 import {
   buildCanonicalInsertEvents,
@@ -511,8 +508,13 @@ function buildLegacyDetachSnapshot(
 
   let mergedProps: Record<string, unknown>;
   if (master) {
-    const { props } = resolveInstanceProps(instance, master);
-    mergedProps = props;
+    // override 없음 → 빈 객체 (master props 유지). shared-cache 경로의
+    // getInstanceOverrides 는 override 부재 시 instance.props 로 대체하므로
+    // detach 확정 props 에는 사용하지 않는다.
+    mergedProps = mergePropsWithStyleDeep(
+      master.props || {},
+      getComponentOverridesMirror(instance) ?? {},
+    );
   } else {
     mergedProps = {
       ...instance.props,

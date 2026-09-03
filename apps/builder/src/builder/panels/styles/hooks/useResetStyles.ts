@@ -13,7 +13,7 @@ import { useCallback, useMemo, type CSSProperties } from "react";
 import { adaptStyleWithFills } from "@composition/shared";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
+import { getCanonicalDocumentElementsView } from "../../../stores/canonical/canonicalElementsView";
 import { getDefaultProps } from "../../../../types/builder/unified.types";
 import {
   resolveAppearanceSpecPreset,
@@ -84,16 +84,13 @@ function getActiveCanonicalResetElement(
   const doc = getActiveCanonicalResetDocument();
   if (!doc) return null;
 
-  let found: ResetBaselineElement | null = null;
-  visitCanonicalDocumentElements(doc, (element) => {
-    if (!found && element.id === elementId) {
-      found = {
-        type: element.type,
-        props: element.props as Readonly<Record<string, unknown>> | undefined,
-      };
-    }
-  });
-  return found;
+  const element = getCanonicalDocumentElementsView(doc).byId.get(elementId);
+  if (!element) return null;
+
+  return {
+    type: element.type,
+    props: element.props as Readonly<Record<string, unknown>> | undefined,
+  };
 }
 
 function normalizeStyleValue(prop: string, value: unknown): string | undefined {

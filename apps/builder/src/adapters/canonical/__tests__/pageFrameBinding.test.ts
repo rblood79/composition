@@ -15,7 +15,6 @@ import {
   applyPageFrameBindingExplicit,
   applyPageFrameBindingFromSelection,
 } from "../pageFrameBinding";
-import { exportLegacyDocument } from "../exportLegacyDocument";
 
 const mocks = vi.hoisted(() => ({
   db: {
@@ -226,8 +225,7 @@ describe("pageFrameBinding canonical primary helper", () => {
     expect(mocks.mergeElementsCanonicalPrimary).not.toHaveBeenCalled();
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     const pageNode = doc?.children.find((node) => node.id === "page-1") as
-      | RefNode
-      | undefined;
+      RefNode | undefined;
     expect(pageNode).toEqual(
       expect.objectContaining({
         id: "page-1",
@@ -313,14 +311,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       expect.objectContaining({ id: "page-2", layout_id: null }),
     ]);
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
-    expect(exportLegacyDocument(doc!)).toEqual([
-      expect.objectContaining({
-        id: "page-2-body",
-        page_id: "page-2",
-        layout_id: null,
-        type: "body",
-      }),
-    ]);
     expect(mocks.db.documents.put).toHaveBeenCalledWith(
       "project-1",
       expect.objectContaining({ version: "composition-1.0" }),
@@ -393,8 +383,7 @@ describe("pageFrameBinding canonical primary helper", () => {
 
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     const pageNode = doc?.children.find((node) => node.id === "page-5") as
-      | RefNode
-      | undefined;
+      RefNode | undefined;
     expect(pageNode).toEqual(
       expect.objectContaining({
         id: "page-5",
@@ -414,16 +403,6 @@ describe("pageFrameBinding canonical primary helper", () => {
           },
         },
       }),
-    );
-    expect(exportLegacyDocument(doc!)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "page-5-body",
-          page_id: "page-5",
-          layout_id: null,
-          type: "Body",
-        }),
-      ]),
     );
   });
 
@@ -609,16 +588,6 @@ describe("pageFrameBinding canonical primary helper", () => {
     });
 
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
-    expect(exportLegacyDocument(doc!)).toEqual([
-      expect.objectContaining({
-        id: "page-4-body",
-        page_id: "page-4",
-        layout_id: null,
-        props: expect.objectContaining({
-          style: { width: "100%", height: "100%" },
-        }),
-      }),
-    ]);
     expect(doc?.children.find((node) => node.id === "page-4")).toEqual(
       expect.objectContaining({
         id: "page-4",
@@ -709,22 +678,6 @@ describe("pageFrameBinding canonical primary helper", () => {
         ],
       }),
     );
-    expect(exportLegacyDocument(doc!)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "page-6-button",
-          page_id: "page-6",
-          parent_id: "page-6-body",
-          layout_id: null,
-        }),
-        expect.objectContaining({
-          id: "page-6-instance",
-          page_id: "page-6",
-          parent_id: "page-6-body",
-          layout_id: null,
-        }),
-      ]),
-    );
   });
 
   it("uses the actual canonical FrameNode id for native frame bindings", async () => {
@@ -753,8 +706,7 @@ describe("pageFrameBinding canonical primary helper", () => {
 
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     const pageNode = doc?.children.find((node) => node.id === "page-1") as
-      | RefNode
-      | undefined;
+      RefNode | undefined;
     expect(pageNode).toEqual(
       expect.objectContaining({
         id: "page-1",
@@ -793,8 +745,7 @@ describe("pageFrameBinding canonical primary helper", () => {
 
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     const pageNode = doc?.children.find((node) => node.id === "page-1") as
-      | RefNode
-      | undefined;
+      RefNode | undefined;
     expect(pageNode).toEqual(
       expect.objectContaining({
         id: "page-1",

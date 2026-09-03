@@ -5,32 +5,68 @@
  * `props` / `prevProps` / `childElements` / `elements` / `prevElements` /
  * `batchUpdates`) 를 보유한 entry 를 canonical event sequence 로 변환한다.
  *
- * 본 adapter 는 in-memory fallback path 와 (Phase 5 시점) IndexedDB v1→v2
- * onupgradeneeded migration 양쪽에서 재사용된다.
+ * 본 adapter 는 in-memory fallback path 와 IndexedDB v1→v2 onupgradeneeded
+ * migration 양쪽에서 재사용된다.
  *
- * 변환 정책:
- * - 이미 `canonicalEvents` 보유 → identity (그대로 반환)
- * - `diff` (type=update) → `CanonicalUpdateEvent` 1개 생성
- * - `diffs` (type=batch) → `CanonicalUpdateEvent[]` 생성
- * - `prevProps` (legacy update snapshot) → `CanonicalUpdateEvent` 생성
- * - `batchUpdates` (legacy batch snapshot) → `CanonicalUpdateEvent[]` 생성
- * - `element`/`childElements` (legacy add/remove snapshot) → 변환 시도 없이
- *   `canonicalEvents: []` graceful degradation. **이유**: structural insert/remove
- *   event 는 정확한 parentId/index 가 필요하나 v1 snapshot 에 미보존. undo/redo
- *   에서 no-op 으로 처리 (사용자에게는 "이전 변경" 이력만 노출, 적용 시 무동작).
- * - 변환 불가 / 빈 entry → `canonicalEvents: []` graceful degradation.
+ * 변환 규칙:
+ * - 이미 `canonicalEvents` 보유 → identity 후 legacy snapshot strip
+ * - `diff` (type=update) → `CanonicalUpdateEvent` 1개
+ * - `diffs` (type=batch) → `CanonicalUpdateEvent[]`
+ * - `prevProps` (legacy update snapshot) → `CanonicalUpdateEvent`
+ * - `batchUpdates` (legacy batch snapshot) → `CanonicalUpdateEvent[]`
+ * - `prevElements`/`elements` (legacy batch snapshot) → replace events
+ * - `element`/`childElements` (legacy add/remove) → insert/remove events
+ *   (parentId/index 는 Element.parent_id + sibling order best-effort)
+ * - 변환 성공 시 deprecated legacy snapshot keys strip
+ * - 변환 불가 / 빈 entry → `canonicalEvents: []` (legacy fallback 유지)
  *
  * @see docs/adr/124-canonical-only-history-schema.md
  * @see docs/adr/design/124-canonical-only-history-schema-breakdown.md §Phase 3 + §Phase 5
  */
 
 import type { ComponentElementProps } from "../../../types/core/store.types";
+import type { Element } from "../../../types/core/store.types";
 import type { SerializableElementDiff } from "../utils/elementDiff";
 import type { HistoryEntry } from "../history";
 import {
+  buildCanonicalInsertEvents,
+  buildCanonicalRemoveEvents,
+  buildCanonicalReplaceEvents,
   buildCanonicalUpdateEvent,
   type CanonicalHistoryNodeEvent,
 } from "./canonicalHistoryEvents";
+
+/** HistoryEntry.data 에서 migration 성공 후 제거하는 legacy snapshot keys. */
+const LEGACY_SNAPSHOT_DATA_KEYS = [
+  "element",
+  "prevElement",
+  "props",
+  "prevProps",
+  "childElements",
+  "elements",
+  "prevElements",
+  "batchUpdates",
+] as const;
+
+function asElementArray(value: unknown): Element[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is Element =>
+      Boolean(item) &&
+      typeof item === "object" &&
+      typeof (item as Element).id === "string" &&
+      typeof (item as Element).type === "string",
+  );
+}
+
+function asElement(value: unknown): Element | null {
+  if (!value || typeof value !== "object") return null;
+  const element = value as Element;
+  if (typeof element.id !== "string" || typeof element.type !== "string") {
+    return null;
+  }
+  return element;
+}
 
 /**
  * `SerializableElementDiff` 에서 prevProps / nextProps 를 추출.
@@ -63,15 +99,63 @@ function extractPropsFromDiff(diff: SerializableElementDiff): {
 }
 
 /**
+ * migration 성공 entry 의 legacy snapshot payload 제거.
+ *
+ * **지금은 no-op 에 가깝게 유지**: historyActions legacy fallback 이 아직
+ * `element`/`childElements`/`prevElements`/`elements` 를 읽는다.
+ * `applyCanonicalHistoryEventsToActiveDocument` 가 project 미적재로 null 을
+ * 반환하면 fallback 으로 내려가는데, strip 하면 undo/redo 가 조용히 no-op 이 된다.
+ * raw legacy read 계측이 0 임을 실측한 뒤 이 함수 본문을 활성화한다.
+ */
+export function stripLegacyHistoryPayload(entry: HistoryEntry): HistoryEntry {
+  if (!entry.data.canonicalEvents || entry.data.canonicalEvents.length === 0) {
+    return entry;
+  }
+
+  // Phase gate: payload 보존 (fallback 안전). strip 활성화는 raw-read=0 이후.
+  void LEGACY_SNAPSHOT_DATA_KEYS;
+  return entry;
+}
+
+function buildStructuralEventsFromEntry(
+  entry: HistoryEntry,
+): CanonicalHistoryNodeEvent[] {
+  const root = asElement(entry.data.element);
+  const children = asElementArray(entry.data.childElements);
+  const allElements = root ? [root, ...children] : children;
+
+  if (entry.type === "add" && allElements.length > 0) {
+    return buildCanonicalInsertEvents(allElements);
+  }
+
+  if (entry.type === "remove" && allElements.length > 0) {
+    const roots = root ? [root] : children;
+    return buildCanonicalRemoveEvents(roots, allElements);
+  }
+
+  return [];
+}
+
+function buildBatchReplaceEventsFromEntry(
+  entry: HistoryEntry,
+): CanonicalHistoryNodeEvent[] {
+  if (entry.type !== "batch") return [];
+  const prevElements = asElementArray(entry.data.prevElements);
+  const nextElements = asElementArray(entry.data.elements);
+  if (prevElements.length === 0 || nextElements.length === 0) return [];
+  return buildCanonicalReplaceEvents(prevElements, nextElements);
+}
+
+/**
  * 단일 entry 를 v1 → v2 canonical event 로 변환.
  *
- * **identity preserve**: 이미 canonicalEvents 보유한 entry 는 그대로 반환.
- * **best-effort**: 변환 불가 시 `canonicalEvents: []` (no-op graceful degradation).
+ * **identity preserve**: 이미 canonicalEvents 보유한 entry 는 strip 만 적용.
+ * **best-effort**: 변환 불가 시 `canonicalEvents: []` (legacy fallback 유지).
  */
 export function migrateV1EntryToV2(entry: HistoryEntry): HistoryEntry {
-  // 이미 canonical 변환된 entry → identity
+  // 이미 canonical 변환된 entry → strip 만 (legacy payload 제거)
   if (entry.data.canonicalEvents && entry.data.canonicalEvents.length > 0) {
-    return entry;
+    return stripLegacyHistoryPayload(entry);
   }
 
   const canonicalEvents: CanonicalHistoryNodeEvent[] = [];
@@ -85,7 +169,6 @@ export function migrateV1EntryToV2(entry: HistoryEntry): HistoryEntry {
   }
 
   // type=update + legacy prevProps snapshot → CanonicalUpdateEvent
-  // (canonicalEvents 가 비어 있을 때만 fallback 으로 적용)
   if (
     canonicalEvents.length === 0 &&
     entry.type === "update" &&
@@ -128,21 +211,29 @@ export function migrateV1EntryToV2(entry: HistoryEntry): HistoryEntry {
     }
   }
 
-  // add/remove + element/childElements snapshot:
-  // structural event 의 정확한 parentId/index 보존이 v1 schema 에서 불가 →
-  // canonicalEvents: [] graceful degradation. undo/redo no-op 처리.
+  // type=batch + prevElements/elements → replace events
+  if (canonicalEvents.length === 0) {
+    canonicalEvents.push(...buildBatchReplaceEventsFromEntry(entry));
+  }
 
-  return {
+  // add/remove + element/childElements → insert/remove events
+  if (canonicalEvents.length === 0) {
+    canonicalEvents.push(...buildStructuralEventsFromEntry(entry));
+  }
+
+  const migrated: HistoryEntry = {
     ...entry,
     data: {
       ...entry.data,
       canonicalEvents,
     },
   };
+
+  return stripLegacyHistoryPayload(migrated);
 }
 
 /**
- * entry 배열 일괄 변환 (session-restore 경로용).
+ * entry 배열 일괄 변환 (session-restore / IDB load 경로용).
  */
 export function migrateV1EntriesToV2(entries: HistoryEntry[]): HistoryEntry[] {
   return entries.map(migrateV1EntryToV2);

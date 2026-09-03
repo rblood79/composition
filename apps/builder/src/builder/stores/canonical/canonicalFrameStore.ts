@@ -9,6 +9,18 @@ import {
   useActiveCanonicalDocument,
 } from "./canonicalElementsBridge";
 
+/**
+ * Canonical reusable frame → UI/list/invalidation 읽기 투영.
+ * adapter seed/mutation 의 `Layout` schema 와 분리한다.
+ */
+export interface ReusableFrameLayoutSummary {
+  id: string;
+  name: string;
+  project_id: string;
+  description?: string;
+  slug?: string;
+}
+
 type CanonicalFrameSelectionState = {
   selectedReusableFrameId: string | null;
   setSelectedReusableFrameId: (frameId: string | null) => void;
@@ -123,30 +135,32 @@ export function seedCanonicalReusableFrameLayouts(
 
 export function canonicalDocumentToReusableFrameLayouts(
   doc: CompositionDocument | null | undefined,
-): Layout[] {
+): ReusableFrameLayoutSummary[] {
   if (!doc) return [];
 
-  return doc.children.filter(isReusableFrameNode).map((frame): Layout => {
-    const id = getReusableFrameMirrorId(frame);
-    const projectId =
-      getStringMetadata(frame.metadata, "project_id") ??
-      getStringMetadata(frame.metadata, "projectId") ??
-      "";
-    return {
-      id,
-      name: frame.name ?? id,
-      project_id: projectId,
-      description: getStringMetadata(frame.metadata, "description"),
-      slug: getStringMetadata(frame.metadata, "slug"),
-    };
-  });
+  return doc.children
+    .filter(isReusableFrameNode)
+    .map((frame): ReusableFrameLayoutSummary => {
+      const id = getReusableFrameMirrorId(frame);
+      const projectId =
+        getStringMetadata(frame.metadata, "project_id") ??
+        getStringMetadata(frame.metadata, "projectId") ??
+        "";
+      return {
+        id,
+        name: frame.name ?? id,
+        project_id: projectId,
+        description: getStringMetadata(frame.metadata, "description"),
+        slug: getStringMetadata(frame.metadata, "slug"),
+      };
+    });
 }
 
-export function getCanonicalReusableFrameLayouts(): Layout[] {
+export function getCanonicalReusableFrameLayouts(): ReusableFrameLayoutSummary[] {
   return canonicalDocumentToReusableFrameLayouts(getActiveCanonicalDocument());
 }
 
-export function useCanonicalReusableFrameLayouts(): Layout[] {
+export function useCanonicalReusableFrameLayouts(): ReusableFrameLayoutSummary[] {
   const doc = useActiveCanonicalDocument();
   return useMemo(() => canonicalDocumentToReusableFrameLayouts(doc), [doc]);
 }

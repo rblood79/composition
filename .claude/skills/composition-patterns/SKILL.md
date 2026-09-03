@@ -29,7 +29,7 @@ composition Builder의 코드 패턴, 규칙 및 모범 사례 통합 스킬.
 
 ## Runtime SSOT — Canonical Document (ADR-116 + ADR-122 Implemented)
 
-ADR-111 (frame schema) / ADR-112 (editing semantics) / ADR-113 (tag→type rename) 반영 후, ADR-116 이 `CompositionDocument` 를 storage SSOT 로 전환했고 (Implemented 2026-05-02), ADR-118/119/120/121 이 legacy mirror persistence 를 제거했으며, ADR-122 가 runtime mirror 제거를 완결했다 (Implemented 2026-05-09). 잔존 boundary helper (`frameMirror`/`exportLegacyDocument` 등) 는 ADR-122 HC.3 allowlist 내 의도된 영역 — 상세: [docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md).
+ADR-111 (frame schema) / ADR-112 (editing semantics) / ADR-113 (tag→type rename) 반영 후, ADR-116 이 `CompositionDocument` 를 storage SSOT 로 전환했고 (Implemented 2026-05-02), ADR-118/119/120/121 이 legacy mirror persistence 를 제거했으며, ADR-122 가 runtime mirror 제거를 완결했다 (Implemented 2026-05-09). 잔존 mirror helper는 `frameMirror` 등 runtime에 필요한 격리 경계만 허용한다. 프로젝트 JSON 가져오기/내보내기는 canonical document를 직접 사용하며 legacy `Element[]` 역변환 경계는 2026-09-03 제거됐다 — 상세: [docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md).
 
 ### 9 ADR 체인 도착지점
 
@@ -39,12 +39,12 @@ ADR-111 (frame schema) / ADR-112 (editing semantics) / ADR-113 (tag→type renam
 
 | Layer                | 현행                                                                  | 금지                                                        |
 | -------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Mutation             | canonical document patch primary                                      | `setElements(exportLegacyDocument(doc))` mirror write-back  |
+| Mutation             | canonical document patch primary                                      | legacy `Element[]` reverse projection write-back            |
 | Store read           | canonical selectors / canonical node lookup / resolved canonical tree | mutable `elementsMap`/`childrenMap` authoritative read      |
 | Skia                 | canonical scene snapshot 또는 resolved canonical tree input           | render 직전 `canonicalDocumentToElements()` full projection |
 | Preview              | `UPDATE_CANONICAL_DOCUMENT` active channel                            | `UPDATE_ELEMENTS` 의존                                      |
 | LayerTree/Properties | canonical node/path/alias view model                                  | legacy `Element` shape 를 primary read model                |
-| Boundary             | cloud/export/import/publish compat adapter                            | Builder hot path `exportLegacyDocument()` 호출              |
+| Boundary             | canonical JSON import/export + 필요한 compat adapter                  | canonical document를 legacy `Element[]`로 역변환            |
 
 **핵심 불변식 4건** (2026-08-18 `.agents` 사본에서 이관 — 심링크 단일화 시 유일 실질 고유분):
 

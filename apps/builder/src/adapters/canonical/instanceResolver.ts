@@ -9,14 +9,11 @@
  * @see docs/WASM_DOC_IMPACT_ANALYSIS.md §G.1
  */
 
-import type { Element } from "../../types/builder/unified.types";
-import type { ResolvedInstanceProps } from "../../types/builder/component.types";
 import type {
   CanonicalNode,
   DescendantOverride,
   RefNode,
 } from "@composition/shared";
-import { getLegacyOverrides } from "./legacyElementFields";
 
 // ─────────────────────────────────────────────
 // Pure helper — ADR-903 P1 Stage 2
@@ -25,13 +22,13 @@ import { getLegacyOverrides } from "./legacyElementFields";
 /**
  * @internal Reusable props merger with deep-style merging.
  *
- * resolveInstanceProps 및 canonical resolver (Phase 2)의 공통 merge 패턴 추출 — DRY.
+ * canonical resolver (Phase 2)의 공통 merge 패턴 추출 — DRY.
  *
  * style 필드는 shallow spread가 아닌 심층 병합(base style + override style).
  * 나머지 필드는 override가 base를 완전히 덮어쓴다.
  *
- * **시각 대칭 보장**: legacy resolveInstanceProps,
- * canonical resolveCanonicalRefProps / resolveCanonicalDescendantOverride
+ * **시각 대칭 보장**: resolveCanonicalRefProps /
+ * resolveCanonicalDescendantOverride / resolveInstanceWithSharedCache
  * 모두 이 함수를 경유하므로 style 심층 병합 semantics가 단일 구현으로 통일된다.
  */
 export function mergePropsWithStyleDeep(
@@ -55,13 +52,11 @@ export function mergePropsWithStyleDeep(
 /**
  * @experimental ADR-903 P2 progress — canonical RefNode root merge.
  *
- * legacy resolveInstanceProps의 canonical 등가물.
  * master CanonicalNode와 RefNode의 루트 속성을 병합하여 resolved props 산출.
  * style은 심층 병합.
  *
  * P2 resolver가 ref → resolved tree 변환 시 호출.
- * legacy resolveInstanceProps와 동일한 mergePropsWithStyleDeep semantics 사용
- * — 시각 결과 대칭 보장.
+ * mergePropsWithStyleDeep semantics 사용 — 시각 결과 대칭 보장.
  *
  * **props 계약**: ADR-116 direct cutover 이후 master/ref props source는
  * `CanonicalNode.props` 하나다. `metadata.legacyProps` 는 adapter/export 경계의
@@ -166,67 +161,10 @@ export function hasItemsOverride(
   return !itemsEqual(refItems, master.props?.items);
 }
 
-// ─────────────────────────────────────────────
-// Legacy public API — 시그니처 무변경
-// ─────────────────────────────────────────────
-
-/**
- * Instance 요소의 props를 master와 병합하여 최종 props 반환
- *
- * @deprecated ADR-116 G5-B P5-B — read-through fallback only.
- * legacy `componentRole === "instance"` + instance overrides (Record) 경로
- * 전용 helper. 신규 canonical 경로는 `resolveInstanceWithSharedCache`
- * (`resolvers/canonical/storeBridge.ts`) 또는 `resolveCanonicalRefElement`
- * (`builder/utils/canonicalRefResolution.ts`) 사용. legacy 분기 자체는 ADR-111
- * P3 cleanup 영역이며, 본 함수 caller migration 도 ADR-111 P3 cleanup 과 동시 진행.
- *
- * @param instance componentRole === 'instance' 요소
- * @param master instance.masterId로 조회한 master 요소
- * @returns 병합된 props와 각 prop의 출처
- */
-export function resolveInstanceProps(
-  instance: Element,
-  master: Element,
-): ResolvedInstanceProps {
-  const masterProps = master.props || {};
-  const overrides = getLegacyOverrides(instance) || {};
-  const sources: Record<
-    string,
-    "master" | "override" | "descendant" | "default"
-  > = {};
-
-  // sources 추적 (legacy API contract 보존)
-  for (const key of Object.keys(masterProps)) sources[key] = "master";
-  for (const key of Object.keys(overrides)) sources[key] = "override";
-
-  const props = mergePropsWithStyleDeep(masterProps, overrides);
-  return { props, sources };
-}
-
-/**
- * Instance 요소를 master 기반으로 해석하여 렌더링 가능한 Element 반환
- *
- * master가 없으면 원본 instance를 그대로 반환.
- *
- * @deprecated ADR-116 G5-B P5-B — read-through fallback only.
- * legacy `resolveInstanceProps` 의 thin wrapper. 신규 canonical 경로는
- * `resolveInstanceWithSharedCache` 또는 `resolveCanonicalRefElement` 사용.
- */
-export function resolveInstanceElement(
-  instance: Element,
-  master: Element | undefined,
-): Element {
-  if (!master) return instance;
-
-  const { props } = resolveInstanceProps(instance, master);
-
-  return {
-    ...instance,
-    type: master.type,
-    props,
-  };
-}
-
 // ADR-912 후속 cleanup: resolveDescendantOverrides 제거 — ADR-116 G5-B read-through
 // fallback 전용이었으나 canonical RefNode.descendants 전환으로 caller 0건.
 // 신규 경로는 resolveCanonicalDescendantOverride (위 정의) 사용.
+//
+// 2026-09-03 leaf cleanup: resolveInstanceProps / resolveInstanceElement 제거 —
+// production caller 0. 신규 경로는 resolveInstanceWithSharedCache /
+// resolveCanonicalRefProps.

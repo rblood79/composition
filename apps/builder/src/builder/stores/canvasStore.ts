@@ -17,7 +17,7 @@ import { useMemo } from "react";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { useStore } from ".";
-import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
+import { getCanonicalDocumentElementsView } from "./canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
 import type { Element } from "../../types/core/store.types";
 
@@ -82,13 +82,9 @@ export function useCanvasElements() {
   const activeCanonicalDocument = useActiveCanonicalDocument();
   const canonicalPageElements = useMemo(() => {
     if (!activeCanonicalDocument || !currentPageId) return null;
-    const elements: Element[] = [];
-    visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
-      if (element.page_id === currentPageId) {
-        elements.push(element);
-      }
-    });
-    return elements;
+    return getCanonicalDocumentElementsView(
+      activeCanonicalDocument,
+    ).elements.filter((element) => element.page_id === currentPageId);
   }, [activeCanonicalDocument, currentPageId]);
   const storePageElements = useStore((state) =>
     canonicalPageElements || !currentPageId
@@ -110,13 +106,11 @@ export function useCanvasSelectedElement() {
   const activeCanonicalDocument = useActiveCanonicalDocument();
   const canonicalSelectedElement = useMemo(() => {
     if (!activeCanonicalDocument || !selectedElementId) return null;
-    let selectedElement: Element | null = null;
-    visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
-      if (element.id === selectedElementId) {
-        selectedElement = element;
-      }
-    });
-    return selectedElement;
+    return (
+      getCanonicalDocumentElementsView(activeCanonicalDocument).byId.get(
+        selectedElementId,
+      ) ?? null
+    );
   }, [activeCanonicalDocument, selectedElementId]);
   const storeElements = useStore((state) => {
     if (activeCanonicalDocument) return EMPTY_ELEMENTS;

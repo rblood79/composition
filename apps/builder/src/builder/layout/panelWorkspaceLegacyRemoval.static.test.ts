@@ -18,6 +18,8 @@ describe("ADR-922 G6 legacy panel removal", () => {
     "layout/ModalPanelContainer.css",
     "layout/panelStackLayout.ts",
     "layout/panelStackLayout.test.ts",
+    "layout/panelWorkspaceLayoutV3Rollback.ts",
+    "layout/panelWorkspaceLayoutV3Rollback.test.ts",
     "workspace/utils/panelLayoutRuntime.ts",
     "styles/layout/footer.css",
     "styles/modules/panel-container.css",
