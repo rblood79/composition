@@ -1483,9 +1483,7 @@ function traversePostOrder(
 
   // ADR-923 Phase 5 후속 (2026-09-03): FieldError 글자 크기는 parent rule 의 delegation
   //   (`.react-aria-FieldError` hint 변수, size 별) 이 정본 — generated CSS 가 같은 항목을 emit 한다.
-  //   production 트리의 FieldError 는 style 에 fontSize 가 없어 (creation 경로가 factory 인라인을
-  //   벗긴다) 기본 16 → 24px 줄 상자로 DOM (14 → 21 · 12 → 18) 과 갈렸다. 줄 높이는 DOM 이 root
-  //   `line-height: 1.5` 를 상속하므로 lineHeight 는 주입하지 않는다 (기본 fs × 1.5 가 같은 값).
+  //   production 트리의 FieldError 는 기본 16 → 24px 줄 상자로 DOM (14 → 21 · 12 → 18) 과 갈렸다.
   //   Skia 도 같은 resolver 로 같은 값을 그린다 (buildSpecNodeData).
   // r2 feh1 (2026-09-03 live): Preview/publish 는 canonical FieldError 자식이 아니라 **RAC 자체
   //   FieldError** 를 그린다 (publish DOM 에 `data-element-id` 없음) — 자식의 인라인 style 은 DOM 에
@@ -1502,11 +1500,16 @@ function traversePostOrder(
           string | undefined,
       );
       if (feFontSize != null) {
+        // 줄 높이도 같은 소유권 (round 3 fe2h1): DOM 은 root `line-height: 1.5` 를 상속하고 자식의
+        //   인라인 lineHeight 를 읽을 채널이 없다 → 인라인을 **걷어낸다**. 값을 명시 주입하지 않는
+        //   이유는 빈 FieldError (invalid + 메시지 없음) 때문 — DOM 은 내용이 없으면 줄 상자가 없어
+        //   높이 0 이고, 측정 기본 (내용 있을 때만 fs × 1.5) 이 그 계약과 같다.
+        const { lineHeight: _feInlineLineHeight, ...feStyleRest } = feStyle;
         rawElement = {
           ...rawElement,
           props: {
             ...rawElement.props,
-            style: { ...feStyle, fontSize: feFontSize },
+            style: { ...feStyleRest, fontSize: feFontSize },
           },
         } as CanvasLayoutNode;
       }

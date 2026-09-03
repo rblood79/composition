@@ -231,6 +231,8 @@ const CatalogEditContractEditor = memo(
               (u) => ({
                 elementId: u.elementId,
                 props: u.props as BatchPropsUpdate["props"],
+                // propagation patch 는 바꾸는 style 키만 담는다 → 자식의 나머지 style 보존 (r2 feh2)
+                ...(u.mergeStyle ? { mergeStyle: true } : {}),
               }),
             );
             state.updateSelectedPropertiesWithChildren(

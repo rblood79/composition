@@ -15,6 +15,14 @@ import { getPropagationRules } from "./propagationRegistry";
 export interface PropagationUpdate {
   elementId: string;
   props: Record<string, unknown>;
+  /**
+   * `props.style` 이 **부분 patch** 임을 소비처에 알린다 (asStyle 규칙이 하나라도 걸린 update).
+   *
+   * store 쓰기는 `BatchPropsUpdate.mergeStyle` 로 이 값을 그대로 넘겨 자식의 나머지 style 을 지킨다
+   * (r2 feh2). 생산자가 현재 style 전체를 복사해 오면 `sanitizePropsPatch` 가 fill 파생 키를 지운다
+   * (round 3 fe2m1) — 그래서 patch 는 바꾸는 키만, 병합은 소비처에서.
+   */
+  mergeStyle?: boolean;
 }
 
 interface ElementLike {
@@ -184,14 +192,10 @@ export function buildPropagationUpdates(
       }
 
       if (rule.asStyle) {
-        // store 쓰기 경로 (`batchUpdateElementProps` → `{...element.props, ...props}`) 는 props 최상위
-        //   **얕은** 병합이라, patch 의 style 이 부분 객체면 자식의 기존 style 이 통째로 사라진다
-        //   (r2 feh2 — fontSize/color/width 손실). 자식의 현재 style 을 씨로 깔고 그 위에 덮는다.
-        if (!existing.style) {
-          const currentStyle = (element.props as Record<string, unknown>)
-            ?.style as Record<string, unknown> | undefined;
-          existing.style = currentStyle ? { ...currentStyle } : {};
-        }
+        // patch 는 **바꾸는 키만** 담는다 (round 3 fe2m1 — 현재 style 전체를 복사해 오면
+        //   `sanitizePropsPatch` 가 fill 파생 키를 patch 로 보고 지운다). 자식의 나머지 style 보존은
+        //   소비처가 한다: store 쓰기는 `BatchPropsUpdate.mergeStyle`, factory 는 아래 깊은 병합.
+        if (!existing.style) existing.style = {};
         (existing.style as Record<string, unknown>)[childProp] = value;
       } else {
         existing[childProp] = value;
@@ -202,6 +206,7 @@ export function buildPropagationUpdates(
   return Array.from(updatesById, ([elementId, props]) => ({
     elementId,
     props,
+    ...(props.style ? { mergeStyle: true as const } : {}),
   }));
 }
 
@@ -341,6 +346,18 @@ export function applyFactoryPropagation<
   return children.map((child) => {
     const patch = patchById.get(child.id);
     if (!patch) return child;
-    return { ...child, props: { ...child.props, ...patch } } as T;
+    // style 은 부분 patch — 자식의 현재 style 위에 덮는다 (얕은 spread 는 나머지 키를 잃는다).
+    const patchStyle = patch.style as Record<string, unknown> | undefined;
+    const childStyle = child.props.style as Record<string, unknown> | undefined;
+    return {
+      ...child,
+      props: {
+        ...child.props,
+        ...patch,
+        ...(patchStyle
+          ? { style: { ...(childStyle ?? {}), ...patchStyle } }
+          : {}),
+      },
+    } as T;
   });
 }

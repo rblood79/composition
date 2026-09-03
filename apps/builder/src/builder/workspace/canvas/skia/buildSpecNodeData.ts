@@ -1400,7 +1400,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
 
   // ---------- variant / size spec 해석 ----------
   const props = getProps(element);
-  const style = (props.style || {}) as Record<string, unknown>;
+  let style = (props.style || {}) as Record<string, unknown>;
 
   // ---------- size source: catalog cutover 는 theme rule table, 그 외 spec.sizes ----------
   // ADR-912 1C — Button 등 catalog Skia cutover type 은 size 시각값을 **theme rule table**
@@ -1606,16 +1606,26 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       };
     }
     // 줄 높이는 자식 rule 토큰(md 16)이 아니라 **root 상속 비율**이 DOM 의 값이다 (r2 feh3 —
-    //   활성 bundle 에 FieldError line-height 규칙 없음). 인라인 lineHeight 가 있으면 그것이 우선.
+    //   활성 bundle 에 FieldError line-height 규칙 없음). 자식의 인라인 lineHeight 도 DOM 에 도달할
+    //   채널이 없으므로 delegation 이 잡히면 그것도 이긴다 (round 3 fe2h1) — fontSize 와 같은 소유권.
     const effectiveFontSize =
       delegated ??
       inlineFontSize ??
       (typeof sizeSpec.fontSize === "number" ? sizeSpec.fontSize : undefined);
-    if (existingStyle.lineHeight == null && effectiveFontSize != null) {
+    if (
+      effectiveFontSize != null &&
+      (delegated != null || existingStyle.lineHeight == null)
+    ) {
       sizeSpec = {
         ...sizeSpec,
         lineHeight: resolveInheritedLineHeight(effectiveFontSize),
       };
+      // 인라인 lineHeight 는 아래 "Text style overrides" (Phase A) 가 raw style 에서 다시 읽어
+      //   spec 값을 덮으므로 (숫자는 배율 해석 — 10 → 14×10=140), 그 입력에서도 걷어낸다.
+      if (delegated != null && style.lineHeight != null) {
+        const { lineHeight: _droppedLineHeight, ...restStyle } = style;
+        style = restStyle;
+      }
     }
   }
 

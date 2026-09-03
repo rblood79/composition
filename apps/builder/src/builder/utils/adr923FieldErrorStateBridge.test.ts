@@ -174,10 +174,12 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 propagation 다리
         ]),
       );
       expect(updates.length, `${type} updates`).toBe(1);
-      expect(updates[0].props.style, `${type} style`).toEqual({
-        ...authored,
+      // patch 는 **바꾸는 키만** (round 3 fe2m1 — 현재 style 을 복사해 오면 sanitizePropsPatch 가
+      //   fill 파생 키를 지운다). 보존 책임은 소비처: store 는 mergeStyle, factory 는 깊은 병합.
+      expect(updates[0].props.style, `${type} style patch`).toEqual({
         display: "block",
       });
+      expect(updates[0].mergeStyle, `${type} mergeStyle`).toBe(true);
 
       // factory 초기 전파도 같은 경로 (`applyFactoryPropagation` → buildPropagationUpdates)
       const factoryParent: PropagationNode = {
@@ -193,7 +195,7 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 propagation 다리
     }
   });
 
-  it("Skia — FieldError text 는 delegation 글자 크기와 root 상속 줄 높이를 쓴다 (옛 문서의 인라인 fontSize 도 delegation 이 이긴다 — DOM 에 인라인 채널 없음)", () => {
+  it("Skia — FieldError text 는 delegation 글자 크기와 root 상속 줄 높이를 쓴다 (옛 문서의 인라인 fontSize·lineHeight 를 delegation 이 이긴다 — DOM 에 인라인 채널 없음)", () => {
     // r2 feh3 / fem1: catalog FieldError rule 의 lineHeight (md 16) 는 활성 CSS bundle 이 소비하지
     //   않는다 — DOM 은 `:root { line-height: 1.5 }` 를 상속한다 (browser gate 실측 14→21 · 12→18).
     const layout = { x: 0, y: 0, width: 200, height: 21 } as ComputedLayout;
@@ -271,6 +273,28 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 propagation 다리
       expect(inlineText?.lineHeight, `${type} inline lineHeight`).toBe(
         resolveInheritedLineHeight(expected),
       );
+
+      // 인라인 lineHeight (Typography 패널로 실제 작성 가능) 도 같은 소유권 — DOM 은 root 1.5 를
+      //   상속하고 자식의 인라인 줄 높이를 읽을 채널이 없다 (round 3 fe2h1).
+      const inlineLh = makeFe({
+        display: "block",
+        fontSize: 12,
+        lineHeight: 10,
+      });
+      const inlineLhText = textOf(
+        buildSpecNodeData({
+          element: inlineLh,
+          layout,
+          theme: "light",
+          elementsMap: new Map([
+            [parent.id, parent],
+            [inlineLh.id, inlineLh],
+          ]),
+        }),
+      );
+      expect(inlineLhText?.lineHeight, `${type} inline lineHeight 무시`).toBe(
+        resolveInheritedLineHeight(expected),
+      );
     }
   });
 
@@ -298,7 +322,11 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 propagation 다리
         elementsMap,
       );
       expect(onInvalid, `${type} isInvalid`).toEqual([
-        { elementId: fe.id, props: { style: { display: "block" } } },
+        {
+          elementId: fe.id,
+          props: { style: { display: "block" } },
+          mergeStyle: true,
+        },
       ]);
 
       const onMessage = buildPropagationUpdates(

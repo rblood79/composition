@@ -12,8 +12,8 @@
   3. (**round 2 에서 전제 정정 — §5-1 feh1**) 글자 있는 FieldError 높이 Canvas 24 vs DOM 21 (TextField·TextArea) / 18 (Number·Date·TimeField): production 트리 (팔레트 creation) 의 FieldError 는 `style:{display:"none"}` 뿐 — factory 정의의 `fontSize:12` 가 creation 경로에서 벗겨져 기본 16 → 16×1.5. DOM 의 원천은 parent rule `structure.composition.delegation[]` 의 `.react-aria-FieldError` 항목 (size 별 `--tf-hint-size: var(--text-sm)` → generated CSS `--error-font-size` bridge → base.css `.react-aria-FieldError { font-size: var(--error-font-size, var(--text-xs)) }`): TextField md 14 · NumberField/DateField/TimeField md 12. FieldError 자체 rule 은 md 12 (text-xs) 라 자체 rule 만 읽어도 TextField 가 갈린다. TextArea 는 root class 가 `react-aria-TextField` 라 (D1, `TextArea.tsx` 머리말) TextField.css 의 규칙을 받고 자기 rule 에는 FieldError 항목이 0.
 - **수리** (Rust 무변경):
   - `propagationRegistry.ts` — `fieldErrorStatePropagationRules` 2 규칙 (`errorMessage → FieldError.children` override · `isInvalid → FieldError style.display` asStyle + transform `v ? "block" : "none"`) 을 5 field 배열에 spread. parent 에 `isInvalid` 키가 없으면 규칙이 걸리지 않아 factory `none` 유지 (legacy 문서 migration 불요). 가시성 게이트는 RAC 와 같이 `isInvalid` 만 — `errorMessage` 는 글자만.
-  - `fullTreeLayout.ts` — `traversePostOrder` 진입 직후 자식 자신에게 `resolvePropagatedProps` 적용 (Skia `applyParentPropagationProps` 와 같은 방향), `asStyle` patch 는 자식 style 위에 깊게 병합 (부모 래퍼 경로도 같은 병합으로 정정). FieldError 이면 `style.fontSize` 부재 시 delegation 값 주입 (lineHeight 는 주입하지 않음 — DOM 이 root `line-height: 1.5` 를 상속하고 Canvas 기본 fs×1.5 가 같은 값).
-  - `packages/shared/src/catalog/resolvers/resolveDelegatedChildFontSize.ts` (신설, `@composition/shared` export) — parent rule delegation 의 childSelector 항목에서 size 별 `-size` 변수 (`bridges["--error-font-size"]` 가 가리키는 것 우선) 를 `var(--text-*)` → typography 토큰 px 로. 직접 항목 없을 때만 alias (`textarea → TextField`). layout·Skia (`buildSpecNodeData` FieldError 분기, 인라인 `style.fontSize` 우선) 가 같은 값을 읽는다.
+  - `fullTreeLayout.ts` — `traversePostOrder` 진입 직후 자식 자신에게 `resolvePropagatedProps` 적용 (Skia `applyParentPropagationProps` 와 같은 방향), `asStyle` patch 는 자식 style 위에 깊게 병합 (부모 래퍼 경로도 같은 병합으로 정정). FieldError 이면 delegation 값 주입 (**round 2·3 정정**: 인라인 `style.fontSize` 가 있어도 delegation 이 이기고, 인라인 `style.lineHeight` 는 걷어낸다 — §5-1 feh1 · §6 fe2h1).
+  - `packages/shared/src/catalog/resolvers/resolveDelegatedChildFontSize.ts` (신설, `@composition/shared` export) — parent rule delegation 의 childSelector 항목에서 size 별 `-size` 변수 (`bridges["--error-font-size"]` 가 가리키는 것 우선) 를 `var(--text-*)` → typography 토큰 px 로. 직접 항목 없을 때만 alias (`textarea → TextField`). layout·Skia (`buildSpecNodeData` FieldError 분기) 가 같은 값을 읽는다 (**round 2 정정**: 인라인 우선 아님 — delegation 우선, §5-1 feh1).
   - `editorMutationEffectRegistry.ts` — `isInvalid` · `errorMessage` 를 `LAYOUT_AFFECTING_PROP_SOURCE` (계층 A) · `LAYOUT_PROP_CACHE_SOURCE` (계층 B) · `CONTENT_BOX_PROP_KEYS` 에 등재. ADR-187 Phase 0 fixture (`187-phase-0-invalidation-baseline.json`) 동기화. Inspector 는 자식 store 에 쓰므로 (`children`·`style.display`) 자식 키로도 재계산되지만, Inspector 아닌 writer (AI · import · canonical patch) 가 parent 만 바꾸는 경로가 이 등재로 닫힌다. r21m1 TagGroup 슬롯 가시성 (`isTagGroupSlotChildVisible`, parent `errorMessage` 소비) 도 같은 등재로 재계산 (코드상 — TagGroup live 재현은 하지 않음).
 
 ## 1. 실측 — 5 field × 4 상태, DOM vs pipeline (400px, `adr923FieldErrorStateProjection.browser.test.ts`)
@@ -115,12 +115,7 @@ publish DOM 의 `.react-aria-FieldError` 에는 **`data-element-id` 가 없다**
 
 원복 RED (전부 재현 확인 후 원상복구):
 
-| 원복                                          | 결과                                                                                |
-| --------------------------------------------- | ----------------------------------------------------------------------------------- |
-| (e) style 씨 깔기 제거                        | bridge 1 FAIL                                                                       |
-| (f) factory·origin 인라인 12 복원             | bridge 2 + origin 1 FAIL · browser 3 FAIL (TextField font 12 vs 14 · h 18 vs 21)     |
-| (g) Skia lineHeight 덮어쓰기 제거             | bridge 1 FAIL · browser 1 FAIL (skia 16 vs dom 21)                                   |
-| (h) 인라인 우선 (delegation 이 지게) 되돌리기 | bridge 1 FAIL · browser 1 FAIL (legacy font 12 vs 14)                               |
+round 2 시점의 원복 수치는 **(h) 를 넣기 전 상태에서 잰 것**이라 (f)·(g) 가 실제와 달랐다 — round 3 §6-4 의 재측정 표가 정본이다 (fe2m2).
 
 검증: type-check · builder unit **5193** (655 파일) · focused `adr923*` **129** · full parity **1073** (기존 GridListItem/Tooltip 2 FAIL) · 브라우저 FieldError 5. builder 전량 실행 시 `ContextualActionBar.keyboard.test.tsx` 의 teardown `window is not defined` 2건이 보고되나 단독 실행은 4 PASS — 병렬 teardown flake, 본 변경과 무관 (해당 파일 무수정).
 
@@ -129,3 +124,56 @@ publish DOM 의 `.react-aria-FieldError` 에는 **`data-element-id` 가 없다**
 - catalog `generated/FieldError.css` 가 `styles/index.css` 에 import 되지 않는다 (생성물 93 vs import 66). FieldError 만의 문제가 아닐 수 있다 — 미import 생성 CSS 전수 판정은 별도 작업.
 - Preview/publish 가 canonical FieldError 자식의 style 을 전혀 소비하지 않는다 (RAC 자체 렌더). 이 자식은 Canvas 측 mirror 에 가깝다 — 편집 surface 로서의 위상 판정은 별도.
 - 옛 저장 문서의 인라인 `fontSize: 12` 는 그대로 남는다 (read 경로가 무시). 데이터 정리가 필요하면 별도 승인 후.
+
+## 6. Codex 판독 round 3 (2026-09-03) — HIGH 1 · MEDIUM 2 · LOW 1 전부 수리
+
+### 6-1. fe2h1 — 인라인 `lineHeight` 도 같은 소유권 (HIGH)
+
+round 2 는 fontSize 에만 "RAC-owned DOM" 판정을 적용하고 줄 높이는 인라인 우선으로 남겨 뒀다. 자식의 인라인 `lineHeight` 역시 DOM 에 도달할 채널이 없으므로 (Typography 패널로 실제 작성 가능) Canvas 만 갈린다 — 판독 probe `lineHeight:"10px"` 에서 Canvas 10px vs DOM 21px.
+
+- Skia: `delegated != null` 이면 sizeSpec `lineHeight` 를 상속값으로 덮고, **raw style 의 `lineHeight` 도 걷어낸다** — "Text style overrides"(Phase A) 가 raw style 을 다시 읽어 spec 값을 덮기 때문 (숫자는 배율 해석: 10 → 14×10 = **140**, 실측).
+- layout: 값을 주입하지 않고 **인라인을 걷어내기만** 한다. 빈 FieldError (invalid + 메시지 없음) 는 DOM 이 줄 상자를 만들지 않아 높이 0 이고, 측정 기본 (내용 있을 때만 fs×1.5) 이 그 계약과 같다 — 21px 을 명시 주입했더니 `invalid-empty` 가 Canvas 21 vs DOM 0 으로 깨졌다 (실측 후 철회).
+
+### 6-2. fe2m1 — 보존은 생산자가 아니라 소비처에서 (MEDIUM)
+
+round 2 는 `buildPropagationUpdates` 가 자식의 현재 style **전체를 복사**해 보존했는데, 그 복사본은 `sanitizePropsPatch` 를 다시 지나 `backgroundColor`/`backgroundImage`/`backgroundSize` 가 patch 로 간주돼 지워진다 (fill v2 파생 키). live 에서도 `updateElementProps` 로 준 `backgroundColor` 가 store 에 남지 않는 것을 확인했다.
+
+- patch 는 **바꾸는 키만** 담고 (`{style:{display}}`), 생산자는 `PropagationUpdate.mergeStyle = true` 로 "부분 patch" 임을 표시한다.
+- 소비처가 병합한다: store 는 `BatchPropsUpdate.mergeStyle` → `applyBatchStylePatch(현재 props, patch, mergeStyle)`, factory 는 `applyFactoryPropagation` 안에서 깊은 병합.
+- 기본 (플래그 없음) 은 통째 교체를 유지 — Inspector 의 style 키 **삭제** 가 그 의미에 의존한다.
+
+### 6-3. fe2l1 — §0 서술 동기화 (LOW)
+
+§0 의 "인라인 `style.fontSize` 우선" · "lineHeight 는 주입하지 않음" 두 줄을 현재 계약 (delegation 우선 · 인라인 lineHeight 제거) 으로 정정.
+
+### 6-4. 원복 RED — 전량 재측정 (fe2m2 정정)
+
+node 5 파일 26건 (bridge 9 · formTemplateOrigins 8 · applyBatchStylePatch 3 · ADR-187 Phase 0 baseline · editorMutationEffectRegistry) · browser 5 기준. 각 원복 후 원상복구 + 재통과 확인.
+
+| 원복                                        | node (26)  | browser (5) |
+| ------------------------------------------- | ---------- | ----------- |
+| (a) 규칙 5 field spread 제거                | 5 FAIL     | 5 FAIL      |
+| (b) layout 자식 visit propagation 차단      | —          | 5 FAIL      |
+| (c) layout FieldError delegation 주입 차단  | —          | 3 FAIL      |
+| (d) 5-심볼 등재 제거                        | 3 FAIL     | —           |
+| (e) `applyBatchStylePatch` 병합 무력화      | 1 FAIL     | —           |
+| (f) factory·origin 인라인 12 복원           | 2 FAIL     | **5 PASS**  |
+| (g) Skia lineHeight 덮기 제거               | 1 FAIL     | 2 FAIL      |
+| (h) 인라인 fontSize 우선 복원               | 1 FAIL     | 1 FAIL      |
+| (i) 인라인 lineHeight 걷어내기 제거         | 1 FAIL     | 1 FAIL      |
+
+**(f) 의 browser 5 PASS 가 정상이다** (fe2m2): read 경로가 인라인을 이미 무시하므로 최종 동작은 변하지 않는다 — 저작 지점의 재발은 정적 source 게이트 (bridge `factory 전제` · formTemplateOrigins) 가 유일한 감시자다. round 2 표의 "browser 3 FAIL" 은 (h) 도입 전에 잰 값이었다.
+
+### 6-5. 검증 · live
+
+type-check · builder unit **5196** (656 파일) · focused `adr923*` **129** · full parity **1073** (기존 2 FAIL) · smoke 84.
+
+live (Chrome MCP, 프로젝트 123 Home — 팔레트 TextField 신규 생성):
+
+| 확인                                                    | 결과                                                                        |
+| ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 자식 style 에 `fontSize:12 · lineHeight:10 · color` 주입 | Skia 89×21 @y62 · TF 83 (10 도 140 도 아님) ↔ publish 14px/21px · h 21 · TF 84 |
+| Inspector Invalid OFF → ON                              | 자식 style `display` 만 바뀌고 `fontSize·lineHeight·color` 보존              |
+| `updateElementProps` 로 준 `backgroundColor`            | store 에 남지 않음 — sanitizer 가 fill 파생 키를 지운다 (fe2m1 의 근거)      |
+
+콘솔 0, 요소 정리 완료.

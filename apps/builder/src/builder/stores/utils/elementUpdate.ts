@@ -179,6 +179,16 @@ export interface BatchElementUpdate {
 export interface BatchPropsUpdate {
   elementId: string;
   props: ComponentElementProps;
+  /**
+   * `props.style` 을 **부분 patch** 로 취급해 대상 요소의 현재 style 위에 덮는다 (기본은 통째 교체).
+   *
+   * 기본 교체 의미는 Inspector 의 style 편집 (키 삭제 포함) 이 의존하므로 바꿀 수 없다. 반면
+   * propagation (`buildPropagationUpdates`) 이 만드는 patch 는 바꾸는 키 하나뿐이라, 교체로 적용하면
+   * 자식의 나머지 style 이 사라진다 (r2 feh2). 이 자리에서만 병합으로 전환한다 — 생산자가 현재 style
+   * 전체를 복사해 오면 `sanitizePropsPatch` 가 fill 파생 키 (backgroundColor 등) 를 patch 로 보고
+   * 지워버리기 때문이다 (round 3 fe2m1).
+   */
+  mergeStyle?: boolean;
 }
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
@@ -226,6 +236,29 @@ function hasShallowPatchChanges(
     if (prev[key] !== patch[key]) return true;
   }
   return false;
+}
+
+/**
+ * `BatchPropsUpdate.mergeStyle` 적용 — patch 의 `style` 을 현재 style **위에 덮는다**.
+ *
+ * 기본 (플래그 없음) 은 통째 교체를 유지한다: Inspector 의 style 편집은 키 삭제를 위해 다음 style
+ * 전체를 보내므로 병합으로 바꾸면 삭제가 불가능해진다. 반대로 propagation patch 는 바꾸는 키 하나뿐
+ * 이라 교체로 적용하면 자식의 나머지 style 이 사라진다 (r2 feh2). 보존을 생산자가 "현재 style 전체
+ * 복사" 로 하면 `sanitizePropsPatch` 가 그 복사본의 fill 파생 키 (backgroundColor 등) 를 patch 로 보고
+ * 지우므로 (round 3 fe2m1), 병합은 반드시 이 소비 지점에서 한다.
+ */
+export function applyBatchStylePatch(
+  currentProps: Record<string, unknown>,
+  patchProps: Record<string, unknown>,
+  mergeStyle: boolean | undefined,
+): Record<string, unknown> {
+  if (!mergeStyle) return patchProps;
+  const patchStyle = patchProps.style as Record<string, unknown> | undefined;
+  const currentStyle = currentProps.style as
+    | Record<string, unknown>
+    | undefined;
+  if (!patchStyle || !currentStyle) return patchProps;
+  return { ...patchProps, style: { ...currentStyle, ...patchStyle } };
 }
 
 function sanitizePropsPatch<T extends Record<string, unknown>>(props: T): T {
@@ -691,9 +724,14 @@ export const createBatchUpdateElementPropsAction =
     const updateMap = new Map<string, ComponentElementProps>();
     const updatedElementMap: ElementUpdateLookup = new Map();
     const nextElementsMap = new Map(elementLookup);
-    for (const { elementId, props } of validUpdates) {
+    for (const { elementId, props: rawProps, mergeStyle } of validUpdates) {
       const element = elementLookup.get(elementId);
       if (element) {
+        const props = applyBatchStylePatch(
+          element.props as Record<string, unknown>,
+          rawProps as Record<string, unknown>,
+          mergeStyle,
+        ) as ComponentElementProps;
         prevStates.push({
           elementId,
           prevProps: cloneForHistory(element.props),

@@ -145,7 +145,10 @@ async function renderDom(type: FieldType, state: StateCase): Promise<Leg> {
 async function runCanvas(
   type: FieldType,
   state: StateCase,
-  /** 옛 문서 재현 — factory 가 심던 인라인 글자 크기를 FieldError 자식에 얹는다 (r2 feh1). */
+  /**
+   * 옛 문서 재현 — factory 가 심던 인라인 글자 크기 + 사용자가 Typography 패널로 줄 수 있는 인라인
+   * 줄 높이를 FieldError 자식에 얹는다 (r2 feh1 · round 3 fe2h1). 둘 다 DOM 에 도달할 채널이 없다.
+   */
   legacyChildFontSize?: number,
 ): Promise<Leg> {
   const tree = await paletteCreationTree(type, `fe-state-${type}-${state.id}`);
@@ -169,6 +172,7 @@ async function runCanvas(
           style: {
             ...((el.props?.style ?? {}) as Record<string, unknown>),
             fontSize: legacyChildFontSize,
+            lineHeight: "10px",
           },
         },
       } as Element;
@@ -323,7 +327,7 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 (5 field × 4 상�
     }
   });
 
-  it("옛 문서 — FieldError 자식의 인라인 fontSize 12 가 있어도 Canvas 는 DOM 과 같다 (publish 는 RAC 자체 FieldError 를 그려 인라인 채널이 없다)", () => {
+  it("옛 문서 — FieldError 자식의 인라인 fontSize 12 · lineHeight 10px 이 있어도 Canvas 는 DOM 과 같다 (publish 는 RAC 자체 FieldError 를 그려 인라인 채널이 없다)", () => {
     for (const { type, canvas } of measuredLegacy) {
       const dom = measured.find(
         (m) => m.type === type && m.state === "invalid-text",
