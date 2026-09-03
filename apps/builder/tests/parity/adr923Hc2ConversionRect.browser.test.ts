@@ -57,6 +57,7 @@ const CONVERTED: readonly ConversionType[] = [
   "Skeleton",
   "Avatar",
   "StatusLight",
+  "TailSwatch",
 ];
 
 const HOST_W = 400;

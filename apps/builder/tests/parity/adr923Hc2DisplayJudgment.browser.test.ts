@@ -72,6 +72,7 @@ const PREVIEW_LEG_TYPES: readonly string[] = [
   "Skeleton",
   "Avatar",
   "StatusLight",
+  "TailSwatch",
 ];
 const UNDECLARED = [
   "Avatar",
@@ -253,8 +254,9 @@ beforeAll(async () => {
   }
 
   // live computed (실 번들 CSS) — DOM 충돌 3 + 선언 없음 17 중 렌더 가능한 것. 컴포넌트마다 root 를
-  //   따로 만들고 에러 경계로 감싸 하나가 죽어도 나머지를 잰다. Table(TableHeader/TableBody) · TailSwatch ·
-  //   Tree 는 props 부담/ColorSlider 의존으로 소스 태그 사실 (§A-4 · 컴포넌트 D1 주석) 로 판정한다.
+  //   따로 만들고 에러 경계로 감싸 하나가 죽어도 나머지를 잰다. Table(TableHeader/TableBody) · Tree 는 props
+  //   부담으로 소스 태그 사실 (§A-4 · 컴포넌트 D1 주석) 로 판정한다. TailSwatch 는 Phase 5 후속 (2026-09-03) 부터
+  //   preview 실경로 (`PREVIEW_LEG_TYPES`, rendererMap renderTailSwatch) 로 live 측정한다.
   const style = document.createElement("style");
   style.id = "adr923-hc2-bundle";
   style.textContent = bundleCss;
@@ -667,10 +669,10 @@ const HC2: Record<
     box: "Canvas Table 은 flex 행 투영 (ADR-912)",
   },
   TailSwatch: {
-    canvas: "inline-flex",
-    dom: "div (UA block — Tailwind 래퍼, generated CSS dead; 소스)",
-    verdict: "전환필요(후속)",
-    box: "TailSwatch root — catalog structure inline-flex ↔ DOM block (palette 항목, live 미측정: ColorSlider 의존)",
+    canvas: "block",
+    dom: "div:block (live — rendererMap renderTailSwatch 래퍼 div, FormRenderers.tsx; class 없음 → UA block, 안쪽 MyColorSwatches Tailwind class 는 preview 에 Tailwind 미로드; generated/TailSwatch.css 는 dead)",
+    verdict: "일치",
+    box: "TailSwatch root div — Phase 5 후속 전환 (2026-09-03): catalog structure inline-flex → block (DOM 실효값, live 실측)",
   },
   TextArea: {
     canvas: "flex",
@@ -714,11 +716,11 @@ describe("ADR-923 Phase 5 — HC2 판정표 (Canvas 전용 display override 33 r
     console.log(`ADR923HC2 verdicts ${JSON.stringify(counts)}`);
     expect(counts).toEqual({
       "전환(Phase 5)": 2,
-      일치: 9,
+      일치: 10,
       "일치(outer)": 14,
       "예외(투영)": 2,
       "예외(inert)": 4,
-      "전환필요(후속)": 2,
+      "전환필요(후속)": 1,
     });
   });
 
