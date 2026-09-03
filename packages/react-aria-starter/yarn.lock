@@ -1227,6 +1227,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@composition/react-aria-starter-upstream@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@composition/react-aria-starter-upstream@workspace:."
+  dependencies:
+    "@babel/preset-env": "npm:^7.28.3"
+    "@babel/preset-react": "npm:^7.24.1"
+    "@babel/preset-typescript": "npm:^7.27.1"
+    "@storybook/addon-docs": "npm:^9.0.18"
+    "@storybook/addon-webpack5-compiler-babel": "npm:^3.0.6"
+    "@storybook/react": "npm:^9.0.18"
+    "@storybook/react-webpack5": "npm:^9.0.18"
+    "@vueless/storybook-dark-mode": "npm:^9.0.6"
+    clsx: "npm:^2.1.1"
+    lightningcss-loader: "npm:^2.1.0"
+    lucide-react: "npm:^0.517.0"
+    react: "npm:^19.2.0"
+    react-aria-components: "npm:^1.17.0"
+    react-dom: "npm:^19.2.0"
+    storybook: "npm:^9.0.18"
+    typescript: "npm:^5.8.2"
+  languageName: unknown
+  linkType: soft
+
 "@esbuild/aix-ppc64@npm:0.25.10":
   version: 0.25.10
   resolution: "@esbuild/aix-ppc64@npm:0.25.10"
@@ -4653,29 +4676,6 @@ __metadata:
   checksum: 10c0/b0804ac203511eed6875bcdcef1302ebd5ea7fd658255a103dc81dce3ebbaa111f53950d998bb8100dcd418d39a909133eaa9d435880eb54f0b36c6f0e0a8c8d
   languageName: node
   linkType: hard
-
-"react-aria-starter-docs@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "react-aria-starter-docs@workspace:."
-  dependencies:
-    "@babel/preset-env": "npm:^7.28.3"
-    "@babel/preset-react": "npm:^7.24.1"
-    "@babel/preset-typescript": "npm:^7.27.1"
-    "@storybook/addon-docs": "npm:^9.0.18"
-    "@storybook/addon-webpack5-compiler-babel": "npm:^3.0.6"
-    "@storybook/react": "npm:^9.0.18"
-    "@storybook/react-webpack5": "npm:^9.0.18"
-    "@vueless/storybook-dark-mode": "npm:^9.0.6"
-    clsx: "npm:^2.1.1"
-    lightningcss-loader: "npm:^2.1.0"
-    lucide-react: "npm:^0.517.0"
-    react: "npm:^19.2.0"
-    react-aria-components: "npm:^1.17.0"
-    react-dom: "npm:^19.2.0"
-    storybook: "npm:^9.0.18"
-    typescript: "npm:^5.8.2"
-  languageName: unknown
-  linkType: soft
 
 "react-aria@npm:3.48.0":
   version: 3.48.0
