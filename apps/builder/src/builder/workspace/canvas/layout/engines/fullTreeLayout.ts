@@ -14,6 +14,7 @@ import { getLayoutRootKey } from "../layoutRootKey";
 import {
   FIELD_ERROR_CHILD_SELECTOR,
   hasDelegatedChild,
+  isDelegatedSubpartChild,
   resolveDelegatedChildFontSize,
 } from "@composition/shared";
 import type { ComputedLayout } from "./LayoutEngine";
@@ -1490,36 +1491,41 @@ function traversePostOrder(
   //   FieldError** 를 그린다 (publish DOM 에 `data-element-id` 없음) — 자식의 인라인 style 은 DOM 에
   //   도달할 채널이 없다. 그래서 delegation 값이 인라인 fontSize 를 **이겨야** 옛 문서 (factory 가
   //   심던 12) 가 Canvas 18 · DOM 21 로 갈리지 않는다. delegation 이 없을 때만 인라인/자체 rule.
-  if (rawElement.type === "FieldError" && rawElement.parent_id) {
-    const feParent = elementsMap.get(rawElement.parent_id);
-    const feStyle = (rawElement.props?.style ?? {}) as Record<string, unknown>;
-    if (feParent) {
-      const feFontSize = resolveDelegatedChildFontSize(
-        feParent.type,
-        FIELD_ERROR_CHILD_SELECTOR,
-        (feParent.props as Record<string, unknown> | undefined)?.size as
-          string | undefined,
-      );
-      if (feFontSize != null) {
-        // read-only sub-part (잔여 1, 2026-09-03 판정 A): delegation 이 잡히는 parent 아래 FieldError 는
-        //   DOM 이 parent props 로 self-compose 하는 sub-part 라 자식의 인라인 style 전부가 DOM 에 닿을
-        //   채널이 없다 (fontSize·lineHeight 만이 아니라 color·margin·padding·width 도). 그래서 인라인은
-        //   **통째로 무시**하고 투영 `display` (propagation / factory none) 와 delegation fontSize 만 남긴다.
-        //   줄 높이는 명시 주입하지 않는다 — 빈 FieldError 는 DOM 에 줄 상자가 없어 높이 0 이고, 측정
-        //   기본 (내용 있을 때만 fs × 1.5) 이 그 계약과 같다 (round 3 fe2h1).
-        rawElement = {
-          ...rawElement,
-          props: {
-            ...rawElement.props,
-            style: {
-              ...(feStyle.display !== undefined
-                ? { display: feStyle.display }
-                : {}),
-              fontSize: feFontSize,
-            },
-          },
-        } as CanvasLayoutNode;
+  // read-only sub-part (잔여 1 · Label/Input 확장, 2026-09-03 판정 A): delegation parent 아래 FieldError ·
+  //   Label · Input · DateInput 은 DOM 이 parent props 로 self-compose 하는 sub-part 라 자식 인라인 style 전부가
+  //   DOM 에 닿을 채널이 없다. 인라인은 **통째로 무시**하고 남기는 것은 (1) 투영 `display` (propagation /
+  //   factory none), (2) FieldError 글자 크기 = delegation (`.react-aria-FieldError` hint 변수 — DOM computed
+  //   원천), (3) 입력 컨트롤 폭 100% (DOM 실효 폭 — TextField 계열 root 는 align-items:flex-start 라 stretch
+  //   가 아니라 CSS width 로 채운다; content-box padding overflow 26 은 별도 기록). 줄 높이는 명시 주입하지
+  //   않는다 — 빈 FieldError 는 DOM 에 줄 상자가 없어 높이 0 (round 3 fe2h1). Label 폭은 ADR-165 fit-content
+  //   주입, 굵기는 rule textWeight 가 맡는다.
+  if (rawElement.parent_id) {
+    const spParent = elementsMap.get(rawElement.parent_id);
+    if (spParent && isDelegatedSubpartChild(rawElement.type, spParent.type)) {
+      const spStyle = (rawElement.props?.style ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const projected: Record<string, unknown> =
+        spStyle.display !== undefined ? { display: spStyle.display } : {};
+      if (rawElement.type === "FieldError") {
+        const feFontSize = resolveDelegatedChildFontSize(
+          spParent.type,
+          FIELD_ERROR_CHILD_SELECTOR,
+          (spParent.props as Record<string, unknown> | undefined)?.size as
+            string | undefined,
+        );
+        if (feFontSize != null) projected.fontSize = feFontSize;
+      } else if (
+        rawElement.type === "Input" ||
+        rawElement.type === "DateInput"
+      ) {
+        projected.width = "100%";
       }
+      rawElement = {
+        ...rawElement,
+        props: { ...rawElement.props, style: projected },
+      } as CanvasLayoutNode;
     }
   }
 
@@ -2069,16 +2075,37 @@ function traversePostOrder(
     // props.style 참조 비교 — 동일하면 applyImplicitStyles가 수정하지 않은 것
     if (filteredChild.props?.style === originalEl.props?.style) continue;
 
+    // read-only sub-part (2026-09-03 판정 A): implicitStyles 는 자식 style 을 `{...cs, 주입}` 으로 복사하므로
+    //   modStyle 에 자식의 인라인 (DOM 미도달 junk) 이 그대로 실려 있다. 자식 visit 에서 걷어낸 인라인이
+    //   여기서 되살아나지 않도록, sub-part 자식은 implicit 이 **추가·변경한 키만** 패치한다.
+    const origStyleForDelta = (originalEl.props?.style ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const isSubpartChild = isDelegatedSubpartChild(
+      filteredChild.type,
+      effectiveParent.type,
+    );
+    const implicitDelta = (
+      full: Record<string, unknown>,
+    ): Record<string, unknown> => {
+      if (!isSubpartChild) return full;
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(full)) {
+        if (v !== origStyleForDelta[k]) out[k] = v;
+      }
+      return out;
+    };
+
     // DFS injection(Label fontSize/lineHeight) + parent implicit styles(whiteSpace 등) merge
     // props: DFS injection 우선 (size 등 보존), style: implicit 우선 (marginLeft 등 적용)
     const existingProcessed = processedElementsMap.get(filteredChild.id);
     if (existingProcessed) {
       const { style: dfsStyle, ...dfsNonStyleProps } =
         (existingProcessed.props ?? {}) as Record<string, unknown>;
-      const implicitStyle = (filteredChild.props?.style ?? {}) as Record<
-        string,
-        unknown
-      >;
+      const implicitStyle = implicitDelta(
+        (filteredChild.props?.style ?? {}) as Record<string, unknown>,
+      );
       processedElementsMap.set(filteredChild.id, {
         ...filteredChild,
         props: {
@@ -2098,10 +2125,9 @@ function traversePostOrder(
       string,
       unknown
     >;
-    const modStyle = (filteredChild.props?.style ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const modStyle = implicitDelta(
+      (filteredChild.props?.style ?? {}) as Record<string, unknown>,
+    );
     patchBatchStyleFromImplicit(
       batch[batchIdx].style,
       modStyle,
@@ -3270,9 +3296,9 @@ export function calculateFullTreeLayout(
         ? elementsMap.get(rawEl.parent_id)
         : undefined;
       const isReadOnlySubpart =
-        rawEl?.type === "FieldError" &&
+        !!rawEl &&
         !!rawParent &&
-        hasDelegatedChild(rawParent.type, FIELD_ERROR_CHILD_SELECTOR);
+        isDelegatedSubpartChild(rawEl.type, rawParent.type);
       const elementStyle = (
         isReadOnlySubpart ? (node.style ?? {}) : (rawEl?.props?.style ?? {})
       ) as Record<string, unknown>;

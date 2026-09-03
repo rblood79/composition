@@ -99,6 +99,52 @@ export function hasDelegatedChild(
   return alias ? findDelegation(alias, childSelector) != null : false;
 }
 
+/**
+ * canonical 자식 type → DOM sub-part class 토큰. parent rule 의 delegation `childSelector` 가 이 토큰을
+ * **포함**하면 (정확히 같거나 `:is(.react-aria-Input, .react-aria-TextArea)` 처럼 묶여 있어도) 그 자식은
+ * DOM 이 parent 로 self-compose 하는 read-only sub-part 다 (2026-09-03 판정 A — FieldError 잔여 1, Label ·
+ * Input · DateInput 확장). Preview/publish 는 canonical 자식을 읽지 않으므로 자식 인라인 style 은 DOM 에
+ * 닿을 채널이 없다: Canvas read 경로는 인라인을 무시하고, 패널은 편집을 parent 로 귀속한다.
+ */
+export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<Record<string, string>> =
+  {
+    FieldError: ".react-aria-FieldError",
+    Label: ".react-aria-Label",
+    Input: ".react-aria-Input",
+    DateInput: ".react-aria-DateInput",
+  };
+
+function delegationSelectors(parentType: string): string[] {
+  const rule = resolveComponentRuleByTag(parentType);
+  const list = rule?.structure?.composition?.delegation;
+  if (!Array.isArray(list)) return [];
+  return (list as DelegationLike[])
+    .map((d) => d?.childSelector)
+    .filter((s): s is string => typeof s === "string");
+}
+
+function selectorHasToken(selector: string, token: string): boolean {
+  const i = selector.indexOf(token);
+  if (i < 0) return false;
+  const next = selector.charAt(i + token.length);
+  return next === "" || !/[A-Za-z0-9_-]/.test(next);
+}
+
+/** parent rule (또는 DOM root alias) 의 delegation 이 이 자식 type 의 class 토큰을 갖는가. */
+export function isDelegatedSubpartChild(
+  childType: string | null | undefined,
+  parentType: string | null | undefined,
+): boolean {
+  if (!childType || !parentType) return false;
+  const token = DELEGATED_SUBPART_CHILD_TOKENS[childType];
+  if (!token) return false;
+  const has = (p: string) =>
+    delegationSelectors(p).some((sel) => selectorHasToken(sel, token));
+  if (has(parentType)) return true;
+  const alias = DOM_ROOT_RULE_ALIAS[parentType.toLowerCase()];
+  return alias ? has(alias) : false;
+}
+
 export function resolveDelegatedChildFontSize(
   parentType: string,
   childSelector: string,

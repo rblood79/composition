@@ -455,7 +455,7 @@ const koKR: TranslationKeys = {
     emptyDescription: "'{type}' 컴포넌트의 편집 계약이 비어 있습니다.",
     delegatedSubpartMessage: "부모에서 편집하는 요소입니다",
     delegatedSubpartDescription:
-      "{type} 은 {parent} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 Invalid · Error Message 로 편집하세요.",
+      "{type} 은 {parent} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 속성 (Label · Placeholder · Invalid · Error Message 등) 으로 편집하세요.",
     selectElement: "요소를 선택하세요",
     copyProperties: "속성 복사",
     pasteProperties: "속성 붙여넣기",
@@ -1883,7 +1883,7 @@ const enUS: TranslationKeys = {
     emptyDescription: "The editing contract for '{type}' is empty.",
     delegatedSubpartMessage: "Edited from the parent",
     delegatedSubpartDescription:
-      "{type} is drawn by {parent} — its own properties and styles never reach Preview or Publish. Edit the parent's Invalid · Error Message instead.",
+      "{type} is drawn by {parent} — its own properties and styles never reach Preview or Publish. Edit the parent's properties (Label · Placeholder · Invalid · Error Message) instead.",
     selectElement: "Select an element",
     copyProperties: "Copy properties",
     pasteProperties: "Paste properties",
@@ -3378,7 +3378,7 @@ const formattedMessages: Record<
     "interactions.summaryToastWithMessage": (args) =>
       `${String(args?.when ?? "")} → 토스트 "${String(args?.message ?? "")}"`,
     "propertiesPanel.delegatedSubpartDescription": (args) =>
-      `${String(args?.type ?? "")} 은 ${String(args?.parent ?? "")} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 Invalid · Error Message 로 편집하세요.`,
+      `${String(args?.type ?? "")} 은 ${String(args?.parent ?? "")} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 속성 (Label · Placeholder · Invalid · Error Message 등) 으로 편집하세요.`,
     "styles.delegatedSubpartDescription": (args) =>
       `${String(args?.type ?? "")} 의 스타일은 ${String(args?.parent ?? "")} 의 디자인 규칙이 정합니다. 여기서 준 값은 캔버스·미리보기 어디에도 반영되지 않습니다.`,
     "propertiesPanel.emptyDescription": (args) =>
@@ -3632,7 +3632,7 @@ const formattedMessages: Record<
     "interactions.summaryToastWithMessage": (args) =>
       `${String(args?.when ?? "")} → toast "${String(args?.message ?? "")}"`,
     "propertiesPanel.delegatedSubpartDescription": (args) =>
-      `${String(args?.type ?? "")} is drawn by ${String(args?.parent ?? "")}. Its own properties and styles never reach Preview or Publish; edit the parent's Invalid · Error Message instead.`,
+      `${String(args?.type ?? "")} is drawn by ${String(args?.parent ?? "")}. Its own properties and styles never reach Preview or Publish; edit the parent's properties (Label · Placeholder · Invalid · Error Message) instead.`,
     "styles.delegatedSubpartDescription": (args) =>
       `${String(args?.type ?? "")} takes its style from the design rules of ${String(args?.parent ?? "")}. Values set here reach neither the canvas nor Preview.`,
     "propertiesPanel.emptyDescription": (args) =>

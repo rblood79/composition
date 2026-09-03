@@ -42,6 +42,7 @@ import {
   toSkiaStyle,
   usesButtonBaseUtility,
   FIELD_ERROR_CHILD_SELECTOR,
+  isDelegatedSubpartChild,
   resolveDelegatedChildFontSize,
   resolveInheritedLineHeight,
 } from "@composition/shared";
@@ -1581,55 +1582,44 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // ADR-923 Phase 5 후속 (2026-09-03): FieldError 글자 크기 = parent rule delegation (`.react-aria-
   //   FieldError` hint 변수, size 별) — layout (fullTreeLayout) 과 같은 resolver. FieldError 자체 rule
   //   md (text-xs 12) 만 읽으면 TextField (delegation md = text-sm 14) 에서 DOM 과 갈린다.
-  if (element.type === "FieldError") {
+  // read-only sub-part (잔여 1 · Label/Input 확장, 2026-09-03 판정 A): delegation parent 아래 FieldError ·
+  //   Label · Input · DateInput 의 인라인 style 은 DOM 미도달 — 투영 `display` 만 남기고 통째로 무시한다
+  //   (아래 "Text style overrides" Phase A 가 raw `style` 을 다시 읽으므로 그 입력도 같이 줄인다). FieldError
+  //   는 글자 크기 = parent rule delegation (`.react-aria-FieldError` hint 변수 — layout 과 같은 resolver),
+  //   줄 높이 = root 상속 1.5 (활성 bundle 에 FieldError line-height 규칙 없음, r2 feh3). Label 은 size
+  //   delegation (parent size → Label rule) 으로 이미 DOM 과 같은 값을 읽는다 (11 parent 전부 동일 실측).
+  const spParent = element.parent_id
+    ? elementsMap.get(element.parent_id)
+    : undefined;
+  if (spParent && isDelegatedSubpartChild(element.type, spParent.type)) {
     const existingStyle = (specProps.style || {}) as Record<string, unknown>;
-    const inlineFontSize =
-      typeof existingStyle.fontSize === "number"
-        ? existingStyle.fontSize
-        : undefined;
-    const feParent = element.parent_id
-      ? elementsMap.get(element.parent_id)
-      : undefined;
-    // r2 feh1 (live 실측): publish 는 RAC 자체 FieldError 를 그리므로 자식의 인라인 style 은 DOM 에
-    //   도달하지 않는다 → delegation 이 인라인 fontSize 를 이긴다 (없을 때만 인라인/자체 rule).
-    const delegated = feParent
-      ? resolveDelegatedChildFontSize(
-          feParent.type,
-          FIELD_ERROR_CHILD_SELECTOR,
-          getProps(feParent).size as string | undefined,
-        )
-      : undefined;
-    if (delegated != null) {
-      // read-only sub-part (잔여 1, 2026-09-03 판정 A): DOM 은 parent props 로 self-compose 하므로 자식
-      //   인라인 style 은 전부 DOM 미도달 — 투영 `display` 와 delegation fontSize 만 남기고 통째로 무시한다
-      //   (color 는 catalog negative, 간격은 catalog 기본). 아래 "Text style overrides" (Phase A) 가 raw
-      //   `style` 을 다시 읽으므로 그 입력도 같이 줄인다.
-      const projectedDisplay =
-        existingStyle.display !== undefined
-          ? { display: existingStyle.display }
-          : {};
-      specProps = {
-        ...specProps,
-        style: { ...projectedDisplay, fontSize: delegated },
-      };
-      style = { ...projectedDisplay } as typeof style;
+    const projectedDisplay =
+      existingStyle.display !== undefined
+        ? { display: existingStyle.display }
+        : {};
+    let projected: Record<string, unknown> = { ...projectedDisplay };
+    if (element.type === "Label") {
+      // side 라벨 정렬은 parent `labelAlign`/`labelPosition` 의 **투영** (위 resolveLabelAlignment) —
+      //   자식 인라인 textAlign 이 아니라 투영값만 남긴다 (DOM 도 parent prop 으로만 정렬).
+      const projectedAlign = resolveLabelAlignment(element, elementsMap);
+      if (projectedAlign)
+        projected = { ...projected, textAlign: projectedAlign };
+    } else if (element.type === "FieldError") {
+      const delegated = resolveDelegatedChildFontSize(
+        spParent.type,
+        FIELD_ERROR_CHILD_SELECTOR,
+        getProps(spParent).size as string | undefined,
+      );
+      if (delegated != null) {
+        projected = { ...projected, fontSize: delegated };
+        sizeSpec = {
+          ...sizeSpec,
+          lineHeight: resolveInheritedLineHeight(delegated),
+        };
+      }
     }
-    // 줄 높이는 자식 rule 토큰(md 16)이 아니라 **root 상속 비율**이 DOM 의 값이다 (r2 feh3 —
-    //   활성 bundle 에 FieldError line-height 규칙 없음). 자식의 인라인 lineHeight 도 DOM 에 도달할
-    //   채널이 없으므로 delegation 이 잡히면 그것도 이긴다 (round 3 fe2h1) — fontSize 와 같은 소유권.
-    const effectiveFontSize =
-      delegated ??
-      inlineFontSize ??
-      (typeof sizeSpec.fontSize === "number" ? sizeSpec.fontSize : undefined);
-    if (
-      effectiveFontSize != null &&
-      (delegated != null || existingStyle.lineHeight == null)
-    ) {
-      sizeSpec = {
-        ...sizeSpec,
-        lineHeight: resolveInheritedLineHeight(effectiveFontSize),
-      };
-    }
+    specProps = { ...specProps, style: projected };
+    style = { ...projectedDisplay } as typeof style;
   }
 
   const progressProps = resolveProgressProps(element, elementsMap);

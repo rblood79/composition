@@ -348,3 +348,36 @@ E 가 핵심이다: 이 파일들은 "빠진 import" 가 아니라 **로드되�
 
 - 생성기에 미로드 25 를 **내지 않는** skip (catalog rule 메타 또는 목록) — 파일 삭제는 원본 삭제 정책상 별도 승인. 삭제 없이도 게이트가 drift 를 막으므로 급하지 않다.
 - AvatarGroup·CardView binding 머리말의 "generate-css virtual 전환 (R7 G1-a)" 이 실제로 적용됐는지 (파일은 여전히 생성됨) 는 위 skip 과 같이 본다.
+
+## 12. Label · Input · DateInput sub-part 판정 (2026-09-03, 결정 지점 (3) 사용자 판정 A × 2)
+
+### 12-1. 사실
+
+- Label delegation 을 가진 parent rule 11 (TextField·TextArea·NumberField·DateField·TimeField·Select·ComboBox·SearchField·ColorField·DatePicker·DateRangePicker) 과 Input/TextArea/DateInput delegation parent 9 는 전부 parent props 로 self-compose — renderer 4 파일 (Form·Date·Selection·Color) 에서 Label 관련 canonical 자식 읽기 0. CheckboxGroup·RadioGroup·Meter·ProgressBar 는 자식 Label **텍스트만** legacy 폴백으로 읽고 (r17m1) delegation 항목이 없다 → 범위 밖.
+- catalog 정합: Label rule sizes (xs 2xs · sm xs · md sm · lg base · xl lg) 가 11 parent 의 Label delegation 값과 전부 동일, 굵기 600 = Label rule `textWeight`. FieldError 때와 달리 글자 크기 갈림이 없다 — Canvas 가 size delegation 으로 Label rule 을 읽는 값이 곧 DOM 값.
+- 인라인이 layout 을 맡던 곳: Label `width:fit-content` (ADR-165 가 부재 시 주입), `fontWeight:600` (rule 과 중복), Input/DateInput `width:100%` — DOM root 는 `align-items:flex-start` 라 stretch 가 아니라 CSS 로 채운다 (실측 DOM 426 = 400 + content-box padding 26 overflow).
+- 실측 (browser gate, 400px): Label DOM 39.2×20 ↔ Canvas 40×20 · 컨트롤 h 30 y 26 양쪽 동일 · root 56 동일 (TextArea 는 기존 격차 — Canvas 56/30 vs DOM 96/70). junk (color·fontSize 30·fontWeight 900·marginTop 30·padding 9·width 50·lineHeight 10) 를 Label·Input 에 얹으면 **수리 전** Canvas root 가 704 로 폭발 (Label 318 높이) — 비대칭 확증.
+
+### 12-2. 수리
+
+- 술어 일반화: `DELEGATED_SUBPART_CHILD_TOKENS` (FieldError · Label · Input · DateInput → class 토큰) + `isDelegatedSubpartChild(childType, parentType)` — parent rule (alias 포함) 의 delegation `childSelector` 가 토큰을 **포함**하면 참 (TextField 의 `:is(.react-aria-Input, .react-aria-TextArea)` 도 잡는다). FieldError · 패널 · overlay margin 도 같은 술어로 통일.
+- layout 자식 visit: 인라인 통째 무시 → 투영 `display` + (FieldError) delegation fontSize + (Input/DateInput) `width:100%` (DOM 실효 폭).
+- **layout 3.6 패치 (근본 원인 2)**: implicitStyles 가 자식 style 을 `{...cs, 주입}` 으로 복사하므로 3.6 이 그 전체를 batch 에 다시 덮어 자식 visit 에서 걷어낸 junk 가 되살아났다 (FieldError 는 implicit 이 안 건드려 무사했던 것). sub-part 자식은 implicit 이 **추가·변경한 키만** (원본 대비 delta) 패치한다.
+- Skia: 같은 술어로 인라인 무시 (투영 display 만; FieldError 는 delegation fontSize + root 1.5; Label 은 parent `labelAlign`/`labelPosition` 투영 `textAlign` 을 남긴다 — 처음 판에서 이것까지 지워 `buildSpecNodeData.test` labelAlign 3건이 RED, 투영값 재주입으로 수리).
+- 패널 문구를 일반화 ("부모의 속성 (Label · Placeholder · Invalid · Error Message 등) 으로 편집").
+
+### 12-3. 게이트 · 원복 RED
+
+- `adr923FieldSubpartProjection.browser.test.ts` (3): junk == clean (5 field × Label·컨트롤·root 정확 일치) · baseline DOM 대조 (Label w·h·y · 컨트롤 h·y · root h, TextArea 본체 제외) · 기록 — DOM 컨트롤 폭 > root (overflow 26/18, 별도 작업), Canvas 컨트롤 = root 폭.
+- bridge `read-only sub-part 확장` (9 조합 Skia 노드 동일 + 범위 밖 3) → node 11.
+- 원복 (r) 토큰 표에서 Label·Input·DateInput 제거 → node 1 FAIL · browser 1 FAIL · (s) 3.6 delta 패치 제거 → browser 1 FAIL (junk 부활).
+
+### 12-4. 검증 · live
+
+type-check · builder unit **5203** (657 파일) · focused `adr923*` 132 · full parity **1076** (기존 2 FAIL) · smoke 84. live (Chrome MCP, 프로젝트 123 Home — 팔레트 TextField): Label·Input 에 junk (fontSize 30 · fontWeight 900 · marginTop 30 · padding 9 · width 50 · lineHeight 10) 주입 후 Label 63×20 · Input 390×30 @y26 · TextField 56 불변 (overlay margin 0), Label 선택 시 Properties "Edited from the parent — Label is drawn by TextField …" 안내, 콘솔 0.
+
+### 12-5. 범위 밖 (기록만)
+
+- NumberField/Select/ComboBox/SearchField 의 `SelectTrigger` 래퍼 자식 — delegation 표에 없는 별개 sub-part 가족 (DOM `.react-aria-Group`). 같은 판정을 적용하려면 토큰 표 + implicitStyles 주입 (width 100% · padding) 관계를 따로 봐야 한다.
+- CheckboxGroup·RadioGroup·Meter·ProgressBar·Slider 의 Label — DOM 이 자식 텍스트를 legacy 폴백으로 읽는 반쪽 mirror.
+- DOM 입력 컨트롤 content-box overflow (426/418 > 400) · TextArea 본체 높이 (기존 HC2 후속).

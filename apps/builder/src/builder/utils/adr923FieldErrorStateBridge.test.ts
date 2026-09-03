@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   FIELD_ERROR_CHILD_SELECTOR,
   hasDelegatedChild,
+  isDelegatedSubpartChild,
   resolveDelegatedChildFontSize,
   resolveInheritedLineHeight,
 } from "@composition/shared";
@@ -347,6 +348,73 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 propagation 다리
     // delegation 이 없는 parent 아래에서는 sub-part 가 아니다 — 술어 false, 인라인은 그대로 (범위 밖)
     expect(hasDelegatedChild("Button", FIELD_ERROR_CHILD_SELECTOR)).toBe(false);
     expect(hasDelegatedChild("Form", FIELD_ERROR_CHILD_SELECTOR)).toBe(false);
+  });
+
+  it("read-only sub-part 확장 (판정 A × 2) — Label · Input · DateInput 도 delegation parent 아래에서는 인라인을 Skia 가 통째로 무시한다", () => {
+    const layout = { x: 0, y: 0, width: 200, height: 30 } as ComputedLayout;
+    const cases: Array<[string, string]> = [
+      ["Label", "TextField"],
+      ["Label", "TextArea"],
+      ["Label", "NumberField"],
+      ["Label", "DateField"],
+      ["Label", "TimeField"],
+      ["Input", "TextField"],
+      ["Input", "TextArea"],
+      ["DateInput", "DateField"],
+      ["DateInput", "TimeField"],
+    ];
+    for (const [childType, parentType] of cases) {
+      expect(
+        isDelegatedSubpartChild(childType, parentType),
+        `${childType} < ${parentType}`,
+      ).toBe(true);
+      const parent = {
+        id: `${parentType}-sp2`,
+        type: parentType,
+        parent_id: null,
+        props: { label: "Name", size: "md" },
+      } as unknown as CanvasSceneNode;
+      const make = (style: Record<string, unknown>) =>
+        ({
+          id: `${parentType}-${childType}-sp2`,
+          type: childType,
+          parent_id: parent.id,
+          props: {
+            ...(childType === "Label" ? { children: "Name" } : {}),
+            style,
+          },
+        }) as unknown as CanvasSceneNode;
+      const build = (el: CanvasSceneNode) =>
+        buildSpecNodeData({
+          element: el,
+          layout,
+          theme: "light",
+          elementsMap: new Map([
+            [parent.id, parent],
+            [el.id, el],
+          ]),
+        });
+      const clean = build(make({}));
+      const junk = build(
+        make({
+          color: "rgb(1, 2, 3)",
+          fontSize: 30,
+          fontWeight: 900,
+          marginTop: 30,
+          padding: 9,
+          width: 50,
+          lineHeight: 10,
+        }),
+      );
+      expect(
+        JSON.stringify(junk),
+        `${childType} < ${parentType} 인라인 무시`,
+      ).toBe(JSON.stringify(clean));
+    }
+    // 범위 밖: delegation 없는 parent · SelectTrigger 래퍼
+    expect(isDelegatedSubpartChild("Label", "Button")).toBe(false);
+    expect(isDelegatedSubpartChild("Label", "CheckboxGroup")).toBe(false);
+    expect(isDelegatedSubpartChild("SelectTrigger", "NumberField")).toBe(false);
   });
 
   it("Inspector 쓰기 — parent 변경 {isInvalid} / {errorMessage} 가 FieldError 자식 store 업데이트로 나온다", () => {
