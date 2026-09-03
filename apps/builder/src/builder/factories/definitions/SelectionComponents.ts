@@ -91,7 +91,6 @@ export function createSelectDefinition(
             type: "SelectValue",
             props: {
               placeholder: "Choose an option...",
-              style: { flex: 1, textAlign: "left" },
             } as ComponentElementProps,
           },
           {
@@ -188,7 +187,6 @@ export function createComboBoxDefinition(
             props: {
               children: "",
               placeholder: "Type or select...",
-              style: { flex: 1, textAlign: "left" },
             } as ComponentElementProps,
           },
           {

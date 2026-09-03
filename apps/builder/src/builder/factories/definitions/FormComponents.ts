@@ -365,7 +365,7 @@ export function createNumberFieldDefinition(
  *   ├─ Label (type="Label")
  *   └─ SelectTrigger (type="SelectTrigger", flex row)
  *        ├─ SelectIcon (type="SelectIcon", iconName="search" 🔍)
- *        ├─ SelectValue (type="SelectValue", flex:1)
+ *        ├─ SelectValue (type="SelectValue" — 상자 style 은 parent 소유 read-only sub-part)
  *        └─ SelectIcon (type="SelectIcon", iconName="x" ✕)
  */
 export function createSearchFieldDefinition(
@@ -435,7 +435,6 @@ export function createSearchFieldDefinition(
             props: {
               children: "",
               placeholder: "Search...",
-              style: { flex: 1, textAlign: "left" },
             } as ComponentElementProps,
           },
           {
