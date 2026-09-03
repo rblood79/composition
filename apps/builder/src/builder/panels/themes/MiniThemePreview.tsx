@@ -7,24 +7,17 @@
 
 import { memo, useMemo } from "react";
 import {
-  useThemeConfigTint,
   useThemeConfigNeutral,
   useThemeConfigRadiusScale,
 } from "../../../stores/themeConfigStore";
 import { NEUTRAL_PALETTES } from "../../../utils/theme/neutralToSkiaColors";
-import { TINT_PRESETS } from "../../../utils/theme/tintToSkiaColors";
-import { oklchToHex } from "../../../utils/theme/oklchToHex";
 
 export const MiniThemePreview = memo(function MiniThemePreview() {
-  const tint = useThemeConfigTint();
   const neutral = useThemeConfigNeutral();
   const radiusScale = useThemeConfigRadiusScale();
 
   const vars = useMemo(() => {
     const palette = NEUTRAL_PALETTES[neutral];
-    const { h, c } = TINT_PRESETS[tint];
-    const highlightBg = oklchToHex(0.55, c, h);
-
     const radiusMap: Record<string, number> = {
       none: 0,
       sm: 0.5,
@@ -36,18 +29,12 @@ export const MiniThemePreview = memo(function MiniThemePreview() {
     const radius = `${6 * rf}px`;
 
     return {
-      "--mp-highlight-bg": highlightBg,
       "--mp-bg": palette[50],
       "--mp-bg-200": palette[200],
       "--mp-border": palette[300],
-      "--mp-text": palette[900],
-      "--mp-text-sub": palette[600],
-      "--mp-placeholder": palette[500],
-      "--mp-overlay": palette[100],
-      "--mp-link": highlightBg,
       "--mp-radius": radius,
     } as React.CSSProperties;
-  }, [tint, neutral, radiusScale]);
+  }, [neutral, radiusScale]);
 
   return (
     <div className="mini-preview" style={vars}>
@@ -61,18 +48,6 @@ export const MiniThemePreview = memo(function MiniThemePreview() {
             title={`${neutral}-${step}`}
           />
         ))}
-      </div>
-
-      <div className="mini-preview__row">
-        <div className="mini-preview__button">Button</div>
-        <div className="mini-preview__input">Input text</div>
-      </div>
-      <div className="mini-preview__row">
-        <span className="mini-preview__link">Link</span>
-        <div className="mini-preview__card">
-          <div className="mini-preview__card-title">Card Title</div>
-          <div className="mini-preview__card-text">Description text</div>
-        </div>
       </div>
     </div>
   );

@@ -69,46 +69,6 @@
   border: 1px solid var(--mp-border);
 }
 
-.mini-preview__row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.mini-preview__button {
-  padding: 4px 12px;
-  border-radius: var(--mp-radius, 6px);
-  background: var(--mp-highlight-bg);
-  color: var(--fg-on-accent);
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.mini-preview__input {
-  flex: 1;
-  padding: 4px 8px;
-  border-radius: var(--mp-radius, 6px);
-  background: var(--mp-bg);
-  border: 1px solid var(--mp-border);
-  color: var(--mp-placeholder);
-  font-size: 11px;
-}
-
-.mini-preview__link {
-  font-size: 11px;
-  color: var(--mp-link);
-  text-decoration: underline;
-}
-
-.mini-preview__card {
-  flex: 1;
-  padding: 8px 12px;
-  border-radius: var(--mp-radius, 6px);
-  background: var(--mp-overlay);
-  border: 1px solid var(--mp-border);
-}
-
 /* Neutral 스와치 바 — tone 프리셋 간 차이 시각 확인 */
 .mini-preview__swatches {
   display: flex;
@@ -120,16 +80,4 @@
   flex: 1;
   height: 16px;
   border-radius: 3px;
-}
-
-.mini-preview__card-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--mp-text);
-  margin-bottom: 2px;
-}
-
-.mini-preview__card-text {
-  font-size: 10px;
-  color: var(--mp-text-sub);
 }
