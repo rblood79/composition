@@ -29,7 +29,7 @@ import {
 
 import type { CanvasLayoutNode } from "../layoutNode";
 
-type ElementLookup = Pick<Map<string, CanvasLayoutNode>, "get">;
+export type ElementLookup = Pick<Map<string, CanvasLayoutNode>, "get">;
 
 /** 이 요소를 sub-part 로 소유한 DOM parent (직계, 또는 직계가 래퍼면 조부모). 아니면 undefined. */
 export function resolveReadOnlySubpartOwner(

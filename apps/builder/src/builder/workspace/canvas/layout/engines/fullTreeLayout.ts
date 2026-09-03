@@ -12,6 +12,12 @@
 import type { CanvasLayoutNode } from "../layoutNode";
 import { getLayoutRootKey } from "../layoutRootKey";
 import { hasDelegatedChild } from "@composition/shared";
+import {
+  isFitContentRemeasureWidth,
+  resolveFitContentRemeasureText,
+  resolveRemeasureChildProps,
+  resolveSubpartAwareImplicitStyles,
+} from "./fitContentRemeasure";
 import { isReadOnlySubpart, projectReadOnlySubpart } from "./readOnlySubpart";
 import type { ComputedLayout } from "./LayoutEngine";
 import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
@@ -2051,24 +2057,10 @@ function traversePostOrder(
 
     // read-only sub-part (2026-09-03 판정 A): implicitStyles 는 자식 style 을 `{...cs, 주입}` 으로 복사하므로
     //   modStyle 에 자식의 인라인 (DOM 미도달 junk) 이 그대로 실려 있다. 자식 visit 에서 걷어낸 인라인이
-    //   여기서 되살아나지 않도록, sub-part 자식은 implicit 이 **추가·변경한 키만** 패치한다.
-    //   기준은 raw 인라인이 아니라 **투영값** (implicit 입력이 투영 사본이므로 implicit 이 주입한 키만 남는다).
-    const projectedOriginal = projectReadOnlySubpart(originalEl, elementsMap);
-    const isSubpartChild = projectedOriginal !== originalEl;
-    const origStyleForDelta = (projectedOriginal.props?.style ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const implicitDelta = (
-      full: Record<string, unknown>,
-    ): Record<string, unknown> => {
-      if (!isSubpartChild) return full;
-      const out: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(full)) {
-        if (v !== origStyleForDelta[k]) out[k] = v;
-      }
-      return out;
-    };
+    //   여기서 되살아나지 않도록, sub-part 자식은 implicit 이 **추가·변경한 키만** 패치한다 — 판정은
+    //   `fitContentRemeasure.ts` (전수 게이트가 같은 함수를 읽는다).
+    const { origStyle: origStyleForDelta, modStyle: subpartAwareModStyle } =
+      resolveSubpartAwareImplicitStyles(originalEl, filteredChild, elementsMap);
 
     // DFS injection(Label fontSize/lineHeight) + parent implicit styles(whiteSpace 등) merge
     // props: DFS injection 우선 (size 등 보존), style: implicit 우선 (marginLeft 등 적용)
@@ -2076,9 +2068,7 @@ function traversePostOrder(
     if (existingProcessed) {
       const { style: dfsStyle, ...dfsNonStyleProps } =
         (existingProcessed.props ?? {}) as Record<string, unknown>;
-      const implicitStyle = implicitDelta(
-        (filteredChild.props?.style ?? {}) as Record<string, unknown>,
-      );
+      const implicitStyle = subpartAwareModStyle;
       processedElementsMap.set(filteredChild.id, {
         ...filteredChild,
         props: {
@@ -2098,9 +2088,7 @@ function traversePostOrder(
     //   에 걸리는 폭 재측정도 건너뛴다 (재측정은 raw `children` 텍스트를 읽어 propagation 된 텍스트로 잰
     //   visit 값을 덮는다: Meter Label "Storage" 54 vs 투영 "Name" 40 = DOM 39, 2026-09-03 실측).
     const origStyle = origStyleForDelta;
-    const modStyle = implicitDelta(
-      (filteredChild.props?.style ?? {}) as Record<string, unknown>,
-    );
+    const modStyle = subpartAwareModStyle;
     patchBatchStyleFromImplicit(
       batch[batchIdx].style,
       modStyle,
@@ -2124,18 +2112,18 @@ function traversePostOrder(
       batch[batchIdx].style.height = `${correctedHeight}px`;
 
       // fit-content/max-content/min-content: 텍스트 측정값이 fontSize에 의존
-      const childStoreWidth = origStyle.width;
-      if (
-        childStoreWidth === "fit-content" ||
-        childStoreWidth === "max-content" ||
-        childStoreWidth === "min-content"
-      ) {
-        const childText = String(
-          (filteredChild.props as Record<string, unknown>)?.label ??
-            (filteredChild.props as Record<string, unknown>)?.text ??
-            (filteredChild.props as Record<string, unknown>)?.children ??
-            "",
+      if (isFitContentRemeasureWidth(origStyle.width)) {
+        // ADR-923 Phase 5 후속 (2026-09-04): 재측정은 **자식 visit 이 쓴 것과 같은 텍스트**로 한다.
+        //   visit (위 read-time propagation) 은 parent 가 정한 표시 텍스트로 폭을 재는데, 여기 입력
+        //   `filteredChild` 는 elementsMap 원본에서 온 것이라 store 텍스트가 낡았으면 그 낡은 폭이
+        //   visit 값을 덮는다 (Meter Label "Storage" 54 vs 표시 "Name" 40 = DOM 39 와 같은 형태 —
+        //   Label 축은 sub-part 판정으로 닫혔고 GridListItem/ListBoxItem 의 Text/Description 이 남아
+        //   있었다). 같은 registry 를 같은 방향으로 한 번 더 읽어 텍스트만 맞춘다.
+        const propagatedChildProps = resolveRemeasureChildProps(
+          rawElement,
+          filteredChild,
         );
+        const childText = resolveFitContentRemeasureText(propagatedChildProps);
         if (childText) {
           // ADR-912 영역 B (A): 순수 measureTextWidth 는 type-specific 부속(Tag remove X /
           //   Button icon 등) 폭을 누락한다. calculateContentWidth(type 분기 포함)로 교체해
@@ -2145,7 +2133,7 @@ function traversePostOrder(
           const childForWidth: CanvasLayoutNode = {
             ...filteredChild,
             props: {
-              ...filteredChild.props,
+              ...propagatedChildProps,
               style: {
                 ...(filteredChild.props?.style as
                   Record<string, unknown> | undefined),
