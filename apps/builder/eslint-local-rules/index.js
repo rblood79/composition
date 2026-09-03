@@ -58,8 +58,6 @@ const ADR126_ELEMENT_IMPORT_ALLOWED_FILES = new Set([
   "src/builder/stores/utils/frameActions.ts",
   "src/builder/stores/utils/historyHelpers.ts",
   "src/builder/stores/utils/instanceActions.ts",
-  "src/builder/utils/canonicalRefDependencies.ts",
-  "src/builder/utils/canvasDeltaMessenger.ts",
   "src/builder/utils/idGeneration.ts",
   "src/builder/utils/multiElementCopy.ts",
   "src/builder/utils/selectionMemory.ts",

@@ -229,6 +229,53 @@ const graphemeCounts = spacing ? tokens.map((t) => countGraphemes(t.text)) : nul
 
 `measureWrapped()` 에 들어오는 원문은 정규화되지 않아 `"a  b"` 가 두 칸 폭으로 측정된다. `\n` 은 렌더에서 hard break 로 남는다. Preview 가 Text content 의 `\n` 을 어떻게 내는지 (`<br>` / `pre-line` / collapse) 를 먼저 실측한 뒤 판정. upstream `normalizeWhitespaceNormal` 은 `[ \t\n]+ → " "`.
 
+### 4-10. 적용 요약표 — 파이프라인 단계별 Before / After
+
+| 단계                          | 위치                                  | Before                                                                                   | After                                                                                                                                     |
+| ----------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| tokenize                      | `tokenize()`                          | Intl.Segmenter → word-like = breakable, 그 외 non-breakable. CJK 세그먼트는 문자 분할     | 변경 없음 — keep-all 병합은 preprocess 로 이동                                                                                            |
+| preprocess ① left-sticky      | `preprocessTokens()` 기존 분기        | 라틴 trailing 구두점 단일 문자 + 행두 금칙 → 선행 토큰 병합                               | `% ‰ °` postfix affix 추가                                                                                                                |
+| preprocess ② forward-sticky   | `preprocessTokens()` 역방향 패스      | `KINSOKU_TAIL` 10자, `token.breakable` 조건이라 **dead**                                  | 라틴 `" ( [ {` · 둥근 따옴표 · `¡ ¿` · `' ’` · CJK 여는 괄호 · `$ € ₩ + −` prefix 를 후속 토큰에 carry (연속 `("` 포함)                    |
+| preprocess ③ no-space chain   | 신규 패스                             | 없음                                                                                     | 공백 없이 `[word][symbol][word]` 는 한 단위 (`-` · CJK 제외) — 이메일·경로·URL·식별자                                                     |
+| preprocess ④ keep-all         | 신규 패스 (`wordBreak === "keep-all"`) | 없음                                                                                     | 공백 경계 없이 이어진 breakable 그룹에 CJK 가 있으면 한 단위                                                                               |
+| computeLines                  | `computeLines()` non-breakable 분기   | 모든 non-breakable 토큰이 `pendingSpace = w` (덮어쓰기) — 기호도 공백처럼 hang            | 공백만 `pendingSpace += w` (누적), 구두점·기호는 `lineW` 즉시 가산                                                                          |
+| verifyLines (Tier 2)          | `verifyLines()`                       | 줄 수 결함의 실질 구제 수단 (D 케이스)                                                    | 유지 — 잔여 안전망. 1 phase 뒤 miss 0 이면 제거 재검토                                                                                      |
+| 이모지 보정                   | 신규 `getEmojiCorrection()`           | 없음 → 이모지당 +3~4px (24px 미만, DPR 2)                                                | 폰트당 1회 DOM span 대조, 이모지 grapheme 수 × 보정 차감 (이모지 포함 텍스트만)                                                             |
+| letterSpacing (선택)          | `needsFallback()` + `computeLines()`  | ≠0 이면 CanvasKit 측정 (엔진 불일치)                                                     | grapheme 수 × spacing 산술 가산 + 줄 끝 terminal spacing → fallback 조건 제거                                                              |
+| epsilon                       | `LINE_FIT_EPSILON`                    | 0.015 고정                                                                               | 변경 없음 (보류)                                                                                                                          |
+
+### 4-11. 케이스별 결과 — Chrome 오라클 · Before · After (fake 등폭 시뮬레이션, `/` = 줄 경계)
+
+| #   | 입력 (word-break)              | Chrome                            | Before                          | After                             | 적용 규칙        |
+| --- | ------------------------------ | --------------------------------- | ------------------------------- | --------------------------------- | ---------------- |
+| A   | `Price $100 today`             | Price / $100 today                | Price $ / 100 today             | Price / $100 today                | ② prefix affix   |
+| C   | `call (주)회사 now`            | call / (주)회사                   | call ( / 주)회사                | call / (주)회사                   | ② `(`            |
+| E   | `mail support@example.com now` | mail / support@example.com        | mail support@ / example.com     | mail / support@example.com        | ③                |
+| F   | `see foo_bar/baz_qux here`     | see / foo_bar/baz_qux             | see foo_bar/ / baz_qux          | see / foo_bar/baz_qux             | ③                |
+| F2  | `go https://example.com/path/to` | go / https://example.com/path/to | go https://example.com/ / path/to | go / https://example.com/path/to | ③                |
+| G   | `彼は「こんにちは」と言った`    | 彼は / 「こん                     | 彼は「 / こんに                 | 彼は / 「こん                     | ② `「`           |
+| H   | `漢字（注）です`               | 漢字 / （注） / です              | 漢字（ / 注）で / す            | 漢字 / （注） / です              | ② `（`           |
+| L   | `he said "hello world" ok`     | he said / "hello                  | he said " / hello               | he said / "hello                  | ② `"`            |
+| O   | `it's 'quoted' text here`      | it's / 'quoted'                   | it's ' / quoted'                | it's / 'quoted'                   | ② `'`            |
+| N   | `한글abc123 다음` (keep-all)   | 한글abc123 / 다음                 | 한글 / abc123 / 다음            | 한글abc123 / 다음                 | ④                |
+| N2  | `価格1200円です` (keep-all)    | 価格1200円です                    | 価格 / 1200 / 円 / です         | 価格1200円です                    | ④                |
+| D   | `Save / Cancel` (컨테이너 = 실폭 − 0.5) | Save / ⏎ Cancel            | fits 로 판정 (폭 누락, Tier 2 가 구제) | Save / ⏎ Cancel (Tier 2 불요)    | computeLines     |
+| I · M · M2 · P · Q · R | 한글+라틴 normal · 하이픈 · 전화번호 · `Save /` · `Wait...` · `(note)` | —        | Chrome 과 일치                  | 변화 없음                         | —                |
+
+### 4-12. 시스템 영향
+
+| 항목                      | Before                                             | After                                                                       |
+| ------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------- |
+| Tier 3 결함 (16 케이스)   | 11 불일치                                          | 16/16 일치 (Chrome 오라클 기준)                                             |
+| Skia 렌더 (hintedText)    | 틀린 위치의 `\n` → Skia 만 dangling·분리           | Preview 와 같은 줄 위치                                                     |
+| `maxLineWidth` (fit-content 폭) | 연속 기호·공백 누락 → 과소                    | 정확                                                                        |
+| Tier 2 의존               | 줄 수 정확성이 `verifyLines` 에 의존               | preprocessing 만으로 정확, Tier 2 는 안전망                                 |
+| Canvas 2D 적용 범위       | letterSpacing 텍스트는 CanvasKit                   | (4-7 적용 시) letterSpacing 도 Canvas 2D                                    |
+| 이모지 텍스트 (<24px)     | CSS 보다 이른 줄바꿈                               | 폰트당 1회 보정으로 일치                                                     |
+| 성능                      | sub-0.01 ms                                        | 선형 패스 3개 추가, 같은 자릿수. 이모지 보정은 폰트당 DOM read 1회           |
+| 테스트                    | 손으로 만든 fixture (dead 규칙 가림)               | `tokenize()` 실경로 fixture + Chrome 기대값 16 케이스 고정                  |
+| 변경 파일                 | —                                                  | `canvas2dSegmentCache.ts` (상수 표 · `preprocessTokens` · `computeLines` · 이모지) + 테스트. `needsFallback` 은 4-7 시에만 |
+
 ## 5. 도입 제안
 
 | 순서 | 내용                                                    | 종류       | 검증                                                                                                                                                                                                                        |
