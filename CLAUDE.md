@@ -58,6 +58,7 @@ env: `apps/builder/.env.example` → `.env`. `VITE_SUPABASE_URL` / `VITE_SUPABAS
 - **완료 직전 검증**: 아래 §완료 기준 자가 적용 + `/review` (reviewer 격리 fork) · 사용자-가시 변경은 `/evaluate` (런타임 4축 채점, 격리 fork)
 - **단순 작업** (한 줄 수정, 설정 변경): 위 절차 스킵 가능
 - CRITICAL/HIGH 이슈: 즉시 수정, 스킵 금지
+- **판독 루프 종결**: phase 당 판독 1 + 수리 검증 1, HIGH 0 이면 실행자가 닫힘 선언 · production 재현 없는 커버리지 지적은 LOW deferred · 동작 변경 0 커밋은 축소 절차 — 정본 `.claude/rules/review-loop-closure.md` (상시 로드)
 
 ### 완료 기준 — test/type-check PASS 단독으로 ADR·task 종결 금지 (CRITICAL)
 
@@ -102,6 +103,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 | ADR 현황         | [docs/adr/README.md](docs/adr/README.md)                                       | 전체 ADR 현황 대시보드                                                                                        |
 | ADR 규칙         | [.claude/rules/adr-writing.md](.claude/rules/adr-writing.md)                   | Risk-First 템플릿, 위험 평가, 금지 패턴, 반복 패턴 선차단 (`docs/adr/**` 자동 로드)                           |
 | 측정·검증 무결성 | [.claude/rules/measurement-validity.md](.claude/rules/measurement-validity.md) | Gate 수치 leakage 8-패턴 + 착수 전 5-질문 + 실패 record (`docs/adr/**`·performance 자동 로드)                 |
+| 판독 루프 종결   | [.claude/rules/review-loop-closure.md](.claude/rules/review-loop-closure.md)   | 라운드 상한 · 커버리지 지적 판정 (가설 1 + 반증 1) · 변경 종류별 절차 · 판독 프롬프트 필수 문구 (상시 로드)   |
 | CHANGELOG 규칙   | [.claude/rules/changelog.md](.claude/rules/changelog.md)                       | 트리거·Drift 감시·catch-up·Keep a Changelog 포맷 (`docs/CHANGELOG*` 자동 로드)                                |
 | CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 현재 엔트리 — 연도별 아카이브 (`CHANGELOG-YYYY-archived.md`) 로 이관                                          |
 

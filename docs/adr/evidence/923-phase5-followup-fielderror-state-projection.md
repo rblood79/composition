@@ -78,21 +78,21 @@ round 1 의 정상 게이트·원복 (a)~(d) 는 판독에서 그대로 재현�
 
 ### 5-1. 판독이 뒤집은 사실
 
-| id       | round 1 이 적은 전제                                            | 실제                                                                                                                                                                            |
-| -------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **feh1** | "production 트리 FieldError 에는 fontSize 가 없다"              | factory 5곳 + Form origin 1곳이 인라인 `fontSize: 12` 를 심는다 (`FormComponents.ts` ×3 · `DateColorComponents.ts` ×2 · `formTemplateOrigins.ts`). 신규 트리에서 그 값이 사라진 이유는 feh2 의 얕은 병합이었다 — 즉 feh2 를 고치면 인라인 12 가 되살아나 resolver 를 우회한다. |
-| **feh2** | (미인지)                                                         | `asStyle` patch 를 store 쓰기 경로가 props 최상위 **얕은** 병합으로 처리해 자식 style 전체가 `{display}` 로 갈린다 (`batchUpdateElementProps` `{...element.props, ...props}`). 사용자가 준 fontSize·color·width 손실 경로.                                              |
-| **feh3** | "catalog rule 의 lineHeight 16 은 DOM 이 안 읽으니 Canvas 도 안 읽는다" | layout 은 fs×1.5 fallback 이라 맞았지만 **Skia 는 `size.lineHeight` 로 16 을 실제 소비**한다 (browser 실측 skia 14/16 vs dom 14/21).                                                                                                                     |
+| id       | round 1 이 적은 전제                                                    | 실제                                                                                                                                                                                                                                                                           |
+| -------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **feh1** | "production 트리 FieldError 에는 fontSize 가 없다"                      | factory 5곳 + Form origin 1곳이 인라인 `fontSize: 12` 를 심는다 (`FormComponents.ts` ×3 · `DateColorComponents.ts` ×2 · `formTemplateOrigins.ts`). 신규 트리에서 그 값이 사라진 이유는 feh2 의 얕은 병합이었다 — 즉 feh2 를 고치면 인라인 12 가 되살아나 resolver 를 우회한다. |
+| **feh2** | (미인지)                                                                | `asStyle` patch 를 store 쓰기 경로가 props 최상위 **얕은** 병합으로 처리해 자식 style 전체가 `{display}` 로 갈린다 (`batchUpdateElementProps` `{...element.props, ...props}`). 사용자가 준 fontSize·color·width 손실 경로.                                                     |
+| **feh3** | "catalog rule 의 lineHeight 16 은 DOM 이 안 읽으니 Canvas 도 안 읽는다" | layout 은 fs×1.5 fallback 이라 맞았지만 **Skia 는 `size.lineHeight` 로 16 을 실제 소비**한다 (browser 실측 skia 14/16 vs dom 14/21).                                                                                                                                           |
 
 ### 5-2. live 재실측 — feh1 은 harness 한정이 아니었다 (Chrome MCP, 프로젝트 123 Home)
 
 publish DOM 의 `.react-aria-FieldError` 에는 **`data-element-id` 가 없다** — Preview/publish 는 canonical FieldError 자식이 아니라 **RAC 자체 FieldError** 를 그린다. 자식에 얹은 인라인 style 은 DOM 에 도달할 채널이 아예 없다 (실측: 자식에 `color: rgb(0,128,0)` · `width: 123px` · `fontSize: 12` 를 줘도 publish 는 negative 색 · 88.2px · 14px/21px).
 
-| 상태                                   | Canvas (Skia rect)         | publish DOM                       |
-| -------------------------------------- | -------------------------- | --------------------------------- |
-| 신규 트리 (인라인 없음)                | FieldError 89×21 @y62 · TF 83 | 14px/21px · h 21 · y 63 · TF 84   |
-| 옛 문서 재현 (자식 `fontSize:12`) 수리 전 | 76×18 @y62 · TF 80         | 14px/21px · h 21 · TF 84 (**갈림**) |
-| 같은 트리, 수리 후                      | 89×21 @y62 · TF 83         | 같음 (일치)                        |
+| 상태                                      | Canvas (Skia rect)            | publish DOM                         |
+| ----------------------------------------- | ----------------------------- | ----------------------------------- |
+| 신규 트리 (인라인 없음)                   | FieldError 89×21 @y62 · TF 83 | 14px/21px · h 21 · y 63 · TF 84     |
+| 옛 문서 재현 (자식 `fontSize:12`) 수리 전 | 76×18 @y62 · TF 80            | 14px/21px · h 21 · TF 84 (**갈림**) |
+| 같은 트리, 수리 후                        | 89×21 @y62 · TF 83            | 같음 (일치)                         |
 
 → 옛 저장 문서는 **양쪽이 12 로 같아지는 게 아니라** Canvas 만 12 로 갈린다. 그래서 처방은 문서 migration 이 아니라 **read 경로에서 delegation 이 인라인을 이기게** 하는 것이다 (저장 데이터 무변경 — 사용자 문서를 조용히 고치지 않는다).
 
@@ -105,13 +105,13 @@ publish DOM 의 `.react-aria-FieldError` 에는 **`data-element-id` 가 없다**
 
 ### 5-4. 게이트 (round 1 대비 신설 5)
 
-| 게이트                                                                | 무엇을 고정                                                             |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| bridge `factory 전제 — 인라인 fontSize 없음`                          | 저작 6곳 중 factory 5 (feh1 원천 재발)                                  |
-| `formTemplateOrigins.test` `FieldError 자식에 인라인 fontSize 없음`   | Form origin (feh1 원천 재발)                                            |
-| bridge `propagation 쓰기 — 자식의 기존 style 키 보존`                 | Inspector + factory 두 경로 (feh2)                                      |
-| bridge `Skia — delegation 글자 크기 + root 상속 줄 높이`              | Skia 소비 (feh3 · fem1) + 인라인보다 delegation 우선 (feh1 옛 문서)     |
-| browser `글자 metric` · `옛 문서 — 인라인 12 가 있어도 DOM 과 같다`   | 5 field 의 DOM computed ↔ Skia text shape, 신규·옛 문서 두 형태         |
+| 게이트                                                              | 무엇을 고정                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| bridge `factory 전제 — 인라인 fontSize 없음`                        | 저작 6곳 중 factory 5 (feh1 원천 재발)                              |
+| `formTemplateOrigins.test` `FieldError 자식에 인라인 fontSize 없음` | Form origin (feh1 원천 재발)                                        |
+| bridge `propagation 쓰기 — 자식의 기존 style 키 보존`               | Inspector + factory 두 경로 (feh2)                                  |
+| bridge `Skia — delegation 글자 크기 + root 상속 줄 높이`            | Skia 소비 (feh3 · fem1) + 인라인보다 delegation 우선 (feh1 옛 문서) |
+| browser `글자 metric` · `옛 문서 — 인라인 12 가 있어도 DOM 과 같다` | 5 field 의 DOM computed ↔ Skia text shape, 신규·옛 문서 두 형태     |
 
 원복 RED (전부 재현 확인 후 원상복구):
 
@@ -150,17 +150,17 @@ round 2 는 `buildPropagationUpdates` 가 자식의 현재 style **전체를 복
 
 node 5 파일 26건 (bridge 9 · formTemplateOrigins 8 · applyBatchStylePatch 3 · ADR-187 Phase 0 baseline · editorMutationEffectRegistry) · browser 5 기준. 각 원복 후 원상복구 + 재통과 확인.
 
-| 원복                                        | node (26)  | browser (5) |
-| ------------------------------------------- | ---------- | ----------- |
-| (a) 규칙 5 field spread 제거                | 5 FAIL     | 5 FAIL      |
-| (b) layout 자식 visit propagation 차단      | —          | 5 FAIL      |
-| (c) layout FieldError delegation 주입 차단  | —          | 3 FAIL      |
-| (d) 5-심볼 등재 제거                        | 3 FAIL     | —           |
-| (e) `applyBatchStylePatch` 병합 무력화      | 1 FAIL     | —           |
-| (f) factory·origin 인라인 12 복원           | 2 FAIL     | **5 PASS**  |
-| (g) Skia lineHeight 덮기 제거               | 1 FAIL     | 2 FAIL      |
-| (h) 인라인 fontSize 우선 복원               | 1 FAIL     | 1 FAIL      |
-| (i) 인라인 lineHeight 걷어내기 제거         | 1 FAIL     | 1 FAIL      |
+| 원복                                       | node (26) | browser (5) |
+| ------------------------------------------ | --------- | ----------- |
+| (a) 규칙 5 field spread 제거               | 5 FAIL    | 5 FAIL      |
+| (b) layout 자식 visit propagation 차단     | —         | 5 FAIL      |
+| (c) layout FieldError delegation 주입 차단 | —         | 3 FAIL      |
+| (d) 5-심볼 등재 제거                       | 3 FAIL    | —           |
+| (e) `applyBatchStylePatch` 병합 무력화     | 1 FAIL    | —           |
+| (f) factory·origin 인라인 12 복원          | 2 FAIL    | **5 PASS**  |
+| (g) Skia lineHeight 덮기 제거              | 1 FAIL    | 2 FAIL      |
+| (h) 인라인 fontSize 우선 복원              | 1 FAIL    | 1 FAIL      |
+| (i) 인라인 lineHeight 걷어내기 제거        | 1 FAIL    | 1 FAIL      |
 
 **(f) 의 browser 5 PASS 가 정상이다** (fe2m2): read 경로가 인라인을 이미 무시하므로 최종 동작은 변하지 않는다 — 저작 지점의 재발은 정적 source 게이트 (bridge `factory 전제` · formTemplateOrigins) 가 유일한 감시자다. round 2 표의 "browser 3 FAIL" 은 (h) 도입 전에 잰 값이었다.
 
@@ -170,11 +170,11 @@ type-check · builder unit **5196** (656 파일) · focused `adr923*` **129** ·
 
 live (Chrome MCP, 프로젝트 123 Home — 팔레트 TextField 신규 생성):
 
-| 확인                                                    | 결과                                                                        |
-| ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 확인                                                     | 결과                                                                           |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | 자식 style 에 `fontSize:12 · lineHeight:10 · color` 주입 | Skia 89×21 @y62 · TF 83 (10 도 140 도 아님) ↔ publish 14px/21px · h 21 · TF 84 |
-| Inspector Invalid OFF → ON                              | 자식 style `display` 만 바뀌고 `fontSize·lineHeight·color` 보존              |
-| `updateElementProps` 로 준 `backgroundColor`            | store 에 남지 않음 — sanitizer 가 fill 파생 키를 지운다 (fe2m1 의 근거)      |
+| Inspector Invalid OFF → ON                               | 자식 style `display` 만 바뀌고 `fontSize·lineHeight·color` 보존                |
+| `updateElementProps` 로 준 `backgroundColor`             | store 에 남지 않음 — sanitizer 가 fill 파생 키를 지운다 (fe2m1 의 근거)        |
 
 콘솔 0, 요소 정리 완료.
 
@@ -226,12 +226,12 @@ type-check · builder unit **5199** (657 파일) · focused `adr923*` **129** ·
 
 live (Chrome MCP, 프로젝트 123 Home — 팔레트 TextField 신규 생성):
 
-| 확인                                                                  | 결과                                                                          |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| 팔레트 TextField 신규 생성 직후 FieldError 자식 props                 | `{children:"", style:{display:"none"}}` — 인라인 `fontSize` 0 (round 2 삭제 유지) |
-| 자식에 `fontSize:13 · color · lineHeight:10 · backgroundColor` 주입    | 앞 3키만 저장, `backgroundColor` 는 sanitizer 가 제거 (fe2m1 근거 재확인)      |
-| 패널 Invalid 스위치 ON (실제 UI → 새 매핑 함수 경유)                  | 자식 `display` 만 `block`, `fontSize:13 · color · lineHeight:10` 그대로 보존   |
-| 이어서 Error Message 입력 "Required field"                            | 자식 `children` 갱신 + 나머지 style 4키 유지, Skia 87×21 @y62 · TextField 83   |
+| 확인                                                                | 결과                                                                              |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 팔레트 TextField 신규 생성 직후 FieldError 자식 props               | `{children:"", style:{display:"none"}}` — 인라인 `fontSize` 0 (round 2 삭제 유지) |
+| 자식에 `fontSize:13 · color · lineHeight:10 · backgroundColor` 주입 | 앞 3키만 저장, `backgroundColor` 는 sanitizer 가 제거 (fe2m1 근거 재확인)         |
+| 패널 Invalid 스위치 ON (실제 UI → 새 매핑 함수 경유)                | 자식 `display` 만 `block`, `fontSize:13 · color · lineHeight:10` 그대로 보존      |
+| 이어서 Error Message 입력 "Required field"                          | 자식 `children` 갱신 + 나머지 style 4키 유지, Skia 87×21 @y62 · TextField 83      |
 
 인라인 `fontSize:13 · lineHeight:10` 을 준 채로도 Canvas 가 21px 줄 (delegation 14 × 1.5) 을 쓴다 — round 3 계약 그대로다. 콘솔 오류 0, 생성 요소 정리 완료 (55 → 51).
 
@@ -254,21 +254,21 @@ round 4 의 `adr923PropagationTransport.test.ts` 는 helper → inspector slice 
 
 ### 8-3. 원복 RED — 전량 재측정 (node 29 → 31)
 
-| 원복                                                | node (31) | browser (5) |
-| --------------------------------------------------- | --------- | ----------- |
-| (a) 규칙 5 field spread 제거                        | 6 FAIL    | 5 FAIL      |
-| (b) layout 자식 visit propagation 차단              | —         | 5 FAIL      |
-| (c) layout FieldError delegation 주입 차단          | —         | 3 FAIL      |
-| (d) 5-심볼 등재 제거                                | 3 FAIL    | —           |
-| (e) `applyBatchStylePatch` 병합 무력화              | 2 FAIL    | —           |
-| (f) factory·origin 인라인 12 복원                   | 2 FAIL    | 5 PASS      |
-| (g) Skia lineHeight 덮기 제거                       | 1 FAIL    | 2 FAIL      |
-| (h) 인라인 fontSize 우선 복원                       | 1 FAIL    | 1 FAIL      |
-| (i) 인라인 lineHeight 걷어내기 제거                 | 1 FAIL    | 1 FAIL      |
-| (j) `toBatchPropsUpdates` 가 플래그 누락            | 1 FAIL    | 5 PASS      |
-| (k) Panel 이 dispatch 우회 + 플래그 누락 매핑       | 1 FAIL    | 5 PASS      |
-| (l) dispatch 가 helper 반환값 버리고 원본 전달      | 1 FAIL    | —           |
-| (m) dispatch 안 인라인 매핑이 플래그 누락           | 2 FAIL    | —           |
+| 원복                                           | node (31) | browser (5) |
+| ---------------------------------------------- | --------- | ----------- |
+| (a) 규칙 5 field spread 제거                   | 6 FAIL    | 5 FAIL      |
+| (b) layout 자식 visit propagation 차단         | —         | 5 FAIL      |
+| (c) layout FieldError delegation 주입 차단     | —         | 3 FAIL      |
+| (d) 5-심볼 등재 제거                           | 3 FAIL    | —           |
+| (e) `applyBatchStylePatch` 병합 무력화         | 2 FAIL    | —           |
+| (f) factory·origin 인라인 12 복원              | 2 FAIL    | 5 PASS      |
+| (g) Skia lineHeight 덮기 제거                  | 1 FAIL    | 2 FAIL      |
+| (h) 인라인 fontSize 우선 복원                  | 1 FAIL    | 1 FAIL      |
+| (i) 인라인 lineHeight 걷어내기 제거            | 1 FAIL    | 1 FAIL      |
+| (j) `toBatchPropsUpdates` 가 플래그 누락       | 1 FAIL    | 5 PASS      |
+| (k) Panel 이 dispatch 우회 + 플래그 누락 매핑  | 1 FAIL    | 5 PASS      |
+| (l) dispatch 가 helper 반환값 버리고 원본 전달 | 1 FAIL    | —           |
+| (m) dispatch 안 인라인 매핑이 플래그 누락      | 2 FAIL    | —           |
 
 (a) 가 7 → 6 인 이유: round 4 의 대조 테스트 (transport 주입) 가 dispatch 기반 plain-경로 테스트로 바뀌어 규칙 부재에 반응하지 않는다 — 기능 테스트 1건 + bridge 5 = 6. (k) 는 AST 게이트, (j)·(m) 은 기능 테스트가 잡는다. (l) 은 위 8-1 의 판정대로 단일 호출자 게이트만.
 
@@ -282,3 +282,11 @@ round 4 의 `adr923PropagationTransport.test.ts` 는 helper → inspector slice 
 type-check · builder unit **5201** (657 파일) · focused `adr923*` **129** · full parity **1073** (기존 2 FAIL) · smoke 84.
 
 live (Chrome MCP, 프로젝트 e16b69c6 Home — 팔레트 TextField 신규 생성, 자식에 `fontSize:13 · color · lineHeight:10` 주입): 패널 Invalid 스위치 ON → 자식 `display` 만 `block`, 3키 보존 · Error Message "Required field" 입력 → 자식 `children` 갱신 + style 보존, Skia 87×21 @y62 · TextField 83. 이 경로가 새 `dispatchSemanticUpdateWithPropagation` 을 거친다. 콘솔 오류 0, 요소 정리 (185 → 181).
+
+## 9. 종결 — 후속 목록 1번 (FieldError 상태 투영) 닫힘 (2026-09-03, 실행자 선언)
+
+동작은 round 3 (`3ba137b1a`) 에서 확정됐다. 근거: 원복 RED (a)~(i) 전량 · live 3회 (round 1 · 3 · 4, 세 번째는 dispatch 경로) · 게이트 13 (bridge 9 · origin 8 · batchStylePatch 3 · transport 5 · browser 5 를 포함해 node 31 + browser 5). round 4 (`4c4fc41f3`) · round 5 (`80e28940f`) 는 동작 변경 0 인 게이트 보강이었고, round 5 의 원복 (l) 이 판독 반례가 동작 무변경임을 실증했다.
+
+round 6 판독은 열지 않는다. 사용자 지적 (2026-09-03) 으로 판독 루프의 커버리지 ratchet 패턴을 확정했고, 그 규칙을 `.claude/rules/review-loop-closure.md` 로 명문화했다 — phase · 후속 항목의 닫힘은 실행자가 선언하고, production 재현 없는 커버리지 지적은 LOW deferred 다.
+
+잔여 (§5-5) 는 이 항목 밖의 별도 작업으로 남긴다: (1) canonical FieldError 자식의 편집 surface 위상 (SSOT 경계 판정 — 착수 전 결정 지점 질문) · (2) `generated/*.css` 미import 전수 (생성물 93 vs import 66) · (3) 옛 문서 인라인 `fontSize:12` 정리 (별도 승인). Description 축 (§4 후속 9번) 은 (1) 판정 뒤.

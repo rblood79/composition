@@ -8,6 +8,8 @@ paths:
 
 > **SSOT 체인 연계 (CRITICAL)**: 새 ADR의 Context 섹션에 **3-domain 분할(D1 DOM/접근성 / D2 Props/API / D3 시각 스타일) 중 어느 것에 해당하는지** 명시 필수. 경계 교차 시 정당화 필요. 정본 원칙: [ssot-hierarchy.md](ssot-hierarchy.md). 공식 결정: [ADR-063](../../docs/adr/completed/063-ssot-chain-charter.md).
 
+> **판독 루프 종결 (CRITICAL)**: Codex/claude 판독 라운드는 phase 당 1 + 수리 검증 1 이 상한이며, production 재현 없는 커버리지 지적은 LOW deferred 다. 정본: [review-loop-closure.md](review-loop-closure.md).
+
 ## 왜 이 프로세스인가
 
 ADR의 목적은 **미래의 개발자가 "왜 이렇게 결정했는가"를 이해하는 것**이다. 결론을 먼저 쓰고 위험을 나중에 붙이면 confirmation bias가 작동하여 위험이 과소 평가된다. 대안을 먼저 나열하고, 각각의 위험을 독립 평가한 뒤, 그 결과로 결정을 내려야 사후 합리화를 방지할 수 있다.
