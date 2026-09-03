@@ -28,7 +28,7 @@ function makeV1Entry(partial: Partial<HistoryEntry>): HistoryEntry {
 }
 
 describe("historyIndexedDB v1→v3 migration adapter contract", () => {
-  it("v1 seed batch (structural + props) → canonicalEvents (legacy payload kept until raw-read=0)", () => {
+  it("v1 seed batch (structural + props) → canonicalEvents + legacy strip", () => {
     const seeded: HistoryEntry[] = [
       makeV1Entry({
         id: "add-1",
@@ -85,12 +85,15 @@ describe("historyIndexedDB v1→v3 migration adapter contract", () => {
     expect(migrated).toHaveLength(3);
     for (const entry of migrated) {
       expect(entry.data.canonicalEvents?.length ?? 0).toBeGreaterThan(0);
+      expect(entry.data.element).toBeUndefined();
+      expect(entry.data.prevElements).toBeUndefined();
+      expect(entry.data.elements).toBeUndefined();
+      expect(entry.data.childElements).toBeUndefined();
     }
 
     expect(migrated[0]!.data.canonicalEvents![0]).toMatchObject({
       type: "insert",
     });
-    expect(migrated[0]!.data.element).toMatchObject({ id: "btn-1" });
     expect(migrated[2]!.data.canonicalEvents![0]).toMatchObject({
       type: "remove",
     });
@@ -103,5 +106,20 @@ describe("historyIndexedDB v1→v3 migration adapter contract", () => {
     expect(getRawLegacyHistoryReadCount()).toBe(1);
     resetRawLegacyHistoryReadCount();
     expect(getRawLegacyHistoryReadCount()).toBe(0);
+  });
+
+  it("historyActions 는 legacy fallback 없이 migrate→canonical 만 사용", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const { resolve } = await import("node:path");
+    const source = await readFile(
+      resolve(__dirname, "../historyActions.ts"),
+      "utf-8",
+    );
+    expect(source).toContain("migrateV1EntryToV2");
+    expect(source).not.toContain("recordRawLegacyHistoryRead");
+    expect(source).not.toMatch(/entry\.data\.element\b/);
+    expect(source).not.toMatch(/entry\.data\.prevElements\b/);
+    expect(source).not.toMatch(/entry\.data\.childElements\b/);
+    expect(source).not.toMatch(/entry\.data\.batchUpdates\b/);
   });
 });

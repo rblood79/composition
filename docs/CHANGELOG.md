@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [History v1 fallback 을 제거하고 canonical 전용으로 전환했습니다] - 2026-09-03
+
+### Changed
+
+- undo/redo/go-to-index 가 v1 entry 를 `migrateV1EntryToV2` 로 변환한 뒤 `canonicalEvents` 만 적용합니다. legacy snapshot fallback 분기를 제거했습니다.
+- migration 성공 entry 는 deprecated legacy snapshot payload 를 strip 합니다. raw legacy read 계측 경로도 소비처에서 제거됐습니다.
+
+### Tests
+
+- strip·fallback 제거 static gate, add/remove/batch migration, call-site roundtrip 을 갱신했습니다.
+
 ## [Legacy model migration 저위험 이관을 진행했습니다] - 2026-09-03
 
 ### Changed

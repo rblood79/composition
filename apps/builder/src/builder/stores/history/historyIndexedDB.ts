@@ -146,9 +146,8 @@ export class HistoryIndexedDB {
         // **ADR-124 Phase 5 — v1 → v2 entry migration**.
         // 기존 v1 entry 의 legacy snapshot field 를 canonical event sequence 로
         // one-shot 변환. 변환 성공 entry 는 legacy snapshot payload strip.
-        // 변환 불가 entry 는 `canonicalEvents: []` + legacy payload 유지
-        // (historyActions fallback + rawLegacyHistoryRead 계측). 변환 실패 시
-        // catch → 원본 entry 보존 (best-effort).
+        // 변환 불가 entry 는 `canonicalEvents: []` (undo/redo no-op).
+        // historyActions 는 migrate 후 canonical 경로만 사용한다.
         if (oldVersion < 2 && transaction) {
           try {
             const store = transaction.objectStore(STORE_ENTRIES);

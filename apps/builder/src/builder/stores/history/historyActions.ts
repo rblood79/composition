@@ -9,21 +9,9 @@ import { historyManager, type HistoryEntry } from "../history";
 import { applySnapshotRestoreHistoryEntry } from "./snapshotRestore";
 import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 import { createCompleteProps } from "../utils/elementHelpers";
-import {
-  applyBatchDiffRedo,
-  applyBatchDiffUndo,
-  applyDiffRedo,
-  applyDiffUndo,
-  deserializeDiff,
-  type SerializableElementDiff,
-} from "../utils/elementDiff";
 import type { ElementsState } from "../elements";
-import { recordRawLegacyHistoryRead } from "./rawLegacyHistoryRead";
+import { migrateV1EntryToV2 } from "./historyEntryMigration";
 import { getDB } from "../../../lib/db";
-import {
-  areCanonicalMutationStoreActionsRegistered,
-  setElementsCanonicalPrimary,
-} from "@/adapters/canonical/canonicalMutations";
 import {
   applyCanonicalHistoryEventsToActiveDocument,
   getCanonicalHistoryEventIds,
@@ -49,10 +37,6 @@ import {
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
-type HistoryCompatibilityElementMap<TElement extends Element = Element> = Map<
-  string,
-  TElement
->;
 
 /**
  * undo/redo 결과 persist.
@@ -99,11 +83,6 @@ function countExpectedShrinkNodes(
     }
   }
   return deleteIdSet.size;
-}
-
-function syncHistoryElementsToCanonical(elements: Element[]): void {
-  if (!areCanonicalMutationStoreActionsRegistered()) return;
-  setElementsCanonicalPrimary(elements);
 }
 
 function applyPageTitleHistoryEntry(
@@ -458,14 +437,6 @@ function getHistorySourceElements(get: GetState): Element[] {
   return getActiveCanonicalHistoryElements() ?? legacyElements;
 }
 
-function getHistoryCompatibilityElementsMap(
-  get: GetState,
-): HistoryCompatibilityElementMap {
-  return new Map(
-    getHistorySourceElements(get).map((element) => [element.id, element]),
-  );
-}
-
 function getActiveCanonicalHistoryElements(): Element[] | null {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
@@ -501,55 +472,6 @@ function cloneForHistory<T>(value: T): T {
   }
 }
 
-function applyElementSnapshotBatch(
-  currentElements: Element[],
-  removeIds: Set<string>,
-  upsertElements: Element[],
-): Element[] {
-  const upsertIds = new Set(upsertElements.map((element) => element.id));
-  const retained = currentElements.filter(
-    (element) => !removeIds.has(element.id) && !upsertIds.has(element.id),
-  );
-  return [...retained, ...upsertElements];
-}
-
-function applySerializedHistoryDiff(
-  currentElements: Element[],
-  diff: SerializableElementDiff,
-  direction: "undo" | "redo",
-): Element[] {
-  const elementDiff = deserializeDiff(diff);
-  return currentElements.map((element) => {
-    if (element.id !== diff.elementId) return element;
-    return direction === "undo"
-      ? applyDiffUndo(element, elementDiff)
-      : applyDiffRedo(element, elementDiff);
-  });
-}
-
-function applySerializedHistoryDiffs(
-  currentElements: Element[],
-  diffs: SerializableElementDiff[],
-  direction: "undo" | "redo",
-): Element[] {
-  const elementDiffs = diffs.map((diff) => deserializeDiff(diff));
-  return direction === "undo"
-    ? applyBatchDiffUndo(currentElements, elementDiffs)
-    : applyBatchDiffRedo(currentElements, elementDiffs);
-}
-
-function resolveSelectedPropsAfterBatch(
-  selectedElementId: string | null,
-  selectedElementProps: ComponentElementProps,
-  updatedElements: Element[],
-): ComponentElementProps {
-  if (!selectedElementId) return selectedElementProps;
-  const selectedElement = updatedElements.find(
-    (element) => element.id === selectedElementId,
-  );
-  return selectedElement ? createCompleteProps(selectedElement) : {};
-}
-
 function resolveSelectionAfterCanonicalEvents(
   selectedElementId: string | null,
   selectedElementProps: ComponentElementProps,
@@ -573,13 +495,6 @@ function resolveSelectionAfterCanonicalEvents(
         selectedElementId: null,
         selectedElementProps: {},
       };
-}
-
-function getHistoryDiffElementIds(entry: HistoryEntry): string[] {
-  const ids = new Set<string>();
-  if (entry.data.diff) ids.add(entry.data.diff.elementId);
-  entry.data.diffs?.forEach((diff) => ids.add(diff.elementId));
-  return [...ids];
 }
 
 /**
@@ -647,97 +562,22 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
-    // 1. 메모리 상태 업데이트 (우선) - 안전한 데이터 복사
-    let elementIdsToRemove: string[] = [];
-    const elementsToRestore: Element[] = [];
-    let prevProps: ComponentElementProps | null = null;
-    let prevElement: Element | null = null;
-
-    // produce 밖에서 안전하게 데이터 준비
-    try {
-      switch (entry.type) {
-        case "add": {
-          elementIdsToRemove = [entry.elementId];
-          if (entry.data.childElements && entry.data.childElements.length > 0) {
-            elementIdsToRemove.push(
-              ...entry.data.childElements.map((child: Element) => child.id),
-            );
-          }
-          break;
-        }
-
-        case "update": {
-          // 🚀 Phase 2: structuredClone 사용
-          if (entry.data.prevProps) {
-            prevProps = cloneForHistory(entry.data.prevProps);
-          }
-          if (entry.data.prevElement) {
-            prevElement = cloneForHistory(entry.data.prevElement);
-          }
-          break;
-        }
-
-        case "remove": {
-          // 🚀 Phase 2: structuredClone 사용
-          if (entry.data.element) {
-            elementsToRestore.push(cloneForHistory(entry.data.element));
-          }
-          if (entry.data.childElements && entry.data.childElements.length > 0) {
-            elementsToRestore.push(
-              ...entry.data.childElements.map((child: Element) =>
-                cloneForHistory(child),
-              ),
-            );
-          }
-          break;
-        }
-
-        case "batch": {
-          // Batch update - 각 요소의 이전 props 저장
-          break;
-        }
-
-        case "group": {
-          // Group 생성 - 그룹 삭제 + 자식들 원래 부모로 이동 준비
-          elementIdsToRemove = [entry.elementId]; // 그룹 요소 삭제
-          break;
-        }
-
-        case "ungroup": {
-          // Ungroup - 그룹 재생성 + 자식들 그룹 안으로 이동 준비
-          if (entry.data.element) {
-            // 🚀 Phase 2: structuredClone 사용
-            elementsToRestore.push(cloneForHistory(entry.data.element));
-          }
-          break;
-        }
-      }
-    } catch (error: unknown) {
-      console.error("⚠️ 히스토리 데이터 준비 중 오류:", error);
-      console.error("⚠️ 오류 상세:", {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        entryType: entry.type,
-        elementId: entry.elementId,
-      });
-      set({ historyOperationInProgress: false });
-      return;
-    }
-
-    // 🚀 Phase 1: Immer → 함수형 업데이트
     const currentState = {
       ...get(),
       elements: getHistorySourceElements(get),
     };
+    const migratedEntry = migrateV1EntryToV2(entry, {
+      elements: currentState.elements,
+      direction: "undo",
+    });
 
     let updatedElements = currentState.elements;
     let updatedSelectedElementId = currentState.selectedElementId;
     let updatedSelectedElementProps = currentState.selectedElementProps;
     const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
-      entry.data.canonicalEvents,
+      migratedEntry.data.canonicalEvents,
       "undo",
     );
-    const appliedCanonicalEvents = canonicalEventElements !== null;
 
     if (canonicalEventElements) {
       updatedElements = canonicalEventElements;
@@ -748,234 +588,10 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       );
       updatedSelectedElementId = selection.selectedElementId;
       updatedSelectedElementProps = selection.selectedElementProps;
-    } else {
-      recordRawLegacyHistoryRead(`undo-apply:${entry.type}`);
-      switch (entry.type) {
-        case "add": {
-          // 추가된 요소 제거 (역작업)
-          updatedElements = currentState.elements.filter(
-            (el) => !elementIdsToRemove.includes(el.id),
-          );
-          if (
-            elementIdsToRemove.includes(currentState.selectedElementId || "")
-          ) {
-            updatedSelectedElementId = null;
-            updatedSelectedElementProps = {};
-          }
-          break;
-        }
-
-        case "update": {
-          if (entry.data.diff) {
-            updatedElements = applySerializedHistoryDiff(
-              currentState.elements,
-              entry.data.diff,
-              "undo",
-            );
-            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-              currentState.selectedElementId,
-              currentState.selectedElementProps,
-              updatedElements,
-            );
-            break;
-          }
-
-          // 이전 상태로 복원 (불변 업데이트)
-          const elementIndex = currentState.elements.findIndex(
-            (el) => el.id === entry.elementId,
-          );
-          if (elementIndex >= 0 && prevProps) {
-            const element = currentState.elements[elementIndex];
-
-            updatedElements = currentState.elements.map((el, i) =>
-              i === elementIndex ? { ...el, props: prevProps } : el,
-            );
-
-            // 선택된 요소가 업데이트된 경우 selectedElementProps도 업데이트
-            if (currentState.selectedElementId === entry.elementId) {
-              const restoredElement = { ...element, props: prevProps };
-              updatedSelectedElementProps = createCompleteProps(
-                restoredElement,
-                prevProps,
-              );
-            }
-          } else if (elementIndex >= 0 && prevElement) {
-            // 전체 요소가 저장된 경우
-            updatedElements = currentState.elements.map((el, i) =>
-              i === elementIndex ? { ...el, ...prevElement } : el,
-            );
-          } else {
-            console.warn("⚠️ Undo 실패: 요소 또는 이전 데이터를 찾을 수 없음", {
-              elementId: entry.elementId,
-              elementFound: elementIndex >= 0,
-              prevPropsFound: !!prevProps,
-              prevElementFound: !!prevElement,
-            });
-          }
-          break;
-        }
-
-        case "remove": {
-          // 삭제된 요소와 자식 요소들 복원
-          updatedElements = [...currentState.elements, ...elementsToRestore];
-          break;
-        }
-
-        case "batch": {
-          if (entry.data.diffs?.length) {
-            updatedElements = applySerializedHistoryDiffs(
-              currentState.elements,
-              entry.data.diffs,
-              "undo",
-            );
-            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-              currentState.selectedElementId,
-              currentState.selectedElementProps,
-              updatedElements,
-            );
-          } else if (entry.data.prevElements && entry.data.elements) {
-            const prevElements = entry.data.prevElements.map((element) =>
-              cloneForHistory(element),
-            );
-            const nextIds = new Set(
-              entry.data.elements.map((element) => element.id),
-            );
-            updatedElements = applyElementSnapshotBatch(
-              currentState.elements,
-              nextIds,
-              prevElements,
-            );
-            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-              currentState.selectedElementId,
-              currentState.selectedElementProps,
-              updatedElements,
-            );
-          } else if (entry.data.batchUpdates) {
-            // Batch update Undo - 각 요소의 이전 props 복원
-
-            // 업데이트 맵 생성
-            const updateMap = new Map<string, ComponentElementProps>();
-            entry.data.batchUpdates.forEach(
-              (update: {
-                elementId: string;
-                prevProps: ComponentElementProps;
-              }) => {
-                updateMap.set(update.elementId, update.prevProps);
-              },
-            );
-
-            updatedElements = currentState.elements.map((el) => {
-              const prevPropsForEl = updateMap.get(el.id);
-              if (prevPropsForEl) {
-                return { ...el, props: prevPropsForEl };
-              }
-              return el;
-            });
-
-            // 선택된 요소가 업데이트된 경우
-            const selectedPrevProps = updateMap.get(
-              currentState.selectedElementId || "",
-            );
-            if (selectedPrevProps) {
-              const selectedEl = updatedElements.find(
-                (el) => el.id === currentState.selectedElementId,
-              );
-              if (selectedEl) {
-                updatedSelectedElementProps = createCompleteProps(
-                  selectedEl,
-                  selectedPrevProps,
-                );
-              }
-            }
-          }
-          break;
-        }
-
-        case "group": {
-          // Group 생성 Undo - 그룹 삭제 + 자식들 원래 parent로 이동
-
-          // 1. 그룹 요소 삭제
-          let filteredElements = currentState.elements.filter(
-            (el) => !elementIdsToRemove.includes(el.id),
-          );
-
-          // 2. 자식 요소들을 원래 parent로 이동
-          if (entry.data.elements) {
-            const childUpdates = new Map<
-              string,
-              { parent_id: string | null }
-            >();
-            entry.data.elements.forEach((prevChild: Element) => {
-              childUpdates.set(prevChild.id, {
-                parent_id: prevChild.parent_id ?? null,
-              });
-            });
-
-            filteredElements = filteredElements.map((el) => {
-              const update = childUpdates.get(el.id);
-              if (update) {
-                return {
-                  ...el,
-                  parent_id: update.parent_id,
-                };
-              }
-              return el;
-            });
-          }
-
-          updatedElements = filteredElements;
-
-          // 3. 선택 상태 업데이트
-          if (
-            elementIdsToRemove.includes(currentState.selectedElementId || "")
-          ) {
-            updatedSelectedElementId = null;
-            updatedSelectedElementProps = {};
-          }
-          break;
-        }
-
-        case "ungroup": {
-          // Ungroup Undo - 그룹 재생성 + 자식들 그룹 안으로 이동
-
-          // 1. 그룹 요소 복원
-          let restoredElements = [
-            ...currentState.elements,
-            ...elementsToRestore,
-          ];
-
-          // 2. 자식 요소들을 그룹 안으로 이동
-          if (entry.data.elements) {
-            const childIds = new Set(
-              entry.data.elements.map((prevChild: Element) => prevChild.id),
-            );
-
-            restoredElements = restoredElements.map((el) => {
-              if (childIds.has(el.id)) {
-                return {
-                  ...el,
-                  parent_id: entry.elementId,
-                };
-              }
-              return el;
-            });
-          }
-
-          updatedElements = restoredElements;
-          break;
-        }
-      }
     }
-
-    // HC#2 (canonical 1차) — legacy fallback (v1 IndexedDB entry 전용) 도
-    // canonical 을 먼저 갱신하고, set 은 canonical 재파생 결과를 사용해
-    // legacy mirror ↔ canonical 발산을 원천 차단 (ADR-122 §Residual 해소,
-    // 2026-07-15 — 신규 entry 는 전부 canonicalEvents 부착이라 이 분기는
-    // 구 IndexedDB v1 entry 전용).
-    if (!appliedCanonicalEvents) {
-      syncHistoryElementsToCanonical(updatedElements);
-      updatedElements = getActiveCanonicalHistoryElements() ?? updatedElements;
-    }
+    // ADR-124: legacy fallback 제거 — v1 entry 는 migrateV1EntryToV2 로
+    // canonicalEvents 를 채운 뒤만 적용. events 없거나 doc 미적재면 element
+    // 상태는 유지한다 (raw legacy read = 0 계약).
 
     set({
       elements: updatedElements,
@@ -1006,9 +622,8 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     // 3. Canonical document persistence (ADR-128: cloud compatibility sync dead)
     try {
       await persistActiveCanonicalDocument(
-        countExpectedShrinkNodes([entry], "undo"),
+        countExpectedShrinkNodes([migratedEntry], "undo"),
       );
-      void appliedCanonicalEvents;
     } catch (dbError) {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
     }
@@ -1081,90 +696,21 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
-    // 1. 메모리 상태 업데이트 (우선) - 안전한 데이터 복사
-    const elementsToAdd: Element[] = [];
-    let elementIdsToRemove: string[] = [];
-    let propsToUpdate: ComponentElementProps | null = null;
-    let elementToUpdate: Element | null = null;
-
-    // produce 밖에서 안전하게 데이터 준비
-    try {
-      switch (entry.type) {
-        case "add": {
-          // 🚀 Phase 2: structuredClone 사용
-          if (entry.data.element) {
-            elementsToAdd.push(cloneForHistory(entry.data.element));
-          }
-          if (entry.data.childElements && entry.data.childElements.length > 0) {
-            elementsToAdd.push(
-              ...entry.data.childElements.map((child: Element) =>
-                cloneForHistory(child),
-              ),
-            );
-          }
-          break;
-        }
-
-        case "update": {
-          // 🚀 Phase 2: structuredClone 사용
-          if (entry.data.element) {
-            elementToUpdate = cloneForHistory(entry.data.element);
-          }
-          if (entry.data.props) {
-            propsToUpdate = cloneForHistory(entry.data.props);
-          }
-          break;
-        }
-
-        case "remove": {
-          elementIdsToRemove = [entry.elementId];
-          if (entry.data.childElements && entry.data.childElements.length > 0) {
-            elementIdsToRemove.push(
-              ...entry.data.childElements.map((child: Element) => child.id),
-            );
-          }
-          break;
-        }
-
-        case "batch": {
-          // Batch update Redo - newProps 데이터 준비
-          break;
-        }
-
-        case "group": {
-          // Group 생성 Redo - 그룹 요소 추가 준비
-          // 🚀 Phase 2: structuredClone 사용
-          if (entry.data.element) {
-            elementsToAdd.push(cloneForHistory(entry.data.element));
-          }
-          break;
-        }
-
-        case "ungroup": {
-          // Ungroup Redo - 그룹 요소 삭제 준비
-          elementIdsToRemove = [entry.elementId];
-          break;
-        }
-      }
-    } catch (error) {
-      console.warn("⚠️ 히스토리 데이터 준비 중 오류:", error);
-      set({ historyOperationInProgress: false });
-      return;
-    }
-
-    // 🚀 Phase 1: Immer → 함수형 업데이트
     const currentState = {
       ...get(),
       elements: getHistorySourceElements(get),
     };
+    const migratedEntry = migrateV1EntryToV2(entry, {
+      elements: currentState.elements,
+      direction: "redo",
+    });
     let updatedElements = currentState.elements;
     let updatedSelectedElementId = currentState.selectedElementId;
     let updatedSelectedElementProps = currentState.selectedElementProps;
     const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
-      entry.data.canonicalEvents,
+      migratedEntry.data.canonicalEvents,
       "redo",
     );
-    const appliedCanonicalEvents = canonicalEventElements !== null;
 
     if (canonicalEventElements) {
       updatedElements = canonicalEventElements;
@@ -1175,215 +721,8 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       );
       updatedSelectedElementId = selection.selectedElementId;
       updatedSelectedElementProps = selection.selectedElementProps;
-    } else {
-      recordRawLegacyHistoryRead(`redo-apply:${entry.type}`);
-      switch (entry.type) {
-        case "add": {
-          // 요소와 자식 요소들 추가
-          updatedElements = [...currentState.elements, ...elementsToAdd];
-          break;
-        }
-
-        case "update": {
-          // 업데이트 적용 (불변 업데이트)
-          if (entry.data.diff) {
-            updatedElements = applySerializedHistoryDiff(
-              currentState.elements,
-              entry.data.diff,
-              "redo",
-            );
-            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-              currentState.selectedElementId,
-              currentState.selectedElementProps,
-              updatedElements,
-            );
-            break;
-          }
-
-          const elementIndex = currentState.elements.findIndex(
-            (el) => el.id === entry.elementId,
-          );
-          if (elementIndex >= 0 && elementToUpdate) {
-            updatedElements = currentState.elements.map((el, i) =>
-              i === elementIndex ? { ...el, ...elementToUpdate } : el,
-            );
-            if (currentState.selectedElementId === entry.elementId) {
-              updatedSelectedElementProps =
-                createCompleteProps(elementToUpdate);
-            }
-          } else if (elementIndex >= 0 && propsToUpdate) {
-            updatedElements = currentState.elements.map((el, i) =>
-              i === elementIndex
-                ? { ...el, props: { ...el.props, ...propsToUpdate } }
-                : el,
-            );
-          }
-          break;
-        }
-
-        case "remove": {
-          // 요소와 자식 요소들 제거
-          updatedElements = currentState.elements.filter(
-            (el) => !elementIdsToRemove.includes(el.id),
-          );
-          if (
-            elementIdsToRemove.includes(currentState.selectedElementId || "")
-          ) {
-            updatedSelectedElementId = null;
-            updatedSelectedElementProps = {};
-          }
-          break;
-        }
-
-        case "batch": {
-          if (entry.data.diffs?.length) {
-            updatedElements = applySerializedHistoryDiffs(
-              currentState.elements,
-              entry.data.diffs,
-              "redo",
-            );
-            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-              currentState.selectedElementId,
-              currentState.selectedElementProps,
-              updatedElements,
-            );
-          } else if (entry.data.prevElements && entry.data.elements) {
-            const nextElements = entry.data.elements.map((element) =>
-              cloneForHistory(element),
-            );
-            const prevIds = new Set(
-              entry.data.prevElements.map((element) => element.id),
-            );
-            updatedElements = applyElementSnapshotBatch(
-              currentState.elements,
-              prevIds,
-              nextElements,
-            );
-            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-              currentState.selectedElementId,
-              currentState.selectedElementProps,
-              updatedElements,
-            );
-          } else if (entry.data.batchUpdates) {
-            // Batch update Redo - 각 요소의 newProps 적용
-
-            // 업데이트 맵 생성
-            const updateMap = new Map<string, ComponentElementProps>();
-            entry.data.batchUpdates.forEach(
-              (update: {
-                elementId: string;
-                newProps: ComponentElementProps;
-              }) => {
-                updateMap.set(update.elementId, update.newProps);
-              },
-            );
-
-            updatedElements = currentState.elements.map((el) => {
-              const newPropsForEl = updateMap.get(el.id);
-              if (newPropsForEl) {
-                return { ...el, props: { ...el.props, ...newPropsForEl } };
-              }
-              return el;
-            });
-
-            // 선택된 요소가 업데이트된 경우
-            const selectedNewProps = updateMap.get(
-              currentState.selectedElementId || "",
-            );
-            if (selectedNewProps) {
-              const selectedEl = updatedElements.find(
-                (el) => el.id === currentState.selectedElementId,
-              );
-              if (selectedEl) {
-                updatedSelectedElementProps = createCompleteProps(selectedEl, {
-                  ...selectedEl.props,
-                  ...selectedNewProps,
-                });
-              }
-            }
-          }
-          break;
-        }
-
-        case "group": {
-          // Group 생성 Redo - 그룹 추가 + 자식들 그룹 안으로 이동
-
-          // 1. 그룹 요소 추가
-          let newElements = [...currentState.elements, ...elementsToAdd];
-
-          // 2. 자식 요소들을 그룹 안으로 이동
-          if (entry.data.elements) {
-            const childIds = new Set(
-              entry.data.elements.map((prevChild: Element) => prevChild.id),
-            );
-
-            newElements = newElements.map((el) => {
-              if (childIds.has(el.id)) {
-                return {
-                  ...el,
-                  parent_id: entry.elementId,
-                };
-              }
-              return el;
-            });
-          }
-
-          updatedElements = newElements;
-          break;
-        }
-
-        case "ungroup": {
-          // Ungroup Redo - 그룹 삭제 + 자식들 원래 parent로 이동
-
-          // 1. 그룹 요소 삭제
-          let filteredElements = currentState.elements.filter(
-            (el) => !elementIdsToRemove.includes(el.id),
-          );
-
-          // 2. 자식 요소들을 원래 parent로 이동
-          if (entry.data.elements) {
-            const childUpdates = new Map<
-              string,
-              { parent_id: string | null }
-            >();
-            entry.data.elements.forEach((prevChild: Element) => {
-              childUpdates.set(prevChild.id, {
-                parent_id: prevChild.parent_id ?? null,
-              });
-            });
-
-            filteredElements = filteredElements.map((el) => {
-              const update = childUpdates.get(el.id);
-              if (update) {
-                return {
-                  ...el,
-                  parent_id: update.parent_id,
-                };
-              }
-              return el;
-            });
-          }
-
-          updatedElements = filteredElements;
-
-          // 3. 선택 상태 업데이트
-          if (
-            elementIdsToRemove.includes(currentState.selectedElementId || "")
-          ) {
-            updatedSelectedElementId = null;
-            updatedSelectedElementProps = {};
-          }
-          break;
-        }
-      }
     }
-
-    // HC#2 (canonical 1차) — undo 와 동일: legacy fallback (v1 entry 전용) 은
-    // canonical 먼저 갱신 후 재파생 결과로 set (ADR-122 §Residual 해소).
-    if (!appliedCanonicalEvents) {
-      syncHistoryElementsToCanonical(updatedElements);
-      updatedElements = getActiveCanonicalHistoryElements() ?? updatedElements;
-    }
+    // ADR-124: legacy fallback 제거 — undo 와 동일 계약.
 
     set({
       elements: updatedElements,
@@ -1414,9 +753,8 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     // 3. Canonical document persistence (ADR-128: cloud compatibility sync dead)
     try {
       await persistActiveCanonicalDocument(
-        countExpectedShrinkNodes([entry], "redo"),
+        countExpectedShrinkNodes([migratedEntry], "redo"),
       );
-      void appliedCanonicalEvents;
     } catch (dbError) {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
     }
@@ -1465,7 +803,6 @@ export const createGoToHistoryIndexAction =
       let updatedElements = sourceElements;
       let updatedSelectedElementId = state.selectedElementId;
       let updatedSelectedElementProps = state.selectedElementProps;
-      let allEntriesAppliedAsCanonicalEvents = entries.length > 0;
 
       // 모든 엔트리를 순차적으로 메모리에 적용 (렌더링 없이)
       for (const entry of entries) {
@@ -1510,9 +847,6 @@ export const createGoToHistoryIndexAction =
           updatedSelectedElementProps = refreshed.selectedElementProps;
           continue;
         }
-        if (!entry.data.canonicalEvents?.length) {
-          allEntriesAppliedAsCanonicalEvents = false;
-        }
         const applyResult = applyHistoryEntry(
           entry,
           direction,
@@ -1525,13 +859,8 @@ export const createGoToHistoryIndexAction =
         updatedSelectedElementProps = applyResult.selectedElementProps;
       }
 
-      // HC#2 (canonical 1차) — undo/redo 와 동일: 혼합(v1 포함) 시퀀스는
-      // canonical 먼저 갱신 후 재파생 결과로 set (ADR-122 §Residual 해소).
-      if (!allEntriesAppliedAsCanonicalEvents) {
-        syncHistoryElementsToCanonical(updatedElements);
-        updatedElements =
-          getActiveCanonicalHistoryElements() ?? updatedElements;
-      }
+      // applyHistoryEntry 가 migrate→canonicalEvents 로 이미 canonical doc 을
+      // 갱신한다. goTo 혼합 시퀀스용 legacy sync-before-set 경로는 없다.
 
       // 최종 상태 한 번에 업데이트 (렌더링은 여기서만 발생)
       set({
@@ -1586,461 +915,40 @@ function applyHistoryEntry(
     return { elements, selectedElementId, selectedElementProps };
   }
 
+  const migratedEntry = migrateV1EntryToV2(entry, {
+    elements,
+    direction,
+  });
   const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
-    entry.data.canonicalEvents,
+    migratedEntry.data.canonicalEvents,
     direction,
   );
-  if (canonicalEventElements) {
-    const selection = resolveSelectionAfterCanonicalEvents(
-      selectedElementId,
-      selectedElementProps,
-      canonicalEventElements,
-    );
-    return {
-      elements: canonicalEventElements,
-      selectedElementId: selection.selectedElementId,
-      selectedElementProps: selection.selectedElementProps,
-    };
+  if (!canonicalEventElements) {
+    // events 없거나 doc 미적재 — legacy fallback 없이 상태 유지
+    return { elements, selectedElementId, selectedElementProps };
   }
 
-  recordRawLegacyHistoryRead(`go-to:${direction}:${entry.type}`);
-
-  let updatedElements = elements;
-  let updatedSelectedElementId = selectedElementId;
-  let updatedSelectedElementProps = selectedElementProps;
-
-  if (direction === "undo") {
-    switch (entry.type) {
-      case "add": {
-        // 추가된 요소 제거
-        const elementIdsToRemove = [entry.elementId];
-        if (entry.data.childElements?.length) {
-          elementIdsToRemove.push(
-            ...entry.data.childElements.map((child: Element) => child.id),
-          );
-        }
-        updatedElements = elements.filter(
-          (el) => !elementIdsToRemove.includes(el.id),
-        );
-        if (elementIdsToRemove.includes(selectedElementId || "")) {
-          updatedSelectedElementId = null;
-          updatedSelectedElementProps = {};
-        }
-        break;
-      }
-
-      case "update": {
-        if (entry.data.diff) {
-          updatedElements = applySerializedHistoryDiff(
-            elements,
-            entry.data.diff,
-            "undo",
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            selectedElementId,
-            selectedElementProps,
-            updatedElements,
-          );
-          break;
-        }
-
-        const prevProps = entry.data.prevProps
-          ? cloneForHistory(entry.data.prevProps)
-          : null;
-        const prevElement = entry.data.prevElement
-          ? cloneForHistory(entry.data.prevElement)
-          : null;
-        const elementIndex = elements.findIndex(
-          (el) => el.id === entry.elementId,
-        );
-        if (elementIndex >= 0 && prevProps) {
-          updatedElements = elements.map((el, i) =>
-            i === elementIndex ? { ...el, props: prevProps } : el,
-          );
-          if (selectedElementId === entry.elementId) {
-            const restoredElement = {
-              ...elements[elementIndex],
-              props: prevProps,
-            };
-            updatedSelectedElementProps = createCompleteProps(
-              restoredElement,
-              prevProps,
-            );
-          }
-        } else if (elementIndex >= 0 && prevElement) {
-          updatedElements = elements.map((el, i) =>
-            i === elementIndex ? { ...el, ...prevElement } : el,
-          );
-        }
-        break;
-      }
-
-      case "remove": {
-        // 삭제된 요소 복원 (중복 방지)
-        const elementsToRestore: Element[] = [];
-        const existingIds = new Set(elements.map((el) => el.id));
-        if (entry.data.element && !existingIds.has(entry.data.element.id)) {
-          elementsToRestore.push(cloneForHistory(entry.data.element));
-          existingIds.add(entry.data.element.id);
-        }
-        if (entry.data.childElements?.length) {
-          for (const child of entry.data.childElements) {
-            if (!existingIds.has(child.id)) {
-              elementsToRestore.push(cloneForHistory(child));
-              existingIds.add(child.id);
-            }
-          }
-        }
-        updatedElements = [...elements, ...elementsToRestore];
-        break;
-      }
-
-      case "batch": {
-        if (entry.data.diffs?.length) {
-          updatedElements = applySerializedHistoryDiffs(
-            elements,
-            entry.data.diffs,
-            "undo",
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            selectedElementId,
-            selectedElementProps,
-            updatedElements,
-          );
-        } else if (entry.data.prevElements && entry.data.elements) {
-          const prevElements = entry.data.prevElements.map((element) =>
-            cloneForHistory(element),
-          );
-          const nextIds = new Set(
-            entry.data.elements.map((element) => element.id),
-          );
-          updatedElements = applyElementSnapshotBatch(
-            elements,
-            nextIds,
-            prevElements,
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            selectedElementId,
-            selectedElementProps,
-            updatedElements,
-          );
-        } else if (entry.data.batchUpdates) {
-          const updateMap = new Map<string, ComponentElementProps>();
-          entry.data.batchUpdates.forEach(
-            (update: {
-              elementId: string;
-              prevProps: ComponentElementProps;
-            }) => {
-              updateMap.set(update.elementId, update.prevProps);
-            },
-          );
-          updatedElements = elements.map((el) => {
-            const prevPropsForEl = updateMap.get(el.id);
-            return prevPropsForEl ? { ...el, props: prevPropsForEl } : el;
-          });
-          const selectedPrevProps = updateMap.get(selectedElementId || "");
-          if (selectedPrevProps) {
-            const selectedEl = updatedElements.find(
-              (el) => el.id === selectedElementId,
-            );
-            if (selectedEl) {
-              updatedSelectedElementProps = createCompleteProps(
-                selectedEl,
-                selectedPrevProps,
-              );
-            }
-          }
-        }
-        break;
-      }
-
-      case "group": {
-        // 그룹 삭제 + 자식들 원래 parent로
-        let filteredElements = elements.filter(
-          (el) => el.id !== entry.elementId,
-        );
-        if (entry.data.elements) {
-          const childUpdates = new Map<string, { parent_id: string | null }>();
-          entry.data.elements.forEach((prevChild: Element) => {
-            childUpdates.set(prevChild.id, {
-              parent_id: prevChild.parent_id ?? null,
-            });
-          });
-          filteredElements = filteredElements.map((el) => {
-            const update = childUpdates.get(el.id);
-            return update
-              ? {
-                  ...el,
-                  parent_id: update.parent_id,
-                }
-              : el;
-          });
-        }
-        updatedElements = filteredElements;
-        if (selectedElementId === entry.elementId) {
-          updatedSelectedElementId = null;
-          updatedSelectedElementProps = {};
-        }
-        break;
-      }
-
-      case "ungroup": {
-        // 그룹 복원 + 자식들 그룹 안으로 (중복 방지)
-        const elementsToRestore: Element[] = [];
-        const existingIdsForUngroup = new Set(elements.map((el) => el.id));
-        if (
-          entry.data.element &&
-          !existingIdsForUngroup.has(entry.data.element.id)
-        ) {
-          elementsToRestore.push(cloneForHistory(entry.data.element));
-        }
-        let restoredElements = [...elements, ...elementsToRestore];
-        if (entry.data.elements) {
-          const childIds = new Set(
-            entry.data.elements.map((prevChild: Element) => prevChild.id),
-          );
-          restoredElements = restoredElements.map((el) => {
-            return childIds.has(el.id)
-              ? {
-                  ...el,
-                  parent_id: entry.elementId,
-                }
-              : el;
-          });
-        }
-        updatedElements = restoredElements;
-        break;
-      }
-    }
-  } else {
-    // Redo 방향
-    switch (entry.type) {
-      case "add": {
-        // 요소 추가 (중복 방지)
-        const existingIdsForAdd = new Set(elements.map((el) => el.id));
-        const elementsToAdd: Element[] = [];
-        if (
-          entry.data.element &&
-          !existingIdsForAdd.has(entry.data.element.id)
-        ) {
-          elementsToAdd.push(cloneForHistory(entry.data.element));
-          existingIdsForAdd.add(entry.data.element.id);
-        }
-        if (entry.data.childElements?.length) {
-          for (const child of entry.data.childElements) {
-            if (!existingIdsForAdd.has(child.id)) {
-              elementsToAdd.push(cloneForHistory(child));
-              existingIdsForAdd.add(child.id);
-            }
-          }
-        }
-        updatedElements = [...elements, ...elementsToAdd];
-        break;
-      }
-
-      case "update": {
-        if (entry.data.diff) {
-          updatedElements = applySerializedHistoryDiff(
-            elements,
-            entry.data.diff,
-            "redo",
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            selectedElementId,
-            selectedElementProps,
-            updatedElements,
-          );
-          break;
-        }
-
-        const propsToUpdate = entry.data.props
-          ? cloneForHistory(entry.data.props)
-          : null;
-        const elementToUpdate = entry.data.element
-          ? cloneForHistory(entry.data.element)
-          : null;
-        const elementIndex = elements.findIndex(
-          (el) => el.id === entry.elementId,
-        );
-        if (elementIndex >= 0 && elementToUpdate) {
-          updatedElements = elements.map((el, i) =>
-            i === elementIndex ? { ...el, ...elementToUpdate } : el,
-          );
-          if (selectedElementId === entry.elementId) {
-            updatedSelectedElementProps = createCompleteProps(elementToUpdate);
-          }
-        } else if (elementIndex >= 0 && propsToUpdate) {
-          updatedElements = elements.map((el, i) =>
-            i === elementIndex
-              ? { ...el, props: { ...el.props, ...propsToUpdate } }
-              : el,
-          );
-        }
-        break;
-      }
-
-      case "remove": {
-        const elementIdsToRemove = [entry.elementId];
-        if (entry.data.childElements?.length) {
-          elementIdsToRemove.push(
-            ...entry.data.childElements.map((child: Element) => child.id),
-          );
-        }
-        updatedElements = elements.filter(
-          (el) => !elementIdsToRemove.includes(el.id),
-        );
-        if (elementIdsToRemove.includes(selectedElementId || "")) {
-          updatedSelectedElementId = null;
-          updatedSelectedElementProps = {};
-        }
-        break;
-      }
-
-      case "batch": {
-        if (entry.data.diffs?.length) {
-          updatedElements = applySerializedHistoryDiffs(
-            elements,
-            entry.data.diffs,
-            "redo",
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            selectedElementId,
-            selectedElementProps,
-            updatedElements,
-          );
-        } else if (entry.data.prevElements && entry.data.elements) {
-          const nextElements = entry.data.elements.map((element) =>
-            cloneForHistory(element),
-          );
-          const prevIds = new Set(
-            entry.data.prevElements.map((element) => element.id),
-          );
-          updatedElements = applyElementSnapshotBatch(
-            elements,
-            prevIds,
-            nextElements,
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            selectedElementId,
-            selectedElementProps,
-            updatedElements,
-          );
-        } else if (entry.data.batchUpdates) {
-          const updateMap = new Map<string, ComponentElementProps>();
-          entry.data.batchUpdates.forEach(
-            (update: {
-              elementId: string;
-              newProps: ComponentElementProps;
-            }) => {
-              updateMap.set(update.elementId, update.newProps);
-            },
-          );
-          updatedElements = elements.map((el) => {
-            const newPropsForEl = updateMap.get(el.id);
-            return newPropsForEl
-              ? { ...el, props: { ...el.props, ...newPropsForEl } }
-              : el;
-          });
-          const selectedNewProps = updateMap.get(selectedElementId || "");
-          if (selectedNewProps) {
-            const selectedEl = updatedElements.find(
-              (el) => el.id === selectedElementId,
-            );
-            if (selectedEl) {
-              updatedSelectedElementProps = createCompleteProps(selectedEl, {
-                ...selectedEl.props,
-                ...selectedNewProps,
-              });
-            }
-          }
-        }
-        break;
-      }
-
-      case "group": {
-        // 그룹 요소 추가 (중복 방지)
-        const existingIdsForGroup = new Set(elements.map((el) => el.id));
-        const elementsToAdd: Element[] = [];
-        if (
-          entry.data.element &&
-          !existingIdsForGroup.has(entry.data.element.id)
-        ) {
-          elementsToAdd.push(cloneForHistory(entry.data.element));
-        }
-        let newElements = [...elements, ...elementsToAdd];
-        if (entry.data.elements) {
-          const childIds = new Set(
-            entry.data.elements.map((prevChild: Element) => prevChild.id),
-          );
-          newElements = newElements.map((el) => {
-            return childIds.has(el.id)
-              ? {
-                  ...el,
-                  parent_id: entry.elementId,
-                }
-              : el;
-          });
-        }
-        updatedElements = newElements;
-        break;
-      }
-
-      case "ungroup": {
-        let filteredElements = elements.filter(
-          (el) => el.id !== entry.elementId,
-        );
-        if (entry.data.elements) {
-          const childUpdates = new Map<string, { parent_id: string | null }>();
-          entry.data.elements.forEach((prevChild: Element) => {
-            childUpdates.set(prevChild.id, {
-              parent_id: prevChild.parent_id ?? null,
-            });
-          });
-          filteredElements = filteredElements.map((el) => {
-            const update = childUpdates.get(el.id);
-            return update
-              ? {
-                  ...el,
-                  parent_id: update.parent_id,
-                }
-              : el;
-          });
-        }
-        updatedElements = filteredElements;
-        if (selectedElementId === entry.elementId) {
-          updatedSelectedElementId = null;
-          updatedSelectedElementProps = {};
-        }
-        break;
-      }
-    }
-  }
-
+  const selection = resolveSelectionAfterCanonicalEvents(
+    selectedElementId,
+    selectedElementProps,
+    canonicalEventElements,
+  );
   return {
-    elements: updatedElements,
-    selectedElementId: updatedSelectedElementId,
-    selectedElementProps: updatedSelectedElementProps,
+    elements: canonicalEventElements,
+    selectedElementId: selection.selectedElementId,
+    selectedElementProps: selection.selectedElementProps,
   };
 }
 
-/**
- * 마지막 상태를 기준으로 canonical document와 cloud compatibility 동기화 (배치)
- */
 async function syncDatabaseForEntries(
   entries: ReturnType<typeof historyManager.undo>[],
   direction: "undo" | "redo",
   get: GetState,
 ): Promise<void> {
-  // 마지막 엔트리의 최종 상태만 동기화
-  // 모든 중간 엔트리를 개별적으로 동기화하는 대신
-  // 최종 elements 상태가 이미 메모리에 적용되어 있으므로
-  // cloud compatibility에는 변경된 요소들만 업데이트
-
-  const elementsMap = getHistoryCompatibilityElementsMap(get);
-
-  // 영향받은 요소 ID 수집
-  const affectedElementIds = new Set<string>();
+  // 마지막 엔트리의 최종 상태만 동기화 — cloud compatibility sync 는 dead
+  // (ADR-128). shrink 가드용 deleteIds 만 모은다.
   const removedElementIds = new Set<string>();
+  const sourceElements = getHistorySourceElements(get);
 
   for (const entry of entries) {
     if (!entry) continue;
@@ -2057,100 +965,21 @@ async function syncDatabaseForEntries(
     // ADR-185 G-1: page-lifecycle 도 동일 — persist 는
     // applyPageLifecycleHistoryEntry 가 자체 수행 (elementId=pageId 무해값).
     if (entry.type === "page-lifecycle") continue;
-    if (entry.data.canonicalEvents?.length) {
-      const { upsertIds, deleteIds } = getCanonicalHistoryEventIds(
-        entry.data.canonicalEvents,
-        direction,
-      );
-      upsertIds.forEach((id) => affectedElementIds.add(id));
-      deleteIds.forEach((id) => removedElementIds.add(id));
-      continue;
-    }
 
-    if (direction === "undo") {
-      switch (entry.type) {
-        case "add":
-          removedElementIds.add(entry.elementId);
-          entry.data.childElements?.forEach((child: Element) =>
-            removedElementIds.add(child.id),
-          );
-          break;
-        case "update":
-        case "batch":
-          affectedElementIds.add(entry.elementId);
-          entry.elementIds?.forEach((id) => affectedElementIds.add(id));
-          getHistoryDiffElementIds(entry).forEach((id) =>
-            affectedElementIds.add(id),
-          );
-          entry.data.batchUpdates?.forEach((u: { elementId: string }) =>
-            affectedElementIds.add(u.elementId),
-          );
-          break;
-        case "remove":
-          affectedElementIds.add(entry.elementId);
-          entry.data.childElements?.forEach((child: Element) =>
-            affectedElementIds.add(child.id),
-          );
-          break;
-        case "group":
-          removedElementIds.add(entry.elementId);
-          entry.data.elements?.forEach((el: Element) =>
-            affectedElementIds.add(el.id),
-          );
-          break;
-        case "ungroup":
-          affectedElementIds.add(entry.elementId);
-          entry.data.elements?.forEach((el: Element) =>
-            affectedElementIds.add(el.id),
-          );
-          break;
-      }
-    } else {
-      switch (entry.type) {
-        case "add":
-          affectedElementIds.add(entry.elementId);
-          entry.data.childElements?.forEach((child: Element) =>
-            affectedElementIds.add(child.id),
-          );
-          break;
-        case "update":
-        case "batch":
-          affectedElementIds.add(entry.elementId);
-          entry.elementIds?.forEach((id) => affectedElementIds.add(id));
-          getHistoryDiffElementIds(entry).forEach((id) =>
-            affectedElementIds.add(id),
-          );
-          entry.data.batchUpdates?.forEach((u: { elementId: string }) =>
-            affectedElementIds.add(u.elementId),
-          );
-          break;
-        case "remove":
-          removedElementIds.add(entry.elementId);
-          entry.data.childElements?.forEach((child: Element) =>
-            removedElementIds.add(child.id),
-          );
-          break;
-        case "group":
-          affectedElementIds.add(entry.elementId);
-          entry.data.elements?.forEach((el: Element) =>
-            affectedElementIds.add(el.id),
-          );
-          break;
-        case "ungroup":
-          removedElementIds.add(entry.elementId);
-          entry.data.elements?.forEach((el: Element) =>
-            affectedElementIds.add(el.id),
-          );
-          break;
-      }
-    }
+    const migrated = migrateV1EntryToV2(entry, {
+      elements: sourceElements,
+      direction,
+    });
+    const events = migrated.data.canonicalEvents;
+    if (!events || events.length === 0) continue;
+
+    const { deleteIds } = getCanonicalHistoryEventIds(events, direction);
+    deleteIds.forEach((id) => removedElementIds.add(id));
   }
 
   // ADR-128: cloud sync dead — IndexedDB persistence via persistActiveCanonicalDocument
   try {
     await persistActiveCanonicalDocument(removedElementIds.size);
-    void affectedElementIds;
-    void elementsMap;
   } catch (error) {
     console.warn("⚠️ GoToHistoryIndex DB 동기화 실패:", error);
   }

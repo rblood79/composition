@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import type { HistoryEntry } from "../../history";
 import {
+  expandDiffToFullProps,
   extractPropsFromDiff,
   migrateV1EntriesToV2,
   migrateV1EntryToV2,
@@ -74,7 +75,7 @@ describe("migrateV1EntryToV2", () => {
     expect(result).toBe(entry);
   });
 
-  it("이미 canonicalEvents 보유 + legacy snapshot → identity (strip deferred until raw-read=0)", () => {
+  it("이미 canonicalEvents 보유 + legacy snapshot → strip", () => {
     const existingEvent = {
       type: "update" as const,
       nodeId: "elem-1",
@@ -90,12 +91,11 @@ describe("migrateV1EntryToV2", () => {
     });
     const result = migrateV1EntryToV2(entry);
     expect(result.data.canonicalEvents).toEqual([existingEvent]);
-    // fallback 안전: strip 은 raw-read=0 이후
-    expect(result.data.prevProps).toEqual({ a: 1 });
-    expect(result.data.props).toEqual({ a: 2 });
+    expect(result.data.prevProps).toBeUndefined();
+    expect(result.data.props).toBeUndefined();
   });
 
-  it("type=update + diff → CanonicalUpdateEvent 1개", () => {
+  it("type=update + diff without context → canonicalEvents 빈 배열 (partial update 금지)", () => {
     const entry = makeEntry({
       type: "update",
       elementId: "btn-1",
@@ -111,12 +111,41 @@ describe("migrateV1EntryToV2", () => {
       },
     });
     const result = migrateV1EntryToV2(entry);
+    expect(result.data.canonicalEvents).toEqual([]);
+    expect(result.data.diff).toBeDefined();
+  });
+
+  it("type=update + diff + context → full-props CanonicalUpdateEvent", () => {
+    const entry = makeEntry({
+      type: "update",
+      elementId: "btn-1",
+      data: {
+        diff: {
+          elementId: "btn-1",
+          props: {
+            changed: [["label", { prev: "Click", next: "Submit" }]],
+            added: [],
+            removed: [],
+          },
+        },
+      },
+    });
+    const result = migrateV1EntryToV2(entry, {
+      direction: "undo",
+      elements: [
+        {
+          id: "btn-1",
+          type: "Button",
+          props: { label: "Submit", color: "blue" },
+        } as never,
+      ],
+    });
     expect(result.data.canonicalEvents).toHaveLength(1);
     expect(result.data.canonicalEvents![0]).toEqual({
       type: "update",
       nodeId: "btn-1",
-      prevProps: { label: "Click" },
-      nextProps: { label: "Submit" },
+      prevProps: { label: "Click", color: "blue" },
+      nextProps: { label: "Submit", color: "blue" },
     });
   });
 
@@ -139,7 +168,7 @@ describe("migrateV1EntryToV2", () => {
     });
   });
 
-  it("type=batch + diffs → CanonicalUpdateEvent[]", () => {
+  it("type=batch + diffs without context → empty; with context → full props", () => {
     const entry = makeEntry({
       type: "batch",
       data: {
@@ -163,16 +192,23 @@ describe("migrateV1EntryToV2", () => {
         ],
       },
     });
-    const result = migrateV1EntryToV2(entry);
+    expect(migrateV1EntryToV2(entry).data.canonicalEvents).toEqual([]);
+
+    const result = migrateV1EntryToV2(entry, {
+      direction: "redo",
+      elements: [
+        { id: "elem-1", type: "Box", props: { x: 1, keep: true } } as never,
+        { id: "elem-2", type: "Box", props: { y: 3, keep: true } } as never,
+      ],
+    });
     expect(result.data.canonicalEvents).toHaveLength(2);
     if (result.data.canonicalEvents![0].type !== "update") {
       throw new Error("expected update event");
     }
-    expect(result.data.canonicalEvents![0].nodeId).toBe("elem-1");
-    if (result.data.canonicalEvents![1].type !== "update") {
-      throw new Error("expected update event");
-    }
-    expect(result.data.canonicalEvents![1].nodeId).toBe("elem-2");
+    expect(result.data.canonicalEvents![0].nextProps).toEqual({
+      x: 2,
+      keep: true,
+    });
   });
 
   it("type=batch + legacy batchUpdates snapshot fallback", () => {
@@ -197,7 +233,7 @@ describe("migrateV1EntryToV2", () => {
     expect(result.data.canonicalEvents).toHaveLength(2);
   });
 
-  it("type=add + element snapshot → insert canonicalEvents (legacy payload kept for fallback)", () => {
+  it("type=add + element snapshot → insert canonicalEvents + strip legacy", () => {
     const entry = makeEntry({
       type: "add",
       elementId: "btn-1",
@@ -217,10 +253,10 @@ describe("migrateV1EntryToV2", () => {
       parentId: "body-1",
       node: expect.objectContaining({ id: "btn-1", type: "Button" }),
     });
-    expect(result.data.element).toMatchObject({ id: "btn-1" });
+    expect(result.data.element).toBeUndefined();
   });
 
-  it("type=remove + element/childElements → remove canonicalEvents (legacy payload kept)", () => {
+  it("type=remove + element/childElements → remove canonicalEvents + strip", () => {
     const entry = makeEntry({
       type: "remove",
       elementId: "frame-1",
@@ -246,11 +282,11 @@ describe("migrateV1EntryToV2", () => {
     expect(
       result.data.canonicalEvents!.every((event) => event.type === "remove"),
     ).toBe(true);
-    expect(result.data.element).toMatchObject({ id: "frame-1" });
-    expect(result.data.childElements).toHaveLength(1);
+    expect(result.data.element).toBeUndefined();
+    expect(result.data.childElements).toBeUndefined();
   });
 
-  it("type=batch + prevElements/elements → replace events (legacy payload kept)", () => {
+  it("type=batch + prevElements/elements props-only → update events + strip", () => {
     const entry = makeEntry({
       type: "batch",
       data: {
@@ -273,9 +309,114 @@ describe("migrateV1EntryToV2", () => {
       },
     });
     const result = migrateV1EntryToV2(entry);
+    expect(result.data.canonicalEvents).toHaveLength(1);
+    expect(result.data.canonicalEvents![0]).toMatchObject({
+      type: "update",
+      nodeId: "btn-1",
+    });
+    expect(result.data.prevElements).toBeUndefined();
+    expect(result.data.elements).toBeUndefined();
+  });
+
+  it("type=batch + prevElements/elements fills 변경 → replace events", () => {
+    const entry = makeEntry({
+      type: "batch",
+      data: {
+        prevElements: [
+          {
+            id: "btn-1",
+            type: "Button",
+            props: { label: "A" },
+            parent_id: "body-1",
+            fills: [{ id: "f1", type: "solid", color: "#000" }],
+          } as never,
+        ],
+        elements: [
+          {
+            id: "btn-1",
+            type: "Button",
+            props: { label: "A" },
+            parent_id: "body-1",
+            fills: [{ id: "f1", type: "solid", color: "#fff" }],
+          } as never,
+        ],
+      },
+    });
+    const result = migrateV1EntryToV2(entry);
+    expect(result.data.canonicalEvents!.length).toBe(2);
+    const removeEvent = result.data.canonicalEvents!.find(
+      (event) => event.type === "remove",
+    );
+    const insertEvent = result.data.canonicalEvents!.find(
+      (event) => event.type === "insert",
+    );
+    expect(removeEvent).toMatchObject({ type: "remove" });
+    expect(insertEvent).toMatchObject({ type: "insert" });
+    if (removeEvent?.type === "remove" && insertEvent?.type === "insert") {
+      expect(removeEvent.node).toMatchObject({
+        id: "btn-1",
+        fills: [{ id: "f1", type: "solid", color: "#000" }],
+      });
+      expect(insertEvent.node).toMatchObject({
+        id: "btn-1",
+        fills: [{ id: "f1", type: "solid", color: "#fff" }],
+      });
+    }
+  });
+
+  it("type=group + element/elements → group canonicalEvents", () => {
+    const entry = makeEntry({
+      type: "group",
+      elementId: "group-1",
+      data: {
+        element: {
+          id: "group-1",
+          type: "Group",
+          props: {},
+          parent_id: "body-1",
+        } as never,
+        elements: [
+          {
+            id: "child-1",
+            type: "Button",
+            props: {},
+            parent_id: "body-1",
+          } as never,
+        ],
+      },
+    });
+    const result = migrateV1EntryToV2(entry);
     expect(result.data.canonicalEvents!.length).toBeGreaterThan(0);
-    expect(result.data.prevElements).toHaveLength(1);
-    expect(result.data.elements).toHaveLength(1);
+    expect(result.data.canonicalEvents![0]).toMatchObject({ type: "insert" });
+    expect(result.data.element).toBeUndefined();
+  });
+
+  it("type=ungroup + element/elements → ungroup canonicalEvents", () => {
+    const entry = makeEntry({
+      type: "ungroup",
+      elementId: "group-1",
+      data: {
+        element: {
+          id: "group-1",
+          type: "Group",
+          props: {},
+          parent_id: "body-1",
+        } as never,
+        elements: [
+          {
+            id: "child-1",
+            type: "Button",
+            props: {},
+            parent_id: "body-1",
+          } as never,
+        ],
+      },
+    });
+    const result = migrateV1EntryToV2(entry);
+    expect(result.data.canonicalEvents!.length).toBeGreaterThan(0);
+    expect(
+      result.data.canonicalEvents!.some((event) => event.type === "remove"),
+    ).toBe(true);
   });
 
   it("empty entry → graceful degradation", () => {
@@ -291,14 +432,8 @@ describe("migrateV1EntryToV2", () => {
       elementId: "preserve-elem",
       timestamp: 12345,
       data: {
-        diff: {
-          elementId: "preserve-elem",
-          props: {
-            changed: [["k", { prev: 1, next: 2 }]],
-            added: [],
-            removed: [],
-          },
-        },
+        prevProps: { k: 1 },
+        props: { k: 2 },
       },
     });
     const result = migrateV1EntryToV2(entry);
@@ -306,6 +441,25 @@ describe("migrateV1EntryToV2", () => {
     expect(result.elementId).toBe("preserve-elem");
     expect(result.timestamp).toBe(12345);
     expect(result.type).toBe("update");
+  });
+});
+
+describe("expandDiffToFullProps", () => {
+  it("undo: current=after 기준으로 prev 를 reverse patch", () => {
+    const result = expandDiffToFullProps(
+      { label: "Submit", color: "blue" },
+      {
+        elementId: "btn-1",
+        props: {
+          changed: [["label", { prev: "Click", next: "Submit" }]],
+          added: [],
+          removed: [],
+        },
+      },
+      "undo",
+    );
+    expect(result.nextProps).toEqual({ label: "Submit", color: "blue" });
+    expect(result.prevProps).toEqual({ label: "Click", color: "blue" });
   });
 });
 
@@ -329,14 +483,8 @@ describe("migrateV1EntriesToV2 (배치 변환)", () => {
         type: "update",
         elementId: "btn-2",
         data: {
-          diff: {
-            elementId: "btn-2",
-            props: {
-              changed: [["label", { prev: "A", next: "B" }]],
-              added: [],
-              removed: [],
-            },
-          },
+          prevProps: { label: "A" },
+          props: { label: "B" },
         },
       }),
       makeEntry({ type: "add", data: { element: undefined } }),
@@ -344,7 +492,7 @@ describe("migrateV1EntriesToV2 (배치 변환)", () => {
     const result = migrateV1EntriesToV2(entries);
     expect(result).toHaveLength(3);
     expect(result[0].data.canonicalEvents).toHaveLength(1); // identity
-    expect(result[1].data.canonicalEvents).toHaveLength(1); // diff 변환
+    expect(result[1].data.canonicalEvents).toHaveLength(1); // prevProps 변환
     expect(result[2].data.canonicalEvents).toEqual([]); // graceful
   });
 });

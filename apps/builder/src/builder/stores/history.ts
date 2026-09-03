@@ -138,25 +138,25 @@ export interface HistoryEntry {
   elementId: string;
   elementIds?: string[]; // For multi-element operations
   data: {
-    /** @deprecated ADR-124 Phase 4 — legacy add/remove snapshot. Phase 5 후 삭제. canonical insert/remove event 사용. */
+    /** @deprecated ADR-124 — migration adapter 입력 전용. undo/redo 는 canonicalEvents 만 소비. */
     element?: Element;
-    /** @deprecated ADR-124 Phase 4 — legacy update snapshot. Phase 5 후 삭제. canonical update event 사용. */
+    /** @deprecated ADR-124 — migration adapter 입력 전용. */
     prevElement?: Element;
-    /** @deprecated ADR-124 Phase 4 — legacy update snapshot. Phase 5 후 삭제. */
+    /** @deprecated ADR-124 — migration adapter 입력 전용. */
     props?: ComponentElementProps;
-    /** @deprecated ADR-124 Phase 4 — legacy update snapshot. Phase 5 후 삭제. */
+    /** @deprecated ADR-124 — migration adapter 입력 전용. */
     prevProps?: ComponentElementProps;
-    /** @deprecated ADR-124 Phase 4 — legacy structural snapshot. Phase 5 후 삭제. canonical event parentId 사용. */
+    /** @deprecated ADR-124 — migration adapter 입력 전용. */
     parentId?: string;
-    /** @deprecated ADR-124 Phase 4 — legacy move snapshot. Phase 5 후 삭제. */
+    /** @deprecated ADR-124 — migration adapter 입력 전용. */
     prevParentId?: string;
-    /** @deprecated ADR-124 Phase 4 — legacy add/remove children snapshot. Phase 5 후 삭제. canonical insert/remove event sequence 사용. */
+    /** @deprecated ADR-124 — migration adapter 입력 전용. */
     childElements?: Element[];
-    /** @deprecated ADR-124 Phase 4 — legacy batch snapshot. Phase 5 후 삭제. canonical update event sequence 사용. */
+    /** @deprecated ADR-124 — migration adapter 입력 전용. */
     elements?: Element[];
-    /** @deprecated ADR-124 Phase 4 — legacy batch snapshot. Phase 5 후 삭제. */
+    /** @deprecated ADR-124 — migration adapter 입력 전용. */
     prevElements?: Element[];
-    /** @deprecated ADR-124 Phase 4 — legacy batch update snapshot. Phase 5 후 삭제. canonical update event sequence 사용. */
+    /** @deprecated ADR-124 — migration adapter 입력 전용. */
     batchUpdates?: Array<{
       elementId: string;
       prevProps: ComponentElementProps;
