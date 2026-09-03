@@ -406,7 +406,8 @@ export function createDateFieldDefinition(
         type: "FieldError",
         props: {
           children: "",
-          style: { fontSize: 12, display: "none" },
+          // 글자 크기는 parent rule delegation 이 정본 (r2 feh1) — 인라인 주입 금지.
+          style: { display: "none" },
         } as ComponentElementProps,
       },
     ],
@@ -470,7 +471,8 @@ export function createTimeFieldDefinition(
         type: "FieldError",
         props: {
           children: "",
-          style: { fontSize: 12, display: "none" },
+          // 글자 크기는 parent rule delegation 이 정본 (r2 feh1) — 인라인 주입 금지.
+          style: { display: "none" },
         } as ComponentElementProps,
       },
     ],

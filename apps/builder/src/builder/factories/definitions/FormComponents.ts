@@ -67,8 +67,9 @@ export function createTextFieldDefinition(
         type: "FieldError",
         props: {
           children: "",
+          // 글자 크기는 parent rule 의 delegation hint 가 정본 (D3 SSOT — catalog). 인라인 12 는
+          //   TextField/TextArea 의 DOM 값 (14) 과 갈렸다 (r2 feh1, 2026-09-03).
           style: {
-            fontSize: 12,
             display: "none",
           },
         } as ComponentElementProps,
@@ -143,8 +144,9 @@ export function createTextAreaDefinition(
         type: "FieldError",
         props: {
           children: "",
+          // 글자 크기는 parent rule 의 delegation hint 가 정본 (D3 SSOT — catalog). 인라인 12 는
+          //   TextField/TextArea 의 DOM 값 (14) 과 갈렸다 (r2 feh1, 2026-09-03).
           style: {
-            fontSize: 12,
             display: "none",
           },
         } as ComponentElementProps,
@@ -335,8 +337,9 @@ export function createNumberFieldDefinition(
         type: "FieldError",
         props: {
           children: "",
+          // 글자 크기는 parent rule 의 delegation hint 가 정본 (D3 SSOT — catalog). 인라인 12 는
+          //   TextField/TextArea 의 DOM 값 (14) 과 갈렸다 (r2 feh1, 2026-09-03).
           style: {
-            fontSize: 12,
             display: "none",
           },
         } as ComponentElementProps,

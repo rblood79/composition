@@ -1487,10 +1487,14 @@ function traversePostOrder(
   //   벗긴다) 기본 16 → 24px 줄 상자로 DOM (14 → 21 · 12 → 18) 과 갈렸다. 줄 높이는 DOM 이 root
   //   `line-height: 1.5` 를 상속하므로 lineHeight 는 주입하지 않는다 (기본 fs × 1.5 가 같은 값).
   //   Skia 도 같은 resolver 로 같은 값을 그린다 (buildSpecNodeData).
+  // r2 feh1 (2026-09-03 live): Preview/publish 는 canonical FieldError 자식이 아니라 **RAC 자체
+  //   FieldError** 를 그린다 (publish DOM 에 `data-element-id` 없음) — 자식의 인라인 style 은 DOM 에
+  //   도달할 채널이 없다. 그래서 delegation 값이 인라인 fontSize 를 **이겨야** 옛 문서 (factory 가
+  //   심던 12) 가 Canvas 18 · DOM 21 로 갈리지 않는다. delegation 이 없을 때만 인라인/자체 rule.
   if (rawElement.type === "FieldError" && rawElement.parent_id) {
     const feParent = elementsMap.get(rawElement.parent_id);
     const feStyle = (rawElement.props?.style ?? {}) as Record<string, unknown>;
-    if (feParent && feStyle.fontSize == null) {
+    if (feParent) {
       const feFontSize = resolveDelegatedChildFontSize(
         feParent.type,
         FIELD_ERROR_CHILD_SELECTOR,

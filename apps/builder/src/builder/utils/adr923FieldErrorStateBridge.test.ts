@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   FIELD_ERROR_CHILD_SELECTOR,
   resolveDelegatedChildFontSize,
+  resolveInheritedLineHeight,
 } from "@composition/shared";
 
 import {
@@ -23,9 +24,13 @@ import type {
   ComponentDefinition,
 } from "../factories/types";
 import {
+  applyFactoryPropagation,
   buildPropagationUpdates,
   resolvePropagatedProps,
 } from "./propagationEngine";
+import { buildSpecNodeData } from "../workspace/canvas/skia/buildSpecNodeData";
+import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNode";
+import type { ComputedLayout } from "../workspace/canvas/layout/engines/LayoutEngine";
 import { getPropagationRules } from "./propagationRegistry";
 
 /**
@@ -55,6 +60,13 @@ const FIELD_DEFS: Array<{ type: string; def: ComponentDefinition }> = [
   { type: "DateField", def: createDateFieldDefinition(ctx) },
   { type: "TimeField", def: createTimeFieldDefinition(ctx) },
 ];
+
+type PropagationNode = {
+  id: string;
+  type: string;
+  parent_id?: string | null;
+  props: Record<string, unknown>;
+};
 
 function fieldErrorProps(def: ComponentDefinition): Record<string, unknown> {
   const fe = def.children?.find((c) => c.type === "FieldError");
@@ -120,6 +132,145 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 propagation 다리
         `${type} absent display`,
       ).toBeUndefined();
       expect(absent?.children, `${type} absent children`).toBeUndefined();
+    }
+  });
+
+  it("factory 전제 — FieldError 자식에 인라인 fontSize 를 두지 않는다 (D3 = parent rule delegation)", () => {
+    // r2 feh1: 인라인 12 는 TextField/TextArea 의 DOM 값 (delegation 14) 과 갈렸고, resolver 를
+    //   우회해 catalog 를 무력화했다. 저작 시점에 크기를 박지 않는 것이 유일한 차단이다.
+    for (const { type, def } of FIELD_DEFS) {
+      const style = fieldErrorProps(def).style as Record<string, unknown>;
+      expect(style.fontSize, `${type} 인라인 fontSize`).toBeUndefined();
+    }
+  });
+
+  it("propagation 쓰기 — 자식의 기존 style 키를 보존한다 (부분 patch 가 style 전체를 갈아치우지 않는다)", () => {
+    // r2 feh2: store 쓰기 (`batchUpdateElementProps`) 는 props 최상위 얕은 병합이라, patch.style 이
+    //   부분 객체면 자식의 fontSize/color/width 가 통째로 사라졌다.
+    for (const { type } of FIELD_DEFS) {
+      const parent: PropagationNode = {
+        id: `${type}-p2`,
+        type,
+        props: { label: "Name" },
+      };
+      const authored = {
+        display: "none",
+        fontSize: 13,
+        color: "rgb(1, 2, 3)",
+      };
+      const fe: PropagationNode = {
+        id: `${type}-fe2`,
+        type: "FieldError",
+        props: { children: "", style: { ...authored } },
+      };
+      const updates = buildPropagationUpdates(
+        parent,
+        { isInvalid: true },
+        getPropagationRules(type)!,
+        new Map([[parent.id, [fe]]]),
+        new Map([
+          [parent.id, parent],
+          [fe.id, fe],
+        ]),
+      );
+      expect(updates.length, `${type} updates`).toBe(1);
+      expect(updates[0].props.style, `${type} style`).toEqual({
+        ...authored,
+        display: "block",
+      });
+
+      // factory 초기 전파도 같은 경로 (`applyFactoryPropagation` → buildPropagationUpdates)
+      const factoryParent: PropagationNode = {
+        ...parent,
+        props: { ...parent.props, isInvalid: true },
+      };
+      const factoryChild: PropagationNode = { ...fe, parent_id: parent.id };
+      const [patched] = applyFactoryPropagation(factoryParent, [factoryChild]);
+      expect(patched.props.style, `${type} factory style`).toEqual({
+        ...authored,
+        display: "block",
+      });
+    }
+  });
+
+  it("Skia — FieldError text 는 delegation 글자 크기와 root 상속 줄 높이를 쓴다 (옛 문서의 인라인 fontSize 도 delegation 이 이긴다 — DOM 에 인라인 채널 없음)", () => {
+    // r2 feh3 / fem1: catalog FieldError rule 의 lineHeight (md 16) 는 활성 CSS bundle 이 소비하지
+    //   않는다 — DOM 은 `:root { line-height: 1.5 }` 를 상속한다 (browser gate 실측 14→21 · 12→18).
+    const layout = { x: 0, y: 0, width: 200, height: 21 } as ComputedLayout;
+    const textOf = (
+      node: ReturnType<typeof buildSpecNodeData>,
+    ): { fontSize: number; lineHeight?: number } | undefined => {
+      const walk = (
+        n: NonNullable<ReturnType<typeof buildSpecNodeData>> | undefined,
+      ): { fontSize: number; lineHeight?: number } | undefined => {
+        if (!n) return undefined;
+        if (n.text?.content) return n.text;
+        for (const c of n.children ?? []) {
+          const found = walk(c);
+          if (found) return found;
+        }
+        return undefined;
+      };
+      return walk(node ?? undefined);
+    };
+
+    for (const { type } of FIELD_DEFS) {
+      const expected = resolveDelegatedChildFontSize(
+        type,
+        FIELD_ERROR_CHILD_SELECTOR,
+      )!;
+      const parent = {
+        id: `${type}-sp`,
+        type,
+        parent_id: null,
+        props: { label: "Name", isInvalid: true, errorMessage: "required" },
+      } as unknown as CanvasSceneNode;
+      const makeFe = (style: Record<string, unknown>) =>
+        ({
+          id: `${type}-sfe`,
+          type: "FieldError",
+          parent_id: parent.id,
+          props: { children: "", style },
+        }) as unknown as CanvasSceneNode;
+
+      const delegated = makeFe({ display: "block" });
+      const delegatedText = textOf(
+        buildSpecNodeData({
+          element: delegated,
+          layout,
+          theme: "light",
+          elementsMap: new Map([
+            [parent.id, parent],
+            [delegated.id, delegated],
+          ]),
+        }),
+      );
+      expect(delegatedText?.fontSize, `${type} delegated fontSize`).toBe(
+        expected,
+      );
+      expect(delegatedText?.lineHeight, `${type} delegated lineHeight`).toBe(
+        resolveInheritedLineHeight(expected),
+      );
+
+      // 저장된 옛 문서의 인라인 크기 (factory 가 심던 12) — publish 는 RAC 자체 FieldError 를 그려
+      //   자식의 인라인 style 을 읽을 채널이 없다 (live 실측: 인라인 12 를 줘도 DOM 은 14/21). 그래서
+      //   delegation 이 인라인을 이겨야 옛 문서가 Canvas 18 · DOM 21 로 갈리지 않는다 (r2 feh1).
+      const inline = makeFe({ display: "block", fontSize: 12 });
+      const inlineText = textOf(
+        buildSpecNodeData({
+          element: inline,
+          layout,
+          theme: "light",
+          elementsMap: new Map([
+            [parent.id, parent],
+            [inline.id, inline],
+          ]),
+        }),
+      );
+      expect(inlineText?.fontSize, `${type} inline fontSize`).toBe(expected);
+      expect(inlineText?.lineHeight, `${type} inline lineHeight`).toBe(
+        resolveInheritedLineHeight(expected),
+      );
     }
   });
 

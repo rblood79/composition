@@ -21,6 +21,22 @@ import { resolveComponentRuleByTag } from "./resolveComponentRule";
 export const FIELD_ERROR_CHILD_SELECTOR = ".react-aria-FieldError";
 
 /**
+ * `:root { line-height: 1.5 }` (`components/styles/theme/shared-tokens.css`) — 활성 CSS bundle 에
+ * `.react-aria-FieldError` 줄 높이 규칙이 없어 (base.css 는 font-size·color 만; catalog 파생
+ * `generated/FieldError.css` 는 `styles/index.css` 의 import 66개에 **미포함**) DOM 은 이 root 비율을
+ * 상속한다 — 실측 14px→21 · 12px→18 (2026-09-03 browser gate).
+ *
+ * 그래서 catalog FieldError rule 의 `lineHeight`(md = text-xs--line-height 16) 는 **DOM 이 소비하지 않는
+ * 값**이다. Skia 가 그 16 을 그대로 쓰면 같은 상자 안 글자의 줄 상자만 5px 좁아진다 (r2 feh3).
+ */
+export const ROOT_INHERITED_LINE_HEIGHT_RATIO = 1.5;
+
+/** 상속 줄 높이 (px) — 위 root 비율 × 글자 크기. 자식 rule 의 lineHeight 토큰을 대체한다. */
+export function resolveInheritedLineHeight(fontSize: number): number {
+  return fontSize * ROOT_INHERITED_LINE_HEIGHT_RATIO;
+}
+
+/**
  * DOM root 클래스를 다른 rule 의 것으로 쓰는 컴포넌트 — generated CSS 가 그 rule 의 것이므로 delegation
  * 도 그 rule 을 읽어야 DOM 과 같다. TextArea 는 root `react-aria-TextField` 를 D1 권위로 그대로 두고
  * (`TextArea.tsx` 머리말) 자기 CSS 파일이 없다 — TextField.css 의 FieldError hint 규칙이 적용된다.

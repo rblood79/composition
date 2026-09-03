@@ -74,6 +74,24 @@ describe("ADR-912 R-5 Form reusable composite origin (2단 중첩)", () => {
     ]);
   });
 
+  it("FieldError 자식에 인라인 fontSize 를 두지 않는다 (D3 = parent rule delegation)", () => {
+    // ADR-923 후속 r2 feh1 (2026-09-03): origin 이 인라인 12 를 심으면 catalog delegation
+    //   (TextField md = 14) 을 우회해 Canvas·DOM 이 저작 시점 값으로 굳는다.
+    const doc = ensureFormTemplateOrigins(makeDocument());
+    const origin = findById(doc.children, FORM_ORIGIN_ID);
+    const collect = (nodes: readonly CanonicalNode[]): CanonicalNode[] =>
+      nodes.flatMap((n) => [n, ...collect(n.children ?? [])]);
+    const fieldErrors = collect(origin?.children ?? []).filter(
+      (n) => (n.type as string) === "FieldError",
+    );
+    expect(fieldErrors.length).toBeGreaterThan(0);
+    for (const fe of fieldErrors) {
+      const style = (fe.props as { style?: Record<string, unknown> })?.style;
+      expect(style?.display, `${fe.id} display`).toBe("none");
+      expect(style?.fontSize, `${fe.id} 인라인 fontSize`).toBeUndefined();
+    }
+  });
+
   it("라벨은 TextField.label 이 소유하고 별도 Label 요소를 두지 않는다", () => {
     const doc = ensureFormTemplateOrigins(makeDocument());
     const origin = findById(doc.children, FORM_ORIGIN_ID);

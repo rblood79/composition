@@ -104,7 +104,8 @@ function formOriginChildren(): CanonicalNode[] {
         id: `${FORM_ORIGIN_ID}__field-${index}-error`,
         type: "FieldError",
         name: "FieldError",
-        props: { children: "", style: { fontSize: 12, display: "none" } },
+        // 글자 크기는 parent rule delegation 이 정본 (r2 feh1) — 인라인 주입 금지.
+        props: { children: "", style: { display: "none" } },
         metadata: { type: "form-origin-child", systemOwned: true },
       },
     ],

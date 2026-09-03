@@ -9,7 +9,7 @@
 - **root cause 3겹** (수리 중 실측으로 드러난 순서):
   1. parent `isInvalid`/`errorMessage` → FieldError 자식 투영 규칙이 없다 (`propagationRegistry` 에는 r16m1 의 label 축만).
   2. 규칙을 넣어도 layout batch 는 `none` 그대로 — `fullTreeLayout` 의 read-time propagation (`resolvePropagatedProps`) 이 부모 단계의 `effectiveGetChildElements` 래퍼에만 걸려 부모 **측정** 에만 쓰였다. post-order 라 자식은 부모보다 먼저 elementsMap 원본으로 batch 에 오르고, 3.6 implicit 패치는 `applyImplicitStyles` 가 바꾼 style 만 옮긴다. 또 `asStyle` patch 는 `{style:{display}}` 만 담아 얕은 spread 가 자식 style 전체를 바꾼다 (fontSize 소실).
-  3. 글자 있는 FieldError 높이 Canvas 24 vs DOM 21 (TextField·TextArea) / 18 (Number·Date·TimeField): production 트리 (팔레트 creation) 의 FieldError 는 `style:{display:"none"}` 뿐 — factory 정의의 `fontSize:12` 가 creation 경로에서 벗겨져 기본 16 → 16×1.5. DOM 의 원천은 parent rule `structure.composition.delegation[]` 의 `.react-aria-FieldError` 항목 (size 별 `--tf-hint-size: var(--text-sm)` → generated CSS `--error-font-size` bridge → base.css `.react-aria-FieldError { font-size: var(--error-font-size, var(--text-xs)) }`): TextField md 14 · NumberField/DateField/TimeField md 12. FieldError 자체 rule 은 md 12 (text-xs) 라 자체 rule 만 읽어도 TextField 가 갈린다. TextArea 는 root class 가 `react-aria-TextField` 라 (D1, `TextArea.tsx` 머리말) TextField.css 의 규칙을 받고 자기 rule 에는 FieldError 항목이 0.
+  3. (**round 2 에서 전제 정정 — §5-1 feh1**) 글자 있는 FieldError 높이 Canvas 24 vs DOM 21 (TextField·TextArea) / 18 (Number·Date·TimeField): production 트리 (팔레트 creation) 의 FieldError 는 `style:{display:"none"}` 뿐 — factory 정의의 `fontSize:12` 가 creation 경로에서 벗겨져 기본 16 → 16×1.5. DOM 의 원천은 parent rule `structure.composition.delegation[]` 의 `.react-aria-FieldError` 항목 (size 별 `--tf-hint-size: var(--text-sm)` → generated CSS `--error-font-size` bridge → base.css `.react-aria-FieldError { font-size: var(--error-font-size, var(--text-xs)) }`): TextField md 14 · NumberField/DateField/TimeField md 12. FieldError 자체 rule 은 md 12 (text-xs) 라 자체 rule 만 읽어도 TextField 가 갈린다. TextArea 는 root class 가 `react-aria-TextField` 라 (D1, `TextArea.tsx` 머리말) TextField.css 의 규칙을 받고 자기 rule 에는 FieldError 항목이 0.
 - **수리** (Rust 무변경):
   - `propagationRegistry.ts` — `fieldErrorStatePropagationRules` 2 규칙 (`errorMessage → FieldError.children` override · `isInvalid → FieldError style.display` asStyle + transform `v ? "block" : "none"`) 을 5 field 배열에 spread. parent 에 `isInvalid` 키가 없으면 규칙이 걸리지 않아 factory `none` 유지 (legacy 문서 migration 불요). 가시성 게이트는 RAC 와 같이 `isInvalid` 만 — `errorMessage` 는 글자만.
   - `fullTreeLayout.ts` — `traversePostOrder` 진입 직후 자식 자신에게 `resolvePropagatedProps` 적용 (Skia `applyParentPropagationProps` 와 같은 방향), `asStyle` patch 는 자식 style 위에 깊게 병합 (부모 래퍼 경로도 같은 병합으로 정정). FieldError 이면 `style.fontSize` 부재 시 delegation 값 주입 (lineHeight 는 주입하지 않음 — DOM 이 root `line-height: 1.5` 를 상속하고 Canvas 기본 fs×1.5 가 같은 값).
@@ -36,7 +36,7 @@
 - DOM computed: TextField·TextArea FieldError `font 14px / lh 21px` (root 14/21) · NumberField `12/18` (root 14/21) · DateField·TimeField `12/18` (root 16/24) → line-height 는 root `1.5` 상속, font-size 는 parent delegation.
 - `invalid-empty`: RAC 는 children `""` 를 null 로 보지 않아 빈 `span:block` 이 남는다 (높이 0, column gap 6 만 증가). Canvas 도 빈 글자 leaf 높이 0 + gap.
 - **TextArea 본체 격차 (범위 밖, 기록)**: valid 상태 root 높이 Canvas 106 vs DOM 96 — FieldError 와 무관한 기존 격차 (Label 20 + gap 6 + textarea). 이 테스트는 FieldError 배치를 "valid 상태 root 높이 기준 offset (= gap)" 과 "root 높이 증분 (Δ = gap + FieldError)" 으로 격리해 잰다 (TextArea Δ 6 / 27 양쪽 동일). 본체 격차는 후속 목록에 둔다.
-- **catalog ↔ CSS 관찰**: FieldError 자체 rule 은 `lineHeight: text-xs--line-height (16)` 을 선언하지만 FieldError CSS 에는 line-height 가 없어 DOM 은 root 1.5 를 상속한다 — Canvas 는 DOM 을 따른다 (rule 의 lineHeight 미소비). rule 정본 정정 여부는 별도 판단.
+- **catalog ↔ CSS 관찰** (round 2 정정 — §5-1 feh3): FieldError 자체 rule 은 `lineHeight: text-xs--line-height (16)` 을 선언하고 catalog 파생 `generated/FieldError.css` 도 그것을 emit 하지만 **그 파일이 `styles/index.css` 의 import 66개에 없다** — 활성 bundle 에는 `.react-aria-FieldError` 줄 높이 규칙이 없어 DOM 은 root `1.5` 를 상속한다. layout 은 fs×1.5 fallback 이라 우연히 맞았지만 **Skia 는 rule 의 16 을 실제로 소비**했다 (round 1 의 "Canvas 는 DOM 을 따른다" 는 layout 만 본 서술). round 2 에서 Skia 도 root 상속 비율을 쓰도록 수리.
 
 ## 2. 게이트
 
@@ -71,3 +71,61 @@
 - Description 축 (후속 9번): factory 에 Description 자식 없음 · `description` 키는 체인에 이미 등재 · 자식 생성 + 기존 문서 호환이 핵심 — 사용자 결정 별도.
 - catalog FieldError rule `lineHeight` (16) vs DOM 상속 1.5 — rule 정본 정정 여부.
 - TagGroup errorMessage 체인 등재 효과의 live 재현 (코드상 성립, 미확인).
+
+## 5. Codex 판독 round 2 (2026-09-03) — HIGH 3 · MEDIUM 1 · LOW 1 전부 수리
+
+round 1 의 정상 게이트·원복 (a)~(d) 는 판독에서 그대로 재현됐다. 아래 3건은 **round 1 이 사실로 적은 전제가 틀렸던** 것이고, 전부 코드·live 로 확증한 뒤 수리했다.
+
+### 5-1. 판독이 뒤집은 사실
+
+| id       | round 1 이 적은 전제                                            | 실제                                                                                                                                                                            |
+| -------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **feh1** | "production 트리 FieldError 에는 fontSize 가 없다"              | factory 5곳 + Form origin 1곳이 인라인 `fontSize: 12` 를 심는다 (`FormComponents.ts` ×3 · `DateColorComponents.ts` ×2 · `formTemplateOrigins.ts`). 신규 트리에서 그 값이 사라진 이유는 feh2 의 얕은 병합이었다 — 즉 feh2 를 고치면 인라인 12 가 되살아나 resolver 를 우회한다. |
+| **feh2** | (미인지)                                                         | `asStyle` patch 를 store 쓰기 경로가 props 최상위 **얕은** 병합으로 처리해 자식 style 전체가 `{display}` 로 갈린다 (`batchUpdateElementProps` `{...element.props, ...props}`). 사용자가 준 fontSize·color·width 손실 경로.                                              |
+| **feh3** | "catalog rule 의 lineHeight 16 은 DOM 이 안 읽으니 Canvas 도 안 읽는다" | layout 은 fs×1.5 fallback 이라 맞았지만 **Skia 는 `size.lineHeight` 로 16 을 실제 소비**한다 (browser 실측 skia 14/16 vs dom 14/21).                                                                                                                     |
+
+### 5-2. live 재실측 — feh1 은 harness 한정이 아니었다 (Chrome MCP, 프로젝트 123 Home)
+
+publish DOM 의 `.react-aria-FieldError` 에는 **`data-element-id` 가 없다** — Preview/publish 는 canonical FieldError 자식이 아니라 **RAC 자체 FieldError** 를 그린다. 자식에 얹은 인라인 style 은 DOM 에 도달할 채널이 아예 없다 (실측: 자식에 `color: rgb(0,128,0)` · `width: 123px` · `fontSize: 12` 를 줘도 publish 는 negative 색 · 88.2px · 14px/21px).
+
+| 상태                                   | Canvas (Skia rect)         | publish DOM                       |
+| -------------------------------------- | -------------------------- | --------------------------------- |
+| 신규 트리 (인라인 없음)                | FieldError 89×21 @y62 · TF 83 | 14px/21px · h 21 · y 63 · TF 84   |
+| 옛 문서 재현 (자식 `fontSize:12`) 수리 전 | 76×18 @y62 · TF 80         | 14px/21px · h 21 · TF 84 (**갈림**) |
+| 같은 트리, 수리 후                      | 89×21 @y62 · TF 83         | 같음 (일치)                        |
+
+→ 옛 저장 문서는 **양쪽이 12 로 같아지는 게 아니라** Canvas 만 12 로 갈린다. 그래서 처방은 문서 migration 이 아니라 **read 경로에서 delegation 이 인라인을 이기게** 하는 것이다 (저장 데이터 무변경 — 사용자 문서를 조용히 고치지 않는다).
+
+### 5-3. 수리
+
+- `propagationEngine.ts` `buildPropagationUpdates` — `asStyle` patch 를 만들 때 대상 자식의 현재 `style` 을 씨로 깔고 그 위에 덮는다. Inspector 쓰기와 `applyFactoryPropagation` 이 같은 함수를 쓰므로 두 경로가 한 번에 닫힌다 (feh2).
+- factory·origin 6곳의 인라인 `fontSize: 12` 삭제 — 글자 크기는 parent rule delegation 이 정본 (feh1 원천, D3).
+- `fullTreeLayout.ts` · `buildSpecNodeData.ts` — FieldError 의 delegation 값이 **인라인 `style.fontSize` 를 이긴다** (DOM 에 인라인 채널이 없으므로). delegation 이 없을 때만 인라인/자체 rule (feh1 옛 문서).
+- `resolveDelegatedChildFontSize.ts` — `ROOT_INHERITED_LINE_HEIGHT_RATIO = 1.5` + `resolveInheritedLineHeight(fontSize)` 추가 (`:root { line-height: 1.5 }` = `styles/theme/shared-tokens.css:23`). Skia 는 FieldError 의 sizeSpec `lineHeight` 를 이 값으로 덮는다 — 인라인 `style.lineHeight` 가 있으면 그것이 우선 (feh3).
+
+### 5-4. 게이트 (round 1 대비 신설 5)
+
+| 게이트                                                                | 무엇을 고정                                                             |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| bridge `factory 전제 — 인라인 fontSize 없음`                          | 저작 6곳 중 factory 5 (feh1 원천 재발)                                  |
+| `formTemplateOrigins.test` `FieldError 자식에 인라인 fontSize 없음`   | Form origin (feh1 원천 재발)                                            |
+| bridge `propagation 쓰기 — 자식의 기존 style 키 보존`                 | Inspector + factory 두 경로 (feh2)                                      |
+| bridge `Skia — delegation 글자 크기 + root 상속 줄 높이`              | Skia 소비 (feh3 · fem1) + 인라인보다 delegation 우선 (feh1 옛 문서)     |
+| browser `글자 metric` · `옛 문서 — 인라인 12 가 있어도 DOM 과 같다`   | 5 field 의 DOM computed ↔ Skia text shape, 신규·옛 문서 두 형태         |
+
+원복 RED (전부 재현 확인 후 원상복구):
+
+| 원복                                          | 결과                                                                                |
+| --------------------------------------------- | ----------------------------------------------------------------------------------- |
+| (e) style 씨 깔기 제거                        | bridge 1 FAIL                                                                       |
+| (f) factory·origin 인라인 12 복원             | bridge 2 + origin 1 FAIL · browser 3 FAIL (TextField font 12 vs 14 · h 18 vs 21)     |
+| (g) Skia lineHeight 덮어쓰기 제거             | bridge 1 FAIL · browser 1 FAIL (skia 16 vs dom 21)                                   |
+| (h) 인라인 우선 (delegation 이 지게) 되돌리기 | bridge 1 FAIL · browser 1 FAIL (legacy font 12 vs 14)                               |
+
+검증: type-check · builder unit **5193** (655 파일) · focused `adr923*` **129** · full parity **1073** (기존 GridListItem/Tooltip 2 FAIL) · 브라우저 FieldError 5. builder 전량 실행 시 `ContextualActionBar.keyboard.test.tsx` 의 teardown `window is not defined` 2건이 보고되나 단독 실행은 4 PASS — 병렬 teardown flake, 본 변경과 무관 (해당 파일 무수정).
+
+### 5-5. 잔여 (기록만)
+
+- catalog `generated/FieldError.css` 가 `styles/index.css` 에 import 되지 않는다 (생성물 93 vs import 66). FieldError 만의 문제가 아닐 수 있다 — 미import 생성 CSS 전수 판정은 별도 작업.
+- Preview/publish 가 canonical FieldError 자식의 style 을 전혀 소비하지 않는다 (RAC 자체 렌더). 이 자식은 Canvas 측 mirror 에 가깝다 — 편집 surface 로서의 위상 판정은 별도.
+- 옛 저장 문서의 인라인 `fontSize: 12` 는 그대로 남는다 (read 경로가 무시). 데이터 정리가 필요하면 별도 승인 후.

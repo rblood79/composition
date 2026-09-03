@@ -43,6 +43,7 @@ import {
   usesButtonBaseUtility,
   FIELD_ERROR_CHILD_SELECTOR,
   resolveDelegatedChildFontSize,
+  resolveInheritedLineHeight,
 } from "@composition/shared";
 import {
   fillsToSkiaFillColor,
@@ -1425,7 +1426,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   const catalogSize =
     catalogRule?.sizes[size] ??
     (defaultSize ? catalogRule?.sizes[defaultSize] : undefined);
-  const sizeSpec = (
+  let sizeSpec = (
     catalogSize
       ? ruleSizeToSizeSpec(catalogSize)
       : spec
@@ -1579,23 +1580,42 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // ProgressBar/Meter value propagation
   // ADR-923 Phase 5 후속 (2026-09-03): FieldError 글자 크기 = parent rule delegation (`.react-aria-
   //   FieldError` hint 변수, size 별) — layout (fullTreeLayout) 과 같은 resolver. FieldError 자체 rule
-  //   md (text-xs 12) 만 읽으면 TextField (delegation md = text-sm 14) 에서 DOM 과 갈린다. 인라인
-  //   style.fontSize 가 있으면 그것이 우선 (buildCatalogShapes 의 style ?? size 순서와 같다).
-  if (element.type === "FieldError" && element.parent_id) {
-    const feParent = elementsMap.get(element.parent_id);
+  //   md (text-xs 12) 만 읽으면 TextField (delegation md = text-sm 14) 에서 DOM 과 갈린다.
+  if (element.type === "FieldError") {
     const existingStyle = (specProps.style || {}) as Record<string, unknown>;
-    if (feParent && existingStyle.fontSize == null) {
-      const feFontSize = resolveDelegatedChildFontSize(
-        feParent.type,
-        FIELD_ERROR_CHILD_SELECTOR,
-        getProps(feParent).size as string | undefined,
-      );
-      if (feFontSize != null) {
-        specProps = {
-          ...specProps,
-          style: { ...existingStyle, fontSize: feFontSize },
-        };
-      }
+    const inlineFontSize =
+      typeof existingStyle.fontSize === "number"
+        ? existingStyle.fontSize
+        : undefined;
+    const feParent = element.parent_id
+      ? elementsMap.get(element.parent_id)
+      : undefined;
+    // r2 feh1 (live 실측): publish 는 RAC 자체 FieldError 를 그리므로 자식의 인라인 style 은 DOM 에
+    //   도달하지 않는다 → delegation 이 인라인 fontSize 를 이긴다 (없을 때만 인라인/자체 rule).
+    const delegated = feParent
+      ? resolveDelegatedChildFontSize(
+          feParent.type,
+          FIELD_ERROR_CHILD_SELECTOR,
+          getProps(feParent).size as string | undefined,
+        )
+      : undefined;
+    if (delegated != null) {
+      specProps = {
+        ...specProps,
+        style: { ...existingStyle, fontSize: delegated },
+      };
+    }
+    // 줄 높이는 자식 rule 토큰(md 16)이 아니라 **root 상속 비율**이 DOM 의 값이다 (r2 feh3 —
+    //   활성 bundle 에 FieldError line-height 규칙 없음). 인라인 lineHeight 가 있으면 그것이 우선.
+    const effectiveFontSize =
+      delegated ??
+      inlineFontSize ??
+      (typeof sizeSpec.fontSize === "number" ? sizeSpec.fontSize : undefined);
+    if (existingStyle.lineHeight == null && effectiveFontSize != null) {
+      sizeSpec = {
+        ...sizeSpec,
+        lineHeight: resolveInheritedLineHeight(effectiveFontSize),
+      };
     }
   }
 

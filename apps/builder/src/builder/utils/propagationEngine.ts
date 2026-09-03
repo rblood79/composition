@@ -184,7 +184,14 @@ export function buildPropagationUpdates(
       }
 
       if (rule.asStyle) {
-        if (!existing.style) existing.style = {};
+        // store 쓰기 경로 (`batchUpdateElementProps` → `{...element.props, ...props}`) 는 props 최상위
+        //   **얕은** 병합이라, patch 의 style 이 부분 객체면 자식의 기존 style 이 통째로 사라진다
+        //   (r2 feh2 — fontSize/color/width 손실). 자식의 현재 style 을 씨로 깔고 그 위에 덮는다.
+        if (!existing.style) {
+          const currentStyle = (element.props as Record<string, unknown>)
+            ?.style as Record<string, unknown> | undefined;
+          existing.style = currentStyle ? { ...currentStyle } : {};
+        }
         (existing.style as Record<string, unknown>)[childProp] = value;
       } else {
         existing[childProp] = value;

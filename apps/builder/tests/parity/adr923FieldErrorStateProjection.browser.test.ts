@@ -11,6 +11,8 @@ import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindi
 import { useStore } from "@/builder/stores";
 import type { Element } from "@/types/core/store.types";
 import { layoutTree, paletteCreationTree } from "./adr923ProductionTrees";
+import { buildSpecNodeData } from "@/builder/workspace/canvas/skia/buildSpecNodeData";
+import type { CanvasSceneNode } from "@/builder/workspace/canvas/scene/canvasSceneNode";
 
 vi.mock("@/builder/factories/utils/elementCreation", async (importOriginal) => {
   const actual =
@@ -72,6 +74,10 @@ interface Leg {
   height: number;
   y: number;
   rootHeight: number;
+  /** 글자 크기 (px) — DOM 은 computed, Canvas 는 Skia text shape */
+  fontSize: number;
+  /** 줄 높이 (px) — DOM 은 computed, Canvas 는 Skia text shape */
+  lineHeight: number;
 }
 interface Measured {
   type: FieldType;
@@ -81,6 +87,8 @@ interface Measured {
 }
 
 const measured: Measured[] = [];
+/** 옛 문서 (FieldError 자식에 인라인 fontSize 12) 의 invalid-text 캔버스 leg */
+const measuredLegacy: Array<{ type: FieldType; canvas: Leg }> = [];
 let host: HTMLElement | undefined;
 const roots: Root[] = [];
 
@@ -113,6 +121,8 @@ async function renderDom(type: FieldType, state: StateCase): Promise<Leg> {
       height: 0,
       y: 0,
       rootHeight: rootRect.height,
+      fontSize: 0,
+      lineHeight: 0,
     };
   }
   const feRect = fe.getBoundingClientRect();
@@ -127,24 +137,44 @@ async function renderDom(type: FieldType, state: StateCase): Promise<Leg> {
     height: feRect.height,
     y: feRect.top - rootRect.top,
     rootHeight: rootRect.height,
+    fontSize: parseFloat(feCs.fontSize),
+    lineHeight: parseFloat(feCs.lineHeight),
   };
 }
 
-async function runCanvas(type: FieldType, state: StateCase): Promise<Leg> {
+async function runCanvas(
+  type: FieldType,
+  state: StateCase,
+  /** 옛 문서 재현 — factory 가 심던 인라인 글자 크기를 FieldError 자식에 얹는다 (r2 feh1). */
+  legacyChildFontSize?: number,
+): Promise<Leg> {
   const tree = await paletteCreationTree(type, `fe-state-${type}-${state.id}`);
-  const els = tree.elements.map((el) =>
-    el.id === tree.root.id
-      ? ({
-          ...el,
-          props: {
-            ...el.props,
-            label: "Name",
-            isInvalid: state.isInvalid,
-            errorMessage: state.errorMessage,
+  const els = tree.elements.map((el) => {
+    if (el.id === tree.root.id) {
+      return {
+        ...el,
+        props: {
+          ...el.props,
+          label: "Name",
+          isInvalid: state.isInvalid,
+          errorMessage: state.errorMessage,
+        },
+      } as Element;
+    }
+    if (el.type === "FieldError" && legacyChildFontSize != null) {
+      return {
+        ...el,
+        props: {
+          ...el.props,
+          style: {
+            ...((el.props?.style ?? {}) as Record<string, unknown>),
+            fontSize: legacyChildFontSize,
           },
-        } as Element)
-      : el,
-  );
+        },
+      } as Element;
+    }
+    return el;
+  });
   const fe = els.find((el) => el.type === "FieldError");
   if (!fe) throw new Error(`${type}: production 트리에 FieldError 자식 없음`);
   const run = layoutTree(tree.root.id, els, 400, -1, "fe-state");
@@ -164,12 +194,41 @@ async function runCanvas(type: FieldType, state: StateCase): Promise<Leg> {
       })}`,
     );
   }
+  // Skia leg — layout batch 와 같은 요소를 그리는 shape 생산자. text shape 의 fontSize/lineHeight 가
+  //   DOM computed 와 같아야 글자·줄 높이가 세 표면에서 같다 (ADR-923 후속 r2 fem1 gate).
+  const skiaMap = new Map<string, CanvasSceneNode>(
+    els.map((el) => [el.id, el as unknown as CanvasSceneNode]),
+  );
+  const findText = (
+    n: { text?: { fontSize: number; lineHeight?: number; content: string } | undefined; children?: unknown[] } | null,
+  ): { fontSize: number; lineHeight?: number; content: string } | undefined => {
+    if (!n) return undefined;
+    if (n.text?.content) return n.text;
+    for (const c of (n.children ?? []) as typeof n[]) {
+      const found = findText(c);
+      if (found) return found;
+    }
+    return undefined;
+  };
+  const skiaNode = box
+    ? buildSpecNodeData({
+        element: fe as unknown as CanvasSceneNode,
+        layout: box,
+        theme: "light",
+        elementsMap: skiaMap,
+      })
+    : null;
+  const skiaText = findText(
+    skiaNode as unknown as Parameters<typeof findText>[0],
+  );
   return {
     present: display !== "none" && display !== "(batch 없음)",
     display,
     height: box?.height ?? 0,
     y: box?.y ?? 0,
     rootHeight: rootBox?.height ?? 0,
+    fontSize: skiaText?.fontSize ?? 0,
+    lineHeight: skiaText?.lineHeight ?? 0,
   };
 }
 
@@ -190,6 +249,12 @@ beforeAll(async () => {
       const canvas = await runCanvas(type, state);
       measured.push({ type, state: state.id, dom, canvas });
     }
+  }
+  for (const type of FIELD_TYPES) {
+    measuredLegacy.push({
+      type,
+      canvas: await runCanvas(type, STATES[3], 12),
+    });
   }
   for (const m of measured) {
     console.log(
@@ -233,6 +298,44 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 (5 field × 4 상�
       expect(
         Math.abs(canvasOffset - domOffset),
         `${tag} y offset canvas ${canvasOffset} dom ${domOffset}`,
+      ).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("글자 metric — Skia text shape 의 font-size·line-height 가 DOM computed 와 같다", () => {
+    // DOM 실측 (2026-09-03): TextField/TextArea 14 → 21, Number/Date/TimeField 12 → 18. font-size 는
+    //   parent delegation hint, line-height 는 `:root { line-height: 1.5 }` 상속 (활성 bundle 에
+    //   `.react-aria-FieldError` 줄 높이 규칙 없음 — catalog rule 의 16 은 DOM 이 안 읽는다).
+    const rows = measured.filter(
+      (x) => x.dom.present && x.state === "invalid-text",
+    );
+    expect(rows.length).toBe(FIELD_TYPES.length);
+    for (const m of rows) {
+      const tag = `${m.type}/${m.state}`;
+      expect(
+        m.canvas.fontSize,
+        `${tag} font-size skia ${m.canvas.fontSize} dom ${m.dom.fontSize}`,
+      ).toBe(m.dom.fontSize);
+      expect(
+        Math.abs(m.canvas.lineHeight - m.dom.lineHeight),
+        `${tag} line-height skia ${m.canvas.lineHeight} dom ${m.dom.lineHeight}`,
+      ).toBeLessThanOrEqual(0.5);
+    }
+  });
+
+  it("옛 문서 — FieldError 자식의 인라인 fontSize 12 가 있어도 Canvas 는 DOM 과 같다 (publish 는 RAC 자체 FieldError 를 그려 인라인 채널이 없다)", () => {
+    for (const { type, canvas } of measuredLegacy) {
+      const dom = measured.find(
+        (m) => m.type === type && m.state === "invalid-text",
+      )!.dom;
+      expect(canvas.fontSize, `${type} legacy font-size`).toBe(dom.fontSize);
+      expect(
+        Math.abs(canvas.lineHeight - dom.lineHeight),
+        `${type} legacy line-height canvas ${canvas.lineHeight} dom ${dom.lineHeight}`,
+      ).toBeLessThanOrEqual(0.5);
+      expect(
+        Math.abs(canvas.height - dom.height),
+        `${type} legacy height canvas ${canvas.height} dom ${dom.height}`,
       ).toBeLessThanOrEqual(1);
     }
   });
