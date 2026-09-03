@@ -112,9 +112,10 @@ const live: Record<string, string> = {};
 
 /**
  * r31m1 — FieldError 는 **같은 production 상태 짝** 으로 잰다. Canvas 의 FieldError 자식은 factory inline
- * `display:none` (`FormComponents.ts` TextField 정의) 이고 Canvas 어디에도 `isInvalid` 를 읽는 코드가 없다;
- * DOM 은 RAC `FieldError` 가 validation invalid 일 때만 `<span>` 을 렌더한다. 상태를 갈라 잰 값을 한 행에
- * 두면 판정이 비어 있다 — 기본 (isInvalid:false · errorMessage "") 과 invalid (isInvalid:true +
+ * `display:none` (`FormComponents.ts` TextField 정의) 이고, Phase 5 후속 (2026-09-03) 전에는 Canvas 어디에도
+ * `isInvalid` 를 읽는 코드가 없었다 (지금은 propagationRegistry 가 parent `isInvalid` → style.display 를
+ * 투영한다); DOM 은 RAC `FieldError` 가 validation invalid 일 때만 `<span>` 을 렌더한다. 상태를 갈라 잰 값을
+ * 한 행에 두면 판정이 비어 있다 — 기본 (isInvalid:false · errorMessage "") 과 invalid (isInvalid:true +
  * errorMessage) 두 상태를 양쪽에서 각각 캡처하고, 표의 FieldError 행은 invalid 상태 짝을 근거로 판정한다.
  */
 interface StatePair {
@@ -591,8 +592,8 @@ const HC2: Record<
   FieldError: {
     canvas: "none",
     dom: "span:block (live, isInvalid+errorMessage) · 기본 상태는 (없음) — 같은 상태 짝은 fieldErrorStates",
-    verdict: "투영필요(후속)",
-    box: ".react-aria-FieldError — 기본 상태: Canvas display:none ↔ DOM 미렌더 = 양쪽 상자 없음 (일치). invalid 상태: Canvas 는 여전히 none (factory inline display:none, isInvalid 를 읽는 Canvas 코드 0) ↔ DOM span:block (RAC 가 invalid 일 때만 렌더) = 갈림. display 값이 아니라 parent 상태 → 자식 가시성 투영 부재 — 별도 commit",
+    verdict: "일치(outer)",
+    box: ".react-aria-FieldError — 기본 상태: Canvas display:none ↔ DOM 미렌더 = 양쪽 상자 없음 (일치). invalid 상태 (Phase 5 후속 2026-09-03): parent `isInvalid` → FieldError style.display block 투영 (propagationRegistry, 5 field 공통) ↔ DOM span:block (RAC 가 invalid 일 때만 렌더) = 일치. 글자·크기는 parent errorMessage + delegation hint 변수 — adr923FieldErrorStateProjection.browser.test 가 5 field × 4 상태 대조",
   },
   IllustratedMessage: {
     canvas: "flex",
@@ -697,23 +698,22 @@ describe("ADR-923 Phase 5 — HC2 판정표 (Canvas 전용 display override 33 r
     expect(counts).toEqual({
       "전환(Phase 5)": 2,
       일치: 6,
-      "일치(outer)": 13,
+      "일치(outer)": 14,
       "예외(투영)": 2,
       "예외(inert)": 4,
       "전환필요(후속)": 5,
-      "투영필요(후속)": 1,
     });
   });
 
-  it("FieldError 상태 짝 (r31m1) — 같은 production 상태에서 Canvas·DOM 을 잰다: 기본 = 양쪽 상자 없음 · invalid = Canvas none ↔ DOM span:block 갈림", () => {
+  it("FieldError 상태 짝 (r31m1 → Phase 5 후속 투영) — 같은 production 상태에서 Canvas·DOM 을 잰다: 기본 = 양쪽 상자 없음 · invalid = 양쪽 block", () => {
     console.log(
       `ADR923HC2 FieldError states ${JSON.stringify(fieldErrorStates)}`,
     );
     expect(fieldErrorStates.default).toEqual({ canvas: "none", dom: "(없음)" });
     expect(fieldErrorStates.invalid).toEqual({
-      canvas: "none",
+      canvas: "block",
       dom: "span:block",
     });
-    expect(HC2.FieldError.verdict).toBe("투영필요(후속)");
+    expect(HC2.FieldError.verdict).toBe("일치(outer)");
   });
 });

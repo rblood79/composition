@@ -41,6 +41,8 @@ import {
   resolveSelectionCheckboxVisible,
   toSkiaStyle,
   usesButtonBaseUtility,
+  FIELD_ERROR_CHILD_SELECTOR,
+  resolveDelegatedChildFontSize,
 } from "@composition/shared";
 import {
   fillsToSkiaFillColor,
@@ -1575,6 +1577,28 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   }
 
   // ProgressBar/Meter value propagation
+  // ADR-923 Phase 5 후속 (2026-09-03): FieldError 글자 크기 = parent rule delegation (`.react-aria-
+  //   FieldError` hint 변수, size 별) — layout (fullTreeLayout) 과 같은 resolver. FieldError 자체 rule
+  //   md (text-xs 12) 만 읽으면 TextField (delegation md = text-sm 14) 에서 DOM 과 갈린다. 인라인
+  //   style.fontSize 가 있으면 그것이 우선 (buildCatalogShapes 의 style ?? size 순서와 같다).
+  if (element.type === "FieldError" && element.parent_id) {
+    const feParent = elementsMap.get(element.parent_id);
+    const existingStyle = (specProps.style || {}) as Record<string, unknown>;
+    if (feParent && existingStyle.fontSize == null) {
+      const feFontSize = resolveDelegatedChildFontSize(
+        feParent.type,
+        FIELD_ERROR_CHILD_SELECTOR,
+        getProps(feParent).size as string | undefined,
+      );
+      if (feFontSize != null) {
+        specProps = {
+          ...specProps,
+          style: { ...existingStyle, fontSize: feFontSize },
+        };
+      }
+    }
+  }
+
   const progressProps = resolveProgressProps(element, elementsMap);
   if (progressProps) {
     const clearFontSize = progressProps._clearFontSize;

@@ -57,6 +57,8 @@ paths:
 - Canvas 엔진은 CSS와 달리 명시적 전파 필요 → `effectiveGetChildElements` 래퍼 사용
 - `enrichWithIntrinsicSize` 재귀 호출과 DFS `filteredChildren` 양쪽에 적용 필수
 - Skia 경로도 동기화: buildSpecNodeData `resolveParentDelegatedSize`. **Why**: Store가 자식 size 미저장
+- **propagationRegistry read-time 전파는 자식 visit 에서 적용** (`traversePostOrder` 진입 직후 `resolvePropagatedProps`, 2026-09-03): 부모 단계의 `effectiveGetChildElements` 래퍼는 부모 **측정** 에만 쓰이고, 자식 자신의 batch style 은 post-order 로 먼저 오른 자식 visit 값이다 — 부모 래퍼에만 두면 엔진이 patch 를 못 본다 (FieldError `display` 투영 실측). `asStyle` patch 는 자식 style 위에 덮는다 (얕은 spread 는 fontSize 를 잃는다). Skia 는 `applyParentPropagationProps` 가 같은 registry 를 읽는다
+- **자식 텍스트 leaf 의 글자 크기는 parent rule delegation 이 정본** (`resolveDelegatedChildFontSize`, `@composition/shared`): production 트리는 factory 인라인 fontSize 를 벗기고, DOM 은 `.react-aria-FieldError` 같은 childSelector 의 size 별 hint 변수 (TextField md = text-sm 14, NumberField md = text-xs 12) 를 읽는다 — 자식 자체 rule (FieldError md 12) 만 읽으면 갈린다. layout·Skia 가 같은 resolver 를 소비한다
 
 ## Label size delegation (CRITICAL)
 

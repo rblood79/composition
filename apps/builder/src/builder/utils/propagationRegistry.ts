@@ -267,8 +267,37 @@ const sliderPropagationRules: PropagationRule[] = [
   { parentProp: "maxValue", childPath: "SliderTrack", override: true },
 ];
 
+// ADR-923 Phase 5 후속 (2026-09-03) — **FieldError 상태 투영**. DOM 은 RAC `FieldError` 가 parent
+//   `isInvalid` 일 때만 `<span>` 을 렌더하고 (`errorMessage` 가 비어도 빈 span:block 이 남아 gap 을 차지),
+//   글자는 parent `errorMessage` 다 (`<FieldError>{errorMessage}</FieldError>`). Canvas 의 FieldError 자식은
+//   factory 가 `children:""` + `display:none` 으로 만들고 아무도 parent 상태를 읽지 않아 invalid 상태에서
+//   Canvas none ↔ DOM span:block 이 갈렸다 (HC2 r31m1 `fieldErrorStates`). r16m1 label 축과 같은 registry
+//   다리 — Inspector 쓰기 (`buildPropagationUpdates`) · layout read-time (`resolvePropagatedProps`) · Skia
+//   (`applyParentPropagationProps`) 세 경로가 같은 규칙을 읽는다. `isInvalid` 키가 parent 에 없으면 규칙이
+//   적용되지 않아 factory `display:none` 이 그대로 남는다 (legacy 문서 무변경). 가시성 게이트는 RAC 와 같이
+//   `isInvalid` 만 — `errorMessage` 유무는 글자만 정한다. 5 field 가족 (`FIELD_VISIBLE_CHILD_TAGS` 의
+//   FieldError 보유 5) 이 공유한다. 게이트: `adr923FieldErrorStateBridge.test.ts` (registry 3 경로 + 5-심볼
+//   체인) · `adr923FieldErrorStateProjection.browser.test.ts` (5 field × 4 상태 DOM 대조).
+const fieldErrorStatePropagationRules: PropagationRule[] = [
+  {
+    parentProp: "errorMessage",
+    childPath: "FieldError",
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "isInvalid",
+    childPath: "FieldError",
+    childProp: "display",
+    asStyle: true,
+    override: true,
+    transform: (value) => (value ? "block" : "none"),
+  },
+];
+
 // ADR-912 단계5 step4 small-B (2026-06-16): TextField.spec 삭제 — propagation.rules 인라인 보존.
 const textFieldPropagationRules: PropagationRule[] = [
+  ...fieldErrorStatePropagationRules,
   { parentProp: "size", childPath: "Label", override: true },
   { parentProp: "size", childPath: "Input", override: true },
   {
@@ -332,6 +361,7 @@ const searchFieldPropagationRules: PropagationRule[] = [
 //   registry 부재가 Inspector 전파와 Skia delegation 을 **동시에** 죽이는 형태 (Disclosure
 //   2026-07-15 선례와 동형).
 const textAreaPropagationRules: PropagationRule[] = [
+  ...fieldErrorStatePropagationRules,
   { parentProp: "size", childPath: "Label", override: true },
   { parentProp: "size", childPath: "Input", override: true },
   {
@@ -354,6 +384,7 @@ const textAreaPropagationRules: PropagationRule[] = [
 //   (stepper minus/plus) 인데 size 규칙에 자식 경로가 **아예 없었다** → SelectValue/SelectIcon 의
 //   stale size 가 부모를 가린다 (SearchField/DatePicker 와 동일 결함).
 const numberFieldPropagationRules: PropagationRule[] = [
+  ...fieldErrorStatePropagationRules,
   { parentProp: "size", childPath: "Label", override: true },
   { parentProp: "size", childPath: "SelectTrigger", override: true },
   {
@@ -382,6 +413,7 @@ const numberFieldPropagationRules: PropagationRule[] = [
 
 // ADR-912 단계5 step4 (2026-06-17): DateField.spec 삭제 — propagation.rules 인라인 보존 (TimeField 동형).
 const dateFieldPropagationRules: PropagationRule[] = [
+  ...fieldErrorStatePropagationRules,
   { parentProp: "size", childPath: "Label", override: true },
   { parentProp: "size", childPath: "DateInput", override: true },
   {
@@ -394,6 +426,7 @@ const dateFieldPropagationRules: PropagationRule[] = [
 
 // ADR-912 단계5 step4 small-B (2026-06-16): TimeField.spec 삭제 — propagation.rules 인라인 보존.
 const timeFieldPropagationRules: PropagationRule[] = [
+  ...fieldErrorStatePropagationRules,
   { parentProp: "size", childPath: "Label", override: true },
   { parentProp: "size", childPath: "DateInput", override: true },
   {

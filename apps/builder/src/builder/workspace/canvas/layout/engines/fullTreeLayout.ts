@@ -11,6 +11,10 @@
 
 import type { CanvasLayoutNode } from "../layoutNode";
 import { getLayoutRootKey } from "../layoutRootKey";
+import {
+  FIELD_ERROR_CHILD_SELECTOR,
+  resolveDelegatedChildFontSize,
+} from "@composition/shared";
 import type { ComputedLayout } from "./LayoutEngine";
 import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
 import { isCompositionEngineReady } from "../../wasm-bindings/compositionEngineWasm";
@@ -1089,7 +1093,10 @@ function buildNodeStyle(
   const normalized = display.trim().toLowerCase();
 
   if (normalized === "flex" || normalized === "inline-flex") {
-    const engineStyle: EngineStyle = elementToEngineStyle(enriched, computedStyle);
+    const engineStyle: EngineStyle = elementToEngineStyle(
+      enriched,
+      computedStyle,
+    );
     const record = engineStyleToRecord(engineStyle);
     // Calendar/RangeCalendar width:fit-content 센티넬 통과 — ADR-165 로
     //   applyCommonEngineStyle 이 intrinsic 키워드를 일반 통과시키므로 본 allowlist 는
@@ -1443,6 +1450,64 @@ function traversePostOrder(
     return;
   }
   let rawElement = storeElement;
+
+  // ADR-923 Phase 5 후속 (2026-09-03): 자식 visit 시점의 read-time propagation — Skia
+  //   `applyParentPropagationProps` (buildSpecNodeData) 와 같은 registry 를 같은 방향으로 읽는다.
+  //   아래 부모 단계의 `effectiveGetChildElements` 래퍼는 부모 **측정** (enrich) 에만 쓰여 자식
+  //   자신의 batch style 에는 닿지 않았다 — FieldError `display` 투영 실측에서 batch 가 factory
+  //   `none` 그대로였다. post-order 라 자식이 먼저 batch 에 오르므로 여기서 덮어야 엔진이 본다.
+  //   `asStyle` patch 는 자식 style 위에 덮는다 (얕은 spread 는 fontSize 를 잃는다).
+  if (rawElement.parent_id) {
+    const propagationParent = elementsMap.get(rawElement.parent_id);
+    if (propagationParent && getPropagationRules(propagationParent.type)) {
+      const patch = resolvePropagatedProps(
+        propagationParent.type,
+        (propagationParent.props ?? {}) as Record<string, unknown>,
+        rawElement.type,
+        (rawElement.props ?? {}) as Record<string, unknown>,
+      );
+      if (patch) {
+        const cs = (rawElement.props?.style ?? {}) as Record<string, unknown>;
+        const ps = patch.style as Record<string, unknown> | undefined;
+        rawElement = {
+          ...rawElement,
+          props: {
+            ...rawElement.props,
+            ...patch,
+            ...(ps ? { style: { ...cs, ...ps } } : {}),
+          },
+        } as CanvasLayoutNode;
+      }
+    }
+  }
+
+  // ADR-923 Phase 5 후속 (2026-09-03): FieldError 글자 크기는 parent rule 의 delegation
+  //   (`.react-aria-FieldError` hint 변수, size 별) 이 정본 — generated CSS 가 같은 항목을 emit 한다.
+  //   production 트리의 FieldError 는 style 에 fontSize 가 없어 (creation 경로가 factory 인라인을
+  //   벗긴다) 기본 16 → 24px 줄 상자로 DOM (14 → 21 · 12 → 18) 과 갈렸다. 줄 높이는 DOM 이 root
+  //   `line-height: 1.5` 를 상속하므로 lineHeight 는 주입하지 않는다 (기본 fs × 1.5 가 같은 값).
+  //   Skia 도 같은 resolver 로 같은 값을 그린다 (buildSpecNodeData).
+  if (rawElement.type === "FieldError" && rawElement.parent_id) {
+    const feParent = elementsMap.get(rawElement.parent_id);
+    const feStyle = (rawElement.props?.style ?? {}) as Record<string, unknown>;
+    if (feParent && feStyle.fontSize == null) {
+      const feFontSize = resolveDelegatedChildFontSize(
+        feParent.type,
+        FIELD_ERROR_CHILD_SELECTOR,
+        (feParent.props as Record<string, unknown> | undefined)?.size as
+          string | undefined,
+      );
+      if (feFontSize != null) {
+        rawElement = {
+          ...rawElement,
+          props: {
+            ...rawElement.props,
+            style: { ...feStyle, fontSize: feFontSize },
+          },
+        } as CanvasLayoutNode;
+      }
+    }
+  }
 
   // Heading/Description → InlineAlert 부모 spec에서 font 스타일 주입 (텍스트 폭 측정 정합성)
   if (rawElement.type === "Heading" || rawElement.type === "Description") {
@@ -2119,9 +2184,23 @@ function traversePostOrder(
           child.type,
           child.props as Record<string, unknown>,
         );
-        return patch
-          ? { ...child, props: { ...child.props, ...patch } }
-          : child;
+        if (!patch) return child;
+        // ADR-923 Phase 5 후속 (2026-09-03): `asStyle` 규칙의 patch.style 은 주입 키만 담는다 —
+        //   얕은 spread 는 자식 style 전체를 그 키 하나로 바꿔 fontSize/lineHeight 를 잃는다
+        //   (FieldError `display` 투영에서 실측). style 은 자식 것 위에 덮는다.
+        const childStyle = (child.props?.style ?? {}) as Record<
+          string,
+          unknown
+        >;
+        const patchStyle = patch.style as Record<string, unknown> | undefined;
+        return {
+          ...child,
+          props: {
+            ...child.props,
+            ...patch,
+            ...(patchStyle ? { style: { ...childStyle, ...patchStyle } } : {}),
+          },
+        };
       });
     };
   }

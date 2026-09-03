@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Invalid 로 켠 입력 필드의 오류 메시지가 캔버스에도 보입니다] - 2026-09-03
+
+### Fixed
+
+- TextField · TextArea · NumberField · DateField · TimeField 를 Properties 패널에서 Invalid 로 켜고 오류 메시지를 적어도 캔버스에는 아무것도 나타나지 않고 Preview/Publish 에만 빨간 메시지가 붙던 것을 고쳤습니다. 이제 캔버스도 같은 조건에서 같은 자리에 같은 크기 (TextField 14px · 나머지 12px, 줄 높이 1.5) 로 메시지를 그리고 필드 높이도 함께 늘어납니다 (TextField 56 → 83, Preview 84). 메시지를 비운 채 Invalid 만 켜면 Preview 와 같이 빈 줄 (높이 0) 과 간격만 생깁니다. 원인은 세 겹이었습니다 — 부모의 `isInvalid`/`errorMessage` 를 FieldError 자식으로 옮기는 규칙이 없었고 (label 만 있었음), 레이아웃이 부모→자식 값 전파를 부모 측정에만 쓰고 자식 자신의 엔진 입력에는 반영하지 않았으며, FieldError 글자 크기를 catalog 의 부모별 위임 값 (`.react-aria-FieldError` hint 변수) 이 아니라 기본 16px 로 재고 있었습니다. Inspector 가 아닌 경로 (AI · import) 로 부모만 바꿔도 캔버스가 다시 계산되도록 두 속성을 레이아웃 무효화 목록에 넣었습니다 (TagGroup 의 오류 메시지 편집도 같은 등재로 즉시 반영됩니다). 실측: `adr923FieldErrorStateProjection.browser.test` 5 종 × 4 상태 (DOM 과 높이·간격 1px 안), 실제 빌더에서 TextField 를 Invalid 로 켜고 끄며 Skia rect 와 publish DOM 대조.
+
 ## [렌더 계측이 개발 빌드의 프레임을 잡아먹지 않습니다] - 2026-09-02
 
 ### Changed

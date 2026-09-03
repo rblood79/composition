@@ -1,0 +1,108 @@
+/**
+ * ADR-923 Phase 5 후속 (2026-09-03) — parent rule 의 `structure.composition.delegation[]` 가 자식
+ * selector 에 size 별로 선언한 **font-size 변수** 를 px 로 돌려주는 단일 진입점.
+ *
+ * generated CSS (CSSGenerator Tier 2) 는 같은 항목에서
+ *   `.react-aria-{Parent}[data-size="md"] .react-aria-FieldError { --tf-hint-size: var(--text-sm); }`
+ *   `.react-aria-{Parent} .react-aria-FieldError { --error-font-size: var(--tf-hint-size); }`
+ * 를 emit 하고 base.css 의 `.react-aria-FieldError { font-size: var(--error-font-size, var(--text-xs)) }`
+ * 가 그것을 읽는다 — DOM 의 computed font-size 원천이 이 delegation 이다. Skia (buildSpecNodeData) 와
+ * layout (fullTreeLayout) 이 같은 항목을 읽어야 FieldError 글자 크기·줄 높이가 세 표면에서 같다
+ * (실측: TextField md = 14 · NumberField/DateField/TimeField md = 12, FieldError 자체 rule md 는 12 라
+ * 자체 rule 만 읽으면 TextField 가 갈린다).
+ *
+ * 값은 `var(--text-*)` CSS 변수 참조만 해석한다 (typography 토큰 → px). 항목·size·변수가 없으면
+ * undefined — 호출자가 자기 기본 (FieldError 자체 rule size) 으로 돌아간다.
+ */
+import { typography } from "@composition/specs";
+
+import { resolveComponentRuleByTag } from "./resolveComponentRule";
+
+export const FIELD_ERROR_CHILD_SELECTOR = ".react-aria-FieldError";
+
+/**
+ * DOM root 클래스를 다른 rule 의 것으로 쓰는 컴포넌트 — generated CSS 가 그 rule 의 것이므로 delegation
+ * 도 그 rule 을 읽어야 DOM 과 같다. TextArea 는 root `react-aria-TextField` 를 D1 권위로 그대로 두고
+ * (`TextArea.tsx` 머리말) 자기 CSS 파일이 없다 — TextField.css 의 FieldError hint 규칙이 적용된다.
+ * 직접 항목이 있으면 직접 항목이 우선이고, 없을 때만 alias 로 내려간다.
+ */
+const DOM_ROOT_RULE_ALIAS: Readonly<Record<string, string>> = {
+  textarea: "TextField",
+};
+
+interface DelegationLike {
+  childSelector?: unknown;
+  variables?: unknown;
+  bridges?: unknown;
+}
+
+function cssTextVarToPx(value: unknown): number | undefined {
+  if (typeof value !== "string") return undefined;
+  const m = /^var\(--(text-[a-z0-9-]+)\)$/.exec(value.trim());
+  if (!m) return undefined;
+  const px = (typography as unknown as Record<string, number | undefined>)[
+    m[1]
+  ];
+  return typeof px === "number" ? px : undefined;
+}
+
+/** `var(--tf-hint-size)` → `--tf-hint-size` */
+function cssVarName(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const m = /^var\((--[a-z0-9-]+)\)$/i.exec(value.trim());
+  return m ? m[1] : undefined;
+}
+
+function findDelegation(
+  parentType: string,
+  childSelector: string,
+): { entry: DelegationLike; defaultSize: string | undefined } | undefined {
+  const rule = resolveComponentRuleByTag(parentType);
+  const list = rule?.structure?.composition?.delegation;
+  if (!Array.isArray(list)) return undefined;
+  const entry = (list as DelegationLike[]).find(
+    (d) => d?.childSelector === childSelector,
+  );
+  return entry ? { entry, defaultSize: rule?.defaultSize } : undefined;
+}
+
+export function resolveDelegatedChildFontSize(
+  parentType: string,
+  childSelector: string,
+  size?: string | null,
+): number | undefined {
+  const found =
+    findDelegation(parentType, childSelector) ??
+    (() => {
+      const alias = DOM_ROOT_RULE_ALIAS[parentType.toLowerCase()];
+      return alias ? findDelegation(alias, childSelector) : undefined;
+    })();
+  if (!found) return undefined;
+  const { entry, defaultSize } = found;
+  const variables = entry.variables;
+  if (!variables || typeof variables !== "object") return undefined; // "auto" 는 미지원
+  const bySize = variables as Record<
+    string,
+    Record<string, unknown> | undefined
+  >;
+  const sizeVars =
+    (size ? bySize[size] : undefined) ??
+    (defaultSize ? bySize[defaultSize] : undefined) ??
+    bySize.md;
+  if (!sizeVars) return undefined;
+
+  // font-size 변수 이름: bridges 가 `--error-font-size`/`font-size` 로 재노출하는 변수가 있으면 그것,
+  // 없으면 `-size` 로 끝나는 첫 변수 (line-height 변수 제외).
+  const bridges = entry.bridges as Record<string, unknown> | undefined;
+  const bridged =
+    cssVarName(bridges?.["--error-font-size"]) ??
+    cssVarName(bridges?.["font-size"]) ??
+    cssVarName(bridges?.["--label-font-size"]);
+  const key =
+    bridged && bridged in sizeVars
+      ? bridged
+      : Object.keys(sizeVars).find(
+          (k) => k.endsWith("-size") && !k.includes("line-height"),
+        );
+  return key ? cssTextVarToPx(sizeVars[key]) : undefined;
+}

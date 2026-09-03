@@ -160,7 +160,7 @@ layout 55 files/**469** (Phase 4 474 → S2 게이트 9→2 · G5 재편) · bui
 ## 9. 관찰 · 후속 (수리 금지 — 기록만)
 
 - **HC2 전환필요 5** (§5): Skeleton · Slot · Avatar · StatusLight · TailSwatch — catalog structure / spec 기본값이 DOM outer 와 갈린다. 별도 D3 commit (각 Skia 시각 확인).
-- **FieldError 상태 투영 부재** (§5 같은 상태 짝, round 31): invalid 상태에서 Canvas 는 factory inline `display:none` 을 유지하고 DOM 은 span 을 렌더한다 — Canvas 에 `isInvalid`/`errorMessage` → FieldError 가시성·텍스트 투영이 없다 (field 가족 5). r21m1 TagGroup 슬롯 자식과 같은 형태로 수리 — 별도 commit (동작 변경, Skia 시각 확인 동반).
+- **FieldError 상태 투영 부재** (§5 같은 상태 짝, round 31) — **2026-09-03 수리 완료**: [923-phase5-followup-fielderror-state-projection.md](923-phase5-followup-fielderror-state-projection.md) (HC2 `투영필요(후속)` 1 → 0, `일치(outer)` 14): invalid 상태에서 Canvas 는 factory inline `display:none` 을 유지하고 DOM 은 span 을 렌더한다 — Canvas 에 `isInvalid`/`errorMessage` → FieldError 가시성·텍스트 투영이 없다 (field 가족 5). r21m1 TagGroup 슬롯 자식과 같은 형태로 수리 — 별도 commit (동작 변경, Skia 시각 확인 동반).
 - **가상화 collection 의 min-content floor** (§4): production ListBox/GridList 는 행이 layout 트리 자식이 아니라 content-size suggestion 0 → visible/clip 에서도 부모 제약에 맞춰 준다 (DOM 은 164 유지). Inspector 로 overflow visible 을 준 collection 이 제약 flex 안에 있을 때만 드러난다.
 - **Button 폭 Δ2.7px** (crossLeg `catalog-state-paint` 잔여 L1) · publish 에서 Button 34 vs Skia 30 — 텍스트 측정/size 계열, ADR-923 범위 밖.
 - p50 +5~7% (§6) — 예산 안. 추적하려면 line box 경로 프로파일 (별도).
