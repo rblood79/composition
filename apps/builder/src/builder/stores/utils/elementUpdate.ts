@@ -51,6 +51,8 @@ type ElementUpdateChildrenByParent<TElement extends Element = Element> = Map<
   TElement[]
 >;
 
+const EMPTY_ELEMENTS: Element[] = [];
+
 function syncUpdatedElementToCanonical(
   element: Element,
   updates?: Partial<Element>,
@@ -132,11 +134,8 @@ function buildElementUpdateChildrenByParent<TElement extends Element>(
   return childrenByParent;
 }
 
-function getElementUpdateSourceElements(
-  state: Pick<ElementsState, "elements">,
-): Element[] {
-  const { elements: legacyElements } = state;
-  return getActiveCanonicalDocumentElements() ?? legacyElements;
+function getElementUpdateSourceElements(): Element[] {
+  return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS;
 }
 
 function markDirtyWithDescendantsUpdate(
@@ -255,8 +254,7 @@ export function applyBatchStylePatch(
   if (!mergeStyle) return patchProps;
   const patchStyle = patchProps.style as Record<string, unknown> | undefined;
   const currentStyle = currentProps.style as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   if (!patchStyle || !currentStyle) return patchProps;
   return { ...patchProps, style: { ...currentStyle, ...patchStyle } };
 }
@@ -308,13 +306,12 @@ function nowMs(): number {
  * 통과하고, 대화상자 경로만 실제로 양보한다.
  */
 function confirmOriginImpactIfNeeded(
-  state: ElementsState,
   element: Element,
 ): boolean | Promise<boolean> {
   if (getEditingSemanticsRole(element) !== "origin") return true;
 
   const startedAt = nowMs();
-  const sourceElements = getElementUpdateSourceElements(state);
+  const sourceElements = getElementUpdateSourceElements();
   const impactedInstanceIds = getEditingSemanticsImpactInstanceIds(
     element,
     sourceElements,
@@ -372,7 +369,7 @@ export const createUpdateElementPropsAction =
       (props ?? {}) as Record<string, unknown>,
     ) as ComponentElementProps;
     const currentState = get();
-    const sourceElements = getElementUpdateSourceElements(currentState);
+    const sourceElements = getElementUpdateSourceElements();
     const element = findElementForUpdate(sourceElements, elementId);
     if (!element) return;
 
@@ -383,7 +380,7 @@ export const createUpdateElementPropsAction =
     )
       return;
     // 동기 통과(대화상자 불필요) 경로는 await 하지 않는다 — 게이트 주석 참조.
-    const originGate = confirmOriginImpactIfNeeded(currentState, element);
+    const originGate = confirmOriginImpactIfNeeded(element);
     if (originGate !== true && !(await originGate)) return;
 
     const shouldRecordHistory = Boolean(currentState.currentPageId);
@@ -528,11 +525,11 @@ export const createUpdateElementAction =
     if (Object.keys(sanitizedUpdates).length === 0) return;
 
     const currentState = get();
-    const sourceElements = getElementUpdateSourceElements(currentState);
+    const sourceElements = getElementUpdateSourceElements();
     const element = findElementForUpdate(sourceElements, elementId);
     if (!element) return;
     // 동기 통과(대화상자 불필요) 경로는 await 하지 않는다 — 게이트 주석 참조.
-    const originGate = confirmOriginImpactIfNeeded(currentState, element);
+    const originGate = confirmOriginImpactIfNeeded(element);
     if (originGate !== true && !(await originGate)) return;
 
     // props 밖 canonical 필드(`responsive`/`fills`) 변경은 update event 로 undo 되지
@@ -604,7 +601,7 @@ export const createUpdateElementAction =
     // legacy `state.elements` mirror 가 `_rebuildIndexes` primary derive source
     // 이므로 mirror race 가 UI 에 그대로 노출됨.
     set((state) => {
-      const latestSource = getElementUpdateSourceElements(state);
+      const latestSource = getElementUpdateSourceElements();
       const latestIdx = latestSource.findIndex((el) => el.id === elementId);
       if (latestIdx === -1) return state; // 다른 호출로 이미 삭제된 경우 skip
 
@@ -699,7 +696,7 @@ export const createBatchUpdateElementPropsAction =
     if (canonicalUpdates.length === 0) return;
 
     const state = get();
-    const sourceElements = getElementUpdateSourceElements(state);
+    const sourceElements = getElementUpdateSourceElements();
     const normalizedUpdates = canonicalUpdates.map((update) => ({
       ...update,
       props: sanitizePropsPatch(
@@ -883,7 +880,7 @@ export const createBatchUpdateElementsAction =
     if (canonicalUpdates.length === 0) return;
 
     const state = get();
-    const sourceElements = getElementUpdateSourceElements(state);
+    const sourceElements = getElementUpdateSourceElements();
     const normalizedUpdates = canonicalUpdates.map((update) => ({
       ...update,
       updates: sanitizeElementUpdate(update.updates),

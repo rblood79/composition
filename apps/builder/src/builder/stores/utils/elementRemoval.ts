@@ -48,16 +48,15 @@ type ElementRemovalChildrenByParent<TElement extends Element = Element> = Map<
   TElement[]
 >;
 
+const EMPTY_ELEMENTS: Element[] = [];
+
 function syncRemovedElementsToCanonical(elements: Element[]): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
   setElementsCanonicalPrimary(elements);
 }
 
-function getElementRemovalSourceElements(
-  state: Pick<ElementsState, "elements">,
-): Element[] {
-  const { elements: legacyElements } = state;
-  return getActiveCanonicalDocumentElements() ?? legacyElements;
+function getElementRemovalSourceElements(): Element[] {
+  return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS;
 }
 
 async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
@@ -229,7 +228,7 @@ async function executeRemoval(
   const elementIdsToRemove = allUniqueElements.map((el) => el.id);
   const removeSet = new Set(elementIdsToRemove);
   const currentState = get();
-  const sourceElements = getElementRemovalSourceElements(currentState);
+  const sourceElements = getElementRemovalSourceElements();
   const sourceState = { ...currentState, elements: sourceElements };
   const autoDetach = buildDetachSnapshotsForOrigins(
     sourceState,
@@ -433,8 +432,7 @@ export const createRemoveElementAction =
   (set: SetState, get: GetState) =>
   async (elementId: string, options?: { skipHistory?: boolean }) => {
     if (isRenderProjectionId(elementId)) return;
-    const state = get();
-    const sourceElements = getElementRemovalSourceElements(state);
+    const sourceElements = getElementRemovalSourceElements();
     const result = collectElementsToRemove(elementId, sourceElements);
     if (!result) {
       if (import.meta.env.DEV) {
@@ -471,8 +469,7 @@ export const createRemoveElementsAction =
       return removeElement(canonicalElementIds[0], options);
     }
 
-    const state = get();
-    const sourceElements = getElementRemovalSourceElements(state);
+    const sourceElements = getElementRemovalSourceElements();
     const rootElements: Element[] = [];
     const allElementsMap: ElementRemovalLookup = new Map();
 

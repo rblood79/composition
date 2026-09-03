@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "../../../types/core/store.types";
 import { useStore } from "../index";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import { __resetTraversalCache_TEST_ONLY__ } from "../canonical/canonicalTraversalHelpers";
 
 const mockGetByPage = vi.hoisted(() => vi.fn());
 const mockInsertMany = vi.hoisted(() => vi.fn());
@@ -48,6 +50,7 @@ function makeElement(
 }
 
 function resetStoreState() {
+  __resetTraversalCache_TEST_ONLY__();
   useCanonicalDocumentStore.setState({
     documents: new Map(),
     currentProjectId: null,
@@ -96,5 +99,95 @@ describe("selection invariant", () => {
     expect(state.selectedElementIdsSet.has(body.id)).toBe(false);
     expect(state.multiSelectMode).toBe(false);
     expect(state.selectedTab).toEqual({ parentId: tabs.id, tabIndex: 0 });
+  });
+
+  it("canonical hierarchy에서 editing context를 즉시 진입하고 body parent로 종료한다", () => {
+    const document = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "body-1",
+          type: "body",
+          props: {},
+          children: [
+            {
+              id: "section-1",
+              type: "Section",
+              props: {},
+              children: [{ id: "text-1", type: "Text", props: {} }],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+    useCanonicalDocumentStore.getState().setDocument("project-1", document);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+
+    useStore.getState().enterEditingContext("section-1");
+    expect(useStore.getState().editingContextId).toBe("section-1");
+
+    useStore.getState().exitEditingContext();
+    const state = useStore.getState();
+    expect(state.editingContextId).toBeNull();
+    expect(state.selectedElementIds).toEqual(["section-1"]);
+    expect(state.selectedElementIdsSet).toEqual(new Set(["section-1"]));
+  });
+
+  it("active canonical document에 없는 stale legacy context를 복원하지 않는다", () => {
+    const staleContainer = makeElement("stale-container", "page-1", {
+      type: "Section",
+    });
+    const staleChild = makeElement("stale-child", "page-1", {
+      type: "Text",
+      parent_id: staleContainer.id,
+    });
+    useStore.getState().setElements([staleContainer, staleChild]);
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [{ id: "body-1", type: "body", props: {} }],
+    } as unknown as CompositionDocument);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+
+    useStore.getState().enterEditingContext(staleContainer.id);
+
+    expect(useStore.getState().editingContextId).toBeNull();
+  });
+
+  it("page ref descendants 안의 context도 canonical hierarchy에서 진입한다", () => {
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-ref",
+          type: "ref",
+          ref: "layout-1",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          descendants: {
+            slot: {
+              children: [
+                {
+                  id: "body-1",
+                  type: "body",
+                  props: {},
+                  children: [
+                    {
+                      id: "section-1",
+                      type: "Section",
+                      props: {},
+                      children: [{ id: "text-1", type: "Text", props: {} }],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      ],
+    } as unknown as CompositionDocument);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+
+    useStore.getState().enterEditingContext("section-1");
+
+    expect(useStore.getState().editingContextId).toBe("section-1");
   });
 });

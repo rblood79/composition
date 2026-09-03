@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-describe("instanceActions canonical read fallback contract", () => {
-  it("derives instance lookup and child lists from active canonical elements before bootstrap store elements", async () => {
+describe("instanceActions canonical-only read contract", () => {
+  it("derives instance lookup and child lists only from active canonical elements", async () => {
     const source = await readFile(
       resolve(__dirname, "../instanceActions.ts"),
       "utf-8",
@@ -13,13 +13,14 @@ describe("instanceActions canonical read fallback contract", () => {
     expect(source).toContain("function getInstanceActionSourceElements");
     expect(source).toContain("function withInstanceActionSourceState");
     expect(source).toContain(
-      "return getActiveCanonicalDocumentElements() ?? legacyElements",
+      "return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS",
     );
+    expect(source).not.toContain("const { elements: legacyElements } = state");
     expect(source).toContain("function findInstanceActionElement");
     expect(source).toContain(
       "const elements = getInstanceActionSourceElements",
     );
-    expect(source).toContain("getInstanceActionSourceElements(state).filter");
+    expect(source).toContain("getInstanceActionSourceElements().filter");
     expect(source).not.toContain(
       "state.elements.filter((element) => element.parent_id === parentId)",
     );
@@ -108,7 +109,7 @@ describe("legacy model leaf cleanup static gates", () => {
     expect(editModeSource).not.toContain("types/builder/layout.types");
   });
 
-  it("routes canonical id lookups through cached elements view", async () => {
+  it("routes canonical id lookups through cached canonical views", async () => {
     const canvasSource = await readFile(
       resolve(__dirname, "../../canvasStore.ts"),
       "utf-8",
@@ -128,7 +129,9 @@ describe("legacy model leaf cleanup static gates", () => {
 
     expect(canvasSource).toContain("getCanonicalDocumentElementsView");
     expect(canvasSource).not.toContain("visitCanonicalDocumentElements");
-    expect(resetSource).toContain("getCanonicalDocumentElementsView");
+    expect(resetSource).toContain("getNodeMap");
+    expect(resetSource).toContain("getParent");
+    expect(resetSource).not.toContain("getCanonicalDocumentElementsView");
     expect(resetSource).not.toContain("visitCanonicalDocumentElements");
     expect(overlaySource).toContain("getCanonicalDocumentElementsView");
     expect(overlaySource).not.toContain("visitCanonicalDocumentElements");

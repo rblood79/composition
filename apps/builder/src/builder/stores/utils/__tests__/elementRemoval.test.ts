@@ -1,4 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import {
+  mergeElementsCanonicalPrimary,
+  registerCanonicalMutationStoreActions,
+  resetCanonicalMutationStoreActions,
+} from "@/adapters/canonical/canonicalMutations";
+import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import { useStore } from "../../elements";
 import { historyManager } from "../../history";
 
@@ -8,6 +14,12 @@ describe("removeElements skipHistory option (ADR-073 P5)", () => {
   const addEntrySpy = vi.spyOn(historyManager, "addEntry");
 
   beforeEach(() => {
+    resetCanonicalMutationStoreActions();
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
     addEntrySpy.mockClear();
     const parent = {
       id: "sel-1",
@@ -34,6 +46,17 @@ describe("removeElements skipHistory option (ADR-073 P5)", () => {
       ]),
       childrenMap: new Map([["sel-1", [child as never]]]),
     } as never);
+    registerCanonicalMutationStoreActions({
+      getCurrentProjectId: () => "removal-project",
+      getCurrentLegacySnapshot: () => ({
+        elements: useStore.getState().elements,
+        pages: [],
+        layouts: [],
+      }),
+    });
+    useCanonicalDocumentStore.getState().setCurrentProject("removal-project");
+    mergeElementsCanonicalPrimary(useStore.getState().elements);
+    useStore.getState()._rebuildIndexes();
   });
 
   it("default (skipHistory 미지정) — historyManager.addEntry 호출됨", async () => {
@@ -74,5 +97,19 @@ describe("removeElements skipHistory option (ADR-073 P5)", () => {
   it("skipHistory: true 모드에서도 elementsMap 에서 삭제됨", async () => {
     await useStore.getState().removeElements(["si-1"], { skipHistory: true });
     expect(useStore.getState().elementsMap.get("si-1")).toBeUndefined();
+  });
+
+  it("canonical 문서가 없으면 legacy-only element를 삭제하지 않음", async () => {
+    resetCanonicalMutationStoreActions();
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
+
+    await useStore.getState().removeElements(["si-1"]);
+
+    expect(useStore.getState().elementsMap.has("si-1")).toBe(true);
+    expect(addEntrySpy).not.toHaveBeenCalled();
   });
 });

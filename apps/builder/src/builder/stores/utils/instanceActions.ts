@@ -64,6 +64,8 @@ type CanonicalElementFields = {
 
 type CanonicalElement = Element & CanonicalElementFields;
 
+const EMPTY_ELEMENTS: Element[] = [];
+
 function asCanonicalElement(
   element: Element,
 ): Element & CanonicalElementFields {
@@ -126,24 +128,16 @@ function findInstanceActionElement(
   return elements.find((element) => element.id === elementId);
 }
 
-function getInstanceActionSourceElements(
-  state: Pick<ElementsState, "elements">,
-): Element[] {
-  const { elements: legacyElements } = state;
-  return getActiveCanonicalDocumentElements() ?? legacyElements;
+function getInstanceActionSourceElements(): Element[] {
+  return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS;
 }
 
 function withInstanceActionSourceState(state: ElementsState): ElementsState {
-  const elements = getInstanceActionSourceElements(state);
-  const { elements: legacyElements } = state;
-  return elements === legacyElements ? state : { ...state, elements };
+  return { ...state, elements: getInstanceActionSourceElements() };
 }
 
-function resolveRefMaster(
-  ref: string,
-  state: ElementsState,
-): Element | undefined {
-  const elements = getInstanceActionSourceElements(state);
+function resolveRefMaster(ref: string): Element | undefined {
+  const elements = getInstanceActionSourceElements();
   const direct = findInstanceActionElement(elements, ref);
   if (direct) return direct;
 
@@ -157,8 +151,8 @@ function resolveRefMaster(
   );
 }
 
-function getSortedChildren(state: ElementsState, parentId: string): Element[] {
-  return getInstanceActionSourceElements(state).filter(
+function getSortedChildren(parentId: string): Element[] {
+  return getInstanceActionSourceElements().filter(
     (element) => element.parent_id === parentId,
   );
 }
@@ -294,7 +288,7 @@ function buildCanonicalDetachSnapshot(
   state: ElementsState,
   refId: string,
   usedIds = new Set(
-    getInstanceActionSourceElements(state).map((element) => element.id),
+    getInstanceActionSourceElements().map((element) => element.id),
   ),
 ): { elements: Element[]; previousElements: Element[] } | null {
   const sourceState = withInstanceActionSourceState(state);
@@ -307,7 +301,7 @@ function buildCanonicalDetachSnapshot(
     return null;
   }
 
-  const master = resolveRefMaster(ref, sourceState);
+  const master = resolveRefMaster(ref);
   if (!master) {
     console.warn("[Instance] canonical ref master not found:", ref);
     return null;
@@ -382,9 +376,7 @@ function buildCanonicalDetachSnapshot(
       );
     }
     const nestedRef = !hasReplacement ? getCanonicalRef(source) : null;
-    const nestedMaster = nestedRef
-      ? resolveRefMaster(nestedRef, sourceState)
-      : null;
+    const nestedMaster = nestedRef ? resolveRefMaster(nestedRef) : null;
     const materializationSource = nestedMaster ?? source;
     const sourceOverrideProps = nestedMaster
       ? getRootOverrideProps(source)
@@ -435,7 +427,7 @@ function buildCanonicalDetachSnapshot(
       ? []
       : hasChildrenReplacement
         ? ((override!.children as unknown[]) ?? [])
-        : getSortedChildren(sourceState, materializationSource.id);
+        : getSortedChildren(materializationSource.id);
 
     childSources.forEach((childSource) => {
       if (hasChildrenReplacement && isRecord(childSource)) {
@@ -479,7 +471,7 @@ function buildCanonicalDetachSnapshot(
   );
   const previousState = { ...refElement };
 
-  getSortedChildren(sourceState, master.id).forEach((child) => {
+  getSortedChildren(master.id).forEach((child) => {
     materializeChild(
       child,
       detachedRoot.id,
@@ -496,10 +488,9 @@ function buildCanonicalDetachSnapshot(
 }
 
 function buildLegacyDetachSnapshot(
-  state: ElementsState,
   instanceId: string,
 ): { elements: Element[]; previousElements: Element[] } | null {
-  const sourceElements = getInstanceActionSourceElements(state);
+  const sourceElements = getInstanceActionSourceElements();
   const instance = findInstanceActionElement(sourceElements, instanceId);
   if (!instance || !isComponentInstanceMirrorElement(instance)) return null;
 
@@ -547,7 +538,7 @@ function buildDetachSnapshot(
   if (instance?.type === "ref") {
     return buildCanonicalDetachSnapshot(sourceState, instanceId, usedIds);
   }
-  return buildLegacyDetachSnapshot(sourceState, instanceId);
+  return buildLegacyDetachSnapshot(instanceId);
 }
 
 export function buildDetachSnapshotsForOrigins(
@@ -633,7 +624,7 @@ function applyElementSnapshotBatch(
 
   set((prevState) => {
     const removeIds = new Set(nextElements.map((element) => element.id));
-    const sourceElements = getInstanceActionSourceElements(prevState);
+    const sourceElements = getInstanceActionSourceElements();
     const retained = sourceElements.filter(
       (element) => !removeIds.has(element.id),
     );
@@ -655,7 +646,7 @@ function applyElementSnapshotBatch(
     };
   });
   get()._rebuildIndexes();
-  const sourceElements = getInstanceActionSourceElements(get());
+  const sourceElements = getInstanceActionSourceElements();
   const _persistedElements = nextElements.map(
     (element) =>
       findInstanceActionElement(sourceElements, element.id) ?? element,
@@ -707,7 +698,7 @@ export function createInstance(
 
   // ADR-040: elements 배열 추가 + 구조 변경이므로 _rebuildIndexes() 필수
   set((prevState) => ({
-    elements: [...getInstanceActionSourceElements(prevState), instanceElement],
+    elements: [...getInstanceActionSourceElements(), instanceElement],
     layoutVersion: prevState.layoutVersion + 1,
   }));
   // ADR-122 §Residual: set 1차 → sync → _rebuildIndexes (canonical-first 아님,
@@ -974,7 +965,7 @@ export function resetInstanceOverrideField(
   }
 
   set((prevState) => {
-    const sourceElements = getInstanceActionSourceElements(prevState);
+    const sourceElements = getInstanceActionSourceElements();
     const idx = sourceElements.findIndex((el) => el.id === instanceId);
     const nextElements =
       idx >= 0 ? sourceElements.with(idx, nextElement) : sourceElements;
@@ -996,7 +987,7 @@ export function resetInstanceOverrideField(
   // race 회피용 sync 선행) — syncInstanceElementsToCanonical JSDoc 참조
   syncInstanceElementsToCanonical([nextElement]);
   get()._rebuildIndexes();
-  const persistedSourceElements = getInstanceActionSourceElements(get());
+  const persistedSourceElements = getInstanceActionSourceElements();
   const _persistedElement =
     findInstanceActionElement(persistedSourceElements, instanceId) ??
     nextElement;

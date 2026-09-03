@@ -19,9 +19,10 @@ import {
   isCanonicalRefElement,
   resolveCanonicalRefElement,
 } from "../utils/canonicalRefResolution";
-import type { CompositionDocument } from "@composition/shared";
+import type { CanonicalNode } from "@composition/shared";
 import { getCanonicalDocumentElementsView } from "./canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
+import { getNodeMap } from "./canonical/canonicalTraversalHelpers";
 import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 import {
@@ -145,17 +146,23 @@ export const useImmediateSelectedElementId = (): string | null =>
 export const useImmediateCurrentPageId = (): string | null =>
   useStore((state) => state.currentPageId);
 
-function hasCanonicalRefMirror(element: Element | undefined): boolean {
-  const ref = (element as (Element & { ref?: unknown }) | undefined)?.ref;
+type SelectedRefOverrideSource = Element | CanonicalNode;
+
+function hasCanonicalRefMirror(
+  element: SelectedRefOverrideSource | undefined,
+): boolean {
+  const ref = (
+    element as (SelectedRefOverrideSource & { ref?: unknown }) | undefined
+  )?.ref;
   return typeof ref === "string" && ref.length > 0;
 }
 
 function getSelectedRefOverridePropsFromSource(
-  element: Element | undefined,
+  element: SelectedRefOverrideSource | undefined,
 ): Record<string, unknown> {
   if (!element) return {};
-  if (isComponentInstanceMirrorElement(element)) {
-    return getComponentOverridesMirror(element) ?? {};
+  if (isComponentInstanceMirrorElement(element as Element)) {
+    return getComponentOverridesMirror(element as Element) ?? {};
   }
   if (isCanonicalRefElement(element) || hasCanonicalRefMirror(element)) {
     return (element.props ?? {}) as Record<string, unknown>;
@@ -163,13 +170,10 @@ function getSelectedRefOverridePropsFromSource(
   return {};
 }
 
-function findElementInCanonicalDocument(
-  doc: CompositionDocument | null,
+function getActiveCanonicalRefOverrideSource(
   elementId: string,
-): Element | undefined {
-  if (!doc) return undefined;
-  // shared view byId 는 중복 id 시 last-match — 기존 전체 순회 재할당과 동일 의미.
-  return getCanonicalDocumentElementsView(doc).byId.get(elementId);
+): CanonicalNode | undefined {
+  return getNodeMap().get(elementId);
 }
 
 // ============================================
@@ -247,10 +251,9 @@ export const useSelectedElementData = (): SelectedElement | null => {
 
     const currentRefOverrideProps = shouldUseResolvedRefProps
       ? getSelectedRefOverridePropsFromSource(
-          findElementInCanonicalDocument(
-            activeCanonicalDocument,
-            selectedElementId,
-          ) ?? (hasCanonicalDocument ? undefined : element),
+          (hasCanonicalDocument
+            ? getActiveCanonicalRefOverrideSource(selectedElementId)
+            : element) ?? undefined,
         )
       : null;
 

@@ -72,6 +72,37 @@ function getActiveDocumentSnapshot(): {
   };
 }
 
+function isCanonicalNode(value: unknown): value is CanonicalNode {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as { id?: unknown; type?: unknown };
+  return typeof candidate.id === "string" && typeof candidate.type === "string";
+}
+
+function readDescendantChildren(override: unknown): CanonicalNode[] {
+  if (!override || typeof override !== "object") return [];
+  if (isCanonicalNode(override)) return [override];
+
+  const children = (override as { children?: unknown }).children;
+  if (!Array.isArray(children)) return [];
+  return children.filter(isCanonicalNode);
+}
+
+export function getCanonicalPageRefDescendantChildren(
+  node: CanonicalNode,
+): CanonicalNode[][] {
+  const metadataType = node.metadata?.type;
+  if (
+    node.type !== "ref" ||
+    (metadataType !== "page" && metadataType !== "legacy-page")
+  ) {
+    return [];
+  }
+
+  return Object.values((node as RefNode).descendants ?? {})
+    .map(readDescendantChildren)
+    .filter((children) => children.length > 0);
+}
+
 function ensureCache(): TraversalCache | null {
   const snapshot = getActiveDocumentSnapshot();
   if (!snapshot) return null;
@@ -102,6 +133,14 @@ function ensureCache(): TraversalCache | null {
     if (node.children) {
       for (const child of node.children) {
         visit(child, node.id);
+      }
+    }
+    // Page ref 의 descendants replacement subtree 는 runtime page element다.
+    // projection boundary 와 같은 순서로 방문하되, page wrapper 자체는
+    // renderable parent 가 아니므로 override root 의 parent edge 는 비워 둔다.
+    for (const children of getCanonicalPageRefDescendantChildren(node)) {
+      for (const child of children) {
+        visit(child, null);
       }
     }
   }

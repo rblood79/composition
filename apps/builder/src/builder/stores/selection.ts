@@ -1,6 +1,10 @@
 import { StateCreator } from "zustand";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
+import {
+  getChildren,
+  getNodeMap,
+  getParent,
+} from "./canonical/canonicalTraversalHelpers";
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from 'immer'; // REMOVED
 
@@ -57,30 +61,48 @@ interface RequiredElementsState {
 
 type CombinedSelectionState = SelectionState & RequiredElementsState;
 
-function getActiveCanonicalSelectionElements(): SelectionElement[] | null {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return null;
-
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return null;
-
-  const elements: SelectionElement[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push({
-      id: element.id,
-      type: element.type,
-      parent_id: element.parent_id,
-    });
-  });
-  return elements;
+interface SelectionHierarchyEntry extends SelectionElement {
+  hasChildren: boolean;
+  parentType: string | null;
 }
 
-function getSelectionElements(
+function getSelectionHierarchyEntry(
   state: RequiredElementsState,
-): SelectionElement[] {
+  elementId: string,
+): SelectionHierarchyEntry | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  const hasCanonicalDocument = Boolean(
+    projectId && canonical.documents.has(projectId),
+  );
+  if (hasCanonicalDocument) {
+    const node = getNodeMap().get(elementId);
+    if (!node) return null;
+    const parent = getParent(elementId);
+    return {
+      id: node.id,
+      type: node.type,
+      parent_id: parent?.id ?? null,
+      parentType: parent?.type ?? null,
+      hasChildren: getChildren(node).length > 0,
+    };
+  }
+
   const { elements: legacyElements } = state;
-  return getActiveCanonicalSelectionElements() ?? legacyElements;
+  const element = legacyElements.find(
+    (candidate) => candidate.id === elementId,
+  );
+  if (!element) return null;
+  const parent = element.parent_id
+    ? legacyElements.find((candidate) => candidate.id === element.parent_id)
+    : null;
+  return {
+    ...element,
+    parentType: parent?.type ?? null,
+    hasChildren: legacyElements.some(
+      (candidate) => candidate.parent_id === elementId,
+    ),
+  };
 }
 
 export const createSelectionSlice: StateCreator<
@@ -186,11 +208,8 @@ export const createSelectionSlice: StateCreator<
   },
 
   enterEditingContext: (elementId) => {
-    const elements = getSelectionElements(get());
-    const hasChildren = elements.some(
-      (element) => element.parent_id === elementId,
-    );
-    if (!hasChildren) return;
+    const entry = getSelectionHierarchyEntry(get(), elementId);
+    if (!entry?.hasChildren) return;
     set({
       editingContextId: elementId,
       selectedElementIds: [],
@@ -204,23 +223,17 @@ export const createSelectionSlice: StateCreator<
     const { editingContextId } = state;
     if (editingContextId === null) return;
 
-    const elements = getSelectionElements(state);
-    const contextElement = elements.find(
-      (element) => element.id === editingContextId,
-    );
-    if (!contextElement) {
+    const contextEntry = getSelectionHierarchyEntry(state, editingContextId);
+    if (!contextEntry) {
       set({ editingContextId: null });
       return;
     }
 
-    const parentId = contextElement.parent_id;
-    const parentElement = parentId
-      ? elements.find((element) => element.id === parentId)
-      : null;
-
     // body 직계 자식이면 루트로, 아니면 부모로 이동
     const newContextId =
-      parentElement?.type === "body" ? null : (parentId ?? null);
+      contextEntry.parentType === "body"
+        ? null
+        : (contextEntry.parent_id ?? null);
 
     // 빠져나온 컨테이너를 선택 상태로
     set({

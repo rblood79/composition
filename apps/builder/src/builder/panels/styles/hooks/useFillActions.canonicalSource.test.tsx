@@ -17,6 +17,7 @@ import { FillType } from "../../../../types/builder/fill.types";
 import type { FillItem } from "../../../../types/builder/fill.types";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
+import { __resetTraversalCache_TEST_ONLY__ } from "../../../stores/canonical/canonicalTraversalHelpers";
 import { useFillActions } from "./useFillActions";
 
 /**
@@ -47,7 +48,10 @@ function makeDocument(
   } satisfies CompositionDocument;
 }
 
-function setupCanonical(nodeFills?: FillItem[]): void {
+function setupCanonical(
+  nodeFills?: FillItem[],
+  legacyMetadataFills?: FillItem[],
+): void {
   useCanonicalDocumentStore.setState({
     documents: new Map(),
     currentProjectId: null,
@@ -62,6 +66,9 @@ function setupCanonical(nodeFills?: FillItem[]): void {
         type: "Box",
         props: { style: {} },
         ...(nodeFills ? { fills: nodeFills } : {}),
+        ...(legacyMetadataFills
+          ? { metadata: { legacyProps: { fills: legacyMetadataFills } } }
+          : {}),
       },
     ]),
   );
@@ -71,6 +78,7 @@ describe("useFillActions — 표시·액션 동일 소스 (canonical 우선)", (
   let updateSelectedFills: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    __resetTraversalCache_TEST_ONLY__();
     updateSelectedFills = vi.fn();
     useStore.setState({
       selectedElementId: "el-1",
@@ -101,6 +109,20 @@ describe("useFillActions — 표시·액션 동일 소스 (canonical 우선)", (
     expect(committed[1].type).toBe(FillType.LinearGradient);
   });
 
+  it("pre-cutover metadata fill stack을 첫 편집에서 보존한다", () => {
+    setupCanonical(undefined, [CANONICAL_FILL]);
+    const { result } = renderHook(() => useFillActions());
+
+    act(() => {
+      result.current.addFill(FillType.LinearGradient);
+    });
+
+    const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
+    expect(committed).toHaveLength(2);
+    expect(committed[0]).toEqual(CANONICAL_FILL);
+    expect(committed[1].type).toBe(FillType.LinearGradient);
+  });
+
   it("ensureColorFill 은 color fill 이 이미 있으면 갱신만 한다 (중복 append 차단)", () => {
     setupCanonical([CANONICAL_FILL]);
     const { result } = renderHook(() => useFillActions());
@@ -125,6 +147,38 @@ describe("useFillActions — 표시·액션 동일 소스 (canonical 우선)", (
     const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
     expect(committed).toHaveLength(1);
     expect(committed[0].type).toBe(FillType.Color);
+  });
+
+  it("active canonical에 선택 노드가 없으면 stale legacy fill을 되살리지 않는다", () => {
+    useStore.setState({
+      elementsMap: new Map([
+        [
+          "el-1",
+          {
+            id: "el-1",
+            type: "Box",
+            props: { style: {} },
+            fills: [CANONICAL_FILL],
+          },
+        ],
+      ]),
+    } as unknown as Parameters<typeof useStore.setState>[0]);
+    useCanonicalDocumentStore.setState({
+      documents: new Map([
+        ["project-1", makeDocument([{ id: "other", type: "Box", props: {} }])],
+      ]),
+      currentProjectId: "project-1",
+      documentVersion: 1,
+    });
+    const { result } = renderHook(() => useFillActions());
+
+    act(() => {
+      result.current.addFill(FillType.LinearGradient);
+    });
+
+    const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
+    expect(committed).toHaveLength(1);
+    expect(committed[0].type).toBe(FillType.LinearGradient);
   });
 
   it("canonical 문서가 없으면 legacy elementsMap fallback 을 유지한다", () => {

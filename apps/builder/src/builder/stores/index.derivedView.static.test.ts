@@ -13,6 +13,8 @@ describe("builder store canonical derived view callers", () => {
     // elements 파생은 useMemo 대신 view 직접 참조로 전환됨. selected element 파생은 useMemo 유지.
     expect(source).toContain("useActiveCanonicalDocument");
     expect(source).toContain("getCanonicalDocumentElementsView");
+    expect(source).toContain("getNodeMap().get(elementId)");
+    expect(source).not.toContain("findElementInCanonicalDocument");
     expect(source).toContain(
       "const canonicalSelectedElement = useMemo(() => {",
     );

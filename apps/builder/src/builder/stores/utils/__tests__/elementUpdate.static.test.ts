@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-describe("elementUpdate canonical read fallback contract", () => {
-  it("uses active canonical elements before bootstrap store elements for mutation reads", async () => {
+describe("elementUpdate canonical-only read contract", () => {
+  it("uses only active canonical elements for mutation reads", async () => {
     const source = await readFile(
       resolve(__dirname, "../elementUpdate.ts"),
       "utf-8",
@@ -14,8 +14,9 @@ describe("elementUpdate canonical read fallback contract", () => {
     expect(source).toContain("function buildElementUpdateLookup");
     expect(source).toContain("function buildElementUpdateChildrenByParent");
     expect(source).toContain(
-      "return getActiveCanonicalDocumentElements() ?? legacyElements",
+      "return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS",
     );
+    expect(source).not.toContain("const { elements: legacyElements } = state");
     expect(source).toContain("buildElementUpdateLookup(sourceElements)");
     expect(source).toContain(
       "buildElementUpdateChildrenByParent(sourceElements)",

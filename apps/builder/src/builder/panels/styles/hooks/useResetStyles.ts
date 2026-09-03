@@ -13,7 +13,10 @@ import { useCallback, useMemo, type CSSProperties } from "react";
 import { adaptStyleWithFills } from "@composition/shared";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
-import { getCanonicalDocumentElementsView } from "../../../stores/canonical/canonicalElementsView";
+import {
+  getNodeMap,
+  getParent,
+} from "../../../stores/canonical/canonicalTraversalHelpers";
 import { getDefaultProps } from "../../../../types/builder/unified.types";
 import {
   resolveAppearanceSpecPreset,
@@ -32,7 +35,7 @@ import {
 } from "../../properties/hooks/useCanonicalPropertyRead";
 import type {
   BreakpointName,
-  CompositionDocument,
+  CanonicalNode,
   ElementResponsiveConfig,
 } from "@composition/shared";
 
@@ -70,27 +73,37 @@ type ResetBaselineElement = {
   props?: Readonly<Record<string, unknown>>;
 };
 
-function getActiveCanonicalResetDocument(): CompositionDocument | null {
+type ResetHierarchyNode = ResetBaselineElement & {
+  id: string;
+  responsive?: ElementResponsiveConfig;
+};
+
+function hasActiveCanonicalResetDocument(): boolean {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
-  if (!projectId) return null;
+  return Boolean(projectId && canonical.documents.has(projectId));
+}
 
-  return canonical.documents.get(projectId) ?? null;
+function toResetHierarchyNode(node: CanonicalNode): ResetHierarchyNode {
+  const isLegacySlotHoisted = node.metadata?.type === "legacy-slot-hoisted";
+  const props = { ...(node.props ?? {}) };
+  if (isLegacySlotHoisted && typeof node.metadata?.slotName === "string") {
+    props.name ??= node.metadata.slotName;
+  }
+
+  return {
+    id: node.id,
+    type: isLegacySlotHoisted ? "Slot" : node.type,
+    props,
+    responsive: node.responsive,
+  };
 }
 
 function getActiveCanonicalResetElement(
   elementId: string,
-): ResetBaselineElement | null {
-  const doc = getActiveCanonicalResetDocument();
-  if (!doc) return null;
-
-  const element = getCanonicalDocumentElementsView(doc).byId.get(elementId);
-  if (!element) return null;
-
-  return {
-    type: element.type,
-    props: element.props as Readonly<Record<string, unknown>> | undefined,
-  };
+): ResetHierarchyNode | null {
+  const node = getNodeMap().get(elementId);
+  return node ? toResetHierarchyNode(node) : null;
 }
 
 function normalizeStyleValue(prop: string, value: unknown): string | undefined {
@@ -933,10 +946,13 @@ export function useResetStyles() {
     const selectedId = state.selectedElementId;
     if (!selectedId) return;
 
-    const canonicalDocument = getActiveCanonicalResetDocument();
+    const hasCanonicalDocument = hasActiveCanonicalResetDocument();
     const { elements: legacyElements } = state;
-    const element = canonicalDocument
+    const canonicalElement = hasCanonicalDocument
       ? getActiveCanonicalResetElement(selectedId)
+      : null;
+    const element = hasCanonicalDocument
+      ? canonicalElement
       : legacyElements.find((candidate) => candidate.id === selectedId);
     if (!element) return;
 
@@ -944,13 +960,33 @@ export function useResetStyles() {
     //   reset 시 default layout 을 컨텍스트별로 복원해야(picker DateInput→flex:1/minWidth:0 등)
     //   dirty 판정(useHasDirtyStyles)과 동일 baseline 으로 일관 동작한다.
     const elementsMap = state.elementsMap;
-    const selfNode = elementsMap.get(selectedId);
-    const parentNode = selfNode?.parent_id
-      ? elementsMap.get(selfNode.parent_id)
+    const legacySelfNode = elementsMap.get(selectedId);
+    const legacyParentNode = legacySelfNode?.parent_id
+      ? elementsMap.get(legacySelfNode.parent_id)
       : undefined;
-    const grandParentNode = parentNode?.parent_id
-      ? elementsMap.get(parentNode.parent_id)
+    const legacyGrandParentNode = legacyParentNode?.parent_id
+      ? elementsMap.get(legacyParentNode.parent_id)
       : undefined;
+    const canonicalParentNode = hasCanonicalDocument
+      ? getParent(selectedId)
+      : null;
+    const parentNode = hasCanonicalDocument
+      ? canonicalParentNode
+        ? toResetHierarchyNode(canonicalParentNode)
+        : undefined
+      : legacyParentNode;
+    const canonicalGrandParentNode =
+      hasCanonicalDocument && canonicalParentNode
+        ? getParent(canonicalParentNode.id)
+        : null;
+    const grandParentNode = hasCanonicalDocument
+      ? canonicalGrandParentNode
+        ? toResetHierarchyNode(canonicalGrandParentNode)
+        : undefined
+      : legacyGrandParentNode;
+    const responsive = hasCanonicalDocument
+      ? canonicalElement?.responsive
+      : legacySelfNode?.responsive;
 
     // ADR-154: 비-desktop breakpoint 에서 reset 은 base 가 아니라 해당 breakpoint 의
     // responsive override 를 clear 한다. dirty 판정(computeDirtyStyleProps)과 동일하게
@@ -964,7 +1000,7 @@ export function useResetStyles() {
     const activeBreakpoint = state.activeBreakpoint;
     if (activeBreakpoint !== "desktop") {
       const overrideStyle = collectBreakpointOverrideStyle(
-        selfNode?.responsive,
+        responsive,
         activeBreakpoint,
       );
       // 프리셋이 이 breakpoint 에 심은 값이 있으면 **그 값으로** 되돌린다. override 를 지우면

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-describe("elementRemoval canonical read fallback contract", () => {
-  it("collects removal targets from active canonical elements before bootstrap store elements", async () => {
+describe("elementRemoval canonical-only read contract", () => {
+  it("collects removal targets only from active canonical elements", async () => {
     const source = await readFile(
       resolve(__dirname, "../elementRemoval.ts"),
       "utf-8",
@@ -12,8 +12,9 @@ describe("elementRemoval canonical read fallback contract", () => {
     expect(source).toContain("getActiveCanonicalDocumentElements");
     expect(source).toContain("function getElementRemovalSourceElements");
     expect(source).toContain(
-      "return getActiveCanonicalDocumentElements() ?? legacyElements",
+      "return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS",
     );
+    expect(source).not.toContain("const { elements: legacyElements } = state");
     expect(source).toContain("function collectElementsToRemove");
     expect(source).toContain(
       "collectElementsToRemove(elementId, sourceElements)",

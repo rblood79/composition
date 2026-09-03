@@ -19,7 +19,6 @@ import type {
   CanonicalNode,
   CompositionDocument,
   CompositionExtension,
-  RefNode,
 } from "@composition/shared";
 import type { Element } from "../../../types/builder/unified.types";
 import {
@@ -28,6 +27,7 @@ import {
   normalizeFrameLayoutId,
 } from "../../../adapters/canonical/frameMirror";
 import { readLegacyMetadataCustomId } from "../../../adapters/canonical/legacyMetadata";
+import { readCanonicalNodeFillPayload } from "../../../adapters/canonical/canonicalFillPayload";
 import {
   canonicalDocumentToFrameElementScopes,
   type CanonicalFrameElementScopeMap,
@@ -37,6 +37,7 @@ import {
   useActiveCanonicalDocument,
 } from "./canonicalElementsBridge";
 import { useCanonicalDocumentStore } from "./canonicalDocumentStore";
+import { getCanonicalPageRefDescendantChildren } from "./canonicalTraversalHelpers";
 
 type ElementScopeContext = {
   pageId: string | null;
@@ -97,29 +98,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function isCanonicalNode(value: unknown): value is CanonicalNode {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as { id?: unknown; type?: unknown };
-  return typeof candidate.id === "string" && typeof candidate.type === "string";
-}
-
-function readDescendantChildren(override: unknown): CanonicalNode[] {
-  if (!override || typeof override !== "object") return [];
-  if (isCanonicalNode(override)) return [override];
-
-  const children = (override as { children?: unknown }).children;
-  if (!Array.isArray(children)) return [];
-  return children.filter(isCanonicalNode);
-}
-
-function getRefDescendantChildren(node: CanonicalNode): CanonicalNode[][] {
-  if (node.type !== "ref" || !isPagePlaceholderNode(node)) return [];
-  const descendants = (node as RefNode).descendants ?? {};
-  return Object.values(descendants)
-    .map(readDescendantChildren)
-    .filter((children) => children.length > 0);
-}
-
 // Ref override helpers — ADR-127 leaf 소유권은 canonicalTraversalHelpers.
 // panel/store 최종 소비자를 위해 동일 심볼을 여기서 re-export 한다.
 export {
@@ -172,33 +150,6 @@ function extractCanonicalComponentMirrorFields(
 // ─────────────────────────────────────────────
 
 /**
- * canonical node 의 fills 복원.
- *
- * 1순위: canonical 1차 필드 `node.fills` (2026-07-15 SSOT 경계 확정 이후 쓰기).
- * 2순위: `metadata.legacyProps.fills` — ADR-116 G1 §3 격리 보존분 (1차 필드
- * 도입 전 마이그레이션된 구 문서). 읽기 시점 승격 fallback 이며, 해당 노드가
- * 다음 mutation 을 거치면 1차 필드로 재기록된다.
- */
-function readCanonicalNodeFills(
-  node: CanonicalNode,
-  metadata: CanonicalScopeMetadata | undefined,
-): Element["fills"] {
-  // canonical schema 는 boundary 상 unknown[] — 항목 정본(FillItem)은 builder
-  // 소유 타입이므로 derived Element boundary 에서 narrow.
-  if (Array.isArray(node.fills) && node.fills.length > 0) {
-    return node.fills as Element["fills"];
-  }
-  const legacyProps = (
-    metadata as { legacyProps?: { fills?: unknown } } | undefined
-  )?.legacyProps;
-  const legacyFills = legacyProps?.fills;
-  if (Array.isArray(legacyFills) && legacyFills.length > 0) {
-    return legacyFills as Element["fills"];
-  }
-  return undefined;
-}
-
-/**
  * canonical CanonicalNode + parent context → Element 재구성.
  *
  * `node.props` 미정의 노드(page placeholder, slot synthetic 등)는 기존처럼
@@ -234,7 +185,7 @@ export function canonicalNodeToElement(
       parent_id: parentId,
       page_id: scope.pageId,
       layout_id: scope.layoutId,
-      fills: readCanonicalNodeFills(node, metadata),
+      fills: readCanonicalNodeFillPayload(node) as Element["fills"],
       componentName: node.name,
       ...extFields,
       ...mirrorFields,
@@ -330,7 +281,7 @@ export function visitCanonicalDocumentElements(
         visit(child, nextParentId, nextScope);
       });
     }
-    getRefDescendantChildren(node).forEach((children) => {
+    getCanonicalPageRefDescendantChildren(node).forEach((children) => {
       children.forEach((child) => {
         visit(child, nextParentId, nextScope);
       });

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [요소 편집과 선택·스타일 읽기를 canonical 문서 기준으로 통일했습니다] - 2026-09-04
+
+### Changed
+
+- instance 생성·분리, 요소 update·remove가 활성 canonical 문서만 mutation source로 사용합니다. canonical 문서가 준비되지 않은 동안 오래된 legacy cache를 수정하거나 history로 기록하지 않습니다.
+- 중첩 요소의 editing context 진입·종료, Styles reset의 선택 요소·부모·조부모 조회, Fill 액션의 현재 값 조회를 ADR-127 canonical node helper로 옮겼습니다. page ref의 `descendants` replacement subtree도 같은 helper cache에서 탐색합니다.
+
+### Fixed
+
+- 모바일·태블릿 style override를 reset할 때 선택 요소는 canonical 문서에서 읽으면서 responsive 값과 부모 baseline은 오래된 legacy map에서 읽어 reset이 누락될 수 있던 source 분리를 없앴습니다.
+- Fill 액션을 canonical node index로 옮기면서도, top-level `fills` 도입 전에 저장된 문서의 `metadata.legacyProps.fills`는 adapter 경계에서 복원해 첫 편집 때 기존 fill stack이 사라지지 않게 했습니다.
+
+### Tests
+
+- legacy-only instance/update/remove no-op, selection 즉시성·stale legacy 미복원, page ref descendants hierarchy, canonical responsive reset, 선택 노드가 사라진 Fill 액션의 stale legacy 미복원과 pre-cutover fill 보존 회귀를 추가했습니다.
+
 ## [입력 필드의 설명 문구가 캔버스에도 보입니다] - 2026-09-04
 
 ### Fixed

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import type { CompositionDocument } from "@composition/shared";
 
 vi.mock("../../../../services/save", () => ({
   saveService: {
@@ -13,6 +14,7 @@ vi.mock("../../../../env/supabase.client", () => ({
 }));
 
 import { useStore } from "../../../stores";
+import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { useLayoutValues } from "./useLayoutValues";
 import { useTransformValues } from "./useTransformValues";
 import {
@@ -411,6 +413,134 @@ describe("useResetStyles — Select-family sub-part 부모-컨텍스트 dirty au
       ).toBe(false);
     },
   );
+});
+
+describe("useResetStyles — canonical parent context", () => {
+  const originalState = useStore.getState();
+
+  beforeEach(() => {
+    const staleChild = makeTaggedElement("child-1", "SelectValue", {
+      style: { flex: 1, textAlign: "left" },
+    });
+    useStore.setState({
+      selectedElementId: staleChild.id,
+      selectedElementProps: staleChild.props,
+      currentPageId: "page-1",
+      elements: [staleChild],
+      elementsMap: new Map([[staleChild.id, staleChild]]),
+      activeBreakpoint: "mobile",
+      updateSelectedStyles: vi.fn(),
+    } as never);
+    useCanonicalDocumentStore.setState({
+      documents: new Map([
+        [
+          "project-1",
+          {
+            version: "composition-1.0",
+            children: [
+              {
+                id: "select-1",
+                type: "Select",
+                props: {},
+                children: [
+                  {
+                    id: "trigger-1",
+                    type: "SelectTrigger",
+                    props: {},
+                    children: [
+                      {
+                        id: "child-1",
+                        type: "SelectValue",
+                        props: { style: { flex: 1, textAlign: "left" } },
+                        responsive: {
+                          styles: { rowGap: { mobile: 33 } },
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          } as unknown as CompositionDocument,
+        ],
+      ]),
+      currentProjectId: "project-1",
+      documentVersion: 1,
+    });
+  });
+
+  afterEach(() => {
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
+    useStore.setState(originalState, true);
+    vi.restoreAllMocks();
+  });
+
+  it("stale legacy map 대신 canonical self·부모 revision을 사용한다", () => {
+    const updateSelectedStyles = useStore.getState().updateSelectedStyles;
+    const { result } = renderHook(() => useResetStyles());
+
+    act(() => {
+      result.current(["gap", "rowGap", "columnGap"]);
+    });
+
+    expect(updateSelectedStyles).toHaveBeenCalledWith(
+      expect.objectContaining({ rowGap: "" }),
+    );
+  });
+
+  it("hoisted Slot metadata의 name으로 preset responsive baseline을 복원한다", () => {
+    const updateSelectedStyles = vi.fn();
+    useStore.setState({
+      selectedElementId: "slot-1",
+      selectedElementProps: {},
+      activeBreakpoint: "mobile",
+      updateSelectedStyles,
+    } as never);
+    useCanonicalDocumentStore.setState({
+      documents: new Map([
+        [
+          "project-1",
+          {
+            version: "composition-1.0",
+            children: [
+              {
+                id: "body-1",
+                type: "body",
+                props: { appliedPreset: "sidebar-left" },
+                children: [
+                  {
+                    id: "slot-1",
+                    type: "div",
+                    metadata: {
+                      type: "legacy-slot-hoisted",
+                      slotName: "sidebar",
+                    },
+                    responsive: {
+                      styles: { width: { mobile: "42%" } },
+                    },
+                  },
+                ],
+              },
+            ],
+          } as unknown as CompositionDocument,
+        ],
+      ]),
+      currentProjectId: "project-1",
+      documentVersion: 2,
+    });
+
+    const { result } = renderHook(() => useResetStyles());
+
+    act(() => {
+      result.current(["width"]);
+    });
+
+    expect(updateSelectedStyles).toHaveBeenCalledWith({ width: "100%" });
+  });
 });
 
 /**

@@ -39,6 +39,19 @@ describe("style hooks canonical read contract", () => {
     expect(transformSource).not.toContain("s.elementsMap.get(id)?.type");
   });
 
+  it("reads fill action state from the canonical node index", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useFillActions.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("getNodeMap().get(selectedElementId)");
+    expect(source).toContain("readCanonicalNodeFillPayload(node)");
+    expect(source).not.toContain("getCanonicalDocumentElementsView");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("legacyProps");
+  });
+
   it("uses canonical property element for reset dirty-state reads", async () => {
     const source = await readFile(
       resolve(__dirname, "useResetStyles.ts"),
@@ -46,9 +59,11 @@ describe("style hooks canonical read contract", () => {
     );
 
     expect(source).toContain('useCanonicalPropertyElement(selectedId ?? "")');
-    expect(source).toContain("visitCanonicalDocumentElements");
-    expect(source).toContain("getActiveCanonicalResetDocument");
+    expect(source).toContain("getNodeMap");
+    expect(source).toContain("getParent");
     expect(source).toContain("getActiveCanonicalResetElement(selectedId)");
+    expect(source).not.toContain("getCanonicalDocumentElementsView");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
     expect(source).not.toContain("canonicalElementSnapshot");
     expect(source).not.toContain("state.elements.find");
     expect(source).not.toContain(

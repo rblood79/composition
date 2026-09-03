@@ -3,13 +3,14 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("selection slice canonical hierarchy lookup contract", () => {
-  it("uses canonical elements or store elements instead of legacy maps for editing context lookup", async () => {
+  it("uses ADR-127 canonical node helpers before store bootstrap elements", async () => {
     const source = await readFile(resolve(__dirname, "selection.ts"), "utf-8");
 
-    expect(source).toContain("visitCanonicalDocumentElements");
-    expect(source).toContain("getActiveCanonicalSelectionElements");
-    expect(source).toContain("function getSelectionElements");
-    expect(source).toContain("getSelectionElements(get())");
+    expect(source).toContain("getNodeMap");
+    expect(source).toContain("getChildren");
+    expect(source).toContain("getParent");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("getActiveCanonicalSelectionElements");
     expect(source).not.toContain("canonicalElementSnapshot");
 
     const staleElementMap = ["elements", "Map"].join("");

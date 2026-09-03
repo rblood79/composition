@@ -110,7 +110,7 @@ describe("instance store actions", () => {
     } as never);
   });
 
-  it("creates a legacy instance with a fresh customId instead of reusing origin customId", () => {
+  it("creates an instance from canonical source with a fresh customId", () => {
     const body = makeElement("body", {
       type: "body",
       customId: "body_1",
@@ -133,6 +133,7 @@ describe("instance store actions", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     const instance = useStore
       .getState()
@@ -149,6 +150,25 @@ describe("instance store actions", () => {
     expect(
       useStore.getState().elementsMap.get(instance?.id ?? "")?.customId,
     ).toBe("button_2");
+  });
+
+  it("does not create an instance from legacy-only store elements", () => {
+    const origin = withComponentOriginMirror(
+      makeElement("origin", { customId: "button_1" }),
+    );
+    useStore.setState({
+      elements: [origin],
+      elementsMap: new Map([[origin.id, origin]]),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+
+    const instance = useStore
+      .getState()
+      .createInstance(origin.id, "body", "page-1");
+
+    expect(instance).toBeNull();
+    expect(useStore.getState().elements).toEqual([origin]);
+    expect(addEntrySpy).not.toHaveBeenCalled();
   });
 
   it("creates an instance customId after existing ref instance IDs with the same base", () => {
@@ -181,6 +201,7 @@ describe("instance store actions", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     const instance = useStore
       .getState()
@@ -293,7 +314,7 @@ describe("instance store actions", () => {
     });
   });
 
-  it("detaches a legacy instance into a standalone element", () => {
+  it("detaches a canonical ref into a standalone element", () => {
     const master = withComponentOriginMirror(
       makeElement("master", {
         props: { label: "Master", style: { color: "red", padding: "8px" } },
@@ -316,22 +337,38 @@ describe("instance store actions", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     const result = useStore.getState().detachInstance("instance");
     const detached = useStore.getState().elementsMap.get("instance");
 
     expect(result?.previousState).toMatchObject({
-      [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
-      [COMPONENT_MASTER_ID_MIRROR_FIELD]: "master",
+      type: "ref",
+      ref: "master",
+      props: { label: "Instance", style: { color: "blue" } },
     });
     expect(detached).toMatchObject({
       id: "instance",
-      [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
-      [COMPONENT_MASTER_ID_MIRROR_FIELD]: undefined,
-      [COMPONENT_OVERRIDES_MIRROR_FIELD]: undefined,
-      [COMPONENT_DESCENDANTS_MIRROR_FIELD]: undefined,
       props: { label: "Instance", style: { color: "blue", padding: "8px" } },
     });
+    const detachedSemantics = detached as
+      | (Element & {
+          [COMPONENT_ROLE_MIRROR_FIELD]?: unknown;
+          [COMPONENT_MASTER_ID_MIRROR_FIELD]?: unknown;
+          [COMPONENT_OVERRIDES_MIRROR_FIELD]?: unknown;
+          [COMPONENT_DESCENDANTS_MIRROR_FIELD]?: unknown;
+        })
+      | undefined;
+    expect(detachedSemantics?.[COMPONENT_ROLE_MIRROR_FIELD]).toBeUndefined();
+    expect(
+      detachedSemantics?.[COMPONENT_MASTER_ID_MIRROR_FIELD],
+    ).toBeUndefined();
+    expect(
+      detachedSemantics?.[COMPONENT_OVERRIDES_MIRROR_FIELD],
+    ).toBeUndefined();
+    expect(
+      detachedSemantics?.[COMPONENT_DESCENDANTS_MIRROR_FIELD],
+    ).toBeUndefined();
     expect(
       useStore.getState().componentIndex.masterToInstances.get("master"),
     ).toBeUndefined();
@@ -449,6 +486,7 @@ describe("instance store actions", () => {
       elementsMap: new Map([["ref", ref]]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     useStore.getState().resetInstanceOverrideField("ref", "label");
 
@@ -675,6 +713,7 @@ describe("instance store actions", () => {
       elementsMap: new Map([["ref", ref]]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     useStore.getState().resetInstanceOverrideField("ref", "name", "icon");
 
@@ -818,6 +857,7 @@ describe("instance store actions", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     useStore.getState().detachInstance("page-ref");
     const detachedSlot = useStore
@@ -877,6 +917,7 @@ describe("instance store actions", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     useStore.getState().detachInstance(ref.id);
 
@@ -923,6 +964,7 @@ describe("instance store actions", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     useStore.getState().detachInstance("ref");
     const materializedChildren = useStore
@@ -982,6 +1024,7 @@ describe("instance store actions", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     useStore.getState().detachInstance("button-ref");
     const materializedIcon = useStore
@@ -1136,14 +1179,14 @@ describe("instance store actions", () => {
       elementsMap: new Map([["origin", origin]]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     await useStore.getState().toggleComponentOrigin("origin");
 
-    expect(useStore.getState().elementsMap.get("origin")).toMatchObject({
-      componentName: "CTA",
-      reusable: false,
-      [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
-    });
+    const updatedOrigin = useStore.getState().elementsMap.get("origin") as
+      (Element & { reusable?: boolean }) | undefined;
+    expect(updatedOrigin).toMatchObject({ componentName: "CTA" });
+    expect(updatedOrigin?.reusable).toBeFalsy();
     expect(confirmSpy).not.toHaveBeenCalled();
   });
 
@@ -1303,15 +1346,19 @@ describe("instance store actions", () => {
       ),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     const result = await useStore.getState().toggleComponentOrigin("origin");
 
     expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(result?.previousElements).toHaveLength(1001);
     expect(result?.elements).toHaveLength(1001);
-    expect(useStore.getState().elementsMap.get("origin")).toMatchObject({
-      reusable: false,
-    });
+    expect(
+      (
+        useStore.getState().elementsMap.get("origin") as
+          (Element & { reusable?: boolean }) | undefined
+      )?.reusable,
+    ).toBeFalsy();
     expect(useStore.getState().elementsMap.get("instance-999")).toMatchObject({
       type: "Button",
       props: { label: "Instance 999" },
@@ -1338,6 +1385,7 @@ describe("instance store actions", () => {
       elementsMap: new Map([["origin", origin]]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     await useStore.getState().toggleComponentOrigin("origin", {
       beforeMutation: () => {
@@ -1352,6 +1400,7 @@ describe("instance store actions", () => {
             raceInstance,
           ),
         } as never);
+        mergeElementsCanonicalPrimary([raceInstance]);
         useStore.getState()._rebuildIndexes();
       },
     });
@@ -1376,6 +1425,7 @@ describe("instance store actions", () => {
       elementsMap: new Map([["origin", origin]]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     // subscribe listener 는 union(Impact | Detach)을 emit → 배열도 union 으로.
     // (impact-specific 필드 단언은 toMatchObject 런타임 구조 검사로 수행)
@@ -1404,6 +1454,7 @@ describe("instance store actions", () => {
                 raceInstance,
               ),
             } as never);
+            mergeElementsCanonicalPrimary([raceInstance]);
             useStore.getState()._rebuildIndexes();
           },
         });
@@ -1429,9 +1480,12 @@ describe("instance store actions", () => {
         .getState()
         .elementsMap.get("race-instance") as
         (Element & { ref?: string }) | undefined;
-      expect(useStore.getState().elementsMap.get("origin")).toMatchObject({
-        reusable: false,
-      });
+      expect(
+        (
+          useStore.getState().elementsMap.get("origin") as
+            (Element & { reusable?: boolean }) | undefined
+        )?.reusable,
+      ).toBeFalsy();
       expect(raceInstance).toMatchObject({ type: "Button" });
       expect(raceInstance?.ref).toBeUndefined();
     } finally {

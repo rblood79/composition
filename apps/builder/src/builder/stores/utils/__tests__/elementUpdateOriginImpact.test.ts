@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  mergeElementsCanonicalPrimary,
+  registerCanonicalMutationStoreActions,
+  resetCanonicalMutationStoreActions,
+} from "@/adapters/canonical/canonicalMutations";
 import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
 import type { Element } from "../../../../types/core/store.types";
+import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import { useStore } from "../../elements";
 import { historyManager } from "../../history";
 import { clearOriginImpactConfirmationCacheForTests } from "../elementUpdate";
@@ -27,8 +33,29 @@ function makeElement(
   } as Element;
 }
 
+function seedCanonicalFromStore(): void {
+  registerCanonicalMutationStoreActions({
+    getCurrentProjectId: () => "origin-impact-project",
+    getCurrentLegacySnapshot: () => ({
+      elements: useStore.getState().elements,
+      pages: [],
+      layouts: [],
+    }),
+  });
+  useCanonicalDocumentStore
+    .getState()
+    .setCurrentProject("origin-impact-project");
+  mergeElementsCanonicalPrimary(useStore.getState().elements);
+}
+
 describe("origin impact preview", () => {
   beforeEach(() => {
+    resetCanonicalMutationStoreActions();
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
     clearOriginImpactConfirmationCacheForTests();
     historyManager.setCurrentPage("page-1");
     useStore.setState({
@@ -65,6 +92,7 @@ describe("origin impact preview", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     await useStore.getState().updateElementProps("origin", {
       label: "Edited",
@@ -102,6 +130,7 @@ describe("origin impact preview", () => {
       ]),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     await useStore.getState().updateElementProps("origin", {
       label: "Edited",
@@ -141,6 +170,7 @@ describe("origin impact preview", () => {
       ),
     } as never);
     useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     await useStore.getState().updateElementProps("origin", {
       label: "Edited",
@@ -149,6 +179,26 @@ describe("origin impact preview", () => {
     expect(confirmSpy).toHaveBeenCalledWith(
       "Editing this component will affect 1000 instances. Continue?",
     );
+    expect(useStore.getState().elementsMap.get("origin")?.props).toEqual({
+      label: "Origin",
+    });
+  });
+
+  it("canonical 문서가 없으면 legacy-only origin을 수정하지 않음", async () => {
+    const origin = makeElement("origin", {
+      reusable: true,
+      props: { label: "Origin" },
+    });
+    useStore.setState({
+      elements: [origin],
+      elementsMap: new Map([["origin", origin]]),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+
+    await useStore.getState().updateElementProps("origin", {
+      label: "Edited",
+    });
+
     expect(useStore.getState().elementsMap.get("origin")?.props).toEqual({
       label: "Origin",
     });

@@ -23,8 +23,12 @@ import {
   createDefaultFill,
 } from "../../../../types/builder/fill.types";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
-import { getCanonicalDocumentElementsView } from "../../../stores/canonical/canonicalElementsView";
-import { resolveElementFills } from "../utils/fillMigration";
+import { getNodeMap } from "../../../stores/canonical/canonicalTraversalHelpers";
+import { readCanonicalNodeFillPayload } from "../../../../adapters/canonical/canonicalFillPayload";
+import {
+  resolveElementFills,
+  type FillReadSource,
+} from "../utils/fillMigration";
 import {
   editorPresentationFillPilotRuntime,
   resolveFillPresentationPilotTarget,
@@ -92,9 +96,14 @@ function getCurrentFills(): FillItem[] {
 
   const doc = getActiveCanonicalDocument();
   if (doc) {
-    const found =
-      getCanonicalDocumentElementsView(doc).byId.get(selectedElementId);
-    return resolveElementFills(found);
+    const node = getNodeMap().get(selectedElementId);
+    const source: FillReadSource | undefined = node
+      ? {
+          fills: readCanonicalNodeFillPayload(node) as FillItem[] | undefined,
+          props: node.props as FillReadSource["props"],
+        }
+      : undefined;
+    return resolveElementFills(source);
   }
   return resolveElementFills(elementsMap.get(selectedElementId));
 }

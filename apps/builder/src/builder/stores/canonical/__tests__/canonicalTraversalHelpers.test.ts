@@ -256,6 +256,38 @@ describe("getNodeMap", () => {
     expect(map.size).toBe(3);
     expect([...map.keys()].sort()).toEqual(["r1", "r2", "r3"]);
   });
+
+  it("page ref descendants의 replacement subtree를 canonical hierarchy로 등록", () => {
+    const pageRef = makeNode("page-ref", {
+      type: "ref",
+      metadata: { type: "legacy-page", pageId: "page-1" },
+      ref: "layout-1",
+      descendants: {
+        slot: {
+          children: [
+            makeNode("body-1", {
+              type: "body",
+              children: [makeNode("section-1", { type: "Section" })],
+            } as never),
+          ],
+        },
+      },
+    } as never);
+    setActiveDocument("proj-a", makeDoc({ children: [pageRef] }));
+
+    const map = getNodeMap();
+
+    expect(map.has("page-ref")).toBe(true);
+    expect(map.has("body-1")).toBe(true);
+    expect(map.has("section-1")).toBe(true);
+    expect(getParent("body-1")).toBeNull();
+    expect(getParent("section-1")?.id).toBe("body-1");
+    expect(
+      getChildrenByParent()
+        .get("body-1")
+        ?.map((node) => node.id),
+    ).toEqual(["section-1"]);
+  });
 });
 
 // ─────────────────────────────────────────────
