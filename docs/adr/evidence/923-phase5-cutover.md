@@ -92,19 +92,19 @@ hand 6 (submitbutton · fancybutton · type · chip · linkbutton · dateinput) 
 | ToggleButton       | inline-flex  | inline-flex (generated/ToggleButton.css:11)           | 전환(Phase 5)  | .react-aria-ToggleButton                                                                               |
 | Menu               | inline-flex  | flex (popover 목록)                                   | 예외(투영)     | Canvas Menu 박스 = MenuTrigger 의 Button (ADR-151 B7)                                                  |
 | FileTrigger        | inline-block | inline-flex (generated :24 실효)                      | 일치(outer)    | 자식 Button 1 — inner 차이 배치 영향 없음                                                              |
-| Skeleton           | inline-flex  | block (Skeleton.css:65 live)                          | 전환필요(후속) | catalog structure inline-flex ↔ live block (palette 항목, outer 다름)                                  |
+| Skeleton           | inline-flex  | block (Skeleton.css:65 live)                          | 일치 (후속 전환 09-03 — catalog block, `923-phase5-followup-hc2-conversion.md`) | catalog structure inline-flex ↔ live block (palette 항목, outer 다름)                                  |
 | ColorPicker        | flex         | flex                                                  | 일치           |                                                                                                        |
 | ColorSlider        | block        | grid                                                  | 일치(outer)    | 자식 없는 self-render leaf                                                                             |
 | ColorSwatchPicker  | flex         | flex                                                  | 일치           |                                                                                                        |
 | GridList           | flex         | grid (GridList.css:4)                                 | 일치(outer)    | implicitStyles gridlist 분기가 행을 자체 배치                                                          |
 | Label              | block        | inline-flex (Label.css:27)                            | 예외(inert)    | production 형태 전부 flex 부모 자식 → 양쪽 blockify                                                    |
-| Slot               | block        | inline-flex (generated/Slot.css archetype base)       | 전환필요(후속) | 잔존 spec Slot — spec containerStyles 에 display 명시 등재 필요 (CSSGenerator archetype 기본값과 갈림) |
+| Slot               | block        | inline-flex (generated/Slot.css archetype base)       | 일치 (후속 전환 09-03 — spec display block 명시, `923-phase5-followup-hc2-conversion.md`) | 잔존 spec Slot — spec containerStyles 에 display 명시 등재 필요 (CSSGenerator archetype 기본값과 갈림) |
 | Tag                | block        | flex (TagGroup.css:61)                                | 일치(outer)    | TagList self-render chip; standalone 은 열린 writer 만                                                 |
 | TagList            | flex         | contents (TagGroup.css:32)                            | 예외(투영)     | DOM 은 box 없음 — Tag 가 TagGroup flex 에 직접 참여                                                    |
 | Checkbox           | inline-flex  | label:inline-flex (live)                              | 일치           | 충돌 해소 — live 승자 generated inline-flex                                                            |
 | Radio              | inline-flex  | label:flex (live — Radio.css:9 승)                    | 예외(inert)    | RadioGroup(flex) 자식 → 양쪽 blockify                                                                  |
 | SliderOutput       | inline-flex  | output:flex (live)                                    | 예외(inert)    | Slider 컨테이너 자식 → 양쪽 blockify                                                                   |
-| Avatar             | inline-flex  | div:flex (live)                                       | 전환필요(후속) | catalog structure inline-flex ↔ live flex (palette 항목)                                               |
+| Avatar             | inline-flex  | div:flex (live)                                       | 일치 (후속 전환 09-03 — catalog flex, `923-phase5-followup-hc2-conversion.md`) | catalog structure inline-flex ↔ live flex (palette 항목)                                               |
 | Breadcrumb         | inline-flex  | li:flex (live)                                        | 예외(inert)    | Breadcrumbs(flex) 자식; Canvas 는 standalone 만                                                        |
 | CalendarHeader     | flex         | header:flex (live)                                    | 일치           |                                                                                                        |
 | DisclosureHeader   | flex         | h3:block (live)                                       | 일치(outer)    | Canvas 합성 leaf                                                                                       |
@@ -115,14 +115,16 @@ hand 6 (submitbutton · fancybutton · type · chip · linkbutton · dateinput) 
 | ProgressBarTrack   | grid         | div:block (live)                                      | 일치(outer)    | .bar                                                                                                   |
 | ProgressBarValue   | grid         | span:block (live)                                     | 일치(outer)    | .value                                                                                                 |
 | ProgressCircle     | grid         | div:block (live)                                      | 일치(outer)    | SVG self-render                                                                                        |
-| StatusLight        | inline-flex  | div:flex (live)                                       | 전환필요(후속) | catalog structure inline-flex ↔ live flex (palette 항목)                                               |
+| StatusLight        | inline-flex  | div:flex (live)                                       | 일치 (후속 재측정 09-03 — preview 실경로 rendererMap 은 inline-flex, catalog 변경 0; `923-phase5-followup-hc2-conversion.md`) | catalog structure inline-flex ↔ live flex (palette 항목)                                               |
 | TableHeader        | flex         | thead (소스)                                          | 일치(outer)    | Canvas Table 은 flex 행 투영 (ADR-912)                                                                 |
 | TableBody          | flex         | tbody (소스)                                          | 일치(outer)    | 동상                                                                                                   |
-| TailSwatch         | inline-flex  | div UA block (소스 — Tailwind 래퍼, generated dead)   | 전환필요(후속) | palette 항목, live 미측정 (ColorSlider 의존)                                                           |
+| TailSwatch         | inline-flex  | div UA block (소스 — Tailwind 래퍼, generated dead)   | 일치 (후속 전환 09-03 — catalog block, live 실측 div:block; `923-phase5-followup-hc2-conversion.md`) | palette 항목, live 미측정 (ColorSlider 의존)                                                           |
 | TextArea           | flex         | div:flex (live .react-aria-TextField 래퍼)            | 일치           | 안쪽 textarea 는 block                                                                                 |
 | Tree               | flex         | div UA block (소스)                                   | 일치(outer)    | 행 투영                                                                                                |
 
 **전환필요(후속) 5** (Skeleton · Slot · Avatar · StatusLight · TailSwatch) 는 palette 항목이면서 outer 가 실제로 갈리는 케이스 — 이번 commit 은 판정만 하고 catalog/spec 값 변경은 별도 D3 commit (각각 Skia 시각 확인 동반). breakdown Phase 5 후속 항목.
+
+> 후속 전환 완료 (2026-09-03, worktree 5 commit): 위 5 행의 verdict 는 `일치` 로 갱신됐다 — 전·후 값·rect·원복 RED 는 [923-phase5-followup-hc2-conversion.md](923-phase5-followup-hc2-conversion.md). Canvas 경계·DOM 열은 판정 당시 값 그대로 둔다 (역사 기록).
 
 **FieldError 같은 상태 짝 (round 31 r31m1 재판정)** — 종전 행은 Canvas 를 기본 상태 (factory `display:none`) 로, DOM 을 invalid 상태 (`isInvalid:true` + `errorMessage`) 로 재서 "일치" 로 두었다 (상태가 다른 두 값을 설명문으로 제외). 재측정은 두 상태를 양쪽에서 각각 잰다 (`fieldErrorStates`, 테스트 3번째 `it`):
 
